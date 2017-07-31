@@ -512,6 +512,7 @@ void CRLoginView::SetCaret()
 	CRLoginDoc *pDoc = GetDocument();
 
 	// 001 = CreateCaret Flag, 002 = CurSol ON/OFF, 004 = Focus Flag, 010 = Redraw Caret
+	// TRACE("SetCaret %02x\n", m_DispCaret);
 
 	if ( (m_DispCaret & FGCARET_REDRAW) != 0 ) {
 		m_DispCaret &= ~FGCARET_REDRAW;
@@ -2318,3 +2319,4 @@ void CRLoginView::OnSplitOver()
 	cmds.ParseParam(_T("inpane"), TRUE, FALSE);
 	((CRLoginApp *)::AfxGetApp())->OpenProcsCmd(&cmds);
 }
+

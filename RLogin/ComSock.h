@@ -18,11 +18,15 @@ public:
 	CString m_ComName;
 	int m_ComPort;
 	BOOL m_ThreadEnd;
+	BOOL m_PauseReq;
+	CSemaphore m_ComSema;
 	CEvent *m_pReadEvent;
 	CEvent *m_pWriteEvent;
 	CEvent *m_pEndEvent;
+	CEvent *m_pPauseEvent;
 	OVERLAPPED m_ReadOverLap;
 	OVERLAPPED m_WriteOverLap;
+	OVERLAPPED m_CommOverLap;
 	BOOL m_UseReadOverLap;
 	BOOL m_UseWriteOverLap;
 	DWORD m_WriteOverLapByte;

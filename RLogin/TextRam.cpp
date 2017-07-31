@@ -3884,7 +3884,7 @@ void CTextRam::OnTimer(int id)
 			m_pCanDlg = new CCancelDlg;
 			m_pCanDlg->m_pTextRam = this;
 			m_pCanDlg->m_PauseSec = 0;
-			m_pCanDlg->m_WaitSec  = 30;
+			m_pCanDlg->m_WaitSec  = 180;
 			m_pCanDlg->m_Name     = m_OscName;
 			m_pCanDlg->Create(IDD_CANCELDLG, ::AfxGetMainWnd());
 			m_pCanDlg->ShowWindow(SW_SHOW);
@@ -4211,6 +4211,39 @@ void *CTextRam::LastGrapWnd(int type)
 			return (void *)pWnd;
 	}
 	return NULL;
+}
+BOOL CTextRam::IsUseGrapWnd(int index)
+{
+	int x, y;
+	CVram *vp;
+
+	if ( m_VRam == NULL )
+		return FALSE;
+
+	for ( y = 0 - m_HisLen + m_Lines ; y < m_Lines ; y++ ) {
+		vp = GETVRAM(0, y);
+		for ( x = 0 ; x < m_ColsMax ; x++ ) {
+			if ( IS_IMAGE(vp->pr.cm) && vp->pr.pk.im.id == index )
+				return TRUE;
+			vp++;
+		}
+	}
+
+	return FALSE;
+}
+BOOL CTextRam::ChkGrapWnd()
+{
+	for ( int n = 0 ; n < m_GrapWndTab.GetSize() ; n++ ) { 
+		CGrapWnd *pTempWnd = (CGrapWnd *)m_GrapWndTab[n];
+		if ( pTempWnd->m_ImageIndex == (-1) )
+			continue;
+		if ( !IsUseGrapWnd(pTempWnd->m_ImageIndex) ) {
+			pTempWnd->DestroyWindow();
+			return TRUE;
+		}
+		break;
+	}
+	return FALSE;
 }
 
 //////////////////////////////////////////////////////////////////////

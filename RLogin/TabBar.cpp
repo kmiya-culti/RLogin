@@ -330,6 +330,7 @@ BOOL CTabBar::PreTranslateMessage(MSG* pMsg)
 		pMsg->hwnd = m_hWnd;
 		pMsg->lParam = MAKELPARAM(point.x, point.y);
 	}
+
 	return CControlBar::PreTranslateMessage(pMsg);
 }
 

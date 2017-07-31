@@ -334,11 +334,14 @@ private:
 
 	struct CpcOptTab {
 		CString	signature;
+		BOOL flowcontrol;
 		int baudrate;
 		BYTE datasize;
 		BYTE parity;
 		BYTE stopsize;
 		BYTE control;
+		BYTE linestate;
+		BYTE modemstate;
 		BYTE linemask;
 		BYTE modemmask;
 	} CpcOpt;

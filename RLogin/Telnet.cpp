@@ -254,7 +254,6 @@ BOOL CTelnet::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, in
 	HisOpt[TELOPT_ECHO].flags		|= TELFLAG_ACCEPT;
 	HisOpt[TELOPT_SGA].flags		|= TELFLAG_ACCEPT;
 //	HisOpt[TELOPT_LFLOW].flags		|= TELFLAG_ACCEPT;
-//	HisOpt[TELOPT_COMPORT].flags	|= TELFLAG_ACCEPT;
 
 	MyOpt[TELOPT_BINARY].flags		|= TELFLAG_ACCEPT;
 	MyOpt[TELOPT_ECHO].flags		|= TELFLAG_ACCEPT;
@@ -263,7 +262,7 @@ BOOL CTelnet::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, in
 	MyOpt[TELOPT_NAWS].flags		|= TELFLAG_ACCEPT;
 	MyOpt[TELOPT_NEW_ENVIRON].flags	|= TELFLAG_ACCEPT;
 //	MyOpt[TELOPT_LFLOW].flags		|= TELFLAG_ACCEPT;
-//	MyOpt[TELOPT_COMPORT].flags		|= TELFLAG_ACCEPT;
+	MyOpt[TELOPT_COMPORT].flags		|= TELFLAG_ACCEPT;
 
     SubOptLen = 0;
     ReciveStatus = RVST_NON;
@@ -289,14 +288,17 @@ BOOL CTelnet::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, in
 	slc_mode = 0;
 	m_SendBuff.Clear();
 
-	CpcOpt.signature = _T("RLogin Telnet");
-	CpcOpt.baudrate  = 9600;
-	CpcOpt.datasize  = 8;	// 8 Bits
-	CpcOpt.parity    = 1;	// Parity NONE
-	CpcOpt.stopsize  = 1;	// 1 Stop Bits
-	CpcOpt.control   = 3;	// HARDWARE Flow
-	CpcOpt.linemask  = 0xFF;
-	CpcOpt.modemmask = 0xFF;
+	CpcOpt.signature   = _T("RLogin Telnet");
+	CpcOpt.baudrate    = 9600;
+	CpcOpt.datasize    = 8;	// 8 Bits
+	CpcOpt.parity      = 1;	// Parity NONE
+	CpcOpt.stopsize    = 1;	// 1 Stop Bits
+	CpcOpt.control     = 3;	// HARDWARE Flow
+	CpcOpt.linestate   = 0;
+	CpcOpt.modemstate  = 0;
+	CpcOpt.linemask    = 0xFF;
+	CpcOpt.modemmask   = 0xFF;
+	CpcOpt.flowcontrol = FALSE;
 
 	if ( !CExtSocket::Open(lpszHostAddress, nHostPort, nSocketPort, nSocketType, pAddrInfo) )
 		return FALSE;
@@ -703,6 +705,12 @@ void CTelnet::OptFunc(struct TelOptTab *tab, int opt, int sw, int ch)
 				SendSlcOpt();
 				if ( m_pDocument != NULL )
 					m_pDocument->m_TextRam.EnableOption(TO_RLDSECHO);
+			} else if ( opt == TELOPT_COMPORT ) {
+				SendCpcValue(CPC_CTS_SET_BAUDRATE, CpcOpt.baudrate);
+				SendCpcValue(CPC_CTS_SET_DATASIZE, CpcOpt.datasize);
+				SendCpcValue(CPC_CTS_SET_PARITY,   CpcOpt.parity);
+				SendCpcValue(CPC_CTS_SET_STOPSIZE, CpcOpt.stopsize);
+				SendCpcValue(CPC_CTS_SET_CONTROL,  CpcOpt.control);
 			}
 			break;
 		}
@@ -887,7 +895,7 @@ void CTelnet::SubOptFunc(char *buf, int len)
 		case CPC_STC_SET_BAUDRATE:		// IAC SB COM-PORT-OPTION SET-BAUD <value(4)> IAC SE
 			// 4 Byte (network standard format) 0=current baudrate
 			if ( (ptr + sizeof(unsigned long)) < len )
-				CpcOpt.baudrate = ntohl(*((unsigned long *)buf + ptr));
+				CpcOpt.baudrate = ntohl(*((unsigned long *)(buf + ptr)));
 			break;
 
 		case CPC_STC_SET_DATASIZE:		// IAC SB COM-PORT-OPTION SET-DATASIZE <value> IAC SE
@@ -956,6 +964,8 @@ void CTelnet::SubOptFunc(char *buf, int len)
             // 2 Parity Error
             // 1 Overrun Error
             // 0 Data Ready
+			if ( (n = SB_GETC()) != EOF )
+				CpcOpt.linestate = (BYTE)n;
 			break;
 
 		case CPC_STC_NOTIFY_MODEMSTATE:		// IAC SB COM-PORT-OPTION NOTIFY-MODEMSTATE <value> IAC SE
@@ -968,17 +978,21 @@ void CTelnet::SubOptFunc(char *buf, int len)
 			// 2 Trailing-edge Ring Detector
 			// 1 Delta Data-Set-Ready
 			// 0 Delta Clear-To-Send
+			if ( (n = SB_GETC()) != EOF )
+				CpcOpt.modemstate = (BYTE)n;
 			break;
 
 		case CPC_STC_FLOWCONTROL_SUSPEND:	// IAC SB COM-PORT-OPTION FLOWCONTROL-SUSPEND IAC SE 
 			// The sender of this command is requesting that the receiver
 			// suspend transmission of both data and commands until the
 			// FLOWCONTROL-RESUME is transmitted by the sender.
+			CpcOpt.flowcontrol = TRUE;
 			break;
 
 		case CPC_STC_FLOWCONTROL_RESUME:	// IAC SB COM-PORT-OPTION FLOWCONTROL-RESUME IAC SE
 			// The sender of this command is requesting that the receiver resume
 			// transmission of both data and commands.
+			CpcOpt.flowcontrol = FALSE;
 			break;
 
 		case CPC_STC_SET_LINESTATE_MASK:	// IAC SB COM-PORT-OPTION SET-LINESTATE-MASK <value> IAC SE
@@ -1126,7 +1140,8 @@ void CTelnet::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 void CTelnet::SendCpcValue(int cmd, int value)
 {
 	int n = 0;
-	char tmp[16], *p;
+	int i;
+	char tmp[32], *p;
 
 	if ( (MyOpt[TELOPT_COMPORT].flags & TELFLAG_ON) == 0 )
 		return;
@@ -1139,12 +1154,16 @@ void CTelnet::SendCpcValue(int cmd, int value)
 	if ( cmd == CPC_CTS_SET_BAUDRATE ) {
 		value = htonl(value);
 		p = (char *)(&value);
-		tmp[n++] = *(p++);
-		tmp[n++] = *(p++);
-		tmp[n++] = *(p++);
-		tmp[n++] = *(p++);
-	} else
+		for ( i = 0 ; i < sizeof(long) ; i++ ) {
+			if ( *p == (char)TELC_IAC )
+				tmp[n++] = (char)TELC_IAC;
+			tmp[n++] = *(p++);
+		}
+	} else {
+		if ( value == TELC_IAC )
+			tmp[n++] = (char)TELC_IAC;
 		tmp[n++] = (char)value;
+	}
 
 	tmp[n++] = (char)TELC_IAC;
 	tmp[n++] = (char)TELC_SE;
@@ -1198,6 +1217,7 @@ void CTelnet::SendAuthOpt(int n1, int n2, int n3, void *buf, int len)
 		if ( (tmp[n++] = *(s++)) == (char)TELC_IAC )
 			tmp[n++] = (char)TELC_IAC;
 	}
+
 	tmp[n++] = (char)TELC_IAC;
 	tmp[n++] = (char)TELC_SE;
 

@@ -1400,6 +1400,9 @@ void Cssh::OpenSFtpChannel()
 {
 	int id;
 
+	if ( (m_SSH2Status & SSH2_STAT_HAVELOGIN) == 0 )
+		return;
+
 	if ( (id = SendMsgChannelOpen((-1), "session")) < 0 )
 		return;
 

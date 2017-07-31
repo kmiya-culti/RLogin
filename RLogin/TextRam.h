@@ -1205,6 +1205,7 @@ public:
 	void fc_OSC_CMD(int ch);
 	void fc_OSC_PAM(int ch);
 	void fc_OSC_ST(int ch);
+	void fc_OSC_CAN(int ch);
 	void fc_DECUDK(int ch);
 	void fc_DECREGIS(int ch);
 	void fc_DECSIXEL(int ch);
@@ -1283,6 +1284,8 @@ public:
 	void AddGrapWnd(void *pWnd);
 	void RemoveGrapWnd(void *pWnd);
 	void *LastGrapWnd(int type);
+	BOOL IsUseGrapWnd(int index);
+	BOOL ChkGrapWnd();
 };
 
 #endif // !defined(AFX_TEXTRAM_H__CBEA227A_D7D7_4213_88B1_4F4C0DF48089__INCLUDED_)

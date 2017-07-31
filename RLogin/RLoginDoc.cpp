@@ -643,6 +643,8 @@ void CRLoginDoc::OnSocketConnect()
 	if ( m_pSock == NULL )
 		return;
 
+	UpdateAllViews(NULL, UPDATE_GOTOXY, NULL);
+
 	if ( m_pScript != NULL )
 		m_pScript->OnConnect();
 

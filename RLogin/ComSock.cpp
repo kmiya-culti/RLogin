@@ -33,15 +33,19 @@ CComSock::CComSock(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 	memset(&m_ComConf, 0, sizeof(COMMCONFIG));
 
 	m_ThreadEnd   = FALSE;
+	m_PauseReq    = FALSE;
 	m_pReadEvent  = new CEvent(FALSE, TRUE);
 	m_pWriteEvent = new CEvent(FALSE, TRUE);
 	m_pEndEvent   = new CEvent(FALSE, TRUE);
+	m_pPauseEvent = new CEvent(FALSE, TRUE);
 
 	memset(&m_ReadOverLap,  0, sizeof(OVERLAPPED));
 	memset(&m_WriteOverLap, 0, sizeof(OVERLAPPED));
+	memset(&m_CommOverLap,  0, sizeof(OVERLAPPED));
 
 	m_ReadOverLap.hEvent  = CreateEvent(NULL, TRUE, FALSE, NULL);
 	m_WriteOverLap.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+	m_CommOverLap.hEvent  = CreateEvent(NULL, TRUE, FALSE, NULL);
 
 	m_UseReadOverLap  = FALSE;
 	m_UseWriteOverLap = FALSE;
@@ -57,9 +61,10 @@ CComSock::~CComSock()
 	delete m_pReadEvent;
 	delete m_pWriteEvent;
 	delete m_pEndEvent;
+	delete m_pPauseEvent;
 }
 
-#define	DEBUGLOG(...)
+#define	DEBUGLOG	TRACE
 
 //void CComSock::DEBUGLOG(LPCSTR str, ...)
 //{
@@ -75,49 +80,83 @@ CComSock::~CComSock()
 static UINT ComEventThread(LPVOID pParam)
 {
 	LPARAM fd;
-	DWORD Mask;
+	DWORD Mask, Temp;
 	COMSTAT comstat;
 	CComSock *pSock = (CComSock *)pParam;
 
 	while ( !pSock->m_ThreadEnd ) {
-		if ( (pSock->m_EventMask & EV_RXCHAR) != 0 && ClearCommError(pSock->m_hCom, &Mask, &comstat) && comstat.cbInQue > 0 ) {
+
+		if ( pSock->m_PauseReq ) {
+			WaitForSingleObject(pSock->m_pPauseEvent->m_hObject, INFINITE);
+			pSock->m_PauseReq = FALSE;
+		}
+
+		if ( !pSock->m_ThreadEnd && (pSock->m_EventMask & EV_RXCHAR) != 0 && ClearCommError(pSock->m_hCom, &Mask, &comstat) && comstat.cbInQue > 0 ) {
+			DEBUGLOG("Thread Poll InQue\n");
 			pSock->m_pReadEvent->ResetEvent();
 			pSock->m_EventCode = EV_RXCHAR;
 			AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)pSock->m_hCom, FD_READ);
 			WaitForSingleObject(pSock->m_pReadEvent->m_hObject, INFINITE);
 		}
-		if ( WaitCommEvent(pSock->m_hCom, &Mask, NULL) ) {
+
+		if ( !pSock->m_ThreadEnd && (pSock->m_EventMask & EV_TXEMPTY) != 0 &&
+				ClearCommError(pSock->m_hCom, &Mask, &comstat) && comstat.cbOutQue == 0 &&
+				comstat.fDsrHold == FALSE && comstat.fCtsHold == FALSE && comstat.fXoffHold == FALSE && comstat.fRlsdHold == FALSE ) {
+			DEBUGLOG("Thread Poll OutQue\n");
+			pSock->m_pWriteEvent->ResetEvent();
+			pSock->m_EventCode = EV_TXEMPTY;
+			AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)pSock->m_hCom, FD_WRITE);
+			WaitForSingleObject(pSock->m_pWriteEvent->m_hObject, INFINITE);
+		}
+
+		DEBUGLOG("Thread Event Wait\n");
+
+		if ( !WaitCommEvent(pSock->m_hCom, &Mask, &(pSock->m_CommOverLap)) ) {
+			if ( (Temp = GetLastError()) != ERROR_IO_INCOMPLETE && Temp != ERROR_IO_PENDING ) {
+				DEBUGLOG("Thread WaitComm Error %d\n", GetLastError());
+				break;
+			}
+		}
+
+		if ( !pSock->m_ThreadEnd && GetOverlappedResult(pSock->m_hCom, &(pSock->m_CommOverLap), &Temp, TRUE) ) {
+			ResetEvent(pSock->m_CommOverLap.hEvent);
 			fd = 0;
 			if ( (Mask & (EV_RXCHAR | EV_RX80FULL | EV_DSR | EV_RLSD | EV_ERR)) != 0 ) {
 				fd |= FD_READ;
 				pSock->m_pReadEvent->ResetEvent();
 			}
-			if ( (Mask & (EV_TXEMPTY | EV_CTS | EV_RING | EV_RLSD | EV_ERR)) != 0 ) {
+			if ( (Mask & (EV_TXEMPTY | EV_CTS | EV_RING | EV_DSR | EV_RLSD | EV_ERR)) != 0 ) {
 				fd |= FD_WRITE;
 				pSock->m_pWriteEvent->ResetEvent();
 			}
-			if ( fd == 0 )
+
+			if ( pSock->m_ThreadEnd || fd == 0 )
 				continue;
+
+			DEBUGLOG("Thread Event %02x(%02x)\n", Mask, fd);
 			pSock->m_EventCode = Mask;
 			AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)pSock->m_hCom, fd);
+
 			if ( (fd & FD_READ) != 0 )
 				WaitForSingleObject(pSock->m_pReadEvent->m_hObject, INFINITE);
 			if ( (fd & FD_WRITE) != 0 )
 				WaitForSingleObject(pSock->m_pWriteEvent->m_hObject, INFINITE);
-		} else
-	      ClearCommError(pSock->m_hCom, &Mask, NULL);
+		}
 	}
 	pSock->m_pEndEvent->SetEvent();
+	DEBUGLOG("Thread Endof\n");
 	return 0;
 }
 
 void CComSock::ModEventMask(DWORD add, DWORD del)
 {
+	if ( m_hCom == NULL )
+		return;
+
 	m_EventMask |= add;
 	m_EventMask &= ~del;
 
-	if ( m_hCom != NULL )
-		SetCommMask(m_hCom, m_EventMask);
+	SetCommMask(m_hCom, m_EventMask);
 }
 BOOL CComSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
 {
@@ -163,7 +202,8 @@ BOOL CComSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, i
 	m_pEndEvent->ResetEvent();
 	AfxBeginThread(ComEventThread, this, THREAD_PRIORITY_NORMAL);
 
-	CExtSocket::OnConnect();
+//	CExtSocket::OnConnect();
+	AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hCom, FD_CONNECT);
 
 	return TRUE;
 }
@@ -182,6 +222,10 @@ void CComSock::Close()
 	m_ThreadEnd = TRUE;
 	m_pReadEvent->SetEvent();
 	m_pWriteEvent->SetEvent();
+	m_pPauseEvent->SetEvent();
+	SetEvent(m_ReadOverLap.hEvent);
+	SetEvent(m_WriteOverLap.hEvent);
+	SetEvent(m_CommOverLap.hEvent);
 	m_EventMask = 0;
 	SetCommMask(m_hCom, 0);
 	WaitForSingleObject(m_pEndEvent->m_hObject, INFINITE);
@@ -204,11 +248,14 @@ int CComSock::Send(const void* lpBuf, int nBufLen, int nFlags)
 {
 	DWORD n = 0;
 
+	m_pPauseEvent->ResetEvent();
+	m_PauseReq = TRUE;
+	SetCommMask(m_hCom, m_EventMask);
+
 	m_SendBuff.Apend((LPBYTE)lpBuf, nBufLen);
+
 	if ( m_UseWriteOverLap == FALSE ) {
 		while ( (m_WriteOverLapByte = m_SendBuff.GetSize()) > 0 ) {
-			if ( (m_EventMask & EV_TXEMPTY) == 0 )
-				ModEventMask(EV_TXEMPTY, 0);
 			if ( m_WriteOverLapByte > 1024 ) 
 				m_WriteOverLapByte = 1024;
 			memcpy(m_WriteOverLapBuf, m_SendBuff.GetPtr(), m_WriteOverLapByte);
@@ -221,16 +268,26 @@ int CComSock::Send(const void* lpBuf, int nBufLen, int nFlags)
 				ClearCommError(m_hCom, &n, NULL);
 				break;
 			}
+			if ( WaitForSingleObject(m_WriteOverLap.hEvent, 10) == WAIT_OBJECT_0 ) {
+				ResetEvent(m_WriteOverLap.hEvent);
+				if ( GetOverlappedResult(m_hCom, &m_WriteOverLap, &n, FALSE) ) {
+					DEBUGLOG("Send Write OverLap %d(%d)\r\n", m_WriteOverLapByte, n);
+					m_SendBuff.Consume(n);
+					continue;
+				} else if ( (n = ::GetLastError()) != ERROR_IO_INCOMPLETE && n != ERROR_IO_PENDING ) {
+					DEBUGLOG("Send Write OverLap Error %d\r\n", m_WriteOverLapByte);
+					ClearCommError(m_hCom, &n, NULL);
+					break;
+				}
+			}
 			DEBUGLOG("Send OverLap Wait %d\r\n", m_WriteOverLapByte);
 			m_UseWriteOverLap = TRUE;
+			ModEventMask(EV_TXEMPTY, 0);
 			break;
 		}
-		if ( !m_UseWriteOverLap && (m_EventMask & EV_TXEMPTY) != 0 )
-			ModEventMask(0, EV_TXEMPTY);
+	}
 
-	} else if ( (m_EventMask & EV_TXEMPTY) == 0 )
-			ModEventMask(EV_TXEMPTY, 0);
-
+	m_pPauseEvent->SetEvent();
 	return nBufLen;
 }
 void CComSock::SetXonXoff(int sw)
@@ -320,6 +377,7 @@ void CComSock::OnSend()
 		if ( GetOverlappedResult(m_hCom, &m_WriteOverLap, &n, FALSE) ) {
 			DEBUGLOG("OnSend OverLap %d(%d):%d\r\n", m_WriteOverLapByte, n, m_EventCode);
 			m_SendBuff.Consume(n);
+			ModEventMask(0, EV_TXEMPTY);
 			m_UseWriteOverLap = FALSE;
 		} else if ( (n = ::GetLastError()) != ERROR_IO_INCOMPLETE && n != ERROR_IO_PENDING ) {
 			DEBUGLOG("OnSend OverLap Error %d\r\n", n);
@@ -334,8 +392,6 @@ void CComSock::OnSend()
 
 	if ( !m_UseWriteOverLap ) {
 		while ( (m_WriteOverLapByte = m_SendBuff.GetSize()) > 0 ) {
-			if ( (m_EventMask & EV_TXEMPTY) == 0 )
-				ModEventMask(EV_TXEMPTY, 0);
 			if ( m_WriteOverLapByte > 1024 )
 				m_WriteOverLapByte = 1024;
 			memcpy(m_WriteOverLapBuf, m_SendBuff.GetPtr(), m_WriteOverLapByte);
@@ -348,14 +404,19 @@ void CComSock::OnSend()
 				ClearCommError(m_hCom, &n, NULL);
 				break;
 			}
+			if ( GetOverlappedResult(m_hCom, &m_WriteOverLap, &n, FALSE) ) {
+				DEBUGLOG("OnSend Write OverLap %d(%d)\r\n", m_WriteOverLapByte, n);
+				m_SendBuff.Consume(n);
+				continue;
+			} else if ( (n = ::GetLastError()) != ERROR_IO_INCOMPLETE && n != ERROR_IO_PENDING ) {
+				DEBUGLOG("OnSend Write OverLap Error %d\r\n", m_WriteOverLapByte);
+				ClearCommError(m_hCom, &n, NULL);
+				break;
+			}
 			DEBUGLOG("OnSend Write OverLap Wait %d\r\n", m_WriteOverLapByte);
 			m_UseWriteOverLap = TRUE;
+			ModEventMask(EV_TXEMPTY, 0);
 			break;
-		}
-		if ( !m_UseWriteOverLap ) {
-			DEBUGLOG("OnSend Write Disable\r\n");
-			if ( (m_EventMask & EV_TXEMPTY) != 0 )
-				ModEventMask(0, EV_TXEMPTY);
 		}
 	}
 
@@ -467,7 +528,7 @@ void CComSock::SetConfig()
 	case 0:		// Non
 		m_ComConf.dcb.fDtrControl	= DTR_CONTROL_ENABLE;
 		m_ComConf.dcb.fOutxDsrFlow	= FALSE;
-		m_ComConf.dcb.fRtsControl	= RTS_CONTROL_DISABLE;
+		m_ComConf.dcb.fRtsControl	= RTS_CONTROL_ENABLE;
 		m_ComConf.dcb.fOutxCtsFlow	= FALSE;
 		m_ComConf.dcb.fInX			= FALSE;
 		m_ComConf.dcb.fOutX			= FALSE;
@@ -483,7 +544,7 @@ void CComSock::SetConfig()
 	case 2:		// XonOff
 		m_ComConf.dcb.fDtrControl	= DTR_CONTROL_ENABLE;
 		m_ComConf.dcb.fOutxDsrFlow	= FALSE;
-		m_ComConf.dcb.fRtsControl	= RTS_CONTROL_DISABLE;
+		m_ComConf.dcb.fRtsControl	= RTS_CONTROL_ENABLE;
 		m_ComConf.dcb.fOutxCtsFlow	= FALSE;
 		m_ComConf.dcb.fInX			= TRUE;
 		m_ComConf.dcb.fOutX			= TRUE;

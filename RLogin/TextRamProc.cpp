@@ -478,6 +478,8 @@ static const CTextRam::CSIEXTTAB fc_CsiExtTab[] = {
 
 static const CTextRam::PROCTAB fc_Osc1Tab[] = {
 	{ 0x07,		0,			&CTextRam::fc_OSC_CMD	},	// BELL (ST)
+	{ 0x18,		0,			&CTextRam::fc_OSC_CAN	},
+	{ 0x1A,		0,			&CTextRam::fc_OSC_CAN	},
 	{ 0x1B,		0,			&CTextRam::fc_OSC_CMD	},
 	{ 0x20,		0x2F,		&CTextRam::fc_OSC_CMD	},
 	{ 0x30,		0x39,		&CTextRam::fc_CSI_DIGIT	},
@@ -495,6 +497,8 @@ static const CTextRam::PROCTAB fc_Osc1Tab[] = {
 	{ 0,		0,			NULL } };
 static const CTextRam::PROCTAB fc_Osc2Tab[] = {
 	{ 0x00,		0xFF,		&CTextRam::fc_OSC_PAM	},
+	{ 0x18,		0,			&CTextRam::fc_OSC_CAN	},
+	{ 0x1A,		0,			&CTextRam::fc_OSC_CAN	},
 	{ 0,		0,			NULL } };
 static const CTextRam::CSIEXTTAB fc_DcsExtTab[] = {
 	{							 '|',		&CTextRam::fc_DECUDK	},	// DECUDK User Defined Keys
@@ -2956,6 +2960,12 @@ void CTextRam::fc_OSC_ST(int ch)
 
 	m_OscPara.Clear();
 }
+void CTextRam::fc_OSC_CAN(int ch)
+{
+	fc_TimerReset();
+	m_OscPara.Clear();
+	fc_POP(ch);
+}
 
 //////////////////////////////////////////////////////////////////////
 // fc DCS... 
@@ -3061,6 +3071,13 @@ void CTextRam::fc_DECSIXEL(int ch)
 		pGrapWnd = new CGrapWnd(this);
 		pGrapWnd->Create(NULL, _T(""));
 		pGrapWnd->SetSixelProc(GetAnsiPara(0, 0, 0), GetAnsiPara(1, 0, 0), GetAnsiPara(2, 0, 0), m_OscPara, m_ColTab[m_AttNow.bc]);
+
+		// Delete Non Display GrapWnd
+		if ( ChkGrapWnd() )	if ( ChkGrapWnd() )	ChkGrapWnd();
+
+		if ( (pTempWnd = GetGrapWnd(m_ImageIndex)) != NULL )
+			pTempWnd->DestroyWindow();
+
 		pGrapWnd->WaitForSixel();
 
 		if ( pGrapWnd->m_pActMap == NULL ) {
@@ -3122,11 +3139,10 @@ void CTextRam::fc_DECSIXEL(int ch)
 		pGrapWnd->m_BlockW = w;
 		pGrapWnd->m_BlockH = h;
 
-		if ( (pTempWnd = GetGrapWnd(m_ImageIndex)) != NULL )
-			pTempWnd->DestroyWindow();
-
 		pGrapWnd->m_ImageIndex = m_ImageIndex++;
 		AddGrapWnd((void *)pGrapWnd);
+
+		TRACE("AddGrapWnd %d(%d)\n", m_ImageIndex - 1, m_GrapWndTab.GetSize());
 
 		if ( m_ImageIndex >= 4096 )		// index max 12 bit
 			m_ImageIndex = 0;
