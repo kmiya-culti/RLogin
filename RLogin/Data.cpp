@@ -1002,23 +1002,24 @@ CStrNode *CStringArrayExt::ParseLine(CStrNode *top, LPCTSTR *ptr, BOOL bNest)
 
 	if ( !bNest )
 		bp->AddNext(new CStrNode('E', NULL));
+	else {
+		for ( tp = bp->m_Next ; tp != NULL ; tp = tp->m_Next ) {
+			if ( tp->m_Type == '0' && tp->m_Next != NULL && tp->m_Next->m_Type == '-' && tp->m_Next->m_Next != NULL && tp->m_Next->m_Next->m_Type == '0' ) {
+				st = _tstoi(tp->m_Str);
+				ed = _tstoi(tp->m_Next->m_Next->m_Str);
 
-	for ( tp = bp->m_Next ; tp != NULL ; tp = tp->m_Next ) {
-		if ( tp->m_Type == '0' && tp->m_Next != NULL && tp->m_Next->m_Type == '-' && tp->m_Next->m_Next != NULL && tp->m_Next->m_Next->m_Type == '0' ) {
-			st = _tstoi(tp->m_Str);
-			ed = _tstoi(tp->m_Next->m_Next->m_Str);
+				tp->m_Type = 'L';
+				dp = tp->m_Next;
+				tp->m_Next = dp->m_Next->m_Next;
+				dp->m_Next->m_Next = NULL;
+				delete dp;
 
-			tp->m_Type = 'L';
-			dp = tp->m_Next;
-			tp->m_Next = dp->m_Next->m_Next;
-			dp->m_Next->m_Next = NULL;
-			delete dp;
-
-			while ( st <= ed ) {
-				tmp.Format(_T("%d"), st++);
-				dp = new CStrNode('N', NULL);
-				dp->AddNext(new CStrNode('0', tmp));
-				tp->AddList(dp);
+				while ( st <= ed ) {
+					tmp.Format(_T("%d"), st++);
+					dp = new CStrNode('N', NULL);
+					dp->AddNext(new CStrNode('0', tmp));
+					tp->AddList(dp);
+				}
 			}
 		}
 	}

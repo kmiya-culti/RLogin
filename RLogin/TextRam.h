@@ -133,6 +133,7 @@
 #define	TO_XTALTSCR		(1047-700)	// Alternate/Normal screen buffer
 #define	TO_XTSRCUR		(1048-700)	// Save/Restore cursor as in DECSC/DECRC
 #define	TO_XTALTCLR		(1049-700)	// Alternate screen with clearing
+#define	TO_XTPRICOL		(1070-700)	// Regis/Sixel Private Color Map
 // XTerm Option 2		2000-2019(380-399)
 #define	TO_XTBRPAMD		(2004-1620)	// Bracketed Paste Mode
 // RLogin Option		8400-8511(400-511)
@@ -722,6 +723,9 @@ public:
 	int m_ModKey[MODKEY_MAX];
 	CString m_ModKeyList[MODKEY_MAX];
 	char m_ModKeyTab[256];
+
+	BOOL m_bSixelColInit;
+	COLORREF m_SixelColor[SIXEL_PALET];
 
 	int m_ColsMax;
 	int m_LineUpdate;

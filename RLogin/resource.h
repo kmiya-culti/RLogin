@@ -22,6 +22,8 @@
 #define IDB_BITMAP3                     107
 #define IDM_SEQCANCELSTR                107
 #define IDB_BITMAP4                     108
+#define IDS_TOOMENYHOSTNAME             108
+#define IDS_TOOMANYHOSTNAME             108
 #define IDB_BITMAP5                     109
 #define IDB_BITMAP6                     110
 #define IDB_BITMAP7                     111

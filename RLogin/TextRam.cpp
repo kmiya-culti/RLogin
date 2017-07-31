@@ -1057,6 +1057,7 @@ CTextRam::CTextRam()
 	m_Tek_Top = m_Tek_Free = NULL;
 	m_pTekWnd = NULL;
 	m_pImageWnd = NULL;
+	m_bSixelColInit = FALSE;
 
 	for ( int n = 0 ; n < MODKEY_MAX ; n++ )
 		m_DefModKey[n] = (-1);
@@ -1654,14 +1655,15 @@ void CTextRam::Init()
 	memcpy(m_ColTab, m_DefColTab, sizeof(m_DefColTab));
 	memset(m_AnsiOpt, 0, sizeof(DWORD) * 16);
 	memset(m_OptTab,  0, sizeof(DWORD) * 16);
-	EnableOption(TO_ANSISRM);	//  12 SRM Set Send/Receive mode (Local echo off)
-	EnableOption(TO_DECANM);	//  ?2 ANSI/VT52 Mode
-	EnableOption(TO_DECAWM);	//  ?7 Autowrap mode
-	EnableOption(TO_DECARM);	//  8 Autorepeat mode
-	EnableOption(TO_DECTCEM);	// ?25 Text Cursor Enable Mode
-	EnableOption(TO_XTMCUS);	// ?41 XTerm tab bug fix
-	EnableOption(TO_XTMRVW);	// ?45 XTerm Reverse-wraparound mod
-	EnableOption(TO_DECBKM);	// ?67 Backarrow key mode (BS)
+	EnableOption(TO_ANSISRM);	//    12 SRM Set Send/Receive mode (Local echo off)
+	EnableOption(TO_DECANM);	// ?   2 ANSI/VT52 Mode
+	EnableOption(TO_DECAWM);	// ?   7 Autowrap mode
+	EnableOption(TO_DECARM);	// ?   8 Autorepeat mode
+	EnableOption(TO_DECTCEM);	// ?  25 Text Cursor Enable Mode
+	EnableOption(TO_XTMCUS);	// ?  41 XTerm tab bug fix
+	EnableOption(TO_XTMRVW);	// ?  45 XTerm Reverse-wraparound mod
+	EnableOption(TO_DECBKM);	// ?  67 Backarrow key mode (BS)
+	EnableOption(TO_XTPRICOL);	// ?1070 Private Color Map
 	EnableOption(TO_RLFONT);	// ?8404 フォントサイズから一行あたりの文字数を決定
 	EnableOption(TO_DRCSMMv1);	// ?8800 Unicode 16 Maping
 
@@ -2065,7 +2067,7 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 	tmp.SetString(str, _T(';'));
 	stra.Add(str);
 
-	stra.AddVal(7);	// AnsiOpt Bugfix
+	stra.AddVal(8);	// AnsiOpt Bugfix
 
 	stra.AddVal(m_TitleMode);
 	stra.Add(m_SendCharSet[4]);
@@ -2200,7 +2202,9 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 	if ( v < 6 )
 		EnableOption(TO_DRCSMMv1);	// ?8800 Unicode 16 Maping
 	if ( v < 7 )
-		EnableOption(TO_DECARM);	//  8 Autorepeat mode
+		EnableOption(TO_DECARM);	// ? 8 Autorepeat mode
+	if ( v < 8 )
+		EnableOption(TO_XTPRICOL);	// ?1070 Regis/Sixel Private Color Map
 	
 	DisableOption(TO_IMECTRL);
 	memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_DefAnsiOpt));

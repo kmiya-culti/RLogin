@@ -1000,6 +1000,8 @@ int CRLoginDoc::SocketOpen()
 		hosts.GetParam(m_ServerEntry.m_HostName);
 
 		if ( hosts.GetSize() > 1 ) {
+			if ( hosts.GetSize() > 20 && AfxMessageBox(IDS_TOOMANYHOSTNAME, MB_ICONWARNING | MB_YESNO) != IDYES )
+				return FALSE;
 			CCommandLineInfoEx cmds;
 			cmds.ParseParam(_T("inpane"), TRUE, FALSE);
 			SetEntryProBuffer();

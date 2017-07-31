@@ -82,6 +82,7 @@ static const struct _OptListTab {
 	{	TO_XTALTSCR,	_T("現在画面と拡張画面の切換"),		_T("拡張画面と保存画面の切換"),		NULL	},
 	{	TO_XTSRCUR,		_T("カーソル位置の保存"),			_T("保存したカーソル位置の復帰"),	NULL	},
 	{	TO_XTALTCLR,	_T("現在の画面の保存後にクリア"),	_T("保存した画面の復帰"),			NULL	},
+	{	TO_XTPRICOL,	_T("ReGIS/Sixel個別カラーマップ"),	_T("共通カラーマップ"),				NULL	},
 
 	// XTerm Option 2		2000-2019(380-399)
 	{	TO_XTBRPAMD,	_T("Bracketed Paste Mode 有効"),	_T("Bracketed Paste Mode 無効"),	NULL	},

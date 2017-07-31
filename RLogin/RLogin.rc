@@ -469,8 +469,8 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.17.4 (2014/12/05)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
-    LTEXT           "Copyright (C) 1998-2014 Culti",IDC_STATIC,47,15,176,8
+    LTEXT           "RLogin Version 2.17.5 (2015/01/06)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "Copyright (C) 1998-2015 Culti",IDC_STATIC,47,15,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,151,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.1j 15 Oct 2014",IDC_STATIC,47,29,176,8
     LTEXT           "Copyright (c) 1998-2014 The OpenSSL Project",IDC_STATIC,47,39,176,8
@@ -1036,7 +1036,7 @@ END
 
 IDD_CHATDLG DIALOGEX 0, 0, 299, 247
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Chat Scipt"
+CAPTION "Chat Script"
 FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
 BEGIN
     CONTROL         "",IDC_NODETREE,"SysTreeView32",TVS_HASBUTTONS | TVS_HASLINES | TVS_SHOWSELALWAYS | WS_BORDER | WS_HSCROLL | WS_TABSTOP,14,16,271,121
@@ -1481,8 +1481,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,17,4,0
- PRODUCTVERSION 2,17,4,0
+ FILEVERSION 2,17,5,0
+ PRODUCTVERSION 2,17,5,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1499,12 +1499,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.17.4.0"
+            VALUE "FileVersion", "2.17.5.0"
             VALUE "InternalName", "RLogin.exe"
-            VALUE "LegalCopyright", "Copyright (C) 2014 Culti  All rights reserved."
+            VALUE "LegalCopyright", "Copyright (C) 2015 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.17.4.0"
+            VALUE "ProductVersion", "2.17.5.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2751,6 +2751,7 @@ BEGIN
     IDS_PUBLICKEYCOPYMSG    "クリップボードにコピーされる公開鍵"
     IDS_AGENT_DELKEY        "指定された認証鍵を削除しますか？"
     IDM_SEQCANCELSTR        "%sシーケンスを実行中です\r\nキャンセルするには、ここをクリック"
+    IDS_TOOMANYHOSTNAME     "多くのホスト名に展開します。接続しますか？"
 END
 
 STRINGTABLE
