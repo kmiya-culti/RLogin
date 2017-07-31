@@ -676,7 +676,7 @@ public:
 	int BLINKUPDATE(class CRLoginView *pView);
 
 	// Mid Level
-	int GetAnsiPara(int index, int defvalue, int limit);
+	int GetAnsiPara(int index, int defvalue, int limit, int maxvalue = -1);
 	void SetAnsiParaArea(int top);
 	LPCTSTR GetHexPara(LPCTSTR str, CBuffer &buf);
 	void LOCATE(int x, int y);

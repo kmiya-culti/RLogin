@@ -1029,7 +1029,8 @@ LRESULT CRLoginView::OnImeComposition(WPARAM wParam, LPARAM lParam)
 }
 afx_msg LRESULT CRLoginView::OnImeRequest(WPARAM wParam, LPARAM lParam)
 {
-	int pos, len;
+	int pos, len, cmp;
+	HIMC hIMC;
 	RECONVERTSTRING *pReConvStr = (RECONVERTSTRING*)lParam;
 	CRLoginDoc *pDoc = GetDocument();
 	CBuffer tmp;
@@ -1037,54 +1038,73 @@ afx_msg LRESULT CRLoginView::OnImeRequest(WPARAM wParam, LPARAM lParam)
 
 	switch(wParam) {
 	case IMR_DOCUMENTFEED:
-		if ( pReConvStr != NULL ) {
 #ifdef	_UNICODE
-			pDoc->m_TextRam.GetVram(0, pDoc->m_TextRam.m_CurX - 1, pDoc->m_TextRam.m_CurY, pDoc->m_TextRam.m_CurY, &tmp);
-			pos = tmp.GetSize();
+		pDoc->m_TextRam.GetVram(0, pDoc->m_TextRam.m_CurX - 1, pDoc->m_TextRam.m_CurY, pDoc->m_TextRam.m_CurY, &tmp);
+		pos = tmp.GetSize();
 
-			pDoc->m_TextRam.GetVram(pDoc->m_TextRam.m_CurX, pDoc->m_TextRam.m_Cols - 1, pDoc->m_TextRam.m_CurY, pDoc->m_TextRam.m_CurY, &tmp);
-			len = tmp.GetSize();
+		if ( (hIMC = ImmGetContext(m_hWnd)) != NULL ) {
+			if ( (len = ImmGetCompositionStringW(hIMC, GCS_COMPSTR, NULL, 0)) > 0 )
+				ImmGetCompositionStringW(hIMC, GCS_COMPSTR, tmp.PutSpc(len), len);
+			ImmReleaseContext(m_hWnd, hIMC);
+			cmp = tmp.GetSize() - pos;
+		} else
+			cmp = 0;
 
-			tmp.PutWord(0);
+		pDoc->m_TextRam.GetVram(pDoc->m_TextRam.m_CurX, pDoc->m_TextRam.m_Cols - 1, pDoc->m_TextRam.m_CurY, pDoc->m_TextRam.m_CurY, &tmp);
+		len = tmp.GetSize();
 
+		tmp.PutWord(0);
+
+		if ( pReConvStr != NULL ) {
 			pReConvStr->dwStrLen          = len / sizeof(WCHAR);
 			pReConvStr->dwStrOffset       = sizeof(RECONVERTSTRING);
 
-			pReConvStr->dwTargetStrLen    = 0;
+			pReConvStr->dwTargetStrLen    = cmp / sizeof(WCHAR);
 			pReConvStr->dwTargetStrOffset = pos;
 
-			pReConvStr->dwCompStrLen      = 0;
-			pReConvStr->dwCompStrOffset   = 0;
+			pReConvStr->dwCompStrLen      = cmp / sizeof(WCHAR);
+			pReConvStr->dwCompStrOffset   = pos;
 
-			if ( pReConvStr->dwSize > (sizeof(RECONVERTSTRING) + tmp.GetSize()) )
+			if ( pReConvStr->dwSize >= (sizeof(RECONVERTSTRING) + tmp.GetSize()) )
 				memcpy((char *)pReConvStr + sizeof(RECONVERTSTRING), tmp.GetPtr(), tmp.GetSize());
-
 		}
-		return sizeof(RECONVERTSTRING) + (m_Cols + 1) * sizeof(WCHAR);
+
+		return sizeof(RECONVERTSTRING) + tmp.GetSize();
 #else
-			pDoc->m_TextRam.GetVram(0, pDoc->m_TextRam.m_CurX - 1, pDoc->m_TextRam.m_CurY, pDoc->m_TextRam.m_CurY, &tmp);
-			str = (LPCWSTR)tmp;
-			pos = str.GetLength();
+		pDoc->m_TextRam.GetVram(0, pDoc->m_TextRam.m_CurX - 1, pDoc->m_TextRam.m_CurY, pDoc->m_TextRam.m_CurY, &tmp);
+		str = (LPCWSTR)tmp;
+		pos = str.GetLength();
 
+		if ( (hIMC = ImmGetContext(m_hWnd)) != NULL ) {
 			tmp.Clear();
-			pDoc->m_TextRam.GetVram(pDoc->m_TextRam.m_CurX, pDoc->m_TextRam.m_Cols - 1, pDoc->m_TextRam.m_CurY, pDoc->m_TextRam.m_CurY, &tmp);
-			str += (LPCWSTR)tmp;
-			len = str.GetLength();
+			if ( (len = ImmGetCompositionString(hIMC, GCS_COMPSTR, NULL, 0)) > 0 )
+				ImmGetCompositionString(hIMC, GCS_COMPSTR, tmp.PutSpc(len), len);
+			ImmReleaseContext(m_hWnd, hIMC);
+			cmp = tmp.GetSize();
+			str += (LPCSTR)tmp;
+		} else
+			cmp = 0;
 
+		tmp.Clear();
+		pDoc->m_TextRam.GetVram(pDoc->m_TextRam.m_CurX, pDoc->m_TextRam.m_Cols - 1, pDoc->m_TextRam.m_CurY, pDoc->m_TextRam.m_CurY, &tmp);
+		str += (LPCWSTR)tmp;
+		len = str.GetLength();
+
+		if ( pReConvStr != NULL ) {
 			pReConvStr->dwStrLen          = len;
 			pReConvStr->dwStrOffset       = sizeof(RECONVERTSTRING);
 
-			pReConvStr->dwTargetStrLen    = 0;
+			pReConvStr->dwTargetStrLen    = cmp;
 			pReConvStr->dwTargetStrOffset = pos;
 
-			pReConvStr->dwCompStrLen      = 0;
-			pReConvStr->dwCompStrOffset   = 0;
+			pReConvStr->dwCompStrLen      = cmp;
+			pReConvStr->dwCompStrOffset   = pos;
 
-			if ( pReConvStr->dwSize > (sizeof(RECONVERTSTRING) + str.GetLength() + 1) )
+			if ( pReConvStr->dwSize >= (sizeof(RECONVERTSTRING) + str.GetLength() + 1) )
 				strcpy((char *)pReConvStr + sizeof(RECONVERTSTRING), str);
-
 		}
-		return sizeof(RECONVERTSTRING) + (m_Cols + 1) * sizeof(CHAR);
+
+		return sizeof(RECONVERTSTRING) + (str.GetLength() + 1) * sizeof(CHAR);
 #endif
 	default:
 		return DefWindowProc(WM_IME_REQUEST, wParam, lParam);

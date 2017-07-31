@@ -399,7 +399,6 @@ void CIdkeySelDLg::OnIdkeyCreate()
 	UpdateData(TRUE);
 
 	m_GenIdKey.Close();
-	m_GenIdKey.m_Pass = dlg.m_PassName;
 	m_GenIdKey.m_Name = m_Name;
 	m_GenIdKey.m_Flag = TRUE;
 	m_GenIdKeyType = IDKEY_DSA2;
@@ -432,6 +431,8 @@ void CIdkeySelDLg::OnIdkeyCreate()
 		MessageBox(CStringLoad(IDE_USEPASSWORDIDKEY));
 		return;
 	}
+
+	m_GenIdKey.m_Pass = dlg.m_PassName;
 
 	if ( (pWnd = GetDlgItem(IDC_IDKEY_TYPE)) != NULL )
 		pWnd->EnableWindow(FALSE);

@@ -3380,9 +3380,18 @@ void CTextRam::fc_CSI_ESC(int ch)
 void CTextRam::fc_CSI_DIGIT(int ch)
 {
 	int n = (int)m_AnsiPara.GetSize() - 1;
-	if ( m_AnsiPara[n] == 0xFFFF )
+
+	ch = ((ch & 0x7F) - '0');
+
+	if ( m_AnsiPara[n] == 0xFFFF )			// Not Init Value
 		m_AnsiPara[n] = 0;
-	m_AnsiPara[n] = m_AnsiPara[n] * 10 + ((ch & 0x7F) - '0');
+	else if ( m_AnsiPara[n] == 0xFFFE )		// Max Value
+		return;
+
+	if ( ((DWORD)m_AnsiPara[n] * 10 + ch) >= 0xFFFEL )
+		m_AnsiPara[n] = 0xFFFE;
+	else
+		m_AnsiPara[n] = m_AnsiPara[n] * 10 + ch;
 }
 void CTextRam::fc_CSI_SEPA(int ch)
 {
@@ -3418,7 +3427,7 @@ void CTextRam::fc_CSI_EXT(int ch)
 void CTextRam::fc_ICH(int ch)
 {
 	// CSI @	ICH	Insert Character
-	for ( int n = GetAnsiPara(0, 1, 1) ; n > 0 ; n-- )
+	for ( int n = GetAnsiPara(0, 1, 1, m_Cols) ; n > 0 ; n-- )
 		INSCHAR();
 	fc_POP(ch);
 }
@@ -3492,7 +3501,7 @@ void CTextRam::fc_CUP(int ch)
 void CTextRam::fc_CHT(int ch)
 {
 	// CSI I	CHT Move the active position n tabs forward.
-	for ( int i = GetAnsiPara(0, 1, 0) ; i > 0 ; i-- )
+	for ( int i = GetAnsiPara(0, 1, 0, m_Cols) ; i > 0 ; i-- )
 		TABSET(TAB_COLSNEXT);
 	fc_POP(ch);
 }
@@ -3535,7 +3544,7 @@ void CTextRam::fc_IL(int ch)
 {
 	// CSI L	IL Insert Line
 	if ( m_CurY >= m_TopY && m_CurY < m_BtmY ) {
-		for ( int n = GetAnsiPara(0, 1, 1) ; n > 0 ; n-- ) {
+		for ( int n = GetAnsiPara(0, 1, 1, m_Lines) ; n > 0 ; n-- ) {
 			BAKSCROLL(m_CurY, m_BtmY);
 			TABSET(TAB_INSLINE);
 		}
@@ -3546,7 +3555,7 @@ void CTextRam::fc_DL(int ch)
 {
 	// CSI M	DL Delete Line
 	if ( m_CurY >= m_TopY && m_CurY < m_BtmY ) {
-		for ( int n = GetAnsiPara(0, 1, 1) ; n > 0 ; n-- ) {
+		for ( int n = GetAnsiPara(0, 1, 1, m_Lines) ; n > 0 ; n-- ) {
 			FORSCROLL(m_CurY, m_BtmY);
 			TABSET(TAB_DELINE);
 		}
@@ -3594,7 +3603,7 @@ void CTextRam::fc_EA(int ch)
 void CTextRam::fc_DCH(int ch)
 {
 	// CSI P	DCH Delete Character
-	for ( int n = GetAnsiPara(0, 1, 1) ; n > 0 ; n-- )
+	for ( int n = GetAnsiPara(0, 1, 1, m_Cols) ; n > 0 ; n-- )
 		DELCHAR();
 	fc_POP(ch);
 }
@@ -3606,7 +3615,7 @@ void CTextRam::fc_SEE(int ch)
 void CTextRam::fc_SU(int ch)
 {
 	// CSI S	SU Scroll Up
-	for ( int n = GetAnsiPara(0, 1, 1) ; n > 0 ; n-- )
+	for ( int n = GetAnsiPara(0, 1, 1, m_Lines) ; n > 0 ; n-- )
 		FORSCROLL(m_TopY, m_BtmY);
 	fc_POP(ch);
 }
@@ -3636,7 +3645,7 @@ void CTextRam::fc_SD(int ch)
 			m_MouseRect.bottom    = m_Lines - 1;
 
 	} else {
-		for ( int n = GetAnsiPara(0, 1, 1) ; n > 0 ; n-- )
+		for ( int n = GetAnsiPara(0, 1, 1, m_Lines) ; n > 0 ; n-- )
 			BAKSCROLL(m_TopY, m_BtmY);
 	}
 	fc_POP(ch);
@@ -3644,14 +3653,14 @@ void CTextRam::fc_SD(int ch)
 void CTextRam::fc_NP(int ch)
 {
 	// CSI U	NP Next Page
-	for ( int n = GetAnsiPara(0, 1, 1) ; n > 0 ; n-- )
+	for ( int n = GetAnsiPara(0, 1, 1, 100) ; n > 0 ; n-- )
 		PostMessage(WM_VSCROLL, SB_PAGEDOWN, 0);
 	fc_POP(ch);
 }
 void CTextRam::fc_PP(int ch)
 {
 	// CSI V	PP Preceding Page
-	for ( int n = GetAnsiPara(0, 1, 1) ; n > 0 ; n-- )
+	for ( int n = GetAnsiPara(0, 1, 1, 100) ; n > 0 ; n-- )
 		PostMessage(WM_VSCROLL, SB_PAGEUP, 0);
 	fc_POP(ch);
 }
@@ -3753,7 +3762,7 @@ void CTextRam::fc_REP(int ch)
 	if ( m_LastChar != 0 ) {
 		if ( (m_LastChar & 0xFFFFFF00) != 0 )
 			m_LastChar = ' ';
-		for ( int n = GetAnsiPara(0, 1, 1) ; n > 0 ; n-- )
+		for ( int n = GetAnsiPara(0, 1, 1, m_Cols * m_Lines) ; n > 0 ; n-- )
 			PUT1BYTE(m_LastChar, m_BankNow);
 		m_LastChar = 0;
 	}
@@ -4986,7 +4995,7 @@ void CTextRam::fc_SL(int ch)
 	// CSI (' ' << 8) | '@'		SL Scroll left
 	int n;
 
-	for ( n = GetAnsiPara(0, 1, 1) ; n > 0 ; n-- )
+	for ( n = GetAnsiPara(0, 1, 1, m_Cols) ; n > 0 ; n-- )
 		LEFTSCROLL();
 	fc_POP(ch);
 }
@@ -4995,7 +5004,7 @@ void CTextRam::fc_SR(int ch)
 	// CSI (' ' << 8) | 'A'		SR Scroll Right
 	int n;
 
-	for ( n = GetAnsiPara(0, 1, 1) ; n > 0 ; n-- )
+	for ( n = GetAnsiPara(0, 1, 1, m_Cols) ; n > 0 ; n-- )
 		RIGHTSCROLL();
 	fc_POP(ch);
 }
@@ -5254,7 +5263,7 @@ void CTextRam::fc_DECIC(int ch)
 	// CSI ('\'' << 8) | '}'		DECIC Insert Column
 	int n;
 
-	for ( n = GetAnsiPara(0, 1, 1) ; n > 0 ; n-- )
+	for ( n = GetAnsiPara(0, 1, 1, m_Cols) ; n > 0 ; n-- )
 		INSCHAR();
 
 	fc_POP(ch);
@@ -5264,7 +5273,7 @@ void CTextRam::fc_DECDC(int ch)
 	// CSI ('\'' << 8) | '~'		DECDC Delete Column(s)
 	int n;
 
-	for ( n = GetAnsiPara(0, 1, 1) ; n > 0 ; n-- )
+	for ( n = GetAnsiPara(0, 1, 1, m_Cols) ; n > 0 ; n-- )
 		DELCHAR();
 
 	fc_POP(ch);

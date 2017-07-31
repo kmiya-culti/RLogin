@@ -3290,11 +3290,15 @@ int CTextRam::BLINKUPDATE(class CRLoginView *pView)
 // Mid Level
 //////////////////////////////////////////////////////////////////////
 
-int CTextRam::GetAnsiPara(int index, int defvalue, int limit)
+int CTextRam::GetAnsiPara(int index, int defvalue, int limit, int maxvalue)
 {
+	int val;
 	if ( index >= m_AnsiPara.GetSize() || m_AnsiPara[index] == 0xFFFF || m_AnsiPara[index] < limit )
 		return defvalue;
-	return m_AnsiPara[index];
+	val = m_AnsiPara[index];
+	if ( maxvalue >= 0 && val > maxvalue )
+		val = maxvalue;
+	return val;
 }
 void CTextRam::SetAnsiParaArea(int top)
 {
