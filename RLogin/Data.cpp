@@ -4049,13 +4049,15 @@ void CParamTab::GetArray(CStringArrayExt &stra)
 
 	if ( stra.GetSize() > i ) {
 		list.GetString(stra.GetAt(i++), _T(','));
-		m_TtyMode.RemoveAll();
-		for ( n = 0 ; n < list.GetSize() ; n++ ) {
-			node.GetString(list[n], _T('='));
-			if ( node.GetSize() >= 2 ) {
-				ttymode.opcode = node.GetVal(0);
-				ttymode.param  = node.GetVal(1);
-				m_TtyMode.Add(ttymode);
+		if ( list.GetSize() > 0 ) {
+			m_TtyMode.RemoveAll();
+			for ( n = 0 ; n < list.GetSize() ; n++ ) {
+				node.GetString(list[n], _T('='));
+				if ( node.GetSize() >= 2 && node.GetVal(0) > 0 ) {
+					ttymode.opcode = node.GetVal(0);
+					ttymode.param  = node.GetVal(1);
+					m_TtyMode.Add(ttymode);
+				}
 			}
 		}
 	}
@@ -4181,6 +4183,8 @@ void CParamTab::SetIndex(int mode, CStringIndex &index)
 			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
 				node.opcode = index[n][i][0];
 				node.param  = index[n][i][1];
+				if ( node.opcode > 0 )
+					m_TtyMode.Add(node);
 			}
 		}
 	}

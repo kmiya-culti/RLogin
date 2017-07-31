@@ -554,9 +554,17 @@ void Cssh::GetStatus(CString &str)
 	str += _T("\r\n");
 	tmp.Format(_T("Kexs: %s\r\n"), m_VProp[PROP_KEX_ALGS]);
 	str += tmp;
-	tmp.Format(_T("Encode: %s + %s + %s\r\n"), m_EncCmp.GetTitle(), m_EncCip.GetTitle(), m_EncMac.GetTitle());
+
+	if ( m_EncCip.IsAEAD() || m_EncCip.IsPOLY() )
+		tmp.Format(_T("Encode: %s + %s\r\n"), m_EncCmp.GetTitle(), m_EncCip.GetTitle());
+	else
+		tmp.Format(_T("Encode: %s + %s + %s\r\n"), m_EncCmp.GetTitle(), m_EncCip.GetTitle(), m_EncMac.GetTitle());
 	str += tmp;
-	tmp.Format(_T("Decode: %s + %s + %s\r\n"), m_DecCmp.GetTitle(), m_DecCip.GetTitle(), m_DecMac.GetTitle());
+
+	if ( m_DecCip.IsAEAD() || m_DecCip.IsPOLY() )
+		tmp.Format(_T("Decode: %s + %s\r\n"), m_DecCmp.GetTitle(), m_DecCip.GetTitle());
+	else
+		tmp.Format(_T("Decode: %s + %s + %s\r\n"), m_DecCmp.GetTitle(), m_DecCip.GetTitle(), m_DecMac.GetTitle());
 	str += tmp;
 
 	str += _T("UserAuth: ");

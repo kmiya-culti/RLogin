@@ -3412,7 +3412,7 @@ void CTextRam::fc_DECRSTS(DWORD ch)
 				continue;
 			switch(Pu) {
 			case 1:		// HLS
-				m_ColTab[Pc] = CGrapWnd::HLStoRGB(Px * 100 / 360, Py * 100 / 100, Pz * 100 / 100);
+				m_ColTab[Pc] = CGrapWnd::HLStoRGB(Px, Py, Pz);
 				break;
 			case 2:		// RGB
 				m_ColTab[Pc] = RGB(Px * 255 / 100, Py * 255 / 100, Pz * 255 / 100);
