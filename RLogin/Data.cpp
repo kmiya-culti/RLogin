@@ -278,7 +278,7 @@ void CBuffer::PutBIGNUM(BIGNUM *val)
 	LPBYTE tmp = new BYTE[bin_size];
 	int len;
 	if ( (len = BN_bn2bin(val, tmp)) != bin_size )
-		AfxThrowMemoryException();
+		throw this;
 	Put16Bit(bits);
 	Apend(tmp, len);
 	delete tmp;
@@ -294,19 +294,19 @@ void CBuffer::PutBIGNUM2(BIGNUM *val)
 		return;
 	}
 	if (val->neg)
-		AfxThrowMemoryException();
+		throw this;
 
 	bytes = BN_num_bytes(val) + 1; /* extra padding byte */
     if ( bytes < 2 )
-		AfxThrowMemoryException();
+		throw this;
 
 	if ( (tmp = new BYTE[bytes]) == NULL )
-		AfxThrowMemoryException();
+		throw this;
 
 	tmp[0] = '\x00';
 
     if ( BN_bn2bin(val, tmp + 1) != (bytes - 1) )
-		AfxThrowMemoryException();
+		throw this;
 
 	hnoh = (tmp[1] & 0x80) ? 0 : 1;
 	Put32Bit(bytes - hnoh);
@@ -321,7 +321,7 @@ void CBuffer::PutWord(int val)
 int CBuffer::Get8Bit()
 {
 	if ( GetSize() < 1 )
-		AfxThrowUserException();
+		throw this;
 	int val = PTR8BIT(GetPtr());
 	Consume(1);
 	return val;
@@ -329,7 +329,7 @@ int CBuffer::Get8Bit()
 int CBuffer::Get16Bit()
 {
 	if ( GetSize() < 2 )
-		AfxThrowUserException();
+		throw this;
 	int val = PTR16BIT(GetPtr());
 	Consume(2);
 	return val;
@@ -337,7 +337,7 @@ int CBuffer::Get16Bit()
 int CBuffer::Get32Bit()
 {
 	if ( GetSize() < 4 )
-		AfxThrowUserException();
+		throw this;
 	int val = PTR32BIT(GetPtr());
 	Consume(4);
 	return val;
@@ -345,7 +345,7 @@ int CBuffer::Get32Bit()
 LONGLONG CBuffer::Get64Bit()
 {
 	if ( GetSize() < 8 )
-		AfxThrowUserException();
+		throw this;
 	LONGLONG val = PTR64BIT(GetPtr());
 	Consume(8);
 	return val;
@@ -354,7 +354,7 @@ int CBuffer::GetStr(CString &str)
 {
 	int len = Get32Bit();
 	if ( len < 0 || len > (256 * 1024) || (m_Len - m_Ofs) < len )
-		AfxThrowUserException();
+		throw this;
 	memcpy(str.GetBufferSetLength(len), m_Data + m_Ofs, len);
 	Consume(len);
 	return TRUE;
@@ -363,7 +363,7 @@ int CBuffer::GetBuf(CBuffer *buf)
 {
 	int len = Get32Bit();
 	if ( len < 0 || len > (256 * 1024) || (m_Len - m_Ofs) < len )
-		AfxThrowUserException();
+		throw this;
 	buf->Apend(GetPtr(), len);
 	Consume(len);
 	return TRUE;
@@ -373,9 +373,9 @@ int CBuffer::GetBIGNUM(BIGNUM *val)
 	int bytes;
 	int bits = Get16Bit();
 	if ( (bytes = (bits + 7) / 8) > (8 * 1024) )
-		AfxThrowUserException();
+		throw this;
 	if ( (m_Len - m_Ofs) < bytes )
-		AfxThrowUserException();
+		throw this;
     BN_bin2bn(m_Data + m_Ofs, bytes, val);
 	Consume(bytes);
 	return TRUE;
@@ -384,7 +384,7 @@ int CBuffer::GetBIGNUM2(BIGNUM *val)
 {
 	int bytes = Get32Bit();
 	if ( (m_Len - m_Ofs) < bytes )
-		AfxThrowUserException();
+		throw this;
     BN_bin2bn(m_Data + m_Ofs, bytes, val);
 	Consume(bytes);
 	return TRUE;
@@ -392,7 +392,7 @@ int CBuffer::GetBIGNUM2(BIGNUM *val)
 int CBuffer::GetWord()
 {
 	if ( GetSize() < sizeof(WORD) )
-		AfxThrowUserException();
+		throw this;
 	WORD wd = *((WORD *)GetPtr());
 	Consume(sizeof(WORD));
 	return (int)wd;
@@ -2051,7 +2051,7 @@ void CKeyNode::SetCode(LPCSTR name)
 			return;
 		}
 	}
-	if ( name[1] == '\0' && (*name >= 0x30 && *name >= 0x39 || *name >= 0x41 && *name <= 0x5A) ) {
+	if ( name[1] == '\0' && (*name >= 0x30 && *name <= 0x39 || *name >= 0x41 && *name <= 0x5A) ) {
 		m_Code = *name;
 	} else if ( name[0] == '$' && isxdigit(name[1]) && isxdigit(name[2]) ) {
 		m_Code = 0;
@@ -2736,17 +2736,49 @@ void CKeyMacTab::SetHisMenu(CWnd *pWnd)
 //////////////////////////////////////////////////////////////////////
 // CParamTab
 
-static const char *InitAlgo[9][13] = {
+static const char *InitAlgo[9][44] = {
 	{ "blowfish", "3des", "des", NULL },
 	{ "crc32", NULL },
 	{ "zlib", "none", NULL },
 
-	{ "aes128-ctr", "aes192-ctr", "aes256-ctr", "arcfour", "arcfour128", "arcfour256", "blowfish-cbc", "3des-cbc", "cast128-cbc", "aes128-cbc", "aes192-cbc", "aes256-cbc", NULL },
-	{ "hmac-sha1", "hmac-md5", "hmac-ripemd160", "hmac-md5-96", "hmac-sha1-96", NULL },
+	{ "arcfour",						"arcfour128",					"arcfour256",
+	  "aes128-ctr",						"aes192-ctr",					"aes256-ctr",
+	  "aes128-cbc",						"aes192-cbc",					"aes256-cbc",
+	  "blowfish-ctr",					"cast128-ctr",					"idea-ctr",
+	  "twofish-ctr",					"3des-ctr",
+	  "blowfish-cbc",					"cast128-cbc",					"idea-cbc",
+	  "twofish-cbc",					"3des-cbc",
+	  "twofish128-ctr",					"twofish192-ctr",				"twofish256-ctr",
+	  "twofish128-cbc",					"twofish192-cbc",				"twofish256-cbc",
+	  "serpent128-ctr",					"serpent192-ctr",				"serpent256-ctr",
+	  "serpent128-cbc",					"serpent192-cbc",				"serpent256-cbc",
+	  "camellia128-ctr@openssh.org",	"camellia192-ctr@openssh.org",	"camellia256-ctr@openssh.org",
+	  "camellia128-cbc@openssh.org",	"camellia192-cbc@openssh.org",	"camellia256-cbc@openssh.org",
+	  "seed128-ctr@ssh.com",			"seed192-ctr@ssh.com",			"seed256-ctr@ssh.com",
+	  "seed128-cbc@ssh.com",			"seed192-cbc@ssh.com",			"seed256-cbc@ssh.com",
+	  NULL },
+	{ "hmac-sha1", "hmac-md5", "hmac-ripemd160", "hmac-sha256", "hmac-sha512", "hmac-whirlpool",
+	  "hmac-sha1-96", "hmac-md5-96", "hmac-sha256@ssh.com", NULL },
 	{ "zlib@openssh.com", "zlib", "none", NULL },
 
-	{ "aes128-ctr", "aes192-ctr", "aes256-ctr", "arcfour", "arcfour128", "arcfour256", "blowfish-cbc", "3des-cbc", "cast128-cbc", "aes128-cbc", "aes192-cbc", "aes256-cbc", NULL },
-	{ "hmac-sha1", "hmac-md5", "hmac-ripemd160", "hmac-md5-96", "hmac-sha1-96", NULL },
+	{ "arcfour",						"arcfour128",					"arcfour256",
+	  "aes128-ctr",						"aes192-ctr",					"aes256-ctr",
+	  "aes128-cbc",						"aes192-cbc",					"aes256-cbc",
+	  "blowfish-ctr",					"cast128-ctr",					"idea-ctr",
+	  "twofish-ctr",					"3des-ctr",
+	  "blowfish-cbc",					"cast128-cbc",					"idea-cbc",
+	  "twofish-cbc",					"3des-cbc",
+	  "twofish128-ctr",					"twofish192-ctr",				"twofish256-ctr",
+	  "twofish128-cbc",					"twofish192-cbc",				"twofish256-cbc",
+	  "serpent128-ctr",					"serpent192-ctr",				"serpent256-ctr",
+	  "serpent128-cbc",					"serpent192-cbc",				"serpent256-cbc",
+	  "camellia128-ctr@openssh.org",	"camellia192-ctr@openssh.org",	"camellia256-ctr@openssh.org",
+	  "camellia128-cbc@openssh.org",	"camellia192-cbc@openssh.org",	"camellia256-cbc@openssh.org",
+	  "seed128-ctr@ssh.com",			"seed192-ctr@ssh.com",			"seed256-ctr@ssh.com",
+	  "seed128-cbc@ssh.com",			"seed192-cbc@ssh.com",			"seed256-cbc@ssh.com",
+	  NULL },
+	{ "hmac-sha1", "hmac-md5", "hmac-ripemd160", "hmac-sha256", "hmac-sha512", "hmac-whirlpool",
+	  "hmac-sha1-96", "hmac-md5-96", "hmac-sha256@ssh.com", NULL },
 	{ "zlib@openssh.com", "zlib", "none", NULL },
 };
 

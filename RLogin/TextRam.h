@@ -16,8 +16,9 @@
 #include "TekWnd.h"
 #include "GhostWnd.h"
 
-#define	COLS_MAX		200
-#define	LINE_MAX		500
+#define	COLS_MAX		256
+#define	LINE_MAX		1024
+#define	HIS_MAX			400000			// HIS_MAX * COLS_MAX * sizeof(VRAM) = 1,228,800,000 byte
 #define	DEF_TAB			8
 
 #define	TEK_WIN_WIDTH	4096

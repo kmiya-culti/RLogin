@@ -390,8 +390,8 @@ void CTextRam::InitText(int Width, int Height)
 
 	if ( (hismax = m_DefHisMax)  < (lines * 5) )
 		hismax = lines * 5;
-	else if ( hismax > 400000 )
-		hismax = 400000;
+	else if ( hismax > HIS_MAX )
+		hismax = HIS_MAX;
 
 	if ( cols == m_Cols && hismax == m_HisMax && m_VRam != NULL ) {
 		if ( lines == m_Lines )
@@ -548,7 +548,7 @@ void CTextRam::InitHistory()
 
 	VRAM *vp = NULL;
 
-	TRY {
+	try {
 		CSpace spc;
 		DWORD mx, my, nx;
 		char head[5];
@@ -609,10 +609,10 @@ void CTextRam::InitHistory()
 			}
 		}
 
-	} CATCH(CFileException, e) {
+	} catch(...) {
 		if ( vp != NULL )
 			delete vp;
-	} END_CATCH
+	}
 }
 void CTextRam::SaveHistory()
 {
@@ -622,7 +622,7 @@ void CTextRam::SaveHistory()
 	if ( m_HisFhd.m_hFile == CFile::hFileNull )
 		OpenHisFile();
 
-	TRY {
+	try {
 		VRAM *vp;
 		DWORD n, i;
 
@@ -641,9 +641,9 @@ void CTextRam::SaveHistory()
 			m_HisFhd.Write(m_LineEditHis.GetAt(i).GetPtr(), n);
 		}
 
-	} CATCH(CFileException, e) {
+	} catch(...) {
 		AfxMessageBox("ヒストリーバックアップに失敗しました");
-	} END_CATCH
+	}
 }
 //void CTextRam::HisKeyWord()
 //{

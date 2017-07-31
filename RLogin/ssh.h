@@ -27,18 +27,69 @@
 #define SSH_CIPHER_3DES         3       // 3des
 #define SSH_CIPHER_BLOWFISH     6		// blowfish
 
-#define SSH2_CIPHER_3DES		10		// 3des-cbc
-#define SSH2_CIPHER_BLOWFISH	11		// blowfish-cbc
-#define SSH2_CIPHER_CAST128		12		// cast128-cbc
-#define SSH2_CIPHER_ARCFOUR		13		// arcfour
-#define SSH2_CIPHER_ARC128		14		// arcfour128
-#define SSH2_CIPHER_ARC256		15		// arcfour256
-#define SSH2_CIPHER_AES128		16		// aes128-cbc
-#define SSH2_CIPHER_AES192		17		// aes192-cbc
-#define SSH2_CIPHER_AES256		18		// aes256-cbc
-#define SSH2_CIPHER_AES128R		19		// aes128-ctr
-#define SSH2_CIPHER_AES192R		20		// aes192-ctr
-#define SSH2_CIPHER_AES256R		21		// aes256-ctr
+#define SSH2_CIPHER_3DES_CBC	10		// 3des-cbc
+#define SSH2_CIPHER_3DES_ECB	11		// 3des-ecb
+#define SSH2_CIPHER_3DES_CFB	12		// 3des-cfb
+#define SSH2_CIPHER_3DES_OFB	13		// 3des-ofb
+#define SSH2_CIPHER_3DES_CTR	14		// 3des-ctr
+
+#define SSH2_CIPHER_BLF_CBC		20		// blowfish-cbc
+#define SSH2_CIPHER_BLF_ECB		21		// blowfish-ecb
+#define SSH2_CIPHER_BLF_CFB		22		// blowfish-cfb
+#define SSH2_CIPHER_BLF_OFB		23		// blowfish-ofb
+#define SSH2_CIPHER_BLF_CTR		24		// blowfish-ctr
+
+#define	SSH2_CIPHER_IDEA_CBC	30		// idea-cbc
+#define	SSH2_CIPHER_IDEA_ECB	31		// idea-ecb
+#define	SSH2_CIPHER_IDEA_CFB	32		// idea-cfb
+#define	SSH2_CIPHER_IDEA_OFB	33		// idea-ofb
+#define	SSH2_CIPHER_IDEA_CTR	34		// idea-ctr
+
+#define SSH2_CIPHER_CAST_CBC	40		// cast128-cbc
+#define	SSH2_CIPHER_CAST_ECB	41		// cast128-ecb
+#define	SSH2_CIPHER_CAST_CFB	42		// cast128-cfb
+#define	SSH2_CIPHER_CAST_OFB	43		// cast128-ofb
+#define	SSH2_CIPHER_CAST_CTR	44		// cast128-ctr
+
+#define	SSH2_CIPHER_SEED128		50		// seed128-cbc
+#define	SSH2_CIPHER_SEED192		51		// seed192-cbc
+#define	SSH2_CIPHER_SEED256		52		// seed256-cbc
+#define	SSH2_CIPHER_SEED128R	55		// seed128-otr
+#define	SSH2_CIPHER_SEED192R	56		// seed192-ctr
+#define	SSH2_CIPHER_SEED256R	57		// seed256-ctr
+
+#define SSH2_CIPHER_ARCFOUR		60		// arcfour
+#define SSH2_CIPHER_ARC128		61		// arcfour128
+#define SSH2_CIPHER_ARC192		62		// arcfour192
+#define SSH2_CIPHER_ARC256		63		// arcfour256
+
+#define SSH2_CIPHER_TWF128		70		// twofish128-cbc
+#define SSH2_CIPHER_TWF192		71		// twofish192-cbc
+#define SSH2_CIPHER_TWF256		72		// twofish256-cbc
+#define SSH2_CIPHER_TWF128R		75		// twofish128-ctr
+#define SSH2_CIPHER_TWF192R		76		// twofish192-ctr
+#define SSH2_CIPHER_TWF256R		77		// twofish256-ctr
+
+#define SSH2_CIPHER_AES128		80		// aes128-cbc
+#define SSH2_CIPHER_AES192		81		// aes192-cbc
+#define SSH2_CIPHER_AES256		82		// aes256-cbc
+#define SSH2_CIPHER_AES128R		85		// aes128-ctr
+#define SSH2_CIPHER_AES192R		86		// aes192-ctr
+#define SSH2_CIPHER_AES256R		87		// aes256-ctr
+
+#define SSH2_CIPHER_CAM128		90		// camellia128-cbc
+#define SSH2_CIPHER_CAM192		91		// camellia192-cbc
+#define SSH2_CIPHER_CAM256		92		// camellia256-cbc
+#define SSH2_CIPHER_CAM128R		95		// camellia128-ctr
+#define SSH2_CIPHER_CAM192R		96		// camellia192-ctr
+#define SSH2_CIPHER_CAM256R		97		// camellia256-ctr
+
+#define SSH2_CIPHER_SEP128		100		// serpent128-cbc 
+#define SSH2_CIPHER_SEP192		101		// serpent191-cbc 
+#define SSH2_CIPHER_SEP256		102		// serpent256-cbc 
+#define SSH2_CIPHER_SEP128R		105		// serpent128-ctr 
+#define SSH2_CIPHER_SEP192R		106		// serpent191-ctr 
+#define SSH2_CIPHER_SEP256R		107		// serpent256-ctr 
 
 #define	COMPLEVEL		6
 
@@ -71,6 +122,8 @@ public:
 	LPCSTR GetMatchList(LPCSTR str);
 	LPCSTR GetTitle();
 	void MakeKey(CBuffer *bp, LPCSTR pass);
+
+	static void CCipher::BenchMark(CString &out);
 
 	CCipher();
 	~CCipher();
@@ -514,5 +567,38 @@ public:
 	void ChannelAccept(int id, SOCKET hand);
 	void OpenRcpUpload(LPCSTR file);
 };
+
+//////////////////////////////////////////////////////////////////////
+// OpenSSH C lib
+//////////////////////////////////////////////////////////////////////
+
+extern const EVP_CIPHER *evp_aes_128_ctr(void);
+extern const EVP_CIPHER *evp_camellia_128_ctr(void);
+extern const EVP_CIPHER *evp_seed_ctr(void);
+extern const EVP_CIPHER *evp_twofish_ctr(void);
+extern const EVP_CIPHER *evp_twofish_cbc(void);
+extern const EVP_CIPHER *evp_serpent_ctr(void);
+extern const EVP_CIPHER *evp_serpent_cbc(void);
+extern const EVP_CIPHER *evp_bf_ctr(void);
+extern const EVP_CIPHER *evp_cast5_ctr(void);
+extern const EVP_CIPHER *evp_idea_ctr(void);
+extern const EVP_CIPHER *evp_des3_ctr(void);
+extern const EVP_CIPHER *evp_ssh1_3des(void);
+extern const EVP_CIPHER *evp_ssh1_bf(void);
+
+extern void rsa_public_encrypt(BIGNUM *out, BIGNUM *in, RSA *key);
+extern int	ssh_crc32(LPBYTE buf, int len);
+extern int dh_pub_is_valid(DH *dh, BIGNUM *dh_pub);
+extern int dh_gen_key(DH *dh, int need);
+extern DH *dh_new_group_asc(const char *gen, const char *modulus);
+extern DH *dh_new_group1(void);
+extern DH *dh_new_group14(void);
+extern u_char *kex_dh_hash(LPCSTR client_version_string, LPCSTR server_version_string, LPBYTE ckexinit, int ckexinitlen, LPBYTE skexinit, int skexinitlen, LPBYTE serverhostkeyblob, int sbloblen, BIGNUM *client_dh_pub, BIGNUM *server_dh_pub, BIGNUM *shared_secret);
+extern int	dh_estimate(int bits);
+extern u_char *kex_gex_hash(LPCSTR client_version_string, LPCSTR server_version_string, LPBYTE ckexinit, int ckexinitlen, LPBYTE skexinit, int skexinitlen, LPBYTE serverhostkeyblob, int sbloblen, int min, int wantbits, int max, BIGNUM *prime, BIGNUM *gen, BIGNUM *client_dh_pub, BIGNUM *server_dh_pub, BIGNUM *shared_secret, int *hashlen, const EVP_MD *evp_md);
+extern u_char *derive_key(int id, int need, u_char *hash, int hashlen, BIGNUM *shared_secret, u_char *session_id, int sesslen, const EVP_MD *evp_md);
+
+extern void *mm_zalloc(void *mm, unsigned int ncount, unsigned int size);
+extern void mm_zfree(void *mm, void *address);
 
 #endif // !defined(AFX_SSH_H__2A682FAC_4F24_4168_9082_C9CDF2DD19D7__INCLUDED_)

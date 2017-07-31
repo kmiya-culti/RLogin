@@ -847,6 +847,8 @@
 				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG"
 				MinimalRebuild="false"
 				RuntimeLibrary="0"
+				BufferSecurityCheck="false"
+				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="2"
 				DebugInformationFormat="3"
 			/>
@@ -1096,6 +1098,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\nettle-2.0\serpent.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\ServerSelect.cpp"
 				>
 			</File>
@@ -1105,6 +1111,18 @@
 			</File>
 			<File
 				RelativePath=".\ssh.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\sshData.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\sshFilter.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\sshLib.cpp"
 				>
 			</File>
 			<File
@@ -1221,6 +1239,10 @@
 			</File>
 			<File
 				RelativePath=".\TextRamTek.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\nettle-2.0\twofish.cpp"
 				>
 			</File>
 			<File
@@ -1358,6 +1380,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\nettle-2.0\macro.h"
+				>
+			</File>
+			<File
 				RelativePath=".\MainFrm.h"
 				>
 			</File>
@@ -1430,6 +1456,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\nettle-2.0\serpent.h"
+				>
+			</File>
+			<File
+				RelativePath=".\nettle-2.0\serpent_sboxes.h"
+				>
+			</File>
+			<File
 				RelativePath=".\ServerSelect.h"
 				>
 			</File>
@@ -1475,6 +1509,10 @@
 			</File>
 			<File
 				RelativePath=".\TextRam.h"
+				>
+			</File>
+			<File
+				RelativePath=".\nettle-2.0\twofish.h"
 				>
 			</File>
 			<File

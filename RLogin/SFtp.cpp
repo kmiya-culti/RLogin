@@ -537,7 +537,7 @@ int CSFtp::OnRecive(const void *lpBuf, int nBufLen)
 	while ( m_RecvBuf.GetSize() >= 4 ) {
 		n = m_RecvBuf.PTR32BIT(m_RecvBuf.GetPtr());
 		if ( n > (256 * 1024) || n < 0 )
-			AfxThrowUserException();
+			throw "sftp packet length error";
 		if ( m_RecvBuf.GetSize() < (n + 4) )
 			break;
 
@@ -1638,13 +1638,17 @@ void CSFtp::UpLoadFile(CFileNode *pNode, LPCSTR file)
 {
 	CFileNode *np;
 
+	TRACE("%s:%s", pNode->m_path, file);
+
 	if ( pNode->IsDir() ) {
 		RemoteCacheDir(file);
 
 	} else if ( (m_DoUpdate & 0x80) != 0 && (np = RemoteCacheFind(file)) != NULL ) {
-		if ( ((m_DoUpdate & 0x0F) == UDO_MTIMECHECK && pNode->m_mtime >= np->m_mtime) ||
-			 ((m_DoUpdate & 0x0F) == UDO_UPDCHECK   && pNode->m_mtime == np->m_mtime && pNode->m_size == np->m_size) )
+		if ( ((m_DoUpdate & 0x0F) == UDO_MTIMECHECK && pNode->m_mtime <= np->m_mtime) ||
+			((m_DoUpdate & 0x0F) == UDO_UPDCHECK   && pNode->m_mtime == np->m_mtime && pNode->m_size == np->m_size) ) {
+			TRACE(" Cache\n");
 			return;
+		}
 	}
 
 	CCmdQue *pQue = new CCmdQue;
@@ -1655,6 +1659,7 @@ void CSFtp::UpLoadFile(CFileNode *pNode, LPCSTR file)
 	RemoteMakePacket(pQue, SSH2_FXP_STAT);
 	SendCommand(pQue, &CSFtp::RemoteStatWriteRes, SENDCMD_TAIL);
 	SetUpDownCount(1);
+TRACE(" Stat\n");
 }
 
 /////////////////////////////////////////////////////////////////////////////
