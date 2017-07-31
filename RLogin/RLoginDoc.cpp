@@ -45,8 +45,8 @@ BEGIN_MESSAGE_MAP(CRLoginDoc, CDocument)
 	//}}AFX_MSG_MAP
 	ON_COMMAND_RANGE(IDM_KANJI_EUC, IDM_KANJI_UTF8, OnKanjiCodeSet)
 	ON_UPDATE_COMMAND_UI_RANGE(IDM_KANJI_EUC, IDM_KANJI_UTF8, OnUpdateKanjiCodeSet)
-	ON_COMMAND_RANGE(IDM_XMODEM_UPLOAD, IDM_ZMODEM_DOWNLOAD, OnXYZModem)
-	ON_UPDATE_COMMAND_UI_RANGE(IDM_XMODEM_UPLOAD, IDM_ZMODEM_DOWNLOAD, OnUpdateXYZModem)
+	ON_COMMAND_RANGE(IDM_XMODEM_UPLOAD, IDM_KERMIT_DOWNLOAD, OnXYZModem)
+	ON_UPDATE_COMMAND_UI_RANGE(IDM_XMODEM_UPLOAD, IDM_KERMIT_DOWNLOAD, OnUpdateXYZModem)
 	ON_COMMAND(ID_SEND_BREAK, &CRLoginDoc::OnSendBreak)
 	ON_UPDATE_COMMAND_UI(ID_SEND_BREAK, &CRLoginDoc::OnUpdateSendBreak)
 	ON_COMMAND(IDM_TEKDISP, &CRLoginDoc::OnTekdisp)
@@ -64,6 +64,7 @@ CRLoginDoc::CRLoginDoc()
 	m_pLogFile = NULL;
 	m_pBPlus = NULL;
 	m_pZModem = NULL;
+	m_pKermit = NULL;
 	m_DelayFlag = FALSE;
 	m_ActCharCount = 0;
 	m_pMainWnd = (CMainFrame *)AfxGetMainWnd();
@@ -81,6 +82,8 @@ CRLoginDoc::~CRLoginDoc()
 		delete m_pBPlus;
 	if ( m_pZModem != NULL )
 		delete m_pZModem;
+	if ( m_pKermit != NULL )
+		delete m_pKermit;
 	if ( m_DelayFlag )
 		m_pMainWnd->DelTimerEvent(this);
 }
@@ -552,6 +555,8 @@ void CRLoginDoc::OnSocketClose()
 		m_pBPlus->DoAbort();
 	if ( m_pZModem != NULL )
 		m_pZModem->DoAbort();
+	if ( m_pKermit != NULL )
+		m_pKermit->DoAbort();
 
 	BOOL bCanExit = FALSE;
 
@@ -599,6 +604,10 @@ int CRLoginDoc::OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags)
 			if ( m_pZModem == NULL )
 				m_pZModem = new CZModem(this, AfxGetMainWnd());
 			m_pZModem->DoProc(7);	// ZMODEM UpDown
+		} else if ( lpBuf[n] == 0x01 ) {
+			if ( m_pKermit == NULL )
+				m_pKermit = new CKermit(this, AfxGetMainWnd());
+			m_pKermit->DoProc(0);	// Kermit DownLoad
 		} else {
 			if ( m_pBPlus == NULL )
 				m_pBPlus = new CBPlus(this, AfxGetMainWnd());
@@ -700,6 +709,8 @@ void CRLoginDoc::SocketClose()
 		m_pBPlus->DoAbort();
 	if ( m_pZModem != NULL )
 		m_pZModem->DoAbort();
+	if ( m_pKermit != NULL )
+		m_pKermit->DoAbort();
 	m_pSock->Destroy();
 	m_pSock = NULL;
 	m_TextRam.OnClose();
@@ -823,8 +834,13 @@ void CRLoginDoc::OnUpdateKanjiCodeSet(CCmdUI* pCmdUI)
 
 void CRLoginDoc::OnXYZModem(UINT nID)
 {
-	if ( m_pZModem == NULL )
-		m_pZModem = new CZModem(this, AfxGetMainWnd());
+	if ( nID == IDM_KERMIT_UPLOAD || nID == IDM_KERMIT_DOWNLOAD ) {
+		if ( m_pKermit == NULL )
+			m_pKermit = new CKermit(this, AfxGetMainWnd());
+	} else {
+		if ( m_pZModem == NULL )
+			m_pZModem = new CZModem(this, AfxGetMainWnd());
+	}
 
 	switch(nID) {
 	case IDM_XMODEM_UPLOAD:   m_pZModem->DoProc(1); break;
@@ -833,6 +849,8 @@ void CRLoginDoc::OnXYZModem(UINT nID)
 	case IDM_XMODEM_DOWNLOAD: m_pZModem->DoProc(4); break;
 	case IDM_YMODEM_DOWNLOAD: m_pZModem->DoProc(5); break;
 	case IDM_ZMODEM_DOWNLOAD: m_pZModem->DoProc(6); break;
+	case IDM_KERMIT_UPLOAD:   m_pKermit->DoProc(1); break;
+	case IDM_KERMIT_DOWNLOAD: m_pKermit->DoProc(0); break;
 	}
 }
 void CRLoginDoc::OnUpdateXYZModem(CCmdUI* pCmdUI)
@@ -875,6 +893,8 @@ void CRLoginDoc::DoDropFile()
 		path = m_pBPlus->m_ResvPath.GetHead();
 	else if ( m_pZModem != NULL && !m_pZModem->m_ResvPath.IsEmpty() )
 		path = m_pZModem->m_ResvPath.GetHead();
+	else if ( m_pKermit != NULL && !m_pKermit->m_ResvPath.IsEmpty() )
+		path = m_pKermit->m_ResvPath.GetHead();
 	else
 		return;
 
@@ -892,6 +912,7 @@ void CRLoginDoc::DoDropFile()
 	case 2: m_pZModem->DoProc(1); break;
 	case 3: m_pZModem->DoProc(2); break;
 	case 4: m_pZModem->DoProc(7); break;
+	case 6: m_pKermit->DoProc(1); break;
 	}
 }
 

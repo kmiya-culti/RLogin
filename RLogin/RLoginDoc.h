@@ -13,6 +13,7 @@
 #include "ExtSocket.h"
 #include "BPlus.h"
 #include "ZModem.h"
+#include "Kermit.h"
 #include "Data.h"
 
 #define	UPDATE_INVALIDATE	0
@@ -71,6 +72,7 @@ public:
 	CFile *m_pLogFile;
 	CBPlus *m_pBPlus;
 	CZModem *m_pZModem;
+	CKermit *m_pKermit;
 	BOOL m_DelayFlag;
 	CBuffer m_DelayBuf;
 	int m_LoadMode;

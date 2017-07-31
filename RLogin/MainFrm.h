@@ -42,6 +42,7 @@ public:
 	class CPaneFrame *GetNull();
 	class CPaneFrame *GetEntry();
 	int SetActive(HWND hWnd);
+	int IsOverLap(CPaneFrame *pPane);
 
 	void MoveFrame();
 	void MoveParOwn(CRect &rect, int Style);
@@ -52,8 +53,6 @@ public:
 
 	void SetBuffer(CBuffer *buf);
 	static class CPaneFrame *GetBuffer(class CMainFrame *pMain, class CPaneFrame *pPane, class CPaneFrame *pOwn, CBuffer *buf);
-
-	void DrawView(CDC *pDC, CPaneFrame *pFrame);
 
 	CPaneFrame(class CMainFrame *pMain, HWND hWnd, class CPaneFrame *pOwn);
 	~CPaneFrame();
@@ -147,6 +146,7 @@ public:
 	void RemoveChild(CWnd *pWnd);
 	void ActiveChild(CWnd *pWnd);
 	void MoveChild(CWnd *pWnd, CPoint point);
+	BOOL IsOverLap(HWND hWnd);
 
 	void GetFrameRect(CRect &frame);
 	void AdjustRect(CRect &rect);
@@ -198,6 +198,7 @@ protected:
 public:
 	afx_msg BOOL OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCopyDataStruct);
 	afx_msg void OnEnterMenuLoop(BOOL bIsTrackPopupMenu);
+	afx_msg void OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized);
 };
 
 

@@ -708,8 +708,8 @@ static const VRAM TempAtt = {
 static const char *DropCmdTab[] = {
 	//	Non				BPlus			XModem			YModem
 		"",				"bp -d %s\\r",	"rx %s\\r",		"rb\\r",
-	//	ZModem			SCP
-		"rz\\r",		"scp -t %s",	"",				"",
+	//	ZModem			SCP				Kermit
+		"rz\\r",		"scp -t %s",	"kermit -i -r",	"",
 	};
 
 void CTextRam::Init()

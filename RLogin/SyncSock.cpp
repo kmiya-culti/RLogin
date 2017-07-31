@@ -133,6 +133,7 @@ void CSyncSock::ThreadCommand(int cmd)
 		break;
 	case THCMD_CHECKPATH:
 		HostKanjiConv(m_PathName);
+		RECHECK:
 		if ( !m_ResvPath.IsEmpty() ) {
 			char *p;
 			m_PathName = m_ResvPath.RemoveHead();
@@ -142,10 +143,21 @@ void CSyncSock::ThreadCommand(int cmd)
 				m_FileName = m_PathName;
 			m_ResvDoit = TRUE;
 		} else {
-			CFileDialog dlg((m_Param ? TRUE : FALSE), "", m_PathName, OFN_HIDEREADONLY, "All Files (*.*)|*.*||", m_pWnd);
+			CFileDialog dlg(((m_Param & 1) ? TRUE : FALSE), "", m_PathName,
+				OFN_HIDEREADONLY | ((m_Param & 2) ? OFN_ALLOWMULTISELECT : 0),
+				"All Files (*.*)|*.*||", m_pWnd);
 			if ( dlg.DoModal() == IDOK ) {
-				m_PathName = dlg.GetPathName();
-				m_FileName = dlg.GetFileName();
+				if ( (m_Param & 2) != 0 ) {
+					POSITION pos = dlg.GetStartPosition();
+					while ( pos != NULL )
+						m_ResvPath.AddTail(dlg.GetNextPathName(pos));
+					if ( !m_ResvPath.IsEmpty() )
+						goto RECHECK;
+					m_PathName.Empty();
+				} else {
+					m_PathName = dlg.GetPathName();
+					m_FileName = dlg.GetFileName();
+				}
 			} else
 				m_PathName.Empty();
 		}

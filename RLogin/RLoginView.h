@@ -65,12 +65,15 @@ public:
 	BOOL m_KeyMacFlag;
 	CBuffer m_KeyMacBuf;
 
+	class CGhostWnd *m_pGhost;
+
 	void CalcTextRect(CRect &rect);
 	void CalcGrapPoint(CPoint po, int *x, int *y);
 	void ImmSetPos(int x, int y);
 	void SetCaret();
 	void SendBroadCast(CBuffer &buf);
 	void SendBuffer(CBuffer &buf, BOOL macflag = FALSE);
+	void SetGhostWnd(BOOL sw);
 
 	inline int CalcGrapX(int x) { return (m_Width  * x / m_Cols); }
 	inline int CalcGrapY(int y) { return (m_Height * y / m_Lines); }

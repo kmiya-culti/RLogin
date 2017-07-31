@@ -95,10 +95,13 @@ CRLoginView::CRLoginView()
 	m_BroadCast = FALSE;
 	m_WheelDelta = 0;
 	m_WheelTimer = FALSE;
+	m_pGhost = NULL;
 }
 
 CRLoginView::~CRLoginView()
 {
+	if ( m_pGhost != NULL )
+		m_pGhost->DestroyWindow();
 }
 
 BOOL CRLoginView::PreCreateWindow(CREATESTRUCT& cs)
@@ -305,6 +308,26 @@ void CRLoginView::ImmSetPos(int x, int y)
 		ImmReleaseContext(m_hWnd, hIMC);
 	}
 }
+void CRLoginView::SetGhostWnd(BOOL sw)
+{
+	if ( sw ) {		// Create
+		if ( m_pGhost != NULL )
+			return;
+		CRect rect;
+		GetWindowRect(rect);
+		m_pGhost = new CGhostWnd();
+		m_pGhost->m_pView = this;
+		m_pGhost->m_pDoc  = GetDocument();
+		m_pGhost->Create(NULL, m_pGhost->m_pDoc->GetTitle(), WS_TILED, rect, CWnd::GetDesktopWindow(), IDD_GHOSTWND);
+//		m_pGhost->ShowWindow(SW_SHOWNOACTIVATE);
+		m_pGhost->SetWindowPos(&wndTopMost, rect.left, rect.top, rect.Width(), rect.Height(), SWP_SHOWWINDOW);
+
+	} else {		// Destory
+		if ( m_pGhost != NULL )
+			m_pGhost->DestroyWindow();
+		m_pGhost = NULL;
+	}
+}
 
 /////////////////////////////////////////////////////////////////////////////
 // CRLoginView クラスのメッセージ ハンドラ
@@ -373,6 +396,8 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 			SetTimer(1025, 50, NULL);
 			m_VisualBellFlag = TRUE;
 			Invalidate(FALSE);
+			if ( m_pGhost != NULL )
+				m_pGhost->Invalidate(FALSE);
 		}
 		return;
 	} else if ( lHint == UPDATE_SETCURSOR ) {
@@ -442,6 +467,8 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		info.nTrackPos = 0;
 		SetScrollInfo(SB_VERT, &info, TRUE);
 		Invalidate(FALSE);
+		if ( m_pGhost != NULL )
+			m_pGhost->Invalidate(FALSE);
 		break;
 
 	case UPDATE_TEXTRECT:
@@ -449,6 +476,8 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		rect = *((CRect *)pHint);
 		CalcTextRect(rect);
 		InvalidateRect(rect, FALSE);
+		if ( m_pGhost != NULL )
+			m_pGhost->InvalidateRect(rect, FALSE);
 		break;
 
 	case UPDATE_CLIPERA:
@@ -474,6 +503,8 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		}
 		CalcTextRect(rect);
 		InvalidateRect(rect, FALSE);
+		if ( m_pGhost != NULL )
+			m_pGhost->InvalidateRect(rect, FALSE);
 		break;
 
 	case UPDATE_GOTOXY:
@@ -1287,6 +1318,12 @@ void CRLoginView::OnDropFiles(HDROP hDropInfo)
 		} else if ( pDoc->m_TextRam.m_DropFileMode == 5 ) {
 			if ( pDoc->m_pSock != NULL && pDoc->m_pSock->m_Type == 3 && ((Cssh *)(pDoc->m_pSock))->m_SSHVer == 2 )
 				((Cssh *)(pDoc->m_pSock))->OpenRcpUpload(FileName);
+		} else if ( pDoc->m_TextRam.m_DropFileMode == 6 ) {
+			if ( pDoc->m_pKermit == NULL )
+				pDoc->m_pKermit = new CKermit(pDoc, AfxGetMainWnd());
+			if ( pDoc->m_pKermit->m_ResvPath.IsEmpty() && !pDoc->m_pKermit->m_ThreadFlag )
+				doCmd = TRUE;
+			pDoc->m_pKermit->m_ResvPath.AddTail(FileName);
 		} else if ( pDoc->m_TextRam.m_DropFileMode >= 2 ) {
 			if ( pDoc->m_pZModem == NULL )
 				pDoc->m_pZModem = new CZModem(pDoc, AfxGetMainWnd());

@@ -15,6 +15,9 @@ class CTabBar : public CControlBar
 
 public:
 	CTabCtrl m_TabCtrl;
+	int m_GhostReq;
+	int m_GhostItem;
+	class CRLoginView *m_pGhostView;
 
 	BOOL Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID);
 	virtual void OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler);
@@ -25,6 +28,7 @@ public:
 	int GetSize() { return m_TabCtrl.GetItemCount(); }
 	CWnd *GetAt(int nIndex);
 	void ReSize();
+	void SetGhostWnd(BOOL sw);
 
 	CTabBar();
 	virtual ~CTabBar();
@@ -33,7 +37,8 @@ protected:
 	virtual CSize CalcFixedLayout(BOOL bStretch, BOOL bHorz);
 	// ClassWizard generated virtual function overrides
 	//{{AFX_VIRTUAL(CTabBar)
-	public:
+
+public:
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	//}}AFX_VIRTUAL
 
@@ -46,6 +51,9 @@ protected:
 	//}}AFX_MSG
 	afx_msg void OnSelchange(NMHDR* pNMHDR, LRESULT* pResult);
 	DECLARE_MESSAGE_MAP()
+public:
+	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
+	afx_msg void OnTimer(UINT_PTR nIDEvent);
 };
 
 #endif // !defined(AFX_TABBAR_H__36393842_91F7_4016_B288_B47BE78E2A20__INCLUDED_)

@@ -224,6 +224,25 @@ int CPaneFrame::SetActive(HWND hWnd)
 
 	return TRUE;
 }
+int CPaneFrame::IsOverLap(CPaneFrame *pPane)
+{
+	int n;
+	CRect rect;
+
+	if ( pPane == NULL || pPane == this )
+		return (-1);
+
+	if ( m_Style == PANEFRAME_WINDOW && rect.IntersectRect(m_Frame, pPane->m_Frame) )
+		return 1;
+
+	if ( m_pLeft != NULL && (n = m_pLeft->IsOverLap(pPane)) != 0 )
+		return n;
+
+	if ( m_pRight != NULL && (n = m_pRight->IsOverLap(pPane)) != 0 )
+		return n;
+
+	return 0;
+}
 void CPaneFrame::MoveFrame()
 {
 	ASSERT(m_Style == PANEFRAME_WINDOW);
@@ -457,48 +476,6 @@ class CPaneFrame *CPaneFrame::GetBuffer(class CMainFrame *pMain, class CPaneFram
 
 	return pPane;
 }
-void CPaneFrame::DrawView(CDC *pDC, CPaneFrame *pFrame)
-{
-	CRect rect[4];
-	CChildFrame *pWnd;
-	CRLoginView *pView, *pThis;
-	CDC MemDC;
-	CBitmap Bitmap, *pOldBitmap;
-
-	if ( m_pRight != NULL )
-		m_pRight->DrawView(pDC, pFrame);
-
-	if ( m_pLeft != NULL )
-		m_pLeft->DrawView(pDC, pFrame);
-
-	if ( m_Style == PANEFRAME_WINDOW && m_hWnd != NULL ) {
-		if ( rect[0].IntersectRect(pFrame->m_Frame, m_Frame) && (pWnd = (CChildFrame *)(CWnd::FromHandlePermanent(m_hWnd))) != NULL && (pView = (CRLoginView *)pWnd->GetActiveView()) != NULL ) {
-			pView->GetClientRect(rect[0]);
-			MemDC.CreateCompatibleDC(pDC);
-			MemDC.SetMapMode(pDC->GetMapMode());
-			Bitmap.CreateCompatibleBitmap(pDC, rect[0].Width(), rect[0].Height());
-			pOldBitmap = (CBitmap *)MemDC.SelectObject(&Bitmap);
-			MemDC.m_bPrinting = TRUE;
-			pView->OnDraw(&MemDC);
-
-			pView->ClientToScreen(rect[0]);
-			if ( (pWnd = (CChildFrame *)(CWnd::FromHandlePermanent(pFrame->m_hWnd))) != NULL && (pThis = (CRLoginView *)pWnd->GetActiveView()) != NULL ) {
-				pThis->GetClientRect(rect[1]);
-				pThis->ClientToScreen(rect[1]);
-				if ( rect[2].IntersectRect(rect[0], rect[1]) ) {
-					rect[3] = rect[2];
-					pThis->ScreenToClient(rect[2]);
-					pView->ScreenToClient(rect[3]);
-					pDC->BitBlt(rect[2].left, rect[2].top, rect[2].Width(), rect[2].Height(), &MemDC, rect[3].left, rect[3].top, SRCPAINT);
-				}
-			}
-
-			MemDC.SelectObject(pOldBitmap);
-			Bitmap.DeleteObject();
-			MemDC.DeleteDC();
-		}
-	}
-}
 
 #ifdef	DEBUG
 void CPaneFrame::Dump()
@@ -545,6 +522,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_COMMAND(ID_FILE_ALL_LOAD, OnFileAllLoad)
 	ON_WM_COPYDATA()
 	ON_WM_ENTERMENULOOP()
+	ON_WM_ACTIVATE()
 END_MESSAGE_MAP()
 
 static UINT indicators[] =
@@ -1029,6 +1007,14 @@ void CMainFrame::MoveChild(CWnd *pWnd, CPoint point)
 	pPane->MoveFrame();
 }
 
+BOOL CMainFrame::IsOverLap(HWND hWnd)
+{
+	CPaneFrame *pPane;
+
+	if ( m_pTopPane == NULL || (pPane = m_pTopPane->GetPane(hWnd)) == NULL )
+		return FALSE;
+	return (m_pTopPane->IsOverLap(pPane) == 1 ? TRUE : FALSE);
+}
 void CMainFrame::GetFrameRect(CRect &frame)
 {
 	if ( m_Frame.IsRectEmpty() )
@@ -1593,4 +1579,12 @@ void CMainFrame::OnEnterMenuLoop(BOOL bIsTrackPopupMenu)
 		m_MenuTab.RemoveAt(n);
 		n--;
 	}
+}
+
+void CMainFrame::OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized)
+{
+	CMDIFrameWnd::OnActivate(nState, pWndOther, bMinimized);
+
+	if ( nState == WA_INACTIVE )
+		m_wndTabBar.SetGhostWnd(FALSE);
 }

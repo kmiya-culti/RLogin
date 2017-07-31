@@ -201,10 +201,12 @@ BEGIN
             MENUITEM "XModemアップロード",                IDM_XMODEM_UPLOAD
             MENUITEM "YModemアップロード",                IDM_YMODEM_UPLOAD
             MENUITEM "ZModemアップロード",                IDM_ZMODEM_UPLOAD
+            MENUITEM "Kermitアップロード",                IDM_KERMIT_UPLOAD
             MENUITEM SEPARATOR
             MENUITEM "XModemダウンロード",                IDM_XMODEM_DOWNLOAD
             MENUITEM "YModemダウンロード",                IDM_YMODEM_DOWNLOAD
             MENUITEM "ZModemダウンロード",                IDM_ZMODEM_DOWNLOAD
+            MENUITEM "Kermitダウンロード",                IDM_KERMIT_DOWNLOAD
         END
         MENUITEM SEPARATOR
         MENUITEM "最近使ったﾌｧｲﾙ",                   ID_FILE_MRU_FILE1, GRAYED
@@ -398,7 +400,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.7.6 (2010/02/26)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.7.7 (2010/03/15)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2009 Culti",IDC_STATIC,47,18,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,145,50,14,WS_GROUP
     LTEXT           "OpenSSL 0.9.8m Feb 25th, 2010",IDC_STATIC,47,35,176,8
@@ -661,7 +663,7 @@ BEGIN
     PUSHBUTTON      "ポートフォワード",IDC_SSHPFD,174,117,63,14
     CONTROL         "改行(CR)を確認し指定時間待って次を送信する(ms)",IDC_PROTOCHECK9,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,165,173,10
     EDITTEXT        IDC_DELAYMSEC,199,163,38,14,ES_RIGHT | ES_AUTOHSCROLL
-    CONTROL         "BPlus/ZModemファイル転送を有効にする",IDC_PROTOCHECK8,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,181,173,10
+    CONTROL         "BPlus/ZModem/Kermitファイル転送を有効にする",IDC_PROTOCHECK8,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,181,173,10
     CONTROL         "キーボード入力をローカルエディットモードにする",IDC_PROTOCHECK7,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,197,173,10
     CONTROL         "接続時にパスワード入力を求める",IDC_PROTOCHECK6,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,213,173,10
     CONTROL         "接続が切れると自動でプログラムを終了する",IDC_PROTOCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,229,173,10
@@ -1183,8 +1185,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,7,6,0
- PRODUCTVERSION 2,7,6,0
+ FILEVERSION 2,7,7,0
+ PRODUCTVERSION 2,7,7,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1201,12 +1203,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2, 7, 6, 0"
+            VALUE "FileVersion", "2, 7, 7, 0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2008 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2, 7, 6, 0"
+            VALUE "ProductVersion", "2, 7, 7, 0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2077,6 +2079,8 @@ BEGIN
 0x4d5a, 0x646f, 0x6d65, "\000" 
     IDC_COMBO1, 0x403, 4, 0
 0x4353, 0x0050, 
+    IDC_COMBO1, 0x403, 7, 0
+0x654b, 0x6d72, 0x7469, "\000" 
     0
 END
 
@@ -2290,6 +2294,8 @@ BEGIN
     IDM_XMODEM_DOWNLOAD     "XModemでファイルをダウンロードする\nXModemダウン"
     IDM_YMODEM_DOWNLOAD     "YModemでファイルをダウンロードする\nYModemダウン"
     IDM_ZMODEM_DOWNLOAD     "ZModemでファイルをダウンロードする\nZModemダウン"
+    IDM_KERMIT_UPLOAD       "Kermitでファイルをアップロードする\nKermitアップ"
+    IDM_KERMIT_DOWNLOAD     "Kermitでファイルをダウンロードする\nKermitダウン"
 END
 
 STRINGTABLE 

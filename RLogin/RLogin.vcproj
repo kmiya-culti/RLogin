@@ -980,6 +980,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\GhostWnd.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\IConv.cpp"
 				>
 			</File>
@@ -997,6 +1001,10 @@
 			</File>
 			<File
 				RelativePath=".\InfoCapDlg.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\Kermit.cpp"
 				>
 			</File>
 			<File
@@ -1302,6 +1310,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\GhostWnd.h"
+				>
+			</File>
+			<File
 				RelativePath=".\IConv.h"
 				>
 			</File>
@@ -1319,6 +1331,10 @@
 			</File>
 			<File
 				RelativePath=".\InfoCapDlg.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Kermit.h"
 				>
 			</File>
 			<File

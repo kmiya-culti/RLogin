@@ -22,6 +22,8 @@ static char THIS_FILE[]=__FILE__;
 
 CTabBar::CTabBar()
 {
+	m_GhostReq = m_GhostItem = (-1);
+	m_pGhostView = NULL;
 }
 
 CTabBar::~CTabBar()
@@ -37,6 +39,8 @@ BEGIN_MESSAGE_MAP(CTabBar, CControlBar)
 	ON_WM_LBUTTONDOWN()
 	//}}AFX_MSG_MAP
 	ON_NOTIFY(TCN_SELCHANGE, IDC_MDI_TAB_CTRL, OnSelchange)
+	ON_WM_SETCURSOR()
+	ON_WM_TIMER()
 END_MESSAGE_MAP()
 
 BOOL CTabBar::Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID)
@@ -130,6 +134,10 @@ void CTabBar::Remove(CWnd *pWnd)
 {
 	int n;
 	TC_ITEM tci;
+	CRLoginView *pView;
+
+	if ( m_pGhostView != NULL && (pView = (CRLoginView *)((CChildFrame *)pWnd)->GetActiveView()) != NULL && pView->m_hWnd == m_pGhostView->m_hWnd )
+		SetGhostWnd(FALSE);
 
 	for ( n = 0 ; n < m_TabCtrl.GetItemCount() ; n++ ) {
 		tci.mask = TCIF_PARAM;
@@ -294,4 +302,81 @@ BOOL CTabBar::PreTranslateMessage(MSG* pMsg)
 		pMsg->lParam = MAKELPARAM(point.x, point.y);
 	}
 	return CControlBar::PreTranslateMessage(pMsg);
+}
+
+void CTabBar::SetGhostWnd(BOOL sw)
+{
+	TC_ITEM tci;
+	CChildFrame *pFrame;
+	CMainFrame *pMain;
+
+	if ( sw ) {		// Create Ghost Wnd
+		tci.mask = TCIF_PARAM;
+		if ( !m_TabCtrl.GetItem(m_GhostReq, &tci) )
+			return;
+		if ( (pMain = (CMainFrame *)AfxGetMainWnd()) == NULL )
+			return;
+		if ( !pMain->IsOverLap((HWND)tci.lParam) )
+			return;
+		TRACE("Ghost Req %d\n", m_GhostReq);
+		m_GhostItem = m_GhostReq;
+		SetTimer(1025, 200, NULL);
+		if ( (pFrame = (CChildFrame *)GetAt(m_GhostItem)) != NULL && (m_pGhostView = (CRLoginView *)pFrame->GetActiveView()) != NULL )
+			m_pGhostView->SetGhostWnd(TRUE);
+	} else {		// Destory Ghost Wnd
+		TRACE("Ghost Close %d\n", m_GhostItem);
+		if ( m_GhostItem >= 0 )
+			KillTimer(1025);
+		if ( m_pGhostView != NULL )
+			m_pGhostView->SetGhostWnd(FALSE);
+		m_GhostItem = (-1);
+		m_pGhostView = NULL;
+	}
+}
+
+BOOL CTabBar::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
+{
+	int n;
+	TCHITTESTINFO htinfo;
+
+	GetCursorPos(&htinfo.pt);
+	m_TabCtrl.ScreenToClient(&htinfo.pt);
+	n = m_TabCtrl.HitTest(&htinfo);
+
+	if ( n >= 0 && n == m_TabCtrl.GetCurSel() )
+		n = (-1);
+
+	if ( m_GhostItem >= 0 && m_GhostItem != n )
+		SetGhostWnd(FALSE);
+
+	if ( m_GhostReq != n ) {
+		if ( m_GhostReq >= 0 )
+			KillTimer(1024);
+		m_GhostReq = (-1);
+
+		if ( n >= 0 ) {
+			SetTimer(1024, 2000, NULL);
+			m_GhostReq = n;
+		}
+	}
+
+	return TRUE;
+//	return CControlBar::OnSetCursor(pWnd, nHitTest, message);
+}
+
+void CTabBar::OnTimer(UINT_PTR nIDEvent)
+{
+	switch(nIDEvent) {
+	case 1024:
+		KillTimer(1024);
+		SetGhostWnd(TRUE);
+		break;
+
+	case 1025:
+		OnSetCursor(this, 0, 0);
+		if ( m_GhostItem >= 0 && (GetStyle() & WS_VISIBLE) == 0 )
+			SetGhostWnd(FALSE);
+		break;
+	}
+	CControlBar::OnTimer(nIDEvent);
 }

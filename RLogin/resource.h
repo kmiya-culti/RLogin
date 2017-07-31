@@ -80,11 +80,14 @@
 #define IDM_XMODEM_DOWNLOAD             219
 #define IDM_YMODEM_DOWNLOAD             220
 #define IDM_ZMODEM_DOWNLOAD             221
+#define IDM_KERMIT_UPLOAD               222
+#define IDM_KERMIT_DOWNLOAD             223
 #define ID_FILE_ALL_LOAD                240
 #define IDC_DOINIT                      241
 #define ID_EDIT_BOX                     243
 #define ID_PAGE_PRIOR                   244
 #define ID_PAGE_NEXT                    245
+#define IDD_GHOSTWND                    246
 #define IDC_BACKFILE                    1000
 #define IDC_BACKSEL                     1001
 #define IDC_BANKGL1                     1002
@@ -489,8 +492,8 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        160
-#define _APS_NEXT_COMMAND_VALUE         32841
+#define _APS_NEXT_COMMAND_VALUE         32844
 #define _APS_NEXT_CONTROL_VALUE         1189
-#define _APS_NEXT_SYMED_VALUE           246
+#define _APS_NEXT_SYMED_VALUE           247
 #endif
 #endif

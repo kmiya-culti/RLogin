@@ -14,6 +14,7 @@
 #include "Data.h"
 #include "IConv.h"
 #include "TekWnd.h"
+#include "GhostWnd.h"
 
 #define	COLS_MAX		200
 #define	LINE_MAX		500
@@ -143,7 +144,7 @@
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
-enum CTextRamStat {
+enum ETextRamStat {
 		ST_NON,
 		ST_CONF_LEVEL,
 		ST_COLM_SET,	ST_COLM_SET_2,
@@ -154,7 +155,7 @@ enum CTextRamStat {
 		ST_CSI_SKIP,
 };
 
-enum CTabSetNum {
+enum ETabSetNum {
 		TAB_COLSSET,	TAB_COLSCLR,	TAB_COLSALLCLR,	TAB_COLSALLCLRACT,
 		TAB_LINESET,	TAB_LINECLR,	TAB_LINEALLCLR,
 		TAB_RESET,
@@ -164,7 +165,7 @@ enum CTabSetNum {
 		TAB_LINENEXT,	TAB_LINEBACK,
 };
 
-enum CStageNum {
+enum EStageNum {
 		STAGE_ESC = 0,	STAGE_CSI,		STAGE_EXT1,		STAGE_EXT2,		// Use 0,1,2,3 !!! Look up fc_Case()
 		STAGE_EXT3,
 		STAGE_EUC,
@@ -615,10 +616,13 @@ public:
 	void fc_UTF85(int ch);
 	void fc_UTF86(int ch);
 	void fc_UTF87(int ch);
+	void fc_UTF88(int ch);
+	void fc_UTF89(int ch);
 	void fc_SESC(int ch);
 	void fc_STAT(int ch);
 
 	// Ctrl...
+	void fc_SOH(int ch);
 	void fc_ENQ(int ch);
 	void fc_BELL(int ch);
 	void fc_BS(int ch);

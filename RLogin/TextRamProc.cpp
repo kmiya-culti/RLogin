@@ -29,6 +29,7 @@ static CTextRam::ESCNAMEPROC	*fc_pEscProc = NULL;
 static CTextRam::ESCNAMEPROC	*fc_pCsiProc = NULL;
 
 static const CTextRam::PROCTAB fc_CtrlTab[] = {
+	{ 0x01,		0,			&CTextRam::fc_SOH		},
 	{ 0x05,		0,			&CTextRam::fc_ENQ		},
 	{ 0x07,		0,			&CTextRam::fc_BELL		},
 	{ 0x08,		0,			&CTextRam::fc_BS		},
@@ -93,7 +94,9 @@ static const CTextRam::PROCTAB fc_Utf8Tab[] = {
 	{ 0xA0,		0xBF,		&CTextRam::fc_UTF87		},
 	{ 0xC0,		0xDF,		&CTextRam::fc_UTF81		},
 	{ 0xE0,		0xEF,		&CTextRam::fc_UTF82		},
-	{ 0xF0,		0xF7,		&CTextRam::fc_UTF83		},
+	{ 0xF0,		0xF7,		&CTextRam::fc_UTF83		},	// Unicode 21 bit
+//	{ 0xF8,		0xFB,		&CTextRam::fc_UTF88		},	// UCS-4 ? 26 bit
+//	{ 0xFC,		0xFD,		&CTextRam::fc_UTF89		},	// UCS-4 ? 31 bit
 	{ 0xF8,		0xFD,		&CTextRam::fc_UTF87		},
 	{ 0xFE,		0xFF,		&CTextRam::fc_UTF84		},
 	{ 0,		0,			NULL } };
@@ -1249,6 +1252,22 @@ void CTextRam::fc_UTF83(int ch)
 	m_CodeLen = 3;
 	fc_Push(STAGE_UTF82);
 }
+void CTextRam::fc_UTF88(int ch)
+{
+	// 1111 10xx
+	fc_KANJI(ch);
+	m_BackChar = (ch & 0x03) << 24;
+	m_CodeLen = 4;
+	fc_Push(STAGE_UTF82);
+}
+void CTextRam::fc_UTF89(int ch)
+{
+	// 1111 110x
+	fc_KANJI(ch);
+	m_BackChar = (ch & 0x01) << 30;
+	m_CodeLen = 5;
+	fc_Push(STAGE_UTF82);
+}
 void CTextRam::fc_UTF84(int ch)
 {
 	// 1111 111x BOM
@@ -1265,6 +1284,14 @@ void CTextRam::fc_UTF85(int ch)
 	fc_KANJI(ch);
 
 	switch(m_CodeLen) {
+	case 5:
+		m_BackChar |= (ch & 0x3F) << 24;
+		m_CodeLen--;
+		break;
+	case 4:
+		m_BackChar |= (ch & 0x3F) << 18;
+		m_CodeLen--;
+		break;
 	case 3:
 		m_BackChar |= (ch & 0x3F) << 12;
 		m_CodeLen--;
@@ -1324,6 +1351,13 @@ void CTextRam::fc_UTF87(int ch)
 //////////////////////////////////////////////////////////////////////
 // fc CTRLs...
 
+void CTextRam::fc_SOH(int ch)
+{
+	if ( IsOptEnable(TO_RLBPLUS) )
+		m_RetSync = TRUE;
+	CallReciveChar(ch);
+	m_LastChar = ch;
+}
 void CTextRam::fc_ENQ(int ch)
 {
 	if ( IsOptEnable(TO_RLBPLUS) )

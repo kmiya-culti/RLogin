@@ -741,7 +741,9 @@ int CZModem::ZUpFile()
 	struct _stati64 st;
 	CString opt;
 
-	CheckFileName(1, "");
+NEXTFILE:
+
+	CheckFileName(3, "");
 
 	if ( m_PathName.IsEmpty() )
 		return ERR;
@@ -881,7 +883,11 @@ int CZModem::ZUpFile()
 			if ( sendStat == 6 ) {
 				fclose(fp);
 				UpDownClose();
-				return FALSE;
+				if ( m_ResvPath.IsEmpty() )
+					return FALSE;
+				sendStat = 1;
+				recvStat = 0;
+				goto NEXTFILE;
 			}
 			sendStat = 1;
 			break;

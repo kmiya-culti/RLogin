@@ -2399,7 +2399,7 @@ static const struct {
 	int	code;
 	LPCWSTR name;
 } CmdsKeyTab[] = {
-#define	CMDSKEYTABMAX	54
+#define	CMDSKEYTABMAX	56
 	{	ID_APP_ABOUT,			L"$ABOUT"			},
 	{	ID_SEND_BREAK,			L"$BREAK"			},
 	{	IDM_BROADCAST,			L"$BROADCAST"		},
@@ -2416,6 +2416,8 @@ static const struct {
 	{	IDM_KANJI_EUC,			L"$KANJI_EUC"		},
 	{	IDM_KANJI_SJIS,			L"$KANJI_SJIS"		},
 	{	IDM_KANJI_UTF8,			L"$KANJI_UTF8"		},
+	{	IDM_KERMIT_DOWNLOAD,	L"$KERMIT_DOWNLOAD"	},
+	{	IDM_KERMIT_UPLOAD,		L"$KERMIT_UPLOAD"	},
 	{	ID_MACRO_HIS1,			L"$KEY_HIS1"		},
 	{	ID_MACRO_HIS2,			L"$KEY_HIS2"		},
 	{	ID_MACRO_HIS3,			L"$KEY_HIS3"		},
