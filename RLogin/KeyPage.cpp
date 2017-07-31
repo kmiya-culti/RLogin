@@ -95,7 +95,7 @@ void CKeyPage::InitList()
 /////////////////////////////////////////////////////////////////////////////
 // CKeyPage メッセージ ハンドラ
 
-static const LV_COLUMN InitListTab[6] = {
+static const LV_COLUMN InitListTab[] = {
 		{ LVCF_TEXT | LVCF_WIDTH, 0,  80, "Code", 0, 0 }, 
 		{ LVCF_TEXT | LVCF_WIDTH, 0, 100, "With",  0, 0 }, 
 		{ LVCF_TEXT | LVCF_WIDTH, 0, 120, "String",  0, 0 }, 

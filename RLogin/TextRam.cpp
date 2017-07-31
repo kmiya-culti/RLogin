@@ -731,10 +731,15 @@ void CTextRam::Init()
 	m_MouseMode[3]   = 16;
 	memset(m_MetaKeys, 0, sizeof(m_MetaKeys));
 
+	m_ProcTab.Init();
+
 	RESET();
 }
 void CTextRam::SetArray(CStringArrayExt &array)
 {
+	CString str;
+	CStringArrayExt tmp;
+
 	array.RemoveAll();
 
 	array.AddVal(m_DefCols[0]);
@@ -765,11 +770,18 @@ void CTextRam::SetArray(CStringArrayExt &array)
 	for ( int n = 0 ; n < 4 ; n++ )
 		array.AddVal(m_MouseMode[n]);
 	array.AddBin(m_MetaKeys,  sizeof(m_MetaKeys));
+
+	m_ProcTab.SetArray(tmp);
+	tmp.SetString(str, ';');
+	array.Add(str);
 }
 void CTextRam::GetArray(CStringArrayExt &array)
 {
 	int n;
 	BYTE tmp[16];
+	CStringArrayExt ext;
+
+	Init();
 
 	m_DefCols[0]  = array.GetVal(0);
 	m_DefHisMax   = array.GetVal(1);
@@ -793,27 +805,39 @@ void CTextRam::GetArray(CStringArrayExt &array)
 	memcpy(m_AnsiOpt, m_DefAnsiOpt, sizeof(m_AnsiOpt));
 	array.GetBin(9, m_DefBankTab, sizeof(m_DefBankTab));
 	memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
+
 	m_SendCharSet[0] = array.GetAt(10);
 	m_SendCharSet[1] = array.GetAt(11);
 	m_SendCharSet[2] = array.GetAt(12);
 	m_SendCharSet[3] = array.GetAt(13);
+
 	m_WheelSize    = array.GetVal(14);
 	m_BitMapFile   = array.GetAt(15);
+
 	m_DelayMSec    = (array.GetSize() > 16 ? array.GetVal(16) : 0);
 	m_HisFile      = (array.GetSize() > 17 ? array.GetAt(17) : "");
 	m_KeepAliveSec = (array.GetSize() > 18 ? array.GetVal(18) : 0);
 	m_LogFile      = (array.GetSize() > 19 ? array.GetAt(19) : "");
 	m_DefCols[1]   = (array.GetSize() > 20 ? array.GetVal(20) : 132);
+
 	m_DropFileMode = (array.GetSize() > 21 ? array.GetVal(21) : 0);
 	for ( n = 0 ; n < 8 ; n++ )
 		m_DropFileCmd[n]  = (array.GetSize() > (22 + n) ? array.GetAt(22 + n) : DropCmdTab[n]);
+
 	m_WordStr      = (array.GetSize() > 30 ? array.GetAt(30) : "\\/._");
+
 	m_MouseMode[0] = (array.GetSize() > 31 ? array.GetVal(31) : 0);
 	m_MouseMode[1] = (array.GetSize() > 32 ? array.GetVal(32) : 1);
 	m_MouseMode[2] = (array.GetSize() > 33 ? array.GetVal(33) : 4);
 	m_MouseMode[3] = (array.GetSize() > 34 ? array.GetVal(34) : 16);
+
 	if ( array.GetSize() > 35 )
 		array.GetBin(35, m_MetaKeys, sizeof(m_MetaKeys));
+
+	if ( array.GetSize() > 36 ) {
+		ext.GetString(array.GetAt(36), ';');
+		m_ProcTab.GetArray(ext);
+	}
 
 	RESET();
 }

@@ -26,7 +26,9 @@ static char THIS_FILE[]=__FILE__;
 //////////////////////////////////////////////////////////////////////
 // CBuffer
 
-#define	STATICBUFFER
+//#define	STATICBUFFER
+
+#ifdef	STATICBUFFER
 
 typedef struct _BufPtr {
 	int				size;
@@ -87,8 +89,10 @@ static	void	SetBufPtr(int size, LPBYTE buf)
 	bp->next = BufPtrHash[n];
 	BufPtrHash[n] = bp;
 }
+#endif
 void	FreeBufPtr()
 {
+#ifdef	STATICBUFFER
 	int n;
 	BUFPTR *bp;
 
@@ -101,6 +105,7 @@ void	FreeBufPtr()
 			delete (LPBYTE)bp;
 		}
 	}
+#endif
 }
 
 CBuffer::CBuffer(int size)
@@ -2854,6 +2859,7 @@ CStringEnv & CStringEnv::operator [] (LPCSTR str)
 		if ( m_Array[n].m_nIndex.CompareNoCase(str) == 0 )
 			return m_Array[n];
 	}
+
 	tmpData.m_nIndex = str;
 	n = m_Array.Add(tmpData);
 	return m_Array[n];

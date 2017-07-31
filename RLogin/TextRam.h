@@ -162,12 +162,12 @@ enum CTabSetNum {
 };
 
 enum CStageNum {
+		STAGE_ESC = 0,	STAGE_CSI,		STAGE_EXT1,		STAGE_EXT2,		// Use 0,1,2,3 !!! Look up fc_Case()
+		STAGE_EXT3,
 		STAGE_EUC,
 		STAGE_94X94,	STAGE_96X96,
 		STAGE_SJIS,		STAGE_SJIS2,
 		STAGE_UTF8,		STAGE_UTF82,
-		STAGE_ESC,
-		STAGE_CSI,		STAGE_EXT1,		STAGE_EXT2,		STAGE_EXT3,
 		STAGE_OSC1,		STAGE_OSC2,		STAGE_OSC3,		STAGE_OSC4,
 		STAGE_TEK,
 		STAGE_STAT,
@@ -252,6 +252,35 @@ public:
 	CFontTab();
 };
 
+class CProcNode : public CObject
+{
+public:
+	int		m_Type;
+	int		m_Code;
+	CString	m_Name;
+
+	const CProcNode & operator = (CProcNode &data);
+	CProcNode();
+};
+
+class CProcTab : public COptObject
+{
+public:
+	CArray<CProcNode, CProcNode &> m_Data;
+
+	void Add(int type, int code, LPCSTR name);
+	inline void RemoveAll() { m_Data.RemoveAll(); }
+	inline int GetSize() { return m_Data.GetSize(); }
+	inline CProcNode & operator[](int nIndex) { return m_Data[nIndex]; }
+
+	void Init();
+	void SetArray(CStringArrayExt &array);
+	void GetArray(CStringArrayExt &array);
+
+	const CProcTab & operator = (CProcTab &data);
+	CProcTab();
+};
+
 class CTextSave : public CObject
 {
 public:
@@ -303,6 +332,7 @@ public:	// Options
 	int m_MouseTrack;
 	BYTE m_MouseMode[4];
 	DWORD m_MetaKeys[256 / 32];
+	CProcTab m_ProcTab;
 
 	void Init();
 	void SetArray(CStringArrayExt &array);
@@ -494,16 +524,43 @@ public:
 		void (CTextRam::*proc)(int ch);
 	} PROCTAB;
 
+	typedef struct _CSIEXTTAB {
+		int		code;
+		void (CTextRam::*proc)(int ch);
+	} CSIEXTTAB;
+
+	typedef struct _ESCNAMEPROC {
+		LPCSTR		name;
+		union {
+			void (CTextRam::*proc)(int ch);
+			BYTE byte[sizeof(void (CTextRam::*)(int))];
+		} data;
+		struct _ESCNAMEPROC	*left;
+		struct _ESCNAMEPROC	*right;
+	} ESCNAMEPROC;
+
 	void ((CTextRam::**m_Func)(int ch));
 	int m_Stage;
 	int m_StPos;
 	int m_Stack[16];
+	void (CTextRam::*m_LocalProc[4][256])(int ch);
+	CArray<CTextRam::CSIEXTTAB, CTextRam::CSIEXTTAB &> m_CsiExt;
 
 	void fc_Init_Proc(int stage, const PROCTAB *tp, int b = 0);
 	void fc_Init(int mode);
 	inline void fc_Call(int ch) { (this->*m_Func[ch])(ch); }
 	inline void fc_Case(int stage);
 	inline void fc_Push(int stage);
+
+	void EscNameProc(int ch, LPCSTR name);
+	LPCSTR EscProcName(void (CTextRam::*proc)(int ch));
+	void SetEscNameCombo(CComboBox *pCombo);
+
+	void CsiNameProc(int code, LPCSTR name);
+	LPCSTR CsiProcName(void (CTextRam::*proc)(int ch));
+	void SetCsiNameCombo(CComboBox *pCombo);
+
+	void EscCsiDefName(LPCSTR *esc, LPCSTR *csi);
 
 #define	KANBUFMAX		128
 
@@ -647,7 +704,8 @@ public:
 	void fc_VPR(int ch);
 	void fc_HVP(int ch);
 	void fc_TBC(int ch);
-	void fc_SRM(int ch);
+	void fc_SM(int ch);
+	void fc_RM(int ch);
 	void fc_MC(int ch);
 	void fc_HPB(int ch);
 	void fc_VPB(int ch);
@@ -671,8 +729,12 @@ public:
 	void fc_DECSED(int ch);
 	void fc_DECSEL(int ch);
 	void fc_DECST8C(int ch);
-	void fc_DECSRET(int ch);
+	void fc_DECSET(int ch);
+	void fc_DECRST(int ch);
+	void fc_XTREST(int ch);
+	void fc_XTSAVE(int ch);
 	void fc_DECDSR(int ch);
+	void fc_DECSRET(int ch);
 	// CSI $ ...
 	void fc_DECRQM(int ch);
 	void fc_DECCARA(int ch);
@@ -681,9 +743,33 @@ public:
 	void fc_DECFRA(int ch);
 	void fc_DECERA(int ch);
 	void fc_DECSERA(int ch);
+	// CSI ...
+	void fc_DECRQMH(int ch);
+	void fc_SL(int ch);
+	void fc_SR(int ch);
+	void fc_DECTME(int ch);
+	void fc_DECSTR(int ch);
+	void fc_DECSCA(int ch);
+	void fc_DECEFR(int ch);
+	void fc_DECELR(int ch);
+	void fc_DECSLE(int ch);
+	void fc_DECRQLP(int ch);
+	void fc_DECIC(int ch);
+	void fc_DECDC(int ch);
+	void fc_DECSACE(int ch);
+	void fc_DECATC(int ch);
+	void fc_DA2(int ch);
+	void fc_DA3(int ch);
+	void fc_C25LCT(int ch);
 
-	// ESC PX^_ DCS/PM/APC/OSC
+
+	// ESC PX^_] DCS/PM/APC/SOS/OSC
+	void fc_DCS(int ch);
+	void fc_PM(int ch);
+	void fc_APC(int ch);
+	void fc_SOS(int ch);
 	void fc_OSC(int ch);
+	void fc_OSC_CH(int ch);
 	void fc_OSC_POP(int ch);
 	void fc_OSC_ESC(int ch);
 	void fc_OSC_CSI(int ch);

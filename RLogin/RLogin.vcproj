@@ -417,6 +417,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\CsiParaDlg.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Data.cpp"
 				>
 			</File>
@@ -426,6 +430,14 @@
 			</File>
 			<File
 				RelativePath=".\EnvDlg.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\EscDlg.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\EscParaDlg.cpp"
 				>
 			</File>
 			<File
@@ -679,6 +691,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\CsiParaDlg.h"
+				>
+			</File>
+			<File
 				RelativePath=".\Data.h"
 				>
 			</File>
@@ -688,6 +704,14 @@
 			</File>
 			<File
 				RelativePath=".\EnvDlg.h"
+				>
+			</File>
+			<File
+				RelativePath=".\EscDlg.h"
+				>
+			</File>
+			<File
+				RelativePath=".\EscParaDlg.h"
 				>
 			</File>
 			<File

@@ -25,6 +25,8 @@ static char THIS_FILE[]=__FILE__;
 
 static int fc_Init_Flag = FALSE;
 static void (CTextRam::*fc_Proc[STAGE_MAX][256])(int ch);
+static CTextRam::ESCNAMEPROC	*fc_pEscProc = NULL;
+static CTextRam::ESCNAMEPROC	*fc_pCsiProc = NULL;
 
 static const CTextRam::PROCTAB fc_CtrlTab[] = {
 	{ 0x05,		0,			&CTextRam::fc_ENQ		},
@@ -133,8 +135,8 @@ static const CTextRam::PROCTAB fc_Esc2Tab[] = {
 	{ '8',		0,			&CTextRam::fc_RC		},	// DECRC Restore Cursor
 	{ '9',		0,			&CTextRam::fc_FI		},	// DECFI Forward Index
 	{ '<',		0,			&CTextRam::fc_V5EX		},	//											VT52 Exit VT52 mode. Enter VT100 mode.
-	{ '=',		0,			&CTextRam::fc_POP		},	//											VT52 Enter alternate keypad mode.
-	{ '>',		0,			&CTextRam::fc_POP		},	//											VT52 Exit alternate keypad mode.
+//	{ '=',		0,			&CTextRam::fc_POP		},	//											VT52 Enter alternate keypad mode.
+//	{ '>',		0,			&CTextRam::fc_POP		},	//											VT52 Exit alternate keypad mode.
 	{ 'A',		0,			&CTextRam::fc_V5CUP		},	//											VT52 Cursor up.
 	{ 'B',		0,			&CTextRam::fc_BPH		},	// BPH Break permitted here					VT52 Cursor down
 	{ 'C',		0,			&CTextRam::fc_NBH		},	// NBH No break here						VT52 Cursor right
@@ -150,22 +152,22 @@ static const CTextRam::PROCTAB fc_Esc2Tab[] = {
 	{ 'M',		0,			&CTextRam::fc_RI		},	// RI Reverse index
 	{ 'N',		0,			&CTextRam::fc_SS2		},	// SS2 Single shift 2
 	{ 'O',		0,			&CTextRam::fc_SS3		},	// SS3 Single shift 3
-	{ 'P',		0,			&CTextRam::fc_OSC		},	// DCS Device Control String
-	{ 'Q',		0,			&CTextRam::fc_POP		},	// PU1 Private use one
-	{ 'R',		0,			&CTextRam::fc_POP		},	// PU2 Private use two
+	{ 'P',		0,			&CTextRam::fc_DCS		},	// DCS Device Control String
+//	{ 'Q',		0,			&CTextRam::fc_POP		},	// PU1 Private use one
+//	{ 'R',		0,			&CTextRam::fc_POP		},	// PU2 Private use two
 	{ 'S',		0,			&CTextRam::fc_STS		},	// STS Set transmit state
-	{ 'T',		0,			&CTextRam::fc_CCH		},	// CCH Cancel character
-	{ 'U',		0,			&CTextRam::fc_MW		},	// MW Message waiting
+//	{ 'T',		0,			&CTextRam::fc_CCH		},	// CCH Cancel character
+//	{ 'U',		0,			&CTextRam::fc_MW		},	// MW Message waiting
 	{ 'V',		0,			&CTextRam::fc_SPA		},	// SPA Start of guarded area				VT52 Print the line with the cursor.
 	{ 'W',		0,			&CTextRam::fc_EPA		},	// EPA End of guarded area					VT52 Enter printer controller mode.
-//	{ 'X',		0,			&CTextRam::fc_OSC		},	// SOS Start of String
+//	{ 'X',		0,			&CTextRam::fc_SOS		},	// SOS Start of String
 	{ 'Y',		0,			&CTextRam::fc_V5MCP		},	//											VT52 Move cursor to column Pn.
 	{ 'Z',		0,			&CTextRam::fc_SCI		},	// SCI Single character introducer			VT52 Identify (host to terminal).
 	{ '[',		0,			&CTextRam::fc_CSI		},	// CSI Control sequence introducer
 	{ '\\',		0,			&CTextRam::fc_POP		},	// ST String terminator
 	{ ']',		0,			&CTextRam::fc_OSC		},	// OSC Operating System Command
-//	{ '^',		0,			&CTextRam::fc_OSC		},	// PM Privacy message
-//	{ '_',		0,			&CTextRam::fc_OSC		},	// APC Application Program Command
+//	{ '^',		0,			&CTextRam::fc_PM		},	// PM Privacy message
+//	{ '_',		0,			&CTextRam::fc_APC		},	// APC Application Program Command
 	{ 'c',		0,			&CTextRam::fc_RIS		},	// RIS Reset to initial state
 	{ 'l',		0,			&CTextRam::fc_LMA		},	// HP LMA Lock memory above
 	{ 'm',		0,			&CTextRam::fc_USR		},	// HP USR Unlock scrolling region
@@ -180,10 +182,10 @@ static const CTextRam::PROCTAB fc_CsiTab[] = {
 	{ 0x18,		0,			&CTextRam::fc_POP		},
 	{ 0x1A,		0,			&CTextRam::fc_POP		},
 	{ 0x1B,		0,			&CTextRam::fc_CSI_ESC	},
-	{ 0x20,		0x2F,		&CTextRam::fc_CSI_EXT	},
+	{ 0x20,		0x2F,		&CTextRam::fc_CSI_EXT	},	// SP!"#$%&'()*+,-./
 	{ 0x30,		0x39,		&CTextRam::fc_CSI_DIGIT	},
 	{ 0x3B,		0,			&CTextRam::fc_CSI_SEPA	},
-	{ 0x3C,		0x3F,		&CTextRam::fc_CSI_EXT	},
+	{ 0x3C,		0x3F,		&CTextRam::fc_CSI_EXT	},	// <=>?
 	{ 0x40,		0x7F,		&CTextRam::fc_POP		},
 	{ 0x80,		0x9F,		&CTextRam::fc_SESC		},
 	{ 0xA0,		0xAF,		&CTextRam::fc_CSI_EXT	},
@@ -218,8 +220,8 @@ static const CTextRam::PROCTAB fc_AnsiTab[] = {
 	{ 'X',		0,			&CTextRam::fc_ECH		},	// ECH Erase character
 	{ 'Y',		0,			&CTextRam::fc_CVT		},	// CVT Cursor line tabulation
 	{ 'Z',		0,			&CTextRam::fc_CBT		},	// CBT Move the active position n tabs backward.
-	{ ']',		0,			&CTextRam::fc_LINUX		},	// LINUX console
-	{ '^',		0,			&CTextRam::fc_SIMD		},	// SIMD Select implicit movement direction
+//	{ ']',		0,			&CTextRam::fc_LINUX		},	// LINUX console
+//	{ '^',		0,			&CTextRam::fc_SIMD		},	// SIMD Select implicit movement direction
 	{ '`',		0,			&CTextRam::fc_HPA		},	// HPA Horizontal Position Absolute
 	{ 'a',		0,			&CTextRam::fc_HPR		},	// HPR Horizontal Position Relative
 	{ 'b',		0,			&CTextRam::fc_REP		},	// REP Repeat
@@ -228,36 +230,36 @@ static const CTextRam::PROCTAB fc_AnsiTab[] = {
 	{ 'e',		0,			&CTextRam::fc_VPR		},	// VPR Vertical Position Relative
 	{ 'f',		0,			&CTextRam::fc_HVP		},	// HVP Horizontal and Vertical Position
 	{ 'g',		0,			&CTextRam::fc_TBC		},	// TBC Tab Clear
-	{ 'h',		0,			&CTextRam::fc_SRM		},	// SM Mode Set
-	{ 'i',		0,			&CTextRam::fc_MC		},	// MC Media copy
+	{ 'h',		0,			&CTextRam::fc_SM		},	// SM Mode Set
+//	{ 'i',		0,			&CTextRam::fc_MC		},	// MC Media copy
 	{ 'j',		0,			&CTextRam::fc_HPB		},	// HPB Character position backward
 	{ 'k',		0,			&CTextRam::fc_VPB		},	// VPB Line position backward
-	{ 'l',		0,			&CTextRam::fc_SRM		},	// RM Mode ReSet
+	{ 'l',		0,			&CTextRam::fc_RM		},	// RM Mode ReSet
 	{ 'm',		0,			&CTextRam::fc_SGR		},	// SGR Select Graphic Rendition
 	{ 'n',		0,			&CTextRam::fc_DSR		},	// DSR Device status report
-	{ 'o',		0,			&CTextRam::fc_DAQ		},	// DAQ Define area qualification
+//	{ 'o',		0,			&CTextRam::fc_DAQ		},	// DAQ Define area qualification
 	{ 'p',		0,			&CTextRam::fc_DECBFAT	},	// DECBFAT Begin field attribute : DEC private
-	{ 'q',		0,			&CTextRam::fc_DECLL		},	// DECLL Load LEDs
+//	{ 'q',		0,			&CTextRam::fc_DECLL		},	// DECLL Load LEDs
 	{ 'r',		0,			&CTextRam::fc_DECSTBM	},	// DECSTBM Set Top and Bottom Margins
 	{ 's',		0,			&CTextRam::fc_DECSC		},	// DECSC Save Cursol Pos
 	{ 't',		0,			&CTextRam::fc_XTWOP		},	// XTWOP XTERM WINOPS
 	{ 'u',		0,			&CTextRam::fc_DECRC		},	// DECRC Load Cursol Pos
 	{ 'v',		0,			&CTextRam::fc_ORGSCD	},	// ORGSCD Set Cursol Display
 	{ 'x',		0,			&CTextRam::fc_REQTPARM	},	// DECREQTPARM Request terminal parameters
-	{ 'y',		0,			&CTextRam::fc_DECTST	},	// DECTST Invoke confidence test
-	{ 'z',		0,			&CTextRam::fc_DECVERP	},	// DECVERP Set vertical pitch
+//	{ 'y',		0,			&CTextRam::fc_DECTST	},	// DECTST Invoke confidence test
+//	{ 'z',		0,			&CTextRam::fc_DECVERP	},	// DECVERP Set vertical pitch
 	{ 0,		0,			NULL } };
-static const CTextRam::PROCTAB fc_Ext1Tab[] = {
+static const CTextRam::PROCTAB fc_Ext1Tab[] = {			// ('?' << 16) | sc
 	{ 'J',		0,			&CTextRam::fc_DECSED	},	// DECSED Selective Erase in Display
 	{ 'K',		0,			&CTextRam::fc_DECSEL	},	// DECSEL Selective Erase in Line
 	{ 'W',		0,			&CTextRam::fc_DECST8C	},	// DECST8C Set Tab at every 8 columns
-	{ 'h',		0,			&CTextRam::fc_DECSRET	},	// DECSET
-	{ 'l',		0,			&CTextRam::fc_DECSRET	},	// DECRST
+	{ 'h',		0,			&CTextRam::fc_DECSET	},	// DECSET
+	{ 'l',		0,			&CTextRam::fc_DECRST	},	// DECRST
 	{ 'n',		0,			&CTextRam::fc_DECDSR	},	// DECDSR Device status report
-	{ 'r',		0,			&CTextRam::fc_DECSRET	},	// XTERM_RESTORE
-	{ 's',		0,			&CTextRam::fc_DECSRET	},	// XTERM_SAVE
+	{ 'r',		0,			&CTextRam::fc_XTREST	},	// XTREST
+	{ 's',		0,			&CTextRam::fc_XTSAVE	},	// XTSAVE
 	{ 0,		0,			NULL } };
-static const CTextRam::PROCTAB fc_Ext2Tab[] = {
+static const CTextRam::PROCTAB fc_Ext2Tab[] = {			// ('$' << 8) | sc
 	{ 'p',		0,			&CTextRam::fc_DECRQM	},	// DECRQM Request mode settings
 	{ 'r',		0,			&CTextRam::fc_DECCARA	},	// DECCARA Change Attribute in Rectangle
 	{ 't',		0,			&CTextRam::fc_DECRARA	},	// DECRARA Reverse Attribute in Rectangle
@@ -269,6 +271,25 @@ static const CTextRam::PROCTAB fc_Ext2Tab[] = {
 static const CTextRam::PROCTAB fc_Ext3Tab[] = {
 	{ 0x40,		0x7F,		&CTextRam::fc_CSI_ETC	},
 	{ 0,		0,			NULL } };
+static const CTextRam::CSIEXTTAB fc_CsiExtTab[] = {
+	{ ('?' << 16) | ('$'  << 8) | 'p',		&CTextRam::fc_DECRQMH	},	// DECRQMH Request Mode (DEC) Host to Terminal
+	{ 				(' '  << 8) | '@',		&CTextRam::fc_SL		},	// SL Scroll left
+	{ 				(' '  << 8) | 'A',		&CTextRam::fc_SR		},	// SRScroll Right
+	{ 				(' '  << 8) | '~',		&CTextRam::fc_DECTME	},	// DECTME Terminal Mode Emulation
+	{ 				('!'  << 8) | 'p',		&CTextRam::fc_DECSTR	},	// DECSTR Soft terminal reset
+	{ 				('"'  << 8) | 'q',		&CTextRam::fc_DECSCA	},	// DECSCA Select character attributes
+	{ 				('\'' << 8) | 'w',		&CTextRam::fc_DECEFR	},	// DECEFR Enable filter rectangle
+	{ 				('\'' << 8) | 'z',		&CTextRam::fc_DECELR	},	// DECELR Enable locator reports
+	{ 				('\'' << 8) | '{',		&CTextRam::fc_DECSLE	},	// DECSLE Select locator events
+	{ 				('\'' << 8) | '|',		&CTextRam::fc_DECRQLP	},	// DECRQLP Request locator position
+	{ 				('\'' << 8) | '}',		&CTextRam::fc_DECIC		},	// DECIC Insert Column
+	{ 				('\'' << 8) | '~',		&CTextRam::fc_DECDC		},	// DECDC Delete Column(s)
+	{ 				('*'  << 8) | 'x',		&CTextRam::fc_DECSACE	},	// DECSACE Select Attribute and Change Extent
+	{ 				(','  << 8) | '}',		&CTextRam::fc_DECATC	},	// DECATC Alternate Text Colors
+	{ ('>' << 16)				| 'c',		&CTextRam::fc_DA2		},	// DA2 Secondary Device Attributes
+	{ ('=' << 16)				| 'c',		&CTextRam::fc_DA3		},	// DA3 Tertiary Device Attributes
+	{ ('=' << 16)				| 'S',		&CTextRam::fc_C25LCT	},	// C25LCT cons25 Set local cursor type
+	{							    0,		NULL } };
 
 static const CTextRam::PROCTAB fc_Osc1Tab[] = {
 	{ 0x07,		0,			&CTextRam::fc_OSC_ST	},	// BELL (ST)
@@ -328,6 +349,232 @@ static const CTextRam::PROCTAB fc_StatTab[] = {
 	{ 0x00,		0xFF,		&CTextRam::fc_STAT		},
 	{ 0,		0,			NULL } };
 
+#define	ESCNAMEMAX		55
+static CTextRam::ESCNAMEPROC fc_EscNameTab[] = {
+	{	"ACS",		&CTextRam::fc_ACS	},
+	{	"BPH",		&CTextRam::fc_BPH	},
+	{	"CCH",		&CTextRam::fc_CCH	},
+	{	"CSC0",		&CTextRam::fc_CSC0	},
+	{	"CSC0A",	&CTextRam::fc_CSC0A	},
+	{	"CSC0W",	&CTextRam::fc_CSC0W	},
+	{	"CSC1",		&CTextRam::fc_CSC1	},
+	{	"CSC1A",	&CTextRam::fc_CSC1A	},
+	{	"CSC2",		&CTextRam::fc_CSC2	},
+	{	"CSC2A",	&CTextRam::fc_CSC2A	},
+	{	"CSC3",		&CTextRam::fc_CSC3	},
+	{	"CSC3A",	&CTextRam::fc_CSC3A	},
+	{	"CSI",		&CTextRam::fc_CSI	},
+	{	"DCS",		&CTextRam::fc_DCS	},
+	{	"DECBI",	&CTextRam::fc_BI	},
+	{	"DECCAHT",	&CTextRam::fc_CCAHT	},
+	{	"DECCAVT",	&CTextRam::fc_CAVT	},
+	{	"DECFI",	&CTextRam::fc_FI	},
+	{	"DECHTS",	&CTextRam::fc_DECHTS},
+	{	"DECRC",	&CTextRam::fc_RC	},
+	{	"DECSC",	&CTextRam::fc_SC	},
+	{	"DECSOP",	&CTextRam::fc_DECSOP},
+	{	"DECVTS",	&CTextRam::fc_DECVTS},
+	{	"DOCS",		&CTextRam::fc_DOCS	},
+	{	"EPA",		&CTextRam::fc_EPA	},
+	{	"ESA",		&CTextRam::fc_ESA	},
+	{	"HTJ",		&CTextRam::fc_HTJ	},
+	{	"HTS",		&CTextRam::fc_HTS	},
+	{	"IND",		&CTextRam::fc_IND	},
+	{	"LMA",		&CTextRam::fc_LMA	},
+	{	"LS1R",		&CTextRam::fc_LS1R	},
+	{	"LS2",		&CTextRam::fc_LS2	},
+	{	"LS2R",		&CTextRam::fc_LS2R	},
+	{	"LS3",		&CTextRam::fc_LS3	},
+	{	"LS3R",		&CTextRam::fc_LS3R	},
+	{	"MW",		&CTextRam::fc_MW	},
+	{	"NBH",		&CTextRam::fc_NBH	},
+	{	"NEL",		&CTextRam::fc_NEL	},
+	{	"NOP",		&CTextRam::fc_POP	},
+	{	"OSC",		&CTextRam::fc_OSC	},
+	{	"PLD",		&CTextRam::fc_PLD	},
+	{	"PLU",		&CTextRam::fc_PLU	},
+	{	"RI",		&CTextRam::fc_RI	},
+	{	"RIS",		&CTextRam::fc_RIS	},
+	{	"SCI",		&CTextRam::fc_SCI	},
+	{	"SPA",		&CTextRam::fc_SPA	},
+	{	"SS2",		&CTextRam::fc_SS2	},
+	{	"SS3",		&CTextRam::fc_SS3	},
+	{	"SSA",		&CTextRam::fc_SSA	},
+	{	"STS",		&CTextRam::fc_STS	},
+	{	"USR",		&CTextRam::fc_USR	},
+	{	"V5CUP",	&CTextRam::fc_V5CUP	},
+	{	"V5EX",		&CTextRam::fc_V5EX	},
+	{	"V5MCP",	&CTextRam::fc_V5MCP	},
+	{	"VTS",		&CTextRam::fc_VTS	},
+};
+
+#define	CSINAMEMAX		86
+static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
+	{	"C25LCT",	&CTextRam::fc_C25LCT 	},
+	{	"CBT",		&CTextRam::fc_CBT		},
+	{	"CHA",		&CTextRam::fc_CHA		},
+	{	"CHT",		&CTextRam::fc_CHT		},
+	{	"CNL",		&CTextRam::fc_CNL		},
+	{	"CPL",		&CTextRam::fc_CPL		},
+	{	"CTC",		&CTextRam::fc_CTC		},
+	{	"CUB",		&CTextRam::fc_CUB		},
+	{	"CUD",		&CTextRam::fc_CUD		},
+	{	"CUF",		&CTextRam::fc_CUF		},
+	{	"CUP",		&CTextRam::fc_CUP		},
+	{	"CUU",		&CTextRam::fc_CUU		},
+	{	"CVT",		&CTextRam::fc_CVT		},
+	{	"DA1",		&CTextRam::fc_DA1		},
+	{	"DA2",		&CTextRam::fc_DA2		},
+	{	"DA3",		&CTextRam::fc_DA3		},
+	{	"DAQ",		&CTextRam::fc_DAQ		},
+	{	"DCH",		&CTextRam::fc_DCH		},
+	{	"DECATC",	&CTextRam::fc_DECATC	},
+	{	"DECBFAT",	&CTextRam::fc_DECBFAT	},
+	{	"DECCARA",	&CTextRam::fc_DECCARA	},
+	{	"DECCRA",	&CTextRam::fc_DECCRA	},
+	{	"DECDC",	&CTextRam::fc_DECDC		},
+	{	"DECDSR",	&CTextRam::fc_DECDSR	},
+	{	"DECEFR",	&CTextRam::fc_DECEFR	},
+	{	"DECELR",	&CTextRam::fc_DECELR	},
+	{	"DECERA",	&CTextRam::fc_DECERA	},
+	{	"DECFRA",	&CTextRam::fc_DECFRA	},
+	{	"DECIC",	&CTextRam::fc_DECIC		},
+	{	"DECLL",	&CTextRam::fc_DECLL		},
+	{	"DECRARA",	&CTextRam::fc_DECRARA	},
+	{	"DECRC",	&CTextRam::fc_DECRC		},
+	{	"DECRQLP",	&CTextRam::fc_DECRQLP	},
+	{	"DECRQM",	&CTextRam::fc_DECRQM	},
+	{	"DECRQMH",	&CTextRam::fc_DECRQMH	},
+	{	"DECRST",	&CTextRam::fc_DECRST	},
+	{	"DECSACE",	&CTextRam::fc_DECSACE	},
+	{	"DECSC",	&CTextRam::fc_DECSC		},
+	{	"DECSCA",	&CTextRam::fc_DECSCA	},
+	{	"DECSED",	&CTextRam::fc_DECSED	},
+	{	"DECSEL",	&CTextRam::fc_DECSEL	},
+	{	"DECSERA",	&CTextRam::fc_DECSERA	},
+	{	"DECSET",	&CTextRam::fc_DECSET	},
+	{	"DECSLE",	&CTextRam::fc_DECSLE	},
+	{	"DECST8C",	&CTextRam::fc_DECST8C	},
+	{	"DECSTBM",	&CTextRam::fc_DECSTBM	},
+	{	"DECSTR",	&CTextRam::fc_DECSTR	},
+	{	"DECTME",	&CTextRam::fc_DECTME	},
+	{	"DECTST",	&CTextRam::fc_DECTST	},
+	{	"DECVERP",	&CTextRam::fc_DECVERP	},
+	{	"DL",		&CTextRam::fc_DL		},
+	{	"DSR",		&CTextRam::fc_DSR		},
+	{	"EA",		&CTextRam::fc_EA		},
+	{	"ECH",		&CTextRam::fc_ECH		},
+	{	"ED",		&CTextRam::fc_ED		},
+	{	"EF",		&CTextRam::fc_EF		},
+	{	"EL",		&CTextRam::fc_EL		},
+	{	"HPA",		&CTextRam::fc_HPA		},
+	{	"HPB",		&CTextRam::fc_HPB		},
+	{	"HPR",		&CTextRam::fc_HPR		},
+	{	"HVP",		&CTextRam::fc_HVP		},
+	{	"ICH",		&CTextRam::fc_ICH		},
+	{	"IL",		&CTextRam::fc_IL		},
+	{	"LINUX",	&CTextRam::fc_LINUX		},
+	{	"MC",		&CTextRam::fc_MC		},
+	{	"NOP",		&CTextRam::fc_POP		},
+	{	"NP",		&CTextRam::fc_NP		},
+	{	"ORGSCD",	&CTextRam::fc_ORGSCD	},
+	{	"PP",		&CTextRam::fc_PP		},
+	{	"REP",		&CTextRam::fc_REP		},
+	{	"REQTPARM",	&CTextRam::fc_REQTPARM	},
+	{	"RM",		&CTextRam::fc_RM		},
+	{	"SD",		&CTextRam::fc_SD		},
+	{	"SGR",		&CTextRam::fc_SGR		},
+	{	"SIMD",		&CTextRam::fc_SIMD		},
+	{	"SL",		&CTextRam::fc_SL		},
+	{	"SM",		&CTextRam::fc_SM		},
+	{	"SR",		&CTextRam::fc_SR		},
+	{	"SU",		&CTextRam::fc_SU		},
+	{	"TBC",		&CTextRam::fc_TBC		},
+	{	"VPA",		&CTextRam::fc_VPA		},
+	{	"VPB",		&CTextRam::fc_VPB		},
+	{	"VPR",		&CTextRam::fc_VPR		},
+	{	"XTREST",	&CTextRam::fc_XTREST	},
+	{	"XTSAVE",	&CTextRam::fc_XTSAVE	},
+	{	"XTWOP",	&CTextRam::fc_XTWOP		},
+};
+
+//////////////////////////////////////////////////////////////////////
+// CProcNode
+
+CProcNode::CProcNode()
+{
+	m_Type = 0;
+	m_Code = 0;
+	m_Name.Empty();
+}
+const CProcNode & CProcNode::operator = (CProcNode &data)
+{
+	m_Type = data.m_Type;
+	m_Code = data.m_Code;
+	m_Name = data.m_Name;
+	return *this;
+}
+
+//////////////////////////////////////////////////////////////////////
+// CProcTab
+
+CProcTab::CProcTab()
+{
+	m_pSection = "ProcTab";
+	m_Data.RemoveAll();
+}
+const CProcTab & CProcTab::operator = (CProcTab &data)
+{
+	m_Data.RemoveAll();
+	for ( int n = 0 ; n < data.m_Data.GetSize() ; n++ )
+		m_Data.Add(data.m_Data[n]);
+	return *this;
+}
+void CProcTab::Init()
+{
+	m_Data.RemoveAll();
+}
+void CProcTab::SetArray(CStringArrayExt &array)
+{
+	int n;
+	CString tmp;
+
+	array.RemoveAll();
+	for ( n = 0 ; n < m_Data.GetSize() ; n++ ) {
+		tmp.Format("%d,%d,%s,", m_Data[n].m_Type, m_Data[n].m_Code, m_Data[n].m_Name);
+		array.Add(tmp);
+	}
+}
+void CProcTab::GetArray(CStringArrayExt &array)
+{
+	int n;
+	CProcNode node;
+	CStringArrayExt tmp;
+
+	m_Data.RemoveAll();
+	for ( n = 0 ; n < array.GetSize() ; n++ ) {
+		tmp.GetString(array[n], ',');
+		if ( tmp.GetSize() < 3  )
+			continue;
+		node.m_Type = atoi(tmp[0]);
+		node.m_Code = atoi(tmp[1]);
+		node.m_Name = tmp[2];
+		m_Data.Add(node);
+	}
+}
+void CProcTab::Add(int type, int code, LPCSTR name)
+{
+	CProcNode node;
+
+	node.m_Type = type;
+	node.m_Code = code;
+	node.m_Name = name;
+	m_Data.Add(node);
+}
+
+//////////////////////////////////////////////////////////////////////
+// CTextRam::fc_xxx
+
 void CTextRam::fc_Init_Proc(int stage, const PROCTAB *tp, int b)
 {
 	int c;
@@ -357,10 +604,13 @@ void CTextRam::fc_Init_Proc(int stage, const PROCTAB *tp, int b)
 }
 void CTextRam::fc_Init(int mode)
 {
+	int i, n, c, b, m;
+	ESCNAMEPROC *tp;
+
 	if ( !fc_Init_Flag ) {
 		fc_Init_Flag = TRUE;
 
-		for ( int i = 0 ; i < STAGE_MAX ; i++ ) {
+		for ( i = 0 ; i < STAGE_MAX ; i++ ) {
 			for ( int c = 0; c < 256 ; c++ )
 				fc_Proc[i][c] = &CTextRam::fc_IGNORE;
 		}
@@ -412,6 +662,89 @@ void CTextRam::fc_Init(int mode)
 
 		fc_Init_Proc(STAGE_TEK, fc_TekTab);			// TEK
 		fc_Init_Proc(STAGE_STAT, fc_StatTab);
+
+		for ( n = 0 ; n < ESCNAMEMAX ; n++ ) {
+			fc_EscNameTab[n].left = fc_EscNameTab[n].right = NULL;
+			if ( (tp = fc_pEscProc) == NULL )
+				fc_pEscProc = &(fc_EscNameTab[n]);
+			else {
+				for ( ; ; ) {
+					if ( (c = memcmp(tp->data.byte, fc_EscNameTab[n].data.byte, sizeof(void (CTextRam::*)(int)))) == 0 )
+						break;
+					else if ( c < 0 ) {
+						if ( tp->left == NULL ) {
+							tp->left = &(fc_EscNameTab[n]);
+							break;
+						} else
+							tp = tp->left;
+					} else {
+						if ( tp->right == NULL ) {
+							tp->right = &(fc_EscNameTab[n]);
+							break;
+						} else
+							tp = tp->right;
+					}
+				}
+			}
+		}
+
+		for ( n = 0 ; n < CSINAMEMAX ; n++ ) {
+			fc_CsiNameTab[n].left = fc_CsiNameTab[n].right = NULL;
+			if ( (tp = fc_pCsiProc) == NULL )
+				fc_pCsiProc = &(fc_CsiNameTab[n]);
+			else {
+				for ( ; ; ) {
+					if ( (c = memcmp(tp->data.byte, fc_CsiNameTab[n].data.byte, sizeof(void (CTextRam::*)(int)))) == 0 )
+						break;
+					else if ( c < 0 ) {
+						if ( tp->left == NULL ) {
+							tp->left = &(fc_CsiNameTab[n]);
+							break;
+						} else
+							tp = tp->left;
+					} else {
+						if ( tp->right == NULL ) {
+							tp->right = &(fc_CsiNameTab[n]);
+							break;
+						} else
+							tp = tp->right;
+					}
+				}
+			}
+		}
+	}
+
+	memcpy(m_LocalProc[0], fc_Proc[STAGE_ESC], sizeof(m_LocalProc[0]));
+	memcpy(m_LocalProc[1], fc_Proc[STAGE_CSI], sizeof(m_LocalProc[1]));
+	memcpy(m_LocalProc[2], fc_Proc[STAGE_EXT1], sizeof(m_LocalProc[2]));
+	memcpy(m_LocalProc[3], fc_Proc[STAGE_EXT2], sizeof(m_LocalProc[3]));
+
+	m_CsiExt.RemoveAll();
+	for ( i = 0 ; fc_CsiExtTab[i].proc != NULL ; i++ ) {
+		b = 0;
+		m = m_CsiExt.GetSize() - 1;
+		while ( b <= m ) {
+			n = (b + m) / 2;
+			if ( (c = fc_CsiExtTab[i].code - m_CsiExt[n].code) == 0 )
+				break;
+			else if ( c < 0 )
+				b = n + 1;
+			else
+				m = n - 1;
+		}
+		if ( b > m )
+			m_CsiExt.InsertAt(b, (CTextRam::CSIEXTTAB)(fc_CsiExtTab[i]));
+	}
+
+	for ( n = 0 ; n < m_ProcTab.GetSize() ; n++ ) {
+		switch(m_ProcTab[n].m_Type) {
+		case 0:	// ESC
+			EscNameProc(m_ProcTab[n].m_Code, m_ProcTab[n].m_Name);
+			break;
+		case 1:	// CSI
+			CsiNameProc(m_ProcTab[n].m_Code, m_ProcTab[n].m_Name);
+			break;
+		}
 	}
 
 	m_RetSync = FALSE;
@@ -435,14 +768,170 @@ void CTextRam::fc_Init(int mode)
 }
 inline void CTextRam::fc_Case(int stage)
 {
-	m_Stage = stage;
-	m_Func = fc_Proc[stage];
+	if ( (m_Stage = stage) <= STAGE_EXT2 )
+		m_Func = m_LocalProc[stage];
+	else
+		m_Func = fc_Proc[stage];
 }
 inline void CTextRam::fc_Push(int stage)
 {
 	ASSERT(m_StPos < 16);
 	m_Stack[m_StPos++] = m_Stage;
 	fc_Case(stage);
+}
+
+//////////////////////////////////////////////////////////////////////
+// ESC/CSI Proc Name Func...
+
+void CTextRam::EscNameProc(int ch, LPCSTR name)
+{
+	int n, c;
+	int b = 0;
+	int m = ESCNAMEMAX - 1;
+	void (CTextRam::*proc)(int) = &CTextRam::fc_POP;
+
+	while ( b <= m ) {
+		n = (b + m) / 2;
+		if ( (c = strcmp(fc_EscNameTab[n].name, name)) == 0 ) {
+			proc = fc_EscNameTab[n].data.proc;
+			break;
+		} else if ( c < 0 )
+			b = n + 1;
+		else
+			m = n - 1;
+	}
+
+	m_LocalProc[0][ch] = proc;
+	m_LocalProc[0][ch | 0x80] = proc;
+}
+LPCSTR	CTextRam::EscProcName(void (CTextRam::*proc)(int ch))
+{
+	int c;
+	ESCNAMEPROC tmp;
+	ESCNAMEPROC *tp;
+
+	tmp.data.proc = proc;
+	for ( tp = fc_pEscProc ; tp != NULL ; ) {
+		if ( (c = memcmp(tp->data.byte, tmp.data.byte, sizeof(void (CTextRam::*)(int)))) == 0 )
+			return tp->name;
+		else if ( c < 0 )
+			tp = tp->left;
+		else
+			tp = tp->right;
+	}
+	return "NOP";
+}
+void CTextRam::SetEscNameCombo(CComboBox *pCombo)
+{
+	for ( int n = 0 ; n < ESCNAMEMAX ; n++ )
+		pCombo->AddString(fc_EscNameTab[n].name);
+}
+
+void CTextRam::CsiNameProc(int code, LPCSTR name)
+{
+	int n, c;
+	int b = 0;
+	int m = CSINAMEMAX - 1;
+	void (CTextRam::*proc)(int) = &CTextRam::fc_POP;
+	CSIEXTTAB tmp;
+
+	while ( b <= m ) {
+		n = (b + m) / 2;
+		if ( (c = strcmp(fc_CsiNameTab[n].name, name)) == 0 ) {
+			proc = fc_CsiNameTab[n].data.proc;
+			break;
+		} else if ( c < 0 )
+			b = n + 1;
+		else
+			m = n - 1;
+	}
+
+	switch(code & 0x7F7F00) {
+	case 0:
+		m_LocalProc[1][code & 0x7F] = proc;
+		m_LocalProc[1][code & 0x7F | 0x80] = proc;
+		break;
+	case '?' << 16:
+		m_LocalProc[2][code & 0x7F] = proc;
+		m_LocalProc[2][code & 0x7F | 0x80] = proc;
+		break;
+	case '$' << 8:
+		m_LocalProc[3][code & 0x7F] = proc;
+		m_LocalProc[3][code & 0x7F | 0x80] = proc;
+		break;
+	default:
+		b = 0;
+		m = m_CsiExt.GetSize() - 1;
+		while ( b <= m ) {
+			n = (b + m) / 2;
+			if ( (c = code - m_CsiExt[n].code) == 0 ) {
+				m_CsiExt[n].proc = proc;
+				break;
+			} else if ( c < 0 )
+				b = n + 1;
+			else
+				m = n - 1;
+		}
+		if ( b > m ) {
+			tmp.code = code;
+			tmp.proc = proc;
+			m_CsiExt.InsertAt(b, tmp);
+		}
+		break;
+	}
+}
+LPCSTR	CTextRam::CsiProcName(void (CTextRam::*proc)(int ch))
+{
+	int c;
+	ESCNAMEPROC tmp;
+	ESCNAMEPROC *tp;
+
+	tmp.data.proc = proc;
+	for ( tp = fc_pCsiProc ; tp != NULL ; ) {
+		if ( (c = memcmp(tp->data.byte, tmp.data.byte, sizeof(void (CTextRam::*)(int)))) == 0 )
+			return tp->name;
+		else if ( c < 0 )
+			tp = tp->left;
+		else
+			tp = tp->right;
+	}
+	return "NOP";
+}
+void CTextRam::SetCsiNameCombo(CComboBox *pCombo)
+{
+	for ( int n = 0 ; n < CSINAMEMAX ; n++ )
+		pCombo->AddString(fc_CsiNameTab[n].name);
+}
+void CTextRam::EscCsiDefName(LPCSTR *esc, LPCSTR *csi)
+{
+	int n, c;
+
+	for ( n = 0 ; n < 95 ; n++ )		// SP - ~ = 95
+		esc[n] = "NOP";
+
+	for ( n = 0 ; fc_Esc2Tab[n].proc != NULL ; n++ )
+		esc[fc_Esc2Tab[n].sc - ' '] = EscProcName(fc_Esc2Tab[n].proc);
+
+	for ( n = 0 ; n < 5355 ; n++ )		// (@ - ~) x (SP - / + 1) x (< - ? + 1) = 63 * 17 * 5 = 5355
+		csi[n] = "NOP";
+
+	for ( n = 0 ; fc_AnsiTab[n].proc != NULL ; n++ )
+		csi[fc_AnsiTab[n].sc - '@'] = CsiProcName(fc_AnsiTab[n].proc);
+
+	for ( n = 0 ; fc_Ext1Tab[n].proc != NULL ; n++ )		// ('?' << 16) | sc
+		csi[fc_Ext1Tab[n].sc - '@' + 63 * 17 * 4] = CsiProcName(fc_Ext1Tab[n].proc);
+
+	for ( n = 0 ; fc_Ext2Tab[n].proc != NULL ; n++ )		// ('$' << 8) | sc
+		csi[fc_Ext2Tab[n].sc - '@' + 63 * 5] = CsiProcName(fc_Ext2Tab[n].proc);
+
+	for ( n = 0 ; fc_CsiExtTab[n].proc != NULL ; n++ ) {
+		c = (fc_CsiExtTab[n].code & 0x7F) - '@';
+		if ( (fc_CsiExtTab[n].code & 0x7F0000) != 0 )
+			c += ((((fc_CsiExtTab[n].code >> 16) & 0x7F) - '<' + 1) * 63 * 17);
+		if ( (fc_CsiExtTab[n].code & 0x007F00) != 0 )
+			c += ((((fc_CsiExtTab[n].code >>  8) & 0x7F) - ' ' + 1) * 63);
+		csi[c] = CsiProcName(fc_CsiExtTab[n].proc);
+	}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1564,7 +2053,27 @@ void CTextRam::fc_STAT(int ch)
 //////////////////////////////////////////////////////////////////////
 // fc DCS/SOS/APC/PM/OSC ...
 
+void CTextRam::fc_DCS(int ch)
+{
+	fc_OSC_CH('P');
+}
+void CTextRam::fc_SOS(int ch)
+{
+	fc_OSC_CH('X');
+}
+void CTextRam::fc_APC(int ch)
+{
+	fc_OSC_CH('_');
+}
+void CTextRam::fc_PM(int ch)
+{
+	fc_OSC_CH('^');
+}
 void CTextRam::fc_OSC(int ch)
+{
+	fc_OSC_CH(']');
+}
+void CTextRam::fc_OSC_CH(int ch)
 {
 	m_OscMode = ch & 0x7F;
 	m_OscPara.Empty();
@@ -1777,9 +2286,9 @@ void CTextRam::fc_CSI_EXT(int ch)
 {
 	if ( ch >= 0x20 && ch <= 0x2F ) {
 		m_BackChar &= 0xFF0000;
-		m_BackChar |= (ch << 8);
+		m_BackChar |= (ch << 8);			// SP!"#$%&'()*+,-./
 	} else
-		m_BackChar = (ch << 16);
+		m_BackChar = (ch << 16);			// <=>?
 
 	switch(m_BackChar & 0x7F7F00) {
 	case '?' << 16:
@@ -2143,14 +2652,23 @@ void CTextRam::fc_TBC(int ch)
 	}
 	fc_POP(ch);
 }
-void CTextRam::fc_SRM(int ch)
+void CTextRam::fc_SM(int ch)
 {
 	// CSI h	SM Mode Set
+	int n, i;
+	for ( n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
+		if ( (i = GetAnsiPara(n, 0)) >= 1 && i < 100 )
+			ANSIOPT('h', i + 200);
+	}
+	fc_POP(ch);
+}
+void CTextRam::fc_RM(int ch)
+{
 	// CSI l	RM Mode ReSet
 	int n, i;
 	for ( n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
 		if ( (i = GetAnsiPara(n, 0)) >= 1 && i < 100 )
-			ANSIOPT(ch & 0x7F, i + 200);
+			ANSIOPT('l', i + 200);
 	}
 	fc_POP(ch);
 }
@@ -2492,6 +3010,26 @@ void CTextRam::fc_DECST8C(int ch)
 	TABSET(TAB_RESET);
 	fc_POP(ch);
 }
+void CTextRam::fc_DECSET(int ch)
+{
+	// CSI ? h	DECSET
+	fc_DECSRET('h');
+}
+void CTextRam::fc_DECRST(int ch)
+{
+	// CSI ? l	DECRST
+	fc_DECSRET('l');
+}
+void CTextRam::fc_XTREST(int ch)
+{
+	// CSI ? r	XTREST
+	fc_DECSRET('r');
+}
+void CTextRam::fc_XTSAVE(int ch)
+{
+	// CSI ? s	XTSAVE
+	fc_DECSRET('s');
+}
 void CTextRam::fc_DECSRET(int ch)
 {
 	// CSI ? h	DECSET
@@ -2813,23 +3351,53 @@ void CTextRam::fc_DECSERA(int ch)
 
 void CTextRam::fc_CSI_ETC(int ch)
 {
+	int n, c, d, b, m;
+
+	d = (m_BackChar | ch) & 0x7F7F7F;
+	b = 0;
+	m = m_CsiExt.GetSize() - 1;
+
+	while ( b <= m ) {
+		n = (b + m) / 2;
+		if ( (c = d - m_CsiExt[n].code) == 0 ) {
+			(this->*m_CsiExt[n].proc)(ch);
+			return;
+		} else if ( c < 0 )
+			b = n + 1;
+		else
+			m = n - 1;
+	}
+	fc_POP(ch);
+}
+void CTextRam::fc_DECRQMH(int ch)
+{
+	// CSI ('?' << 16) | ('$' << 8) | 'p'	DECRQMH Request Mode (DEC) Host to Terminal
 	int n;
 
-	switch((m_BackChar | ch) & 0x7F7F7F) {
-	case ('?' << 16) | ('$' << 8) | 'p':		// DECRQM Request Mode (DEC) Host to Terminal
-		if ( (n = GetAnsiPara(0, 1)) > 199 )
-			n = 199;
-		UNGETSTR("\033[?%d;%d$y", n, IsOptEnable(n) ? 1 : 2);
-		break;
-	case ('?' << 16) | ('$' << 8) | 'y':		// Report Mode (DEC) Terminal to Host
-		break;
+	if ( (n = GetAnsiPara(0, 1)) > 199 )
+		n = 199;
+	UNGETSTR("\033[?%d;%d$y", n, IsOptEnable(n) ? 1 : 2);
+	fc_POP(ch);
+}
+void CTextRam::fc_SL(int ch)
+{
+	// CSI (' ' << 8) | '@'		SL Scroll left
+	int n;
 
-	case (' ' << 8) | '@':		// SL Scroll left
+	for ( n = GetAnsiPara(0, 1) ; n > 0 ; n-- )
 		LEFTSCROLL();
-		break;
-	case (' ' << 8) | 'A':		// SR Scroll Right
+	fc_POP(ch);
+}
+void CTextRam::fc_SR(int ch)
+{
+	// CSI (' ' << 8) | 'A'		SR Scroll Right
+	int n;
+
+	for ( n = GetAnsiPara(0, 1) ; n > 0 ; n-- )
 		RIGHTSCROLL();
-		break;
+	fc_POP(ch);
+}
+
 #if 0
 	case (' ' << 8) | 'B':		// GSM Graphic size modification
 	case (' ' << 8) | 'C':		// GSS Graphic size selection
@@ -2891,18 +3459,27 @@ void CTextRam::fc_CSI_ETC(int ch)
 	case (' ' << 8) | '{':		// DECSSS Set sheet size
 	case (' ' << 8) | '|':		// DECRVEC Draw relative vector
 	case (' ' << 8) | '}':		// DECKBD Keyboard Language Selection
-		break;
 #endif
-	case (' ' << 8) | '~':		// DECTME Terminal Mode Emulation
-		if ( GetAnsiPara(0, 0) == 3 )
-			m_AnsiOpt[TO_DECANM / 32] |= (1 << (TO_DECANM % 32));
-		else
-			m_AnsiOpt[TO_DECANM / 32] &= ~(1 << (TO_DECANM % 32));
-		break;
 
-	case ('!' << 8) | 'p':		// DECSTR Soft terminal reset
-		RESET();
-		break;
+void CTextRam::fc_DECTME(int ch)
+{
+	// CSI (' ' << 8) | '~'		DECTME Terminal Mode Emulation
+
+	if ( GetAnsiPara(0, 0) == 3 )
+		m_AnsiOpt[TO_DECANM / 32] |= (1 << (TO_DECANM % 32));
+	else
+		m_AnsiOpt[TO_DECANM / 32] &= ~(1 << (TO_DECANM % 32));
+
+	fc_POP(ch);
+}
+void CTextRam::fc_DECSTR(int ch)
+{
+	// CSI ('!' << 8) | 'p'		DECSTR Soft terminal reset
+
+	RESET();
+	fc_POP(ch);
+}
+
 #if 0
 	case ('!' << 8) | 's':		// DECFIL Right justification
 	case ('!' << 8) | 'v':		// DECASFC Automatic sheet feeder control
@@ -2911,108 +3488,140 @@ void CTextRam::fc_CSI_ETC(int ch)
 	case ('!' << 8) | 'y':		// DECSS Select spacing
 	case ('!' << 8) | '|':		// DECVEC Draw vector
 	case ('!' << 8) | '}':		// DECFIN Document finishing
-		break;
-#endif
 	case ('"' << 8) | 'p':		// DECSCL Set compatibility level
-		break;
-	case ('"' << 8) | 'q':		// DECSCA Select character attributes
-		if ( GetAnsiPara(0, 0) == 1 )
-			m_AttNow.em |= EM_PROTECT;
-		else
-			m_AttNow.em &= ~EM_PROTECT;
-		break;
+#endif
+
+void CTextRam::fc_DECSCA(int ch)
+{
+	// CSI ('"' << 8) | 'q'		DECSCA Select character attributes
+
+	if ( GetAnsiPara(0, 0) == 1 )
+		m_AttNow.em |= EM_PROTECT;
+	else
+		m_AttNow.em &= ~EM_PROTECT;
+
+	fc_POP(ch);
+}
+
 #if 0
 	case ('"' << 8) | 's':		// DECPWA Page width alignment
 	case ('"' << 8) | 'u':		//        Set Transmit Rate Limit
 	case ('"' << 8) | 'v':		// DECRQDE Request device extent
 	case ('"' << 8) | 'w':		// DECRPDE Report device extent
 	case ('"' << 8) | 'z':		// DECDEN Select density
-		break;
-
 	case ('&' << 8) | 'q':		// DECSNC Set number of copies
 	case ('&' << 8) | 'u':		// DECRQUPSS Request User-Preferred Supplemental Set
 	case ('&' << 8) | 'w':		// DECLRP Locator report
 	case ('&' << 8) | 'x':		// DECES Enable Session
-		break;
-
 	case ('\'' << 8) | 'q':		// DECSBCA Select bar code attributes
 #endif
 
-	case ('\'' << 8) | 'w':		// DECEFR Enable filter rectangle
-		if ( m_AnsiPara.GetSize() >= 4 ) {
-			m_Loc_Rect.top    = GetAnsiPara(0, 1) - 1;
-			m_Loc_Rect.left   = GetAnsiPara(1, 1) - 1;
-			m_Loc_Rect.bottom = GetAnsiPara(2, 1) - 1;
-			m_Loc_Rect.right  = GetAnsiPara(3, 1) - 1;
-			m_Loc_Mode |= LOC_MODE_FILTER;
-		} else
-			m_Loc_Mode &= ~LOC_MODE_FILTER;
-		break;
-	case ('\'' << 8) | 'z':		// DECELR Enable locator reports
-		switch(GetAnsiPara(0, 0)) {
-		case 0:	// locator disabled (default)
-			m_Loc_Mode &= ~LOC_MODE_ENABLE;
-			m_Loc_Mode &= ~LOC_MODE_ONESHOT;
-			break;
-		case 1:	// locator reports enabled 
-			m_Loc_Mode |= LOC_MODE_ENABLE;
-			m_Loc_Mode &= ~LOC_MODE_ONESHOT;
-			break;
-		case 2:	// one shot (allow one report, then disable)
-			m_Loc_Mode |= LOC_MODE_ENABLE;
-			m_Loc_Mode |= LOC_MODE_ONESHOT;
-			break;
-		}
-		m_Loc_Mode &= ~LOC_MODE_FILTER;
-		switch(GetAnsiPara(1, 0)) {
-		case 0:	// default to character cells
-		case 2:	// character cells
-			m_Loc_Mode &= ~LOC_MODE_PIXELS;
-			break;
-		case 1:	// device physical pixels
-			m_Loc_Mode |= LOC_MODE_PIXELS;
-			break;
-		}
-		LocReport(0, 0, 0, 0);
-		break;
-	case ('\'' << 8) | '{':		// DECSLE Select locator events
-		for ( n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
-			switch(GetAnsiPara(n, 0)) {
-			case 0:	// respond only to explicit host requests (default, also cancels any pending filter rectangle) 
-				m_Loc_Mode &= ~LOC_MODE_EVENT;
-				break;
-			case 1:	// report button down transitions 
-				m_Loc_Mode |= LOC_MODE_EVENT;
-				m_Loc_Mode |= LOC_MODE_DOWN;
-				break;
-			case 2:	// do not report button down transitions 
-				m_Loc_Mode |= LOC_MODE_EVENT;
-				m_Loc_Mode &= ~LOC_MODE_DOWN;
-				break;
-			case 3:	// report button up transitions 
-				m_Loc_Mode |= LOC_MODE_EVENT;
-				m_Loc_Mode |= LOC_MODE_UP;
-				break;
-			case 4:	// do not report button up transitions
-				m_Loc_Mode |= LOC_MODE_EVENT;
-				m_Loc_Mode &= ~LOC_MODE_UP;
-				break;
-			}
-		}
-		LocReport(0, 0, 0, 0);
-		break;
-	case ('\'' << 8) | '|':		// DECRQLP Request locator position
-		LocReport(2, 0, 0, 0);
-		break;
+void CTextRam::fc_DECEFR(int ch)
+{
+	// CSI ('\'' << 8) | 'w'		DECEFR Enable filter rectangle
 
-	case ('\'' << 8) | '}':		// DECIC Insert Column
-		for ( n = GetAnsiPara(0, 1) ; n > 0 ; n-- )
-			INSCHAR();
+	if ( m_AnsiPara.GetSize() >= 4 ) {
+		m_Loc_Rect.top    = GetAnsiPara(0, 1) - 1;
+		m_Loc_Rect.left   = GetAnsiPara(1, 1) - 1;
+		m_Loc_Rect.bottom = GetAnsiPara(2, 1) - 1;
+		m_Loc_Rect.right  = GetAnsiPara(3, 1) - 1;
+		m_Loc_Mode |= LOC_MODE_FILTER;
+	} else
+		m_Loc_Mode &= ~LOC_MODE_FILTER;
+
+	fc_POP(ch);
+}
+void CTextRam::fc_DECELR(int ch)
+{
+	// CSI ('\'' << 8) | 'z'		DECELR Enable locator reports
+
+	switch(GetAnsiPara(0, 0)) {
+	case 0:	// locator disabled (default)
+		m_Loc_Mode &= ~LOC_MODE_ENABLE;
+		m_Loc_Mode &= ~LOC_MODE_ONESHOT;
 		break;
-	case ('\'' << 8) | '~':		// DECDC Delete Column(s)
-		for ( n = GetAnsiPara(0, 1) ; n > 0 ; n-- )
-			DELCHAR();
+	case 1:	// locator reports enabled 
+		m_Loc_Mode |= LOC_MODE_ENABLE;
+		m_Loc_Mode &= ~LOC_MODE_ONESHOT;
 		break;
+	case 2:	// one shot (allow one report, then disable)
+		m_Loc_Mode |= LOC_MODE_ENABLE;
+		m_Loc_Mode |= LOC_MODE_ONESHOT;
+		break;
+	}
+	m_Loc_Mode &= ~LOC_MODE_FILTER;
+	switch(GetAnsiPara(1, 0)) {
+	case 0:	// default to character cells
+	case 2:	// character cells
+		m_Loc_Mode &= ~LOC_MODE_PIXELS;
+		break;
+	case 1:	// device physical pixels
+		m_Loc_Mode |= LOC_MODE_PIXELS;
+		break;
+	}
+	LocReport(0, 0, 0, 0);
+
+	fc_POP(ch);
+}
+void CTextRam::fc_DECSLE(int ch)
+{
+	// CSI ('\'' << 8) | '{'		DECSLE Select locator events
+	int n;
+
+	for ( n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
+		switch(GetAnsiPara(n, 0)) {
+		case 0:	// respond only to explicit host requests (default, also cancels any pending filter rectangle) 
+			m_Loc_Mode &= ~LOC_MODE_EVENT;
+			break;
+		case 1:	// report button down transitions 
+			m_Loc_Mode |= LOC_MODE_EVENT;
+			m_Loc_Mode |= LOC_MODE_DOWN;
+			break;
+		case 2:	// do not report button down transitions 
+			m_Loc_Mode |= LOC_MODE_EVENT;
+			m_Loc_Mode &= ~LOC_MODE_DOWN;
+			break;
+		case 3:	// report button up transitions 
+			m_Loc_Mode |= LOC_MODE_EVENT;
+			m_Loc_Mode |= LOC_MODE_UP;
+			break;
+		case 4:	// do not report button up transitions
+			m_Loc_Mode |= LOC_MODE_EVENT;
+			m_Loc_Mode &= ~LOC_MODE_UP;
+			break;
+		}
+	}
+	LocReport(0, 0, 0, 0);
+
+	fc_POP(ch);
+}
+void CTextRam::fc_DECRQLP(int ch)
+{
+	// CSI ('\'' << 8) | '|'		DECRQLP Request locator position
+
+	LocReport(2, 0, 0, 0);
+	fc_POP(ch);
+}
+void CTextRam::fc_DECIC(int ch)
+{
+	// CSI ('\'' << 8) | '}'		DECIC Insert Column
+	int n;
+
+	for ( n = GetAnsiPara(0, 1) ; n > 0 ; n-- )
+		INSCHAR();
+
+	fc_POP(ch);
+}
+void CTextRam::fc_DECDC(int ch)
+{
+	// CSI ('\'' << 8) | '~'		DECDC Delete Column(s)
+	int n;
+
+	for ( n = GetAnsiPara(0, 1) ; n > 0 ; n-- )
+		DELCHAR();
+
+	fc_POP(ch);
+}
 
 #if 0
 	case ('*' << 8) | 'p':		// Select ProPrinter Character Set
@@ -3021,17 +3630,20 @@ void CTextRam::fc_CSI_ETC(int ch)
 	case ('*' << 8) | 's':		// Select Flow Control Type
 	case ('*' << 8) | 'u':		// Select Communication Port
 #endif
-	case ('*' << 8) | 'x':		// DECSACE Select Attribute and Change Extent
-		m_Exact = (GetAnsiPara(0, 1) == 2 ? TRUE : FALSE);
-		break;
+
+void CTextRam::fc_DECSACE(int ch)
+{
+	// CSI ('*' << 8) | 'x'		DECSACE Select Attribute and Change Extent
+	m_Exact = (GetAnsiPara(0, 1) == 2 ? TRUE : FALSE);
+	fc_POP(ch);
+}
+
 #if 0
 	case ('*' << 8) | 'y':		// DECRQCRA Request Checksum of Rectangle Area
 	case ('*' << 8) | 'z':		// DECINVM Invoke Macro
 	case ('*' << 8) | '{':		// DECMSR Macro Space Report Response
 	case ('*' << 8) | '|':		// DECSNLS Select number of lines per screen
 	case ('*' << 8) | '}':		// DECLFKC Local Function Key Control
-		break;
-
 	case ('+' << 8) | 'p':		// DECSR Secure Reset
 	case ('+' << 8) | 'q':		// DECELF Enable Local Functions
 	case ('+' << 8) | 'r':		// DECSMKR Select Modifier Key Reporting
@@ -3040,13 +3652,9 @@ void CTextRam::fc_CSI_ETC(int ch)
 	case ('+' << 8) | 'x':		// DECPQPLFM Program Key Free Memory Inquiry
 	case ('+' << 8) | 'y':		// DECPKFMR Program Key Free Memory Report
 	case ('+' << 8) | 'z':		// DECPKA Program Key Action
-		break;
-
 	case ('-' << 8) | 'p':		// DECARP Auto Repeat Rate
 	case ('-' << 8) | 'q':		// DECCRTST CRT Saver Timing
 	case ('-' << 8) | 'r':		// DECSEST Energy Saver Timing
-		break;
-
 	case (',' << 8) | 'p':		// Load Time of Day
 	case (',' << 8) | 'u':		// Key Type Inquiry
 	case (',' << 8) | 'v':		// Report Key Type
@@ -3056,49 +3664,64 @@ void CTextRam::fc_CSI_ETC(int ch)
 	case (',' << 8) | 'z':		// Down Line Load Allocation
 	case (',' << 8) | '|':		// Assign Color
 	case (',' << 8) | '{':		// Select Zero Symbol
-		break;
 #endif
-	case (',' << 8) | '}':		// DECATC Alternate Text Colors
-		switch(GetAnsiPara(0, 0)) {
-		case 0: m_AttNow.at = 0; break;
-		case 1: m_AttNow.at = ATT_BOLD; break;
-		case 2: m_AttNow.at = ATT_REVS; break;
-		case 3: m_AttNow.at = ATT_UNDER; break;
-		case 4: m_AttNow.at = ATT_SBLINK; break;
-		case 5: m_AttNow.at = ATT_BOLD | ATT_REVS; break;
-		case 6: m_AttNow.at = ATT_BOLD | ATT_UNDER; break;
-		case 7: m_AttNow.at = ATT_BOLD | ATT_SBLINK; break;
-		case 8: m_AttNow.at = ATT_REVS | ATT_UNDER; break;
-		case 9: m_AttNow.at = ATT_REVS | ATT_SBLINK; break;
-		case 10: m_AttNow.at = ATT_UNDER | ATT_SBLINK; break;
-		case 11: m_AttNow.at = ATT_BOLD | ATT_REVS | ATT_UNDER; break;
-		case 12: m_AttNow.at = ATT_BOLD | ATT_REVS | ATT_SBLINK; break;
-		case 13: m_AttNow.at = ATT_BOLD | ATT_UNDER | ATT_SBLINK; break;
-		case 14: m_AttNow.at = ATT_REVS | ATT_UNDER | ATT_SBLINK; break;
-		case 15: m_AttNow.at = ATT_BOLD | ATT_REVS | ATT_UNDER | ATT_SBLINK; break;
-		}
-		m_AttNow.fc = GetAnsiPara(1, 7);
-		m_AttNow.bc = (GetAnsiPara(2, 0) << 4);
-		if ( IS_ENABLE(m_AnsiOpt, TO_DECECM) == 0 ) {
-			m_AttSpc.fc = m_AttNow.fc;
-			m_AttSpc.bc = m_AttNow.bc;
-		}
-		if ( IS_ENABLE(m_AnsiOpt, TO_RLGCWA) != 0 )
-			m_AttSpc.at = m_AttNow.at;
-		break;
-	case (',' << 8) | '~':		// Play Sound
-		break;
 
+void CTextRam::fc_DECATC(int ch)
+{
+	// CSI (',' << 8) | '}'		DECATC Alternate Text Colors
+
+	switch(GetAnsiPara(0, 0)) {
+	case 0: m_AttNow.at = 0; break;
+	case 1: m_AttNow.at = ATT_BOLD; break;
+	case 2: m_AttNow.at = ATT_REVS; break;
+	case 3: m_AttNow.at = ATT_UNDER; break;
+	case 4: m_AttNow.at = ATT_SBLINK; break;
+	case 5: m_AttNow.at = ATT_BOLD | ATT_REVS; break;
+	case 6: m_AttNow.at = ATT_BOLD | ATT_UNDER; break;
+	case 7: m_AttNow.at = ATT_BOLD | ATT_SBLINK; break;
+	case 8: m_AttNow.at = ATT_REVS | ATT_UNDER; break;
+	case 9: m_AttNow.at = ATT_REVS | ATT_SBLINK; break;
+	case 10: m_AttNow.at = ATT_UNDER | ATT_SBLINK; break;
+	case 11: m_AttNow.at = ATT_BOLD | ATT_REVS | ATT_UNDER; break;
+	case 12: m_AttNow.at = ATT_BOLD | ATT_REVS | ATT_SBLINK; break;
+	case 13: m_AttNow.at = ATT_BOLD | ATT_UNDER | ATT_SBLINK; break;
+	case 14: m_AttNow.at = ATT_REVS | ATT_UNDER | ATT_SBLINK; break;
+	case 15: m_AttNow.at = ATT_BOLD | ATT_REVS | ATT_UNDER | ATT_SBLINK; break;
+	}
+	m_AttNow.fc = GetAnsiPara(1, 7);
+	m_AttNow.bc = (GetAnsiPara(2, 0) << 4);
+	if ( IS_ENABLE(m_AnsiOpt, TO_DECECM) == 0 ) {
+		m_AttSpc.fc = m_AttNow.fc;
+		m_AttSpc.bc = m_AttNow.bc;
+	}
+	if ( IS_ENABLE(m_AnsiOpt, TO_RLGCWA) != 0 )
+		m_AttSpc.at = m_AttNow.at;
+
+	fc_POP(ch);
+}
+
+#if 0
+	case (',' << 8) | '~':		// Play Sound
 	case (')' << 8) | 'p':		// Select Digital Printed Data Type
 	case (')' << 8) | '{':		// Select Color Look-Up Table
-		break;
+#endif
 
-	case ('>' << 16) | 'c':		// DA2 Secondary Device Attributes
-		UNGETSTR("\033[>65;10;1c");
-		break;
-	case ('=' << 16) | 'c':		// DA3 Tertiary Device Attributes
-		UNGETSTR("\033P!|010205\033\\");
-		break;
+
+void CTextRam::fc_DA2(int ch)
+{
+	// CSI ('>' << 16) | 'c'	DA2 Secondary Device Attributes
+
+	UNGETSTR("\033[>65;10;1c");
+	fc_POP(ch);
+}
+void CTextRam::fc_DA3(int ch)
+{
+	// CSI ('=' << 16) | 'c'		DA3 Tertiary Device Attributes
+
+	UNGETSTR("\033P!|010205\033\\");
+	fc_POP(ch);
+}
+
 #if 0
 	case ('=' << 16) | 'A':		// cons25 Set the border color to n
 	case ('=' << 16) | 'B':		// cons25 Set bell pitch (p) and duration (d)
@@ -3107,15 +3730,16 @@ void CTextRam::fc_CSI_ETC(int ch)
 	case ('=' << 16) | 'G':		// cons25 Set normal background color to n
 	case ('=' << 16) | 'H':		// cons25 Set normal reverse foreground color to n
 	case ('=' << 16) | 'I':		// cons25 Set normal reverse background color to n
-		break;
 #endif
-	case ('=' << 16) | 'S':		// cons25 Set local cursor type
-		switch(GetAnsiPara(0, 0)) {
-		case 0:  CURON(); break;
-		case 1:  CUROFF(); break;
-		case 2:  CURON(); break;
-		}
-		break;
+
+void CTextRam::fc_C25LCT(int ch)
+{
+	// CSI ('=' << 16) | 'S'	C25LCT cons25 Set local cursor type
+
+	switch(GetAnsiPara(0, 0)) {
+	case 0:  CURON(); break;
+	case 1:  CUROFF(); break;
+	case 2:  CURON(); break;
 	}
 	fc_POP(ch);
 }

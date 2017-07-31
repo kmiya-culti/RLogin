@@ -29,6 +29,7 @@ public:
 	CString m_LogFile;
 	int m_LogMode;
 	int m_LogCode;
+	CProcTab m_ProcTab;
 
 // オーバーライド
 	// ClassWizard は仮想関数のオーバーライドを生成します。
@@ -51,6 +52,7 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	afx_msg void OnBnClickedAutologSel();
+	afx_msg void OnBnClickedEscedit();
 };
 
 //{{AFX_INSERT_LOCATION}}

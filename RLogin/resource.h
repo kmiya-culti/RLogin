@@ -55,6 +55,9 @@
 #define IDD_METADLG                     153
 #define IDD_INFOCAPDLG                  154
 #define IDD_ENVDLG                      155
+#define IDD_ESCDLG                      156
+#define IDD_ESCPARADLG                  157
+#define IDD_CSIPARADLG                  158
 #define IDM_KANJI_EUC                   200
 #define IDM_KANJI_SJIS                  201
 #define IDM_KANJI_ASCII                 202
@@ -127,7 +130,6 @@
 #define IDC_DSA2COPY                    1043
 #define IDC_DISPZOOM2                   1043
 #define IDC_DSA2MAKE                    1044
-#define IDC_DISPOFFSET2                 1044
 #define IDC_FONTQUALITY                 1044
 #define IDC_DSA2PUB                     1045
 #define IDC_EDIT1                       1046
@@ -241,6 +243,7 @@
 #define IDC_LIST2                       1138
 #define IDC_IDKEY_LIST                  1138
 #define IDC_MOUSE_KEY2                  1138
+#define IDC_ESCEDIT                     1138
 #define IDC_BUTTON4                     1139
 #define IDC_IDKEY_UP                    1139
 #define IDC_BUTTON6                     1140
@@ -283,15 +286,21 @@
 #define IDC_LIST1                       1179
 #define IDC_INFOLIST                    1179
 #define IDC_ENV_LIST                    1179
+#define IDC_ESCLIST                     1179
 #define IDC_LOADCAP                     1180
+#define IDC_CSILIST                     1180
 #define IDC_ENTRY                       1181
 #define IDC_LOADINFO                    1182
 #define IDC_TERMCAP                     1182
 #define IDC_INFOCAP                     1183
 #define IDC_SSL_RADIO1                  1184
 #define IDC_SSL_RADIO2                  1185
+#define IDC_CODE                        1185
 #define IDC_SSL_RADIO3                  1186
+#define IDC_CODEEXT2                    1186
+#define IDC_CEXT2                       1186
 #define IDC_SSL_RADIO4                  1187
+#define IDC_CEXT1                       1188
 #define IDC_ATTR1                       1201
 #define IDC_ATTR2                       1202
 #define IDC_ATTR3                       1203
@@ -474,9 +483,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        156
+#define _APS_NEXT_RESOURCE_VALUE        160
 #define _APS_NEXT_COMMAND_VALUE         32835
-#define _APS_NEXT_CONTROL_VALUE         1185
+#define _APS_NEXT_CONTROL_VALUE         1189
 #define _APS_NEXT_SYMED_VALUE           244
 #endif
 #endif

@@ -9,6 +9,7 @@
 #include "Data.h"
 #include "OptDlg.h"
 #include "TermPage.h"
+#include "EscDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -56,6 +57,7 @@ BEGIN_MESSAGE_MAP(CTermPage, CPropertyPage)
 	//}}AFX_MSG_MAP
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_CHECKFAST, IDC_CHECKFAST + CHECKOPTMAX - 1, OnUpdateCheck)
 	ON_BN_CLICKED(IDC_AUTOLOG_SEL, OnBnClickedAutologSel)
+	ON_BN_CLICKED(IDC_ESCEDIT, &CTermPage::OnBnClickedEscedit)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -73,6 +75,7 @@ BOOL CTermPage::OnInitDialog()
 	m_LogFile = m_pSheet->m_pTextRam->m_LogFile;
 	m_LogMode = m_pSheet->m_pTextRam->IsOptValue(TO_RLLOGMODE, 2);
 	m_LogCode = m_pSheet->m_pTextRam->IsOptValue(TO_RLLOGCODE, 2);
+	m_ProcTab = m_pSheet->m_pTextRam->m_ProcTab;
 
 	UpdateData(FALSE);
 	return TRUE;
@@ -93,6 +96,7 @@ BOOL CTermPage::OnApply()
 	m_pSheet->m_pTextRam->m_LogFile     = m_LogFile;
 	m_pSheet->m_pTextRam->SetOptValue(TO_RLLOGMODE, 2, m_LogMode);
 	m_pSheet->m_pTextRam->SetOptValue(TO_RLLOGCODE, 2, m_LogCode);
+	m_pSheet->m_pTextRam->m_ProcTab = m_ProcTab;
 
 	return TRUE;
 }
@@ -107,6 +111,7 @@ void CTermPage::OnReset()
 	m_LogFile = m_pSheet->m_pTextRam->m_LogFile;
 	m_LogMode = m_pSheet->m_pTextRam->IsOptValue(TO_RLLOGMODE, 2);
 	m_LogCode = m_pSheet->m_pTextRam->IsOptValue(TO_RLLOGCODE, 2);
+	m_ProcTab = m_pSheet->m_pTextRam->m_ProcTab;
 
 	UpdateData(FALSE);
 	SetModified(FALSE);
@@ -129,6 +134,20 @@ void CTermPage::OnBnClickedAutologSel()
 		return;
 
 	m_LogFile = dlg.GetPathName();
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+}
+
+void CTermPage::OnBnClickedEscedit()
+{
+	CEscDlg dlg;
+
+	dlg.m_pTextRam = m_pSheet->m_pTextRam;
+	dlg.m_pProcTab = &m_ProcTab;
+
+	if ( dlg.DoModal() != IDOK )
+		return;
+
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 }
