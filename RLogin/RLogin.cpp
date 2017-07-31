@@ -24,6 +24,7 @@
 #include <openssl/ssl.h>
 #include <openssl/engine.h>
 #include <openssl/conf.h>
+#include "afxcmn.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -654,6 +655,19 @@ BOOL CRLoginApp::OnlineEntry(LPCTSTR entry)
 	}
 	return FALSE;
 }
+BOOL CRLoginApp::CheckDocument(class CRLoginDoc *pDoc)
+{
+	POSITION pos = GetFirstDocTemplatePosition();
+	while ( pos != NULL ) {
+		CDocTemplate *pDocTemp = GetNextDocTemplate(pos);
+		POSITION dpos = pDocTemp->GetFirstDocPosition();
+		while ( dpos != NULL ) {
+			if ( (CRLoginDoc *)pDocTemp->GetNextDoc(dpos) == pDoc )
+				return TRUE;
+		}
+	}
+	return FALSE;
+}
 
 void CRLoginApp::SetSocketIdle(class CExtSocket *pSock)
 {
@@ -961,6 +975,32 @@ void CRLoginApp::RegisterLoad(HKEY hKey, LPCTSTR pSection, CBuffer &buf)
 
 	reg.Close();
 }
+void CRLoginApp::GetVersion(CString &str)
+{
+	HRSRC hRsrc;
+	HGLOBAL hGlobal;
+	struct _VS_VERSIONINFO {
+		WORD  wLength;
+		WORD  wValueLength;
+		WORD  wType;
+		WCHAR szKey[16];
+		WORD  Padding1[1];
+		VS_FIXEDFILEINFO Value;
+	} *pData;
+
+	str = _T("1.1.0");
+
+	if ( (hRsrc = FindResource(NULL, (LPCTSTR)VS_VERSION_INFO, RT_VERSION)) == NULL )
+		return;
+
+	if ( (hGlobal = LoadResource(NULL, hRsrc)) == NULL )
+		return;
+
+	if ( (pData = (struct _VS_VERSIONINFO *)LockResource(hGlobal)) != NULL )
+		str.Format(_T("%d.%d.%d"), HIWORD(pData->Value.dwFileVersionMS), LOWORD(pData->Value.dwFileVersionMS), HIWORD(pData->Value.dwFileVersionLS));
+
+	FreeResource(hGlobal);
+}
 
 // アプリケーションのバージョン情報に使われる CAboutDlg ダイアログ
 
@@ -978,6 +1018,7 @@ protected:
 // 実装
 protected:
 	DECLARE_MESSAGE_MAP()
+	afx_msg void OnNMClickSyslink1(NMHDR *pNMHDR, LRESULT *pResult);
 };
 
 CAboutDlg::CAboutDlg() : CDialog(CAboutDlg::IDD)
@@ -989,7 +1030,15 @@ void CAboutDlg::DoDataExchange(CDataExchange* pDX)
 	CDialog::DoDataExchange(pDX);
 }
 
+void CAboutDlg::OnNMClickSyslink1(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	PNMLINK pNMLink = (PNMLINK)pNMHDR;
+	ShellExecute(m_hWnd, NULL, pNMLink->item.szUrl, NULL, NULL, SW_NORMAL);
+	*pResult = 0;
+}
+
 BEGIN_MESSAGE_MAP(CAboutDlg, CDialog)
+	ON_NOTIFY(NM_CLICK, IDC_SYSLINK1, &CAboutDlg::OnNMClickSyslink1)
 END_MESSAGE_MAP()
 
 // ダイアログを実行するためのアプリケーション コマンド

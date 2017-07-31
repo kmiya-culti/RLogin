@@ -802,12 +802,17 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_wndToolBar.SendMessage(TB_SETHOTIMAGELIST,		0, (LPARAM)(m_ImageList[1].m_hImageList));
 	m_wndToolBar.SendMessage(TB_SETDISABLEDIMAGELIST,	0, (LPARAM)(m_ImageList[2].m_hImageList));
 
-#ifdef	USE_GOZI
+#if		USE_GOZI == 1 || USE_GOZI == 2
 	BitMap.LoadBitmap(IDB_BITMAP8);
 	m_ImageGozi.Create(32, 32, ILC_COLOR24 | ILC_MASK, 28, 10);
 	m_ImageGozi.Add(&BitMap, RGB(192, 192, 192));
 	BitMap.DeleteObject();
-#endif
+#elif	USE_GOZI == 3
+	BitMap.LoadBitmap(IDB_BITMAP8);
+	m_ImageGozi.Create(16, 16, ILC_COLOR24 | ILC_MASK, 12, 10);
+	m_ImageGozi.Add(&BitMap, RGB(255, 255, 255));
+	BitMap.DeleteObject();
+#endif	// USE_GOZI
 
 	int n, i, id, x, y;
 	CMenuBitMap *pMap;
@@ -1745,14 +1750,20 @@ LRESULT CMainFrame::OnAfterOpen(WPARAM wParam, LPARAM lParam)
 	for ( n = 0 ; n < m_AfterIdParam.GetSize() ; n += 2 ) {
 		if ( (int)(m_AfterIdParam[n]) == (int)wParam ) {
 			CRLoginDoc *pDoc = (CRLoginDoc *)m_AfterIdParam[n + 1];
-			CRLoginView *pView = (CRLoginView *)pDoc->GetAciveView();
 
 			m_AfterIdParam.RemoveAt(n, 2);
 
-			if ( (int)lParam != 0 )
+			if ( !((CRLoginApp *)AfxGetApp())->CheckDocument(pDoc) )
+				break;
+
+			if ( (int)lParam != 0 ) {
 				pDoc->OnSocketError((int)lParam);
-			else {
+
+			} else {
 				pDoc->SocketOpen();
+
+				CRLoginView *pView = (CRLoginView *)pDoc->GetAciveView();
+
 				if ( pView != NULL )
 					MDIActivate(pView->GetFrameWnd());
 			}

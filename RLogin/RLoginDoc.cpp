@@ -966,6 +966,7 @@ void CRLoginDoc::OnSockIdle()
 		if ( IsActCount() || m_bUseIdle )
 			break;
 	}
+
 //	TRACE("SockIdle %d\n", n);
 }
 int CRLoginDoc::SocketOpen()
@@ -1072,7 +1073,7 @@ int CRLoginDoc::SocketOpen()
 	}
 
 	if ( m_ServerEntry.m_ProxyMode != 0 )
-		rt = m_pSock->ProxyOpen(m_ServerEntry.m_ProxyMode,
+		rt = m_pSock->ProxyOpen(m_ServerEntry.m_ProxyMode, m_ServerEntry.m_ProxySSLKeep,
 			m_ServerEntry.m_ProxyHost, CExtSocket::GetPortNum(m_ServerEntry.m_ProxyPort),
 			m_ServerEntry.m_ProxyUser, m_ServerEntry.m_ProxyPass, m_ServerEntry.m_HostName, num);
 	else 

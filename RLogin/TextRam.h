@@ -200,6 +200,7 @@
 #define	TO_RLMWDIS		1455		// リサイズメッセージを表示しない
 #define	TO_RLGRPIND		1456		// イメージをウィンドウ内で表示
 #define	TO_RLLOGTIME	1457		// ログにタイムスタンプを追加
+#define	TO_RLSTAYCLIP	1458		// 範囲選択をそのままにする
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -1427,17 +1428,20 @@ public:
 	void MouseReport(int md, int sw, int x, int y);
 
 	// ReGIS/Sixel/Image
-	CPtrArray m_GrapWndTab;
 	class CGrapWnd *m_pActGrapWnd;
+	class CGrapWnd *m_pWorkGrapWnd;
 	clock_t m_GrapWndChkCLock;
 	int m_GrapWndChkStat;
 	int m_GrapWndChkPos;
 	BYTE m_GrapWndUseMap[4096];
+	class CGrapWnd *pGrapListIndex[8];
+	class CGrapWnd *pGrapListImage[8];
+	class CGrapWnd *pGrapListType;
 
 	class CGrapWnd *GetGrapWnd(int index);
 	class CGrapWnd *CmpGrapWnd(class CGrapWnd *pWnd);
-	void AddGrapWnd(void *pWnd);
-	void RemoveGrapWnd(void *pWnd);
+	void AddGrapWnd(class CGrapWnd *pWnd);
+	void RemoveGrapWnd(class CGrapWnd *pWnd);
 	void *LastGrapWnd(int type);
 	void ChkGrapWnd(int sec);
 	void SizeGrapWnd(class CGrapWnd *pWnd);

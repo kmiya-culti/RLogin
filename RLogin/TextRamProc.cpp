@@ -2944,6 +2944,11 @@ void CTextRam::fc_TimerSet(LPCTSTR name)
 
 	//if ( m_pCanDlg != NULL )
 	//	m_pCanDlg->DestroyWindow();
+
+	if ( m_pWorkGrapWnd != NULL ) {
+		m_pWorkGrapWnd->DestroyWindow();
+		m_pWorkGrapWnd = NULL;
+	}
 }
 void CTextRam::fc_TimerReset()
 {
@@ -2968,6 +2973,11 @@ void CTextRam::fc_TimerAbort(BOOL bOut)
 
 	if ( bOut && m_OscPara.GetSize() > 0 )
 		PUTSTR(m_OscPara.GetPtr(), m_OscPara.GetSize());
+
+	if ( m_pWorkGrapWnd != NULL ) {
+		m_pWorkGrapWnd->DestroyWindow();
+		m_pWorkGrapWnd = NULL;
+	}
 }
 
 void CTextRam::fc_DCS(DWORD ch)
@@ -3041,6 +3051,17 @@ void CTextRam::fc_OSC_CMD(DWORD ch)
 			m_BackChar |= ch;
 			m_OscPara.Clear();
 			fc_Case(STAGE_OSC2);
+
+			int n;
+			CString tmp;
+			if ( m_OscMode == 'P' && BinaryFind((void *)&m_BackChar, m_DcsExt.GetData(), sizeof(CSIEXTTAB), m_DcsExt.GetSize(), ExtTabCodeCmp, &n) && m_DcsExt[n].proc == &CTextRam::fc_DECSIXEL ) {
+				tmp.Format(_T("Sixel - %s"), m_pDocument->m_ServerEntry.m_EntryName);
+				if ( m_pWorkGrapWnd != NULL )
+					m_pWorkGrapWnd->DestroyWindow();
+				m_pWorkGrapWnd = new CGrapWnd(this);
+				m_pWorkGrapWnd->Create(NULL, tmp);
+				m_pWorkGrapWnd->SixelStart(GetAnsiPara(0, 0, 0), GetAnsiPara(1, 0, 0), GetAnsiPara(2, 0, 0), m_ColTab[m_AttNow.bcol]);
+			}
 		}
 	}
 }
@@ -3058,14 +3079,18 @@ void CTextRam::fc_OSC_PAM(DWORD ch)
 		fc_OSC_ST(ch);
 
 	} else if ( m_KanjiMode == UTF8_SET ) {
-		m_OscPara.Put8Bit(ch);
+		if ( m_pWorkGrapWnd != NULL )
+			m_pWorkGrapWnd->SixelData(ch);
+		else
+			m_OscPara.Put8Bit(ch);
 		m_LastChar = ch;
 
 		if ( m_CodeLen > 0 && ch >= 0x80 && ch <= 0xBF )
 			m_CodeLen--;
 		else {
 			if ( ch == 0x9C ) {
-				m_OscPara.ConsumeEnd(1);
+				if ( m_pWorkGrapWnd == NULL )
+					m_OscPara.ConsumeEnd(1);
 				fc_OSC_ST(ch);
 			} else if ( ch >= 0xC0 && ch <= 0xDF )
 				m_CodeLen = 1;
@@ -3082,7 +3107,10 @@ void CTextRam::fc_OSC_PAM(DWORD ch)
 		}
 
 	} else {
-		m_OscPara.Put8Bit(ch);
+		if ( m_pWorkGrapWnd != NULL )
+			m_pWorkGrapWnd->SixelData(ch);
+		else
+			m_OscPara.Put8Bit(ch);
 		m_LastChar = ch;
 	}
 }
@@ -3207,7 +3235,7 @@ void CTextRam::fc_DECREGIS(DWORD ch)
 		pGrapWnd->Create(NULL, tmp);
 		pGrapWnd->SetReGIS(n, m_OscPara);
 		pGrapWnd->ShowWindow(SW_SHOW);
-		AddGrapWnd((void *)pGrapWnd);
+		AddGrapWnd(pGrapWnd);
 	}
 
 	fc_POP(ch);
@@ -3224,25 +3252,23 @@ void CTextRam::fc_DECSIXEL(DWORD ch)
 	m_pActGrapWnd = NULL;
 	
 	if ( IsOptEnable(TO_DECSDM) ) {			// Sixel Scroll Mode Disable (DECSDM = set)
-		tmp.Format(_T("Sixel - %s"), m_pDocument->m_ServerEntry.m_EntryName);
-		pGrapWnd = new CGrapWnd(this);
-		pGrapWnd->Create(NULL, tmp);
-		pGrapWnd->SetSixelProc(GetAnsiPara(0, 0, 0), GetAnsiPara(1, 0, 0), GetAnsiPara(2, 0, 0), m_OscPara);
-		pGrapWnd->ShowWindow(SW_SHOW);
-		AddGrapWnd((void *)pGrapWnd);
+		m_pWorkGrapWnd->SixelEndof();
+		m_pWorkGrapWnd->ShowWindow(SW_SHOW);
+		AddGrapWnd(m_pWorkGrapWnd);
+		m_pWorkGrapWnd = NULL;
 
 	} else {								// Sixel Scroll Mode Enable (DECSDM = reset)
 
 		pGrapWnd = NULL;
 		idx = GetAnsiPara(3, -1, 0, (m_bTraceActive ? 4095 : 1023));
 
-		if ( m_OscPara.GetSize() > 0 ) {
-			pGrapWnd = new CGrapWnd(this);
-			pGrapWnd->Create(NULL, _T(""));
-			pGrapWnd->SetSixelProc(GetAnsiPara(0, 0, 0), GetAnsiPara(1, 0, 0), GetAnsiPara(2, 0, 0), m_OscPara, m_ColTab[m_AttNow.bcol]);
+		m_pWorkGrapWnd->SixelEndof();
 
-			ChkGrapWnd(2);	// Delete Non Display GrapWnd
-			pGrapWnd->WaitForSixel();
+		ChkGrapWnd(10);	// Delete Non Display GrapWnd
+
+		if ( m_pWorkGrapWnd->m_SixelWidth > 0 && m_pWorkGrapWnd->m_SixelHeight > 0 ) {
+			pGrapWnd = m_pWorkGrapWnd;
+			m_pWorkGrapWnd = NULL;
 
 			if ( pGrapWnd->m_pActMap == NULL ) {
 				pGrapWnd->DestroyWindow();
@@ -3254,6 +3280,9 @@ void CTextRam::fc_DECSIXEL(DWORD ch)
 					pGrapWnd = pTempWnd;
 				}
 			}
+		} else {
+			m_pWorkGrapWnd->DestroyWindow();
+			m_pWorkGrapWnd = NULL;
 		}
 
 		if ( pGrapWnd == NULL && (idx == (-1) || (pGrapWnd = GetGrapWnd(idx)) == NULL) )
@@ -3269,7 +3298,7 @@ void CTextRam::fc_DECSIXEL(DWORD ch)
 			if ( (pTempWnd = GetGrapWnd(pGrapWnd->m_ImageIndex)) != NULL )
 				pTempWnd->DestroyWindow();
 
-			AddGrapWnd((void *)pGrapWnd);
+			AddGrapWnd(pGrapWnd);
 		}
 
 		m_pActGrapWnd = pGrapWnd;

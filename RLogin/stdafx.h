@@ -98,7 +98,7 @@
 #endif
 
 #define	USE_DWMAPI	1
-//#define	USE_GOZI	1
+#define	USE_GOZI	3
 #define	USE_NETTLE	1
 //#define	USE_CLEFIA	1
 

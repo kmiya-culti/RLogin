@@ -128,9 +128,19 @@ CRLoginView::CRLoginView()
 	m_WheelzDelta = 0;
 	m_pGhost = NULL;
 	m_GoziView  = FALSE;
+#if USE_GOZI == 3
+	m_GoziMax = 3;
+	for ( int n = 0 ; n < 8 ; n++ ) {
+		m_GoziData[n].m_GoziStyle = (8 << 4) | 9;
+		m_GoziData[n].m_GoziCount = 4 + rand() % 28;
+		m_GoziData[n].m_GoziPos.SetPoint(0, 0);
+	}
+#else
 	m_GoziStyle = (8 << 4) | 9;
 	m_GoziCount = 4 + rand() % 28;
 	m_GoziPos.SetPoint(0, 0);
+#endif
+
 	m_PastNoCheck = FALSE;
 	m_ScrollOut = FALSE;
 	m_LastMouseFlags = 0;
@@ -272,7 +282,15 @@ void CRLoginView::OnDraw(CDC* pDC)
 	}
 #endif
 
-#ifdef	USE_GOZI
+#if		USE_GOZI == 3
+	if ( m_GoziView ) {
+		CMainFrame *pMain = GetMainWnd();
+		for ( int n = 0 ; n < m_GoziMax ; n++ ) {
+			if ( pMain != NULL && pMain->m_ImageGozi.m_hImageList != NULL )
+				pMain->m_ImageGozi.Draw(pDC, m_GoziData[n].m_GoziStyle >> 4, m_GoziData[n].m_GoziPos, ILD_NORMAL);
+		}
+	}
+#else
 	if ( m_GoziView ) {
 		CMainFrame *pMain = GetMainWnd();
 		if ( pMain != NULL && pMain->m_ImageGozi.m_hImageList != NULL )
@@ -941,11 +959,6 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		m_pBitmap = m_BmpFile.GetBitmap(GetDC(), m_Width, m_Height, 1);
 		//pDoc->SetStatus(NULL);
 
-		for ( int n = 0 ; n < pDoc->m_TextRam.m_GrapWndTab.GetSize() ; n++ ) {
-			if ( ((CWnd *)(pDoc->m_TextRam.m_GrapWndTab[n]))->GetSafeHwnd() != NULL )
-				((CWnd *)(pDoc->m_TextRam.m_GrapWndTab[n]))->Invalidate(FALSE);
-		}
-
 		if ( m_BtnWnd.m_hWnd == NULL && pDoc->m_TextRam.m_bOscActive && pDoc->m_TextRam.m_IntCounter >= 10 ) {
 			m_BtnWnd.DoButton(this, &(pDoc->m_TextRam));
 			m_ToolTip.AddTool(&m_BtnWnd, pDoc->m_TextRam.m_SeqMsg);
@@ -1491,9 +1504,9 @@ void CRLoginView::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 
 void CRLoginView::OnTimer(UINT_PTR nIDEvent) 
 {
-	int mx, my;
+	int n, mx, my;
 	int style, anime, move;
-	CRect rect;
+	CRect frame, rect;
 	CRLoginDoc *pDoc = GetDocument();
 
 	CView::OnTimer(nIDEvent);
@@ -1691,6 +1704,76 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 
 		rect.SetRect(m_GoziPos.x, m_GoziPos.y, m_GoziPos.x + 32, m_GoziPos.y + 32);
 		InvalidateRect(rect, FALSE);
+
+#elif USE_GOZI == 3
+
+		for ( n = 0 ; n < m_GoziMax ; n++ ) {
+			rect.SetRect(m_GoziData[n].m_GoziPos.x, m_GoziData[n].m_GoziPos.y, m_GoziData[n].m_GoziPos.x + 16, m_GoziData[n].m_GoziPos.y + 16);
+			InvalidateRect(rect, FALSE);
+		}
+
+		if ( !m_GoziView || pDoc == NULL || !pDoc->m_TextRam.IsInitText() ) {
+			KillTimer(1028);
+			break;
+		}
+
+		GetClientRect(frame);
+
+		for ( n = 0 ; n < m_GoziMax ; n++ ) {
+
+			move  = m_GoziData[n].m_GoziStyle & 0x0F;
+			style = m_GoziData[n].m_GoziStyle >> 4;
+			anime = style % 6;
+			style = (style >= 6 ? 6 : 0);
+
+			if ( --m_GoziData[n].m_GoziCount < 0 ) {
+				m_GoziData[n].m_GoziCount = 24 + rand() % 32;
+				static int move_tab[] = { 1, 2, 4, 5, 6, 8, 9, 10, 0, 0, 0 };
+				move = move_tab[rand() % 11];
+				anime = rand() % 6;
+
+				if ( move == 0 ) {
+					if ( ((mx = m_CaretX + m_CharWidth + 2) + 16) > frame.right )
+						mx = m_CaretX - 16;
+					else if ( mx < 0 )
+						mx = 0;
+
+					if ( ((my = m_CaretY + m_CharHeight - 16) + 16) > frame.bottom )
+						my = frame.bottom - 16;
+					else if ( my < 0 )
+						my = 0;
+
+					if ( m_GoziData[n].m_GoziPos.x < mx )
+						move |= 1;
+					else if ( m_GoziData[n].m_GoziPos.x > mx )
+						move |= 2;
+
+					if ( m_GoziData[n].m_GoziPos.y < my )
+						move |= 4;
+					else if ( m_GoziData[n].m_GoziPos.y > my )
+						move |= 8;
+				}
+			}
+
+			if ( (move & 1) != 0 ) m_GoziData[n].m_GoziPos.x += 2;
+			if ( (move & 2) != 0 ) m_GoziData[n].m_GoziPos.x -= 2;
+			if ( (move & 4) != 0 ) m_GoziData[n].m_GoziPos.y += 2;
+			if ( (move & 8) != 0 ) m_GoziData[n].m_GoziPos.y -= 2;
+
+			if ( m_GoziData[n].m_GoziPos.x < 0 ) { m_GoziData[n].m_GoziPos.x = 0; move = (move & 12) | 1; }
+			if ( m_GoziData[n].m_GoziPos.y < 0 ) { m_GoziData[n].m_GoziPos.y = 0; move = (move &  3) | 4; }
+
+			if ( (m_GoziData[n].m_GoziPos.x + 16) > frame.right  ) { m_GoziData[n].m_GoziPos.x = frame.right  - 16; move = (move & 12) | 2; }
+			if ( (m_GoziData[n].m_GoziPos.y + 16) > frame.bottom ) { m_GoziData[n].m_GoziPos.y = frame.bottom - 16; move = (move &  3) | 8; }
+
+			style = ((move & 1) != 0 ? 0 : 6);
+
+			if ( ++anime >= 6 ) anime = 0;
+			m_GoziData[n].m_GoziStyle = ((style + anime) << 4) | move;
+
+			rect.SetRect(m_GoziData[n].m_GoziPos.x, m_GoziData[n].m_GoziPos.y, m_GoziData[n].m_GoziPos.x + 16, m_GoziData[n].m_GoziPos.y + 16);
+			InvalidateRect(rect, FALSE);
+		}
 #endif
 		break;
 	}
@@ -1930,6 +2013,7 @@ void CRLoginView::OnLButtonUp(UINT nFlags, CPoint point)
 	}
 
 	m_ClipFlag = 6;
+
 	if ( pDoc->m_TextRam.IsOptEnable(TO_RLCKCOPY) )
 		OnEditCopy();
 }
@@ -2258,8 +2342,10 @@ void CRLoginView::OnEditCopy()
 	if ( m_ClipFlag == 6 ) {
 		CRLoginDoc *pDoc = GetDocument();
 		pDoc->m_TextRam.EditCopy(m_ClipStaPos, m_ClipEndPos, IsClipRectMode(), IsClipLineMode());
-		m_ClipFlag = 0;
-		OnUpdate(this, UPDATE_CLIPERA, NULL);
+		if ( !pDoc->m_TextRam.IsOptEnable(TO_RLSTAYCLIP) ) {
+			m_ClipFlag = 0;
+			OnUpdate(this, UPDATE_CLIPERA, NULL);
+		}
 	}
 }
 void CRLoginView::OnUpdateEditCopy(CCmdUI* pCmdUI) 
@@ -2496,7 +2582,12 @@ void CRLoginView::OnGoziview()
 		m_GoziView = FALSE;
 	} else {
 		m_GoziView = TRUE;
+#if USE_GOZI == 3
+		m_GoziMax = 3 + (rand() % 6);
+		SetTimer(VTMID_GOZIUPDATE, 200, NULL);
+#else
 		SetTimer(VTMID_GOZIUPDATE, 400, NULL);
+#endif
 	}
 }
 void CRLoginView::OnUpdateGoziview(CCmdUI *pCmdUI)

@@ -19,6 +19,7 @@ CProxyDlg::CProxyDlg(CWnd* pParent /*=NULL*/)
 	m_PassWord   = _T("");
 	m_ProxyMode  = 0;
 	m_SSLMode    = 0;
+	m_SSL_Keep   = FALSE;
 }
 
 CProxyDlg::~CProxyDlg()
@@ -34,6 +35,7 @@ void CProxyDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_PASSWORD, m_PassWord);
 	DDX_Radio(pDX, IDC_RADIO1, m_ProxyMode);
 	DDX_Radio(pDX, IDC_SSL_RADIO1, m_SSLMode);
+	DDX_Check(pDX, IDC_SSL_KEEP, m_SSL_Keep);
 }
 
 
@@ -72,6 +74,9 @@ void CProxyDlg::OnProtoType(UINT nID)
 		if ( (pWnd = GetDlgItem(ItemTab[n].nId)) != NULL )
 			pWnd->EnableWindow(ItemTab[n].mode[nID - IDC_RADIO1]);
 	}
+
+	if ( (pWnd = GetDlgItem(IDC_SSL_KEEP)) != NULL )
+		pWnd->EnableWindow(m_SSLMode != 0 ? TRUE : FALSE);
 }
 
 BOOL CProxyDlg::OnInitDialog()

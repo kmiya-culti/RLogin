@@ -85,6 +85,7 @@ CExtSocket::CExtSocket(class CRLoginDoc *pDoc)
 	m_SSL_mode  = 0;
 	m_SSL_pCtx  = NULL;
 	m_SSL_pSock = NULL;
+	m_SSL_keep  = FALSE;
 	m_bConnect = FALSE;
 	m_bCallConnect = TRUE;
 #ifndef	NOIPV6
@@ -308,7 +309,7 @@ BOOL CExtSocket::AsyncOpen(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocket
 	return GetMainWnd()->SetAsyncAddrInfo(ASYNC_OPENINFO, m_RealHostAddr, m_RealHostPort, &hints, this);
 #endif
 }
-BOOL CExtSocket::ProxyOpen(int mode, LPCTSTR ProxyHost, UINT ProxyPort, LPCTSTR ProxyUser, LPCTSTR ProxyPass, LPCTSTR RealHost, UINT RealPort)
+BOOL CExtSocket::ProxyOpen(int mode, BOOL keep, LPCTSTR ProxyHost, UINT ProxyPort, LPCTSTR ProxyUser, LPCTSTR ProxyPass, LPCTSTR RealHost, UINT RealPort)
 {
 	//m_RealHostAddr   = ProxyHost;
 	PunyCodeAdress(ProxyHost, m_RealHostAddr);
@@ -334,6 +335,8 @@ BOOL CExtSocket::ProxyOpen(int mode, LPCTSTR ProxyHost, UINT ProxyPort, LPCTSTR 
 	case 5: m_SSL_mode = 5; break;	// TLSv1.2
 #endif
 	}
+
+	m_SSL_keep = keep;
 
 	//m_ProxyHost = RealHost;
 	PunyCodeAdress(RealHost, m_ProxyHost);
@@ -981,12 +984,20 @@ BOOL CExtSocket::ProxyReadLine()
 {
 	int c = 0;
 
+	TRACE("ProxyReadLine ");
+
 	while ( m_RecvHead != NULL ) {
 		if ( m_RecvHead->m_Type != 0 ) {
 			m_RecvSize -= m_RecvHead->GetSize();
 			m_RecvHead = RemoveHead(m_RecvHead);
 		} else {
 			while ( (c = m_RecvHead->GetByte()) != EOF ) {
+
+				if ( c < ' ' || c >= 0x7F )
+					TRACE("[%02x]", c);
+				else
+					TRACE("%c", c);
+
 				m_RecvSize -= 1;
 				if ( c == '\n' )
 					break;
@@ -999,6 +1010,7 @@ BOOL CExtSocket::ProxyReadLine()
 				break;
 		}
 	}
+	TRACE("\n");
 	return (c == '\n' ? TRUE : FALSE);
 }
 BOOL CExtSocket::ProxyReadBuff(int len)
@@ -1096,9 +1108,10 @@ int CExtSocket::ProxyFunc()
 		case PRST_HTTP_CODECHECK:
 			switch(m_ProxyCode) {
 			case 200:
-				SSLClose();
+				if ( !m_SSL_keep )
+					SSLClose();
 				m_ProxyStatus = PRST_NONE;
-				OnPreConnect();
+				OnConnect();
 				break;
 			case 401:	// Authorization Required
 			case 407:	// Proxy-Authorization Required
@@ -1145,7 +1158,8 @@ int CExtSocket::ProxyFunc()
 			m_ProxyResult.RemoveAll();
 
 			SendFlash(3);
-			SSLClose();					// XXXXXXXX BUG???
+			if ( !m_SSL_keep )
+				SSLClose();					// XXXXXXXX BUG???
 			break;
 		case PRST_HTTP_DIGEST:
 			if (m_ProxyAuth.Find(_T("qop")) < 0 || m_ProxyAuth[_T("algorithm")].m_String.CompareNoCase(_T("md5")) != 0 || m_ProxyAuth.Find(_T("realm")) < 0 || m_ProxyAuth.Find(_T("nonce")) < 0 ) {
@@ -1196,7 +1210,8 @@ int CExtSocket::ProxyFunc()
 			m_ProxyResult.RemoveAll();
 
 			SendFlash(3);
-			SSLClose();					// XXXXXXXX BUG???
+			if ( !m_SSL_keep )
+				SSLClose();					// XXXXXXXX BUG???
 			break;
 
 		case PRST_SOCKS4_START:	// SOCKS4

@@ -237,14 +237,16 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 			while ( m_Incom.GetSize() > 0 ) {
 				ch = m_Incom.Get8Bit();
 				if ( ch == '\n' ) {
+					CString version;
+					((CRLoginApp *)AfxGetApp())->GetVersion(version);
 					if ( !m_pDocument->m_TextRam.IsOptEnable(TO_SSH1MODE) &&
 						   (m_ServerVerStr.Mid(0, 5).Compare(_T("SSH-2")) == 0 ||
 							m_ServerVerStr.Mid(0, 8).Compare(_T("SSH-1.99")) == 0) ) {
-						m_ClientVerStr = _T("SSH-2.0-OpenSSH-4.0 RLogin-1.10");
+								m_ClientVerStr.Format(_T("SSH-2.0-OpenSSH-4.0 RLogin-%s"), version);
 						m_InPackStat = 3;
 						m_SSHVer = 2;
 					} else {
-						m_ClientVerStr = _T("SSH-1.5-OpenSSH-4.0 RLogin-1.10");
+						m_ClientVerStr.Format(_T("SSH-1.5-OpenSSH-4.0 RLogin-%s"), version);
 						m_InPackStat = 1;
 						m_SSHVer = 1;
 					}
@@ -3122,8 +3124,8 @@ void Cssh::RecivePacket2(CBuffer *bp)
 				CChannel *cp = (CChannel *)m_pChan[m_StdChan];
 				cp->m_pFilter = new CStdIoFilter;
 				cp->m_pFilter->m_pChan = cp;
-				cp->m_LocalPacks = 4 * 1024;
-				cp->m_LocalWind  = 32 * cp->m_LocalPacks;
+				cp->m_LocalPacks = CHAN_STD_PACKET_DEFAULT;
+				cp->m_LocalWind  = CHAN_STD_WINDOW_DEFAULT;
 				SendMsgChannelOpen(m_StdChan, "session");
 			}
 		}

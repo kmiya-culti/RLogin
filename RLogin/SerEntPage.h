@@ -29,6 +29,7 @@ public:
 	CString m_DefComPort;
 	CString m_IdkeyName;
 	int m_ProxyMode;
+	BOOL m_SSL_Keep;
 	CString m_ProxyHost;
 	CString m_ProxyPort;
 	CString m_ProxyUser;

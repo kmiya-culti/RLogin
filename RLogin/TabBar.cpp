@@ -64,7 +64,7 @@ int CTabBar::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		return (-1);
 	
 	CRect rect; rect.SetRectEmpty();
-	if ( !m_TabCtrl.Create(WS_VISIBLE | WS_CHILD | TCS_FOCUSNEVER | TCS_FIXEDWIDTH | TCS_FORCELABELLEFT, rect, this, IDC_MDI_TAB_CTRL) ) {
+	if ( !m_TabCtrl.Create(WS_VISIBLE | WS_CHILD | TCS_FOCUSNEVER | TCS_FIXEDWIDTH | TCS_FORCELABELLEFT | TCS_MULTILINE, rect, this, IDC_MDI_TAB_CTRL) ) {
 		TRACE0("Unable to create tab control bar\n");
 		return (-1);
 	}

@@ -149,6 +149,7 @@ void CSerEntPage::DoInit()
 	m_ProxyPort   = m_pSheet->m_pEntry->m_ProxyPort;
 	m_ProxyUser   = m_pSheet->m_pEntry->m_ProxyUserProvs;
 	m_ProxyPass   = m_pSheet->m_pEntry->m_ProxyPassProvs;
+	m_SSL_Keep    = m_pSheet->m_pEntry->m_ProxySSLKeep;
 	m_Memo        = m_pSheet->m_pEntry->m_Memo;
 	m_Group       = m_pSheet->m_pEntry->m_Group;
 	m_BeforeEntry = m_pSheet->m_pEntry->m_BeforeEntry;
@@ -267,6 +268,7 @@ BOOL CSerEntPage::OnApply()
 	m_pSheet->m_pEntry->m_ProxyHostProvs = m_ProxyHost;
 	m_pSheet->m_pEntry->m_ProxyUserProvs = m_ProxyUser;
 	m_pSheet->m_pEntry->m_ProxyPassProvs = m_ProxyPass;
+	m_pSheet->m_pEntry->m_ProxySSLKeep   = m_SSL_Keep;
 	m_pSheet->m_pEntry->m_BeforeEntry    = m_BeforeEntry;
 	m_pSheet->m_pParamTab->m_ExtEnvStr = m_ExtEnvStr;
 
@@ -358,6 +360,7 @@ void CSerEntPage::OnProxySet()
 	dlg.m_PortName   = m_ProxyPort;
 	dlg.m_UserName   = m_ProxyUser;
 	dlg.m_PassWord   = m_ProxyPass;
+	dlg.m_SSL_Keep   = m_SSL_Keep;
 
 	if ( dlg.DoModal() != IDOK )
 		return;
@@ -367,6 +370,7 @@ void CSerEntPage::OnProxySet()
 	m_ProxyPort = dlg.m_PortName;
 	m_ProxyUser = dlg.m_UserName;
 	m_ProxyPass = dlg.m_PassWord;
+	m_SSL_Keep  = dlg.m_SSL_Keep;
 
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_ENTRY;

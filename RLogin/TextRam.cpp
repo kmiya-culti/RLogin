@@ -1128,8 +1128,13 @@ CTextRam::CTextRam()
 	m_bTraceActive = FALSE;
 	m_TraceMaxCount = 1000;
 	m_pActGrapWnd = NULL;
+	m_pWorkGrapWnd = NULL;
 	m_GrapWndChkCLock = clock();
 	m_GrapWndChkStat = 0;
+
+	for ( int n = 0 ; n < 8 ; n++ )
+		pGrapListIndex[n] = pGrapListImage[n] = NULL;
+	pGrapListType = NULL;
 
 	m_LineEditMode = FALSE;
 	m_LineEditPos  = 0;
@@ -1207,8 +1212,11 @@ CTextRam::~CTextRam()
 	//if ( m_pCanDlg != NULL )
 	//	m_pCanDlg->DestroyWindow();
 
-	while ( m_GrapWndTab.GetSize() > 0 )
-		((CWnd *)(m_GrapWndTab[0]))->DestroyWindow();
+	if ( m_pWorkGrapWnd != NULL )
+		m_pWorkGrapWnd->DestroyWindow();
+
+	while ( pGrapListType != NULL )
+		pGrapListType->DestroyWindow();
 
 	SetTraceLog(FALSE);
 }
@@ -4586,51 +4594,40 @@ void CTextRam::SetRetChar(BOOL f8)
 }
 CGrapWnd *CTextRam::GetGrapWnd(int index)
 {
-	for ( int n = 0 ; n < m_GrapWndTab.GetSize() ; n++ ) {
-		if ( ((CGrapWnd *)m_GrapWndTab[n])->m_ImageIndex == index )
-			return ((CGrapWnd *)m_GrapWndTab[n]);
-	}
-	return NULL;
+	return CGrapWnd::ListFindIndex(pGrapListIndex[index & 7], index);
 }
 CGrapWnd *CTextRam::CmpGrapWnd(CGrapWnd *pWnd)
 {
-	for ( int n = 0 ; n < m_GrapWndTab.GetSize() ; n++ ) {
-		if ( pWnd->Compare((CGrapWnd *)m_GrapWndTab[n]) == 0 )
-			return ((CGrapWnd *)m_GrapWndTab[n]);
-	}
-	return NULL;
-}
-void CTextRam::AddGrapWnd(void *pWnd)
-{
-	m_GrapWndTab.Add(pWnd);
-}
-void CTextRam::RemoveGrapWnd(void *pWnd)
-{
-	for ( int n = 0 ; n < m_GrapWndTab.GetSize() ; n++ ) {
-		if ( m_GrapWndTab[n] == pWnd ) {
-			m_GrapWndTab.RemoveAt(n);
-			break;
-		}
-	}
+	return pWnd->ListFindImage(pGrapListImage[pWnd->m_Crc & 7]);
 }
 void *CTextRam::LastGrapWnd(int type)
 {
-	for ( int n = m_GrapWndTab.GetSize() - 1 ; n >= 0 ; n-- ) {
-		CGrapWnd *pWnd = (CGrapWnd *)(m_GrapWndTab[n]);
-		if ( pWnd->m_Type == type )
-			return (void *)pWnd;
+	return CGrapWnd::ListFindType(pGrapListType, type);
+}
+void CTextRam::AddGrapWnd(CGrapWnd *pWnd)
+{
+	if ( pWnd->m_ImageIndex != (-1) ) {
+		pWnd->ListAdd(&(pGrapListIndex[pWnd->m_ImageIndex & 7]), GRAPLIST_INDEX);
+		pWnd->ListAdd(&(pGrapListImage[pWnd->m_Crc & 7]), GRAPLIST_IMAGE);
 	}
-	return NULL;
+	pWnd->ListAdd(&pGrapListType, GRAPLIST_TYPE);
+}
+void CTextRam::RemoveGrapWnd(CGrapWnd *pWnd)
+{
+	pWnd->ListRemove(&(pGrapListIndex[pWnd->m_ImageIndex & 7]), GRAPLIST_INDEX);
+	pWnd->ListRemove(&(pGrapListImage[pWnd->m_Crc & 7]), GRAPLIST_IMAGE);
+	pWnd->ListRemove(&pGrapListType, GRAPLIST_TYPE);
 }
 void CTextRam::ChkGrapWnd(int sec)
 {
 	int n, x, y;
 	CCharCell *vp;
+	CGrapWnd *pWnd, *pNext;
 
 	for ( ; ; ) {
 		switch(m_GrapWndChkStat) {
 		case 0:
-			if ( !IsInitText() || m_GrapWndTab.GetSize() <= 0 ) {
+			if ( !IsInitText() || pGrapListType == NULL ) {
 				m_GrapWndChkCLock = clock();
 				return;
 			} else if ( (m_GrapWndChkCLock + sec * CLOCKS_PER_SEC) > clock() )
@@ -4652,23 +4649,21 @@ void CTextRam::ChkGrapWnd(int sec)
 			if ( m_GrapWndChkPos < m_Lines )
 				return;
 
-			for ( n = 0 ; n < m_GrapWndTab.GetSize() ; n++ ) { 
-				CGrapWnd *pTempWnd = (CGrapWnd *)m_GrapWndTab[n];
-				if ( pTempWnd->m_ImageIndex == (-1) )
+			for ( pWnd = pGrapListType ; pWnd != NULL ; pWnd = pNext ) {
+				pNext = pWnd->m_pList[GRAPLIST_TYPE];
+				if ( pWnd->m_ImageIndex == (-1) )
 					continue;
-				else if ( pTempWnd->m_ImageIndex < 1024 ) {
-					if ( m_GrapWndUseMap[pTempWnd->m_ImageIndex] != 0 ) {
-						pTempWnd->m_Alive = 10;
+				else if ( pWnd->m_ImageIndex < 1024 ) {
+					if ( m_GrapWndUseMap[pWnd->m_ImageIndex] != 0 ) {
+						pWnd->m_Alive = 10;
 						continue;
 					}
-					if ( ++pTempWnd->m_Alive < 10 )
+					if ( ++pWnd->m_Alive < 10 )
 						continue;
-					pTempWnd->m_Alive = 10;
+					pWnd->m_Alive = 10;
 				}
-				if ( m_GrapWndUseMap[pTempWnd->m_ImageIndex] == 0 && pTempWnd->m_Use <= 0 ) {
-					pTempWnd->DestroyWindow();
-					n--;
-				}
+				if ( m_GrapWndUseMap[pWnd->m_ImageIndex] == 0 && pWnd->m_Use <= 0 )
+					pWnd->DestroyWindow();
 			}
 
 			m_GrapWndChkStat = 0;

@@ -171,6 +171,7 @@ private:
 	int m_SSL_mode;
 	SSL_CTX *m_SSL_pCtx;
 	SSL *m_SSL_pSock;
+	BOOL m_SSL_keep;
 
 	CSockBuffer *AllocBuffer();
 	void FreeBuffer(CSockBuffer *sp);
@@ -234,7 +235,7 @@ public:
 	int AsyncGetHostByName(LPCTSTR pHostName);
 	BOOL AsyncCreate(LPCTSTR lpszHostAddress, UINT nHostPort, LPCTSTR lpszRemoteAddress = NULL, int nSocketType = SOCK_STREAM);
 	virtual BOOL AsyncOpen(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM);
-	BOOL ProxyOpen(int mode, LPCTSTR ProxyHost, UINT ProxyPort, LPCTSTR ProxyUser, LPCTSTR ProxyPass, LPCTSTR RealHost, UINT RealPort);
+	BOOL ProxyOpen(int mode, BOOL keep, LPCTSTR ProxyHost, UINT ProxyPort, LPCTSTR ProxyUser, LPCTSTR ProxyPass, LPCTSTR RealHost, UINT RealPort);
 
 	int Accept(class CExtSocket *pSock, SOCKET hand);
 	int Attach(class CRLoginDoc *pDoc, SOCKET fd);

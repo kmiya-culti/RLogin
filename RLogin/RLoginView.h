@@ -88,9 +88,16 @@ public:
 	class CBtnWnd m_BtnWnd;
 
 	BOOL m_GoziView;
+#if USE_GOZI == 3
+	struct _GoziData {
+#endif
 	int m_GoziStyle;
 	int m_GoziCount;
 	CPoint m_GoziPos;
+#if USE_GOZI == 3
+	} m_GoziData[8];
+	int m_GoziMax;
+#endif
 
 #ifdef	USE_DIRECTWRITE
 	ID2D1HwndRenderTarget *m_pRenderTarget;

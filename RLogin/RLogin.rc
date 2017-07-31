@@ -89,6 +89,7 @@ IDB_ATTR6               BITMAP                  "res\\attr6.bmp"
 IDB_ATTR7               BITMAP                  "res\\attr7.bmp"
 IDB_ATTR8               BITMAP                  "res\\attr8.bmp"
 IDB_BITMAP9             BITMAP                  "res\\bitmap9.bmp"
+IDB_BITMAP8             BITMAP                  "res\\bitmap8.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -256,6 +257,7 @@ BEGIN
         MENUITEM "Imageウィンドウ(&I)",              IDM_IMAGEDISP
         MENUITEM "ソケットステータス",                   IDM_SOCKETSTATUS
         MENUITEM "トレースウィンドウ",                   IDM_TRACEDISP
+        MENUITEM "おさかなを飼う",                     ID_GOZIVIEW
         MENUITEM SEPARATOR
         MENUITEM "オプション設定(&P)",                 ID_SETOPTION
         MENUITEM "標準の設定に戻す",                    IDC_LOADDEFAULT
@@ -463,25 +465,29 @@ END
 // Dialog
 //
 
-IDD_ABOUTBOX DIALOGEX 0, 0, 243, 172
+IDD_ABOUTBOX DIALOGEX 0, 0, 243, 176
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.18.1 (2015/04/10)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.18.2 (2015/04/17)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2015 Culti",IDC_STATIC,47,15,176,8
-    DEFPUSHBUTTON   "OK",IDOK,96,151,50,14,WS_GROUP
-    LTEXT           "OpenSSL 1.0.2a 19 Mar 2015",IDC_STATIC,47,29,176,8
-    LTEXT           "Copyright (c) 1998-2015 The OpenSSL Project",IDC_STATIC,47,39,176,8
-    LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,47,49,176,8
-    LTEXT           "All rights reserved.",IDC_STATIC,47,59,176,8
-    LTEXT           "zlib 1.2.8",IDC_STATIC,47,74,176,8
-    LTEXT           "(C) 1995-2013 Jean-loup Gailly and Mark Adler",IDC_STATIC,47,83,176,8
-    LTEXT           "iconv (GNU libiconv 1.14)",IDC_STATIC,47,99,176,8
-    LTEXT           "Copyright (C) 2000-2011 Free Software Foundation, Inc.",IDC_STATIC,47,108,176,8
-    LTEXT           "Nettle library (version 2.0)",IDC_STATIC,47,124,176,8
-    LTEXT           "Originally written 2001 by Niels Moller, updated 2009.",IDC_STATIC,47,133,176,8
+    DEFPUSHBUTTON   "OK",IDOK,96,155,50,14,WS_GROUP
+    LTEXT           "OpenSSL 1.0.2a 19 Mar 2015",IDC_STATIC,47,27,176,8
+    LTEXT           "Copyright (c) 1998-2015 The OpenSSL Project",IDC_STATIC,47,35,176,8
+    LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,47,43,176,8
+    LTEXT           "All rights reserved.",IDC_STATIC,47,51,176,8
+    LTEXT           "zlib 1.2.8",IDC_STATIC,47,63,176,8
+    LTEXT           "(C) 1995-2013 Jean-loup Gailly and Mark Adler",IDC_STATIC,47,71,176,8
+    LTEXT           "iconv (GNU libiconv 1.14)",IDC_STATIC,47,83,176,8
+    LTEXT           "Copyright (C) 2000-2011 Free Software Foundation, Inc.",IDC_STATIC,47,91,176,8
+    LTEXT           "Nettle library (version 2.0)",IDC_STATIC,47,103,176,8
+    LTEXT           "Originally written 2001 by Niels Moller, updated 2009.",IDC_STATIC,47,111,176,8
+    LTEXT           "kumaGIF",IDC_STATIC,47,123,176,8
+    LTEXT           "Copyright c 1.023world All Rights Reserved.",IDC_STATIC,47,131,176,8
+    CONTROL         "<a href=""http://www.1023world.net/material/gif/"">http://www.1023world.net/material/gif/</a>",IDC_SYSLINK1,
+                    "SysLink",WS_TABSTOP,47,139,176,12
 END
 
 IDD_ALGOPARADLG DIALOGEX 0, 0, 351, 343
@@ -1067,7 +1073,7 @@ BEGIN
     EDITTEXT        IDC_STATUS,15,20,200,14,ES_AUTOHSCROLL | ES_READONLY
 END
 
-IDD_PROXYDLG DIALOGEX 0, 0, 239, 213
+IDD_PROXYDLG DIALOGEX 0, 0, 239, 225
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Proxy Server"
 FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
@@ -1080,22 +1086,23 @@ BEGIN
     CONTROL         "使用しない",IDC_SSL_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,16,70,55,10
     CONTROL         "SSLv2",IDC_SSL_RADIO2,"Button",BS_AUTORADIOBUTTON,91,70,55,10
     CONTROL         "SSLv3",IDC_SSL_RADIO3,"Button",BS_AUTORADIOBUTTON,166,70,55,10
-    CONTROL         "TLSv1",IDC_SSL_RADIO4,"Button",BS_AUTORADIOBUTTON,16,86,55,10
-    CONTROL         "TLSv1.1",IDC_SSL_RADIO5,"Button",BS_AUTORADIOBUTTON,91,86,55,10
-    CONTROL         "TLSv1.2",IDC_SSL_RADIO6,"Button",BS_AUTORADIOBUTTON,166,87,55,10
-    EDITTEXT        IDC_SERVERNAME,19,132,136,13,ES_AUTOHSCROLL
-    COMBOBOX        IDC_SOCKNO,166,132,54,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
-    EDITTEXT        IDC_USERNAME,19,161,88,13,ES_AUTOHSCROLL
-    EDITTEXT        IDC_PASSWORD,132,161,88,13,ES_PASSWORD | ES_AUTOHSCROLL
-    DEFPUSHBUTTON   "OK",IDOK,48,192,62,14
-    PUSHBUTTON      "キャンセル",IDCANCEL,128,192,62,14
+    CONTROL         "TLSv1",IDC_SSL_RADIO4,"Button",BS_AUTORADIOBUTTON,16,85,55,10
+    CONTROL         "TLSv1.1",IDC_SSL_RADIO5,"Button",BS_AUTORADIOBUTTON,91,85,55,10
+    CONTROL         "TLSv1.2",IDC_SSL_RADIO6,"Button",BS_AUTORADIOBUTTON,166,86,55,10
+    EDITTEXT        IDC_SERVERNAME,19,146,136,13,ES_AUTOHSCROLL
+    COMBOBOX        IDC_SOCKNO,166,146,54,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_USERNAME,19,175,88,13,ES_AUTOHSCROLL
+    EDITTEXT        IDC_PASSWORD,132,175,88,13,ES_PASSWORD | ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "OK",IDOK,48,204,62,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,128,204,62,14
     GROUPBOX        "Select Proxy Protocol",IDC_STATIC,7,7,225,48
-    CTEXT           "Proxy Server Address",IDC_STATIC,19,121,136,8
-    CTEXT           "User Name",IDC_STATIC,19,150,88,8
-    CTEXT           "Password",IDC_STATIC,132,150,88,8
-    CTEXT           "Socket Port",IDC_STATIC,166,121,54,8
-    GROUPBOX        "Server Option",IDC_STATIC,7,108,225,76
-    GROUPBOX        "Over SSL",IDC_STATIC,7,57,225,47
+    CTEXT           "Proxy Server Address",IDC_STATIC,19,135,136,8
+    CTEXT           "User Name",IDC_STATIC,19,164,88,8
+    CTEXT           "Password",IDC_STATIC,132,164,88,8
+    CTEXT           "Socket Port",IDC_STATIC,166,135,54,8
+    GROUPBOX        "Server Option",IDC_STATIC,7,122,225,76
+    GROUPBOX        "Over SSL",IDC_STATIC,7,57,225,61
+    CONTROL         "コネクション確立後もSSLを維持する",IDC_SSL_KEEP,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,91,102,130,10
 END
 
 IDD_SCRNPAGE DIALOGEX 0, 0, 251, 270
@@ -1483,8 +1490,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,18,1,0
- PRODUCTVERSION 2,18,1,0
+ FILEVERSION 2,18,2,0
+ PRODUCTVERSION 2,18,2,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1501,12 +1508,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.18.1.0"
+            VALUE "FileVersion", "2.18.2.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2015 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.18.1.0"
+            VALUE "ProductVersion", "2.18.2.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -1529,7 +1536,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 236
         TOPMARGIN, 7
-        BOTTOMMARGIN, 165
+        BOTTOMMARGIN, 169
     END
 
     IDD_ALGOPARADLG, DIALOG
@@ -1721,7 +1728,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 232
         TOPMARGIN, 7
-        BOTTOMMARGIN, 206
+        BOTTOMMARGIN, 218
     END
 
     IDD_SCRNPAGE, DIALOG
@@ -3007,7 +3014,7 @@ END
 
 STRINGTABLE
 BEGIN
-    ID_GOZIVIEW             "Nekoを飼う\nNeko"
+    ID_GOZIVIEW             "おさかなを飼う\nおさかな"
     ID_SPLIT_WIDTH          "横方向に画面を分割してサーバーに接続する\n横分割接続"
     ID_SPLIT_HEIGHT         "縦方向に画面を分割してサーバーに接続する\n縦分割接続"
     ID_SPLIT_OVER           "画面分割しないでサーバーに接続\n重ねて接続"

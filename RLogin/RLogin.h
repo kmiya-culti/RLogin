@@ -74,6 +74,7 @@ public:
 	void RegisterDelete(HKEY hKey, LPCTSTR pSection, LPCTSTR pKey);
 	void RegisterSave(HKEY hKey, LPCTSTR pSection, CBuffer &buf);
 	void RegisterLoad(HKEY hKey, LPCTSTR pSection, CBuffer &buf);
+	void GetVersion(CString &str);
 	void SSL_Init();
 
 	void OpenProcsCmd(CCommandLineInfoEx *pCmdInfo);
@@ -82,6 +83,7 @@ public:
 	BOOL InUseCheck();
 	BOOL OnlineCheck(LPCTSTR entry);
 	BOOL OnlineEntry(LPCTSTR entry);
+	BOOL CheckDocument(class CRLoginDoc *pDoc);
 
 	void SetDefaultPrinter();
 

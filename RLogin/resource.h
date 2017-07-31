@@ -87,6 +87,7 @@
 #define IDB_BITMAP9                     174
 #define IDD_TTYMODEDLG                  175
 #define IDD_TRACEDLG                    176
+#define IDB_BITMAP8                     178
 #define IDC_CANCELBTN                   201
 #define IDM_SOCK_IDLE                   202
 #define IDP_SOCKETS_INIT_FAILED         300
@@ -622,6 +623,9 @@
 #define IDC_SLIDER_HUECOL               3073
 #define IDC_MODE_LIST                   3074
 #define IDC_BEFORE                      3077
+#define IDC_SSL_KEEP                    3078
+#define IDC_MFCLINK1                    3079
+#define IDC_SYSLINK1                    3080
 #define ID_FILE_ALL_LOAD                5000
 #define ID_EDIT_BOX                     5001
 #define ID_PAGE_PRIOR                   5002
@@ -691,14 +695,16 @@
 #define IDM_DISPWINIDX                  5068
 #define ID_FONTLIST_5069                5069
 #define ID_EDIT_DELALL                  5070
+#define ID_5071                         5071
+#define ID_GOZI                         5072
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        177
-#define _APS_NEXT_COMMAND_VALUE         5071
-#define _APS_NEXT_CONTROL_VALUE         3078
+#define _APS_NEXT_RESOURCE_VALUE        180
+#define _APS_NEXT_COMMAND_VALUE         5073
+#define _APS_NEXT_CONTROL_VALUE         3081
 #define _APS_NEXT_SYMED_VALUE           203
 #endif
 #endif

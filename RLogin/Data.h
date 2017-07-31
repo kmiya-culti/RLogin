@@ -452,6 +452,7 @@ public:
 	int m_Uid;
 	CStrScript m_ChatScript;
 	int m_ProxyMode;
+	BOOL m_ProxySSLKeep;
 	CString m_ProxyHost;
 	CString m_ProxyPort;
 	CString m_ProxyUser;

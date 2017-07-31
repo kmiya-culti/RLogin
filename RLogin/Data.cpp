@@ -2099,6 +2099,7 @@ void CServerEntry::Init()
 	m_ProxyHostProvs.Empty();
 	m_ProxyUserProvs.Empty();
 	m_ProxyPassProvs.Empty();
+	m_ProxySSLKeep = FALSE;
 	m_BeforeEntry.Empty();
 }
 const CServerEntry & CServerEntry::operator = (CServerEntry &data)
@@ -2132,6 +2133,7 @@ const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 	m_ProxyHostProvs = data.m_ProxyHostProvs;
 	m_ProxyUserProvs = data.m_ProxyUserProvs;
 	m_ProxyPassProvs = data.m_ProxyPassProvs;
+	m_ProxySSLKeep   = data.m_ProxySSLKeep;
 	m_BeforeEntry    = data.m_BeforeEntry;
 	return *this;
 }
@@ -2175,11 +2177,12 @@ void CServerEntry::GetArray(CStringArrayExt &stra)
 		}
 	}
 
-	m_Memo        = (stra.GetSize() > 17 ?  stra.GetAt(17) : _T(""));
-	m_Group       = (stra.GetSize() > 18 ?  stra.GetAt(18) : _T(""));
-	m_ScriptFile  = (stra.GetSize() > 19 ?  stra.GetAt(19) : _T(""));
-	m_ScriptStr   = (stra.GetSize() > 20 ?  stra.GetAt(20) : _T(""));
-	m_BeforeEntry = (stra.GetSize() > 21 ?  stra.GetAt(21) : _T(""));
+	m_Memo         = (stra.GetSize() > 17 ?  stra.GetAt(17) : _T(""));
+	m_Group        = (stra.GetSize() > 18 ?  stra.GetAt(18) : _T(""));
+	m_ScriptFile   = (stra.GetSize() > 19 ?  stra.GetAt(19) : _T(""));
+	m_ScriptStr    = (stra.GetSize() > 20 ?  stra.GetAt(20) : _T(""));
+	m_BeforeEntry  = (stra.GetSize() > 21 ?  stra.GetAt(21) : _T(""));
+	m_ProxySSLKeep = (stra.GetSize() > 22 ?  stra.GetVal(22) : FALSE);;
 
 	m_ProBuffer.Clear();
 
@@ -2225,6 +2228,7 @@ void CServerEntry::SetArray(CStringArrayExt &stra)
 	stra.Add(m_ScriptFile);
 	stra.Add(m_ScriptStr);
 	stra.Add(m_BeforeEntry);
+	stra.AddVal(m_ProxySSLKeep);
 }
 
 static const ScriptCmdsDefs DocEntry[] = {
@@ -2243,6 +2247,7 @@ static const ScriptCmdsDefs DocEntry[] = {
 	{	"Chat",			13	},
 	{	"Proxy",		14	},
 	{	"Before",		15	},
+	{	"SSLKeep",		16	},
 	{	NULL,			0	},
 }, DocEntryProxy[] = {
 	{	"Mode",			20	},
@@ -2344,6 +2349,9 @@ void CServerEntry::ScriptValue(int cmds, class CScriptValue &value, int mode)
 
 	case 15:				// Docyment.Entry.Before
 		value.SetStr(m_BeforeEntry, mode);
+		break;
+	case 16:				// Docyment.Entry.SSLKeep
+		value.SetInt(m_ProxySSLKeep, mode);
 		break;
 
 	case 20:				// Document.Entry.Proxy.Mode
@@ -3468,7 +3476,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	96
+#define	CMDSKEYTABMAX	97
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -3552,6 +3560,7 @@ static const struct _CmdsKeyTab {
 	{	ID_SPLIT_OVER,			L"$SPLIT_OVER"		},
 	{	ID_SPLIT_WIDTH,			L"$SPLIT_WIDTH"		},
 	{	IDM_IMAGEDISP,			L"$VIEW_IMAGEDISP"	},
+	{	ID_GOZIVIEW,			L"$VIEW_JOKE"	},
 	{	ID_VIEW_MENUBAR,		L"$VIEW_MENUBAR"	},
 	{	ID_VIEW_SCROLLBAR,		L"$VIEW_SCROLLBAR"	},
 	{	IDM_SFTP,				L"$VIEW_SFTP"		},
