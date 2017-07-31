@@ -34,6 +34,7 @@ CSyncSock::CSyncSock(class CRLoginDoc *pDoc, CWnd *pWnd)
 	m_pParamEvent  = new CEvent(FALSE, TRUE);
 	m_ResvDoit = FALSE;
 	m_IsAscii = FALSE;
+	m_LastUpdate = clock();
 }
 
 CSyncSock::~CSyncSock()
@@ -382,6 +383,7 @@ void CSyncSock::UpDownOpen(LPCSTR msg)
 	m_pParamEvent->ResetEvent();
 	m_pWnd->PostMessage(WM_THREADCMD, THCMD_DLGOPEN, (LPARAM)this);
 	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
+	m_LastUpdate = clock();
 }
 void CSyncSock::UpDownClose()
 {
@@ -401,11 +403,15 @@ void CSyncSock::UpDownInit(LONGLONG size, LONGLONG rems)
 	m_pParamEvent->ResetEvent();
 	m_pWnd->PostMessage(WM_THREADCMD, THCMD_DLGRANGE, (LPARAM)this);
 	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
+	m_LastUpdate = clock();
 }
 void CSyncSock::UpDownStat(LONGLONG size)
 {
-	m_Size = size;
-	m_pWnd->PostMessage(WM_THREADCMD, THCMD_DLGPOS, (LPARAM)this);
+	if ( (clock() - m_LastUpdate) >= (CLOCKS_PER_SEC / 2) ) {
+		m_Size = size;
+		m_pWnd->PostMessage(WM_THREADCMD, THCMD_DLGPOS, (LPARAM)this);
+		m_LastUpdate = clock();
+	}
 }
 void CSyncSock::SendString(LPCWSTR str)
 {

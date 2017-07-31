@@ -356,6 +356,8 @@
 #define IDC_ALGO_LIST7                  2007
 #define IDC_ALGO_LIST8                  2008
 #define IDC_ALGO_LIST9                  2009
+#define IDC_ALGO_LIST10                 2010
+#define IDC_ALGO_LIST11                 2011
 #define IDC_BOX0                        2100
 #define IDC_BOX1                        2101
 #define IDC_BOX2                        2102

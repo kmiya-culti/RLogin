@@ -199,7 +199,7 @@ CTelnet::CTelnet(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 CTelnet::~CTelnet()
 {
 }
-BOOL CTelnet::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType)
+BOOL CTelnet::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
 {
     int n;
 
@@ -235,7 +235,7 @@ BOOL CTelnet::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, in
 	EncryptInputFlag  = FALSE;
 	EncryptOutputFlag = FALSE;
 
-	if ( !CExtSocket::Open(lpszHostAddress, nHostPort, nSocketPort, nSocketType) )
+	if ( !CExtSocket::Open(lpszHostAddress, nHostPort, nSocketPort, nSocketType, pAddrInfo) )
 		return FALSE;
 
 	if ( !m_pDocument->m_TextRam.IsOptEnable(TO_RLTENAT) &&

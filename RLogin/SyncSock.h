@@ -57,6 +57,7 @@ public:
 	LONGLONG m_Size;
 	LONGLONG m_RemSize;
 	CEvent *m_pParamEvent;
+	clock_t m_LastUpdate;
 
 	void Bufferd_Send(int c);
 	void Bufferd_SendBuf(char *buf, int len);

@@ -386,7 +386,7 @@ public:
 	void OnSendEmpty();
 
 	void DoClose();
-	int Create(LPCTSTR lpszHostAddress, UINT nHostPort, LPCSTR lpszRemoteAddress, UINT nRemotePort);
+	int CreateListen(LPCTSTR lpszHostAddress, UINT nHostPort, LPCSTR lpszRemoteAddress, UINT nRemotePort);
 };
 
 class CStdIoFilter : public CFilter
@@ -459,6 +459,17 @@ public:
 #define	AUTH_MODE_KEYBOARD	3
 #define	AUTH_MODE_HOSTBASED	4
 
+#define	PROP_KEX_ALGS		0
+#define	PROP_HOST_KEY_ALGS	1
+#define	PROP_ENC_ALGS_CTOS	2		// 0
+#define	PROP_ENC_ALGS_STOC	3		// 1
+#define	PROP_MAC_ALGS_CTOS	4		// 2
+#define	PROP_MAC_ALGS_STOC	5		// 3
+#define	PROP_COMP_ALGS_CTOS	6		// 4
+#define	PROP_COMP_ALGS_STOC	7		// 5
+#define	PROP_LANG_CTOS		8
+#define	PROP_LANG_STOC		9
+
 enum EAuthStat {
 	AST_START = 0,
 	AST_PUBKEY_NEXT,
@@ -475,7 +486,7 @@ public:
 	Cssh(class CRLoginDoc *pDoc);
 	virtual ~Cssh();
 
-	BOOL Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM);
+	BOOL Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM, void *pAddrInfo = NULL);
 	void Close();
 	void OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags = 0);
 	int Send(const void* lpBuf, int nBufLen, int nFlags = 0);
@@ -546,7 +557,7 @@ private:
 	DWORD m_RecvPackLen;
 	CBuffer m_InPackBuf;
 	BYTE m_Cookie[16];
-	CString m_SProp[10], m_CProp[10], m_VProp[6];
+	CString m_SProp[10], m_CProp[10], m_VProp[10];
 	LPBYTE m_VKey[6];
 	CBuffer m_HisPeer;
 	CBuffer m_MyPeer;

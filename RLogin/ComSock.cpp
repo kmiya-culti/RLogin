@@ -37,7 +37,7 @@ CComSock::~CComSock()
 	Close();
 }
 
-BOOL CComSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType)
+BOOL CComSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
 {
 	Close();
 	GetMode(lpszHostAddress);

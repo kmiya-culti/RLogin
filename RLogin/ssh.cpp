@@ -71,7 +71,7 @@ int Cssh::SetIdKeyList()
 	}
 	return FALSE;
 }
-int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType)
+int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
 {
   try {
 
@@ -152,7 +152,7 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 	n = m_pDocument->m_ParamTab.GetPropNode(2, 0, str);
 	m_CompMode = (n == FALSE || str.Compare("none") == 0 ? FALSE : TRUE);
 
-	if ( !CExtSocket::Open(lpszHostAddress, nHostPort, nSocketPort, nSocketType) )
+	if ( !CExtSocket::Open(lpszHostAddress, nHostPort, nSocketPort, nSocketType, pAddrInfo) )
 		return FALSE;
 
 	SetRecvSize(CHAN_SES_WINDOW_DEFAULT * 2);
@@ -364,33 +364,32 @@ void Cssh::GetStatus(CString &str)
 
 	tmp.Format("Version: %s\r\n", m_ServerVerStr);
 	str += tmp;
-	tmp.Format("Kexs: %s\r\n", m_SProp[0]);
+	tmp.Format("Kexs: %s\r\n", m_SProp[PROP_KEX_ALGS]);
 	str += tmp;
-	tmp.Format("Keys: %s\r\n", m_SProp[1]);
+	tmp.Format("Keys: %s\r\n", m_SProp[PROP_HOST_KEY_ALGS]);
 	str += tmp;
 	tmp.Format("Auth: %s\r\n", m_AuthMeta);
 	str += tmp;
-	tmp.Format("Cipher CtoS: %s\r\n", m_SProp[2]);
+	tmp.Format("Cipher CtoS: %s\r\n", m_SProp[PROP_ENC_ALGS_CTOS]);
 	str += tmp;
-	tmp.Format("Cipher StoC: %s\r\n", m_SProp[3]);
+	tmp.Format("Cipher StoC: %s\r\n", m_SProp[PROP_ENC_ALGS_STOC]);
 	str += tmp;
-	tmp.Format("Mac CtoS: %s\r\n", m_SProp[4]);
+	tmp.Format("Mac CtoS: %s\r\n", m_SProp[PROP_MAC_ALGS_CTOS]);
 	str += tmp;
-	tmp.Format("Mac StoC: %s\r\n", m_SProp[5]);
+	tmp.Format("Mac StoC: %s\r\n", m_SProp[PROP_MAC_ALGS_STOC]);
 	str += tmp;
-	tmp.Format("Compess CtoS: %s\r\n", m_SProp[6]);
+	tmp.Format("Compess CtoS: %s\r\n", m_SProp[PROP_COMP_ALGS_CTOS]);
 	str += tmp;
-	tmp.Format("Compess StoC: %s\r\n", m_SProp[7]);
+	tmp.Format("Compess StoC: %s\r\n", m_SProp[PROP_COMP_ALGS_STOC]);
 	str += tmp;
-	tmp.Format("Language CtoS: %s\r\n", m_SProp[8]);
+	tmp.Format("Language CtoS: %s\r\n", m_SProp[PROP_LANG_CTOS]);
 	str += tmp;
-	tmp.Format("Language StoC: %s\r\n", m_SProp[9]);
+	tmp.Format("Language StoC: %s\r\n", m_SProp[PROP_LANG_STOC]);
 	str += tmp;
 
 	str += "\r\n";
-	tmp.Format("Kexs: %s\r\n", m_CProp[0]);
+	tmp.Format("Kexs: %s\r\n", m_VProp[PROP_KEX_ALGS]);
 	str += tmp;
-
 	tmp.Format("Encode: %s + %s + %s\r\n", m_EncCmp.GetTitle(), m_EncCip.GetTitle(), m_EncMac.GetTitle());
 	str += tmp;
 	tmp.Format("Decode: %s + %s + %s\r\n", m_DecCmp.GetTitle(), m_DecCip.GetTitle(), m_DecMac.GetTitle());
@@ -1008,6 +1007,10 @@ void Cssh::DecodeProxySocks(int id)
 		} dest;
 	} s4_req;
 	BYTE tmp[257];
+	struct sockaddr_in in;
+#ifndef	NOIPV6
+    struct sockaddr_in6 in6;
+#endif
 
 	if ( (len = m_Chan[id].m_Output.GetSize()) < 2 )
 		return;
@@ -1078,7 +1081,10 @@ void Cssh::DecodeProxySocks(int id)
 				break;
 			memcpy(tmp, p + 4, 4);
 			m_Chan[id].m_Output.Consume(4 + 4);
-			m_Chan[id].GetHostName(AF_INET, tmp, host[0]);
+			memset(&in, 0, sizeof(in));
+			in.sin_family = AF_INET;
+			memcpy(&(in.sin_addr), tmp, 4);
+			m_Chan[id].GetHostName((struct sockaddr *)&in, sizeof(in), host[0]);
 		} else if ( p[3] == '\x03' ) {	// SOCKS5_DOMAIN
 			if ( len < (4 + p[4] + 2) )
 				break;
@@ -1092,7 +1098,10 @@ void Cssh::DecodeProxySocks(int id)
 				break;
 			memcpy(tmp, p + 4, 16);
 			m_Chan[id].m_Output.Consume(4 + 16);
-			m_Chan[id].GetHostName(AF_INET6, tmp, host[0]);
+			memset(&in6, 0, sizeof(in6));
+			in6.sin6_family = AF_INET6;
+			memcpy(&(in6.sin6_addr), tmp, 16);
+			m_Chan[id].GetHostName((struct sockaddr *)&in6, sizeof(in6), host[0]);
 #endif
 		} else {
 			ChannelClose(id);
@@ -1172,7 +1181,7 @@ void Cssh::PortForward()
 		if ( tmp[0].Compare("localhost") == 0 ) { // && tmp[2].Compare(m_HostName) == 0 ) {
 			n = ChannelOpen();
 			m_Chan[n].m_Status = CHAN_LISTEN;
-			if ( !m_Chan[n].Create(tmp[0], GetPortNum(tmp[1]), tmp[2], GetPortNum(tmp[3])) ) {
+			if ( !m_Chan[n].CreateListen(tmp[0], GetPortNum(tmp[1]), tmp[2], GetPortNum(tmp[3])) ) {
 				str.Format("Port Forward Error %s:%s->%s:%s", tmp[0], tmp[1], tmp[2], tmp[3]);
 				AfxMessageBox(str);
 				ChannelClose(n);
@@ -1184,7 +1193,7 @@ void Cssh::PortForward()
 			n = ChannelOpen();
 			m_Chan[n].m_Status = CHAN_LISTEN | CHAN_PROXY_SOCKS;
 			tmp[0] = "localhost";
-			if ( !m_Chan[n].Create(tmp[0], GetPortNum(tmp[1]), tmp[2], GetPortNum(tmp[3])) ) {
+			if ( !m_Chan[n].CreateListen(tmp[0], GetPortNum(tmp[1]), tmp[2], GetPortNum(tmp[3])) ) {
 				str.Format("Socks Listen Error %s:%s->%s:%s", tmp[0], tmp[1], tmp[2], tmp[3]);
 				AfxMessageBox(str);
 				ChannelClose(n);
@@ -1311,9 +1320,9 @@ void Cssh::SendMsgNewKeys()
 	tmp.Put8Bit(SSH2_MSG_NEWKEYS);
 	SendPacket2(&tmp);
 
-	if ( m_EncCip.Init(m_VProp[0], MODE_ENC, m_VKey[2], (-1), m_VKey[0]) ||
-		 m_EncMac.Init(m_VProp[2], m_VKey[4], (-1)) ||
-		 m_EncCmp.Init(m_VProp[4], MODE_ENC, COMPLEVEL) )
+	if ( m_EncCip.Init(m_VProp[PROP_ENC_ALGS_CTOS], MODE_ENC, m_VKey[2], (-1), m_VKey[0]) ||
+		 m_EncMac.Init(m_VProp[PROP_MAC_ALGS_CTOS], m_VKey[4], (-1)) ||
+		 m_EncCmp.Init(m_VProp[PROP_COMP_ALGS_CTOS], MODE_ENC, COMPLEVEL) )
 		Close();
 }
 void Cssh::SendMsgServiceRequest(LPCSTR str)
@@ -1757,14 +1766,6 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 		{ DHMODE_GROUP_1,		"diffie-hellman-group1-sha1",			},
 		{ 0,					NULL									},
 	};
-	static const char *hostkeytab[] = {
-		"ecdsa-sha2-nistp256",
-		"ecdsa-sha2-nistp384",
-		"ecdsa-sha2-nistp521",
-		"ssh-dss",
-		"ssh-rsa",
-		NULL
-	};
 
 	m_HisPeer = *bp;
 	for ( n = 0 ; n < 16 ; n++ )
@@ -1774,53 +1775,41 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 	bp->Get8Bit();
 	bp->Get32Bit();
 
+	m_pDocument->m_ParamTab.GetProp(9,  m_CProp[PROP_KEX_ALGS]);			// PROPOSAL_KEX_ALGS
+	m_pDocument->m_ParamTab.GetProp(10, m_CProp[PROP_HOST_KEY_ALGS]);		// PROPOSAL_SERVER_HOST_KEY_ALGS
+
+	m_pDocument->m_ParamTab.GetProp(6,  m_CProp[PROP_ENC_ALGS_CTOS], m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFENC));	// PROPOSAL_ENC_ALGS_CTOS
+	m_pDocument->m_ParamTab.GetProp(3,  m_CProp[PROP_ENC_ALGS_STOC], m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFENC));	// PROPOSAL_ENC_ALGS_STOC
+	m_pDocument->m_ParamTab.GetProp(7,  m_CProp[PROP_MAC_ALGS_CTOS], m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFMAC));	// PROPOSAL_MAC_ALGS_CTOS
+	m_pDocument->m_ParamTab.GetProp(4,  m_CProp[PROP_MAC_ALGS_STOC], m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFMAC));	// PROPOSAL_MAC_ALGS_STOC
+
+	m_pDocument->m_ParamTab.GetProp(8,  m_CProp[PROP_COMP_ALGS_CTOS]);			// PROPOSAL_COMP_ALGS_CTOS
+	m_pDocument->m_ParamTab.GetProp(5,  m_CProp[PROP_COMP_ALGS_STOC]);			// PROPOSAL_COMP_ALGS_STOC
+
+	m_CProp[PROP_LANG_CTOS] = m_VProp[PROP_LANG_CTOS] = "";						// PROPOSAL_LANG_CTOS,
+	m_CProp[PROP_LANG_STOC] = m_VProp[PROP_LANG_STOC] = "";						// PROPOSAL_LANG_STOC,
+
+	for ( n = 0 ; n < 8 ; n++ ) {
+		if ( !MatchList(m_CProp[n], m_SProp[n], m_VProp[n]) )
+			return TRUE;
+	}
+
 	// PROPOSAL_KEX_ALGS
 	for ( n = 0 ; kextab[n].name != NULL ; n++ ) {
-		if ( m_SProp[0].Find(kextab[n].name) >= 0 ) {
-			m_DhMode   = kextab[n].mode;
-			m_CProp[0] = kextab[n].name;
+		if ( m_VProp[PROP_KEX_ALGS].Compare(kextab[n].name) == 0 ) {
+			m_DhMode = kextab[n].mode;
 			break;
 		}
 	}
 	if ( kextab[n].name == NULL )
 		return TRUE;
 
-	// PROPOSAL_SERVER_HOST_KEY_ALGS
-	for ( n = 0 ; hostkeytab[n] != NULL ; n++ ) {
-		if ( m_SProp[1].Find(hostkeytab[n]) >= 0 ) {
-			m_CProp[1] = hostkeytab[n];
-			break;
-		}
-	}
-	if ( hostkeytab[n] == NULL )
-		return TRUE;
-
-	m_pDocument->m_ParamTab.GetProp(6, m_CProp[2], m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFENC));	// PROPOSAL_ENC_ALGS_CTOS,
-	m_pDocument->m_ParamTab.GetProp(3, m_CProp[3], m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFENC));	// PROPOSAL_ENC_ALGS_STOC,
-	m_pDocument->m_ParamTab.GetProp(7, m_CProp[4], m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFMAC));	// PROPOSAL_MAC_ALGS_CTOS,
-	m_pDocument->m_ParamTab.GetProp(4, m_CProp[5], m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFMAC));	// PROPOSAL_MAC_ALGS_STOC,
-
-	m_pDocument->m_ParamTab.GetProp(8, m_CProp[6]);			// PROPOSAL_COMP_ALGS_CTOS,
-	m_pDocument->m_ParamTab.GetProp(5, m_CProp[7]);			// PROPOSAL_COMP_ALGS_STOC,
-
-	for ( n = 0 ; n < 6 ; n++ ) {
-		if ( !MatchList(m_CProp[n + 2], m_SProp[n + 2], m_VProp[n]) )
-			return TRUE;
-	}
-
-	m_CProp[8] = "";		// PROPOSAL_LANG_CTOS,
-	m_CProp[9] = "";		// PROPOSAL_LANG_STOC,
-
 	if ( (m_SSH2Status & SSH2_STAT_SENTKEXINIT) == 0 ) {
 		m_MyPeer.Clear();
 		for ( n = 0 ; n < 16 ; n += 2 )
 			m_MyPeer.Put16Bit(rand());
-		for ( n = 0 ; n < 10 ; n++ ) {
-			if ( n >= 2 && n < 8 )
-				m_MyPeer.PutStr(m_VProp[n - 2]);
-			else
-				m_MyPeer.PutStr(m_CProp[n]);
-		}
+		for ( n = 0 ; n < 10 ; n++ )
+			m_MyPeer.PutStr(m_VProp[n]);
 		m_MyPeer.Put8Bit(0);
 		m_MyPeer.Put32Bit(0);
 
@@ -1828,12 +1817,12 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 	}
 
 	m_NeedKeyLen = 0;
-	if ( m_NeedKeyLen < m_EncCip.GetKeyLen(m_VProp[0]) )    m_NeedKeyLen = m_EncCip.GetKeyLen(m_VProp[0]);
-	if ( m_NeedKeyLen < m_DecCip.GetKeyLen(m_VProp[1]) )    m_NeedKeyLen = m_DecCip.GetKeyLen(m_VProp[1]);
-	if ( m_NeedKeyLen < m_EncCip.GetBlockSize(m_VProp[0]) ) m_NeedKeyLen = m_EncCip.GetBlockSize(m_VProp[0]);
-	if ( m_NeedKeyLen < m_DecCip.GetBlockSize(m_VProp[1]) ) m_NeedKeyLen = m_DecCip.GetBlockSize(m_VProp[1]);
-	if ( m_NeedKeyLen < m_EncMac.GetKeyLen(m_VProp[2]) )    m_NeedKeyLen = m_EncMac.GetKeyLen(m_VProp[2]);
-	if ( m_NeedKeyLen < m_DecMac.GetKeyLen(m_VProp[3]) )    m_NeedKeyLen = m_DecMac.GetKeyLen(m_VProp[3]);
+	if ( m_NeedKeyLen < m_EncCip.GetKeyLen(m_VProp[PROP_ENC_ALGS_CTOS]) )    m_NeedKeyLen = m_EncCip.GetKeyLen(m_VProp[PROP_ENC_ALGS_CTOS]);
+	if ( m_NeedKeyLen < m_DecCip.GetKeyLen(m_VProp[PROP_ENC_ALGS_STOC]) )    m_NeedKeyLen = m_DecCip.GetKeyLen(m_VProp[PROP_ENC_ALGS_STOC]);
+	if ( m_NeedKeyLen < m_EncCip.GetBlockSize(m_VProp[PROP_ENC_ALGS_CTOS]) ) m_NeedKeyLen = m_EncCip.GetBlockSize(m_VProp[PROP_ENC_ALGS_CTOS]);
+	if ( m_NeedKeyLen < m_DecCip.GetBlockSize(m_VProp[PROP_ENC_ALGS_STOC]) ) m_NeedKeyLen = m_DecCip.GetBlockSize(m_VProp[PROP_ENC_ALGS_STOC]);
+	if ( m_NeedKeyLen < m_EncMac.GetKeyLen(m_VProp[PROP_MAC_ALGS_CTOS]) )    m_NeedKeyLen = m_EncMac.GetKeyLen(m_VProp[PROP_MAC_ALGS_CTOS]);
+	if ( m_NeedKeyLen < m_DecMac.GetKeyLen(m_VProp[PROP_MAC_ALGS_STOC]) )    m_NeedKeyLen = m_DecMac.GetKeyLen(m_VProp[PROP_MAC_ALGS_STOC]);
 
 	m_RecvPackLen = 0;
 	return FALSE;
@@ -2105,9 +2094,9 @@ ENDRET:
 }
 int Cssh::SSH2MsgNewKeys(CBuffer *bp)
 {
-	if ( m_DecCip.Init(m_VProp[1], MODE_DEC, m_VKey[3], (-1), m_VKey[1]) ||
-		 m_DecMac.Init(m_VProp[3], m_VKey[5], (-1)) ||
-		 m_DecCmp.Init(m_VProp[5], MODE_DEC, COMPLEVEL) )
+	if ( m_DecCip.Init(m_VProp[PROP_ENC_ALGS_STOC], MODE_DEC, m_VKey[3], (-1), m_VKey[1]) ||
+		 m_DecMac.Init(m_VProp[PROP_MAC_ALGS_STOC], m_VKey[5], (-1)) ||
+		 m_DecCmp.Init(m_VProp[PROP_COMP_ALGS_STOC], MODE_DEC, COMPLEVEL) )
 		return TRUE;
 
 	CString str, ats[3];

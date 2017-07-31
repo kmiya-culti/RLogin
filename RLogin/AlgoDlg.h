@@ -24,7 +24,7 @@ public:
 	//{{AFX_DATA(CAlgoDlg)
 	enum { IDD = IDD_ALGOPARADLG };
 	//}}AFX_DATA
-	CListCtrlMove m_List[9];
+	CListCtrlMove m_List[11];
 	BOOL m_EncShuffle;
 	BOOL m_MacShuffle;
 

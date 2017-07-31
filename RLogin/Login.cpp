@@ -30,13 +30,13 @@ CLogin::~CLogin()
 {
 }
 
-int CLogin::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType)
+int CLogin::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
 {
 	int n;
 	BOOL val = 1;
 
 	for ( n = IPPORT_RESERVED - 1 ; n > (IPPORT_RESERVED / 2) ; n-- ) {
-		if ( CExtSocket::Open(lpszHostAddress, nHostPort, n, SOCK_STREAM) )
+		if ( CExtSocket::Open(lpszHostAddress, nHostPort, n, SOCK_STREAM, pAddrInfo) )
 			break;
 	}
 

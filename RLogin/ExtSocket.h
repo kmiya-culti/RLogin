@@ -31,6 +31,12 @@
 #define	ESCT_COMDEV		5
 #define	ESCT_PIPE		6
 
+#define	ASYNC_GETADDR		000
+#define	ASYNC_CREATE		001
+#define	ASYNC_OPEN			002
+#define	ASYNC_CREATEINFO	011
+#define	ASYNC_OPENINFO		012
+
 enum EProxyStat {
 	PRST_NONE = 0,
 
@@ -105,7 +111,6 @@ private:
 	int m_OnRecvFlag;
 	int m_OnSendFlag;
 	BOOL m_DestroyFlag;
-	int m_AsyncMode;
 	CString m_RealHostAddr;
 	CString m_RealRemoteAddr;
 	UINT m_RealHostPort;
@@ -155,8 +160,8 @@ private:
 	void SSLClose();
 
 public:
-	virtual BOOL Create(LPCTSTR lpszHostAddress, UINT nHostPort, LPCSTR lpszRemoteAddress = NULL, int nSocketType = SOCK_STREAM);
-	virtual BOOL Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM);
+	virtual BOOL Create(LPCTSTR lpszHostAddress, UINT nHostPort, LPCSTR lpszRemoteAddress = NULL, int nSocketType = SOCK_STREAM, void *pAddrInfo = NULL);
+	virtual BOOL Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM, void *pAddrInfo = NULL);
 	virtual void Close();
 	virtual void SetXonXoff(int sw);
 
@@ -171,7 +176,7 @@ public:
 	virtual void OnSendEmpty();
 	virtual void GetStatus(CString &str);
 
-	virtual void OnAsyncHostByName(LPCSTR pHostName);
+	virtual void OnAsyncHostByName(int mode, LPCSTR pHostName);
 	virtual void OnGetHostByName(LPCSTR pHostName);
 	virtual void OnReciveCallBack(void *lpBuf, int nBufLen, int nFlags);
 	virtual int OnReciveProcBack(void *lpBuf, int nBufLen, int nFlags);
@@ -201,7 +206,7 @@ public:
 
 	static void GetPeerName(int fd, CString &host, int *port);
 	static void GetSockName(int fd, CString &host, int *port);
-	static void GetHostName(int af, void *addr, CString &host);
+	static void GetHostName(struct sockaddr *addr, int addrlen, CString &host);
 	static int GetPortNum(LPCSTR str);
 	static BOOL SokcetCheck(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM);
 

@@ -584,6 +584,7 @@ CMainFrame::CMainFrame()
 	m_MenuHand = NULL;
 	m_hMidiOut = NULL;
 	m_MidiTimer = 0;
+	m_InfoThreadCount = 0;
 }
 
 CMainFrame::~CMainFrame()
@@ -611,6 +612,11 @@ CMainFrame::~CMainFrame()
 		midiOutReset(m_hMidiOut);
 		midiOutClose(m_hMidiOut);
 	}
+
+#ifndef	NOIPV6
+	for ( int n = 0 ; m_InfoThreadCount > 0 && n < 10 ; n++ )
+		Sleep(300);
+#endif
 }
 
 int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
@@ -771,7 +777,7 @@ void CMainFrame::DelAsyncSelect(SOCKET fd, CExtSocket *pSock)
 	}
 }
 
-int CMainFrame::SetAsyncHostAddr(LPCSTR pHostName, CExtSocket *pSock)
+int CMainFrame::SetAsyncHostAddr(int mode, LPCSTR pHostName, CExtSocket *pSock)
 {
 	HANDLE hGetHostAddr;
 	CString *pStr = new CString(pHostName);
@@ -789,9 +795,60 @@ int CMainFrame::SetAsyncHostAddr(LPCSTR pHostName, CExtSocket *pSock)
 	m_HostAddrParam.Add(pSock);
 	m_HostAddrParam.Add(pStr);
 	m_HostAddrParam.Add(pData);
+	m_HostAddrParam.Add((void *)mode);
 
 	return TRUE;
 }
+
+#ifndef	NOIPV6
+typedef struct _addrinfo_param {
+	CMainFrame		*pWnd;
+	int				mode;
+	CString			name;
+	CString			port;
+	struct addrinfo	hint;
+	int				ret;
+} addrinfo_param;
+
+static UINT AddrInfoThread(LPVOID pParam)
+{
+	struct addrinfo *ai;
+	addrinfo_param *ap = (addrinfo_param *)pParam;
+
+	ap->ret = getaddrinfo(ap->name, ap->port, &(ap->hint), &ai);
+
+	if ( ap->pWnd->m_InfoThreadCount-- > 0 && ap->pWnd->m_hWnd != NULL )
+		ap->pWnd->PostMessage(WM_GETHOSTADDR, (WPARAM)ap, (LPARAM)ai);
+
+	return 0;
+}
+#endif
+
+int CMainFrame::SetAsyncAddrInfo(int mode, LPCSTR pHostName, int PortNum, void *pHint, CExtSocket *pSock)
+{
+#ifndef	NOIPV6
+	addrinfo_param *ap;
+
+	ap = new addrinfo_param;
+	ap->pWnd = this;
+	ap->mode = mode;
+	ap->name = pHostName;
+	ap->port.Format("%d", PortNum);
+	ap->ret  = 1;
+	memcpy(&(ap->hint), pHint, sizeof(struct addrinfo));
+
+	m_InfoThreadCount++;
+	AfxBeginThread(AddrInfoThread, ap, THREAD_PRIORITY_NORMAL);
+
+	m_HostAddrParam.Add(ap);
+	m_HostAddrParam.Add(pSock);
+	m_HostAddrParam.Add(NULL);
+	m_HostAddrParam.Add(NULL);
+	m_HostAddrParam.Add((void *)mode);
+#endif
+	return TRUE;
+}
+
 int CMainFrame::SetTimerEvent(int msec, int mode, void *pParam)
 {
 	CTimerObject *tp;
@@ -1141,24 +1198,46 @@ LRESULT CMainFrame::OnGetHostAddr(WPARAM wParam, LPARAM lParam)
 	CExtSocket *pSock;
 	CString *pStr;
 	struct hostent *hp;
+	int mode;
+	struct sockaddr_in in;
 	int errcode = WSAGETASYNCERROR(lParam);
 	int buflen  = WSAGETASYNCBUFLEN(lParam);
 
-	for ( n = 0 ; n < m_HostAddrParam.GetSize() ; n += 4 ) {
-		if ( m_HostAddrParam[n] == (void *)wParam ) {
+	for ( n = 0 ; n < m_HostAddrParam.GetSize() ; n += 5 ) {
+		mode = (int)m_HostAddrParam[n + 4];
+		if ( (mode & 030) == 0 && m_HostAddrParam[n] == (void *)wParam ) {
 			pSock = (CExtSocket *)m_HostAddrParam[n + 1];
 			pStr = (CString *)m_HostAddrParam[n + 2];
 			hp = (struct hostent *)m_HostAddrParam[n + 3];
 
-			if ( errcode == 0 )
-				pSock->GetHostName(hp->h_addrtype, hp->h_addr, *pStr);
+			if ( errcode == 0 ) {
+				memset(&in, 0, sizeof(in));
+				in.sin_family = hp->h_addrtype;
+				memcpy(&(in.sin_addr), hp->h_addr, (hp->h_length < sizeof(in.sin_addr) ? hp->h_length : sizeof(in.sin_addr)));
+				pSock->GetHostName((struct sockaddr *)&in, sizeof(in), *pStr);
+			}
 
-			pSock->OnAsyncHostByName(*pStr);
+			pSock->OnAsyncHostByName(mode, *pStr);
 
-			m_HostAddrParam.RemoveAt(n, 4);
+			m_HostAddrParam.RemoveAt(n, 5);
 			delete pStr;
 			delete hp;
 			break;
+#ifndef	NOIPV6
+		} else if ( (mode & 030) == 010 && m_HostAddrParam[n] == (void *)wParam ) {
+			addrinfo_param *ap = (addrinfo_param *)wParam;
+			struct addrinfo *info = (struct addrinfo *)lParam;
+			pSock = (CExtSocket *)m_HostAddrParam[n + 1];
+
+			if ( ap->ret == 0 )
+				pSock->OnAsyncHostByName(mode, (LPCSTR)info);
+			else
+				pSock->OnAsyncHostByName(mode & 003, ap->name);
+
+			m_HostAddrParam.RemoveAt(n, 5);
+			delete ap;
+			break;
+#endif
 		}
 	}
 	return TRUE;

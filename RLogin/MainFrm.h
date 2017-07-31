@@ -138,6 +138,7 @@ public:
 	HMIDIOUT m_hMidiOut;
 	UINT_PTR m_MidiTimer;
 	CList<class CMidiQue *, class CMidiQue *> m_MidiQue;
+	volatile int m_InfoThreadCount;
 
 	void SetTransPar(COLORREF rgb, int value, DWORD flag);
 	void SetIconStyle();
@@ -145,7 +146,8 @@ public:
 
 	int SetAsyncSelect(SOCKET fd, CExtSocket *pSock, long lEvent = 0);
 	void DelAsyncSelect(SOCKET fd, CExtSocket *pSock);
-	int SetAsyncHostAddr(LPCSTR pHostName, CExtSocket *pSock);
+	int SetAsyncHostAddr(int mode, LPCSTR pHostName, CExtSocket *pSock);
+	int SetAsyncAddrInfo(int mode, LPCSTR pHostName, int PortNum, void *pHint, CExtSocket *pSock);
 	int OpenServerEntry(CServerEntry &Entry);
 	BOOL SaveModified( );
 

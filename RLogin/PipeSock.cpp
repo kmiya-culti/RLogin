@@ -50,7 +50,7 @@ static UINT PipeOutThread(LPVOID pParam)
 	pThis->m_OutThreadMode = 3;
 	return 0;
 }
-BOOL CPipeSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType)
+BOOL CPipeSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
 {
 	Close();
 

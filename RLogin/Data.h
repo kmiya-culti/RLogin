@@ -472,7 +472,7 @@ class CParamTab : public COptObject
 {
 public:
 	CString m_IdKeyStr[9];
-	CStringArrayExt m_AlgoTab[9];
+	CStringArrayExt m_AlgoTab[11];
 	CStringArrayExt m_PortFwd;
 	CStringArrayExt m_IdKeyList;
 	CString m_XDisplay;

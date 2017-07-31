@@ -2792,7 +2792,7 @@ void CKeyMacTab::SetHisMenu(CWnd *pWnd)
 //////////////////////////////////////////////////////////////////////
 // CParamTab
 
-static const char *InitAlgo[9][40] = {
+static const char *InitAlgo[11][40] = {
 	{ "blowfish", "3des", "des", NULL },
 	{ "crc32", NULL },
 	{ "zlib", "none", NULL },
@@ -2812,6 +2812,7 @@ static const char *InitAlgo[9][40] = {
 	  "camellia128-cbc@openssh.org",	"camellia192-cbc@openssh.org",	"camellia256-cbc@openssh.org",
 	  "seed-ctr@ssh.com",				"seed-cbc@ssh.com",
 	  NULL },
+
 	{ "hmac-md5",				"hmac-md5-96",			"hmac-sha1",			"hmac-sha1-96",
 	  "hmac-sha224",			"hmac-sha384",			"hmac-sha256",			"hmac-sha512",
 	  "hmac-sha224-96",			"hmac-sha384-96",		"hmac-sha256-96",		"hmac-sha512-96",
@@ -2819,6 +2820,7 @@ static const char *InitAlgo[9][40] = {
 	  "umac-32",				"umac-64",				"umac-96",				"umac-128",
 	  "hmac-sha256@ssh.com",	"hmac-sha256-96@ssh.com",
 	  NULL },
+
 	{ "zlib@openssh.com", "zlib", "none", NULL },
 
 	{ "aes128-ctr",						"aes192-ctr",					"aes256-ctr",
@@ -2836,6 +2838,7 @@ static const char *InitAlgo[9][40] = {
 	  "camellia128-cbc@openssh.org",	"camellia192-cbc@openssh.org",	"camellia256-cbc@openssh.org",
 	  "seed-ctr@ssh.com",				"seed-cbc@ssh.com",
 	  NULL },
+
 	{ "hmac-md5",				"hmac-md5-96",			"hmac-sha1",			"hmac-sha1-96",
 	  "hmac-sha224",			"hmac-sha384",			"hmac-sha256",			"hmac-sha512",
 	  "hmac-sha224-96",			"hmac-sha384-96",		"hmac-sha256-96",		"hmac-sha512-96",
@@ -2843,7 +2846,17 @@ static const char *InitAlgo[9][40] = {
 	  "umac-32",				"umac-64",				"umac-96",				"umac-128",
 	  "hmac-sha256@ssh.com",	"hmac-sha256-96@ssh.com",
 	  NULL },
+
 	{ "zlib@openssh.com", "zlib", "none", NULL },
+
+	{ "ecdh-sha2-nistp256",		"ecdh-sha2-nistp384",	"ecdh-sha2-nistp521",
+	  "diffie-hellman-group-exchange-sha256",	"diffie-hellman-group-exchange-sha1",
+	  "diffie-hellman-group14-sha1",			"diffie-hellman-group1-sha1",
+	  NULL },
+
+	{ "ecdsa-sha2-nistp256",	"ecdsa-sha2-nistp384",	"ecdsa-sha2-nistp521",
+	  "ssh-dss",				"ssh-rsa",
+	  NULL },
 };
 
 CParamTab::CParamTab()
@@ -2859,7 +2872,7 @@ void CParamTab::Init()
 	for ( n = 0 ; n < 9 ; n++ )
 		m_IdKeyStr[n] = "";
 
-	for ( n = 0 ; n < 9 ; n++ ) {
+	for ( n = 0 ; n < 11 ; n++ ) {
 		m_AlgoTab[n].RemoveAll();
 		for ( i = 0 ; InitAlgo[n][i] != NULL ; i++ )
 			m_AlgoTab[n].Add(InitAlgo[n][i]);
@@ -2870,6 +2883,7 @@ void CParamTab::Init()
 	m_XDisplay  = ":0";
 	m_ExtEnvStr = "";
 	memset(m_OptTab, 0, sizeof(m_OptTab));
+	m_HostKeyFile.Empty();
 }
 void CParamTab::SetArray(CStringArrayExt &array)
 {
@@ -2895,7 +2909,10 @@ void CParamTab::SetArray(CStringArrayExt &array)
 	array.Add(m_XDisplay);
 	array.Add(m_ExtEnvStr);
 	array.AddBin(m_OptTab, sizeof(m_OptTab));
-	array.Add(m_HostKeyFile);
+	array.Add(m_HostKeyFile);										// Not use !!!!!!
+
+	for ( n = 9 ; n < 11 ; n++ )
+		array.AddArray(m_AlgoTab[n]);
 }
 void CParamTab::GetArray(CStringArrayExt &array)
 {
@@ -2947,7 +2964,24 @@ void CParamTab::GetArray(CStringArrayExt &array)
 	else
 		memset(m_OptTab, 0, sizeof(m_OptTab));
 
-	m_HostKeyFile = (array.GetSize() > i ? array.GetAt(i++) : "");
+	m_HostKeyFile = (array.GetSize() > i ? array.GetAt(i++) : "");		// Not use !!!!!!!
+
+	for ( n = 9 ; n < 11 && array.GetSize() > i ; n++ ) {
+		array.GetArray(i++, m_AlgoTab[n]);
+
+		idx.RemoveAll();
+		for ( a = 0 ; InitAlgo[n][a] != NULL ; a++ ) {
+			if ( m_AlgoTab[n].Find(InitAlgo[n][a]) < 0 )
+				m_AlgoTab[n].Add(InitAlgo[n][a]);
+			idx[InitAlgo[n][a]] = a;
+		}
+		for ( a = 0 ; a < m_AlgoTab[n].GetSize() ; a++ ) {
+			if ( idx[m_AlgoTab[n][a]] < 0 ) {
+				m_AlgoTab[n].RemoveAt(a);
+				a--;
+			}
+		}
+	}
 
 	if ( m_IdKeyStr[0].Compare("IdKeyList Entry") == 0 ) {
 		m_IdKeyList.GetString(m_IdKeyStr[1]);
@@ -3018,7 +3052,7 @@ void CParamTab::SetOptValue(int opt, int len, int value)
 void CParamTab::GetProp(int num, CString &str, int shuffle)
 {
 	str = "";
-	if ( num < 0 || num >= 9 )
+	if ( num < 0 || num >= 11 )
 		return;
 
 	if ( shuffle ) {
@@ -3048,22 +3082,25 @@ void CParamTab::GetProp(int num, CString &str, int shuffle)
 int CParamTab::GetPropNode(int num, int node, CString &str)
 {
 	str = "";
-	if ( num < 0 || num >= 9 || node < 0 || node >= m_AlgoTab[num].GetSize() )
+	if ( num < 0 || num >= 11 || node < 0 || node >= m_AlgoTab[num].GetSize() )
 		return FALSE;
 	str = m_AlgoTab[num][node];
 	return TRUE;
 }
 const CParamTab & CParamTab::operator = (CParamTab &data)
 {
-	for ( int n = 0 ; n < 9 ; n++ ) {
+	int n;
+
+	for ( n = 0 ; n < 9 ; n++ )
 		m_IdKeyStr[n] = data.m_IdKeyStr[n];
+	for ( n = 0 ; n < 11 ; n++ )
 		m_AlgoTab[n]  = data.m_AlgoTab[n];
-	}
 	m_PortFwd   = data.m_PortFwd;
 	m_IdKeyList = data.m_IdKeyList;
 	m_XDisplay  = data.m_XDisplay;
 	m_ExtEnvStr = data.m_ExtEnvStr;
 	memcpy(m_OptTab, data.m_OptTab, sizeof(m_OptTab));
+	m_HostKeyFile = data.m_HostKeyFile;
 	return *this;
 }
 
