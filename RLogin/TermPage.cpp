@@ -100,6 +100,7 @@ static const struct _OptListTab {
 	{	TO_RLTEKINWND,	_T("Tekをコンソールで表示"),		_T("Tekコンソールを無効")			},
 	{	TO_RLUNINOM,	_T("UTF-8ノーマライズを禁止"),		_T("UTF-8ノーマライズを行う")		},
 	{	TO_RLUNIAHF,	_T("Unicde半角の調整をしない"),		_T("Unicde半角の調整をする")		},
+//	{	TO_RLMODKEY,	_T("modifyKeysを優先する"),			_T("ショートカットを優先")			},
 
 	{	0,				NULL,								NULL								}
 };

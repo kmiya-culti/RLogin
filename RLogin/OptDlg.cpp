@@ -67,6 +67,7 @@ COptDlg::COptDlg(LPCTSTR pszCaption, CWnd* pParentWnd, UINT iSelectPage)
 	AddPage(&m_CharSetPage,	NULL);
 	AddPage(&m_ColorPage,	NULL);
 	AddPage(&m_KeyPage,		NULL);
+	AddPage(&m_ModKeyPage,	&m_KeyPage);
 }
 	
 /////////////////////////////////////////////////////////////////////////////

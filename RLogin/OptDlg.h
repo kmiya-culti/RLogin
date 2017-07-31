@@ -27,6 +27,7 @@ public:
 #include "HisPage.h"
 #include "ClipPage.h"
 #include "MousePage.h"
+#include "ModKeyPage.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // COptDlg
@@ -62,6 +63,7 @@ public:
 	CClipPage m_ClipPage;
 	CMousePage m_MousePage;
 	CScriptPage m_ScriptPage;
+	CModKeyPage m_ModKeyPage;
 
 	CServerEntry *m_pEntry;
 	CTextRam *m_pTextRam;

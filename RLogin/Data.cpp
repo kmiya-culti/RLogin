@@ -2432,6 +2432,31 @@ void CKeyNode::SetCode(LPCTSTR name)
 	} else
 		m_Code = _tstoi(name);
 }
+void CKeyNode::SetKeyMap(LPCTSTR str, int type, char map[256])
+{
+	int n, i;
+	int fCode, eCode;
+	CString tmp;
+	CStringArrayExt list;
+
+	list.GetString(str, _T(','));
+
+	for ( n = 0 ; n < list.GetSize() ; n++ ) {
+		if ( (i = list[n].Find(_T('-'))) >= 0 ) {
+			m_Code = (-1); SetCode(list[n].Left(i)); fCode = m_Code;
+			m_Code = (-1); SetCode(list[n].Mid(i + 1)); eCode = m_Code;
+			if ( fCode >= 0 ) {
+				while ( fCode <= eCode )
+					map[fCode++] = type;
+			}
+		} else {
+			m_Code = (-1);
+			SetCode(list[n]);
+			if ( m_Code >= 0 && m_Code < 256 )
+				map[m_Code] = type;
+		}
+	}
+}
 LPCTSTR CKeyNode::GetMask()
 {
 	m_Temp = _T("");
@@ -2671,20 +2696,33 @@ static const struct _InitKeyTab {
 		{ VK_RIGHT,		MASK_VT52,				_T("\\033C")		},
 		{ VK_LEFT,		MASK_VT52,				_T("\\033D")		},
 
-		{ VK_PRIOR,		MASK_SHIFT,				_T("$PRIOR")		},
-		{ VK_NEXT,		MASK_SHIFT,				_T("$NEXT")			},
-//		{ VK_PRIOR,		MASK_SHIFT | MASK_APPL,	_T("$PRIOR")		},
-//		{ VK_NEXT,		MASK_SHIFT | MASK_APPL,	_T("$NEXT")			},
-		{ VK_PRIOR,		MASK_CTRL,				_T("$SEARCH_BACK")	},
-		{ VK_NEXT,		MASK_CTRL,				_T("$SEARCH_NEXT")	},
-
-		{ VK_CANCEL,	0,						_T("$BREAK")		},
-//		{ VK_CANCEL,	MASK_CTRL,				_T("$BREAK")		},
-
 		{ VK_OEM_7,		MASK_CTRL,				_T("\\036")			},	// $DE(^)
 		{ VK_OEM_2,		MASK_CTRL,				_T("\\037")			},	// $BF(/)
 		{ VK_OEM_3,		MASK_CTRL,				_T("\\000")			},	// $C0(@)
 		{ VK_SPACE,		MASK_CTRL,				_T("\\000")			},	// SPACE
+
+		{ VK_SEPARATOR,	MASK_APPL,				_T("\\033OX")		},	// = (equal)    | =	  | SS3 X
+		{ VK_MULTIPLY,	MASK_APPL,				_T("\\033Oj")		},	// * (multiply) | *	  | SS3 j
+		{ VK_ADD,		MASK_APPL,				_T("\\033On")		},	// + (add)      | +	  | SS3 k
+		{ VK_SUBTRACT,	MASK_APPL,				_T("\\033Om")		},	// - (minus)    | -	  | SS3 m
+		{ VK_DECIMAL,	MASK_APPL,				_T("\\033On")		},	// . (period)   | .	  | SS3 n
+		{ VK_DIVIDE,	MASK_APPL,				_T("\\033Oo")		},	// / (divide)   | /	  | SS3 o
+		{ VK_NUMPAD0,	MASK_APPL,				_T("\\033Op")		},	// 0	        | 0	  | SS3 p
+		{ VK_NUMPAD1,	MASK_APPL,				_T("\\033Oq")		},	// 1	        | 1	  | SS3 q
+		{ VK_NUMPAD2,	MASK_APPL,				_T("\\033Or")		},	// 2	        | 2	  | SS3 r
+		{ VK_NUMPAD3,	MASK_APPL,				_T("\\033Os")		},	// 3	        | 3	  | SS3 s
+		{ VK_NUMPAD4,	MASK_APPL,				_T("\\033Ot")		},	// 4	        | 4	  | SS3 t
+		{ VK_NUMPAD5,	MASK_APPL,				_T("\\033Ou")		},	// 5	        | 5	  | SS3 u
+		{ VK_NUMPAD6,	MASK_APPL,				_T("\\033Ov")		},	// 6	        | 6	  | SS3 v
+		{ VK_NUMPAD7,	MASK_APPL,				_T("\\033Ow")		},	// 7	        | 7	  | SS3 w
+		{ VK_NUMPAD8,	MASK_APPL,				_T("\\033Ox")		},	// 8	        | 8	  | SS3 x
+		{ VK_NUMPAD9,	MASK_APPL,				_T("\\033Oy")		},	// 9	        | 9	  | SS3 y
+
+		{ VK_PRIOR,		MASK_SHIFT,				_T("$PRIOR")		},
+		{ VK_NEXT,		MASK_SHIFT,				_T("$NEXT")			},
+		{ VK_PRIOR,		MASK_CTRL,				_T("$SEARCH_BACK")	},
+		{ VK_NEXT,		MASK_CTRL,				_T("$SEARCH_NEXT")	},
+		{ VK_CANCEL,	0,						_T("$BREAK")		},
 
 		{ VK_UP,		MASK_CTRL,				_T("$PANE_ROTATION")},
 		{ VK_DOWN,		MASK_CTRL,				_T("$SPLIT_HEIGHT")	},
@@ -2907,7 +2945,7 @@ void CKeyNodeTab::SetArray(CStringArrayExt &stra)
 
 	tmp.RemoveAll();
 	tmp.AddVal(-1);
-	tmp.AddVal(2);			// KeyCode Bug Fix
+	tmp.AddVal(3);			// KeyCode Bug Fix
 	stra.AddArray(tmp);
 }
 void CKeyNodeTab::GetArray(CStringArrayExt &stra)
@@ -3185,6 +3223,16 @@ void CKeyNodeTab::BugFix(int fix)
 				if ( n >= m_Node.GetSize() )
 					Add(InitKeyTab[i].code, InitKeyTab[i].mask, InitKeyTab[i].maps);
 			}
+		}
+	}
+
+	if ( fix < 3 ) {
+		for ( i = 0 ; InitKeyTab[i].maps != NULL ; i++ ) {
+			if ( InitKeyTab[i].code < VK_NUMPAD0 || InitKeyTab[i].code > VK_DIVIDE )
+				continue;
+			if ( Find(InitKeyTab[i].code, InitKeyTab[i].mask, &n) )
+				continue;
+			Add(InitKeyTab[i].code, InitKeyTab[i].mask, InitKeyTab[i].maps);
 		}
 	}
 }
@@ -4549,7 +4597,7 @@ LPCTSTR CStringIndex::GetPackStr(LPCTSTR str)
 			m_bEmpty  = FALSE;
 			break;
 
-		} else if ( *str >= _T('0') && *str <= _T('9') ) {
+		} else if ( (*str >= _T('0') && *str <= _T('9')) || *str == _T('-') ) {
 			if ( *str == _T('0') ) {
 				str++;
 				if ( *str == _T('x') || *str == _T('X') || *str == _T('u') || *str == _T('U') ) {
@@ -4568,12 +4616,17 @@ LPCTSTR CStringIndex::GetPackStr(LPCTSTR str)
 					for ( c = 0 ; *str >= _T('0') && *str <= _T('7') ; str++ )
 							c = c * 8 + (*str - _T('0'));
 				}
+				m_Value = c;
+			} else if ( *str == _T('-') ) {
+				str++;
+				for ( m_Value = 0 ; *str >= _T('0') && *str <= _T('9') ; str++ )
+					m_Value = m_Value * 10 + (*str - _T('0'));
+				m_Value = 0 - m_Value;
 			} else {
-				for ( c = 0 ; *str >= _T('0') && *str <= _T('9') ; str++ )
-					c = c * 10 + (*str - _T('0'));
+				for ( m_Value = 0 ; *str >= _T('0') && *str <= _T('9') ; str++ )
+					m_Value = m_Value * 10 + (*str - _T('0'));
 			}
 
-			m_Value   = c;
 			m_bString = FALSE;
 			m_bEmpty  = FALSE;
 			break;

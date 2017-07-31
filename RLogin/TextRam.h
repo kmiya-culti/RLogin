@@ -154,6 +154,7 @@
 #define	TO_RLOSCPAM		447			// OSC/DCS...キャンセル時にバッファを書き戻す
 #define	TO_RLUNINOM		448			// Unicode ノーマライズを禁止する
 #define	TO_RLUNIAHF		449			// Unicodeの半角時にサイズを調整する
+#define	TO_RLMODKEY		450			// modfiyKeysを優先する
 
 // RLogin SockOpt		1000-1511(0-511)
 #define	TO_RLTENAT		1406		// 自動ユーザー認証を行わない
@@ -233,6 +234,7 @@
 #define	RESET_CHAR		0x0100
 #define	RESET_OPTION	0x0200
 #define	RESET_CLS		0x0400
+#define	RESET_ALL		0xFFFF
 
 #define	RC_DCS			0
 #define	RC_SOS			1
@@ -275,6 +277,14 @@
 #define	XTOP_GETHEX		0x0002			//    Ps = 1  -> Query window/icon labels using hexadecimal.
 #define	XTOP_SETUTF		0x0004			//    Ps = 2  -> Set window/icon labels using UTF-8.
 #define	XTOP_GETUTF		0x0008			//    Ps = 3  -> Query window/icon labels using UTF-8.
+
+#define	MODKEY_ALLOW	0				//    how to handle legacy/vt220 keyboard
+#define	MODKEY_CURSOR	1				//    how to handle cursor-key modifiers
+#define	MODKEY_FUNC		2				//    how to handle function-key modifiers
+#define	MODKEY_KEYPAD	3				//    how to handle keypad key-modifiers
+#define	MODKEY_OTHER	4				//    how to handle other key-modifiers
+#define	MODKEY_STRING	5				//    how to handle string() modifiers
+#define	MODKEY_MAX		6
 
 #define issjis1(c)		(((unsigned char)(c) >= 0x81 && \
 						  (unsigned char)(c) <= 0x9F) || \
@@ -567,6 +577,7 @@ public:	// Options
 	CBuffer m_FuncKey[FKEY_MAX];
 	int m_ClipFlag;
 	CStringArrayExt m_ShellExec;
+	int m_DefModKey[MODKEY_MAX];
 
 	void Init();
 	void SetIndex(int mode, CStringIndex &index);
@@ -601,6 +612,9 @@ public:
 	COLORREF m_ColTab[256];
 	DWORD m_AnsiOpt[16];
 	DWORD m_OptTab[16];
+	int m_ModKey[MODKEY_MAX];
+	CString m_ModKeyList[MODKEY_MAX];
+	char m_ModKeyTab[256];
 
 	int m_ColsMax;
 	int m_LineUpdate;
@@ -752,6 +766,8 @@ public:
 	void ReversOption(int opt);
 	int IsOptValue(int opt, int len);
 	void SetOptValue(int opt, int len, int value);
+	inline void InitDefAnsiOpt() { memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_DefAnsiOpt)); }
+	void InitModKeyTab();
 
 	inline int GetCalcPos(int x, int y) { return (m_ColsMax * (y + m_HisPos + m_HisMax) + x); }
 	inline void SetCalcPos(int pos, int *x, int *y) { *x = pos % m_ColsMax; *y = (pos / m_ColsMax - m_HisPos - m_HisMax); }
@@ -777,6 +793,7 @@ public:
 
 	// Low Level
 	void RESET(int mode = RESET_CURSOR | RESET_TABS | RESET_BANK | RESET_ATTR | RESET_COLOR | RESET_TEK | RESET_SAVE | RESET_MOUSE | RESET_CHAR);
+
 	CVram *GETVRAM(int cols, int lines);
 	void UNGETSTR(LPCTSTR str, ...);
 	void BEEP();
@@ -1116,8 +1133,8 @@ public:
 	void fc_TTIMEST(int ch);
 	void fc_TTIMERS(int ch);
 	void fc_XTRMTT(int ch);
-	void fc_XTMDFK(int ch);
-	void fc_XTMDFK0(int ch);
+	void fc_XTMDKEY(int ch);
+	void fc_XTMDKYD(int ch);
 	void fc_XTHDPT(int ch);
 	void fc_XTSMTT(int ch);
 

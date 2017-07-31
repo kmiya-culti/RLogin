@@ -326,6 +326,8 @@ void CServerSelect::OnNewentry()
 	if ( dlg.DoModal() != IDOK )
 		return;
 
+	TextRam.InitDefAnsiOpt();
+
 	Entry.m_ProBuffer.Clear();
 	TextRam.Serialize(TRUE,  Entry.m_ProBuffer);
 	KeyTab.Serialize(TRUE,   Entry.m_ProBuffer);
@@ -364,6 +366,8 @@ void CServerSelect::OnEditentry()
 
 	if ( dlg.DoModal() != IDOK )
 		return;
+
+	TextRam.InitDefAnsiOpt();
 
 	Entry.m_ProBuffer.Clear();
 	TextRam.Serialize(TRUE,  Entry.m_ProBuffer);

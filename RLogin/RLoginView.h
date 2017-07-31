@@ -91,6 +91,7 @@ public:
 	void SendBroadCast(CBuffer &buf);
 	void SendBuffer(CBuffer &buf, BOOL macflag = FALSE);
 	void SetGhostWnd(BOOL sw);
+	BOOL ModifyKeys(UINT nChar, int nStat);
 
 	inline int CalcGrapX(int x) { return (m_Width  * x / m_Cols); }
 	inline int CalcGrapY(int y) { return (m_Height * y / m_Lines); }

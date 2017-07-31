@@ -915,6 +915,11 @@ CTextRam::CTextRam()
 	m_Tek_Top = m_Tek_Free = NULL;
 	m_pTekWnd = NULL;
 
+	for ( int n = 0 ; n < MODKEY_MAX ; n++ )
+		m_DefModKey[n] = (-1);
+	memcpy(m_ModKey, m_DefModKey, sizeof(m_ModKey));
+	memset(m_ModKeyTab, 0xFF, sizeof(m_ModKeyTab));
+
 	fc_Init(EUC_SET);
 
 	m_pSection = _T("TextRam");
@@ -1481,6 +1486,14 @@ static const LPCTSTR DropCmdTab[] = {
 	//	ZModem				SCP					Kermit
 		_T("rz\\r"),		_T("scp -t %s"),	_T("kermit -i -r"),		_T(""),
 	};
+static const LPCTSTR InitKeyList[] = {
+	_T(""),
+	_T("UP,DOWN,RIGHT,LEFT,PRIOR,NEXT,HOME,END,INSERT,DELETE"),
+	_T("F1-F12"),
+	_T("PAD0-PAD9,PADMUL,PADADD,PADSEP,PADSUB,PADDEC,PADDIV"),
+	_T("ESCAPE,RETURN,BACK,TAB,SPACE"),
+	_T("0-9,A-Z"),
+};
 
 void CTextRam::Init()
 {
@@ -1543,6 +1556,13 @@ void CTextRam::Init()
 	m_ClipFlag = 0;
 	memset(m_MacroExecFlag, 0, sizeof(m_MacroExecFlag));
 	m_ShellExec.GetString(_T("http://|https://|ftp://|mailto://"), _T('|'));
+
+	for ( int n = 0 ; n < MODKEY_MAX ; n++ ) {
+		m_DefModKey[n] = (-1);
+		m_ModKeyList[n] = InitKeyList[n];
+	}
+	memcpy(m_ModKey, m_DefModKey, sizeof(m_ModKey));
+	InitModKeyTab();
 
 	m_ProcTab.Init();
 //	m_FontTab.Init();
@@ -1614,6 +1634,11 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 
 		for ( n = 0 ; n < m_ShellExec.GetSize() ; n++ )
 			index[_T("ShellExec")].Add(m_ShellExec[n]);
+
+		for ( n = 0 ; n < MODKEY_MAX ; n++ ) {
+			index[_T("ModKey")].Add(m_DefModKey[n]);
+			index[_T("ModKeyList")].Add(m_ModKeyList[n]);
+		}
 
 		for ( n = 0 ; n < (32 * 8) ; n++ ) {
 			if ( IS_ENABLE(m_MetaKeys, n) )
@@ -1743,6 +1768,18 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 				m_ShellExec.Add(index[n][i]);
 		}
 
+		if ( (n = index.Find(_T("ModKey"))) >= 0 ) {
+			for ( i = 0 ; i < MODKEY_MAX && i < index[n].GetSize() ; i++ )
+				m_DefModKey[i] = index[n][i];
+			memcpy(m_ModKey, m_DefModKey, sizeof(m_ModKey));
+		}
+
+		if ( (n = index.Find(_T("ModKeyList"))) >= 0 ) {
+			for ( i = 0 ; i < MODKEY_MAX && i < index[n].GetSize() ; i++ )
+				m_ModKeyList[i] = index[n][i];
+			InitModKeyTab();
+		}
+
 		m_ProcTab.SetIndex(mode, index[_T("ProcTable")]);
 
 		if ( (n = index.Find(_T("MetaKeys"))) >= 0 ) {
@@ -1806,7 +1843,7 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 	stra.AddVal(m_BankGR);
 	stra.AddBin(&m_DefAtt, sizeof(VRAM));
 	stra.AddBin(m_DefColTab,  sizeof(m_DefColTab));
-	stra.AddBin(m_AnsiOpt, sizeof(m_AnsiOpt));
+	stra.AddBin(m_DefAnsiOpt, sizeof(m_DefAnsiOpt));
 	stra.AddBin(m_DefBankTab, sizeof(m_DefBankTab));
 	stra.Add(m_SendCharSet[0]);
 	stra.Add(m_SendCharSet[1]);
@@ -1844,6 +1881,13 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 	stra.AddVal(m_RecvCrLf);
 	stra.AddVal(m_SendCrLf);
 	stra.AddBin(m_OptTab, sizeof(m_OptTab));
+	stra.AddBin(m_DefModKey, sizeof(m_DefModKey));
+
+	stra.Add(m_ModKeyList[1]);
+	stra.Add(m_ModKeyList[2]);
+	stra.Add(m_ModKeyList[3]);
+	stra.Add(m_ModKeyList[4]);
+	stra.Add(m_ModKeyList[5]);
 }
 void CTextRam::GetArray(CStringArrayExt &stra)
 {
@@ -1967,6 +2011,22 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 
 	if ( stra.GetSize() > 45 )
 		stra.GetBin(45, m_OptTab, sizeof(m_OptTab));
+
+	if ( stra.GetSize() > 46 )
+		stra.GetBin(46, m_DefModKey, sizeof(m_DefModKey));
+	memcpy(m_ModKey, m_DefModKey, sizeof(m_ModKey));
+
+	if ( stra.GetSize() > 47 )
+		m_ModKeyList[1] = stra.GetAt(47);
+	if ( stra.GetSize() > 48 )
+		m_ModKeyList[2] = stra.GetAt(48);
+	if ( stra.GetSize() > 49 )
+		m_ModKeyList[3] = stra.GetAt(49);
+	if ( stra.GetSize() > 50 )
+		m_ModKeyList[4] = stra.GetAt(50);
+	if ( stra.GetSize() > 51 )
+		m_ModKeyList[5] = stra.GetAt(51);
+	InitModKeyTab();
 
 	RESET();
 }
@@ -2214,10 +2274,10 @@ const CTextRam & CTextRam::operator = (CTextRam &data)
 	memcpy(m_DefColTab,  data.m_DefColTab,  sizeof(m_DefColTab));
 	memcpy(m_ColTab,  data.m_ColTab,  sizeof(m_ColTab));
 	memcpy(m_DefAnsiOpt, data.m_DefAnsiOpt, sizeof(m_DefAnsiOpt));
-	memcpy(m_AnsiOpt, data.m_AnsiOpt, sizeof(m_AnsiOpt));
-	memcpy(m_DefBankTab, data.m_DefBankTab, sizeof(m_DefBankTab));
+	memcpy(m_AnsiOpt, m_DefAnsiOpt, sizeof(m_AnsiOpt));
 	memcpy(m_OptTab, data.m_OptTab, sizeof(m_OptTab));
-	memcpy(m_BankTab, data.m_BankTab, sizeof(m_BankTab));
+	memcpy(m_DefBankTab, data.m_DefBankTab, sizeof(m_DefBankTab));
+	memcpy(m_BankTab, m_BankTab, sizeof(m_BankTab));
 	m_SendCharSet[0] = data.m_SendCharSet[0];
 	m_SendCharSet[1] = data.m_SendCharSet[1];
 	m_SendCharSet[2] = data.m_SendCharSet[2];
@@ -2240,6 +2300,11 @@ const CTextRam & CTextRam::operator = (CTextRam &data)
 	m_UnitId = data.m_UnitId;
 	m_ClipFlag  = data.m_ClipFlag;
 	m_ShellExec = data.m_ShellExec;
+	memcpy(m_DefModKey, data.m_DefModKey, sizeof(m_DefModKey));
+	memcpy(m_ModKey, m_DefModKey, sizeof(m_ModKey));
+	for ( int n = 0 ; n < MODKEY_MAX ; n++ )
+		m_ModKeyList[n] = data.m_ModKeyList[n];
+	InitModKeyTab();
 
 	return *this;
 }
@@ -3427,6 +3492,17 @@ void CTextRam::SetOptValue(int opt, int len, int value)
 		value >>= 1;
 	}
 }
+void CTextRam::InitModKeyTab()
+{
+	int n;
+	CKeyNode node;
+
+	for ( n = 0 ; n < 256 ; n++ )
+		m_ModKeyTab[n] = (-1);
+
+	for ( n = 1 ; n < MODKEY_MAX ; n++ )
+		node.SetKeyMap(m_ModKeyList[n], n, m_ModKeyTab);
+}
 
 void CTextRam::OnClose()
 {
@@ -3873,6 +3949,8 @@ void CTextRam::RESET(int mode)
 		m_TitleStack.RemoveAll();
 		if ( m_pDocument != NULL )
 			m_pDocument->SetStatus(NULL);
+		memcpy(m_ModKey, m_DefModKey, sizeof(m_ModKey));
+		InitModKeyTab();
 	}
 
 	if ( mode & RESET_CLS )

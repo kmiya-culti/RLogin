@@ -77,6 +77,8 @@ void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLas
 			m_InUse = TRUE;
 		else if ( _tcsicmp(_T("inpane"), pszParam) == 0 )
 			m_InPane = TRUE;
+		else if ( _tcsicmp(_T("nothing"), pszParam) == 0 )
+			m_nShellCommand = FileNothing;
 		else
 			break;
 		ParseLast(bLast);

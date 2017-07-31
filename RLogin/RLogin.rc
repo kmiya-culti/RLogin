@@ -437,10 +437,10 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.13.9 (2013/02/8)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.14.0 (2013/02/15)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2013 Culti",IDC_STATIC,47,15,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,148,50,14,WS_GROUP
-    LTEXT           "OpenSSL 1.0.1d Feb 5th, 2013",IDC_STATIC,47,29,176,8
+    LTEXT           "OpenSSL 1.0.1e Feb 11th, 2013",IDC_STATIC,47,29,176,8
     LTEXT           "Copyright (c) 1998-2013 The OpenSSL Project",IDC_STATIC,47,39,176,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,47,49,176,8
     LTEXT           "All rights reserved.",IDC_STATIC,47,59,176,8
@@ -1365,6 +1365,30 @@ BEGIN
     LTEXT           "IPv6/IPv4の場合、DNSの応答でIPv6アドレスが返されればIPv6で接続しIPv4だけならIPv4で接続します.",IDC_STATIC,26,221,195,16
 END
 
+IDD_MODKEYPAGE DIALOGEX 0, 0, 251, 270
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "キーコード"
+FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
+BEGIN
+    EDITTEXT        IDC_KEYCODE1,15,50,185,14,ES_AUTOHSCROLL
+    COMBOBOX        IDC_MODCODE1,205,50,30,70,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_KEYCODE2,15,86,185,14,ES_AUTOHSCROLL
+    COMBOBOX        IDC_MODCODE2,205,86,30,70,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_KEYCODE3,15,122,185,14,ES_AUTOHSCROLL
+    COMBOBOX        IDC_MODCODE3,205,122,30,70,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_KEYCODE4,15,158,185,14,ES_AUTOHSCROLL
+    COMBOBOX        IDC_MODCODE4,205,158,30,70,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_KEYCODE5,15,194,185,14,ES_AUTOHSCROLL
+    COMBOBOX        IDC_MODCODE5,205,194,30,70,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "1 modifyCursorKeys",IDC_STATIC,15,37,60,8
+    LTEXT           "2 modifyFunctionKeys",IDC_STATIC,15,73,66,8
+    LTEXT           "3 modifyKeypadKeys",IDC_STATIC,15,109,62,8
+    LTEXT           "4 modifyOtherKeys",IDC_STATIC,15,145,56,8
+    LTEXT           "5 modifyStringKeys",IDC_STATIC,15,181,58,8
+    LTEXT           "Shift/Alt/Ctrl＋各種キーの変更するキーコードの形式を設定します\n０以上でキーコードのパラメータにShift/Alt/Ctrlの状態を追加します",IDC_STATIC,16,7,217,23
+    CONTROL         "modifyKeysがメニューのショートカットキー設定より優先する",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,221,217,10
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1372,8 +1396,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,13,9,0
- PRODUCTVERSION 2,13,9,0
+ FILEVERSION 2,14,0,0
+ PRODUCTVERSION 2,14,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1390,12 +1414,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.13.9.0"
+            VALUE "FileVersion", "2.14.0.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2013 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.13.9.0"
+            VALUE "ProductVersion", "2.14.0.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -1750,6 +1774,14 @@ BEGIN
     END
 
     IDD_SOCKOPTPAGE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 244
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 263
+    END
+
+    IDD_MODKEYPAGE, DIALOG
     BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 244
@@ -2423,6 +2455,61 @@ BEGIN
 0x4353, 0x0050, 
     IDC_COMBO1, 0x403, 7, 0
 0x654b, 0x6d72, 0x7469, "\000" 
+    0
+END
+
+IDD_MODKEYPAGE DLGINIT
+BEGIN
+    IDC_MODCODE1, 0x403, 3, 0
+0x312d, "\000" 
+    IDC_MODCODE1, 0x403, 2, 0
+0x0030, 
+    IDC_MODCODE1, 0x403, 2, 0
+0x0031, 
+    IDC_MODCODE1, 0x403, 2, 0
+0x0032, 
+    IDC_MODCODE1, 0x403, 2, 0
+0x0033, 
+    IDC_MODCODE2, 0x403, 3, 0
+0x312d, "\000" 
+    IDC_MODCODE2, 0x403, 2, 0
+0x0030, 
+    IDC_MODCODE2, 0x403, 2, 0
+0x0031, 
+    IDC_MODCODE2, 0x403, 2, 0
+0x0032, 
+    IDC_MODCODE2, 0x403, 2, 0
+0x0033, 
+    IDC_MODCODE3, 0x403, 3, 0
+0x312d, "\000" 
+    IDC_MODCODE3, 0x403, 2, 0
+0x0030, 
+    IDC_MODCODE3, 0x403, 2, 0
+0x0031, 
+    IDC_MODCODE3, 0x403, 2, 0
+0x0032, 
+    IDC_MODCODE3, 0x403, 2, 0
+0x0033, 
+    IDC_MODCODE4, 0x403, 3, 0
+0x312d, "\000" 
+    IDC_MODCODE4, 0x403, 2, 0
+0x0030, 
+    IDC_MODCODE4, 0x403, 2, 0
+0x0031, 
+    IDC_MODCODE4, 0x403, 2, 0
+0x0032, 
+    IDC_MODCODE4, 0x403, 2, 0
+0x0033, 
+    IDC_MODCODE5, 0x403, 3, 0
+0x312d, "\000" 
+    IDC_MODCODE5, 0x403, 2, 0
+0x0030, 
+    IDC_MODCODE5, 0x403, 2, 0
+0x0031, 
+    IDC_MODCODE5, 0x403, 2, 0
+0x0032, 
+    IDC_MODCODE5, 0x403, 2, 0
+0x0033, 
     0
 END
 

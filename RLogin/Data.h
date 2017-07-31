@@ -490,6 +490,7 @@ public:
 	CBuffer m_Maps;
 	CString m_Temp;
 
+	void SetKeyMap(LPCTSTR str, int type, char map[256]);
 	LPCTSTR GetMaps();
 	void SetMaps(LPCTSTR str);
 	LPCTSTR GetCode();

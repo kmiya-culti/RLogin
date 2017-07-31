@@ -467,8 +467,8 @@ static const CTextRam::CSIEXTTAB fc_CsiExtTab[] = {
 	{ ('=' << 16)				| 'S',		&CTextRam::fc_C25LCT	},	// C25LCT cons25 Set local cursor type
 	{ ('=' << 16)				| 'c',		&CTextRam::fc_DA3		},	// DA3 Tertiary Device Attributes
 	{ ('>' << 16)				| 'T',		&CTextRam::fc_XTRMTT	},	// xterm CASE_RM_TITLE
-//	{ ('>' << 16)				| 'm',		&CTextRam::fc_XTMDFK	},	// xterm CASE_SET_MOD_FKEYS
-//	{ ('>' << 16)				| 'n',		&CTextRam::fc_XTMDFK0	},	// xterm CASE_SET_MOD_FKEYS0
+	{ ('>' << 16)				| 'm',		&CTextRam::fc_XTMDKEY	},	// xterm CASE_SET_MOD_FKEYS
+	{ ('>' << 16)				| 'n',		&CTextRam::fc_XTMDKYD	},	// xterm CASE_SET_MOD_FKEYS0
 //	{ ('>' << 16)				| 'p',		&CTextRam::fc_XTHDPT	},	// xterm CASE_HIDE_POINTER
 	{ ('>' << 16)				| 'c',		&CTextRam::fc_DA2		},	// DA2 Secondary Device Attributes
 	{ ('>' << 16)				| 't',		&CTextRam::fc_XTSMTT	},	// xterm CASE_SM_TITLE
@@ -598,7 +598,7 @@ static CTextRam::ESCNAMEPROC fc_EscNameTab[] = {
 	{	NULL,		NULL,					NULL,	NULL	},
 };
 
-static int	fc_CsiNameTabMax = 122;
+static int	fc_CsiNameTabMax = 124;
 static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	_T("C25LCT"),	&CTextRam::fc_C25LCT,	NULL,	NULL 	},
 	{	_T("CBT"),		&CTextRam::fc_CBT,		NULL,	NULL	},
@@ -710,12 +710,14 @@ static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	_T("VPA"),		&CTextRam::fc_VPA,		NULL,	NULL	},
 	{	_T("VPB"),		&CTextRam::fc_VPB,		NULL,	NULL	},
 	{	_T("VPR"),		&CTextRam::fc_VPR,		NULL,	NULL	},
+	{	_T("XTMDKEY"),	&CTextRam::fc_XTMDKEY,	NULL,	NULL	},
+	{	_T("XTMDKYD"),	&CTextRam::fc_XTMDKYD,	NULL,	NULL	},
 	{	_T("XTREST"),	&CTextRam::fc_XTREST,	NULL,	NULL	},
 	{	_T("XTRMTT"),	&CTextRam::fc_XTRMTT,	NULL,	NULL	},
 	{	_T("XTSAVE"),	&CTextRam::fc_XTSAVE,	NULL,	NULL	},
 	{	_T("XTSMTT"),	&CTextRam::fc_XTSMTT,	NULL,	NULL	},
 	{	_T("XTWOP"),	&CTextRam::fc_XTWOP,	NULL,	NULL	},
-	{	NULL,		NULL,					NULL,	NULL	},
+	{	NULL,			NULL,					NULL,	NULL	},
 };
 
 static int	fc_DcsNameTabMax = 11;
@@ -731,7 +733,7 @@ static CTextRam::ESCNAMEPROC fc_DcsNameTab[] = {
 	{	_T("DECUDK"),	&CTextRam::fc_DECUDK,	NULL,	NULL	},
 	{	_T("NOP"),		&CTextRam::fc_POP,		NULL,	NULL	},
 	{	_T("XTRQCAP"),	&CTextRam::fc_XTRQCAP,	NULL,	NULL	},
-	{	NULL,		NULL,					NULL,	NULL	},
+	{	NULL,			NULL,					NULL,	NULL	},
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -6239,7 +6241,7 @@ void CTextRam::fc_XTRMTT(int ch)
 	}
 	fc_POP(ch);
 }
-void CTextRam::fc_XTMDFK(int ch)
+void CTextRam::fc_XTMDKEY(int ch)
 {
 	// CSI > Ps; Ps m
 	//	  Set or reset resource-values used by xterm to decide whether
@@ -6248,16 +6250,27 @@ void CTextRam::fc_XTMDFK(int ch)
 	//	  tifies the resource to set/reset.  The second parameter is the
 	//	  value to assign to the resource.  If the second parameter is
 	//	  omitted, the resource is reset to its initial value.
-	//	    Ps = 0  -> modifyKeyboard.
-	//	    Ps = 1  -> modifyCursorKeys.
-	//	    Ps = 2  -> modifyFunctionKeys.
-	//	    Ps = 4  -> modifyOtherKeys.
+	//	    Ps = 0  -> modifyKeyboard.			default 0
+	//	    Ps = 1  -> modifyCursorKeys.		default 2
+	//	    Ps = 2  -> modifyFunctionKeys.		default 2
+	//	    Ps = 4  -> modifyOtherKeys.			default 0
+	//	    Ps = 5  -> modifyStringKeys.		default 0
 	//	  If no parameters are given, all resources are reset to their
 	//	  initial values.
 
+	if ( m_AnsiPara.GetSize() > 0 && m_AnsiPara[0] != PARA_NOT ) {
+		int n = m_AnsiPara[0];
+		int f = GetAnsiPara(1, m_DefModKey[n], 0, 5);
+		if ( n < MODKEY_MAX )
+			m_ModKey[n] = f;
+	} else {
+		for ( int n = 1 ; n < MODKEY_MAX ; n++ )
+			m_ModKey[n] = m_DefModKey[n];
+	}
+
 	fc_POP(ch);
 }
-void CTextRam::fc_XTMDFK0(int ch)
+void CTextRam::fc_XTMDKYD(int ch)
 {
 	//CSI > Ps n
 	//	  Disable modifiers which may be enabled via the CSI > Ps; Ps m
@@ -6272,6 +6285,12 @@ void CTextRam::fc_XTMDFK0(int ch)
 	//	  When modifyFunctionKeys is disabled, xterm uses the modifier
 	//	  keys to make an extended sequence of functions rather than
 	//	  adding a parameter to each function key to denote the modifiers.
+
+	if ( m_AnsiPara.GetSize() > 0 && m_AnsiPara[0] != PARA_NOT ) {
+		if ( m_AnsiPara[0] < MODKEY_MAX )
+			m_ModKey[m_AnsiPara[0]] = (-1);
+	} else
+		m_ModKey[MODKEY_FUNC] = (-1);
 
 	fc_POP(ch);
 }

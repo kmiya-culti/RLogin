@@ -849,6 +849,75 @@ void CRLoginView::OnChar(UINT nChar, UINT nRepCnt, UINT nFlags)
 	tmp.PutWord(nChar);
 	SendBuffer(tmp);
 }
+BOOL CRLoginView::ModifyKeys(UINT nChar, int nStat)
+{
+	int n;
+	int num, mod, msk = 0;
+	WCHAR esc, end, *p;
+	CStringW pam, fmt;
+	CBuffer tmp;
+	CRLoginDoc *pDoc = GetDocument();
+
+	if ( nChar > 255 || (num = pDoc->m_TextRam.m_ModKeyTab[nChar]) < 0 )
+		return FALSE;
+
+	if ( (mod = pDoc->m_TextRam.m_ModKey[num]) < 0 )
+		return FALSE;
+
+	if ( !pDoc->m_TextRam.IsOptEnable(TO_RLMODKEY) && pDoc->m_KeyTab.FindMaps(nChar, nStat, &tmp) && (n = CKeyNodeTab::GetCmdsKey((LPCWSTR)tmp)) > 0 ) {
+		AfxGetMainWnd()->PostMessage(WM_COMMAND, (WPARAM)n);
+		return TRUE;
+	}
+
+	if ( (nStat & MASK_SHIFT) != 0 ) msk |= 001;
+	if ( (nStat & MASK_ALT)   != 0 ) msk |= 002;
+	if ( (nStat & MASK_CTRL)  != 0 ) msk |= 004;
+
+	if ( !pDoc->m_KeyTab.FindMaps(nChar, (nStat & ~(MASK_SHIFT | MASK_CTRL | MASK_ALT)), &tmp) )
+		goto NOTDEF;
+
+	n = tmp.GetSize() / sizeof(WCHAR);
+	p = (WCHAR *)(tmp.GetPtr());
+
+	// CSI or SS3 ?
+	if ( !(n > 2 && p[0] == L'\033' && (p[1] == L'[' || p[1] == L'O')) )
+		goto NOTDEF;
+	esc = p[1];
+
+	for ( p += 2, n -= 2 ; n > 0 && *p < L'@' ; p++, n-- )
+		pam += *p;
+	if ( n <= 0 )
+		goto NOTDEF;
+	end = *p;
+
+	if ( mod >= 2 && pam.IsEmpty() )
+		pam = L"1";
+
+	fmt.Format(L"\033%c%s%s%s%d%c",
+		mod >= 1 ? L'[' : esc,
+		mod >= 3 ? L">" : L"",
+		pam,
+		pam.IsEmpty() ? L"" : L";", 
+		msk + 1, end);
+
+	goto SENDFMT;
+
+NOTDEF:
+	if ( num != MODKEY_OTHER && num != MODKEY_STRING )
+		return FALSE;
+
+	if ( (nStat & MASK_APPL) == 0 )
+		fmt.Format(L"\033[%s%d;%du", mod >= 3 ? L">" : L"", nChar, msk + 1);
+	else
+		fmt.Format(L"\033[%s27;%d;%d~", mod >= 3 ? L">" : L"", msk + 1, nChar);
+
+SENDFMT:
+	tmp.Clear();
+	tmp.Apend((LPBYTE)(LPCWSTR)fmt, fmt.GetLength() * sizeof(WCHAR));
+	SendBuffer(tmp);
+
+	return TRUE;
+}
 //void CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 int CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags) 
 {
@@ -920,6 +989,12 @@ int CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 		pDoc->SocketSend(pDoc->m_TextRam.m_FuncKey[nChar - VK_F1].GetPtr(), pDoc->m_TextRam.m_FuncKey[nChar - VK_F1].GetSize());
 		return FALSE;
 	}
+
+	if ( (st & (MASK_SHIFT | MASK_CTRL | MASK_ALT)) != 0 && ModifyKeys(nChar, st) )
+		return FALSE;
+
+	if ( (GetKeyState(VK_NUMLOCK) & 0x01) != 0 && nChar >= VK_NUMPAD0 && nChar <= VK_DIVIDE )
+		return TRUE;
 
 	if ( pDoc->m_KeyTab.FindMaps(nChar, st, &tmp) ) {
 		if ( (n = CKeyNodeTab::GetCmdsKey((LPCWSTR)tmp)) > 0 )

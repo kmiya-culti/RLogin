@@ -68,6 +68,7 @@
 #define IDD_ABORTDLG                    163
 #define IDD_CANCELDLG                   163
 #define IDD_SOCKOPTPAGE                 164
+#define IDD_MODKEYPAGE                  165
 #define IDP_SOCKETS_INIT_FAILED         300
 #define IDS_INDICATOR_STAT              301
 #define IDS_IDKEYFILELOAD               302
@@ -196,10 +197,15 @@
 #define IDM_SCRIPT                      564
 #define IDC_BACKFILE                    1000
 #define IDC_BACKSEL                     1001
+#define IDC_KEYCODE1                    1001
 #define IDC_BANKGL1                     1002
+#define IDC_KEYCODE2                    1002
 #define IDC_BANKGL2                     1003
+#define IDC_KEYCODE3                    1003
 #define IDC_BANKGL3                     1004
+#define IDC_KEYCODE4                    1004
 #define IDC_BANKGL4                     1005
+#define IDC_KEYCODE5                    1005
 #define IDC_BANKGR1                     1006
 #define IDC_BANKGR2                     1007
 #define IDC_BANKGR3                     1008
@@ -309,10 +315,15 @@
 #define IDC_RADIO3                      1099
 #define IDC_RADIO4                      1100
 #define IDC_RADIO5                      1101
+#define IDC_MODCODE1                    1101
 #define IDC_REMOTE_CWD                  1102
+#define IDC_MODCODE2                    1102
 #define IDC_REMOTE_LIST                 1103
+#define IDC_MODCODE3                    1103
 #define IDC_RSA1COPY                    1104
+#define IDC_MODCODE4                    1104
 #define IDC_RSA1MAKE                    1105
+#define IDC_MODCODE5                    1105
 #define IDC_RSA1PUB                     1106
 #define IDC_RSA2COPY                    1107
 #define IDC_RSA2MAKE                    1108
@@ -625,9 +636,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        168
+#define _APS_NEXT_RESOURCE_VALUE        169
 #define _APS_NEXT_COMMAND_VALUE         5063
-#define _APS_NEXT_CONTROL_VALUE         3067
+#define _APS_NEXT_CONTROL_VALUE         3069
 #define _APS_NEXT_SYMED_VALUE           200
 #endif
 #endif
