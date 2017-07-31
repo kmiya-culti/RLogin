@@ -1042,6 +1042,34 @@ void CMainFrame::SetIconData(HICON hIcon, LPCSTR str)
 	Shell_NotifyIcon(NIM_MODIFY, &m_IconData);
 }
 
+BOOL CMainFrame::IsConnectChild(CPaneFrame *pPane)
+{
+	CChildFrame *pWnd;
+	CRLoginDoc *pDoc;
+
+	if ( pPane == NULL )
+		return FALSE;
+
+	if ( IsConnectChild(pPane->m_pLeft) )
+		return TRUE;
+
+	if ( IsConnectChild(pPane->m_pRight) )
+		return TRUE;
+
+	if ( pPane->m_Style != PANEFRAME_WINDOW || pPane->m_hWnd == NULL )
+		return FALSE;
+
+	if ( (pWnd = (CChildFrame *)(CWnd::FromHandlePermanent(pPane->m_hWnd))) == NULL )
+		return FALSE;
+
+	if ( (pDoc = (CRLoginDoc *)(pWnd->GetActiveDocument())) == NULL )
+		return FALSE;
+
+	if ( pDoc->m_pSock != NULL )
+		return TRUE;
+
+	return FALSE;
+}
 void CMainFrame::AddChild(CWnd *pWnd)
 {
 	if ( m_wndTabBar.m_TabCtrl.GetItemCount() >= 1 )
@@ -1600,7 +1628,7 @@ void CMainFrame::OnFileAllLoad()
 {
 	CPaneFrame *pPane;
 
-	if ( MDIGetActive(NULL) != NULL ) {
+	if ( IsConnectChild(m_pTopPane) ) {
 		if ( MessageBox("‚·‚×‚Ä‚ÌÚ‘±‚ğ•Â‚¶‚Ä‚æ‚ë‚µ‚¢‚Å‚µ‚å‚¤‚©H", "Warning", MB_ICONQUESTION | MB_OKCANCEL) != IDOK )
 			return;
 	}

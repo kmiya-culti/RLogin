@@ -36,10 +36,10 @@ static const struct _OptListTab {
 	LPCSTR	name;
 } OptListTab[] = {
 	// ANSI Screen Option	0-99(200-299)
-	{	TO_ANSIKAM,		"Keyboard action mode"				},
+	{	TO_ANSIKAM,		"Keyboard action disabled"			},
 	{	TO_ANSIIRM,		"Insertion replacement mode"		},
 	{	TO_ANSIERM,		"Erasure mode"						},
-	{	TO_ANSISRM,		"Local echo mode"					},
+	{	TO_ANSISRM,		"Local echo disabled"				},
 	{	TO_ANSITSM,		"Tabulation stop mode"				},
 	{	TO_ANSILNM,		"Line feed/New line mode"			},
 

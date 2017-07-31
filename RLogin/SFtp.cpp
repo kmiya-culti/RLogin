@@ -1081,7 +1081,7 @@ void CSFtp::RemoteSetCwd(LPCSTR path)
 	CCmdQue *pQue = new CCmdQue;
 
 	pQue->m_Path = path;
-	pQue->m_Len = 0;
+	pQue->m_Len  = 0;
 
 	RemoteMakePacket(pQue, SSH2_FXP_REALPATH);
 	SendCommand(pQue, &CSFtp::RemoteSetCwdRes, SENDCMD_NOWAIT);
@@ -2254,7 +2254,7 @@ BOOL CSFtp::OnInitDialog()
 	}
 	delete buf;
 
-	CString tmp;
+	CString tmp, work;
 	m_LocalCwdHis.RemoveAll();
 	m_RemoteCwdHis.RemoveAll();
 	for ( n = 1 ; n < 10 ; n++ ) {
@@ -2278,12 +2278,12 @@ BOOL CSFtp::OnInitDialog()
 	m_RemoteSortItem = AfxGetApp()->GetProfileInt("CSFtp", tmp, 0);
 
 	tmp.Format("LoCurDir_%s_%d", m_pSSh->m_HostName, 0);
-	m_LocalCurDir  = ::AfxGetApp()->GetProfileString("CSFtp", tmp, ".");
-	LocalSetCwd(m_LocalCurDir);
+	work  = ::AfxGetApp()->GetProfileString("CSFtp", tmp, ".");
+	LocalSetCwd(work);
 
 	tmp.Format("ReCurDir_%s_%d", m_pSSh->m_HostName, 0);
-	m_RemoteCurDir = ::AfxGetApp()->GetProfileString("CSFtp", tmp, ".");
-	RemoteSetCwd(m_RemoteCurDir);
+	work = ::AfxGetApp()->GetProfileString("CSFtp", tmp, ".");
+	RemoteSetCwd(work);
 	SendWaitQue();
 
 	InitItemOffset();
@@ -2939,7 +2939,7 @@ void CSFtp::OnTimer(UINT_PTR nIDEvent)
 		if ( !_stati64(m_LocalCurDir, &st) && m_LocalCurTime < st.st_mtime && !m_DoExec )
 			LocalSetCwd(m_LocalCurDir);
 	} else {					// Remote
-		if ( m_CmdQue.IsEmpty() && m_WaitQue.IsEmpty() && !m_DoExec )
+		if ( !m_RemoteCurDir.IsEmpty() && m_CmdQue.IsEmpty() && m_WaitQue.IsEmpty() && !m_DoExec )
 			RemoteMtimeCwd(m_RemoteCurDir);
 	}
 	m_UpdateCheckMode ^= 1;

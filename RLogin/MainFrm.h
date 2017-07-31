@@ -159,6 +159,7 @@ public:
 	void SetWakeUpSleep(int sec);
 	void WakeUpSleep();
 
+	BOOL IsConnectChild(CPaneFrame *pPane);
 	void AddChild(CWnd *pWnd);
 	void RemoveChild(CWnd *pWnd);
 	void ActiveChild(CWnd *pWnd);

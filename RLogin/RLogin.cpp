@@ -5,7 +5,12 @@
 #include "RLogin.h"
 
 #ifdef	USE_DWMAPI
-	#include "DWMApi.h"
+#include "DWMApi.h"
+#endif
+
+#ifdef	USE_JUMPLIST
+#include <Shobjidl.h>
+#include <Shlobj.h>
 #endif
 
 #include "MainFrm.h"
@@ -266,6 +271,76 @@ BOOL CRLoginApp::InitInstance()
 #ifdef	USE_DIRECTWRITE
 	if ( SUCCEEDED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &m_pD2DFactory)) )
 		DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(m_pDWriteFactory), reinterpret_cast<IUnknown **>(&m_pDWriteFactory));
+#endif
+
+#ifdef	USE_JUMPLIST
+	ICustomDestinationList *pJumpList = NULL;
+
+	// COM の初期化
+	if ( SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED)) ) {
+		// インスタンスの作成
+		if ( SUCCEEDED(CoCreateInstance(CLSID_DestinationList, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pJumpList))) ) {
+			// カテゴリの追加
+			UINT uMaxSlots;
+			IObjectCollection *pObjCol;
+	        IShellLink *pSheLink;
+			IObjectArray *pObjSlots, *pObjArray;
+
+			if ( SUCCEEDED(pJumpList->BeginList(&uMaxSlots, IID_PPV_ARGS(&pObjSlots))) ) {
+
+				//pJumpList->AppendKnownCategory(KDC_FREQUENT);		// よく使うファイルリスト
+				//pJumpList->AppendKnownCategory(KDC_RECENT);		// 最近使ったファイル (Default)
+			
+				if ( SUCCEEDED(CoCreateInstance(CLSID_EnumerableObjectCollection, NULL, CLSCTX_INPROC, IID_PPV_ARGS(&pObjCol))) ) {
+
+					if ( SUCCEEDED(CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pSheLink))) ) {
+						pSheLink->SetArguments("/inuse");
+						pSheLink->SetDescription("inuse");
+						pSheLink->SetIconLocation("Path", 0);
+
+						//IPropertyStore *pProStore;
+						//if ( SUCCEEDED(pSheLink->QueryInterface(IID_IPropertyStore, (void **)&pProStore)) ) {
+						//	pProStore->SetValue(&PKEY_Title, &pv);
+						//	pProStore->Release();
+						//}
+
+						pObjCol->AddObject(pSheLink);
+						pSheLink->Release();
+					}
+
+					if ( SUCCEEDED(pObjCol->QueryInterface(IID_PPV_ARGS(&pObjArray))) ) {
+						pJumpList->AppendCategory(L"Category", pObjArray);
+						pObjArray->Release();
+					}
+					pObjCol->Release();
+				}
+
+				if ( SUCCEEDED(CoCreateInstance(CLSID_EnumerableObjectCollection, NULL, CLSCTX_INPROC, IID_PPV_ARGS(&pObjCol))) ) {
+					if ( SUCCEEDED(pObjCol->QueryInterface(IID_PPV_ARGS(&pObjArray))) ) {
+						pJumpList->AddUserTasks(pObjArray);
+						pObjArray->Release();
+					}
+					pObjCol->Release();
+				}
+
+				if ( SUCCEEDED(CoCreateInstance(CLSID_EnumerableObjectCollection, NULL, CLSCTX_INPROC, IID_PPV_ARGS(&pObjCol))) ) {
+					if ( SUCCEEDED(pObjCol->QueryInterface(IID_PPV_ARGS(&pObjArray))) ) {
+						pJumpList->AddUserTasks(pObjArray);
+						pObjArray->Release();
+					}
+					pObjCol->Release();
+				}
+
+				// クリーンアップ
+				pJumpList->CommitList();
+				pObjSlots->Release();
+			}
+
+			pJumpList->Release();
+		}
+
+		CoUninitialize();
+	}
 #endif
 
 	// アプリケーション用のドキュメント テンプレートを登録します。ドキュメント テンプレート

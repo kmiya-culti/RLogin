@@ -124,17 +124,16 @@ BOOL CRLoginDoc::OnOpenDocument(LPCTSTR lpszPathName)
 	if ( !CDocument::OnOpenDocument(lpszPathName) )
 		return FALSE;
 
-	if ( m_LoadMode != 1 )
-		return FALSE;
-	
-	if ( !SocketOpen() )
-		return FALSE;
+	if ( m_LoadMode == 1 ) {
+		if ( !SocketOpen() )
+			return FALSE;
 
-	UpdateAllViews(NULL, UPDATE_INITPARA, 0);
-	m_TextRam.InitHistory();
-	SetPathName(lpszPathName, TRUE);
+		UpdateAllViews(NULL, UPDATE_INITPARA, 0);
+		m_TextRam.InitHistory();
+		SetPathName(lpszPathName, TRUE);
+	}
 	
-	return TRUE;
+	return (m_LoadMode == 0 ? FALSE : TRUE);
 }
 
 /////////////////////////////////////////////////////////////////////////////

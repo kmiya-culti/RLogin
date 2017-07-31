@@ -48,7 +48,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="openssl-1.0.0a\inc32,libiconv-1.13\include,zlib-1.2.5"
+				AdditionalIncludeDirectories="openssl-1.0.0d\inc32,libiconv-1.13\include,zlib-1.2.5"
 				PreprocessorDefinitions="WIN32;_WINDOWS;_DEBUG"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -73,7 +73,7 @@
 				Name="VCLinkerTool"
 				AdditionalDependencies="imm32.lib ComCtl32.lib libeay32.lib ssleay32.lib iconv.lib zlib.lib Wininet.lib"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="openssl-1.0.0a\out32,libiconv-1.13\lib\rel,zlib-1.2.5\rel"
+				AdditionalLibraryDirectories="openssl-1.0.0d\out32,libiconv-1.13\lib\rel,zlib-1.2.5\rel"
 				IgnoreDefaultLibraryNames="libcmt.lib"
 				DelayLoadDLLs=""
 				GenerateDebugInformation="true"
@@ -133,7 +133,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="openssl-0.9.8k\inc32,libiconv-1.13\include,zlib-1.2.3"
+				AdditionalIncludeDirectories="openssl-1.0.0d\inc32,libiconv-1.13\include,zlib-1.2.3"
 				PreprocessorDefinitions="WIN32;_WINDOWS;_DEBUG"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -158,7 +158,7 @@
 				Name="VCLinkerTool"
 				AdditionalDependencies="imm32.lib ComCtl32.lib libeay32.lib ssleay32.lib iconv.lib zlib.lib Wininet.lib"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="openssl-0.9.8k\out32,libiconv-1.13\lib\rel,zlib-1.2.3\rel"
+				AdditionalLibraryDirectories="openssl-1.0.0d\out32,libiconv-1.13\lib\rel,zlib-1.2.3\rel"
 				IgnoreDefaultLibraryNames="libcmt.lib"
 				GenerateDebugInformation="true"
 				SubSystem="2"
@@ -221,7 +221,7 @@
 				InlineFunctionExpansion="2"
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
-				AdditionalIncludeDirectories="openssl-1.0.0a\inc32,libiconv-1.13\include,zlib-1.2.5"
+				AdditionalIncludeDirectories="openssl-1.0.0d\inc32,libiconv-1.13\include,zlib-1.2.5"
 				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG"
 				MinimalRebuild="false"
 				RuntimeLibrary="0"
@@ -244,7 +244,7 @@
 				Name="VCLinkerTool"
 				AdditionalDependencies="imm32.lib ComCtl32.lib libeay32.lib ssleay32.lib iconv.lib zlib.lib Wininet.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="openssl-1.0.0a\out32,libiconv-1.13\lib\rel,zlib-1.2.5\rel"
+				AdditionalLibraryDirectories="openssl-1.0.0d\out32,libiconv-1.13\lib\rel,zlib-1.2.5\rel"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="2"
@@ -273,7 +273,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="signtool sign /f ..\..\DigSig\kmiya.pfx ..\Release\RLogin.exe"
+				CommandLine="signtool sign /f ..\..\DigSig\kmiya.pfx $(OutDir)\$(ProjectName).exe"
 			/>
 		</Configuration>
 		<Configuration
@@ -309,7 +309,7 @@
 				InlineFunctionExpansion="2"
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
-				AdditionalIncludeDirectories="openssl-0.9.8k\inc32,libiconv-1.13\include,zlib-1.2.3"
+				AdditionalIncludeDirectories="openssl-1.0.0d\inc32,libiconv-1.13\include,zlib-1.2.3"
 				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG"
 				MinimalRebuild="false"
 				RuntimeLibrary="0"
@@ -332,7 +332,7 @@
 				Name="VCLinkerTool"
 				AdditionalDependencies="imm32.lib ComCtl32.lib libeay32.lib ssleay32.lib iconv.lib zlib.lib Wininet.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="openssl-0.9.8k\out32,libiconv-1.13\lib\rel,zlib-1.2.3\rel"
+				AdditionalLibraryDirectories="openssl-1.0.0d\out32,libiconv-1.13\lib\rel,zlib-1.2.3\rel"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="2"
@@ -361,7 +361,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="signtool sign /f ..\..\DigSig\kmiya.pfx ..\Release\RLogin.exe"
+				CommandLine="signtool sign /f ..\..\DigSig\kmiya.pfx $(OutDir)\$(ProjectName).exe"
 			/>
 		</Configuration>
 		<Configuration
@@ -397,7 +397,7 @@
 				InlineFunctionExpansion="2"
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
-				AdditionalIncludeDirectories="openssl-1.0.0a\inc32sse,libiconv-1.13\include,zlib-1.2.5"
+				AdditionalIncludeDirectories="openssl-1.0.0d\inc32sse,libiconv-1.13\include,zlib-1.2.5"
 				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG"
 				MinimalRebuild="false"
 				RuntimeLibrary="0"
@@ -423,7 +423,7 @@
 				Name="VCLinkerTool"
 				AdditionalDependencies="imm32.lib ComCtl32.lib libeay32.lib ssleay32.lib iconv.lib zlib.lib Wininet.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="openssl-1.0.0a\out32sse,libiconv-1.13\lib\sse,zlib-1.2.5\sse"
+				AdditionalLibraryDirectories="openssl-1.0.0d\out32sse,libiconv-1.13\lib\sse,zlib-1.2.5\sse"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="2"
@@ -452,7 +452,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="signtool sign /f ..\..\DigSig\kmiya.pfx ..\Release(SSE2)\RLogin.exe"
+				CommandLine="signtool sign /f ..\..\DigSig\kmiya.pfx $(OutDir)\$(ProjectName).exe"
 			/>
 		</Configuration>
 		<Configuration
@@ -488,7 +488,7 @@
 				InlineFunctionExpansion="2"
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
-				AdditionalIncludeDirectories="openssl-0.9.8k\inc32,libiconv-1.13\include,zlib-1.2.3"
+				AdditionalIncludeDirectories="openssl-1.0.0d\inc32,libiconv-1.13\include,zlib-1.2.3"
 				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG"
 				MinimalRebuild="false"
 				RuntimeLibrary="0"
@@ -514,7 +514,7 @@
 				Name="VCLinkerTool"
 				AdditionalDependencies="imm32.lib ComCtl32.lib libeay32.lib ssleay32.lib iconv.lib zlib.lib Wininet.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="openssl-0.9.8k\out32sse,libiconv-1.13\lib\sse,zlib-1.2.3\sse"
+				AdditionalLibraryDirectories="openssl-1.0.0d\out32sse,libiconv-1.13\lib\sse,zlib-1.2.3\sse"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="2"
@@ -543,7 +543,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="signtool sign /f ..\..\DigSig\kmiya.pfx ..\Release(SSE2)\RLogin.exe"
+				CommandLine="signtool sign /f ..\..\DigSig\kmiya.pfx $(OutDir)\$(ProjectName).exe"
 			/>
 		</Configuration>
 		<Configuration
@@ -579,7 +579,7 @@
 				InlineFunctionExpansion="2"
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
-				AdditionalIncludeDirectories="openssl-1.0.0a\inc32,libiconv-1.13\include,zlib-1.2.5"
+				AdditionalIncludeDirectories="openssl-1.0.0d\inc32,libiconv-1.13\include,zlib-1.2.5"
 				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG;WINSOCK11;NOIPV6;"
 				MinimalRebuild="false"
 				RuntimeLibrary="0"
@@ -602,7 +602,7 @@
 				Name="VCLinkerTool"
 				AdditionalDependencies="imm32.lib ComCtl32.lib libeay32.lib ssleay32.lib iconv.lib zlib.lib Wininet.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="openssl-1.0.0a\out32,libiconv-1.13\lib\rel,zlib-1.2.5\rel"
+				AdditionalLibraryDirectories="openssl-1.0.0d\out32,libiconv-1.13\lib\rel,zlib-1.2.5\rel"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="2"
@@ -631,7 +631,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="signtool sign /f ..\..\DigSig\kmiya.pfx ..\Release\RLogin.exe"
+				CommandLine="signtool sign /f ..\..\DigSig\kmiya.pfx $(OutDir)\$(ProjectName).exe"
 			/>
 		</Configuration>
 		<Configuration
@@ -667,7 +667,7 @@
 				InlineFunctionExpansion="2"
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
-				AdditionalIncludeDirectories="openssl-0.9.8k\inc32,libiconv-1.13\include,zlib-1.2.3"
+				AdditionalIncludeDirectories="openssl-1.0.0d\inc32,libiconv-1.13\include,zlib-1.2.3"
 				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG;WINSOCK11;NOIPV6;"
 				MinimalRebuild="false"
 				RuntimeLibrary="0"
@@ -690,7 +690,7 @@
 				Name="VCLinkerTool"
 				AdditionalDependencies="imm32.lib ComCtl32.lib libeay32.lib ssleay32.lib iconv.lib zlib.lib Wininet.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="openssl-0.9.8k\out32,libiconv-1.13\lib\rel,zlib-1.2.3\rel"
+				AdditionalLibraryDirectories="openssl-1.0.0d\out32,libiconv-1.13\lib\rel,zlib-1.2.3\rel"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="2"
@@ -719,7 +719,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="signtool sign /f ..\..\DigSig\kmiya.pfx ..\Release\RLogin.exe"
+				CommandLine="signtool sign /f ..\..\DigSig\kmiya.pfx $(OutDir)\$(ProjectName).exe"
 			/>
 		</Configuration>
 		<Configuration
@@ -755,7 +755,7 @@
 				InlineFunctionExpansion="2"
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
-				AdditionalIncludeDirectories="openssl-0.9.8l\inc32,libiconv-1.13\include,zlib-1.2.3"
+				AdditionalIncludeDirectories="openssl-1.0.0d\inc32,libiconv-1.13\include,zlib-1.2.3"
 				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG"
 				MinimalRebuild="false"
 				RuntimeLibrary="0"
@@ -778,7 +778,7 @@
 				Name="VCLinkerTool"
 				AdditionalDependencies="imm32.lib ComCtl32.lib libeay32.lib ssleay32.lib iconv.lib zlib.lib Wininet.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="openssl-0.9.8l\out32,libiconv-1.13\lib\rel,zlib-1.2.3\rel"
+				AdditionalLibraryDirectories="openssl-1.0.0d\out32,libiconv-1.13\lib\rel,zlib-1.2.3\rel"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="2"
@@ -807,7 +807,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="signtool sign /f ..\..\DigSig\kmiya.pfx ..\Release\RLogin.exe"
+				CommandLine="signtool sign /f ..\..\DigSig\kmiya.pfx $(OutDir)\$(ProjectName).exe"
 			/>
 		</Configuration>
 		<Configuration
@@ -843,7 +843,7 @@
 				InlineFunctionExpansion="2"
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
-				AdditionalIncludeDirectories="openssl-1.0.0a\inc64,libiconv-1.13\include,zlib-1.2.5"
+				AdditionalIncludeDirectories="openssl-1.0.0d\inc64,libiconv-1.13\include,zlib-1.2.5"
 				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG"
 				MinimalRebuild="false"
 				RuntimeLibrary="0"
@@ -868,7 +868,7 @@
 				Name="VCLinkerTool"
 				AdditionalDependencies="imm32.lib ComCtl32.lib libeay32.lib ssleay32.lib iconv.lib zlib.lib Wininet.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="openssl-1.0.0a\out64,libiconv-1.13\lib\x64,zlib-1.2.5\x64"
+				AdditionalLibraryDirectories="openssl-1.0.0d\out64,libiconv-1.13\lib\x64,zlib-1.2.5\x64"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="2"
@@ -897,7 +897,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="signtool sign /f ..\..\DigSig\kmiya.pfx ..\Release\RLogin.exe"
+				CommandLine="signtool sign /f ..\..\DigSig\kmiya.pfx $(OutDir)\$(ProjectName).exe"
 			/>
 		</Configuration>
 	</Configurations>
@@ -983,6 +983,10 @@
 			</File>
 			<File
 				RelativePath=".\GhostWnd.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\GrapWnd.cpp"
 				>
 			</File>
 			<File
@@ -1341,6 +1345,10 @@
 			</File>
 			<File
 				RelativePath=".\GhostWnd.h"
+				>
+			</File>
+			<File
+				RelativePath=".\GrapWnd.h"
 				>
 			</File>
 			<File

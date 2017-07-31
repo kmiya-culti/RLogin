@@ -36,8 +36,8 @@ static char THIS_FILE[]=__FILE__;
 #define ERRORMAX 5
 #define RETRYMAX 5
 #define WCEOT (-10)
-#define PATHLEN 257	/* ready for 4.2 bsd ? */
-#define UNIXFILE 0xF000 /* The S_IFMT file mask bit for stat */
+/* #define PATHLEN 257	/* ready for 4.2 bsd ? */
+/* #define UNIXFILE 0xF000 /* The S_IFMT file mask bit for stat */
 
 #define	ZBUFSIZE	(8 * 1024)
 

@@ -163,11 +163,13 @@ public:
 	~CCompress();
 };
 
-#define	IDKEY_NONE		000
-#define	IDKEY_RSA1		001
-#define	IDKEY_RSA2		002
-#define	IDKEY_DSA2		004
-#define	IDKEY_ECDSA		040
+#define	IDKEY_NONE		0000
+#define	IDKEY_RSA1		0001
+#define	IDKEY_RSA2		0002
+#define	IDKEY_DSA2		0004
+#define	IDKEY_ECDSA		0040
+#define	IDKEY_DSA2EX	0104
+#define	IDKEY_ECDSAEX	0140
 
 class CIdKey: public CObject
 {

@@ -846,12 +846,13 @@ void CTextRam::Init()
 	memcpy(m_DefColTab, DefColTab, sizeof(m_DefColTab));
 	memcpy(m_ColTab, m_DefColTab, sizeof(m_ColTab));
 	memset(m_AnsiOpt, 0, sizeof(DWORD) * 16);
-	EnableOption(TO_DECAWM);
-	EnableOption(TO_XTMRVW);
-	EnableOption(TO_DECANM);
-	EnableOption(TO_DECTCEM);
-	EnableOption(TO_XTMCUS);
-	EnableOption(TO_DECBKM);
+	EnableOption(TO_ANSISRM);	//  12 SRM Set Send/Receive mode (Local echo off)
+	EnableOption(TO_DECANM);	//  ?2 ANSI/VT52 Mode
+	EnableOption(TO_DECAWM);	//  ?7 Autowrap mode
+	EnableOption(TO_DECTCEM);	// ?25 Text Cursor Enable Mode
+	EnableOption(TO_XTMCUS);	// ?41 XTerm tab bug fix
+	EnableOption(TO_XTMRVW);	// ?45 XTerm Reverse-wraparound mod
+	EnableOption(TO_DECBKM);	// ?67 Backarrow key mode (BS)
 	memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
 	memcpy(m_DefBankTab, DefBankTab, sizeof(m_DefBankTab));
 	memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
@@ -1001,14 +1002,14 @@ void CTextRam::GetArray(CStringArrayExt &array)
 
 	n = (array.GetSize() > 37 ? array.GetVal(37) : 0);
 	if ( n < 1 ) {
-		m_AnsiOpt[TO_DECANM / 32] ^= (1 << (TO_DECANM % 32));
-		EnableOption(TO_DECTCEM);
+		m_AnsiOpt[TO_DECANM / 32] ^= (1 << (TO_DECANM % 32));	//  ?2 ANSI/VT52 Mode
+		EnableOption(TO_DECTCEM);	// ?25 Text Cursor Enable Mode
 	}
 	if ( n < 2 )
-		EnableOption(TO_XTMCUS);
+		EnableOption(TO_XTMCUS);	// ?41 XTerm tab bug fix
 	if ( n < 3 ) {
-		EnableOption(TO_DECBKM);
-		EnableOption(TO_ANSISRM);
+		EnableOption(TO_DECBKM);	// ?67 Backarrow key mode (BS
+		EnableOption(TO_ANSISRM);	//  12 SRM Set Send/Receive mode (Local echo off)
 	}
 	memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_DefAnsiOpt));
 
@@ -1687,6 +1688,7 @@ ENDOF:
 ENDOF2:
 	return;
 }
+
 void CTextRam::StrOut(CDC* pDC, LPCRECT pRect, struct DrawWork &prop, int len, char *str, int sln, int *spc, class CRLoginView *pView)
 {
 	int n, x, y;
@@ -1742,45 +1744,7 @@ void CTextRam::StrOut(CDC* pDC, LPCRECT pRect, struct DrawWork &prop, int len, c
 			bc = RGB((GetRValue(fc) + GetRValue(bc)) / 2, (GetGValue(fc) + GetGValue(bc)) / 2, (GetBValue(fc) + GetBValue(bc)) / 2);
 	}
 
-#ifdef	USE_DIRECTWRITE
-	D2D1_RECT_F rect;
-	IDWriteTextFormat *m_pTextFormat;
-	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
-	LPCWSTR wp;
 
-	rect.left   = (float)pRect->left;
-	rect.top    = (float)pRect->top;
-	rect.right  = (float)pRect->right;
-	rect.bottom = (float)pRect->bottom;
-
-	pView->m_pSolidColorBrush->SetColor(D2D1::ColorF((float)GetRValue(bc) / 255.0f, (float)GetGValue(bc) / 255.0f, (float)GetBValue(bc) / 255.0f, 1.0f));
-	pView->m_pRenderTarget->FillRoundedRectangle(D2D1::RoundedRect(rect, 0.0f, 0.0f), pView->m_pSolidColorBrush);
-
-	if ( prop.mod >= 0 ) {
-		if ( (pFontCache = m_FontTab[prop.mod].GetFont(pView->m_CharWidth * wd, pView->m_CharHeight * hd, st, prop.fnm)) != NULL && prop.csz > 1 && pFontCache->m_KanWidMul > 100 )
-			pFontCache = m_FontTab[prop.mod].GetFont(pView->m_CharWidth * wd * pFontCache->m_KanWidMul / 100, pView->m_CharHeight * hd, st, prop.fnm);
-
-		pFont = (pFontCache != NULL ? pFontCache->m_pFont : CFont::FromHandle((HFONT)GetStockObject(SYSTEM_FONT)));
-
-		pApp->m_pDWriteFactory->CreateTextFormat(CStringW(pFontCache->m_LogFont.lfFaceName), NULL, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_EXPANDED, static_cast<FLOAT>(pFontCache->m_LogFont.lfHeight), L"", &m_pTextFormat);
-
-		rect.top    = (float)(pRect->top - pView->m_CharHeight * m_FontTab[prop.mod].m_Offset / 100 - (prop.dmf == 3 ? pView->m_CharHeight : 0));
-
-		if ( (at & ATT_HALF) != 0 )
-			fc = RGB((GetRValue(fc) + GetRValue(bc)) / 2, (GetGValue(fc) + GetGValue(bc)) / 2, (GetBValue(fc) + GetBValue(bc)) / 2);
-
-		pView->m_pSolidColorBrush->SetColor(D2D1::ColorF((float)GetRValue(fc) / 255.0f, (float)GetGValue(fc) / 255.0f, (float)GetBValue(fc) / 255.0f, 1.0f));
-
-		wp = (LPCWSTR)str;
-		for ( n = 0 ; n < len ; n += 2 ) {
-			pView->m_pRenderTarget->DrawText(wp, 1, m_pTextFormat, rect, pView->m_pSolidColorBrush, D2D1_DRAW_TEXT_OPTIONS_CLIP);
-			rect.left += (float)spc[n / 2];
-			wp++;
-		}
-
-		m_pTextFormat->Release();
-	}
-#else
 	if ( prop.mod < 0 ) {
 		if ( pView->m_pBitmap == NULL )
 			pDC->FillSolidRect(pRect, bc);
@@ -1811,7 +1775,6 @@ void CTextRam::StrOut(CDC* pDC, LPCRECT pRect, struct DrawWork &prop, int len, c
 			pDC->SetBkMode(oldMode);
 		}
 	}
-#endif
 
 	if ( (at & (ATT_OVER | ATT_LINE | ATT_UNDER | ATT_DUNDER | ATT_STRESS)) != 0 ) {
 		CPen cPen(PS_SOLID, 1, fc);
