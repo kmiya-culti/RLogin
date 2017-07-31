@@ -20,7 +20,6 @@
 #define	IDLEPROC_SOCKET		0
 #define	IDLEPROC_ENCRYPT	1
 #define	IDLEPROC_SCRIPT		2
-#define	IDLEPROC_DELETE		3
 
 //////////////////////////////////////////////////////////////////////
 // CCommandLineInfoEx
@@ -67,8 +66,6 @@ public:
 	class CIdleProc *m_pNext;
 	int m_Type;
 	void *m_pParam;
-	int m_Priority;
-	BOOL m_bExec;
 };
 
 //////////////////////////////////////////////////////////////////////

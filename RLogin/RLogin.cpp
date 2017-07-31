@@ -2169,9 +2169,10 @@ BOOL mt_proc(LPVOID pParam);
 BOOL CRLoginApp::OnIdle(LONG lCount) 
 {
 	int n;
-	int ProcCount = m_IdleProcCount;
 	CIdleProc *pProc;
 	BOOL rt = FALSE;
+
+	// TRACE("OnIdle(%d)\n", lCount);
 
 	if ( lCount >= 0 && CWinApp::OnIdle(lCount) )
 		return TRUE;
@@ -2179,40 +2180,24 @@ BOOL CRLoginApp::OnIdle(LONG lCount)
 	for ( n = 0 ; !rt && n < m_IdleProcCount && (pProc = m_pIdleTop) != NULL ; n++ ) {
 		m_pIdleTop = pProc->m_pNext;
 
-		if ( !pProc->m_bExec ) {
-			pProc->m_bExec = TRUE;
-
-			switch(pProc->m_Type) {
-			case IDLEPROC_SOCKET:
-				rt = ((CExtSocket *)(pProc->m_pParam))->OnIdle();
-				break;
-			case IDLEPROC_ENCRYPT:
-				rt = mt_proc(pProc->m_pParam);
-				break;
-			case IDLEPROC_SCRIPT:
-				rt = ((CScript *)(pProc->m_pParam))->OnIdle();
-				break;
-			}
-
-			pProc->m_bExec = FALSE;
-
-			if ( pProc->m_Type == IDLEPROC_DELETE ) {
-				if ( pProc->m_pNext == pProc )
-					m_pIdleTop = NULL;
-				else {
-					pProc->m_pBack->m_pNext = pProc->m_pNext;
-					pProc->m_pNext->m_pBack = pProc->m_pBack;
-				}
-				delete pProc;
-				m_IdleProcCount--;
-			}
+		switch(pProc->m_Type) {
+		case IDLEPROC_SOCKET:
+			rt = ((CExtSocket *)(pProc->m_pParam))->OnIdle();
+			break;
+		case IDLEPROC_ENCRYPT:
+			rt = mt_proc(pProc->m_pParam);
+			break;
+		case IDLEPROC_SCRIPT:
+			rt = ((CScript *)(pProc->m_pParam))->OnIdle();
+			break;
 		}
 
-		if ( ProcCount != m_IdleProcCount )
-			n = 0;
+		// pProcの呼び出し後の利用不可(DelIdleProc後の可能性あり)
+		// m_IdleProcCountも変化する場合有り
 	}
 
-	m_LastIdleClock = clock() + (200 * CLOCKS_PER_SEC / 1000);	// 200ms
+	// 必要性が微妙・・・
+	m_LastIdleClock = clock() + (300 * CLOCKS_PER_SEC / 1000);	// 300ms
 
 	return rt;
 }
@@ -2247,8 +2232,6 @@ void CRLoginApp::AddIdleProc(int Type, void *pParam)
 	pProc = new CIdleProc;
 	pProc->m_Type = Type;
 	pProc->m_pParam = pParam;
-	pProc->m_Priority = 0;
-	pProc->m_bExec = FALSE;
 
 	if ( m_pIdleTop == NULL ) {
 		pProc->m_pBack = pProc->m_pNext = pProc;
@@ -2267,20 +2250,16 @@ void CRLoginApp::DelIdleProc(int Type, void *pParam)
 
 	while ( pProc != NULL ) {
 		if ( pProc->m_Type == Type && pProc->m_pParam == pParam ) {
-			if ( pProc->m_bExec )
-				pProc->m_Type = IDLEPROC_DELETE;
+			if ( pProc->m_pNext == pProc )
+				m_pIdleTop = NULL;
 			else {
-				if ( pProc->m_pNext == pProc )
-					m_pIdleTop = NULL;
-				else {
-					pProc->m_pBack->m_pNext = pProc->m_pNext;
-					pProc->m_pNext->m_pBack = pProc->m_pBack;
-					if ( pProc == m_pIdleTop )
-						m_pIdleTop = pProc->m_pNext;
-				}
-				delete pProc;
-				m_IdleProcCount--;
+				pProc->m_pBack->m_pNext = pProc->m_pNext;
+				pProc->m_pNext->m_pBack = pProc->m_pBack;
+				if ( pProc == m_pIdleTop )
+					m_pIdleTop = pProc->m_pNext;
 			}
+			delete pProc;
+			m_IdleProcCount--;
 			break;
 		}
 

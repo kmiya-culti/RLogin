@@ -1028,6 +1028,10 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		SetTimer(TIMERID_CLIPUPDATE, 60000, NULL);
 	}
 
+	// 標準の設定のキー設定を読み込み・初期化
+	m_DefKeyTab.Serialize(FALSE);
+	m_DefKeyTab.CmdsInit();
+
 	return 0;
 }
 
@@ -2668,6 +2672,25 @@ BOOL CMainFrame::PreTranslateMessage(MSG* pMsg)
 			return TRUE;
 
 	} else if ( (pMsg->message == WM_KEYDOWN || pMsg->message == WM_SYSKEYDOWN) ) {
+		if ( MDIGetActive() == NULL ) {
+			int id, st = 0;
+			CBuffer tmp;
+
+			if ( (GetKeyState(VK_SHIFT) & 0x80) != 0 )
+				st |= MASK_SHIFT;
+
+			if ( (GetKeyState(VK_CONTROL) & 0x80) != 0 )
+				st |= MASK_CTRL;
+
+			if ( (GetKeyState(VK_MENU) & 0x80) != 0 )
+				st |= MASK_ALT;
+
+			if ( m_DefKeyTab.FindMaps((int)pMsg->wParam, st, &tmp) &&  (id = CKeyNodeTab::GetCmdsKey((LPCWSTR)tmp)) > 0 ) {
+				PostMessage(WM_COMMAND, (WPARAM)id);
+				return TRUE;
+			}
+		}
+
 		if ( (pMsg->wParam == VK_TAB || pMsg->wParam == VK_F6) && (GetKeyState(VK_CONTROL) & 0x80) != 0 )
 			return TRUE;
 	}
@@ -2992,15 +3015,32 @@ CBitmap *CMainFrame::GetMenuBitmap(UINT nId)
 
 void CMainFrame::OnEnterMenuLoop(BOOL bIsTrackPopupMenu)
 {
+	int n, a;
 	CMenu *pMenu;
 	CChildFrame *pChild;
 	CRLoginDoc *pDoc;
+	CString str;
 
 	if ( (pMenu = GetMenu()) == NULL )
 		return;
 
 	if ( (pChild = (CChildFrame *)(MDIGetActive())) != NULL && (pDoc = (CRLoginDoc *)(pChild->GetActiveDocument())) != NULL )
 		pDoc->SetMenu(pMenu);
+
+	else {
+		m_DefKeyTab.CmdsInit();
+
+		for ( n = 0 ; n < m_DefKeyTab.m_Cmds.GetSize() ; n++ ) {
+			if ( pMenu->GetMenuString(m_DefKeyTab.m_Cmds[n].m_Id, str, MF_BYCOMMAND) <= 0 )
+				continue;
+
+			if ( (a = str.Find(_T('\t'))) >= 0 )
+				str.Truncate(a);
+
+			m_DefKeyTab.m_Cmds[n].m_Text = str;
+			m_DefKeyTab.m_Cmds[n].SetMenu(pMenu);
+		}
+	}
 
 	SetMenuBitmap(pMenu);
 }
@@ -3220,4 +3260,3 @@ void CMainFrame::OnToolcust()
 	// ツールバーの再表示
 	RecalcLayout(FALSE);
 }
-

@@ -430,6 +430,7 @@ void CComSock::OnReadWriteProc()
 
 		// ReadFile
 		if ( !bReadOverLap && bHaveRecvData  ) {
+			ClearCommError(m_hCom, &m_CommError, NULL);
 			if ( ReadFile(m_hCom, ReadBuf, 1024, &n, &m_ReadOverLap) ) {
 				if ( n > 0 ) {
 					ReadByte += n;
@@ -475,6 +476,7 @@ void CComSock::OnReadWriteProc()
 		// WriteFile
 		if ( !bWriteOverLap && bHaveSendReady && WriteTop < WriteByte ) {
 			while ( WriteTop < WriteByte ) {
+				ClearCommError(m_hCom, &m_CommError, NULL);
 				if ( WriteFile(m_hCom, WriteBuf + WriteTop, WriteByte - WriteTop, &n, &m_WriteOverLap) ) {
 					if ( n > 0 ) {
 						WriteTop += n;

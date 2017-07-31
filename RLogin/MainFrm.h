@@ -172,6 +172,7 @@ public:
 	CStringArray m_TempPath;
 	UINT m_ScreenDpiX;
 	UINT m_ScreenDpiY;
+	CKeyNodeTab m_DefKeyTab;
 
 	BOOL PagentQuery(CBuffer *pInBuf, CBuffer *pOutBuf);
 	void PagentInit(CArray<CIdKey, CIdKey &> *pKeyTab);

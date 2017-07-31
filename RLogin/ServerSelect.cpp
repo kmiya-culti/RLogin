@@ -910,6 +910,9 @@ void CServerSelect::OnSavedefault()
 	KeyTab.Serialize(TRUE);
 	KeyMac.Serialize(TRUE);
 	ParamTab.Serialize(TRUE);
+
+	((CMainFrame *)::AfxGetMainWnd())->m_DefKeyTab.Serialize(FALSE);
+	((CMainFrame *)::AfxGetMainWnd())->m_DefKeyTab.CmdsInit();
 }
 void CServerSelect::OnLoaddefault()
 {

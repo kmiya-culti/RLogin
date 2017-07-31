@@ -11,10 +11,11 @@
 
 #include <afxtempl.h>
 #include <afxmt.h>
-#include "openssl/bn.h"
-#include "openssl/ec.h"
 #include "Regex.h"
 #include "ChatStatDlg.h"
+
+#include "openssl/bn.h"
+#include "openssl/ec.h"
 
 int	BinaryFind(void *ptr, void *tab, int size, int max, int (* func)(const void *, const void *), int *base);
 BOOL IsZeroMemory(void *ptr, int len);

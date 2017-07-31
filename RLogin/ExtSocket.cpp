@@ -770,8 +770,11 @@ int CExtSocket::Send(const void* lpBuf, int nBufLen, int nFlags)
 		return 0;
 
 	if ( m_SendHead == NULL ) {
-		n = (m_SSL_mode && m_SSL_pSock != NULL ? SSL_write(m_SSL_pSock, lpBuf, nBufLen):
-						  ::send(m_Fd, (char *)lpBuf, nBufLen, nFlags));
+		if ( m_SSL_mode != 0 )
+			n = (m_SSL_pSock != NULL ? SSL_write(m_SSL_pSock, lpBuf, nBufLen) : 0);
+		else
+			n = (m_Fd != (-1) ? ::send(m_Fd, (char *)lpBuf, nBufLen, nFlags) : 0);
+
 		if ( n > 0 ) {
 			lpBuf = (LPBYTE)lpBuf + n;
 			if ( (nBufLen -= n) <= 0 ) {
@@ -1410,8 +1413,10 @@ void CExtSocket::OnSend()
 	int n;
 
 	while ( m_SendHead != NULL ) {
-		n = (m_SSL_mode && m_SSL_pSock != NULL ? SSL_write(m_SSL_pSock, m_SendHead->GetPtr(), m_SendHead->GetSize()):
-						  ::send(m_Fd, (char *)m_SendHead->GetPtr(), m_SendHead->GetSize(), m_SendHead->m_Type));
+		if ( m_SSL_mode != 0 )
+			n = (m_SSL_pSock != NULL ? SSL_write(m_SSL_pSock, m_SendHead->GetPtr(), m_SendHead->GetSize()): 0);
+		else
+			n = (m_Fd != (-1) ? ::send(m_Fd, (char *)m_SendHead->GetPtr(), m_SendHead->GetSize(), m_SendHead->m_Type) : 0);
 
 		//TRACE("OnSend %s %d\r\n", m_SSL_mode ? "SSL" : "", n);
 
@@ -1420,10 +1425,12 @@ void CExtSocket::OnSend()
 			WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), WM_SOCKSEL, m_SocketEvent);
 			return;
 		}
+
 		m_SendSize -= n;
 		if ( m_SendHead->Consume(n) <= 0 )
 			m_SendHead = RemoveHead(m_SendHead);
 	}
+
 	m_SocketEvent &= ~FD_WRITE;
 	WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), WM_SOCKSEL, m_SocketEvent);
 	m_OnSendFlag |= SEND_EMPTY;

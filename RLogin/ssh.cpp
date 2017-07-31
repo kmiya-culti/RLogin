@@ -1661,8 +1661,12 @@ void Cssh::SendMsgKexDhInit()
 		m_SaveDh = dh_new_group14();
 	else if ( m_DhMode == DHMODE_GROUP_14_256 )
 		m_SaveDh = dh_new_group14();
+	else if ( m_DhMode == DHMODE_GROUP_15_512 )
+		m_SaveDh = dh_new_group15();
 	else if ( m_DhMode == DHMODE_GROUP_16_512 )
 		m_SaveDh = dh_new_group16();
+	else if ( m_DhMode == DHMODE_GROUP_17_512 )
+		m_SaveDh = dh_new_group17();
 	else if ( m_DhMode == DHMODE_GROUP_18_512 )
 		m_SaveDh = dh_new_group18();
 
@@ -2430,7 +2434,9 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 		{ DHMODE_CURVE25519,	_T("curve25519-sha256@libssh.org")			},
 		{ DHMODE_CURVE25519,	_T("curve25519-sha256")						},	// MUST
 		{ DHMODE_GROUP_14_256,	_T("diffie-hellman-group14-sha256")			},	// MAY
+		{ DHMODE_GROUP_15_512,	_T("diffie-hellman-group15-sha512")			},	// MAY
 		{ DHMODE_GROUP_16_512,	_T("diffie-hellman-group16-sha512")			},	// SHOULD
+		{ DHMODE_GROUP_17_512,	_T("diffie-hellman-group17-sha512")			},	// MAY
 		{ DHMODE_GROUP_18_512,	_T("diffie-hellman-group18-sha512")			},	// MAY
 		{ 0,					NULL										},
 	};
@@ -2549,7 +2555,9 @@ int Cssh::SSH2MsgKexDhReply(CBuffer *bp)
 	case DHMODE_GROUP_14_256:
 		evp_mod = EVP_sha256();
 		break;
+	case DHMODE_GROUP_15_512:
 	case DHMODE_GROUP_16_512:
+	case DHMODE_GROUP_17_512:
 	case DHMODE_GROUP_18_512:
 		evp_mod = EVP_sha512();
 		break;
@@ -3632,7 +3640,9 @@ void Cssh::RecivePacket2(CBuffer *bp)
 		case DHMODE_GROUP_1:
 		case DHMODE_GROUP_14:
 		case DHMODE_GROUP_14_256:
+		case DHMODE_GROUP_15_512:
 		case DHMODE_GROUP_16_512:
+		case DHMODE_GROUP_17_512:
 		case DHMODE_GROUP_18_512:
 			SendMsgKexDhInit();
 			break;
@@ -3660,7 +3670,9 @@ void Cssh::RecivePacket2(CBuffer *bp)
 		case DHMODE_GROUP_1:
 		case DHMODE_GROUP_14:
 		case DHMODE_GROUP_14_256:
+		case DHMODE_GROUP_15_512:
 		case DHMODE_GROUP_16_512:
+		case DHMODE_GROUP_17_512:
 		case DHMODE_GROUP_18_512:
 			if ( SSH2MsgKexDhReply(bp) )
 				goto DISCONNECT;
