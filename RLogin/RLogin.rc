@@ -449,7 +449,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.16.1 (2014/03/07)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.16.2 (2014/03/27)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2014 Culti",IDC_STATIC,47,15,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,151,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.1f 6 Jan 2014",IDC_STATIC,47,29,176,8
@@ -1206,16 +1206,18 @@ BEGIN
     EDITTEXT        IDC_AUTOLOG_PATH,17,39,167,14,ES_AUTOHSCROLL
     PUSHBUTTON      "...",IDC_AUTOLOG_SEL,190,39,40,14
     COMBOBOX        IDC_COMBO1,190,58,40,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_COMBO2,190,76,40,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "ヒストリーを保存し次接続時に復元する",IDC_TERMCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,119,159,10
-    EDITTEXT        IDC_HISFILE_PATH,17,136,167,14,ES_AUTOHSCROLL
-    PUSHBUTTON      "...",IDC_HISFILE_SEL,190,136,40,14
-    EDITTEXT        IDC_HISMAX,190,155,40,14,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "スクロールバックできるヒストリー行数",IDC_STATIC,26,157,150,10
-    GROUPBOX        "ヒストリー",IDC_STATIC,7,106,237,72
-    GROUPBOX        "通信ログ",IDC_STATIC,7,7,237,94
+    COMBOBOX        IDC_COMBO2,190,96,40,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "ログの先頭に時間を記録する(LINEでは不正確)",IDC_TERMCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,26,116,150,10
+    CONTROL         "ヒストリーを保存し次接続時に復元する",IDC_TERMCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,153,159,10
+    EDITTEXT        IDC_HISFILE_PATH,17,170,167,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDC_HISFILE_SEL,190,170,40,14
+    EDITTEXT        IDC_HISMAX,190,189,40,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "スクロールバックできるヒストリー行数",IDC_STATIC,26,191,150,10
+    GROUPBOX        "ヒストリー",IDC_STATIC,7,140,237,72
+    GROUPBOX        "通信ログ",IDC_STATIC,7,7,237,127
     LTEXT           "ファイルに保存する通信ログの形式を選択",IDC_STATIC,26,62,150,8
-    LTEXT           "ログの文字コードを選択(RAWモード以外で有効）",IDC_STATIC,26,80,150,8
+    LTEXT           "ログの文字コードを選択",IDC_STATIC,26,100,150,8
+    LTEXT           "下記のオプションは、RAWモード以外で有効",IDC_STATIC,17,80,128,8
 END
 
 IDD_SEARCHDLG DIALOGEX 0, 0, 211, 69
@@ -1427,8 +1429,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,16,1,0
- PRODUCTVERSION 2,16,1,0
+ FILEVERSION 2,16,2,0
+ PRODUCTVERSION 2,16,2,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1445,12 +1447,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.16.1.0"
+            VALUE "FileVersion", "2.16.2.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2013 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.16.1.0"
+            VALUE "ProductVersion", "2.16.2.0"
         END
     END
     BLOCK "VarFileInfo"

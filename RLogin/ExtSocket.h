@@ -117,6 +117,7 @@ class CExtSocket : public CObject
 public:
 	int m_Type;
 	int m_ListenMax;
+	int m_SocketEvent;
 	SOCKET m_Fd, m_FdTab[LISTENSOCKS];
 	class CRLoginDoc *m_pDocument;
 	BOOL m_bConnect;
@@ -125,7 +126,6 @@ public:
 	CBuffer m_SendBuff;
 
 private:
-	int m_SocketEvent;
 	int m_RecvSyncMode;
 	int m_RecvBufSize;
 	CSemaphore m_RecvSema;
@@ -212,7 +212,7 @@ public:
 
 	void OnPreConnect();
 	void OnPreClose();
-	virtual void OnError(int err);
+	virtual void OnError(int err, int fs = 0);
 	virtual void OnConnect();
 	virtual void OnAccept(SOCKET hand);
 	virtual void OnClose();

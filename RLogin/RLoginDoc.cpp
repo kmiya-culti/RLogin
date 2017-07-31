@@ -700,17 +700,19 @@ void CRLoginDoc::OnSocketConnect()
 			delete m_pLogFile;
 			m_pLogFile = NULL;
 		}
+
+		m_TextRam.m_LogTimeFlag = TRUE;
 	}
 
 	SetStatus(_T("Connect"));
 }
-void CRLoginDoc::OnSocketError(int err)
+void CRLoginDoc::OnSocketError(int err, int fs)
 {
 //	SocketClose();
 	SetStatus(_T("Error"));
 	CString tmp;
 	if ( m_ErrorPrompt.IsEmpty() )
-		m_ErrorPrompt.Format(_T("WinSock Have Error #%d"), err);
+		m_ErrorPrompt.Format(_T("WinSock Have Error #%d(%02x)"), err, fs);
 	tmp.Format(_T("%s Server Entry Scoket Error\n%s:%s Connection\n%s"),
 		m_ServerEntry.m_EntryName, m_ServerEntry.m_HostName, m_ServerEntry.m_PortName, m_ErrorPrompt);
 	AfxMessageBox(tmp);
@@ -993,6 +995,7 @@ void CRLoginDoc::OnLogOpen()
 	}
 
 	m_pLogFile->SeekToEnd();
+	m_TextRam.m_LogTimeFlag = TRUE;
 }
 void CRLoginDoc::OnUpdateLogOpen(CCmdUI* pCmdUI) 
 {
@@ -1268,7 +1271,7 @@ void CRLoginDoc::OnScreenReset(UINT nID)
 	case IDM_RESET_TEK:   mode = RESET_TEK; break;
 	case IDM_RESET_ESC:   mode = RESET_SAVE | RESET_CHAR; break;
 	case IDM_RESET_MOUSE: mode = RESET_MOUSE; break;
-	case IDM_RESET_ALL:   mode = RESET_CURSOR | RESET_TABS | RESET_BANK | RESET_ATTR | RESET_COLOR | RESET_TEK | RESET_SAVE | RESET_MOUSE | RESET_CHAR | RESET_OPTION | RESET_CLS; break;
+	case IDM_RESET_ALL:   mode = RESET_PAGE | RESET_CURSOR | RESET_MARGIN | RESET_TABS | RESET_BANK | RESET_ATTR | RESET_COLOR | RESET_TEK | RESET_SAVE | RESET_MOUSE | RESET_CHAR | RESET_OPTION | RESET_CLS; break;
 	}
 	m_TextRam.RESET(mode);
 	m_TextRam.FLUSH();
@@ -1474,6 +1477,7 @@ void CRLoginDoc::ScriptValue(int cmds, class CScriptValue &value, int mode)
 			}
 			if ( (m_pLogFile = new CFile) != NULL && m_pLogFile->Open((LPCTSTR)value[0], CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite | CFile::shareExclusive) ) {
 				m_pLogFile->SeekToEnd();
+				m_TextRam.m_LogTimeFlag = TRUE;
 				value = (int)0;
 			} else
 				value = (int)1;

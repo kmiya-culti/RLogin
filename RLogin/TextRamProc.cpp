@@ -1349,9 +1349,16 @@ void CTextRam::EscCsiDefName(LPCTSTR *esc, LPCTSTR *csi,  LPCTSTR *dcs)
 		dcs[c] = DcsProcName(fc_DcsExtTab[n].proc);
 	}
 }
+
+#include "x11coltab.h"
+
+static int x11ColCmp(const void *src, const void *dis)
+{
+	return _tcsicmp((LPCTSTR)src, ((struct _x11coltab *)dis)->name);
+}
 void CTextRam::ParseColor(int cmd, int idx, LPCTSTR para, int ch)
 {
-	int r, g, b;
+	int n, r, g, b;
 
 	if ( idx < 0 || idx >= EXTCOL_MAX )
 		return;
@@ -1391,12 +1398,12 @@ void CTextRam::ParseColor(int cmd, int idx, LPCTSTR para, int ch)
 		}
 		DISPUPDATE();
 
-	} else if ( _tcsncmp(para, _T("rgb:"), 4) == 0 ) {
-		if ( _stscanf(para, _T("rgb:%x/%x/%x"), &r, &g, &b) == 3 )
+	} else if ( _tcsnicmp(para, _T("rgb:"), 4) == 0 ) {
+		if ( _stscanf(para + 4, _T("%x/%x/%x"), &r, &g, &b) == 3 )
 			m_ColTab[idx] = RGB(r, g, b);
 		DISPUPDATE();
 
-	} else if ( _tcscmp(para, _T("reset")) == 0 ) {
+	} else if ( _tcsicmp(para, _T("reset")) == 0 ) {
 		if ( idx < 16 ) {
 			m_ColTab[idx] = m_DefColTab[idx];
 		} else if ( idx < 232 ) {				// colors 16-231 are a 6x6x6 color cube
@@ -1414,6 +1421,10 @@ void CTextRam::ParseColor(int cmd, int idx, LPCTSTR para, int ch)
 		} else if ( idx == EXTCOL_VT_TEXT_BACK ) {
 			m_ColTab[idx] = m_DefColTab[m_DefAtt.bc];
 		}
+		DISPUPDATE();
+
+	} else if ( BinaryFind((void *)para, (void *)x11coltab, sizeof(struct _x11coltab), X11COLTABMAX, x11ColCmp, &n) ) {
+		m_ColTab[idx] = x11coltab[n].code;
 		DISPUPDATE();
 	}
 }
@@ -2218,7 +2229,7 @@ void CTextRam::fc_SC(int ch)
 	m_Save_Decom  = (IsOptEnable(TO_DECOM) ? TRUE : FALSE);
 	memcpy(m_Save_BankTab, m_BankTab, sizeof(m_BankTab));
 //	memcpy(m_Save_AnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
-//	memcpy(m_Save_TabMap, m_TabMap, sizeof(m_TabMap));
+	memcpy(m_Save_TabMap, m_TabMap, sizeof(m_TabMap));
 	fc_POP(ch);
 }
 void CTextRam::fc_RC(int ch)
@@ -2235,7 +2246,7 @@ void CTextRam::fc_RC(int ch)
 	SetOption(TO_DECOM, m_Save_Decom);
 	memcpy(m_BankTab, m_Save_BankTab, sizeof(m_BankTab));
 //	memcpy(m_AnsiOpt, m_Save_AnsiOpt, sizeof(m_AnsiOpt));
-//	memcpy(m_TabMap, m_Save_TabMap, sizeof(m_TabMap));
+	memcpy(m_TabMap, m_Save_TabMap, sizeof(m_TabMap));
 	fc_POP(ch);
 }
 void CTextRam::fc_FI(int ch)
@@ -2690,7 +2701,7 @@ void CTextRam::fc_STAT(int ch)
 						vp++;
 					}
 				}
-				RESET(RESET_CURSOR);
+				RESET(RESET_CURSOR | RESET_MARGIN);
 				DISPVRAM(0, 0, m_Cols, m_Lines);
 			}
 			break;
@@ -5432,6 +5443,14 @@ void CTextRam::fc_DECSRET(int ch)
 			break;
 
 		case TO_XTMABUF:	// 47 XTERM alternate buffer
+			if ( IsOptEnable(TO_RLALTBDIS) )
+				break;
+			if ( ch == 'l' )
+				LOADRAM();
+			else if ( ch == 'h' )
+				SAVERAM();
+			ANSIOPT(ch, i);
+			break;
 		case TO_XTALTSCR:	// 1047 XTERM Use Alternate/Normal screen buffer
 			if ( IsOptEnable(TO_RLALTBDIS) )
 				break;
@@ -5461,8 +5480,7 @@ void CTextRam::fc_DECSRET(int ch)
 				m_Save_CurY = m_CurY;
 				m_Save_DoWarp = m_DoWarp;
 				SAVERAM();
-				ERABOX(0, 0, m_Cols, m_Lines);
-				LOCATE(0, 0);
+				RESET(RESET_CURSOR | RESET_MARGIN | RESET_ATTR | RESET_CLS);
 			}
 			ANSIOPT(ch, i);
 			break;
@@ -6067,7 +6085,8 @@ void CTextRam::fc_DECSCUSR(int ch)
 	// case 3:		// Blink Underline
 	// case 4:		// Steady Underline
 
-	m_TypeCaret = GetAnsiPara(0, 0, 0);
+	if ( (m_TypeCaret = GetAnsiPara(0, 0, 0, 7)) > 6 )
+		m_TypeCaret = 0;
 	m_pDocument->UpdateAllViews(NULL, UPDATE_TYPECARET, NULL);
 
 	fc_POP(ch);

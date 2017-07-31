@@ -508,6 +508,14 @@ void CRLoginView::SendBuffer(CBuffer &buf, BOOL macflag)
 		pDoc->m_TextRam.FLUSH();
 	}
 }
+void CRLoginView::KillCaret()
+{
+	if ( (m_DispCaret & FGCARET_CREATE) != 0 ) {
+		KillTimer(1029);
+		DestroyCaret();
+		m_DispCaret &= ~FGCARET_CREATE;
+	}
+}
 void CRLoginView::SetCaret()
 {
 	CPoint po(m_CaretX, m_CaretY);
@@ -518,27 +526,29 @@ void CRLoginView::SetCaret()
 
 	if ( (m_DispCaret & FGCARET_REDRAW) != 0 ) {
 		m_DispCaret &= ~FGCARET_REDRAW;
-		if ( (m_DispCaret & FGCARET_CREATE) != 0 ) {
-			DestroyCaret();
-			m_DispCaret &= ~FGCARET_CREATE;
-		}
+		KillCaret();
 	}
 
 	switch(m_DispCaret) {
 	case FGCARET_FOCUS | FGCARET_ONOFF:					// 006
 		switch(pDoc->m_TextRam.m_TypeCaret) {
-		case 0: case 1: case 2:
+		case 2:
+			SetTimer(VTMID_CARETUPDATE, GetCaretBlinkTime() * 2 / 3, NULL);
+		case 0: case 1:	
 			CreateSolidCaret(m_CharWidth, m_CharHeight);
 			break;
-		case 3: case 4:
+		case 4:
+			SetTimer(VTMID_CARETUPDATE, GetCaretBlinkTime() * 2 / 3, NULL);
+		case 3:
+			po.y += m_CharHeight;
 			CreateSolidCaret(m_CharWidth, 1);
 			break;
-		case 5: case 6:
+		case 6:
+			SetTimer(VTMID_CARETUPDATE, GetCaretBlinkTime() * 2 / 3, NULL);
+		case 5:
 			CreateSolidCaret(1, m_CharHeight);
 			break;
 		}
-		if ( pDoc->m_TextRam.m_TypeCaret == 3 || pDoc->m_TextRam.m_TypeCaret == 4 )
-			po.y += m_CharHeight;
 		SetCaretPos(po);
 		ImmSetPos(m_CaretX, m_CaretY);
 		ShowCaret();
@@ -558,8 +568,7 @@ void CRLoginView::SetCaret()
 		// no break
 	case FGCARET_CREATE:									// 001:
 	case FGCARET_ONOFF | FGCARET_CREATE:					// 003:
-		DestroyCaret();
-		m_DispCaret &= ~FGCARET_CREATE;
+		KillCaret();
 		break;
 	}
 }
@@ -791,7 +800,7 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		return;
 	} else if ( lHint == UPDATE_VISUALBELL ) {
 		if ( !m_VisualBellFlag ) {
-			SetTimer(1025, 50, NULL);
+			SetTimer(VTMID_VISUALBELL, 50, NULL);
 			m_VisualBellFlag = TRUE;
 			Invalidate(FALSE);
 			if ( m_pGhost != NULL )
@@ -840,10 +849,7 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		m_CharWidth  = pFrame->m_Width  / pFrame->m_Cols;
 		m_CharHeight = pFrame->m_Height / pFrame->m_Lines;
 		
-		if ( (m_DispCaret & FGCARET_CREATE) != 0 ) {
-			m_DispCaret &= ~FGCARET_CREATE;
-			DestroyCaret();
-		}
+		KillCaret();
 
 		m_BmpFile.LoadFile(pDoc->m_TextRam.m_BitMapFile);
 		m_pBitmap = m_BmpFile.GetBitmap(GetDC(), m_Width, m_Height, 1);
@@ -1394,22 +1400,22 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 	CView::OnTimer(nIDEvent);
 
 	switch(nIDEvent) {
-	case 1024:		// ClipTimer
+	case VTMID_MOUSEMOVE:		// ClipTimer
 		OnMouseMove(m_ClipKeyFlags, m_ClipSavePoint);
 		break;
-	case 1025:		// VisualBell
+	case VTMID_VISUALBELL:		// VisualBell
 		KillTimer(nIDEvent);
 		m_VisualBellFlag = FALSE;
 		Invalidate(FALSE);
 		break;
-	case 1026:		// Blink Timer
+	case VTMID_BLINKUPDATE:		// Blink Timer
 		m_BlinkFlag = (++m_BlinkFlag & 3) | 4;
 		if ( pDoc->m_TextRam.BLINKUPDATE(this) == 0 ) {
 			KillTimer(nIDEvent);
 			m_BlinkFlag = 0;
 		}
 		break;
-	case 1027:		// Wheel Timer
+	case VTMID_WHEELMOVE:		// Wheel Timer
 		if ( (m_HisOfs += m_WheelDelta) < 0 ) {
 			m_HisOfs = 0;
 			m_WheelDelta = 0;
@@ -1429,8 +1435,12 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 		OnUpdate(this, UPDATE_INVALIDATE, NULL);
 		break;
 
-	case 1028:		// Gozi Timer
-#if 0	// GOZI
+	case VTMID_CARETUPDATE:		// Caret Timer
+		SetCaretBlinkTime(GetCaretBlinkTime());
+		break;
+
+	case VTMID_GOZIUPDATE:		// Gozi Timer
+#if USE_GOZI == 1
 		rect.SetRect(m_GoziPos.x, m_GoziPos.y, m_GoziPos.x + 32, m_GoziPos.y + 32);
 		InvalidateRect(rect, FALSE);
 
@@ -1500,7 +1510,7 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 		rect.SetRect(m_GoziPos.x, m_GoziPos.y, m_GoziPos.x + 32, m_GoziPos.y + 32);
 		InvalidateRect(rect, FALSE);
 
-#else	// NEKO
+#elif USE_GOZI == 2
 		rect.SetRect(m_GoziPos.x, m_GoziPos.y, m_GoziPos.x + 32, m_GoziPos.y + 32);
 		InvalidateRect(rect, FALSE);
 
@@ -1624,7 +1634,7 @@ BOOL CRLoginView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 		} else {
 			if ( !pDoc->m_TextRam.IsOptEnable(TO_RLMOSWHL) && (ofs > 4 || ofs < -4) ) {
 				m_WheelDelta = ofs;
-				SetTimer(1027, 100, NULL);
+				SetTimer(VTMID_WHEELMOVE, 100, NULL);
 				m_WheelTimer = TRUE;
 			} else {
 				if ( (pos = m_HisOfs + ofs) < 0 )
@@ -1803,7 +1813,7 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 	if ( point.y < 0 || point.y > m_Height ) {
 		m_ClipSavePoint = point;
 		if ( m_ClipTimer == 0 )
-			m_ClipTimer = (UINT)SetTimer(1024, 100, NULL);
+			m_ClipTimer = (UINT)SetTimer(VTMID_MOUSEMOVE, 100, NULL);
 		if ( point.y < (0 - m_CharHeight * 3) )
 			OnVScroll(SB_PAGEUP, 0, NULL);
 		else if ( point.y < 0 )
@@ -2278,7 +2288,7 @@ void CRLoginView::OnGoziview()
 		m_GoziView = FALSE;
 	} else {
 		m_GoziView = TRUE;
-		SetTimer(1028, 400, NULL);
+		SetTimer(VTMID_GOZIUPDATE, 400, NULL);
 	}
 }
 void CRLoginView::OnUpdateGoziview(CCmdUI *pCmdUI)

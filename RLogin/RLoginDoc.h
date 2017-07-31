@@ -113,7 +113,7 @@ public:
 	LPCTSTR LocalStr(LPCSTR str);
 
 	void OnSocketConnect();
-	void OnSocketError(int err);
+	void OnSocketError(int err, int fs);
 	void OnSocketClose();
 	int OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags);
 

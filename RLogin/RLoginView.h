@@ -18,6 +18,13 @@
 #define	FGCARET_FOCUS	004
 #define	FGCARET_REDRAW	010
 
+#define	VTMID_MOUSEMOVE		1024
+#define	VTMID_VISUALBELL	1025
+#define	VTMID_BLINKUPDATE	1026
+#define	VTMID_WHEELMOVE		1027
+#define	VTMID_CARETUPDATE	1028
+#define	VTMID_GOZIUPDATE	1029
+
 class CRLoginView : public CView
 {
 	DECLARE_DYNCREATE(CRLoginView)
@@ -90,6 +97,7 @@ public:
 	void SetFrameRect(int cx, int cy);
 	void ImmSetPos(int x, int y);
 	int ImmOpenCtrl(int sw);
+	void KillCaret();
 	void SetCaret();
 	void SendBroadCastMouseWheel(UINT nFlags, short zDelta, CPoint pt);
 	void SendBroadCast(CBuffer &buf);

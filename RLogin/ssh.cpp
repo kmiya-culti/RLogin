@@ -183,6 +183,7 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 }
 void Cssh::Close()
 {
+	m_StdChan = (-1);
 	for ( int n = 0 ; n < m_pChan.GetSize() ; n++ ) 
 		delete (CChannel *)m_pChan[n];
 	m_pChan.RemoveAll();
@@ -212,6 +213,9 @@ int Cssh::Send(const void* lpBuf, int nBufLen, int nFlags)
 }
 void Cssh::OnConnect()
 {
+	//BOOL val = 1;
+	//CExtSocket::SetSockOpt(SO_OOBINLINE, &val, sizeof(BOOL), SOL_SOCKET);
+
 	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHPFORY) )
 		CExtSocket::OnConnect();
 }
@@ -334,8 +338,8 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				}
 				m_Incom.Consume(m_DecMac.GetBlockSize());
 			}
-			m_RecvPackSeq++;
-			m_RecvPackLen++;
+			m_RecvPackSeq += 1;
+			m_RecvPackLen += bp->GetSize();
 			RecivePacket2(bp);
 			break;
 
@@ -370,8 +374,8 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 			tmp.ConsumeEnd(m_InPackPad);
 			m_InPackBuf.Clear();
 			m_DecCmp.UnCompress(tmp.GetPtr(), tmp.GetSize(), &m_InPackBuf);
-			m_RecvPackSeq++;
-			m_RecvPackLen++;
+			m_RecvPackSeq += 1;
+			m_RecvPackLen += m_InPackBuf.GetSize();
 			RecivePacket2(&m_InPackBuf);
 			break;
 
@@ -412,8 +416,8 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 			dec.ConsumeEnd(m_InPackPad);
 			m_InPackBuf.Clear();
 			m_DecCmp.UnCompress(dec.GetPtr(), dec.GetSize(), &m_InPackBuf);
-			m_RecvPackSeq++;
-			m_RecvPackLen++;
+			m_RecvPackSeq += 1;
+			m_RecvPackLen += m_InPackBuf.GetSize();
 			RecivePacket2(&m_InPackBuf);
 			break;
 
@@ -449,8 +453,8 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 			tmp.ConsumeEnd(m_InPackPad);
 			m_InPackBuf.Clear();
 			m_DecCmp.UnCompress(tmp.GetPtr(), tmp.GetSize(), &m_InPackBuf);
-			m_RecvPackSeq++;
-			m_RecvPackLen++;
+			m_RecvPackSeq += 1;
+			m_RecvPackLen += m_InPackBuf.GetSize();
 			RecivePacket2(&m_InPackBuf);
 			break;
 		}
@@ -1439,10 +1443,10 @@ void Cssh::SendMsgKexInit()
 
 	if ( m_MyPeer.GetSize() == 0 || (m_SSH2Status & SSH2_STAT_SENTKEXINIT) != 0 )
 		return;
+	m_SSH2Status |= SSH2_STAT_SENTKEXINIT;
 	tmp.Put8Bit(SSH2_MSG_KEXINIT);
 	tmp.Apend(m_MyPeer.GetPtr(), m_MyPeer.GetSize());
 	SendPacket2(&tmp);
-	m_SSH2Status |= SSH2_STAT_SENTKEXINIT;
 	m_SendPackLen = 0;
 }
 void Cssh::SendMsgKexDhInit()
@@ -1738,12 +1742,6 @@ void Cssh::SendMsgChannelData(int id)
 	if ( id < 0 || id >= m_pChan.GetSize() || !CHAN_OK(id) || (m_SSH2Status & SSH2_STAT_SENTKEXINIT) != 0 )
 		return;
 
-	if ( m_SendPackLen >= MAX_PACKETLEN || m_RecvPackLen >= MAX_PACKETLEN ) {
-		if ( GetSendSize() == 0 )
-			SendMsgKexInit();
-		return;
-	}
-
 	while ( (len = cp->m_Output.GetSize()) > 0 ) {
 		if ( len > cp->m_RemoteWind )
 			len = cp->m_RemoteWind;
@@ -1926,6 +1924,12 @@ void Cssh::SendMsgGlobalRequest(int num, LPCSTR str, LPCTSTR rhost, int rport)
 void Cssh::SendMsgKeepAlive()
 {
 	CBuffer tmp;
+
+	if ( (m_SSH2Status & SSH2_STAT_SENTKEXINIT) != 0 )
+		return;
+
+//	TRACE("SendMsgKeepAlive (%x)\n", m_Fd);
+
 	tmp.Put8Bit(SSH2_MSG_GLOBAL_REQUEST);
 	tmp.PutStr("keepalive@openssh.com");
 	tmp.Put8Bit(1);
@@ -1950,12 +1954,14 @@ void Cssh::SendDisconnect2(int st, LPCSTR str)
 void Cssh::SendPacket2(CBuffer *bp)
 {
 	int n = bp->GetSize() + 128;
-	int pad, i;
+	int pad, i, sz = bp->GetSize();
 	CBuffer tmp(n);
 	CBuffer enc(n);
 	CBuffer mac;
 	static int padflag = FALSE;
 	static BYTE padimage[64];
+
+	//TRACE("SendPacket2 %d(%d)", bp->PTR8BIT(bp->GetPtr()), bp->GetSize());
 
 	tmp.PutSpc(4 + 1);		// Size + Pad Era
 	m_EncCmp.Compress(bp->GetPtr(), bp->GetSize(), &tmp);
@@ -1998,8 +2004,13 @@ void Cssh::SendPacket2(CBuffer *bp)
 
 	CExtSocket::Send(enc.GetPtr(), enc.GetSize());
 
-	m_SendPackSeq++;
-	m_SendPackLen++;
+	m_SendPackSeq += 1;
+	m_SendPackLen += sz;
+
+	//TRACE(" Seq=%d Len=%d\n", m_SendPackSeq, m_SendPackLen); 
+
+	if ( (m_SSH2Status & SSH2_STAT_SENTKEXINIT) == 0 && GetSendSize() == 0 && GetRecvSize() == 0 && (m_SendPackLen >= MAX_PACKETLEN || m_RecvPackLen >= MAX_PACKETLEN) )
+		SendMsgKexInit();
 }
 
 int Cssh::SSH2MsgKexInit(CBuffer *bp)
@@ -2765,6 +2776,7 @@ int Cssh::SSH2MsgChannelRequesst(CBuffer *bp)
 	CStringA str;
 	CBuffer tmp;
 	int id = bp->Get32Bit();
+	BOOL success = FALSE;
 
 	if ( id < 0 || id >= m_pChan.GetSize() || !CHAN_OK(id) )
 		return TRUE;
@@ -2776,6 +2788,7 @@ int Cssh::SSH2MsgChannelRequesst(CBuffer *bp)
 		bp->Get32Bit();
 		if ( id == m_StdChan )
 			m_SSH2Status &= ~SSH2_STAT_HAVESHELL;
+		success = TRUE;
 	
 	} else if ( str.Compare("exit-signal") == 0 ) {
 		bp->GetStr(str);
@@ -2784,10 +2797,13 @@ int Cssh::SSH2MsgChannelRequesst(CBuffer *bp)
 		bp->GetStr(str);
 		if ( id == m_StdChan )
 			m_SSH2Status &= ~SSH2_STAT_HAVESHELL;
-	}
+		success = TRUE;
+
+	} else if ( str.Compare("keepalive@openssh.com") == 0 )
+		success = TRUE;
 
 	if ( reply ) {
-		tmp.Put8Bit(SSH2_MSG_CHANNEL_SUCCESS);
+		tmp.Put8Bit(success ? SSH2_MSG_CHANNEL_SUCCESS : SSH2_MSG_CHANNEL_FAILURE);
 		tmp.Put32Bit(id);
 		SendPacket2(&tmp);
 	}
@@ -2866,10 +2882,15 @@ int Cssh::SSH2MsgGlobalRequest(CBuffer *bp)
 	BOOL success = FALSE;
 
 	bp->GetStr(str);
-	if ( !str.IsEmpty() ) {
+
+	if ( str.Compare("keepalive@openssh.com") == 0 ) {
+		success = TRUE;
+
+	} else if ( !str.IsEmpty() ) {
 		msg.Format(_T("Get Msg Global Request '%s'"), m_pDocument->LocalStr(str));
 		AfxMessageBox(msg);
 	}
+
 	if ( bp->Get8Bit() > 0 ) {
 		tmp.Put8Bit(success ? SSH2_MSG_REQUEST_SUCCESS : SSH2_MSG_REQUEST_FAILURE);
 		SendPacket2(&tmp);
@@ -2905,7 +2926,7 @@ void Cssh::RecivePacket2(CBuffer *bp)
 	CStringA str;
 	int type = bp->Get8Bit();
 
-//	TRACE("SSH2 Type %d\n", type);
+	//TRACE("RecivePacket2 %d(%d) Seq=%d Len=%d\n", type, bp->GetSize() + 1, m_RecvPackSeq, m_RecvPackLen);
 
 	switch(type) {
 	case SSH2_MSG_KEXINIT:

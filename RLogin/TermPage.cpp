@@ -61,7 +61,7 @@ static const struct _OptListTab {
 	{	TO_XTMCSC,		_T("132文字モード有効"),			_T("132文字モード無効"),			NULL	},
 	{	TO_XTMCUS,		_T("タブ(HT)のバグ修正モード"),		_T("xtermタブバグ互換モード"),		NULL	},
 	{	TO_XTMRVW,		_T("行頭BSによる上行右端移動"),		_T("行頭のBSで移動しない"),			NULL	},
-	{	TO_XTMABUF,		_T("全画面の保存"),					_T("保存した画面の復帰"),			NULL	},
+	{	TO_XTMABUF,		_T("現在の画面の保存"),				_T("保存した画面の復帰"),			NULL	},
 	{	TO_DECBKM,		_T("BSキー変換を行わない"),			_T("BSキーをDELキーに変換"),		NULL	},
 	{	TO_DECLRMM,		_T("左右マージン有効"),				_T("左右マージン無効"),				NULL	},
 	{	TO_DECSDM,		_T("Sixelを別ウィンドウで表示"),	_T("Sixelスクロールモード表示"),	NULL	},
@@ -77,9 +77,9 @@ static const struct _OptListTab {
 	{	TO_XTEXTMOS,	_T("Extended Mouse Mode"),			_T("Disable Extended Mode"),		NULL	},
 	{	TO_XTSGRMOS,	_T("SGR Mouse Mode"),				_T("Disable SGR Mode"),				NULL	},
 	{	TO_XTURXMOS,	_T("URXVT Mouse Mode"),				_T("Disable URXVT Mode"),			NULL	},
-	{	TO_XTALTSCR,	_T("全画面の保存"),					_T("保存した画面の復帰"),			NULL	},
+	{	TO_XTALTSCR,	_T("現在画面と拡張画面の切換"),		_T("拡張画面と保存画面の切換"),		NULL	},
 	{	TO_XTSRCUR,		_T("カーソル位置の保存"),			_T("保存したカーソル位置の復帰"),	NULL	},
-	{	TO_XTALTCLR,	_T("拡張画面に切り換え"),			_T("標準画面に切り換え"),			NULL	},
+	{	TO_XTALTCLR,	_T("現在の画面の保存後にクリア"),	_T("保存した画面の復帰"),			NULL	},
 
 	// XTerm Option 2		2000-2019(380-399)
 	{	TO_XTBRPAMD,	_T("Bracketed Paste Mode 有効"),	_T("Bracketed Paste Mode 無効"),	NULL	},

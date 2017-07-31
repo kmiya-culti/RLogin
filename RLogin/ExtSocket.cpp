@@ -1373,7 +1373,7 @@ void CExtSocket::OnAsyncHostByName(int mode, LPCTSTR pHostName)
 		break;
 	}
 }
-void CExtSocket::OnError(int err)
+void CExtSocket::OnError(int err, int fs)
 {
 #ifndef	NOIPV6
 	if ( m_AddrInfoTop != NULL && OpenAddrInfo() )
@@ -1382,7 +1382,7 @@ void CExtSocket::OnError(int err)
 	Close();
 	if ( m_pDocument == NULL )
 		return;
-	m_pDocument->OnSocketError(err);
+	m_pDocument->OnSocketError(err, fs);
 }
 void CExtSocket::OnClose()
 {
@@ -1399,13 +1399,20 @@ void CExtSocket::OnConnect()
 		m_AddrInfoTop = NULL;
 	}
 #endif
+
+	m_SocketEvent &= ~FD_CONNECT;
+	WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), WM_SOCKSEL, m_SocketEvent);
+
 	m_bConnect = TRUE;
+
 	if ( m_pDocument == NULL )
 		return;
+
 	if ( m_pDocument->m_TextRam.IsOptEnable(TO_RLKEEPAL) && m_Fd != (-1) ) {
 		BOOL opval = TRUE;
 		::setsockopt(m_Fd, SOL_SOCKET, SO_KEEPALIVE, (const char *)(&opval), sizeof(opval));
 	}
+
 	m_pDocument->OnSocketConnect();
 }
 void CExtSocket::OnAccept(SOCKET hand)
@@ -1436,7 +1443,9 @@ void CExtSocket::OnRecive(int nFlags)
 	int n, i;
 	CSockBuffer *sp;
 
-	if ( (m_SocketEvent & EventMask[nFlags]) == 0 && m_RecvSize < RECVMINSIZ ) {
+	if ( (m_SocketEvent & EventMask[nFlags]) == 0 ) {
+		if ( m_RecvSize >= RECVMINSIZ )
+			return;
 		m_SocketEvent |= (FD_READ | FD_OOB);
 		WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), WM_SOCKSEL, m_SocketEvent);
 		TRACE("OnRecive SocketEvent On %04x (%d)\n", m_SocketEvent, m_RecvSize);

@@ -945,6 +945,7 @@ CTextRam::CTextRam()
 	m_TitleStack.RemoveAll();
 	m_FrameCheck = FALSE;
 	m_ScrnOffset.SetRect(0, 0, 0, 0);
+	m_LogTimeFlag = TRUE;
 
 	m_LineEditMode = FALSE;
 	m_LineEditPos  = 0;
@@ -3901,7 +3902,7 @@ void CTextRam::OnTimer(int id)
 void CTextRam::CallReciveLine(int y)
 {
 	int n, i;
-	CStringW tmp;
+	CStringW tmp, str;
 
 	if ( m_pDocument == NULL || m_pDocument->m_pLogFile == NULL || IsOptValue(TO_RLLOGMODE, 2) != LOGMOD_LINE )
 		return;
@@ -3910,12 +3911,18 @@ void CTextRam::CallReciveLine(int y)
 	n = tmp.GetLength();
 	for ( i = 0 ; i < n && tmp[n - i - 1] == L' ' ; )
 		i++;
-	if ( i > 0 ) {
+	if ( i > 0 )
 		tmp.Delete(n - i, i);
-		tmp += L"\r\n";
-	}
+	tmp += L"\r\n";
 
 	CBuffer in, out;
+	CTime now = CTime::GetCurrentTime();
+
+	if ( IsOptEnable(TO_RLLOGTIME) ) {
+		str = now.Format("%H:%M:%S ");
+		in.Apend((LPBYTE)((LPCWSTR)str), str.GetLength() * sizeof(WCHAR));
+	}
+
 	in.Apend((LPBYTE)((LPCWSTR)tmp), tmp.GetLength() * sizeof(WCHAR));
 	m_IConv.StrToRemote(m_SendCharSet[m_LogCharSet[IsOptValue(TO_RLLOGCODE, 2)]], &in, &out);
 	m_pDocument->m_pLogFile->Write(out.GetPtr(), out.GetSize());
@@ -3968,7 +3975,8 @@ void CTextRam::CallReciveChar(int ch)
 	if ( md == LOGMOD_RAW || md == LOGMOD_LINE )
 		return;
 
-	CStringW tmp;
+	CStringW tmp, str;
+
 	if ( ch >= 0 && ch < 0x20 && ch != 0x09 && ch != 0x0A && ch != 0x0D ) {
 		if ( md == LOGMOD_CHAR && ch != 0x08 )
 			return;
@@ -3980,6 +3988,17 @@ void CTextRam::CallReciveChar(int ch)
 	}
 
 	CBuffer in, out;
+	CTime now = CTime::GetCurrentTime();
+
+	if ( m_LogTimeFlag && IsOptEnable(TO_RLLOGTIME) ) {
+		str = now.Format("%H:%M:%S ");
+		in.Apend((LPBYTE)((LPCWSTR)str), str.GetLength() * sizeof(WCHAR));
+		m_LogTimeFlag = FALSE;
+	}
+
+	if ( ch == 0x0A )
+		m_LogTimeFlag = TRUE;
+
 	in.Apend((LPBYTE)((LPCWSTR)tmp), tmp.GetLength() * sizeof(WCHAR));
 	m_IConv.StrToRemote(m_SendCharSet[m_LogCharSet[IsOptValue(TO_RLLOGCODE, 2)]], &in, &out);
 	m_pDocument->m_pLogFile->Write(out.GetPtr(), out.GetSize());
@@ -4255,26 +4274,32 @@ BOOL CTextRam::ChkGrapWnd()
 
 void CTextRam::RESET(int mode)
 {
-	if ( mode & RESET_CURSOR ) {
+	if ( mode & RESET_PAGE ) {
 		if ( m_VRam != NULL )
 			SETPAGE(0);
 		else
 			m_Page = 0;
+	}
 
+	if ( mode & RESET_CURSOR ) {
 		m_CurX = 0;
 		m_CurY = 0;
-		m_TopY = 0;
-		m_BtmY = m_Lines;
-		m_LeftX  = 0;
-		m_RightX = m_Cols;
-		m_bRtoL = FALSE;
 		m_DoWarp = FALSE;
+
+		m_bRtoL = FALSE;
 		m_Status = ST_NULL;
 		m_LastChar = 0;
 		m_LastFlag = 0;
 		m_LastPos  = 0;
 		m_Kan_Pos = 0;
 		memset(m_Kan_Buf, 0, sizeof(m_Kan_Buf));
+	}
+
+	if ( mode & RESET_MARGIN ) {
+		m_TopY = 0;
+		m_BtmY = m_Lines;
+		m_LeftX  = 0;
+		m_RightX = m_Cols;
 	}
 
 	if ( mode & RESET_TABS ) {

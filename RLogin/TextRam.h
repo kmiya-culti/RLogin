@@ -191,6 +191,7 @@
 #define	TO_RLGWDIS		1454		// ゴーストウィンドウを表示しない
 #define	TO_RLMWDIS		1455		// リサイズメッセージを表示しない
 #define	TO_RLGRPIND		1456		// イメージをウィンドウ内で表示
+#define	TO_RLLOGTIME	1457		// ログにタイムスタンプを追加
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -244,6 +245,8 @@
 #define	RESET_CHAR		0x0100
 #define	RESET_OPTION	0x0200
 #define	RESET_CLS		0x0400
+#define	RESET_PAGE		0x1000
+#define	RESET_MARGIN	0x2000
 #define	RESET_ALL		0xFFFF
 
 #define	RC_DCS			0
@@ -749,6 +752,7 @@ public:
 	int m_LineEditMapsIndex;
 	CStringMaps m_LineEditMapsTab[3];
 	int m_LogCharSet[4];
+	BOOL m_LogTimeFlag;
 	int m_TitleMode;
 	BOOL m_FileSaveFlag;
 	DWORD m_XtOptFlag;
@@ -846,7 +850,7 @@ public:
 	static void CTextRam::IconvToMsUniStr(LPCWSTR p, int len, CBuffer &out);
 
 	// Low Level
-	void RESET(int mode = RESET_CURSOR | RESET_TABS | RESET_BANK | RESET_ATTR | RESET_COLOR | RESET_TEK | RESET_SAVE | RESET_MOUSE | RESET_CHAR);
+	void RESET(int mode = RESET_PAGE | RESET_CURSOR | RESET_MARGIN | RESET_TABS | RESET_BANK | RESET_ATTR | RESET_COLOR | RESET_TEK | RESET_SAVE | RESET_MOUSE | RESET_CHAR);
 	CVram *GETVRAM(int cols, int lines);
 	void UNGETSTR(LPCTSTR str, ...);
 	void BEEP();

@@ -944,6 +944,7 @@ BOOL CRLoginApp::OnIdle(LONG lCount)
 
 int CRLoginApp::ExitInstance() 
 {
+	CONF_modules_finish();
 	CONF_modules_unload(1);
 	CONF_modules_free();
 	EVP_cleanup();
