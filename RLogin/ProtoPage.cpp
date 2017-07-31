@@ -25,12 +25,13 @@ static char THIS_FILE[] = __FILE__;
 
 IMPLEMENT_DYNCREATE(CProtoPage, CPropertyPage)
 
-#define	CHECKOPTMAX		12
+#define	CHECKOPTMAX		13
 #define	CHECKOPTEXT		2
 #define	IDC_CHECKFAST	IDC_PROTOCHECK1
 static const int CheckOptTab[] = { TO_RLTENAT, TO_RLTENEC,   TO_SSH1MODE,  TO_SSHPFORY,
 								   TO_RLPOFF,  TO_RLUSEPASS, TO_RLDSECHO,  TO_RLBPLUS,
 								   TO_RLDELAY, TO_RLKEEPAL,  TO_SSHKEEPAL, TO_SSHAGENT,
+								   TO_RLTENLM,
 								   TO_SSHSFENC,TO_SSHSFMAC	};								// Extend
 
 CProtoPage::CProtoPage() : CPropertyPage(CProtoPage::IDD)

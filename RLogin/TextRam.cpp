@@ -1276,6 +1276,7 @@ int CTextRam::LineEdit(CBuffer &buf)
 	int rt = FALSE;
 	int ec = FALSE;
 	int ds = FALSE;
+	int sr = FALSE;
 	int len;
 	CBuffer tmp;
 	CString dir;
@@ -1483,23 +1484,34 @@ int CTextRam::LineEdit(CBuffer &buf)
 			break;
 
 		default:
-			if ( (*wp & 0xFF00) != 0 || *wp >= ' ' ) {
-				n = m_LineEditBuff.GetSize() / sizeof(WCHAR);
-				if ( m_LineEditPos >= n )
-					m_LineEditBuff.PutWord(*wp);
-				else {
-					m_LineEditBuff.PutWord(0x00);	// Dummy
-					sp = (WCHAR *)m_LineEditBuff.GetPtr();
-					for ( ; m_LineEditPos <= n ; n-- )
-						sp[n] = sp[n - 1];
-					sp[m_LineEditPos] = *wp;
-				}
-				m_LineEditPos++;
-				m_LineEditMapsPos = (-1);
-				ec = TRUE;
+			n = m_LineEditBuff.GetSize() / sizeof(WCHAR);
+			if ( m_LineEditPos >= n )
+				m_LineEditBuff.PutWord(*wp);
+			else {
+				m_LineEditBuff.PutWord(0x00);	// Dummy
+				sp = (WCHAR *)m_LineEditBuff.GetPtr();
+				for ( ; m_LineEditPos <= n ; n-- )
+					sp[n] = sp[n - 1];
+				sp[m_LineEditPos] = *wp;
 			}
+			m_LineEditPos++;
+			m_LineEditMapsPos = (-1);
+			ec = TRUE;
+			if ( (*wp & 0xFF00) == 0 && *wp < L' ' )
+				sr = TRUE;
+			break;
 		}
 		wp++;
+	}
+
+	if ( sr ) {
+		buf.Apend(m_LineEditBuff.GetPtr(), m_LineEditBuff.GetSize());
+		m_LineEditBuff.Clear();
+		m_LineEditPos = 0;
+		m_LineEditHisPos = (-1);
+		m_LineEditMapsPos = (-1);
+		rt = TRUE;
+		ec = FALSE;
 	}
 
 	if ( ec )

@@ -187,9 +187,47 @@ static const char *telopts[] = {
         "TACACS UID", "OUTPUT MARKING", "TTYLOC",
         "3270 REGIME", "X.3 PAD", "NAWS", "TSPEED", "LFLOW",
         "LINEMODE", "XDISPLOC", "OLD-ENVIRON", "AUTHENTICATION",
-        "ENCRYPT", "NEW-ENVIRON", "",
-        0
+        "ENCRYPT", "NEW-ENVIRON", "", 0
 	};
+static const char *slc_list[] = { 
+		"0", "SYNCH", "BRK", "IP", "AO", "AYT", "EOR",
+		"ABORT", "EOF", "SUSP", "EC", "EL", "EW", "RP",
+		"LNEXT", "XON", "XOFF", "FORW1", "FORW2",
+		"MCL", "MCR", "MCWL", "MCWR", "MCBOL",
+		"MCEOL", "INSRT", "OVER", "ECR", "EWR",
+		"EBOL", "EEOL"
+	};
+static const char *slc_flag[] = {
+		"NOSUPPORT", "CANTCHANGE", "VARIABLE", "DEFAULT"
+	};
+
+static const struct {
+	BYTE	code;
+	BYTE	flag;
+	BYTE	ch;
+	BYTE	tc;
+} slc_init[] = {
+	{	SLC_SYNCH,	SLC_DEFAULT,								0,		0	},
+	{	SLC_IP,		SLC_VARIABLE | SLC_FLUSHIN | SLC_FLUSHOUT,	3,		TELC_IP		},
+	{	SLC_AO,		SLC_VARIABLE,								15,		TELC_AO		},
+	{	SLC_AYT,	SLC_VARIABLE,								20,		TELC_AYT	},
+	{	SLC_ABORT,	SLC_VARIABLE | SLC_FLUSHIN | SLC_FLUSHOUT,	28,		TELC_ABORT	},
+	{	SLC_EOF,	SLC_VARIABLE,								4,		TELC_EOF	},
+	{	SLC_SUSP,	SLC_VARIABLE | SLC_FLUSHIN,					26,		TELC_SUSP	},
+	{	SLC_EC,		SLC_VARIABLE,								8,		TELC_EC		},
+	{	SLC_EL,		SLC_VARIABLE,								21,		TELC_EL		},
+	{	SLC_EW,		SLC_VARIABLE,								23,		0	},
+	{	SLC_RP,		SLC_VARIABLE,								18,		0	},
+	{	SLC_LNEXT,	SLC_VARIABLE,								22,		0	},
+	{	SLC_XON,	SLC_VARIABLE,								17,		0	},
+	{	SLC_XOFF,	SLC_VARIABLE,								19,		0	},
+	{	SLC_FORW1,	SLC_NOSUPPORT,								255,	0	},
+	{	SLC_FORW2,	SLC_NOSUPPORT,								255,	0	},
+
+	{	SLC_CR,		SLC_VARIABLE | SLC_FLUSHOUT,				13,		0	},	// Add CR
+	{	SLC_LF,		SLC_VARIABLE | SLC_FLUSHOUT,				10,		0	},	// Add LF
+	{	0,			0,											0,		0	}
+};
 
 CTelnet::CTelnet(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 {
@@ -212,12 +250,12 @@ BOOL CTelnet::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, in
 
 	HisOpt[TELOPT_BINARY].flags		|= TELFLAG_ACCEPT;
 	HisOpt[TELOPT_ECHO].flags		|= TELFLAG_ACCEPT;
-//	HisOpt[TELOPT_SGA].flags		|= TELFLAG_ACCEPT;
+	HisOpt[TELOPT_SGA].flags		|= TELFLAG_ACCEPT;
 //	HisOpt[TELOPT_LFLOW].flags		|= TELFLAG_ACCEPT;
 
 	MyOpt[TELOPT_BINARY].flags		|= TELFLAG_ACCEPT;
 	MyOpt[TELOPT_ECHO].flags		|= TELFLAG_ACCEPT;
-//	MyOpt[TELOPT_SGA].flags			|= TELFLAG_ACCEPT;
+	MyOpt[TELOPT_SGA].flags			|= TELFLAG_ACCEPT;
 	MyOpt[TELOPT_TTYPE].flags		|= TELFLAG_ACCEPT;
 	MyOpt[TELOPT_NAWS].flags		|= TELFLAG_ACCEPT;
 	MyOpt[TELOPT_NEW_ENVIRON].flags	|= TELFLAG_ACCEPT;
@@ -235,6 +273,18 @@ BOOL CTelnet::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, in
 	EncryptInputFlag  = FALSE;
 	EncryptOutputFlag = FALSE;
 
+	for ( n = 0 ; n < SLC_MAX ; n++ )
+		slc_tab[n].flag = slc_tab[n].ch = slc_tab[n].tc = (BYTE)0;
+
+	for ( n = 0 ; slc_init[n].code != 0 ; n++ ) {
+		slc_tab[slc_init[n].code].flag = slc_init[n].flag | SLC_DEFINE;
+		slc_tab[slc_init[n].code].ch   = slc_init[n].ch;
+		slc_tab[slc_init[n].code].tc   = slc_init[n].tc;
+	}
+
+	slc_mode = 0;
+	m_SendBuff.Clear();
+
 	if ( !CExtSocket::Open(lpszHostAddress, nHostPort, nSocketPort, nSocketType, pAddrInfo) )
 		return FALSE;
 
@@ -248,6 +298,9 @@ BOOL CTelnet::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, in
 			MyOpt[TELOPT_ENCRYPT].flags |= TELFLAG_ACCEPT;
 	}
 
+	if ( !m_pDocument->m_TextRam.IsOptEnable(TO_RLTENLM) )
+		MyOpt[TELOPT_LINEMODE].flags |= TELFLAG_ACCEPT;
+
 	return TRUE;
 }
 void CTelnet::OnConnect()
@@ -255,39 +308,95 @@ void CTelnet::OnConnect()
 	BOOL val = 1;
 	CExtSocket::SetSockOpt(SO_OOBINLINE, &val, sizeof(BOOL), SOL_SOCKET);
     ReciveStatus = RVST_DATA;
+
 	SendOpt(TELC_DO, TELOPT_BINARY);
+	HisOpt[TELOPT_BINARY].status = TELSTS_WANT_ON;
+
 	SendOpt(TELC_WILL, TELOPT_BINARY);
+	MyOpt[TELOPT_BINARY].status = TELSTS_WANT_ON;
+
 	CExtSocket::OnConnect();
 }
 void CTelnet::SockSend(char *buf, int len)
 {
 	if ( EncryptOutputFlag )
 		EncryptEncode(buf, len);
+
 	CExtSocket::Send(buf, len);
+}
+void CTelnet::SendFlush()
+{
+	if ( m_SendBuff.GetSize() <= 0 )
+		return;
+
+	SockSend((char *)m_SendBuff.GetPtr(), m_SendBuff.GetSize());
+	m_SendBuff.Clear();
 }
 int CTelnet::Send(const void* lpBuf, int nBufLen, int nFlags)
 {
-	int n = 0;
-	int len = nBufLen;
+	int n, i;
 	char *buf = (char *)lpBuf;
-	char tmp[512 + 2];
+	char tmp[4];
 
    if ( ReciveStatus == RVST_NON )
 	   return 0;
 
-	if ( (MyOpt[TELOPT_ECHO].flags & TELFLAG_ON) != 0 )
-		CExtSocket::OnReciveCallBack(buf, nBufLen, 0);
-
-	while ( len-- > 0 ) {
-		if ( n >= 512 ) {
-			SockSend(tmp, n);
-			n = 0;
+	if ( (MyOpt[TELOPT_LINEMODE].flags & TELFLAG_ON) != 0 ) {
+		for ( n = 0 ; n < nBufLen ; n++ ) {
+			for ( i = SLC_SYNCH ; i <= SLC_LF ; i++ ) {
+				if ( (slc_tab[i].flag & 3) == SLC_VARIABLE && slc_tab[i].ch == buf[n] ) {
+					if ( slc_tab[i].tc == 0 ) {
+						if ( buf[n] == (char)TELC_IAC )
+							m_SendBuff.Put8Bit(TELC_IAC);
+						m_SendBuff.Put8Bit(buf[n]);
+					}
+					if ( (slc_tab[i].flag & SLC_FLUSHOUT) != 0 )
+						SendFlush();
+					if ( slc_tab[i].tc != 0 ) {
+						tmp[0] = (char)TELC_IAC;
+						tmp[1] = (char)slc_tab[i].tc;
+						SockSend(tmp, 2);
+						TRACE("SEND %s\n", slc_list[i]);
+					}
+					break;
+				}
+			}
+			if ( i > SLC_LF ) {
+				if ( buf[n] == (char)TELC_IAC )
+					m_SendBuff.Put8Bit(TELC_IAC);
+				m_SendBuff.Put8Bit(buf[n]);
+			}
 		}
-		if ( (tmp[n++] = *(buf++)) == (char)TELC_IAC )
-			tmp[n++] = (char)TELC_IAC;
+	} else {
+		for ( n = 0 ; n < nBufLen ; n++ ) {
+			if ( buf[n] == (char)TELC_IAC )
+				m_SendBuff.Put8Bit(TELC_IAC);
+			m_SendBuff.Put8Bit(buf[n]);
+		}
+		SendFlush();
 	}
-	SockSend(tmp, n);
+
 	return nBufLen;
+}
+void CTelnet::SendBreak(int opt)
+{
+	char tmp[4];
+	
+	if ( (MyOpt[TELOPT_LINEMODE].flags & TELFLAG_ON) != 0 ) {
+		switch(opt) {
+		case 0:		// ^C
+			Send("\x03", 1);
+			break;
+		case 1:		// ^Z
+			Send("\x1A", 1);
+			break;
+		}
+	} else {
+		tmp[0] = (char)TELC_IAC;
+		tmp[1] = (char)TELC_BREAK;
+		SockSend(tmp, 2);
+		TRACE("SEND BREAK\n");
+	}
 }
 void CTelnet::PrintOpt(int st, int ch, int opt)
 {
@@ -332,6 +441,39 @@ void CTelnet::SendOpt(int ch, int opt)
 	tmp[2] = opt;
 	SockSend(tmp, 3);
 	PrintOpt(0, ch, opt);
+}
+void CTelnet::SendSlcOpt()
+{
+	int n;
+	int len = 0;
+	char tmp[SLC_MAX * 4 + 6];
+
+	tmp[len++] = (char)TELC_IAC;
+	tmp[len++] = (char)TELC_SB;
+	tmp[len++] = (char)TELOPT_LINEMODE;
+	tmp[len++] = (char)LM_SLC;
+
+	TRACE("SEND SB LINEMODE SLC\n");
+	for ( n = SLC_SYNCH ; n <= SLC_EEOL ; n++ ) {
+		if ( slc_tab[n].flag == 0 )
+			continue;
+		slc_tab[n].flag &= ~SLC_ACK;
+		tmp[len++] = (char)n;
+		tmp[len++] = slc_tab[n].flag;
+		if ( (tmp[len++] = slc_tab[n].ch) == (char)TELC_IAC )
+			tmp[len++] = (char)TELC_IAC;
+
+		TRACE("%s %s%s%s%s %d\n", slc_list[n], slc_flag[slc_tab[n].flag & 3],
+			((slc_tab[n].flag & SLC_ACK) != 0 ? "|ACK" : ""),
+			((slc_tab[n].flag & SLC_FLUSHIN) != 0 ? "|FLUSHIN" : ""),
+			((slc_tab[n].flag & SLC_FLUSHOUT) != 0 ? "|FLUSHOUT" : ""),
+			slc_tab[n].ch);
+	}
+
+	tmp[len++] = (char)TELC_IAC;
+	tmp[len++] = (char)TELC_SE;
+
+	SockSend(tmp, len);
 }
 void CTelnet::SendWindSize(int x, int y)
 {
@@ -392,6 +534,26 @@ void CTelnet::GetStatus(CString &str)
 		tmp.Format(" %s:%s", telopts[n], optsts[MyOpt[n].status]);
 		str += tmp;
 	}
+	str += "\r\n";
+
+	str += "\r\n";
+	str += "Linemode SLC: ";
+	for ( n = SLC_SYNCH ; n <= SLC_EEOL ; n++ ) {
+		tmp.Format("%s %s%s%s%s %d; ", slc_list[n], slc_flag[slc_tab[n].flag & 3],
+			((slc_tab[n].flag & SLC_ACK) != 0 ? "|ACK" : ""),
+			((slc_tab[n].flag & SLC_FLUSHIN) != 0 ? "|FLUSHIN" : ""),
+			((slc_tab[n].flag & SLC_FLUSHOUT) != 0 ? "|FLUSHOUT" : ""),
+			slc_tab[n].ch);
+		str += tmp;
+	}
+	str += "\r\n";
+
+	str += "Linemode Mode: ";
+	if ( (slc_mode & MODE_EDIT)     != 0 ) str += "EDIT ";
+	if ( (slc_mode & MODE_TRAPSIG)  != 0 ) str += "TRAPSIG ";
+	if ( (slc_mode & MODE_ACK)      != 0 ) str += "ACK ";
+	if ( (slc_mode & MODE_SOFT_TAB) != 0 ) str += "SOFT_TAB ";
+	if ( (slc_mode & MODE_LIT_ECHO) != 0 ) str += "LIT_ECHO ";
 	str += "\r\n";
 
 	if ( EncryptOutputFlag || EncryptInputFlag )
@@ -511,6 +673,11 @@ void CTelnet::OptFunc(struct TelOptTab *tab, int opt, int sw, int ch)
 		switch(tab[opt].status) {
 		case TELSTS_OFF:
 			tab[opt].flags &= ~TELFLAG_ON;
+			if ( opt == TELOPT_LINEMODE ) {
+				SendFlush();
+				if ( m_pDocument != NULL )
+					m_pDocument->m_TextRam.DisableOption(TO_RLDSECHO);
+			}
 			break;
 		case TELSTS_ON:
 			tab[opt].flags |= TELFLAG_ON;
@@ -518,6 +685,11 @@ void CTelnet::OptFunc(struct TelOptTab *tab, int opt, int sw, int ch)
 				SendWindSize(m_pDocument->m_TextRam.m_Cols, m_pDocument->m_TextRam.m_Lines);
 			else if ( opt == TELOPT_ENCRYPT )
 				EncryptSendSupport();
+			else if ( opt == TELOPT_LINEMODE ) {
+				SendSlcOpt();
+				if ( m_pDocument != NULL )
+					m_pDocument->m_TextRam.EnableOption(TO_RLDSECHO);
+			}
 			break;
 		}
 		break;
@@ -525,7 +697,7 @@ void CTelnet::OptFunc(struct TelOptTab *tab, int opt, int sw, int ch)
 }
 void CTelnet::SubOptFunc(char *buf, int len)
 {
-	int n, i;
+	int n, i, v;
 	int ptr = 0;
 	char tmp[256];
 	CStringIndex env;
@@ -661,6 +833,29 @@ void CTelnet::SubOptFunc(char *buf, int len)
 			if ( MyOpt[TELOPT_AUTHENTICATION].status == TELSTS_WANT_OFF )
 				return;
 			EncryptKeyid(DIR_ENC, buf + 2, len - 2);
+			break;
+		}
+		break;
+
+	case TELOPT_LINEMODE:
+		switch(SB_GETC()) {
+		case LM_SLC:
+			while ( (n = SB_GETC()) != EOF ) {
+				if ( n >= SLC_SYNCH && n <= SLC_EEOL && (i = SB_GETC()) != EOF && (v = SB_GETC()) != EOF ) {
+					slc_tab[n].flag = i;
+					slc_tab[n].ch   = v;
+
+					TRACE("%s %s%s%s%s %d\n", slc_list[n], slc_flag[slc_tab[n].flag & 3],
+						((slc_tab[n].flag & SLC_ACK) != 0 ? "|ACK" : ""),
+						((slc_tab[n].flag & SLC_FLUSHIN) != 0 ? "|FLUSHIN" : ""),
+						((slc_tab[n].flag & SLC_FLUSHOUT) != 0 ? "|FLUSHOUT" : ""),
+						slc_tab[n].ch);
+				}
+			}
+			break;
+		case LM_MODE:
+			if ( (n = SB_GETC()) != EOF )
+				slc_mode = n;
 			break;
 		}
 		break;

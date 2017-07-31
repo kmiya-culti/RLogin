@@ -27,7 +27,7 @@ public:
 	UINT	m_DelayMsec;
 	UINT	m_KeepAlive;
 	//}}AFX_DATA
-	BOOL m_Check[14];
+	BOOL m_Check[18];
 
 
 // オーバーライド

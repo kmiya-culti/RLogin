@@ -179,6 +179,62 @@
 #define	STM_HAVE_IV		004
 #define	STM_HAVE_OK		(STM_HAVE_KEYID | STM_HAVE_IKEY | STM_HAVE_IV)
 
+#define LM_MODE			1
+#define LM_FORWARDMASK	2
+#define LM_SLC			3
+
+#define SLC_SYNCH		1
+#define SLC_BRK 		2
+#define SLC_IP			3
+#define SLC_AO			4
+#define SLC_AYT			5
+#define SLC_EOR 		6
+#define SLC_ABORT		7
+#define SLC_EOF 		8
+#define SLC_SUSP		9
+#define SLC_EC			10
+#define SLC_EL			11
+#define SLC_EW			12
+#define SLC_RP			13
+#define SLC_LNEXT		14
+#define SLC_XON 		15
+#define SLC_XOFF		16
+#define SLC_FORW1		17
+#define SLC_FORW2		18
+#define SLC_MCL 		19
+#define SLC_MCR			20
+#define SLC_MCWL		21
+#define SLC_MCWR		22
+#define SLC_MCBOL		23
+#define SLC_MCEOL		24
+#define SLC_INSRT		25
+#define SLC_OVER		26
+#define SLC_ECR 		27
+#define SLC_EWR 		28
+#define SLC_EBOL		29
+#define SLC_EEOL		30
+
+#define SLC_CR			31		// XXX Add CR Key
+#define SLC_LF			32		// XXX Add LF Key
+#define	SLC_MAX			33
+
+#define SLC_NOSUPPORT	0
+#define SLC_CANTCHANGE	1
+#define SLC_VARIABLE	2
+#define SLC_DEFAULT		3
+
+#define SLC_ACK 		0x80
+#define SLC_FLUSHIN		0x40
+#define SLC_FLUSHOUT	0x20
+
+#define	SLC_DEFINE		0x100
+
+#define MODE_EDIT		0x01
+#define MODE_TRAPSIG	0x02
+#define MODE_ACK		0x04
+#define MODE_SOFT_TAB	0x08
+#define MODE_LIT_ECHO	0x10
+
 #include "openssl/des.h"
 #include "openssl/bn.h"
 #include "openssl/crypto.h"
@@ -216,6 +272,7 @@ public:
 	void OnConnect();
 	void OnReciveCallBack(void *lpBuf, int nBufLen, int nFlags);
 	int Send(const void *lpBuf, int nBufLen, int nFlags = 0);
+	void SendBreak(int opt = 0);
 	void SendWindSize(int x, int y);
 	void SetXonXoff(int sw);
 	void GetStatus(CString &str);
@@ -233,9 +290,10 @@ private:
 	int ReciveStatus;
 
 	void SockSend(char *buf, int len);
-
+	void SendFlush();
 	void SendStr(LPCSTR str);
 	void SendOpt(int ch, int opt);
+	void SendSlcOpt();
 	void OptFunc(struct TelOptTab *tab, int opt, int sw, int ch);
 	void SubOptFunc(char *buf, int len);
 	void PrintOpt(int st, int ch, int opt);
@@ -277,6 +335,13 @@ private:
 	} stream[2];
 	int EncryptInputFlag;
 	int EncryptOutputFlag;
+
+	struct _slc {
+		WORD	flag;
+		BYTE	ch;
+		BYTE	tc;
+	} slc_tab[SLC_MAX];
+	int slc_mode;
 
 	void EncryptSendSupport();
 	void EncryptSessionKey();

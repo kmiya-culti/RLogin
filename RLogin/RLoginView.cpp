@@ -290,6 +290,32 @@ void CRLoginView::CalcGrapPoint(CPoint po, int *x, int *y)
 	*x = m_Cols  * po.x / m_Width;
 	*y = m_Lines * po.y / m_Height - m_HisOfs + m_HisMin;
 }
+void CRLoginView::SendBroadCastMouseWheel(UINT nFlags, short zDelta, CPoint pt)
+{
+	CWinApp *pApp;
+	CRLoginDoc *pThisDoc = GetDocument();
+	static volatile BOOL inuse = FALSE;
+
+	if ( inuse || (pApp = AfxGetApp()) == NULL )
+		return;
+
+	inuse = TRUE;
+	POSITION pos = pApp->GetFirstDocTemplatePosition();
+	while ( pos != NULL ) {
+		CDocTemplate *pDocTemp = pApp->GetNextDocTemplate(pos);
+		POSITION dpos = pDocTemp->GetFirstDocPosition();
+		while ( dpos != NULL ) {
+			CRLoginDoc *pDoc = (CRLoginDoc *)pDocTemp->GetNextDoc(dpos);
+			POSITION vpos = pDoc->GetFirstViewPosition();
+			while ( vpos != NULL ) {
+				CRLoginView *pView = (CRLoginView *)pDoc->GetNextView(vpos);
+				if ( pView != this )
+					pView->OnMouseWheel(nFlags, zDelta, pt);
+			}
+		}
+	}
+	inuse = FALSE;
+}
 void CRLoginView::SendBroadCast(CBuffer &buf)
 {
 	CBuffer tmp;
@@ -324,8 +350,11 @@ void CRLoginView::SendBuffer(CBuffer &buf, BOOL macflag)
 		if ( pDoc->m_TextRam.IsOptEnable(TO_RLDSECHO) && !pDoc->m_TextRam.LineEdit(buf) )
 			return;
 		pDoc->OnSendBuffer(buf);
-		if ( m_BroadCast )
+		if ( m_BroadCast ) {
+			m_BroadCast = FALSE;
 			SendBroadCast(buf);
+			m_BroadCast = TRUE;
+		}
 	}
 
 	if ( m_KeyMacFlag )
@@ -1004,13 +1033,16 @@ BOOL CRLoginView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 	CRLoginDoc *pDoc = GetDocument();
 	ASSERT(pDoc);
 
+	if ( (nFlags & MK_SHIFT) != 0 )
+		SendBroadCastMouseWheel(nFlags, zDelta, pt);
+
 	ofs = zDelta * pDoc->m_TextRam.m_WheelSize / (WHEEL_DELTA / 2);
 
 	if ( (!pDoc->m_TextRam.IsOptEnable(TO_RLMSWAPP) && pDoc->m_TextRam.IsOptEnable(TO_DECCKM)) ||
 					(pDoc->m_TextRam.m_MouseTrack != MOS_EVENT_NONE && !m_MouseEventFlag) || (nFlags & MK_CONTROL) != 0 || pDoc->m_TextRam.IsOptEnable(TO_RLMSWAPE) ) {
 		if ( pDoc->m_KeyTab.FindMaps((ofs > 0 ? VK_UP : VK_DOWN), (pDoc->m_TextRam.IsOptEnable(TO_DECCKM) ? MASK_CKM : 0), &tmp) ) {
 			for ( pos = (ofs < 0 ? (0 - ofs) : ofs) ; pos > 0 ; pos-- )
-				SendBuffer(tmp);
+				SendBuffer(tmp, TRUE);
 		}
 
 	} else {
@@ -1419,6 +1451,7 @@ void CRLoginView::OnEditPaste()
 	WCHAR *pData;
 	CBuffer tmp;
 	int cr = 0;
+	int ct = 0;
 	CRLoginDoc *pDoc = GetDocument();
 
 	if ( !OpenClipboard() )
@@ -1442,6 +1475,8 @@ void CRLoginView::OnEditPaste()
 			tmp.Apend((LPBYTE)pData, sizeof(WCHAR));
 			if ( *pData == L'\x0D' )
 				cr++;
+			else if ( *pData != L'\t' && *pData < L' ' )
+				ct++;
 		}
 	}
 
@@ -1451,7 +1486,7 @@ void CRLoginView::OnEditPaste()
 	GlobalUnlock(hData);
 	CloseClipboard();
 
-	if ( (tmp.GetSize() / sizeof(WCHAR)) > 4000 || cr > 50 ) {
+	if ( (tmp.GetSize() / sizeof(WCHAR)) > 1000 || cr > 10 || ct > 10 ) {
 		if ( MessageBox("多くの文字をペーストしようとしています\n送信しますか？", "Question", MB_ICONQUESTION | MB_YESNO) != IDYES )
 			return;
 	}

@@ -1002,6 +1002,62 @@ void CTextRam::EscCsiDefName(LPCSTR *esc, LPCSTR *csi)
 		csi[c] = CsiProcName(fc_CsiExtTab[n].proc);
 	}
 }
+void CTextRam::ParseColor(int idx, LPCSTR para, int ch)
+{
+	int r, g, b;
+
+	if ( idx < 0 || idx > 255 )
+		idx = 0;
+
+	if ( para[0] == '?' ) {
+		COLORREF rgb = m_ColTab[idx];
+		UNGETSTR("%s4;%d;rgb:%04x/%04x/%04x%s", m_RetChar[RC_OSC], idx,
+			GetRValue(rgb), GetGValue(rgb), GetBValue(rgb),
+			(ch == 0x07 ? "\007" : m_RetChar[RC_ST]));
+
+	} else if ( para[0] == '#' ) {
+		switch(strlen(para)) {
+		case 4:		// #rgb
+			if ( sscanf(para, "#%01x%01x%01x", &r, &g, &b) == 3 )
+				m_ColTab[idx] = RGB(r, g, b);
+			break;
+		case 7:		// #rrggbb
+			if ( sscanf(para, "#%02x%02x%02x", &r, &g, &b) == 3 )
+				m_ColTab[idx] = RGB(r, g, b);
+			break;
+		case 10:	// #rrrgggbbb
+			if ( sscanf(para, "#%03x%03x%03x", &r, &g, &b) == 3 )
+				m_ColTab[idx] = RGB(r, g, b);
+			break;
+		case 13:	// #rrrrggggbbbb
+			if ( sscanf(para, "#%04x%04x%04x", &r, &g, &b) == 3 )
+				m_ColTab[idx] = RGB(r, g, b);
+			break;
+		}
+		DISPUPDATE();
+
+	} else if ( strncmp(para, "rgb:", 4) == 0 ) {
+		if ( sscanf(para, "rgb:%x/%x/%x", &r, &g, &b) == 3 )
+			m_ColTab[idx] = RGB(r, g, b);
+		DISPUPDATE();
+
+	} else if ( strcmp(para, "reset") == 0 ) {
+		if ( idx < 16 )
+			m_ColTab[idx] = m_DefColTab[idx];
+		else if ( idx < 232 ) {				// colors 16-231 are a 6x6x6 color cube
+			r = ((idx - 16) / 6 / 6) % 6;
+			g = ((idx - 16) / 6) % 6;
+			b = (idx - 16) % 6;
+			m_ColTab[idx] = RGB(r * 51, g * 51, b * 51);
+		} else if ( idx < 256 ) {			// colors 232-255 are a grayscale ramp, intentionally leaving out
+			r = (idx - 232) * 11;
+			g = (idx - 232) * 11;
+			b = (idx - 232) * 11;
+			m_ColTab[idx] = RGB(r, g, b);
+		}
+		DISPUPDATE();
+	}
+}
 
 //////////////////////////////////////////////////////////////////////
 // fc Procs...
@@ -2481,15 +2537,19 @@ void CTextRam::fc_OSC_ST(int ch)
 		if ( tmp.IsEmpty() )
 			break;
 		switch(atoi(tmp)) {
-		case 0:		// Change Icon Name and Window Title to Pt
-		case 1:		// Change Icon Name to Pt
-		case 2:		// Change Window Title to Pt
+		case 0:		// 0 -> Change Icon Name and Window Title to Pt
+		case 1:		// 1 -> Change Icon Name to Pt
+		case 2:		// 2 -> Change Window Title to Pt
 			if ( (m_TitleMode & WTTL_CHENG) == 0 ) {
 				m_IConv.IConvStr(m_SendCharSet[m_KanjiMode], "CP932", p, tmp);
 				m_pDocument->SetTitle(tmp);
 			}
 			break;
-		case 4:		// color RGB	4;Pc;rgb:Pr/Pg/Pb
+
+		case 3:		// 3  -> Set X property on top-level window.
+			break;
+
+		case 4:		// 4;c;spec -> Change Color Number c to the color specified by spec.
 			while ( *p != '\0' ) {
 				tmp.Empty();
 				while ( *p != '\0' && *p != ';' )
@@ -2504,40 +2564,65 @@ void CTextRam::fc_OSC_ST(int ch)
 					tmp += *(p++);
 				if ( *p == ';' )
 					p++;
-				if ( tmp.Compare("?") == 0 ) {
-					COLORREF rgb = (n < 256 ? m_ColTab[n] : RGB(0, 0, 0));
-					UNGETSTR("%s4;%d;rgb:%04x/%04x/%04x%s", m_RetChar[RC_OSC], n,
-						GetRValue(rgb), GetGValue(rgb), GetBValue(rgb),
-						(ch == 0x07 ? "\007":m_RetChar[RC_ST]));
-				} else if ( tmp.Compare("#") == 0 && n < 256 ) {
-					switch(tmp.GetLength()) {
-					case 4:		// #rgb
-						if ( sscanf(tmp, "#%01x%01x%01x", &r, &g, &b) == 3 )
-							m_ColTab[n] = RGB(r, g, b);
-						break;
-					case 7:		// #rrggbb
-						if ( sscanf(tmp, "#%02x%02x%02x", &r, &g, &b) == 3 )
-							m_ColTab[n] = RGB(r, g, b);
-						break;
-					case 10:	// #rrrgggbbb
-						if ( sscanf(tmp, "#%03x%03x%03x", &r, &g, &b) == 3 )
-							m_ColTab[n] = RGB(r, g, b);
-						break;
-					case 13:	// #rrrrggggbbbb
-						if ( sscanf(tmp, "#%04x%04x%04x", &r, &g, &b) == 3 )
-							m_ColTab[n] = RGB(r, g, b);
-						break;
-					}
-					DISPUPDATE();
-				} else if ( n < 256 ) {
-					if ( n < 256 && sscanf(tmp, "rgb:%x/%x/%x", &r, &g, &b) == 3 ) {
-						m_ColTab[n] = RGB(r, g, b);
-						DISPUPDATE();
-					}
-				}
+				ParseColor(n, tmp, ch);
 			}
 			break;
-		case 50:		// font		50;[?][+-][0-9]font
+
+		case 5:		// 5;n;spec -> Change Special Color Number c to the color specified by spec.
+			while ( *p != '\0' ) {
+				tmp.Empty();
+				while ( *p != '\0' && *p != ';' )
+					tmp += *(p++);
+				if ( *p == ';' )
+					p++;
+				if ( tmp.IsEmpty() )
+					break;
+				n = atoi(tmp);
+					//	n = 0  <- resource colorBD (BOLD).
+					//	n = 1  <- resource colorUL (UNDERLINE).
+					//	n = 2  <- resource colorBL (BLINK).
+					//	n = 3  <- resource colorRV (REVERSE).
+				tmp.Empty();
+				while ( *p != '\0' && *p != ';' )
+					tmp += *(p++);
+				if ( *p == ';' )
+					p++;
+				if ( tmp.Compare("?") == 0 )	// XXXXXXXXXXXXXXXXXXXXX
+					ParseColor(m_AttNow.fc, tmp, ch);
+			}
+			break;
+
+		case 10:	// 10  -> Change VT100 text foreground color to Pt.
+		case 12:	// 12  -> Change text cursor color to Pt.
+		case 13:	// 13  -> Change mouse foreground color to Pt.
+		case 15:	// 15  -> Change Tektronix foreground color to Pt.
+		case 18:	// 18  -> Change Tektronix cursor color to Pt.
+		case 19:	// 19  -> Change highlight foreground color to Pt.
+			tmp.Empty();
+			while ( *p != '\0' && *p != ';' )
+				tmp += *(p++);
+			if ( *p == ';' )
+				p++;
+			if ( tmp.Compare("?") == 0 )	// XXXXXXXXXXXXXXXXXXXXX
+				ParseColor(m_AttNow.fc, tmp, ch);
+			break;
+		case 11:	// 11  -> Change VT100 text background color to Pt.
+		case 14:	// 14  -> Change mouse background color to Pt.
+		case 16:	// 16  -> Change Tektronix background color to Pt.
+		case 17:	// 17  -> Change highlight background color to Pt.
+			tmp.Empty();
+			while ( *p != '\0' && *p != ';' )
+				tmp += *(p++);
+			if ( *p == ';' )
+				p++;
+			if ( tmp.Compare("?") == 0 )	// XXXXXXXXXXXXXXXXXXXXX
+				ParseColor(m_AttNow.bc, tmp, ch);
+			break;
+
+		case 46:	// 46  -> Change Log File to Pt.
+			break;
+
+		case 50:	// 50;[?][+-][0-9]font		Set Font to Pt.
 			while ( *p != '\0' ) {
 				WCHAR md = '\0';
 				int num = 0;
@@ -2563,6 +2648,55 @@ void CTextRam::fc_OSC_ST(int ch)
 				if ( md == '?' )
 					UNGETSTR("%s50%s", m_RetChar[RC_OSC], (ch == 0x07 ? "\007":m_RetChar[RC_ST]));
 			}
+			break;
+
+		case 52:	// 52  -> Manipulate Selection Data.
+			break;
+
+		case 104:	// 104  ; c -> Reset Color Number c.
+			while ( *p != '\0' ) {
+				tmp.Empty();
+				while ( *p != '\0' && *p != ';' )
+					tmp += *(p++);
+				if ( *p == ';' )
+					p++;
+				if ( tmp.IsEmpty() )
+					break;
+				n = atoi(tmp);
+				ParseColor(n, "reset", ch);
+			}
+			break;
+
+		case 105:	// 105;c -> Reset Special Color Number c. 
+			while ( *p != '\0' ) {
+				tmp.Empty();
+				while ( *p != '\0' && *p != ';' )
+					tmp += *(p++);
+				if ( *p == ';' )
+					p++;
+				if ( tmp.IsEmpty() )
+					break;
+				n = atoi(tmp);
+					//	n = 0  <- resource colorBD (BOLD).
+					//	n = 1  <- resource colorUL (UNDERLINE).
+					//	n = 2  <- resource colorBL (BLINK).
+					//	n = 3  <- resource colorRV (REVERSE).
+				ParseColor(m_AttNow.fc, "reset", ch);		// XXXXXXXXXXXXXXXXXXXXXXXXX
+			}
+			break;
+
+		case 110:	// 110  -> Reset VT100 text foreground color.
+		case 112:	// 112  -> Reset text cursor color.
+		case 113:	// 113  -> Reset mouse foreground color.
+		case 115:	// 115  -> Reset Tektronix foreground color.
+		case 118:	// 118  -> Reset Tektronix cursor color.
+			ParseColor(m_AttNow.fc, "reset", ch);
+			break;
+		case 111:	// 111  -> Reset VT100 text background color.
+		case 114:	// 114  -> Reset mouse background color.
+		case 116:	// 116  -> Reset Tektronix background color.
+		case 117:	// 117  -> Reset highlight background color.
+			ParseColor(m_AttNow.bc, "reset", ch);
 			break;
 		}
 		break;

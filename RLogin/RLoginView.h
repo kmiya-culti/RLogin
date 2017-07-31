@@ -51,7 +51,7 @@ public:
 	BOOL m_VisualBellFlag;
 	int m_BlinkFlag;
 	BOOL m_MouseEventFlag;
-	BOOL m_BroadCast;
+	volatile BOOL m_BroadCast;
 	int m_WheelDelta;
 	BOOL m_WheelTimer;
 
@@ -81,6 +81,7 @@ public:
 	void ImmSetPos(int x, int y);
 	int ImmOpenCtrl(int sw);
 	void SetCaret();
+	void SendBroadCastMouseWheel(UINT nFlags, short zDelta, CPoint pt);
 	void SendBroadCast(CBuffer &buf);
 	void SendBuffer(CBuffer &buf, BOOL macflag = FALSE);
 	void SetGhostWnd(BOOL sw);

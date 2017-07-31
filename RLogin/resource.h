@@ -395,6 +395,7 @@
 #define IDC_PROTOCHECK10                2310
 #define IDC_PROTOCHECK11                2311
 #define IDC_PROTOCHECK12                2312
+#define IDC_PROTOCHECK13                2313
 #define IDC_STATUS1                     2401
 #define IDC_STATUS2                     2402
 #define IDC_STATUS3                     2403

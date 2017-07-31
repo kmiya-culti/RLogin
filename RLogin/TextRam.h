@@ -160,6 +160,7 @@
 #define	TO_IMECTRL		441			// IME Open/Close
 #define	TO_RLCKMESC		442			// ESCキーをDECCKMに含める		7727  -  Application Escape mode を有効にする。 
 #define	TO_RLMSWAPE		443			// ホイールのキー変換強制		7786  -  マウスホイール - カーソルキー変換を有効にする。
+#define	TO_RLTENLM		444			// TELNET LINEMODE を禁止する
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -700,6 +701,7 @@ public:
 	void SetCsiNameCombo(CComboBox *pCombo);
 
 	void EscCsiDefName(LPCSTR *esc, LPCSTR *csi);
+	void ParseColor(int idx, LPCSTR para, int ch);
 
 	int m_Kan_Pos;
 	BYTE m_Kan_Buf[KANBUFMAX];

@@ -1198,7 +1198,6 @@ void Cssh::PortForward()
 			n = ChannelOpen();
 			m_Chan[n].m_Status = CHAN_LISTEN | CHAN_PROXY_SOCKS;
 			m_Chan[n].m_TypeName = "socks-listen";
-			tmp[0] = "localhost";
 			if ( !m_Chan[n].CreateListen(tmp[0], GetPortNum(tmp[1]), tmp[2], GetPortNum(tmp[3])) ) {
 				str.Format("Socks Listen Error %s:%s->%s:%s", tmp[0], tmp[1], tmp[2], tmp[3]);
 				AfxMessageBox(str);

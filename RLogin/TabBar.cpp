@@ -339,6 +339,9 @@ BOOL CTabBar::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 	int n;
 	TCHITTESTINFO htinfo;
 
+	if ( AfxGetApp()->GetProfileInt("TabBar", "GhostWnd", 0) )
+		return TRUE;
+
 	GetCursorPos(&htinfo.pt);
 	m_TabCtrl.ScreenToClient(&htinfo.pt);
 	n = m_TabCtrl.HitTest(&htinfo);
