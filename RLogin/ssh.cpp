@@ -849,6 +849,8 @@ void Cssh::RecivePacket(CBuffer *bp)
 
 		msg.Format(_T("%s+%s"), m_EncCmp.GetTitle(), m_EncCip.GetTitle());
 		m_pDocument->SetStatus(msg);
+
+		CExtSocket::OnConnect();
 		break;
 
 	case 7:		// Client loop

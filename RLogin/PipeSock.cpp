@@ -106,6 +106,9 @@ BOOL CPipeSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, 
 	m_OutThread = AfxBeginThread(PipeOutThread, this, THREAD_PRIORITY_BELOW_NORMAL);
 
 	GetApp()->SetSocketIdle(this);
+
+	CExtSocket::OnConnect();
+
 	return TRUE;
 }
 BOOL CPipeSock::AsyncOpen(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType)
@@ -152,6 +155,8 @@ void CPipeSock::Close()
 	m_hOut[0] = m_hOut[1] = NULL;
 
 	GetApp()->DelSocketIdle(this);
+
+	CExtSocket::Close();
 }
 void CPipeSock::SendBreak(int opt)
 {

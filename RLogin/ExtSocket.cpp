@@ -1402,7 +1402,7 @@ void CExtSocket::OnConnect()
 	m_bConnect = TRUE;
 	if ( m_pDocument == NULL )
 		return;
-	if ( m_pDocument->m_TextRam.IsOptEnable(TO_RLKEEPAL) ) {
+	if ( m_pDocument->m_TextRam.IsOptEnable(TO_RLKEEPAL) && m_Fd != (-1) ) {
 		BOOL opval = TRUE;
 		::setsockopt(m_Fd, SOL_SOCKET, SO_KEEPALIVE, (const char *)(&opval), sizeof(opval));
 	}

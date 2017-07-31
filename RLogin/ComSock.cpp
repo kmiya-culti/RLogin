@@ -163,8 +163,7 @@ BOOL CComSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, i
 	m_pEndEvent->ResetEvent();
 	AfxBeginThread(ComEventThread, this, THREAD_PRIORITY_NORMAL);
 
-	if ( m_pDocument != NULL )
-		m_pDocument->OnSocketConnect();
+	CExtSocket::OnConnect();
 
 	return TRUE;
 }
@@ -190,6 +189,8 @@ void CComSock::Close()
 	PurgeComm(m_hCom, PURGE_TXABORT | PURGE_RXABORT | PURGE_TXCLEAR | PURGE_RXCLEAR);
 	CloseHandle(m_hCom);
 	m_hCom = NULL;
+
+	CExtSocket::Close();
 }
 void CComSock::SendBreak(int opt)
 {
