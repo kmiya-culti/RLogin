@@ -276,8 +276,10 @@ public:
 	~CPermit();
 };
 
+#define	MAX_PACKETLEN			(1U << 31)
+
 #define CHAN_SES_PACKET_DEFAULT (32 * 1024)
-#define CHAN_SES_WINDOW_DEFAULT (16 * CHAN_SES_PACKET_DEFAULT)
+#define CHAN_SES_WINDOW_DEFAULT (64 * CHAN_SES_PACKET_DEFAULT)
 
 #define	CHAN_OPEN_LOCAL		001
 #define	CHAN_OPEN_REMOTE	002
@@ -486,9 +488,12 @@ private:
 #define	SSH2_STAT_HAVESHELL		0040
 #define	SSH2_STAT_HAVEPFWD		0100
 #define	SSH2_STAT_HAVEAGENT		0200
+#define	SSH2_STAT_SENTKEXINIT	0400
 
 	DWORD m_SendPackSeq;
 	DWORD m_RecvPackSeq;
+	DWORD m_SendPackLen;
+	DWORD m_RecvPackLen;
 	CBuffer m_InPackBuf;
 	BYTE m_Cookie[16];
 	CString m_SProp[10], m_CProp[10], m_VProp[6];
@@ -518,6 +523,7 @@ private:
 	void ChannelClose(int id);
 	int SetIdKeyList();
 
+	void SendMsgKexInit();
 	void SendMsgNewKeys();
 	void SendMsgKexDhInit();
 	void SendMsgKexDhGexRequest();

@@ -88,8 +88,8 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 	m_InPackStat = 0;
 	m_PacketStat = 0;
 	m_SSH2Status = 0;
-	m_SendPackSeq = 0;
-	m_RecvPackSeq = 0;
+	m_SendPackSeq = m_SendPackLen = 0;
+	m_RecvPackSeq = m_RecvPackLen = 0;
 	m_CipherMode = SSH_CIPHER_NONE;
 	m_SessionIdLen = 0;
 	m_StdChan = (-1);
@@ -153,7 +153,7 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 	if ( !CExtSocket::Open(lpszHostAddress, nHostPort, nSocketPort, nSocketType) )
 		return FALSE;
 
-	SetRecvSize(CHAN_SES_WINDOW_DEFAULT);
+	SetRecvSize(CHAN_SES_WINDOW_DEFAULT * 2);
 
 	return TRUE;
   } catch(...) {
@@ -297,6 +297,7 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				m_Incom.Consume(m_DecMac.GetBlockSize());
 			}
 			m_RecvPackSeq++;
+			m_RecvPackLen++;
 			RecivePacket2(bp);
 			break;
 		}
@@ -1233,7 +1234,18 @@ void Cssh::OpenRcpUpload(LPCSTR file)
 		m_pListFilter = &m_RcpCmd;
 	}
 }
+void Cssh::SendMsgKexInit()
+{
+	CBuffer tmp;
 
+	if ( m_MyPeer.GetSize() == 0 || (m_SSH2Status & SSH2_STAT_SENTKEXINIT) != 0 )
+		return;
+	tmp.Put8Bit(SSH2_MSG_KEXINIT);
+	tmp.Apend(m_MyPeer.GetPtr(), m_MyPeer.GetSize());
+	SendPacket2(&tmp);
+	m_SSH2Status |= SSH2_STAT_SENTKEXINIT;
+	m_SendPackLen = 0;
+}
 void Cssh::SendMsgKexDhInit()
 {
 	CBuffer tmp;
@@ -1421,8 +1433,14 @@ void Cssh::SendMsgChannelData(int id)
 	int len;
 	CBuffer tmp(CHAN_SES_PACKET_DEFAULT + 16);
 
-	if ( id < 0 || id >= m_Chan.GetSize() || !CHAN_OK(id) )
+	if ( id < 0 || id >= m_Chan.GetSize() || !CHAN_OK(id) || (m_SSH2Status & SSH2_STAT_SENTKEXINIT) != 0 )
 		return;
+
+	if ( m_SendPackLen >= MAX_PACKETLEN || m_RecvPackLen >= MAX_PACKETLEN ) {
+		if ( GetSendSize() == 0 )
+			SendMsgKexInit();
+		return;
+	}
 
 	while ( (len = m_Chan[id].m_Output.GetSize()) > 0 ) {
 		if ( len > m_Chan[id].m_RemoteWind )
@@ -1657,12 +1675,12 @@ void Cssh::SendPacket2(CBuffer *bp)
 	CExtSocket::Send(enc.GetPtr(), enc.GetSize());
 
 	m_SendPackSeq++;
+	m_SendPackLen++;
 }
 
 int Cssh::SSH2MsgKexInit(CBuffer *bp)
 {
 	int n;
-	CBuffer tmp;
 	static const struct {
 		int	mode;
 		char *name;
@@ -1711,22 +1729,21 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 			return TRUE;
 	}
 
-	tmp.Put8Bit(SSH2_MSG_KEXINIT);
-	for ( n = 0 ; n < 16 ; n++ )
-		tmp.Put8Bit(m_Cookie[n]);
+	if ( (m_SSH2Status & SSH2_STAT_SENTKEXINIT) == 0 ) {
+		m_MyPeer.Clear();
+		for ( n = 0 ; n < 16 ; n++ )
+			m_MyPeer.Put8Bit(m_Cookie[n]);
+		for ( n = 0 ; n < 10 ; n++ ) {
+			if ( n >= 2 && n < 8 )
+				m_MyPeer.PutStr(m_VProp[n - 2]);
+			else
+				m_MyPeer.PutStr(m_CProp[n]);
+		}
+		m_MyPeer.Put8Bit(0);
+		m_MyPeer.Put32Bit(0);
 
-	for ( n = 0 ; n < 10 ; n++ ) {
-		if ( n >= 2 && n < 8 )
-			tmp.PutStr(m_VProp[n - 2]);
-		else
-			tmp.PutStr(m_CProp[n]);
+		SendMsgKexInit();
 	}
-
-	tmp.Put8Bit(0);
-	tmp.Put32Bit(0);
-	m_MyPeer.Clear();
-	m_MyPeer.Apend(tmp.GetPtr() + 1, tmp.GetSize() - 1);
-	SendPacket2(&tmp);
 
 	m_NeedKeyLen = 0;
 	if ( m_NeedKeyLen < m_EncCip.GetKeyLen(m_VProp[0]) )    m_NeedKeyLen = m_EncCip.GetKeyLen(m_VProp[0]);
@@ -1736,6 +1753,7 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 	if ( m_NeedKeyLen < m_EncMac.GetKeyLen(m_VProp[2]) )    m_NeedKeyLen = m_EncMac.GetKeyLen(m_VProp[2]);
 	if ( m_NeedKeyLen < m_DecMac.GetKeyLen(m_VProp[3]) )    m_NeedKeyLen = m_DecMac.GetKeyLen(m_VProp[3]);
 
+	m_RecvPackLen = 0;
 	return FALSE;
 }
 int Cssh::SSH2MsgKexDhReply(CBuffer *bp)
@@ -2336,6 +2354,7 @@ void Cssh::RecivePacket2(CBuffer *bp)
 			goto DISCONNECT;
 		if ( SSH2MsgNewKeys(bp) )
 			goto DISCONNECT;
+		m_SSH2Status &= ~SSH2_STAT_SENTKEXINIT;
 		m_SSH2Status &= ~SSH2_STAT_HAVEKEYS;
 		m_SSH2Status |= SSH2_STAT_HAVESESS;
 		if ( (m_SSH2Status & SSH2_STAT_HAVELOGIN) == 0 ) {
