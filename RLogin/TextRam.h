@@ -77,9 +77,10 @@
 #define	ATT_CLIP		0x0800000		// Mouse Clip
 #define	ATT_RTOL		0x1000000		// RtoL Char
 #define	ATT_BORDER		0x2000000		// U+2500 Border Char
-#define	ATT_MIRROR		0x4000000
-//						0x8000000		// max 7 * 4 = 28 bit
+#define	ATT_MIRROR		0x4000000		// Mirror Draw
+#define	ATT_RETURN		0x8000000		// CR/LF Mark		// max 7 * 4 = 28 bit
 #define	ATT_MASK		0x0FFFFFF
+#define	ATT_MASKEXT		0x7FFFFFF
 
 #define CODE_MAX		0x0400
 #define CODE_MASK		0x03FF
@@ -226,6 +227,7 @@
 #define	TO_RLUPDPAST	1467		// ペースト時の編集後コピーする
 #define	TO_RLNTBCSEND	1468		// 同時送信しない
 #define	TO_RLNTBCRECV	1469		// 同時受信しない
+#define	TO_RLNOTCLOSE	1470		// 接続断でクロースしない
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -829,12 +831,14 @@ public:
 	BOOL m_bReSize;
 	int m_ReqCols;
 	int m_ReqLines;
+	int m_CharWidth;
+	int m_CharHeight;
 
 	int m_HisMax;
 	int m_HisPos;
 	int m_HisLen;
 	int m_HisUse;
-	CFile m_HisFhd;
+	CFileExt m_HisFhd;
 
 	int m_DispCaret;
 	int m_TypeCaret;

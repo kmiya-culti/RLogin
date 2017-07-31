@@ -407,6 +407,9 @@ BOOL COptDlg::OnInitDialog()
 	SetActivePage(0);
 	m_Tree.SetFocus();
 
+	// CharSetPage‚Ì‰Šú‰»‚ª’x‚¢‚Ì‚Åæ‚Éì¬
+	CreatePage(10);
+
 	return FALSE;
 }
 void COptDlg::OnOK()

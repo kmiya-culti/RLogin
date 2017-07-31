@@ -1172,6 +1172,8 @@ CTextRam::CTextRam()
 	m_GrapWndChkStat = 0;
 	m_LogMode = LOGMOD_RAW;
 	m_LogCurY = (-1);
+	m_CharWidth = 8;
+	m_CharHeight = 16;
 
 	for ( int n = 0 ; n < 8 ; n++ )
 		pGrapListIndex[n] = pGrapListImage[n] = NULL;
@@ -1274,6 +1276,7 @@ void CTextRam::InitText(int Width, int Height)
 	int charWidth, charHeight;
 	int newCols, newLines;
 	int newColsMax, newHisMax;
+	BOOL bHisInit = FALSE;
 
 	if ( !m_bOpen )
 		return;
@@ -1331,6 +1334,9 @@ void CTextRam::InitText(int Width, int Height)
 		newHisMax = newLines * 5;
 	else if ( newHisMax > HIS_MAX )
 		newHisMax = HIS_MAX;
+
+	m_CharWidth  = charWidth;
+	m_CharHeight = charHeight;
 
 	if ( newHisMax == m_HisMax && m_hMap != NULL ) {
 		if ( newCols == m_Cols && newLines == m_Lines )
@@ -1394,6 +1400,8 @@ void CTextRam::InitText(int Width, int Height)
 			m_BtmY   = newLines;
 			m_LeftX  = 0;
 			m_RightX = newCols;
+
+			bHisInit = TRUE;
 		}
 
 		m_hMap   = hNewMap;
@@ -1476,6 +1484,9 @@ void CTextRam::InitText(int Width, int Height)
 	if ( m_Cols != oldCols || m_Lines != oldLines )
 		m_pDocument->SocketSendWindSize(m_Cols, m_Lines);
 
+	if ( bHisInit )
+		InitHistory();
+
 //	DISPUPDATE();
 //	FLUSH();
 }
@@ -1545,8 +1556,6 @@ BOOL CTextRam::OpenHisFile()
 }
 void CTextRam::InitHistory()
 {
-	m_LineEditMapsInit = 0;
-
 	if ( !IsOptEnable(TO_RLHISFILE) || m_HisFile.IsEmpty() || !IsInitText() )
 		return;
 
@@ -1580,7 +1589,9 @@ void CTextRam::InitHistory()
 				m_HisLen++;
 		}
 
+		m_LineEditMapsInit = 0;
 		m_LineEditMapsTab[2].RemoveAll();
+
 		if ( m_HisFhd.Read(&mx, sizeof(DWORD)) == sizeof(DWORD) ) {
 			for ( nx = 0 ; nx < mx ; nx++ ) {
 				if ( m_HisFhd.Read(&my, sizeof(DWORD)) != sizeof(DWORD) || my < 0 || my > 1024 )
@@ -1592,7 +1603,9 @@ void CTextRam::InitHistory()
 				m_LineEditMapsTab[2].AddWStrBuf(spc.GetPtr(), spc.GetSize());
 			}
 		}
-
+	} catch(CFileException* pEx) {
+		pEx->Delete();
+		return;
 	} catch(...) {
 		return;
 	}
@@ -1620,7 +1633,6 @@ void CTextRam::SaveHistory()
 			vp = GETVRAM(0, m_Lines - n - 1);
 			for ( i = 0 ; i < m_Cols ; i++, vp++ )
 				vp->Write(m_HisFhd);
-//			m_HisFhd.Write(vp, sizeof(VRAM) * m_Cols);
 		}
 
 		d = (DWORD)m_LineEditHis.GetSize(); m_HisFhd.Write(&d, sizeof(DWORD));
@@ -1629,6 +1641,12 @@ void CTextRam::SaveHistory()
 			m_HisFhd.Write(m_LineEditHis.GetAt(i).GetPtr(), d);
 		}
 
+		m_HisFhd.Close();
+
+	} catch(CFileException* pEx) {
+		AfxMessageBox(IDE_HISTORYBACKUPERROR);
+		pEx->Delete();
+		return;
 	} catch(...) {
 		AfxMessageBox(IDE_HISTORYBACKUPERROR);
 	}
@@ -3449,7 +3467,7 @@ void CTextRam::EditCopy(int sps, int eps, BOOL rectflag, BOOL lineflag)
 		for ( ; tc > 0 ; tc-- )
 			str.PutWord(L' ');
 
-		if ( (y < y2 && x < m_Cols) || (y == y2 && lineflag) ) {
+		if ( (y == y2 && lineflag) || (y < y2 && (x < m_Cols || (vp[0].m_Vram.attr & ATT_RETURN) != 0)) ) {
 			str.PutWord(L'\r');
 			str.PutWord(L'\n');
 		}
@@ -3577,7 +3595,7 @@ void CTextRam::GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf)
 			}
 		}
 
-		if ( y < endY && x < m_Cols ) {
+		if ( y < endY && (x < m_Cols || (vp[0].m_Vram.attr & ATT_RETURN) != 0) ) {
 			pBuf->PutWord(L'\r');
 			pBuf->PutWord(L'\n');
 		}
@@ -4415,7 +4433,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 					vp--;
 				}
 
-				work.attr = vp->m_Vram.attr;
+				work.attr = vp->m_Vram.attr & ATT_MASKEXT;			// ATT_RETURN mask
 				work.font = vp->m_Vram.font;
 				work.fcol = vp->m_Vram.fcol;
 				work.bcol = vp->m_Vram.bcol;
@@ -5367,8 +5385,6 @@ void CTextRam::RESET(int mode)
 		m_XtOptFlag = 0;
 		m_XtMosPointMode = 0;
 		m_TitleStack.RemoveAll();
-		if ( m_pDocument != NULL )
-			m_pDocument->SetStatus(NULL);
 		memcpy(m_ModKey, m_DefModKey, sizeof(m_ModKey));
 		InitModKeyTab();
 	}
@@ -5427,7 +5443,7 @@ void CTextRam::RESET(int mode)
 		m_Tek_cX = 0; m_Tek_cY = TEK_WIN_HEIGHT - 87;
 		m_Tek_lX = 0; m_Tek_lY = m_Tek_cY;
 		m_Tek_wX = 0; m_Tek_wY = m_Tek_cY;
-		TekClear();
+		TekClear(m_pTekWnd != NULL ? TRUE : FALSE);
 	}
 }
 CCharCell *CTextRam::GETVRAM(int cols, int lines)
@@ -6343,7 +6359,7 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at)
 		if ( (ch & 0xFFFF0000) != 0 )
 			m_StsPara += (WCHAR)(ch >> 16);
 		m_StsPara += (WCHAR)ch;
-		((CMainFrame *)AfxGetMainWnd())->SetMessageText(CString(m_StsPara));
+		((CMainFrame *)AfxGetMainWnd())->SetStatusText(UniToTstr(m_StsPara));
 		return;
 	}
 
@@ -6434,7 +6450,7 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at)
 		if ( (ch & 0xFFFF0000) != 0 )
 			m_StsPara += (WCHAR)(ch >> 16);
 		m_StsPara += (WCHAR)ch;
-		((CMainFrame *)AfxGetMainWnd())->SetMessageText(CString(m_StsPara));
+		((CMainFrame *)AfxGetMainWnd())->SetStatusText(UniToTstr(m_StsPara));
 		return;
 	}
 
@@ -6455,7 +6471,8 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at)
 	}
 
 	if ( (m_CurX + 1) >= m_Margin.right ) {
-		PUT1BYTE(0, md);
+		m_DoWarp = TRUE;
+		DOWARP();
 
 		dm = GetDm(m_CurY);
 

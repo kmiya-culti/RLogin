@@ -84,7 +84,7 @@ public:
 
 #define	TIMERID_SLEEPMODE	1024
 #define	TIMERID_MIDIEVENT	1025
-#define	TIMERID_IDLECHECK	1026
+#define	TIMERID_STATUSCLR	1026
 #define	TIMERID_TIMEREVENT	1100
 
 class CTimerObject : public CObject
@@ -139,7 +139,6 @@ public:
 	CIdKeyTab m_IdKeyTab;
 	CPaneFrame *m_pTopPane;
 	CRect m_Frame;
-	CString m_StatusString;
 	BOOL m_LastPaneFlag;
 	CBuffer m_AllFileBuf;
 	CString m_AllFilePath;
@@ -171,6 +170,7 @@ public:
 	int m_ScreenY;
 	int m_ScreenW;
 	int m_ScreenH;
+	UINT_PTR m_StatusTimer;
 
 	BOOL PagentQuery(CBuffer *pInBuf, CBuffer *pOutBuf);
 	void PagentInit(CArray<CIdKey, CIdKey &> *pKeyTab);
@@ -208,6 +208,7 @@ public:
 	int GetTabIndex(CWnd *pWnd);
 	void GetTabTitle(CWnd *pWnd, CString &title);
 	CWnd *GetTabWnd(int idx);
+	int GetTabCount();
 
 	void GetFrameRect(CRect &frame);
 	void AdjustRect(CRect &rect);
@@ -229,6 +230,7 @@ public:
 	CMenu *GetSaveMenu(HMENU hDocMenu);
 	void SetClipBoardMenu(UINT nId, CMenu *pMenu);
 	void SetMenuBitmap(CMenu *pMenu);
+	void SetStatusText(LPCTSTR message);
 
 	CString m_VersionMessage;
 	CString m_VersionPageUrl;
@@ -260,7 +262,6 @@ protected:
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg BOOL OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCopyDataStruct);
-	afx_msg void OnUpdateIndicatorSock(CCmdUI* pCmdUI);
 	afx_msg void OnEnterMenuLoop(BOOL bIsTrackPopupMenu);
 	afx_msg void OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized);
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
@@ -268,6 +269,10 @@ protected:
 
 	afx_msg void OnDrawClipboard();
 	afx_msg void OnChangeCbChain(HWND hWndRemove, HWND hWndAfter);
+
+	afx_msg void OnUpdateIndicatorSock(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateIndicatorStat(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateIndicatorKmod(CCmdUI* pCmdUI);
 
 	afx_msg void OnPaneWsplit();
 	afx_msg void OnPaneHsplit();

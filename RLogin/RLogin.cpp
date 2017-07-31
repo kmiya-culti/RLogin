@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "RLogin.h"
 #include <locale.h>
+#include "EditDlg.h"
 
 #ifdef	USE_DWMAPI
 #include "DWMApi.h"
@@ -59,6 +60,9 @@ CCommandLineInfoEx::CCommandLineInfoEx()
 	m_ScreenW = (-1);
 	m_ScreenH = (-1);
 	m_EventName.Empty();
+	m_Title.Empty();
+	m_Script.Empty();
+	m_ReqDlg = FALSE;
 }
 void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLast)
 {
@@ -107,46 +111,52 @@ void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLas
 			m_PasStat = 11;
 		else if ( _tcsicmp(_T("event"), pszParam) == 0 )
 			m_PasStat = 12;
+		else if ( _tcsicmp(_T("title"), pszParam) == 0 )
+			m_PasStat = 13;
+		else if ( _tcsicmp(_T("script"), pszParam) == 0 )
+			m_PasStat = 14;
+		else if ( _tcsicmp(_T("req"), pszParam) == 0 )
+			m_ReqDlg = TRUE;
 		else
 			break;
 		ParseLast(bLast);
 		return;
-	case 1:
+	case 1:			// ip
 		m_PasStat = 0;
 		if ( bFlag )
 			break;
 		m_Addr = pszParam;
 		ParseLast(bLast);
 		return;
-	case 2:
+	case 2:			// port
 		m_PasStat = 0;
 		if ( bFlag )
 			break;
 		m_Port = pszParam;
 		ParseLast(bLast);
 		return;
-	case 3:
+	case 3:			// user
 		m_PasStat = 0;
 		if ( bFlag )
 			break;
 		m_User = pszParam;
 		ParseLast(bLast);
 		return;
-	case 4:
+	case 4:			// pass
 		m_PasStat = 0;
 		if ( bFlag )
 			break;
 		m_Pass = pszParam;
 		ParseLast(bLast);
 		return;
-	case 5:
+	case 5:			// term
 		m_PasStat = 0;
 		if ( bFlag )
 			break;
 		m_Term = pszParam;
 		ParseLast(bLast);
 		return;
-	case 6:
+	case 6:			// entry
 		m_PasStat = 0;
 		if ( bFlag )
 			break;
@@ -154,7 +164,7 @@ void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLas
 		ParseLast(bLast);
 		return;
 
-	case 7:
+	case 7:			// after
 		m_PasStat = 0;
 		if ( bFlag )
 			break;
@@ -162,28 +172,28 @@ void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLas
 		ParseLast(bLast);
 		return;
 
-	case 8:
+	case 8:			// sx
 		m_PasStat = 0;
 		if ( bFlag )
 			break;
 		m_ScreenX = _tstoi(pszParam);
 		ParseLast(bLast);
 		return;
-	case 9:
+	case 9:			// sy
 		m_PasStat = 0;
 		if ( bFlag )
 			break;
 		m_ScreenY = _tstoi(pszParam);
 		ParseLast(bLast);
 		return;
-	case 10:
+	case 10:		// cx
 		m_PasStat = 0;
 		if ( bFlag )
 			break;
 		m_ScreenW = _tstoi(pszParam);
 		ParseLast(bLast);
 		return;
-	case 11:
+	case 11:		// cy
 		m_PasStat = 0;
 		if ( bFlag )
 			break;
@@ -191,11 +201,25 @@ void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLas
 		ParseLast(bLast);
 		return;
 
-	case 12:
+	case 12:		// event
 		m_PasStat = 0;
 		if ( bFlag )
 			break;
 		m_EventName = pszParam;
+		ParseLast(bLast);
+		return;
+	case 13:		// title
+		m_PasStat = 0;
+		if ( bFlag )
+			break;
+		m_Title = pszParam;
+		ParseLast(bLast);
+		return;
+	case 14:		// script
+		m_PasStat = 0;
+		if ( bFlag )
+			break;
+		m_Script = pszParam;
 		ParseLast(bLast);
 		return;
 	}
@@ -310,13 +334,46 @@ void CCommandLineInfoEx::GetString(CString &str)
 		str += tmp;
 	}
 
+	if ( !m_Title.IsEmpty() ) {
+		tmp.Format(_T(" /title %s"), ShellEscape(m_Title));
+		str += tmp;
+	}
+
+	if ( !m_Script.IsEmpty() ) {
+		tmp.Format(_T(" /script %s"), ShellEscape(m_Script));
+		str += tmp;
+	}
+
 	if ( m_AfterId != (-1) ) {
 		tmp.Format(_T(" /after %d"), m_AfterId);
 		str += tmp;
 	}
 
-	if ( m_InUse )
-		str += _T(" /inuse");
+	if ( m_ScreenX != (-1) ) {
+		tmp.Format(_T(" /sx %d"), m_ScreenX);
+		str += tmp;
+	}
+
+	if ( m_ScreenY != (-1) ) {
+		tmp.Format(_T(" /sy %d"), m_ScreenY);
+		str += tmp;
+	}
+
+	if ( m_ScreenW != (-1) ) {
+		tmp.Format(_T(" /cx %d"), m_ScreenW);
+		str += tmp;
+	}
+
+	if ( m_ScreenH != (-1) ) {
+		tmp.Format(_T(" /cy %d"), m_ScreenH);
+		str += tmp;
+	}
+
+	if ( !m_ReqDlg )
+		str += _T(" /req");
+
+	//if ( m_InUse )
+	//	str += _T(" /inuse");
 
 	if ( m_InPane )
 		str += _T(" /inpne");
@@ -357,18 +414,61 @@ LPCTSTR CCommandLineInfoEx::ShellEscape(LPCTSTR str)
 }
 
 //////////////////////////////////////////////////////////////////////
+// アプリケーションのバージョン情報に使われる CAboutDlg ダイアログ
+
+class CAboutDlg : public CDialogExt
+{
+public:
+	CAboutDlg();
+
+// ダイアログ データ
+	enum { IDD = IDD_ABOUTBOX };
+
+protected:
+	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート
+
+// 実装
+protected:
+	DECLARE_MESSAGE_MAP()
+	afx_msg void OnNMClickSyslink1(NMHDR *pNMHDR, LRESULT *pResult);
+};
+
+CAboutDlg::CAboutDlg() : CDialogExt(CAboutDlg::IDD)
+{
+}
+
+void CAboutDlg::DoDataExchange(CDataExchange* pDX)
+{
+	CDialogExt::DoDataExchange(pDX);
+}
+
+void CAboutDlg::OnNMClickSyslink1(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	PNMLINK pNMLink = (PNMLINK)pNMHDR;
+	ShellExecute(m_hWnd, NULL, pNMLink->item.szUrl, NULL, NULL, SW_NORMAL);
+	*pResult = 0;
+}
+
+BEGIN_MESSAGE_MAP(CAboutDlg, CDialogExt)
+	ON_NOTIFY(NM_CLICK, IDC_SYSLINK1, &CAboutDlg::OnNMClickSyslink1)
+END_MESSAGE_MAP()
+
+//////////////////////////////////////////////////////////////////////
 // CRLoginApp
 
 BEGIN_MESSAGE_MAP(CRLoginApp, CWinApp)
 	ON_COMMAND(ID_APP_ABOUT, &CRLoginApp::OnAppAbout)
 	ON_COMMAND(ID_FILE_PRINT_SETUP, OnFilePrintSetup)
 	// 標準のファイル基本ドキュメント コマンド
-	ON_COMMAND(ID_FILE_NEW, &CWinApp::OnFileNew)
-	ON_COMMAND(ID_FILE_OPEN, &CWinApp::OnFileOpen)
+	ON_COMMAND(ID_FILE_NEW, &CRLoginApp::OnFileNew)
+	ON_COMMAND(ID_FILE_OPEN, &CRLoginApp::OnFileOpen)
 	ON_COMMAND(IDM_DISPWINIDX, &CRLoginApp::OnDispwinidx)
 	ON_COMMAND(IDM_DIALOGFONT, &CRLoginApp::OnDialogfont)
 	ON_COMMAND(IDM_LOOKCAST, &CRLoginApp::OnLookcast)
 	ON_UPDATE_COMMAND_UI(IDM_LOOKCAST, &CRLoginApp::OnUpdateLookcast)
+	ON_COMMAND(IDM_PASSWORDLOCK, &CRLoginApp::OnPassLock)
+	ON_UPDATE_COMMAND_UI(IDM_PASSWORDLOCK, &CRLoginApp::OnUpdatePassLock)
+
 END_MESSAGE_MAP()
 
 
@@ -382,6 +482,7 @@ CRLoginApp::CRLoginApp()
 	m_pServerEntry = NULL;
 	m_bLookCast = FALSE;
 	m_WinVersion = WINVER;
+	m_LocalPass.Empty();
 
 #ifdef	USE_DIRECTWRITE
 	m_pD2DFactory    = NULL;
@@ -393,6 +494,7 @@ CRLoginApp::CRLoginApp()
 #endif
 }
 
+//////////////////////////////////////////////////////////////////////
 // 唯一の CRLoginApp オブジェクトです。
 
 CRLoginApp theApp;
@@ -477,11 +579,16 @@ void CRLoginApp::CreateJumpList(CServerEntryTab *pEntry)
 	UINT uMaxSlots;
 	IObjectArray *pRemovedList;
 
+#ifdef	_DEBUG
+	SetAppID(_T("Culti.RLogin.Debug"));
+#else
 	SetAppID(_T("Culti.RLogin.2"));
+#endif
+
 	//SetCurrentProcessExplicitAppUserModelID(m_pszAppID);
 	pJumpList->SetAppID(m_pszAppID);
 
-	//pJumpList->DeleteList(NULL);
+	pJumpList->DeleteList(m_pszAppID);
 	//pJumpList->AppendKnownCategory(KDC_FREQUENT);
 	pJumpList->AppendKnownCategory(KDC_RECENT);
 
@@ -536,6 +643,61 @@ void CRLoginApp::Speek(LPCTSTR str)
 		m_pVoice->Speak(TstrToUni(str), SPF_ASYNC, NULL);
 }
 #endif
+
+void CRLoginApp::SSL_Init()
+{
+	static BOOL bLoadAlgo = FALSE;
+
+	if ( bLoadAlgo )
+		return;
+	bLoadAlgo = TRUE;
+
+	SSLeay_add_all_algorithms();
+	SSLeay_add_ssl_algorithms();
+}
+
+BOOL CRLoginApp::InitLocalPass()
+{
+	CIdKey key;
+	CString passok, tmp;
+	CEditDlg dlg;
+
+	passok = GetProfileString(_T("RLoginApp"), _T("LocalPass"), _T(""));
+
+	if ( passok.IsEmpty() )
+		return TRUE;
+
+	if ( IsOpenRLogin() )
+		return TRUE;
+		
+	dlg.m_bPassword = TRUE;
+	dlg.m_Edit    = _T("");
+	dlg.m_WinText = _T("RLogin Password Lock");
+	dlg.m_Title.LoadString(IDS_PASSLOCKOPENMSG);
+	
+	for ( int retry = 0 ; retry < 3 ; retry++ ) {
+		m_LocalPass.Empty();
+
+		if ( retry == 1 )
+			dlg.m_Title += CStringLoad(IDS_PASSLOCKRETRYMSG);
+
+		if ( dlg.DoModal() != IDOK ) {
+			if ( ::AfxMessageBox(IDS_PASSLOCKDELMSG, MB_ICONQUESTION | MB_YESNO) == IDYES ) {
+				WriteProfileString(_T("RLoginApp"), _T("LocalPass"), _T(""));
+				return TRUE;
+			}
+			return FALSE;
+		}
+
+		key.Digest(m_LocalPass, dlg.m_Edit);
+		key.DecryptStr(tmp, passok, TRUE);
+
+		if ( tmp.Compare(_T("01234567")) == 0 )
+			return TRUE;
+	}
+
+	return FALSE;
+}
 
 BOOL CRLoginApp::InitInstance()
 {
@@ -696,21 +858,12 @@ BOOL CRLoginApp::InitInstance()
 	// ドラッグ/ドロップ オープンを許可します。
 	m_pMainWnd->DragAcceptFiles(FALSE);
 
-	// プログラム識別子を設定
-	::SetWindowLongPtr(m_pMainWnd->GetSafeHwnd(), GWLP_USERDATA, 0x524c4f47);
-
 	// DDE Execute open を使用可能にします。
 	EnableShellOpen();
 	RegisterShellFileTypes(TRUE);
 
 	// デフォルトプリンタの設定
 	SetDefaultPrinter();
-
-#ifdef	USE_JUMPLIST
-	// ジャンプリスト初期化
-	if ( m_WinVersion >= _WIN32_WINNT_WIN7 )
-		CreateJumpList(&(pMainFrame->m_ServerEntryTab));
-#endif
 
 	// コマンド ラインで指定されたディスパッチ コマンドです。アプリケーションが
 	// /RegServer、/Register、/Unregserver または /Unregister で起動された場合、False を返します。
@@ -721,8 +874,24 @@ BOOL CRLoginApp::InitInstance()
 	pMainFrame->ShowWindow(m_nCmdShow);
 	pMainFrame->UpdateWindow();
 
+	// パスワードロックの確認
+	if ( !InitLocalPass() )
+		return FALSE;
+
+	// プログラム識別子を設定
+	::SetWindowLongPtr(m_pMainWnd->GetSafeHwnd(), GWLP_USERDATA, 0x524c4f47);
+
+	// レジストリベースのサーバーエントリーの読み込み
+	pMainFrame->m_ServerEntryTab.Serialize(FALSE);
+
 	// プログラムバージョンチェック
 	pMainFrame->VersionCheck();
+
+#ifdef	USE_JUMPLIST
+	// ジャンプリスト初期化
+	if ( m_WinVersion >= _WIN32_WINNT_WIN7 )
+		CreateJumpList(&(pMainFrame->m_ServerEntryTab));
+#endif
 
 	// レジストリからオプション復帰
 	m_bLookCast = GetProfileInt(_T("RLoginApp"), _T("LookCast"), FALSE);
@@ -755,6 +924,47 @@ BOOL CRLoginApp::InitInstance()
 
 	return TRUE;
 }
+
+int CRLoginApp::ExitInstance() 
+{
+	CONF_modules_finish();
+	CONF_modules_unload(1);
+	CONF_modules_free();
+	EVP_cleanup();
+	ENGINE_cleanup();
+	CRYPTO_cleanup_all_ex_data();
+	ERR_remove_state(0);
+	ERR_free_strings();
+
+#ifndef	WINSOCK11
+	WSACleanup();
+#endif
+
+#ifdef	USE_DWMAPI
+	if ( ExDwmApi != NULL )
+		FreeLibrary(ExDwmApi);
+#endif
+
+#ifdef	USE_DIRECTWRITE
+	if ( m_pDWriteFactory != NULL )
+		m_pDWriteFactory->Release();
+	if ( m_pD2DFactory != NULL )
+		m_pD2DFactory->Release();
+#endif
+
+#ifdef	USE_SAPI
+	if ( m_pVoice != NULL )
+		m_pVoice->Release();
+#endif
+
+#ifdef	USE_COMINIT
+	CoUninitialize();
+#endif
+
+	return CWinApp::ExitInstance();
+}
+
+//////////////////////////////////////////////////////////////////////
 
 void CRLoginApp::OpenProcsCmd(CCommandLineInfoEx *pCmdInfo)
 {
@@ -1028,7 +1238,7 @@ BOOL CRLoginApp::InUseCheck()
 	return (::EnumWindows(RLoginEnumFunc, (LPARAM)&copyData) ? FALSE : TRUE);
 }
 
-BOOL CRLoginApp::OnlineEntry(COPYDATASTRUCT *pCopyData)
+BOOL CRLoginApp::OnIsOnlineEntry(COPYDATASTRUCT *pCopyData)
 {
 	POSITION pos = GetFirstDocTemplatePosition();
 	while ( pos != NULL ) {
@@ -1042,7 +1252,7 @@ BOOL CRLoginApp::OnlineEntry(COPYDATASTRUCT *pCopyData)
 	}
 	return TRUE;	// continue
 }
-BOOL CRLoginApp::OnlineCheck(LPCTSTR entry)
+BOOL CRLoginApp::IsOnlineEntry(LPCTSTR entry)
 {
 	COPYDATASTRUCT copyData;
 
@@ -1051,6 +1261,85 @@ BOOL CRLoginApp::OnlineCheck(LPCTSTR entry)
 	copyData.lpData = (PVOID)entry;
 
 	return (::EnumWindows(RLoginEnumFunc, (LPARAM)&copyData) ? FALSE : TRUE);
+}
+
+BOOL CRLoginApp::OnIsOpenRLogin(COPYDATASTRUCT *pCopyData)
+{
+	LPCTSTR name;
+	HANDLE hHandle;
+	TCHAR *pData;
+	CIdKey key;
+	CString tmp, str;
+
+	if ( m_LocalPass.IsEmpty() )
+		return TRUE;	// continue
+
+	if ( pCopyData->cbData == 0 )
+		return TRUE;	// continue
+
+	if ( (name = ((LPCTSTR)(pCopyData->lpData))) == NULL )
+		return TRUE;	// continue
+
+	hHandle = OpenFileMapping(FILE_MAP_ALL_ACCESS, 0, name);
+
+	if ( hHandle == NULL || hHandle == INVALID_HANDLE_VALUE )
+		return FALSE;
+
+	if ( (pData = (TCHAR *)MapViewOfFile(hHandle, FILE_MAP_WRITE, 0, 0, 0)) == NULL ) {
+		CloseHandle(hHandle);
+		return TRUE;
+	}
+
+	str.Format(_T("TEST%s"), m_LocalPass);
+	key.Encrypt(tmp, (LPBYTE)(str.GetBuffer()), ((str.GetLength() + 1) * sizeof(TCHAR)), m_PathName, TRUE);
+	_tcsncpy(pData, tmp, 1024);
+
+	UnmapViewOfFile(pData);
+	CloseHandle(hHandle);
+
+	return FALSE;	// not continue;
+}
+BOOL CRLoginApp::IsOpenRLogin()
+{
+	CString name;
+	HANDLE hHandle = NULL;
+	TCHAR *pData = NULL;
+	BOOL ret = FALSE;
+	COPYDATASTRUCT copyData;
+	CIdKey key;
+	CBuffer tmp;
+
+	name.Format(_T("RLoginDigest%08x"), (unsigned)GetCurrentThreadId());
+	hHandle = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE,	0, 1024 * sizeof(TCHAR), name);
+
+	if ( hHandle == NULL || hHandle == INVALID_HANDLE_VALUE )
+		return FALSE;
+
+	copyData.dwData = 0x524c4f38;
+	copyData.cbData = (name.GetLength() + 1) * sizeof(TCHAR);
+	copyData.lpData = name.GetBuffer();
+
+	if ( ::EnumWindows(RLoginEnumFunc, (LPARAM)&copyData) )
+		goto ENDOF;
+
+	if ( (pData = (TCHAR *)MapViewOfFile(hHandle, FILE_MAP_READ, 0, 0, 0)) == NULL )
+		goto ENDOF;
+
+	key.Decrypt(&tmp, pData, m_PathName, TRUE);
+	if ( _tcsncmp((LPCTSTR)tmp, _T("TEST"), 4) != 0 )
+		goto ENDOF;
+
+	m_LocalPass = ((LPCTSTR)tmp) + 4;
+	ret = TRUE;
+
+ENDOF:
+	if ( pData != NULL )
+		UnmapViewOfFile(pData);
+
+	if ( hHandle != NULL )
+		CloseHandle(hHandle);
+
+	return ret;
 }
 
 #ifdef	USE_KEYMACGLOBAL
@@ -1129,7 +1418,6 @@ void CRLoginApp::OnSendGroupCast(COPYDATASTRUCT *pCopyData)
 		}
 	}
 }
-
 void CRLoginApp::SendBroadCast(CBuffer &buf, LPCTSTR pGroup)
 {
 	CBuffer tmp;
@@ -1226,6 +1514,9 @@ void CRLoginApp::DelSocketIdle(class CExtSocket *pSock)
 		}
 	}
 }
+
+//////////////////////////////////////////////////////////////////////
+
 CString CRLoginApp::GetProfileString(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPCTSTR lpszDefault)
 {
 	if ( m_pszRegistryKey != NULL )
@@ -1541,6 +1832,9 @@ void CRLoginApp::RegisterLoad(HKEY hKey, LPCTSTR pSection, CBuffer &buf)
 
 	reg.Close();
 }
+
+//////////////////////////////////////////////////////////////////////
+
 void CRLoginApp::GetVersion(CString &str)
 {
 	HRSRC hRsrc;
@@ -1568,132 +1862,6 @@ void CRLoginApp::GetVersion(CString &str)
 	FreeResource(hGlobal);
 }
 
-// アプリケーションのバージョン情報に使われる CAboutDlg ダイアログ
-
-class CAboutDlg : public CDialogExt
-{
-public:
-	CAboutDlg();
-
-// ダイアログ データ
-	enum { IDD = IDD_ABOUTBOX };
-
-protected:
-	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート
-
-// 実装
-protected:
-	DECLARE_MESSAGE_MAP()
-	afx_msg void OnNMClickSyslink1(NMHDR *pNMHDR, LRESULT *pResult);
-};
-
-CAboutDlg::CAboutDlg() : CDialogExt(CAboutDlg::IDD)
-{
-}
-
-void CAboutDlg::DoDataExchange(CDataExchange* pDX)
-{
-	CDialogExt::DoDataExchange(pDX);
-}
-
-void CAboutDlg::OnNMClickSyslink1(NMHDR *pNMHDR, LRESULT *pResult)
-{
-	PNMLINK pNMLink = (PNMLINK)pNMHDR;
-	ShellExecute(m_hWnd, NULL, pNMLink->item.szUrl, NULL, NULL, SW_NORMAL);
-	*pResult = 0;
-}
-
-BEGIN_MESSAGE_MAP(CAboutDlg, CDialogExt)
-	ON_NOTIFY(NM_CLICK, IDC_SYSLINK1, &CAboutDlg::OnNMClickSyslink1)
-END_MESSAGE_MAP()
-
-// ダイアログを実行するためのアプリケーション コマンド
-void CRLoginApp::OnAppAbout()
-{
-	CAboutDlg aboutDlg;
-	aboutDlg.DoModal();
-}
-
-// CRLoginApp メッセージ ハンドラ
-
-int mt_idle();
-int ScriptIdle();
-
-BOOL CRLoginApp::OnIdle(LONG lCount) 
-{
-	BOOL rt = FALSE;
-
-	if ( lCount >= 0 && CWinApp::OnIdle(lCount) )
-		return TRUE;
-
-	for ( int n = 0 ; n < m_SocketIdle.GetSize() ; n++ ) {
-		CExtSocket *pSock = (CExtSocket *)(m_SocketIdle[n]);
-
-		ASSERT(pSock->m_Type >= 0 && pSock->m_Type < 10 );
-
-		if ( pSock->OnIdle() )
-			rt = TRUE;
-	}
-
-	if ( mt_idle() )
-		rt = TRUE;
-
-	if ( ScriptIdle() )
-		rt = TRUE;
-
-	return rt;
-}
-
-int CRLoginApp::ExitInstance() 
-{
-	CONF_modules_finish();
-	CONF_modules_unload(1);
-	CONF_modules_free();
-	EVP_cleanup();
-	ENGINE_cleanup();
-	CRYPTO_cleanup_all_ex_data();
-	ERR_remove_state(0);
-	ERR_free_strings();
-
-#ifndef	WINSOCK11
-	WSACleanup();
-#endif
-
-#ifdef	USE_DWMAPI
-	if ( ExDwmApi != NULL )
-		FreeLibrary(ExDwmApi);
-#endif
-
-#ifdef	USE_DIRECTWRITE
-	if ( m_pDWriteFactory != NULL )
-		m_pDWriteFactory->Release();
-	if ( m_pD2DFactory != NULL )
-		m_pD2DFactory->Release();
-#endif
-
-#ifdef	USE_SAPI
-	if ( m_pVoice != NULL )
-		m_pVoice->Release();
-#endif
-
-#ifdef	USE_COMINIT
-	CoUninitialize();
-#endif
-
-	return CWinApp::ExitInstance();
-}
-
-void CRLoginApp::SSL_Init()
-{
-	static BOOL bLoadAlgo = FALSE;
-
-	if ( bLoadAlgo )
-		return;
-	bLoadAlgo = TRUE;
-
-	SSLeay_add_all_algorithms();
-	SSLeay_add_ssl_algorithms();
-}
 void CRLoginApp::SetDefaultPrinter()
 {
 	int n, max;
@@ -1775,6 +1943,51 @@ ERRRET:
 	delete pByte;
 }
 
+//////////////////////////////////////////////////////////////////////
+// CRLoginApp メッセージ ハンドラ
+
+int mt_idle();
+int ScriptIdle();
+
+BOOL CRLoginApp::OnIdle(LONG lCount) 
+{
+	BOOL rt = FALSE;
+
+	if ( lCount >= 0 && CWinApp::OnIdle(lCount) )
+		return TRUE;
+
+	for ( int n = 0 ; n < m_SocketIdle.GetSize() ; n++ ) {
+		CExtSocket *pSock = (CExtSocket *)(m_SocketIdle[n]);
+
+		ASSERT(pSock->m_Type >= 0 && pSock->m_Type < 10 );
+
+		if ( pSock->OnIdle() )
+			rt = TRUE;
+	}
+
+	if ( mt_idle() )
+		rt = TRUE;
+
+	if ( ScriptIdle() )
+		rt = TRUE;
+
+	return rt;
+}
+void CRLoginApp::OnFileNew()
+{
+	if ( ((CMainFrame *)::AfxGetMainWnd())->GetTabCount() < DOCUMENT_MAX )
+		CWinApp::OnFileNew();
+}
+void CRLoginApp::OnFileOpen()
+{
+	if ( ((CMainFrame *)::AfxGetMainWnd())->GetTabCount() < DOCUMENT_MAX )
+		CWinApp::OnFileOpen();
+}
+void CRLoginApp::OnAppAbout()
+{
+	CAboutDlg aboutDlg;
+	aboutDlg.DoModal();
+}
 void CRLoginApp::OnFilePrintSetup()
 {
 	CPrintDialog pd(TRUE);
@@ -1859,4 +2072,51 @@ void CRLoginApp::OnLookcast()
 void CRLoginApp::OnUpdateLookcast(CCmdUI *pCmdUI)
 {
 	pCmdUI->SetCheck(m_bLookCast);
+}
+
+void CRLoginApp::OnPassLock()
+{
+	int n;
+	CIdKey key;
+	CEditDlg dlg;
+	CString passok, tmp;
+	CServerEntryTab *pTab = &(((CMainFrame *)::AfxGetMainWnd())->m_ServerEntryTab);
+
+	if ( m_LocalPass.IsEmpty() ) {	// パスワードロック設定
+		dlg.m_bPassword = TRUE;
+		dlg.m_Edit    = _T("");
+		dlg.m_WinText = _T("RLogin Password Lock");
+		dlg.m_Title.LoadString(IDS_PASSLOCKINITMSG);
+
+		if ( dlg.DoModal() != IDOK || dlg.m_Edit.IsEmpty() )
+			return;
+
+		key.Digest(m_LocalPass, dlg.m_Edit);
+		key.EncryptStr(passok, _T("01234567"), TRUE);
+
+		WriteProfileString(_T("RLoginApp"), _T("LocalPass"), passok);
+
+		for ( n = 0 ; n < pTab->GetSize() ; n++ ) {
+			if ( pTab->GetAt(n).m_bPassOk )
+				pTab->UpdateAt(n);
+			else
+				pTab->ReloadAt(n);
+		}
+
+	} else {						// パスワードロック解除
+		if ( ::AfxMessageBox(IDS_PASSLOCKDELMSG, MB_ICONQUESTION | MB_YESNO) != IDYES )
+			return;
+
+		WriteProfileString(_T("RLoginApp"), _T("LocalPass"), _T(""));
+		m_LocalPass.Empty();
+
+		for ( n = 0 ; n < pTab->GetSize() ; n++ ) {
+			if ( pTab->GetAt(n).m_bPassOk )
+				pTab->UpdateAt(n);
+		}
+	}
+}
+void CRLoginApp::OnUpdatePassLock(CCmdUI *pCmdUI)
+{
+	pCmdUI->SetCheck(m_LocalPass.IsEmpty() ? FALSE : TRUE);
 }

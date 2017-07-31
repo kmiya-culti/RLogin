@@ -34,6 +34,9 @@ public:
 	int m_ScreenW;
 	int m_ScreenH;
 	CString m_EventName;
+	CString m_Title;
+	CString m_Script;
+	BOOL m_ReqDlg;
 
 	CCommandLineInfoEx();
 	virtual void ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLast);
@@ -61,6 +64,7 @@ public:
 	CServerEntry *m_pServerEntry;
 	BOOL m_bLookCast;
 	int m_WinVersion;
+	CString m_LocalPass;
 
 #ifdef	USE_KEYMACGLOBAL
 	CKeyMacTab m_KeyMacGlobal;
@@ -103,6 +107,7 @@ public:
 	void GetVersion(CString &str);
 	void SetDefaultPrinter();
 	void SSL_Init();
+	BOOL InitLocalPass();
 
 	void OpenProcsCmd(CCommandLineInfoEx *pCmdInfo);
 	void OpenCommandEntry(LPCTSTR entry);
@@ -119,8 +124,10 @@ public:
 
 	BOOL OnInUseCheck(COPYDATASTRUCT *pCopyData);
 	BOOL InUseCheck();
-	BOOL OnlineEntry(COPYDATASTRUCT *pCopyData);
-	BOOL OnlineCheck(LPCTSTR entry);
+	BOOL OnIsOnlineEntry(COPYDATASTRUCT *pCopyData);
+	BOOL IsOnlineEntry(LPCTSTR entry);
+	BOOL OnIsOpenRLogin(COPYDATASTRUCT *pCopyData);
+	BOOL IsOpenRLogin();
 #ifdef	USE_KEYMACGLOBAL
 	void OnUpdateKeyMac(COPYDATASTRUCT *pCopyData);
 	void UpdateKeyMacGlobal();
@@ -144,12 +151,16 @@ public:
 
 // ŽÀ‘•
 	DECLARE_MESSAGE_MAP()
+	afx_msg void OnFileNew();
+	afx_msg void OnFileOpen();
 	afx_msg void OnAppAbout();
 	afx_msg void OnFilePrintSetup();
 	afx_msg void OnDispwinidx();
 	afx_msg void OnDialogfont();
 	afx_msg void OnLookcast();
 	afx_msg void OnUpdateLookcast(CCmdUI *pCmdUI);
+	afx_msg void OnPassLock();
+	afx_msg void OnUpdatePassLock(CCmdUI *pCmdUI);
 };
 
 extern CRLoginApp theApp;

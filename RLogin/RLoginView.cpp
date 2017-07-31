@@ -894,7 +894,6 @@ void CRLoginView::OnSize(UINT nType, int cx, int cy)
 	pDoc->UpdateAllViews(NULL, UPDATE_INITPARA, NULL);
 
 	tmp.Format(_T("%d x %d"), pDoc->m_TextRam.m_Cols, pDoc->m_TextRam.m_Lines);
-	pMain->SetMessageText(tmp);
 
 	if ( pDoc->m_TextRam.IsInitText() && !pDoc->m_TextRam.IsOptEnable(TO_RLMWDIS) )
 		m_MsgWnd.Message(tmp, this, pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.bcol]);
@@ -905,11 +904,18 @@ void CRLoginView::OnSize(UINT nType, int cx, int cy)
 
 void CRLoginView::OnMove(int x, int y) 
 {
+	CRLoginDoc *pDoc = GetDocument();
+
 	CView::OnMove(x, y);
 
-	OnUpdate(this, UPDATE_INVALIDATE, NULL);
+	if ( pDoc != NULL && pDoc->m_TextRam.IsInitText() )
+		OnUpdate(this, UPDATE_INVALIDATE, NULL);
 }
 
+void CRLoginView::OnInitialUpdate()
+{
+	//CView::OnInitialUpdate();
+}
 void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint) 
 {
 	int y;
@@ -921,6 +927,8 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 	CChildFrame *pFrame = GetFrameWnd();
 
 	ASSERT(pFrame != NULL);
+
+	//TRACE("UpdateView %d\n", (int)lHint);
 
 	switch(lHint) {
 	case UPDATE_RESIZE:
@@ -1005,8 +1013,10 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 
 		m_HisMin = pDoc->m_TextRam.m_Lines - m_Lines;
 
-		m_CharWidth  = pFrame->m_Width  / pFrame->m_Cols;
-		m_CharHeight = pFrame->m_Height / pFrame->m_Lines;
+		if ( (m_CharWidth  = pFrame->m_Width  / pFrame->m_Cols) > pDoc->m_TextRam.m_CharWidth )
+			m_CharWidth = pDoc->m_TextRam.m_CharWidth;
+		if ( (m_CharHeight = pFrame->m_Height / pFrame->m_Lines) > pDoc->m_TextRam.m_CharHeight )
+			m_CharHeight = pDoc->m_TextRam.m_CharHeight;
 		
 		KillCaret();
 
@@ -1015,7 +1025,6 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		m_BmpFile.LoadFile(str);
 		this->GetClientRect(rect);
 		m_pBitmap = m_BmpFile.GetBitmap(GetDC(), rect.Width(), rect.Height(), 1, pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.bcol]);
-		//pDoc->SetStatus(NULL);
 
 		if ( m_BtnWnd.m_hWnd == NULL && pDoc->m_TextRam.m_bOscActive && pDoc->m_TextRam.m_IntCounter >= 10 ) {
 			m_BtnWnd.DoButton(this, &(pDoc->m_TextRam));
@@ -1254,10 +1263,13 @@ int CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 
 	if ( (GetKeyState(VK_SHIFT) & 0x80) != 0 )
 		st |= MASK_SHIFT;
+
 	if ( (GetKeyState(VK_CONTROL) & 0x80) != 0 )
 		st |= MASK_CTRL;
+
 	if ( (GetKeyState(VK_MENU) & 0x80) != 0 )
 		st |= MASK_ALT;
+
 	if ( pDoc->m_TextRam.IsOptEnable(TO_RLPNAM) )
 		st |= MASK_APPL;
 
@@ -1265,9 +1277,6 @@ int CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 		st |= MASK_VT52;
 	else if ( pDoc->m_TextRam.IsOptEnable(TO_DECCKM) )
 		st |= MASK_CKM;
-
-	if ( nChar == VK_ESCAPE && !pDoc->m_TextRam.IsOptEnable(TO_RLCKMESC) )
-		st &= ~MASK_CKM;
 
 	//if ( (GetKeyState(VK_NUMLOCK) & 0x01) != 0 )
 	//	st |= MASK_NUMLCK;
@@ -1287,16 +1296,22 @@ int CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 		return FALSE;
 
 	if ( (st & (MASK_SHIFT | MASK_CTRL | MASK_ALT)) == 0 && (GetKeyState(VK_NUMLOCK) & 0x01) != 0 && nChar >= VK_NUMPAD0 && nChar <= VK_DIVIDE )
-		return TRUE;;
+		return TRUE;
 
 	if ( pDoc->m_KeyTab.FindMaps(nChar, st, &tmp) ) {
+		// ESCキーのCKM操作		TO_RLCKMESCによりCKM時にコード変換を抑制
+		if ( (st & MASK_CKM) != 0 && wcscmp((LPCWSTR)tmp, L"\033O[") == 0 && !pDoc->m_TextRam.IsOptEnable(TO_RLCKMESC) )
+			tmp = L"\033";
+
 		if ( (n = CKeyNodeTab::GetCmdsKey((LPCWSTR)tmp)) > 0 )
 			AfxGetMainWnd()->PostMessage(WM_COMMAND, (WPARAM)n);
 		else
 			SendBuffer(tmp);
+
 		return FALSE;
 	}
 
+#if 0
 	if ( (st & MASK_CTRL) != 0 ) {
 		switch(nChar) {
 		case VK_OEM_7:	// CTRL+^
@@ -1315,6 +1330,7 @@ int CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 			return FALSE;
 		}
 	}
+#endif
 
 	return TRUE;
 }
@@ -2420,7 +2436,7 @@ BOOL CRLoginView::SendPasteText(LPCWSTR wstr)
 	for ( p = wstr ; *p != 0 ; p++ ) {
 		if ( *p == L'\x0A' || *p == L'\x1A' )
 			continue;
-		if ( *p == L'\x0D' || (*p != L'\t' && *p < L' ') )
+		if ( *p < L' ' )
 			ct++;
 		else
 			len++;
@@ -2431,13 +2447,13 @@ BOOL CRLoginView::SendPasteText(LPCWSTR wstr)
 
 	if ( pDoc->m_TextRam.IsOptEnable(TO_RLEDITPAST) || (m_PastNoCheck == FALSE && (len > 500 || ct > 0)) ) {
 		dlg.m_NoCheck     = m_PastNoCheck;
-		dlg.m_TextBox     = wstr;
+		dlg.m_EditText     = wstr;
 
 		if ( dlg.DoModal() != IDOK )
 			return FALSE;
 
 		m_PastNoCheck = dlg.m_NoCheck;
-		wstr = TstrToUni(dlg.m_TextBox);
+		wstr = TstrToUni(dlg.m_EditText);
 
 		if ( bSave[0] != dlg.m_bDelayPast || bSave[1] != dlg.m_bUpdateText ) {
 			pDoc->m_TextRam.SetOption(TO_RLDELYPAST, dlg.m_bDelayPast);
@@ -2446,7 +2462,7 @@ BOOL CRLoginView::SendPasteText(LPCWSTR wstr)
 		}
 
 		if ( dlg.m_bUpdateText )
-			rt = SetClipboardText(dlg.m_TextBox);
+			rt = SetClipboardText(dlg.m_EditText);
 	}
 
 	if ( pDoc->m_TextRam.IsOptEnable(TO_XTBRPAMD) )
@@ -3140,4 +3156,3 @@ void CRLoginView::OnPrint(CDC* pDC, CPrintInfo* pInfo)
 	pDoc->m_TextRam.m_ScrnOffset.top    = save_param[8];
 	pDoc->m_TextRam.m_ScrnOffset.bottom = save_param[9];
 }
-

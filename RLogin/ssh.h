@@ -298,8 +298,8 @@ public:
 	void MakeKey(CBuffer *bp, LPCTSTR pass, BOOL bHost = TRUE);
 	void Decrypt(CBuffer *bp, LPCTSTR str, LPCTSTR pass = NULL, BOOL bHost = TRUE);
 	void Encrypt(CString &str, LPBYTE buf, int len, LPCTSTR pass = NULL, BOOL bHost = TRUE);
-	void DecryptStr(CString &out, LPCTSTR str);
-	void EncryptStr(CString &out, LPCTSTR str);
+	void DecryptStr(CString &out, LPCTSTR str, BOOL bLocalPass = FALSE);
+	void EncryptStr(CString &out, LPCTSTR str, BOOL bLocalPass = FALSE);
 
 	void Digest(CString &out, LPCTSTR str);
 	inline void SetPass(LPCTSTR pass) { Digest(m_Hash, pass); }

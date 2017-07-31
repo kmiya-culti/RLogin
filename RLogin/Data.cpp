@@ -258,7 +258,7 @@ void CBuffer::PutBIGNUM(BIGNUM *val)
 	LPBYTE tmp = new BYTE[bin_size];
 	int len;
 	if ( (len = BN_bn2bin(val, tmp)) != bin_size )
-		throw this;
+		throw _T("CBuffer PutBIGNUM");
 	Put16Bit(bits);
 	Apend(tmp, len);
 	delete [] tmp;
@@ -274,19 +274,19 @@ void CBuffer::PutBIGNUM2(BIGNUM *val)
 		return;
 	}
 	if (val->neg)
-		throw this;
+		throw _T("CBuffer PutBIGNUM2 neg");
 
 	bytes = BN_num_bytes(val) + 1; /* extra padding byte */
     if ( bytes < 2 )
-		throw this;
+		throw _T("CBuffer PutBIGNUM2 size");
 
 	if ( (tmp = new BYTE[bytes]) == NULL )
-		throw this;
+		throw _T("CBuffer PutBIGNUM2 new");
 
 	tmp[0] = '\x00';
 
     if ( BN_bn2bin(val, tmp + 1) != (bytes - 1) )
-		throw this;
+		throw _T("CBuffer PutBIGNUM2 big");
 
 	hnoh = (tmp[1] & 0x80) ? 0 : 1;
 	Put32Bit(bytes - hnoh);
@@ -300,15 +300,15 @@ void CBuffer::PutEcPoint(const EC_GROUP *curve, const EC_POINT *point)
 	BN_CTX *bnctx;
 
 	if ( (bnctx = BN_CTX_new()) == NULL )
-		throw this;
+		throw _T("CBuffer PutEcPoint mem");
 
 	len = (int)EC_POINT_point2oct(curve, point, POINT_CONVERSION_UNCOMPRESSED, NULL, 0, bnctx);
 
 	if ( (tmp = new BYTE[len]) == NULL )
-		throw this;
+		throw _T("CBuffer PutEcPoint new");
 
 	if ( EC_POINT_point2oct(curve, point, POINT_CONVERSION_UNCOMPRESSED, tmp, len, bnctx) != len )
-		throw this;
+		throw _T("CBuffer PutEcPoint len");
 
 	PutBuf(tmp, len);
 
@@ -334,7 +334,7 @@ int CBuffer::Get8Bit()
 	register LPBYTE p = m_Data + m_Ofs;
 	if ( (m_Ofs += 1) > m_Len ) {
 		m_Len = m_Ofs = 0;
-		throw this;
+		throw _T("CBuffer Get8Bit");
 	}
 	return *p;
 }
@@ -343,7 +343,7 @@ int CBuffer::Get16Bit()
 	register LPBYTE p = m_Data + m_Ofs;
 	if ( (m_Ofs += 2) > m_Len ) {
 		m_Len = m_Ofs = 0;
-		throw this;
+		throw _T("CBuffer Get16Bit");
 	}
 	return ((int)p[0] << 8) |
 		   ((int)p[1] << 0);
@@ -353,7 +353,7 @@ LONG CBuffer::Get32Bit()
 	register LPBYTE p = m_Data + m_Ofs;
 	if ( (m_Ofs += 4) > m_Len ) {
 		m_Len = m_Ofs = 0;
-		throw this;
+		throw _T("CBuffer Get32Bit");
 	}
 	return ((LONG)p[0] << 24) |
 		   ((LONG)p[1] << 16) |
@@ -365,7 +365,7 @@ LONGLONG CBuffer::Get64Bit()
 	register LPBYTE p = m_Data + m_Ofs;
 	if ( (m_Ofs += 8) > m_Len ) {
 		m_Len = m_Ofs = 0;
-		throw this;
+		throw _T("CBuffer Get64Bit");
 	}
 	return ((LONGLONG)p[0] << 56) |
 		   ((LONGLONG)p[1] << 48) |
@@ -380,7 +380,7 @@ int CBuffer::GetStr(CStringA &str)
 {
 	int len = Get32Bit();
 	if ( len < 0 || len > (256 * 1024) || (m_Len - m_Ofs) < len )
-		throw this;
+		throw _T("CBuffer GetStr");
 	memcpy(str.GetBufferSetLength(len), m_Data + m_Ofs, len);
 	Consume(len);
 	return TRUE;
@@ -389,7 +389,7 @@ int CBuffer::GetBuf(CBuffer *buf)
 {
 	int len = Get32Bit();
 	if ( len < 0 || len > (256 * 1024) || (m_Len - m_Ofs) < len )
-		throw this;
+		throw _T("CBuffer GetBuf");
 	buf->Apend(GetPtr(), len);
 	Consume(len);
 	return TRUE;
@@ -399,9 +399,9 @@ int CBuffer::GetBIGNUM(BIGNUM *val)
 	int bytes;
 	int bits = Get16Bit();
 	if ( (bytes = (bits + 7) / 8) > (8 * 1024) || bytes < 0 )
-		throw this;
+		throw _T("CBuffer GetBIGNUM size");
 	if ( (m_Len - m_Ofs) < bytes )
-		throw this;
+		throw _T("CBuffer GetBIGNUM len");
     BN_bin2bn(m_Data + m_Ofs, bytes, val);
 	Consume(bytes);
 	return TRUE;
@@ -410,7 +410,7 @@ int CBuffer::GetBIGNUM2(BIGNUM *val)
 {
 	int bytes = Get32Bit();
 	if ( bytes < 0 || bytes > (32 * 1024) || (m_Len - m_Ofs) < bytes )
-		throw this;
+		throw _T("CBuffer GetBIGNUM2 size");
     BN_bin2bn(m_Data + m_Ofs, bytes, val);
 	Consume(bytes);
 	return TRUE;
@@ -419,7 +419,7 @@ int CBuffer::GetBIGNUM_SecSh(BIGNUM *val)
 {
 	int bytes = (Get32Bit() + 7) / 8;
 	if ( bytes < 0 || bytes > (32 * 1024) || (m_Len - m_Ofs) < bytes )
-		throw this;
+		throw _T("CBuffer GetBIGNUM_SecSh");
 	if ( (m_Data[m_Ofs] & 0x80) != 0 ) {
 		if ( m_Ofs > 0 ) {
 			m_Data[m_Ofs - 1] = '\0';
@@ -450,7 +450,7 @@ int CBuffer::GetEcPoint(const EC_GROUP *curve, EC_POINT *point)
 		return FALSE;
 
 	if ( (bnctx = BN_CTX_new()) == NULL )
-		throw this;
+		throw _T("CBuffer GetEcPoint");
 
 	ret = EC_POINT_oct2point(curve, point, buf, len, bnctx);
 
@@ -464,7 +464,7 @@ int CBuffer::GetDword()
 	register LPDWORD p = (LPDWORD)(m_Data + m_Ofs);
 	if ( (m_Ofs += sizeof(DWORD)) > m_Len ) {
 		m_Len = m_Ofs = 0;
-		throw this;
+		throw _T("CBuffer GetDword");
 	}
 	return *p;
 }
@@ -473,7 +473,7 @@ int CBuffer::GetWord()
 	register LPWORD p = (LPWORD)(m_Data + m_Ofs);
 	if ( (m_Ofs += sizeof(WORD)) > m_Len ) {
 		m_Len = m_Ofs = 0;
-		throw this;
+		throw _T("CBuffer GetWord");
 	}
 	return *p;
 }
@@ -482,7 +482,7 @@ int CBuffer::GetChar()
 	register LPBYTE p = (LPBYTE)(m_Data + m_Ofs);
 	if ( (m_Ofs += sizeof(BYTE)) > m_Len ) {
 		m_Len = m_Ofs = 0;
-		throw this;
+		throw _T("CBuffer GetChar");
 	}
 	return *p;
 }
@@ -1566,13 +1566,14 @@ CBmpFile::~CBmpFile()
 		m_pPic->Release();
 }
 
-int CBmpFile::LoadFile(LPCTSTR filename)
+BOOL CBmpFile::LoadFile(LPCTSTR filename)
 {
 	CFile file;
-	HGLOBAL hGLB;
-	void *pBuf;
 	ULONGLONG FileSize;
-    LPSTREAM pStm;
+	HGLOBAL hGLB = NULL;
+	void *pBuf = NULL;
+    LPSTREAM pStm = NULL;
+	BOOL ret = FALSE;
 
 	if ( m_FileName.Compare(filename) == 0 )
 		return FALSE;
@@ -1586,13 +1587,13 @@ int CBmpFile::LoadFile(LPCTSTR filename)
 		m_Bitmap.DeleteObject();
 
 	if( !file.Open(filename, CFile::modeRead) )
-		return FALSE;
+		goto ERROF;
 
 	if ( (FileSize = file.GetLength()) > (512 * 1024 * 1024) )
-		return FALSE;
+		goto ERROF;
 
 	if ( (hGLB = ::GlobalAlloc(GMEM_MOVEABLE, (DWORD)FileSize)) == NULL )
-		return FALSE;
+		goto ERROF;
 
 	if ( (pBuf = ::GlobalLock(hGLB)) == NULL )
 		goto ERROF;
@@ -1601,26 +1602,30 @@ int CBmpFile::LoadFile(LPCTSTR filename)
 		goto ERROF;
 
 	::GlobalUnlock(hGLB);
+	pBuf = NULL;
 
-	pStm = NULL;
 	if ( ::CreateStreamOnHGlobal(hGLB, TRUE, &pStm) != S_OK )
 		goto ERROF;
 
     if ( ::OleLoadPicture(pStm, (DWORD)FileSize, FALSE, IID_IPicture, (LPVOID *)&m_pPic) != S_OK )
-		goto ERROF2;
+		goto ERROF;
 
 	if ( m_Bitmap.m_hObject != NULL )
 		m_Bitmap.DeleteObject();
 
-	pStm->Release();
-	::GlobalFree(hGLB);
-    return TRUE;
+	ret = TRUE;
 
-ERROF2:
-	pStm->Release();
 ERROF:
-	::GlobalFree(hGLB);
-	return FALSE;
+	if ( pStm != NULL )
+		pStm->Release();
+
+	if ( pBuf != NULL )
+		::GlobalUnlock(hGLB);
+
+	if ( hGLB != NULL )
+		::GlobalFree(hGLB);
+
+	return ret;
 }
 
 CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, int align, COLORREF bkcolor)
@@ -2493,6 +2498,8 @@ void CServerEntry::Init()
 	m_ReEntryFlag = FALSE;
 	m_DocType = (-1);
 	m_IconName.Empty();
+	m_bPassOk = TRUE;
+	m_TitleName.Empty();
 }
 const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 {
@@ -2529,6 +2536,8 @@ const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 	m_ReEntryFlag    = data.m_ReEntryFlag;
 	m_DocType        = data.m_DocType;
 	m_IconName       = data.m_IconName;
+	m_bPassOk        = data.m_bPassOk;
+	m_TitleName      = data.m_TitleName;
 	return *this;
 }
 void CServerEntry::GetArray(CStringArrayExt &stra)
@@ -2541,7 +2550,7 @@ void CServerEntry::GetArray(CStringArrayExt &stra)
 	m_HostName  = stra.GetAt(1);
 	m_PortName  = stra.GetAt(2);
 	m_UserName  = stra.GetAt(3);
-	key.DecryptStr(m_PassName, stra.GetAt(4));
+	key.DecryptStr(m_PassName, stra.GetAt(4), TRUE);
 	m_TermName  = stra.GetAt(5);
 	m_IdkeyName = stra.GetAt(6);
 	m_KanjiCode = stra.GetVal(7);
@@ -2560,14 +2569,17 @@ void CServerEntry::GetArray(CStringArrayExt &stra)
 		m_ProxyHost = stra.GetAt(12);
 		m_ProxyPort = stra.GetAt(13);
 		m_ProxyUser = stra.GetAt(14);
-		key.DecryptStr(m_ProxyPass, stra.GetAt(15));
+		key.DecryptStr(m_ProxyPass, stra.GetAt(15), TRUE);
 	}
 
+	m_bPassOk = TRUE;
+
 	if ( stra.GetSize() > 16 ) {
-		key.DecryptStr(str, stra.GetAt(16));
+		key.DecryptStr(str, stra.GetAt(16), TRUE);
 		if ( str.Compare(_T("12345678")) != 0 ) {
 			m_PassName.Empty();
 			m_ProxyPass.Empty();
+			m_bPassOk = FALSE;
 		}
 	}
 
@@ -2579,6 +2591,7 @@ void CServerEntry::GetArray(CStringArrayExt &stra)
 	m_ProxySSLKeep = (stra.GetSize() > 22 ?  stra.GetVal(22) : FALSE);;
 	m_IconName     = (stra.GetSize() > 23 ?  stra.GetAt(23) : _T(""));
 
+	m_TitleName.Empty();
 	m_ProBuffer.Clear();
 
 	m_HostNameProvs  = m_HostName;
@@ -2599,7 +2612,7 @@ void CServerEntry::SetArray(CStringArrayExt &stra)
 	stra.Add(m_HostNameProvs);
 	stra.Add(m_PortName);
 	stra.Add(m_UserNameProvs);
-	key.EncryptStr(str, m_PassNameProvs);
+	key.EncryptStr(str, m_PassNameProvs, TRUE);
 	stra.Add(str);
 	stra.Add(m_TermName);
 	stra.Add(m_IdkeyName);
@@ -2612,9 +2625,9 @@ void CServerEntry::SetArray(CStringArrayExt &stra)
 	stra.Add(m_ProxyHostProvs);
 	stra.Add(m_ProxyPort);
 	stra.Add(m_ProxyUserProvs);
-	key.EncryptStr(str, m_ProxyPassProvs);
+	key.EncryptStr(str, m_ProxyPassProvs, TRUE);
 	stra.Add(str);
-	key.EncryptStr(str, _T("12345678"));
+	key.EncryptStr(str, _T("12345678"), TRUE);
 	stra.Add(str);
 	stra.Add(m_Memo);
 	stra.Add(m_Group);
@@ -2834,7 +2847,7 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 		index[_T("IdKey")] = m_IdkeyName;
 
 		pass.Format(_T("TEST%s"), m_PassNameProvs);
-		key.EncryptStr(str, pass);
+		key.EncryptStr(str, pass, TRUE);
 		index[_T("Pass")]  = str;
 
 		index[_T("CharSet")]  = GetKanjiCode();
@@ -2849,7 +2862,7 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 		index[_T("Proxy")][_T("User")] = m_ProxyUserProvs;
 
 		pass.Format(_T("TEST%s"), m_ProxyPassProvs);
-		key.EncryptStr(str, pass);
+		key.EncryptStr(str, pass, TRUE);
 		index[_T("Proxy")][_T("Pass")] = str;
 
 		index[_T("Script")][_T("File")] = m_ScriptFile;
@@ -2875,10 +2888,14 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 		if ( (n = index.Find(_T("IdKey"))) >= 0 )
 			m_IdkeyName = index[n];
 
+		m_bPassOk = TRUE;
+
 		if ( (n = index.Find(_T("Pass"))) >= 0 ) {
-			key.DecryptStr(str, index[n]);
+			key.DecryptStr(str, index[n], TRUE);
 			if ( str.Left(4).Compare(_T("TEST")) == 0 )
 				m_PassName = str.Mid(4);
+			else
+				m_bPassOk = FALSE;
 		}
 
 		if ( (n = index.Find(_T("CharSet"))) >= 0 )
@@ -2901,9 +2918,11 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 			if ( (i = index[n].Find(_T("User"))) >= 0 )
 				m_ProxyUser = index[n][i];
 			if ( (i = index[n].Find(_T("Pass"))) >= 0 ) {
-				key.DecryptStr(str, index[n][i]);
+				key.DecryptStr(str, index[n][i], TRUE);
 				if ( str.Left(4).Compare(_T("TEST")) == 0 )
 					m_ProxyPass = str.Mid(4);
+				else
+					m_bPassOk = FALSE;
 			}
 		}
 
@@ -2983,7 +3002,6 @@ CServerEntryTab::CServerEntryTab()
 {
 	m_pSection = _T("ServerEntryTab");
 	m_MinSize = 1;
-	Serialize(FALSE);
 }
 void CServerEntryTab::Init()
 {
@@ -3059,6 +3077,11 @@ void CServerEntryTab::RemoveAt(int nIndex)
 {
 	m_Data[nIndex].DelProfile(m_pSection);
 	m_Data.RemoveAt(nIndex);
+}
+void CServerEntryTab::ReloadAt(int nIndex)
+{
+	if ( m_Data[nIndex].m_Uid != (-1) )
+		m_Data[nIndex].GetProfile(m_pSection, m_Data[nIndex].m_Uid);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -3507,11 +3530,6 @@ static const struct _InitKeyTab {
 
 		{ 0,	VK_TAB,			MASK_SHIFT,				_T("\\033[Z")		},
 
-		{ 0,	VK_OEM_7,		MASK_CTRL,				_T("\\036")			},	// $DE(^)
-		{ 0,	VK_OEM_2,		MASK_CTRL,				_T("\\037")			},	// $BF(/)
-		{ 0,	VK_OEM_3,		MASK_CTRL,				_T("\\000")			},	// $C0(@)
-		{ 0,	VK_SPACE,		MASK_CTRL,				_T("\\000")			},	// SPACE
-
 		{ 0,	VK_SEPARATOR,	MASK_APPL,				_T("\\033OX")		},	// = (equal)    | =	  | SS3 X
 		{ 0,	VK_MULTIPLY,	MASK_APPL,				_T("\\033Oj")		},	// * (multiply) | *	  | SS3 j
 		{ 0,	VK_ADD,			MASK_APPL,				_T("\\033On")		},	// + (add)      | +	  | SS3 k
@@ -3567,6 +3585,26 @@ static const struct _InitKeyTab {
 
 		{ 8,	'V',			MASK_CTRL,				_T("$EDIT_PASTE")	},
 		{ 8,	'V',			MASK_ALT,				_T("$CLIPBOARD")	},
+
+		{ 9,	'2',			MASK_CTRL | MASK_SHIFT,	_T("\\000")			},	// NUL
+		{ 9,	'3',			MASK_CTRL | MASK_SHIFT,	_T("\\033")			},	// ESC
+		{ 9,	'4',			MASK_CTRL | MASK_SHIFT,	_T("\\034")			},	// FS
+		{ 9,	'5',			MASK_CTRL | MASK_SHIFT,	_T("\\035")			},	// GS
+		{ 9,	'6',			MASK_CTRL | MASK_SHIFT,	_T("\\036")			},	// RS
+		{ 9,	'7',			MASK_CTRL | MASK_SHIFT,	_T("\\037")			},	// US
+		{ 9,	'8',			MASK_CTRL | MASK_SHIFT,	_T("\\177")			},	// DEL
+		{ 9,	VK_DELETE,		MASK_CTRL,				_T("\\030")			},	// CAN
+
+		{ 9,	VK_OEM_4,		MASK_CTRL,				_T("\\033")			},	// $DB([)
+		{ 9,	VK_OEM_5,		MASK_CTRL,				_T("\\034")			},	// $DC(\)
+		{ 9,	VK_OEM_6,		MASK_CTRL,				_T("\\035")			},	// $DD(])
+		{ 9,	VK_OEM_7,		MASK_CTRL,				_T("\\036")			},	// $DE(^)
+		{ 9,	VK_OEM_2,		MASK_CTRL,				_T("\\037")			},	// $BF(/)
+		{ 9,	VK_OEM_3,		MASK_CTRL,				_T("\\000")			},	// $C0(@)
+		{ 9,	VK_SPACE,		MASK_CTRL,				_T("\\000")			},	// SPACE
+
+		{ 9,	'3',			MASK_CKM | MASK_CTRL | MASK_SHIFT,	_T("\\033O[")		},
+		{ 9,	VK_OEM_4,		MASK_CKM | MASK_CTRL,				_T("\\033O[")		},	// $DB([)
 
 		{ 0,	(-1),			(-1),					NULL },
 	};
@@ -3799,7 +3837,7 @@ void CKeyNodeTab::SetArray(CStringArrayExt &stra)
 
 	tmp.RemoveAll();
 	tmp.AddVal(-1);
-	tmp.AddVal(8);			// KeyCode Bug Fix
+	tmp.AddVal(9);			// KeyCode Bug Fix
 	stra.AddArray(tmp);
 }
 void CKeyNodeTab::GetArray(CStringArrayExt &stra)
@@ -3910,131 +3948,132 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	120
+#define	CMDSKEYTABMAX	121
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
 } CmdsKeyTab[] = {
-	{	ID_APP_ABOUT,			L"$ABOUT"			},
-	{	ID_SEND_BREAK,			L"$BREAK"			},
-	{	IDM_BROADCAST,			L"$BROADCAST"		},
-	{	IDM_CLIPBOARD_MENU,		L"$CLIPBOARD"		},
-	{	IDM_CLIPBOARD_HIS1,		L"$CLIPBOARD_HIS1"	},
-	{	IDM_CLIPBOARD_HIS10,	L"$CLIPBOARD_HIS10"	},
-	{	IDM_CLIPBOARD_HIS2,		L"$CLIPBOARD_HIS2"	},
-	{	IDM_CLIPBOARD_HIS3,		L"$CLIPBOARD_HIS3"	},
-	{	IDM_CLIPBOARD_HIS4,		L"$CLIPBOARD_HIS4"	},
-	{	IDM_CLIPBOARD_HIS5,		L"$CLIPBOARD_HIS5"	},
-	{	IDM_CLIPBOARD_HIS6,		L"$CLIPBOARD_HIS6"	},
-	{	IDM_CLIPBOARD_HIS7,		L"$CLIPBOARD_HIS7"	},
-	{	IDM_CLIPBOARD_HIS8,		L"$CLIPBOARD_HIS8"	},
-	{	IDM_CLIPBOARD_HIS9,		L"$CLIPBOARD_HIS9"	},
-	{	IDM_DIALOGFONT,			L"$DIALOG_FONT"		},
-	{	ID_EDIT_COPY,			L"$EDIT_COPY"		},
-	{	ID_EDIT_COPY_ALL,		L"$EDIT_COPYALL"	},
-	{	ID_EDIT_PASTE,			L"$EDIT_PASTE"		},
-	{	ID_APP_EXIT,			L"$EXIT"			},
-	{	ID_FILE_ALL_SAVE,		L"$FILE_ALLSAVE"	},
-	{	ID_FILE_CLOSE,			L"$FILE_CLOSE"		},
-	{	ID_FILE_NEW,			L"$FILE_NEW"		},
-	{	ID_FILE_OPEN,			L"$FILE_OPEN"		},
-	{	ID_FILE_SAVE_AS,		L"$FILE_SAVE"		},
-	{	IDM_KANJI_ASCII,		L"$KANJI_ASCII"		},
-	{	IDM_KANJI_EUC,			L"$KANJI_EUC"		},
-	{	IDM_KANJI_SJIS,			L"$KANJI_SJIS"		},
-	{	IDM_KANJI_UTF8,			L"$KANJI_UTF8"		},
-	{	IDM_KERMIT_DOWNLOAD,	L"$KERMIT_DOWNLOAD"	},
-	{	IDM_KERMIT_UPLOAD,		L"$KERMIT_UPLOAD"	},
-	{	ID_MACRO_HIS1,			L"$KEY_HIS1"		},
-	{	ID_MACRO_HIS2,			L"$KEY_HIS2"		},
-	{	ID_MACRO_HIS3,			L"$KEY_HIS3"		},
-	{	ID_MACRO_HIS4,			L"$KEY_HIS4"		},
-	{	ID_MACRO_HIS5,			L"$KEY_HIS5"		},
-	{	ID_MACRO_PLAY,			L"$KEY_PLAY"		},
-	{	ID_MACRO_REC,			L"$KEY_REC"			},
-	{	ID_LOG_OPEN,			L"$LOG_OPEN"		},
-	{	IDM_LOOKCAST,			L"$LOOKCAST"		},
-	{	ID_MOUSE_EVENT,			L"$MOUSE_EVENT"		},
-	{	ID_PAGE_NEXT,			L"$NEXT"			},
-	{	IDC_LOADDEFAULT,		L"$OPTION_LOAD"		},
-	{	ID_SETOPTION,			L"$OPTION_SET"		},
-	{	ID_WINDOW_CASCADE,		L"$PANE_CASCADE"	},
-	{	ID_PANE_DELETE,			L"$PANE_DELETE"		},
-	{	IDM_MOVEPANE_DOWN,		L"$PANE_DOWN"		},
-	{	ID_PANE_HSPLIT,			L"$PANE_HSPLIT"		},
-	{	IDM_MOVEPANE_LEFT,		L"$PANE_LEFT"		},
-	{	IDM_WINODW_NEXT,		L"$PANE_NEXT"		},
-	{	IDM_WINDOW_PREV,		L"$PANE_PREV"		},
-	{	IDM_MOVEPANE_RIGHT,		L"$PANE_RIGHT"		},
-	{	ID_WINDOW_ROTATION,		L"$PANE_ROTATION"	},
-	{	ID_PANE_SAVE,			L"$PANE_SAVE"		},
-	{	IDM_WINDOW_SEL0,		L"$PANE_SEL1"		},
-	{	IDM_WINDOW_SEL9,		L"$PANE_SEL10"		},
-	{	IDM_WINDOW_SEL1,		L"$PANE_SEL2"		},
-	{	IDM_WINDOW_SEL2,		L"$PANE_SEL3"		},
-	{	IDM_WINDOW_SEL3,		L"$PANE_SEL4"		},
-	{	IDM_WINDOW_SEL4,		L"$PANE_SEL5"		},
-	{	IDM_WINDOW_SEL5,		L"$PANE_SEL6"		},
-	{	IDM_WINDOW_SEL6,		L"$PANE_SEL7"		},
-	{	IDM_WINDOW_SEL7,		L"$PANE_SEL8"		},
-	{	IDM_WINDOW_SEL8,		L"$PANE_SEL9"		},
-	{	ID_WINDOW_TILE_HORZ,	L"$PANE_TILEHORZ"	},
-	{	IDM_MOVEPANE_UP,		L"$PANE_UP"			},
-	{	ID_PANE_WSPLIT,			L"$PANE_WSPLIT"		},
-	{	ID_FILE_PRINT_DIRECT,	L"$PRINT_DIRECT"	},
-	{	ID_FILE_PRINT_PREVIEW,	L"$PRINT_PREVIEW"	},
-	{	ID_FILE_PRINT_SETUP,	L"$PRINT_SETUP"		},
-	{	ID_PAGE_PRIOR,			L"$PRIOR"			},
-	{	IDM_RESET_ALL,			L"$RESET_ALL"		},
-	{	IDM_RESET_ATTR,			L"$RESET_ATTR"		},
-	{	IDM_RESET_BANK,			L"$RESET_BANK"		},
-	{	IDM_RESET_ESC,			L"$RESET_ESC"		},
-	{	IDM_RESET_MOUSE,		L"$RESET_MOUSE"		},
-	{	IDM_RESET_SCREEN,		L"$RESET_SCREEN"	},
-	{	IDM_RESET_SIZE,			L"$RESET_SIZE"		},
-	{	IDM_RESET_TAB,			L"$RESET_TAB"		},
-	{	IDM_RESET_TEK,			L"$RESET_TEK"		},
-	{	ID_CHARSCRIPT_END,		L"$SCRIPT_END"		},
-	{	IDM_SCRIPT,				L"$SCRIPT_EXEC"		},
-	{	IDM_SCRIPT_MENU1,		L"$SCRIPT_MENU1"	},
-	{	IDM_SCRIPT_MENU10,		L"$SCRIPT_MENU10"	},
-	{	IDM_SCRIPT_MENU2,		L"$SCRIPT_MENU2"	},
-	{	IDM_SCRIPT_MENU3,		L"$SCRIPT_MENU3"	},
-	{	IDM_SCRIPT_MENU4,		L"$SCRIPT_MENU4"	},
-	{	IDM_SCRIPT_MENU5,		L"$SCRIPT_MENU5"	},
-	{	IDM_SCRIPT_MENU6,		L"$SCRIPT_MENU6"	},
-	{	IDM_SCRIPT_MENU7,		L"$SCRIPT_MENU7"	},
-	{	IDM_SCRIPT_MENU8,		L"$SCRIPT_MENU8"	},
-	{	IDM_SCRIPT_MENU9,		L"$SCRIPT_MENU9"	},
-	{	IDM_SEARCH_BACK,		L"$SEARCH_BACK"		},
-	{	IDM_SEARCH_NEXT,		L"$SEARCH_NEXT"		},
-	{	IDM_SEARCH_REG,			L"$SEARCH_REG"		},
-	{	ID_SPLIT_HEIGHT,		L"$SPLIT_HEIGHT"	},
-	{	IDM_SPLIT_HEIGHT_NEW,	L"$SPLIT_HEIGHTNEW"	},
-	{	ID_SPLIT_OVER,			L"$SPLIT_OVER"		},
-	{	ID_SPLIT_WIDTH,			L"$SPLIT_WIDTH"		},
-	{	IDM_SPLIT_WIDTH_NEW,	L"$SPLIT_WIDTHNEW"	},
-	{	IDM_VERSIONCHECK,		L"$VERSION_CHECK"	},
-	{	IDM_IMAGEDISP,			L"$VIEW_IMAGEDISP"	},
-	{	ID_GOZIVIEW,			L"$VIEW_JOKE"		},
-	{	ID_VIEW_MENUBAR,		L"$VIEW_MENUBAR"	},
-	{	ID_VIEW_SCROLLBAR,		L"$VIEW_SCROLLBAR"	},
-	{	IDM_SFTP,				L"$VIEW_SFTP"		},
-	{	IDM_SOCKETSTATUS,		L"$VIEW_SOCKET"		},
-	{	ID_VIEW_STATUS_BAR,		L"$VIEW_STATUSBAR"	},
-	{	ID_VIEW_TABBAR,			L"$VIEW_TABBAR"		},
-	{	IDM_TEKDISP,			L"$VIEW_TEKDISP"	},
-	{	ID_VIEW_TOOLBAR,		L"$VIEW_TOOLBAR"	},
-	{	IDM_TRACEDISP,			L"$VIEW_TRACEDISP"	},
-	{	ID_WINDOW_CLOSE,		L"$WINDOW_CLOSE"	},
-	{	IDM_DISPWINIDX,			L"$WINDOW_INDEX"	},
-	{	ID_WINDOW_NEW,			L"$WINDOW_NEW"		},
-	{	IDM_XMODEM_DOWNLOAD,	L"$XMODEM_DOWNLOAD"	},
-	{	IDM_XMODEM_UPLOAD,		L"$XMODEM_UPLOAD"	},
-	{	IDM_YMODEM_DOWNLOAD,	L"$YMODEM_DOWNLOAD"	},
-	{	IDM_YMODEM_UPLOAD,		L"$YMODEM_UPLOAD"	},
-	{	IDM_ZMODEM_DOWNLOAD,	L"$ZMODEM_DOWNLOAD"	},
-	{	IDM_ZMODEM_UPLOAD,		L"$ZMODEM_UPLOAD"	},
+	{	ID_APP_ABOUT,				L"$ABOUT"			},
+	{	ID_SEND_BREAK,				L"$BREAK"			},
+	{	IDM_BROADCAST,				L"$BROADCAST"		},
+	{	IDM_CLIPBOARD_MENU,			L"$CLIPBOARD"		},
+	{	IDM_CLIPBOARD_HIS1,			L"$CLIPBOARD_HIS1"	},
+	{	IDM_CLIPBOARD_HIS10,		L"$CLIPBOARD_HIS10"	},
+	{	IDM_CLIPBOARD_HIS2,			L"$CLIPBOARD_HIS2"	},
+	{	IDM_CLIPBOARD_HIS3,			L"$CLIPBOARD_HIS3"	},
+	{	IDM_CLIPBOARD_HIS4,			L"$CLIPBOARD_HIS4"	},
+	{	IDM_CLIPBOARD_HIS5,			L"$CLIPBOARD_HIS5"	},
+	{	IDM_CLIPBOARD_HIS6,			L"$CLIPBOARD_HIS6"	},
+	{	IDM_CLIPBOARD_HIS7,			L"$CLIPBOARD_HIS7"	},
+	{	IDM_CLIPBOARD_HIS8,			L"$CLIPBOARD_HIS8"	},
+	{	IDM_CLIPBOARD_HIS9,			L"$CLIPBOARD_HIS9"	},
+	{	IDM_DIALOGFONT,				L"$DIALOG_FONT"		},
+	{	ID_EDIT_COPY,				L"$EDIT_COPY"		},
+	{	ID_EDIT_COPY_ALL,			L"$EDIT_COPYALL"	},
+	{	ID_EDIT_PASTE,				L"$EDIT_PASTE"		},
+	{	ID_APP_EXIT,				L"$EXIT"			},
+	{	ID_FILE_ALL_SAVE,			L"$FILE_ALLSAVE"	},
+	{	ID_FILE_CLOSE,				L"$FILE_CLOSE"		},
+	{	ID_FILE_NEW,				L"$FILE_NEW"		},
+	{	ID_FILE_OPEN,				L"$FILE_OPEN"		},
+	{	ID_FILE_SAVE_AS,			L"$FILE_SAVE"		},
+	{	IDM_KANJI_ASCII,			L"$KANJI_ASCII"		},
+	{	IDM_KANJI_EUC,				L"$KANJI_EUC"		},
+	{	IDM_KANJI_SJIS,				L"$KANJI_SJIS"		},
+	{	IDM_KANJI_UTF8,				L"$KANJI_UTF8"		},
+	{	IDM_KERMIT_DOWNLOAD,		L"$KERMIT_DOWNLOAD"	},
+	{	IDM_KERMIT_UPLOAD,			L"$KERMIT_UPLOAD"	},
+	{	ID_MACRO_HIS1,				L"$KEY_HIS1"		},
+	{	ID_MACRO_HIS2,				L"$KEY_HIS2"		},
+	{	ID_MACRO_HIS3,				L"$KEY_HIS3"		},
+	{	ID_MACRO_HIS4,				L"$KEY_HIS4"		},
+	{	ID_MACRO_HIS5,				L"$KEY_HIS5"		},
+	{	ID_MACRO_PLAY,				L"$KEY_PLAY"		},
+	{	ID_MACRO_REC,				L"$KEY_REC"			},
+	{	ID_LOG_OPEN,				L"$LOG_OPEN"		},
+	{	IDM_LOOKCAST,				L"$LOOKCAST"		},
+	{	ID_MOUSE_EVENT,				L"$MOUSE_EVENT"		},
+	{	ID_PAGE_NEXT,				L"$NEXT"			},
+	{	IDC_LOADDEFAULT,			L"$OPTION_LOAD"		},
+	{	ID_SETOPTION,				L"$OPTION_SET"		},
+	{	ID_WINDOW_CASCADE,			L"$PANE_CASCADE"	},
+	{	ID_PANE_DELETE,				L"$PANE_DELETE"		},
+	{	IDM_MOVEPANE_DOWN,			L"$PANE_DOWN"		},
+	{	ID_PANE_HSPLIT,				L"$PANE_HSPLIT"		},
+	{	IDM_MOVEPANE_LEFT,			L"$PANE_LEFT"		},
+	{	IDM_WINODW_NEXT,			L"$PANE_NEXT"		},
+	{	IDM_WINDOW_PREV,			L"$PANE_PREV"		},
+	{	IDM_MOVEPANE_RIGHT,			L"$PANE_RIGHT"		},
+	{	ID_WINDOW_ROTATION,			L"$PANE_ROTATION"	},
+	{	ID_PANE_SAVE,				L"$PANE_SAVE"		},
+	{	AFX_IDM_FIRST_MDICHILD + 0,	L"$PANE_SEL1"		},
+	{	AFX_IDM_FIRST_MDICHILD + 9,	L"$PANE_SEL10"		},
+	{	AFX_IDM_FIRST_MDICHILD + 1,	L"$PANE_SEL2"		},
+	{	AFX_IDM_FIRST_MDICHILD + 2,	L"$PANE_SEL3"		},
+	{	AFX_IDM_FIRST_MDICHILD + 3,	L"$PANE_SEL4"		},
+	{	AFX_IDM_FIRST_MDICHILD + 4,	L"$PANE_SEL5"		},
+	{	AFX_IDM_FIRST_MDICHILD + 5,	L"$PANE_SEL6"		},
+	{	AFX_IDM_FIRST_MDICHILD + 6,	L"$PANE_SEL7"		},
+	{	AFX_IDM_FIRST_MDICHILD + 7,	L"$PANE_SEL8"		},
+	{	AFX_IDM_FIRST_MDICHILD + 8,	L"$PANE_SEL9"		},
+	{	ID_WINDOW_TILE_HORZ,		L"$PANE_TILEHORZ"	},
+	{	IDM_MOVEPANE_UP,			L"$PANE_UP"			},
+	{	ID_PANE_WSPLIT,				L"$PANE_WSPLIT"		},
+	{	IDM_PASSWORDLOCK,			L"$PASSLOCK"		},
+	{	ID_FILE_PRINT_DIRECT,		L"$PRINT_DIRECT"	},
+	{	ID_FILE_PRINT_PREVIEW,		L"$PRINT_PREVIEW"	},
+	{	ID_FILE_PRINT_SETUP,		L"$PRINT_SETUP"		},
+	{	ID_PAGE_PRIOR,				L"$PRIOR"			},
+	{	IDM_RESET_ALL,				L"$RESET_ALL"		},
+	{	IDM_RESET_ATTR,				L"$RESET_ATTR"		},
+	{	IDM_RESET_BANK,				L"$RESET_BANK"		},
+	{	IDM_RESET_ESC,				L"$RESET_ESC"		},
+	{	IDM_RESET_MOUSE,			L"$RESET_MOUSE"		},
+	{	IDM_RESET_SCREEN,			L"$RESET_SCREEN"	},
+	{	IDM_RESET_SIZE,				L"$RESET_SIZE"		},
+	{	IDM_RESET_TAB,				L"$RESET_TAB"		},
+	{	IDM_RESET_TEK,				L"$RESET_TEK"		},
+	{	ID_CHARSCRIPT_END,			L"$SCRIPT_END"		},
+	{	IDM_SCRIPT,					L"$SCRIPT_EXEC"		},
+	{	IDM_SCRIPT_MENU1,			L"$SCRIPT_MENU1"	},
+	{	IDM_SCRIPT_MENU10,			L"$SCRIPT_MENU10"	},
+	{	IDM_SCRIPT_MENU2,			L"$SCRIPT_MENU2"	},
+	{	IDM_SCRIPT_MENU3,			L"$SCRIPT_MENU3"	},
+	{	IDM_SCRIPT_MENU4,			L"$SCRIPT_MENU4"	},
+	{	IDM_SCRIPT_MENU5,			L"$SCRIPT_MENU5"	},
+	{	IDM_SCRIPT_MENU6,			L"$SCRIPT_MENU6"	},
+	{	IDM_SCRIPT_MENU7,			L"$SCRIPT_MENU7"	},
+	{	IDM_SCRIPT_MENU8,			L"$SCRIPT_MENU8"	},
+	{	IDM_SCRIPT_MENU9,			L"$SCRIPT_MENU9"	},
+	{	IDM_SEARCH_BACK,			L"$SEARCH_BACK"		},
+	{	IDM_SEARCH_NEXT,			L"$SEARCH_NEXT"		},
+	{	IDM_SEARCH_REG,				L"$SEARCH_REG"		},
+	{	ID_SPLIT_HEIGHT,			L"$SPLIT_HEIGHT"	},
+	{	IDM_SPLIT_HEIGHT_NEW,		L"$SPLIT_HEIGHTNEW"	},
+	{	ID_SPLIT_OVER,				L"$SPLIT_OVER"		},
+	{	ID_SPLIT_WIDTH,				L"$SPLIT_WIDTH"		},
+	{	IDM_SPLIT_WIDTH_NEW,		L"$SPLIT_WIDTHNEW"	},
+	{	IDM_VERSIONCHECK,			L"$VERSION_CHECK"	},
+	{	IDM_IMAGEDISP,				L"$VIEW_IMAGEDISP"	},
+	{	ID_GOZIVIEW,				L"$VIEW_JOKE"		},
+	{	ID_VIEW_MENUBAR,			L"$VIEW_MENUBAR"	},
+	{	ID_VIEW_SCROLLBAR,			L"$VIEW_SCROLLBAR"	},
+	{	IDM_SFTP,					L"$VIEW_SFTP"		},
+	{	IDM_SOCKETSTATUS,			L"$VIEW_SOCKET"		},
+	{	ID_VIEW_STATUS_BAR,			L"$VIEW_STATUSBAR"	},
+	{	ID_VIEW_TABBAR,				L"$VIEW_TABBAR"		},
+	{	IDM_TEKDISP,				L"$VIEW_TEKDISP"	},
+	{	ID_VIEW_TOOLBAR,			L"$VIEW_TOOLBAR"	},
+	{	IDM_TRACEDISP,				L"$VIEW_TRACEDISP"	},
+	{	ID_WINDOW_CLOSE,			L"$WINDOW_CLOSE"	},
+	{	IDM_DISPWINIDX,				L"$WINDOW_INDEX"	},
+	{	ID_WINDOW_NEW,				L"$WINDOW_NEW"		},
+	{	IDM_XMODEM_DOWNLOAD,		L"$XMODEM_DOWNLOAD"	},
+	{	IDM_XMODEM_UPLOAD,			L"$XMODEM_UPLOAD"	},
+	{	IDM_YMODEM_DOWNLOAD,		L"$YMODEM_DOWNLOAD"	},
+	{	IDM_YMODEM_UPLOAD,			L"$YMODEM_UPLOAD"	},
+	{	IDM_ZMODEM_DOWNLOAD,		L"$ZMODEM_DOWNLOAD"	},
+	{	IDM_ZMODEM_UPLOAD,			L"$ZMODEM_UPLOAD"	},
 };
 
 void CKeyNodeTab::CmdsInit()
@@ -4181,7 +4220,7 @@ void CKeyNodeTab::BugFix(int fix)
 			continue;
 		if ( Find(InitKeyTab[i].code, InitKeyTab[i].mask, &n) )
 			continue;
-		if ( list.Find(InitKeyTab[i].maps) != NULL )
+		if ( InitKeyTab[i].maps[0] == _T('$') && list.Find(InitKeyTab[i].maps) != NULL )
 			continue;
 		Add(InitKeyTab[i].code, InitKeyTab[i].mask, InitKeyTab[i].maps);
 	}
@@ -5970,63 +6009,106 @@ void CStringBinary::TreeNode(int nest)
 //////////////////////////////////////////////////////////////////////
 // CFileExt
 	
+void CFileExt::Init()
+{
+	m_WriteLen = 0;
+	m_pWriteBuffer = new BYTE[FEXT_BUF_MAX];
+
+	m_ReadLen = m_ReadPos = 0;
+	m_pReadBuffer = new BYTE[FEXT_BUF_MAX];
+}
 CFileExt::CFileExt()
 {
-	m_Len = 0;
+	Init();
 	CFile::CFile();
 }
 #if	_MSC_VER >= _MSC_VER_VS10
 CFileExt::CFileExt(CAtlTransactionManager* pTM)
 {
-	m_Len = 0;
+	Init();
 	CFile::CFile(pTM);
 }
 #endif
 CFileExt::CFileExt(HANDLE hFile)
 {
-	m_Len = 0;
+	Init();
 	CFile::CFile(hFile);
 }
 CFileExt::CFileExt(LPCTSTR lpszFileName, UINT nOpenFlags)
 {
-	m_Len = 0;
+	Init();
 	CFile::CFile(lpszFileName, nOpenFlags);
+}
+
+CFileExt::~CFileExt()
+{
+	if ( m_hFile != INVALID_HANDLE_VALUE )
+		Close();
+
+	delete [] m_pWriteBuffer;
+	delete [] m_pReadBuffer;
 }
 
 BOOL CFileExt::Open(LPCTSTR lpszFileName, UINT nOpenFlags, CFileException* pError)
 {
-	m_Len = 0;
+	m_WriteLen = 0;
+	m_ReadLen = m_ReadPos = 0;
+
 	return CFile::Open(lpszFileName, nOpenFlags, pError);
 }
 #if	_MSC_VER >= _MSC_VER_VS10
 BOOL CFileExt::Open(LPCTSTR lpszFileName, UINT nOpenFlags, CAtlTransactionManager* pTM, CFileException* pError)
 {
-	m_Len = 0;
+	m_WriteLen = 0;
+	m_ReadLen = m_ReadPos = 0;
+
 	return CFile::Open(lpszFileName, nOpenFlags, pTM, pError);
 }
 #endif
 
+ULONGLONG CFileExt::GetPosition( ) const
+{
+	ULONGLONG lOff = CFile::GetPosition();
+
+	if ( m_ReadLen > m_ReadPos )
+		lOff -= (LONGLONG)(m_ReadLen - m_ReadPos);
+
+	if ( m_WriteLen > 0 )
+		lOff += (LONGLONG)(m_WriteLen);
+
+	return lOff;
+}
+ULONGLONG CFileExt::Seek(LONGLONG lOff, UINT nFrom)
+{
+	if ( nFrom == CFile::current && m_ReadLen > m_ReadPos )
+		lOff -= (LONGLONG)(m_ReadLen - m_ReadPos);
+
+	Flush();
+	m_ReadLen = m_ReadPos = 0;
+
+	return CFile::Seek(lOff, nFrom);
+}
 void CFileExt::Write(const void* lpBuf, UINT nCount)
 {
-	int n;
+	UINT n;
 	LPBYTE p = (LPBYTE)lpBuf;
 
 	while ( nCount > 0 ) {
-		if ( (n = FEXT_BUF_MAX - m_Len) > (int)nCount )
+		if ( (n = FEXT_BUF_MAX - m_WriteLen) > nCount )
 			n = nCount;
-		memcpy(m_Buffer + m_Len, p, n);
-		m_Len += n;
+		memcpy(m_pWriteBuffer + m_WriteLen, p, n);
+		m_WriteLen += n;
 		p += n;
 		nCount -= n;
-		if ( m_Len >= FEXT_BUF_MAX )
+		if ( m_WriteLen >= FEXT_BUF_MAX )
 			Flush();
 	}
 }
 void CFileExt::Flush()
 {
-	if ( m_Len > 0 ) {
-		CFile::Write(m_Buffer, m_Len);
-		m_Len = 0;
+	if ( m_WriteLen > 0 ) {
+		CFile::Write(m_pWriteBuffer, m_WriteLen);
+		m_WriteLen = 0;
 	}
 	CFile::Flush();
 }
@@ -6034,6 +6116,35 @@ void CFileExt::Close()
 {
 	Flush();
 	CFile::Close();
+}
+UINT CFileExt::Read(void* lpBuf, UINT nCount)
+{
+	UINT n;
+	UINT len = 0;
+	BYTE *ptr = (BYTE *)lpBuf;
+
+	while ( nCount > 0 ) {
+		if ( (n = m_ReadLen - m_ReadPos) > 0 ) {
+			if ( n > nCount )
+				n = nCount;
+			memcpy(ptr, m_pReadBuffer + m_ReadPos, n);
+			m_ReadPos += n;
+			ptr += n;
+			len += n;
+			nCount -= n;
+		}
+
+		if ( nCount == 0 )
+			break;
+
+		m_ReadLen = m_ReadPos = 0;
+		m_ReadLen = CFile::Read(m_pReadBuffer, FEXT_BUF_MAX);
+
+		if ( m_ReadLen == 0 )
+			break;
+	}
+
+	return len;
 }
 
 //////////////////////////////////////////////////////////////////////

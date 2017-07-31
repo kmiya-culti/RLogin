@@ -16,6 +16,8 @@
 #include "Kermit.h"
 #include "Data.h"
 
+#define	DOCUMENT_MAX		200
+
 #define	DOCTYPE_NONE		(-1)
 #define	DOCTYPE_REGISTORY	0
 #define	DOCTYPE_ENTRYFILE	1
@@ -88,7 +90,7 @@ public:
 	BOOL m_bDelayPast;
 	int m_ActCharCount;
 	CMainFrame *m_pMainWnd;
-	CString m_TitleString;
+	CString m_SockStatus;
 	CStrScript *m_pStrScript;
 	CString m_ErrorPrompt;
 	CString m_SearchStr;
@@ -99,6 +101,8 @@ public:
 	BOOL m_bUseIdle;
 	int m_AfterId;
 	int m_LogSendRecv;
+	CString m_ScriptFile;
+	BOOL m_bReqDlg;
 	CString m_CmdLine;
 
 	void SetIndex(int mode, CStringIndex &index);
@@ -106,6 +110,7 @@ public:
 	void SetMenu(CMenu *pMenu, CKeyCmdsTab *pCmdsTab);
 	BOOL EntryText(CString &name);
 
+	BOOL ScriptInit();
 	void SendBuffer(CBuffer &buf);
 	void SendScript(LPCWSTR str, LPCWSTR match);
 	void OnReciveChar(DWORD ch, int pos);

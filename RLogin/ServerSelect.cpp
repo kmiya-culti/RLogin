@@ -469,6 +469,8 @@ void CServerSelect::OnEditCheck()
 	CBuffer nbuf, obuf;
 	CWordArray apend, remove, update;
 
+	tab.Serialize(FALSE);
+
 	for ( n = 0 ; n < tab.GetSize() ; n++ ) {
 		for ( i = 0 ; i < m_pData->GetSize() ; i++ ) {
 			if ( tab.GetAt(n).m_Uid == m_pData->GetAt(i).m_Uid )

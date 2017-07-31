@@ -2263,6 +2263,7 @@ void CTextRam::fc_LF(DWORD ch)
 		if ( (m_pDocument->m_bDelayPast || IsOptEnable(TO_RLDELAY)) && m_pDocument->m_DelayFlag == DELAY_WAIT )
 			m_pDocument->OnDelayRecive(ch);
 	case 0:		// CR+LF
+		GETVRAM(0, m_CurY)->m_Vram.attr |= ATT_RETURN;
 		ONEINDEX();
 	case 1:		// CR
 		break;
@@ -2296,6 +2297,7 @@ void CTextRam::fc_CR(DWORD ch)
 	switch(m_RecvCrLf) {
 	case 1:		// CR
 	case 3:		// CR|LF
+		GETVRAM(0, m_CurY)->m_Vram.attr |= ATT_RETURN;
 		ONEINDEX();
 	case 0:		// CR+LF
 		LOCATE(GetLeftMargin(), m_CurY);
@@ -2976,7 +2978,7 @@ void CTextRam::fc_TimerReset()
 	m_bOscActive = FALSE;
 	m_IntCounter = 0;
 
-	if ( m_pDocument != NULL )
+	if ( m_pDocument != NULL && m_bIntTimer )
 		m_pDocument->UpdateAllViews(NULL, UPDATE_CANCELBTN, NULL);
 }
 void CTextRam::fc_TimerAbort(BOOL bOut)
@@ -2986,7 +2988,7 @@ void CTextRam::fc_TimerAbort(BOOL bOut)
 
 	fc_POP('?');
 
-	if ( m_pDocument != NULL )
+	if ( m_pDocument != NULL && m_bIntTimer )
 		m_pDocument->UpdateAllViews(NULL, UPDATE_CANCELBTN, NULL);
 
 	if ( bOut && m_OscPara.GetSize() > 0 )
@@ -5252,7 +5254,7 @@ void CTextRam::fc_DECLL(DWORD ch)
 	}
 
 	str.Format(_T("%s%s%s%s"), (m_StsLed & 001) ? _T("1") : _T("-"), (m_StsLed & 002) ? _T("2") : _T("-"), (m_StsLed & 004) ? _T("3") : _T("-"), (m_StsLed & 010) ? _T("4") : _T("-"));
-	((CMainFrame *)AfxGetMainWnd())->SetMessageText(str);
+	((CMainFrame *)AfxGetMainWnd())->SetStatusText(str);
 
 	fc_POP(ch);
 }

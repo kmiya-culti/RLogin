@@ -57,136 +57,145 @@ Cssh::~Cssh()
 }
 int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
 {
-  try {
-	int n, i;
-	CString str;
-	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
-	CIdKey IdKey, *pKey;
-	CDWordArray list[2];
+	try {
+		int n, i;
+		CString str;
+		CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
+		CIdKey IdKey, *pKey;
+		CDWordArray list[2];
 
-	m_SSHVer = 0;
-	m_ServerVerStr = _T("");
-	m_ClientVerStr = _T("");
-	m_InPackStat = 0;
-	m_PacketStat = 0;
-	m_SSH2Status = 0;
-	m_SendPackSeq = m_SendPackLen = 0;
-	m_RecvPackSeq = m_RecvPackLen = 0;
-	m_CipherMode = SSH_CIPHER_NONE;
-	m_SessionIdLen = 0;
-	m_StdChan = (-1);
-	m_AuthStat = 0;
-	m_AuthMode = AUTH_MODE_NONE;
-	m_HostName = m_pDocument->m_ServerEntry.m_HostName;
-	m_DhMode = DHMODE_GROUP_1;
-	m_GlbReqMap.RemoveAll();
-	m_ChnReqMap.RemoveAll();
-	for ( n = 0 ; n < m_pChan.GetSize() ; n++ )
-		delete m_pChan[n];
-	m_pChan.RemoveAll();
-	m_pChanNext = m_pChanFree = m_pChanFree2 = NULL;
-	m_OpenChanCount = 0;
-	m_pListFilter = NULL;
-	m_Permit.RemoveAll();
-	m_MyPeer.Clear();
-	m_HisPeer.Clear();
-	m_Incom.Clear();
-	m_InPackBuf.Clear();
-	m_HostKey.Close();
-	m_pIdKey = NULL;
-	m_IdKeyTab.RemoveAll();
-	m_IdKeyPos = 0;
-	SetRecvBufSize(CHAN_SES_PACKET_DEFAULT * 4);
-	srand((UINT)time(NULL));
-	m_bPfdConnect = 0;
+		m_SSHVer = 0;
+		m_ServerVerStr = _T("");
+		m_ClientVerStr = _T("");
+		m_InPackStat = 0;
+		m_PacketStat = 0;
+		m_SSH2Status = 0;
+		m_SendPackSeq = m_SendPackLen = 0;
+		m_RecvPackSeq = m_RecvPackLen = 0;
+		m_CipherMode = SSH_CIPHER_NONE;
+		m_SessionIdLen = 0;
+		m_StdChan = (-1);
+		m_AuthStat = 0;
+		m_AuthMode = AUTH_MODE_NONE;
+		m_HostName = m_pDocument->m_ServerEntry.m_HostName;
+		m_DhMode = DHMODE_GROUP_1;
+		m_GlbReqMap.RemoveAll();
+		m_ChnReqMap.RemoveAll();
+		for ( n = 0 ; n < m_pChan.GetSize() ; n++ )
+			delete m_pChan[n];
+		m_pChan.RemoveAll();
+		m_pChanNext = m_pChanFree = m_pChanFree2 = NULL;
+		m_OpenChanCount = 0;
+		m_pListFilter = NULL;
+		m_Permit.RemoveAll();
+		m_MyPeer.Clear();
+		m_HisPeer.Clear();
+		m_Incom.Clear();
+		m_InPackBuf.Clear();
+		m_HostKey.Close();
+		m_pIdKey = NULL;
+		m_IdKeyTab.RemoveAll();
+		m_IdKeyPos = 0;
+		SetRecvBufSize(CHAN_SES_PACKET_DEFAULT * 4);
+		srand((UINT)time(NULL));
+		m_bPfdConnect = 0;
 
-	//CStringA tmp;
-	//CCipher::BenchMark(tmp);
-	//CExtSocket::OnReciveCallBack((void *)(LPCSTR)tmp, tmp.GetLength(), 0);
+		//CStringA tmp;
+		//CCipher::BenchMark(tmp);
+		//CExtSocket::OnReciveCallBack((void *)(LPCSTR)tmp, tmp.GetLength(), 0);
 
-	//CString tmp;
-	//CMacomp::BenchMark(tmp);
-	//CExtSocket::OnReciveCallBack((void *)(LPCSTR)tmp, tmp.GetLength(), 0);
+		//CString tmp;
+		//CMacomp::BenchMark(tmp);
+		//CExtSocket::OnReciveCallBack((void *)(LPCSTR)tmp, tmp.GetLength(), 0);
 
-	if ( !m_pDocument->m_ServerEntry.m_IdkeyName.IsEmpty() ) {
-		if ( !IdKey.LoadPrivateKey(m_pDocument->m_ServerEntry.m_IdkeyName, m_pDocument->m_ServerEntry.m_PassName) ) {
-			CIdKeyFileDlg dlg;
-			dlg.m_OpenMode  = 1;
-			dlg.m_Title.LoadString(IDS_SSH_PASS_TITLE);		// = _T("SSH鍵ファイルの読み込み");
-			dlg.m_Message.LoadString(IDS_SSH_PASS_MSG);		// = _T("作成時に設定したパスフレーズを入力してください");
-			dlg.m_IdkeyFile = m_pDocument->m_ServerEntry.m_IdkeyName;
-			if ( dlg.DoModal() != IDOK ) {
-				m_pDocument->m_ServerEntry.m_IdkeyName.Empty();
+		if ( !m_pDocument->m_ServerEntry.m_IdkeyName.IsEmpty() ) {
+			if ( !IdKey.LoadPrivateKey(m_pDocument->m_ServerEntry.m_IdkeyName, m_pDocument->m_ServerEntry.m_PassName) ) {
+				CIdKeyFileDlg dlg;
+				dlg.m_OpenMode  = 1;
+				dlg.m_Title.LoadString(IDS_SSH_PASS_TITLE);		// = _T("SSH鍵ファイルの読み込み");
+				dlg.m_Message.LoadString(IDS_SSH_PASS_MSG);		// = _T("作成時に設定したパスフレーズを入力してください");
+				dlg.m_IdkeyFile = m_pDocument->m_ServerEntry.m_IdkeyName;
+				if ( dlg.DoModal() != IDOK ) {
+					m_pDocument->m_ServerEntry.m_IdkeyName.Empty();
+					return FALSE;
+				}
+				if ( !IdKey.LoadPrivateKey(dlg.m_IdkeyFile, dlg.m_PassName) ) {
+					AfxMessageBox(IDE_IDKEYLOADERROR);
+					return FALSE;
+				}
+			}
+			if ( IdKey.IsNotSupport() ) {
+				AfxMessageBox(IDE_IDKEYNOTSUPPORT);
 				return FALSE;
 			}
-			if ( !IdKey.LoadPrivateKey(dlg.m_IdkeyFile, dlg.m_PassName) ) {
-				AfxMessageBox(IDE_IDKEYLOADERROR);
-				return FALSE;
+			IdKey.SetPass(m_pDocument->m_ServerEntry.m_PassName);
+			m_IdKeyTab.Add(IdKey);
+		}
+
+		for ( n = 0 ; n < m_pDocument->m_ParamTab.m_IdKeyList.GetSize() ; n++ ) {
+			if ( (pKey = pMain->m_IdKeyTab.GetUid(m_pDocument->m_ParamTab.m_IdKeyList.GetVal(n))) == NULL || pKey->m_Type == IDKEY_NONE )
+				continue;
+			list[pKey->CompPass(m_pDocument->m_ServerEntry.m_PassName) == 0 ? 0 : 1].Add(m_pDocument->m_ParamTab.m_IdKeyList.GetVal(n));
+		}
+
+		for ( n = 0 ; n < list[0].GetSize() ; n++ )
+			m_IdKeyTab.Add(*(pMain->m_IdKeyTab.GetUid(list[0][n])));
+
+		pMain->PagentInit(&m_IdKeyTab);
+
+		for ( n = 0 ; n < list[1].GetSize() ; n++ )
+			m_IdKeyTab.Add(*(pMain->m_IdKeyTab.GetUid(list[1][n])));
+
+		for ( n = 0 ; n <= AST_DONE ; n++ )
+			m_AuthReqTab[n] = AST_DONE;
+		i = AST_START;
+
+		for ( n = 0 ; m_pDocument->m_ParamTab.GetPropNode(11, n, str) ; n++ ) {
+			if ( str.CompareNoCase(_T("publickey")) == 0 ) {
+				m_AuthReqTab[i] = AST_PUBKEY_TRY;
+				i = AST_PUBKEY_TRY;
+			} else if ( str.CompareNoCase(_T("hostbased")) == 0 ) {
+				m_AuthReqTab[i] = AST_HOST_TRY;
+				i = AST_HOST_TRY;
+			} else if ( str.CompareNoCase(_T("password")) == 0 ) {
+				m_AuthReqTab[i] = AST_PASS_TRY;
+				i = AST_PASS_TRY;
+			} else if ( str.CompareNoCase(_T("keyboard-interactive")) == 0 ) {
+				m_AuthReqTab[i] = AST_KEYB_TRY;
+				i = AST_KEYB_TRY;
 			}
 		}
-		if ( IdKey.IsNotSupport() ) {
-			AfxMessageBox(IDE_IDKEYNOTSUPPORT);
+
+		m_EncCip.Init(_T("none"), MODE_ENC);
+		m_DecCip.Init(_T("none"), MODE_DEC);
+		m_EncMac.Init(_T("none"));
+		m_DecMac.Init(_T("none"));
+		m_EncCmp.Init(_T("none"), MODE_ENC);
+		m_DecCmp.Init(_T("none"), MODE_DEC);
+
+		m_CipTabMax = 0;
+		for ( n = 0 ; n < 8 && m_pDocument->m_ParamTab.GetPropNode(0, n, str) ; n++ )
+			m_CipTab[m_CipTabMax++] = m_EncCip.GetNum(str);
+
+		n = m_pDocument->m_ParamTab.GetPropNode(2, 0, str);
+		m_CompMode = (n == FALSE || str.Compare(_T("none")) == 0 ? FALSE : TRUE);
+
+		if ( !CExtSocket::Open(lpszHostAddress, nHostPort, nSocketPort, nSocketType, pAddrInfo) )
 			return FALSE;
-		}
-		IdKey.SetPass(m_pDocument->m_ServerEntry.m_PassName);
-		m_IdKeyTab.Add(IdKey);
-	}
 
-	for ( n = 0 ; n < m_pDocument->m_ParamTab.m_IdKeyList.GetSize() ; n++ ) {
-		if ( (pKey = pMain->m_IdKeyTab.GetUid(m_pDocument->m_ParamTab.m_IdKeyList.GetVal(n))) == NULL || pKey->m_Type == IDKEY_NONE )
-			continue;
-		list[pKey->CompPass(m_pDocument->m_ServerEntry.m_PassName) == 0 ? 0 : 1].Add(m_pDocument->m_ParamTab.m_IdKeyList.GetVal(n));
-	}
+		return TRUE;
 
-	for ( n = 0 ; n < list[0].GetSize() ; n++ )
-		m_IdKeyTab.Add(*(pMain->m_IdKeyTab.GetUid(list[0][n])));
-
-	pMain->PagentInit(&m_IdKeyTab);
-
-	for ( n = 0 ; n < list[1].GetSize() ; n++ )
-		m_IdKeyTab.Add(*(pMain->m_IdKeyTab.GetUid(list[1][n])));
-
-	for ( n = 0 ; n <= AST_DONE ; n++ )
-		m_AuthReqTab[n] = AST_DONE;
-	i = AST_START;
-
-	for ( n = 0 ; m_pDocument->m_ParamTab.GetPropNode(11, n, str) ; n++ ) {
-		if ( str.CompareNoCase(_T("publickey")) == 0 ) {
-			m_AuthReqTab[i] = AST_PUBKEY_TRY;
-			i = AST_PUBKEY_TRY;
-		} else if ( str.CompareNoCase(_T("hostbased")) == 0 ) {
-			m_AuthReqTab[i] = AST_HOST_TRY;
-			i = AST_HOST_TRY;
-		} else if ( str.CompareNoCase(_T("password")) == 0 ) {
-			m_AuthReqTab[i] = AST_PASS_TRY;
-			i = AST_PASS_TRY;
-		} else if ( str.CompareNoCase(_T("keyboard-interactive")) == 0 ) {
-			m_AuthReqTab[i] = AST_KEYB_TRY;
-			i = AST_KEYB_TRY;
-		}
-	}
-
-	m_EncCip.Init(_T("none"), MODE_ENC);
-	m_DecCip.Init(_T("none"), MODE_DEC);
-	m_EncMac.Init(_T("none"));
-	m_DecMac.Init(_T("none"));
-	m_EncCmp.Init(_T("none"), MODE_ENC);
-	m_DecCmp.Init(_T("none"), MODE_DEC);
-
-	m_CipTabMax = 0;
-	for ( n = 0 ; n < 8 && m_pDocument->m_ParamTab.GetPropNode(0, n, str) ; n++ )
-		m_CipTab[m_CipTabMax++] = m_EncCip.GetNum(str);
-
-	n = m_pDocument->m_ParamTab.GetPropNode(2, 0, str);
-	m_CompMode = (n == FALSE || str.Compare(_T("none")) == 0 ? FALSE : TRUE);
-
-	if ( !CExtSocket::Open(lpszHostAddress, nHostPort, nSocketPort, nSocketType, pAddrInfo) )
+	} catch(LPCTSTR pMsg) {
+		CString tmp;
+		tmp.Format(_T("ssh Open Error '%s'"), pMsg);
+		::AfxMessageBox(tmp);
 		return FALSE;
-
-	return TRUE;
-  } catch(...) {
-	return FALSE;
-  }
+	} catch(...) {
+		CString tmp;
+		tmp.Format(_T("ssh Open Error '%s:%d'"), lpszHostAddress == NULL ? _T("null") : lpszHostAddress, nHostPort);
+		::AfxMessageBox(tmp);
+		return FALSE;
+	}
 }
 void Cssh::Close()
 {
@@ -198,25 +207,26 @@ void Cssh::Close()
 }
 int Cssh::Send(const void* lpBuf, int nBufLen, int nFlags)
 {
-  try {
-	CBuffer tmp;
-	switch(m_SSHVer) {
-	case 1:
-		tmp.Put8Bit(SSH_CMSG_STDIN_DATA);
-		tmp.PutBuf((LPBYTE)lpBuf, nBufLen);
-		SendPacket(&tmp);
-		break;
-	case 2:
-		if ( m_StdChan == (-1) || m_StdInRes.GetSize() > 0 || !CHAN_OK(m_StdChan) )
-			m_StdInRes.Apend((LPBYTE)lpBuf, nBufLen);
-		else
-			((CChannel *)m_pChan[m_StdChan])->m_pFilter->Send((LPBYTE)lpBuf, nBufLen);
-		break;
+	try {
+		CBuffer tmp;
+		switch(m_SSHVer) {
+		case 1:
+			tmp.Put8Bit(SSH_CMSG_STDIN_DATA);
+			tmp.PutBuf((LPBYTE)lpBuf, nBufLen);
+			SendPacket(&tmp);
+			break;
+		case 2:
+			if ( m_StdChan == (-1) || m_StdInRes.GetSize() > 0 || !CHAN_OK(m_StdChan) )
+				m_StdInRes.Apend((LPBYTE)lpBuf, nBufLen);
+			else
+				((CChannel *)m_pChan[m_StdChan])->m_pFilter->Send((LPBYTE)lpBuf, nBufLen);
+			break;
+		}
+		return nBufLen;
+	} catch(...) {
+		::AfxMessageBox(_T("ssh Send Error"));
+		return 0;
 	}
-	return nBufLen;
-  } catch(...) {
-	return 0;
-  }
 }
 void Cssh::OnConnect()
 {
@@ -225,290 +235,295 @@ void Cssh::OnConnect()
 }
 void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 {
-  try {
-	int crc, ch;
-	CBuffer *bp, tmp, cmp, dec;
-	CStringA str;
+	try {
+		int crc, ch;
+		CBuffer *bp, tmp, cmp, dec;
+		CStringA str;
 
-	if ( nFlags != 0 )
-		return;
+		if ( nFlags != 0 )
+			return;
 
-	m_Incom.Apend((LPBYTE)lpBuf, nBufLen);
+		m_Incom.Apend((LPBYTE)lpBuf, nBufLen);
 
-	for ( ; ; ) {
-		switch(m_InPackStat) {
-		case 0:		// Fast Verstion String
-			while ( m_Incom.GetSize() > 0 ) {
-				ch = m_Incom.Get8Bit();
-				if ( ch == '\n' ) {
-					CString product, version;
-					product = AfxGetApp()->GetProfileString(_T("MainFrame"), _T("ProductName"), _T("RLogin"));
-					((CRLoginApp *)AfxGetApp())->GetVersion(version);
-					if ( !m_pDocument->m_TextRam.IsOptEnable(TO_SSH1MODE) &&
-						   (m_ServerVerStr.Mid(0, 5).Compare(_T("SSH-2")) == 0 ||
-							m_ServerVerStr.Mid(0, 8).Compare(_T("SSH-1.99")) == 0) ) {
-								m_ClientVerStr.Format(_T("SSH-2.0-%s-%s"), product, version);
-						m_InPackStat = 3;
-						m_SSHVer = 2;
-					} else {
-						m_ClientVerStr.Format(_T("SSH-1.5-%s-%s"), product, version);
-						m_InPackStat = 1;
-						m_SSHVer = 1;
-					}
-					str.Format("%s\r\n", TstrToMbs(m_ClientVerStr));
-					CExtSocket::Send((LPCSTR)str, str.GetLength());
+		for ( ; ; ) {
+			switch(m_InPackStat) {
+			case 0:		// Fast Verstion String
+				while ( m_Incom.GetSize() > 0 ) {
+					ch = m_Incom.Get8Bit();
+					if ( ch == '\n' ) {
+						CString product, version;
+						product = AfxGetApp()->GetProfileString(_T("MainFrame"), _T("ProductName"), _T("RLogin"));
+						((CRLoginApp *)AfxGetApp())->GetVersion(version);
+						if ( !m_pDocument->m_TextRam.IsOptEnable(TO_SSH1MODE) &&
+							   (m_ServerVerStr.Mid(0, 5).Compare(_T("SSH-2")) == 0 ||
+								m_ServerVerStr.Mid(0, 8).Compare(_T("SSH-1.99")) == 0) ) {
+									m_ClientVerStr.Format(_T("SSH-2.0-%s-%s"), product, version);
+							m_InPackStat = 3;
+							m_SSHVer = 2;
+						} else {
+							m_ClientVerStr.Format(_T("SSH-1.5-%s-%s"), product, version);
+							m_InPackStat = 1;
+							m_SSHVer = 1;
+						}
+						str.Format("%s\r\n", TstrToMbs(m_ClientVerStr));
+						CExtSocket::Send((LPCSTR)str, str.GetLength());
 
-					DEBUGLOG("Recive Version %s", TstrToMbs(m_ServerVerStr));
-					DEBUGLOG("Send Version %s", TstrToMbs(str));
+						DEBUGLOG("Recive Version %s", TstrToMbs(m_ServerVerStr));
+						DEBUGLOG("Send Version %s", TstrToMbs(str));
 
+						break;
+					} else if ( ch != '\r' )
+						m_ServerVerStr += (char)ch;
+				}
+				break;
+
+			case 1:		// SSH1 Packet Length
+				if ( m_Incom.GetSize() < 4 )
+					return;
+				m_InPackLen = m_Incom.Get32Bit();
+				m_InPackPad = 8 - (m_InPackLen % 8);
+				if ( m_InPackLen < 4 || m_InPackLen > (256 * 1024) ) {	// Error Packet Length
+					m_Incom.Clear();
+					SendDisconnect("Packet length Error");
+					throw "ssh1 packet length error";
+				}
+				m_InPackStat = 2;
+				// break; Not use
+			case 2:		// SSH1 Packet
+				if ( m_Incom.GetSize() < (m_InPackLen + m_InPackPad) )
+					return;
+				tmp.Clear();
+				tmp.Apend(m_Incom.GetPtr(), m_InPackLen + m_InPackPad);
+				m_Incom.Consume(m_InPackLen + m_InPackPad);
+				m_InPackStat = 1;
+				bp = &tmp;
+				dec.Clear();
+				m_DecCip.Cipher(bp->GetPtr(), bp->GetSize(), &dec);
+				bp = &dec;
+				crc = bp->PTR32BIT(bp->GetPos(bp->GetSize() - 4));
+				if ( crc != ssh_crc32(bp->GetPtr(), bp->GetSize() - 4) ) {
+					SendDisconnect("Packet crc Error");
+					throw "ssh1 packet crc error";
+				}
+				bp->Consume(m_InPackPad);
+				bp->ConsumeEnd(4);
+				cmp.Clear();
+				m_DecCmp.UnCompress(bp->GetPtr(), bp->GetSize(), &cmp);
+				bp = &cmp;
+				RecivePacket(bp);
+				break;
+
+			case 3:		// SSH2 Packet Lenght
+				if ( m_DecCip.IsAEAD() ) {
+					m_InPackStat = 5;
 					break;
-				} else if ( ch != '\r' )
-					m_ServerVerStr += (char)ch;
-			}
-			break;
+				} else if ( m_DecCip.IsPOLY() ) {
+					m_InPackStat = 9;
+					break;
+				} else if ( m_DecMac.IsEtm() ) {
+					m_InPackStat = 7;
+					break;
+				}
+				if ( m_Incom.GetSize() < m_DecCip.GetBlockSize() )
+					return;
+				m_InPackBuf.Clear();
+				m_DecCip.Cipher(m_Incom.GetPtr(), m_DecCip.GetBlockSize(), &m_InPackBuf);
+				m_Incom.Consume(m_DecCip.GetBlockSize());
+				m_InPackLen = m_InPackBuf.PTR32BIT(m_InPackBuf.GetPtr());
+				if ( m_InPackLen < 5 || m_InPackLen > (256 * 1024) ) {
+					m_Incom.Clear();
+					SendDisconnect2(1, "Packet Len Error");
+					throw "ssh2 packet length error";
+				}
+				m_InPackStat = 4;
+				// break; Not use
+			case 4:		// SSH2 Packet
+				if ( m_Incom.GetSize() < (m_InPackLen - m_DecCip.GetBlockSize() + 4 + m_DecMac.GetBlockSize()) )
+					return;
+				m_InPackStat = 3;
+				m_DecCip.Cipher(m_Incom.GetPtr(), m_InPackLen - m_DecCip.GetBlockSize() + 4, &m_InPackBuf);
+				m_Incom.Consume(m_InPackLen - m_DecCip.GetBlockSize() + 4);
+				bp = &m_InPackBuf;
+				tmp.Clear();
+				m_DecMac.Compute(m_RecvPackSeq, bp->GetPtr(), bp->GetSize(), &tmp);
+				m_InPackLen = bp->Get32Bit();
+				m_InPackPad = bp->Get8Bit();
+				bp->ConsumeEnd(m_InPackPad);
+				cmp.Clear();
+				m_DecCmp.UnCompress(bp->GetPtr(), bp->GetSize(), &cmp);
+				bp = &cmp;
+				if ( m_DecMac.GetBlockSize() > 0 ) {
+					if ( memcmp(tmp.GetPtr(), m_Incom.GetPtr(), m_DecMac.GetBlockSize()) != 0 ) {
+						SendDisconnect2(1, "MAC Error");
+						throw "ssh2 mac miss match error";
+					}
+					m_Incom.Consume(m_DecMac.GetBlockSize());
+				}
+				m_RecvPackSeq += 1;
+				m_RecvPackLen += bp->GetSize();
+				RecivePacket2(bp);
+				break;
 
-		case 1:		// SSH1 Packet Length
-			if ( m_Incom.GetSize() < 4 )
-				return;
-			m_InPackLen = m_Incom.Get32Bit();
-			m_InPackPad = 8 - (m_InPackLen % 8);
-			if ( m_InPackLen < 4 || m_InPackLen > (256 * 1024) ) {	// Error Packet Length
-				m_Incom.Clear();
-				SendDisconnect("Packet length Error");
-				throw "ssh1 packet length error";
-			}
-			m_InPackStat = 2;
-			// break; Not use
-		case 2:		// SSH1 Packet
-			if ( m_Incom.GetSize() < (m_InPackLen + m_InPackPad) )
-				return;
-			tmp.Clear();
-			tmp.Apend(m_Incom.GetPtr(), m_InPackLen + m_InPackPad);
-			m_Incom.Consume(m_InPackLen + m_InPackPad);
-			m_InPackStat = 1;
-			bp = &tmp;
-			dec.Clear();
-			m_DecCip.Cipher(bp->GetPtr(), bp->GetSize(), &dec);
-			bp = &dec;
-			crc = bp->PTR32BIT(bp->GetPos(bp->GetSize() - 4));
-			if ( crc != ssh_crc32(bp->GetPtr(), bp->GetSize() - 4) ) {
-				SendDisconnect("Packet crc Error");
-				throw "ssh1 packet crc error";
-			}
-			bp->Consume(m_InPackPad);
-			bp->ConsumeEnd(4);
-			cmp.Clear();
-			m_DecCmp.UnCompress(bp->GetPtr(), bp->GetSize(), &cmp);
-			bp = &cmp;
-			RecivePacket(bp);
-			break;
-
-		case 3:		// SSH2 Packet Lenght
-			if ( m_DecCip.IsAEAD() ) {
+			case 5:		// SSH2 AEAD Packet length
+				if ( !m_DecCip.IsAEAD() ) {
+					m_InPackStat = 3;
+					break;
+				}
+				if ( m_Incom.GetSize() < 4 )
+					return;
+				m_InPackLen = m_Incom.PTR32BIT(m_Incom.GetPtr());
+				if ( m_InPackLen < 5 || m_InPackLen > (256 * 1024) ) {
+					m_Incom.Clear();
+					SendDisconnect2(1, "Packet Len Error");
+					throw "ssh2 packet length error";
+				}
+				m_InPackStat = 6;
+				// break; Not use
+			case 6:		// SSH2 AEAD Packet
+				if ( m_Incom.GetSize() < (4 + m_InPackLen + SSH2_GCM_TAGSIZE) )
+					return;
 				m_InPackStat = 5;
+				tmp.Clear();
+				if ( !m_DecCip.Cipher(m_Incom.GetPtr(), 4 + m_InPackLen + SSH2_GCM_TAGSIZE, &tmp) ) {
+					m_Incom.Clear();
+					SendDisconnect2(1, "MAC Error");
+					throw "ssh2 mac miss match error";
+				}
+				m_Incom.Consume(4 + m_InPackLen + SSH2_GCM_TAGSIZE);
+				m_InPackLen = tmp.Get32Bit();
+				m_InPackPad = tmp.Get8Bit();
+				tmp.ConsumeEnd(m_InPackPad);
+				m_InPackBuf.Clear();
+				m_DecCmp.UnCompress(tmp.GetPtr(), tmp.GetSize(), &m_InPackBuf);
+				m_RecvPackSeq += 1;
+				m_RecvPackLen += m_InPackBuf.GetSize();
+				RecivePacket2(&m_InPackBuf);
 				break;
-			} else if ( m_DecCip.IsPOLY() ) {
-				m_InPackStat = 9;
-				break;
-			} else if ( m_DecMac.IsEtm() ) {
+
+			case 7:		// SSH2 etm Packet length
+				if ( !m_DecMac.IsEtm() ) {
+					m_InPackStat = 3;
+					break;
+				}
+				if ( m_Incom.GetSize() < 4 )
+					return;
+				m_InPackLen = m_Incom.PTR32BIT(m_Incom.GetPtr());
+				if ( m_InPackLen < 5 || m_InPackLen > (256 * 1024) ) {
+					m_Incom.Clear();
+					SendDisconnect2(1, "Packet Len Error");
+					throw "ssh2 packet length error";
+				}
+				m_InPackStat = 8;
+				// break; Not use
+			case 8:		// SSH2 etm Packet
+				if ( m_Incom.GetSize() < (4 + m_InPackLen + m_DecMac.GetBlockSize()) )
+					return;
 				m_InPackStat = 7;
+				dec.Clear();
+				dec.Apend(m_Incom.GetPtr(), 4);
+				m_DecCip.Cipher(m_Incom.GetPtr() + 4, m_InPackLen, &dec);
+				tmp.Clear();
+				m_DecMac.Compute(m_RecvPackSeq, m_Incom.GetPtr(), 4 + m_InPackLen, &tmp);
+				m_Incom.Consume(4 + m_InPackLen);
+				if ( m_DecMac.GetBlockSize() > 0 ) {
+					if ( memcmp(tmp.GetPtr(), m_Incom.GetPtr(), m_DecMac.GetBlockSize()) != 0 ) {
+						SendDisconnect2(1, "MAC Error");
+						throw "ssh2 mac miss match error";
+					}
+					m_Incom.Consume(m_DecMac.GetBlockSize());
+				}
+				m_InPackLen = dec.Get32Bit();
+				m_InPackPad = dec.Get8Bit();
+				dec.ConsumeEnd(m_InPackPad);
+				m_InPackBuf.Clear();
+				m_DecCmp.UnCompress(dec.GetPtr(), dec.GetSize(), &m_InPackBuf);
+				m_RecvPackSeq += 1;
+				m_RecvPackLen += m_InPackBuf.GetSize();
+				RecivePacket2(&m_InPackBuf);
 				break;
-			}
-			if ( m_Incom.GetSize() < m_DecCip.GetBlockSize() )
-				return;
-			m_InPackBuf.Clear();
-			m_DecCip.Cipher(m_Incom.GetPtr(), m_DecCip.GetBlockSize(), &m_InPackBuf);
-			m_Incom.Consume(m_DecCip.GetBlockSize());
-			m_InPackLen = m_InPackBuf.PTR32BIT(m_InPackBuf.GetPtr());
-			if ( m_InPackLen < 5 || m_InPackLen > (256 * 1024) ) {
-				m_Incom.Clear();
-				SendDisconnect2(1, "Packet Len Error");
-				throw "ssh2 packet length error";
-			}
-			m_InPackStat = 4;
-			// break; Not use
-		case 4:		// SSH2 Packet
-			if ( m_Incom.GetSize() < (m_InPackLen - m_DecCip.GetBlockSize() + 4 + m_DecMac.GetBlockSize()) )
-				return;
-			m_InPackStat = 3;
-			m_DecCip.Cipher(m_Incom.GetPtr(), m_InPackLen - m_DecCip.GetBlockSize() + 4, &m_InPackBuf);
-			m_Incom.Consume(m_InPackLen - m_DecCip.GetBlockSize() + 4);
-			bp = &m_InPackBuf;
-			tmp.Clear();
-			m_DecMac.Compute(m_RecvPackSeq, bp->GetPtr(), bp->GetSize(), &tmp);
-			m_InPackLen = bp->Get32Bit();
-			m_InPackPad = bp->Get8Bit();
-			bp->ConsumeEnd(m_InPackPad);
-			cmp.Clear();
-			m_DecCmp.UnCompress(bp->GetPtr(), bp->GetSize(), &cmp);
-			bp = &cmp;
-			if ( m_DecMac.GetBlockSize() > 0 ) {
-				if ( memcmp(tmp.GetPtr(), m_Incom.GetPtr(), m_DecMac.GetBlockSize()) != 0 ) {
+
+			case 9:		// SSH2 Poly1305 Packet length
+				if ( !m_DecCip.IsPOLY() ) {
+					m_InPackStat = 3;
+					break;
+				}
+				if ( m_Incom.GetSize() < 4 )
+					return;
+				m_DecCip.PolyIvGen(m_RecvPackSeq);
+				m_InPackLen = m_DecCip.PolyGetLen(m_Incom.GetPtr());
+				if ( m_InPackLen < 5 || m_InPackLen > (256 * 1024) ) {
+					m_Incom.Clear();
+					SendDisconnect2(1, "Packet Len Error");
+					throw "ssh2 packet length error";
+				}
+				m_InPackStat = 10;
+				// break; Not use
+			case 10:		// SSH2 Poly1305 Packet
+				if ( m_Incom.GetSize() < (4 + m_InPackLen + SSH2_POLY1305_TAGSIZE) )
+					return;
+				m_InPackStat = 9;
+				tmp.Clear();
+				if ( !m_DecCip.Cipher(m_Incom.GetPtr(), 4 + m_InPackLen + SSH2_POLY1305_TAGSIZE, &tmp) ) {
+					m_Incom.Clear();
 					SendDisconnect2(1, "MAC Error");
 					throw "ssh2 mac miss match error";
 				}
-				m_Incom.Consume(m_DecMac.GetBlockSize());
-			}
-			m_RecvPackSeq += 1;
-			m_RecvPackLen += bp->GetSize();
-			RecivePacket2(bp);
-			break;
-
-		case 5:		// SSH2 AEAD Packet length
-			if ( !m_DecCip.IsAEAD() ) {
-				m_InPackStat = 3;
+				m_Incom.Consume(4 + m_InPackLen + SSH2_POLY1305_TAGSIZE);
+				m_InPackLen = tmp.Get32Bit();
+				m_InPackPad = tmp.Get8Bit();
+				tmp.ConsumeEnd(m_InPackPad);
+				m_InPackBuf.Clear();
+				m_DecCmp.UnCompress(tmp.GetPtr(), tmp.GetSize(), &m_InPackBuf);
+				m_RecvPackSeq += 1;
+				m_RecvPackLen += m_InPackBuf.GetSize();
+				RecivePacket2(&m_InPackBuf);
 				break;
 			}
-			if ( m_Incom.GetSize() < 4 )
-				return;
-			m_InPackLen = m_Incom.PTR32BIT(m_Incom.GetPtr());
-			if ( m_InPackLen < 5 || m_InPackLen > (256 * 1024) ) {
-				m_Incom.Clear();
-				SendDisconnect2(1, "Packet Len Error");
-				throw "ssh2 packet length error";
-			}
-			m_InPackStat = 6;
-			// break; Not use
-		case 6:		// SSH2 AEAD Packet
-			if ( m_Incom.GetSize() < (4 + m_InPackLen + SSH2_GCM_TAGSIZE) )
-				return;
-			m_InPackStat = 5;
-			tmp.Clear();
-			if ( !m_DecCip.Cipher(m_Incom.GetPtr(), 4 + m_InPackLen + SSH2_GCM_TAGSIZE, &tmp) ) {
-				m_Incom.Clear();
-				SendDisconnect2(1, "MAC Error");
-				throw "ssh2 mac miss match error";
-			}
-			m_Incom.Consume(4 + m_InPackLen + SSH2_GCM_TAGSIZE);
-			m_InPackLen = tmp.Get32Bit();
-			m_InPackPad = tmp.Get8Bit();
-			tmp.ConsumeEnd(m_InPackPad);
-			m_InPackBuf.Clear();
-			m_DecCmp.UnCompress(tmp.GetPtr(), tmp.GetSize(), &m_InPackBuf);
-			m_RecvPackSeq += 1;
-			m_RecvPackLen += m_InPackBuf.GetSize();
-			RecivePacket2(&m_InPackBuf);
-			break;
-
-		case 7:		// SSH2 etm Packet length
-			if ( !m_DecMac.IsEtm() ) {
-				m_InPackStat = 3;
-				break;
-			}
-			if ( m_Incom.GetSize() < 4 )
-				return;
-			m_InPackLen = m_Incom.PTR32BIT(m_Incom.GetPtr());
-			if ( m_InPackLen < 5 || m_InPackLen > (256 * 1024) ) {
-				m_Incom.Clear();
-				SendDisconnect2(1, "Packet Len Error");
-				throw "ssh2 packet length error";
-			}
-			m_InPackStat = 8;
-			// break; Not use
-		case 8:		// SSH2 etm Packet
-			if ( m_Incom.GetSize() < (4 + m_InPackLen + m_DecMac.GetBlockSize()) )
-				return;
-			m_InPackStat = 7;
-			dec.Clear();
-			dec.Apend(m_Incom.GetPtr(), 4);
-			m_DecCip.Cipher(m_Incom.GetPtr() + 4, m_InPackLen, &dec);
-			tmp.Clear();
-			m_DecMac.Compute(m_RecvPackSeq, m_Incom.GetPtr(), 4 + m_InPackLen, &tmp);
-			m_Incom.Consume(4 + m_InPackLen);
-			if ( m_DecMac.GetBlockSize() > 0 ) {
-				if ( memcmp(tmp.GetPtr(), m_Incom.GetPtr(), m_DecMac.GetBlockSize()) != 0 ) {
-					SendDisconnect2(1, "MAC Error");
-					throw "ssh2 mac miss match error";
-				}
-				m_Incom.Consume(m_DecMac.GetBlockSize());
-			}
-			m_InPackLen = dec.Get32Bit();
-			m_InPackPad = dec.Get8Bit();
-			dec.ConsumeEnd(m_InPackPad);
-			m_InPackBuf.Clear();
-			m_DecCmp.UnCompress(dec.GetPtr(), dec.GetSize(), &m_InPackBuf);
-			m_RecvPackSeq += 1;
-			m_RecvPackLen += m_InPackBuf.GetSize();
-			RecivePacket2(&m_InPackBuf);
-			break;
-
-		case 9:		// SSH2 Poly1305 Packet length
-			if ( !m_DecCip.IsPOLY() ) {
-				m_InPackStat = 3;
-				break;
-			}
-			if ( m_Incom.GetSize() < 4 )
-				return;
-			m_DecCip.PolyIvGen(m_RecvPackSeq);
-			m_InPackLen = m_DecCip.PolyGetLen(m_Incom.GetPtr());
-			if ( m_InPackLen < 5 || m_InPackLen > (256 * 1024) ) {
-				m_Incom.Clear();
-				SendDisconnect2(1, "Packet Len Error");
-				throw "ssh2 packet length error";
-			}
-			m_InPackStat = 10;
-			// break; Not use
-		case 10:		// SSH2 Poly1305 Packet
-			if ( m_Incom.GetSize() < (4 + m_InPackLen + SSH2_POLY1305_TAGSIZE) )
-				return;
-			m_InPackStat = 9;
-			tmp.Clear();
-			if ( !m_DecCip.Cipher(m_Incom.GetPtr(), 4 + m_InPackLen + SSH2_POLY1305_TAGSIZE, &tmp) ) {
-				m_Incom.Clear();
-				SendDisconnect2(1, "MAC Error");
-				throw "ssh2 mac miss match error";
-			}
-			m_Incom.Consume(4 + m_InPackLen + SSH2_POLY1305_TAGSIZE);
-			m_InPackLen = tmp.Get32Bit();
-			m_InPackPad = tmp.Get8Bit();
-			tmp.ConsumeEnd(m_InPackPad);
-			m_InPackBuf.Clear();
-			m_DecCmp.UnCompress(tmp.GetPtr(), tmp.GetSize(), &m_InPackBuf);
-			m_RecvPackSeq += 1;
-			m_RecvPackLen += m_InPackBuf.GetSize();
-			RecivePacket2(&m_InPackBuf);
-			break;
 		}
+	} catch(LPCTSTR pMsg) {
+		CString tmp;
+		tmp.Format(_T("ssh Recive Packet Error '%s'"), pMsg);
+		::AfxMessageBox(tmp);
+	} catch(...) {
+		::AfxMessageBox(_T("ssh Recive unkown Error"));
 	}
- } catch(...) {
-	 ;
- }
 }
 void Cssh::SendWindSize(int x, int y)
 {
-	int sx = 0;
-	int sy = 0;
+	try {
+		int sx = 0;
+		int sy = 0;
 
-  try {
-	if ( m_pDocument != NULL )
-		m_pDocument->m_TextRam.GetScreenSize(&sx, &sy);
+		if ( m_pDocument != NULL )
+			m_pDocument->m_TextRam.GetScreenSize(&sx, &sy);
 
-	CBuffer tmp;
-	switch(m_SSHVer) {
-	case 1:
-		tmp.Put8Bit(SSH_CMSG_WINDOW_SIZE);
-		tmp.Put32Bit(y);
-		tmp.Put32Bit(x);
-		tmp.Put32Bit(sx);
-		tmp.Put32Bit(sy);
-		SendPacket(&tmp);
-		break;
-	case 2:
-		if ( m_StdChan == (-1) || !CHAN_OK(m_StdChan) )	// ((CChannel *)m_pChan[m_StdChan])->m_RemoteID == (-1) )
+		CBuffer tmp;
+		switch(m_SSHVer) {
+		case 1:
+			tmp.Put8Bit(SSH_CMSG_WINDOW_SIZE);
+			tmp.Put32Bit(y);
+			tmp.Put32Bit(x);
+			tmp.Put32Bit(sx);
+			tmp.Put32Bit(sy);
+			SendPacket(&tmp);
 			break;
-		tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
-		tmp.Put32Bit(((CChannel *)m_pChan[m_StdChan])->m_RemoteID);
-		tmp.PutStr("window-change");
-		tmp.Put8Bit(0);
-		tmp.Put32Bit(x);
-		tmp.Put32Bit(y);
-		tmp.Put32Bit(sx);
-		tmp.Put32Bit(sy);
-		SendPacket2(&tmp);
-		break;
+		case 2:
+			if ( m_StdChan == (-1) || !CHAN_OK(m_StdChan) )	// ((CChannel *)m_pChan[m_StdChan])->m_RemoteID == (-1) )
+				break;
+			tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
+			tmp.Put32Bit(((CChannel *)m_pChan[m_StdChan])->m_RemoteID);
+			tmp.PutStr("window-change");
+			tmp.Put8Bit(0);
+			tmp.Put32Bit(x);
+			tmp.Put32Bit(y);
+			tmp.Put32Bit(sx);
+			tmp.Put32Bit(sy);
+			SendPacket2(&tmp);
+			break;
+		}
+	} catch(...) {
+		::AfxMessageBox(_T("ssh SendWindSize Error"));
 	}
- } catch(...) {
- }
 }
 void Cssh::OnTimer(UINT_PTR nIDEvent)
 {
@@ -802,7 +817,6 @@ void Cssh::RecivePacket(CBuffer *bp)
 {
 	int n;
 	CStringA str;
-	CString msg;
 	CBuffer tmp;
 	int type = bp->Get8Bit();
 
@@ -916,11 +930,6 @@ void Cssh::RecivePacket(CBuffer *bp)
 		tmp.Put8Bit(SSH_CMSG_EXEC_SHELL);
 		SendPacket(&tmp);
 		m_PacketStat = 7;
-
-		msg.Format(_T("%s+%s"), m_EncCmp.GetTitle(), m_EncCip.GetTitle());
-		m_pDocument->SetStatus(msg);
-
-//		CExtSocket::OnConnect();
 		m_bConnect = TRUE;
 		m_pDocument->OnSocketConnect();
 		break;
@@ -977,7 +986,8 @@ void Cssh::LogIt(LPCTSTR format, ...)
 	va_end(args);
 
 	if ( !m_pDocument->m_TextRam.IsOptEnable(TO_SSHPFORY) ) {
-		GetMainWnd()->SetMessageText(str);
+		m_pDocument->LogDebug(_T("%s"), str);
+		GetMainWnd()->SetStatusText(str);
 		return;
 	}
 
@@ -1152,9 +1162,22 @@ void Cssh::ChannelCheck(int n)
 		SendMsgChannelData(n);
 
 	if ( (cp->m_Eof & CEOF_ICLOSE) && (cp->m_Eof & CEOF_SCLOSE) ) {
-		if ( cp->m_pFilter != NULL )
-			LogIt(_T("Closed #%d Filter"), n);
-		else
+		if ( cp->m_pFilter != NULL ) {
+			switch(cp->m_pFilter->m_Type) {
+			case SSHFT_STDIO:
+				LogIt(_T("Closed #%d stdio"), n);
+				break;
+			case SSHFT_SFTP:
+				LogIt(_T("Closed #%d sftp"), n);
+				break;
+			case SSHFT_AGENT:
+				LogIt(_T("Closed #%d agent"), n);
+				break;
+			case SSHFT_RCP:
+				LogIt(_T("Closed #%d rcp"), n);
+				break;
+			}
+		} else
 			LogIt(_T("Closed #%d %s:%d -> %s:%d"), n, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
 		m_OpenChanCount--;
 		ChannelClose(n);
@@ -1776,9 +1799,9 @@ void Cssh::SendMsgChannelOpenConfirmation(int id)
 	SendPacket2(&tmp);
 
 	if ( cp->m_pFilter != NULL )
-		LogIt(_T("Open Filter #%d"), id);
+		LogIt(_T("Open #%d Filter"), id);
 	else
-		LogIt(_T("Open Connect #%d %s:%d -> %s:%d"), id, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
+		LogIt(_T("Open #%d %s:%d -> %s:%d"), id, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
 }
 void Cssh::SendMsgChannelOpenFailure(int id)
 {
@@ -2510,26 +2533,6 @@ int Cssh::SSH2MsgNewKeys(CBuffer *bp)
 		 m_DecCmp.Init(m_VProp[PROP_COMP_ALGS_STOC], MODE_DEC, COMPLEVEL) )
 		return TRUE;
 
-	CString str, ats[3];
-
-	ats[0] = m_EncCmp.GetTitle();
-	if ( ats[0].Compare(m_DecCmp.GetTitle()) != 0 ) {
-		ats[0] += _T("/");
-		ats[0] += m_DecCmp.GetTitle();
-	}
-	ats[1] = m_EncCip.GetTitle();
-	if ( ats[1].Compare(m_DecCip.GetTitle()) != 0 ) {
-		ats[1] += _T("/");
-		ats[1] += m_DecCip.GetTitle();
-	}
-	ats[2] = m_EncMac.GetTitle();
-	if ( ats[2].Compare(m_DecMac.GetTitle()) != 0 ) {
-		ats[2] += _T("/");
-		ats[2] += m_DecMac.GetTitle();
-	}
-	str.Format(_T("%s+%s+%s"), ats[0], ats[1], ats[2]);
-	m_pDocument->SetStatus(str);
-
 	return FALSE;
 }
 int Cssh::SSH2MsgUserAuthPkOk(CBuffer *bp)
@@ -2792,18 +2795,24 @@ int Cssh::SSH2MsgChannelOpenReply(CBuffer *bp, int type)
 	if ( cp->m_pFilter != NULL ) {
 		switch(cp->m_pFilter->m_Type) {
 		case SSHFT_STDIO:
+			LogIt(_T("Connect #%d stdio"), id);
 			if ( (m_SSH2Status & SSH2_STAT_HAVESHELL) == 0 )
 				SendMsgChannelRequesstShell(id);
 			break;
 		case SSHFT_SFTP:
+			LogIt(_T("Connect #%d sftp"), id);
 			SendMsgChannelRequesstSubSystem(id);
 			break;
+		case SSHFT_AGENT:
+			LogIt(_T("Connect #%d agent"), id);
+			break;
 		case SSHFT_RCP:
+			LogIt(_T("Connect #%d rcp"), id);
 			SendMsgChannelRequesstExec(id);
 			break;
 		}
 	} else
-		LogIt(_T("Open Confirmation #%d %s:%d -> %s:%d"), id, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
+		LogIt(_T("Connect #%d %s:%d -> %s:%d"), id, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
 
 	SendMsgChannelData(id);
 	return FALSE;

@@ -164,6 +164,7 @@ protected:
 	virtual void OnBeginPrinting(CDC* pDC, CPrintInfo* pInfo);
 	virtual void OnEndPrinting(CDC* pDC, CPrintInfo* pInfo);
 	virtual void OnPrint(CDC* pDC, CPrintInfo* pInfo);
+	virtual void OnInitialUpdate();
 
 // インプリメンテーション
 protected:

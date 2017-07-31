@@ -403,7 +403,6 @@ private:
 	void EncryptRequestEnd();
 	void EncryptDecode(char *p, int len);
 	void EncryptEncode(char *p, int len);
-	void EncryptStatus();
 };
 
 #endif // !defined(AFX_TELNET_H__ECB045AA_51FC_4815_A70B_04DA0D152E54__INCLUDED_)

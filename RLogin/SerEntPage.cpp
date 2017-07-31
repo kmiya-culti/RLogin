@@ -284,7 +284,8 @@ BOOL CSerEntPage::OnApply()
 	m_pSheet->m_pParamTab->m_ExtEnvStr = m_ExtEnvStr;
 	m_pSheet->m_pTextRam->SetOption(TO_RLUSEPASS, m_UsePassDlg);
 	m_pSheet->m_pTextRam->SetOption(TO_PROXPASS, m_UseProxyDlg);
-	m_pSheet->m_pEntry->m_IconName  = m_IconName;
+	m_pSheet->m_pEntry->m_IconName = m_IconName;
+	m_pSheet->m_pEntry->m_bPassOk  = TRUE;
 
 	return TRUE;
 }

@@ -87,13 +87,15 @@ CRLoginDoc::CRLoginDoc()
 	m_DelayFlag = DELAY_NON;
 	m_ActCharCount = 0;
 	m_pMainWnd = (CMainFrame *)AfxGetMainWnd();
-	m_TitleString.Empty();
+	m_SockStatus.Empty();
 	m_pStrScript = NULL;
 	m_pScript = NULL;
 	m_InPane = FALSE;
 	m_AfterId = (-1);
 	m_bUseIdle = FALSE;
 	m_LogSendRecv = LOGDEBUG_NONE;
+	m_ScriptFile.Empty();
+	m_bReqDlg = FALSE;
 }
 
 CRLoginDoc::~CRLoginDoc()
@@ -113,7 +115,44 @@ CRLoginDoc::~CRLoginDoc()
 	if ( m_DelayFlag != DELAY_NON )
 		m_pMainWnd->DelTimerEvent(this);
 }
+BOOL CRLoginDoc::ScriptInit()
+{
+	ASSERT(m_pScript == NULL);
 
+	//if ( m_pScript != NULL ) {
+	//	m_pScript->Stop();
+	//	delete m_pScript;
+	//	m_pScript = NULL;
+	//}
+
+	m_pScript = new CScript;
+	m_pScript->SetDocument(this);
+
+	if ( !m_ServerEntry.m_ScriptFile.IsEmpty() )
+		m_pScript->ExecFile(m_ServerEntry.m_ScriptFile);
+
+	if ( !m_ServerEntry.m_ScriptStr.IsEmpty() )
+		m_pScript->ExecStr(m_ServerEntry.m_ScriptStr);
+
+	if ( !m_ScriptFile.IsEmpty() )
+		m_pScript->ExecFile(m_ScriptFile);
+
+	if ( m_TextRam.IsOptEnable(TO_RLSCRDEBUG) )
+		m_pScript->OpenDebug(m_ServerEntry.m_EntryName);
+
+	// スクリプトの実行許可
+	m_pScript->m_bInit = TRUE;
+
+	// スクリプトがあればオープンしない
+	if ( m_pScript->m_CodePos != (-1) )
+		return FALSE;
+
+	// スクリプト終了時にソケットをオープンしない
+	m_pScript->m_bOpenSock = FALSE;
+
+	// ソケットをオープン許可
+	return TRUE;
+}
 BOOL CRLoginDoc::OnNewDocument()
 {
 	if (!CDocument::OnNewDocument())
@@ -129,30 +168,11 @@ BOOL CRLoginDoc::OnNewDocument()
 	m_ParamTab.Serialize(FALSE, m_ServerEntry.m_ProBuffer);
 	m_TextRam.SetKanjiMode(m_ServerEntry.m_KanjiCode);
 
-	CRLoginView *pView;
-	if ( (pView = (CRLoginView *)GetAciveView()) != NULL )
-		pView->SetFrameRect(-1, -1);
-	UpdateAllViews(NULL, UPDATE_INITSIZE, 0);
-	m_TextRam.InitHistory();
-
 	SetTitle(m_ServerEntry.m_EntryName);
-
-	if ( !m_ServerEntry.m_ScriptStr.IsEmpty() )
-		m_pScript->ExecStr(m_ServerEntry.m_ScriptStr);
-	if ( !m_ServerEntry.m_ScriptFile.IsEmpty() )
-		m_pScript->ExecFile(m_ServerEntry.m_ScriptFile);
-	if ( m_TextRam.IsOptEnable(TO_RLSCRDEBUG) )
-		m_pScript->OpenDebug(m_ServerEntry.m_EntryName);
-
 	SetCmdInfo(((CRLoginApp *)AfxGetApp())->m_pCmdInfo);
 
-	if ( !m_pScript->m_bOpenSock && !SocketOpen() )
+	if ( ScriptInit() && !SocketOpen() )
 		return FALSE;
-	else if ( m_pScript->m_bOpenSock && m_pScript->m_CodePos == (-1) && m_TextRam.m_bOpen ) {
-		if ( !SocketOpen() )
-			return FALSE;
-		m_pScript->m_bOpenSock = FALSE;
-	}
 
 	return TRUE;
 }
@@ -167,27 +187,13 @@ BOOL CRLoginDoc::OnOpenDocument(LPCTSTR lpszPathName)
 	m_TextRam.m_bOpen = TRUE;
 
 	if ( m_ServerEntry.m_DocType == DOCTYPE_ENTRYFILE ) {
-		UpdateAllViews(NULL, UPDATE_INITPARA, 0);
-		m_TextRam.InitHistory();
+
 		SetPathName(lpszPathName, TRUE);
 		SetTitle(m_ServerEntry.m_EntryName);
-
-		if ( !m_ServerEntry.m_ScriptStr.IsEmpty() )
-			m_pScript->ExecStr(m_ServerEntry.m_ScriptStr);
-		if ( !m_ServerEntry.m_ScriptFile.IsEmpty() )
-			m_pScript->ExecFile(m_ServerEntry.m_ScriptFile);
-		if ( m_TextRam.IsOptEnable(TO_RLSCRDEBUG) )
-			m_pScript->OpenDebug(m_ServerEntry.m_EntryName);
-
 		SetCmdInfo(((CRLoginApp *)AfxGetApp())->m_pCmdInfo);
 
-		if ( !m_pScript->m_bOpenSock && !SocketOpen() )
+		if ( ScriptInit() && !SocketOpen() )
 			return FALSE;
-		else if ( m_pScript->m_bOpenSock && m_pScript->m_CodePos == (-1) && m_TextRam.m_bOpen ) {
-			if ( !SocketOpen() )
-				return FALSE;
-			m_pScript->m_bOpenSock = FALSE;
-		}
 	}
 	
 	return (m_ServerEntry.m_DocType == DOCTYPE_NONE ? FALSE : TRUE);
@@ -389,6 +395,23 @@ void CRLoginDoc::SetCmdInfo(CCommandLineInfoEx *pCmdInfo)
 		m_ServerEntry.m_TermName = pCmdInfo->m_Term;
 	}
 
+	if ( !pCmdInfo->m_Title.IsEmpty() ) {
+		tmp.Format(_T(" /title %s"), CCommandLineInfoEx::ShellEscape(pCmdInfo->m_Title));
+		m_CmdLine += tmp;
+		m_ServerEntry.m_TitleName = pCmdInfo->m_Title;
+	}
+
+	if ( !pCmdInfo->m_Script.IsEmpty() ) {
+		tmp.Format(_T(" /script %s"), CCommandLineInfoEx::ShellEscape(pCmdInfo->m_Script));
+		m_CmdLine += tmp;
+		m_ScriptFile = pCmdInfo->m_Script;
+	}
+
+	if ( pCmdInfo->m_ReqDlg ) {
+		m_CmdLine += _T(" /req");
+		m_bReqDlg = pCmdInfo->m_ReqDlg;
+	}
+
 	//if ( pCmdInfo->m_InUse )
 	//	m_CmdLine += _T(" /inuse");
 
@@ -421,10 +444,8 @@ void CRLoginDoc::DeleteContents()
 	if ( m_pScript != NULL ) {
 		m_pScript->Stop();
 		delete m_pScript;
+		m_pScript = NULL;
 	}
-
-	m_pScript = new CScript;
-	m_pScript->SetDocument(this);
 
 	m_ServerEntry.Init();
 	m_TextRam.m_bOpen = FALSE;
@@ -433,34 +454,37 @@ void CRLoginDoc::DeleteContents()
 
 	CDocument::DeleteContents();
 }
+
 void CRLoginDoc::SetStatus(LPCTSTR str)
 {
 	int n;
 	CString tmp;
 	CString title;
 
-	switch(m_TextRam.m_TitleMode & 0007) {
-	case WTTL_ENTRY:
-		title = m_ServerEntry.m_EntryName;
-		break;
-	case WTTL_HOST:
-		title = m_ServerEntry.m_HostName;
-		break;
-	case WTTL_PORT:
-		title.Format(_T("%s:%d"), m_ServerEntry.m_HostName, CExtSocket::GetPortNum(m_ServerEntry.m_PortName));
-		break;
-	case WTTL_USER:
-		title = m_ServerEntry.m_UserName;
-		break;
+	if ( !m_ServerEntry.m_TitleName.IsEmpty() )
+		title = m_ServerEntry.m_TitleName;
+	else {
+		switch(m_TextRam.m_TitleMode & 0007) {
+		case WTTL_ENTRY:
+			title = m_ServerEntry.m_EntryName;
+			break;
+		case WTTL_HOST:
+			title = m_ServerEntry.m_HostName;
+			break;
+		case WTTL_PORT:
+			title.Format(_T("%s:%d"), m_ServerEntry.m_HostName, CExtSocket::GetPortNum(m_ServerEntry.m_PortName));
+			break;
+		case WTTL_USER:
+			title = m_ServerEntry.m_UserName;
+			break;
+		}
 	}
 
-	if ( str != NULL && *str != _T('\0') ) {
-		((CMainFrame *)AfxGetMainWnd())->SetMessageText(str);
-		m_TitleString = str;
-	}
+	if ( str != NULL )
+		m_SockStatus = str;
 
-	if ( !m_TitleString.IsEmpty() && (m_TextRam.m_TitleMode & WTTL_ALGO) != 0 ) {
-		tmp.Format(_T("(%s)"), m_TitleString);
+	if ( !m_SockStatus.IsEmpty() && (m_TextRam.m_TitleMode & WTTL_ALGO) != 0 ) {
+		tmp.Format(_T("(%s)"), m_SockStatus);
 		title += tmp;
 	}
 
@@ -518,7 +542,7 @@ void CRLoginDoc::SetMenu(CMenu *pMenu, CKeyCmdsTab *pCmdsTab)
 	// Window Menu
 	if ( (pSubMenu = pMenu->GetSubMenu(3)) != NULL ) {
 		for ( n = 0 ; n < pSubMenu->GetMenuItemCount() ; n++ ) {
-			if ( (i = pSubMenu->GetMenuItemID(n)) >= AFX_IDM_FIRST_MDICHILD || (i >= IDM_WINDOW_SEL0 && i <= IDM_WINDOW_SEL9) ) {
+			if ( (i = pSubMenu->GetMenuItemID(n)) >= AFX_IDM_FIRST_MDICHILD ) {
 				pSubMenu->DeleteMenu(n, MF_BYPOSITION);
 				n--;
 			}
@@ -530,9 +554,9 @@ void CRLoginDoc::SetMenu(CMenu *pMenu, CKeyCmdsTab *pCmdsTab)
 		for ( n = 0 ; (pChild = (CChildFrame *)pMain->GetTabWnd(n)) != NULL ; n++ ) {
 			if ( (pDoc = (CRLoginDoc *)pChild->GetActiveDocument()) != NULL ) {
 				str.Format(_T("&%d %s"), n + 1, pDoc->GetTitle());
-				pSubMenu->AppendMenu(MF_STRING, IDM_WINDOW_SEL0 + n, str);
+				pSubMenu->AppendMenu(MF_STRING, AFX_IDM_FIRST_MDICHILD + n, str);
 				if ( pDoc == this )
-					sel = IDM_WINDOW_SEL0 + n;
+					sel = AFX_IDM_FIRST_MDICHILD + n;
 			}
 		}
 	}
@@ -561,9 +585,9 @@ void CRLoginDoc::SetMenu(CMenu *pMenu, CKeyCmdsTab *pCmdsTab)
 		if ( (i = pCmdsTab->Find(pCmds->m_Id)) >= 0 )
 			pCmdsTab->m_Data[i] = *pCmds;
 
-		else if ( !(pCmds->m_Id >= IDM_SCRIPT_MENU1 && pCmds->m_Id <= IDM_SCRIPT_MENU10) &&
-				  !(pCmds->m_Id >= ID_MACRO_HIS1    && pCmds->m_Id <= ID_MACRO_HIS4) &&
-				  !(pCmds->m_Id >= IDM_WINDOW_SEL0  && pCmds->m_Id <= IDM_WINDOW_SEL9)  )
+		else if ( !(pCmds->m_Id >= IDM_SCRIPT_MENU1	       && pCmds->m_Id <= IDM_SCRIPT_MENU10) &&
+				  !(pCmds->m_Id >= ID_MACRO_HIS1           && pCmds->m_Id <= ID_MACRO_HIS4) &&
+				  !(pCmds->m_Id >= AFX_IDM_FIRST_MDICHILD  && pCmds->m_Id <= (AFX_IDM_FIRST_MDICHILD + 9))  )
 			i = pCmdsTab->Add(*pCmds);
 
 		pCmds->SetMenu(pMenu);
@@ -1146,6 +1170,9 @@ void CRLoginDoc::OnSocketError(int err)
 	AfxMessageBox(tmp);
 	m_ErrorPrompt.Empty();
 
+	if ( m_TextRam.IsOptEnable(TO_RLNOTCLOSE) )
+		return;
+
 	OnFileClose();
 }
 void CRLoginDoc::OnSocketClose()
@@ -1184,6 +1211,9 @@ void CRLoginDoc::OnSocketClose()
 	UpdateAllViews(NULL, UPDATE_GOTOXY, NULL);
 	SetStatus(_T("Close"));
 
+	if ( m_TextRam.IsOptEnable(TO_RLNOTCLOSE) )
+		return;
+
 	if ( bCanExit )
 		m_pMainWnd->PostMessage(WM_COMMAND, ID_APP_EXIT, 0 );
 	else
@@ -1195,6 +1225,11 @@ int CRLoginDoc::OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags)
 	BOOL sync = FALSE;
 
 //	TRACE("OnSocketRecive %d(%d)Byte\n", nBufLen, m_ActCharCount);
+
+	if ( !m_TextRam.IsInitText() ) {
+		m_bUseIdle = TRUE;
+		return 0;
+	}
 
 	if ( nFlags != 0 )
 		return nBufLen;
@@ -1299,7 +1334,7 @@ int CRLoginDoc::SocketOpen()
 	if ( InternetAttemptConnect(0) != ERROR_SUCCESS )
 		return FALSE;
 
-	if ( !m_ServerEntry.m_BeforeEntry.IsEmpty() && m_ServerEntry.m_BeforeEntry.Compare(m_ServerEntry.m_EntryName) != 0 && !((CRLoginApp *)::AfxGetApp())->OnlineCheck(m_ServerEntry.m_BeforeEntry) ) {
+	if ( !m_ServerEntry.m_BeforeEntry.IsEmpty() && m_ServerEntry.m_BeforeEntry.Compare(m_ServerEntry.m_EntryName) != 0 && !((CRLoginApp *)::AfxGetApp())->IsOnlineEntry(m_ServerEntry.m_BeforeEntry) ) {
 		CString cmds;
 		num = ((CMainFrame *)::AfxGetMainWnd())->SetAfterId((void *)this);
 		cmds.Format(_T("/Entry \"%s\" /After %d"), m_ServerEntry.m_BeforeEntry, num);
@@ -1313,7 +1348,7 @@ int CRLoginDoc::SocketOpen()
 		goto SKIPINPUT;
 
 	// 0=NONE, 1=HTTP, 2=SOCKS4, 3=SOCKS5, 4=HTTP(Basic)
-	if ( (m_ServerEntry.m_ProxyMode & 7) > 0 && m_TextRam.IsOptEnable(TO_PROXPASS) ) {
+	if ( (m_ServerEntry.m_ProxyMode & 7) > 0 && (m_TextRam.IsOptEnable(TO_PROXPASS) || !m_ServerEntry.m_bPassOk) ) {
 
 		dlg.m_Title    = m_ServerEntry.m_EntryName;
 		dlg.m_Title   += _T("(Proxy Server)");
@@ -1329,11 +1364,19 @@ int CRLoginDoc::SocketOpen()
 		m_ServerEntry.m_ProxyHost = dlg.m_HostAddr;
 		m_ServerEntry.m_ProxyUser = dlg.m_UserName;
 		m_ServerEntry.m_ProxyPass = dlg.m_PassName;
+
+		if ( !m_ServerEntry.m_bPassOk ) {
+			m_ServerEntry.m_ProxyPassProvs = m_ServerEntry.m_ProxyPass;
+			if ( !m_ServerEntry.m_PassName.IsEmpty() )
+				m_ServerEntry.m_bPassOk = TRUE;
+			SetModifiedFlag(TRUE);
+		}
 	}
 
 	// 0=PROTO_DIRECT, 1=PROTO_LOGIN, 2=PROTO_TELNET, 3=PROTO_SSH, 4=PROTO_COMPORT 5=PROTO_PIPE
-	if ( m_ServerEntry.m_HostName.IsEmpty() ||
-		(m_TextRam.IsOptEnable(TO_RLUSEPASS) && m_ServerEntry.m_ProtoType >= PROTO_LOGIN && m_ServerEntry.m_ProtoType <= PROTO_COMPORT) ) {
+	if ( m_ServerEntry.m_HostName.IsEmpty() || m_bReqDlg ||
+		 ((m_TextRam.IsOptEnable(TO_RLUSEPASS) || !m_ServerEntry.m_bPassOk) &&
+		   m_ServerEntry.m_ProtoType >= PROTO_LOGIN && m_ServerEntry.m_ProtoType <= PROTO_COMPORT) ) {
 
 		dlg.m_Title    = m_ServerEntry.m_EntryName;
 		dlg.m_HostAddr = m_ServerEntry.m_HostName;
@@ -1348,6 +1391,12 @@ int CRLoginDoc::SocketOpen()
 		m_ServerEntry.m_HostName = dlg.m_HostAddr;
 		m_ServerEntry.m_UserName = dlg.m_UserName;
 		m_ServerEntry.m_PassName = dlg.m_PassName;
+
+		if ( !m_ServerEntry.m_bPassOk ) {
+			m_ServerEntry.m_PassNameProvs = m_ServerEntry.m_PassName;
+			m_ServerEntry.m_bPassOk = TRUE;
+			SetModifiedFlag(TRUE);
+		}
 
 		CCommandLineInfoEx cmds;
 		cmds.SetString(m_CmdLine);
@@ -1407,9 +1456,6 @@ SKIPINPUT:
 
 	LogInit();
 	SetStatus(_T("Open"));
-
-	static LPCTSTR ProtoName[] = { _T("TCP"), _T("Login"), _T("Telnet"), _T("SSH"), _T("COM"), _T("PIPE") };
-	m_pMainWnd->m_StatusString = ProtoName[m_ServerEntry.m_ProtoType];
 
 	return TRUE;
 }
@@ -1712,6 +1758,7 @@ void CRLoginDoc::OnScript()
 	}
 
 	m_pScript->ExecFile(dlg.GetPathName());
+	m_pScript->m_bInit = TRUE;
 }
 void CRLoginDoc::OnUpdateScript(CCmdUI *pCmdUI)
 {

@@ -16,6 +16,8 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
+#define OBM_CLOSE           32754
+
 //////////////////////////////////////////////////////////////////////
 // \’z/Á–Å
 //////////////////////////////////////////////////////////////////////
@@ -37,6 +39,7 @@ IMPLEMENT_DYNAMIC(CTabBar, CControlBar)
 BEGIN_MESSAGE_MAP(CTabBar, CControlBar)
 	ON_WM_SIZE()
 	ON_WM_CREATE()
+	ON_WM_LBUTTONDBLCLK()
 	ON_WM_LBUTTONDOWN()
 	ON_WM_SETCURSOR()
 	ON_WM_TIMER()
@@ -123,6 +126,7 @@ int CTabBar::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	CFont *font = CFont::FromHandle((HFONT)::GetStockObject(DEFAULT_GUI_FONT));
 	m_TabCtrl.SetFont(font);
 //	m_TabCtrl.SetPadding(CSize(2, 3));
+	m_TabCtrl.SetMinTabWidth(16);
 
 	m_ImageList.Create(ICONIMG_SIZE, ICONIMG_SIZE, ILC_COLOR24 | ILC_MASK, 4, 4);
 
@@ -206,6 +210,7 @@ void CTabBar::OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler)
 BOOL CTabBar::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 {
 	int n;
+	CRect rect;
 	TCHITTESTINFO htinfo;
 
 	if ( AfxGetApp()->GetProfileInt(_T("TabBar"), _T("GhostWnd"), 0) )
@@ -270,6 +275,18 @@ void CTabBar::OnSelchange(NMHDR* pNMHDR, LRESULT* pResult)
 	}
 
 	*pResult = 0;
+}
+
+void CTabBar::OnLButtonDblClk(UINT nFlags, CPoint point)
+{
+	CRect rect;
+	int idx = m_TabCtrl.GetCurSel();
+	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
+
+	CControlBar::OnLButtonDblClk(nFlags, point);
+
+	if ( idx < 0 || !m_TabCtrl.GetItemRect(idx, rect) || !rect.PtInRect(point) )
+		pMain->PostMessage(WM_COMMAND, (WPARAM)ID_FILE_NEW);
 }
 
 void CTabBar::OnLButtonDown(UINT nFlags, CPoint point) 
@@ -554,13 +571,13 @@ void CTabBar::ReSize()
 
 	if ( n < 4 ) n = 4;
 	pWnd->GetClientRect(rect);
-	width = (rect.Width() - 2) / n;
+	width = (rect.Width() - 18) / n;
 
 	m_TabCtrl.GetItemRect(0, rect);
 	if ( width == rect.Width() )
 		return;
 
-	sz.cx = width;
+	sz.cx = (width > 16 ? width : 16);
 	sz.cy = rect.Height();
 	sz = m_TabCtrl.SetItemSize(sz);
 }
@@ -715,5 +732,3 @@ void CTabBar::SetGhostWnd(BOOL sw)
 		m_pGhostView = NULL;
 	}
 }
-
-

@@ -338,7 +338,7 @@ public:
 	CString m_FileName;
 	COLORREF m_BkColor;
 
-	int LoadFile(LPCTSTR filename);
+	BOOL LoadFile(LPCTSTR filename);
 	CBitmap *GetBitmap(CDC *pDC, int width, int height, int align, COLORREF bkcolor);
 
 	CBmpFile();
@@ -511,6 +511,8 @@ public:
 	BOOL m_ReEntryFlag;
 	int m_DocType;
 	CString m_IconName;
+	BOOL m_bPassOk;
+	CString m_TitleName;
 
 	void Init();
 	void SetArray(CStringArrayExt &stra);
@@ -547,6 +549,7 @@ public:
 	int AddEntry(CServerEntry &Entry);
 	void UpdateAt(int nIndex);
 	void RemoveAt(int nIndex);
+	void ReloadAt(int nIndex);
 
 	inline CServerEntry &GetAt(int nIndex) { return m_Data[nIndex]; }
 	inline INT_PTR GetSize() { return m_Data.GetSize(); }
@@ -748,8 +751,13 @@ public:
 class CFileExt : public CFile
 {
 public:
-	int m_Len;
-	BYTE m_Buffer[FEXT_BUF_MAX];
+	UINT m_WriteLen;
+	BYTE *m_pWriteBuffer;
+	UINT m_ReadLen;
+	UINT m_ReadPos;
+	BYTE *m_pReadBuffer;
+
+	void Init();
 
 	CFileExt();
 #if	_MSC_VER > 1500
@@ -758,11 +766,17 @@ public:
 	CFileExt(HANDLE hFile);
 	CFileExt(LPCTSTR lpszFileName, UINT nOpenFlags);
 
+	virtual ~CFileExt();
+	
 	virtual BOOL Open(LPCTSTR lpszFileName, UINT nOpenFlags, CFileException* pError = NULL);
 #if	_MSC_VER > 1500
 	virtual BOOL Open(LPCTSTR lpszFileName, UINT nOpenFlags, CAtlTransactionManager* pTM, CFileException* pError);
 #endif
 
+	virtual ULONGLONG GetPosition( ) const;
+	virtual ULONGLONG Seek(LONGLONG lOff, UINT nFrom);
+
+	virtual UINT Read(void* lpBuf, UINT nCount);
 	virtual void Write(const void* lpBuf, UINT nCount);
 
 	virtual void Flush();

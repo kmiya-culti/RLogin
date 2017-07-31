@@ -811,11 +811,13 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_COMMAND(IDM_WINODW_NEXT, &CMainFrame::OnWinodwNext)
 	ON_UPDATE_COMMAND_UI(IDM_WINODW_NEXT, &CMainFrame::OnUpdateWinodwNext)
 
-	ON_COMMAND_RANGE(IDM_WINDOW_SEL0, IDM_WINDOW_SEL9, &CMainFrame::OnWinodwSelect)
+	ON_COMMAND_RANGE(AFX_IDM_FIRST_MDICHILD, AFX_IDM_FIRST_MDICHILD + 255, &CMainFrame::OnWinodwSelect)
 	ON_COMMAND_RANGE(IDM_MOVEPANE_UP, IDM_MOVEPANE_LEFT, &CMainFrame::OnActiveMove)
 	ON_UPDATE_COMMAND_UI_RANGE(IDM_MOVEPANE_UP, IDM_MOVEPANE_LEFT, &CMainFrame::OnUpdateActiveMove)
 
 	ON_UPDATE_COMMAND_UI(ID_INDICATOR_SOCK, OnUpdateIndicatorSock)
+	ON_UPDATE_COMMAND_UI(ID_INDICATOR_STAT, OnUpdateIndicatorStat)
+	ON_UPDATE_COMMAND_UI(ID_INDICATOR_KMOD, OnUpdateIndicatorKmod)
 
 	ON_COMMAND(IDM_VERSIONCHECK, &CMainFrame::OnVersioncheck)
 	ON_UPDATE_COMMAND_UI(IDM_VERSIONCHECK, &CMainFrame::OnUpdateVersioncheck)
@@ -828,10 +830,13 @@ END_MESSAGE_MAP()
 static const UINT indicators[] =
 {
 	ID_SEPARATOR,           // ステータス ライン インジケータ
+	ID_INDICATOR_SOCK,
+	ID_INDICATOR_STAT,
+	ID_INDICATOR_KMOD,
 	ID_INDICATOR_CAPS,
 	ID_INDICATOR_NUM,
-	ID_INDICATOR_SCRL,
-	ID_INDICATOR_SOCK,
+//	ID_INDICATOR_SCRL,
+//	ID_INDICATOR_KANA,
 };
 
 // CMainFrame コンストラクション/デストラクション
@@ -844,7 +849,6 @@ CMainFrame::CMainFrame()
 	m_pTopPane = NULL;
 	m_Frame.SetRectEmpty();
 	m_pTrackPane = NULL;
-	m_StatusString = "";
 	m_LastPaneFlag = FALSE;
 	m_TimerSeqId = TIMERID_TIMEREVENT;
 	m_pTimerUsedId = NULL;
@@ -864,6 +868,7 @@ CMainFrame::CMainFrame()
 	m_hNextClipWnd = NULL;
 	m_bBroadCast = FALSE;
 	m_bTabBarShow = FALSE;
+	m_StatusTimer = 0;
 }
 
 CMainFrame::~CMainFrame()
@@ -999,6 +1004,12 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	if ( !m_wndStatusBar.Create(this) || !m_wndStatusBar.SetIndicators(indicators, sizeof(indicators)/sizeof(UINT)) ) {
 		TRACE0("Failed to create status bar\n");
 		return -1;      // 作成に失敗
+	}
+
+	{
+		UINT nID, nSt;
+		m_wndStatusBar.GetPaneInfo(0, nID, nSt, n);
+		m_wndStatusBar.SetPaneInfo(0, nID, nSt, 160);
 	}
 
 	if ( !m_wndTabBar.Create(this, WS_VISIBLE| WS_CHILD|CBRS_TOP|WS_EX_WINDOWEDGE, IDC_MDI_TAB_CTRL_BAR) ) {
@@ -1473,9 +1484,9 @@ int CMainFrame::OpenServerEntry(CServerEntry &Entry)
 				}
 			}
 		}
-		if ( pApp->m_pCmdInfo != NULL && pApp->m_pCmdInfo->m_Proto != (-1) && !pApp->m_pCmdInfo->m_Addr.IsEmpty() && !pApp->m_pCmdInfo->m_Port.IsEmpty() ) {
+		if ( pApp->m_pCmdInfo != NULL && pApp->m_pCmdInfo->m_Proto != (-1) && !pApp->m_pCmdInfo->m_Port.IsEmpty() ) {
 			if ( Entry.m_EntryName.IsEmpty() )
-				Entry.m_EntryName.Format(_T("%s:%s"), pApp->m_pCmdInfo->m_Addr, pApp->m_pCmdInfo->m_Port);
+				Entry.m_EntryName.Format(_T("%s:%s"), (pApp->m_pCmdInfo->m_Addr.IsEmpty() ? _T("unkown") : pApp->m_pCmdInfo->m_Addr), pApp->m_pCmdInfo->m_Port);
 			Entry.m_DocType = DOCTYPE_SESSION;
 			return TRUE;
 		}
@@ -1733,6 +1744,10 @@ CWnd *CMainFrame::GetTabWnd(int idx)
 {
 	return m_wndTabBar.GetAt(idx);
 }
+int CMainFrame::GetTabCount()
+{
+	return m_wndTabBar.GetSize();
+}
 
 BOOL CMainFrame::IsOverLap(HWND hWnd)
 {
@@ -1808,6 +1823,15 @@ void CMainFrame::SetActivePoint(CPoint point)
 			pWnd->MDIActivate();
 		}
 	}
+}
+void CMainFrame::SetStatusText(LPCTSTR message)
+{
+	if ( m_StatusTimer != 0 )
+		KillTimer(m_StatusTimer);
+
+	SetMessageText(message);
+
+	m_StatusTimer = SetTimer(TIMERID_STATUSCLR, 30000, NULL);
 }
 
 static UINT VersionCheckThead(LPVOID pParam)
@@ -2161,6 +2185,11 @@ void CMainFrame::OnTimer(UINT_PTR nIDEvent)
 		if ( !m_MidiQue.IsEmpty() && (mp = m_MidiQue.GetHead()) != NULL )
 			m_MidiTimer = SetTimer(TIMERID_MIDIEVENT, mp->m_mSec, NULL);
 
+	} else if ( nIDEvent == m_StatusTimer ) {
+		KillTimer(m_StatusTimer);
+		m_StatusTimer = 0;
+		SetMessageText(AFX_IDS_IDLEMESSAGE);
+
 	} else {
 		for ( tp = m_pTimerUsedId ; tp != NULL ; tp = tp->m_pList ) {
 			if ( tp->m_Id == (int)nIDEvent ) {
@@ -2492,8 +2521,42 @@ void CMainFrame::OnMouseMove(UINT nFlags, CPoint point)
 
 void CMainFrame::OnUpdateIndicatorSock(CCmdUI* pCmdUI)
 {
-//	m_wndStatusBar.GetStatusBarCtrl().SetIcon(pCmdUI->m_nIndex, AfxGetApp()->LoadIcon(IDI_LOCKICON));
-	pCmdUI->SetText(m_StatusString);
+	int n = 6;
+	CRLoginDoc *pDoc;
+	CChildFrame *pChild;
+	static LPCTSTR ProtoName[] = { _T("TCP"), _T("Login"), _T("Telnet"), _T("SSH"), _T("COM"), _T("PIPE"), _T("") };
+
+	if ( (pChild = (CChildFrame *)(MDIGetActive())) != NULL && (pDoc = (CRLoginDoc *)(pChild->GetActiveDocument())) != NULL && pDoc->m_pSock != NULL )
+		n = pDoc->m_pSock->m_Type;
+
+	pCmdUI->SetText(ProtoName[n]);
+
+	//	m_wndStatusBar.GetStatusBarCtrl().SetIcon(pCmdUI->m_nIndex, AfxGetApp()->LoadIcon(IDI_LOCKICON));
+}
+void CMainFrame::OnUpdateIndicatorStat(CCmdUI* pCmdUI)
+{
+	LPCTSTR str = _T("");
+	CRLoginDoc *pDoc;
+	CChildFrame *pChild;
+
+	if ( (pChild = (CChildFrame *)(MDIGetActive())) != NULL && (pDoc = (CRLoginDoc *)(pChild->GetActiveDocument())) != NULL && pDoc->m_pSock != NULL )
+		str = pDoc->m_SockStatus;
+
+	pCmdUI->SetText(str);
+}
+void CMainFrame::OnUpdateIndicatorKmod(CCmdUI* pCmdUI)
+{
+	CRLoginDoc *pDoc;
+	CChildFrame *pChild;
+	CString str;
+
+	if ( (pChild = (CChildFrame *)(MDIGetActive())) != NULL && (pDoc = (CRLoginDoc *)(pChild->GetActiveDocument())) != NULL && pDoc->m_pSock != NULL ) {
+		str += ( pDoc->m_TextRam.IsOptEnable(TO_RLPNAM) ? _T('A') : _T(' '));
+		str += ( pDoc->m_TextRam.IsOptEnable(TO_DECCKM) ? _T('C') : _T(' '));
+		str += (!pDoc->m_TextRam.IsOptEnable(TO_DECANM) ? _T('V') : _T(' '));
+	}
+
+	pCmdUI->SetText(str);
 }
 
 void CMainFrame::OnFileAllSave() 
@@ -2548,7 +2611,7 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCopyDataStruct)
 		return ((CRLoginApp *)::AfxGetApp())->OnInUseCheck(pCopyDataStruct);
 
 	} else if ( pCopyDataStruct->dwData == 0x524c4f32 ) {
-		return ((CRLoginApp *)::AfxGetApp())->OnlineEntry(pCopyDataStruct);
+		return ((CRLoginApp *)::AfxGetApp())->OnIsOnlineEntry(pCopyDataStruct);
 
 #ifdef	USE_KEYMACGLOBAL
 	} else if ( pCopyDataStruct->dwData == 0x524c4f33 ) {
@@ -2572,6 +2635,9 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCopyDataStruct)
 
 	} else if ( pCopyDataStruct->dwData == 0x524c4f37 ) {
 		return ((CRLoginApp *)::AfxGetApp())->OnEntryData(pCopyDataStruct);
+
+	} else if ( pCopyDataStruct->dwData == 0x524c4f38 ) {
+		return ((CRLoginApp *)::AfxGetApp())->OnIsOpenRLogin(pCopyDataStruct);
 	}
 
 	return CMDIFrameWnd::OnCopyData(pWnd, pCopyDataStruct);
@@ -2737,7 +2803,7 @@ void CMainFrame::OnWindowPrev()
 }
 void CMainFrame::OnWinodwSelect(UINT nID)
 {
-	m_wndTabBar.SelectActive(nID - IDM_WINDOW_SEL0);
+	m_wndTabBar.SelectActive(nID - AFX_IDM_FIRST_MDICHILD);
 }
 
 void CMainFrame::OnUpdateWinodwNext(CCmdUI *pCmdUI)

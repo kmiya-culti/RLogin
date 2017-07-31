@@ -156,7 +156,7 @@ BEGIN
     POPUP "ファイル(&F)"
     BEGIN
         MENUITEM "サーバーに接続(&N)",                 ID_FILE_NEW
-        MENUITEM "サーバー情報を開く(&O)...\t",          ID_FILE_OPEN
+        MENUITEM "サーバー情報を開く(&O)...",            ID_FILE_OPEN
         MENUITEM SEPARATOR
         MENUITEM "プリンタの設定(&R)",                 ID_FILE_PRINT_SETUP
         MENUITEM SEPARATOR
@@ -184,9 +184,11 @@ BEGIN
     END
     POPUP "ヘルプ(&H)"
     BEGIN
-        MENUITEM "RLogin のバージョン情報(&A)...",      ID_APP_ABOUT
-        MENUITEM "自動バージョンチェックを行う",              IDM_VERSIONCHECK
-        MENUITEM "ダイアログフォントの設定",                IDM_DIALOGFONT
+        MENUITEM "RLogin のバージョン情報(&A)",         ID_APP_ABOUT
+        MENUITEM "自動バージョンチェック(&V)",             IDM_VERSIONCHECK
+        MENUITEM SEPARATOR
+        MENUITEM "ダイアログフォントの設定(&D)",            IDM_DIALOGFONT
+        MENUITEM "パスワードロック(&K)",                IDM_PASSWORDLOCK
     END
 END
 
@@ -197,7 +199,7 @@ BEGIN
         MENUITEM "サーバーに接続(&N)",                 ID_FILE_NEW
         MENUITEM "接続を閉じる(&C)",                  ID_FILE_CLOSE
         MENUITEM SEPARATOR
-        MENUITEM "サーバー情報を開く(&O)...\t",          ID_FILE_OPEN
+        MENUITEM "サーバー情報を開く(&O)",               ID_FILE_OPEN
         MENUITEM "サーバー情報を保存(&S)",               ID_FILE_SAVE_AS
         MENUITEM "すべての状態を保存(&W)",               ID_FILE_ALL_SAVE
         MENUITEM SEPARATOR
@@ -328,7 +330,9 @@ BEGIN
     BEGIN
         MENUITEM "RLogin のバージョン情報(&A)",         ID_APP_ABOUT
         MENUITEM "自動バージョンチェック(&V)",             IDM_VERSIONCHECK
+        MENUITEM SEPARATOR
         MENUITEM "ダイアログフォントの設定(&D)",            IDM_DIALOGFONT
+        MENUITEM "パスワードロック(&K)",                IDM_PASSWORDLOCK
     END
 END
 
@@ -368,12 +372,12 @@ BEGIN
         MENUITEM "接続先を削除する(&D)",                ID_EDIT_DELETE
         MENUITEM "接続先を複写する(&C)",                ID_EDIT_DUPS
         MENUITEM SEPARATOR
-        MENUITEM "標準の設定にする",                    IDC_SAVEDEFAULT
-        MENUITEM "プロトコルハンドラに登録",                IDM_SERV_PROTO
-        MENUITEM "ファイルから設定変更",                  IDM_SERV_EXCHNG
+        MENUITEM "標準の設定にする(&S)",                IDC_SAVEDEFAULT
+        MENUITEM "プロトコルハンドラに登録(&P)",            IDM_SERV_PROTO
+        MENUITEM "ファイルから設定変更(&F)",              IDM_SERV_EXCHNG
         MENUITEM SEPARATOR
-        MENUITEM "ファイルからインポート",                 IDM_SERV_INPORT
-        MENUITEM "ファイルにエクスポート",                 IDM_SERV_EXPORT
+        MENUITEM "ファイルからインポート(&I)",             IDM_SERV_INPORT
+        MENUITEM "ファイルにエクスポート(&E)",             IDM_SERV_EXPORT
         MENUITEM SEPARATOR
         MENUITEM "最新の情報に更新(&U)",                ID_EDIT_CHECK
     END
@@ -387,47 +391,47 @@ BEGIN
     END
     POPUP "IDKEYLIST"
     BEGIN
-        MENUITEM "優先順位を上へ",                     IDC_IDKEY_UP
-        MENUITEM "優先順位を下へ",                     IDC_IDKEY_DOWN
+        MENUITEM "優先順位を上へ(&U)",                 IDC_IDKEY_UP
+        MENUITEM "優先順位を下へ(&D)",                 IDC_IDKEY_DOWN
         MENUITEM SEPARATOR
-        MENUITEM "名前を編集する",                     ID_EDIT_UPDATE
-        MENUITEM "認証キーを削除する",                   ID_EDIT_DELETE
+        MENUITEM "名前を編集する(&N)",                 ID_EDIT_UPDATE
+        MENUITEM "認証キーを削除する(&D)",               ID_EDIT_DELETE
         MENUITEM SEPARATOR
-        MENUITEM "クリップボードへ送る",                  ID_EDIT_COPY
-        MENUITEM "署名された公開鍵の読み込み",               ID_IDKEY_CAKEY
+        MENUITEM "クリップボードへ送る(&C)",              ID_EDIT_COPY
+        MENUITEM "署名された公開鍵の読み込み(&P)",           ID_IDKEY_CAKEY
         MENUITEM SEPARATOR
-        MENUITEM "ファイルからインポート",                 IDC_IDKEY_INPORT
-        MENUITEM "ファイルにエクスポート",                 IDC_IDKEY_EXPORT
+        MENUITEM "ファイルからインポート(&I)",             IDC_IDKEY_INPORT
+        MENUITEM "ファイルにエクスポート(&E)",             IDC_IDKEY_EXPORT
         MENUITEM SEPARATOR
-        MENUITEM "最新の情報に更新",                    ID_EDIT_CHECK
+        MENUITEM "最新の情報に更新(&A)",                ID_EDIT_CHECK
     END
     POPUP "CAPLIST"
     BEGIN
         POPUP "TermCap"
         BEGIN
-            MENUITEM "ファイルからインポート",                 IDM_CAP_INPORT
-            MENUITEM "ファイルにエクスポート",                 IDM_CAP_EXPORT
+            MENUITEM "ファイルからインポート(&I)",             IDM_CAP_INPORT
+            MENUITEM "ファイルにエクスポート(&E)",             IDM_CAP_EXPORT
             MENUITEM SEPARATOR
-            MENUITEM "クリップボードに送る",                  IDM_CAP_CLIPBORD
+            MENUITEM "クリップボードに送る(&C)",              IDM_CAP_CLIPBORD
         END
         POPUP "TermInfo"
         BEGIN
-            MENUITEM "ファイルからインポート",                 IDM_INFO_INPORT
-            MENUITEM "ファイルにエクスポート",                 IDM_INFO_EXPORT
+            MENUITEM "ファイルからインポート(&I)",             IDM_INFO_INPORT
+            MENUITEM "ファイルにエクスポート(&E)",             IDM_INFO_EXPORT
             MENUITEM SEPARATOR
-            MENUITEM "クリップボードに送る",                  IDM_INFO_CLIPBORD
+            MENUITEM "クリップボードに送る(&C)",              IDM_INFO_CLIPBORD
         END
     END
     POPUP "CHATDLG"
     BEGIN
-        MENUITEM "すべてクリップボードへコピー",              ID_EDIT_COPY_ALL
-        MENUITEM "クリップボードから貼り付け",               ID_EDIT_PASTE_ALL
+        MENUITEM "すべてクリップボードへコピー(&C)",          ID_EDIT_COPY_ALL
+        MENUITEM "クリップボードから貼り付け(&P)",           ID_EDIT_PASTE_ALL
     END
     POPUP "TEXTEDIT"
     BEGIN
         MENUITEM "コピー(&C)",                     ID_EDIT_COPY
         MENUITEM "貼り付け(&P)",                    ID_EDIT_PASTE
-        MENUITEM "すべて選択/コピー",                   ID_EDIT_COPY_ALL
+        MENUITEM "すべて選択/コピー(&A)",               ID_EDIT_COPY_ALL
     END
     POPUP "FONTLIST"
     BEGIN
@@ -437,7 +441,7 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "項目複写(&C)",                    ID_EDIT_DUPS
         MENUITEM SEPARATOR
-        MENUITEM "初期化する",                       ID_EDIT_DELALL
+        MENUITEM "初期化する(&U)",                   ID_EDIT_DELALL
     END
 END
 
@@ -491,10 +495,10 @@ CAPTION "RLoginのバージョン情報"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.19.6 (2015/11/20)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.19.7 (2015/12/04)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2015 Culti",IDC_STATIC,44,16,189,8
     DEFPUSHBUTTON   "OK",IDOK,96,171,50,14,WS_GROUP
-    LTEXT           "OpenSSL 1.0.2d 9 Jul 2015",IDC_STATIC,44,29,189,8
+    LTEXT           "OpenSSL 1.0.2e 3 Dec 2015",IDC_STATIC,44,29,189,8
     LTEXT           "Copyright (c) 1998-2015 The OpenSSL Project",IDC_STATIC,44,38,189,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,47,189,8
     LTEXT           "All rights reserved.",IDC_STATIC,44,56,189,8
@@ -644,7 +648,7 @@ BEGIN
     EDITTEXT        IDC_EDIT1,14,55,230,14,ES_AUTOHSCROLL
     DEFPUSHBUTTON   "OK",IDOK,59,82,60,14
     PUSHBUTTON      "キャンセル",IDCANCEL,139,82,60,14
-    LTEXT           "",IDC_TITLE,14,17,230,20
+    LTEXT           "",IDC_TITLE,14,16,230,30
 END
 
 IDD_SERVERLIST DIALOGEX 0, 0, 290, 113
@@ -765,7 +769,7 @@ BEGIN
     CONTROL         "Local",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,21,22,31,10
     CONTROL         "Local Socks",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,77,22,51,10
     CONTROL         "Remote",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON,145,22,38,10
-    COMBOBOX        IDC_LISTENHOST,14,55,118,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_LISTENHOST,14,55,118,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_GROUP | WS_TABSTOP
     COMBOBOX        IDC_LISTENPORT,138,55,48,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_CONNECTHOST,14,112,118,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_CONNECTPORT,138,112,48,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
@@ -803,7 +807,7 @@ BEGIN
     CONTROL         "SJIS",IDC_CHARSET2,"Button",BS_AUTORADIOBUTTON,62,20,31,10
     CONTROL         "ASCII",IDC_CHARSET3,"Button",BS_AUTORADIOBUTTON,109,20,34,10
     CONTROL         "UTF-8",IDC_CHARSET4,"Button",BS_AUTORADIOBUTTON,159,20,34,10
-    PUSHBUTTON      "iconv(&I)",IDC_ICONVSET,208,17,45,14
+    PUSHBUTTON      "iconv(&I)",IDC_ICONVSET,208,17,45,14,WS_GROUP
     CONTROL         "",IDC_BANKGL1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,14,57,8,8
     CONTROL         "",IDC_BANKGL2,"Button",BS_AUTORADIOBUTTON,14,75,8,8
     CONTROL         "",IDC_BANKGL3,"Button",BS_AUTORADIOBUTTON,14,93,8,8
@@ -812,7 +816,7 @@ BEGIN
     CONTROL         "",IDC_BANKGR2,"Button",BS_AUTORADIOBUTTON,47,75,8,8
     CONTROL         "",IDC_BANKGR3,"Button",BS_AUTORADIOBUTTON,47,93,8,8
     CONTROL         "",IDC_BANKGR4,"Button",BS_AUTORADIOBUTTON,47,111,8,8
-    COMBOBOX        IDC_CHARBANK1,94,55,160,80,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_CHARBANK1,94,55,160,80,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_GROUP | WS_TABSTOP
     COMBOBOX        IDC_CHARBANK2,94,73,160,80,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_CHARBANK3,94,91,160,80,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_CHARBANK4,94,109,160,80,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
@@ -1039,7 +1043,7 @@ BEGIN
     CONTROL         "ssh",IDC_PROTO4,"Button",BS_AUTORADIOBUTTON,140,76,29,10
     CONTROL         "com",IDC_PROTO5,"Button",BS_AUTORADIOBUTTON,180,76,29,10
     CONTROL         "pipe",IDC_PROTO6,"Button",BS_AUTORADIOBUTTON,220,76,29,10
-    COMBOBOX        IDC_SERVERNAME,14,122,152,60,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_SERVERNAME,14,122,152,60,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_GROUP | WS_TABSTOP
     PUSHBUTTON      "com",IDC_COMCONFIG,170,122,30,14
     COMBOBOX        IDC_SOCKNO,210,122,46,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_LOGINNAME,14,161,70,62,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
@@ -1138,10 +1142,10 @@ CAPTION "スクリーン"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     CONTROL         "一行あたりの文字数からフォントサイズを決定",IDC_SCRNSIZE1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,17,23,180,10
-    EDITTEXT        IDC_SCSZCOLS,204,21,50,12,ES_AUTOHSCROLL
+    CONTROL         "フォントサイズから一行あたりの文字数を決定",IDC_SCRNSIZE2,"Button",BS_AUTORADIOBUTTON,17,59,180,10
+    EDITTEXT        IDC_SCSZCOLS,204,21,50,12,ES_AUTOHSCROLL | WS_GROUP
     CONTROL         "DECCOLMでウィンドウをリサイズする",IDC_TERMCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,24,41,173,10
     EDITTEXT        IDC_SCSZCOLS2,204,39,50,12,ES_AUTOHSCROLL
-    CONTROL         "フォントサイズから一行あたりの文字数を決定",IDC_SCRNSIZE2,"Button",BS_AUTORADIOBUTTON,17,59,180,10
     COMBOBOX        IDC_SCSZFONT,204,57,50,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_SCRNOFFSLEFT,149,75,50,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_SCRNOFFSRIGHT,204,75,50,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
@@ -1175,7 +1179,7 @@ BEGIN
     CONTROL         "名前を変更して保存",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON,17,74,82,10
     EDITTEXT        IDC_EDIT3,132,72,120,14,ES_AUTOHSCROLL
     CONTROL         "ダウンロードをスキップする",IDC_RADIO4,"Button",BS_AUTORADIOBUTTON,17,95,98,10
-    DEFPUSHBUTTON   "上記の処理を実行",IDC_BUTTON1,46,121,82,13
+    DEFPUSHBUTTON   "上記の処理を実行",IDC_BUTTON1,46,121,82,13,WS_GROUP
     PUSHBUTTON      "以降も同じ処理",IDC_BUTTON2,142,121,82,13
     LTEXT           "Windowsのファイル名制限に該当します。下記の処理を選択してください",IDC_STATIC,18,12,232,8
     EDITTEXT        IDC_EDIT1,132,30,120,14,ES_AUTOHSCROLL | ES_READONLY
@@ -1288,7 +1292,7 @@ BEGIN
     GROUPBOX        "通信ログ",IDC_STATIC,7,7,256,136
     LTEXT           "ファイルに保存する通信ログの形式を選択",IDC_STATIC,17,60,180,8
     LTEXT           "ログの文字コードを選択",IDC_STATIC,17,110,180,8
-    LTEXT           "下記のオプションは、RAWモード以外で有効です\nCHAR<LINE<PAGEの順位で記録されるデータが省略されます\nDEBUGは記録される内容がバージョンにより異なります",IDC_STATIC,17,76,180,28
+    LTEXT           "下記のオプションは、RAWモード以外で有効です\nCHAR<LINE<PAGEの順位で記録されるデータが省略されます\nDEBUGは記録される内容がバージョンにより異なります",IDC_STATIC,17,74,236,27
     GROUPBOX        "トレースログ",IDC_STATIC,7,218,256,55
     LTEXT           "トレースバックできる最大数",IDC_STATIC,17,255,180,10
 END
@@ -1326,7 +1330,7 @@ FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     CONTROL         "左クリックの範囲指定だけでクリップボードにコピーする",IDC_PROTOCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,20,230,10
     CONTROL         "右ダブルクリックだけでクリップボードからペーストする",IDC_PROTOCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,35,230,10
-    CONTROL         "http;//で始まる文字列をコピーすると自動でブラウザを起動する",IDC_PROTOCHECK2,
+    CONTROL         "http://で始まる文字列をコピーすると自動でブラウザを起動する",IDC_PROTOCHECK2,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,50,230,10
     CONTROL         "選択した文字列から連続したスペースをタブに変換する",IDC_PROTOCHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,66,230,10
     EDITTEXT        IDC_EDIT3,19,126,230,14,ES_AUTOHSCROLL
@@ -1403,10 +1407,10 @@ BEGIN
     EDITTEXT        IDC_SCRIPT_PATH,17,38,183,14,ES_AUTOHSCROLL
     PUSHBUTTON      "参照(&F)",IDC_SCRIPT_SEL,204,38,50,14
     CONTROL         "実行時にトレース・デバッグを行う",IDC_TERMCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,61,171,10
-    EDITTEXT        IDC_SCRIPT_STR,7,106,256,167,ES_MULTILINE | ES_AUTOVSCROLL | ES_WANTRETURN | WS_VSCROLL
+    EDITTEXT        IDC_SCRIPT_STR,7,107,256,166,ES_MULTILINE | ES_AUTOVSCROLL | ES_WANTRETURN | WS_VSCROLL
     LTEXT           "サーバーエントリーに接続時に実行するスクリプト・ファイルを指定します",IDC_STATIC,17,22,217,8
     GROUPBOX        "エントリー・スクリプト",IDC_STATIC,7,7,256,72
-    LTEXT           "上記スクリプトファイル終了後に実行するスクリプトです\nこのエントリーだけで実行する部分などを直接編集できます",IDC_STATIC,17,85,217,19
+    LTEXT           "上記スクリプトファイル終了後に実行するスクリプトです\nこのエントリーだけで実行する部分などを直接編集できます",IDC_STATIC,17,84,234,18
 END
 
 IDD_SOCKOPTPAGE DIALOGEX 0, 0, 270, 280
@@ -1427,10 +1431,10 @@ BEGIN
     CONTROL         "IPv6/IPv4",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,36,213,45,10
     CONTROL         "IPv6のみ",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,115,213,42,10
     CONTROL         "IPv4のみ",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,191,213,42,10
+    LTEXT           "IPv6/IPv4の場合、DNSの応答でIPv6アドレスが返されればIPv6で接続しIPv4だけならIPv4で接続します.",IDC_STATIC,26,234,218,18
     GROUPBOX        "オプション",IDC_STATIC,7,7,256,136
     GROUPBOX        "TCP/IP",IDC_STATIC,7,155,256,118
     GROUPBOX        "接続するIPバージョンの選択",IDC_STATIC,14,192,240,72
-    LTEXT           "IPv6/IPv4の場合、DNSの応答でIPv6アドレスが返されればIPv6で接続しIPv4だけならIPv4で接続します.",IDC_STATIC,26,238,218,16
 END
 
 IDD_MODKEYPAGE DIALOGEX 0, 0, 270, 280
@@ -1457,19 +1461,28 @@ BEGIN
     LTEXT           "Shift/Alt/Ctrl＋各種キーの変更するキーコードの形式を設定します\n０以上でキーコードのパラメータにShift/Alt/Ctrlの状態を追加します",IDC_STATIC,16,7,236,23
 END
 
-IDD_ANYPASTDIG DIALOGEX 0, 0, 270, 202
+IDD_ANYPASTDIG DIALOGEX 0, 0, 270, 220
 STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
-CAPTION "ペースト確認"
+CAPTION "ペーストするテキストの編集・確認"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,119,181,60,14
-    PUSHBUTTON      "キャンセル",IDCANCEL,203,181,60,14
-    EDITTEXT        IDC_TEXTBOX,7,35,256,138,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN | WS_VSCROLL
-    CONTROL         "改行を確認しながら送信する",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,163,7,100,10
-    CONTROL         "編集後クリップボードに送る",IDC_CHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,163,21,100,10
-    CONTROL         "次回から確認しない",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,20,181,74,10
+    DEFPUSHBUTTON   "送信",IDOK,105,199,60,14
+    EDITTEXT        IDC_TEXTBOX,7,56,256,138,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_NOHIDESEL | ES_WANTRETURN | WS_VSCROLL | WS_HSCROLL
+    PUSHBUTTON      "Shell Escape",IDC_SHELLESC,32,199,60,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,178,199,60,14
+    PUSHBUTTON      "HT",IDC_CTRLCONV1,109,7,32,14
+    PUSHBUTTON      "CR",IDC_CTRLCONV2,109,22,32,14
+    PUSHBUTTON      "ETC",IDC_CTRLCONV3,109,37,32,14
+    CONTROL         "改行を確認しながら送信する",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,163,9,100,10
+    CONTROL         "編集後クリップボードに送る",IDC_CHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,163,24,100,10
+    CONTROL         "次回から確認しない",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,163,39,100,10
     ICON            "",IDC_ICONBOX,7,7,20,20
-    LTEXT           "送信するテキストを編集・確認できます。",IDC_MESSAGE,33,14,120,8
+    LTEXT           "タブコード",IDC_STATIC,34,9,40,8
+    LTEXT           "改行コード",IDC_STATIC,34,24,40,8
+    LTEXT           "その他コード",IDC_STATIC,34,39,40,8
+    RTEXT           "",IDC_CTRLCODE3,80,37,24,14,SS_CENTERIMAGE,WS_EX_CLIENTEDGE
+    RTEXT           "",IDC_CTRLCODE2,80,22,24,14,SS_CENTERIMAGE,WS_EX_CLIENTEDGE
+    RTEXT           "",IDC_CTRLCODE1,80,7,24,14,SS_CENTERIMAGE,WS_EX_CLIENTEDGE
 END
 
 IDD_DEFPARAMDLG DIALOGEX 0, 0, 255, 165
@@ -1613,8 +1626,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,19,6,0
- PRODUCTVERSION 2,19,6,0
+ FILEVERSION 2,19,7,0
+ PRODUCTVERSION 2,19,7,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1631,12 +1644,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.19.6.0"
+            VALUE "FileVersion", "2.19.7.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2015 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.19.6.0"
+            VALUE "ProductVersion", "2.19.7.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2003,7 +2016,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 263
         TOPMARGIN, 7
-        BOTTOMMARGIN, 195
+        BOTTOMMARGIN, 213
     END
 
     IDD_DEFPARAMDLG, DIALOG
@@ -2943,6 +2956,22 @@ END
 
 STRINGTABLE
 BEGIN
+    IDS_AGENT_DELKEY        "指定された認証鍵を削除しますか？"
+    IDS_ALLINITREQ          "すべての設定を標準に戻しますか？"
+    IDS_CERTTRASTREQ        "%s\n%s\nこの証明書を信頼しますか？"
+    IDS_CREATEDIRMSG        "新しいフォルダの作成"
+    IDS_FILECLOSEQES        "現在、接続中です。接続を閉じますか？"
+    IDS_FILECOUNTMSG        "%d個のファイル"
+    IDS_FILEDELETEREQ       "を削除しますか？"
+    IDS_FILEDLGALLFILE      "All Files (*.*)|*.*||"
+    IDS_FILEDLGGRAPHICS     "GIF ファイル (*.gif)|*.gif|JPEG ファイル (*.jpg)|*.jpg|PNG ファイル (*.png)|*.png|BMP ファイル (*.bmp)|*.bmp||"
+    IDS_FILEDLGHISTORY      "History ファイル (*.rlh)|*.rlh|All Files (*.*)|*.*||"
+    IDS_FILEDLGIMAGE        "Image FIle (*.bmp;*.jpg)|*.bmp;*.jpg|All Files (*.*)|*.*||"
+    IDS_FILEDLGLOGFILE      "ログ ファイル (*.txt)|*.txt|All Files (*.*)|*.*||"
+END
+
+STRINGTABLE
+BEGIN
     IDE_ALLCLOSEREQ         "すべての接続を閉じてよろしいでしょうか？"
     IDE_DELETEKEYQES        "他に使用しているエントリーがあるかもしれません\nほんとうに削除してよいですか？"
     IDE_DSABITSIZEERR       "DSAは、ビットサイズを768/1024から選択してください。2048以上は、将来的に使えない可能性があります"
@@ -2971,18 +3000,48 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_AGENT_DELKEY        "指定された認証鍵を削除しますか？"
-    IDS_ALLINITREQ          "すべての設定を標準に戻しますか？"
-    IDS_CERTTRASTREQ        "%s\n%s\nこの証明書を信頼しますか？"
-    IDS_CREATEDIRMSG        "新しいフォルダの作成"
-    IDS_FILECLOSEQES        "現在、接続中です。接続を閉じますか？"
-    IDS_FILECOUNTMSG        "%d個のファイル"
-    IDS_FILEDELETEREQ       "を削除しますか？"
-    IDS_FILEDLGALLFILE      "All Files (*.*)|*.*||"
-    IDS_FILEDLGGRAPHICS     "GIF ファイル (*.gif)|*.gif|JPEG ファイル (*.jpg)|*.jpg|PNG ファイル (*.png)|*.png|BMP ファイル (*.bmp)|*.bmp||"
-    IDS_FILEDLGHISTORY      "History ファイル (*.rlh)|*.rlh|All Files (*.*)|*.*||"
-    IDS_FILEDLGIMAGE        "Image FIle (*.bmp;*.jpg)|*.bmp;*.jpg|All Files (*.*)|*.*||"
-    IDS_FILEDLGLOGFILE      "ログ ファイル (*.txt)|*.txt|All Files (*.*)|*.*||"
+    IDS_FILEDLGRLOGIN       "RLogin ファイル (*.rlg)|*.rlg|All Files (*.*)|*.*||"
+    IDS_FILEDLGSCRIPT       "スクリプト ファイル (*.txt)|*.txt|All Files (*.*)|*.*||"
+    IDS_FILEDLGTEKIMAGE     "GIF ファイル (*.gif)|*.gif|JPEG ファイル (*.jpg)|*.jpg|PNG ファイル (*.png)|*.png|BMP ファイル (*.bmp)|*.bmp|DXF ファイル (*.dxf)|*.dxf|TEK ファイル (*.tek)|*.tek||"
+    IDS_FILEDLGTEKIMAGE2    "DXF ファイル (*.dxf)|*.dxf|TEK ファイル (*.tek)|*.tek||"
+    IDS_IDKEYCREATE         "SSH鍵の作成"
+    IDS_IDKEYCREATECOM      "パスフレーズは、非常に重要です。作成時に設定するパスフレーズは、ファイルに保存する場合やサーバー接続で使用する場合にも入力が必要になります。"
+    IDS_IDKEYDUPHOSTNAME    "(別の登録あり)"
+    IDS_IDKEYFILEDELREQ     "認証キーファイルの設定を解除しますか？"
+    IDS_IDKEYFILELOAD       "SSH鍵ファイルの読み込み"
+    IDS_IDKEYFILELOADCOM    "作成時に設定したパスフレーズを入力してください。"
+    IDS_IDKEYFILESAVE       "SSH鍵ファイルの保存"
+    IDS_IDKEYFILESAVECOM    "作成時に設定したパスフレーズを入力してください。パスフレーズが一致しないと保存できません"
+    IDS_IDKEYRENAME         "認証キーの名前が変更できます"
+    IDS_INITBUTTON          "初期化"
+    IDS_LOCALFILEDELETE     "ローカルに無いファイルを削除しますか？"
+    IDS_PRORODLGCOMM        "ハンドラ起動時のオプションを指定してください"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_FILEDLGICONGRAP     "Image ファイル (*.gif;*.jpg;*.png;*.bmp;*.ico)|*.gif;*.jpg;*.png;*.bmp;*.ico|All Files (*.*)|*.*||"
+    IDS_ICONFILEDELREQ      "ICONファイルの設定を解除しましすか？"
+    IDS_PASSLOCKDELMSG      "パスワードロックを解除しますか？\n接続時にパスワードを要求する場合があります"
+    IDS_PASSLOCKINITMSG     "パスワードロックを設定しますか？\n接続時にパスワードを要求する場合があります\nロックで使用するパスワードを入力してください"
+    IDS_PASSLOCKOPENMSG     "パスワードロックが設定されています\n起動・接続するには正しいパスワードを入力してください"
+    IDS_PASSLOCKRETRYMSG    "\n正しいパスワードを入力してください"
+END
+
+STRINGTABLE
+BEGIN
+    IDE_PORTFWORDERROR      "ポートフォワードの設定が無効です"
+    IDE_PROTOCOLENTRY       "login/telnet/sshプロトコルのみ登録できます"
+    IDE_RSABITSIZEERR       "RSAは、ビットサイズを768/1024/2048/4096/8192から選択してください。推奨は、2048以上です。"
+    IDE_SSHGLOBALREQERROR   "SSH2グローバルリクエストエラー"
+    IDE_UPDATERESUMEERROR   "再開できません上書きになります"
+    IDE_USEPASSWORDIDKEY    "空のパスフレーズを指定しています。\n空のままで処理を続行しますか？"
+    IDE_USESERVERENTRY      "Server Entry を入力してください"
+    IDE_USEIDKEYFILENAME    "認証鍵ファイルを指定してください"
+    IDE_IDKEYNOTSUPPORT     "SSHでサポートされていないサイズの認証鍵です"
+    IDE_PFDLISTENEMPTY      "Listenホスト/ポートが指定されていません"
+    IDE_DUPENTRYSETOPTION   "複製された接続で設定が変更されました\n設定を保存しますか？"
+    IDE_DNSDIGESTNOTMATCH   "DNSに登録されたホスト鍵と一致しません\n接続を続行しますか？"
 END
 
 STRINGTABLE
@@ -3014,22 +3073,12 @@ END
 
 STRINGTABLE
 BEGIN
-    IDE_PORTFWORDERROR      "ポートフォワードの設定が無効です"
-    IDE_PROTOCOLENTRY       "login/telnet/sshプロトコルのみ登録できます"
-    IDE_RSABITSIZEERR       "RSAは、ビットサイズを768/1024/2048/4096/8192から選択してください。推奨は、2048以上です。"
-    IDE_SSHGLOBALREQERROR   "SSH2グローバルリクエストエラー"
-    IDE_UPDATERESUMEERROR   "再開できません上書きになります"
-    IDE_USEPASSWORDIDKEY    "空のパスフレーズを指定しています。\n空のままで処理を続行しますか？"
-    IDE_USESERVERENTRY      "Server Entry を入力してください"
-    IDE_USEIDKEYFILENAME    "認証鍵ファイルを指定してください"
-    IDE_IDKEYNOTSUPPORT     "SSHでサポートされていないサイズの認証鍵です"
-    IDE_PFDLISTENEMPTY      "Listenホスト/ポートが指定されていません"
-    IDE_DUPENTRYSETOPTION   "複製された接続で設定が変更されました\n設定を保存しますか？"
-	IDE_DNSDIGESTNOTMATCH   "DNSに登録されたホスト鍵と一致しません\n接続を続行しますか？"
-END
-
-STRINGTABLE
-BEGIN
+    IDM_XMODEM_DOWNLOAD     "XModemでファイルをダウンロードする\nXModemダウン"
+    IDM_YMODEM_DOWNLOAD     "YModemでファイルをダウンロードする\nYModemダウン"
+    IDM_ZMODEM_DOWNLOAD     "ZModemでファイルをダウンロードする\nZModemダウン"
+    IDM_KERMIT_UPLOAD       "Kermitでファイルをアップロードする\nKermitアップ"
+    IDM_KERMIT_DOWNLOAD     "Kermitでファイルをダウンロードする\nKermitダウン"
+    IDM_VERSIONCHECK        "定期的に新バージョンをチェックする\n新バージョンチェック"
     IDM_DIALOGFONT          "ダイアログフォントを設定します\nダイアログフォント"
     IDM_NONENCRYPTFILE      "空のパスフレーズで作成されています\n暗号化されない認証鍵ファイルを作成しますか？"
     IDM_SFTP_UIDGID         "uid/gidを名称に変換\nuid/gid変換"
@@ -3042,28 +3091,51 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_FILEDLGRLOGIN       "RLogin ファイル (*.rlg)|*.rlg|All Files (*.*)|*.*||"
-    IDS_FILEDLGSCRIPT       "スクリプト ファイル (*.txt)|*.txt|All Files (*.*)|*.*||"
-    IDS_FILEDLGTEKIMAGE     "GIF ファイル (*.gif)|*.gif|JPEG ファイル (*.jpg)|*.jpg|PNG ファイル (*.png)|*.png|BMP ファイル (*.bmp)|*.bmp|DXF ファイル (*.dxf)|*.dxf|TEK ファイル (*.tek)|*.tek||"
-    IDS_FILEDLGTEKIMAGE2    "DXF ファイル (*.dxf)|*.dxf|TEK ファイル (*.tek)|*.tek||"
-    IDS_IDKEYCREATE         "SSH鍵の作成"
-    IDS_IDKEYCREATECOM      "パスフレーズは、非常に重要です。作成時に設定するパスフレーズは、ファイルに保存する場合やサーバー接続で使用する場合にも入力が必要になります。"
-    IDS_IDKEYDUPHOSTNAME    "(別の登録あり)"
-    IDS_IDKEYFILEDELREQ     "認証キーファイルの設定を解除しますか？"
-    IDS_IDKEYFILELOAD       "SSH鍵ファイルの読み込み"
-    IDS_IDKEYFILELOADCOM    "作成時に設定したパスフレーズを入力してください。"
-    IDS_IDKEYFILESAVE       "SSH鍵ファイルの保存"
-    IDS_IDKEYFILESAVECOM    "作成時に設定したパスフレーズを入力してください。パスフレーズが一致しないと保存できません"
-    IDS_IDKEYRENAME         "認証キーの名前が変更できます"
-    IDS_INITBUTTON          "初期化"
-    IDS_LOCALFILEDELETE     "ローカルに無いファイルを削除しますか？"
-    IDS_PRORODLGCOMM        "ハンドラ起動時のオプションを指定してください"
+    IDM_KANJI_EUC           "漢字コードをEUCで処理する\nEUC"
+    IDM_KANJI_SJIS          "漢字コードをSHIFTJISで処理する\nSJIS"
+    IDM_KANJI_ASCII         "漢字コードをASCII(英字セット)で処理する\nASCII"
+    IDM_KANJI_UTF8          "漢字コードをUTF8で処理する\nUTF8"
+    IDM_RESET_TAB           "タブ設定を初期化します\nタブ初期化"
+    IDM_RESET_BANK          "文字バンク設定を初期化します\nバンク初期化"
+    IDM_RESET_ATTR          "文字属性を初期化します\n文字初期k"
+    IDM_RESET_TEK           "tek40xx/41xxを初期化します\ntek初期化"
+    IDM_RESET_ESC           "ESCシーケンスを初期化します\nESC初期化"
+    IDM_RESET_MOUSE         "マウスイベントを初期化します\nイベント初期化"
+    IDM_RESET_SCREEN        "スクリーン画面を消去します\nスクリーン消去"
 END
 
 STRINGTABLE
 BEGIN
-    IDS_FILEDLGICONGRAP     "Image ファイル (*.gif;*.jpg;*.png;*.bmp;*.ico)|*.gif;*.jpg;*.png;*.bmp;*.ico|All Files (*.*)|*.*||"
-    IDS_ICONFILEDELREQ      "ICONファイルの設定を解除しましすか？"
+    IDM_SFTP_UPLOAD         "ファイルのアップロード\nアップロード"
+    IDM_SOCKETSTATUS        "ソケットの現在の状態を表示\nソケットステータス"
+    IDM_SPLIT_HEIGHT_NEW    "縦方向に分割して新規に接続します\n縦新規接続"
+    IDM_SPLIT_WIDTH_NEW     "横方向に分割して新規に接続します\n横新規接続"
+    IDM_TEK_CLEAR           "Tekウインドウをクリアする\nクリア"
+    IDM_TEK_CLOSE           "Tekウィンドウを閉じる\n閉じる"
+    IDM_TEK_MODE            "Tek/VTモードの切換を行います\nモード切替"
+    IDM_TEK_SAVE            "ファイルに保存する\n保存"
+    IDM_TEKDISP             "Tekウィンドウを表示・非表示します\nTek表示"
+    IDM_TRACEDISP           "トレースウィンドウを表示・非表示\nトレースウィンドウ"
+    IDM_WINDOW_PREV         "前のウィンドウに移動します\n前に移動"
+    IDM_WINODW_NEXT         "次のウィンドウに移動します\n次に移動"
+    IDM_XMODEM_UPLOAD       "XModemでファイルをアップロードする\nXModemアップ"
+    IDM_YMODEM_UPLOAD       "YModemでファイルをアップロードする\nYModemアップ"
+    IDM_ZMODEM_UPLOAD       "ZModemでファイルをアップロードする\nZModemアップ"
+END
+
+STRINGTABLE
+BEGIN
+    IDM_BROADCAST           "キー入力を他のウィンドウにも同時送信する\n同時送信"
+    IDM_CHATSTOP            "自動作成中のChatScriptを完了する\nCharScriptの完了"
+    IDM_DISPWINIDX          "各ウィンドウに番号とタイトルを表示\nウィンドウ識別"
+    IDM_GRAPDISP            "Grapウィンドウを表示・非表示にします\nGrap表示"
+    IDM_IMAGEDISP           "Imageウィンドウを表示・非表示します\nImage表示"
+END
+
+STRINGTABLE
+BEGIN
+    IDM_LOOKCAST            "重なった見えないウィンドウには同時送信しない\n見えてるだけに制限"
+    IDM_PASSWORDLOCK        "パスワードで起動と接続を制限します\nパスワードロック"
 END
 
 STRINGTABLE
@@ -3074,12 +3146,6 @@ END
 STRINGTABLE
 BEGIN
     IDC_SAVEDEFAULT         "現在のオプション設定を標準に設定します\n標準設定にする"
-END
-
-STRINGTABLE
-BEGIN
-    AFX_IDS_APP_TITLE       "RLogin"
-    AFX_IDS_IDLEMESSAGE     " "
 END
 
 STRINGTABLE
@@ -3107,15 +3173,17 @@ BEGIN
     ID_FILE_ALL_SAVE        "サーバー情報とウインドウ状態も含めてファイルに保存\nすべて保存"
     ID_GOZIVIEW             "おさかなを飼う\nおさかな"
     ID_IDKEY_CAKEY          "署名された公開鍵を追加で設定します"
-    ID_INDICATOR_SOCK       "        "
+    ID_INDICATOR_SOCK       "Telnet"
+    ID_INDICATOR_STAT       "Connect"
+    ID_INDICATOR_KMOD       "ACV"
     ID_LOG_OPEN             "通信ログをファイルに保存する\n通信ログ"
     ID_MACRO_HIS1           "以前に記録したキー操作\n記録キー操作"
-    ID_MACRO_PLAY           "記録されたキー操作を再現します\n記録したキー操作を再現"
-    ID_MACRO_REC            "キー入力を記録もしくは停止します\nキー操作の記録"
 END
 
 STRINGTABLE
 BEGIN
+    ID_MACRO_PLAY           "記録されたキー操作を再現します\n記録したキー操作を再現"
+    ID_MACRO_REC            "キー入力を記録もしくは停止します\nキー操作の記録"
     ID_MOUSE_EVENT          "マウスイベントを無効にします\nマウスイベント無効"
     ID_PANE_DELETE          "分割を閉じて上位ウインドと同じサイズにします\n閉分割"
     ID_PANE_HSPLIT          "縦方向に分割する\n縦分割"
@@ -3127,15 +3195,21 @@ BEGIN
     ID_SPLIT_HEIGHT         "縦方向に画面を分割してサーバーに接続する\n縦分割接続"
     ID_SPLIT_OVER           "画面分割しないでサーバーに接続\n重ねて接続"
     ID_SPLIT_WIDTH          "横方向に画面を分割してサーバーに接続する\n横分割接続"
-    ID_VIEW_MENUBAR         "メニューバーの 表示/非表示\nメニューバーの表示切り替え"
-    ID_VIEW_SCROLLBAR       "スクロールバーの表示/非表示\nスクロールバーの表示切り替え"
-    ID_VIEW_TABBAR          "タブバーの 表示/非表示\nタブバーの表示切り替え"
 END
 
 STRINGTABLE
 BEGIN
+    ID_VIEW_MENUBAR         "メニューバーの 表示/非表示\nメニューバーの表示切り替え"
+    ID_VIEW_SCROLLBAR       "スクロールバーの表示/非表示\nスクロールバーの表示切り替え"
+    ID_VIEW_TABBAR          "タブバーの 表示/非表示\nタブバーの表示切り替え"
     ID_WINDOW_CLOSE         "作業中のウィンドウを閉じます\n閉じる"
     ID_WINDOW_ROTATION      "表示しているペインを移動します\nペインの移動"
+END
+
+STRINGTABLE
+BEGIN
+    ID_VIEW_TOOLBAR         "ツールバーの 表示/非表示\nツールバーの表示切り替え"
+    ID_VIEW_STATUS_BAR      "ステータスバーの 表示/非表示\nステータスバーの表示切り替え"
 END
 
 STRINGTABLE
@@ -3209,8 +3283,8 @@ END
 
 STRINGTABLE
 BEGIN
-    ID_VIEW_TOOLBAR         "ツールバーの 表示/非表示\nツールバーの表示切り替え"
-    ID_VIEW_STATUS_BAR      "ステータスバーの 表示/非表示\nステータスバーの表示切り替え"
+    AFX_IDS_APP_TITLE       "RLogin"
+    AFX_IDS_IDLEMESSAGE     " "
 END
 
 STRINGTABLE
@@ -3234,64 +3308,6 @@ END
 STRINGTABLE
 BEGIN
     AFX_IDS_PREVIEW_CLOSE   "印刷プレビューモードの終わり\nプレビューのキャンセル"
-END
-
-STRINGTABLE
-BEGIN
-    IDM_KANJI_EUC           "漢字コードをEUCで処理する\nEUC"
-    IDM_KANJI_SJIS          "漢字コードをSHIFTJISで処理する\nSJIS"
-    IDM_KANJI_ASCII         "漢字コードをASCII(英字セット)で処理する\nASCII"
-    IDM_KANJI_UTF8          "漢字コードをUTF8で処理する\nUTF8"
-    IDM_RESET_TAB           "タブ設定を初期化します\nタブ初期化"
-    IDM_RESET_BANK          "文字バンク設定を初期化します\nバンク初期化"
-    IDM_RESET_ATTR          "文字属性を初期化します\n文字初期k"
-    IDM_RESET_TEK           "tek40xx/41xxを初期化します\ntek初期化"
-    IDM_RESET_ESC           "ESCシーケンスを初期化します\nESC初期化"
-    IDM_RESET_MOUSE         "マウスイベントを初期化します\nイベント初期化"
-    IDM_RESET_SCREEN        "スクリーン画面を消去します\nスクリーン消去"
-END
-
-STRINGTABLE
-BEGIN
-    IDM_WINODW_NEXT         "次のウィンドウに移動します\n次に移動"
-    IDM_XMODEM_UPLOAD       "XModemでファイルをアップロードする\nXModemアップ"
-    IDM_YMODEM_UPLOAD       "YModemでファイルをアップロードする\nYModemアップ"
-    IDM_ZMODEM_UPLOAD       "ZModemでファイルをアップロードする\nZModemアップ"
-    IDM_XMODEM_DOWNLOAD     "XModemでファイルをダウンロードする\nXModemダウン"
-    IDM_YMODEM_DOWNLOAD     "YModemでファイルをダウンロードする\nYModemダウン"
-    IDM_ZMODEM_DOWNLOAD     "ZModemでファイルをダウンロードする\nZModemダウン"
-    IDM_KERMIT_UPLOAD       "Kermitでファイルをアップロードする\nKermitアップ"
-    IDM_KERMIT_DOWNLOAD     "Kermitでファイルをダウンロードする\nKermitダウン"
-    IDM_VERSIONCHECK        "定期的に新バージョンをチェックする\n新バージョンチェック"
-END
-
-STRINGTABLE
-BEGIN
-    IDM_SFTP_UPLOAD         "ファイルのアップロード\nアップロード"
-    IDM_SOCKETSTATUS        "ソケットの現在の状態を表示\nソケットステータス"
-    IDM_SPLIT_HEIGHT_NEW    "縦方向に分割して新規に接続します\n縦新規接続"
-    IDM_SPLIT_WIDTH_NEW     "横方向に分割して新規に接続します\n横新規接続"
-    IDM_TEK_CLEAR           "Tekウインドウをクリアする\nクリア"
-    IDM_TEK_CLOSE           "Tekウィンドウを閉じる\n閉じる"
-    IDM_TEK_MODE            "Tek/VTモードの切換を行います\nモード切替"
-    IDM_TEK_SAVE            "ファイルに保存する\n保存"
-    IDM_TEKDISP             "Tekウィンドウを表示・非表示します\nTek表示"
-    IDM_TRACEDISP           "トレースウィンドウを表示・非表示\nトレースウィンドウ"
-    IDM_WINDOW_PREV         "前のウィンドウに移動します\n前に移動"
-END
-
-STRINGTABLE
-BEGIN
-    IDM_BROADCAST           "キー入力を他のウィンドウにも同時送信する\n同時送信"
-    IDM_CHATSTOP            "自動作成中のChatScriptを完了する\nCharScriptの完了"
-    IDM_DISPWINIDX          "各ウィンドウに番号とタイトルを表示\nウィンドウ識別"
-    IDM_GRAPDISP            "Grapウィンドウを表示・非表示にします\nGrap表示"
-    IDM_IMAGEDISP           "Imageウィンドウを表示・非表示します\nImage表示"
-END
-
-STRINGTABLE
-BEGIN
-    IDM_LOOKCAST            "重なった見えないウィンドウには同時送信しない\n見えてるだけに制限"
 END
 
 #endif    // 日本語 (日本) resources

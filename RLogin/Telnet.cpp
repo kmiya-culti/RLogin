@@ -1597,20 +1597,17 @@ void CTelnet::EncryptSendStart()
 	SockSend(feed, i);
 
 	EncryptOutputFlag = TRUE;
-	EncryptStatus();
 }
 void CTelnet::EncryptStart(char *p, int len)
 {
 	if ( stream[DIR_DEC].status == STM_HAVE_OK )
 		EncryptInputFlag = TRUE;
 
-	EncryptStatus();
 	EncryptSendTempFeed();
 }
 void CTelnet::EncryptEnd()
 {
 	EncryptInputFlag = FALSE;
-	EncryptStatus();
 }
 void CTelnet::EncryptRequestStart()
 {
@@ -1633,7 +1630,6 @@ void CTelnet::EncryptRequestEnd()
 	SockSend(feed, i);
 
 	EncryptOutputFlag = FALSE;
-	EncryptStatus();
 }
 void CTelnet::EncryptDecode(char *p, int len)
 {
@@ -1700,21 +1696,4 @@ void CTelnet::EncryptEncode(char *p, int len)
 		stream[DIR_ENC].index = idx;
 		break;
 	}
-}
-void CTelnet::EncryptStatus()
-{
-	CString tmp;
-
-	if ( EncryptOutputFlag || EncryptInputFlag ) {
-		if ( EncryptOutputFlag )
-			tmp += (stream[DIR_ENC].mode == ENCTYPE_DES_CFB64 ? "cfb+" : "ofb+");
-		else
-			tmp += "none+";
-
-		if ( EncryptInputFlag )
-			tmp += (stream[DIR_DEC].mode == ENCTYPE_DES_CFB64 ? "cfb" : "ofb");
-		else
-			tmp += "none";
-	}
-	m_pDocument->SetStatus(tmp);
 }
