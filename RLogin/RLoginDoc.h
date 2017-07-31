@@ -89,6 +89,7 @@ public:
 	CString m_WorkStr;
 	class CScript *m_pScript;
 	BOOL m_InPane;
+	BOOL m_bUseIdle;
 
 	void SetIndex(int mode, CStringIndex &index);
 
@@ -170,6 +171,7 @@ protected:
 	afx_msg void OnUpdateImagedisp(CCmdUI *pCmdUI);
 	afx_msg void OnCancelBtn();
 	afx_msg void OnTracedisp();
+	afx_msg void OnSockIdle();
 	DECLARE_MESSAGE_MAP()
 };
 

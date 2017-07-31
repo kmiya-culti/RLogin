@@ -176,6 +176,20 @@ CSockBuffer *CExtSocket::AddHead(CSockBuffer *sp, CSockBuffer *head)
 	}
 	return sp;
 }
+CSockBuffer *CExtSocket::DetachHead(CSockBuffer *head)
+{
+	CSockBuffer *sp;
+	if ( (sp = head) == NULL )
+		return NULL;
+	else if ( sp == sp->m_Right )
+		head = NULL;
+	else {
+		sp->m_Right->m_Left = sp->m_Left;
+		sp->m_Left->m_Right = sp->m_Right;
+		head = sp->m_Right;
+	}
+	return head;
+}
 CSockBuffer *CExtSocket::RemoveHead(CSockBuffer *head)
 {
 	CSockBuffer *sp;
@@ -1651,23 +1665,46 @@ void CExtSocket::OnReciveCallBack(void *lpBuf, int nBufLen, int nFlags)
 }
 int CExtSocket::ReciveProc()
 {
-	int n;
+	int n, i;
+	CSockBuffer *sp;
 
 //	TRACE("ReciveProc %08x (%d)\n", this, m_RecvSize);
 
+	if ( (m_OnRecvFlag & RECV_INPROC) != 0 )
+		return TRUE;
+
+	m_OnRecvFlag |= RECV_INPROC;
+
 	if ( (m_RecvSyncMode & SYNC_ACTIVE) == 0 ) {
-		if ( m_ProcHead != NULL && (n = OnReciveProcBack(m_ProcHead->GetPtr(), m_ProcHead->GetSize(), m_ProcHead->m_Type)) > 0 ) {
-			int i = m_ProcHead->m_Type;
-			m_RecvSize -= n;
-			m_RecvProcSize -= n;
-			if ( m_ProcHead->Consume(n) <= 0 )
-				m_ProcHead = RemoveHead(m_ProcHead);
+		m_RecvSema.Lock();
+		if ( (sp = m_ProcHead) != NULL ) {
+			m_ProcHead = DetachHead(m_ProcHead);
+			i = sp->m_Type;
+			m_RecvSema.Unlock();
+			if ( (n = OnReciveProcBack(sp->GetPtr(), sp->GetSize(), sp->m_Type)) > 0 ) {
+				m_RecvSema.Lock();
+				m_RecvSize -= n;
+				m_RecvProcSize -= n;
+				if ( sp->Consume(n) > 0 )
+					m_ProcHead = AddHead(sp, m_ProcHead);
+				else
+					delete sp;
+				m_RecvSema.Unlock();
+			} else {
+				m_RecvSema.Lock();
+				m_ProcHead = AddHead(sp, m_ProcHead);
+				m_RecvSema.Unlock();
+			}
 			if ( m_RecvProcSize < RECVMINSIZ )
 				OnRecvEmpty();
 			if ( m_RecvSize < RECVMINSIZ && m_Fd != (-1) && (m_SocketEvent & EventMask[i]) == 0 )
 				OnRecive(i);
+
+			m_OnRecvFlag &= ~RECV_INPROC;
 			return TRUE;
-		}
+		} else
+			m_RecvSema.Unlock();
+
 	} else if ( (m_RecvSyncMode & SYNC_EMPTY) != 0 ) {
 		m_RecvSyncMode &= ~SYNC_EMPTY;
 		OnRecvEmpty();
@@ -1678,6 +1715,8 @@ int CExtSocket::ReciveProc()
 				OnRecive(1);
 		}
 	}
+
+	m_OnRecvFlag &= ~RECV_INPROC;
 	return FALSE;
 }
 int CExtSocket::OnReciveProcBack(void *lpBuf, int nBufLen, int nFlags)

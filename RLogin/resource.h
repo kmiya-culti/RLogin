@@ -88,6 +88,7 @@
 #define IDD_TTYMODEDLG                  175
 #define IDD_TRACEDLG                    176
 #define IDC_CANCELBTN                   201
+#define IDM_SOCK_IDLE                   202
 #define IDP_SOCKETS_INIT_FAILED         300
 #define IDS_INDICATOR_STAT              301
 #define IDS_IDKEYFILELOAD               302
@@ -686,7 +687,6 @@
 #define ID_Menu5063                     5063
 #define ID_VIEW_TRACE                   5065
 #define IDM_TRACEDISP                   5066
-#define ID_5067                         5067
 #define IDM_DISPWINIDX                  5068
 #define ID_FONTLIST_5069                5069
 #define ID_EDIT_DELALL                  5070
@@ -698,6 +698,6 @@
 #define _APS_NEXT_RESOURCE_VALUE        177
 #define _APS_NEXT_COMMAND_VALUE         5071
 #define _APS_NEXT_CONTROL_VALUE         3077
-#define _APS_NEXT_SYMED_VALUE           202
+#define _APS_NEXT_SYMED_VALUE           203
 #endif
 #endif

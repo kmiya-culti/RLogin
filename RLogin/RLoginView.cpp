@@ -279,6 +279,11 @@ void CRLoginView::OnDraw(CDC* pDC)
 	if ( (m_DispCaret & FGCARET_CREATE) != 0 )
 		ShowCaret();
 
+	if ( pDoc->m_bUseIdle ) {
+		pDoc->m_bUseIdle = FALSE;
+		PostMessage(WM_COMMAND, IDM_SOCK_IDLE);
+	}
+
 	pDoc->ClearActCount();
 
 //	TRACE("Draw %x(%d,%d,%d,%d)\n", m_hWnd, sx, sy, ex, ey);

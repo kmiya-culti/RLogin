@@ -935,7 +935,7 @@ BOOL CRLoginApp::OnIdle(LONG lCount)
 {
 	BOOL rt = FALSE;
 
-	if ( CWinApp::OnIdle(lCount) )
+	if ( lCount >= 0 && CWinApp::OnIdle(lCount) )
 		return TRUE;
 
 	for ( int n = 0 ; n < m_SocketIdle.GetSize() ; n++ ) {

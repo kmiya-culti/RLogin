@@ -64,6 +64,7 @@ BEGIN_MESSAGE_MAP(CRLoginDoc, CDocument)
 	ON_UPDATE_COMMAND_UI(IDM_IMAGEDISP, &CRLoginDoc::OnUpdateImagedisp)
 	ON_COMMAND(IDC_CANCELBTN, OnCancelBtn)
 	ON_COMMAND(IDM_TRACEDISP, &CRLoginDoc::OnTracedisp)
+	ON_COMMAND(IDM_SOCK_IDLE, &CRLoginDoc::OnSockIdle)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -84,6 +85,7 @@ CRLoginDoc::CRLoginDoc()
 	m_pStrScript = NULL;
 	m_pScript = NULL;
 	m_InPane = FALSE;
+	m_bUseIdle = FALSE;
 }
 
 CRLoginDoc::~CRLoginDoc()
@@ -892,13 +894,17 @@ int CRLoginDoc::OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags)
 	}
 
 	if ( IsActCount() ) {
-		if ( !m_pMainWnd->IsIconic() )
+		if ( !m_pMainWnd->IsIconic() ) {
+			m_bUseIdle = TRUE;
 			return 0;
+		}
 		ClearActCount();
 	}
 
-	if ( nBufLen > 4096 )
+	if ( nBufLen > 4096 ) {
+		m_bUseIdle = TRUE;
 		nBufLen = 4096;
+	}
 
 	n = m_TextRam.Write(lpBuf, nBufLen, &sync);
 
@@ -918,6 +924,10 @@ int CRLoginDoc::OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags)
 			m_pBPlus->DoProc(lpBuf[n]);
 		}
 	}
+
+	if ( n < nBufLen )
+		m_bUseIdle = TRUE;
+
 	nBufLen = n;
 
 	if ( m_pLogFile != NULL && m_TextRam.IsOptValue(TO_RLLOGMODE, 2) == LOGMOD_RAW )
@@ -930,7 +940,11 @@ int CRLoginDoc::OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags)
 
 	return nBufLen;
 }
-
+void CRLoginDoc::OnSockIdle()
+{
+	if ( m_pSock != NULL )
+		m_pSock->OnIdle();
+}
 int CRLoginDoc::SocketOpen()
 {
 	BOOL rt;

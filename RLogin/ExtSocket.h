@@ -44,6 +44,7 @@
 
 #define	RECV_ACTIVE			001
 #define	RECV_DOCLOSE		002
+#define	RECV_INPROC			004
 
 #define	SEND_EMPTY			001
 
@@ -173,6 +174,7 @@ private:
 	void FreeBuffer(CSockBuffer *sp);
 	CSockBuffer *AddTail(CSockBuffer *sp, CSockBuffer *head);
 	CSockBuffer *AddHead(CSockBuffer *sp, CSockBuffer *head);
+	CSockBuffer *DetachHead(CSockBuffer *head);
 	CSockBuffer *RemoveHead(CSockBuffer *head);
 	int ReciveCall();
 	int ReciveProc();
