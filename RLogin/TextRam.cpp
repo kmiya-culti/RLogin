@@ -922,9 +922,6 @@ CTextRam::CTextRam()
 	m_MouseOldPos.x = (-1);
 	m_MouseOldPos.y = (-1);
 	m_Loc_Mode  = 0;
-	m_Loc_Pb    = 0;
-	m_Loc_LastX = 0;
-	m_Loc_LastY = 0;
 	memset(m_MetaKeys, 0, sizeof(m_MetaKeys));
 	m_TitleMode = WTTL_ENTRY;
 	m_StsFlag = FALSE;
@@ -942,6 +939,7 @@ CTextRam::CTextRam()
 	m_bIntTimer = FALSE;
 	m_bRtoL = FALSE;
 	m_XtOptFlag = 0;
+	m_XtMosPointMode = 0;
 	m_TitleStack.RemoveAll();
 	m_FrameCheck = FALSE;
 	m_ScrnOffset.SetRect(0, 0, 0, 0);
@@ -1576,6 +1574,7 @@ void CTextRam::Init()
 	EnableOption(TO_ANSISRM);	//  12 SRM Set Send/Receive mode (Local echo off)
 	EnableOption(TO_DECANM);	//  ?2 ANSI/VT52 Mode
 	EnableOption(TO_DECAWM);	//  ?7 Autowrap mode
+	EnableOption(TO_DECARM);	//  8 Autorepeat mode
 	EnableOption(TO_DECTCEM);	// ?25 Text Cursor Enable Mode
 	EnableOption(TO_XTMCUS);	// ?41 XTerm tab bug fix
 	EnableOption(TO_XTMRVW);	// ?45 XTerm Reverse-wraparound mod
@@ -1955,7 +1954,7 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 	tmp.SetString(str, _T(';'));
 	stra.Add(str);
 
-	stra.AddVal(6);	// AnsiOpt Bugfix
+	stra.AddVal(7);	// AnsiOpt Bugfix
 
 	stra.AddVal(m_TitleMode);
 	stra.Add(m_SendCharSet[4]);
@@ -2080,6 +2079,8 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 	}
 	if ( v < 6 )
 		EnableOption(TO_DRCSMMv1);	// ?8800 Unicode 16 Maping
+	if ( v < 7 )
+		EnableOption(TO_DECARM);	//  8 Autorepeat mode
 	
 	DisableOption(TO_IMECTRL);
 	memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_DefAnsiOpt));
@@ -4362,6 +4363,7 @@ void CTextRam::RESET(int mode)
 		SetRetChar(FALSE);
 		m_FileSaveFlag = TRUE;
 		m_XtOptFlag = 0;
+		m_XtMosPointMode = 0;
 		m_TitleStack.RemoveAll();
 		if ( m_pDocument != NULL )
 			m_pDocument->SetStatus(NULL);
@@ -4394,9 +4396,6 @@ void CTextRam::RESET(int mode)
 		m_MouseTrack = MOS_EVENT_NONE;
 		m_MouseRect.SetRectEmpty();
 		m_Loc_Mode  = 0;
-		m_Loc_Pb    = 0;
-		m_Loc_LastX = 0;
-		m_Loc_LastY = 0;
 	}
 
 	if ( mode & RESET_CHAR ) {
@@ -4755,6 +4754,18 @@ void CTextRam::LocReport(int md, int sw, int x, int y)
 	// 8 - fourth 
 
 	int Pe = 0;
+	int Pb = 0;
+
+	if ( (m_Loc_Mode & LOC_MODE_PIXELS) != 0 ) {
+		x = m_MousePos.x;
+		y = m_MousePos.y;
+	}
+
+	if ( (sw & MK_RBUTTON) != 0 )
+		Pb |= 1;
+
+	if ( (sw & MK_LBUTTON) != 0 )
+		Pb |= 4;
 
 	if ( md == MOS_LOCA_INIT ) {			// Init Mode
 		m_MouseTrack = ((m_Loc_Mode & LOC_MODE_ENABLE) != 0 ? MOS_EVENT_LOCA : MOS_EVENT_NONE);
@@ -4766,22 +4777,6 @@ void CTextRam::LocReport(int md, int sw, int x, int y)
 			Pe = 1;
 
 	} else {					// Mouse Event
-
-		if ( (m_Loc_Mode & LOC_MODE_PIXELS) != 0 ) {
-			x = m_MousePos.x;
-			y = m_MousePos.y;
-		}
-
-		m_Loc_LastX = x;
-		m_Loc_LastY = y;
-		m_Loc_Pb    = 0;
-
-		if ( (sw & MK_RBUTTON) != 0 )
-			m_Loc_Pb |= 1;
-
-		if ( (sw & MK_LBUTTON) != 0 )
-			m_Loc_Pb |= 4;
-
 		switch(md) {
 		case MOS_LOCA_LEDN:	// Left Down
 			Pe = 2;
@@ -4798,12 +4793,13 @@ void CTextRam::LocReport(int md, int sw, int x, int y)
 		case MOS_LOCA_MOVE:	// Mouse Move
 			if ( (m_Loc_Mode & LOC_MODE_FILTER) == 0 )
 				return;
-			if ( !m_Loc_Rect.IsRectEmpty() && m_Loc_Rect.PtInRect(CPoint(m_Loc_LastX, m_Loc_LastY)) )
+			if ( m_Loc_Rect.IsRectEmpty() || m_Loc_Rect.PtInRect(CPoint(x, y)) )
 				return;
 			Pe = 10;
-			m_Loc_Mode &= ~LOC_MODE_FILTER;
 			break;
 		}
+
+		m_Loc_Mode &= ~LOC_MODE_FILTER;
 
 		if ( (m_Loc_Mode & LOC_MODE_ONESHOT) == 0 ) {
 			if ( (m_Loc_Mode & LOC_MODE_EVENT) == 0 )
@@ -4815,10 +4811,7 @@ void CTextRam::LocReport(int md, int sw, int x, int y)
 		}
 	}
 
-	x = m_Loc_LastX;
-	y = m_Loc_LastY;
-
-	UNGETSTR(_T("%s%d;%d;%d;%d;%d&w"), m_RetChar[RC_CSI], Pe, m_Loc_Pb, y + 1, x + 1, 0);
+	UNGETSTR(_T("%s%d;%d;%d;%d;%d&w"), m_RetChar[RC_CSI], Pe, Pb, y + 1, x + 1, 0);
 
 	if ( (m_Loc_Mode & LOC_MODE_ONESHOT) != 0 ) {
 		m_Loc_Mode &= ~(LOC_MODE_ENABLE | LOC_MODE_ONESHOT);

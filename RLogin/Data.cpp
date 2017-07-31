@@ -52,6 +52,21 @@ int	BinaryFind(void *ptr, void *tab, int size, int max, int (* func)(const void 
 //////////////////////////////////////////////////////////////////////
 // CBuffer
 
+#ifdef	DEBUG
+void CBuffer::Dump()
+{
+	int n;
+
+	for ( n = 0 ; n < GetSize() ; n++ ) {
+		TRACE("%02x ", m_Data[m_Ofs + n]);
+		if ( (n % 16) == 15 )
+			TRACE("\n");
+	}
+	if ( (n % 16) != 0 )
+		TRACE("\n");
+}
+#endif
+
 CBuffer::CBuffer(int size)
 {
 	if ( size < 0 ) {
@@ -4997,4 +5012,73 @@ CStringBinary * CStringBinary::FindValue(int value)
 	else if ( m_pRight != NULL && (bp = m_pRight->FindValue(value)) != NULL )
 		return bp;
 	return NULL;
+}
+
+//////////////////////////////////////////////////////////////////////
+// CFileExt
+	
+CFileExt::CFileExt()
+{
+	m_Len = 0;
+	CFile::CFile();
+}
+#if	_MSC_VER > 1500
+CFileExt::CFileExt(CAtlTransactionManager* pTM)
+{
+	m_Len = 0;
+	CFile::CFile(pTM);
+}
+#endif
+CFileExt::CFileExt(HANDLE hFile)
+{
+	m_Len = 0;
+	CFile::CFile(hFile);
+}
+CFileExt::CFileExt(LPCTSTR lpszFileName, UINT nOpenFlags)
+{
+	m_Len = 0;
+	CFile::CFile(lpszFileName, nOpenFlags);
+}
+
+BOOL CFileExt::Open(LPCTSTR lpszFileName, UINT nOpenFlags, CFileException* pError)
+{
+	m_Len = 0;
+	return CFile::Open(lpszFileName, nOpenFlags, pError);
+}
+#if	_MSC_VER > 1500
+BOOL CFileExt::Open(LPCTSTR lpszFileName, UINT nOpenFlags, CAtlTransactionManager* pTM, CFileException* pError)
+{
+	m_Len = 0;
+	return CFile::Open(lpszFileName, nOpenFlags, pTM, pError);
+}
+#endif
+
+void CFileExt::Write(const void* lpBuf, UINT nCount)
+{
+	int n;
+	LPBYTE p = (LPBYTE)lpBuf;
+
+	while ( nCount > 0 ) {
+		if ( (n = FEXT_BUF_MAX - m_Len) > nCount )
+			n = nCount;
+		memcpy(m_Buffer + m_Len, p, n);
+		m_Len += n;
+		p += n;
+		nCount -= n;
+		if ( m_Len >= FEXT_BUF_MAX )
+			Flush();
+	}
+}
+void CFileExt::Flush()
+{
+	if ( m_Len > 0 ) {
+		CFile::Write(m_Buffer, m_Len);
+		m_Len = 0;
+	}
+	CFile::Flush();
+}
+void CFileExt::Close()
+{
+	Flush();
+	CFile::Close();
 }

@@ -71,7 +71,7 @@ public:
 	CKeyMacTab m_KeyMac;
 	CParamTab m_ParamTab;
 	CServerEntry m_ServerEntry;
-	CFile *m_pLogFile;
+	CFileExt *m_pLogFile;
 	CBPlus *m_pBPlus;
 	CZModem *m_pZModem;
 	CKermit *m_pKermit;

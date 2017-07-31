@@ -108,6 +108,7 @@ public:
 	void SetGhostWnd(BOOL sw);
 	BOOL ModifyKeys(UINT nChar, int nStat);
 	void CreateGrapImage(int type);
+	void GetMousePos(int *sw, int *x, int *y);
 
 	inline int CalcGrapX(int x)	{ CRLoginDoc *pDoc = GetDocument(); return (m_Width  * x / m_Cols  + pDoc->m_TextRam.m_ScrnOffset.left); }
 	inline int CalcGrapY(int y) { CRLoginDoc *pDoc = GetDocument(); return (m_Height * y / m_Lines + pDoc->m_TextRam.m_ScrnOffset.top); }

@@ -888,3 +888,27 @@ void CServerSelect::OnSavedefault()
 	ParamTab.Serialize(TRUE);
 }
 
+BOOL CServerSelect::PreTranslateMessage(MSG* pMsg)
+{
+	int n;
+	CWnd *pWnd = GetFocus();
+
+	if ( m_ShowTabWnd && pMsg->message == WM_KEYDOWN && (pWnd != NULL && pWnd->GetSafeHwnd() == m_List.GetSafeHwnd()) ) {
+		if ( (pMsg->wParam == VK_LEFT || pMsg->wParam == VK_RIGHT) ) {
+			n = m_Tab.GetCurSel() + (pMsg->wParam == VK_LEFT ? (-1) : 1);
+
+			if ( n < 0 )
+				n = m_Tab.GetItemCount() - 1;
+			else if ( n >= m_Tab.GetItemCount() )
+				n = 0;
+
+			m_Tab.SetCurSel(n);
+			m_Group = m_TabEntry[n].m_nIndex;
+			m_EntryNum = (-1);
+			InitList();
+			return TRUE;
+		}
+	}
+
+	return CDialog::PreTranslateMessage(pMsg);
+}

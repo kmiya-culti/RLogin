@@ -99,10 +99,8 @@ public:
 	inline operator LPCWSTR() { if ( m_Max <= (m_Len + 1) ) ReAlloc(2); m_Data[m_Len] = 0; m_Data[m_Len + 1] = 0; return (LPCWSTR)GetPtr(); }
 	inline operator const DWORD *() { if ( m_Max <= (m_Len + 1) ) ReAlloc(4); m_Data[m_Len] = 0; m_Data[m_Len + 1] = 0; m_Data[m_Len + 2] = 0; m_Data[m_Len + 3] = 0; return (const DWORD *)GetPtr(); }
 
-#ifdef	_DEBUGXXX
-	void RepSet();
-	void Report();
-	void Debug();
+#ifdef	DEBUG
+	void Dump();
 #endif
 
 	CBuffer(int size);
@@ -667,6 +665,32 @@ public:
 	int GetPropNode(int num, int node, CString &str);
 
 	const CParamTab & operator = (CParamTab &data);
+};
+
+#define	FEXT_BUF_MAX	4096
+
+class CFileExt : public CFile
+{
+public:
+	int m_Len;
+	BYTE m_Buffer[FEXT_BUF_MAX];
+
+	CFileExt();
+#if	_MSC_VER > 1500
+	CFileExt(CAtlTransactionManager* pTM);
+#endif
+	CFileExt(HANDLE hFile);
+	CFileExt(LPCTSTR lpszFileName, UINT nOpenFlags);
+
+	virtual BOOL Open(LPCTSTR lpszFileName, UINT nOpenFlags, CFileException* pError = NULL);
+#if	_MSC_VER > 1500
+	virtual BOOL Open(LPCTSTR lpszFileName, UINT nOpenFlags, CAtlTransactionManager* pTM, CFileException* pError);
+#endif
+
+	virtual void Write(const void* lpBuf, UINT nCount);
+
+	virtual void Flush();
+	virtual void Close();
 };
 
 #endif // !defined(AFX_DATA_H__6A23DC3E_3DDC_47BD_A6FC_E0127564AE6E__INCLUDED_)

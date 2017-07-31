@@ -682,7 +682,7 @@ void CRLoginDoc::OnSocketConnect()
 			m_pLogFile = NULL;
 		}
 
-		if ( (m_pLogFile = new CFile) == NULL )
+		if ( (m_pLogFile = new CFileExt) == NULL )
 			return;
 
 		file.Format(_T("%s%s%s"), dirs, name, exts);
@@ -985,7 +985,7 @@ void CRLoginDoc::OnLogOpen()
 	if ( dlg.DoModal() != IDOK )
 		return;
 
-	if ( (m_pLogFile = new CFile) == NULL )
+	if ( (m_pLogFile = new CFileExt) == NULL )
 		return;
 
 	if ( !m_pLogFile->Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite | CFile::shareExclusive) ) {
@@ -1490,7 +1490,7 @@ void CRLoginDoc::ScriptValue(int cmds, class CScriptValue &value, int mode)
 				m_pLogFile->Close();
 				delete m_pLogFile;
 			}
-			if ( (m_pLogFile = new CFile) != NULL && m_pLogFile->Open((LPCTSTR)value[0], CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite | CFile::shareExclusive) ) {
+			if ( (m_pLogFile = new CFileExt) != NULL && m_pLogFile->Open((LPCTSTR)value[0], CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite | CFile::shareExclusive) ) {
 				m_pLogFile->SeekToEnd();
 				m_TextRam.m_LogTimeFlag = TRUE;
 				value = (int)0;

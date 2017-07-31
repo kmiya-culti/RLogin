@@ -79,7 +79,7 @@ CExtSocket::CExtSocket(class CRLoginDoc *pDoc)
 	m_DestroyFlag = FALSE;
 	m_pRecvEvent = NULL;
 	m_FreeHead = m_ProcHead = m_RecvHead = m_SendHead = NULL;
-	m_RecvSize = 0;
+	m_RecvSize = m_RecvProcSize = 0;
 	m_SendSize = 0;
 	m_ProxyStatus = PRST_NONE;
 	m_SSL_mode  = 0;
@@ -575,7 +575,7 @@ BOOL CExtSocket::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort,
 	while ( m_SendHead != NULL )
 		m_SendHead = RemoveHead(m_SendHead);
 
-	m_RecvSize = 0;
+	m_RecvSize = m_RecvProcSize = 0;
 	m_SendSize = 0;
 
 	m_SocketEvent = FD_READ | FD_OOB | FD_CONNECT | FD_CLOSE;
@@ -723,7 +723,7 @@ int CExtSocket::Attach(class CRLoginDoc *pDoc, SOCKET fd)
 	while ( m_SendHead != NULL )
 		m_SendHead = RemoveHead(m_SendHead);
 
-	m_RecvSize = 0;
+	m_RecvSize = m_RecvProcSize = 0;
 	m_SendSize = 0;
 
 	m_SocketEvent = FD_READ | FD_OOB | FD_CONNECT | FD_CLOSE;
@@ -746,7 +746,9 @@ int CExtSocket::Recive(void* lpBuf, int nBufLen, int nFlags)
 		memcpy(buf, m_ProcHead->GetPtr(), n);
 		if ( m_ProcHead->Consume(n) <= 0 )
 			m_ProcHead = RemoveHead(m_ProcHead);
-		if ( (m_RecvSize -= n) < RECVMINSIZ )
+		m_RecvSize -= n;
+		m_RecvProcSize -= n;
+		if ( m_RecvProcSize < RECVMINSIZ )
 			m_RecvSyncMode |= SYNC_EMPTY;
 		len += n;
 		buf += n;
@@ -770,6 +772,7 @@ int CExtSocket::SyncRecive(void* lpBuf, int nBufLen, int nSec, BOOL *pAbort)
 		while ( nBufLen > 0 && m_ProcHead != NULL ) {
 			if ( m_ProcHead->m_Type != 0 ) {
 				m_RecvSize -= m_ProcHead->GetSize();
+				m_RecvProcSize -= m_ProcHead->GetSize();
 				m_ProcHead = RemoveHead(m_ProcHead);
 			} else {
 				if ( (n = m_ProcHead->GetSize()) > nBufLen )
@@ -777,12 +780,14 @@ int CExtSocket::SyncRecive(void* lpBuf, int nBufLen, int nSec, BOOL *pAbort)
 				memcpy(buf, m_ProcHead->GetPtr(), n);
 				if ( m_ProcHead->Consume(n) <= 0 )
 					m_ProcHead = RemoveHead(m_ProcHead);
-				if ( (m_RecvSize -= n) < RECVMINSIZ )
-					m_RecvSyncMode |= SYNC_EMPTY;
+				m_RecvSize -= n;
+				m_RecvProcSize -= n;
 				len += n;
 				buf += n;
 				nBufLen -= n;
 			}
+			if ( m_RecvProcSize < RECVMINSIZ )
+				m_RecvSyncMode |= SYNC_EMPTY;
 		}
 
 		if ( len > 0 || nBufLen <= 0 ) {
@@ -816,6 +821,7 @@ void CExtSocket::SyncReciveBack(void *lpBuf, int nBufLen)
 	sp->Apend((LPBYTE)lpBuf, nBufLen, 0);
 	m_ProcHead = AddHead(sp, m_ProcHead);
 	m_RecvSize += nBufLen;
+	m_RecvProcSize += nBufLen;
 	m_RecvSyncMode &= ~SYNC_EMPTY;
 	m_RecvSema.Unlock();
 }
@@ -898,15 +904,7 @@ int CExtSocket::GetRecvSize()
 }
 int CExtSocket::GetRecvProcSize()
 {
-	int n = 0;
-	CSockBuffer *sp;
-	
-	for ( sp = m_ProcHead ; sp != NULL ; ) {
-		n += sp->GetSize();
-		if ( (sp = sp->m_Left) == m_ProcHead )
-			break;
-	}
-	return n;
+	return m_RecvProcSize;
 }
 int CExtSocket::GetSendSize()
 {
@@ -1585,9 +1583,6 @@ int CExtSocket::ReciveCall()
 	m_RecvHead = RemoveHead(m_RecvHead);
 	m_RecvSema.Unlock();
 
-	if ( m_RecvSize < RECVMINSIZ )
-		OnRecvEmpty();
-
 	if ( (m_SocketEvent & EventMask[n]) == 0 && m_RecvSize < RECVMINSIZ )
 		OnRecive(n);
 
@@ -1607,8 +1602,7 @@ void CExtSocket::OnReciveCallBack(void *lpBuf, int nBufLen, int nFlags)
 
 	if ( (m_RecvSyncMode & SYNC_ACTIVE) == 0 && m_ProcHead == NULL ) {
 		if ( (n = OnReciveProcBack((LPBYTE)lpBuf, nBufLen, nFlags)) >= nBufLen ) {
-			if ( m_RecvSize < RECVMINSIZ )
-				OnRecvEmpty();
+//			OnRecvEmpty();
 			return;
 		}
 		lpBuf = (LPBYTE)lpBuf + n;
@@ -1622,6 +1616,7 @@ void CExtSocket::OnReciveCallBack(void *lpBuf, int nBufLen, int nFlags)
 	if ( m_ProcHead == NULL || sp != m_ProcHead->m_Left )
 		m_ProcHead = AddTail(sp, m_ProcHead);
 	m_RecvSize += nBufLen;
+	m_RecvProcSize += nBufLen;
 	if ( m_pRecvEvent != NULL && (m_RecvSyncMode & SYNC_EVENT) != 0 )
 		m_pRecvEvent->SetEvent();
 	m_RecvSyncMode &= ~(SYNC_EMPTY | SYNC_EVENT);
@@ -1643,13 +1638,13 @@ int CExtSocket::ReciveProc()
 		if ( m_ProcHead != NULL && (n = OnReciveProcBack(m_ProcHead->GetPtr(), m_ProcHead->GetSize(), m_ProcHead->m_Type)) > 0 ) {
 			int i = m_ProcHead->m_Type;
 			m_RecvSize -= n;
+			m_RecvProcSize -= n;
 			if ( m_ProcHead->Consume(n) <= 0 )
 				m_ProcHead = RemoveHead(m_ProcHead);
-			if ( m_RecvSize < RECVMINSIZ ) {
+			if ( m_RecvProcSize < RECVMINSIZ )
 				OnRecvEmpty();
-				if ( m_Fd != (-1) && (m_SocketEvent & EventMask[i]) == 0 )
-					OnRecive(i);
-			}
+			if ( m_RecvSize < RECVMINSIZ && m_Fd != (-1) && (m_SocketEvent & EventMask[i]) == 0 )
+				OnRecive(i);
 			return TRUE;
 		}
 	} else if ( (m_RecvSyncMode & SYNC_EMPTY) != 0 ) {

@@ -471,7 +471,7 @@ static const CTextRam::CSIEXTTAB fc_CsiExtTab[] = {
 	{ ('>' << 16)				| 'T',		&CTextRam::fc_XTRMTT	},	// xterm CASE_RM_TITLE
 	{ ('>' << 16)				| 'm',		&CTextRam::fc_XTMDKEY	},	// xterm CASE_SET_MOD_FKEYS
 	{ ('>' << 16)				| 'n',		&CTextRam::fc_XTMDKYD	},	// xterm CASE_SET_MOD_FKEYS0
-//	{ ('>' << 16)				| 'p',		&CTextRam::fc_XTHDPT	},	// xterm CASE_HIDE_POINTER
+	{ ('>' << 16)				| 'p',		&CTextRam::fc_XTHDPT	},	// xterm CASE_HIDE_POINTER
 	{ ('>' << 16)				| 'c',		&CTextRam::fc_DA2		},	// DA2 Secondary Device Attributes
 	{ ('>' << 16)				| 't',		&CTextRam::fc_XTSMTT	},	// xterm CASE_SM_TITLE
 	{ ('?' << 16) | ('$'  << 8) | 'p',		&CTextRam::fc_DECRQMH	},	// DECRQMH Request Mode (DEC) Host to Terminal
@@ -604,7 +604,7 @@ static CTextRam::ESCNAMEPROC fc_EscNameTab[] = {
 	{	NULL,			NULL,					NULL,	NULL	},
 };
 
-static int	fc_CsiNameTabMax = 126;
+static int	fc_CsiNameTabMax = 127;
 static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	_T("C25LCT"),	&CTextRam::fc_C25LCT,	NULL,	NULL 	},
 	{	_T("CBT"),		&CTextRam::fc_CBT,		NULL,	NULL	},
@@ -718,6 +718,7 @@ static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	_T("VPA"),		&CTextRam::fc_VPA,		NULL,	NULL	},
 	{	_T("VPB"),		&CTextRam::fc_VPB,		NULL,	NULL	},
 	{	_T("VPR"),		&CTextRam::fc_VPR,		NULL,	NULL	},
+	{	_T("XTHDPT"),	&CTextRam::fc_XTHDPT,	NULL,	NULL	},
 	{	_T("XTMDKEY"),	&CTextRam::fc_XTMDKEY,	NULL,	NULL	},
 	{	_T("XTMDKYD"),	&CTextRam::fc_XTMDKYD,	NULL,	NULL	},
 	{	_T("XTREST"),	&CTextRam::fc_XTREST,	NULL,	NULL	},
@@ -5477,6 +5478,35 @@ void CTextRam::fc_DECSRET(DWORD ch)
 		ANSIOPT(ch, i);
 
 		switch(i) {
+		case TO_XTCBLINK:
+	// case 0:		// meaning Blinking Block
+	// case 1:		// Blinking Block
+	// case 2:		// Steady Block
+	// case 3:		// Blink Underline
+	// case 4:		// Steady Underline
+	// case 5:		// Blink Vertical
+	// case 6:		// Steady Vertical
+			if ( IsOptEnable(TO_XTCBLINK) ) {
+				// Enable  0->2, 1->2, 3->4, 5->6
+				switch(m_TypeCaret) {
+				case 0:
+					m_TypeCaret = 2;
+					break;
+				case 1: case 3: case 5:
+					m_TypeCaret += 1;
+					break;
+				}
+			} else {
+				// Disable 2->1, 4->3, 6->5
+				switch(m_TypeCaret) {
+				case 2: case 4: case 6:
+					m_TypeCaret -= 1;
+					break;
+				}
+			}
+			m_pDocument->UpdateAllViews(NULL, UPDATE_TYPECARET, NULL);
+			break;
+
 		case TO_DECCOLM:	// 3 DECCOLM Column mode
 		case TO_XTMCSC:		// 40 XTERM Column switch control
 			if ( IsOptEnable(TO_XTMCSC) ) {
@@ -6147,9 +6177,26 @@ void CTextRam::fc_DECSCUSR(DWORD ch)
 	// case 2:		// Steady Block
 	// case 3:		// Blink Underline
 	// case 4:		// Steady Underline
+	// case 5:		// Blink Vertical
+	// case 6:		// Steady Vertical
 
 	if ( (m_TypeCaret = GetAnsiPara(0, 0, 0, 7)) > 6 )
 		m_TypeCaret = 0;
+
+	switch(m_TypeCaret) {
+	case 0:
+	case 1:
+	case 3:
+	case 5:
+		m_pDocument->m_TextRam.DisableOption(TO_XTCBLINK);
+		break;
+	case 2:
+	case 4:
+	case 6:
+		m_pDocument->m_TextRam.EnableOption(TO_XTCBLINK);
+		break;
+	}
+
 	m_pDocument->UpdateAllViews(NULL, UPDATE_TYPECARET, NULL);
 
 	fc_POP(ch);
@@ -6302,6 +6349,14 @@ void CTextRam::fc_DECEFR(DWORD ch)
 
 	m_Loc_Mode |= LOC_MODE_FILTER;
 
+	int sw = 0, x = 0, y = 0;
+	CRLoginView *pView = (CRLoginView *)GetAciveView();
+
+	if ( pView != NULL )
+		pView->GetMousePos(&sw, &x, &y);
+
+	LocReport(MOS_LOCA_MOVE, sw, x, y);
+
 	fc_POP(ch);
 }
 void CTextRam::fc_DECELR(DWORD ch)
@@ -6335,7 +6390,13 @@ void CTextRam::fc_DECELR(DWORD ch)
 		break;
 	}
 
-	LocReport(MOS_LOCA_INIT, 0, 0, 0);
+	int sw = 0, x = 0, y = 0;
+	CRLoginView *pView = (CRLoginView *)GetAciveView();
+
+	if ( pView != NULL )
+		pView->GetMousePos(&sw, &x, &y);
+
+	LocReport(MOS_LOCA_INIT, sw, x, y);
 
 	fc_POP(ch);
 }
@@ -6369,7 +6430,14 @@ void CTextRam::fc_DECSLE(DWORD ch)
 			break;
 		}
 	}
-	LocReport(MOS_LOCA_INIT, 0, 0, 0);
+
+	int sw = 0, x = 0, y = 0;
+	CRLoginView *pView = (CRLoginView *)GetAciveView();
+
+	if ( pView != NULL )
+		pView->GetMousePos(&sw, &x, &y);
+
+	LocReport(MOS_LOCA_INIT, sw, x, y);
 
 	fc_POP(ch);
 }
@@ -6377,7 +6445,14 @@ void CTextRam::fc_DECRQLP(DWORD ch)
 {
 	// CSI ('\'' << 8) | '|'		DECRQLP Request locator position
 
-	LocReport(MOS_LOCA_REQ, 0, 0, 0);
+	int sw = 0, x = 0, y = 0;
+	CRLoginView *pView = (CRLoginView *)GetAciveView();
+
+	if ( pView != NULL )
+		pView->GetMousePos(&sw, &x, &y);
+
+	LocReport(MOS_LOCA_REQ, sw, x, y);
+
 	fc_POP(ch);
 }
 void CTextRam::fc_DECIC(DWORD ch)
@@ -6752,6 +6827,9 @@ void CTextRam::fc_XTHDPT(DWORD ch)
 	//	    Ps = 3  -> always hide the pointer, even if leaving/entering the window.
 	//    If no parameter is given, xterm uses the default,
 	//	  which is 1 .
+
+	m_XtMosPointMode = GetAnsiPara(0, 0, 0, 3);
+	m_pDocument->UpdateAllViews(NULL, UPDATE_SETCURSOR, NULL);
 
 	fc_POP(ch);
 }

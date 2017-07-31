@@ -64,4 +64,6 @@ protected:
 	afx_msg void OnServExchng();
 	afx_msg void OnUpdateServExchng(CCmdUI *pCmdUI);
 	DECLARE_MESSAGE_MAP()
+public:
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
 };

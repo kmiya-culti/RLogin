@@ -20,6 +20,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/utime.h>
+#include <shlobj.h>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -2536,7 +2537,7 @@ void CSFtp::OnMouseMove(UINT nFlags, CPoint point)
 
 void CSFtp::OnLButtonUp(UINT nFlags, CPoint point) 
 {
-	int n, i;
+	int n, i, md = (-1);
 	CWnd *pWnd;
 	CPoint po(point);
 	CListCtrl *pList;
@@ -2553,11 +2554,17 @@ void CSFtp::OnLButtonUp(UINT nFlags, CPoint point)
 	if ( (pWnd = WindowFromPoint(po)) == NULL )
 		goto ENDRET;
 
-	if ( pWnd->m_hWnd == m_LocalList.m_hWnd && m_hDragWnd == m_RemoteList.m_hWnd )
+	if ( m_hDragWnd == m_RemoteList.m_hWnd ) {
 		pList = &m_RemoteList;
-	else if ( pWnd->m_hWnd == m_RemoteList.m_hWnd && m_hDragWnd == m_LocalList.m_hWnd )
+		if ( pWnd->m_hWnd == m_LocalList.m_hWnd )
+			md = 0;
+	} else if ( m_hDragWnd == m_LocalList.m_hWnd ) {
 		pList = &m_LocalList;
-	else
+		if ( pWnd->m_hWnd == m_RemoteList.m_hWnd )
+			md = 2;
+	}
+
+	if ( md < 0 )
 		goto ENDRET;
 
 	if ( m_CmdQue.IsEmpty() && pList == &m_LocalList ) {
@@ -2570,12 +2577,18 @@ void CSFtp::OnLButtonUp(UINT nFlags, CPoint point)
 	for ( n = 0 ; n < pList->GetItemCount() && m_DoAbort == FALSE ; n++ ) {
 		if ( pList->GetItemState(n, LVIS_SELECTED) != 0 ) {
 			i = (int)pList->GetItemData(n);
-			if ( pList == &m_RemoteList )
+
+			switch(md) {
+			case 0:	// Remote -> Local
 				DownLoadFile(&(m_RemoteNode[i]), m_RemoteNode[i].GetLocalPath(m_LocalCurDir, this));
-			else
+				break;
+			case 2:	// Local -> Remote
 				UpLoadFile(&(m_LocalNode[i]), m_LocalNode[i].GetRemotePath(m_RemoteCurDir, this));
+				break;
+			}
 		}
 	}
+
 	SendWaitQue();
 
 ENDRET:

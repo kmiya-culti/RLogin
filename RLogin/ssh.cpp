@@ -1151,7 +1151,7 @@ void Cssh::ChannelPolling(int id)
 	if ( (m_SSH2Status & SSH2_STAT_SENTKEXINIT) != 0 )
 		return;
 
-	TRACE("ChannelPolling %d(%d/%d)\n", cp->GetSendSize(), cp->m_LocalComs, cp->m_LocalWind);
+//	TRACE("ChannelPolling %d(%d/%d)\n", cp->GetSendSize(), cp->m_LocalComs, cp->m_LocalWind);
 
 	if ( (n = cp->m_LocalComs - cp->GetSendSize()) >= (cp->m_LocalWind / 2) ) {
 		tmp.Clear();

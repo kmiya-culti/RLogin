@@ -143,6 +143,7 @@ private:
 	CEvent *m_pRecvEvent;
 
 	int m_RecvSize;
+	int m_RecvProcSize;
 	int m_SendSize;
 	CSockBuffer *m_ProcHead;
 	CSockBuffer *m_RecvHead;

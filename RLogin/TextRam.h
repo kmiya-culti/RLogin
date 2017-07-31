@@ -99,7 +99,9 @@
 #define	TO_DECSCNM		5			// Light or Dark Screen
 #define TO_DECOM		6			// Origin mode
 #define TO_DECAWM		7			// Autowrap mode
+#define TO_DECARM		8			// Autorepeat mode
 #define	TO_XTMOSREP		9			// X10 mouse reporting
+#define	TO_XTCBLINK		12			// Cursor Blnk
 #define	TO_DECPEX		19			// Print Extent Mode
 #define	TO_DECTCEM		25			// Text Cursor Enable Mode
 #define	TO_DECTEK		38			// Graphics (Tek)
@@ -760,6 +762,7 @@ public:
 	int m_TitleMode;
 	BOOL m_FileSaveFlag;
 	DWORD m_XtOptFlag;
+	int m_XtMosPointMode;
 	CStringArray m_TitleStack;
 	CRect m_Margin;
 	class CGrapWnd *m_pImageWnd;
@@ -1282,9 +1285,6 @@ public:
 	// DEC Locator
 	int m_Loc_Mode;
 	CRect m_Loc_Rect;
-	int m_Loc_Pb;
-	int m_Loc_LastX;
-	int m_Loc_LastY;
 	CPoint m_MousePos;
 
 	void LocReport(int md, int sw, int x, int y);

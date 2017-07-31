@@ -684,14 +684,14 @@ RELOAD:
 			Bufferd_Clear();
             goto ENDRET;
         } else if ( ch == SOH ) {
-			n = ((file_size - now_pos) < 128 ? (int)(file_size - now_pos) : 128);
+			n = (file_size > 0 && (file_size - now_pos) < 128 ? (int)(file_size - now_pos) : 128);
 			if ( fwrite(tmp, 1, n, fp) != n )
 				goto CANRET;
 			st = 2;
 			now_pos += n;
 		    UpDownStat(now_pos);
         } else if ( ch == STX ) {
-			n = ((file_size - now_pos) < 1024 ? (int)(file_size - now_pos) : 1024);
+			n = (file_size > 0 && (file_size - now_pos) < 1024 ? (int)(file_size - now_pos) : 1024);
 			if ( fwrite(tmp, 1, n, fp) != n )
 				goto CANRET;
 			st = 2;
