@@ -1958,7 +1958,7 @@ void CTextRam::fc_UTF85(int ch)
 		//       cc		code x256
 		// U+100000 = U+DBC0 U+DC00
 		// U+10FFFF = U+DBFF U+DFFF
-		if ( m_BackChar >= 0xDBC0DC00L && m_BackChar <= 0xDBFFDFFFL ) {
+		if ( m_BackChar >= 0xDBC0DC00L && m_BackChar <= 0xDBFFDFFFL && IsOptEnable(TO_DRCSMMv1) ) {
 			n = UCS2toUCS4(m_BackChar);
 			CString tmp;
 			tmp.Format(_T(" %c"), (n >> 8) & 0xFF);
@@ -3130,7 +3130,11 @@ void CTextRam::fc_DECSIXEL(int ch)
 				vp->pr.bc = m_AttNow.bc;
 				vp++;
 			}
-			ONEINDEX();
+			if ( IsOptEnable(TO_RLSIXPOS) != 0 ) {
+				if ( (y + 1) < cy )
+					ONEINDEX();
+			} else
+				ONEINDEX();
 		}
 		DISPUPDATE();
 
@@ -3146,6 +3150,22 @@ void CTextRam::fc_DECSIXEL(int ch)
 
 		if ( m_ImageIndex >= 4096 )		// index max 12 bit
 			m_ImageIndex = 0;
+
+		if ( IsOptEnable(TO_RLSIXPOS) != 0 ) {
+			if ( (m_CurX += cx) >= m_Margin.right ) {
+				if ( IsOptEnable(TO_DECAWM) != 0 ) {
+					if ( IsOptEnable(TO_RLGNDW) != 0 ) {
+						LOCATE(m_Margin.left, m_CurY);
+						ONEINDEX();
+					} else {
+						LOCATE(m_Margin.right - 1, m_CurY);
+						m_DoWarp = TRUE;
+					}
+				} else 
+					LOCATE(m_Margin.right - 1, m_CurY);
+			} else
+				LOCATE(m_CurX, m_CurY);
+		}
 	}
 }
 void CTextRam::fc_DECDLD(int ch)
@@ -3983,41 +4003,33 @@ void CTextRam::fc_CSI_ESC(int ch)
 {
 	fc_Case(STAGE_ESC);
 }
-void CTextRam::fc_CSI_DIGIT(int ch)
-{
-	int n = (int)m_AnsiPara.GetSize() - 1;
 
-	ch = ((ch & 0x7F) - '0');
+//////////////////////////////////////////////////////////////////////
+//
+//	CSI m			-> Size=1 Cmds="m"		Para[0]=NOT
+//	CSI 31 m		-> Size=1 Cmds="m"		Para[0]=31
+//	CSI 31 ; m		-> Size=2 Cmds="m"		Para[0]=31, Para[1]=NOT
+//	CSI ; 31 m		-> Size=2 Cmds="m"		Para[0]=NOT, Para[1]=31
+//
+//	CSI > m			-> Size=1 Cmds=">m"		Para[0]=NOT
+//	CSI 31 > m		-> Size=2 Cmds="m"		Para[0]=31, Para[1]=">"
+//	CSI 31 ; > m	-> Size=2 Cmds="m"		Para[0]=31, Para[1]=">"
+//	CSI ; > 31 m	-> Size=2 Cmds="m"		Para[0]=NOT, Para[1]=">31"
+//
+//	CSI ! m			-> Size=1 Cmds="!m"		Para[0]=NOT
+//	CSI ! 31 m		-> Size=2 Cmds="m"		Para[0]="!", Para[1]=31
+//	CSI 31 ! ; m	-> Size=2 Cmds="m"		Para[0]="31!", Para[1]=NOT
+//	CSI 31 ! ; ! m	-> Size=2 Cmds="!m"		Para[0]="31!", Para[1]=NOT
+//
 
-	if ( m_AnsiPara[n] == PARA_NOT )		// Not Init Value
-		m_AnsiPara[n] = 0;
-	else if ( m_AnsiPara[n] == PARA_MAX )		// Max Value
-		return;
+void CTextRam::fc_CSI_RST(int ch)
+{
+	m_BackChar = ch;
 
-	if ( m_AnsiPara[n] >= ((PARA_MAX - ch) / 10) )
-		m_AnsiPara[n] = PARA_MAX;
-	else
-		m_AnsiPara[n] = m_AnsiPara[n] * 10 + ch;
-}
-void CTextRam::fc_CSI_PUSH(int ch)
-{
-	int n = (int)m_AnsiPara.GetSize() - 1;
-	m_AnsiPara[n].Add(m_AnsiPara[n]);
-	m_AnsiPara[n] = PARA_NOT;
-}
-void CTextRam::fc_CSI_SEPA(int ch)
-{
-	m_AnsiPara.Add(PARA_NOT);
-}
-void CTextRam::fc_CSI_EXT(int ch)
-{
-	if ( ch >= 0x20 && ch <= 0x2F ) {
-		m_BackChar &= 0xFF0000;
-		m_BackChar |= (ch << 8);			// SP!"#$%&'()*+,-./
-	} else
-		m_BackChar = (ch << 16);			// <=>?
-
-	switch(m_BackChar & 0x7F7F00) {
+	switch(m_BackChar & 0x7F7F7F00) {
+	case 0:
+		fc_Case(STAGE_CSI);
+		break;
 	case '?' << 16:
 		fc_Case(STAGE_EXT1);
 		break;
@@ -4031,6 +4043,113 @@ void CTextRam::fc_CSI_EXT(int ch)
 		fc_Case(STAGE_EXT4);
 		break;
 	}
+}
+void CTextRam::fc_CSI_DIGIT(int ch)
+{
+	int n, a;
+	DWORD v;
+
+	// CSI ! 31 -> [0]=OPT, [1]=NOT
+	if ( (m_BackChar & 0x0000FF00) != 0 ) {
+		m_AnsiPara.AddOpt(m_BackChar >> 8, TRUE);
+		fc_CSI_RST(m_BackChar & 0xFFFF0000);
+	}
+
+	ASSERT(m_AnsiPara.GetSize());
+
+	n = (int)m_AnsiPara.GetSize() - 1;
+	a = (int)m_AnsiPara[n].GetSize() - 1;
+
+	if ( a < 0 ) {
+		m_AnsiPara[n].m_Str += (TCHAR)ch;
+		v = m_AnsiPara[n];
+	} else {
+		m_AnsiPara[n][a].m_Str += (TCHAR)ch;
+		v = m_AnsiPara[n][a];
+	}
+
+	if ( v != PARA_MAX && v != PARA_OPT ) {		// Max Value
+
+		if ( v == PARA_NOT )			// Not Init Value
+			v = 0;
+
+		ch = ((ch & 0x7F) - '0');
+
+		if ( v >= ((PARA_MAX - ch) / 10) )
+			v = PARA_MAX;
+		else
+			v = v * 10 + ch;
+
+		if ( a < 0 )
+			m_AnsiPara[n] = v;
+		else
+			m_AnsiPara[n][a] = v;
+	}
+}
+void CTextRam::fc_CSI_PUSH(int ch)
+{
+	// CSI ! :  -> [0]=OPT, [1][0]=NOT
+	if ( (m_BackChar & 0x0000FF00) != 0 ) {
+		m_AnsiPara.AddOpt(m_BackChar >> 8, FALSE); 
+		fc_CSI_RST(m_BackChar & 0xFFFF0000);
+	}
+
+	ASSERT(m_AnsiPara.GetSize());
+
+	m_AnsiPara[m_AnsiPara.GetSize() - 1].Add(PARA_NOT);
+}
+void CTextRam::fc_CSI_SEPA(int ch)
+{
+	// CSI ! ; -> [0]=OPT, [1]=NOT
+	if ( (m_BackChar & 0x0000FF00) != 0 ) {
+		m_AnsiPara.AddOpt(m_BackChar >> 8, FALSE); 
+		fc_CSI_RST(m_BackChar & 0xFFFF0000);
+	}
+
+	m_AnsiPara.Add(PARA_NOT);
+}
+void CTextRam::fc_CSI_EXT(int ch)
+{
+	int n, a;
+
+	ASSERT(m_AnsiPara.GetSize());
+
+	if ( ch >= 0x20 && ch <= 0x2F ) {					// SP!"#$%&'()*+,-./
+		m_BackChar &= 0xFFFF0000;
+		m_BackChar |= (ch << 8);
+
+	} else {											// <=>?
+		// CSI ! > -> [0]=OPT, [1]=NOT
+		if ( (m_BackChar & 0x0000FF00) != 0 ) {
+			m_AnsiPara.AddOpt(m_BackChar >> 8, TRUE); 
+			m_BackChar &= 0xFFFF0000;
+		}
+
+		n = (int)m_AnsiPara.GetSize() - 1;
+		a = (int)m_AnsiPara[n].GetSize() - 1;
+
+		// CSI >
+		if ( n == 0 && m_AnsiPara[0] == PARA_NOT && a < 0 ) {
+			m_BackChar = (m_BackChar << 8) & 0xFF000000;
+			m_BackChar |= (ch << 16);
+
+		// CSI ; >
+		} else if ( a < 0 ) {
+			if ( m_AnsiPara[n] != PARA_NOT && m_AnsiPara[n] != PARA_OPT )
+				n = m_AnsiPara.Add(PARA_NOT);
+			m_AnsiPara[n].m_Str += (TCHAR)ch;
+			m_AnsiPara[n] = PARA_OPT;
+
+		// CSI : >
+		} else {
+			if ( m_AnsiPara[n][a] != PARA_NOT && m_AnsiPara[n][a] != PARA_OPT )
+				a = m_AnsiPara[n].Add(PARA_NOT);
+			m_AnsiPara[n][a].m_Str += (TCHAR)ch;
+			m_AnsiPara[n][a] = PARA_OPT;
+		}
+	}
+
+	fc_CSI_RST(m_BackChar);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -4595,13 +4714,14 @@ void CTextRam::fc_SGR(int ch)
 {
 	// CSI m	SGR Select Graphic Rendition
 	int n, i, a;
-								//  0  1  2  3  4  5  6  7
-	static int Sgr38ParamLen[8] = { 0, 0, 3, 0, 0, 1, 0, 0 }; 
 
 	if ( m_AnsiPara.GetSize() <= 0 )
 		m_AnsiPara.Add(0);
 
 	for ( n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
+		TRACE("Para %s\n", CStringA(m_AnsiPara[n].m_Str));
+		if ( m_AnsiPara[n].IsOpt() )
+			continue;
 		switch(GetAnsiPara(n, 0, 0)) {
 		case 0: m_AttNow.fc = m_DefAtt.fc; m_AttNow.bc = m_DefAtt.bc; m_AttNow.at = m_DefAtt.at; break;
 		case 1: m_AttNow.at |= ATT_BOLD;   break;	// 1 bold or increased intensity
@@ -4638,62 +4758,66 @@ void CTextRam::fc_SGR(int ch)
 		case 38:
 		case 48:
 			a = n;	// base index
-			// :(Colon) Style		38:5:n or 38:2:r:g:b
-			if ( m_AnsiPara[a].GetSize() > 0 ) {
-				m_AnsiPara[a].Add(m_AnsiPara[a]);	// Last Parameter !!!
-
 			// ;(Semicolon) Style	38;5;n or 38;2;r;g;b
-			} else if ( m_AnsiPara.GetSize() > (n + 1) ) {
-				m_AnsiPara[a].Add(GetAnsiPara(n, 0, 0));		// 38
-				m_AnsiPara[a].Add(GetAnsiPara(++n, 0, 0));		// 5/2
+			if ( m_AnsiPara[n].GetSize() == 0 && m_AnsiPara.GetSize() > (n + 1) ) {
+				m_AnsiPara[a].Add(m_AnsiPara[++n]);		// 5/2
 
 				// 38;5:n or 38;2:r:g:b
 				if ( m_AnsiPara[n].GetSize() > 0 ) {
-					m_AnsiPara[n].Add(m_AnsiPara[n]);
-					for ( i = 1 ; i < m_AnsiPara[n].GetSize() ; i++ )
+					for ( i = 0 ; i < m_AnsiPara[n].GetSize() ; i++ )
 						m_AnsiPara[a].Add(m_AnsiPara[n][i]);
 
-				// 38;5;n or 38;2;r;g;b or 38;2;r:g:b
-				} else {
-					i = (m_AnsiPara[a][1] < 8 ? Sgr38ParamLen[m_AnsiPara[a][1]] : 0);
-					for ( ; i > 0 && (n + 1) < m_AnsiPara.GetSize() ; i-- ) {
-						m_AnsiPara[a].Add(GetAnsiPara(++n, 0, 0));
+				// 38;5;n
+				} else if ( m_AnsiPara[a][0] == 5 && m_AnsiPara.GetSize() > (n + 1) ) {
+					m_AnsiPara[a].Add(m_AnsiPara[++n]);	// n
 
-						// 38;2;r:g:b
-						if ( m_AnsiPara[n].GetSize() > 0 ) {
-							m_AnsiPara[n].Add(m_AnsiPara[n]);
-							for ( int b = 1 ; b < m_AnsiPara[n].GetSize() ; b++ )
-								m_AnsiPara[a].Add(m_AnsiPara[n][b]);
-							break;
-						}
+				// 38;2;r;g;b or 38;2;r:g:b
+				} else if ( m_AnsiPara[a][0] == 2 && m_AnsiPara.GetSize() > (n + 1) ) {
+					m_AnsiPara[a].Add(m_AnsiPara[++n]);	// r
+
+					// 38;2;r:g:b
+					if ( m_AnsiPara[n].GetSize() > 0 ) {
+						for ( i = 0 ; i < m_AnsiPara[n].GetSize() ; i++ )
+							m_AnsiPara[a].Add(m_AnsiPara[n][i]);
+
+					// 38;2;r;g;b
+					} else if ( m_AnsiPara.GetSize() > (n + 2) ) {
+						m_AnsiPara[a].Add(m_AnsiPara[++n]);	// g
+						m_AnsiPara[a].Add(m_AnsiPara[++n]);	// b
 					}
 				}
 			}
 
-			if ( m_AnsiPara[a].GetSize() <= 1 )
+			// Para[a]    = 38
+			// Para[a][0] = 2 or 5
+			// Para[a][1] = n    r
+			// Para[a][2] =      g
+			// Para[a][3] =      b
+
+			if ( m_AnsiPara[a].GetSize() < 1 )
 				break;
 
 			for ( i = 0 ; i < m_AnsiPara[a].GetSize() ; i++ ) {
-				if ( m_AnsiPara[a][i] == PARA_NOT )
+				if ( m_AnsiPara[a][i].IsEmpty() )
 					m_AnsiPara[a][i] = 0;
 			}
 
-			switch(m_AnsiPara[a][1]) {
+			switch(m_AnsiPara[a][0]) {
 			case 2:				// RGB color
-				if ( m_AnsiPara[a].GetSize() <= 4 )
+				if ( m_AnsiPara[a].GetSize() < 4 )
 					break;
-				if ( m_AnsiPara[a][0] == 38 )
-					m_AttNow.fc = GETCOLIDX(m_AnsiPara[a][2], m_AnsiPara[a][3], m_AnsiPara[a][4]);
+				if ( m_AnsiPara[a] == 38 )
+					m_AttNow.fc = GETCOLIDX(m_AnsiPara[a][1], m_AnsiPara[a][2], m_AnsiPara[a][3]);
 				else
-					m_AttNow.bc = GETCOLIDX(m_AnsiPara[a][2], m_AnsiPara[a][3], m_AnsiPara[a][4]);
+					m_AttNow.bc = GETCOLIDX(m_AnsiPara[a][1], m_AnsiPara[a][2], m_AnsiPara[a][3]);
 				break;
 			case 5:				// 256 index color
-				if ( m_AnsiPara[a].GetSize() <= 2 || m_AnsiPara[a][2] > 255 )
+				if ( m_AnsiPara[a].GetSize() < 2 || m_AnsiPara[a][1] > 255 )
 					break;
-				if ( m_AnsiPara[a][0] == 38 )
-					m_AttNow.fc = m_AnsiPara[a][2];
+				if ( m_AnsiPara[a] == 38 )
+					m_AttNow.fc = m_AnsiPara[a][1];
 				else
-					m_AttNow.bc = m_AnsiPara[a][2];
+					m_AttNow.bc = m_AnsiPara[a][1];
 				break;
 			}
 			break;
@@ -4850,6 +4974,8 @@ void CTextRam::fc_DECLL(int ch)
 		m_AnsiPara.Add(0);
 
 	for ( n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
+		if ( m_AnsiPara[n].IsOpt() )
+			continue;
 		switch(GetAnsiPara(n, 0, 0)) {
 		case 0:	// Clear All LEDs (default)
 			m_StsLed = 0;
@@ -4924,6 +5050,8 @@ void CTextRam::fc_DECSHTS(int ch)
 	//TABSET(TAB_COLSALLCLR);
 	s = m_CurX;
 	for ( n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
+		if ( m_AnsiPara[n].IsOpt() )
+			continue;
 		m_CurX = GetAnsiPara(n, 1, 1) - 1;
 		if ( m_CurX >= 0 && m_CurX < m_Cols )
 			TABSET(TAB_COLSSET);
@@ -4938,6 +5066,8 @@ void CTextRam::fc_DECSVTS(int ch)
 	//TABSET(TAB_LINEALLCLR);
 	s = m_CurY;
 	for ( n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
+		if ( m_AnsiPara[n].IsOpt() )
+			continue;
 		m_CurY = GetAnsiPara(n, 1, 1) - 1;
 		if ( m_CurY >= 0 && m_CurY < m_Lines )
 			TABSET(TAB_LINESET);
@@ -5256,11 +5386,10 @@ void CTextRam::fc_DECSRET(int ch)
 		else if ( i == 7727 )
 			i = TO_RLCKMESC;	// 7727 - Application Escape mode を有効にする。				Application Escape mode を無効にする。  
 		else if ( i == 7786 )
-			i = TO_RLMSWAPE;	// 7786 - マウスホイール - カーソルキー変換を有効にする。		マウスホイール - カーソルキー変換を無効にする。  
-		else if ( i == 8840 ) {	// 8840 - TNAMB Aタイプをダブル幅の文字にする					シングル幅にする
-			i = TO_RLUNIAWH;
-			ch = (ch == 'h' ? 'l': (ch == 'l' ? 'h' : ch));
-		} else if ( i >= 200 )
+			i = TO_RLMSWAPE;	// 7786 - マウスホイール - カーソルキー変換を有効にする。		カーソルキー変換を無効にする。  
+		else if ( i == 8800 )
+			i = TO_DRCSMMv1;	// 8800	- Unicode16面のISO-2022マッピング有効					マッピング無効
+		else if ( i >= 200 )
 			continue;
 
 		ANSIOPT(ch, i);
@@ -5514,6 +5643,8 @@ void CTextRam::fc_DECCARA(int ch)
 
 			vp = GETVRAM(x, y);
 			for ( n = 4 ; n < m_AnsiPara.GetSize() ; n++ ) {
+				if ( m_AnsiPara[n].IsOpt() )
+					continue;
 				switch(GetAnsiPara(n, 0, 0)) {
 				case 0: vp->pr.at = 0; break;
 				case 1: vp->pr.at |= ATT_BOLD;   break;
@@ -5628,6 +5759,8 @@ void CTextRam::fc_DECRARA(int ch)
 
 			vp = GETVRAM(x, y);
 			for ( n = 4 ; n < m_AnsiPara.GetSize() ; n++ ) {
+				if ( m_AnsiPara[n].IsOpt() )
+					continue;
 				switch(GetAnsiPara(n, 0, 0)) {
 				case 0: vp->pr.at ^= (ATT_BOLD | ATT_HALF | ATT_ITALIC | ATT_UNDER | ATT_SBLINK | ATT_BLINK | ATT_REVS | ATT_SECRET | ATT_LINE); break;
 				case 1: vp->pr.at ^= ATT_BOLD; break;
@@ -5969,7 +6102,7 @@ void CTextRam::fc_DECTME(int ch)
 void CTextRam::fc_CSI_ETC(int ch)
 {
 	int n;
-	int d = (m_BackChar | ch) & 0x7F7F7F;
+	int d = (m_BackChar | ch) & 0x7F7F7F7F;
 
 	if ( BinaryFind((void *)&d, m_CsiExt.GetData(), sizeof(CSIEXTTAB), m_CsiExt.GetSize(), ExtTabCodeCmp, &n) ) 
 		(this->*m_CsiExt[n].proc)(ch);
@@ -6122,6 +6255,8 @@ void CTextRam::fc_DECSLE(int ch)
 	int n;
 
 	for ( n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
+		if ( m_AnsiPara[n].IsOpt() )
+			continue;
 		switch(GetAnsiPara(n, 0, 0)) {
 		case 0:	// respond only to explicit host requests (default, also cancels any pending filter rectangle) 
 			m_Loc_Mode &= ~LOC_MODE_EVENT;
@@ -6400,7 +6535,7 @@ void CTextRam::fc_DA2(int ch)
 {
 	// CSI ('>' << 16) | 'c'	DA2 Secondary Device Attributes
 
-	if ( m_AnsiPara.GetSize() == 0 || m_AnsiPara[0] == PARA_NOT || m_AnsiPara[0] == 0 )
+	if ( m_AnsiPara.GetSize() == 0 || m_AnsiPara[0].IsEmpty() || m_AnsiPara[0] == 0 )
 		UNGETSTR(_T("%s>65;100;1c"), m_RetChar[RC_CSI]);
 	fc_POP(ch);
 }
@@ -6409,7 +6544,7 @@ void CTextRam::fc_DA3(int ch)
 {
 	// CSI ('=' << 16) | 'c'	DA3 Tertiary Device Attributes
 
-	if ( m_AnsiPara.GetSize() == 0 || m_AnsiPara[0] == PARA_NOT || m_AnsiPara[0] == 0 )
+	if ( m_AnsiPara.GetSize() == 0 || m_AnsiPara[0].IsEmpty() || m_AnsiPara[0] == 0 )
 		UNGETSTR(_T("%s!|%04x%s"), m_RetChar[RC_DCS], m_UnitId, m_RetChar[RC_ST]);
 	fc_POP(ch);
 }
@@ -6457,7 +6592,7 @@ void CTextRam::fc_XTRMTT(int ch)
 	//    Ps = 3  -> Do not query window/icon labels using UTF-8.
 
 	for ( int n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
-		if ( m_AnsiPara[n] != PARA_NOT )
+		if ( !m_AnsiPara[n].IsEmpty() )
 			m_XtOptFlag &= ~(1 << m_AnsiPara[n]);
 	}
 	fc_POP(ch);
@@ -6479,7 +6614,7 @@ void CTextRam::fc_XTMDKEY(int ch)
 	//	  If no parameters are given, all resources are reset to their
 	//	  initial values.
 
-	if ( m_AnsiPara.GetSize() > 0 && m_AnsiPara[0] != PARA_NOT ) {
+	if ( m_AnsiPara.GetSize() > 0 && !m_AnsiPara[0].IsEmpty() ) {
 		int n = m_AnsiPara[0];
 		int f = GetAnsiPara(1, m_DefModKey[n], 0, 5);
 		if ( n < MODKEY_MAX )
@@ -6507,7 +6642,7 @@ void CTextRam::fc_XTMDKYD(int ch)
 	//	  keys to make an extended sequence of functions rather than
 	//	  adding a parameter to each function key to denote the modifiers.
 
-	if ( m_AnsiPara.GetSize() > 0 && m_AnsiPara[0] != PARA_NOT ) {
+	if ( m_AnsiPara.GetSize() > 0 && !m_AnsiPara[0].IsEmpty() ) {
 		if ( m_AnsiPara[0] < MODKEY_MAX )
 			m_ModKey[m_AnsiPara[0]] = (-1);
 	} else
@@ -6539,7 +6674,7 @@ void CTextRam::fc_XTSMTT(int ch)
 	//    Ps = 3  -> Query window/icon labels using UTF-8.  (See discussion of "Title Modes")
 
 	for ( int n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
-		if ( m_AnsiPara[n] != PARA_NOT )
+		if ( !m_AnsiPara[n].IsEmpty() )
 			m_XtOptFlag |= (1 << m_AnsiPara[n]);
 	}
 	fc_POP(ch);

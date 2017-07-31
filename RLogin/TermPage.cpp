@@ -103,6 +103,8 @@ static const struct _OptListTab {
 	{	TO_RLUNIAHF,	_T("Unicde半角の調整をしない"),		_T("Unicde半角の調整をする"),		_T("一部のフォントで半角・全角になるように調整して表示ます")	},
 //	{	TO_RLMODKEY,	_T("modifyKeysを優先する"),			_T("ショートカットを優先"),			NULL	},
 	{	TO_RLDRWLINE,	_T("罫線を文字で表示する"),			_T("罫線を線で表示する"),			_T("罫線を線で描画せずにフォントの持つ本来の文字として表示します")	},
+	{	TO_RLSIXPOS,	_T("Sixel画像の右にカーソル"),		_T("Sixel画像の下にカーソル"),		_T("スクロールモード時のSixel画像表示後のカーソル位置を設定します")	},
+	{	TO_DRCSMMv1,	_T("8800 Unicodeマッピング有効"),	_T("Unicodeマッピング無効"),		_T("ISO-2022コードセットをUnicode16面にマッピングを有効・無効にします")	},
 
 	{	0,				NULL,								NULL,								NULL	}
 }, ExtListTab[] = {

@@ -863,10 +863,12 @@ int CStringArrayExt::Match(LPCTSTR str)
 
 CParaIndex::CParaIndex()
 {
+	m_Str.Empty();
 	m_Data = 0;
 }
 CParaIndex::CParaIndex(DWORD data)
 {
+	m_Str.Empty();
 	m_Data = data;
 }
 CParaIndex::~CParaIndex()
@@ -875,10 +877,25 @@ CParaIndex::~CParaIndex()
 const CParaIndex & CParaIndex::operator = (CParaIndex &data)
 {
 	m_Data = data.m_Data;
+	m_Str  = data.m_Str;
 	m_Array.SetSize(data.m_Array.GetSize());
 	for ( int n = 0 ; n < data.m_Array.GetSize() ; n++ )
 		m_Array[n] = data.m_Array[n];
 	return *this;
+}
+BOOL CParaIndex::AddOpt(int ch, BOOL bAdd)
+{
+	int n = GetSize() - 1;
+
+	if ( n >= 0 ) {
+		if ( m_Array[n].AddOpt(ch, bAdd) && bAdd )
+			Add(PARA_NOT);
+		return FALSE;
+	} else {
+		m_Str += (CHAR)ch;
+		m_Data = PARA_OPT;
+		return TRUE;
+	}
 }
 
 //////////////////////////////////////////////////////////////////////

@@ -81,7 +81,6 @@
 #define IDD_MODKEYPAGE                  165
 #define IDD_ANYPASTDIG                  170
 #define IDD_DEFPARAMDLG                 171
-#define IDB_BITMAP8                     172
 #define IDP_SOCKETS_INIT_FAILED         300
 #define IDS_INDICATOR_STAT              301
 #define IDS_IDKEYFILELOAD               302

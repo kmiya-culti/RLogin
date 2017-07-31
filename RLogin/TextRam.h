@@ -158,6 +158,8 @@
 #define	TO_RLUNIAHF		449			// Unicodeの半角時にサイズを調整する
 #define	TO_RLMODKEY		450			// modfiyKeysを優先する
 #define	TO_RLDRWLINE	451			// 罫線を線描画に置き換えない
+#define	TO_RLSIXPOS		452			// Sixel表示後のカーソル位置設定
+#define	TO_DRCSMMv1		453			// 8800 h=マッピング有効 l=マッピング無効
 
 // RLogin SockOpt		1000-1511(0-511)
 #define	TO_RLTENAT		1406		// 自動ユーザー認証を行わない
@@ -845,7 +847,6 @@ public:
 
 	// Low Level
 	void RESET(int mode = RESET_CURSOR | RESET_TABS | RESET_BANK | RESET_ATTR | RESET_COLOR | RESET_TEK | RESET_SAVE | RESET_MOUSE | RESET_CHAR);
-
 	CVram *GETVRAM(int cols, int lines);
 	void UNGETSTR(LPCTSTR str, ...);
 	void BEEP();
@@ -1054,6 +1055,7 @@ public:
 	// ESC [ CSI
 	void fc_CSI(int ch);
 	void fc_CSI_ESC(int ch);
+	void fc_CSI_RST(int ch);
 	void fc_CSI_DIGIT(int ch);
 	void fc_CSI_PUSH(int ch);
 	void fc_CSI_SEPA(int ch);
@@ -1274,6 +1276,7 @@ public:
 	int m_Loc_Pb;
 	int m_Loc_LastX;
 	int m_Loc_LastY;
+	CPoint m_MousePos;
 
 	void LocReport(int md, int sw, int x, int y);
 	void MouseReport(int md, int sw, int x, int y);

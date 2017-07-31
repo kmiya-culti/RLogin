@@ -1579,6 +1579,7 @@ void CTextRam::Init()
 	EnableOption(TO_XTMCUS);	// ?41 XTerm tab bug fix
 	EnableOption(TO_XTMRVW);	// ?45 XTerm Reverse-wraparound mod
 	EnableOption(TO_DECBKM);	// ?67 Backarrow key mode (BS)
+	EnableOption(TO_DRCSMMv1);	// ?8800 Unicode 16 Maping
 	memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
 	memcpy(m_DefBankTab, DefBankTab, sizeof(m_DefBankTab));
 	memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
@@ -1946,7 +1947,7 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 	tmp.SetString(str, _T(';'));
 	stra.Add(str);
 
-	stra.AddVal(5);	// AnsiOpt Bugfix
+	stra.AddVal(6);	// AnsiOpt Bugfix
 
 	stra.AddVal(m_TitleMode);
 	stra.Add(m_SendCharSet[4]);
@@ -1974,7 +1975,7 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 }
 void CTextRam::GetArray(CStringArrayExt &stra)
 {
-	int n;
+	int n, v;
 	BYTE tmp[16];
 	CStringArrayExt ext;
 
@@ -2038,20 +2039,20 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 		m_ProcTab.GetArray(ext);
 	}
 
-	n = (stra.GetSize() > 37 ? stra.GetVal(37) : 0);
-	if ( n < 1 ) {
+	v = (stra.GetSize() > 37 ? stra.GetVal(37) : 0);
+	if ( v < 1 ) {
 		ReversOption(TO_DECANM);
 		EnableOption(TO_DECTCEM);	// ?25 Text Cursor Enable Mode
 	}
-	if ( n < 2 )
+	if ( v < 2 )
 		EnableOption(TO_XTMCUS);	// ?41 XTerm tab bug fix
-	if ( n < 3 ) {
+	if ( v < 3 ) {
 		EnableOption(TO_DECBKM);	// ?67 Backarrow key mode (BS
 		EnableOption(TO_ANSISRM);	//  12 SRM Set Send/Receive mode (Local echo off)
 	}
-	if ( n < 4 )
+	if ( v < 4 )
 		EnableOption(TO_ANSISRM);	//  12 SRM Set Send/Receive mode (Local echo off)
-	if ( n < 5 ) {					
+	if ( v < 5 ) {					
 		m_RecvCrLf = IsOptValue(426, 2);	// TO_RLRECVCR(426) to m_RecvCrLf
 		m_SendCrLf = IsOptValue(418, 2);	// TO_RLECHOCR(418) to m_SendCrLf
 		memcpy(m_OptTab, m_AnsiOpt, sizeof(m_AnsiOpt));
@@ -2067,7 +2068,9 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 		for ( ; n < 445 ; n++ ) DisableOption(n);
 		for ( ; n < 449 ; n++ ) DisableOption(1000 + n);
 	}
-
+	if ( v < 6 )
+		EnableOption(TO_DRCSMMv1);	// ?8800 Unicode 16 Maping
+	
 	DisableOption(TO_IMECTRL);
 	memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_DefAnsiOpt));
 
@@ -4396,13 +4399,20 @@ CVram *CTextRam::GETVRAM(int cols, int lines)
 }
 void CTextRam::UNGETSTR(LPCTSTR str, ...)
 {
-	CString tmp;
-	CStringA mbs;
+	CString tmp, in;
+	CStringA mbs, out;
 	va_list arg;
 	va_start(arg, str);
 	tmp.FormatV(str, arg);
 	if ( m_pDocument != NULL ) {
-		m_pDocument->m_TextRam.m_IConv.StrToRemote(m_pDocument->m_TextRam.m_SendCharSet[m_pDocument->m_TextRam.m_KanjiMode], tmp, mbs);
+		for ( str = tmp ; *str != _T('\0') ; str++ ) {
+			if ( *str > 0xFF ) {
+				in = *str;
+				m_pDocument->m_TextRam.m_IConv.StrToRemote(m_pDocument->m_TextRam.m_SendCharSet[m_pDocument->m_TextRam.m_KanjiMode], in, out);
+				mbs += out;
+			} else
+				mbs += *str;
+		}
 		m_pDocument->SocketSend((void *)(LPCSTR)mbs, mbs.GetLength());
 	}
 	va_end(arg);
@@ -4596,19 +4606,24 @@ int CTextRam::GetAnsiPara(int index, int defvalue, int minvalue, int maxvalue)
 {
 	int val;
 
-	if ( index >= m_AnsiPara.GetSize() )
-		return defvalue;
+	// CSI 1;2:3:4;5
+	//
+	// Para[0] = 1
+	// Para[1] = 2	Para[1][0] = 3, Para[1][1] = 4
+	// Para[2] = 5
 
-	if ( m_AnsiPara[index].GetSize() > 0 )
-		val = m_AnsiPara[index][0];
-	else
+	if ( index >= m_AnsiPara.GetSize() ) {
+		val = defvalue;
+
+	} else {
 		val = m_AnsiPara[index];
 
-	if ( val == PARA_NOT || val < minvalue )
-		return defvalue;
+		if ( val == PARA_NOT || val == PARA_OPT || val < minvalue )
+			val = defvalue;
 
-	if ( maxvalue >= 0 && val > maxvalue )
-		val = maxvalue;
+		else if ( maxvalue >= 0 && val > maxvalue )
+			val = maxvalue;
+	}
 
 	return val;
 }
@@ -4620,7 +4635,7 @@ void CTextRam::SetAnsiParaArea(int top)
 	// Start Line
 	if ( m_AnsiPara.GetSize() < (top + 1) )
 		m_AnsiPara.Add(1);
-	else if ( m_AnsiPara[top] == PARA_NOT )
+	else if ( m_AnsiPara[top].IsEmpty() )
 		m_AnsiPara[top] = 1;
 	if ( IsOptEnable(TO_DECOM) )
 		m_AnsiPara[top] = m_AnsiPara[top] + GetTopMargin();
@@ -4633,7 +4648,7 @@ void CTextRam::SetAnsiParaArea(int top)
 	// Start Cols
 	if ( m_AnsiPara.GetSize() < (top + 1) )
 		m_AnsiPara.Add(1);
-	else if ( m_AnsiPara[top] == PARA_NOT )
+	else if ( m_AnsiPara[top].IsEmpty() )
 		m_AnsiPara[top] = 1;
 	if ( IsOptEnable(TO_DECOM) )
 		m_AnsiPara[top] = m_AnsiPara[top] + GetLeftMargin();
@@ -4646,7 +4661,7 @@ void CTextRam::SetAnsiParaArea(int top)
 	// End Line
 	if ( m_AnsiPara.GetSize() < (top + 1) )
 		m_AnsiPara.Add(m_Lines);
-	else if ( m_AnsiPara[top] == PARA_NOT )
+	else if ( m_AnsiPara[top].IsEmpty() )
 		m_AnsiPara[top] = m_Lines;
 	if ( IsOptEnable(TO_DECOM) )
 		m_AnsiPara[top] = m_AnsiPara[top] + GetTopMargin();
@@ -4659,7 +4674,7 @@ void CTextRam::SetAnsiParaArea(int top)
 	// End Cols
 	if ( m_AnsiPara.GetSize() < (top + 1) )
 		m_AnsiPara.Add(m_Cols);
-	else if ( m_AnsiPara[top] == PARA_NOT )
+	else if ( m_AnsiPara[top].IsEmpty() )
 		m_AnsiPara[top] = m_Cols;
 	if ( IsOptEnable(TO_DECOM) )
 		m_AnsiPara[top] = m_AnsiPara[top] + GetLeftMargin();
@@ -4713,6 +4728,12 @@ void CTextRam::LocReport(int md, int sw, int x, int y)
 			Pe = 1;
 
 	} else {					// Mouse Event
+
+		if ( (m_Loc_Mode & LOC_MODE_PIXELS) != 0 ) {
+			x = m_MousePos.x;
+			y = m_MousePos.y;
+		}
+
 		m_Loc_LastX = x;
 		m_Loc_LastY = y;
 		m_Loc_Pb    = 0;
@@ -4758,11 +4779,6 @@ void CTextRam::LocReport(int md, int sw, int x, int y)
 
 	x = m_Loc_LastX;
 	y = m_Loc_LastY;
-
-	if ( (m_Loc_Mode & LOC_MODE_PIXELS) != 0 ) {
-		x *= 6;
-		y *= 12;
-	}
 
 	UNGETSTR(_T("%s%d;%d;%d;%d;%d&w"), m_RetChar[RC_CSI], Pe, m_Loc_Pb, y + 1, x + 1, 0);
 

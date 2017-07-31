@@ -393,6 +393,8 @@ void CRLoginView::CalcGrapPoint(CPoint po, int *x, int *y)
 	if      ( po.y < 0 )			po.y = 0;
 	else if ( po.y >= m_Height )	po.y = m_Height - 1;
 
+	pDoc->m_TextRam.m_MousePos = po;
+
 	*x = m_Cols  * po.x / m_Width;
 	*y = m_Lines * po.y / m_Height - m_HisOfs + m_HisMin;
 }

@@ -87,7 +87,6 @@ IDB_ATTR5               BITMAP                  "res\\attr5.bmp"
 IDB_ATTR6               BITMAP                  "res\\attr6.bmp"
 IDB_ATTR7               BITMAP                  "res\\attr7.bmp"
 IDB_ATTR8               BITMAP                  "res\\attr8.bmp"
-IDB_BITMAP8             BITMAP                  "res\\bitmap8.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -450,7 +449,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.15.9 (2014/02/01)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.16.0 (2014/02/21)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2014 Culti",IDC_STATIC,47,15,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,151,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.1f 6 Jan 2014",IDC_STATIC,47,29,176,8
@@ -1330,7 +1329,7 @@ BEGIN
     CONTROL         "実行時にトレース・デバッグを行う",IDC_TERMCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,61,171,10
     GROUPBOX        "エントリー・スクリプト",IDC_STATIC,7,7,237,72
     LTEXT           "サーバーエントリーに接続時に実行するスクリプト・ファイルを指定します",IDC_STATIC,17,22,217,8
-    EDITTEXT        IDC_SCRIPT_STR,7,105,237,158,ES_MULTILINE | ES_AUTOHSCROLL | ES_WANTRETURN
+    EDITTEXT        IDC_SCRIPT_STR,7,105,237,158,ES_MULTILINE | ES_AUTOVSCROLL | ES_WANTRETURN | WS_VSCROLL
     LTEXT           "上記スクリプトファイル終了後に実行するスクリプトです\nこのエントリーだけで実行する部分などを直接編集できます",IDC_STATIC,17,83,217,19
 END
 
@@ -1428,8 +1427,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,15,9,0
- PRODUCTVERSION 2,15,9,0
+ FILEVERSION 2,16,0,0
+ PRODUCTVERSION 2,16,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1446,12 +1445,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.15.9.0"
+            VALUE "FileVersion", "2.16.0.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2013 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.15.9.0"
+            VALUE "ProductVersion", "2.16.0.0"
         END
     END
     BLOCK "VarFileInfo"

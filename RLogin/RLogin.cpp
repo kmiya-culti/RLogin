@@ -512,7 +512,6 @@ void CRLoginApp::OpenProcsCmd(CCommandLineInfoEx *pCmdInfo)
 }
 BOOL CALLBACK RLoginEnumFunc(HWND hwnd, LPARAM lParam)
 {
-	CWnd wnd;
 	CRLoginApp *pApp = (CRLoginApp *)lParam;
 	TCHAR title[1024];
 	CString cmdLine;

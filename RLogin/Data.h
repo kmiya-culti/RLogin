@@ -243,12 +243,14 @@ public:
 };
 
 #define	PARA_NOT	0xFFFFFFFF
+#define	PARA_OPT	0xFFFFFFFE
 #define	PARA_MAX	0x7FFFFFFF
 
 class CParaIndex : CObject
 {
 public:
 	DWORD m_Data;
+	CString m_Str;
 	CArray<CParaIndex, CParaIndex &> m_Array;
 
 	CParaIndex();
@@ -260,9 +262,13 @@ public:
 	CParaIndex & operator [] (int nIndex) { return m_Array[nIndex]; }
 	operator DWORD () const { return m_Data; }
 	INT_PTR Add(DWORD data) { CParaIndex tmp(data); return m_Array.Add(tmp); }
+	INT_PTR Add(CParaIndex &data) { return m_Array.Add(data); }
 	INT_PTR GetSize() { return m_Array.GetSize(); }
 	void SetSize(INT_PTR nNewSize, INT_PTR nGrowBy = -1) { m_Array.SetSize(nNewSize, nGrowBy); }
 	void RemoveAll() { m_Array.RemoveAll(); }
+	BOOL IsEmpty() { return (m_Data == PARA_NOT || m_Data == PARA_OPT ? TRUE : FALSE); }
+	BOOL IsOpt() { return (m_Data == PARA_OPT ? TRUE : FALSE); }
+	BOOL AddOpt(int ch, BOOL bAdd);
 };
 
 class CBmpFile : public CObject
