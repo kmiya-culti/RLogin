@@ -57,6 +57,7 @@ protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート
 	virtual BOOL OnInitDialog();
 	virtual void OnOK();
+	virtual void OnCancel();
 
 // インプリメンテーション
 protected:
@@ -69,7 +70,6 @@ protected:
 	afx_msg void OnIdkeyExport();
 	afx_msg void OnIdkeyCreate();
 	afx_msg void OnDblclkIdkeyList(NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnClose();
 	afx_msg void OnIdkeyCopy();
 	afx_msg void OnEditUpdate();
 	afx_msg void OnEditCheck();

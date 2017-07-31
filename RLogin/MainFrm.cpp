@@ -306,6 +306,7 @@ int CPaneFrame::GetPaneCount(int count)
 
 	return count;
 }
+
 void CPaneFrame::MoveFrame()
 {
 	ASSERT(m_Style == PANEFRAME_WINDOW);
@@ -780,6 +781,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_WM_CLOSE()
 	ON_WM_DRAWCLIPBOARD()
 	ON_WM_CHANGECBCHAIN()
+	ON_WM_CLIPBOARDUPDATE()
 
 	ON_MESSAGE(WM_SOCKSEL, OnWinSockSelect)
 	ON_MESSAGE(WM_GETHOSTADDR, OnGetHostAddr)
@@ -787,6 +789,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_MESSAGE(WM_THREADCMD, OnThreadMsg)
 	ON_MESSAGE(WM_AFTEROPEN, OnAfterOpen)
 	ON_MESSAGE(WM_GETCLIPBOARD, OnGetClipboard)
+	ON_MESSAGE(WM_DPICHANGED, OnDpiChanged)
 
 	ON_COMMAND(ID_FILE_ALL_LOAD, OnFileAllLoad)
 	ON_COMMAND(ID_FILE_ALL_SAVE, OnFileAllSave)
@@ -831,7 +834,6 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_COMMAND(IDM_BROADCAST, &CMainFrame::OnBroadcast)
 	ON_UPDATE_COMMAND_UI(IDM_BROADCAST, &CMainFrame::OnUpdateBroadcast)
 	
-	ON_WM_CLIPBOARDUPDATE()
 	ON_COMMAND(IDM_TOOLCUST, &CMainFrame::OnToolcust)
 END_MESSAGE_MAP()
 
@@ -879,6 +881,7 @@ CMainFrame::CMainFrame()
 	m_StatusTimer = 0;
 	m_bClipEnable = FALSE;
 	m_bClipChain = FALSE;
+	m_ScreenDpiX = m_ScreenDpiY = 96;
 }
 
 CMainFrame::~CMainFrame()
@@ -1073,6 +1076,7 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 	if (  m_ScreenY > 0 )
 		cs.y = m_ScreenY;
 
+	// モニターの表示範囲チェック
 	HMONITOR hMonitor;
     MONITORINFOEX  mi;
 	CRect rc(cs.x, cs.y, cs.x + cs.cx, cs.y + cs.cy);
@@ -1089,6 +1093,10 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 		if ( (cs.y -= (mi.rcMonitor.bottom - rc.bottom)) < 0 )
 			cs.y = 0;
 	}
+
+	// モニターDPIを取得
+	if ( ExGetDpiForMonitor != NULL )
+		ExGetDpiForMonitor(hMonitor, MDT_EFFECTIVE_DPI, &m_ScreenDpiX, &m_ScreenDpiY);
 
 	// メニューをリソースデータベースに置き換え
 	if ( cs.hMenu != NULL ) {
@@ -2260,6 +2268,24 @@ LRESULT CMainFrame::OnGetClipboard(WPARAM wParam, LPARAM lParam)
 
 	return TRUE;
 }
+LRESULT CMainFrame::OnDpiChanged(WPARAM wParam, LPARAM lParam)
+{
+	// wParam
+	//	The HIWORD of the wParam contains the Y-axis value of the new dpi of the window. 
+	//	The LOWORD of the wParam contains the X-axis value of the new DPI of the window.
+	//
+	// lParam
+	//	A pointer to a RECT structure that provides a suggested size and position of the 
+	//	current window scaled for the new DPI. The expectation is that apps will reposition 
+	//	and resize windows based on the suggestions provided by lParam when handling this message.
+
+	m_ScreenDpiX = LOWORD(wParam);
+	m_ScreenDpiY = HIWORD(wParam);
+
+	MoveWindow((RECT *)lParam, TRUE);
+
+	return TRUE;
+}
 
 void CMainFrame::OnClose()
 {
@@ -3100,25 +3126,25 @@ void CMainFrame::OnWinodwNext()
 		return;
 	m_wndTabBar.NextActive();
 }
+void CMainFrame::OnUpdateWinodwNext(CCmdUI *pCmdUI)
+{
+	pCmdUI->Enable(m_wndTabBar.GetSize() > 1 ? TRUE : FALSE);
+}
 void CMainFrame::OnWindowPrev()
 {
 	if ( m_wndTabBar.GetSize() <= 1 )
 		return;
 	m_wndTabBar.PrevActive();
 }
+void CMainFrame::OnUpdateWindowPrev(CCmdUI *pCmdUI)
+{
+	pCmdUI->Enable(m_wndTabBar.GetSize() > 1 ? TRUE : FALSE);
+}
 void CMainFrame::OnWinodwSelect(UINT nID)
 {
 	m_wndTabBar.SelectActive(nID - AFX_IDM_FIRST_MDICHILD);
 }
 
-void CMainFrame::OnUpdateWinodwNext(CCmdUI *pCmdUI)
-{
-	pCmdUI->Enable(m_wndTabBar.GetSize() > 1 ? TRUE : FALSE);
-}
-void CMainFrame::OnUpdateWindowPrev(CCmdUI *pCmdUI)
-{
-	pCmdUI->Enable(m_wndTabBar.GetSize() > 1 ? TRUE : FALSE);
-}
 void CMainFrame::OnActiveMove(UINT nID)
 {
 	CWnd *pTemp;
@@ -3196,3 +3222,4 @@ void CMainFrame::OnToolcust()
 	// ツールバーの再表示
 	RecalcLayout(FALSE);
 }
+

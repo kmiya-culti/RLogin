@@ -1434,11 +1434,13 @@ void CTextRam::InitText(int Width, int Height)
 	int newCols, newLines;
 	int newColsMax, newHisMax;
 	BOOL bHisInit = FALSE;
+	CMainFrame *pMain = (CMainFrame *)::AfxGetMainWnd();
 
 	if ( !m_bOpen )
 		return;
 
 	if ( IsOptEnable(TO_RLFONT) ) {
+//		charHeight = m_DefFontSize * pMain->m_ScreenDpiY / 96;
 		charHeight = m_DefFontSize;
 
 		if ( (charWidth = charHeight * 10 / m_DefFontHw) <= 0 )

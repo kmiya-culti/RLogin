@@ -241,6 +241,7 @@ public:
 #define	SSHFP_FORMAT_BASE64			1
 #define	SSHFP_FORMAT_BUBBLEBABBLE	2
 #define	SSHFP_FORMAT_RANDOMART		3
+#define	SSHFP_FORMAT_SIMPLE			4
 
 #define DNS_RDATACLASS_IN	1
 #define DNS_RDATATYPE_SSHFP	44
@@ -729,6 +730,7 @@ private:
 	int m_AuthStat;
 	int m_AuthMode;
 	CString m_AuthMeta;
+	CString m_AuthLog;
 	CWordArray m_GlbReqMap;
 	CWordArray m_OpnReqMap;
 	CWordArray m_ChnReqMap;
@@ -744,6 +746,11 @@ private:
 	BOOL m_bExtInfo;
 	CStringIndex m_ExtInfo;
 	int m_DhGexReqBits;
+	time_t m_ConnectTime;
+	int m_KeepAliveSendCount;
+	int m_KeepAliveReplyCount;
+	int m_KeepAliveRecvGlobalCount;
+	int m_KeepAliveRecvChannelCount;
 
 	void SendTextMsg(LPCSTR str, int len);
 	void PortForward();

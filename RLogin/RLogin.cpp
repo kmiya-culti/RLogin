@@ -521,6 +521,9 @@ CRLoginApp theApp;
 	HMODULE ExRcDll = NULL;
 #endif
 
+	HMODULE ExShcoreApi = NULL;
+	HRESULT (__stdcall *ExGetDpiForMonitor)(HMONITOR hmonitor, MONITOR_DPI_TYPE dpiType, UINT *dpiX, UINT *dpiY) = NULL;
+
 void ExDwmEnableWindow(HWND hWnd, BOOL bEnable)
 {
 #ifdef	USE_DWMAPI
@@ -904,10 +907,15 @@ BOOL CRLoginApp::InitInstance()
 	}
 #endif
 
+	// クリップボードチェインライブラリを取得
 	if ( (ExClipApi = LoadLibrary(_T("User32.dll"))) != NULL ) {
 		ExAddClipboardFormatListener    = (BOOL (__stdcall *)(HWND hwnd))GetProcAddress(ExClipApi, "AddClipboardFormatListener");
 		ExRemoveClipboardFormatListener = (BOOL (__stdcall *)(HWND hwnd))GetProcAddress(ExClipApi, "RemoveClipboardFormatListener");
 	}
+
+	// モニターDPIのライブラリを取得
+	if ( (ExShcoreApi = LoadLibrary(_T("Shcore.dll"))) != NULL )
+		ExGetDpiForMonitor       = (HRESULT (__stdcall *)(HMONITOR hmonitor, MONITOR_DPI_TYPE dpiType, UINT *dpiX, UINT *dpiY))GetProcAddress(ExShcoreApi, "GetDpiForMonitor");
 
 #ifdef	USE_DIRECTWRITE
 	// DirectWriteを試す
@@ -1052,6 +1060,9 @@ int CRLoginApp::ExitInstance()
 	if ( ExDwmApi != NULL )
 		FreeLibrary(ExDwmApi);
 #endif
+
+	if ( ExShcoreApi != NULL )
+		FreeLibrary(ExShcoreApi);
 
 	if ( ExClipApi != NULL )
 		FreeLibrary(ExClipApi);

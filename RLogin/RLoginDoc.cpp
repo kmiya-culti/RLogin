@@ -1167,8 +1167,12 @@ void CRLoginDoc::OnSocketError(int err)
 		m_AfterId = (-1);
 	}
 
-	if ( m_ErrorPrompt.IsEmpty() )
-		m_ErrorPrompt.Format(_T("WinSock Have Error #%d"), err);
+	if ( m_ErrorPrompt.IsEmpty() ) {
+		LPVOID lpMessageBuffer;
+		FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&lpMessageBuffer, 0, NULL);
+		m_ErrorPrompt.Format(_T("WinSock Have Error #%d\n\n%s"), err, (LPTSTR)lpMessageBuffer);
+		LocalFree(lpMessageBuffer);
+	}
 
 	tmp.Format(_T("%s Server Entry Socket Error\n%s:%s Connection\n%s"), m_ServerEntry.m_EntryName, m_ServerEntry.m_HostName, m_ServerEntry.m_PortName, m_ErrorPrompt);
 	AfxMessageBox(tmp);

@@ -2517,6 +2517,75 @@ void CSFtp::OnCancel()
 	CDialogExt::OnCancel();
 }
 
+void CSFtp::OnOK()
+{
+	int n;
+	CWnd *pWnd = GetFocus();
+
+	if ( pWnd->m_hWnd == m_LocalList.m_hWnd ) {
+		if ( (n = m_LocalList.GetSelectionMark()) >= 0 ) {
+			n = (int)m_LocalList.GetItemData(n);
+			if ( n >= 0 && n < m_LocalNode.GetSize() ) {
+				if ( m_LocalNode[n].IsDir() )
+					LocalSetCwd(m_LocalNode[n].m_path);
+				else {
+					if ( m_bShellExec[0] == 0 ) {
+						CMsgChkDlg dlg(this);
+						dlg.m_MsgText.Format(IDS_SFTPLOCALEXEC, m_LocalNode[n].m_file);
+						dlg.m_Title = _T("Local File Execute");
+						dlg.m_bNoCheck = FALSE;
+						if ( dlg.DoModal() == IDOK ) {
+							if ( dlg.m_bNoCheck )
+								m_bShellExec[0] = 1;
+							ShellExecute(GetSafeHwnd(), NULL, m_LocalNode[n].m_path, NULL, NULL, SW_NORMAL);
+						}
+						//else if ( dlg.m_bNoCheck )
+						//	m_bShellExec[0] = 2;
+					} else if ( m_bShellExec[0] == 1 )
+						ShellExecute(GetSafeHwnd(), NULL, m_LocalNode[n].m_path, NULL, NULL, SW_NORMAL);
+				}
+			}
+		}
+
+	} else if ( pWnd->m_hWnd == m_RemoteList.m_hWnd ) {
+		if ( (n = m_RemoteList.GetSelectionMark()) >= 0 ) {
+			n = (int)m_RemoteList.GetItemData(n);
+			if ( n >= 0 && n < m_RemoteNode.GetSize() ) {
+				if ( m_RemoteNode[n].IsDir() )
+					RemoteSetCwd(m_RemoteNode[n].m_path);
+				else {
+					if ( m_bShellExec[1] == 0 ) {
+						CMsgChkDlg dlg(this);
+						dlg.m_MsgText.Format(IDS_SFTPREMOTEEXEC, m_RemoteNode[n].m_file);
+						dlg.m_Title = _T("Remote File Execute");
+						dlg.m_bNoCheck = FALSE;
+						if ( dlg.DoModal() == IDOK ) {
+							if ( dlg.m_bNoCheck )
+								m_bShellExec[1] = 1;
+							m_DoUpdate = 0;
+							m_DoAbort  = FALSE;
+							DownLoadFile(&(m_RemoteNode[n]), m_RemoteNode[n].GetLocalPath(m_LocalCurDir, this), TRUE);
+						}
+						//else if ( dlg.m_bNoCheck )
+						//	m_bShellExec[1] = 2;
+					} else if ( m_bShellExec[1] == 1 ) {
+						m_DoUpdate = 0;
+						m_DoAbort  = FALSE;
+						DownLoadFile(&(m_RemoteNode[n]), m_RemoteNode[n].GetLocalPath(m_LocalCurDir, this), TRUE);
+					}
+				}
+				SendWaitQue();
+			}
+		}
+
+	} else if ( pWnd->m_hWnd == m_LocalCwd.GetSafeHwnd() || pWnd->m_hWnd == m_LocalCwd.GetWindow(GW_CHILD)->GetSafeHwnd() ) {
+		m_LocalList.SetFocus();
+
+	} else if ( pWnd->m_hWnd == m_RemoteCwd.GetSafeHwnd() || pWnd->m_hWnd == m_RemoteCwd.GetWindow(GW_CHILD)->GetSafeHwnd() ) {
+		m_RemoteList.SetFocus();
+	}
+}
+
 void CSFtp::OnClose() 
 {
 	CDialogExt::OnClose();
@@ -2648,6 +2717,13 @@ BOOL CSFtp::OnInitDialog()
 
 	SetTimer(1120, 3000, NULL);
 
+	AddShortCutKey(IDC_LOCAL_LIST,	'C',		MASK_CTRL,	0,	ID_EDIT_COPY);
+	AddShortCutKey(IDC_LOCAL_LIST,	'V',		MASK_CTRL,	0,	ID_EDIT_PASTE);
+	AddShortCutKey(IDC_LOCAL_LIST,	VK_DELETE,	0,			0,	IDM_SFTP_DELETE);
+
+	AddShortCutKey(IDC_REMOTE_LIST,	'V',		MASK_CTRL,	0,	ID_EDIT_PASTE);
+	AddShortCutKey(IDC_REMOTE_LIST,	VK_DELETE,	0,			0,	IDM_SFTP_DELETE);
+
 	return TRUE;
 }
 
@@ -2766,65 +2842,13 @@ void CSFtp::OnKillfocusRemoteCwd()
 
 void CSFtp::OnDblclkLocalList(NMHDR* pNMHDR, LRESULT* pResult) 
 {
-	int n;
-	if ( (n = m_LocalList.GetSelectionMark()) >= 0 ) {
-		n = (int)m_LocalList.GetItemData(n);
-		if ( n >= 0 && n < m_LocalNode.GetSize() ) {
-			if ( m_LocalNode[n].IsDir() )
-				LocalSetCwd(m_LocalNode[n].m_path);
-			else {
-				if ( m_bShellExec[0] == 0 ) {
-					CMsgChkDlg dlg(this);
-					dlg.m_MsgText.Format(IDS_SFTPLOCALEXEC, m_LocalNode[n].m_file);
-					dlg.m_Title = _T("Local File Execute");
-					dlg.m_bNoCheck = FALSE;
-					if ( dlg.DoModal() == IDOK ) {
-						if ( dlg.m_bNoCheck )
-							m_bShellExec[0] = 1;
-						ShellExecute(GetSafeHwnd(), NULL, m_LocalNode[n].m_path, NULL, NULL, SW_NORMAL);
-					}
-					//else if ( dlg.m_bNoCheck )
-					//	m_bShellExec[0] = 2;
-				} else if ( m_bShellExec[0] == 1 )
-					ShellExecute(GetSafeHwnd(), NULL, m_LocalNode[n].m_path, NULL, NULL, SW_NORMAL);
-			}
-		}
-	}
+	SendMessage(WM_COMMAND, IDOK);
 	*pResult = 0;
 }
 
 void CSFtp::OnDblclkRemoteList(NMHDR* pNMHDR, LRESULT* pResult) 
 {
-	int n;
-	if ( (n = m_RemoteList.GetSelectionMark()) >= 0 ) {
-		n = (int)m_RemoteList.GetItemData(n);
-		if ( n >= 0 && n < m_RemoteNode.GetSize() ) {
-			if ( m_RemoteNode[n].IsDir() )
-				RemoteSetCwd(m_RemoteNode[n].m_path);
-			else {
-				if ( m_bShellExec[1] == 0 ) {
-					CMsgChkDlg dlg(this);
-					dlg.m_MsgText.Format(IDS_SFTPREMOTEEXEC, m_RemoteNode[n].m_file);
-					dlg.m_Title = _T("Remote File Execute");
-					dlg.m_bNoCheck = FALSE;
-					if ( dlg.DoModal() == IDOK ) {
-						if ( dlg.m_bNoCheck )
-							m_bShellExec[1] = 1;
-						m_DoUpdate = 0;
-						m_DoAbort  = FALSE;
-						DownLoadFile(&(m_RemoteNode[n]), m_RemoteNode[n].GetLocalPath(m_LocalCurDir, this), TRUE);
-					}
-					//else if ( dlg.m_bNoCheck )
-					//	m_bShellExec[1] = 2;
-				} else if ( m_bShellExec[1] == 1 ) {
-					m_DoUpdate = 0;
-					m_DoAbort  = FALSE;
-					DownLoadFile(&(m_RemoteNode[n]), m_RemoteNode[n].GetLocalPath(m_LocalCurDir, this), TRUE);
-				}
-			}
-			SendWaitQue();
-		}
-	}
+	SendMessage(WM_COMMAND, IDOK);
 	*pResult = 0;
 }
 
@@ -2852,44 +2876,7 @@ void CSFtp::OnSize(UINT nType, int cx, int cy)
 
 BOOL CSFtp::PreTranslateMessage(MSG* pMsg) 
 {
-	if ( pMsg->message == WM_KEYDOWN ) {
-		if ( pMsg->wParam == VK_RETURN ) {
-			pMsg->wParam = VK_TAB;
-
-		} else if ( pMsg->hwnd == m_LocalList.GetSafeHwnd() ) {
-			switch(pMsg->wParam) {
-			case 'C':
-				if ( (GetKeyState(VK_CONTROL) & 0x80) != 0 ) {
-					OnEditCopy();
-					return TRUE;
-				}
-				break;
-			case 'V':
-				if ( (GetKeyState(VK_CONTROL) & 0x80) != 0 ) {
-					OnEditPaste();
-					return TRUE;
-				}
-				break;
-			case VK_DELETE:
-				OnSftpDelete();
-				return TRUE;
-			}
-
-		} else if ( pMsg->hwnd == m_RemoteList.GetSafeHwnd() ) {
-			switch(pMsg->wParam) {
-			case 'V':
-				if ( (GetKeyState(VK_CONTROL) & 0x80) != 0 ) {
-					OnEditPaste();
-					return TRUE;
-				}
-				break;
-			case VK_DELETE:
-				OnSftpDelete();
-				return TRUE;
-			}
-		}
-
-	}else if ( pMsg->message == WM_DROPFILES )
+	if ( pMsg->message == WM_DROPFILES )
 		return DropFiles(pMsg->hwnd, (HDROP)(pMsg->wParam), DROPEFFECT_COPY);
 
 	return CDialogExt::PreTranslateMessage(pMsg);
@@ -3567,4 +3554,3 @@ void CSFtp::OnEditPaste()
 
 	CloseClipboard();
 }
-

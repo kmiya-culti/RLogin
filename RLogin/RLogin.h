@@ -222,3 +222,7 @@ extern void ExDwmEnableWindow(HWND hWnd, BOOL bEnable);
 
 extern BOOL (__stdcall *ExAddClipboardFormatListener)(HWND hwnd);
 extern BOOL (__stdcall *ExRemoveClipboardFormatListener)(HWND hwnd);
+
+#define	WM_DPICHANGED	0x02E0
+typedef enum _MONITOR_DPI_TYPE { MDT_EFFECTIVE_DPI = 0, MDT_ANGULAR_DPI = 1, MDT_RAW_DPI = 2, MDT_DEFAULT = MDT_EFFECTIVE_DPI } MONITOR_DPI_TYPE;
+extern HRESULT (__stdcall *ExGetDpiForMonitor)(HMONITOR hmonitor, MONITOR_DPI_TYPE dpiType, UINT *dpiX, UINT *dpiY);

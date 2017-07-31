@@ -170,6 +170,8 @@ public:
 	int m_ScreenH;
 	UINT_PTR m_StatusTimer;
 	CStringArray m_TempPath;
+	UINT m_ScreenDpiX;
+	UINT m_ScreenDpiY;
 
 	BOOL PagentQuery(CBuffer *pInBuf, CBuffer *pOutBuf);
 	void PagentInit(CArray<CIdKey, CIdKey &> *pKeyTab);
@@ -319,6 +321,7 @@ protected:
 	afx_msg void OnFileAllSave();
 	afx_msg void OnBroadcast();
 	afx_msg void OnUpdateBroadcast(CCmdUI *pCmdUI);
+	afx_msg void OnToolcust();
 
 	afx_msg LRESULT OnWinSockSelect(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnGetHostAddr(WPARAM wParam, LPARAM lParam);
@@ -326,8 +329,7 @@ protected:
 	afx_msg LRESULT OnThreadMsg(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnAfterOpen(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnGetClipboard(WPARAM wParam, LPARAM lParam);
-public:
-	afx_msg void OnToolcust();
+	afx_msg LRESULT OnDpiChanged(WPARAM wParam, LPARAM lParam);
 };
 
 

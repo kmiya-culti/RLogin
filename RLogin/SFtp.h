@@ -368,6 +368,8 @@ protected:
 	virtual BOOL OnInitDialog();
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	virtual void PostNcDestroy();
+	virtual void OnCancel();
+	virtual void OnOK();
 
 // インプリメンテーション
 protected:
@@ -410,6 +412,5 @@ protected:
 	afx_msg void OnRclickLocalList(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnRclickRemoteList(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg BOOL OnToolTipText(UINT, NMHDR* pNMHDR, LRESULT* pResult);
-	virtual void OnCancel();
 };
 

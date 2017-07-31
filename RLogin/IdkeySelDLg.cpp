@@ -49,25 +49,27 @@ void CIdkeySelDLg::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(CIdkeySelDLg, CDialogExt)
 	ON_WM_TIMER()
+
+	ON_NOTIFY(NM_DBLCLK, IDC_IDKEY_LIST, OnDblclkIdkeyList)
+	ON_NOTIFY(LVN_ITEMCHANGED, IDC_IDKEY_LIST, OnLvnItemchangedIdkeyList)
+
 	ON_BN_CLICKED(IDC_IDKEY_UP, OnIdkeyUp)
+	ON_UPDATE_COMMAND_UI(IDC_IDKEY_UP, OnUpdateEditEntry)
 	ON_BN_CLICKED(IDC_IDKEY_DOWN, OnIdkeyDown)
+	ON_UPDATE_COMMAND_UI(IDC_IDKEY_DOWN, OnUpdateEditEntry)
 	ON_BN_CLICKED(IDC_IDKEY_COPY, OnIdkeyCopy)
 	ON_BN_CLICKED(IDC_IDKEY_INPORT, OnIdkeyInport)
 	ON_BN_CLICKED(IDC_IDKEY_EXPORT, OnIdkeyExport)
-	ON_BN_CLICKED(IDC_IDKEY_CREATE, OnIdkeyCreate)
-	ON_NOTIFY(NM_DBLCLK, IDC_IDKEY_LIST, OnDblclkIdkeyList)
-	ON_WM_CLOSE()
-	ON_COMMAND(ID_EDIT_UPDATE, OnEditUpdate)
-	ON_COMMAND(ID_EDIT_DELETE, OnIdkeyDel)
-	ON_COMMAND(ID_EDIT_COPY, OnIdkeyCopy)
-	ON_COMMAND(ID_EDIT_CHECK, OnEditCheck)
-	ON_UPDATE_COMMAND_UI(IDC_IDKEY_UP, OnUpdateEditEntry)
-	ON_UPDATE_COMMAND_UI(IDC_IDKEY_DOWN, OnUpdateEditEntry)
-	ON_UPDATE_COMMAND_UI(ID_EDIT_UPDATE, OnUpdateEditEntry)
-	ON_UPDATE_COMMAND_UI(ID_EDIT_DELETE, OnUpdateEditEntry)
-	ON_UPDATE_COMMAND_UI(ID_EDIT_COPY, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(IDC_IDKEY_EXPORT, OnUpdateEditEntry)
-	ON_NOTIFY(LVN_ITEMCHANGED, IDC_IDKEY_LIST, OnLvnItemchangedIdkeyList)
+	ON_BN_CLICKED(IDC_IDKEY_CREATE, OnIdkeyCreate)
+
+	ON_COMMAND(ID_EDIT_UPDATE, OnEditUpdate)
+	ON_UPDATE_COMMAND_UI(ID_EDIT_UPDATE, OnUpdateEditEntry)
+	ON_COMMAND(ID_EDIT_DELETE, OnIdkeyDel)
+	ON_UPDATE_COMMAND_UI(ID_EDIT_DELETE, OnUpdateEditEntry)
+	ON_COMMAND(ID_EDIT_COPY, OnIdkeyCopy)
+	ON_UPDATE_COMMAND_UI(ID_EDIT_COPY, OnUpdateEditEntry)
+	ON_COMMAND(ID_EDIT_CHECK, OnEditCheck)
 	ON_COMMAND(ID_IDKEY_CAKEY, &CIdkeySelDLg::OnIdkeyCakey)
 	ON_COMMAND(IDM_SAVEPUBLICKEY, &CIdkeySelDLg::OnSavePublicKey)
 	ON_UPDATE_COMMAND_UI(IDM_SAVEPUBLICKEY, OnUpdateEditEntry)
@@ -221,15 +223,15 @@ void CIdkeySelDLg::OnOK()
 	else
 		CDialogExt::OnCancel();
 }
-
-void CIdkeySelDLg::OnClose()
+void CIdkeySelDLg::OnCancel()
 {
 	if ( m_KeyGenFlag != 0 ) {
 		MessageBox(CStringLoad(IDE_MAKEIDKEY));
 		return;
 	}
-	CDialogExt::OnClose();
+	CDialogExt::OnCancel();
 }
+
 void CIdkeySelDLg::OnTimer(UINT_PTR nIDEvent) 
 {
 	switch(nIDEvent) {
