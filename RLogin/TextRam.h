@@ -32,26 +32,27 @@
 #define	UTF8_SET		3
 #define	BIG5_SET		4
 
-#define ATT_BOLD		0x000001		// [1m bold or increased intensity
-#define	ATT_HALF		0x000002		// [2m faint, decreased intensity or second colour
-#define ATT_ITALIC		0x000004		// [3m italicized
-#define ATT_UNDER		0x000008		// [4m singly underlined
-#define ATT_SBLINK		0x000010		// [5m slowly blinking
-#define ATT_REVS		0x000020		// [7m negative image
-#define ATT_SECRET		0x000040		// [8m concealed characters
-#define ATT_LINE		0x000080		// [9m crossed-out
-#define ATT_BLINK		0x000100		// [6m rapidly blinking 
-#define ATT_DUNDER		0x000200		// [21m doubly underlined
-#define ATT_FRAME		0x000400		// [51m framed
-#define ATT_CIRCLE		0x000800		// [52m encircled
-#define ATT_OVER		0x001000		// [53m overlined
-#define ATT_RSLINE		0x002000		// [60m right side line
-#define ATT_RDLINE		0x004000		// [61m double line on the right side
-#define ATT_LSLINE		0x008000		// [62m left side line
-#define ATT_LDLINE		0x010000		// [63m double line on the left side
-#define ATT_STRESS		0x020000		// [64m stress marking
-#define	ATT_MARK		0x400000		// Search Mark
-#define	ATT_CLIP		0x800000		// Mouse Clip
+#define ATT_BOLD		0x0000001		// [1m bold or increased intensity
+#define	ATT_HALF		0x0000002		// [2m faint, decreased intensity or second colour
+#define ATT_ITALIC		0x0000004		// [3m italicized
+#define ATT_UNDER		0x0000008		// [4m singly underlined
+#define ATT_SBLINK		0x0000010		// [5m slowly blinking
+#define ATT_REVS		0x0000020		// [7m negative image
+#define ATT_SECRET		0x0000040		// [8m concealed characters
+#define ATT_LINE		0x0000080		// [9m crossed-out
+#define ATT_BLINK		0x0000100		// [6m rapidly blinking 
+#define ATT_DUNDER		0x0000200		// [21m doubly underlined
+#define ATT_FRAME		0x0000400		// [51m framed
+#define ATT_CIRCLE		0x0000800		// [52m encircled
+#define ATT_OVER		0x0001000		// [53m overlined
+#define ATT_RSLINE		0x0002000		// [60m right side line
+#define ATT_RDLINE		0x0004000		// [61m double line on the right side
+#define ATT_LSLINE		0x0008000		// [62m left side line
+#define ATT_LDLINE		0x0010000		// [63m double line on the left side
+#define ATT_STRESS		0x0020000		// [64m stress marking
+#define	ATT_MARK		0x0400000		// Search Mark
+#define	ATT_CLIP		0x0800000		// Mouse Clip
+#define	ATT_BITS		0x8000000		// 7 * 4 = 28 bit
 
 #define CODE_MAX		0x0400
 #define CODE_MASK		0x03FF
@@ -701,7 +702,7 @@ public:
 	void SetCsiNameCombo(CComboBox *pCombo);
 
 	void EscCsiDefName(LPCSTR *esc, LPCSTR *csi);
-	void ParseColor(int idx, LPCSTR para, int ch);
+	void ParseColor(int cmd, int idx, LPCSTR para, int ch);
 
 	int m_Kan_Pos;
 	BYTE m_Kan_Buf[KANBUFMAX];

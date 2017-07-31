@@ -55,25 +55,13 @@ Cssh::~Cssh()
 
 	((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this);
 }
-int Cssh::SetIdKeyList()
-{
-	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
-	CIdKey *pKey;
-
-	m_IdKey.Close();
-	while ( m_IdKeyPos < m_pDocument->m_ParamTab.m_IdKeyList.GetSize() ) {
-		if ( (pKey = pMain->m_IdKeyTab.GetUid(m_pDocument->m_ParamTab.m_IdKeyList.GetVal(m_IdKeyPos++))) != NULL ) {
-			m_IdKey = *pKey;
-			if ( m_IdKey.m_Type == IDKEY_NONE )
-				continue;
-			return TRUE;
-		}
-	}
-	return FALSE;
-}
 int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
 {
   try {
+	int n, i;
+	CString str;
+	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
+	CIdKey IdKey, *pKey;
 
 	//CString tmp;
 	//CCipher::BenchMark(tmp);
@@ -109,15 +97,16 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 	m_HisPeer.Clear();
 	m_Incom.Clear();
 	m_InPackBuf.Clear();
-	m_IdKey.Close();
-	m_IdKeyPos = 0;
 	m_HostKey.Close();
+	m_IdKey.Close();
+	m_IdKeyTab.RemoveAll();
+	m_IdKeyPos = 0;
 	SetRecvBufSize(64 * 1024);
 
 	srand((UINT)time(NULL));
 
 	if ( !m_pDocument->m_ServerEntry.m_IdkeyName.IsEmpty() ) {
-		if ( !m_IdKey.LoadPrivateKey(m_pDocument->m_ServerEntry.m_IdkeyName, m_pDocument->m_ServerEntry.m_PassName) ) {
+		if ( !IdKey.LoadPrivateKey(m_pDocument->m_ServerEntry.m_IdkeyName, m_pDocument->m_ServerEntry.m_PassName) ) {
 			CIdKeyFileDlg dlg;
 			dlg.m_OpenMode  = 1;
 			dlg.m_Title = "SSH鍵ファイルの読み込み";
@@ -127,14 +116,41 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 				m_pDocument->m_ServerEntry.m_IdkeyName.Empty();
 				return FALSE;
 			}
-			if ( !m_IdKey.LoadPrivateKey(dlg.m_IdkeyFile, dlg.m_PassName) ) {
+			if ( !IdKey.LoadPrivateKey(dlg.m_IdkeyFile, dlg.m_PassName) ) {
 				AfxMessageBox("鍵ファイルを読み込めませんでした");
 				return FALSE;
 			}
 		}
-		m_IdKey.m_Pass = m_pDocument->m_ServerEntry.m_PassName;
-	} else
-		SetIdKeyList();
+		IdKey.m_Pass = m_pDocument->m_ServerEntry.m_PassName;
+		m_IdKeyTab.Add(IdKey);
+	}
+
+	for ( n = 0 ; n < m_pDocument->m_ParamTab.m_IdKeyList.GetSize() ; n++ ) {
+		if ( (pKey = pMain->m_IdKeyTab.GetUid(m_pDocument->m_ParamTab.m_IdKeyList.GetVal(n))) != NULL ) {
+			if ( pKey->m_Type != IDKEY_NONE && pKey->m_Pass.Compare(m_pDocument->m_ServerEntry.m_PassName) == 0 )
+				m_IdKeyTab.Add(*pKey);
+		}
+	}
+
+	for ( n = 0 ; n <= AST_DONE ; n++ )
+		m_AuthReqTab[n] = AST_DONE;
+	i = AST_START;
+
+	for ( n = 0 ; m_pDocument->m_ParamTab.GetPropNode(11, n, str) ; n++ ) {
+		if ( str.CompareNoCase("publickey") == 0 ) {
+			m_AuthReqTab[i] = AST_PUBKEY_TRY;
+			i = AST_PUBKEY_TRY;
+		} else if ( str.CompareNoCase("hostbased") == 0 ) {
+			m_AuthReqTab[i] = AST_HOST_TRY;
+			i = AST_HOST_TRY;
+		} else if ( str.CompareNoCase("password") == 0 ) {
+			m_AuthReqTab[i] = AST_PASS_TRY;
+			i = AST_PASS_TRY;
+		} else if ( str.CompareNoCase("keyboard-interactive") == 0 ) {
+			m_AuthReqTab[i] = AST_KEYB_TRY;
+			i = AST_KEYB_TRY;
+		}
+	}
 
 	m_EncCip.Init("none", MODE_ENC);
 	m_DecCip.Init("none", MODE_DEC);
@@ -142,9 +158,6 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 	m_DecMac.Init("none");
 	m_EncCmp.Init("none", MODE_ENC);
 	m_DecCmp.Init("none", MODE_DEC);
-
-	int n;
-	CString str;
 
 	m_CipTabMax = 0;
 	for ( n = 0 ; n < 8 && m_pDocument->m_ParamTab.GetPropNode(0, n, str) ; n++ )
@@ -578,13 +591,14 @@ int Cssh::SMsgAuthRsaChallenge(CBuffer *bp)
 	BYTE buf[32], res[16];
 	CSpace inbuf, otbuf;
 
-	while ( m_IdKey.m_Type == IDKEY_DSA2 ) {
-		if ( !SetIdKeyList() )
-			return FALSE;
-	}
 
-	if ( m_IdKey.m_Pass.Compare(m_pDocument->m_ServerEntry.m_PassName) != 0 )
-		return FALSE;
+	for ( ; ; ) {
+		if ( m_IdKeyPos >= m_IdKeyTab.GetSize() )
+			return FALSE;
+		m_IdKey = m_IdKeyTab[m_IdKeyPos++];
+		if ( m_IdKey.m_Type == IDKEY_RSA1 || m_IdKey.m_Type == IDKEY_RSA2 )
+			break;
+	}
 
 	if ( (challenge = BN_new()) == NULL )
 		return FALSE;
@@ -1355,92 +1369,97 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 	if ( str == NULL ) {
 		m_AuthStat = AST_START;
 		str = "none";
-	} else
-		m_AuthMeta = str;
+	}
+	m_AuthMeta = str;
 
-	switch(m_AuthStat) {
-	case AST_START:
-		tmp.PutStr("none");
-		m_AuthStat = AST_PUBKEY_TRY;
-		m_AuthMode = AUTH_MODE_NONE;
-		break;
-	case AST_PUBKEY_NEXT:
-	PUBKEY_NEXT:
-		if ( !SetIdKeyList() )
-			goto PASS_TRY;
-	case AST_PUBKEY_TRY:
-		if ( m_IdKey.m_Type != IDKEY_NONE && strstr(str, "publickey") != NULL ) {
-			if ( m_IdKey.m_Pass.Compare(m_pDocument->m_ServerEntry.m_PassName) != 0 )
-				goto PUBKEY_NEXT;
-			if ( m_IdKey.m_Type == IDKEY_RSA1 )
-				m_IdKey.m_Type = IDKEY_RSA2;
-			m_IdKey.SetBlob(&blob);
-			len = tmp.GetSize();
-			tmp.PutStr("publickey");
-			tmp.Put8Bit(1);
-			tmp.PutStr(m_IdKey.GetName());
-			tmp.PutBuf(blob.GetPtr(), blob.GetSize());
-			len = tmp.GetSize() - len;
-			if ( !m_IdKey.Sign(&sig, tmp.GetPtr(), tmp.GetSize()) ) {
+	while ( m_AuthStat != AST_DONE ) {
+		if ( m_AuthStat == AST_START ) {
+			tmp.PutStr("none");
+			m_IdKeyPos = 0;
+			m_AuthStat = m_AuthReqTab[AST_START];
+			m_AuthMode = AUTH_MODE_NONE;
+
+		} else if ( m_AuthStat == AST_PUBKEY_TRY ) {
+			m_AuthMode = AUTH_MODE_NONE;
+			while ( strstr(str, "publickey") != NULL && m_IdKeyPos < m_IdKeyTab.GetSize() ) {
+				m_IdKey = m_IdKeyTab[m_IdKeyPos++];
+				if ( m_IdKey.m_Type == IDKEY_RSA1 )
+					m_IdKey.m_Type = IDKEY_RSA2;
+				m_IdKey.SetBlob(&blob);
+				len = tmp.GetSize();
+				tmp.PutStr("publickey");
+				tmp.Put8Bit(1);
+				tmp.PutStr(m_IdKey.GetName());
+				tmp.PutBuf(blob.GetPtr(), blob.GetSize());
+				len = tmp.GetSize() - len;
+				if ( m_IdKey.Sign(&sig, tmp.GetPtr(), tmp.GetSize()) ) {
+					tmp.PutBuf(sig.GetPtr(), sig.GetSize());
+					m_AuthMode = AUTH_MODE_PUBLICKEY;
+					break;
+				}
 				tmp.ConsumeEnd(len);
-				goto PUBKEY_NEXT;
 			}
-			tmp.PutBuf(sig.GetPtr(), sig.GetSize());
-			m_AuthStat = AST_HOST_TRY;
-			m_AuthMode = AUTH_MODE_PUBLICKEY;
-			break;
-		}
-	case AST_HOST_TRY:
-		if ( m_IdKey.m_Type != IDKEY_NONE && strstr(str, "hostbased") != NULL ) {
-			if ( m_IdKey.m_Pass.Compare(m_pDocument->m_ServerEntry.m_PassName) != 0 )
-				goto PUBKEY_NEXT;
-			m_IdKey.SetBlob(&blob);
-			len = tmp.GetSize();
-			tmp.PutStr("hostbased");
-			tmp.PutStr(m_IdKey.GetName());
-			tmp.PutBuf(blob.GetPtr(), blob.GetSize());
-			GetSockName(m_Fd, wrk, &len);
-			tmp.PutStr(wrk);		// client ip address
-			m_IdKey.GetUserHostName(wrk);
-			tmp.PutStr(wrk);		// client user name;
-			if ( !m_IdKey.Sign(&sig, tmp.GetPtr(), tmp.GetSize()) ) {
+			if ( m_AuthMode == AUTH_MODE_NONE ) {
+				m_IdKeyPos = 0;
+				m_AuthStat = m_AuthReqTab[AST_PUBKEY_TRY];
+				continue;
+			}
+
+		} else if ( m_AuthStat == AST_HOST_TRY ) {
+			m_AuthMode = AUTH_MODE_NONE;
+			while ( strstr(str, "hostbased") != NULL && m_IdKeyPos < m_IdKeyTab.GetSize() ) {
+				m_IdKey = m_IdKeyTab[m_IdKeyPos++];
+				m_IdKey.SetBlob(&blob);
+				len = tmp.GetSize();
+				tmp.PutStr("hostbased");
+				tmp.PutStr(m_IdKey.GetName());
+				tmp.PutBuf(blob.GetPtr(), blob.GetSize());
+				GetSockName(m_Fd, wrk, &len);
+				tmp.PutStr(wrk);		// client ip address
+				m_IdKey.GetUserHostName(wrk);
+				tmp.PutStr(wrk);		// client user name;
+				if ( m_IdKey.Sign(&sig, tmp.GetPtr(), tmp.GetSize()) ) {
+					tmp.PutBuf(sig.GetPtr(), sig.GetSize());
+					m_AuthMode = AUTH_MODE_HOSTBASED;
+					break;
+				}
 				tmp.ConsumeEnd(len);
-				goto PUBKEY_NEXT;
 			}
-			tmp.PutBuf(sig.GetPtr(), sig.GetSize());
-			m_AuthStat = AST_PUBKEY_NEXT;
-			m_AuthMode = AUTH_MODE_HOSTBASED;
-			break;
-		} else if ( m_IdKey.m_Type != IDKEY_NONE )
-			goto PUBKEY_NEXT;
-	case AST_PASS_TRY:
-	PASS_TRY:
-		if ( !m_pDocument->m_ServerEntry.m_PassName.IsEmpty() && strstr(str, "password") != NULL ) {
+			if ( m_AuthMode == AUTH_MODE_NONE ) {
+				m_IdKeyPos = 0;
+				m_AuthStat = m_AuthReqTab[AST_HOST_TRY];
+				continue;
+			}
+
+		} else if ( m_AuthStat == AST_PASS_TRY ) {
+			m_IdKeyPos = 0;
+			m_AuthStat = m_AuthReqTab[AST_PASS_TRY];
+			if ( strstr(str, "password") == NULL || m_pDocument->m_ServerEntry.m_PassName.IsEmpty() )
+				continue;
 			tmp.PutStr("password");
 			tmp.Put8Bit(0);
 			tmp.PutStr(m_pDocument->m_ServerEntry.m_PassName);
-			m_AuthStat = AST_KEYB_TRY;
 			m_AuthMode = AUTH_MODE_PASSWORD;
-			break;
-		}
-	case AST_KEYB_TRY:
-		if ( strstr(str, "keyboard-interactive") != NULL ) {
+
+		} else if ( m_AuthStat == AST_KEYB_TRY ) {
+			m_IdKeyPos = 0;
+			m_AuthStat = m_AuthReqTab[AST_KEYB_TRY];
+			if ( strstr(str, "keyboard-interactive") == NULL )
+				continue;
 			tmp.PutStr("keyboard-interactive");
 			tmp.PutStr("");		// LANG
 			tmp.PutStr("");		// DEV
-			m_AuthStat = AST_DONE;
 			m_AuthMode = AUTH_MODE_KEYBOARD;
-			break;
 		}
-	default:
-		m_AuthStat = AST_DONE;
-		m_AuthMode = AUTH_MODE_NONE;
-		return FALSE;
+
+		tmp.Consume(skip);
+		SendPacket2(&tmp);
+		return TRUE;
 	}
 
-	tmp.Consume(skip);
-	SendPacket2(&tmp);
-	return TRUE;
+	m_AuthStat = AST_DONE;
+	m_AuthMode = AUTH_MODE_NONE;
+	return FALSE;
 }
 int Cssh::SendMsgChannelOpen(int n, LPCSTR type, LPCSTR lhost, int lport, LPCSTR rhost, int rport)
 {
@@ -2134,7 +2153,7 @@ int Cssh::SSH2MsgUserAuthPkOk(CBuffer *bp)
 	int n;
 	CString name;
 	CBuffer blob;
-	CIdKey *pKey, ReqKey;
+	CIdKey ReqKey;
 	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
 
 	bp->GetStr(name);
@@ -2143,17 +2162,16 @@ int Cssh::SSH2MsgUserAuthPkOk(CBuffer *bp)
 	if ( !ReqKey.GetBlob(&blob) )
 		return FALSE;
 
-	for ( n = 0 ; n < m_pDocument->m_ParamTab.m_IdKeyList.GetSize() ; n++ ) {
-		if ( (pKey = pMain->m_IdKeyTab.GetUid(m_pDocument->m_ParamTab.m_IdKeyList.GetVal(n))) == NULL )
+	for ( n = 0 ; n < m_IdKeyTab.GetSize() ; n++ ) {
+		if ( m_IdKeyTab[n].m_Type != ReqKey.m_Type )
 			continue;
-		if ( pKey->m_Type == IDKEY_NONE || pKey->m_Type != ReqKey.m_Type )
-			continue;
-		if ( ReqKey.Compere(pKey) == 0 ) {
-			m_IdKey = *pKey;
+		if ( ReqKey.Compere(&(m_IdKeyTab[n])) == 0 ) {
+			m_IdKeyPos = n;
 			m_AuthStat = AST_PUBKEY_TRY;
 			return SendMsgUserAuthRequest("publickey");
 		}
 	}
+
 	return FALSE;
 }
 int Cssh::SSH2MsgUserAuthPasswdChangeReq(CBuffer *bp)

@@ -488,7 +488,6 @@ public:
 
 enum EAuthStat {
 	AST_START = 0,
-	AST_PUBKEY_NEXT,
 	AST_PUBKEY_TRY,
 	AST_HOST_TRY,
 	AST_PASS_TRY,
@@ -537,9 +536,11 @@ private:
 	BYTE m_SessionId[64];
 	int m_SessionIdLen;
 	BYTE m_SessionKey[64];
-	CIdKey m_IdKey;
-	int m_IdKeyPos;
 	CIdKey m_HostKey;
+	CIdKey m_IdKey;
+	CArray<CIdKey, CIdKey &> m_IdKeyTab;
+	int m_IdKeyPos;
+	int m_AuthReqTab[8];
 
 	int m_ServerFlag;
 	int m_SupportCipher;
@@ -603,7 +604,6 @@ private:
 	int MatchList(LPCSTR client, LPCSTR server, CString &str);
 	int ChannelOpen();
 	void ChannelClose(int id);
-	int SetIdKeyList();
 
 	void SendMsgKexInit();
 	void SendMsgNewKeys();

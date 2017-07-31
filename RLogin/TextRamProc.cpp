@@ -1002,7 +1002,7 @@ void CTextRam::EscCsiDefName(LPCSTR *esc, LPCSTR *csi)
 		csi[c] = CsiProcName(fc_CsiExtTab[n].proc);
 	}
 }
-void CTextRam::ParseColor(int idx, LPCSTR para, int ch)
+void CTextRam::ParseColor(int cmd, int idx, LPCSTR para, int ch)
 {
 	int r, g, b;
 
@@ -1011,7 +1011,7 @@ void CTextRam::ParseColor(int idx, LPCSTR para, int ch)
 
 	if ( para[0] == '?' ) {
 		COLORREF rgb = m_ColTab[idx];
-		UNGETSTR("%s4;%d;rgb:%04x/%04x/%04x%s", m_RetChar[RC_OSC], idx,
+		UNGETSTR("%s%d;%d;rgb:%04x/%04x/%04x%s", m_RetChar[RC_OSC], cmd, idx,
 			GetRValue(rgb), GetGValue(rgb), GetBValue(rgb),
 			(ch == 0x07 ? "\007" : m_RetChar[RC_ST]));
 
@@ -2295,7 +2295,7 @@ void CTextRam::fc_OSC_PAM(int ch)
 }
 void CTextRam::fc_OSC_ST(int ch)
 {
-	int n, i;
+	int n, i, cmd;
 	int r, g, b;
 	LPCSTR p;
 	CString tmp, str, wrk;
@@ -2497,6 +2497,10 @@ void CTextRam::fc_OSC_ST(int ch)
 			UNGETSTR("%s1$r%d,q%s", m_RetChar[RC_DCS], m_TermId, m_RetChar[RC_ST]);
 			break;
 
+		case (' ' << 8) | 'q':		// DECSCUSR Set Cursor Style
+			UNGETSTR("%s1$r%d q%s", m_RetChar[RC_DCS], m_TypeCaret, m_RetChar[RC_ST]);
+			break;
+
 		//case '|':					// DECTTC Select transmit termination character
 		//case ('\'' << 8) | 's':	// DECTLTC
 		//case ('+' << 8) | 'q':	// DECELF Enable local functions
@@ -2536,7 +2540,8 @@ void CTextRam::fc_OSC_ST(int ch)
 			p++;
 		if ( tmp.IsEmpty() )
 			break;
-		switch(atoi(tmp)) {
+		cmd = atoi(tmp);
+		switch(cmd) {
 		case 0:		// 0 -> Change Icon Name and Window Title to Pt
 		case 1:		// 1 -> Change Icon Name to Pt
 		case 2:		// 2 -> Change Window Title to Pt
@@ -2564,7 +2569,7 @@ void CTextRam::fc_OSC_ST(int ch)
 					tmp += *(p++);
 				if ( *p == ';' )
 					p++;
-				ParseColor(n, tmp, ch);
+				ParseColor(cmd, n, tmp, ch);
 			}
 			break;
 
@@ -2588,7 +2593,7 @@ void CTextRam::fc_OSC_ST(int ch)
 				if ( *p == ';' )
 					p++;
 				if ( tmp.Compare("?") == 0 )	// XXXXXXXXXXXXXXXXXXXXX
-					ParseColor(m_AttNow.fc, tmp, ch);
+					ParseColor(cmd, m_AttNow.fc, tmp, ch);
 			}
 			break;
 
@@ -2604,7 +2609,7 @@ void CTextRam::fc_OSC_ST(int ch)
 			if ( *p == ';' )
 				p++;
 			if ( tmp.Compare("?") == 0 )	// XXXXXXXXXXXXXXXXXXXXX
-				ParseColor(m_AttNow.fc, tmp, ch);
+				ParseColor(cmd, m_AttNow.fc, tmp, ch);
 			break;
 		case 11:	// 11  -> Change VT100 text background color to Pt.
 		case 14:	// 14  -> Change mouse background color to Pt.
@@ -2616,7 +2621,7 @@ void CTextRam::fc_OSC_ST(int ch)
 			if ( *p == ';' )
 				p++;
 			if ( tmp.Compare("?") == 0 )	// XXXXXXXXXXXXXXXXXXXXX
-				ParseColor(m_AttNow.bc, tmp, ch);
+				ParseColor(cmd, m_AttNow.bc, tmp, ch);
 			break;
 
 		case 46:	// 46  -> Change Log File to Pt.
@@ -2653,7 +2658,7 @@ void CTextRam::fc_OSC_ST(int ch)
 		case 52:	// 52  -> Manipulate Selection Data.
 			break;
 
-		case 104:	// 104  ; c -> Reset Color Number c.
+		case 104:	// 104;c -> Reset Color Number c.
 			while ( *p != '\0' ) {
 				tmp.Empty();
 				while ( *p != '\0' && *p != ';' )
@@ -2663,7 +2668,7 @@ void CTextRam::fc_OSC_ST(int ch)
 				if ( tmp.IsEmpty() )
 					break;
 				n = atoi(tmp);
-				ParseColor(n, "reset", ch);
+				ParseColor(cmd, n, "reset", ch);
 			}
 			break;
 
@@ -2681,7 +2686,7 @@ void CTextRam::fc_OSC_ST(int ch)
 					//	n = 1  <- resource colorUL (UNDERLINE).
 					//	n = 2  <- resource colorBL (BLINK).
 					//	n = 3  <- resource colorRV (REVERSE).
-				ParseColor(m_AttNow.fc, "reset", ch);		// XXXXXXXXXXXXXXXXXXXXXXXXX
+				ParseColor(cmd, m_AttNow.fc, "reset", ch);		// XXXXXXXXXXXXXXXXXXXXXXXXX
 			}
 			break;
 
@@ -2690,13 +2695,13 @@ void CTextRam::fc_OSC_ST(int ch)
 		case 113:	// 113  -> Reset mouse foreground color.
 		case 115:	// 115  -> Reset Tektronix foreground color.
 		case 118:	// 118  -> Reset Tektronix cursor color.
-			ParseColor(m_AttNow.fc, "reset", ch);
+			ParseColor(cmd, m_AttNow.fc, "reset", ch);
 			break;
 		case 111:	// 111  -> Reset VT100 text background color.
 		case 114:	// 114  -> Reset mouse background color.
 		case 116:	// 116  -> Reset Tektronix background color.
 		case 117:	// 117  -> Reset highlight background color.
-			ParseColor(m_AttNow.bc, "reset", ch);
+			ParseColor(cmd, m_AttNow.bc, "reset", ch);
 			break;
 		}
 		break;
