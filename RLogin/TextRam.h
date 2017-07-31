@@ -68,6 +68,7 @@
 #define	ATT_RTOL		0x1000000		// RtoL Char
 #define	ATT_BORDER		0x2000000		// U+2500 Border Char
 #define	ATT_BITS		0x8000000		// 7 * 4 = 28 bit
+#define	ATT_MASK		0x00FFFFF
 
 #define CODE_MAX		0x0400
 #define CODE_MASK		0x03FF
@@ -204,6 +205,7 @@
 #define	TO_RLLOGTIME	1457		// ログにタイムスタンプを追加
 #define	TO_RLSTAYCLIP	1458		// 範囲選択をそのままにする
 #define	TO_PROXPASS		1459		// プロキシーの入力を求める
+#define	TO_SLEEPTIMER	1460		// スリープを行う
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -330,6 +332,7 @@
 #define	EXTCOL_TEXT_REVERSE		269				// 5;3 <- resource colorRV (REVERSE).
 
 #define	EXTCOL_MAX				270
+#define	EXTCOL_MATRIX			26
 
 #define issjis1(c)		(((unsigned char)(c) >= 0x81 && \
 						  (unsigned char)(c) <= 0x9F) || \
@@ -723,6 +726,7 @@ public:	// Options
 	int m_TraceMaxCount;
 	int m_DefTypeCaret;
 	int m_FixVersion;
+	int m_SleepMax;
 
 	void Init();
 	void SetIndex(int mode, CStringIndex &index);
@@ -761,7 +765,7 @@ public:
 	int m_LeftX;
 	int m_RightX;
 	int m_DefTab;
-	COLORREF m_ColTab[EXTCOL_MAX];
+	COLORREF m_ColTab[EXTCOL_MAX + EXTCOL_MATRIX];
 	DWORD m_AnsiOpt[16];
 	DWORD m_OptTab[16];
 	int m_ModKey[MODKEY_MAX];

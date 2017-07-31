@@ -5658,6 +5658,9 @@ BOOL CHttpSession::GetRequest(LPCTSTR url, CBuffer &buf)
 	CHttpFile *pHttpFile;
 	BYTE tmp[BUFSIZ];
 
+	if ( InternetAttemptConnect(0) != ERROR_SUCCESS )
+		return FALSE;
+
 	ParseUrl(url);
 
 	if ( m_Protocl.Compare(_T("http")) != 0 )

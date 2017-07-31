@@ -6872,7 +6872,7 @@ void CTextRam::fc_DECSTGLT(DWORD ch)
 	case 1:		// Alternate color Text attributes (bold, blink, underline, reverse)
 	case 2:		// Alternate color -
 	case 3:		// ANSI SGR color ANSI SGR color parameters
-		memcpy(m_ColTab, m_DefColTab, sizeof(m_ColTab));
+		memcpy(m_ColTab, m_DefColTab, sizeof(m_DefColTab));
 		break;
 	}
 	DISPVRAM(0, 0, m_Cols, m_Lines);

@@ -24,6 +24,10 @@
 #define	VTMID_WHEELMOVE		1027
 #define	VTMID_CARETUPDATE	1028
 #define	VTMID_GOZIUPDATE	1029
+#define	VTMID_SLEEPTIMER	1030
+
+#define	VIEW_SLEEP_MSEC		10000	// x 1msec = 10sec
+#define	VIEW_SLEEP_MAX		60		// x 10sec = 600sec = 10min
 
 class CRLoginView : public CView
 {
@@ -87,17 +91,23 @@ public:
 	class CMsgWnd m_MsgWnd;
 	class CBtnWnd m_BtnWnd;
 
+	BOOL m_SleepView;
+	int m_SleepCount;
+	int m_MatrixCols[COLS_MAX];
+
 	BOOL m_GoziView;
-#if USE_GOZI == 3 || USE_GOZI == 4
-	struct _GoziData {
-#endif
+#if   USE_GOZI == 1 || USE_GOZI == 2
 	int m_GoziStyle;
 	int m_GoziCount;
 	CPoint m_GoziPos;
-#if USE_GOZI == 3 || USE_GOZI == 4
+#elif USE_GOZI == 3 || USE_GOZI == 4
+	struct _GoziData {
+		int m_GoziStyle;
+		int m_GoziCount;
+		CPoint m_GoziPos;
 	} m_GoziData[8];
 	int m_GoziMax;
-#endif
+#endif	// USE_GOZI
 
 #ifdef	USE_DIRECTWRITE
 	ID2D1HwndRenderTarget *m_pRenderTarget;

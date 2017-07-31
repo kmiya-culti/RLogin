@@ -130,18 +130,21 @@ CRLoginView::CRLoginView()
 	m_WheelzDelta = 0;
 	m_pGhost = NULL;
 	m_GoziView  = FALSE;
-#if USE_GOZI == 3 || USE_GOZI == 4
+#if   USE_GOZI == 1 || USE_GOZI == 2
+	m_GoziStyle = (8 << 4) | 9;
+	m_GoziCount = 4 + rand() % 28;
+	m_GoziPos.SetPoint(0, 0);
+#elif USE_GOZI == 3 || USE_GOZI == 4
 	m_GoziMax = 3;
 	for ( int n = 0 ; n < 8 ; n++ ) {
 		m_GoziData[n].m_GoziStyle = 5;
 		m_GoziData[n].m_GoziCount = 4 + rand() % 28;
 		m_GoziData[n].m_GoziPos.SetPoint(0, 0);
 	}
-#else
-	m_GoziStyle = (8 << 4) | 9;
-	m_GoziCount = 4 + rand() % 28;
-	m_GoziPos.SetPoint(0, 0);
 #endif
+
+	m_SleepView = FALSE;
+	m_SleepCount = 0;
 
 	m_PastNoCheck = FALSE;
 	m_ScrollOut = FALSE;
@@ -284,19 +287,19 @@ void CRLoginView::OnDraw(CDC* pDC)
 	}
 #endif
 
-#if		USE_GOZI == 3 || USE_GOZI == 4
+#if		USE_GOZI == 1 || USE_GOZI == 2
+	if ( m_GoziView ) {
+		CMainFrame *pMain = GetMainWnd();
+		if ( pMain != NULL && pMain->m_ImageGozi.m_hImageList != NULL )
+			pMain->m_ImageGozi.Draw(pDC, m_GoziStyle >> 4, m_GoziPos, ILD_NORMAL);
+	}
+#elif	USE_GOZI == 3 || USE_GOZI == 4
 	if ( m_GoziView ) {
 		CMainFrame *pMain = GetMainWnd();
 		for ( int n = 0 ; n < m_GoziMax ; n++ ) {
 			if ( pMain != NULL && pMain->m_ImageGozi.m_hImageList != NULL )
 				pMain->m_ImageGozi.Draw(pDC, m_GoziData[n].m_GoziStyle >> 4, m_GoziData[n].m_GoziPos, ILD_NORMAL);
 		}
-	}
-#else
-	if ( m_GoziView ) {
-		CMainFrame *pMain = GetMainWnd();
-		if ( pMain != NULL && pMain->m_ImageGozi.m_hImageList != NULL )
-			pMain->m_ImageGozi.Draw(pDC, m_GoziStyle >> 4, m_GoziPos, ILD_NORMAL);
 	}
 #endif
 
@@ -773,6 +776,10 @@ int CRLoginView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_ToolTip.SetMaxTipWidth(512);
 	m_ToolTip.Activate(TRUE);
 
+	m_SleepView = FALSE;
+	m_SleepCount = 0;
+	SetTimer(VTMID_SLEEPTIMER, VIEW_SLEEP_MSEC, NULL);
+
 	return 0;
 }
 void CRLoginView::SetFrameRect(int cx, int cy)
@@ -923,6 +930,10 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		str.Format(_T("%d %s"), ((CMainFrame *)AfxGetMainWnd())->GetTabIndex(pFrame) + 1, pDoc->GetTitle());
 		m_MsgWnd.Message(str, this);
 		return;
+
+	case UPDATE_WAKEUP:
+		m_SleepCount = 0;
+		return;
 	}
 
 	if ( (m_DispCaret & FGCARET_FOCUS) != 0 && pSender != this && m_ScrollOut == FALSE &&
@@ -968,6 +979,7 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		}
 
 		// No break
+
 	case UPDATE_INVALIDATE:
 		if ( m_HisOfs > 0 )
 			m_HisOfs += pDoc->m_TextRam.m_HisUse;
@@ -1776,7 +1788,34 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 			rect.SetRect(m_GoziData[n].m_GoziPos.x, m_GoziData[n].m_GoziPos.y, m_GoziData[n].m_GoziPos.x + 16, m_GoziData[n].m_GoziPos.y + 16);
 			InvalidateRect(rect, FALSE);
 		}
-#endif
+
+#else	// !USE_GOZI
+		KillTimer(nIDEvent);
+#endif	// USE_GOZI
+		break;
+
+	case VTMID_SLEEPTIMER:		// Matrix Timer
+		if ( m_SleepView == FALSE ) {
+			if ( pDoc == NULL || !pDoc->m_TextRam.IsInitText() || !pDoc->m_TextRam.IsOptEnable(TO_SLEEPTIMER) )
+				m_SleepCount = 0;
+			else if ( ++m_SleepCount >= pDoc->m_TextRam.m_SleepMax ) {
+				m_SleepView = TRUE;
+				for ( int n = 0 ; n < m_Cols ; n++ )
+					m_MatrixCols[n] = rand() % (m_Lines + 25);
+				SetTimer(VTMID_SLEEPTIMER, 200, NULL);
+			}
+		} else {
+			if ( m_SleepCount <= 0 ) {
+				m_SleepView = FALSE;
+				SetTimer(VTMID_SLEEPTIMER, VIEW_SLEEP_MSEC, NULL);
+			} else {
+				for ( mx = 0 ; mx < m_Cols ; mx++ ) {
+					if ( ++m_MatrixCols[mx] > (m_Lines + 24) )
+						m_MatrixCols[mx] = 0 - (rand() % 10);
+				}
+			}
+			Invalidate(FALSE);
+		}
 		break;
 	}
 }
@@ -2584,7 +2623,10 @@ void CRLoginView::OnGoziview()
 		m_GoziView = FALSE;
 	} else {
 		m_GoziView = TRUE;
-#if USE_GOZI == 3
+
+#if USE_GOZI == 1 || USE_GOZI == 2
+		SetTimer(VTMID_GOZIUPDATE, 400, NULL);
+#elif USE_GOZI == 3
 		m_GoziMax = 3 + (rand() % 6);
 		SetTimer(VTMID_GOZIUPDATE, 200, NULL);
 #elif USE_GOZI == 4
@@ -2594,9 +2636,8 @@ void CRLoginView::OnGoziview()
 			m_GoziData[n].m_GoziPos.SetPoint(0, 0);
 		}
 		SetTimer(VTMID_GOZIUPDATE, 200, NULL);
-#else
-		SetTimer(VTMID_GOZIUPDATE, 400, NULL);
 #endif
+
 	}
 }
 void CRLoginView::OnUpdateGoziview(CCmdUI *pCmdUI)

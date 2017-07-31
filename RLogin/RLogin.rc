@@ -491,7 +491,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.18.5 (2015/06/01)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.18.6 (2015/06/08)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2015 Culti",IDC_STATIC,44,16,189,8
     DEFPUSHBUTTON   "OK",IDOK,96,171,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.2a 19 Mar 2015",IDC_STATIC,44,29,189,8
@@ -1420,17 +1420,19 @@ FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     CONTROL         "改行(CR)を確認し指定時間待って次を送信する(ms)",IDC_PROTOCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,27,180,10
     EDITTEXT        IDC_DELAYMSEC,204,25,50,14,ES_RIGHT | ES_AUTOHSCROLL
-    CONTROL         "BPlus/ZModem/Kermitファイル転送を有効にする",IDC_PROTOCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,45,180,10
-    CONTROL         "キーボード入力をローカルエディットモードにする",IDC_PROTOCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,63,180,10
-    CONTROL         "接続が切れると自動でプログラムを終了する",IDC_PROTOCHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,81,180,10
-    CONTROL         "TCPオプションのKeepAliveを有効にする",IDC_PROTOCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,126,180,10
-    CONTROL         "IPv6/IPv4",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,36,166,45,10
-    CONTROL         "IPv6のみ",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,115,166,42,10
-    CONTROL         "IPv4のみ",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,191,166,42,10
-    GROUPBOX        "オプション",IDC_STATIC,7,7,256,96
-    GROUPBOX        "TCP/IP",IDC_STATIC,7,110,256,111
-    GROUPBOX        "接続するIPバージョンの選択",IDC_STATIC,14,146,240,66
-    LTEXT           "IPv6/IPv4の場合、DNSの応答でIPv6アドレスが返されればIPv6で接続しIPv4だけならIPv4で接続します.",IDC_STATIC,26,188,218,16
+    CONTROL         "BPlus/ZModem/Kermitファイル転送を有効にする",IDC_PROTOCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,46,180,10
+    CONTROL         "キーボード入力をローカルエディットモードにする",IDC_PROTOCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,65,180,10
+    CONTROL         "接続が切れると自動でプログラムを終了する",IDC_PROTOCHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,84,180,10
+    CONTROL         "画面更新がないとスリープ画面に移行する(分単位）",IDC_PROTOCHECK6,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,103,180,10
+    EDITTEXT        IDC_SLEEPTIME,204,101,50,14,ES_RIGHT | ES_AUTOHSCROLL
+    CONTROL         "TCPオプションのKeepAliveを有効にする",IDC_PROTOCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,147,180,10
+    CONTROL         "IPv6/IPv4",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,36,188,45,10
+    CONTROL         "IPv6のみ",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,115,188,42,10
+    CONTROL         "IPv4のみ",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,191,188,42,10
+    GROUPBOX        "オプション",IDC_STATIC,7,7,256,118
+    GROUPBOX        "TCP/IP",IDC_STATIC,7,130,256,118
+    GROUPBOX        "接続するIPバージョンの選択",IDC_STATIC,14,167,240,72
+    LTEXT           "IPv6/IPv4の場合、DNSの応答でIPv6アドレスが返されればIPv6で接続しIPv4だけならIPv4で接続します.",IDC_STATIC,26,213,218,16
 END
 
 IDD_MODKEYPAGE DIALOGEX 0, 0, 270, 280
@@ -1535,8 +1537,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,18,5,0
- PRODUCTVERSION 2,18,5,0
+ FILEVERSION 2,18,6,0
+ PRODUCTVERSION 2,18,6,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1553,12 +1555,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.18.5.0"
+            VALUE "FileVersion", "2.18.6.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2015 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.18.5.0"
+            VALUE "ProductVersion", "2.18.6.0"
         END
     END
     BLOCK "VarFileInfo"

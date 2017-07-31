@@ -36,6 +36,7 @@
 #define	UPDATE_RESIZE		11
 #define	UPDATE_CANCELBTN	12
 #define	UPDATE_DISPINDEX	13
+#define	UPDATE_WAKEUP		14
 
 #define	CARET_MOVE			0
 #define	CARET_CREATE		1

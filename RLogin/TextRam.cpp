@@ -1162,6 +1162,7 @@ CTextRam::CTextRam()
 	m_pImageWnd = NULL;
 	m_bSixelColInit = FALSE;
 	m_FixVersion = 0;
+	m_SleepMax = VIEW_SLEEP_MAX;
 
 	for ( int n = 0 ; n < MODKEY_MAX ; n++ )
 		m_DefModKey[n] = (-1);
@@ -1960,6 +1961,7 @@ void CTextRam::Init()
 	m_TraceLogFile.Empty();
 	m_TraceMaxCount = 1000;
 	m_FixVersion = 0;
+	m_SleepMax = VIEW_SLEEP_MAX;
 
 	for ( int n = 0 ; n < MODKEY_MAX ; n++ ) {
 		m_DefModKey[n] = (-1);
@@ -2087,6 +2089,7 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		
 		index[_T("Caret")] = m_DefTypeCaret;
 		index[_T("BugFix")] = FIX_VERSION;
+		index[_T("SleepTime")] = m_SleepMax;
 
 	} else {		// Read
 		if ( (n = index.Find(_T("Cols"))) >= 0 ) {
@@ -2241,6 +2244,9 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		if ( (n = index.Find(_T("BugFix"))) >= 0 )
 			m_FixVersion = index[n];
 
+		if ( (n = index.Find(_T("SleepTime"))) >= 0 )
+			m_SleepMax = index[n];
+
 		if ( (n = index.Find(_T("Option"))) >= 0 ) {
 			memset(m_DefAnsiOpt, 0, sizeof(m_DefAnsiOpt));
 			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
@@ -2356,6 +2362,7 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 	stra.AddVal(m_TraceMaxCount);
 
 	stra.AddVal(m_DefTypeCaret);
+	stra.AddVal(m_SleepMax);
 }
 void CTextRam::GetArray(CStringArrayExt &stra)
 {
@@ -2528,6 +2535,9 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 	if ( stra.GetSize() > 60 )
 		m_TypeCaret = m_DefTypeCaret = stra.GetVal(60);
 
+	if ( stra.GetSize() > 61 )
+		m_SleepMax = stra.GetVal(61);
+
 	if ( m_FixVersion < 9 ) {
 		if ( m_pDocument != NULL ) {
 			if ( m_pDocument->m_ServerEntry.m_UserNameProvs.IsEmpty() || m_pDocument->m_ServerEntry.m_PassNameProvs.IsEmpty() )
@@ -2552,6 +2562,7 @@ static const ScriptCmdsDefs DocScrn[] = {
 	{	"Color",		4	},
 	{	"Mode",			10	},
 	{	"ExtMode",		11	},
+	{	"Sleep",		12	},
 	{	NULL,			0	},
 }, DocScrnCursol[] = {
 	{	"x",			20	},
@@ -2693,6 +2704,9 @@ void CTextRam::ScriptValue(int cmds, class CScriptValue &value, int mode)
 			}
 		}
 		break;
+	case 12:				// Document.Screen.Sleep
+		value.SetInt(m_SleepMax, mode);
+		break;
 
 	case 20:				// Document.Screen.Cursol.x
 		value.SetInt(m_CurX, mode);
@@ -2818,6 +2832,7 @@ const CTextRam & CTextRam::operator = (CTextRam &data)
 	InitModKeyTab();
 	m_ScrnOffset = data.m_ScrnOffset;
 	m_FixVersion = data.m_FixVersion;
+	m_SleepMax = data.m_SleepMax;
 
 	return *this;
 }
@@ -4089,6 +4104,27 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 						work.mod = (-1);
 					}
 				}
+
+				if ( pView->m_SleepView ) {
+					if ( work.mod == (-1) ) {
+						work.att &= ~ATT_MASK;
+						work.bcn = EXTCOL_MAX + 25;		// back
+						if ( work.idx != (-1) ) {
+							if ( (n = pView->m_MatrixCols[x] - y) < 0 || n > 24)
+								work.idx = (-1);
+							else if ( n == 0 )
+								work.att |= ATT_REVS;
+						}
+					} else {
+						work.att &= ~ATT_MASK;
+						work.bcn = EXTCOL_MAX + 25;		// back
+						if ( (n = pView->m_MatrixCols[x] - y) < 0 || n > 24 )
+							work.fcn = EXTCOL_MAX + 25;	// back
+						else
+							work.fcn = EXTCOL_MAX + 24 - n;
+					}
+				}
+
 			}
 
 #ifdef	USE_TEXTFRAME
@@ -4827,6 +4863,13 @@ void CTextRam::RESET(int mode)
 		// colors 232-255 are a grayscale ramp, intentionally leaving out
 		for ( int g = 0 ; g < 24 ; g++ )
 			m_ColTab[n++] = RGB(g * 11, g * 11, g * 11);
+
+		// matrix color
+		n = EXTCOL_MAX;
+		for ( int g = 0 ; g < 24 ; g++ )
+			m_ColTab[n++] = RGB(0, g * 11, 0);
+		m_ColTab[n++] = RGB(255, 255, 255);
+		m_ColTab[n++] = RGB(0, 0, 0);
 	}
 
 	if ( mode & RESET_OPTION ) {

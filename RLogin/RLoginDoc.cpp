@@ -1045,6 +1045,7 @@ int CRLoginDoc::OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags)
 		m_pLogFile->Write(lpBuf, nBufLen);
 
 	m_pMainWnd->WakeUpSleep();
+	UpdateAllViews(NULL, UPDATE_WAKEUP, NULL);
 
 	if ( m_pScript != NULL && m_pScript->m_SockMode == DATA_BUF_BOTH )
 		m_pScript->SetSockBuff(lpBuf, nBufLen);

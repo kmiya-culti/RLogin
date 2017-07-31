@@ -304,6 +304,8 @@
 #define IDC_DEFPAMCHECK5                1142
 #define IDC_DELAYMSEC                   1143
 #define IDC_DELENTRY                    1144
+#define IDC_DELAYMSEC2                  1144
+#define IDC_SLEEPTIME                   1144
 #define IDC_DELNODE                     1145
 #define IDC_DIGEST                      1146
 #define IDC_DISIPV6                     1147
