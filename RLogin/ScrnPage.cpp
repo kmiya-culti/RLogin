@@ -134,17 +134,10 @@ BOOL CScrnPage::OnApply()
 
 	UpdateData(TRUE);
 
-	for ( n = 0 ; n < CHECKOPTMAX ; n++ ) {
-		if ( m_Check[n] )
-			m_pSheet->m_pTextRam->EnableOption(CheckOptTab[n]);
-		else
-			m_pSheet->m_pTextRam->DisableOption(CheckOptTab[n]);
-	}
+	for ( n = 0 ; n < CHECKOPTMAX ; n++ )
+		m_pSheet->m_pTextRam->SetOption(CheckOptTab[n], m_Check[n]);
 
-	if ( m_ScrnFont == 1 )
-		m_pSheet->m_pTextRam->EnableOption(TO_RLFONT);
-	else
-		m_pSheet->m_pTextRam->DisableOption(TO_RLFONT);
+	m_pSheet->m_pTextRam->SetOption(TO_RLFONT, (m_ScrnFont == 1 ? TRUE : FALSE));
 
 	m_pSheet->m_pTextRam->m_DefCols[0]  = _tstoi(m_ColsMax[0]);
 	m_pSheet->m_pTextRam->m_DefCols[1]  = _tstoi(m_ColsMax[1]);

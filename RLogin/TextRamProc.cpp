@@ -449,7 +449,7 @@ static const CTextRam::CSIEXTTAB fc_CsiExtTab[] = {
 //	{ 				(','  << 8) | 'x',		&CTextRam::fc_POP		},	// DECSPMA Session Page Memory Allocation
 //	{ 				(','  << 8) | 'y',		&CTextRam::fc_POP		},	// DECUS Update Session
 //	{ 				(','  << 8) | 'z',		&CTextRam::fc_POP		},	// DECDLDA Down Line Load Allocation
-//	{ 				(','  << 8) | '|',		&CTextRam::fc_POP		},	// DECAC Assign Color
+	{ 				(','  << 8) | '|',		&CTextRam::fc_DECAC		},	// DECAC Assign Color
 //	{ 				(','  << 8) | '{',		&CTextRam::fc_POP		},	// DECSZS Select Zero Symbol
 	{ 				(','  << 8) | 'q',		&CTextRam::fc_DECTID	},	// DECTID Select Terminal ID
 	{ 				(','  << 8) | '}',		&CTextRam::fc_DECATC	},	// DECATC Alternate Text Colors
@@ -595,10 +595,10 @@ static CTextRam::ESCNAMEPROC fc_EscNameTab[] = {
 	{	_T("V5EX"),		&CTextRam::fc_V5EX,		NULL,	NULL	},
 	{	_T("V5MCP"),	&CTextRam::fc_V5MCP,	NULL,	NULL	},
 	{	_T("VTS"),		&CTextRam::fc_VTS,		NULL,	NULL	},
-	{	NULL,		NULL,					NULL,	NULL	},
+	{	NULL,			NULL,					NULL,	NULL	},
 };
 
-static int	fc_CsiNameTabMax = 124;
+static int	fc_CsiNameTabMax = 125;
 static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	_T("C25LCT"),	&CTextRam::fc_C25LCT,	NULL,	NULL 	},
 	{	_T("CBT"),		&CTextRam::fc_CBT,		NULL,	NULL	},
@@ -618,6 +618,7 @@ static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	_T("DA3"),		&CTextRam::fc_DA3,		NULL,	NULL	},
 	{	_T("DAQ"),		&CTextRam::fc_DAQ,		NULL,	NULL	},
 	{	_T("DCH"),		&CTextRam::fc_DCH,		NULL,	NULL	},
+	{	_T("DECAC"),	&CTextRam::fc_DECAC,	NULL,	NULL	},
 	{	_T("DECATC"),	&CTextRam::fc_DECATC,	NULL,	NULL	},
 	{	_T("DECCARA"),	&CTextRam::fc_DECCARA,	NULL,	NULL	},
 	{	_T("DECCRA"),	&CTextRam::fc_DECCRA,	NULL,	NULL	},
@@ -1960,44 +1961,33 @@ void CTextRam::fc_BS(int ch)
 	fc_KANJI(ch);
 	CallReciveChar(ch);
 
-	//if ( m_DoWarp ) {
-		m_DoWarp = FALSE;
-	//	return;
-	//}
+	m_DoWarp = FALSE;
 
-	int left = GetLeftMargin();
+	GetMargin(MARCHK_NONE);
 
-	if ( m_CurX < left )
-		left = 0;
-
-	if ( --m_CurX < left ) {
-		if ( IsOptEnable(TO_XTMRVW) != 0 ) {
-			m_CurX = GetRightMargin() - 1;
-			if ( --m_CurY < 0 )
-				m_CurY = 0;
-		} else
-			m_CurX = left;
+	if ( --m_CurX < m_Margin.left ) {
+		if ( IsOptEnable(TO_XTMRVW) != 0 )
+			m_CurX = m_Margin.right - 1;
+		else
+			m_CurX = m_Margin.left;
 	}
 }
 void CTextRam::fc_HT(int ch)
 {
 	fc_KANJI(ch);
 	CallReciveChar(ch);
+
 	TABSET(TAB_COLSNEXT);
 }
 void CTextRam::fc_LF(int ch)
 {
-	int nx = GetLeftMargin();
-
 	fc_KANJI(ch);
 	CallReciveChar(ch);
 
 	switch(IsOptEnable(TO_ANSILNM) ? 2 : m_RecvCrLf) {
 	case 2:		// LF
 	case 3:		// CR|LF
-		if ( m_CurX <= nx )
-			nx = 0;
-		LOCATE(nx, m_CurY);
+		LOCATE(GetLeftMargin(), m_CurY);
 		if ( IsOptEnable(TO_RLDELAY) && m_pDocument->m_DelayFlag == DELAY_WAIT )
 			m_pDocument->OnDelayRecive(ch);
 	case 0:		// CR+LF
@@ -2009,25 +1999,23 @@ void CTextRam::fc_LF(int ch)
 void CTextRam::fc_VT(int ch)
 {
 	CallReciveChar(ch);
+
 	TABSET(TAB_LINENEXT);
+
 	if ( IsOptEnable(TO_ANSILNM) )
-		LOCATE(0, m_CurY);
+		LOCATE(GetLeftMargin(), m_CurY);
 }
 void CTextRam::fc_FF(int ch)
 {
 	CallReciveChar(ch);
+
 	ONEINDEX();
-	/*
-	for ( int n = 0 ; n < m_Lines ; n++ )
-		FORSCROLL(0, m_Lines);
-	*/
+
 	if ( IsOptEnable(TO_ANSILNM) )
-		LOCATE(0, m_CurY);
+		LOCATE(GetLeftMargin(), m_CurY);
 }
 void CTextRam::fc_CR(int ch)
 {
-	int nx = GetLeftMargin();
-
 	fc_KANJI(ch);
 	CallReciveChar(ch);
 
@@ -2036,9 +2024,7 @@ void CTextRam::fc_CR(int ch)
 	case 3:		// CR|LF
 		ONEINDEX();
 	case 0:		// CR+LF
-		if ( m_CurX <= nx )
-			nx = 0;
-		LOCATE(nx, m_CurY);
+		LOCATE(GetLeftMargin(), m_CurY);
 		if ( IsOptEnable(TO_RLDELAY) && m_pDocument->m_DelayFlag == DELAY_WAIT )
 			m_pDocument->OnDelayRecive(ch);
 	case 2:		// LF
@@ -2145,9 +2131,10 @@ void CTextRam::fc_SC(int ch)
 	m_Save_BankGR = m_BankGR;
 	m_Save_BankSG = m_BankSG;
 	m_Save_DoWarp = m_DoWarp;
+	m_Save_Decom  = (IsOptEnable(TO_DECOM) ? TRUE : FALSE);
 	memcpy(m_Save_BankTab, m_BankTab, sizeof(m_BankTab));
-	memcpy(m_Save_AnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
-	memcpy(m_Save_TabMap, m_TabMap, sizeof(m_TabMap));
+//	memcpy(m_Save_AnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
+//	memcpy(m_Save_TabMap, m_TabMap, sizeof(m_TabMap));
 	fc_POP(ch);
 }
 void CTextRam::fc_RC(int ch)
@@ -2161,9 +2148,10 @@ void CTextRam::fc_RC(int ch)
 	m_BankGR = m_Save_BankGR;
 	m_BankSG = m_Save_BankSG;
 	m_DoWarp = m_Save_DoWarp;
+	SetOption(TO_DECOM, m_Save_Decom);
 	memcpy(m_BankTab, m_Save_BankTab, sizeof(m_BankTab));
-	memcpy(m_AnsiOpt, m_Save_AnsiOpt, sizeof(m_AnsiOpt));
-	memcpy(m_TabMap, m_Save_TabMap, sizeof(m_TabMap));
+//	memcpy(m_AnsiOpt, m_Save_AnsiOpt, sizeof(m_AnsiOpt));
+//	memcpy(m_TabMap, m_Save_TabMap, sizeof(m_TabMap));
 	fc_POP(ch);
 }
 void CTextRam::fc_FI(int ch)
@@ -2207,10 +2195,11 @@ void CTextRam::fc_IND(int ch)
 void CTextRam::fc_NEL(int ch)
 {
 	// ESC E													ANSI NEL Next Line
-	int nx = GetLeftMargin();
-	if ( m_CurX <= nx ) nx = 0;
+
+	LOCATE((IsOptEnable(TO_DECOM) ? GetLeftMargin() : 0), m_CurY);
+//	LOCATE(GetLeftMargin(), m_CurY);
 	ONEINDEX();
-	LOCATE(nx, m_CurY);
+
 	fc_POP(ch);
 }
 void CTextRam::fc_SSA(int ch)
@@ -2617,6 +2606,7 @@ void CTextRam::fc_STAT(int ch)
 						vp++;
 					}
 				}
+				RESET(RESET_CURSOR);
 				DISPVRAM(0, 0, m_Cols, m_Lines);
 			}
 			break;
@@ -3013,7 +3003,10 @@ void CTextRam::fc_DECSIXEL(int ch)
 		dx = pGrapWnd->m_MaxX * pGrapWnd->m_AspX;
 		dy = pGrapWnd->m_MaxY * pGrapWnd->m_AspY;
 
-		cx = m_Cols - m_CurX;
+		GetMargin(MARCHK_NONE);
+		if ( (cx = m_Margin.right - m_CurX) <= 0 )
+			cx = m_Cols - m_CurX;
+
 		if ( (cx * w) > dx )
 			cx = (dx + w - 1) / w;
 		cy = (dy * (cx * w) / dx + h - 1) / h;
@@ -3920,14 +3913,16 @@ void CTextRam::fc_CSI_EXT(int ch)
 void CTextRam::fc_ICH(int ch)
 {
 	// CSI @	ICH	Insert Character
+
 	for ( int n = GetAnsiPara(0, 1, 1, m_Cols) ; n > 0 ; n-- )
 		INSCHAR();
+
 	fc_POP(ch);
 }
 void CTextRam::fc_CUU(int ch)
 {
 	// CSI A	CUU Cursor Up
-	int m = (m_CurY >= m_TopY ? m_TopY : 0);
+	int m = GetTopMargin();
 	if ( (m_CurY -= GetAnsiPara(0, 1, 0)) < m )
 		m_CurY = m;
 	LOCATE(m_CurX, m_CurY);
@@ -3936,7 +3931,7 @@ void CTextRam::fc_CUU(int ch)
 void CTextRam::fc_CUD(int ch)
 {
 	// CSI B	CUD Cursor Down
-	int m = (m_CurY < m_BtmY ? m_BtmY : m_Lines);
+	int m = GetBottomMargin();
 	if ( (m_CurY += GetAnsiPara(0, 1, 0)) >= m )
 		m_CurY = m - 1;
 	LOCATE(m_CurX, m_CurY);
@@ -3946,7 +3941,7 @@ void CTextRam::fc_CUF(int ch)
 {
 	// CSI C	CUF Cursor Forward
 
-	int m = (IsOptEnable(TO_DECLRMM) && m_CurX < m_RightX ? m_RightX : m_Cols);
+	int m = GetRightMargin();
 	if ( (m_CurX += GetAnsiPara(0, 1, 1)) >= m )
 		m_CurX = m - 1;
 	LOCATE(m_CurX, m_CurY);
@@ -3955,7 +3950,7 @@ void CTextRam::fc_CUF(int ch)
 void CTextRam::fc_CUB(int ch)
 {
 	// CSI D	CUB Cursor Backward
-	int m = (IsOptEnable(TO_DECLRMM) && m_CurX >= m_LeftX ? m_LeftX : 0);
+	int m = GetLeftMargin();
 	if ( (m_CurX -= GetAnsiPara(0, 1, 1)) < m )
 		m_CurX = m;
 	LOCATE(m_CurX, m_CurY);
@@ -3964,30 +3959,28 @@ void CTextRam::fc_CUB(int ch)
 void CTextRam::fc_CNL(int ch)
 {
 	// CSI E	CNL Move the cursor to the next line.
-	int m = (m_CurY < m_BtmY ? m_BtmY : m_Lines);
+	int m = GetBottomMargin();
 	if ( (m_CurY += GetAnsiPara(0, 1, 1)) >= m )
 		m_CurY = m - 1;
-	m = GetLeftMargin();
-	LOCATE((m_CurX >= m ? m : 0), m_CurY);
+	LOCATE((IsOptEnable(TO_DECOM) ? GetLeftMargin() : 0), m_CurY);
 	fc_POP(ch);
 }
 void CTextRam::fc_CPL(int ch)
 {
 	// CSI F	CPL Move the cursor to the preceding line.
-	int m = (m_CurY >= m_TopY ? m_TopY : 0);
+	int m = GetTopMargin();
 	if ( (m_CurY -= GetAnsiPara(0, 1, 1)) < m )
 		m_CurY = m;
-	m = GetLeftMargin();
-	LOCATE((m_CurX >= m ? m : 0), m_CurY);
+	LOCATE((IsOptEnable(TO_DECOM) ? GetLeftMargin() : 0), m_CurY);
 	fc_POP(ch);
 }
 void CTextRam::fc_CHA(int ch)
 {
 	// CSI G	CHA Move the active position to the n-th character of the active line.
 	if ( IsOptEnable(TO_DECOM) ) {
-		int m = (IsOptEnable(TO_DECLRMM) && m_CurX < m_RightX ? m_RightX : m_Cols);
-		if ( (m_CurX = GetAnsiPara(0, 1, 1) - 1 + GetLeftMargin()) >= m )
-			m_CurX = m - 1;
+		GetMargin(MARCHK_NONE);
+		if ( (m_CurX = GetAnsiPara(0, 1, 1) - 1 + m_Margin.left) >= m_Margin.right )
+			m_CurX = m_Margin.right - 1;
 		LOCATE(m_CurX, m_CurY);
 	} else
 		LOCATE(GetAnsiPara(0, 1, 1) - 1, m_CurY);
@@ -3997,10 +3990,11 @@ void CTextRam::fc_CUP(int ch)
 {
 	// CSI H	CUP Cursor Position
 	if ( IsOptEnable(TO_DECOM) ) {
-		if ( (m_CurX = GetAnsiPara(1, 1, 1) - 1 + GetLeftMargin()) >= GetRightMargin() )
-			m_CurX = GetRightMargin() - 1;
-		if ( (m_CurY = GetAnsiPara(0, 1, 1) - 1 + m_TopY) >= m_BtmY )
-			m_CurY = m_BtmY - 1;
+		GetMargin(MARCHK_NONE);
+		if ( (m_CurX = GetAnsiPara(1, 1, 1) - 1 + m_Margin.left) >= m_Margin.right )
+			m_CurX = m_Margin.right - 1;
+		if ( (m_CurY = GetAnsiPara(0, 1, 1) - 1 + m_Margin.top) >= m_Margin.bottom )
+			m_CurY = m_Margin.bottom - 1;
 		LOCATE(m_CurX, m_CurY);
 	} else
 		LOCATE(GetAnsiPara(1, 1, 1) - 1, GetAnsiPara(0, 1, 1) - 1);
@@ -4051,23 +4045,24 @@ void CTextRam::fc_EL(int ch)
 void CTextRam::fc_IL(int ch)
 {
 	// CSI L	IL Insert Line
-	if ( m_CurY >= m_TopY && m_CurY < m_BtmY ) {
-		for ( int n = GetAnsiPara(0, 1, 1, m_Lines) ; n > 0 ; n-- ) {
-			BAKSCROLL(m_CurY, m_BtmY);
-			TABSET(TAB_INSLINE);
-		}
+
+	if ( GetMargin(MARCHK_LINES) ) {
+		for ( int n = GetAnsiPara(0, 1, 1, m_Lines) ; n > 0 ; n-- )
+			BAKSCROLL(m_Margin.left, m_CurY, m_Margin.right, m_Margin.bottom);
+		//	TABSET(TAB_INSLINE);	with ?
 	}
 	fc_POP(ch);
 }
 void CTextRam::fc_DL(int ch)
 {
 	// CSI M	DL Delete Line
-	if ( m_CurY >= m_TopY && m_CurY < m_BtmY ) {
-		for ( int n = GetAnsiPara(0, 1, 1, m_Lines) ; n > 0 ; n-- ) {
-			FORSCROLL(m_CurY, m_BtmY);
-			TABSET(TAB_DELINE);
-		}
+
+	if ( GetMargin(MARCHK_LINES) ) {
+		for ( int n = GetAnsiPara(0, 1, 1, m_Lines) ; n > 0 ; n-- )
+			FORSCROLL(m_Margin.left, m_CurY, m_Margin.right, m_Margin.bottom);
+		//	TABSET(TAB_DELINE);		with ?
 	}
+
 	fc_POP(ch);
 }
 void CTextRam::fc_EF(int ch)
@@ -4111,8 +4106,10 @@ void CTextRam::fc_EA(int ch)
 void CTextRam::fc_DCH(int ch)
 {
 	// CSI P	DCH Delete Character
+
 	for ( int n = GetAnsiPara(0, 1, 1, m_Cols) ; n > 0 ; n-- )
 		DELCHAR();
+
 	fc_POP(ch);
 }
 void CTextRam::fc_SEE(int ch)
@@ -4123,8 +4120,12 @@ void CTextRam::fc_SEE(int ch)
 void CTextRam::fc_SU(int ch)
 {
 	// CSI S	SU Scroll Up
+
+	GetMargin(MARCHK_NONE);
+
 	for ( int n = GetAnsiPara(0, 1, 1, m_Lines) ; n > 0 ; n-- )
-		FORSCROLL(m_TopY, m_BtmY);
+		FORSCROLL(m_Margin.left, m_Margin.top, m_Margin.right, m_Margin.bottom);
+
 	fc_POP(ch);
 }
 void CTextRam::fc_SD(int ch)
@@ -4153,8 +4154,10 @@ void CTextRam::fc_SD(int ch)
 			m_MouseRect.bottom    = m_Lines - 1;
 
 	} else {
+		GetMargin(MARCHK_NONE);
+
 		for ( int n = GetAnsiPara(0, 1, 1, m_Lines) ; n > 0 ; n-- )
-			BAKSCROLL(m_TopY, m_BtmY);
+			BAKSCROLL(m_Margin.left, m_Margin.top, m_Margin.right, m_Margin.bottom);
 	}
 	fc_POP(ch);
 }
@@ -4254,10 +4257,11 @@ void CTextRam::fc_HPA(int ch)
 {
 	// CSI `	HPA Horizontal Position Absolute
 	if ( IsOptEnable(TO_DECOM) ) {
-		if ( (m_CurX = GetAnsiPara(0, 1, 1) - 1 + GetLeftMargin()) < GetLeftMargin() )
-			m_CurX = GetLeftMargin();
-		else if ( m_CurX >= GetRightMargin() )
-			m_CurX = GetRightMargin() - 1;
+		GetMargin(MARCHK_NONE);
+		if ( (m_CurX = GetAnsiPara(0, 1, 1) - 1 + m_Margin.left) < m_Margin.left )
+			m_CurX = m_Margin.left;
+		else if ( m_CurX >= m_Margin.right )
+			m_CurX = m_Margin.right - 1;
 		LOCATE(m_CurX, m_CurY);
 	} else
 		LOCATE(GetAnsiPara(0, 1, 1) - 1, m_CurY);
@@ -4267,10 +4271,11 @@ void CTextRam::fc_HPR(int ch)
 {
 	// CSI a	HPR Horizontal Position Relative
 	if ( IsOptEnable(TO_DECOM) ) {
-		if ( (m_CurX += GetAnsiPara(0, 1, 0)) < GetLeftMargin() )
-			m_CurX = GetLeftMargin();
-		else if ( m_CurX >= GetRightMargin() )
-			m_CurX = GetRightMargin() - 1;
+		GetMargin(MARCHK_NONE);
+		if ( (m_CurX += GetAnsiPara(0, 1, 0)) < m_Margin.left )
+			m_CurX = m_Margin.left;
+		else if ( m_CurX >= m_Margin.right )
+			m_CurX = m_Margin.right - 1;
 		LOCATE(m_CurX, m_CurY);
 	} else
 		LOCATE(m_CurX + GetAnsiPara(0, 1, 0), m_CurY);
@@ -4342,10 +4347,11 @@ void CTextRam::fc_VPA(int ch)
 {
 	// CSI d	VPA Vertical Line Position Absolute
 	if ( IsOptEnable(TO_DECOM) ) {
-		if ( (m_CurY = GetAnsiPara(0, 1, 1) - 1 + m_TopY) < m_TopY )
-			m_CurY = m_TopY;
-		else if ( m_CurY >= m_BtmY )
-			m_CurY = m_BtmY - 1;
+		GetMargin(MARCHK_NONE);
+		if ( (m_CurY = GetAnsiPara(0, 1, 1) - 1 + m_Margin.top) < m_Margin.top )
+			m_CurY = m_Margin.top;
+		else if ( m_CurY >= m_Margin.bottom )
+			m_CurY = m_Margin.bottom - 1;
 		LOCATE(m_CurX, m_CurY);
 	} else
 		LOCATE(m_CurX, GetAnsiPara(0, 1, 1) - 1);
@@ -4355,10 +4361,11 @@ void CTextRam::fc_VPR(int ch)
 {
 	// CSI e	VPR Vertical Position Relative
 	if ( IsOptEnable(TO_DECOM) ) {
-		if ( (m_CurY += GetAnsiPara(0, 1, 0)) < m_TopY )
-			m_CurY = m_TopY;
-		else if ( m_CurY >= m_BtmY )
-			m_CurY = m_BtmY - 1;
+		GetMargin(MARCHK_NONE);
+		if ( (m_CurY += GetAnsiPara(0, 1, 0)) < m_Margin.top )
+			m_CurY = m_Margin.top;
+		else if ( m_CurY >= m_Margin.bottom )
+			m_CurY = m_Margin.bottom - 1;
 		LOCATE(m_CurX, m_CurY);
 	} else
 		LOCATE(m_CurX, m_CurY + GetAnsiPara(0, 1, 0));
@@ -4369,10 +4376,11 @@ void CTextRam::fc_HVP(int ch)
 	// CSI f	HVP Horizontal and Vertical Position
 
 	if ( IsOptEnable(TO_DECOM) ) {
-		if ( (m_CurX = GetAnsiPara(1, 1, 1) - 1 + GetLeftMargin()) >= GetRightMargin() )
-			m_CurX = GetRightMargin() - 1;
-		if ( (m_CurY = GetAnsiPara(0, 1, 1) - 1 + m_TopY) >= m_BtmY )
-			m_CurY = m_BtmY - 1;
+		GetMargin(MARCHK_NONE);
+		if ( (m_CurX = GetAnsiPara(1, 1, 1) - 1 + m_Margin.left) >= m_Margin.right )
+			m_CurX = m_Margin.right - 1;
+		if ( (m_CurY = GetAnsiPara(0, 1, 1) - 1 + m_Margin.top) >= m_Margin.bottom )
+			m_CurY = m_Margin.bottom - 1;
 		LOCATE(m_CurX, m_CurY);
 	} else
 		LOCATE(GetAnsiPara(1, 1, 1) - 1, GetAnsiPara(0, 1, 1) - 1);
@@ -5313,7 +5321,7 @@ void CTextRam::fc_DECRQM(int ch)
 	// CSI $p	DECRQM Request mode settings
 	int n, f = 0;
 
-	if ( (n = GetAnsiPara(0, 1, 0)) > 0 && n < 100 )
+	if ( (n = GetAnsiPara(0, 0, 0)) > 0 && n < 100 )
 		f = IsOptEnable(200 + n) ? 1 : 2;
 
 	UNGETSTR(_T("%s%d;%d$y"), m_RetChar[RC_CSI], n, f);
@@ -5324,19 +5332,25 @@ void CTextRam::fc_DECCARA(int ch)
 	// CSI $r	DECCARA Change Attribute in Rectangle
 	int n, i, x, y;
 	CVram *vp;
+
 	SetAnsiParaArea(0);
+
 	while ( m_AnsiPara.GetSize() < 5 )
 		m_AnsiPara.Add(0);
+
 	if ( !m_Exact ) {
 		m_AnsiPara[1] = 0;
 		m_AnsiPara[3] = m_Cols - 1;
 	}
+
 	for ( y = m_AnsiPara[0] ; y <= m_AnsiPara[2] ; y++ ) {
 		if ( y < m_TopY || y >= m_BtmY )
 			continue;
+
 		for ( x = m_AnsiPara[1] ; x <= m_AnsiPara[3] ; x++ ) {
 			if ( IsOptEnable(TO_DECLRMM) && (x < m_LeftX || x >= m_RightX) )
 				continue;
+
 			vp = GETVRAM(x, y);
 			for ( n = 4 ; n < m_AnsiPara.GetSize() ; n++ ) {
 				switch(GetAnsiPara(n, 0, 0)) {
@@ -5422,7 +5436,9 @@ void CTextRam::fc_DECCARA(int ch)
 			}
 		}
 	}
+
 	DISPVRAM(m_AnsiPara[1], m_AnsiPara[0], m_AnsiPara[3] - m_AnsiPara[1] + 1, m_AnsiPara[2] - m_AnsiPara[0] + 1);
+
 	fc_POP(ch);
 }
 void CTextRam::fc_DECRARA(int ch)
@@ -5430,19 +5446,25 @@ void CTextRam::fc_DECRARA(int ch)
 	// CSI $t	DECRARA Reverse Attribute in Rectangle
 	int n, x, y;
 	CVram *vp;
+
 	SetAnsiParaArea(0);
+
 	while ( m_AnsiPara.GetSize() < 5 )
 		m_AnsiPara.Add(0);
+
 	if ( !m_Exact ) {
 		m_AnsiPara[1] = 0;
 		m_AnsiPara[3] = m_Cols - 1;
 	}
+
 	for ( y = m_AnsiPara[0] ; y <= m_AnsiPara[2] ; y++ ) {
 		if ( y < m_TopY || y >= m_BtmY )
 			continue;
+
 		for ( x = m_AnsiPara[1] ; x <= m_AnsiPara[3] ; x++ ) {
 			if ( IsOptEnable(TO_DECLRMM) && (x < m_LeftX || x >= m_RightX) )
 				continue;
+
 			vp = GETVRAM(x, y);
 			for ( n = 4 ; n < m_AnsiPara.GetSize() ; n++ ) {
 				switch(GetAnsiPara(n, 0, 0)) {
@@ -5460,7 +5482,9 @@ void CTextRam::fc_DECRARA(int ch)
 			}
 		}
 	}
+
 	DISPVRAM(m_AnsiPara[1], m_AnsiPara[0], m_AnsiPara[3] - m_AnsiPara[1] + 1, m_AnsiPara[2] - m_AnsiPara[0] + 1);
+
 	fc_POP(ch);
 }
 void CTextRam::fc_DECRQTSR(int ch)
@@ -5796,7 +5820,7 @@ void CTextRam::fc_DECRQMH(int ch)
 	// CSI ('?' << 16) | ('$' << 8) | 'p'	DECRQMH Request Mode (DEC) Host to Terminal
 	int i, f = 0;
 
-	i = GetAnsiPara(0, 1, 0);
+	i = GetAnsiPara(0, 0, 0);
 
 	if ( i > 0 && i < 200 )				// 1-199				DEC Terminal Option
 		f = IsOptEnable(i) ? 1 : 2;
@@ -5973,11 +5997,12 @@ void CTextRam::fc_DECRQLP(int ch)
 void CTextRam::fc_DECIC(int ch)
 {
 	// CSI ('\'' << 8) | '}'		DECIC Insert Column(s)
+
 	int n, i;
 
-	if ( m_CurX >= GetLeftMargin() && m_CurX < GetRightMargin() && m_CurY >= m_TopY && m_CurY < m_BtmY ) {
+	if ( GetMargin(MARCHK_BOTH) ) {
 		for ( n = GetAnsiPara(0, 1, 1, m_Cols) ; n > 0 ; n-- ) {
-			for ( i = m_CurY ; m_CurY < m_BtmY ; m_CurY++ )
+			for ( i = m_CurY ; m_CurY < m_Margin.bottom ; m_CurY++ )
 				INSCHAR();
 			m_CurY = i;
 		}
@@ -5988,11 +6013,12 @@ void CTextRam::fc_DECIC(int ch)
 void CTextRam::fc_DECDC(int ch)
 {
 	// CSI ('\'' << 8) | '~'		DECDC Delete Column(s)
+
 	int n, i;
 
-	if ( m_CurX >= GetLeftMargin() && m_CurX < GetRightMargin() && m_CurY >= m_TopY && m_CurY < m_BtmY ) {
+	if ( GetMargin(MARCHK_BOTH) ) {
 		for ( n = GetAnsiPara(0, 1, 1, m_Cols) ; n > 0 ; n-- ) {
-			for ( i = m_CurY ; m_CurY < m_BtmY ; m_CurY++ )
+			for ( i = m_CurY ; m_CurY < m_Margin.bottom ; m_CurY++ )
 				DELCHAR();
 			m_CurY = i;
 		}
@@ -6079,6 +6105,29 @@ void CTextRam::fc_DECPQPLFM(int ch)
 	fc_POP(ch);
 }
 
+void CTextRam::fc_DECAC(int ch)
+{
+	// CSI Ps1 Ps2 Ps3 , |		DECAC Assign Color
+
+	// Ps1 Item
+	//	1 Normal text
+	//	2 Window frame
+	// Ps2 Foreground
+	//	0-15 color index
+	// Ps3 Background
+	//	0-15 color index
+
+	if ( GetAnsiPara(0, 0, 0) == 1 ) {
+		m_AttNow.fc = GetAnsiPara(1, m_AttNow.fc, 0, 255);
+		m_AttNow.bc = GetAnsiPara(2, m_AttNow.bc, 0, 255);
+		if ( IsOptEnable(TO_DECECM) == 0 ) {
+			m_AttSpc.fc = m_AttNow.fc;
+			m_AttSpc.bc = m_AttNow.bc;
+		}
+	}
+
+	fc_POP(ch);
+}
 void CTextRam::fc_DECTID(int ch)
 {
 	// CSI (',' << 8) | 'q'		DECTID Select Terminal ID
@@ -6107,8 +6156,9 @@ void CTextRam::fc_DECATC(int ch)
 	case 14: m_AttNow.at = ATT_REVS | ATT_UNDER | ATT_SBLINK; break;
 	case 15: m_AttNow.at = ATT_BOLD | ATT_REVS | ATT_UNDER | ATT_SBLINK; break;
 	}
-	m_AttNow.fc = GetAnsiPara(1, 7, 0);
-	m_AttNow.bc = GetAnsiPara(2, 0, 0);
+
+	m_AttNow.fc = GetAnsiPara(1, m_AttNow.fc, 0, 255);
+	m_AttNow.bc = GetAnsiPara(2, m_AttNow.bc, 0, 255);
 	if ( IsOptEnable(TO_DECECM) == 0 ) {
 		m_AttSpc.fc = m_AttNow.fc;
 		m_AttSpc.bc = m_AttNow.bc;

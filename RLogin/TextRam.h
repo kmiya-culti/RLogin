@@ -535,6 +535,7 @@ public:
 	int m_Save_CurY;
 
 	BOOL m_Save_DoWarp;
+	BOOL m_Save_Decom;
 	DWORD m_Save_AnsiOpt[16];
 
 	int m_Save_BankGL;
@@ -681,6 +682,7 @@ public:
 	int m_Save_BankGR;
 	int m_Save_BankSG;
 	BOOL m_Save_DoWarp;
+	BOOL m_Save_Decom;
 	WORD m_Save_BankTab[5][4];
 	BYTE m_Save_TabMap[LINE_MAX + 1][COLS_MAX / 8 + 1];
 
@@ -714,6 +716,7 @@ public:
 	BOOL m_FileSaveFlag;
 	DWORD m_XtOptFlag;
 	CStringArray m_TitleStack;
+	CRect m_Margin;
 	
 	// Window Fonction
 	BOOL IsInitText() { return (m_bOpen && m_VRam != NULL ? TRUE : FALSE); }
@@ -768,6 +771,7 @@ public:
 	void ReversOption(int opt);
 	int IsOptValue(int opt, int len);
 	void SetOptValue(int opt, int len, int value);
+	inline void SetOption(int opt, BOOL sw) { if ( sw ) EnableOption(opt); else DisableOption(opt); }
 	inline void InitDefAnsiOpt() { memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_DefAnsiOpt)); }
 	void InitModKeyTab();
 
@@ -775,8 +779,17 @@ public:
 	inline void SetCalcPos(int pos, int *x, int *y) { *x = pos % m_ColsMax; *y = (pos / m_ColsMax - m_HisPos - m_HisMax); }
 	inline int GetDm(int y) { CVram *vp = GETVRAM(0, y); return vp->pr.dm; }
 	inline void SetDm(int y, int dm) { CVram *vp = GETVRAM(0, y); vp->pr.dm = dm; }
+
 	inline int GetLeftMargin() { return (IsOptEnable(TO_DECLRMM) ? m_LeftX : 0); }
 	inline int GetRightMargin() { return (IsOptEnable(TO_DECLRMM) ? m_RightX : m_Cols); }
+	inline int GetTopMargin() { return m_TopY; }
+	inline int GetBottomMargin() { return m_BtmY; }
+
+#define	MARCHK_NONE		0
+#define	MARCHK_COLS		1
+#define	MARCHK_LINES	2
+#define	MARCHK_BOTH		3
+	BOOL GetMargin(int bCheck = MARCHK_NONE);
 
 	void OnClose();
 	void CallReciveLine(int y);
@@ -808,17 +821,17 @@ public:
 	int GETCOLIDX(int red, int green, int blue);
 
 	// Mid Level
-	int GetAnsiPara(int index, int defvalue, int limit, int maxvalue = -1);
+	int GetAnsiPara(int index, int defvalue, int minvalue, int maxvalue = -1);
 	void SetAnsiParaArea(int top);
 	LPCTSTR GetHexPara(LPCTSTR str, CBuffer &buf);
 	void LOCATE(int x, int y);
 	void ERABOX(int sx, int sy, int ex, int ey, int df = 0);
-	void FORSCROLL(int sy, int ey);
-	void BAKSCROLL(int sy, int ey);
+	void FORSCROLL(int sx, int sy, int ex, int ey);
+	void BAKSCROLL(int sx, int sy, int ex, int ey);
 	void LEFTSCROLL();
 	void RIGHTSCROLL();
 	void DOWARP();
-	void INSCHAR();
+	void INSCHAR(BOOL bMargin = TRUE);
 	void DELCHAR();
 	void ONEINDEX();
 	void REVINDEX();
@@ -1126,6 +1139,7 @@ public:
 	void fc_DECINVM(int ch);
 	void fc_DECSR(int ch);
 	void fc_DECPQPLFM(int ch);
+	void fc_DECAC(int ch);
 	void fc_DECTID(int ch);
 	void fc_DECATC(int ch);
 	void fc_DA2(int ch);

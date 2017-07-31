@@ -100,12 +100,8 @@ BOOL CProtoPage::OnApply()
 
 	UpdateData(TRUE);
 
-	for ( int n = 0 ; n < CHECKOPTMAX + CHECKOPTEXT ; n++ ) {
-		if ( m_Check[n] )
-			m_pSheet->m_pTextRam->EnableOption(CheckOptTab[n]);
-		else
-			m_pSheet->m_pTextRam->DisableOption(CheckOptTab[n]);
-	}
+	for ( int n = 0 ; n < CHECKOPTMAX + CHECKOPTEXT ; n++ )
+		m_pSheet->m_pTextRam->SetOption(CheckOptTab[n], m_Check[n]);
 
 	m_pSheet->m_pTextRam->m_KeepAliveSec = m_KeepAlive;
 

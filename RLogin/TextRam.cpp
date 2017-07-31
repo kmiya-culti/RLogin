@@ -2149,12 +2149,8 @@ void CTextRam::ScriptValue(int cmds, class CScriptValue &value, int mode)
 				break;
 			else if ( value.GetSize() < 2 )
 				value = (int)(IsOptEnable(opt) ? 1 : 0);
-			else {
-				if ( (int)value[1] != 0 )
-					EnableOption(opt);
-				else
-					DisableOption(opt);
-			}
+			else
+				SetOption(opt, ((int)value[1] != 0 ? TRUE : FALSE));
 		}
 		break;
 	case 11:				// Document.Screen.ExtMode
@@ -3708,10 +3704,7 @@ void CTextRam::SetOptValue(int opt, int len, int value)
 {
 	int n;
 	for ( n = 0 ; n < len ; n++ ) {
-		if ( (value & 1) != 0 )
-			EnableOption(opt);
-		else
-			DisableOption(opt);
+		SetOption(opt, ((value & 1) != 0 ? TRUE : FALSE));
 		opt++;
 		value >>= 1;
 	}
@@ -4112,7 +4105,6 @@ void CTextRam::RESET(int mode)
 		m_BtmY = m_Lines;
 		m_LeftX  = 0;
 		m_RightX = m_Cols;
-
 		m_bRtoL = FALSE;
 		m_DoWarp = FALSE;
 		m_Status = ST_NULL;
@@ -4189,6 +4181,7 @@ void CTextRam::RESET(int mode)
 		m_Save_BankGR = m_BankGR;
 		m_Save_BankSG = m_BankSG;
 		m_Save_DoWarp = m_DoWarp;
+		m_Save_Decom  = (IsOptEnable(TO_DECOM) ? TRUE : FALSE);
 		memcpy(m_Save_BankTab, m_BankTab, sizeof(m_BankTab));
 		memcpy(m_Save_AnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
 		memcpy(m_Save_TabMap, m_TabMap, sizeof(m_TabMap));
@@ -4386,7 +4379,39 @@ int CTextRam::BLINKUPDATE(class CRLoginView *pView)
 // Mid Level
 //////////////////////////////////////////////////////////////////////
 
-int CTextRam::GetAnsiPara(int index, int defvalue, int limit, int maxvalue)
+BOOL CTextRam::GetMargin(int bCheck)
+{
+	BOOL st = TRUE;
+
+	if ( IsOptEnable(TO_DECLRMM) ) {
+		m_Margin.left   = m_LeftX;
+		m_Margin.right  = m_RightX;
+	} else {
+		m_Margin.left   = 0;
+		m_Margin.right  = m_Cols;
+	}
+
+	m_Margin.top    = m_TopY;
+	m_Margin.bottom = m_BtmY;
+
+	if ( (bCheck & MARCHK_COLS) != 0 ) {
+		if ( m_CurX < m_Margin.left )
+			st = FALSE;
+		else if ( m_CurX >= m_Margin.right )
+			st = FALSE;
+	}
+
+	if ( (bCheck & MARCHK_LINES) != 0 ) {
+		if ( m_CurY < m_Margin.top )
+			st = FALSE;
+		else if ( m_CurY >= m_Margin.bottom )
+			st = FALSE;
+	}
+
+	return st;
+}
+
+int CTextRam::GetAnsiPara(int index, int defvalue, int minvalue, int maxvalue)
 {
 	int val;
 
@@ -4398,7 +4423,7 @@ int CTextRam::GetAnsiPara(int index, int defvalue, int limit, int maxvalue)
 	else
 		val = m_AnsiPara[index];
 
-	if ( val == PARA_NOT || val < limit )
+	if ( val == PARA_NOT || val < minvalue )
 		return defvalue;
 
 	if ( maxvalue >= 0 && val > maxvalue )
@@ -4417,7 +4442,7 @@ void CTextRam::SetAnsiParaArea(int top)
 	else if ( m_AnsiPara[top] == PARA_NOT )
 		m_AnsiPara[top] = 1;
 	if ( IsOptEnable(TO_DECOM) )
-		m_AnsiPara[top] = m_AnsiPara[top] + m_TopY;
+		m_AnsiPara[top] = m_AnsiPara[top] + GetTopMargin();
 	if ( (m_AnsiPara[top] = m_AnsiPara[top] - 1) < 0 )
 		m_AnsiPara[top] = 0;
 	else if ( m_AnsiPara[top] >= m_Lines )
@@ -4443,7 +4468,7 @@ void CTextRam::SetAnsiParaArea(int top)
 	else if ( m_AnsiPara[top] == PARA_NOT )
 		m_AnsiPara[top] = m_Lines;
 	if ( IsOptEnable(TO_DECOM) )
-		m_AnsiPara[top] = m_AnsiPara[top] + m_TopY;
+		m_AnsiPara[top] = m_AnsiPara[top] + GetTopMargin();
 	if ( (m_AnsiPara[top] = m_AnsiPara[top] - 1) < 0 )
 		m_AnsiPara[top] = 0;
 	else if ( m_AnsiPara[top] >= m_Lines )
@@ -4834,18 +4859,18 @@ void CTextRam::ERABOX(int sx, int sy, int ex, int ey, int df)
 		}
 	}
 }
-void CTextRam::FORSCROLL(int sy, int ey)
+void CTextRam::FORSCROLL(int sx, int sy, int ex, int ey)
 {
+	ASSERT(sx >= 0 && sx < m_Cols);
 	ASSERT(sy >= 0 && sy < m_Lines);
-	ASSERT(ey >= 0 && ey <= m_Lines);
+	ASSERT(ex > 0 && ex <= m_Cols);
+	ASSERT(ey > 0 && ey <= m_Lines);
 
-//	int left  = GetLeftMargin();
-//	int right = GetRightMargin();
-	int left = 0, right = m_Cols;
-	if ( IsOptEnable(TO_DECLRMM) ) { left = m_LeftX; right = m_RightX; }
+	int x, y;
+	CVram *vp, *wp;
 
 	m_DoWarp = FALSE;
-	if ( sy == 0 && ey == m_Lines && left == 0 && right == m_Cols && !m_LineEditMode ) {
+	if ( sy == 0 && ey == m_Lines && sx == 0 && ex == m_Cols && !m_LineEditMode ) {
 		CallReciveLine(0);
 		m_HisUse++;
 		if ( (m_HisPos += 1) >= m_HisMax )
@@ -4855,110 +4880,132 @@ void CTextRam::FORSCROLL(int sy, int ey)
 		if ( m_LineUpdate < m_Lines )
 			m_LineUpdate++;
 
-		int x;
-		CVram *vp = GETVRAM(0, m_Lines - 1);
+		vp = GETVRAM(0, m_Lines - 1);
 		vp[0] = m_AttSpc;
 		for ( x = 1 ; x < m_ColsMax ; x++ )
 				vp[x] = vp[0];
 
 	} else {
 #ifdef	FIXWCHAR
-		for ( int y = sy + 1; y < ey ; y++ )
+		for ( y = sy + 1; y < ey ; y++ )
 			memcpy(GETVRAM(left, y - 1), GETVRAM(left, y), sizeof(CVram) * (right - left));
 #else
-		for ( int y = sy + 1; y < ey ; y++ ) {
-			CVram *vp = GETVRAM(left, y - 1);
-			CVram *wp = GETVRAM(left, y);
-			for ( int x = left ; x < right ; x++ )
+		for ( y = sy + 1; y < ey ; y++ ) {
+			vp = GETVRAM(sx, y - 1);
+			wp = GETVRAM(sx, y);
+			for ( x = sx ; x < ex ; x++ )
 				*(vp++) = *(wp++);
 		}
 #endif
-		ERABOX(left, ey - 1, right, ey);
+		ERABOX(sx, ey - 1, ex, ey);
 	}
-	DISPVRAM(left, sy, right, ey - sy);
+	DISPVRAM(sx, sy, ex - sx, ey - sy);
 }
-void CTextRam::BAKSCROLL(int sy, int ey)
+void CTextRam::BAKSCROLL(int sx, int sy, int ex, int ey)
 {
+	ASSERT(sx >= 0 && sx < m_Cols);
 	ASSERT(sy >= 0 && sy < m_Lines);
-	ASSERT(ey >= 0 && ey <= m_Lines);
+	ASSERT(ex > 0 && ex <= m_Cols);
+	ASSERT(ey > 0 && ey <= m_Lines);
 
-	int left = 0, right = m_Cols;
-	if ( IsOptEnable(TO_DECLRMM) ) { left = m_LeftX; right = m_RightX; }
+	int x, y;
+	CVram *vp, *wp;
 
 	m_DoWarp = FALSE;
 #ifdef	FIXWCHAR
-	for ( int y = ey - 1; y > sy ; y-- )
+	for ( y = ey - 1; y > sy ; y-- )
 		memcpy(GETVRAM(left, y), GETVRAM(left, y - 1), sizeof(CVram) * (right - left));
 #else
-	for ( int y = ey - 1; y > sy ; y-- ) {
-		CVram *vp = GETVRAM(left, y);
-		CVram *wp = GETVRAM(left, y - 1);
-		for ( int x = left ; x < right ; x++ )
+	for ( y = ey - 1; y > sy ; y-- ) {
+		vp = GETVRAM(sx, y);
+		wp = GETVRAM(sx, y - 1);
+		for ( x = sx ; x < ex ; x++ )
 			*(vp++) = *(wp++);
 	}
 #endif
-	ERABOX(left, sy, right, sy + 1);
-	DISPVRAM(left, sy, right, ey - sy);
+	ERABOX(sx, sy, ex, sy + 1);
+	DISPVRAM(sx, sy, ex - sx, ey - sy);
 }
 void CTextRam::LEFTSCROLL()
 {
 	int n, i, dm;
 	CVram *vp;
-	int left = 0, right = m_Cols;
-	if ( IsOptEnable(TO_DECLRMM) ) { left = m_LeftX; right = m_RightX; }
 
-	for ( n = m_TopY ; n < m_BtmY ; n++ ) {
+	GetMargin(MARCHK_NONE);
+
+	for ( n = m_Margin.top ; n < m_Margin.bottom ; n++ ) {
 		vp = GETVRAM(0, n);
 		dm = vp->pr.dm;
-		for ( i = left + 1 ; i < right ; i++ )
+		for ( i = m_Margin.left + 1 ; i < m_Margin.right ; i++ )
 			vp[i - 1] = vp[i];
-		vp[right - 1] = m_AttSpc;
+		vp[m_Margin.right - 1] = m_AttSpc;
 		vp->pr.dm = dm;
 	}
-	DISPVRAM(left, m_TopY, right - left, m_BtmY - m_TopY);
+
+	DISPVRAM(m_Margin.left, m_Margin.top, m_Margin.Width(), m_Margin.Height());
 }
 void CTextRam::RIGHTSCROLL()
 {
 	int n, i, dm;
 	CVram *vp;
-	int left = 0, right = m_Cols;
-	if ( IsOptEnable(TO_DECLRMM) ) { left = m_LeftX; right = m_RightX; }
 
-	for ( n = m_TopY ; n < m_BtmY ; n++ ) {
+	GetMargin(MARCHK_NONE);
+
+	for ( n = m_Margin.top ; n < m_Margin.bottom ; n++ ) {
 		vp = GETVRAM(0, n);
 		dm = vp->pr.dm;
-		for ( i = right - 1 ; i > left ; i-- )
+		for ( i = m_Margin.right - 1 ; i > m_Margin.left ; i-- )
 			vp[i] = vp[i - 1];
-		vp[left] = m_AttSpc;
+		vp[m_Margin.left] = m_AttSpc;
 		vp->pr.dm = dm;
 	}
-	DISPVRAM(left, m_TopY, right - left, m_BtmY - m_TopY);
+
+	DISPVRAM(m_Margin.left, m_Margin.top, m_Margin.Width(), m_Margin.Height());
 }
 void CTextRam::DOWARP()
 {
 	if ( !m_DoWarp )
 		return;
+
+	GetMargin(MARCHK_NONE);
+
 	m_DoWarp = FALSE;
-	ONEINDEX();
-	m_CurX = GetLeftMargin();
 	m_LastPos -= COLS_MAX;
+	m_CurX = m_Margin.left;
+
+	ONEINDEX();
 }
-void CTextRam::INSCHAR()
+void CTextRam::INSCHAR(BOOL bMargin)
 {
 	int n, dm;
 	CVram *vp;
+	BOOL st;
 
 	m_DoWarp = FALSE;
-	vp = GETVRAM(0, m_CurY);
-	dm = vp->pr.dm;
-	for ( n = GetRightMargin() - 1 ; n > m_CurX ; n-- )
-		vp[n] = vp[n - 1];
-	vp[n] = m_AttSpc;
-	vp->pr.dm = dm;
-	if ( dm != 0 )
-		DISPVRAM(0, m_CurY, m_Cols, 1);
-	else
-		DISPVRAM(m_CurX, m_CurY, m_Cols - m_CurX, 1);
+
+	st = GetMargin(MARCHK_COLS);
+
+	if ( !bMargin ) {
+		if ( m_CurX >= m_Margin.right )
+			m_Margin.right  = m_Cols;
+		st = TRUE;
+	}
+
+	if ( st ) {
+		vp = GETVRAM(0, m_CurY);
+		dm = vp->pr.dm;
+
+		for ( n = m_Margin.right - 1 ; n > m_CurX ; n-- )
+			vp[n] = vp[n - 1];
+
+		vp[n] = m_AttSpc;
+		vp->pr.dm = dm;
+
+		if ( dm != 0 )
+			DISPVRAM(0, m_CurY, m_Cols, 1);
+		else
+			DISPVRAM(m_CurX, m_CurY, m_Margin.right - m_CurX, 1);
+	}
 }
 void CTextRam::DELCHAR()
 {
@@ -4966,39 +5013,51 @@ void CTextRam::DELCHAR()
 	CVram *vp;
 
 	m_DoWarp = FALSE;
-	vp = GETVRAM(0, m_CurY);
-	dm = vp->pr.dm;
-	for ( n = m_CurX + 1; n < GetRightMargin() ; n++ )
-		vp[n - 1] = vp[n];
-	vp[n - 1] = m_AttSpc;
-	vp->pr.dm = dm;
-	if ( dm != 0 )
-		DISPVRAM(0, m_CurY, m_Cols, 1);
-	else
-		DISPVRAM(m_CurX, m_CurY, m_Cols - m_CurX, 1);
+
+	if ( GetMargin(MARCHK_COLS) ) {
+		vp = GETVRAM(0, m_CurY);
+		dm = vp->pr.dm;
+
+		for ( n = m_CurX + 1; n < m_Margin.right ; n++ )
+			vp[n - 1] = vp[n];
+
+		vp[n - 1] = m_AttSpc;
+		vp->pr.dm = dm;
+
+		if ( dm != 0 )
+			DISPVRAM(0, m_CurY, m_Cols, 1);
+		else
+			DISPVRAM(m_CurX, m_CurY, m_Margin.right - m_CurX, 1);
+	}
 }
 void CTextRam::ONEINDEX()
 {
 	m_DoWarp = FALSE;
-	if ( m_CurY < m_BtmY ) {
-		if ( ++m_CurY >= m_BtmY ) {
-			m_CurY = m_BtmY - 1;
-			FORSCROLL(m_TopY, m_BtmY);
+
+	if ( GetMargin(MARCHK_LINES) ) {
+		if ( ++m_CurY >= m_Margin.bottom ) {
+			m_CurY = m_Margin.bottom - 1;
+			FORSCROLL(m_Margin.left, m_Margin.top, m_Margin.right, m_Margin.bottom);
 			m_LineEditIndex++;
 		}
-	} else if ( ++m_CurY >= m_Lines )
-		m_CurY = m_Lines - 1;
+	} else {
+		if ( ++m_CurY >= m_Lines )
+			m_CurY = m_Lines - 1;
+	}
 }
 void CTextRam::REVINDEX()
 {
 	m_DoWarp = FALSE;
-	if ( m_CurY >= m_TopY ) {
-		if ( --m_CurY < m_TopY ) {
-			m_CurY = m_TopY;
-			BAKSCROLL(m_TopY, m_BtmY);
+
+	if ( GetMargin(MARCHK_LINES) ) {
+		if ( --m_CurY < m_Margin.top ) {
+			m_CurY = m_Margin.top;
+			BAKSCROLL(m_Margin.left, m_Margin.top, m_Margin.right, m_Margin.bottom);
 		}
-	} else if ( --m_CurY < 0 )
-		m_CurY = 0;
+	} else {
+		if ( --m_CurY < 0 )
+			m_CurY = 0;
+	}
 }
 void CTextRam::PUT1BYTE(int ch, int md, int at)
 {
@@ -5021,13 +5080,16 @@ void CTextRam::PUT1BYTE(int ch, int md, int at)
 
 	CVram *vp;
 	int dm = GetDm(m_CurY);
-	int mx = m_Cols;
 
-	if ( IsOptEnable(TO_DECLRMM) && m_CurX < m_RightX )
-		mx = m_RightX;
+	if ( !GetMargin(MARCHK_COLS) ) {
+		m_Margin.left  = 0;
+		m_Margin.right = m_Cols;
+	}
 
-	if ( dm != 0 )
-		mx /= 2;
+	if ( dm != 0 ) {
+		m_Margin.left  /= 2;
+		m_Margin.right /= 2;
+	}
 
 	if ( m_bRtoL ) {
 		md = SET_UNICODE;
@@ -5064,18 +5126,18 @@ void CTextRam::PUT1BYTE(int ch, int md, int at)
 	m_LastFlag = 0;
 	m_LastPos  = m_CurX + m_CurY * COLS_MAX;
 
-	if ( ++m_CurX >= mx ) {
+	if ( ++m_CurX >= m_Margin.right ) {
 		if ( IsOptEnable(TO_DECAWM) != 0 ) {
 			if ( IsOptEnable(TO_RLGNDW) != 0 ) {
-				ONEINDEX();
-				m_CurX = GetLeftMargin();
+				m_CurX = m_Margin.left;
 				m_LastPos -= COLS_MAX;
+				ONEINDEX();
 			} else {
-				m_CurX = mx - 1;
+				m_CurX = m_Margin.right - 1;
 				m_DoWarp = TRUE;
 			}
 		} else 
-			m_CurX = mx - 1;
+			m_CurX = m_Margin.right - 1;
 	}
 
 	if ( ch != 0 )
@@ -5102,26 +5164,31 @@ void CTextRam::PUT2BYTE(int ch, int md, int at)
 
 	CVram *vp;
 	int dm = GetDm(m_CurY);
-	int mx = m_Cols;
 
-	if ( IsOptEnable(TO_DECLRMM) && m_CurX < m_RightX )
-		mx = m_RightX;
+	if ( !GetMargin(MARCHK_COLS) ) {
+		m_Margin.left  = 0;
+		m_Margin.right = m_Cols;
+	}
 
-	if ( dm != 0 )
-		mx /= 2;
+	if ( dm != 0 ) {
+		m_Margin.left  /= 2;
+		m_Margin.right /= 2;
+	}
 
-	if ( (m_CurX + 1) >= mx ) {
+	if ( (m_CurX + 1) >= m_Margin.right ) {
 		PUT1BYTE(0, md);
 
 		dm = GetDm(m_CurY);
 
-		if ( IsOptEnable(TO_DECLRMM) && m_CurX < m_RightX )
-			mx = m_RightX;
-		else
-			mx = m_Cols;
+		if ( !GetMargin(MARCHK_COLS) ) {
+			m_Margin.left  = 0;
+			m_Margin.right = m_Cols;
+		}
 
-		if ( dm != 0 )
-			mx /= 2;
+		if ( dm != 0 ) {
+			m_Margin.left  /= 2;
+			m_Margin.right /= 2;
+		}
 	}
 
 	vp = GETVRAM(m_CurX, m_CurY);
@@ -5154,18 +5221,18 @@ void CTextRam::PUT2BYTE(int ch, int md, int at)
 	m_LastFlag = 0;
 	m_LastPos  = m_CurX + m_CurY * COLS_MAX;
 
-	if ( (m_CurX += 2) >= mx ) {
+	if ( (m_CurX += 2) >= m_Margin.right ) {
 		if ( IsOptEnable(TO_DECAWM) != 0 ) {
 			if ( IsOptEnable(TO_RLGNDW) != 0 ) {
-				ONEINDEX();
-				m_CurX = GetLeftMargin();
+				m_CurX = m_Margin.left;
 				m_LastPos -= COLS_MAX;
+				ONEINDEX();
 			} else {
-				m_CurX = mx - 1;
+				m_CurX = m_Margin.right - 1;
 				m_DoWarp = TRUE;
 			}
 		} else 
-			m_CurX = mx - 1;
+			m_CurX = m_Margin.right - 1;
 	}
 
 	if ( ch != 0 )
@@ -5234,8 +5301,9 @@ void CTextRam::INSMDCK(int len)
 {
 	if ( IsOptEnable(TO_ANSIIRM) == 0 )
 		return;
+
 	while ( len-- > 0 )
-		INSCHAR();
+		INSCHAR(FALSE);
 }
 void CTextRam::SAVERAM()
 {
@@ -5259,10 +5327,12 @@ void CTextRam::SAVERAM()
 	pSave->m_Lines  = m_Lines;
 	pSave->m_CurX   = m_CurX;
 	pSave->m_CurY   = m_CurY;
+
 	pSave->m_TopY   = m_TopY;
 	pSave->m_BtmY   = m_BtmY;
 	pSave->m_LeftX  = m_LeftX;
 	pSave->m_RightX = m_RightX;
+
 	pSave->m_DoWarp = m_DoWarp;
 	memcpy(pSave->m_AnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
 	pSave->m_BankGL = m_BankGL;
@@ -5279,6 +5349,7 @@ void CTextRam::SAVERAM()
 	pSave->m_Save_BankGR = m_Save_BankGR;
 	pSave->m_Save_BankSG = m_Save_BankSG;
 	pSave->m_Save_DoWarp = m_Save_DoWarp;
+	pSave->m_Save_Decom  = m_Save_Decom;
 	memcpy(pSave->m_Save_BankTab, m_Save_BankTab, sizeof(m_Save_BankTab));
 	memcpy(pSave->m_Save_AnsiOpt, m_Save_AnsiOpt, sizeof(m_Save_AnsiOpt));
 	memcpy(pSave->m_Save_TabMap, m_Save_TabMap, sizeof(m_Save_TabMap));
@@ -5332,6 +5403,7 @@ void CTextRam::LOADRAM()
 	m_Save_BankGR = pSave->m_Save_BankGR;
 	m_Save_BankSG = pSave->m_Save_BankSG;
 	m_Save_DoWarp = pSave->m_Save_DoWarp;
+	m_Save_Decom  = pSave->m_Save_Decom;
 	memcpy(m_Save_BankTab, pSave->m_Save_BankTab, sizeof(m_BankTab));
 	memcpy(m_Save_AnsiOpt, pSave->m_Save_AnsiOpt, sizeof(m_AnsiOpt));
 	memcpy(m_Save_TabMap, pSave->m_Save_TabMap, sizeof(m_TabMap));
@@ -5687,18 +5759,20 @@ void CTextRam::TABSET(int sw)
 
 	case TAB_DELINE:		// Delete Line
 		if ( IsOptEnable(TO_ANSITSM) ) {	// MULTIPLE
-			for ( n = m_CurY + 1 ; n < m_Lines ; n++ )
+			i = GetBottomMargin();
+			for ( n = m_CurY + 1 ; n < i ; n++ )
 				memcpy(m_TabMap[n], m_TabMap[n + 1], COLS_MAX / 8 + 1);
-			m_TabMap[m_Lines][0] = 0;
-			memset(&(m_TabMap[m_Lines][1]), 0, COLS_MAX / 8);
+			//m_TabMap[m_Lines][0] = 0;
+			//memset(&(m_TabMap[m_Lines][1]), 0, COLS_MAX / 8);
 		}
 		break;
 	case TAB_INSLINE:		// Insert Line
 		if ( IsOptEnable(TO_ANSITSM) ) {	// MULTIPLE
-			for ( n = m_Lines - 1 ; n > m_CurY ; n-- )
+			i = GetBottomMargin();
+			for ( n = i - 1 ; n > m_CurY ; n-- )
 				memcpy(m_TabMap[n + 1], m_TabMap[n], COLS_MAX / 8 + 1);
-			m_TabMap[m_CurY + 1][0] = 0;
-			memset(&(m_TabMap[m_CurY + 1][1]), 0, COLS_MAX / 8);
+			//m_TabMap[m_CurY + 1][0] = 0;
+			//memset(&(m_TabMap[m_CurY + 1][1]), 0, COLS_MAX / 8);
 		}
 		break;
 
@@ -5711,22 +5785,28 @@ void CTextRam::TABSET(int sw)
 		if ( IsOptEnable(TO_XTMCUS) )
 			DOWARP();
 		i = (IsOptEnable(TO_ANSITSM) ? (m_CurY + 1) : 0);
+		GetMargin(MARCHK_NONE);
+		if ( m_CurX >= m_Margin.right )
+			m_Margin.right = m_Cols;
 		for ( n = m_CurX + 1 ; n < m_Cols ; n++ ) {
-			if ( (m_TabMap[i][n / 8 + 1] & (0x80 >> (n % 8))) != 0 && n >= GetLeftMargin() )
+			if ( (m_TabMap[i][n / 8 + 1] & (0x80 >> (n % 8))) != 0 && n >= m_Margin.left )
 				break;
 		}
-		if ( n >= GetRightMargin() )
-			n = GetRightMargin() - 1;
+		if ( n >= m_Margin.right )
+			n = m_Margin.right - 1;
 		LOCATE(n, m_CurY);
 		break;
 	case TAB_COLSBACK:		// Cols Back Tab Stop
 		i = (IsOptEnable(TO_ANSITSM) ? (m_CurY + 1) : 0);
+		GetMargin(MARCHK_NONE);
+		if ( m_CurX < m_Margin.left )
+			m_Margin.left = 0;
 		for ( n = m_CurX - 1 ; n > 0 ; n-- ) {
-			if ( (m_TabMap[i][n / 8 + 1] & (0x80 >> (n % 8))) != 0 && n < GetRightMargin() )
+			if ( (m_TabMap[i][n / 8 + 1] & (0x80 >> (n % 8))) != 0 && n < m_Margin.right )
 				break;
 		}
-		if ( n < GetLeftMargin() )
-			n = GetLeftMargin();
+		if ( n < m_Margin.left )
+			n = m_Margin.left;
 		LOCATE(n, m_CurY);
 		break;
 

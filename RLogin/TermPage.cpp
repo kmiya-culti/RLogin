@@ -250,12 +250,8 @@ BOOL CTermPage::OnApply()
 		}
 	}
 
-	for ( int n = 0 ; n < CHECKOPTMAX ; n++ ) {
-		if ( m_Check[n] )
-			m_pSheet->m_pTextRam->EnableOption(CheckOptTab[n]);
-		else
-			m_pSheet->m_pTextRam->DisableOption(CheckOptTab[n]);
-	}
+	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
+		m_pSheet->m_pTextRam->SetOption(CheckOptTab[n], m_Check[n]);
 
 	return TRUE;
 }
