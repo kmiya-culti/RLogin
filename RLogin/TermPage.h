@@ -8,6 +8,8 @@
 // TermPage.h : ヘッダー ファイル
 //
 
+#include "ListCtrlExt.h"
+
 /////////////////////////////////////////////////////////////////////////////
 // CTermPage ダイアログ
 
@@ -30,6 +32,7 @@ public:
 	int m_LogMode;
 	int m_LogCode;
 	CProcTab m_ProcTab;
+	CListCtrlExt m_List;
 
 // オーバーライド
 	// ClassWizard は仮想関数のオーバーライドを生成します。
@@ -53,6 +56,7 @@ protected:
 public:
 	afx_msg void OnBnClickedAutologSel();
 	afx_msg void OnBnClickedEscedit();
+	afx_msg void OnNMClickEsclist(NMHDR *pNMHDR, LRESULT *pResult);
 };
 
 //{{AFX_INSERT_LOCATION}}

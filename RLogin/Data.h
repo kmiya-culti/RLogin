@@ -139,6 +139,14 @@ public:
 	int FindNoCase(LPCSTR str);
 };
 
+template<class TYPE, class ARG_TYPE = const TYPE&>
+class CArraySort : public CArray<TYPE, ARG_TYPE>
+{
+public:
+	INT_PTR Add(ARG_TYPE newElement);
+	INT_PTR Find(ARG_TYPE Element);
+};
+
 class CBmpFile : public CObject
 {
 public:

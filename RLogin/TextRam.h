@@ -86,17 +86,20 @@
 #define	TO_XTMCSC		40			// XTerm Column switch control
 #define TO_XTMRVW		45			// XTerm Reverse-wraparound mode
 #define	TO_XTMABUF		47			// XTerm alternate buffer
-#define	TO_DECECM		117			// ESC[m space color disable
+#define	TO_DECECM		117			// SGR space color disable
 // ANSI Screen Option	0-99(200-299)
-#define	TO_ANSIIRM		(200+4)		// IRM Insertion replacement mode
-#define	TO_ANSIERM		(200+6)		// ERM Erasure mode
-#define	TO_ANSITSM		(200+18)	// ISM Tabulation stop mode
-#define	TO_ANSILNM		(200+20)	// LNM Line feed/new line mode
+#define	TO_ANSIIRM		(4+200)		// IRM Insertion replacement mode
+#define	TO_ANSIERM		(6+200)		// ERM Erasure mode
+#define	TO_ANSITSM		(18+200)	// ISM Tabulation stop mode
+#define	TO_ANSILNM		(20+200)	// LNM Line feed/new line mode
 // XTerm Option			1000-1099(300-399)
 #define	TO_XTNOMTRK		(1000-700)	// X11 normal mouse tracking
 #define	TO_XTHILTRK		(1001-700)	// X11 hilite mouse tracking
 #define	TO_XTBEVTRK		(1002-700)	// X11 button-event mouse tracking
 #define	TO_XTAEVTRK		(1003-700)	// X11 any-event mouse tracking
+#define	TO_XTALTSCR		(1047-700)	// Alternate/Normal screen buffer
+#define	TO_XTSRCUR		(1048-700)	// Save/Restore cursor as in DECSC/DECRC
+#define	TO_XTALTCLR		(1049-700)	// Alternate screen with clearing
 // RLogin Option		400-511
 #define	TO_RLGCWA		400			// ESC[m space att enable
 #define	TO_RLGNDW		401			// çsññÇ≈ÇÃé©ìÆâ¸çsÇóLå¯Ç…Ç∑ÇÈ
@@ -284,6 +287,8 @@ public:
 class CTextSave : public CObject
 {
 public:
+	class CTextSave *m_Next;
+
 	VRAM *m_VRam;
 	VRAM m_AttNow;
 	VRAM m_AttSpc;
@@ -304,6 +309,22 @@ public:
 	WORD m_BankTab[4][4];
 
 	BYTE m_TabMap[LINE_MAX][COLS_MAX / 8 + 1];
+
+	VRAM m_Save_AttNow;
+	VRAM m_Save_AttSpc;
+
+	int m_Save_CurX;
+	int m_Save_CurY;
+
+	BOOL m_Save_DoWarp;
+	DWORD m_Save_AnsiOpt[16];
+
+	int m_Save_BankGL;
+	int m_Save_BankGR;
+	int m_Save_BankSG;
+	WORD m_Save_BankTab[4][4];
+
+	BYTE m_Save_TabMap[LINE_MAX][COLS_MAX / 8 + 1];
 };
 
 class CTextRam : public COptObject
@@ -360,6 +381,9 @@ public:
 	COLORREF m_ColTab[256];
 	DWORD m_AnsiOpt[16];
 
+	int m_ColsMax;
+	int m_LineUpdate;
+
 	int m_HisMax;
 	int m_HisPos;
 	int m_HisLen;
@@ -402,7 +426,8 @@ public:
 	WORD m_Save_BankTab[4][4];
 	BYTE m_Save_TabMap[LINE_MAX][COLS_MAX / 8 + 1];
 
-	CObArray m_Save_Text;
+	CTextSave *m_pTextSave;
+	CTextSave *m_pTextStack;
 	CIConv m_IConv;
 	CRect m_UpdateRect;
 
@@ -513,6 +538,8 @@ public:
 	void ANSIOPT(int opt, int bit);
 	void SAVERAM();
 	void LOADRAM();
+	void PUSHRAM();
+	void POPRAM();
 	void TABSET(int sw);
 	void PUTSTR(LPBYTE lpBuf, int nBufLen);
 

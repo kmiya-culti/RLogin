@@ -22,9 +22,51 @@ static char THIS_FILE[] = __FILE__;
 
 IMPLEMENT_DYNCREATE(CTermPage, CPropertyPage)
 
-#define	CHECKOPTMAX		9
+#define	CHECKOPTMAX		6
 #define	IDC_CHECKFAST	IDC_TERMCHECK1
-static const int CheckOptTab[] = { TO_DECAWM, TO_XTMRVW, TO_DECCKM, TO_RLBOLD, TO_RLGNDW, TO_RLGCWA, TO_RLUNIAWH, TO_RLHISDATE, TO_RLKANAUTO };
+static const int CheckOptTab[] = { TO_RLBOLD, TO_RLGNDW, TO_RLGCWA, TO_RLUNIAWH, TO_RLHISDATE, TO_RLKANAUTO };
+
+static const LV_COLUMN InitListTab[2] = {
+		{ LVCF_TEXT | LVCF_WIDTH, 0,  80,	"Mode",			0, 0 },
+		{ LVCF_TEXT | LVCF_WIDTH, 0,  200,	"Description",	0, 0 },
+	};
+
+static const struct _OptListTab {
+	int		num;
+	LPCSTR	name;
+} OptListTab[] = {
+	// ANSI Screen Option	0-99(200-299)
+	{	TO_ANSIIRM,		"Insertion replacement mode"		},
+	{	TO_ANSIERM,		"Erasure mode"						},
+	{	TO_ANSITSM,		"Tabulation stop mode"				},
+	{	TO_ANSILNM,		"Line feed/New line mode"			},
+
+	// DEC Terminal Option	0-199
+	{	TO_DECCKM,		"Cursor key mode"					},
+	{	TO_DECANM,		"ANSI/VT52 mode"					},
+	{	TO_DECCOLM,		"132/80 Column mode"				},
+	{	TO_DECSCNM,		"Black/White Screen mode"			},
+	{	TO_DECOM,		"Origin mode"						},
+	{	TO_DECAWM,		"Autowrap mode"						},
+	{	TO_XTMOSREP,	"X10 mouse reporting"				},
+	{	TO_DECTCEM,		"Text Cursor enable mode"			},
+//	{	TO_DECTEK,		"Graphics (Tek)"					},
+	{	TO_XTMCSC,		"Column switch control"				},
+	{	TO_XTMRVW,		"Reverse-wraparound mode"			},
+	{	TO_XTMABUF,		"Alternate Screen mode"				},
+	{	TO_DECECM,		"SGR space color disable"			},
+
+	// XTerm Option			1000-1099(300-399)
+	{	TO_XTNOMTRK,	"X11 normal mouse tracking"			},
+	{	TO_XTHILTRK,	"X11 hilite mouse tracking"			},
+	{	TO_XTBEVTRK,	"X11 button-event mouse tracking"	},
+	{	TO_XTAEVTRK,	"X11 any-event mouse tracking"		},
+	{	TO_XTALTSCR,	"Alternate/Normal screen buffer"	},
+	{	TO_XTSRCUR,		"Save/Restore cursor"				},
+	{	TO_XTALTCLR,	"Alternate screen with clearing"	},
+
+	{	0,				NULL	}
+};
 
 CTermPage::CTermPage() : CPropertyPage(CTermPage::IDD)
 {
@@ -50,6 +92,7 @@ void CTermPage::DoDataExchange(CDataExchange* pDX)
 		DDX_Check(pDX, IDC_TERMCHECK1 + n, m_Check[n]);
 	DDX_CBIndex(pDX, IDC_COMBO1, m_LogMode);
 	DDX_CBIndex(pDX, IDC_COMBO2, m_LogCode);
+	DDX_Control(pDX, IDC_ESCLIST, m_List);
 }
 
 BEGIN_MESSAGE_MAP(CTermPage, CPropertyPage)
@@ -58,6 +101,7 @@ BEGIN_MESSAGE_MAP(CTermPage, CPropertyPage)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_CHECKFAST, IDC_CHECKFAST + CHECKOPTMAX - 1, OnUpdateCheck)
 	ON_BN_CLICKED(IDC_AUTOLOG_SEL, OnBnClickedAutologSel)
 	ON_BN_CLICKED(IDC_ESCEDIT, &CTermPage::OnBnClickedEscedit)
+	ON_NOTIFY(NM_CLICK, IDC_ESCLIST, &CTermPage::OnNMClickEsclist)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -65,17 +109,39 @@ END_MESSAGE_MAP()
 
 BOOL CTermPage::OnInitDialog() 
 {
+	int n;
+	CString str;
+
 	ASSERT(m_pSheet);
 	ASSERT(m_pSheet->m_pTextRam);
 
 	CPropertyPage::OnInitDialog();
-	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
+	for ( n = 0 ; n < CHECKOPTMAX ; n++ )
 		m_Check[n] = (m_pSheet->m_pTextRam->IsOptEnable(CheckOptTab[n]) ? TRUE : FALSE);
 
 	m_LogFile = m_pSheet->m_pTextRam->m_LogFile;
 	m_LogMode = m_pSheet->m_pTextRam->IsOptValue(TO_RLLOGMODE, 2);
 	m_LogCode = m_pSheet->m_pTextRam->IsOptValue(TO_RLLOGCODE, 2);
 	m_ProcTab = m_pSheet->m_pTextRam->m_ProcTab;
+
+	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_CHECKBOXES);
+	m_List.InitColumn("TermPageOpt", InitListTab, 2);
+
+	m_List.DeleteAllItems();
+	for ( n = 0 ; OptListTab[n].name != NULL ; n++ ) {
+		if ( OptListTab[n].num < 200) {				// DEC Terminal Option	0-199
+			str.Format("?%d", OptListTab[n].num);
+		} else if ( OptListTab[n].num < 300 ) {		// ANSI Screen Option	0-99(200-299)
+			str.Format("%d", OptListTab[n].num - 200);
+		} else if ( OptListTab[n].num < 400 ) {		// XTerm Option			1000-1099(300-399)
+			str.Format("?%d", OptListTab[n].num + 700);
+		} else if ( OptListTab[n].num < 512 ) {		// RLogin Option		400-511
+			str.Format("?%d", OptListTab[n].num + 1600);
+		}
+		m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, n, str, 0, 0, 0, n);
+		m_List.SetItemText(n, 1, OptListTab[n].name);
+		m_List.SetLVCheck(n,  m_pSheet->m_pTextRam->IsOptEnable(OptListTab[n].num) ? TRUE : FALSE);
+	}
 
 	UpdateData(FALSE);
 	return TRUE;
@@ -98,6 +164,52 @@ BOOL CTermPage::OnApply()
 	m_pSheet->m_pTextRam->SetOptValue(TO_RLLOGCODE, 2, m_LogCode);
 	m_pSheet->m_pTextRam->m_ProcTab = m_ProcTab;
 
+	for ( int n = 0 ; OptListTab[n].name != NULL ; n++ ) {
+		if ( m_List.GetLVCheck(n) ) {
+			if ( m_pSheet->m_pTextRam->IsOptEnable(OptListTab[n].num) )
+				continue;
+			if ( m_pSheet->m_pTextRam->m_VRam == NULL || m_pSheet->m_pTextRam->m_pDocument == NULL ) {
+				m_pSheet->m_pTextRam->EnableOption(OptListTab[n].num);
+				continue;
+			}
+			m_pSheet->m_pTextRam->m_AnsiPara.RemoveAll();
+			if ( OptListTab[n].num < 200) {				// DEC Terminal Option	0-199
+				m_pSheet->m_pTextRam->m_AnsiPara.Add(OptListTab[n].num);
+				m_pSheet->m_pTextRam->fc_Push(STAGE_CSI);
+				m_pSheet->m_pTextRam->fc_DECSRET('h');
+			} else if ( OptListTab[n].num < 300 ) {		// ANSI Screen Option	0-99(200-299)
+				m_pSheet->m_pTextRam->EnableOption(OptListTab[n].num);
+			} else if ( OptListTab[n].num < 400 ) {		// XTerm Option			1000-1099(300-399)
+				m_pSheet->m_pTextRam->m_AnsiPara.Add(OptListTab[n].num + 700);
+				m_pSheet->m_pTextRam->fc_Push(STAGE_CSI);
+				m_pSheet->m_pTextRam->fc_DECSRET('h');
+			} else if ( OptListTab[n].num < 512 ) {		// RLogin Option		400-511
+				m_pSheet->m_pTextRam->EnableOption(OptListTab[n].num);
+			}
+		} else {
+			if ( !m_pSheet->m_pTextRam->IsOptEnable(OptListTab[n].num) )
+				continue;
+			if ( m_pSheet->m_pTextRam->m_VRam == NULL || m_pSheet->m_pTextRam->m_pDocument == NULL ) {
+				m_pSheet->m_pTextRam->DisableOption(OptListTab[n].num);
+				continue;
+			}
+			m_pSheet->m_pTextRam->m_AnsiPara.RemoveAll();
+			if ( OptListTab[n].num < 200) {				// DEC Terminal Option	0-199
+				m_pSheet->m_pTextRam->m_AnsiPara.Add(OptListTab[n].num);
+				m_pSheet->m_pTextRam->fc_Push(STAGE_CSI);
+				m_pSheet->m_pTextRam->fc_DECSRET('l');
+			} else if ( OptListTab[n].num < 300 ) {		// ANSI Screen Option	0-99(200-299)
+				m_pSheet->m_pTextRam->DisableOption(OptListTab[n].num);
+			} else if ( OptListTab[n].num < 400 ) {		// XTerm Option			1000-1099(300-399)
+				m_pSheet->m_pTextRam->m_AnsiPara.Add(OptListTab[n].num + 700);
+				m_pSheet->m_pTextRam->fc_Push(STAGE_CSI);
+				m_pSheet->m_pTextRam->fc_DECSRET('l');
+			} else if ( OptListTab[n].num < 512 ) {		// RLogin Option		400-511
+				m_pSheet->m_pTextRam->DisableOption(OptListTab[n].num);
+			}
+		}
+	}
+
 	return TRUE;
 }
 void CTermPage::OnReset() 
@@ -112,6 +224,9 @@ void CTermPage::OnReset()
 	m_LogMode = m_pSheet->m_pTextRam->IsOptValue(TO_RLLOGMODE, 2);
 	m_LogCode = m_pSheet->m_pTextRam->IsOptValue(TO_RLLOGCODE, 2);
 	m_ProcTab = m_pSheet->m_pTextRam->m_ProcTab;
+
+	for ( int n = 0 ; OptListTab[n].name != NULL ; n++ )
+		m_List.SetLVCheck(n,  m_pSheet->m_pTextRam->IsOptEnable(OptListTab[n].num) ? TRUE : FALSE);
 
 	UpdateData(FALSE);
 	SetModified(FALSE);
@@ -150,4 +265,16 @@ void CTermPage::OnBnClickedEscedit()
 
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+}
+
+void CTermPage::OnNMClickEsclist(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
+
+	if ( pNMItemActivate->iSubItem == 0 ) {
+		SetModified(TRUE);
+		m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+	}
+
+	*pResult = 0;
 }

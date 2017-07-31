@@ -130,9 +130,9 @@ void CRLoginView::OnDraw(CDC* pDC)
 	if ( !pDC->IsPrinting() ) {
 		CRect rect(((CPaintDC *)(pDC))->m_ps.rcPaint);
 		sx = rect.left   * m_Cols  / m_Width;
-		ex = rect.right  * m_Cols  / m_Width;
+		ex = (rect.right + m_CharWidth - 1)  * m_Cols  / m_Width - 1;
 		sy = rect.top    * m_Lines / m_Height;
-		ey = rect.bottom * m_Lines / m_Height;
+		ey = (rect.bottom + m_CharHeight - 1) * m_Lines / m_Height - 1;
 
 		if ( m_pBitmap != NULL ) {
 			CDC TempDC;
@@ -150,6 +150,8 @@ void CRLoginView::OnDraw(CDC* pDC)
 
 	if ( (m_DispCaret & 001) != 0 )
 		ShowCaret();
+
+//	TRACE("Draw %x(%d,%d,%d,%d)\n", m_hWnd, sx, sy, ex, ey);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -230,7 +232,7 @@ void CRLoginView::SendBuffer(CBuffer &buf, BOOL macflag)
 		m_KeyMacBuf.Apend(buf.GetPtr(), buf.GetSize());
 
 	// TO_RLECHOCR, TO_RLECHOLF  = 00(CR), 01(LF), 10(CR+LF)
-	switch(pDoc->m_TextRam.m_SendCrLf) {
+	switch(pDoc->m_TextRam.IsOptEnable(TO_ANSILNM) ? 2 : pDoc->m_TextRam.m_SendCrLf) {
 	case 0:	// CR
 		break;
 	case 1:	// LF

@@ -733,6 +733,51 @@ int CStringArrayExt::FindNoCase(LPCSTR str)
 }
 
 //////////////////////////////////////////////////////////////////////
+// CArraySort
+
+template<class TYPE, class ARG_TYPE>
+INT_PTR CArraySort<TYPE, ARG_TYPE>::Add(ARG_TYPE newElement)
+{
+	int c;
+	int n;
+	int b = 0;
+	int m = GetSize() - 1;
+
+	while ( b <= m ) {
+		n = (b + m) / 2;
+		if ( (c = (*this)[n].Compare(newElement)) == 0 ) {
+			(*this)[n] = newElement;
+			return n;
+		} else if ( c > 0 )
+			b = n + 1;
+		else
+			m = n - 1;
+	}
+	InsertAt(b, newElement);
+	return b;
+}
+
+template<class TYPE, class ARG_TYPE>
+INT_PTR CArraySort<TYPE, ARG_TYPE>::Find(ARG_TYPE Element)
+{
+	int c;
+	int n;
+	int b = 0;
+	int m = GetSize() - 1;
+
+	while ( b <= m ) {
+		n = (b + m) / 2;
+		if ( (c = (*this)[n].Compare(Element)) == 0 )
+			return n;
+		else if ( c > 0 )
+			b = n + 1;
+		else
+			m = n - 1;
+	}
+	return (-1);
+}
+
+//////////////////////////////////////////////////////////////////////
 // CBmpFile
 
 CBmpFile::CBmpFile()
@@ -2014,10 +2059,10 @@ void CKeyNode::SetCode(LPCSTR name)
 			m_Code += ((name[1] - '0') * 16);
 		else
 			m_Code += ((toupper(name[1])- 'A') * 16);
-		if ( isdigit(name[0]) )
-			m_Code += (name[0] - '0');
+		if ( isdigit(name[2]) )
+			m_Code += (name[2] - '0');
 		else
-			m_Code += (toupper(name[0])- 'A');
+			m_Code += (toupper(name[2])- 'A');
 	} else
 		m_Code = atoi(name);
 }
@@ -2238,10 +2283,10 @@ void CKeyNodeTab::Init()
 		{ VK_CANCEL,0,			"$BREAK" },
 //		{ VK_CANCEL,MASK_CTRL,	"$BREAK" },
 
-		{ VK_OEM_7,	MASK_CTRL,	"\\036"	},
-		{ VK_OEM_2,	MASK_CTRL,	"\\037"	},
-		{ VK_OEM_3,	MASK_CTRL,	"\\000"	},
-		{ VK_SPACE,	MASK_CTRL,	"\\000"	},
+		{ VK_OEM_7,	MASK_CTRL,	"\\036"	},		// $DE(^)
+		{ VK_OEM_2,	MASK_CTRL,	"\\037"	},		// $BF(/)
+		{ VK_OEM_3,	MASK_CTRL,	"\\000"	},		// $C0(@)
+		{ VK_SPACE,	MASK_CTRL,	"\\000"	},		// SPACE
 
 		{ (-1),		(-1),		NULL },
 	};

@@ -6,6 +6,7 @@
 #include "MainFrm.h"
 #include "ChildFrm.h"
 #include "RLoginDoc.h"
+#include "RLoginView.h"
 #include "ServerSelect.h"
 
 #ifdef _DEBUG
@@ -456,6 +457,65 @@ class CPaneFrame *CPaneFrame::GetBuffer(class CMainFrame *pMain, class CPaneFram
 
 	return pPane;
 }
+void CPaneFrame::DrawView(CDC *pDC, CPaneFrame *pFrame)
+{
+	CRect rect[4];
+	CChildFrame *pWnd;
+	CRLoginView *pView, *pThis;
+	CDC MemDC;
+	CBitmap Bitmap, *pOldBitmap;
+
+	if ( m_pRight != NULL )
+		m_pRight->DrawView(pDC, pFrame);
+
+	if ( m_pLeft != NULL )
+		m_pLeft->DrawView(pDC, pFrame);
+
+	if ( m_Style == PANEFRAME_WINDOW && m_hWnd != NULL ) {
+		if ( rect[0].IntersectRect(pFrame->m_Frame, m_Frame) && (pWnd = (CChildFrame *)(CWnd::FromHandlePermanent(m_hWnd))) != NULL && (pView = (CRLoginView *)pWnd->GetActiveView()) != NULL ) {
+			pView->GetClientRect(rect[0]);
+			MemDC.CreateCompatibleDC(pDC);
+			MemDC.SetMapMode(pDC->GetMapMode());
+			Bitmap.CreateCompatibleBitmap(pDC, rect[0].Width(), rect[0].Height());
+			pOldBitmap = (CBitmap *)MemDC.SelectObject(&Bitmap);
+			MemDC.m_bPrinting = TRUE;
+			pView->OnDraw(&MemDC);
+
+			pView->ClientToScreen(rect[0]);
+			if ( (pWnd = (CChildFrame *)(CWnd::FromHandlePermanent(pFrame->m_hWnd))) != NULL && (pThis = (CRLoginView *)pWnd->GetActiveView()) != NULL ) {
+				pThis->GetClientRect(rect[1]);
+				pThis->ClientToScreen(rect[1]);
+				if ( rect[2].IntersectRect(rect[0], rect[1]) ) {
+					rect[3] = rect[2];
+					pThis->ScreenToClient(rect[2]);
+					pView->ScreenToClient(rect[3]);
+					pDC->BitBlt(rect[2].left, rect[2].top, rect[2].Width(), rect[2].Height(), &MemDC, rect[3].left, rect[3].top, SRCPAINT);
+				}
+			}
+
+			MemDC.SelectObject(pOldBitmap);
+			Bitmap.DeleteObject();
+			MemDC.DeleteDC();
+		}
+	}
+}
+
+#ifdef	DEBUG
+void CPaneFrame::Dump()
+{
+	static const char *style[] = { "NOCHNG", "MAXIM", "WIDTH", "HEIGHT", "WINDOW" };
+
+	TRACE("hWnd=%x ", m_hWnd);
+	TRACE("Style=%s ", style[m_Style]);
+	TRACE("Frame=%d,%d,%d,%d ", m_Frame.left, m_Frame.top, m_Frame.right, m_Frame.bottom);
+	TRACE("\n");
+
+	if ( m_pLeft != NULL )
+		m_pLeft->Dump();
+	if ( m_pRight != NULL )
+		m_pRight->Dump();
+}
+#endif
 
 // CMainFrame
 
@@ -947,6 +1007,9 @@ void CMainFrame::ActiveChild(CWnd *pWnd)
 	if ( m_pTopPane == NULL )
 		return;
 	m_pTopPane->SetActive(pWnd->m_hWnd);
+#ifdef	DEBUG
+	m_pTopPane->Dump();
+#endif
 }
 void CMainFrame::MoveChild(CWnd *pWnd, CPoint point)
 {

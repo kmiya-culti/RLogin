@@ -53,8 +53,14 @@ public:
 	void SetBuffer(CBuffer *buf);
 	static class CPaneFrame *GetBuffer(class CMainFrame *pMain, class CPaneFrame *pPane, class CPaneFrame *pOwn, CBuffer *buf);
 
+	void DrawView(CDC *pDC, CPaneFrame *pFrame);
+
 	CPaneFrame(class CMainFrame *pMain, HWND hWnd, class CPaneFrame *pOwn);
 	~CPaneFrame();
+
+#ifdef _DEBUG
+	void Dump();
+#endif
 };
 
 #define	TIMEREVENT_DOC		001

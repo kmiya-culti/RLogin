@@ -249,13 +249,14 @@ CTextRam::CTextRam()
 {
 	m_pDocument = NULL;
 	m_VRam = NULL;
-	m_Cols = 80;
+	m_Cols = m_ColsMax = 80;
+	m_LineUpdate = 0;
 	m_Lines = 25;
 	m_HisMax = 100;
 	m_HisPos = 0;
 	m_HisLen = 0;
 	m_HisUse = 0;
-	m_Save_Text.RemoveAll();
+	m_pTextSave = m_pTextStack = NULL;
 	m_DispCaret = 002;
 	m_UpdateRect.left   = m_Cols;
 	m_UpdateRect.top    = m_Lines;
@@ -305,18 +306,21 @@ CTextRam::CTextRam()
 }
 CTextRam::~CTextRam()
 {
-	int n;
 	CTextSave *pSave;
 
 	if ( m_VRam != NULL )
 		delete m_VRam;
 
-	for ( n = 0 ; n < m_Save_Text.GetSize() ; n++ ) {
-		pSave = (CTextSave *)(m_Save_Text[n]);
+	while ( (pSave = m_pTextSave) != NULL ) {
+		m_pTextSave = pSave->m_Next;
 		delete pSave->m_VRam;
 		delete pSave;
 	}
-	m_Save_Text.RemoveAll();
+	while ( (pSave = m_pTextStack) != NULL ) {
+		m_pTextStack = pSave->m_Next;
+		delete pSave->m_VRam;
+		delete pSave;
+	}
 
 	TEKNODE *tp;
 	while ( (tp = m_Tek_Top) != NULL ) {
@@ -341,7 +345,8 @@ void CTextRam::InitText(int Width, int Height)
 	VRAM *tmp;
 	int n, x;
 	int cx, cy, ox, oy, cw, ch;
-	int cols, lines, max;
+	int cols, lines;
+	int colsmax, hismax;
 
 	if ( IS_ENABLE(m_AnsiOpt, TO_RLFONT) ) {
 		ch = m_DefFontSize;
@@ -383,12 +388,12 @@ void CTextRam::InitText(int Width, int Height)
 	if ( lines > LINE_MAX )
 		lines = LINE_MAX;
 
-	if ( (max = m_DefHisMax)  < (lines * 5) )
-		max = lines * 5;
-	else if ( max > 400000 )
-		max = 400000;
+	if ( (hismax = m_DefHisMax)  < (lines * 5) )
+		hismax = lines * 5;
+	else if ( hismax > 400000 )
+		hismax = 400000;
 
-	if ( cols == m_Cols && max == m_HisMax && m_VRam != NULL ) {
+	if ( cols == m_Cols && hismax == m_HisMax && m_VRam != NULL ) {
 		if ( lines == m_Lines )
 			return;
 
@@ -396,19 +401,21 @@ void CTextRam::InitText(int Width, int Height)
 		cy = m_CurY;
 		ox = m_Cols;
 		oy = m_Lines;
+		colsmax = m_ColsMax;
 
 		m_HisPos += (m_Lines - lines);
 
 	} else {
-		tmp = new VRAM[cols * max];
-		for ( n = 0 ; n < (cols * max) ; n++ )
+		colsmax = (m_ColsMax > cols && m_LineUpdate < m_Lines ? m_ColsMax : cols);
+		tmp = new VRAM[colsmax * hismax];
+		for ( n = 0 ; n < (colsmax * hismax) ; n++ )
 			tmp[n] = m_DefAtt;
 
 		if ( m_VRam != NULL ) {
-			cx = (m_Cols < cols ? m_Cols : cols);
-			cy = (m_HisMax < max ? m_HisMax : max);
+			cx = (m_ColsMax < colsmax ? m_ColsMax : colsmax);
+			cy = (m_HisMax < hismax ? m_HisMax : hismax);
 			for ( n = 1 ; n <= cy ; n++ )
-				memcpy(tmp + (max - n) * cols, GETVRAM(0, m_Lines - n), sizeof(VRAM) * cx);
+				memcpy(tmp + (hismax - n) * colsmax, GETVRAM(0, m_Lines - n), sizeof(VRAM) * cx);
 			delete m_VRam;
 			cx = m_CurX;
 			cy = m_CurY;
@@ -422,12 +429,14 @@ void CTextRam::InitText(int Width, int Height)
 		}
 
 		m_VRam   = tmp;
-		m_HisMax = max;
-		m_HisPos = max - lines;
+		m_HisMax = hismax;
+		m_HisPos = hismax - lines;
 	}
 
 	m_Cols   = cols;
 	m_Lines  = lines;
+	m_ColsMax = colsmax;
+	m_LineUpdate = 0;
 
 	if ( m_HisLen <= oy && m_Lines < oy ) {
 		for ( n = 0 ; n < oy ; n++ ) {
@@ -477,23 +486,26 @@ void CTextRam::InitCols()
 
 	int n, cx;
 	int cols = m_DefCols[IsOptValue(TO_DECCOLM, 1)];
+	int colsmax = (m_ColsMax > cols ? m_ColsMax : cols);
 	VRAM *tmp;
 	CRect rect;
 	CWnd *pWnd = ::AfxGetMainWnd();
 
 	if ( pWnd->IsIconic() || pWnd->IsZoomed() || !IsOptEnable(TO_RLNORESZ) ) {
-		tmp = new VRAM[cols * m_HisMax];
-		for ( n = 0 ; n < (cols * m_HisMax) ; n++ )
+		tmp = new VRAM[colsmax * m_HisMax];
+		for ( n = 0 ; n < (colsmax * m_HisMax) ; n++ )
 			tmp[n] = m_DefAtt;
 
-		cx = (m_Cols < cols ? m_Cols : cols);
+		cx = (m_ColsMax < colsmax ? m_ColsMax : colsmax);
 		for ( n = 1 ; n <= m_HisMax ; n++ )
-			memcpy(tmp + (m_HisMax - n) * cols, GETVRAM(0, m_Lines - n), sizeof(VRAM) * cx);
+			memcpy(tmp + (m_HisMax - n) * colsmax, GETVRAM(0, m_Lines - n), sizeof(VRAM) * cx);
 
 		delete m_VRam;
-		m_VRam   = tmp;
-		m_HisPos = m_HisMax - m_Lines;
-		m_Cols   = cols;
+		m_VRam    = tmp;
+		m_HisPos  = m_HisMax - m_Lines;
+		m_Cols    = cols;
+		m_ColsMax = colsmax;
+		m_LineUpdate = 0;
 
 		if ( m_CurX >= m_Cols )
 			m_CurX = m_Cols - 1;
@@ -715,6 +727,8 @@ void CTextRam::Init()
 	memset(m_AnsiOpt, 0, sizeof(DWORD) * 16);
 	EnableOption(TO_DECAWM);
 	EnableOption(TO_XTMRVW);
+	EnableOption(TO_DECANM);
+	EnableOption(TO_DECTCEM);
 	memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
 	memcpy(m_DefBankTab, DefBankTab, sizeof(m_DefBankTab));
 	memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
@@ -781,6 +795,8 @@ void CTextRam::SetArray(CStringArrayExt &array)
 	m_ProcTab.SetArray(tmp);
 	tmp.SetString(str, ';');
 	array.Add(str);
+
+	array.AddVal(1);	// AnsiOpt Bugfix
 }
 void CTextRam::GetArray(CStringArrayExt &array)
 {
@@ -844,6 +860,12 @@ void CTextRam::GetArray(CStringArrayExt &array)
 	if ( array.GetSize() > 36 ) {
 		ext.GetString(array.GetAt(36), ';');
 		m_ProcTab.GetArray(ext);
+	}
+
+	if ( (n = (array.GetSize() > 37 ? array.GetVal(37) : 0)) < 1 ) {
+		m_AnsiOpt[TO_DECANM / 32] ^= (1 << (TO_DECANM % 32));
+		EnableOption(TO_DECTCEM);
+		memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_DefAnsiOpt));
 	}
 
 	RESET();
@@ -1526,8 +1548,6 @@ void CTextRam::StrOut(CDC* pDC, LPCRECT pRect, struct DrawWork &prop, int len, c
 		tc = fc;
 		fc = bc;
 		bc = tc;
-		if ( pView->m_pBitmap != NULL )
-			md = ETO_OPAQUE | ETO_CLIPPED;
 		rv = TRUE;
 	}
 
@@ -1540,8 +1560,6 @@ void CTextRam::StrOut(CDC* pDC, LPCRECT pRect, struct DrawWork &prop, int len, c
 			tc = fc;
 			fc = bc;
 			bc = tc;
-			if ( pView->m_pBitmap != NULL )
-				md = ETO_OPAQUE | ETO_CLIPPED;
 			rv = TRUE;
 		}
 	}
@@ -1563,7 +1581,7 @@ void CTextRam::StrOut(CDC* pDC, LPCRECT pRect, struct DrawWork &prop, int len, c
 		if ( pView->m_pBitmap == NULL )
 			pDC->FillSolidRect(pRect, bc);
 	} else {
-		if ( pView->m_pBitmap == NULL )
+		if ( pView->m_pBitmap == NULL || rv )
 			md = ETO_OPAQUE | ETO_CLIPPED;
 
 		if ( (at & ATT_HALF) != 0 )
@@ -2285,7 +2303,7 @@ VRAM *CTextRam::GETVRAM(int cols, int lines)
 		pos += m_HisMax;
 	while ( pos >= m_HisMax )
 		pos -= m_HisMax;
-	return (m_VRam + cols + m_Cols * pos);
+	return (m_VRam + cols + m_ColsMax * pos);
 }
 void CTextRam::UNGETSTR(LPCSTR str, ...)
 {
@@ -2637,6 +2655,8 @@ void CTextRam::FORSCROLL(int sy, int ey)
 			m_HisPos -= m_HisMax;
 		if ( m_HisLen < (m_HisMax - 1) )
 			m_HisLen += 1;
+		if ( m_LineUpdate < m_Lines )
+			m_LineUpdate++;
 	} else {
 		for ( int y = sy + 1; y < ey ; y++ )
 			memcpy(GETVRAM(0, y - 1), GETVRAM(0, y), sizeof(VRAM) * m_Cols);
@@ -2939,17 +2959,29 @@ void CTextRam::SAVERAM()
 	memcpy(pSave->m_BankTab, m_BankTab, sizeof(m_BankTab));
 	memcpy(pSave->m_TabMap, m_TabMap, sizeof(m_TabMap));
 
-	m_Save_Text.Add(pSave);
+	pSave->m_Save_CurX   = m_Save_CurX;
+	pSave->m_Save_CurY   = m_Save_CurY;
+	pSave->m_Save_AttNow = m_Save_AttNow;
+	pSave->m_Save_AttSpc = m_Save_AttSpc;
+	pSave->m_Save_BankGL = m_Save_BankGL;
+	pSave->m_Save_BankGR = m_Save_BankGR;
+	pSave->m_Save_BankSG = m_Save_BankSG;
+	pSave->m_Save_DoWarp = m_Save_DoWarp;
+	memcpy(pSave->m_Save_BankTab, m_Save_BankTab, sizeof(m_Save_BankTab));
+	memcpy(pSave->m_Save_AnsiOpt, m_Save_AnsiOpt, sizeof(m_Save_AnsiOpt));
+	memcpy(pSave->m_Save_TabMap, m_Save_TabMap, sizeof(m_Save_TabMap));
+
+	pSave->m_Next = m_pTextSave;
+	m_pTextSave = pSave;
 }
 void CTextRam::LOADRAM()
 {
 	int n;
 	CTextSave *pSave;
 
-	if ( (n = (int)m_Save_Text.GetSize() - 1) < 0 )
+	if ( (pSave = m_pTextSave) == NULL )
 		return;
-	pSave = (CTextSave *)(m_Save_Text[n]);
-	m_Save_Text.RemoveAt(n);
+	m_pTextSave = pSave->m_Next;
 
 	m_AttNow = pSave->m_AttNow;
 	m_AttSpc = pSave->m_AttSpc;
@@ -2965,6 +2997,18 @@ void CTextRam::LOADRAM()
 	memcpy(m_BankTab, pSave->m_BankTab, sizeof(m_BankTab));
 	memcpy(m_TabMap, pSave->m_TabMap, sizeof(m_TabMap));
 
+	m_Save_CurX   = pSave->m_Save_CurX;
+	m_Save_CurY   = pSave->m_Save_CurY;
+	m_Save_AttNow = pSave->m_Save_AttNow;
+	m_Save_AttSpc = pSave->m_Save_AttSpc;
+	m_Save_BankGL = pSave->m_Save_BankGL;
+	m_Save_BankGR = pSave->m_Save_BankGR;
+	m_Save_BankSG = pSave->m_Save_BankSG;
+	m_Save_DoWarp = pSave->m_Save_DoWarp;
+	memcpy(m_Save_BankTab, pSave->m_Save_BankTab, sizeof(m_BankTab));
+	memcpy(m_Save_AnsiOpt, pSave->m_Save_AnsiOpt, sizeof(m_AnsiOpt));
+	memcpy(m_Save_TabMap, pSave->m_Save_TabMap, sizeof(m_TabMap));
+
 	m_RecvCrLf = IsOptValue(TO_RLRECVCR, 2);
 	m_SendCrLf = IsOptValue(TO_RLECHOCR, 2);
 
@@ -2979,6 +3023,41 @@ void CTextRam::LOADRAM()
 
 	delete pSave->m_VRam;
 	delete pSave;
+}
+void CTextRam::PUSHRAM()
+{
+	CTextSave *pSave;
+
+	SAVERAM();
+
+	if ( (pSave = m_pTextStack) != NULL ) {
+		m_pTextStack = pSave->m_Next;
+		pSave->m_Next = m_pTextSave;
+		m_pTextSave = pSave;
+		LOADRAM();
+	} else {
+		ERABOX(0, 0, m_Cols, m_Lines);
+		LOCATE(0, 0);
+	}
+}
+void CTextRam::POPRAM()
+{
+	CTextSave *pSave;
+
+	SAVERAM();
+
+	if ( (pSave = m_pTextSave) != NULL ) {
+		m_pTextSave = pSave->m_Next;
+		pSave->m_Next = m_pTextStack;
+		m_pTextStack = pSave;
+	}
+
+	if ( m_pTextSave != NULL ) {
+		LOADRAM();
+	} else {
+		ERABOX(0, 0, m_Cols, m_Lines);
+		LOCATE(0, 0);
+	}
 }
 void CTextRam::TABSET(int sw)
 {

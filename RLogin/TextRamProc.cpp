@@ -1363,23 +1363,15 @@ void CTextRam::fc_LF(int ch)
 {
 	fc_KANJI(ch);
 
-	switch(m_RecvCrLf) {
+	switch(IsOptEnable(TO_ANSILNM) ? 2 : m_RecvCrLf) {
+	case 2:		// LF
+	case 3:		// CR|LF
+		LOCATE(0, m_CurY);
+		if ( IsOptEnable(TO_RLDELAY) && m_pDocument->m_DelayFlag )
+			m_pDocument->OnDelayRecive(ch);
 	case 0:		// CR+LF
 		ONEINDEX();
-		break;
 	case 1:		// CR
-		break;
-	case 2:		// LF
-		ONEINDEX();
-		LOCATE(0, m_CurY);
-		if ( IsOptEnable(TO_RLDELAY) && m_pDocument->m_DelayFlag )
-			m_pDocument->OnDelayRecive(ch);
-		break;
-	case 3:		// CR|LF
-		ONEINDEX();
-		LOCATE(0, m_CurY);
-		if ( IsOptEnable(TO_RLDELAY) && m_pDocument->m_DelayFlag )
-			m_pDocument->OnDelayRecive(ch);
 		break;
 	}
 	CallReciveChar(ch);
@@ -1388,6 +1380,8 @@ void CTextRam::fc_LF(int ch)
 void CTextRam::fc_VT(int ch)
 {
 	TABSET(TAB_LINENEXT);
+	if ( IsOptEnable(TO_ANSILNM) )
+		LOCATE(0, m_CurY);
 	CallReciveChar(ch);
 	m_LastChar = ch;
 }
@@ -1395,6 +1389,8 @@ void CTextRam::fc_FF(int ch)
 {
 	for ( int n = 0 ; n < m_Lines ; n++ )
 		FORSCROLL(0, m_Lines);
+	if ( IsOptEnable(TO_ANSILNM) )
+		LOCATE(0, m_CurY);
 	CallReciveChar(ch);
 	m_LastChar = ch;
 }
@@ -1403,24 +1399,14 @@ void CTextRam::fc_CR(int ch)
 	fc_KANJI(ch);
 
 	switch(m_RecvCrLf) {
+	case 1:		// CR
+	case 3:		// CR|LF
+		ONEINDEX();
 	case 0:		// CR+LF
 		LOCATE(0, m_CurY);
 		if ( IsOptEnable(TO_RLDELAY) && m_pDocument->m_DelayFlag )
 			m_pDocument->OnDelayRecive(ch);
-		break;
-	case 1:		// CR
-		ONEINDEX();
-		LOCATE(0, m_CurY);
-		if ( IsOptEnable(TO_RLDELAY) && m_pDocument->m_DelayFlag )
-			m_pDocument->OnDelayRecive(ch);
-		break;
 	case 2:		// LF
-		break;
-	case 3:		// CR|LF
-		ONEINDEX();
-		LOCATE(0, m_CurY);
-		if ( IsOptEnable(TO_RLDELAY) && m_pDocument->m_DelayFlag )
-			m_pDocument->OnDelayRecive(ch);
 		break;
 	}
 	CallReciveChar(ch);
@@ -1576,21 +1562,21 @@ void CTextRam::fc_V5CUP(int ch)
 void CTextRam::fc_BPH(int ch)
 {
 	// ESC B	VT52 Cursor down								ANSI BPH Break permitted here
-	if ( IS_ENABLE(m_AnsiOpt, TO_DECANM) )
+	if ( !IS_ENABLE(m_AnsiOpt, TO_DECANM) )
 		LOCATE(m_CurX, m_CurY + 1);
 	fc_POP(ch);
 }
 void CTextRam::fc_NBH(int ch)
 {
 	// ESC C	VT52 Cursor right								ANSI NBH No break here
-	if ( IS_ENABLE(m_AnsiOpt, TO_DECANM) )
+	if ( !IS_ENABLE(m_AnsiOpt, TO_DECANM) )
 		LOCATE(m_CurX + 1, m_CurY);
 	fc_POP(ch);
 }
 void CTextRam::fc_IND(int ch)
 {
 	// ESC D	VT52 Cursor left								ANSI IND Index
-	if ( IS_ENABLE(m_AnsiOpt, TO_DECANM) )
+	if ( !IS_ENABLE(m_AnsiOpt, TO_DECANM) )
 		LOCATE(m_CurX - 1, m_CurY);
 	else
 		ONEINDEX();
@@ -1606,7 +1592,7 @@ void CTextRam::fc_NEL(int ch)
 void CTextRam::fc_SSA(int ch)
 {
 	// ESC F	VT52 Enter graphics mode.						ANSI SSA Start selected area
-	if ( IS_ENABLE(m_AnsiOpt, TO_DECANM) ) {
+	if ( !IS_ENABLE(m_AnsiOpt, TO_DECANM) ) {
 		m_BankTab[m_KanjiMode][0] = SET_94 | '0';
 		m_BankTab[m_KanjiMode][1] = SET_94 | '0';
 	} else
@@ -1616,7 +1602,7 @@ void CTextRam::fc_SSA(int ch)
 void CTextRam::fc_ESA(int ch)
 {
 	// ESC F	VT52 Exit graphics mode.						ANSI ESA End selected area
-	if ( IS_ENABLE(m_AnsiOpt, TO_DECANM) ) {
+	if ( !IS_ENABLE(m_AnsiOpt, TO_DECANM) ) {
 		m_BankTab[m_KanjiMode][0] = SET_94 | 'B';
 		m_BankTab[m_KanjiMode][1] = SET_94 | 'B';
 	} else
@@ -1626,7 +1612,7 @@ void CTextRam::fc_ESA(int ch)
 void CTextRam::fc_HTS(int ch)
 {
 	// ESC H	VT52 Cursor to home position.					ANSI HTS Character tabulation set
-	if ( IS_ENABLE(m_AnsiOpt, TO_DECANM) )
+	if ( !IS_ENABLE(m_AnsiOpt, TO_DECANM) )
 		LOCATE(0, 0);
 	else
 		TABSET(TAB_COLSSET);
@@ -1635,7 +1621,7 @@ void CTextRam::fc_HTS(int ch)
 void CTextRam::fc_HTJ(int ch)
 {
 	// ESC I	VT52 Reverse line feed.							ANSI HTJ Character tabulation with justification
-	if ( IS_ENABLE(m_AnsiOpt, TO_DECANM) )
+	if ( !IS_ENABLE(m_AnsiOpt, TO_DECANM) )
 		REVINDEX();
 	else
 		TABSET(TAB_COLSNEXT);
@@ -1644,7 +1630,7 @@ void CTextRam::fc_HTJ(int ch)
 void CTextRam::fc_VTS(int ch)
 {
 	// ESC J	VT52 Erase from cursor to end of screen.		ANSI VTS Line tabulation set
-	if ( IS_ENABLE(m_AnsiOpt, TO_DECANM) ) {
+	if ( !IS_ENABLE(m_AnsiOpt, TO_DECANM) ) {
 		ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1, 1);
 		ERABOX(0, m_CurY + 1, m_Cols, m_Lines, 1);
 	} else
@@ -1654,7 +1640,7 @@ void CTextRam::fc_VTS(int ch)
 void CTextRam::fc_PLD(int ch)
 {
 	// ESC K	VT52 Erase from cursor to end of line.			ANSI PLD Partial line forward
-	if ( IS_ENABLE(m_AnsiOpt, TO_DECANM) )
+	if ( !IS_ENABLE(m_AnsiOpt, TO_DECANM) )
 		ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1);
 	else
 		LOCATE(m_CurX, m_CurY + 1);
@@ -1704,7 +1690,7 @@ void CTextRam::fc_EPA(int ch)
 void CTextRam::fc_SCI(int ch)
 {
 	// ESC Z	VT52 Identify (host to terminal).				ANSI SCI Single character introducer
-	if ( IS_ENABLE(m_AnsiOpt, TO_DECANM) )
+	if ( !IS_ENABLE(m_AnsiOpt, TO_DECANM) )
 		UNGETSTR("\033/Z");
 	fc_POP(ch);
 }
@@ -1729,7 +1715,7 @@ void CTextRam::fc_USR(int ch)
 void CTextRam::fc_V5EX(int ch)
 {
 	// ESC <	VT52 Exit VT52 mode. Enter VT100 mode.
-	m_AnsiOpt[TO_DECANM / 32] &= ~(1 << (TO_DECANM % 32));
+	m_AnsiOpt[TO_DECANM / 32] |= (1 << (TO_DECANM % 32));
 	fc_POP(ch);
 }
 void CTextRam::fc_SS2(int ch)
@@ -3043,51 +3029,66 @@ void CTextRam::fc_DECSRET(int ch)
 			continue;
 
 		ANSIOPT(ch, i);
+
 		switch(i) {
-		case 2:			// DECANM ANSI/VT52 Mode
-			if ( ch == 'l' )
-				m_AnsiOpt[TO_DECANM / 32] |= (1 << (TO_DECANM % 32));
-			else if ( ch == 'h' )
-				m_AnsiOpt[TO_DECANM / 32] &= ~(1 << (TO_DECANM % 32));
-			break;
-		case 3:			// DECCOLM Column mode
-		case 40:		// XTerm Column switch control
+		case TO_DECCOLM:	// 3 DECCOLM Column mode
+		case TO_XTMCSC:		// 40 XTERM Column switch control
 			if ( IsOptEnable(TO_XTMCSC) ) {
 				InitCols();
 				LOCATE(0, 0);
 				ERABOX(0, 0, m_Cols, m_Lines, 2);
 			}
 			break;
-		case 5:			// DECSCNM.Screen Mode: Light or Dark Screen
+		case TO_DECSCNM:	// 5 DECSCNM Screen Mode: Light or Dark Screen
 			DISPVRAM(0, 0, m_Cols, m_Lines);
 			break;
-		case 25:		// DECTCEM.Text Cursor Enable Mode
-			if ( ch == 'l' )
-				CUROFF();
-			else if ( ch == 'h' )
+		case TO_DECTCEM:	// 25 DECTCEM Text Cursor Enable Mode
+			if ( IsOptEnable(TO_DECTCEM) )
 				CURON();
+			else
+				CUROFF();
 			break;
-		case 38:		// DECTEK
+		case TO_DECTEK:		// 38 DECTEK
 			if ( ch == 'h' ) {
 				TekInit(4014);
 				fc_Case(STAGE_TEK);
 				return;
 			}
 			break;
-		case 47:		// XTERM alternate buffer
+
+		case TO_XTMABUF:	// 47 XTERM alternate buffer
+		case TO_XTALTSCR:	// 1047 XTERM Use Alternate/Normal screen buffer
+			if ( ch == 'l' )
+				POPRAM();
+			else if ( ch == 'h' )
+				PUSHRAM();
+			break;
+		case TO_XTSRCUR:	// 1048 XTERM Save/Restore cursor as in DECSC/DECRC
+			if ( ch == 'l' )
+				LOCATE(m_Save_CurX, m_Save_CurY);
+			else if ( ch == 'h' ) {
+				m_Save_CurX = m_CurX;
+				m_Save_CurY = m_CurY;
+			}
+			break;
+		case TO_XTALTCLR:	// 1049 XTERM Use Alternate/Normal screen buffer, clearing it first
 			if ( ch == 'l' )
 				LOADRAM();
-			else if ( ch == 'h' )
+			else if ( ch == 'h' ) {
 				SAVERAM();
+				ERABOX(0, 0, m_Cols, m_Lines);
+				LOCATE(0, 0);
+			}
 			break;
-		case TO_XTMOSREP:
+
+		case TO_XTMOSREP:	// 9 X10 mouse reporting
 			m_MouseTrack = (IsOptEnable(i) ? 1 : 0);
 			m_pDocument->UpdateAllViews(NULL, UPDATE_SETCURSOR, NULL);
 			break;
-		case TO_XTNOMTRK:
-		case TO_XTHILTRK:
-		case TO_XTBEVTRK:
-		case TO_XTAEVTRK:
+		case TO_XTNOMTRK:	// 1000 X11 normal mouse tracking
+		case TO_XTHILTRK:	// 1001 X11 hilite mouse tracking
+		case TO_XTBEVTRK:	// 1002 X11 button-event mouse tracking
+		case TO_XTAEVTRK:	// 1003 X11 any-event mouse tracking
 			m_MouseTrack = (IsOptEnable(i) ? (i - TO_XTNOMTRK + 2) : 0);
 			m_pDocument->UpdateAllViews(NULL, UPDATE_SETCURSOR, NULL);
 			break;
@@ -3290,20 +3291,55 @@ void CTextRam::fc_DECRARA(int ch)
 void CTextRam::fc_DECCRA(int ch)
 {
 	// CSI $v	DECCRA Copy Rectangular Area
-	int n, i, x, y, cx, cy;
-	VRAM *vp, *cp;
+	WORD dm;
+	int cx, cy, sx, sy, nx, ny;
+	VRAM *sp, *np;
+
 	SetAnsiParaArea(0);
-	if ( (cy = GetAnsiPara(5, 1) - 1) < 0 ) cy = 0;
-	else if ( cy >= m_Lines ) cy = m_Lines - 1;
-	if ( (cx = GetAnsiPara(6, 1) - 1) < 0 ) cx = 0;
-	else if ( cx >= m_Cols ) cx = m_Cols - 1;
-	for ( y = m_AnsiPara[0], i = cy ; y <= m_AnsiPara[2] && i < m_Lines ; y++, i++ ) {
-		for ( x = m_AnsiPara[1], n = cx ; x <= m_AnsiPara[3] && n < m_Cols ; x++, n++ ) {
-			vp = GETVRAM(x, y);
-			cp = GETVRAM(n, i);
-			*cp = *vp;
+
+	if ( (cy = GetAnsiPara(5, 1) - 1) < 0 )
+		cy = 0;
+	else if ( cy >= m_Lines )
+		cy = m_Lines - 1;
+
+	if ( (cx = GetAnsiPara(6, 1) - 1) < 0 )
+		cx = 0;
+	else if ( cx >= m_Cols )
+		cx = m_Cols - 1;
+
+
+	if ( m_AnsiPara[0] > cy || (m_AnsiPara[0] == cy && m_AnsiPara[1] >= cx) ) {
+		for ( sy = m_AnsiPara[0], ny = cy ; sy <= m_AnsiPara[2] && ny < m_Lines ; sy++, ny++ ) {
+			for ( sx = m_AnsiPara[1], nx = cx ; sx <= m_AnsiPara[3] && nx < m_Cols ; sx++, nx++ ) {
+				sp = GETVRAM(sx, sy);
+				np = GETVRAM(nx, ny);
+				if ( nx == 0 ) {
+					dm = np->dm;
+					*np = *sp;
+					np->dm = dm;
+				} else
+					*np = *sp;
+			}
+		}
+	} else {
+		for ( sy = m_AnsiPara[2], ny = cy + m_AnsiPara[2] - m_AnsiPara[1] ; sy >= m_AnsiPara[1] ; sy--, ny-- ) {
+			if ( ny < m_Lines ) {
+				for ( sx = m_AnsiPara[3], nx = cx + m_AnsiPara[3] - m_AnsiPara[1] ; sx >= m_AnsiPara[1] ; sx--, nx-- ) {
+					if ( nx < m_Cols ) {
+						sp = GETVRAM(sx, sy);
+						np = GETVRAM(nx, ny);
+						if ( nx == 0 ) {
+							dm = np->dm;
+							*np = *sp;
+							np->dm = dm;
+						} else
+							*np = *sp;
+					}
+				}
+			}
 		}
 	}
+
 	DISPVRAM(cx, cy, m_AnsiPara[3] - m_AnsiPara[1] + 1, m_AnsiPara[2] - m_AnsiPara[0] + 1);
 	fc_POP(ch);
 }
@@ -3462,9 +3498,9 @@ void CTextRam::fc_DECTME(int ch)
 	// CSI (' ' << 8) | '~'		DECTME Terminal Mode Emulation
 
 	if ( GetAnsiPara(0, 0) == 3 )
-		m_AnsiOpt[TO_DECANM / 32] |= (1 << (TO_DECANM % 32));
-	else
 		m_AnsiOpt[TO_DECANM / 32] &= ~(1 << (TO_DECANM % 32));
+	else
+		m_AnsiOpt[TO_DECANM / 32] |= (1 << (TO_DECANM % 32));
 
 	fc_POP(ch);
 }
