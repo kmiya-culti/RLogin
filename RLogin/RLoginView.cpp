@@ -399,12 +399,13 @@ void CRLoginView::OnSize(UINT nType, int cx, int cy)
 	ASSERT(pDoc);
 	ASSERT(pFrame);
 
-	m_Width  = cx;
-	m_Height = cy;
+	if ( (m_Width  = cx) <= 0 ) m_Width  = 1;
+	if ( (m_Height = cy) <= 0 ) m_Height = 1;
 
 	pFrame->GetClientRect(rect);
 	pFrame->m_Width  = m_Width;
-	pFrame->m_Height = rect.Height() - 4;
+	if ( (pFrame->m_Height = rect.Height() - 4) <= 0 )
+		pFrame->m_Height = 1;
 
 //	if ( m_ActiveFlag ) {
 		pDoc->m_TextRam.InitText(pFrame->m_Width, pFrame->m_Height);

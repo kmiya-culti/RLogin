@@ -129,6 +129,7 @@ public:
 	virtual int GetSendSize();
 	virtual void OnRecvEmpty();
 	virtual void OnSendEmpty();
+	virtual void GetStatus(CString &str);
 
 	virtual void OnAsyncHostByName(LPCSTR pHostName);
 	virtual void OnGetHostByName(LPCSTR pHostName);

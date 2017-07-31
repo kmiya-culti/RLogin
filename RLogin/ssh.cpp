@@ -109,6 +109,7 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 	m_InPackBuf.Clear();
 	m_IdKey.Close();
 	m_IdKeyPos = 0;
+	m_HostKey.Close();
 
 	srand((UINT)time(NULL));
 
@@ -347,6 +348,75 @@ void Cssh::OnSendEmpty()
 	for ( CFilter *fp = m_pListFilter ; fp != NULL ; fp = fp->m_pNext )
 		fp->OnSendEmpty();
 }
+void Cssh::GetStatus(CString &str)
+{
+	int n;
+	CString tmp;
+
+	CExtSocket::GetStatus(str);
+
+	str += "\r\n";
+	tmp.Format("SSH Server: %d\r\n", m_SSHVer);
+	str += tmp;
+
+	tmp.Format("Version: %s\r\n", m_ServerVerStr);
+	str += tmp;
+	tmp.Format("Kexs: %s\r\n", m_SProp[0]);
+	str += tmp;
+	tmp.Format("Keys: %s\r\n", m_SProp[1]);
+	str += tmp;
+	tmp.Format("Cipher CtoS: %s\r\n", m_SProp[2]);
+	str += tmp;
+	tmp.Format("Cipher StoC: %s\r\n", m_SProp[3]);
+	str += tmp;
+	tmp.Format("Mac CtoS: %s\r\n", m_SProp[4]);
+	str += tmp;
+	tmp.Format("Mac StoC: %s\r\n", m_SProp[5]);
+	str += tmp;
+	tmp.Format("Compess CtoS: %s\r\n", m_SProp[6]);
+	str += tmp;
+	tmp.Format("Compess StoC: %s\r\n", m_SProp[7]);
+	str += tmp;
+	tmp.Format("Language CtoS: %s\r\n", m_SProp[8]);
+	str += tmp;
+	tmp.Format("Language StoC: %s\r\n", m_SProp[9]);
+	str += tmp;
+
+	str += "\r\n";
+	tmp.Format("Kexs: %s\r\n", m_CProp[0]);
+	str += tmp;
+
+	tmp.Format("Encode: %s + %s + %s\r\n", m_EncCmp.GetTitle(), m_EncCip.GetTitle(), m_EncMac.GetTitle());
+	str += tmp;
+	tmp.Format("Decode: %s + %s + %s\r\n", m_DecCmp.GetTitle(), m_DecCip.GetTitle(), m_DecMac.GetTitle());
+	str += tmp;
+
+	str += "UserAuth: ";
+	switch(m_AuthStat) {
+	case 0: str += "req"; break;
+	case 1: 
+	case 2:
+	case 3: str += "publickey"; break;
+	case 4: str += "password"; break;
+	case 5: str += "keyboard-interactive"; break;
+	case 6: str += "error"; break;
+	}
+	str += "\r\n";
+
+	m_HostKey.FingerPrint(tmp);
+	str += "\r\n";
+	str += tmp;
+
+	str += "\r\n";
+	tmp.Format("Open Channel: %d\r\n", m_OpenChanCount);
+	str += tmp;
+
+	for ( n = m_ChanNext ; n >= 0 ; n = m_Chan[n].m_Next ) {
+		tmp.Format("Chanel: RemoteId=%d LocalId=%d Status=%x Type=%s Read=%lld Write=%lld\r\n",
+			m_Chan[n].m_RemoteID, m_Chan[n].m_LocalID, m_Chan[n].m_Status, m_Chan[n].m_TypeName, m_Chan[n].m_WriteByte, m_Chan[n].m_ReadByte);
+		str += tmp;
+	}
+}
 
 //////////////////////////////////////////////////////////////////////
 // SSH1 Function
@@ -416,6 +486,7 @@ int Cssh::SMsgPublicKey(CBuffer *bp)
 	BN_copy(skey.m_Rsa->n, host_key->n);
 	if ( !skey.HostVerify(m_HostName) )
 		return FALSE;
+	m_HostKey = skey;
 
 	m_ServerFlag  = bp->Get32Bit();
 	m_SupportCipher = bp->Get32Bit();
@@ -1053,9 +1124,9 @@ int Cssh::MatchList(LPCSTR client, LPCSTR server, CString &str)
 {
 	int n;
 	CString tmp;
-	CStringArray array;
+	CStringArray arry;
 
-	array.RemoveAll();
+	arry.RemoveAll();
 	while ( *server != '\0' ) {
 		while ( *server != '\0' && strchr(" ,", *server) != NULL )
 			server++;
@@ -1063,7 +1134,7 @@ int Cssh::MatchList(LPCSTR client, LPCSTR server, CString &str)
 		while ( *server != '\0' && strchr(" ,", *server) == NULL )
 			tmp += *(server++);
 		if ( !tmp.IsEmpty() )
-			array.Add(tmp);
+			arry.Add(tmp);
 	}
 
 	while ( *client != '\0' ) {
@@ -1073,8 +1144,8 @@ int Cssh::MatchList(LPCSTR client, LPCSTR server, CString &str)
 		while ( *client != '\0' && strchr(" ,", *client) == NULL )
 			tmp += *(client++);
 		if ( !tmp.IsEmpty() ) {
-			for ( n = 0 ; n < array.GetSize() ; n++ ) {
-				if ( tmp.Compare(array[n]) == 0 ) {
+			for ( n = 0 ; n < arry.GetSize() ; n++ ) {
+				if ( tmp.Compare(arry[n]) == 0 ) {
 					str = tmp;
 					return TRUE;
 				}
@@ -1095,7 +1166,7 @@ void Cssh::PortForward()
 		if ( tmp.GetSize() < 4 )
 			continue;
 
-		if ( tmp[0].Compare("localhost") == 0 ) { //&& tmp[2].Compare(m_HostName) == 0 ) {
+		if ( tmp[0].Compare("localhost") == 0 ) { // && tmp[2].Compare(m_HostName) == 0 ) {
 			n = ChannelOpen();
 			m_Chan[n].m_Status = CHAN_LISTEN;
 			if ( !m_Chan[n].Create(tmp[0], GetPortNum(tmp[1]), tmp[2], GetPortNum(tmp[3])) ) {
@@ -1106,7 +1177,7 @@ void Cssh::PortForward()
 				LogIt("Local Listen %s:%s", tmp[0], tmp[1]);
 				a++;
 			}
-		} else if ( tmp[0].Compare("socks") == 0 && tmp[2].Compare(m_HostName) == 0 ) {
+		} else if ( tmp[0].Compare("socks") == 0 ) { // && tmp[2].Compare(m_HostName) == 0 ) {
 			n = ChannelOpen();
 			m_Chan[n].m_Status = CHAN_LISTEN | CHAN_PROXY_SOCKS;
 			tmp[0] = "localhost";
@@ -1261,7 +1332,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 			return TRUE;
 		}
 	default:
-		m_AuthStat = 5;
+		m_AuthStat = 6;
 		return FALSE;
 	}
 
@@ -1685,6 +1756,7 @@ int Cssh::SSH2MsgKexDhReply(CBuffer *bp)
 
 	if ( !key.HostVerify(m_HostName) )
 		return TRUE;
+	m_HostKey = key;
 
 	if ( (spub = BN_new()) == NULL || (ssec = BN_new()) == NULL )
 		return TRUE;
@@ -1771,6 +1843,7 @@ int Cssh::SSH2MsgKexDhGexReply(CBuffer *bp)
 
 	if ( !key.HostVerify(m_HostName) )
 		return TRUE;
+	m_HostKey = key;
 
 	if ( (spub = BN_new()) == NULL || (ssec = BN_new()) == NULL )
 		return TRUE;

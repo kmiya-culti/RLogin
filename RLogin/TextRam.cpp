@@ -3132,14 +3132,14 @@ void CTextRam::TABSET(int sw)
 		break;
 	case TAB_COLSALLCLR:	// Cols All Claer
 		if ( IsOptEnable(TO_ANSITSM) )	// MULTIPLE
-			memset(&(m_TabMap[m_CurY + 1][1]), 0, LINE_MAX / 8);
+			memset(&(m_TabMap[m_CurY + 1][1]), 0, COLS_MAX / 8);
 		else							// SINGLE
-			memset(&(m_TabMap[0][1]), 0, LINE_MAX / 8);
+			memset(&(m_TabMap[0][1]), 0, COLS_MAX / 8);
 		break;
 
 	case TAB_COLSALLCLRACT:	// Cols All Clear if Active Line
 		if ( (m_TabMap[m_CurY + 1][0] & 001) != 0 )
-			memset(&(m_TabMap[m_CurY + 1][1]), 0, LINE_MAX / 8);
+			memset(&(m_TabMap[m_CurY + 1][1]), 0, COLS_MAX / 8);
 		break;
 
 	case TAB_LINESET:		// Line Set
@@ -3155,11 +3155,11 @@ void CTextRam::TABSET(int sw)
 
 	case TAB_RESET:			// Reset
 		m_TabMap[0][0] = 001;
-		memset(&(m_TabMap[0][1]), 0, LINE_MAX / 8);
+		memset(&(m_TabMap[0][1]), 0, COLS_MAX / 8);
 		for ( i = 0 ; i < LINE_MAX ; i += m_DefTab )
 			m_TabMap[0][i / 8 + 1] |= (0x80 >> (i % 8));
 		for ( n = 1 ; n <= m_Lines ; n++ )
-			memcpy(&(m_TabMap[n][0]), &(m_TabMap[0][0]), LINE_MAX / 8 + 1);
+			memcpy(&(m_TabMap[n][0]), &(m_TabMap[0][0]), COLS_MAX / 8 + 1);
 		break;
 
 	case TAB_DELINE:		// Delete Line
@@ -3167,7 +3167,7 @@ void CTextRam::TABSET(int sw)
 			for ( n = m_CurY + 1 ; n < m_Lines ; n++ )
 				memcpy(m_TabMap[n], m_TabMap[n + 1], COLS_MAX / 8 + 1);
 			m_TabMap[m_Lines][0] = 0;
-			memset(&(m_TabMap[m_Lines][1]), 0, LINE_MAX / 8);
+			memset(&(m_TabMap[m_Lines][1]), 0, COLS_MAX / 8);
 		}
 		break;
 	case TAB_INSLINE:		// Insert Line
@@ -3175,15 +3175,13 @@ void CTextRam::TABSET(int sw)
 			for ( n = m_Lines - 1 ; n > m_CurY ; n-- )
 				memcpy(m_TabMap[n + 1], m_TabMap[n], COLS_MAX / 8 + 1);
 			m_TabMap[m_CurY + 1][0] = 0;
-			memset(&(m_TabMap[m_CurY + 1][1]), 0, LINE_MAX / 8);
+			memset(&(m_TabMap[m_CurY + 1][1]), 0, COLS_MAX / 8);
 		}
 		break;
 
 	case TAB_ALLCLR:		// Cols Line All Clear
-		for ( n = 0 ; n <= m_Lines ; n++ ) {
-			m_TabMap[n][0] = 0;
-			memset(&(m_TabMap[n][1]), 0, LINE_MAX / 8);
-		}
+		for ( n = 0 ; n <= m_Lines ; n++ )
+			memset(&(m_TabMap[n][0]), 0, COLS_MAX / 8 + 1);
 		break;
 
 	case TAB_COLSNEXT:		// Cols Tab Stop

@@ -218,6 +218,7 @@ public:
 	int Send(const void *lpBuf, int nBufLen, int nFlags = 0);
 	void SendWindSize(int x, int y);
 	void SetXonXoff(int sw);
+	void GetStatus(CString &str);
 
 	CTelnet(class CRLoginDoc *pDoc);
 	virtual ~CTelnet();

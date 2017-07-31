@@ -19,6 +19,7 @@
 #include "OptDlg.h"
 #include "Wininet.h"
 #include "EditDlg.h"
+#include "StatusDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -52,6 +53,8 @@ BEGIN_MESSAGE_MAP(CRLoginDoc, CDocument)
 	ON_COMMAND(IDM_TEKDISP, &CRLoginDoc::OnTekdisp)
 	ON_UPDATE_COMMAND_UI(IDM_TEKDISP, &CRLoginDoc::OnUpdateTekdisp)
 	ON_COMMAND_RANGE(IDM_RESET_TAB, IDM_RESET_ALL, &CRLoginDoc::OnScreenReset)
+	ON_COMMAND(IDM_SOCKETSTATUS, &CRLoginDoc::OnSocketstatus)
+	ON_UPDATE_COMMAND_UI(IDM_SOCKETSTATUS, &CRLoginDoc::OnUpdateSocketstatus)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -985,4 +988,21 @@ void CRLoginDoc::OnScreenReset(UINT nID)
 	}
 	m_TextRam.RESET(mode);
 	m_TextRam.FLUSH();
+}
+
+void CRLoginDoc::OnSocketstatus()
+{
+	CStatusDlg dlg;
+
+	if ( m_pSock == NULL )
+		return;
+
+	m_pSock->GetStatus(dlg.m_Status);
+
+	dlg.DoModal();
+}
+
+void CRLoginDoc::OnUpdateSocketstatus(CCmdUI *pCmdUI)
+{
+	pCmdUI->Enable(m_pSock != NULL ? TRUE : FALSE);
 }

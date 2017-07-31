@@ -1126,6 +1126,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\StatusDlg.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\stdafx.cpp"
 				>
 				<FileConfiguration
@@ -1481,6 +1485,10 @@
 			</File>
 			<File
 				RelativePath=".\ssh2.h"
+				>
+			</File>
+			<File
+				RelativePath=".\StatusDlg.h"
 				>
 			</File>
 			<File

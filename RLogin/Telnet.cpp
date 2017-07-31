@@ -177,6 +177,20 @@ void CMint::Debug()
 //////////////////////////////////////////////////////////////////////
 // CTelnet
 
+static const char *telopts[] = {
+        "BINARY", "ECHO", "RCP", "SUPPRESS GO AHEAD", "NAME",
+        "STATUS", "TIMING MARK", "RCTE", "NAOL", "NAOP",
+        "NAOCRD", "NAOHTS", "NAOHTD", "NAOFFD", "NAOVTS",
+        "NAOVTD", "NAOLFD", "EXTEND ASCII", "LOGOUT", "BYTE MACRO",
+        "DATA ENTRY TERMINAL", "SUPDUP", "SUPDUP OUTPUT",
+        "SEND LOCATION", "TERMINAL TYPE", "END OF RECORD",
+        "TACACS UID", "OUTPUT MARKING", "TTYLOC",
+        "3270 REGIME", "X.3 PAD", "NAWS", "TSPEED", "LFLOW",
+        "LINEMODE", "XDISPLOC", "OLD-ENVIRON", "AUTHENTICATION",
+        "ENCRYPT", "NEW-ENVIRON", "",
+        0
+	};
+
 CTelnet::CTelnet(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 {
 	m_Type = 2;
@@ -280,19 +294,6 @@ void CTelnet::PrintOpt(int st, int ch, int opt)
 {
 #ifdef	_DEBUG
 	char tmp[32];
-	static char *telopts[] = {
-        "BINARY", "ECHO", "RCP", "SUPPRESS GO AHEAD", "NAME",
-        "STATUS", "TIMING MARK", "RCTE", "NAOL", "NAOP",
-        "NAOCRD", "NAOHTS", "NAOHTD", "NAOFFD", "NAOVTS",
-        "NAOVTD", "NAOLFD", "EXTEND ASCII", "LOGOUT", "BYTE MACRO",
-        "DATA ENTRY TERMINAL", "SUPDUP", "SUPDUP OUTPUT",
-        "SEND LOCATION", "TERMINAL TYPE", "END OF RECORD",
-        "TACACS UID", "OUTPUT MARKING", "TTYLOC",
-        "3270 REGIME", "X.3 PAD", "NAWS", "TSPEED", "LFLOW",
-        "LINEMODE", "XDISPLOC", "OLD-ENVIRON", "AUTHENTICATION",
-        "ENCRYPT", "NEW-ENVIRON", "",
-        0
-	};
 	if ( opt < 0 || opt > TELOPT_MAX )
 		opt = TELOPT_MAX;
 	sprintf(tmp, "%s %s %s\r\n",
@@ -361,6 +362,51 @@ void CTelnet::SendWindSize(int x, int y)
 void CTelnet::SetXonXoff(int sw)
 {
 	CExtSocket::SetXonXoff(sw);
+}
+void CTelnet::GetStatus(CString &str)
+{
+	int n;
+	CString tmp;
+	static const char *optsts[] = { "OFF", "ON", "WOFF", "WON", "ROFF", "RON" };
+
+	CExtSocket::GetStatus(str);
+
+	str += "\r\n";
+	tmp.Format("Telnet Status: %d\r\n", ReciveStatus);
+	str += tmp;
+
+	str += "\r\n";
+	tmp.Format("Server Option: ");
+	str += tmp;
+
+	for ( n = 0 ; n < TELOPT_MAX ; n++ ) {
+		tmp.Format(" %s:%s", telopts[n], optsts[HisOpt[n].status]);
+		str += tmp;
+	}
+	str += "\r\n";
+
+	str += "\r\n";
+	tmp.Format("Client Option: ");
+	str += tmp;
+
+	for ( n = 0 ; n < TELOPT_MAX ; n++ ) {
+		tmp.Format(" %s:%s", telopts[n], optsts[MyOpt[n].status]);
+		str += tmp;
+	}
+	str += "\r\n";
+
+	if ( EncryptOutputFlag || EncryptInputFlag )
+		str += "\r\n";
+
+	if ( EncryptOutputFlag ) {
+		tmp.Format("EncryptOut: %s\r\n", (stream[DIR_ENC].mode == ENCTYPE_DES_CFB64 ? "des-cfb" : "des-ofb"));
+		str += tmp;
+	}
+
+	if ( EncryptInputFlag ) {
+		tmp.Format("EncryptIn: %s\r\n", (stream[DIR_DEC].mode == ENCTYPE_DES_CFB64 ? "des-cfb" : "des-ofb"));
+		str += tmp;
+	}
 }
 void CTelnet::OptFunc(struct TelOptTab *tab, int opt, int sw, int ch)
 {

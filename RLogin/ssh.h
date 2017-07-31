@@ -118,7 +118,6 @@ public:
 	int GetBlockSize(LPCSTR name = NULL);
 	LPCSTR GetName(int num);
 	int GetNum(LPCSTR str);
-	LPCSTR GetMatchList(LPCSTR str);
 	LPCSTR GetTitle();
 	void MakeKey(CBuffer *bp, LPCSTR pass);
 
@@ -145,7 +144,6 @@ public:
 	int GetIndex(LPCSTR name);
 	int GetKeyLen(LPCSTR name = NULL);
 	int GetBlockSize(LPCSTR name = NULL);
-	LPCSTR GetMatchList(LPCSTR str);
 	LPCSTR GetTitle();
 
 	static void BenchMark(CString &out);
@@ -164,7 +162,6 @@ public:
 	int Init(LPCSTR name, int mode, int level = 6);
 	void Compress(LPBYTE inbuf, int len, CBuffer *out);
 	void UnCompress(LPBYTE inbuf, int len, CBuffer *out);
-	LPCSTR GetMatchList(LPCSTR str);
 	LPCSTR GetTitle();
 
 	CCompress();
@@ -435,6 +432,7 @@ public:
 	void OnTimer(UINT_PTR nIDEvent);
 	void OnRecvEmpty();
 	void OnSendEmpty();
+	void GetStatus(CString &str);
 
 	int m_SSHVer;
 	CString m_HostName;
@@ -463,6 +461,7 @@ private:
 	BYTE m_SessionKey[64];
 	CIdKey m_IdKey;
 	int m_IdKeyPos;
+	CIdKey m_HostKey;
 
 	int m_ServerFlag;
 	int m_SupportCipher;

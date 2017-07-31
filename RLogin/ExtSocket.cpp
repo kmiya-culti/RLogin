@@ -722,6 +722,17 @@ void CExtSocket::OnRecvEmpty()
 void CExtSocket::OnSendEmpty()
 {
 }
+void CExtSocket::GetStatus(CString &str)
+{
+	CString tmp;
+
+	tmp.Format("Socket Type: %d\r\n", m_Type);
+	str += tmp;
+	tmp.Format("Recive Reserved: %d Bytes\r\n", m_RecvSize[0] + m_RecvSize[1] + m_ProcSize[0] + m_ProcSize[1]);
+	str += tmp;
+	tmp.Format("Send Reserved: %d Bytes\r\n", m_SendSize[0] + m_SendSize[1]);
+	str += tmp;
+}
 
 //////////////////////////////////////////////////////////////////////
 
