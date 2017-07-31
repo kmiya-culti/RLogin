@@ -727,7 +727,7 @@ public:
 	void LineEditCwd(int sx, int sy, CStringW &cwd);
 	void SetKanjiMode(int mode);
 
-	void OpenHisFile();
+	BOOL OpenHisFile();
 	void InitHistory();
 	void SaveHistory();
 

@@ -149,6 +149,7 @@ public:
 	int m_BlockSize;
 	void *m_UmacCtx;
 	BOOL m_UmacMode;
+	BOOL m_EtmMode;
 
 	int Init(LPCTSTR name, LPBYTE key = NULL, int len = (-1));
 	void Compute(DWORD seq, LPBYTE inbuf, int len, CBuffer *out);
@@ -156,6 +157,7 @@ public:
 	int GetKeyLen(LPCTSTR name = NULL);
 	int GetBlockSize(LPCTSTR name = NULL);
 	LPCTSTR GetTitle();
+	inline BOOL IsEtm() { return m_EtmMode; }
 
 	static void BenchMark(CString &out);
 

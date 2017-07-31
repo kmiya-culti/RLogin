@@ -3629,21 +3629,30 @@ static LPCTSTR InitAlgo[12][50] = {
 
 #if	OPENSSL_VERSION_NUMBER >= 0x10001000L
 		_T("AEAD_AES_128_GCM"),				_T("AEAD_AES_192_GCM"),				_T("AEAD_AES_256_GCM"),
+		_T("aes128-gcm@openssh.com"),		_T("aes256-gcm@openssh.com"),
 #endif
 		_T("none"),
 		NULL },
 
-	{	_T("hmac-md5"),						_T("hmac-md5-96"),
+	{	_T("hmac-md5-etm@openssh.com"),
+		_T("hmac-sha1-etm@openssh.com"),
+		_T("hmac-sha2-256-etm@openssh.com"),
+		_T("hmac-sha2-512-etm@openssh.com"),
+
+		_T("hmac-md5"),						_T("hmac-md5-96"),
 		_T("hmac-sha1"),					_T("hmac-sha1-96"),
 		_T("hmac-sha2-256"),				_T("hmac-sha2-256-96"),
 		_T("hmac-sha2-512"),				_T("hmac-sha2-512-96"),
 		_T("hmac-ripemd160"),				_T("hmac-whirlpool"),
-		_T("umac-64@openssh.com"),
+
+		_T("umac-64-etm@openssh.com"),		_T("umac-128-etm@openssh.com"),
+		_T("umac-64@openssh.com"),			_T("umac-128@openssh.com"),
 		_T("umac-32"),						_T("umac-64"),
 		_T("umac-96"),						_T("umac-128"),
 
 #if	OPENSSL_VERSION_NUMBER >= 0x10001000L
 		_T("AEAD_AES_128_GCM"),				_T("AEAD_AES_192_GCM"),				_T("AEAD_AES_256_GCM"),
+		_T("aes128-gcm@openssh.com"),		_T("aes256-gcm@openssh.com"),
 #endif
 		NULL },
 
@@ -3672,21 +3681,30 @@ static LPCTSTR InitAlgo[12][50] = {
 
 #if	OPENSSL_VERSION_NUMBER >= 0x10001000L
 		_T("AEAD_AES_128_GCM"),				_T("AEAD_AES_192_GCM"),				_T("AEAD_AES_256_GCM"),
+		_T("aes128-gcm@openssh.com"),		_T("aes256-gcm@openssh.com"),
 #endif
 		_T("none"),
 		NULL },
 
-	{	_T("hmac-md5"),						_T("hmac-md5-96"),
+	{	_T("hmac-md5-etm@openssh.com"),
+		_T("hmac-sha1-etm@openssh.com"),
+		_T("hmac-sha2-256-etm@openssh.com"),
+		_T("hmac-sha2-512-etm@openssh.com"),
+
+		_T("hmac-md5"),						_T("hmac-md5-96"),
 		_T("hmac-sha1"),					_T("hmac-sha1-96"),
 		_T("hmac-sha2-256"),				_T("hmac-sha2-256-96"),
 		_T("hmac-sha2-512"),				_T("hmac-sha2-512-96"),
 		_T("hmac-ripemd160"),				_T("hmac-whirlpool"),
-		_T("umac-64@openssh.com"),
+
+		_T("umac-64-etm@openssh.com"),		_T("umac-128-etm@openssh.com"),
+		_T("umac-64@openssh.com"),			_T("umac-128@openssh.com"),
 		_T("umac-32"),						_T("umac-64"),
 		_T("umac-96"),						_T("umac-128"),
 
 #if	OPENSSL_VERSION_NUMBER >= 0x10001000L
 		_T("AEAD_AES_128_GCM"),				_T("AEAD_AES_192_GCM"),				_T("AEAD_AES_256_GCM"),
+		_T("aes128-gcm@openssh.com"),		_T("aes256-gcm@openssh.com"),
 #endif
 		NULL },
 

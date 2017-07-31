@@ -654,8 +654,7 @@ void CRLoginDoc::OnSocketConnect()
 	}
 
 	if ( m_TextRam.IsOptEnable(TO_RLHISDATE) && !m_TextRam.m_LogFile.IsEmpty() ) {
-		int n;
-		int num = 1;
+		int n, num;
 		CString file, dirs, name, exts;
 
 		if ( (n = m_TextRam.m_LogFile.ReverseFind(_T('\\'))) >= 0 || (n = m_TextRam.m_LogFile.ReverseFind(_T(':'))) >= 0 ) {
@@ -687,16 +686,19 @@ void CRLoginDoc::OnSocketConnect()
 
 		file.Format(_T("%s%s%s"), dirs, name, exts);
 
-		while ( !m_pLogFile->Open(file, CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite | CFile::shareExclusive) ) {
-			if ( ++num > 20 ) {
-				delete m_pLogFile;
-				m_pLogFile = NULL;
-				return;
+		for ( num = 1 ; num < 20 ; num++ ) {
+			if ( m_pLogFile->Open(file, CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite | CFile::shareExclusive) ) {
+				m_pLogFile->SeekToEnd();
+				break;
 			}
 			file.Format(_T("%s%s-%d%s"), dirs, name, num, exts);
 		}
-
-		m_pLogFile->SeekToEnd();
+		if ( num >= 20 ) {
+			file.Format(_T("LogFile Open Error '%s%s%s'"), dirs, name, exts);
+			AfxMessageBox(file);
+			delete m_pLogFile;
+			m_pLogFile = NULL;
+		}
 	}
 
 	SetStatus(_T("Connect"));

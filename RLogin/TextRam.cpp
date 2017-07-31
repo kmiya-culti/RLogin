@@ -1192,7 +1192,7 @@ void CTextRam::InitScreen(int cols, int lines)
 	}
 }
 
-void CTextRam::OpenHisFile()
+BOOL CTextRam::OpenHisFile()
 {
 	int n;
 	int num = 2;
@@ -1207,6 +1207,14 @@ void CTextRam::OpenHisFile()
 
 	while ( num < 20 && !m_HisFhd.Open(name, CFile::modeReadWrite | CFile::modeCreate | CFile::modeNoTruncate | CFile::shareExclusive) )
 		name.Format(_T("%s(%d).rlh"), base, num++);
+
+	if ( m_HisFhd.m_hFile == CFile::hFileNull ) {
+		name.Format(_T("History File Open Error '%s.rlh'"), base);
+		::AfxMessageBox(name);
+		return FALSE;
+	}
+
+	return TRUE;
 }
 void CTextRam::InitHistory()
 {
@@ -1215,9 +1223,7 @@ void CTextRam::InitHistory()
 	if ( !IsOptEnable(TO_RLHISFILE) || m_HisFile.IsEmpty() || m_VRam == NULL )
 		return;
 
-	OpenHisFile();
-
-	if ( m_HisFhd.m_hFile == NULL )
+	if ( !OpenHisFile() )
 		return;
 
 	//CVram *vp = NULL;
@@ -1311,8 +1317,10 @@ void CTextRam::SaveHistory()
 	if ( !IsOptEnable(TO_RLHISFILE) || m_HisFile.IsEmpty() || m_VRam == NULL )
 		return;
 
-	if ( m_HisFhd.m_hFile == CFile::hFileNull )
-		OpenHisFile();
+	if ( m_HisFhd.m_hFile == CFile::hFileNull ) {
+		if ( !OpenHisFile() )
+			return;
+	}
 
 	try {
 		CVram *vp;

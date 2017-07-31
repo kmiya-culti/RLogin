@@ -286,6 +286,9 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 			if ( m_DecCip.IsAEAD() ) {
 				m_InPackStat = 5;
 				break;
+			} else if ( m_DecMac.IsEtm() ) {
+				m_InPackStat = 7;
+				break;
 			}
 			if ( m_Incom.GetSize() < m_DecCip.GetBlockSize() )
 				return;
@@ -358,6 +361,48 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 			tmp.ConsumeEnd(m_InPackPad);
 			m_InPackBuf.Clear();
 			m_DecCmp.UnCompress(tmp.GetPtr(), tmp.GetSize(), &m_InPackBuf);
+			m_RecvPackSeq++;
+			m_RecvPackLen++;
+			RecivePacket2(&m_InPackBuf);
+			break;
+
+		case 7:		// SSH2 etm Packet length
+			if ( !m_DecMac.IsEtm() ) {
+				m_InPackStat = 3;
+				break;
+			}
+			if ( m_Incom.GetSize() < 4 )
+				return;
+			m_InPackLen = m_Incom.PTR32BIT(m_Incom.GetPtr());
+			if ( m_InPackLen < 5 || m_InPackLen > (256 * 1024) ) {
+				m_Incom.Clear();
+				SendDisconnect2(1, "Packet Len Error");
+				throw "ssh2 packet length error";
+			}
+			m_InPackStat = 8;
+			// break; Not use
+		case 8:		// SSH2 etm Packet
+			if ( m_Incom.GetSize() < (4 + m_InPackLen + m_DecCip.GetBlockSize()) )
+				return;
+			m_InPackStat = 7;
+			dec.Clear();
+			dec.Apend(m_Incom.GetPtr(), 4);
+			m_DecCip.Cipher(m_Incom.GetPtr() + 4, m_InPackLen, &dec);
+			tmp.Clear();
+			m_DecMac.Compute(m_RecvPackSeq, m_Incom.GetPtr(), 4 + m_InPackLen, &tmp);
+			m_Incom.Consume(4 + m_InPackLen);
+			if ( m_DecMac.GetBlockSize() > 0 ) {
+				if ( memcmp(tmp.GetPtr(), m_Incom.GetPtr(), m_DecMac.GetBlockSize()) != 0 ) {
+					SendDisconnect2(1, "MAC Error");
+					throw "ssh2 mac miss match error";
+				}
+				m_Incom.Consume(m_DecMac.GetBlockSize());
+			}
+			m_InPackLen = dec.Get32Bit();
+			m_InPackPad = dec.Get8Bit();
+			dec.ConsumeEnd(m_InPackPad);
+			m_InPackBuf.Clear();
+			m_DecCmp.UnCompress(dec.GetPtr(), dec.GetSize(), &m_InPackBuf);
 			m_RecvPackSeq++;
 			m_RecvPackLen++;
 			RecivePacket2(&m_InPackBuf);
@@ -966,7 +1011,8 @@ void Cssh::ChannelClose(int id)
 	}
 
 	if ( m_pChanNext == NULL )
-		SendDisconnect2(SSH2_DISCONNECT_CONNECTION_LOST, "End");
+		GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, FD_CLOSE);
+//		SendDisconnect2(SSH2_DISCONNECT_CONNECTION_LOST, "End");
 }
 void Cssh::ChannelCheck(int n)
 {
@@ -1824,13 +1870,17 @@ void Cssh::SendPacket2(CBuffer *bp)
 	int pad, i;
 	CBuffer tmp(n);
 	CBuffer enc(n);
+	CBuffer mac;
 	static int padflag = FALSE;
 	static BYTE padimage[64];
 
 	tmp.PutSpc(4 + 1);		// Size + Pad Era
 	m_EncCmp.Compress(bp->GetPtr(), bp->GetSize(), &tmp);
 
-	if ( (pad = m_EncCip.GetBlockSize() - (tmp.GetSize() % m_EncCip.GetBlockSize())) < 4 )
+	n = tmp.GetSize();
+	if ( m_EncMac.IsEtm() || m_EncCip.IsAEAD() )
+		n -= 4;
+	if ( (pad = m_EncCip.GetBlockSize() - (n % m_EncCip.GetBlockSize())) < 4 )
 		pad += m_EncCip.GetBlockSize();
 
 	tmp.SET32BIT(tmp.GetPos(0), tmp.GetSize() - 4 + pad);
@@ -1848,10 +1898,21 @@ void Cssh::SendPacket2(CBuffer *bp)
 	for ( n = 0 ; n < pad ; n += 64 )
 		tmp.Apend(padimage, ((pad - n) >= 64 ? 64 : (pad - n)));
 
-	m_EncCip.Cipher(tmp.GetPtr(), tmp.GetSize(), &enc);
+	if ( m_EncMac.IsEtm() ) {
+		enc.Apend(tmp.GetPtr(), 4);
+		m_EncCip.Cipher(tmp.GetPtr() + 4, tmp.GetSize() - 4, &enc);
 
-	if ( m_EncMac.GetBlockSize() > 0 )
-		m_EncMac.Compute(m_SendPackSeq, tmp.GetPtr(), tmp.GetSize(), &enc);
+		if ( m_EncMac.GetBlockSize() > 0 ) {
+			m_EncMac.Compute(m_SendPackSeq, enc.GetPtr(), enc.GetSize(), &mac);
+			enc.Apend(mac.GetPtr(), mac.GetSize());
+		}
+
+	} else {
+		m_EncCip.Cipher(tmp.GetPtr(), tmp.GetSize(), &enc);
+
+		if ( m_EncMac.GetBlockSize() > 0 )
+			m_EncMac.Compute(m_SendPackSeq, tmp.GetPtr(), tmp.GetSize(), &enc);
+	}
 
 	CExtSocket::Send(enc.GetPtr(), enc.GetSize());
 
