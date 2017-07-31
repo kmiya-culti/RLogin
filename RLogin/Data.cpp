@@ -1800,6 +1800,7 @@ CBmpFile::CBmpFile()
 	m_Alpha = 255;
 	m_pTextBitMap = new CTextBitMap;
 	m_bkIndex = (-1);
+	m_Style = MAPING_FILL;
 }
 
 CBmpFile::~CBmpFile()
@@ -1890,20 +1891,49 @@ ERROF:
 	return ret;
 }
 
-CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, int Alpha)
+CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, int Alpha, int Style, CWnd *pWnd)
 {
 	int x, y, cx, cy;
 	CDC MemDC;
 	CBitmap *pOldMemMap = NULL;
-	CRect rect;
+	CRect rect, frame;
 	CPoint po;
+	CSize offset, size;
+	CWnd *pMain;
 
 	if ( (HBITMAP)m_Image == NULL )
 		return NULL;
 
 	if ( m_Bitmap.m_hObject != NULL ) {
-		if ( m_Width == width && m_Height == height && m_BkColor == bkcolor && m_Alpha == Alpha )
-			return (&m_Bitmap);
+		if ( m_Width == width && m_Height == height && m_BkColor == bkcolor && m_Alpha == Alpha && m_Style == Style ) {
+			switch(m_Style) {
+			case MAPING_PAN:
+				if ( pWnd == NULL )
+					break;
+				pMain = ::AfxGetMainWnd();
+				pWnd->GetClientRect(rect);
+				pWnd->ClientToScreen(rect);
+				pMain->ScreenToClient(rect);
+				if ( m_ScreenPos != rect )
+					break;
+				return (&m_Bitmap);
+
+			case MAPING_DESKTOP:
+				if ( pWnd == NULL )
+					break;
+				pMain = pWnd->GetDesktopWindow();
+				pWnd->GetClientRect(rect);
+				pWnd->ClientToScreen(rect);
+				pMain->ScreenToClient(rect);
+				if ( m_ScreenPos != rect )
+					break;
+				return (&m_Bitmap);
+
+			default:
+				return (&m_Bitmap);
+			}
+		}
+
 		m_Bitmap.DeleteObject();
 	}
 
@@ -1917,21 +1947,6 @@ CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, 
 	MemDC.SetStretchBltMode(HALFTONE);
 	MemDC.FillSolidRect(0, 0, width, height, bkcolor);
 
-	CSize size(m_Image.GetWidth(), m_Image.GetHeight());
-	CSize offset(0, 0);
-
-	cx = width  * 100 / size.cx;
-	cy = height * 100 / size.cy;
-
-	if ( cx < cy ) {
-		cx = height * size.cx / size.cy;
-		cy = height;
-		offset.cx = ((cx - width) / 2) * size.cx / cx;
-	} else {
-		cx = width;
-		cy = width  * size.cy / size.cx;
-		offset.cy = ((cy - height) / 2) * size.cy / cy;
-	}
 
 	if ( m_bkIndex != (-1) && (m_Image.GetBPP() == 4 || m_Image.GetBPP() == 8) ) {
 		RGBQUAD coltab[1];
@@ -1943,7 +1958,153 @@ CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, 
 		m_Image.SetColorTable(m_bkIndex, 1, coltab);
 	}
 
-	m_Image.Draw(MemDC.GetSafeHdc(), 0, 0, cx, cy, offset.cx, offset.cy, size.cx, size.cy);
+	x = y = 0;
+	cx = width;
+	cy = height;
+	offset.cx = offset.cy = 0;
+	size.cx = m_Image.GetWidth();
+	size.cy = m_Image.GetHeight();
+	m_ScreenPos.SetRectEmpty();
+
+	if ( Style >= MAPING_PAN && pWnd == NULL )
+		Style = MAPING_FILL;
+
+	switch(Style) {
+	case MAPING_FILL:
+		// Fill		アスペクト比を維持して縦横の短い方に拡大・縮小
+
+		if ( (size.cx * height / width) > size.cy ) {
+			offset.cx = (size.cx - width * size.cy / height) / 2;
+			size.cx = width * size.cy / height;
+		} else {
+			offset.cy = (size.cy - height * size.cx / width) / 2;
+			size.cy = height * size.cx / width;
+		}
+
+		m_Image.Draw(MemDC.GetSafeHdc(), x, y, cx, cy, offset.cx, offset.cy, size.cx, size.cy);
+		break;
+
+	case MAPING_FIT:
+		// Fit		アスペクト比を維持して縦横の長い方に拡大・縮小、余白あり
+
+		if ( (size.cx * height / width) < size.cy ) {
+			offset.cx = (size.cx - width * size.cy / height) / 2;
+			size.cx = width * size.cy / height;
+		} else {
+			offset.cy = (size.cy - height * size.cx / width) / 2;
+			size.cy = height * size.cx / width;
+		}
+
+		m_Image.Draw(MemDC.GetSafeHdc(), x, y, cx, cy, offset.cx, offset.cy, size.cx, size.cy);
+		break;
+
+	case MAPING_STRETCH:
+		// Stretch	アスペクト比を無視して拡大・縮小
+
+		m_Image.Draw(MemDC.GetSafeHdc(), x, y, cx, cy, offset.cx, offset.cy, size.cx, size.cy);
+		break;
+
+	case MAPING_TILE:
+		// List		並べて表示
+		if ( width > size.cx ) {
+			cx = size.cx;
+			for ( x = 0 ; x < width ; x += size.cx ) {
+				if ( height > size.cy ) {
+					cy = size.cy;
+					for ( y = 0 ; y < height ; y += size.cy )
+						m_Image.Draw(MemDC.GetSafeHdc(), x, y, cx, cy, offset.cx, offset.cy, size.cx, size.cy);
+				} else {
+					size.cy = height;
+					m_Image.Draw(MemDC.GetSafeHdc(), x, y, cx, cy, offset.cx, offset.cy, size.cx, size.cy);
+				}
+			}
+		} else {
+			size.cx = width;
+			if ( height > size.cy ) {
+				cy = size.cy;
+				for ( y = 0 ; y < height ; y += size.cy )
+					m_Image.Draw(MemDC.GetSafeHdc(), x, y, cx, cy, offset.cx, offset.cy, size.cx, size.cy);
+			} else {
+				size.cy = height;
+				m_Image.Draw(MemDC.GetSafeHdc(), x, y, cx, cy, offset.cx, offset.cy, size.cx, size.cy);
+			}
+		}
+		break;
+
+	case MAPING_CENTER:
+		// Center	アスペクト比を維持して中央に表示、余白あり
+
+		if ( size.cx >= width ) {
+			offset.cx = (size.cx - width) / 2; 
+			size.cx = width;
+		} else {
+			x = (width - size.cx) / 2;
+			cx = size.cx;
+		}
+
+		if ( size.cy >= height ) {
+			offset.cy = (size.cy - height) / 2; 
+			size.cy = height;
+		} else {
+			y = (height - size.cy) / 2;
+			cy = size.cy;
+		}
+
+		m_Image.Draw(MemDC.GetSafeHdc(), x, y, cx, cy, offset.cx, offset.cy, size.cx, size.cy);
+		break;
+
+	case MAPING_PAN:
+		// Pan		メインウィンドウを基準にFill
+
+		pMain = ::AfxGetMainWnd();
+		pMain->GetClientRect(frame);
+		pWnd->GetClientRect(rect);
+		pWnd->ClientToScreen(rect);
+		pMain->ScreenToClient(rect);
+		m_ScreenPos = rect;
+
+		if ( (size.cx * frame.Height() / frame.Width()) > size.cy ) {
+			offset.cx = (size.cx - frame.Width() * size.cy / frame.Height()) / 2;
+			size.cx = frame.Width() * size.cy / frame.Height();
+		} else {
+			offset.cy = (size.cy - frame.Height() * size.cx / frame.Width()) / 2;
+			size.cy = frame.Height() * size.cx / frame.Width();
+		}
+
+		offset.cx += (rect.left * size.cx / frame.Width());
+		offset.cy += (rect.top * size.cy / frame.Height());
+		size.cx = rect.Width() * size.cx / frame.Width();
+		size.cy = rect.Height() * size.cy / frame.Height();
+
+		m_Image.Draw(MemDC.GetSafeHdc(), x, y, cx, cy, offset.cx, offset.cy, size.cx, size.cy);
+		break;
+
+	case MAPING_DESKTOP:
+		// Desktop	デスクトップを基準にFill
+
+		pMain = pWnd->GetDesktopWindow();
+		pMain->GetClientRect(frame);
+		pWnd->GetClientRect(rect);
+		pWnd->ClientToScreen(rect);
+		pMain->ScreenToClient(rect);
+		m_ScreenPos = rect;
+
+		if ( (size.cx * frame.Height() / frame.Width()) > size.cy ) {
+			offset.cx = (size.cx - frame.Width() * size.cy / frame.Height()) / 2;
+			size.cx = frame.Width() * size.cy / frame.Height();
+		} else {
+			offset.cy = (size.cy - frame.Height() * size.cx / frame.Width()) / 2;
+			size.cy = frame.Height() * size.cx / frame.Width();
+		}
+
+		offset.cx += (rect.left * size.cx / frame.Width());
+		offset.cy += (rect.top * size.cy / frame.Height());
+		size.cx = rect.Width() * size.cx / frame.Width();
+		size.cy = rect.Height() * size.cy / frame.Height();
+
+		m_Image.Draw(MemDC.GetSafeHdc(), x, y, cx, cy, offset.cx, offset.cy, size.cx, size.cy);
+		break;
+	}
 
 	if ( Alpha < 254 || 257 < Alpha ) {
 
@@ -2056,6 +2217,7 @@ CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, 
 	m_Height  = height;
 	m_BkColor = bkcolor;
 	m_Alpha   = Alpha;
+	m_Style   = Style;
 
 	m_pTextBitMap->Init();
 	m_Title.Empty();
@@ -2065,7 +2227,7 @@ CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, 
 
 	return (&m_Bitmap);
 }
-CBitmap *CBmpFile::GetTextBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, class CTextBitMap *pTextBitMap, LPCTSTR title, int Alpha)
+CBitmap *CBmpFile::GetTextBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, class CTextBitMap *pTextBitMap, LPCTSTR title, int Alpha, int Style, CWnd *pWnd)
 {
 	int n;
 	int cr, cg, cb;
@@ -2075,12 +2237,15 @@ CBitmap *CBmpFile::GetTextBitmap(CDC *pDC, int width, int height, COLORREF bkcol
 	CFont Font, *pOldFont;
 	BOOL bEraBack = FALSE;
 
-	if ( m_Bitmap.m_hObject != NULL && m_Width == width && m_Height == height && m_BkColor == bkcolor && m_Alpha == Alpha && (*m_pTextBitMap) == (*pTextBitMap) && m_Title.Compare(title) == 0 )
+	if ( m_Bitmap.m_hObject != NULL && m_Width == width && m_Height == height && m_BkColor == bkcolor && m_Alpha == Alpha && m_Style == Style && (*m_pTextBitMap) == (*pTextBitMap) && m_Title.Compare(title) == 0 )
 		return (&m_Bitmap);
+
+	if ( m_Bitmap.m_hObject != NULL )
+		m_Bitmap.DeleteObject();
 
 	MemDC.CreateCompatibleDC(pDC);
 
-	if ( GetBitmap(pDC, width, height, bkcolor, Alpha) == NULL ) {
+	if ( GetBitmap(pDC, width, height, bkcolor, Alpha, Style, pWnd) == NULL ) {
 		if ( m_Bitmap.m_hObject != NULL )
 			m_Bitmap.DeleteObject();
 		m_Bitmap.CreateCompatibleBitmap(pDC, width, height);
@@ -2140,6 +2305,7 @@ CBitmap *CBmpFile::GetTextBitmap(CDC *pDC, int width, int height, COLORREF bkcol
 	m_Height  = height;
 	m_BkColor = bkcolor;
 	m_Alpha   = Alpha;
+	m_Style   = Style;
 
 	(*m_pTextBitMap) = (*pTextBitMap);
 	m_Title = title;
@@ -2996,6 +3162,7 @@ void CServerEntry::Init()
 	m_IconName.Empty();
 	m_bPassOk = TRUE;
 	m_TitleName.Empty();
+	m_bSelFlag = FALSE;
 }
 const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 {
@@ -3034,6 +3201,7 @@ const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 	m_IconName       = data.m_IconName;
 	m_bPassOk        = data.m_bPassOk;
 	m_TitleName      = data.m_TitleName;
+	m_bSelFlag       = data.m_bSelFlag;
 	return *this;
 }
 void CServerEntry::GetArray(CStringArrayExt &stra)
@@ -3448,6 +3616,83 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 		m_ProxyPassProvs = m_ProxyPass;
 	}
 }
+void CServerEntry::DiffIndex(CServerEntry &orig, CStringIndex &index)
+{
+	CIdKey key;
+	CString str, pass;
+
+	if ( m_EntryName.Compare(orig.m_EntryName) != 0 )
+		index[_T("Name")]  = m_EntryName;
+
+	if ( m_HostNameProvs.Compare(orig.m_HostNameProvs) != 0 )
+		index[_T("Host")]  = m_HostNameProvs;
+
+	if ( m_PortName.Compare(orig.m_PortName) != 0 )
+		index[_T("Port")]  = m_PortName;
+
+	if ( m_UserNameProvs.Compare(orig.m_UserNameProvs) != 0 )
+		index[_T("User")]  = m_UserNameProvs;
+
+	if ( m_TermName.Compare(orig.m_TermName) != 0 )
+		index[_T("Term")]  = m_TermName;
+
+	if ( m_IdkeyName.Compare(orig.m_IdkeyName) != 0 )
+		index[_T("IdKey")] = m_IdkeyName;
+
+	if ( m_PassNameProvs.Compare(orig.m_PassNameProvs) != 0 ) {
+		pass.Format(_T("TEST%s"), m_PassNameProvs);
+		key.EncryptStr(str, pass, TRUE);
+		index[_T("Pass")]  = str;
+	}
+
+	if ( GetKanjiCode() != orig.GetKanjiCode() )
+		index[_T("CharSet")]  = GetKanjiCode();
+
+	if ( GetProtoName() != orig.GetProtoName() )
+		index[_T("Protocol")] = GetProtoName();
+		
+	if ( m_Memo.Compare(orig.m_Memo) != 0 )
+		index[_T("Memo")]  = m_Memo;
+
+	if ( m_Group.Compare(orig.m_Group) != 0 )
+		index[_T("Group")] = m_Group;
+
+	if ( m_ProxyMode != orig.m_ProxyMode )
+		index[_T("Proxy")][_T("Mode")] = m_ProxyMode;
+
+	if ( m_ProxyHostProvs.Compare(orig.m_ProxyHostProvs) != 0 )
+		index[_T("Proxy")][_T("Host")] = m_ProxyHostProvs;
+
+	if ( m_ProxyPort.Compare(orig.m_ProxyPort) != 0 )
+		index[_T("Proxy")][_T("Port")] = m_ProxyPort;
+
+	if ( m_ProxyUserProvs.Compare(orig.m_ProxyUserProvs) != 0 )
+		index[_T("Proxy")][_T("User")] = m_ProxyUserProvs;
+
+	if ( m_ProxyPassProvs.Compare(orig.m_ProxyPassProvs) != 0 ) {
+		pass.Format(_T("TEST%s"), m_PassNameProvs);
+		key.EncryptStr(str, pass, TRUE);
+		index[_T("Pass")]  = str;
+	}
+
+	if ( m_ScriptFile.Compare(orig.m_ScriptFile) != 0 )
+		index[_T("Script")][_T("File")] = m_ScriptFile;
+
+	if ( m_ScriptStr.Compare(orig.m_ScriptStr) != 0 )
+		index[_T("Script")][_T("Text")] = m_ScriptStr;
+
+	m_ChatScript.SetString(str);
+	orig.m_ChatScript.SetString(pass);
+	if ( str.Compare(pass) != 0 )
+		index[_T("Chat")]  = str;
+
+	if ( m_BeforeEntry.Compare(orig.m_BeforeEntry) != 0 )
+		index[_T("Before")] = m_BeforeEntry;
+
+	if ( m_IconName.Compare(orig.m_IconName) != 0 )
+		index[_T("Icon")] = m_IconName;
+}
+
 LPCTSTR CServerEntry::GetKanjiCode()
 {
 	switch(m_KanjiCode) {
@@ -4353,12 +4598,59 @@ void CKeyNodeTab::GetArray(CStringArrayExt &stra)
 	}
 	BugFix(fix);
 }
+void CKeyNodeTab::DiffIndex(CKeyNodeTab &orig, CStringIndex &index)
+{
+	int n, i;
+	CString str;
+	CStringIndex tab;
+
+	for ( n = 0 ; n < m_Node.GetSize() ; n++ ) {
+		if ( m_Node[n].m_Code == (-1) )
+			continue;
+		str.Format(_T("%d\t%d\t%s"), m_Node[n].m_Code, m_Node[n].m_Mask, m_Node[n].GetMaps());
+		tab[str] = 1;
+		tab[str].Add(m_Node[n].m_Code);
+		tab[str].Add(m_Node[n].m_Mask);
+		tab[str].Add(m_Node[n].GetMaps());
+	}
+
+	for ( n = 0 ; n < orig.m_Node.GetSize() ; n++ ) {
+		if ( orig.m_Node[n].m_Code == (-1) )
+			continue;
+		str.Format(_T("%d\t%d\t%s"), orig.m_Node[n].m_Code, orig.m_Node[n].m_Mask, orig.m_Node[n].GetMaps());
+		if ( (i = tab.Find(str)) >= 0 )
+			tab[i] = 0;
+		else {
+			tab[str] = 2;
+			tab[str].Add(orig.m_Node[n].m_Code);
+			tab[str].Add(orig.m_Node[n].m_Mask);
+			tab[str].Add(orig.m_Node[n].GetMaps());
+		}
+	}
+
+	for ( n = i = 0 ; n < tab.GetSize() ; n++ ) {
+		switch(tab[n]) {
+		case 1:	// add
+			str.Format(_T("%d"), n);
+			index[_T("Add")][str].Add(tab[n][0]);
+			index[_T("Add")][str].Add(tab[n][1]);
+			index[_T("Add")][str].Add(tab[n][2]);
+			break;
+		case 2:	// del
+			str.Format(_T("%d"), n);
+			index[_T("Del")][str].Add(tab[n][0]);
+			index[_T("Del")][str].Add(tab[n][1]);
+			index[_T("Del")][str].Add(tab[n][2]);
+			break;
+		}
+	}
+}
 void CKeyNodeTab::SetIndex(int mode, CStringIndex &index)
 {
 	int n, i, m;
 	CString str;
 	CStringIndex *ip;
-	static const LPCTSTR menbaName[] = { _T("Table"), _T("Add"), NULL };
+	static const LPCTSTR menbaName[] = { _T("Table"), _T("Add"), _T("Del"), NULL };
 
 	if ( mode ) {		// Write
 		for ( n = 0 ; n < m_Node.GetSize() ; n++ ) {
@@ -4377,13 +4669,22 @@ void CKeyNodeTab::SetIndex(int mode, CStringIndex &index)
 			if ( (n = index.Find(menbaName[m])) < 0 )
 				continue;
 
-			if ( m == 0 )
+			if ( m == 0 )	// Table
 				m_Node.RemoveAll();
 
 			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
 				if ( index[n][i].GetSize() < 3 )
 					continue;
-				Add((int)index[n][i][0], (int)index[n][i][1], (LPCTSTR)index[n][i][2]);
+
+				if ( m == 2 ) {	// Del
+					for ( int a = 0 ; a < m_Node.GetSize() ; a++ ) {
+						if ( m_Node[a].m_Code == (int)index[n][i][0] && m_Node[a].m_Mask == (int)index[n][i][1] && _tcscmp(m_Node[a].GetMaps(), index[n][i][2]) == 0 ) {
+							m_Node.RemoveAt(a);
+							break;
+						}
+					}
+				} else	// Table, Add
+					Add((int)index[n][i][0], (int)index[n][i][1], (LPCTSTR)index[n][i][2]);
 			}
 		}
 	}
@@ -5489,7 +5790,7 @@ void CParamTab::GetArray(CStringArrayExt &stra)
 }
 void CParamTab::SetIndex(int mode, CStringIndex &index)
 {
-	int n, i;
+	int n, i, a;
 	CString str;
 	CStringIndex tmp, env;
 	ttymode_node node;
@@ -5553,6 +5854,18 @@ void CParamTab::SetIndex(int mode, CStringIndex &index)
 			for ( i = 0 ; i < index[n].GetSize() ; i++ )
 				m_PortFwd.Add(index[n][i]);
 		}
+		if ( (n = index.Find(_T("PortFwdAdd"))) >= 0 ) {
+			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
+				if ( m_PortFwd.Find(index[n][i]) < 0 )
+					m_PortFwd.Add(index[n][i]);
+			}
+		}
+		if ( (n = index.Find(_T("PortFwdDel"))) >= 0 ) {
+			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
+				if ( (a = m_PortFwd.Find(index[n][i])) >= 0 )
+					m_PortFwd.RemoveAt(a);
+			}
+		}
 
 		if ( (n = index.Find(_T("X11"))) >= 0 )
 			m_XDisplay = index[n];
@@ -5563,6 +5876,18 @@ void CParamTab::SetIndex(int mode, CStringIndex &index)
 			m_IdKeyList.RemoveAll();
 			for ( i = 0 ; i < index[n].GetSize() ; i++ )
 				m_IdKeyList.AddVal(index[n][i]);
+		}
+		if ( (n = index.Find(_T("IdKeyListAdd"))) >= 0 ) {
+			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
+				if ( m_IdKeyList.FindVal(index[n][i]) < 0 )
+					m_IdKeyList.AddVal(index[n][i]);
+			}
+		}
+		if ( (n = index.Find(_T("IdKeyListDel"))) >= 0 ) {
+			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
+				if ( (a = m_IdKeyList.FindVal(index[n][i])) >= 0 )
+					m_IdKeyList.RemoveAt(a);
+			}
 		}
 
 		//if ( (n = index.Find(_T("Option"))) >= 0 ) {
@@ -5610,6 +5935,104 @@ void CParamTab::SetIndex(int mode, CStringIndex &index)
 		if ( (n = index.Find(_T("x11AuthFlag"))) >= 0 )
 			m_x11AuthFlag = index[n];
 	}
+}
+void CParamTab::DiffIndex(CParamTab &orig, CStringIndex &index)
+{
+	int n, i;
+	CString str, tmp;
+	CStringIndex tab, env;
+
+	for ( n = 0 ; n < 12 ; n++ ) {
+		m_AlgoTab[n].SetString(str);
+		orig.m_AlgoTab[n].SetString(tmp);
+		if ( str.Compare(tmp) != 0 ) {
+			str.Format(_T("%d"), n);
+			for ( i = 0 ; i < m_AlgoTab[n].GetSize() ; i++ )
+				index[_T("Algo")][str].Add(m_AlgoTab[n][i]);
+		}
+	}
+
+	tab.RemoveAll();
+	for ( n = 0 ; n < m_PortFwd.GetSize() ; n++ ) {
+		tab[m_PortFwd[n]] = 1;
+	}
+	for ( n = 0 ; n < orig.m_PortFwd.GetSize() ; n++ ) {
+		if ( (i = tab.Find(orig.m_PortFwd[n])) >= 0 )
+			tab[i] = 0;
+		else
+			tab[orig.m_PortFwd[n]] = 2;
+	}
+	for ( n = 0 ; n < tab.GetSize() ; n++ ) {
+		switch(tab[n]) {
+		case 1:	// new entry
+			index[_T("PortFwdAdd")].Add(tab[n].m_nIndex);
+			break;
+		case 2:	// delete entry
+			index[_T("PortFwdDel")].Add(tab[n].m_nIndex);
+			break;
+		}
+	}
+
+	if ( m_XDisplay.Compare(orig.m_XDisplay) != 0 )
+		index[_T("X11")] = m_XDisplay;
+
+	if ( m_SelIPver != orig.m_SelIPver )
+		index[_T("IPv")] = m_SelIPver;
+
+	tab.RemoveAll();
+	for ( n = 0 ; n < m_IdKeyList.GetSize() ; n++ )
+		tab[m_IdKeyList[n]] = 1;
+	for ( n = 0 ; n < orig.m_IdKeyList.GetSize() ; n++ ) {
+		if ( (i = tab.Find(orig.m_IdKeyList[n])) >= 0 )
+			tab[i] = 0;
+		else
+			tab[orig.m_IdKeyList[n]] = 2;
+	}
+	for ( n = 0 ; n < tab.GetSize() ; n++ ) {
+		switch(tab[n]) {
+		case 1:	// new entry
+			index[_T("IdKeyListAdd")].Add(_tstoi(tab[n].m_nIndex));
+			break;
+		case 2:	// delete entry
+			index[_T("IdKeyListDel")].Add(_tstoi(tab[n].m_nIndex));
+			break;
+		}
+	}
+
+	if ( m_ExtEnvStr.Compare(orig.m_ExtEnvStr) != 0 ) {
+		env.GetString(m_ExtEnvStr);
+		for ( n = 0 ; n < env.GetSize() ; n++ ) {
+			if ( env[n].m_nIndex.IsEmpty() || env[n].m_String.IsEmpty() )
+				continue;
+			index[_T("Env")][env[n].m_nIndex].Add(env[n].m_Value);
+			index[_T("Env")][env[n].m_nIndex].Add(env[n].m_String);
+		}
+	}
+
+	for ( n = 0 ; n < m_TtyMode.GetSize() && n < orig.m_TtyMode.GetSize() ; n++ ) {
+		if ( m_TtyMode[n].opcode != orig.m_TtyMode[n].opcode || m_TtyMode[n].param != orig.m_TtyMode[n].param )
+			break;
+	}
+	if ( n < m_TtyMode.GetSize() ) {
+		index[_T("TtyMode")].SetSize((int)m_TtyMode.GetSize());
+		for ( n = 0 ; n < m_TtyMode.GetSize() ; n++ ) {
+			index[_T("TtyMode")][n].Add(m_TtyMode[n].opcode);
+			index[_T("TtyMode")][n].Add(m_TtyMode[n].param);
+		}
+	}
+
+	if ( m_RsaExt != orig.m_RsaExt )
+		index[_T("RsaExt")] = m_RsaExt;
+
+	if ( m_VerIdent.Compare(orig.m_VerIdent) != 0 )
+		index[_T("VerIdent")] = m_VerIdent;
+
+	if ( m_x11AuthName.Compare(orig.m_x11AuthName) != 0 )
+		index[_T("x11AuthName")] = m_x11AuthName;
+	if ( m_x11AuthData.Compare(orig.m_x11AuthData) != 0 )
+		index[_T("x11AuthData")] = m_x11AuthData;
+	if ( m_x11AuthFlag != orig.m_x11AuthFlag )
+		index[_T("x11AuthFlag")] = m_x11AuthFlag;
 }
 
 static const ScriptCmdsDefs DocSsh[] = {
@@ -6370,6 +6793,39 @@ BOOL CStringIndex::ReadString(CArchive& ar, CString &str)
 	str = mbs.Trim(" \t\r\n");
 
 	return TRUE;
+}
+BOOL CStringIndex::MsgStr(CString &str, LPCSTR base)
+{
+	CStringA mbs, tmp;
+
+	if ( str.GetLength() > 256 ) {
+		str += _T("...");
+		return TRUE;
+	}
+
+	if ( base != NULL )
+		mbs = base;
+	if ( !mbs.IsEmpty() )
+		mbs += '.';
+	mbs += m_nIndex;
+
+	if ( GetSize() > 0 && !m_Array[0].m_nIndex.IsEmpty() ) {
+		for ( int n = 0 ; n < GetSize() ; n++ ) {
+			if ( m_Array[n].MsgStr(str, mbs) )
+				return TRUE;
+		}
+
+	} else {
+		SetPackStr(tmp);
+		if ( !tmp.IsEmpty() ) {
+			mbs += '=';
+			mbs += tmp;
+			mbs += ";\r\n";
+			str += mbs;
+		}
+	}
+
+	return FALSE;
 }
 void CStringIndex::Serialize(CArchive& ar, LPCSTR base)
 {

@@ -29,6 +29,14 @@ BOOL IsZeroMemory(void *ptr, int len);
 #define	KANJI_UTF16LE	4
 #define	KANJI_UTF16BE	5
 
+#define	MAPING_FILL		0
+#define	MAPING_FIT		1
+#define	MAPING_STRETCH	2
+#define	MAPING_TILE		3
+#define	MAPING_CENTER	4
+#define	MAPING_PAN		5
+#define	MAPING_DESKTOP	6
+
 class CBuffer : public CObject
 {
 public:
@@ -207,6 +215,7 @@ public:
 	const CStringArrayExt & operator = (CStringArrayExt &data);
 	void Serialize(CArchive& ar);
 	int Find(LPCTSTR str);
+	int FindVal(int value) { CString str;  str.Format(_T("%d"), value); return Find(str); }
 	int FindNoCase(LPCTSTR str);
 	int Match(LPCTSTR str);
 	void AddSort(LPCTSTR str);
@@ -291,6 +300,7 @@ public:
 	LPCTSTR GetPackStr(LPCTSTR str);
 	BOOL ReadString(CArchive& ar, CString &str);
 	void Serialize(CArchive& ar, LPCSTR base = NULL);
+	BOOL MsgStr(CString &str,  LPCSTR base = NULL);
 
 #ifdef	DEBUG
 	void Dump(int nest);
@@ -376,10 +386,12 @@ public:
 	CString m_Title;
 	CImage m_Image;
 	int m_bkIndex;
+	int m_Style;
+	CRect m_ScreenPos;
 
 	BOOL LoadFile(LPCTSTR filename);
-	CBitmap *GetBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, int Alpha = 255);
-	CBitmap *GetTextBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, class CTextBitMap *pTextBitMap, LPCTSTR title, int Alpha);
+	CBitmap *GetBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, int Alpha = 255, int Style = 0, CWnd *pWnd = NULL);
+	CBitmap *GetTextBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, class CTextBitMap *pTextBitMap, LPCTSTR title, int Alpha, int Style, CWnd *pWnd);
 
 	static int GifTrnsIndex(LPBYTE lpBuf, int len);
 
@@ -555,6 +567,7 @@ public:
 	CString m_IconName;
 	BOOL m_bPassOk;
 	CString m_TitleName;
+	BOOL m_bSelFlag;
 
 	void Init();
 	void SetArray(CStringArrayExt &stra);
@@ -568,6 +581,7 @@ public:
 	void DelProfile(LPCTSTR pSection);
 	void Serialize(CArchive &ar);
 	void SetIndex(int mode, CStringIndex &index);
+	void DiffIndex(CServerEntry &orig, CStringIndex &index);
 
 	LPCTSTR GetKanjiCode();
 	void SetKanjiCode(LPCTSTR str);
@@ -674,6 +688,7 @@ public:
 	void SetArray(CStringArrayExt &stra);
 	void GetArray(CStringArrayExt &stra);
 	void SetIndex(int mode, CStringIndex &index);
+	void DiffIndex(CKeyNodeTab &orig, CStringIndex &index);
 	void ScriptInit(int cmds, int shift, class CScriptValue &value);
 	void ScriptValue(int cmds, class CScriptValue &value, int mode);
 
@@ -785,6 +800,7 @@ public:
 	void GetArray(CStringArrayExt &stra);
 	void SetArray(CStringArrayExt &stra);
 	void SetIndex(int mode, CStringIndex &index);
+	void DiffIndex(CParamTab &orig, CStringIndex &index);
 	void ScriptInit(int cmds, int shift, class CScriptValue &value);
 	void ScriptValue(int cmds, class CScriptValue &value, int mode);
 

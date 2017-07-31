@@ -15,6 +15,29 @@
 #endif
 
 /////////////////////////////////////////////////////////////////////////////
+// CSplitterWndExt
+
+IMPLEMENT_DYNCREATE(CSplitterWndExt, CSplitterWnd)
+
+BEGIN_MESSAGE_MAP(CSplitterWndExt, CSplitterWnd)
+	ON_WM_SETCURSOR()
+	ON_WM_MOUSEMOVE()
+END_MESSAGE_MAP()
+
+BOOL CSplitterWndExt::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
+{
+	// return CSplitterWnd::OnSetCursor(pWnd, nHitTest, message);
+	return CWnd::OnSetCursor(pWnd, nHitTest, message);
+}
+void CSplitterWndExt::OnMouseMove(UINT nFlags, CPoint point)
+{
+	if ( GetCapture() == this || HitTest(point) != 0 )
+		CSplitterWnd::OnMouseMove(nFlags, point);
+	else
+		CWnd::OnMouseMove(nFlags, point);
+}
+
+/////////////////////////////////////////////////////////////////////////////
 // CChildFrame
 
 IMPLEMENT_DYNCREATE(CChildFrame, CMDIChildWnd)
@@ -24,8 +47,8 @@ BEGIN_MESSAGE_MAP(CChildFrame, CMDIChildWnd)
 	ON_WM_DESTROY()
 	ON_COMMAND(ID_WINDOW_CLOSE, OnWindowClose)
 	ON_WM_MDIACTIVATE()
+	ON_WM_MOVE()
 END_MESSAGE_MAP()
-
 
 // CChildFrame コンストラクション/デストラクション
 
@@ -142,6 +165,16 @@ void CChildFrame::OnSize(UINT nType, int cx, int cy)
 //		AfxGetApp()->WriteProfileInt(_T("ChildFrame"), _T("Style"), (nType == SIZE_MAXIMIZED ? 1 : 0));
 }
 
+void CChildFrame::OnMove(int x, int y)
+{
+	CMDIChildWnd::OnMove(x, y);
+
+	CRLoginDoc *pDoc = (CRLoginDoc *)GetActiveDocument();
+
+	if ( pDoc != NULL && pDoc->m_TextRam.m_BitMapStyle >= MAPING_PAN )
+		pDoc->UpdateAllViews(NULL, UPDATE_INITPARA, NULL);
+}
+
 int CChildFrame::OnCreate(LPCREATESTRUCT lpCreateStruct) 
 {
 	if (CMDIChildWnd::OnCreate(lpCreateStruct) == -1)
@@ -219,3 +252,4 @@ BOOL CChildFrame::PreTranslateMessage(MSG* pMsg)
 
 	return CMDIChildWnd::PreTranslateMessage(pMsg);
 }
+

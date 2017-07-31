@@ -527,8 +527,8 @@ CAPTION "RLoginのバージョン情報"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.21.1 (2016/12/19)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
-    LTEXT           "Copyright (C) 1998-2016 Culti",IDC_STATIC,44,16,189,8
+    LTEXT           "RLogin Version 2.21.2 (2017/01/10)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    LTEXT           "Copyright (C) 1998-2017 Culti",IDC_STATIC,44,16,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,171,60,14,WS_GROUP
     LTEXT           "OpenSSL 1.1.0c 10 Nov 2016",IDC_STATIC,44,29,189,8
     LTEXT           "Copyright (c) 1998-2016 The OpenSSL Project",IDC_STATIC,44,38,189,8
@@ -1691,24 +1691,26 @@ FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     EDITTEXT        IDC_BACKFILE,17,27,181,14,ES_AUTOHSCROLL
     PUSHBUTTON      "参照(&F)",IDC_BACKSEL,203,27,50,14
-    CONTROL         "バックグランド画像にテキストを追加",IDC_TEXTMAPENABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,79,236,11
-    COMBOBOX        IDC_HALIGN,83,101,41,50,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "",IDC_TEXTCOLOR,"Static",SS_OWNERDRAW | SS_NOTIFY,210,101,43,15,WS_EX_STATICEDGE
-    COMBOBOX        IDC_VALIGN,83,123,41,50,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "フォント",IDC_TEXTFONT,210,123,43,15
-    EDITTEXT        IDC_TEXTFORMAT,17,169,236,15,ES_AUTOHSCROLL
-    CONTROL         "",IDC_BITMAPALPHA,"msctls_trackbar32",TBS_AUTOTICKS | TBS_TOP | WS_TABSTOP,147,218,111,22
-    CONTROL         "",IDC_BITMAPBLEND,"msctls_trackbar32",TBS_AUTOTICKS | TBS_TOP | WS_TABSTOP,147,244,111,22
-    GROUPBOX        "バックグランド画像",IDC_STATIC,7,7,256,46
-    GROUPBOX        "テキスト描画",IDC_STATIC,7,63,256,133
-    LTEXT           "ログファイル名などで指定できる特殊文字列が使用できます（%Eでエントリー名）",IDC_STATIC,17,153,236,9
-    LTEXT           "横表示位置",IDC_STATIC,17,105,51,9
-    LTEXT           "縦表示位置",IDC_STATIC,17,126,51,9
-    LTEXT           "文字色",IDC_STATIC,141,105,51,9
-    LTEXT           "使用するフォント",IDC_STATIC,141,126,51,9
-    GROUPBOX        "描画オプション",IDC_STATIC,7,206,256,67
-    LTEXT           "背景文字などの合成比率（薄い～濃い）",IDC_STATIC,17,253,125,9
-    LTEXT           "バックグランド画像の明るさ調整（黒～白）",IDC_STATIC,17,227,125,9
+    COMBOBOX        IDC_MAPSTYLE,203,50,50,50,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "バックグランド画像にテキストを追加",IDC_TEXTMAPENABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,95,236,11
+    COMBOBOX        IDC_HALIGN,83,114,41,50,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "",IDC_TEXTCOLOR,"Static",SS_OWNERDRAW | SS_NOTIFY,210,114,43,15,WS_EX_STATICEDGE
+    COMBOBOX        IDC_VALIGN,83,135,41,50,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "フォント",IDC_TEXTFONT,210,135,43,15
+    EDITTEXT        IDC_TEXTFORMAT,17,178,236,15,ES_AUTOHSCROLL
+    CONTROL         "",IDC_BITMAPALPHA,"msctls_trackbar32",TBS_AUTOTICKS | TBS_TOP | WS_TABSTOP,147,223,111,22
+    CONTROL         "",IDC_BITMAPBLEND,"msctls_trackbar32",TBS_AUTOTICKS | TBS_TOP | WS_TABSTOP,147,246,111,22
+    GROUPBOX        "バックグランド画像",IDC_STATIC,7,7,256,65
+    GROUPBOX        "テキスト描画",IDC_STATIC,7,81,256,121
+    LTEXT           "ログファイル名などで指定できる特殊文字列が使用できます（%Eでエントリー名）",IDC_STATIC,17,163,236,9
+    LTEXT           "横表示位置",IDC_STATIC,17,118,51,9
+    LTEXT           "縦表示位置",IDC_STATIC,17,138,51,9
+    LTEXT           "文字色",IDC_STATIC,141,118,51,9
+    LTEXT           "使用するフォント",IDC_STATIC,141,138,51,9
+    GROUPBOX        "描画オプション",IDC_STATIC,7,210,256,63
+    LTEXT           "背景文字などの合成比率（薄い～濃い）",IDC_STATIC,17,255,125,9
+    LTEXT           "バックグランド画像の明るさ調整（黒～白）",IDC_STATIC,17,232,125,9
+    LTEXT           "画像の配置方法を選択できます。FILLがデフォルトです",IDC_STATIC,17,52,148,8
 END
 
 IDD_TOOLDLG DIALOGEX 0, 0, 319, 275
@@ -1734,8 +1736,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,21,1,0
- PRODUCTVERSION 2,21,1,0
+ FILEVERSION 2,21,2,0
+ PRODUCTVERSION 2,21,2,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1752,12 +1754,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.21.1.0"
+            VALUE "FileVersion", "2.21.2.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2015 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.21.1.0"
+            VALUE "ProductVersion", "2.21.2.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -3069,6 +3071,18 @@ END
 
 IDD_BACKPAGE DLGINIT
 BEGIN
+    IDC_MAPSTYLE, 0x403, 5, 0
+0x4946, 0x4c4c, "\000" 
+    IDC_MAPSTYLE, 0x403, 4, 0
+0x4946, 0x0054, 
+    IDC_MAPSTYLE, 0x403, 8, 0
+0x5453, 0x4552, 0x4354, 0x0048, 
+    IDC_MAPSTYLE, 0x403, 5, 0
+0x4954, 0x454c, "\000" 
+    IDC_MAPSTYLE, 0x403, 7, 0
+0x4543, 0x544e, 0x5245, "\000" 
+    IDC_MAPSTYLE, 0x403, 4, 0
+0x4150, 0x004e, 
     IDC_HALIGN, 0x403, 5, 0
 0x454c, 0x5446, "\000" 
     IDC_HALIGN, 0x403, 7, 0
@@ -3302,6 +3316,7 @@ BEGIN
     IDS_TEMPFILEDELETEMSG   "%d個の作業用ファイルが削除出来ませんでした。再試行しますか？"
     IDS_CREATEPROFILE       "作成したプロファイルは、次回起動時から使用します"
     IDS_SSHCLOSEALL         "別のチャンネルが開いています。閉じますか？"
+    IDS_ENTRYMULTIEDIT      "複数のエントリーを以下の差分で変更しますか？\r\n"
 END
 
 STRINGTABLE
@@ -3634,6 +3649,7 @@ BEGIN
     IDT_EXTOPT_LIST13       "接続断で閉じない\t接続断で閉じる\t接続が切れた場合にクローズ処理を行わないようにします"
     IDT_EXTOPT_LIST14       "タブも移動する\tペインの移動のみ\t現在のペイン位置でアクティブな接続が移動することになります"
     IDT_EXTOPT_LIST15       "HiDPIに追従する\t文字サイズは画素数\t文字サイズをHiDPIの変更に追従するようにします"
+    IDT_EXTOPT_LIST16       "文字輝度を下げる\t文字輝度を維持\tアクティブでない接続の文字輝度を下げて表示する"
 END
 
 STRINGTABLE

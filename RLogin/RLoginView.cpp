@@ -227,6 +227,7 @@ void CRLoginView::OnDraw(CDC* pDC)
 		HideCaret();
 
 	GetClientRect(frame);
+	m_HaveBack = FALSE;
 
 #ifdef	USE_DIRECTWRITE
 	if ( m_pRenderTarget == NULL ) {
@@ -281,6 +282,12 @@ void CRLoginView::OnDraw(CDC* pDC)
 			pDC->BitBlt(rect.left, rect.top, rect.Width(), rect.Height(), &TempDC, rect.left, rect.top, SRCCOPY);
 			TempDC.SelectObject(pOldBitMap);
 			pDC->SetBkMode(TRANSPARENT);
+			m_HaveBack = TRUE;
+
+		} else if ( !ExDwmEnable && ((CMainFrame *)::AfxGetMainWnd())->m_bGlassStyle ) {
+			PaintDesktop(pDC->GetSafeHdc());
+			pDC->SetBkMode(TRANSPARENT);
+			m_HaveBack = TRUE;
 		}
 	}
 
@@ -554,6 +561,36 @@ void CRLoginView::CalcGrapPoint(CPoint po, int *x, int *y)
 RETENDOF:
 	*y =  *y - m_HisOfs + m_HisMin;
 	return;
+}
+int CRLoginView::HitTest(CPoint point)
+{
+	int mode = 0;
+	CRect rect;
+	CRLoginDoc *pDoc = GetDocument();
+
+	GetClientRect(rect);
+
+	if ( point.x < pDoc->m_TextRam.m_ScrnOffset.left )
+		mode |= 001;
+	else if ( point.x > (rect.right - pDoc->m_TextRam.m_ScrnOffset.right) )
+		mode |= 003;
+	else if ( point.x > ((rect.left + rect.right - m_CharWidth) / 2) && point.x < ((rect.left + rect.right + m_CharWidth) / 2) )
+		mode |= 002;
+
+	if ( point.y < pDoc->m_TextRam.m_ScrnOffset.top )
+		mode |= 010;
+	else if ( point.y > (rect.bottom - pDoc->m_TextRam.m_ScrnOffset.bottom) )
+		mode |= 030;
+	else if ( point.y > ((rect.top + rect.bottom - m_CharHeight) / 2) && point.y < ((rect.top + rect.bottom + m_CharHeight) / 2) )
+		mode |= 020;
+
+	//  011	010	012	010	013
+	//  001	000	002	000	003
+	//  021	020	022	020	023
+	//  001	000	002	000	003
+	//  031	030	032	030	033
+
+	return mode;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1006,12 +1043,14 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 			str = pDoc->m_TextRam.m_BitMapFile;
 			pDoc->EntryText(str);
 			m_BmpFile.LoadFile(str);
-			m_pBitmap = m_BmpFile.GetBitmap(GetDC(), rect.Width(), rect.Height(), pDoc->m_TextRam.GetBackColor(pDoc->m_TextRam.m_DefAtt), pDoc->m_TextRam.m_BitMapAlpha);
+			m_pBitmap = m_BmpFile.GetBitmap(GetDC(), rect.Width(), rect.Height(), pDoc->m_TextRam.GetBackColor(pDoc->m_TextRam.m_DefAtt), pDoc->m_TextRam.m_BitMapAlpha, pDoc->m_TextRam.m_BitMapStyle, this);
 			if ( pDoc->m_TextRam.m_TextBitMap.m_bEnable && !pDoc->m_TextRam.m_TextBitMap.m_Text.IsEmpty() ) {
 				str.Empty();
 				pDoc->ScriptText(pDoc->m_TextRam.m_TextBitMap.m_Text, NULL, str);
-				m_pBitmap = m_BmpFile.GetTextBitmap(GetDC(), rect.Width(), rect.Height(), pDoc->m_TextRam.GetBackColor(pDoc->m_TextRam.m_DefAtt), &(pDoc->m_TextRam.m_TextBitMap), str, pDoc->m_TextRam.m_BitMapAlpha);
+				m_pBitmap = m_BmpFile.GetTextBitmap(GetDC(), rect.Width(), rect.Height(), pDoc->m_TextRam.GetBackColor(pDoc->m_TextRam.m_DefAtt), &(pDoc->m_TextRam.m_TextBitMap), str, pDoc->m_TextRam.m_BitMapAlpha, pDoc->m_TextRam.m_BitMapStyle, this);
 			}
+			if ( m_BmpFile.m_Style == MAPING_DESKTOP )
+				((CMainFrame *)::AfxGetMainWnd())->m_UseBitmapUpdate = TRUE;
 		} else
 			m_pBitmap = NULL;
 
@@ -1366,6 +1405,8 @@ void CRLoginView::OnKillFocus(CWnd* pNewWnd)
 
 	//if ( m_BtnWnd.m_hWnd != NULL )
 	//	m_BtnWnd.ShowWindow(SW_HIDE);
+
+	Invalidate(FALSE);
 }
 void CRLoginView::OnActivateView(BOOL bActivate, CView* pActivateView, CView* pDeactiveView) 
 {
@@ -2921,11 +2962,6 @@ BOOL CRLoginView::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 			if ( !pDoc->m_TextRam.IsOptEnable(TO_RLNTBCRECV) )
 				mode |= 002;
 
-			//if ( !pDoc->m_TextRam.m_GroupCast.IsEmpty() )
-			//	mode |= 001;
-			//if ( !pDoc->m_TextRam.IsOptEnable(TO_RLGROUPCAST) )
-			//	mode |= 002;
-
 			switch(mode) {
 			case 1:
 				hCursor = AfxGetApp()->LoadStandardCursor(IDC_SIZENWSE);
@@ -2980,7 +3016,7 @@ BOOL CRLoginView::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 			::SetCursor(hCursor);
 			return TRUE;
 		}
-	}	
+	}
 
 	if ( pWnd != NULL  )
 		return CView::OnSetCursor(pWnd, nHitTest, message);

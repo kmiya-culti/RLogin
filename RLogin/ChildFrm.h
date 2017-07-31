@@ -6,6 +6,17 @@
 #include "TextRam.h"
 #include "Data.h"
 
+class CSplitterWndExt : public CSplitterWnd
+{
+	DECLARE_DYNCREATE(CSplitterWndExt)
+
+protected:
+	DECLARE_MESSAGE_MAP()
+public:
+	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
+	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+};
+
 class CChildFrame : public CMDIChildWnd
 {
 	DECLARE_DYNCREATE(CChildFrame)
@@ -30,7 +41,7 @@ public:
 
 // コントロール用メンバ
 protected:
-	CSplitterWnd m_wndSplitter;
+	CSplitterWndExt m_wndSplitter;
 
 // オーバーライド
 public:
@@ -44,6 +55,7 @@ public:
 protected:
 	DECLARE_MESSAGE_MAP()
 	afx_msg void OnSize(UINT nType, int cx, int cy);
+	afx_msg void OnMove(int x, int y);
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnDestroy();
 	afx_msg void OnWindowClose();

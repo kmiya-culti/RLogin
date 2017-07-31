@@ -179,7 +179,7 @@ BOOL CScrnPage::OnApply()
 	m_pSheet->m_pTextRam->SetOptValue(TO_RLADBELL, 2, m_VisualBell);
 
 	m_pSheet->m_pTextRam->m_DefTypeCaret = m_DefTypeCaret + 1;
-	m_pSheet->m_pTextRam->m_TypeCaret    = m_DefTypeCaret + 1;
+	m_pSheet->m_pTextRam->m_TypeCaret    = m_pSheet->m_pTextRam->m_DefTypeCaret;
 
 	m_pSheet->m_pTextRam->m_RecvCrLf = m_RecvCrLf;
 	m_pSheet->m_pTextRam->m_SendCrLf = m_SendCrLf;

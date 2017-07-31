@@ -154,6 +154,7 @@ public:
 	BOOL m_bTabBarShow;
 	BOOL m_ScrollBarFlag;
 	BOOL m_bVersionCheck;
+	BOOL m_bGlassStyle;
 	CPtrArray m_MenuMap;
 	int m_SplitType;
 	int m_ExecCount;
@@ -173,6 +174,7 @@ public:
 	UINT m_ScreenDpiX;
 	UINT m_ScreenDpiY;
 	CKeyNodeTab m_DefKeyTab;
+	BOOL m_UseBitmapUpdate;
 
 	BOOL PagentQuery(CBuffer *pInBuf, CBuffer *pOutBuf);
 	void PagentInit(CArray<CIdKey, CIdKey &> *pKeyTab);
@@ -282,6 +284,7 @@ protected:
 	afx_msg void OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized);
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
 	afx_msg void OnClose();
+	afx_msg void OnMoving(UINT fwSide, LPRECT pRect);
 
 	afx_msg void OnDrawClipboard();
 	afx_msg void OnChangeCbChain(HWND hWndRemove, HWND hWndAfter);

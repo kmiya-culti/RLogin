@@ -231,6 +231,7 @@
 #define	TO_RLNOTCLOSE	1470		// 接続断でクロースしない
 #define	TO_RLPAINWTAB	1471		// ペインの移動でタブも移動する
 #define	TO_RLHIDPIFSZ	1472		// フォントサイズをHiDPIに追従する
+#define	TO_RLBACKHALF	1473		// アクティブでないウィンドウの輝度を下げる
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -603,6 +604,7 @@ public:
 	void SetUserBitmap(int code, int width, int height, CBitmap *pMap, int ofx, int ofy);
 	void SetUserFont(int code, int width, int height, LPBYTE map);
 	BOOL SetFontImage(int width, int height);
+	int Compare(CFontNode &data);
 
 	CFontNode();
 	~CFontNode();
@@ -644,6 +646,7 @@ public:
 	void SetArray(CStringArrayExt &stra);
 	void GetArray(CStringArrayExt &stra);
 	void SetIndex(int mode, CStringIndex &index);
+	void DiffIndex(CFontTab &orig, CStringIndex &index);
 
 	int Find(LPCTSTR entry);
 	int IndexFind(int code, LPCTSTR name);
@@ -669,6 +672,7 @@ public:
 	void SetArray(CStringArrayExt &stra);
 	void GetArray(CStringArrayExt &stra);
 	void SetIndex(int mode, CStringIndex &index);
+	void DiffIndex(CTextBitMap &orig, CStringIndex &index);
 
 	const CTextBitMap & operator = (CTextBitMap &data);
 	const BOOL operator == (CTextBitMap &data);
@@ -809,6 +813,7 @@ public:	// Options
 	CString m_BitMapFile;
 	int m_BitMapAlpha;
 	int m_BitMapBlend;
+	int m_BitMapStyle;
 	int m_DelayMSec;
 	CString m_HisFile;
 	int m_KeepAliveSec;
@@ -842,6 +847,7 @@ public:	// Options
 
 	void Init();
 	void SetIndex(int mode, CStringIndex &index);
+	void DiffIndex(CTextRam &orig, CStringIndex &index);
 	void SetArray(CStringArrayExt &stra);
 	void GetArray(CStringArrayExt &stra);
 	void ScriptInit(int cmds, int shift, class CScriptValue &value);
@@ -1118,6 +1124,8 @@ public:
 	static void UCS4ToWStr(DWORD code, CStringW &str);
 	static DWORD UnicodeNomal(DWORD code1, DWORD code2);
 	static void IconvToMsUniStr(LPCTSTR charset, LPCWSTR p, int len, CBuffer &out);
+	static int OptionToIndex(int value);
+	static int IndexToOption(int value);
 
 	// Low Level
 	void RESET(int mode = RESET_PAGE | RESET_CURSOR | RESET_MARGIN | RESET_TABS | RESET_BANK | RESET_ATTR | RESET_COLOR | RESET_TEK | RESET_SAVE | RESET_MOUSE | RESET_CHAR | RESET_OPTION | RESET_XTOPT | RESET_MODKEY);

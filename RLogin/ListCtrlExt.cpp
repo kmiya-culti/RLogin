@@ -3,6 +3,7 @@
 
 #include "stdafx.h"
 #include "rlogin.h"
+#include "MainFrm.h"
 #include "ListCtrlExt.h"
 
 #ifdef _DEBUG
@@ -96,6 +97,7 @@ void CListCtrlExt::InitColumn(LPCTSTR lpszSection, const LV_COLUMN *lpColumn, in
 	for ( n = 0 ; n < nMax ; n++ ) {
 		tmp = lpColumn[n];
 		tmp.cx = AfxGetApp()->GetProfileInt(lpszSection, tmp.pszText, tmp.cx);
+		tmp.cx = MulDiv(tmp.cx, ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY, 96);
 		InsertColumn(n, &tmp);
 	}
 
@@ -113,8 +115,11 @@ void CListCtrlExt::SaveColumn(LPCTSTR lpszSection)
 	tmp.pszText = name;
 	tmp.cchTextMax = 256;
 	tmp.mask = LVCF_WIDTH | LVCF_TEXT;
-	while ( GetColumn(n++, &tmp) )
+
+	while ( GetColumn(n++, &tmp) ) {
+		tmp.cx = MulDiv(tmp.cx, 96, ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY);
 		AfxGetApp()->WriteProfileInt(lpszSection, tmp.pszText, tmp.cx);
+	}
 
 	AfxGetApp()->WriteProfileInt(lpszSection, _T("SortItem"), m_SortSubItem);
 	AfxGetApp()->WriteProfileInt(lpszSection, _T("SortRevs"), m_SortReverse);

@@ -312,7 +312,7 @@ void CPaneFrame::MoveFrame()
 		if ( m_NullWnd.m_hWnd != NULL )
 			m_NullWnd.DestroyWindow();
 		::SetWindowPos(m_hWnd, NULL, m_Frame.left - 2, m_Frame.top - 2, m_Frame.Width(), m_Frame.Height(),
-			SWP_SHOWWINDOW | SWP_FRAMECHANGED | SWP_NOCOPYBITS | SWP_NOOWNERZORDER | SWP_NOZORDER | SWP_NOACTIVATE);
+			SWP_SHOWWINDOW | SWP_FRAMECHANGED | SWP_NOCOPYBITS | SWP_NOOWNERZORDER | SWP_NOZORDER | SWP_NOACTIVATE | SWP_ASYNCWINDOWPOS | SWP_DEFERERASE);
 	} else {
 		CRect rect = m_Frame;
 		m_pMain->AdjustRect(rect);
@@ -321,7 +321,7 @@ void CPaneFrame::MoveFrame()
 		else {
 			m_NullWnd.ModifyStyle(SS_WHITEFRAME | SS_GRAYFRAME, (m_bActive ? SS_WHITEFRAME : SS_GRAYFRAME), 0);
 			m_NullWnd.SetWindowPos(NULL, rect.left, rect.top, rect.Width(), rect.Height(),
-				SWP_SHOWWINDOW | SWP_FRAMECHANGED | SWP_NOCOPYBITS | SWP_NOOWNERZORDER | SWP_NOZORDER);
+				SWP_SHOWWINDOW | SWP_FRAMECHANGED | SWP_NOCOPYBITS | SWP_NOOWNERZORDER | SWP_NOZORDER | SWP_ASYNCWINDOWPOS);
 		}
 	}
 }
@@ -755,6 +755,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_WM_DRAWCLIPBOARD()
 	ON_WM_CHANGECBCHAIN()
 	ON_WM_CLIPBOARDUPDATE()
+	ON_WM_MOVING()
 
 	ON_MESSAGE(WM_SOCKSEL, OnWinSockSelect)
 	ON_MESSAGE(WM_GETHOSTADDR, OnGetHostAddr)
@@ -858,6 +859,8 @@ CMainFrame::CMainFrame()
 	m_bClipEnable = FALSE;
 	m_bClipChain = FALSE;
 	m_ScreenDpiX = m_ScreenDpiY = 96;
+	m_bGlassStyle = FALSE;
+	m_UseBitmapUpdate = FALSE;
 }
 
 CMainFrame::~CMainFrame()
@@ -979,7 +982,8 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_ScrollBarFlag = AfxGetApp()->GetProfileInt(_T("ChildFrame"), _T("VScroll"), TRUE);
 	m_bVersionCheck = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("VersionCheckFlag"), FALSE);
 
-	ExDwmEnableWindow(m_hWnd, AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("GlassStyle"), FALSE));
+	m_bGlassStyle = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("GlassStyle"), FALSE);
+	ExDwmEnableWindow(m_hWnd, m_bGlassStyle);
 
 	// ‰æ–Ê•ªŠ„‚ð•œ‹A
 	((CRLoginApp *)AfxGetApp())->GetProfileBuffer(_T("MainFrame"), _T("Pane"), buf);
@@ -2676,7 +2680,19 @@ BOOL CMainFrame::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 	point.y -= m_Frame.top;
 
 	if ( m_pTopPane != NULL && (pPane = m_pTopPane->HitTest(point)) != NULL && pPane->m_Style != PANEFRAME_WINDOW ) {
-		::SetCursor(::LoadCursor(NULL, (pPane->m_Style == PANEFRAME_HEIGHT ? IDC_SIZENS : IDC_SIZEWE)));
+		LPCTSTR id = (pPane->m_Style == PANEFRAME_HEIGHT ? ATL_MAKEINTRESOURCE(AFX_IDC_VSPLITBAR) : ATL_MAKEINTRESOURCE(AFX_IDC_HSPLITBAR));
+		HINSTANCE hInst = AfxFindResourceHandle(id, ATL_RT_GROUP_CURSOR);
+		HCURSOR hCursor = NULL;
+
+		if ( hInst != NULL )
+			hCursor = ::LoadCursorW(hInst, id);
+
+		if ( hCursor == NULL )
+			hCursor = AfxGetApp()->LoadStandardCursor(pPane->m_Style == PANEFRAME_HEIGHT ? IDC_SIZENS : IDC_SIZEWE);
+
+		if ( hCursor != NULL )
+			::SetCursor(hCursor);
+
 		return TRUE;
 	}
 	return CMDIFrameWnd::OnSetCursor(pWnd, nHitTest, message);
@@ -3313,4 +3329,29 @@ void CMainFrame::OnClipchain()
 void CMainFrame::OnUpdateClipchain(CCmdUI *pCmdUI)
 {
 	pCmdUI->SetCheck(m_bAllowClipChain);
+}
+
+void CMainFrame::OnMoving(UINT fwSide, LPRECT pRect)
+{
+	CMDIFrameWnd::OnMoving(fwSide, pRect);
+
+	if ( !ExDwmEnable && m_bGlassStyle )
+		Invalidate(FALSE);
+
+	if ( m_UseBitmapUpdate ) {
+		m_UseBitmapUpdate = FALSE;
+
+		CWinApp *pApp = AfxGetApp();
+		POSITION pos = pApp->GetFirstDocTemplatePosition();
+
+		while ( pos != NULL ) {
+			CDocTemplate *pDocTemp = pApp->GetNextDocTemplate(pos);
+			POSITION dpos = pDocTemp->GetFirstDocPosition();
+			while ( dpos != NULL ) {
+				CRLoginDoc *pDoc = (CRLoginDoc *)pDocTemp->GetNextDoc(dpos);
+				if ( pDoc != NULL && pDoc->m_TextRam.m_BitMapStyle == MAPING_DESKTOP )
+					pDoc->UpdateAllViews(NULL, UPDATE_INITPARA, NULL);
+			}
+		}
+	}
 }

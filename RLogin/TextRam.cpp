@@ -475,6 +475,33 @@ const CFontNode & CFontNode::operator = (CFontNode &data)
 		m_Iso646Tab[n] = data.m_Iso646Tab[n];
 	return *this;
 }
+int CFontNode::Compare(CFontNode &data)
+{
+	if ( m_Shift != data.m_Shift ||
+		 m_ZoomW != data.m_ZoomW ||
+		 m_ZoomH != data.m_ZoomH ||
+		 m_OffsetW != data.m_OffsetW ||
+		 m_OffsetH != data.m_OffsetH ||
+		 m_CharSet != data.m_CharSet ||
+		 m_EntryName.Compare(data.m_EntryName) != 0 ||
+		 m_IContName.Compare(data.m_IContName) != 0 ||
+		 m_IndexName.Compare(data.m_IndexName) != 0 ||
+		 m_Quality != data.m_Quality ||
+		 m_UniBlock.Compare(data.m_UniBlock) != 0 )
+		return 1;
+
+	for ( int n = 0 ; n < 16 ; n++ ) {
+		if ( m_FontName[n].Compare(data.m_FontName[n]) != 0 )
+			return 1;
+	}
+
+	if ( m_Iso646Name[0].Compare(data.m_Iso646Name[0]) != 0 ||
+		 m_Iso646Name[1].Compare(data.m_Iso646Name[1]) != 0 ||
+		 memcmp(m_Iso646Tab, data.m_Iso646Tab, sizeof(m_Iso646Tab)) != 0 )
+		return 1;
+
+	return 0;
+}
 void CFontNode::SetUserBitmap(int code, int width, int height, CBitmap *pMap, int ofx, int ofy)
 {
 	CDC oDc, nDc;
@@ -916,13 +943,59 @@ void CFontTab::GetArray(CStringArrayExt &stra)
 
 	InitUniBlock();
 }
+void CFontTab::DiffIndex(CFontTab &orig, CStringIndex &index)
+{
+	int n, i, a;
+	CString str;
+	CStringIndex *ip;
+
+	for ( n = 0 ; n < CODE_MAX ; n++ ) {
+		if ( m_Data[n].Compare(orig.m_Data[n]) == 0 )
+			continue;
+
+		if ( m_Data[n].m_EntryName.IsEmpty() ) {
+			index[_T("Del")].Add(n);
+
+		} else {
+			str.Format(_T("%d"), n);
+			ip = &(index[_T("Add")][str]);
+
+			ip->Add(m_Data[n].m_EntryName);
+			ip->Add(n >> 8);
+			ip->Add(m_Data[n].m_IndexName);
+			ip->Add(m_Data[n].m_Shift);
+			ip->Add(m_Data[n].m_ZoomW);
+			ip->Add(m_Data[n].m_ZoomH);
+			ip->Add(m_Data[n].m_OffsetH);
+			ip->Add(m_Data[n].m_Quality);
+			ip->Add(m_Data[n].m_CharSet);
+			ip->Add(m_Data[n].m_IContName);
+
+			a = ip->GetSize();
+			ip->SetSize(a + 1);
+			for ( i = 0 ; i < 16 ; i++ )
+				(*ip)[a].Add(m_Data[n].m_FontName[i]);
+
+			ip->Add(m_Data[n].m_OffsetW);
+			ip->Add(m_Data[n].m_UniBlock);
+
+			ip->Add(m_Data[n].m_Iso646Name[0]);
+			ip->Add(m_Data[n].m_Iso646Name[1]);
+
+			a = ip->GetSize();
+			ip->SetSize(a + 1);
+			for ( i = 0 ; i < 12 ; i++ )
+				(*ip)[a].Add(m_Data[n].m_Iso646Tab[i]);
+		}
+	}
+}
 void CFontTab::SetIndex(int mode, CStringIndex &index)
 {
 	int n, i, a, m;
 	int code;
 	CString str;
 	CStringIndex *ip;
-	static const LPCTSTR menbaName[] = { _T("Table"), _T("Add"), NULL };
+	static const LPCTSTR menbaName[] = { _T("Table"), _T("Add"), _T("Del"), NULL };
 
 	if ( mode ) {		// Write
 		for ( n = 0 ; n < CODE_MAX ; n++ ) {
@@ -971,37 +1044,43 @@ void CFontTab::SetIndex(int mode, CStringIndex &index)
 			}
 
 			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
-				if ( index[n][i].GetSize() < 11 )
-					continue;
-				code = IndexFind(index[n][i][1] << 8, index[n][i][2]);
+				if ( m == 2 ) {	// Del
+					code = index[n][i];
+					IndexRemove(code);
 
-				m_Data[code].m_EntryName = index[n][i][0];
-				m_Data[code].m_IndexName = index[n][i][2];
-				m_Data[code].m_Shift     = index[n][i][3];
-				m_Data[code].m_ZoomW     = index[n][i][4];
-				m_Data[code].m_ZoomH     = index[n][i][5];
-				m_Data[code].m_OffsetH   = index[n][i][6];
-				m_Data[code].m_Quality   = index[n][i][7];
-				m_Data[code].m_CharSet   = index[n][i][8];
-				m_Data[code].m_IContName = index[n][i][9];
+				} else {	// Table or Add
+					if ( index[n][i].GetSize() < 11 )
+						continue;
+					code = IndexFind(index[n][i][1] << 8, index[n][i][2]);
 
-				for ( a = 0 ; a < 16 && a < index[n][i][10].GetSize() ; a++ )
-					m_Data[code].m_FontName[a] = index[n][i][10][a];
+					m_Data[code].m_EntryName = index[n][i][0];
+					m_Data[code].m_IndexName = index[n][i][2];
+					m_Data[code].m_Shift     = index[n][i][3];
+					m_Data[code].m_ZoomW     = index[n][i][4];
+					m_Data[code].m_ZoomH     = index[n][i][5];
+					m_Data[code].m_OffsetH   = index[n][i][6];
+					m_Data[code].m_Quality   = index[n][i][7];
+					m_Data[code].m_CharSet   = index[n][i][8];
+					m_Data[code].m_IContName = index[n][i][9];
 
-				if ( index[n][i].GetSize() > 11 )
-					m_Data[code].m_OffsetW = index[n][i][11];
+					for ( a = 0 ; a < 16 && a < index[n][i][10].GetSize() ; a++ )
+						m_Data[code].m_FontName[a] = index[n][i][10][a];
 
-				if ( index[n][i].GetSize() > 12 )
-					m_Data[code].m_UniBlock = index[n][i][12];
+					if ( index[n][i].GetSize() > 11 )
+						m_Data[code].m_OffsetW = index[n][i][11];
 
-				if ( index[n][i].GetSize() > 13 )
-					m_Data[code].m_Iso646Name[0] = index[n][i][13];
-				if ( index[n][i].GetSize() > 14 )
-					m_Data[code].m_Iso646Name[0] = index[n][i][14];
+					if ( index[n][i].GetSize() > 12 )
+						m_Data[code].m_UniBlock = index[n][i][12];
 
-				if ( index[n][i].GetSize() > 15 ) {
-					for ( a = 0 ; a < 12 && a < index[n][i][15].GetSize() ; a++ )
-						m_Data[code].m_Iso646Tab[a] = index[n][i][15][a];
+					if ( index[n][i].GetSize() > 13 )
+						m_Data[code].m_Iso646Name[0] = index[n][i][13];
+					if ( index[n][i].GetSize() > 14 )
+						m_Data[code].m_Iso646Name[0] = index[n][i][14];
+
+					if ( index[n][i].GetSize() > 15 ) {
+						for ( a = 0 ; a < 12 && a < index[n][i][15].GetSize() ; a++ )
+							m_Data[code].m_Iso646Tab[a] = index[n][i][15][a];
+					}
 				}
 			}
 		}
@@ -1171,6 +1250,35 @@ void CTextBitMap::GetArray(CStringArrayExt &stra)
 	m_LogFont.lfItalic = stra.GetVal(7);
 	_tcsncpy(m_LogFont.lfFaceName, stra.GetAt(8), sizeof(m_LogFont.lfFaceName) / sizeof(TCHAR));
 }
+void CTextBitMap::DiffIndex(CTextBitMap &orig, CStringIndex &index)
+{
+	if ( m_bEnable != orig.m_bEnable )
+		index[_T("Enable")]  = m_bEnable;
+
+	if ( m_WidthAlign != orig.m_WidthAlign )
+		index[_T("WidthAlign")]  = m_WidthAlign;
+	if ( m_HeightAlign != orig.m_HeightAlign )
+		index[_T("HeightAlign")] = m_HeightAlign;
+
+	if ( m_Text.Compare(orig.m_Text) != 0 )
+		index[_T("String")]   = m_Text;
+
+	if ( m_TextColor != orig.m_TextColor ) {
+		index[_T("Color")].Add(GetRValue(m_TextColor));
+		index[_T("Color")].Add(GetGValue(m_TextColor));
+		index[_T("Color")].Add(GetBValue(m_TextColor));
+	}
+
+	if ( m_LogFont.lfHeight != orig.m_LogFont.lfHeight )
+		index[_T("Height")]   = m_LogFont.lfHeight;
+	if ( m_LogFont.lfWeight != orig.m_LogFont.lfWeight )
+		index[_T("Weight")]   = m_LogFont.lfWeight;
+	if ( m_LogFont.lfItalic != orig.m_LogFont.lfItalic )
+		index[_T("Italic")]   = m_LogFont.lfItalic;
+	if ( _tcscmp(m_LogFont.lfFaceName, orig.m_LogFont.lfFaceName) != 0 )
+		index[_T("FaceName")] = m_LogFont.lfFaceName;
+
+}
 void CTextBitMap::SetIndex(int mode, CStringIndex &index)
 {
 	int n;
@@ -1267,7 +1375,7 @@ CTextRam::CTextRam()
 	m_HisUse = 0;
 	m_pTextSave = m_pTextStack = NULL;
 	m_DispCaret = FGCARET_ONOFF;
-	m_DefTypeCaret = 0;
+	m_DefTypeCaret = 1;
 	m_TypeCaret = m_DefTypeCaret;
 	m_UpdateRect.SetRectEmpty();
 	m_UpdateFlag = FALSE;
@@ -2058,6 +2166,7 @@ void CTextRam::Init()
 	EnableOption(TO_DECBKM);	// ?  67 Backarrow key mode (BS)
 	EnableOption(TO_XTPRICOL);	// ?1070 Private Color Map
 	EnableOption(TO_RLFONT);	// ?8404 フォントサイズから一行あたりの文字数を決定
+	EnableOption(TO_RLUNIAWH);	// ?8428 UnicodeのAタイプの文字を半角として表示する
 	EnableOption(TO_DRCSMMv1);	// ?8800 Unicode 16 Maping
 
 	memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
@@ -2073,6 +2182,7 @@ void CTextRam::Init()
 	m_BitMapFile     = _T("");
 	m_BitMapAlpha    = 255;
 	m_BitMapBlend    = 128;
+	m_BitMapStyle    = MAPING_FILL;
 	m_DelayMSec      = 0;
 	m_HisFile        = _T("");
 	m_KeepAliveSec   = 0;
@@ -2137,11 +2247,13 @@ void CTextRam::Init()
 
 	RESET();
 }
+
+static const LPCTSTR setname[] = { _T("EUC"), _T("SJIS"), _T("ASCII"), _T("UTF8"), _T("BIG5") };
+
 void CTextRam::SetIndex(int mode, CStringIndex &index)
 {
 	int n, i;
 	CString str, wrk;
-	static const LPCTSTR setname[] = { _T("EUC"), _T("SJIS"), _T("ASCII"), _T("UTF8"), _T("BIG5") };
 
 	if ( mode ) {	// Write
 		index[_T("Cols")][_T("Nomal")] = m_DefCols[0];
@@ -2179,6 +2291,8 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		index[_T("BitMapFile")]   = m_BitMapFile;
 		index[_T("BitMapAlpha")]  = m_BitMapAlpha;
 		index[_T("BitMapBlend")]  = m_BitMapBlend;
+		index[_T("BitMapStyle")]  = m_BitMapStyle;
+
 		index[_T("HisFile")]      = m_HisFile;
 		index[_T("LogFile")]      = m_LogFile;
 
@@ -2216,19 +2330,8 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		}
 
 		for ( n = 0 ; n < (32 * 16) ; n++ ) {
-			if ( n >= 400 )				// RLogin Option		8400-8511(400-511)
-				i = n + (8400 - 400);
-			else if ( n >= 380 )		// XTerm Option 2		2000-2019(380-399)
-				i = n + (2000 - 380);
-			else if ( n >= 300 )		// XTerm Option			1000-1079(300-379)
-				i = n + (1000 - 300);
-			else if ( n >= 200 )		// ANSI Screen Option	200-299(200-299)
-				i = n + (200 - 200);
-			else						// DEC Terminal Option	0-199
-				i = n;
-
 			if ( IS_ENABLE(m_DefAnsiOpt, n) )
-				index[_T("Option")].Add(i);
+				index[_T("Option")].Add(IndexToOption(n));
 		}
 
 		for ( n = 0 ; n < (32 * 16) ; n++ ) {
@@ -2330,8 +2433,10 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 			m_BitMapFile = index[n];
 		if ( (n = index.Find(_T("BitMapAlpha"))) >= 0 )
 			m_BitMapAlpha = index[n];
-		if ( (n = index.Find(_T("m_BitMapBlend"))) >= 0 )
+		if ( (n = index.Find(_T("BitMapBlend"))) >= 0 )
 			m_BitMapBlend = index[n];
+		if ( (n = index.Find(_T("BitMapStyle"))) >= 0 )
+			m_BitMapStyle = index[n];
 
 		if ( (n = index.Find(_T("HisFile"))) >= 0 )
 			m_HisFile = index[n];
@@ -2425,8 +2530,10 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		if ( (n = index.Find(_T("TraceMaxCount"))) >= 0 )
 			m_TraceMaxCount = index[n];
 
-		if ( (n = index.Find(_T("Caret"))) >= 0 )
-			m_TypeCaret = m_DefTypeCaret = index[n];
+		if ( (n = index.Find(_T("Caret"))) >= 0 ) {
+			if ( (m_TypeCaret = m_DefTypeCaret = index[n]) <= 0 )
+				m_TypeCaret = m_DefTypeCaret = 1;
+		}
 
 		if ( (n = index.Find(_T("BugFix"))) >= 0 )
 			m_FixVersion = index[n];
@@ -2437,21 +2544,23 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		if ( (n = index.Find(_T("Option"))) >= 0 ) {
 			memset(m_DefAnsiOpt, 0, sizeof(m_DefAnsiOpt));
 			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
-				int a, b = index[n][i];
-
-				if ( b >= 8400 )			// RLogin Option		8400-8511(400-511)
-					a = b - (8400 - 400);
-				else if ( b >= 2000 )		// XTerm Option 2		2000-2019(380-399)
-					a = b - (2000 - 380);
-				else if ( b >= 1000 )		// XTerm Option			1000-1079(300-379)
-					a = b - (1000 - 300);
-				else if ( b >= 200 )		// ANSI Screen Option	200-299(200-299)
-					a = b - (200 - 200);
-				else						// DEC Terminal Option	0-199
-					a = b;
-
+				int a = OptionToIndex(index[n][i]);
 				if ( a >= 0 && a <= 511 )
 					m_DefAnsiOpt[a / 32] |= (1 << (a % 32));
+			}
+		}
+		if ( (n = index.Find(_T("OptionAdd"))) >= 0 ) {
+			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
+				int a = OptionToIndex(index[n][i]);
+				if ( a >= 0 && a <= 511 )
+					m_DefAnsiOpt[a / 32] |= (1 << (a % 32));
+			}
+		}
+		if ( (n = index.Find(_T("OptionDel"))) >= 0 ) {
+			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
+				int a = OptionToIndex(index[n][i]);
+				if ( a >= 0 && a <= 511 )
+					m_DefAnsiOpt[a / 32] &= ~(1 << (a % 32));
 			}
 		}
 
@@ -2461,6 +2570,21 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 				int b = index[n][i];
 				if ( b >= 0 && b <= 511 )
 					m_OptTab[b / 32] |= (1 << (b % 32));
+			}
+		}
+		if ( (n = index.Find(_T("SocketOptAdd"))) >= 0 ) {
+			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
+				int b = index[n][i];
+				if ( b >= 0 && b <= 511 )
+					m_OptTab[b / 32] |= (1 << (b % 32));
+			}
+		}
+		if ( (n = index.Find(_T("SocketOptDel"))) >= 0 ) {
+			memset(m_OptTab, 0, sizeof(m_OptTab));
+			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
+				int b = index[n][i];
+				if ( b >= 0 && b <= 511 )
+					m_OptTab[b / 32] &= ~(1 << (b % 32));
 			}
 		}
 
@@ -2494,6 +2618,221 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
 
 		RESET();
+	}
+}
+void CTextRam::DiffIndex(CTextRam &orig, CStringIndex &index)
+{
+	int n, i;
+	CString str, wrk;
+
+	if ( m_DefCols[0] != orig.m_DefCols[0] )
+		index[_T("Cols")][_T("Nomal")] = m_DefCols[0];
+	if ( m_DefCols[1] != orig.m_DefCols[1] )
+		index[_T("Cols")][_T("Wide")]  = m_DefCols[1];
+
+	if ( m_DefHisMax != orig.m_DefHisMax )
+		index[_T("History")]  = m_DefHisMax;
+	if ( m_DefFontSize != orig.m_DefFontSize )
+		index[_T("FontSize")] = m_DefFontSize;
+	if ( m_KanjiMode != orig.m_KanjiMode )
+		index[_T("CharSet")]  = m_KanjiMode;
+
+	if ( m_BankGL != orig.m_BankGL )
+		index[_T("GL")] = m_BankGL;
+	if ( m_BankGR != orig.m_BankGR )
+		index[_T("GR")] = m_BankGR;
+
+	if ( m_DefAtt.std.attr != orig.m_DefAtt.std.attr )
+		index[_T("Attribute")] = m_DefAtt.std.attr;
+	if ( m_DefAtt.std.fcol != orig.m_DefAtt.std.fcol )
+		index[_T("TextColor")] = m_DefAtt.std.fcol;
+	if ( m_DefAtt.std.bcol != orig.m_DefAtt.std.bcol )
+		index[_T("BackColor")] = m_DefAtt.std.bcol;
+
+	if ( memcmp(m_DefColTab, orig.m_DefColTab, sizeof(m_DefColTab)) != 0 ) {
+		index[_T("ColorTable")].SetSize(16);
+		for ( n = 0 ; n < 16 ; n++ ) {
+			index[_T("ColorTable")][n].Add(GetRValue(m_DefColTab[n]));
+			index[_T("ColorTable")][n].Add(GetGValue(m_DefColTab[n]));
+			index[_T("ColorTable")][n].Add(GetBValue(m_DefColTab[n]));
+		}
+	}
+
+	for ( n = 0 ; n < 5 ; n++ ) {
+		if ( memcmp(m_DefBankTab[n], orig.m_DefBankTab[n], sizeof(m_DefBankTab[n])) != 0 ) {
+			index[_T("BankTable")][setname[n]].SetSize(4);
+			for ( i = 0 ; i < 4 ; i++ ) {
+				index[_T("BankTable")][setname[n]][i].Add(m_DefBankTab[n][i] >> 8);
+				index[_T("BankTable")][setname[n]][i].Add(m_FontTab[m_DefBankTab[n][i]].m_IndexName);
+			}
+		}
+	}
+
+	for ( n = 0 ; n < 4 ; n++ ) {
+		if ( m_SendCharSet[n].Compare(orig.m_SendCharSet[n]) != 0 ) {
+			for ( n = 0 ; n < 4 ; n++ )
+				index[_T("SendCharSet")].Add(m_SendCharSet[n]);
+			break;
+		}
+	}
+
+	if ( m_BitMapFile.Compare(orig.m_BitMapFile) != 0 )
+		index[_T("BitMapFile")]   = m_BitMapFile;
+	if ( m_BitMapAlpha != orig.m_BitMapAlpha )
+		index[_T("BitMapAlpha")]  = m_BitMapAlpha;
+	if ( m_BitMapBlend != orig.m_BitMapBlend )
+		index[_T("BitMapBlend")]  = m_BitMapBlend;
+	if ( m_BitMapStyle != orig.m_BitMapStyle )
+		index[_T("BitMapStyle")]  = m_BitMapStyle;
+
+	if ( m_HisFile.Compare(orig.m_HisFile) != 0 )
+		index[_T("HisFile")]      = m_HisFile;
+	if ( m_LogFile.Compare(orig.m_LogFile) != 0 )
+		index[_T("LogFile")]      = m_LogFile;
+
+	if ( m_WheelSize != orig.m_WheelSize )
+		index[_T("WheelSize")]    = m_WheelSize;
+	if ( m_DelayMSec != orig.m_DelayMSec )
+		index[_T("DelayMSec")]    = m_DelayMSec;
+	if ( m_KeepAliveSec != orig.m_KeepAliveSec )
+		index[_T("KeepAliveSec")] = m_KeepAliveSec;
+
+	if ( m_WordStr.Compare(orig.m_WordStr) != 0 )
+		index[_T("WordStr")]      = m_WordStr;
+	if ( m_DropFileMode != orig.m_DropFileMode )
+		index[_T("DropFileMode")] = m_DropFileMode;
+
+	for ( n = 0 ; n < 8 ; n++ ) {
+		if ( m_DropFileCmd[n].Compare(orig.m_DropFileCmd[n]) != 0 ) {
+			for ( n = 0 ; n < 8 ; n++ )
+				index[_T("DropFileCmd")].Add(m_DropFileCmd[n]);
+			break;
+		}
+	}
+
+	if ( memcmp(m_MouseMode, orig.m_MouseMode, sizeof(m_MouseMode)) != 0 ) {
+		for ( n = 0 ; n < 4 ; n++ )
+			index[_T("MouseMode")].Add(m_MouseMode[n]);
+	}
+
+	if ( m_TitleMode != orig.m_TitleMode )
+		index[_T("TitleMode")] = m_TitleMode;
+	if ( m_ClipFlag != orig.m_ClipFlag )
+		index[_T("ClipFlag")]  = m_ClipFlag;
+	if ( m_DefFontHw != orig.m_DefFontHw )
+		index[_T("FontHw")]    = m_DefFontHw;
+
+	if ( m_RecvCrLf != orig.m_RecvCrLf )
+		index[_T("RecvCrLf")]  = m_RecvCrLf;
+	if ( m_SendCrLf != orig.m_SendCrLf )
+		index[_T("SendCrLf")]  = m_SendCrLf;
+
+	m_ShellExec.SetString(str);
+	orig.m_ShellExec.SetString(wrk);
+	if ( str.Compare(wrk) != 0 ) {
+		for ( n = 0 ; n < m_ShellExec.GetSize() ; n++ )
+			index[_T("ShellExec")].Add(m_ShellExec[n]);
+	}
+
+	if ( memcmp(m_DefModKey, orig.m_DefModKey, sizeof(m_DefModKey)) != 0 ) {
+		for ( n = 0 ; n < MODKEY_MAX ; n++ )
+			index[_T("ModKey")].Add(m_DefModKey[n]);
+	}
+	for ( n = 0 ; n < MODKEY_MAX ; n++ ) {
+		if ( m_ModKeyList[n].Compare(orig.m_ModKeyList[n]) != 0 ) {
+			for ( n = 0 ; n < MODKEY_MAX ; n++ )
+				index[_T("ModKeyList")].Add(m_ModKeyList[n]);
+			break;
+		}
+	}
+
+	if ( memcmp(m_MetaKeys, orig.m_MetaKeys, sizeof(m_MetaKeys)) != 0 ) {
+		for ( n = i = 0 ; n < (32 * 8) ; n++ ) {
+			if ( IS_ENABLE(m_MetaKeys, n) ) {
+				index[_T("MetaKeys")].Add(n);
+				i++;
+			}
+		}
+		if ( i == 0 )
+			index[_T("MetaKeys")] = _T("");
+	}
+
+	if ( memcmp(m_DefAnsiOpt, orig.m_DefAnsiOpt, sizeof(m_DefAnsiOpt)) != 0 ) {
+		for ( n = 0 ; n < (32 * 16) ; n++ ) {
+			i = IndexToOption(n);
+
+			if ( IS_ENABLE(m_DefAnsiOpt, n) != IS_ENABLE(orig.m_DefAnsiOpt, n) ) {
+				if ( IS_ENABLE(m_DefAnsiOpt, n) )
+					index[_T("OptionAdd")].Add(i);
+				else
+					index[_T("OptionDel")].Add(i);
+			}
+		}
+	}
+
+	if ( memcmp(m_OptTab, orig.m_OptTab, sizeof(m_OptTab)) != 0 ) {
+		for ( n = 0 ; n < (32 * 16) ; n++ ) {
+			if ( IS_ENABLE(m_OptTab, n) != IS_ENABLE(orig.m_OptTab, n) ) {
+				if ( IS_ENABLE(m_OptTab, n) )
+					index[_T("SocketOptAdd")].Add(n);
+				else
+					index[_T("SocketOptDel")].Add(n);
+			}
+		}
+	}
+
+		// m_ProcTab.SetIndex(mode, index[_T("ProcTable")]);
+
+	if ( memcmp(m_ScrnOffset, orig.m_ScrnOffset, sizeof(m_ScrnOffset)) != 0 ) {
+		index[_T("ScreenOffset")].Add(m_ScrnOffset.left);
+		index[_T("ScreenOffset")].Add(m_ScrnOffset.right);
+		index[_T("ScreenOffset")].Add(m_ScrnOffset.top);
+		index[_T("ScreenOffset")].Add(m_ScrnOffset.bottom);
+	}
+
+	if ( m_TimeFormat.Compare(orig.m_TimeFormat) != 0 )
+		index[_T("TimeFormat")] = m_TimeFormat;
+
+	for ( n = 0 ; n < 16 ; n++ ) {
+		if ( m_DefFontName[n].Compare(orig.m_DefFontName[n]) != 0 ) {
+			for ( n = 0 ; n < 16 ; n++ )
+				index[_T("DefFontName")].Add(m_DefFontName[n]);
+			break;
+		}
+	}
+
+	if ( m_TraceLogFile.Compare(orig.m_TraceLogFile) != 0 )
+		index[_T("TraceLogFile")]  = m_TraceLogFile;
+	if ( m_TraceMaxCount != orig.m_TraceMaxCount )
+		index[_T("TraceMaxCount")] = m_TraceMaxCount;
+		
+	if ( m_DefTypeCaret != orig.m_DefTypeCaret )
+		index[_T("Caret")] = m_DefTypeCaret;
+	if ( m_SleepMax != orig.m_SleepMax )
+		index[_T("SleepTime")] = m_SleepMax;
+
+	if ( memcmp(m_DefTermPara, orig.m_DefTermPara, sizeof(m_DefTermPara)) != 0 ) {
+		for ( n = 0 ; n < 5 ; n++ )
+			index[_T("TermParaId")].Add(m_DefTermPara[n]);
+	}
+
+	if ( m_LogMode != orig.m_LogMode )
+		index[_T("LogMode")] = m_LogMode;
+
+	if ( m_GroupCast.Compare(orig.m_GroupCast) != 0 )
+		index[_T("GroupCast")] = m_GroupCast;
+
+	m_InlineExt.SetString(str);
+	orig.m_InlineExt.SetString(wrk);
+	if ( str.Compare(wrk) != 0 ) {
+		for ( n = 0 ; n < m_InlineExt.GetSize() ; n++ )
+			index[_T("InlineExt")].Add(m_InlineExt[n]);
+	}
+
+	if ( m_MarkColor != orig.m_MarkColor ) {
+		index[_T("MarkColor")].Add(GetRValue(m_MarkColor));
+		index[_T("MarkColor")].Add(GetGValue(m_MarkColor));
+		index[_T("MarkColor")].Add(GetBValue(m_MarkColor));
 	}
 }
 void CTextRam::SetArray(CStringArrayExt &stra)
@@ -2596,6 +2935,8 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 	stra.Add(str);
 
 	stra.AddVal(m_MarkColor);
+
+	stra.AddVal(m_BitMapStyle);
 }
 void CTextRam::GetArray(CStringArrayExt &stra)
 {
@@ -2766,8 +3107,10 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 	if ( stra.GetSize() > 59 )
 		m_TraceMaxCount = stra.GetVal(59);
 
-	if ( stra.GetSize() > 60 )
-		m_TypeCaret = m_DefTypeCaret = stra.GetVal(60);
+	if ( stra.GetSize() > 60 ) {
+		if ( (m_TypeCaret = m_DefTypeCaret = stra.GetVal(60)) <= 0 )
+			m_TypeCaret = m_DefTypeCaret = 1;
+	}
 
 	if ( stra.GetSize() > 61 )
 		m_SleepMax = stra.GetVal(61);
@@ -2806,6 +3149,9 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 
 	if ( stra.GetSize() > 69 )
 		m_MarkColor = stra.GetVal(69);
+
+	if ( stra.GetSize() > 70 )
+		m_BitMapStyle = stra.GetVal(70);
 
 	if ( m_FixVersion < 9 ) {
 		if ( m_pDocument != NULL ) {
@@ -3119,8 +3465,12 @@ const CTextRam & CTextRam::operator = (CTextRam &data)
 	m_BitMapFile = data.m_BitMapFile;
 	m_BitMapAlpha = data.m_BitMapAlpha;
 	m_BitMapBlend = data.m_BitMapBlend;
+	m_BitMapStyle = data.m_BitMapStyle;
 	m_TextBitMap = data.m_TextBitMap;
 	m_InlineExt = data.m_InlineExt;
+	m_DefTypeCaret = data.m_DefTypeCaret;
+	m_TypeCaret = data.m_TypeCaret;
+	m_KeepAliveSec = data.m_KeepAliveSec;
 
 	return *this;
 }
@@ -4562,10 +4912,13 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, struct DrawWork &prop, class CR
 		bRevs = TRUE;
 	}
 
+	if ( IsOptEnable(TO_RLBACKHALF) && pView->GetFocus()->GetSafeHwnd() != pView->GetSafeHwnd() )
+		fcol = RGB((GetRValue(fcol) * 2 + GetRValue(bcol)) / 3, (GetGValue(fcol) * 2 + GetGValue(bcol)) / 3, (GetBValue(fcol) * 2 + GetBValue(bcol)) / 3);
+
 	if ( bRevs || prop.bcol != m_DefAtt.std.bcol )
 		bEraBack = TRUE;
 
-	if ( pView->m_pBitmap != NULL ) {
+	if ( pView->m_HaveBack ) {	// pView->m_pBitmap != NULL ) {
 		if ( bEraBack ) {
 			CDC workDC;
 			CBitmap workMap, *pOldMap;
@@ -4970,6 +5323,32 @@ void CTextRam::GetScreenSize(int *x, int *y)
 	*y = *y * m_Lines;
 }
 
+int CTextRam::OptionToIndex(int value)
+{
+	if ( value >= 8400 )			// RLogin Option		8400-8511(400-511)
+		value -= (8400 - 400);
+	else if ( value >= 2000 )		// XTerm Option 2		2000-2019(380-399)
+		value -= (2000 - 380);
+	else if ( value >= 1000 )		// XTerm Option			1000-1079(300-379)
+		value -= (1000 - 300);
+	else if ( value >= 200 )		// ANSI Screen Option	200-299(200-299)
+		value -= (200 - 200);
+									// DEC Terminal Option	0-199
+	return value;
+}
+int CTextRam::IndexToOption(int value)
+{
+	if ( value >= 400 )				// RLogin Option		8400-8511(400-511)
+		value += (8400 - 400);
+	else if ( value >= 380 )		// XTerm Option 2		2000-2019(380-399)
+		value += (2000 - 380);
+	else if ( value >= 300 )		// XTerm Option			1000-1079(300-379)
+		value += (1000 - 300);
+	else if ( value >= 200 )		// ANSI Screen Option	200-299(200-299)
+		value += (200 - 200);
+									// DEC Terminal Option	0-199
+	return value;
+}
 BOOL CTextRam::IsOptEnable(int opt)
 {
 	if ( opt >= 1000 && opt <= 1511 ) {

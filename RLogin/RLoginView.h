@@ -60,6 +60,7 @@ public:
 	int m_CharWidth, m_CharHeight;
 	CBmpFile m_BmpFile;
 	CBitmap *m_pBitmap;
+	BOOL m_HaveBack;
 	BOOL m_ActiveFlag;
 	BOOL m_VisualBellFlag;
 	int m_BlinkFlag;
@@ -136,6 +137,7 @@ public:
 	void InvalidateTextRect(CRect &rect);
 	void CalcPosRect(CRect &rect);
 	void CalcGrapPoint(CPoint po, int *x, int *y);
+	int HitTest(CPoint point);
 	void SetFrameRect(int cx, int cy);
 	void ImmSetPos(int x, int y);
 	int ImmOpenCtrl(int sw);

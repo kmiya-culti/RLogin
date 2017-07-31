@@ -253,6 +253,7 @@ BOOL CColParaDlg::OnInitDialog()
 	m_InvRect.right  = rect.right;
 	m_InvRect.bottom = rect.bottom;
 
+	/**************
 	if ( (pWnd = (CButton *)GetDlgItem(IDC_CHECK1)) != NULL ) {
 #ifdef	USE_DWMAPI
 		pWnd->EnableWindow(ExDwmEnable);
@@ -260,6 +261,7 @@ BOOL CColParaDlg::OnInitDialog()
 		pWnd->EnableWindow(FALSE);
 #endif
 	}
+	***************/
 
 	DoInit();
 
@@ -397,6 +399,7 @@ void CColParaDlg::OnBnClickedGlassStyle()
 
 	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("GlassStyle"), m_GlassStyle);
 	ExDwmEnableWindow(::AfxGetMainWnd()->GetSafeHwnd(), m_GlassStyle);
+	((CMainFrame *)::AfxGetMainWnd())->m_bGlassStyle = m_GlassStyle;
 }
 
 void CColParaDlg::OnSelendokColset() 

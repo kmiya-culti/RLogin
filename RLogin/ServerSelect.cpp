@@ -11,6 +11,7 @@
 #include "Data.h"
 #include "EditDlg.h"
 #include "InitAllDlg.h"
+#include "MsgChkDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -48,13 +49,13 @@ BEGIN_MESSAGE_MAP(CServerSelect, CDialogExt)
 	ON_NOTIFY(NM_DBLCLK, IDC_SERVERLIST, OnDblclkServerlist)
 	ON_NOTIFY(TCN_SELCHANGE, IDC_SERVERTAB, &CServerSelect::OnTcnSelchangeServertab)
 
-	ON_BN_CLICKED(IDC_NEWENTRY, OnNewentry)
-	ON_BN_CLICKED(IDC_EDITENTRY, OnEditentry)
-	ON_BN_CLICKED(IDC_DELENTRY, OnDelentry)
+	ON_BN_CLICKED(IDC_NEWENTRY, OnNewEntry)
+	ON_BN_CLICKED(IDC_EDITENTRY, OnEditEntry)
+	ON_BN_CLICKED(IDC_DELENTRY, OnDelEntry)
 
-	ON_COMMAND(ID_EDIT_NEW, OnNewentry)
-	ON_COMMAND(ID_EDIT_UPDATE, OnEditentry)
-	ON_COMMAND(ID_EDIT_DELETE, OnDelentry)
+	ON_COMMAND(ID_EDIT_NEW, OnNewEntry)
+	ON_COMMAND(ID_EDIT_UPDATE, OnEditEntry)
+	ON_COMMAND(ID_EDIT_DELETE, OnDelEntry)
 	ON_COMMAND(ID_EDIT_DUPS, OnEditCopy)
 	ON_COMMAND(ID_EDIT_CHECK, OnEditCheck)
 
@@ -95,6 +96,12 @@ RETRY:
 			m_List.SetItemText(i, 3, m_pData->GetAt(n).m_TermName);
 			m_List.SetItemText(i, 4, m_pData->GetAt(n).GetKanjiCode());
 			m_List.SetItemText(i, 5, m_pData->GetAt(n).m_PortName);
+
+			if ( m_pData->GetAt(n).m_bSelFlag ) {
+				m_List.SetItemState(i, LVIS_SELECTED, LVIS_SELECTED);
+				m_pData->GetAt(n).m_bSelFlag = FALSE;
+			}
+
 			if ( n == m_EntryNum )
 				idx = i;
 			i++;
@@ -330,7 +337,7 @@ void CServerSelect::OnDblclkServerlist(NMHDR* pNMHDR, LRESULT* pResult)
 	*pResult = 0;
 }
 
-void CServerSelect::OnNewentry() 
+void CServerSelect::OnNewEntry() 
 {
 	CServerEntry Entry;
 	CTextRam TextRam;
@@ -357,34 +364,34 @@ void CServerSelect::OnNewentry()
 		return;
 
 	TextRam.InitDefParam(FALSE);
-
-	Entry.m_ProBuffer.Clear();
-	TextRam.Serialize(TRUE,  Entry.m_ProBuffer);
-	KeyTab.Serialize(TRUE,   Entry.m_ProBuffer);
-	KeyMac.Serialize(TRUE,   Entry.m_ProBuffer);
-	ParamTab.Serialize(TRUE, Entry.m_ProBuffer);
+	CRLoginDoc::SaveOption(Entry, TextRam, KeyTab, KeyMac, ParamTab);
 
 	m_EntryNum = m_pData->AddEntry(Entry);
 	InitList();
 	UpdateTabWnd();
 }
-void CServerSelect::OnEditentry() 
+void CServerSelect::OnEditEntry() 
 {
-	if ( (m_EntryNum = m_List.GetSelectMarkData()) < 0 )
-		return;
-
+	int n;
+	int num;
 	CServerEntry Entry;
 	CTextRam TextRam;
 	CKeyNodeTab KeyTab;
 	CKeyMacTab KeyMac;
 	CParamTab ParamTab;
+	CStringIndex index;
+	int Count = 0;
+
+	for ( n = 0 ; n < m_List.GetItemCount() ; n++ ) {
+		if ( m_List.GetItemState(n, LVIS_SELECTED) != 0 )
+			Count++;
+	}
+
+	if ( Count <= 0 || (m_EntryNum = m_List.GetSelectMarkData()) < 0 )
+		return;
 
 	Entry = m_pData->GetAt(m_EntryNum);
-	TextRam.m_pServerEntry = &Entry;
-	TextRam.Serialize(FALSE,  Entry.m_ProBuffer);
-	KeyTab.Serialize(FALSE,   Entry.m_ProBuffer);
-	KeyMac.Serialize(FALSE,   Entry.m_ProBuffer);
-	ParamTab.Serialize(FALSE, Entry.m_ProBuffer);
+	CRLoginDoc::LoadOption(Entry, TextRam, KeyTab, KeyMac, ParamTab);
 
 	COptDlg dlg(_T("Server Edit Entry"), this);
 
@@ -399,34 +406,53 @@ void CServerSelect::OnEditentry()
 		return;
 
 	TextRam.InitDefParam(FALSE);
+	CRLoginDoc::SaveOption(Entry, TextRam, KeyTab, KeyMac, ParamTab);
 
-	Entry.m_ProBuffer.Clear();
-	TextRam.Serialize(TRUE,  Entry.m_ProBuffer);
-	KeyTab.Serialize(TRUE,   Entry.m_ProBuffer);
-	KeyMac.Serialize(TRUE,   Entry.m_ProBuffer);
-	ParamTab.Serialize(TRUE, Entry.m_ProBuffer);
+	if ( Count > 1 ) {
+		CRLoginDoc::DiffIndex(Entry, TextRam, KeyTab, KeyMac, ParamTab, m_pData->GetAt(m_EntryNum), index);
 
-	m_pData->m_Data[m_EntryNum] = Entry;
-	m_pData->UpdateAt(m_EntryNum);
+		CStringLoad str(IDS_ENTRYMULTIEDIT);
+		index.MsgStr(str);
+
+		if ( MessageBox(str, _T("Edit Multiple Entries"), MB_ICONQUESTION | MB_YESNO) != IDYES )
+			return;
+
+		for ( n = 0 ; n < m_List.GetItemCount() ; n++ ) {
+			if ( m_List.GetItemState(n, LVIS_SELECTED) == 0 )
+				continue;
+
+			Entry.Init();
+			ParamTab.Init();
+			TextRam.Init();
+			TextRam.m_FontTab.Init();
+			KeyTab.Init();
+			KeyMac.Init();
+
+			num = (int)m_List.GetItemData(n);
+			Entry = m_pData->GetAt(num);
+
+			CRLoginDoc::LoadOption(Entry, TextRam, KeyTab, KeyMac, ParamTab);
+			CRLoginDoc::LoadIndex(Entry, TextRam, KeyTab, KeyMac, ParamTab, index);
+			CRLoginDoc::SaveOption(Entry, TextRam, KeyTab, KeyMac, ParamTab);
+
+			Entry.m_bSelFlag = TRUE;
+			m_pData->m_Data[num] = Entry;
+			m_pData->UpdateAt(num);
+		}
+
+	} else {
+		m_pData->m_Data[m_EntryNum] = Entry;
+		m_pData->UpdateAt(m_EntryNum);
+	}
+
 	InitList();
 	UpdateTabWnd();
 }
-void CServerSelect::OnDelentry() 
+void CServerSelect::OnDelEntry() 
 {
 	int n, i;
 	CString tmp;
 	CDWordArray tab;
-
-	/**********
-	if ( (m_EntryNum = m_List.GetSelectMarkData()) < 0 )
-		return;
-	tmp.Format(CStringLoad(IDS_SERVERENTRYDELETE), m_pData->m_Data[m_EntryNum].m_EntryName);
-	if ( MessageBox(tmp, _T("Question"), MB_YESNO | MB_ICONQUESTION ) != IDYES )
-		return;
-	m_pData->RemoveAt(m_EntryNum);
-	InitList();
-	UpdateTabWnd();
-	***********/
 
 	for ( n = 0 ; n < m_List.GetItemCount() ; n++ ) {
 		if ( m_List.GetItemState(n, LVIS_SELECTED) == 0 )
@@ -563,21 +589,11 @@ void CServerSelect::OnServInport()
 				index.SetNoSort(TRUE);
 				index.Serialize(Archive, NULL);
 
-				Entry.SetIndex(FALSE, index[_T("Entry")]);
-				ParamTab.SetIndex(FALSE, index[_T("Protocol")]);
-				TextRam.SetIndex(FALSE, index[_T("Screen")]);
-				TextRam.m_FontTab.SetIndex(FALSE, index[_T("Fontset")]);
-				TextRam.m_TextBitMap.SetIndex(FALSE, index[_T("TextBitMap")]);
-				KeyTab.SetIndex(FALSE, index[_T("Keycode")]);
-				KeyMac.SetIndex(FALSE, index[_T("Keymacro")]);
+				CRLoginDoc::LoadIndex(Entry, TextRam, KeyTab, KeyMac, ParamTab, index);
 
 				Entry.m_Uid = (-1);
-				Entry.m_ProBuffer.Clear();
 				ParamTab.m_IdKeyList.RemoveAll();
-				TextRam.Serialize(TRUE,  Entry.m_ProBuffer);
-				KeyTab.Serialize(TRUE,   Entry.m_ProBuffer);
-				KeyMac.Serialize(TRUE,   Entry.m_ProBuffer);
-				ParamTab.Serialize(TRUE, Entry.m_ProBuffer);
+				CRLoginDoc::SaveOption(Entry, TextRam, KeyTab, KeyMac, ParamTab);
 
 				m_EntryNum = m_pData->AddEntry(Entry);
 
@@ -606,12 +622,8 @@ void CServerSelect::OnServInport()
 				ParamTab.Serialize(Archive);
 
 				Entry.m_Uid = (-1);
-				Entry.m_ProBuffer.Clear();
 				ParamTab.m_IdKeyList.RemoveAll();
-				TextRam.Serialize(TRUE,  Entry.m_ProBuffer);
-				KeyTab.Serialize(TRUE,   Entry.m_ProBuffer);
-				KeyMac.Serialize(TRUE,   Entry.m_ProBuffer);
-				ParamTab.Serialize(TRUE, Entry.m_ProBuffer);
+				CRLoginDoc::SaveOption(Entry, TextRam, KeyTab, KeyMac, ParamTab);
 
 				m_EntryNum = m_pData->AddEntry(Entry);
 
@@ -674,26 +686,16 @@ void CServerSelect::OnServExport()
 		for ( n = 0 ; n < m_List.GetItemCount() ; n++ ) {
 			if ( m_List.GetItemState(n, LVIS_SELECTED) == 0 )
 				continue;
+
 			m_EntryNum = (int)m_List.GetItemData(n);
 			Entry = m_pData->GetAt(m_EntryNum);
-
-			TextRam.m_pServerEntry = &Entry;
-			TextRam.Serialize(FALSE,  Entry.m_ProBuffer);
-			KeyTab.Serialize(FALSE,   Entry.m_ProBuffer);
-			KeyMac.Serialize(FALSE,   Entry.m_ProBuffer);
-			ParamTab.Serialize(FALSE, Entry.m_ProBuffer);
+			CRLoginDoc::LoadOption(Entry, TextRam, KeyTab, KeyMac, ParamTab);
 
 			index.RemoveAll();
 			index.SetNoCase(TRUE);
 			index.SetNoSort(TRUE);
 
-			Entry.SetIndex(TRUE, index[_T("Entry")]);
-			ParamTab.SetIndex(TRUE, index[_T("Protocol")]);
-			TextRam.SetIndex(TRUE, index[_T("Screen")]);
-			TextRam.m_FontTab.SetIndex(TRUE, index[_T("Fontset")]);
-			TextRam.m_TextBitMap.SetIndex(TRUE, index[_T("TextBitMap")]);
-			KeyTab.SetIndex(TRUE, index[_T("Keycode")]);
-			KeyMac.SetIndex(TRUE, index[_T("Keymacro")]);
+			CRLoginDoc::SaveIndex(Entry, TextRam, KeyTab, KeyMac, ParamTab, index);
 
 			Archive.Write("RLG310\r\n", 8);
 			index.Serialize(Archive, NULL);
@@ -753,26 +755,9 @@ void CServerSelect::OnServExchng()
 
 		m_EntryNum = (int)m_List.GetItemData(n);
 		Entry = m_pData->GetAt(m_EntryNum);
-
-		TextRam.m_pServerEntry = &Entry;
-		TextRam.Serialize(FALSE,  Entry.m_ProBuffer);
-		KeyTab.Serialize(FALSE,   Entry.m_ProBuffer);
-		KeyMac.Serialize(FALSE,   Entry.m_ProBuffer);
-		ParamTab.Serialize(FALSE, Entry.m_ProBuffer);
-
-		Entry.SetIndex(FALSE, index[_T("Entry")]);
-		ParamTab.SetIndex(FALSE, index[_T("Protocol")]);
-		TextRam.SetIndex(FALSE, index[_T("Screen")]);
-		TextRam.m_FontTab.SetIndex(FALSE, index[_T("Fontset")]);
-		TextRam.m_TextBitMap.SetIndex(FALSE, index[_T("TextBitMap")]);
-		KeyTab.SetIndex(FALSE, index[_T("Keycode")]);
-		KeyMac.SetIndex(FALSE, index[_T("Keymacro")]);
-
-		Entry.m_ProBuffer.Clear();
-		TextRam.Serialize(TRUE,  Entry.m_ProBuffer);
-		KeyTab.Serialize(TRUE,   Entry.m_ProBuffer);
-		KeyMac.Serialize(TRUE,   Entry.m_ProBuffer);
-		ParamTab.Serialize(TRUE, Entry.m_ProBuffer);
+		CRLoginDoc::LoadOption(Entry, TextRam, KeyTab, KeyMac, ParamTab);
+		CRLoginDoc::LoadIndex(Entry, TextRam, KeyTab, KeyMac, ParamTab, index);
+		CRLoginDoc::SaveOption(Entry, TextRam, KeyTab, KeyMac, ParamTab);
 
 		m_pData->m_Data[m_EntryNum] = Entry;
 		m_pData->UpdateAt(m_EntryNum);
@@ -900,11 +885,7 @@ void CServerSelect::OnSavedefault()
 	CParamTab ParamTab;
 
 	pEntry = &(m_pData->GetAt(m_EntryNum));
-
-	TextRam.Serialize(FALSE,  pEntry->m_ProBuffer);
-	KeyTab.Serialize(FALSE,   pEntry->m_ProBuffer);
-	KeyMac.Serialize(FALSE,   pEntry->m_ProBuffer);
-	ParamTab.Serialize(FALSE, pEntry->m_ProBuffer);
+	CRLoginDoc::LoadOption(*pEntry, TextRam, KeyTab, KeyMac, ParamTab);
 
 	TextRam.Serialize(TRUE);
 	KeyTab.Serialize(TRUE);

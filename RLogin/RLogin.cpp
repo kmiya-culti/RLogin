@@ -510,9 +510,10 @@ CRLoginApp::CRLoginApp()
 
 CRLoginApp theApp;
 
+	BOOL ExDwmEnable = FALSE;
+
 #ifdef	USE_DWMAPI
 	HMODULE ExDwmApi = NULL;
-	BOOL ExDwmEnable = FALSE;
 	HRESULT (__stdcall *ExDwmIsCompositionEnabled)(BOOL * pfEnabled) = NULL;
 	HRESULT (__stdcall *ExDwmEnableBlurBehindWindow)(HWND hWnd, const DWM_BLURBEHIND* pBlurBehind) = NULL;
 	HRESULT (__stdcall *ExDwmExtendFrameIntoClientArea)(HWND hWnd, const MARGINS* pMarInset) = NULL;
@@ -678,8 +679,9 @@ void CRLoginApp::SSL_Init()
 
 #if	OPENSSL_VERSION_NUMBER < 0x10100000L
 	SSLeay_add_all_algorithms();
+#else
+	SSL_library_init();
 #endif
-	SSLeay_add_ssl_algorithms();
 }
 
 BOOL CRLoginApp::InitLocalPass()
@@ -1659,10 +1661,10 @@ CString CRLoginApp::GetProfileString(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPC
 }
 void CRLoginApp::GetProfileData(LPCTSTR lpszSection, LPCTSTR lpszEntry, void *lpBuf, int nBufLen, void *lpDef)
 {
-	LPBYTE pData;
-	UINT len;
+	LPBYTE pData = NULL;
+	UINT len = 0;
 
-	if ( GetProfileBinary(lpszSection, lpszEntry, &pData, &len) ) {
+	if ( GetProfileBinary(lpszSection, lpszEntry, &pData, &len) && pData != NULL && len > 0 && len < (512 * 1024) ) {
 		if ( len == (UINT)nBufLen )
 			memcpy(lpBuf, pData, nBufLen);
 		else if ( lpDef != NULL )
@@ -1673,11 +1675,11 @@ void CRLoginApp::GetProfileData(LPCTSTR lpszSection, LPCTSTR lpszEntry, void *lp
 }
 void CRLoginApp::GetProfileBuffer(LPCTSTR lpszSection, LPCTSTR lpszEntry, CBuffer &Buf)
 {
-	LPBYTE pData;
-	UINT len;
+	LPBYTE pData = NULL;
+	UINT len = 0;
 
 	Buf.Clear();
-	if ( GetProfileBinary(lpszSection, lpszEntry, &pData, &len) ) {
+	if ( GetProfileBinary(lpszSection, lpszEntry, &pData, &len) && pData != NULL && len > 0 && len < (512 * 1024) ) {
 		Buf.Apend(pData, len);
 		delete [] pData;
 	}

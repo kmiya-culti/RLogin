@@ -161,11 +161,10 @@ BOOL CRLoginDoc::OnNewDocument()
 	if ( !m_pMainWnd->OpenServerEntry(m_ServerEntry) )
 		return FALSE;
 
+	LoadOption(m_ServerEntry, m_TextRam, m_KeyTab, m_KeyMac, m_ParamTab);
+
 	m_TextRam.m_bOpen = TRUE;
-	m_TextRam.Serialize(FALSE, m_ServerEntry.m_ProBuffer);
-	m_KeyTab.Serialize(FALSE, m_ServerEntry.m_ProBuffer);
-	m_KeyMac.Serialize(FALSE, m_ServerEntry.m_ProBuffer);
-	m_ParamTab.Serialize(FALSE, m_ServerEntry.m_ProBuffer);
+	m_TextRam.m_pServerEntry = &m_ServerEntry;
 	m_TextRam.SetKanjiMode(m_ServerEntry.m_KanjiCode);
 
 	SetTitle(m_ServerEntry.m_EntryName);
@@ -246,21 +245,71 @@ void CRLoginDoc::OnIdle()
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// CRLoginDoc シリアライゼーション
+// CRLoginDoc Static
 
-void CRLoginDoc::SetIndex(int mode, CStringIndex &index)
+void CRLoginDoc::LoadOption(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab)
 {
-	// mode == TRUE		CRLoginDoc -> CStringIndex
-	//         FALSE	CRLoginDoc <- CStringIndex
-
-	m_ServerEntry.SetIndex(mode, index[_T("Entry")]);
-	m_ParamTab.SetIndex(mode, index[_T("Protocol")]);
-	m_TextRam.SetIndex(mode, index[_T("Screen")]);
-	m_TextRam.m_FontTab.SetIndex(mode, index[_T("Fontset")]);
-	m_TextRam.m_TextBitMap.SetIndex(mode, index[_T("TextBitMap")]);
-	m_KeyTab.SetIndex(mode, index[_T("Keycode")]);
-	m_KeyMac.SetIndex(mode, index[_T("Keymacro")]);
+	// ServerEntryのm_ProBufferから読み込み
+	CBuffer tmp(ServerEntry.m_ProBuffer.GetPtr(), ServerEntry.m_ProBuffer.GetSize());
+	TextRam.Serialize(FALSE, tmp);
+	KeyTab.Serialize(FALSE, tmp);
+	KeyMac.Serialize(FALSE, tmp);
+	ParamTab.Serialize(FALSE, tmp);
 }
+void CRLoginDoc::SaveOption(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab)
+{
+	// ServerEntryのm_ProBufferへ書き込み
+	ServerEntry.m_ProBuffer.Clear();
+	TextRam.Serialize(TRUE, ServerEntry.m_ProBuffer);
+	KeyTab.Serialize(TRUE, ServerEntry.m_ProBuffer);
+	KeyMac.Serialize(TRUE, ServerEntry.m_ProBuffer);
+	ParamTab.Serialize(TRUE, ServerEntry.m_ProBuffer);
+}
+void CRLoginDoc::LoadIndex(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab, CStringIndex &index)
+{
+	// StringIndexから読み込み
+	ServerEntry.SetIndex(FALSE, index[_T("Entry")]);
+	ParamTab.SetIndex(FALSE, index[_T("Protocol")]);
+	TextRam.SetIndex(FALSE, index[_T("Screen")]);
+	TextRam.m_FontTab.SetIndex(FALSE, index[_T("Fontset")]);
+	TextRam.m_TextBitMap.SetIndex(FALSE, index[_T("TextBitMap")]);
+	KeyTab.SetIndex(FALSE, index[_T("Keycode")]);
+	KeyMac.SetIndex(FALSE, index[_T("Keymacro")]);
+}
+void CRLoginDoc::SaveIndex(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab, CStringIndex &index)
+{
+	// StringIndexへ書き込み
+	ServerEntry.SetIndex(TRUE, index[_T("Entry")]);
+	ParamTab.SetIndex(TRUE, index[_T("Protocol")]);
+	TextRam.SetIndex(TRUE, index[_T("Screen")]);
+	TextRam.m_FontTab.SetIndex(TRUE, index[_T("Fontset")]);
+	TextRam.m_TextBitMap.SetIndex(TRUE, index[_T("TextBitMap")]);
+	KeyTab.SetIndex(TRUE, index[_T("Keycode")]);
+	KeyMac.SetIndex(TRUE, index[_T("Keymacro")]);
+}
+void CRLoginDoc::DiffIndex(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab, CServerEntry &OrigEntry, CStringIndex &index)
+{
+	CTextRam OrigTextRam;
+	CKeyNodeTab OrigKeyTab;
+	CKeyMacTab OrigKeyMac;
+	CParamTab OrigParamTab;
+
+	LoadOption(OrigEntry, OrigTextRam, OrigKeyTab, OrigKeyMac, OrigParamTab);
+
+	index.RemoveAll();
+	index.SetNoCase(TRUE);
+	index.SetNoSort(TRUE);
+
+	ServerEntry.DiffIndex(OrigEntry, index[_T("Entry")]);
+	ParamTab.DiffIndex(OrigParamTab, index[_T("Protocol")]);
+	TextRam.DiffIndex(OrigTextRam, index[_T("Screen")]);
+	TextRam.m_FontTab.DiffIndex(OrigTextRam.m_FontTab, index[_T("Fontset")]);
+	TextRam.m_TextBitMap.DiffIndex(OrigTextRam.m_TextBitMap, index[_T("TextBitMap")]);
+	KeyTab.DiffIndex(OrigKeyTab, index[_T("Keycode")]);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// CRLoginDoc シリアライゼーション
 
 void CRLoginDoc::Serialize(CArchive& ar)
 {
@@ -438,14 +487,6 @@ void CRLoginDoc::SetCmdInfo(CCommandLineInfoEx *pCmdInfo)
 		//m_CmdLine += tmp;
 		m_AfterId = pCmdInfo->m_AfterId;
 	}
-}
-void CRLoginDoc::SetEntryProBuffer()
-{
-	m_ServerEntry.m_ProBuffer.Clear();
-	m_TextRam.Serialize(TRUE, m_ServerEntry.m_ProBuffer);
-	m_KeyTab.Serialize(TRUE, m_ServerEntry.m_ProBuffer);
-	m_KeyMac.Serialize(TRUE, m_ServerEntry.m_ProBuffer);
-	m_ParamTab.Serialize(TRUE, m_ServerEntry.m_ProBuffer);
 }
 void CRLoginDoc::DeleteContents() 
 {

@@ -107,8 +107,13 @@ public:
 	BOOL m_bReqDlg;
 	CString m_CmdLine;
 
-	void SetIndex(int mode, CStringIndex &index);
+	static void LoadOption(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab);
+	static void SaveOption(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab);
+	static void LoadIndex(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab, CStringIndex &index);
+	static void SaveIndex(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab, CStringIndex &index);
+	static void DiffIndex(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab, CServerEntry &OrigEntry, CStringIndex &index);
 
+	inline void SetIndex(int mode, CStringIndex &index) { 	if ( mode ) SaveIndex(m_ServerEntry, m_TextRam, m_KeyTab, m_KeyMac, m_ParamTab, index); else LoadIndex(m_ServerEntry, m_TextRam, m_KeyTab, m_KeyMac, m_ParamTab, index); }
 	void SetMenu(CMenu *pMenu);
 
 	BOOL EntryText(CString &name);
@@ -138,7 +143,7 @@ public:
 	int OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags);
 
 	void SetStatus(LPCTSTR str);
-	void SetEntryProBuffer();
+	inline void SetEntryProBuffer() { SaveOption(m_ServerEntry, m_TextRam, m_KeyTab, m_KeyMac, m_ParamTab); }
 	void SetCmdInfo(CCommandLineInfoEx *pCmdInfo);
 
 	void DoDropFile();

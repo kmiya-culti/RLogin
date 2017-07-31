@@ -206,6 +206,7 @@
 #define IDS_TEMPFILEDELETEMSG           616
 #define IDS_CREATEPROFILE               617
 #define IDS_SSHCLOSEALL                 618
+#define IDS_ENTRYMULTIEDIT              619
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -254,6 +255,7 @@
 #define IDT_EXTOPT_LIST13               812
 #define IDT_EXTOPT_LIST14               813
 #define IDT_EXTOPT_LIST15               814
+#define IDT_EXTOPT_LIST16               815
 #define IDT_TERM_LIST01                 900
 #define IDT_TERM_LIST02                 901
 #define IDT_TERM_LIST03                 902
@@ -819,6 +821,8 @@
 #define IDC_TEXTFONT                    2441
 #define IDC_BITMAPBLEND                 2442
 #define IDC_VERINDENT                   2443
+#define IDC_HALIGN2                     2443
+#define IDC_MAPSTYLE                    2443
 #define IDM_BROADCAST                   5000
 #define IDM_CAP_CLIPBORD                5001
 #define IDM_CAP_EXPORT                  5002
@@ -940,6 +944,6 @@
 #define _APS_NEXT_RESOURCE_VALUE        161
 #define _APS_NEXT_COMMAND_VALUE         5123
 #define _APS_NEXT_CONTROL_VALUE         2444
-#define _APS_NEXT_SYMED_VALUE           616
+#define _APS_NEXT_SYMED_VALUE           620
 #endif
 #endif

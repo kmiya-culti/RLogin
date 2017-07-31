@@ -49,9 +49,9 @@ protected:
 // インプリメンテーション
 protected:
 	DECLARE_MESSAGE_MAP()
-	afx_msg void OnNewentry();
-	afx_msg void OnEditentry();
-	afx_msg void OnDelentry();
+	afx_msg void OnNewEntry();
+	afx_msg void OnEditEntry();
+	afx_msg void OnDelEntry();
 	afx_msg void OnDblclkServerlist(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnEditCopy();
 	afx_msg void OnEditCheck();
