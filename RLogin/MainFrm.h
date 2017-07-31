@@ -20,7 +20,7 @@
 #define	PANEFRAME_WEVEN			7
 #define	PANEFRAME_HEVEN			8
 
-#define	PANEMINSIZE				50
+#define	PANEMINSIZE				32
 
 class CPaneFrame : public CObject
 {
@@ -56,7 +56,6 @@ public:
 
 	void GetNextPane(int mode, class CPaneFrame *pThis, class CPaneFrame **ppPane);
 	void MoveFrame();
-	void SwapWnd();
 	void MoveParOwn(CRect &rect, int Style);
 
 	void HitActive(CPoint &po);
@@ -159,6 +158,7 @@ public:
 	int m_SplitType;
 	int m_ExecCount;
 	HMENU m_StartMenuHand;
+	BOOL m_bAllowClipChain;
 	BOOL m_bClipEnable;
 	BOOL m_bClipChain;
 	HWND m_hNextClipWnd;
@@ -211,6 +211,7 @@ public:
 	void GetTabTitle(CWnd *pWnd, CString &title);
 	CWnd *GetTabWnd(int idx);
 	int GetTabCount();
+	class CRLoginDoc *GetMDIActiveDocument();
 
 	void GetFrameRect(CRect &frame);
 	void AdjustRect(CRect &rect);
@@ -232,7 +233,7 @@ public:
 	void ClipBoradStr(LPCWSTR str, CString &tmp);
 	void SetClipBoardComboBox(CComboBox *pCombo);
 	void SetClipBoardMenu(UINT nId, CMenu *pMenu);
-	void *CopyClipboardData(UINT type);
+	BOOL CopyClipboardData(CString &str);
 	BOOL GetClipboardText(CString &str);
 	BOOL SetClipboardText(LPCTSTR str);
 
@@ -251,6 +252,7 @@ public:
 	inline CImageList *GetTabImageList() { return &(m_wndTabBar.m_ImageList); }
 	inline int GetTabImageIndex(LPCTSTR filename) { return m_wndTabBar.GetImageIndex(filename); }
 	inline void AddTempPath(LPCTSTR path) { m_TempPath.Add(path); }
+	inline void TabBarFontCheck() { m_wndTabBar.m_bFontCheck = TRUE; }
 
 // コントロール バー用メンバ
 protected: 
@@ -317,6 +319,8 @@ protected:
 	afx_msg void OnVersioncheck();
 	afx_msg void OnUpdateVersioncheck(CCmdUI *pCmdUI);
 	afx_msg void OnNewVersionFound();
+	afx_msg void OnClipchain();
+	afx_msg void OnUpdateClipchain(CCmdUI *pCmdUI);
 
 	afx_msg void OnFileAllLoad();
 	afx_msg void OnFileAllSave();

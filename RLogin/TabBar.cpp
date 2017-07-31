@@ -28,6 +28,7 @@ CTabBar::CTabBar()
 	m_pGhostView = NULL;
 	m_bNumber = FALSE;
 	m_ImageCount = 0;
+	m_bFontCheck = FALSE;
 }
 
 CTabBar::~CTabBar()
@@ -123,10 +124,11 @@ int CTabBar::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		return (-1);
 	}
 
-	CString FontName = ::AfxGetApp()->GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
-	int FontSize = ::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9);	
+	m_FontName = ::AfxGetApp()->GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
+	m_FontSize = MulDiv(::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9), ((CMainFrame *)FromHandle(lpCreateStruct->hwndParent))->m_ScreenDpiY, 96);
 
-	if ( FontName.IsEmpty() || !m_TabFont.CreatePointFont(FontSize * 10, FontName) ) {
+	if ( m_FontName.IsEmpty() || !m_TabFont.CreatePointFont(m_FontSize * 10, m_FontName) ) {
+		m_FontName.Empty();
 		CFont *font = CFont::FromHandle((HFONT)::GetStockObject(DEFAULT_GUI_FONT));
 		m_TabCtrl.SetFont(font);
 		SetFont(font);
@@ -147,10 +149,13 @@ int CTabBar::OnCreate(LPCREATESTRUCT lpCreateStruct)
 void CTabBar::OnSize(UINT nType, int cx, int cy) 
 {
 	CControlBar::OnSize(nType, cx, cy);
+
 	if ( m_TabCtrl.m_hWnd == NULL )
 		return;
+
 	CRect rect;
 	GetWindowRect(rect);
+
 	m_TabCtrl.AdjustRect(TRUE, &rect);
 	m_TabCtrl.SetWindowPos(&wndTop ,0, 0, rect.Width(), rect.Height(), SWP_SHOWWINDOW);
 }
@@ -165,6 +170,32 @@ void CTabBar::OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler)
 	CMDIFrameWnd *pMainframe = ((CMDIFrameWnd *)AfxGetMainWnd());
 	CMDIChildWnd* pActive = (pMainframe == NULL ? NULL : pMainframe->MDIGetActive(NULL));
 	CRLoginDoc *pDoc;
+
+	if ( m_bFontCheck ) {
+		m_bFontCheck = FALSE;
+
+		CString FontName = ::AfxGetApp()->GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
+		int FontSize = MulDiv(::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9), ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY, 96);
+
+		if ( m_FontName.Compare(FontName) != 0 || m_FontSize != FontSize ) {
+			m_FontName = FontName;
+			m_FontSize = FontSize;
+
+			if ( m_TabFont.GetSafeHandle() != NULL )
+				m_TabFont.DeleteObject();
+
+			if ( !m_TabFont.CreatePointFont(m_FontSize * 10, m_FontName) ) {
+				CFont *font = CFont::FromHandle((HFONT)::GetStockObject(DEFAULT_GUI_FONT));
+				m_TabCtrl.SetFont(font);
+				SetFont(font);
+			} else {
+				m_TabCtrl.SetFont(&m_TabFont);
+				SetFont(&m_TabFont);
+			}
+			 
+			pMainframe->RecalcLayout(TRUE);
+		}
+	}
 
 	for ( n = 0 ; n < m_TabCtrl.GetItemCount() ; n++ ) {
 		tci.mask = TCIF_PARAM | TCIF_TEXT | TCIF_IMAGE;
@@ -574,7 +605,7 @@ void CTabBar::GetTitle(int nIndex, CString &title)
 
 void CTabBar::ReSize()
 {
-	int width;
+	int width, height;
 	CRect rect;
 	CSize sz;
 	int n = m_TabCtrl.GetItemCount();
@@ -583,16 +614,19 @@ void CTabBar::ReSize()
 	if ( pWnd == NULL || n <= 0 )
 		return;
 
+	GetClientRect(rect);
+	height = rect.Height() - 8;
+
 	if ( n < 4 ) n = 4;
 	pWnd->GetClientRect(rect);
 	width = (rect.Width() - 18) / n;
 
 	m_TabCtrl.GetItemRect(0, rect);
-	if ( width == rect.Width() )
+	if ( width == rect.Width() && height == rect.Height() )
 		return;
 
 	sz.cx = (width > 16 ? width : 16);
-	sz.cy = rect.Height();
+	sz.cy = height;
 	sz = m_TabCtrl.SetItemSize(sz);
 }
 

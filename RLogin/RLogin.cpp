@@ -2374,6 +2374,8 @@ void CRLoginApp::OnDialogfont()
 
 	WriteProfileString(_T("Dialog"), _T("FontName"), FontName);
 	WriteProfileInt(_T("Dialog"), _T("FontSize"), FontSize);
+
+	((CMainFrame *)AfxGetMainWnd())->TabBarFontCheck();
 }
 
 void CRLoginApp::OnLookcast()

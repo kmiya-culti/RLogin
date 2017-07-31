@@ -229,6 +229,8 @@
 #define	TO_RLNTBCSEND	1468		// 同時送信しない
 #define	TO_RLNTBCRECV	1469		// 同時受信しない
 #define	TO_RLNOTCLOSE	1470		// 接続断でクロースしない
+#define	TO_RLPAINWTAB	1471		// ペインの移動でタブも移動する
+#define	TO_RLHIDPIFSZ	1472		// フォントサイズをHiDPIに追従する
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 

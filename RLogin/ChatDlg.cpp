@@ -214,14 +214,12 @@ void CChatDlg::OnEditCopyAll()
 
 void CChatDlg::OnEditPasteAll()
 {
-	WCHAR *pData;
+	CString str;
 
-	if ( (pData = (WCHAR *)((CMainFrame *)::AfxGetMainWnd())->CopyClipboardData(CF_UNICODETEXT)) == NULL )
+	if ( !((CMainFrame *)::AfxGetMainWnd())->CopyClipboardData(str) )
 		return;
 
 	m_Script.GetTreeCtrl(m_NodeTree);
-	m_Script.GetString(UniToTstr((LPCWSTR)pData));
+	m_Script.GetString(str);
 	m_Script.SetTreeCtrl(m_NodeTree);
-
-	delete [] pData;
 }

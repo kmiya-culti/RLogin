@@ -1440,8 +1440,10 @@ void CTextRam::InitText(int Width, int Height)
 		return;
 
 	if ( IsOptEnable(TO_RLFONT) ) {
-//		charHeight = m_DefFontSize * pMain->m_ScreenDpiY / 96;
-		charHeight = m_DefFontSize;
+		if ( IsOptEnable(TO_RLHIDPIFSZ) )
+			charHeight = m_DefFontSize * pMain->m_ScreenDpiY / 96;
+		else
+			charHeight = m_DefFontSize;
 
 		if ( (charWidth = charHeight * 10 / m_DefFontHw) <= 0 )
 			charWidth = 1;

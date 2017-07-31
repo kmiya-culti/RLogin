@@ -3,6 +3,7 @@
 
 #include "stdafx.h"
 #include "RLogin.h"
+#include "MainFrm.h"
 #include "RLoginDoc.h"
 #include "RLoginView.h"
 #include "TextRam.h"
@@ -142,7 +143,7 @@ BOOL CScrnPage::OnInitDialog()
 	CClientDC dc(this);
 	CComboBox *pCombo = (CComboBox *)GetDlgItem(IDC_SCSZFONT);
 
-	m_PixDpiY = (double)(dc.GetDeviceCaps(LOGPIXELSY));
+	m_PixDpiY = (double)MulDiv(dc.GetDeviceCaps(LOGPIXELSY), ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY, 96);
 
 	for ( n = pCombo->GetCount() - 1 ; n >= 0; n-- )
 		pCombo->DeleteString(n);

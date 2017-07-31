@@ -252,6 +252,8 @@
 #define IDT_EXTOPT_LIST11               810
 #define IDT_EXTOPT_LIST12               811
 #define IDT_EXTOPT_LIST13               812
+#define IDT_EXTOPT_LIST14               813
+#define IDT_EXTOPT_LIST15               814
 #define IDT_TERM_LIST01                 900
 #define IDT_TERM_LIST02                 901
 #define IDT_TERM_LIST03                 902
@@ -928,6 +930,7 @@
 #define IDM_SAVEPUBLICKEY               5119
 #define IDM_IMAGEGRAPCOPY               5120
 #define IDM_IMAGEGRAPSAVE               5121
+#define IDM_CLIPCHAIN                   5122
 #define IDM_FIRST_MDICHILD              0xFF00
 
 // Next default values for new objects
@@ -935,7 +938,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        161
-#define _APS_NEXT_COMMAND_VALUE         5122
+#define _APS_NEXT_COMMAND_VALUE         5123
 #define _APS_NEXT_CONTROL_VALUE         2444
 #define _APS_NEXT_SYMED_VALUE           616
 #endif

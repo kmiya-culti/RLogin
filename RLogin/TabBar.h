@@ -23,6 +23,9 @@ public:
 	CStringBinary m_ImageFile;
 	CImageList m_ImageList;
 	int m_ImageCount;
+	CString m_FontName;
+	int m_FontSize;
+	BOOL m_bFontCheck;
 
 	BOOL Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID);
 
