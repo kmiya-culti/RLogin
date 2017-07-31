@@ -28,7 +28,7 @@ CComSock::CComSock(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 	m_Parity   = NOPARITY;
 	m_StopBits = ONESTOPBIT;
 	m_FlowCtrl = m_SaveFlowCtrl = 1;
-	m_Type     = 5;
+	m_Type     = ESCT_COMDEV;
 
 	memset(&m_ComConf, 0, sizeof(COMMCONFIG));
 }

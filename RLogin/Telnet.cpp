@@ -193,7 +193,7 @@ static const char *telopts[] = {
 
 CTelnet::CTelnet(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 {
-	m_Type = 2;
+	m_Type = ESCT_TELNET;
 	ReciveStatus = RVST_NON;
 }
 CTelnet::~CTelnet()

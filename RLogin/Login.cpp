@@ -22,7 +22,7 @@ static char THIS_FILE[]=__FILE__;
 
 CLogin::CLogin(class CRLoginDoc *pDoc) : CExtSocket(pDoc)
 {
-	m_Type = 1;
+	m_Type = ESCT_RLOGIN;
 	m_ConnectFlag = 0;
 }
 

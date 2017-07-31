@@ -1255,7 +1255,7 @@ int CTextRam::LineEdit(CBuffer &buf)
 					m_LineEditMapsStr += *wp;
 				}
 
-				if ( m_pDocument != NULL && m_pDocument->m_pSock != NULL && m_pDocument->m_pSock->m_Type == 6 ) {
+				if ( m_pDocument != NULL && m_pDocument->m_pSock != NULL && m_pDocument->m_pSock->m_Type == ESCT_PIPE ) {
 					if ( m_LineEditMapsTop == 0 ) {
 						m_LineEditMapsIndex = 0;
 						if ( (m_LineEditMapsInit & 001) == 0 ) {

@@ -98,14 +98,6 @@
 #define INTBLOB_LEN     20
 #define SIGBLOB_LEN     (2*INTBLOB_LEN)
 
-#define	DHMODE_GROUP_1		0
-#define	DHMODE_GROUP_14		1
-#define	DHMODE_GROUP_GEX	2
-#define	DHMODE_GROUP_GEX256	3
-#define	DHMODE_ECDH_S2_N256	4
-#define	DHMODE_ECDH_S2_N384	5
-#define	DHMODE_ECDH_S2_N521	6
-
 class CCipher: public CObject
 {
 public:
@@ -320,6 +312,12 @@ public:
 #define	CHAN_REQ_AGENT	6
 #define	CHAN_REQ_WSIZE	7
 
+#define	SSHFT_NONE		0
+#define	SSHFT_STDIO		1
+#define	SSHFT_SFTP		2
+#define	SSHFT_AGENT		3
+#define	SSHFT_RCP		4
+
 class CFilter : public CObject
 {
 public:
@@ -444,6 +442,30 @@ public:
 	~CRcpUpload();
 };
 
+#define	DHMODE_GROUP_1		0
+#define	DHMODE_GROUP_14		1
+#define	DHMODE_GROUP_GEX	2
+#define	DHMODE_GROUP_GEX256	3
+#define	DHMODE_ECDH_S2_N256	4
+#define	DHMODE_ECDH_S2_N384	5
+#define	DHMODE_ECDH_S2_N521	6
+
+#define	AUTH_MODE_NONE		0
+#define	AUTH_MODE_PUBLICKEY	1
+#define	AUTH_MODE_PASSWORD	2
+#define	AUTH_MODE_KEYBOARD	3
+#define	AUTH_MODE_HOSTBASED	4
+
+enum EAuthStat {
+	AST_START = 0,
+	AST_PUBKEY_NEXT,
+	AST_PUBKEY_TRY,
+	AST_HOST_TRY,
+	AST_PASS_TRY,
+	AST_KEYB_TRY,
+	AST_DONE
+};
+
 class Cssh : public CExtSocket 
 {
 public:
@@ -504,6 +526,7 @@ private:
 	void SendDisconnect(LPCSTR str);
 
 	int m_SSH2Status;
+
 #define	SSH2_STAT_HAVEPROP		0001
 #define	SSH2_STAT_HAVEKEYS		0002
 #define	SSH2_STAT_HAVESESS		0004
@@ -635,11 +658,11 @@ extern int dh_gen_key(DH *dh, int need);
 extern DH *dh_new_group_asc(const char *gen, const char *modulus);
 extern DH *dh_new_group1(void);
 extern DH *dh_new_group14(void);
-extern u_char *kex_dh_hash(LPCSTR client_version_string, LPCSTR server_version_string, LPBYTE ckexinit, int ckexinitlen, LPBYTE skexinit, int skexinitlen, LPBYTE serverhostkeyblob, int sbloblen, BIGNUM *client_dh_pub, BIGNUM *server_dh_pub, BIGNUM *shared_secret);
-extern int	dh_estimate(int bits);
-extern u_char *kex_gex_hash(LPCSTR client_version_string, LPCSTR server_version_string, LPBYTE ckexinit, int ckexinitlen, LPBYTE skexinit, int skexinitlen, LPBYTE serverhostkeyblob, int sbloblen, int min, int wantbits, int max, BIGNUM *prime, BIGNUM *gen, BIGNUM *client_dh_pub, BIGNUM *server_dh_pub, BIGNUM *shared_secret, int *hashlen, const EVP_MD *evp_md);
+extern int kex_dh_hash(BYTE *digest, LPCSTR client_version_string, LPCSTR server_version_string, LPBYTE ckexinit, int ckexinitlen, LPBYTE skexinit, int skexinitlen, LPBYTE serverhostkeyblob, int sbloblen, BIGNUM *client_dh_pub, BIGNUM *server_dh_pub, BIGNUM *shared_secret, const EVP_MD *evp_md);
+extern int dh_estimate(int bits);
+extern int kex_gex_hash(BYTE *digest, LPCSTR client_version_string, LPCSTR server_version_string, LPBYTE ckexinit, int ckexinitlen, LPBYTE skexinit, int skexinitlen, LPBYTE serverhostkeyblob, int sbloblen, int min, int wantbits, int max, BIGNUM *prime, BIGNUM *gen, BIGNUM *client_dh_pub, BIGNUM *server_dh_pub, BIGNUM *shared_secret, const EVP_MD *evp_md);
 extern int key_ec_validate_public(const EC_GROUP *group, const EC_POINT *pub);
-extern u_char *kex_ecdh_hash(const EVP_MD *evp_md, const EC_GROUP *ec_group, LPCSTR client_version_string, LPCSTR server_version_string, LPBYTE ckexinit, int ckexinitlen, LPBYTE skexinit, int skexinitlen, LPBYTE serverhostkeyblob, int sbloblen, const EC_POINT *client_dh_pub, const EC_POINT *server_dh_pub, BIGNUM *shared_secret, int *hashlen);
+extern int kex_ecdh_hash(BYTE *digest, LPCSTR client_version_string, LPCSTR server_version_string, LPBYTE ckexinit, int ckexinitlen, LPBYTE skexinit, int skexinitlen, LPBYTE serverhostkeyblob, int sbloblen, const EC_GROUP *ec_group, const EC_POINT *client_dh_pub, const EC_POINT *server_dh_pub, BIGNUM *shared_secret, const EVP_MD *evp_md);
 extern u_char *derive_key(int id, int need, u_char *hash, int hashlen, BIGNUM *shared_secret, u_char *session_id, int sesslen, const EVP_MD *evp_md);
 
 extern void *mm_zalloc(void *mm, unsigned int ncount, unsigned int size);

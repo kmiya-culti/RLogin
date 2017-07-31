@@ -877,12 +877,12 @@ void CRLoginDoc::OnSetOption()
 
 void CRLoginDoc::OnSftp()
 {
-	if ( m_pSock != NULL && m_pSock->m_Type == 3 && ((Cssh *)(m_pSock))->m_SSHVer == 2 )
+	if ( m_pSock != NULL && m_pSock->m_Type == ESCT_SSH_MAIN && ((Cssh *)(m_pSock))->m_SSHVer == 2 )
 		((Cssh *)(m_pSock))->OpenSFtpChannel();
 }
 void CRLoginDoc::OnUpdateSftp(CCmdUI* pCmdUI) 
 {
-	pCmdUI->Enable(m_pSock != NULL && m_pSock->m_Type == 3 && ((Cssh *)(m_pSock))->m_SSHVer == 2);
+	pCmdUI->Enable(m_pSock != NULL && m_pSock->m_Type == ESCT_SSH_MAIN && ((Cssh *)(m_pSock))->m_SSHVer == 2);
 }
 
 void CRLoginDoc::OnKanjiCodeSet(UINT nID)
@@ -935,12 +935,12 @@ void CRLoginDoc::OnUpdateChatStop(CCmdUI *pCmdUI)
 
 void CRLoginDoc::OnSendBreak()
 {
-	if ( m_pSock != NULL && m_pSock->m_Type == 5 )
+	if ( m_pSock != NULL && m_pSock->m_Type == ESCT_COMDEV )
 		m_pSock->SendBreak(1);
 }
 void CRLoginDoc::OnUpdateSendBreak(CCmdUI *pCmdUI)
 {
-	pCmdUI->Enable(m_pSock != NULL && m_pSock->m_Type == 5 ? TRUE : FALSE);
+	pCmdUI->Enable(m_pSock != NULL && m_pSock->m_Type == ESCT_COMDEV ? TRUE : FALSE);
 }
 
 void CRLoginDoc::DoDropFile()

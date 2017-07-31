@@ -33,7 +33,7 @@ static char THIS_FILE[]=__FILE__;
 
 Cssh::Cssh(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 {
-	m_Type = 3;
+	m_Type = ESCT_SSH_MAIN;
 	m_SaveDh = NULL;
 	m_EcdhClientKey = NULL;
 	m_SSHVer = 0;
@@ -94,7 +94,8 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 	m_CipherMode = SSH_CIPHER_NONE;
 	m_SessionIdLen = 0;
 	m_StdChan = (-1);
-	m_AuthStat = m_AuthMode = 0;
+	m_AuthStat = 0;
+	m_AuthMode = AUTH_MODE_NONE;
 	m_HostName = m_pDocument->m_ServerEntry.m_HostName;
 	m_DhMode = DHMODE_GROUP_1;
 	m_GlbReqMap.RemoveAll();
@@ -397,11 +398,11 @@ void Cssh::GetStatus(CString &str)
 
 	str += "UserAuth: ";
 	switch(m_AuthMode) {
-	case 0: str += "none"; break;
-	case 1: str += "publickey "; str += m_IdKey.GetName(); break;
-	case 2: str += "password"; break;
-	case 3: str += "keyboard-interactive"; break;
-	case 4: str += "hostbased "; str += m_IdKey.GetName(); break;
+	case AUTH_MODE_NONE:		str += "none"; break;
+	case AUTH_MODE_PUBLICKEY:	str += "publickey "; str += m_IdKey.GetName(); break;
+	case AUTH_MODE_PASSWORD:	str += "password"; break;
+	case AUTH_MODE_KEYBOARD:	str += "keyboard-interactive"; break;
+	case AUTH_MODE_HOSTBASED:	str += "hostbased "; str += m_IdKey.GetName(); break;
 	}
 	str += "\r\n";
 
@@ -1335,25 +1336,25 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 	tmp.PutStr("ssh-connection");
 
 	if ( str == NULL ) {
-		m_AuthStat = 0;
+		m_AuthStat = AST_START;
 		str = "none";
 	} else
 		m_AuthMeta = str;
 
 	switch(m_AuthStat) {
-	case 0:
+	case AST_START:
 		tmp.PutStr("none");
-		m_AuthStat = 2;
-		m_AuthMode = 0;
+		m_AuthStat = AST_PUBKEY_TRY;
+		m_AuthMode = AUTH_MODE_NONE;
 		break;
-	case 1:
-	RETRY:
+	case AST_PUBKEY_NEXT:
+	PUBKEY_NEXT:
 		if ( !SetIdKeyList() )
-			m_AuthStat = 3;
-	case 2:
+			goto PASS_TRY;
+	case AST_PUBKEY_TRY:
 		if ( m_IdKey.m_Type != IDKEY_NONE && strstr(str, "publickey") != NULL ) {
 			if ( m_IdKey.m_Pass.Compare(m_pDocument->m_ServerEntry.m_PassName) != 0 )
-				goto RETRY;
+				goto PUBKEY_NEXT;
 			if ( m_IdKey.m_Type == IDKEY_RSA1 )
 				m_IdKey.m_Type = IDKEY_RSA2;
 			m_IdKey.SetBlob(&blob);
@@ -1365,35 +1366,19 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 			len = tmp.GetSize() - len;
 			if ( !m_IdKey.Sign(&sig, tmp.GetPtr(), tmp.GetSize()) ) {
 				tmp.ConsumeEnd(len);
-				goto RETRY;
+				goto PUBKEY_NEXT;
 			}
 			tmp.PutBuf(sig.GetPtr(), sig.GetSize());
-			m_AuthStat = 1;
-			m_AuthMode = 1;
+			m_AuthStat = AST_HOST_TRY;
+			m_AuthMode = AUTH_MODE_PUBLICKEY;
 			break;
 		}
-	case 3:
-		if ( !m_pDocument->m_ServerEntry.m_PassName.IsEmpty() && strstr(str, "password") != NULL ) {
-			tmp.PutStr("password");
-			tmp.Put8Bit(0);
-			tmp.PutStr(m_pDocument->m_ServerEntry.m_PassName);
-			m_AuthStat = 4;
-			m_AuthMode = 2;
-			break;
-		}
-	case 4:
-		if ( strstr(str, "keyboard-interactive") != NULL ) {
-			tmp.PutStr("keyboard-interactive");
-			tmp.PutStr("");		// LANG
-			tmp.PutStr("");		// DEV
-			m_AuthStat = 5;
-			m_AuthMode = 3;
-			break;
-		}
-	case 5:
-		if ( !m_pDocument->m_ParamTab.m_HostKeyFile.IsEmpty() && strstr(str, "hostbased") != NULL &&
-				m_IdKey.LoadPrivateKey(m_pDocument->m_ParamTab.m_HostKeyFile, m_pDocument->m_ServerEntry.m_PassName) ) {
+	case AST_HOST_TRY:
+		if ( m_IdKey.m_Type != IDKEY_NONE && strstr(str, "hostbased") != NULL ) {
+			if ( m_IdKey.m_Pass.Compare(m_pDocument->m_ServerEntry.m_PassName) != 0 )
+				goto PUBKEY_NEXT;
 			m_IdKey.SetBlob(&blob);
+			len = tmp.GetSize();
 			tmp.PutStr("hostbased");
 			tmp.PutStr(m_IdKey.GetName());
 			tmp.PutBuf(blob.GetPtr(), blob.GetSize());
@@ -1401,16 +1386,38 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 			tmp.PutStr(wrk);		// client ip address
 			m_IdKey.GetUserHostName(wrk);
 			tmp.PutStr(wrk);		// client user name;
-			if ( m_IdKey.Sign(&sig, tmp.GetPtr(), tmp.GetSize()) ) {
-				tmp.PutBuf(sig.GetPtr(), sig.GetSize());
-				m_AuthStat = 6;
-				m_AuthMode = 4;
-				break;
+			if ( !m_IdKey.Sign(&sig, tmp.GetPtr(), tmp.GetSize()) ) {
+				tmp.ConsumeEnd(len);
+				goto PUBKEY_NEXT;
 			}
+			tmp.PutBuf(sig.GetPtr(), sig.GetSize());
+			m_AuthStat = AST_PUBKEY_NEXT;
+			m_AuthMode = AUTH_MODE_HOSTBASED;
+			break;
+		} else if ( m_IdKey.m_Type != IDKEY_NONE )
+			goto PUBKEY_NEXT;
+	case AST_PASS_TRY:
+	PASS_TRY:
+		if ( !m_pDocument->m_ServerEntry.m_PassName.IsEmpty() && strstr(str, "password") != NULL ) {
+			tmp.PutStr("password");
+			tmp.Put8Bit(0);
+			tmp.PutStr(m_pDocument->m_ServerEntry.m_PassName);
+			m_AuthStat = AST_KEYB_TRY;
+			m_AuthMode = AUTH_MODE_PASSWORD;
+			break;
+		}
+	case AST_KEYB_TRY:
+		if ( strstr(str, "keyboard-interactive") != NULL ) {
+			tmp.PutStr("keyboard-interactive");
+			tmp.PutStr("");		// LANG
+			tmp.PutStr("");		// DEV
+			m_AuthStat = AST_DONE;
+			m_AuthMode = AUTH_MODE_KEYBOARD;
+			break;
 		}
 	default:
-		m_AuthStat = 6;
-		m_AuthMode = 0;
+		m_AuthStat = AST_DONE;
+		m_AuthMode = AUTH_MODE_NONE;
 		return FALSE;
 	}
 
@@ -1790,8 +1797,6 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 
 	if ( (m_SSH2Status & SSH2_STAT_SENTKEXINIT) == 0 ) {
 		m_MyPeer.Clear();
-//		for ( n = 0 ; n < 16 ; n++ )
-//			m_MyPeer.Put8Bit(m_Cookie[n]);
 		for ( n = 0 ; n < 16 ; n += 2 )
 			m_MyPeer.Put16Bit(rand());
 		for ( n = 0 ; n < 10 ; n++ ) {
@@ -1824,7 +1829,9 @@ int Cssh::SSH2MsgKexDhReply(CBuffer *bp)
 	CBuffer tmp, blob, sig;
 	CIdKey key;
 	BIGNUM *spub = NULL, *ssec = NULL;
-	LPBYTE p, hash;
+	LPBYTE p;
+	int hashlen;
+	BYTE hash[EVP_MAX_MD_SIZE];
 
 	bp->GetBuf(&tmp);
 	blob = tmp;
@@ -1851,26 +1858,27 @@ int Cssh::SSH2MsgKexDhReply(CBuffer *bp)
 	n = DH_compute_key(p, spub, m_SaveDh);
 	BN_bin2bn(p, n, ssec);
 
-	hash = kex_dh_hash(
+	hashlen = kex_dh_hash(hash,
 		m_ClientVerStr, m_ServerVerStr,
 		m_MyPeer.GetPtr(), m_MyPeer.GetSize(),
 		m_HisPeer.GetPtr(), m_HisPeer.GetSize(),
-		blob.GetPtr(), blob.GetSize(),
-		m_SaveDh->pub_key, spub, ssec);
+		blob.GetPtr(), blob.GetSize(), m_SaveDh->pub_key,
+		spub, ssec,
+		EVP_sha1());
 
 	if ( m_SessionIdLen == 0 ) {
-		m_SessionIdLen = 20;
-		memcpy(m_SessionId, hash, 20);
+		ASSERT(hashlen <= 64);
+		m_SessionIdLen = hashlen;
+		memcpy(m_SessionId, hash, hashlen);
 	}
 
-	if ( !key.Verify(&sig, hash, 20) )
+	if ( !key.Verify(&sig, hash, hashlen) )
 		goto ENDRET;
 
 	for ( n = 0 ; n < 6 ; n++ ) {
 		if ( m_VKey[n] != NULL )
 			free(m_VKey[n]);
-		m_VKey[n] = derive_key('A' + n, m_NeedKeyLen, hash, 20, ssec,
-			m_SessionId, m_SessionIdLen, EVP_sha1());
+		m_VKey[n] = derive_key('A' + n, m_NeedKeyLen, hash, hashlen, ssec, m_SessionId, m_SessionIdLen, EVP_sha1());
 	}
 
 	ret = FALSE;
@@ -1917,8 +1925,10 @@ int Cssh::SSH2MsgKexDhGexReply(CBuffer *bp)
 	CBuffer tmp, blob, sig;
 	CIdKey key;
 	BIGNUM *spub = NULL, *ssec = NULL;
-	LPBYTE p, hash;
+	LPBYTE p;
+	const EVP_MD *evp_md;
 	int hashlen;
+	BYTE hash[EVP_MAX_MD_SIZE];
 
 	bp->GetBuf(&tmp);
 	blob = tmp;
@@ -1945,19 +1955,19 @@ int Cssh::SSH2MsgKexDhGexReply(CBuffer *bp)
 	n = DH_compute_key(p, spub, m_SaveDh);
 	BN_bin2bn(p, n, ssec);
 
-	hash = kex_gex_hash(
+	evp_md = (m_DhMode == DHMODE_GROUP_GEX ? EVP_sha1() : EVP_sha256());
+
+	hashlen = kex_gex_hash(hash,
 		m_ClientVerStr, m_ServerVerStr,
 		m_MyPeer.GetPtr(), m_MyPeer.GetSize(),
 		m_HisPeer.GetPtr(), m_HisPeer.GetSize(),
 		blob.GetPtr(), blob.GetSize(),
 		1024, dh_estimate(m_NeedKeyLen * 8), 8192,
 		m_SaveDh->p, m_SaveDh->g, m_SaveDh->pub_key,
-		spub, ssec,
-		&hashlen,
-		m_DhMode == DHMODE_GROUP_GEX ? EVP_sha1() : EVP_sha256());
+		spub, ssec, evp_md);
 
 	if ( m_SessionIdLen == 0 ) {
-		ASSERT(hashlen < 64);
+		ASSERT(hashlen <= 64);
 		m_SessionIdLen = hashlen;
 		memcpy(m_SessionId, hash, hashlen);
 	}
@@ -1968,9 +1978,7 @@ int Cssh::SSH2MsgKexDhGexReply(CBuffer *bp)
 	for ( n = 0 ; n < 6 ; n++ ) {
 		if ( m_VKey[n] != NULL )
 			free(m_VKey[n]);
-		m_VKey[n] = derive_key('A' + n, m_NeedKeyLen, hash, hashlen, ssec,
-			m_SessionId, m_SessionIdLen,
-			m_DhMode == DHMODE_GROUP_GEX ? EVP_sha1() : EVP_sha256());
+		m_VKey[n] = derive_key('A' + n, m_NeedKeyLen, hash, hashlen, ssec, m_SessionId, m_SessionIdLen, evp_md);
 	}
 
 	ret = FALSE;
@@ -1994,8 +2002,8 @@ int Cssh::SSH2MsgKexEcdhReply(CBuffer *bp)
 	int klen;
 	LPBYTE kbuf = NULL;
 	const EVP_MD *evp_md;
-	LPBYTE hash;
 	int hashlen;
+	BYTE hash[EVP_MAX_MD_SIZE];
 
 	bp->GetBuf(&tmp);
 	blob = tmp;
@@ -2040,20 +2048,17 @@ int Cssh::SSH2MsgKexEcdhReply(CBuffer *bp)
 		break;
 	}
 
-	hash = kex_ecdh_hash(
-		evp_md,
-	    m_EcdhGroup,
+	hashlen = kex_ecdh_hash(hash,
 	    m_ClientVerStr, m_ServerVerStr,
 		m_MyPeer.GetPtr(), m_MyPeer.GetSize(),
 		m_HisPeer.GetPtr(), m_HisPeer.GetSize(),
 		blob.GetPtr(), blob.GetSize(),
-	    EC_KEY_get0_public_key(m_EcdhClientKey),
-	    server_public,
-	    shared_secret,
-	    &hashlen);
+	    m_EcdhGroup, EC_KEY_get0_public_key(m_EcdhClientKey),
+	    server_public, shared_secret,
+		evp_md);
 
 	if ( m_SessionIdLen == 0 ) {
-		ASSERT(hashlen < 64);
+		ASSERT(hashlen <= 64);
 		m_SessionIdLen = hashlen;
 		memcpy(m_SessionId, hash, hashlen);
 	}
@@ -2113,7 +2118,30 @@ int Cssh::SSH2MsgNewKeys(CBuffer *bp)
 }
 int Cssh::SSH2MsgUserAuthPkOk(CBuffer *bp)
 {
-	return SendMsgUserAuthRequest("publickey");
+	int n;
+	CString name;
+	CBuffer blob;
+	CIdKey *pKey, ReqKey;
+	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
+
+	bp->GetStr(name);
+	bp->GetBuf(&blob);
+
+	if ( !ReqKey.GetBlob(&blob) )
+		return FALSE;
+
+	for ( n = 0 ; n < m_pDocument->m_ParamTab.m_IdKeyList.GetSize() ; n++ ) {
+		if ( (pKey = pMain->m_IdKeyTab.GetUid(m_pDocument->m_ParamTab.m_IdKeyList.GetVal(n))) == NULL )
+			continue;
+		if ( pKey->m_Type == IDKEY_NONE || pKey->m_Type != ReqKey.m_Type )
+			continue;
+		if ( ReqKey.Compere(pKey) == 0 ) {
+			m_IdKey = *pKey;
+			m_AuthStat = AST_PUBKEY_TRY;
+			return SendMsgUserAuthRequest("publickey");
+		}
+	}
+	return FALSE;
 }
 int Cssh::SSH2MsgUserAuthPasswdChangeReq(CBuffer *bp)
 {
@@ -2332,14 +2360,14 @@ int Cssh::SSH2MsgChannelOpenReply(CBuffer *bp, int type)
 
 	if ( m_Chan[id].m_pFilter != NULL ) {
 		switch(m_Chan[id].m_pFilter->m_Type) {
-		case 1:
+		case SSHFT_STDIO:
 			if ( (m_SSH2Status & SSH2_STAT_HAVESHELL) == 0 )
 				SendMsgChannelRequesstShell(id);
 			break;
-		case 2:
+		case SSHFT_SFTP:
 			SendMsgChannelRequesstSubSystem(id);
 			break;
-		case 4:
+		case SSHFT_RCP:
 			SendMsgChannelRequesstExec(id);
 			break;
 		}
@@ -2659,20 +2687,20 @@ void Cssh::RecivePacket2(CBuffer *bp)
 		if ( (m_SSH2Status & SSH2_STAT_HAVESESS) == 0 )
 			goto DISCONNECT;
 		switch(m_AuthMode) {
-		case 0:		// none
-			goto DISCONNECT;
-		case 1:		// publickey
+		case AUTH_MODE_PUBLICKEY:
 			if ( !SSH2MsgUserAuthPkOk(bp) )
 				goto DISCONNECT;
 			break;
-		case 2:		// password
+		case AUTH_MODE_PASSWORD:
 			if ( !SSH2MsgUserAuthPasswdChangeReq(bp) )
 				goto DISCONNECT;
 			break;
-		case 3:		// interactive
+		case AUTH_MODE_KEYBOARD:
 			if ( !SSH2MsgUserAuthInfoRequest(bp) )
 				goto DISCONNECT;
 			break;
+		default:
+			goto DISCONNECT;
 		}
 		break;
 

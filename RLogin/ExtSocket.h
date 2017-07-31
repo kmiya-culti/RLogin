@@ -23,6 +23,14 @@
 #define	RECVBUFSIZ	(32 * 1024)
 #define	RECVMAXSIZ	(128 * 1024)
 
+#define	ESCT_DIRECT		0
+#define	ESCT_RLOGIN		1
+#define	ESCT_TELNET		2
+#define	ESCT_SSH_MAIN	3
+#define	ESCT_SSH_CHAN	4
+#define	ESCT_COMDEV		5
+#define	ESCT_PIPE		6
+
 enum EProxyStat {
 	PRST_NONE = 0,
 

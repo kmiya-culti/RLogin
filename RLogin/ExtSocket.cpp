@@ -22,7 +22,7 @@ static char THIS_FILE[]=__FILE__;
 
 CSockBuffer::CSockBuffer()
 {
-	m_Type = 0;
+	m_Type = ESCT_DIRECT;
 	m_Ofs = m_Len = 0;
 	m_Max = RECVBUFSIZ;
 	m_Data = new BYTE[m_Max];
@@ -62,7 +62,7 @@ static const int EventMask[2] = { FD_READ, FD_OOB };
 CExtSocket::CExtSocket(class CRLoginDoc *pDoc)
 {
 	m_pDocument = pDoc;
-	m_Type = 0;
+	m_Type = ESCT_DIRECT;
 	m_Fd = m_Fdv6 = (-1);
 	m_SocketEvent = FD_READ | FD_OOB | FD_CONNECT | FD_CLOSE;
 	m_RecvOverSize = RECVBUFSIZ;

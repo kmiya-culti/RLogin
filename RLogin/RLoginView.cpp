@@ -1532,7 +1532,7 @@ void CRLoginView::OnDropFiles(HDROP hDropInfo)
 				doCmd = TRUE;
 			pDoc->m_pBPlus->m_ResvPath.AddTail(FileName);
 		} else if ( pDoc->m_TextRam.m_DropFileMode == 5 ) {
-			if ( pDoc->m_pSock != NULL && pDoc->m_pSock->m_Type == 3 && ((Cssh *)(pDoc->m_pSock))->m_SSHVer == 2 )
+			if ( pDoc->m_pSock != NULL && pDoc->m_pSock->m_Type == ESCT_SSH_MAIN && ((Cssh *)(pDoc->m_pSock))->m_SSHVer == 2 )
 				((Cssh *)(pDoc->m_pSock))->OpenRcpUpload(FileName);
 		} else if ( pDoc->m_TextRam.m_DropFileMode == 6 ) {
 			if ( pDoc->m_pKermit == NULL )

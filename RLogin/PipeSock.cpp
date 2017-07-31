@@ -7,7 +7,7 @@
 
 CPipeSock::CPipeSock(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 {
-	m_Type = 6;
+	m_Type = ESCT_PIPE;
 
 	m_hIn[0] =  m_hIn[1]  = NULL;
 	m_hOut[0] = m_hOut[1] = NULL;
