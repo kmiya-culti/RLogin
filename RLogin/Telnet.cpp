@@ -248,7 +248,6 @@ BOOL CTelnet::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, in
 			MyOpt[TELOPT_ENCRYPT].flags |= TELFLAG_ACCEPT;
 	}
 
-	SetRecvSize(16 * 1024);
 	return TRUE;
 }
 void CTelnet::OnConnect()

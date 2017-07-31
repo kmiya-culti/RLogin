@@ -48,7 +48,6 @@ int CLogin::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int 
 	}
 
 	SetSockOpt(TCP_NODELAY, &val, sizeof(BOOL), SOL_SOCKET);
-	SetRecvSize(16 * 1024);
 	m_ConnectFlag = 1;
 	return TRUE;
 }

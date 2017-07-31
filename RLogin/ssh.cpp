@@ -112,6 +112,7 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 	m_IdKey.Close();
 	m_IdKeyPos = 0;
 	m_HostKey.Close();
+	SetRecvBufSize(32 * 1024);
 
 	srand((UINT)time(NULL));
 
@@ -154,8 +155,6 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 
 	if ( !CExtSocket::Open(lpszHostAddress, nHostPort, nSocketPort, nSocketType, pAddrInfo) )
 		return FALSE;
-
-	SetRecvSize(CHAN_SES_WINDOW_DEFAULT * 2);
 
 	return TRUE;
   } catch(...) {
@@ -348,6 +347,8 @@ void Cssh::OnRecvEmpty()
 }
 void Cssh::OnSendEmpty()
 {
+	if ( m_StdChan != (-1) )
+		ChannelPolling(m_StdChan);
 	for ( CFilter *fp = m_pListFilter ; fp != NULL ; fp = fp->m_pNext )
 		fp->OnSendEmpty();
 }
@@ -1181,6 +1182,7 @@ void Cssh::PortForward()
 		if ( tmp[0].Compare("localhost") == 0 ) { // && tmp[2].Compare(m_HostName) == 0 ) {
 			n = ChannelOpen();
 			m_Chan[n].m_Status = CHAN_LISTEN;
+			m_Chan[n].m_TypeName = "tcpip-listen";
 			if ( !m_Chan[n].CreateListen(tmp[0], GetPortNum(tmp[1]), tmp[2], GetPortNum(tmp[3])) ) {
 				str.Format("Port Forward Error %s:%s->%s:%s", tmp[0], tmp[1], tmp[2], tmp[3]);
 				AfxMessageBox(str);
@@ -1192,6 +1194,7 @@ void Cssh::PortForward()
 		} else if ( tmp[0].Compare("socks") == 0 ) { // && tmp[2].Compare(m_HostName) == 0 ) {
 			n = ChannelOpen();
 			m_Chan[n].m_Status = CHAN_LISTEN | CHAN_PROXY_SOCKS;
+			m_Chan[n].m_TypeName = "socks-listen";
 			tmp[0] = "localhost";
 			if ( !m_Chan[n].CreateListen(tmp[0], GetPortNum(tmp[1]), tmp[2], GetPortNum(tmp[3])) ) {
 				str.Format("Socks Listen Error %s:%s->%s:%s", tmp[0], tmp[1], tmp[2], tmp[3]);

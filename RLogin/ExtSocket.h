@@ -19,23 +19,33 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
-#define	RECVMINSIZ	(2 * 1024)
-#define	RECVBUFSIZ	(32 * 1024)
-#define	RECVMAXSIZ	(128 * 1024)
+#define	RECVMINSIZ		(m_RecvBufSize / 4)
+#define	RECVBUFSIZ		(m_RecvBufSize    )
+#define	RECVMAXSIZ		(m_RecvBufSize * 4)
 
-#define	ESCT_DIRECT		0
-#define	ESCT_RLOGIN		1
-#define	ESCT_TELNET		2
-#define	ESCT_SSH_MAIN	3
-#define	ESCT_SSH_CHAN	4
-#define	ESCT_COMDEV		5
-#define	ESCT_PIPE		6
+#define	ESCT_DIRECT			0
+#define	ESCT_RLOGIN			1
+#define	ESCT_TELNET			2
+#define	ESCT_SSH_MAIN		3
+#define	ESCT_SSH_CHAN		4
+#define	ESCT_COMDEV			5
+#define	ESCT_PIPE			6
 
 #define	ASYNC_GETADDR		000
 #define	ASYNC_CREATE		001
 #define	ASYNC_OPEN			002
 #define	ASYNC_CREATEINFO	011
 #define	ASYNC_OPENINFO		012
+
+#define	SYNC_NONE			000
+#define	SYNC_ACTIVE			001
+#define	SYNC_EMPTY			010
+#define	SYNC_EVENT			020
+
+#define	RECV_ACTIVE			001
+#define	RECV_DOCLOSE		002
+
+#define	SEND_EMPTY			001
 
 enum EProxyStat {
 	PRST_NONE = 0,
@@ -80,10 +90,12 @@ public:
 	CSockBuffer	*m_Left;
 	CSockBuffer	*m_Right;
 
-	void Alloc(int len);
+	void AddAlloc(int len);
+	void Apend(LPBYTE buff, int len, int type);
+
 	inline void Clear() { m_Len = m_Ofs = 0; }
 	inline int GetSize() { return (m_Len - m_Ofs); }
-	inline void SetSize(int len) { m_Len += len; }
+	inline void AddSize(int len) { m_Len += len; }
 	inline LPBYTE GetLast() { return (m_Data + m_Len); }
 	inline LPBYTE GetPtr() { return (m_Data + m_Ofs); }
 	inline int Consume(int len) { m_Ofs += len; return GetSize(); }
@@ -105,8 +117,8 @@ public:
 
 private:
 	int m_SocketEvent;
-	int m_RecvOverSize;
 	int m_RecvSyncMode;
+	int m_RecvBufSize;
 	CSemaphore m_RecvSema;
 	int m_OnRecvFlag;
 	int m_OnSendFlag;
@@ -118,9 +130,8 @@ private:
 	int m_RealSocketType;
 	CEvent *m_pRecvEvent;
 
-	int m_ProcSize[2];
-	int m_RecvSize[2];
-	int m_SendSize[2];
+	int m_RecvSize;
+	int m_SendSize;
 	CSockBuffer *m_ProcHead;
 	CSockBuffer *m_RecvHead;
 	CSockBuffer *m_SendHead;
@@ -213,15 +224,14 @@ public:
 	void SetRecvSyncMode(BOOL mode);
 	int SyncRecive(void* lpBuf, int nBufLen, int nSec, BOOL *pAbort);
 	void SyncReciveBack(void *lpBuf, int nBufLen);
-	int SyncRecvSize();
 	void SyncAbort();
 
 	inline int IsOpen() { return (m_Fd == (-1) ? FALSE  : TRUE); }
 	inline int GetLastError() { return 0; }
-	inline void SetRecvSize(int size) { m_RecvOverSize = size; }
 	inline class CRLoginDoc *GetDocument() { return m_pDocument; }
 	inline class CMainFrame *GetMainWnd() { return (class CMainFrame *)AfxGetMainWnd(); }
 	inline class CRLoginApp *GetApp() { return (class CRLoginApp *)AfxGetApp(); }
+	inline void SetRecvBufSize(int size) { m_RecvBufSize = size; }
 
 	void Destroy();
 	CExtSocket(class CRLoginDoc *pDoc);

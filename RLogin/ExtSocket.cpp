@@ -22,9 +22,9 @@ static char THIS_FILE[]=__FILE__;
 
 CSockBuffer::CSockBuffer()
 {
-	m_Type = ESCT_DIRECT;
+	m_Type = 0;
 	m_Ofs = m_Len = 0;
-	m_Max = RECVBUFSIZ;
+	m_Max = 4096;
 	m_Data = new BYTE[m_Max];
 	m_Left = m_Right = NULL;
 }
@@ -32,7 +32,7 @@ CSockBuffer::~CSockBuffer()
 {
 	delete m_Data;
 }
-void CSockBuffer::Alloc(int len)
+void CSockBuffer::AddAlloc(int len)
 {
 	if ( (len += m_Len) <= m_Max )
 		return;
@@ -43,7 +43,7 @@ void CSockBuffer::Alloc(int len)
 		return;
 	}
 
-	m_Max = (len * 2 + RECVMINSIZ) & ~(RECVMINSIZ - 1);
+	m_Max = (len * 2 + 4096) & ~(4096 - 1);
 	LPBYTE tmp = new BYTE[m_Max];
 
 	if ( (m_Len -= m_Ofs) > 0 )
@@ -52,6 +52,13 @@ void CSockBuffer::Alloc(int len)
 
 	delete m_Data;
 	m_Data = tmp;
+}
+void CSockBuffer::Apend(LPBYTE buff, int len, int type)
+{
+	AddAlloc(len);
+	memcpy(m_Data + m_Len, buff, len);
+	m_Len += len;
+	m_Type = type;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -65,15 +72,14 @@ CExtSocket::CExtSocket(class CRLoginDoc *pDoc)
 	m_Type = ESCT_DIRECT;
 	m_Fd = m_Fdv6 = (-1);
 	m_SocketEvent = FD_READ | FD_OOB | FD_CONNECT | FD_CLOSE;
-	m_RecvOverSize = RECVBUFSIZ;
-	m_RecvSyncMode = 0;
+	m_RecvSyncMode = SYNC_NONE;
+	m_RecvBufSize = (4 * 1024);
 	m_OnRecvFlag = m_OnSendFlag = 0;
 	m_DestroyFlag = FALSE;
 	m_pRecvEvent = NULL;
 	m_FreeHead = m_ProcHead = m_RecvHead = m_SendHead = NULL;
-	m_ProcSize[0] = m_ProcSize[1] = 0;
-	m_RecvSize[0] = m_RecvSize[1] = 0;
-	m_SendSize[0] = m_SendSize[1] = 0;
+	m_RecvSize = 0;
+	m_SendSize = 0;
 	m_ProxyStatus = PRST_NONE;
 	m_SSL_mode  = 0;
 	m_SSL_pCtx  = NULL;
@@ -103,7 +109,7 @@ CExtSocket::~CExtSocket()
 void CExtSocket::Destroy()
 {
 	Close();
-	if ( (m_OnRecvFlag & 001) != 0 ) {
+	if ( (m_OnRecvFlag & RECV_ACTIVE) != 0 ) {
 		if ( !m_DestroyFlag )
 			((CRLoginApp *)AfxGetApp())->SetSocketIdle(this);
 		m_DestroyFlag = TRUE;
@@ -383,12 +389,10 @@ BOOL CExtSocket::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort,
 	while ( m_SendHead != NULL )
 		m_SendHead = RemoveHead(m_SendHead);
 
-	m_ProcSize[0] = m_ProcSize[1] = 0;
-	m_RecvSize[0] = m_RecvSize[1] = 0;
-	m_SendSize[0] = m_SendSize[1] = 0;
+	m_RecvSize = 0;
+	m_SendSize = 0;
 
 	m_SocketEvent = FD_READ | FD_OOB | FD_CONNECT | FD_CLOSE;
-	m_RecvOverSize = RECVBUFSIZ;
 
 	if ( m_SSL_mode != 0 )
 		m_SocketEvent &= ~FD_READ;
@@ -585,12 +589,10 @@ int CExtSocket::Attach(class CRLoginDoc *pDoc, SOCKET fd)
 	while ( m_SendHead != NULL )
 		m_SendHead = RemoveHead(m_SendHead);
 
-	m_ProcSize[0] = m_ProcSize[1] = 0;
-	m_RecvSize[0] = m_RecvSize[1] = 0;
-	m_SendSize[0] = m_SendSize[1] = 0;
+	m_RecvSize = 0;
+	m_SendSize = 0;
 
 	m_SocketEvent = FD_READ | FD_OOB | FD_CONNECT | FD_CLOSE;
-	m_RecvOverSize = RECVBUFSIZ;
 
 	if ( !GetMainWnd()->SetAsyncSelect(m_Fd, this, m_SocketEvent) )
 		return FALSE;
@@ -599,16 +601,22 @@ int CExtSocket::Attach(class CRLoginDoc *pDoc, SOCKET fd)
 }
 int CExtSocket::Recive(void* lpBuf, int nBufLen, int nFlags)
 {
+	int n;
 	int len = 0;
+	LPBYTE buf = (LPBYTE)lpBuf;
+
 	m_RecvSema.Lock();
-	if ( m_ProcHead != NULL && m_ProcHead->m_Type == nFlags ) {
-		if ( (len = m_ProcHead->GetSize()) > nBufLen )
-			len = nBufLen;
-		memcpy(lpBuf, m_ProcHead->GetPtr(), len);
-		if ( m_ProcHead->Consume(len) <= 0 )
+	while ( nBufLen > 0 && m_ProcHead != NULL && m_ProcHead->m_Type == nFlags ) {
+		if ( (n = m_ProcHead->GetSize()) > nBufLen )
+			n = nBufLen;
+		memcpy(buf, m_ProcHead->GetPtr(), n);
+		if ( m_ProcHead->Consume(n) <= 0 )
 			m_ProcHead = RemoveHead(m_ProcHead);
-		if ( (m_ProcSize[nFlags] -= len) <= 0 )
-			m_RecvSyncMode |= 010;
+		if ( (m_RecvSize -= n) < RECVMINSIZ )
+			m_RecvSyncMode |= SYNC_EMPTY;
+		len += n;
+		buf += n;
+		nBufLen -= n;
 	}
 	m_RecvSema.Unlock();
 	return len;
@@ -616,37 +624,37 @@ int CExtSocket::Recive(void* lpBuf, int nBufLen, int nFlags)
 int CExtSocket::SyncRecive(void* lpBuf, int nBufLen, int nSec, BOOL *pAbort)
 {
 	int n;
-	int len = nBufLen;
-	BOOL f = FALSE;
+	int len = 0;
+	LPBYTE buf = (LPBYTE)lpBuf;
 	time_t st, nt;
 
 	time(&st);
 	while ( !*pAbort ) {
 		m_RecvSema.Lock();
-		while ( m_ProcHead != NULL ) {
+		while ( nBufLen > 0 && m_ProcHead != NULL ) {
 			if ( m_ProcHead->m_Type != 0 ) {
-				m_ProcSize[1] -= m_ProcHead->GetSize();
+				m_RecvSize -= m_ProcHead->GetSize();
 				m_ProcHead = RemoveHead(m_ProcHead);
 			} else {
 				if ( (n = m_ProcHead->GetSize()) > nBufLen )
 					n = nBufLen;
-				memcpy(lpBuf, m_ProcHead->GetPtr(), n);
+				memcpy(buf, m_ProcHead->GetPtr(), n);
 				if ( m_ProcHead->Consume(n) <= 0 )
 					m_ProcHead = RemoveHead(m_ProcHead);
-				if ( (m_ProcSize[0] -= n) < RECVMINSIZ ) {
-					m_RecvSyncMode |= 010;
-					if ( m_Fd != (-1) && (m_SocketEvent & FD_READ) == 0 )
-						f = TRUE;
-				}
-				m_RecvSema.Unlock();
-				if ( f )
-					GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, FD_READ);
-				return n;
+				if ( (m_RecvSize -= n) < RECVMINSIZ )
+					m_RecvSyncMode |= SYNC_EMPTY;
+				len += n;
+				buf += n;
+				nBufLen -= n;
 			}
 		}
-		if ( m_pRecvEvent != NULL ) {
+
+		if ( len > 0 || nBufLen <= 0 ) {
+			m_RecvSema.Unlock();
+			break;
+		} else if ( m_pRecvEvent != NULL ) {
 			m_pRecvEvent->ResetEvent();
-			m_RecvSyncMode |= 020;
+			m_RecvSyncMode |= SYNC_EVENT;
 			m_RecvSema.Unlock();
 			time(&nt);
 			if ( (n = (int)(nt - st)) >= nSec )
@@ -661,24 +669,17 @@ int CExtSocket::SyncRecive(void* lpBuf, int nBufLen, int nSec, BOOL *pAbort)
 			Sleep(100);
 		}
 	}
-	return 0;
+	return len;
 }
 void CExtSocket::SyncReciveBack(void *lpBuf, int nBufLen)
 {
 	CSockBuffer *sp = AllocBuffer();
 	m_RecvSema.Lock();
-	sp->m_Type = 0;
-	sp->Alloc(nBufLen);
-	memcpy(sp->GetLast(), lpBuf, nBufLen);
-	sp->SetSize(nBufLen);
+	sp->Apend((LPBYTE)lpBuf, nBufLen, 0);
 	m_ProcHead = AddHead(sp, m_ProcHead);
-	m_ProcSize[0] += nBufLen;
-	m_RecvSyncMode &= ~010;
+	m_RecvSize += nBufLen;
+	m_RecvSyncMode &= ~SYNC_EMPTY;
 	m_RecvSema.Unlock();
-}
-int CExtSocket::SyncRecvSize()
-{
-	return m_ProcSize[0];
 }
 void CExtSocket::SyncAbort()
 {
@@ -692,7 +693,7 @@ void CExtSocket::SetRecvSyncMode(BOOL mode)
 {
 	if ( m_pRecvEvent == NULL )
 		m_pRecvEvent = new CEvent(FALSE, TRUE);
-	m_RecvSyncMode = (mode ? 001 : 000); 
+	m_RecvSyncMode = (mode ? SYNC_ACTIVE : SYNC_NONE); 
 }
 int CExtSocket::Send(const void* lpBuf, int nBufLen, int nFlags)
 {
@@ -707,22 +708,20 @@ int CExtSocket::Send(const void* lpBuf, int nBufLen, int nFlags)
 		n = (m_SSL_mode ? SSL_write(m_SSL_pSock, lpBuf, nBufLen):
 						  ::send(m_Fd, (char *)lpBuf, nBufLen, nFlags));
 		if ( n > 0 ) {
-			m_OnSendFlag |= 001;
 			lpBuf = (LPBYTE)lpBuf + n;
-			if ( (nBufLen -= n) <= 0 )
+			if ( (nBufLen -= n) <= 0 ) {
+				m_OnSendFlag |= SEND_EMPTY;
 				goto RETOF;
+			}
 		}
 	}
 
 	if ( m_SendHead == NULL || (sp = m_SendHead->m_Left)->m_Type != nFlags || sp->GetSize() > RECVBUFSIZ )
 		sp = AllocBuffer();
-	sp->m_Type = nFlags;
-	sp->Alloc(nBufLen);
-	memcpy(sp->GetLast(), lpBuf, nBufLen);
-	sp->SetSize(nBufLen);
+	sp->Apend((LPBYTE)lpBuf, nBufLen, nFlags);
 	if ( m_SendHead == NULL || sp != m_SendHead->m_Left )
 		m_SendHead = AddTail(sp, m_SendHead);
-	m_SendSize[nFlags] += nBufLen;
+	m_SendSize += nBufLen;
 
 //	TRACE("Send Save %d\n", nBufLen);
 	
@@ -748,11 +747,11 @@ void CExtSocket::SetXonXoff(int sw)
 
 int CExtSocket::GetRecvSize()
 {
-	return (m_ProcSize[0] + m_ProcSize[1]);
+	return m_RecvSize;
 }
 int CExtSocket::GetSendSize()
 {
-	return (m_SendSize[0] + m_SendSize[1]);
+	return m_SendSize;
 }
 void CExtSocket::OnRecvEmpty()
 {
@@ -768,9 +767,9 @@ void CExtSocket::GetStatus(CString &str)
 
 	tmp.Format("Socket Type: %d\r\n", m_Type);
 	str += tmp;
-	tmp.Format("Recive Reserved: %d Bytes\r\n", m_RecvSize[0] + m_RecvSize[1] + m_ProcSize[0] + m_ProcSize[1]);
+	tmp.Format("Recive Reserved: %d Bytes\r\n", m_RecvSize);
 	str += tmp;
-	tmp.Format("Send Reserved: %d Bytes\r\n", m_SendSize[0] + m_SendSize[1]);
+	tmp.Format("Send Reserved: %d Bytes\r\n", m_SendSize);
 	str += tmp;
 
 	if ( m_Fd != (-1) ) {
@@ -799,11 +798,11 @@ BOOL CExtSocket::ProxyReadLine()
 
 	while ( m_RecvHead != NULL ) {
 		if ( m_RecvHead->m_Type != 0 ) {
-			m_RecvSize[m_RecvHead->m_Type] -= m_RecvHead->GetSize();
+			m_RecvSize -= m_RecvHead->GetSize();
 			m_RecvHead = RemoveHead(m_RecvHead);
 		} else {
 			while ( (c = m_RecvHead->GetByte()) != EOF ) {
-				m_RecvSize[m_RecvHead->m_Type] -= 1;
+				m_RecvSize -= 1;
 				if ( c == '\n' )
 					break;
 				else if ( c != '\r' )
@@ -824,7 +823,7 @@ BOOL CExtSocket::ProxyReadBuff(int len)
 		return TRUE;
 	while ( m_RecvHead != NULL ) {
 		if ( m_RecvHead->m_Type != 0 ) {
-			m_RecvSize[m_RecvHead->m_Type] -= m_RecvHead->GetSize();
+			m_RecvSize -= m_RecvHead->GetSize();
 			m_RecvHead = RemoveHead(m_RecvHead);
 		} else {
 			if ( (n = len - m_ProxyBuff.GetSize()) <= 0 )
@@ -833,7 +832,7 @@ BOOL CExtSocket::ProxyReadBuff(int len)
 				n = m_RecvHead->GetSize();
 			m_ProxyBuff.Apend(m_RecvHead->GetPtr(), n);
 			m_RecvHead->Consume(n);
-			m_RecvSize[m_RecvHead->m_Type] -= n;
+			m_RecvSize -= n;
 			if ( m_RecvHead->GetSize() <= 0 )
 				m_RecvHead = RemoveHead(m_RecvHead);
 			if ( m_ProxyBuff.GetSize() >= len )
@@ -1232,7 +1231,7 @@ void CExtSocket::OnPreClose()
 	if ( CExtSocket::GetRecvSize() == 0 )
 		OnClose();
 	else
-		m_OnRecvFlag |= 002;
+		m_OnRecvFlag |= RECV_DOCLOSE;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1303,13 +1302,13 @@ void CExtSocket::OnSend()
 			WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), WM_SOCKSEL, m_SocketEvent);
 			return;
 		}
-		m_SendSize[m_SendHead->m_Type] -= n;
+		m_SendSize -= n;
 		if ( m_SendHead->Consume(n) <= 0 )
 			m_SendHead = RemoveHead(m_SendHead);
 	}
 	m_SocketEvent &= ~FD_WRITE;
 	WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), WM_SOCKSEL, m_SocketEvent);
-	m_OnSendFlag |= 001;
+	m_OnSendFlag |= SEND_EMPTY;
 }
 void CExtSocket::OnRecive(int nFlags)
 {
@@ -1317,24 +1316,23 @@ void CExtSocket::OnRecive(int nFlags)
 	CSockBuffer *sp;
 
 	if ( (m_SocketEvent & EventMask[nFlags]) == 0 ) {
-		if ( (m_RecvSize[nFlags] + m_ProcSize[nFlags]) < RECVMINSIZ ) {
-			m_SocketEvent |= EventMask[nFlags];
-			WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), WM_SOCKSEL, m_SocketEvent);
-//			TRACE("OnRecive SocketEvent %04x (%d)\n", m_SocketEvent, m_RecvSize[nFlags] + m_ProcSize[nFlags]);
-		} else
+		if ( m_RecvSize >= RECVMINSIZ )
 			return;
+		m_SocketEvent |= EventMask[nFlags];
+		WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), WM_SOCKSEL, m_SocketEvent);
+		TRACE("OnRecive SocketEvent On %04x (%d)\n", m_SocketEvent, m_RecvSize);
 	}
 
 	for ( i = 0 ; i < 2 ; i++ ) {
 		sp = AllocBuffer();
 		sp->m_Type = nFlags;
-		sp->Alloc(m_RecvOverSize);
+		sp->AddAlloc(RECVBUFSIZ);
 
-		n = (m_SSL_mode ? SSL_read(m_SSL_pSock, (void *)sp->GetLast(), m_RecvOverSize):
-						  ::recv(m_Fd, (char *)sp->GetLast(), m_RecvOverSize, nFlags));
+		n = (m_SSL_mode ? SSL_read(m_SSL_pSock, (void *)sp->GetLast(), RECVBUFSIZ):
+						  ::recv(m_Fd, (char *)sp->GetLast(), RECVBUFSIZ, nFlags));
 
 		if ( n > 0 )
-			sp->SetSize(n);
+			sp->AddSize(n);
 		else if ( n < 0 && m_SSL_mode && SSL_get_error(m_SSL_pSock, n) != SSL_ERROR_WANT_READ ) {
 			FreeBuffer(sp);
 			OnError(WSAENOTCONN);
@@ -1347,48 +1345,46 @@ void CExtSocket::OnRecive(int nFlags)
 		}
 
 		m_RecvHead = AddTail(sp, m_RecvHead);
-		m_RecvSize[nFlags] += sp->GetSize();
+		m_RecvSize += sp->GetSize();
 
-		if ( sp->GetSize() < m_RecvOverSize )
+		if ( sp->GetSize() < RECVBUFSIZ )
 			break;
 	}
 
-//	TRACE("OnRecive %dByte\n", m_RecvSize[nFlags]);
-
-	if ( (m_SocketEvent & EventMask[nFlags]) != 0 && m_RecvSize[nFlags] > RECVMAXSIZ ) {
+	if ( (m_SocketEvent & EventMask[nFlags]) != 0 && m_RecvSize >= RECVMAXSIZ ) {
 		m_SocketEvent &= ~EventMask[nFlags];
 		WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), WM_SOCKSEL, m_SocketEvent);
-//		TRACE("OnRecive SocketEvent %04x (%d)\n", m_SocketEvent, m_RecvSize[nFlags] + m_ProcSize[nFlags]);
+		TRACE("OnRecive SocketEvent Off %04x (%d)\n", m_SocketEvent, m_RecvSize);
 	}
 
 	ReciveCall();
 }
 int CExtSocket::ReciveCall()
 {
-	if ( m_RecvHead != NULL && m_ProxyStatus != PRST_NONE && ProxyFunc() )
-		return m_RecvSize[0] + m_RecvSize[1];
-
 	if ( m_RecvHead == NULL )
 		return 0;
 
-	if ( (m_OnRecvFlag & 001) != 0 )
-		return m_RecvSize[0] + m_RecvSize[1];
+	if ( m_ProxyStatus != PRST_NONE && ProxyFunc() )
+		return m_RecvSize;
 
-	m_OnRecvFlag |= 001;
+	if ( (m_OnRecvFlag & RECV_ACTIVE) != 0 )
+		return m_RecvSize;
+
+	m_OnRecvFlag |= RECV_ACTIVE;
 
 	OnReciveCallBack(m_RecvHead->GetPtr(), m_RecvHead->GetSize(), m_RecvHead->m_Type);
 
 	int n = m_RecvHead->m_Type;
 
-	m_RecvSize[n] -= m_RecvHead->GetSize();
+	m_RecvSize -= m_RecvHead->GetSize();
 	m_RecvHead = RemoveHead(m_RecvHead);
 
-	if ( (m_SocketEvent & EventMask[n]) == 0 && (m_RecvSize[n] + m_ProcSize[n]) < RECVMINSIZ )
+	if ( (m_SocketEvent & EventMask[n]) == 0 && m_RecvSize < RECVMINSIZ )
 		OnRecive(n);
 
-	m_OnRecvFlag &= ~001;
+	m_OnRecvFlag &= ~RECV_ACTIVE;
 
-	return m_RecvSize[0] + m_RecvSize[1];
+	return m_RecvSize;
 }
 void CExtSocket::OnReciveCallBack(void *lpBuf, int nBufLen, int nFlags)
 {
@@ -1398,53 +1394,59 @@ void CExtSocket::OnReciveCallBack(void *lpBuf, int nBufLen, int nFlags)
 	if ( nBufLen <= 0 )
 		return;
 
-	if ( (m_RecvSyncMode & 001) == 0 && m_ProcHead == NULL ) {
-		if ( (n = OnReciveProcBack((LPBYTE)lpBuf, nBufLen, nFlags)) >= nBufLen )
+	if ( (m_RecvSyncMode & SYNC_ACTIVE) == 0 && m_ProcHead == NULL ) {
+		if ( (n = OnReciveProcBack((LPBYTE)lpBuf, nBufLen, nFlags)) >= nBufLen ) {
+			if ( m_RecvSize < RECVMINSIZ )
+				OnRecvEmpty();
 			return;
+		}
 		lpBuf = (LPBYTE)lpBuf + n;
 		nBufLen -= n;
 	}
 
 	m_RecvSema.Lock();
-	if ( m_ProcHead == NULL || (sp = m_ProcHead->m_Left)->m_Type != nFlags || sp->GetSize() > RECVBUFSIZ )
+	if ( m_ProcHead == NULL || (sp = m_ProcHead->m_Left)->m_Type != nFlags || sp->GetSize() >= RECVBUFSIZ )
 		sp = AllocBuffer();
-	sp->m_Type = nFlags;
-	sp->Alloc(nBufLen);
-	memcpy(sp->GetLast(), lpBuf, nBufLen);
-	sp->SetSize(nBufLen);
+	sp->Apend((LPBYTE)lpBuf, nBufLen, nFlags);
 	if ( m_ProcHead == NULL || sp != m_ProcHead->m_Left )
 		m_ProcHead = AddTail(sp, m_ProcHead);
-	m_ProcSize[nFlags] += nBufLen;
-	if ( m_pRecvEvent != NULL && (m_RecvSyncMode & 020) != 0 )
+	m_RecvSize += nBufLen;
+	if ( m_pRecvEvent != NULL && (m_RecvSyncMode & SYNC_EVENT) != 0 )
 		m_pRecvEvent->SetEvent();
-	m_RecvSyncMode &= ~030;
+	m_RecvSyncMode &= ~(SYNC_EMPTY | SYNC_EVENT);
 	m_RecvSema.Unlock();
 
-//	TRACE("OnReciveCallBack %d\n", m_ProcSize[nFlags]);
-
-	if ( m_Fd != (-1) && (m_SocketEvent & EventMask[nFlags]) != 0 && m_ProcSize[nFlags] > m_RecvOverSize ) {
+	if ( m_Fd != (-1) && (m_SocketEvent & EventMask[nFlags]) != 0 && m_RecvSize >= RECVMAXSIZ ) {
 		m_SocketEvent &= ~EventMask[nFlags];
 		WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), WM_SOCKSEL, m_SocketEvent);
-//		TRACE("OnReciveCallBack SocketEvent %04x (%d)\n", m_SocketEvent, m_RecvSize[nFlags] + m_ProcSize[nFlags]);
+		TRACE("OnReciveCallBack SocketEvent Off %04x (%d)\n", m_SocketEvent, m_RecvSize);
 	}
 }
 int CExtSocket::ReciveProc()
 {
 	int n;
-	if ( (m_RecvSyncMode & 001) == 0 ) {
+	if ( (m_RecvSyncMode & SYNC_ACTIVE) == 0 ) {
 		if ( m_ProcHead != NULL && (n = OnReciveProcBack(m_ProcHead->GetPtr(), m_ProcHead->GetSize(), m_ProcHead->m_Type)) > 0 ) {
 			int i = m_ProcHead->m_Type;
-			m_ProcSize[i] -= n;
+			m_RecvSize -= n;
 			if ( m_ProcHead->Consume(n) <= 0 )
 				m_ProcHead = RemoveHead(m_ProcHead);
-			if ( m_Fd != (-1) && (m_SocketEvent & EventMask[i]) == 0 && (m_RecvSize[i] + m_ProcSize[i]) < RECVMINSIZ )
-				OnRecive(i);
-			OnRecvEmpty();
+			if ( m_RecvSize < RECVMINSIZ ) {
+				OnRecvEmpty();
+				if ( m_Fd != (-1) && (m_SocketEvent & EventMask[i]) == 0 )
+					OnRecive(i);
+			}
 			return TRUE;
 		}
-	} else if ( (m_RecvSyncMode & 010) != 0 ) {
-		m_RecvSyncMode &= ~010;
+	} else if ( (m_RecvSyncMode & SYNC_EMPTY) != 0 ) {
+		m_RecvSyncMode &= ~SYNC_EMPTY;
 		OnRecvEmpty();
+		if ( m_Fd != (-1) ) {
+			if ( (m_SocketEvent & EventMask[0]) == 0 )
+				OnRecive(0);
+			if ( (m_SocketEvent & EventMask[1]) == 0 )
+				OnRecive(1);
+		}
 	}
 	return FALSE;
 }
@@ -1462,8 +1464,8 @@ int CExtSocket::OnIdle()
 		return TRUE;
 	}
 
-	if ( (m_OnSendFlag & 001) != 0 ) {
-		m_OnSendFlag &= ~001;
+	if ( (m_OnSendFlag & SEND_EMPTY) != 0 ) {
+		m_OnSendFlag &= ~SEND_EMPTY;
 		OnSendEmpty();
 	}
 
@@ -1473,8 +1475,8 @@ int CExtSocket::OnIdle()
 	if ( ReciveProc() )
 		return TRUE;
 
-	if ( (m_OnRecvFlag & 002) != 0 && CExtSocket::GetRecvSize() == 0 ) {
-		m_OnRecvFlag &= ~002;
+	if ( (m_OnRecvFlag & RECV_DOCLOSE) != 0 && GetRecvSize() == 0 ) {
+		m_OnRecvFlag &= ~RECV_DOCLOSE;
 		OnClose();
 	}
 

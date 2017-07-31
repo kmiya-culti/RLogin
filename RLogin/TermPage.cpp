@@ -26,56 +26,70 @@ IMPLEMENT_DYNCREATE(CTermPage, CPropertyPage)
 #define	IDC_CHECKFAST	IDC_TERMCHECK1
 static const int CheckOptTab[] = { TO_RLBOLD, TO_RLGNDW, TO_RLGCWA, TO_RLUNIAWH, TO_RLKANAUTO };
 
-static const LV_COLUMN InitListTab[2] = {
-		{ LVCF_TEXT | LVCF_WIDTH, 0,  80,	"Mode",			0, 0 },
-		{ LVCF_TEXT | LVCF_WIDTH, 0,  200,	"Description",	0, 0 },
+static const LV_COLUMN InitListTab[3] = {
+		{ LVCF_TEXT | LVCF_WIDTH, 0,  60,	"番号",				0, 0 },
+		{ LVCF_TEXT | LVCF_WIDTH, 0,  150,	"セット時の動作",	0, 0 },
+		{ LVCF_TEXT | LVCF_WIDTH, 0,  150,	"リセット時の動作",	0, 0 },
 	};
 
 static const struct _OptListTab {
 	int		num;
-	LPCSTR	name;
+	LPCSTR	ename;
+	LPCSTR	dname;
 } OptListTab[] = {
 	// ANSI Screen Option	0-99(200-299)
-	{	TO_ANSIKAM,		"Keyboard action disabled"			},
-	{	TO_ANSIIRM,		"Insertion replacement mode"		},
-	{	TO_ANSIERM,		"Erasure mode"						},
-	{	TO_ANSISRM,		"Local echo disabled"				},
-	{	TO_ANSITSM,		"Tabulation stop mode"				},
-	{	TO_ANSILNM,		"Line feed/New line mode"			},
+	{	TO_ANSIKAM,		"キー入力を無視",				"キー入力を有効"				},
+	{	TO_ANSIIRM,		"挿入モード",					"上書きモード"					},
+	{	TO_ANSIERM,		"SPAの保護を無効",				"SPAの保護を有効"				},
+	{	TO_ANSISRM,		"ローカルエコーを無効",			"ローカルエコーを有効"			},
+	{	TO_ANSITSM,		"各行別のタブ設定",				"全行で同じタブ設定"			},
+	{	TO_ANSILNM,		"LF/VT/FFで行頭に移動",			"LF/VT/FFで通常動作"			},
 
 	// DEC Terminal Option	0-199
-	{	TO_DECCKM,		"Cursor key mode"					},
-	{	TO_DECANM,		"ANSI/VT52 mode"					},
-	{	TO_DECCOLM,		"132/80 Column mode"				},
-	{	TO_DECSCLM,		"Scrolling mode"					},
-	{	TO_DECSCNM,		"Black/White Screen mode"			},
-	{	TO_DECOM,		"Origin mode"						},
-	{	TO_DECAWM,		"Autowrap mode"						},
-	{	TO_XTMOSREP,	"X10 mouse reporting"				},
-	{	TO_DECPEX,		"Print extent mode"					},
-	{	TO_DECTCEM,		"Text Cursor enable mode"			},
-//	{	TO_DECTEK,		"Graphics (Tek)"					},
-	{	TO_XTMCSC,		"Column switch control"				},
-	{	TO_XTMCUS,		"XTerm tab wrap bugfix"				},
-	{	TO_XTMRVW,		"Reverse-wraparound mode"			},
-	{	TO_XTMABUF,		"Alternate Screen mode"				},
-	{	TO_DECBKM,		"Backarrow key mode"				},
-	{	TO_DECECM,		"SGR space color disable"			},
+	{	TO_DECCKM,		"CKM有効のキーコードを送信",	"CKM無効のキーコードを送信"		},
+	{	TO_DECANM,		"VT100(ANSI)モード",			"VT52モード"					},
+	{	TO_DECCOLM,		"132文字表示モード",			"80文字表示モード"				},
+	{	TO_DECSCLM,		"スムーズスクロールモード",		"ジャンプスクロールモード"		},
+	{	TO_DECSCNM,		"反転表示モード",				"通常表示モード"				},
+	{	TO_DECOM,		"CUPでSTBMの影響を受ける",		"CUPで常に同じ原点"				},
+	{	TO_DECAWM,		"行末のオートワープを有効",		"行末を超える移動を行わない"	},
+	{	TO_XTMOSREP,	"マウスリポートを有効",			"マウスリポートを無効"			},
+	{	TO_DECPEX,		"MCでSTBMの影響を受けない",		"MCでSTRMの影響を受ける"		},
+	{	TO_DECTCEM,		"カーソルの表示",				"カーソルを非表示"				},
+//	{	TO_DECTEK,		"Tekモードに移行",				"Tekモードから抜ける"			},
+	{	TO_XTMCSC,		"132文字モード有効",			"132文字モード無効"				},
+	{	TO_XTMCUS,		"タブ(HT)のバグ修正モード",		"xtermタブバグ互換モード"		},
+	{	TO_XTMRVW,		"行頭BSによる上行右端移動",		"行頭のBSで移動しない"			},
+	{	TO_XTMABUF,		"全画面の保存",					"保存した画面の復帰"			},
+	{	TO_DECBKM,		"BSキー変換を行わない",			"BSキーをDELキーに変換"			},
+	{	TO_DECECM,		"SGRで空白文字を設定しない",	"SGRで空白文字カラーを設定"		},
 
 	// XTerm Option			1000-1099(300-379)
-	{	TO_XTNOMTRK,	"X11 normal mouse tracking"			},
-	{	TO_XTHILTRK,	"X11 hilite mouse tracking"			},
-	{	TO_XTBEVTRK,	"X11 button-event mouse tracking"	},
-	{	TO_XTAEVTRK,	"X11 any-event mouse tracking"		},
-	{	TO_XTFOCEVT,	"Send Focus Event"					},
-	{	TO_XTALTSCR,	"Alternate/Normal screen buffer"	},
-	{	TO_XTSRCUR,		"Save/Restore cursor"				},
-	{	TO_XTALTCLR,	"Alternate screen with clearing"	},
+	{	TO_XTNOMTRK,	"Normal mouse tracking",		"Mouse tracking 無効"			},
+	{	TO_XTHILTRK,	"Hilite mouse tracking",		"Mouse tracking 無効"			},
+	{	TO_XTBEVTRK,	"Button-event mouse tracking",	"Mouse tracking 無効"			},
+	{	TO_XTAEVTRK,	"Any-event mouse tracking",		"Mouse tracking 無効"			},
+	{	TO_XTFOCEVT,	"フォーカスイベントの有効",		"フォーカスイベント無効"		},
+	{	TO_XTALTSCR,	"全画面の保存",					"保存した画面の復帰"			},
+	{	TO_XTSRCUR,		"カーソル位置の保存",			"保存したカーソル位置の復帰"	},
+	{	TO_XTALTCLR,	"拡張画面に切り換え",			"標準画面に切り換え"			},
 
 	// XTerm Option 2		2000-2019(380-399)
-	{	TO_XTBRPAMD,	"Bracketed Paste Mode"				},
+	{	TO_XTBRPAMD,	"Bracketed Paste Mode 有効",	"Bracketed Paste Mode 無効"		},
 
 	// RLogin Option		8400-8511(400-511)
+	{	TO_RLGCWA,		"SGRで空白属性を設定しない",	"SGRで空白文字属性を設定"		},
+	{	TO_RLGNDW,		"行末での遅延改行無効",			"行末での遅延改行有効"			},
+	{	TO_RLGAWL,		"自動ブラウザ起動をする",		"自動ブラウザ起動無効"			},
+	{	TO_RLBOLD,		"ボールド文字有効",				"ボールド文字無効"				},
+	{	TO_RLBPLUS,		"BPlus/ZModem/Kermit自動",		"自動ファイル転送無効"			},
+	{	TO_RLUNIAWH,	"Aタイプを半角で表示",			"Aタイプを全角で表示"			},
+	{	TO_RLNORESZ,	"DECCOLMでリサイズ",			"ウィンドウをリサイズしない"	},
+	{	TO_RLKANAUTO,	"漢字コードを自動追従",			"漢字コードを変更しない"		},
+	{	TO_RLMOSWHL,	"ホイールの通常動作",			"ホイールをヌルヌルにする"		},
+	{	TO_RLMSWAPP,	"ホイールでスクロールのみ",		"ホイールでキーコード発生"		},
+	{	TO_RLPNAM,		"ノーマルモード(DECPNM)",		"アプリモード(DECPAM)"			},
+	{	TO_IMECTRL,		"IMEオープン",					"IMEクロース"					},
 
 	{	0,				NULL	}
 };
@@ -140,10 +154,10 @@ BOOL CTermPage::OnInitDialog()
 	m_TtlCng  = (m_pSheet->m_pTextRam->m_TitleMode & WTTL_CHENG)  ? TRUE : FALSE;
 
 	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_CHECKBOXES);
-	m_List.InitColumn("TermPageOpt", InitListTab, 2);
+	m_List.InitColumn("TermPageOpt", InitListTab, 3);
 
 	m_List.DeleteAllItems();
-	for ( n = 0 ; OptListTab[n].name != NULL ; n++ ) {
+	for ( n = 0 ; OptListTab[n].ename != NULL ; n++ ) {
 		if ( OptListTab[n].num < 200) {				// DEC Terminal Option	0-199
 			str.Format("?%d", OptListTab[n].num);
 		} else if ( OptListTab[n].num < 300 ) {		// ANSI Screen Option	0-99(200-299)
@@ -156,7 +170,8 @@ BOOL CTermPage::OnInitDialog()
 			str.Format("?%d", OptListTab[n].num + 8000);
 		}
 		m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, n, str, 0, 0, 0, n);
-		m_List.SetItemText(n, 1, OptListTab[n].name);
+		m_List.SetItemText(n, 1, OptListTab[n].ename);
+		m_List.SetItemText(n, 2, OptListTab[n].dname);
 		m_List.SetLVCheck(n,  m_pSheet->m_pTextRam->IsOptEnable(OptListTab[n].num) ? TRUE : FALSE);
 	}
 
@@ -184,7 +199,7 @@ BOOL CTermPage::OnApply()
 	if ( m_TtlCng )
 		m_pSheet->m_pTextRam->m_TitleMode |= WTTL_CHENG;
 
-	for ( int n = 0 ; OptListTab[n].name != NULL ; n++ ) {
+	for ( int n = 0 ; OptListTab[n].ename != NULL ; n++ ) {
 		if ( m_List.GetLVCheck(n) ) {
 			if ( m_pSheet->m_pTextRam->IsOptEnable(OptListTab[n].num) )
 				continue;
@@ -258,7 +273,7 @@ void CTermPage::OnReset()
 	m_TtlRep  = (m_pSheet->m_pTextRam->m_TitleMode & WTTL_REPORT) ? TRUE : FALSE;
 	m_TtlCng  = (m_pSheet->m_pTextRam->m_TitleMode & WTTL_CHENG)  ? TRUE : FALSE;
 
-	for ( int n = 0 ; OptListTab[n].name != NULL ; n++ )
+	for ( int n = 0 ; OptListTab[n].ename != NULL ; n++ )
 		m_List.SetLVCheck(n,  m_pSheet->m_pTextRam->IsOptEnable(OptListTab[n].num) ? TRUE : FALSE);
 
 	UpdateData(FALSE);

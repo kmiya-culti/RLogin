@@ -930,7 +930,7 @@ void CTextRam::SetArray(CStringArrayExt &array)
 	tmp.SetString(str, ';');
 	array.Add(str);
 
-	array.AddVal(3);	// AnsiOpt Bugfix
+	array.AddVal(4);	// AnsiOpt Bugfix
 	array.AddVal(m_TitleMode);
 	array.Add(m_SendCharSet[4]);
 }
@@ -1011,6 +1011,8 @@ void CTextRam::GetArray(CStringArrayExt &array)
 		EnableOption(TO_DECBKM);	// ?67 Backarrow key mode (BS
 		EnableOption(TO_ANSISRM);	//  12 SRM Set Send/Receive mode (Local echo off)
 	}
+	if ( n < 4 )
+		EnableOption(TO_ANSISRM);	//  12 SRM Set Send/Receive mode (Local echo off)
 	memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_DefAnsiOpt));
 
 	if ( array.GetSize() > 38 )
@@ -2872,7 +2874,7 @@ void CTextRam::ERABOX(int sx, int sy, int ex, int ey, int df)
 	if ( ex < sx ) return; else if ( ex > m_Cols  ) ex = m_Cols;
 	if ( ey < sy ) return; else if ( ey > m_Lines ) ey = m_Lines;
 
-	if ( (df & EM_ISOPROTECT) != 0 && IsOptEnable(TO_ANSIERM) )
+	if ( (df & ERM_ISOPRO) != 0 && IsOptEnable(TO_ANSIERM) )
 		df &= ~ERM_ISOPRO;
 
 	for ( y = sy ; y < ey ; y++ ) {

@@ -327,7 +327,7 @@ int CSyncSock::Bufferd_ReciveSize()
 {
 	if ( m_pDoc->m_pSock == NULL || m_DoAbortFlag )
 		return 0;
-	return m_pDoc->m_pSock->SyncRecvSize() + m_RecvBuf.GetSize();
+	return m_pDoc->m_pSock->GetRecvSize() + m_RecvBuf.GetSize();
 }
 void CSyncSock::SetXonXoff(int sw)
 {
