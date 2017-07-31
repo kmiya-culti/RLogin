@@ -914,6 +914,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\AnyPastDlg.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\AutoRenDlg.cpp"
 				>
 			</File>
@@ -1313,6 +1317,10 @@
 			>
 			<File
 				RelativePath=".\AlgoDlg.h"
+				>
+			</File>
+			<File
+				RelativePath=".\AnyPastDlg.h"
 				>
 			</File>
 			<File

@@ -13,6 +13,7 @@
 #include "Data.h"
 #include "SearchDlg.h"
 #include "Script.h"
+#include "AnyPastDlg.h"
 
 #include <imm.h>
 
@@ -112,6 +113,7 @@ CRLoginView::CRLoginView()
 	m_GoziStyle = (8 << 4) | 9;
 	m_GoziCount = 4 + rand() % 28;
 	m_GoziPos.SetPoint(0, 0);
+	m_PastNoCheck = FALSE;
 
 #ifdef	USE_DIRECTWRITE
 	m_pRenderTarget = NULL;
@@ -1763,7 +1765,7 @@ void CRLoginView::OnRButtonUp(UINT nFlags, CPoint point)
 void CRLoginView::OnEditPaste() 
 {
 	HGLOBAL hData;
-	WCHAR *pData;
+	WCHAR *pData, *pStr;
 	CBuffer tmp;
 	int cr = 0;
 	int ct = 0;
@@ -1777,7 +1779,7 @@ void CRLoginView::OnEditPaste()
 		return;
 	}
 
-	if ( (pData = (WCHAR *)GlobalLock(hData)) == NULL ) {
+	if ( (pStr = (WCHAR *)GlobalLock(hData)) == NULL ) {
         CloseClipboard();
         return;
     }
@@ -1785,7 +1787,7 @@ void CRLoginView::OnEditPaste()
 	if ( pDoc->m_TextRam.IsOptEnable(TO_XTBRPAMD) )
 		tmp.Apend((LPBYTE)(L"\033[200~"), 6 * sizeof(WCHAR));
 
-	for ( ; *pData != 0 ; pData++ ) {
+	for ( pData = pStr ; *pData != 0 ; pData++ ) {
 		if ( *pData != L'\x0A' && *pData != L'\x1A' ) {
 			tmp.Apend((LPBYTE)pData, sizeof(WCHAR));
 			if ( *pData == L'\x0D' )
@@ -1801,9 +1803,17 @@ void CRLoginView::OnEditPaste()
 	GlobalUnlock(hData);
 	CloseClipboard();
 
-	if ( (tmp.GetSize() / sizeof(WCHAR)) > 1000 || cr > 10 || ct > 10 ) {
-		if ( MessageBox(CStringLoad(IDE_MESSAGE_ANYPASTE), _T("Question"), MB_ICONQUESTION | MB_YESNO) != IDYES )
+	//if ( (tmp.GetSize() / sizeof(WCHAR)) > 1000 || cr > 10 || ct > 10 ) {
+	//	if ( MessageBox(CStringLoad(IDE_MESSAGE_ANYPASTE), _T("Question"), MB_ICONQUESTION | MB_YESNO) != IDYES )
+	//		return;
+	//}
+
+	if ( m_PastNoCheck == FALSE && ((tmp.GetSize() / sizeof(WCHAR)) > 1000 || cr > 0 || ct > 0) ) {
+		CAnyPastDlg dlg;
+		dlg.m_TextBox = pStr;
+		if ( dlg.DoModal() != IDOK )
 			return;
+		m_PastNoCheck = dlg.m_NoCheck;
 	}
 	
 	SendBuffer(tmp);

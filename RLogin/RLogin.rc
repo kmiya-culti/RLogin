@@ -437,7 +437,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.14.2 (2013/03/23)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.14.3 (2013/04/25)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2013 Culti",IDC_STATIC,47,15,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,148,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.1e Feb 11th, 2013",IDC_STATIC,47,29,176,8
@@ -1389,6 +1389,19 @@ BEGIN
     CONTROL         "modifyKeysがメニューのショートカットキー設定より優先する",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,221,217,10
 END
 
+IDD_ANYPASTDIG DIALOGEX 0, 0, 270, 201
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "ペースト確認"
+FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,105,180,60,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,188,180,60,14
+    EDITTEXT        IDC_TEXTBOX,7,35,256,138,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_READONLY
+    LTEXT           "改行やコントロールコードを含む文字列もしくは、多くの文字数をペーストしようとしています。送信しますか？",IDC_MESSAGE,33,7,230,20
+    ICON            "",IDC_ICONBOX,7,7,20,20
+    CONTROL         "次回から確認しない",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,20,179,74,10
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1396,8 +1409,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,14,2,0
- PRODUCTVERSION 2,14,2,0
+ FILEVERSION 2,14,3,0
+ PRODUCTVERSION 2,14,3,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1414,12 +1427,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.14.2.0"
+            VALUE "FileVersion", "2.14.3.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2013 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.14.2.0"
+            VALUE "ProductVersion", "2.14.3.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -1787,6 +1800,14 @@ BEGIN
         RIGHTMARGIN, 244
         TOPMARGIN, 7
         BOTTOMMARGIN, 263
+    END
+
+    IDD_ANYPASTDIG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 263
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 194
     END
 END
 #endif    // APSTUDIO_INVOKED

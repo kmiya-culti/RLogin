@@ -53,6 +53,7 @@ public:
 	volatile BOOL m_BroadCast;
 	int m_WheelDelta;
 	BOOL m_WheelTimer;
+	BOOL m_PastNoCheck;
 
 	int m_ClipFlag;
 	int m_ClipStaPos, m_ClipEndPos;

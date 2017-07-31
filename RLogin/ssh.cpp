@@ -1101,6 +1101,9 @@ void Cssh::ChannelPolling(int id)
 	CBuffer tmp;
 	CChannel *cp = (CChannel *)m_pChan[id];
 
+	if ( (m_SSH2Status & SSH2_STAT_SENTKEXINIT) != 0 )
+		return;
+
 	if ( (n = cp->m_LocalComs - cp->GetSendSize()) >= (cp->m_LocalWind / 2) ) {
 		tmp.Clear();
 		tmp.Put8Bit(SSH2_MSG_CHANNEL_WINDOW_ADJUST);
