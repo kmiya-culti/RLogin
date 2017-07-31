@@ -3099,7 +3099,7 @@ void CKeyMacTab::SetHisMenu(CWnd *pWnd)
 //////////////////////////////////////////////////////////////////////
 // CParamTab
 
-static LPCTSTR InitAlgo[12][40] = {
+static LPCTSTR InitAlgo[12][45] = {
 	{ _T("blowfish"), _T("3des"), _T("des"), NULL },
 	{ _T("crc32"), NULL },
 	{ _T("zlib"), _T("none"), NULL },
@@ -3118,6 +3118,11 @@ static LPCTSTR InitAlgo[12][40] = {
 	  _T("camellia128-ctr"),				_T("camellia192-ctr"),				_T("camellia256-ctr"),
 	  _T("camellia128-cbc"),				_T("camellia192-cbc"),				_T("camellia256-cbc"),
 	  _T("seed-ctr@ssh.com"),				_T("seed-cbc@ssh.com"),
+#if	SSLEAY_VERSION_NUMBER >= 0x10001000L
+	  _T("AEAD_AES_128_GCM"),				_T("AEAD_AES_256_GCM"),
+	  _T("AEAD_AES_128_CCM"),				_T("AEAD_AES_256_CCM"),
+#endif
+	  _T("none"),
 	  NULL },
 
 	{ _T("hmac-md5"),				_T("hmac-md5-96"),			_T("hmac-sha1"),			_T("hmac-sha1-96"),
@@ -3142,6 +3147,11 @@ static LPCTSTR InitAlgo[12][40] = {
 	  _T("camellia128-ctr"),				_T("camellia192-ctr"),				_T("camellia256-ctr"),
 	  _T("camellia128-cbc"),				_T("camellia192-cbc"),				_T("camellia256-cbc"),
 	  _T("seed-ctr@ssh.com"),				_T("seed-cbc@ssh.com"),
+#if	SSLEAY_VERSION_NUMBER >= 0x10001000L
+	  _T("AEAD_AES_128_GCM"),				_T("AEAD_AES_256_GCM"),
+	  _T("AEAD_AES_128_CCM"),				_T("AEAD_AES_256_CCM"),
+#endif
+	  _T("none"),
 	  NULL },
 
 	{ _T("hmac-md5"),				_T("hmac-md5-96"),			_T("hmac-sha1"),			_T("hmac-sha1-96"),

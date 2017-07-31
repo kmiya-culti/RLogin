@@ -91,6 +91,10 @@
 #define SSH2_CIPHER_SEP192R		106		// serpent191-ctr 
 #define SSH2_CIPHER_SEP256R		107		// serpent256-ctr 
 
+#define SSH2_CIPHER_GCM128		110		// aes128-gcm
+#define SSH2_CIPHER_GCM192		111		// aes192-gcm
+#define SSH2_CIPHER_GCM256		112		// aes256-gcm
+
 #define	COMPLEVEL		6
 
 #define	MODE_ENC		0
@@ -108,6 +112,7 @@ public:
 	EVP_CIPHER_CTX m_Evp;
 
 	int Init(LPCTSTR name, int mode, LPBYTE key = NULL, int len = (-1), LPBYTE iv = NULL);
+	void Close();
 	void Cipher(LPBYTE inbuf, int len, CBuffer *out);
 	int GetIndex(LPCTSTR name);
 	int GetKeyLen(LPCTSTR name = NULL);

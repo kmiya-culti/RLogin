@@ -254,6 +254,10 @@ BOOL CExtSocket::ProxyOpen(int mode, LPCTSTR ProxyHost, UINT ProxyPort, LPCTSTR 
 	case 1: m_SSL_mode = 1; break;	// SSLv2
 	case 2: m_SSL_mode = 2; break;	// SSLv3
 	case 3: m_SSL_mode = 3; break;	// TLSv1
+#if	SSLEAY_VERSION_NUMBER >= 0x10001000L
+	case 4: m_SSL_mode = 4; break;	// TLSv1.1
+	case 5: m_SSL_mode = 5; break;	// TLSv1.2
+#endif
 	}
 
 	m_ProxyHost = RealHost;
@@ -1730,6 +1734,14 @@ int CExtSocket::SSLConnect()
 	case 3:
 		method = TLSv1_client_method();
 		break;
+#if	SSLEAY_VERSION_NUMBER >= 0x10001000L
+	case 4:
+		method = TLSv1_1_client_method();
+		break;
+	case 5:
+		method = TLSv1_2_client_method();
+		break;
+#endif
 	}
 
 	if ( (m_SSL_pCtx = SSL_CTX_new((SSL_METHOD *)method)) == NULL )

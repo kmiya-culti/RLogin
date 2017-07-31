@@ -63,14 +63,6 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
 	CIdKey IdKey, *pKey;
 
-	//CStringA tmp;
-	//CCipher::BenchMark(tmp);
-	//CExtSocket::OnReciveCallBack((void *)(LPCSTR)tmp, tmp.GetLength(), 0);
-
-	//CString tmp;
-	//CMacomp::BenchMark(tmp);
-	//CExtSocket::OnReciveCallBack((void *)(LPCSTR)tmp, tmp.GetLength(), 0);
-
 	m_SSHVer = 0;
 	m_ServerVerStr = _T("");
 	m_ClientVerStr = _T("");
@@ -101,9 +93,16 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 	m_IdKey.Close();
 	m_IdKeyTab.RemoveAll();
 	m_IdKeyPos = 0;
-	SetRecvBufSize(64 * 1024);
-
+	SetRecvBufSize(CHAN_SES_PACKET_DEFAULT * 4);
 	srand((UINT)time(NULL));
+
+	//CStringA tmp;
+	//CCipher::BenchMark(tmp);
+	//CExtSocket::OnReciveCallBack((void *)(LPCSTR)tmp, tmp.GetLength(), 0);
+
+	//CString tmp;
+	//CMacomp::BenchMark(tmp);
+	//CExtSocket::OnReciveCallBack((void *)(LPCSTR)tmp, tmp.GetLength(), 0);
 
 	if ( !m_pDocument->m_ServerEntry.m_IdkeyName.IsEmpty() ) {
 		if ( !IdKey.LoadPrivateKey(m_pDocument->m_ServerEntry.m_IdkeyName, m_pDocument->m_ServerEntry.m_PassName) ) {
@@ -2688,8 +2687,8 @@ void Cssh::RecivePacket2(CBuffer *bp)
 			m_StdChan = ChannelOpen();
 			m_Chan[m_StdChan].m_pFilter = new CStdIoFilter;
 			m_Chan[m_StdChan].m_pFilter->m_pChan = &(m_Chan[m_StdChan]);
-			m_Chan[m_StdChan].m_LocalPacks = 2 * 1024;
-			m_Chan[m_StdChan].m_LocalWind = 16 * m_Chan[m_StdChan].m_LocalPacks;
+			m_Chan[m_StdChan].m_LocalPacks = 4 * 1024;
+			m_Chan[m_StdChan].m_LocalWind  = 32 * m_Chan[m_StdChan].m_LocalPacks;
 			SendMsgChannelOpen(m_StdChan, "session");
 		}
 		if ( (m_SSH2Status & SSH2_STAT_HAVEPFWD) == 0 ) {

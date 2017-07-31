@@ -21,6 +21,8 @@
 
 #include <direct.h>
 #include <openssl/ssl.h>
+#include <openssl/engine.h>
+#include <openssl/conf.h>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -811,8 +813,9 @@ void CRLoginApp::OnAppAbout()
 	aboutDlg.DoModal();
 }
 
-
 // CRLoginApp メッセージ ハンドラ
+
+int mt_idle();
 
 BOOL CRLoginApp::OnIdle(LONG lCount) 
 {
@@ -829,12 +832,20 @@ BOOL CRLoginApp::OnIdle(LONG lCount)
 			return TRUE;
 	}
 
-	return FALSE;
+//	return FALSE;
+	return mt_idle();
 }
 
 int CRLoginApp::ExitInstance() 
 {
+	CONF_modules_unload(1);
+	CONF_modules_free();
+	EVP_cleanup();
+	ENGINE_cleanup();
 	CRYPTO_cleanup_all_ex_data();
+	ERR_remove_state(0);
+	ERR_free_strings();
+
 #ifndef	WINSOCK11
 	WSACleanup();
 #endif
