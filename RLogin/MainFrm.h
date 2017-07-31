@@ -20,6 +20,8 @@
 #define	PANEFRAME_WSPLIT		5
 #define	PANEFRAME_HSPLIT		6
 
+#define	PANEMINSIZE				50
+
 class CPaneFrame : public CObject
 {
 public:
@@ -39,6 +41,7 @@ public:
 
 	void Attach(HWND hWnd);
 	void CreatePane(int Style, HWND hWnd);
+	CPaneFrame *InsertPane();
 	class CPaneFrame *DeletePane(HWND hWnd);
 	class CPaneFrame *GetPane(HWND hWnd);
 	class CPaneFrame *GetActive();
@@ -182,6 +185,9 @@ public:
 
 	void GetFrameRect(CRect &frame);
 	void AdjustRect(CRect &rect);
+
+	void SplitWidthPane();
+	void SplitHeightPane();
 
 	CPaneFrame *m_pTrackPane;
 	CRect m_TrackRect;

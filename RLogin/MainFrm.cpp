@@ -94,8 +94,33 @@ void CPaneFrame::CreatePane(int Style, HWND hWnd)
 		break;
 	}
 
+	if ( m_pLeft->m_Frame.Width() < PANEMINSIZE || m_pLeft->m_Frame.Height() < PANEMINSIZE || m_pRight->m_Frame.Width() < PANEMINSIZE || m_pRight->m_Frame.Height() < PANEMINSIZE ) {
+		m_Style = PANEFRAME_MAXIM;
+		m_pLeft->m_Frame  = m_Frame;
+		m_pRight->m_Frame = m_Frame;
+	}
+
 	m_pLeft->MoveFrame();
 	m_pRight->MoveFrame();
+}
+CPaneFrame *CPaneFrame::InsertPane()
+{
+	CPaneFrame *pPane = new CPaneFrame(m_pMain, NULL, m_pOwn);
+
+	pPane->m_Style  = PANEFRAME_MAXIM;
+	pPane->m_Frame  = m_Frame;
+	pPane->m_pLeft  = this;
+	pPane->m_pRight = new CPaneFrame(m_pMain, NULL, pPane);
+
+	if ( m_pOwn != NULL ) {
+		if ( m_pOwn->m_pLeft == this )
+			m_pOwn->m_pLeft = pPane;
+		else if ( m_pOwn->m_pRight == this )
+			m_pOwn->m_pRight = pPane;
+	}
+	m_pOwn = pPane;
+
+	return pPane;
 }
 class CPaneFrame *CPaneFrame::DeletePane(HWND hWnd)
 {
@@ -326,6 +351,7 @@ void CPaneFrame::MoveParOwn(CRect &rect, int Style)
 			m_Style = Style;
 			left.right = left.left + (rect.Width() - m_BoderSize) / 2;
 			right.left = left.right + m_BoderSize;
+			Style = PANEFRAME_NOCHNG;
 			break;
 
 		case PANEFRAME_HEIGHT:
@@ -334,6 +360,7 @@ void CPaneFrame::MoveParOwn(CRect &rect, int Style)
 			m_Style = Style;
 			left.bottom = left.top + (rect.Height() - m_BoderSize) / 2;
 			right.top   = left.bottom + m_BoderSize;
+			Style = PANEFRAME_NOCHNG;
 			break;
 
 		case PANEFRAME_WSPLIT:
@@ -349,6 +376,13 @@ void CPaneFrame::MoveParOwn(CRect &rect, int Style)
 			right.top   = left.bottom + m_BoderSize;
 			Style = PANEFRAME_WSPLIT;
 			break;
+		}
+
+
+		if ( left.Width() < PANEMINSIZE || left.Height() < PANEMINSIZE || right.Width() < PANEMINSIZE || right.Height() < PANEMINSIZE ) {
+			m_Style = PANEFRAME_MAXIM;
+			left    = rect;
+			right   = rect;
 		}
 
 		m_Frame = rect;
@@ -1568,6 +1602,43 @@ void CMainFrame::RecalcLayout(BOOL bNotify)
 	CRect rect;
 	GetFrameRect(rect);
 	m_pTopPane->MoveParOwn(rect, PANEFRAME_NOCHNG);
+}
+
+void CMainFrame::SplitWidthPane()
+{
+	if ( m_pTopPane == NULL )
+		m_pTopPane = new CPaneFrame(this, NULL, NULL);
+
+	CPaneFrame *pPane = m_pTopPane->GetActive();
+
+	if ( pPane->m_pOwn == NULL || pPane->m_pOwn->m_Style != PANEFRAME_MAXIM )
+		pPane->CreatePane(PANEFRAME_WIDTH, NULL);
+	else {
+		while ( pPane->m_pOwn != NULL && pPane->m_pOwn->m_Style == PANEFRAME_MAXIM )
+			pPane = pPane->m_pOwn;
+		pPane = pPane->InsertPane();
+		if ( pPane->m_pOwn == NULL )
+			m_pTopPane = pPane;
+		pPane->MoveParOwn(pPane->m_Frame, PANEFRAME_WIDTH);
+	}
+}
+void CMainFrame::SplitHeightPane()
+{
+	if ( m_pTopPane == NULL )
+		m_pTopPane = new CPaneFrame(this, NULL, NULL);
+
+	CPaneFrame *pPane = m_pTopPane->GetActive();
+
+	if ( pPane->m_pOwn == NULL || pPane->m_pOwn->m_Style != PANEFRAME_MAXIM )
+		pPane->CreatePane(PANEFRAME_HEIGHT, NULL);
+	else {
+		while ( pPane->m_pOwn != NULL && pPane->m_pOwn->m_Style == PANEFRAME_MAXIM )
+			pPane = pPane->m_pOwn;
+		pPane = pPane->InsertPane();
+		if ( pPane->m_pOwn == NULL )
+			m_pTopPane = pPane;
+		pPane->MoveParOwn(pPane->m_Frame, PANEFRAME_HEIGHT);
+	}
 }
 
 void CMainFrame::OnPaneWsplit() 

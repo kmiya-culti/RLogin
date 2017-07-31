@@ -2095,7 +2095,8 @@ void CRLoginView::OnSplitHeight()
 	if ( pMain == NULL )
 		return;
 
-	pMain->SendMessage(WM_COMMAND, ID_PANE_HSPLIT);
+//	pMain->SendMessage(WM_COMMAND, ID_PANE_HSPLIT);
+	pMain->SplitHeightPane();
 	OnSplitOver();
 }
 void CRLoginView::OnSplitWidth()
@@ -2105,7 +2106,8 @@ void CRLoginView::OnSplitWidth()
 	if ( pMain == NULL )
 		return;
 
-	pMain->SendMessage(WM_COMMAND, ID_PANE_WSPLIT);
+//	pMain->SendMessage(WM_COMMAND, ID_PANE_WSPLIT);
+	pMain->SplitWidthPane();
 	OnSplitOver();
 }
 void CRLoginView::OnSplitOver()

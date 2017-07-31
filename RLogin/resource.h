@@ -625,21 +625,12 @@
 #define ID_VIEW_SCROLLBAR               5048
 #define ID_SEARCH_BACK                  5050
 #define IDM_SERV_EXCHNG                 5051
-#define ID_5052                         5052
 #define ID_GOZIVIEW                     5053
-#define ID_5054                         5054
-#define ID_5055                         5055
-#define ID_5056                         5056
 #define ID_SPLIT_WIDTH                  5057
 #define ID_SPLIT_HEIGHT                 5058
-#define ID_5059                         5059
 #define ID_SPLIT_OVER                   5060
-#define ID_5061                         5061
 #define ID_WINDOW_ROTATION              5062
-#define ID_5063                         5063
 #define ID_VIEW_MENUBAR                 5064
-#define ID_5065                         5065
-#define ID_5066                         5066
 #define IDM_WINODW_NEXT                 5067
 #define IDM_WINDOW_PREV                 5068
 
