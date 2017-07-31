@@ -2583,10 +2583,10 @@ void CTextRam::fc_DECDSR(int ch)
 		UNGETSTR("\033[?27;1n");	// North American/ASCII
 		break;
 	case 55:	// locator status
-		UNGETSTR("\033[?53n");	// no locator
+		UNGETSTR("\033[?%dn", ((m_Loc_Mode & LOC_MODE_ENABLE) == 0 ? 50 : 58));	// locator ready/busy
 		break;
 	case 56:	// locator type
-		UNGETSTR("\033[?57;0n");	// No locator
+		UNGETSTR("\033[?57;1n");	// Locator is a mouse
 		break;
 	case 63:	// Request checksum of macro definitions
 		// DCS Pn ! ~ Ps ST
@@ -2927,11 +2927,75 @@ void CTextRam::fc_CSI_ETC(int ch)
 		break;
 
 	case ('\'' << 8) | 'q':		// DECSBCA Select bar code attributes
-	case ('\'' << 8) | 'w':		// DECEFR Enable filter rectangle
-	case ('\'' << 8) | 'z':		// DECELR Enable locator reports
-	case ('\'' << 8) | '{':		// DECSLE Select locator events
-	case ('\'' << 8) | '|':		// DECRQLP Request locator position
 #endif
+
+	case ('\'' << 8) | 'w':		// DECEFR Enable filter rectangle
+		if ( m_AnsiPara.GetSize() >= 4 ) {
+			m_Loc_Rect.top    = GetAnsiPara(0, 1) - 1;
+			m_Loc_Rect.left   = GetAnsiPara(1, 1) - 1;
+			m_Loc_Rect.bottom = GetAnsiPara(2, 1) - 1;
+			m_Loc_Rect.right  = GetAnsiPara(3, 1) - 1;
+			m_Loc_Mode |= LOC_MODE_FILTER;
+		} else
+			m_Loc_Mode &= ~LOC_MODE_FILTER;
+		break;
+	case ('\'' << 8) | 'z':		// DECELR Enable locator reports
+		switch(GetAnsiPara(0, 0)) {
+		case 0:	// locator disabled (default)
+			m_Loc_Mode &= ~LOC_MODE_ENABLE;
+			m_Loc_Mode &= ~LOC_MODE_ONESHOT;
+			break;
+		case 1:	// locator reports enabled 
+			m_Loc_Mode |= LOC_MODE_ENABLE;
+			m_Loc_Mode &= ~LOC_MODE_ONESHOT;
+			break;
+		case 2:	// one shot (allow one report, then disable)
+			m_Loc_Mode |= LOC_MODE_ENABLE;
+			m_Loc_Mode |= LOC_MODE_ONESHOT;
+			break;
+		}
+		m_Loc_Mode &= ~LOC_MODE_FILTER;
+		switch(GetAnsiPara(1, 0)) {
+		case 0:	// default to character cells
+		case 2:	// character cells
+			m_Loc_Mode &= ~LOC_MODE_PIXELS;
+			break;
+		case 1:	// device physical pixels
+			m_Loc_Mode |= LOC_MODE_PIXELS;
+			break;
+		}
+		LocReport(0, 0, 0, 0);
+		break;
+	case ('\'' << 8) | '{':		// DECSLE Select locator events
+		for ( n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
+			switch(GetAnsiPara(n, 0)) {
+			case 0:	// respond only to explicit host requests (default, also cancels any pending filter rectangle) 
+				m_Loc_Mode &= ~LOC_MODE_EVENT;
+				break;
+			case 1:	// report button down transitions 
+				m_Loc_Mode |= LOC_MODE_EVENT;
+				m_Loc_Mode |= LOC_MODE_DOWN;
+				break;
+			case 2:	// do not report button down transitions 
+				m_Loc_Mode |= LOC_MODE_EVENT;
+				m_Loc_Mode &= ~LOC_MODE_DOWN;
+				break;
+			case 3:	// report button up transitions 
+				m_Loc_Mode |= LOC_MODE_EVENT;
+				m_Loc_Mode |= LOC_MODE_UP;
+				break;
+			case 4:	// do not report button up transitions
+				m_Loc_Mode |= LOC_MODE_EVENT;
+				m_Loc_Mode &= ~LOC_MODE_UP;
+				break;
+			}
+		}
+		LocReport(0, 0, 0, 0);
+		break;
+	case ('\'' << 8) | '|':		// DECRQLP Request locator position
+		LocReport(2, 0, 0, 0);
+		break;
+
 	case ('\'' << 8) | '}':		// DECIC Insert Column
 		for ( n = GetAnsiPara(0, 1) ; n > 0 ; n-- )
 			INSCHAR();
@@ -2940,6 +3004,7 @@ void CTextRam::fc_CSI_ETC(int ch)
 		for ( n = GetAnsiPara(0, 1) ; n > 0 ; n-- )
 			DELCHAR();
 		break;
+
 #if 0
 	case ('*' << 8) | 'p':		// Select ProPrinter Character Set
 	case ('*' << 8) | 'q':		// DECSRC Secure Reset Confirmation
@@ -3040,4 +3105,104 @@ void CTextRam::fc_CSI_ETC(int ch)
 		break;
 	}
 	fc_POP(ch);
+}
+void CTextRam::LocReport(int md, int sw, int x, int y)
+{
+	// DECLRP(Locator report): CSI Pe ; Pb ; Pr ; Pc ; Pp & w
+	// Pe is the event code 
+	// Pb is the button code 
+	// Pr is the row coordinate 
+	// Pc is the column coordinate 
+	// Pp is the third coordinate (page number) 
+	//
+	// Pe, the event code indicates what event caused this report to be generated.
+	// The following event codes are defined:
+	// 0 - request, the terminal received an explicit request for a locator report, but the locator is unavailable 
+	// 1 - request, the terminal received an explicit request for a locator report 
+	// 2 - left button down 
+	// 3 - left button up 
+	// 4 - middle button down 
+	// 5 - middle button up 
+	// 6 - right button down 
+	// 7 - right button up 
+	// 8 - fourth button down 
+	// 9 - fourth button up 
+	// 10 - locator outside filter rectangle 
+	//
+	// Pb is the button code, ASCII decimal 0-15 indicating which buttons are
+	// down if any. The state of the four buttons on the locator correspond
+	// to the low four bits of the decimal value, "1" means button depressed
+	//
+	// 0 - no buttons down 
+	// 1 - right 
+	// 2 - middle 
+	// 4 - left 
+	// 8 - fourth 
+
+	int Pe;
+
+	switch(md) {
+	case 0:	// Init Mode
+		m_Loc_Pb = 0;
+		m_MouseTrack = ((m_Loc_Mode & LOC_MODE_ENABLE) != 0 ? 6 : 0);
+		m_pDocument->UpdateAllViews(NULL, UPDATE_SETCURSOR, NULL);
+		break;
+	case 1:	// Mouse Event
+		m_Loc_LastS = sw;
+		m_Loc_LastX = x;
+		m_Loc_LastY = y;
+
+		switch(m_Loc_LastS) {
+		case 0:	// Left Up
+			Pe = 3;
+			m_Loc_Pb &= ~4;
+			break;
+		case 1:	// Left Down
+			Pe = 2;
+			m_Loc_Pb |= 4;
+			break;
+		case 2:	// Right Up
+			Pe = 7;
+			m_Loc_Pb &= ~1;
+			break;
+		case 3:	// Right Down
+			Pe = 6;
+			m_Loc_Pb |= 1;
+			break;
+		}
+
+		if ( (m_Loc_Mode & LOC_MODE_ONESHOT) == 0 ) {
+			if ( (m_Loc_Mode & LOC_MODE_EVENT) == 0 )
+				break;
+			else if ( (sw & 1) != 0 ) {	// Bottun Down
+				if ( (m_Loc_Mode & LOC_MODE_DOWN) == 0 )
+					break;
+			} else {					// Bottun Up
+				if ( (m_Loc_Mode & LOC_MODE_UP) == 0 )
+					break;
+			}
+		}
+	case 2:	// Request Report
+		if ( md == 2 )
+			Pe = ((m_Loc_Mode & LOC_MODE_ENABLE) == 0 ? 0 : 1);
+		else if ( (m_Loc_Mode & LOC_MODE_FILTER) != 0 && !m_Loc_Rect.PtInRect(CPoint(m_Loc_LastX, m_Loc_LastY)) )
+			Pe = 10;
+
+		x = m_Loc_LastX;
+		y = m_Loc_LastY;
+
+		if ( (m_Loc_Mode & LOC_MODE_PIXELS) != 0 ) {
+			x *= 6;
+			y *= 12;
+		}
+
+		UNGETSTR("\033[%d;%d;%d;%d;%d&w", Pe, m_Loc_Pb, y + 1, x + 1, 0);
+
+		if ( (m_Loc_Mode & LOC_MODE_ONESHOT) != 0 ) {
+			m_Loc_Mode &= ~(LOC_MODE_ENABLE | LOC_MODE_ONESHOT);
+			m_MouseTrack = 0;
+			m_pDocument->UpdateAllViews(NULL, UPDATE_SETCURSOR, NULL);
+		}
+		break;
+	}
 }

@@ -425,6 +425,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\EnvDlg.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\ExtSocket.cpp"
 				>
 			</File>
@@ -446,6 +450,10 @@
 			</File>
 			<File
 				RelativePath=".\IdkeySelDLg.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\InfoCapDlg.cpp"
 				>
 			</File>
 			<File
@@ -679,6 +687,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\EnvDlg.h"
+				>
+			</File>
+			<File
 				RelativePath=".\ExtSocket.h"
 				>
 			</File>
@@ -700,6 +712,10 @@
 			</File>
 			<File
 				RelativePath=".\IdkeySelDLg.h"
+				>
+			</File>
+			<File
+				RelativePath=".\InfoCapDlg.h"
 				>
 			</File>
 			<File

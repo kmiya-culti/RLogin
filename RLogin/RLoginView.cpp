@@ -783,7 +783,9 @@ void CRLoginView::OnLButtonDown(UINT nFlags, CPoint point)
 		if ( x >= pDoc->m_TextRam.m_Cols  ) x = pDoc->m_TextRam.m_Cols  - 1; else if ( x < 0 ) x = 0;
 		if ( y >= pDoc->m_TextRam.m_Lines ) y = pDoc->m_TextRam.m_Lines - 1; else if ( y < 0 ) y = 0;
 
-		if ( pDoc->m_TextRam.m_MouseTrack == 1 )
+		if ( pDoc->m_TextRam.m_MouseTrack == 6 )
+			pDoc->m_TextRam.LocReport(1, 1, x, y);
+		else if ( pDoc->m_TextRam.m_MouseTrack == 1 )
 			pDoc->m_TextRam.UNGETSTR("\033[M%c%c%c", ' ' + (pDoc->m_TextRam.m_MouseMode[0] & 3), ' ' + x + 1, ' ' + y + 1);
 		else
 			pDoc->m_TextRam.UNGETSTR("\033[M%c%c%c", ' ' + pDoc->m_TextRam.m_MouseMode[0] + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0), ' ' + x + 1, ' ' + y + 1);
@@ -818,7 +820,9 @@ void CRLoginView::OnLButtonUp(UINT nFlags, CPoint point)
 			if ( x >= pDoc->m_TextRam.m_Cols  ) x = pDoc->m_TextRam.m_Cols  - 1; else if ( x < 0 ) x = 0;
 			if ( y >= pDoc->m_TextRam.m_Lines ) y = pDoc->m_TextRam.m_Lines - 1; else if ( y < 0 ) y = 0;
 
-			if ( pDoc->m_TextRam.m_MouseTrack == 3 ) {
+			if ( pDoc->m_TextRam.m_MouseTrack == 6 )
+				pDoc->m_TextRam.LocReport(1, 0, x, y);
+			else if ( pDoc->m_TextRam.m_MouseTrack == 3 ) {
 				m_ClipFlag = 0;
 				OnUpdate(this, UPDATE_CLIPERA, NULL);
 				pDoc->m_TextRam.UNGETSTR("\033[t%c%c", ' ' + 1 + x, ' ' + 1 + y);
@@ -873,7 +877,7 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 
 	if ( m_ClipFlag == 0 || m_ClipFlag == 6 ) {
 		CalcGrapPoint(point, &x, &y);
-		if ( pDoc->m_TextRam.m_MouseTrack >= 4 && !m_MouseEventFlag ) {
+		if ( (pDoc->m_TextRam.m_MouseTrack == 4 || pDoc->m_TextRam.m_MouseTrack == 5) && !m_MouseEventFlag ) {
 			switch(nFlags & (MK_LBUTTON | MK_RBUTTON)) {
 			case 0:
 				if ( pDoc->m_TextRam.m_MouseTrack == 4 )
@@ -982,7 +986,10 @@ void CRLoginView::OnRButtonDown(UINT nFlags, CPoint point)
 		CalcGrapPoint(point, &x, &y);
 		if ( x >= pDoc->m_TextRam.m_Cols  ) x = pDoc->m_TextRam.m_Cols  - 1; else if ( x < 0 ) x = 0;
 		if ( y >= pDoc->m_TextRam.m_Lines ) y = pDoc->m_TextRam.m_Lines - 1; else if ( y < 0 ) y = 0;
-		if ( pDoc->m_TextRam.m_MouseTrack == 1 )
+
+		if ( pDoc->m_TextRam.m_MouseTrack == 6 )
+			pDoc->m_TextRam.LocReport(1, 3, x, y);
+		else if ( pDoc->m_TextRam.m_MouseTrack == 1 )
 			pDoc->m_TextRam.UNGETSTR("\033[M%c%c%c", ' ' + (pDoc->m_TextRam.m_MouseMode[1] & 3), ' ' + x + 1, ' ' + y + 1);
 		else
 			pDoc->m_TextRam.UNGETSTR("\033[M%c%c%c", ' ' + pDoc->m_TextRam.m_MouseMode[1] + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0), ' ' + x + 1, ' ' + y + 1);
@@ -1021,7 +1028,11 @@ void CRLoginView::OnRButtonUp(UINT nFlags, CPoint point)
 		CalcGrapPoint(point, &x, &y);
 		if ( x >= pDoc->m_TextRam.m_Cols  ) x = pDoc->m_TextRam.m_Cols  - 1; else if ( x < 0 ) x = 0;
 		if ( y >= pDoc->m_TextRam.m_Lines ) y = pDoc->m_TextRam.m_Lines - 1; else if ( y < 0 ) y = 0;
-		pDoc->m_TextRam.UNGETSTR("\033[M%c%c%c", ' ' + 3 + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0), ' ' + x + 1, ' ' + y + 1);
+
+		if ( pDoc->m_TextRam.m_MouseTrack == 6 )
+			pDoc->m_TextRam.LocReport(1, 2, x, y);
+		else
+			pDoc->m_TextRam.UNGETSTR("\033[M%c%c%c", ' ' + 3 + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0), ' ' + x + 1, ' ' + y + 1);
 	}
 }
 

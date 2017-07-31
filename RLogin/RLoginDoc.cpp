@@ -51,6 +51,7 @@ BEGIN_MESSAGE_MAP(CRLoginDoc, CDocument)
 	ON_UPDATE_COMMAND_UI(ID_SEND_BREAK, &CRLoginDoc::OnUpdateSendBreak)
 	ON_COMMAND(IDM_TEKDISP, &CRLoginDoc::OnTekdisp)
 	ON_UPDATE_COMMAND_UI(IDM_TEKDISP, &CRLoginDoc::OnUpdateTekdisp)
+	ON_COMMAND_RANGE(IDM_RESET_TAB, IDM_RESET_ALL, &CRLoginDoc::OnScreenReset)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -823,4 +824,19 @@ CWnd *CRLoginDoc::GetAciveView()
 			return pWnd;
 	}
 	return pView;
+}
+void CRLoginDoc::OnScreenReset(UINT nID)
+{
+	int mode = 0;
+	switch(nID) {
+	case IDM_RESET_TAB:   mode = RESET_TABS; break;
+	case IDM_RESET_BANK:  mode = RESET_BANK; break;
+	case IDM_RESET_ATTR:  mode = RESET_ATTR | RESET_COLOR; break;
+	case IDM_RESET_TEK:   mode = RESET_TEK; break;
+	case IDM_RESET_ESC:   mode = RESET_SAVE | RESET_CHAR; break;
+	case IDM_RESET_MOUSE: mode = RESET_MOUSE; break;
+	case IDM_RESET_ALL:   mode = RESET_CURSOR | RESET_TABS | RESET_BANK | RESET_ATTR | RESET_COLOR | RESET_TEK | RESET_SAVE | RESET_MOUSE | RESET_CHAR | RESET_OPTION | RESET_CLS; break;
+	}
+	m_TextRam.RESET(mode);
+	m_TextRam.FLUSH();
 }

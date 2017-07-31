@@ -53,6 +53,9 @@
 #define IDD_SCRNPAGE                    150
 #define IDD_AUTORENDLG                  152
 #define IDD_METADLG                     153
+#define IDD_INFOCAPDLG                  154
+#define IDD_DIALOG2                     155
+#define IDD_ENVDLG                      155
 #define IDM_KANJI_EUC                   200
 #define IDM_KANJI_SJIS                  201
 #define IDM_KANJI_ASCII                 202
@@ -77,6 +80,7 @@
 #define IDM_ZMODEM_DOWNLOAD             221
 #define ID_FILE_ALL_LOAD                240
 #define IDC_DOINIT                      241
+#define ID_EDIT_BOX                     243
 #define IDC_BACKFILE                    1000
 #define IDC_BACKSEL                     1001
 #define IDC_BANKGL1                     1002
@@ -275,6 +279,14 @@
 #define IDC_TEXTCOL                     1177
 #define IDC_BACKCOL                     1178
 #define IDC_FONTNUM                     1178
+#define IDC_LIST1                       1179
+#define IDC_INFOLIST                    1179
+#define IDC_ENV_LIST                    1179
+#define IDC_LOADCAP                     1180
+#define IDC_ENTRY                       1181
+#define IDC_LOADINFO                    1182
+#define IDC_TERMCAP                     1182
+#define IDC_INFOCAP                     1183
 #define IDC_ATTR1                       1201
 #define IDC_ATTR2                       1202
 #define IDC_ATTR3                       1203
@@ -291,6 +303,13 @@
 #define IDB_ATTR6                       1226
 #define IDB_ATTR7                       1227
 #define IDB_ATTR8                       1228
+#define IDM_RESET_TAB                   1800
+#define IDM_RESET_BANK                  1801
+#define IDM_RESET_ATTR                  1802
+#define IDM_RESET_TEK                   1803
+#define IDM_RESET_ESC                   1804
+#define IDM_RESET_MOUSE                 1805
+#define IDM_RESET_ALL                   1806
 #define IDC_ALGO_LIST1                  2001
 #define IDC_ALGO_LIST2                  2002
 #define IDC_ALGO_LIST3                  2003
@@ -432,14 +451,26 @@
 #define IDM_TEK_SAVE                    32803
 #define IDM_TEK_CLEAR                   32805
 #define IDM_TEK_MODE                    32807
+#define IDM_CAP_INPORT                  32808
+#define IDM_CAP_EXPORT                  32809
+#define ID_CAPLIST_32810                32810
+#define ID_CAPL_CLIP                    32811
+#define IDM_CAPL_CLIP                   32812
+#define IDM_CAPL_CLIPBORD               32813
+#define IDM_CAP_CLIPBORD                32814
+#define ID_CAPLIST_TERMCAP              32815
+#define ID_CAPLIST_TERMINFO             32816
+#define IDM_INFO_INPORT                 32817
+#define IDM_INFO_EXPORT                 32818
+#define IDM_INFO_CLIPBORD               32819
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        154
-#define _APS_NEXT_COMMAND_VALUE         32808
-#define _APS_NEXT_CONTROL_VALUE         1179
-#define _APS_NEXT_SYMED_VALUE           243
+#define _APS_NEXT_RESOURCE_VALUE        156
+#define _APS_NEXT_COMMAND_VALUE         32830
+#define _APS_NEXT_CONTROL_VALUE         1184
+#define _APS_NEXT_SYMED_VALUE           244
 #endif
 #endif

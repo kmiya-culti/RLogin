@@ -4042,7 +4042,7 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 	char *p;
 	CBuffer tmp;
 	CString str;
-	CStringIndex env;
+	CStringEnv env;
 
 	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHAGENT) ) {
 		tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
@@ -4092,8 +4092,10 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 	SendPacket2(&tmp);
 	m_ChnReqMap.Add(0);
 
-	env.SetArray(m_pDocument->m_ParamTab.m_ExtEnvStr);
+	env.GetString(m_pDocument->m_ParamTab.m_ExtEnvStr);
 	for ( n = 0 ; n < env.GetSize() ; n++ ) {
+		if ( env[n].m_Value == 0 || env[n].m_nIndex.IsEmpty() || env[n].m_String.IsEmpty() )
+			continue;
 		tmp.Clear();
 		tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
 		tmp.Put32Bit(m_Chan[id].m_RemoteID);

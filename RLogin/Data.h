@@ -478,6 +478,8 @@ public:
 class CStringIndex : public CObject
 {
 public:
+	BOOL m_bNoCase;
+	int m_Value;
 	CString m_nIndex;
 	CString m_String;
 	CArray<CStringIndex, CStringIndex &> m_Array;
@@ -492,11 +494,63 @@ public:
 	void SetSize(int nIndex) { m_Array.SetSize(nIndex); }
 	LPCSTR GetIndex() { return m_nIndex; }
 	void RemoveAll() { m_Array.RemoveAll(); }
+	void SetNoCase(BOOL b) { m_bNoCase = b; }
 	int Find(LPCSTR str);
 	void SetArray(LPCSTR str);
 
 	CStringIndex();
-	virtual ~CStringIndex();
+	~CStringIndex();
+};
+
+class CStringEnv : public CObject
+{
+public:
+	int m_Value;
+	CString m_nIndex;
+	CString m_String;
+	CArray<CStringEnv, CStringEnv &> m_Array;
+
+	const CStringEnv & operator = (CStringEnv &data);
+	CStringEnv & operator [] (LPCSTR str);
+	CStringEnv & operator [] (int nIndex) { return m_Array[nIndex]; }
+	const LPCSTR operator = (LPCSTR str) { return (m_String = str); }
+	operator LPCTSTR () const { return m_String; }
+
+	int GetSize() { return m_Array.GetSize(); }
+	void SetSize(int nIndex) { m_Array.SetSize(nIndex); }
+	LPCSTR GetIndex() { return m_nIndex; }
+	void RemoveAll() { m_Array.RemoveAll(); }
+	int Find(LPCSTR str);
+
+	void GetBuffer(CBuffer *bp);
+	void SetBuffer(CBuffer *bp);
+	void GetString(LPCSTR str);
+	void SetString(CString &str);
+
+	CStringEnv();
+	~CStringEnv();
+};
+
+class CStringBinary : public CObject
+{
+public:
+	CStringBinary *m_pLeft;
+	CStringBinary *m_pRight;
+	CString m_Index;
+	CString m_String;
+	int m_Value;
+
+	CStringBinary();
+	CStringBinary(LPCSTR str);
+	~CStringBinary();
+
+	void RemoveAll();
+	CStringBinary * FindValue(int value);
+	CStringBinary & operator [] (LPCSTR str);
+	const LPCSTR operator = (LPCSTR str) { m_Value = 0; return (m_String = str); }
+	operator LPCTSTR () const { return m_String; }
+	const int operator = (int val) { return (m_Value = val); }
+	operator int () const { return m_Value; }
 };
 
 #endif // !defined(AFX_DATA_H__6A23DC3E_3DDC_47BD_A6FC_E0127564AE6E__INCLUDED_)

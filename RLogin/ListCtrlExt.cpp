@@ -20,6 +20,7 @@ CListCtrlExt::CListCtrlExt()
 	m_SortReverse = 0;
 	m_SortDupItem = 0;
 	m_pSubMenu    = NULL;
+	m_EditSubItem = 0;
 }
 CListCtrlExt::~CListCtrlExt()
 {
@@ -29,6 +30,9 @@ BEGIN_MESSAGE_MAP(CListCtrlExt, CListCtrl)
 	//{{AFX_MSG_MAP(CListCtrlExt)
 	ON_NOTIFY_REFLECT(LVN_COLUMNCLICK, OnColumnclick)
 	ON_NOTIFY_REFLECT_EX(NM_RCLICK, OnRclick)
+	ON_NOTIFY_REFLECT_EX(NM_DBLCLK, OnDblclk)
+	ON_WM_VSCROLL()
+	ON_EN_KILLFOCUS(ID_EDIT_BOX, OnKillfocusEditBox)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -168,4 +172,137 @@ BOOL CListCtrlExt::OnRclick(NMHDR* pNMHDR, LRESULT* pResult)
 	ClientToScreen(&point);
 	m_pSubMenu->TrackPopupMenu(TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, pOwner);
 	return TRUE;
+}
+void CListCtrlExt::OpenEditBox(int item, int num, int fmt, CRect &rect)
+{
+	CString tmp = GetItemText(item, num);
+
+	if ( m_EditWnd.m_hWnd != NULL )
+		m_EditWnd.DestroyWindow();
+
+	rect.InflateRect(4, 4);
+	if ( rect.left <= 0 )
+		rect.left = 0;
+
+	ClientToScreen(rect);
+	ScreenToClient(rect);
+
+	m_EditWnd.Create((fmt & LVCFMT_RIGHT ? ES_RIGHT : 0) | ES_AUTOHSCROLL | WS_CHILD | WS_VISIBLE | WS_BORDER, rect, this, ID_EDIT_BOX);
+	m_EditWnd.SetWindowText(tmp);
+	m_EditWnd.SetSel(0, -1);
+	m_EditWnd.SetFocus();
+
+	m_EditItem = item;
+	m_EditNum  = num;
+	m_EditOld  = tmp;
+	m_EditFlag = TRUE;
+}
+void CListCtrlExt::EditItem(int item, int num)
+{
+	int n, i, x, a;
+	CRect rect;
+	LVCOLUMN lvc;
+
+	EnsureVisible(item, FALSE);
+	if ( !GetItemRect(item, rect, LVIR_LABEL) )
+		return;
+	lvc.mask = LVCF_WIDTH | LVCF_FMT ;
+	x = 0 - GetScrollPos(SB_HORZ);
+	for ( i = 0 ; GetColumn(i, &lvc) ; i++, x += a ) {
+		a =  lvc.cx;
+		if ( i == num ) {
+			rect.left  = x;
+			rect.right = x + a;
+			OpenEditBox(item, num, lvc.fmt, rect);
+			break;
+		}
+	}
+}
+BOOL CListCtrlExt::OnDblclk(NMHDR* pNMHDR, LRESULT* pResult) 
+{
+	int n, i, x, a;
+	CRect rect;
+	LVCOLUMN lvc;
+	NMLISTVIEW* pNMListView = (NM_LISTVIEW*)pNMHDR;
+
+	if ( m_EditSubItem == 0 )
+		return FALSE;
+
+	for ( n = GetTopIndex() ; n < GetItemCount() ; n++ ) {
+		if ( !GetItemRect(n, rect, LVIR_LABEL) )
+			break;
+		if ( pNMListView->ptAction.y >= rect.top && pNMListView->ptAction.y < rect.bottom ) {
+			lvc.mask = LVCF_WIDTH | LVCF_FMT ;
+			x = 0 - GetScrollPos(SB_HORZ);
+			for ( i = 0 ; GetColumn(i, &lvc) ; i++, x += a ) {
+				a =  lvc.cx;
+				if ( pNMListView->ptAction.x >= x && pNMListView->ptAction.x < (x + a) && (m_EditSubItem & (1 << i)) != 0 ) {
+					rect.left  = x;
+					rect.right = x + a;
+					OpenEditBox(n, i, lvc.fmt, rect);
+					break;
+				}
+			}
+			break;
+		}
+	}
+	
+	*pResult = 0;
+	return TRUE;
+}
+void CListCtrlExt::OnKillfocusEditBox() 
+{
+	CString str;
+
+	if ( m_EditFlag == FALSE )
+		return;
+
+	m_EditWnd.GetWindowText(str);
+	SetItemText(m_EditItem, m_EditNum, str);
+	m_EditWnd.PostMessage(WM_CLOSE, 0, 0);
+	m_EditFlag = FALSE;
+
+	NMLISTVIEW nmHead;
+	CWnd *pWnd = GetOwner();
+
+	if ( pWnd != NULL ) {
+		memset(&nmHead, 0, sizeof(NMLISTVIEW));
+
+		nmHead.hdr.code = LVN_ITEMCHANGED;
+		nmHead.hdr.idFrom = GetDlgCtrlID();
+		nmHead.hdr.hwndFrom = m_hWnd;
+
+		nmHead.iItem    = m_EditItem;
+		nmHead.iSubItem = m_EditNum;
+		nmHead.uChanged = LVIF_TEXT;
+
+		pWnd->SendMessage(WM_NOTIFY, GetDlgCtrlID(), (LPARAM)(&nmHead));
+	}
+}
+BOOL CListCtrlExt::PreTranslateMessage(MSG* pMsg) 
+{
+	if ( m_EditWnd.m_hWnd != NULL ) {
+		if ( pMsg->message == WM_CHAR && pMsg->wParam == 0x0D ) {
+			m_EditWnd.PostMessage(WM_KILLFOCUS, 0, 0);
+			return TRUE;
+		} else if ( pMsg->message == WM_CHAR && pMsg->wParam == VK_ESCAPE ) {
+			m_EditWnd.PostMessage(WM_CLOSE, 0, 0);
+			m_EditFlag = FALSE;
+			return TRUE;
+		} else if ( pMsg->message >= WM_KEYFIRST && pMsg->message <= WM_KEYLAST ) {
+			::TranslateMessage(pMsg);
+			::DispatchMessage(pMsg);
+			return TRUE;
+		}
+	}
+	return CListCtrl::PreTranslateMessage(pMsg);
+}
+
+void CListCtrlExt::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar) 
+{
+	if ( m_EditWnd.m_hWnd != NULL ) {
+		m_EditWnd.SendMessage(WM_KILLFOCUS, 0, 0);
+		m_EditWnd.DestroyWindow();
+	}
+	CListCtrl::OnVScroll(nSBCode, nPos, pScrollBar);
 }

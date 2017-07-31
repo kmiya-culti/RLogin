@@ -233,6 +233,7 @@ private:
 
 	void SockSend(char *buf, int len);
 
+	void SendStr(LPCSTR str);
 	void SendOpt(int ch, int opt);
 	void OptFunc(struct TelOptTab *tab, int opt, int sw, int ch);
 	void SubOptFunc(char *buf, int len);

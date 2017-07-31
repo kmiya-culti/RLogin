@@ -25,6 +25,7 @@ public:
 	CString m_ProxyPort;
 	CString m_ProxyUser;
 	CString m_ProxyPass;
+	CString m_ExtEnvStr;
 
 	void SetEnableWind();
 	CSerEntPage();
@@ -70,6 +71,7 @@ protected:
 public:
 	afx_msg void OnChatEdit();
 	afx_msg void OnProxySet();
+	afx_msg void OnBnClickedTermcap();
 };
 
 //{{AFX_INSERT_LOCATION}}

@@ -265,11 +265,12 @@ CTextRam::CTextRam()
 	m_DropFileMode = 0;
 	m_WordStr.Empty();
 	m_MouseTrack = 0;
+	m_Loc_Mode  = 0;
+	m_Loc_Pb    = 0;
+	m_Loc_LastS = 0;
+	m_Loc_LastX = 0;
+	m_Loc_LastY = 0;
 	memset(m_MetaKeys, 0, sizeof(m_MetaKeys));
-
-	m_pSection = "TextRam";
-	m_MinSize = 16;
-	Serialize(FALSE);
 
 	m_LineEditMode = FALSE;
 	m_LineEditPos  = 0;
@@ -286,10 +287,14 @@ CTextRam::CTextRam()
 	m_MouseMode[2] = 4;
 	m_MouseMode[3] = 16;
 
-	fc_Init(EUC_SET);
-
 	m_Tek_Top = m_Tek_Free = NULL;
 	m_pTekWnd = NULL;
+
+	fc_Init(EUC_SET);
+
+	m_pSection = "TextRam";
+	m_MinSize = 16;
+	Serialize(FALSE);
 }
 CTextRam::~CTextRam()
 {
@@ -696,6 +701,7 @@ void CTextRam::Init()
 	memset(m_AnsiOpt, 0, sizeof(DWORD) * 16);
 	EnableOption(TO_DECAWM);
 	EnableOption(TO_XTMRVW);
+	memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
 	memcpy(m_DefBankTab, DefBankTab, sizeof(m_DefBankTab));
 	memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
 	m_SendCharSet[0] = "EUCJP-MS";
@@ -776,7 +782,8 @@ void CTextRam::GetArray(CStringArrayExt &array)
 
 	array.GetBin(7, m_DefColTab,  sizeof(m_DefColTab));
 	memcpy(m_ColTab, m_DefColTab, sizeof(m_DefColTab));
-	array.GetBin(8, m_AnsiOpt, sizeof(m_AnsiOpt));
+	array.GetBin(8, m_DefAnsiOpt, sizeof(m_DefAnsiOpt));
+	memcpy(m_AnsiOpt, m_DefAnsiOpt, sizeof(m_AnsiOpt));
 	array.GetBin(9, m_DefBankTab, sizeof(m_DefBankTab));
 	memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
 	m_SendCharSet[0] = array.GetAt(10);
@@ -830,6 +837,7 @@ const CTextRam & CTextRam::operator = (CTextRam &data)
 	m_DefAtt	  = data.m_DefAtt;
 	memcpy(m_DefColTab,  data.m_DefColTab,  sizeof(m_DefColTab));
 	memcpy(m_ColTab,  data.m_ColTab,  sizeof(m_ColTab));
+	memcpy(m_DefAnsiOpt, data.m_DefAnsiOpt, sizeof(m_DefAnsiOpt));
 	memcpy(m_AnsiOpt, data.m_AnsiOpt, sizeof(m_AnsiOpt));
 	memcpy(m_DefBankTab, data.m_DefBankTab, sizeof(m_DefBankTab));
 	memcpy(m_BankTab, data.m_BankTab, sizeof(m_BankTab));
@@ -1222,73 +1230,123 @@ int CTextRam::IsWord(WCHAR ch)
 		return 1;
 	return 0;
 }
+int CTextRam::GetPos(int x, int y)
+{
+	if ( x < 0 ) {
+		if ( --y < (0 - m_HisLen + m_Lines) )
+			return 0;
+		x += m_Cols;
+	} else if ( x >= m_Cols ) {
+		if ( ++y >= m_Lines )
+			return 0;
+		x -= m_Cols;
+	}
+	return GETVRAM(x, y)->ch;
+}
+BOOL CTextRam::IncPos(int &x, int &y)
+{
+	if ( ++x >= m_Cols ) {
+		if ( ++y >= m_Lines ) {
+			x = m_Cols - 1;
+			y = m_Lines - 1;
+			return TRUE;
+		}
+		x = 0;
+	}
+	return FALSE;
+}
+BOOL CTextRam::DecPos(int &x, int &y)
+{
+	if ( --x < 0 ) {
+		if ( --y < (0 - m_HisLen + m_Lines) ) {
+			x = 0;
+			y = (0 - m_HisLen + m_Lines);
+			return TRUE;
+		}
+		x = m_Cols - 1;
+	}
+	return FALSE;
+}
 void CTextRam::EditWordPos(int *sps, int *eps)
 {
-	int x, y, sx, ex;
-	VRAM *vp;
+	int n, c;
+	int tx, ty;
+	int sx, sy;
+	int ex, ey;
+	CStringW tmp;
 
-	SetCalcPos(*sps, &x, &y);
-	vp = GETVRAM(0, y);
+	SetCalcPos(*sps, &sx, &sy);
+
+	if ( sx > 0 && IS_2BYTE(GETVRAM(sx, sy)->cm) )
+		sx--;
 
 	if ( IS_ENABLE(m_AnsiOpt, TO_RLGAWL) != 0 ) {
-		for ( sx = ex = 0 ; sx < (m_Cols - 6) ; sx++ ) {
-			if ( vp[sx + 0].ch == L'h' && vp[sx + 1].ch == L't' &&
-				 vp[sx + 2].ch == L't' && vp[sx + 3].ch == L'p' &&
-				 vp[sx + 4].ch == L':' ) {
-				for ( ex = sx + 5 ; ex < m_Cols && vp[ex].ch != L'\0' && (iswalnum(vp[ex].ch) || wcschr(L"!\"#$%&'()=~|-^\\@[;:],./`{+*}<>?_", vp[ex].ch) != NULL) ; )
-					ex++;
-				if ( sx <= x && --ex >= x )
-					break;
-				ex = sx;
-			}
-		}
-	} else
-		sx = ex = 0;
+		for ( tx = 0, ty = sy ; tx <= sx ; tx++ ) {
+			tmp.Empty();
+			for ( n = 0 ; n < 6 ; n++ )
+				tmp += (WCHAR)GetPos(tx + n, ty);
+			if ( wcsncmp(tmp, L"http:", 5) != 0 && wcsncmp(tmp, L"https:", 6) != 0 && wcsncmp(tmp, L"ftp:", 4) != 0 )
+				continue;
 
-	if ( sx >= ex ) {
-		if ( IS_2BYTE(vp[x].cm) )
-			x--;
-		sx = ex = x;
-		switch(IsWord(vp[x].ch)) {
-		case 0:
-		case 1:
-			while ( sx > 0 && IsWord(vp[sx - 1].ch) == 1 )
-				sx--;
-			while ( ex < (m_Cols - 1) && IsWord(vp[ex + 1].ch) == 1 )
-				ex++;
-			break;
-		case 2:	// ひらがな
-			while ( sx > 0 && IsWord(vp[sx - 1].ch) == 2 )
-				sx--;
-			while ( sx > 0 && IsWord(vp[sx - 1].ch) == 4 )
-				sx--;
-			while ( ex < (m_Cols - 1) && IsWord(vp[ex + 1].ch) == 2 )
-				ex++;
-			break;
-		case 3:	// カタカナ
-			while ( sx > 0 && IsWord(vp[sx - 1].ch) == 3 )
-				sx--;
-			while ( ex < (m_Cols - 1) && IsWord(vp[ex + 1].ch) == 3 )
-				ex++;
-			break;
-		case 4:	// その他
-			while ( sx > 0 && IsWord(vp[sx - 1].ch) == 4 )
-				sx--;
-			while ( ex < (m_Cols - 1) && IsWord(vp[ex + 1].ch) == 4 )
-				ex++;
-			while ( ex < (m_Cols - 1) && IsWord(vp[ex + 1].ch) == 2 )
-				ex++;
-			break;
+			ex = tx;
+			ey = ty;
+			for ( n = 0 ; (c = GetPos(ex + 1, ey)) != 0 ; n++ ) {
+				if ( !iswalnum(c) && wcschr(L"!\"#$%&'()=~|-^\\@[;:],./`{+*}<>?_", c) == NULL )
+					break;
+				IncPos(ex, ey);
+			}
+			if ( (tx + n) >= sx ) {
+				sx = tx;
+				sy = ty;
+				goto SKIP;
+			}
 		}
 	}
 
-	if ( IS_2BYTE(vp[sx].cm) )
-		sx--;
-	if ( IS_1BYTE(vp[ex].cm) )
-		ex++;
+	ex = sx;
+	ey = sy;
 
-	*sps = GetCalcPos(sx, y);
-	*eps = GetCalcPos(ex, y);
+	switch(IsWord(GetPos(sx, sy))) {
+	case 0:
+	case 1:	// is alnum
+		while ( IsWord(GetPos(sx - 1, sy)) == 1 )
+			DecPos(sx, sy);
+		while ( IsWord(GetPos(ex + 1, ey)) == 1 )
+			IncPos(ex, ey);
+		break;
+	case 2:	// ひらがな
+		while ( IsWord(GetPos(sx - 1, sy)) == 2 )
+			DecPos(sx, sy);
+		while ( IsWord(GetPos(sx - 1, sy)) == 4 )
+			DecPos(sx, sy);
+		while ( IsWord(GetPos(ex + 1, ey)) == 2 )
+			IncPos(ex, ey);
+		break;
+	case 3:	// カタカナ
+		while ( IsWord(GetPos(sx - 1, sy)) == 3 )
+			DecPos(sx, sy);
+		while ( IsWord(GetPos(ex + 1, ey)) == 3 )
+			IncPos(ex, ey);
+		break;
+	case 4:	// その他
+		while ( IsWord(GetPos(sx - 1, sy)) == 4 )
+			DecPos(sx, sy);
+		while ( IsWord(GetPos(ex + 1, ey)) == 4 )
+			IncPos(ex, ey);
+		while ( IsWord(GetPos(ex + 1, ey)) == 2 )
+			IncPos(ex, ey);
+		break;
+	}
+
+SKIP:
+	if ( IS_2BYTE(GETVRAM(sx, sy)->cm) )
+		DecPos(sx, sy);
+
+	if ( IS_1BYTE(GETVRAM(ex, ey)->cm) )
+		IncPos(ex, ey);
+
+	*sps = GetCalcPos(sx, sy);
+	*eps = GetCalcPos(ex, ey);
 }
 void CTextRam::EditCopy(int sps, int eps, BOOL rectflag)
 {
@@ -2076,85 +2134,114 @@ DWORD CTextRam::UnicodeNomal(DWORD code1, DWORD code2)
 // Low Level
 //////////////////////////////////////////////////////////////////////
 
-void CTextRam::RESET()
+void CTextRam::RESET(int mode)
 {
-	m_CurX = 0;
-	m_CurY = 0;
-	m_TopY = 0;
-	m_BtmY = m_Lines;
+	if ( mode & RESET_CURSOR ) {
+		m_CurX = 0;
+		m_CurY = 0;
+		m_TopY = 0;
+		m_BtmY = m_Lines;
 
-	m_DoWarp = FALSE;
-	m_Status = ST_NON;
-
-	m_DefTab = DEF_TAB;
-	TABSET(TAB_RESET);
-
-	m_BankGL = 0;
-	m_BankGR = 1;
-	m_BankSG = (-1);
-
-	m_DefAtt.ch = 0;
-//	m_DefAtt.cl = 0x07;
-	m_DefAtt.md = m_BankTab[m_KanjiMode][m_BankGL];
-	m_DefAtt.em = 0;
-	m_DefAtt.dm = 0;
-	m_DefAtt.cm = 0;
-	m_DefAtt.at = 0;
-	m_AttSpc = m_DefAtt;
-	m_AttNow = m_DefAtt;
-
-	int n = 16;
-	memcpy(m_ColTab, m_DefColTab, sizeof(m_DefColTab));
-
-	// colors 16-231 are a 6x6x6 color cube
-	for ( int r = 0 ; r < 6 ; r++ ) {
-		for ( int g = 0 ; g < 6 ; g++ ) {
-			for ( int b = 0 ; b < 6 ; b++ )
-				m_ColTab[n++] = RGB(r * 51, g * 51, b * 51);
-		}
+		m_DoWarp = FALSE;
+		m_Status = ST_NON;
+		m_LastChar = 0;
+		m_LastPos  = 0;
+		m_Kan_Pos = 0;
+		memset(m_Kan_Buf, 0, sizeof(m_Kan_Buf));
 	}
-	// colors 232-255 are a grayscale ramp, intentionally leaving out
-	for ( int g = 0 ; g < 24 ; g++ )
-		m_ColTab[n++] = RGB(g * 11, g * 11, g * 11);
 
-	m_LastChar = 0;
-	m_LastPos  = 0;
+	if ( mode & RESET_TABS ) {
+		m_DefTab = DEF_TAB;
+		TABSET(TAB_RESET);
+	}
 
-	m_Save_CurX = m_CurX;
-	m_Save_CurY = m_CurY;
-	m_Save_AttNow = m_AttNow;
-	m_Save_AttSpc = m_AttSpc;
-	m_Save_BankGL = m_BankGL;
-	m_Save_BankGR = m_BankGR;
-	m_Save_BankSG = m_BankSG;
-	m_Save_DoWarp = m_DoWarp;
-	memcpy(m_Save_AnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
+	if ( mode & RESET_BANK ) {
+		m_BankGL = 0;
+		m_BankGR = 1;
+		m_BankSG = (-1);
+		memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
+	}
+
+	if ( mode & RESET_ATTR ) {
+		m_DefAtt.ch = 0;
+		m_DefAtt.md = m_BankTab[m_KanjiMode][m_BankGL];
+		m_DefAtt.em = 0;
+		m_DefAtt.dm = 0;
+		m_DefAtt.cm = 0;
+		m_DefAtt.at = 0;
+		m_AttSpc = m_DefAtt;
+		m_AttNow = m_DefAtt;
+	}
+
+	if ( mode & RESET_COLOR ) {
+		int n = 16;
+		memcpy(m_ColTab, m_DefColTab, sizeof(m_DefColTab));
+
+		// colors 16-231 are a 6x6x6 color cube
+		for ( int r = 0 ; r < 6 ; r++ ) {
+			for ( int g = 0 ; g < 6 ; g++ ) {
+				for ( int b = 0 ; b < 6 ; b++ )
+					m_ColTab[n++] = RGB(r * 51, g * 51, b * 51);
+			}
+		}
+		// colors 232-255 are a grayscale ramp, intentionally leaving out
+		for ( int g = 0 ; g < 24 ; g++ )
+			m_ColTab[n++] = RGB(g * 11, g * 11, g * 11);
+	}
+
+	if ( mode & RESET_OPTION )
+		memcpy(m_AnsiOpt, m_DefAnsiOpt, sizeof(m_AnsiOpt));
+
+	if ( mode & RESET_CLS )
+		ERABOX(0, 0, m_Cols, m_Lines, 2);
+
+	if ( mode & RESET_SAVE ) {
+		m_Save_CurX = m_CurX;
+		m_Save_CurY = m_CurY;
+		m_Save_AttNow = m_AttNow;
+		m_Save_AttSpc = m_AttSpc;
+		m_Save_BankGL = m_BankGL;
+		m_Save_BankGR = m_BankGR;
+		m_Save_BankSG = m_BankSG;
+		m_Save_DoWarp = m_DoWarp;
+		memcpy(m_Save_BankTab, m_BankTab, sizeof(m_BankTab));
+		memcpy(m_Save_AnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
+		memcpy(m_Save_TabMap, m_TabMap, sizeof(m_TabMap));
+	}
 
 	m_RecvCrLf = IsOptValue(TO_RLRECVCR, 2);
 	m_SendCrLf = IsOptValue(TO_RLECHOCR, 2);
 
-	m_Tek_Ver  = 4014;
-	m_Tek_Mode = 0x1F;
-	m_Tek_Pen  = 0;
-	m_Tek_Stat = 0;
-	m_Tek_Line = 0x08;
-	m_Tek_Font = 0x08;
-	m_Tek_Angle = 0;
-	m_Tek_Base  = 0;
-	m_Tek_Point = 0;
-	m_Tek_Gin   = FALSE;
-	m_Tek_Flush = FALSE;
-	m_Tek_Int   = 0;
-	m_Tek_cX = 0; m_Tek_cY = TEK_WIN_HEIGHT - 87;
-	m_Tek_lX = 0; m_Tek_lY = m_Tek_cY;
-	m_Tek_wX = 0; m_Tek_wY = m_Tek_cY;
+	if ( mode & RESET_MOUSE ) {
+		m_MouseTrack = 0;
+		m_Loc_Mode  = 0;
+		m_Loc_Pb    = 0;
+		m_Loc_LastS = 0;
+		m_Loc_LastX = 0;
+		m_Loc_LastY = 0;
+	}
 
-	m_Kan_Pos = 0;
-	memset(m_Kan_Buf, 0, sizeof(m_Kan_Buf));
+	if ( mode & RESET_CHAR )
+		fc_Init(m_KanjiMode);
 
-	m_MouseTrack = 0;
-
-	fc_Init(m_KanjiMode);
+	if ( mode & RESET_TEK ) {
+		m_Tek_Ver  = 4014;
+		m_Tek_Mode = 0x1F;
+		m_Tek_Pen  = 0;
+		m_Tek_Stat = 0;
+		m_Tek_Line = 0x08;
+		m_Tek_Font = 0x08;
+		m_Tek_Angle = 0;
+		m_Tek_Base  = 0;
+		m_Tek_Point = 0;
+		m_Tek_Gin   = FALSE;
+		m_Tek_Flush = FALSE;
+		m_Tek_Int   = 0;
+		m_Tek_cX = 0; m_Tek_cY = TEK_WIN_HEIGHT - 87;
+		m_Tek_lX = 0; m_Tek_lY = m_Tek_cY;
+		m_Tek_wX = 0; m_Tek_wY = m_Tek_cY;
+		TekClear();
+	}
 }
 VRAM *CTextRam::GETVRAM(int cols, int lines)
 {
@@ -2715,7 +2802,6 @@ void CTextRam::SAVERAM()
 	pSave->m_BankSG = m_BankSG;
 	memcpy(pSave->m_BankTab, m_BankTab, sizeof(m_BankTab));
 	memcpy(pSave->m_TabMap, m_TabMap, sizeof(m_TabMap));
-	pSave->m_MouseTrack = m_MouseTrack;
 
 	m_Save_Text.Add(pSave);
 }
@@ -2745,8 +2831,6 @@ void CTextRam::LOADRAM()
 
 	m_RecvCrLf = IsOptValue(TO_RLRECVCR, 2);
 	m_SendCrLf = IsOptValue(TO_RLECHOCR, 2);
-
-	m_MouseTrack = pSave->m_MouseTrack;
 
 	for ( n = 0 ; n < pSave->m_Lines && n < m_Lines ; n++ ) {
 		if ( pSave->m_Cols >= m_Cols )

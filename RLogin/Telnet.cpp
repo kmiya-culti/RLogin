@@ -307,6 +307,23 @@ void CTelnet::PrintOpt(int st, int ch, int opt)
 	TRACE(tmp);
 #endif
 }
+void CTelnet::SendStr(LPCSTR str)
+{
+	int n = 0;
+	char tmp[256];
+
+	while ( *str != '\0' ) {
+		if ( *str == (char)TELC_IAC )
+			tmp[n++] = (char)TELC_IAC;
+		tmp[n++] = *(str++);
+		if ( n > 250 ) {
+			SockSend(tmp, n);
+			n = 0;
+		}
+	}
+	if ( n > 0 )
+		SockSend(tmp, n);
+}
 void CTelnet::SendOpt(int ch, int opt)
 {
 	char tmp[4];
@@ -463,9 +480,10 @@ void CTelnet::OptFunc(struct TelOptTab *tab, int opt, int sw, int ch)
 }
 void CTelnet::SubOptFunc(char *buf, int len)
 {
-	int n;
+	int n, i;
 	int ptr = 0;
 	char tmp[256];
+	CStringEnv env;
 
 #define	SB_GETC()	(ptr >= len ? EOF : (buf[ptr++] & 0xFF))
 
@@ -477,12 +495,16 @@ void CTelnet::SubOptFunc(char *buf, int len)
             break;
         if ( SB_GETC() != TELQUAL_SEND )
 			break;
-		if ( (n = 4 + m_pDocument->m_ServerEntry.m_TermName.GetLength() + 2) >= 256 )
-			break;
-		sprintf(tmp, "%c%c%c%c%s%c%c",
-				TELC_IAC, TELC_SB, TELOPT_TTYPE, TELQUAL_IS,
-				(LPCTSTR)(m_pDocument->m_ServerEntry.m_TermName),
-				TELC_IAC, TELC_SE);
+		n = 0;
+		tmp[n++] = (char)TELC_IAC;
+		tmp[n++] = (char)TELC_SB;
+		tmp[n++] = (char)TELOPT_TTYPE;
+		tmp[n++] = (char)TELQUAL_IS;
+		SockSend(tmp, n);
+		SendStr(m_pDocument->m_ServerEntry.m_TermName);
+		n = 0;
+		tmp[n++] = (char)TELC_IAC;
+		tmp[n++] = (char)TELC_SE;
 		SockSend(tmp, n);
 		PrintOpt(0, TELC_SB, TELOPT_TTYPE);
 		break;
@@ -492,14 +514,34 @@ void CTelnet::SubOptFunc(char *buf, int len)
             break;
         if ( SB_GETC() != TELQUAL_SEND )
 			break;
-		if ( (n = 4 + 1 + 4 + 1 + m_pDocument->m_ServerEntry.m_UserName.GetLength() + 2) >= 256 )
-			break;
-		sprintf(tmp, "%c%c%c%c%c%s%c%s%c%c",
-				TELC_IAC, TELC_SB, TELOPT_NEW_ENVIRON, TELQUAL_IS,
-				ENV_VAR, "USER",
-				ENV_VALUE, (LPCTSTR)(m_pDocument->m_ServerEntry.m_UserName),
-				TELC_IAC, TELC_SE);
+
+		n = 0;
+		tmp[n++] = (char)TELC_IAC;
+		tmp[n++] = (char)TELC_SB;
+		tmp[n++] = (char)TELOPT_NEW_ENVIRON;
+		tmp[n++] = (char)TELQUAL_IS;
 		SockSend(tmp, n);
+
+		env.GetString(m_pDocument->m_ParamTab.m_ExtEnvStr);
+		env["USER"] = m_pDocument->m_ServerEntry.m_UserName;
+		for ( i = 0 ; i < env.GetSize() ; i++ ) {
+			if ( env[i].m_Value == 0 || env[i].m_nIndex.IsEmpty() || env[i].m_String.IsEmpty() )
+				continue;
+			n = 0;
+			tmp[n++] = (char)ENV_VAR;
+			SockSend(tmp, n);
+			SendStr(env[i].m_nIndex);
+			n = 0;
+			tmp[n++] = (char)ENV_VALUE;
+			SockSend(tmp, n);
+			SendStr(env[i].m_String);
+		}
+
+		n = 0;
+		tmp[n++] = (char)TELC_IAC;
+		tmp[n++] = (char)TELC_SE;
+		SockSend(tmp, n);
+
 		PrintOpt(0, TELC_SB, TELOPT_NEW_ENVIRON);
 		break;
 

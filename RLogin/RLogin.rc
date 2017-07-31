@@ -244,6 +244,17 @@ BEGIN
             MENUITEM "ASCII",                       IDM_KANJI_ASCII
             MENUITEM "UTF8",                        IDM_KANJI_UTF8
         END
+        POPUP "リセット"
+        BEGIN
+            MENUITEM "タブリセット",                      IDM_RESET_TAB
+            MENUITEM "文字バンクリセット",                   IDM_RESET_BANK
+            MENUITEM "文字属性リセット",                    IDM_RESET_ATTR
+            MENUITEM "ESCシーケンスリセット",                IDM_RESET_ESC
+            MENUITEM "マウスイベントリセット",                 IDM_RESET_MOUSE
+            MENUITEM "tek40/41xxリセット",              IDM_RESET_TEK
+            MENUITEM SEPARATOR
+            MENUITEM "スクリーンリセット",                   IDM_RESET_ALL
+        END
     END
     POPUP "ウィンドウ(&W)"
     BEGIN
@@ -326,6 +337,23 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "最新の情報に更新",                    ID_EDIT_CHECK
     END
+    POPUP "CAPLIST"
+    BEGIN
+        POPUP "TermCap"
+        BEGIN
+            MENUITEM "ファイルからインポート",                 IDM_CAP_INPORT
+            MENUITEM "ファイルにエクスポート",                 IDM_CAP_EXPORT
+            MENUITEM SEPARATOR
+            MENUITEM "クリップボードに送る",                  IDM_CAP_CLIPBORD
+        END
+        POPUP "TermInfo"
+        BEGIN
+            MENUITEM "ファイルからインポート",                 IDM_INFO_INPORT
+            MENUITEM "ファイルにエクスポート",                 IDM_INFO_EXPORT
+            MENUITEM SEPARATOR
+            MENUITEM "クリップボードに送る",                  IDM_INFO_CLIPBORD
+        END
+    END
 END
 
 IDR_TEKWND MENU 
@@ -359,7 +387,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.6.4 (2009/02/13)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.6.5 (2009/02/20)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2009 Culti",IDC_STATIC,47,18,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,145,50,14,WS_GROUP
     LTEXT           "OpenSSL 0.9.8j Jan 7th, 2009",IDC_STATIC,47,35,176,8
@@ -863,28 +891,28 @@ BEGIN
     COMBOBOX        IDC_SERVERNAME,15,110,141,60,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "com",IDC_COMCONFIG,160,110,20,14
     COMBOBOX        IDC_SOCKNO,189,110,46,100,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_LOGINNAME,15,146,65,62,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    EDITTEXT        IDC_PASSWORD,92,146,65,14,ES_PASSWORD | ES_AUTOHSCROLL
-    COMBOBOX        IDC_TERMNAME,170,146,65,59,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "参照",IDC_KEYFILESELECT,171,185,65,14
+    COMBOBOX        IDC_LOGINNAME,15,152,65,62,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_PASSWORD,92,152,65,14,ES_PASSWORD | ES_AUTOHSCROLL
+    COMBOBOX        IDC_TERMNAME,170,152,65,59,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "参照",IDC_KEYFILESELECT,171,188,65,14
     CONTROL         "EUC",IDC_KANJICODE1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,20,239,30,10
     CONTROL         "SJIS",IDC_KANJICODE2,"Button",BS_AUTORADIOBUTTON,76,239,31,10
     CONTROL         "ASCII",IDC_KANJICODE3,"Button",BS_AUTORADIOBUTTON,133,239,34,10
     CONTROL         "UTF-8",IDC_KANJICODE4,"Button",BS_AUTORADIOBUTTON,193,239,34,10
     CTEXT           "Server Address",IDC_STATIC,15,98,141,8
-    CTEXT           "User Name",IDC_STATIC,15,134,65,8
-    CTEXT           "Terminal",IDC_STATIC,170,134,65,8
+    CTEXT           "User Name",IDC_STATIC,15,137,65,8
     GROUPBOX        "Default Kanji Code",IDC_STATIC,7,221,237,42
-    CTEXT           "Password",IDC_STATIC,92,134,65,8
-    CTEXT           "SSH Identity Key",IDC_STATIC,171,174,65,8
+    CTEXT           "Password",IDC_STATIC,92,137,65,8
+    CTEXT           "SSH Identity Key",IDC_STATIC,171,177,65,8
     CTEXT           "Socket Port",IDC_STATIC,189,98,46,8
     GROUPBOX        "Server Entry",IDC_STATIC,7,7,237,71
     GROUPBOX        "Protocol",IDC_STATIC,14,40,221,29
-    GROUPBOX        "Socket Option",IDC_STATIC,7,85,237,125
-    PUSHBUTTON      "編集",IDC_CHATEDIT,15,186,65,14
-    CTEXT           "Chat Script",IDC_STATIC,15,174,65,8
-    PUSHBUTTON      "設定",IDC_PROXYSET,93,186,65,14
-    CTEXT           "Proxy Server",IDC_STATIC,93,174,65,8
+    GROUPBOX        "Server Option",IDC_STATIC,7,85,237,125
+    PUSHBUTTON      "編集",IDC_CHATEDIT,15,189,65,14
+    CTEXT           "Chat Script",IDC_STATIC,15,177,65,8
+    PUSHBUTTON      "設定",IDC_PROXYSET,93,189,65,14
+    CTEXT           "Proxy Server",IDC_STATIC,93,177,65,8
+    PUSHBUTTON      "Terminal",IDC_TERMCAP,170,134,65,14
 END
 
 IDD_CHATDLG DIALOGEX 0, 0, 299, 247
@@ -1070,6 +1098,31 @@ BEGIN
     PUSHBUTTON      "すべてクリア",IDC_ALL_CLR,73,109,48,14
 END
 
+IDD_INFOCAPDLG DIALOGEX 0, 0, 335, 236
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Dialog"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    PUSHBUTTON      "キャンセル",IDCANCEL,178,215,60,14
+    CONTROL         "",IDC_INFOLIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,40,321,170
+    PUSHBUTTON      "TermCap",IDC_LOADCAP,193,17,60,14
+    PUSHBUTTON      "TermInfo",IDC_LOADINFO,262,17,60,14
+    DEFPUSHBUTTON   "OK",IDOK,97,215,60,14
+    GROUPBOX        "エントリー",IDC_STATIC,7,7,321,29
+    COMBOBOX        IDC_ENTRY,18,18,163,30,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+END
+
+IDD_ENVDLG DIALOGEX 0, 0, 316, 183
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "環境変数"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,125,162,64,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,207,162,64,14
+    CONTROL         "",IDC_ENV_LIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,7,302,147
+    PUSHBUTTON      "TERMCAP",IDC_INFOCAP,43,162,64,14
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1077,8 +1130,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,6,4,0
- PRODUCTVERSION 2,6,4,0
+ FILEVERSION 2,6,5,0
+ PRODUCTVERSION 2,6,5,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1095,12 +1148,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2, 6, 4, 0"
+            VALUE "FileVersion", "2, 6, 5, 0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2008 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2, 6, 4, 0"
+            VALUE "ProductVersion", "2, 6, 5, 0"
         END
     END
     BLOCK "VarFileInfo"
@@ -1348,6 +1401,22 @@ BEGIN
         RIGHTMARGIN, 247
         TOPMARGIN, 7
         BOTTOMMARGIN, 123
+    END
+
+    IDD_INFOCAPDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 328
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 229
+    END
+
+    IDD_ENVDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 309
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 176
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -2139,6 +2208,17 @@ BEGIN
     IDM_TEK_SAVE            "ファイルに保存する\n保存"
     IDM_TEK_CLEAR           "Tekウインドウをクリアする\nクリア"
     IDM_TEK_MODE            "Tek/VTモードの切換を行います\nモード切替"
+END
+
+STRINGTABLE 
+BEGIN
+    IDM_RESET_TAB           "タブ設定を初期化します\nタブ初期化"
+    IDM_RESET_BANK          "文字バンク設定を初期化します\nバンク初期化"
+    IDM_RESET_ATTR          "文字属性を初期化します\n文字初期k"
+    IDM_RESET_TEK           "tek40xx/41xxを初期化します\ntek初期化"
+    IDM_RESET_ESC           "ESCシーケンスを初期化します\nESC初期化"
+    IDM_RESET_MOUSE         "マウスイベントを初期化します\nイベント初期化"
+    IDM_RESET_ALL           "すべてを初期化し画面を消去します\n全初期化"
 END
 
 #endif    // 日本語 resources

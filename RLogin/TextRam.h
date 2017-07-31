@@ -176,6 +176,18 @@ enum CStageNum {
 #define	UTF16BE			0
 #define	UTF16LE			1
 
+#define	RESET_CURSOR	0x0001
+#define	RESET_TABS		0x0002
+#define	RESET_BANK		0x0004
+#define	RESET_ATTR		0x0008
+#define	RESET_COLOR		0x0010
+#define	RESET_TEK		0x0020
+#define	RESET_SAVE		0x0040
+#define	RESET_MOUSE		0x0080
+#define	RESET_CHAR		0x0100
+#define	RESET_OPTION	0x0200
+#define	RESET_CLS		0x0400
+
 #define issjis1(c)		(((unsigned char)(c) >= 0x81 && \
 						  (unsigned char)(c) <= 0x9F) || \
 						 ((unsigned char)(c) >= 0xE0 && \
@@ -254,7 +266,6 @@ public:
 
 	int m_DoWarp;
 	DWORD m_AnsiOpt[16];
-	int m_MouseTrack;
 
 	int m_BankGL;
 	int m_BankGR;
@@ -269,7 +280,7 @@ class CTextRam : public COptObject
 public:	// Options
 	COLORREF m_DefColTab[16];
 	CString m_SendCharSet[4];
-	DWORD m_AnsiOpt[16];
+	DWORD m_DefAnsiOpt[16];
 	int m_DefCols[2];
 	int m_DefHisMax;
 	int m_DefFontSize;
@@ -315,6 +326,7 @@ public:
 	int m_BtmY;
 	int m_DefTab;
 	COLORREF m_ColTab[256];
+	DWORD m_AnsiOpt[16];
 
 	int m_HisMax;
 	int m_HisPos;
@@ -396,6 +408,9 @@ public:
 //	void HisKeyWord();
 
 	int IsWord(WCHAR ch);
+	int GetPos(int x, int y);
+	BOOL IncPos(int &x, int &y);
+	BOOL DecPos(int &x, int &y);
 	void EditWordPos(int *sps, int *eps);
 	void EditCopy(int sps, int eps, BOOL rectflag = FALSE);
 	void StrOut(CDC* pDC, LPCRECT pRect, int att, int fcn, int bcn, int mode, int fnum, int len, int dm, int ct, char *str, int ss, int *spc, class CRLoginView *pView);
@@ -427,7 +442,7 @@ public:
 	static DWORD CTextRam::UnicodeNomal(DWORD code1, DWORD code2);
 
 	// Low Level
-	void RESET();
+	void RESET(int mode = RESET_CURSOR | RESET_TABS | RESET_BANK | RESET_ATTR | RESET_COLOR | RESET_TEK | RESET_SAVE | RESET_MOUSE | RESET_CHAR);
 	VRAM *GETVRAM(int cols, int lines);
 	void UNGETSTR(LPCSTR str, ...);
 	void BEEP();
@@ -713,6 +728,24 @@ public:
 	void fc_TEK_FLUSH(int ch);
 	void fc_TEK_MODE(int ch);
 	void fc_TEK_STAT(int ch);
+
+#define	LOC_MODE_ENABLE		0x0001
+#define	LOC_MODE_ONESHOT	0x0002
+#define	LOC_MODE_FILTER		0x0004
+#define	LOC_MODE_PIXELS		0x0008
+#define	LOC_MODE_EVENT		0x0010
+#define	LOC_MODE_UP			0x0020
+#define	LOC_MODE_DOWN		0x0040
+
+	// DEC Locator
+	int m_Loc_Mode;
+	CRect m_Loc_Rect;
+	int m_Loc_Pb;
+	int m_Loc_LastS;
+	int m_Loc_LastX;
+	int m_Loc_LastY;
+
+	void LocReport(int md, int sw, int x, int y);
 };
 
 #endif // !defined(AFX_TEXTRAM_H__CBEA227A_D7D7_4213_88B1_4F4C0DF48089__INCLUDED_)

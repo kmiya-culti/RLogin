@@ -138,6 +138,7 @@ public:
 	afx_msg void OnUpdateSendBreak(CCmdUI *pCmdUI);
 	afx_msg void OnTekdisp();
 	afx_msg void OnUpdateTekdisp(CCmdUI *pCmdUI);
+	afx_msg void OnScreenReset(UINT nID);
 };
 
 /////////////////////////////////////////////////////////////////////////////

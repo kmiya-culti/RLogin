@@ -2251,20 +2251,6 @@ static const char *InitAlgo[9][13] = {
 	{ "hmac-sha1", "hmac-md5", "hmac-ripemd160", "hmac-md5-96", "hmac-sha1-96", NULL },
 	{ "zlib@openssh.com", "zlib", "none", NULL },
 };
-static const char *TermCap = "TERMCAP='kterm-color|kterm-co|kterm + ANSI colors"\
-	":ti@:te@:k1=\\EOP:k2=\\EOQ:k3=\\EOR:k4=\\EOS:k5=\\E[15~:k6=\\E[17~:k7=\\E[18~"\
-	":k8=\\E[19~:k9=\\E[20~:k;=\\E[21~:F1=\\E[23~:F2=\\E[24~:kH=\\EOF:@7=\\EOF:kI=\\E[2~"\
-	":kh=\\EOH:*6=\\EOF:kP=\\E[5~:kN=\\E[6~:ku=\\EOA:kd=\\EOB:kr=\\EOC:kl=\\EOD:Km=\\E[M"\
-	":li#24:co#80:am:kn#12:km:mi:ms:xn:bl=^G:is=\\E[!p\\E[?3;4l\\E[4l\\E>"\
-	":rs=\\E[!p\\E[?3;4l\\E[4l\\E>:le=^H:AL=\\E[%dL:DL=\\E[%dM:DC=\\E[%dP:al=\\E[L:dc=\\E[P"\
-	":dl=\\E[M:UP=\\E[%dA:DO=\\E[%dB:LE=\\E[%dD:RI=\\E[%dC:ho=\\E[H:cd=\\E[J:ce=\\E[K"\
-	":cl=\\E[H\\E[2J:cm=\\E[%i%d;%dH:cs=\\E[%i%d;%dr:im=\\E[4h:ei=\\E[4l:ks=\\E[?1h\\E="\
-	":ke=\\E[?1l\\E>:kD=\\E[3~:sf=\\n:sr=\\EM:st=\\EH:ct=\\E[3g:sc=\\E7:rc=\\E8:eA=\\E(B\\E)0"\
-	":as=^N:ae=^O:ml=\\El:mu=\\Em:up=\\E[A:nd=\\E[C:md=\\E[1m:me=\\E[m^O:mr=\\E[7m:so=\\E[7m"\
-	":se=\\E[27m:us=\\E[4m:ue=\\E[24m:vi=\\E[?25l:ve=\\E[?25h:ut:pa#64:Co#8:op=\\E[39;49m"\
-	":AB=\\E[4%dm:AF=\\E[3%dm:kb=\\010:AF=\\E[3%dm:AB=\\E[4%dm:op=\\E[39;49m:hs:es"\
-	":ts=\\E[?E\\E[?%i%dT:fs=\\E[?F:ds=\\E[?H:KJ:sc=\\E7:rc=\\E8:cs=\\E[%i%d;%dr"\
-	":TY=ascii:eA@:as=\\E(0:ae=\\E(B:'";
 
 CParamTab::CParamTab()
 {
@@ -2288,7 +2274,7 @@ void CParamTab::Init()
 	m_PortFwd.RemoveAll();
 
 	m_XDisplay  = ":0";
-//	m_ExtEnvStr = TermCap;
+	m_ExtEnvStr = "";
 }
 void CParamTab::SetArray(CStringArrayExt &array)
 {
@@ -2312,7 +2298,7 @@ void CParamTab::SetArray(CStringArrayExt &array)
 	array.Add("EndOf");
 
 	array.Add(m_XDisplay);
-//	array.Add(m_ExtEnvStr);
+	array.Add(m_ExtEnvStr);
 }
 void CParamTab::GetArray(CStringArrayExt &array)
 {
@@ -2346,7 +2332,7 @@ void CParamTab::GetArray(CStringArrayExt &array)
 	}
 
 	m_XDisplay  = (array.GetSize() > i ? array.GetAt(i++) : ":0");
-//	m_ExtEnvStr = (array.GetSize() > i ? array.GetAt(i++) : TermCap);
+	m_ExtEnvStr = (array.GetSize() > i ? array.GetAt(i++) : "");
 
 	if ( m_IdKeyStr[0].Compare("IdKeyList Entry") == 0 ) {
 		m_IdKeyList.GetString(m_IdKeyStr[1]);
@@ -2596,6 +2582,8 @@ int CFifoBuffer::WReadLine(CStringW &str, int sec)
 
 CStringIndex::CStringIndex()
 {
+	m_bNoCase = TRUE;
+	m_Value = 0;
 	m_nIndex.Empty();
 	m_String.Empty();
 	m_Array.RemoveAll();
@@ -2605,11 +2593,15 @@ CStringIndex::~CStringIndex()
 }
 const CStringIndex & CStringIndex::operator = (CStringIndex &data)
 {
-	m_nIndex = data.m_nIndex;
-	m_String = data.m_String;
+	m_bNoCase = data.m_bNoCase;
+	m_Value   = data.m_Value;
+	m_nIndex  = data.m_nIndex;
+	m_String  = data.m_String;
+
 	m_Array.RemoveAll();
 	for ( int n = 0 ; n < data.m_Array.GetSize() ; n++ )
 		m_Array.Add(data.m_Array[n]);
+
 	return *this;
 }
 CStringIndex & CStringIndex::operator [] (LPCSTR str)
@@ -2621,13 +2613,15 @@ CStringIndex & CStringIndex::operator [] (LPCSTR str)
 	m = m_Array.GetSize() - 1;
 	while ( b <= m ) {
 		n = (b + m) / 2;
-		if ( (c = m_Array[n].m_nIndex.CompareNoCase(str)) == 0 )
+		c = (m_bNoCase ? m_Array[n].m_nIndex.CompareNoCase(str) : m_Array[n].m_nIndex.Compare(str));
+		if ( c == 0 )
 			return m_Array[n];
 		else if ( c < 0 )
 			b = n + 1;
 		else
 			m = n - 1;
 	}
+	tmpData.SetNoCase(m_bNoCase);
 	tmpData.m_nIndex = str;
 	m_Array.InsertAt(b, tmpData);
 	return m_Array[b];
@@ -2640,7 +2634,8 @@ int CStringIndex::Find(LPCSTR str)
 	m = m_Array.GetSize() - 1;
 	while ( b <= m ) {
 		n = (b + m) / 2;
-		if ( (c = m_Array[n].m_nIndex.CompareNoCase(str)) == 0 )
+		c = (m_bNoCase ? m_Array[n].m_nIndex.CompareNoCase(str) : m_Array[n].m_nIndex.Compare(str));
+		if ( c == 0 )
 			return n;
 		else if ( c < 0 )
 			b = n + 1;
@@ -2718,4 +2713,159 @@ void CStringIndex::SetArray(LPCSTR str)
 			(*this)[idx] = val;
 		break;
     }
+}
+
+//////////////////////////////////////////////////////////////////////
+// CStringEnv
+
+CStringEnv::CStringEnv()
+{
+	m_Value = 0;
+	m_nIndex.Empty();
+	m_String.Empty();
+	m_Array.RemoveAll();
+}
+CStringEnv::~CStringEnv()
+{
+}
+const CStringEnv & CStringEnv::operator = (CStringEnv &data)
+{
+	m_Value   = data.m_Value;
+	m_nIndex  = data.m_nIndex;
+	m_String  = data.m_String;
+
+	m_Array.RemoveAll();
+	for ( int n = 0 ; n < data.m_Array.GetSize() ; n++ )
+		m_Array.Add(data.m_Array[n]);
+
+	return *this;
+}
+CStringEnv & CStringEnv::operator [] (LPCSTR str)
+{
+	int n;
+	CStringEnv tmpData;
+
+	for ( n = 0 ; n < GetSize() ; n++ ) {
+		if ( m_Array[n].m_nIndex.CompareNoCase(str) == 0 )
+			return m_Array[n];
+	}
+	tmpData.m_nIndex = str;
+	n = m_Array.Add(tmpData);
+	return m_Array[n];
+}
+int CStringEnv::Find(LPCSTR str)
+{
+	int n;
+
+	for ( n = 0 ; n < GetSize() ; n++ ) {
+		if ( m_Array[n].m_nIndex.CompareNoCase(str) == 0 )
+			return n;
+	}
+	return (-1);
+}
+void CStringEnv::GetBuffer(CBuffer *bp)
+{
+	m_Value = bp->Get32Bit();
+	bp->GetStr(m_nIndex);
+	bp->GetStr(m_String);
+
+	SetSize(bp->Get32Bit());
+
+	for ( int n = 0 ; n < GetSize() ; n++ )
+		m_Array[n].GetBuffer(bp);
+}
+void CStringEnv::SetBuffer(CBuffer *bp)
+{
+	bp->Put32Bit(m_Value);
+	bp->PutStr(m_nIndex);
+	bp->PutStr(m_String);
+
+	bp->Put32Bit(GetSize());
+
+	for ( int n = 0 ; n < GetSize() ; n++ )
+		m_Array[n].SetBuffer(bp);
+}
+void CStringEnv::GetString(LPCSTR str)
+{
+	CBuffer tmp;
+	if ( *str == '\0' )
+		return;
+	tmp.Base64Decode(str);
+	if ( tmp.GetSize() < 16 )
+		return;
+	GetBuffer(&tmp);
+}
+void CStringEnv::SetString(CString &str)
+{
+	CBuffer tmp, work;
+	SetBuffer(&tmp);
+	work.Base64Encode(tmp.GetPtr(), tmp.GetSize());
+	str = (LPCSTR)work;
+}
+
+//////////////////////////////////////////////////////////////////////
+// CStringBinary
+
+CStringBinary::CStringBinary()
+{
+	m_pLeft = m_pRight = NULL;
+	m_Index = "a";
+	m_Value = (-1);
+}
+CStringBinary::CStringBinary(LPCSTR str)
+{
+	m_pLeft = m_pRight = NULL;
+	m_Index = str;
+	m_Value = (-1);
+}
+CStringBinary::~CStringBinary()
+{
+	if ( m_pLeft != NULL )
+		delete m_pLeft;
+
+	if ( m_pRight != NULL )
+		delete m_pRight;
+}
+CStringBinary & CStringBinary::operator [] (LPCSTR str)
+{
+	int c = m_Index.Compare(str);
+
+	if ( c == 0 )
+		return *this;
+	else if ( c < 0 ) {
+		if ( m_pLeft == NULL ) {
+			m_pLeft = new CStringBinary(str);
+			return *m_pLeft;
+		} else
+			return (*m_pLeft)[str];
+	} else {
+		if ( m_pRight == NULL ) {
+			m_pRight = new CStringBinary(str);
+			return *m_pRight;
+		} else
+			return (*m_pRight)[str];
+	}
+}
+void CStringBinary::RemoveAll()
+{
+	if ( m_pLeft != NULL )
+		delete m_pLeft;
+
+	if ( m_pRight != NULL )
+		delete m_pRight;
+
+	m_pLeft = m_pRight = NULL;
+	m_Index = "a";
+	m_Value = (-1);
+}
+CStringBinary * CStringBinary::FindValue(int value)
+{
+	CStringBinary *bp;
+	if ( m_Value == value )
+		return this;
+	if ( m_pLeft != NULL && (bp = m_pLeft->FindValue(value)) != NULL )
+		return bp;
+	else if ( m_pRight != NULL && (bp = m_pRight->FindValue(value)) != NULL )
+		return bp;
+	return NULL;
 }

@@ -13,6 +13,7 @@
 #include "SerEntPage.h"
 #include "ChatDlg.h"
 #include "ProxyDlg.h"
+#include "EnvDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -76,6 +77,7 @@ BEGIN_MESSAGE_MAP(CSerEntPage, CPropertyPage)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_KANJICODE1, IDC_KANJICODE4, OnUpdateCheck)
 	ON_BN_CLICKED(IDC_CHATEDIT, &CSerEntPage::OnChatEdit)
 	ON_BN_CLICKED(IDC_PROXYSET, &CSerEntPage::OnProxySet)
+	ON_BN_CLICKED(IDC_TERMCAP, &CSerEntPage::OnBnClickedTermcap)
 END_MESSAGE_MAP()
 
 void CSerEntPage::SetEnableWind()
@@ -94,6 +96,7 @@ void CSerEntPage::SetEnableWind()
 		{ IDC_PASSWORD,		  {	FALSE,	TRUE,	TRUE,	TRUE,	FALSE,	FALSE } },
 		{ IDC_TERMNAME,		  {	FALSE,	TRUE,	TRUE,	TRUE,	FALSE,	FALSE } },
 		{ IDC_PROXYSET,		  {	TRUE,	TRUE,	TRUE,	TRUE,	FALSE,	FALSE } },
+		{ IDC_TERMCAP,		  {	FALSE,	FALSE,	TRUE,	TRUE,	FALSE,	FALSE } },
 		{ 0 }
 	};
 
@@ -152,6 +155,7 @@ BOOL CSerEntPage::OnInitDialog()
 	m_ProxyPort = m_pSheet->m_pEntry->m_ProxyPort;
 	m_ProxyUser = m_pSheet->m_pEntry->m_ProxyUser;
 	m_ProxyPass = m_pSheet->m_pEntry->m_ProxyPass;
+	m_ExtEnvStr = m_pSheet->m_pParamTab->m_ExtEnvStr;
 
 	if ( m_PortName.Compare("serial") == 0 ) {
 		com.GetMode(m_HostName);
@@ -233,6 +237,7 @@ BOOL CSerEntPage::OnApply()
 	m_pSheet->m_pEntry->m_ProxyPort = m_ProxyPort;
 	m_pSheet->m_pEntry->m_ProxyUser = m_ProxyUser;
 	m_pSheet->m_pEntry->m_ProxyPass = m_ProxyPass;
+	m_pSheet->m_pParamTab->m_ExtEnvStr = m_ExtEnvStr;
 
 	return TRUE;
 }
@@ -259,6 +264,7 @@ void CSerEntPage::OnReset()
 	m_ProxyPort = m_pSheet->m_pEntry->m_ProxyPort;
 	m_ProxyUser = m_pSheet->m_pEntry->m_ProxyUser;
 	m_ProxyPass = m_pSheet->m_pEntry->m_ProxyPass;
+	m_ExtEnvStr = m_pSheet->m_pParamTab->m_ExtEnvStr;
 
 	UpdateData(FALSE);
 	SetModified(FALSE);
@@ -344,4 +350,40 @@ void CSerEntPage::OnProxySet()
 
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_ENTRY;
+}
+
+void CSerEntPage::OnBnClickedTermcap()
+{
+	int n;
+	CEnvDlg dlg;
+	CComboBox *pCombo;
+
+	UpdateData(TRUE);
+
+	dlg.m_Env.GetString(m_ExtEnvStr);
+
+	if ( !m_TermName.IsEmpty() ) {
+		dlg.m_Env["TERM"].m_Value  = 0;
+		dlg.m_Env["TERM"].m_String = m_TermName;
+	}
+
+	if ( dlg.DoModal() != IDOK )
+		return;
+
+	if ( (n = dlg.m_Env.Find("TERM")) >= 0 ) {
+		dlg.m_Env["TERM"].m_Value = 0;
+		if ( !dlg.m_Env["TERM"].m_String.IsEmpty() )
+			m_TermName = dlg.m_Env["TERM"];
+	}
+
+	dlg.m_Env.SetString(m_ExtEnvStr);
+
+	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_TERMNAME)) != NULL ) {
+		if ( pCombo->FindStringExact(0, m_TermName) < 0 )
+			pCombo->AddString(m_TermName);
+	}
+
+	UpdateData(FALSE);
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= UMOD_PARAMTAB;
 }

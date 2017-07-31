@@ -35,6 +35,13 @@ public:
 	CMenu m_PopUpMenu;
 	CMenu *m_pSubMenu;
 
+	int m_EditSubItem;
+	int m_EditFlag;
+	int m_EditItem;
+	int m_EditNum;
+	CEdit m_EditWnd;
+	CString m_EditOld;
+
 	int GetParamItem(int para);
 	int GetSelectMarkData();
 	void DoSortItem();
@@ -43,6 +50,8 @@ public:
 	void SetLVCheck(WPARAM ItemIndex, BOOL bCheck);
 	BOOL GetLVCheck(WPARAM ItemIndex);
 	void SetPopUpMenu(UINT nIDResource, int Pos);
+	void OpenEditBox(int item, int num, int fmt, CRect &rect);
+	void EditItem(int item, int num);
 
 	virtual ~CListCtrlExt();
 
@@ -51,6 +60,10 @@ protected:
 	//{{AFX_MSG(CListCtrlExt)
 	afx_msg void OnColumnclick(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg BOOL OnRclick(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg BOOL OnDblclk(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
+	afx_msg void OnKillfocusEditBox();
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	//}}AFX_MSG
 
 	DECLARE_MESSAGE_MAP()
