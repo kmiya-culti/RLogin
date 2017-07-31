@@ -126,6 +126,7 @@ public:
 	SOCKET m_Fd, m_FdTab[LISTENSOCKS];
 	class CRLoginDoc *m_pDocument;
 	BOOL m_bConnect;
+	BOOL m_bCallConnect;
 
 	CBuffer m_RecvBuff;
 	CBuffer m_SendBuff;

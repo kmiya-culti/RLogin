@@ -90,6 +90,7 @@ public:
 	class CScript *m_pScript;
 	BOOL m_InPane;
 	BOOL m_bUseIdle;
+	int m_AfterId;
 
 	void SetIndex(int mode, CStringIndex &index);
 

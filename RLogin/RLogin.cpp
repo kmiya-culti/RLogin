@@ -44,6 +44,7 @@ CCommandLineInfoEx::CCommandLineInfoEx()
 	m_Name.Empty();
 	m_InUse = FALSE;
 	m_InPane = FALSE;
+	m_AfterId = (-1);
 }
 void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLast)
 {
@@ -63,6 +64,8 @@ void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLas
 			m_PasStat = 5;
 		else if ( _tcsicmp(_T("entry"), pszParam) == 0 )
 			m_PasStat = 6;
+		else if ( _tcsicmp(_T("after"), pszParam) == 0 )
+			m_PasStat = 7;
 		else if ( _tcsicmp(_T("direct"), pszParam) == 0 )
 			m_Proto = PROTO_DIRECT;
 		else if ( _tcsicmp(_T("login"), pszParam) == 0 ) {
@@ -124,6 +127,13 @@ void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLas
 		if ( bFlag )
 			break;
 		m_Name = pszParam;
+		ParseLast(bLast);
+		return;
+	case 7:
+		m_PasStat = 0;
+		if ( bFlag )
+			break;
+		m_AfterId = _tstoi(pszParam);
 		ParseLast(bLast);
 		return;
 	}
@@ -533,6 +543,8 @@ BOOL CRLoginApp::InitInstance()
 
 void CRLoginApp::OpenProcsCmd(CCommandLineInfoEx *pCmdInfo)
 {
+	CCommandLineInfoEx *pOldCmdInfo = m_pCmdInfo;
+
 	m_pCmdInfo = pCmdInfo;
 	switch(pCmdInfo->m_nShellCommand) {
 	case CCommandLineInfo::FileNew:
@@ -543,20 +555,40 @@ void CRLoginApp::OpenProcsCmd(CCommandLineInfoEx *pCmdInfo)
 			OnFileNew();
 		break;
 	}
-	m_pCmdInfo = NULL;
+	m_pCmdInfo = pOldCmdInfo;
 }
-void CRLoginApp::OpenProcsEntry(LPCTSTR entry)
+void CRLoginApp::OpenCommandEntry(LPCTSTR entry)
 {
 	CCommandLineInfoEx cmds;
 
-	if ( entry != NULL && *entry != _T('\0') ) {
-		cmds.ParseParam(_T("entry"), TRUE, FALSE);
-		cmds.ParseParam(entry, FALSE, FALSE);
-	}
-	cmds.ParseParam(_T("inpane"), TRUE, FALSE);
+	cmds.ParseParam(_T("Entry"), TRUE, FALSE);
+	cmds.ParseParam(entry, FALSE, TRUE);
 	OpenProcsCmd(&cmds);
 }
-BOOL CALLBACK RLoginEnumFunc(HWND hwnd, LPARAM lParam)
+void CRLoginApp::OpenCommandLine(LPCTSTR str)
+{
+	CStringArrayExt param;
+	CCommandLineInfoEx cmds;
+
+	param.GetCmds(str);
+
+	if ( param.GetSize() <= 0 )
+		return;
+
+	for ( int n = 0 ; n < param.GetSize() ; n++ ) {
+		LPCTSTR pParam = param[n];
+		BOOL bFlag = FALSE;
+		BOOL bLast = ((n + 1) == param.GetSize());
+		if ( pParam[0] == _T('-') || pParam[0] == _T('/') ) {
+			bFlag = TRUE;
+			pParam++;
+		}
+		cmds.ParseParam(pParam, bFlag, bLast);
+	}
+
+	OpenProcsCmd(&cmds);
+}
+static BOOL CALLBACK RLoginEnumFunc(HWND hwnd, LPARAM lParam)
 {
 	CRLoginApp *pApp = (CRLoginApp *)lParam;
 	TCHAR title[1024];
@@ -571,7 +603,7 @@ BOOL CALLBACK RLoginEnumFunc(HWND hwnd, LPARAM lParam)
 		copyData.dwData = 0x524c4f31;
 		copyData.cbData = (cmdLine.GetLength() + 1) * sizeof(TCHAR);
 		copyData.lpData = cmdLine.GetBuffer();
-		::SendMessage(hwnd, WM_COPYDATA, (WPARAM)(pApp->m_pMainWnd->GetSafeHwnd()), (LPARAM)&copyData);
+		::SendMessage(hwnd, WM_COPYDATA, (WPARAM)(AfxGetMainWnd()->GetSafeHwnd()), (LPARAM)&copyData);
 		return FALSE;
 	}
 
@@ -579,9 +611,50 @@ BOOL CALLBACK RLoginEnumFunc(HWND hwnd, LPARAM lParam)
 }
 BOOL CRLoginApp::InUseCheck()
 {
+	if ( m_pCmdInfo == NULL )
+		return FALSE;
+
 	::EnumWindows(RLoginEnumFunc, (LPARAM)this);
-	return (m_pCmdInfo == NULL || m_pCmdInfo->m_InUse ? FALSE : TRUE);
+
+	return (m_pCmdInfo->m_InUse ? FALSE : TRUE);
 }
+static BOOL CALLBACK RLoginOnlineFunc(HWND hwnd, LPARAM lParam)
+{
+	TCHAR title[1024];
+	COPYDATASTRUCT copyData;
+	LPCTSTR entry = (LPCTSTR)lParam;
+
+	::GetWindowText(hwnd, title, 1024);
+
+	if ( _tcsncmp(title, _T("RLogin"), 6) == 0 && ::GetWindowLongPtr(hwnd, GWLP_USERDATA) == 0x524c4f47 ) {
+		copyData.dwData = 0x524c4f32;
+		copyData.cbData = (_tcslen(entry) + 1) * sizeof(TCHAR);
+		copyData.lpData = (PVOID)entry;
+		if ( ::SendMessage(hwnd, WM_COPYDATA, (WPARAM)(AfxGetMainWnd()->GetSafeHwnd()), (LPARAM)&copyData) )
+			return FALSE;
+	}
+
+	return TRUE;
+}
+BOOL CRLoginApp::OnlineCheck(LPCTSTR entry)
+{
+	return (::EnumWindows(RLoginOnlineFunc, (LPARAM)entry) == FALSE ? TRUE : FALSE);
+}
+BOOL CRLoginApp::OnlineEntry(LPCTSTR entry)
+{
+	POSITION pos = GetFirstDocTemplatePosition();
+	while ( pos != NULL ) {
+		CDocTemplate *pDocTemp = GetNextDocTemplate(pos);
+		POSITION dpos = pDocTemp->GetFirstDocPosition();
+		while ( dpos != NULL ) {
+			CRLoginDoc *pDoc = (CRLoginDoc *)pDocTemp->GetNextDoc(dpos);
+			if ( pDoc->m_pSock != NULL && pDoc->m_TextRam.IsInitText() && pDoc->m_ServerEntry.m_EntryName.Compare(entry) == 0 )
+				return TRUE;
+		}
+	}
+	return FALSE;
+}
+
 void CRLoginApp::SetSocketIdle(class CExtSocket *pSock)
 {
 	ASSERT(pSock->m_Type >= 0 && pSock->m_Type < 10);
@@ -1000,6 +1073,7 @@ int CRLoginApp::ExitInstance()
 BOOL CRLoginApp::SaveAllModified() 
 {
 	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
+
 	if ( pMain != NULL && !pMain->SaveModified() )
 		return FALSE;
 

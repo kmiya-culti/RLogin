@@ -658,6 +658,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_MESSAGE(WM_GETHOSTADDR, OnGetHostAddr)
 	ON_MESSAGE(WM_ICONMSG, OnIConMsg)
 	ON_MESSAGE(WM_THREADCMD, OnThreadMsg)
+	ON_MESSAGE(WM_AFTEROPEN, OnAfterOpen)
 
 	ON_COMMAND(ID_FILE_ALL_LOAD, OnFileAllLoad)
 	ON_COMMAND(ID_FILE_ALL_SAVE, OnFileAllSave)
@@ -1165,6 +1166,16 @@ int CMainFrame::SetAsyncAddrInfo(int mode, LPCTSTR pHostName, int PortNum, void 
 	return TRUE;
 }
 
+int CMainFrame::SetAfterId(void *param)
+{
+	static int SeqId = 0;
+
+	m_AfterIdParam.Add((void *)++SeqId);
+	m_AfterIdParam.Add(param);
+
+	return SeqId;
+}
+
 int CMainFrame::SetTimerEvent(int msec, int mode, void *pParam)
 {
 	CTimerObject *tp;
@@ -1326,6 +1337,7 @@ int CMainFrame::OpenServerEntry(CServerEntry &Entry)
 	}
 	return TRUE;
 }
+
 void CMainFrame::SetTransPar(COLORREF rgb, int value, DWORD flag)
 {
 	if ( (flag & LWA_COLORKEY) != 0 && rgb == 0 )
@@ -1723,6 +1735,31 @@ LRESULT CMainFrame::OnThreadMsg(WPARAM wParam, LPARAM lParam)
 {
 	CSyncSock *pSp = (CSyncSock *)lParam;
 	pSp->ThreadCommand((int)wParam);
+	return TRUE;
+}
+
+LRESULT CMainFrame::OnAfterOpen(WPARAM wParam, LPARAM lParam)
+{
+	int n;
+
+	for ( n = 0 ; n < m_AfterIdParam.GetSize() ; n += 2 ) {
+		if ( (int)(m_AfterIdParam[n]) == (int)wParam ) {
+			CRLoginDoc *pDoc = (CRLoginDoc *)m_AfterIdParam[n + 1];
+			CRLoginView *pView = (CRLoginView *)pDoc->GetAciveView();
+
+			m_AfterIdParam.RemoveAt(n, 2);
+
+			if ( (int)lParam != 0 )
+				pDoc->OnSocketError((int)lParam);
+			else {
+				pDoc->SocketOpen();
+				if ( pView != NULL )
+					MDIActivate(pView->GetFrameWnd());
+			}
+			break;
+		}
+	}
+
 	return TRUE;
 }
 
@@ -2201,7 +2238,11 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCopyDataStruct)
 		cmdInfo.SetString((LPCTSTR)(pCopyDataStruct->lpData));
 		pApp->OpenProcsCmd(&cmdInfo);
 		return TRUE;
+
+	} else if ( pCopyDataStruct->dwData == 0x524c4f32 ) {
+		return ((CRLoginApp *)::AfxGetApp())->OnlineEntry((LPCTSTR)(pCopyDataStruct->lpData));
 	}
+
 	return CMDIFrameWnd::OnCopyData(pWnd, pCopyDataStruct);
 }
 void CMainFrame::OnEnterMenuLoop(BOOL bIsTrackPopupMenu)

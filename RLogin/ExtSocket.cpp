@@ -86,6 +86,7 @@ CExtSocket::CExtSocket(class CRLoginDoc *pDoc)
 	m_SSL_pCtx  = NULL;
 	m_SSL_pSock = NULL;
 	m_bConnect = FALSE;
+	m_bCallConnect = TRUE;
 #ifndef	NOIPV6
 	m_AddrInfoTop = NULL;
 #endif
@@ -1510,10 +1511,10 @@ void CExtSocket::OnConnect()
 		}
 	}
 
-	m_bConnect = TRUE;
-
-	if ( m_pDocument != NULL )
+	if ( m_bCallConnect ) {
+		m_bConnect = TRUE;
 		m_pDocument->OnSocketConnect();
+	}
 }
 void CExtSocket::OnAccept(SOCKET hand)
 {

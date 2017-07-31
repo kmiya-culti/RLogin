@@ -85,6 +85,7 @@ CRLoginDoc::CRLoginDoc()
 	m_pStrScript = NULL;
 	m_pScript = NULL;
 	m_InPane = FALSE;
+	m_AfterId = (-1);
 	m_bUseIdle = FALSE;
 }
 
@@ -325,6 +326,7 @@ void CRLoginDoc::SetCmdInfo(CCommandLineInfoEx *pCmdInfo)
 		m_ServerEntry.m_TermName = pCmdInfo->m_Term;
 
 	m_InPane = pCmdInfo->m_InPane;
+	m_AfterId = pCmdInfo->m_AfterId;
 }
 void CRLoginDoc::SetEntryProBuffer()
 {
@@ -358,6 +360,7 @@ void CRLoginDoc::DeleteContents()
 	m_ServerEntry.Init();
 	m_TextRam.m_bOpen = FALSE;
 	m_InPane = FALSE;
+	m_AfterId = (-1);
 
 	CDocument::DeleteContents();
 }
@@ -811,20 +814,31 @@ void CRLoginDoc::OnSocketConnect()
 		m_TextRam.m_LogTimeFlag = TRUE;
 	}
 
+	if ( m_AfterId != (-1) ) {
+		((CMainFrame *)::AfxGetMainWnd())->PostMessage(WM_AFTEROPEN, (WPARAM)m_AfterId, (LPARAM)0);
+		m_AfterId = (-1);
+	}
+
 	SetStatus(_T("Connect"));
 }
 void CRLoginDoc::OnSocketError(int err)
 {
-//	SocketClose();
-	SetStatus(_T("Error"));
 	CString tmp;
+
+	SetStatus(_T("Error"));
+
+	if ( m_AfterId != (-1) ) {
+		((CMainFrame *)::AfxGetMainWnd())->PostMessage(WM_AFTEROPEN, (WPARAM)m_AfterId, (LPARAM)err);
+		m_AfterId = (-1);
+	}
+
 	if ( m_ErrorPrompt.IsEmpty() )
 		m_ErrorPrompt.Format(_T("WinSock Have Error #%d"), err);
-	tmp.Format(_T("%s Server Entry Scoket Error\n%s:%s Connection\n%s"),
-		m_ServerEntry.m_EntryName, m_ServerEntry.m_HostName, m_ServerEntry.m_PortName, m_ErrorPrompt);
+
+	tmp.Format(_T("%s Server Entry Scoket Error\n%s:%s Connection\n%s"), m_ServerEntry.m_EntryName, m_ServerEntry.m_HostName, m_ServerEntry.m_PortName, m_ErrorPrompt);
 	AfxMessageBox(tmp);
 	m_ErrorPrompt.Empty();
-//	m_pMainWnd->PostMessage(WM_COMMAND, ID_FILE_CLOSE, 0 );
+
 	OnFileClose();
 }
 void CRLoginDoc::OnSocketClose()
@@ -862,7 +876,6 @@ void CRLoginDoc::OnSocketClose()
 	UpdateAllViews(NULL, UPDATE_GOTOXY, NULL);
 	SetStatus(_T("Close"));
 
-//	m_pMainWnd->PostMessage(WM_COMMAND, (bCanExit ? ID_APP_EXIT : ID_FILE_CLOSE), 0 );
 	if ( bCanExit )
 		m_pMainWnd->PostMessage(WM_COMMAND, ID_APP_EXIT, 0 );
 	else
@@ -965,6 +978,14 @@ int CRLoginDoc::SocketOpen()
 
 	if ( InternetAttemptConnect(0) != ERROR_SUCCESS )
 		return FALSE;
+
+	if ( !m_ServerEntry.m_BeforeEntry.IsEmpty() && m_ServerEntry.m_BeforeEntry.Compare(m_ServerEntry.m_EntryName) != 0 && !((CRLoginApp *)::AfxGetApp())->OnlineCheck(m_ServerEntry.m_BeforeEntry) ) {
+		CString cmds;
+		num = ((CMainFrame *)::AfxGetMainWnd())->SetAfterId((void *)this);
+		cmds.Format(_T("/Entry \"%s\" /After %d"), m_ServerEntry.m_BeforeEntry, num);
+		pApp->OpenCommandLine(cmds);
+		return TRUE;
+	}
 
 	num = CExtSocket::GetPortNum(m_ServerEntry.m_PortName);
 

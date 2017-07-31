@@ -1143,7 +1143,7 @@ int CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 
 	//CView::OnKeyDown(nChar, nRepCnt, nFlags);
 
-	TRACE("KeyDown %02X[%d](%04X)\n", nChar, nRepCnt, nFlags);
+	//TRACE("KeyDown %02X[%d](%04X)\n", nChar, nRepCnt, nFlags);
 
 	if ( nChar == VK_MENU )
 		return TRUE;
@@ -1756,7 +1756,7 @@ BOOL CRLoginView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 
 	ofs = zDelta * pDoc->m_TextRam.m_WheelSize / (WHEEL_DELTA / 2);
 
-	TRACE("OnMouseWheel %x, %d(%d), (%d,%d)\n", nFlags, zDelta, ofs, pt.x, pt.y);
+	//TRACE("OnMouseWheel %x, %d(%d), (%d,%d)\n", nFlags, zDelta, ofs, pt.x, pt.y);
 
 	if ( (!pDoc->m_TextRam.IsOptEnable(TO_RLMSWAPP) && pDoc->m_TextRam.IsOptEnable(TO_DECCKM)) ||
 					(pDoc->m_TextRam.m_MouseTrack != MOS_EVENT_NONE && !m_MouseEventFlag) || (nFlags & MK_CONTROL) != 0 || pDoc->m_TextRam.IsOptEnable(TO_RLMSWAPE) ) {

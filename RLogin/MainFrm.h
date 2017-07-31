@@ -129,6 +129,7 @@ public:
 	CImageList m_ImageGozi;
 	CPtrArray m_SocketParam;
 	CPtrArray m_HostAddrParam;
+	CPtrArray m_AfterIdParam;
 	CServerEntryTab m_ServerEntryTab;
 	CIdKeyTab m_IdKeyTab;
 	CPaneFrame *m_pTopPane;
@@ -170,6 +171,7 @@ public:
 	void DelAsyncSelect(SOCKET fd, CExtSocket *pSock, BOOL useWsa = TRUE);
 	int SetAsyncHostAddr(int mode, LPCTSTR pHostName, CExtSocket *pSock);
 	int SetAsyncAddrInfo(int mode, LPCTSTR pHostName, int PortNum, void *pHint, CExtSocket *pSock);
+	int SetAfterId(void *param);
 	int OpenServerEntry(CServerEntry &Entry);
 	BOOL SaveModified();
 
@@ -245,6 +247,7 @@ protected:
 	afx_msg LRESULT OnGetHostAddr(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnIConMsg(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnThreadMsg(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnAfterOpen(WPARAM wParam, LPARAM lParam);
 	afx_msg void OnUpdateIndicatorSock(CCmdUI* pCmdUI);
 	afx_msg void OnFileAllLoad();
 	afx_msg BOOL OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCopyDataStruct);

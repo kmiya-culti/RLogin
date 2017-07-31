@@ -694,6 +694,7 @@ private:
 	CArray<CPermit, CPermit &> m_Permit;
 	CBuffer m_StdInRes;
 	CRcpUpload m_RcpCmd;
+	BOOL m_bPfdConnect;
 
 	void LogIt(LPCTSTR format, ...);
 	void PortForward();

@@ -1087,6 +1087,37 @@ void CStringArrayExt::GetParam(LPCTSTR str)
 	//	TRACE("%s\n", TstrToMbs((*this)[n]));
 }
 
+void CStringArrayExt::GetCmds(LPCTSTR cmds)
+{
+	CString tmp;
+
+	RemoveAll();
+
+	while ( *cmds != _T('\0') ) {
+		if ( *cmds == _T(' ') || *cmds == _T('\t') ) {
+			cmds++;
+			if ( !tmp.IsEmpty() ) {
+				Add(tmp);
+				tmp.Empty();
+			}
+		} else if ( *cmds == _T('"') ) {
+			for ( cmds++ ; *cmds != _T('\0') && *cmds != _T('"') ; )
+				tmp += *(cmds++);
+			if ( *cmds != _T('\0') )
+				cmds++;
+		} else if ( *cmds == _T('\'') ) {
+			for ( cmds++ ; *cmds != _T('\0') && *cmds != _T('\'') ; )
+				tmp += *(cmds++);
+			if ( *cmds != _T('\0') )
+				cmds++;
+		} else
+			tmp += *(cmds++);
+	}
+
+	if ( !tmp.IsEmpty() )
+		Add(tmp);
+}
+
 //////////////////////////////////////////////////////////////////////
 // CStrNode
 
@@ -2068,6 +2099,7 @@ void CServerEntry::Init()
 	m_ProxyHostProvs.Empty();
 	m_ProxyUserProvs.Empty();
 	m_ProxyPassProvs.Empty();
+	m_BeforeEntry.Empty();
 }
 const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 {
@@ -2100,6 +2132,7 @@ const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 	m_ProxyHostProvs = data.m_ProxyHostProvs;
 	m_ProxyUserProvs = data.m_ProxyUserProvs;
 	m_ProxyPassProvs = data.m_ProxyPassProvs;
+	m_BeforeEntry    = data.m_BeforeEntry;
 	return *this;
 }
 void CServerEntry::GetArray(CStringArrayExt &stra)
@@ -2142,10 +2175,11 @@ void CServerEntry::GetArray(CStringArrayExt &stra)
 		}
 	}
 
-	m_Memo       = (stra.GetSize() > 17 ?  stra.GetAt(17) : _T(""));
-	m_Group      = (stra.GetSize() > 18 ?  stra.GetAt(18) : _T(""));
-	m_ScriptFile = (stra.GetSize() > 19 ?  stra.GetAt(19) : _T(""));
-	m_ScriptStr  = (stra.GetSize() > 20 ?  stra.GetAt(20) : _T(""));
+	m_Memo        = (stra.GetSize() > 17 ?  stra.GetAt(17) : _T(""));
+	m_Group       = (stra.GetSize() > 18 ?  stra.GetAt(18) : _T(""));
+	m_ScriptFile  = (stra.GetSize() > 19 ?  stra.GetAt(19) : _T(""));
+	m_ScriptStr   = (stra.GetSize() > 20 ?  stra.GetAt(20) : _T(""));
+	m_BeforeEntry = (stra.GetSize() > 21 ?  stra.GetAt(21) : _T(""));
 
 	m_ProBuffer.Clear();
 
@@ -2190,6 +2224,7 @@ void CServerEntry::SetArray(CStringArrayExt &stra)
 	stra.Add(m_Group);
 	stra.Add(m_ScriptFile);
 	stra.Add(m_ScriptStr);
+	stra.Add(m_BeforeEntry);
 }
 
 static const ScriptCmdsDefs DocEntry[] = {
@@ -2207,6 +2242,7 @@ static const ScriptCmdsDefs DocEntry[] = {
 	{	"Protocol",		12	},
 	{	"Chat",			13	},
 	{	"Proxy",		14	},
+	{	"Before",		15	},
 	{	NULL,			0	},
 }, DocEntryProxy[] = {
 	{	"Mode",			20	},
@@ -2304,6 +2340,10 @@ void CServerEntry::ScriptValue(int cmds, class CScriptValue &value, int mode)
 			for ( n = 0 ; DocEntryProxy[n].name != NULL ; n++ )
 				ScriptValue(DocEntryProxy[n].cmds, value[DocEntryProxy[n].name], mode);
 		}
+		break;
+
+	case 15:				// Docyment.Entry.Before
+		value.SetStr(m_BeforeEntry, mode);
 		break;
 
 	case 20:				// Document.Entry.Proxy.Mode
@@ -2416,6 +2456,8 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 		m_ChatScript.SetString(str);
 		index[_T("Chat")]  = str;
 
+		index[_T("Before")] = m_BeforeEntry;
+
 	} else {			// Read
 		if ( (n = index.Find(_T("Name"))) >= 0 )
 			m_EntryName = index[n];
@@ -2471,6 +2513,9 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 
 		if ( (n = index.Find(_T("Chat"))) >= 0 )
 			m_ChatScript.GetString(index[n]);
+
+		if ( (n = index.Find(_T("Before"))) >= 0 )
+			m_BeforeEntry = index[n];
 
 		m_ProBuffer.Clear();
 

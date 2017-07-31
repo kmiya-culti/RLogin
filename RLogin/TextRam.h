@@ -424,7 +424,6 @@ public:
 	MEMMAPNODE *m_pMapTop;
 	MEMMAPNODE m_MapData[MEMMAPCACHE];
 	ULONGLONG m_MapSize;
-	CSemaphore m_MapSema;
 
 	CMemMap();
 	~CMemMap();
@@ -874,12 +873,8 @@ public:
 	BOOL IsInitText() { return (m_bOpen && m_hMap != NULL ? TRUE : FALSE); }
 	inline ULONGLONG CalcOffset(int x, int y) { return sizeof(CCharCell) * ((ULONGLONG)y * COLS_MAX + x); }
 	inline CCharCell *GETMAPRAM(HANDLE hFile, int x, int y) { return (CCharCell *)m_MemMap.MemMap(hFile, CalcOffset(x, y)); }
-	inline void MemMapLock() { m_MemMap.m_MapSema.Lock(); }
-	inline void MemMapUnlock() { m_MemMap.m_MapSema.Unlock(); }
 #else
 	BOOL IsInitText() { return (m_bOpen && m_VRam != NULL ? TRUE : FALSE); }
-	inline void MemMapLock() { }
-	inline void MemMapUnlock() { }
 #endif
 	void InitText(int Width, int Height);
 	void InitScreen(int cols, int lines);

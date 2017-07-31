@@ -110,7 +110,7 @@ void *CMemMap::MemMap(HANDLE hFile, ULONGLONG pos)
 	if ( pNext->pAddress == NULL )
 		AfxThrowMemoryException();
 
-	TRACE("MemMap %d page\n", (int)(offset / m_MapSize));
+	//TRACE("MemMap %d page\n", (int)(offset / m_MapSize));
 
 ENDOF:
 	if ( pNext != pBack ) {
@@ -1333,6 +1333,11 @@ void CTextRam::InitText(int Width, int Height)
 			oldCurY  = 0;
 			oldCols  = newCols;
 			oldLines = newLines;
+
+			m_TopY   = 0;
+			m_BtmY   = newLines;
+			m_LeftX  = 0;
+			m_RightX = newCols;
 		}
 
 		m_hMap   = hNewMap;
@@ -1394,6 +1399,11 @@ void CTextRam::InitText(int Width, int Height)
 			oldCurY  = 0;
 			oldCols  = newCols;
 			oldLines = newLines;
+
+			m_TopY   = 0;
+			m_BtmY   = newLines;
+			m_LeftX  = 0;
+			m_RightX = newCols;
 		}
 
 		m_VRam   = tmp;
@@ -1425,7 +1435,7 @@ void CTextRam::InitText(int Width, int Height)
 	else if ( m_HisLen >= m_HisMax )
 		m_HisLen = m_HisMax - 1;
 
-	RESET(RESET_CURSOR | RESET_MARGIN);
+	RESET(RESET_CURSOR);
 
 	if ( (m_CurX = oldCurX) >= m_Cols )
 		m_CurX = m_Cols - 1;
@@ -1437,19 +1447,42 @@ void CTextRam::InitText(int Width, int Height)
 		else
 			m_HisLen += m_CurY;
 		m_CurY = 0;
-	} else if ( m_CurY > oldCurY ) {
-		for ( n = m_Lines - 1 ; n > oldCurY ; n-- ) {
-			tmp = GETVRAM(0, n);
-			for ( x = 0 ; x < m_Cols ; x++ ) {
-				if ( !tmp[x].IsEmpty() )
-					break;
-			}
-			if ( x < m_Cols )
-				break;
-		}
-		if ( m_CurY > n )
-			m_CurY = n;
+	//} else if ( m_CurY > oldCurY ) {
+	//	for ( n = m_Lines - 1 ; n > oldCurY ; n-- ) {
+	//		tmp = GETVRAM(0, n);
+	//		for ( x = 0 ; x < m_Cols ; x++ ) {
+	//			if ( !tmp[x].IsEmpty() )
+	//				break;
+	//		}
+	//		if ( x < m_Cols )
+	//			break;
+	//	}
+	//	if ( m_CurY > n )
+	//		m_CurY = n;
+	} else if ( m_CurY >= m_Lines ) {
+		m_CurY = m_Lines - 1;
 	}
+
+	if ( m_TopY > 0 ) {
+		if ( (m_TopY += (m_Lines - oldLines)) < 0 )
+			m_TopY = 0;
+		else if ( m_TopY >= m_Lines )
+			m_TopY = m_Lines - 1;
+	}
+
+	if ( m_BtmY < oldLines ) {
+		if ( (m_BtmY += (m_Lines - oldLines)) < 0 )
+			m_BtmY = 0;
+		else if ( m_BtmY > m_Lines )
+			m_BtmY = m_Lines;
+	} else
+		m_BtmY = m_Lines;
+
+	if ( m_LeftX >= m_Cols )
+		m_LeftX = m_Cols - 1;
+
+	if ( m_RightX == oldCols || m_RightX > m_Cols )
+		m_RightX = m_Cols;
 
 	if ( m_Cols != oldCols || m_Lines != oldLines )
 		m_pDocument->SocketSendWindSize(m_Cols, m_Lines);
@@ -1709,8 +1742,6 @@ int CTextRam::HisRegNext()
 	CStringD str;
 	LPCDSTR p;
 
-	MemMapLock();
-
 	for ( mx = m_MarkLen + 100 ; m_MarkLen < mx && m_MarkLen < m_HisLen ; m_MarkLen++ ) {
 		vp = GETVRAM(0, m_MarkPos - m_HisPos);
 		for ( ex = m_Cols - 1 ; ex >= 0 ; ex-- ) {
@@ -1750,7 +1781,6 @@ int CTextRam::HisRegNext()
 			m_MarkPos -= m_HisMax;
 	}
 
-	MemMapUnlock();
 	return m_MarkLen;
 }
 int CTextRam::HisMarkCheck(int top, int line, class CRLoginView *pView)
@@ -2739,8 +2769,6 @@ int CTextRam::Write(LPBYTE lpBuf, int nBufLen, BOOL *sync)
 {
 	int n;
 
-	MemMapLock();
-
 	if ( m_LineEditMode )
 		LOADRAM();
 
@@ -2771,8 +2799,6 @@ int CTextRam::Write(LPBYTE lpBuf, int nBufLen, BOOL *sync)
 			m_LineEditMode = FALSE;
 		}
 	}
-
-	MemMapUnlock();
 
 	FLUSH();
 
@@ -3259,8 +3285,6 @@ void CTextRam::EditCopy(int sps, int eps, BOOL rectflag, BOOL lineflag)
 		x = x1; x1 = x2; x2 = x;
 	}
 
-	MemMapLock();
-
 	for ( y = y1 ; y <= y2 ; y++ ) {
 		vp = GETVRAM(0, y);
 		
@@ -3327,7 +3351,6 @@ void CTextRam::EditCopy(int sps, int eps, BOOL rectflag, BOOL lineflag)
 		tmp.Apend(str.GetPtr(), str.GetSize());
 	}
 
-	MemMapUnlock();
 	tmp.PutWord(0);
 
 	if ( IsOptEnable(TO_RLGAWL) != 0 ) {
@@ -3919,8 +3942,6 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 		}
 	}
 
-	MemMapLock();
-
 	for ( y = y1 ; y < y2 ; y++ ) {
 		len = sln = 0;
 		memset(&prop, 0, sizeof(prop));
@@ -4083,7 +4104,6 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 		}
 	}
 
-	MemMapUnlock();
 	pDC->SelectObject(pFontOld);
 
 	if ( wDc.GetSafeHdc() != NULL )

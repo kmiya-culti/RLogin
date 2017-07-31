@@ -40,6 +40,7 @@ CSerEntPage::CSerEntPage() : CTreePropertyPage(CSerEntPage::IDD)
 	m_IdkeyName = _T("");
 	m_Memo = _T("");
 	m_Group = _T("");
+	m_BeforeEntry = _T("");
 }
 CSerEntPage::~CSerEntPage()
 {
@@ -59,6 +60,7 @@ void CSerEntPage::DoDataExchange(CDataExchange* pDX)
 	DDX_Radio(pDX, IDC_PROTO1, m_ProtoType);
 	DDX_Text(pDX, IDC_ENTRYMEMO, m_Memo);
 	DDX_CBString(pDX, IDC_GROUP, m_Group);
+	DDX_CBString(pDX, IDC_BEFORE, m_BeforeEntry);
 }
 
 BEGIN_MESSAGE_MAP(CSerEntPage, CPropertyPage)
@@ -76,6 +78,8 @@ BEGIN_MESSAGE_MAP(CSerEntPage, CPropertyPage)
 	ON_BN_CLICKED(IDC_PROXYSET, &CSerEntPage::OnProxySet)
 	ON_BN_CLICKED(IDC_TERMCAP, &CSerEntPage::OnBnClickedTermcap)
 	ON_EN_CHANGE(IDC_ENTRYMEMO, OnUpdateEdit)
+	ON_CBN_EDITCHANGE(IDC_GROUP, OnUpdateEdit)
+	ON_CBN_EDITCHANGE(IDC_BEFORE, OnUpdateEdit)
 END_MESSAGE_MAP()
 
 void CSerEntPage::SetEnableWind()
@@ -131,23 +135,25 @@ void CSerEntPage::DoInit()
 {
 	CComSock com(NULL);
 
-	m_EntryName = m_pSheet->m_pEntry->m_EntryName;
-	m_HostName  = m_pSheet->m_pEntry->m_HostNameProvs;
-	m_PortName  = m_pSheet->m_pEntry->m_PortName;
-	m_UserName  = m_pSheet->m_pEntry->m_UserNameProvs;
-	m_PassName  = m_pSheet->m_pEntry->m_PassNameProvs;
-	m_TermName  = m_pSheet->m_pEntry->m_TermName;
-	m_IdkeyName = m_pSheet->m_pEntry->m_IdkeyName;
-	m_KanjiCode = m_pSheet->m_pEntry->m_KanjiCode;
-	m_ProtoType = m_pSheet->m_pEntry->m_ProtoType;
-	m_ProxyMode = m_pSheet->m_pEntry->m_ProxyMode;
-	m_ProxyHost = m_pSheet->m_pEntry->m_ProxyHostProvs;
-	m_ProxyPort = m_pSheet->m_pEntry->m_ProxyPort;
-	m_ProxyUser = m_pSheet->m_pEntry->m_ProxyUserProvs;
-	m_ProxyPass = m_pSheet->m_pEntry->m_ProxyPassProvs;
-	m_Memo      = m_pSheet->m_pEntry->m_Memo;
-	m_Group     = m_pSheet->m_pEntry->m_Group;
-	m_ExtEnvStr = m_pSheet->m_pParamTab->m_ExtEnvStr;
+	m_EntryName   = m_pSheet->m_pEntry->m_EntryName;
+	m_HostName    = m_pSheet->m_pEntry->m_HostNameProvs;
+	m_PortName    = m_pSheet->m_pEntry->m_PortName;
+	m_UserName    = m_pSheet->m_pEntry->m_UserNameProvs;
+	m_PassName    = m_pSheet->m_pEntry->m_PassNameProvs;
+	m_TermName    = m_pSheet->m_pEntry->m_TermName;
+	m_IdkeyName   = m_pSheet->m_pEntry->m_IdkeyName;
+	m_KanjiCode   = m_pSheet->m_pEntry->m_KanjiCode;
+	m_ProtoType   = m_pSheet->m_pEntry->m_ProtoType;
+	m_ProxyMode   = m_pSheet->m_pEntry->m_ProxyMode;
+	m_ProxyHost   = m_pSheet->m_pEntry->m_ProxyHostProvs;
+	m_ProxyPort   = m_pSheet->m_pEntry->m_ProxyPort;
+	m_ProxyUser   = m_pSheet->m_pEntry->m_ProxyUserProvs;
+	m_ProxyPass   = m_pSheet->m_pEntry->m_ProxyPassProvs;
+	m_Memo        = m_pSheet->m_pEntry->m_Memo;
+	m_Group       = m_pSheet->m_pEntry->m_Group;
+	m_BeforeEntry = m_pSheet->m_pEntry->m_BeforeEntry;
+
+	m_ExtEnvStr   = m_pSheet->m_pParamTab->m_ExtEnvStr;
 
 	if ( m_PortName.Compare(_T("serial")) == 0 ) {
 		com.GetMode(m_HostName);
@@ -219,6 +225,13 @@ BOOL CSerEntPage::OnInitDialog()
 				pCombo->AddString(str);
 		}
 	}
+	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_BEFORE)) != NULL ) {
+		for ( n = 0 ; n < pTab->m_Data.GetSize() ; n++ ) {
+			str = pTab->m_Data[n].m_EntryName;
+			if ( !str.IsEmpty() && pCombo->FindStringExact((-1), str) == CB_ERR )
+				pCombo->AddString(str);
+		}
+	}
 
 	DoInit();
 
@@ -254,6 +267,7 @@ BOOL CSerEntPage::OnApply()
 	m_pSheet->m_pEntry->m_ProxyHostProvs = m_ProxyHost;
 	m_pSheet->m_pEntry->m_ProxyUserProvs = m_ProxyUser;
 	m_pSheet->m_pEntry->m_ProxyPassProvs = m_ProxyPass;
+	m_pSheet->m_pEntry->m_BeforeEntry    = m_BeforeEntry;
 	m_pSheet->m_pParamTab->m_ExtEnvStr = m_ExtEnvStr;
 
 	return TRUE;

@@ -173,6 +173,8 @@ public:
 	CStrNode *ParseList(LPCTSTR *ptr, BOOL bNest);
 	void ParseNode(CStrNode *top, CStrNode *stack, CString &str);
 	void GetParam(LPCTSTR str);
+
+	void GetCmds(LPCTSTR cmds);
 };
 
 class CStringMaps : public CObject
@@ -464,6 +466,7 @@ public:
 	CString m_ProxyHostProvs;
 	CString m_ProxyUserProvs;
 	CString m_ProxyPassProvs;
+	CString m_BeforeEntry;
 
 	void Init();
 	void SetArray(CStringArrayExt &stra);

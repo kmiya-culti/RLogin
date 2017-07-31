@@ -98,6 +98,7 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 	m_IdKeyPos = 0;
 	SetRecvBufSize(CHAN_SES_PACKET_DEFAULT * 4);
 	srand((UINT)time(NULL));
+	m_bPfdConnect = FALSE;
 
 	//CStringA tmp;
 	//CCipher::BenchMark(tmp);
@@ -215,11 +216,8 @@ int Cssh::Send(const void* lpBuf, int nBufLen, int nFlags)
 }
 void Cssh::OnConnect()
 {
-	//BOOL val = 1;
-	//CExtSocket::SetSockOpt(SO_OOBINLINE, &val, sizeof(BOOL), SOL_SOCKET);
-
-	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHPFORY) )
-		CExtSocket::OnConnect();
+	m_bCallConnect = FALSE;
+	CExtSocket::OnConnect();
 }
 void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 {
@@ -912,7 +910,9 @@ void Cssh::RecivePacket(CBuffer *bp)
 		msg.Format(_T("%s+%s"), m_EncCmp.GetTitle(), m_EncCip.GetTitle());
 		m_pDocument->SetStatus(msg);
 
-		CExtSocket::OnConnect();
+//		CExtSocket::OnConnect();
+		m_bConnect = TRUE;
+		m_pDocument->OnSocketConnect();
 		break;
 
 	case 7:		// Client loop
@@ -1365,6 +1365,8 @@ void Cssh::PortForward()
 	CString str;
 	CStringArrayExt tmp;
 
+	m_bPfdConnect = FALSE;
+
 	for ( i = 0 ; i < m_pDocument->m_ParamTab.m_PortFwd.GetSize() ; i++ ) {
 		m_pDocument->m_ParamTab.m_PortFwd.GetArray(i, tmp);
 		if ( tmp.GetSize() < 5 )
@@ -1410,13 +1412,22 @@ void Cssh::PortForward()
 			m_Permit[n].m_rPort = GetPortNum(tmp[1]);
 			SendMsgGlobalRequest(n, "tcpip-forward", tmp[0], GetPortNum(tmp[1]));
 			LogIt(_T("Remote Listen %s:%s"), tmp[0], tmp[1]);
+			m_bPfdConnect = TRUE;
 			a++;
 			break;
 		}
 	}
 
-	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHPFORY) && a == 0 )
-		AfxMessageBox(IDE_PORTFWORDERROR);
+	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHPFORY) ) {
+		if ( a == 0 )
+			AfxMessageBox(IDE_PORTFWORDERROR);
+
+		if ( m_bPfdConnect == FALSE ) {
+			m_bConnect = TRUE;
+			m_pDocument->OnSocketConnect();
+		}
+	} else
+		m_bPfdConnect = FALSE;
 }
 
 void Cssh::OpenSFtpChannel()
@@ -2856,7 +2867,11 @@ int Cssh::SSH2MsgChannelRequestReply(CBuffer *bp, int type)
 		if ( type == SSH2_MSG_CHANNEL_FAILURE )
 			return TRUE;
 		m_SSH2Status |= SSH2_STAT_HAVESTDIO;
-		CExtSocket::OnConnect();
+		//CExtSocket::OnConnect();
+		if ( m_pDocument != NULL ) {
+			m_bConnect = TRUE;
+			m_pDocument->OnSocketConnect();
+		}
 		break;
 	case CHAN_REQ_SHELL:	// shell
 		if ( type == SSH2_MSG_CHANNEL_FAILURE )
@@ -2966,6 +2981,13 @@ int Cssh::SSH2MsgGlobalRequestReply(CBuffer *bp, int type)
 
 	if ( (WORD)num == 0xFFFF )	// KeepAlive Reply
 		return FALSE;
+
+	if ( m_bPfdConnect ) {
+//		CExtSocket::OnConnect();
+		m_bPfdConnect = FALSE;
+		m_bConnect = TRUE;
+		m_pDocument->OnSocketConnect();
+	}
 
 	if ( type == SSH2_MSG_REQUEST_FAILURE && num < m_Permit.GetSize() ) {
 		str.Format(_T("Global Request Failure %s:%d->%s:%d"),
@@ -3091,6 +3113,10 @@ void Cssh::RecivePacket2(CBuffer *bp)
 		if ( m_DecCmp.m_Mode == 4 )
 			m_DecCmp.Init(NULL, MODE_DEC, COMPLEVEL);
 		m_SSH2Status |= SSH2_STAT_HAVELOGIN;
+		if ( (m_SSH2Status & SSH2_STAT_HAVEPFWD) == 0 ) {
+			m_SSH2Status |= SSH2_STAT_HAVEPFWD;
+			PortForward();
+		}
 		if ( !m_pDocument->m_TextRam.IsOptEnable(TO_SSHPFORY) && (m_SSH2Status & SSH2_STAT_HAVESTDIO) == 0 ) {
 			if ( (m_StdChan = ChannelOpen()) >= 0 ) {
 				CChannel *cp = (CChannel *)m_pChan[m_StdChan];
@@ -3100,10 +3126,6 @@ void Cssh::RecivePacket2(CBuffer *bp)
 				cp->m_LocalWind  = 32 * cp->m_LocalPacks;
 				SendMsgChannelOpen(m_StdChan, "session");
 			}
-		}
-		if ( (m_SSH2Status & SSH2_STAT_HAVEPFWD) == 0 ) {
-			m_SSH2Status |= SSH2_STAT_HAVEPFWD;
-			PortForward();
 		}
 		if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHKEEPAL) && m_pDocument->m_TextRam.m_KeepAliveSec > 0 )
 			((CMainFrame *)AfxGetMainWnd())->SetTimerEvent(m_pDocument->m_TextRam.m_KeepAliveSec * 1000, TIMEREVENT_SOCK | TIMEREVENT_INTERVAL, this);

@@ -13,6 +13,7 @@
 #define WM_GETHOSTADDR	(WM_USER + 1)
 #define	WM_ICONMSG		(WM_USER + 2)
 #define WM_THREADCMD	(WM_USER + 3)
+#define WM_AFTEROPEN	(WM_USER + 4)
 
 class CCommandLineInfoEx : public CCommandLineInfo
 {
@@ -27,6 +28,7 @@ public:
 	CString m_Name;
 	BOOL m_InUse;
 	BOOL m_InPane;
+	int m_AfterId;
 
 	CCommandLineInfoEx();
 	virtual void ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLast);
@@ -75,8 +77,11 @@ public:
 	void SSL_Init();
 
 	void OpenProcsCmd(CCommandLineInfoEx *pCmdInfo);
-	void OpenProcsEntry(LPCTSTR entry);
+	void OpenCommandEntry(LPCTSTR entry);
+	void OpenCommandLine(LPCTSTR str);
 	BOOL InUseCheck();
+	BOOL OnlineCheck(LPCTSTR entry);
+	BOOL OnlineEntry(LPCTSTR entry);
 
 	void SetDefaultPrinter();
 

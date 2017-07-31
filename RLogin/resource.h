@@ -621,6 +621,7 @@
 #define IDC_SLIDER_BRIGHT2              3073
 #define IDC_SLIDER_HUECOL               3073
 #define IDC_MODE_LIST                   3074
+#define IDC_BEFORE                      3077
 #define ID_FILE_ALL_LOAD                5000
 #define ID_EDIT_BOX                     5001
 #define ID_PAGE_PRIOR                   5002
@@ -697,7 +698,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        177
 #define _APS_NEXT_COMMAND_VALUE         5071
-#define _APS_NEXT_CONTROL_VALUE         3077
+#define _APS_NEXT_CONTROL_VALUE         3078
 #define _APS_NEXT_SYMED_VALUE           203
 #endif
 #endif

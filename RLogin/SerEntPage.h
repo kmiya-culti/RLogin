@@ -34,6 +34,7 @@ public:
 	CString m_ProxyUser;
 	CString m_ProxyPass;
 	CString m_ExtEnvStr;
+	CString m_BeforeEntry;
 
 public:
 	void DoInit();
