@@ -20,9 +20,10 @@
 int	BinaryFind(void *ptr, void *tab, int size, int max, int (* func)(const void *, const void *), int *base);
 BOOL IsZeroMemory(void *ptr, int len);
 
-#define	NIMALLOC	256
+#define	NIMALLOC		256
+#define	CBUFGETMAX		(512 * 1024)
 
-#define	KANJI_NON		0
+#define	KANJI_UNKNOWN	0
 #define	KANJI_EUC		1
 #define	KANJI_SJIS		2
 #define	KANJI_UTF8		3
@@ -113,8 +114,9 @@ public:
 	void md5(LPCTSTR str);
 	BOOL LoadFile(LPCTSTR filename);
 	BOOL SaveFile(LPCTSTR filename);
-	int KanjiCheck(int type = KANJI_NON);
+	int KanjiCheck(int type = KANJI_UNKNOWN);
 	void KanjiConvert(int type);
+	BOOL ReadString(CString &str);
 
 	void SetMbsStr(LPCTSTR str);
 	LPCSTR operator += (LPCSTR str);
@@ -124,7 +126,7 @@ public:
 	inline const CBuffer & operator = (CBuffer &data) { Clear(); Apend(data.GetPtr(), data.GetSize()); return *this; }
 	inline operator LPCSTR() { if ( m_Max <= m_Len) ReAlloc(1); m_Data[m_Len] = 0; return (LPCSTR)GetPtr(); }
 	inline operator LPCWSTR() { if ( m_Max <= (m_Len + 1) ) ReAlloc(2); m_Data[m_Len] = 0; m_Data[m_Len + 1] = 0; return (LPCWSTR)GetPtr(); }
-	inline operator const DWORD *() { if ( m_Max <= (m_Len + 1) ) ReAlloc(4); m_Data[m_Len] = 0; m_Data[m_Len + 1] = 0; m_Data[m_Len + 2] = 0; m_Data[m_Len + 3] = 0; return (const DWORD *)GetPtr(); }
+	inline operator const DWORD *() { if ( m_Max <= (m_Len + 3) ) ReAlloc(4); m_Data[m_Len] = 0; m_Data[m_Len + 1] = 0; m_Data[m_Len + 2] = 0; m_Data[m_Len + 3] = 0; return (const DWORD *)GetPtr(); }
 
 #ifdef	DEBUG
 	void Dump();
@@ -265,6 +267,7 @@ public:
 	CArray<CStringIndex, CStringIndex &> m_Array;
 
 	CStringIndex();
+	CStringIndex(BOOL bNoCase, BOOL bNoSort);
 	~CStringIndex();
 
 	const CStringIndex & operator = (CStringIndex &data);
@@ -289,10 +292,6 @@ public:
 	int Find(LPCTSTR str);
 	void SetArray(LPCTSTR str);
 
-	void SetValue(LPCSTR &str);
-	void SetParam(LPCSTR &str);
-	void SetKey(LPCSTR &str);
-
 	void GetBuffer(CBuffer *bp);
 	void SetBuffer(CBuffer *bp);
 	void GetString(LPCTSTR str);
@@ -301,8 +300,27 @@ public:
 	void SetPackStr(CStringA &mbs);
 	LPCTSTR GetPackStr(LPCTSTR str);
 	BOOL ReadString(CArchive& ar, CString &str);
-	void Serialize(CArchive& ar, LPCSTR base = NULL);
+	void Serialize(CArchive& ar, LPCSTR base = NULL, int version = 3);
 	BOOL MsgStr(CString &str,  LPCSTR base = NULL);
+
+	void SubOscValue(LPCTSTR &str);
+	void SubOscParam(LPCTSTR &str);
+	void GetOscString(LPCTSTR str);
+
+	TCHAR SubJsonChara(LPCTSTR &str);
+	TCHAR SubJsonString(LPCTSTR &str);
+	TCHAR SubJsonNumber(LPCTSTR &str);
+	TCHAR SubJsonValue(LPCTSTR &str);
+	TCHAR SubJsonArray(LPCTSTR &str);
+	TCHAR SubJsonObject(LPCTSTR &str);
+	BOOL GetJsonFormat(LPCTSTR str);
+	void AddJasonString(CStringA &mbs, LPCTSTR str, BOOL bUtf8);
+	void SetJsonFormat(CStringA &mbs, int nest = 0, BOOL bUtf8 = FALSE);
+
+	void SubQueryValue(LPCTSTR &str);
+	void GetQueryString(LPCTSTR str);
+	void AddQueryString(CStringA &mbs, LPCTSTR str, BOOL bUtf8);
+	void SetQueryString(CStringA &mbs, LPCSTR base = NULL, BOOL bUtf8 = FALSE);
 
 #ifdef	DEBUG
 	void Dump(int nest);
@@ -756,11 +774,14 @@ public:
 	~CKeyMac();
 };
 
+#define	KEYMACBUFMAX	(32 * 1024)
+
 class CKeyMacTab : public COptObject
 {
 public:
 #ifdef	USE_KEYMACGLOBAL
 	BOOL m_bUpdate;
+	BOOL m_bGlobal;
 #endif
 	CArray<CKeyMac, CKeyMac &> m_Data;
 
@@ -878,10 +899,14 @@ public:
 	CFileThread m_FileThread;
 	LONGLONG m_TotalWrite;
 	BOOL m_bWriteFlush;
+	BOOL m_bInitBuffer;
+	CBuffer m_LoadBuffer;
+	int m_KanjiType;
 
 	void Init();
 	void WriteFlush();
 	inline BOOL IsWriteError() { return m_FileThread.m_bWriteError; }
+	BOOL ReadString(CString &str);
 
 	CFileExt();
 #if	_MSC_VER >= _MSC_VER_VS10
@@ -907,6 +932,34 @@ public:
 	virtual void Close();
 };
 
+class CTranslateString : public CObject
+{
+public:
+	BOOL m_bSplitFlag;
+	TCHAR m_SplitChar;
+	CString *m_pBaseString;
+	CString m_SourceString;
+	CString m_FrontString;
+	CString m_AddString;
+
+	void SetSourceString(LPCTSTR str);
+	void SetTargetString(LPCTSTR str);
+		
+	const CTranslateString & operator = (CTranslateString &data);
+
+	CTranslateString();
+};
+class CTranslateStringTab : public CObject
+{
+public:
+	CArray<CTranslateString, CTranslateString &> m_Data;
+
+	inline INT_PTR GetSize() { return m_Data.GetSize(); }
+	inline CTranslateString & operator [] (int nIndex) { return m_Data[nIndex]; }
+
+	void Add(CString *pStr);
+};
+
 class CHttpSession : public CObject
 {
 public:
@@ -918,10 +971,23 @@ public:
 	CString m_Param;
 
 	void ParseUrl(LPCTSTR url);
-	BOOL GetRequest(LPCTSTR url, CBuffer &buf);
+	BOOL GetRequest(LPCTSTR url, CBuffer &buf, LPCTSTR head = NULL, LPCSTR body = NULL, CString *pMsg = NULL);
+
+	static void QueryString(LPCSTR mbs, CString &str);
 
 	CHttpSession();
 	~CHttpSession();
+};
+
+class CHttpThreadSession : public CHttpSession
+{
+public:
+	HWND m_TheadhWnd;
+	CString m_ThreadUrl;
+	CString m_ThreadHead;
+	CStringA m_ThreadBody;
+
+	static void Request(LPCTSTR url, LPCTSTR head, LPCSTR body, CWnd *pWnd);
 };
 
 #endif // !defined(AFX_DATA_H__6A23DC3E_3DDC_47BD_A6FC_E0127564AE6E__INCLUDED_)

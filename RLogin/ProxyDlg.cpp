@@ -37,7 +37,7 @@ void CProxyDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Radio(pDX, IDC_RADIO1, m_ProxyMode);
 	DDX_Radio(pDX, IDC_SSL_RADIO1, m_SSLMode);
 	DDX_Check(pDX, IDC_SSL_KEEP, m_SSL_Keep);
-	DDX_Check(pDX, IDC_PROTOCHECK1, m_UsePassDlg);
+	DDX_Check(pDX, IDC_CHECK1, m_UsePassDlg);
 }
 
 

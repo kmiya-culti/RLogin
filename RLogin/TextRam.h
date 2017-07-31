@@ -19,8 +19,6 @@
 
 #define	FIX_VERSION		10				// AnsiOpt Bugfix version
 
-#define	USE_TEXTFRAME	1				// Enabled ATT_FRAME RS/RD/LS/LDLINE 
-
 #define	COLS_MAX		512
 #define	LINE_MAX		512
 #define	HIS_MAX			200000			// HIS_MAX * COLS_MAX * sizeof(CCharCell) = 1,638,400,000 byte
@@ -850,6 +848,7 @@ public:	// Options
 	CString m_GroupCast;
 	CStringArrayExt m_InlineExt;
 	CString m_TitleName;
+	COLORREF m_DefCaretColor;
 
 	void Init();
 	void SetIndex(int mode, CStringIndex &index);
@@ -1526,6 +1525,7 @@ public:
 	void fc_XTHDPT(DWORD ch);
 	void fc_XTSMTT(DWORD ch);
 	void fc_RLIMGCP(DWORD ch);
+	void fc_RLCURCOL(DWORD ch);
 	void fc_SCOSNF(DWORD ch);
 	void fc_SCOSNB(DWORD ch);
 

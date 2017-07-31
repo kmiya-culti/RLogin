@@ -59,6 +59,7 @@
 #define IDD_MSGDLG                      156
 #define IDD_BACKPAGE                    159
 #define IDD_TOOLDLG                     160
+#define IDD_RESTRANSDLG                 161
 #define IDR_GRAPWND                     300
 #define IDR_MAINFRAME                   301
 #define IDR_POPUPMENU                   302
@@ -215,6 +216,8 @@
 #define IDS_DELOLDENTRYMSG              622
 #define IDS_DELOLDENTRYMENU             623
 #define IDS_TITLEDITMSG                 624
+#define IDS_TRANSLATEABORT              625
+#define IDS_SEPARATESTRING              626
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -249,6 +252,7 @@
 #define IDE_DNSDIGESTNOTMATCH           731
 #define IDE_RESVERSIONMISMATCH          732
 #define IDE_ENTRYLOADERROR              733
+#define IDE_KEYMACTOOLONG               734
 #define IDT_EXTOPT_LIST01               800
 #define IDT_EXTOPT_LIST02               801
 #define IDT_EXTOPT_LIST03               802
@@ -837,6 +841,29 @@
 #define IDC_DEFPARAMSG                  2444
 #define IDC_CARETCOL                    2445
 #define IDC_TITLENAME                   2446
+#define IDC_OPTCHECK1                   2447
+#define IDC_OPTCHECK2                   2448
+#define IDC_OPTCHECK3                   2449
+#define IDC_OPTCHECK4                   2450
+#define IDC_OPTCHECK5                   2451
+#define IDC_OPTCHECK6                   2452
+#define IDC_OPTCHECK7                   2453
+#define IDC_OPTCHECK8                   2454
+#define IDC_OPTCHECK9                   2455
+#define IDC_OPTCHECK10                  2456
+#define IDC_OPTCHECK11                  2457
+#define IDC_OPTCHECK12                  2458
+#define IDC_OPTCHECK13                  2459
+#define IDC_OPTCHECK14                  2460
+#define IDC_OPTCHECK15                  2461
+#define IDC_CLIENTID                    2462
+#define IDC_CLIENTSECRET                2463
+#define IDC_TRANSFROM                   2464
+#define IDC_TRANSTO                     2465
+#define IDC_TRANSEXEC                   2466
+#define IDC_RESFILENAME                 2467
+#define IDC_RESFILESEL                  2468
+#define IDC_TRANSPROGRES                2469
 #define IDM_BROADCAST                   5000
 #define IDM_CAP_CLIPBORD                5001
 #define IDM_CAP_EXPORT                  5002
@@ -951,15 +978,17 @@
 #define IDM_CLIPCHAIN                   5122
 #define IDM_DELOLDENTRYTAB              5123
 #define IDM_TITLEEDIT                   5124
+#define ID_5125                         5125
+#define ID_5126                         5126
 #define IDM_FIRST_MDICHILD              0xFF00
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        161
-#define _APS_NEXT_COMMAND_VALUE         5125
-#define _APS_NEXT_CONTROL_VALUE         2447
-#define _APS_NEXT_SYMED_VALUE           625
+#define _APS_NEXT_RESOURCE_VALUE        163
+#define _APS_NEXT_COMMAND_VALUE         5127
+#define _APS_NEXT_CONTROL_VALUE         2470
+#define _APS_NEXT_SYMED_VALUE           627
 #endif
 #endif

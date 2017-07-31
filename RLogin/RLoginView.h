@@ -23,10 +23,11 @@
 #define	VTMID_MOUSEMOVE		1024
 #define	VTMID_VISUALBELL	1025
 #define	VTMID_WHEELMOVE		1026
-#define	VTMID_GOZIUPDATE	1027
-#define	VTMID_SLEEPTIMER	1028
-#define	VTMID_RCLICKCHECK	1029
-#define	VTMID_INVALIDATE	1030
+#define	VTMID_SMOOTHSCR		1027
+#define	VTMID_GOZIUPDATE	1028
+#define	VTMID_SLEEPTIMER	1029
+#define	VTMID_RCLICKCHECK	1030
+#define	VTMID_INVALIDATE	1031
 
 #define	VIEW_SLEEP_MSEC		10000	// x 1msec = 10sec
 #define	VIEW_SLEEP_MAX		60		// x 10sec = 600sec = 10min
@@ -58,6 +59,7 @@ public:
 	int m_HisMin;
 	int m_HisOfs;
 	int m_CharWidth, m_CharHeight;
+	int m_TopOffset;
 	CBmpFile m_BmpFile;
 	CBitmap *m_pBitmap;
 	BOOL m_HaveBack;
@@ -71,6 +73,7 @@ public:
 	clock_t m_WheelClock;
 	int m_WheelzDelta;
 	BOOL m_PastNoCheck;
+	BOOL m_PastDelaySend;
 	BOOL m_ScrollOut;
 	BOOL m_ClipUpdateLine;
 	CBitmap m_TekBitmap;
@@ -79,6 +82,10 @@ public:
 	CPoint m_RDownPoint;
 	int m_RDownStat;
 	int m_RDownOfs;
+	CPoint m_RMovePoint;
+	int m_RMovePixel;
+	INT_PTR m_SmoothTimer;
+	INT_PTR m_RclickTimer;
 
 	int m_ClipFlag;
 	int m_ClipStaPos, m_ClipEndPos;
@@ -91,7 +98,6 @@ public:
 	clock_t m_LastMouseClock;
 	CPoint m_FirstMousePoint;
 	BOOL m_bLButtonTrClk;
-	INT_PTR m_RclickTimer;
 
 	inline BOOL IsClipRectMode() { return (m_ClipKeyFlags & MK_CONTROL); }
 	inline BOOL IsClipLineMode() { return (m_bLButtonTrClk || m_ClipKeyFlags & (MK_SHIFT | 0x1000)); }
@@ -99,6 +105,7 @@ public:
 	int SetClipboard(CBuffer *bp);
 
 	BOOL m_KeyMacFlag;
+	BOOL m_KeyMacSizeCheck;
 	CBuffer m_KeyMacBuf;
 
 	class CGhostWnd *m_pGhost;
@@ -195,7 +202,7 @@ public:
 	void ImmSetPos(int x, int y);
 	int ImmOpenCtrl(int sw);
 
-	void SendBuffer(CBuffer &buf, BOOL macflag = FALSE);
+	void SendBuffer(CBuffer &buf, BOOL macflag = FALSE, BOOL delaySend = FALSE);
 	void SetGhostWnd(BOOL sw);
 	BOOL ModifyKeys(UINT nChar, int nStat);
 	void CreateGrapImage(int type);
@@ -203,8 +210,10 @@ public:
 	void PopUpMenu(CPoint point);
 	BOOL SendPasteText(LPCWSTR wstr);
 
+	void KillScrollTimer();
+
 	inline int CalcGrapX(int x)	{ CRLoginDoc *pDoc = GetDocument(); return (m_Width  * x / m_Cols  + pDoc->m_TextRam.m_ScrnOffset.left); }
-	inline int CalcGrapY(int y) { CRLoginDoc *pDoc = GetDocument(); return (m_Height * y / m_Lines + pDoc->m_TextRam.m_ScrnOffset.top); }
+	inline int CalcGrapY(int y) { CRLoginDoc *pDoc = GetDocument(); return (m_Height * y / m_Lines + pDoc->m_TextRam.m_ScrnOffset.top + m_TopOffset); }
 
 	inline class CChildFrame *GetFrameWnd() { return (class CChildFrame *)GetParentFrame(); }
 	inline class CMainFrame *GetMainWnd() { return (class CMainFrame *)AfxGetMainWnd(); }

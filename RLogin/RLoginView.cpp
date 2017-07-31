@@ -128,6 +128,7 @@ CRLoginView::CRLoginView()
 	m_ClipFlag = 0;
 	m_ClipTimer = 0;
 	m_KeyMacFlag = FALSE;
+	m_KeyMacSizeCheck = FALSE;
 	m_ActiveFlag = TRUE;
 	m_VisualBellFlag = FALSE;
 	m_BlinkFlag = 0;
@@ -153,11 +154,15 @@ CRLoginView::CRLoginView()
 #endif
 
 	m_RDownStat = 0;
+	m_RMovePixel = 0;
+	m_SmoothTimer = 0;
+	m_TopOffset = 0;
 
 	m_SleepView = FALSE;
 	m_SleepCount = 0;
 
 	m_PastNoCheck = FALSE;
+	m_PastDelaySend = FALSE;
 	m_ScrollOut = FALSE;
 	m_LastMouseFlags = 0;
 	m_LastMouseClock = 0;
@@ -327,16 +332,16 @@ void CRLoginView::OnDraw(CDC* pDC)
 		// 描画範囲をグラフィック座標からキャラクタ座標に変換
 		sx = (drawbox.left + 1 - pDoc->m_TextRam.m_ScrnOffset.left) * m_Cols / m_Width;
 		ex = (drawbox.right + m_CharWidth - pDoc->m_TextRam.m_ScrnOffset.left) * m_Cols / m_Width;
-		sy = (drawbox.top + 1 - pDoc->m_TextRam.m_ScrnOffset.top) * m_Lines / m_Height;
+		sy = (drawbox.top + 1 - pDoc->m_TextRam.m_ScrnOffset.top - m_TopOffset) * m_Lines / m_Height;
 		ey = (drawbox.bottom + m_CharHeight - pDoc->m_TextRam.m_ScrnOffset.top) * m_Lines / m_Height;
 
 		if ( (sx * m_Width / m_Cols + pDoc->m_TextRam.m_ScrnOffset.left) > drawbox.left )
 			sx--;
 		if ( (ex * m_Width / m_Cols + pDoc->m_TextRam.m_ScrnOffset.left) < drawbox.right )
 			ex++;
-		if ( (sy * m_Height / m_Lines + pDoc->m_TextRam.m_ScrnOffset.top) > drawbox.top )
+		if ( (sy * m_Height / m_Lines + pDoc->m_TextRam.m_ScrnOffset.top + m_TopOffset) > drawbox.top )
 			sy--;
-		if ( (ey * m_Height / m_Lines + pDoc->m_TextRam.m_ScrnOffset.top) < drawbox.bottom )
+		if ( (ey * m_Height / m_Lines + pDoc->m_TextRam.m_ScrnOffset.top + m_TopOffset) < drawbox.bottom )
 			ey++;
 
 		if ( m_pBitmap != NULL ) {
@@ -626,7 +631,7 @@ void CRLoginView::CalcGrapPoint(CPoint po, int *x, int *y)
 	if      ( (po.x -= pDoc->m_TextRam.m_ScrnOffset.left) < 0 )	po.x = 0;
 	else if ( po.x >= m_Width )		po.x = m_Width -1;
 
-	if      ( (po.y -= pDoc->m_TextRam.m_ScrnOffset.top) < 0 )	po.y = 0;
+	if      ( (po.y -= (pDoc->m_TextRam.m_ScrnOffset.top + m_TopOffset)) < 0 ) po.y = 0;
 	else if ( po.y >= m_Height )	po.y = m_Height - 1;
 
 	pDoc->m_TextRam.m_MousePos = po;
@@ -681,8 +686,8 @@ void CRLoginView::InvalidateTextRect(CRect &rect)
 	rect.left   = m_Width  * rect.left  / m_Cols + (rect.left == 0 ? 0 : pDoc->m_TextRam.m_ScrnOffset.left);
 	rect.right  = m_Width  * rect.right / m_Cols + pDoc->m_TextRam.m_ScrnOffset.left + (rect.right >= (pDoc->m_TextRam.m_Cols - 1) ? pDoc->m_TextRam.m_ScrnOffset.right : 0);
 
-	rect.top    = m_Height * (rect.top    + m_HisOfs - m_HisMin) / m_Lines + (rect.top == 0 ? 0 : pDoc->m_TextRam.m_ScrnOffset.top);
-	rect.bottom = m_Height * (rect.bottom + m_HisOfs - m_HisMin) / m_Lines + pDoc->m_TextRam.m_ScrnOffset.top + (rect.bottom >= (pDoc->m_TextRam.m_Lines - 1) ? pDoc->m_TextRam.m_ScrnOffset.bottom	: 0);
+	rect.top    = m_Height * (rect.top    + m_HisOfs - m_HisMin) / m_Lines + m_TopOffset + (rect.top == 0 ? 0 : pDoc->m_TextRam.m_ScrnOffset.top);
+	rect.bottom = m_Height * (rect.bottom + m_HisOfs - m_HisMin) / m_Lines + m_TopOffset + pDoc->m_TextRam.m_ScrnOffset.top + (rect.bottom >= (pDoc->m_TextRam.m_Lines - 1) ? pDoc->m_TextRam.m_ScrnOffset.bottom : 0);
 
 	height = m_Height + pDoc->m_TextRam.m_ScrnOffset.top + pDoc->m_TextRam.m_ScrnOffset.bottom;
 
@@ -850,7 +855,7 @@ int CRLoginView::HitTest(CPoint point)
 	else if ( point.x > ((rect.left + rect.right - m_CharWidth * 2) / 2) && point.x < ((rect.left + rect.right + m_CharWidth * 2) / 2) )
 		mode |= 002;
 
-	if ( point.y < (pDoc->m_TextRam.m_ScrnOffset.top + m_CharHeight) )
+	if ( point.y < (pDoc->m_TextRam.m_ScrnOffset.top + m_TopOffset + m_CharHeight) )
 		mode |= 010;
 	else if ( point.y > (rect.bottom - pDoc->m_TextRam.m_ScrnOffset.bottom - m_CharHeight) )
 		mode |= 030;
@@ -871,7 +876,7 @@ int CRLoginView::HitTest(CPoint point)
 
 /////////////////////////////////////////////////////////////////////////////
 
-void CRLoginView::SendBuffer(CBuffer &buf, BOOL macflag)
+void CRLoginView::SendBuffer(CBuffer &buf, BOOL macflag, BOOL delaySend)
 {
 	int n;
 	WCHAR *p;
@@ -902,8 +907,18 @@ void CRLoginView::SendBuffer(CBuffer &buf, BOOL macflag)
 		}
 	}
 
-	if ( m_KeyMacFlag )
+	if ( m_KeyMacFlag ) {
 		m_KeyMacBuf.Apend(buf.GetPtr(), buf.GetSize());
+
+		if ( !m_KeyMacSizeCheck && m_KeyMacBuf.GetSize() >= KEYMACBUFMAX ) {
+			m_KeyMacSizeCheck = TRUE;
+
+			if ( MessageBox(CStringLoad(IDE_KEYMACTOOLONG), _T("Warning"), MB_ICONWARNING | MB_YESNO) != IDYES ) {
+				m_KeyMacFlag = FALSE;
+				m_KeyMacBuf.Clear();
+			}
+		}
+	}
 
 	if ( pDoc->m_TextRam.IsOptEnable(TO_ANSIKAM) )
 		return;
@@ -942,7 +957,7 @@ void CRLoginView::SendBuffer(CBuffer &buf, BOOL macflag)
 	}
 
 	pDoc->m_TextRam.m_IConv.StrToRemote(pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode], &buf, &tmp);
-	pDoc->SocketSend(tmp.GetPtr(), tmp.GetSize());
+	pDoc->SocketSend(tmp.GetPtr(), tmp.GetSize(), delaySend);
 
 	if ( !pDoc->m_TextRam.IsOptEnable(TO_ANSISRM) ) {
 		pDoc->m_TextRam.PUTSTR(tmp.GetPtr(), tmp.GetSize());
@@ -1401,6 +1416,7 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 	case UPDATE_SCROLLOUT:
 		m_HisOfs = 0;
 		lHint = UPDATE_INVALIDATE;
+		KillScrollTimer();
 		break;
 
 	case UPDATE_UPDATEWINDOW:
@@ -1412,9 +1428,11 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 			(lHint == UPDATE_INVALIDATE || lHint == UPDATE_TEXTRECT || lHint == UPDATE_GOTOXY) ) {
 		y = pDoc->m_TextRam.m_CurY - m_HisMin + m_HisOfs;
 		if ( y >= m_Lines ) {
+			KillScrollTimer();
 			m_HisOfs = m_Lines - (pDoc->m_TextRam.m_CurY - m_HisMin) - 1;
 			lHint = UPDATE_INVALIDATE;
 		} else if ( y < 0 ) {
+			KillScrollTimer();
 			m_HisOfs = m_HisMin - pDoc->m_TextRam.m_CurY;
 			lHint = UPDATE_INVALIDATE;
 		}
@@ -1541,7 +1559,7 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 
 	m_CaretFlag &= ~FGCARET_ONOFF;
 	m_CaretX = GetGrapPos(pDoc->m_TextRam.m_CurX, (pDoc->m_TextRam.m_CurY + m_HisOfs - m_HisMin));
-	m_CaretY = m_Height * (pDoc->m_TextRam.m_CurY + m_HisOfs - m_HisMin) / m_Lines + pDoc->m_TextRam.m_ScrnOffset.top;
+	m_CaretY = m_Height * (pDoc->m_TextRam.m_CurY + m_HisOfs - m_HisMin) / m_Lines + pDoc->m_TextRam.m_ScrnOffset.top + m_TopOffset;
 
 	if ( m_CaretX < 0 || m_CaretX >= (m_Width  + pDoc->m_TextRam.m_ScrnOffset.left) ||
 		 m_CaretY < 0 || m_CaretY >= (m_Height + pDoc->m_TextRam.m_ScrnOffset.top) ) {
@@ -1730,19 +1748,6 @@ int CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 	if ( (st & (MASK_SHIFT | MASK_CTRL | MASK_ALT)) == 0 && (GetKeyState(VK_NUMLOCK) & 0x01) != 0 && nChar >= VK_NUMPAD0 && nChar <= VK_DIVIDE )
 		return TRUE;
 
-	if ( pDoc->m_KeyTab.FindMaps(nChar, st, &tmp) ) {
-		// ESCキーのCKM操作		TO_RLCKMESCによりCKM時にコード変換を抑制
-		if ( (st & MASK_CKM) != 0 && wcscmp((LPCWSTR)tmp, L"\033O[") == 0 && !pDoc->m_TextRam.IsOptEnable(TO_RLCKMESC) )
-			tmp = L"\033";
-
-		if ( (n = CKeyNodeTab::GetCmdsKey((LPCWSTR)tmp)) > 0 )
-			AfxGetMainWnd()->PostMessage(WM_COMMAND, (WPARAM)n);
-		else
-			SendBuffer(tmp);
-
-		return FALSE;
-	}
-
 	if ( (st & MASK_ALT) != 0 && nChar < 256 && (pDoc->m_TextRam.m_MetaKeys[nChar / 32] & (1 << (nChar % 32))) != 0 ) {
 		if ( (st & MASK_CTRL) != 0 && nChar >= 'A' && nChar <= 'Z' ) {
 			tmp.PutWord(L'\033');
@@ -1756,7 +1761,21 @@ int CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 			tmp.PutWord(n);
 			SendBuffer(tmp);
 			return FALSE;
-		}
+		} else
+			return TRUE;
+	}
+
+	if ( pDoc->m_KeyTab.FindMaps(nChar, st, &tmp) ) {
+		// ESCキーのCKM操作		TO_RLCKMESCによりCKM時にコード変換を抑制
+		if ( (st & MASK_CKM) != 0 && wcscmp((LPCWSTR)tmp, L"\033O[") == 0 && !pDoc->m_TextRam.IsOptEnable(TO_RLCKMESC) )
+			tmp = L"\033";
+
+		if ( (n = CKeyNodeTab::GetCmdsKey((LPCWSTR)tmp)) > 0 )
+			AfxGetMainWnd()->PostMessage(WM_COMMAND, (WPARAM)n);
+		else
+			SendBuffer(tmp);
+
+		return FALSE;
 	}
 
 	return TRUE;
@@ -1806,7 +1825,7 @@ void CRLoginView::OnKillFocus(CWnd* pNewWnd)
 	//if ( m_BtnWnd.m_hWnd != NULL )
 	//	m_BtnWnd.ShowWindow(SW_HIDE);
 
-	InvalidateFullText();
+	pDoc->UpdateAllViews(NULL, UPDATE_INVALIDATE, NULL);
 }
 void CRLoginView::OnActivateView(BOOL bActivate, CView* pActivateView, CView* pDeactiveView) 
 {
@@ -2039,6 +2058,36 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 		if ( m_WheelDelta == 0 ) {
 			KillTimer(nIDEvent);
 			m_WheelTimer = 0;
+		}
+
+		OnUpdate(this, UPDATE_INVALIDATE, NULL);
+		break;
+
+	case VTMID_SMOOTHSCR:
+		if ( m_RMovePixel == 0 ) {
+			KillScrollTimer();
+			break;
+		}
+
+		if ( (clock() - m_RDownClock) > 10000 )
+			m_RMovePixel = m_RMovePixel * 90 / 100;
+
+		n = m_TopOffset + m_RMovePixel;
+
+		m_HisOfs += n / m_CharHeight;
+		m_TopOffset = n % m_CharHeight;
+
+		if ( m_HisOfs <= 0 ) {
+			m_HisOfs = 0;
+			m_TopOffset = 0;
+			KillTimer(m_SmoothTimer);
+			m_SmoothTimer = 0;
+
+		} else if ( m_HisOfs >= (pDoc->m_TextRam.m_HisLen - m_Lines) ) {
+			m_HisOfs = pDoc->m_TextRam.m_HisLen - m_Lines;
+			m_TopOffset = 0;
+			KillTimer(m_SmoothTimer);
+			m_SmoothTimer = 0;
 		}
 
 		OnUpdate(this, UPDATE_INVALIDATE, NULL);
@@ -2402,6 +2451,8 @@ BOOL CRLoginView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 		return TRUE;
 	}
 
+	KillScrollTimer();
+
 	now = clock();
 	msec = (now - m_WheelClock) * 1000 / CLOCKS_PER_SEC;	// msec
 
@@ -2668,12 +2719,7 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 				OnUpdate(this, UPDATE_CLIPERA, NULL);
 			}
 
-		} else if ( m_RDownStat == 2 || (m_RDownStat == 1 && abs(point.y - m_RDownPoint.y) > m_CharHeight) ) {
-
-			if ( m_WheelTimer != 0 ) {
-				KillTimer(m_WheelTimer);
-				m_WheelTimer = 0;
-			}
+		} else if ( m_RDownStat == 2 || ((m_RDownStat == 1 || m_RDownStat == 3) && abs(point.y - m_RDownPoint.y) > m_CharHeight) ) {
 
 			y = point.y - m_RDownPoint.y;
 			x = y % m_CharHeight;
@@ -2686,10 +2732,16 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 				x = 0;
 			}
 
-			if ( y != m_HisOfs || x != pDoc->m_TextRam.m_ScrnOffset.top ) {
-				pDoc->m_TextRam.m_ScrnOffset.top = x;
+			if ( y != m_HisOfs || x != m_TopOffset ) {
+				m_TopOffset = x;
 				m_HisOfs = y;
 				OnUpdate(this, UPDATE_INVALIDATE, NULL);
+			}
+
+			if ( (x = clock() - m_RDownClock) > 10 ) {
+				m_RMovePixel = (point.y - m_RMovePoint.y) * 100 / x;
+				m_RDownClock += x;
+				m_RMovePoint = point;
 			}
 
 			m_RDownStat = 2;
@@ -2737,7 +2789,7 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 
 	switch(m_ClipFlag) {
 	case 1:		// clip start
-		if ( abs(m_FirstMousePoint.x - x) < 2 && abs(m_FirstMousePoint.y - y) < 2 )
+		if ( abs(m_FirstMousePoint.x - point.x) < m_CharWidth && abs(m_FirstMousePoint.y - point.y) < m_CharHeight )
 			break;
 
 		if ( pos < m_ClipStaPos ) {
@@ -2803,7 +2855,30 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 	if ( m_ClipFlag != 1 )
 		OnUpdate(this, UPDATE_CLIPERA, NULL);
 }
+void CRLoginView::KillScrollTimer()
+{
+	CRLoginDoc *pDoc = GetDocument();
 
+	if ( m_WheelTimer != 0 ) {
+		KillTimer(m_WheelTimer);
+		m_WheelTimer = 0;
+	}
+
+	if ( m_SmoothTimer != 0 ) {
+		KillTimer(m_SmoothTimer);
+		m_SmoothTimer = 0;
+
+		m_HisOfs += (m_TopOffset > 0 ? 1 : (-1));
+
+		if ( m_HisOfs < 0 )
+			m_HisOfs = 0;
+		else if ( m_HisOfs > (pDoc->m_TextRam.m_HisLen - m_Lines) )
+			m_HisOfs = pDoc->m_TextRam.m_HisLen - m_Lines;
+
+		m_TopOffset = 0;
+		OnUpdate(this, UPDATE_INVALIDATE, NULL);
+	}
+}
 void CRLoginView::OnRButtonDown(UINT nFlags, CPoint point) 
 {
 	int x, y;
@@ -2821,10 +2896,13 @@ void CRLoginView::OnRButtonDown(UINT nFlags, CPoint point)
 	}
 
 	if ( pDoc->m_TextRam.IsOptEnable(TO_RLRBSCROLL) ) {
+		m_RDownStat  = (m_SmoothTimer != 0 ? 3 : 1);
 		m_RDownClock = clock();
 		m_RDownPoint = point;
-		m_RDownStat  = 1;
+		m_RMovePoint = point;
 		m_RDownOfs   = m_HisOfs;
+		m_RMovePixel = 0;
+		KillScrollTimer();
 		return;
 	}
 	
@@ -2857,35 +2935,45 @@ void CRLoginView::OnRButtonUp(UINT nFlags, CPoint point)
 	if ( m_RDownStat == 2 ) {
 		m_RDownStat = 0;
 
-		if ( (x = clock() - m_RDownClock) > 0 && x < 3000 ) {
-			if ( (y = (point.y - m_RDownPoint.y) * 100 / x) != 0 ) {
-				m_WheelDelta = y / m_CharHeight;
-				if ( abs(m_WheelDelta) > 3 )
-					m_WheelTimer = SetTimer(VTMID_WHEELMOVE, 100, NULL);			// 100ms
-			}
-		}
-
 		y = point.y - m_RDownPoint.y;
 		x = y % m_CharHeight;
-		y = m_RDownOfs + y / m_CharHeight;
 
-		if ( x > 0 )
-			y++;
-		else if ( x < 0 )
-			y--;
-
-		if ( y < 0 )
+		if ( (y = m_RDownOfs + y / m_CharHeight) < 0 ) {
 			y = 0;
-		else if ( y > (pDoc->m_TextRam.m_HisLen - m_Lines) )
+			x = 0;
+		} else if ( y > (pDoc->m_TextRam.m_HisLen - m_Lines) ) {
 			y = pDoc->m_TextRam.m_HisLen - m_Lines;
-
-		if ( m_HisOfs != y || pDoc->m_TextRam.m_ScrnOffset.top != 0 ) {
-			m_HisOfs = y;
-			pDoc->m_TextRam.m_ScrnOffset.top = 0;
-			OnUpdate(this, UPDATE_INVALIDATE, NULL);
+			x = 0;
 		}
 
-	} else if ( m_RDownStat != 0 ) {
+		if ( y != m_HisOfs || x != m_TopOffset ) {
+			m_TopOffset = x;
+			m_HisOfs = y;
+			OnUpdate(NULL, UPDATE_INVALIDATE, NULL);
+		}
+
+		if ( (x = clock() - m_RDownClock) > 10 ) {
+			m_RMovePixel = (point.y - m_RMovePoint.y) * 100 / x;
+			m_RDownClock += x;
+			m_RMovePoint = point;
+		}
+
+		if ( m_RMovePixel != 0 ) {
+			m_SmoothTimer = SetTimer(VTMID_SMOOTHSCR, 100, NULL);
+
+		} else if ( m_TopOffset != 0 ) {
+			m_HisOfs += (m_TopOffset > 0 ? 1 : (-1));
+
+			if ( m_HisOfs < 0 )
+				m_HisOfs = 0;
+			else if ( m_HisOfs > (pDoc->m_TextRam.m_HisLen - m_Lines) )
+				m_HisOfs = pDoc->m_TextRam.m_HisLen - m_Lines;
+
+			m_TopOffset = 0;
+			OnUpdate(NULL, UPDATE_INVALIDATE, NULL);
+		}
+
+	} else if ( m_RDownStat == 1 ) {
 		m_RDownStat = 0;
 
 		if ( pDoc->m_TextRam.IsOptEnable(TO_RLRSPAST) )
@@ -2897,6 +2985,9 @@ void CRLoginView::OnRButtonUp(UINT nFlags, CPoint point)
 			m_RDownPoint = point;
 			m_RclickTimer = SetTimer(VTMID_RCLICKCHECK, GetDoubleClickTime() * 3 / 2, NULL);
 		}
+
+	} else {
+		m_RDownStat = 0;
 	}
 }
 void CRLoginView::OnRButtonDblClk(UINT nFlags, CPoint point) 
@@ -2925,7 +3016,6 @@ BOOL CRLoginView::SendPasteText(LPCWSTR wstr)
 	BOOL rt = FALSE;
 	CAnyPastDlg dlg;
 	CRLoginDoc *pDoc = GetDocument();
-	BOOL bSave[2];
 
 	for ( p = wstr ; *p != 0 ; p++ ) {
 		if ( *p == L'\x0A' || *p == L'\x1A' )
@@ -2936,21 +3026,20 @@ BOOL CRLoginView::SendPasteText(LPCWSTR wstr)
 			len++;
 	}
 
-	bSave[0] = dlg.m_bDelayPast  = pDoc->m_TextRam.IsOptEnable(TO_RLDELYPAST) ? TRUE : FALSE;
-	bSave[1] = dlg.m_bUpdateText = pDoc->m_TextRam.IsOptEnable(TO_RLUPDPAST)  ? TRUE : FALSE;
-
 	if ( pDoc->m_TextRam.IsOptEnable(TO_RLEDITPAST) || (m_PastNoCheck == FALSE && (len > 500 || ct > 0)) ) {
 		dlg.m_NoCheck     = m_PastNoCheck;
-		dlg.m_EditText     = wstr;
+		dlg.m_EditText    = wstr;
+		dlg.m_bDelayPast  = pDoc->m_TextRam.IsOptEnable(TO_RLDELYPAST) || m_PastDelaySend ? TRUE : FALSE;
+		dlg.m_bUpdateText = pDoc->m_TextRam.IsOptEnable(TO_RLUPDPAST) ? TRUE : FALSE;
 
 		if ( dlg.DoModal() != IDOK )
 			return FALSE;
 
 		m_PastNoCheck = dlg.m_NoCheck;
+		m_PastDelaySend = dlg.m_bDelayPast;
 		wstr = TstrToUni(dlg.m_EditText);
 
-		if ( bSave[0] != dlg.m_bDelayPast || bSave[1] != dlg.m_bUpdateText ) {
-			pDoc->m_TextRam.SetOption(TO_RLDELYPAST, dlg.m_bDelayPast);
+		if ( dlg.m_bUpdateText != pDoc->m_TextRam.IsOptEnable(TO_RLUPDPAST) ) {
 			pDoc->m_TextRam.SetOption(TO_RLUPDPAST,  dlg.m_bUpdateText);
 			pDoc->SetModifiedFlag(TRUE);
 		}
@@ -2972,8 +3061,7 @@ BOOL CRLoginView::SendPasteText(LPCWSTR wstr)
 	if ( pDoc->m_TextRam.IsOptEnable(TO_XTBRPAMD) )
 		tmp.Apend((LPBYTE)(L"\033[201~"), 6 * sizeof(WCHAR));
 
-	pDoc->m_bDelayPast = dlg.m_bDelayPast;
-	SendBuffer(tmp);
+	SendBuffer(tmp, FALSE, m_PastDelaySend);
 	return rt;
 }
 void CRLoginView::OnEditPaste() 
@@ -3079,6 +3167,7 @@ void CRLoginView::OnMacroRec()
 		m_KeyMacFlag = FALSE;
 	} else {
 		m_KeyMacFlag = TRUE;
+		m_KeyMacSizeCheck = FALSE;
 		m_KeyMacBuf.Clear();
 	}
 #else
@@ -3094,6 +3183,7 @@ void CRLoginView::OnMacroRec()
 		m_KeyMacFlag = FALSE;
 	} else {
 		m_KeyMacFlag = TRUE;
+		m_KeyMacSizeCheck = FALSE;
 		m_KeyMacBuf.Clear();
 	}
 #endif
@@ -3616,7 +3706,7 @@ void CRLoginView::OnPrint(CDC* pDC, CPrintInfo* pInfo)
 	CTime tm = CTime::GetCurrentTime();
 	CString str;
 	CSize sz;
-	int save_param[10];
+	int save_param[11];
 
 	if ( !pDoc->m_TextRam.IsInitText() )
 		return;
@@ -3634,6 +3724,8 @@ void CRLoginView::OnPrint(CDC* pDC, CPrintInfo* pInfo)
 	save_param[7] = pDoc->m_TextRam.m_ScrnOffset.right;
 	save_param[8] = pDoc->m_TextRam.m_ScrnOffset.top;
 	save_param[9] = pDoc->m_TextRam.m_ScrnOffset.bottom;
+
+	save_param[10] = m_TopOffset;
 
 	rect.left   = 100 * pDC->GetDeviceCaps(LOGPIXELSX) / 254;		// 左右印刷マージン 10mm
 	rect.top    = 100 * pDC->GetDeviceCaps(LOGPIXELSY) / 254;		// 上下印刷マージン 10mm
@@ -3656,6 +3748,7 @@ void CRLoginView::OnPrint(CDC* pDC, CPrintInfo* pInfo)
 
 	m_CharWidth  = m_Width  / m_Cols;
 	m_CharHeight = m_Height / m_Lines;
+	m_TopOffset = 0;
 
 	pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.std.fcol] = RGB(0, 0, 0);
 	pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.std.bcol] = RGB(255, 255, 255);
@@ -3693,4 +3786,6 @@ void CRLoginView::OnPrint(CDC* pDC, CPrintInfo* pInfo)
 	pDoc->m_TextRam.m_ScrnOffset.right  = save_param[7];
 	pDoc->m_TextRam.m_ScrnOffset.top    = save_param[8];
 	pDoc->m_TextRam.m_ScrnOffset.bottom = save_param[9];
+
+	m_TopOffset = save_param[10];
 }

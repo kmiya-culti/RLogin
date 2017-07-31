@@ -203,69 +203,99 @@ class CIConv *CIConv::GetIConv(LPCTSTR from, LPCTSTR to)
 
 void CIConv::IConvSub(LPCTSTR from, LPCTSTR to, CBuffer *in, CBuffer *out)
 {
-	int n = 0;
-	CIConv *cp;
-    char *inp, *otp;
-    size_t ins, tns, xns, ots, len;
-	char tmp[4096];
+	int res = 0;
+	CIConv *pIconv;
+    char *pInStr, *pOutStr;
+    size_t nInLen, nInTry, nInPos;
+	size_t nOuPos, nOutMax;
+	char *pOutBuf;
 
-	cp = GetIConv(from, to);
-	if ( cp->m_Cd == (iconv_t)(-1) )
+	if ( (pIconv = GetIConv(from, to)) == NULL || pIconv->m_Cd == (iconv_t)(-1) )
 		return;
 
-RETRY:
-	len = in->GetSize();
+	pInStr = (char *)(in->GetPtr());
+	nInLen = in->GetSize();
+	in->Consume((int)nInLen);
 
-    while ( in->GetSize() > 0 && n != (-1) ) {
-		inp = (char *)(in->GetPtr());
-		ins = in->GetSize();
-		otp = tmp;
-		ots = 4096;
-		xns = tns = (ins < 2048 ? ins : 2048);
-        n = (int)iconv(cp->m_Cd, (char **)&inp, &tns, &otp, &ots);
-		if ( ots < 4096 ) {
-			out->Apend((LPBYTE)tmp, (int)(4096 - ots));
-			ZeroMemory(tmp, (4096 - ots));
+	nOutMax = nInLen * 4;
+	pOutBuf = new char[nOutMax];
+
+    while ( nInLen > 0 && res != (-1) ) {
+		nInPos = nInTry = nInLen;
+
+		pOutStr = pOutBuf;
+		nOuPos = nOutMax;
+		res = (int)iconv(pIconv->m_Cd, &pInStr, &nInPos, &pOutStr, &nOuPos);
+
+		if ( nOuPos < nOutMax )
+			out->Apend((LPBYTE)pOutBuf, (int)(nOutMax - nOuPos));
+
+		nInLen -= (nInTry - nInPos);
+
+		if ( res == (-1) ) {
+			if ( errno == E2BIG ) {
+				// E2BIG	outbuf に十分な空きがない。 
+
+				delete [] pOutBuf;
+				nOutMax *= 2;
+				pOutBuf = new char[nOutMax];
+				res = 0;
+
+			} else if ( errno == EILSEQ || errno == EINVAL ) {	
+				// EILSEQ	入力に無効なマルチバイト文字列があった。
+				// EINVAL	入力に不完全なマルチバイト文字列があった。
+
+				m_ErrCount++;
+				if ( nInLen > 0 ) {
+					pInStr++;
+					nInLen--;
+					res = 0;
+				}
+			}
 		}
-		in->Consume((int)(xns - tns));
 	}
 
-	if ( len > 4 && len == in->GetSize() && n == (-1) ) {
-		in->Consume(1);
-		m_ErrCount++;
-		goto RETRY;
-	}
+	delete [] pOutBuf;
 }
 int CIConv::IConvBuf(LPCTSTR from, LPCTSTR to, CBuffer *in, CBuffer *out)
 {
-	int n = 0;
-	CIConv *cp;
-    char *inp, *otp;
-    size_t ins, tns, xns, ots;
-	char tmp[4096];
+	int res = 0;
+	CIConv *pIconv;
+    char *pInStr, *pOutStr;
+    size_t nInLen, nInTry, nInPos;
+	size_t nOuPos, nOutMax;
+	char *pOutBuf;
 
-	cp = GetIConv(from, to);
-	if ( cp->m_Cd == (iconv_t)(-1) )
+	if ( (pIconv = GetIConv(from, to)) == NULL || pIconv->m_Cd == (iconv_t)(-1) )
 		return 0;
 
-	inp = (char *)(in->GetPtr());
-	ins = in->GetSize();
+	pInStr = (char *)(in->GetPtr());
+	nInLen = in->GetSize();
 
-    while ( ins > 0 && n != (-1) ) {
-		otp = tmp;
-		ots = 4096;
-		xns = tns = (ins < 2048 ? ins : 2048);
-        n = (int)iconv(cp->m_Cd, (char **)&inp, &tns, &otp, &ots);
-		if ( ots < 4096 )
-			out->Apend((LPBYTE)tmp, (int)(4096 - ots));
-		ins -= (xns - tns);
+	nOutMax = nInLen * 4;
+	pOutBuf = new char[nOutMax];
+
+    while ( nInLen > 0 && res != (-1) ) {
+		nInPos = nInTry = nInLen;
+
+		pOutStr = pOutBuf;
+		nOuPos = nOutMax;
+		res = (int)iconv(pIconv->m_Cd, &pInStr, &nInPos, &pOutStr, &nOuPos);
+
+		if ( nOuPos < nOutMax )
+			out->Apend((LPBYTE)pOutBuf, (int)(nOutMax - nOuPos));
+
+		nInLen -= (nInTry - nInPos);
+
+		if ( res == (-1) && errno == E2BIG ) {
+			delete [] pOutBuf;
+			nOutMax *= 2;
+			pOutBuf = new char[nOutMax];
+			res = 0;
+		}
 	}
 
-	otp = tmp;
-	ots = 4096;
-    iconv(cp->m_Cd, NULL, NULL, &otp, &ots);
-	if ( ots < 4096 )
-		out->Apend((LPBYTE)tmp, (int)(4096 - ots));
+	delete [] pOutBuf;
 
 	return out->GetSize();
 }

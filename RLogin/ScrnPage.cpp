@@ -231,6 +231,7 @@ BOOL CScrnPage::OnApply()
 	}
 
 	m_pSheet->m_pTextRam->m_CaretColor = m_CaretColor;
+	m_pSheet->m_pTextRam->m_DefCaretColor = m_CaretColor;
 	
 	return TRUE;
 }

@@ -463,6 +463,7 @@ static const CTextRam::CSIEXTTAB fc_CsiExtTab[] = {
 	{ ('<' << 16)				| 't',		&CTextRam::fc_TTIMEST	},	// TTIMEST IME の開閉状態を設定する。
 	{ ('<' << 16)				| 'r',		&CTextRam::fc_TTIMERS	},	// TTIMERS IME の開閉状態を復元する。
 	{ ('<' << 16) |	('!'  << 8)	| 'i',		&CTextRam::fc_RLIMGCP	},	// RLIMGCP 現画面をImageにコピーする
+	{ ('<' << 16) |	('!'  << 8)	| 'q',		&CTextRam::fc_RLCURCOL	},	// RLCURCOL カーソルの色を設定
 //	{ ('=' << 16)				| 'A',		&CTextRam::fc_POP		},	// cons25 Set the border color to n
 //	{ ('=' << 16)				| 'B',		&CTextRam::fc_POP		},	// cons25 Set bell pitch (p) and duration (d)
 //	{ ('=' << 16)				| 'C',		&CTextRam::fc_POP		},	// cons25 Set global cursor type
@@ -631,7 +632,7 @@ static CTextRam::ESCNAMEPROC fc_EscNameTab[] = {
 	{	_T("VTS"),		&CTextRam::fc_VTS,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
 };
 
-#define	CSINAMETABMAX	123
+#define	CSINAMETABMAX	124
 static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	_T("C25LCT"),	&CTextRam::fc_C25LCT,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
 	{	_T("CBT"),		&CTextRam::fc_CBT,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
@@ -728,6 +729,7 @@ static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	_T("PPR"),		&CTextRam::fc_PPR,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
 	{	_T("REP"),		&CTextRam::fc_REP,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
 	{	_T("REQTPARM"),	&CTextRam::fc_REQTPARM,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("RLCURCOL"),	&CTextRam::fc_RLCURCOL,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
 	{	_T("RLIMGCP"),	&CTextRam::fc_RLIMGCP,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
 	{	_T("RM"),		&CTextRam::fc_RM,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
 	{	_T("SCORC"),	&CTextRam::fc_SCORC,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
@@ -5267,26 +5269,23 @@ void CTextRam::fc_DECSTBM(DWORD ch)
 {
 	// CSI r	DECSTBM Set Top and Bottom Margins
 	int n, i;
+
 	if ( (n = GetAnsiPara(0, 1, 1) - 1) < 0 )
 		n = 0;
+
 	if ( (i = GetAnsiPara(1, m_Lines, 1) - 1) < 0 || i >= m_Lines )
 		i = m_Lines - 1;
+
 	if ( n < i ) {
 		m_TopY = n;
 		m_BtmY = i + 1;
 	}
-#if 1
+
 	if ( IsOptEnable(TO_DECOM) )
 		LOCATE(GetLeftMargin(), GetTopMargin());
 	else
 		LOCATE(0, 0);
-#else
-	// 古い実装
-	if ( m_CurY < m_TopY )
-		LOCATE(m_CurX, m_TopY);
-	else if ( m_CurY > m_BtmY )
-		LOCATE(m_CurX, m_BtmY - 1);
-#endif
+
 	fc_POP(ch);
 }
 void CTextRam::fc_DECSLRM(DWORD ch)
@@ -7157,12 +7156,30 @@ void CTextRam::fc_XTSMTT(DWORD ch)
 }
 void CTextRam::fc_RLIMGCP(DWORD ch)
 {
-	// CSI ('<' << 16) | ('!' << 8) | 'c'		RLIMGCP
+	// CSI ('<' << 16) | ('!' << 8) | 'i'		RLIMGCP
 
 	CRLoginView *pView;
 
 	if ( (pView = (CRLoginView *)GetAciveView()) != NULL )
 		pView->CreateGrapImage(GetAnsiPara(0, 0, 0, 4));
+
+	fc_POP(ch);
+}
+void CTextRam::fc_RLCURCOL(DWORD ch)
+{
+	// CSI ('<' << 16) | ('!' << 8) | 'q'		RLCURCOL
+	//	Ps =				-> Default Cursor Color
+	//	Ps = 0-255			-> Color Palet
+	//	Pr,Pg,Pg = 0-255	-> RGB Color
+
+	if ( m_AnsiPara.GetSize() >= 3 )
+		m_CaretColor = RGB(GetAnsiPara(0, 0, 0, 255), GetAnsiPara(1, 0, 0, 255), GetAnsiPara(2, 0, 0, 255));
+	else if ( m_AnsiPara.GetSize() >= 1 && !m_AnsiPara[0].IsEmpty() )
+		m_CaretColor = m_ColTab[GetAnsiPara(0, 0, 0, 255)];
+	else
+		m_CaretColor = m_DefCaretColor;
+
+	m_pDocument->UpdateAllViews(NULL, UPDATE_TYPECARET, NULL);
 
 	fc_POP(ch);
 }
@@ -7236,7 +7253,7 @@ void CTextRam::iTerm2Ext(LPCSTR param)
 	int i, n;
 	int cx, cy;
 	int CharWidth = 6, CharHeight = 12;
-	CStringIndex index;
+	CStringIndex index(TRUE, FALSE);
 	CBuffer tmp;
 	CString name;
 	CGrapWnd *pGrapWnd, *pTempWnd;
@@ -7244,8 +7261,8 @@ void CTextRam::iTerm2Ext(LPCSTR param)
 	LPCTSTR p;
 	BOOL bAspect = TRUE;
 
-	index.SetNoCase(TRUE);
-	index.SetKey(param);
+	m_IConv.RemoteToStr(_T("UTF-8"), param, name);
+	index.GetOscString(name);
 
 	if ( (i = index.Find(_T("File"))) >= 0 ) {
 		//	File=name=[base64];size=nn;width=[N];height=[N];preserveAspectRatio=[1];inline=[0]:[base64]

@@ -64,7 +64,7 @@ void CSerEntPage::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_ENTRYMEMO, m_Memo);
 	DDX_CBString(pDX, IDC_GROUP, m_Group);
 	DDX_CBString(pDX, IDC_BEFORE, m_BeforeEntry);
-	DDX_Check(pDX, IDC_PROTOCHECK1, m_UsePassDlg);
+	DDX_Check(pDX, IDC_CHECK1, m_UsePassDlg);
 }
 
 BEGIN_MESSAGE_MAP(CSerEntPage, CTreePage)
@@ -84,7 +84,7 @@ BEGIN_MESSAGE_MAP(CSerEntPage, CTreePage)
 	ON_EN_CHANGE(IDC_ENTRYMEMO, OnUpdateEdit)
 	ON_CBN_EDITCHANGE(IDC_GROUP, OnUpdateEdit)
 	ON_CBN_EDITCHANGE(IDC_BEFORE, OnUpdateEdit)
-	ON_BN_CLICKED(IDC_PROTOCHECK1, OnUpdateOption)
+	ON_BN_CLICKED(IDC_CHECK1, OnUpdateOption)
 	ON_BN_CLICKED(IDC_ICONFILE, &CSerEntPage::OnIconfile)
 END_MESSAGE_MAP()
 
@@ -105,7 +105,7 @@ void CSerEntPage::SetEnableWind()
 		{ IDC_TERMNAME,		  {	FALSE,	TRUE,	TRUE,	TRUE,	FALSE,	FALSE } },
 		{ IDC_PROXYSET,		  {	TRUE,	TRUE,	TRUE,	TRUE,	FALSE,	FALSE } },
 		{ IDC_TERMCAP,		  {	FALSE,	FALSE,	TRUE,	TRUE,	FALSE,	FALSE } },
-		{ IDC_PROTOCHECK1,	  {	FALSE,	TRUE,	TRUE,	TRUE,	TRUE,	TRUE  } },
+		{ IDC_CHECK1,		  {	FALSE,	TRUE,	TRUE,	TRUE,	TRUE,	TRUE  } },
 		{ 0 }
 	};
 

@@ -2743,7 +2743,8 @@ BOOL CSFtp::OnToolTipText(UINT, NMHDR* pNMHDR, LRESULT* pResult)
 	// need to handle both ANSI and UNICODE versions of the message
 	TOOLTIPTEXTA* pTTTA = (TOOLTIPTEXTA*)pNMHDR;
 	TOOLTIPTEXTW* pTTTW = (TOOLTIPTEXTW*)pNMHDR;
-	TCHAR szFullText[256];
+	//TCHAR szFullText[256];
+	CStringLoad szFullText;
 	CString strTipText;
 	UINT_PTR nID = pNMHDR->idFrom;
 	if (pNMHDR->code == TTN_NEEDTEXTA && (pTTTA->uFlags & TTF_IDISHWND) ||
@@ -2756,7 +2757,8 @@ BOOL CSFtp::OnToolTipText(UINT, NMHDR* pNMHDR, LRESULT* pResult)
 	if (nID != 0) // will be zero on a separator
 	{
 		// don't handle the message if no string resource found
-		if (AfxLoadString((UINT)nID, szFullText) == 0)
+//		if (AfxLoadString((UINT)nID, szFullText) == 0)
+		if (szFullText.LoadString((UINT)nID) == 0)
 			return FALSE;
 
 		// this is the command id, not the button index

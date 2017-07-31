@@ -9,6 +9,7 @@
 #define	USE_NETTLE
 #define	USE_SAPI
 #define	USE_JUMPLIST
+#define	USE_TEXTFRAME
 //#define	USE_CLEFIA
 //#define	USE_DIRECTWRITE
 //#define	USE_DEBUGLOG
@@ -49,6 +50,7 @@
 #define	_MSC_VER_VS12			1700	// Visual Studio 2012
 #define	_MSC_VER_VS13			1800	// Visual Studio 2013
 #define	_MSC_VER_VS15			1900	// Visual Studio 2015
+#define	_MSC_VER_VS17			1910	// Visual Studio 2017
 
 #if defined(USE_JUMPLIST) || defined(USE_SAPI)
   #define USE_COMINIT

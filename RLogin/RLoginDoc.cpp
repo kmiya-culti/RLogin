@@ -276,7 +276,9 @@ void CRLoginDoc::LoadIndex(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNod
 	TextRam.m_FontTab.SetIndex(FALSE, index[_T("Fontset")]);
 	TextRam.m_TextBitMap.SetIndex(FALSE, index[_T("TextBitMap")]);
 	KeyTab.SetIndex(FALSE, index[_T("Keycode")]);
+#ifndef	USE_KEYMACGLOBAL
 	KeyMac.SetIndex(FALSE, index[_T("Keymacro")]);
+#endif
 }
 void CRLoginDoc::SaveIndex(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab, CStringIndex &index)
 {
@@ -287,7 +289,9 @@ void CRLoginDoc::SaveIndex(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNod
 	TextRam.m_FontTab.SetIndex(TRUE, index[_T("Fontset")]);
 	TextRam.m_TextBitMap.SetIndex(TRUE, index[_T("TextBitMap")]);
 	KeyTab.SetIndex(TRUE, index[_T("Keycode")]);
+#ifndef	USE_KEYMACGLOBAL
 	KeyMac.SetIndex(TRUE, index[_T("Keymacro")]);
+#endif
 }
 void CRLoginDoc::DiffIndex(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab, CServerEntry &OrigEntry, CStringIndex &index)
 {
@@ -859,11 +863,8 @@ BOOL CRLoginDoc::LogOpen(LPCTSTR filename)
 	if ( m_pLogFile == NULL && (m_pLogFile = new CFileExt) == NULL )
 		return FALSE;
 
-	if ( !m_pLogFile->Open(filename, CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite | CFile::shareDenyWrite) ) {
-		delete m_pLogFile;
-		m_pLogFile = NULL;
+	if ( !m_pLogFile->Open(filename, CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite | CFile::shareDenyWrite) )
 		return FALSE;
-	}
 
 	if ( m_TextRam.IsOptEnable(TO_RLLOGFLUSH) )
 		m_pLogFile->m_bWriteFlush = TRUE;
@@ -1041,10 +1042,12 @@ void CRLoginDoc::LogInit()
 			file.Format(_T("%s%s-%d%s"), dirs, name, num, exts);
 		}
 		if ( num >= 20 ) {
+			if ( m_pLogFile != NULL ) {
+				delete m_pLogFile;
+				m_pLogFile = NULL;
+			}
 			file.Format(_T("LogFile Open Error '%s%s%s'"), dirs, name, exts);
 			AfxMessageBox(file);
-			delete m_pLogFile;
-			m_pLogFile = NULL;
 		}
 	}
 }
@@ -1243,7 +1246,10 @@ void CRLoginDoc::OnSocketError(int err)
 		return;
 	}
 
-	OnFileClose();
+	if ( (pWnd = GetAciveView()) != NULL )
+		pWnd->PostMessage(WM_COMMAND, ID_FILE_CLOSE, (LPARAM)0);
+	else
+		OnFileClose();
 }
 void CRLoginDoc::OnSocketClose()
 {
@@ -1295,6 +1301,8 @@ void CRLoginDoc::OnSocketClose()
 
 	if ( bCanExit )
 		m_pMainWnd->PostMessage(WM_COMMAND, ID_APP_EXIT, 0 );
+	else if ( (pWnd = GetAciveView()) != NULL )
+		pWnd->PostMessage(WM_COMMAND, ID_FILE_CLOSE, (LPARAM)0);
 	else
 		OnFileClose();
 }
@@ -1351,7 +1359,8 @@ int CRLoginDoc::OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags)
 	nBufLen = n;
 
 	// 即時画面更新
-	UpdateAllViews(NULL, UPDATE_UPDATEWINDOW, NULL);
+	// 2.22.1 ViewのOnIdleでUpdateWindowと同等の効果？
+	//UpdateAllViews(NULL, UPDATE_UPDATEWINDOW, NULL);
 
 	if ( m_pLogFile != NULL ) {
 		if ( m_TextRam.m_LogMode == LOGMOD_RAW )
@@ -1500,6 +1509,9 @@ SKIPINPUT:
 			m_ServerEntry.m_HostName = hosts[0];
 	}
 
+	// AfxMessageBoxでメッセージが先に進む可能性あり
+	LogInit();
+
 	switch(m_ServerEntry.m_ProtoType) {
 	case PROTO_DIRECT:  m_pSock = new CExtSocket(this);  break;
 	case PROTO_LOGIN:   m_pSock = new CLogin(this);		 break;	// login
@@ -1521,7 +1533,6 @@ SKIPINPUT:
 		return FALSE;
 	}
 
-	LogInit();
 	SetStatus(_T("Open"));
 	SetDocTitle();
 
@@ -1547,7 +1558,7 @@ int CRLoginDoc::SocketRecive(void *lpBuf, int nBufLen)
 		return 0;
 	return m_pSock->Recive(lpBuf, nBufLen, 0);
 }
-void CRLoginDoc::SocketSend(void *lpBuf, int nBufLen)
+void CRLoginDoc::SocketSend(void *lpBuf, int nBufLen, BOOL delaySend)
 {
 	if ( m_pSock == NULL )
 		return;
@@ -1557,7 +1568,8 @@ void CRLoginDoc::SocketSend(void *lpBuf, int nBufLen)
 	//	return;
 	//}
 
-	if ( m_bDelayPast || m_TextRam.IsOptEnable(TO_RLDELAY) ) {
+	if ( delaySend || m_bDelayPast || m_TextRam.IsOptEnable(TO_RLDELAY) ) {
+		m_bDelayPast = TRUE;
 		m_DelayBuf.Apend((LPBYTE)lpBuf, nBufLen);
 		if ( m_DelayFlag == DELAY_NON )
 			DelaySend();
@@ -1620,7 +1632,9 @@ void CRLoginDoc::OnLoadDefault()
 
 	m_TextRam.Serialize(FALSE);
 	m_KeyTab.Serialize(FALSE);
+#ifndef	USE_KEYMACGLOBAL
 	m_KeyMac.Serialize(FALSE);
+#endif
 	m_ParamTab.Serialize(FALSE);
 
 	SetModifiedFlag(TRUE);
@@ -1630,9 +1644,7 @@ void CRLoginDoc::OnSaveDefault()
 {
 	m_TextRam.Serialize(TRUE);
 	m_KeyTab.Serialize(TRUE);
-#ifndef	USE_KEYMACGLOBAL
 	m_KeyMac.Serialize(TRUE);
-#endif
 	m_ParamTab.Serialize(TRUE);
 }
 void CRLoginDoc::OnSetOption() 

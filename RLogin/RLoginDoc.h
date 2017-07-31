@@ -131,7 +131,7 @@ public:
 	int SocketOpen();
 	void SocketClose();
 	int SocketRecive(void *lpBuf, int nBufLen);
-	void SocketSend(void *lpBuf, int nBufLen);
+	void SocketSend(void *lpBuf, int nBufLen, BOOL delaySend = FALSE);
 	void SocketSendWindSize(int x, int y);
 	LPCSTR Utf8Str(LPCTSTR str);
 	LPCSTR RemoteStr(LPCTSTR str);

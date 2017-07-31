@@ -303,6 +303,8 @@ protected:
 	afx_msg void OnUpdateIndicatorStat(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateIndicatorKmod(CCmdUI* pCmdUI);
 
+	afx_msg BOOL OnToolTipText(UINT nId, NMHDR* pNMHDR, LRESULT* pResult);
+
 	afx_msg void OnPaneWsplit();
 	afx_msg void OnPaneHsplit();
 	afx_msg void OnPaneDelete();
@@ -348,6 +350,7 @@ protected:
 	afx_msg LRESULT OnAfterOpen(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnGetClipboard(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnDpiChanged(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnSetMessageString(WPARAM wParam, LPARAM lParam);
 };
 
 

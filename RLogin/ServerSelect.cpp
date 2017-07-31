@@ -350,7 +350,9 @@ void CServerSelect::OnNewEntry()
 
 	TextRam.Serialize(FALSE);
 	KeyTab.Serialize(FALSE);
+#ifndef	USE_KEYMACGLOBAL
 	KeyMac.Serialize(FALSE);
+#endif
 	ParamTab.Serialize(FALSE);
 
 	dlg.m_pEntry    = &Entry;
@@ -566,13 +568,14 @@ void CServerSelect::OnServInport()
 	CWaitCursor wait;
 	CArchive Archive(&File, CArchive::load);
 
+	int n;
+	CHAR tmp[32];
 	CServerEntry Entry;
 	CTextRam TextRam;
 	CKeyNodeTab KeyTab;
 	CKeyMacTab KeyMac;
 	CParamTab ParamTab;
-	int n;
-	CHAR tmp[32];
+	int ver = 0;
 
 	TRY {
 		memset(tmp, 0, 16);
@@ -580,14 +583,22 @@ void CServerSelect::OnServInport()
 			if ( tmp[n] == '\n' )
 				break;
 		}
-		if ( strncmp((LPSTR)tmp, "RLG3", 4) == 0 ) {
+
+		if ( strncmp((LPSTR)tmp, "RLG4", 4) == 0 )
+			ver = 4;
+		else if ( strncmp((LPSTR)tmp, "RLG3", 4) == 0 )
+			ver = 3;
+		else if ( strncmp((LPSTR)tmp, "RLG2", 4) == 0 )
+			ver = 2;
+
+		if ( ver == 3 || ver == 4 ) {
 			for ( ; ; ) {
 				CStringIndex index;
 
 				index.RemoveAll();
 				index.SetNoCase(TRUE);
 				index.SetNoSort(TRUE);
-				index.Serialize(Archive, NULL);
+				index.Serialize(Archive, NULL, ver);
 
 				CRLoginDoc::LoadIndex(Entry, TextRam, KeyTab, KeyMac, ParamTab, index);
 
@@ -602,7 +613,8 @@ void CServerSelect::OnServInport()
 					if ( tmp[n] == '\n' )
 						break;
 				}
-				if ( strncmp((LPSTR)tmp, "RLG31", 5) != 0 )
+				if ( (ver == 3 && strncmp((LPSTR)tmp, "RLG31", 5) != 0) ||
+					 (ver == 4 && strncmp((LPSTR)tmp, "RLG41", 5) != 0) )
 					break;
 
 				Entry.Init();
@@ -613,7 +625,7 @@ void CServerSelect::OnServInport()
 				KeyMac.Init();
 			}
 
-		} else if ( strncmp((LPSTR)tmp, "RLG2", 4) == 0 ) {
+		} else if ( ver == 2 ) {
 			for ( ; ; ) {
 				Entry.Serialize(Archive);
 				TextRam.Serialize(Archive);
@@ -917,7 +929,9 @@ void CServerSelect::OnLoaddefault()
 	} else {
 		TextRam.Serialize(FALSE);
 		KeyTab.Serialize(FALSE);
+#ifndef	USE_KEYMACGLOBAL
 		KeyMac.Serialize(FALSE);
+#endif
 		ParamTab.Serialize(FALSE);
 	}
 

@@ -788,6 +788,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_MESSAGE(WM_AFTEROPEN, OnAfterOpen)
 	ON_MESSAGE(WM_GETCLIPBOARD, OnGetClipboard)
 	ON_MESSAGE(WM_DPICHANGED, OnDpiChanged)
+	ON_MESSAGE(WM_SETMESSAGESTRING, OnSetMessageString)
 
 	ON_COMMAND(ID_FILE_ALL_LOAD, OnFileAllLoad)
 	ON_COMMAND(ID_FILE_ALL_SAVE, OnFileAllSave)
@@ -824,6 +825,9 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_UPDATE_COMMAND_UI(ID_INDICATOR_SOCK, OnUpdateIndicatorSock)
 	ON_UPDATE_COMMAND_UI(ID_INDICATOR_STAT, OnUpdateIndicatorStat)
 	ON_UPDATE_COMMAND_UI(ID_INDICATOR_KMOD, OnUpdateIndicatorKmod)
+		
+	ON_NOTIFY_EX_RANGE(TTN_NEEDTEXTA, 0, 0xFFFF, OnToolTipText)
+	ON_NOTIFY_EX_RANGE(TTN_NEEDTEXTW, 0, 0xFFFF, OnToolTipText)
 
 	ON_COMMAND(IDM_VERSIONCHECK, &CMainFrame::OnVersioncheck)
 	ON_UPDATE_COMMAND_UI(IDM_VERSIONCHECK, &CMainFrame::OnUpdateVersioncheck)
@@ -1106,17 +1110,46 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 	CRect rc(cs.x, cs.y, cs.x + cs.cx, cs.y + cs.cy);
 
 	hMonitor = MonitorFromRect(&rc, MONITOR_DEFAULTTONEAREST);
-	mi.cbSize = sizeof(MONITORINFO);
+	mi.cbSize = sizeof(MONITORINFOEX);
 	GetMonitorInfo(hMonitor, &mi);
 
-	if ( rc.left >= mi.rcMonitor.right ) {
-		if ( (cs.x -= (mi.rcMonitor.right - rc.right)) < 0 )
-			cs.x = 0;
+#if 1
+	// モニターを基準に調整
+	if ( cs.x < mi.rcMonitor.left )
+		cs.x = mi.rcMonitor.left;
+
+	if ( cs.y < mi.rcMonitor.top )
+		cs.y = mi.rcMonitor.top;
+
+	if ( (cs.x + cs.cx) > mi.rcMonitor.right ) {
+		if ( (cs.x = mi.rcMonitor.right - cs.cx) < mi.rcMonitor.left ) {
+			cs.x  = mi.rcMonitor.left;
+			cs.cx = mi.rcMonitor.right - mi.rcMonitor.left;
+		}
 	}
-	if ( rc.top >= mi.rcMonitor.bottom ) {
-		if ( (cs.y -= (mi.rcMonitor.bottom - rc.bottom)) < 0 )
-			cs.y = 0;
+
+	if ( (cs.y + cs.cy) > mi.rcMonitor.bottom ) {
+		if ( (cs.y = mi.rcMonitor.bottom - cs.cy) < mi.rcMonitor.top ) {
+			cs.y  = mi.rcMonitor.top;
+			cs.cy = mi.rcMonitor.bottom - mi.rcMonitor.top;
+		}
 	}
+#else
+	// 仮想画面サイズを基準に調整
+	if ( (cs.x + cs.cx) > mi.rcWork.right ) {
+		if ( (cs.x = mi.rcWork.right - cs.cx) < mi.rcWork.left ) {
+			cs.x  = mi.rcWork.left;
+			cs.cx = mi.rcWork.right - mi.rcWork.left;
+		}
+	}
+
+	if ( (cs.y + cs.cy) > mi.rcWork.bottom ) {
+		if ( (cs.y = mi.rcWork.bottom - cs.cy) < mi.rcWork.top ) {
+			cs.y  = mi.rcWork.top;
+			cs.cy = mi.rcWork.bottom - mi.rcWork.top;
+		}
+	}
+#endif
 
 	// モニターDPIを取得
 	if ( ExGetDpiForMonitor != NULL )
@@ -1296,7 +1329,7 @@ int CMainFrame::SetAsyncHostAddr(int mode, LPCTSTR pHostName, CExtSocket *pSock)
 	m_HostAddrParam.Add(pSock);
 	m_HostAddrParam.Add(pStr);
 	m_HostAddrParam.Add(pData);
-	m_HostAddrParam.Add(reinterpret_cast<void *>(mode));
+	m_HostAddrParam.Add((void *)(INT_PTR)mode);
 
 	return TRUE;
 }
@@ -1342,7 +1375,7 @@ int CMainFrame::SetAsyncAddrInfo(int mode, LPCTSTR pHostName, int PortNum, void 
 	m_HostAddrParam.Add(pSock);
 	m_HostAddrParam.Add(NULL);
 	m_HostAddrParam.Add(NULL);
-	m_HostAddrParam.Add(reinterpret_cast<void *>(mode));
+	m_HostAddrParam.Add((void *)(INT_PTR)mode);
 
 	return TRUE;
 }
@@ -1351,7 +1384,7 @@ int CMainFrame::SetAfterId(void *param)
 {
 	static int SeqId = 0;
 
-	m_AfterIdParam.Add(reinterpret_cast<void *>(++SeqId));
+	m_AfterIdParam.Add((void *)(INT_PTR)(++SeqId));
 	m_AfterIdParam.Add(param);
 
 	return SeqId;
@@ -2226,7 +2259,7 @@ LRESULT CMainFrame::OnGetHostAddr(WPARAM wParam, LPARAM lParam)
 	int buflen  = WSAGETASYNCBUFLEN(lParam);
 
 	for ( n = 0 ; n < m_HostAddrParam.GetSize() ; n += 5 ) {
-		mode = reinterpret_cast<int>(m_HostAddrParam[n + 4]);
+		mode = (int)(INT_PTR)(m_HostAddrParam[n + 4]);
 		if ( (mode & 030) == 0 && m_HostAddrParam[n] == (void *)wParam ) {
 			pSock = (CExtSocket *)m_HostAddrParam[n + 1];
 			pStr = (CString *)m_HostAddrParam[n + 2];
@@ -2288,7 +2321,7 @@ LRESULT CMainFrame::OnAfterOpen(WPARAM wParam, LPARAM lParam)
 	int n;
 
 	for ( n = 0 ; n < m_AfterIdParam.GetSize() ; n += 2 ) {
-		if (reinterpret_cast<int>(m_AfterIdParam[n]) == (int)(wParam) ) {
+		if ( (INT_PTR)(m_AfterIdParam[n]) == (INT_PTR)(wParam) ) {
 			CRLoginDoc *pDoc = (CRLoginDoc *)m_AfterIdParam[n + 1];
 
 			m_AfterIdParam.RemoveAt(n, 2);
@@ -3498,4 +3531,66 @@ void CMainFrame::OnDeleteOldEntry()
 {
 	if ( ::AfxMessageBox(IDS_DELOLDENTRYMSG, MB_ICONQUESTION | MB_YESNO) == IDYES )
 		((CRLoginApp *)AfxGetApp())->DelProfileSection(_T("ServerEntryTab"));
+}
+LRESULT CMainFrame::OnSetMessageString(WPARAM wParam, LPARAM lParam)
+{
+	if ( wParam == 0 )
+		return CMDIFrameWnd::OnSetMessageString(wParam, lParam);
+
+	CStringLoad msg((UINT)wParam);
+	return CMDIFrameWnd::OnSetMessageString(0, (LPARAM)(LPCTSTR)msg);
+}
+
+#define _AfxGetDlgCtrlID(hWnd)          ((UINT)(WORD)::GetDlgCtrlID(hWnd))
+
+BOOL CMainFrame::OnToolTipText(UINT nId, NMHDR* pNMHDR, LRESULT* pResult)
+{
+//	return CMDIFrameWnd::OnToolTipText(nId, pNMHDR, pResult);
+
+	ENSURE_ARG(pNMHDR != NULL);
+	ENSURE_ARG(pResult != NULL);
+	ASSERT(pNMHDR->code == TTN_NEEDTEXTA || pNMHDR->code == TTN_NEEDTEXTW);
+
+	// need to handle both ANSI and UNICODE versions of the message
+	TOOLTIPTEXTA* pTTTA = (TOOLTIPTEXTA*)pNMHDR;
+	TOOLTIPTEXTW* pTTTW = (TOOLTIPTEXTW*)pNMHDR;
+//	TCHAR szFullText[256];
+	CStringLoad szFullText;
+	CString strTipText;
+	UINT_PTR nID = pNMHDR->idFrom;
+	if (pNMHDR->code == TTN_NEEDTEXTA && (pTTTA->uFlags & TTF_IDISHWND) ||
+		pNMHDR->code == TTN_NEEDTEXTW && (pTTTW->uFlags & TTF_IDISHWND))
+	{
+		// idFrom is actually the HWND of the tool
+		nID = _AfxGetDlgCtrlID((HWND)nID);
+	}
+
+	if (nID != 0) // will be zero on a separator
+	{
+		// don't handle the message if no string resource found
+//		if (AfxLoadString((UINT)nID, szFullText) == 0)
+		if (szFullText.LoadString((UINT)nID) == 0)
+			return FALSE;
+
+		// this is the command id, not the button index
+		AfxExtractSubString(strTipText, szFullText, 1, '\n');
+	}
+#ifndef _UNICODE
+	if (pNMHDR->code == TTN_NEEDTEXTA)
+		Checked::strncpy_s(pTTTA->szText, _countof(pTTTA->szText), strTipText, _TRUNCATE);
+	else
+		_mbstowcsz(pTTTW->szText, strTipText, _countof(pTTTW->szText));
+#else
+	if (pNMHDR->code == TTN_NEEDTEXTA)
+		_wcstombsz(pTTTA->szText, strTipText, _countof(pTTTA->szText));
+	else
+		Checked::wcsncpy_s(pTTTW->szText, _countof(pTTTW->szText), strTipText, _TRUNCATE);
+#endif
+	*pResult = 0;
+
+	// bring the tooltip window above other popup windows
+	::SetWindowPos(pNMHDR->hwndFrom, HWND_TOP, 0, 0, 0, 0,
+		SWP_NOACTIVATE|SWP_NOSIZE|SWP_NOMOVE|SWP_NOOWNERZORDER);
+
+	return TRUE;    // message was handled
 }

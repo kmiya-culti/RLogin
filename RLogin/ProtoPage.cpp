@@ -52,7 +52,7 @@ void CProtoPage::DoDataExchange(CDataExchange* pDX)
 
 	DDX_Text(pDX, IDC_KEEPALIVE, m_KeepAlive);
 	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
-		DDX_Check(pDX, IDC_PROTOCHECK1 + n, m_Check[n]);
+		DDX_Check(pDX, IDC_CHECKFAST + n, m_Check[n]);
 	DDX_CBIndex(pDX, IDC_RSAEXTSEL, m_RsaExt);
 	DDX_Text(pDX, IDC_VERINDENT, m_VerIdent);
 }

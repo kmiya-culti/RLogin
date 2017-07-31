@@ -265,8 +265,9 @@ void CSyncSock::Bufferd_SendBuf(char *buf, int len)
 }
 void CSyncSock::Bufferd_Flush()
 {
-	if ( m_pWnd != NULL )
-		m_pWnd->PostMessage(WM_THREADCMD, THCMD_SENDBUF, (LPARAM)this);
+	if ( m_pWnd == NULL )
+		return;
+	m_pWnd->PostMessage(WM_THREADCMD, THCMD_SENDBUF, (LPARAM)this);
 }
 void CSyncSock::Bufferd_Clear()
 {

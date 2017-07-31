@@ -24,6 +24,7 @@
 #include "RLoginView.h"
 #include "ExtSocket.h"
 #include "Script.h"
+#include "ResTransDlg.h"
 
 #include <direct.h>
 #include <openssl/ssl.h>
@@ -892,8 +893,10 @@ BOOL CRLoginApp::InitInstance()
 	// リソースデータベースの設定
 	// m_ResDataBase.InitRessource();
 	CString rcFileName;
-	if ( GetExtFilePath(_T("_rc.txt"), rcFileName) )
-		m_ResDataBase.LoadFile(rcFileName);
+	if ( GetExtFilePath(_T("_rc.txt"), rcFileName) ) {
+		if ( !m_ResDataBase.LoadFile(rcFileName) )
+			::AfxMessageBox(_T("Can't Load Resources File"));
+	}
 
 	// デフォルトツールバーイメージからBitmapリソースを作成
 	InitToolBarBitmap(MAKEINTRESOURCE(IDR_MAINFRAME), IDB_BITMAP1);
@@ -1025,6 +1028,7 @@ BOOL CRLoginApp::InitInstance()
 	m_bOtherCast = GetProfileInt(_T("RLoginApp"), _T("OtherCast"), FALSE);
 
 #ifdef	USE_KEYMACGLOBAL
+	m_KeyMacGlobal.m_bGlobal = TRUE;
 	m_KeyMacGlobal.Serialize(FALSE);	// init
 #endif
 
@@ -2486,18 +2490,14 @@ void CRLoginApp::OnUpdatePassLock(CCmdUI *pCmdUI)
 }
 void CRLoginApp::OnSaveresfile()
 {
-	CString path;
-	CResDataBase work;
+	CResTransDlg *pDlg = new CResTransDlg;
 
-	path.Format(_T("%s\\%s_rc.txt"), m_BaseDir, m_pszAppName);
-	CFileDialog dlg(FALSE, _T("txt"), path, OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGALLFILE), ::AfxGetMainWnd());
+	pDlg->m_ResDataBase = m_ResDataBase;
+	pDlg->m_ResDataBase.InitRessource();
+	pDlg->m_ResFileName.Format(_T("%s\\%s_rc.txt"), m_BaseDir, m_pszAppName);
 
-	if ( dlg.DoModal() != IDOK )
-		return;
-
-	work = m_ResDataBase;
-	work.InitRessource();
-	work.SaveFile(dlg.GetPathName());
+	pDlg->Create(IDD_RESTRANSDLG); //, CWnd::GetDesktopWindow());
+	pDlg->ShowWindow(SW_SHOW);
 }
 
 void CRLoginApp::OnCreateprofile()

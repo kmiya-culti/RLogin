@@ -1382,7 +1382,8 @@ CTextRam::CTextRam()
 	m_DispCaret = TRUE;
 	m_DefTypeCaret = 1;
 	m_TypeCaret = m_DefTypeCaret;
-	m_CaretColor = RGB(255, 255, 255);
+	m_DefCaretColor = RGB(255, 255, 255);
+	m_CaretColor = m_DefCaretColor;
 	m_UpdateRect.SetRectEmpty();
 	m_UpdateFlag = FALSE;
 	m_DelayMSec = 0;
@@ -1540,8 +1541,7 @@ CTextRam::~CTextRam()
 
 void CTextRam::InitText(int Width, int Height)
 {
-	int n, x;
-	CCharCell *tmp;
+	int n;
 	int oldCurX, oldCurY;
 	int oldCols, oldLines;
 	int charWidth, charHeight;
@@ -1627,6 +1627,19 @@ void CTextRam::InitText(int Width, int Height)
 	m_CharWidth  = charWidth;
 	m_CharHeight = charHeight;
 
+/************************************************************
+
+						m_Cols		m_ColsMax		COLS_MAX
+			0-------0---+-----------+---------------+
+			|    
+			+-------+m_HisLen
+			|		|
+	m_HisPos+-------+-----------0
+			|		|			|
+	m_HisMax+-------0-----------+m_Lines
+
+**************************************************************/
+
 	if ( newHisMax == m_HisMax && m_hMap != NULL ) {
 		if ( newCols == m_Cols && newLines == m_Lines )
 			return;
@@ -1635,46 +1648,34 @@ void CTextRam::InitText(int Width, int Height)
 		oldCurY    = m_CurY;
 		oldCols    = m_Cols;
 		oldLines   = m_Lines;
-		newColsMax = (m_ColsMax >= newCols && m_LineUpdate < (m_Lines * 4) ? m_ColsMax : newCols);
-
-		m_HisPos += (m_Lines - newLines);
+		newColsMax = (m_ColsMax >= newCols && m_LineUpdate < m_HisMax ? m_ColsMax : newCols);
 
 		if ( newColsMax > m_ColsMax ) {
-			for ( n = 0 ; n < m_HisLen ; n++ )
-				CCharCell::Fill(GETVRAM(m_ColsMax, newLines - n), m_DefAtt, newColsMax - m_ColsMax);
-		}
-
-		if ( m_HisLen < newLines ) {
-			for ( n = m_HisLen + 1 ; n <= newLines ; n++ )
-				CCharCell::Fill(GETVRAM(0, newLines - n), m_DefAtt, newColsMax);
+			for ( n = 1 ; n <= m_HisLen ; n++ )
+				CCharCell::Fill(GETVRAM(m_ColsMax, oldLines - n), m_DefAtt, newColsMax - m_ColsMax);
 		}
 
 	} else {
-		newColsMax = (m_ColsMax >= newCols && m_LineUpdate < (m_Lines * 4) ? m_ColsMax : newCols);
+		newColsMax = (m_ColsMax >= newCols && m_LineUpdate < m_HisMax ? m_ColsMax : newCols);
 		HANDLE hNewMap = m_MemMap.Create(ULONGLONG(sizeof(CCharCell) * COLS_MAX) * (ULONGLONG)newHisMax);
 
 		if ( m_hMap != NULL ) {
-			oldCurX = (m_ColsMax < newColsMax ? m_ColsMax : newColsMax);
-			oldCurY = (m_HisLen < newHisMax ? m_HisLen : newHisMax);
+			oldCurX  = (m_ColsMax < newColsMax ? m_ColsMax : newColsMax);
+			oldCurY  = (m_HisLen < newHisMax ? m_HisLen : newHisMax);
+			oldCols  = m_Cols;
+			oldLines = m_Lines;
 
 			for ( n = 1 ; n <= oldCurY ; n++ ) {
-				CCharCell::Copy(GETMAPRAM(hNewMap, 0, newHisMax - n), GETVRAM(0, m_Lines - n), oldCurX);
+				CCharCell::Copy(GETMAPRAM(hNewMap, 0, newHisMax - n), GETVRAM(0, oldLines - n), oldCurX);
 				if ( oldCurX < newColsMax )
 					CCharCell::Fill(GETMAPRAM(hNewMap, oldCurX, newHisMax - n), m_DefAtt, newColsMax - oldCurX);
 			}
 
-			if ( oldCurY < newLines ) {
-				for ( n = oldCurY + 1 ; n <= newLines ; n++ )
-					CCharCell::Fill(GETMAPRAM(hNewMap, 0, newHisMax - n), m_DefAtt, newColsMax);
-			}
-
 			m_MemMap.Close(m_hMap);
+			m_hMap = NULL;
 
 			oldCurX  = m_CurX;
 			oldCurY  = m_CurY;
-			oldCols  = m_Cols;
-			oldLines = m_Lines;
-
 
 		} else {
 			for ( n = 1 ; n <= newLines ; n++ )
@@ -1690,6 +1691,8 @@ void CTextRam::InitText(int Width, int Height)
 			m_LeftX  = 0;
 			m_RightX = newCols;
 
+			m_HisLen = newLines;
+
 			bHisInit = TRUE;
 		}
 
@@ -1703,19 +1706,61 @@ void CTextRam::InitText(int Width, int Height)
 	m_ColsMax    = newColsMax;
 	m_LineUpdate = 0;
 
-	if ( m_HisLen <= oldLines && m_Lines < oldLines ) {
-		for ( n = 0 ; n < oldLines ; n++ ) {
-			tmp = GETVRAM(0, m_Lines - oldLines + n);
-			for ( x = 0 ; x < m_Cols ; x++ ) {
-				if ( !tmp[x].IsEmpty() )
+	if ( oldLines < newLines ) {
+		int top = 0;
+		int bottom = 0;
+
+		if ( (n = m_HisLen - oldLines) > 0 ) {
+			// 上を伸ばす 
+			if ( n > (newLines - oldLines) )
+				n = newLines - oldLines;
+			top = n;
+			bottom = (newLines - oldLines - n);
+
+		} else {
+			// 下を伸ばす
+			bottom = (newLines - oldLines);
+		}
+
+		for ( n = 0 ; n < bottom ; n++ )
+			CCharCell::Fill(GETVRAM(0, oldLines + n), m_DefAtt, newColsMax);
+
+		oldCurY  += top;
+		m_HisPos -= top;
+		m_HisLen += bottom;
+
+	} else if ( oldLines > newLines ) {
+		int top = 0;
+		int bottom = 0;
+
+		for ( n = oldLines ; n > 0 ; n-- ) {
+			int x;
+			CCharCell *pCe = GETVRAM(0, n - 1);
+			for ( x = 0 ; x < oldCols ; x++ ) {
+				if ( !pCe[x].IsEmpty() )
 					break;
 			}
-			if ( x < m_Cols )
+			if ( x < oldCols )
 				break;
-			m_HisLen--;
 		}
-	}
+		// カーソルより上
+		if ( n < oldCurY )
+			n = oldCurY;
 
+		// ブランクより上でカーソルより下
+		if ( (n -= newLines) < 0 )
+			n = 0;
+		else if ( n > oldCurY )
+			n = oldCurY;
+
+		top = n;
+		bottom = (oldLines - newLines - n);
+
+		oldCurY  -= top;
+		m_HisPos += top;
+		m_HisLen -= bottom;
+	}
+		
 	if ( m_HisLen < m_Lines )
 		m_HisLen = m_Lines;
 	else if ( m_HisLen >= m_HisMax )
@@ -1726,28 +1771,8 @@ void CTextRam::InitText(int Width, int Height)
 	if ( (m_CurX = oldCurX) >= m_Cols )
 		m_CurX = m_Cols - 1;
 
-	if ( (m_CurY = m_Lines - oldLines + oldCurY) < 0 ) {
-		m_HisPos += m_CurY;
-		if ( m_HisLen == m_Lines )
-			m_HisLen += oldCurY;
-		else
-			m_HisLen += m_CurY;
-		m_CurY = 0;
-	//} else if ( m_CurY > oldCurY ) {
-	//	for ( n = m_Lines - 1 ; n > oldCurY ; n-- ) {
-	//		tmp = GETVRAM(0, n);
-	//		for ( x = 0 ; x < m_Cols ; x++ ) {
-	//			if ( !tmp[x].IsEmpty() )
-	//				break;
-	//		}
-	//		if ( x < m_Cols )
-	//			break;
-	//	}
-	//	if ( m_CurY > n )
-	//		m_CurY = n;
-	} else if ( m_CurY >= m_Lines ) {
+	if ( (m_CurY = oldCurY) >= m_Lines )
 		m_CurY = m_Lines - 1;
-	}
 
 	if ( m_TopY > 0 ) {
 		if ( (m_TopY += (m_Lines - oldLines)) < 0 )
@@ -2142,7 +2167,7 @@ static const LPCTSTR DropCmdTab[] = {
 	//	Non					BPlus				XModem					YModem
 		_T(""),				_T("bp -d %s\\r"),	_T("rx %s\\r"),			_T("rb\\r"),
 	//	ZModem				SCP					Kermit
-		_T("rz\\r"),		_T("scp -t %s"),	_T("kermit -i -r"),		_T(""),
+		_T("rz\\r"),		_T("scp -t %s"),	_T("kermit -i -r\\r"),	_T(""),
 	};
 static const LPCTSTR InitKeyList[] = {
 	_T(""),
@@ -2165,6 +2190,7 @@ void CTextRam::Init()
 	m_BankGL		= 0;
 	m_BankGR		= 1;
 	m_DefAtt		= TempAtt;
+	m_DefCaretColor = RGB(255, 255, 255);
 
 	memcpy(m_DefColTab, ColSetTab[DEFCOLTAB], sizeof(m_DefColTab));
 	memcpy(m_ColTab, m_DefColTab, sizeof(m_DefColTab));
@@ -2203,8 +2229,8 @@ void CTextRam::Init()
 	m_DropFileMode   = 0;
 	m_DispCaret      = TRUE;
 	m_TypeCaret      = m_DefTypeCaret;
-	m_CaretColor = RGB(255, 255, 255);
-	m_MarkColor = RGB(255, 255, 0);
+	m_CaretColor     = m_DefCaretColor ;
+	m_MarkColor      = RGB(255, 255, 0);
 
 	for ( int n = 0 ; n < 8 ; n++ )
 		m_DropFileCmd[n] = DropCmdTab[n];
@@ -2389,9 +2415,9 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		index[_T("MarkColor")].Add(GetGValue(m_MarkColor));
 		index[_T("MarkColor")].Add(GetBValue(m_MarkColor));
 
-		index[_T("CaretColor")].Add(GetRValue(m_CaretColor));
-		index[_T("CaretColor")].Add(GetGValue(m_CaretColor));
-		index[_T("CaretColor")].Add(GetBValue(m_CaretColor));
+		index[_T("CaretColor")].Add(GetRValue(m_DefCaretColor));
+		index[_T("CaretColor")].Add(GetGValue(m_DefCaretColor));
+		index[_T("CaretColor")].Add(GetBValue(m_DefCaretColor));
 
 		index[_T("Title")] = m_TitleName;
 
@@ -2651,7 +2677,7 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 			m_MarkColor = RGB((int)index[n][0], (int)index[n][1], (int)index[n][2]);
 
 		if ( (n = index.Find(_T("CaretColor"))) >= 0 && index[n].GetSize() >= 3 )
-			m_CaretColor = RGB((int)index[n][0], (int)index[n][1], (int)index[n][2]);
+			m_DefCaretColor = m_CaretColor = RGB((int)index[n][0], (int)index[n][1], (int)index[n][2]);
 		
 		if ( (n = index.Find(_T("Title"))) >= 0 )
 			m_TitleName = index[n];
@@ -2878,10 +2904,10 @@ void CTextRam::DiffIndex(CTextRam &orig, CStringIndex &index)
 		index[_T("MarkColor")].Add(GetBValue(m_MarkColor));
 	}
 
-	if ( m_CaretColor != orig.m_CaretColor ) {
-		index[_T("CaretColor")].Add(GetRValue(m_CaretColor));
-		index[_T("CaretColor")].Add(GetGValue(m_CaretColor));
-		index[_T("CaretColor")].Add(GetBValue(m_CaretColor));
+	if ( m_DefCaretColor != orig.m_DefCaretColor ) {
+		index[_T("CaretColor")].Add(GetRValue(m_DefCaretColor));
+		index[_T("CaretColor")].Add(GetGValue(m_DefCaretColor));
+		index[_T("CaretColor")].Add(GetBValue(m_DefCaretColor));
 	}
 	
 	if ( m_TitleName.Compare(orig.m_TitleName) != 0 )
@@ -2988,7 +3014,7 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 
 	stra.AddVal(m_MarkColor);
 	stra.AddVal(m_BitMapStyle);
-	stra.AddVal(m_CaretColor);
+	stra.AddVal(m_DefCaretColor);
 
 	stra.Add(m_TitleName);
 }
@@ -3208,7 +3234,7 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 		m_BitMapStyle = stra.GetVal(70);
 
 	if ( stra.GetSize() > 71 )
-		m_CaretColor = stra.GetVal(71);
+		m_DefCaretColor = m_CaretColor = stra.GetVal(71);
 
 	if ( stra.GetSize() > 72 )
 		m_TitleName = stra.GetAt(72);
@@ -3532,6 +3558,7 @@ const CTextRam & CTextRam::operator = (CTextRam &data)
 	m_DefTypeCaret = data.m_DefTypeCaret;
 	m_TypeCaret = data.m_TypeCaret;
 	m_CaretColor = data.m_CaretColor;
+	m_DefCaretColor = data.m_DefCaretColor;
 	m_KeepAliveSec = data.m_KeepAliveSec;
 	m_MarkColor = data.m_MarkColor;
 
@@ -5176,7 +5203,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 	prop.aclock = clock();
 	prop.print  = bPrint;
 
-	if ( pView->m_ClipFlag ) {
+	if ( pView->m_ClipFlag > 1 ) {
 		if ( pView->m_ClipStaPos <= pView->m_ClipEndPos ) {
 			spos = pView->m_ClipStaPos;
 			epos = pView->m_ClipEndPos;
@@ -5400,7 +5427,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 #endif
 
 			// Clip View
-			if ( pView->m_ClipFlag && x >= 0 && x < m_Cols && top != NULL ) {
+			if ( pView->m_ClipFlag > 1 && x >= 0 && x < m_Cols && top != NULL ) {
 				cpos = GetCalcPos((work.zoom != 0 ? (x * 2) : x), y - pView->m_HisOfs + pView->m_HisMin);
 				if ( spos <= cpos && cpos <= epos ) {
 					if ( pView->IsClipRectMode() ) {
@@ -5618,7 +5645,7 @@ int CTextRam::InitDefParam(BOOL bCheck, int modFlag)
 
 	if ( (modFlag & UMOD_DEFATT) != 0 )
 		m_DefAtt = m_AttNow;
-
+	
 	return modFlag;
 }
 void CTextRam::InitModKeyTab()
@@ -6004,7 +6031,7 @@ void CTextRam::IconvToMsUniStr(LPCTSTR charset, LPCWSTR p, int len, CBuffer &out
 		} else
 			d2 = *(p++);
 
-		if ( d1 != 0 ) {
+		if ( d1 != 0 && !(d1 == 0xFFFE || d1 == 0xFEFF) ) {
 			if ( (d3 = UnicodeNomal(d1, d2)) != 0 )
 				d2 = d3;
 			else {
@@ -6016,7 +6043,7 @@ void CTextRam::IconvToMsUniStr(LPCTSTR charset, LPCWSTR p, int len, CBuffer &out
 		}
 		d1 = d2;
 	}
-	if ( d1 != 0 ) {
+	if ( d1 != 0 && !(d1 == 0xFFFE || d1 == 0xFEFF) ) {
 		d1 = IconvToMsUnicode(jpset, d1);
 		if ( (d1 & 0xFFFF0000L) != 0 )
 			out.PutWord((WORD)(d1 >> 16));
@@ -6294,6 +6321,7 @@ void CTextRam::RESET(int mode)
 		memset(m_Kan_Buf, 0, sizeof(m_Kan_Buf));
 
 		m_TypeCaret = m_DefTypeCaret;
+		m_CaretColor = m_DefCaretColor;
 	}
 
 	if ( mode & RESET_MARGIN ) {
@@ -7119,7 +7147,7 @@ void CTextRam::FORSCROLL(int sx, int sy, int ex, int ey)
 			m_HisPos -= m_HisMax;
 		if ( m_HisLen < (m_HisMax - 1) )
 			m_HisLen += 1;
-		if ( m_LineUpdate < m_Lines )
+		if ( m_LineUpdate < m_HisMax )
 			m_LineUpdate++;
 
 		CCharCell::Fill(GETVRAM(0, m_Lines - 1), m_AttSpc, m_ColsMax);

@@ -16,6 +16,7 @@
 #define WM_THREADCMD		(WM_USER + 3)
 #define WM_AFTEROPEN		(WM_USER + 4)
 #define WM_GETCLIPBOARD		(WM_USER + 5)
+#define WM_HTTPREQUEST		(WM_USER + 6)
 
 #define	IDLEPROC_SOCKET		0
 #define	IDLEPROC_ENCRYPT	1
