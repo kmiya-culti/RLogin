@@ -69,6 +69,9 @@ BEGIN_MESSAGE_MAP(CRLoginView, CView)
 	ON_UPDATE_COMMAND_UI_RANGE(IDM_CLIPBOARD_HIS1, IDM_CLIPBOARD_HIS10, OnUpdateClipboardPaste)
 	ON_COMMAND(IDM_CLIPBOARD_MENU, OnClipboardMenu)
 
+	ON_COMMAND(IDM_IMAGEGRAPCOPY, OnImageGrapCopy)
+	ON_COMMAND(IDM_IMAGEGRAPSAVE, OnImageGrapSave)
+
 	ON_COMMAND(ID_MACRO_REC, OnMacroRec)
 	ON_UPDATE_COMMAND_UI(ID_MACRO_REC, OnUpdateMacroRec)
 	ON_COMMAND(ID_MACRO_PLAY, OnMacroPlay)
@@ -160,6 +163,7 @@ CRLoginView::CRLoginView()
 	m_ClipSavePoint.x = m_ClipSavePoint.y = 0;
 
 	m_pCellSize = NULL;
+	m_pSelectGrapWnd = NULL;
 
 #ifdef	USE_DIRECTWRITE
 	m_pRenderTarget = NULL;
@@ -1873,6 +1877,11 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 			m_ImageFlag = 0;
 		}
 		break;
+
+	case VTMID_RCLICKCHECK:
+		KillTimer(nIDEvent);
+		PopUpMenu(m_RDownPoint);
+		break;
 	}
 }
 
@@ -1909,13 +1918,16 @@ void CRLoginView::PopUpMenu(CPoint point)
 	CMenuLoad DefMenu;
 	CRLoginDoc *pDoc = GetDocument();
 
-	if ( pDoc->m_TextRam.IsOptEnable(TO_RLRSPAST) ) {
-		OnEditPaste();
-		return;
-	}
+	int x, y;
+	CCharCell *vp;
 
-	if ( pDoc->m_TextRam.IsOptEnable(TO_RLRCLICK) )
-		return;
+	CalcGrapPoint(point, &x, &y);
+	vp = pDoc->m_TextRam.GETVRAM(x, y);
+
+	if ( IS_IMAGE(vp->m_Vram.mode) )
+		m_pSelectGrapWnd = pDoc->m_TextRam.GetGrapWnd(vp->m_Vram.pack.image.id);
+	else
+		m_pSelectGrapWnd = NULL;
 
 	if ( (pMenu = GetMainWnd()->GetMenu()) == NULL ) {
 		if ( !DefMenu.LoadMenu(IDR_RLOGINTYPE) )
@@ -1929,6 +1941,12 @@ void CRLoginView::PopUpMenu(CPoint point)
 	if ( (pMenu = CMenuLoad::GetItemSubMenu(ID_EDIT_COPY, pMenu)) == NULL )
 		return;
 
+	if ( m_pSelectGrapWnd != NULL ) {
+		pMenu->InsertMenu(4, MF_BYPOSITION, IDM_IMAGEGRAPCOPY, CStringLoad(IDM_IMAGEGRAPCOPY));
+		pMenu->InsertMenu(5, MF_BYPOSITION, IDM_IMAGEGRAPSAVE, CStringLoad(IDM_IMAGEGRAPSAVE));
+		pMenu->InsertMenu(6, MF_BYPOSITION | MF_SEPARATOR);
+	}
+
 	state.m_pMenu = pMenu;
 	state.m_nIndexMax = pMenu->GetMenuItemCount();
 	for ( state.m_nIndex = 0 ; state.m_nIndex < state.m_nIndexMax ; state.m_nIndex++) {
@@ -1940,6 +1958,12 @@ void CRLoginView::PopUpMenu(CPoint point)
 
 	ClientToScreen(&point);
 	pMenu->TrackPopupMenu(TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, this);
+
+	if ( m_pSelectGrapWnd != NULL ) {
+		pMenu->DeleteMenu(6, MF_BYPOSITION);
+		pMenu->DeleteMenu(5, MF_BYPOSITION);
+		pMenu->DeleteMenu(4, MF_BYPOSITION);
+	}
 }
 
 BOOL CRLoginView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt) 
@@ -2365,8 +2389,18 @@ void CRLoginView::OnRButtonDown(UINT nFlags, CPoint point)
 		m_RDownPoint = point;
 		m_RDownStat  = 1;
 		m_RDownOfs   = m_HisOfs;
-	} else
+		return;
+	}
+	
+	if ( pDoc->m_TextRam.IsOptEnable(TO_RLRSPAST) )
+		OnEditPaste();
+	else if ( !pDoc->m_TextRam.IsOptEnable(TO_RLRCLICK) )
 		PopUpMenu(point);
+	else {
+		m_RDownClock = clock();
+		m_RDownPoint = point;
+		SetTimer(VTMID_RCLICKCHECK, GetDoubleClickTime() * 3 / 2, NULL);
+	}
 }
 void CRLoginView::OnRButtonUp(UINT nFlags, CPoint point)
 {
@@ -2419,7 +2453,16 @@ void CRLoginView::OnRButtonUp(UINT nFlags, CPoint point)
 
 	} else if ( m_RDownStat != 0 ) {
 		m_RDownStat = 0;
-		PopUpMenu(point);
+
+		if ( pDoc->m_TextRam.IsOptEnable(TO_RLRSPAST) )
+			OnEditPaste();
+		else if ( !pDoc->m_TextRam.IsOptEnable(TO_RLRCLICK) )
+			PopUpMenu(point);
+		else {
+			m_RDownClock = clock();
+			m_RDownPoint = point;
+			SetTimer(VTMID_RCLICKCHECK, GetDoubleClickTime() * 3 / 2, NULL);
+		}
 	}
 }
 void CRLoginView::OnRButtonDblClk(UINT nFlags, CPoint point) 
@@ -2429,6 +2472,8 @@ void CRLoginView::OnRButtonDblClk(UINT nFlags, CPoint point)
 	m_LastMouseFlags = nFlags;
 
 	CView::OnRButtonDblClk(nFlags, point);
+
+	KillTimer(VTMID_RCLICKCHECK);
 
 	if ( !pDoc->m_TextRam.IsOptEnable(TO_RLRSPAST) && pDoc->m_TextRam.IsOptEnable(TO_RLRCLICK) )
 		OnEditPaste();
@@ -2753,6 +2798,33 @@ void CRLoginView::OnEditCopyAll()
 	}
 
 	OnUpdate(this, UPDATE_CLIPERA, NULL);
+}
+
+
+void CRLoginView::OnImageGrapCopy()
+{
+	HANDLE hBitmap;
+
+	if ( m_pSelectGrapWnd == NULL || (hBitmap = m_pSelectGrapWnd->GetBitmapHandle()) == NULL )
+		return;
+
+	if ( OpenClipboard() ) {
+		if ( EmptyClipboard() )
+			SetClipboardData(CF_BITMAP, hBitmap);
+		else
+			DeleteObject(hBitmap);
+
+		CloseClipboard();
+
+	} else
+		DeleteObject(hBitmap);
+}
+void CRLoginView::OnImageGrapSave()
+{
+	if ( m_pSelectGrapWnd == NULL || m_pSelectGrapWnd->m_pActMap == NULL )
+		return;
+
+	m_pSelectGrapWnd->SaveBitmap(1);
 }
 
 BOOL CRLoginView::PreTranslateMessage(MSG* pMsg)

@@ -10,8 +10,6 @@
 #include "Ssh.h"
 #include <mmsystem.h>
 
-//typedef BOOL __stdcall SETLAYER( HWND hwnd, COLORREF crKey, BYTE bAlpha, DWORD dwFlags );
-
 #define	PANEFRAME_NOCHNG		0
 #define	PANEFRAME_MAXIM			1
 #define	PANEFRAME_WIDTH			2
@@ -200,7 +198,7 @@ public:
 
 	BOOL IsConnectChild(CPaneFrame *pPane);
 	void AddChild(CWnd *pWnd);
-	void RemoveChild(CWnd *pWnd);
+	void RemoveChild(CWnd *pWnd, BOOL bDelete);
 	void ActiveChild(CWnd *pWnd);
 	void MoveChild(CWnd *pWnd, CPoint point);
 	void SwapChild(CWnd *pLeft, CWnd *pRight);

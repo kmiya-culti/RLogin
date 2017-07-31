@@ -220,8 +220,20 @@ void CRLoginDoc::OnFileClose()
 	if ( m_pSock != NULL && m_pSock->m_bConnect && AfxMessageBox(CStringLoad(IDS_FILECLOSEQES), MB_ICONQUESTION | MB_YESNO) != IDYES )
 		return;
 
-	if ( m_InPane )
-		::AfxGetMainWnd()->SendMessage(WM_COMMAND, ID_PANE_DELETE);
+	//if ( m_InPane )
+	//	::AfxGetMainWnd()->SendMessage(WM_COMMAND, ID_PANE_DELETE);
+
+	if ( m_InPane ) {
+		POSITION pos;
+		CRLoginView *pView;
+		CChildFrame *pChild;
+
+		pos = GetFirstViewPosition();
+		while ( pos != NULL ) {
+			if ( (pView = (CRLoginView *)GetNextView(pos)) != NULL && (pChild = pView->GetFrameWnd()) != NULL )
+				pChild->m_bDeletePane = TRUE;
+		}
+	}
 
 	CDocument::OnFileClose();
 }

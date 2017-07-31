@@ -24,6 +24,7 @@ public:
 	int m_Cols, m_Lines;
 	BOOL m_VScrollFlag;
 	BOOL m_bInit;
+	BOOL m_bDeletePane;
 
 	void SetScrollBar(BOOL flag);
 

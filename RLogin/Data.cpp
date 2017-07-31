@@ -4067,7 +4067,7 @@ static const struct _InitKeyTab {
 		{ 8,	'9',			MASK_CTRL,				_T("$PANE_SEL9")	},
 		{ 8,	'0',			MASK_CTRL,				_T("$PANE_SEL10")	},
 
-		{ 8,	'V',			MASK_CTRL,				_T("$EDIT_PASTE")	},
+//		{ 8,	'V',			MASK_CTRL,				_T("$EDIT_PASTE")	},
 		{ 8,	'V',			MASK_ALT,				_T("$CLIPBOARD")	},
 
 		{ 9,	'2',			MASK_CTRL | MASK_SHIFT,	_T("\\000")			},	// NUL

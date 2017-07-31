@@ -310,7 +310,7 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				if ( m_InPackLen < 4 || m_InPackLen > (256 * 1024) ) {	// Error Packet Length
 					m_Incom.Clear();
 					SendDisconnect("Packet length Error");
-					throw "ssh1 packet length error";
+					throw _T("ssh1 packet length error");
 				}
 				m_InPackStat = 2;
 				// break; Not use
@@ -328,7 +328,7 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				crc = bp->PTR32BIT(bp->GetPos(bp->GetSize() - 4));
 				if ( crc != ssh_crc32(bp->GetPtr(), bp->GetSize() - 4) ) {
 					SendDisconnect("Packet crc Error");
-					throw "ssh1 packet crc error";
+					throw _T("ssh1 packet crc error");
 				}
 				bp->Consume(m_InPackPad);
 				bp->ConsumeEnd(4);
@@ -358,7 +358,7 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				if ( m_InPackLen < 5 || m_InPackLen > (256 * 1024) ) {
 					m_Incom.Clear();
 					SendDisconnect2(1, "Packet Len Error");
-					throw "ssh2 packet length error";
+					throw _T("ssh2 packet length error");
 				}
 				m_InPackStat = 4;
 				// break; Not use
@@ -380,7 +380,7 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				if ( m_DecMac.GetBlockSize() > 0 ) {
 					if ( memcmp(tmp.GetPtr(), m_Incom.GetPtr(), m_DecMac.GetBlockSize()) != 0 ) {
 						SendDisconnect2(1, "MAC Error");
-						throw "ssh2 mac miss match error";
+						throw _T("ssh2 mac miss match error");
 					}
 					m_Incom.Consume(m_DecMac.GetBlockSize());
 				}
@@ -400,7 +400,7 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				if ( m_InPackLen < 5 || m_InPackLen > (256 * 1024) ) {
 					m_Incom.Clear();
 					SendDisconnect2(1, "Packet Len Error");
-					throw "ssh2 packet length error";
+					throw _T("ssh2 AEAD packet length error");
 				}
 				m_InPackStat = 6;
 				// break; Not use
@@ -412,7 +412,7 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				if ( !m_DecCip.Cipher(m_Incom.GetPtr(), 4 + m_InPackLen + SSH2_GCM_TAGSIZE, &tmp) ) {
 					m_Incom.Clear();
 					SendDisconnect2(1, "MAC Error");
-					throw "ssh2 mac miss match error";
+					throw _T("ssh2 AEAD mac miss match error");
 				}
 				m_Incom.Consume(4 + m_InPackLen + SSH2_GCM_TAGSIZE);
 				m_InPackLen = tmp.Get32Bit();
@@ -436,7 +436,7 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				if ( m_InPackLen < 5 || m_InPackLen > (256 * 1024) ) {
 					m_Incom.Clear();
 					SendDisconnect2(1, "Packet Len Error");
-					throw "ssh2 packet length error";
+					throw _T("ssh2 etm packet length error");
 				}
 				m_InPackStat = 8;
 				// break; Not use
@@ -453,7 +453,7 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				if ( m_DecMac.GetBlockSize() > 0 ) {
 					if ( memcmp(tmp.GetPtr(), m_Incom.GetPtr(), m_DecMac.GetBlockSize()) != 0 ) {
 						SendDisconnect2(1, "MAC Error");
-						throw "ssh2 mac miss match error";
+						throw _T("ssh2 etm mac miss match error");
 					}
 					m_Incom.Consume(m_DecMac.GetBlockSize());
 				}
@@ -479,7 +479,7 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				if ( m_InPackLen < 5 || m_InPackLen > (256 * 1024) ) {
 					m_Incom.Clear();
 					SendDisconnect2(1, "Packet Len Error");
-					throw "ssh2 packet length error";
+					throw _T("ssh2 Poly1305 packet length error");
 				}
 				m_InPackStat = 10;
 				// break; Not use
@@ -491,7 +491,7 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				if ( !m_DecCip.Cipher(m_Incom.GetPtr(), 4 + m_InPackLen + SSH2_POLY1305_TAGSIZE, &tmp) ) {
 					m_Incom.Clear();
 					SendDisconnect2(1, "MAC Error");
-					throw "ssh2 mac miss match error";
+					throw _T("ssh2 Poly1305 mac miss match error");
 				}
 				m_Incom.Consume(4 + m_InPackLen + SSH2_POLY1305_TAGSIZE);
 				m_InPackLen = tmp.Get32Bit();
@@ -514,10 +514,6 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 		CStringW tmp;
 		tmp.Format(L"ssh Recive Packet Error '%s'", pMsg);
 		::AfxMessageBox(UniToTstr(tmp));
-	} catch(LPCSTR pMsg) {
-		CStringA tmp;
-		tmp.Format("ssh Recive Packet Error '%s'", pMsg);
-		::AfxMessageBox(MbsToTstr(tmp));
 	} catch(...) {
 		::AfxMessageBox(_T("ssh Recive unkown Error"));
 	}

@@ -2023,8 +2023,8 @@ static const LPCTSTR InitKeyList[] = {
 	_T("UP,DOWN,RIGHT,LEFT,PRIOR,NEXT,HOME,END,INSERT,DELETE"),
 	_T("F1-F12"),
 	_T("PAD0-PAD9,PADMUL,PADADD,PADSEP,PADSUB,PADDEC,PADDIV"),
-	_T("ESCAPE,RETURN,BACK,TAB,SPACE"),
-	_T("0-9,A-Z"),
+	_T("ESCAPE,RETURN,BACK,TAB"),
+	_T("SPACE,0-9,A-Z"),
 };
 
 void CTextRam::Init()
@@ -2261,9 +2261,9 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		for ( n = 0 ; n < m_InlineExt.GetSize() ; n++ )
 			index[_T("InlineExt")].Add(m_InlineExt[n]);
 
-		index[_T("MarkColor")][0] = GetRValue(m_MarkColor);
-		index[_T("MarkColor")][1] = GetGValue(m_MarkColor);
-		index[_T("MarkColor")][2] = GetBValue(m_MarkColor);
+		index[_T("MarkColor")].Add(GetRValue(m_MarkColor));
+		index[_T("MarkColor")].Add(GetGValue(m_MarkColor));
+		index[_T("MarkColor")].Add(GetBValue(m_MarkColor));
 
 	} else {		// Read
 		if ( (n = index.Find(_T("Cols"))) >= 0 ) {
@@ -2814,6 +2814,13 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 				EnableOption(TO_RLUSEPASS);
 			if ( (m_pServerEntry->m_ProxyMode & 7) > 0 && (m_pServerEntry->m_ProxyUserProvs.IsEmpty() || m_pServerEntry->m_ProxyPassProvs.IsEmpty()) )
 				EnableOption(TO_PROXPASS);
+		}
+	}
+
+	if ( m_FixVersion < 10 ) {
+		if ( m_ModKeyList[4].Compare(_T("ESCAPE,RETURN,BACK,TAB,SPACE")) == 0 && m_ModKeyList[5].Compare(_T("0-9,A-Z")) == 0 ) {
+			m_ModKeyList[4] = InitKeyList[4];
+			m_ModKeyList[5] = InitKeyList[5];
 		}
 	}
 	

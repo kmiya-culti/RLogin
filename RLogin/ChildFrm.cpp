@@ -14,7 +14,7 @@
 #define new DEBUG_NEW
 #endif
 
-
+/////////////////////////////////////////////////////////////////////////////
 // CChildFrame
 
 IMPLEMENT_DYNCREATE(CChildFrame, CMDIChildWnd)
@@ -37,6 +37,7 @@ CChildFrame::CChildFrame()
 	m_Lines  = 25;
 	m_VScrollFlag = FALSE;
 	m_bInit = FALSE;
+	m_bDeletePane = FALSE;
 }
 
 CChildFrame::~CChildFrame()
@@ -161,7 +162,7 @@ void CChildFrame::OnDestroy()
 //		AfxGetApp()->WriteProfileInt(_T("ChildFrame"), _T("cx"), rect.Width());
 //		AfxGetApp()->WriteProfileInt(_T("ChildFrame"), _T("cy"), rect.Height());
 //	}
-	((CMainFrame *)AfxGetMainWnd())->RemoveChild(this);
+	((CMainFrame *)AfxGetMainWnd())->RemoveChild(this, m_bDeletePane);
 	CMDIChildWnd::OnDestroy();
 }
 
@@ -211,7 +212,7 @@ void CChildFrame::OnUpdateFrameMenu(BOOL bActive, CWnd* pActiveWnd, HMENU hMenuA
 
 BOOL CChildFrame::PreTranslateMessage(MSG* pMsg)
 {
-	if ( (pMsg->message == WM_KEYDOWN || pMsg->message == WM_SYSKEYDOWN) ) {
+	if ( pMsg->message == WM_KEYDOWN || pMsg->message == WM_SYSKEYDOWN ) {
 		if ( (pMsg->wParam == VK_TAB || pMsg->wParam == VK_F6) && (GetKeyState(VK_CONTROL) & 0x80) != 0 )
 			return TRUE;
 	}

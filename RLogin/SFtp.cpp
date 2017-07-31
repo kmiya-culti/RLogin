@@ -3491,18 +3491,30 @@ LRESULT CSFtp::OnReciveBuffer(WPARAM wParam, LPARAM lParam)
 
 //	TRACE("OnReciveBuffer %d\n", m_RecvBuf.GetSize());
 
-	while ( m_RecvBuf.GetSize() >= 4 ) {
-		n = m_RecvBuf.PTR32BIT(m_RecvBuf.GetPtr());
-		if ( n > (256 * 1024) || n < 0 )
-			throw "sftp packet length error";
-		if ( m_RecvBuf.GetSize() < (n + 4) )
-			break;
+	try {
+		while ( m_RecvBuf.GetSize() >= 4 ) {
+			n = m_RecvBuf.PTR32BIT(m_RecvBuf.GetPtr());
 
-		buf.Clear();
-		buf.Apend(m_RecvBuf.GetPtr() + 4, n);
-		m_RecvBuf.Consume(n + 4);
+			if ( n > (256 * 1024) || n < 0 )
+				throw _T("sftp packet length error");
 
-		ReciveBuffer(&buf);
+			if ( m_RecvBuf.GetSize() < (n + 4) )
+				break;
+
+			buf.Clear();
+			buf.Apend(m_RecvBuf.GetPtr() + 4, n);
+			m_RecvBuf.Consume(n + 4);
+
+			ReciveBuffer(&buf);
+		}
+
+	} catch(LPCTSTR msg) {
+		MessageBox(msg);
+		m_RecvBuf.Clear();
+
+	} catch(...) {
+		MessageBox(_T("SFTP unkown error"));
+		m_RecvBuf.Clear();
 	}
 
 	m_bPostMsg = FALSE;

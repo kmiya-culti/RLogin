@@ -76,8 +76,10 @@ END_MESSAGE_MAP()
 void CServerSelect::InitList()
 {
 	int n, i;
-	int idx = (-1);
+	int idx;
 
+RETRY:
+	idx = (-1);
 	m_TabEntry.RemoveAll();
 	m_Tab.DeleteAllItems();
 	m_List.DeleteAllItems();
@@ -108,9 +110,14 @@ void CServerSelect::InitList()
 
 	if ( (n = m_TabEntry.Find(m_Group)) != (-1) )
 		m_Tab.SetCurSel(n);
+	else {
+		m_Group = m_TabEntry[0].m_nIndex;
+		goto RETRY;
+	}
 
 	if ( idx != (-1) )
 		m_List.SetItemState(idx, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+
 	m_List.DoSortItem();
 }
 

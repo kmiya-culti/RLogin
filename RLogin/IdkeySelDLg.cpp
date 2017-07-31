@@ -69,6 +69,8 @@ BEGIN_MESSAGE_MAP(CIdkeySelDLg, CDialogExt)
 	ON_UPDATE_COMMAND_UI(IDC_IDKEY_EXPORT, OnUpdateEditEntry)
 	ON_NOTIFY(LVN_ITEMCHANGED, IDC_IDKEY_LIST, OnLvnItemchangedIdkeyList)
 	ON_COMMAND(ID_IDKEY_CAKEY, &CIdkeySelDLg::OnIdkeyCakey)
+	ON_COMMAND(IDM_SAVEPUBLICKEY, &CIdkeySelDLg::OnSavePublicKey)
+	ON_UPDATE_COMMAND_UI(IDM_SAVEPUBLICKEY, OnUpdateEditEntry)
 END_MESSAGE_MAP()
 
 void CIdkeySelDLg::InitList()
@@ -594,4 +596,23 @@ void CIdkeySelDLg::OnIdkeyCakey()
 
 	m_pIdKeyTab->UpdateUid(pKey->m_Uid);
 	InitList();
+}
+void CIdkeySelDLg::OnSavePublicKey()
+{
+	if ( (m_EntryNum = m_List.GetSelectionMark()) < 0 )
+		return;
+
+	int n = (int)m_List.GetItemData(m_EntryNum);
+	CIdKey *pKey = m_pIdKeyTab->GetUid(m_Data[n]);
+
+	if ( pKey == NULL )
+		return;
+
+	CFileDialog dlg(FALSE, _T(""), _T(""), OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGALLFILE), this);
+
+	if ( dlg.DoModal() != IDOK )
+		return;
+
+	if ( !pKey->SavePublicKey(dlg.GetPathName()) )
+		MessageBox(CStringLoad(IDE_IDKEYSAVEERROR));
 }

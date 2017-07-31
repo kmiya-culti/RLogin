@@ -925,6 +925,9 @@
 #define IDM_KERMIT_UPLOAD               5116
 #define IDM_KERMIT_DOWNLOAD             5117
 #define IDM_SIMPLE_UPLOAD               5118
+#define IDM_SAVEPUBLICKEY               5119
+#define IDM_IMAGEGRAPCOPY               5120
+#define IDM_IMAGEGRAPSAVE               5121
 #define IDM_FIRST_MDICHILD              0xFF00
 
 // Next default values for new objects
@@ -932,7 +935,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        161
-#define _APS_NEXT_COMMAND_VALUE         5119
+#define _APS_NEXT_COMMAND_VALUE         5122
 #define _APS_NEXT_CONTROL_VALUE         2444
 #define _APS_NEXT_SYMED_VALUE           616
 #endif

@@ -416,7 +416,7 @@ BOOL CPaneFrame::IsReqSize()
 }
 void CPaneFrame::MoveParOwn(CRect &rect, int Style)
 {
-	int l, r;
+	int n, l, r;
 
 	if ( m_Style == PANEFRAME_WINDOW ) {
 		m_pMain->InvalidateRect(m_Frame);
@@ -452,19 +452,23 @@ void CPaneFrame::MoveParOwn(CRect &rect, int Style)
 			}
 		RECALC:
 			if ( m_Style == PANEFRAME_WIDTH ) {
+				n = m_pLeft->m_Frame.Width() + m_pRight->m_Frame.Width() + m_BoderSize;
+
 				if ( m_pLeft->m_Frame.Width() > m_pRight->m_Frame.Width() ) {
-					left.right = left.left + m_pLeft->m_Frame.Width() * rect.Width() / m_Frame.Width();
+					left.right = left.left + m_pLeft->m_Frame.Width() * rect.Width() / n;
 					right.left = left.right + m_BoderSize;
 				} else {
-					right.left = rect.right - m_pRight->m_Frame.Width() * rect.Width() / m_Frame.Width();
+					right.left = rect.right - m_pRight->m_Frame.Width() * rect.Width() / n;
 					left.right = right.left - m_BoderSize;
 				}
 			} else if ( m_Style == PANEFRAME_HEIGHT ) {
+				n = m_pLeft->m_Frame.Height() + m_pRight->m_Frame.Height() + m_BoderSize;
+
 				if ( m_pLeft->m_Frame.Height() > m_pRight->m_Frame.Height() ) {
-					left.bottom = left.top + m_pLeft->m_Frame.Height() * rect.Height() / m_Frame.Height();
+					left.bottom = left.top + m_pLeft->m_Frame.Height() * rect.Height() / n;
 					right.top   = left.bottom + m_BoderSize;
 				} else {
-					right.top   = rect.bottom - m_pRight->m_Frame.Height() * rect.Height() / m_Frame.Height();
+					right.top   = rect.bottom - m_pRight->m_Frame.Height() * rect.Height() / n;
 					left.bottom = right.top - m_BoderSize;
 				}
 			}
@@ -531,11 +535,10 @@ void CPaneFrame::MoveParOwn(CRect &rect, int Style)
 			break;
 		}
 
-
 		if ( left.Width() < PANEMINSIZE || left.Height() < PANEMINSIZE || right.Width() < PANEMINSIZE || right.Height() < PANEMINSIZE ) {
-			m_Style = PANEFRAME_MAXIM;
-			left    = rect;
-			right   = rect;
+			Style = m_Style = PANEFRAME_MAXIM;
+			left  = rect;
+			right = rect;
 		}
 
 		m_Frame = rect;
@@ -570,11 +573,11 @@ class CPaneFrame *CPaneFrame::HitTest(CPoint &po)
 			return this;
 		break;
 	case PANEFRAME_WIDTH:
-		if ( m_Frame.PtInRect(po) && po.x >= m_pLeft->m_Frame.right && po.x <= m_pRight->m_Frame.left )
+		if ( m_Frame.PtInRect(po) && po.x >= (m_pLeft->m_Frame.right - 2) && po.x <= (m_pRight->m_Frame.left + 2) )
 			return this;
 		break;
 	case PANEFRAME_HEIGHT:
-		if ( m_Frame.PtInRect(po) && po.y >= m_pLeft->m_Frame.bottom && po.y <= m_pRight->m_Frame.top )
+		if ( m_Frame.PtInRect(po) && po.y >= (m_pLeft->m_Frame.bottom - 2) && po.y <= (m_pRight->m_Frame.top + 2) )
 			return this;
 		break;
 	}
@@ -1626,19 +1629,16 @@ void CMainFrame::AddChild(CWnd *pWnd)
 		pPane->CreatePane(PANEFRAME_MAXIM, pWnd->m_hWnd);
 	}
 }
-void CMainFrame::RemoveChild(CWnd *pWnd)
+void CMainFrame::RemoveChild(CWnd *pWnd, BOOL bDelete)
 {
 	m_wndTabBar.Remove(pWnd);
 	if ( m_wndTabBar.m_TabCtrl.GetItemCount() <= 1 )
 		ShowControlBar(&m_wndTabBar, m_bTabBarShow, TRUE);
 
-//	if ( m_pTopPane != NULL )
-//		m_pTopPane = m_pTopPane->DeletePane(pWnd->m_hWnd);
-
 	if ( m_pTopPane != NULL ) {
 		CPaneFrame *pPane = m_pTopPane->GetPane(pWnd->m_hWnd);
 		if ( pPane != NULL ) {
-			if ( pPane->m_pOwn != NULL && pPane->m_pOwn->m_Style == PANEFRAME_MAXIM ) {
+			if ( bDelete || (pPane->m_pOwn != NULL && pPane->m_pOwn->m_Style == PANEFRAME_MAXIM) ) {
 				m_pTopPane = m_pTopPane->DeletePane(pWnd->m_hWnd);
 			} else {
 				pPane->m_hWnd = NULL;
@@ -2127,10 +2127,8 @@ LRESULT CMainFrame::OnWinSockSelect(WPARAM wParam, LPARAM lParam)
 	if ( (fs & FD_CLOSE) != 0 )
 		pSock->OnPreClose();
 
-	//if ( (fs & FD_RECIVE_EMPTY) != 0 )
-	//	pSock->OnRecvEmpty();
-	//if ( (fs & FD_SEND_EMPTY) != 0 )
-	//	pSock->OnSendEmpty();
+	//if ( (fs & FD_ONIDLE) != 0 )
+	//	pSock->OnIdle();
 
 	return TRUE;
 }
@@ -2506,16 +2504,47 @@ void CMainFrame::OnPaneDelete()
 	if ( m_pTopPane == NULL )
 		return;
 
-	CPaneFrame *pPane = m_pTopPane->GetActive();
+	CPaneFrame *pPane, *pOwner;
 
-	while ( pPane->m_pOwn != NULL ) {
-		pPane = pPane->m_pOwn;
-		if ( pPane->m_pLeft != NULL && pPane->m_pLeft->m_hWnd == NULL && pPane->m_pLeft->m_pLeft == NULL )
-			pPane->DeletePane(NULL);
-		if ( pPane->m_pRight != NULL && pPane->m_pRight->m_hWnd == NULL && pPane->m_pRight->m_pLeft == NULL )
-			pPane->DeletePane(NULL);
-		if ( pPane->m_Style != PANEFRAME_MAXIM ) {
-			pPane->MoveParOwn(pPane->m_Frame, PANEFRAME_MAXIM);
+	if ( (pPane = m_pTopPane->GetActive()) == NULL )
+		return;
+
+	if ( pPane->m_Style == PANEFRAME_WINDOW && pPane->m_hWnd == NULL && (pOwner = pPane->m_pOwn) != NULL ) {
+		pPane->m_pLeft = pPane->m_pRight = NULL;
+		delete pPane;
+
+		pPane = (pOwner->m_pLeft == pPane ? pOwner->m_pRight : pOwner->m_pLeft);
+		pOwner->m_Style  = pPane->m_Style;
+		pOwner->m_pLeft  = pPane->m_pLeft;
+		pOwner->m_pRight = pPane->m_pRight;
+
+		pOwner->m_hWnd   = pPane->m_hWnd;
+		if ( pOwner->m_pServerEntry != NULL )
+			delete pOwner->m_pServerEntry;
+		pOwner->m_pServerEntry = pPane->m_pServerEntry;
+		pPane->m_pServerEntry = NULL;
+
+		if ( pOwner->m_pLeft != NULL )
+			pOwner->m_pLeft->m_pOwn  = pOwner;
+		if ( pOwner->m_pRight != NULL )
+			pOwner->m_pRight->m_pOwn = pOwner;
+
+		pPane->m_pLeft = pPane->m_pRight = NULL;
+		delete pPane;
+
+		pOwner->MoveParOwn(pOwner->m_Frame, PANEFRAME_NOCHNG);
+		return;
+	}
+
+	for ( pOwner = pPane->m_pOwn ; pOwner != NULL ; pOwner = pOwner->m_pOwn ) {
+
+		if ( pOwner->m_pLeft != NULL && pOwner->m_pLeft->m_hWnd == NULL && pOwner->m_pLeft->m_pLeft == NULL )
+			pOwner->DeletePane(NULL);
+		if ( pOwner->m_pRight != NULL && pOwner->m_pRight->m_hWnd == NULL && pOwner->m_pRight->m_pLeft == NULL )
+			pOwner->DeletePane(NULL);
+
+		if ( pOwner->m_Style != PANEFRAME_MAXIM ) {
+			pOwner->MoveParOwn(pOwner->m_Frame, PANEFRAME_MAXIM);
 			break;
 		}
 	}

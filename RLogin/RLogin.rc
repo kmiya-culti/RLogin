@@ -418,7 +418,8 @@ BEGIN
         MENUITEM "名前を編集する(&N)",                 ID_EDIT_UPDATE
         MENUITEM "認証キーを削除する(&D)",               ID_EDIT_DELETE
         MENUITEM SEPARATOR
-        MENUITEM "クリップボードへ送る(&C)",              ID_EDIT_COPY
+        MENUITEM "公開鍵をクリップボードに送る(&C)",          ID_EDIT_COPY
+        MENUITEM "公開鍵をファイルに保存(&S)",             IDM_SAVEPUBLICKEY
         MENUITEM "署名された公開鍵の読み込み(&P)",           ID_IDKEY_CAKEY
         MENUITEM SEPARATOR
         MENUITEM "ファイルからインポート(&I)",             IDC_IDKEY_INPORT
@@ -525,7 +526,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.20.5a (2016/06/06)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.20.6 (2016/07/01)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2016 Culti",IDC_STATIC,44,16,189,8
     DEFPUSHBUTTON   "OK",IDOK,96,171,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.2h 3 May 2016",IDC_STATIC,44,29,189,8
@@ -1728,8 +1729,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,20,5,0
- PRODUCTVERSION 2,20,5,0
+ FILEVERSION 2,20,6,0
+ PRODUCTVERSION 2,20,6,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1746,12 +1747,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.20.5.0"
+            VALUE "FileVersion", "2.20.6.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2015 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.20.5.0"
+            VALUE "ProductVersion", "2.20.6.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -3430,6 +3431,12 @@ BEGIN
     IDM_DISPWINIDX          "各ウィンドウに番号とタイトルを表示\nウィンドウ識別"
     IDM_GRAPDISP            "Grapウィンドウを表示・非表示にします\nGrap表示"
     IDM_IMAGEDISP           "Imageウィンドウを表示・非表示します\nImage表示"
+END
+
+STRINGTABLE
+BEGIN
+    IDM_IMAGEGRAPCOPY       "画像をクリップボードにコピー(&G)"
+    IDM_IMAGEGRAPSAVE       "画像を名前を付けて保存(&V)"
 END
 
 STRINGTABLE

@@ -20,6 +20,7 @@
 #define	IDLEPROC_SOCKET		0
 #define	IDLEPROC_ENCRYPT	1
 #define	IDLEPROC_SCRIPT		2
+#define	IDLEPROC_DELETE		3
 
 //////////////////////////////////////////////////////////////////////
 // CCommandLineInfoEx
@@ -67,6 +68,7 @@ public:
 	int m_Type;
 	void *m_pParam;
 	int m_Priority;
+	BOOL m_bExec;
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -88,6 +90,7 @@ public:
 	BOOL m_bLookCast;
 	BOOL m_bOtherCast;
 	CString m_LocalPass;
+	clock_t m_LastIdleClock;
 
 #ifdef	USE_KEYMACGLOBAL
 	CKeyMacTab m_KeyMacGlobal;
@@ -190,6 +193,7 @@ public:
 	virtual BOOL InitInstance();
 	virtual int ExitInstance();
 	virtual BOOL OnIdle(LONG lCount);
+	virtual BOOL IsIdleMessage(MSG* pMsg);
 
 // ŽÀ‘•
 public:

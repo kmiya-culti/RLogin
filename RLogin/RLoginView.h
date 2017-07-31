@@ -26,6 +26,7 @@
 #define	VTMID_GOZIUPDATE	1029
 #define	VTMID_SLEEPTIMER	1030
 #define	VTMID_IMAGEUPDATE	1031
+#define	VTMID_RCLICKCHECK	1032
 
 #define	VIEW_SLEEP_MSEC		10000	// x 1msec = 10sec
 #define	VIEW_SLEEP_MAX		60		// x 10sec = 600sec = 10min
@@ -100,6 +101,7 @@ public:
 	class CGhostWnd *m_pGhost;
 	class CMsgWnd m_MsgWnd;
 	class CBtnWnd m_BtnWnd;
+	class CGrapWnd *m_pSelectGrapWnd;
 
 	BOOL m_SleepView;
 	int m_SleepCount;
@@ -212,6 +214,9 @@ protected:
 	afx_msg void ClipboardPaste(UINT nID);
 	afx_msg void OnUpdateClipboardPaste(CCmdUI* pCmdUI);
 	afx_msg void OnClipboardMenu();
+
+	afx_msg void OnImageGrapCopy();
+	afx_msg void OnImageGrapSave();
 
 	afx_msg void OnMacroRec();
 	afx_msg void OnUpdateMacroRec(CCmdUI* pCmdUI);

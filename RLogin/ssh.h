@@ -352,6 +352,7 @@ public:
 
 	int LoadPrivateKey(LPCTSTR file, LPCTSTR pass);
 	int SavePrivateKey(int type, LPCTSTR file, LPCTSTR pass);
+	int SavePublicKey(LPCTSTR file);
 
 	int ParseCertPublicKey(LPCTSTR str);
 	int LoadCertPublicKey(LPCTSTR file);

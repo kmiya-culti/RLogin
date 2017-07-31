@@ -17,7 +17,7 @@
 #include "GrapWnd.h"
 #include "GhostWnd.h"
 
-#define	FIX_VERSION		9				// AnsiOpt Bugfix version
+#define	FIX_VERSION		10				// AnsiOpt Bugfix version
 
 #define	USE_TEXTFRAME	1				// Enabled ATT_FRAME RS/RD/LS/LDLINE 
 
