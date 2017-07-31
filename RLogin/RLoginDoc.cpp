@@ -35,6 +35,7 @@ IMPLEMENT_DYNCREATE(CRLoginDoc, CDocument)
 
 BEGIN_MESSAGE_MAP(CRLoginDoc, CDocument)
 	//{{AFX_MSG_MAP(CRLoginDoc)
+	ON_COMMAND(ID_FILE_CLOSE, &CRLoginDoc::OnFileClose)
 	ON_COMMAND(ID_LOG_OPEN, OnLogOpen)
 	ON_UPDATE_COMMAND_UI(ID_LOG_OPEN, OnUpdateLogOpen)
 	ON_COMMAND(IDC_LOADDEFAULT, OnLoadDefault)
@@ -44,7 +45,6 @@ BEGIN_MESSAGE_MAP(CRLoginDoc, CDocument)
 	ON_UPDATE_COMMAND_UI(IDM_SFTP, OnUpdateSftp)
 	ON_COMMAND(ID_CHARSCRIPT_END, &CRLoginDoc::OnChatStop)
 	ON_UPDATE_COMMAND_UI(ID_CHARSCRIPT_END, &CRLoginDoc::OnUpdateChatStop)
-	//}}AFX_MSG_MAP
 	ON_COMMAND_RANGE(IDM_KANJI_EUC, IDM_KANJI_UTF8, OnKanjiCodeSet)
 	ON_UPDATE_COMMAND_UI_RANGE(IDM_KANJI_EUC, IDM_KANJI_UTF8, OnUpdateKanjiCodeSet)
 	ON_COMMAND_RANGE(IDM_XMODEM_UPLOAD, IDM_KERMIT_DOWNLOAD, OnXYZModem)
@@ -59,7 +59,6 @@ BEGIN_MESSAGE_MAP(CRLoginDoc, CDocument)
 	ON_COMMAND(IDM_SCRIPT, &CRLoginDoc::OnScript)
 	ON_UPDATE_COMMAND_UI(IDM_SCRIPT, &CRLoginDoc::OnUpdateScript)
 	ON_COMMAND_RANGE(IDM_SCRIPT_MENU1, IDM_SCRIPT_MENU10, OnScriptMenu)
-	ON_COMMAND(ID_FILE_CLOSE, &CRLoginDoc::OnFileClose)
 	ON_COMMAND(IDM_IMAGEDISP, &CRLoginDoc::OnImagedisp)
 	ON_UPDATE_COMMAND_UI(IDM_IMAGEDISP, &CRLoginDoc::OnUpdateImagedisp)
 	ON_COMMAND(IDC_CANCELBTN, OnCancelBtn)
@@ -831,6 +830,8 @@ int CRLoginDoc::SocketOpen()
 	BOOL rt;
 	int num;
 	CPassDlg dlg;
+	CStringArrayExt hosts;
+	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
 
 	if ( InternetAttemptConnect(0) != ERROR_SUCCESS )
 		return FALSE;
@@ -888,6 +889,25 @@ int CRLoginDoc::SocketOpen()
 
 	if ( m_ServerEntry.m_HostName.IsEmpty() )
 		return FALSE;
+
+	if ( m_ServerEntry.m_ProtoType <= PROTO_SSH ) {
+		hosts.GetParam(m_ServerEntry.m_HostName);
+
+		if ( hosts.GetSize() > 1 ) {
+			CCommandLineInfoEx cmds;
+			cmds.ParseParam(_T("inpane"), TRUE, FALSE);
+			SetEntryProBuffer();
+			for ( int n = 1 ; n < hosts.GetSize() ; n++ ) {
+				m_ServerEntry.m_HostName.Format(_T("'%s'"), hosts[n]);
+				pApp->m_pServerEntry = &m_ServerEntry;
+				pApp->OpenProcsCmd(&cmds);
+			}
+			m_InPane = TRUE;
+			m_ServerEntry.m_HostName = hosts[0];
+
+		} else if ( hosts.GetSize() > 0 )
+			m_ServerEntry.m_HostName = hosts[0];
+	}
 
 	switch(m_ServerEntry.m_ProtoType) {
 	case PROTO_DIRECT:  m_pSock = new CExtSocket(this);  break;

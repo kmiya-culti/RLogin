@@ -235,20 +235,30 @@ int CExtSocket::GetFamily()
 
 BOOL CExtSocket::AsyncGetHostByName(LPCTSTR pHostName)
 {
-	return GetMainWnd()->SetAsyncHostAddr(ASYNC_GETADDR, pHostName, this);
+	CString host;
+	PunyCodeAdress(pHostName, host);
+	return GetMainWnd()->SetAsyncHostAddr(ASYNC_GETADDR, host, this);
 }
 BOOL CExtSocket::AsyncCreate(LPCTSTR lpszHostAddress, UINT nHostPort, LPCTSTR lpszRemoteAddress, int nSocketType)
 {
 	if ( lpszHostAddress == NULL )
 		return Create(lpszHostAddress, nHostPort, lpszRemoteAddress, nSocketType);
 
-	m_RealHostAddr   = lpszHostAddress;
+	//m_RealHostAddr   = lpszHostAddress;
+	PunyCodeAdress(lpszHostAddress, m_RealHostAddr);
+
 	m_RealHostPort   = nHostPort;
-	m_RealRemoteAddr = (lpszRemoteAddress != NULL ? lpszRemoteAddress : _T(""));
+
+	//m_RealRemoteAddr = (lpszRemoteAddress != NULL ? lpszRemoteAddress : _T(""));
+	if ( lpszRemoteAddress != NULL )
+		PunyCodeAdress(lpszRemoteAddress, m_RealRemoteAddr);
+	else
+		m_RealRemoteAddr.Empty();
+
 	m_RealSocketType = nSocketType;
 
 #ifdef	NOIPV6
-	return GetMainWnd()->SetAsyncHostAddr(ASYNC_CREATE, lpszHostAddress, this);
+	return GetMainWnd()->SetAsyncHostAddr(ASYNC_CREATE, m_RealHostAddr, this);
 #else
 	ADDRINFOT hints;
 
@@ -257,7 +267,7 @@ BOOL CExtSocket::AsyncCreate(LPCTSTR lpszHostAddress, UINT nHostPort, LPCTSTR lp
 	hints.ai_socktype = nSocketType;
 	hints.ai_flags = AI_PASSIVE;
 
-	return GetMainWnd()->SetAsyncAddrInfo(ASYNC_CREATEINFO, lpszHostAddress, nHostPort, &hints, this);
+	return GetMainWnd()->SetAsyncAddrInfo(ASYNC_CREATEINFO, m_RealHostAddr, m_RealHostPort, &hints, this);
 #endif
 }
 BOOL CExtSocket::AsyncOpen(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType)
@@ -265,13 +275,14 @@ BOOL CExtSocket::AsyncOpen(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocket
 	if ( lpszHostAddress == NULL || nHostPort == (-1) )
 		return Open(lpszHostAddress, nHostPort, nSocketPort, nSocketType);
 
-	m_RealHostAddr   = lpszHostAddress;
+	//m_RealHostAddr   = lpszHostAddress;
+	PunyCodeAdress(lpszHostAddress, m_RealHostAddr);
 	m_RealHostPort   = nHostPort;
 	m_RealRemotePort = nSocketPort;
 	m_RealSocketType = nSocketType;
 
 #ifdef	NOIPV6
-	return GetMainWnd()->SetAsyncHostAddr(ASYNC_OPEN, lpszHostAddress, this);
+	return GetMainWnd()->SetAsyncHostAddr(ASYNC_OPEN, m_RealHostAddr, this);
 #else
 	ADDRINFOT hints;
 
@@ -279,12 +290,13 @@ BOOL CExtSocket::AsyncOpen(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocket
 	hints.ai_family = GetFamily();
 	hints.ai_socktype = nSocketType;
 
-	return GetMainWnd()->SetAsyncAddrInfo(ASYNC_OPENINFO, lpszHostAddress, nHostPort, &hints, this);
+	return GetMainWnd()->SetAsyncAddrInfo(ASYNC_OPENINFO, m_RealHostAddr, m_RealHostPort, &hints, this);
 #endif
 }
 BOOL CExtSocket::ProxyOpen(int mode, LPCTSTR ProxyHost, UINT ProxyPort, LPCTSTR ProxyUser, LPCTSTR ProxyPass, LPCTSTR RealHost, UINT RealPort)
 {
-	m_RealHostAddr   = ProxyHost;
+	//m_RealHostAddr   = ProxyHost;
+	PunyCodeAdress(ProxyHost, m_RealHostAddr);
 	m_RealHostPort   = ProxyPort;
 	m_RealRemotePort = 0;
 	m_RealSocketType = SOCK_STREAM;
@@ -308,14 +320,15 @@ BOOL CExtSocket::ProxyOpen(int mode, LPCTSTR ProxyHost, UINT ProxyPort, LPCTSTR 
 #endif
 	}
 
-	m_ProxyHost = RealHost;
+	//m_ProxyHost = RealHost;
+	PunyCodeAdress(RealHost, m_ProxyHost);
 	m_ProxyPort = RealPort;
 	m_ProxyUser = ProxyUser;
 	m_ProxyPass = ProxyPass;
 
 	if ( m_ProxyStatus == PRST_NONE ) {
-		m_RealHostAddr   = RealHost;
-		m_RealHostPort   = RealPort;
+		m_RealHostAddr   = m_ProxyHost;
+		m_RealHostPort   = m_ProxyPort;
 	}
 
 #ifdef	NOIPV6
@@ -341,6 +354,7 @@ BOOL CExtSocket::Create(LPCTSTR lpszHostAddress, UINT nHostPort, LPCTSTR lpszRem
 	int opval;
     struct hostent *hp;
     struct sockaddr_in in;
+	CString host;
 
 	if ( (m_Fd = ::socket(AF_INET, nSocketType, 0)) == (-1) )
 		return FALSE;
@@ -375,7 +389,7 @@ ERRRET2:
 	int opval;
 	ADDRINFOT hints, *ai, *aitop;
 	char *addr = NULL;
-	CString str;
+	CString str, host;
 	SOCKET fd;
 
 	if ( pAddrInfo != NULL )
@@ -387,7 +401,9 @@ ERRRET2:
 		hints.ai_flags = AI_PASSIVE;
 		str.Format(_T("%d"), nHostPort);
 
-		if ( GetAddrInfo(lpszHostAddress, str, &hints, &aitop) != 0)
+		PunyCodeAdress(lpszHostAddress, host);
+
+		if ( GetAddrInfo(host, str, &hints, &aitop) != 0)
 			return FALSE;
 	}
 
@@ -587,6 +603,7 @@ BOOL CExtSocket::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort,
 	DWORD val;
     struct hostent *hp;
     struct sockaddr_in in;
+	CString host;
 
 	if ( (m_Fd = ::socket(AF_INET, nSocketType, 0)) == (-1) )
 		return FALSE;
@@ -603,7 +620,9 @@ BOOL CExtSocket::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort,
 			goto ERRRET1;
 	}
 
-	if ( (hp = ::gethostbyname(TstrToMbs(lpszHostAddress))) == NULL )
+	PunyCodeAdress(lpszHostAddress, host);
+
+	if ( (hp = ::gethostbyname(TstrToMbs(host))) == NULL )
 		goto ERRRET1;
 
 	in.sin_family = AF_INET;
@@ -634,14 +653,16 @@ ERRRET2:
 		m_AddrInfoTop = m_AddrInfoNext = (ADDRINFOT *)pAddrInfo;
 	else {
 		ADDRINFOT hints;
-		CString str;
+		CString str, host;
 
 		memset(&hints, 0, sizeof(hints));
 		hints.ai_family = GetFamily();
 		hints.ai_socktype = nSocketType;
 		str.Format(_T("%d"), nHostPort);
 
-		if ( GetAddrInfo(lpszHostAddress, str, &hints, &m_AddrInfoNext) != 0 )
+		PunyCodeAdress(lpszHostAddress, host);
+
+		if ( GetAddrInfo(host, str, &hints, &m_AddrInfoNext) != 0 )
 			return FALSE;
 
 		m_AddrInfoTop = m_AddrInfoNext;
@@ -1903,6 +1924,124 @@ ERRRET:
 	::closesocket(Fd);
 	return (ai == NULL ? FALSE : TRUE);
 #endif
+}
+
+//////////////////////////////////////////////////////////////////////
+
+void CExtSocket::PunyCodeEncode(LPCWSTR str, CString &out)
+{
+	int n, i, len, count, basic;
+	unsigned long q, k, t, d;
+	unsigned long min, max, delta, bias;
+
+	out.Empty();
+
+	for ( count = len = 0 ; str[len] != L'\0' ; len++ ) {
+		if ( str[len] < 0x80 ) {
+			out += str[len];
+			count++;
+		}
+	}
+
+	if ( count == len )
+		return;
+
+	out.Insert(0, _T("xn--"));
+
+	if ( count > 0 )
+		out += _T('-');
+
+	min = 0x80;
+	delta = 0;
+	bias = 72;
+	basic = count;
+
+	while ( count < len ) {
+
+		max = 0xFFFFFFFF;
+
+		for ( n = 0 ; n < len ; n++ ) {
+			if ( str[n] >= min && str[n] < max )
+				max = str[n];
+		}
+
+	    delta += (max - min) * (count + 1);
+		min = max;
+
+		for ( n = 0 ; n < len ; n++ ) {
+			if ( str[n] < min )
+				delta++;
+
+			if ( str[n] != min )
+				continue;
+
+			for ( q = delta, k = 36 ; ; k += 36 ) {
+			  if ( k <= bias )
+				  t = 1;
+			  else if ( k > (bias + 26) )
+				  t = 26;
+			  else
+				  t = k - bias;
+
+			  if ( q < t )
+				  break;
+
+			  d = t + (q - t) % (36 - t);
+			  out += (TCHAR)(d + 22 + 75 * (d < 26));
+
+			  q = (q - t) / (36 - t);
+			}
+
+			out += (TCHAR)(q + 22 + 75 * (q < 26));
+
+			if ( count == basic )
+				delta = delta / 700;
+			else
+				delta = delta >> 1;
+
+			delta += (delta / (count + 1));
+
+			for ( k = 0 ; delta > ((36 - 1) * 26) / 2 ; k += 36 )
+				delta /= (36 - 1);
+
+			bias = k + (36 - 1 + 1) * delta / (delta + 38);
+
+			delta = 0;
+			count++;
+		}
+
+		delta++;
+		min++;
+	}
+}
+void CExtSocket::PunyCodeAdress(LPCTSTR str, CString &out)
+{
+	int n;
+	CString tmp;
+	CStringArrayExt param;
+	LPCTSTR p;
+
+	if ( str == NULL ) {
+		out.Empty();
+		return;
+	}
+
+	for ( p = str ; *p < 0x80 ; p++ ) {
+		if ( *p == _T('\0') ) {
+			out = str;
+			return;
+		}
+	}
+
+	out.Empty();
+	param.GetString(str, _T('.'));
+
+	for ( n = 0 ; n < param.GetSize() ; n++ ) {
+		CExtSocket::PunyCodeEncode(TstrToUni(param[n]), tmp);
+		if ( !out.IsEmpty() )
+			out += _T('.');
+		out += tmp;
+	}
 }
 
 //////////////////////////////////////////////////////////////////////

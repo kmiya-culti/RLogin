@@ -935,6 +935,7 @@ CTextRam::CTextRam()
 	m_ClipFlag = 0;
 	m_FileSaveFlag = TRUE;
 	m_ImageIndex = 0;
+	m_ImageCheck = 0;
 	m_bOscActive = FALSE;
 //	m_pCanDlg = NULL;
 	m_bIntTimer = FALSE;
@@ -3355,6 +3356,7 @@ void CTextRam::StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop,
 			pDC->InvertRect(pRect);
 		if ( rv )
 			bc = RGB((GetRValue(fc) + GetRValue(bc)) / 2, (GetGValue(fc) + GetGValue(bc)) / 2, (GetBValue(fc) + GetBValue(bc)) / 2);
+		rv = TRUE;
 	}
 
 	if ( (at & ATT_HALF) != 0 )
@@ -3367,6 +3369,8 @@ void CTextRam::StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop,
 				pWnd->DrawBlock(pDC, pRect, bc, prop.stx, prop.sty, prop.edx, prop.sty + 1, pView);
 			else
 				pDC->FillSolidRect(pRect, bc);
+			if ( rv )
+				pDC->InvertRect(pRect);
 		} else if ( pView->m_pBitmap == NULL )
 			pDC->FillSolidRect(pRect, bc);
 
@@ -3668,8 +3672,8 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 					work.sty = vp->pr.pk.im.iy;
 					str.Empty();
 					stx = work.stx;
+					edx = work.edx;
 					if ( prop.idx == work.idx && prop.sty == work.sty && prop.edx == work.stx ) {
-						edx = work.edx;
 						work.stx = prop.stx;
 						work.edx = prop.edx;
 					}
@@ -3733,6 +3737,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 				}
 				memcpy(&prop, &work, sizeof(work));
 				prop.stx = stx;
+				prop.edx = edx;
 				len = sln = 0;
 				rect.left = pView->CalcGrapX(x) * (work.dmf ? 2 : 1);
 			} else
@@ -4273,8 +4278,10 @@ void CTextRam::ChkGrapWnd()
 	CVram *vp;
 	BYTE use[4096];	// Max index
 
-	if ( m_VRam == NULL )
+	if ( m_VRam == NULL || m_ImageCheck-- > 0 )
 		return;
+
+	m_ImageCheck = 5;
 
 	memset(use, 0, sizeof(use));
 

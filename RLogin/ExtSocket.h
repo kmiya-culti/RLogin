@@ -244,6 +244,8 @@ public:
 	static void GetHostName(struct sockaddr *addr, int addrlen, CString &host);
 	static int GetPortNum(LPCTSTR str);
 	static BOOL SokcetCheck(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM);
+	static void PunyCodeEncode(LPCWSTR str, CString &out);
+	static void PunyCodeAdress(LPCTSTR str, CString &out);
 
 	void SetRecvSyncMode(BOOL mode);
 	int SyncRecive(void* lpBuf, int nBufLen, int nSec, BOOL *pAbort);

@@ -707,6 +707,7 @@ public:
 	int m_LangMenu;
 	LPCTSTR m_RetChar[7];
 	int m_ImageIndex;
+	int m_ImageCheck;
 	int m_bOscActive;
 	LPCTSTR m_OscName;
 	CString m_SeqMsg;

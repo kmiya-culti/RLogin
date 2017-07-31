@@ -3100,7 +3100,7 @@ void CTextRam::fc_DECSIXEL(DWORD ch)
 
 	fc_POP(ch);
 	
-	if ( this->IsOptEnable(TO_DECSDM) ) {	// Sixel Scroll Mode Disable (DECSDM = set)
+	if ( IsOptEnable(TO_DECSDM) ) {			// Sixel Scroll Mode Disable (DECSDM = set)
 		tmp.Format(_T("Sixel - %s"), m_pDocument->m_ServerEntry.m_EntryName);
 		pGrapWnd = new CGrapWnd(this);
 		pGrapWnd->Create(NULL, tmp);

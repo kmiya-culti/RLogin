@@ -35,7 +35,7 @@ END_MESSAGE_MAP()
 
 void CListCtrlMove::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags) 
 {
-	int n;
+	int n, m;
 	CString tmp[2];
 
 	switch(nChar) {
@@ -67,6 +67,36 @@ void CListCtrlMove::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 		SetItemState(n + 1, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
 		EnsureVisible(n + 1, 0);
 		return;
+#if 0
+	case VK_HOME:
+		if ( (GetKeyState(VK_SHIFT) & 0x80) == 0 )
+			break;
+		if ( (n = GetSelectionMark()) <= 0 )
+			break;
+		tmp[0] = GetItemText(0, 0);
+		tmp[1] = GetItemText(n, 0);
+		SetItemText(0, 0, tmp[1]);
+		SetItemText(n, 0, tmp[0]);
+		SetSelectionMark(0);
+		SetItemState(0, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
+		EnsureVisible(0, 0);
+		return;
+	case VK_END:
+		if ( (GetKeyState(VK_SHIFT) & 0x80) == 0 )
+			break;
+		if ( (m = GetItemCount() - 1) < 0 )
+			break;
+		if ( (n = GetSelectionMark()) < 0 || n >= m )
+			break;
+		tmp[0] = GetItemText(m, 0);
+		tmp[1] = GetItemText(n, 0);
+		SetItemText(m, 0, tmp[1]);
+		SetItemText(n, 0, tmp[0]);
+		SetSelectionMark(m);
+		SetItemState(m, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
+		EnsureVisible(m, 0);
+		return;
+#endif
 	}
 	CListCtrl::OnKeyDown(nChar, nRepCnt, nFlags);
 }

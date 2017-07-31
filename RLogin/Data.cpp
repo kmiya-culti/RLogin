@@ -873,6 +873,233 @@ int CStringArrayExt::Match(LPCTSTR str)
 	return (-1);
 }
 
+
+CStrNode *CStringArrayExt::ParseWord(LPCTSTR *ptr)
+{
+	int type = 0;
+	CString tmp;
+	LPCTSTR str = *ptr;
+
+	if ( *str == _T('"') ) {
+		str++;
+		while ( *str != _T('\0') ) {
+			if ( *str == _T('"') ) {
+				str++;
+				break;
+			}
+			tmp += *(str++);
+		}
+		type = '"';
+
+	} else if ( *str == _T('\'') ) {
+		str++;
+		while ( *str != _T('\0') ) {
+			if ( *str == _T('\'') ) {
+				str++;
+				break;
+			}
+			tmp += *(str++);
+		}
+		type = '\'';
+
+	} else if ( *str == _T('[') ) {
+		tmp += *(str++);
+		type = '[';
+
+	} else if ( *str == _T(']') ) {
+		tmp += *(str++);
+		type = ']';
+
+	} else if ( *str == _T(',') ) {
+		tmp += *(str++);
+		type = ',';
+
+	} else if ( *str == _T('-') ) {
+		tmp += *(str++);
+		type = '-';
+
+	} else if ( *str >= _T('0') &&*str <= _T('9') ) {
+		while ( *str != _T('\0') ) {
+			if ( *str >= _T('0') && *str <= _T('9') )
+				tmp += *(str++);
+			else
+				break;
+		}
+		type = '0';
+
+	} else if ( *str != _T('\0') ) {
+		while ( *str != _T('\0') ) {
+			if ( _tcschr(_T(",\"'[]-0123456789"), *str) != NULL )
+				break;
+			tmp += *(str++);
+		}
+		type = 'S';
+	}
+
+	*ptr = str;
+
+	if ( type == 0 )
+		return NULL;
+
+	return new CStrNode(type, tmp);
+}
+CStrNode *CStringArrayExt::ParseLine(CStrNode *top, LPCTSTR *ptr, BOOL bNest)
+{
+	int st, ed;
+	CString tmp;
+	CStrNode *bp = new CStrNode('N', NULL);
+	CStrNode *np, *dp, *tp;
+
+	while ( (np = ParseWord(ptr)) != NULL ) {
+		if ( np->m_Type == ',' )
+			break;
+		else if ( np->m_Type == '[' ) {
+			delete np;
+			np = ParseList(ptr, TRUE);
+		} else if ( bNest && np->m_Type == ']' )
+			break;
+
+		bp->AddNext(np);
+	}
+
+	if ( !bNest )
+		bp->AddNext(new CStrNode('E', NULL));
+
+	for ( tp = bp->m_Next ; tp != NULL ; tp = tp->m_Next ) {
+		if ( tp->m_Type == '0' && tp->m_Next != NULL && tp->m_Next->m_Type == '-' && tp->m_Next->m_Next != NULL && tp->m_Next->m_Next->m_Type == '0' ) {
+			st = _tstoi(tp->m_Str);
+			ed = _tstoi(tp->m_Next->m_Next->m_Str);
+
+			tp->m_Type = 'L';
+			dp = tp->m_Next;
+			tp->m_Next = dp->m_Next->m_Next;
+			dp->m_Next->m_Next = NULL;
+			delete dp;
+
+			while ( st <= ed ) {
+				tmp.Format(_T("%d"), st++);
+				dp = new CStrNode('N', NULL);
+				dp->AddNext(new CStrNode('0', tmp));
+				tp->AddList(dp);
+			}
+		}
+	}
+
+	top->AddList(bp);
+
+	return np;
+}
+CStrNode *CStringArrayExt::ParseList(LPCTSTR *ptr, BOOL bNest)
+{
+	BOOL bLoop = TRUE;
+	CStrNode *np;
+	CStrNode *top = new CStrNode('L', NULL);
+
+	while ( bLoop && (np = ParseLine(top, ptr, bNest)) != NULL ) {
+		if ( bNest && np->m_Type == ']' )
+			bLoop = FALSE;
+		delete np;
+	}
+
+	return top;
+}
+void CStringArrayExt::ParseNode(CStrNode *top, CStrNode *stack, CString &str)
+{
+	CStrNode *dp;
+	CString tmp;
+
+	while ( top != NULL ) {
+		if ( top->m_Type == 'L' ) {
+			if ( top->m_Next != NULL ) {
+				top->m_Next->m_Stack = stack;
+				stack = top->m_Next;
+			}
+			for ( dp = top->m_List ; dp != NULL ; dp = dp->m_List ) {
+				tmp = str;
+				ParseNode(dp, stack, tmp);
+			}
+			return;
+
+		} else if ( top->m_Type == 'E' ) {
+			if ( !str.IsEmpty() )
+				Add(str);
+
+		} else if ( top->m_Type != 'N' ) {
+			str += top->m_Str;
+		}
+
+		top = top->m_Next;
+	}
+
+	if ( stack != NULL )
+		ParseNode(stack, stack->m_Stack, str);
+}
+void CStringArrayExt::GetParam(LPCTSTR str)
+{
+	CString tmp;
+	CStrNode *top;
+
+	RemoveAll();
+	top = ParseList(&str, FALSE);
+	ParseNode(top, NULL, tmp);
+	delete top;
+
+	//for ( int n = 0 ; n < GetSize() ; n++ )
+	//	TRACE("%s\n", TstrToMbs((*this)[n]));
+}
+
+//////////////////////////////////////////////////////////////////////
+// CStrNode
+
+CStrNode::CStrNode()
+{
+	m_Type = 0;
+	m_Next = NULL;
+	m_List = NULL;
+	m_Stack = NULL;
+}
+CStrNode::CStrNode(int type, LPCTSTR str)
+{
+	m_Type = type;
+	if ( str != NULL )
+		m_Str = str;
+	m_Next = NULL;
+	m_List = NULL;
+	m_Stack = NULL;
+}
+CStrNode::~CStrNode()
+{
+	if ( m_Next != NULL )
+		delete m_Next;
+
+	if ( m_List != NULL )
+		delete m_List;
+}
+void CStrNode::AddNext(CStrNode *np)
+{
+	CStrNode *tp;
+
+	if ( m_Next == NULL )
+		m_Next = np;
+	else {
+		for ( tp = m_Next ; tp->m_Next != NULL ; )
+			tp = tp->m_Next;
+		tp->m_Next = np;
+	}
+}
+void CStrNode::AddList(CStrNode *np)
+{
+	CStrNode *tp;
+
+	if ( m_List == NULL )
+		m_List = np;
+	else {
+		for ( tp = m_List ; tp->m_List != NULL ; )
+			tp = tp->m_List;
+		tp->m_List = np;
+	}
+}
+
 //////////////////////////////////////////////////////////////////////
 // CParaIndex
 
@@ -3138,7 +3365,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	92
+#define	CMDSKEYTABMAX	94
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -3179,6 +3406,7 @@ static const struct _CmdsKeyTab {
 	{	IDM_WINODW_NEXT,		L"$PANE_NEXT"		},
 	{	IDM_WINDOW_PREV,		L"$PANE_PREV"		},
 	{	ID_WINDOW_ROTATION,		L"$PANE_ROTATION"	},
+	{	ID_PANE_SAVE,			L"$PANE_SAVE"		},
 	{	IDM_WINDOW_SEL0,		L"$PANE_SEL0"		},
 	{	IDM_WINDOW_SEL1,		L"$PANE_SEL1"		},
 	{	IDM_WINDOW_SEL2,		L"$PANE_SEL2"		},
@@ -3203,6 +3431,7 @@ static const struct _CmdsKeyTab {
 	{	IDM_RESET_TAB,			L"$RESET_TAB"		},
 	{	IDM_RESET_TEK,			L"$RESET_TEK"		},
 	{	ID_CHARSCRIPT_END,		L"$SCRIPT_END"		},
+	{	IDM_SCRIPT,				L"$SCRIPT_EXEC"		},
 	{	IDM_SCRIPT_MENU1,		L"$SCRIPT_MENU1"	},
 	{	IDM_SCRIPT_MENU10,		L"$SCRIPT_MENU10"	},
 	{	IDM_SCRIPT_MENU2,		L"$SCRIPT_MENU2"	},

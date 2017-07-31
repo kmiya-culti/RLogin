@@ -131,6 +131,23 @@ public:
 	CStringLoad(int nID) { LoadString(nID); }
 };
 
+class CStrNode : public CObject
+{
+public:
+	int m_Type;
+	CString m_Str;
+	class CStrNode *m_Next;
+	class CStrNode *m_List;
+	class CStrNode *m_Stack;
+
+	void AddNext(CStrNode *np);
+	void AddList(CStrNode *np);
+
+	CStrNode();
+	CStrNode(int type, LPCTSTR str);
+	~CStrNode();
+};
+
 class CStringArrayExt : public CStringArray  
 {
 public:
@@ -150,6 +167,12 @@ public:
 	int Find(LPCTSTR str);
 	int FindNoCase(LPCTSTR str);
 	int Match(LPCTSTR str);
+
+	CStrNode *ParseWord(LPCTSTR *ptr);
+	CStrNode *ParseLine(CStrNode *top, LPCTSTR *ptr, BOOL bNest);
+	CStrNode *ParseList(LPCTSTR *ptr, BOOL bNest);
+	void ParseNode(CStrNode *top, CStrNode *stack, CString &str);
+	void GetParam(LPCTSTR str);
 };
 
 class CStringMaps : public CObject
