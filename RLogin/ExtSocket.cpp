@@ -706,7 +706,6 @@ int CExtSocket::SyncRecive(void* lpBuf, int nBufLen, int nSec, BOOL *pAbort)
 			m_RecvSema.Unlock();
 			break;
 		} else if ( m_pRecvEvent != NULL ) {
-			m_pRecvEvent->ResetEvent();
 			m_RecvSyncMode |= SYNC_EVENT;
 			m_RecvSema.Unlock();
 			time(&nt);
@@ -741,14 +740,12 @@ void CExtSocket::SyncAbort()
 {
 	if ( m_pRecvEvent == NULL )
 		return;
-	m_RecvSema.Lock();
 	m_pRecvEvent->SetEvent();
-	m_RecvSema.Unlock();
 }
 void CExtSocket::SetRecvSyncMode(BOOL mode)
 {
 	if ( m_pRecvEvent == NULL )
-		m_pRecvEvent = new CEvent(FALSE, TRUE);
+		m_pRecvEvent = new CEvent(FALSE, FALSE);
 	m_RecvSyncMode = (mode ? SYNC_ACTIVE : SYNC_NONE); 
 }
 void CExtSocket::SendFlash(int sec)

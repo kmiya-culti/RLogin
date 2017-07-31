@@ -111,6 +111,8 @@ public:
 	CBitmap m_Bitmap;
 };
 
+#define	CLIPOPENTHREADMAX	3	// クリップボードアクセススレッド多重起動数
+
 class CMainFrame : public CMDIFrameWnd
 {
 	DECLARE_DYNAMIC(CMainFrame)
@@ -164,6 +166,7 @@ public:
 	BOOL m_bClipEnable;
 	BOOL m_bClipChain;
 	HWND m_hNextClipWnd;
+	UINT_PTR m_ClipTimer;
 	BOOL m_bBroadCast;
 	CList<CStringW, CStringW &> m_ClipBoard;
 	int m_ScreenX;
@@ -207,6 +210,7 @@ public:
 	void RemoveChild(CWnd *pWnd, BOOL bDelete);
 	void ActiveChild(CWnd *pWnd);
 	void MoveChild(CWnd *pWnd, CPoint point);
+	BOOL IsWindowPanePoint(CPoint point);
 	void SwapChild(CWnd *pLeft, CWnd *pRight);
 	BOOL IsOverLap(HWND hWnd);
 	BOOL IsTopLevelDoc(CRLoginDoc *pDoc);
@@ -232,6 +236,9 @@ public:
 	int PreLButtonDown(UINT nFlags, CPoint point);
 	int GetExecCount();
 	void SetActivePoint(CPoint point);
+
+	volatile int m_bClipThreadCount;
+	CMutexLock m_OpenClipboardLock;
 
 	void ClipBoradStr(LPCWSTR str, CString &tmp);
 	void SetClipBoardComboBox(CComboBox *pCombo);
@@ -332,6 +339,7 @@ protected:
 	afx_msg void OnBroadcast();
 	afx_msg void OnUpdateBroadcast(CCmdUI *pCmdUI);
 	afx_msg void OnToolcust();
+	afx_msg void OnDeleteOldEntry();
 
 	afx_msg LRESULT OnWinSockSelect(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnGetHostAddr(WPARAM wParam, LPARAM lParam);

@@ -5,6 +5,9 @@
 //////////////////////////////////////////////////////////////////////
 // TabBar.h: CTabBar クラスのインターフェイス
 
+#define	TBTMID_SETCURSOR		1024
+#define	TBTMID_GHOSTWMD			1025
+
 class CTabBar : public CControlBar  
 {
 	DECLARE_DYNAMIC(CTabBar)
@@ -26,6 +29,8 @@ public:
 	CString m_FontName;
 	int m_FontSize;
 	BOOL m_bFontCheck;
+	UINT_PTR m_SetCurTimer;
+	UINT_PTR m_GhostWndTimer;
 
 	BOOL Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID);
 

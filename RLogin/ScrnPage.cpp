@@ -36,6 +36,7 @@ CScrnPage::CScrnPage() : CTreePage(CScrnPage::IDD)
 	m_TtlMode = 0;
 	m_TtlRep = m_TtlCng = FALSE;
 	m_CaretColor = RGB(0, 0, 0);
+	m_TitleName.Empty();
 }
 
 CScrnPage::~CScrnPage()
@@ -57,12 +58,13 @@ void CScrnPage::DoDataExchange(CDataExchange* pDX)
 	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
 		DDX_Check(pDX, IDC_TERMCHECK1 + n, m_Check[n]);
 	DDX_CBIndex(pDX, IDC_FONTHW, m_FontHw);
-	DDX_CBIndex(pDX, IDC_COMBO3, m_TtlMode);
+//	DDX_CBIndex(pDX, IDC_COMBO3, m_TtlMode);
 	DDX_Check(pDX, IDC_TERMCHECK2, m_TtlRep);
 	DDX_Check(pDX, IDC_TERMCHECK3, m_TtlCng);
 	DDX_CBString(pDX, IDC_SCRNOFFSLEFT, m_ScrnOffsLeft);
 	DDX_CBString(pDX, IDC_SCRNOFFSRIGHT, m_ScrnOffsRight);
 	DDX_Control(pDX, IDC_CARETCOL, m_ColBox);
+	DDX_CBString(pDX, IDC_TITLENAME, m_TitleName);
 }
 
 BEGIN_MESSAGE_MAP(CScrnPage, CTreePage)
@@ -85,6 +87,8 @@ BEGIN_MESSAGE_MAP(CScrnPage, CTreePage)
 	ON_CBN_SELCHANGE(IDC_SCRNOFFSRIGHT,	 OnUpdateEdit)
 	ON_WM_DRAWITEM()
 	ON_STN_CLICKED(IDC_CARETCOL, &CScrnPage::OnStnClickedCaretCol)
+	ON_CBN_EDITCHANGE(IDC_TITLENAME, &CScrnPage::OnUpdateEdit)
+	ON_CBN_SELENDCANCEL(IDC_TITLENAME, &CScrnPage::OnUpdateEdit)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -129,6 +133,25 @@ void CScrnPage::DoInit()
 	m_TtlMode = m_pSheet->m_pTextRam->m_TitleMode & 7;
 	m_TtlRep  = (m_pSheet->m_pTextRam->m_TitleMode & WTTL_REPORT) ? TRUE : FALSE;
 	m_TtlCng  = (m_pSheet->m_pTextRam->m_TitleMode & WTTL_CHENG)  ? TRUE : FALSE;
+
+	m_TitleName = m_pSheet->m_pTextRam->m_TitleName;
+
+	if ( m_TitleName.IsEmpty() ) {
+		switch(m_TtlMode & 0007) {
+		case WTTL_ENTRY:
+			m_TitleName = _T("%E");
+			break;
+		case WTTL_HOST:
+			m_TitleName = _T("%S");
+			break;
+		case WTTL_PORT:
+			m_TitleName = _T("%S:%p");
+			break;
+		case WTTL_USER:
+			m_TitleName = _T("%U");
+			break;
+		}
+	}
 
 	m_ScrnOffsLeft.Format(_T("%d"),   m_pSheet->m_pTextRam->m_ScrnOffset.left);
 	m_ScrnOffsRight.Format(_T("%d"),  m_pSheet->m_pTextRam->m_ScrnOffset.right);
@@ -195,6 +218,8 @@ BOOL CScrnPage::OnApply()
 		m_pSheet->m_pTextRam->m_TitleMode |= WTTL_REPORT;
 	if ( m_TtlCng )
 		m_pSheet->m_pTextRam->m_TitleMode |= WTTL_CHENG;
+
+	m_pSheet->m_pTextRam->m_TitleName = m_TitleName;
 
 	if ( (n = _tstoi(m_ScrnOffsLeft)) != m_pSheet->m_pTextRam->m_ScrnOffset.left ) {
 		m_pSheet->m_pTextRam->m_ScrnOffset.left = n;

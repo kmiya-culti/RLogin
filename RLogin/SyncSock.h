@@ -87,6 +87,7 @@ public:
 	CIConv m_IConv;
 	CBuffer m_InBuf;
 	CBuffer m_OutBuf;
+	BOOL m_bUseWrite;
 
 	inline void SetFileType(BOOL ascii) { m_IsAscii = ascii; }
 	FILE *FileOpen(LPCTSTR filename, LPCSTR mode, BOOL ascii);

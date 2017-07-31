@@ -71,6 +71,7 @@ BEGIN_MESSAGE_MAP(CRLoginDoc, CDocument)
 	ON_COMMAND_RANGE(IDM_SCRIPT_MENU1, IDM_SCRIPT_MENU10, OnScriptMenu)
 
 	ON_UPDATE_COMMAND_UI(IDM_RESET_SIZE, &CRLoginDoc::OnUpdateResetSize)
+	ON_COMMAND(IDM_TITLEEDIT, &CRLoginDoc::OnTitleedit)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -96,6 +97,7 @@ CRLoginDoc::CRLoginDoc()
 	m_ScriptFile.Empty();
 	m_bReqDlg = FALSE;
 	m_PostIdleCount = 0;
+	m_TitleName.Empty();
 }
 
 CRLoginDoc::~CRLoginDoc()
@@ -238,7 +240,7 @@ void CRLoginDoc::OnFileClose()
 }
 void CRLoginDoc::OnIdle()
 {
-	if ( m_pLogFile != NULL )
+	if ( m_pLogFile != NULL && m_pSock != NULL && m_pSock->GetRecvProcSize() == 0 )
 		m_pLogFile->Flush();
 
 	m_TextRam.ChkGrapWnd(60);
@@ -460,7 +462,7 @@ void CRLoginDoc::SetCmdInfo(CCommandLineInfoEx *pCmdInfo)
 	if ( !pCmdInfo->m_Title.IsEmpty() ) {
 		tmp.Format(_T(" /title %s"), CCommandLineInfoEx::ShellEscape(pCmdInfo->m_Title));
 		m_CmdLine += tmp;
-		m_ServerEntry.m_TitleName = pCmdInfo->m_Title;
+		m_TitleName = pCmdInfo->m_Title;
 	}
 
 	if ( !pCmdInfo->m_Script.IsEmpty() ) {
@@ -508,16 +510,19 @@ void CRLoginDoc::DeleteContents()
 
 	CDocument::DeleteContents();
 }
-
-void CRLoginDoc::SetStatus(LPCTSTR str)
+void CRLoginDoc::SetDocTitle()
 {
 	int n;
-	CString tmp;
 	CString title;
 
-	if ( !m_ServerEntry.m_TitleName.IsEmpty() )
-		title = m_ServerEntry.m_TitleName;
-	else {
+	if ( !m_TitleName.IsEmpty() ) {
+		title = m_TitleName;
+
+	} else if ( !m_TextRam.m_TitleName.IsEmpty() ) {
+		title = m_TextRam.m_TitleName;
+		EntryText(title);
+
+	} else {
 		switch(m_TextRam.m_TitleMode & 0007) {
 		case WTTL_ENTRY:
 			title = m_ServerEntry.m_EntryName;
@@ -532,14 +537,6 @@ void CRLoginDoc::SetStatus(LPCTSTR str)
 			title = m_ServerEntry.m_UserName;
 			break;
 		}
-	}
-
-	if ( str != NULL )
-		m_SockStatus = str;
-
-	if ( !m_SockStatus.IsEmpty() && (m_TextRam.m_TitleMode & WTTL_ALGO) != 0 ) {
-		tmp.Format(_T("(%s)"), m_SockStatus);
-		title += tmp;
 	}
 
 	if ( m_pStrScript != NULL ) {
@@ -640,7 +637,7 @@ void CRLoginDoc::SetMenu(CMenu *pMenu)
 
 	// This Window Checked
 	if ( ThisId != 0 )
-		pSubMenu->CheckMenuItem(ThisId, MF_BYCOMMAND | MF_CHECKED);
+		pMenu->CheckMenuItem(ThisId, MF_BYCOMMAND | MF_CHECKED);
 }
 
 BOOL CRLoginDoc::EntryText(CString &name)
@@ -862,8 +859,14 @@ BOOL CRLoginDoc::LogOpen(LPCTSTR filename)
 	if ( m_pLogFile == NULL && (m_pLogFile = new CFileExt) == NULL )
 		return FALSE;
 
-	if ( !m_pLogFile->Open(filename, CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite | CFile::shareDenyWrite) )
+	if ( !m_pLogFile->Open(filename, CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite | CFile::shareDenyWrite) ) {
+		delete m_pLogFile;
+		m_pLogFile = NULL;
 		return FALSE;
+	}
+
+	if ( m_TextRam.IsOptEnable(TO_RLLOGFLUSH) )
+		m_pLogFile->m_bWriteFlush = TRUE;
 
 	m_pLogFile->SeekToEnd();
 	m_TextRam.m_LogTimeFlag = TRUE;
@@ -1148,7 +1151,7 @@ void CRLoginDoc::OnReciveChar(DWORD ch, int pos)
 		if ( m_pStrScript->m_Exec == NULL ) {
 			m_pStrScript->ExecStop();
 			m_pStrScript = NULL;
-			SetStatus(NULL);
+			SetDocTitle();
 			break;
 		}
 		ch = 0;
@@ -1355,6 +1358,9 @@ int CRLoginDoc::OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags)
 			m_pLogFile->Write(lpBuf, nBufLen);
 		else if ( m_TextRam.m_LogMode == LOGMOD_DEBUG )
 			LogWrite(lpBuf, nBufLen, LOGDEBUG_RECV);
+
+		if ( m_pLogFile->IsWriteError() )
+			LogClose();
 	}
 
 	m_pMainWnd->WakeUpSleep();
@@ -1517,6 +1523,7 @@ SKIPINPUT:
 
 	LogInit();
 	SetStatus(_T("Open"));
+	SetDocTitle();
 
 	return TRUE;
 }
@@ -1720,7 +1727,7 @@ void CRLoginDoc::OnChatStop()
 		m_pStrScript = NULL;
 	} else if ( m_pScript != NULL )
 		m_pScript->OpenDebug();
-	SetStatus(NULL);
+	SetDocTitle();
 }
 void CRLoginDoc::OnUpdateChatStop(CCmdUI *pCmdUI)
 {
@@ -2018,8 +2025,21 @@ void CRLoginDoc::ScriptValue(int cmds, class CScriptValue &value, int mode)
 		break;
 	}
 }
-
 void CRLoginDoc::OnUpdateResetSize(CCmdUI *pCmdUI)
 {
 	pCmdUI->SetCheck(m_TextRam.m_bReSize);
+}
+void CRLoginDoc::OnTitleedit()
+{
+	CEditDlg dlg;
+
+	dlg.m_WinText = _T("Title Edit");
+	dlg.m_Edit = GetTitle();
+	dlg.m_Title.LoadString(IDS_TITLEDITMSG);
+
+	if ( dlg.DoModal() != IDOK )
+		return;
+
+	m_TitleName = dlg.m_Edit;
+	SetTitle(m_TitleName);
 }

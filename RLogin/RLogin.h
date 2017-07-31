@@ -20,6 +20,7 @@
 #define	IDLEPROC_SOCKET		0
 #define	IDLEPROC_ENCRYPT	1
 #define	IDLEPROC_SCRIPT		2
+#define	IDLEPROC_VIEW		3
 
 //////////////////////////////////////////////////////////////////////
 // CCommandLineInfoEx
@@ -127,6 +128,8 @@ public:
 	int GetProfileSeqNum(LPCTSTR lpszSection, LPCTSTR lpszEntry);
 	void GetProfileKeys(LPCTSTR lpszSection, CStringArrayExt &stra);
 	void DelProfileEntry(LPCTSTR lpszSection, LPCTSTR lpszEntry);
+	void DelProfileSection(LPCTSTR lpszSection);
+	BOOL AliveProfileKeys(LPCTSTR lpszSection);
 
 	void RegisterShellProtocol(LPCTSTR pSection, LPCTSTR pOption);
 	void RegisterDelete(HKEY hKey, LPCTSTR pSection, LPCTSTR pKey);

@@ -66,6 +66,7 @@ public:
 	void Put64Bit(LONGLONG val);
 	void PutBuf(LPBYTE buf, int len);
 	void PutStr(LPCSTR str);
+	void PutStrT(LPCTSTR str);
 	void PutBIGNUM(const BIGNUM *val);
 	void PutBIGNUM2(const BIGNUM *val);
 	void PutEcPoint(const EC_GROUP *curve, const EC_POINT *point);
@@ -79,6 +80,7 @@ public:
 	LONG Get32Bit();
 	LONGLONG Get64Bit();
 	int GetStr(CStringA &str);
+	int GetStrT(CString &str);
 	int GetBuf(CBuffer *buf);
 	BIGNUM *GetBIGNUM(BIGNUM *val);
 	BIGNUM *GetBIGNUM2(BIGNUM *val);
@@ -435,8 +437,14 @@ class CMutexLock : public CObject
 public:
 	CMutex *m_pMutex;
 	CSingleLock *m_pLock;
+	LPCTSTR m_pName;
+
 	CMutexLock(LPCTSTR lpszName = NULL); 
 	~CMutexLock();
+
+	inline BOOL Lock(DWORD dwTimeOut) { return m_pLock->Lock(dwTimeOut); }
+	inline void Unlock() { m_pLock->Unlock(); }
+	inline BOOL IsLocked() { return m_pLock->IsLocked(); }
 };
 
 class COptObject : public CObject
@@ -566,7 +574,6 @@ public:
 	int m_DocType;
 	CString m_IconName;
 	BOOL m_bPassOk;
-	CString m_TitleName;
 	BOOL m_bSelFlag;
 
 	void Init();
@@ -622,6 +629,18 @@ public:
 //#define	MASK_NUMLCK	00100
 //#define	MASK_SCRLCK	00200
 //#define	MASK_CAPLCK	00400
+
+#ifdef	USE_CLIENTKEY
+	#define	VK_LMOUSE_LEFT_TOP			512
+	#define	VK_LMOUSE_LEFT_CENTER		513
+	#define	VK_LMOUSE_LEFT_BOTTOM		514
+	#define	VK_LMOUSE_CENTER_TOP		515
+	#define	VK_LMOUSE_CENTER_CENTER		516
+	#define	VK_LMOUSE_CENTER_BOTTOM		517
+	#define	VK_LMOUSE_RIGHT_TOP			518
+	#define	VK_LMOUSE_RIGHT_CENTER		519
+	#define	VK_LMOUSE_RIGHT_BOTTOM		520
+#endif
 
 class CKeyNode : public CObject
 {
@@ -810,7 +829,43 @@ public:
 	const CParamTab & operator = (CParamTab &data);
 };
 
-#define	FEXT_BUF_MAX	4096
+#define	FEXT_BUF_MAX	(16 * 1024)
+#define	FEXT_FLUSH_MAX	(512 * 1024)
+#define	FEXT_MSG_MAX	64				// 512K / 16K = 32 * 2 = 64
+
+#define	WM_FILEWRITE	(WM_USER + 1)
+#define	WM_FILEFLUSH	(WM_USER + 2)
+#define	WM_FILESYNC		(WM_USER + 3)
+
+class CFileThread : public CWinThread
+{
+	DECLARE_DYNCREATE(CFileThread)
+
+public:
+	CFileThread();
+	virtual ~CFileThread();
+
+public:
+	class CFileExt *m_pOwner;
+	CEvent *m_pSyncEvent;
+	int m_MsgCount;
+	BOOL m_bRuning;
+	BOOL m_bWriteError;
+	CString m_ErrorMsg;
+
+public:
+	inline DWORD WaitEvent(DWORD dwMsec) { return WaitForSingleObject(m_pSyncEvent->m_hObject, dwMsec); }
+
+public:
+	virtual BOOL InitInstance();
+	virtual int ExitInstance();
+
+protected:
+	DECLARE_MESSAGE_MAP()
+	afx_msg void OnFileWrite(WPARAM wParam, LPARAM lParam);
+	afx_msg void OnFileFlush(WPARAM wParam, LPARAM lParam);
+	afx_msg void OnFileSync(WPARAM wParam, LPARAM lParam);
+};
 
 class CFileExt : public CFile
 {
@@ -820,8 +875,13 @@ public:
 	UINT m_ReadLen;
 	UINT m_ReadPos;
 	BYTE *m_pReadBuffer;
+	CFileThread m_FileThread;
+	LONGLONG m_TotalWrite;
+	BOOL m_bWriteFlush;
 
 	void Init();
+	void WriteFlush();
+	inline BOOL IsWriteError() { return m_FileThread.m_bWriteError; }
 
 	CFileExt();
 #if	_MSC_VER >= _MSC_VER_VS10

@@ -285,6 +285,7 @@ BEGIN
         MENUITEM "オプション設定(&P)",                 ID_SETOPTION
         MENUITEM "標準の設定に戻す(&Y)",                IDC_LOADDEFAULT
         MENUITEM SEPARATOR
+        MENUITEM "タイトルの変更(&E)",                 IDM_TITLEEDIT
         POPUP "漢字コードの変更(&C)"
         BEGIN
             MENUITEM "&1 EUC",                      IDM_KANJI_EUC
@@ -530,15 +531,15 @@ CAPTION "RLoginのバージョン情報"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.21.3 (2017/02/01)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.22.0 (2017/02/20)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2017 Culti",IDC_STATIC,44,16,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,171,60,14,WS_GROUP
-    LTEXT           "OpenSSL 1.1.0d 26 Jan 2017",IDC_STATIC,44,29,189,8
-    LTEXT           "Copyright (c) 1998-2016 The OpenSSL Project",IDC_STATIC,44,38,189,8
+    LTEXT           "OpenSSL 1.1.0e 16 Feb 2017",IDC_STATIC,44,29,189,8
+    LTEXT           "Copyright (c) 1998-2017 The OpenSSL Project",IDC_STATIC,44,38,189,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,47,189,8
     LTEXT           "All rights reserved.",IDC_STATIC,44,56,189,8
-    LTEXT           "zlib 1.2.8",IDC_STATIC,44,69,189,8
-    LTEXT           "(C) 1995-2013 Jean-loup Gailly and Mark Adler",IDC_STATIC,44,78,189,8
+    LTEXT           "zlib 1.2.11 (15 Jan 2017)",IDC_STATIC,44,69,189,8
+    LTEXT           "(C) 1995-2017 Jean-loup Gailly and Mark Adler",IDC_STATIC,44,78,189,8
     LTEXT           "iconv (GNU libiconv 1.14)",IDC_STATIC,44,91,189,8
     LTEXT           "Copyright (C) 2000-2011 Free Software Foundation, Inc.",IDC_STATIC,44,100,189,8
     LTEXT           "Nettle library (version 2.0)",IDC_STATIC,44,115,189,8
@@ -694,10 +695,10 @@ BEGIN
     CONTROL         "List1",IDC_SERVERLIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,7,22,220,84
     DEFPUSHBUTTON   "OK",IDOK,233,7,50,14
     PUSHBUTTON      "キャンセル",IDCANCEL,233,24,50,14
-    CONTROL         "",IDC_SERVERTAB,"SysTabControl32",WS_TABSTOP,7,7,221,17
     PUSHBUTTON      "新規(&N)",IDC_NEWENTRY,233,53,50,14
     PUSHBUTTON      "編集(&E)",IDC_EDITENTRY,233,72,50,14
     PUSHBUTTON      "削除(&D)",IDC_DELENTRY,233,92,50,14
+    CONTROL         "",IDC_SERVERTAB,"SysTabControl32",WS_TABSTOP,7,7,221,17
 END
 
 IDD_FONTPARADLG DIALOGEX 0, 0, 235, 325
@@ -1203,12 +1204,12 @@ BEGIN
     COMBOBOX        IDC_VISUALBELL,204,111,50,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     CONTROL         "",IDC_CARETCOL,"Static",SS_OWNERDRAW | SS_NOTIFY,187,130,12,12,WS_EX_STATICEDGE
     COMBOBOX        IDC_DEFCARET,204,129,50,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_COMBO3,204,168,50,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "CSI 20/21 t でウィンドウタイトルの報告を禁止する",IDC_TERMCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,183,180,10
-    CONTROL         "OSC 0/1/2 でウィンドウタイトルの変更を禁止する",IDC_TERMCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,198,180,10
+    COMBOBOX        IDC_TITLENAME,149,167,105,96,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "CSI 20/21 t でウィンドウタイトルの報告を禁止する",IDC_TERMCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,184,180,10
+    CONTROL         "OSC 0/1/2 でウィンドウタイトルの変更を禁止する",IDC_TERMCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,200,180,10
     COMBOBOX        IDC_RECVCRLF,204,235,50,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_SENDCRLF,204,253,50,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "ウィンドウタイトルの初期値設定",IDC_STATIC,17,170,180,8
+    LTEXT           "初期タイトル(特殊文字%Eでエントリー名)",IDC_STATIC,17,170,128,8
     LTEXT           "ベルコード(07)による動作を選択",IDC_STATIC,17,113,180,10
     GROUPBOX        "スクリーン",IDC_STATIC,7,7,256,143
     LTEXT           "受信した改行コードの動作を設定",IDC_STATIC,17,237,180,10
@@ -1739,8 +1740,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,21,3,0
- PRODUCTVERSION 2,21,3,0
+ FILEVERSION 2,22,0,0
+ PRODUCTVERSION 2,22,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1757,12 +1758,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.21.3.0"
+            VALUE "FileVersion", "2.22.0.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2015 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.21.3.0"
+            VALUE "ProductVersion", "2.22.0.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2839,14 +2840,14 @@ BEGIN
 0x6556, 0x7472, 0x6369, 0x6c61, 0x422f, 0x696c, 0x6b6e, "\000" 
     IDC_DEFCARET, 0x403, 16, 0
 0x6556, 0x7472, 0x6369, 0x6c61, 0x532f, 0x6574, 0x6461, 0x0079, 
-    IDC_COMBO3, 0x403, 6, 0
-0x6e45, 0x7274, 0x0079, 
-    IDC_COMBO3, 0x403, 5, 0
-0x6f48, 0x7473, "\000" 
-    IDC_COMBO3, 0x403, 5, 0
-0x6f50, 0x7472, "\000" 
-    IDC_COMBO3, 0x403, 5, 0
-0x7355, 0x7265, "\000" 
+    IDC_TITLENAME, 0x403, 3, 0
+0x4525, "\000" 
+    IDC_TITLENAME, 0x403, 3, 0
+0x5325, "\000" 
+    IDC_TITLENAME, 0x403, 6, 0
+0x5325, 0x253a, 0x0070, 
+    IDC_TITLENAME, 0x403, 3, 0
+0x5525, "\000" 
     IDC_RECVCRLF, 0x403, 6, 0
 0x5243, 0x4c2b, 0x0046, 
     IDC_RECVCRLF, 0x403, 3, 0
@@ -3321,6 +3322,14 @@ BEGIN
     IDS_SSHCLOSEALL         "別のチャンネルが開いています。閉じますか？"
     IDS_ENTRYMULTIEDIT      "複数のエントリーを以下の差分で変更しますか？\r\n"
     IDS_DEFPARACSIOPTMSG    "\r\nCSIオプションに初期値に適さない設定があります！"
+    IDS_DELENTRYTABMSG      "エントリー情報を更新しました(更新:%d, エラー:%d)\n前バージョンのRLoginで新しいエントリー情報は使用出来ません。\n古いエントリー情報は、[メニュー][ヘルプ][古いエントリー情報を削除]で後からいつで削除することができます。\n今、ここですぐに削除しますか？"
+    IDS_DELOLDENTRYMSG      "使用しなくなった古いエントリー情報を削除しますか？"
+    IDS_DELOLDENTRYMENU     "古いエントリー情報を削除"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_TITLEDITMSG         "ウィンドウやタブに表示されるタイトルを編集することができます\r\nOSC 0/1/2による変更を禁止したい場合は、オプション・スクリーンで禁止できます\r\nここで変更した内容は、この接続のみに有効です"
 END
 
 STRINGTABLE
@@ -3337,7 +3346,7 @@ BEGIN
     IDE_PFDLISTENEMPTY      "Listenホスト/ポートが指定されていません"
     IDE_DUPENTRYSETOPTION   "複製された接続で設定が変更されました\n設定を保存しますか？"
     IDE_DNSDIGESTNOTMATCH   "DNSに登録されたホスト鍵と一致しません\n接続を続行しますか？"
-    IDE_RESVERSIONMISMATCH  "リソースファイルのバージョンが違います\n読み込みを続行しますか？"
+    IDE_RESVERSIONMISMATCH  "リソースファイルのバージョンが違います\n一部のリソースが無効化されます\n読み込みを続行しますか？"
     IDE_ENTRYLOADERROR      "サーバーエントリーの読み込みに失敗しました\nレジストリ／プロファイルが壊れている可能性があります\nこのエントリーを削除しますか？"
 END
 
@@ -3463,6 +3472,8 @@ BEGIN
     IDM_IMAGEGRAPCOPY       "画像をクリップボードにコピー(&G)"
     IDM_IMAGEGRAPSAVE       "画像を名前を付けて保存(&V)"
     IDM_CLIPCHAIN           "クリップボードの変更を自動で追従します\nクリップボードチェイン有効"
+    IDM_DELOLDENTRYTAB      "不用になった古いエントリー情報を削除します\n古いエントリー削除"
+    IDM_TITLEEDIT           "ウィンドウタイトルを編集して変更します\nタイトルの変更"
 END
 
 STRINGTABLE
@@ -3655,6 +3666,12 @@ BEGIN
     IDT_EXTOPT_LIST14       "タブも移動する\tペインの移動のみ\t現在のペイン位置でアクティブな接続が移動することになります"
     IDT_EXTOPT_LIST15       "HiDPIに追従する\t文字サイズは画素数\t文字サイズをHiDPIの変更に追従するようにします"
     IDT_EXTOPT_LIST16       "文字輝度を下げる\t文字輝度を維持\tアクティブでない接続の文字輝度を下げて表示する"
+END
+
+STRINGTABLE
+BEGIN
+    IDT_EXTOPT_LIST17       "通信ログをフラッシュする\t通信ログをフラッシュしない\t通信ログファイルを定期的に書き出し更新する"
+    IDT_EXTOPT_LIST18       "微妙なカレット\t通常のカレット\t文字カレットを動画で点滅させます"
 END
 
 STRINGTABLE

@@ -45,6 +45,10 @@ BEGIN_MESSAGE_MAP(CRLoginView, CView)
 	ON_WM_VSCROLL()
 	ON_WM_TIMER()
 
+#ifdef	USE_DIRECTWRITE
+	ON_WM_PAINT()
+#endif
+
 	ON_WM_RBUTTONDOWN()
 	ON_WM_RBUTTONDBLCLK()
 	ON_WM_RBUTTONUP()
@@ -103,6 +107,7 @@ BEGIN_MESSAGE_MAP(CRLoginView, CView)
 	ON_COMMAND(ID_FILE_PRINT_PREVIEW, &CView::OnFilePrintPreview)
 	ON_COMMAND(IDM_EDIT_MARK, &CRLoginView::OnEditMark)
 	ON_UPDATE_COMMAND_UI(IDM_EDIT_MARK, &CRLoginView::OnUpdateEditMark)
+	ON_WM_DESTROY()
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -119,8 +124,6 @@ CRLoginView::CRLoginView()
 	m_Lines = 25;
 	m_HisMin = 0;
 	m_HisOfs = 0;
-	m_DispCaret = 0;
-	m_CaretX = m_CaretY = 0;
 	m_pBitmap = NULL;
 	m_ClipFlag = 0;
 	m_ClipTimer = 0;
@@ -131,7 +134,7 @@ CRLoginView::CRLoginView()
 	m_ImageFlag = 0;
 	m_MouseEventFlag = FALSE;
 	m_WheelDelta = 0;
-	m_WheelTimer = FALSE;
+	m_WheelTimer = 0;
 	m_WheelClock = 0;
 	m_WheelzDelta = 0;
 	m_pGhost = NULL;
@@ -161,19 +164,31 @@ CRLoginView::CRLoginView()
 	m_bLButtonTrClk = FALSE;
 	m_ClipUpdateLine = FALSE;
 	m_ClipSavePoint.x = m_ClipSavePoint.y = 0;
+	m_RclickTimer = 0;
 
 	m_pCellSize = NULL;
 	m_pSelectGrapWnd = NULL;
 
-	m_OrigCaretFlag = 0;
-	m_OrigCaretSize.cx = m_OrigCaretSize.cy = 1;
-	m_OrigCaretRect.SetRectEmpty();
-	m_OrigCaretMapSize.cx = m_OrigCaretMapSize.cy = 0;
-	m_OrigCaretColor = 0;
-	m_bOrigCaretAllocCol = FALSE;
+	m_CaretFlag = 0;
+	m_CaretX = m_CaretY = 0;
+	m_CaretSize.cx = m_CaretSize.cy = 1;
+	m_CaretRect.SetRectEmpty();
+	m_CaretMapSize.cx = m_CaretMapSize.cy = 0;
+	m_CaretColor = 0;
+	m_bCaretAllocCol = FALSE;
+	m_CaretBaseClock = 0;
+	m_CaretAnimeMax = 1;
+	m_CaretAnimeClock = 100;
+
+	m_bImmActive = FALSE;
+
+	m_bDelayInvalThread = 0;
+	m_DelayInvalWait = INFINITE;
+	m_DelayInvalClock = (-1);
 
 #ifdef	USE_DIRECTWRITE
 	m_pRenderTarget = NULL;
+	m_pGDIRT = NULL;
 #endif
 }
 
@@ -186,6 +201,8 @@ CRLoginView::~CRLoginView()
 		delete [] m_pCellSize;
 
 #ifdef	USE_DIRECTWRITE
+	if ( m_pGDIRT != NULL )
+		m_pGDIRT->Release();
 	if ( m_pRenderTarget != NULL )
 		m_pRenderTarget->Release();
 #endif
@@ -219,23 +236,9 @@ BOOL CRLoginView::PreCreateWindow(CREATESTRUCT& cs)
 /////////////////////////////////////////////////////////////////////////////
 // CRLoginView クラスの描画
 
-void CRLoginView::OnDraw(CDC* pDC)
-{
-	int sx = 0;
-	int sy = 0;
-	int ex = m_Cols  - 1;
-	int ey = m_Lines - 1;
-	CDC workDC, *pSaveDC = NULL;
-	CBitmap workMap, *pOldworkMap = NULL;
-	CRLoginDoc* pDoc = GetDocument();
-	CRect frame;
-
-	DispCaret(FALSE);
-
-	GetClientRect(frame);
-	m_HaveBack = FALSE;
-
 #ifdef	USE_DIRECTWRITE
+BOOL CRLoginView::RenderDraw(RECT rect)
+{
 	if ( m_pRenderTarget == NULL ) {
 		CRect rect;
 		D2D1_SIZE_U size;
@@ -252,29 +255,92 @@ void CRLoginView::OnDraw(CDC* pDC)
 			}
 		}
 	}
+
+	if ( m_pRenderTarget == NULL || m_pGDIRT == NULL )
+		return FALSE;
+
+	m_pRenderTarget->BeginDraw();
+
+    HDC hDC = NULL;
+
+    if ( SUCCEEDED(m_pGDIRT->GetDC(D2D1_DC_INITIALIZE_MODE_COPY, &hDC)) ) {
+
+		CDC *pDC = CDC::FromHandle(hDC);
+
+		m_RenderRect = rect;
+		OnDraw(pDC);
+
+		m_pGDIRT->ReleaseDC(NULL);
+	}
+
+	HRESULT hr = m_pRenderTarget->EndDraw();
+
+	if ( FAILED(hr) || hr == D2DERR_RECREATE_TARGET ) {
+		m_pGDIRT->Release();
+		m_pGDIRT = NULL;
+		m_pRenderTarget->Release();
+		m_pRenderTarget = NULL;
+	}
+
+	return TRUE;
+}
+void CRLoginView::OnPaint()
+{
+	PAINTSTRUCT ps;
+
+	BeginPaint(&ps);
+
+	if ( !RenderDraw(ps.rcPaint) ) {
+		CDC *pDC = CDC::FromHandle(ps.hdc);
+		m_RenderRect = ps.rcPaint;
+		OnDraw(pDC);
+	}
+
+	EndPaint(&ps);
+}
 #endif
 
+void CRLoginView::OnDraw(CDC* pDC)
+{
+	int sx = 0;
+	int sy = 0;
+	int ex = m_Cols  - 1;
+	int ey = m_Lines - 1;
+	CDC workDC, *pSaveDC = NULL;
+	CBitmap workMap, *pOldworkMap = NULL;
+	CDC TempDC;
+	CBitmap *pOldBitMap;
+	CRLoginDoc* pDoc = GetDocument();
+	CRect frame, drawbox, rect;
+
+	GetClientRect(frame);
+	drawbox = frame;
+	m_HaveBack = FALSE;
+
 	if ( !pDC->IsPrinting() ) {
-		CRect rect(((CPaintDC *)(pDC))->m_ps.rcPaint);
+#ifdef	USE_DIRECTWRITE
+		drawbox = m_RenderRect;
+#else
+		drawbox = ((CPaintDC *)(pDC))->m_ps.rcPaint;
+#endif
 
-		sx = (rect.left + 1 - pDoc->m_TextRam.m_ScrnOffset.left) * m_Cols / m_Width;
-		ex = (rect.right + m_CharWidth - pDoc->m_TextRam.m_ScrnOffset.left) * m_Cols / m_Width;
-		sy = (rect.top + 1 - pDoc->m_TextRam.m_ScrnOffset.top) * m_Lines / m_Height;
-		ey = (rect.bottom + m_CharHeight - pDoc->m_TextRam.m_ScrnOffset.top) * m_Lines / m_Height;
+		// 描画範囲をグラフィック座標からキャラクタ座標に変換
+		sx = (drawbox.left + 1 - pDoc->m_TextRam.m_ScrnOffset.left) * m_Cols / m_Width;
+		ex = (drawbox.right + m_CharWidth - pDoc->m_TextRam.m_ScrnOffset.left) * m_Cols / m_Width;
+		sy = (drawbox.top + 1 - pDoc->m_TextRam.m_ScrnOffset.top) * m_Lines / m_Height;
+		ey = (drawbox.bottom + m_CharHeight - pDoc->m_TextRam.m_ScrnOffset.top) * m_Lines / m_Height;
 
-		if ( (sx * m_Width / m_Cols + pDoc->m_TextRam.m_ScrnOffset.left) > rect.left )
+		if ( (sx * m_Width / m_Cols + pDoc->m_TextRam.m_ScrnOffset.left) > drawbox.left )
 			sx--;
-		if ( (ex * m_Width / m_Cols + pDoc->m_TextRam.m_ScrnOffset.left) < rect.right )
+		if ( (ex * m_Width / m_Cols + pDoc->m_TextRam.m_ScrnOffset.left) < drawbox.right )
 			ex++;
-		if ( (sy * m_Height / m_Lines + pDoc->m_TextRam.m_ScrnOffset.top) > rect.top )
+		if ( (sy * m_Height / m_Lines + pDoc->m_TextRam.m_ScrnOffset.top) > drawbox.top )
 			sy--;
-		if ( (ey * m_Height / m_Lines + pDoc->m_TextRam.m_ScrnOffset.top) < rect.bottom )
+		if ( (ey * m_Height / m_Lines + pDoc->m_TextRam.m_ScrnOffset.top) < drawbox.bottom )
 			ey++;
 
 		if ( m_pBitmap != NULL ) {
-			CDC TempDC;
-			CBitmap *pOldBitMap;
-
+			// 背景画像を描画 WorkDCに仮描画を準備
 			workDC.CreateCompatibleDC(pDC);
 			workMap.CreateCompatibleBitmap(pDC, frame.Width(), frame.Height());
 			pOldworkMap = (CBitmap *)workDC.SelectObject(&workMap);
@@ -285,47 +351,58 @@ void CRLoginView::OnDraw(CDC* pDC)
 			TempDC.CreateCompatibleDC(pDC);
 			pOldBitMap = (CBitmap *)TempDC.SelectObject(m_pBitmap);
 
-			pDC->BitBlt(rect.left, rect.top, rect.Width(), rect.Height(), &TempDC, rect.left, rect.top, SRCCOPY);
+			pDC->BitBlt(drawbox.left, drawbox.top, drawbox.Width(), drawbox.Height(), &TempDC, drawbox.left, drawbox.top, SRCCOPY);
 			TempDC.SelectObject(pOldBitMap);
 			pDC->SetBkMode(TRANSPARENT);
 			m_HaveBack = TRUE;
 
 		} else if ( !ExDwmEnable && ((CMainFrame *)::AfxGetMainWnd())->m_bGlassStyle ) {
+			// 透過ウィンドウの背景描画
 			PaintDesktop(pDC->GetSafeHdc());
 			pDC->SetBkMode(TRANSPARENT);
 			m_HaveBack = TRUE;
 		}
 	}
 
+	// キャラクタVramの描画
 	if ( pDoc->m_TextRam.IsInitText() )
-		pDoc->m_TextRam.DrawVram(pDC, sx, sy, ex, ey, this);
+		pDoc->m_TextRam.DrawVram(pDC, sx, sy, ex, ey, this, pDC->IsPrinting());
 	else
 		pDC->FillSolidRect(frame, GetSysColor(COLOR_APPWORKSPACE));
 
+	// 仮描画であれば実際に描画
 	if ( pSaveDC != NULL ) {
 		pDC = pSaveDC;
-		CRect rect(((CPaintDC *)(pDC))->m_ps.rcPaint);
-		pDC->BitBlt(rect.left, rect.top, rect.Width(), rect.Height(), &workDC, rect.left, rect.top, SRCCOPY);
+		pDC->BitBlt(drawbox.left, drawbox.top, drawbox.Width(), drawbox.Height(), &workDC, drawbox.left, drawbox.top, SRCCOPY);
 		workDC.SelectObject(pOldworkMap);
 	}
 
-	if ( pDoc->m_TextRam.IsOptEnable(TO_RLTEKINWND) )
-		pDoc->m_TextRam.TekDraw(pDC, frame);
-
-#ifdef	USE_DIRECTWRITE
-	if ( m_pRenderTarget != NULL ) {
-		m_pRenderTarget->BeginDraw();
-
-		// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-
-		HRESULT hr = m_pRenderTarget->EndDraw();
-
-		if ( SUCCEEDED(hr) && hr == D2DERR_RECREATE_TARGET ) {
-			m_pRenderTarget->Release();
-			m_pRenderTarget = NULL;
+	// Tekの重ね書き
+	if ( pDoc->m_TextRam.IsOptEnable(TO_RLTEKINWND) ) {
+		if ( m_TekBitmap.m_hObject != NULL ) {
+			BITMAP mapinfo;
+			m_TekBitmap.GetBitmap(&mapinfo);
+			if ( mapinfo.bmWidth != frame.Width() || mapinfo.bmHeight != frame.Height() )
+				m_TekBitmap.DeleteObject();
 		}
+
+		if ( TempDC.m_hDC == NULL )
+			TempDC.CreateCompatibleDC(pDC);
+
+		if ( m_TekBitmap.m_hObject == NULL ) {
+			m_TekBitmap.CreateCompatibleBitmap(pDC, frame.Width(), frame.Height());
+			pOldBitMap = (CBitmap *)TempDC.SelectObject(&m_TekBitmap);
+
+			TempDC.FillSolidRect(frame, RGB(0, 0, 0));
+			pDoc->m_TextRam.TekDraw(&TempDC, frame);
+
+		} else
+			pOldBitMap = (CBitmap *)TempDC.SelectObject(&m_TekBitmap);
+
+		pDC->BitBlt(drawbox.left, drawbox.top, drawbox.Width(), drawbox.Height(), &TempDC, 0, 0, SRCINVERT);
+
+		TempDC.SelectObject(pOldBitMap);
 	}
-#endif
 
 #if		USE_GOZI == 1 || USE_GOZI == 2
 	if ( m_GoziView ) {
@@ -343,12 +420,69 @@ void CRLoginView::OnDraw(CDC* pDC)
 	}
 #endif
 
-	if ( (m_DispCaret & FGCARET_CREATE) != 0 && m_ClipUpdateLine && m_pCellSize != NULL && m_CaretX != 0 ) {
+	// プロポーション文字の場合にカレット＆IMEの位置再調整
+	if ( (m_CaretFlag & FGCARET_CREATE) != 0 && m_ClipUpdateLine && m_pCellSize != NULL && m_CaretX != 0 ) {
 		m_CaretX = GetGrapPos(pDoc->m_TextRam.m_CurX, (pDoc->m_TextRam.m_CurY + m_HisOfs - m_HisMin));
-		SetCaret();
+		m_CaretRect.left  = m_CaretX;
+		m_CaretRect.right = m_CaretRect.left + m_CaretSize.cx;
+		ImmSetPos(m_CaretX, m_CaretY);
 	}
 
-	DispCaret(TRUE);
+	// カレットを描画
+	if ( !pDC->IsPrinting() && (m_CaretFlag & FGCARET_CREATE) != 0 && (m_CaretFlag & FGCARET_DRAW) != 0 && rect.IntersectRect(m_CaretRect, drawbox) ) {
+
+		if ( TempDC.m_hDC == NULL )
+			TempDC.CreateCompatibleDC(pDC);
+
+		if ( m_CaretBitmap.m_hObject == NULL || m_CaretMapSize.cx != (m_CaretSize.cx * m_CaretAnimeMax) || m_CaretMapSize.cy != m_CaretSize.cy ) {
+
+			// カレットビットマップを構築
+			if ( m_CaretBitmap.m_hObject != NULL )
+				m_CaretBitmap.DeleteObject();
+
+			if ( m_CaretColor == 0 && (m_CaretColor = pDoc->m_TextRam.m_CaretColor) == 0 ) {
+				m_bCaretAllocCol = TRUE;
+				m_CaretColor = CaretColor();
+			}
+
+			m_CaretMapSize.cx = m_CaretSize.cx * m_CaretAnimeMax;
+			m_CaretMapSize.cy = m_CaretSize.cy;
+			m_CaretBitmap.CreateCompatibleBitmap(pDC, m_CaretMapSize.cx * m_CaretAnimeMax, m_CaretMapSize.cy);
+
+			pOldBitMap = (CBitmap *)TempDC.SelectObject(&m_CaretBitmap);
+
+			for ( int n = 0 ; n < m_CaretAnimeMax ; n++ ) {
+				COLORREF col = (m_CaretAnimeMax <= 1 ? m_CaretColor :
+									RGB(GetRValue(m_CaretColor) * (m_CaretAnimeMax - n - 1) / (m_CaretAnimeMax - 1),
+									    GetGValue(m_CaretColor) * (m_CaretAnimeMax - n - 1) / (m_CaretAnimeMax - 1),
+									    GetBValue(m_CaretColor) * (m_CaretAnimeMax - n - 1) / (m_CaretAnimeMax - 1)));
+
+				TempDC.FillSolidRect(m_CaretMapSize.cx * n, 0, m_CaretMapSize.cx, m_CaretMapSize.cy, col);
+			}
+
+		} else
+			pOldBitMap = (CBitmap *)TempDC.SelectObject(&m_CaretBitmap);
+
+		if ( m_CaretAnimeMax > 1 ) {
+			clock_t t = clock() - m_CaretBaseClock;
+			int pos = (t / m_CaretAnimeClock) % m_CaretAnimeMax;
+
+			pDC->BitBlt(m_CaretRect.left, m_CaretRect.top, m_CaretRect.Width(), m_CaretRect.Height(), &TempDC, m_CaretMapSize.cx * pos, 0, SRCINVERT);
+
+			// プロポーショナルフォントの場合は全行更新
+			if ( m_ClipUpdateLine && m_pCellSize != NULL ) {
+				rect.SetRect(frame.left, m_CaretRect.top, frame.right, m_CaretRect.bottom);
+				AddDeleyInval(((t + m_CaretBaseClock) / m_CaretAnimeClock + 1) * m_CaretAnimeClock, rect);
+			} else
+				AddDeleyInval(((t + m_CaretBaseClock) / m_CaretAnimeClock + 1) * m_CaretAnimeClock, m_CaretRect);
+
+		} else
+			pDC->BitBlt(m_CaretRect.left, m_CaretRect.top, m_CaretRect.Width(), m_CaretRect.Height(), &TempDC, 0, 0, SRCINVERT);
+
+		TempDC.SelectObject(pOldBitMap);
+	}
+
+	SetDelayInvalTimer();
 }
 void CRLoginView::CreateGrapImage(int type)
 {
@@ -383,7 +517,7 @@ void CRLoginView::CreateGrapImage(int type)
 		MemDC.SetBkMode(TRANSPARENT);
 	}
 
-	pDoc->m_TextRam.DrawVram(&MemDC, 0, 0, m_Cols, m_Lines, this);
+	pDoc->m_TextRam.DrawVram(&MemDC, 0, 0, m_Cols, m_Lines, this, FALSE);
 	MemDC.SelectObject(pOldBitMap);
 
 	pDoc->m_TextRam.m_pImageWnd->Invalidate(FALSE);
@@ -485,33 +619,6 @@ void CRLoginView::CalcPosRect(CRect &rect)
 	rect.right  += 2;
 	rect.bottom += 1;
 }
-void CRLoginView::InvalidateTextRect(CRect &rect)
-{
-	int height;
-	CRLoginDoc *pDoc = GetDocument();
-
-	rect.left   = m_Width  * rect.left  / m_Cols + (rect.left == 0 ? 0 : pDoc->m_TextRam.m_ScrnOffset.left);
-	rect.right  = m_Width  * rect.right / m_Cols + pDoc->m_TextRam.m_ScrnOffset.left + (rect.right >= (pDoc->m_TextRam.m_Cols - 1) ? pDoc->m_TextRam.m_ScrnOffset.right : 0);
-
-	rect.top    = m_Height * (rect.top    + m_HisOfs - m_HisMin) / m_Lines + (rect.top == 0 ? 0 : pDoc->m_TextRam.m_ScrnOffset.top);
-	rect.bottom = m_Height * (rect.bottom + m_HisOfs - m_HisMin) / m_Lines + pDoc->m_TextRam.m_ScrnOffset.top + (rect.bottom >= (pDoc->m_TextRam.m_Lines - 1) ? pDoc->m_TextRam.m_ScrnOffset.bottom	: 0);
-
-	height = m_Height + pDoc->m_TextRam.m_ScrnOffset.top + pDoc->m_TextRam.m_ScrnOffset.bottom;
-
-	if ( rect.top >= height || rect.bottom <= 0 )
-		return;
-
-	if ( rect.top < 0 )
-		rect.top = 0;
-
-	if ( rect.bottom > height )
-		rect.bottom = height;
-
-	InvalidateRect(rect, FALSE);
-
-	if ( m_pGhost != NULL )
-		m_pGhost->InvalidateRect(rect, FALSE);
-}
 void CRLoginView::CalcGrapPoint(CPoint po, int *x, int *y)
 {
 	CRLoginDoc *pDoc = GetDocument();
@@ -565,6 +672,169 @@ RETENDOF:
 	*y =  *y - m_HisOfs + m_HisMin;
 	return;
 }
+
+void CRLoginView::InvalidateTextRect(CRect &rect)
+{
+	int height;
+	CRLoginDoc *pDoc = GetDocument();
+
+	rect.left   = m_Width  * rect.left  / m_Cols + (rect.left == 0 ? 0 : pDoc->m_TextRam.m_ScrnOffset.left);
+	rect.right  = m_Width  * rect.right / m_Cols + pDoc->m_TextRam.m_ScrnOffset.left + (rect.right >= (pDoc->m_TextRam.m_Cols - 1) ? pDoc->m_TextRam.m_ScrnOffset.right : 0);
+
+	rect.top    = m_Height * (rect.top    + m_HisOfs - m_HisMin) / m_Lines + (rect.top == 0 ? 0 : pDoc->m_TextRam.m_ScrnOffset.top);
+	rect.bottom = m_Height * (rect.bottom + m_HisOfs - m_HisMin) / m_Lines + pDoc->m_TextRam.m_ScrnOffset.top + (rect.bottom >= (pDoc->m_TextRam.m_Lines - 1) ? pDoc->m_TextRam.m_ScrnOffset.bottom	: 0);
+
+	height = m_Height + pDoc->m_TextRam.m_ScrnOffset.top + pDoc->m_TextRam.m_ScrnOffset.bottom;
+
+	if ( rect.top >= height || rect.bottom <= 0 )
+		return;
+
+	if ( rect.top < 0 )
+		rect.top = 0;
+
+	if ( rect.bottom > height )
+		rect.bottom = height;
+
+	InvalidateRect(rect, FALSE);
+
+	if ( m_pGhost != NULL )
+		m_pGhost->InvalidateRect(rect, FALSE);
+}
+void CRLoginView::InvalidateFullText()
+{
+	// 全描画なのでタイマーは、初期化
+	m_DeleyInvalList.RemoveAll();
+
+	Invalidate(FALSE);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// Delayed Invalidate
+
+static UINT DelayInvalThreadProc(LPVOID pParam)
+{
+	return ((CRLoginView *)pParam)->DelayInvalThread();
+}
+UINT CRLoginView::DelayInvalThread()
+{
+	DWORD rt;
+	DWORD dwMsec = INFINITE;
+
+	m_pDelayInvalSync->SetEvent();
+
+	while ( m_bDelayInvalThread ) {
+		if ( (rt = WaitForSingleObject(m_pDelayInvalEvent->m_hObject, dwMsec)) == WAIT_TIMEOUT ) {
+			PostMessage(WM_TIMER, (WPARAM)VTMID_INVALIDATE, NULL);
+			dwMsec = INFINITE;
+
+		} else if ( rt == WAIT_OBJECT_0 ) {
+			dwMsec = m_DelayInvalWait;
+
+		} else	// rt == WAIT_ABANDONED
+			break;
+	}
+
+	m_pDelayInvalSync->SetEvent();
+	return 0;
+}
+void CRLoginView::DelayInvalThreadStart()
+{
+	m_pDelayInvalEvent = new CEvent(FALSE, FALSE);
+	m_pDelayInvalSync = new CEvent(FALSE, FALSE);
+
+	m_bDelayInvalThread = TRUE;
+	m_DelayInvalWait = INFINITE;
+	m_DelayInvalClock = (-1);
+
+	AfxBeginThread(DelayInvalThreadProc, this, THREAD_PRIORITY_NORMAL);
+	WaitForSingleObject(m_pDelayInvalSync->m_hObject, INFINITE);
+}
+void CRLoginView::DelayInvalThreadEndof()
+{
+	if ( m_bDelayInvalThread ) {
+		m_bDelayInvalThread = FALSE;
+		m_pDelayInvalEvent->SetEvent();
+		WaitForSingleObject(m_pDelayInvalSync->m_hObject, INFINITE);
+	}
+
+	delete m_pDelayInvalEvent;
+	delete m_pDelayInvalSync;
+}
+void CRLoginView::DelayInvalThreadTimer(clock_t msec)
+{
+	m_DelayInvalWait = msec;
+	m_pDelayInvalEvent->SetEvent();
+}
+
+void CRLoginView::SetDelayInvalTimer()
+{
+	if ( m_DeleyInvalList.IsEmpty() )
+		return;
+
+	DeleyInval *pIc = &m_DeleyInvalList.GetHead();
+
+	if ( m_DelayInvalClock > 0 && m_DelayInvalClock <= pIc->m_Clock )
+		return;
+
+	clock_t tic;
+	if ( (tic = pIc->m_Clock - clock()) < DELAYINVALMINCLOCK )
+		tic = DELAYINVALMINCLOCK;
+
+	// 次のタイマーをセット
+	m_DelayInvalClock = pIc->m_Clock;
+	DelayInvalThreadTimer(tic);
+}
+void CRLoginView::AddDeleyInval(clock_t ick, CRect &rect)
+{
+	DeleyInval tmp;
+	POSITION pos = m_DeleyInvalList.GetHeadPosition();
+
+	tmp.m_Clock = ick;
+	tmp.m_Rect = rect;
+
+	// 最近クロックでソート
+	while ( pos != NULL ) {
+		if ( m_DeleyInvalList.GetAt(pos).m_Clock >= ick ) {
+			m_DeleyInvalList.InsertBefore(pos, tmp);
+			return;
+		}
+
+		m_DeleyInvalList.GetNext(pos);
+	}
+
+	m_DeleyInvalList.AddTail(tmp);
+}
+void CRLoginView::PollingDeleyInval()
+{
+	clock_t tic, now = clock();
+	DeleyInval *pIc;
+
+	// タイマーをクリア
+	m_DelayInvalClock = (-1);
+
+	while ( !m_DeleyInvalList.IsEmpty() ) {
+		pIc = &m_DeleyInvalList.GetHead();
+
+		if ( (tic = pIc->m_Clock - now) < DELAYINVALMINCLOCK ) {
+			InvalidateRect(pIc->m_Rect, FALSE);
+			m_DeleyInvalList.RemoveHead();
+
+		} else {
+			// 次のタイマーをセット
+			m_DelayInvalClock = pIc->m_Clock;
+			DelayInvalThreadTimer(tic);
+			break;
+		}
+	}
+}
+BOOL CRLoginView::OnIdle()
+{
+	// 最初のアイドル時に更新 (USE_DIRECTWRITEには有効な手段)
+	UpdateWindow();
+
+	return FALSE;
+}
+
 int CRLoginView::HitTest(CPoint point)
 {
 	int mode = 0;
@@ -573,16 +843,16 @@ int CRLoginView::HitTest(CPoint point)
 
 	GetClientRect(rect);
 
-	if ( point.x < pDoc->m_TextRam.m_ScrnOffset.left )
+	if ( point.x < (pDoc->m_TextRam.m_ScrnOffset.left + m_CharWidth * 2) )
 		mode |= 001;
-	else if ( point.x > (rect.right - pDoc->m_TextRam.m_ScrnOffset.right) )
+	else if ( point.x > (rect.right - pDoc->m_TextRam.m_ScrnOffset.right - m_CharWidth * 2) )
 		mode |= 003;
-	else if ( point.x > ((rect.left + rect.right - m_CharWidth) / 2) && point.x < ((rect.left + rect.right + m_CharWidth) / 2) )
+	else if ( point.x > ((rect.left + rect.right - m_CharWidth * 2) / 2) && point.x < ((rect.left + rect.right + m_CharWidth * 2) / 2) )
 		mode |= 002;
 
-	if ( point.y < pDoc->m_TextRam.m_ScrnOffset.top )
+	if ( point.y < (pDoc->m_TextRam.m_ScrnOffset.top + m_CharHeight) )
 		mode |= 010;
-	else if ( point.y > (rect.bottom - pDoc->m_TextRam.m_ScrnOffset.bottom) )
+	else if ( point.y > (rect.bottom - pDoc->m_TextRam.m_ScrnOffset.bottom - m_CharHeight) )
 		mode |= 030;
 	else if ( point.y > ((rect.top + rect.bottom - m_CharHeight) / 2) && point.y < ((rect.top + rect.bottom + m_CharHeight) / 2) )
 		mode |= 020;
@@ -592,6 +862,9 @@ int CRLoginView::HitTest(CPoint point)
 	//  021	020	022	020	023
 	//  001	000	002	000	003
 	//  031	030	032	030	033
+
+	if ( (mode & 003) == 0 || (mode & 030) == 0 )
+		mode = 0;
 
 	return mode;
 }
@@ -677,79 +950,57 @@ void CRLoginView::SendBuffer(CBuffer &buf, BOOL macflag)
 	}
 }
 
+/////////////////////////////////////////////////////////////////////////////
+
+void CRLoginView::InvalidateCaret()
+{
+	// プロポーショナルフォントの場合は全行更新
+	if ( m_ClipUpdateLine ) {
+		CRect rect;
+		GetClientRect(rect);
+		rect.top = m_CaretRect.top;
+		rect.bottom = m_CaretRect.bottom;
+		InvalidateRect(rect, FALSE);
+	} else
+		InvalidateRect(m_CaretRect, FALSE);
+}
 void CRLoginView::DispCaret(BOOL bShow)
 {
-	if ( (m_DispCaret & FGCARET_CREATE) == 0 )
+	if ( (m_CaretFlag & FGCARET_CREATE) == 0 )
 		return;
 
-	if ( (bShow && (m_OrigCaretFlag & 001) == 0) || (!bShow && (m_OrigCaretFlag & 001) != 0) ) {
-		CDC *pDC;
-
-		if ( m_hWnd != NULL && (pDC = GetDC()) != NULL && pDC->m_hDC != NULL ) {
-			CDC TempDC;
-			CBitmap *pOldBitMap;
-			CRLoginDoc *pDoc = GetDocument();
-
-			TempDC.CreateCompatibleDC(pDC);
-
-			if ( m_OrigCaretBitmap.m_hObject == NULL || m_OrigCaretMapSize.cx < m_OrigCaretSize.cx || m_OrigCaretMapSize.cy < m_OrigCaretSize.cy ) {
-				if ( m_OrigCaretBitmap.m_hObject != NULL )
-					m_OrigCaretBitmap.DeleteObject();
-
-				if ( m_OrigCaretColor == 0 && (m_OrigCaretColor = pDoc->m_TextRam.m_CaretColor) == 0 ) {
-					m_bOrigCaretAllocCol = TRUE;
-					m_OrigCaretColor = OrigCaretColor();
-				}
-
-				m_OrigCaretMapSize.cx = m_CharWidth  * 4;
-				m_OrigCaretMapSize.cy = m_CharHeight * 4;
-				m_OrigCaretBitmap.CreateCompatibleBitmap(pDC, m_OrigCaretMapSize.cx, m_OrigCaretMapSize.cy);
-
-				pOldBitMap = (CBitmap *)TempDC.SelectObject(&m_OrigCaretBitmap);
-
-				TempDC.FillSolidRect(0, 0, m_OrigCaretMapSize.cx, m_OrigCaretMapSize.cy, m_OrigCaretColor);
-
-			} else
-				pOldBitMap = (CBitmap *)TempDC.SelectObject(&m_OrigCaretBitmap);
-
-			pDC->BitBlt(m_OrigCaretRect.left, m_OrigCaretRect.top, m_OrigCaretRect.Width(), m_OrigCaretRect.Height(), &TempDC, 0, 0, SRCINVERT);
-
-			TempDC.SelectObject(pOldBitMap);
-			TempDC.DeleteDC();
-
-			//pDC->InvertRect(m_OrigCaretRect);
-			ReleaseDC(pDC);
-		}
-
-		m_OrigCaretFlag ^= 001;
+	if ( (bShow && (m_CaretFlag & FGCARET_DRAW) == 0) || (!bShow && (m_CaretFlag & FGCARET_DRAW) != 0) ) {
+		m_CaretFlag ^= FGCARET_DRAW;
+		InvalidateCaret();
 	}
 }
-COLORREF CRLoginView::OrigCaretColor()
+COLORREF CRLoginView::CaretColor()
 {
-	static int hue = 120, lum = 80, sat = 100;
+	static int hue = 110, lum = 80, sat = 100;
 
-	if ( (hue += 60) >= 360 )
-		hue = 0;
+	if ( (hue += 70) >= 360 )
+		hue -= 360;
 
 	return CGrapWnd::HLStoRGB(hue, lum, sat);
 }
-void CRLoginView::OrigCaretPos(POINT point)
+void CRLoginView::CaretPos(POINT point)
 {
-	DispCaret(FALSE);
+	if ( (m_CaretFlag & FGCARET_DRAW) != 0 )
+		InvalidateCaret();
 
-	m_OrigCaretRect.left = point.x;
-	m_OrigCaretRect.top  = point.y;
+	m_CaretRect.left = point.x;
+	m_CaretRect.top  = point.y;
 
-	m_OrigCaretRect.right  = m_OrigCaretRect.left + m_OrigCaretSize.cx;
-	m_OrigCaretRect.bottom = m_OrigCaretRect.top  + m_OrigCaretSize.cy;
+	m_CaretRect.right  = m_CaretRect.left + m_CaretSize.cx;
+	m_CaretRect.bottom = m_CaretRect.top  + m_CaretSize.cy;
 
-	m_OrigCaretFlag |= 002;
-	DispCaret(TRUE);
+	if ( (m_CaretFlag & FGCARET_DRAW) != 0 )
+		InvalidateCaret();
 }
-void CRLoginView::OrigCaretSize(int width, int height)
+void CRLoginView::CaretSize(int width, int height)
 {
-	m_OrigCaretSize.cx = width;
-	m_OrigCaretSize.cy = height;
+	m_CaretSize.cx = width;
+	m_CaretSize.cy = height;
 }
 void CRLoginView::UpdateCaret()
 {
@@ -757,26 +1008,25 @@ void CRLoginView::UpdateCaret()
 
 	KillCaret();
 
-	if ( m_OrigCaretBitmap.m_hObject != NULL )
-		m_OrigCaretBitmap.DeleteObject();
+	if ( m_CaretBitmap.m_hObject != NULL )
+		m_CaretBitmap.DeleteObject();
 
-	if ( m_bOrigCaretAllocCol ) {
+	if ( m_bCaretAllocCol ) {
 		if ( pDoc->m_TextRam.m_CaretColor != 0 ) {
-			m_bOrigCaretAllocCol = FALSE;
-			m_OrigCaretColor = 0;
+			m_bCaretAllocCol = FALSE;
+			m_CaretColor = 0;
 		}
 	} else
-		m_OrigCaretColor = 0;
+		m_CaretColor = 0;
 
 	SetCaret();
 }
 
 void CRLoginView::KillCaret()
 {
-	if ( (m_DispCaret & FGCARET_CREATE) != 0 ) {
-		KillTimer(VTMID_CARETUPDATE);
+	if ( (m_CaretFlag & FGCARET_CREATE) != 0 ) {
 		DispCaret(FALSE);
-		m_DispCaret &= ~FGCARET_CREATE;
+		m_CaretFlag &= ~FGCARET_CREATE;
 	}
 }
 void CRLoginView::SetCaret()
@@ -786,50 +1036,71 @@ void CRLoginView::SetCaret()
 	CRLoginDoc *pDoc = GetDocument();
 
 	// 001 = CreateCaret Flag, 002 = CurSol ON/OFF, 004 = Focus Flag, 010 = Redraw Caret
-	// TRACE("SetCaret %02x\n", m_DispCaret);
+	// TRACE("SetCaret %02x\n", m_CaretFlag);
 
-	switch(m_DispCaret) {
+	switch(m_CaretFlag & FGCARET_MASK) {
 	case FGCARET_FOCUS | FGCARET_ONOFF:
 
 		switch(pDoc->m_TextRam.m_TypeCaret) {
 		case 0: case 1: case 3: case 5:	// blink
-			if ( (n = GetCaretBlinkTime()) <= 100 )
-				n = 100;
-			SetTimer(VTMID_CARETUPDATE, n, NULL);
+			if ( (n = GetCaretBlinkTime() * 2) < 200 ) {
+				m_CaretAnimeMax = 2;
+				m_CaretAnimeClock = 100;
+			} else if ( !pDoc->m_TextRam.IsOptEnable(TO_RLCARETANI) ) {
+				m_CaretAnimeMax = 2;
+				m_CaretAnimeClock = n / m_CaretAnimeMax;
+			} else if ( n > 2000 ) {
+				m_CaretAnimeMax = 20;
+				m_CaretAnimeClock = n / m_CaretAnimeMax;
+			} else {
+				m_CaretAnimeClock = 50;
+				m_CaretAnimeMax = n / m_CaretAnimeClock;
+			}
+			break;
+		default:
+			m_CaretAnimeMax = 1;
+			m_CaretAnimeClock = 600;
 			break;
 		}
+
+		CaretInitView();
 
 		switch(pDoc->m_TextRam.m_TypeCaret) {
 		case 0: case 1:	case 2:
-			OrigCaretSize(m_CharWidth, m_CharHeight);
+			CaretSize(m_CharWidth, m_CharHeight);
 			break;
 		case 3: case 4:
-			po.y += m_CharHeight;
-			OrigCaretSize(m_CharWidth, 1);
+			if ( (n = m_CharHeight / 9) < 1 )
+				n = 1;
+			po.y += (m_CharHeight - n);
+			CaretSize(m_CharWidth, n);
 			break;
 		case 5: case 6:
-			OrigCaretSize(1, m_CharHeight);
+			if ( (n = m_CharHeight / 9) < 1 )
+				n = 1;
+			CaretSize(n, m_CharHeight);
 			break;
 		}
 
-		if ( (m_bOrigCaretAllocCol && pDoc->m_TextRam.m_CaretColor != 0) || (!m_bOrigCaretAllocCol && m_OrigCaretColor != pDoc->m_TextRam.m_CaretColor) ) {
-			if ( m_OrigCaretBitmap.m_hObject != NULL )
-				m_OrigCaretBitmap.DeleteObject();
-			m_bOrigCaretAllocCol = FALSE;
-			m_OrigCaretColor = 0;
+		if ( (m_bCaretAllocCol && pDoc->m_TextRam.m_CaretColor != 0) || (!m_bCaretAllocCol && m_CaretColor != pDoc->m_TextRam.m_CaretColor) ) {
+			if ( m_CaretBitmap.m_hObject != NULL )
+				m_CaretBitmap.DeleteObject();
+			m_bCaretAllocCol = FALSE;
+			m_CaretColor = 0;
 		}
 
-		OrigCaretPos(po);
+		CaretPos(po);
 		ImmSetPos(m_CaretX, m_CaretY);
-		m_DispCaret |= FGCARET_CREATE;
+		m_CaretFlag |= FGCARET_CREATE;
 		DispCaret(TRUE);
 		break;
 
 	case FGCARET_FOCUS | FGCARET_ONOFF | FGCARET_CREATE:
 		if ( pDoc->m_TextRam.m_TypeCaret == 3 || pDoc->m_TextRam.m_TypeCaret == 4 )
-			po.y += m_CharHeight;
-		OrigCaretPos(po);
+			po.y += (m_CharHeight - m_CaretSize.cy);
+		CaretPos(po);
 		ImmSetPos(m_CaretX, m_CaretY);
+		DispCaret(TRUE);
 		break;
 
 	case FGCARET_FOCUS:
@@ -845,6 +1116,9 @@ void CRLoginView::SetCaret()
 		break;
 	}
 }
+
+/////////////////////////////////////////////////////////////////////////////
+
 void CRLoginView::ImmSetPos(int x, int y)
 {
 	HIMC hIMC;
@@ -887,6 +1161,9 @@ int CRLoginView::ImmOpenCtrl(int sw)
 	}
 	return rt;
 }
+
+/////////////////////////////////////////////////////////////////////////////
+
 void CRLoginView::SetGhostWnd(BOOL sw)
 {
 	if ( sw ) {		// Create
@@ -956,8 +1233,19 @@ int CRLoginView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_SleepCount = 0;
 	SetTimer(VTMID_SLEEPTIMER, VIEW_SLEEP_MSEC, NULL);
 
+	((CRLoginApp *)AfxGetApp())->AddIdleProc(IDLEPROC_VIEW, this);
+	DelayInvalThreadStart();
+
 	return 0;
 }
+void CRLoginView::OnDestroy()
+{
+	DelayInvalThreadEndof();
+	((CRLoginApp *)AfxGetApp())->DelIdleProc(IDLEPROC_VIEW, this);
+
+	CView::OnDestroy();
+}
+
 void CRLoginView::SetFrameRect(int cx, int cy)
 {
 	CRect rect;
@@ -990,6 +1278,17 @@ void CRLoginView::SetFrameRect(int cx, int cy)
 void CRLoginView::OnSize(UINT nType, int cx, int cy) 
 {
 	CView::OnSize(nType, cx, cy);
+
+#ifdef	USE_DIRECTWRITE
+	if ( m_pGDIRT != NULL ) {
+		m_pGDIRT->Release();
+		m_pGDIRT = NULL;
+	}
+	if ( m_pRenderTarget != NULL ) {
+		m_pRenderTarget->Release();
+		m_pRenderTarget = NULL;
+	}
+#endif
 
 //	TRACE("CRLoginView::OnSize(%d,%d) %d\n", cx, cy, ((CChildFrame *)GetFrameWnd())->m_bInit);
 
@@ -1047,15 +1346,18 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		return;
 
 	case UPDATE_TEKFLUSH:
-		if ( pDoc->m_TextRam.IsOptEnable(TO_RLTEKINWND) )
-			Invalidate(FALSE);
+		if ( pDoc->m_TextRam.IsOptEnable(TO_RLTEKINWND) ) {
+			if ( m_TekBitmap.m_hObject != NULL )
+				m_TekBitmap.DeleteObject();
+			InvalidateFullText();
+		}
 		return;
 
 	case UPDATE_VISUALBELL:
 		if ( !m_VisualBellFlag ) {
 			SetTimer(VTMID_VISUALBELL, 50, NULL);
 			m_VisualBellFlag = TRUE;
-			Invalidate(FALSE);
+			InvalidateFullText();
 			if ( m_pGhost != NULL )
 				m_pGhost->Invalidate(FALSE);
 		}
@@ -1082,7 +1384,7 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		} else {
 			m_BtnWnd.DoButton(this, &(pDoc->m_TextRam));
 			m_ToolTip.AddTool(&m_BtnWnd, (LPCTSTR)pHint);
-//			if ( (m_DispCaret & FGCARET_FOCUS) != 0 || pDoc->GetViewCount() <= 1 )
+//			if ( (m_CaretFlag & FGCARET_FOCUS) != 0 || pDoc->GetViewCount() <= 1 )
 				m_BtnWnd.ShowWindow(SW_SHOW);
 		}
 		return;
@@ -1104,16 +1406,9 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 	case UPDATE_UPDATEWINDOW:
 		UpdateWindow();
 		return;
-
-	case UPDATE_CLIPCLAER:
-		if ( m_ClipFlag != 6 )
-			return;
-		m_ClipFlag = 0;
-		lHint = UPDATE_CLIPERA;
-		break;
 	}
 
-	if ( (m_DispCaret & FGCARET_FOCUS) != 0 && pSender != this && m_ScrollOut == FALSE &&
+	if ( (m_CaretFlag & FGCARET_FOCUS) != 0 && pSender != this && m_ScrollOut == FALSE &&
 			(lHint == UPDATE_INVALIDATE || lHint == UPDATE_TEXTRECT || lHint == UPDATE_GOTOXY) ) {
 		y = pDoc->m_TextRam.m_CurY - m_HisMin + m_HisOfs;
 		if ( y >= m_Lines ) {
@@ -1191,7 +1486,7 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		SetScrollInfo(SB_VERT, &info, TRUE);
 		m_ClipUpdateLine = FALSE;
 		ResetCellSize();
-		Invalidate(FALSE);
+		InvalidateFullText();
 		if ( m_pGhost != NULL )
 			m_pGhost->Invalidate(FALSE);
 		break;
@@ -1203,13 +1498,10 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 			rect.right = pDoc->m_TextRam.m_Cols;
 		}
 		InvalidateTextRect(rect);
+		CaretInitView();
 		break;
 
-	case UPDATE_BLINKRECT:
-		rect = *((CRect *)pHint);
-		InvalidateTextRect(rect);
-		break;
-
+	case UPDATE_CLIPCLAER:
 	case UPDATE_CLIPERA:
 		CalcPosRect(rect);
 		if ( IsClipLineMode() || m_ClipUpdateLine ) {
@@ -1243,12 +1535,11 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		break;
 
 	case UPDATE_GOTOXY:
+		CaretInitView();
 		break;
 	}
 
-	m_DispCaret &= ~FGCARET_ONOFF;
-
-//	m_CaretX = m_Width * pDoc->m_TextRam.m_CurX / m_Cols + pDoc->m_TextRam.m_ScrnOffset.left;
+	m_CaretFlag &= ~FGCARET_ONOFF;
 	m_CaretX = GetGrapPos(pDoc->m_TextRam.m_CurX, (pDoc->m_TextRam.m_CurY + m_HisOfs - m_HisMin));
 	m_CaretY = m_Height * (pDoc->m_TextRam.m_CurY + m_HisOfs - m_HisMin) / m_Lines + pDoc->m_TextRam.m_ScrnOffset.top;
 
@@ -1256,8 +1547,8 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		 m_CaretY < 0 || m_CaretY >= (m_Height + pDoc->m_TextRam.m_ScrnOffset.top) ) {
 		m_CaretX = m_CaretY = 0;
 		m_ScrollOut = TRUE;
-	} else if ( pDoc->m_pSock != NULL )
-		m_DispCaret |= (pDoc->m_TextRam.m_DispCaret & FGCARET_ONOFF);
+	} else if ( pDoc->m_pSock != NULL && pDoc->m_TextRam.m_DispCaret )
+		m_CaretFlag |= FGCARET_ONOFF;
 
 	SetCaret();
 }
@@ -1375,7 +1666,7 @@ int CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 		return TRUE;
 	else if ( nChar == VK_SHIFT || nChar == VK_CONTROL ) {
 		if ( m_ClipFlag > 0 && m_ClipFlag < 6 ) {
-			OnUpdate(this, UPDATE_CLIPERA, NULL);
+			OnUpdate(this, UPDATE_CLIPCLAER, NULL);
 			switch(nChar) {
 			case VK_SHIFT:	 m_ClipKeyFlags |= MK_SHIFT; break;
 			case VK_CONTROL: m_ClipKeyFlags |= MK_CONTROL; break;
@@ -1474,7 +1765,7 @@ void CRLoginView::OnKeyUp(UINT nChar, UINT nRepCnt, UINT nFlags)
 {
 	if ( nChar == VK_SHIFT || nChar == VK_CONTROL ) {
 		if ( m_ClipFlag > 0 && m_ClipFlag < 6 ) {
-			OnUpdate(this, UPDATE_CLIPERA, NULL);
+			OnUpdate(this, UPDATE_CLIPCLAER, NULL);
 			switch(nChar) {
 			case VK_SHIFT:	 m_ClipKeyFlags &= ~MK_SHIFT; break;
 			case VK_CONTROL: m_ClipKeyFlags &= ~MK_CONTROL; break;
@@ -1491,7 +1782,7 @@ void CRLoginView::OnSetFocus(CWnd* pOldWnd)
 
 	CView::OnSetFocus(pOldWnd);
 
-	m_DispCaret |= FGCARET_FOCUS;
+	m_CaretFlag |= FGCARET_FOCUS;
 	SetCaret();
 
 	if ( pDoc->m_TextRam.IsOptEnable(TO_XTFOCEVT) )
@@ -1506,7 +1797,7 @@ void CRLoginView::OnKillFocus(CWnd* pNewWnd)
 
 	CView::OnKillFocus(pNewWnd);
 
-	m_DispCaret &= ~FGCARET_FOCUS;
+	m_CaretFlag &= ~FGCARET_FOCUS;
 	SetCaret();
 
 	if ( pDoc->m_TextRam.IsOptEnable(TO_XTFOCEVT) )
@@ -1515,7 +1806,7 @@ void CRLoginView::OnKillFocus(CWnd* pNewWnd)
 	//if ( m_BtnWnd.m_hWnd != NULL )
 	//	m_BtnWnd.ShowWindow(SW_HIDE);
 
-	Invalidate(FALSE);
+	InvalidateFullText();
 }
 void CRLoginView::OnActivateView(BOOL bActivate, CView* pActivateView, CView* pDeactiveView) 
 {
@@ -1536,30 +1827,24 @@ void CRLoginView::OnActivateView(BOOL bActivate, CView* pActivateView, CView* pD
 
 LRESULT CRLoginView::OnImeNotify(WPARAM wParam, LPARAM lParam)
 {
+	HIMC hIMC;
 	CRLoginDoc *pDoc = GetDocument();
 
 	switch(wParam) {
-		/********
-	case IMN_SETCOMPOSITIONWINDOW:
-		HIMC hIMC;
-		LOGFONT LogFont;
+	case IMN_SETOPENSTATUS:
 		if ( (hIMC = ImmGetContext(m_hWnd)) != NULL ) {
-			if ( ImmGetCompositionFont(hIMC, &LogFont) ) {
-				LogFont.lfWidth  = m_CharWidth;
-				LogFont.lfHeight = m_CharHeight;
-				_tcsncpy(LogFont.lfFaceName, pDoc->m_TextRam.m_FontTab[SET_94x94 | '@'].m_FontName[0], LF_FACESIZE);
-				ImmSetCompositionFont(hIMC, &LogFont);
-			}
+			m_bImmActive = ImmGetOpenStatus(hIMC);
 			ImmReleaseContext(m_hWnd, hIMC);
 	    }
-		return TRUE;
-		*********/
+		break;
     case IMN_SETSTATUSWINDOWPOS:
 		ImmSetPos(m_CaretX, m_CaretY);
-		return TRUE;
+		break;
     default:
 		return DefWindowProc(WM_IME_NOTIFY, wParam, lParam);
     }
+
+	return TRUE;
 }
 LRESULT CRLoginView::OnImeComposition(WPARAM wParam, LPARAM lParam)
 {
@@ -1732,18 +2017,13 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 	case VTMID_MOUSEMOVE:		// ClipTimer
 		OnMouseMove(m_ClipKeyFlags, m_ClipSavePoint);
 		break;
+
 	case VTMID_VISUALBELL:		// VisualBell
 		KillTimer(nIDEvent);
 		m_VisualBellFlag = FALSE;
-		Invalidate(FALSE);
+		InvalidateFullText();
 		break;
-	case VTMID_BLINKUPDATE:		// Blink Timer
-		m_BlinkFlag = (++m_BlinkFlag & 3) | 4;
-		if ( pDoc->m_TextRam.BLINKUPDATE(this) == 0 ) {
-			KillTimer(nIDEvent);
-			m_BlinkFlag = 0;
-		}
-		break;
+
 	case VTMID_WHEELMOVE:		// Wheel Timer
 		if ( (m_HisOfs += m_WheelDelta) < 0 ) {
 			m_HisOfs = 0;
@@ -1758,17 +2038,10 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 
 		if ( m_WheelDelta == 0 ) {
 			KillTimer(nIDEvent);
-			m_WheelTimer = FALSE;
+			m_WheelTimer = 0;
 		}
 
 		OnUpdate(this, UPDATE_INVALIDATE, NULL);
-		break;
-
-	case VTMID_CARETUPDATE:		// Caret Timer
-		if ( (m_OrigCaretFlag & 002) == 0 )
-			DispCaret(m_OrigCaretFlag ^ 001);
-		else
-			m_OrigCaretFlag ^= 002;
 		break;
 
 	case VTMID_GOZIUPDATE:		// Gozi Timer
@@ -2020,20 +2293,17 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 						m_MatrixCols[mx] = 0 - (rand() % 10);
 				}
 			}
-			Invalidate(FALSE);
-		}
-		break;
-
-	case VTMID_IMAGEUPDATE:
-		if ( pDoc->m_TextRam.IMAGEUPDATE(this) == 0 ) {
-			KillTimer(nIDEvent);
-			m_ImageFlag = 0;
+			InvalidateFullText();
 		}
 		break;
 
 	case VTMID_RCLICKCHECK:
 		KillTimer(nIDEvent);
 		PopUpMenu(m_RDownPoint);
+		break;
+
+	case VTMID_INVALIDATE:
+		PollingDeleyInval();
 		break;
 	}
 }
@@ -2166,7 +2436,7 @@ BOOL CRLoginView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 
 	} else {
 
-		if ( m_WheelTimer ) {
+		if ( m_WheelTimer != 0 ) {
 			//if ( m_WheelDelta > 0 ) {
 			//	if ( ofs < 0 )
 			//		m_WheelDelta = ofs;
@@ -2182,8 +2452,7 @@ BOOL CRLoginView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 		} else {
 			if ( !pDoc->m_TextRam.IsOptEnable(TO_RLMOSWHL) && abs(ofs) > 5 ) {
 				m_WheelDelta = ofs;
-				SetTimer(VTMID_WHEELMOVE, 100, NULL);			// 100ms
-				m_WheelTimer = TRUE;
+				m_WheelTimer = SetTimer(VTMID_WHEELMOVE, 100, NULL);			// 100ms
 			} else {
 				if ( (pos = m_HisOfs + ofs) < 0 )
 					pos = 0;
@@ -2271,7 +2540,7 @@ void CRLoginView::OnLButtonUp(UINT nFlags, CPoint point)
 		return;
 	}
 
-	OnUpdate(this, UPDATE_CLIPERA, NULL);
+	OnUpdate(this, UPDATE_CLIPCLAER, NULL);
 
 	m_ClipKeyFlags = nFlags;
 
@@ -2305,6 +2574,20 @@ void CRLoginView::OnLButtonUp(UINT nFlags, CPoint point)
 	if ( m_ClipFlag == 1 && m_ClipStaPos == m_ClipEndPos && !IsClipLineMode() ) {
 		m_ClipFlag = 0;
 		OnUpdate(this, UPDATE_CLIPERA, NULL);
+
+#ifdef	USE_CLIENTKEY
+		switch(HitTest(point)) {
+		case 011: OnKeyDown(VK_LMOUSE_LEFT_TOP,      0, nFlags); break;
+		case 012: OnKeyDown(VK_LMOUSE_LEFT_CENTER,   0, nFlags); break;
+		case 013: OnKeyDown(VK_LMOUSE_LEFT_BOTTOM,   0, nFlags); break;
+		case 021: OnKeyDown(VK_LMOUSE_CENTER_TOP,    0, nFlags); break;
+		case 022: OnKeyDown(VK_LMOUSE_CENTER_CENTER, 0, nFlags); break;
+		case 023: OnKeyDown(VK_LMOUSE_CENTER_BOTTOM, 0, nFlags); break;
+		case 031: OnKeyDown(VK_LMOUSE_RIGHT_TOP,     0, nFlags); break;
+		case 032: OnKeyDown(VK_LMOUSE_RIGHT_CENTER,  0, nFlags); break;
+		case 033: OnKeyDown(VK_LMOUSE_RIGHT_BOTTOM,  0, nFlags); break;
+		}
+#endif
 		return;
 	}
 
@@ -2380,16 +2663,16 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 			pDoc->m_TextRam.MouseReport(MOS_LOCA_MOVE, nFlags, x, y);
 
 			if ( pDoc->m_TextRam.m_MouseTrack == MOS_EVENT_HILT ) {
-				OnUpdate(this, UPDATE_CLIPERA, NULL);
+				OnUpdate(this, UPDATE_CLIPCLAER, NULL);
 				m_ClipEndPos = pDoc->m_TextRam.GetCalcPos(x, y);
 				OnUpdate(this, UPDATE_CLIPERA, NULL);
 			}
 
 		} else if ( m_RDownStat == 2 || (m_RDownStat == 1 && abs(point.y - m_RDownPoint.y) > m_CharHeight) ) {
 
-			if ( m_WheelTimer ) {
-				KillTimer(VTMID_WHEELMOVE);
-				m_WheelTimer = FALSE;
+			if ( m_WheelTimer != 0 ) {
+				KillTimer(m_WheelTimer);
+				m_WheelTimer = 0;
 			}
 
 			y = point.y - m_RDownPoint.y;
@@ -2415,7 +2698,7 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 	}
 
 	if ( m_ClipFlag != 1 )
-		OnUpdate(this, UPDATE_CLIPERA, NULL);
+		OnUpdate(this, UPDATE_CLIPCLAER, NULL);
 
 	m_ClipKeyFlags = nFlags;
 
@@ -2552,7 +2835,7 @@ void CRLoginView::OnRButtonDown(UINT nFlags, CPoint point)
 	else {
 		m_RDownClock = clock();
 		m_RDownPoint = point;
-		SetTimer(VTMID_RCLICKCHECK, GetDoubleClickTime() * 3 / 2, NULL);
+		m_RclickTimer = SetTimer(VTMID_RCLICKCHECK, GetDoubleClickTime() * 3 / 2, NULL);
 	}
 }
 void CRLoginView::OnRButtonUp(UINT nFlags, CPoint point)
@@ -2577,10 +2860,8 @@ void CRLoginView::OnRButtonUp(UINT nFlags, CPoint point)
 		if ( (x = clock() - m_RDownClock) > 0 && x < 3000 ) {
 			if ( (y = (point.y - m_RDownPoint.y) * 100 / x) != 0 ) {
 				m_WheelDelta = y / m_CharHeight;
-				if ( abs(m_WheelDelta) > 3 ) {
-					SetTimer(VTMID_WHEELMOVE, 100, NULL);			// 100ms
-					m_WheelTimer = TRUE;
-				}
+				if ( abs(m_WheelDelta) > 3 )
+					m_WheelTimer = SetTimer(VTMID_WHEELMOVE, 100, NULL);			// 100ms
 			}
 		}
 
@@ -2614,7 +2895,7 @@ void CRLoginView::OnRButtonUp(UINT nFlags, CPoint point)
 		else {
 			m_RDownClock = clock();
 			m_RDownPoint = point;
-			SetTimer(VTMID_RCLICKCHECK, GetDoubleClickTime() * 3 / 2, NULL);
+			m_RclickTimer = SetTimer(VTMID_RCLICKCHECK, GetDoubleClickTime() * 3 / 2, NULL);
 		}
 	}
 }
@@ -2626,7 +2907,10 @@ void CRLoginView::OnRButtonDblClk(UINT nFlags, CPoint point)
 
 	CView::OnRButtonDblClk(nFlags, point);
 
-	KillTimer(VTMID_RCLICKCHECK);
+	if ( m_RclickTimer != 0 ) {
+		KillTimer(m_RclickTimer);
+		m_RclickTimer = 0;
+	}
 
 	if ( !pDoc->m_TextRam.IsOptEnable(TO_RLRSPAST) && pDoc->m_TextRam.IsOptEnable(TO_RLRCLICK) )
 		OnEditPaste();
@@ -2773,14 +3057,10 @@ void CRLoginView::OnClipboardMenu()
 
 	pMain->SetClipBoardMenu(IDM_CLIPBOARD_HIS1, pMenu);
 
-	DispCaret(FALSE);
-
 	point.x = m_CaretX;
 	point.y = m_CaretY + m_CharHeight;
 	ClientToScreen(&point);
 	pMenu->TrackPopupMenu(TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, this);
-
-	DispCaret(TRUE);
 }
 
 void CRLoginView::OnMacroRec() 
@@ -3085,6 +3365,18 @@ BOOL CRLoginView::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 			}
 		}
 
+#ifdef	USE_CLIENTKEY
+		if ( hCursor == NULL ) {
+			CPoint point;
+			GetCursorPos(&point);
+			ScreenToClient(&point);
+
+			// クライアント座標でコマンド実行のテスト
+			if ( HitTest(point) != 0 )
+				hCursor = AfxGetApp()->LoadStandardCursor(IDC_HELP);
+		}
+#endif
+
 		if ( hCursor == NULL ) {
 
 			mode = pDoc->m_TextRam.m_XtMosPointMode;
@@ -3108,12 +3400,12 @@ BOOL CRLoginView::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 				hCursor = AfxGetApp()->LoadStandardCursor(IDC_IBEAM);
 				break;
 
-			//case 1:			//	1	Off	Off
-			//case 2:			//	2	Off	Off
-			//case 3:			//	3	Off	Off
-			//case 6:			//	2	On	Off
-			//case 7:			//	3	On	Off
-			//case 9:			//	1	Off	On
+			//case 1:		//	1	Off	Off
+			//case 2:		//	2	Off	Off
+			//case 3:		//	3	Off	Off
+			//case 6:		//	2	On	Off
+			//case 7:		//	3	On	Off
+			//case 9:		//	1	Off	On
 			//case 10:		//	2	Off	On
 			//case 11:		//	3	Off	On
 			//case 14:		//	2	On	On
@@ -3165,7 +3457,7 @@ void CRLoginView::OnSearchReg()
 
 	if ( dlg.DoModal() != IDOK ) {
 		pDoc->m_TextRam.HisRegMark(NULL, FALSE);
-		Invalidate(FALSE);
+		InvalidateFullText();
 		return;
 	}
 
@@ -3174,7 +3466,7 @@ void CRLoginView::OnSearchReg()
 	if ( !pDoc->m_TextRam.HisMarkCheck(0 - m_HisOfs + m_HisMin, m_Lines, this) )
 		OnSearchBack();
 
-	Invalidate(FALSE);
+	InvalidateFullText();
 }
 void CRLoginView::OnSearchBack()
 {
@@ -3370,7 +3662,7 @@ void CRLoginView::OnPrint(CDC* pDC, CPrintInfo* pInfo)
 
 	pDoc->m_TextRam.m_ScrnOffset.SetRect(box.left, box.top, 0, 0);
 
-	pDoc->m_TextRam.DrawVram(pDC, 0, 0, m_Cols, m_Lines, this);
+	pDoc->m_TextRam.DrawVram(pDC, 0, 0, m_Cols, m_Lines, this, TRUE);
 
 	font.CreateFont(72, 0, 0, 0, 0, FALSE, 0, 0, ANSI_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY, FIXED_PITCH | FF_MODERN, _T(""));
 	pOldFont = pDC->SelectObject(&font);
@@ -3402,4 +3694,3 @@ void CRLoginView::OnPrint(CDC* pDC, CPrintInfo* pInfo)
 	pDoc->m_TextRam.m_ScrnOffset.top    = save_param[8];
 	pDoc->m_TextRam.m_ScrnOffset.bottom = save_param[9];
 }
-

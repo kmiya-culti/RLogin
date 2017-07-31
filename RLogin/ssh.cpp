@@ -871,6 +871,15 @@ int Cssh::SMsgPublicKey(CBuffer *bp)
 
 	return TRUE;
 }
+CIdKey *Cssh::SelectIdKeyEntry()
+{
+	while ( m_IdKeyPos < m_IdKeyTab.GetSize() ) {
+		m_pIdKey = &(m_IdKeyTab[m_IdKeyPos++]);
+		if ( m_pIdKey->m_Type == IDKEY_RSA1 || m_pIdKey->m_Type == IDKEY_RSA2 )
+			return m_pIdKey;
+	}
+	return NULL;
+}
 int Cssh::SMsgAuthRsaChallenge(CBuffer *bp)
 {
 	int n;
@@ -881,14 +890,11 @@ int Cssh::SMsgAuthRsaChallenge(CBuffer *bp)
 	BYTE buf[32], res[16];
 	CSpace inbuf, otbuf;
 
+	if ( m_pIdKey == NULL )
+		return FALSE;
 
-	for ( ; ; ) {
-		if ( m_IdKeyPos >= m_IdKeyTab.GetSize() )
-			return FALSE;
-		m_pIdKey = &(m_IdKeyTab[m_IdKeyPos++]);
-		if ( m_pIdKey->m_Type == IDKEY_RSA1 || m_pIdKey->m_Type == IDKEY_RSA2 )
-			break;
-	}
+	if ( !m_pIdKey->InitPass(m_pDocument->m_ServerEntry.m_PassName) )
+		return FALSE;
 
 	if ( (challenge = BN_new()) == NULL )
 		return FALSE;
@@ -966,7 +972,7 @@ void Cssh::RecivePacket(CBuffer *bp)
 			break;
 		if ( type != SSH_SMSG_FAILURE )
 			goto DISCONNECT;
-		if ( (m_SupportAuth & (1 << SSH_AUTH_RSA)) != 0 && m_pIdKey->m_Rsa != NULL ) {
+		if ( (m_SupportAuth & (1 << SSH_AUTH_RSA)) != 0 && SelectIdKeyEntry() != NULL && m_pIdKey->m_Rsa != NULL ) {
 			tmp.Put8Bit(SSH_CMSG_AUTH_RSA);
 			{
 				BIGNUM const *n = NULL;
@@ -974,6 +980,9 @@ void Cssh::RecivePacket(CBuffer *bp)
 				tmp.PutBIGNUM(n);
 			}
 			SendPacket(&tmp);
+			if ( !m_AuthLog.IsEmpty() )
+				m_AuthLog += _T(",");
+			m_AuthLog += _T("publickey");
 			m_PacketStat = 10;
 			break;
 		}
@@ -981,6 +990,9 @@ void Cssh::RecivePacket(CBuffer *bp)
 		if ( (m_SupportAuth & (1 << SSH_AUTH_TIS)) != 0 ) {
 			tmp.Put8Bit(SSH_CMSG_AUTH_TIS);
 			SendPacket(&tmp);
+			if ( !m_AuthLog.IsEmpty() )
+				m_AuthLog += _T(",");
+			m_AuthLog += _T("tis");
 			m_PacketStat = 3;
 			break;
 		}
@@ -989,6 +1001,9 @@ void Cssh::RecivePacket(CBuffer *bp)
 			tmp.Put8Bit(SSH_CMSG_AUTH_PASSWORD);
 			tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_PassName));
 			SendPacket(&tmp);
+			if ( !m_AuthLog.IsEmpty() )
+				m_AuthLog += _T(",");
+			m_AuthLog += _T("password");
 			m_PacketStat = 4;
 			break;
 		}

@@ -32,6 +32,7 @@ public:
 	double m_PixDpiY;
 	CStatic m_ColBox;
 	COLORREF m_CaretColor;
+	CString m_TitleName;
 
 public:
 	void InitDlgItem();

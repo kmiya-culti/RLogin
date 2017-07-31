@@ -211,6 +211,10 @@
 #define IDS_SSHCLOSEALL                 618
 #define IDS_ENTRYMULTIEDIT              619
 #define IDS_DEFPARACSIOPTMSG            620
+#define IDS_DELENTRYTABMSG              621
+#define IDS_DELOLDENTRYMSG              622
+#define IDS_DELOLDENTRYMENU             623
+#define IDS_TITLEDITMSG                 624
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -261,6 +265,8 @@
 #define IDT_EXTOPT_LIST14               813
 #define IDT_EXTOPT_LIST15               814
 #define IDT_EXTOPT_LIST16               815
+#define IDT_EXTOPT_LIST17               816
+#define IDT_EXTOPT_LIST18               817
 #define IDT_TERM_LIST01                 900
 #define IDT_TERM_LIST02                 901
 #define IDT_TERM_LIST03                 902
@@ -830,6 +836,7 @@
 #define IDC_MAPSTYLE                    2443
 #define IDC_DEFPARAMSG                  2444
 #define IDC_CARETCOL                    2445
+#define IDC_TITLENAME                   2446
 #define IDM_BROADCAST                   5000
 #define IDM_CAP_CLIPBORD                5001
 #define IDM_CAP_EXPORT                  5002
@@ -942,6 +949,8 @@
 #define IDM_IMAGEGRAPCOPY               5120
 #define IDM_IMAGEGRAPSAVE               5121
 #define IDM_CLIPCHAIN                   5122
+#define IDM_DELOLDENTRYTAB              5123
+#define IDM_TITLEEDIT                   5124
 #define IDM_FIRST_MDICHILD              0xFF00
 
 // Next default values for new objects
@@ -949,8 +958,8 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        161
-#define _APS_NEXT_COMMAND_VALUE         5123
-#define _APS_NEXT_CONTROL_VALUE         2446
-#define _APS_NEXT_SYMED_VALUE           621
+#define _APS_NEXT_COMMAND_VALUE         5125
+#define _APS_NEXT_CONTROL_VALUE         2447
+#define _APS_NEXT_SYMED_VALUE           625
 #endif
 #endif

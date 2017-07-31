@@ -160,18 +160,18 @@ static const CTextRam::PROCTAB fc_Esc2Tab[] = {
 	{ '!',		0,			&CTextRam::fc_ESCI		},	// 2/1
 	{ '"',		0,			&CTextRam::fc_ESCI		},	// 2/2
 	{ '#',		0,			&CTextRam::fc_DECSOP	},	// 2/3  DECSOP Screen Opt
-	{ '$',		0,			&CTextRam::fc_CSC0W		},	// 2/4  CSC0W Char Set
+	{ '$',		0,			&CTextRam::fc_GZM4		},	// 2/4  CSC0W Char Set
 	{ '%',		0,			&CTextRam::fc_DOCS		},	// 2/5  DOCS Designate other coding system
 	{ '&',		0,			&CTextRam::fc_ESCI		},	// 2/6
 	{ '\'',		0,			&CTextRam::fc_ESCI		},	// 2/7
-	{ '(',		0,			&CTextRam::fc_CSC0		},	// 2/8  CSC0 G0 charset
-	{ ')',		0,			&CTextRam::fc_CSC1		},	// 2/9  CSC1 G1 charset
-	{ '*',		0,			&CTextRam::fc_CSC2		},	// 2/10 CSC2 G2 charset
-	{ '+',		0,			&CTextRam::fc_CSC3		},	// 2/11 CSC3 G3 charset
-	{ ',',		0,			&CTextRam::fc_CSC0A		},	// 2/12 CSC0A G0 charset
-	{ '-',		0,			&CTextRam::fc_CSC1A		},	// 2/13 CSC1A G1 charset
-	{ '.',		0,			&CTextRam::fc_CSC2A		},	// 2/14 CSC2A G2 charset
-	{ '/',		0,			&CTextRam::fc_CSC3A		},	// 2/15 CSC3A G3 charset
+	{ '(',		0,			&CTextRam::fc_GZD4		},	// 2/8  CSC0 G0 charset
+	{ ')',		0,			&CTextRam::fc_G1D4		},	// 2/9  CSC1 G1 charset
+	{ '*',		0,			&CTextRam::fc_G2D4		},	// 2/10 CSC2 G2 charset
+	{ '+',		0,			&CTextRam::fc_G3D4		},	// 2/11 CSC3 G3 charset
+	{ ',',		0,			&CTextRam::fc_GZD6		},	// 2/12 CSC0A G0 charset
+	{ '-',		0,			&CTextRam::fc_G1D6		},	// 2/13 CSC1A G1 charset
+	{ '.',		0,			&CTextRam::fc_G2D6		},	// 2/14 CSC2A G2 charset
+	{ '/',		0,			&CTextRam::fc_G3D6		},	// 2/15 CSC3A G3 charset
 
 	{ '1',		0,			&CTextRam::fc_DECHTS	},	// DECHTS Horizontal tab set
 	{ '2',		0,			&CTextRam::fc_DECAHT	},	// DECCAHT Clear all horizontal tabs
@@ -574,15 +574,6 @@ static CTextRam::ESCNAMEPROC fc_EscNameTab[] = {
 	{	_T("ACS"),		&CTextRam::fc_ACS,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
 	{	_T("APC"),		&CTextRam::fc_APC,		NULL,	PROCTYPE_ESC,	TRACE_NON	},
 	{	_T("BPH"),		&CTextRam::fc_BPH,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
-	{	_T("CSC0"),		&CTextRam::fc_CSC0,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
-	{	_T("CSC0A"),	&CTextRam::fc_CSC0A,	NULL,	PROCTYPE_ESC,	TRACE_OUT	},
-	{	_T("CSC0W"),	&CTextRam::fc_CSC0W,	NULL,	PROCTYPE_ESC,	TRACE_OUT	},
-	{	_T("CSC1"),		&CTextRam::fc_CSC1,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
-	{	_T("CSC1A"),	&CTextRam::fc_CSC1A,	NULL,	PROCTYPE_ESC,	TRACE_OUT	},
-	{	_T("CSC2"),		&CTextRam::fc_CSC2,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
-	{	_T("CSC2A"),	&CTextRam::fc_CSC2A,	NULL,	PROCTYPE_ESC,	TRACE_OUT	},
-	{	_T("CSC3"),		&CTextRam::fc_CSC3,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
-	{	_T("CSC3A"),	&CTextRam::fc_CSC3A,	NULL,	PROCTYPE_ESC,	TRACE_OUT	},
 	{	_T("CSI"),		&CTextRam::fc_CSI,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
 	{	_T("DCS"),		&CTextRam::fc_DCS,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
 	{	_T("DECBI"),	&CTextRam::fc_BI,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
@@ -600,6 +591,15 @@ static CTextRam::ESCNAMEPROC fc_EscNameTab[] = {
 	{	_T("EPA"),		&CTextRam::fc_EPA,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
 	{	_T("ESA"),		&CTextRam::fc_ESA,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
 	{	_T("ESCI"),		&CTextRam::fc_ESCI,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("G1D4"),		&CTextRam::fc_G1D4,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("G1D6"),		&CTextRam::fc_G1D6,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("G2D4"),		&CTextRam::fc_G2D4,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("G2D6"),		&CTextRam::fc_G2D6,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("G3D4"),		&CTextRam::fc_G3D4,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("G3D6"),		&CTextRam::fc_G3D6,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("GZD4"),		&CTextRam::fc_GZD4,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("GZD6"),		&CTextRam::fc_GZD6,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("GZDM4"),	&CTextRam::fc_GZM4,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
 	{	_T("HTJ"),		&CTextRam::fc_HTJ,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
 	{	_T("HTS"),		&CTextRam::fc_HTS,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
 	{	_T("IND"),		&CTextRam::fc_IND,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
@@ -2673,7 +2673,7 @@ void CTextRam::fc_LS3R(DWORD ch)
 	m_BankGR = 3;
 	fc_POP(ch);
 }
-void CTextRam::fc_CSC0W(DWORD ch)
+void CTextRam::fc_GZM4(DWORD ch)
 {
 	// ESC $	CSC0W Char Set
 	m_BackChar = 0;
@@ -2682,7 +2682,7 @@ void CTextRam::fc_CSC0W(DWORD ch)
 	m_StrPara.Empty();
 	fc_Case(STAGE_STAT);
 }
-void CTextRam::fc_CSC0(DWORD ch)
+void CTextRam::fc_GZD4(DWORD ch)
 {
 	// ESC (	CSC0 G0 charset
 	m_BackChar = 0;
@@ -2691,7 +2691,7 @@ void CTextRam::fc_CSC0(DWORD ch)
 	m_StrPara.Empty();
 	fc_Case(STAGE_STAT);
 }
-void CTextRam::fc_CSC1(DWORD ch)
+void CTextRam::fc_G1D4(DWORD ch)
 {
 	// ESC )	CSC1 G1 charset
 	m_BackChar = 1;
@@ -2700,7 +2700,7 @@ void CTextRam::fc_CSC1(DWORD ch)
 	m_StrPara.Empty();
 	fc_Case(STAGE_STAT);
 }
-void CTextRam::fc_CSC2(DWORD ch)
+void CTextRam::fc_G2D4(DWORD ch)
 {
 	// ESC *	CSC2 G2 charset
 	m_BackChar = 2;
@@ -2709,7 +2709,7 @@ void CTextRam::fc_CSC2(DWORD ch)
 	m_StrPara.Empty();
 	fc_Case(STAGE_STAT);
 }
-void CTextRam::fc_CSC3(DWORD ch)
+void CTextRam::fc_G3D4(DWORD ch)
 {
 	// ESC +	CSC3 G3 charset
 	m_BackChar = 3;
@@ -2718,7 +2718,7 @@ void CTextRam::fc_CSC3(DWORD ch)
 	m_StrPara.Empty();
 	fc_Case(STAGE_STAT);
 }
-void CTextRam::fc_CSC0A(DWORD ch)
+void CTextRam::fc_GZD6(DWORD ch)
 {
 	// ESC ,	CSC0A G0 charset
 	m_BackChar = 0;
@@ -2727,7 +2727,7 @@ void CTextRam::fc_CSC0A(DWORD ch)
 	m_StrPara.Empty();
 	fc_Case(STAGE_STAT);
 }
-void CTextRam::fc_CSC1A(DWORD ch)
+void CTextRam::fc_G1D6(DWORD ch)
 {
 	// ESC -	CSC1A G1 charset
 	m_BackChar = 1;
@@ -2736,7 +2736,7 @@ void CTextRam::fc_CSC1A(DWORD ch)
 	m_StrPara.Empty();
 	fc_Case(STAGE_STAT);
 }
-void CTextRam::fc_CSC2A(DWORD ch)
+void CTextRam::fc_G2D6(DWORD ch)
 {
 	// ESC .	CSC2A G2 charset
 	m_BackChar = 2;
@@ -2745,7 +2745,7 @@ void CTextRam::fc_CSC2A(DWORD ch)
 	m_StrPara.Empty();
 	fc_Case(STAGE_STAT);
 }
-void CTextRam::fc_CSC3A(DWORD ch)
+void CTextRam::fc_G3D6(DWORD ch)
 {
 	// ESC /	CSC3A G3 charset
 	m_BackChar = 3;
@@ -5275,10 +5275,18 @@ void CTextRam::fc_DECSTBM(DWORD ch)
 		m_TopY = n;
 		m_BtmY = i + 1;
 	}
+#if 1
+	if ( IsOptEnable(TO_DECOM) )
+		LOCATE(GetLeftMargin(), GetTopMargin());
+	else
+		LOCATE(0, 0);
+#else
+	// ŒÃ‚¢ŽÀ‘•
 	if ( m_CurY < m_TopY )
 		LOCATE(m_CurX, m_TopY);
 	else if ( m_CurY > m_BtmY )
 		LOCATE(m_CurX, m_BtmY - 1);
+#endif
 	fc_POP(ch);
 }
 void CTextRam::fc_DECSLRM(DWORD ch)
@@ -5786,6 +5794,12 @@ void CTextRam::fc_DECSRET(DWORD ch)
 			break;
 		case TO_DECSCNM:	// 5 DECSCNM Screen Mode: Light or Dark Screen
 			DISPVRAM(0, 0, m_Cols, m_Lines);
+			break;
+		case TO_DECOM:		// 6 DECOM Origin mode
+			if ( IsOptEnable(TO_DECOM) )
+				LOCATE(GetLeftMargin(), GetTopMargin());
+			else
+				LOCATE(0, 0);
 			break;
 		case TO_DECTCEM:	// 25 DECTCEM Text Cursor Enable Mode
 			if ( IsOptEnable(TO_DECTCEM) )

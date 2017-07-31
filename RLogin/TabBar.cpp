@@ -29,6 +29,8 @@ CTabBar::CTabBar()
 	m_bNumber = FALSE;
 	m_ImageCount = 0;
 	m_bFontCheck = FALSE;
+	m_SetCurTimer = 0;
+	m_GhostWndTimer = 0;
 }
 
 CTabBar::~CTabBar()
@@ -55,7 +57,7 @@ BOOL CTabBar::Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID)
 
 	dwStyle &= ~CBRS_ALL;
 	dwStyle |= CCS_NOPARENTALIGN|CCS_NOMOVEY|CCS_NODIVIDER|CCS_NORESIZE;
-	if (pParentWnd->GetStyle() & WS_THICKFRAME) dwStyle |= SBARS_SIZEGRIP;
+//	if (pParentWnd->GetStyle() & WS_THICKFRAME) dwStyle |= SBARS_SIZEGRIP;
 
 	CRect rect; rect.SetRectEmpty();
 	return CWnd::Create(STATUSCLASSNAME, NULL, dwStyle, rect, pParentWnd, nID);
@@ -66,7 +68,6 @@ CSize CTabBar::CalcFixedLayout(BOOL bStretch, BOOL bHorz)
 	ASSERT_VALID(this);
 	ASSERT(::IsWindow(m_hWnd));
 
-	// determinme size of font being used by the status bar
 	TEXTMETRIC tm;
 	{
 		CClientDC dc(NULL);
@@ -87,10 +88,16 @@ CSize CTabBar::CalcFixedLayout(BOOL bStretch, BOOL bHorz)
 
 	// determine size, including borders
 	CSize size;
-	size.cx = 32767;
-	size.cy = tm.tmHeight - tm.tmInternalLeading - 1
-		+ rgBorders[1] * 2 + ::GetSystemMetrics(SM_CYBORDER) * (2 + 3)
-		- rect.Height();
+	CRect frame;
+
+	CWnd *pMain = ::AfxGetMainWnd();
+	if ( pMain != NULL ) {
+		pMain->GetClientRect(frame);
+		size.cx = frame.Width();
+	} else
+		size.cx = 32767;
+
+	size.cy = tm.tmHeight - tm.tmInternalLeading - 1 + rgBorders[1] * 2 + ::GetSystemMetrics(SM_CYBORDER) * (2 + 3) - rect.Height();
 
 	return size;
 }
@@ -119,7 +126,7 @@ int CTabBar::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		return (-1);
 	
 	CRect rect; rect.SetRectEmpty();
-	if ( !m_TabCtrl.Create(WS_VISIBLE | WS_CHILD | TCS_FOCUSNEVER | TCS_FIXEDWIDTH | TCS_FORCELABELLEFT | TCS_MULTILINE, rect, this, IDC_MDI_TAB_CTRL) ) {
+	if ( !m_TabCtrl.Create(WS_VISIBLE | WS_CHILD | TCS_FOCUSNEVER | TCS_FIXEDWIDTH | TCS_FORCELABELLEFT, rect, this, IDC_MDI_TAB_CTRL) ) {
 		TRACE0("Unable to create tab control bar\n");
 		return (-1);
 	}
@@ -269,12 +276,14 @@ BOOL CTabBar::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 		SetGhostWnd(FALSE);
 
 	if ( m_GhostReq != n ) {
-		if ( m_GhostReq >= 0 )
-			KillTimer(1024);
+		if ( m_GhostReq >= 0 && m_SetCurTimer != 0 ) {
+			KillTimer(m_SetCurTimer);
+			m_SetCurTimer = 0;
+		}
 		m_GhostReq = (-1);
 
 		if ( n >= 0 ) {
-			SetTimer(1024, 2000, NULL);
+			m_SetCurTimer = SetTimer(TBTMID_SETCURSOR, 2000, NULL);
 			m_GhostReq = n;
 		}
 	}
@@ -288,13 +297,13 @@ BOOL CTabBar::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 void CTabBar::OnTimer(UINT_PTR nIDEvent)
 {
 	switch(nIDEvent) {
-	case 1024:
-		KillTimer(1024);
+	case TBTMID_SETCURSOR:
+		KillTimer(nIDEvent);
 		if ( m_GhostReq >= 0 && (GetStyle() & WS_VISIBLE) != 0 )
 			SetGhostWnd(TRUE);
 		break;
 
-	case 1025:
+	case TBTMID_GHOSTWMD:
 		OnSetCursor(NULL, 0, 0);
 		if ( m_GhostItem >= 0 && (GetStyle() & WS_VISIBLE) == 0 )
 			SetGhostWnd(FALSE);
@@ -346,6 +355,7 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 	CRLoginApp *pApp = (CRLoginApp *)AfxGetApp();
 	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
 	CWnd *pDeskTop = CWnd::GetDesktopWindow();
+	HWND hTabWnd;
 	CChildFrame *pChild;
 	CRLoginDoc *pDoc;
 	TC_ITEM tci;
@@ -367,6 +377,9 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 	}
 
 	if ( (pChild = (CChildFrame *)GetAt(idx)) == NULL || (pDoc = (CRLoginDoc*)pChild->GetActiveDocument()) == NULL )
+		return;
+
+	if ( (hTabWnd = pChild->GetSafeHwnd()) == NULL )
 		return;
 
 	switch(pDoc->m_ServerEntry.m_DocType) {
@@ -391,8 +404,6 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 
 	SetCapture();
 
-	// CTabBar = point 
-	// m_TabCtrl = rect
 	offset = rect.top - point.y - 1;
 
 	ClientToScreen(rect);
@@ -403,14 +414,7 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 	track.Create(NULL, title, WS_TILED | WS_CHILD, rect, pDeskTop, (-1));
 	track.SetWindowPos(&wndTopMost, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
 
-	for ( ; ; ) {
-		if ( CWnd::GetCapture() != this ) {
-			track.DestroyWindow();
-			ReleaseCapture();
-			return;
-		}
-
-		::GetMessage(&msg, NULL, 0, 0);
+	while ( ::GetMessage(&msg, NULL, 0, 0) ) {
 
 		switch (msg.message) {
 		case WM_LBUTTONUP:
@@ -447,7 +451,13 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 					pMain->SendMessage(WM_COMMAND, IDM_DISPWINIDX);
 					stc = clock();
 				}
-				TypeCol = 0;
+				CPoint tmp = capos;
+				ClientToScreen(&tmp);
+				pMain->ScreenToClient(&tmp);
+				TypeCol = (pMain->IsWindowPanePoint(tmp) ? 0 : 5);
+
+			} else if ( hit == (-3) ) {
+				TypeCol = 5;
 
 			} else {
 				TypeCol = 0;
@@ -505,7 +515,7 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 
 			if ( hit == (-1) ) {						// Move Pane
 				pMain->ScreenToClient(&capos);
-				pMain->MoveChild(pChild, capos);
+				pMain->MoveChild(FromHandle(hTabWnd), capos);
 				pMain->PostMessage(WM_COMMAND, IDM_DISPWINIDX);
 
 			} else if ( hit == (-2) && bOtherMove ) {	// Other RLogin Exec
@@ -517,6 +527,7 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 
 		//case WM_PAINT:
 		//case WM_ERASEBKGND:
+		//case WM_CAPTURECHANGED:
 		default:
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
@@ -702,31 +713,28 @@ int CTabBar::HitPoint(CPoint point)
 	CRect rect;
 	CWnd *pMain = AfxGetMainWnd();
 
+	// スクリーン座標
 	ClientToScreen(&point);
 
 	pMain->GetWindowRect(rect);
 
 	if ( !rect.PtInRect(point) )
-		return (-2);				// Close
+		return (-2);				// メインウィンドウ外
 
-	m_TabCtrl.GetWindowRect(rect);
+	pMain->GetClientRect(rect);
+	pMain->ClientToScreen(rect);
 
-	if ( rect.PtInRect(point) ) {
-		ScreenToClient(&point);
-		for ( int n = 0 ; n < m_TabCtrl.GetItemCount() ; n++ ) {
-			if ( m_TabCtrl.GetItemRect(n, rect) && rect.PtInRect(point) )
-				return n;			// Move Tab
-		}
+	if ( !rect.PtInRect(point) )
+		return (-3);				// メインクライアント外
 
-	} else {
-		pMain->GetClientRect(rect);
-		pMain->ClientToScreen(rect);
-
-		if ( rect.PtInRect(point) )
-			return (-1);			// Move Pane
+	// CTabBarクライアント座標
+	ScreenToClient(&point);
+	for ( int n = 0 ; n < m_TabCtrl.GetItemCount() ; n++ ) {
+		if ( m_TabCtrl.GetItemRect(n, rect) && rect.PtInRect(point) )
+			return n;				// タブ内
 	}
 
-	return (-3);
+	return (-1);					// メインクライアント内
 }
 void CTabBar::SetTabTitle(BOOL bNumber)
 {
@@ -781,14 +789,16 @@ void CTabBar::SetGhostWnd(BOOL sw)
 			return;
 
 		m_GhostItem = m_GhostReq;
-		SetTimer(1025, 200, NULL);
+		m_GhostWndTimer = SetTimer(TBTMID_GHOSTWMD, 200, NULL);
 
 		if ( (pFrame = (CChildFrame *)GetAt(m_GhostItem)) != NULL && (m_pGhostView = (CRLoginView *)pFrame->GetActiveView()) != NULL )
 			m_pGhostView->SetGhostWnd(TRUE);
 
 	} else {		// Destory Ghost Wnd
-		if ( m_GhostItem >= 0 )
-			KillTimer(1025);
+		if ( m_GhostItem >= 0 && m_GhostWndTimer != 0 ) {
+			KillTimer(m_GhostWndTimer);
+			m_GhostWndTimer = 0;
+		}
 
 		if ( m_pGhostView != NULL )
 			m_pGhostView->SetGhostWnd(FALSE);

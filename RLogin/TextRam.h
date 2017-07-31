@@ -83,6 +83,9 @@
 #define	ATT_MASK		0x0FFFFFF
 #define	ATT_MASKEXT		0x7FFFFFF
 
+#define	BLINK_TIME		300				// ATT_BLINK time (ms)
+#define	SBLINK_TIME		600				// ATT_SBLINK time (ms)
+
 #define CODE_MAX		0x0400
 #define CODE_MASK		0x03FF
 #define SET_MASK		0x0300
@@ -233,6 +236,8 @@
 #define	TO_RLPAINWTAB	1471		// ペインの移動でタブも移動する
 #define	TO_RLHIDPIFSZ	1472		// フォントサイズをHiDPIに追従する
 #define	TO_RLBACKHALF	1473		// アクティブでないウィンドウの輝度を下げる
+#define	TO_RLLOGFLUSH	1474		// ログの書き出しを定期的に行う
+#define	TO_RLCARETANI	1475		// カレットアニメーション
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -240,7 +245,6 @@
 #define	WTTL_HOST		0001		// m_HostName
 #define	WTTL_PORT		0002		// m_HostName:m_PotrtName
 #define	WTTL_USER		0003		// m_UserName
-#define	WTTL_ALGO		0010		// with status or algorithm
 #define	WTTL_CHENG		0020		// OSC Title cheng disable
 #define	WTTL_REPORT		0040		// XTWOP Title report disable
 
@@ -845,6 +849,7 @@ public:	// Options
 	int m_DefTermPara[5];
 	CString m_GroupCast;
 	CStringArrayExt m_InlineExt;
+	CString m_TitleName;
 
 	void Init();
 	void SetIndex(int mode, CStringIndex &index);
@@ -905,7 +910,7 @@ public:
 	int m_HisUse;
 	CFileExt m_HisFhd;
 
-	int m_DispCaret;
+	BOOL m_DispCaret;
 	int m_TypeCaret;
 	COLORREF m_CaretColor;
 
@@ -1060,6 +1065,8 @@ public:
 		WORD	eatt;
 		COLORREF frgb;
 		COLORREF brgb;
+		clock_t	aclock;
+		BOOL	print;
 	};
 
 	int IsWord(DWORD ch);
@@ -1081,7 +1088,7 @@ public:
 	void DrawHoriLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, struct DrawWork &prop, class CRLoginView *pView);
 	void DrawVertLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, struct DrawWork &prop, class CRLoginView *pView);
 	void DrawString(CDC *pDC, CRect &rect, struct DrawWork &prop, class CRLoginView *pView);
-	void DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginView *pView);
+	void DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginView *pView, BOOL bPrint);
 
 	CWnd *GetAciveView();
 	void PostMessage(UINT message, WPARAM wParam = 0, LPARAM lParam = 0);
@@ -1143,8 +1150,6 @@ public:
 	void DISPVRAM(int sx, int sy, int w, int h);
 	void DISPUPDATE();
 	void DISPRECT(int sx, int sy, int ex, int ey);
-	int BLINKUPDATE(class CRLoginView *pView);
-	int IMAGEUPDATE(class CRLoginView *pView);
 	int GETCOLIDX(int red, int green, int blue);
 
 	// Mid Level
@@ -1359,15 +1364,15 @@ public:
 	void fc_LS1R(DWORD ch);
 	void fc_LS2R(DWORD ch);
 	void fc_LS3R(DWORD ch);
-	void fc_CSC0W(DWORD ch);
-	void fc_CSC0(DWORD ch);
-	void fc_CSC1(DWORD ch);
-	void fc_CSC2(DWORD ch);
-	void fc_CSC3(DWORD ch);
-	void fc_CSC0A(DWORD ch);
-	void fc_CSC1A(DWORD ch);
-	void fc_CSC2A(DWORD ch);
-	void fc_CSC3A(DWORD ch);
+	void fc_GZM4(DWORD ch);
+	void fc_GZD4(DWORD ch);
+	void fc_G1D4(DWORD ch);
+	void fc_G2D4(DWORD ch);
+	void fc_G3D4(DWORD ch);
+	void fc_GZD6(DWORD ch);
+	void fc_G1D6(DWORD ch);
+	void fc_G2D6(DWORD ch);
+	void fc_G3D6(DWORD ch);
 	void fc_V5MCP(DWORD ch);
 	void fc_DECSOP(DWORD ch);
 	void fc_ACS(DWORD ch);

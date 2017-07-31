@@ -30,18 +30,17 @@
 #define	UPDATE_CLIPERA		3
 #define	UPDATE_INITPARA		4
 #define	UPDATE_VISUALBELL	5
-#define	UPDATE_BLINKRECT	6
-#define	UPDATE_INITSIZE		7
-#define	UPDATE_SETCURSOR	8
-#define	UPDATE_TYPECARET	9
-#define	UPDATE_TEKFLUSH		10
-#define	UPDATE_RESIZE		11
-#define	UPDATE_CANCELBTN	12
-#define	UPDATE_DISPINDEX	13
-#define	UPDATE_WAKEUP		14
-#define	UPDATE_SCROLLOUT	15
-#define	UPDATE_UPDATEWINDOW	16
-#define	UPDATE_CLIPCLAER	17
+#define	UPDATE_INITSIZE		6
+#define	UPDATE_SETCURSOR	7
+#define	UPDATE_TYPECARET	8
+#define	UPDATE_TEKFLUSH		9
+#define	UPDATE_RESIZE		10
+#define	UPDATE_CANCELBTN	11
+#define	UPDATE_DISPINDEX	12
+#define	UPDATE_WAKEUP		13
+#define	UPDATE_SCROLLOUT	14
+#define	UPDATE_UPDATEWINDOW	15
+#define	UPDATE_CLIPCLAER	16
 
 #define	CARET_MOVE			0
 #define	CARET_CREATE		1
@@ -106,6 +105,7 @@ public:
 	CString m_ScriptFile;
 	BOOL m_bReqDlg;
 	CString m_CmdLine;
+	CString m_TitleName;
 
 	static void LoadOption(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab);
 	static void SaveOption(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab);
@@ -142,7 +142,8 @@ public:
 	void OnSocketClose();
 	int OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags);
 
-	void SetStatus(LPCTSTR str);
+	void SetDocTitle();
+	inline void SetStatus(LPCTSTR str) { m_SockStatus = str; }
 	inline void SetEntryProBuffer() { SaveOption(m_ServerEntry, m_TextRam, m_KeyTab, m_KeyMac, m_ParamTab); }
 	void SetCmdInfo(CCommandLineInfoEx *pCmdInfo);
 
@@ -210,6 +211,8 @@ protected:
 	afx_msg void OnScreenReset(UINT nID);
 	afx_msg void OnUpdateResetSize(CCmdUI *pCmdUI);
 	afx_msg void OnScriptMenu(UINT nID);
+public:
+	afx_msg void OnTitleedit();
 };
 
 /////////////////////////////////////////////////////////////////////////////

@@ -13,22 +13,25 @@
 #include "TextRam.h"
 #include "MsgWnd.h"
 
-#define	FGCARET_CREATE	001
-#define	FGCARET_ONOFF	002
-#define	FGCARET_FOCUS	004
+#define	FGCARET_CREATE		0001
+#define	FGCARET_ONOFF		0002
+#define	FGCARET_FOCUS		0004
+#define	FGCARET_MASK		0077
+
+#define	FGCARET_DRAW		0100
 
 #define	VTMID_MOUSEMOVE		1024
 #define	VTMID_VISUALBELL	1025
-#define	VTMID_BLINKUPDATE	1026
-#define	VTMID_WHEELMOVE		1027
-#define	VTMID_CARETUPDATE	1028
-#define	VTMID_GOZIUPDATE	1029
-#define	VTMID_SLEEPTIMER	1030
-#define	VTMID_IMAGEUPDATE	1031
-#define	VTMID_RCLICKCHECK	1032
+#define	VTMID_WHEELMOVE		1026
+#define	VTMID_GOZIUPDATE	1027
+#define	VTMID_SLEEPTIMER	1028
+#define	VTMID_RCLICKCHECK	1029
+#define	VTMID_INVALIDATE	1030
 
 #define	VIEW_SLEEP_MSEC		10000	// x 1msec = 10sec
 #define	VIEW_SLEEP_MAX		60		// x 10sec = 600sec = 10min
+
+#define	DELAYINVALMINCLOCK	30		// 最小タイマ値 msec
 
 class CRLoginView : public CView
 {
@@ -54,8 +57,6 @@ public:
 	int m_Cols, m_Lines;
 	int m_HisMin;
 	int m_HisOfs;
-	int m_DispCaret;
-	int m_CaretX, m_CaretY;
 	int m_CharWidth, m_CharHeight;
 	CBmpFile m_BmpFile;
 	CBitmap *m_pBitmap;
@@ -66,12 +67,13 @@ public:
 	int m_ImageFlag;
 	BOOL m_MouseEventFlag;
 	int m_WheelDelta;
-	BOOL m_WheelTimer;
+	INT_PTR m_WheelTimer;
 	clock_t m_WheelClock;
 	int m_WheelzDelta;
 	BOOL m_PastNoCheck;
 	BOOL m_ScrollOut;
 	BOOL m_ClipUpdateLine;
+	CBitmap m_TekBitmap;
 
 	clock_t m_RDownClock;
 	CPoint m_RDownPoint;
@@ -89,6 +91,7 @@ public:
 	clock_t m_LastMouseClock;
 	CPoint m_FirstMousePoint;
 	BOOL m_bLButtonTrClk;
+	INT_PTR m_RclickTimer;
 
 	inline BOOL IsClipRectMode() { return (m_ClipKeyFlags & MK_CONTROL); }
 	inline BOOL IsClipLineMode() { return (m_bLButtonTrClk || m_ClipKeyFlags & (MK_SHIFT | 0x1000)); }
@@ -123,34 +126,68 @@ public:
 
 #ifdef	USE_DIRECTWRITE
 	ID2D1HwndRenderTarget *m_pRenderTarget;
+	ID2D1GdiInteropRenderTarget *m_pGDIRT;
+	CRect m_RenderRect;
+
+	BOOL RenderDraw(RECT rect);
 #endif
 
 	int m_CellCols;
 	int m_CellLines;
 	BYTE *m_pCellSize;
+	BOOL m_bImmActive;
 
 	void ResetCellSize();
 	void SetCellSize(int x, int y, int sz);
 	int GetGrapPos(int x, int y);
 
+	typedef struct _DeleyInval {
+		clock_t		m_Clock;
+		CRect		m_Rect;
+	} DeleyInval;
+
+	CList<DeleyInval, DeleyInval &> m_DeleyInvalList;
+	BOOL m_bDelayInvalThread;
+	DWORD m_DelayInvalWait;
+	clock_t m_DelayInvalClock;
+	CEvent *m_pDelayInvalEvent;
+	CEvent *m_pDelayInvalSync;
+
+	UINT DelayInvalThread();
+	void DelayInvalThreadStart();
+	void DelayInvalThreadEndof();
+	void DelayInvalThreadTimer(clock_t msec);
+
+	void SetDelayInvalTimer();
+	void AddDeleyInval(clock_t ick, CRect &rect);
+	void PollingDeleyInval();
+	BOOL OnIdle();
+
 	void InvalidateTextRect(CRect &rect);
+	void InvalidateFullText();
 	void CalcPosRect(CRect &rect);
 	void CalcGrapPoint(CPoint po, int *x, int *y);
 	int HitTest(CPoint point);
 	void SetFrameRect(int cx, int cy);
 
-	int m_OrigCaretFlag;
-	CSize m_OrigCaretSize;
-	CRect m_OrigCaretRect;
-	CSize m_OrigCaretMapSize;
-	CBitmap m_OrigCaretBitmap;
-	COLORREF m_OrigCaretColor;
-	BOOL m_bOrigCaretAllocCol;
+	int m_CaretFlag;
+	int m_CaretX, m_CaretY;
+	CSize m_CaretSize;
+	CRect m_CaretRect;
+	CSize m_CaretMapSize;
+	CBitmap m_CaretBitmap;
+	COLORREF m_CaretColor;
+	BOOL m_bCaretAllocCol;
+	clock_t m_CaretBaseClock;
+	int m_CaretAnimeMax;
+	int m_CaretAnimeClock;
 
-	COLORREF OrigCaretColor();
-	void OrigCaretPos(POINT point);
-	void OrigCaretSize(int width, int height);
+	COLORREF CaretColor();
+	void CaretPos(POINT point);
+	void CaretSize(int width, int height);
+	inline void CaretInitView() { m_CaretBaseClock = clock(); }
 
+	void InvalidateCaret();
 	void DispCaret(BOOL bShow);
 	void UpdateCaret();
 	void KillCaret();
@@ -194,6 +231,7 @@ protected:
 	DECLARE_MESSAGE_MAP()
 
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
+	afx_msg void OnDestroy();
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnMove(int x, int y);
 	afx_msg void OnSetFocus(CWnd* pOldWnd);
@@ -204,6 +242,10 @@ protected:
 	afx_msg void OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnDropFiles(HDROP hDropInfo);
+
+#ifdef	USE_DIRECTWRITE
+	afx_msg void OnPaint();
+#endif
 
 	afx_msg LRESULT OnImeNotify(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnImeComposition(WPARAM wParam, LPARAM lParam);

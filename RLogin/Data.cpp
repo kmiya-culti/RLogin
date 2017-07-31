@@ -291,7 +291,16 @@ void CBuffer::PutBuf(LPBYTE buf, int len)
 void CBuffer::PutStr(LPCSTR str)
 {
 	int len = (int)strlen(str);
+
 	Put32Bit(len);
+	Apend((LPBYTE)str, len);
+}
+void CBuffer::PutStrT(LPCTSTR str)
+{
+	int len = (int)_tcslen(str) * sizeof(TCHAR);
+
+	Put32Bit(len + 2);
+	PutWord(0xFF00);
 	Apend((LPBYTE)str, len);
 }
 void CBuffer::PutBIGNUM(const BIGNUM *val)
@@ -438,18 +447,43 @@ LONGLONG CBuffer::Get64Bit()
 int CBuffer::GetStr(CStringA &str)
 {
 	int len = Get32Bit();
+
 	if ( len < 0 || len > (256 * 1024) || (m_Len - m_Ofs) < len )
 		throw _T("CBuffer GetStr");
+
 	memcpy(str.GetBufferSetLength(len), m_Data + m_Ofs, len);
+
+	Consume(len);
+	return TRUE;
+}
+int CBuffer::GetStrT(CString &str)
+{
+	int len = Get32Bit();
+
+	if ( len < 0 || len > (256 * 1024) || (m_Len - m_Ofs) < len )
+		throw _T("CBuffer GetStrT");
+
+	if ( len >=2 && m_Data[m_Ofs] == 0x00 && m_Data[m_Ofs + 1] == 0xFF ) {
+		memcpy(str.GetBufferSetLength((len - 2) / sizeof(TCHAR)), m_Data + m_Ofs + 2, len - 2);
+
+	} else {
+		CStringA mbs;
+		memcpy(mbs.GetBufferSetLength(len), m_Data + m_Ofs, len);
+		str = mbs;
+	}
+
 	Consume(len);
 	return TRUE;
 }
 int CBuffer::GetBuf(CBuffer *buf)
 {
 	int len = Get32Bit();
+
 	if ( len < 0 || len > (256 * 1024) || (m_Len - m_Ofs) < len )
 		throw _T("CBuffer GetBuf");
+
 	buf->Apend(GetPtr(), len);
+
 	Consume(len);
 	return TRUE;
 }
@@ -1187,12 +1221,12 @@ void CStringArrayExt::SetBuffer(CBuffer &buf)
 {
 	buf.Put32Bit((int)GetSize());
 	for ( int n = 0 ; n < GetSize() ; n++ )
-		buf.PutStr(TstrToMbs(GetAt(n)));
+		buf.PutStrT(GetAt(n));
 }
 void CStringArrayExt::GetBuffer(CBuffer &buf)
 {
 	int n, mx;
-	CStringA str;
+	CString str;
 
 	try {
 		RemoveAll();
@@ -1200,8 +1234,8 @@ void CStringArrayExt::GetBuffer(CBuffer &buf)
 			return;
 		mx = buf.Get32Bit();
 		for ( n = 0 ; n < mx ; n++ ) {
-			buf.GetStr(str);
-			Add(MbsToTstr(str));
+			buf.GetStrT(str);
+			Add(str);
 		}
 	} catch(...) {
 		RemoveAll();
@@ -2568,17 +2602,21 @@ CFontChacheNode *CFontChache::GetFont(LPCTSTR pFontName, int Width, int Height, 
 
 CMutexLock::CMutexLock(LPCTSTR lpszName)
 {
-	m_pMutex = new CMutex(TRUE, lpszName);
+	m_pName = lpszName;
+	m_pMutex = new CMutex(FALSE, lpszName);
 	m_pLock  = new CSingleLock(m_pMutex, FALSE);
-	m_pLock->Lock();
+
+	if ( m_pName != NULL )
+		m_pLock->Lock();
 }
 CMutexLock::~CMutexLock()
 {
-	m_pLock->Unlock();
+	if ( m_pName != NULL )
+		m_pLock->Unlock();
+
 	delete m_pLock;
 	delete m_pMutex;
 }
-
 //////////////////////////////////////////////////////////////////////
 // COptObject
 
@@ -2707,26 +2745,24 @@ void CStrScript::SetNode(CStrScriptNode *np, CBuffer &buf)
 		buf.Put8Bit(0);
 	else {
 		buf.Put8Bit(1);
-		buf.PutStr(TstrToMbs(np->m_RecvStr));
-		buf.PutStr(TstrToMbs(np->m_SendStr));
+		buf.PutStrT(np->m_RecvStr);
+		buf.PutStrT(np->m_SendStr);
 		SetNode(np->m_Left,  buf);
 		SetNode(np->m_Right, buf);
 	}
 }
 CStrScriptNode *CStrScript::GetNode(CBuffer &buf)
 {
-	CStringA mbs;
-	CStrScriptNode *np;
+	CStrScriptNode *np = NULL;
 
-	if ( buf.Get8Bit() == 0 )
-		return NULL;
-
-	np = new CStrScriptNode;
-	buf.GetStr(mbs); np->m_RecvStr = mbs;
-	buf.GetStr(mbs); np->m_SendStr = mbs;
-	np->m_Reg.Compile(np->m_RecvStr);
-	np->m_Left  = GetNode(buf);
-	np->m_Right = GetNode(buf);
+	if ( buf.GetSize() > 1 && buf.Get8Bit() == 1 ) {
+		np = new CStrScriptNode;
+		buf.GetStrT(np->m_RecvStr);
+		buf.GetStrT(np->m_SendStr);
+		np->m_Reg.Compile(np->m_RecvStr);
+		np->m_Left  = GetNode(buf);
+		np->m_Right = GetNode(buf);
+	}
 
 	return np;
 }
@@ -2738,6 +2774,11 @@ void CStrScript::SetBuffer(CBuffer &buf)
 }
 int CStrScript::GetBuffer(CBuffer &buf)
 {
+	if ( buf.GetSize() < 1 ) {
+		Init();
+		return FALSE;
+	}
+
 	m_MakeChat = (buf.Get8Bit() != 0 ? TRUE : FALSE);
 
 	if ( m_Node != NULL )
@@ -3180,7 +3221,6 @@ void CServerEntry::Init()
 	m_DocType = (-1);
 	m_IconName.Empty();
 	m_bPassOk = TRUE;
-	m_TitleName.Empty();
 	m_bSelFlag = FALSE;
 }
 const CServerEntry & CServerEntry::operator = (CServerEntry &data)
@@ -3219,7 +3259,6 @@ const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 	m_DocType        = data.m_DocType;
 	m_IconName       = data.m_IconName;
 	m_bPassOk        = data.m_bPassOk;
-	m_TitleName      = data.m_TitleName;
 	m_bSelFlag       = data.m_bSelFlag;
 	return *this;
 }
@@ -3274,7 +3313,6 @@ void CServerEntry::GetArray(CStringArrayExt &stra)
 	m_ProxySSLKeep = (stra.GetSize() > 22 ?  stra.GetVal(22) : FALSE);;
 	m_IconName     = (stra.GetSize() > 23 ?  stra.GetAt(23) : _T(""));
 
-	m_TitleName.Empty();
 	m_ProBuffer.Clear();
 
 	m_HostNameProvs  = m_HostName;
@@ -3774,7 +3812,7 @@ int CServerEntry::GetProtoType(LPCTSTR str)
 
 CServerEntryTab::CServerEntryTab()
 {
-	m_pSection = _T("ServerEntryTab");
+	m_pSection = _T("ServerEntryTabW");
 	m_MinSize = 1;
 }
 void CServerEntryTab::Init()
@@ -3805,21 +3843,74 @@ void CServerEntryTab::GetArray(CStringArrayExt &stra)
 void CServerEntryTab::Serialize(int mode)
 {
 	int n;
+	int uid;
+	int convcount = 0;
+	int errcount = 0;
+	CServerEntry tmp;
+	CStringArrayExt entry;
+	CRLoginApp *pApp = (CRLoginApp *)AfxGetApp();
 
 	if ( mode ) {		// Write
 		for ( n = 0 ; n < m_Data.GetSize() ; n++ )
 			m_Data[n].SetProfile(m_pSection);
+
+	} else if ( pApp->GetProfileInt(m_pSection, _T("ListMax"), (-1)) == (UINT)(-1) ) {
+
+		// 古いSectionからエントリーを再構成してコピー
+		pApp->GetProfileKeys(_T("ServerEntryTab"), entry);
+		m_Data.RemoveAll();
+		for ( n = 0 ; n < entry.GetSize() ; n++ ) {
+			if ( entry[n].Left(4).Compare(_T("List")) != 0 || _tcschr(_T("0123456789"), entry[n][4]) == NULL )
+				continue;
+			uid = _tstoi(entry[n].Mid(4));
+			tmp.Init();
+			if ( tmp.GetProfile(_T("ServerEntryTab"), uid) ) {
+				tmp.m_Uid = ((CRLoginApp *)AfxGetApp())->GetProfileSeqNum(m_pSection, _T("ListMax"));
+
+				try {
+					// Unicodeで再構成
+					CTextRam TextRam;
+					CKeyNodeTab KeyTab;
+					CKeyMacTab KeyMac;
+					CParamTab ParamTab;
+
+					CRLoginDoc::LoadOption(tmp, TextRam, KeyTab, KeyMac, ParamTab);
+					CRLoginDoc::SaveOption(tmp, TextRam, KeyTab, KeyMac, ParamTab);
+
+					// 新しいSectionに保存
+					tmp.SetProfile(m_pSection);
+					m_Data.Add(tmp);
+					convcount++;
+
+				} catch(...) {
+					errcount++;
+					continue;
+				}
+			} else
+				errcount++;
+		}
+
+		if ( convcount == 0 && errcount == 0 ) {
+			// エントリー無しの場合の再表示を抑制
+			((CRLoginApp *)AfxGetApp())->WriteProfileInt(m_pSection, _T("ListMax"), 0);
+
+		} else {
+			// 古いレジストリの削除を確認
+			CString msg;
+			msg.Format(CStringLoad(IDS_DELENTRYTABMSG), convcount, errcount);
+
+			if ( ::AfxMessageBox(msg, MB_ICONQUESTION | MB_YESNO) == IDYES )
+				((CRLoginApp *)AfxGetApp())->DelProfileSection(_T("ServerEntryTab"));
+		}
+
 	} else {
-		int uid;
-		CServerEntry tmp;
-		CStringArrayExt entry;
-		CRLoginApp *pApp = (CRLoginApp *)AfxGetApp();
 		pApp->GetProfileKeys(m_pSection, entry);
 		m_Data.RemoveAll();
 		for ( n = 0 ; n < entry.GetSize() ; n++ ) {
 			if ( entry[n].Left(4).Compare(_T("List")) != 0 || _tcschr(_T("0123456789"), entry[n][4]) == NULL )
 				continue;
 			uid = _tstoi(entry[n].Mid(4));
+			tmp.Init();
 			if ( tmp.GetProfile(m_pSection, uid) ) {
 				if ( tmp.m_Uid == (-1) )
 					tmp.m_Uid = uid;
@@ -4031,6 +4122,18 @@ static const struct _KeyNameTab	{
 	{ VK_MBUTTON,	_T("MBTN")		},
 	{ VK_XBUTTON1,	_T("XBTN1")		},
 	{ VK_XBUTTON2,	_T("XBTN2")		},
+
+#ifdef	USE_CLIENTKEY
+	{ VK_LMOUSE_LEFT_TOP,		_T("LM_LT")	},
+	{ VK_LMOUSE_LEFT_CENTER,	_T("LM_LC")	},
+	{ VK_LMOUSE_LEFT_BOTTOM,	_T("LM_LB")	},
+	{ VK_LMOUSE_CENTER_TOP,		_T("LM_CT")	},
+	{ VK_LMOUSE_CENTER_CENTER,	_T("LM_CC")	},
+	{ VK_LMOUSE_CENTER_BOTTOM,	_T("LM_CB")	},
+	{ VK_LMOUSE_RIGHT_TOP,		_T("LM_RT")	},
+	{ VK_LMOUSE_RIGHT_CENTER,	_T("LM_RC")	},
+	{ VK_LMOUSE_RIGHT_BOTTOM,	_T("LM_RB")	},
+#endif
 
 	{ (-1),			NULL			},
 };
@@ -4622,7 +4725,9 @@ void CKeyNodeTab::GetArray(CStringArrayExt &stra)
 	m_Node.RemoveAll();
 	for ( n = 0 ; n < stra.GetSize() ; n++ ) {
 		stra.GetArray(n, tmp);
-		if ( tmp.GetSize() < 3 ) {
+		if ( tmp.GetSize() < 1 )
+			continue;
+		else if ( tmp.GetSize() < 3 ) {
 			if ( tmp.GetVal(0) == (-1) )
 				fix = tmp.GetVal(1);
 			continue;
@@ -4778,7 +4883,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	127
+#define	CMDSKEYTABMAX	129
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -4787,6 +4892,7 @@ static const struct _CmdsKeyTab {
 	{	ID_SEND_BREAK,				L"$BREAK"			},
 	{	IDM_BROADCAST,				L"$BROADCAST"		},
 	{	IDM_CLIPBOARD_MENU,			L"$CLIPBOARD"		},
+	{	IDM_CLIPCHAIN,				L"$CLIPBOARD_CHAIN"	},
 	{	IDM_CLIPBOARD_HIS1,			L"$CLIPBOARD_HIS1"	},
 	{	IDM_CLIPBOARD_HIS10,		L"$CLIPBOARD_HIS10"	},
 	{	IDM_CLIPBOARD_HIS2,			L"$CLIPBOARD_HIS2"	},
@@ -4889,6 +4995,7 @@ static const struct _CmdsKeyTab {
 	{	ID_SPLIT_OVER,				L"$SPLIT_OVER"		},
 	{	ID_SPLIT_WIDTH,				L"$SPLIT_WIDTH"		},
 	{	IDM_SPLIT_WIDTH_NEW,		L"$SPLIT_WIDTHNEW"	},
+	{	IDM_TITLEEDIT,				L"$TITLE_EDIT"		},
 	{	IDM_VERSIONCHECK,			L"$VERSION_CHECK"	},
 	{	IDM_IMAGEDISP,				L"$VIEW_IMAGEDISP"	},
 	{	ID_GOZIVIEW,				L"$VIEW_JOKE"		},
@@ -5735,9 +5842,7 @@ void CParamTab::GetArray(CStringArrayExt &stra)
 	m_XDisplay  = (stra.GetSize() > i ? stra.GetAt(i++) : _T(":0"));
 	m_ExtEnvStr = (stra.GetSize() > i ? stra.GetAt(i++) : _T(""));
 
-	if ( stra.GetSize() > i )
-		stra.GetBin(i++, m_OptTab, sizeof(m_OptTab));
-	else
+	if ( stra.GetSize() <= i || stra.GetBin(i++, m_OptTab, sizeof(m_OptTab)) < sizeof(m_OptTab) )
 		memset(m_OptTab, 0, sizeof(m_OptTab));
 
 	m_Reserve = (stra.GetSize() > i ? stra.GetAt(i++) : _T(""));
@@ -6589,11 +6694,9 @@ void CStringIndex::SetKey(LPCSTR &str)
 }
 void CStringIndex::GetBuffer(CBuffer *bp)
 {
-	CStringA mbs;
-
 	m_Value = bp->Get32Bit();
-	bp->GetStr(mbs); m_nIndex = mbs;
-	bp->GetStr(mbs); m_String = mbs;
+	bp->GetStrT(m_nIndex);
+	bp->GetStrT(m_String);
 
 	SetSize(bp->Get32Bit());
 
@@ -6603,8 +6706,8 @@ void CStringIndex::GetBuffer(CBuffer *bp)
 void CStringIndex::SetBuffer(CBuffer *bp)
 {
 	bp->Put32Bit(m_Value);
-	bp->PutStr(TstrToMbs(m_nIndex));
-	bp->PutStr(TstrToMbs(m_String));
+	bp->PutStrT(m_nIndex);
+	bp->PutStrT(m_String);
 
 	bp->Put32Bit(GetSize());
 
@@ -7152,15 +7255,115 @@ void CStringBinary::TreeNode(int nest)
 #endif
 
 //////////////////////////////////////////////////////////////////////
+// CFileThred
+	
+IMPLEMENT_DYNCREATE(CFileThread, CWinThread)
+
+BEGIN_MESSAGE_MAP(CFileThread, CWinThread)
+	ON_THREAD_MESSAGE(WM_FILEWRITE, &CFileThread::OnFileWrite)
+	ON_THREAD_MESSAGE(WM_FILEFLUSH, &CFileThread::OnFileFlush)
+	ON_THREAD_MESSAGE(WM_FILESYNC, &CFileThread::OnFileSync)
+END_MESSAGE_MAP()
+
+CFileThread::CFileThread()
+{
+	m_pOwner = NULL;
+	m_pSyncEvent = new CEvent(FALSE, FALSE);
+
+	m_MsgCount = 0;
+	m_bRuning = FALSE;
+	m_bWriteError = FALSE;
+	m_ErrorMsg.Empty();
+
+	// スタティックに構築しているから注意
+	m_bAutoDelete = FALSE;
+}
+CFileThread::~CFileThread()
+{
+	delete m_pSyncEvent;
+}
+BOOL CFileThread::InitInstance()
+{
+	// Thread Start Event Set
+	m_bRuning = TRUE;
+	m_pSyncEvent->SetEvent();
+
+	return TRUE;
+}
+int CFileThread::ExitInstance()
+{
+	// Thread Exit Event Set
+	m_bRuning = FALSE;
+	m_pSyncEvent->SetEvent();
+
+	return CWinThread::ExitInstance();
+}
+void CFileThread::OnFileWrite(WPARAM wParam, LPARAM lParam)
+{
+	if ( m_pOwner == NULL )
+		return;
+
+	try {
+		m_MsgCount--;
+		m_pOwner->CFile::Write((const void *)lParam, (UINT)wParam);
+
+	} catch (CFileException *pException) {
+		TCHAR tmp[256];
+		pException->GetErrorMessage(tmp, 256);
+		if ( !m_ErrorMsg.IsEmpty() )
+			m_ErrorMsg += _T("\r\n");
+		m_ErrorMsg += tmp;
+		m_bWriteError = TRUE;
+
+	} catch (...) {
+		m_ErrorMsg.Empty();
+		m_bWriteError = TRUE;
+	}
+
+	// ここで解放
+	delete (BYTE *)lParam;
+}
+void CFileThread::OnFileFlush(WPARAM wParam, LPARAM lParam)
+{
+	if ( m_pOwner == NULL )
+		return;
+
+	try {
+		m_MsgCount--;
+		m_pOwner->CFile::Flush();
+
+	} catch (CFileException *pException) {
+		TCHAR tmp[256];
+		pException->GetErrorMessage(tmp, 256);
+		if ( !m_ErrorMsg.IsEmpty() )
+			m_ErrorMsg += _T("\r\n");
+		m_ErrorMsg += tmp;
+		m_bWriteError = TRUE;
+
+	} catch (...) {
+		m_ErrorMsg.Empty();
+		m_bWriteError = TRUE;
+	}
+}
+void CFileThread::OnFileSync(WPARAM wParam, LPARAM lParam)
+{
+	// Thread Sync Event Set
+	m_pSyncEvent->SetEvent();
+}
+
+//////////////////////////////////////////////////////////////////////
 // CFileExt
 	
 void CFileExt::Init()
 {
 	m_WriteLen = 0;
 	m_pWriteBuffer = new BYTE[FEXT_BUF_MAX];
+	m_TotalWrite = 0;
 
 	m_ReadLen = m_ReadPos = 0;
 	m_pReadBuffer = new BYTE[FEXT_BUF_MAX];
+
+	m_bWriteFlush = FALSE;
 }
 CFileExt::CFileExt()
 {
@@ -7198,6 +7401,7 @@ BOOL CFileExt::Open(LPCTSTR lpszFileName, UINT nOpenFlags, CFileException* pErro
 {
 	m_WriteLen = 0;
 	m_ReadLen = m_ReadPos = 0;
+	m_TotalWrite = 0;
 
 	return CFile::Open(lpszFileName, nOpenFlags, pError);
 }
@@ -7206,6 +7410,7 @@ BOOL CFileExt::Open(LPCTSTR lpszFileName, UINT nOpenFlags, CAtlTransactionManage
 {
 	m_WriteLen = 0;
 	m_ReadLen = m_ReadPos = 0;
+	m_TotalWrite = 0;
 
 	return CFile::Open(lpszFileName, nOpenFlags, pTM, pError);
 }
@@ -7238,29 +7443,96 @@ void CFileExt::Write(const void* lpBuf, UINT nCount)
 	UINT n;
 	LPBYTE p = (LPBYTE)lpBuf;
 
+	if ( IsWriteError() )
+		return;
+
 	while ( nCount > 0 ) {
+
 		if ( (n = FEXT_BUF_MAX - m_WriteLen) > nCount )
 			n = nCount;
+
 		memcpy(m_pWriteBuffer + m_WriteLen, p, n);
 		m_WriteLen += n;
 		p += n;
 		nCount -= n;
+
 		if ( m_WriteLen >= FEXT_BUF_MAX )
-			Flush();
+			WriteFlush();
+	}
+}
+void CFileExt::WriteFlush()
+{
+	if ( m_WriteLen == 0 || IsWriteError() )
+		return;
+
+	if ( !m_FileThread.m_bRuning ) {
+		m_FileThread.m_pOwner = this;
+		m_FileThread.m_MsgCount = 0;
+		m_FileThread.m_bWriteError = FALSE;
+
+		if ( !m_FileThread.CreateThread(0, 0, NULL) ) {
+			m_FileThread.m_bWriteError = TRUE;
+			return;
+		}
+
+		m_FileThread.WaitEvent(INFINITE);
+	}
+
+	m_FileThread.m_MsgCount++;
+	m_FileThread.PostThreadMessage(WM_FILEWRITE, (WPARAM)m_WriteLen, (LPARAM)m_pWriteBuffer);
+	// PostしたBufferはスレッド先で解放
+
+	m_pWriteBuffer = new BYTE[FEXT_BUF_MAX];
+	m_TotalWrite += m_WriteLen;
+	m_WriteLen = 0;
+
+	// 書き込みが多い場合は、途中で書き出す
+	if ( m_bWriteFlush && m_TotalWrite > FEXT_FLUSH_MAX ) {
+		m_TotalWrite = 0;
+		m_FileThread.m_MsgCount++;
+		m_FileThread.PostThreadMessage(WM_FILEFLUSH, NULL, NULL);
 	}
 }
 void CFileExt::Flush()
 {
-	if ( m_WriteLen > 0 ) {
-		CFile::Write(m_pWriteBuffer, m_WriteLen);
-		m_WriteLen = 0;
+	WriteFlush();
+
+	if ( IsWriteError() )
+		return;
+
+	if ( m_bWriteFlush && m_TotalWrite > 0 ) {
+		m_TotalWrite = 0;
+		m_FileThread.m_MsgCount++;
+		m_FileThread.PostThreadMessage(WM_FILEFLUSH, NULL, NULL);
 	}
-	CFile::Flush();
+
+	// スレッドメッセージキューが規定値以上なら同期をとるが本来なら必要ない処理
+	if ( m_FileThread.m_MsgCount > FEXT_MSG_MAX ) {
+		m_FileThread.PostThreadMessage(WM_FILESYNC, NULL, NULL);
+		if ( m_FileThread.WaitEvent(10000) != WAIT_OBJECT_0 ) {
+			if ( !m_FileThread.m_ErrorMsg.IsEmpty() )
+				m_FileThread.m_ErrorMsg += _T("\r\n");
+			m_FileThread.m_ErrorMsg += _T("File Thread Many Msg Wait Event Error");
+			m_FileThread.m_bWriteError = TRUE;
+		}
+	}
 }
 void CFileExt::Close()
 {
-	Flush();
+	WriteFlush();
+
+	if ( m_FileThread.m_bRuning ) {
+		m_FileThread.PostThreadMessage(WM_QUIT, NULL, NULL);
+		m_FileThread.WaitEvent(INFINITE);
+	}
+
 	CFile::Close();
+
+	if ( IsWriteError() ) {
+		CString msg;
+		msg.Format(_T("Have Write Error '%s'\n%s"), GetFilePath(), m_FileThread.m_ErrorMsg);
+		::AfxMessageBox(msg, MB_ICONERROR);
+	}
 }
 UINT CFileExt::Read(void* lpBuf, UINT nCount)
 {

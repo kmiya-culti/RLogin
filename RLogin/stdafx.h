@@ -14,8 +14,8 @@
 //#define	USE_DEBUGLOG
 #define	USE_OLE
 //#define	USE_RCDLL
-
 #define	USE_KEYMACGLOBAL
+//#define	USE_CLIENTKEY
 
 // Windows ÉoÅ[ÉWÉáÉì
 
@@ -123,6 +123,9 @@
   #include <d2d1helper.h>
   #include <dwrite.h>
   #include <wincodec.h>
+
+  #pragma comment(lib, "d2d1.lib")
+  #pragma comment(lib, "dwrite.lib")
 #endif
 
 #ifdef	USE_SAPI

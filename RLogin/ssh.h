@@ -697,6 +697,7 @@ private:
 	int m_CipTab[8];
 	int m_CompMode;
 
+	CIdKey *SelectIdKeyEntry();
 	int SMsgPublicKey(CBuffer *bp);
 	int SMsgAuthRsaChallenge(CBuffer *bp);
 	void RecivePacket(CBuffer *bp);

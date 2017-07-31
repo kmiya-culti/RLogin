@@ -172,7 +172,6 @@ BOOL CIdkeySelDLg::OnInitDialog()
 		m_pIdKeyTab->GetAt(n).m_Flag = FALSE;
 	}
 
-	m_IdKeyList.SetString(m_OldIdKeyList);
 	for ( n = (int)m_IdKeyList.GetSize() - 1 ; n >= 0 ; n-- ) {
 		a = m_IdKeyList.GetVal(n);
 		if ( (pKey = m_pIdKeyTab->GetUid(a)) == NULL )
@@ -213,15 +212,10 @@ void CIdkeySelDLg::OnOK()
 			m_IdKeyList.AddVal(m_Data[i]);
 		}
 	}
+
 	m_List.SaveColumn(_T("IdkeySelDLg"));
 
-	CString str;
-	m_IdKeyList.SetString(str);
-
-	if ( str.Compare(m_OldIdKeyList) != 0 )
-		CDialogExt::OnOK();
-	else
-		CDialogExt::OnCancel();
+	CDialogExt::OnOK();
 }
 void CIdkeySelDLg::OnCancel()
 {

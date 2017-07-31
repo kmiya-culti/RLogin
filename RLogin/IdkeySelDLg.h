@@ -42,7 +42,6 @@ public:
 	int m_GenIdKeyCount;
 	CString m_GenIdKeyPass;
 	CIdKey m_GenIdKey;
-	CString m_OldIdKeyList;
 	BOOL m_ListInit;
 
 	void StartKeyGenThead();

@@ -1379,7 +1379,7 @@ CTextRam::CTextRam()
 	m_HisLen = 0;
 	m_HisUse = 0;
 	m_pTextSave = m_pTextStack = NULL;
-	m_DispCaret = FGCARET_ONOFF;
+	m_DispCaret = TRUE;
 	m_DefTypeCaret = 1;
 	m_TypeCaret = m_DefTypeCaret;
 	m_CaretColor = RGB(255, 255, 255);
@@ -2201,7 +2201,7 @@ void CTextRam::Init()
 	m_HisFile        = _T("");
 	m_KeepAliveSec   = 0;
 	m_DropFileMode   = 0;
-	m_DispCaret      = FGCARET_ONOFF;
+	m_DispCaret      = TRUE;
 	m_TypeCaret      = m_DefTypeCaret;
 	m_CaretColor = RGB(255, 255, 255);
 	m_MarkColor = RGB(255, 255, 0);
@@ -2249,6 +2249,7 @@ void CTextRam::Init()
 	m_FixVersion = 0;
 	m_SleepMax = VIEW_SLEEP_MAX;
 	m_GroupCast.Empty();
+	m_TitleName.Empty();
 
 	for ( int n = 0 ; n < MODKEY_MAX ; n++ ) {
 		m_DefModKey[n] = (-1);
@@ -2391,6 +2392,8 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		index[_T("CaretColor")].Add(GetRValue(m_CaretColor));
 		index[_T("CaretColor")].Add(GetGValue(m_CaretColor));
 		index[_T("CaretColor")].Add(GetBValue(m_CaretColor));
+
+		index[_T("Title")] = m_TitleName;
 
 	} else {		// Read
 		if ( (n = index.Find(_T("Cols"))) >= 0 ) {
@@ -2649,6 +2652,9 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 
 		if ( (n = index.Find(_T("CaretColor"))) >= 0 && index[n].GetSize() >= 3 )
 			m_CaretColor = RGB((int)index[n][0], (int)index[n][1], (int)index[n][2]);
+		
+		if ( (n = index.Find(_T("Title"))) >= 0 )
+			m_TitleName = index[n];
 
 		memcpy(m_ColTab, m_DefColTab, sizeof(m_DefColTab));
 		memcpy(m_AnsiOpt, m_DefAnsiOpt, sizeof(m_AnsiOpt));
@@ -2877,6 +2883,9 @@ void CTextRam::DiffIndex(CTextRam &orig, CStringIndex &index)
 		index[_T("CaretColor")].Add(GetGValue(m_CaretColor));
 		index[_T("CaretColor")].Add(GetBValue(m_CaretColor));
 	}
+	
+	if ( m_TitleName.Compare(orig.m_TitleName) != 0 )
+		index[_T("Title")] = m_TitleName;
 }
 void CTextRam::SetArray(CStringArrayExt &stra)
 {
@@ -2980,6 +2989,8 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 	stra.AddVal(m_MarkColor);
 	stra.AddVal(m_BitMapStyle);
 	stra.AddVal(m_CaretColor);
+
+	stra.Add(m_TitleName);
 }
 void CTextRam::GetArray(CStringArrayExt &stra)
 {
@@ -3199,6 +3210,9 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 	if ( stra.GetSize() > 71 )
 		m_CaretColor = stra.GetVal(71);
 
+	if ( stra.GetSize() > 72 )
+		m_TitleName = stra.GetAt(72);
+
 	if ( m_FixVersion < 9 ) {
 		if ( m_pDocument != NULL ) {
 			if ( m_pDocument->m_ServerEntry.m_UserNameProvs.IsEmpty() || m_pDocument->m_ServerEntry.m_PassNameProvs.IsEmpty() )
@@ -3390,7 +3404,7 @@ void CTextRam::ScriptValue(int cmds, class CScriptValue &value, int mode)
 		}
 		break;
 	case 22:				// Document.Screen.Cursol.Display
-		n = (m_DispCaret & FGCARET_ONOFF) != 0 ? 1 : 0;
+		n = (m_DispCaret ? 1 : 0);
 		value.SetInt(n, mode);
 		if ( mode == DOC_MODE_SAVE ) {
 			if ( n != 0 )
@@ -3488,6 +3502,7 @@ const CTextRam & CTextRam::operator = (CTextRam &data)
 	memcpy(m_MetaKeys,  data.m_MetaKeys,  sizeof(m_MetaKeys));
 	m_ProcTab = data.m_ProcTab;
 	m_TitleMode = data.m_TitleMode;
+	m_TitleName = data.m_TitleName;
 	m_UnitId = data.m_UnitId;
 	m_FirmVer = data.m_FirmVer;
 	m_VtLevel = data.m_VtLevel;
@@ -5023,12 +5038,22 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, struct DrawWork &prop, class CR
 		bRevs = TRUE;
 	}
 
-	if ( (prop.attr & (ATT_SBLINK | ATT_BLINK)) != 0 ) {
-		if ( (pView->m_BlinkFlag & 4) == 0 ) {
-			pView->SetTimer(VTMID_BLINKUPDATE, 250, NULL);
-			pView->m_BlinkFlag = 4;
-		} else if ( ((prop.attr & ATT_BLINK) != 0 && (pView->m_BlinkFlag & 1) != 0) ||
-				    ((prop.attr & ATT_BLINK) == 0 && (pView->m_BlinkFlag & 2) != 0) ) {
+	if ( (prop.attr & ATT_BLINK) != 0 ) {
+		if ( !prop.print )
+			pView->AddDeleyInval((prop.aclock / BLINK_TIME + 1) * BLINK_TIME, rect);
+
+		if ( ((prop.aclock / BLINK_TIME) & 1) != 0 ) {
+			tcol = fcol;
+			fcol = bcol;
+			bcol = tcol;
+			bRevs = TRUE;
+		}
+
+	} else if ( (prop.attr & ATT_SBLINK) != 0 ) {
+		if ( !prop.print )
+			pView->AddDeleyInval((prop.aclock / SBLINK_TIME + 1) * SBLINK_TIME, rect);
+
+		if ( ((prop.aclock / SBLINK_TIME) & 1) != 0 ) {
 			tcol = fcol;
 			fcol = bcol;
 			bcol = tcol;
@@ -5093,10 +5118,8 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, struct DrawWork &prop, class CR
 		// Image Draw
 		if ( (pWnd = GetGrapWnd(prop.idx)) != NULL ) {
 			pWnd->DrawBlock(pDC, rect, bcol, bEraBack, prop.stx, prop.sty, prop.edx, prop.sty + 1, pView);
-			if ( pView->m_ImageFlag == 0 && pWnd->IsGifAnime() ) {
-				pView->SetTimer(VTMID_IMAGEUPDATE, 100, NULL);
-				pView->m_ImageFlag = 1;
-			}
+			if ( pWnd->IsGifAnime() && !prop.print )
+				pView->AddDeleyInval(pWnd->m_GifAnimeClock, rect);
 		} else if ( bEraBack )
 			pDC->FillSolidRect(rect, bcol);
 
@@ -5130,7 +5153,7 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, struct DrawWork &prop, class CR
 	if ( bRevs )
 		pDC->InvertRect(rect);
 }
-void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginView *pView)
+void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginView *pView, BOOL bPrint)
 {
 	int n;
 	int x, y, sx, ex;
@@ -5150,6 +5173,8 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 	space.SetSize(0, MAXCHARSIZE);
 
 	ZeroMemory(&prop, sizeof(prop));
+	prop.aclock = clock();
+	prop.print  = bPrint;
 
 	if ( pView->m_ClipFlag ) {
 		if ( pView->m_ClipStaPos <= pView->m_ClipEndPos ) {
@@ -6515,11 +6540,11 @@ void CTextRam::FLUSH()
 }
 void CTextRam::CUROFF()
 {
-	m_DispCaret &= ~FGCARET_ONOFF;
+	m_DispCaret = FALSE;
 }	
 void CTextRam::CURON()
 {
-	m_DispCaret |= FGCARET_ONOFF;
+	m_DispCaret = TRUE;
 }
 void CTextRam::DISPUPDATE()
 {
@@ -6579,116 +6604,6 @@ void CTextRam::DISPRECT(int sx, int sy, int ex, int ey)
 		}
 	}
 	DISPVRAM(sx, sy, ex - sx, ey - sy);
-}
-int CTextRam::BLINKUPDATE(class CRLoginView *pView)
-{
-	int x, y, dm;
-	CCharCell *vp;
-	int rt = 0;
-	int mk = ATT_BLINK;
-	CRect rect;
-
-	if ( (pView->m_BlinkFlag & 1) == 0 )
-		mk |= ATT_SBLINK;
-
-	for ( y = 0 ; y < m_Lines ; y++ ) {
-		vp = GETVRAM(0, y - pView->m_HisOfs + pView->m_HisMin);
-		dm = vp->m_Vram.zoom;
-		rect.left   = m_Cols;
-		rect.right  = 0;
-		rect.top    = y - pView->m_HisOfs + pView->m_HisMin;
-		rect.bottom = rect.top + 1;
-		for ( x = 0 ; x < m_Cols ; x++ ) {
-			if ( (vp->m_Vram.attr & mk) != 0 ) {
-				if ( rect.left > x ) {
-					rect.left  = x;
-					rect.right = x + 1;
-					rt |= 3;
-				} else if ( rect.right == x ) {
-					rect.right = x + 1;
-					rt |= 3;
-				} else {
-					if ( rect.left < rect.right ) {
-						if ( dm ) {
-							rect.left  *= 2;
-							rect.right *= 2;
-						}
-						m_pDocument->UpdateAllViews(NULL, UPDATE_BLINKRECT, (CObject *)&rect);
-					}
-					rect.left  = x;
-					rect.right = x + 1;
-					rt |= 3;
-				}
-			} else if ( (vp->m_Vram.attr & ATT_SBLINK) != 0 )
-				rt |= 2;
-			vp++;
-		}
-		if ( (rt & 1) != 0 ) {
-			if ( dm ) {
-				rect.left  *= 2;
-				rect.right *= 2;
-			}
-			m_pDocument->UpdateAllViews(NULL, UPDATE_BLINKRECT, (CObject *)&rect);
-			rt &= 0xFE;
-		}
-	}
-	return rt;
-}
-int CTextRam::IMAGEUPDATE(class CRLoginView *pView)
-{
-	int x, y, dm;
-	CCharCell *vp;
-	int rt = 0;
-	CRect rect;
-	CGrapWnd *pGrap;
-	clock_t now = clock();
-	int id = (-1);
-
-	for ( y = 0 ; y < m_Lines ; y++ ) {
-		vp = GETVRAM(0, y - pView->m_HisOfs + pView->m_HisMin);
-		dm = vp->m_Vram.zoom;
-		rect.left   = m_Cols;
-		rect.right  = 0;
-		rect.top    = y - pView->m_HisOfs + pView->m_HisMin;
-		rect.bottom = rect.top + 1;
-		for ( x = 0 ; x < m_Cols ; x++ ) {
-			if ( IS_IMAGE(vp->m_Vram.mode) && (id == vp->m_Vram.pack.image.id || ((pGrap = GetGrapWnd(vp->m_Vram.pack.image.id)) != NULL && pGrap->IsGifAnime())) ) {
-				if ( pGrap->m_GifAnimeClock > now )
-					rt |= 2;
-				else if ( rect.left > x ) {
-					rect.left  = x;
-					rect.right = x + 1;
-					rt |= 3;
-				} else if ( rect.right == x ) {
-					rect.right = x + 1;
-					rt |= 3;
-				} else {
-					if ( rect.left < rect.right ) {
-						if ( dm ) {
-							rect.left  *= 2;
-							rect.right *= 2;
-						}
-						m_pDocument->UpdateAllViews(NULL, UPDATE_BLINKRECT, (CObject *)&rect);
-					}
-					rect.left  = x;
-					rect.right = x + 1;
-					rt |= 3;
-				}
-				id = vp->m_Vram.pack.image.id;
-			} else
-				id = (-1);
-			vp++;
-		}
-		if ( (rt & 1) != 0 ) {
-			if ( dm ) {
-				rect.left  *= 2;
-				rect.right *= 2;
-			}
-			m_pDocument->UpdateAllViews(NULL, UPDATE_BLINKRECT, (CObject *)&rect);
-			rt &= 0xFE;
-		}
-	}
-	return rt;
 }
 
 //////////////////////////////////////////////////////////////////////

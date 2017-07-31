@@ -602,6 +602,9 @@ void CPaneFrame::SetBuffer(CBuffer *buf, BOOL bEntry)
 			if ( pWnd != NULL ) {
 				CRLoginDoc *pDoc = (CRLoginDoc *)(pWnd->GetActiveDocument());
 				if ( pDoc != NULL ) {
+					// 現在のタイトルを保存
+					if ( !pDoc->m_TitleName.IsEmpty() )
+						pDoc->m_TextRam.m_TitleName = pDoc->m_TitleName;
 					pDoc->SetEntryProBuffer();
 					pEntry = &(pDoc->m_ServerEntry);
 					pEntry->m_DocType = DOCTYPE_MULTIFILE;
@@ -776,6 +779,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_WM_CHANGECBCHAIN()
 	ON_WM_CLIPBOARDUPDATE()
 	ON_WM_MOVING()
+	ON_WM_GETMINMAXINFO()
 
 	ON_MESSAGE(WM_SOCKSEL, OnWinSockSelect)
 	ON_MESSAGE(WM_GETHOSTADDR, OnGetHostAddr)
@@ -831,7 +835,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_COMMAND(IDM_TOOLCUST, &CMainFrame::OnToolcust)
 	ON_COMMAND(IDM_CLIPCHAIN, &CMainFrame::OnClipchain)
 	ON_UPDATE_COMMAND_UI(IDM_CLIPCHAIN, &CMainFrame::OnUpdateClipchain)
-	ON_WM_GETMINMAXINFO()
+	ON_COMMAND(IDM_DELOLDENTRYTAB, OnDeleteOldEntry)
+
 END_MESSAGE_MAP()
 
 static const UINT indicators[] =
@@ -882,6 +887,8 @@ CMainFrame::CMainFrame()
 	m_ScreenDpiX = m_ScreenDpiY = 96;
 	m_bGlassStyle = FALSE;
 	m_UseBitmapUpdate = FALSE;
+	m_bClipThreadCount = 0;
+	m_ClipTimer = 0;
 }
 
 CMainFrame::~CMainFrame()
@@ -1039,7 +1046,7 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		} else {
 			m_bClipChain = TRUE;
 			m_hNextClipWnd = SetClipboardViewer();
-			SetTimer(TIMERID_CLIPUPDATE, 60000, NULL);
+			m_ClipTimer = SetTimer(TIMERID_CLIPUPDATE, 60000, NULL);
 		}
 	}
 
@@ -1681,6 +1688,20 @@ void CMainFrame::ActiveChild(CWnd *pWnd)
 	m_pTopPane->Dump();
 #endif
 }
+BOOL CMainFrame::IsWindowPanePoint(CPoint point)
+{
+	if ( m_pTopPane == NULL )
+		return FALSE;
+
+	point.y -= m_Frame.top;
+
+	CPaneFrame *pPane = m_pTopPane->HitTest(point);
+
+	if ( pPane == NULL || pPane->m_Style != PANEFRAME_WINDOW )
+		return FALSE;
+
+	return TRUE;
+}
 void CMainFrame::MoveChild(CWnd *pWnd, CPoint point)
 {
 	if ( m_pTopPane == NULL )
@@ -1910,34 +1931,42 @@ void CMainFrame::SetClipBoardMenu(UINT nId, CMenu *pMenu)
 }
 BOOL CMainFrame::CopyClipboardData(CString &str)
 {
-	int len, max;
+	int len, max = 0;
 	HGLOBAL hData;
 	WCHAR *pData = NULL;
+	BOOL ret = FALSE;
+
+	// 10msロック出来るまで待つ
+	if ( !m_OpenClipboardLock.Lock(10) )
+		return FALSE;
 
 	if ( !IsClipboardFormatAvailable(CF_UNICODETEXT) )
-		return FALSE;
+		goto UNLOCKRET;
 
 	if ( !OpenClipboard() )
-		return FALSE;
+		goto UNLOCKRET;
 
-	if ( (hData = GetClipboardData(CF_UNICODETEXT)) == NULL ) {
-		CloseClipboard();
-		return FALSE;
-	}
+	if ( (hData = GetClipboardData(CF_UNICODETEXT)) == NULL )
+		goto CLOSERET;
 
-	if ( (pData = (WCHAR *)GlobalLock(hData)) == NULL ) {
-		CloseClipboard();
-		return FALSE;
-	}
+	if ( (pData = (WCHAR *)GlobalLock(hData)) == NULL )
+		goto CLOSERET;
 
 	str.Empty();
 	max = (int)GlobalSize(hData) / sizeof(WCHAR);
+
 	for ( len = 0 ; len < max && len < (256 * 1024) && *pData != L'\0' && *pData != L'\x1A' ; len++ )
 		str += *(pData++);
 
 	GlobalUnlock(hData);
+	ret = TRUE;
+
+CLOSERET:
 	CloseClipboard();
-	return TRUE;
+
+UNLOCKRET:
+	m_OpenClipboardLock.Unlock();
+	return ret;
 }
 static UINT CopyClipboardThead(LPVOID pParam)
 {
@@ -1945,15 +1974,21 @@ static UINT CopyClipboardThead(LPVOID pParam)
 	CString *pStr = new CString;
 	CMainFrame *pWnd = (CMainFrame *)pParam;
 
-	for ( n = 0 ; n < 10 ; n++ ) {
+	for ( n = 0 ; ; n++ ) {
 		if ( pWnd->CopyClipboardData(*pStr) ) {
 			pWnd->PostMessage(WM_GETCLIPBOARD, NULL, (LPARAM)pStr);
-			return 0;
+			break;
 		}
+
+		if ( n >= 10 ) {
+			delete pStr;
+			break;
+		}
+
 		Sleep(100);
 	}
 
-	delete pStr;
+	pWnd->m_bClipThreadCount--;
 	return 0;
 }
 BOOL CMainFrame::SetClipboardText(LPCTSTR str)
@@ -1961,11 +1996,22 @@ BOOL CMainFrame::SetClipboardText(LPCTSTR str)
 	HGLOBAL hData;
 	LPTSTR pData;
 
-	if ( (hData = GlobalAlloc(GMEM_MOVEABLE, (_tcslen(str) + 1) * sizeof(TCHAR))) == NULL )
+	// 500msロック出来るまで待つ
+	if ( !m_OpenClipboardLock.Lock(500) ) {
+		MessageBox(_T("Clipboard Busy..."));
 		return FALSE;
+	}
+
+	if ( (hData = GlobalAlloc(GMEM_MOVEABLE, (_tcslen(str) + 1) * sizeof(TCHAR))) == NULL ) {
+		m_OpenClipboardLock.Unlock();
+		MessageBox(_T("Global Alloc Error"));
+		return FALSE;
+	}
 
 	if ( (pData = (TCHAR *)GlobalLock(hData)) == NULL ) {
 		GlobalFree(hData);
+		m_OpenClipboardLock.Unlock();
+		MessageBox(_T("Global Lock Error"));
 		return FALSE;
 	}
 
@@ -1978,6 +2024,7 @@ BOOL CMainFrame::SetClipboardText(LPCTSTR str)
 	for ( int n = 0 ; !OpenClipboard() ; n++ ) {
 		if ( n >= 10 ) {
 			GlobalFree(hData);
+			m_OpenClipboardLock.Unlock();
 			MessageBox(_T("Clipboard Open Error"));
 			return FALSE;
 		}
@@ -1987,6 +2034,7 @@ BOOL CMainFrame::SetClipboardText(LPCTSTR str)
 	if ( !EmptyClipboard() ) {
 		GlobalFree(hData);
 		CloseClipboard();
+		m_OpenClipboardLock.Unlock();
 		MessageBox(_T("Clipboard Empty Error"));
 		return FALSE;
 	}
@@ -1998,11 +2046,13 @@ BOOL CMainFrame::SetClipboardText(LPCTSTR str)
 #endif
 		GlobalFree(hData);
 		CloseClipboard();
+		m_OpenClipboardLock.Unlock();
 		MessageBox(_T("Clipboard Set Data Error"));
 		return FALSE;
 	}
 
 	CloseClipboard();
+	m_OpenClipboardLock.Unlock();
 	return TRUE;
 }
 BOOL CMainFrame::GetClipboardText(CString &str)
@@ -2447,8 +2497,10 @@ void CMainFrame::OnTimer(UINT_PTR nIDEvent)
 		if ( m_bClipChain ) {
 			ChangeClipboardChain(m_hNextClipWnd);
 			m_hNextClipWnd = SetClipboardViewer();
-		} else
+		} else {
 			KillTimer(nIDEvent);
+			m_ClipTimer = 0;
+		}
 
 	} else {
 		for ( tp = m_pTimerUsedId ; tp != NULL ; tp = tp->m_pList ) {
@@ -3085,7 +3137,7 @@ CBitmap *CMainFrame::GetMenuBitmap(UINT nId)
 void CMainFrame::OnEnterMenuLoop(BOOL bIsTrackPopupMenu)
 {
 	int n, a;
-	CMenu *pMenu;
+	CMenu *pMenu, *pSubMenu;
 	CRLoginDoc *pDoc;
 	CString str;
 
@@ -3108,6 +3160,14 @@ void CMainFrame::OnEnterMenuLoop(BOOL bIsTrackPopupMenu)
 			m_DefKeyTab.m_Cmds[n].m_Text = str;
 			m_DefKeyTab.m_Cmds[n].SetMenu(pMenu);
 		}
+	}
+	
+	// Add Old ServerEntryTab Delete Menu
+	if ( (pSubMenu = CMenuLoad::GetItemSubMenu(IDM_PASSWORDLOCK, pMenu)) != NULL ) {
+		pSubMenu->DeleteMenu(IDM_DELOLDENTRYTAB, MF_BYCOMMAND);
+
+		if ( ((CRLoginApp *)AfxGetApp())->AliveProfileKeys(_T("ServerEntryTab")) )
+			pSubMenu->AppendMenu(MF_STRING, IDM_DELOLDENTRYTAB, CStringLoad(IDS_DELOLDENTRYMENU));
 	}
 
 	SetMenuBitmap(pMenu);
@@ -3298,8 +3358,10 @@ void CMainFrame::OnDrawClipboard()
 
 	m_bClipEnable = TRUE;	// クリップボードチェインが有効？
 
-//	PostMessage(WM_GETCLIPBOARD, (WPARAM)TRUE);
-	AfxBeginThread(CopyClipboardThead, this, THREAD_PRIORITY_LOWEST);
+	if ( m_bClipThreadCount < CLIPOPENTHREADMAX  ) {
+		m_bClipThreadCount++;
+		AfxBeginThread(CopyClipboardThead, this, THREAD_PRIORITY_NORMAL);
+	}
 }
 void CMainFrame::OnChangeCbChain(HWND hWndRemove, HWND hWndAfter)
 {
@@ -3314,8 +3376,27 @@ void CMainFrame::OnClipboardUpdate()
 {
 	m_bClipEnable = TRUE;	// クリップボードチェインが有効？
 
-//	PostMessage(WM_GETCLIPBOARD, (WPARAM)TRUE);
-	AfxBeginThread(CopyClipboardThead, this, THREAD_PRIORITY_LOWEST);
+	// 本来ならここでOpenClipboardなどのクリップボードにアクセスすれば良いと思うのだが
+	// リモートディスクトップをRLogin上のポートフォワードで実行するとGetClipboardDataで
+	// デッドロックが起こってしまう。
+
+	// その対応で別スレッドでクリップボードのアクセスを行っているがExcel2010などでクリ
+	// ップボードのコピーを多数行った場合などにこのOnClipboardUpdateがかなりの頻度で送
+	// られるようになりスレッドが重複して起動する
+
+	// OpenClipboardでは、同じウィンドウでのオープンをブロックしないようで妙な動作が確
+	// 認できた（Open->Open->Close->Closeで先のCloseで解放され、後のCloseは無視される)
+	// GlobalLockしているメモリハンドルがUnlock前に解放される症状が出た
+
+	// メインウィンドウでのアクセスはCMutexLockをOpenClipbardの前に行うよう
+	// にした。別スレッドのクリップボードアクセスは、問題が多いと思う
+
+	// かなりややこしい動作なのでここにメモを残す
+
+	if ( m_bClipThreadCount < CLIPOPENTHREADMAX  ) {
+		m_bClipThreadCount++;
+		AfxBeginThread(CopyClipboardThead, this, THREAD_PRIORITY_NORMAL);
+	}
 }
 
 void CMainFrame::OnToolcust()
@@ -3341,7 +3422,10 @@ void CMainFrame::OnClipchain()
 			if ( ExRemoveClipboardFormatListener != NULL )
 				ExRemoveClipboardFormatListener(m_hWnd);
 		} else {
-			KillTimer(TIMERID_CLIPUPDATE);
+			if ( m_ClipTimer != 0 ) {
+				KillTimer(m_ClipTimer);
+				m_ClipTimer = 0;
+			}
 			ChangeClipboardChain(m_hNextClipWnd);
 		}
 
@@ -3355,7 +3439,7 @@ void CMainFrame::OnClipchain()
 			m_bClipChain = FALSE;
 		} else {
 			m_hNextClipWnd = SetClipboardViewer();
-			SetTimer(TIMERID_CLIPUPDATE, 60000, NULL);
+			m_ClipTimer = SetTimer(TIMERID_CLIPUPDATE, 60000, NULL);
 			m_bClipChain = TRUE;
 		}
 	}
@@ -3409,4 +3493,9 @@ void CMainFrame::OnGetMinMaxInfo(MINMAXINFO* lpMMI)
 	lpMMI->ptMinTrackSize.y = cy;
 
 	CMDIFrameWnd::OnGetMinMaxInfo(lpMMI);
+}
+void CMainFrame::OnDeleteOldEntry()
+{
+	if ( ::AfxMessageBox(IDS_DELOLDENTRYMSG, MB_ICONQUESTION | MB_YESNO) == IDYES )
+		((CRLoginApp *)AfxGetApp())->DelProfileSection(_T("ServerEntryTab"));
 }

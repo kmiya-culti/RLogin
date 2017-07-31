@@ -1546,13 +1546,11 @@ void CRLoginApp::OnSendBroadCast(COPYDATASTRUCT *pCopyData)
 void CRLoginApp::OnSendGroupCast(COPYDATASTRUCT *pCopyData)
 {
 	CString group;
-	CStringA mbs;
 	CBuffer tmp, buf;
 
 	tmp.Apend((LPBYTE)(pCopyData->lpData), pCopyData->cbData);
-	tmp.GetStr(mbs);
+	tmp.GetStrT(group);
 	tmp.GetBuf(&buf);
-	group = MbsToTstr(mbs);
 
 	POSITION pos = GetFirstDocTemplatePosition();
 	while ( pos != NULL ) {
@@ -1578,7 +1576,7 @@ void CRLoginApp::SendBroadCast(CBuffer &buf, LPCTSTR pGroup)
 		copyData.cbData = buf.GetSize();
 		copyData.lpData = buf.GetPtr();
 	} else {
-		tmp.PutStr(TstrToMbs(pGroup));
+		tmp.PutStrT(pGroup);
 		tmp.PutBuf(buf.GetPtr(), buf.GetSize());
 		copyData.dwData = 0x524c4f36;
 		copyData.cbData = tmp.GetSize();
@@ -1694,26 +1692,23 @@ void CRLoginApp::GetProfileBuffer(LPCTSTR lpszSection, LPCTSTR lpszEntry, CBuffe
 void CRLoginApp::GetProfileStringArray(LPCTSTR lpszSection, LPCTSTR lpszEntry, CStringArrayExt &stra)
 {
 	CBuffer buf;
-	CStringA mbs;
+	CString str;
 
 	GetProfileBuffer(lpszSection, lpszEntry, buf);
 
 	stra.RemoveAll();
 	while ( buf.GetSize() > 4 ) {
-		buf.GetStr(mbs);
-		stra.Add(MbsToTstr(mbs));
+		buf.GetStrT(str);
+		stra.Add(str);
 	}
 }
 void CRLoginApp::WriteProfileStringArray(LPCTSTR lpszSection, LPCTSTR lpszEntry, CStringArrayExt &stra)
 {
 	int n;
 	CBuffer buf;
-	CStringA mbs;
 
-	for ( n = 0 ; n < stra.GetSize() ; n++ ) {
-		mbs = TstrToMbs(stra[n]);
-		buf.PutStr(mbs);
-	}
+	for ( n = 0 ; n < stra.GetSize() ; n++ )
+		buf.PutStrT(stra[n]);
 
 	WriteProfileBinary(lpszSection, lpszEntry, buf.GetPtr(), buf.GetSize());
 }
@@ -1744,7 +1739,7 @@ void CRLoginApp::WriteProfileArray(LPCTSTR lpszSection, CStringArrayExt &stra)
 }
 int CRLoginApp::GetProfileSeqNum(LPCTSTR lpszSection, LPCTSTR lpszEntry)
 {
-	CMutexLock Mutex(lpszEntry);
+	CMutexLock Mutex(lpszSection);
 	int num = GetProfileInt(lpszSection, lpszEntry, 0) ;
 	WriteProfileInt(lpszSection, lpszEntry, num + 1);
 	return num;
@@ -1802,6 +1797,42 @@ void CRLoginApp::DelProfileEntry(LPCTSTR lpszSection, LPCTSTR lpszEntry)
 	} else {
 		WritePrivateProfileString(lpszSection, lpszEntry, NULL, m_pszProfileName);
 	}
+}
+void CRLoginApp::DelProfileSection(LPCTSTR lpszSection)
+{
+	if ( m_pszRegistryKey != NULL ) {
+		HKEY hAppKey;
+		if ( (hAppKey = GetAppRegistryKey()) == NULL )
+			return;
+		RegDeleteKey(hAppKey, lpszSection);
+		RegCloseKey(hAppKey);
+
+	} else {
+		WritePrivateProfileString(lpszSection, NULL, NULL, m_pszProfileName);
+	}
+}
+BOOL CRLoginApp::AliveProfileKeys(LPCTSTR lpszSection)
+{
+	BOOL rt = FALSE;
+
+	if ( m_pszRegistryKey != NULL ) {
+		HKEY hAppKey;
+		if ( (hAppKey = GetAppRegistryKey()) != NULL ) {
+			HKEY hSecKey;
+			if ( RegOpenKeyEx(hAppKey, lpszSection, 0, KEY_READ, &hSecKey) == ERROR_SUCCESS && hSecKey != NULL ) {
+				rt = TRUE;
+				RegCloseKey(hSecKey);
+			}
+			RegCloseKey(hAppKey);
+		}
+
+	} else {
+		TCHAR tmp[256];
+		if ( GetPrivateProfileSection(lpszSection, tmp, 256, m_pszProfileName) != 0 )
+			rt = TRUE;
+	}
+
+	return rt;
 }
 
 void CRLoginApp::RegisterShellProtocol(LPCTSTR pSection, LPCTSTR pOption)
@@ -1925,7 +1956,7 @@ void CRLoginApp::RegisterSave(HKEY hKey, LPCTSTR pSection, CBuffer &buf)
 
 	buf.Put32Bit((int)menba.GetSize());
 	for ( n = 0 ; n < menba.GetSize() ; n++ ) {
-		buf.PutStr(TstrToMbs(menba[n]));
+		buf.PutStrT(menba[n]);
 		RegisterSave(reg.m_hKey, menba[n], buf);
 	}
 
@@ -1938,7 +1969,6 @@ void CRLoginApp::RegisterLoad(HKEY hKey, LPCTSTR pSection, CBuffer &buf)
 	DWORD type;
 	CString name;
 	CBuffer work;
-	CStringA mbs;
 
 	if ( buf.GetSize() < 4 )
 		return;
@@ -1952,8 +1982,7 @@ void CRLoginApp::RegisterLoad(HKEY hKey, LPCTSTR pSection, CBuffer &buf)
 
 	len = buf.Get32Bit();
 	for ( n = 0 ; n < len ; n++ ) {
-		buf.GetStr(mbs);
-		name = mbs;
+		buf.GetStrT(name);
 		RegisterLoad(reg.m_hKey, name, buf);
 	}
 
@@ -2198,6 +2227,9 @@ BOOL CRLoginApp::OnIdle(LONG lCount)
 			break;
 		case IDLEPROC_SCRIPT:
 			rt = ((CScript *)(pProc->m_pParam))->OnIdle();
+			break;
+		case IDLEPROC_VIEW:
+			rt = ((CRLoginView *)(pProc->m_pParam))->OnIdle();
 			break;
 		}
 

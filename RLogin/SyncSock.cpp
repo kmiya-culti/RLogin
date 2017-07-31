@@ -12,6 +12,8 @@
 #include "ExtSocket.h"
 #include "SyncSock.h"
 
+#include <mbctype.h>
+
 #ifdef _DEBUG
 #undef THIS_FILE
 static char THIS_FILE[]=__FILE__;
@@ -34,6 +36,7 @@ CSyncSock::CSyncSock(class CRLoginDoc *pDoc, CWnd *pWnd)
 	m_pParamEvent  = new CEvent(FALSE, TRUE);
 	m_ResvDoit = FALSE;
 	m_IsAscii = FALSE;
+	m_bUseWrite = FALSE;
 	m_LastUpdate = clock();
 }
 
@@ -476,12 +479,28 @@ FILE *CSyncSock::FileOpen(LPCTSTR filename, LPCSTR mode, BOOL ascii)
 	m_OutBuf.Clear();
 	m_IConv.IConvClose();
 	m_HostCode = m_pDoc->m_TextRam.m_SendCharSet[m_pDoc->m_TextRam.m_KanjiMode];
+	m_bUseWrite = FALSE;
 	return _tfopen(filename, MbsToTstr(mode));
 }
 void CSyncSock::FileClose(FILE *fp)
 {
-	if ( m_IConv.m_ErrCount > 0 || m_InBuf.GetSize() > 0 )
+	int n;
+	CStringA mbs;
+	CBuffer work;
+
+	if ( m_bUseWrite && m_InBuf.GetSize() > 0 ) {
+		m_IConv.IConvSub(m_HostCode, _T("UTF-16LE"), &m_InBuf, &work);
+
+		mbs = (LPCWSTR)work;
+		m_OutBuf.Apend((LPBYTE)(LPCSTR)mbs, mbs.GetLength());
+
+		if ( (n = (int)fwrite(m_OutBuf.GetPtr(), 1, m_OutBuf.GetSize(), fp)) > 0 )
+			m_OutBuf.Consume(n);
+	}
+
+	if ( m_IConv.m_ErrCount > 0 || m_InBuf.GetSize() > 0 || m_OutBuf.GetSize() > 0 )
 		NoWaitMessage(TstrToMbs(CStringLoad(IDE_KANJICONVERROR)));
+
 	fclose(fp);
 }
 int CSyncSock::ReadCharToHost(FILE *fp)
@@ -500,6 +519,8 @@ int CSyncSock::ReadFileToHost(char *buf, int len, FILE *fp)
 {
 	int n, i;
 	char tmp[4096];
+	CBuffer work;
+	CStringW str;
 
 	if ( !m_IsAscii )
 		return (int)fread(buf, 1, len, fp);
@@ -507,11 +528,28 @@ int CSyncSock::ReadFileToHost(char *buf, int len, FILE *fp)
 	while ( m_OutBuf.GetSize() < len && !feof(fp) ) {
 		if ( (n = (int)fread(tmp, 1, 4096, fp)) <= 0 )
 			break;
+
 		for ( i = 0 ; i < n ; i++ ) {
-			if ( tmp[i] != '\r' )
+			if ( tmp[i] == '\n' ) {
+				m_InBuf.Put8Bit(tmp[i]);
+
+				str = (LPCSTR)m_InBuf;
+				m_InBuf.Clear();
+
+				work.Apend((LPBYTE)(LPCWSTR)str, str.GetLength() * sizeof(WCHAR));
+				m_IConv.IConvSub(_T("UTF-16LE"), m_HostCode, &work, &m_OutBuf);
+
+			} else if ( tmp[i] != '\r' )
 				m_InBuf.Put8Bit(tmp[i]);
 		}
-		m_IConv.IConvSub(_T("CP932"), m_HostCode, &m_InBuf, &m_OutBuf);
+	}
+
+	if ( feof(fp) && m_InBuf.GetSize() > 0 ) {
+		str = (LPCSTR)m_InBuf;
+		m_InBuf.Clear();
+
+		work.Apend((LPBYTE)(LPCWSTR)str, str.GetLength() * sizeof(WCHAR));
+		m_IConv.IConvSub(_T("UTF-16LE"), m_HostCode, &work, &m_OutBuf);
 	}
 
 	if ( (n = (m_OutBuf.GetSize() < len ? m_OutBuf.GetSize() : len)) > 0 ) {
@@ -524,6 +562,8 @@ int CSyncSock::ReadFileToHost(char *buf, int len, FILE *fp)
 int CSyncSock::WriteFileFromHost(char *buf, int len, FILE *fp)
 {
 	int n;
+	CBuffer work;
+	CStringA mbs;
 
 	if ( !m_IsAscii )
 		return (int)fwrite(buf, 1, len, fp);
@@ -532,10 +572,18 @@ int CSyncSock::WriteFileFromHost(char *buf, int len, FILE *fp)
 		if ( buf[n] == '\n' ) {
 			m_InBuf.Put8Bit('\r');
 			m_InBuf.Put8Bit('\n');
+
+			work.Clear();
+			m_IConv.IConvSub(m_HostCode, _T("UTF-16LE"), &m_InBuf, &work);
+
+			mbs = (LPCWSTR)work;
+			m_OutBuf.Apend((LPBYTE)(LPCSTR)mbs, mbs.GetLength());
+
 		} else if ( buf[n] != '\r' )
 			m_InBuf.Put8Bit(buf[n]);
+
+		m_bUseWrite = TRUE;
 	}
-	m_IConv.IConvSub(m_HostCode, _T("CP932"), &m_InBuf, &m_OutBuf);
 
 	if ( (n = (int)fwrite(m_OutBuf.GetPtr(), 1, m_OutBuf.GetSize(), fp)) > 0 )
 		m_OutBuf.Consume(n);
