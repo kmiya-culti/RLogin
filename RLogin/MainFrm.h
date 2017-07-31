@@ -117,6 +117,7 @@ public:
 	HICON m_hIconActive;
 	NOTIFYICONDATA m_IconData;
 	CImageList m_ImageList[3];
+	CImageList m_ImageGozi;
 	CPtrArray m_SocketParam;
 	CPtrArray m_HostAddrParam;
 	CServerEntryTab m_ServerEntryTab;

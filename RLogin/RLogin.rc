@@ -87,6 +87,7 @@ IDB_ATTR5               BITMAP                  "res\\attr5.bmp"
 IDB_ATTR6               BITMAP                  "res\\attr6.bmp"
 IDB_ATTR7               BITMAP                  "res\\attr7.bmp"
 IDB_ATTR8               BITMAP                  "res\\attr8.bmp"
+IDB_BITMAP8             BITMAP                  "res\\bitmap8.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -245,6 +246,7 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "Tekウィンドウ(&K)",                IDM_TEKDISP
         MENUITEM "ソケットステータス",                   IDM_SOCKETSTATUS
+        MENUITEM "Goziを飼う",                     ID_GOZIVIEW
         MENUITEM SEPARATOR
         MENUITEM "オプション設定(&P)",                 ID_SETOPTION
         MENUITEM "標準の設定に戻す",                    IDC_LOADDEFAULT
@@ -428,7 +430,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.13.4 (2012/12/21)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.13.5 (2012/12/25)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2012 Culti",IDC_STATIC,47,15,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,148,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.1c May 10th, 2012",IDC_STATIC,47,29,176,8
@@ -1363,8 +1365,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,13,4,0
- PRODUCTVERSION 2,13,4,0
+ FILEVERSION 2,13,5,0
+ PRODUCTVERSION 2,13,5,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1381,12 +1383,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.13.4.0"
+            VALUE "FileVersion", "2.13.5.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2012 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.13.4.0"
+            VALUE "ProductVersion", "2.13.5.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2672,6 +2674,7 @@ END
 STRINGTABLE
 BEGIN
     ID_VIEW_SCROLLBAR       "スクロールバーの表示/非表示\nスクロールバーの表示切り替え"
+    ID_GOZIVIEW             "Goziを飼う\nGozi"
 END
 
 STRINGTABLE

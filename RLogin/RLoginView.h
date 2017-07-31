@@ -71,6 +71,11 @@ public:
 
 	class CGhostWnd *m_pGhost;
 
+	BOOL m_GoziView;
+	int m_GoziStyle;
+	int m_GoziCount;
+	CPoint m_GoziPos;
+
 #ifdef	USE_DIRECTWRITE
 	ID2D1HwndRenderTarget *m_pRenderTarget;
 #endif
@@ -149,6 +154,8 @@ protected:
 	afx_msg void OnSearchReg();
 	afx_msg void OnSearchBack();
 	afx_msg void OnSearchNext();
+	afx_msg void OnGoziview();
+	afx_msg void OnUpdateGoziview(CCmdUI *pCmdUI);
 	DECLARE_MESSAGE_MAP()
 };
 

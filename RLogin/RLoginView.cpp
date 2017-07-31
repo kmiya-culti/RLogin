@@ -73,6 +73,8 @@ BEGIN_MESSAGE_MAP(CRLoginView, CView)
 	ON_COMMAND(IDM_SEARCH_REG, &CRLoginView::OnSearchReg)
 	ON_COMMAND(IDM_SEARCH_NEXT, &CRLoginView::OnSearchNext)
 	ON_COMMAND(IDM_SEARCH_BACK, &CRLoginView::OnSearchBack)
+	ON_COMMAND(ID_GOZIVIEW, &CRLoginView::OnGoziview)
+	ON_UPDATE_COMMAND_UI(ID_GOZIVIEW, &CRLoginView::OnUpdateGoziview)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -103,6 +105,10 @@ CRLoginView::CRLoginView()
 	m_WheelDelta = 0;
 	m_WheelTimer = FALSE;
 	m_pGhost = NULL;
+	m_GoziView  = FALSE;
+	m_GoziStyle = (8 << 4) | 9;
+	m_GoziCount = 32;
+	m_GoziPos.SetPoint(0, 0);
 
 #ifdef	USE_DIRECTWRITE
 	m_pRenderTarget = NULL;
@@ -225,6 +231,11 @@ void CRLoginView::OnDraw(CDC* pDC)
 		}
 	}
 #endif
+	if ( m_GoziView ) {
+		CMainFrame *pMain = GetMainWnd();
+		if ( pMain != NULL && pMain->m_ImageGozi.m_hImageList != NULL )
+			pMain->m_ImageGozi.Draw(pDC, m_GoziStyle >> 4, m_GoziPos, ILD_NORMAL);
+	}
 
 	if ( (m_DispCaret & FGCARET_CREATE) != 0 )
 		ShowCaret();
@@ -1181,7 +1192,12 @@ void CRLoginView::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 
 void CRLoginView::OnTimer(UINT_PTR nIDEvent) 
 {
+	int style, anime, move;
+	CRect rect;
 	CRLoginDoc *pDoc = GetDocument();
+
+	ASSERT(pDoc != NULL);
+	ASSERT(m_hWnd != NULL);
 
 	CView::OnTimer(nIDEvent);
 
@@ -1219,6 +1235,76 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 		}
 
 		OnUpdate(this, UPDATE_INVALIDATE, NULL);
+		break;
+	case 1028:		// Gozi Timer
+		rect.SetRect(m_GoziPos.x, m_GoziPos.y, m_GoziPos.x + 32, m_GoziPos.y + 32);
+		InvalidateRect(rect, FALSE);
+
+		if ( !m_GoziView ) {
+			KillTimer(1028);
+			break;
+		}
+
+		move  = m_GoziStyle & 0x0F;
+		style = m_GoziStyle >> 4;
+		anime = style & 3;
+		style &= ~3;
+
+		if ( (move & 1) != 0 ) m_GoziPos.x += 8;
+		if ( (move & 2) != 0 ) m_GoziPos.x -= 8;
+		if ( (move & 4) != 0 ) m_GoziPos.y += 8;
+		if ( (move & 8) != 0 ) m_GoziPos.y -= 8;
+
+		if ( m_GoziPos.x < 0 ) { m_GoziPos.x = 0; move ^=  3; }
+		if ( m_GoziPos.y < 0 ) { m_GoziPos.y = 0; move ^= 12; }
+
+		GetClientRect(rect);
+		if ( (m_GoziPos.x + 32) > rect.right  ) { m_GoziPos.x = rect.right  - 32; move ^= 3; }
+		if ( (m_GoziPos.y + 32) > rect.bottom ) { m_GoziPos.y = rect.bottom - 32; move ^= 12; }
+
+		if ( --m_GoziCount < 0 ) {
+			m_GoziCount = 4 + rand() % 28;
+			move = rand() % 16;
+		}
+
+		// 0-3=Down, 4-7=Up, 8-11=Right, 12-15=Left, 16-19=SRight, 20-23=SLeft, 24-27=SFire 
+		switch(move) {
+		case  0: style = 16; break; // -	-
+		case  1: style =  8; break; // -	Right
+		case  2: style = 12; break; // -	Left
+		case  3: style = 16; break; // -	-
+		case  4: style =  4; break; // Up	-
+		case  5: style =  8; break; // Up	Right
+		case  6: style = 12; break; // Up	Left
+		case  7: style =  4; break; // Up	-
+		case  8: style =  0; break; // Down -
+		case  9: style =  8; break; // Down Right
+		case 10: style = 12; break; // Down Left
+		case 11: style =  0; break; // Down -
+		case 12: style = 20; break; // -	-
+		case 13: style =  8; break; // -	Right
+		case 14: style = 12; break;	// -	Left
+		case 15: style = 24; break;	// -	-
+		}
+
+		if ( style == 24 && pDoc != NULL && pDoc->m_TextRam.IsInitText() ) {
+			int x, y;
+			CVram *vp;
+			CalcGrapPoint(m_GoziPos, &x, &y);
+			x -= (rand() % 6);
+			y += (rand() % 4);
+			if ( x > 0 && x < m_Cols && y < m_Lines ) {
+				pDoc->m_TextRam.GETVRAM(x, y )->pr.bc = 1 + (rand() % 3) * 2;	// 1,3,5
+				CRect rect(x, y, x + 1, y + 1);
+				InvalidateTextRect(rect);
+			}
+		}
+
+		if ( ++anime > 3 ) anime = 0;
+		m_GoziStyle = ((style + anime) << 4) | move;
+
+		rect.SetRect(m_GoziPos.x, m_GoziPos.y, m_GoziPos.x + 32, m_GoziPos.y + 32);
+		InvalidateRect(rect, FALSE);
 		break;
 	}
 }
@@ -1879,4 +1965,18 @@ void CRLoginView::OnSearchNext()
 			break;
 		}
 	}
+}
+
+void CRLoginView::OnGoziview()
+{
+	if ( m_GoziView ) {
+		m_GoziView = FALSE;
+	} else {
+		m_GoziView = TRUE;
+		SetTimer(1028, 400, NULL);
+	}
+}
+void CRLoginView::OnUpdateGoziview(CCmdUI *pCmdUI)
+{
+	pCmdUI->SetCheck(m_GoziView);
 }

@@ -673,6 +673,11 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_wndToolBar.SendMessage(TB_SETHOTIMAGELIST,		0, (LPARAM)(m_ImageList[1].m_hImageList));
 	m_wndToolBar.SendMessage(TB_SETDISABLEDIMAGELIST,	0, (LPARAM)(m_ImageList[2].m_hImageList));
 
+	BitMap.LoadBitmap(IDB_BITMAP8);
+	m_ImageGozi.Create(32, 32, ILC_COLOR24 | ILC_MASK, 28, 10);
+	m_ImageGozi.Add(&BitMap, RGB(192, 192, 192));
+	BitMap.DeleteObject();
+
 	int n, i, id, x, y;
 	CMenuBitMap *pMap;
 	CDC dc[2];
