@@ -53,6 +53,7 @@
 #define IDD_OPTDLG                      149
 #define IDD_DIALOG1                     150
 #define IDD_BLOCKDLG                    150
+#define IDD_ISO646DLG                   151
 #define IDR_GRAPWND                     300
 #define IDR_MAINFRAME                   301
 #define IDR_POPUPMENU                   302
@@ -351,6 +352,8 @@
 #define IDC_GROUP                       2141
 #define IDC_UNIBLOCK                    2141
 #define IDC_HISFILE_PATH                2142
+#define IDC_UNIBLOCK2                   2142
+#define IDC_ISO646SET                   2142
 #define IDC_HISFILE_SEL                 2143
 #define IDC_HISMAX                      2144
 #define IDC_HOSTADDR                    2145
@@ -594,6 +597,45 @@
 #define IDC_REGEXSERCH                  2382
 #define IDC_FONTSAMPLE                  2383
 #define IDC_PREVIEWBOX                  2384
+#define IDC_SCROLLBAR1                  2385
+#define IDC_FONTSET                     2386
+#define IDC_DISPSET                     2387
+#define IDC_FONTVIEW1                   2388
+#define IDC_FONTVIEW2                   2389
+#define IDC_FONTVIEW3                   2390
+#define IDC_FONTVIEW4                   2391
+#define IDC_FONTVIEW5                   2392
+#define IDC_FONTVIEW6                   2393
+#define IDC_FONTVIEW7                   2394
+#define IDC_FONTVIEW8                   2395
+#define IDC_FONTVIEW9                   2396
+#define IDC_FONTVIEW10                  2397
+#define IDC_FONTVIEW11                  2398
+#define IDC_FONTVIEW12                  2399
+#define IDC_FONTVIEW13                  2400
+#define IDC_FONTVIEW14                  2401
+#define IDC_FONTVIEW15                  2402
+#define IDC_FONTVIEW16                  2403
+#define IDC_FONTVIEW17                  2404
+#define IDC_FONTVIEW18                  2405
+#define IDC_FONTVIEW19                  2406
+#define IDC_FONTVIEW20                  2407
+#define IDC_FONTVIEW21                  2408
+#define IDC_FONTVIEW22                  2409
+#define IDC_FONTVIEW23                  2410
+#define IDC_FONTVIEW24                  2411
+#define IDC_CODESET1                    2412
+#define IDC_CODESET2                    2413
+#define IDC_CODESET3                    2414
+#define IDC_CODESET4                    2415
+#define IDC_CODESET5                    2416
+#define IDC_CODESET6                    2417
+#define IDC_CODESET7                    2418
+#define IDC_CODESET8                    2419
+#define IDC_CODESET9                    2420
+#define IDC_CODESET10                   2421
+#define IDC_CODESET11                   2422
+#define IDC_CODESET12                   2423
 #define IDM_BROADCAST                   5000
 #define IDM_CAP_CLIPBORD                5001
 #define IDM_CAP_EXPORT                  5002
@@ -690,9 +732,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        151
+#define _APS_NEXT_RESOURCE_VALUE        153
 #define _APS_NEXT_COMMAND_VALUE         5093
-#define _APS_NEXT_CONTROL_VALUE         2385
+#define _APS_NEXT_CONTROL_VALUE         2413
 #define _APS_NEXT_SYMED_VALUE           541
 #endif
 #endif

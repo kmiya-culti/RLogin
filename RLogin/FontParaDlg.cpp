@@ -6,6 +6,7 @@
 #include "IConv.h"
 #include "FontParaDlg.h"
 #include "BlockDlg.h"
+#include "Iso646Dlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -71,6 +72,7 @@ BEGIN_MESSAGE_MAP(CFontParaDlg, CDialogExt)
 	ON_CBN_SELCHANGE(IDC_CHARSET, &CFontParaDlg::OnCbnSelchangeCharset)
 	ON_CBN_EDITCHANGE(IDC_CHARSET, &CFontParaDlg::OnCbnEditchangeCharset)
 	ON_BN_CLICKED(IDC_UNIBLOCK, &CFontParaDlg::OnBnClickedUniblock)
+	ON_BN_CLICKED(IDC_ISO646SET, &CFontParaDlg::OnBnClickedIso646set)
 END_MESSAGE_MAP()
 
 static const struct _CharSetTab {
@@ -229,6 +231,9 @@ BOOL CFontParaDlg::OnInitDialog()
 	m_EntryName = m_pData->m_EntryName;
 	m_FontQuality = m_pData->m_Quality;
 	m_UniBlock = m_pData->m_UniBlock;
+	m_Iso646Name[0] = m_pData->m_Iso646Name[0];
+	m_Iso646Name[1] = m_pData->m_Iso646Name[1];
+	memcpy(m_Iso646Tab, m_pData->m_Iso646Tab, sizeof(m_Iso646Tab));
 
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_FONTCODE)) != NULL ) {
 		if ( m_CodeTemp.GetLength() == 1 && m_CodeTemp[0] >= _T('a') && m_CodeTemp[0] <= _T('z') )
@@ -265,6 +270,9 @@ void CFontParaDlg::OnOK()
 	m_pData->m_Quality   = m_FontQuality;
 	m_pData->m_IndexName = m_CodeTemp;
 	m_pData->m_UniBlock  = m_UniBlock;
+	m_pData->m_Iso646Name[0] = m_Iso646Name[0];
+	m_pData->m_Iso646Name[1] = m_Iso646Name[1];
+	memcpy(m_pData->m_Iso646Tab, m_Iso646Tab, sizeof(m_Iso646Tab));
 
 	m_FontNameTab[m_FontNum] = m_FontName;
 	for ( int n = 0 ; n < 16 ; n++ ) {
@@ -341,6 +349,7 @@ void CFontParaDlg::OnBnClickedUniblock()
 	CFontNode tmp;
 
 	UpdateData(TRUE);
+
 	tmp = *m_pData;
 	tmp.m_CharSet   = CharSetNo(m_CharSetTemp);
 	tmp.m_Quality   = m_FontQuality;
@@ -356,4 +365,24 @@ void CFontParaDlg::OnBnClickedUniblock()
 
 	if ( dlg.DoModal() == IDOK )
 		m_UniBlock = tmp.m_UniBlock;
+}
+
+void CFontParaDlg::OnBnClickedIso646set()
+{
+	CIso646Dlg dlg;
+
+	UpdateData(TRUE);
+
+	dlg.m_FontName = (m_pTextRam != NULL && m_FontName.IsEmpty() ? m_pTextRam->m_DefFontName[m_FontNum] : m_FontName);
+	dlg.m_CharSet  = CharSetNo(m_CharSetTemp);
+	dlg.m_FontSetName = m_Iso646Name[0];
+	dlg.m_DispSetName = m_Iso646Name[1];
+	memcpy(dlg.m_Iso646Tab, m_Iso646Tab, sizeof(m_Iso646Tab));
+
+	if ( dlg.DoModal() != IDOK )
+		return;
+
+	m_Iso646Name[0] = dlg.m_FontSetName;
+	m_Iso646Name[1] = dlg.m_DispSetName;
+	memcpy(m_Iso646Tab, dlg.m_Iso646Tab, sizeof(m_Iso646Tab));
 }

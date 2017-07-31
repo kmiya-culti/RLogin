@@ -501,7 +501,7 @@ void CCharSetPage::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
 			union { DWORD d; WCHAR c[2]; } wc;
 			if ( (m_ListIndex & SET_MASK) <= SET_96 ) {
 				sample.Empty();
-				for ( LPCSTR p = "012 abcABC \\^|" ; *p != '\0' ; p++ ) {
+				for ( LPCSTR p = "012 abcABC \\|~" ; *p != '\0' ; p++ ) {
 					wc.d = iconv.IConvChar(m_FontTab[m_ListIndex].m_IContName, _T("UTF-16BE"), *p | m_FontTab[m_ListIndex].m_Shift);
 					if ( (wc.d & 0xFFFF0000) != 0 ) {
 						sample += wc.c[1];

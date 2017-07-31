@@ -517,6 +517,20 @@ void CFontNode::Init()
 	}
 	m_MapType     = 0;
 	m_UniBlock    = _T("");
+
+	// ISO646-US/JP				//	US->JP		JP->US
+	m_Iso646Tab[0]  = 0x0023;
+	m_Iso646Tab[1]  = 0x0024;
+	m_Iso646Tab[2]  = 0x0040;
+	m_Iso646Tab[3]  = 0x005B;
+	m_Iso646Tab[4]  = 0x005C;	//	0x00A5		0x2216
+	m_Iso646Tab[5]  = 0x005D;
+	m_Iso646Tab[6]  = 0x005E;
+	m_Iso646Tab[7]  = 0x0060;
+	m_Iso646Tab[8]  = 0x007B;	
+	m_Iso646Tab[9]  = 0x007C;
+	m_Iso646Tab[10] = 0x007D;
+	m_Iso646Tab[11] = 0x007E;	//	0x203E		0x223C
 }
 void CFontNode::SetArray(CStringArrayExt &stra)
 {
@@ -536,6 +550,10 @@ void CFontNode::SetArray(CStringArrayExt &stra)
 	stra.Add(m_IndexName);
 	stra.AddVal(m_OffsetW);
 	stra.Add(m_UniBlock);
+	stra.Add(m_Iso646Name[0]);
+	stra.Add(m_Iso646Name[1]);
+	for ( int n = 0 ; n < 12 ; n++ )
+		stra.AddVal(m_Iso646Tab[n]);
 }
 void CFontNode::GetArray(CStringArrayExt &stra)
 {
@@ -576,6 +594,16 @@ void CFontNode::GetArray(CStringArrayExt &stra)
 
 	if ( stra.GetSize() > (10 + 16) )
 		m_UniBlock = stra.GetAt(10 + 16);
+
+	if ( stra.GetSize() > (11 + 16) )
+		m_Iso646Name[0] = stra.GetAt(11 + 16);
+	if ( stra.GetSize() > (12 + 16) )
+		m_Iso646Name[1] = stra.GetAt(12 + 16);
+
+	for ( int n = 0 ; n < 12 ; n++ ) {				// 29 - 41
+		if ( stra.GetSize() > (13 + 16 + n) )
+			m_Iso646Tab[n] = stra.GetVal(13 + 16 + n);
+	}
 	
 	m_Init = TRUE;
 }
@@ -612,6 +640,10 @@ const CFontNode & CFontNode::operator = (CFontNode &data)
 		m_FontName[n] = data.m_FontName[n];
 		m_Hash[n]     = data.m_Hash[n];
 	}
+	m_Iso646Name[0] = data.m_Iso646Name[0];
+	m_Iso646Name[1] = data.m_Iso646Name[1];
+	for ( int n = 0 ; n < 12 ; n++ )
+		m_Iso646Tab[n] = data.m_Iso646Tab[n];
 	return *this;
 }
 void CFontNode::SetUserBitmap(int code, int width, int height, CBitmap *pMap, int ofx, int ofy)
@@ -1084,6 +1116,14 @@ void CFontTab::SetIndex(int mode, CStringIndex &index)
 
 			ip->Add(m_Data[n].m_OffsetW);
 			ip->Add(m_Data[n].m_UniBlock);
+
+			ip->Add(m_Data[n].m_Iso646Name[0]);
+			ip->Add(m_Data[n].m_Iso646Name[1]);
+
+			a = ip->GetSize();
+			ip->SetSize(a + 1);
+			for ( i = 0 ; i < 12 ; i++ )
+				(*ip)[a].Add(m_Data[n].m_Iso646Tab[i]);
 		}
 
 	} else {			// Read
@@ -1119,6 +1159,16 @@ void CFontTab::SetIndex(int mode, CStringIndex &index)
 
 				if ( index[n][i].GetSize() > 12 )
 					m_Data[code].m_UniBlock = index[n][i][12];
+
+				if ( index[n][i].GetSize() > 13 )
+					m_Data[code].m_Iso646Name[0] = index[n][i][13];
+				if ( index[n][i].GetSize() > 14 )
+					m_Data[code].m_Iso646Name[0] = index[n][i][14];
+
+				if ( index[n][i].GetSize() > 15 ) {
+					for ( a = 0 ; a < 12 && a < index[n][i][15].GetSize() ; a++ )
+						m_Data[code].m_Iso646Tab[a] = index[n][i][15][a];
+				}
 			}
 		}
 
@@ -3950,15 +4000,16 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv
 	int n, i, a, c;
 	int x, y, nw, ow;
 	int width, height, style = 0;
+	int type = 0;
 	UINT mode;
 	CSize sz;
-	CRect box(rect);
+	CRect box(rect), frame(rect), save(rect);
 	CStringW str;
 	CFontChacheNode *pFontCache;
 	CFontNode *pFontNode = &(m_FontTab[prop.bank]);
 	LPCTSTR deffont = (m_DefFontName[prop.font].IsEmpty() ? m_DefFontName[0] : m_DefFontName[prop.font]);;
-	CDC workDC;
-	CBitmap *pOldMap;
+	CDC workDC, mirDC, *pSaveDC;
+	CBitmap *pOldMap, *pOldMirMap, MirMap;
 
 	mode = ETO_CLIPPED;
 	if ( pView->m_pBitmap == NULL || rv != FALSE )
@@ -3973,24 +4024,33 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv
 		width = width * 80 / 100;
 	}
 
+	if ( (prop.attr & ATT_MIRROR) != 0 ) {
+		mirDC.CreateCompatibleDC(pDC);
+		MirMap.CreateCompatibleBitmap(pDC, rect.Width(), rect.Height());
+		pOldMirMap = mirDC.SelectObject(&MirMap);
+		if ( pView->m_pBitmap != NULL ) {
+			workDC.CreateCompatibleDC(pDC);
+			pOldMap = (CBitmap *)workDC.SelectObject(pView->m_pBitmap);
+			mirDC.StretchBlt(rect.Width() - 1, 0, 0 - rect.Width(), rect.Height(), &workDC, rect.left, rect.top, rect.Width(), rect.Height(), SRCCOPY);
+			mirDC.SetBkMode(TRANSPARENT);
+			workDC.SelectObject(pOldMap);
+			workDC.DeleteDC();
+		}
+		pSaveDC = pDC;
+		pDC = &mirDC;
+		rect.SetRect(0, 0, save.Width(), save.Height());
+		box = frame = rect;
+	}
+
 	pFontCache = pFontNode->GetFont(width, height, style, prop.font, deffont);
 	pDC->SelectObject(pFontCache->m_pFont);
 	pDC->SetTextColor(fc);
 	pDC->SetBkColor(bc);
 
-	if ( pFontCache->m_Fixed < 0 ) {
-		sz = pDC->GetTextExtent(_T("W"), 1);
-		if ( (n = sz.cx) <= 0 ) n = 1;
-		sz = pDC->GetTextExtent(_T("i"), 1);
-		n = sz.cx * 100 / n;
-
-		if ( n >= 80 )
-			pFontCache->m_Fixed = 1;
-		else if ( IsOptEnable(TO_RLWORDPP) )
-			pFontCache->m_Fixed = 2;
-		else
-			pFontCache->m_Fixed = 3;
-	}
+	if ( pFontCache->m_bFixed )
+		type = 1;
+	else if ( IsOptEnable(TO_RLWORDPP) )
+		type = 2;
 
 	if ( pFontNode->SetFontImage(width, height) ) {
 		// Gaiji Mode
@@ -4008,7 +4068,17 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv
 				str += prop.pText[a++];
 
 			if ( (c = str[0] - 0x20) >= 0 && c < 96 && (pFontNode->m_UserFontDef[c / 8] & (1 << (c % 8))) != 0 ) {
-				pDC->BitBlt(box.left, box.top, box.Width(), box.Height(), &workDC, pFontNode->m_FontWidth * c, (prop.zoom == 3 ? pView->m_CharHeight : 0), ((pView->m_pBitmap == NULL || rv != FALSE) ? SRCCOPY: SRCPAINT));
+				if ( pView->m_pBitmap == NULL || rv != FALSE || pFontNode->m_MapType == FNT_BITMAP_COLOR )
+					pDC->BitBlt(box.left, box.top, box.Width(), box.Height(), &workDC, pFontNode->m_FontWidth * c, (prop.zoom == 3 ? pView->m_CharHeight : 0), SRCCOPY);
+				else {
+					pDC->SetTextColor(RGB(0, 0, 0));
+					pDC->SetBkColor(RGB(255, 255, 255));
+					pDC->BitBlt(box.left, box.top, box.Width(), box.Height(), &workDC, pFontNode->m_FontWidth * c, (prop.zoom == 3 ? pView->m_CharHeight : 0), SRCAND);
+					pDC->SetTextColor(fc);
+					pDC->SetBkColor(RGB(0, 0, 0));
+					pDC->BitBlt(box.left, box.top, box.Width(), box.Height(), &workDC, pFontNode->m_FontWidth * c, (prop.zoom == 3 ? pView->m_CharHeight : 0), SRCPAINT);
+					pDC->SetBkColor(bc);
+				}
 
 			} else {
 				sz = pDC->GetTextExtent(str);
@@ -4041,8 +4111,8 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv
 	} else if ( (prop.attr & ATT_RTOL) != 0 ) {
 		// Right to Left
 		// 文字列単位で縮小・拡大、プロポーショナル
-		x = box.left + pView->m_CharWidth * pFontNode->m_OffsetW / 100;
-		y = box.top - pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? pView->m_CharHeight : 0);
+		x = box.left + pView->m_CharWidth  * pFontNode->m_OffsetW / 100;
+		y = box.top  - pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? pView->m_CharHeight : 0);
 
 		sz = pDC->GetTextExtent(prop.pText, prop.tlen);
 		if ( sz.cx <= 0 ) sz.cx = 1;
@@ -4057,11 +4127,11 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv
 
 		pView->m_ClipUpdateLine = TRUE;
 
-	} else if ( pFontCache->m_Fixed == 1 ) {
+	} else if ( type == 1 ) {
 		// Fixed Draw
 		// 文字幅１の場合に縮小する必要があればCenter Drawに変更、固定幅
-		x = box.left + pView->m_CharWidth * pFontNode->m_OffsetW / 100;
-		y = box.top - pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? pView->m_CharHeight : 0);
+		x = box.left + pView->m_CharWidth  * pFontNode->m_OffsetW / 100;
+		y = box.top  - pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? pView->m_CharHeight : 0);
 
 		if ( prop.csz == 1 && !IsOptEnable(TO_RLUNIAHF) ) {
 			sz = pDC->GetTextExtent(prop.pText, prop.tlen);
@@ -4069,9 +4139,9 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv
 				goto DRAWCHAR;
 		}
 
-		pDC->ExtTextOutW(x, y, mode, box, prop.pText, prop.tlen, (LPINT)prop.pSpace);
+		pDC->ExtTextOutW(x, y, mode, box, prop.pText, prop.tlen, prop.pSpace);
 
-	} else if ( pFontCache->m_Fixed == 2 ) {
+	} else if ( type == 2 ) {
 		// Proportion Draw
 		// 文字列単位で縮小、プロポーショナル、センターリング
 		sz = pDC->GetTextExtent(prop.pText, prop.tlen);
@@ -4084,7 +4154,6 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv
 
 		ow = 0;
 		nw = sz.cx;
-		CRect frame(rect);
 
 		for ( n = i = a = 0 ; n < prop.size ; n++ ) {
 			while ( prop.pSpace[i] == 0 )
@@ -4103,19 +4172,25 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv
 				if ( (frame.left + x) >= y && nw > ow ) {
 					nw -= ow;
 					ow = 0;
-					box.right = y;
+					box.right = box.left + sz.cx;
 					frame.left = box.right;
 				} else
 					box.right = frame.left + x;
 			} else
 				box.right = box.left + sz.cx;
 
-			x = box.left + pView->m_CharWidth * pFontNode->m_OffsetW / 100 + (box.Width() - sz.cx) / 2;
-			y = box.top - pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? pView->m_CharHeight : 0);
+			x = box.left + pView->m_CharWidth  * pFontNode->m_OffsetW / 100 + (box.Width() - sz.cx) / 2;
+			y = box.top  - pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? pView->m_CharHeight : 0);
 
 			pDC->ExtTextOutW(x, y, mode, box, str, NULL);
-			pView->SetCellSize(prop.cols + n, prop.line, box.Width());
 
+			for ( x = c = 0 ; x < prop.csz ; x++ ) {
+				y = box.Width() * (x + 1) / prop.csz;
+				pView->SetCellSize(prop.cols + (n * prop.csz) + x, prop.line, y - c);
+				c = y;
+			}
+
+			prop.pSpace[i] = box.Width();
 			box.left = box.right;
 			i++;
 		}
@@ -4158,9 +4233,166 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv
 			box.left += prop.pSpace[i++];
 		}
 	}
+	
+	if ( (prop.attr & ATT_MIRROR) != 0 ) {
+		rect = save;
+		pSaveDC->StretchBlt(rect.left + rect.Width() - 1, rect.top, 0 - rect.Width(), rect.Height(), pDC, 0, 0, rect.Width(), rect.Height(), SRCCOPY);
+		mirDC.SelectObject(pOldMirMap);
+		mirDC.DeleteDC();
+	}
 }
+void CTextRam::DrawHoriLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv, struct DrawWork &prop, class CRLoginView *pView)
+{
+	COLORREF hc = RGB((GetRValue(fc) + GetRValue(bc)) / 2, (GetGValue(fc) + GetGValue(bc)) / 2, (GetBValue(fc) + GetBValue(bc)) / 2);
+	CPen fPen(PS_SOLID, 1, fc);
+	CPen cPen(PS_SOLID, 1, pView->m_CharHeight < BD_HALFSIZE ? hc : fc);
+	CPen hPen(PS_SOLID, 1, hc);
+	CPen *oPen = pDC->SelectObject(&cPen);
+//	int OldRop2 = pDC->SetROP2(R2_MERGEPENNOT);
+	POINT point[4];
+	point[0].x = rect.left;
+	point[1].x = rect.right;
 
-void CTextRam::DrawText(CDC *pDC, CRect &rect, struct DrawWork &prop, class CRLoginView *pView)
+	if ( (prop.attr & ATT_OVER) != 0 ) {
+		point[0].y = rect.top;
+		point[1].y = rect.top;
+		pDC->Polyline(point, 2);
+	} else if ( (prop.attr & ATT_DOVER) != 0 ) {
+		point[0].y = rect.top;
+		point[1].y = rect.top;
+		pDC->Polyline(point, 2);
+		point[2].x = ((prop.attr & ATT_LDLINE) != 0 ? (rect.left + 2) : rect.left);
+		point[2].y = rect.top + 2;
+		point[3].x = ((prop.attr & ATT_RDLINE) != 0 ? (rect.right - 3) : rect.right);
+		point[3].y = rect.top + 2;
+		pDC->SelectObject(&hPen);
+		pDC->Polyline(&(point[2]), 2);
+	}
+
+	if ( (prop.attr & ATT_LINE) != 0 ) {
+		point[0].y = (rect.top + rect.bottom) / 2;
+		point[1].y = (rect.top + rect.bottom) / 2;
+		pDC->SelectObject(&cPen);
+		pDC->Polyline(point, 2);
+	} else if ( (prop.attr & ATT_STRESS) != 0 ) {
+		point[0].y = (rect.top + rect.bottom) / 2 - 1;
+		point[1].y = (rect.top + rect.bottom) / 2 - 1;
+		pDC->SelectObject(&cPen);
+		pDC->Polyline(point, 2);
+		point[0].y = (rect.top + rect.bottom) / 2 + 1;
+		point[1].y = (rect.top + rect.bottom) / 2 + 1;
+		pDC->Polyline(point, 2);
+	}
+
+	if ( (prop.attr & ATT_UNDER) != 0 ) {
+		point[0].y = rect.bottom - 2;
+		point[1].y = rect.bottom - 2;
+		pDC->SelectObject(&fPen);
+		pDC->Polyline(point, 2);
+	} else if ( (prop.attr & ATT_SUNDER) != 0 ) {
+		point[0].y = rect.bottom - 1;
+		point[1].y = rect.bottom - 1;
+		pDC->SelectObject(&cPen);
+		pDC->Polyline(point, 2);
+	} else if ( (prop.attr & ATT_DUNDER) != 0 ) {
+		point[0].y = rect.bottom - 1;
+		point[1].y = rect.bottom - 1;
+		pDC->SelectObject(&cPen);
+		pDC->Polyline(point, 2);
+		point[2].x = ((prop.attr & ATT_LDLINE) != 0 ? (rect.left + 2) : rect.left);
+		point[2].y = rect.bottom - 3;
+		point[3].x = ((prop.attr & ATT_RDLINE) != 0 ? (rect.right - 3) : rect.right);
+		point[3].y = rect.bottom - 3;
+		pDC->SelectObject(&hPen);
+		pDC->Polyline(&(point[2]), 2);
+	}
+
+//	pDC->SetROP2(OldRop2);
+	pDC->SelectObject(oPen);
+}
+void CTextRam::DrawVertLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv, struct DrawWork &prop, class CRLoginView *pView)
+{
+	int n, i;
+	int x, w, c;
+	COLORREF hc = RGB((GetRValue(fc) + GetRValue(bc)) / 2, (GetGValue(fc) + GetGValue(bc)) / 2, (GetBValue(fc) + GetBValue(bc)) / 2);
+	CPen cPen(PS_SOLID, 1, pView->m_CharHeight < BD_HALFSIZE ? hc : fc);
+	CPen hPen(PS_SOLID, 1, hc);
+	CPen *oPen = pDC->SelectObject(&cPen);
+//	int OldRop2 = pDC->SetROP2(R2_MERGEPENNOT);
+	POINT point[9];
+
+	x = rect.left;
+	for ( n = i = 0 ; n < prop.size ; n++, i++ ) {
+		while ( prop.pSpace[i] == 0 )
+			i++;
+		w = prop.pSpace[i];
+
+		if ( (prop.attr & ATT_FRAME) != 0 ) {
+			point[0].x = x; point[0].y = rect.top + 1;
+			point[1].x = x + w - 2; point[1].y = rect.top + 1;
+			point[2].x = x + w - 2; point[2].y = rect.bottom - 1;
+			point[3].x = x; point[3].y = rect.bottom - 1;
+			point[4].x = x; point[4].y = rect.top + 1;
+			pDC->SelectObject(&cPen);
+			pDC->Polyline(point, 5);
+		} else if ( (prop.attr & ATT_CIRCLE) != 0 ) {
+			c = w / 3;
+			point[0].x = x + c; point[0].y = rect.top + 1;
+			point[1].x = x + w - 2 - c; point[1].y = rect.top + 1;
+			point[2].x = x + w - 2; point[2].y = rect.top + 1 + c;
+			point[3].x = x + w - 2; point[3].y = rect.bottom - 1 - c;
+			point[4].x = x + w - 2 - c; point[4].y = rect.bottom - 1;
+			point[5].x = x + c; point[5].y = rect.bottom - 1;
+			point[6].x = x; point[6].y = rect.bottom - 1 - c;
+			point[7].x = x; point[7].y = rect.top + 1 + c;
+			point[8].x = x + c; point[8].y = rect.top + 1;
+			pDC->SelectObject(&cPen);
+			pDC->Polyline(point, 9);
+		}
+
+		if ( (prop.attr & ATT_RSLINE) != 0 ) {
+			point[0].x = x + w - 1; point[0].y = rect.top;
+			point[1].x = x + w - 1; point[1].y = rect.bottom;
+			pDC->SelectObject(&cPen);
+			pDC->Polyline(point, 2);
+		} else if ( (prop.attr & ATT_RDLINE) != 0 ) {
+			point[0].x = x + w - 1; point[0].y = rect.top;
+			point[1].x = x + w - 1; point[1].y = rect.bottom;
+			pDC->SelectObject(&cPen);
+			pDC->Polyline(point, 2);
+			point[0].x = x + w - 3;
+			point[0].y = ((prop.attr & ATT_DOVER) != 0 ? (rect.top + 2) : rect.top);
+			point[1].x = x + w - 3;
+			point[1].y = ((prop.attr & ATT_DUNDER) != 0 ? (rect.bottom - 2) : (rect.bottom));
+			pDC->SelectObject(&hPen);
+			pDC->Polyline(point, 2);
+		}
+
+		if ( (prop.attr & ATT_LSLINE) != 0 ) {
+			point[0].x = x; point[0].y = rect.top;
+			point[1].x = x; point[1].y = rect.bottom;
+			pDC->SelectObject(&cPen);
+			pDC->Polyline(point, 2);
+		} else if ( (prop.attr & ATT_LDLINE) != 0 ) {
+			point[0].x = x; point[0].y = rect.top;
+			point[1].x = x; point[1].y = rect.bottom;
+			pDC->SelectObject(&cPen);
+			pDC->Polyline(point, 2);
+			point[0].x = x + 2;
+			point[0].y = ((prop.attr & ATT_DOVER) != 0 ? (rect.top + 2) : rect.top);
+			point[1].x = x + 2;
+			point[1].y = ((prop.attr & ATT_DUNDER) != 0 ? (rect.bottom - 2) : (rect.bottom));
+			pDC->SelectObject(&hPen);
+			pDC->Polyline(point, 2);
+		}
+
+		x += w;
+	}
+
+//	pDC->SetROP2(OldRop2);
+	pDC->SelectObject(oPen);
+}
+void CTextRam::DrawString(CDC *pDC, CRect &rect, struct DrawWork &prop, class CRLoginView *pView)
 {
 	BOOL bRevs = FALSE;
 	COLORREF fcol, bcol, tcol;
@@ -4235,63 +4467,16 @@ void CTextRam::DrawText(CDC *pDC, CRect &rect, struct DrawWork &prop, class CRLo
 		DrawChar(pDC, rect, fcol, bcol, bRevs, prop, pView);
 	}
 
-	if ( (prop.attr & (ATT_OVER | ATT_DOVER | ATT_LINE | ATT_UNDER | ATT_DUNDER | ATT_STRESS)) != 0 ) {
-		CPen cPen(PS_SOLID, 1, fcol);
-		CPen *oPen = pDC->SelectObject(&cPen);
-		POINT point[4];
-		point[0].x = rect.left;
-		point[1].x = rect.right;
+	if ( (prop.attr & (ATT_OVER | ATT_DOVER | ATT_LINE | ATT_UNDER | ATT_DUNDER | ATT_SUNDER | ATT_STRESS)) != 0 )
+		DrawHoriLine(pDC, rect, fcol, bcol, bRevs, prop, pView);
 
-		if ( (prop.attr & ATT_OVER) != 0 ) {
-			point[0].y = rect.top;
-			point[1].y = rect.top;
-			pDC->Polyline(point, 2);
-		} else if ( (prop.attr & ATT_DOVER) != 0 ) {
-			point[0].y = rect.top;
-			point[1].y = rect.top;
-			pDC->Polyline(point, 2);
-			point[2].x = ((prop.attr & ATT_LDLINE) != 0 ? (rect.left + 2) : rect.left);
-			point[2].y = rect.top + 2;
-			point[3].x = ((prop.attr & ATT_RDLINE) != 0 ? (rect.right - 3) : rect.right);
-			point[3].y = rect.top + 2;
-			pDC->Polyline(&(point[2]), 2);
-		}
+	if ( (prop.attr & (ATT_FRAME | ATT_CIRCLE | ATT_RSLINE | ATT_RDLINE | ATT_LSLINE | ATT_LDLINE)) != 0 )
+		DrawVertLine(pDC, rect, fcol, bcol, bRevs, prop, pView);
 
-		if ( (prop.attr & ATT_LINE) != 0 ) {
-			point[0].y = (rect.top + rect.bottom) / 2;
-			point[1].y = (rect.top + rect.bottom) / 2;
-			pDC->Polyline(point, 2);
-		} else if ( (prop.attr & ATT_STRESS) != 0 ) {
-			point[0].y = (rect.top + rect.bottom) / 2 - 1;
-			point[1].y = (rect.top + rect.bottom) / 2 - 1;
-			pDC->Polyline(point, 2);
-			point[0].y = (rect.top + rect.bottom) / 2 + 1;
-			point[1].y = (rect.top + rect.bottom) / 2 + 1;
-			pDC->Polyline(point, 2);
-		}
+	bRevs  = (IsOptEnable(TO_DECSCNM) ? 1 : 0);
+	bRevs ^= (pView->m_VisualBellFlag ? 1 : 0);
 
-		if ( (prop.attr & ATT_UNDER) != 0 ) {
-			point[0].y = rect.bottom - 2;
-			point[1].y = rect.bottom - 2;
-			pDC->Polyline(point, 2);
-		} else if ( (prop.attr & ATT_DUNDER) != 0 ) {
-			point[0].y = rect.bottom - 1;
-			point[1].y = rect.bottom - 1;
-			pDC->Polyline(point, 2);
-			point[2].x = ((prop.attr & ATT_LDLINE) != 0 ? (rect.left + 2) : rect.left);
-			point[2].y = rect.bottom - 3;
-			point[3].x = ((prop.attr & ATT_RDLINE) != 0 ? (rect.right - 3) : rect.right);
-			point[3].y = rect.bottom - 3;
-			pDC->Polyline(&(point[2]), 2);
-		}
-
-		pDC->SelectObject(oPen);
-	}
-
-	if ( IsOptEnable(TO_DECSCNM) )
-		pDC->InvertRect(rect);
-
-	if ( pView->m_VisualBellFlag )
+	if ( bRevs )
 		pDC->InvertRect(rect);
 }
 void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginView *pView)
@@ -4352,8 +4537,15 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 		rect.top    = pView->CalcGrapY(y);
 		rect.bottom = pView->CalcGrapY(y + 1);
 
-		top = GETVRAM(0, y - pView->m_HisOfs + pView->m_HisMin);
-		prop.zoom = top->m_Vram.zoom;
+		n = y - pView->m_HisOfs + pView->m_HisMin;
+		if ( (m_HisLen + n) >= m_Lines && n < m_Lines ) {
+			top = GETVRAM(0, n);
+			prop.zoom = top->m_Vram.zoom;
+		} else {
+			top = NULL;
+			prop.zoom = 0;
+		}
+
 		zoom = (prop.zoom != 0 ? 2 : 1);
 		len = 0;
 		isx = iex = 0;
@@ -4368,11 +4560,11 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 			ex /= 2;
 		}
 
-		if ( sx > 0 && (top[sx].m_Vram.attr & ATT_RTOL) != 0 ) {
+		if ( sx > 0 && top != NULL && (top[sx].m_Vram.attr & ATT_RTOL) != 0 ) {
 			while ( sx > 0 && (top[sx - 1].m_Vram.attr & ATT_RTOL) != 0 )
 				sx--;
 		}
-		if ( ex < m_Cols && (top[ex].m_Vram.attr & ATT_RTOL) != 0 ) {
+		if ( ex < m_Cols && top != NULL && (top[ex].m_Vram.attr & ATT_RTOL) != 0 ) {
 			while ( (ex + 1) < m_Cols && (top[ex + 1].m_Vram.attr & ATT_RTOL) != 0 )
 				ex++;
 		}
@@ -4386,8 +4578,15 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 			work.bank = (-1);
 			work.csz  = 1;
 			str.Empty();
+			vp = NULL;
 
-			if ( x < 0 ) {
+			if ( top == NULL ) {
+				work.attr = m_DefAtt.attr;
+				work.font = m_DefAtt.font;
+				work.fcol = m_DefAtt.fcol;
+				work.bcol = m_DefAtt.bcol;
+
+			} else if ( x < 0 ) {
 				work.attr = top->m_Vram.attr & (ATT_REVS | ATT_CLIP | ATT_MARK | ATT_SBLINK | ATT_BLINK);
 				work.font = top->m_Vram.font;
 				work.fcol = top->m_Vram.fcol;
@@ -4431,8 +4630,29 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 					pView->SetCellSize(x + 1, y, 0);
 				} else if ( IS_ASCII(vp->m_Vram.mode) ) {
 					str = (LPCWSTR)*vp;
-					if ( !str.IsEmpty() && str[0] > _T(' ') )
+					if ( !str.IsEmpty() && str[0] > _T(' ') ) {
 						work.bank = vp->m_Vram.bank & CODE_MASK;
+						if ( (work.bank & SET_MASK) <= SET_96 && m_FontTab[work.bank].m_Shift == 0 ) {
+							switch(str[0]) {
+							case 0x0023: UCS4ToWStr(m_FontTab[work.bank].m_Iso646Tab[0], str); break;
+							case 0x0024: UCS4ToWStr(m_FontTab[work.bank].m_Iso646Tab[1], str); break;
+							case 0x0040: UCS4ToWStr(m_FontTab[work.bank].m_Iso646Tab[2], str); break;
+							case 0x005B: UCS4ToWStr(m_FontTab[work.bank].m_Iso646Tab[3], str); break;
+							case 0x005C: UCS4ToWStr(m_FontTab[work.bank].m_Iso646Tab[4], str); break;
+							case 0x005D: UCS4ToWStr(m_FontTab[work.bank].m_Iso646Tab[5], str); break;
+							case 0x005E: UCS4ToWStr(m_FontTab[work.bank].m_Iso646Tab[6], str); break;
+							case 0x0060: UCS4ToWStr(m_FontTab[work.bank].m_Iso646Tab[7], str); break;
+							case 0x007B: UCS4ToWStr(m_FontTab[work.bank].m_Iso646Tab[8], str); break;
+							case 0x007C: UCS4ToWStr(m_FontTab[work.bank].m_Iso646Tab[9], str); break;
+							case 0x007D: UCS4ToWStr(m_FontTab[work.bank].m_Iso646Tab[10], str); break;
+							case 0x007E: UCS4ToWStr(m_FontTab[work.bank].m_Iso646Tab[11], str); break;
+							}
+							if ( str[0] == 0xDBBF && str[1] == 0xDFFF ) {	// U+FFFFF BackSlash Mirror !!!
+								str = _T('/');
+								work.attr |= ATT_MIRROR;
+							}
+						}
+					}
 					pView->SetCellSize(x, y, 0);
 				}
 			}
@@ -4461,24 +4681,24 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 			// Frame View
 #ifdef	USE_TEXTFRAME
 			if ( (work.attr & ATT_FRAME) != 0 ) {
-				n = (ATT_LSLINE | ATT_RSLINE | ATT_OVER | ATT_UNDER);
-				if ( x > 0 && (vp[-1].m_Vram.attr & ATT_FRAME) != 0 )
+				n = (ATT_LSLINE | ATT_RSLINE | ATT_OVER | ATT_SUNDER);
+				if ( vp != NULL && x > 0 && (vp[-1].m_Vram.attr & ATT_FRAME) != 0 )
 					n &= ~ATT_LSLINE;
-				if ( x < (m_Cols - work.csz) && (vp[work.csz].m_Vram.attr & ATT_FRAME) != 0 )
+				if ( vp != NULL && x < (m_Cols - work.csz) && (vp[work.csz].m_Vram.attr & ATT_FRAME) != 0 )
 					n &= ~ATT_RSLINE;
 				if ( y > 0 && (GETVRAM(x, y - pView->m_HisOfs + pView->m_HisMin - 1)->m_Vram.attr & ATT_FRAME) != 0 )
 					n &= ~ATT_OVER;
 				if ( y < (m_Lines - 1) && (GETVRAM(x, y - pView->m_HisOfs + pView->m_HisMin + 1)->m_Vram.attr & ATT_FRAME) != 0 )
-					n &= ~ATT_UNDER;
+					n &= ~ATT_SUNDER;
 				work.attr &= ~(ATT_FRAME | ATT_CIRCLE);
 				work.attr |= n;
 				m_FrameCheck = TRUE;
 
 			} else if ( (work.attr & ATT_CIRCLE) != 0 ) {
 				n = (ATT_LDLINE | ATT_RDLINE | ATT_DOVER | ATT_DUNDER);
-				if ( x > 0 && (vp[-1].m_Vram.attr & ATT_CIRCLE) != 0 )
+				if ( vp != NULL && x > 0 && (vp[-1].m_Vram.attr & ATT_CIRCLE) != 0 )
 					n &= ~ATT_LDLINE;
-				if ( x < (m_Cols - work.csz) && (vp[work.csz].m_Vram.attr & ATT_CIRCLE) != 0 )
+				if ( vp != NULL && x < (m_Cols - work.csz) && (vp[work.csz].m_Vram.attr & ATT_CIRCLE) != 0 )
 					n &= ~ATT_RDLINE;
 				if ( y > 0 && (GETVRAM(x, y - pView->m_HisOfs + pView->m_HisMin - 1)->m_Vram.attr & ATT_CIRCLE) != 0 )
 					n &= ~ATT_DOVER;
@@ -4491,7 +4711,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 #endif
 
 			// Clip View
-			if ( pView->m_ClipFlag ) {
+			if ( pView->m_ClipFlag && x >= 0 && x < m_Cols && top != NULL ) {
 				cpos = GetCalcPos((work.zoom != 0 ? (x * 2) : x), y - pView->m_HisOfs + pView->m_HisMin);
 				if ( spos <= cpos && cpos <= epos ) {
 					if ( pView->IsClipRectMode() ) {
@@ -4509,11 +4729,11 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 			if ( memcmp(&prop, &work, sizeof(work)) != 0 ) {
 				if ( len > 0 ) {
 					rect.right = pView->CalcGrapX(x * zoom);
-					prop.size = len;
-					prop.tlen = text.GetSize();
-					prop.pText = text.GetData();
+					prop.size   = len;
+					prop.tlen   = text.GetSize();
+					prop.pText  = text.GetData();
 					prop.pSpace = space.GetData();
-					DrawText(pDC, rect, prop, pView);
+					DrawString(pDC, rect, prop, pView);
 				}
 				work.cols = x;
 				work.line = y;
@@ -4543,11 +4763,11 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 
 		if ( len > 0 ) {
 			rect.right = pView->CalcGrapX(x * zoom);
-			prop.size = len;
-			prop.tlen = text.GetSize();
-			prop.pText = text.GetData();
+			prop.size   = len;
+			prop.tlen   = text.GetSize();
+			prop.pText  = text.GetData();
 			prop.pSpace = space.GetData();
-			DrawText(pDC, rect, prop, pView);
+			DrawString(pDC, rect, prop, pView);
 		}
 	}
 
@@ -4916,6 +5136,16 @@ DWORD CTextRam::UCS4toUCS2(DWORD code)
 		code = (((code & 0xFFC00L) << 6) | (code & 0x3FF)) | 0xD800DC00L;
 	}
 	return code;
+}
+void CTextRam::UCS4ToWStr(DWORD code, CStringW &str)
+{
+	if ( code >= 0x00010000L ) {
+		code -= 0x10000L;
+		code = (((code & 0xFFC00L) << 6) | (code & 0x3FF)) | 0xD800DC00L;
+		str = (WCHAR)(code >> 16);
+		str += (WCHAR)code;
+	} else
+		str = (WCHAR)code;
 }
 DWORD CTextRam::UnicodeNomal(DWORD code1, DWORD code2)
 {

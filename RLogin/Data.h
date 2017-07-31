@@ -94,6 +94,8 @@ public:
 	void Base16Encode(LPBYTE buf, int len);
 	LPCTSTR QuotedDecode(LPCTSTR str);
 	void QuotedEncode(LPBYTE buf, int len);
+	void BubbleBabble(LPBYTE buf, int len);
+	LPCTSTR BubBabDecode(LPCTSTR str);
 	void md5(LPCTSTR str);
 	BOOL LoadFile(LPCTSTR filename);
 	int KanjiCheck(int type = KANJI_NON);
@@ -336,15 +338,20 @@ public:
 	CFont *m_pFont;
 	LOGFONT m_LogFont;
 	CFontChacheNode *m_pNext;
+	int m_Width;
+	int m_Height;
+	int m_CharSet;
 	int m_Style;
-	int m_Fixed;
+	int m_Quality;
+	BOOL m_bFixed;
 
 	CFont *Open(LPCTSTR pFontName, int Width, int Height, int CharSet, int Style, int Quality);
+
 	CFontChacheNode();
 	~CFontChacheNode();
 };
 
-#define	FONTCACHEMAX	32
+#define	FONTCACHEMAX	64
 
 class CFontChache : public CObject
 {

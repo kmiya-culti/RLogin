@@ -1801,7 +1801,7 @@ void Cssh::SendMsgChannelData(int id)
 	CBuffer tmp(CHAN_SES_PACKET_DEFAULT + 16);
 	CChannel *cp = (CChannel *)m_pChan[id];
 
-	if ( id < 0 || id >= m_pChan.GetSize() || !CHAN_OK(id) || (m_SSH2Status & SSH2_STAT_SENTKEXINIT) != 0 )
+	if ( id < 0 || id >= m_pChan.GetSize() || !CHAN_OK(id) || !CEOF_OK(id) || (m_SSH2Status & SSH2_STAT_SENTKEXINIT) != 0 )
 		return;
 
 	while ( (len = cp->m_Output.GetSize()) > 0 ) {

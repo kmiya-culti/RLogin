@@ -230,6 +230,18 @@ public:
 #define	SSHFP_HASH_SHA1		1
 #define	SSHFP_HASH_SHA256	2
 
+#define	SSHFP_DIGEST_MD5		0
+#define	SSHFP_DIGEST_RIPEMD160	1
+#define	SSHFP_DIGEST_SHA1		2
+#define	SSHFP_DIGEST_SHA256		3
+#define	SSHFP_DIGEST_SHA384		4
+#define	SSHFP_DIGEST_SHA512		5
+
+#define	SSHFP_FORMAT_HEX			0
+#define	SSHFP_FORMAT_BASE64			1
+#define	SSHFP_FORMAT_BUBBLEBABBLE	2
+#define	SSHFP_FORMAT_RANDOMART		3
+
 #define DNS_RDATACLASS_IN	1
 #define DNS_RDATATYPE_SSHFP	44
 
@@ -352,7 +364,7 @@ public:
 	const CIdKey & operator = (CIdKey &data);
 
 	int GetSize();
-	void FingerPrint(CString &str);
+	void FingerPrint(CString &str, int digest = SSHFP_DIGEST_SHA256, int format = SSHFP_FORMAT_BASE64);
 	int DnsDigest(int hash, CBuffer &digest);
 
 	CIdKey();
@@ -419,6 +431,8 @@ public:
 #define	CEOF_DEAD		0020
 #define	CEOF_IEMPY		0040
 #define	CEOF_OEMPY		0100
+
+#define	CEOF_OK(n)		((((CChannel *)m_pChan[n])->m_Eof & (CEOF_DEAD | CEOF_SEOF | CEOF_SCLOSE)) == 0)
 
 #define	CHAN_REQ_PTY	0
 #define	CHAN_REQ_SHELL	1

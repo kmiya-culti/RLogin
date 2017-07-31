@@ -3600,6 +3600,7 @@ void CTextRam::fc_DECRQSS(DWORD ch)
 		if ( (m_AttNow.attr & ATT_SECRET) != 0 ) str += _T(";8");
 		if ( (m_AttNow.attr & ATT_LINE)   != 0 ) str += _T(";9");
 		if ( (m_AttNow.attr & ATT_DUNDER) != 0 ) str += _T(";21");
+		if ( (m_AttNow.attr & ATT_SUNDER) != 0 ) str += _T(";50");
 		if ( (m_AttNow.attr & ATT_FRAME)  != 0 ) str += _T(";51");
 		if ( (m_AttNow.attr & ATT_CIRCLE) != 0 ) str += _T(";52");
 		if ( (m_AttNow.attr & ATT_OVER)   != 0 ) str += _T(";53");
@@ -4191,6 +4192,33 @@ void CTextRam::fc_OSCEXE(DWORD ch)
 			return;
 		}
 		break;
+
+#ifdef	USE_SAPI
+	case 801:	// Speek String
+		if ( (m_XtOptFlag & XTOP_SETUTF) != 0 )
+			m_IConv.RemoteToStr(m_SendCharSet[UTF8_SET], p, tmp);
+		else
+			m_IConv.RemoteToStr(m_SendCharSet[m_KanjiMode], p, tmp);
+
+		if ( (m_XtOptFlag & XTOP_SETHEX) != 0 ) {
+			CBuffer buf;
+			buf.Base16Decode(tmp);
+			if ( (m_XtOptFlag & XTOP_SETUTF) != 0 )
+				m_IConv.RemoteToStr(m_SendCharSet[UTF8_SET], (LPCSTR)buf, tmp);
+			else
+				m_IConv.RemoteToStr(m_SendCharSet[m_KanjiMode], (LPCSTR)buf, tmp);
+		}
+		wrk.Empty();
+		for ( n = 0, s = tmp ; n < 1024 && *s != _T('\0') ; n++, s++ ) {
+			if ( *s < _T(' ') || *s == 0x7F ) {	// || (*s >= 0x80 && *s <= 0x9F) ) {
+				ctr.Format(_T("<%02X>"), *s);
+				wrk += ctr;
+			} else
+				wrk += *s;
+		}
+		((CRLoginApp *)::AfxGetApp())->Speek(wrk);
+		break;
+#endif
 	}
 
 ENDRET:
@@ -5062,11 +5090,12 @@ void CTextRam::fc_SGR(DWORD ch)
 			m_AttNow.bcol = m_DefAtt.bcol;
 			break;
 
-		case 51: m_AttNow.attr |= ATT_FRAME;  m_FrameCheck = TRUE; break;		// 51  framed
-		case 52: m_AttNow.attr |= ATT_CIRCLE; m_FrameCheck = TRUE; break;		// 52  encircled
-		case 53: m_AttNow.attr |= ATT_OVER;   break;					// 53  overlined
-		case 54: m_AttNow.attr &= ~(ATT_FRAME | ATT_CIRCLE); break;	// 54  not framed, not encircled
-		case 55: m_AttNow.attr &= ~ATT_OVER; break;					// 55  not overlined
+		case 50: m_AttNow.attr |= ATT_SUNDER; break;						// 50  sigle underlined
+		case 51: m_AttNow.attr |= ATT_FRAME;  m_FrameCheck = TRUE; break;	// 51  framed
+		case 52: m_AttNow.attr |= ATT_CIRCLE; m_FrameCheck = TRUE; break;	// 52  encircled
+		case 53: m_AttNow.attr |= ATT_OVER;   break;						// 53  overlined
+		case 54: m_AttNow.attr &= ~(ATT_FRAME | ATT_CIRCLE); break;			// 54  not framed, not encircled
+		case 55: m_AttNow.attr &= ~(ATT_OVER  | ATT_SUNDER); break;			// 55  not overlined, not single underlined
 
 		case 60: m_AttNow.attr |= ATT_RSLINE; break;					// 60  ideogram underline or right side line
 		case 61: m_AttNow.attr |= ATT_RDLINE; break;					// 61  ideogram double underline or double line on the right side

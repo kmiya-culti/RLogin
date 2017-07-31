@@ -70,14 +70,14 @@
 #define ATT_LDLINE		0x0010000		// [63m double line on the left side
 #define ATT_STRESS		0x0020000		// [64m stress marking
 #define ATT_DOVER		0x0040000		// double over line
-//						0x0080000
+#define	ATT_SUNDER		0x0080000		// [50m signle under line
 //						0x0100000
 //						0x0200000
 #define	ATT_MARK		0x0400000		// Search Mark
 #define	ATT_CLIP		0x0800000		// Mouse Clip
 #define	ATT_RTOL		0x1000000		// RtoL Char
 #define	ATT_BORDER		0x2000000		// U+2500 Border Char
-//						0x4000000
+#define	ATT_MIRROR		0x4000000
 //						0x8000000		// max 7 * 4 = 28 bit
 #define	ATT_MASK		0x0FFFFFF
 
@@ -554,6 +554,8 @@ public:
 	CBitmap m_FontMap;
 	int m_MapType;
 	CString m_UniBlock;
+	CString m_Iso646Name[2];
+	DWORD m_Iso646Tab[12];
 
 #define	FNT_BITMAP_MONO		1
 #define	FNT_BITMAP_COLOR	2
@@ -995,8 +997,8 @@ public:
 		int		idx, stx, edx, sty;
 		int		size, tlen;
 		int		cols, line;
-		const WCHAR *pText;
-		const INT   *pSpace;
+		WCHAR	*pText;
+		INT		*pSpace;
 	};
 
 	int IsWord(DWORD ch);
@@ -1014,7 +1016,9 @@ public:
 #endif
 	void DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv, struct DrawWork &prop, class CRLoginView *pView);
 	void DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv, struct DrawWork &prop, class CRLoginView *pView);
-	void DrawText(CDC *pDC, CRect &rect, struct DrawWork &prop, class CRLoginView *pView);
+	void DrawHoriLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv, struct DrawWork &prop, class CRLoginView *pView);
+	void DrawVertLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv, struct DrawWork &prop, class CRLoginView *pView);
+	void DrawString(CDC *pDC, CRect &rect, struct DrawWork &prop, class CRLoginView *pView);
 	void DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginView *pView);
 
 	CWnd *GetAciveView();
@@ -1058,8 +1062,9 @@ public:
 	static DWORD CTextRam::IconvToMsUnicode(DWORD code);
 	static DWORD UCS2toUCS4(DWORD code);
 	static DWORD UCS4toUCS2(DWORD code);
-	static DWORD CTextRam::UnicodeNomal(DWORD code1, DWORD code2);
-	static void CTextRam::IconvToMsUniStr(LPCWSTR p, int len, CBuffer &out);
+	static void UCS4ToWStr(DWORD code, CStringW &str);
+	static DWORD UnicodeNomal(DWORD code1, DWORD code2);
+	static void IconvToMsUniStr(LPCWSTR p, int len, CBuffer &out);
 
 	// Low Level
 	void RESET(int mode = RESET_PAGE | RESET_CURSOR | RESET_MARGIN | RESET_TABS | RESET_BANK | RESET_ATTR | RESET_COLOR | RESET_TEK | RESET_SAVE | RESET_MOUSE | RESET_CHAR);

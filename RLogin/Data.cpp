@@ -533,6 +533,12 @@ LONGLONG CBuffer::PTR64BIT(LPBYTE pos)
 		   ((LONGLONG)pos[7] <<  0);
 }
 
+#ifdef	_UNICODE
+  #define	PutTChar(c)		PutWord(c)
+#else
+  #define	PutTChar(c)		Put8Bit(c)
+#endif
+
 static const char *Base64EncTab = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 static const char Base64DecTab[] = {
         -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
@@ -582,49 +588,26 @@ LPCTSTR CBuffer::Base64Decode(LPCTSTR str)
 }
 void CBuffer::Base64Encode(LPBYTE buf, int len)
 {
-#ifdef	_UNICODE
 	int n;
 	Clear();
 	for ( n = len ; n > 0 ; n -= 3, buf += 3 ) {
 		if ( n >= 3 ) {
-			PutWord(Base64EncTab[(buf[0] >> 2) & 077]);
-			PutWord(Base64EncTab[((buf[0] << 4) | (buf[1] >> 4)) & 077]);
-			PutWord(Base64EncTab[((buf[1] << 2) | (buf[2] >> 6)) & 077]);
-			PutWord(Base64EncTab[buf[2] & 077]);
+			PutTChar(Base64EncTab[(buf[0] >> 2) & 077]);
+			PutTChar(Base64EncTab[((buf[0] << 4) | (buf[1] >> 4)) & 077]);
+			PutTChar(Base64EncTab[((buf[1] << 2) | (buf[2] >> 6)) & 077]);
+			PutTChar(Base64EncTab[buf[2] & 077]);
 		} else if ( n >= 2 ) {
-			PutWord(Base64EncTab[(buf[0] >> 2) & 077]);
-			PutWord(Base64EncTab[((buf[0] << 4) | (buf[1] >> 4)) & 077]);
-			PutWord(Base64EncTab[(buf[1] << 2) & 077]);
-			PutWord(L'=');
+			PutTChar(Base64EncTab[(buf[0] >> 2) & 077]);
+			PutTChar(Base64EncTab[((buf[0] << 4) | (buf[1] >> 4)) & 077]);
+			PutTChar(Base64EncTab[(buf[1] << 2) & 077]);
+			PutTChar('=');
 		} else {
-			PutWord(Base64EncTab[(buf[0] >> 2) & 077]);
-			PutWord(Base64EncTab[(buf[0] << 4) & 077]);
-			PutWord(L'=');
-			PutWord(L'=');
+			PutTChar(Base64EncTab[(buf[0] >> 2) & 077]);
+			PutTChar(Base64EncTab[(buf[0] << 4) & 077]);
+			PutTChar('=');
+			PutTChar('=');
 		}
 	}
-#else
-	int n;
-	Clear();
-	for ( n = len ; n > 0 ; n -= 3, buf += 3 ) {
-		if ( n >= 3 ) {
-			Put8Bit(Base64EncTab[(buf[0] >> 2) & 077]);
-			Put8Bit(Base64EncTab[((buf[0] << 4) | (buf[1] >> 4)) & 077]);
-			Put8Bit(Base64EncTab[((buf[1] << 2) | (buf[2] >> 6)) & 077]);
-			Put8Bit(Base64EncTab[buf[2] & 077]);
-		} else if ( n >= 2 ) {
-			Put8Bit(Base64EncTab[(buf[0] >> 2) & 077]);
-			Put8Bit(Base64EncTab[((buf[0] << 4) | (buf[1] >> 4)) & 077]);
-			Put8Bit(Base64EncTab[(buf[1] << 2) & 077]);
-			Put8Bit('=');
-		} else {
-			Put8Bit(Base64EncTab[(buf[0] >> 2) & 077]);
-			Put8Bit(Base64EncTab[(buf[0] << 4) & 077]);
-			Put8Bit('=');
-			Put8Bit('=');
-		}
-	}
-#endif
 }
 
 static const char *QuotedEncTab = "0123456789abcdef";
@@ -668,33 +651,18 @@ LPCTSTR CBuffer::QuotedDecode(LPCTSTR str)
 }
 void CBuffer::QuotedEncode(LPBYTE buf, int len)
 {
-#ifdef	_UNICODE
 	Clear();
     while ( len > 0 ) {
 		if ( (*buf != '\n' && *buf != '\t' && *buf < ' ' ) || *buf >= 127 || *buf == '=' ) {
-			PutWord(L'=');
-			PutWord(QuotedEncTab[*buf >> 4]);
-			PutWord(QuotedEncTab[*buf & 15]);
+			PutTChar('=');
+			PutTChar(QuotedEncTab[*buf >> 4]);
+			PutTChar(QuotedEncTab[*buf & 15]);
 		} else {
-			PutWord(*buf);
+			PutTChar(*buf);
 		}
 		buf += 1;
 		len -= 1;
     }
-#else
-	Clear();
-    while ( len > 0 ) {
-		if ( (*buf != '\n' && *buf != '\t' && *buf < ' ' ) || *buf >= 127 || *buf == '=' ) {
-			Put8Bit('=');
-			Put8Bit(QuotedEncTab[*buf >> 4]);
-			Put8Bit(QuotedEncTab[*buf & 15]);
-		} else {
-			Put8Bit(*buf);
-		}
-		buf += 1;
-		len -= 1;
-    }
-#endif
 }
 
 LPCTSTR CBuffer::Base16Decode(LPCTSTR str)
@@ -713,24 +681,172 @@ LPCTSTR CBuffer::Base16Decode(LPCTSTR str)
 }
 void CBuffer::Base16Encode(LPBYTE buf, int len)
 {
-#ifdef	_UNICODE
 	Clear();
     while ( len > 0 ) {
-		PutWord(QuotedEncTab[*buf >> 4]);
-		PutWord(QuotedEncTab[*buf & 15]);
+		PutTChar(QuotedEncTab[*buf >> 4]);
+		PutTChar(QuotedEncTab[*buf & 15]);
 		buf += 1;
 		len -= 1;
     }
-#else
-	Clear();
-    while ( len > 0 ) {
-		Put8Bit(QuotedEncTab[*buf >> 4]);
-		Put8Bit(QuotedEncTab[*buf & 15]);
-		buf += 1;
-		len -= 1;
-    }
-#endif
 }
+
+static const char BubBabVowels[] = { 'a', 'e', 'i', 'o', 'u', 'y' };
+static const char BubBabConsonants[] = { 'b', 'c', 'd', 'f', 'g', 'h', 'k', 'l', 'm', 'n', 'p', 'r', 's', 't', 'v', 'z', 'x' };
+static const char BubBabDecTab[] = {
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,		// 00
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,		// 10
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,		// 20
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,		// 30
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,		// 40
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,		// 50
+//			 a   b   c   d   e   f   g   h   i   j   k   l   m   n   o
+        -1,  0, 10, 11, 12,  1, 13, 14, 15,  2, -1, 16, 17, 18, 19,  3,		// 60
+//		 p   q   r   s   t   u   v   w   x   y   z
+        20, -1, 21, 22, 23,  4, 24, -1, 26,  5, 25, -1, -1, -1, -1, -1,		// 70
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,		// 80
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,		// 90
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,		// A0
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,		// B0
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,		// C0
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,		// D0
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,		// E0
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };	// F0
+
+void CBuffer::BubbleBabble(LPBYTE buf, int len)
+{
+	u_int i, rounds, seed = 1;
+
+	rounds = (len / 2) + 1;
+	PutTChar('x');
+
+	for ( i = 0 ; i < rounds ; i++ ) {
+		u_int idx0, idx1, idx2, idx3, idx4;
+		if ( (i + 1 < rounds) || (len % 2 != 0) ) {
+			idx0 = (((((u_int)(buf[2 * i])) >> 6) & 3) + seed) % 6;
+			idx1 = (((u_int)(buf[2 * i])) >> 2) & 15;
+			idx2 = ((((u_int)(buf[2 * i])) & 3) + (seed / 6)) % 6;
+			PutTChar(BubBabVowels[idx0]);
+			PutTChar(BubBabConsonants[idx1]);
+			PutTChar(BubBabVowels[idx2]);
+			if ( (i + 1) < rounds ) {
+				idx3 = (((u_int)(buf[(2 * i) + 1])) >> 4) & 15;
+				idx4 = (((u_int)(buf[(2 * i) + 1]))) & 15;
+				PutTChar(BubBabConsonants[idx3]);
+				PutTChar('-');
+				PutTChar(BubBabConsonants[idx4]);
+				seed = ((seed * 5) + ((((u_int)(buf[2 * i])) * 7) + ((u_int)(buf[(2 * i) + 1])))) % 36;
+			}
+		} else {
+			idx0 = seed % 6;
+			idx1 = 16;
+			idx2 = seed / 6;
+			PutTChar(BubBabVowels[idx0]);
+			PutTChar(BubBabConsonants[idx1]);
+			PutTChar(BubBabVowels[idx2]);
+		}
+	}
+
+	PutTChar('x');
+	PutTChar('\0');
+}
+LPCTSTR CBuffer::BubBabDecode(LPCTSTR str)
+{
+	//  012345012345012345012345
+	// xaaaa-aaaaa-aaaaa-aaaax
+	int hi, mid, low, seed = 1;
+	int byte[5], data[2];
+
+	Clear();
+	if ( *(str++) != _T('x') )
+		return str;
+
+	while ( *str != _T('\0') ) {
+		if ( (byte[0] = BubBabDecTab[(BYTE)str[0]]) < 0 )
+			break;
+		if ( (byte[1] = BubBabDecTab[(BYTE)str[1]]) < 0 )
+			break;
+		if ( (byte[2] = BubBabDecTab[(BYTE)str[2]]) < 0 )
+			break;
+		if ( (byte[3] = BubBabDecTab[(BYTE)str[3]]) < 0 )
+			break;
+
+		if ( str[4] == _T('-') ) {
+			if ( (byte[4] = BubBabDecTab[(BYTE)str[5]]) < 0 )
+				break;
+
+			if ( byte[0] >= 10 )		// Not Vowels
+				break;
+			if ( (byte[1] -= 10) < 0 )	// Not Consonants
+				break;
+			if ( byte[2] >= 10 )		// Not Vowels
+				break;
+			if ( (byte[3] -= 10) < 0 )	// Not Consonants
+				break;
+			if ( (byte[4] -= 10) < 0 )	// Not Consonants
+				break;
+
+			if ( (hi = (byte[0] - (seed % 6) + 6) % 6) >= 4 )
+				break;
+			if ( (mid = byte[1]) >= 16 )
+				break;
+			if ( (low = (byte[2] - (seed / 6 % 6) + 6) % 6) >= 4 )
+				break;
+
+			data[0] = (hi << 6) | (mid << 2) | low;
+
+			if ( (hi = byte[3]) >= 16 )
+				break;
+			if ( (low = byte[4]) >= 16 )
+				break;
+
+			data[1] = (hi << 4) | low;
+
+			Put8Bit(data[0]);
+			Put8Bit(data[1]);
+
+			seed = (seed * 5 + data[0] * 7 + data[1]) % 36;
+
+			str += 6;
+
+		} else if ( str[4] == _T('\0') ) {
+			if ( str[3] == _T('x') ) {
+				if ( byte[0] != (seed % 6) || byte[2] != (seed / 6) ) {
+					Clear();	// SumError
+					break;
+				}
+			} else {
+				// Not Use ?
+				if ( byte[0] >= 10 )		// Not Vowels
+					break;
+				if ( (byte[1] -= 10) < 0 )	// Not Consonants
+					break;
+				if ( byte[2] >= 10 )		// Not Vowels
+					break;
+				if ( (byte[3] -= 10) < 0 )	// Not Consonants
+					break;
+				if ( (byte[4] -= 10) < 0 )	// Not Consonants
+					break;
+
+				if ( (hi = (byte[0] - (seed % 6) + 6) % 6) >= 4 )
+					break;
+				if ( (mid = byte[1]) >= 16 )
+					break;
+				if ( (low = (byte[2] - (seed / 6 % 6) + 6) % 6) >= 4 )
+					break;
+
+				data[0] = (hi << 6) | (mid << 2) | low;
+
+				Put8Bit(data[0]);
+			}
+			str += 4;
+			break;
+		} else
+			break;
+	}
+
+	return str;
+}
+
 void CBuffer::md5(LPCTSTR str)
 {
 	unsigned int dlen;
@@ -1602,6 +1718,7 @@ CFontChacheNode::CFontChacheNode()
 {
 	m_pFont = NULL;
 	m_pNext = NULL;
+
 	memset(&(m_LogFont), 0, sizeof(LOGFONT));
 	m_LogFont.lfWidth          = 0;
 	m_LogFont.lfHeight         = 0;
@@ -1611,8 +1728,13 @@ CFontChacheNode::CFontChacheNode()
 	m_LogFont.lfClipPrecision  = CLIP_CHARACTER_PRECIS;
 	m_LogFont.lfQuality        = DEFAULT_QUALITY; // NONANTIALIASED_QUALITY, ANTIALIASED_QUALITY, CLEARTYPE_QUALITY
 	m_LogFont.lfPitchAndFamily = FIXED_PITCH | FF_MODERN;
-	m_Style = 0;
-	m_Fixed = (-1);
+
+	m_Width   = 0;
+	m_Height  = 0;
+	m_CharSet = (-1);
+	m_Style   = 0;
+	m_Quality = 0;
+	m_bFixed  = FALSE;
 }
 CFontChacheNode::~CFontChacheNode()
 {
@@ -1629,7 +1751,13 @@ CFont *CFontChacheNode::Open(LPCTSTR pFontName, int Width, int Height, int CharS
 	m_LogFont.lfItalic      = ((Style & 2) != 0 ? TRUE : FALSE);
 	m_LogFont.lfUnderline	= ((Style & 4) != 0 ? TRUE : FALSE);
 	m_LogFont.lfQuality     = Quality;
-	m_Style = Style;
+
+	m_Width   = Width;
+	m_Height  = Height;
+	m_CharSet = CharSet;
+	m_Style   = Style;
+	m_Quality = Quality;
+	m_bFixed  = FALSE;
 
 	if ( m_pFont != NULL )
 		delete m_pFont;
@@ -1637,7 +1765,55 @@ CFont *CFontChacheNode::Open(LPCTSTR pFontName, int Width, int Height, int CharS
 
 	if ( !m_pFont->CreateFontIndirect(&m_LogFont) )
 		m_pFont->Attach((HFONT)GetStockObject(SYSTEM_FONT));
-	m_Fixed = (-1);
+
+	else {
+		int n;
+		CDC dc;
+		CSize sz;
+		CFont *pOld;
+
+		dc.CreateCompatibleDC(NULL);
+		pOld = dc.SelectObject(m_pFont);
+
+		// Fixed Font Check 'W' == 'i'
+		sz = dc.GetTextExtent(_T("W"), 1);
+		if ( (n = sz.cx) <= 0 ) n = 1;
+		sz = dc.GetTextExtent(_T("i"), 1);
+		if ( (n = sz.cx * 100 / n) >= 80 )
+			m_bFixed = TRUE;
+
+		// AvgWidth Check Width > 'A'
+		sz = dc.GetTextExtent(_T("ABC012abc"), 9);
+
+		//		TEXTMETRIC metric;
+		//		dc.GetTextMetrics(&metric);
+		//
+		//		---- ---+---+
+		//				|	| tmInternalLeading	
+		//		----	| --+
+		//		 **		|
+		//		*  *	| tmAsent
+		//		 ***	|
+		//		   * ---+
+		//		 ** 	| tmDescent
+		//		---- ---+
+		//
+		//						kozuka	source	meiryo	mei_ui	ms_got	ms_pgot
+		//	         tmHeight	16		16		16		15		16		16
+		//	          tmAsent	13		12		11		12		14		14
+		//	        tmDescent	3		4		5		3		2		2
+		//	tmInternalLeading	6		5		5		3		0		0
+
+		dc.SelectObject(pOld);
+
+		// Resize Width ?
+		if ( sz.cx > 0 && (sz.cx * 100 / (m_Width * 9)) < 80 ) {
+			m_LogFont.lfWidth  = m_LogFont.lfWidth * (m_Width * 9) / sz.cx;
+			m_pFont->DeleteObject();
+			if ( !m_pFont->CreateFontIndirect(&m_LogFont) )
+				m_pFont->Attach((HFONT)GetStockObject(SYSTEM_FONT));
+		}
+	}
 
 	return m_pFont;
 }
@@ -1664,12 +1840,12 @@ CFontChacheNode *CFontChache::GetFont(LPCTSTR pFontName, int Width, int Height, 
 	Hash = (Hash + Width + Height + Style) & 3;
 	pNext = pBack = m_pTop[Hash];
 	for ( ; ; ) {
-		if ( pNext->m_pFont != NULL &&
-			 pNext->m_LogFont.lfCharSet == CharSet &&
-			 pNext->m_LogFont.lfWidth   == Width   &&
-			 pNext->m_LogFont.lfHeight  == Height  &&
-			 pNext->m_LogFont.lfQuality == Quality &&
-			 pNext->m_Style             == Style   &&
+		if ( pNext->m_pFont   != NULL &&
+			 pNext->m_Width   == Width   &&
+			 pNext->m_Height  == Height  &&
+			 pNext->m_CharSet == CharSet &&
+			 pNext->m_Style   == Style   &&
+			 pNext->m_Quality == Quality &&
 			 _tcscmp(pNext->m_LogFont.lfFaceName, pFontName) == 0 ) {
 			if ( pNext != pBack ) {
 				pBack->m_pNext = pNext->m_pNext;
@@ -1684,7 +1860,7 @@ CFontChacheNode *CFontChache::GetFont(LPCTSTR pFontName, int Width, int Height, 
 		pNext = pNext->m_pNext;
 	}
 
-	//TRACE("CacheMiss %s(%d,%d,%d,%d)\n", CStringA(pFontName), CharSet, Height, Hash, Style);
+	//TRACE(_T("CacheMiss %s(%d,%d,%d,%d)\n"), pFontName, CharSet, Width, Height, Hash);
 
 	if ( pNext->Open(pFontName, Width, Height, CharSet, Style, Quality) == NULL )
 		return NULL;

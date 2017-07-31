@@ -891,6 +891,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Iso646Dlg.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Kermit.cpp"
 				>
 			</File>
@@ -1266,6 +1270,10 @@
 			</File>
 			<File
 				RelativePath=".\InitAllDlg.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Iso646Dlg.h"
 				>
 			</File>
 			<File

@@ -124,7 +124,6 @@ public:
 
 	void InvalidateTextRect(CRect &rect);
 	void CalcPosRect(CRect &rect);
-	void CalcTextRect(CRect &rect);
 	void CalcGrapPoint(CPoint po, int *x, int *y);
 	void SetFrameRect(int cx, int cy);
 	void ImmSetPos(int x, int y);

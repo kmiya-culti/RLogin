@@ -398,6 +398,7 @@ void CRLoginView::ResetCellSize()
 {
 	if ( m_pCellSize == NULL )
 		return;
+
 	delete [] m_pCellSize;
 	m_pCellSize = NULL;
 }
@@ -426,16 +427,19 @@ int CRLoginView::GetGrapPos(int x, int y)
 	int pos;
 	CRLoginDoc *pDoc = GetDocument();
 
-	if ( m_pCellSize == NULL || y < 0 || y >= m_Lines )
+	if ( m_pCellSize == NULL || y < 0 || y >= m_Lines || x <= 0 || x >= m_Cols || m_pCellSize[x + m_CellCols * y] == 0 )
 		return (m_Width * x / m_Cols + pDoc->m_TextRam.m_ScrnOffset.left);
 
-	pos = pDoc->m_TextRam.m_ScrnOffset.left;
-	for ( n = 0 ; n < x ; n++ ) {
-		if ( (i = m_pCellSize[n + m_CellCols * y]) == 0 )
-			pos = m_Width * (n + 1) / m_Cols + pDoc->m_TextRam.m_ScrnOffset.left;
-		else
+	pos = 0;
+	for ( n = x - 1 ; n >= 0 ; n-- ) {
+		if ( (i = m_pCellSize[n + m_CellCols * y]) == 0 ) {
+			pos += m_Width * (n + 1) / m_Cols;
+			break;
+		} else
 			pos += i;
 	}
+
+	pos += pDoc->m_TextRam.m_ScrnOffset.left;
 	return pos;
 }
 
@@ -459,24 +463,7 @@ void CRLoginView::CalcPosRect(CRect &rect)
 }
 void CRLoginView::InvalidateTextRect(CRect &rect)
 {
-	CalcTextRect(rect);
-
-	if ( rect.top >= m_Height || rect.bottom <= 0 )
-		return;
-
-	if ( rect.top < 0 )
-		rect.top = 0;
-
-	if ( rect.bottom > m_Height )
-		rect.bottom = m_Height;
-
-	InvalidateRect(rect, FALSE);
-
-	if ( m_pGhost != NULL )
-		m_pGhost->InvalidateRect(rect, FALSE);
-}
-void CRLoginView::CalcTextRect(CRect &rect)
-{
+	int height;
 	CRLoginDoc *pDoc = GetDocument();
 
 	rect.left   = m_Width  * rect.left  / m_Cols + (rect.left == 0 ? 0 : pDoc->m_TextRam.m_ScrnOffset.left);
@@ -484,6 +471,22 @@ void CRLoginView::CalcTextRect(CRect &rect)
 
 	rect.top    = m_Height * (rect.top    + m_HisOfs - m_HisMin) / m_Lines + (rect.top == 0 ? 0 : pDoc->m_TextRam.m_ScrnOffset.top);
 	rect.bottom = m_Height * (rect.bottom + m_HisOfs - m_HisMin) / m_Lines + pDoc->m_TextRam.m_ScrnOffset.top + (rect.bottom >= (pDoc->m_TextRam.m_Lines - 1) ? pDoc->m_TextRam.m_ScrnOffset.bottom	: 0);
+
+	height = m_Height + pDoc->m_TextRam.m_ScrnOffset.top + pDoc->m_TextRam.m_ScrnOffset.bottom;
+
+	if ( rect.top >= height || rect.bottom <= 0 )
+		return;
+
+	if ( rect.top < 0 )
+		rect.top = 0;
+
+	if ( rect.bottom > height )
+		rect.bottom = height;
+
+	InvalidateRect(rect, FALSE);
+
+	if ( m_pGhost != NULL )
+		m_pGhost->InvalidateRect(rect, FALSE);
 }
 void CRLoginView::CalcGrapPoint(CPoint po, int *x, int *y)
 {
@@ -492,23 +495,51 @@ void CRLoginView::CalcGrapPoint(CPoint po, int *x, int *y)
 	if      ( (po.x -= pDoc->m_TextRam.m_ScrnOffset.left) < 0 )	po.x = 0;
 	else if ( po.x >= m_Width )		po.x = m_Width -1;
 
-	if      ( (po.y -= pDoc->m_TextRam.m_ScrnOffset.top) < 0 ) po.y = 0;
+	if      ( (po.y -= pDoc->m_TextRam.m_ScrnOffset.top) < 0 )	po.y = 0;
 	else if ( po.y >= m_Height )	po.y = m_Height - 1;
 
 	pDoc->m_TextRam.m_MousePos = po;
 
 	*x = m_Cols  * po.x / m_Width;
-	*y = m_Lines * po.y / m_Height - m_HisOfs + m_HisMin;
+	*y = m_Lines * po.y / m_Height;
 
-	if ( m_pCellSize == NULL )
-		return;
+	if ( m_pCellSize == NULL || *y < 0 || *y >= m_Lines )
+		goto RETENDOF;
 
-	po.x += pDoc->m_TextRam.m_ScrnOffset.left;
+	ASSERT(*x >= 0 && *x < m_Cols);
+	ASSERT(*y >= 0 && *y < m_Lines);
 
-	while ( po.x > GetGrapPos(*x, *y) )
-		*x += 1;
-	while ( po.x <= GetGrapPos(*x, *y) )
-		*x -= 1;
+	int n, i;
+
+	n = GetGrapPos(*x, *y);
+
+	if ( n < po.x ) {
+		while ( (*x + 1) < m_Cols ) {
+			if ( (i = m_pCellSize[*x + *y * m_CellCols]) == 0 )
+				n = m_Width * (*x + 1) / m_Cols;
+			else
+				n += i;
+
+			if ( n > po.x )
+				break;
+			*x += 1;
+		}
+	} else {
+		while ( *x > 0 ) {
+			if ( (i = m_pCellSize[*x + *y * m_CellCols]) == 0 )
+				n = m_Width * *x / m_Cols;
+			else
+				n -= i;
+
+			*x -= 1;
+			if ( n <= po.x )
+				break;
+		}
+	}
+
+RETENDOF:
+	*y =  *y - m_HisOfs + m_HisMin;
+	return;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1038,7 +1069,8 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		str = pDoc->m_TextRam.m_BitMapFile;
 		pDoc->EntryText(str);
 		m_BmpFile.LoadFile(str);
-		m_pBitmap = m_BmpFile.GetBitmap(GetDC(), m_Width, m_Height, 1, pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.bcol]);
+		this->GetClientRect(rect);
+		m_pBitmap = m_BmpFile.GetBitmap(GetDC(), rect.Width(), rect.Height(), 1, pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.bcol]);
 		//pDoc->SetStatus(NULL);
 
 		if ( m_BtnWnd.m_hWnd == NULL && pDoc->m_TextRam.m_bOscActive && pDoc->m_TextRam.m_IntCounter >= 10 ) {
@@ -1057,6 +1089,7 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		else if ( (m_Lines + m_HisOfs) > pDoc->m_TextRam.m_HisLen )
 			m_HisOfs = pDoc->m_TextRam.m_HisLen - m_Lines;
 		SCROLLINFO info;
+		ZeroMemory(&info, sizeof(info));
 		info.cbSize = sizeof(info);
 		info.fMask  = SIF_PAGE | SIF_POS | SIF_RANGE;
 		// Min=0, Max=99, Page=10, Pos = 90
@@ -1081,10 +1114,6 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 			rect.right = pDoc->m_TextRam.m_Cols;
 		}
 		InvalidateTextRect(rect);
-		//CalcTextRect(rect);
-		//InvalidateRect(rect, FALSE);
-		//if ( m_pGhost != NULL )
-		//	m_pGhost->InvalidateRect(rect, FALSE);
 		break;
 
 	case UPDATE_CLIPERA:

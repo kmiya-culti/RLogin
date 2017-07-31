@@ -65,6 +65,11 @@ public:
 	void CreateJumpList(CServerEntryTab *pEntry);
 #endif
 
+#ifdef	USE_SAPI
+	ISpVoice *m_pVoice;
+	void Speek(LPCTSTR str);
+#endif
+
 	void SetSocketIdle(class CExtSocket *pSock);
 	void DelSocketIdle(class CExtSocket *pSock);
 	virtual CString GetProfileString(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPCTSTR lpszDefault = NULL);

@@ -29,6 +29,10 @@
 #include <openssl/conf.h>
 #include "afxcmn.h"
 
+#ifdef	USE_SAPI
+#include <sphelper.h>
+#endif
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -267,6 +271,10 @@ CRLoginApp::CRLoginApp()
 	m_pD2DFactory    = NULL;
 	m_pDWriteFactory = NULL;
 #endif
+
+#ifdef	USE_SAPI
+	m_pVoice = NULL;
+#endif
 }
 
 // 唯一の CRLoginApp オブジェクトです。
@@ -399,8 +407,14 @@ void CRLoginApp::CreateJumpList(CServerEntryTab *pEntry)
 	}
 }
 #endif
-
-#include "Fifo.h"
+	
+#ifdef	USE_SAPI
+void CRLoginApp::Speek(LPCTSTR str)
+{
+	if ( m_pVoice != NULL )
+		m_pVoice->Speak(TstrToUni(str), SPF_ASYNC, NULL);
+}
+#endif
 
 BOOL CRLoginApp::InitInstance()
 {
@@ -432,6 +446,16 @@ BOOL CRLoginApp::InitInstance()
 		AfxMessageBox(IDS_SOCKETS_INIT_FAILED);
 		return FALSE;
 	}
+#endif
+
+#ifdef	USE_SAPI
+    if ( FAILED(::CoInitialize(NULL)) ) {
+		AfxMessageBox(_T("CoIInitialize Error"));
+        return FALSE;
+	}
+
+	if ( FAILED(CoCreateInstance(CLSID_SpVoice, NULL, CLSCTX_ALL, IID_ISpVoice, (void **)&m_pVoice)) )
+		m_pVoice = NULL;
 #endif
 
 	// 標準初期化
@@ -1166,6 +1190,12 @@ int CRLoginApp::ExitInstance()
 
 #ifndef	USE_FIXWCHAR
 	AllWCharAllocFree();
+#endif
+
+#ifdef	USE_SAPI
+	if ( m_pVoice != NULL )
+		m_pVoice->Release();
+    ::CoUninitialize();
 #endif
 
 	return CWinApp::ExitInstance();

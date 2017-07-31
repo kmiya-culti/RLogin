@@ -32,6 +32,8 @@ public:
 	int m_FontQuality;
 	int m_FontSize;
 	CString m_UniBlock;
+	CString m_Iso646Name[2];
+	DWORD m_Iso646Tab[12];
 
 	int m_CodeSet;
 	CString m_FontNameTab[16];
@@ -63,4 +65,5 @@ public:
 	afx_msg void OnCbnSelchangeCharset();
 	afx_msg void OnCbnEditchangeCharset();
 	afx_msg void OnBnClickedUniblock();
+	afx_msg void OnBnClickedIso646set();
 };

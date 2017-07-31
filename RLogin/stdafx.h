@@ -10,6 +10,7 @@
 //#define	USE_CLEFIA	1
 //#define	USE_JUMPLIST	1
 //#define	USE_DIRECTWRITE	1
+#define	USE_SAPI	1
 
 //#define	WINSOCK11	1
 //#define	NOIPV6		1
@@ -85,6 +86,10 @@
 
 #ifndef	NOGDIPLUS
 #include <atlimage.h>
+#endif
+
+#ifdef	USE_SAPI
+#include <sapi.h>
 #endif
 
 #include <atlbase.h>
