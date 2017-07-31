@@ -252,12 +252,17 @@ CTextRam::CTextRam()
 	m_Cols = m_ColsMax = 80;
 	m_LineUpdate = 0;
 	m_Lines = 25;
+	m_TopY = 0;
+	m_BtmY = m_Lines;
+	m_LeftX = 0;
+	m_RightX = m_Cols;
 	m_HisMax = 100;
 	m_HisPos = 0;
 	m_HisLen = 0;
 	m_HisUse = 0;
 	m_pTextSave = m_pTextStack = NULL;
 	m_DispCaret = 002;
+	m_TypeCaret = 0; 
 	m_UpdateRect.SetRectEmpty();
 	m_UpdateFlag = FALSE;
 	m_DelayMSec = 0;
@@ -271,13 +276,14 @@ CTextRam::CTextRam()
 	m_WordStr.Empty();
 	m_Exact = FALSE;
 	m_MouseTrack = 0;
+	m_MouseRect.SetRectEmpty();
 	m_Loc_Mode  = 0;
 	m_Loc_Pb    = 0;
-	m_Loc_LastS = 0;
 	m_Loc_LastX = 0;
 	m_Loc_LastY = 0;
 	memset(m_MetaKeys, 0, sizeof(m_MetaKeys));
 	m_TitleMode = WTTL_ENTRY;
+	m_VtLevel = 65;
 
 	m_LineEditMode = FALSE;
 	m_LineEditPos  = 0;
@@ -746,12 +752,14 @@ void CTextRam::Init()
 		m_DropFileCmd[n] = DropCmdTab[n];
 	m_WordStr        = "\\/._";
 	m_MouseTrack     = 0;
+	m_MouseRect.SetRectEmpty();
 	m_MouseMode[0]   = 0;
 	m_MouseMode[1]   = 1;
 	m_MouseMode[2]   = 4;
 	m_MouseMode[3]   = 16;
 	memset(m_MetaKeys, 0, sizeof(m_MetaKeys));
 	m_TitleMode = WTTL_ENTRY;
+	m_VtLevel = 65;
 
 	m_ProcTab.Init();
 
@@ -2221,6 +2229,8 @@ void CTextRam::RESET(int mode)
 		m_CurY = 0;
 		m_TopY = 0;
 		m_BtmY = m_Lines;
+		m_LeftX = 0;
+		m_RightX = m_Cols;
 
 		m_DoWarp = FALSE;
 		m_Status = ST_NON;
@@ -2269,8 +2279,10 @@ void CTextRam::RESET(int mode)
 			m_ColTab[n++] = RGB(g * 11, g * 11, g * 11);
 	}
 
-	if ( mode & RESET_OPTION )
+	if ( mode & RESET_OPTION ) {
 		memcpy(m_AnsiOpt, m_DefAnsiOpt, sizeof(m_AnsiOpt));
+		m_VtLevel = 65;
+	}
 
 	if ( mode & RESET_CLS )
 		ERABOX(0, 0, m_Cols, m_Lines, 2);
@@ -2294,9 +2306,9 @@ void CTextRam::RESET(int mode)
 
 	if ( mode & RESET_MOUSE ) {
 		m_MouseTrack = 0;
+		m_MouseRect.SetRectEmpty();
 		m_Loc_Mode  = 0;
 		m_Loc_Pb    = 0;
-		m_Loc_LastS = 0;
 		m_Loc_LastX = 0;
 		m_Loc_LastY = 0;
 	}
@@ -2548,71 +2560,75 @@ void CTextRam::LocReport(int md, int sw, int x, int y)
 	// 4 - left 
 	// 8 - fourth 
 
-	int Pe;
+	int Pe = 0;
 
-	switch(md) {
-	case 0:	// Init Mode
-		m_Loc_Pb = 0;
+	if ( md == 0 ) {			// Init Mode
 		m_MouseTrack = ((m_Loc_Mode & LOC_MODE_ENABLE) != 0 ? 6 : 0);
 		m_pDocument->UpdateAllViews(NULL, UPDATE_SETCURSOR, NULL);
-		break;
-	case 1:	// Mouse Event
-		m_Loc_LastS = sw;
+		return;
+
+	} else if ( md == 6 ) {		// Request
+		if ( (m_Loc_Mode & LOC_MODE_ENABLE) != 0 )
+			Pe = 1;
+
+	} else {					// Mouse Event
 		m_Loc_LastX = x;
 		m_Loc_LastY = y;
+		m_Loc_Pb    = 0;
 
-		switch(m_Loc_LastS) {
-		case 0:	// Left Up
-			Pe = 3;
-			m_Loc_Pb &= ~4;
-			break;
+		if ( (sw & MK_RBUTTON) != 0 )
+			m_Loc_Pb |= 1;
+
+		if ( (sw & MK_LBUTTON) != 0 )
+			m_Loc_Pb |= 4;
+
+		switch(md) {
 		case 1:	// Left Down
 			Pe = 2;
-			m_Loc_Pb |= 4;
 			break;
-		case 2:	// Right Up
-			Pe = 7;
-			m_Loc_Pb &= ~1;
+		case 2:	// Left Up
+			Pe = 3;
 			break;
 		case 3:	// Right Down
 			Pe = 6;
-			m_Loc_Pb |= 1;
+			break;
+		case 4:	// Right Up
+			Pe = 7;
+			break;
+		case 5:	// Mouse Move
+			if ( (m_Loc_Mode & LOC_MODE_FILTER) == 0 )
+				return;
+			if ( !m_Loc_Rect.IsRectEmpty() && m_Loc_Rect.PtInRect(CPoint(m_Loc_LastX, m_Loc_LastY)) )
+				return;
+			Pe = 10;
+			m_Loc_Mode &= ~LOC_MODE_FILTER;
 			break;
 		}
 
 		if ( (m_Loc_Mode & LOC_MODE_ONESHOT) == 0 ) {
 			if ( (m_Loc_Mode & LOC_MODE_EVENT) == 0 )
-				break;
-			else if ( (sw & 1) != 0 ) {	// Bottun Down
-				if ( (m_Loc_Mode & LOC_MODE_DOWN) == 0 )
-					break;
-			} else {					// Bottun Up
-				if ( (m_Loc_Mode & LOC_MODE_UP) == 0 )
-					break;
-			}
+				return;
+			else if ( (md == 1 || md == 3) && (m_Loc_Mode & LOC_MODE_DOWN) == 0 )
+				return;
+			else if ( (md == 2 || md == 4) && (m_Loc_Mode & LOC_MODE_UP) == 0 )
+				return;
 		}
-	case 2:	// Request Report
-		if ( md == 2 )
-			Pe = ((m_Loc_Mode & LOC_MODE_ENABLE) == 0 ? 0 : 1);
-		else if ( (m_Loc_Mode & LOC_MODE_FILTER) != 0 && !m_Loc_Rect.PtInRect(CPoint(m_Loc_LastX, m_Loc_LastY)) )
-			Pe = 10;
+	}
 
-		x = m_Loc_LastX;
-		y = m_Loc_LastY;
+	x = m_Loc_LastX;
+	y = m_Loc_LastY;
 
-		if ( (m_Loc_Mode & LOC_MODE_PIXELS) != 0 ) {
-			x *= 6;
-			y *= 12;
-		}
+	if ( (m_Loc_Mode & LOC_MODE_PIXELS) != 0 ) {
+		x *= 6;
+		y *= 12;
+	}
 
-		UNGETSTR("\033[%d;%d;%d;%d;%d&w", Pe, m_Loc_Pb, y + 1, x + 1, 0);
+	UNGETSTR("\033[%d;%d;%d;%d;%d&w", Pe, m_Loc_Pb, y + 1, x + 1, 0);
 
-		if ( (m_Loc_Mode & LOC_MODE_ONESHOT) != 0 ) {
-			m_Loc_Mode &= ~(LOC_MODE_ENABLE | LOC_MODE_ONESHOT);
-			m_MouseTrack = 0;
-			m_pDocument->UpdateAllViews(NULL, UPDATE_SETCURSOR, NULL);
-		}
-		break;
+	if ( (m_Loc_Mode & LOC_MODE_ONESHOT) != 0 ) {
+		m_Loc_Mode &= ~(LOC_MODE_ENABLE | LOC_MODE_ONESHOT);
+		m_MouseTrack = 0;
+		m_pDocument->UpdateAllViews(NULL, UPDATE_SETCURSOR, NULL);
 	}
 }
 
@@ -2995,6 +3011,8 @@ void CTextRam::SAVERAM()
 	pSave->m_CurY   = m_CurY;
 	pSave->m_TopY   = m_TopY;
 	pSave->m_BtmY   = m_BtmY;
+	pSave->m_LeftX  = m_LeftX;
+	pSave->m_RightX = m_RightX;
 	pSave->m_DoWarp = m_DoWarp;
 	memcpy(pSave->m_AnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
 	pSave->m_BankGL = m_BankGL;
@@ -3043,6 +3061,8 @@ void CTextRam::LOADRAM()
 	if ( (m_CurY = pSave->m_CurY) >= m_Lines ) m_CurY = m_Lines - 1;
 	if ( (m_TopY = pSave->m_TopY) >= m_Lines ) m_TopY = m_Lines - 1;
 	if ( (m_BtmY = pSave->m_BtmY) > m_Lines )  m_BtmY = m_Lines;
+	if ( (m_LeftX  = pSave->m_LeftX) >= m_Cols ) m_LeftX  = m_Lines - 1;
+	if ( (m_RightX = pSave->m_RightX) > m_Cols ) m_RightX = m_Cols;
 	m_DoWarp = pSave->m_DoWarp;
 	memcpy(m_AnsiOpt, pSave->m_AnsiOpt, sizeof(DWORD) * 12);	// 0 - 384
 	m_BankGL = pSave->m_BankGL;
@@ -3237,4 +3257,12 @@ void CTextRam::PUTSTR(LPBYTE lpBuf, int nBufLen)
 	while ( nBufLen-- > 0 )
 		fc_Call(*(lpBuf++));
 	m_RetSync = FALSE;
+}
+int CTextRam::MCHAR(int val)
+{
+	if ( (val += ' ') > 255 )
+		val = 255;
+	else if ( val < ' ' )
+		val = ' ';
+	return val;
 }

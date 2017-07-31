@@ -314,6 +314,8 @@ public:
 	int m_CurY;
 	int m_TopY;
 	int m_BtmY;
+	int m_LeftX;
+	int m_RightX;
 
 	int m_DoWarp;
 	DWORD m_AnsiOpt[16];
@@ -367,6 +369,7 @@ public:	// Options
 	CString m_WordStr;
 	int m_MouseTrack;
 	BYTE m_MouseMode[4];
+	CRect m_MouseRect;
 	DWORD m_MetaKeys[256 / 32];
 	CProcTab m_ProcTab;
 
@@ -392,6 +395,8 @@ public:
 	int m_CurY;
 	int m_TopY;
 	int m_BtmY;
+	int m_LeftX;
+	int m_RightX;
 	int m_DefTab;
 	COLORREF m_ColTab[256];
 	DWORD m_AnsiOpt[16];
@@ -406,6 +411,7 @@ public:
 	CFile m_HisFhd;
 
 	int m_DispCaret;
+	int m_TypeCaret;
 	BOOL m_DoWarp;
 	int m_Status;
 	int m_RecvCrLf;
@@ -423,6 +429,7 @@ public:
 	BYTE m_TabMap[LINE_MAX + 1][COLS_MAX / 8 + 1];
 	BOOL m_RetSync;
 	BOOL m_Exact;
+	int m_VtLevel;
 
 	WORD m_BankTab[4][4];
 	int m_BankNow;
@@ -560,6 +567,7 @@ public:
 	void POPRAM();
 	void TABSET(int sw);
 	void PUTSTR(LPBYTE lpBuf, int nBufLen);
+	int MCHAR(int val);
 
 	CTextRam();
 	virtual ~CTextRam();
@@ -766,6 +774,9 @@ public:
 	void fc_DECBFAT(int ch);
 	void fc_DECLL(int ch);
 	void fc_DECSTBM(int ch);
+	void fc_DECSLRM(int ch);
+	void fc_DECSHTS(int ch);
+	void fc_DECSVTS(int ch);
 	void fc_DECSC(int ch);
 	void fc_XTWOP(int ch);
 	void fc_DECRC(int ch);
@@ -787,6 +798,9 @@ public:
 	void fc_DECDSR(int ch);
 	void fc_DECSRET(int ch);
 	// CSI $ ...
+	void fc_DECRQTSR(int ch);
+	void fc_DECRQPSR(int ch);
+	void fc_DECSCPP(int ch);
 	void fc_DECRQM(int ch);
 	void fc_DECCARA(int ch);
 	void fc_DECRARA(int ch);
@@ -798,9 +812,13 @@ public:
 	void fc_DECRQMH(int ch);
 	void fc_SL(int ch);
 	void fc_SR(int ch);
+	void fc_DECSCUSR(int ch);
 	void fc_DECTME(int ch);
 	void fc_DECSTR(int ch);
+	void fc_DECSCL(int ch);
 	void fc_DECSCA(int ch);
+	void fc_DECRQDE(int ch);
+	void fc_DECRQUPSS(int ch);
 	void fc_DECEFR(int ch);
 	void fc_DECELR(int ch);
 	void fc_DECSLE(int ch);
@@ -888,7 +906,6 @@ public:
 	int m_Loc_Mode;
 	CRect m_Loc_Rect;
 	int m_Loc_Pb;
-	int m_Loc_LastS;
 	int m_Loc_LastX;
 	int m_Loc_LastY;
 

@@ -248,10 +248,10 @@ static const CTextRam::PROCTAB fc_AnsiTab[] = {
 	{ 'p',		0,			&CTextRam::fc_DECBFAT	},	// DECBFAT Begin field attribute : DEC private
 //	{ 'q',		0,			&CTextRam::fc_DECLL		},	// DECLL Load LEDs
 	{ 'r',		0,			&CTextRam::fc_DECSTBM	},	// DECSTBM Set Top and Bottom Margins
-	{ 's',		0,			&CTextRam::fc_DECSC		},	// DECSC Save Cursol Pos
-	{ 't',		0,			&CTextRam::fc_XTWOP		},	// XTWOP XTERM WINOPS
-	{ 'u',		0,			&CTextRam::fc_DECRC		},	// DECRC Load Cursol Pos
-	{ 'v',		0,			&CTextRam::fc_ORGSCD	},	// ORGSCD Set Cursol Display
+	{ 's',		0,			&CTextRam::fc_DECSC		},	// DECSC Save Cursol Pos					DECSLRM Set left and right margins
+	{ 't',		0,			&CTextRam::fc_XTWOP		},	// XTWOP XTERM WINOPS						DECSLPP Set lines per physical page
+	{ 'u',		0,			&CTextRam::fc_DECRC		},	// DECRC Load Cursol Pos					DECSHTS Set horizontal tab stops
+	{ 'v',		0,			&CTextRam::fc_ORGSCD	},	// ORGSCD Set Cursol Display				DECSVTS Set vertical tab stops
 	{ 'x',		0,			&CTextRam::fc_REQTPARM	},	// DECREQTPARM Request terminal parameters
 //	{ 'y',		0,			&CTextRam::fc_DECTST	},	// DECTST Invoke confidence test
 //	{ 'z',		0,			&CTextRam::fc_DECVERP	},	// DECVERP Set vertical pitch
@@ -270,14 +270,18 @@ static const CTextRam::PROCTAB fc_Ext2Tab[] = {			// ('$' << 8) | sc
 	{ 'p',		0,			&CTextRam::fc_DECRQM	},	// DECRQM Request mode settings
 	{ 'r',		0,			&CTextRam::fc_DECCARA	},	// DECCARA Change Attribute in Rectangle
 	{ 't',		0,			&CTextRam::fc_DECRARA	},	// DECRARA Reverse Attribute in Rectangle
+	{ 'u',		0,			&CTextRam::fc_DECRQTSR	},	// DECRQTSR Request Terminal State Report
 	{ 'v',		0,			&CTextRam::fc_DECCRA	},	// DECCRA Copy Rectangular Area
+	{ 'w',		0,			&CTextRam::fc_DECRQPSR	},	// DECRQPSR Request Presentation State Report
 	{ 'x',		0,			&CTextRam::fc_DECFRA	},	// DECFRA Fill Rectangular Area
 	{ 'z',		0,			&CTextRam::fc_DECERA	},	// DECERA Erase Rectangular Area
 	{ '{',		0,			&CTextRam::fc_DECSERA	},	// DECSERA Selective Erase Rectangular Area
+	{ '|',		0,			&CTextRam::fc_DECSCPP	},	// DECSCPP Set Ps columns per page
 	{ 0,		0,			NULL } };
 static const CTextRam::PROCTAB fc_Ext3Tab[] = {			// (' ' << 8) | sc
 	{ '@',		0,			&CTextRam::fc_SL		},	// SL Scroll left
 	{ 'A',		0,			&CTextRam::fc_SR		},	// SRScroll Right
+	{ 'q',		0,			&CTextRam::fc_DECSCUSR	},	// DECSCUSR Set Cursor Style
 	{ '~',		0,			&CTextRam::fc_DECTME	},	// DECTME Terminal Mode Emulation
 	{ 0,		0,			NULL } };
 static const CTextRam::PROCTAB fc_Ext4Tab[] = {
@@ -286,7 +290,10 @@ static const CTextRam::PROCTAB fc_Ext4Tab[] = {
 static const CTextRam::CSIEXTTAB fc_CsiExtTab[] = {
 	{ ('?' << 16) | ('$'  << 8) | 'p',		&CTextRam::fc_DECRQMH	},	// DECRQMH Request Mode (DEC) Host to Terminal
 	{ 				('!'  << 8) | 'p',		&CTextRam::fc_DECSTR	},	// DECSTR Soft terminal reset
+	{ 				('"'  << 8) | 'p',		&CTextRam::fc_DECSCL	},	// DECSCL Set compatibility level
 	{ 				('"'  << 8) | 'q',		&CTextRam::fc_DECSCA	},	// DECSCA Select character attributes
+	{ 				('"'  << 8) | 'v',		&CTextRam::fc_DECRQDE	},	// DECRQDE Request device extent
+	{ 				('&'  << 8) | 'u',		&CTextRam::fc_DECRQUPSS	},	// DECRQUPSS Request User-Preferred Supplemental Set
 	{ 				('\'' << 8) | 'w',		&CTextRam::fc_DECEFR	},	// DECEFR Enable filter rectangle
 	{ 				('\'' << 8) | 'z',		&CTextRam::fc_DECELR	},	// DECELR Enable locator reports
 	{ 				('\'' << 8) | '{',		&CTextRam::fc_DECSLE	},	// DECSLE Select locator events
@@ -420,7 +427,7 @@ static CTextRam::ESCNAMEPROC fc_EscNameTab[] = {
 	{	NULL,		NULL,					NULL,	NULL	},
 };
 
-static int	fc_CsiNameTabMax = 86;
+static int	fc_CsiNameTabMax = 96;
 static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	"C25LCT",	&CTextRam::fc_C25LCT,	NULL,	NULL 	},
 	{	"CBT",		&CTextRam::fc_CBT,		NULL,	NULL	},
@@ -454,21 +461,31 @@ static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	"DECLL",	&CTextRam::fc_DECLL,	NULL,	NULL	},
 	{	"DECRARA",	&CTextRam::fc_DECRARA,	NULL,	NULL	},
 	{	"DECRC",	&CTextRam::fc_DECRC,	NULL,	NULL	},
+	{	"DECRQDE",	&CTextRam::fc_DECRQDE,	NULL,	NULL	},
 	{	"DECRQLP",	&CTextRam::fc_DECRQLP,	NULL,	NULL	},
 	{	"DECRQM",	&CTextRam::fc_DECRQM,	NULL,	NULL	},
 	{	"DECRQMH",	&CTextRam::fc_DECRQMH,	NULL,	NULL	},
+	{	"DECRQPSR",	&CTextRam::fc_DECRQPSR,	NULL,	NULL	},
+	{	"DECRQTSR",	&CTextRam::fc_DECRQTSR,	NULL,	NULL	},
+	{	"DECRQUPSS",&CTextRam::fc_DECRQUPSS,NULL,	NULL	},
 	{	"DECRST",	&CTextRam::fc_DECRST,	NULL,	NULL	},
 	{	"DECSACE",	&CTextRam::fc_DECSACE,	NULL,	NULL	},
 	{	"DECSC",	&CTextRam::fc_DECSC,	NULL,	NULL	},
 	{	"DECSCA",	&CTextRam::fc_DECSCA,	NULL,	NULL	},
+	{	"DECSCL",	&CTextRam::fc_DECSCL,	NULL,	NULL	},
+	{	"DECSCPP",	&CTextRam::fc_DECSCPP,	NULL,	NULL	},
+	{	"DECSCUSR",	&CTextRam::fc_DECSCUSR,	NULL,	NULL	},
 	{	"DECSED",	&CTextRam::fc_DECSED,	NULL,	NULL	},
 	{	"DECSEL",	&CTextRam::fc_DECSEL,	NULL,	NULL	},
 	{	"DECSERA",	&CTextRam::fc_DECSERA,	NULL,	NULL	},
 	{	"DECSET",	&CTextRam::fc_DECSET,	NULL,	NULL	},
+	{	"DECSHTS",	&CTextRam::fc_DECSHTS,	NULL,	NULL	},
 	{	"DECSLE",	&CTextRam::fc_DECSLE,	NULL,	NULL	},
+	{	"DECSLRM",	&CTextRam::fc_DECSLRM,	NULL,	NULL	},
 	{	"DECST8C",	&CTextRam::fc_DECST8C,	NULL,	NULL	},
 	{	"DECSTBM",	&CTextRam::fc_DECSTBM,	NULL,	NULL	},
 	{	"DECSTR",	&CTextRam::fc_DECSTR,	NULL,	NULL	},
+	{	"DECSVTS",	&CTextRam::fc_DECSVTS,	NULL,	NULL	},
 	{	"DECTME",	&CTextRam::fc_DECTME,	NULL,	NULL	},
 	{	"DECTST",	&CTextRam::fc_DECTST,	NULL,	NULL	},
 	{	"DECVERP",	&CTextRam::fc_DECVERP,	NULL,	NULL	},
@@ -1718,10 +1735,15 @@ void CTextRam::fc_EPA(int ch)
 }
 void CTextRam::fc_SCI(int ch)
 {
-	// ESC Z	VT52 Identify (host to terminal).				ANSI SCI Single character introducer
-	if ( !IS_ENABLE(m_AnsiOpt, TO_DECANM) )
+	// ESC Z	VT52 Identify (host to terminal).				DECID(DA1) Primary Device Attributes		// ANSI SCI Single character introducer
+	if ( !IS_ENABLE(m_AnsiOpt, TO_DECANM) ) {
 		UNGETSTR("\033/Z");
-	fc_POP(ch);
+		fc_POP(ch);
+	} else {
+		m_AnsiPara.RemoveAll();
+		m_AnsiPara.Add(0xFFFF);
+		fc_DA1(ch);
+	}
 }
 void CTextRam::fc_RIS(int ch)
 {
@@ -2144,6 +2166,7 @@ void CTextRam::fc_OSC_ST(int ch)
 	int n;
 	CStringW tmp;
 	WCHAR *p;
+	CString str, wrk;
 
 	if ( ch == 0x07 && m_OscMode != ']' )	// OSC
 		return;
@@ -2177,47 +2200,130 @@ void CTextRam::fc_OSC_ST(int ch)
 		}
 
 		switch(m_BackChar) {
+#if 0
+		case 'p':					// ReGIS graphics
+		case 'q':					// Sixel graphics
 		case 'r':					// Load Banner Message
 		case 'v':					// Load Answerback Message
-		case '{':					// Down-line Load1
-		case '|':					// User Defined Keys
-		case ('$' << 8) | 'p':		// Restore Terminal State
-			break;
-		case ('$' << 8) | 'q':		// Request Selection or Setting
+		case 'x':					// DECtalk commands
+		case 'y':					// DECLFF Load font file
+		case '{':					// DECDLD Down-line Load1
+		case '|':					// DECUDK User Defined Keys
+		case '}':					// DECATFF Assign to font file
+		case '~':					// DECDTFF Delete type family or font file
+#endif
+		case ('$' << 8) | 'q':		// DECRQSS Request Selection or Setting
 			for ( n = 0 ; *p != L'\0' ; p++ )
-				n = (n << 16) | *p;
+				n = (n << 8) | *p;
+
 			switch(n) {
-			case ('"' << 16) | 'p':		// DECSCL
-				UNGETSTR("\033P1$r65\033\\");
-				break;
 			case 'm':					// SGR
+				str = "\033P1$r0";
+				if ( (m_AttNow.at & ATT_BOLD)   != 0 ) str += ";1";
+				if ( (m_AttNow.at & ATT_HALF)   != 0 ) str += ";2";
+				if ( (m_AttNow.at & ATT_ITALIC) != 0 ) str += ";3";
+				if ( (m_AttNow.at & ATT_UNDER)  != 0 ) str += ";4";
+				if ( (m_AttNow.at & ATT_SBLINK) != 0 ) str += ";5";
+				if ( (m_AttNow.at & ATT_BLINK)  != 0 ) str += ";6";
+				if ( (m_AttNow.at & ATT_REVS)   != 0 ) str += ";7";
+				if ( (m_AttNow.at & ATT_SECRET) != 0 ) str += ";8";
+				if ( (m_AttNow.at & ATT_LINE)   != 0 ) str += ";9";
+				if ( (m_AttNow.at & ATT_DUNDER) != 0 ) str += ";21";
+				if ( (m_AttNow.at & ATT_FRAME)  != 0 ) str += ";51";
+				if ( (m_AttNow.at & ATT_CIRCLE) != 0 ) str += ";52";
+				if ( (m_AttNow.at & ATT_OVER)   != 0 ) str += ";53";
+				if ( (m_AttNow.at & ATT_RSLINE) != 0 ) str += ";60";
+				if ( (m_AttNow.at & ATT_RDLINE) != 0 ) str += ";61";
+				if ( (m_AttNow.at & ATT_LSLINE) != 0 ) str += ";62";
+				if ( (m_AttNow.at & ATT_LDLINE) != 0 ) str += ";63";
+				if ( (m_AttNow.at & ATT_STRESS) != 0 ) str += ";64";
+
+				if ( m_AttNow.ft > 0 ) { wrk.Format(";%d", m_AttNow.ft + 10); str += wrk; }
+
+				if ( m_AttNow.fc == m_DefAtt.fc ) str += "";
+				else if ( m_AttNow.fc < 8 ) { wrk.Format(";%d", m_AttNow.fc + 30); str += wrk; }
+				else if ( m_AttNow.fc < 16 ) { wrk.Format(";%d", m_AttNow.fc - 8 + 90); str += wrk; }
+				else { wrk.Format(";38;%d", m_AttNow.fc); str += wrk; }
+
+				if ( m_AttNow.bc == m_DefAtt.bc ) str += "";
+				else if ( m_AttNow.bc < 8 ) { wrk.Format(";%d", m_AttNow.fc + 40); str += wrk; }
+				else if ( m_AttNow.bc < 16 ) { wrk.Format(";%d", m_AttNow.bc - 8 + 100); str += wrk; }
+				else { wrk.Format(";48;%d", m_AttNow.bc); str += wrk; }
+
+				str += "m\033\\";
+				UNGETSTR(str);
+				break;
+
 			case 'r':					// DECSTBM
-			case ('$' << 16) | '|':		// DECSCPP
-			case ('$' << 16) | '}':		// DECSASD
-			case ('$' << 16) | '~':		// DECSSDT
-			case ('"' << 16) | 'q':		// DECSCA
-			case ('*' << 16) | '|':		// DECSNLS
-			default:
+				UNGETSTR("\033P1$r%d;%dr\033\\", m_TopY + 1, m_BtmY + 1 - 1);
+				break;
+
+			case 's':					// DECSLRM Set left and right margins
+				// UNGETSTR("\033P1$r%d;%ds\033\\", m_LeftX + 1, m_RightX + 1 - 1);
 				UNGETSTR("\033P0$r\033\\");
+				break;
+
+			case 't':					// DECSLPP Set lines per physical page
+				// UNGETSTR("\033P1$r%dt\033\\", m_Lines);
+				UNGETSTR("\033P0$r\033\\");
+				break;
+
+			case ('$' << 8) | '|':		// DECSCPP
+				UNGETSTR("\033P1$r%d$|\033\\", m_Cols);
+				break;
+
+			case ('*' << 8) | 'x':		// DECSACE Select Attribute and Change Extent
+				UNGETSTR("\033P1$r%d*x\033\\", m_Exact ? 2 : 1);
+				break;
+
+			case ('*' << 8) | '|':		// DECSNLS
+				UNGETSTR("\033P1$r%d*|\033\\", m_Lines);
+				break;
+
+			case ('"' << 8) | 'p':		// DECSCL
+				UNGETSTR("\033P1$r%d\"p\033\\", m_VtLevel);
+				break;
+
+			case ('"' << 8) | 'q':		// DECSCA
+				UNGETSTR("\033P1$r%d\"q\033\\", (m_AttNow.em & EM_PROTECT) != 0 ? 1 : 0);
+				break;
+
+			case ('$' << 8) | '}':		// DECSASD Select active status display
+				UNGETSTR("\033P1$r%d$p\033\\", 0);	// none
+				break;
+
+			case ('$' << 8) | '~':		// DECSSDT Select status display type
+				UNGETSTR("\033P1$r%d$~\033\\", 0);	// none
+				break;
+
+
+			//case '|':					// DECTTC Select transmit termination character
+			//case ('\'' << 8) | 's':	// DECTLTC
+			//case ('+' << 8) | 'q':	// DECELF Enable local functions
+			//case ('+' << 8) | 'r':	// DECSMKR Select modifier key reporting
+			//case ('*' << 8) | '}':	// DECLFKC Local function key control
+			default:
+				UNGETSTR("\033P0$r\033\\");		// DECRPSS
 				break;
 			}
 			break;
+
+		case ('!' << 8) | '|':		// DECRPTUI Report Terminal Unit ID
+			UNGETSTR("\033P0!|0\033\\");
+			break;
 #if 0
-		case ('$' << 8) | 's':		// Request Terminal State Report
-		case ('$' << 8) | 't':		// Restore Presentation State
-		case ('$' << 8) | 'u':		// Tabulation Stop Report
-			break;
-		case ('!' << 8) | 'u':		// Assign User-Preferred Supp Set
-		case ('!' << 8) | 'z':		// Define Macro
+		case ('$' << 8) | 't':		// DECRSPS Restore Presentation State
+		case ('$' << 8) | 'w':		// DECLKD Locator key definition
+		case ('!' << 8) | 'q':		// Enter GIDIS mode
+		case ('!' << 8) | 'u':		// DECAUPSS Assign User-Preferred Supp Set
+		case ('!' << 8) | 'z':		// DECDMAC Define Macro
 		case ('!' << 8) | '{':		// Set Terminal Unit ID
-		case ('!' << 8) | '|':		// Report Terminal Unit ID
-			break;
+		case ('!' << 8) | '~':		// DECCKSR Checksum response
 		case ('"' << 8) | 'x':		// Program Function Key
 		case ('"' << 8) | 'y':		// Program Alphanumeric Key
 		case ('"' << 8) | 'z':		// Copy Key Default
-		case ('"' << 8) | '{':		// Report Function Key Definition
+		case ('"' << 8) | '{':		// DECFSR Report Function Key Definition
 		case ('"' << 8) | '~':		// Report Modifiers/Key State
-			break;
 #endif
 		}
 		break;
@@ -2552,8 +2658,30 @@ void CTextRam::fc_SU(int ch)
 }
 void CTextRam::fc_SD(int ch)
 {
-	// CSI T	SD Scroll Down
-	if ( m_AnsiPara.GetSize() != 5 || GetAnsiPara(0, 0, 0) != 1 ) {
+	// CSI T	SD Scroll Down or xterm Track Mouse
+	if ( m_AnsiPara.GetSize() > 1 || GetAnsiPara(0, 1, 0) == 0 ) {
+		// Sequence: CSI Pn1 ; Pn2 ; Pn3 ; Pn4 ; Pn5 T
+		// Description: Initiate hilite mouse tracking
+		// Pn1		0:disable 1:enable
+		// Pn2,Pn3	start postion Pn2=x, Pn3=y top(1,1)
+		// Pn4		start line
+		// Pn5		end line
+
+		m_MouseRect.left   = 0;
+		m_MouseRect.right  = m_Cols - 1;
+		m_MouseRect.top    = GetAnsiPara(3, 1, 1) - 1;
+		m_MouseRect.bottom = GetAnsiPara(4, 1, 1) - 1;
+
+		if ( m_MouseRect.top < 0 )
+			m_MouseRect.top = 0;
+		else if ( m_MouseRect.top >= m_Lines )
+			m_MouseRect.top = m_Lines - 1;
+		if ( m_MouseRect.bottom <  m_MouseRect.top )
+			m_MouseRect.bottom = m_MouseRect.top;
+		else if ( m_MouseRect.bottom >= m_Lines )
+			m_MouseRect.bottom    = m_Lines - 1;
+
+	} else {
 		for ( int n = GetAnsiPara(0, 1, 1) ; n > 0 ; n-- )
 			BAKSCROLL(m_TopY, m_BtmY);
 	}
@@ -2665,8 +2793,18 @@ void CTextRam::fc_REP(int ch)
 void CTextRam::fc_DA1(int ch)
 {
 	// CSI c	DA1 Primary Device Attributes
-	// UNGETSTR("\033[?1;0c");
-	UNGETSTR("\033[?65;22;44c");
+	//
+	//	1 132 columns						18 Windowing capability
+	//	2 Printer port extension			21 Horizontal scrolling
+	//	6 Selective erase					23 Greek extension
+	//	7 DRCS								24 Turkish extension
+	//	8 user-defined-keys					42 ISO Latin-2 character set
+	//	9 national replacement charsets		44 VT PCTerm
+	//	12 Serbo-Croatian (SCS)				45 Soft key mapping
+	//	15 Technical character set			46 ASCII terminal emulation
+	//	22 ANSI color, VT525				29 ANSI text locator
+
+	UNGETSTR("\033[?65;1;9;15;22;29;44c");
 	fc_POP(ch);
 }
 void CTextRam::fc_VPA(int ch)
@@ -2908,12 +3046,47 @@ void CTextRam::fc_DECSTBM(int ch)
 		LOCATE(m_CurX, m_BtmY - 1);
 	fc_POP(ch);
 }
+void CTextRam::fc_DECSLRM(int ch)
+{
+	// CSI s	DECSLRM Set left and right margins
+	// Sets left margin to Pn1, right margin to Pn2
+	m_LeftX  = GetAnsiPara(0, 1, 1) - 1;
+	m_RightX = GetAnsiPara(1, 1, 1) - 1 + 1;
+	fc_POP(ch);
+}
+void CTextRam::fc_DECSHTS(int ch)
+{
+	// CSI s	DECSHTS Set horizontal tab stops
+	int n, s;
+	s = m_CurX;
+	for ( n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
+		m_CurX = GetAnsiPara(n, 1, 1) - 1;
+		if ( m_CurX >= 0 && m_CurX < m_Cols )
+			TABSET(TAB_COLSSET);
+	}
+	m_CurX = s;
+	fc_POP(ch);
+}
+void CTextRam::fc_DECSVTS(int ch)
+{
+	// CSI s	DECSVTS Set vertical tab stops
+	int n, s;
+	s = m_CurY;
+	for ( n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
+		m_CurY = GetAnsiPara(n, 1, 1) - 1;
+		if ( m_CurY >= 0 && m_CurY < m_Lines )
+			TABSET(TAB_LINESET);
+	}
+	m_CurY = s;
+	fc_POP(ch);
+}
 void CTextRam::fc_DECSC(int ch)
 {
 	// CSI s	DECSC Save Cursol Pos
 	m_Save_CurX   = m_CurX;
 	m_Save_CurY   = m_CurY;
 	m_Save_DoWarp = m_DoWarp;
+
 	fc_POP(ch);
 }
 void CTextRam::fc_XTWOP(int ch)
@@ -3173,6 +3346,7 @@ void CTextRam::fc_DECSRET(int ch)
 
 		case TO_XTMOSREP:	// 9 X10 mouse reporting
 			m_MouseTrack = (IsOptEnable(i) ? 1 : 0);
+			m_MouseRect.SetRectEmpty();
 			m_pDocument->UpdateAllViews(NULL, UPDATE_SETCURSOR, NULL);
 			break;
 		case TO_XTNOMTRK:	// 1000 X11 normal mouse tracking
@@ -3180,6 +3354,7 @@ void CTextRam::fc_DECSRET(int ch)
 		case TO_XTBEVTRK:	// 1002 X11 button-event mouse tracking
 		case TO_XTAEVTRK:	// 1003 X11 any-event mouse tracking
 			m_MouseTrack = (IsOptEnable(i) ? (i - TO_XTNOMTRK + 2) : 0);
+			m_MouseRect.SetRectEmpty();
 			m_pDocument->UpdateAllViews(NULL, UPDATE_SETCURSOR, NULL);
 			break;
 		}
@@ -3207,15 +3382,27 @@ void CTextRam::fc_DECDSR(int ch)
 	case 26:	// keyboard dialect
 		UNGETSTR("\033[?27;1n");	// North American/ASCII
 		break;
+	case 53:	// xterm locator status
+		UNGETSTR("\033[?50n");		// locator ready
+		break;
 	case 55:	// locator status
 		UNGETSTR("\033[?%dn", ((m_Loc_Mode & LOC_MODE_ENABLE) == 0 ? 50 : 58));	// locator ready/busy
 		break;
 	case 56:	// locator type
 		UNGETSTR("\033[?57;1n");	// Locator is a mouse
 		break;
+	case 62:	// Macro Space Report
+		UNGETSTR("\033[%d*{", 0);	// The terminal indicates the number of bytes available for macro
+		break;
 	case 63:	// Request checksum of macro definitions
 		// DCS Pn ! ~ Ps ST
 		UNGETSTR("\033P%d!~0\033\\", GetAnsiPara(1, 0, 0));	// 
+		break;
+	case 75:	// Data Integrity Report
+		UNGETSTR("\033[?70n");	// Ready, no power loss or comm errors
+		break;
+	case 85:	// Multiple-Session Configuration Status Report
+		UNGETSTR("\033[?83n");	// The terminal is not configured for multiple-session operation.
 		break;
 	}
 	fc_POP(ch);
@@ -3226,13 +3413,137 @@ void CTextRam::fc_DECDSR(int ch)
 //
 //	case ('$' << 8) | 'q':		// Select Disconnect Delay Time
 //	case ('$' << 8) | 's':		// Select Printer Type
-//	case ('$' << 8) | 'u':		// DECRQTSR Request Terminal State Report
-//	case ('$' << 8) | 'w':		// DECRQPSR Request Presentation State Report
 //	case ('$' << 8) | 'y':		// DECRPM Report mode settings
-//	case ('$' << 8) | '|':		// DECSCPP Set Ps columns per page
 //	case ('$' << 8) | '}':		// DECSASD Select Active Status Display
 //	case ('$' << 8) | '~':		// DECSSDT Set Status Display (Line) Type
 
+void CTextRam::fc_DECRQTSR(int ch)
+{
+	// CSI $u	DECRQTSR Request Terminal State Report
+
+	switch(GetAnsiPara(0, 0, 0)) {
+	case 1:
+		/*
+		 * Request  CSI 1 $ u			Host request for a terminal state report
+		 * Response DCS 1 $ s Ps ST		DECTSR Terminal state report
+
+			This is sent in response to a DECRQTSR, and contains an opaque
+			representation of the terminal's state.
+
+			Ps = 2 => Host request for color table report.  In this case the
+					  second parameter signifies the colour space; 0 or 1
+					  indicates HLS (the default) and 2 indicates RGB.  The reply
+					  is DECCTR.  If the terminal doesn't understand, it responds
+					  with DCS 0 $ s ST.
+		*/
+		UNGETSTR("\033P0$s\033\\");
+		break;
+	case 2:
+		/*
+		 * Request  CSI 2 $ u			Host request for color table repor
+		 * Response DCS 2 $ s Ps ST		DECCTR Color table report
+			This is sent by the terminal in response to DECRQTSR.  Ps contains the
+			terminal's colour table.  The palette entries are separated by slashes, and
+			each one containe (semicolon-separated):
+
+			Color ???
+			Colour space (1 => HLS, 2 => RGB)
+			Components (H;L;S or R;G;B)
+		*/
+		UNGETSTR("\033P2$s2\033\\");
+		break;
+	}
+
+	fc_POP(ch);
+}
+void CTextRam::fc_DECRQPSR(int ch)
+{
+	// CSI $w	DECRQPSR Request Presentation State Report
+	int n, i;
+	CString str, wrk;
+
+	switch(GetAnsiPara(0, 0, 0)) {
+	case 1:
+		/*
+		 * From Kermit 3.13 & VT220 pocket guide
+		 *
+		 * Request  CSI 1 $ w		  cursor information report
+		 * Response DCS 1 $ u Pr; Pc; Pp; Srend; Satt; Sflag; Pgl; Pgr; Scss; Sdesig ST		DECCIR
+		 *	  where   Pr is cursor row (counted from origin as 1,1)
+		 *		  Pc is cursor column
+		 *		  Pp is 1, video page, a constant for VT320s
+		 *		  Srend = 40h + 8 (rev video on) + 4 (blinking on)
+		 *				   + 2 (underline on) + 1 (bold on)
+		 *		  Satt = 40h + 1  (selective erase on)
+		 *		  Sflag = 40h + 8 (autowrap pending) + 4 (SS3 pending)
+		 *				  + 2 (SS2 pending) + 1 (Origin mode on)
+		 *		  Pgl = char set in GL (0 = G0, 1 = G1, 2 = G2, 3 = G3)
+		 *		  Pgr = char set in GR (same as for Pgl)
+		 *		  Scss = 40h + 8 (G3 is 96 char) + 4 (G2 is 96 char)
+		 *				  + 2 (G1 is 96 char) + 1 (G0 is 96 char)
+		 *		  Sdesig is string of character idents for sets G0...G3, with
+		 *				  no separators between set idents.
+		 *		  If NRCs are active the set idents (all 94 byte types) are:
+		 *		  British	  A	  Italian	  Y
+		 *		  Dutch 	  4	  Norwegian/Danish ' (hex 60) or E or 6
+		 *		  Finnish	  5 or C  Portuguese	  %6 or g or L
+		 *		  French	  R or f  Spanish	  Z
+		 *		  French Canadian 9 or Q  Swedish	  7 or H
+		 *		  German	  K	  Swiss 	  =
+		 *		  Hebrew	  %=
+		 *		  (MS Kermit uses any choice when there are multiple)
+		 */
+		UNGETSTR("\033P1$u%d;%d;%d;%c;%c;%c;%d;%d;%c;%c%c%c%c\033\\",
+			m_CurX + 1, m_CurY + 1, 1,
+			0x40 + ((m_AttNow.at & ATT_REVS)  != 0 ? 8 : 0) + ((m_AttNow.at & (ATT_SBLINK | ATT_BLINK)) != 0 ? 4 : 0) + ((m_AttNow.at & ATT_UNDER) != 0 ? 2 : 0) + ((m_AttNow.at & ATT_BOLD)  != 0 ? 1 : 0),
+			0x40 + (IsOptEnable(TO_ANSIERM) ? 1 : 0),
+			0x40 + (IsOptEnable(TO_DECAWM) ? 8 : 0) + (m_BankSG == 3 ? 4 : 0) + (m_BankSG == 2 ? 2 : 0) + (IsOptEnable(TO_DECOM) ? 1 : 0),
+			m_BankGL, m_BankGR,
+			0x40 + ((m_BankTab[m_KanjiMode][3] & SET_96) != 0 ? 8 : 0) + ((m_BankTab[m_KanjiMode][2] & SET_96) != 0 ? 4 : 0) + ((m_BankTab[m_KanjiMode][1] & SET_96) != 0 ? 2 : 0) + ((m_BankTab[m_KanjiMode][0] & SET_96) != 0 ? 1 : 0),
+			m_BankTab[m_KanjiMode][0] & 0xFF, m_BankTab[m_KanjiMode][1] & 0xFF, m_BankTab[m_KanjiMode][2] & 0xFF, m_BankTab[m_KanjiMode][3] & 0xFF);
+		break;
+
+	case 2:
+		/*
+		 * Request  CSI 2 $ w		  tab stop report
+		 * Response DCS 2 $ u Pc/Pc/...Pc ST		DECTABSR
+		 *	  Pc are column numbers (from 1) where tab stops occur. Note the
+		 *	  separator "/" occurs in a real VT320 but should have been ";".
+		 */
+		str = "\033P2$u";
+		wrk.Empty();
+		i = (IsOptEnable(TO_ANSITSM) ? (m_CurY + 1) : 0);
+		for ( n = 0 ; n < m_Cols ; n++ ) {
+			if ( (m_TabMap[i][n / 8 + 1] & (0x80 >> (n % 8))) != 0 ) {
+				if ( !wrk.IsEmpty() )
+					str += "/";
+				wrk.Format("%d", n + 1);
+				str += wrk;
+			}
+		}
+		str += "\033\\";
+		UNGETSTR(str);
+		break;
+	}
+
+	fc_POP(ch);
+}
+void CTextRam::fc_DECSCPP(int ch)
+{
+	// CSI $|	DECSCPP Set Ps columns per page
+
+	if ( GetAnsiPara(0, 0, 0) > m_DefCols[0] ) {
+		if ( !IsOptEnable(TO_DECCOLM) ) {
+			EnableOption(TO_DECCOLM);
+			InitCols();
+		}
+	} else if ( IsOptEnable(TO_DECCOLM) ) {
+		DisableOption(TO_DECCOLM);
+		InitCols();
+	}
+
+	fc_POP(ch);
+}
 void CTextRam::fc_DECRQM(int ch)
 {
 	// CSI $p	DECRQM Request mode settings
@@ -3456,7 +3767,7 @@ void CTextRam::fc_DECERA(int ch)
 {
 	// CSI $z	DECERA Erase Rectangular Area
 	SetAnsiParaArea(0);
-	ERABOX(m_AnsiPara[1], m_AnsiPara[0], m_AnsiPara[3] + 1, m_AnsiPara[2] + 1);
+	ERABOX(m_AnsiPara[1], m_AnsiPara[0], m_AnsiPara[3] + 1, m_AnsiPara[2] + 1, 2);
 	fc_POP(ch);
 }
 void CTextRam::fc_DECSERA(int ch)
@@ -3537,7 +3848,27 @@ void CTextRam::fc_SR(int ch)
 	case (' ' << 8) | 'n':		//
 	case (' ' << 8) | 'o':		//
 	case (' ' << 8) | 'p':		// DECSSCLS Set Scroll Speed
-	case (' ' << 8) | 'q':		// DECSCUSR Set Cursor Style
+#endif
+
+void CTextRam::fc_DECSCUSR(int ch)
+{
+	// CSI (' ' << 8) | 'q'		DECSCUSR Set Cursor Style
+
+	// Where ps can be 0, 1, 2, 3, 4 meaning Blinking Block, Blinking Block, Steady Block, Blink Underline, Steady Underline, respectively.
+
+	// case 0:		// meaning Blinking Block
+	// case 1:		// Blinking Block
+	// case 2:		// Steady Block
+	// case 3:		// Blink Underline
+	// case 4:		// Steady Underline
+
+	m_TypeCaret = GetAnsiPara(0, 0, 0);
+	m_pDocument->UpdateAllViews(NULL, UPDATE_TYPECARET, NULL);
+
+	fc_POP(ch);
+}
+
+#if 0
 	case (' ' << 8) | 'r':		// DECKCV Set Key Click Volume
 	case (' ' << 8) | 's':		// DECNS New sheet
 	case (' ' << 8) | 't':		// DECWBV Set Warning Bell Volume
@@ -3613,9 +3944,24 @@ void CTextRam::fc_DECSTR(int ch)
 	case ('!' << 8) | 'y':		// DECSS Select spacing
 	case ('!' << 8) | '|':		// DECVEC Draw vector
 	case ('!' << 8) | '}':		// DECFIN Document finishing
-	case ('"' << 8) | 'p':		// DECSCL Set compatibility level
 #endif
 
+void CTextRam::fc_DECSCL(int ch)
+{
+	// CSI Ps1 ; Ps2 "p			DECSCL Set compatibility level
+
+	//CSI 6 1 " p -> Level 1 (VT100) compatibility
+	//CSI 6 2 " p -> Level 2 (VT200) compatibility, 8-bit controls
+	//CSI 6 2 ; 0 " p -> ditto
+	//CSI 6 2 ; 1 " p -> ditto, 7-bit controls
+	//CSI 6 2 ; 2 " p -> ditto, 8-bit controls
+	//Ps1 = 63 selects Level 3 (VT300)
+	//Ps1 = 64 selects Level 4 (VT400)
+
+	m_VtLevel = GetAnsiPara(0, 65, 0);
+
+	fc_POP(ch);
+}
 void CTextRam::fc_DECSCA(int ch)
 {
 	// CSI ('"' << 8) | 'q'		DECSCA Select character attributes
@@ -3627,15 +3973,28 @@ void CTextRam::fc_DECSCA(int ch)
 
 	fc_POP(ch);
 }
+void CTextRam::fc_DECRQDE(int ch)
+{
+	// CSI ('"' << 8) | 'v'		DECRQDE Request device extent
+	// CSI Ph ; Pw ; Pml ; Pmt ; Pmp " w
+
+	UNGETSTR("\033[%d;%d;%d;%d;%d\"w", m_Lines, m_Cols, 1, 1, 1);
+	fc_POP(ch);
+}
+void CTextRam::fc_DECRQUPSS(int ch)
+{
+	// CSI ('&' << 8) | 'u'		DECRQUPSS Request User-Preferred Supplemental Set
+	// DCS 1 ! u A ST			The user-preferred supplemental set is ISO Latin-1 supplemental.
+
+	UNGETSTR("\033P1!uA\033\\");
+	fc_POP(ch);
+}
 
 #if 0
 	case ('"' << 8) | 's':		// DECPWA Page width alignment
 	case ('"' << 8) | 'u':		//        Set Transmit Rate Limit
-	case ('"' << 8) | 'v':		// DECRQDE Request device extent
-	case ('"' << 8) | 'w':		// DECRPDE Report device extent
 	case ('"' << 8) | 'z':		// DECDEN Select density
 	case ('&' << 8) | 'q':		// DECSNC Set number of copies
-	case ('&' << 8) | 'u':		// DECRQUPSS Request User-Preferred Supplemental Set
 	case ('&' << 8) | 'w':		// DECLRP Locator report
 	case ('&' << 8) | 'x':		// DECES Enable Session
 	case ('\'' << 8) | 'q':		// DECSBCA Select bar code attributes
@@ -3650,9 +4009,11 @@ void CTextRam::fc_DECEFR(int ch)
 		m_Loc_Rect.left   = GetAnsiPara(1, 1, 1) - 1;
 		m_Loc_Rect.bottom = GetAnsiPara(2, 1, 1) - 1;
 		m_Loc_Rect.right  = GetAnsiPara(3, 1, 1) - 1;
-		m_Loc_Mode |= LOC_MODE_FILTER;
+		m_Loc_Rect.NormalizeRect();
 	} else
-		m_Loc_Mode &= ~LOC_MODE_FILTER;
+		m_Loc_Rect.SetRectEmpty();
+
+	m_Loc_Mode |= LOC_MODE_FILTER;
 
 	fc_POP(ch);
 }
@@ -3674,7 +4035,9 @@ void CTextRam::fc_DECELR(int ch)
 		m_Loc_Mode |= LOC_MODE_ONESHOT;
 		break;
 	}
+
 	m_Loc_Mode &= ~LOC_MODE_FILTER;
+
 	switch(GetAnsiPara(1, 0, 0)) {
 	case 0:	// default to character cells
 	case 2:	// character cells
@@ -3684,6 +4047,7 @@ void CTextRam::fc_DECELR(int ch)
 		m_Loc_Mode |= LOC_MODE_PIXELS;
 		break;
 	}
+
 	LocReport(0, 0, 0, 0);
 
 	fc_POP(ch);
@@ -3724,7 +4088,7 @@ void CTextRam::fc_DECRQLP(int ch)
 {
 	// CSI ('\'' << 8) | '|'		DECRQLP Request locator position
 
-	LocReport(2, 0, 0, 0);
+	LocReport(6, 0, 0, 0);
 	fc_POP(ch);
 }
 void CTextRam::fc_DECIC(int ch)
@@ -3841,7 +4205,7 @@ void CTextRam::fc_DA2(int ch)
 }
 void CTextRam::fc_DA3(int ch)
 {
-	// CSI ('=' << 16) | 'c'		DA3 Tertiary Device Attributes
+	// CSI ('=' << 16) | 'c'	DA3 Tertiary Device Attributes
 
 	UNGETSTR("\033P!|010205\033\\");
 	fc_POP(ch);
@@ -3868,3 +4232,4 @@ void CTextRam::fc_C25LCT(int ch)
 	}
 	fc_POP(ch);
 }
+

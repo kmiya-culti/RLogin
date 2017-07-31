@@ -499,13 +499,13 @@ void CExtSocket::Close()
 
 	if ( m_Fd != (-1) ) {
 		GetMainWnd()->DelAsyncSelect(m_Fd, this);
-		::shutdown(m_Fd, 2);
+		::shutdown(m_Fd, SD_BOTH);
 		::closesocket(m_Fd);
 		m_Fd = (-1);
 	}
 	if ( m_Fdv6 != (-1) ) {
 		GetMainWnd()->DelAsyncSelect(m_Fdv6, this);
-		::shutdown(m_Fdv6, 2);
+		::shutdown(m_Fdv6, SD_BOTH);
 		::closesocket(m_Fdv6);
 		m_Fdv6 = (-1);
 	}

@@ -321,22 +321,46 @@ void CRLoginView::SendBuffer(CBuffer &buf, BOOL macflag)
 void CRLoginView::SetCaret()
 {
 	CPoint po(m_CaretX, m_CaretY);
+	CRLoginDoc *pDoc = GetDocument();
 
-	// 001 = CreateCaret Flag, 002 = CurSol ON/OFF, 004 = Focus Flag
+	// 001 = CreateCaret Flag, 002 = CurSol ON/OFF, 004 = Focus Flag, 010 = Redraw Caret
+
+	if ( (m_DispCaret & 010) != 0 ) {
+		m_DispCaret &= ~010;
+		if ( (m_DispCaret & 001) != 0 ) {
+			DestroyCaret();
+			m_DispCaret &= ~001;
+		}
+	}
+
 	switch(m_DispCaret) {
 	case 006:
-		CreateSolidCaret(m_CharWidth, m_CharHeight);
+		switch(pDoc->m_TextRam.m_TypeCaret) {
+		case 0: case 1: case 2:
+			CreateSolidCaret(m_CharWidth, m_CharHeight);
+			break;
+		case 3: case 4:
+			CreateSolidCaret(m_CharWidth, 1);
+			break;
+		case 5: case 6:
+			CreateSolidCaret(1, m_CharHeight);
+			break;
+		}
+		if ( pDoc->m_TextRam.m_TypeCaret == 3 || pDoc->m_TextRam.m_TypeCaret == 4 )
+			po.y += m_CharHeight;
 		SetCaretPos(po);
-		ImmSetPos(po.x, po.y);
+		ImmSetPos(m_CaretX, m_CaretY);
 		ShowCaret();
 		m_DispCaret |= 001;
 		break;
 	case 007:
+		if ( pDoc->m_TextRam.m_TypeCaret == 3 || pDoc->m_TextRam.m_TypeCaret == 4 )
+			po.y += m_CharHeight;
 		SetCaretPos(po);
-		ImmSetPos(po.x, po.y);
+		ImmSetPos(m_CaretX, m_CaretY);
 		break;
 	case 004:
-		ImmSetPos(po.x, po.y);
+		ImmSetPos(m_CaretX, m_CaretY);
 		break;
 	case 001:
 	case 003:
@@ -459,6 +483,10 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		GetCursorPos(&point);
 		if ( rect.PtInRect(point) )
 			::SetCursor(::LoadCursor(NULL, (pDoc->m_TextRam.m_MouseTrack > 0 && !m_MouseEventFlag ? IDC_IBEAM : IDC_ARROW)));
+		return;
+	} else if ( lHint == UPDATE_TYPECARET ) {
+		m_DispCaret |= 010;
+		SetCaret();
 		return;
 	}
 
@@ -969,11 +997,11 @@ void CRLoginView::OnLButtonDown(UINT nFlags, CPoint point)
 		if ( y >= pDoc->m_TextRam.m_Lines ) y = pDoc->m_TextRam.m_Lines - 1; else if ( y < 0 ) y = 0;
 
 		if ( pDoc->m_TextRam.m_MouseTrack == 6 )
-			pDoc->m_TextRam.LocReport(1, 1, x, y);
+			pDoc->m_TextRam.LocReport(1, nFlags, x, y);
 		else if ( pDoc->m_TextRam.m_MouseTrack == 1 )
-			pDoc->m_TextRam.UNGETSTR("\033[M%c%c%c", ' ' + (pDoc->m_TextRam.m_MouseMode[0] & 3), ' ' + x + 1, ' ' + y + 1);
+			pDoc->m_TextRam.UNGETSTR("\033[M%c%c%c", pDoc->m_TextRam.MCHAR(pDoc->m_TextRam.m_MouseMode[0] & 3), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
 		else
-			pDoc->m_TextRam.UNGETSTR("\033[M%c%c%c", ' ' + pDoc->m_TextRam.m_MouseMode[0] + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0), ' ' + x + 1, ' ' + y + 1);
+			pDoc->m_TextRam.UNGETSTR("\033[M%c%c%c", pDoc->m_TextRam.MCHAR(pDoc->m_TextRam.m_MouseMode[0] + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0)), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
 
 		if ( pDoc->m_TextRam.m_MouseTrack == 3 ) {
 			m_ClipStaPos = m_ClipEndPos = pDoc->m_TextRam.GetCalcPos(x, y);
@@ -1009,13 +1037,13 @@ void CRLoginView::OnLButtonUp(UINT nFlags, CPoint point)
 			if ( y >= pDoc->m_TextRam.m_Lines ) y = pDoc->m_TextRam.m_Lines - 1; else if ( y < 0 ) y = 0;
 
 			if ( pDoc->m_TextRam.m_MouseTrack == 6 )
-				pDoc->m_TextRam.LocReport(1, 0, x, y);
+				pDoc->m_TextRam.LocReport(2, nFlags, x, y);
 			else if ( pDoc->m_TextRam.m_MouseTrack == 3 ) {
 				m_ClipFlag = 0;
 				OnUpdate(this, UPDATE_CLIPERA, NULL);
-				pDoc->m_TextRam.UNGETSTR("\033[t%c%c", ' ' + 1 + x, ' ' + 1 + y);
+				pDoc->m_TextRam.UNGETSTR("\033[t%c%c", pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
 			} else
-				pDoc->m_TextRam.UNGETSTR("\033[M%c%c%c", ' ' + 3 + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0), ' ' + x + 1, ' ' + y + 1);
+				pDoc->m_TextRam.UNGETSTR("\033[M%c%c%c", pDoc->m_TextRam.MCHAR(3 + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0)), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
 		}
 		return;
 	}
@@ -1070,8 +1098,14 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 	CView::OnMouseMove(nFlags, point);
 
 	if ( m_ClipFlag == 0 || m_ClipFlag == 6 ) {
+		if ( m_MouseEventFlag )
+			return;
+
 		CalcGrapPoint(point, &x, &y);
-		if ( (pDoc->m_TextRam.m_MouseTrack == 4 || pDoc->m_TextRam.m_MouseTrack == 5) && !m_MouseEventFlag ) {
+		if ( x >= pDoc->m_TextRam.m_Cols  ) x = pDoc->m_TextRam.m_Cols  - 1; else if ( x < 0 ) x = 0;
+		if ( y >= pDoc->m_TextRam.m_Lines ) y = pDoc->m_TextRam.m_Lines - 1; else if ( y < 0 ) y = 0;
+
+		if ( pDoc->m_TextRam.m_MouseTrack == 4 || pDoc->m_TextRam.m_MouseTrack == 5 ) {
 			switch(nFlags & (MK_LBUTTON | MK_RBUTTON)) {
 			case 0:
 				if ( pDoc->m_TextRam.m_MouseTrack == 4 )
@@ -1086,16 +1120,16 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 				pos = pDoc->m_TextRam.m_MouseMode[1];
 				break;
 			}
-			if ( x >= pDoc->m_TextRam.m_Cols  ) x = pDoc->m_TextRam.m_Cols  - 1; else if ( x < 0 ) x = 0;
-			if ( y >= pDoc->m_TextRam.m_Lines ) y = pDoc->m_TextRam.m_Lines - 1; else if ( y < 0 ) y = 0;
+			pDoc->m_TextRam.UNGETSTR("\033[M%c%c%c", pDoc->m_TextRam.MCHAR(pos + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0)), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
 
-			pDoc->m_TextRam.UNGETSTR("\033[M%c%c%c", ' ' + pos + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0), ' ' + x + 1, ' ' + y + 1);
-
-		} else if ( pDoc->m_TextRam.m_MouseTrack == 3 && !m_MouseEventFlag ) {
+		} else if ( pDoc->m_TextRam.m_MouseTrack == 3 ) {
 			OnUpdate(this, UPDATE_CLIPERA, NULL);
 			m_ClipEndPos = pDoc->m_TextRam.GetCalcPos(x, y);
 			OnUpdate(this, UPDATE_CLIPERA, NULL);
-		}
+
+		} else if ( pDoc->m_TextRam.m_MouseTrack == 6 )
+			pDoc->m_TextRam.LocReport(5, nFlags, x, y);
+
 		return;
 	}
 
@@ -1220,11 +1254,11 @@ void CRLoginView::OnRButtonDown(UINT nFlags, CPoint point)
 		if ( y >= pDoc->m_TextRam.m_Lines ) y = pDoc->m_TextRam.m_Lines - 1; else if ( y < 0 ) y = 0;
 
 		if ( pDoc->m_TextRam.m_MouseTrack == 6 )
-			pDoc->m_TextRam.LocReport(1, 3, x, y);
+			pDoc->m_TextRam.LocReport(3, nFlags, x, y);
 		else if ( pDoc->m_TextRam.m_MouseTrack == 1 )
-			pDoc->m_TextRam.UNGETSTR("\033[M%c%c%c", ' ' + (pDoc->m_TextRam.m_MouseMode[1] & 3), ' ' + x + 1, ' ' + y + 1);
-		else
-			pDoc->m_TextRam.UNGETSTR("\033[M%c%c%c", ' ' + pDoc->m_TextRam.m_MouseMode[1] + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0), ' ' + x + 1, ' ' + y + 1);
+			pDoc->m_TextRam.UNGETSTR("\033[M%c%c%c", pDoc->m_TextRam.MCHAR(pDoc->m_TextRam.m_MouseMode[1] & 3), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
+		else if ( pDoc->m_TextRam.m_MouseTrack != 3 )
+			pDoc->m_TextRam.UNGETSTR("\033[M%c%c%c", pDoc->m_TextRam.MCHAR(pDoc->m_TextRam.m_MouseMode[1] + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0)), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
 		return;
 	}
 
@@ -1262,9 +1296,9 @@ void CRLoginView::OnRButtonUp(UINT nFlags, CPoint point)
 		if ( y >= pDoc->m_TextRam.m_Lines ) y = pDoc->m_TextRam.m_Lines - 1; else if ( y < 0 ) y = 0;
 
 		if ( pDoc->m_TextRam.m_MouseTrack == 6 )
-			pDoc->m_TextRam.LocReport(1, 2, x, y);
-		else
-			pDoc->m_TextRam.UNGETSTR("\033[M%c%c%c", ' ' + 3 + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0), ' ' + x + 1, ' ' + y + 1);
+			pDoc->m_TextRam.LocReport(4, nFlags, x, y);
+		else if ( pDoc->m_TextRam.m_MouseTrack != 3 )
+			pDoc->m_TextRam.UNGETSTR("\033[M%c%c%c", pDoc->m_TextRam.MCHAR(3 + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0)), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
 	}
 }
 
