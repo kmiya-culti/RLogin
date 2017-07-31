@@ -815,7 +815,9 @@ void CRLoginView::OnSize(UINT nType, int cx, int cy)
 {
 	CView::OnSize(nType, cx, cy);
 
-	if ( nType == SIZE_MINIMIZED )
+//	TRACE("CRLoginView::OnSize(%d,%d) %d\n", cx, cy, ((CChildFrame *)GetFrameWnd())->m_bInit);
+
+	if ( nType == SIZE_MINIMIZED || !((CChildFrame *)GetFrameWnd())->m_bInit )
 		return;
 
 	CString tmp;
@@ -849,6 +851,7 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 	CRect rect, box;
 	CString str;
 	CRLoginDoc *pDoc = GetDocument();
+	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
 	CChildFrame *pFrame = GetFrameWnd();
 
 	ASSERT(pFrame != NULL);
@@ -927,7 +930,7 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		return;
 
 	case UPDATE_DISPINDEX:
-		str.Format(_T("%d %s"), ((CMainFrame *)AfxGetMainWnd())->GetTabIndex(pFrame) + 1, pDoc->GetTitle());
+		pMain->GetTabTitle(pFrame, str);
 		m_MsgWnd.Message(str, this);
 		return;
 
@@ -2578,7 +2581,7 @@ void CRLoginView::OnSearchReg()
 	dlg.m_SearchStr = pDoc->m_SearchStr;
 
 	if ( dlg.DoModal() != IDOK ) {
-		pDoc->m_TextRam.HisRegMark(NULL);
+		pDoc->m_TextRam.HisRegMark(NULL, FALSE);
 		Invalidate(FALSE);
 		return;
 	}
@@ -2676,6 +2679,7 @@ void CRLoginView::OnSplitOver()
 
 	pDoc->m_InPane = TRUE;
 	pDoc->SetEntryProBuffer();
+	pDoc->m_ServerEntry.m_ReEntryFlag = TRUE;
 	pApp->m_pServerEntry = &(pDoc->m_ServerEntry);
 	cmds.ParseParam(_T("inpane"), TRUE, TRUE);
 	pApp->OpenProcsCmd(&cmds);

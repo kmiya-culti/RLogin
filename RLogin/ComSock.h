@@ -65,7 +65,6 @@ public:
 	void ConfigDlg(CWnd *pWnd, CString &str);
 	static DWORD AliveComPort();
 
-	//void CComSock::DEBUGLOG(LPCSTR str, ...);
 	void ModEventMask(DWORD add, DWORD del);
 
 	CComSock(class CRLoginDoc *pDoc);

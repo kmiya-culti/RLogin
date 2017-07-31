@@ -981,6 +981,23 @@ BOOL CRegEx::Compile(LPCTSTR str)
 
 	return (m_NodeHead != NULL ? TRUE : FALSE);
 }
+BOOL CRegEx::IsSimple()
+{
+	CRegExNode *np = m_NodeHead;
+
+	if ( np == NULL || np->m_Type != 's' )
+		return FALSE;
+
+	for ( np = np->m_Left ; np != NULL && np->m_Type == 'c' ; np = np->m_Left ) {
+		if ( np->m_SChar != np->m_EChar || np->m_Right != NULL )
+			return FALSE;
+	}
+
+	if ( np == NULL || np->m_Type != 'e' || np->m_Left != NULL )
+		return FALSE;
+
+	return TRUE;
+}
 void CRegEx::AddQue(int sw, CRegExNode *np, CRegExWork *wp)
 {
 	int n;
@@ -988,6 +1005,7 @@ void CRegEx::AddQue(int sw, CRegExNode *np, CRegExWork *wp)
 
 	if ( np == NULL )
 		return;
+
 	for ( qp = m_QueHead[sw] ; qp != NULL ; qp = qp->m_Next ) {
 		if ( qp->m_Node == np ) {
 			if ( qp->m_Work != NULL && wp != NULL && qp->m_Work->m_Seq > wp->m_Seq )
@@ -995,6 +1013,7 @@ void CRegEx::AddQue(int sw, CRegExNode *np, CRegExWork *wp)
 			return;
 		}
 	}
+
 	if ( m_QueFree == NULL ) {
 		qp = new CRegExQue[16];
 		qp->m_List = m_QueTop;
@@ -1016,11 +1035,14 @@ void CRegEx::AddQue(int sw, CRegExNode *np, CRegExWork *wp)
 CRegExQue *CRegEx::HeadQue(int sw)
 {
 	CRegExQue *qp;
+
 	if ( (qp = m_QueHead[sw]) != NULL ) {
 		m_QueHead[sw] = qp->m_Next;
+
 		qp->m_Next = m_QueFree;
 		m_QueFree = qp;
 	}
+
 	return qp;
 }
 BOOL CRegEx::MatchStrSub(CStringD &str, int start, int end, CRegExRes *res)
@@ -1341,7 +1363,7 @@ BOOL CRegEx::MatchChar(DCHAR ch, int idx, CRegExRes *res)
 	m_QueSw ^= 1;
 
 	for ( qp = m_QueHead[m_QueSw] ; qp != NULL ; qp = qp->m_Next )
-		wp->m_Die = FALSE;
+		qp->m_Work->m_Die = FALSE;
 
 	wtp = NULL;
 	while ( (wp = m_WorkHead) != NULL ) {

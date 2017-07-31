@@ -1518,7 +1518,7 @@ void CMainFrame::ActiveChild(CWnd *pWnd)
 	if ( m_pTopPane == NULL )
 		return;
 	m_pTopPane->SetActive(pWnd->m_hWnd);
-#ifdef	DEBUG
+#ifdef	DEBUG_XXX
 	m_pTopPane->Dump();
 #endif
 }
@@ -1575,6 +1575,13 @@ void CMainFrame::SwapChild(CWnd *pLeft, CWnd *pRight)
 int CMainFrame::GetTabIndex(CWnd *pWnd)
 {
 	return m_wndTabBar.GetIndex(pWnd);
+}
+void CMainFrame::GetTabTitle(CWnd *pWnd, CString &title)
+{
+	int idx;
+	
+	if ( (idx = m_wndTabBar.GetIndex(pWnd)) >= 0 )
+		m_wndTabBar.GetTitle(idx, title);
 }
 CWnd *CMainFrame::GetTabWnd(int idx)
 {

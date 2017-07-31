@@ -23,6 +23,7 @@ public:
 	int m_Width, m_Height;
 	int m_Cols, m_Lines;
 	BOOL m_VScrollFlag;
+	BOOL m_bInit;
 
 	void SetScrollBar(BOOL flag);
 

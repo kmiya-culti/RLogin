@@ -67,4 +67,6 @@ protected:
 	afx_msg void OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
 	afx_msg void OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct);
 	DECLARE_MESSAGE_MAP()
+public:
+	afx_msg void OnBnClickedColedit();
 };

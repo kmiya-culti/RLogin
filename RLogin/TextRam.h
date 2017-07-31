@@ -911,9 +911,14 @@ public:
 	int m_MarkLen;
 	BOOL m_MarkEol;
 
+	BOOL m_bSimpSerch;
+	CStringD m_SimpStr;
+	DWORD m_SimpPos;
+	int m_SimpLen;
+
 	void HisRegCheck(DWORD ch, DWORD pos);
-	int HisRegMark(LPCTSTR str);
-	int HisRegNext();
+	int HisRegMark(LPCTSTR str, BOOL bRegEx);
+	int HisRegNext(int msec);
 	int HisMarkCheck(int top, int line, class CRLoginView *pView);
 
 	// TextRam

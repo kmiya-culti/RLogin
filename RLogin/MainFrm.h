@@ -194,6 +194,7 @@ public:
 	void SwapChild(CWnd *pLeft, CWnd *pRight);
 	BOOL IsOverLap(HWND hWnd);
 	int GetTabIndex(CWnd *pWnd);
+	void GetTabTitle(CWnd *pWnd, CString &title);
 	CWnd *GetTabWnd(int idx);
 
 	void GetFrameRect(CRect &frame);

@@ -25,7 +25,7 @@ public:
 	~CStringD();
 
 	inline int GetLength() { return (m_Data.GetSize() - 1); }
-	inline void Empty() { m_Data.RemoveAll(); m_Data.Add(0); }
+	inline void Empty() { m_Data.RemoveAll(); m_Data.Add(0); m_Vs.RemoveAll(); m_Vs.Add(0); }
 	void Format(LPCWSTR str, ...);
 	void Nomalize();
 
@@ -193,6 +193,7 @@ public:
 	CRegExNode *CompileRange();
 	CRegExNode *CompileSub(DCHAR endc);
 	BOOL Compile(LPCTSTR str);
+	BOOL IsSimple();
 
 	void AddQue(int sw, CRegExNode *np, CRegExWork *wp);
 	CRegExQue *HeadQue(int sw);

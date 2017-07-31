@@ -36,6 +36,7 @@ CChildFrame::CChildFrame()
 	m_Cols   = 80;
 	m_Lines  = 25;
 	m_VScrollFlag = FALSE;
+	m_bInit = FALSE;
 }
 
 CChildFrame::~CChildFrame()
@@ -46,7 +47,7 @@ BOOL CChildFrame::OnCreateClient(LPCREATESTRUCT lpcs, CCreateContext* pContext)
 {
 	BOOL result;
 
-	result = m_wndSplitter.Create(this, 2, 1, CSize(40, 20), pContext, WS_CHILD | WS_VISIBLE | WS_VSCROLL | SPLS_DYNAMIC_SPLIT);
+	result = m_wndSplitter.Create(this, 2, 1, CSize(80, 20), pContext, WS_CHILD | WS_VISIBLE | WS_VSCROLL | SPLS_DYNAMIC_SPLIT);
 
 	if ( (m_VScrollFlag = ((CMainFrame *)AfxGetMainWnd())->m_ScrollBarFlag) == FALSE && result ) {
 		m_wndSplitter.SetScrollStyle(0);
@@ -166,15 +167,28 @@ void CChildFrame::OnDestroy()
 
 void CChildFrame::OnWindowClose() 
 {
-	PostMessage(WM_CLOSE);
+	CRLoginDoc *pDoc;
+
+	if ( (pDoc = (CRLoginDoc *)GetActiveDocument()) != NULL && pDoc->GetViewCount() <= 1 )
+		PostMessage(WM_COMMAND, ID_FILE_CLOSE);
+	else
+		PostMessage(WM_CLOSE);
 }
 
 void CChildFrame::OnMDIActivate(BOOL bActivate, CWnd* pActivateWnd, CWnd* pDeactivateWnd) 
 {
 	CMDIChildWnd::OnMDIActivate(bActivate, pActivateWnd, pDeactivateWnd);
 	
-	if ( bActivate && pActivateWnd->m_hWnd == m_hWnd )
+	if ( bActivate && pActivateWnd->m_hWnd == m_hWnd ) {
+		m_bInit = TRUE;
+		//if ( !m_bInit ) {
+		//	CRect rect;
+		//	m_bInit = TRUE;
+		//	GetClientRect(rect);
+		//	OnSize(SIZE_RESTORED, rect.Width(), rect.Height());
+		//}
 		((CMainFrame *)AfxGetMainWnd())->ActiveChild(this);	
+	}
 }
 
 void CChildFrame::OnUpdateFrameMenu(BOOL bActive, CWnd* pActiveWnd, HMENU hMenuAlt)

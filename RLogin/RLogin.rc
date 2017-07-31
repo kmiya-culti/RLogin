@@ -242,7 +242,7 @@ BEGIN
         MENUITEM "貼り付け(&P)",                    ID_EDIT_PASTE
         MENUITEM "すべて選択/コピー",                   ID_EDIT_COPY_ALL
         MENUITEM SEPARATOR
-        MENUITEM "正規表現で検索(&F)",                 IDM_SEARCH_REG
+        MENUITEM "文字列を検索(&F)",                  IDM_SEARCH_REG
         MENUITEM "前を検索(&D)",                    IDM_SEARCH_BACK
         MENUITEM "次を検索(&N)",                    IDM_SEARCH_NEXT
         MENUITEM SEPARATOR
@@ -491,10 +491,10 @@ CAPTION "RLoginのバージョン情報"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.18.6 (2015/06/08)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.18.7 (2015/06/22)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2015 Culti",IDC_STATIC,44,16,189,8
     DEFPUSHBUTTON   "OK",IDOK,96,171,50,14,WS_GROUP
-    LTEXT           "OpenSSL 1.0.2a 19 Mar 2015",IDC_STATIC,44,29,189,8
+    LTEXT           "OpenSSL 1.0.2c 12 Jun 2015",IDC_STATIC,44,29,189,8
     LTEXT           "Copyright (c) 1998-2015 The OpenSSL Project",IDC_STATIC,44,38,189,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,47,189,8
     LTEXT           "All rights reserved.",IDC_STATIC,44,56,189,8
@@ -838,7 +838,8 @@ STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "カラー"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    COMBOBOX        IDC_COLSET,93,18,60,50,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COLSET,78,18,60,50,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "編集",IDC_COLEDIT,160,17,40,14
     CONTROL         "",IDC_SLIDER_CONTRAST,"msctls_trackbar32",TBS_VERT | TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,212,25,12,61
     CONTROL         "",IDC_SLIDER_BRIGHT,"msctls_trackbar32",TBS_VERT | TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,228,25,12,61
     CONTROL         "",IDC_SLIDER_HUECOL,"msctls_trackbar32",TBS_VERT | TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,244,25,12,61
@@ -1286,15 +1287,16 @@ BEGIN
     LTEXT           "トレースバックできる最大数",IDC_STATIC,26,253,150,10
 END
 
-IDD_SEARCHDLG DIALOGEX 0, 0, 211, 69
+IDD_SEARCHDLG DIALOGEX 0, 0, 211, 89
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "文字列検索"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     COMBOBOX        IDC_COMBO1,7,7,197,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
-    DEFPUSHBUTTON   "検索",IDOK,49,48,50,14
-    PUSHBUTTON      "キャンセル",IDCANCEL,112,48,50,14
-    CONTROL         "",IDC_PROGRESS1,"msctls_progress32",WS_BORDER,7,27,197,12
+    DEFPUSHBUTTON   "検索",IDOK,49,68,50,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,112,68,50,14
+    CONTROL         "",IDC_PROGRESS1,"msctls_progress32",WS_BORDER,7,45,197,12
+    CONTROL         "正規表現を利用して文字列検索を行う",IDC_REGEXSERCH,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,27,123,10
 END
 
 IDD_CERTKEYDLG DIALOGEX 0, 0, 214, 245
@@ -1489,14 +1491,14 @@ BEGIN
     ICON            "",IDC_MSGICON,21,20,20,20
 END
 
-IDD_TTYMODEDLG DIALOGEX 0, 0, 291, 241
-STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+IDD_TTYMODEDLG DIALOGEX 0, 0, 291, 242
+STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "Terminal Modes"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    CONTROL         "",IDC_MODE_LIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,8,7,276,202
-    DEFPUSHBUTTON   "OK",IDOK,72,220,64,14
-    PUSHBUTTON      "キャンセル",IDCANCEL,154,220,64,14
+    CONTROL         "",IDC_MODE_LIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,7,276,202
+    DEFPUSHBUTTON   "OK",IDOK,72,221,64,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,154,221,64,14
 END
 
 IDD_TRACEDLG DIALOGEX 0, 0, 318, 170
@@ -1537,8 +1539,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,18,6,0
- PRODUCTVERSION 2,18,6,0
+ FILEVERSION 2,18,7,0
+ PRODUCTVERSION 2,18,7,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1555,12 +1557,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.18.6.0"
+            VALUE "FileVersion", "2.18.7.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2015 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.18.6.0"
+            VALUE "ProductVersion", "2.18.7.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -1855,7 +1857,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 204
         TOPMARGIN, 7
-        BOTTOMMARGIN, 62
+        BOTTOMMARGIN, 82
     END
 
     IDD_CERTKEYDLG, DIALOG
@@ -1951,7 +1953,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 284
         TOPMARGIN, 7
-        BOTTOMMARGIN, 234
+        BOTTOMMARGIN, 235
     END
 
     IDD_TRACEDLG, DIALOG
@@ -2870,7 +2872,7 @@ BEGIN
     IDM_SCRIPT              "スクリプトファイルを実行します\nスクリプト実行"
     IDM_SEARCH_BACK         "前を検索します\n前を検索"
     IDM_SEARCH_NEXT         "次を検索します\n次を検索"
-    IDM_SEARCH_REG          "正規表現で文字列を検索します\n文字検索"
+    IDM_SEARCH_REG          "正規表現などで文字列を検索します\n文字検索"
     IDM_SEQCANCELSTR        "%sシーケンスを実行中です\r\nキャンセルするには、ここをクリック"
 END
 

@@ -24,6 +24,7 @@ CTabBar::CTabBar()
 {
 	m_GhostReq = m_GhostItem = (-1);
 	m_pGhostView = NULL;
+	m_bNumber = FALSE;
 }
 
 CTabBar::~CTabBar()
@@ -33,15 +34,15 @@ CTabBar::~CTabBar()
 IMPLEMENT_DYNAMIC(CTabBar, CControlBar)
 
 BEGIN_MESSAGE_MAP(CTabBar, CControlBar)
-	//{{AFX_MSG_MAP(CTabBar)
 	ON_WM_SIZE()
 	ON_WM_CREATE()
 	ON_WM_LBUTTONDOWN()
-	//}}AFX_MSG_MAP
-	ON_NOTIFY(TCN_SELCHANGE, IDC_MDI_TAB_CTRL, OnSelchange)
 	ON_WM_SETCURSOR()
 	ON_WM_TIMER()
+	ON_NOTIFY(TCN_SELCHANGE, IDC_MDI_TAB_CTRL, OnSelchange)
 END_MESSAGE_MAP()
+
+//////////////////////////////////////////////////////////////////////
 
 BOOL CTabBar::Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID)
 {
@@ -53,6 +54,55 @@ BOOL CTabBar::Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID)
 
 	CRect rect; rect.SetRectEmpty();
 	return CWnd::Create(STATUSCLASSNAME, NULL, dwStyle, rect, pParentWnd, nID);
+}
+
+CSize CTabBar::CalcFixedLayout(BOOL bStretch, BOOL bHorz)
+{
+	ASSERT_VALID(this);
+	ASSERT(::IsWindow(m_hWnd));
+
+	// determinme size of font being used by the status bar
+	TEXTMETRIC tm;
+	{
+		CClientDC dc(NULL);
+		HFONT hFont = (HFONT)SendMessage(WM_GETFONT);
+		HGDIOBJ hOldFont = NULL;
+		if (hFont != NULL)
+			hOldFont = dc.SelectObject(hFont);
+		VERIFY(dc.GetTextMetrics(&tm));
+		if (hOldFont != NULL)
+			dc.SelectObject(hOldFont);
+	}
+
+	// get border information
+	CRect rect; rect.SetRectEmpty();
+	CalcInsideRect(rect, bHorz);
+	int rgBorders[3];
+	DefWindowProc(SB_GETBORDERS, 0, (LPARAM)&rgBorders);
+
+	// determine size, including borders
+	CSize size;
+	size.cx = 32767;
+	size.cy = tm.tmHeight - tm.tmInternalLeading - 1
+		+ rgBorders[1] * 2 + ::GetSystemMetrics(SM_CYBORDER) * (2 + 3)
+		- rect.Height();
+
+	return size;
+}
+
+BOOL CTabBar::PreTranslateMessage(MSG* pMsg) 
+{
+	if ( pMsg->hwnd == 	m_TabCtrl.m_hWnd && pMsg->message == WM_LBUTTONDOWN ) {
+		if ( !CControlBar::PreTranslateMessage(pMsg) )
+			return FALSE;
+		CPoint point(LOWORD(pMsg->lParam), HIWORD(pMsg->lParam));
+		::ClientToScreen(pMsg->hwnd, &point);
+		ScreenToClient(&point);
+		pMsg->hwnd = m_hWnd;
+		pMsg->lParam = MAKELPARAM(point.x, point.y);
+	}
+
+	return CControlBar::PreTranslateMessage(pMsg);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -116,6 +166,211 @@ void CTabBar::OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler)
 	ReSize();
 }
 
+BOOL CTabBar::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
+{
+	int n;
+	TCHITTESTINFO htinfo;
+
+	if ( AfxGetApp()->GetProfileInt(_T("TabBar"), _T("GhostWnd"), 0) )
+		return TRUE;
+
+	GetCursorPos(&htinfo.pt);
+	m_TabCtrl.ScreenToClient(&htinfo.pt);
+	n = m_TabCtrl.HitTest(&htinfo);
+
+	if ( n >= 0 && n == m_TabCtrl.GetCurSel() )
+		n = (-1);
+
+	if ( m_GhostItem >= 0 && m_GhostItem != n )
+		SetGhostWnd(FALSE);
+
+	if ( m_GhostReq != n ) {
+		if ( m_GhostReq >= 0 )
+			KillTimer(1024);
+		m_GhostReq = (-1);
+
+		if ( n >= 0 ) {
+			SetTimer(1024, 2000, NULL);
+			m_GhostReq = n;
+		}
+	}
+
+	return TRUE;
+//	return CControlBar::OnSetCursor(pWnd, nHitTest, message);
+}
+
+void CTabBar::OnTimer(UINT_PTR nIDEvent)
+{
+	switch(nIDEvent) {
+	case 1024:
+		KillTimer(1024);
+		if ( m_GhostReq >= 0 && (GetStyle() & WS_VISIBLE) != 0 )
+			SetGhostWnd(TRUE);
+		break;
+
+	case 1025:
+		OnSetCursor(this, 0, 0);
+		if ( m_GhostItem >= 0 && (GetStyle() & WS_VISIBLE) == 0 )
+			SetGhostWnd(FALSE);
+		break;
+	}
+	CControlBar::OnTimer(nIDEvent);
+}
+
+void CTabBar::OnSelchange(NMHDR* pNMHDR, LRESULT* pResult) 
+{
+	TC_ITEM tci;
+	int idx = m_TabCtrl.GetCurSel();
+
+	tci.mask = TCIF_PARAM;
+	if ( m_TabCtrl.GetItem(idx, &tci) ) {
+		CWnd *pFrame = FromHandle((HWND) tci.lParam);
+		ASSERT(pFrame != NULL);
+		ASSERT_KINDOF(CMDIChildWnd, pFrame);
+		((CMDIFrameWnd *)AfxGetMainWnd())->MDIActivate(pFrame);
+	}
+
+	*pResult = 0;
+}
+
+void CTabBar::OnLButtonDown(UINT nFlags, CPoint point) 
+{
+	int hit = (-3);
+	BOOL bEnable;
+	BOOL bMove = FALSE;
+	CPoint capos;
+	CSize size(4, 4);
+	CRect rect, rectFirst, rectLast;
+	int idx = m_TabCtrl.GetCurSel();
+	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
+	CWnd *pDeskTop = CWnd::GetDesktopWindow();
+	CWnd *pChild = NULL;
+	TC_ITEM tci;
+	TCHAR Text[MAX_PATH + 2];
+	CTrackWnd track;
+	CString title;
+	MSG msg;
+
+	CControlBar::OnLButtonDown(nFlags, point);
+
+	if ( idx < 0 || !m_TabCtrl.GetItemRect(idx, rect) || !rect.PtInRect(point) )
+		return;
+
+	if ( (pChild = GetAt(idx)) == NULL )
+		return;
+
+	if ( GetCapture() != NULL )
+		return;
+
+	SetCapture();
+
+	ClientToScreen(rect);
+	pDeskTop->ScreenToClient(rect);
+	rectFirst = rectLast = rect;
+
+	GetTitle(idx, title);
+	track.Create(NULL, title, WS_TILED | WS_CHILD, rect, pDeskTop, (-1));
+	track.SetWindowPos(&wndTopMost, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+
+	for ( ; ; ) {
+		if ( CWnd::GetCapture() != this )
+			break;
+
+		::GetMessage(&msg, NULL, 0, 0);
+
+		switch (msg.message) {
+		case WM_LBUTTONUP:
+		case WM_MOUSEMOVE:
+			capos.x = GET_X_LPARAM(msg.lParam);
+			capos.y = GET_Y_LPARAM(msg.lParam);
+
+			hit = HitPoint(capos);
+
+			rect.left   = rectFirst.left   + (capos.x - point.x);
+			rect.right  = rectFirst.right  + (capos.x - point.x);
+			rect.top    = rectFirst.top    + (capos.y - point.y);
+			rect.bottom = rectFirst.bottom + (capos.y - point.y);
+
+			if ( hit == (-1) || hit == (-2) ) {
+				if ( !m_bNumber ) {
+					SetTabTitle(TRUE);
+					GetTitle(idx, title);
+					track.SetText(title);
+				}
+				pMain->SendMessage(WM_COMMAND, IDM_DISPWINIDX);
+			}
+			
+			if ( (bEnable = (hit == (-2) ? TRUE : FALSE)) != track.m_bEnable ) {
+				track.m_bEnable = bEnable;
+				track.Invalidate();
+			}
+
+			if ( bMove || abs(rect.left - rectLast.left) > size.cx || abs(rect.top - rectLast.top) > size.cy ) {
+				if ( !m_bNumber ) {
+					SetTabTitle(TRUE);
+					GetTitle(idx, title);
+					track.SetText(title);
+				}
+				if ( !rect.EqualRect(rectLast) )
+					track.SetWindowPos(&wndTopMost, rect.left, rect.top, 0, 0, SWP_NOSIZE | SWP_SHOWWINDOW);
+				rectLast = rect;
+				bMove = TRUE;
+			}
+
+			if ( hit >= 0 && hit != idx ) {		// Move Tab
+
+				tci.mask = TCIF_PARAM | TCIF_TEXT;
+				tci.pszText = Text;
+				tci.cchTextMax = MAX_PATH;
+				m_TabCtrl.GetItem(idx, &tci);
+
+				m_TabCtrl.DeleteItem(idx);
+				tci.mask = TCIF_PARAM | TCIF_TEXT;
+				m_TabCtrl.InsertItem(hit, &tci);
+
+				track.SetWindowText(tci.pszText);
+				track.ShowWindow(SW_HIDE);
+
+				idx = hit;
+				bMove = FALSE;
+				size.cx = rectFirst.Width()  / 6;
+				size.cy = rectFirst.Height() / 3;
+			}
+
+			if ( msg.message != WM_LBUTTONUP )
+				break;
+
+			if ( m_bNumber )
+				SetTabTitle(FALSE);
+
+			if ( hit == (-1) ) {				// Move Pane
+				ClientToScreen(&capos);
+				pMain->ScreenToClient(&capos);
+				pMain->MoveChild(pChild, capos);
+				pMain->PostMessage(WM_COMMAND, IDM_DISPWINIDX);
+
+			} else if ( hit == (-2) ) {			// Close
+				pChild->PostMessage(WM_COMMAND, ID_WINDOW_CLOSE);
+			}
+
+			goto ENDLOOP;
+
+		//case WM_PAINT:
+		//case WM_ERASEBKGND:
+		default:
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+			break;
+		}
+	}
+
+ENDLOOP:
+	track.CloseWindow();
+	ReleaseCapture();
+}
+
+//////////////////////////////////////////////////////////////////////
+
 void CTabBar::Add(CWnd *pWnd)
 {
 	TC_ITEM tci;
@@ -158,6 +413,23 @@ CWnd *CTabBar::GetAt(int nIndex)
 	if ( !m_TabCtrl.GetItem(nIndex, &tci) )
 		return NULL;
 	return FromHandle((HWND)tci.lParam);
+}
+void CTabBar::GetTitle(int nIndex, CString &title)
+{
+	TC_ITEM tci;
+	TCHAR tmp[MAX_PATH + 2];
+
+	tci.mask = TCIF_TEXT;
+	tci.pszText = tmp;
+	tci.cchTextMax = MAX_PATH;
+
+	if ( !m_TabCtrl.GetItem(nIndex, &tci) )
+		return;
+
+	if ( m_bNumber )
+		title = tci.pszText;
+	else
+		title.Format(_T("%d %s"), nIndex + 1, tci.pszText);
 }
 
 void CTabBar::ReSize()
@@ -234,143 +506,70 @@ int CTabBar::GetIndex(CWnd *pWnd)
 	return (-1);
 }
 
-void CTabBar::OnSelchange(NMHDR* pNMHDR, LRESULT* pResult) 
-{
-	TC_ITEM tci;
-	int idx = m_TabCtrl.GetCurSel();
-
-	tci.mask = TCIF_PARAM;
-	if ( m_TabCtrl.GetItem(idx, &tci) ) {
-		CWnd *pFrame = FromHandle((HWND) tci.lParam);
-		ASSERT(pFrame != NULL);
-		ASSERT_KINDOF(CMDIChildWnd, pFrame);
-		((CMDIFrameWnd *)AfxGetMainWnd())->MDIActivate(pFrame);
-	}
-
-	*pResult = 0;
-}
-void CTabBar::OnLButtonDown(UINT nFlags, CPoint point) 
+int CTabBar::HitPoint(CPoint point)
 {
 	CRect rect;
-	TC_ITEM tci;
-	int idx = m_TabCtrl.GetCurSel();
-	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
-	CWnd *pLeft = GetAt(idx);
-	CWnd *pRight;
-	CString title;
-	TCHAR Text[MAX_PATH + 2];
-
-	CControlBar::OnLButtonDown(nFlags, point);
-
-	if ( pLeft == NULL || !m_TabCtrl.GetItemRect(idx, rect) || !rect.PtInRect(point) )
-		return;
-
-	CRectTracker tracker(rect, CRectTracker::hatchedBorder);
-
-	if ( !tracker.Track(this, point, FALSE, CWnd::GetDesktopWindow()) )
-		return;
-
-	m_TabCtrl.Invalidate(FALSE);
-
-	point.x = point.x - rect.left + tracker.m_rect.left;
-	point.y = point.y - rect.top + tracker.m_rect.top;
-
-	for ( int n = 0 ; n < m_TabCtrl.GetItemCount() ; n++ ) {
-		if ( n == idx || !m_TabCtrl.GetItemRect(n, rect) || !rect.PtInRect(point) )
-			continue;
-
-#if 1
-		tci.mask = TCIF_PARAM | TCIF_TEXT;
-		tci.pszText = Text;
-		tci.cchTextMax = MAX_PATH;
-		if ( !m_TabCtrl.GetItem(idx, &tci) )
-			return;
-
-		m_TabCtrl.DeleteItem(idx);
-		tci.mask = TCIF_PARAM | TCIF_TEXT;
-		m_TabCtrl.InsertItem(n, &tci);
-#else
-		if ( (pRight = GetAt(n)) == NULL )
-			return;
-
-		pLeft->GetWindowText(title);
-		tci.mask = TCIF_PARAM | TCIF_TEXT;
-		tci.lParam = (LPARAM)pLeft->m_hWnd;
-		tci.pszText = title.LockBuffer();
-		m_TabCtrl.SetItem(n, &tci);
-		title.UnlockBuffer();
-
-		pRight->GetWindowText(title);
-		tci.mask = TCIF_PARAM | TCIF_TEXT;
-		tci.lParam = (LPARAM)pRight->m_hWnd;
-		tci.pszText = title.LockBuffer();
-		m_TabCtrl.SetItem(idx, &tci);
-		title.UnlockBuffer();
-
-		pMain->SwapChild(pLeft, pRight);
-#endif
-		return;
-	}
+	CWnd *pMain = AfxGetMainWnd();
 
 	ClientToScreen(&point);
+
 	pMain->GetWindowRect(rect);
 
+	if ( !rect.PtInRect(point) )
+		return (-2);				// Close
+
+	m_TabCtrl.GetWindowRect(rect);
+
 	if ( rect.PtInRect(point) ) {
-		pMain->ScreenToClient(&point);
-		pMain->MoveChild(pLeft, point);
-		return;
-	}
-
-	pLeft->PostMessage(WM_CLOSE);
-}
-
-CSize CTabBar::CalcFixedLayout(BOOL bStretch, BOOL bHorz)
-{
-	ASSERT_VALID(this);
-	ASSERT(::IsWindow(m_hWnd));
-
-	// determinme size of font being used by the status bar
-	TEXTMETRIC tm;
-	{
-		CClientDC dc(NULL);
-		HFONT hFont = (HFONT)SendMessage(WM_GETFONT);
-		HGDIOBJ hOldFont = NULL;
-		if (hFont != NULL)
-			hOldFont = dc.SelectObject(hFont);
-		VERIFY(dc.GetTextMetrics(&tm));
-		if (hOldFont != NULL)
-			dc.SelectObject(hOldFont);
-	}
-
-	// get border information
-	CRect rect; rect.SetRectEmpty();
-	CalcInsideRect(rect, bHorz);
-	int rgBorders[3];
-	DefWindowProc(SB_GETBORDERS, 0, (LPARAM)&rgBorders);
-
-	// determine size, including borders
-	CSize size;
-	size.cx = 32767;
-	size.cy = tm.tmHeight - tm.tmInternalLeading - 1
-		+ rgBorders[1] * 2 + ::GetSystemMetrics(SM_CYBORDER) * (2 + 3)
-		- rect.Height();
-
-	return size;
-}
-
-BOOL CTabBar::PreTranslateMessage(MSG* pMsg) 
-{
-	if ( pMsg->hwnd == 	m_TabCtrl.m_hWnd && pMsg->message == WM_LBUTTONDOWN ) {
-		if ( !CControlBar::PreTranslateMessage(pMsg) )
-			return FALSE;
-		CPoint point(LOWORD(pMsg->lParam), HIWORD(pMsg->lParam));
-		::ClientToScreen(pMsg->hwnd, &point);
 		ScreenToClient(&point);
-		pMsg->hwnd = m_hWnd;
-		pMsg->lParam = MAKELPARAM(point.x, point.y);
+		for ( int n = 0 ; n < m_TabCtrl.GetItemCount() ; n++ ) {
+			if ( m_TabCtrl.GetItemRect(n, rect) && rect.PtInRect(point) )
+				return n;			// Move Tab
+		}
+
+	} else {
+		pMain->GetClientRect(rect);
+		pMain->ClientToScreen(rect);
+
+		if ( rect.PtInRect(point) )
+			return (-1);			// Move Pane
 	}
 
-	return CControlBar::PreTranslateMessage(pMsg);
+	return (-3);
+}
+void CTabBar::SetTabTitle(BOOL bNumber)
+{
+	int n;
+	TC_ITEM tci;
+	CString title, work;
+	TCHAR tmp[MAX_PATH + 2];
+	CWnd *pWnd;
+
+	m_bNumber = bNumber;
+
+	for ( n = 0 ; n < m_TabCtrl.GetItemCount() ; n++ ) {
+		tci.mask = TCIF_PARAM | TCIF_TEXT;
+		tci.pszText = tmp;
+		tci.cchTextMax = MAX_PATH;
+
+		if ( !m_TabCtrl.GetItem(n, &tci) )
+			continue;
+
+		pWnd = FromHandle((HWND)tci.lParam);
+		pWnd->GetWindowText(work);
+
+		if ( m_bNumber )
+			title.Format(_T("%d %s"), n + 1, work);
+		else
+			title = work;
+
+		if ( title.Compare(tmp) != 0 ) {
+			tci.mask = TCIF_TEXT;
+			tci.pszText = title.LockBuffer();
+			m_TabCtrl.SetItem(n, &tci);
+			title.UnlockBuffer();
+		}
+	}
 }
 
 void CTabBar::SetGhostWnd(BOOL sw)
@@ -383,73 +582,28 @@ void CTabBar::SetGhostWnd(BOOL sw)
 		tci.mask = TCIF_PARAM;
 		if ( !m_TabCtrl.GetItem(m_GhostReq, &tci) )
 			return;
+
 		if ( (pMain = (CMainFrame *)AfxGetMainWnd()) == NULL )
 			return;
+
 		if ( !pMain->IsOverLap((HWND)tci.lParam) )
 			return;
-//		TRACE("Ghost Req %d\n", m_GhostReq);
+
 		m_GhostItem = m_GhostReq;
 		SetTimer(1025, 200, NULL);
+
 		if ( (pFrame = (CChildFrame *)GetAt(m_GhostItem)) != NULL && (m_pGhostView = (CRLoginView *)pFrame->GetActiveView()) != NULL )
 			m_pGhostView->SetGhostWnd(TRUE);
+
 	} else {		// Destory Ghost Wnd
-//		TRACE("Ghost Close %d\n", m_GhostItem);
 		if ( m_GhostItem >= 0 )
 			KillTimer(1025);
+
 		if ( m_pGhostView != NULL )
 			m_pGhostView->SetGhostWnd(FALSE);
+
 		m_GhostItem = (-1);
 		m_pGhostView = NULL;
 	}
 }
 
-BOOL CTabBar::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
-{
-	int n;
-	TCHITTESTINFO htinfo;
-
-	if ( AfxGetApp()->GetProfileInt(_T("TabBar"), _T("GhostWnd"), 0) )
-		return TRUE;
-
-	GetCursorPos(&htinfo.pt);
-	m_TabCtrl.ScreenToClient(&htinfo.pt);
-	n = m_TabCtrl.HitTest(&htinfo);
-
-	if ( n >= 0 && n == m_TabCtrl.GetCurSel() )
-		n = (-1);
-
-	if ( m_GhostItem >= 0 && m_GhostItem != n )
-		SetGhostWnd(FALSE);
-
-	if ( m_GhostReq != n ) {
-		if ( m_GhostReq >= 0 )
-			KillTimer(1024);
-		m_GhostReq = (-1);
-
-		if ( n >= 0 ) {
-			SetTimer(1024, 2000, NULL);
-			m_GhostReq = n;
-		}
-	}
-
-	return TRUE;
-//	return CControlBar::OnSetCursor(pWnd, nHitTest, message);
-}
-
-void CTabBar::OnTimer(UINT_PTR nIDEvent)
-{
-	switch(nIDEvent) {
-	case 1024:
-		KillTimer(1024);
-		if ( m_GhostReq >= 0 && (GetStyle() & WS_VISIBLE) != 0 )
-			SetGhostWnd(TRUE);
-		break;
-
-	case 1025:
-		OnSetCursor(this, 0, 0);
-		if ( m_GhostItem >= 0 && (GetStyle() & WS_VISIBLE) == 0 )
-			SetGhostWnd(FALSE);
-		break;
-	}
-	CControlBar::OnTimer(nIDEvent);
-}

@@ -10,6 +10,7 @@
 #include "TextRam.h"
 #include "Data.h"
 #include "ColParaDlg.h"
+#include "TtyModeDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -77,6 +78,7 @@ BEGIN_MESSAGE_MAP(CColParaDlg, CTreePage)
 	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_SLIDER_HUECOL, &CColParaDlg::OnNMReleasedcaptureContrast)
 	ON_WM_VSCROLL()
 	ON_WM_DRAWITEM()
+	ON_BN_CLICKED(IDC_COLEDIT, &CColParaDlg::OnBnClickedColedit)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -326,7 +328,7 @@ void CColParaDlg::OnLButtonDblClk(UINT nFlags, CPoint point)
 		m_ColBox[n].GetWindowRect(rect);
 		ScreenToClient(rect);
 		if ( rect.PtInRect(point) ) {
-			CColorDialog cdl((n < 16 ? m_ColTab[n] : (m_FontCol[n - 16] < 16 ? m_ColTab[m_FontCol[n - 16]] : m_pSheet->m_pTextRam->m_ColTab[m_FontCol[n - 16]])), CC_ANYCOLOR, this);
+			CColorDialog cdl((n < 16 ? m_ColTab[n] : (m_FontCol[n - 16] < 16 ? m_ColTab[m_FontCol[n - 16]] : m_pSheet->m_pTextRam->m_ColTab[m_FontCol[n - 16]])), CC_ANYCOLOR | CC_FULLOPEN | CC_RGBINIT, this);
 			if ( cdl.DoModal() != IDOK )
 				break;
 			if ( n < 16 ) {
@@ -503,4 +505,30 @@ void CColParaDlg::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
 		dc.Detach();
 	} else
 		CTreePage::OnDrawItem(nIDCtl, lpDrawItemStruct);
+}
+
+void CColParaDlg::OnBnClickedColedit()
+{
+	int n;
+	CColEditDlg dlg;
+
+	UpdateData(TRUE);
+	SetDarkLight();
+
+	for ( n = 0 ; n < 16 ; n++ )
+		dlg.m_ColTab[n] = EditColor(n);
+
+	if ( dlg.DoModal() != IDOK )
+		return;
+
+	m_SliderConstrast.SetPos(50);
+	m_SliderBright.SetPos(50);
+	m_SliderHuecol.SetPos(150);
+	SetDarkLight();
+
+	memcpy(m_ColTab, dlg.m_ColTab, sizeof(m_ColTab));
+
+	Invalidate(FALSE);
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= UMOD_COLTAB;
 }

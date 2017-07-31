@@ -2122,7 +2122,7 @@ LPCWSTR CStrScript::ExecChar(DWORD ch)
 			if ( !tmp.IsEmpty() )
 				tmp += _T(" or ");
 			tmp += np->m_RecvStr;
-			if ( np->m_Reg.MatchChar(CTextRam::UCS2toUCS4(ch), 0, &m_Res) && (m_Res.m_Status == REG_MATCH || m_Res.m_Status == REG_MATCHOVER) ) {
+			if ( np->m_Reg.MatchChar(CTextRam::UCS2toUCS4(ch), 0, &m_Res) ) { // && (m_Res.m_Status == REG_MATCH || m_Res.m_Status == REG_MATCHOVER) ) {
 				ExecNode(np->m_Right);
 				np->m_Reg.ConvertRes(TstrToUni(np->m_SendStr), m_Str, &m_Res);
 				if ( m_StatDlg.m_hWnd != NULL )
@@ -2248,6 +2248,7 @@ void CServerEntry::Init()
 	m_ProxyPassProvs.Empty();
 	m_ProxySSLKeep = FALSE;
 	m_BeforeEntry.Empty();
+	m_ReEntryFlag = FALSE;
 }
 const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 {
@@ -2282,6 +2283,7 @@ const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 	m_ProxyPassProvs = data.m_ProxyPassProvs;
 	m_ProxySSLKeep   = data.m_ProxySSLKeep;
 	m_BeforeEntry    = data.m_BeforeEntry;
+	m_ReEntryFlag    = data.m_ReEntryFlag;
 	return *this;
 }
 void CServerEntry::GetArray(CStringArrayExt &stra)

@@ -36,6 +36,7 @@ CFontParaDlg::CFontParaDlg(CWnd* pParent /*=NULL*/)
 	m_FontQuality = DEFAULT_QUALITY;
 	m_pData = NULL;
 	m_pFontTab = NULL;
+	m_FontSize = 20;
 	//}}AFX_DATA_INIT
 }
 
@@ -260,7 +261,7 @@ void CFontParaDlg::OnFontsel()
 	UpdateData(TRUE);
 	memset(&(LogFont), 0, sizeof(LOGFONT));
 	LogFont.lfWidth          = 0;
-	LogFont.lfHeight         = 20;
+	LogFont.lfHeight         = m_FontSize;
 	LogFont.lfWeight         = FW_DONTCARE;
 	LogFont.lfCharSet        = CharSetNo(m_CharSetTemp);
 	LogFont.lfOutPrecision   = OUT_DEFAULT_PRECIS;

@@ -106,9 +106,9 @@ void CScrnPage::DoInit()
 		m_Check[n] = (m_pSheet->m_pTextRam->IsOptEnable(CheckOptTab[n]) ? TRUE : FALSE);
 
 	m_ScrnFont = (m_pSheet->m_pTextRam->IsOptEnable(TO_RLFONT) ? 1 : 0);
-	m_ColsMax[0].Format(_T("%d"),   m_pSheet->m_pTextRam->m_DefCols[0]);
-	m_ColsMax[1].Format(_T("%d"),   m_pSheet->m_pTextRam->m_DefCols[1]);
-	m_FontSize.Format(_T("%d"),  m_pSheet->m_pTextRam->m_DefFontSize);
+	m_ColsMax[0].Format(_T("%d"), m_pSheet->m_pTextRam->m_DefCols[0]);
+	m_ColsMax[1].Format(_T("%d"), m_pSheet->m_pTextRam->m_DefCols[1]);
+	m_FontSize.Format(_T("%d"),   m_pSheet->m_pTextRam->m_DefFontSize);
 	m_FontHw = m_pSheet->m_pTextRam->m_DefFontHw - 10;
 
 	m_VisualBell = m_pSheet->m_pTextRam->IsOptValue(TO_RLADBELL, 2);

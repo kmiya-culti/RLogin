@@ -228,6 +228,7 @@
 #define IDC_BACKFILE                    1066
 #define IDC_BACKSEL                     1067
 #define IDC_BANKGL1                     1068
+#define IDC_COLEDIT                     1068
 #define IDC_BANKGL2                     1069
 #define IDC_BANKGL3                     1070
 #define IDC_BANKGL4                     1071
@@ -579,6 +580,7 @@
 #define IDC_TREE1                       1413
 #define IDC_TABTREE                     1413
 #define IDC_FRAME                       1414
+#define IDC_REGEXSERCH                  1415
 #define IDM_BROADCAST                   5000
 #define IDM_CAP_CLIPBORD                5001
 #define IDM_CAP_EXPORT                  5002
@@ -672,7 +674,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        188
 #define _APS_NEXT_COMMAND_VALUE         5088
-#define _APS_NEXT_CONTROL_VALUE         1415
+#define _APS_NEXT_CONTROL_VALUE         1416
 #define _APS_NEXT_SYMED_VALUE           569
 #endif
 #endif

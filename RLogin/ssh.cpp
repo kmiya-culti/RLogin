@@ -2013,7 +2013,7 @@ void Cssh::SendPacket2(CBuffer *bp)
 	static int padflag = FALSE;
 	static BYTE padimage[64];
 
-	//TRACE("SendPacket2 %d(%d)", bp->PTR8BIT(bp->GetPtr()), bp->GetSize());
+	DEBUGLOG("SendPacket2 %d(%d) Seq=%d\r\n", bp->PTR8BIT(bp->GetPtr()), bp->GetSize(), m_SendPackSeq);
 
 	tmp.PutSpc(4 + 1);		// Size + Pad Era
 	m_EncCmp.Compress(bp->GetPtr(), bp->GetSize(), &tmp);
@@ -3021,7 +3021,7 @@ void Cssh::RecivePacket2(CBuffer *bp)
 	CStringA str;
 	int type = bp->Get8Bit();
 
-	//TRACE("RecivePacket2 %d(%d) Seq=%d Len=%d\n", type, bp->GetSize() + 1, m_RecvPackSeq, m_RecvPackLen);
+	DEBUGLOG("RecivePacket2 %d(%d) Seq=%d\r\n", type, bp->GetSize() + 1, m_RecvPackSeq);
 
 	switch(type) {
 	case SSH2_MSG_KEXINIT:

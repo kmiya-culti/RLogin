@@ -1732,16 +1732,36 @@ void CTextRam::HisRegCheck(DWORD ch, DWORD pos)
 	int i, a;
 	CRegExRes res;
 
-	if ( m_MarkReg.MatchChar(ch, pos, &res) && (res.m_Status == REG_MATCH || res.m_Status == REG_MATCHOVER) ) {
-		for ( i = 0 ; i < res.GetSize() ; i++ ) {
-			for ( a = res[i].m_SPos ; a < res[i].m_EPos ; a++ ) {
-				if ( res.m_Idx[a] != 0xFFFFFFFF )
-					GETVRAM(res.m_Idx[a] % m_ColsMax, res.m_Idx[a] / m_ColsMax - m_HisPos)->m_Vram.attr |= ATT_MARK;
+	if ( m_bSimpSerch ) {
+		if ( m_SimpStr[m_SimpLen] == (DCHAR)ch ) {
+			if ( m_SimpPos == 0xFFFFFFFF )
+				m_SimpPos = pos;
+			m_SimpLen++;
+			if ( m_SimpStr[m_SimpLen] == _T('\0') ) {
+				if ( m_SimpPos != 0xFFFFFFFF ) {
+					for ( a = m_SimpPos ; a <= pos ; a++ )
+						GETVRAM(a % m_ColsMax, a / m_ColsMax - m_HisPos)->m_Vram.attr |= ATT_MARK;
+				}
+				m_SimpPos = 0xFFFFFFFF;
+				m_SimpLen = 0;
+			}
+		} else {
+			m_SimpPos = 0xFFFFFFFF;
+			m_SimpLen = 0;
+		}
+
+	} else {
+		if ( m_MarkReg.MatchChar(ch, pos, &res) && (res.m_Status == REG_MATCH || res.m_Status == REG_MATCHOVER) ) {
+			for ( i = 0 ; i < res.GetSize() ; i++ ) {
+				for ( a = res[i].m_SPos ; a < res[i].m_EPos ; a++ ) {
+					if ( res.m_Idx[a] != 0xFFFFFFFF )
+						GETVRAM(res.m_Idx[a] % m_ColsMax, res.m_Idx[a] / m_ColsMax - m_HisPos)->m_Vram.attr |= ATT_MARK;
+				}
 			}
 		}
 	}
 }
-int CTextRam::HisRegMark(LPCTSTR str)
+int CTextRam::HisRegMark(LPCTSTR str, BOOL bRegEx)
 {
 	int n, x;
 	CCharCell *vp;
@@ -1754,7 +1774,7 @@ int CTextRam::HisRegMark(LPCTSTR str)
 	while ( m_MarkPos >= m_HisMax )
 		m_MarkPos -= m_HisMax;
 
-	if ( str == NULL || *str == '\0' ) {
+	if ( str == NULL || *str == _T('\0') ) {
 		for ( n = 0 ; n < m_HisLen ; n++ ) {
 			vp = GETVRAM(0, m_MarkPos - m_HisPos);
 			for ( x = 0 ; x < m_Cols ; x++ )
@@ -1765,22 +1785,33 @@ int CTextRam::HisRegMark(LPCTSTR str)
 		return 0;
 	}
 
-	m_MarkReg.Compile(str);
-	m_MarkReg.MatchCharInit();
+	m_SimpStr = str;
+	m_SimpPos = 0xFFFFFFFF;
+	m_SimpLen = 0;
+	m_bSimpSerch = TRUE;
+
+	if ( bRegEx ) {
+		m_MarkReg.Compile(str);
+		m_MarkReg.MatchCharInit();
+
+		if ( !m_MarkReg.IsSimple() )
+			m_bSimpSerch = FALSE;
+	}
 
 	m_MarkLen = 0;
 	m_MarkEol = TRUE;
 
 	return m_HisLen;
 }
-int CTextRam::HisRegNext()
+int CTextRam::HisRegNext(int msec)
 {
 	int n, x, ex, mx;
 	CCharCell *vp;
 	CStringD str;
 	LPCDSTR p;
+	clock_t timeup = clock() + msec * 1000 / CLOCKS_PER_SEC;
 
-	for ( mx = m_MarkLen + 100 ; m_MarkLen < mx && m_MarkLen < m_HisLen ; m_MarkLen++ ) {
+	for ( mx = m_MarkLen + 2000 ; m_MarkLen < mx && m_MarkLen < m_HisLen ; m_MarkLen++ ) {
 		vp = GETVRAM(0, m_MarkPos - m_HisPos);
 		for ( ex = m_Cols - 1 ; ex >= 0 ; ex-- ) {
 			if ( !vp[ex].IsEmpty() )
@@ -1789,12 +1820,12 @@ int CTextRam::HisRegNext()
 		}
 
 		if ( m_MarkEol )
-			HisRegCheck(L'\n', 0xFFFFFFFF);
+			HisRegCheck(L'\n', m_ColsMax * m_MarkPos);
 
 		for ( x = 0 ; x <= ex ; x += n ) {
 			str.Empty();
 			vp[x].m_Vram.attr &= ~ATT_MARK;
-			if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].m_Vram.mode) && IS_2BYTE(vp[x + 1].m_Vram.mode) && vp[x].Compare(vp[x + 1]) == 0 ) {
+			if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].m_Vram.mode) && IS_2BYTE(vp[x + 1].m_Vram.mode) ) { // && vp[x].Compare(vp[x + 1]) == 0 ) {
 				str += (LPCWSTR)vp[x];
 				n = 2;
 			} else if ( !IS_ASCII(vp[x].m_Vram.mode) || (DWORD)(vp[x]) == 0 ) {
@@ -1810,13 +1841,16 @@ int CTextRam::HisRegNext()
 		}
 
 		if ( x < m_Cols ) {
-			HisRegCheck(L'\r', 0xFFFFFFFF);
+			HisRegCheck(L'\r', m_ColsMax * m_MarkPos + x);
 			m_MarkEol = TRUE;
 		} else
 			m_MarkEol = FALSE;
 
-		while ( ++m_MarkPos >= m_HisMax )
+		if ( ++m_MarkPos >= m_HisMax )
 			m_MarkPos -= m_HisMax;
+
+		if ( clock() >= timeup )
+			break;
 	}
 
 	return m_MarkLen;

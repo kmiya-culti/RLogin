@@ -158,6 +158,11 @@ BOOL CRLoginDoc::OnNewDocument()
 
 	if ( !m_pScript->m_bOpenSock && !SocketOpen() )
 		return FALSE;
+	else if ( m_pScript->m_bOpenSock && m_pScript->m_CodePos == (-1) && m_TextRam.m_bOpen ) {
+		if ( !SocketOpen() )
+			return FALSE;
+		m_pScript->m_bOpenSock = FALSE;
+	}
 
 	return TRUE;
 }
@@ -187,6 +192,11 @@ BOOL CRLoginDoc::OnOpenDocument(LPCTSTR lpszPathName)
 
 		if ( !m_pScript->m_bOpenSock && !SocketOpen() )
 			return FALSE;
+		else if ( m_pScript->m_bOpenSock && m_pScript->m_CodePos == (-1) && m_TextRam.m_bOpen ) {
+			if ( !SocketOpen() )
+				return FALSE;
+			m_pScript->m_bOpenSock = FALSE;
+		}
 	}
 	
 	return (m_LoadMode == DOCTYPE_NONE ? FALSE : TRUE);
@@ -933,7 +943,7 @@ void CRLoginDoc::OnSocketError(int err)
 	if ( m_ErrorPrompt.IsEmpty() )
 		m_ErrorPrompt.Format(_T("WinSock Have Error #%d"), err);
 
-	tmp.Format(_T("%s Server Entry Scoket Error\n%s:%s Connection\n%s"), m_ServerEntry.m_EntryName, m_ServerEntry.m_HostName, m_ServerEntry.m_PortName, m_ErrorPrompt);
+	tmp.Format(_T("%s Server Entry Socket Error\n%s:%s Connection\n%s"), m_ServerEntry.m_EntryName, m_ServerEntry.m_HostName, m_ServerEntry.m_PortName, m_ErrorPrompt);
 	AfxMessageBox(tmp);
 	m_ErrorPrompt.Empty();
 
@@ -1092,6 +1102,9 @@ int CRLoginDoc::SocketOpen()
 
 	num = CExtSocket::GetPortNum(m_ServerEntry.m_PortName);
 
+	if ( m_ServerEntry.m_ReEntryFlag )
+		goto SKIPINPUT;
+
 	// 0=NONE, 1=HTTP, 2=SOCKS4, 3=SOCKS5, 4=HTTP(Basic)
 	if ( (m_ServerEntry.m_ProxyMode & 7) > 0 && m_TextRam.IsOptEnable(TO_PROXPASS) ) {
 
@@ -1130,6 +1143,8 @@ int CRLoginDoc::SocketOpen()
 		m_ServerEntry.m_PassName = dlg.m_PassName;
 	}
 
+SKIPINPUT:
+
 	if ( m_ServerEntry.m_HostName.IsEmpty() )
 		return FALSE;
 
@@ -1144,6 +1159,7 @@ int CRLoginDoc::SocketOpen()
 			SetEntryProBuffer();
 			for ( int n = 1 ; n < hosts.GetSize() ; n++ ) {
 				m_ServerEntry.m_HostName.Format(_T("'%s'"), hosts[n]);
+				m_ServerEntry.m_ReEntryFlag = TRUE;
 				pApp->m_pServerEntry = &m_ServerEntry;
 				pApp->OpenProcsCmd(&cmds);
 			}

@@ -16,6 +16,7 @@ public:
 	int m_GhostReq;
 	int m_GhostItem;
 	class CRLoginView *m_pGhostView;
+	BOOL m_bNumber;
 
 	BOOL Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID);
 
@@ -24,12 +25,15 @@ public:
 	int GetCurSel() { return m_TabCtrl.GetCurSel(); }
 	int GetSize() { return m_TabCtrl.GetItemCount(); }
 	CWnd *GetAt(int nIndex);
+	void GetTitle(int nIndex, CString &title);
 	void ReSize();
 	void SetGhostWnd(BOOL sw);
 	void NextActive();
 	void PrevActive();
 	void SelectActive(int idx);
 	int GetIndex(CWnd *pWnd);
+	int HitPoint(CPoint point);
+	void SetTabTitle(BOOL bNumber);
 
 protected:
 	virtual void OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler);

@@ -243,6 +243,7 @@ void CCharSetPage::OnFontListNew()
 	dlg.m_pData   = &tmp;
 	dlg.m_FontNum = m_AltFont;
 	dlg.m_pFontTab = &m_FontTab;
+	dlg.m_FontSize = m_pSheet->m_pTextRam->m_DefFontSize;
 
 	if ( dlg.DoModal() != IDOK )
 		return;
@@ -267,6 +268,7 @@ void CCharSetPage::OnFontListEdit()
 	dlg.m_pData   = &tmp;
 	dlg.m_FontNum = m_AltFont;
 	dlg.m_pFontTab = &m_FontTab;
+	dlg.m_FontSize = m_pSheet->m_pTextRam->m_DefFontSize;
 
 	if ( dlg.DoModal() != IDOK )
 		return;
@@ -308,6 +310,7 @@ void CCharSetPage::OnEditDups()
 	dlg.m_pData   = &tmp;
 	dlg.m_FontNum = m_AltFont;
 	dlg.m_pFontTab = &m_FontTab;
+	dlg.m_FontSize = m_pSheet->m_pTextRam->m_DefFontSize;
 
 	if ( dlg.DoModal() != IDOK )
 		return;

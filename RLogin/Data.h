@@ -478,6 +478,7 @@ public:
 	CString m_ProxyUserProvs;
 	CString m_ProxyPassProvs;
 	CString m_BeforeEntry;
+	BOOL m_ReEntryFlag;
 
 	void Init();
 	void SetArray(CStringArrayExt &stra);

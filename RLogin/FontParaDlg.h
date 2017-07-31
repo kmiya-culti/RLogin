@@ -30,6 +30,7 @@ public:
 	CString m_FontName;
 	int m_FontNum;
 	int m_FontQuality;
+	int m_FontSize;
 
 	int m_CodeSet;
 	CString m_FontNameTab[16];

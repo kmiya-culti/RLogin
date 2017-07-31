@@ -43,7 +43,7 @@ END_MESSAGE_MAP()
 
 BOOL CPassDlg::OnInitDialog() 
 {
-	CWnd *pPassWnd = GetDlgItem(IDC_PASSNAME);
+	CEdit *pPassWnd = (CEdit *)GetDlgItem(IDC_PASSNAME);
 	ASSERT(pPassWnd != NULL);
 
 	CDialogExt::OnInitDialog();
@@ -63,15 +63,16 @@ BOOL CPassDlg::OnInitDialog()
 //	if ( !m_UserName.IsEmpty() )
 //		m_UserWnd.EnableWindow(FALSE);
 
-	if ( !m_HostAddr.IsEmpty() ) {
-		if ( !m_UserName.IsEmpty() )
-			pPassWnd->SetFocus();
-		else
-			m_UserWnd.SetFocus();
-	}
-
 	if ( m_PassEcho )
 		pPassWnd->ModifyStyle(ES_PASSWORD, 0);
+
+	if ( !m_HostAddr.IsEmpty() ) {
+		if ( !m_UserName.IsEmpty() ) {
+			pPassWnd->SetSel(0, (-1));
+			pPassWnd->SetFocus();
+		} else
+			m_UserWnd.SetFocus();
+	}
 
 	m_TimeLimit.SetRange(0, m_MaxTime);
 	SetTimer(1028, 1000, NULL);
