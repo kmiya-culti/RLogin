@@ -408,13 +408,20 @@ public:
 //	CRegEx	m_RegWord[4];
 //	void HisKeyWord();
 
+	struct DrawWork {
+		int		att;
+		int		fcn, bcn;
+		int		mod, fnm;
+		int		dmf, csz;
+	};
+
 	int IsWord(WCHAR ch);
 	int GetPos(int x, int y);
 	BOOL IncPos(int &x, int &y);
 	BOOL DecPos(int &x, int &y);
 	void EditWordPos(int *sps, int *eps);
 	void EditCopy(int sps, int eps, BOOL rectflag = FALSE);
-	void StrOut(CDC* pDC, LPCRECT pRect, int att, int fcn, int bcn, int mode, int fnum, int len, int dm, int ct, char *str, int ss, int *spc, class CRLoginView *pView);
+	void StrOut(CDC* pDC, LPCRECT pRect, struct DrawWork &prop, int len, char *str, int sln, int *spc, class CRLoginView *pView);
 	void DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginView *pView);
 	
 	CWnd *GetAciveView();

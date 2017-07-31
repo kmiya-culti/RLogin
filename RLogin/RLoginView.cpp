@@ -89,6 +89,8 @@ CRLoginView::CRLoginView()
 	m_BlinkFlag = 0;
 	m_MouseEventFlag = FALSE;
 	m_BroadCast = FALSE;
+	m_WheelDelta = 0;
+	m_WheelTimer = FALSE;
 }
 
 CRLoginView::~CRLoginView()
@@ -112,6 +114,9 @@ void CRLoginView::OnDraw(CDC* pDC)
 {
 	CRLoginDoc* pDoc = GetDocument();
 	ASSERT_VALID(pDoc);
+
+	if ( (m_DispCaret & 001) != 0 )
+		HideCaret();
 
 	int sx = 0;
 	int sy = 0;
@@ -138,6 +143,9 @@ void CRLoginView::OnDraw(CDC* pDC)
 
 	if ( pDoc->m_TextRam.IsInitText() )
 		pDoc->m_TextRam.DrawVram(pDC, sx, sy, ex, ey, this);
+
+	if ( (m_DispCaret & 001) != 0 )
+		ShowCaret();
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -698,6 +706,8 @@ void CRLoginView::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 
 void CRLoginView::OnTimer(UINT_PTR nIDEvent) 
 {
+	CRLoginDoc *pDoc = GetDocument();
+
 	CView::OnTimer(nIDEvent);
 
 	switch(nIDEvent) {
@@ -710,47 +720,78 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 		Invalidate(FALSE);
 		break;
 	case 1026:		// Blink Timer
-		CRLoginDoc *pDoc = GetDocument();
 		m_BlinkFlag = (++m_BlinkFlag & 3) | 4;
 		if ( pDoc->m_TextRam.BLINKUPDATE(this) == 0 ) {
 			KillTimer(nIDEvent);
 			m_BlinkFlag = 0;
 		}
 		break;
+	case 1027:		// Wheel Timer
+		if ( (m_HisOfs += m_WheelDelta) < 0 ) {
+			m_HisOfs = 0;
+			m_WheelDelta = 0;
+		} else if ( m_HisOfs > pDoc->m_TextRam.m_HisLen - m_Lines ) {
+			m_HisOfs = pDoc->m_TextRam.m_HisLen - m_Lines;
+			m_WheelDelta = 0;
+		} else if ( m_WheelDelta < 0 )
+			m_WheelDelta += 1;
+		else
+			m_WheelDelta -= 1;
+
+		if ( m_WheelDelta == 0 ) {
+			KillTimer(nIDEvent);
+			m_WheelTimer = FALSE;
+		}
+
+		OnUpdate(this, UPDATE_INVALIDATE, NULL);
+		break;
 	}
 }
 
 BOOL CRLoginView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt) 
 {
-	int pos;
+	int pos, ofs;
+	CBuffer tmp;
 	CRLoginDoc *pDoc = GetDocument();
 	ASSERT(pDoc);
 
-	if ( pDoc->m_TextRam.IsOptEnable(TO_DECCKM) || (pDoc->m_TextRam.m_MouseTrack > 0 && !m_MouseEventFlag) ) {
-		CBuffer tmp;
-		pos = zDelta * pDoc->m_TextRam.m_WheelSize / (WHEEL_DELTA / 2);
+	ofs = zDelta * pDoc->m_TextRam.m_WheelSize / (WHEEL_DELTA / 2);
 
-		if ( pDoc->m_KeyTab.FindMaps((pos > 0 ? VK_UP : VK_DOWN), (pDoc->m_TextRam.IsOptEnable(TO_DECCKM) ? MASK_APPL : 0), &tmp) ) {
-			while ( pos != 0 ) {
+	if ( pDoc->m_TextRam.IsOptEnable(TO_DECCKM) || (pDoc->m_TextRam.m_MouseTrack > 0 && !m_MouseEventFlag) ) {
+		if ( pDoc->m_KeyTab.FindMaps((ofs > 0 ? VK_UP : VK_DOWN), (pDoc->m_TextRam.IsOptEnable(TO_DECCKM) ? MASK_APPL : 0), &tmp) ) {
+			for ( pos = (ofs < 0 ? (0 - ofs) : ofs) ; pos > 0 ; pos-- )
 				SendBuffer(tmp);
-				if ( pos < 0 )
-					pos++;
-				else
-					pos--;
-			}
 		}
 	} else {
-		int min = 0;
-		int max = pDoc->m_TextRam.m_HisLen - m_Lines;
 
-		if ( (pos = m_HisOfs + (zDelta * pDoc->m_TextRam.m_WheelSize / (WHEEL_DELTA / 2))) < min )
-			pos = min;
-		else if ( pos > max )
-			pos = max;
-
-		if ( pos != m_HisOfs ) {
-			m_HisOfs = pos;
-			OnUpdate(this, UPDATE_INVALIDATE, NULL);
+		if ( m_WheelTimer ) {
+			if ( m_WheelDelta > 0 ) {
+				if ( ofs < 0 )
+					m_WheelDelta = ofs;
+				else
+					m_WheelDelta += ofs;
+			} else if ( m_WheelDelta < 0 ) {
+				if ( ofs > 0 )
+					m_WheelDelta = ofs;
+				else
+					m_WheelDelta += ofs;
+			} else
+				m_WheelDelta = ofs;
+		} else {
+			if ( ofs > 3 || ofs < -3 ) {
+				m_WheelDelta = ofs;
+				SetTimer(1027, 100, NULL);
+				m_WheelTimer = TRUE;
+			} else {
+				if ( (pos = m_HisOfs + ofs) < 0 )
+					pos = 0;
+				else if ( pos > (pDoc->m_TextRam.m_HisLen - m_Lines) )
+					pos = pDoc->m_TextRam.m_HisLen - m_Lines;
+				if ( pos != m_HisOfs ) {
+					m_HisOfs = pos;
+					OnUpdate(this, UPDATE_INVALIDATE, NULL);
+				}
+			}
 		}
 	}
 

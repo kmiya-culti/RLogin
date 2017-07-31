@@ -52,6 +52,8 @@ public:
 	int m_BlinkFlag;
 	BOOL m_MouseEventFlag;
 	BOOL m_BroadCast;
+	int m_WheelDelta;
+	BOOL m_WheelTimer;
 
 	int m_ClipFlag;
 	int m_ClipStaPos, m_ClipEndPos;
