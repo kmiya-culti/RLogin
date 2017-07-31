@@ -808,12 +808,12 @@ void Cssh::RecivePacket(CBuffer *bp)
 
 	if ( type == SSH_MSG_DISCONNECT ) {
 		bp->GetStr(str);
-		CExtSocket::OnReciveCallBack((void *)((LPCSTR)str), str.GetLength(), 0);
+		SendTextMsg(str, str.GetLength());
 		Close();
 		return;
 	} else if ( type == SSH_MSG_DEBUG ) {
 		bp->GetStr(str);
-		CExtSocket::OnReciveCallBack((void *)((LPCSTR)str), str.GetLength(), 0);
+		SendTextMsg(str, str.GetLength());
 		return;
 	}
 
@@ -946,7 +946,7 @@ void Cssh::RecivePacket(CBuffer *bp)
 		case SSH_SMSG_STDERR_DATA:
 		case SSH_SMSG_STDOUT_DATA:
 			n = bp->Get32Bit();
-			CExtSocket::OnReciveCallBack(bp->GetPtr(), n, 0);
+			SendTextMsg((LPCSTR)(bp->GetPtr()), n);
 			break;
 
 		default:
@@ -995,6 +995,25 @@ void Cssh::LogIt(LPCTSTR format, ...)
 	tmp += _T("\r\n");
 
 	CStringA mbs(tmp);
+	CExtSocket::OnReciveCallBack((void *)(LPCSTR)mbs, mbs.GetLength(), 0);
+}
+void Cssh::SendTextMsg(LPCSTR str, int len)
+{
+	CStringA mbs;
+
+	while ( len-- > 0 ) {
+		if ( str[0] == '\r' && str[1] == '\n' ) {
+			mbs += "\r\n";
+			str += 2;
+		} else if ( *str == '\r' || *str == '\n' ) {
+			mbs += "\r\n";
+			str += 1;
+		} else {
+			mbs += *str;
+			str += 1;
+		}
+	}
+
 	CExtSocket::OnReciveCallBack((void *)(LPCSTR)mbs, mbs.GetLength(), 0);
 }
 int Cssh::ChannelOpen()
@@ -2937,8 +2956,34 @@ int Cssh::SSH2MsgChannelAdjust(CBuffer *bp)
 }
 int Cssh::SSH2MsgGlobalHostKeys(CBuffer *bp)
 {
+	int n, i;
+	int useEntry = 0;
+	int newEntry = 0;
+	int delEntry = 0;
+	int wrtFlag = 0;
 	CIdKey key;
 	CBuffer tmp;
+	CString dig;
+	CStringArrayExt entry;
+	CArray<CIdKey, CIdKey &> keyTab;
+	CRLoginApp *pApp = (CRLoginApp *)AfxGetApp();
+
+	pApp->GetProfileStringArray(_T("KnownHosts"), m_HostName, entry);
+	for ( n = 0 ; n < entry.GetSize() ; n++ ) {
+		key.m_Uid = FALSE;
+		if ( key.ReadPublicKey(entry[n]) ) {
+			if ( key.ComperePublic(&m_HostKey) == 0 )
+				key.m_Uid = TRUE;
+			for ( i = 0 ; i < keyTab.GetSize() ; i++ ) {
+				if ( key.ComperePublic(&(keyTab[i])) == 0 ) {
+					wrtFlag |= 1;
+					break;
+				}
+			}
+			if ( i >= keyTab.GetSize() )
+				keyTab.Add(key);
+		}
+	}
 
 	while ( bp->GetSize() > 4 ) {
 		bp->GetBuf(&tmp);
@@ -2946,7 +2991,45 @@ int Cssh::SSH2MsgGlobalHostKeys(CBuffer *bp)
 		if ( !key.GetBlob(&tmp) )
 			return FALSE;
 
-		key.AddCertHosts(m_HostName);
+		for ( n = 0 ; n < keyTab.GetSize() ; n++ ) {
+			if ( key.ComperePublic(&(keyTab[n])) == 0 ) {
+				keyTab[n].m_Uid = TRUE;
+				useEntry++;
+				break;
+			}
+		}
+
+		if ( n >= keyTab.GetSize() ) {
+			key.m_Uid = TRUE;
+			keyTab.Add(key);
+			wrtFlag |= (key.ChkOldCertHosts(m_HostName) ? 1 : 3);
+			newEntry++;
+		}
+	}
+
+	for ( n = 0 ; n < keyTab.GetSize() ; n++ ) {
+		if ( keyTab[n].m_Uid == FALSE ) {
+			wrtFlag |= 3;
+			delEntry++;
+			break;
+		}
+	}
+
+	if ( wrtFlag != 0 ) {
+		if ( wrtFlag == 3 ) {
+			dig.Format(CStringLoad(IDS_IDKEYHOSTKEYUPDATE), useEntry, newEntry, delEntry);
+			if ( AfxMessageBox(dig, MB_ICONQUESTION | MB_YESNO) != IDYES )
+				return TRUE;
+		}
+
+		entry.RemoveAll();
+		for ( n = 0 ; n < keyTab.GetSize() ; n++ ) {
+			if ( keyTab[n].m_Uid == TRUE ) {
+				keyTab[n].WritePublicKey(dig, FALSE);
+				entry.Add(dig);
+			}
+		}
+		pApp->WriteProfileStringArray(_T("KnownHosts"), m_HostName, entry);
 	}
 
 	return TRUE;
@@ -3152,7 +3235,7 @@ void Cssh::RecivePacket2(CBuffer *bp)
 		break;
 	case SSH2_MSG_USERAUTH_BANNER:
 		bp->GetStr(str);
-		CExtSocket::OnReciveCallBack((void *)(LPCSTR)str, str.GetLength(), 0);
+		SendTextMsg(str, str.GetLength());
 		break;
 
 //	case SSH2_MSG_USERAUTH_PK_OK:				// 60	publickey
@@ -3227,8 +3310,6 @@ void Cssh::RecivePacket2(CBuffer *bp)
 	case SSH2_MSG_DISCONNECT:
 		bp->Get32Bit();
 		bp->GetStr(str);
-//		CExtSocket::OnReciveCallBack((void *)((LPCSTR)str), str.GetLength(), 0);
-//		Close();
 		AfxMessageBox(m_pDocument->LocalStr(str));
 		break;
 	case SSH2_MSG_IGNORE:

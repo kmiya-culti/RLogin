@@ -3,8 +3,9 @@
 
 #include "stdafx.h"
 #include "rlogin.h"
-#include "FontParaDlg.h"
 #include "IConv.h"
+#include "FontParaDlg.h"
+#include "BlockDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -37,6 +38,8 @@ CFontParaDlg::CFontParaDlg(CWnd* pParent /*=NULL*/)
 	m_pData = NULL;
 	m_pFontTab = NULL;
 	m_FontSize = 20;
+	m_UniBlock = _T("");
+	m_pTextRam = NULL;
 	//}}AFX_DATA_INIT
 }
 
@@ -67,6 +70,7 @@ BEGIN_MESSAGE_MAP(CFontParaDlg, CDialogExt)
 	//}}AFX_MSG_MAP
 	ON_CBN_SELCHANGE(IDC_CHARSET, &CFontParaDlg::OnCbnSelchangeCharset)
 	ON_CBN_EDITCHANGE(IDC_CHARSET, &CFontParaDlg::OnCbnEditchangeCharset)
+	ON_BN_CLICKED(IDC_UNIBLOCK, &CFontParaDlg::OnBnClickedUniblock)
 END_MESSAGE_MAP()
 
 static const struct _CharSetTab {
@@ -224,6 +228,7 @@ BOOL CFontParaDlg::OnInitDialog()
 	m_IContName = m_pData->m_IContName;
 	m_EntryName = m_pData->m_EntryName;
 	m_FontQuality = m_pData->m_Quality;
+	m_UniBlock = m_pData->m_UniBlock;
 
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_FONTCODE)) != NULL ) {
 		if ( m_CodeTemp.GetLength() == 1 && m_CodeTemp[0] >= _T('a') && m_CodeTemp[0] <= _T('z') )
@@ -259,6 +264,7 @@ void CFontParaDlg::OnOK()
 	m_pData->m_EntryName = m_EntryName;
 	m_pData->m_Quality   = m_FontQuality;
 	m_pData->m_IndexName = m_CodeTemp;
+	m_pData->m_UniBlock  = m_UniBlock;
 
 	m_FontNameTab[m_FontNum] = m_FontName;
 	for ( int n = 0 ; n < 16 ; n++ ) {
@@ -327,4 +333,27 @@ void CFontParaDlg::OnCbnEditchangeCharset()
 {
 	UpdateData(TRUE);
 	SetFontFace(IDC_FACENAME);
+}
+
+void CFontParaDlg::OnBnClickedUniblock()
+{
+	CBlockDlg dlg;
+	CFontNode tmp;
+
+	UpdateData(TRUE);
+	tmp = *m_pData;
+	tmp.m_CharSet   = CharSetNo(m_CharSetTemp);
+	tmp.m_Quality   = m_FontQuality;
+	tmp.m_IndexName = m_CodeTemp;
+	tmp.m_FontName[m_FontNum] = m_FontName;
+	tmp.m_UniBlock = m_UniBlock;
+
+	dlg.m_CodeSet   = CodeSetNo(m_BankTemp, m_CodeTemp);
+	dlg.m_FontNum   = m_FontNum;
+	dlg.m_pFontNode = &tmp;
+	dlg.m_pFontTab  = m_pFontTab;
+	dlg.m_pTextRam  = m_pTextRam;
+
+	if ( dlg.DoModal() == IDOK )
+		m_UniBlock = tmp.m_UniBlock;
 }

@@ -90,6 +90,7 @@
 #include <atlbase.h>
 #include <afxpriv.h>
 #include <math.h>
+//#include <afxcontrolbars.h>
 
 #define	UniToMbs(s)			(CStringA(s))
 #define	MbsToUni(s)			(CStringW(s))

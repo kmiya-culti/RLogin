@@ -217,6 +217,8 @@
 #define	TO_RLSTAYCLIP	1458		// 範囲選択をそのままにする
 #define	TO_PROXPASS		1459		// プロキシーの入力を求める
 #define	TO_SLEEPTIMER	1460		// スリープを行う
+#define	TO_SETWINPOS	1461		// XTWOPでWindowsの操作を行う
+#define	TO_RLWORDPP		1462		// プロポーショナルフォントをワードで調整
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -273,6 +275,7 @@
 #define	RESET_HISTORY	0x0800
 #define	RESET_PAGE		0x1000
 #define	RESET_MARGIN	0x2000
+#define	RESET_SIZE		0x4000
 #define	RESET_ALL		0xFFFF
 
 #define	RC_DCS			0
@@ -351,6 +354,15 @@
 
 #define	EXTCOL_MAX				270
 #define	EXTCOL_MATRIX			26
+
+#define UNIBLOCKTABMAX	262
+
+typedef struct _UNIBLOCKTAB {
+	DWORD	code;
+	LPCTSTR	name;
+} UNIBLOCKTAB;
+
+extern const UNIBLOCKTAB UniBlockTab[UNIBLOCKTABMAX];
 
 #define issjis1(c)		(((unsigned char)(c) >= 0x81 && \
 						  (unsigned char)(c) <= 0x9F) || \
@@ -541,6 +553,7 @@ public:
 	int m_FontHeight;
 	CBitmap m_FontMap;
 	int m_MapType;
+	CString m_UniBlock;
 
 #define	FNT_BITMAP_MONO		1
 #define	FNT_BITMAP_COLOR	2
@@ -559,10 +572,37 @@ public:
 	~CFontNode();
 };
 
+typedef struct _UniBlockNode {
+	DWORD	code;
+	int		index;
+	LPCTSTR name;
+} UniBlockNode;
+
+class CUniBlockTab : public CObject
+{
+public:
+	CArray<UniBlockNode, UniBlockNode &> m_Data;
+
+	inline void RemoveAll() { m_Data.RemoveAll(); }
+	inline void RemoveAt(int nIndex) { m_Data.RemoveAt(nIndex); }
+	inline INT_PTR GetSize() { return m_Data.GetSize(); }
+	inline UniBlockNode & operator[](int nIndex) { return m_Data[nIndex]; }
+
+	const CUniBlockTab & operator = (CUniBlockTab &data);
+	int Add(DWORD code, int index, LPCTSTR name = NULL);
+	int Find(int code);
+
+	static LPCTSTR GetCode(LPCTSTR str, DWORD &code);
+	void SetBlockCode(LPCTSTR str, int index);
+};
+
 class CFontTab : public COptObject
 {
 public:
 	CFontNode m_Data[CODE_MAX];
+	CUniBlockTab m_UniBlockTab;
+
+	void InitUniBlock();
 
 	void Init();
 	void SetArray(CStringArrayExt &stra);
@@ -797,6 +837,9 @@ public:
 
 	int m_ColsMax;
 	int m_LineUpdate;
+	BOOL m_bReSize;
+	int m_ReqCols;
+	int m_ReqLines;
 
 	int m_HisMax;
 	int m_HisPos;
@@ -844,7 +887,6 @@ public:
 	int m_bOscActive;
 	LPCTSTR m_OscName;
 	CString m_SeqMsg;
-//	class CCancelDlg *m_pCanDlg;
 	BOOL m_bIntTimer;
 	int m_IntCounter;
 
@@ -946,11 +988,15 @@ public:
 
 	// TextRam
 	struct DrawWork {
-		int		att;
-		int		fcn, bcn;
-		int		mod, fnm;
-		int		dmf, csz;
+		int		attr, zoom;
+		int		fcol, bcol;
+		int		bank, font;
+		int		csz;
 		int		idx, stx, edx, sty;
+		int		size, tlen;
+		int		cols, line;
+		const WCHAR *pText;
+		const INT   *pSpace;
 	};
 
 	int IsWord(DWORD ch);
@@ -960,10 +1006,16 @@ public:
 	void EditWordPos(int *sps, int *eps);
 	void EditCopy(int sps, int eps, BOOL rectflag = FALSE, BOOL lineflag = FALSE);
 	void GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf);
+	void GetScreenSize(int *x, int *y);
+
+#if 0
 	void LineOut(CDC *pDC, CRect &box, COLORREF fc, COLORREF bc, int rv, struct DrawWork &prop, int len, LPCWSTR str, int *spc, class CRLoginView *pView);
 	void StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop, int len, LPCWSTR str, int *spc, class CRLoginView *pView);
+#endif
+	void DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv, struct DrawWork &prop, class CRLoginView *pView);
+	void DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv, struct DrawWork &prop, class CRLoginView *pView);
+	void DrawText(CDC *pDC, CRect &rect, struct DrawWork &prop, class CRLoginView *pView);
 	void DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginView *pView);
-	void GetScreenSize(int *x, int *y);
 
 	CWnd *GetAciveView();
 	void PostMessage(UINT message, WPARAM wParam = 0, LPARAM lParam = 0);
@@ -999,7 +1051,6 @@ public:
 	void CallReciveChar(DWORD ch, LPCTSTR name = NULL);
 	int UnicodeCharFlag(DWORD code);
 	int UnicodeWidth(DWORD code);
-//	int UnicodeBlock(DWORD code);
 	void SetRetChar(BOOL f8);
 
 	// Static Lib

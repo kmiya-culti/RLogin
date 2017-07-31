@@ -337,7 +337,7 @@ public:
 	LOGFONT m_LogFont;
 	CFontChacheNode *m_pNext;
 	int m_Style;
-	int m_KanWidMul;
+	int m_Fixed;
 
 	CFont *Open(LPCTSTR pFontName, int Width, int Height, int CharSet, int Style, int Quality);
 	CFontChacheNode();

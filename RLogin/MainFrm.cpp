@@ -32,6 +32,7 @@ CPaneFrame::CPaneFrame(class CMainFrame *pMain, HWND hWnd, class CPaneFrame *pOw
 	m_BoderSize = 2;
 	m_bActive = FALSE;
 	m_pServerEntry = NULL;
+	m_bReqSize = FALSE;
 
 	if ( m_pOwn != NULL )
 		m_Frame = m_pOwn->m_Frame;
@@ -329,6 +330,17 @@ void CPaneFrame::SwapWnd()
 		}
 	}
 }
+BOOL CPaneFrame::IsReqSize()
+{
+	if ( m_Style == PANEFRAME_WINDOW )
+		return m_bReqSize;
+	else if ( m_pLeft->IsReqSize() )
+		return TRUE;
+	else if ( m_pRight->IsReqSize() )
+		return TRUE;
+	else
+		return FALSE;
+}
 void CPaneFrame::MoveParOwn(CRect &rect, int Style)
 {
 	int l, r;
@@ -345,13 +357,43 @@ void CPaneFrame::MoveParOwn(CRect &rect, int Style)
 	
 		switch(Style) {
 		case PANEFRAME_NOCHNG:
+			if ( m_pLeft->IsReqSize() ) {
+				if ( m_Style == PANEFRAME_WIDTH ) {
+					left.right = left.left + rect.Width() - m_pRight->m_Frame.Width() - m_BoderSize;
+					right.left = left.right + m_BoderSize;
+				} else if ( m_Style == PANEFRAME_HEIGHT ) {
+					left.bottom = left.top + rect.Height() - m_pRight->m_Frame.Height() - m_BoderSize;
+					right.top   = left.bottom + m_BoderSize;
+				}
+				m_pLeft->m_bReqSize = FALSE;
+				break;
+			} else if ( m_pRight->IsReqSize() ) {
+				if ( m_Style == PANEFRAME_WIDTH ) {
+					left.right = left.left + m_pLeft->m_Frame.Width();
+					right.left = left.right + m_BoderSize;
+				} else if ( m_Style == PANEFRAME_HEIGHT ) {
+					left.bottom = left.top + m_pLeft->m_Frame.Height();
+					right.top   = left.bottom + m_BoderSize;
+				}
+				break;
+			}
 		RECALC:
 			if ( m_Style == PANEFRAME_WIDTH ) {
-				left.right = left.left + m_pLeft->m_Frame.Width() * rect.Width() / m_Frame.Width();
-				right.left = left.right + m_BoderSize;
+				if ( m_pLeft->m_Frame.Width() > m_pRight->m_Frame.Width() ) {
+					left.right = left.left + m_pLeft->m_Frame.Width() * rect.Width() / m_Frame.Width();
+					right.left = left.right + m_BoderSize;
+				} else {
+					right.left = rect.right - m_pRight->m_Frame.Width() * rect.Width() / m_Frame.Width();
+					left.right = right.left - m_BoderSize;
+				}
 			} else if ( m_Style == PANEFRAME_HEIGHT ) {
-				left.bottom = left.top + m_pLeft->m_Frame.Height() * rect.Height() / m_Frame.Height();
-				right.top   = left.bottom + m_BoderSize;
+				if ( m_pLeft->m_Frame.Height() > m_pRight->m_Frame.Height() ) {
+					left.bottom = left.top + m_pLeft->m_Frame.Height() * rect.Height() / m_Frame.Height();
+					right.top   = left.bottom + m_BoderSize;
+				} else {
+					right.top   = rect.bottom - m_pRight->m_Frame.Height() * rect.Height() / m_Frame.Height();
+					left.bottom = right.top - m_BoderSize;
+				}
 			}
 			break;
 
@@ -2037,6 +2079,13 @@ void CMainFrame::SplitHeightPane()
 			m_pTopPane = pPane;
 		pPane->MoveParOwn(pPane->m_Frame, PANEFRAME_HEIGHT);
 	}
+}
+CPaneFrame *CMainFrame::GetPaneFromChild(HWND hWnd)
+{
+	if ( m_pTopPane == NULL )
+		return NULL;
+
+	return m_pTopPane->GetPane(hWnd);
 }
 
 void CMainFrame::OnPaneWsplit() 

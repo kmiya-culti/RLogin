@@ -768,6 +768,32 @@ void CRLoginApp::GetProfileBuffer(LPCTSTR lpszSection, LPCTSTR lpszEntry, CBuffe
 		delete [] pData;
 	}
 }
+void CRLoginApp::GetProfileStringArray(LPCTSTR lpszSection, LPCTSTR lpszEntry, CStringArrayExt &stra)
+{
+	CBuffer buf;
+	CStringA mbs;
+
+	GetProfileBuffer(lpszSection, lpszEntry, buf);
+
+	stra.RemoveAll();
+	while ( buf.GetSize() > 4 ) {
+		buf.GetStr(mbs);
+		stra.Add(MbsToTstr(mbs));
+	}
+}
+void CRLoginApp::WriteProfileStringArray(LPCTSTR lpszSection, LPCTSTR lpszEntry, CStringArrayExt &stra)
+{
+	int n;
+	CBuffer buf;
+	CStringA mbs;
+
+	for ( n = 0 ; n < stra.GetSize() ; n++ ) {
+		mbs = TstrToMbs(stra[n]);
+		buf.PutStr(mbs);
+	}
+
+	WriteProfileBinary(lpszSection, lpszEntry, buf.GetPtr(), buf.GetSize());
+}
 void CRLoginApp::GetProfileArray(LPCTSTR lpszSection, CStringArrayExt &stra)
 {
 	int n, mx;

@@ -35,6 +35,7 @@ public:
 	int m_Style;
 	int m_BoderSize;
 	BOOL m_bActive;
+	BOOL m_bReqSize;
 
 	CRect m_Frame;
 	HWND m_hWnd;
@@ -52,6 +53,7 @@ public:
 	int SetActive(HWND hWnd);
 	int IsOverLap(CPaneFrame *pPane);
 	int GetPaneCount(int count);
+	BOOL IsReqSize();
 
 	void MoveFrame();
 	void SwapWnd();
@@ -203,6 +205,7 @@ public:
 
 	void SplitWidthPane();
 	void SplitHeightPane();
+	CPaneFrame *GetPaneFromChild(HWND hWnd);
 
 	CPaneFrame *m_pTrackPane;
 	CRect m_TrackRect;

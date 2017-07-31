@@ -293,6 +293,7 @@ BEGIN
             MENUITEM "マウスイベントリセット",                 IDM_RESET_MOUSE
             MENUITEM "tek40/41xxリセット",              IDM_RESET_TEK
             MENUITEM "スクリーンリセット",                   IDM_RESET_SCREEN
+            MENUITEM "サイズ固定リセット",                   IDM_RESET_SIZE
             MENUITEM SEPARATOR
             MENUITEM "すべてリセット",                     IDM_RESET_ALL
         END
@@ -493,7 +494,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.19.1 (2015/09/07)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.19.2 (2015/10/02)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2015 Culti",IDC_STATIC,44,16,189,8
     DEFPUSHBUTTON   "OK",IDOK,96,171,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.2d 9 Jul 2015",IDC_STATIC,44,29,189,8
@@ -675,8 +676,8 @@ BEGIN
     COMBOBOX        IDC_CHARSET,15,111,154,70,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "Font",IDC_FONTSEL,176,110,43,14
     COMBOBOX        IDC_FONTNUM,176,140,43,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "GRバンク用として上位80h～FFhを使用する",IDC_SHIFT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,173,154,10
-    COMBOBOX        IDC_FONTQUALITY,176,172,43,70,CBS_DROPDOWNLIST | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "GRバンク用として上位80h～FFhを使用する",IDC_SHIFT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,160,154,10
+    COMBOBOX        IDC_FONTQUALITY,176,175,43,70,CBS_DROPDOWNLIST | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_DISPZOOMW,50,223,38,70,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_DISPOFFSETW,101,223,38,70,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_DISPZOOMH,50,241,38,70,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
@@ -685,7 +686,7 @@ BEGIN
     PUSHBUTTON      "キャンセル",IDCANCEL,127,270,50,14
     LTEXT           "Entry Name",IDC_STATIC,15,19,108,8
     LTEXT           "Code",IDC_STATIC,176,19,18,8
-    LTEXT           "Windows Charactrer Set",IDC_STATIC,15,99,108,8
+    LTEXT           "Windows Character Set",IDC_STATIC,15,99,108,8
     LTEXT           "Font Face Name",IDC_STATIC,15,129,108,8
     LTEXT           "Bank",IDC_STATIC,176,50,16,8
     LTEXT           "IConv Character Set",IDC_STATIC,15,50,108,8
@@ -694,12 +695,14 @@ BEGIN
     GROUPBOX        "フォント設定",IDC_STATIC,7,86,221,109
     GROUPBOX        "表示の微調整",IDC_STATIC,7,198,221,65
     CTEXT           "Zoom",IDC_STATIC,50,211,38,8
-    LTEXT           "Alt.Fonts",IDC_STATIC,179,129,40,8
-    LTEXT           "Font Quality",IDC_STATIC,179,161,40,8
+    LTEXT           "Font Quality",IDC_STATIC,179,164,40,8
     LTEXT           "Height",IDC_STATIC,17,243,24,8
     LTEXT           "Width",IDC_STATIC,17,225,24,8
-    LTEXT           "フォントの縦横の拡大縮小率と表示位置を％で微調整します。",IDC_STATIC,149,222,72,32
     COMBOBOX        IDC_FACENAME,15,140,154,70,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Alt.Fonts",IDC_STATIC,179,129,40,8
+    LTEXT           "フォントの縦横の拡大縮小率と表示位置を％で微調整します。",IDC_STATIC,149,222,72,32
+    PUSHBUTTON      "...",IDC_UNIBLOCK,142,175,25,14
+    LTEXT           "このフォントをUnicode Blockに割り当てる",IDC_STATIC,15,178,121,8
 END
 
 IDD_KEYPARADLG DIALOGEX 0, 0, 195, 123
@@ -1408,18 +1411,6 @@ BEGIN
     LTEXT           "上記スクリプトファイル終了後に実行するスクリプトです\nこのエントリーだけで実行する部分などを直接編集できます",IDC_STATIC,17,85,217,19
 END
 
-IDD_CANCELDLG DIALOGEX 0, 0, 211, 121
-STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "シーケンス動作の確認"
-FONT 9, "MS UI Gothic", 400, 0, 0x80
-BEGIN
-    CONTROL         "バッファリングしたデータを書き戻す",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,79,176,10
-    DEFPUSHBUTTON   "はい",IDOK,75,100,60,14
-    CONTROL         "",IDC_PROGRESS1,"msctls_progress32",WS_BORDER,16,55,176,14
-    LTEXT           "%sでデータをバッファリングしています。\n動作をキャンセルしますか？",IDC_MESSAGE,52,24,140,16
-    ICON            "",IDC_MSGICON,16,21,20,20
-END
-
 IDD_SOCKOPTPAGE DIALOGEX 0, 0, 270, 280
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "通信共通"
@@ -1528,6 +1519,17 @@ BEGIN
     CONTROL         "",IDC_FRAME,"Static",SS_BLACKFRAME,63,7,246,150
 END
 
+IDD_BLOCKDLG DIALOGEX 0, 0, 396, 284
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Unicode Block Fontset"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,185,263,70,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,277,263,70,14
+    CONTROL         "",IDC_BLOCKLIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,7,130,270
+    CONTROL         "",IDC_PREVIEWBOX,"Static",SS_OWNERDRAW,141,7,248,248,WS_EX_CLIENTEDGE
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1535,8 +1537,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,19,1,0
- PRODUCTVERSION 2,19,1,0
+ FILEVERSION 2,19,2,0
+ PRODUCTVERSION 2,19,2,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1553,12 +1555,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.19.1.0"
+            VALUE "FileVersion", "2.19.2.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2015 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.19.1.0"
+            VALUE "ProductVersion", "2.19.2.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -1904,14 +1906,6 @@ BEGIN
         BOTTOMMARGIN, 273
     END
 
-    IDD_CANCELDLG, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 204
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 114
-    END
-
     IDD_SOCKOPTPAGE, DIALOG
     BEGIN
         LEFTMARGIN, 7
@@ -1964,6 +1958,14 @@ BEGIN
         RIGHTMARGIN, 309
         TOPMARGIN, 7
         BOTTOMMARGIN, 178
+    END
+
+    IDD_BLOCKDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 389
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 277
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -2839,6 +2841,7 @@ BEGIN
     IDS_NEWVERSIONCHECK     "新しいバージョンのRLogin(%s)があります。\n今すぐダウンロードページを表示しますか？"
     IDS_VERSIONCHECKURL     "http://nanno.dip.jp/softlib/version.txt"
     IDS_FONTSAMPLESTRING    "012 abcABC 日本語"
+    IDS_IDKEYHOSTKEYUPDATE  "信頼するホスト鍵のリストを更新しますか？\n登録済%d個、追加%d個、削除%d個"
 END
 
 STRINGTABLE
@@ -2887,12 +2890,29 @@ END
 
 STRINGTABLE
 BEGIN
+    IDM_RESET_SIZE          "スクリーンサイズ固定を解除します\nサイズ固定解除"
     IDM_RESET_ALL           "すべてを初期化し画面を消去します\n全初期化"
     IDM_SCRIPT              "スクリプトファイルを実行します\nスクリプト実行"
     IDM_SEARCH_BACK         "前を検索します\n前を検索"
     IDM_SEARCH_NEXT         "次を検索します\n次を検索"
     IDM_SEARCH_REG          "正規表現などで文字列を検索します\n文字検索"
+END
+
+STRINGTABLE
+BEGIN
     IDM_SEQCANCELSTR        "%sシーケンスを実行中です\r\nキャンセルするには、ここをクリック"
+    IDM_SERV_PROTO          "プロトコルハンドラに登録\nハンドラに登録"
+    IDM_SFTP                "ファイル転送を行う\nファイル転送"
+    IDM_SFTP_ABORT          "ファイル転送の中止する\n中止"
+    IDM_SFTP_ALLDOWNLOAD    "ファイルの更新日時を比較してダウンロードする\nミラーダウンロード"
+    IDM_SFTP_ALLUPLOAD      "ファイルの更新日時を比較してアップロードする\nミラーアップロード"
+    IDM_SFTP_CHMOD          "ファイル属性の変更\n属性変更"
+    IDM_SFTP_CLOSE          "このファイル転送ウィンドウを閉じる\n閉じる"
+    IDM_SFTP_DELETE         "選択されたファイルを削除する\nファイル削除"
+    IDM_SFTP_DOWNLOAD       "ファイルのダウンロード\nダウンロード"
+    IDM_SFTP_MKDIR          "新規にフォルダを作成する\nフォルダ作成"
+    IDM_SFTP_REFLESH        "ファイル情報を最新に更新する\n更新"
+    IDM_SFTP_RENAME         "ファイル名を変更する\nファイル名変更"
 END
 
 STRINGTABLE
@@ -3130,32 +3150,7 @@ END
 
 STRINGTABLE
 BEGIN
-    IDM_SERV_PROTO          "プロトコルハンドラに登録\nハンドラに登録"
-    IDM_SFTP                "ファイル転送を行う\nファイル転送"
-    IDM_SFTP_ABORT          "ファイル転送の中止する\n中止"
-    IDM_SFTP_ALLDOWNLOAD    "ファイルの更新日時を比較してダウンロードする\nミラーダウンロード"
-    IDM_SFTP_ALLUPLOAD      "ファイルの更新日時を比較してアップロードする\nミラーアップロード"
-    IDM_SFTP_CHMOD          "ファイル属性の変更\n属性変更"
-    IDM_SFTP_CLOSE          "このファイル転送ウィンドウを閉じる\n閉じる"
-    IDM_SFTP_DELETE         "選択されたファイルを削除する\nファイル削除"
-    IDM_SFTP_DOWNLOAD       "ファイルのダウンロード\nダウンロード"
-    IDM_SFTP_MKDIR          "新規にフォルダを作成する\nフォルダ作成"
-    IDM_SFTP_REFLESH        "ファイル情報を最新に更新する\n更新"
-    IDM_SFTP_RENAME         "ファイル名を変更する\nファイル名変更"
     IDM_SFTP_UPLOAD         "ファイルのアップロード\nアップロード"
-END
-
-STRINGTABLE
-BEGIN
-    IDM_BROADCAST           "キー入力を他のウィンドウにも同時送信する\n同時送信"
-    IDM_CHATSTOP            "自動作成中のChatScriptを完了する\nCharScriptの完了"
-    IDM_DISPWINIDX          "各ウィンドウに番号とタイトルを表示\nウィンドウ識別"
-    IDM_GRAPDISP            "Grapウィンドウを表示・非表示にします\nGrap表示"
-    IDM_IMAGEDISP           "Imageウィンドウを表示・非表示します\nImage表示"
-END
-
-STRINGTABLE
-BEGIN
     IDM_SOCKETSTATUS        "ソケットの現在の状態を表示\nソケットステータス"
     IDM_SPLIT_HEIGHT_NEW    "縦方向に分割して新規に接続します\n縦新規接続"
     IDM_SPLIT_WIDTH_NEW     "横方向に分割して新規に接続します\\横新規接続"
@@ -3166,6 +3161,15 @@ BEGIN
     IDM_TEKDISP             "Tekウィンドウを表示・非表示します\nTek表示"
     IDM_TRACEDISP           "トレースウィンドウを表示・非表示\nトレースウィンドウ"
     IDM_WINDOW_PREV         "前のウィンドウに移動します\n前に移動"
+END
+
+STRINGTABLE
+BEGIN
+    IDM_BROADCAST           "キー入力を他のウィンドウにも同時送信する\n同時送信"
+    IDM_CHATSTOP            "自動作成中のChatScriptを完了する\nCharScriptの完了"
+    IDM_DISPWINIDX          "各ウィンドウに番号とタイトルを表示\nウィンドウ識別"
+    IDM_GRAPDISP            "Grapウィンドウを表示・非表示にします\nGrap表示"
+    IDM_IMAGEDISP           "Imageウィンドウを表示・非表示します\nImage表示"
 END
 
 STRINGTABLE

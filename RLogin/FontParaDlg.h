@@ -31,16 +31,19 @@ public:
 	int m_FontNum;
 	int m_FontQuality;
 	int m_FontSize;
+	CString m_UniBlock;
 
 	int m_CodeSet;
 	CString m_FontNameTab[16];
 	class CFontNode *m_pData;
 	class CFontTab *m_pFontTab;
+	class CTextRam *m_pTextRam;
 
 public:
 	static int CharSetNo(LPCTSTR name);
 	static LPCTSTR CharSetName(int code);
 	static LPCTSTR IConvName(int code);
+
 	int CodeSetNo(LPCTSTR bank, LPCTSTR code);
 	void CodeSetName(int num, CString &bank, CString &code);
 	void SetFontFace(int nID);
@@ -59,4 +62,5 @@ protected:
 public:
 	afx_msg void OnCbnSelchangeCharset();
 	afx_msg void OnCbnEditchangeCharset();
+	afx_msg void OnBnClickedUniblock();
 };

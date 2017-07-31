@@ -69,6 +69,7 @@ public:
 	int m_WheelzDelta;
 	BOOL m_PastNoCheck;
 	BOOL m_ScrollOut;
+	BOOL m_ClipUpdateLine;
 
 	int m_ClipFlag;
 	int m_ClipStaPos, m_ClipEndPos;
@@ -112,6 +113,14 @@ public:
 #ifdef	USE_DIRECTWRITE
 	ID2D1HwndRenderTarget *m_pRenderTarget;
 #endif
+
+	int m_CellCols;
+	int m_CellLines;
+	BYTE *m_pCellSize;
+
+	void ResetCellSize();
+	void SetCellSize(int x, int y, int sz);
+	int GetGrapPos(int x, int y);
 
 	void InvalidateTextRect(CRect &rect);
 	void CalcPosRect(CRect &rect);

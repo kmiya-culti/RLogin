@@ -70,6 +70,8 @@ public:
 	virtual CString GetProfileString(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPCTSTR lpszDefault = NULL);
 	void GetProfileData(LPCTSTR lpszSection, LPCTSTR lpszEntry, void *lpBuf, int nBufLen, void *lpDef = NULL);
 	void GetProfileBuffer(LPCTSTR lpszSection, LPCTSTR lpszEntry, CBuffer &Buf);
+	void GetProfileStringArray(LPCTSTR lpszSection, LPCTSTR lpszEntry, CStringArrayExt &stra);
+	void WriteProfileStringArray(LPCTSTR lpszSection, LPCTSTR lpszEntry, CStringArrayExt &stra);
 	void GetProfileArray(LPCTSTR lpszSection, CStringArrayExt &stra);
 	void WriteProfileArray(LPCTSTR lpszSection, CStringArrayExt &stra);
 	int GetProfileSeqNum(LPCTSTR lpszSection, LPCTSTR lpszEntry);

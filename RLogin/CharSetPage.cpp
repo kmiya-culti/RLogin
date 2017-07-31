@@ -251,12 +251,14 @@ void CCharSetPage::OnFontListNew()
 	dlg.m_pData   = &tmp;
 	dlg.m_FontNum = m_AltFont;
 	dlg.m_pFontTab = &m_FontTab;
+	dlg.m_pTextRam = m_pSheet->m_pTextRam;
 	dlg.m_FontSize = m_pSheet->m_pTextRam->m_DefFontSize;
 
 	if ( dlg.DoModal() != IDOK )
 		return;
 
 	m_FontTab[dlg.m_CodeSet] = tmp;
+	m_FontTab.InitUniBlock();
 	InitList();
 
 	SetModified(TRUE);
@@ -276,13 +278,16 @@ void CCharSetPage::OnFontListEdit()
 	dlg.m_pData   = &tmp;
 	dlg.m_FontNum = m_AltFont;
 	dlg.m_pFontTab = &m_FontTab;
+	dlg.m_pTextRam = m_pSheet->m_pTextRam;
 	dlg.m_FontSize = m_pSheet->m_pTextRam->m_DefFontSize;
 
 	if ( dlg.DoModal() != IDOK )
 		return;
 
 	m_FontTab[dlg.m_CodeSet] = tmp;
+	m_FontTab.InitUniBlock();
 	InitList();
+
 	if ( (n = m_List.GetParamItem(dlg.m_CodeSet)) >= 0 ) {
 		m_List.SetItemState(n, LVIS_SELECTED, LVIS_SELECTED);
 		m_List.EnsureVisible(n, FALSE);
@@ -319,13 +324,16 @@ void CCharSetPage::OnEditDups()
 	dlg.m_pData   = &tmp;
 	dlg.m_FontNum = m_AltFont;
 	dlg.m_pFontTab = &m_FontTab;
+	dlg.m_pTextRam = m_pSheet->m_pTextRam;
 	dlg.m_FontSize = m_pSheet->m_pTextRam->m_DefFontSize;
 
 	if ( dlg.DoModal() != IDOK )
 		return;
 
 	m_FontTab[dlg.m_CodeSet] = tmp;
+	m_FontTab.InitUniBlock();
 	InitList();
+
 	if ( (n = m_List.GetParamItem(dlg.m_CodeSet)) >= 0 ) {
 		m_List.SetItemState(n, LVIS_SELECTED, LVIS_SELECTED);
 		m_List.EnsureVisible(n, FALSE);

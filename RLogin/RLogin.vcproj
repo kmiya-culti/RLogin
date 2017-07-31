@@ -763,11 +763,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\BPlus.cpp"
+				RelativePath=".\BlockDlg.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\CancelDlg.cpp"
+				RelativePath=".\BPlus.cpp"
 				>
 			</File>
 			<File
@@ -1141,15 +1141,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\BlockDlg.h"
+				>
+			</File>
+			<File
 				RelativePath=".\BorderLine.h"
 				>
 			</File>
 			<File
 				RelativePath=".\BPlus.h"
-				>
-			</File>
-			<File
-				RelativePath=".\CancelDlg.h"
 				>
 			</File>
 			<File

@@ -11,7 +11,6 @@
 #include "TextRam.h"
 #include "PipeSock.h"
 #include "GrapWnd.h"
-#include "CancelDlg.h"
 #include "InfoCapDlg.h"
 #include "StatusDlg.h"
 #include "TraceDlg.h"
@@ -2969,9 +2968,6 @@ void CTextRam::fc_TimerSet(LPCTSTR name)
 	if ( m_pDocument != NULL )
 		m_pDocument->UpdateAllViews(NULL, UPDATE_CANCELBTN, NULL);
 
-	//if ( m_pCanDlg != NULL )
-	//	m_pCanDlg->DestroyWindow();
-
 	if ( m_pWorkGrapWnd != NULL ) {
 		m_pWorkGrapWnd->DestroyWindow();
 		m_pWorkGrapWnd = NULL;
@@ -2984,9 +2980,6 @@ void CTextRam::fc_TimerReset()
 
 	if ( m_pDocument != NULL )
 		m_pDocument->UpdateAllViews(NULL, UPDATE_CANCELBTN, NULL);
-
-	//if ( m_pCanDlg != NULL )
-	//	m_pCanDlg->DestroyWindow();
 }
 void CTextRam::fc_TimerAbort(BOOL bOut)
 {
@@ -5331,18 +5324,48 @@ void CTextRam::fc_XTWOP(DWORD ch)
 	int n = GetAnsiPara(0, 0, 0);
 	int w = 6;
 	int h = 12;
+	CRect rect;
 	CRLoginView *pView;
+	CWnd *pMainWnd = ::AfxGetMainWnd();
 
 	switch (n) {
     case 1:			/* Restore (de-iconify) window */
-    case 2:			/* Minimize (iconify) window */
-    case 3:			/* Move the window to the given position x = p1, y = p2 */
-    case 4:			/* Resize the window to given size in pixels w = p1, h = p2 */
-    case 5:			/* Raise the window to the front of the stack */
-    case 6:			/* Lower the window to the bottom of the stack */
-    case 7:			/* Refresh the window */
+		if ( IsOptEnable(TO_SETWINPOS) )
+			pMainWnd->ShowWindow(SW_SHOWNORMAL);
 		break;
-    case 8:			/* Resize the text-area, in characters h = p1, w = p2 */
+    case 2:			/* Minimize (iconify) window */
+		if ( IsOptEnable(TO_SETWINPOS) )
+			pMainWnd->ShowWindow(SW_SHOWMINIMIZED);
+		break;
+
+	case 3:			/* Move the window to the given position x = p1, y = p2 */
+		if ( IsOptEnable(TO_SETWINPOS) ) {
+			pMainWnd->GetWindowRect(rect);
+			pMainWnd->SetWindowPos(NULL, GetAnsiPara(1, rect.left, 0), GetAnsiPara(2, rect.top, 0), 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_SHOWWINDOW);
+		}
+		break;
+    case 4:			/* Resize the window to given size in pixels h = p1, w = p2 */
+		if ( IsOptEnable(TO_SETWINPOS) ) {
+			pMainWnd->GetWindowRect(rect);
+			pMainWnd->SetWindowPos(NULL, 0, 0, GetAnsiPara(2, rect.Width(), 100), GetAnsiPara(1, rect.Height(), 100), SWP_NOZORDER | SWP_NOMOVE | SWP_SHOWWINDOW);
+		}
+		break;
+
+    case 5:			/* Raise the window to the front of the stack */
+		if ( IsOptEnable(TO_SETWINPOS) )
+			pMainWnd->SetWindowPos(&CWnd::wndTop, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+		break;
+    case 6:			/* Lower the window to the bottom of the stack */
+		if ( IsOptEnable(TO_SETWINPOS) )
+			pMainWnd->SetWindowPos(&CWnd::wndBottom, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+		break;
+	
+	case 7:			/* Refresh the window */
+		pMainWnd->Invalidate(TRUE);;
+		break;
+ 
+	case 8:			/* Resize the text-area, in characters h = p1, w = p2 */
+#if 0
 		if ( IsOptEnable(TO_RLFONT) ) {				// ReSize Cols, Lines
 			InitScreen(GetAnsiPara(2, m_Cols, 4), GetAnsiPara(1, m_Lines, 2));
 		} else {
@@ -5352,22 +5375,27 @@ void CTextRam::fc_XTWOP(DWORD ch)
 				DisableOption(TO_DECCOLM);
 			InitScreen(m_DefCols[IsOptValue(TO_DECCOLM, 1)], GetAnsiPara(1, m_Lines, 2));
 		}
+#else
+		InitScreen(GetAnsiPara(2, m_Cols, 4), GetAnsiPara(1, m_Lines, 2));
+#endif
 		break;
     case 9:			/* Maximize or restore mx = p1 */
+		if ( IsOptEnable(TO_SETWINPOS) )
+			pMainWnd->ShowWindow(GetAnsiPara(1, 0, 0) == 0 ? SW_SHOWNORMAL : SW_SHOWMAXIMIZED);
 		break;
+
     case 11:    	/* Report the window's state ESC[1/2t */
-		UNGETSTR(_T("%s1t"), m_RetChar[RC_CSI]);
+		UNGETSTR(_T("%s%dt"), m_RetChar[RC_CSI], pMainWnd->IsIconic() ? 2 : 1);
 		break;
     case 13:    	/* Report the window's position ESC[3;x;yt */
-		UNGETSTR(_T("%s3;%d;%dt"), m_RetChar[RC_CSI], 0, 0);
+		pMainWnd->GetWindowRect(rect);
+		UNGETSTR(_T("%s3;%d;%dt"), m_RetChar[RC_CSI], rect.left, rect.top);
 		break;
     case 14:    	/* Report the window's size in pixels ESC[4;h;wt */
-		if ( m_pDocument != NULL && (pView = (CRLoginView *)m_pDocument->GetAciveView()) != NULL ) {
-			w = pView->m_CharWidth;
-			h = pView->m_CharHeight;
-		}
-		UNGETSTR(_T("%s4;%d;%dt"), m_RetChar[RC_CSI], m_Lines * h, m_Cols * w);
+		pMainWnd->GetWindowRect(rect);
+		UNGETSTR(_T("%s4;%d;%dt"), m_RetChar[RC_CSI], rect.Height(), rect.Width());
 		break;
+
     case 18:    	/* Report the text's size in characters ESC[8;l;ct */
 		UNGETSTR(_T("%s8;%d;%dt"), m_RetChar[RC_CSI], m_Lines, m_Cols);
 		break;
@@ -5376,8 +5404,10 @@ void CTextRam::fc_XTWOP(DWORD ch)
 			w = pView->m_CharWidth;
 			h = pView->m_CharHeight;
 		}
-		UNGETSTR(_T("%s9;%d;%dt"), m_RetChar[RC_CSI], h, w);
+		CWnd::GetDesktopWindow()->GetClientRect(rect);
+		UNGETSTR(_T("%s9;%d;%dt"), m_RetChar[RC_CSI], rect.Height() / h, rect.Width() / w);
 		break;
+
     case 20:    	/* Report the icon's label ESC]LxxxxESC\ */
     case 21:   		/* Report the window's title ESC]lxxxxxxESC\ */
 		if ( (m_TitleMode & WTTL_REPORT) == 0 ) {
@@ -6305,7 +6335,7 @@ void CTextRam::fc_DECSERA(DWORD ch)
 void CTextRam::fc_DECSCPP(DWORD ch)
 {
 	// CSI $|	DECSCPP Set Ps columns per page
-
+#if 0
 	if ( IsOptEnable(TO_RLFONT) ) {
 		InitScreen(GetAnsiPara(0, m_Cols, 4), m_Lines);
 	} else {
@@ -6315,7 +6345,9 @@ void CTextRam::fc_DECSCPP(DWORD ch)
 			DisableOption(TO_DECCOLM);
 		InitScreen(m_DefCols[IsOptValue(TO_DECCOLM, 1)], m_Lines);
 	}
-
+#else
+	InitScreen(GetAnsiPara(0, m_Cols, 4), m_Lines);
+#endif
 	fc_POP(ch);
 }
 void CTextRam::fc_DECSASD(DWORD ch)

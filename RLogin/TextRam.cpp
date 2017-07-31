@@ -13,9 +13,9 @@
 #include "PipeSock.h"
 #include "GrapWnd.h"
 #include "SCript.h"
-#include "CancelDlg.h"
 #include "OptDlg.h"
 #include "DefParamDlg.h"
+#include "FontParaDlg.h"
 #include "StatusDlg.h"
 #include "TraceDlg.h"
 
@@ -27,6 +27,8 @@
 static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
+
+#include "UniBlockTab.h"
 
 #ifdef	USE_FIXWCHAR
 
@@ -514,6 +516,7 @@ void CFontNode::Init()
 		m_Hash[n]     = 0;
 	}
 	m_MapType     = 0;
+	m_UniBlock    = _T("");
 }
 void CFontNode::SetArray(CStringArrayExt &stra)
 {
@@ -532,6 +535,7 @@ void CFontNode::SetArray(CStringArrayExt &stra)
 	stra.AddVal(m_Quality);
 	stra.Add(m_IndexName);
 	stra.AddVal(m_OffsetW);
+	stra.Add(m_UniBlock);
 }
 void CFontNode::GetArray(CStringArrayExt &stra)
 {
@@ -570,6 +574,9 @@ void CFontNode::GetArray(CStringArrayExt &stra)
 	if ( stra.GetSize() > (9 + 16) )
 		m_OffsetW = stra.GetVal(9 + 16);
 
+	if ( stra.GetSize() > (10 + 16) )
+		m_UniBlock = stra.GetAt(10 + 16);
+	
 	m_Init = TRUE;
 }
 void CFontNode::SetHash(int num)
@@ -600,6 +607,7 @@ const CFontNode & CFontNode::operator = (CFontNode &data)
 	m_IndexName = data.m_IndexName;
 	m_Quality   = data.m_Quality;
 	m_Init      = data.m_Init;
+	m_UniBlock  = data.m_UniBlock;
 	for ( int n = 0 ; n < 16 ; n++ ) {
 		m_FontName[n] = data.m_FontName[n];
 		m_Hash[n]     = data.m_Hash[n];
@@ -753,6 +761,125 @@ BOOL CFontNode::SetFontImage(int width, int height)
 }
 
 //////////////////////////////////////////////////////////////////////
+// CUniBlockTab
+
+const CUniBlockTab & CUniBlockTab::operator = (CUniBlockTab &data)
+{
+	int n;
+
+	m_Data.RemoveAll();
+	m_Data.SetSize(data.m_Data.GetSize());
+
+	for ( n = 0 ; n < data.m_Data.GetSize() ; n++ )
+		m_Data[n] = data.m_Data[n];
+
+	return *this;
+}
+int CUniBlockTab::Add(DWORD code, int index, LPCTSTR name)
+{
+	int n;
+	int b = 0;
+	int m = m_Data.GetSize() - 1;
+	UniBlockNode tmp;
+
+	while ( b <= m ) {
+		n = (b + m) / 2;
+		if ( code == m_Data[n].code ) {
+			m_Data[n].index = index;
+			return n;
+		} else if ( code > m_Data[n].code )
+			b = n + 1;
+		else
+			m = n - 1;
+	}
+
+	tmp.code  = code;
+	tmp.index = index;
+	tmp.name  = name;
+	m_Data.InsertAt(b, tmp);
+	return b;
+}
+int CUniBlockTab::Find(int code)
+{
+	int n;
+	int b = 0;
+	int m = m_Data.GetSize() - 1;
+
+	while ( b <= m ) {
+		n = (b + m) / 2;
+		if ( code == m_Data[n].code )
+			return m_Data[n].index;
+		else if ( code > m_Data[n].code )
+			b = n + 1;
+		else
+			m = n - 1;
+	}
+
+	return (b <= 0 ? (-1) : m_Data[b - 1].index);
+}
+LPCTSTR CUniBlockTab::GetCode(LPCTSTR str, DWORD &code)
+{
+	DWORD tmp = 0;
+
+	code = UNICODE_MAX;
+
+	while ( *str == _T(' ') || *str == _T('\t') )
+		str++;
+
+	if ( _tcsncmp(str, _T("U+"), 2) == 0 || _tcsncmp(str, _T("u+"), 2) == 0 ||  _tcsncmp(str, _T("0x"), 2) == 0 ) {
+		for ( str += 2 ; *str != _T('\0') ; str++ ) {
+			if ( _tcschr(_T("0123456789"), *str) != NULL )
+				tmp = tmp * 16 + (*str - _T('0'));
+			else if ( _tcschr(_T("abcdef"), *str) != NULL )
+				tmp = tmp * 16 + (*str - _T('a') + 10);
+			else if ( _tcschr(_T("ABCDEF"), *str) != NULL )
+				tmp = tmp * 16 + (*str - _T('A') + 10);
+			else
+				break;
+		}
+		code = tmp;
+	}
+
+	while ( *str == _T(' ') || *str == _T('\t') )
+		str++;
+
+	return str;
+}
+void CUniBlockTab::SetBlockCode(LPCTSTR str, int index)
+{
+	int n;
+	int eidx;
+	DWORD scode, ecode;
+
+	// U+0100,U+0200-U+02FF
+	for ( ; *str != _T('\0') ; str++ ) {
+		str = CUniBlockTab::GetCode(str, scode);
+
+		if ( scode == UNICODE_MAX )
+			scode = 0;
+		Add(scode, index);
+
+		if ( *str == _T('-') ) {
+			str = CUniBlockTab::GetCode(++str, ecode);
+			ecode += 1;
+			eidx = (-1);
+			for ( n = 0 ; n < GetSize() ; n++ ) {
+				if ( m_Data[n].code < scode )
+					eidx = m_Data[n].index;
+				else if ( m_Data[n].code > scode && m_Data[n].code < ecode )
+					m_Data[n].index = index;
+				else if ( m_Data[n].code >= ecode )
+					break;
+			}
+			if ( ecode <= UNICODE_MAX && (n >= GetSize() || m_Data[n].code > ecode) )
+				Add(ecode, eidx);
+
+		} else if ( *str != _T(',') )
+			break;
+	}
+}
+
+//////////////////////////////////////////////////////////////////////
 // CFontTab
 
 CFontTab::CFontTab()
@@ -783,7 +910,7 @@ void CFontTab::Init()
 		{ _T("ASCII(ANSI X3.4-1968)"),	SET_94,		_T("B"),	'\x00', _T("ANSI_X3.4-1968"),	ANSI_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") } },
 		{ _T("JIS X 0201-Kana"),		SET_94,		_T("I"),	'\x80', _T("JISX0201-1976"),	SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
 		{ _T("JIS X 0201-Roman"),		SET_94,		_T("J"),	'\x00', _T("JISX0201-1976"),	SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
-		{ _T("GB 1988-80"),				SET_94,		_T("T"),	'\x00', _T("GB_1988-80"),		DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
+		{ _T("GB 1988-80"),				SET_94,		_T("T"),	'\x00', _T("GB_1988-80"),		GB2312_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") } },
 
 		{ _T("Russian"),				SET_94,		_T("&5"),	'\x00',	_T("CP866"),			RUSSIAN_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
 		{ _T("Turkish"),				SET_94,		_T("%2"),	'\x00',	_T("CP1254"),			TURKISH_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
@@ -797,7 +924,7 @@ void CFontTab::Init()
 		{ _T("LATIN2 (ISO8859-2)"),		SET_96,		_T("B"),	'\x80', _T("LATIN2"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
 		{ _T("LATIN3 (ISO8859-3)"),		SET_96,		_T("C"),	'\x80', _T("LATIN3"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
 		{ _T("LATIN4 (ISO8859-4)"),		SET_96,		_T("D"),	'\x80', _T("LATIN4"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
-		{ _T("CYRILLIC (ISO8859-5)"),	SET_96,		_T("L"),	'\x80', _T("ISO8859-5"),		DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
+		{ _T("CYRILLIC (ISO8859-5)"),	SET_96,		_T("L"),	'\x80', _T("ISO8859-5"),		RUSSIAN_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
 		{ _T("ARABIC (ISO8859-6)"),		SET_96,		_T("G"),	'\x80', _T("ISO8859-6"),		ARABIC_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") } },
 		{ _T("GREEK (ISO8859-7)"),		SET_96,		_T("F"),	'\x80', _T("ISO8859-7"),		GREEK_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") } },
 		{ _T("HEBREW (ISO8859-8)"),		SET_96,		_T("H"),	'\x80', _T("ISO8859-8"),		HEBREW_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") } },
@@ -825,6 +952,7 @@ void CFontTab::Init()
 		{ NULL, 0, 0x00, NULL },
 	};
 
+
 	for ( n = 0 ; n < CODE_MAX ; n++ )
 		m_Data[n].Init();
 
@@ -845,6 +973,31 @@ void CFontTab::Init()
 		m_Data[i].SetHash(0);
 		m_Data[i].SetHash(1);
 	}
+
+	InitUniBlock();
+}
+
+void CFontTab::InitUniBlock()
+{
+	int n;
+
+	m_UniBlockTab.RemoveAll();
+
+	for ( n = 0 ; n < UNIBLOCKTABMAX ; n++ )
+		m_UniBlockTab.Add(UniBlockTab[n].code, (-1));
+
+	for ( n = 0 ; n < CODE_MAX ; n++ )
+		m_UniBlockTab.SetBlockCode(m_Data[n].m_UniBlock, n);
+
+	for ( n = 1 ; n < m_UniBlockTab.GetSize() ; ) {
+		if ( m_UniBlockTab[n - 1].index == m_UniBlockTab[n].index )
+			m_UniBlockTab.RemoveAt(n);
+		else
+			n++;
+	}
+
+	for ( n = 0 ; n < m_UniBlockTab.GetSize() ; n++ )
+		m_UniBlockTab[n].code = CTextRam::UCS4toUCS2(m_UniBlockTab[n].code);
 }
 void CFontTab::SetArray(CStringArrayExt &stra)
 {
@@ -894,6 +1047,8 @@ void CFontTab::GetArray(CStringArrayExt &stra)
 		if ( i == SET_UNICODE )
 			m_Data[i].m_IContName = _T("UTF-16BE");
 	}
+
+	InitUniBlock();
 }
 void CFontTab::SetIndex(int mode, CStringIndex &index)
 {
@@ -928,6 +1083,7 @@ void CFontTab::SetIndex(int mode, CStringIndex &index)
 				(*ip)[a].Add(m_Data[n].m_FontName[i]);
 
 			ip->Add(m_Data[n].m_OffsetW);
+			ip->Add(m_Data[n].m_UniBlock);
 		}
 
 	} else {			// Read
@@ -958,15 +1114,26 @@ void CFontTab::SetIndex(int mode, CStringIndex &index)
 				for ( a = 0 ; a < 16 && a < index[n][i][10].GetSize() ; a++ )
 					m_Data[code].m_FontName[a] = index[n][i][10][a];
 
-				m_Data[code].m_OffsetW   = index[n][i][11];
+				if ( index[n][i].GetSize() > 11 )
+					m_Data[code].m_OffsetW = index[n][i][11];
+
+				if ( index[n][i].GetSize() > 12 )
+					m_Data[code].m_UniBlock = index[n][i][12];
 			}
 		}
+
+		InitUniBlock();
 	}
 }
 const CFontTab & CFontTab::operator = (CFontTab &data)
 {
-	for ( int n = 0 ; n < CODE_MAX ; n++ )
+	int n;
+
+	for ( n = 0 ; n < CODE_MAX ; n++ )
 		m_Data[n] = data.m_Data[n];
+
+	m_UniBlockTab = data.m_UniBlockTab;
+
 	return *this;
 }
 int CFontTab::Find(LPCTSTR entry)
@@ -1073,6 +1240,7 @@ CTextRam::CTextRam()
 	m_BtmY = m_Lines;
 	m_LeftX  = 0;
 	m_RightX = m_Cols;
+	m_bReSize = FALSE;
 	m_HisMax = 100;
 	m_HisPos = 0;
 	m_HisLen = 0;
@@ -1116,7 +1284,6 @@ CTextRam::CTextRam()
 	m_FileSaveFlag = TRUE;
 	m_ImageIndex = 1024;
 	m_bOscActive = FALSE;
-//	m_pCanDlg = NULL;
 	m_bIntTimer = FALSE;
 	m_bRtoL = FALSE;
 	m_XtOptFlag = 0;
@@ -1221,9 +1388,6 @@ CTextRam::~CTextRam()
 	if ( m_pImageWnd != NULL )
 		m_pImageWnd->DestroyWindow();
 
-	//if ( m_pCanDlg != NULL )
-	//	m_pCanDlg->DestroyWindow();
-
 	if ( m_pWorkGrapWnd != NULL )
 		m_pWorkGrapWnd->DestroyWindow();
 
@@ -1251,43 +1415,52 @@ void CTextRam::InitText(int Width, int Height)
 		return;
 
 	if ( IsOptEnable(TO_RLFONT) ) {
-		charWidth = m_DefFontSize;
+		charHeight = m_DefFontSize;
 
-		if ( (charHeight = charWidth * 10 / m_DefFontHw) <= 0 )
-			charHeight = 1;
+		if ( (charWidth = charHeight * 10 / m_DefFontHw) <= 0 )
+			charWidth = 1;
 
-		if ( (newCols = Width / charHeight) < 10 )
-			newCols = 10;
-		else if ( newCols > COLS_MAX )
-			newCols = COLS_MAX;
-
-		if ( (newLines = Height / charWidth) <= 0 )
-			newLines = 1;
+		newCols  = Width  / charWidth;
+		newLines = Height / charHeight;
 
 	} else {
-		if ( (newCols = m_DefCols[0]) > COLS_MAX )
-			newCols = COLS_MAX;
-		else if ( newCols < 20 )
-			newCols = 20;
+		newCols = m_DefCols[0];
 
-		if ( (charHeight  = Width / newCols) <= 0 )
+		if ( (charWidth  = Width / newCols) <= 0 )
+			charWidth = 1;
+
+		if ( (charHeight = charWidth * m_DefFontHw / 10) <= 0 )
 			charHeight = 1;
 
-		if ( (newLines = Height / (charHeight * m_DefFontHw / 10)) <= 0 )
-			newLines = 1;
-
 		if ( IsOptValue(TO_DECCOLM, 1) == 1 ) {
-			if ( (newCols = m_DefCols[1]) > COLS_MAX )
-				newCols = COLS_MAX;
-			else if ( newCols < 20 )
-				newCols = 20;
+			newCols = m_DefCols[1];
 
-			if ( (charHeight  = Width / newCols) <= 0 )
-				charHeight = 1;
+			if ( (charWidth  = Width / newCols) <= 0 )
+				charWidth = 1;
+		}
+
+		newLines = Height / charHeight;
+
+		if ( m_bReSize ) {
+			if ( newCols == m_ReqCols && newLines == m_ReqLines )
+				m_bReSize = FALSE;
+
+			newCols  = m_ReqCols;
+			newLines = m_ReqLines;
+
+			charWidth  = Width  / newCols;
+			charHeight = Height / newLines;
 		}
 	}
 
-	if ( newLines > LINE_MAX )
+	if ( newCols < 4 )
+		newCols = 4;
+	else if ( newCols > COLS_MAX )
+		newCols = COLS_MAX;
+
+	if ( newLines < 2 )
+		newLines = 2;
+	else if ( newLines > LINE_MAX )
 		newLines = LINE_MAX;
 
 	if ( (newHisMax = m_DefHisMax)  < (newLines * 5) )
@@ -1512,87 +1685,44 @@ void CTextRam::InitText(int Width, int Height)
 }
 void CTextRam::InitScreen(int cols, int lines)
 {
-	if ( !IsInitText() )
-		return;
-
-	int n, x, cx, cy;
+	int n, x;
+	int cx = 0, cy = 0;
 	int colsmax = (m_ColsMax > cols ? m_ColsMax : cols);
 	CCharCell *tmp, *vp, *wp;
 	CRect rect, box;
-	CWnd *pWnd = ::AfxGetMainWnd();
+	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
+	CRLoginView *pView = (CRLoginView *)GetAciveView();
+	CChildFrame *pChild;
+	CPaneFrame *pPane;
 
-	if ( IsOptEnable(TO_RLFONT) ) {
-		if ( pWnd->IsIconic() || pWnd->IsZoomed() )
-			return;
+	if ( !IsInitText() || pMain == NULL || pView == NULL || (pChild = pView->GetFrameWnd()) == NULL )
+		return;
 
-		pWnd->GetWindowRect(rect);
-		pWnd->GetClientRect(box);
-		cx = (rect.Width()  - box.Width())  + box.Width()  * cols  / m_Cols;
-		cy = (rect.Height() - box.Height()) + box.Height() * lines / m_Lines;
-		pWnd->SetWindowPos(NULL, rect.left, rect.top, cx, cy, SWP_SHOWWINDOW);
+	if ( pMain->IsIconic() || pMain->IsZoomed() )
+		pMain->ShowWindow(SW_SHOWNORMAL);
 
-	} else if ( pWnd->IsIconic() || pWnd->IsZoomed() || !IsOptEnable(TO_RLNORESZ) ) {
+	if ( (pPane = pMain->GetPaneFromChild(pChild->m_hWnd)) != NULL )
+		pPane->m_bReqSize = TRUE;
 
-#ifdef	USE_FIXWCHAR
-		m_HisPos += (m_Lines - lines);
+	if ( !IsOptEnable(TO_RLFONT) ) {
+		m_bReSize = TRUE;
+		m_ReqCols = cols;
+		m_ReqLines = lines;
+	}
 
-		if ( colsmax > m_ColsMax ) {
-			for ( n = 0 ; n < m_HisLen ; n++ )
-				CCharCell::Fill(GETVRAM(m_ColsMax, lines - n), m_DefAtt, colsmax - m_ColsMax);
-		}
+	if ( IsOptEnable(TO_RLFONT) || IsOptEnable(TO_RLNORESZ) ) {
+		cx = pView->m_CharWidth  * cols  + m_ScrnOffset.left + m_ScrnOffset.right  - pChild->m_Width;
+		cy = pView->m_CharHeight * lines + m_ScrnOffset.top  + m_ScrnOffset.bottom - pChild->m_Height;
 
-		if ( m_HisLen < lines ) {
-			for ( n = m_HisLen + 1 ; n <= lines ; n++ )
-				CCharCell::Fill(GETVRAM(0, lines - n), m_DefAtt, colsmax);
-		}
-
-		m_Cols    = cols;
-		m_ColsMax = colsmax;
-		m_Lines   = lines;
-		m_LineUpdate = 0;
-#else
-		tmp = new CCharCell[colsmax * m_HisMax];
-
-		cx = (m_ColsMax < colsmax ? m_ColsMax : colsmax);
-		for ( n = 1 ; n <= m_HisLen ; n++ ) {
-			CCharCell::Copy(tmp + (m_HisMax - n) * colsmax, GETVRAM(0, m_Lines - n), cx);
-			if ( cx < colsmax )
-				CCharCell::Fill(tmp + (m_HisMax - n) * colsmax + cx, m_DefAtt, colsmax - cx);
-		}
-
-		if ( m_HisLen < lines ) {
-			for ( n = m_HisLen + 1 ; n <= lines ; n++ )
-				CCharCell::Fill(tmp + (m_HisMax - n) * colsmax, m_DefAtt, colsmax);
-			m_HisLen = lines;
-		}
-
-		delete [] m_VRam;
-
-		m_VRam    = tmp;
-
-		m_HisPos  = m_HisMax - lines;
-		m_Cols    = cols;
-		m_ColsMax = colsmax;
-		m_Lines   = lines;
-		m_LineUpdate = 0;
-#endif
-
-		if ( m_CurX >= m_Cols )
-			m_CurX = m_Cols - 1;
-
-		if ( m_CurY >= m_Lines )
-			m_CurY = m_Lines - 1;
-
-		m_pDocument->SocketSendWindSize(m_Cols, m_Lines);
-		m_pDocument->UpdateAllViews(NULL, UPDATE_INITSIZE, NULL);
+		pMain->GetWindowRect(rect);
+		pMain->SetWindowPos(NULL, 0, 0, rect.Width() + cx, rect.Height() + cy, SWP_NOMOVE | SWP_NOZORDER | SWP_SHOWWINDOW);
 
 	} else {
-		pWnd->GetWindowRect(rect);
-		pWnd->GetClientRect(box);
-		cx = (rect.Width()  - box.Width())  + box.Width()  * cols  / m_Cols;
-		cy = (rect.Height() - box.Height()) + box.Height() * lines / m_Lines;
-		pWnd->SetWindowPos(NULL, rect.left, rect.top, cx, cy, SWP_SHOWWINDOW);
+		m_pDocument->UpdateAllViews(NULL, UPDATE_RESIZE, NULL);
 	}
+
+	if ( pPane != NULL )
+		pPane->m_bReqSize = FALSE;
 }
 
 BOOL CTextRam::OpenHisFile()
@@ -2615,6 +2745,11 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 		ext.GetString(stra.GetAt(63), _T(';'));
 		for ( n = 0 ; n < 5 && n < ext.GetSize() ; n++ )
 			m_DefTermPara[n] = _tstoi(ext[n]);
+		m_VtLevel = m_DefTermPara[TERMPARA_VTLEVEL];
+		m_FirmVer = m_DefTermPara[TERMPARA_FIRMVER];
+		m_TermId  = m_DefTermPara[TERMPARA_TERMID];
+		m_UnitId  = m_DefTermPara[TERMPARA_UNITID];
+		m_KeybId  = m_DefTermPara[TERMPARA_KEYBID];
 	}
 
 	if ( m_FixVersion < 9 ) {
@@ -3590,17 +3725,17 @@ void CTextRam::GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf)
 	}
 }
 
-#include "BorderLine.h"
-
-void CTextRam::LineOut(CDC *pDC, CRect &box, COLORREF fc, COLORREF bc, int rv, struct DrawWork &prop, int len, LPCWSTR str, int *spc, class CRLoginView *pView)
+void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv, struct DrawWork &prop, class CRLoginView *pView)
 {
-	int n, c, o;
-	LPCWSTR p = str;
+	int n, i, a;
+	int c, o, spc;
 	CPen cPen[5], *oPen;
 	LOGBRUSH LogBrush;
 	CPoint point[2];
-	CRect era(box);
+	CRect box(rect);
+	CRect era(rect);
 	static const DWORD PenExtTab[3][4]  = {	{ 3, 1, 3, 1 }, { 2, 1, 2, 1 },	{ 1, 1, 1, 1 } };
+	#include "BorderLine.h"
 
 	cPen[0].CreatePen(PS_SOLID, 1, fc);
 
@@ -3612,20 +3747,22 @@ void CTextRam::LineOut(CDC *pDC, CRect &box, COLORREF fc, COLORREF bc, int rv, s
 	LogBrush.lbColor = fc;
 	LogBrush.lbStyle = BS_SOLID;
 
-	if ( prop.dmf ==  2 )
+	if ( prop.zoom == 2 )
 		box.bottom += pView->m_CharHeight;
-	else if ( prop.dmf ==  3 )
+	else if ( prop.zoom ==  3 )
 		box.top -= pView->m_CharHeight;
 
-	for ( n = 0 ; n < len ; n++, p++ ) {
-		box.right = box.left + spc[n];
-		era.right = era.left + spc[n];
+	if ( pView->m_pBitmap == NULL || rv != FALSE )
+		pDC->FillSolidRect(rect, bc);
 
-		if ( pView->m_pBitmap == NULL || rv != FALSE )
-			pDC->FillSolidRect(era, bc);
+	for ( n = i = a = 0 ; n < prop.size ; n++ ) {
+		while ( prop.pSpace[i] == 0 )
+			i++;
+		box.right = box.left + prop.pSpace[i];
+		era.right = era.left + prop.pSpace[i];
 
-		if ( *p >= 0x2500 && *p <= 0x257F ) {
-			const BYTE *tab = BorderTab[*p - 0x2500];
+		if ( prop.pText[a] >= 0x2500 && prop.pText[a] <= 0x257F ) {
+			const BYTE *tab = BorderTab[prop.pText[a] - 0x2500];
 			CPoint center((box.left + box.right) / 2, (box.top + box.bottom) / 2);
 
 			for ( c = 0 ; c < 4 ; c++ ) {
@@ -3801,285 +3938,382 @@ void CTextRam::LineOut(CDC *pDC, CRect &box, COLORREF fc, COLORREF bc, int rv, s
 			}
 		}
 
-		box.left += spc[n];
-		era.left += spc[n];
+		box.left += prop.pSpace[i];
+		era.left += prop.pSpace[i];
+		a = ++i;
 	}
 
 	pDC->SelectObject(oPen);
 }
-void CTextRam::StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop, int len, LPCWSTR str, int *spc, class CRLoginView *pView)
+void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv, struct DrawWork &prop, class CRLoginView *pView)
 {
-	int n, c, x, y, o;
-	int at = prop.att;
-	int rv = FALSE;
-	int wd = (prop.dmf == 0 ? 1 : 2);
-	int hd = (prop.dmf <= 1 ? 1 : 2);
-	COLORREF fc, bc, tc;
-	LPCWSTR p = str;
+	int n, i, a, c;
+	int x, y, nw, ow;
+	int width, height, style = 0;
+	UINT mode;
+	CSize sz;
+	CRect box(rect);
+	CStringW str;
 	CFontChacheNode *pFontCache;
-	CFontNode *pFontNode = (prop.mod < 0 ? NULL : &(m_FontTab[prop.mod]));
-	CBitmap *pOld;
-	CRect box(*pRect);
-	LPCTSTR DefFontName;
+	CFontNode *pFontNode = &(m_FontTab[prop.bank]);
+	LPCTSTR deffont = (m_DefFontName[prop.font].IsEmpty() ? m_DefFontName[0] : m_DefFontName[prop.font]);;
+	CDC workDC;
+	CBitmap *pOldMap;
 
-	if ( (at & ATT_BOLD) != 0 && !IsOptEnable(TO_RLBOLD) && prop.fcn < 16 )
-		prop.fcn ^= 0x08;
+	mode = ETO_CLIPPED;
+	if ( pView->m_pBitmap == NULL || rv != FALSE )
+		mode |= ETO_OPAQUE;
 
-	fc = m_ColTab[prop.fcn];
-	bc = m_ColTab[prop.bcn];
+	width  = pView->m_CharWidth  * (prop.zoom == 0 ? 1 : 2);
+	height = pView->m_CharHeight * (prop.zoom <= 1 ? 1 : 2);
 
-	if ( (at & ATT_REVS) != 0 ) {
-		tc = fc;
-		fc = bc;
-		bc = tc;
-		rv = TRUE;
+	style |= (prop.attr & ATT_BOLD) != 0 && IsOptEnable(TO_RLBOLD) ? 1 : 0;
+	if ( (prop.attr & ATT_ITALIC) != 0 ) {
+		style |= 2;
+		width = width * 80 / 100;
 	}
 
-	if ( (at & (ATT_SBLINK | ATT_BLINK)) != 0 ) {
+	pFontCache = pFontNode->GetFont(width, height, style, prop.font, deffont);
+	pDC->SelectObject(pFontCache->m_pFont);
+	pDC->SetTextColor(fc);
+	pDC->SetBkColor(bc);
+
+	if ( pFontCache->m_Fixed < 0 ) {
+		sz = pDC->GetTextExtent(_T("W"), 1);
+		if ( (n = sz.cx) <= 0 ) n = 1;
+		sz = pDC->GetTextExtent(_T("i"), 1);
+		n = sz.cx * 100 / n;
+
+		if ( n >= 80 )
+			pFontCache->m_Fixed = 1;
+		else if ( IsOptEnable(TO_RLWORDPP) )
+			pFontCache->m_Fixed = 2;
+		else
+			pFontCache->m_Fixed = 3;
+	}
+
+	if ( pFontNode->SetFontImage(width, height) ) {
+		// Gaiji Mode
+		// 文字単位で縮小、固定幅、センターリング
+		workDC.CreateCompatibleDC(pDC);
+		pOldMap = workDC.SelectObject(&(pFontNode->m_FontMap));
+
+		for ( n = i = a = 0 ; n < prop.size ; n++ ) {
+			while ( prop.pSpace[i] == 0 )
+				i++;
+			box.right = box.left + prop.pSpace[i];
+
+			str.Empty();
+			while ( a <= i )
+				str += prop.pText[a++];
+
+			if ( (c = str[0] - 0x20) >= 0 && c < 96 && (pFontNode->m_UserFontDef[c / 8] & (1 << (c % 8))) != 0 ) {
+				pDC->BitBlt(box.left, box.top, box.Width(), box.Height(), &workDC, pFontNode->m_FontWidth * c, (prop.zoom == 3 ? pView->m_CharHeight : 0), ((pView->m_pBitmap == NULL || rv != FALSE) ? SRCCOPY: SRCPAINT));
+
+			} else {
+				sz = pDC->GetTextExtent(str);
+				if ( (nw = (box.Width() < sz.cx ? (width * box.Width() / sz.cx) : width)) <= 0 )
+					nw = 1;
+
+				if ( nw != width ) {
+					pFontCache = pFontNode->GetFont(nw, height, style, prop.font, deffont);
+					pDC->SelectObject(pFontCache->m_pFont);
+					sz = pDC->GetTextExtent(str);
+				}
+
+				x = box.left + pView->m_CharWidth * pFontNode->m_OffsetW / 100 + (box.Width() - sz.cx) / 2;
+				y = box.top - pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? pView->m_CharHeight : 0);
+
+				pDC->ExtTextOutW(x, y, mode, box, str, NULL);
+
+				if ( nw != width ) {
+					pFontCache = pFontNode->GetFont(width, height, style, prop.font, deffont);
+					pDC->SelectObject(pFontCache->m_pFont);
+				}
+			}
+
+			box.left += prop.pSpace[i++];
+		}
+
+		workDC.SelectObject(pOldMap);
+		workDC.DeleteDC();
+
+	} else if ( (prop.attr & ATT_RTOL) != 0 ) {
+		// Right to Left
+		// 文字列単位で縮小・拡大、プロポーショナル
+		x = box.left + pView->m_CharWidth * pFontNode->m_OffsetW / 100;
+		y = box.top - pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? pView->m_CharHeight : 0);
+
+		sz = pDC->GetTextExtent(prop.pText, prop.tlen);
+		if ( sz.cx <= 0 ) sz.cx = 1;
+
+		pFontCache = pFontNode->GetFont(width * box.Width() / sz.cx, height, style, prop.font, deffont);
+		pDC->SelectObject(pFontCache->m_pFont);
+		sz = pDC->GetTextExtent(prop.pText, prop.tlen);
+
+		pDC->SetTextCharacterExtra((box.Width() - sz.cx) / prop.size);
+		pDC->ExtTextOutW(x, y, mode, box, prop.pText, prop.tlen, NULL);
+		pDC->SetTextCharacterExtra(0);
+
+		pView->m_ClipUpdateLine = TRUE;
+
+	} else if ( pFontCache->m_Fixed == 1 ) {
+		// Fixed Draw
+		// 文字幅１の場合に縮小する必要があればCenter Drawに変更、固定幅
+		x = box.left + pView->m_CharWidth * pFontNode->m_OffsetW / 100;
+		y = box.top - pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? pView->m_CharHeight : 0);
+
+		if ( prop.csz == 1 && !IsOptEnable(TO_RLUNIAHF) ) {
+			sz = pDC->GetTextExtent(prop.pText, prop.tlen);
+			if ( box.Width() < sz.cx )
+				goto DRAWCHAR;
+		}
+
+		pDC->ExtTextOutW(x, y, mode, box, prop.pText, prop.tlen, (LPINT)prop.pSpace);
+
+	} else if ( pFontCache->m_Fixed == 2 ) {
+		// Proportion Draw
+		// 文字列単位で縮小、プロポーショナル、センターリング
+		sz = pDC->GetTextExtent(prop.pText, prop.tlen);
+
+		if ( box.Width() < sz.cx ) {
+			pFontCache = pFontNode->GetFont(width * box.Width() / sz.cx, height, style, prop.font, deffont);
+			pDC->SelectObject(pFontCache->m_pFont);
+			sz = pDC->GetTextExtent(prop.pText, prop.tlen);
+		}
+
+		ow = 0;
+		nw = sz.cx;
+		CRect frame(rect);
+
+		for ( n = i = a = 0 ; n < prop.size ; n++ ) {
+			while ( prop.pSpace[i] == 0 )
+				i++;
+
+			str.Empty();
+			while ( a <= i )
+				str += prop.pText[a++];
+
+			sz = pDC->GetTextExtent(str);
+			ow += sz.cx;
+
+			if ( nw > 0 ) {
+				x = ow * frame.Width() / nw;
+				y = rect.left + (n + 2) * rect.Width() / prop.size;
+				if ( (frame.left + x) >= y && nw > ow ) {
+					nw -= ow;
+					ow = 0;
+					box.right = y;
+					frame.left = box.right;
+				} else
+					box.right = frame.left + x;
+			} else
+				box.right = box.left + sz.cx;
+
+			x = box.left + pView->m_CharWidth * pFontNode->m_OffsetW / 100 + (box.Width() - sz.cx) / 2;
+			y = box.top - pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? pView->m_CharHeight : 0);
+
+			pDC->ExtTextOutW(x, y, mode, box, str, NULL);
+			pView->SetCellSize(prop.cols + n, prop.line, box.Width());
+
+			box.left = box.right;
+			i++;
+		}
+
+		pView->m_ClipUpdateLine = TRUE;
+
+	} else {
+		// Center Draw
+		// 文字単位で縮小、固定幅、センターリング
+		DRAWCHAR:
+		for ( n = i = a = 0 ; n < prop.size ; n++ ) {
+			while ( prop.pSpace[i] == 0 )
+				i++;
+			box.right = box.left + prop.pSpace[i];
+
+			str.Empty();
+			while ( a <= i )
+				str += prop.pText[a++];
+
+			sz = pDC->GetTextExtent(str);
+			if ( (nw = (box.Width() < sz.cx ? (width * box.Width() / sz.cx) : width)) <= 0 )
+				nw = 1;
+
+			if ( nw != width ) {
+				pFontCache = pFontNode->GetFont(nw, height, style, prop.font, deffont);
+				pDC->SelectObject(pFontCache->m_pFont);
+				sz = pDC->GetTextExtent(str);
+			}
+
+			x = box.left + pView->m_CharWidth * pFontNode->m_OffsetW / 100 + (box.Width() - sz.cx) / 2;
+			y = box.top - pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? pView->m_CharHeight : 0);
+
+			pDC->ExtTextOutW(x, y, mode, box, str, NULL);
+
+			if ( nw != width ) {
+				pFontCache = pFontNode->GetFont(width, height, style, prop.font, deffont);
+				pDC->SelectObject(pFontCache->m_pFont);
+			}
+
+			box.left += prop.pSpace[i++];
+		}
+	}
+}
+
+void CTextRam::DrawText(CDC *pDC, CRect &rect, struct DrawWork &prop, class CRLoginView *pView)
+{
+	BOOL bRevs = FALSE;
+	COLORREF fcol, bcol, tcol;
+	CGrapWnd *pWnd;
+
+	// Text Color & Back Color
+	if ( (prop.attr & ATT_BOLD) != 0 && !IsOptEnable(TO_RLBOLD) && prop.fcol < 16 )
+		fcol = m_ColTab[prop.fcol ^ 0x08];
+	else
+		fcol = m_ColTab[prop.fcol];
+
+	bcol = m_ColTab[prop.bcol];
+
+	if ( (prop.attr & ATT_REVS) != 0 ) {
+		tcol = fcol;
+		fcol = bcol;
+		bcol = tcol;
+		bRevs = TRUE;
+	}
+
+	if ( (prop.attr & (ATT_SBLINK | ATT_BLINK)) != 0 ) {
 		if ( (pView->m_BlinkFlag & 4) == 0 ) {
 			pView->SetTimer(1026, 250, NULL);
 			pView->m_BlinkFlag = 4;
-		} else if ( ((at & ATT_BLINK) != 0 && (pView->m_BlinkFlag & 1) != 0) ||
-				    ((at & ATT_BLINK) == 0 && (pView->m_BlinkFlag & 2) != 0) ) {
-			tc = fc;
-			fc = bc;
-			bc = tc;
-			rv = TRUE;
+		} else if ( ((prop.attr & ATT_BLINK) != 0 && (pView->m_BlinkFlag & 1) != 0) ||
+				    ((prop.attr & ATT_BLINK) == 0 && (pView->m_BlinkFlag & 2) != 0) ) {
+			tcol = fcol;
+			fcol = bcol;
+			bcol = tcol;
+			bRevs = TRUE;
 		}
 	}
 
-	if ( (at & ATT_SECRET) != 0 )
-		fc = bc;
+	if ( (prop.attr & ATT_SECRET) != 0 )
+		fcol = bcol;
 
-	if ( (at & ATT_CLIP) != 0 || (pView->m_ActiveFlag && (at & ATT_MARK) != 0) ) {
-		tc = fc;
-		fc = bc;
-		bc = tc;
+	if ( (prop.attr & ATT_HALF) != 0 )
+		bcol = RGB((GetRValue(fcol) + GetRValue(bcol)) / 2, (GetGValue(fcol) + GetGValue(bcol)) / 2, (GetBValue(fcol) + GetBValue(bcol)) / 2);
+
+	if ( (prop.attr & ATT_CLIP) != 0 || (pView->m_ActiveFlag && (prop.attr & ATT_MARK) != 0) ) {
+		tcol = fcol;
+		fcol = bcol;
+		bcol = tcol;
 		if ( pView->m_pBitmap != NULL )
-			pDC->InvertRect(pRect);
-		if ( rv )
-			bc = RGB((GetRValue(fc) + GetRValue(bc)) / 2, (GetGValue(fc) + GetGValue(bc)) / 2, (GetBValue(fc) + GetBValue(bc)) / 2);
-		rv = TRUE;
+			pDC->InvertRect(rect);
+		if ( bRevs )
+			bcol = RGB((GetRValue(fcol) + GetRValue(bcol)) / 2, (GetGValue(fcol) + GetGValue(bcol)) / 2, (GetBValue(fcol) + GetBValue(bcol)) / 2);
+		bRevs = TRUE;
 	}
 
-	if ( (at & ATT_HALF) != 0 )
-		fc = RGB((GetRValue(fc) + GetRValue(bc)) / 2, (GetGValue(fc) + GetGValue(bc)) / 2, (GetBValue(fc) + GetBValue(bc)) / 2);
+	if ( prop.idx != (-1) ) {
+		// Image Draw
+		if ( (pWnd = GetGrapWnd(prop.idx)) != NULL )
+			pWnd->DrawBlock(pDC, rect, bcol, prop.stx, prop.sty, prop.edx, prop.sty + 1, pView);
+		else
+			pDC->FillSolidRect(rect, bcol);
 
-	if ( pFontNode == NULL ) {
-		if ( prop.idx != (-1) ) {
-			CGrapWnd *pWnd;
-			if ( (pWnd = GetGrapWnd(prop.idx)) != NULL )
-				pWnd->DrawBlock(pDC, pRect, bc, prop.stx, prop.sty, prop.edx, prop.sty + 1, pView);
-			else
-				pDC->FillSolidRect(pRect, bc);
-			if ( rv )
-				pDC->InvertRect(pRect);
-		} else if ( pView->m_pBitmap == NULL )
-			pDC->FillSolidRect(pRect, bc);
+		if ( bRevs )
+			pDC->InvertRect(rect);
 
-	} else if ( (at & ATT_BORDER) != 0 ) {
-		LineOut(pDC, box, fc, bc, rv, prop, len, str, spc, pView);
+	} else if ( prop.bank < 0 || prop.bank >= CODE_MAX ) {
+		// Blank Draw
+		if ( pView->m_pBitmap == NULL )
+			pDC->FillSolidRect(rect, bcol);
+
+	} else if ( (prop.attr & ATT_BORDER) != 0 ) {
+		// Line Draw
+		DrawLine(pDC, rect, fcol, bcol, bRevs, prop, pView);
 
 	} else {
-		x = pView->m_CharWidth  * wd;
-		y = pView->m_CharHeight * hd;
-		n = (at & ATT_ITALIC) != 0 ? 2 : 0;
-
-		DefFontName = (m_DefFontName[prop.fnm].IsEmpty() ? m_DefFontName[0] : m_DefFontName[prop.fnm]);
-
-		pFontCache = pFontNode->GetFont(x, y, n, prop.fnm, DefFontName);
-		pDC->SelectObject(pFontCache != NULL ? pFontCache->m_pFont : CFont::FromHandle((HFONT)GetStockObject(SYSTEM_FONT)));
-
-		pDC->SetTextColor(fc);
-		pDC->SetBkColor(bc);
-
-		if ( prop.csz == 1 && pFontCache != NULL && prop.mod == SET_UNICODE && !IsOptEnable(TO_RLUNIAHF) ) {
-			CSize sz = pDC->GetTextExtent(str, len);
-			if ( sz.cx > (pRect->right - pRect->left) ) {
-				if ( (pFontCache = pFontNode->GetFont(x / 2, y, n, prop.fnm, DefFontName)) != NULL )
-					pDC->SelectObject(pFontCache->m_pFont);
-			}
-		}
-
-		if ( pFontNode->SetFontImage(pView->m_CharWidth  * wd, pView->m_CharHeight * hd) ) {
-			if ( pWdc->GetSafeHdc() == NULL )
-				pWdc->CreateCompatibleDC(pDC);
-
-			pOld = pWdc->SelectObject(&(pFontNode->m_FontMap));
-
-			x = pRect->left;
-			y = pRect->bottom - pRect->top;
-			o = (prop.dmf == 3 ? pView->m_CharHeight : 0);
-
-			for ( n = 0 ; n < len ; n++, p++ ) {
-				if ( (c = *p - 0x20) >= 0 && c < 96 && (pFontNode->m_UserFontDef[c / 8] & (1 << (c % 8))) != 0 )
-					pDC->BitBlt(x, pRect->top, spc[n], y, pWdc, pFontNode->m_FontWidth * c, o, ((pView->m_pBitmap == NULL || rv != FALSE) ? SRCCOPY: SRCPAINT));
-				else {
-					box.left = x;
-					box.right = x + spc[n];
-					::ExtTextOutW(pDC->m_hDC, x, pRect->top - o, ((pView->m_pBitmap == NULL || rv != FALSE) ? (ETO_OPAQUE | ETO_CLIPPED) : ETO_CLIPPED), box, p, 1, &(spc[n]));
-				}
-				x += spc[n];
-			}
-
-			pWdc->SelectObject(pOld);
-
-		} else {
-			x = pRect->left + pView->m_CharWidth * pFontNode->m_OffsetW / 100;
-			y = pRect->top - pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.dmf == 3 ? pView->m_CharHeight : 0);
-
-			::ExtTextOutW(pDC->m_hDC, x, y, ((pView->m_pBitmap == NULL || rv != FALSE) ? (ETO_OPAQUE | ETO_CLIPPED) : ETO_CLIPPED), pRect, str, len, spc);
-
-			if ( (at & ATT_BOLD) != 0 && (IsOptEnable(TO_RLBOLD) || prop.fcn >= 16) ) {
-				n = pDC->SetBkMode(TRANSPARENT);
-				::ExtTextOutW(pDC->m_hDC, x + 1, y, ETO_CLIPPED, pRect, str, len, spc);
-				pDC->SetBkMode(n);
-			}
-		}
+		// Text Draw
+		DrawChar(pDC, rect, fcol, bcol, bRevs, prop, pView);
 	}
 
-	if ( (at & (ATT_OVER | ATT_DOVER | ATT_LINE | ATT_UNDER | ATT_DUNDER | ATT_STRESS)) != 0 ) {
-		CPen cPen(PS_SOLID, 1, fc);
+	if ( (prop.attr & (ATT_OVER | ATT_DOVER | ATT_LINE | ATT_UNDER | ATT_DUNDER | ATT_STRESS)) != 0 ) {
+		CPen cPen(PS_SOLID, 1, fcol);
 		CPen *oPen = pDC->SelectObject(&cPen);
 		POINT point[4];
-		point[0].x = pRect->left;
-		point[1].x = pRect->right;
+		point[0].x = rect.left;
+		point[1].x = rect.right;
 
-		if ( (at & ATT_OVER) != 0 ) {
-			point[0].y = pRect->top;
-			point[1].y = pRect->top;
+		if ( (prop.attr & ATT_OVER) != 0 ) {
+			point[0].y = rect.top;
+			point[1].y = rect.top;
 			pDC->Polyline(point, 2);
-		} else if ( (at & ATT_DOVER) != 0 ) {
-			point[0].y = pRect->top;
-			point[1].y = pRect->top;
+		} else if ( (prop.attr & ATT_DOVER) != 0 ) {
+			point[0].y = rect.top;
+			point[1].y = rect.top;
 			pDC->Polyline(point, 2);
-			point[2].x = ((at & ATT_LDLINE) != 0 ? (pRect->left + 2) : pRect->left);
-			point[2].y = pRect->top + 2;
-			point[3].x = ((at & ATT_RDLINE) != 0 ? (pRect->right - 3) : pRect->right);
-			point[3].y = pRect->top + 2;
+			point[2].x = ((prop.attr & ATT_LDLINE) != 0 ? (rect.left + 2) : rect.left);
+			point[2].y = rect.top + 2;
+			point[3].x = ((prop.attr & ATT_RDLINE) != 0 ? (rect.right - 3) : rect.right);
+			point[3].y = rect.top + 2;
 			pDC->Polyline(&(point[2]), 2);
 		}
 
-		if ( (at & ATT_LINE) != 0 ) {
-			point[0].y = (pRect->top + pRect->bottom) / 2;
-			point[1].y = (pRect->top + pRect->bottom) / 2;
+		if ( (prop.attr & ATT_LINE) != 0 ) {
+			point[0].y = (rect.top + rect.bottom) / 2;
+			point[1].y = (rect.top + rect.bottom) / 2;
 			pDC->Polyline(point, 2);
-		} else if ( (at & ATT_STRESS) != 0 ) {
-			point[0].y = (pRect->top + pRect->bottom) / 2 - 1;
-			point[1].y = (pRect->top + pRect->bottom) / 2 - 1;
+		} else if ( (prop.attr & ATT_STRESS) != 0 ) {
+			point[0].y = (rect.top + rect.bottom) / 2 - 1;
+			point[1].y = (rect.top + rect.bottom) / 2 - 1;
 			pDC->Polyline(point, 2);
-			point[0].y = (pRect->top + pRect->bottom) / 2 + 1;
-			point[1].y = (pRect->top + pRect->bottom) / 2 + 1;
+			point[0].y = (rect.top + rect.bottom) / 2 + 1;
+			point[1].y = (rect.top + rect.bottom) / 2 + 1;
 			pDC->Polyline(point, 2);
 		}
 
-		if ( (at & ATT_UNDER) != 0 ) {
-			point[0].y = pRect->bottom - 2;
-			point[1].y = pRect->bottom - 2;
+		if ( (prop.attr & ATT_UNDER) != 0 ) {
+			point[0].y = rect.bottom - 2;
+			point[1].y = rect.bottom - 2;
 			pDC->Polyline(point, 2);
-		} else if ( (at & ATT_DUNDER) != 0 ) {
-			point[0].y = pRect->bottom - 1;
-			point[1].y = pRect->bottom - 1;
+		} else if ( (prop.attr & ATT_DUNDER) != 0 ) {
+			point[0].y = rect.bottom - 1;
+			point[1].y = rect.bottom - 1;
 			pDC->Polyline(point, 2);
-			point[2].x = ((at & ATT_LDLINE) != 0 ? (pRect->left + 2) : pRect->left);
-			point[2].y = pRect->bottom - 3;
-			point[3].x = ((at & ATT_RDLINE) != 0 ? (pRect->right - 3) : pRect->right);
-			point[3].y = pRect->bottom - 3;
+			point[2].x = ((prop.attr & ATT_LDLINE) != 0 ? (rect.left + 2) : rect.left);
+			point[2].y = rect.bottom - 3;
+			point[3].x = ((prop.attr & ATT_RDLINE) != 0 ? (rect.right - 3) : rect.right);
+			point[3].y = rect.bottom - 3;
 			pDC->Polyline(&(point[2]), 2);
-		}
-
-		pDC->SelectObject(oPen);
-	}
-
-	if ( (at & (ATT_FRAME | ATT_CIRCLE | ATT_RSLINE | ATT_RDLINE | ATT_LSLINE | ATT_LDLINE)) != 0 ) {
-		CPen cPen(PS_SOLID, 1, fc);
-		CPen *oPen = pDC->SelectObject(&cPen);
-		POINT point[9];
-
-		y = pRect->left;
-		for ( x = 0 ; x < len ; x++ ) {
-			if ( spc[x] == 0 )
-				continue;
-
-			if ( (at & ATT_FRAME) != 0 ) {
-				point[0].x = y; point[0].y = pRect->top + 1;
-				point[1].x = y + spc[x] - 2; point[1].y = pRect->top + 1;
-				point[2].x = y + spc[x] - 2; point[2].y = pRect->bottom - 1;
-				point[3].x = y; point[3].y = pRect->bottom - 1;
-				point[4].x = y; point[4].y = pRect->top + 1;
-				pDC->Polyline(point, 5);
-			} else if ( (at & ATT_CIRCLE) != 0 ) {
-				n = spc[x] / 3;
-				point[0].x = y + n; point[0].y = pRect->top + 1;
-				point[1].x = y + spc[x] - 2 - n; point[1].y = pRect->top + 1;
-				point[2].x = y + spc[x] - 2; point[2].y = pRect->top + 1 + n;
-				point[3].x = y + spc[x] - 2; point[3].y = pRect->bottom - 1 - n;
-				point[4].x = y + spc[x] - 2 - n; point[4].y = pRect->bottom - 1;
-				point[5].x = y + n; point[5].y = pRect->bottom - 1;
-				point[6].x = y; point[6].y = pRect->bottom - 1 - n;
-				point[7].x = y; point[7].y = pRect->top + 1 + n;
-				point[8].x = y + n; point[8].y = pRect->top + 1;
-				pDC->Polyline(point, 9);
-			}
-
-			if ( (at & ATT_RSLINE) != 0 ) {
-				point[0].x = y + spc[x] - 1; point[0].y = pRect->top;
-				point[1].x = y + spc[x] - 1; point[1].y = pRect->bottom - 1;
-				pDC->Polyline(point, 2);
-			} else if ( (at & ATT_RDLINE) != 0 ) {
-				point[0].x = y + spc[x] - 1; point[0].y = pRect->top;
-				point[1].x = y + spc[x] - 1; point[1].y = pRect->bottom - 1;
-				pDC->Polyline(point, 2);
-				point[0].x = y + spc[x] - 3;
-				point[0].y = ((at & ATT_DOVER) != 0 ? (pRect->top + 2) : pRect->top);
-				point[1].x = y + spc[x] - 3;
-				point[1].y = ((at & ATT_DUNDER) != 0 ? (pRect->bottom - 3) : (pRect->bottom - 1));
-				pDC->Polyline(point, 2);
-			}
-
-			if ( (at & ATT_LSLINE) != 0 ) {
-				point[0].x = y; point[0].y = pRect->top;
-				point[1].x = y; point[1].y = pRect->bottom - 1;
-				pDC->Polyline(point, 2);
-			} else if ( (at & ATT_LDLINE) != 0 ) {
-				point[0].x = y; point[0].y = pRect->top;
-				point[1].x = y; point[1].y = pRect->bottom - 1;
-				pDC->Polyline(point, 2);
-				point[0].x = y + 2;
-				point[0].y = ((at & ATT_DOVER) != 0 ? (pRect->top + 2) : pRect->top);
-				point[1].x = y + 2;
-				point[1].y = ((at & ATT_DUNDER) != 0 ? (pRect->bottom - 3) : (pRect->bottom - 1));
-				pDC->Polyline(point, 2);
-			}
-
-			y += spc[x];
 		}
 
 		pDC->SelectObject(oPen);
 	}
 
 	if ( IsOptEnable(TO_DECSCNM) )
-		pDC->InvertRect(pRect);
+		pDC->InvertRect(rect);
 
 	if ( pView->m_VisualBellFlag )
-		pDC->InvertRect(pRect);
+		pDC->InvertRect(rect);
 }
 void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginView *pView)
 {
-	int n, x, y, ex;
-	struct DrawWork work, prop;
-	int pos, spos, epos;
+	int n;
+	int x, y, sx, ex;
+	int zoom, len;
+	int cpos, spos, epos;
 	int csx, cex, csy, cey;
-	int stx, edx;
-	CCharCell *vp, *tp;
-	int len, sln;
+	int isx, iex;
+	CRect rect;
+	CCharCell *top, *vp;
+	struct DrawWork prop, work;
 	CStringW str;
-	LPCWSTR p;
-	WCHAR tmp[COLS_MAX * MAXCHARSIZE];
-	int spc[COLS_MAX * MAXCHARSIZE];
+	CArray<WCHAR, const WCHAR &>text;
+	CArray<INT, const INT &> space;
 	CFont *pFontOld = pDC->SelectObject(CFont::FromHandle((HFONT)GetStockObject(SYSTEM_FONT)));
-	RECT rect;
-	CDC wDc;
+
+	text.SetSize(0, MAXCHARSIZE);
+	space.SetSize(0, MAXCHARSIZE);
+
+	ZeroMemory(&prop, sizeof(prop));
 
 	if ( pView->m_ClipFlag ) {
 		if ( pView->m_ClipStaPos <= pView->m_ClipEndPos ) {
@@ -4106,112 +4340,127 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 	}
 
 	for ( y = y1 ; y < y2 ; y++ ) {
-		len = sln = 0;
-		memset(&prop, 0, sizeof(prop));
 		prop.idx = (-1);
-		stx = edx = 0;
+		prop.stx = 0;
+		prop.edx = 0;
+		prop.sty = 0;
+
+		prop.bank = (-1);
+		prop.font = 0;
+		prop.csz  = 0;		// XXXXX
+
 		rect.top    = pView->CalcGrapY(y);
 		rect.bottom = pView->CalcGrapY(y + 1);
-		tp = GETVRAM(0, y - pView->m_HisOfs + pView->m_HisMin);
-		work.dmf = tp->m_Vram.zoom;
 
-		x = (work.dmf != 0 ? (x1 / 2) : x1);
+		top = GETVRAM(0, y - pView->m_HisOfs + pView->m_HisMin);
+		prop.zoom = top->m_Vram.zoom;
+		zoom = (prop.zoom != 0 ? 2 : 1);
+		len = 0;
+		isx = iex = 0;
+
+		memcpy(&work, &prop, sizeof(work));
+
+		sx = x1;
 		ex = x2;
 
-		if ( x > 0 && (tp[x].m_Vram.attr & ATT_RTOL) != 0 ) {
-			while ( x > 0 && (tp[x - 1].m_Vram.attr & ATT_RTOL) != 0 )
-				x--;
+		if ( work.zoom != 0 ) {
+			sx /= 2;
+			ex /= 2;
 		}
-		if ( ex < m_Cols && (tp[ex].m_Vram.attr & ATT_RTOL) != 0 ) {
-			while ( (ex + 1) < m_Cols && (tp[ex + 1].m_Vram.attr & ATT_RTOL) != 0 )
+
+		if ( sx > 0 && (top[sx].m_Vram.attr & ATT_RTOL) != 0 ) {
+			while ( sx > 0 && (top[sx - 1].m_Vram.attr & ATT_RTOL) != 0 )
+				sx--;
+		}
+		if ( ex < m_Cols && (top[ex].m_Vram.attr & ATT_RTOL) != 0 ) {
+			while ( (ex + 1) < m_Cols && (top[ex + 1].m_Vram.attr & ATT_RTOL) != 0 )
 				ex++;
 		}
 
-		while ( x < ex ) {
-			if ( work.dmf != 0 && x >= (m_Cols / 2) )
-				break;
-
+		for ( x = sx ; x < ex ; x += work.csz ) {
 			work.idx = (-1);
 			work.stx = 0;
 			work.edx = 0;
 			work.sty = 0;
 
+			work.bank = (-1);
+			work.csz  = 1;
+			str.Empty();
+
 			if ( x < 0 ) {
-				work.att = tp->m_Vram.attr & (ATT_REVS | ATT_CLIP | ATT_MARK | ATT_SBLINK | ATT_BLINK);
-				work.fnm = tp->m_Vram.font;
-				work.fcn = tp->m_Vram.fcol;
-				work.bcn = tp->m_Vram.bcol;
-				work.mod = (-1);
-				work.csz = 1;
-				str.Empty();
+				work.attr = top->m_Vram.attr & (ATT_REVS | ATT_CLIP | ATT_MARK | ATT_SBLINK | ATT_BLINK);
+				work.font = top->m_Vram.font;
+				work.fcol = top->m_Vram.fcol;
+				work.bcol = top->m_Vram.bcol;
+
 			} else if ( x >= m_Cols ) {
-				vp = tp + (m_Cols - 1);
-				work.att = vp->m_Vram.attr & (ATT_REVS | ATT_CLIP | ATT_MARK | ATT_SBLINK | ATT_BLINK);
-				work.fnm = vp->m_Vram.font;
-				work.fcn = vp->m_Vram.fcol;
-				work.bcn = vp->m_Vram.bcol;
-				work.mod = (-1);
-				work.csz = 1;
-				str.Empty();
+				vp = top + (m_Cols - 1);
+				work.attr = vp->m_Vram.attr & (ATT_REVS | ATT_CLIP | ATT_MARK | ATT_SBLINK | ATT_BLINK);
+				work.font = vp->m_Vram.font;
+				work.fcol = vp->m_Vram.fcol;
+				work.bcol = vp->m_Vram.bcol;
+
 			} else {
-				vp = tp + x;
+				vp = top + x;
 				if ( x > 0 && IS_2BYTE(vp[0].m_Vram.mode) && IS_1BYTE(vp[-1].m_Vram.mode) && vp[-1].Compare(vp[0]) == 0 ) {
 					x--;
 					vp--;
 				}
-				work.att = vp->m_Vram.attr;
-				work.fnm = vp->m_Vram.font;
-				work.fcn = vp->m_Vram.fcol;
-				work.bcn = vp->m_Vram.bcol;
-				work.mod = vp->m_Vram.bank & CODE_MASK;
-				work.csz = 1;
-				str = (LPCWSTR)*vp;
 
-				if ( x < (m_Cols - 1) && IS_1BYTE(vp[0].m_Vram.mode) && IS_2BYTE(vp[1].m_Vram.mode) && vp[0].Compare(vp[1]) == 0 ) {
-					work.csz = 2;
-				} else if ( IS_IMAGE(vp->m_Vram.mode) ) {
-					work.mod = (-1);
+				work.attr = vp->m_Vram.attr;
+				work.font = vp->m_Vram.font;
+				work.fcol = vp->m_Vram.fcol;
+				work.bcol = vp->m_Vram.bcol;
+
+				if ( IS_IMAGE(vp->m_Vram.mode) ) {
 					work.idx = vp->m_Vram.pack.image.id;
-					work.stx = vp->m_Vram.pack.image.ix;
-					work.edx = vp->m_Vram.pack.image.ix + 1;
+					work.stx = isx = vp->m_Vram.pack.image.ix;
+					work.edx = iex = vp->m_Vram.pack.image.ix + 1;
 					work.sty = vp->m_Vram.pack.image.iy;
-					str.Empty();
-					stx = work.stx;
-					edx = work.edx;
 					if ( prop.idx == work.idx && prop.sty == work.sty && prop.edx == work.stx ) {
 						work.stx = prop.stx;
 						work.edx = prop.edx;
 					}
-				} else {
-					if ( !IS_ASCII(vp->m_Vram.mode) || str.IsEmpty() || str[0] < _T(' ') ) {
-						str.Empty();
-						work.mod = (-1);
-					}
-				}
-
-				if ( pView->m_SleepView ) {
-					if ( work.mod == (-1) ) {
-						work.att &= ~ATT_MASK;
-						work.bcn = EXTCOL_MAX + 25;		// back
-						if ( work.idx != (-1) ) {
-							if ( (n = pView->m_MatrixCols[x] - y) < 0 || n > 24)
-								work.idx = (-1);
-							else if ( n == 0 )
-								work.att |= ATT_REVS;
-						}
-					} else {
-						work.att &= ~ATT_MASK;
-						work.bcn = EXTCOL_MAX + 25;		// back
-						if ( (n = pView->m_MatrixCols[x] - y) < 0 || n > 24 )
-							work.fcn = EXTCOL_MAX + 25;	// back
-						else
-							work.fcn = EXTCOL_MAX + 24 - n;
-					}
+					pView->SetCellSize(x, y, 0);
+				} else if ( x < (m_Cols - 1) && IS_1BYTE(vp[0].m_Vram.mode) && IS_2BYTE(vp[1].m_Vram.mode) && vp[0].Compare(vp[1]) == 0 ) {
+					work.csz = 2;
+					str = (LPCWSTR)*vp;
+					if ( !str.IsEmpty() )
+						work.bank = vp->m_Vram.bank & CODE_MASK;
+					pView->SetCellSize(x, y, 0);
+					pView->SetCellSize(x + 1, y, 0);
+				} else if ( IS_ASCII(vp->m_Vram.mode) ) {
+					str = (LPCWSTR)*vp;
+					if ( !str.IsEmpty() && str[0] > _T(' ') )
+						work.bank = vp->m_Vram.bank & CODE_MASK;
+					pView->SetCellSize(x, y, 0);
 				}
 			}
 
+			// Matrox View
+			if ( pView->m_SleepView ) {
+				if ( work.bank == (-1) ) {
+					work.attr &= ~ATT_MASK;
+					work.bcol = EXTCOL_MAX + 25;		// back
+					if ( work.idx != (-1) ) {
+						if ( (n = pView->m_MatrixCols[x] - y) < 0 || n > 24)
+							work.idx = (-1);
+						else if ( n == 0 )
+							work.attr |= ATT_REVS;
+					}
+				} else {
+					work.attr &= ~ATT_MASK;
+					work.bcol = EXTCOL_MAX + 25;		// back
+					if ( (n = pView->m_MatrixCols[x] - y) < 0 || n > 24 )
+						work.fcol = EXTCOL_MAX + 25;	// back
+					else
+						work.fcol = EXTCOL_MAX + 24 - n;
+				}
+			}
+
+			// Frame View
 #ifdef	USE_TEXTFRAME
-			if ( (work.att & ATT_FRAME) != 0 ) {
+			if ( (work.attr & ATT_FRAME) != 0 ) {
 				n = (ATT_LSLINE | ATT_RSLINE | ATT_OVER | ATT_UNDER);
 				if ( x > 0 && (vp[-1].m_Vram.attr & ATT_FRAME) != 0 )
 					n &= ~ATT_LSLINE;
@@ -4221,11 +4470,11 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 					n &= ~ATT_OVER;
 				if ( y < (m_Lines - 1) && (GETVRAM(x, y - pView->m_HisOfs + pView->m_HisMin + 1)->m_Vram.attr & ATT_FRAME) != 0 )
 					n &= ~ATT_UNDER;
-				work.att &= ~(ATT_FRAME | ATT_CIRCLE);
-				work.att |= n;
+				work.attr &= ~(ATT_FRAME | ATT_CIRCLE);
+				work.attr |= n;
 				m_FrameCheck = TRUE;
 
-			} else if ( (work.att & ATT_CIRCLE) != 0 ) {
+			} else if ( (work.attr & ATT_CIRCLE) != 0 ) {
 				n = (ATT_LDLINE | ATT_RDLINE | ATT_DOVER | ATT_DUNDER);
 				if ( x > 0 && (vp[-1].m_Vram.attr & ATT_CIRCLE) != 0 )
 					n &= ~ATT_LDLINE;
@@ -4235,62 +4484,74 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 					n &= ~ATT_DOVER;
 				if ( y < (m_Lines - 1) && (GETVRAM(x, y - pView->m_HisOfs + pView->m_HisMin + 1)->m_Vram.attr & ATT_CIRCLE) != 0 )
 					n &= ~ATT_DUNDER;
-				work.att &= ~(ATT_FRAME | ATT_CIRCLE);
-				work.att |= n;
+				work.attr &= ~(ATT_FRAME | ATT_CIRCLE);
+				work.attr |= n;
 				m_FrameCheck = TRUE;
 			}
 #endif
 
+			// Clip View
 			if ( pView->m_ClipFlag ) {
-				pos = GetCalcPos((work.dmf != 0 ? (x * 2) : x), y - pView->m_HisOfs + pView->m_HisMin);
-				if ( spos <= pos && pos <= epos ) {
+				cpos = GetCalcPos((work.zoom != 0 ? (x * 2) : x), y - pView->m_HisOfs + pView->m_HisMin);
+				if ( spos <= cpos && cpos <= epos ) {
 					if ( pView->IsClipRectMode() ) {
-						if ( work.dmf != 0 ) {
+						if ( work.zoom != 0 ) {
 							if ( (x * 2) >= csx && (x * 2) <= cex )
-								work.att |= ATT_CLIP;
+								work.attr |= ATT_CLIP;
 						} else if ( x >= csx && x <= cex )
-							work.att |= ATT_CLIP;
+							work.attr |= ATT_CLIP;
 					} else
-						work.att |= ATT_CLIP;
+						work.attr |= ATT_CLIP;
 				}
 			}
 
+			// Text Draw
 			if ( memcmp(&prop, &work, sizeof(work)) != 0 ) {
 				if ( len > 0 ) {
-					rect.right = pView->CalcGrapX(x) * (work.dmf ? 2 : 1);
-					StrOut(pDC, &wDc, &rect, prop, len, tmp, spc, pView);
+					rect.right = pView->CalcGrapX(x * zoom);
+					prop.size = len;
+					prop.tlen = text.GetSize();
+					prop.pText = text.GetData();
+					prop.pSpace = space.GetData();
+					DrawText(pDC, rect, prop, pView);
 				}
-				memcpy(&prop, &work, sizeof(work));
-				prop.stx = stx;
-				prop.edx = edx;
-				len = sln = 0;
-				rect.left = pView->CalcGrapX(x) * (work.dmf ? 2 : 1);
+				work.cols = x;
+				work.line = y;
+				memcpy(&prop, &work, sizeof(prop));
+				text.RemoveAll();
+				space.RemoveAll();
+				rect.left = pView->CalcGrapX(x * zoom);
+				len = 0;
+				prop.stx = isx;
+				prop.edx = iex;
 			} else
-				prop.edx = edx;
+				prop.edx = iex;
 
-			if ( work.mod != (-1) ) {
-				for ( p = str ; *p != L'\0' ; )
-					tmp[len++] = *(p++);
+			if ( work.bank != (-1) ) {
+				for ( LPCWSTR p = str ; *p != L'\0' ; )
+					text.Add(*(p++));
 			} else
-				tmp[len++] = L'\0';
+				text.Add(L'\0');
 
-			while ( sln < (len - 1) )
-				spc[sln++] = 0;
+			while ( space.GetSize() < (text.GetSize() - 1) )
+				space.Add(0);
 
-			spc[sln++] = (pView->CalcGrapX(x + work.csz) - pView->CalcGrapX(x)) * (work.dmf ? 2 : 1);
+			space.Add(pView->CalcGrapX((x + work.csz) * zoom) - pView->CalcGrapX(x * zoom));
 
-			x += work.csz;
+			len++;
 		}
+
 		if ( len > 0 ) {
-			rect.right = pView->CalcGrapX(x) * (work.dmf ? 2 : 1);
-			StrOut(pDC, &wDc, &rect, prop, len, tmp, spc, pView);
+			rect.right = pView->CalcGrapX(x * zoom);
+			prop.size = len;
+			prop.tlen = text.GetSize();
+			prop.pText = text.GetData();
+			prop.pSpace = space.GetData();
+			DrawText(pDC, rect, prop, pView);
 		}
 	}
 
 	pDC->SelectObject(pFontOld);
-
-	if ( wDc.GetSafeHdc() != NULL )
-		wDc.DeleteDC();
 }
 
 CWnd *CTextRam::GetAciveView()
@@ -4429,15 +4690,6 @@ void CTextRam::OnTimer(int id)
 			m_SeqMsg.Format(CStringLoad(IDM_SEQCANCELSTR), m_OscName);
 			m_pDocument->UpdateAllViews(NULL, UPDATE_CANCELBTN, (CObject *)(LPCTSTR)m_SeqMsg);
 		}
-		//if ( m_pCanDlg == NULL && m_IntCounter > 3 ) {
-		//	m_pCanDlg = new CCancelDlg;
-		//	m_pCanDlg->m_pTextRam = this;
-		//	m_pCanDlg->m_PauseSec = 0;
-		//	m_pCanDlg->m_WaitSec  = 180;
-		//	m_pCanDlg->m_Name     = m_OscName;
-		//	m_pCanDlg->Create(IDD_CANCELDLG, ::AfxGetMainWnd());
-		//	m_pCanDlg->ShowWindow(SW_SHOW);
-		//}
 	} else if ( m_IntCounter > 180 ) {
 		m_bIntTimer = FALSE;
 		((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this);
@@ -4577,31 +4829,6 @@ int CTextRam::UnicodeWidth(DWORD code)
 	else
 		return 1;
 }
-
-#if 0
-#include "UniBlockTab.h"
-
-int CTextRam::UnicodeBlock(DWORD code)
-{
-	int n, b, m;
-
-	if ( (code & 0xFFFF0000L) != 0 && (code & 0xFC00FC00L) != 0xD800DC00L )
-		code &= 0x0000FFFFL;
-
-	b = 0;
-	m = UNIBLOCKTABMAX - 1;
-	while ( b <= m ) {
-		n = (b + m) / 2;
-		if ( code == UniBlockTab[n].code )
-			return n;
-		else if ( code > UniBlockTab[n].code )
-			b = n + 1;
-		else
-			m = n - 1;
-	}
-	return (b - 1);
-}
-#endif
 
 //////////////////////////////////////////////////////////////////////
 // Static Lib
@@ -4907,6 +5134,11 @@ void CTextRam::SizeGrapWnd(class CGrapWnd *pWnd)
 
 void CTextRam::RESET(int mode)
 {
+	if ( mode & RESET_SIZE ) {
+		m_bReSize = FALSE;
+		m_pDocument->UpdateAllViews(NULL, UPDATE_RESIZE, NULL);
+	}
+
 	if ( mode & RESET_PAGE ) {
 		if ( IsInitText() )
 			SETPAGE(0);
@@ -6001,6 +6233,7 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at)
 
 	DOWARP();
 
+	int block;
 	CCharCell *vp;
 	int dm = GetDm(m_CurY);
 
@@ -6014,10 +6247,8 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at)
 		m_Margin.right /= 2;
 	}
 
-	if ( m_bRtoL ) {
-		md = SET_UNICODE;
-		at = ATT_RTOL;
-	}
+	if ( m_bRtoL )
+		at |= ATT_RTOL;
 
 	vp = GETVRAM(m_CurX, m_CurY);
 
@@ -6035,11 +6266,18 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at)
 	ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// Char変換ではUTF-16BEを使用！
 	ch = IconvToMsUnicode(ch);
 
+	if ( m_bRtoL && md != SET_UNICODE ) {
+		if ( (block = m_FontTab.m_UniBlockTab.Find(0x0600)) != (-1) )
+			vp->m_Vram.bank = (WORD)block;
+		else
+			vp->m_Vram.bank = (WORD)SET_UNICODE;
+	} else if ( md == SET_UNICODE && (block = m_FontTab.m_UniBlockTab.Find(ch)) != (-1) )
+		vp->m_Vram.bank = (WORD)block;
+
 	if ( ch >= 0x2500 && ch <= 0x257F && !IsOptEnable(TO_RLDRWLINE) )		// Border Char
 		vp->m_Vram.attr |= ATT_BORDER;
 
 	*vp = (DWORD)ch;
-//	vp->m_Block = UnicodeBlock(ch);
 
 	if ( dm != 0 )
 		DISPVRAM(m_CurX * 2, m_CurY, 2, 1);
@@ -6086,6 +6324,7 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at)
 
 	DOWARP();
 
+	int block;
 	CCharCell *vp;
 	int dm = GetDm(m_CurY);
 
@@ -6131,12 +6370,14 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at)
 	ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// Char変換ではUTF-16BEを使用！
 	ch = IconvToMsUnicode(ch);
 
+	if ( md == SET_UNICODE && (block = m_FontTab.m_UniBlockTab.Find(ch)) != (-1) )
+		vp[0].m_Vram.bank = vp[1].m_Vram.bank = (WORD)block;
+
 	if ( ch >= 0x2500 && ch <= 0x257F&& !IsOptEnable(TO_RLDRWLINE) )		// Border Char
 		vp[0].m_Vram.attr |= ATT_BORDER;
 
 	vp[0] = (DWORD)ch;
 	vp[1] = (DWORD)ch;
-//	vp[0].m_Block = vp[1].m_Block = UnicodeBlock(ch);
 
 	if ( dm != 0 )
 		DISPVRAM(m_CurX * 2, m_CurY, 4, 1);
@@ -6166,43 +6407,23 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at)
 }
 void CTextRam::PUTADD(int x, int y, DWORD ch, int cf)
 {
-	int n, i;
 	CCharCell *vp;
 
 	if ( x < 0 || x >= m_Cols )
 		return;
+
 	if ( y >= m_Lines )		// y < 0 OK ?
 		return;
 
 	vp = GETVRAM(x, y);
-	n = (x < (m_Cols - 1) && IS_1BYTE(vp[0].m_Vram.mode) && IS_2BYTE(vp[1].m_Vram.mode)) ? 2 : 1;
+	*vp += (DWORD)ch;
 
-	if ( (cf & UNI_WID) != 0 )
-		i = 2;
-	else if ( (cf & UNI_AMB) != 0 )
-		i = (IsOptEnable(TO_RLUNIAWH) ? 1 : 2);
-	else
-		i = 1;
-
-	if ( n == 2 || i == n ) {
-		*vp += (DWORD)ch;
-//		if ( IS_1BYTE(vp->m_Vram.mode) && IS_2BYTE(vp[1].m_Vram.mode) )	not use
-			vp[1] = (LPCWSTR)(*vp);
-		DISPVRAM(x, y, IS_1BYTE(vp->m_Vram.mode) ? 2 : 1, 1);
-	} else {
-		CStringW str = *vp;
-		LPCWSTR p = str;
-		LOCATE(x, y);
-		PUT2BYTE(0, SET_UNICODE);
-		vp = GETVRAM(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX);
-		vp->Empty();
-		while ( *p != L'\0' )
-			*vp += (DWORD)(*(p++));
-		*vp += (DWORD)ch;
+	if ( x < (m_Cols - 1) && IS_1BYTE(vp[0].m_Vram.mode) && IS_2BYTE(vp[1].m_Vram.mode) ) {
 		vp[1] = (LPCWSTR)(*vp);
+		DISPVRAM(x, y, 2, 1);
+	} else {
+		DISPVRAM(x, y, 1, 1);
 	}
-
-//	vp[0].m_Block = vp[1].m_Block = UnicodeBlock((DWORD)vp[0]);
 }
 void CTextRam::ANSIOPT(int opt, int bit)
 {

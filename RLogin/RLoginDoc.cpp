@@ -69,6 +69,7 @@ BEGIN_MESSAGE_MAP(CRLoginDoc, CDocument)
 	ON_COMMAND_RANGE(IDM_RESET_TAB, IDM_RESET_ALL, &CRLoginDoc::OnScreenReset)
 	ON_COMMAND_RANGE(IDM_SCRIPT_MENU1, IDM_SCRIPT_MENU10, OnScriptMenu)
 
+	ON_UPDATE_COMMAND_UI(IDM_RESET_SIZE, &CRLoginDoc::OnUpdateResetSize)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1203,6 +1204,9 @@ int CRLoginDoc::SocketOpen()
 	CStringArrayExt hosts;
 	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
 
+	if ( m_pSock != NULL )
+		return FALSE;
+
 	if ( InternetAttemptConnect(0) != ERROR_SUCCESS )
 		return FALSE;
 
@@ -1580,7 +1584,8 @@ void CRLoginDoc::OnScreenReset(UINT nID)
 	case IDM_RESET_ESC:   mode = RESET_SAVE | RESET_CHAR; break;
 	case IDM_RESET_MOUSE: mode = RESET_MOUSE; break;
 	case IDM_RESET_SCREEN:mode = RESET_PAGE | RESET_CURSOR | RESET_MARGIN | RESET_BANK | RESET_ATTR | RESET_COLOR | RESET_CHAR  | RESET_CLS; break;
-	case IDM_RESET_ALL:   mode = RESET_PAGE | RESET_CURSOR | RESET_MARGIN | RESET_TABS | RESET_BANK | RESET_ATTR  | RESET_COLOR | RESET_TEK | RESET_SAVE | RESET_MOUSE | RESET_CHAR | RESET_OPTION | RESET_CLS | RESET_HISTORY; break;
+	case IDM_RESET_SIZE:  mode = RESET_SIZE; break;
+	case IDM_RESET_ALL:   mode = RESET_SIZE | RESET_PAGE | RESET_CURSOR | RESET_MARGIN | RESET_TABS | RESET_BANK | RESET_ATTR  | RESET_COLOR | RESET_TEK | RESET_SAVE | RESET_MOUSE | RESET_CHAR | RESET_OPTION | RESET_CLS | RESET_HISTORY; break;
 	}
 	m_TextRam.RESET(mode);
 	m_TextRam.FLUSH();
@@ -1812,4 +1817,9 @@ void CRLoginDoc::ScriptValue(int cmds, class CScriptValue &value, int mode)
 			LogClose();
 		break;
 	}
+}
+
+void CRLoginDoc::OnUpdateResetSize(CCmdUI *pCmdUI)
+{
+	pCmdUI->SetCheck(m_TextRam.m_bReSize);
 }

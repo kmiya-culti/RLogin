@@ -191,6 +191,7 @@ protected:
 	afx_msg void OnSaveDefault();
 	afx_msg void OnSetOption();
 	afx_msg void OnScreenReset(UINT nID);
+	afx_msg void OnUpdateResetSize(CCmdUI *pCmdUI);
 	afx_msg void OnScriptMenu(UINT nID);
 };
 

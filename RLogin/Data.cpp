@@ -1612,7 +1612,7 @@ CFontChacheNode::CFontChacheNode()
 	m_LogFont.lfQuality        = DEFAULT_QUALITY; // NONANTIALIASED_QUALITY, ANTIALIASED_QUALITY, CLEARTYPE_QUALITY
 	m_LogFont.lfPitchAndFamily = FIXED_PITCH | FF_MODERN;
 	m_Style = 0;
-	m_KanWidMul = 100;
+	m_Fixed = (-1);
 }
 CFontChacheNode::~CFontChacheNode()
 {
@@ -1635,23 +1635,9 @@ CFont *CFontChacheNode::Open(LPCTSTR pFontName, int Width, int Height, int CharS
 		delete m_pFont;
 	m_pFont = new CFont;
 
-	if ( !m_pFont->CreateFontIndirect(&m_LogFont) ) {
-		delete m_pFont;
-		m_pFont = NULL;
-		return NULL;
-	}
-
-	CDC dc;
-	CSize sz;
-	CFont *pOld;
-
-	dc.CreateCompatibleDC(NULL);
-	pOld = dc.SelectObject(m_pFont);
-//	sz = dc.GetTextExtent(_T("ˆŸ"), 1);
-	sz = dc.GetTextExtent(_T("„Ÿ"), 2);
-	dc.SelectObject(pOld);
-
-	m_KanWidMul = Width * 200 / sz.cx;
+	if ( !m_pFont->CreateFontIndirect(&m_LogFont) )
+		m_pFont->Attach((HFONT)GetStockObject(SYSTEM_FONT));
+	m_Fixed = (-1);
 
 	return m_pFont;
 }
@@ -3718,7 +3704,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	102
+#define	CMDSKEYTABMAX	103
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -3783,6 +3769,7 @@ static const struct _CmdsKeyTab {
 	{	IDM_RESET_ESC,			L"$RESET_ESC"		},
 	{	IDM_RESET_MOUSE,		L"$RESET_MOUSE"		},
 	{	IDM_RESET_SCREEN,		L"$RESET_SCREEN"	},
+	{	IDM_RESET_SIZE,			L"$RESET_SIZE"		},
 	{	IDM_RESET_TAB,			L"$RESET_TAB"		},
 	{	IDM_RESET_TEK,			L"$RESET_TEK"		},
 	{	ID_CHARSCRIPT_END,		L"$SCRIPT_END"		},

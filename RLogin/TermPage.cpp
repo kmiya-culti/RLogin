@@ -109,40 +109,17 @@ static const struct _OptListTab {
 	{	TO_RLSIXPOS,	_T("Sixel画像の右にカーソル"),		_T("Sixel画像の下にカーソル"),		_T("スクロールモード時のSixel画像表示後のカーソル位置を設定します")	},
 	{	TO_DRCSMMv1,	_T("8800 Unicodeマッピング有効"),	_T("Unicodeマッピング無効"),		_T("ISO-2022コードセットをUnicode16面にマッピングを有効・無効にします")	},
 	{	TO_RLC1DIS,		_T("C1制御文字を無視する"),			_T("C1制御文字を処理する"),			_T("C1制御文字(80-9F)を無視する・しない")	},
-
 	{	0,				NULL,								NULL,								NULL	}
 }, ExtListTab[] = {
 	// RLogin SockOpt		1000-1511(0-511)
-//	{	TO_RLTENAT,		_T("自動ユーザー認証を禁止"),		_T(""),								NULL	},
-//	{	TO_RLTENEC,		_T("データの暗号化を禁止する"),		_T(""),								NULL	},
-//	{	TO_RLPOFF,		_T("自動でプログラムを終了"),		_T(""),								NULL	},
-//	{	TO_RLUSEPASS,	_T("パスワード入力を求める"),		_T(""),								NULL	},
-//	{	TO_RLRCLICK,	_T("右ダブルクリックでペースト"),	_T(""),								NULL	},
-//	{	TO_RLCKCOPY,	_T("左クリックだけでコピー"),		_T(""),								NULL	},
-//	{	TO_RLDSECHO,	_T("ローカルエディットモード"),		_T(""),								NULL	},
-//	{	TO_RLDELAY,		_T("指定時間待って次を送信"),		_T(""),								NULL	},
-//	{	TO_RLHISFILE,	_T("ヒストリーを保存・復帰"),		_T(""),								NULL	},
-//	{	TO_RLKEEPAL,	_T("KeepAliveを有効にする"),		_T(""),								NULL	},
-//	{	TO_SSH1MODE,	_T("SSHバージョン１で接続"),		_T(""),								NULL	},
-//	{	TO_SSHPFORY,	_T("ポートフォワードだけ行う"),		_T(""),								NULL	},
-//	{	TO_SSHKEEPAL,	_T("KeepAliveパケットの送信"),		_T(""),								NULL	},
-//	{	TO_SSHAGENT,	_T("エージェント転送を有効"),		_T(""),								NULL	},
-//	{	TO_SSHSFENC,	_T("暗号シャッフル"),				_T(""),								NULL	},
-//	{	TO_SSHSFMAC,	_T("検証シャッフル"),				_T(""),								NULL	},
-//	{	TO_RLHISDATE,	_T("信ログを自動作成"),				_T(""),								NULL	},
-//	{	TO_RLLOGMODE,	_T("通信ログの形式1"),				_T(""),								NULL	},
-//	{	TO_RLLOGMOD2,	_T("通信ログの形式2"),				_T(""),								NULL	},
-//	{	TO_RLLOGCODE,	_T("ログの文字コード1"),			_T(""),								NULL	},
-//	{	TO_RLLOGCOD2,	_T("ログの文字コード2"),			_T(""),								NULL	},
-//	{	TO_SSHX11PF,	_T("X11ポートフォワード有効"),		_T(""),								NULL	},
-//	{	TO_RLTENLM,		_T("TELNET LINEMODE を禁止"),		_T(""),								NULL	},
-//	{	TO_RLSCRDEBUG,	_T("スクリプトデバック有効"),		_T(""),								NULL	},
 	{	TO_RLCURIMD,	_T("カーソルをIで表示"),			_T("カーソルを通常表示"),			_T("カーソルが画面内の場合にIで表示するようにします。\n制御コードによるマウスコントロール中には、矢印とIが入れ替わります")	},
 	{	TO_RLRSPAST,	_T("右クリックでペースト"),			_T("右クリックでメニュー選択"),		_T("画面内で右クリックした場合の動作を変更します。\nクリップボードオプションの右ダブルクリックの設定と重なりますので注意してください")	},
 	{	TO_RLGWDIS,		_T("ゴースト表示しない"),			_T("タブにマウスでゴースト表示"),	_T("この接続でのゴースト表示を禁止します。\nすべて表示しないようにするにはレジストリを直接操作する必要があります。\nHCU\\Software\\Culti\\RLogin\\TabBar\\GhostWnd")	},
 	{	TO_RLMWDIS,		_T("サイズを表示しない"),			_T("画面サイズを表示する"),			_T("画面サイズが変更されると画面中央に横ｘ縦サイズを自動で表示します。\n表示は、約３秒ほどで自動で消えます")	},
 	{	TO_RLGRPIND,	_T("イメージを全表示する"),			_T("イメージを部分表示する"),		_T("Sixel/Imageを外部ウィンドウで表示する場合の表示方法を選択します\n全表示では、上下/左右に余白が表示されます")	},
 	{	TO_RLSTAYCLIP,	_T("範囲指定を解除しない"),			_T("コピー時に範囲指定を解除"),		_T("画面を範囲指定した場合にコピーしても反転表示したまにします")	},
+	{	TO_SETWINPOS,	_T("XTWOPでウィンドウ操作"),		_T("ウインドウ操作しない"),			_T("XTWOP(CSI t)でメインウィンドウの位置やサイズなどを操作できるようにします")	},
+	{	TO_RLWORDPP,	_T("ワード単位で調整"),				_T("文字単位で調整する"),			_T("プロポーショナルフォントの調整方法を選択します")	},
 	{	0,				NULL,								NULL,								NULL	}
 };
 

@@ -149,6 +149,9 @@ CRLoginView::CRLoginView()
 	m_PastNoCheck = FALSE;
 	m_ScrollOut = FALSE;
 	m_LastMouseFlags = 0;
+	m_ClipUpdateLine = FALSE;
+
+	m_pCellSize = NULL;
 
 #ifdef	USE_DIRECTWRITE
 	m_pRenderTarget = NULL;
@@ -159,6 +162,9 @@ CRLoginView::~CRLoginView()
 {
 	if ( m_pGhost != NULL )
 		m_pGhost->DestroyWindow();
+
+	if ( m_pCellSize != NULL )
+		delete [] m_pCellSize;
 
 #ifdef	USE_DIRECTWRITE
 	if ( m_pRenderTarget != NULL )
@@ -303,8 +309,13 @@ void CRLoginView::OnDraw(CDC* pDC)
 	}
 #endif
 
-	if ( (m_DispCaret & FGCARET_CREATE) != 0 )
+	if ( (m_DispCaret & FGCARET_CREATE) != 0 ) {
+		if ( m_ClipUpdateLine && m_pCellSize != NULL && m_CaretX != 0 ) {
+			m_CaretX = GetGrapPos(pDoc->m_TextRam.m_CurX, (pDoc->m_TextRam.m_CurY + m_HisOfs - m_HisMin));
+			SetCaret();
+		}
 		ShowCaret();
+	}
 
 	if ( pDoc->m_bUseIdle ) {
 		pDoc->m_bUseIdle = FALSE;
@@ -383,6 +394,51 @@ CRLoginDoc* CRLoginView::GetDocument() // îÒÉfÉoÉbÉO ÉoÅ[ÉWÉáÉìÇÕÉCÉìÉâÉCÉìÇ≈Ç∑Å
 /////////////////////////////////////////////////////////////////////////////
 // CRLoginView Lib
 
+void CRLoginView::ResetCellSize()
+{
+	if ( m_pCellSize == NULL )
+		return;
+	delete [] m_pCellSize;
+	m_pCellSize = NULL;
+}
+void CRLoginView::SetCellSize(int x, int y, int sz)
+{
+	if ( sz <= 0 && m_pCellSize == NULL )
+		return;
+
+	if ( x < 0 || x >= m_Cols || y < 0 || y >= m_Lines )
+		return;
+
+	if ( m_pCellSize == NULL || m_CellCols != m_Cols || m_CellLines != m_Lines ) {
+		if ( m_pCellSize != NULL )
+			delete [] m_pCellSize;
+		m_CellCols  = m_Cols;
+		m_CellLines = m_Lines;
+		m_pCellSize = new BYTE[m_CellCols * m_CellLines];
+		ZeroMemory(m_pCellSize, sizeof(BYTE) * m_CellCols * m_CellLines);
+	}
+
+	m_pCellSize[x + m_CellCols * y] = sz;
+}
+int CRLoginView::GetGrapPos(int x, int y)
+{
+	int n, i;
+	int pos;
+	CRLoginDoc *pDoc = GetDocument();
+
+	if ( m_pCellSize == NULL || y < 0 || y >= m_Lines )
+		return (m_Width * x / m_Cols + pDoc->m_TextRam.m_ScrnOffset.left);
+
+	pos = pDoc->m_TextRam.m_ScrnOffset.left;
+	for ( n = 0 ; n < x ; n++ ) {
+		if ( (i = m_pCellSize[n + m_CellCols * y]) == 0 )
+			pos = m_Width * (n + 1) / m_Cols + pDoc->m_TextRam.m_ScrnOffset.left;
+		else
+			pos += i;
+	}
+	return pos;
+}
+
 void CRLoginView::CalcPosRect(CRect &rect)
 {
 	int x, y;
@@ -443,6 +499,16 @@ void CRLoginView::CalcGrapPoint(CPoint po, int *x, int *y)
 
 	*x = m_Cols  * po.x / m_Width;
 	*y = m_Lines * po.y / m_Height - m_HisOfs + m_HisMin;
+
+	if ( m_pCellSize == NULL )
+		return;
+
+	po.x += pDoc->m_TextRam.m_ScrnOffset.left;
+
+	while ( po.x > GetGrapPos(*x, *y) )
+		*x += 1;
+	while ( po.x <= GetGrapPos(*x, *y) )
+		*x -= 1;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -859,7 +925,7 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 	switch(lHint) {
 	case UPDATE_RESIZE:
 		GetWindowRect(rect);
-		PostMessage(WM_SIZE, SIZE_MAXSHOW, MAKELPARAM(rect.Width(), rect.Height()));
+		SendMessage(WM_SIZE, SIZE_MAXSHOW, MAKELPARAM(rect.Width(), rect.Height()));
 		return;
 
 	case UPDATE_TEKFLUSH:
@@ -1000,6 +1066,8 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		info.nPos   = pDoc->m_TextRam.m_HisLen - m_Lines - m_HisOfs;
 		info.nTrackPos = 0;
 		SetScrollInfo(SB_VERT, &info, TRUE);
+		m_ClipUpdateLine = FALSE;
+		ResetCellSize();
 		Invalidate(FALSE);
 		if ( m_pGhost != NULL )
 			m_pGhost->Invalidate(FALSE);
@@ -1008,6 +1076,10 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 	case UPDATE_TEXTRECT:
 	case UPDATE_BLINKRECT:
 		rect = *((CRect *)pHint);
+		if ( m_ClipUpdateLine ) {
+			rect.left  = 0;
+			rect.right = pDoc->m_TextRam.m_Cols;
+		}
 		InvalidateTextRect(rect);
 		//CalcTextRect(rect);
 		//InvalidateRect(rect, FALSE);
@@ -1017,11 +1089,11 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 
 	case UPDATE_CLIPERA:
 		CalcPosRect(rect);
-		if ( IsClipRectMode() ) {
-			InvalidateTextRect(rect);
-		} else if ( IsClipLineMode() ) {
+		if ( IsClipLineMode() || m_ClipUpdateLine ) {
 			rect.left  = 0;
 			rect.right = pDoc->m_TextRam.m_Cols;
+			InvalidateTextRect(rect);
+		} else if ( IsClipRectMode() ) {
 			InvalidateTextRect(rect);
 		} else if ( rect.Height() == 1 ) {
 			InvalidateTextRect(rect);
@@ -1053,7 +1125,8 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 
 	m_DispCaret &= ~FGCARET_ONOFF;
 
-	m_CaretX = m_Width * pDoc->m_TextRam.m_CurX / m_Cols + pDoc->m_TextRam.m_ScrnOffset.left;
+//	m_CaretX = m_Width * pDoc->m_TextRam.m_CurX / m_Cols + pDoc->m_TextRam.m_ScrnOffset.left;
+	m_CaretX = GetGrapPos(pDoc->m_TextRam.m_CurX, (pDoc->m_TextRam.m_CurY + m_HisOfs - m_HisMin));
 	m_CaretY = m_Height * (pDoc->m_TextRam.m_CurY + m_HisOfs - m_HisMin) / m_Lines + pDoc->m_TextRam.m_ScrnOffset.top;
 
 	if ( m_CaretX < 0 || m_CaretX >= (m_Width  + pDoc->m_TextRam.m_ScrnOffset.left) ||

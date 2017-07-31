@@ -297,7 +297,7 @@ public:
 	LPCTSTR GetName(BOOL bCert = TRUE);
 	int GetTypeFromName(LPCTSTR name);
 	int HostVerify(LPCTSTR host);
-	int AddCertHosts(LPCTSTR host);
+	int ChkOldCertHosts(LPCTSTR host);
 
 	int RsaSign(CBuffer *bp, LPBYTE buf, int len);
 	int DssSign(CBuffer *bp, LPBYTE buf, int len);
@@ -322,7 +322,7 @@ public:
 	int SetPrivateBlob(CBuffer *bp);
 
 	int ReadPublicKey(LPCTSTR str);
-	int WritePublicKey(CString &str);
+	int WritePublicKey(CString &str, BOOL bAddUser = TRUE);
 
 	int ReadPrivateKey(LPCTSTR str, LPCTSTR pass, BOOL bHost);
 	int WritePrivateKey(CString &str, LPCTSTR pass);
@@ -701,6 +701,7 @@ private:
 	int m_bPfdConnect;
 
 	void LogIt(LPCTSTR format, ...);
+	void SendTextMsg(LPCSTR str, int len);
 	void PortForward();
 	int MatchList(LPCTSTR client, LPCTSTR server, CString &str);
 	int ChannelOpen();
