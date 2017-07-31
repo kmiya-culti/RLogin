@@ -17,9 +17,8 @@
 #include "GrapWnd.h"
 #include "GhostWnd.h"
 
-#define	FIX_VERSION		9
+#define	FIX_VERSION		9				// AnsiOpt Bugfix version
 
-#define	USE_FIXWCHAR	1				// MemMap Base Fixed WCHAR Buffer
 #define	USE_TEXTFRAME	1				// Enabled ATT_FRAME RS/RD/LS/LDLINE 
 
 #define	COLS_MAX		512
@@ -221,10 +220,12 @@
 #define	TO_SETWINPOS	1461		// XTWOPでWindowsの操作を行う
 #define	TO_RLWORDPP		1462		// プロポーショナルフォントをワードで調整
 #define	TO_RLRBSCROLL	1463		// マウスのRボタンでスクロールする
-#define	TO_RLNOTBCAST	1464		// 同時送信に含めない
+#define	TO_RLGROUPCAST	1464		// グループキャストに含める
 #define	TO_RLEDITPAST	1465		// 常にペーストを確認する
 #define	TO_RLDELYPAST	1466		// ペースト時に改行確認する
 #define	TO_RLUPDPAST	1467		// ペースト時の編集後コピーする
+#define	TO_RLNTBCSEND	1468		// 同時送信しない
+#define	TO_RLNTBCRECV	1469		// 同時受信しない
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -361,7 +362,27 @@
 #define	EXTCOL_MAX				270
 #define	EXTCOL_MATRIX			26
 
-#define UNIBLOCKTABMAX	262
+#define	FNT_BITMAP_MONO			1
+#define	FNT_BITMAP_COLOR		2
+
+#define	MARCHK_NONE				0
+#define	MARCHK_COLS				1
+#define	MARCHK_LINES			2
+#define	MARCHK_BOTH				3
+
+#define	PROCTYPE_ESC			0
+#define	PROCTYPE_CSI			1
+#define	PROCTYPE_DCS			2
+#define	PROCTYPE_CTRL			3
+#define	PROCTYPE_TEK			4
+
+#define	TRACE_OUT				0
+#define	TRACE_NON				1
+#define	TRACE_SIXEL				2
+#define	TRACE_UNGET				3
+#define	TRACE_IGNORE			4
+
+#define UNIBLOCKTABMAX			262
 
 typedef struct _UNIBLOCKTAB {
 	DWORD	code;
@@ -448,11 +469,9 @@ typedef struct _Vram {
 	BYTE	bcol;			// 背景色番号
 } VRAM;
 
-#ifdef	USE_FIXWCHAR
-
-#define	MAXCHARSIZE	12
-#define	MEMMAPSIZE	(sizeof(CCharCell) * COLS_MAX * 128)		// 32 * 512 * 128 = 2M
-#define	MEMMAPCACHE	4
+#define	MAXCHARSIZE		12
+#define	MEMMAPSIZE		(sizeof(CCharCell) * COLS_MAX * 128)		// 32 * 512 * 128 = 2M
+#define	MEMMAPCACHE		4
 
 typedef struct _MemMapNode {
 	struct _MemMapNode *pNext;
@@ -476,31 +495,14 @@ public:
 	void *MemMap(HANDLE hFile, ULONGLONG pos);
 };
 
-#else	// !USE_FIXWCHAR
-	#define	MAXCHARSIZE	31
-	WCHAR *WCharAlloc(int len);
-	void WCharFree(WCHAR *ptr);
-	int WCharSize(WCHAR *ptr);
-	void AllWCharAllocFree();
-#endif	// USE_FIXWCHAR
-
 ///////////////////////////////////////////////////////
-//				        FIXW       x64        x32
-// sizeof(CCharCell) == 32 Byte or 20 Byte or 16 Byte
+// sizeof(CCharCell) == 20 + 12 = 32 Byte
 //
 class CCharCell
 {
 public:
-#ifdef	USE_FIXWCHAR
 	WCHAR		m_Data[MAXCHARSIZE - 2];	// WCHAR * (12 - m_Vram.pack.wcbuf[2]) = 20 Byte
 	VRAM		m_Vram;						// DWORD * 3 = 12 Byte
-#else
-	WCHAR		*m_Data;					// (WCHAR *) = 4 / 8 Byte
-	VRAM		m_Vram;						// DWORD * 3 = 12 Byte
-
-	CCharCell();
-	~CCharCell();
-#endif
 
 	inline void Empty() { if ( !IS_IMAGE(m_Vram.mode) ) m_Data[0] = 0; }
 	inline BOOL IsEmpty() { return (IS_IMAGE(m_Vram.mode) || m_Data[0] == 0 ? TRUE : FALSE); }
@@ -515,12 +517,7 @@ public:
 	void operator += (DWORD ch);
 	void SetVRAM(VRAM &ram);
 
-#ifdef	USE_FIXWCHAR
 	inline const CCharCell & operator = (CCharCell &data) { memcpy(this, &data, sizeof(CCharCell)); return *this; }
-#else
-	void GetCCharCell(CCharCell &data);
-	inline const CCharCell & operator = (CCharCell &data) { if ( data.m_Data == data.m_Vram.pack.wcbuf && m_Data == m_Vram.pack.wcbuf ) m_Vram = data.m_Vram; else GetCCharCell(data); return *this; }
-#endif
 	inline void operator = (VRAM &ram) { m_Vram = ram; *this = ram.pack.dchar; }
 
 	void SetBuffer(CBuffer &buf);
@@ -563,9 +560,6 @@ public:
 	CString m_Iso646Name[2];
 	DWORD m_Iso646Tab[12];
 
-#define	FNT_BITMAP_MONO		1
-#define	FNT_BITMAP_COLOR	2
-
 	void SetHash(int num);
 	void Init();
 	void SetArray(CStringArrayExt &stra);
@@ -598,7 +592,7 @@ public:
 
 	const CUniBlockTab & operator = (CUniBlockTab &data);
 	int Add(DWORD code, int index, LPCTSTR name = NULL);
-	int Find(int code);
+	int Find(DWORD code);
 
 	static LPCTSTR GetCode(LPCTSTR str, DWORD &code);
 	void SetBlockCode(LPCTSTR str, int index);
@@ -627,12 +621,6 @@ public:
 	~CFontTab();
 };
 
-#define	PROCTYPE_ESC	0
-#define	PROCTYPE_CSI	1
-#define	PROCTYPE_DCS	2
-#define	PROCTYPE_CTRL	3
-#define	PROCTYPE_TEK	4
-
 class CProcNode : public CObject
 {
 public:
@@ -651,7 +639,7 @@ public:
 
 	void Add(int type, int code, LPCTSTR name);
 	inline void RemoveAll() { m_Data.RemoveAll(); }
-	inline int GetSize() { return m_Data.GetSize(); }
+	inline int GetSize() { return (int)m_Data.GetSize(); }
 	inline CProcNode & operator[](int nIndex) { return m_Data[nIndex]; }
 
 	void Init();
@@ -662,12 +650,6 @@ public:
 	const CProcTab & operator = (CProcTab &data);
 	CProcTab();
 };
-
-#define	TRACE_OUT		0
-#define	TRACE_NON		1
-#define	TRACE_SIXEL		2
-#define	TRACE_UNGET		3
-#define	TRACE_IGNORE	4
 
 class CTraceNode : public CObject
 {
@@ -797,6 +779,7 @@ public:	// Options
 	int m_SleepMax;
 	int m_LogMode;
 	int m_DefTermPara[5];
+	CString m_GroupCast;
 
 	void Init();
 	void SetIndex(int mode, CStringIndex &index);
@@ -815,12 +798,8 @@ public:
 	class CServerEntry *m_pServerEntry;
 	class CFontTab m_FontTab;
 
-#ifdef	USE_FIXWCHAR
 	CMemMap m_MemMap;
 	HANDLE m_hMap;
-#else
-	CCharCell *m_VRam;
-#endif
 
 	BOOL m_bOpen;
 	VRAM m_AttSpc;
@@ -843,7 +822,7 @@ public:
 	char m_ModKeyTab[256];
 
 	BOOL m_bSixelColInit;
-	COLORREF m_SixelColor[SIXEL_PALET];
+	COLORREF *m_pSixelColor;
 
 	int m_ColsMax;
 	int m_LineUpdate;
@@ -959,13 +938,10 @@ public:
 	virtual ~CTextRam();
 	
 	// Window Fonction
-#ifdef	USE_FIXWCHAR
 	BOOL IsInitText() { return (m_bOpen && m_hMap != NULL ? TRUE : FALSE); }
 	inline ULONGLONG CalcOffset(int x, int y) { return sizeof(CCharCell) * ((ULONGLONG)y * COLS_MAX + x); }
 	inline CCharCell *GETMAPRAM(HANDLE hFile, int x, int y) { return (CCharCell *)m_MemMap.MemMap(hFile, CalcOffset(x, y)); }
-#else
-	BOOL IsInitText() { return (m_bOpen && m_VRam != NULL ? TRUE : FALSE); }
-#endif
+
 	void InitText(int Width, int Height);
 	void InitScreen(int cols, int lines);
 	int Write(LPBYTE lpBuf, int nBufLen, BOOL *sync);
@@ -1020,10 +996,6 @@ public:
 	void GetLine(int sy, CString &str);
 	void GetScreenSize(int *x, int *y);
 
-#if 0
-	void LineOut(CDC *pDC, CRect &box, COLORREF fc, COLORREF bc, int rv, struct DrawWork &prop, int len, LPCWSTR str, int *spc, class CRLoginView *pView);
-	void StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop, int len, LPCWSTR str, int *spc, class CRLoginView *pView);
-#endif
 	void DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv, struct DrawWork &prop, class CRLoginView *pView);
 	void DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv, struct DrawWork &prop, class CRLoginView *pView);
 	void DrawHoriLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv, struct DrawWork &prop, class CRLoginView *pView);
@@ -1054,10 +1026,6 @@ public:
 	inline int GetTopMargin() { return m_TopY; }
 	inline int GetBottomMargin() { return m_BtmY; }
 
-#define	MARCHK_NONE		0
-#define	MARCHK_COLS		1
-#define	MARCHK_LINES	2
-#define	MARCHK_BOTH		3
 	BOOL GetMargin(int bCheck = MARCHK_NONE);
 
 	void OnClose();
@@ -1182,8 +1150,8 @@ public:
 
 	// Proc
 	inline void fc_Call(DWORD ch) { (this->*m_pCallPoint)(ch); }
-	inline void fc_Case(int stage);
-	inline void fc_Push(int stage);
+	void fc_Case(int stage);
+	void fc_Push(int stage);
 
 	ESCNAMEPROC *FindProcName(void (CTextRam::*proc)(DWORD ch));
 

@@ -545,7 +545,7 @@ void CCharSetPage::OnLvnItemchangedFontlist(NMHDR *pNMHDR, LRESULT *pResult)
 			m_FontSample.Invalidate(FALSE);
 		}
 	} else {
-		m_ListIndex = m_List.GetItemData(pNMLV->iItem);
+		m_ListIndex = (int)m_List.GetItemData(pNMLV->iItem);
 		m_FontSample.Invalidate(FALSE);
 	}
 

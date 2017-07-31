@@ -99,6 +99,7 @@ public:
 	BOOL m_bUseIdle;
 	int m_AfterId;
 	int m_LogSendRecv;
+	CString m_CmdLine;
 
 	void SetIndex(int mode, CStringIndex &index);
 
@@ -141,7 +142,7 @@ public:
 	BOOL LogOpen(LPCTSTR filename);
 	BOOL LogClose();
 	void LogWrite(LPBYTE lpBuf, int nBufLen, int SendRecv);
-	void LogDebug(LPCSTR str, ...);
+	void LogDebug(LPCTSTR str, ...);
 	void LogDump(LPBYTE lpBuf, int nBufLen);
 	void LogInit();
 

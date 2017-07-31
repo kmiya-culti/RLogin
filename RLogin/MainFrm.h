@@ -52,6 +52,7 @@ public:
 	class CPaneFrame *GetEntry();
 	int SetActive(HWND hWnd);
 	int IsOverLap(CPaneFrame *pPane);
+	BOOL IsTopLevel(CPaneFrame *pPane);
 	int GetPaneCount(int count);
 	BOOL IsReqSize();
 
@@ -156,6 +157,7 @@ public:
 	UINT_PTR m_MidiTimer;
 	CList<class CMidiQue *, class CMidiQue *> m_MidiQue;
 	volatile int m_InfoThreadCount;
+	BOOL m_bTabBarShow;
 	BOOL m_ScrollBarFlag;
 	BOOL m_bVersionCheck;
 	CPtrArray m_MenuMap;
@@ -165,6 +167,10 @@ public:
 	HWND m_hNextClipWnd;
 	BOOL m_bBroadCast;
 	CList<CStringW, CStringW &> m_ClipBoard;
+	int m_ScreenX;
+	int m_ScreenY;
+	int m_ScreenW;
+	int m_ScreenH;
 
 	BOOL PagentQuery(CBuffer *pInBuf, CBuffer *pOutBuf);
 	void PagentInit(CArray<CIdKey, CIdKey &> *pKeyTab);
@@ -198,6 +204,7 @@ public:
 	void MoveChild(CWnd *pWnd, CPoint point);
 	void SwapChild(CWnd *pLeft, CWnd *pRight);
 	BOOL IsOverLap(HWND hWnd);
+	BOOL IsTopLevelDoc(CRLoginDoc *pDoc);
 	int GetTabIndex(CWnd *pWnd);
 	void GetTabTitle(CWnd *pWnd, CString &title);
 	CWnd *GetTabWnd(int idx);
@@ -217,6 +224,8 @@ public:
 	void InvertTracker(CRect &rect);
 	int PreLButtonDown(UINT nFlags, CPoint point);
 	int GetExecCount();
+	void SetActivePoint(CPoint point);
+
 	CMenu *GetSaveMenu(HMENU hDocMenu);
 	void SetClipBoardMenu(UINT nId, CMenu *pMenu);
 	void SetMenuBitmap(CMenu *pMenu);
@@ -281,6 +290,8 @@ protected:
 
 	afx_msg void OnViewMenubar();
 	afx_msg void OnUpdateViewMenubar(CCmdUI *pCmdUI);
+	afx_msg void OnViewTabbar();
+	afx_msg void OnUpdateViewTabbar(CCmdUI *pCmdUI);
 	afx_msg void OnViewScrollbar();
 	afx_msg void OnUpdateViewScrollbar(CCmdUI *pCmdUI);
 	afx_msg void OnVersioncheck();

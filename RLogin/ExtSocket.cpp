@@ -1043,7 +1043,7 @@ int CExtSocket::ProxyFunc()
 			if ( m_ProxyStr.IsEmpty() ) {
 				m_ProxyStatus = PRST_HTTP_HEADCHECK;
 				break;
-			} else if ( (m_ProxyStr[0] == _T('\t') || m_ProxyStr[0] == _T(' ')) && (n = m_ProxyResult.GetSize()) > 0 )
+			} else if ( (m_ProxyStr[0] == _T('\t') || m_ProxyStr[0] == _T(' ')) && (n = (int)m_ProxyResult.GetSize()) > 0 )
 				m_ProxyResult[n - 1] += m_ProxyStr;
 			else
 				m_ProxyResult.Add(m_ProxyStr);
@@ -1775,7 +1775,7 @@ BOOL CExtSocket::GetSockOpt(int nOptionName, void* lpOptionValue, int* lpOptionL
 		return FALSE;
 	return TRUE;
 }
-void CExtSocket::GetPeerName(int fd, CString &host, int *port)
+void CExtSocket::GetPeerName(SOCKET fd, CString &host, int *port)
 {
 #ifdef	NOIPV6
 	int inlen;
@@ -1801,7 +1801,7 @@ void CExtSocket::GetPeerName(int fd, CString &host, int *port)
 	*port = atoi(serv);
 #endif
 }
-void CExtSocket::GetSockName(int fd, CString &host, int *port)
+void CExtSocket::GetSockName(SOCKET fd, CString &host, int *port)
 {
 #ifdef	NOIPV6
 	int inlen;
@@ -1967,7 +1967,7 @@ ERRRET:
 
 void CExtSocket::PunyCodeEncode(LPCWSTR str, CString &out)
 {
-	int n, i, len, count, basic;
+	int n, len, count, basic;
 	unsigned long q, k, t, d;
 	unsigned long min, max, delta, bias;
 
@@ -2128,7 +2128,7 @@ int CExtSocket::SSLConnect()
 		goto ERRENDOF;
 
 	SSL_CTX_set_mode(m_SSL_pCtx, SSL_MODE_AUTO_RETRY);
-	SSL_set_fd(m_SSL_pSock, m_Fd);
+	SSL_set_fd(m_SSL_pSock, (int)m_Fd);
 
 	if ( SSL_connect(m_SSL_pSock) < 0 )
 		goto ERRENDOF;

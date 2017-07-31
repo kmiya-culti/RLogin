@@ -495,7 +495,7 @@ void CComSock::OnReadWriteProc()
 		// Wait For Event
 		ASSERT(HandleCount > 0);
 		n = WaitForMultipleObjects(HandleCount, HandleTab, FALSE, INFINITE);
-		if ( n >= WAIT_OBJECT_0 && (n -= WAIT_OBJECT_0) < HandleCount ) {
+		if ( n >= WAIT_OBJECT_0 && (n -= WAIT_OBJECT_0) < (DWORD)HandleCount ) {
 			if ( HandleTab[n] == m_pSendEvent->m_hObject )
 				bHaveSendData = TRUE;
 			else if ( HandleTab[n] == TimerEvent.m_hObject ) {

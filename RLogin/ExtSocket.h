@@ -56,9 +56,7 @@
 
 #define	LISTENSOCKS			8
 
-//#define	USE_DEBUG			1
-
-#ifdef	USE_DEBUG
+#ifdef	USE_DEBUGLOG
 #define	DEBUGLOG			m_pDocument->LogDebug
 #define	DEBUGDUMP			m_pDocument->LogDump
 #else
@@ -252,8 +250,8 @@ public:
 	BOOL SetSockOpt(int nOptionName, const void* lpOptionValue, int nOptionLen, int nLevel = SOL_SOCKET );
 	BOOL GetSockOpt(int nOptionName, void* lpOptionValue, int* lpOptionLen, int nLevel = SOL_SOCKET );
 
-	static void GetPeerName(int fd, CString &host, int *port);
-	static void GetSockName(int fd, CString &host, int *port);
+	static void GetPeerName(SOCKET fd, CString &host, int *port);
+	static void GetSockName(SOCKET fd, CString &host, int *port);
 	static void GetHostName(struct sockaddr *addr, int addrlen, CString &host);
 	static int GetPortNum(LPCTSTR str);
 	static BOOL SokcetCheck(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM);

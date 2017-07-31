@@ -149,7 +149,7 @@ void COptDlg::AddPage(CTreePage *pPage, CTreePage *pOwn)
 {
 	pPage->m_pSheet = this;
 	pPage->m_pOwn   = pOwn;
-	pPage->m_nPage  = m_Tab.Add(pPage);
+	pPage->m_nPage  = (int)m_Tab.Add(pPage);
 }
 BOOL COptDlg::CreatePage(int nPage)
 {

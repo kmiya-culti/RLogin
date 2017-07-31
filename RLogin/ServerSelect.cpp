@@ -633,6 +633,8 @@ void CServerSelect::OnServInport()
 void CServerSelect::OnServExport()
 {
 	int n;
+	CFile File;
+	CStringIndex index;
 	CServerEntry Entry;
 	CTextRam TextRam;
 	CKeyNodeTab KeyTab;
@@ -646,8 +648,6 @@ void CServerSelect::OnServExport()
 
 	if ( dlg.DoModal() != IDOK )
 		return;
-
-	CFile File;
 
 	if ( !File.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeReadWrite | CFile::shareExclusive) ) {
 		MessageBox(_T("File Crate Error"));
@@ -670,9 +670,7 @@ void CServerSelect::OnServExport()
 			KeyMac.Serialize(FALSE,   Entry.m_ProBuffer);
 			ParamTab.Serialize(FALSE, Entry.m_ProBuffer);
 
-#if 1
-			CStringIndex index;
-
+			index.RemoveAll();
 			index.SetNoCase(TRUE);
 			index.SetNoSort(TRUE);
 
@@ -686,15 +684,8 @@ void CServerSelect::OnServExport()
 			Archive.Write("RLG310\r\n", 8);
 			index.Serialize(Archive, NULL);
 			Archive.Write("ENDOF\r\n", 7);
-#else
-			Archive.Write("RLG210\n", 7);
-			Entry.Serialize(Archive);
-			TextRam.Serialize(Archive);
-			KeyTab.Serialize(Archive);
-			KeyMac.Serialize(Archive);
-			ParamTab.Serialize(Archive);
-#endif
 		}
+
 	} CATCH_ALL(e) {
 		MessageBox(_T("File Write Error"));
 	} END_CATCH_ALL

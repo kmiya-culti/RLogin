@@ -362,10 +362,6 @@ private:
 	int SraEncode(char *p, int len, DesData *key);
 	int SraDecode(char *p, int len, DesData *key);
 
-	void NsaGenkey(char *p);
-	void NsaEncode(char *p, int len, char *key);
-	void NsaDecode(char *p, int len, char *key);
-
 	char feed[128];
 	DesData krb_key;
 	des_key_schedule krb_sched;

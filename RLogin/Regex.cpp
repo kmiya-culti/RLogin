@@ -64,7 +64,7 @@ CStringD::CStringD()
 CStringD::CStringD(const CStringD &data, int iFirst, int nCount)
 {
 	int n;
-	int len = data.m_Data.GetSize() - 1;
+	int len = (int)data.m_Data.GetSize() - 1;
 
 	Empty();
 
@@ -92,7 +92,7 @@ CStringD & CStringD::operator += (DCHAR ch)
 CStringD & CStringD::operator += (const CStringD &data)
 {
 	int n;
-	int len = data.m_Data.GetSize() - 1;
+	int len = (int)data.m_Data.GetSize() - 1;
 	int idx = GetLength();
 
 	for ( n = 0 ; n < len ; n++, idx++ ) {
@@ -266,7 +266,7 @@ int CStringD::Insert(int iIndex, const CStringD &data)
 	if ( iIndex > len )
 		iIndex = len;
 
-	len = data.m_Data.GetSize() - 1;
+	len = (int)data.m_Data.GetSize() - 1;
 	for ( n = 0 ; n < len ; n++, iIndex++ ) {
 		m_Data.InsertAt(iIndex, data.m_Data[n]);
 		m_Vs.InsertAt(iIndex, data.m_Vs[n]);

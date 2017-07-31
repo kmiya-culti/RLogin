@@ -80,11 +80,12 @@ BEGIN_MESSAGE_MAP(CSerEntPage, CTreePage)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_KANJICODE1, IDC_KANJICODE4, OnUpdateCheck)
 	ON_BN_CLICKED(IDC_CHATEDIT, &CSerEntPage::OnChatEdit)
 	ON_BN_CLICKED(IDC_PROXYSET, &CSerEntPage::OnProxySet)
-	ON_BN_CLICKED(IDC_TERMCAP, &CSerEntPage::OnBnClickedTermcap)
+	ON_BN_CLICKED(IDC_TERMCAP, &CSerEntPage::OnTermcap)
 	ON_EN_CHANGE(IDC_ENTRYMEMO, OnUpdateEdit)
 	ON_CBN_EDITCHANGE(IDC_GROUP, OnUpdateEdit)
 	ON_CBN_EDITCHANGE(IDC_BEFORE, OnUpdateEdit)
 	ON_BN_CLICKED(IDC_PROTOCHECK1, OnUpdateOption)
+	ON_BN_CLICKED(IDC_ICONFILE, &CSerEntPage::OnIconfile)
 END_MESSAGE_MAP()
 
 void CSerEntPage::SetEnableWind()
@@ -159,6 +160,7 @@ void CSerEntPage::DoInit()
 	m_Memo        = m_pSheet->m_pEntry->m_Memo;
 	m_Group       = m_pSheet->m_pEntry->m_Group;
 	m_BeforeEntry = m_pSheet->m_pEntry->m_BeforeEntry;
+	m_IconName    = m_pSheet->m_pEntry->m_IconName;
 
 	m_ExtEnvStr   = m_pSheet->m_pParamTab->m_ExtEnvStr;
 
@@ -282,6 +284,7 @@ BOOL CSerEntPage::OnApply()
 	m_pSheet->m_pParamTab->m_ExtEnvStr = m_ExtEnvStr;
 	m_pSheet->m_pTextRam->SetOption(TO_RLUSEPASS, m_UsePassDlg);
 	m_pSheet->m_pTextRam->SetOption(TO_PROXPASS, m_UseProxyDlg);
+	m_pSheet->m_pEntry->m_IconName  = m_IconName;
 
 	return TRUE;
 }
@@ -394,7 +397,7 @@ void CSerEntPage::OnProxySet()
 	m_pSheet->m_ModFlag |= (UMOD_ENTRY | UMOD_PARAMTAB);
 }
 
-void CSerEntPage::OnBnClickedTermcap()
+void CSerEntPage::OnTermcap()
 {
 	int n;
 	CEnvDlg dlg;
@@ -429,4 +432,21 @@ void CSerEntPage::OnBnClickedTermcap()
 	UpdateData(FALSE);
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_PARAMTAB;
+}
+void CSerEntPage::OnIconfile()
+{
+	UpdateData(TRUE);
+
+	CFileDialog dlg(TRUE, _T(""), m_IconName, OFN_HIDEREADONLY, CStringLoad(IDS_FILEDLGICONGRAP), this);
+
+	if ( dlg.DoModal() != IDOK ) {
+		if ( m_IconName.IsEmpty() || MessageBox(CStringLoad(IDS_ICONFILEDELREQ), _T("Question"), MB_ICONQUESTION | MB_YESNO) != IDYES )
+			return;
+		m_IconName.Empty();
+	} else
+		m_IconName = dlg.GetPathName();
+
+	UpdateData(FALSE);
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= UMOD_ENTRY;
 }

@@ -234,7 +234,7 @@ void CIdkeySelDLg::OnOK()
 	m_IdKeyList.RemoveAll();
 	for ( int n = 0 ; n < m_Data.GetSize() ; n++ ) {
 		if ( m_List.GetLVCheck(n) ) {
-			int i = m_List.GetItemData(n);
+			int i = (int)m_List.GetItemData(n);
 			m_IdKeyList.AddVal(m_Data[i]);
 		}
 	}

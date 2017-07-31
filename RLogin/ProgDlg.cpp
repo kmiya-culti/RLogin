@@ -90,7 +90,7 @@ void CProgDlg::SetRange(LONGLONG max, LONGLONG rem)
 	for ( m_Div = 1 ; (max / m_Div) >= 0x8000 ; m_Div *= 2 )
 		;
 	
-	m_FileSize.SetRange(0, (int)(max / m_Div));
+	m_FileSize.SetRange(0, (short)(max / m_Div));
 	m_FileSize.SetPos(0);
 
 	UpdateData(TRUE);

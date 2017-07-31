@@ -823,8 +823,8 @@ void CProcTab::SetIndex(int mode, CStringIndex &index)
 	CProcNode node;
 
 	if ( mode ) {
-		index.SetSize(m_Data.GetSize());
-		for ( n = 0 ; n < m_Data.GetSize() ; n++ ) {
+		index.SetSize((int)m_Data.GetSize());
+		for ( n = 0 ; n < (int)m_Data.GetSize() ; n++ ) {
 			index[n][_T("Type")] = m_Data[n].m_Type;
 			index[n][_T("Code")] = m_Data[n].m_Code;
 			index[n][_T("Name")] = m_Data[n].m_Name;
@@ -973,7 +973,6 @@ void CTextRam::fc_InitProcName(CTextRam::ESCNAMEPROC *tab, int max)
 void CTextRam::fc_Init(int mode)
 {
 	int i, n;
-	ESCNAMEPROC *tp;
 
 	if ( !fc_Init_Flag ) {
 		fc_Init_Flag = TRUE;
@@ -1065,13 +1064,13 @@ void CTextRam::fc_Init(int mode)
 
 	m_CsiExt.RemoveAll();
 	for ( i = 0 ; fc_CsiExtTab[i].proc != NULL ; i++ ) {
-		if ( !BinaryFind((void *)&(fc_CsiExtTab[i].code), m_CsiExt.GetData(), sizeof(CSIEXTTAB), m_CsiExt.GetSize(), ProcCodeCmp, &n) )
+		if ( !BinaryFind((void *)&(fc_CsiExtTab[i].code), m_CsiExt.GetData(), sizeof(CSIEXTTAB), (int)m_CsiExt.GetSize(), ProcCodeCmp, &n) )
 			m_CsiExt.InsertAt(n, (CTextRam::CSIEXTTAB)(fc_CsiExtTab[i]));
 	}
 
 	m_DcsExt.RemoveAll();
 	for ( i = 0 ; fc_DcsExtTab[i].proc != NULL ; i++ ) {
-		if ( !BinaryFind((void *)&(fc_DcsExtTab[i].code), m_DcsExt.GetData(), sizeof(CSIEXTTAB), m_DcsExt.GetSize(), ProcCodeCmp, &n) )
+		if ( !BinaryFind((void *)&(fc_DcsExtTab[i].code), m_DcsExt.GetData(), sizeof(CSIEXTTAB), (int)m_DcsExt.GetSize(), ProcCodeCmp, &n) )
 			m_DcsExt.InsertAt(n, (CTextRam::CSIEXTTAB)(fc_DcsExtTab[i]));
 	}
 
@@ -1287,14 +1286,14 @@ void CTextRam::fc_TraceCall(DWORD ch)
 	}
 }
 
-inline void CTextRam::fc_Case(int stage)
+void CTextRam::fc_Case(int stage)
 {
 	if ( (m_Stage = stage) <= STAGE_EXT3 )
 		m_Func = m_LocalProc[stage];
 	else
 		m_Func = fc_Proc[stage];
 }
-inline void CTextRam::fc_Push(int stage)
+void CTextRam::fc_Push(int stage)
 {
 	ASSERT(m_StPos < 16);
 	m_Stack[m_StPos++] = m_Stage;
@@ -1373,7 +1372,7 @@ void CTextRam::CsiNameProc(int code, LPCTSTR name)
 		m_LocalProc[4][code & 0x7F | 0x80] = proc;
 		break;
 	default:
-		if ( BinaryFind((void *)&code, m_CsiExt.GetData(), sizeof(CSIEXTTAB), m_CsiExt.GetSize(), ProcCodeCmp, &n) )
+		if ( BinaryFind((void *)&code, m_CsiExt.GetData(), sizeof(CSIEXTTAB), (int)m_CsiExt.GetSize(), ProcCodeCmp, &n) )
 			m_CsiExt[n].proc = proc;
 		else {
 			tmp.code = code;
@@ -1407,7 +1406,7 @@ void CTextRam::DcsNameProc(int code, LPCTSTR name)
 	if ( BinaryFind((void *)name, (void *)fc_DcsNameTab, sizeof(ESCNAMEPROC), DCSNAMETABMAX, ProcNameCmp, &n) )
 		proc = fc_DcsNameTab[n].data.proc;
 
-	if ( BinaryFind((void *)&code, m_DcsExt.GetData(), sizeof(CSIEXTTAB), m_DcsExt.GetSize(), ProcCodeCmp, &n) )
+	if ( BinaryFind((void *)&code, m_DcsExt.GetData(), sizeof(CSIEXTTAB), (int)m_DcsExt.GetSize(), ProcCodeCmp, &n) )
 		m_DcsExt[n].proc = proc;
 	else {
 		tmp.code = code;
@@ -1817,7 +1816,7 @@ void CTextRam::KanjiCodeCheck(int ch, KANCODEWORK *work)
 void CTextRam::fc_KANJI(DWORD ch)
 {
 	if ( ch >= 128 || m_Kan_Buf[(m_Kan_Pos - 1) & (KANBUFMAX - 1)] >= 128 ) {
-		m_Kan_Buf[m_Kan_Pos++] = ch; 
+		m_Kan_Buf[m_Kan_Pos++] = (BYTE)ch; 
 		m_Kan_Pos &= (KANBUFMAX - 1);
 	}
 }
@@ -2041,7 +2040,6 @@ void CTextRam::fc_UTF85(DWORD ch)
 {
 	// 10xx xxxx
 	int n, cf;
-	CCharCell *vp;
 
 	fc_KANJI(ch);
 
@@ -3074,7 +3072,7 @@ void CTextRam::fc_OSC_CMD(DWORD ch)
 
 			int n;
 			CString tmp;
-			if ( m_OscMode == 'P' && BinaryFind((void *)&m_BackChar, m_DcsExt.GetData(), sizeof(CSIEXTTAB), m_DcsExt.GetSize(), ProcCodeCmp, &n) && m_DcsExt[n].proc == &CTextRam::fc_DECSIXEL ) {
+			if ( m_OscMode == 'P' && BinaryFind((void *)&m_BackChar, m_DcsExt.GetData(), sizeof(CSIEXTTAB), (int)m_DcsExt.GetSize(), ProcCodeCmp, &n) && m_DcsExt[n].proc == &CTextRam::fc_DECSIXEL ) {
 				tmp.Format(_T("Sixel - %s"), m_pDocument->m_ServerEntry.m_EntryName);
 				if ( m_pWorkGrapWnd != NULL )
 					m_pWorkGrapWnd->DestroyWindow();
@@ -3142,7 +3140,7 @@ void CTextRam::fc_OSC_ST(DWORD ch)
 
 	switch(m_OscMode) {
 	case 'P':	// DCS
-		if ( BinaryFind((void *)&m_BackChar, m_DcsExt.GetData(), sizeof(CSIEXTTAB), m_DcsExt.GetSize(), ProcCodeCmp, &n) ) {
+		if ( BinaryFind((void *)&m_BackChar, m_DcsExt.GetData(), sizeof(CSIEXTTAB), (int)m_DcsExt.GetSize(), ProcCodeCmp, &n) ) {
 			m_TraceFunc = m_DcsExt[n].proc;
 			(this->*m_DcsExt[n].proc)(ch);
 		} else
@@ -4306,7 +4304,7 @@ void CTextRam::fc_CSI_DIGIT(DWORD ch)
 
 	// CSI ! 31 -> [0]=OPT, [1]=NOT
 	if ( (m_BackChar & 0x0000FF00) != 0 ) {
-		m_AnsiPara.AddOpt(m_BackChar >> 8, TRUE);
+		m_AnsiPara.AddOpt((BYTE)(m_BackChar >> 8), TRUE);
 		fc_CSI_RST(m_BackChar & 0xFFFF0000);
 	}
 
@@ -4345,19 +4343,19 @@ void CTextRam::fc_CSI_PUSH(DWORD ch)
 {
 	// CSI ! :  -> [0]=OPT, [1][0]=NOT
 	if ( (m_BackChar & 0x0000FF00) != 0 ) {
-		m_AnsiPara.AddOpt(m_BackChar >> 8, FALSE); 
+		m_AnsiPara.AddOpt((BYTE)(m_BackChar >> 8), FALSE); 
 		fc_CSI_RST(m_BackChar & 0xFFFF0000);
 	}
 
 	ASSERT(m_AnsiPara.GetSize() > 0);
 
-	m_AnsiPara[m_AnsiPara.GetSize() - 1].Add(PARA_NOT);
+	m_AnsiPara[(int)m_AnsiPara.GetSize() - 1].Add(PARA_NOT);
 }
 void CTextRam::fc_CSI_SEPA(DWORD ch)
 {
 	// CSI ! ; -> [0]=OPT, [1]=NOT
 	if ( (m_BackChar & 0x0000FF00) != 0 ) {
-		m_AnsiPara.AddOpt(m_BackChar >> 8, FALSE); 
+		m_AnsiPara.AddOpt((BYTE)(m_BackChar >> 8), FALSE); 
 		fc_CSI_RST(m_BackChar & 0xFFFF0000);
 	}
 
@@ -4376,7 +4374,7 @@ void CTextRam::fc_CSI_EXT(DWORD ch)
 	} else {											// <=>?
 		// CSI ! > -> [0]=OPT, [1]=NOT
 		if ( (m_BackChar & 0x0000FF00) != 0 ) {
-			m_AnsiPara.AddOpt(m_BackChar >> 8, TRUE); 
+			m_AnsiPara.AddOpt((BYTE)(m_BackChar >> 8), TRUE); 
 			m_BackChar &= 0xFFFF0000;
 		}
 
@@ -4391,14 +4389,14 @@ void CTextRam::fc_CSI_EXT(DWORD ch)
 		// CSI ; >
 		} else if ( a < 0 ) {
 			if ( m_AnsiPara[n] != PARA_NOT && m_AnsiPara[n] != PARA_OPT )
-				n = m_AnsiPara.Add(PARA_NOT);
+				n = (int)m_AnsiPara.Add(PARA_NOT);
 			m_AnsiPara[n].m_Str += (TCHAR)ch;
 			m_AnsiPara[n] = PARA_OPT;
 
 		// CSI : >
 		} else {
 			if ( m_AnsiPara[n][a] != PARA_NOT && m_AnsiPara[n][a] != PARA_OPT )
-				a = m_AnsiPara[n].Add(PARA_NOT);
+				a = (int)m_AnsiPara[n].Add(PARA_NOT);
 			m_AnsiPara[n][a].m_Str += (TCHAR)ch;
 			m_AnsiPara[n][a] = PARA_OPT;
 		}
@@ -5072,9 +5070,9 @@ void CTextRam::fc_SGR(DWORD ch)
 				if ( m_AnsiPara[a].GetSize() < 2 || m_AnsiPara[a][1] > 255 )
 					break;
 				if ( m_AnsiPara[a] == 38 )
-					m_AttNow.fcol = m_AnsiPara[a][1];
+					m_AttNow.fcol = (BYTE)m_AnsiPara[a][1];
 				else
-					m_AttNow.bcol = m_AnsiPara[a][1];
+					m_AttNow.bcol = (BYTE)m_AnsiPara[a][1];
 				break;
 			}
 			break;
@@ -5475,7 +5473,7 @@ void CTextRam::fc_XTWOP(DWORD ch)
 		case 0:
 		case 1:
 		case 2:
-			if ( (i = m_TitleStack.GetSize() - 1) >= 0 ) {
+			if ( (i = (int)m_TitleStack.GetSize() - 1) >= 0 ) {
 				m_pDocument->SetTitle(m_TitleStack[i]);
 				m_TitleStack.RemoveAt(i);
 			}
@@ -6023,11 +6021,11 @@ void CTextRam::fc_DECCARA(DWORD ch)
 		m_AnsiPara[3] = m_Cols - 1;
 	}
 
-	for ( y = m_AnsiPara[0] ; y <= m_AnsiPara[2] ; y++ ) {
+	for ( y = (int)m_AnsiPara[0] ; y <= (int)m_AnsiPara[2] ; y++ ) {
 		if ( y < m_TopY || y >= m_BtmY )
 			continue;
 
-		for ( x = m_AnsiPara[1] ; x <= m_AnsiPara[3] ; x++ ) {
+		for ( x = m_AnsiPara[1] ; x <= (int)m_AnsiPara[3] ; x++ ) {
 			if ( IsOptEnable(TO_DECLRMM) && (x < m_LeftX || x >= m_RightX) )
 				continue;
 
@@ -6139,11 +6137,11 @@ void CTextRam::fc_DECRARA(DWORD ch)
 		m_AnsiPara[3] = m_Cols - 1;
 	}
 
-	for ( y = m_AnsiPara[0] ; y <= m_AnsiPara[2] ; y++ ) {
+	for ( y = m_AnsiPara[0] ; y <= (int)m_AnsiPara[2] ; y++ ) {
 		if ( y < m_TopY || y >= m_BtmY )
 			continue;
 
-		for ( x = m_AnsiPara[1] ; x <= m_AnsiPara[3] ; x++ ) {
+		for ( x = m_AnsiPara[1] ; x <= (int)m_AnsiPara[3] ; x++ ) {
 			if ( IsOptEnable(TO_DECLRMM) && (x < m_LeftX || x >= m_RightX) )
 				continue;
 
@@ -6332,8 +6330,8 @@ void CTextRam::fc_DECFRA(DWORD ch)
 	CCharCell *vp;
 	SetAnsiParaArea(1);
 	n = GetAnsiPara(0, 0, 0);
-	for ( y = m_AnsiPara[1] ; y <= m_AnsiPara[3] ; y++ ) {
-		for ( x = m_AnsiPara[2] ; x <= m_AnsiPara[4] ; x++ ) {
+	for ( y = m_AnsiPara[1] ; y <= (int)m_AnsiPara[3] ; y++ ) {
+		for ( x = m_AnsiPara[2] ; x <= (int)m_AnsiPara[4] ; x++ ) {
 			vp = GETVRAM(x, y);
 			*vp = (DWORD)n;
 			vp->m_Vram.attr = m_AttNow.attr;
@@ -6514,7 +6512,7 @@ void CTextRam::fc_CSI_ETC(DWORD ch)
 	int n;
 	int d = (m_BackChar | ch) & 0x7F7F7F7F;
 
-	if ( BinaryFind((void *)&d, m_CsiExt.GetData(), sizeof(CSIEXTTAB), m_CsiExt.GetSize(), ProcCodeCmp, &n) ) {
+	if ( BinaryFind((void *)&d, m_CsiExt.GetData(), sizeof(CSIEXTTAB), (int)m_CsiExt.GetSize(), ProcCodeCmp, &n) ) {
 		m_TraceFunc = m_CsiExt[n].proc;
 		(this->*m_CsiExt[n].proc)(ch);
 	} else
@@ -6786,17 +6784,17 @@ void CTextRam::fc_DECRQCRA(DWORD ch)
 		page = 100;
 
 	if ( page == m_Page ) {
-		for ( y = m_AnsiPara[2] ; y <= m_AnsiPara[4] ; y++ ) {
+		for ( y = m_AnsiPara[2] ; y <= (int)m_AnsiPara[4] ; y++ ) {
 			vp = GETVRAM(m_AnsiPara[3], y);
-			for ( x = m_AnsiPara[3] ; x <= m_AnsiPara[5] ; x++, vp++ )
+			for ( x = m_AnsiPara[3] ; x <= (int)m_AnsiPara[5] ; x++, vp++ )
 				sum += (DWORD)(*vp);
 		}
 
 	} else {
 		pSave = GETPAGE(page);
-		for ( y = m_AnsiPara[2] ; y <= m_AnsiPara[4] ; y++ ) {
+		for ( y = m_AnsiPara[2] ; y <= (int)m_AnsiPara[4] ; y++ ) {
 			vp = pSave->m_pCharCell + m_AnsiPara[3] + pSave->m_Cols * y;
-			for ( x = m_AnsiPara[3] ; x <= m_AnsiPara[5] ; x++, vp++ )
+			for ( x = m_AnsiPara[3] ; x <= (int)m_AnsiPara[5] ; x++, vp++ )
 				sum += (DWORD)(*vp);
 		}
 	}

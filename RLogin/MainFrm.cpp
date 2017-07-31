@@ -272,6 +272,26 @@ int CPaneFrame::IsOverLap(CPaneFrame *pPane)
 
 	return 0;
 }
+BOOL CPaneFrame::IsTopLevel(CPaneFrame *pPane)
+{
+	CRect rect;
+
+	if ( m_Style == PANEFRAME_WINDOW ) {
+		if ( pPane->m_hWnd != NULL && m_hWnd != NULL && pPane->m_hWnd != m_hWnd && rect.IntersectRect(m_Frame, pPane->m_Frame) ) {
+			HWND hWnd = pPane->m_hWnd;
+			while ( (hWnd = ::GetWindow(hWnd, GW_HWNDPREV)) != NULL ) {
+				if ( hWnd == m_hWnd )
+					return FALSE;
+			}
+		}
+		return TRUE;
+	} else if ( m_pLeft != NULL && !m_pLeft->IsTopLevel(pPane) )
+		return FALSE;
+	else if ( m_pRight != NULL && !m_pRight->IsTopLevel(pPane) )
+		return FALSE;
+	else
+		return TRUE;
+}
 int CPaneFrame::GetPaneCount(int count)
 {
 	if ( m_Style == PANEFRAME_WINDOW )
@@ -608,7 +628,7 @@ void CPaneFrame::SetBuffer(CBuffer *buf)
 					pEntry = &(pDoc->m_ServerEntry);
 					pEntry->m_DocType = DOCTYPE_MULTIFILE;
 					pDoc->SetModifiedFlag(FALSE);
-#if	_MSC_VER > 1500
+#if	_MSC_VER >= _MSC_VER_VS10
 					pDoc->ClearPathName();
 #endif
 					tmp.Format("%d\t0\t1\t", m_Style);
@@ -773,6 +793,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 
 	ON_COMMAND(ID_VIEW_MENUBAR, &CMainFrame::OnViewMenubar)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_MENUBAR, &CMainFrame::OnUpdateViewMenubar)
+	ON_COMMAND(ID_VIEW_TABBAR, &CMainFrame::OnViewTabbar)
+	ON_UPDATE_COMMAND_UI(ID_VIEW_TABBAR, &CMainFrame::OnUpdateViewTabbar)
 	ON_COMMAND(ID_VIEW_SCROLLBAR, &CMainFrame::OnViewScrollbar)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_SCROLLBAR, &CMainFrame::OnUpdateViewScrollbar)
 
@@ -841,6 +863,7 @@ CMainFrame::CMainFrame()
 	m_bVersionCheck = FALSE;
 	m_hNextClipWnd = NULL;
 	m_bBroadCast = FALSE;
+	m_bTabBarShow = FALSE;
 }
 
 CMainFrame::~CMainFrame()
@@ -993,7 +1016,9 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		ShowControlBar(&m_wndToolBar, FALSE, 0);
 	if ( (AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("StatusBarStyle"), WS_VISIBLE) & WS_VISIBLE) == 0 )
 		ShowControlBar(&m_wndStatusBar, FALSE, 0);
-	ShowControlBar(&m_wndTabBar, FALSE, 0);
+
+	m_bTabBarShow = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("TabBarShow"), FALSE);
+	ShowControlBar(&m_wndTabBar, m_bTabBarShow, 0);
 
 	m_TransParValue = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("LayeredWindow"), 255);
 	m_TransParColor = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("LayeredColor"), RGB(0, 0 ,0));
@@ -1056,6 +1081,15 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 		else
 			cs.cy = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("cy"), cs.cy);
 	}
+
+	if (  m_ScreenW > 0 )
+		cs.cx = m_ScreenW;
+	if (  m_ScreenH > 0 )
+		cs.cy = m_ScreenH;
+	if ( m_ScreenX > 0 )
+		cs.x = m_ScreenX - cs.cx / 2;
+	if (  m_ScreenY > 0 )
+		cs.y = m_ScreenY;
 
 	HMONITOR hMonitor;
     MONITORINFOEX  mi;
@@ -1434,7 +1468,7 @@ int CMainFrame::OpenServerEntry(CServerEntry &Entry)
 			for ( n = 0 ; n< m_ServerEntryTab.m_Data.GetSize() ; n++ ) {
 				if ( pApp->m_pCmdInfo->m_Name.Compare(m_ServerEntryTab.m_Data[n].m_EntryName) == 0 ) {
 					Entry = m_ServerEntryTab.m_Data[n];
-					Entry.m_DocType = DOCTYPE_SESSION;
+					Entry.m_DocType = DOCTYPE_REGISTORY;
 					return TRUE;
 				}
 			}
@@ -1605,7 +1639,7 @@ void CMainFrame::RemoveChild(CWnd *pWnd)
 {
 	m_wndTabBar.Remove(pWnd);
 	if ( m_wndTabBar.m_TabCtrl.GetItemCount() <= 1 )
-		ShowControlBar(&m_wndTabBar, FALSE, TRUE);
+		ShowControlBar(&m_wndTabBar, m_bTabBarShow, TRUE);
 
 //	if ( m_pTopPane != NULL )
 //		m_pTopPane = m_pTopPane->DeletePane(pWnd->m_hWnd);
@@ -1648,7 +1682,10 @@ void CMainFrame::MoveChild(CWnd *pWnd, CPoint point)
 	if ( pLeftPane->m_Style != PANEFRAME_WINDOW || pRightPane->m_Style != PANEFRAME_WINDOW )
 		return;
 
-	if ( (hLeft = pLeftPane->m_hWnd) == NULL || (hRight = pRightPane->m_hWnd) == NULL || hLeft == hRight )
+	hLeft = pLeftPane->m_hWnd;
+	hRight = pRightPane->m_hWnd;
+
+	if ( hLeft == NULL || hLeft == hRight )
 		return;
 
 	pLeftPane->m_hWnd = hRight;
@@ -1705,6 +1742,23 @@ BOOL CMainFrame::IsOverLap(HWND hWnd)
 		return FALSE;
 	return (m_pTopPane->IsOverLap(pPane) == 1 ? TRUE : FALSE);
 }
+BOOL CMainFrame::IsTopLevelDoc(CRLoginDoc *pDoc)
+{
+	CRLoginView *pView;
+	CChildFrame *pChild;
+	CPaneFrame *pPane;
+	
+	if ( pDoc == NULL || (pView = (CRLoginView *)pDoc->GetAciveView()) == NULL || (pChild = pView->GetFrameWnd()) == NULL )
+		return FALSE;
+
+	if ( m_pTopPane == NULL || (pPane = m_pTopPane->GetPane(pChild->m_hWnd)) == NULL )
+		return TRUE;
+
+	if ( m_pTopPane->IsTopLevel(pPane) )
+		return TRUE;
+
+	return FALSE;
+}
 void CMainFrame::GetFrameRect(CRect &frame)
 {
 	if ( m_Frame.IsRectEmpty() )
@@ -1722,11 +1776,8 @@ void CMainFrame::AdjustRect(CRect &rect)
 static BOOL CALLBACK RLoginExecCountFunc(HWND hwnd, LPARAM lParam)
 {
 	CMainFrame *pMain = (CMainFrame *)lParam;
-	TCHAR title[1024];
 
-	::GetWindowText(hwnd, title, 1024);
-
-	if ( pMain->m_hWnd != hwnd && _tcsncmp(title, _T("RLogin"), 6) == 0 && ::GetWindowLongPtr(hwnd, GWLP_USERDATA) == 0x524c4f47 )
+	if ( pMain->m_hWnd != hwnd && CRLoginApp::IsRLoginWnd(hwnd) )
 		pMain->m_ExecCount++;
 
 	return TRUE;
@@ -1736,6 +1787,27 @@ int CMainFrame::GetExecCount()
 	m_ExecCount = 0;
 	::EnumWindows(RLoginExecCountFunc, (LPARAM)this);
 	return m_ExecCount;
+}
+void CMainFrame::SetActivePoint(CPoint point)
+{
+	CPaneFrame *pPane;
+
+	ScreenToClient(&point);
+
+	point.y -= m_Frame.top;
+	if ( m_pTrackPane != NULL || m_pTopPane == NULL )
+		return;
+
+	if ( (pPane = m_pTopPane->HitTest(point)) == NULL )
+		return;
+
+	if ( pPane->m_Style == PANEFRAME_WINDOW ) {
+		m_pTopPane->HitActive(point);
+		if ( pPane->m_hWnd != NULL ) {
+			CChildFrame *pWnd = (CChildFrame *)CWnd::FromHandle(pPane->m_hWnd);
+			pWnd->MDIActivate();
+		}
+	}
 }
 
 static UINT VersionCheckThead(LPVOID pParam)
@@ -2016,6 +2088,12 @@ void CMainFrame::OnDestroy()
 {
 	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("ToolBarStyle"),	m_wndToolBar.GetStyle());
 	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("StatusBarStyle"), m_wndStatusBar.GetStyle());
+
+	//AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("TabBarShow"), m_bTabBarShow);
+	//AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("LayeredWindow"), m_TransParValue);
+	//AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("LayeredColor"), m_TransParColor);
+	//AfxGetApp()->WriteProfileInt(_T("ChildFrame"), _T("VScroll"), m_ScrollBarFlag);
+	//AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("VersionCheckFlag"), m_bVersionCheck);
 
 	if ( !IsIconic() && !IsZoomed() ) {
 		int n = GetExecCount();
@@ -2486,6 +2564,14 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCopyDataStruct)
 	} else if ( pCopyDataStruct->dwData == 0x524c4f35 ) {
 		((CRLoginApp *)::AfxGetApp())->OnSendBroadCastMouseWheel(pCopyDataStruct);
 		return TRUE;
+
+	} else if ( pCopyDataStruct->dwData == 0x524c4f36 ) {
+		if ( m_bBroadCast )
+			((CRLoginApp *)::AfxGetApp())->OnSendGroupCast(pCopyDataStruct);
+		return TRUE;
+
+	} else if ( pCopyDataStruct->dwData == 0x524c4f37 ) {
+		return ((CRLoginApp *)::AfxGetApp())->OnEntryData(pCopyDataStruct);
 	}
 
 	return CMDIFrameWnd::OnCopyData(pWnd, pCopyDataStruct);
@@ -2503,11 +2589,9 @@ void CMainFrame::SetMenuBitmap(CMenu *pMenu)
 }
 void CMainFrame::OnEnterMenuLoop(BOOL bIsTrackPopupMenu)
 {
-	int n;
 	CMenu *pMenu, Save;
 	CChildFrame *pChild;
 	CRLoginDoc *pDoc;
-	CKeyCmds *pCmds;
 
 	if ( (pMenu = GetMenu()) == NULL )
 		return;
@@ -2547,7 +2631,7 @@ void CMainFrame::OnViewScrollbar()
 	if ( (pApp = AfxGetApp()) == NULL )
 		return;
 	
-	m_ScrollBarFlag = (pApp->GetProfileInt(_T("ChildFrame"), _T("VScroll"), TRUE) ? FALSE : TRUE);
+	m_ScrollBarFlag = (m_ScrollBarFlag ? FALSE : TRUE);
 
 	POSITION pos = pApp->GetFirstDocTemplatePosition();
 	while ( pos != NULL ) {
@@ -2578,7 +2662,7 @@ void CMainFrame::OnViewMenubar()
 {
 	CWinApp *pApp;
 	BOOL bMenu;
-	CChildFrame *pChild = (CChildFrame *)(MDIGetActive());
+	CChildFrame *pChild = (CChildFrame *)MDIGetActive();
 
 	if ( (pApp = AfxGetApp()) == NULL )
 		return;
@@ -2609,9 +2693,26 @@ void CMainFrame::OnSysCommand(UINT nID, LPARAM lParam)
 		break;
 	}
 }
+void CMainFrame::OnViewTabbar()
+{
+	CWinApp *pApp = AfxGetApp();
+	
+	m_bTabBarShow = (m_bTabBarShow? FALSE : TRUE);
+	pApp->WriteProfileInt(_T("MainFrame"), _T("TabBarShow"), m_bTabBarShow);
+
+	if ( m_bTabBarShow )
+		ShowControlBar(&m_wndTabBar, m_bTabBarShow, 0);
+	else if ( m_wndTabBar.m_TabCtrl.GetItemCount() <= 1 )
+		ShowControlBar(&m_wndTabBar, m_bTabBarShow, 0);
+}
+void CMainFrame::OnUpdateViewTabbar(CCmdUI *pCmdUI)
+{
+	pCmdUI->SetCheck(m_bTabBarShow);
+}
+
 void CMainFrame::OnVersioncheck()
 {
-	m_bVersionCheck = (AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("VersionCheckFlag"), m_bVersionCheck) ? FALSE : TRUE);
+	m_bVersionCheck = (m_bVersionCheck ? FALSE : TRUE);
 	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("VersionCheckFlag"), m_bVersionCheck);
 	AfxGetApp()->WriteProfileString(_T("MainFrame"), _T("VersionNumber"), _T(""));
 
@@ -2666,7 +2767,6 @@ void CMainFrame::OnUpdateActiveMove(CCmdUI *pCmdUI)
 {
 	CWnd *pTemp;
 	CPaneFrame *pActive;
-	CChildFrame *pWnd;
 	CPaneFrame *pPane = NULL;
 
 	if ( m_pTopPane == NULL || m_wndTabBar.GetSize() <= 1 || (pTemp  = MDIGetActive(NULL)) == NULL || (pActive = m_pTopPane->GetPane(pTemp->m_hWnd)) == NULL )
@@ -2710,7 +2810,7 @@ void CMainFrame::SetClipBoardMenu(UINT nId, CMenu *pMenu)
 				tmp += _T('.');
 			else
 				tmp += *str;
-			if ( n == 40 && (i = wcslen(str)) > 10 ) {
+			if ( n == 40 && (i = (int)wcslen(str)) > 10 ) {
 				tmp += _T(" ... ");
 				str += (i - 11);
 			}

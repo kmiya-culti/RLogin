@@ -450,9 +450,9 @@ void CBPlus::Send_Data(int BuffeR_Number)
     Do_CheckSum (etx);
 
     if (B_Plus && Use_CRC)
-		Send_Masked_Byte (CheckSum >> 8);
+		Send_Masked_Byte ((BYTE)(CheckSum >> 8));
 
-    Send_Masked_Byte (CheckSum);
+    Send_Masked_Byte ((BYTE)CheckSum);
 
     Bufferd_Flush();
 }
@@ -1117,7 +1117,7 @@ int	CBPlus::Send_File(LPCTSTR filePath, LPCSTR fileName)
 
 		TRACE("TI %s\n", p->buf + 4); 
 
-		*(s++) = strlen(fileName);
+		*(s++) = (char)strlen(fileName);
 		strcpy(s, fileName);
 		while ( *s != '\0' ) s++;
 

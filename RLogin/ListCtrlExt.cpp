@@ -209,7 +209,7 @@ void CListCtrlExt::OpenEditBox(int item, int num, int fmt, CRect &rect)
 }
 void CListCtrlExt::EditItem(int item, int num)
 {
-	int n, i, x, a;
+	int i, x, a;
 	CRect rect;
 	LVCOLUMN lvc;
 

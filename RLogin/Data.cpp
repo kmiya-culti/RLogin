@@ -179,7 +179,7 @@ void CBuffer::SetMbsStr(LPCTSTR str)
 }
 LPCSTR CBuffer::operator += (LPCSTR str)
 {
-	int len = strlen(str);
+	int len = (int)strlen(str);
 
 	ReAlloc(len + sizeof(CHAR));
 	memcpy(m_Data + m_Len, str, len);
@@ -188,7 +188,7 @@ LPCSTR CBuffer::operator += (LPCSTR str)
 }
 LPCWSTR CBuffer::operator += (LPCWSTR str)
 {
-	int len = wcslen(str) * sizeof(WCHAR);
+	int len = (int)wcslen(str) * sizeof(WCHAR);
 
 	ReAlloc(len + sizeof(WCHAR));
 	memcpy(m_Data + m_Len, str, len);
@@ -216,7 +216,7 @@ void CBuffer::Put16Bit(int val)
 	p[1] = (BYTE)(val >> 0);
 	m_Len += 2;
 }
-void CBuffer::Put32Bit(int val)
+void CBuffer::Put32Bit(LONG val)
 {
 	ReAlloc(4);
 	register LPBYTE p = m_Data + m_Len;
@@ -302,7 +302,7 @@ void CBuffer::PutEcPoint(const EC_GROUP *curve, const EC_POINT *point)
 	if ( (bnctx = BN_CTX_new()) == NULL )
 		throw this;
 
-	len = EC_POINT_point2oct(curve, point, POINT_CONVERSION_UNCOMPRESSED, NULL, 0, bnctx);
+	len = (int)EC_POINT_point2oct(curve, point, POINT_CONVERSION_UNCOMPRESSED, NULL, 0, bnctx);
 
 	if ( (tmp = new BYTE[len]) == NULL )
 		throw this;
@@ -348,17 +348,17 @@ int CBuffer::Get16Bit()
 	return ((int)p[0] << 8) |
 		   ((int)p[1] << 0);
 }
-int CBuffer::Get32Bit()
+LONG CBuffer::Get32Bit()
 {
 	register LPBYTE p = m_Data + m_Ofs;
 	if ( (m_Ofs += 4) > m_Len ) {
 		m_Len = m_Ofs = 0;
 		throw this;
 	}
-	return ((int)p[0] << 24) |
-		   ((int)p[1] << 16) |
-		   ((int)p[2] <<  8) |
-		   ((int)p[3] <<  0);
+	return ((LONG)p[0] << 24) |
+		   ((LONG)p[1] << 16) |
+		   ((LONG)p[2] <<  8) |
+		   ((LONG)p[3] <<  0);
 }
 LONGLONG CBuffer::Get64Bit()
 {
@@ -514,12 +514,12 @@ int CBuffer::PTR16BIT(LPBYTE pos)
 	return ((int)pos[0] << 8) |
 		   ((int)pos[1] << 0);
 }
-int CBuffer::PTR32BIT(LPBYTE pos)
+LONG CBuffer::PTR32BIT(LPBYTE pos)
 {
-	return ((int)pos[0] << 24) |
-		   ((int)pos[1] << 16) |
-		   ((int)pos[2] <<  8) |
-		   ((int)pos[3] <<  0);
+	return ((LONG)pos[0] << 24) |
+		   ((LONG)pos[1] << 16) |
+		   ((LONG)pos[2] <<  8) |
+		   ((LONG)pos[3] <<  0);
 }
 LONGLONG CBuffer::PTR64BIT(LPBYTE pos)
 {
@@ -1363,13 +1363,19 @@ void CStringArrayExt::GetCmds(LPCTSTR cmds)
 				tmp.Empty();
 			}
 		} else if ( *cmds == _T('"') ) {
-			for ( cmds++ ; *cmds != _T('\0') && *cmds != _T('"') ; )
+			for ( cmds++ ; *cmds != _T('\0') && *cmds != _T('"') ; ) {
+				if ( cmds[0] == _T('\\') && cmds[1] == _T('"') )
+					cmds++;
 				tmp += *(cmds++);
+			}
 			if ( *cmds != _T('\0') )
 				cmds++;
 		} else if ( *cmds == _T('\'') ) {
-			for ( cmds++ ; *cmds != _T('\0') && *cmds != _T('\'') ; )
+			for ( cmds++ ; *cmds != _T('\0') && *cmds != _T('\'') ; ) {
+				if ( cmds[0] == _T('\\') && cmds[1] == _T('\'') )
+					cmds++;
 				tmp += *(cmds++);
+			}
 			if ( *cmds != _T('\0') )
 				cmds++;
 		} else
@@ -1383,7 +1389,7 @@ void CStringArrayExt::AddSort(LPCTSTR str)
 {
 	int n, c;
 	int b = 0;
-	int m = GetSize() - 1;
+	int m = (int)GetSize() - 1;
 
 	while ( b <= m ) {
 		n = (b + m) / 2;
@@ -1401,7 +1407,7 @@ int CStringArrayExt::FindSort(LPCTSTR str)
 {
 	int n, c;
 	int b = 0;
-	int m = GetSize() - 1;
+	int m = (int)GetSize() - 1;
 
 	while ( b <= m ) {
 		n = (b + m) / 2;
@@ -1531,7 +1537,7 @@ const CParaIndex & CParaIndex::operator = (CParaIndex &data)
 }
 BOOL CParaIndex::AddOpt(BYTE c, BOOL bAdd)
 {
-	int n = GetSize() - 1;
+	int n = (int)GetSize() - 1;
 
 	if ( n >= 0 ) {
 		if ( m_Array[n].AddOpt(c, bAdd) && bAdd )
@@ -2486,6 +2492,7 @@ void CServerEntry::Init()
 	m_BeforeEntry.Empty();
 	m_ReEntryFlag = FALSE;
 	m_DocType = (-1);
+	m_IconName.Empty();
 }
 const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 {
@@ -2521,6 +2528,7 @@ const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 	m_BeforeEntry    = data.m_BeforeEntry;
 	m_ReEntryFlag    = data.m_ReEntryFlag;
 	m_DocType        = data.m_DocType;
+	m_IconName       = data.m_IconName;
 	return *this;
 }
 void CServerEntry::GetArray(CStringArrayExt &stra)
@@ -2569,6 +2577,7 @@ void CServerEntry::GetArray(CStringArrayExt &stra)
 	m_ScriptStr    = (stra.GetSize() > 20 ?  stra.GetAt(20) : _T(""));
 	m_BeforeEntry  = (stra.GetSize() > 21 ?  stra.GetAt(21) : _T(""));
 	m_ProxySSLKeep = (stra.GetSize() > 22 ?  stra.GetVal(22) : FALSE);;
+	m_IconName     = (stra.GetSize() > 23 ?  stra.GetAt(23) : _T(""));
 
 	m_ProBuffer.Clear();
 
@@ -2613,6 +2622,7 @@ void CServerEntry::SetArray(CStringArrayExt &stra)
 	stra.Add(m_ScriptStr);
 	stra.Add(m_BeforeEntry);
 	stra.AddVal(m_ProxySSLKeep);
+	stra.Add(m_IconName);
 }
 
 static const ScriptCmdsDefs DocEntry[] = {
@@ -2849,6 +2859,7 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 		index[_T("Chat")]  = str;
 
 		index[_T("Before")] = m_BeforeEntry;
+		index[_T("Icon")] = m_IconName;
 
 	} else {			// Read
 		if ( (n = index.Find(_T("Name"))) >= 0 )
@@ -2908,6 +2919,9 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 
 		if ( (n = index.Find(_T("Before"))) >= 0 )
 			m_BeforeEntry = index[n];
+
+		if ( (n = index.Find(_T("Icon"))) >= 0 )
+			m_IconName = index[n];
 
 		m_ProBuffer.Clear();
 
@@ -3058,7 +3072,7 @@ CKeyNode::CKeyNode()
 }
 LPCTSTR CKeyNode::GetMaps()
 {
-	int n, c;
+	int n;
 	LPCWSTR p;
 	CString tmp;
 	
@@ -3404,7 +3418,7 @@ int CKeyCmdsTab::Add(CKeyCmds &cmds)
 {
 	int n;
 
-	if ( BinaryFind(&(cmds.m_Id), m_Data.GetData(), sizeof(CKeyCmds), m_Data.GetSize(), KeyCmdsComp, &n) )
+	if ( BinaryFind(&(cmds.m_Id), m_Data.GetData(), sizeof(CKeyCmds), (int)m_Data.GetSize(), KeyCmdsComp, &n) )
 		return n;
 
 	m_Data.InsertAt(n, cmds);
@@ -3414,7 +3428,7 @@ int CKeyCmdsTab::Find(int id)
 {
 	int n;
 
-	if ( BinaryFind(&id, m_Data.GetData(), sizeof(CKeyCmds), m_Data.GetSize(), KeyCmdsComp, &n) )
+	if ( BinaryFind(&id, m_Data.GetData(), sizeof(CKeyCmds), (int)m_Data.GetSize(), KeyCmdsComp, &n) )
 		return n;
 
 	return (-1);
@@ -3582,13 +3596,12 @@ static int KeyNodeComp(const void *src, const void *dis)
 }
 BOOL CKeyNodeTab::Find(int code, int mask, int *base)
 {
-	int n;
 	CKeyNode tmp;
 
 	tmp.m_Code = code;
 	tmp.m_Mask = mask;
 
-	return BinaryFind(&tmp, m_Node.GetData(), sizeof(CKeyNode), m_Node.GetSize(), KeyNodeComp, base);
+	return BinaryFind(&tmp, m_Node.GetData(), sizeof(CKeyNode), (int)m_Node.GetSize(), KeyNodeComp, base);
 }
 int CKeyNodeTab::Add(CKeyNode &node)
 {
@@ -3652,7 +3665,7 @@ BOOL CKeyNodeTab::FindKeys(int code, int mask, CBuffer *pBuf, int base, int bits
 }
 BOOL CKeyNodeTab::FindMaps(int code, int mask, CBuffer *pBuf)
 {
-	int n, m[8], i;
+	int n;
 
 	if ( Find(code, mask, &n) ) {
 		*pBuf = m_Node[n].m_Maps;
@@ -3897,7 +3910,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	118
+#define	CMDSKEYTABMAX	120
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -3940,6 +3953,7 @@ static const struct _CmdsKeyTab {
 	{	ID_MACRO_PLAY,			L"$KEY_PLAY"		},
 	{	ID_MACRO_REC,			L"$KEY_REC"			},
 	{	ID_LOG_OPEN,			L"$LOG_OPEN"		},
+	{	IDM_LOOKCAST,			L"$LOOKCAST"		},
 	{	ID_MOUSE_EVENT,			L"$MOUSE_EVENT"		},
 	{	ID_PAGE_NEXT,			L"$NEXT"			},
 	{	IDC_LOADDEFAULT,		L"$OPTION_LOAD"		},
@@ -4008,6 +4022,7 @@ static const struct _CmdsKeyTab {
 	{	IDM_SFTP,				L"$VIEW_SFTP"		},
 	{	IDM_SOCKETSTATUS,		L"$VIEW_SOCKET"		},
 	{	ID_VIEW_STATUS_BAR,		L"$VIEW_STATUSBAR"	},
+	{	ID_VIEW_TABBAR,			L"$VIEW_TABBAR"		},
 	{	IDM_TEKDISP,			L"$VIEW_TEKDISP"	},
 	{	ID_VIEW_TOOLBAR,		L"$VIEW_TOOLBAR"	},
 	{	IDM_TRACEDISP,			L"$VIEW_TRACEDISP"	},
@@ -4162,7 +4177,7 @@ void CKeyNodeTab::BugFix(int fix)
 		list[GetAt(n).GetMaps()] = 1;
 
 	for ( i = 0 ; InitKeyTab[i].maps != NULL ; i++ ) {
-		if ( InitKeyTab[i].fix < fix )
+		if ( fix >= InitKeyTab[i].fix  )
 			continue;
 		if ( Find(InitKeyTab[i].code, InitKeyTab[i].mask, &n) )
 			continue;
@@ -4461,7 +4476,7 @@ void CKeyMacTab::GetArray(CStringArrayExt &stra)
 }
 void CKeyMacTab::SetIndex(int mode, CStringIndex &index)
 {
-	int n, i;
+	int n;
 	CString str;
 	CKeyMac tmp;
 
@@ -4664,7 +4679,7 @@ static LPCTSTR InitAlgo[12]= {
 
 	_T("zlib@openssh.com,zlib,none"),
 
-	_T("curve25519-sha256@libssh.org,") \
+	_T("curve25519-sha256,curve25519-sha256@libssh.org,") \
 	_T("ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256,") \
 	_T("diffie-hellman-group-exchange-sha256,diffie-hellman-group-exchange-sha1,") \
 	_T("diffie-hellman-group14-sha1,diffie-hellman-group1-sha1"),
@@ -4709,7 +4724,7 @@ CParamTab::CParamTab()
 }
 void CParamTab::Init()
 {
-	int n, i;
+	int n;
 
 	for ( n = 0 ; n < 9 ; n++ )
 		m_IdKeyStr[n] = _T("");
@@ -4902,7 +4917,7 @@ void CParamTab::GetArray(CStringArrayExt &stra)
 }
 void CParamTab::SetIndex(int mode, CStringIndex &index)
 {
-	int n, i, a;
+	int n, i;
 	CString str;
 	CStringIndex tmp, env;
 	ttymode_node node;
@@ -4936,7 +4951,7 @@ void CParamTab::SetIndex(int mode, CStringIndex &index)
 			index[_T("Env")][env[n].m_nIndex].Add(env[n].m_String);
 		}
 
-		index[_T("TtyMode")].SetSize(m_TtyMode.GetSize());
+		index[_T("TtyMode")].SetSize((int)m_TtyMode.GetSize());
 		for ( n = 0 ; n < m_TtyMode.GetSize() ; n++ ) {
 			index[_T("TtyMode")][n].Add(m_TtyMode[n].opcode);
 			index[_T("TtyMode")][n].Add(m_TtyMode[n].param);
@@ -5225,7 +5240,7 @@ int CStringMaps::Add(LPCWSTR wstr)
 	int n;
 	CStringW tmp(wstr);
 
-	if ( BinaryFind((void *)wstr, m_Data.GetData(), sizeof(CStringW), m_Data.GetSize(), StrMapsCmp, &n) )
+	if ( BinaryFind((void *)wstr, m_Data.GetData(), sizeof(CStringW), (int)m_Data.GetSize(), StrMapsCmp, &n) )
 		return n;
 
 	m_Data.InsertAt(n, tmp);
@@ -5235,7 +5250,7 @@ int CStringMaps::Find(LPCWSTR wstr)
 {
 	int n;
 
-	if ( BinaryFind((void *)wstr, m_Data.GetData(), sizeof(CStringW), m_Data.GetSize(), StrMapsCmp, &n) )
+	if ( BinaryFind((void *)wstr, m_Data.GetData(), sizeof(CStringW), (int)m_Data.GetSize(), StrMapsCmp, &n) )
 		return n;
 
 	if ( n >= (int)m_Data.GetSize() )
@@ -5340,7 +5355,7 @@ CStringIndex & CStringIndex::operator [] (LPCTSTR str)
 				return m_Array[n];
 		}
 	} else {
-		if ( BinaryFind((void *)str, m_Array.GetData(), sizeof(CStringIndex), m_Array.GetSize(), m_bNoCase ? StrIdxCmpNoCase : StrIdxCmp, &n) )
+		if ( BinaryFind((void *)str, m_Array.GetData(), sizeof(CStringIndex), (int)m_Array.GetSize(), m_bNoCase ? StrIdxCmpNoCase : StrIdxCmp, &n) )
 			return m_Array[n];
 	}
 
@@ -5360,7 +5375,7 @@ int CStringIndex::Find(LPCTSTR str)
 				return n;
 		}
 	} else {
-		if ( BinaryFind((void *)str, m_Array.GetData(), sizeof(CStringIndex), m_Array.GetSize(), m_bNoCase ? StrIdxCmpNoCase : StrIdxCmp, &n) )
+		if ( BinaryFind((void *)str, m_Array.GetData(), sizeof(CStringIndex), (int)m_Array.GetSize(), m_bNoCase ? StrIdxCmpNoCase : StrIdxCmp, &n) )
 			return n;
 	}
 
@@ -5960,7 +5975,7 @@ CFileExt::CFileExt()
 	m_Len = 0;
 	CFile::CFile();
 }
-#if	_MSC_VER > 1500
+#if	_MSC_VER >= _MSC_VER_VS10
 CFileExt::CFileExt(CAtlTransactionManager* pTM)
 {
 	m_Len = 0;
@@ -5983,7 +5998,7 @@ BOOL CFileExt::Open(LPCTSTR lpszFileName, UINT nOpenFlags, CFileException* pErro
 	m_Len = 0;
 	return CFile::Open(lpszFileName, nOpenFlags, pError);
 }
-#if	_MSC_VER > 1500
+#if	_MSC_VER >= _MSC_VER_VS10
 BOOL CFileExt::Open(LPCTSTR lpszFileName, UINT nOpenFlags, CAtlTransactionManager* pTM, CFileException* pError)
 {
 	m_Len = 0;
@@ -5997,7 +6012,7 @@ void CFileExt::Write(const void* lpBuf, UINT nCount)
 	LPBYTE p = (LPBYTE)lpBuf;
 
 	while ( nCount > 0 ) {
-		if ( (n = FEXT_BUF_MAX - m_Len) > nCount )
+		if ( (n = FEXT_BUF_MAX - m_Len) > (int)nCount )
 			n = nCount;
 		memcpy(m_Buffer + m_Len, p, n);
 		m_Len += n;
@@ -6105,8 +6120,8 @@ BOOL CHttpSession::GetRequest(LPCTSTR url, CBuffer &buf)
 	try {
 		 if ( (pHttpConn = InetSess.GetHttpConnection(m_HostName,
 							(m_PortNumber.IsEmpty() ? INTERNET_INVALID_PORT_NUMBER : _tstoi(m_PortNumber)), 
-							(m_UserName.IsEmpty()   ? NULL : m_UserName), 
-							(m_Password.IsEmpty()   ? NULL : m_Password))) == NULL )
+							(m_UserName.IsEmpty()   ? NULL : (LPCTSTR)m_UserName), 
+							(m_Password.IsEmpty()   ? NULL : (LPCTSTR)m_Password))) == NULL )
 			return FALSE;
 
 		if ( (pHttpFile	= pHttpConn->OpenRequest(CHttpConnection::HTTP_VERB_GET, m_Param, NULL, 1, NULL, NULL, INTERNET_FLAG_RELOAD | INTERNET_FLAG_DONT_CACHE)) == NULL )

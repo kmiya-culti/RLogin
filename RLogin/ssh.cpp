@@ -1352,7 +1352,6 @@ void Cssh::DecodeProxySocks(int id)
 }
 int Cssh::MatchList(LPCTSTR client, LPCTSTR server, CString &str)
 {
-	int n;
 	CString tmp;
 	CStringBinary idx;
 
@@ -1712,12 +1711,12 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 				m_IdKeyPos = 0;
 				m_AuthStat = m_AuthReqTab[AST_KEYB_TRY];
 			}
+			m_AuthMode = AUTH_MODE_KEYBOARD;
 			if ( strstr(str, "keyboard-interactive") == NULL )
 				continue;
 			tmp.PutStr("keyboard-interactive");
 			tmp.PutStr("");		// LANG
 			tmp.PutStr("");		// DEV
-			m_AuthMode = AUTH_MODE_KEYBOARD;
 		}
 
 		tmp.Consume(skip);
@@ -2025,7 +2024,7 @@ void Cssh::SendDisconnect2(int st, LPCSTR str)
 void Cssh::SendPacket2(CBuffer *bp)
 {
 	int n = bp->GetSize() + 128;
-	int pad, i, sz = bp->GetSize();
+	int pad, sz = bp->GetSize();
 	CBuffer tmp(n);
 	CBuffer enc(n);
 	CBuffer mac;
@@ -2099,6 +2098,7 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 		{ DHMODE_GROUP_14,		_T("diffie-hellman-group14-sha1")			},
 		{ DHMODE_GROUP_1,		_T("diffie-hellman-group1-sha1")			},
 		{ DHMODE_CURVE25519,	_T("curve25519-sha256@libssh.org")			},
+		{ DHMODE_CURVE25519,	_T("curve25519-sha256")						},
 		{ 0,					NULL										},
 	};
 
@@ -3172,6 +3172,7 @@ void Cssh::RecivePacket2(CBuffer *bp)
 		m_SSH2Status |= SSH2_STAT_HAVEKEYS;
 		SendMsgNewKeys();
 		break;
+
 	case SSH2_MSG_NEWKEYS:
 		if ( (m_SSH2Status & SSH2_STAT_HAVEKEYS) == 0 )
 			goto DISCONNECT;
@@ -3320,9 +3321,12 @@ void Cssh::RecivePacket2(CBuffer *bp)
 	default:
 		SendMsgUnimplemented();
 		break;
-DISCONNECT:
+
+	DISCONNECT:
 		str.Format("Packet Type %d Error", type);
 		SendDisconnect2(SSH2_DISCONNECT_HOST_NOT_ALLOWED_TO_CONNECT, str);
+		str.Format("SSH2 Recive Packet Error Type=%d Status=%04o\nSend Disconnect Message...", type, m_SSH2Status);
+		AfxMessageBox(MbsToTstr(str), MB_ICONSTOP);
 		break;
 	}
 }

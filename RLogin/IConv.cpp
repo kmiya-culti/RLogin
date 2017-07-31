@@ -207,7 +207,7 @@ RETRY:
 			out->Apend((LPBYTE)tmp, (int)(4096 - ots));
 			ZeroMemory(tmp, (4096 - ots));
 		}
-		in->Consume(xns - tns);
+		in->Consume((int)(xns - tns));
 	}
 
 	if ( len > 4 && len == in->GetSize() && n == (-1) ) {

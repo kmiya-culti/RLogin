@@ -98,11 +98,11 @@ void CPassDlg::OnOK()
 
 	m_HostWnd.GetWindowText(m_HostAddr);
 	m_HostWnd.AddHis(m_HostAddr);
-	m_HostWnd.SaveHis(_T("PassDlgHostAddr"));
+//	m_HostWnd.SaveHis(_T("PassDlgHostAddr"));
 
 	m_UserWnd.GetWindowText(m_UserName);
 	m_UserWnd.AddHis(m_UserName);
-	m_UserWnd.SaveHis(_T("PassDlgUserName"));
+//	m_UserWnd.SaveHis(_T("PassDlgUserName"));
 
 	CDialogExt::OnOK();
 }

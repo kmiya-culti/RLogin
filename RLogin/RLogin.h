@@ -29,12 +29,19 @@ public:
 	BOOL m_InUse;
 	BOOL m_InPane;
 	int m_AfterId;
+	int m_ScreenX;
+	int m_ScreenY;
+	int m_ScreenW;
+	int m_ScreenH;
+	CString m_EventName;
 
 	CCommandLineInfoEx();
 	virtual void ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLast);
 	BOOL ParseUrl(const TCHAR* pszParam);
 	void GetString(CString &str);
 	void SetString(LPCTSTR str);
+
+	static LPCTSTR ShellEscape(LPCTSTR str);
 };
 
 // CRLoginApp:
@@ -49,8 +56,11 @@ public:
 	class CFontChache m_FontData;
 	WSADATA wsaData;
 	CString m_BaseDir;
+	CString m_PathName;
 	CCommandLineInfoEx *m_pCmdInfo;
 	CServerEntry *m_pServerEntry;
+	BOOL m_bLookCast;
+	int m_WinVersion;
 
 #ifdef	USE_KEYMACGLOBAL
 	CKeyMacTab m_KeyMacGlobal;
@@ -65,7 +75,7 @@ public:
 #endif
 
 #ifdef	USE_JUMPLIST
-	void AddShellLink(LPCTSTR pEntryName, IObjectCollection *pObjCol);
+	IShellLink *MakeShellLink(LPCTSTR pEntryName);
 	void CreateJumpList(CServerEntryTab *pEntry);
 #endif
 
@@ -91,12 +101,21 @@ public:
 	void RegisterSave(HKEY hKey, LPCTSTR pSection, CBuffer &buf);
 	void RegisterLoad(HKEY hKey, LPCTSTR pSection, CBuffer &buf);
 	void GetVersion(CString &str);
+	void SetDefaultPrinter();
 	void SSL_Init();
 
 	void OpenProcsCmd(CCommandLineInfoEx *pCmdInfo);
 	void OpenCommandEntry(LPCTSTR entry);
 	void OpenCommandLine(LPCTSTR str);
 	BOOL CheckDocument(class CRLoginDoc *pDoc);
+	BOOL OnEntryData(COPYDATASTRUCT *pCopyData);
+	void OpenRLogin(class CRLoginDoc *pDoc, CPoint *pPoint);
+
+	DWORD m_FindProcsId;
+	HWND m_FindProcsHwnd;
+
+	HWND FindProcsMainWnd(DWORD ProcsId);
+	HWND NewProcsMainWnd(CPoint *pPoint, BOOL *pbOpen);
 
 	BOOL OnInUseCheck(COPYDATASTRUCT *pCopyData);
 	BOOL InUseCheck();
@@ -107,11 +126,13 @@ public:
 	void UpdateKeyMacGlobal();
 #endif
 	void OnSendBroadCast(COPYDATASTRUCT *pCopyData);
-	void SendBroadCast(CBuffer &buf);
+	void OnSendGroupCast(COPYDATASTRUCT *pCopyData);
+	void SendBroadCast(CBuffer &buf, LPCTSTR pGroup);
 	void OnSendBroadCastMouseWheel(COPYDATASTRUCT *pCopyData);
 	void SendBroadCastMouseWheel(UINT nFlags, short zDelta, CPoint pt);
 
-	void SetDefaultPrinter();
+	static BOOL IsRLoginWnd(HWND hWnd);
+	static HWND GetRLoginFromPoint(CPoint point);
 
 	CRLoginApp();
 
@@ -127,6 +148,8 @@ public:
 	afx_msg void OnFilePrintSetup();
 	afx_msg void OnDispwinidx();
 	afx_msg void OnDialogfont();
+	afx_msg void OnLookcast();
+	afx_msg void OnUpdateLookcast(CCmdUI *pCmdUI);
 };
 
 extern CRLoginApp theApp;

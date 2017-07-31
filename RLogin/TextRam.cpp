@@ -30,8 +30,6 @@ static char THIS_FILE[]=__FILE__;
 
 #include "UniBlockTab.h"
 
-#ifdef	USE_FIXWCHAR
-
 //////////////////////////////////////////////////////////////////////
 // CMemMap
 
@@ -107,7 +105,7 @@ void *CMemMap::MemMap(HANDLE hFile, ULONGLONG pos)
 
 	pNext->hFile = hFile;
 	pNext->Offset = offset;
-	pNext->pAddress = MapViewOfFile(hFile, FILE_MAP_WRITE, (DWORD)(offset >> 32), (DWORD)offset, m_MapSize);
+	pNext->pAddress = MapViewOfFile(hFile, FILE_MAP_WRITE, (DWORD)(offset >> 32), (DWORD)offset, (SIZE_T)m_MapSize);
 
 	if ( pNext->pAddress == NULL )
 		AfxThrowMemoryException();
@@ -123,140 +121,14 @@ ENDOF:
 	return (void *)((BYTE *)(pNext->pAddress) + diff);
 }
 
-#else	// !USE_FIXWCHAR
-
-//////////////////////////////////////////////////////////////////////
-// WordAlloc
-							//	 7     15    31
-static void		*pMemFree[3] = { NULL, NULL, NULL };
-static void		*pMemTop = NULL;
-
-#define	ALLOCMAX	(128 * 1024)
-
-WCHAR *WCharAlloc(int len)
-{
-	int n, a;
-	int hs;
-	BYTE *bp;
-	WCHAR *wp;
-
-	switch(len) {
-	case 0: case 1:	case 2:	case 3:
-	case 4: case 5:	case 6:	case 7:
-		len = 7;
-		hs  = 0;
-		break;
-	case  8: case  9: case 10: case 11:
-	case 12: case 13: case 14: case 15:
-		len = 15;
-		hs  = 1;
-		break;
-	default:
-		len = 31;
-		hs  = 2;
-		break;
-	}
-
-	if ( pMemFree[hs] == NULL ) {
-		bp = new BYTE[ALLOCMAX];
-		*((void **)bp) = pMemTop;
-		pMemTop = (void *)bp;
-		n = sizeof(void *);
-		a = (1 + len) * sizeof(WCHAR);
-		ASSERT(sizeof(void *) <= a);
-		while ( (n + a) <= ALLOCMAX ) {
-			wp = (WCHAR *)(bp + n);
-			*((void **)wp) = pMemFree[hs];
-			pMemFree[hs] = (void *)wp;
-			n += a;
-		}
-	}
-
-	wp = (WCHAR *)pMemFree[hs];
-	pMemFree[hs] = *((void **)wp);
-	*(wp++) = hs;
-	return wp;
-}
-void WCharFree(WCHAR *ptr)
-{
-	int hs = *(--ptr);
-	ASSERT(hs >= 0 && hs < 3);
-	*((void **)ptr) = pMemFree[hs];
-	pMemFree[hs] = (void *)ptr;
-}
-inline int WCharSize(WCHAR *ptr)
-{
-	static const int sizeTab[] = { 7, 15, 31 };
-	return sizeTab[*(ptr - 1)];
-}
-void AllWCharAllocFree()
-{
-	void *ptr;
-
-	while ( (ptr = pMemTop) != NULL ) {
-		pMemTop = *((void **)ptr);
-		delete [] ptr;
-	}
-}
-
-#endif	// USE_FIXWCHAR
-
 //////////////////////////////////////////////////////////////////////
 // CCharCell
 
-#ifndef	USE_FIXWCHAR
-CCharCell::CCharCell()
-{
-	m_Data = m_Vram.pack.wcbuf;
-//	ZeroMemory(&m_Vram, sizeof(VRAM));
-}
-CCharCell::~CCharCell()
-{
-	if ( m_Data != m_Vram.pack.wcbuf )
-		WCharFree(m_Data);
-}
-void CCharCell::GetCCharCell(CCharCell &data)
-{
-	if ( data.m_Data == data.m_Vram.pack.wcbuf ) {
-		if ( m_Data != m_Vram.pack.wcbuf ) {
-			WCharFree(m_Data);
-			m_Data = m_Vram.pack.wcbuf;
-		}
-	} else {
-		if ( m_Data != m_Vram.pack.wcbuf )
-			WCharFree(m_Data);
-		m_Data = WCharAlloc(WCharSize(data.m_Data));
-		memcpy(m_Data, data.m_Data, sizeof(WCHAR) * WCharSize(m_Data));
-	}
-	m_Vram = data.m_Vram;
-	m_Block = data.m_Block;
-}
-#endif
 void CCharCell::operator = (DWORD ch)
 {
 	if ( IS_IMAGE(m_Vram.mode) )
 		return;
 
-#ifndef	USE_FIXWCHAR
-	if ( (ch & 0xFFFF0000) != 0 ) {
-		if ( m_Data == m_Vram.pack.wcbuf )
-			m_Data = WCharAlloc(3);
-		//else if ( WCharSize(m_Data) < 3 ) {	not use min 7 word
-		//	WCharFree(m_Data);
-		//	m_Data = WCharAlloc(3);
-		//}
-		m_Data[0] = (WCHAR)(ch >> 16);
-		m_Data[1] = (WCHAR)(ch);
-		m_Data[2] = L'\0';
-	} else {
-		if ( m_Data != m_Vram.pack.wcbuf ) {
-			WCharFree(m_Data);
-			m_Data = m_Vram.pack.wcbuf;
-		}
-		m_Data[0] = (WCHAR)(ch);
-		m_Data[1] = L'\0';
-	}
-#else
 	if ( (ch & 0xFFFF0000) != 0 ) {
 		m_Data[0] = (WCHAR)(ch >> 16);
 		m_Data[1] = (WCHAR)(ch);
@@ -265,7 +137,6 @@ void CCharCell::operator = (DWORD ch)
 		m_Data[0] = (WCHAR)(ch);
 		m_Data[1] = L'\0';
 	}
-#endif
 }
 void CCharCell::operator += (DWORD ch)
 {
@@ -282,17 +153,6 @@ void CCharCell::operator += (DWORD ch)
 	if ( (a = n + b + 1) > MAXCHARSIZE )
 		return;
 
-#ifndef	USE_FIXWCHAR
-	if ( a > (m_Data == m_Vram.pack.wcbuf ? 2 : WCharSize(m_Data)) ) {
-		WCHAR *nw = WCharAlloc(a);
-		for ( n = 0 ; m_Data[n] != 0 ; n++ )
-			nw[n] = m_Data[n];
-		if ( m_Data != m_Vram.pack.wcbuf )
-			WCharFree(m_Data);
-		m_Data = nw;
-	}
-#endif
-
 	if ( (ch & 0xFFFF0000) != 0 )
 		m_Data[n++] = (WCHAR)(ch >> 16);
 
@@ -304,24 +164,10 @@ void CCharCell::operator += (DWORD ch)
 void CCharCell::operator = (LPCWSTR str)
 {
 	int n;
-	int a = wcslen(str) + 1;
+	int a = (int)wcslen(str) + 1;
 
 	if ( IS_IMAGE(m_Vram.mode) )
 		return;
-
-#ifndef	USE_FIXWCHAR
-	if ( a <= 2 ) {
-		if ( m_Data != m_Vram.pack.wcbuf ) {
-			WCharFree(m_Data);
-			m_Data = m_Vram.pack.wcbuf;
-		}
-	} else if ( m_Data == m_Vram.pack.wcbuf ) {
-		m_Data = WCharAlloc(a);
-	} else if ( a > WCharSize(m_Data) ) {
-		WCharFree(m_Data);
-		m_Data = WCharAlloc(a);
-	}
-#endif
 
 	for ( n = 0 ; n < a ; n++ ) {
 		if ( n >= (MAXCHARSIZE - 1) ) {
@@ -442,34 +288,7 @@ void CCharCell::Write(CFile &file)
 }
 void CCharCell::Copy(CCharCell *dis, CCharCell *src, int size)
 {
-#ifdef	USE_FIXWCHAR
 	memcpy(dis, src, sizeof(CCharCell) * size);
-#elif 0
-	CCharCell *end;
-
-	for ( end = dis + size ; dis < end ; )
-		*(dis++) = *(src++);
-
-#else
-	register CCharCell *ptr;
-	CCharCell *end;
-
-	for ( ptr = dis, end = ptr + size ; ptr < end ; ptr++ ) {
-		if ( ptr->m_Data != ptr->m_Vram.pack.wcbuf )
-			WCharFree(ptr->m_Data);
-	}
-
-	memcpy(dis, src, sizeof(CCharCell) * size);
-
-	for ( ptr = dis, end = ptr + size ; ptr < end ; ptr++, src++ ) {
-		if ( src->m_Data == src->m_Vram.pack.wcbuf )
-			ptr->m_Data = ptr->m_Vram.pack.wcbuf;
-		else {
-			ptr->m_Data = WCharAlloc(WCharSize(src->m_Data));
-			memcpy(ptr->m_Data, src->m_Data, sizeof(WCHAR) * WCharSize(src->m_Data));
-		}
-	}
-#endif
 }
 void CCharCell::Fill(CCharCell *dis, VRAM &vram, int size)
 {
@@ -477,12 +296,6 @@ void CCharCell::Fill(CCharCell *dis, VRAM &vram, int size)
 	CCharCell *end;
 
 	for ( ptr = dis, end = ptr + size ; ptr < end ; ptr++ ) {
-#ifndef	USE_FIXWCHAR
-		if ( ptr->m_Data != ptr->m_Vram.pack.wcbuf ) {
-			WCharFree(ptr->m_Data);
-			ptr->m_Data = ptr->m_Vram.pack.wcbuf;
-		}
-#endif
 		ptr->m_Vram = vram;
 		ptr->m_Data[0] = L'\0';
 	}
@@ -700,7 +513,7 @@ void CFontNode::SetUserBitmap(int code, int width, int height, CBitmap *pMap, in
 void CFontNode::SetUserFont(int code, int width, int height, LPBYTE map)
 {
 	CDC dc;
-	int n, x, y;
+	int x, y;
 	CBitmap *pOld;
 
 	if ( (code -= 0x20) < 0 )
@@ -811,7 +624,7 @@ int CUniBlockTab::Add(DWORD code, int index, LPCTSTR name)
 {
 	int n;
 	int b = 0;
-	int m = m_Data.GetSize() - 1;
+	int m = (int)m_Data.GetSize() - 1;
 	UniBlockNode tmp;
 
 	while ( b <= m ) {
@@ -831,11 +644,11 @@ int CUniBlockTab::Add(DWORD code, int index, LPCTSTR name)
 	m_Data.InsertAt(b, tmp);
 	return b;
 }
-int CUniBlockTab::Find(int code)
+int CUniBlockTab::Find(DWORD code)
 {
 	int n;
 	int b = 0;
-	int m = m_Data.GetSize() - 1;
+	int m = (int)m_Data.GetSize() - 1;
 
 	while ( b <= m ) {
 		n = (b + m) / 2;
@@ -1282,11 +1095,7 @@ CTextRam::CTextRam()
 	m_pServerEntry = NULL;
 
 	m_bOpen = FALSE;
-#ifdef	USE_FIXWCHAR
 	m_hMap = NULL;
-#else
-	m_VRam = NULL;
-#endif
 	m_Cols = m_ColsMax = 80;
 	m_LineUpdate = 0;
 	m_Lines = 25;
@@ -1389,6 +1198,7 @@ CTextRam::CTextRam()
 	m_pTekWnd = NULL;
 	m_pImageWnd = NULL;
 	m_bSixelColInit = FALSE;
+	m_pSixelColor = NULL;
 	m_FixVersion = 0;
 	m_SleepMax = VIEW_SLEEP_MAX;
 
@@ -1411,13 +1221,8 @@ CTextRam::~CTextRam()
 	if ( m_bIntTimer )
 		((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this);
 
-#ifdef	USE_FIXWCHAR
 	if ( m_hMap != NULL )
 		m_MemMap.Close(m_hMap);
-#else
-	if ( m_VRam != NULL )
-		delete [] m_VRam;
-#endif
 
 	while ( (pSave = m_pTextSave) != NULL ) {
 		m_pTextSave = pSave->m_pNext;
@@ -1450,6 +1255,9 @@ CTextRam::~CTextRam()
 	while ( pGrapListType != NULL )
 		pGrapListType->DestroyWindow();
 
+	if ( m_pSixelColor != NULL )
+		delete [] m_pSixelColor;
+
 	SetTraceLog(FALSE);
 }
 
@@ -1460,7 +1268,7 @@ CTextRam::~CTextRam()
 void CTextRam::InitText(int Width, int Height)
 {
 	int n, x;
-	CCharCell *tmp, *vp, *wp;
+	CCharCell *tmp;
 	int oldCurX, oldCurY;
 	int oldCols, oldLines;
 	int charWidth, charHeight;
@@ -1524,7 +1332,6 @@ void CTextRam::InitText(int Width, int Height)
 	else if ( newHisMax > HIS_MAX )
 		newHisMax = HIS_MAX;
 
-#ifdef	USE_FIXWCHAR
 	if ( newHisMax == m_HisMax && m_hMap != NULL ) {
 		if ( newCols == m_Cols && newLines == m_Lines )
 			return;
@@ -1593,73 +1400,6 @@ void CTextRam::InitText(int Width, int Height)
 		m_HisMax = newHisMax;
 		m_HisPos = newHisMax - newLines;
 	}
-#else
-	if ( newCols <= m_ColsMax && newHisMax == m_HisMax && m_VRam != NULL ) {
-		if ( newCols == m_Cols && newLines == m_Lines )
-			return;
-
-		oldCurX    = m_CurX;
-		oldCurY    = m_CurY;
-		oldCols    = m_Cols;
-		oldLines   = m_Lines;
-		newColsMax = m_ColsMax;
-
-		m_HisPos += (m_Lines - newLines);
-
-		if ( m_HisLen < newLines ) {
-			for ( n = m_HisLen + 1 ; n <= newLines ; n++ )
-				CCharCell::Fill(GETVRAM(0, newLines - n), m_DefAtt, m_ColsMax);
-		}
-
-	} else {
-		newColsMax = (m_ColsMax >= newCols && m_LineUpdate < (m_Lines * 4) ? m_ColsMax : newCols);
-		tmp = new CCharCell[newColsMax * newHisMax];
-
-		TRACE("Alloc CharCell Size %d\n", sizeof(CCharCell) * newColsMax * newHisMax);
-
-		if ( m_VRam != NULL ) {
-			oldCurX = (m_ColsMax < newColsMax ? m_ColsMax : newColsMax);
-			oldCurY = (m_HisLen < newHisMax ? m_HisLen : newHisMax);
-
-			for ( n = 1 ; n <= oldCurY ; n++ ) {
-				CCharCell::Copy(tmp + (newHisMax - n) * newColsMax, GETVRAM(0, m_Lines - n), oldCurX);
-				if ( oldCurX < newColsMax )
-					CCharCell::Fill(tmp + (newHisMax - n) * newColsMax + oldCurX, m_DefAtt, newColsMax - oldCurX);
-			}
-
-			if ( oldCurY < newLines ) {
-				for ( n = oldCurY + 1 ; n <= newLines ; n++ )
-					CCharCell::Fill(tmp + (newHisMax - n) * newColsMax, m_DefAtt, newColsMax);
-			}
-
-			delete [] m_VRam;
-
-			oldCurX  = m_CurX;
-			oldCurY  = m_CurY;
-			oldCols  = m_Cols;
-			oldLines = m_Lines;
-
-
-		} else {
-			for ( n = 1 ; n <= newLines ; n++ )
-				CCharCell::Fill(tmp + (newHisMax - n) * newColsMax, m_DefAtt, newColsMax);
-
-			oldCurX  = 0;
-			oldCurY  = 0;
-			oldCols  = newCols;
-			oldLines = newLines;
-
-			m_TopY   = 0;
-			m_BtmY   = newLines;
-			m_LeftX  = 0;
-			m_RightX = newCols;
-		}
-
-		m_VRam   = tmp;
-		m_HisMax = newHisMax;
-		m_HisPos = newHisMax - newLines;
-	}
-#endif
 
 	m_Cols       = newCols;
 	m_Lines      = newLines;
@@ -1741,10 +1481,8 @@ void CTextRam::InitText(int Width, int Height)
 }
 void CTextRam::InitScreen(int cols, int lines)
 {
-	int n, x;
 	int cx = 0, cy = 0;
 	int colsmax = (m_ColsMax > cols ? m_ColsMax : cols);
-	CCharCell *tmp, *vp, *wp;
 	CRect rect, box;
 	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
 	CRLoginView *pView = (CRLoginView *)GetAciveView();
@@ -1819,7 +1557,6 @@ void CTextRam::InitHistory()
 		CSpace spc;
 		DWORD mx, my, nx;
 		char head[5];
-		BYTE tmp[8];
 		CCharCell ram, *vp;
 
 		m_HisFhd.SeekToBegin();
@@ -1834,7 +1571,7 @@ void CTextRam::InitHistory()
 
 		for ( DWORD n = 0 ; n < my ; n++ ) {
 			vp = GETVRAM(0, (-1) - n);
-			for ( int x = 0 ; x < mx ; x++ ) {
+			for ( int x = 0 ; x < (int)mx ; x++ ) {
 				ram.Read(m_HisFhd, head[3] - '0');
 				if ( x < m_ColsMax && m_HisLen < (m_HisMax - m_Lines - 1) )
 					*(vp++) = ram;
@@ -1872,23 +1609,24 @@ void CTextRam::SaveHistory()
 
 	try {
 		CCharCell *vp;
-		DWORD n, i;
+		int n, i;
+		DWORD d;
 
 		m_HisFhd.SeekToBegin();
 		m_HisFhd.Write("RLH3", 4);
 		n = m_Cols; m_HisFhd.Write(&n, sizeof(DWORD));
 		n = m_HisLen; m_HisFhd.Write(&n, sizeof(DWORD));
-		for ( n = 0 ; (int)n < m_HisLen ; n++ ) {
+		for ( n = 0 ; n < m_HisLen ; n++ ) {
 			vp = GETVRAM(0, m_Lines - n - 1);
 			for ( i = 0 ; i < m_Cols ; i++, vp++ )
 				vp->Write(m_HisFhd);
 //			m_HisFhd.Write(vp, sizeof(VRAM) * m_Cols);
 		}
 
-		n = (DWORD)m_LineEditHis.GetSize(); m_HisFhd.Write(&n, sizeof(DWORD));
-		for ( i = 0 ; i < (DWORD)m_LineEditHis.GetSize() ; i++ ) {
-			n = (DWORD)m_LineEditHis.GetAt(i).GetSize(); m_HisFhd.Write(&n, sizeof(DWORD));
-			m_HisFhd.Write(m_LineEditHis.GetAt(i).GetPtr(), n);
+		d = (DWORD)m_LineEditHis.GetSize(); m_HisFhd.Write(&d, sizeof(DWORD));
+		for ( i = 0 ; i < m_LineEditHis.GetSize() ; i++ ) {
+			d = (DWORD)m_LineEditHis.GetAt(i).GetSize(); m_HisFhd.Write(&d, sizeof(DWORD));
+			m_HisFhd.Write(m_LineEditHis.GetAt(i).GetPtr(), d);
 		}
 
 	} catch(...) {
@@ -1930,7 +1668,7 @@ void CTextRam::HisRegCheck(DWORD ch, DWORD pos)
 			m_SimpLen++;
 			if ( m_SimpStr[m_SimpLen] == _T('\0') ) {
 				if ( m_SimpPos != 0xFFFFFFFF ) {
-					for ( a = m_SimpPos ; a <= pos ; a++ )
+					for ( a = (int)m_SimpPos ; a <= (int)pos ; a++ )
 						GETVRAM(a % m_ColsMax, a / m_ColsMax - m_HisPos)->m_Vram.attr |= ATT_MARK;
 				}
 				m_SimpPos = 0xFFFFFFFF;
@@ -2191,6 +1929,7 @@ void CTextRam::Init()
 	m_TraceMaxCount = 1000;
 	m_FixVersion = 0;
 	m_SleepMax = VIEW_SLEEP_MAX;
+	m_GroupCast.Empty();
 
 	for ( int n = 0 ; n < MODKEY_MAX ; n++ ) {
 		m_DefModKey[n] = (-1);
@@ -2324,6 +2063,8 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 			index[_T("TermParaId")].Add(m_DefTermPara[n]);
 
 		index[_T("LogMode")] = m_LogMode;
+
+		index[_T("GroupCast")] = m_GroupCast;
 
 	} else {		// Read
 		if ( (n = index.Find(_T("Cols"))) >= 0 ) {
@@ -2524,6 +2265,9 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		if ( (n = index.Find(_T("LogMode"))) >= 0 )
 			m_LogMode = index[n];
 
+		if ( (n = index.Find(_T("GroupCast"))) >= 0 )
+			m_GroupCast = index[n];
+
 		memcpy(m_ColTab, m_DefColTab, sizeof(m_DefColTab));
 		memcpy(m_AnsiOpt, m_DefAnsiOpt, sizeof(m_AnsiOpt));
 		memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
@@ -2617,6 +2361,8 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 		tmp.AddVal(m_DefTermPara[n]);
 	tmp.SetString(str, _T(';'));
 	stra.Add(str);
+
+	stra.Add(m_GroupCast);
 }
 void CTextRam::GetArray(CStringArrayExt &stra)
 {
@@ -2808,6 +2554,9 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 		m_KeybId  = m_DefTermPara[TERMPARA_KEYBID];
 	}
 
+	if ( stra.GetSize() > 64 )
+		m_GroupCast = stra.GetAt(64);
+
 	if ( m_FixVersion < 9 ) {
 		if ( m_pDocument != NULL ) {
 			if ( m_pDocument->m_ServerEntry.m_UserNameProvs.IsEmpty() || m_pDocument->m_ServerEntry.m_PassNameProvs.IsEmpty() )
@@ -2963,7 +2712,6 @@ void CTextRam::ScriptValue(int cmds, class CScriptValue &value, int mode)
 					opt = 199;
 				value = (int)(IsOptEnable(opt) ? 1 : 0);
 			} else {
-				int n;
 				CParaIndex save;
 				save = m_AnsiPara;
 				m_AnsiPara.RemoveAll();
@@ -3108,6 +2856,7 @@ const CTextRam & CTextRam::operator = (CTextRam &data)
 	m_FixVersion = data.m_FixVersion;
 	m_SleepMax = data.m_SleepMax;
 	m_LogMode = data.m_LogMode;
+	m_GroupCast = data.m_GroupCast;
 
 	return *this;
 }
@@ -3487,9 +3236,9 @@ int CTextRam::IsWord(DWORD ch)
 		return 2;
 	else if ( ch >= 0x30A0 && ch <= 0x30FF )		// 30A0 - 30FF カタカナ
 		return 3;
-	else if ( UnicodeWidth(ch) == 2 && iswalnum(ch) )
+	else if ( UnicodeWidth(ch) == 2 && iswalnum((TCHAR)ch) )
 		return 4;
-	else if ( iswalnum(ch) || m_WordStr.Find(ch) >= 0 )
+	else if ( iswalnum((TCHAR)ch) || m_WordStr.Find((WCHAR)ch) >= 0 )
 		return 1;
 	return 0;
 }
@@ -3838,7 +3587,7 @@ void CTextRam::GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf)
 void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv, struct DrawWork &prop, class CRLoginView *pView)
 {
 	int n, i, a;
-	int c, o, spc;
+	int c, o;
 	CPen cPen[5], *oPen;
 	LOGBRUSH LogBrush;
 	CPoint point[2];
@@ -4790,7 +4539,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 				if ( len > 0 ) {
 					rect.right = pView->CalcGrapX(x * zoom);
 					prop.size   = len;
-					prop.tlen   = text.GetSize();
+					prop.tlen   = (int)text.GetSize();
 					prop.pText  = text.GetData();
 					prop.pSpace = space.GetData();
 					DrawString(pDC, rect, prop, pView);
@@ -4824,7 +4573,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 		if ( len > 0 ) {
 			rect.right = pView->CalcGrapX(x * zoom);
 			prop.size   = len;
-			prop.tlen   = text.GetSize();
+			prop.tlen   = (int)text.GetSize();
 			prop.pText  = text.GetData();
 			prop.pSpace = space.GetData();
 			DrawString(pDC, rect, prop, pView);
@@ -5691,11 +5440,7 @@ CCharCell *CTextRam::GETVRAM(int cols, int lines)
 	while ( pos >= m_HisMax )
 		pos -= m_HisMax;
 
-#ifdef	USE_FIXWCHAR
 	return GETMAPRAM(m_hMap, cols, pos);
-#else
-	return (m_VRam + cols + m_ColsMax * pos);
-#endif
 }
 void CTextRam::UNGETSTR(LPCTSTR str, ...)
 {
@@ -5970,7 +5715,7 @@ void CTextRam::SetAnsiParaArea(int top)
 		m_AnsiPara[top] = m_AnsiPara[top] + GetTopMargin();
 	if ( (m_AnsiPara[top] = m_AnsiPara[top] - 1) < 0 )
 		m_AnsiPara[top] = 0;
-	else if ( m_AnsiPara[top] >= m_Lines )
+	else if ( (int)m_AnsiPara[top] >= m_Lines )
 		m_AnsiPara[top] = m_Lines - 1;
 	top++;
 
@@ -5983,7 +5728,7 @@ void CTextRam::SetAnsiParaArea(int top)
 		m_AnsiPara[top] = m_AnsiPara[top] + GetLeftMargin();
 	if ( (m_AnsiPara[top] = m_AnsiPara[top] - 1) < 0 )
 		m_AnsiPara[top] = 0;
-	else if ( m_AnsiPara[top] >= m_Cols )
+	else if ( (int)m_AnsiPara[top] >= m_Cols )
 		m_AnsiPara[top] = m_Cols - 1;
 	top++;
 
@@ -5996,7 +5741,7 @@ void CTextRam::SetAnsiParaArea(int top)
 		m_AnsiPara[top] = m_AnsiPara[top] + GetTopMargin();
 	if ( (m_AnsiPara[top] = m_AnsiPara[top] - 1) < 0 )
 		m_AnsiPara[top] = 0;
-	else if ( m_AnsiPara[top] >= m_Lines )
+	else if ( (int)m_AnsiPara[top] >= m_Lines )
 		m_AnsiPara[top] = m_Lines - 1;
 	top++;
 
@@ -6009,7 +5754,7 @@ void CTextRam::SetAnsiParaArea(int top)
 		m_AnsiPara[top] = m_AnsiPara[top] + GetLeftMargin();
 	if ( (m_AnsiPara[top] = m_AnsiPara[top] - 1) < 0 )
 		m_AnsiPara[top] = 0;
-	else if ( m_AnsiPara[top] >= m_Cols )
+	else if ( (int)m_AnsiPara[top] >= m_Cols )
 		m_AnsiPara[top] = m_Cols - 1;
 }
 void CTextRam::LocReport(int md, int sw, int x, int y)
@@ -6422,8 +6167,7 @@ void CTextRam::BAKSCROLL(int sx, int sy, int ex, int ey)
 	ASSERT(ex > 0 && ex <= m_Cols);
 	ASSERT(ey > 0 && ey <= m_Lines);
 
-	int x, y;
-	CCharCell *vp, *wp;
+	int y;
 
 	m_DoWarp = FALSE;
 
@@ -6833,7 +6577,6 @@ CTextSave *CTextRam::GETSAVERAM(BOOL bAll)
 {
 	int n, i, x;
 	CCharCell *vp, *wp;
-	CTextSave *pNext;
 	CTextSave *pSave = new CTextSave;
 	CGrapWnd *pWnd;
 	
@@ -7007,8 +6750,7 @@ void CTextRam::SETSAVERAM(CTextSave *pSave)
 }
 void CTextRam::SAVERAM()
 {
-	int n, x;
-	CCharCell *vp, *wp;
+	int n;
 	CTextSave *pNext;
 	CTextSave *pSave;
 
@@ -7431,8 +7173,19 @@ void CTextRam::TABSET(int sw)
 		}
 		if ( n >= m_Margin.right )
 			n = m_Margin.right - 1;
-		if ( n > m_CurX )
-			PUT1BYTE('\t', m_BankTab[m_KanjiMode][0]);
+		if ( n > m_CurX ) {
+			CCharCell *vp = GETVRAM(m_CurX, m_CurY);
+			if ( !IS_IMAGE(vp->m_Vram.mode) && (DWORD)(*vp) <= L' ' ) {
+				*vp = (DWORD)'\t';
+				vp->m_Vram.bank = (WORD)m_BankTab[m_KanjiMode][0];
+				vp->m_Vram.eram = m_AttNow.eram;
+				vp->m_Vram.mode = CM_ASCII;
+				vp->m_Vram.attr = m_AttNow.attr;
+				vp->m_Vram.font = m_AttNow.font;
+				vp->m_Vram.fcol = m_AttNow.fcol;
+				vp->m_Vram.bcol = m_AttNow.bcol;
+			}
+		}
 		LOCATE(n, m_CurY);
 		break;
 	case TAB_COLSBACK:		// Cols Back Tab Stop

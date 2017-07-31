@@ -466,7 +466,7 @@ void CTelnet::SendSlcOpt()
 			continue;
 		slc_tab[n].flag &= ~SLC_ACK;
 		tmp[len++] = (char)n;
-		tmp[len++] = slc_tab[n].flag;
+		tmp[len++] = (char)slc_tab[n].flag;
 		if ( (tmp[len++] = slc_tab[n].ch) == (char)TELC_IAC )
 			tmp[len++] = (char)TELC_IAC;
 	}
@@ -873,7 +873,7 @@ void CTelnet::SubOptFunc(char *buf, int len)
 
 		case CPC_STC_SET_BAUDRATE:		// IAC SB COM-PORT-OPTION SET-BAUD <value(4)> IAC SE
 			// 4 Byte (network standard format) 0=current baudrate
-			if ( (ptr + sizeof(unsigned long)) < len )
+			if ( (int)(ptr + sizeof(unsigned long)) < len )
 				CpcOpt.baudrate = ntohl(*((unsigned long *)(buf + ptr)));
 			break;
 
@@ -1166,7 +1166,7 @@ void CTelnet::SendCpcStr(int cmd, LPCTSTR str)
 	while ( *str != '\0' && n < 1020 ) {
 		if ( *str == (char)TELC_IAC )
 			tmp[n++] = (char)TELC_IAC;
-		tmp[n++] = *(str++);
+		tmp[n++] = (char)*(str++);
 	}
 
 	tmp[n++] = (char)TELC_IAC;
@@ -1203,31 +1203,6 @@ void CTelnet::SendAuthOpt(int n1, int n2, int n3, void *buf, int len)
 	SockSend(tmp, n);
 }
 
-void CTelnet::NsaGenkey(char *p)
-{
-	sprintf(p, "%08x", time(NULL));
-}
-void CTelnet::NsaEncode(char *p, int len, char *key)
-{
-    int n, i;
-
-    for ( n = i = 0 ; n < len ; n++ ) {
-        p[n] = (p[n] ^ key[i]);
-        if ( ++i >= 8 )
-            i = 0;
-    }
-}
-void CTelnet::NsaDecode(char *p, int len, char *key)
-{
-    int n, i;
-
-    for ( n = i = 0 ; n < len ; n++ ) {
-        p[n] = (p[n] ^ key[i]);
-        if ( ++i >= 8 )
-            i = 0;
-    }
-}
-
 void CTelnet::AuthSend(char *buf, int len)
 {
 	static const char nosup[] = { (char)TELC_IAC, (char)TELC_SB, (char)TELOPT_AUTHENTICATION, (char)TELQUAL_IS, 
@@ -1239,12 +1214,6 @@ void CTelnet::AuthSend(char *buf, int len)
 			SraGenkey(pka, ska);
 			SendAuthOpt(AUTHTYPE_SRA, AUTH_WHO_CLIENT | AUTH_HOW_ONE_WAY, SRA_KEY, pka, HEXKEYBYTES);
 			return;
-/********************
-		case AUTHTYPE_NSA:
-			NsaGenkey(pka);
-			SendAuthOpt(AUTHTYPE_NSA, AUTH_WHO_CLIENT | AUTH_HOW_ONE_WAY, NSA_KEY, pka, NSAKEYBYTES);
-			return;
-*********************/
 		}
 		len -= 2;
 		buf += 2;
@@ -1311,42 +1280,6 @@ void CTelnet::AuthReply(char *buf, int len)
 			break;
 		}
 		break;
-/**************************************
-	case AUTHTYPE_NSA:
-		switch(b) {
-		case NSA_KEY:
-			if ( len < NSAKEYBYTES )
-				break;
-			memcpy(pkb, buf, NSAKEYBYTES);
-			pkb[NSAKEYBYTES] = '\0';
-
-			if ( (n = pView->LoginName.GetLength()) > 250 )
-				n = 250;
-			strncpy(tmp, pView->LoginName, n);
-			tmp[n] = '\0';
-
-			NsaEncode(tmp, n, pkb);
-			SendAuthOpt(AUTHTYPE_NSA, AUTH_WHO_CLIENT | AUTH_HOW_ONE_WAY, NSA_USER, tmp, n);
-			PassSendFlag = FALSE;
-			break;
-
-		case NSA_CONTINUE:
-			if ( PassSendFlag ) {
-				SendAuthOpt(AUTHTYPE_NSA, AUTH_WHO_CLIENT | AUTH_HOW_ONE_WAY, NSA_REJECT, NULL, 0);
-				break;
-			}
-			if ( (n = pView->PassName.GetLength()) > 250 )
-				n = 250;
-			strncpy(tmp, pView->PassName, n);
-			tmp[n] = '\0';
-
-			NsaEncode(tmp, n, pkb);
-			SendAuthOpt(AUTHTYPE_NSA, AUTH_WHO_CLIENT | AUTH_HOW_ONE_WAY, NSA_PASS, tmp, n);
-			PassSendFlag = TRUE;
-			break;
-		}
-		break;
-*****************************************/
 	}
 }
 void CTelnet::SraGenkey(char *p, char *s)

@@ -207,7 +207,7 @@ public:
 #define	IDKEY_RSA2		00002
 #define	IDKEY_DSA2		00004
 #define	IDKEY_ED25519	00010
-#define	IDKEY_DSASHA2	00020
+#define	IDKEY_RESV		00020		// not use
 #define	IDKEY_ECDSA		00040
 
 #define	IDKEY_DSA2EX	00104		// BIGNUM2 fix

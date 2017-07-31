@@ -324,29 +324,84 @@ void CRLoginDoc::Dump(CDumpContext& dc) const
 
 void CRLoginDoc::SetCmdInfo(CCommandLineInfoEx *pCmdInfo)
 {
+	CString tmp;
+
+	switch(m_ServerEntry.m_DocType) {
+	case DOCTYPE_NONE:
+		m_CmdLine.Empty();
+		break;
+	case DOCTYPE_REGISTORY:
+		m_CmdLine.Format(_T("/entry \"%s\""), m_ServerEntry.m_EntryName);
+		break;
+	case DOCTYPE_ENTRYFILE:
+	case DOCTYPE_MULTIFILE:
+		tmp = GetPathName();
+		if ( tmp.IsEmpty() ) tmp = _T("NONAME.rlg");
+		m_CmdLine.Format(_T("\"%s\""), tmp);
+		break;
+	case DOCTYPE_SESSION:
+		m_CmdLine.Empty();
+		break;
+	}
+
 	if ( pCmdInfo == NULL )
 		return;
 
-	if ( pCmdInfo->m_Proto != (-1) )
+	if ( pCmdInfo->m_Proto != (-1) ) {
+		switch(pCmdInfo->m_Proto) {
+		case PROTO_DIRECT:  m_CmdLine += _T(" /direct"); break;
+		case PROTO_LOGIN:	m_CmdLine += _T(" /login"); break;
+		case PROTO_TELNET:	m_CmdLine += _T(" /telnet"); break;
+		case PROTO_SSH:		m_CmdLine += _T(" /ssh"); break;
+		case PROTO_COMPORT:	m_CmdLine += _T(" /com"); break;
+		case PROTO_PIPE:	m_CmdLine += _T(" /pipe"); break;
+		}
 		m_ServerEntry.m_ProtoType = pCmdInfo->m_Proto;
+	}
 
-	if ( !pCmdInfo->m_Addr.IsEmpty() )
-		m_ServerEntry.m_HostNameProvs = m_ServerEntry.m_HostName = pCmdInfo->m_Addr;
+	if ( !pCmdInfo->m_Addr.IsEmpty() ) {
+		tmp.Format(_T(" /ip %s"), CCommandLineInfoEx::ShellEscape(pCmdInfo->m_Addr));
+		m_CmdLine += tmp;
+		m_ServerEntry.m_HostName = pCmdInfo->m_Addr;
+	}
 
-	if ( !pCmdInfo->m_Port.IsEmpty() )
+	if ( !pCmdInfo->m_Port.IsEmpty() ) {
+		tmp.Format(_T(" /port %s"), CCommandLineInfoEx::ShellEscape(pCmdInfo->m_Port));
+		m_CmdLine += tmp;
 		m_ServerEntry.m_PortName = pCmdInfo->m_Port;
+	}
 
-	if ( !pCmdInfo->m_User.IsEmpty() )
-		m_ServerEntry.m_UserNameProvs = m_ServerEntry.m_UserName = pCmdInfo->m_User;
+	if ( !pCmdInfo->m_User.IsEmpty() ) {
+		tmp.Format(_T(" /user %s"), CCommandLineInfoEx::ShellEscape(pCmdInfo->m_User));
+		m_CmdLine += tmp;
+		m_ServerEntry.m_UserName = pCmdInfo->m_User;
+	}
 
-	if ( !pCmdInfo->m_Pass.IsEmpty() )
-		m_ServerEntry.m_PassNameProvs = m_ServerEntry.m_PassName = pCmdInfo->m_Pass;
+	if ( !pCmdInfo->m_Pass.IsEmpty() ) {
+		tmp.Format(_T(" /pass %s"), CCommandLineInfoEx::ShellEscape(pCmdInfo->m_Pass));
+		m_CmdLine += tmp;
+		m_ServerEntry.m_PassName = pCmdInfo->m_Pass;
+	}
 
-	if ( !pCmdInfo->m_Term.IsEmpty() )
+	if ( !pCmdInfo->m_Term.IsEmpty() ) {
+		tmp.Format(_T(" /term %s"), CCommandLineInfoEx::ShellEscape(pCmdInfo->m_Term));
+		m_CmdLine += tmp;
 		m_ServerEntry.m_TermName = pCmdInfo->m_Term;
+	}
 
-	m_InPane = pCmdInfo->m_InPane;
-	m_AfterId = pCmdInfo->m_AfterId;
+	//if ( pCmdInfo->m_InUse )
+	//	m_CmdLine += _T(" /inuse");
+
+	if ( pCmdInfo->m_InPane ) {
+		//m_CmdLine += _T(" /inpne");
+		m_InPane  = pCmdInfo->m_InPane;
+	}
+
+	if ( pCmdInfo->m_AfterId != (-1) ) {
+		//tmp.Format(_T(" /after %d"), pCmdInfo->m_AfterId);
+		//m_CmdLine += tmp;
+		m_AfterId = pCmdInfo->m_AfterId;
+	}
 }
 void CRLoginDoc::SetEntryProBuffer()
 {
@@ -833,9 +888,10 @@ NEWLINE:
 			m_pLogFile->Write(lpBuf++, 1);
 	}
 }
-void CRLoginDoc::LogDebug(LPCSTR str, ...)
+void CRLoginDoc::LogDebug(LPCTSTR str, ...)
 {
-	CStringA tmp;
+	CStringA mbs;
+	CString tmp;
 	va_list arg;
 
 	if ( m_pLogFile == NULL || m_TextRam.m_LogMode != LOGMOD_DEBUG )
@@ -845,7 +901,8 @@ void CRLoginDoc::LogDebug(LPCSTR str, ...)
 	tmp.FormatV(str, arg);
 	va_end(arg);
 
-	LogWrite((LPBYTE)(LPCSTR)tmp, tmp.GetLength(), LOGDEBUG_INSIDE);
+	mbs = tmp;
+	LogWrite((LPBYTE)(LPCSTR)mbs, mbs.GetLength(), LOGDEBUG_INSIDE);
 	LogWrite(NULL, 0, LOGDEBUG_FLASH);
 }
 void CRLoginDoc::LogDump(LPBYTE lpBuf, int nBufLen)
@@ -933,6 +990,8 @@ void CRLoginDoc::LogInit()
 		}
 	}
 }
+
+/////////////////////////////////////////////////////////////////////////////
 
 void CRLoginDoc::DoDropFile()
 {
@@ -1061,9 +1120,6 @@ void CRLoginDoc::OnSocketConnect()
 		m_pStrScript = &(m_ServerEntry.m_ChatScript);
 		OnReciveChar(0, (-1));
 	}
-
-	if ( m_TextRam.m_LogMode != LOGMOD_DEBUG )
-		LogInit();
 
 	if ( m_AfterId != (-1) ) {
 		((CMainFrame *)::AfxGetMainWnd())->PostMessage(WM_AFTEROPEN, (WPARAM)m_AfterId, (LPARAM)0);
@@ -1280,9 +1336,9 @@ int CRLoginDoc::SocketOpen()
 		(m_TextRam.IsOptEnable(TO_RLUSEPASS) && m_ServerEntry.m_ProtoType >= PROTO_LOGIN && m_ServerEntry.m_ProtoType <= PROTO_COMPORT) ) {
 
 		dlg.m_Title    = m_ServerEntry.m_EntryName;
-		dlg.m_HostAddr = m_ServerEntry.m_HostNameProvs;
-		dlg.m_UserName = m_ServerEntry.m_UserNameProvs;
-		dlg.m_PassName = m_ServerEntry.m_PassNameProvs;
+		dlg.m_HostAddr = m_ServerEntry.m_HostName;
+		dlg.m_UserName = m_ServerEntry.m_UserName;
+		dlg.m_PassName = m_ServerEntry.m_PassName;
 		dlg.m_Prompt   = _T("Password");
 		dlg.m_MaxTime  = 120;
 
@@ -1292,6 +1348,13 @@ int CRLoginDoc::SocketOpen()
 		m_ServerEntry.m_HostName = dlg.m_HostAddr;
 		m_ServerEntry.m_UserName = dlg.m_UserName;
 		m_ServerEntry.m_PassName = dlg.m_PassName;
+
+		CCommandLineInfoEx cmds;
+		cmds.SetString(m_CmdLine);
+		cmds.m_Addr = m_ServerEntry.m_HostName;
+		//cmds.m_User = m_ServerEntry.m_UserName;
+		//cmds.m_Pass = m_ServerEntry.m_PassName;	// あまりにもセキュリティーが低い！
+		cmds.GetString(m_CmdLine);
 	}
 
 SKIPINPUT:
@@ -1342,13 +1405,11 @@ SKIPINPUT:
 		return FALSE;
 	}
 
+	LogInit();
 	SetStatus(_T("Open"));
 
 	static LPCTSTR ProtoName[] = { _T("TCP"), _T("Login"), _T("Telnet"), _T("SSH"), _T("COM"), _T("PIPE") };
 	m_pMainWnd->m_StatusString = ProtoName[m_ServerEntry.m_ProtoType];
-
-	if ( m_TextRam.m_LogMode == LOGMOD_DEBUG )
-		LogInit();
 
 	return TRUE;
 }
@@ -1694,6 +1755,7 @@ static const ScriptCmdsDefs DocBase[] = {
 	{	"DoOpen",		12	},
 	{	"Connect",		13	},
 	{	"Abort",		14	},
+	{	"CmdLine",		15	},
 	{	NULL,			0	},
 }, DocLog[] = {
 	{	"File",			20	},
@@ -1808,6 +1870,9 @@ void CRLoginDoc::ScriptValue(int cmds, class CScriptValue &value, int mode)
 		break;
 	case 14:			// Document.Abort
 		value.SetInt(m_pScript->m_bAbort, mode);
+		break;
+	case 15:			// Document.CmdLine
+		value.SetStr(m_CmdLine, mode);
 		break;
 
 	case 20:				// Document.Log.File

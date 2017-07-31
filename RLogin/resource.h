@@ -121,11 +121,11 @@
 #define IDS_VIEW_MENUBAR                538
 #define IDS_NEWVERSIONCHECK             539
 #define IDS_VERSIONCHECKURL             540
-#define IDS_STRING541                   541
 #define IDS_FONTSAMPLESTRING            541
 #define IDS_IDKEYHOSTKEYUPDATE          542
-#define IDS_STRING543                   543
 #define IDS_HISRECDEFAULT               543
+#define IDS_FILEDLGICONGRAP             544
+#define IDS_ICONFILEDELREQ              545
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -157,6 +157,7 @@
 #define IDE_IDKEYNOTSUPPORT             728
 #define IDE_PFDLISTENEMPTY              729
 #define IDE_DUPENTRYSETOPTION           730
+#define	IDE_DNSDIGESTNOTMATCH           731
 #define ID_CHARSCRIPT_END               1000
 #define ID_DISCONNECT                   1001
 #define ID_EDIT_BOX                     1002
@@ -196,8 +197,9 @@
 #define ID_SPLIT_WIDTH                  1036
 #define ID_VIEW_MENUBAR                 1037
 #define ID_VIEW_SCROLLBAR               1038
-#define ID_WINDOW_CLOSE                 1039
-#define ID_WINDOW_ROTATION              1040
+#define ID_VIEW_TABBAR                  1039
+#define ID_WINDOW_CLOSE                 1040
+#define ID_WINDOW_ROTATION              1041
 #define IDC_ALGO_LIST1                  2000
 #define IDC_ALGO_LIST2                  2001
 #define IDC_ALGO_LIST3                  2002
@@ -293,6 +295,8 @@
 #define IDC_COMBO3                      2091
 #define IDC_COMCONFIG                   2092
 #define IDC_CONNECTHOST                 2093
+#define IDC_COMCONFIG2                  2093
+#define IDC_ICONFILE                    2093
 #define IDC_CONNECTPORT                 2094
 #define IDC_CONTINUE                    2095
 #define IDC_CSILIST                     2096
@@ -308,6 +312,8 @@
 #define IDC_DELAYMSEC2                  2106
 #define IDC_SLEEPTIME                   2107
 #define IDC_DELNODE                     2108
+#define IDC_SLEEPTIME2                  2108
+#define IDC_GROUPCAST                   2108
 #define IDC_DIGEST                      2109
 #define IDC_DISIPV6                     2110
 #define IDC_DISPOFFSETH                 2111
@@ -733,14 +739,15 @@
 #define IDM_CLIPBOARD_HIS9              5105
 #define IDM_CLIPBOARD_HIS10             5106
 #define IDM_CLIPBOARD_MENU              5107
+#define IDM_LOOKCAST                    5108
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        154
-#define _APS_NEXT_COMMAND_VALUE         5108
+#define _APS_NEXT_COMMAND_VALUE         5109
 #define _APS_NEXT_CONTROL_VALUE         2413
-#define _APS_NEXT_SYMED_VALUE           541
+#define _APS_NEXT_SYMED_VALUE           546
 #endif
 #endif

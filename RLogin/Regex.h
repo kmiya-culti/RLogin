@@ -24,7 +24,7 @@ public:
 	CStringD(const CStringD &data, int iFirst, int nCount);
 	~CStringD();
 
-	inline int GetLength() { return (m_Data.GetSize() - 1); }
+	inline int GetLength() { return (int)(m_Data.GetSize() - 1); }
 	inline void Empty() { m_Data.RemoveAll(); m_Data.Add(0); m_Vs.RemoveAll(); m_Vs.Add(0); }
 	void Format(LPCWSTR str, ...);
 	void Nomalize();

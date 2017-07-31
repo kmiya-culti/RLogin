@@ -52,7 +52,7 @@ public:
 
 	void Put8Bit(int val);
 	void Put16Bit(int val);
-	void Put32Bit(int val);
+	void Put32Bit(LONG val);
 	void Put64Bit(LONGLONG val);
 	void PutBuf(LPBYTE buf, int len);
 	void PutStr(LPCSTR str);
@@ -65,7 +65,7 @@ public:
 
 	int Get8Bit();
 	int Get16Bit();
-	int Get32Bit();
+	LONG Get32Bit();
 	LONGLONG Get64Bit();
 	int GetStr(CStringA &str);
 	int GetBuf(CBuffer *buf);
@@ -85,7 +85,7 @@ public:
 
 	inline int PTR8BIT(LPBYTE pos) { return (int)(*pos); }
 	int PTR16BIT(LPBYTE pos);
-	int PTR32BIT(LPBYTE pos);
+	LONG PTR32BIT(LPBYTE pos);
 	LONGLONG PTR64BIT(LPBYTE pos);
 
 	LPCTSTR Base64Decode(LPCTSTR str);
@@ -239,12 +239,12 @@ public:
 	operator int () const { return (m_bString ? _tstoi(m_String) : m_Value); }
 
 	BOOL IsEmpty() { return m_bEmpty; }
-	int GetSize() { return m_Array.GetSize(); }
+	int GetSize() { return (int)m_Array.GetSize(); }
 	void SetSize(int nIndex) { m_Array.SetSize(nIndex); }
 	LPCTSTR GetIndex() { return m_nIndex; }
 	void RemoveAll() { m_Array.RemoveAll(); }
-	int Add(LPCTSTR str) { CStringIndex tmp; tmp = str; return m_Array.Add(tmp); }
-	int Add(int value) { CStringIndex tmp; tmp = value; return m_Array.Add(tmp); }
+	int Add(LPCTSTR str) { CStringIndex tmp; tmp = str; return (int)m_Array.Add(tmp); }
+	int Add(int value) { CStringIndex tmp; tmp = value; return (int)m_Array.Add(tmp); }
 	void SetNoCase(BOOL b) { m_bNoCase = b; }
 	void SetNoSort(BOOL b) { m_bNoSort = b; }
 
@@ -510,6 +510,7 @@ public:
 	CString m_BeforeEntry;
 	BOOL m_ReEntryFlag;
 	int m_DocType;
+	CString m_IconName;
 
 	void Init();
 	void SetArray(CStringArrayExt &stra);
@@ -696,7 +697,7 @@ public:
 	void SetHisMenu(CMenu *pMainMenu);
 
 	inline CKeyMac & operator[](int nIndex) { return m_Data[nIndex]; }
-	inline int GetSize() { return m_Data.GetSize(); }
+	inline int GetSize() { return (int)m_Data.GetSize(); }
 	const CKeyMacTab & operator = (CKeyMacTab &data);
 	CKeyMacTab();
 };

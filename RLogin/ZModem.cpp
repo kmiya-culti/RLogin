@@ -1241,7 +1241,7 @@ ENDRET:
 
 CANRET:
 	Bufferd_Clear();
-	Bufferd_SendBuf((char *)canistr, strlen(canistr));
+	Bufferd_SendBuf((char *)canistr, (int)strlen(canistr));
 	Bufferd_Flush();
 	return ERR;
 }

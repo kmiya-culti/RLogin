@@ -482,10 +482,10 @@ int CSyncSock::ReadFileToHost(char *buf, int len, FILE *fp)
 	char tmp[4096];
 
 	if ( !m_IsAscii )
-		return fread(buf, 1, len, fp);
+		return (int)fread(buf, 1, len, fp);
 
 	while ( m_OutBuf.GetSize() < len && !feof(fp) ) {
-		if ( (n = fread(tmp, 1, 4096, fp)) <= 0 )
+		if ( (n = (int)fread(tmp, 1, 4096, fp)) <= 0 )
 			break;
 		for ( i = 0 ; i < n ; i++ ) {
 			if ( tmp[i] != '\r' )
@@ -506,7 +506,7 @@ int CSyncSock::WriteFileFromHost(char *buf, int len, FILE *fp)
 	int n;
 
 	if ( !m_IsAscii )
-		return fwrite(buf, 1, len, fp);
+		return (int)fwrite(buf, 1, len, fp);
 
 	for ( n = 0 ; n < len ; n++ ) {
 		if ( buf[n] == '\n' ) {
@@ -517,7 +517,7 @@ int CSyncSock::WriteFileFromHost(char *buf, int len, FILE *fp)
 	}
 	m_IConv.IConvSub(m_HostCode, _T("CP932"), &m_InBuf, &m_OutBuf);
 
-	if ( (n = fwrite(m_OutBuf.GetPtr(), 1, m_OutBuf.GetSize(), fp)) > 0 )
+	if ( (n = (int)fwrite(m_OutBuf.GetPtr(), 1, m_OutBuf.GetSize(), fp)) > 0 )
 		m_OutBuf.Consume(n);
 
 	return len;

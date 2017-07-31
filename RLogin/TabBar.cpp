@@ -25,6 +25,7 @@ CTabBar::CTabBar()
 	m_GhostReq = m_GhostItem = (-1);
 	m_pGhostView = NULL;
 	m_bNumber = FALSE;
+	m_ImageCount = 0;
 }
 
 CTabBar::~CTabBar()
@@ -121,6 +122,9 @@ int CTabBar::OnCreate(LPCREATESTRUCT lpCreateStruct)
  
 	CFont *font = CFont::FromHandle((HFONT)::GetStockObject(DEFAULT_GUI_FONT));
 	m_TabCtrl.SetFont(font);
+//	m_TabCtrl.SetPadding(CSize(2, 3));
+
+	m_ImageList.Create(ICONIMG_SIZE, ICONIMG_SIZE, ILC_COLOR24 | ILC_MASK, 4, 4);
 
 	return 0;
 }
@@ -138,31 +142,64 @@ void CTabBar::OnSize(UINT nType, int cx, int cy)
 
 void CTabBar::OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler)
 {
-	int n;
-	TC_ITEM tci;
+	int n, idx;
+	TC_ITEM tci, ntc;
 	CString title;
 	TCHAR tmp[MAX_PATH + 2];
-	CWnd *pWnd;
+	CChildFrame *pWnd;
 	CMDIFrameWnd *pMainframe = ((CMDIFrameWnd *)AfxGetMainWnd());
 	CMDIChildWnd* pActive = (pMainframe == NULL ? NULL : pMainframe->MDIGetActive(NULL));
+	CRLoginDoc *pDoc;
 
 	for ( n = 0 ; n < m_TabCtrl.GetItemCount() ; n++ ) {
-		tci.mask = TCIF_PARAM | TCIF_TEXT;
+		tci.mask = TCIF_PARAM | TCIF_TEXT | TCIF_IMAGE;
 		tci.pszText = tmp;
 		tci.cchTextMax = MAX_PATH;
+
 		if ( !m_TabCtrl.GetItem(n, &tci) )
 			continue;
-		pWnd = FromHandle((HWND)tci.lParam);
+
+		ntc.mask = 0;
+		pWnd = (CChildFrame *)FromHandle((HWND)tci.lParam);
+
 		pWnd->GetWindowText(title);
 		if ( title.Compare(tmp) != 0 ) {
-			tci.mask = TCIF_TEXT;
-			tci.pszText = title.LockBuffer();
-			m_TabCtrl.SetItem(n, &tci);
-			title.UnlockBuffer();
+			ntc.mask |= TCIF_TEXT;
+			ntc.pszText = tmp;
+			_tcsncpy(tmp, title, MAX_PATH);
 		}
+
+		if ( (pDoc = (CRLoginDoc *)(pWnd->GetActiveDocument())) != NULL && !pDoc->m_ServerEntry.m_IconName.IsEmpty() )
+			idx = GetImageIndex(pDoc->m_ServerEntry.m_IconName);
+		else
+			idx = (-1);
+
+		if ( idx != tci.iImage ) {
+			ntc.mask |= TCIF_IMAGE;
+			ntc.iImage = idx;
+		}
+
+		if ( m_ImageList.GetImageCount() != m_ImageCount ) {
+			m_ImageCount = m_ImageList.GetImageCount();
+			m_TabCtrl.SetImageList(m_ImageCount > 0 ? &m_ImageList : NULL);
+		}
+
+		if ( ntc.mask != 0 ) {
+			// SetItemではiImageを設定するとテキストと重なるバグあり? しかたなくInsert/Deleteで代用
+			if ( (ntc.mask & TCIF_IMAGE) != 0 ) {
+				ntc.mask = TCIF_PARAM | TCIF_TEXT | TCIF_IMAGE;
+				ntc.pszText = tmp;
+				ntc.lParam = tci.lParam;
+				m_TabCtrl.InsertItem(n, &ntc);
+				m_TabCtrl.DeleteItem(n + 1);
+			} else
+				m_TabCtrl.SetItem(n, &ntc);
+		}
+
 		if ( pActive != NULL && pActive->m_hWnd == pWnd->m_hWnd )
 			m_TabCtrl.SetCurSel(n);
 	}
+
 	ReSize();
 }
 
@@ -172,7 +209,7 @@ BOOL CTabBar::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 	TCHITTESTINFO htinfo;
 
 	if ( AfxGetApp()->GetProfileInt(_T("TabBar"), _T("GhostWnd"), 0) )
-		return TRUE;
+		return CControlBar::OnSetCursor(pWnd, nHitTest, message);
 
 	GetCursorPos(&htinfo.pt);
 	m_TabCtrl.ScreenToClient(&htinfo.pt);
@@ -195,8 +232,10 @@ BOOL CTabBar::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 		}
 	}
 
-	return TRUE;
-//	return CControlBar::OnSetCursor(pWnd, nHitTest, message);
+	if ( pWnd == NULL )
+		return TRUE;
+
+	return CControlBar::OnSetCursor(pWnd, nHitTest, message);
 }
 
 void CTabBar::OnTimer(UINT_PTR nIDEvent)
@@ -209,7 +248,7 @@ void CTabBar::OnTimer(UINT_PTR nIDEvent)
 		break;
 
 	case 1025:
-		OnSetCursor(this, 0, 0);
+		OnSetCursor(NULL, 0, 0);
 		if ( m_GhostItem >= 0 && (GetStyle() & WS_VISIBLE) == 0 )
 			SetGhostWnd(FALSE);
 		break;
@@ -236,33 +275,60 @@ void CTabBar::OnSelchange(NMHDR* pNMHDR, LRESULT* pResult)
 void CTabBar::OnLButtonDown(UINT nFlags, CPoint point) 
 {
 	int hit = (-3);
-	BOOL bEnable;
+	int TypeCol = 0;
 	BOOL bMove = FALSE;
+	BOOL bOtherMove;
+	BOOL bCmdLine;
 	CPoint capos;
 	CSize size(4, 4);
 	CRect rect, rectFirst, rectLast;
 	int idx = m_TabCtrl.GetCurSel();
+	int offset;
+	CRLoginApp *pApp = (CRLoginApp *)AfxGetApp();
 	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
 	CWnd *pDeskTop = CWnd::GetDesktopWindow();
-	CWnd *pChild = NULL;
+	CChildFrame *pChild;
+	CRLoginDoc *pDoc;
 	TC_ITEM tci;
 	TCHAR Text[MAX_PATH + 2];
 	CTrackWnd track;
 	CString title;
 	MSG msg;
+	clock_t stc = clock() - (CLOCKS_PER_SEC * 2);
 
 	CControlBar::OnLButtonDown(nFlags, point);
 
 	if ( idx < 0 || !m_TabCtrl.GetItemRect(idx, rect) || !rect.PtInRect(point) )
 		return;
 
-	if ( (pChild = GetAt(idx)) == NULL )
+	if ( (pChild = (CChildFrame *)GetAt(idx)) == NULL || (pDoc = (CRLoginDoc*)pChild->GetActiveDocument()) == NULL )
 		return;
+
+	switch(pDoc->m_ServerEntry.m_DocType) {
+	case DOCTYPE_NONE:
+		bOtherMove = FALSE;
+		bCmdLine   = FALSE;
+		break;
+	case DOCTYPE_ENTRYFILE:
+	case DOCTYPE_MULTIFILE:
+		bOtherMove = TRUE;
+		bCmdLine   = FALSE;
+		break;
+	case DOCTYPE_REGISTORY:
+	case DOCTYPE_SESSION:
+		bOtherMove = TRUE;
+		bCmdLine   = TRUE;
+		break;
+	}
 
 	if ( GetCapture() != NULL )
 		return;
 
 	SetCapture();
+
+	// CTabBar = point 
+	// m_TabCtrl = rect
+	offset = rect.top - point.y - 1;
 
 	ClientToScreen(rect);
 	pDeskTop->ScreenToClient(rect);
@@ -291,17 +357,36 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 			rect.top    = rectFirst.top    + (capos.y - point.y);
 			rect.bottom = rectFirst.bottom + (capos.y - point.y);
 
-			if ( hit == (-1) || hit == (-2) ) {
+			if ( hit == (-2) ) {
+				if ( bOtherMove ) {
+					CPoint wnpos(capos.x, capos.y + offset);
+					ClientToScreen(&wnpos);
+
+					if ( CRLoginApp::GetRLoginFromPoint(wnpos) != NULL )
+						TypeCol = (bCmdLine ? 4 : 3);
+					else
+						TypeCol = (bCmdLine ? 2 : 1);
+				} else
+					TypeCol = 1;
+
+			} else if ( hit == (-1) ) {
 				if ( !m_bNumber ) {
 					SetTabTitle(TRUE);
 					GetTitle(idx, title);
 					track.SetText(title);
 				}
-				pMain->SendMessage(WM_COMMAND, IDM_DISPWINIDX);
+				if ( (clock() - stc) > (CLOCKS_PER_SEC * 2) ) {
+					pMain->SendMessage(WM_COMMAND, IDM_DISPWINIDX);
+					stc = clock();
+				}
+				TypeCol = 0;
+
+			} else {
+				TypeCol = 0;
 			}
 			
-			if ( (bEnable = (hit == (-2) ? TRUE : FALSE)) != track.m_bEnable ) {
-				track.m_bEnable = bEnable;
+			if ( TypeCol != track.m_TypeCol ) {
+				track.m_TypeCol = TypeCol;
 				track.Invalidate();
 			}
 
@@ -311,21 +396,23 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 					GetTitle(idx, title);
 					track.SetText(title);
 				}
-				if ( !rect.EqualRect(rectLast) )
+				if ( !rect.EqualRect(rectLast) ) {
 					track.SetWindowPos(&wndTopMost, rect.left, rect.top, 0, 0, SWP_NOSIZE | SWP_SHOWWINDOW);
+					track.Invalidate();
+				}
 				rectLast = rect;
 				bMove = TRUE;
 			}
 
 			if ( hit >= 0 && hit != idx ) {		// Move Tab
 
-				tci.mask = TCIF_PARAM | TCIF_TEXT;
+				tci.mask = TCIF_PARAM | TCIF_TEXT | TCIF_IMAGE;
 				tci.pszText = Text;
 				tci.cchTextMax = MAX_PATH;
 				m_TabCtrl.GetItem(idx, &tci);
 
 				m_TabCtrl.DeleteItem(idx);
-				tci.mask = TCIF_PARAM | TCIF_TEXT;
+				tci.mask = TCIF_PARAM | TCIF_TEXT | TCIF_IMAGE;
 				m_TabCtrl.InsertItem(hit, &tci);
 
 				track.SetWindowText(tci.pszText);
@@ -340,20 +427,24 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 			if ( msg.message != WM_LBUTTONUP )
 				break;
 
+			track.CloseWindow();
+			ReleaseCapture();
+
 			if ( m_bNumber )
 				SetTabTitle(FALSE);
 
-			if ( hit == (-1) ) {				// Move Pane
-				ClientToScreen(&capos);
+			ClientToScreen(&capos);
+
+			if ( hit == (-1) ) {						// Move Pane
 				pMain->ScreenToClient(&capos);
 				pMain->MoveChild(pChild, capos);
 				pMain->PostMessage(WM_COMMAND, IDM_DISPWINIDX);
 
-			} else if ( hit == (-2) ) {			// Close
-				pChild->PostMessage(WM_COMMAND, ID_WINDOW_CLOSE);
+			} else if ( hit == (-2) && bOtherMove ) {	// Other RLogin Exec
+				pApp->OpenRLogin(pDoc, &capos);
 			}
 
-			goto ENDLOOP;
+			return;
 
 		//case WM_PAINT:
 		//case WM_ERASEBKGND:
@@ -363,23 +454,41 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 			break;
 		}
 	}
-
-ENDLOOP:
-	track.CloseWindow();
-	ReleaseCapture();
 }
 
 //////////////////////////////////////////////////////////////////////
 
+int CTabBar::GetImageIndex(LPCTSTR filename)
+{
+	int idx = (-1);
+	CStringBinary *pNode;
+	
+	if ( (pNode = m_ImageFile.Find(filename)) == NULL ) {
+		CClientDC dc(&m_TabCtrl);
+		CBmpFile image;
+		CBitmap *pBitmap;
+		COLORREF bc = GetSysColor(COLOR_WINDOW);
+
+		if ( image.LoadFile(filename) && (pBitmap = image.GetBitmap(&dc, ICONIMG_SIZE, ICONIMG_SIZE, 1, bc)) != NULL )
+			idx = m_ImageList.Add(pBitmap, bc);
+
+		m_ImageFile[filename].m_Value = idx;
+		return idx;
+
+	} else
+		return pNode->m_Value;
+}
 void CTabBar::Add(CWnd *pWnd)
 {
 	TC_ITEM tci;
 	CString title;
 
 	pWnd->GetWindowText(title);
-	tci.mask = TCIF_PARAM | TCIF_TEXT;
+	tci.mask = TCIF_PARAM | TCIF_TEXT | TCIF_IMAGE;
 	tci.pszText = title.LockBuffer();
 	tci.lParam = (LPARAM)(pWnd->m_hWnd);
+	tci.iImage = (-1);
+
 	m_TabCtrl.InsertItem(m_TabCtrl.GetItemCount(), &tci);
 	title.UnlockBuffer();
 	ReSize();
@@ -606,4 +715,5 @@ void CTabBar::SetGhostWnd(BOOL sw)
 		m_pGhostView = NULL;
 	}
 }
+
 

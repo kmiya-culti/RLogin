@@ -38,6 +38,7 @@ public:
 	CString m_BeforeEntry;
 	BOOL m_UsePassDlg;
 	BOOL m_UseProxyDlg;
+	CString m_IconName;
 
 public:
 	void DoInit();
@@ -54,6 +55,7 @@ public:
 
 // インプリメンテーション
 protected:
+	DECLARE_MESSAGE_MAP()
 	afx_msg void OnComconfig();
 	afx_msg void OnKeyfileselect();
 	afx_msg void OnProtoType(UINT nID);
@@ -62,6 +64,6 @@ protected:
 	afx_msg void OnChatEdit();
 	afx_msg void OnUpdateOption();
 	afx_msg void OnProxySet();
-	afx_msg void OnBnClickedTermcap();
-	DECLARE_MESSAGE_MAP()
+	afx_msg void OnTermcap();
+	afx_msg void OnIconfile();
 };

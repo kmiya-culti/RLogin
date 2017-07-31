@@ -22,6 +22,7 @@
 #include "RLoginDoc.h"
 #include "RLoginView.h"
 #include "ExtSocket.h"
+#include "Script.h"
 
 #include <direct.h>
 #include <openssl/ssl.h>
@@ -53,6 +54,11 @@ CCommandLineInfoEx::CCommandLineInfoEx()
 	m_InUse = FALSE;
 	m_InPane = FALSE;
 	m_AfterId = (-1);
+	m_ScreenX = (-1);
+	m_ScreenY = (-1);
+	m_ScreenW = (-1);
+	m_ScreenH = (-1);
+	m_EventName.Empty();
 }
 void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLast)
 {
@@ -91,6 +97,16 @@ void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLas
 			m_InPane = TRUE;
 		else if ( _tcsicmp(_T("nothing"), pszParam) == 0 )
 			m_nShellCommand = FileNothing;
+		else if ( _tcsicmp(_T("sx"), pszParam) == 0 )
+			m_PasStat = 8;
+		else if ( _tcsicmp(_T("sy"), pszParam) == 0 )
+			m_PasStat = 9;
+		else if ( _tcsicmp(_T("cx"), pszParam) == 0 )
+			m_PasStat = 10;
+		else if ( _tcsicmp(_T("cy"), pszParam) == 0 )
+			m_PasStat = 11;
+		else if ( _tcsicmp(_T("event"), pszParam) == 0 )
+			m_PasStat = 12;
 		else
 			break;
 		ParseLast(bLast);
@@ -137,11 +153,49 @@ void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLas
 		m_Name = pszParam;
 		ParseLast(bLast);
 		return;
+
 	case 7:
 		m_PasStat = 0;
 		if ( bFlag )
 			break;
 		m_AfterId = _tstoi(pszParam);
+		ParseLast(bLast);
+		return;
+
+	case 8:
+		m_PasStat = 0;
+		if ( bFlag )
+			break;
+		m_ScreenX = _tstoi(pszParam);
+		ParseLast(bLast);
+		return;
+	case 9:
+		m_PasStat = 0;
+		if ( bFlag )
+			break;
+		m_ScreenY = _tstoi(pszParam);
+		ParseLast(bLast);
+		return;
+	case 10:
+		m_PasStat = 0;
+		if ( bFlag )
+			break;
+		m_ScreenW = _tstoi(pszParam);
+		ParseLast(bLast);
+		return;
+	case 11:
+		m_PasStat = 0;
+		if ( bFlag )
+			break;
+		m_ScreenH = _tstoi(pszParam);
+		ParseLast(bLast);
+		return;
+
+	case 12:
+		m_PasStat = 0;
+		if ( bFlag )
+			break;
+		m_EventName = pszParam;
 		ParseLast(bLast);
 		return;
 	}
@@ -206,43 +260,100 @@ BOOL CCommandLineInfoEx::ParseUrl(const TCHAR* pszParam)
 }
 void CCommandLineInfoEx::GetString(CString &str)
 {
-	CStringArrayExt ary;
+	CString tmp;
 
-	ary.AddVal(m_Proto);
-	ary.Add(m_Addr);
-	ary.Add(m_Port);
-	ary.Add(m_User);
-	ary.Add(m_Pass);
-	ary.Add(m_Term);
-	ary.AddVal(m_InUse);
-	ary.Add(m_strFileName);
-	ary.AddVal(m_nShellCommand);
-	ary.Add(m_Name);
+	str.Empty();
 
-	ary.SetString(str);
+	if ( !m_strFileName.IsEmpty() ) {
+		tmp.Format(_T("\"%s\""), m_strFileName);
+		str += tmp;
+	}
+
+	if ( !m_Name.IsEmpty() ) {
+		tmp.Format(_T(" /entry \"%s\""), m_Name);
+		str += tmp;
+	}
+
+	if ( m_Proto != (-1) ) {
+		switch(m_Proto) {
+		case PROTO_DIRECT:  str += _T(" /direct"); break;
+		case PROTO_LOGIN:	str += _T(" /login"); break;
+		case PROTO_TELNET:	str += _T(" /telnet"); break;
+		case PROTO_SSH:		str += _T(" /ssh"); break;
+		case PROTO_COMPORT:	str += _T(" /com"); break;
+		case PROTO_PIPE:	str += _T(" /pipe"); break;
+		}
+	}
+
+	if ( !m_Addr.IsEmpty() ) {
+		tmp.Format(_T(" /ip %s"), ShellEscape(m_Addr));
+		str += tmp;
+	}
+
+	if ( !m_Port.IsEmpty() ) {
+		tmp.Format(_T(" /port %s"), ShellEscape(m_Port));
+		str += tmp;
+	}
+
+	if ( !m_User.IsEmpty() ) {
+		tmp.Format(_T(" /user %s"), ShellEscape(m_User));
+		str += tmp;
+	}
+
+	if ( !m_Pass.IsEmpty() ) {
+		tmp.Format(_T(" /pass %s"), ShellEscape(m_Pass));
+		str += tmp;
+	}
+
+	if ( !m_Term.IsEmpty() ) {
+		tmp.Format(_T(" /term %s"), ShellEscape(m_Term));
+		str += tmp;
+	}
+
+	if ( m_AfterId != (-1) ) {
+		tmp.Format(_T(" /after %d"), m_AfterId);
+		str += tmp;
+	}
+
+	if ( m_InUse )
+		str += _T(" /inuse");
+
+	if ( m_InPane )
+		str += _T(" /inpne");
 }
 void CCommandLineInfoEx::SetString(LPCTSTR str)
 {
-	CStringArrayExt ary;
+	CStringArrayExt param;
 
-	ary.GetString(str);
+	param.GetCmds(str);
 
-	if ( ary.GetSize() <= 9 )
+	if ( param.GetSize() <= 0 )
 		return;
 
-	m_Proto = ary.GetVal(0);
-	m_Addr  = ary.GetAt(1);
-	m_Port  = ary.GetAt(2);
-	m_User  = ary.GetAt(3);
-	m_Pass  = ary.GetAt(4);
-	m_Term  = ary.GetAt(5);
-	m_InUse = ary.GetVal(6);
-	m_strFileName = ary.GetAt(7);
-	switch(ary.GetVal(8)) {
-	case FileNew:  m_nShellCommand = FileNew;  break;
-	case FileOpen: m_nShellCommand = FileOpen; break;
+	for ( int n = 0 ; n < param.GetSize() ; n++ ) {
+		LPCTSTR pParam = param[n];
+		BOOL bFlag = FALSE;
+		BOOL bLast = ((n + 1) == param.GetSize());
+		if ( pParam[0] == _T('-') || pParam[0] == _T('/') ) {
+			bFlag = TRUE;
+			pParam++;
+		}
+		ParseParam(pParam, bFlag, bLast);
 	}
-	m_Name = ary.GetAt(9);
+}
+LPCTSTR CCommandLineInfoEx::ShellEscape(LPCTSTR str)
+{
+	static CString work;
+
+	work = _T('"');
+	while ( *str != _T('\0') ) {
+		if ( *str == _T('"') )
+			work += _T('\\');
+		work += *(str++);
+	}
+	work += _T('"');
+
+	return work;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -256,6 +367,8 @@ BEGIN_MESSAGE_MAP(CRLoginApp, CWinApp)
 	ON_COMMAND(ID_FILE_OPEN, &CWinApp::OnFileOpen)
 	ON_COMMAND(IDM_DISPWINIDX, &CRLoginApp::OnDispwinidx)
 	ON_COMMAND(IDM_DIALOGFONT, &CRLoginApp::OnDialogfont)
+	ON_COMMAND(IDM_LOOKCAST, &CRLoginApp::OnLookcast)
+	ON_UPDATE_COMMAND_UI(IDM_LOOKCAST, &CRLoginApp::OnUpdateLookcast)
 END_MESSAGE_MAP()
 
 
@@ -267,6 +380,9 @@ CRLoginApp::CRLoginApp()
 	// ここに InitInstance 中の重要な初期化処理をすべて記述してください。
 	m_NextSock = 0;
 	m_pServerEntry = NULL;
+	m_bLookCast = FALSE;
+	m_WinVersion = WINVER;
+
 #ifdef	USE_DIRECTWRITE
 	m_pD2DFactory    = NULL;
 	m_pDWriteFactory = NULL;
@@ -316,7 +432,7 @@ void ExDwmEnableWindow(HWND hWnd, BOOL bEnable)
 // CRLoginApp 初期化
 
 #ifdef	USE_JUMPLIST
-void CRLoginApp::AddShellLink(LPCTSTR pEntryName, IObjectCollection *pObjCol)
+IShellLink *CRLoginApp::MakeShellLink(LPCTSTR pEntryName)
 {
 	IShellLink *pSheLink;
 	TCHAR szExePath[MAX_PATH];
@@ -324,87 +440,92 @@ void CRLoginApp::AddShellLink(LPCTSTR pEntryName, IObjectCollection *pObjCol)
  
 	GetModuleFileName(NULL, szExePath, _countof(szExePath));
 
-	if ( SUCCEEDED(CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pSheLink))) ) {
+	if ( FAILED(CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pSheLink))) )
+		return NULL;
 
-		param.Format(_T("/entry \"%s\" /inuse"), pEntryName);
+	param.Format(_T("/entry \"%s\" /inuse"), pEntryName);
 
-		pSheLink->SetPath(szExePath);
-		pSheLink->SetArguments(param);
-		pSheLink->SetIconLocation(szExePath, 1);
-		// pSheLink->SetDescription(_T("inuse"));
+	pSheLink->SetPath(szExePath);
+	pSheLink->SetArguments(param);
+	pSheLink->SetIconLocation(szExePath, 1);
+	pSheLink->SetDescription(pEntryName);
 
-		IPropertyStore *pProStore;
+	IPropertyStore *pProStore;
+	PROPVARIANT pv;
 
-		if ( SUCCEEDED(pSheLink->QueryInterface(IID_PPV_ARGS(&pProStore))) ) {
-
-			PROPVARIANT pv;
-			IShellLink *pSheLink2;
-
-			InitPropVariantFromString(pEntryName, &pv);
-			pProStore->SetValue(PKEY_Title, pv);
-			pProStore->Commit();
-
-			if ( SUCCEEDED(pProStore->QueryInterface(IID_PPV_ARGS(&pSheLink2))) ) {
-				pObjCol->AddObject(pSheLink2);
-				pSheLink2->Release();
-			}
-
-			PropVariantClear(&pv);
-			pProStore->Release();
-		}
-
+	if ( FAILED(pSheLink->QueryInterface(IID_PPV_ARGS(&pProStore))) ) {
 		pSheLink->Release();
+		return NULL;
 	}
+
+	InitPropVariantFromString(pEntryName, &pv);
+	pProStore->SetValue(PKEY_Title, pv);
+	pProStore->Commit();
+
+	PropVariantClear(&pv);
+	pProStore->Release();
+
+	return pSheLink;
 }
 void CRLoginApp::CreateJumpList(CServerEntryTab *pEntry)
 {
 	ICustomDestinationList *pJumpList;
 
-	if ( SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED)) ) {
+	if ( FAILED(CoCreateInstance(CLSID_DestinationList, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pJumpList))) )
+		return;
 
-		if ( SUCCEEDED(CoCreateInstance(CLSID_DestinationList, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pJumpList))) ) {
+	UINT uMaxSlots;
+	IObjectArray *pRemovedList;
 
-			UINT uMaxSlots;
-			IObjectArray *pRemovedList;
+	SetAppID(_T("Culti.RLogin.2"));
+	//SetCurrentProcessExplicitAppUserModelID(m_pszAppID);
+	pJumpList->SetAppID(m_pszAppID);
 
-			//CString appId(_T("Culti.RLogin.2"));
-			//SetCurrentProcessExplicitAppUserModelID(appId);
-			//pJumpList->SetAppID(appId);
+	//pJumpList->DeleteList(NULL);
+	//pJumpList->AppendKnownCategory(KDC_FREQUENT);
+	pJumpList->AppendKnownCategory(KDC_RECENT);
 
-			pJumpList->DeleteList(NULL);
+	if ( FAILED(pJumpList->BeginList(&uMaxSlots, IID_PPV_ARGS(&pRemovedList))) ) {
+		pJumpList->Release();
+		return;
+	}
+	
+	if ( FAILED(pRemovedList->GetCount(&uMaxSlots)) )
+		uMaxSlots = 0;
 
-			if ( SUCCEEDED(pJumpList->BeginList(&uMaxSlots, IID_PPV_ARGS(&pRemovedList))) ) {
-
-	 			//pJumpList->AppendKnownCategory(KDC_FREQUENT);
-	 			//pJumpList->AppendKnownCategory(KDC_RECENT);
-
-				IObjectCollection *pObjCol;
+	IObjectCollection *pObjCol;
+	IObjectArray *pObjArray;
 			
-				if ( SUCCEEDED(CoCreateInstance(CLSID_EnumerableObjectCollection, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pObjCol))) ) {
+	if ( SUCCEEDED(CoCreateInstance(CLSID_EnumerableObjectCollection, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pObjCol))) ) {
+		IShellLink *pShellLink;
 
-					IObjectArray *pObjArray;
-
-					for ( int n = 0 ; n < pEntry->GetSize() ; n++ )
-						AddShellLink(pEntry->GetAt(n).m_EntryName, pObjCol);
-
-					if ( SUCCEEDED(pObjCol->QueryInterface(IID_PPV_ARGS(&pObjArray))) ) {
-						pJumpList->AddUserTasks(pObjArray);
-						//pJumpList->AppendCategory(_T("Custom category"), pObjArray);
-						pObjArray->Release();
-					}
-
-					pObjCol->Release();
-				}
-
-				pJumpList->CommitList();
-				pRemovedList->Release();
+		for ( int n = 0 ; n < pEntry->GetSize() ; n++ ) {
+			if ( (pShellLink = MakeShellLink(pEntry->GetAt(n).m_EntryName)) != NULL ) {
+				pObjCol->AddObject(pShellLink);
+				pShellLink->Release();
 			}
-
-			pJumpList->Release();
 		}
 
-		CoUninitialize();
+		if ( SUCCEEDED(pObjCol->QueryInterface(IID_PPV_ARGS(&pObjArray))) ) {
+			pJumpList->AppendCategory(_T("Entry"), pObjArray);
+			pObjArray->Release();
+		}
+
+		pObjCol->Release();
 	}
+
+	//if ( SUCCEEDED(CoCreateInstance(CLSID_EnumerableObjectCollection, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pObjCol))) ) {
+	//	if ( SUCCEEDED(pObjCol->QueryInterface(IID_PPV_ARGS(&pObjArray))) ) {
+	//		pJumpList->AddUserTasks(pObjArray);
+	//		pObjArray->Release();
+	//	}
+	//	pObjCol->Release();
+	//}
+
+	pJumpList->CommitList();
+
+	pRemovedList->Release();
+	pJumpList->Release();
 }
 #endif
 	
@@ -418,6 +539,7 @@ void CRLoginApp::Speek(LPCTSTR str)
 
 BOOL CRLoginApp::InitInstance()
 {
+	// デフォルトのロケールを設定 strftimeなどで必要
 	setlocale(LC_ALL, "");
 
 	//TODO: call AfxInitRichEdit2() to initialize richedit2 library.
@@ -427,19 +549,37 @@ BOOL CRLoginApp::InitInstance()
 	INITCOMMONCONTROLSEX InitCtrls;
 	InitCtrls.dwSize = sizeof(InitCtrls);
 
-	// アプリケーションで使用するすべてのコモン コントロール クラスを含めるには、
-	// これを設定します。
+	// アプリケーションで使用するすべてのコモン コントロール クラスを含めるには、これを設定します。
 	InitCtrls.dwICC = ICC_WIN95_CLASSES;
 	InitCommonControlsEx(&InitCtrls);
 
-	CWinApp::InitInstance();
+	// Windows Version取得	
+	OSVERSIONINFO VerInfo;
+	memset(&VerInfo, 0, sizeof(VerInfo));
+	VerInfo.dwOSVersionInfoSize = sizeof(VerInfo);
+	GetVersionEx(&VerInfo);
+
+	if ( VerInfo.dwPlatformId == VER_PLATFORM_WIN32_NT )
+		m_WinVersion = (VerInfo.dwMajorVersion << 8) | VerInfo.dwMinorVersion;
+	else
+		m_WinVersion = _WIN32_WINDOWS_W98;	// XXXX
+
+#ifdef	USE_COMINIT
+	// COMライブラリ初期化
+	if ( FAILED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED)) ) {
+		AfxMessageBox(_T("Com Library Init Error"));
+		return FALSE;
+	}
+#endif
 
 #ifdef	WINSOCK11
+	// WINSOCK1.1の初期化
 	if ( !AfxSocketInit() ) {
 		AfxMessageBox(IDS_SOCKETS_INIT_FAILED);
 		return FALSE;
 	}
 #else
+	// WINSOCK2.2の初期化
 	WORD wVersionRequested;
 	wVersionRequested = MAKEWORD( 2, 2 );
 	if ( WSAStartup( wVersionRequested, &wsaData ) != 0 ) {
@@ -448,33 +588,23 @@ BOOL CRLoginApp::InitInstance()
 	}
 #endif
 
-#ifdef	USE_SAPI
-    if ( FAILED(::CoInitialize(NULL)) ) {
-		AfxMessageBox(_T("CoIInitialize Error"));
-        return FALSE;
-	}
+	// 親のInitInstance呼び出し
+	CWinApp::InitInstance();
 
-	if ( FAILED(CoCreateInstance(CLSID_SpVoice, NULL, CLSCTX_ALL, IID_ISpVoice, (void **)&m_pVoice)) )
-		m_pVoice = NULL;
-#endif
-
-	// 標準初期化
-	// これらの機能を使わずに最終的な実行可能ファイルの
-	// サイズを縮小したい場合は、以下から不要な初期化
-	// ルーチンを削除してください。
-	
+	// 作業ディレクトリとプログラム名からプライベートプロファイルを見つける
 	int n;
-	TCHAR tmp[_MAX_PATH];
+	TCHAR PathTemp[_MAX_PATH];
 	CString iniFileName;
 	BOOL bInitFile = FALSE;
 
-	if ( _tgetcwd(tmp, _MAX_PATH) != NULL )
-		m_BaseDir = tmp;
+	if ( _tgetcwd(PathTemp, _MAX_PATH) != NULL )
+		m_BaseDir = PathTemp;
 
-	GetModuleFileName(NULL, tmp, _MAX_PATH);
+	GetModuleFileName(NULL, PathTemp, _MAX_PATH);
+	m_PathName = PathTemp;
 
 	if ( m_BaseDir.IsEmpty() ) {
-		m_BaseDir = tmp;
+		m_BaseDir = m_PathName;
 		if ( (n = m_BaseDir.ReverseFind(_T('\\'))) >= 0 )
 			m_BaseDir = m_BaseDir.Left(n);
 	}
@@ -485,7 +615,7 @@ BOOL CRLoginApp::InitInstance()
 		bInitFile = TRUE;
 
 	} else {
-		iniFileName = tmp;
+		iniFileName = m_PathName;
 		if ( (n = iniFileName.ReverseFind(_T('.'))) >= 0 )
 			iniFileName = iniFileName.Left(n);
 		iniFileName += _T(".ini");
@@ -496,36 +626,34 @@ BOOL CRLoginApp::InitInstance()
 	}
 
 	// 設定が格納されているレジストリ キーを変更します。
-	// TODO: 会社名または組織名などの適切な文字列に
-	// この文字列を変更してください。
-
 	if ( bInitFile == FALSE )
 		SetRegistryKey(_T("Culti"));
 
-	LoadStdProfileSettings(4);  // 標準の INI ファイルのオプションをロードします (MRU を含む)
+	// 標準の INI ファイルのオプションをロードします (MRU を含む)
+	LoadStdProfileSettings(4);
 
 #ifdef	USE_DWMAPI
+	// ガラス効果のDLLを設定
 	if ( (ExDwmApi = LoadLibrary(_T("dwmapi.dll"))) != NULL ) {
 		ExDwmIsCompositionEnabled      = (HRESULT (__stdcall *)(BOOL* pfEnabled))GetProcAddress(ExDwmApi, "DwmIsCompositionEnabled");
 		ExDwmEnableBlurBehindWindow    = (HRESULT (__stdcall *)(HWND hWnd, const DWM_BLURBEHIND* pBlurBehind))GetProcAddress(ExDwmApi, "DwmEnableBlurBehindWindow");
 		ExDwmExtendFrameIntoClientArea = (HRESULT (__stdcall *)(HWND hWnd, const MARGINS* pMarInset))GetProcAddress(ExDwmApi, "DwmExtendFrameIntoClientArea");
 
-		OSVERSIONINFO VerInfo;
-		memset(&VerInfo, 0, sizeof(VerInfo));
-		VerInfo.dwOSVersionInfoSize = sizeof(VerInfo);
-		GetVersionEx(&VerInfo);
-
-		if ( VerInfo.dwPlatformId == VER_PLATFORM_WIN32_NT &&
-			 VerInfo.dwMajorVersion == 6 &&						// Vista/Win7/Win8 ?
-			 VerInfo.dwMinorVersion <= 1 &&						// Vista=0, Win7=1, Win8=2 ?
-			 ExDwmIsCompositionEnabled != NULL )
+		if ( (m_WinVersion == _WIN32_WINNT_VISTA || m_WinVersion == _WIN32_WINNT_WIN7) && ExDwmIsCompositionEnabled != NULL )
 			ExDwmIsCompositionEnabled(&ExDwmEnable);
 	}
 #endif
 
 #ifdef	USE_DIRECTWRITE
+	// DirectWriteを試す
 	if ( SUCCEEDED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &m_pD2DFactory)) )
 		DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(m_pDWriteFactory), reinterpret_cast<IUnknown **>(&m_pDWriteFactory));
+#endif
+
+#ifdef	USE_SAPI
+	// 音声合成の初期化
+	if ( FAILED(CoCreateInstance(CLSID_SpVoice, NULL, CLSCTX_ALL, IID_ISpVoice, (void **)&m_pVoice)) )
+		m_pVoice = NULL;
 #endif
 
 	// アプリケーション用のドキュメント テンプレートを登録します。ドキュメント テンプレート
@@ -539,66 +667,91 @@ BOOL CRLoginApp::InitInstance()
 		return FALSE;
 	AddDocTemplate(pDocTemplate);
 
+	// DDE、file open など標準のシェル コマンドのコマンド ラインを解析します。
+	CCommandLineInfoEx cmdInfo;
+	ParseCommandLine(cmdInfo);
+	m_pCmdInfo = &cmdInfo;
+
+	// inuseオプションで別プロセスを見つけたら終了
+	if ( cmdInfo.m_InUse && InUseCheck() )
+		return FALSE;
+
 	// メイン MDI フレーム ウィンドウを作成します。
 	CMainFrame* pMainFrame = new CMainFrame;
-	if (!pMainFrame || !pMainFrame->LoadFrame(IDR_MAINFRAME))
-	{
+
+	// コマンドライン指定のスクリーン座標
+	pMainFrame->m_ScreenX = cmdInfo.m_ScreenX;
+	pMainFrame->m_ScreenY = cmdInfo.m_ScreenY;
+	pMainFrame->m_ScreenW = cmdInfo.m_ScreenW;
+	pMainFrame->m_ScreenH = cmdInfo.m_ScreenH;
+
+	if ( !pMainFrame || !pMainFrame->LoadFrame(IDR_MAINFRAME) ) {
 		delete pMainFrame;
 		return FALSE;
 	}
 	m_pMainWnd = pMainFrame;
+
 	// 接尾辞が存在する場合にのみ DragAcceptFiles を呼び出します。
 	//  MDI アプリケーションでは、この呼び出しは、m_pMainWnd を設定した直後に発生しなければなりません。
 	// ドラッグ/ドロップ オープンを許可します。
 	m_pMainWnd->DragAcceptFiles(FALSE);
 
-	// DDE Execute open を使用可能にします。
+	// プログラム識別子を設定
+	::SetWindowLongPtr(m_pMainWnd->GetSafeHwnd(), GWLP_USERDATA, 0x524c4f47);
 
+	// DDE Execute open を使用可能にします。
 	EnableShellOpen();
 	RegisterShellFileTypes(TRUE);
 
 	// デフォルトプリンタの設定
 	SetDefaultPrinter();
 
-	// DDE、file open など標準のシェル コマンドのコマンド ラインを解析します。
-	CCommandLineInfoEx cmdInfo;
-	ParseCommandLine(cmdInfo);
-	m_pCmdInfo = &cmdInfo;
-
-	if ( cmdInfo.m_InUse && InUseCheck() )
-		return FALSE;
-
-	::SetWindowLongPtr(m_pMainWnd->GetSafeHwnd(), GWLP_USERDATA, 0x524c4f47);
+#ifdef	USE_JUMPLIST
+	// ジャンプリスト初期化
+	if ( m_WinVersion >= _WIN32_WINNT_WIN7 )
+		CreateJumpList(&(pMainFrame->m_ServerEntryTab));
+#endif
 
 	// コマンド ラインで指定されたディスパッチ コマンドです。アプリケーションが
 	// /RegServer、/Register、/Unregserver または /Unregister で起動された場合、False を返します。
-	// if (!ProcessShellCommand(cmdInfo))
-	//	return FALSE;
+	if ( cmdInfo.m_nShellCommand != CCommandLineInfo::FileNew && cmdInfo.m_nShellCommand != CCommandLineInfo::FileOpen && !ProcessShellCommand(cmdInfo) )
+		return FALSE;
 
 	// メイン ウィンドウが初期化されたので、表示と更新を行います。
 	pMainFrame->ShowWindow(m_nCmdShow);
 	pMainFrame->UpdateWindow();
 
+	// プログラムバージョンチェック
 	pMainFrame->VersionCheck();
 
+	// レジストリからオプション復帰
+	m_bLookCast = GetProfileInt(_T("RLoginApp"), _T("LookCast"), FALSE);
+
+#ifdef	USE_KEYMACGLOBAL
+	m_KeyMacGlobal.Serialize(FALSE);	// init
+#endif
+
+	CScript::ScriptSystemInit(m_PathName, m_pszAppName, m_BaseDir);
+
+	// コマンドラインイベントをリセット
+	if ( !cmdInfo.m_EventName.IsEmpty() ) {
+		HANDLE hEvent;
+		if ( (hEvent = OpenEvent(EVENT_ALL_ACCESS, FALSE, cmdInfo.m_EventName)) != NULL ) {
+			SetEvent(hEvent);
+			CloseHandle(hEvent);
+		}
+	}
+
+	// 新規 or ファイルで接続
 	switch(cmdInfo.m_nShellCommand) {
 	case CCommandLineInfo::FileNew:
 		OnFileNew();
 		break;
 	case CCommandLineInfo::FileOpen:
-		if ( OpenDocumentFile(cmdInfo.m_strFileName) == NULL )
-			OnFileNew();
+		OpenDocumentFile(cmdInfo.m_strFileName);
 		break;
 	}
 	m_pCmdInfo = NULL;
-
-#ifdef	USE_JUMPLIST
-	CreateJumpList(&(pMainFrame->m_ServerEntryTab));
-#endif
-
-#ifdef	USE_KEYMACGLOBAL
-	m_KeyMacGlobal.Serialize(FALSE);	// init
-#endif
 
 	return TRUE;
 }
@@ -663,20 +816,182 @@ BOOL CRLoginApp::CheckDocument(class CRLoginDoc *pDoc)
 	}
 	return FALSE;
 }
+BOOL CRLoginApp::IsRLoginWnd(HWND hWnd)
+{
+	TCHAR title[256];
+
+	if ( hWnd == NULL || ::GetWindowLongPtr(hWnd, GWLP_USERDATA) != 0x524c4f47 )
+		return FALSE;
+
+	::GetWindowText(hWnd, title, 256);
+
+	if ( _tcsncmp(title, _T("RLogin"), 6) != 0 )
+		return FALSE;
+
+	return TRUE;
+}
+HWND CRLoginApp::GetRLoginFromPoint(CPoint point)
+{
+	HWND hParent;
+	HWND hWnd = ::WindowFromPoint(point);
+	HWND hDeskTop = GetDesktopWindow();
+
+	while ( hWnd != NULL && (hParent = ::GetParent(hWnd)) != NULL && hParent != hDeskTop )
+		hWnd = hParent;
+
+	if ( hWnd == NULL || hWnd == hDeskTop || !IsRLoginWnd(hWnd) )
+		return NULL;
+
+	return hWnd;
+}
+BOOL CRLoginApp::OnEntryData(COPYDATASTRUCT *pCopyData)
+{
+	int sx, sy;
+	CBuffer tmp;
+	CServerEntry entry;
+	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
+
+	tmp.Apend((LPBYTE)(pCopyData->lpData), pCopyData->cbData);
+
+	sx = tmp.Get32Bit();
+	sy = tmp.Get32Bit();
+
+	entry.GetBuffer(tmp);
+	entry.m_DocType = DOCTYPE_ENTRYFILE;
+	m_pServerEntry = &entry;
+
+	pMain->SetActivePoint(CPoint(sx, sy));
+	OnFileNew();
+
+	return FALSE;	// not contine
+}
+void CRLoginApp::OpenRLogin(class CRLoginDoc *pDoc, CPoint *pPoint)
+{
+	CBuffer tmp;
+	CString param;
+	BOOL bOpen = FALSE;
+	BOOL bCmdLine = TRUE;
+	COPYDATASTRUCT copyData;
+	HWND hWnd = GetRLoginFromPoint(*pPoint);
+
+	switch(pDoc->m_ServerEntry.m_DocType) {
+	case DOCTYPE_NONE:
+		return;
+	case DOCTYPE_REGISTORY:
+	case DOCTYPE_SESSION:
+		break;
+	case DOCTYPE_ENTRYFILE:
+	case DOCTYPE_MULTIFILE:
+		if ( hWnd == NULL )
+			hWnd = NewProcsMainWnd(pPoint, &bOpen);
+		bCmdLine = FALSE;
+		break;
+	}
+
+	if ( hWnd != NULL ) {
+		// send other process
+
+		if ( bCmdLine ) {
+			// send cmdline
+
+			param.Format(_T("%s /sx %d /sy %d /inuse"), pDoc->m_CmdLine, pPoint->x, pPoint->y);
+
+			copyData.dwData = 0x524c4f31;
+			copyData.cbData = (param.GetLength() + 1) * sizeof(TCHAR);
+			copyData.lpData = param.GetBuffer();
+
+		} else {
+			// send pack data
+
+			tmp.Put32Bit(pPoint->x);
+			tmp.Put32Bit(pPoint->y);
+			pDoc->SetEntryProBuffer();
+			pDoc->m_ServerEntry.SetBuffer(tmp);
+
+			copyData.dwData = 0x524c4f37;
+			copyData.cbData = tmp.GetSize();
+			copyData.lpData = tmp.GetPtr();
+		}
+
+		::SetForegroundWindow(hWnd);
+		::SendMessage(hWnd, WM_COPYDATA, (WPARAM)(AfxGetMainWnd()->GetSafeHwnd()), (LPARAM)&copyData);
+
+	} else if ( !bOpen ) {
+		// open RLogin
+
+		param.Format(_T("%s /sx %d /sy %d"), pDoc->m_CmdLine, pPoint->x, pPoint->y);
+		ShellExecute(AfxGetMainWnd()->GetSafeHwnd(), NULL, m_PathName, param, m_BaseDir, SW_NORMAL);
+	}
+}
+
+//////////////////////////////////////////////////////////////////////
+
+static BOOL CALLBACK RLoginEnumFindMainWnd(HWND hwnd, LPARAM lParam)
+{
+    DWORD pid;
+	CRLoginApp *pThis = (CRLoginApp *)lParam;
+
+    ::GetWindowThreadProcessId(hwnd, &pid);
+
+	if ( pid != pThis->m_FindProcsId )
+		return TRUE;
+
+	if ( !CRLoginApp::IsRLoginWnd(hwnd) )
+		return TRUE;
+
+	pThis->m_FindProcsHwnd = hwnd;
+
+	return FALSE;	// not continue
+}
+HWND CRLoginApp::FindProcsMainWnd(DWORD ProcsId)
+{
+	m_FindProcsId = ProcsId;
+	m_FindProcsHwnd = NULL;
+
+	::EnumWindows(RLoginEnumFindMainWnd, (LPARAM)this);
+
+	return m_FindProcsHwnd;
+}
+HWND CRLoginApp::NewProcsMainWnd(CPoint *pPoint, BOOL *pbOpen)
+{
+	CString param, tmp;
+	STARTUPINFO StatInfo;
+	PROCESS_INFORMATION ProcInfo;
+	HANDLE hEvent;
+
+	ZeroMemory(&StatInfo, sizeof(StatInfo));
+	ZeroMemory(&ProcInfo, sizeof(ProcInfo));
+
+	tmp.Format(_T("RLogin%d"), GetCurrentThreadId());
+	if ( (hEvent = CreateEvent(NULL, TRUE, FALSE, tmp)) == NULL )
+		return NULL;
+
+	param.Format(_T("%s /nothing /event %s"), m_pszAppName, tmp);
+
+	if ( pPoint != NULL ) {
+		tmp.Format(_T(" /sx %d /sy %d"), pPoint->x, pPoint->y);
+		param += tmp;
+	}
+
+	if ( !CreateProcess(m_PathName, (LPTSTR)(LPCTSTR)param, NULL, NULL, FALSE, 0, NULL, m_BaseDir, &StatInfo, &ProcInfo) )
+		return NULL;
+
+	if ( pbOpen != NULL )
+		*pbOpen = TRUE;
+
+	// 最大5秒間メインウィンドウが開くのを待つ
+	WaitForSingleObject(hEvent, 5000);
+	CloseHandle(hEvent);
+
+	return FindProcsMainWnd(ProcInfo.dwProcessId);
+}
 
 //////////////////////////////////////////////////////////////////////
 
 static BOOL CALLBACK RLoginEnumFunc(HWND hwnd, LPARAM lParam)
 {
-	TCHAR title[1024];
-
-	if ( ::GetWindowLongPtr(hwnd, GWLP_USERDATA) != 0x524c4f47 )
-		return TRUE;
-
-	::GetWindowText(hwnd, title, 1024);
-
-	if ( _tcsncmp(title, _T("RLogin"), 6) == 0 )
-		return ::SendMessage(hwnd, WM_COPYDATA, (WPARAM)(AfxGetMainWnd()->GetSafeHwnd()), lParam);
+	if ( CRLoginApp::IsRLoginWnd(hwnd) )
+		return (BOOL)::SendMessage(hwnd, WM_COPYDATA, (WPARAM)(AfxGetMainWnd()->GetSafeHwnd()), lParam);
 
 	return TRUE;
 }
@@ -684,9 +999,15 @@ static BOOL CALLBACK RLoginEnumFunc(HWND hwnd, LPARAM lParam)
 BOOL CRLoginApp::OnInUseCheck(COPYDATASTRUCT *pCopyData)
 {
 	CCommandLineInfoEx cmdInfo;
+	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
 
 	cmdInfo.SetString((LPCTSTR)(pCopyData->lpData));
+
+	if ( cmdInfo.m_ScreenX != (-1) && cmdInfo.m_ScreenY != (-1) )
+		pMain->SetActivePoint(CPoint(cmdInfo.m_ScreenX, cmdInfo.m_ScreenY));
+
 	OpenProcsCmd(&cmdInfo);
+
 	return FALSE;	// not contine
 }
 BOOL CRLoginApp::InUseCheck()
@@ -726,7 +1047,7 @@ BOOL CRLoginApp::OnlineCheck(LPCTSTR entry)
 	COPYDATASTRUCT copyData;
 
 	copyData.dwData = 0x524c4f32;
-	copyData.cbData = (_tcslen(entry) + 1) * sizeof(TCHAR);
+	copyData.cbData = (DWORD)(_tcslen(entry) + 1) * sizeof(TCHAR);
 	copyData.lpData = (PVOID)entry;
 
 	return (::EnumWindows(RLoginEnumFunc, (LPARAM)&copyData) ? FALSE : TRUE);
@@ -737,7 +1058,7 @@ void CRLoginApp::OnUpdateKeyMac(COPYDATASTRUCT *pCopyData)
 {
 	CKeyMac tmp;
 
-	if ( pCopyData->lpData == (PVOID)this )
+	if ( pCopyData->cbData == sizeof(DWORD) && *((DWORD *)(pCopyData->lpData)) == GetCurrentThreadId() )
 		return;
 
 	if ( m_KeyMacGlobal.m_bUpdate && m_KeyMacGlobal.m_Data.GetSize() > 0 ) {
@@ -751,12 +1072,13 @@ void CRLoginApp::OnUpdateKeyMac(COPYDATASTRUCT *pCopyData)
 void CRLoginApp::UpdateKeyMacGlobal()
 {
 	COPYDATASTRUCT copyData;
+	DWORD id = GetCurrentThreadId();
 
 	m_KeyMacGlobal.Serialize(TRUE);		// save
 
 	copyData.dwData = 0x524c4f33;
-	copyData.cbData = 0;
-	copyData.lpData = (PVOID)this;
+	copyData.cbData = sizeof(DWORD);
+	copyData.lpData = (PVOID)&id;
 
 	::EnumWindows(RLoginEnumFunc, (LPARAM)&copyData);
 }
@@ -774,18 +1096,56 @@ void CRLoginApp::OnSendBroadCast(COPYDATASTRUCT *pCopyData)
 		POSITION dpos = pDocTemp->GetFirstDocPosition();
 		while ( dpos != NULL ) {
 			CRLoginDoc *pDoc = (CRLoginDoc *)pDocTemp->GetNextDoc(dpos);
-			if ( !pDoc->m_TextRam.IsOptEnable(TO_RLNOTBCAST) )
-				pDoc->SendBuffer(tmp);
+
+			if ( pDoc != NULL && !pDoc->m_TextRam.IsOptEnable(TO_RLNTBCRECV) && !pDoc->m_TextRam.IsOptEnable(TO_RLGROUPCAST) ) {
+				if ( !m_bLookCast || ((CMainFrame *)AfxGetMainWnd())->IsTopLevelDoc(pDoc) )
+					pDoc->SendBuffer(tmp);
+			}
 		}
 	}
 }
-void CRLoginApp::SendBroadCast(CBuffer &buf)
+void CRLoginApp::OnSendGroupCast(COPYDATASTRUCT *pCopyData)
 {
+	CString group;
+	CStringA mbs;
+	CBuffer tmp, buf;
+
+	tmp.Apend((LPBYTE)(pCopyData->lpData), pCopyData->cbData);
+	tmp.GetStr(mbs);
+	tmp.GetBuf(&buf);
+	group = MbsToTstr(mbs);
+
+	POSITION pos = GetFirstDocTemplatePosition();
+	while ( pos != NULL ) {
+		CDocTemplate *pDocTemp = GetNextDocTemplate(pos);
+		POSITION dpos = pDocTemp->GetFirstDocPosition();
+		while ( dpos != NULL ) {
+			CRLoginDoc *pDoc = (CRLoginDoc *)pDocTemp->GetNextDoc(dpos);
+
+			if ( pDoc != NULL && !pDoc->m_TextRam.IsOptEnable(TO_RLNTBCRECV) && group.Compare(pDoc->m_TextRam.m_GroupCast) == 0 ) {
+				if ( !m_bLookCast || ((CMainFrame *)AfxGetMainWnd())->IsTopLevelDoc(pDoc) )
+					pDoc->SendBuffer(buf);
+			}
+		}
+	}
+}
+
+void CRLoginApp::SendBroadCast(CBuffer &buf, LPCTSTR pGroup)
+{
+	CBuffer tmp;
 	COPYDATASTRUCT copyData;
 
-	copyData.dwData = 0x524c4f34;
-	copyData.cbData = buf.GetSize();
-	copyData.lpData = buf.GetPtr();
+	if ( pGroup == NULL || *pGroup == _T('\0') ) {
+		copyData.dwData = 0x524c4f34;
+		copyData.cbData = buf.GetSize();
+		copyData.lpData = buf.GetPtr();
+	} else {
+		tmp.PutStr(TstrToMbs(pGroup));
+		tmp.PutBuf(buf.GetPtr(), buf.GetSize());
+		copyData.dwData = 0x524c4f36;
+		copyData.cbData = tmp.GetSize();
+		copyData.lpData = tmp.GetPtr();
+	}
 
 #ifdef	USE_BCASTGLOBAL
 	::EnumWindows(RLoginEnumFunc, (LPARAM)&copyData);
@@ -1145,7 +1505,7 @@ void CRLoginApp::RegisterSave(HKEY hKey, LPCTSTR pSection, CBuffer &buf)
 
 	delete [] work;
 
-	buf.Put32Bit(menba.GetSize());
+	buf.Put32Bit((int)menba.GetSize());
 	for ( n = 0 ; n < menba.GetSize() ; n++ ) {
 		buf.PutStr(TstrToMbs(menba[n]));
 		RegisterSave(reg.m_hKey, menba[n], buf);
@@ -1155,9 +1515,9 @@ void CRLoginApp::RegisterSave(HKEY hKey, LPCTSTR pSection, CBuffer &buf)
 }
 void CRLoginApp::RegisterLoad(HKEY hKey, LPCTSTR pSection, CBuffer &buf)
 {
-	int n;
+	int n, len;
 	CRegKey reg;
-	DWORD type, len;
+	DWORD type;
 	CString name;
 	CBuffer work;
 	CStringA mbs;
@@ -1311,14 +1671,13 @@ int CRLoginApp::ExitInstance()
 		m_pD2DFactory->Release();
 #endif
 
-#ifndef	USE_FIXWCHAR
-	AllWCharAllocFree();
-#endif
-
 #ifdef	USE_SAPI
 	if ( m_pVoice != NULL )
 		m_pVoice->Release();
-    ::CoUninitialize();
+#endif
+
+#ifdef	USE_COMINIT
+	CoUninitialize();
 #endif
 
 	return CWinApp::ExitInstance();
@@ -1337,7 +1696,7 @@ void CRLoginApp::SSL_Init()
 }
 void CRLoginApp::SetDefaultPrinter()
 {
-	int n;
+	int n, max;
 	int wDefault;
 	CString Driver, Device, Output;
 	LPDEVNAMES lpDevNames;
@@ -1367,7 +1726,9 @@ void CRLoginApp::SetDefaultPrinter()
 	if ( Driver.IsEmpty() || Device.IsEmpty() || Output.IsEmpty() )
 		goto ERRRET;
 
-	if ( (hDevNames = ::GlobalAlloc(GHND, sizeof(DEVNAMES) + (Driver.GetLength() + Device.GetLength() + Output.GetLength() + 3) * sizeof(TCHAR))) == NULL )
+	max = sizeof(DEVNAMES) + (Driver.GetLength() + Device.GetLength() + Output.GetLength() + 3) * sizeof(TCHAR);
+
+	if ( (hDevNames = ::GlobalAlloc(GHND, max)) == NULL )
 		goto ERRRET;
 
 	if ( (hDevMode = ::GlobalAlloc(GHND, sz)) == NULL ) {
@@ -1393,15 +1754,15 @@ void CRLoginApp::SetDefaultPrinter()
 	ptr = (LPTSTR)lpDevNames;
 
 	lpDevNames->wDriverOffset = n;
-	_tcscpy(ptr + n, Driver);
+	_tcsncpy(ptr + n, Driver, (max / sizeof(TCHAR)) - n);
 	n += (Driver.GetLength() + 1);
 
 	lpDevNames->wDeviceOffset = n;
-	_tcscpy(ptr + n, Device);
+	_tcsncpy(ptr + n, Device, (max / sizeof(TCHAR)) - n);
 	n += (Device.GetLength() + 1);
 
 	lpDevNames->wOutputOffset = n;
-	_tcscpy(ptr + n, Output);
+	_tcsncpy(ptr + n, Output, (max / sizeof(TCHAR)) - n);
 
 	memcpy(lpDevMode, pByte, sz);
 
@@ -1488,4 +1849,14 @@ void CRLoginApp::OnDialogfont()
 
 	WriteProfileString(_T("Dialog"), _T("FontName"), FontName);
 	WriteProfileInt(_T("Dialog"), _T("FontSize"), FontSize);
+}
+
+void CRLoginApp::OnLookcast()
+{
+	m_bLookCast = m_bLookCast ? FALSE : TRUE;
+	WriteProfileInt(_T("RLoginApp"), _T("LookCast"), m_bLookCast);
+}
+void CRLoginApp::OnUpdateLookcast(CCmdUI *pCmdUI)
+{
+	pCmdUI->SetCheck(m_bLookCast);
 }

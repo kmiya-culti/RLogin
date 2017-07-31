@@ -561,10 +561,19 @@ void CRLoginView::SendBuffer(CBuffer &buf, BOOL macflag)
 
 		pDoc->OnSendBuffer(buf);
 
-		if ( ((CMainFrame *)::AfxGetMainWnd())->m_bBroadCast ) {
-			((CRLoginApp *)::AfxGetApp())->SendBroadCast(buf);
-			if ( !pDoc->m_TextRam.IsOptEnable(TO_RLNOTBCAST) )
-				return;
+		if ( ((CMainFrame *)::AfxGetMainWnd())->m_bBroadCast && !pDoc->m_TextRam.IsOptEnable(TO_RLNTBCSEND) ) {
+
+			((CRLoginApp *)::AfxGetApp())->SendBroadCast(buf, pDoc->m_TextRam.m_GroupCast);
+
+			if ( pDoc->m_TextRam.m_GroupCast.IsEmpty() ) {
+				// BroadCast
+				if ( !pDoc->m_TextRam.IsOptEnable(TO_RLNTBCRECV) && !pDoc->m_TextRam.IsOptEnable(TO_RLGROUPCAST) )
+					return;
+			} else {
+				// GroupCast
+				if ( !pDoc->m_TextRam.IsOptEnable(TO_RLNTBCRECV) )
+					return;
+			}
 		}
 	}
 
@@ -903,7 +912,7 @@ void CRLoginView::OnMove(int x, int y)
 
 void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint) 
 {
-	int x, y;
+	int y;
 	CPoint point;
 	CRect rect, box;
 	CString str;
@@ -938,33 +947,8 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		GetClientRect(rect);
 		ClientToScreen(rect);
 		GetCursorPos(&point);
-		if ( rect.PtInRect(point) ) {
-			int mode;
-			HCURSOR hCursor = NULL;
-			if ( ((CMainFrame *)::AfxGetMainWnd())->m_bBroadCast && !pDoc->m_TextRam.IsOptEnable(TO_RLNOTBCAST) )
-				::SetCursor(AfxGetApp()->LoadStandardCursor(IDC_SIZEALL));
-			else {
-				mode = pDoc->m_TextRam.m_XtMosPointMode;
-				if ( pDoc->m_TextRam.m_MouseTrack != MOS_EVENT_NONE && !m_MouseEventFlag )
-					mode |= 4;
-				if ( pDoc->m_TextRam.IsOptEnable(TO_RLCURIMD) )
-					mode |= 8;
-				switch(mode) {
-								//	Xt	Ev	Rv
-				case 0:			//	0	Off	Off
-				case 4:			//	0	On	Off
-				case 5:			//	1	On	Off
-					hCursor = AfxGetApp()->LoadStandardCursor(IDC_ARROW);
-					break;
-				case 8:			//	0	Off	On
-				case 12:		//	0	On	On
-				case 13:		//	1	On	On
-					hCursor = AfxGetApp()->LoadStandardCursor(IDC_IBEAM);
-					break;
-				}
-				::SetCursor(hCursor);
-			}
-		}
+		if ( rect.PtInRect(point) )
+			OnSetCursor(NULL, 0, 0);
 		return;
 
 	case UPDATE_TYPECARET:
@@ -2544,7 +2528,7 @@ void CRLoginView::ClipboardPaste(UINT nID)
 }
 void CRLoginView::OnUpdateClipboardPaste(CCmdUI* pCmdUI) 
 {
-	pCmdUI->Enable(((CMainFrame *)::AfxGetMainWnd())->m_ClipBoard.GetSize() > (pCmdUI->m_nID - IDM_CLIPBOARD_HIS1) ? TRUE : FALSE);
+	pCmdUI->Enable(((CMainFrame *)::AfxGetMainWnd())->m_ClipBoard.GetSize() > (int)(pCmdUI->m_nID - IDM_CLIPBOARD_HIS1) ? TRUE : FALSE);
 }
 void CRLoginView::OnClipboardMenu()
 {
@@ -2807,22 +2791,49 @@ void CRLoginView::OnDropFiles(HDROP hDropInfo)
 
 BOOL CRLoginView::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 {
-	if ( pWnd == this && nHitTest == HTCLIENT ) {
+	if ( pWnd == NULL || (pWnd == this && nHitTest == HTCLIENT) ) {
 		int mode;
 		CRLoginDoc *pDoc = GetDocument();
 		HCURSOR hCursor = NULL;
 
-		if ( ((CMainFrame *)::AfxGetMainWnd())->m_bBroadCast && !pDoc->m_TextRam.IsOptEnable(TO_RLNOTBCAST) )
-			::SetCursor(AfxGetApp()->LoadStandardCursor(IDC_SIZEALL));
-		else {
+		if ( ((CMainFrame *)::AfxGetMainWnd())->m_bBroadCast ) {
+
+			mode = 0;
+
+			if ( !pDoc->m_TextRam.IsOptEnable(TO_RLNTBCSEND) )
+				mode |= 001;
+			if ( !pDoc->m_TextRam.IsOptEnable(TO_RLNTBCRECV) )
+				mode |= 002;
+
+			//if ( !pDoc->m_TextRam.m_GroupCast.IsEmpty() )
+			//	mode |= 001;
+			//if ( !pDoc->m_TextRam.IsOptEnable(TO_RLGROUPCAST) )
+			//	mode |= 002;
+
+			switch(mode) {
+			case 1:
+				hCursor = AfxGetApp()->LoadStandardCursor(IDC_SIZENWSE);
+				break;
+			case 2:
+				hCursor = AfxGetApp()->LoadStandardCursor(IDC_SIZENESW);
+				break;
+			case 3:
+				hCursor = AfxGetApp()->LoadStandardCursor(IDC_SIZEALL);
+				break;
+			}
+		}
+
+		if ( hCursor == NULL ) {
+
 			mode = pDoc->m_TextRam.m_XtMosPointMode;
+
 			if ( pDoc->m_TextRam.m_MouseTrack != MOS_EVENT_NONE && !m_MouseEventFlag )
 				mode |= 4;
+
 			if ( pDoc->m_TextRam.IsOptEnable(TO_RLCURIMD) )
 				mode |= 8;
 
-			switch(mode) {
-							//	Xt	Ev	Rv
+			switch(mode) {	//	Xt	Ev	Rv
 			case 0:			//	0	Off	Off
 			case 4:			//	0	On	Off
 			case 5:			//	1	On	Off
@@ -2835,26 +2846,30 @@ BOOL CRLoginView::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 				hCursor = AfxGetApp()->LoadStandardCursor(IDC_IBEAM);
 				break;
 
-			case 1:			//	1	Off	Off
-			case 2:			//	2	Off	Off
-			case 3:			//	3	Off	Off
-			case 6:			//	2	On	Off
-			case 7:			//	3	On	Off
-			case 9:			//	1	Off	On
-			case 10:		//	2	Off	On
-			case 11:		//	3	Off	On
-			case 14:		//	2	On	On
-			case 15:		//	3	On	On
-				break;
+			//case 1:			//	1	Off	Off
+			//case 2:			//	2	Off	Off
+			//case 3:			//	3	Off	Off
+			//case 6:			//	2	On	Off
+			//case 7:			//	3	On	Off
+			//case 9:			//	1	Off	On
+			//case 10:		//	2	Off	On
+			//case 11:		//	3	Off	On
+			//case 14:		//	2	On	On
+			//case 15:		//	3	On	On
+			//	break;
 			}
-
-			::SetCursor(hCursor);
 		}
 
-		return TRUE;
-	}
+		if ( hCursor != NULL ) {
+			::SetCursor(hCursor);
+			return TRUE;
+		}
+	}	
 
-	return CView::OnSetCursor(pWnd, nHitTest, message);
+	if ( pWnd != NULL  )
+		return CView::OnSetCursor(pWnd, nHitTest, message);
+	else
+		return FALSE;
 }
 
 void CRLoginView::OnMouseEvent()

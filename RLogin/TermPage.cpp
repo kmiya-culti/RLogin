@@ -135,7 +135,7 @@ void CTermPage::DoInit()
 	m_ProcTab = m_pSheet->m_pTextRam->m_ProcTab;
 
 	for ( i = 0 ; i < m_OptList.GetItemCount() ; i++ ) {
-		n = m_OptList.GetItemData(i);
+		n = (int)m_OptList.GetItemData(i);
 		m_OptList.SetLVCheck(i,  m_pSheet->m_pTextRam->IsOptEnable(OptListTab[n].num) ? TRUE : FALSE);
 	}
 
@@ -190,7 +190,7 @@ BOOL CTermPage::OnApply()
 	m_pSheet->m_pTextRam->m_ProcTab = m_ProcTab;
 
 	for ( i = 0 ; i < m_OptList.GetItemCount() ; i++ ) {
-		n = m_OptList.GetItemData(i);
+		n = (int)m_OptList.GetItemData(i);
 
 		if ( m_OptList.GetLVCheck(i) ) {
 			if ( m_pSheet->m_pTextRam->IsOptEnable(OptListTab[n].num) )
@@ -286,7 +286,7 @@ void CTermPage::OnNMClickOptlist(NMHDR *pNMHDR, LRESULT *pResult)
 void CTermPage::OnLvnGetInfoTipEsclist(NMHDR *pNMHDR, LRESULT *pResult)
 {
 	LPNMLVGETINFOTIP pGetInfoTip = reinterpret_cast<LPNMLVGETINFOTIP>(pNMHDR);
-	int n = m_OptList.GetItemData(pGetInfoTip->iItem);
+	int n = (int)m_OptList.GetItemData(pGetInfoTip->iItem);
 	CString str;
 
 	if ( OptListTab[n].tip != NULL )

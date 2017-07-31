@@ -166,7 +166,9 @@ BEGIN
     END
     POPUP "表示(&V)"
     BEGIN
+        MENUITEM "メニューバー(&M)",                  ID_VIEW_MENUBAR
         MENUITEM "ツールバー(&T)",                   ID_VIEW_TOOLBAR
+        MENUITEM "タブバー(&B)",                    ID_VIEW_TABBAR
         MENUITEM "ステータスバー(&S)",                 ID_VIEW_STATUS_BAR
     END
     POPUP "ウィンドウ(&W)"
@@ -243,6 +245,7 @@ BEGIN
         MENUITEM "マウスイベントを無効(&M)",              ID_MOUSE_EVENT
         MENUITEM SEPARATOR
         MENUITEM "ブロードキャスト(&A)",                IDM_BROADCAST
+        MENUITEM "見えてるだけに制限(&L)",               IDM_LOOKCAST
         MENUITEM SEPARATOR
         MENUITEM "キー操作の記録(&R)",                 ID_MACRO_REC
         MENUITEM "キー操作の再現(&Q)",                 ID_MACRO_PLAY
@@ -253,6 +256,7 @@ BEGIN
     BEGIN
         MENUITEM "メニューバー(&M)",                  ID_VIEW_MENUBAR
         MENUITEM "ツールバー(&T)",                   ID_VIEW_TOOLBAR
+        MENUITEM "タブバー(&B)",                    ID_VIEW_TABBAR
         MENUITEM "ステータスバー(&S)",                 ID_VIEW_STATUS_BAR
         MENUITEM "スクロールバー(&V)",                 ID_VIEW_SCROLLBAR
         MENUITEM SEPARATOR
@@ -305,10 +309,10 @@ BEGIN
             MENUITEM "次のウィンドウに移動(&N)",              IDM_WINODW_NEXT
             MENUITEM "前のウィンドウに移動(&P)",              IDM_WINDOW_PREV
             MENUITEM SEPARATOR
-            MENUITEM "上のウィンドウの移動(&U)",              IDM_MOVEPANE_UP
-            MENUITEM "下のウィンドウの移動(&D)",              IDM_MOVEPANE_DOWN
-            MENUITEM "右のウィンドウの移動(&L)",              IDM_MOVEPANE_RIGHT
-            MENUITEM "左のウィンドウの移動(&R)",              IDM_MOVEPANE_LEFT
+            MENUITEM "上のウィンドウに移動(&U)",              IDM_MOVEPANE_UP
+            MENUITEM "下のウィンドウに移動(&D)",              IDM_MOVEPANE_DOWN
+            MENUITEM "右のウィンドウに移動(&R)",              IDM_MOVEPANE_RIGHT
+            MENUITEM "左のウィンドウに移動(&L)",              IDM_MOVEPANE_LEFT
         END
         MENUITEM SEPARATOR
         MENUITEM "縦方向に分割(&H)",                  ID_PANE_HSPLIT
@@ -487,7 +491,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.19.5 (2015/11/06)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.19.6 (2015/11/20)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2015 Culti",IDC_STATIC,44,16,189,8
     DEFPUSHBUTTON   "OK",IDOK,96,171,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.2d 9 Jul 2015",IDC_STATIC,44,29,189,8
@@ -744,7 +748,7 @@ BEGIN
     CONTROL         "ポートフォワードだけ行う （SSH2のみ）",IDC_PROTOCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,114,180,10
     CONTROL         "エージェント転送を有効にする(SSH2のみ)",IDC_PROTOCHECK6,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,132,180,10
     CONTROL         "KeepAliveパケットの送信間隔(sec)",IDC_PROTOCHECK7,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,150,180,10
-    EDITTEXT        IDC_KEEPALIVE,204,150,50,14,ES_RIGHT | ES_AUTOHSCROLL
+    EDITTEXT        IDC_KEEPALIVE,204,150,50,14,ES_AUTOHSCROLL
     PUSHBUTTON      "暗号方式(&C)",IDC_SSHALGO,35,172,90,14
     PUSHBUTTON      "認証キー(&K)",IDC_SSHIDKEY,144,172,90,14
     PUSHBUTTON      "ポートフォワード(&P)",IDC_SSHPFD,35,192,90,14
@@ -1027,6 +1031,7 @@ BEGIN
     EDITTEXT        IDC_ENTRYNAME,13,19,152,14,ES_AUTOHSCROLL
     COMBOBOX        IDC_GROUP,185,19,70,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
     EDITTEXT        IDC_ENTRYMEMO,13,37,152,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "アイコン(&I)",IDC_ICONFILE,186,181,70,14
     COMBOBOX        IDC_BEFORE,185,37,70,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
     CONTROL         "direct",IDC_PROTO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,20,76,29,10
     CONTROL         "login",IDC_PROTO2,"Button",BS_AUTORADIOBUTTON,60,76,29,10
@@ -1037,10 +1042,10 @@ BEGIN
     COMBOBOX        IDC_SERVERNAME,14,122,152,60,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "com",IDC_COMCONFIG,170,122,30,14
     COMBOBOX        IDC_SOCKNO,210,122,46,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_LOGINNAME,14,165,70,62,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    EDITTEXT        IDC_PASSWORD,100,165,70,14,ES_PASSWORD | ES_AUTOHSCROLL
-    COMBOBOX        IDC_TERMNAME,186,165,70,59,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "Terminal(&T)",IDC_TERMCAP,186,147,70,14
+    COMBOBOX        IDC_LOGINNAME,14,161,70,62,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_PASSWORD,100,161,70,14,ES_PASSWORD | ES_AUTOHSCROLL
+    COMBOBOX        IDC_TERMNAME,186,161,70,59,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Terminal(&T)",IDC_TERMCAP,186,143,70,14
     PUSHBUTTON      "編集(&C)",IDC_CHATEDIT,14,213,70,14
     PUSHBUTTON      "設定(&P)",IDC_PROXYSET,100,213,70,14
     PUSHBUTTON      "参照(&K)",IDC_KEYFILESELECT,186,212,70,14
@@ -1049,9 +1054,9 @@ BEGIN
     CONTROL         "ASCII",IDC_KANJICODE3,"Button",BS_AUTORADIOBUTTON,147,254,34,10
     CONTROL         "UTF-8",IDC_KANJICODE4,"Button",BS_AUTORADIOBUTTON,212,254,34,10
     CTEXT           "Server Address",IDC_STATIC,13,110,141,8
-    CTEXT           "User Name",IDC_STATIC,14,150,70,8
+    CTEXT           "User Name",IDC_STATIC,14,146,70,8
     GROUPBOX        "デフォルト文字セット",IDC_STATIC,7,239,256,34
-    CTEXT           "Password",IDC_STATIC,100,150,70,8
+    CTEXT           "Password",IDC_STATIC,100,146,70,8
     CTEXT           "SSH Identity Key",IDC_STATIC,186,201,70,8
     CTEXT           "Socket Port",IDC_STATIC,208,110,46,8
     GROUPBOX        "エントリー/コメント",IDC_STATIC,7,7,166,51
@@ -1410,13 +1415,14 @@ CAPTION "通信共通"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     CONTROL         "改行(CR)を確認し指定時間待って次を送信する(ms)",IDC_PROTOCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,27,180,10
-    EDITTEXT        IDC_DELAYMSEC,204,25,50,14,ES_RIGHT | ES_AUTOHSCROLL
+    EDITTEXT        IDC_DELAYMSEC,204,25,50,14,ES_AUTOHSCROLL
     CONTROL         "BPlus/ZModem/Kermitファイル転送を有効にする",IDC_PROTOCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,46,180,10
     CONTROL         "キーボード入力をローカルエディットモードにする",IDC_PROTOCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,65,180,10
     CONTROL         "接続が切れると自動でプログラムを終了する",IDC_PROTOCHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,84,180,10
     CONTROL         "画面更新がないとスリープ画面に移行する(分単位）",IDC_PROTOCHECK6,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,103,180,10
-    EDITTEXT        IDC_SLEEPTIME,204,101,50,14,ES_RIGHT | ES_AUTOHSCROLL
-    CONTROL         "ブロードキャストからの同時送信を受け取らないようにします",IDC_PROTOCHECK7,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,122,180,10
+    EDITTEXT        IDC_SLEEPTIME,204,101,50,14,ES_AUTOHSCROLL
+    CONTROL         "右のグループキャスト以外からの同時送信を受け取りません",IDC_PROTOCHECK7,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,122,180,10
+    EDITTEXT        IDC_GROUPCAST,204,120,50,14,ES_AUTOHSCROLL
     CONTROL         "TCPオプションのKeepAliveを有効にする",IDC_PROTOCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,172,180,10
     CONTROL         "IPv6/IPv4",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,36,213,45,10
     CONTROL         "IPv6のみ",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,115,213,42,10
@@ -1607,8 +1613,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,19,5,0
- PRODUCTVERSION 2,19,5,0
+ FILEVERSION 2,19,6,0
+ PRODUCTVERSION 2,19,6,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1625,12 +1631,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.19.5.0"
+            VALUE "FileVersion", "2.19.6.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2015 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.19.5.0"
+            VALUE "ProductVersion", "2.19.6.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -3019,6 +3025,7 @@ BEGIN
     IDE_IDKEYNOTSUPPORT     "SSHでサポートされていないサイズの認証鍵です"
     IDE_PFDLISTENEMPTY      "Listenホスト/ポートが指定されていません"
     IDE_DUPENTRYSETOPTION   "複製された接続で設定が変更されました\n設定を保存しますか？"
+	IDE_DNSDIGESTNOTMATCH   "DNSに登録されたホスト鍵と一致しません\n接続を続行しますか？"
 END
 
 STRINGTABLE
@@ -3051,6 +3058,12 @@ BEGIN
     IDS_INITBUTTON          "初期化"
     IDS_LOCALFILEDELETE     "ローカルに無いファイルを削除しますか？"
     IDS_PRORODLGCOMM        "ハンドラ起動時のオプションを指定してください"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_FILEDLGICONGRAP     "Image ファイル (*.gif;*.jpg;*.png;*.bmp;*.ico)|*.gif;*.jpg;*.png;*.bmp;*.ico|All Files (*.*)|*.*||"
+    IDS_ICONFILEDELREQ      "ICONファイルの設定を解除しましすか？"
 END
 
 STRINGTABLE
@@ -3116,7 +3129,13 @@ BEGIN
     ID_SPLIT_WIDTH          "横方向に画面を分割してサーバーに接続する\n横分割接続"
     ID_VIEW_MENUBAR         "メニューバーの 表示/非表示\nメニューバーの表示切り替え"
     ID_VIEW_SCROLLBAR       "スクロールバーの表示/非表示\nスクロールバーの表示切り替え"
+    ID_VIEW_TABBAR          "タブバーの 表示/非表示\nタブバーの表示切り替え"
+END
+
+STRINGTABLE
+BEGIN
     ID_WINDOW_CLOSE         "作業中のウィンドウを閉じます\n閉じる"
+    ID_WINDOW_ROTATION      "表示しているペインを移動します\nペインの移動"
 END
 
 STRINGTABLE
@@ -3272,7 +3291,7 @@ END
 
 STRINGTABLE
 BEGIN
-    ID_WINDOW_ROTATION      "表示しているペインを移動します\nペインの移動"
+    IDM_LOOKCAST            "重なった見えないウィンドウには同時送信しない\n見えてるだけに制限"
 END
 
 #endif    // 日本語 (日本) resources

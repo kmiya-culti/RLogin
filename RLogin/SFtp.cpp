@@ -74,16 +74,16 @@ void CFileNode::DecodeAttr(CBuffer *bp)
 		m_size = bp->Get64Bit();		// size
 
 	if ( m_flags & SSH2_FILEXFER_ATTR_UIDGID ) {
-		m_uid = bp->Get32Bit();			// uid
-		m_gid = bp->Get32Bit();			// gid
+		m_uid = (WORD)bp->Get32Bit();			// uid
+		m_gid = (WORD)bp->Get32Bit();			// gid
 	}
 
 	if ( m_flags & SSH2_FILEXFER_ATTR_PERMISSIONS )
-		m_attr = bp->Get32Bit();		// permissions
+		m_attr = (WORD)bp->Get32Bit();		// permissions
 
 	if ( m_flags & SSH2_FILEXFER_ATTR_ACMODTIME ) {
-		m_atime = bp->Get32Bit();		// atime
-		m_mtime = bp->Get32Bit();		// mtime
+		m_atime = (time_t)bp->Get32Bit();		// atime
+		m_mtime = (time_t)bp->Get32Bit();		// mtime
 	}
 
 	if ( m_flags & SSH2_FILEXFER_ATTR_EXTENDED ) {

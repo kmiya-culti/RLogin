@@ -1,5 +1,7 @@
 #pragma once
 
+#define	ICONIMG_SIZE	16
+
 //////////////////////////////////////////////////////////////////////
 // TabBar.h: CTabBar クラスのインターフェイス
 
@@ -17,9 +19,13 @@ public:
 	int m_GhostItem;
 	class CRLoginView *m_pGhostView;
 	BOOL m_bNumber;
+	CStringBinary m_ImageFile;
+	CImageList m_ImageList;
+	int m_ImageCount;
 
 	BOOL Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID);
 
+	int GetImageIndex(LPCTSTR filename);
 	void Add(CWnd *pWnd);
 	void Remove(CWnd *pWnd);
 	int GetCurSel() { return m_TabCtrl.GetCurSel(); }
@@ -41,11 +47,11 @@ protected:
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 
 protected:
+	DECLARE_MESSAGE_MAP()
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnSelchange(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
-	DECLARE_MESSAGE_MAP()
 };
