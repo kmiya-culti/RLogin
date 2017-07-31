@@ -40,5 +40,6 @@ protected:
 
 // インプリメンテーション
 protected:
+	afx_msg void OnBnClickedMenubtn();
 	DECLARE_MESSAGE_MAP()
 };

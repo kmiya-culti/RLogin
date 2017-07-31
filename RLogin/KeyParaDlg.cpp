@@ -3,6 +3,7 @@
 
 #include "stdafx.h"
 #include "rlogin.h"
+#include "MainFrm.h"
 #include "KeyParaDlg.h"
 
 /////////////////////////////////////////////////////////////////////////////
@@ -46,6 +47,7 @@ void CKeyParaDlg::DoDataExchange(CDataExchange* pDX)
 }
 
 BEGIN_MESSAGE_MAP(CKeyParaDlg, CDialogExt)
+	ON_BN_CLICKED(IDC_MENUBTN, &CKeyParaDlg::OnBnClickedMenubtn)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -96,4 +98,74 @@ void CKeyParaDlg::OnOK()
 	//if ( m_WithCap )   m_pData->m_Mask |= MASK_CAPLCK;
 	m_pData->SetMaps(m_Maps);
 	CDialogExt::OnOK();
+}
+
+void CKeyParaDlg::OnBnClickedMenubtn()
+{
+	int n, id;
+	CString str;
+	CMenu PopUpMenu;
+	CMenu DefMenu, *pMenu;
+	CWnd *pWnd;
+	CRect rect;
+	LPCTSTR p;
+
+	if ( !PopUpMenu.CreatePopupMenu() )
+		return;
+
+	if ( !DefMenu.LoadMenu(IDR_RLOGINTYPE) )
+		return;
+
+	((CMainFrame *)::AfxGetMainWnd())->SetMenuBitmap(&DefMenu);
+
+	for ( n = 0 ; n < DefMenu.GetMenuItemCount() ; n++ ) {
+		DefMenu.GetMenuString(n, str, MF_BYPOSITION);
+		pMenu = DefMenu.GetSubMenu(n);
+		PopUpMenu.AppendMenu(MF_STRING | MF_POPUP, (UINT_PTR)pMenu->GetSafeHmenu(), str);
+	}
+
+	pMenu = PopUpMenu.GetSubMenu(1);
+	pMenu->DeleteMenu(ID_MACRO_HIS1, MF_BYCOMMAND);
+	for ( n = 0 ; n < 5 ; n++ ) {
+		str.Format(_T("&%d 以前に記録したキー操作"), n + 1);
+		pMenu->AppendMenu(MF_STRING, ID_MACRO_HIS1 + n, str);
+	}
+
+	for ( n = 0 ; n < 5 ; n++ ) {
+		str.Format(_T("&%d スクリプトメニュー"), n + 1);
+		pMenu->InsertMenu(ID_CHARSCRIPT_END, MF_BYCOMMAND, IDM_SCRIPT_MENU1 + n, str);
+	}
+
+	pMenu = pMenu->GetSubMenu(4);
+	pMenu->DeleteMenu(IDM_CLIPBOARD_HIS1, MF_BYCOMMAND);
+	for ( n = 0 ; n < 10 ; n++ ) {
+		str.Format(_T("&%d 保存されたクリップボード"), (n + 1) % 10);
+		pMenu->AppendMenu(MF_STRING, IDM_CLIPBOARD_HIS1 + n, str);
+	}
+
+	pMenu = PopUpMenu.GetSubMenu(3);
+	pMenu->AppendMenu(MF_SEPARATOR);
+	for ( n = 0 ; n < 10 ; n++ ) {
+		str.Format(_T("&%d ウィンドウ"), (n + 1) % 10);
+		pMenu->AppendMenu(MF_STRING, AFX_IDM_FIRST_MDICHILD + n, str);
+	}
+
+	if ( (pWnd = GetDlgItem(IDC_MENUBTN)) == NULL )
+		return;
+
+	pWnd->GetWindowRect(rect);
+
+	id = PopUpMenu.TrackPopupMenuEx(TPM_NONOTIFY | TPM_RETURNCMD, rect.right, rect.top, this, NULL);
+
+	if ( id == 0 )
+		return;
+
+	if ( id == IDM_NEWCONNECT )
+		id = ID_FILE_NEW;
+
+	if ( (p = CKeyNodeTab::GetCmdsStr(id)) == NULL )
+		return;
+
+	m_Maps = p;
+	UpdateData(FALSE);
 }

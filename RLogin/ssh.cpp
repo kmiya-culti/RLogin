@@ -1078,12 +1078,19 @@ int Cssh::ChannelOpen()
 					return (-1);
 			}
 			m_pChan.SetSize(mx);
-			for ( ; n < mx ; n++ ) {
+			//for ( ; n < mx ; n++ ) {
+			//	cp = new CChannel;
+			//	cp->m_pNext = m_pChanFree;
+			//	m_pChanFree = cp;
+			//	m_pChan[n] = cp;
+			//	cp->m_LocalID = n;
+			//}
+			while ( n < mx ) {
 				cp = new CChannel;
 				cp->m_pNext = m_pChanFree;
 				m_pChanFree = cp;
-				m_pChan[n] = cp;
-				cp->m_LocalID = n;
+				m_pChan[--mx] = cp;
+				cp->m_LocalID = mx;
 			}
 		}
 	}
@@ -1741,7 +1748,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 	}
 	m_AuthMeta = str;
 
-	for ( atry = 0 ; atry < 5 ; atry++ ) {
+	for ( atry = 0 ; atry < 6 ; atry++ ) {
 		if ( m_AuthStat == AST_DONE )
 			m_AuthStat = m_AuthReqTab[AST_START];
 

@@ -119,7 +119,7 @@ void CExtSocket::Destroy()
 	Close();
 	if ( (m_OnRecvFlag & RECV_ACTIVE) != 0 ) {
 		if ( !m_DestroyFlag )
-			((CRLoginApp *)AfxGetApp())->DelIdleProc(IDLEPROC_SOCKET, this);
+			((CRLoginApp *)AfxGetApp())->AddIdleProc(IDLEPROC_SOCKET, this);
 		m_DestroyFlag = TRUE;
 	} else {
 		if ( m_DestroyFlag )

@@ -4034,9 +4034,13 @@ void CTextRam::fc_OSCEXE(DWORD ch)
 		break;
 
 	case 10:	// 10  -> Change VT100 text foreground color to Pt.
+	case 11:	// 11  -> Change VT100 text background color to Pt.
 	case 12:	// 12  -> Change text cursor color to Pt.
 	case 13:	// 13  -> Change mouse foreground color to Pt.
+	case 14:	// 14  -> Change mouse background color to Pt.
 	case 15:	// 15  -> Change Tektronix foreground color to Pt.
+	case 16:	// 16  -> Change Tektronix background color to Pt.
+	case 17:	// 17  -> Change highlight background color to Pt.
 	case 18:	// 18  -> Change Tektronix cursor color to Pt.
 	case 19:	// 19  -> Change highlight foreground color to Pt.
 		while ( *p != '\0' ) {
@@ -4045,28 +4049,22 @@ void CTextRam::fc_OSCEXE(DWORD ch)
 				tmp += *(p++);
 			if ( *p == ';' )
 				p++;
+
 			n = EXTCOL_BEGIN + (cmd - 10);
-			m_ColTab[n] = m_ColTab[m_AttNow.fcol];
+			if ( cmd == 11 || cmd == 14 || cmd == 16 || cmd == 17 )
+				m_ColTab[n] = m_ColTab[m_AttNow.bcol];
+			else
+				m_ColTab[n] = m_ColTab[m_AttNow.fcol];
+
 			ParseColor(cmd, n, tmp, ch);
+
 			if ( cmd == 10 )
 				m_AttNow.fcol = GETCOLIDX(GetRValue(m_ColTab[n]), GetGValue(m_ColTab[n]), GetBValue(m_ColTab[n]));
-		}
-		break;
-	case 11:	// 11  -> Change VT100 text background color to Pt.
-	case 14:	// 14  -> Change mouse background color to Pt.
-	case 16:	// 16  -> Change Tektronix background color to Pt.
-	case 17:	// 17  -> Change highlight background color to Pt.
-		while ( *p != '\0' ) {
-			tmp.Empty();
-			while ( *p != '\0' && *p != ';' )
-				tmp += *(p++);
-			if ( *p == ';' )
-				p++;
-			n = EXTCOL_BEGIN + (cmd - 10);
-			m_ColTab[n] = m_ColTab[m_AttNow.bcol];
-			ParseColor(cmd, n, tmp, ch);
-			if ( cmd == 11 )
+			else if ( cmd == 11 )
 				m_AttNow.bcol = GETCOLIDX(GetRValue(m_ColTab[n]), GetGValue(m_ColTab[n]), GetBValue(m_ColTab[n]));
+
+			if ( ++cmd > 19 )
+				break;
 		}
 		break;
 

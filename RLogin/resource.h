@@ -57,6 +57,7 @@
 #define IDD_EXTOPTPAGE                  152
 #define IDD_DIALOG2                     156
 #define IDD_MSGDLG                      156
+#define IDD_TEXTMAPDLG                  157
 #define IDR_GRAPWND                     300
 #define IDR_MAINFRAME                   301
 #define IDR_POPUPMENU                   302
@@ -241,6 +242,8 @@
 #define IDC_BACKFILE                    2025
 #define IDC_BACKSEL                     2026
 #define IDC_BANKGL1                     2027
+#define IDC_TEXTMAP                     2027
+#define IDC_MAPOPTION                   2027
 #define IDC_COLEDIT                     2028
 #define IDC_BANKGL2                     2029
 #define IDC_BANKGL3                     2030
@@ -654,9 +657,17 @@
 #define IDC_CTRLCONV3                   2429
 #define IDC_SHELLESC                    2430
 #define IDC_RSAEXTSEL                   2431
-#define IDC_MSGTEXT                     2433
-#define IDC_NOCHECK                     2434
-#define IDC_MSGFRAME                    2435
+#define IDC_MSGTEXT                     2432
+#define IDC_NOCHECK                     2433
+#define IDC_BITMAPALPHA                 2434
+#define IDC_MENUBTN                     2435
+#define IDC_HALIGN                      2436
+#define IDC_VALIGN                      2437
+#define IDC_TEXTMAPENABLE               2438
+#define IDC_TEXTFORMAT                  2439
+#define IDC_TEXTCOLOR                   2440
+#define IDC_TEXTFONT                    2441
+#define IDC_BITMAPBLEND                 2442
 #define IDM_BROADCAST                   5000
 #define IDM_CAP_CLIPBORD                5001
 #define IDM_CAP_EXPORT                  5002
@@ -683,15 +694,15 @@
 #define IDM_RESET_ALL                   5025
 #define IDM_SCRIPT                      5026
 #define IDM_SCRIPT_MENU1                5027
-#define IDM_SCRIPT_MENU10               5028
-#define IDM_SCRIPT_MENU2                5029
-#define IDM_SCRIPT_MENU3                5030
-#define IDM_SCRIPT_MENU4                5031
-#define IDM_SCRIPT_MENU5                5032
-#define IDM_SCRIPT_MENU6                5033
-#define IDM_SCRIPT_MENU7                5034
-#define IDM_SCRIPT_MENU8                5035
-#define IDM_SCRIPT_MENU9                5036
+#define IDM_SCRIPT_MENU2                5028
+#define IDM_SCRIPT_MENU3                5029
+#define IDM_SCRIPT_MENU4                5030
+#define IDM_SCRIPT_MENU5                5031
+#define IDM_SCRIPT_MENU6                5032
+#define IDM_SCRIPT_MENU7                5033
+#define IDM_SCRIPT_MENU8                5034
+#define IDM_SCRIPT_MENU9                5035
+#define IDM_SCRIPT_MENU10               5036
 #define IDM_SEARCH_BACK                 5037
 #define IDM_SEARCH_NEXT                 5038
 #define IDM_SEARCH_REG                  5039
@@ -763,9 +774,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        157
+#define _APS_NEXT_RESOURCE_VALUE        159
 #define _APS_NEXT_COMMAND_VALUE         5103
-#define _APS_NEXT_CONTROL_VALUE         2436
+#define _APS_NEXT_CONTROL_VALUE         2443
 #define _APS_NEXT_SYMED_VALUE           553
 #endif
 #endif

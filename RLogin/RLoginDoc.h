@@ -110,6 +110,7 @@ public:
 
 	void SetMenu(CMenu *pMenu, CKeyCmdsTab *pCmdsTab);
 	BOOL EntryText(CString &name);
+	void ScriptText(LPCWSTR str, LPCWSTR match, CStringW &tmp);
 
 	BOOL ScriptInit();
 	void SendBuffer(CBuffer &buf);

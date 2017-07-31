@@ -1059,6 +1059,146 @@ void CFontTab::IndexRemove(int idx)
 		m_Data[i] = m_Data[n];
 	}
 }
+//////////////////////////////////////////////////////////////////////
+// CTextBitMap
+
+CTextBitMap::CTextBitMap()
+{
+	m_pSection = _T("TextBitMap");
+	Init();
+}
+CTextBitMap::~CTextBitMap()
+{
+}
+const CTextBitMap & CTextBitMap::operator = (CTextBitMap &data)
+{
+	m_bEnable = data.m_bEnable;
+
+	m_WidthAlign  = data.m_WidthAlign;
+	m_HeightAlign = data.m_HeightAlign;
+
+	m_Text      = data.m_Text;
+	m_TextColor = data.m_TextColor;
+
+	memcpy(&m_LogFont, &(data.m_LogFont), sizeof(m_LogFont));
+
+	return *this;
+}
+const BOOL CTextBitMap::operator == (CTextBitMap &data)
+{
+	if ( m_bEnable != data.m_bEnable )
+		return FALSE;
+
+	if ( m_WidthAlign != data.m_WidthAlign || m_HeightAlign != data.m_HeightAlign )
+		return FALSE;
+
+	if ( m_Text.Compare(data.m_Text) != 0 || m_TextColor != data.m_TextColor )
+		return FALSE;
+
+	if ( m_LogFont.lfHeight != data.m_LogFont.lfHeight ||
+		 m_LogFont.lfWeight != data.m_LogFont.lfWeight ||
+		 m_LogFont.lfItalic != data.m_LogFont.lfItalic )
+		return FALSE;
+
+	if ( _tcscmp(m_LogFont.lfFaceName, data.m_LogFont.lfFaceName) != 0 )
+		return FALSE;
+
+	return TRUE;
+}
+void CTextBitMap::Init()
+{
+	m_bEnable = FALSE;
+
+	m_WidthAlign  = DT_CENTER;		// DT_LEFT DT_CENTER DT_RIGHT
+	m_HeightAlign = DT_VCENTER;		// DT_TOP DT_VCENTER DT_BOTTOM
+
+	m_Text = _T("%E\\r\\n%S");
+	m_TextColor = RGB(128, 128, 128);
+
+	ZeroMemory(&m_LogFont, sizeof(m_LogFont));
+	m_LogFont.lfHeight = 30;
+}
+void CTextBitMap::SetArray(CStringArrayExt &stra)
+{
+	stra.RemoveAll();
+
+	stra.AddVal(m_bEnable);
+
+	stra.AddVal(m_WidthAlign);
+	stra.AddVal(m_HeightAlign);
+
+	stra.Add(m_Text);
+	stra.AddVal(m_TextColor);
+
+	stra.AddVal(m_LogFont.lfHeight);
+	stra.AddVal(m_LogFont.lfWeight);
+	stra.AddVal(m_LogFont.lfItalic);
+	stra.Add(m_LogFont.lfFaceName);
+}
+void CTextBitMap::GetArray(CStringArrayExt &stra)
+{
+	Init();
+
+	if ( stra.GetSize() < 9  )
+		return;
+
+	m_bEnable = stra.GetVal(0);
+
+	m_WidthAlign = stra.GetVal(1);
+	m_HeightAlign = stra.GetVal(2);
+
+	m_Text = stra.GetAt(3);
+	m_TextColor = stra.GetVal(4);
+
+	m_LogFont.lfHeight = stra.GetVal(5);
+	m_LogFont.lfWeight = stra.GetVal(6);
+	m_LogFont.lfItalic = stra.GetVal(7);
+	_tcsncpy(m_LogFont.lfFaceName, stra.GetAt(8), sizeof(m_LogFont.lfFaceName) / sizeof(TCHAR));
+}
+void CTextBitMap::SetIndex(int mode, CStringIndex &index)
+{
+	int n;
+
+	if ( mode ) {		// Write
+		index[_T("Enable")]  = m_bEnable;
+
+		index[_T("WidthAlign")]  = m_WidthAlign;
+		index[_T("HeightAlign")] = m_HeightAlign;
+
+		index[_T("String")]   = m_Text;
+		index[_T("Color")].Add(GetRValue(m_TextColor));
+		index[_T("Color")].Add(GetGValue(m_TextColor));
+		index[_T("Color")].Add(GetBValue(m_TextColor));
+
+		index[_T("Height")]   = m_LogFont.lfHeight;
+		index[_T("Weight")]   = m_LogFont.lfWeight;
+		index[_T("Italic")]   = m_LogFont.lfItalic;
+		index[_T("FaceName")] = m_LogFont.lfFaceName;
+
+	} else {			// Read
+		if ( (n = index.Find(_T("Enable"))) >= 0 )
+			m_bEnable = index[n];
+
+		if ( (n = index.Find(_T("WidthAlign"))) >= 0 )
+			m_WidthAlign = index[n];
+		if ( (n = index.Find(_T("HeightAlign"))) >= 0 )
+			m_HeightAlign = index[n];
+
+		if ( (n = index.Find(_T("String"))) >= 0 )
+			m_Text = index[n];
+		if ( (n = index.Find(_T("Color"))) >= 0 && index[n].GetSize() >= 3 )
+			m_TextColor = RGB(index[n][0], index[n][1], index[n][2]);
+
+		if ( (n = index.Find(_T("Height"))) >= 0 )
+			m_LogFont.lfHeight = index[n];
+		if ( (n = index.Find(_T("Weight"))) >= 0 )
+			m_LogFont.lfWeight = index[n];
+		if ( (n = index.Find(_T("Italic"))) >= 0 )
+			m_LogFont.lfItalic = index[n];
+		if ( (n = index.Find(_T("FaceName"))) >= 0 )
+			_tcsncpy(m_LogFont.lfFaceName, index[n], sizeof(m_LogFont.lfFaceName) / sizeof(TCHAR));
+	}
+}
 
 //////////////////////////////////////////////////////////////////////
 // CTextSave
@@ -1899,6 +2039,8 @@ void CTextRam::Init()
 
 	m_WheelSize      = 2;
 	m_BitMapFile     = _T("");
+	m_BitMapAlpha    = 255;
+	m_BitMapBlend    = 128;
 	m_DelayMSec      = 0;
 	m_HisFile        = _T("");
 	m_KeepAliveSec   = 0;
@@ -1958,6 +2100,7 @@ void CTextRam::Init()
 
 	m_ProcTab.Init();
 //	m_FontTab.Init();
+	m_TextBitMap.Init();
 
 	RESET();
 }
@@ -2001,6 +2144,8 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 			index[_T("SendCharSet")].Add(m_SendCharSet[n]);
 
 		index[_T("BitMapFile")]   = m_BitMapFile;
+		index[_T("BitMapAlpha")]  = m_BitMapAlpha;
+		index[_T("BitMapBlend")]  = m_BitMapBlend;
 		index[_T("HisFile")]      = m_HisFile;
 		index[_T("LogFile")]      = m_LogFile;
 
@@ -2139,6 +2284,11 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 
 		if ( (n = index.Find(_T("BitMapFile"))) >= 0 )
 			m_BitMapFile = index[n];
+		if ( (n = index.Find(_T("BitMapAlpha"))) >= 0 )
+			m_BitMapAlpha = index[n];
+		if ( (n = index.Find(_T("m_BitMapBlend"))) >= 0 )
+			m_BitMapBlend = index[n];
+
 		if ( (n = index.Find(_T("HisFile"))) >= 0 )
 			m_HisFile = index[n];
 		if ( (n = index.Find(_T("LogFile"))) >= 0 )
@@ -2381,6 +2531,13 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 	stra.Add(str);
 
 	stra.Add(m_GroupCast);
+	stra.AddVal(m_BitMapAlpha);
+
+	m_TextBitMap.SetArray(tmp);
+	tmp.SetString(str, _T('\x07'));
+	stra.Add(str);
+
+	stra.AddVal(m_BitMapBlend);
 }
 void CTextRam::GetArray(CStringArrayExt &stra)
 {
@@ -2574,6 +2731,16 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 
 	if ( stra.GetSize() > 64 )
 		m_GroupCast = stra.GetAt(64);
+
+	if ( stra.GetSize() > 65 )
+		m_BitMapAlpha = stra.GetVal(65);
+
+	if ( stra.GetSize() > 66 ) {
+		ext.GetString(stra.GetAt(66), _T('\x07'));
+		m_TextBitMap.GetArray(ext);
+	}
+	if ( stra.GetSize() > 67 )
+		m_BitMapBlend = stra.GetVal(67);
 
 	if ( m_FixVersion < 9 ) {
 		if ( m_pDocument != NULL ) {
@@ -2875,6 +3042,10 @@ const CTextRam & CTextRam::operator = (CTextRam &data)
 	m_SleepMax = data.m_SleepMax;
 	m_LogMode = data.m_LogMode;
 	m_GroupCast = data.m_GroupCast;
+	m_BitMapFile = data.m_BitMapFile;
+	m_BitMapAlpha = data.m_BitMapAlpha;
+	m_BitMapBlend = data.m_BitMapBlend;
+	m_TextBitMap = data.m_TextBitMap;
 
 	return *this;
 }
@@ -3586,7 +3757,7 @@ void CTextRam::GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf)
 	}
 }
 
-void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv, struct DrawWork &prop, class CRLoginView *pView)
+void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, struct DrawWork &prop, class CRLoginView *pView)
 {
 	int n, i, a;
 	int c, o;
@@ -3613,7 +3784,7 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv
 	else if ( prop.zoom ==  3 )
 		box.top -= pView->m_CharHeight;
 
-	if ( pView->m_pBitmap == NULL || rv != FALSE )
+	if ( bEraBack )
 		pDC->FillSolidRect(rect, bc);
 
 	for ( n = i = a = 0 ; n < prop.size ; n++ ) {
@@ -3806,7 +3977,7 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv
 
 	pDC->SelectObject(oPen);
 }
-void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv, struct DrawWork &prop, class CRLoginView *pView)
+void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, struct DrawWork &prop, class CRLoginView *pView)
 {
 	int n, i, a, c;
 	int x, y, nw, ow;
@@ -3823,7 +3994,7 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv
 	CBitmap *pOldMap, *pOldMirMap, MirMap;
 
 	mode = ETO_CLIPPED;
-	if ( pView->m_pBitmap == NULL || rv != FALSE )
+	if ( bEraBack )
 		mode |= ETO_OPAQUE;
 
 	width  = pView->m_CharWidth  * (prop.zoom == 0 ? 1 : 2);
@@ -3839,16 +4010,14 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv
 		mirDC.CreateCompatibleDC(pDC);
 		MirMap.CreateCompatibleBitmap(pDC, rect.Width(), rect.Height());
 		pOldMirMap = mirDC.SelectObject(&MirMap);
-		if ( pView->m_pBitmap != NULL ) {
-			workDC.CreateCompatibleDC(pDC);
-			pOldMap = (CBitmap *)workDC.SelectObject(pView->m_pBitmap);
-			mirDC.StretchBlt(rect.Width() - 1, 0, 0 - rect.Width(), rect.Height(), &workDC, rect.left, rect.top, rect.Width(), rect.Height(), SRCCOPY);
-			mirDC.SetBkMode(TRANSPARENT);
-			workDC.SelectObject(pOldMap);
-			workDC.DeleteDC();
-		}
+
+		if ( !bEraBack )
+			mirDC.StretchBlt(rect.Width() - 1, 0, 0 - rect.Width(), rect.Height(), pDC, rect.left, rect.top, rect.Width(), rect.Height(), SRCCOPY);
+		mirDC.SetBkMode(TRANSPARENT);
+
 		pSaveDC = pDC;
 		pDC = &mirDC;
+
 		rect.SetRect(0, 0, save.Width(), save.Height());
 		box = frame = rect;
 	}
@@ -3879,7 +4048,7 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv
 				str += prop.pText[a++];
 
 			if ( (c = str[0] - 0x20) >= 0 && c < 96 && (pFontNode->m_UserFontDef[c / 8] & (1 << (c % 8))) != 0 ) {
-				if ( pView->m_pBitmap == NULL || rv != FALSE || pFontNode->m_MapType == FNT_BITMAP_COLOR )
+				if ( bEraBack || pFontNode->m_MapType == FNT_BITMAP_COLOR )
 					pDC->BitBlt(box.left, box.top, box.Width(), box.Height(), &workDC, pFontNode->m_FontWidth * c, (prop.zoom == 3 ? pView->m_CharHeight : 0), SRCCOPY);
 				else {
 					pDC->SetTextColor(RGB(0, 0, 0));
@@ -4052,7 +4221,7 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv
 		mirDC.DeleteDC();
 	}
 }
-void CTextRam::DrawHoriLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv, struct DrawWork &prop, class CRLoginView *pView)
+void CTextRam::DrawHoriLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, struct DrawWork &prop, class CRLoginView *pView)
 {
 	COLORREF hc = RGB((GetRValue(fc) + GetRValue(bc)) / 2, (GetGValue(fc) + GetGValue(bc)) / 2, (GetBValue(fc) + GetBValue(bc)) / 2);
 	CPen fPen(PS_SOLID, 1, fc);
@@ -4121,7 +4290,7 @@ void CTextRam::DrawHoriLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOO
 //	pDC->SetROP2(OldRop2);
 	pDC->SelectObject(oPen);
 }
-void CTextRam::DrawVertLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv, struct DrawWork &prop, class CRLoginView *pView)
+void CTextRam::DrawVertLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, struct DrawWork &prop, class CRLoginView *pView)
 {
 	int n, i;
 	int x, w, c;
@@ -4206,6 +4375,7 @@ void CTextRam::DrawVertLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOO
 void CTextRam::DrawString(CDC *pDC, CRect &rect, struct DrawWork &prop, class CRLoginView *pView)
 {
 	BOOL bRevs = FALSE;
+	BOOL bEraBack = FALSE;
 	COLORREF fcol, bcol, tcol;
 	CGrapWnd *pWnd;
 
@@ -4247,12 +4417,35 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, struct DrawWork &prop, class CR
 		tcol = fcol;
 		fcol = bcol;
 		bcol = tcol;
-		if ( pView->m_pBitmap != NULL )
-			pDC->InvertRect(rect);
 		if ( bRevs )
 			bcol = RGB((GetRValue(fcol) + GetRValue(bcol)) / 2, (GetGValue(fcol) + GetGValue(bcol)) / 2, (GetBValue(fcol) + GetBValue(bcol)) / 2);
 		bRevs = TRUE;
 	}
+
+	if ( bRevs || prop.bcol != m_DefAtt.bcol )
+		bEraBack = TRUE;
+
+	if ( pView->m_pBitmap != NULL ) {
+		if ( bEraBack ) {
+			CDC workDC;
+			CBitmap workMap, *pOldMap;
+			BLENDFUNCTION bf;
+
+			workDC.CreateCompatibleDC(pDC);
+			workMap.CreateCompatibleBitmap(pDC, rect.Width(), rect.Height());
+			pOldMap = (CBitmap *)workDC.SelectObject(&workMap);
+			workDC.FillSolidRect(0, 0, rect.Width(), rect.Height(), bcol);
+
+			ZeroMemory(&bf, sizeof(bf));
+			bf.BlendOp = AC_SRC_OVER;
+			bf.SourceConstantAlpha = m_BitMapBlend;
+
+			pDC->AlphaBlend(rect.left, rect.top, rect.Width(), rect.Height(), &workDC, 0, 0, rect.Width(), rect.Height(), bf);
+			workDC.SelectObject(pOldMap);
+		}
+		bEraBack = FALSE;
+	} else
+		bEraBack = TRUE;
 
 	if ( prop.idx != (-1) ) {
 		// Image Draw
@@ -4266,24 +4459,25 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, struct DrawWork &prop, class CR
 
 	} else if ( prop.bank < 0 || prop.bank >= CODE_MAX ) {
 		// Blank Draw
-		if ( pView->m_pBitmap == NULL )
+		if ( bEraBack )
 			pDC->FillSolidRect(rect, bcol);
 
 	} else if ( (prop.attr & ATT_BORDER) != 0 ) {
 		// Line Draw
-		DrawLine(pDC, rect, fcol, bcol, bRevs, prop, pView);
+		DrawLine(pDC, rect, fcol, bcol, bEraBack, prop, pView);
 
 	} else {
 		// Text Draw
-		DrawChar(pDC, rect, fcol, bcol, bRevs, prop, pView);
+		DrawChar(pDC, rect, fcol, bcol, bEraBack, prop, pView);
 	}
 
 	if ( (prop.attr & (ATT_OVER | ATT_DOVER | ATT_LINE | ATT_UNDER | ATT_DUNDER | ATT_SUNDER | ATT_STRESS)) != 0 )
-		DrawHoriLine(pDC, rect, fcol, bcol, bRevs, prop, pView);
+		DrawHoriLine(pDC, rect, fcol, bcol, prop, pView);
 
 	if ( (prop.attr & (ATT_FRAME | ATT_CIRCLE | ATT_RSLINE | ATT_RDLINE | ATT_LSLINE | ATT_LDLINE)) != 0 )
-		DrawVertLine(pDC, rect, fcol, bcol, bRevs, prop, pView);
+		DrawVertLine(pDC, rect, fcol, bcol, prop, pView);
 
+	// リバースチェック
 	bRevs  = (IsOptEnable(TO_DECSCNM) ? 1 : 0);
 	bRevs ^= (pView->m_VisualBellFlag ? 1 : 0);
 

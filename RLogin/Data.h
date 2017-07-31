@@ -17,6 +17,7 @@
 #include "ChatStatDlg.h"
 
 int	BinaryFind(void *ptr, void *tab, int size, int max, int (* func)(const void *, const void *), int *base);
+BOOL IsZeroMemory(void *ptr, int len);
 
 #define	NIMALLOC	256
 
@@ -337,9 +338,13 @@ public:
 	int m_Width, m_Height;
 	CString m_FileName;
 	COLORREF m_BkColor;
+	int m_Alpha;
+	class CTextBitMap *m_pTextBitMap;
+	CString m_Title;
 
 	BOOL LoadFile(LPCTSTR filename);
-	CBitmap *GetBitmap(CDC *pDC, int width, int height, int align, COLORREF bkcolor);
+	CBitmap *GetBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, int Alpha = 255);
+	CBitmap *GetTextBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, class CTextBitMap *pTextBitMap, LPCTSTR title, int Alpha);
 
 	CBmpFile();
 	virtual ~CBmpFile();
@@ -657,6 +662,7 @@ public:
 	static int GetCmdsKey(LPCWSTR str);
 	static void SetComboList(CComboBox *pCombo);
 	static int GetDecKeyToCode(int code);
+	static LPCTSTR GetCmdsStr(int code);
 };
 
 class CKeyMac : public CObject

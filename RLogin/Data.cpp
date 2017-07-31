@@ -49,6 +49,28 @@ int	BinaryFind(void *ptr, void *tab, int size, int max, int (* func)(const void 
 		*base = b;
 	return FALSE;
 }
+BOOL IsZeroMemory(void *ptr, int len)
+{
+#if 0
+	int n;
+	BYTE *p = (BYTE *)ptr;
+
+	for ( n = 0 ; n < len ; n++ ) {
+		if ( *p != 0 )
+			return FALSE;
+		p++;
+	}
+
+	return TRUE;
+#else
+	BYTE *p = (BYTE *)ptr;
+
+	if ( *p == 0 && memcmp(p, p + 1, len - 1) == 0 )
+		return TRUE;
+
+	return FALSE;
+#endif
+}
 
 //////////////////////////////////////////////////////////////////////
 // CBuffer
@@ -1559,12 +1581,17 @@ CBmpFile::CBmpFile()
 	m_pPic = NULL;
 	m_Width = m_Height = 0;
 	m_BkColor = 0;
+	m_Alpha = 255;
+	m_pTextBitMap = new CTextBitMap;
 }
 
 CBmpFile::~CBmpFile()
 {
 	if ( m_pPic != NULL )
 		m_pPic->Release();
+
+	if ( m_pTextBitMap != NULL )
+		delete m_pTextBitMap;
 }
 
 BOOL CBmpFile::LoadFile(LPCTSTR filename)
@@ -1578,6 +1605,7 @@ BOOL CBmpFile::LoadFile(LPCTSTR filename)
 
 	if ( m_FileName.Compare(filename) == 0 )
 		return FALSE;
+
 	m_FileName = filename;
 
 	if ( m_pPic != NULL )
@@ -1586,6 +1614,9 @@ BOOL CBmpFile::LoadFile(LPCTSTR filename)
 
 	if ( m_Bitmap.m_hObject != NULL )
 		m_Bitmap.DeleteObject();
+
+	if ( m_FileName.IsEmpty() )
+		return FALSE;
 
 	if( !file.Open(filename, CFile::modeRead) )
 		goto ERROF;
@@ -1629,7 +1660,7 @@ ERROF:
 	return ret;
 }
 
-CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, int align, COLORREF bkcolor)
+CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, int Alpha)
 {
 	int x, y, cx, cy;
 	CDC MemDC;
@@ -1643,7 +1674,7 @@ CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, int align, COLORRE
 		return NULL;
 
 	if ( m_Bitmap.m_hObject != NULL ) {
-		if ( m_Width == width && m_Height == height && m_BkColor == bkcolor )
+		if ( m_Width == width && m_Height == height && m_BkColor == bkcolor && m_Alpha == Alpha )
 			return (&m_Bitmap);
 		m_Bitmap.DeleteObject();
 	}
@@ -1669,56 +1700,219 @@ CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, int align, COLORRE
 	cx = width  * 100 / size.cx;
 	cy = height * 100 / size.cy;
 
-	switch(align) {
-	case 0:			// •À‚×‚Ä•\Ž¦
-		if ( cx > 100 && cy > 100 ) {
-			cx = size.cx;
-			cy = size.cy;
-		} else if ( cx < cy ) {
-			cx = width;
-			cy = width  * size.cy / size.cx;
-		} else {
-			cx = height * size.cx / size.cy;
-			cy = height;
-		}
-		break;
-
-	case 1:			// Šg‘å‚µ‚Ä•\Ž¦
-		//if ( cx < 100 && cy < 100 ) {
-		//	cx = size.cx;
-		//	cy = size.cy;
-		//	offset.cx = (size.cx - width) / 2;
-		//	offset.cy = (size.cy - height) / 2;
-		//} else 
-		if ( cx < cy ) {
-			cx = height * size.cx / size.cy;
-			cy = height;
-			offset.cx = ((cx - width) / 2) * size.cx / cx;
-		} else {
-			cx = width;
-			cy = width  * size.cy / size.cx;
-			offset.cy = ((cy - height) / 2) * size.cy / cy;
-		}
-		break;
+	if ( cx < cy ) {
+		cx = height * size.cx / size.cy;
+		cy = height;
+		offset.cx = ((cx - width) / 2) * size.cx / cx;
+	} else {
+		cx = width;
+		cy = width  * size.cy / size.cx;
+		offset.cy = ((cy - height) / 2) * size.cy / cy;
 	}
 
 	pDC->DPtoHIMETRIC(&offset);
 
 	m_pPic->Render(MemDC, 0, 0, cx, cy,	offset.cx, sy - offset.cy, sx, -sy, NULL);
 
-	for ( y = 0 ; y < height ; y += cy ) {
-		for ( x = 0 ; x < width ; x += cx ) {
-			if ( x > 0 || y > 0 )
-				MemDC.BitBlt(x, y, cx, cy, &MemDC, 0, 0, SRCCOPY);
+	if ( Alpha < 254 || 257 < Alpha ) {
+
+		DWORD len;
+		BYTE *lpBuf, *p;
+		BITMAP mapinfo;
+		BYTE ctab[256];
+		COLORREF col;
+
+		if ( Alpha < 255 ) {
+			for ( x = 0 ; x < 256 ; x++ )
+				ctab[x] = (x * Alpha / 255); 
+		} else if ( Alpha >= 256 ) {
+			for ( x = 0 ; x < 256 ; x++ )
+				ctab[x] = (255 - ((255 - x) * (511 - Alpha) / 255)); 
+		}
+
+		m_Bitmap.GetBitmap(&mapinfo);
+
+		switch(mapinfo.bmBitsPixel) {
+		case 32:
+			len = mapinfo.bmWidthBytes * mapinfo.bmHeight;
+			lpBuf = new BYTE[len];
+			m_Bitmap.GetBitmapBits(len, lpBuf);
+			for ( y = 0 ; y < height ; y++ ) {
+				p = lpBuf + mapinfo.bmWidthBytes * y;
+				for ( x = 0 ; x < width ; x++ ) {
+					*p = ctab[*p]; p++;
+					*p = ctab[*p]; p++;
+					*p = ctab[*p]; p++;
+					p++;
+				}
+			}
+			m_Bitmap.SetBitmapBits(len, lpBuf);
+			delete [] lpBuf;
+			break;
+
+		case 24:
+			len = mapinfo.bmWidthBytes * mapinfo.bmHeight;
+			lpBuf = new BYTE[len];
+			m_Bitmap.GetBitmapBits(len, lpBuf);
+			for ( y = 0 ; y < height ; y++ ) {
+				p = lpBuf + mapinfo.bmWidthBytes * y;
+				for ( x = 0 ; x < width ; x++ ) {
+					*p = ctab[*p]; p++;
+					*p = ctab[*p]; p++;
+					*p = ctab[*p]; p++;
+				}
+			}
+			m_Bitmap.SetBitmapBits(len, lpBuf);
+			delete [] lpBuf;
+			break;
+
+		case 16:
+			len = mapinfo.bmWidthBytes * mapinfo.bmHeight;
+			lpBuf = new BYTE[len];
+			m_Bitmap.GetBitmapBits(len, lpBuf);
+			for ( y = 0 ; y < height ; y++ ) {
+				p = lpBuf + mapinfo.bmWidthBytes * y;
+				for ( x = 0 ; x < width ; x++ ) {
+					struct _rgb16 {
+						WORD r:5;
+						WORD g:6;
+						WORD b:5;
+					} *bits = (struct _rgb16 *)p;
+					bits->r = ctab[bits->r << 3] >> 3;
+					bits->g = ctab[bits->g << 2] >> 2;
+					bits->b = ctab[bits->b << 3] >> 3;
+					p += 2;
+				}
+			}
+			m_Bitmap.SetBitmapBits(len, lpBuf);
+			delete [] lpBuf;
+			break;
+
+		case 15:
+			len = mapinfo.bmWidthBytes * mapinfo.bmHeight;
+			lpBuf = new BYTE[len];
+			m_Bitmap.GetBitmapBits(len, lpBuf);
+			for ( y = 0 ; y < height ; y++ ) {
+				p = lpBuf + mapinfo.bmWidthBytes * y;
+				for ( x = 0 ; x < width ; x++ ) {
+					struct _rgb15 {
+						WORD r:5;
+						WORD g:5;
+						WORD b:5;
+					} *bits = (struct _rgb15 *)p;
+					bits->r = ctab[bits->r << 3] >> 3;
+					bits->g = ctab[bits->g << 3] >> 3;
+					bits->b = ctab[bits->b << 3] >> 3;
+					p += 2;
+				}
+			}
+			m_Bitmap.SetBitmapBits(len, lpBuf);
+			delete [] lpBuf;
+			break;
+
+		default:
+			for ( y = 0 ; y < height ; y++ ) {
+				for ( x = 0 ; x < width ; x++ ) {
+					col = MemDC.GetPixel(x, y);
+					MemDC.SetPixelV(x, y, RGB(ctab[GetRValue(col)], ctab[GetGValue(col)], ctab[GetBValue(col)]));
+				}
+			}
+			break;
 		}
 	}
 
 	m_Width   = width;
 	m_Height  = height;
 	m_BkColor = bkcolor;
+	m_Alpha   = Alpha;
+
+	m_pTextBitMap->Init();
+	m_Title.Empty();
 
 	MemDC.SelectObject(pOldMemMap);
 	MemDC.SetBrushOrg(po);
+
+	return (&m_Bitmap);
+}
+CBitmap *CBmpFile::GetTextBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, class CTextBitMap *pTextBitMap, LPCTSTR title, int Alpha)
+{
+	int n;
+	int cr, cg, cb;
+	CDC MemDC;
+	CBitmap *pOldMemMap = NULL;
+	CRect rect;
+	CFont Font, *pOldFont;
+	BOOL bEraBack = FALSE;
+
+	if ( m_Bitmap.m_hObject != NULL && m_Width == width && m_Height == height && m_BkColor == bkcolor && m_Alpha == Alpha && (*m_pTextBitMap) == (*pTextBitMap) && m_Title.Compare(title) == 0 )
+		return (&m_Bitmap);
+
+	MemDC.CreateCompatibleDC(pDC);
+
+	if ( GetBitmap(pDC, width, height, bkcolor, Alpha) == NULL ) {
+		m_Bitmap.CreateCompatibleBitmap(pDC, width, height);
+		bEraBack = TRUE;
+	}
+
+	pOldMemMap = (CBitmap *)MemDC.SelectObject(&m_Bitmap);
+
+	Font.CreateFontIndirect(&(pTextBitMap->m_LogFont));
+	pOldFont = (CFont *)MemDC.SelectObject(&Font);
+
+	if ( bEraBack )
+		MemDC.FillSolidRect(0, 0, width, height, bkcolor);
+
+	cr = GetRValue(pTextBitMap->m_TextColor);
+	cg = GetGValue(pTextBitMap->m_TextColor);
+	cb = GetBValue(pTextBitMap->m_TextColor);
+
+	if ( Alpha < 255 ) {
+		cr = (cr * Alpha / 255); 
+		cg = (cg * Alpha / 255); 
+		cb = (cb * Alpha / 255); 
+	} else if ( Alpha >= 256 ) {
+		cr = (255 - ((255 - cr) * (511 - Alpha) / 255)); 
+		cg = (255 - ((255 - cg) * (511 - Alpha) / 255)); 
+		cb = (255 - ((255 - cb) * (511 - Alpha) / 255)); 
+	}
+
+	MemDC.SetTextColor(RGB(cr, cb, cb));
+	MemDC.SetBkMode(TRANSPARENT);
+
+	rect.left   = 0;
+	rect.top    = 0;
+	rect.right  = width;
+	rect.bottom = height;
+
+	switch(pTextBitMap->m_HeightAlign) {
+	case DT_VCENTER:
+		n = MemDC.DrawText(title, (int)_tcslen(title), rect, pTextBitMap->m_WidthAlign | DT_CALCRECT | DT_HIDEPREFIX);
+		rect.left   = 0;
+		rect.top    = (height - n) / 2;
+		rect.right  = width;
+		rect.bottom = height;
+		break;
+	case DT_BOTTOM:
+		n = MemDC.DrawText(title, (int)_tcslen(title), rect, pTextBitMap->m_WidthAlign | DT_CALCRECT | DT_HIDEPREFIX);
+		rect.left   = 0;
+		rect.top    = height - n;
+		rect.right  = width;
+		rect.bottom = height;
+		break;
+	}
+
+	MemDC.DrawText(title, (int)_tcslen(title), rect, pTextBitMap->m_WidthAlign | DT_HIDEPREFIX);
+
+	m_Width   = width;
+	m_Height  = height;
+	m_BkColor = bkcolor;
+	m_Alpha   = Alpha;
+
+	(*m_pTextBitMap) = (*pTextBitMap);
+	m_Title = title;
+
+	MemDC.SelectObject(pOldMemMap);
+	MemDC.SelectObject(pOldFont);
 
 	return (&m_Bitmap);
 }
@@ -4022,7 +4216,7 @@ static const struct _CmdsKeyTab {
 	{	IDM_MOVEPANE_UP,			L"$PANE_UP"			},
 	{	ID_PANE_WSPLIT,				L"$PANE_WSPLIT"		},
 	{	IDM_PASSWORDLOCK,			L"$PASSLOCK"		},
-	{	ID_FILE_PRINT_DIRECT,		L"$PRINT_DIRECT"	},
+	{	ID_FILE_PRINT,				L"$PRINT_DIRECT"	},
 	{	ID_FILE_PRINT_PREVIEW,		L"$PRINT_PREVIEW"	},
 	{	ID_FILE_PRINT_SETUP,		L"$PRINT_SETUP"		},
 	{	ID_PAGE_PRIOR,				L"$PRIOR"			},
@@ -4140,6 +4334,16 @@ void CKeyNodeTab::SetComboList(CComboBox *pCombo)
 		str = CmdsKeyTab[n].name;
 		pCombo->AddString(str);
 	}
+}
+LPCTSTR CKeyNodeTab::GetCmdsStr(int code)
+{
+	int n;
+
+	for ( n = 0 ; n < CMDSKEYTABMAX ; n++ ) {
+		if ( CmdsKeyTab[n].code == code )
+			return CmdsKeyTab[n].name;
+	}
+	return NULL;
 }
 void CKeyNodeTab::BugFix(int fix)
 {

@@ -54,6 +54,7 @@ public:
 
 // インプリメンテーション
 protected:
+	DECLARE_MESSAGE_MAP()
 	afx_msg void OnLButtonDblClk(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnReleasedcaptureTransparent(NMHDR* pNMHDR, LRESULT* pResult);
@@ -66,7 +67,6 @@ protected:
 	afx_msg void OnNMReleasedcaptureContrast(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
 	afx_msg void OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct);
-	DECLARE_MESSAGE_MAP()
-public:
 	afx_msg void OnBnClickedColedit();
+	afx_msg void OnBnClickedMapoption();
 };

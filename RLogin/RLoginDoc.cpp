@@ -245,6 +245,7 @@ void CRLoginDoc::SetIndex(int mode, CStringIndex &index)
 	m_ParamTab.SetIndex(mode, index[_T("Protocol")]);
 	m_TextRam.SetIndex(mode, index[_T("Screen")]);
 	m_TextRam.m_FontTab.SetIndex(mode, index[_T("Fontset")]);
+	m_TextRam.m_TextBitMap.SetIndex(mode, index[_T("TextBitMap")]);
 	m_KeyTab.SetIndex(mode, index[_T("Keycode")]);
 	m_KeyMac.SetIndex(mode, index[_T("Keymacro")]);
 }
@@ -693,14 +694,12 @@ BOOL CRLoginDoc::EntryText(CString &name)
 
 	return st;
 }
-void CRLoginDoc::SendScript(LPCWSTR str, LPCWSTR match)
+void CRLoginDoc::ScriptText(LPCWSTR str, LPCWSTR match, CStringW &tmp)
 {
 	int n;
 	WCHAR c;
 	CEditDlg dlg;
 	CTime tm = CTime::GetCurrentTime();
-	CBuffer buf;
-	CStringW tmp;
 
 	while ( *str != L'\0' ) {
 		if ( *str == L'%' ) {
@@ -787,6 +786,14 @@ void CRLoginDoc::SendScript(LPCWSTR str, LPCWSTR match)
 		} else
 			tmp += *(str++);
 	}
+}
+
+void CRLoginDoc::SendScript(LPCWSTR str, LPCWSTR match)
+{
+	CStringW tmp;
+	CBuffer buf;
+
+	ScriptText(str, match, tmp);
 
 	if ( tmp.IsEmpty() )
 		return;

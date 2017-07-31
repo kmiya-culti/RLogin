@@ -204,15 +204,19 @@ BOOL CRLoginView::PreCreateWindow(CREATESTRUCT& cs)
 
 void CRLoginView::OnDraw(CDC* pDC)
 {
-	CRLoginDoc* pDoc = GetDocument();
-
-	if ( (m_DispCaret & FGCARET_CREATE) != 0 )
-		HideCaret();
-
 	int sx = 0;
 	int sy = 0;
 	int ex = m_Cols  - 1;
 	int ey = m_Lines - 1;
+	CDC workDC, *pSaveDC = NULL;
+	CBitmap workMap, *pOldworkMap = NULL;
+	CRLoginDoc* pDoc = GetDocument();
+	CRect frame;
+
+	if ( (m_DispCaret & FGCARET_CREATE) != 0 )
+		HideCaret();
+
+	GetClientRect(frame);
 
 #ifdef	USE_DIRECTWRITE
 	if ( m_pRenderTarget == NULL ) {
@@ -253,9 +257,18 @@ void CRLoginView::OnDraw(CDC* pDC)
 		if ( m_pBitmap != NULL ) {
 			CDC TempDC;
 			CBitmap *pOldBitMap;
+
+			workDC.CreateCompatibleDC(pDC);
+			workMap.CreateCompatibleBitmap(pDC, frame.Width(), frame.Height());
+			pOldworkMap = (CBitmap *)workDC.SelectObject(&workMap);
+
+			pSaveDC = pDC;
+			pDC = &workDC;
+
 			TempDC.CreateCompatibleDC(pDC);
 			pOldBitMap = (CBitmap *)TempDC.SelectObject(m_pBitmap);
-			pDC->BitBlt(rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top, &TempDC, rect.left, rect.top, SRCCOPY);
+
+			pDC->BitBlt(rect.left, rect.top, rect.Width(), rect.Height(), &TempDC, rect.left, rect.top, SRCCOPY);
 			TempDC.SelectObject(pOldBitMap);
 			pDC->SetBkMode(TRANSPARENT);
 		}
@@ -263,22 +276,18 @@ void CRLoginView::OnDraw(CDC* pDC)
 
 	if ( pDoc->m_TextRam.IsInitText() )
 		pDoc->m_TextRam.DrawVram(pDC, sx, sy, ex, ey, this);
-	else {
-		CRect rect;
+	else
+		pDC->FillSolidRect(frame, GetSysColor(COLOR_APPWORKSPACE));
 
-		if ( !pDC->IsPrinting() )
-			rect = ((CPaintDC *)(pDC))->m_ps.rcPaint;
-		else
-			GetClientRect(rect);
-
-		pDC->FillSolidRect(rect, GetSysColor(COLOR_APPWORKSPACE));
+	if ( pSaveDC != NULL ) {
+		pDC = pSaveDC;
+		CRect rect(((CPaintDC *)(pDC))->m_ps.rcPaint);
+		pDC->BitBlt(rect.left, rect.top, rect.Width(), rect.Height(), &workDC, rect.left, rect.top, SRCCOPY);
+		workDC.SelectObject(pOldworkMap);
 	}
 
-	if ( pDoc->m_TextRam.IsOptEnable(TO_RLTEKINWND) ) {
-		CRect rect;
-		GetClientRect(rect);
-		pDoc->m_TextRam.TekDraw(pDC, rect);
-	}
+	if ( pDoc->m_TextRam.IsOptEnable(TO_RLTEKINWND) )
+		pDoc->m_TextRam.TekDraw(pDC, frame);
 
 #ifdef	USE_DIRECTWRITE
 	if ( m_pRenderTarget != NULL ) {
@@ -585,9 +594,13 @@ void CRLoginView::SendBuffer(CBuffer &buf, BOOL macflag)
 		p = (WCHAR *)buf.GetPtr();
 		while ( n-- > 0 ) {
 			if ( *p == 0x0D )
-				*p = 0x0A;
+				tmp.PutWord(0x0A);
+			else
+				tmp.PutWord(*p);
 			p++;
 		}
+		buf = tmp;
+		tmp.Clear();
 		break;
 	case 2:	// CR+LF
 		n = buf.GetSize() / sizeof(WCHAR);
@@ -971,11 +984,19 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		
 		KillCaret();
 
-		str = pDoc->m_TextRam.m_BitMapFile;
-		pDoc->EntryText(str);
-		m_BmpFile.LoadFile(str);
-		this->GetClientRect(rect);
-		m_pBitmap = m_BmpFile.GetBitmap(GetDC(), rect.Width(), rect.Height(), 1, pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.bcol]);
+		if ( !pDoc->m_TextRam.m_BitMapFile.IsEmpty() || pDoc->m_TextRam.m_TextBitMap.m_bEnable ) {
+			GetClientRect(rect);
+			str = pDoc->m_TextRam.m_BitMapFile;
+			pDoc->EntryText(str);
+			m_BmpFile.LoadFile(str);
+			m_pBitmap = m_BmpFile.GetBitmap(GetDC(), rect.Width(), rect.Height(), pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.bcol], pDoc->m_TextRam.m_BitMapAlpha);
+			if ( pDoc->m_TextRam.m_TextBitMap.m_bEnable && !pDoc->m_TextRam.m_TextBitMap.m_Text.IsEmpty() ) {
+				str.Empty();
+				pDoc->ScriptText(pDoc->m_TextRam.m_TextBitMap.m_Text, NULL, str);
+				m_pBitmap = m_BmpFile.GetTextBitmap(GetDC(), rect.Width(), rect.Height(), pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.bcol], &(pDoc->m_TextRam.m_TextBitMap), str, pDoc->m_TextRam.m_BitMapAlpha);
+			}
+		} else
+			m_pBitmap = NULL;
 
 		if ( m_BtnWnd.m_hWnd == NULL && pDoc->m_TextRam.m_bOscActive && pDoc->m_TextRam.m_IntCounter >= 10 ) {
 			m_BtnWnd.DoButton(this, &(pDoc->m_TextRam));
@@ -1088,7 +1109,7 @@ void CRLoginView::OnChar(UINT nChar, UINT nRepCnt, UINT nFlags)
 	if ( (nFlags & 0x4000) != 0 && !pDoc->m_TextRam.IsOptEnable(TO_DECARM) )
 		return;
 
-	if ( (nFlags & 0x2000) != 0 && pDoc->m_TextRam.IsOptEnable(TO_ANSISRM) )	// with Alt key
+	if ( (nFlags & 0x2000) != 0 )	// with Alt key
 		tmp.PutWord(0x1B);
 
 	tmp.PutWord(nChar);
@@ -1266,26 +1287,21 @@ int CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 		return FALSE;
 	}
 
-#if 0
-	if ( (st & MASK_CTRL) != 0 ) {
-		switch(nChar) {
-		case VK_OEM_7:	// CTRL+^
-			tmp.PutWord(0x1E);
-			break;
-		case VK_OEM_2:	// CTRL+?
-			tmp.PutWord(0x1F);
-			break;
-		case VK_OEM_3:	// CTRL+@
-		case VK_SPACE:	// CTRL+SPACE
-			tmp.PutWord(0x00);
-			break;
-		}
-		if ( tmp.GetSize() > 0 ) {
+	if ( (st & MASK_ALT) != 0 && nChar < 256 && (pDoc->m_TextRam.m_MetaKeys[nChar / 32] & (1 << (nChar % 32))) != 0 ) {
+		if ( (st & MASK_CTRL) != 0 && nChar >= 'A' && nChar <= 'Z' ) {
+			tmp.PutWord(L'\033');
+			tmp.PutWord(nChar - L'@');
+			SendBuffer(tmp);
+			return FALSE;
+		} else if ( pDoc->m_KeyTab.FindMaps(nChar, st & ~MASK_ALT, &tmp) && tmp.GetSize() == sizeof(WCHAR) ) {
+			n = tmp.GetWord();
+			tmp.Clear();
+			tmp.PutWord(L'\033');
+			tmp.PutWord(n);
 			SendBuffer(tmp);
 			return FALSE;
 		}
 	}
-#endif
 
 	return TRUE;
 }
@@ -2703,6 +2719,9 @@ BOOL CRLoginView::PreTranslateMessage(MSG* pMsg)
 				return TRUE;
 			if ( (UINT)pMsg->wParam < 256 && (pDoc->m_TextRam.m_MetaKeys[(UINT)pMsg->wParam / 32] & (1 << ((UINT)pMsg->wParam % 32))) != 0 )
 				pMsg->message = WM_KEYDOWN;
+			else if ( pMsg->wParam == VK_MENU && !IsZeroMemory(pDoc->m_TextRam.m_MetaKeys, sizeof(pDoc->m_TextRam.m_MetaKeys)) ) {
+				pMsg->message = WM_KEYDOWN;
+			}
 		}
 	} else
 		m_ToolTip.RelayEvent(pMsg);

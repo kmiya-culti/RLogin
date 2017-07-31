@@ -11,6 +11,7 @@
 #include "Data.h"
 #include "ColParaDlg.h"
 #include "TtyModeDlg.h"
+#include "TextMapDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -77,8 +78,10 @@ BEGIN_MESSAGE_MAP(CColParaDlg, CTreePage)
 	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_SLIDER_BRIGHT, &CColParaDlg::OnNMReleasedcaptureContrast)
 	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_SLIDER_HUECOL, &CColParaDlg::OnNMReleasedcaptureContrast)
 	ON_WM_VSCROLL()
+	ON_WM_HSCROLL()
 	ON_WM_DRAWITEM()
 	ON_BN_CLICKED(IDC_COLEDIT, &CColParaDlg::OnBnClickedColedit)
+	ON_BN_CLICKED(IDC_MAPOPTION, &CColParaDlg::OnBnClickedMapoption)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -481,8 +484,14 @@ void CColParaDlg::OnNMReleasedcaptureContrast(NMHDR *pNMHDR, LRESULT *pResult)
 void CColParaDlg::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 {
 	if ( pScrollBar != NULL ) {
-		SetDarkLight();
-		InvalidateRect(m_InvRect, FALSE);
+		switch(pScrollBar->GetDlgCtrlID()) {
+		case IDC_SLIDER_BRIGHT:
+		case IDC_SLIDER_CONTRAST:
+		case IDC_SLIDER_HUECOL:
+			SetDarkLight();
+			InvalidateRect(m_InvRect, FALSE);
+			break;
+		}
 	}
 	CTreePage::OnVScroll(nSBCode, nPos, pScrollBar);
 }
@@ -531,4 +540,17 @@ void CColParaDlg::OnBnClickedColedit()
 	Invalidate(FALSE);
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_COLTAB;
+}
+
+void CColParaDlg::OnBnClickedMapoption()
+{
+	CTextMapDlg dlg;
+
+	dlg.m_pTextRam = m_pSheet->m_pTextRam;
+	
+	if ( dlg.DoModal() != IDOK )
+		return;
+
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 }

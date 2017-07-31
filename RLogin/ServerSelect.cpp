@@ -557,6 +557,7 @@ void CServerSelect::OnServInport()
 				ParamTab.SetIndex(FALSE, index[_T("Protocol")]);
 				TextRam.SetIndex(FALSE, index[_T("Screen")]);
 				TextRam.m_FontTab.SetIndex(FALSE, index[_T("Fontset")]);
+				TextRam.m_TextBitMap.SetIndex(FALSE, index[_T("TextBitMap")]);
 				KeyTab.SetIndex(FALSE, index[_T("Keycode")]);
 				KeyMac.SetIndex(FALSE, index[_T("Keymacro")]);
 
@@ -680,6 +681,7 @@ void CServerSelect::OnServExport()
 			ParamTab.SetIndex(TRUE, index[_T("Protocol")]);
 			TextRam.SetIndex(TRUE, index[_T("Screen")]);
 			TextRam.m_FontTab.SetIndex(TRUE, index[_T("Fontset")]);
+			TextRam.m_TextBitMap.SetIndex(TRUE, index[_T("TextBitMap")]);
 			KeyTab.SetIndex(TRUE, index[_T("Keycode")]);
 			KeyMac.SetIndex(TRUE, index[_T("Keymacro")]);
 
@@ -752,6 +754,7 @@ void CServerSelect::OnServExchng()
 		ParamTab.SetIndex(FALSE, index[_T("Protocol")]);
 		TextRam.SetIndex(FALSE, index[_T("Screen")]);
 		TextRam.m_FontTab.SetIndex(FALSE, index[_T("Fontset")]);
+		TextRam.m_TextBitMap.SetIndex(FALSE, index[_T("TextBitMap")]);
 		KeyTab.SetIndex(FALSE, index[_T("Keycode")]);
 		KeyMac.SetIndex(FALSE, index[_T("Keymacro")]);
 

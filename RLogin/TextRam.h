@@ -624,6 +624,28 @@ public:
 	~CFontTab();
 };
 
+class CTextBitMap : public COptObject
+{
+public:
+	BOOL m_bEnable;
+	int m_WidthAlign;
+	int m_HeightAlign;
+	CString m_Text;
+	COLORREF m_TextColor;
+	LOGFONT m_LogFont;
+
+	void Init();
+	void SetArray(CStringArrayExt &stra);
+	void GetArray(CStringArrayExt &stra);
+	void SetIndex(int mode, CStringIndex &index);
+
+	const CTextBitMap & operator = (CTextBitMap &data);
+	const BOOL operator == (CTextBitMap &data);
+
+	CTextBitMap();
+	~CTextBitMap();
+};
+
 class CProcNode : public CObject
 {
 public:
@@ -754,6 +776,8 @@ public:	// Options
 	WORD m_DefBankTab[5][4];
 	int m_WheelSize;
 	CString m_BitMapFile;
+	int m_BitMapAlpha;
+	int m_BitMapBlend;
 	int m_DelayMSec;
 	CString m_HisFile;
 	int m_KeepAliveSec;
@@ -800,6 +824,7 @@ public:
 	class CRLoginDoc *m_pDocument;
 	class CServerEntry *m_pServerEntry;
 	class CFontTab m_FontTab;
+	class CTextBitMap m_TextBitMap;
 
 	CMemMap m_MemMap;
 	HANDLE m_hMap;
@@ -1002,10 +1027,10 @@ public:
 	BOOL IsEmptyLine(int sy);
 	void GetScreenSize(int *x, int *y);
 
-	void DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv, struct DrawWork &prop, class CRLoginView *pView);
-	void DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv, struct DrawWork &prop, class CRLoginView *pView);
-	void DrawHoriLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv, struct DrawWork &prop, class CRLoginView *pView);
-	void DrawVertLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL rv, struct DrawWork &prop, class CRLoginView *pView);
+	void DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, struct DrawWork &prop, class CRLoginView *pView);
+	void DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, struct DrawWork &prop, class CRLoginView *pView);
+	void DrawHoriLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, struct DrawWork &prop, class CRLoginView *pView);
+	void DrawVertLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, struct DrawWork &prop, class CRLoginView *pView);
 	void DrawString(CDC *pDC, CRect &rect, struct DrawWork &prop, class CRLoginView *pView);
 	void DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginView *pView);
 

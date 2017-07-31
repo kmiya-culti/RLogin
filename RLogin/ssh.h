@@ -825,6 +825,8 @@ extern DH *dh_new_group1(void);
 extern DH *dh_new_group14(void);
 extern DH *dh_new_group15(void);
 extern DH *dh_new_group16(void);
+extern DH *dh_new_group17(void);
+extern DH *dh_new_group18(void);
 extern int kex_dh_hash(BYTE *digest, LPCSTR client_version_string, LPCSTR server_version_string, LPBYTE ckexinit, int ckexinitlen, LPBYTE skexinit, int skexinitlen, LPBYTE serverhostkeyblob, int sbloblen, BIGNUM *client_dh_pub, BIGNUM *server_dh_pub, BIGNUM *shared_secret, const EVP_MD *evp_md);
 extern int dh_estimate(int bits);
 extern int kex_gex_hash(BYTE *digest, LPCSTR client_version_string, LPCSTR server_version_string, LPBYTE ckexinit, int ckexinitlen, LPBYTE skexinit, int skexinitlen, LPBYTE serverhostkeyblob, int sbloblen, int min, int wantbits, int max, BIGNUM *prime, BIGNUM *gen, BIGNUM *client_dh_pub, BIGNUM *server_dh_pub, BIGNUM *shared_secret, const EVP_MD *evp_md);

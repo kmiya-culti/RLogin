@@ -487,7 +487,7 @@ int CTabBar::GetImageIndex(LPCTSTR filename)
 		CBitmap *pBitmap;
 		COLORREF bc = GetSysColor(COLOR_WINDOW);
 
-		if ( image.LoadFile(filename) && (pBitmap = image.GetBitmap(&dc, ICONIMG_SIZE, ICONIMG_SIZE, 1, bc)) != NULL )
+		if ( image.LoadFile(filename) && (pBitmap = image.GetBitmap(&dc, ICONIMG_SIZE, ICONIMG_SIZE, bc)) != NULL )
 			idx = m_ImageList.Add(pBitmap, bc);
 
 		m_ImageFile[filename].m_Value = idx;

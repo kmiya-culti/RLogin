@@ -1883,9 +1883,12 @@ void CMainFrame::SetClipBoardMenu(UINT nId, CMenu *pMenu)
 				tmp += _T("«");
 			else if ( *str == L'\x7F' || *str < L' ' || *str == L'&' || *str == L'\\' )
 				tmp += _T('.');
-			else
+			else if ( *str >= 256 ) {
+				n++;
 				tmp += *str;
-			if ( n == 40 && (i = (int)wcslen(str)) > 10 ) {
+			} else
+				tmp += *str;
+			if ( n >= 40 && (i = (int)wcslen(str)) > 10 ) {
 				tmp += _T(" ... ");
 				str += (i - 11);
 			}
@@ -2572,9 +2575,10 @@ BOOL CMainFrame::PreTranslateMessage(MSG* pMsg)
 		if ( PreLButtonDown((UINT)pMsg->wParam, point) )
 			return TRUE;
 
-	} else if ( (pMsg->message == WM_KEYDOWN || pMsg->message == WM_SYSKEYDOWN) &&
-			    (pMsg->wParam == VK_TAB || pMsg->wParam == VK_F6) && (GetKeyState(VK_CONTROL) & 0x80) != 0 )
-		return TRUE;
+	} else if ( (pMsg->message == WM_KEYDOWN || pMsg->message == WM_SYSKEYDOWN) ) {
+		if ( (pMsg->wParam == VK_TAB || pMsg->wParam == VK_F6) && (GetKeyState(VK_CONTROL) & 0x80) != 0 )
+			return TRUE;
+	}
 
 	return CMDIFrameWnd::PreTranslateMessage(pMsg);
 }
