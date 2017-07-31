@@ -29,11 +29,11 @@ static char THIS_FILE[]=__FILE__;
 
 //////////////////////////////////////////////////////////////////////
 // WordAlloc
-							//	 3     7     15    31
-static void		*pMemFree[4] = { NULL, NULL, NULL, NULL };
+							//	 7     15    31
+static void		*pMemFree[3] = { NULL, NULL, NULL };
 static void		*pMemTop = NULL;
 
-#define	ALLOCMAX	(256 * 1024)
+#define	ALLOCMAX	(128 * 1024)
 
 WCHAR *WCharAlloc(int len)
 {
@@ -44,21 +44,18 @@ WCHAR *WCharAlloc(int len)
 
 	switch(len) {
 	case 0: case 1:	case 2:	case 3:
-		len = 3;
-		hs  = 0;
-		break;
 	case 4: case 5:	case 6:	case 7:
 		len = 7;
-		hs  = 1;
+		hs  = 0;
 		break;
 	case  8: case  9: case 10: case 11:
 	case 12: case 13: case 14: case 15:
 		len = 15;
-		hs  = 2;
+		hs  = 1;
 		break;
 	default:
 		len = 31;
-		hs  = 3;
+		hs  = 2;
 		break;
 	}
 
@@ -85,13 +82,13 @@ WCHAR *WCharAlloc(int len)
 void WCharFree(WCHAR *ptr)
 {
 	int hs = *(--ptr);
-	ASSERT(hs >= 0 && hs < 4);
+	ASSERT(hs >= 0 && hs < 3);
 	*((void **)ptr) = pMemFree[hs];
 	pMemFree[hs] = (void *)ptr;
 }
 inline int WCharSize(WCHAR *ptr)
 {
-	static const int sizeTab[] = { 3, 7, 15, 31 };
+	static const int sizeTab[] = { 7, 15, 31 };
 	return sizeTab[*(ptr - 1)];
 }
 void AllWCharAllocFree()
@@ -111,14 +108,15 @@ void AllWCharAllocFree()
 inline CVram::CVram()
 {
 #ifndef	FIXWCHAR
-	ch = WCharAlloc(3);
+	ch = pr.pk.cb;
 #endif
 	Empty();
 }
 inline CVram::~CVram()
 {
 #ifndef	FIXWCHAR
-	WCharFree(ch);
+	if ( ch != pr.pk.cb )
+		WCharFree(ch);
 #endif
 }
 inline const CVram & CVram::operator = (CVram &data)
@@ -126,12 +124,17 @@ inline const CVram & CVram::operator = (CVram &data)
 #ifdef	FIXWCHAR
 	memcpy(this, &data, sizeof(CVram));
 #else
-	int n;
-	if ( (n = wcslen(data.ch) + 1) > WCharSize(ch) ) {
-		WCharFree(ch);
-		ch = WCharAlloc(n);
+	if ( data.ch == data.pr.pk.cb ) {
+		if ( ch != pr.pk.cb ) {
+			WCharFree(ch);
+			ch = pr.pk.cb;
+		}
+	} else {
+		if ( ch != pr.pk.cb )
+			WCharFree(ch);
+		ch = WCharAlloc(WCharSize(data.ch));
+		memcpy(ch, data.ch, sizeof(WCHAR) * WCharSize(ch));
 	}
-	memcpy(ch, data.ch, sizeof(WCHAR) * n);
 	pr = data.pr;
 #endif
 	return *this;
@@ -140,6 +143,7 @@ inline void CVram::operator = (VRAM &ram)
 {
 #ifdef	FIXWCHAR
 	memcpy(&pr, &ram, sizeof(pr));
+
 	if ( IS_IMAGE(ram.cm) )
 		Empty();
 	else if ( (ram.ch & 0xFFFF0000) != 0 ) {
@@ -151,11 +155,15 @@ inline void CVram::operator = (VRAM &ram)
 		ch[1] = 0;
 	}
 #else
-	memcpy(&pr, &ram, sizeof(pr));
-	if ( IS_IMAGE(ram.cm) )
-		Empty();
-	else
-		*this = ram.ch;
+	pr = ram;
+
+	if ( ch != pr.pk.cb ) {
+		WCharFree(ch);
+		ch = pr.pk.cb;
+	}
+
+	if ( !IS_IMAGE(ram.cm) )
+		*this = ram.pk.ch;
 #endif
 }
 inline void CVram::operator = (DWORD c)
@@ -167,7 +175,7 @@ void CVram::operator += (DWORD c)
 {
 	int n, a, b;
 
-	if ( c == 0 )
+	if ( c == 0 || IS_IMAGE(pr.cm) )
 		return;
 
 	for ( n = 0 ; ch[n] != 0 ; )
@@ -179,11 +187,12 @@ void CVram::operator += (DWORD c)
 		return;
 
 #ifndef	FIXWCHAR
-	if ( a > WCharSize(ch) ) {
+	if ( a > (ch == pr.pk.cb ? 2 : WCharSize(ch)) ) {
 		WCHAR *nw = WCharAlloc(a);
 		for ( n = 0 ; ch[n] != 0 ; n++ )
 			nw[n] = ch[n];
-		WCharFree(ch);
+		if ( ch != pr.pk.cb )
+			WCharFree(ch);
 		ch = nw;
 	}
 #endif
@@ -198,18 +207,13 @@ void CVram::operator += (DWORD c)
 }
 void CVram::SetVRAM(VRAM &ram)
 {
-	IRAM *ip = (IRAM *)&ram;
-	LPCWSTR p = ch;
+	ram = pr;
 
-	*ip = pr;
-
-	if ( !IS_IMAGE(ram.cm) ) {
-		ram.ch = 0;
-		if ( *p != 0 ) {
-			ram.ch = *(p++);
-			if ( *p != 0 )
-				ram.ch = (ram.ch << 16) | *(p++);
-		}
+	if ( !IS_IMAGE(pr.cm) ) {
+		if ( ch[0] != 0 && ch[1] != 0 )
+			ram.pk.ch = (ch[0] << 16) | ch[1];
+		else
+			ram.pk.ch = ch[0];
 	}
 }
 
@@ -217,7 +221,7 @@ void CVram::SetBuffer(CBuffer &buf)
 {
 	buf.Apend((LPBYTE)&pr, sizeof(pr));
 
-	for ( LPCWSTR p = ch ; ; p++ ) {
+	for ( LPCWSTR p = *this ; ; p++ ) {
 		buf.PutWord(*p);
 		if ( *p == L'\0' )
 			break;
@@ -267,7 +271,7 @@ void CVram::Read(CFile &file, int ver)
 		if ( file.Read(tmp, 8) != 8 )
 			AfxThrowFileException(CFileException::endOfFile);
 
-		ram.ch = tmp[0] | (tmp[1] << 8) | (tmp[2] << 16) | (tmp[3] << 24);
+		ram.pk.ch = tmp[0] | (tmp[1] << 8) | (tmp[2] << 16) | (tmp[3] << 24);
 		ram.md = tmp[4] | (tmp[5] << 8);
 		ram.em = tmp[5] >> 2;
 		ram.dm = tmp[5] >> 4;
@@ -297,8 +301,10 @@ void CVram::Read(CFile &file, int ver)
 		break;
 	}
 
-	if ( IS_IMAGE(pr.cm) )
+	if ( IS_IMAGE(pr.cm) ) {
 		pr.cm = CM_ASCII;
+		Empty();
+	}
 }
 void CVram::Write(CFile &file)
 {
@@ -1033,8 +1039,9 @@ void CTextRam::InitText(int Width, int Height)
 	} else {
 		newColsMax = (m_ColsMax >= newCols && m_LineUpdate < (m_Lines * 4) ? m_ColsMax : newCols);
 		tmp = new CVram[newColsMax * newHisMax];
-		for ( n = 0 ; n < (newColsMax * newHisMax) ; n++ )
-			tmp[n] = m_DefAtt;
+		tmp[0] = m_DefAtt;
+		for ( n = 1 ; n < (newColsMax * newHisMax) ; n++ )
+			tmp[n] = tmp[0];
 
 		if ( m_VRam != NULL ) {
 			oldCurX = (m_ColsMax < newColsMax ? m_ColsMax : newColsMax);
@@ -1141,8 +1148,9 @@ void CTextRam::InitScreen(int cols, int lines)
 
 	} else if ( pWnd->IsIconic() || pWnd->IsZoomed() || !IsOptEnable(TO_RLNORESZ) ) {
 		tmp = new CVram[colsmax * m_HisMax];
-		for ( n = 0 ; n < (colsmax * m_HisMax) ; n++ )
-			tmp[n] = m_DefAtt;
+		tmp[0] = m_DefAtt;
+		for ( n = 1 ; n < (colsmax * m_HisMax) ; n++ )
+			tmp[n] = tmp[0];
 
 		cx = (m_ColsMax < colsmax ? m_ColsMax : colsmax);
 		for ( n = 1 ; n <= m_HisMax ; n++ ) {
@@ -3239,10 +3247,10 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 					work.csz = 2;
 				} else if ( IS_IMAGE(vp->pr.cm) ) {
 					work.mod = (-1);
-					work.idx = vp->pr.id;
-					work.stx = vp->pr.ix;
-					work.edx = vp->pr.ix + 1;
-					work.sty = vp->pr.iy;
+					work.idx = vp->pr.pk.im.id;
+					work.stx = vp->pr.pk.im.ix;
+					work.edx = vp->pr.pk.im.ix + 1;
+					work.sty = vp->pr.pk.im.iy;
 					str.Empty();
 					stx = work.stx;
 					if ( prop.idx == work.idx && prop.sty == work.sty && prop.edx == work.stx ) {
@@ -3828,7 +3836,7 @@ void CTextRam::RESET(int mode)
 	}
 
 	if ( mode & RESET_ATTR ) {
-		m_DefAtt.ch = 0;
+		m_DefAtt.pk.ch = 0;
 		m_DefAtt.md = m_BankTab[m_KanjiMode][m_BankGL];
 		m_DefAtt.em = 0;
 		m_DefAtt.dm = 0;
@@ -4476,7 +4484,7 @@ void CTextRam::LOCATE(int x, int y)
 void CTextRam::ERABOX(int sx, int sy, int ex, int ey, int df)
 {
 	int x, y, dm;
-	CVram *vp, *tp;
+	CVram *vp, *tp, spc;
 
 	m_DoWarp = FALSE;
 
@@ -4488,6 +4496,7 @@ void CTextRam::ERABOX(int sx, int sy, int ex, int ey, int df)
 	if ( (df & ERM_ISOPRO) != 0 && IsOptEnable(TO_ANSIERM) )
 		df &= ~ERM_ISOPRO;
 
+	spc = m_AttSpc;
 	for ( y = sy ; y < ey ; y++ ) {
 		tp = GETVRAM(0, y);
 		dm = tp->pr.dm;
@@ -4496,18 +4505,18 @@ void CTextRam::ERABOX(int sx, int sy, int ex, int ey, int df)
 		switch(df & (ERM_ISOPRO | ERM_DECPRO)) {
 		case 0:		// clear em
 			for ( x = sx ; x < ex ; x++ )
-				*(vp++) = m_AttSpc;
+				*(vp++) = spc;
 			break;
 		case ERM_ISOPRO:
 			for ( x = sx ; x < ex ; x++, vp++ ) {
 				if ( (vp->pr.em & EM_ISOPROTECT) == 0 )
-					*vp = m_AttSpc;
+					*vp = spc;
 			}
 			break;
 		case ERM_DECPRO:
 			for ( x = sx ; x < ex ; x++, vp++ ) {
 				if ( (vp->pr.em & EM_DECPROTECT) == 0 )
-					*vp = m_AttSpc;
+					*vp = spc;
 			}
 			break;
 		}
@@ -4546,8 +4555,9 @@ void CTextRam::FORSCROLL(int sy, int ey)
 
 		int x;
 		CVram *vp = GETVRAM(0, m_Lines - 1);
-		for ( x = 0 ; x < m_ColsMax ; x++ )
-				*(vp++) = m_AttSpc;
+		vp[0] = m_AttSpc;
+		for ( x = 1 ; x < m_ColsMax ; x++ )
+				vp[x] = vp[0];
 
 	} else {
 #ifdef	FIXWCHAR

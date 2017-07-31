@@ -75,7 +75,7 @@ void CChatStatDlg::OnOK()
 {
 	CWnd *pWnd = GetParent();
 	if ( pWnd != NULL )
-		pWnd->PostMessage(WM_COMMAND, IDM_CHATSTOP);
+		pWnd->PostMessage(WM_COMMAND, ID_CHARSCRIPT_END);
 	CDialog::OnOK();
 }
 

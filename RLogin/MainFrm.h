@@ -17,6 +17,8 @@
 #define	PANEFRAME_WIDTH			2
 #define	PANEFRAME_HEIGHT		3
 #define	PANEFRAME_WINDOW		4
+#define	PANEFRAME_WSPLIT		5
+#define	PANEFRAME_HSPLIT		6
 
 class CPaneFrame : public CObject
 {
@@ -146,6 +148,7 @@ public:
 	volatile int m_InfoThreadCount;
 	BOOL m_ScrollBarFlag;
 	CPtrArray m_MenuMap;
+	int m_SplitType;
 
 	void SetTransPar(COLORREF rgb, int value, DWORD flag);
 	void SetIconStyle();

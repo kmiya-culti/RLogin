@@ -1134,6 +1134,12 @@ void CRLoginDoc::OnUpdateXYZModem(CCmdUI* pCmdUI)
 void CRLoginDoc::OnChatStop()
 {
 	if ( m_pStrScript != NULL ) {
+		if ( m_pStrScript->m_MakeFlag ) {
+			if ( m_LoadMode == DOCTYPE_ENTRYFILE )
+				SetModifiedFlag(TRUE);
+			else if ( m_LoadMode == DOCTYPE_REGISTORY )
+				m_ServerEntry.m_SaveFlag = TRUE;
+		}
 		m_pStrScript->ExecStop();
 		m_pStrScript = NULL;
 	} else if ( m_pScript != NULL )

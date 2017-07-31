@@ -3019,9 +3019,9 @@ void CTextRam::fc_DECSIXEL(int ch)
 		for ( y = 0 ; y < cy ; y++ ) {
 			vp = GETVRAM(m_CurX, m_CurY);
 			for ( x = 0 ; x < cx ; x++ ) {
-				vp->pr.id = m_ImageIndex;
-				vp->pr.ix = x;
-				vp->pr.iy = y;
+				vp->pr.pk.im.id = m_ImageIndex;
+				vp->pr.pk.im.ix = x;
+				vp->pr.pk.im.iy = y;
 				vp->pr.md = SET_96 | 'A';
 				vp->pr.em = m_AttNow.em;
 				vp->pr.cm = CM_IMAGE;

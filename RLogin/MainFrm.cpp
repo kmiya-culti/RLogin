@@ -335,6 +335,20 @@ void CPaneFrame::MoveParOwn(CRect &rect, int Style)
 			left.bottom = left.top + (rect.Height() - m_BoderSize) / 2;
 			right.top   = left.bottom + m_BoderSize;
 			break;
+
+		case PANEFRAME_WSPLIT:
+			m_Style = PANEFRAME_WIDTH;
+			left.right = left.left + (rect.Width() - m_BoderSize) / 2;
+			right.left = left.right + m_BoderSize;
+			Style = PANEFRAME_HSPLIT;
+			break;
+
+		case PANEFRAME_HSPLIT:
+			m_Style = PANEFRAME_HEIGHT;
+			left.bottom = left.top + (rect.Height() - m_BoderSize) / 2;
+			right.top   = left.bottom + m_BoderSize;
+			Style = PANEFRAME_WSPLIT;
+			break;
 		}
 
 		m_Frame = rect;
@@ -622,6 +636,7 @@ CMainFrame::CMainFrame()
 	m_hMidiOut = NULL;
 	m_MidiTimer = 0;
 	m_InfoThreadCount = 0;
+	m_SplitType = PANEFRAME_WSPLIT;
 }
 
 CMainFrame::~CMainFrame()
@@ -1565,7 +1580,8 @@ void CMainFrame::OnWindowTileHorz()
 
 	CRect rect;
 	GetFrameRect(rect);
-	m_pTopPane->MoveParOwn(rect, PANEFRAME_HEIGHT);
+	m_pTopPane->MoveParOwn(rect, m_SplitType);
+	m_SplitType = (m_SplitType == PANEFRAME_WSPLIT ? PANEFRAME_HSPLIT : PANEFRAME_WSPLIT);
 }
 void CMainFrame::OnWindowRotation()
 {

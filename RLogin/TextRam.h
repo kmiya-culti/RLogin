@@ -332,24 +332,16 @@ enum EStageNum {
 		STAGE_MAX,
 };
 
-typedef	struct _Vram {
-	DWORD	ch;
-
-	DWORD	at:28;
-	  DWORD	ft:4;
-
-	WORD	md:10;
-	  WORD	em:2;
-	  WORD	dm:2;
-	  WORD	cm:2;
-	BYTE	fc;
-	BYTE	bc;
-} VRAM;
-
-typedef struct _Iram {
-	DWORD	id:12;		// イメージ番号
-	  DWORD	iy:10;		// イメージ横位置
-	  DWORD	ix:10;		// イメージ縦位置
+typedef struct _Vram {
+	union {
+		DWORD	ch;
+		struct {
+			DWORD	id:12;		// イメージ番号
+			  DWORD	iy:10;		// イメージ横位置
+			  DWORD	ix:10;		// イメージ縦位置
+		} im;
+		WCHAR	cb[2];
+	} pk;
 
 	DWORD	at:28;		// アトリビュート
 	  DWORD	ft:4;		// フォント番号
@@ -360,7 +352,7 @@ typedef struct _Iram {
 	  WORD	cm:2;		// 文字種
 	BYTE	fc;			// 文字色番号
 	BYTE	bc;			// 背景色番号
-} IRAM;
+} VRAM;
 
 //#define	FIXWCHAR	1
 
@@ -382,14 +374,14 @@ public:
 #else
 	WCHAR		*ch;
 #endif
-	IRAM		pr;
+	VRAM		pr;
 
 	inline CVram();
 	inline ~CVram();
 
-	inline void Empty() { ch[0] = 0; }
-	inline BOOL IsEmpty() { return (ch[0] == 0 ? TRUE : FALSE); }
-	inline operator LPCWSTR () { return ch; }
+	inline void Empty() { if ( !IS_IMAGE(pr.cm) ) ch[0] = 0; }
+	inline BOOL IsEmpty() { return (IS_IMAGE(pr.cm) || ch[0] == 0 ? TRUE : FALSE); }
+	inline operator LPCWSTR () { return (IS_IMAGE(pr.cm) ? L"" : ch); }
 	inline operator DWORD () { return ((ch[0] == 0 ? 0 : (ch[1] == 0 ? ch[0] : ((ch[0] << 16) | ch[1])))); }
 	inline const CVram & operator = (CVram &data);
 	inline void operator = (VRAM &ram);
