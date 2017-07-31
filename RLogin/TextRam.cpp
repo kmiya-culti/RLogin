@@ -834,7 +834,7 @@ CTextRam::CTextRam()
 	m_Page = 0;
 	m_TopY = 0;
 	m_BtmY = m_Lines;
-	m_LeftX = 0;
+	m_LeftX  = 0;
 	m_RightX = m_Cols;
 	m_HisMax = 100;
 	m_HisPos = 0;
@@ -858,6 +858,9 @@ CTextRam::CTextRam()
 	m_Exact = FALSE;
 	m_MouseTrack = MOS_EVENT_NONE;
 	m_MouseRect.SetRectEmpty();
+	m_MouseOldSw    = (-1);
+	m_MouseOldPos.x = (-1);
+	m_MouseOldPos.y = (-1);
 	m_Loc_Mode  = 0;
 	m_Loc_Pb    = 0;
 	m_Loc_LastX = 0;
@@ -3795,12 +3798,12 @@ void CTextRam::RESET(int mode)
 		m_CurY = 0;
 		m_TopY = 0;
 		m_BtmY = m_Lines;
-		m_LeftX = 0;
+		m_LeftX  = 0;
 		m_RightX = m_Cols;
 
 		m_bRtoL = FALSE;
 		m_DoWarp = FALSE;
-		m_Status = ST_NON;
+		m_Status = ST_NULL;
 		m_LastChar = 0;
 		m_LastFlag = 0;
 		m_LastPos  = 0;
@@ -4099,6 +4102,8 @@ void CTextRam::SetAnsiParaArea(int top)
 		m_AnsiPara.Add(1);
 	else if ( m_AnsiPara[top] == PARA_NOT )
 		m_AnsiPara[top] = 1;
+	if ( IsOptEnable(TO_DECOM) )
+		m_AnsiPara[top] = m_AnsiPara[top] + m_TopY;
 	if ( (m_AnsiPara[top] = m_AnsiPara[top] - 1) < 0 )
 		m_AnsiPara[top] = 0;
 	else if ( m_AnsiPara[top] >= m_Lines )
@@ -4110,6 +4115,8 @@ void CTextRam::SetAnsiParaArea(int top)
 		m_AnsiPara.Add(1);
 	else if ( m_AnsiPara[top] == PARA_NOT )
 		m_AnsiPara[top] = 1;
+	if ( IsOptEnable(TO_DECOM) )
+		m_AnsiPara[top] = m_AnsiPara[top] + GetLeftMargin();
 	if ( (m_AnsiPara[top] = m_AnsiPara[top] - 1) < 0 )
 		m_AnsiPara[top] = 0;
 	else if ( m_AnsiPara[top] >= m_Cols )
@@ -4121,6 +4128,8 @@ void CTextRam::SetAnsiParaArea(int top)
 		m_AnsiPara.Add(m_Lines);
 	else if ( m_AnsiPara[top] == PARA_NOT )
 		m_AnsiPara[top] = m_Lines;
+	if ( IsOptEnable(TO_DECOM) )
+		m_AnsiPara[top] = m_AnsiPara[top] + m_TopY;
 	if ( (m_AnsiPara[top] = m_AnsiPara[top] - 1) < 0 )
 		m_AnsiPara[top] = 0;
 	else if ( m_AnsiPara[top] >= m_Lines )
@@ -4132,6 +4141,8 @@ void CTextRam::SetAnsiParaArea(int top)
 		m_AnsiPara.Add(m_Cols);
 	else if ( m_AnsiPara[top] == PARA_NOT )
 		m_AnsiPara[top] = m_Cols;
+	if ( IsOptEnable(TO_DECOM) )
+		m_AnsiPara[top] = m_AnsiPara[top] + GetLeftMargin();
 	if ( (m_AnsiPara[top] = m_AnsiPara[top] - 1) < 0 )
 		m_AnsiPara[top] = 0;
 	else if ( m_AnsiPara[top] >= m_Cols )
@@ -4315,6 +4326,8 @@ void CTextRam::MouseReport(int md, int sw, int x, int y)
 				return;
 		} else if ( m_MouseTrack != MOS_EVENT_ANYE )
 			return;
+		if ( m_MouseOldSw == sw && m_MouseOldPos.x == x && m_MouseOldPos.y == y )
+			return;
 		if ( (sw & MK_LBUTTON) != 0 )
 			stat = m_MouseMode[0];
 		else if ( (sw & MK_RBUTTON) != 0 )
@@ -4327,6 +4340,10 @@ void CTextRam::MouseReport(int md, int sw, int x, int y)
 	default:
 		return;
 	}
+
+	m_MouseOldSw    = sw;
+	m_MouseOldPos.x = x; 
+	m_MouseOldPos.y = y;
 
 	if ( m_MouseTrack == MOS_EVENT_X10 ) {
 		stat &= 0x03;
@@ -4507,8 +4524,13 @@ void CTextRam::FORSCROLL(int sy, int ey)
 	ASSERT(sy >= 0 && sy < m_Lines);
 	ASSERT(ey >= 0 && ey <= m_Lines);
 
+//	int left  = GetLeftMargin();
+//	int right = GetRightMargin();
+	int left = 0, right = m_Cols;
+	if ( IsOptEnable(TO_DECLRMM) ) { left = m_LeftX; right = m_RightX; }
+
 	m_DoWarp = FALSE;
-	if ( sy == 0 && ey == m_Lines && !m_LineEditMode ) {
+	if ( sy == 0 && ey == m_Lines && left == 0 && right == m_Cols && !m_LineEditMode ) {
 		CallReciveLine(0);
 		m_HisUse++;
 		if ( (m_HisPos += 1) >= m_HisMax )
@@ -4520,70 +4542,75 @@ void CTextRam::FORSCROLL(int sy, int ey)
 	} else {
 #ifdef	FIXWCHAR
 		for ( int y = sy + 1; y < ey ; y++ )
-			memcpy(GETVRAM(0, y - 1), GETVRAM(0, y), sizeof(CVram) * m_Cols);
+			memcpy(GETVRAM(left, y - 1), GETVRAM(left, y), sizeof(CVram) * (right - left));
 #else
 		for ( int y = sy + 1; y < ey ; y++ ) {
-			CVram *vp = GETVRAM(0, y - 1);
-			CVram *wp = GETVRAM(0, y);
-			for ( int x = 0 ; x < m_Cols ; x++ )
+			CVram *vp = GETVRAM(left, y - 1);
+			CVram *wp = GETVRAM(left, y);
+			for ( int x = left ; x < right ; x++ )
 				*(vp++) = *(wp++);
 		}
 #endif
-//			memcpy(GETVRAM(0, y - 1), GETVRAM(0, y), sizeof(VRAM) * m_Cols);
 	}
-	ERABOX(0, ey - 1, m_Cols, ey);
-	DISPVRAM(0, sy, m_Cols, ey - sy);
+	ERABOX(left, ey - 1, right, ey);
+	DISPVRAM(left, sy, right, ey - sy);
 }
 void CTextRam::BAKSCROLL(int sy, int ey)
 {
 	ASSERT(sy >= 0 && sy < m_Lines);
 	ASSERT(ey >= 0 && ey <= m_Lines);
 
+	int left = 0, right = m_Cols;
+	if ( IsOptEnable(TO_DECLRMM) ) { left = m_LeftX; right = m_RightX; }
+
 	m_DoWarp = FALSE;
 #ifdef	FIXWCHAR
 	for ( int y = ey - 1; y > sy ; y-- )
-		memcpy(GETVRAM(0, y), GETVRAM(0, y - 1), sizeof(CVram) * m_Cols);
+		memcpy(GETVRAM(left, y), GETVRAM(left, y - 1), sizeof(CVram) * (right - left));
 #else
 	for ( int y = ey - 1; y > sy ; y-- ) {
-		CVram *vp = GETVRAM(0, y);
-		CVram *wp = GETVRAM(0, y - 1);
-		for ( int x = 0 ; x < m_Cols ; x++ )
+		CVram *vp = GETVRAM(left, y);
+		CVram *wp = GETVRAM(left, y - 1);
+		for ( int x = left ; x < right ; x++ )
 			*(vp++) = *(wp++);
 	}
 #endif
-//		memcpy(GETVRAM(0, y), GETVRAM(0, y - 1), sizeof(VRAM) * m_Cols);
-	ERABOX(0, sy, m_Cols, sy + 1);
-	DISPVRAM(0, sy, m_Cols, ey - sy);
+	ERABOX(left, sy, right, sy + 1);
+	DISPVRAM(left, sy, right, ey - sy);
 }
 void CTextRam::LEFTSCROLL()
 {
 	int n, i, dm;
 	CVram *vp;
+	int left = 0, right = m_Cols;
+	if ( IsOptEnable(TO_DECLRMM) ) { left = m_LeftX; right = m_RightX; }
 
-	for ( n = 0 ; n < m_Lines ; n++ ) {
+	for ( n = m_TopY ; n < m_BtmY ; n++ ) {
 		vp = GETVRAM(0, n);
 		dm = vp->pr.dm;
-		for ( i = 1 ; i < m_Cols ; i++ )
+		for ( i = left + 1 ; i < right ; i++ )
 			vp[i - 1] = vp[i];
-		vp[m_Cols - 1] = m_AttSpc;
+		vp[right - 1] = m_AttSpc;
 		vp->pr.dm = dm;
 	}
-	DISPVRAM(0, 0, m_Cols, m_Lines);
+	DISPVRAM(left, m_TopY, right - left, m_BtmY - m_TopY);
 }
 void CTextRam::RIGHTSCROLL()
 {
 	int n, i, dm;
 	CVram *vp;
+	int left = 0, right = m_Cols;
+	if ( IsOptEnable(TO_DECLRMM) ) { left = m_LeftX; right = m_RightX; }
 
-	for ( n = 0 ; n < m_Lines ; n++ ) {
+	for ( n = m_TopY ; n < m_BtmY ; n++ ) {
 		vp = GETVRAM(0, n);
 		dm = vp->pr.dm;
-		for ( i = m_Cols - 1 ; i > 0 ; i-- )
+		for ( i = right - 1 ; i > left ; i-- )
 			vp[i] = vp[i - 1];
-		vp[0] = m_AttSpc;
+		vp[left] = m_AttSpc;
 		vp->pr.dm = dm;
 	}
-	DISPVRAM(0, 0, m_Cols, m_Lines);
+	DISPVRAM(left, m_TopY, right - left, m_BtmY - m_TopY);
 }
 void CTextRam::DOWARP()
 {
@@ -4591,7 +4618,7 @@ void CTextRam::DOWARP()
 		return;
 	m_DoWarp = FALSE;
 	ONEINDEX();
-	m_CurX = 0;
+	m_CurX = GetLeftMargin();
 	m_LastPos -= COLS_MAX;
 }
 void CTextRam::INSCHAR()
@@ -4602,7 +4629,7 @@ void CTextRam::INSCHAR()
 	m_DoWarp = FALSE;
 	vp = GETVRAM(0, m_CurY);
 	dm = vp->pr.dm;
-	for ( n = m_Cols - 1 ; n > m_CurX ; n-- )
+	for ( n = GetRightMargin() - 1 ; n > m_CurX ; n-- )
 		vp[n] = vp[n - 1];
 	vp[n] = m_AttSpc;
 	vp->pr.dm = dm;
@@ -4619,7 +4646,7 @@ void CTextRam::DELCHAR()
 	m_DoWarp = FALSE;
 	vp = GETVRAM(0, m_CurY);
 	dm = vp->pr.dm;
-	for ( n = m_CurX + 1; n < m_Cols ; n++ )
+	for ( n = m_CurX + 1; n < GetRightMargin() ; n++ )
 		vp[n - 1] = vp[n];
 	vp[n - 1] = m_AttSpc;
 	vp->pr.dm = dm;
@@ -4672,7 +4699,13 @@ void CTextRam::PUT1BYTE(int ch, int md, int at)
 
 	CVram *vp;
 	int dm = GetDm(m_CurY);
-	int mx = (dm != 0 ? (m_Cols / 2) : m_Cols);
+	int mx = m_Cols;
+
+	if ( IsOptEnable(TO_DECLRMM) && m_CurX < m_RightX )
+		mx = m_RightX;
+
+	if ( dm != 0 )
+		mx /= 2;
 
 	if ( m_bRtoL ) {
 		md = SET_UNICODE;
@@ -4710,7 +4743,7 @@ void CTextRam::PUT1BYTE(int ch, int md, int at)
 		if ( IsOptEnable(TO_DECAWM) != 0 ) {
 			if ( IsOptEnable(TO_RLGNDW) != 0 ) {
 				ONEINDEX();
-				m_CurX = 0;
+				m_CurX = GetLeftMargin();
 				m_LastPos -= COLS_MAX;
 			} else {
 				m_CurX = mx - 1;
@@ -4744,11 +4777,26 @@ void CTextRam::PUT2BYTE(int ch, int md, int at)
 
 	CVram *vp;
 	int dm = GetDm(m_CurY);
-	int mx = (dm != 0 ? (m_Cols / 2) : m_Cols);
+	int mx = m_Cols;
+
+	if ( IsOptEnable(TO_DECLRMM) && m_CurX < m_RightX )
+		mx = m_RightX;
+
+	if ( dm != 0 )
+		mx /= 2;
 
 	if ( (m_CurX + 1) >= mx ) {
 		PUT1BYTE(0, md);
-		mx = ((dm = GetDm(m_CurY)) != 0 ? (m_Cols / 2) : m_Cols);
+
+		dm = GetDm(m_CurY);
+
+		if ( IsOptEnable(TO_DECLRMM) && m_CurX < m_RightX )
+			mx = m_RightX;
+		else
+			mx = m_Cols;
+
+		if ( dm != 0 )
+			mx /= 2;
 	}
 
 	vp = GETVRAM(m_CurX, m_CurY);
@@ -4782,7 +4830,7 @@ void CTextRam::PUT2BYTE(int ch, int md, int at)
 		if ( IsOptEnable(TO_DECAWM) != 0 ) {
 			if ( IsOptEnable(TO_RLGNDW) != 0 ) {
 				ONEINDEX();
-				m_CurX = 0;
+				m_CurX = GetLeftMargin();
 				m_LastPos -= COLS_MAX;
 			} else {
 				m_CurX = mx - 1;
@@ -5092,6 +5140,15 @@ void CTextRam::COPY(int sp, int sx, int sy, int ex, int ey, int dp, int dx, int 
 	CVram spc, *np, *tp;
 	CTextSave *pSrc, *pDis;
 
+	if ( IsOptEnable(TO_DECOM) ) {
+		sx += GetLeftMargin();
+		sy += m_TopY;
+		ex += GetLeftMargin();
+		ey += m_TopY;
+		dx += GetLeftMargin();
+		dy += m_TopY;
+	}
+
 	if      ( sp < 0 )   sp = 0;
 	else if ( sp > 100 ) sp = 100;
 	if      ( dp < 0 )   dp = 0;
@@ -5255,7 +5312,6 @@ void CTextRam::TABSET(int sw)
 {
 	int n, i;
 
-
 	switch(sw) {
 	case TAB_COLSSET:		// Cols Set
 		if ( IsOptEnable(TO_ANSITSM) )	// MULTIPLE
@@ -5328,44 +5384,46 @@ void CTextRam::TABSET(int sw)
 			DOWARP();
 		i = (IsOptEnable(TO_ANSITSM) ? (m_CurY + 1) : 0);
 		for ( n = m_CurX + 1 ; n < m_Cols ; n++ ) {
-			if ( (m_TabMap[i][n / 8 + 1] & (0x80 >> (n % 8))) != 0 )
+			if ( (m_TabMap[i][n / 8 + 1] & (0x80 >> (n % 8))) != 0 && n >= GetLeftMargin() )
 				break;
 		}
-		if ( !IsOptEnable(TO_XTMCUS) ) {
-			if ( n >= m_Cols )
-				n = m_Cols - 1;
-			if ( n != m_CurX )
-				LOCATE(n, m_CurY);
-		} else
-			LOCATE(n, m_CurY);
+		if ( n >= GetRightMargin() )
+			n = GetRightMargin() - 1;
+		LOCATE(n, m_CurY);
 		break;
 	case TAB_COLSBACK:		// Cols Back Tab Stop
 		i = (IsOptEnable(TO_ANSITSM) ? (m_CurY + 1) : 0);
 		for ( n = m_CurX - 1 ; n > 0 ; n-- ) {
-			if ( (m_TabMap[i][n / 8 + 1] & (0x80 >> (n % 8))) != 0 )
+			if ( (m_TabMap[i][n / 8 + 1] & (0x80 >> (n % 8))) != 0 && n < GetRightMargin() )
 				break;
 		}
+		if ( n < GetLeftMargin() )
+			n = GetLeftMargin();
 		LOCATE(n, m_CurY);
 		break;
 
 	case TAB_LINENEXT:		// Line Tab Stop
 		if ( IsOptEnable(TO_ANSITSM) ) {	// MULTIPLE
 			for ( n = m_CurY + 1 ; n < m_Lines ; n++ ) {
-				if ( (m_TabMap[n + 1][0] & 001) != 0 )
+				if ( (m_TabMap[n + 1][0] & 001) != 0 && n >= m_TopY )
 					break;
 			}
 		} else
 			n = m_CurY + 1;
+		if ( n >= m_BtmY )
+			n = m_BtmY - 1;
 		LOCATE(m_CurX, n);
 		break;
 	case TAB_LINEBACK:		// Line Back Tab Stop
 		if ( IsOptEnable(TO_ANSITSM) ) {	// MULTIPLE
 			for ( n = m_CurY - 1 ; n > 0 ; n-- ) {
-				if ( (m_TabMap[n + 1][0] & 001) != 0 )
+				if ( (m_TabMap[n + 1][0] & 001) != 0 && n < m_BtmY )
 					break;
 			}
 		} else
 			n = m_CurY - 1;
+		if ( n < m_TopY )
+			n = m_TopY;
 		LOCATE(m_CurX, n);
 		break;
 	}

@@ -129,23 +129,46 @@ static const CTextRam::PROCTAB fc_EscTab[] = {
 	{ 0x18,		0,			&CTextRam::fc_POP		},
 	{ 0x1A,		0,			&CTextRam::fc_POP		},
 	{ 0x1B,		0,			&CTextRam::fc_IGNORE	},
-	{ 0x20,		0x7F,		&CTextRam::fc_POP		},
-	{ 0x80,		0x9F,		&CTextRam::fc_SESC		},
-	{ 0xA0,		0xFF,		&CTextRam::fc_POP		},
+	{ 0x20,		0x7E,		&CTextRam::fc_POP		},
+	{ 0x7F,		0,			&CTextRam::fc_IGNORE	},
+	{ 0x80,		0x9F,		&CTextRam::fc_CESC		},
+	{ 0xA0,		0xFE,		&CTextRam::fc_POP		},
+	{ 0xFF,		0,			&CTextRam::fc_IGNORE	},
+	{ 0,		0,			NULL } };
+static const CTextRam::PROCTAB fc_GotoTab[] = {
+	{ 0x18,		0,			&CTextRam::fc_POP		},
+	{ 0x1A,		0,			&CTextRam::fc_POP		},
+	{ 0x1B,		0,			&CTextRam::fc_IGNORE	},
+	{ 0x20,		0xFF,		&CTextRam::fc_GOTOXY	},
+	{ 0,		0,			NULL } };
+static const CTextRam::PROCTAB fc_StatTab[] = {
+	{ 0x18,		0,			&CTextRam::fc_POP		},
+	{ 0x1A,		0,			&CTextRam::fc_POP		},
+	{ 0x1B,		0,			&CTextRam::fc_IGNORE	},
+	{ 0x20,		0x7E,		&CTextRam::fc_STAT		},
+	{ 0x7F,		0,			&CTextRam::fc_IGNORE	},
+	{ 0x80,		0x9F,		&CTextRam::fc_CESC		},
+	{ 0xA0,		0xFE,		&CTextRam::fc_STAT		},
+	{ 0xFF,		0,			&CTextRam::fc_IGNORE	},
 	{ 0,		0,			NULL } };
 static const CTextRam::PROCTAB fc_Esc2Tab[] = {
-	{ ' ',		0,			&CTextRam::fc_ACS		},	// ACS Announce code structure
-	{ '#',		0,			&CTextRam::fc_DECSOP	},	// DECSOP Screen Opt
-	{ '$',		0,			&CTextRam::fc_CSC0W		},	// CSC0W Char Set
-	{ '%',		0,			&CTextRam::fc_DOCS		},	// DOCS Designate other coding system
-	{ '(',		0,			&CTextRam::fc_CSC0		},	// CSC0 G0 charset
-	{ ')',		0,			&CTextRam::fc_CSC1		},	// CSC1 G1 charset
-	{ '*',		0,			&CTextRam::fc_CSC2		},	// CSC2 G2 charset
-	{ '+',		0,			&CTextRam::fc_CSC3		},	// CSC3 G3 charset
-	{ ',',		0,			&CTextRam::fc_CSC0A		},	// CSC0A G0 charset
-	{ '-',		0,			&CTextRam::fc_CSC1A		},	// CSC1A G1 charset
-	{ '.',		0,			&CTextRam::fc_CSC2A		},	// CSC2A G2 charset
-	{ '/',		0,			&CTextRam::fc_CSC3A		},	// CSC3A G3 charset
+	{ ' ',		0,			&CTextRam::fc_ACS		},	// 2/0  ACS Announce code structure
+	{ '!',		0,			&CTextRam::fc_ESCI		},	// 2/1
+	{ '"',		0,			&CTextRam::fc_ESCI		},	// 2/2
+	{ '#',		0,			&CTextRam::fc_DECSOP	},	// 2/3  DECSOP Screen Opt
+	{ '$',		0,			&CTextRam::fc_CSC0W		},	// 2/4  CSC0W Char Set
+	{ '%',		0,			&CTextRam::fc_DOCS		},	// 2/5  DOCS Designate other coding system
+	{ '&',		0,			&CTextRam::fc_ESCI		},	// 2/6
+	{ '\'',		0,			&CTextRam::fc_ESCI		},	// 2/7
+	{ '(',		0,			&CTextRam::fc_CSC0		},	// 2/8  CSC0 G0 charset
+	{ ')',		0,			&CTextRam::fc_CSC1		},	// 2/9  CSC1 G1 charset
+	{ '*',		0,			&CTextRam::fc_CSC2		},	// 2/10 CSC2 G2 charset
+	{ '+',		0,			&CTextRam::fc_CSC3		},	// 2/11 CSC3 G3 charset
+	{ ',',		0,			&CTextRam::fc_CSC0A		},	// 2/12 CSC0A G0 charset
+	{ '-',		0,			&CTextRam::fc_CSC1A		},	// 2/13 CSC1A G1 charset
+	{ '.',		0,			&CTextRam::fc_CSC2A		},	// 2/14 CSC2A G2 charset
+	{ '/',		0,			&CTextRam::fc_CSC3A		},	// 2/15 CSC3A G3 charset
+
 	{ '1',		0,			&CTextRam::fc_DECHTS	},	// DECHTS Horizontal tab set
 	{ '2',		0,			&CTextRam::fc_DECAHT	},	// DECCAHT Clear all horizontal tabs
 	{ '3',		0,			&CTextRam::fc_DECVTS	},	// DECVTS Vertical tab set
@@ -207,14 +230,16 @@ static const CTextRam::PROCTAB fc_CsiTab[] = {
 	{ 0x3A,		0,			&CTextRam::fc_CSI_PUSH	},	// :
 	{ 0x3B,		0,			&CTextRam::fc_CSI_SEPA	},	// ;
 	{ 0x3C,		0x3F,		&CTextRam::fc_CSI_EXT	},	// <=>?
-	{ 0x40,		0x7F,		&CTextRam::fc_POP		},
-	{ 0x80,		0x9F,		&CTextRam::fc_SESC		},
+	{ 0x40,		0x7E,		&CTextRam::fc_POP		},
+	{ 0x7F,		0,			&CTextRam::fc_IGNORE	},
+	{ 0x80,		0x9F,		&CTextRam::fc_CESC		},
 	{ 0xA0,		0xAF,		&CTextRam::fc_CSI_EXT	},
 	{ 0xB0,		0xB9,		&CTextRam::fc_CSI_DIGIT	},
 	{ 0xBA,		0,			&CTextRam::fc_CSI_PUSH	},
 	{ 0xBB,		0,			&CTextRam::fc_CSI_SEPA	},
 	{ 0xBC,		0xBF,		&CTextRam::fc_CSI_EXT	},
-	{ 0xC0,		0xFF,		&CTextRam::fc_POP		},
+	{ 0xC0,		0xFE,		&CTextRam::fc_POP		},
+	{ 0xFF,		0,			&CTextRam::fc_IGNORE	},
 	{ 0,		0,			NULL } };
 static const CTextRam::PROCTAB fc_AnsiTab[] = {
 	{ '@',		0,			&CTextRam::fc_ICH		},	// ICH Insert Character
@@ -369,7 +394,8 @@ static const CTextRam::PROCTAB fc_Ext3Tab[] = {			// (' ' << 8) | sc
 	{ 0,		0,			NULL } };
 
 static const CTextRam::PROCTAB fc_Ext4Tab[] = {
-	{ 0x40,		0x7F,		&CTextRam::fc_CSI_ETC	},
+	{ 0x40,		0x7E,		&CTextRam::fc_CSI_ETC	},
+	{ 0x7F,		0,			&CTextRam::fc_IGNORE	},
 	{ 0,		0,			NULL } };
 static const CTextRam::CSIEXTTAB fc_CsiExtTab[] = {
 	{ 				('!'  << 8) | 'p',		&CTextRam::fc_DECSTR	},	// DECSTR Soft terminal reset
@@ -509,11 +535,7 @@ static const CTextRam::PROCTAB fc_TekTab[] = {
 	{ 0x1F,		0,			&CTextRam::fc_TEK_MODE	},	// ALP
 	{ 0,		0,			NULL } };
 
-static const CTextRam::PROCTAB fc_StatTab[] = {
-	{ 0x00,		0xFF,		&CTextRam::fc_STAT		},
-	{ 0,		0,			NULL } };
-
-static int	fc_EscNameTabMax = 61;
+static int	fc_EscNameTabMax = 62;
 static CTextRam::ESCNAMEPROC fc_EscNameTab[] = {
 	{	_T("ACS"),		&CTextRam::fc_ACS,		NULL,	NULL	},
 	{	_T("APC"),		&CTextRam::fc_APC,		NULL,	NULL	},
@@ -543,6 +565,7 @@ static CTextRam::ESCNAMEPROC fc_EscNameTab[] = {
 	{	_T("DOCS"),		&CTextRam::fc_DOCS,		NULL,	NULL	},
 	{	_T("EPA"),		&CTextRam::fc_EPA,		NULL,	NULL	},
 	{	_T("ESA"),		&CTextRam::fc_ESA,		NULL,	NULL	},
+	{	_T("ESCI"),		&CTextRam::fc_ESCI,		NULL,	NULL	},
 	{	_T("HTJ"),		&CTextRam::fc_HTJ,		NULL,	NULL	},
 	{	_T("HTS"),		&CTextRam::fc_HTS,		NULL,	NULL	},
 	{	_T("IND"),		&CTextRam::fc_IND,		NULL,	NULL	},
@@ -919,6 +942,12 @@ void CTextRam::fc_Init(int mode)
 		fc_Init_Proc(STAGE_ESC, fc_EscTab);
 		fc_Init_Proc(STAGE_ESC, fc_Esc2Tab, 0x80);
 
+		fc_Init_Proc(STAGE_GOTOXY, fc_CtrlTab);
+		fc_Init_Proc(STAGE_GOTOXY, fc_GotoTab);
+
+		fc_Init_Proc(STAGE_STAT, fc_CtrlTab);
+		fc_Init_Proc(STAGE_STAT, fc_StatTab);
+
 		fc_Init_Proc(STAGE_CSI, fc_CtrlTab);
 		fc_Init_Proc(STAGE_CSI, fc_CsiTab);
 		fc_Init_Proc(STAGE_CSI, fc_AnsiTab, 0x80);
@@ -943,7 +972,6 @@ void CTextRam::fc_Init(int mode)
 		fc_Init_Proc(STAGE_OSC2, fc_Osc2Tab);
 
 		fc_Init_Proc(STAGE_TEK, fc_TekTab);			// TEK
-		fc_Init_Proc(STAGE_STAT, fc_StatTab);
 
 		fc_pEscProc = fc_InitProcName(fc_EscNameTab, &fc_EscNameTabMax);
 		fc_pCsiProc = fc_InitProcName(fc_CsiNameTab, &fc_CsiNameTabMax);
@@ -1401,6 +1429,15 @@ void CTextRam::fc_SESC(int ch)
 	fc_Push(STAGE_ESC);
 	fc_Call(ch);
 }
+void CTextRam::fc_CESC(int ch)
+{
+	fc_KANJI(ch);
+	CallReciveChar(ch);
+	ch &= 0x1F;
+	ch += '@';
+	fc_Case(STAGE_ESC);
+	fc_Call(ch);
+}
 
 //////////////////////////////////////////////////////////////////////
 // fc KANJI
@@ -1828,6 +1865,22 @@ void CTextRam::fc_UTF85(int ch)
 			goto BREAK;
 		}
 
+		// U+100000-10FFFD 16–ÊŠOŽš
+		// U+10ddcc
+		//     dd		dscs x256
+		//       cc		code x256
+		// U+100000 = U+DBC0 U+DC00
+		// U+10FFFF = U+DBFF U+DFFF
+		if ( m_BackChar >= 0xDBC0DC00L && m_BackChar <= 0xDBFFDFFFL ) {
+			n = UCS2toUCS4(m_BackChar);
+			CString tmp;
+			tmp.Format(_T(" %c"), (n >> 8) & 0xFF);
+			INSMDCK(1);
+			PUT1BYTE(n & 0xFF, m_FontTab.IndexFind(SET_94, tmp));
+			m_LastFlag = cf;
+			goto BREAK;
+		}
+
 		if ( (cf & UNI_WID) != 0 )
 			n = 2;
 		else if ( (cf & UNI_AMB) != 0 )
@@ -1904,15 +1957,25 @@ void CTextRam::fc_BS(int ch)
 {
 	fc_KANJI(ch);
 	CallReciveChar(ch);
-	if ( --m_CurX < 0 ) {
+
+	//if ( m_DoWarp ) {
+		m_DoWarp = FALSE;
+	//	return;
+	//}
+
+	int left = GetLeftMargin();
+
+	if ( m_CurX < left )
+		left = 0;
+
+	if ( --m_CurX < left ) {
 		if ( IsOptEnable(TO_XTMRVW) != 0 ) {
-			m_CurX = m_Cols - 1;
+			m_CurX = GetRightMargin() - 1;
 			if ( --m_CurY < 0 )
 				m_CurY = 0;
 		} else
-			m_CurX = 0;
+			m_CurX = left;
 	}
-	m_DoWarp = FALSE;
 }
 void CTextRam::fc_HT(int ch)
 {
@@ -1922,13 +1985,17 @@ void CTextRam::fc_HT(int ch)
 }
 void CTextRam::fc_LF(int ch)
 {
+	int nx = GetLeftMargin();
+
 	fc_KANJI(ch);
 	CallReciveChar(ch);
 
 	switch(IsOptEnable(TO_ANSILNM) ? 2 : m_RecvCrLf) {
 	case 2:		// LF
 	case 3:		// CR|LF
-		LOCATE(0, m_CurY);
+		if ( m_CurX <= nx )
+			nx = 0;
+		LOCATE(nx, m_CurY);
 		if ( IsOptEnable(TO_RLDELAY) && m_pDocument->m_DelayFlag == DELAY_WAIT )
 			m_pDocument->OnDelayRecive(ch);
 	case 0:		// CR+LF
@@ -1947,13 +2014,18 @@ void CTextRam::fc_VT(int ch)
 void CTextRam::fc_FF(int ch)
 {
 	CallReciveChar(ch);
+	ONEINDEX();
+	/*
 	for ( int n = 0 ; n < m_Lines ; n++ )
 		FORSCROLL(0, m_Lines);
+	*/
 	if ( IsOptEnable(TO_ANSILNM) )
 		LOCATE(0, m_CurY);
 }
 void CTextRam::fc_CR(int ch)
 {
+	int nx = GetLeftMargin();
+
 	fc_KANJI(ch);
 	CallReciveChar(ch);
 
@@ -1962,7 +2034,9 @@ void CTextRam::fc_CR(int ch)
 	case 3:		// CR|LF
 		ONEINDEX();
 	case 0:		// CR+LF
-		LOCATE(0, m_CurY);
+		if ( m_CurX <= nx )
+			nx = 0;
+		LOCATE(nx, m_CurY);
 		if ( IsOptEnable(TO_RLDELAY) && m_pDocument->m_DelayFlag == DELAY_WAIT )
 			m_pDocument->OnDelayRecive(ch);
 	case 2:		// LF
@@ -2052,7 +2126,7 @@ void CTextRam::fc_DECAVT(int ch)
 void CTextRam::fc_BI(int ch)
 {
 	// ESC 6	DECBI Back Index
-	if ( m_CurX == 0 )
+	if ( m_CurX == GetLeftMargin() )
 		RIGHTSCROLL();
 	else
 		LOCATE(m_CurX - 1, m_CurY);
@@ -2093,7 +2167,7 @@ void CTextRam::fc_RC(int ch)
 void CTextRam::fc_FI(int ch)
 {
 	// ESC 9	DECFI Forward Index
-	if ( (m_CurX + 1) >= m_Cols )
+	if ( (m_CurX + 1) == GetRightMargin() )
 		LEFTSCROLL();
 	else
 		LOCATE(m_CurX + 1, m_CurY);
@@ -2131,8 +2205,10 @@ void CTextRam::fc_IND(int ch)
 void CTextRam::fc_NEL(int ch)
 {
 	// ESC E													ANSI NEL Next Line
+	int nx = GetLeftMargin();
+	if ( m_CurX <= nx ) nx = 0;
 	ONEINDEX();
-	LOCATE(0, m_CurY);
+	LOCATE(nx, m_CurY);
 	fc_POP(ch);
 }
 void CTextRam::fc_SSA(int ch)
@@ -2236,6 +2312,12 @@ void CTextRam::fc_EPA(int ch)
 	if ( IsOptEnable(TO_DECANM) )
 		m_AttNow.em &= ~EM_ISOPROTECT;
 	fc_POP(ch);
+}
+void CTextRam::fc_V5MCP(int ch)
+{
+	// ESC Y	VT52 Move cursor to column Pn.
+	m_Status = ST_COLM_SET;
+	fc_Case(STAGE_GOTOXY);
 }
 void CTextRam::fc_SCI(int ch)
 {
@@ -2408,27 +2490,31 @@ void CTextRam::fc_CSC3A(int ch)
 	m_StrPara.Empty();
 	fc_Case(STAGE_STAT);
 }
-void CTextRam::fc_V5MCP(int ch)
-{
-	// ESC A	VT52 Move cursor to column Pn.
-	m_Status = ST_COLM_SET;
-	fc_Case(STAGE_STAT);
-}
 void CTextRam::fc_DECSOP(int ch)
 {
 	// ESC #	DEC Screen Opt
+	m_BackChar = 0;
 	m_Status = ST_DEC_OPT;
 	fc_Case(STAGE_STAT);
 }
 void CTextRam::fc_ACS(int ch)
 {
 	// ESC 20	ACS
+	m_BackChar = 0;
 	m_Status = ST_CONF_LEVEL;
+	fc_Case(STAGE_STAT);
+}
+void CTextRam::fc_ESCI(int ch)
+{
+	// ESC 2/x
+	m_BackChar = 0;
+	m_Status = ST_NULL;
 	fc_Case(STAGE_STAT);
 }
 void CTextRam::fc_DOCS(int ch)
 {
 	// ESC %	DOCS Designate other coding system
+	m_BackChar = 0;
 	m_Status = ST_DOCS_OPT;
 	fc_Case(STAGE_STAT);
 }
@@ -2436,48 +2522,64 @@ void CTextRam::fc_DOCS(int ch)
 //////////////////////////////////////////////////////////////////////
 // fc ESC ...
 
+void CTextRam::fc_GOTOXY(int ch)
+{
+	switch(m_Status) {
+	case ST_COLM_SET:
+		m_Status = ST_COLM_SET_2;
+		m_BackChar = ch;
+		break;
+	case ST_COLM_SET_2:
+		LOCATE(ch - ' ', m_BackChar - ' ');
+		fc_POP(ch);
+		break;
+	}
+}
 void CTextRam::fc_STAT(int ch)
 {
-	int n, i;
-	CVram *vp;
-
 	switch(m_Status) {
+	case ST_NULL:
+		ch &= 0x7F;
+		m_BackChar = (m_BackChar << 8) | ch;
+		if ( ch >= 0x20 && ch <= 0x2F )
+			return;
+		break;
 
 	case ST_CONF_LEVEL:			// ESC 20...	ACS
-		m_Status = ST_NON;
-		switch(ch) {
-		case 'F':	// S7C1T Send 7-bit C1 Control character to host
+		ch &= 0x7F;
+		m_BackChar = (m_BackChar << 8) | ch;
+		if ( ch >= 0x20 && ch <= 0x2F )
+			return;
+
+		switch(m_BackChar) {
+		case 'F':				// S7C1T Send 7-bit C1 Control character to host
 			SetRetChar(FALSE);
 			break;
-		case 'G':	// S8C1T Send 8-bit C1 Control character to host
+		case 'G':				// S8C1T Send 8-bit C1 Control character to host
 			SetRetChar(TRUE);
 			break;
-		case 'L':	// Level 1		G0=ASCII G1=Latan GL=G0 GR=G1
-		case 'M':	// Level 2		G0=ASCII G1=Latan GL=G0 GR=G1
+
+		case 'L':				// Level 1		G0=ASCII G1=Latan GL=G0 GR=G1
+		case 'M':				// Level 2		G0=ASCII G1=Latan GL=G0 GR=G1
 			m_BankTab[m_KanjiMode][0] = SET_94 | 'B';
 			m_BankTab[m_KanjiMode][1] = SET_96 | 'A';
 			m_BankGL = 0;
 			m_BankGR = 1;
 			break;
-		case 'N':	// Level 3		G0=ASCII GL=G0
+		case 'N':				// Level 3		G0=ASCII GL=G0
 			m_BankTab[m_KanjiMode][0] = SET_94 | 'B';
 			m_BankGL = 0;
 			break;
 		}
 		break;
 
-	case ST_COLM_SET:			// ESC Y...		V5MCP
-		m_Status = ST_COLM_SET_2;
-		m_BackChar = ch;
-		break;
-	case ST_COLM_SET_2:
-		m_Status = ST_NON;
-		LOCATE(ch - ' ', m_BackChar - ' ');
-		break;
-
 	case ST_DEC_OPT:			// ESC #...
-		m_Status = ST_NON;
-		switch(ch) {
+		ch &= 0x7F;
+		m_BackChar = (m_BackChar << 8) | ch;
+		if ( ch >= 0x20 && ch <= 0x2F )
+			return;
+
+		switch(m_BackChar) {
 		case '3':		// DECDHL Double-width, double-height line (top half)
 			SetDm(m_CurY, DM_DWDHT);
 			LOCATE(m_CurX, m_CurY);
@@ -2500,16 +2602,21 @@ void CTextRam::fc_STAT(int ch)
 		case '7':		// DECHCP Hardcopy
 			break;
 		case '8':		// DECALN Screen Alignment Pattern
-			for ( n = 0 ; n < m_Lines ; n++ ) {
-				vp = GETVRAM(0, n);
-				for ( i = 0 ; i < m_Cols ; i++ ) {
-					*vp = m_AttNow;
-					vp->pr.md = m_BankTab[m_KanjiMode][0];
-					*vp = (DWORD)'E';
-					vp++;
+			{
+				int n, i;
+				CVram *vp;
+
+				for ( n = 0 ; n < m_Lines ; n++ ) {
+					vp = GETVRAM(0, n);
+					for ( i = 0 ; i < m_Cols ; i++ ) {
+						*vp = m_AttNow;
+						vp->pr.md = m_BankTab[m_KanjiMode][0];
+						*vp = (DWORD)'E';
+						vp++;
+					}
 				}
+				DISPVRAM(0, 0, m_Cols, m_Lines);
 			}
-			DISPVRAM(0, 0, m_Cols, m_Lines);
 			break;
 		case '9':		// DECFPP Perform pending motion
 			break;
@@ -2518,89 +2625,84 @@ void CTextRam::fc_STAT(int ch)
 
 
 	case ST_DOCS_OPT:			// ESC %...		DOCS
-		m_Status = ST_NON;
-		switch(ch) {
-		case '%':
-			m_Status = ST_DOCS_OPT;
-			break;
-		case '!':	// tek410x mode switch
-			m_Status = ST_TEK_OPT;
-			m_Tek_Int = 0;
-			break;
-		case '/':
-			m_Status = ST_DOCS_OPT_2;
-			break;
+		ch &= 0x7F;
+		m_BackChar = (m_BackChar << 8) | ch;
+
+		switch(m_BackChar) {
 		case '8':	// LINUX switch to UTF-8
-		case '@':	// ECMA-35 return to ECMA-35 coding system
+		case '@': 	// ECMA-35 return to ECMA-35 coding system
 		case 'A':	// switch to CSA T 500-1983
 		case 'B':	// switch to UCS Transformation Format One (UTF-1)
 		case 'C':	// switch to Data Syntax I of CCITT Rec.T.101 
 		case 'D':	// switch to Data Syntax II of CCITT Rec.T.101
 		case 'E':	// switch to Photo-Videotex Data Syntax of CCITT Rec. T.101
-		case 'F':	// switch to Audio Data Syntax of CCITT Rec. T.101
-		case 'G':	// switch to UTF-8
+		case 'F': 	// switch to Audio Data Syntax of CCITT Rec. T.101
+		case 'G': 	// switch to UTF-8
 		case 'H':	// switch to VEMMI Data Syntax of ITU-T Rec. T.107
 			break;
-		}
-		break;
-	case ST_DOCS_OPT_2:
-		m_Status = ST_NON;
-		switch(ch) {
-		case '@':	// switch to ISO/IEC 10646:1993, UCS-2, Level 1
-		case 'A':	// switch to ISO/IEC 10646:1993, UCS-4, Level 1
-		case 'B':	// Switch to Virtual Terminal service Transparent Set
-		case 'C':	// switch to ISO/IEC 10646:1993, UCS-2, Level 2
-		case 'D':	// switch to ISO/IEC 10646:1993, UCS-4, Level 2
-		case 'E':	// switch to ISO/IEC 10646:1993, UCS-2, Level 3
-		case 'F':	// switch to ISO/IEC 10646:1993, UCS-4, Level 3
-		case 'G':	// switch to UTF-8 Level 1
-		case 'H':	// switch to UTF-8 Level 2
-		case 'I':	// switch to UTF-8 Level 3
-		case 'J':	// switch to UTF-16 Level 1
-		case 'K':	// switch to UTF-16 Level 2
-		case 'L':	// switch to UTF-16 Level 3
+
+		case ('/' << 8) | '@':	// switch to ISO/IEC 10646:1993, UCS-2, Level 1
+		case ('/' << 8) | 'A':	// switch to ISO/IEC 10646:1993, UCS-4, Level 1
+		case ('/' << 8) | 'B':	// Switch to Virtual Terminal service Transparent Set
+		case ('/' << 8) | 'C':	// switch to ISO/IEC 10646:1993, UCS-2, Level 2
+		case ('/' << 8) | 'D':	// switch to ISO/IEC 10646:1993, UCS-4, Level 2
+		case ('/' << 8) | 'E':	// switch to ISO/IEC 10646:1993, UCS-2, Level 3
+		case ('/' << 8) | 'F':	// switch to ISO/IEC 10646:1993, UCS-4, Level 3
+		case ('/' << 8) | 'G':	// switch to UTF-8 Level 1
+		case ('/' << 8) | 'H':	// switch to UTF-8 Level 2
+		case ('/' << 8) | 'I':	// switch to UTF-8 Level 3
+		case ('/' << 8) | 'J':	// switch to UTF-16 Level 1
+		case ('/' << 8) | 'K':	// switch to UTF-16 Level 2
+		case ('/' << 8) | 'L':	// switch to UTF-16 Level 3
+			break;
+
+		case '!':
+			m_Status = ST_TEK_OPT;
+			m_Tek_Int = 0;
+			return;
+
+		default:
+			if ( ch >= 0x20 && ch <= 0x2F )
+				return;
 			break;
 		}
-		break;
 
 	case ST_TEK_OPT:			// ESC %!...
-		if ( ch >= 0x40 && ch <= 0x7F )
+		if ( ch >= 0x40 && ch <= 0x7F ) {
 			m_Tek_Int = (m_Tek_Int << 6) | (ch & 0x3F);
-		else if ( ch >= 0x20 && ch <= 0x3F ) {
+			return;
+		} else if ( ch >= 0x20 && ch <= 0x3F ) {
 			m_Tek_Int = (m_Tek_Int << 4) | (ch & 0x0F);
 			if ( (ch & 0x10) == 0 )
 				m_Tek_Int = 0 - m_Tek_Int;
-			m_Status = ST_NON;
 			if ( m_Tek_Int == 0 ) {		//  set tek mode
 				TekInit(4105);
 				fc_Case(STAGE_TEK);
 				return;
 			}
-		} else
-			m_Status = ST_NON;
+		}
 		break;
 
 	case ST_CHARSET_2:
-		     if ( ch == '(' ) { m_BackChar = 0; m_BackMode = SET_94x94; m_Status = ST_CHARSET_1; break; }
-		else if ( ch == ')' ) { m_BackChar = 1; m_BackMode = SET_94x94; m_Status = ST_CHARSET_1; break; }
-		else if ( ch == '+' ) { m_BackChar = 2; m_BackMode = SET_94x94; m_Status = ST_CHARSET_1; break; }
-		else if ( ch == '*' ) { m_BackChar = 3; m_BackMode = SET_94x94; m_Status = ST_CHARSET_1; break; }
-		else if ( ch == ',' ) { m_BackChar = 0; m_BackMode = SET_96x96; m_Status = ST_CHARSET_1; break; }
-		else if ( ch == '-' ) { m_BackChar = 1; m_BackMode = SET_96x96; m_Status = ST_CHARSET_1; break; }
-		else if ( ch == '.' ) { m_BackChar = 2; m_BackMode = SET_96x96; m_Status = ST_CHARSET_1; break; }
-		else if ( ch == '/' ) { m_BackChar = 3; m_BackMode = SET_96x96; m_Status = ST_CHARSET_1; break; }
+		     if ( ch == '(' ) { m_BackChar = 0; m_BackMode = SET_94x94; m_Status = ST_CHARSET_1; return; }
+		else if ( ch == ')' ) { m_BackChar = 1; m_BackMode = SET_94x94; m_Status = ST_CHARSET_1; return; }
+		else if ( ch == '+' ) { m_BackChar = 2; m_BackMode = SET_94x94; m_Status = ST_CHARSET_1; return; }
+		else if ( ch == '*' ) { m_BackChar = 3; m_BackMode = SET_94x94; m_Status = ST_CHARSET_1; return; }
+		else if ( ch == ',' ) { m_BackChar = 0; m_BackMode = SET_96x96; m_Status = ST_CHARSET_1; return; }
+		else if ( ch == '-' ) { m_BackChar = 1; m_BackMode = SET_96x96; m_Status = ST_CHARSET_1; return; }
+		else if ( ch == '.' ) { m_BackChar = 2; m_BackMode = SET_96x96; m_Status = ST_CHARSET_1; return; }
+		else if ( ch == '/' ) { m_BackChar = 3; m_BackMode = SET_96x96; m_Status = ST_CHARSET_1; return; }
 		// no break;
 	case ST_CHARSET_1:
 		m_StrPara += (CHAR)ch;
-		if ( ch >= '\x30' && ch <= '\x7E' ) {
-			m_Status = ST_NON;
+		if ( ch >= '\x30' && ch <= '\x7E' )
 			m_BankTab[m_KanjiMode][m_BackChar] = m_FontTab.IndexFind(m_BackMode, m_StrPara);
-		}
+		else
+			return;
 		break;
 	}
 
-	if ( m_Status == ST_NON )
-		fc_POP(ch);
+	fc_POP(ch);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -3813,67 +3915,82 @@ void CTextRam::fc_ICH(int ch)
 void CTextRam::fc_CUU(int ch)
 {
 	// CSI A	CUU Cursor Up
-	int n = GetAnsiPara(0, 1, 1);
-	if ( m_CurY >= m_TopY ) {
-		if ( (m_CurY -= n) < m_TopY )
-			m_CurY = m_TopY;
-	} else {
-		if ( (m_CurY -= n) < 0 )
-			m_CurY = 0;
-	}
+	int m = (m_CurY >= m_TopY ? m_TopY : 0);
+	if ( (m_CurY -= GetAnsiPara(0, 1, 0)) < m )
+		m_CurY = m;
 	LOCATE(m_CurX, m_CurY);
 	fc_POP(ch);
 }
 void CTextRam::fc_CUD(int ch)
 {
 	// CSI B	CUD Cursor Down
-	int n = GetAnsiPara(0, 1, 1);
-	if ( m_CurY < m_BtmY ) {
-		if ( (m_CurY += n) >= m_BtmY )
-			m_CurY = m_BtmY - 1;
-	} else {
-		if ( (m_CurY += n) >= m_Lines )
-			m_CurY = m_Lines - 1;
-	}
+	int m = (m_CurY < m_BtmY ? m_BtmY : m_Lines);
+	if ( (m_CurY += GetAnsiPara(0, 1, 0)) >= m )
+		m_CurY = m - 1;
 	LOCATE(m_CurX, m_CurY);
 	fc_POP(ch);
 }
 void CTextRam::fc_CUF(int ch)
 {
 	// CSI C	CUF Cursor Forward
-	LOCATE(m_CurX + GetAnsiPara(0, 1, 1), m_CurY);
+
+	int m = (IsOptEnable(TO_DECLRMM) && m_CurX < m_RightX ? m_RightX : m_Cols);
+	if ( (m_CurX += GetAnsiPara(0, 1, 1)) >= m )
+		m_CurX = m - 1;
+	LOCATE(m_CurX, m_CurY);
 	fc_POP(ch);
 }
 void CTextRam::fc_CUB(int ch)
 {
 	// CSI D	CUB Cursor Backward
-	LOCATE(m_CurX - GetAnsiPara(0, 1, 1), m_CurY);
+	int m = (IsOptEnable(TO_DECLRMM) && m_CurX >= m_LeftX ? m_LeftX : 0);
+	if ( (m_CurX -= GetAnsiPara(0, 1, 1)) < m )
+		m_CurX = m;
+	LOCATE(m_CurX, m_CurY);
 	fc_POP(ch);
 }
 void CTextRam::fc_CNL(int ch)
 {
 	// CSI E	CNL Move the cursor to the next line.
-	LOCATE(0, m_CurY + GetAnsiPara(0, 1, 1));
+	int m = (m_CurY < m_BtmY ? m_BtmY : m_Lines);
+	if ( (m_CurY += GetAnsiPara(0, 1, 1)) >= m )
+		m_CurY = m - 1;
+	m = GetLeftMargin();
+	LOCATE((m_CurX >= m ? m : 0), m_CurY);
 	fc_POP(ch);
 }
 void CTextRam::fc_CPL(int ch)
 {
 	// CSI F	CPL Move the cursor to the preceding line.
-	LOCATE(0, m_CurY - GetAnsiPara(0, 1, 1));
+	int m = (m_CurY >= m_TopY ? m_TopY : 0);
+	if ( (m_CurY -= GetAnsiPara(0, 1, 1)) < m )
+		m_CurY = m;
+	m = GetLeftMargin();
+	LOCATE((m_CurX >= m ? m : 0), m_CurY);
 	fc_POP(ch);
 }
 void CTextRam::fc_CHA(int ch)
 {
 	// CSI G	CHA Move the active position to the n-th character of the active line.
-	LOCATE(GetAnsiPara(0, 1, 1) - 1, m_CurY);
+	if ( IsOptEnable(TO_DECOM) ) {
+		int m = (IsOptEnable(TO_DECLRMM) && m_CurX < m_RightX ? m_RightX : m_Cols);
+		if ( (m_CurX = GetAnsiPara(0, 1, 1) - 1 + GetLeftMargin()) >= m )
+			m_CurX = m - 1;
+		LOCATE(m_CurX, m_CurY);
+	} else
+		LOCATE(GetAnsiPara(0, 1, 1) - 1, m_CurY);
 	fc_POP(ch);
 }
 void CTextRam::fc_CUP(int ch)
 {
 	// CSI H	CUP Cursor Position
-	if ( IsOptEnable(TO_DECOM) )
-		LOCATE(GetAnsiPara(1, 1, 1) - 1, GetAnsiPara(0, 1, 1) - 1 + m_TopY);
-	else
+	if ( IsOptEnable(TO_DECOM) ) {
+		if ( (m_CurX = GetAnsiPara(1, 1, 1) - 1 + GetLeftMargin()) >= GetRightMargin() )
+			m_CurX = GetRightMargin() - 1;
+		if ( (m_CurY = GetAnsiPara(0, 1, 1) - 1 + m_TopY) >= m_BtmY )
+			m_CurY = m_BtmY - 1;
+		LOCATE(m_CurX, m_CurY);
+	} else
 		LOCATE(GetAnsiPara(1, 1, 1) - 1, GetAnsiPara(0, 1, 1) - 1);
 	fc_POP(ch);
 }
@@ -4080,21 +4197,19 @@ void CTextRam::fc_ECH(int ch)
 void CTextRam::fc_CVT(int ch)
 {
 	// CSI Y	CVT Cursor line tabulation
-	int i = GetAnsiPara(0, 1, 0);
-	if ( i > m_Cols )
-		i = m_Cols;
-	for ( ; i > 0 ; i-- )
+
+	for ( int n = GetAnsiPara(0, 1, 0, m_Cols) ; n > 0 ; n-- )
 		TABSET(TAB_LINENEXT);
+
 	fc_POP(ch);
 }
 void CTextRam::fc_CBT(int ch)
 {
 	// CSI Z	CBT Move the active position n tabs backward.
-	int i = GetAnsiPara(0, 1, 0);
-	if ( i > m_Cols )
-		i = m_Cols;
-	for ( ; i > 0 ; i-- )
+
+	for ( int n = GetAnsiPara(0, 1, 0, m_Cols) ; n > 0 ; n-- )
 		TABSET(TAB_COLSBACK);
+
 	fc_POP(ch);
 }
 void CTextRam::fc_SRS(int ch)
@@ -4126,13 +4241,27 @@ void CTextRam::fc_SIMD(int ch)
 void CTextRam::fc_HPA(int ch)
 {
 	// CSI `	HPA Horizontal Position Absolute
-	LOCATE(GetAnsiPara(0, 1, 1) - 1, m_CurY);
+	if ( IsOptEnable(TO_DECOM) ) {
+		if ( (m_CurX = GetAnsiPara(0, 1, 1) - 1 + GetLeftMargin()) < GetLeftMargin() )
+			m_CurX = GetLeftMargin();
+		else if ( m_CurX >= GetRightMargin() )
+			m_CurX = GetRightMargin() - 1;
+		LOCATE(m_CurX, m_CurY);
+	} else
+		LOCATE(GetAnsiPara(0, 1, 1) - 1, m_CurY);
 	fc_POP(ch);
 }
 void CTextRam::fc_HPR(int ch)
 {
 	// CSI a	HPR Horizontal Position Relative
-	LOCATE(m_CurX + GetAnsiPara(0, 1, 1), m_CurY);
+	if ( IsOptEnable(TO_DECOM) ) {
+		if ( (m_CurX += GetAnsiPara(0, 1, 0)) < GetLeftMargin() )
+			m_CurX = GetLeftMargin();
+		else if ( m_CurX >= GetRightMargin() )
+			m_CurX = GetRightMargin() - 1;
+		LOCATE(m_CurX, m_CurY);
+	} else
+		LOCATE(m_CurX + GetAnsiPara(0, 1, 0), m_CurY);
 	fc_POP(ch);
 }
 void CTextRam::fc_REP(int ch)
@@ -4200,19 +4329,42 @@ void CTextRam::fc_DA1(int ch)
 void CTextRam::fc_VPA(int ch)
 {
 	// CSI d	VPA Vertical Line Position Absolute
-	LOCATE(m_CurX, GetAnsiPara(0, 1, 1) - 1);
+	if ( IsOptEnable(TO_DECOM) ) {
+		if ( (m_CurY = GetAnsiPara(0, 1, 1) - 1 + m_TopY) < m_TopY )
+			m_CurY = m_TopY;
+		else if ( m_CurY >= m_BtmY )
+			m_CurY = m_BtmY - 1;
+		LOCATE(m_CurX, m_CurY);
+	} else
+		LOCATE(m_CurX, GetAnsiPara(0, 1, 1) - 1);
 	fc_POP(ch);
 }
 void CTextRam::fc_VPR(int ch)
 {
 	// CSI e	VPR Vertical Position Relative
-	LOCATE(m_CurX, m_CurY + GetAnsiPara(0, 1, 0));
+	if ( IsOptEnable(TO_DECOM) ) {
+		if ( (m_CurY += GetAnsiPara(0, 1, 0)) < m_TopY )
+			m_CurY = m_TopY;
+		else if ( m_CurY >= m_BtmY )
+			m_CurY = m_BtmY - 1;
+		LOCATE(m_CurX, m_CurY);
+	} else
+		LOCATE(m_CurX, m_CurY + GetAnsiPara(0, 1, 0));
 	fc_POP(ch);
 }
 void CTextRam::fc_HVP(int ch)
 {
 	// CSI f	HVP Horizontal and Vertical Position
-	LOCATE(GetAnsiPara(1, 1, 1) - 1, GetAnsiPara(0, 1, 1) - 1);
+
+	if ( IsOptEnable(TO_DECOM) ) {
+		if ( (m_CurX = GetAnsiPara(1, 1, 1) - 1 + GetLeftMargin()) >= GetRightMargin() )
+			m_CurX = GetRightMargin() - 1;
+		if ( (m_CurY = GetAnsiPara(0, 1, 1) - 1 + m_TopY) >= m_BtmY )
+			m_CurY = m_BtmY - 1;
+		LOCATE(m_CurX, m_CurY);
+	} else
+		LOCATE(GetAnsiPara(1, 1, 1) - 1, GetAnsiPara(0, 1, 1) - 1);
+
 	fc_POP(ch);
 }
 void CTextRam::fc_TBC(int ch)
@@ -4586,7 +4738,7 @@ void CTextRam::fc_DECSLRM(int ch)
 	else if ( m_LeftX >= m_Cols )
 		m_LeftX = m_Cols - 1;
 
-	if ( (m_RightX = GetAnsiPara(1, 1, 1) - 1 + 1) < m_LeftX )
+	if ( (m_RightX = GetAnsiPara(1, m_Cols, 1) - 1 + 1) < m_LeftX )
 		m_RightX = m_LeftX + 1;
 	else if ( m_RightX > m_Cols )
 		m_RightX = m_Cols;
@@ -4632,11 +4784,15 @@ void CTextRam::fc_DECSVTS(int ch)
 void CTextRam::fc_SCOSC(int ch)
 {
 	// CSI s	SCOSC Save Cursol Pos
-	m_Save_CurX   = m_CurX;
-	m_Save_CurY   = m_CurY;
-	m_Save_DoWarp = m_DoWarp;
 
-	fc_POP(ch);
+	if ( IsOptEnable(TO_DECLRMM) )
+		fc_DECSLRM(ch);
+	else {
+		m_Save_CurX   = m_CurX;
+		m_Save_CurY   = m_CurY;
+		m_Save_DoWarp = m_DoWarp;
+		fc_POP(ch);
+	}
 }
 void CTextRam::fc_XTWOP(int ch)
 {
@@ -4735,6 +4891,14 @@ void CTextRam::fc_XTWOP(int ch)
 				m_TitleStack.RemoveAt(i);
 			}
 			break;
+		}
+		break;
+
+	default:
+		// CSI Pn t	DECSLPP Set Lines Per Page
+		if ( n >= 24 ) {
+			fc_DECSLPP(ch);
+			return;
 		}
 		break;
 	}
@@ -4942,8 +5106,10 @@ void CTextRam::fc_DECSRET(int ch)
 		case TO_XTMCSC:		// 40 XTERM Column switch control
 			if ( IsOptEnable(TO_XTMCSC) ) {
 				InitScreen(m_DefCols[IsOptValue(TO_DECCOLM, 1)], m_Lines);
-				LOCATE(0, 0);
-				ERABOX(0, 0, m_Cols, m_Lines);
+				if ( !IsOptEnable(TO_DECNCSM) ) {
+					LOCATE(0, 0);
+					ERABOX(0, 0, m_Cols, m_Lines);
+				}
 			}
 			break;
 		case TO_DECSCNM:	// 5 DECSCNM Screen Mode: Light or Dark Screen
@@ -4966,6 +5132,8 @@ void CTextRam::fc_DECSRET(int ch)
 
 		case TO_XTMABUF:	// 47 XTERM alternate buffer
 		case TO_XTALTSCR:	// 1047 XTERM Use Alternate/Normal screen buffer
+			if ( IsOptEnable(TO_RLALTBDIS) )
+				break;
 			if ( ch == 'l' )
 				POPRAM();
 			else if ( ch == 'h' )
@@ -4983,6 +5151,8 @@ void CTextRam::fc_DECSRET(int ch)
 			}
 			break;
 		case TO_XTALTCLR:	// 1049 XTERM Use Alternate/Normal screen buffer, clearing it first
+			if ( IsOptEnable(TO_RLALTBDIS) )
+				break;
 			if ( ch == 'l' )
 				LOADRAM();
 			else if ( ch == 'h' ) {
@@ -4998,6 +5168,7 @@ void CTextRam::fc_DECSRET(int ch)
 
 		case TO_XTMOSREP:	// 9 X10 mouse reporting
 			m_MouseTrack = (IsOptEnable(i) ? MOS_EVENT_X10 : MOS_EVENT_NONE);
+			m_MouseOldSw = (-1);
 			m_MouseRect.SetRectEmpty();
 			m_pDocument->UpdateAllViews(NULL, UPDATE_SETCURSOR, NULL);
 			break;
@@ -5006,6 +5177,7 @@ void CTextRam::fc_DECSRET(int ch)
 		case TO_XTBEVTRK:	// 1002 X11 button-event mouse tracking
 		case TO_XTAEVTRK:	// 1003 X11 any-event mouse tracking
 			m_MouseTrack = (IsOptEnable(i) ? (i - TO_XTNOMTRK + MOS_EVENT_NORM) : MOS_EVENT_NONE);
+			m_MouseOldSw = (-1);
 			m_MouseRect.SetRectEmpty();
 			m_pDocument->UpdateAllViews(NULL, UPDATE_SETCURSOR, NULL);
 			break;
@@ -5148,7 +5320,11 @@ void CTextRam::fc_DECCARA(int ch)
 		m_AnsiPara[3] = m_Cols - 1;
 	}
 	for ( y = m_AnsiPara[0] ; y <= m_AnsiPara[2] ; y++ ) {
+		if ( y < m_TopY || y >= m_BtmY )
+			continue;
 		for ( x = m_AnsiPara[1] ; x <= m_AnsiPara[3] ; x++ ) {
+			if ( IsOptEnable(TO_DECLRMM) && (x < m_LeftX || x >= m_RightX) )
+				continue;
 			vp = GETVRAM(x, y);
 			for ( n = 4 ; n < m_AnsiPara.GetSize() ; n++ ) {
 				switch(GetAnsiPara(n, 0, 0)) {
@@ -5250,7 +5426,11 @@ void CTextRam::fc_DECRARA(int ch)
 		m_AnsiPara[3] = m_Cols - 1;
 	}
 	for ( y = m_AnsiPara[0] ; y <= m_AnsiPara[2] ; y++ ) {
+		if ( y < m_TopY || y >= m_BtmY )
+			continue;
 		for ( x = m_AnsiPara[1] ; x <= m_AnsiPara[3] ; x++ ) {
+			if ( IsOptEnable(TO_DECLRMM) && (x < m_LeftX || x >= m_RightX) )
+				continue;
 			vp = GETVRAM(x, y);
 			for ( n = 4 ; n < m_AnsiPara.GetSize() ; n++ ) {
 				switch(GetAnsiPara(n, 0, 0)) {
@@ -5780,21 +5960,31 @@ void CTextRam::fc_DECRQLP(int ch)
 }
 void CTextRam::fc_DECIC(int ch)
 {
-	// CSI ('\'' << 8) | '}'		DECIC Insert Column
-	int n;
+	// CSI ('\'' << 8) | '}'		DECIC Insert Column(s)
+	int n, i;
 
-	for ( n = GetAnsiPara(0, 1, 1, m_Cols) ; n > 0 ; n-- )
-		INSCHAR();
+	if ( m_CurX >= GetLeftMargin() && m_CurX < GetRightMargin() && m_CurY >= m_TopY && m_CurY < m_BtmY ) {
+		for ( n = GetAnsiPara(0, 1, 1, m_Cols) ; n > 0 ; n-- ) {
+			for ( i = m_CurY ; m_CurY < m_BtmY ; m_CurY++ )
+				INSCHAR();
+			m_CurY = i;
+		}
+	}
 
 	fc_POP(ch);
 }
 void CTextRam::fc_DECDC(int ch)
 {
 	// CSI ('\'' << 8) | '~'		DECDC Delete Column(s)
-	int n;
+	int n, i;
 
-	for ( n = GetAnsiPara(0, 1, 1, m_Cols) ; n > 0 ; n-- )
-		DELCHAR();
+	if ( m_CurX >= GetLeftMargin() && m_CurX < GetRightMargin() && m_CurY >= m_TopY && m_CurY < m_BtmY ) {
+		for ( n = GetAnsiPara(0, 1, 1, m_Cols) ; n > 0 ; n-- ) {
+			for ( i = m_CurY ; m_CurY < m_BtmY ; m_CurY++ )
+				DELCHAR();
+			m_CurY = i;
+		}
+	}
 
 	fc_POP(ch);
 }

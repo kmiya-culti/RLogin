@@ -107,7 +107,7 @@ CRLoginView::CRLoginView()
 	m_pGhost = NULL;
 	m_GoziView  = FALSE;
 	m_GoziStyle = (8 << 4) | 9;
-	m_GoziCount = 32;
+	m_GoziCount = 4 + rand() % 28;
 	m_GoziPos.SetPoint(0, 0);
 
 #ifdef	USE_DIRECTWRITE
@@ -231,11 +231,14 @@ void CRLoginView::OnDraw(CDC* pDC)
 		}
 	}
 #endif
+
+#ifdef	USE_GOZI
 	if ( m_GoziView ) {
 		CMainFrame *pMain = GetMainWnd();
 		if ( pMain != NULL && pMain->m_ImageGozi.m_hImageList != NULL )
 			pMain->m_ImageGozi.Draw(pDC, m_GoziStyle >> 4, m_GoziPos, ILD_NORMAL);
 	}
+#endif
 
 	if ( (m_DispCaret & FGCARET_CREATE) != 0 )
 		ShowCaret();

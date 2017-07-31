@@ -105,7 +105,9 @@
 #define TO_XTMRVW		45			// XTerm Reverse-wraparound mode
 #define	TO_XTMABUF		47			// XTerm alternate buffer
 #define	TO_DECBKM		67			// Backarrow key mode (BS)
+#define	TO_DECLRMM		69			// Left Right Margin Mode
 #define	TO_DECSDM		80			// Sixel Display Mode Control reset = Scroll mode Enable
+#define	TO_DECNCSM		95			// Set/Reset No Clearing Screen On Column Change
 #define	TO_DECECM		117			// SGR space color disable
 // ANSI Screen Option	0-99(200-299)
 #define	TO_ANSIKAM		(2+200)		// KAM Set Keyboard Action Mode
@@ -135,6 +137,7 @@
 #define	TO_RLBOLD		403			// ボールド文字を有効にする
 #define	TO_RLFONT		404			// フォントサイズから一行あたりの文字数を決定
 #define	TO_RLBPLUS		405			// BPlus/ZModemファイル転送を有効にする
+#define	TO_RLALTBDIS	406			// 拡張バッファを使用しない
 #define	TO_RLADBELL		416			// ベルコード(07)による動作を選択 x1
 #define	TO_RLVSBELL		417			// ベルコード(07)による動作を選択 1x
 #define	TO_RLUNIAWH		428			// UnicodeのAタイプの文字を半角として表示する
@@ -296,7 +299,7 @@
 						  (unsigned char)(c) <= 0xFE) )
 
 enum ETextRamStat {
-		ST_NON,
+		ST_ENDOF,		ST_NULL,
 		ST_CONF_LEVEL,
 		ST_COLM_SET,	ST_COLM_SET_2,
 		ST_DEC_OPT,
@@ -324,7 +327,7 @@ enum EStageNum {
 		STAGE_UTF8,		STAGE_UTF82,
 		STAGE_OSC1,		STAGE_OSC2,
 		STAGE_TEK,
-		STAGE_STAT,
+		STAGE_STAT,		STAGE_GOTOXY,
 		STAGE_MAX,
 };
 
@@ -563,6 +566,8 @@ public:	// Options
 	int m_MouseTrack;
 	BYTE m_MouseMode[4];
 	CRect m_MouseRect;
+	int m_MouseOldSw;
+	CPoint m_MouseOldPos;
 	DWORD m_MetaKeys[256 / 32];
 	CProcTab m_ProcTab;
 	CBuffer m_FuncKey[FKEY_MAX];
@@ -758,6 +763,8 @@ public:
 	inline void SetCalcPos(int pos, int *x, int *y) { *x = pos % m_ColsMax; *y = (pos / m_ColsMax - m_HisPos - m_HisMax); }
 	inline int GetDm(int y) { CVram *vp = GETVRAM(0, y); return vp->pr.dm; }
 	inline void SetDm(int y, int dm) { CVram *vp = GETVRAM(0, y); vp->pr.dm = dm; }
+	inline int GetLeftMargin() { return (IsOptEnable(TO_DECLRMM) ? m_LeftX : 0); }
+	inline int GetRightMargin() { return (IsOptEnable(TO_DECLRMM) ? m_RightX : m_Cols); }
 
 	void OnClose();
 	void CallReciveLine(int y);
@@ -900,7 +907,9 @@ public:
 	void fc_UTF88(int ch);
 	void fc_UTF89(int ch);
 	void fc_SESC(int ch);
+	void fc_CESC(int ch);
 	void fc_STAT(int ch);
+	void fc_GOTOXY(int ch);
 
 	// Ctrl...
 	void fc_SOH(int ch);
@@ -975,6 +984,7 @@ public:
 	void fc_V5MCP(int ch);
 	void fc_DECSOP(int ch);
 	void fc_ACS(int ch);
+	void fc_ESCI(int ch);
 	void fc_DOCS(int ch);
 
 	// ESC [ CSI

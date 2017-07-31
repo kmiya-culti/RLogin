@@ -87,6 +87,7 @@ static const struct _OptListTab {
 //	{	TO_RLGAWL,		_T("自動ブラウザ起動をする"),		_T("自動ブラウザ起動無効")			},
 //	{	TO_RLBOLD,		_T("ボールド文字有効"),				_T("ボールド文字無効")				},
 //	{	TO_RLBPLUS,		_T("BPlus/ZModem/Kermit自動"),		_T("自動ファイル転送無効")			},
+	{	TO_RLALTBDIS,	_T("画面のスタックを禁止"),			_T("画面のスタックが有効")			},
 //	{	TO_RLUNIAWH,	_T("Aタイプを半角で表示"),			_T("Aタイプを全角で表示")			},
 //	{	TO_RLNORESZ,	_T("DECCOLMでリサイズ"),			_T("ウィンドウをリサイズしない")	},
 //	{	TO_RLKANAUTO,	_T("漢字コードを自動追従"),			_T("漢字コードを変更しない")		},

@@ -68,7 +68,6 @@
 #define IDD_ABORTDLG                    163
 #define IDD_CANCELDLG                   163
 #define IDD_SOCKOPTPAGE                 164
-#define IDB_BITMAP8                     167
 #define IDP_SOCKETS_INIT_FAILED         300
 #define IDS_INDICATOR_STAT              301
 #define IDS_IDKEYFILELOAD               302
