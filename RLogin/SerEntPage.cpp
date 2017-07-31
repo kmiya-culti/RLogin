@@ -132,19 +132,19 @@ void CSerEntPage::DoInit()
 	CComSock com(NULL);
 
 	m_EntryName = m_pSheet->m_pEntry->m_EntryName;
-	m_HostName  = m_pSheet->m_pEntry->m_HostReal;
+	m_HostName  = m_pSheet->m_pEntry->m_HostNameProvs;
 	m_PortName  = m_pSheet->m_pEntry->m_PortName;
-	m_UserName  = m_pSheet->m_pEntry->m_UserReal;
-	m_PassName  = m_pSheet->m_pEntry->m_PassReal;
+	m_UserName  = m_pSheet->m_pEntry->m_UserNameProvs;
+	m_PassName  = m_pSheet->m_pEntry->m_PassNameProvs;
 	m_TermName  = m_pSheet->m_pEntry->m_TermName;
 	m_IdkeyName = m_pSheet->m_pEntry->m_IdkeyName;
 	m_KanjiCode = m_pSheet->m_pEntry->m_KanjiCode;
 	m_ProtoType = m_pSheet->m_pEntry->m_ProtoType;
 	m_ProxyMode = m_pSheet->m_pEntry->m_ProxyMode;
-	m_ProxyHost = m_pSheet->m_pEntry->m_ProxyHost;
+	m_ProxyHost = m_pSheet->m_pEntry->m_ProxyHostProvs;
 	m_ProxyPort = m_pSheet->m_pEntry->m_ProxyPort;
-	m_ProxyUser = m_pSheet->m_pEntry->m_ProxyUser;
-	m_ProxyPass = m_pSheet->m_pEntry->m_ProxyPass;
+	m_ProxyUser = m_pSheet->m_pEntry->m_ProxyUserProvs;
+	m_ProxyPass = m_pSheet->m_pEntry->m_ProxyPassProvs;
 	m_Memo      = m_pSheet->m_pEntry->m_Memo;
 	m_Group     = m_pSheet->m_pEntry->m_Group;
 	m_ExtEnvStr = m_pSheet->m_pParamTab->m_ExtEnvStr;
@@ -243,9 +243,6 @@ BOOL CSerEntPage::OnApply()
 	m_pSheet->m_pEntry->m_IdkeyName = m_IdkeyName;
 	m_pSheet->m_pEntry->m_KanjiCode = m_KanjiCode;
 	m_pSheet->m_pEntry->m_ProtoType = m_ProtoType;
-	m_pSheet->m_pEntry->m_HostReal  = m_HostName;
-	m_pSheet->m_pEntry->m_UserReal  = m_UserName;
-	m_pSheet->m_pEntry->m_PassReal  = m_PassName;
 	m_pSheet->m_pEntry->m_ProxyMode = m_ProxyMode;
 	m_pSheet->m_pEntry->m_ProxyHost = m_ProxyHost;
 	m_pSheet->m_pEntry->m_ProxyPort = m_ProxyPort;
@@ -253,6 +250,12 @@ BOOL CSerEntPage::OnApply()
 	m_pSheet->m_pEntry->m_ProxyPass = m_ProxyPass;
 	m_pSheet->m_pEntry->m_Memo      = m_Memo;
 	m_pSheet->m_pEntry->m_Group     = m_Group;
+	m_pSheet->m_pEntry->m_HostNameProvs  = m_HostName;
+	m_pSheet->m_pEntry->m_UserNameProvs  = m_UserName;
+	m_pSheet->m_pEntry->m_PassNameProvs  = m_PassName;
+	m_pSheet->m_pEntry->m_ProxyHostProvs = m_ProxyHost;
+	m_pSheet->m_pEntry->m_ProxyUserProvs = m_ProxyUser;
+	m_pSheet->m_pEntry->m_ProxyPassProvs = m_ProxyPass;
 	m_pSheet->m_pParamTab->m_ExtEnvStr = m_ExtEnvStr;
 
 	return TRUE;

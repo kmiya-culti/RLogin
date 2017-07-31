@@ -211,6 +211,7 @@ void COptDlg::OnDoInit()
 
 	if ( dlg.m_InitFlag ) {
 		m_pTextRam->Init();
+		m_pTextRam->m_FontTab.Init();
 		m_pKeyTab->Init();
 		m_pKeyMac->Init();
 		m_pParamTab->Init();

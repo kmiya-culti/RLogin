@@ -748,6 +748,7 @@ void CFontTab::SetIndex(int mode, CStringIndex &index)
 				code = IndexFind(index[n][i][1] << 8, index[n][i][2]);
 
 				m_Data[code].m_EntryName = index[n][i][0];
+				m_Data[code].m_IndexName = index[n][i][2];
 				m_Data[code].m_Shift     = index[n][i][3];
 				m_Data[code].m_ZoomW     = index[n][i][4];
 				m_Data[code].m_ZoomH     = index[n][i][5];
@@ -780,10 +781,13 @@ int CFontTab::IndexFind(int code, LPCTSTR name)
 {
 	int n, i;
 
-	if ( name[1] == _T('\0') && name[0] >= _T('\x30') && name[0] <= _T('\x7E') )
-		return (code | name[0]);
-	else if ( _tcscmp(name, _T("*U")) == 0 )
-		return SET_UNICODE;
+	if ( name[1] == _T('\0') && name[0] >= _T('\x30') && name[0] <= _T('\x7E') ) {
+		i = code | name[0];
+		goto FOUND;
+	} else if ( _tcscmp(name, _T("*U")) == 0 ) {
+		i = SET_UNICODE;
+		goto FOUND;
+	}
 
 	for ( n = i = 0 ;  n < (255 - 0x4F) ; n++ ) {
 		i = code | (n + (n < 0x30 ? 0 : 0x4F));			// 0x00-0x2F or 0x7F-0xFF
@@ -792,6 +796,8 @@ int CFontTab::IndexFind(int code, LPCTSTR name)
 		else if ( m_Data[i].m_IndexName.Compare(name) == 0 )
 			return i;
 	}
+
+FOUND:
 	m_Data[i].m_IndexName = name;
 	return i;
 }
@@ -956,113 +962,115 @@ CTextRam::~CTextRam()
 
 void CTextRam::InitText(int Width, int Height)
 {
-	CVram *tmp, *vp, *wp;
 	int n, x;
-	int cx, cy, ox, oy, cw, ch;
-	int cols, lines;
-	int colsmax, hismax;
+	CVram *tmp, *vp, *wp;
+	int oldCurX, oldCurY;
+	int oldCols, oldLines;
+	int charWidth, charHeight;
+	int newCols, newLines;
+	int newColsMax, newHisMax;
 
 	if ( !m_bOpen )
 		return;
 
 	if ( IsOptEnable(TO_RLFONT) ) {
-		ch = m_DefFontSize;
+		charWidth = m_DefFontSize;
 
-		if ( (cw = ch * 10 / m_DefFontHw) <= 0 )
-			cw = 1;
+		if ( (charHeight = charWidth * 10 / m_DefFontHw) <= 0 )
+			charHeight = 1;
 
-		if ( (cols = Width / cw) < 10 )
-			cols = 10;
-		else if ( cols > COLS_MAX )
-			cols = COLS_MAX;
+		if ( (newCols = Width / charHeight) < 10 )
+			newCols = 10;
+		else if ( newCols > COLS_MAX )
+			newCols = COLS_MAX;
 
-		if ( (lines = Height / ch) <= 0 )
-			lines = 1;
+		if ( (newLines = Height / charWidth) <= 0 )
+			newLines = 1;
 
 	} else {
-		if ( (cols = m_DefCols[0]) > COLS_MAX )
-			cols = COLS_MAX;
-		else if ( cols < 20 )
-			cols = 20;
+		if ( (newCols = m_DefCols[0]) > COLS_MAX )
+			newCols = COLS_MAX;
+		else if ( newCols < 20 )
+			newCols = 20;
 
-		if ( (cw  = Width / cols) <= 0 )
-			cw = 1;
+		if ( (charHeight  = Width / newCols) <= 0 )
+			charHeight = 1;
 
-		if ( (lines = Height / (cw * m_DefFontHw / 10)) <= 0 )
-			lines = 1;
+		if ( (newLines = Height / (charHeight * m_DefFontHw / 10)) <= 0 )
+			newLines = 1;
 
 		if ( IsOptValue(TO_DECCOLM, 1) == 1 ) {
-			if ( (cols = m_DefCols[1]) > COLS_MAX )
-				cols = COLS_MAX;
-			else if ( cols < 20 )
-				cols = 20;
+			if ( (newCols = m_DefCols[1]) > COLS_MAX )
+				newCols = COLS_MAX;
+			else if ( newCols < 20 )
+				newCols = 20;
 
-			if ( (cw  = Width / cols) <= 0 )
-				cw = 1;
+			if ( (charHeight  = Width / newCols) <= 0 )
+				charHeight = 1;
 		}
 	}
 
-	if ( lines > LINE_MAX )
-		lines = LINE_MAX;
+	if ( newLines > LINE_MAX )
+		newLines = LINE_MAX;
 
-	if ( (hismax = m_DefHisMax)  < (lines * 5) )
-		hismax = lines * 5;
-	else if ( hismax > HIS_MAX )
-		hismax = HIS_MAX;
+	if ( (newHisMax = m_DefHisMax)  < (newLines * 5) )
+		newHisMax = newLines * 5;
+	else if ( newHisMax > HIS_MAX )
+		newHisMax = HIS_MAX;
 
-	if ( cols == m_Cols && hismax == m_HisMax && m_VRam != NULL ) {
-		if ( lines == m_Lines )
+	if ( newCols <= m_ColsMax && newHisMax == m_HisMax && m_VRam != NULL ) {
+		if ( newCols == m_Cols && newLines == m_Lines )
 			return;
 
-		cx = m_CurX;
-		cy = m_CurY;
-		ox = m_Cols;
-		oy = m_Lines;
-		colsmax = m_ColsMax;
+		oldCurX    = m_CurX;
+		oldCurY    = m_CurY;
+		oldCols    = m_Cols;
+		oldLines   = m_Lines;
+		newColsMax = m_ColsMax;
 
-		m_HisPos += (m_Lines - lines);
+		m_HisPos += (m_Lines - newLines);
 
 	} else {
-		colsmax = (m_ColsMax > cols && m_LineUpdate < m_Lines ? m_ColsMax : cols);
-		tmp = new CVram[colsmax * hismax];
-		for ( n = 0 ; n < (colsmax * hismax) ; n++ )
+		newColsMax = (m_ColsMax >= newCols && m_LineUpdate < (m_Lines * 4) ? m_ColsMax : newCols);
+		tmp = new CVram[newColsMax * newHisMax];
+		for ( n = 0 ; n < (newColsMax * newHisMax) ; n++ )
 			tmp[n] = m_DefAtt;
 
 		if ( m_VRam != NULL ) {
-			cx = (m_ColsMax < colsmax ? m_ColsMax : colsmax);
-			cy = (m_HisMax < hismax ? m_HisMax : hismax);
-			for ( n = 1 ; n <= cy ; n++ ) {
+			oldCurX = (m_ColsMax < newColsMax ? m_ColsMax : newColsMax);
+			oldCurY = (m_HisMax < newHisMax ? m_HisMax : newHisMax);
+			for ( n = 1 ; n <= oldCurY ; n++ ) {
 				vp = GETVRAM(0, m_Lines - n);
-				wp = tmp + (hismax - n) * colsmax;
-				for ( x = 0 ; x < cx ; x++ )
+				wp = tmp + (newHisMax - n) * newColsMax;
+				for ( x = 0 ; x < oldCurX ; x++ )
 					*(wp++) = *(vp++);
 			}
 //				memcpy(tmp + (hismax - n) * colsmax, GETVRAM(0, m_Lines - n), sizeof(VRAM) * cx);
 			delete [] m_VRam;
-			cx = m_CurX;
-			cy = m_CurY;
-			ox = m_Cols;
-			oy = m_Lines;
+			oldCurX  = m_CurX;
+			oldCurY  = m_CurY;
+			oldCols  = m_Cols;
+			oldLines = m_Lines;
 		} else {
-			cx = 0;
-			cy = 0;
-			ox = cols;
-			oy = lines;
+			oldCurX  = 0;
+			oldCurY  = 0;
+			oldCols  = newCols;
+			oldLines = newLines;
 		}
 
 		m_VRam   = tmp;
-		m_HisMax = hismax;
-		m_HisPos = hismax - lines;
+		m_HisMax = newHisMax;
+		m_HisPos = newHisMax - newLines;
 	}
 
-	m_Cols   = cols;
-	m_Lines  = lines;
-	m_ColsMax = colsmax;
+	m_Cols       = newCols;
+	m_Lines      = newLines;
+	m_ColsMax    = newColsMax;
 	m_LineUpdate = 0;
 
-	if ( m_HisLen <= oy && m_Lines < oy ) {
-		for ( n = 0 ; n < oy ; n++ ) {
-			tmp = GETVRAM(0, m_Lines - oy + n);
+	if ( m_HisLen <= oldLines && m_Lines < oldLines ) {
+		for ( n = 0 ; n < oldLines ; n++ ) {
+			tmp = GETVRAM(0, m_Lines - oldLines + n);
 			for ( x = 0 ; x < m_Cols ; x++ ) {
 				if ( !tmp[x].IsEmpty() )
 					break;
@@ -1080,18 +1088,18 @@ void CTextRam::InitText(int Width, int Height)
 
 	RESET();
 
-	if ( (m_CurX = cx) >= m_Cols )
+	if ( (m_CurX = oldCurX) >= m_Cols )
 		m_CurX = m_Cols - 1;
 
-	if ( (m_CurY = m_Lines - oy + cy) < 0 ) {
+	if ( (m_CurY = m_Lines - oldLines + oldCurY) < 0 ) {
 		m_HisPos += m_CurY;
 		if ( m_HisLen == m_Lines )
-			m_HisLen += cy;
+			m_HisLen += oldCurY;
 		else
 			m_HisLen += m_CurY;
 		m_CurY = 0;
-	} else if ( m_CurY > cy ) {
-		for ( n = m_Lines - 1 ; n > cy ; n-- ) {
+	} else if ( m_CurY > oldCurY ) {
+		for ( n = m_Lines - 1 ; n > oldCurY ; n-- ) {
 			tmp = GETVRAM(0, n);
 			for ( x = 0 ; x < m_Cols ; x++ ) {
 				if ( !tmp[x].IsEmpty() )
@@ -1104,7 +1112,7 @@ void CTextRam::InitText(int Width, int Height)
 			m_CurY = n;
 	}
 
-	if ( m_Cols != ox || m_Lines != oy )
+	if ( m_Cols != oldCols || m_Lines != oldLines )
 		m_pDocument->SocketSendWindSize(m_Cols, m_Lines);
 
 //	DISPUPDATE();
@@ -1529,6 +1537,7 @@ void CTextRam::Init()
 	m_ShellExec.GetString(_T("http://|https://|ftp://|mailto://"), _T('|'));
 
 	m_ProcTab.Init();
+//	m_FontTab.Init();
 
 	RESET();
 }
@@ -2965,23 +2974,18 @@ void CTextRam::StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop,
 		n = (at & ATT_ITALIC) != 0 ? 2 : 0;
 
 		pFontCache = pFontNode->GetFont(x, y, n, prop.fnm);
-
-		// HanKaku  7			W2		W1
-		// ZenKaku  7 = 200		14		 7
-		//		   10 = 140		 9		 4		メイリオ
-		//		   14 = 100		 7		 3		MSゴシック
-		//         20 =  70		 4		 2		小塚
-
-		if ( prop.csz > 1 && pFontCache != NULL && (x * pFontCache->m_KanWidMul / 100) != x )
-			pFontCache = pFontNode->GetFont(x * pFontCache->m_KanWidMul / 100, y, n, prop.fnm);
-
-		if ( prop.csz == 1 && pFontCache != NULL && prop.mod == SET_UNICODE && IsOptEnable(TO_RLUNIAWH) && (x * pFontCache->m_KanWidMul / 200) != x )
-			pFontCache = pFontNode->GetFont(x * pFontCache->m_KanWidMul / 200, y, n, prop.fnm);
+		pDC->SelectObject(pFontCache != NULL ? pFontCache->m_pFont : CFont::FromHandle((HFONT)GetStockObject(SYSTEM_FONT)));
 
 		pDC->SetTextColor(fc);
 		pDC->SetBkColor(bc);
 
-		pDC->SelectObject(pFontCache != NULL ? pFontCache->m_pFont : CFont::FromHandle((HFONT)GetStockObject(SYSTEM_FONT)));
+		if ( prop.csz == 1 && pFontCache != NULL && prop.mod == SET_UNICODE && !IsOptEnable(TO_RLUNIAHF) ) {
+			CSize sz = pDC->GetTextExtent(str, len);
+			if ( sz.cx > (pRect->right - pRect->left) ) {
+				if ( (pFontCache = pFontNode->GetFont(x / 2, y, n, prop.fnm)) != NULL )
+					pDC->SelectObject(pFontCache->m_pFont);
+			}
+		}
 
 		if ( pFontNode->SetFontImage(pView->m_CharWidth  * wd, pView->m_CharHeight * hd) ) {
 			if ( pWdc->GetSafeHdc() == NULL )
@@ -4539,6 +4543,12 @@ void CTextRam::FORSCROLL(int sy, int ey)
 			m_HisLen += 1;
 		if ( m_LineUpdate < m_Lines )
 			m_LineUpdate++;
+
+		int x;
+		CVram *vp = GETVRAM(0, m_Lines - 1);
+		for ( x = 0 ; x < m_ColsMax ; x++ )
+				*(vp++) = m_AttSpc;
+
 	} else {
 #ifdef	FIXWCHAR
 		for ( int y = sy + 1; y < ey ; y++ )
@@ -4551,8 +4561,8 @@ void CTextRam::FORSCROLL(int sy, int ey)
 				*(vp++) = *(wp++);
 		}
 #endif
+		ERABOX(left, ey - 1, right, ey);
 	}
-	ERABOX(left, ey - 1, right, ey);
 	DISPVRAM(left, sy, right, ey - sy);
 }
 void CTextRam::BAKSCROLL(int sy, int ey)

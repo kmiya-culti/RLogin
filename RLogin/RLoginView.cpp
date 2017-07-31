@@ -1989,39 +1989,23 @@ void CRLoginView::OnUpdateGoziview(CCmdUI *pCmdUI)
 
 void CRLoginView::OnSplitHeight()
 {
-	CCommandLineInfoEx cmds;
-	CRLoginDoc *pDoc = GetDocument();
 	CMainFrame *pMain = (CMainFrame *)::AfxGetMainWnd();
-	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
 
-	if ( pDoc == NULL || pMain == NULL || pApp == NULL )
+	if ( pMain == NULL )
 		return;
 
 	pMain->SendMessage(WM_COMMAND, ID_PANE_HSPLIT);
-
-	pDoc->m_InPane = TRUE;
-	pDoc->SetEntryProBuffer();
-	pApp->m_pServerEntry = &(pDoc->m_ServerEntry);
-	cmds.ParseParam(_T("inpane"), TRUE, FALSE);
-	((CRLoginApp *)::AfxGetApp())->OpenProcsCmd(&cmds);
+	OnSplitOver();
 }
 void CRLoginView::OnSplitWidth()
 {
-	CCommandLineInfoEx cmds;
-	CRLoginDoc *pDoc = GetDocument();
 	CMainFrame *pMain = (CMainFrame *)::AfxGetMainWnd();
-	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
 
-	if ( pDoc == NULL || pMain == NULL || pApp == NULL )
+	if ( pMain == NULL )
 		return;
 
 	pMain->SendMessage(WM_COMMAND, ID_PANE_WSPLIT);
-
-	pDoc->m_InPane = TRUE;
-	pDoc->SetEntryProBuffer();
-	pApp->m_pServerEntry = &(pDoc->m_ServerEntry);
-	cmds.ParseParam(_T("inpane"), TRUE, FALSE);
-	((CRLoginApp *)::AfxGetApp())->OpenProcsCmd(&cmds);
+	OnSplitOver();
 }
 void CRLoginView::OnSplitOver()
 {

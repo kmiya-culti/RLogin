@@ -16,6 +16,12 @@
 #include "Kermit.h"
 #include "Data.h"
 
+#define	DOCTYPE_NONE		(-1)
+#define	DOCTYPE_REGISTORY	0
+#define	DOCTYPE_ENTRYFILE	1
+#define	DOCTYPE_MULTIFILE	2
+#define	DOCTYPE_SESSION		3
+
 #define	UPDATE_INVALIDATE	0
 #define	UPDATE_TEXTRECT		1
 #define	UPDATE_GOTOXY		2

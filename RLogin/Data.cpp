@@ -1654,9 +1654,6 @@ void CServerEntry::Init()
 	m_KanjiCode = EUC_SET;
 	m_ProtoType = PROTO_DIRECT;
 	m_ProBuffer.Clear();
-	m_HostReal.Empty();
-	m_UserReal.Empty();
-	m_PassReal.Empty();
 	m_SaveFlag  = FALSE;
 	m_CheckFlag = FALSE;
 	m_Uid       = (-1);
@@ -1670,6 +1667,12 @@ void CServerEntry::Init()
 	m_Group.Empty();
 	m_ScriptFile.Empty();
 	m_ScriptStr.Empty();
+	m_HostNameProvs.Empty();
+	m_UserNameProvs.Empty();
+	m_PassNameProvs.Empty();
+	m_ProxyHostProvs.Empty();
+	m_ProxyUserProvs.Empty();
+	m_ProxyPassProvs.Empty();
 }
 const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 {
@@ -1683,9 +1686,6 @@ const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 	m_KanjiCode  = data.m_KanjiCode;
 	m_ProtoType  = data.m_ProtoType;
 	m_ProBuffer  = data.m_ProBuffer;
-	m_HostReal   = data.m_HostReal;
-	m_UserReal   = data.m_UserReal;
-	m_PassReal   = data.m_PassReal;
 	m_SaveFlag   = data.m_SaveFlag;
 	m_CheckFlag  = data.m_CheckFlag;
 	m_Uid        = data.m_Uid;
@@ -1699,6 +1699,12 @@ const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 	m_Group      = data.m_Group;
 	m_ScriptFile = data.m_ScriptFile;
 	m_ScriptStr  = data.m_ScriptStr;
+	m_HostNameProvs  = data.m_HostNameProvs;
+	m_UserNameProvs  = data.m_UserNameProvs;
+	m_PassNameProvs  = data.m_PassNameProvs;
+	m_ProxyHostProvs = data.m_ProxyHostProvs;
+	m_ProxyUserProvs = data.m_ProxyUserProvs;
+	m_ProxyPassProvs = data.m_ProxyPassProvs;
 	return *this;
 }
 void CServerEntry::GetArray(CStringArrayExt &stra)
@@ -1747,9 +1753,14 @@ void CServerEntry::GetArray(CStringArrayExt &stra)
 	m_ScriptStr  = (stra.GetSize() > 20 ?  stra.GetAt(20) : _T(""));
 
 	m_ProBuffer.Clear();
-	m_HostReal = m_HostName;
-	m_UserReal = m_UserName;
-	m_PassReal = m_PassName;
+
+	m_HostNameProvs  = m_HostName;
+	m_UserNameProvs  = m_UserName;
+	m_PassNameProvs  = m_PassName;
+	m_ProxyHostProvs = m_ProxyHost;
+	m_ProxyUserProvs = m_ProxyUser;
+	m_ProxyPassProvs = m_ProxyPass;
+
 	m_SaveFlag = FALSE;
 }
 void CServerEntry::SetArray(CStringArrayExt &stra)
@@ -1760,10 +1771,10 @@ void CServerEntry::SetArray(CStringArrayExt &stra)
 
 	stra.RemoveAll();
 	stra.Add(m_EntryName);
-	stra.Add(m_HostReal);
+	stra.Add(m_HostNameProvs);
 	stra.Add(m_PortName);
-	stra.Add(m_UserReal);
-	key.EncryptStr(str, m_PassReal);
+	stra.Add(m_UserNameProvs);
+	key.EncryptStr(str, m_PassNameProvs);
 	stra.Add(str);
 	stra.Add(m_TermName);
 	stra.Add(m_IdkeyName);
@@ -1773,10 +1784,10 @@ void CServerEntry::SetArray(CStringArrayExt &stra)
 	m_ChatScript.SetBuffer(buf);
 	stra.AddBin(buf.GetPtr(), buf.GetSize());
 	stra.AddVal(m_ProxyMode);
-	stra.Add(m_ProxyHost);
+	stra.Add(m_ProxyHostProvs);
 	stra.Add(m_ProxyPort);
-	stra.Add(m_ProxyUser);
-	key.EncryptStr(str, m_ProxyPass);
+	stra.Add(m_ProxyUserProvs);
+	key.EncryptStr(str, m_ProxyPassProvs);
 	stra.Add(str);
 	key.EncryptStr(str, _T("12345678"));
 	stra.Add(str);
@@ -1979,13 +1990,13 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 
 	if ( mode ) {		// Write
 		index[_T("Name")]  = m_EntryName;
-		index[_T("Host")]  = m_HostReal;
+		index[_T("Host")]  = m_HostNameProvs;
 		index[_T("Port")]  = m_PortName;
-		index[_T("User")]  = m_UserReal;
+		index[_T("User")]  = m_UserNameProvs;
 		index[_T("Term")]  = m_TermName;
 		index[_T("IdKey")] = m_IdkeyName;
 
-		pass.Format(_T("TEST%s"), m_PassReal);
+		pass.Format(_T("TEST%s"), m_PassNameProvs);
 		key.EncryptStr(str, pass);
 		index[_T("Pass")]  = str;
 
@@ -1996,11 +2007,11 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 		index[_T("Group")] = m_Group;
 
 		index[_T("Proxy")][_T("Mode")] = m_ProxyMode;
-		index[_T("Proxy")][_T("Host")] = m_ProxyHost;
+		index[_T("Proxy")][_T("Host")] = m_ProxyHostProvs;
 		index[_T("Proxy")][_T("Port")] = m_ProxyPort;
-		index[_T("Proxy")][_T("User")] = m_ProxyUser;
+		index[_T("Proxy")][_T("User")] = m_ProxyUserProvs;
 
-		pass.Format(_T("TEST%s"), m_ProxyPass);
+		pass.Format(_T("TEST%s"), m_ProxyPassProvs);
 		key.EncryptStr(str, pass);
 		index[_T("Proxy")][_T("Pass")] = str;
 
@@ -2067,9 +2078,14 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 			m_ChatScript.GetString(index[n]);
 
 		m_ProBuffer.Clear();
-		m_HostReal = m_HostName;
-		m_UserReal = m_UserName;
-		m_PassReal = m_PassName;
+
+		m_HostNameProvs  = m_HostName;
+		m_UserNameProvs  = m_UserName;
+		m_PassNameProvs  = m_PassName;
+		m_ProxyHostProvs = m_ProxyHost;
+		m_ProxyUserProvs = m_ProxyUser;
+		m_ProxyPassProvs = m_ProxyPass;
+
 		m_SaveFlag = FALSE;
 	}
 }

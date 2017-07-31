@@ -99,8 +99,9 @@ static const struct _OptListTab {
 //	{	TO_RLMSWAPE,	_T("7786 ホイールのキー変換"),		_T("ホイールの通常動作")			},
 	{	TO_RLTEKINWND,	_T("Tekをコンソールで表示"),		_T("Tekコンソールを無効")			},
 	{	TO_RLUNINOM,	_T("UTF-8ノーマライズを禁止"),		_T("UTF-8ノーマライズを行う")		},
+	{	TO_RLUNIAHF,	_T("Unicde半角の調整をしない"),		_T("Unicde半角の調整をする")		},
 
-	{	0,				NULL,								NULL							}
+	{	0,				NULL,								NULL								}
 };
 
 CTermPage::CTermPage() : CTreePropertyPage(CTermPage::IDD)

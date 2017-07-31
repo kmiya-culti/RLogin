@@ -153,6 +153,7 @@
 #define	TO_RLTEKINWND	446			// Tekウィンドウをビューで描く
 #define	TO_RLOSCPAM		447			// OSC/DCS...キャンセル時にバッファを書き戻す
 #define	TO_RLUNINOM		448			// Unicode ノーマライズを禁止する
+#define	TO_RLUNIAHF		449			// Unicodeの半角時にサイズを調整する
 
 // RLogin SockOpt		1000-1511(0-511)
 #define	TO_RLTENAT		1406		// 自動ユーザー認証を行わない

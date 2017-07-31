@@ -111,7 +111,17 @@ BOOL CRLoginDoc::OnNewDocument()
 	if ( !m_pMainWnd->OpenServerEntry(m_ServerEntry) )
 		return FALSE;
 
-	m_LoadMode = (m_ServerEntry.m_SaveFlag ? 0 : 2);
+	switch(m_ServerEntry.m_SaveFlag) {
+	case (-1):
+		m_LoadMode = DOCTYPE_SESSION;
+		break;
+	case FALSE:
+		m_LoadMode = DOCTYPE_MULTIFILE;
+		break;
+	case TRUE:
+		m_LoadMode = DOCTYPE_REGISTORY;
+		break;
+	}
 	m_ServerEntry.m_SaveFlag = FALSE;
 
 	m_TextRam.m_bOpen = TRUE;
@@ -149,14 +159,14 @@ BOOL CRLoginDoc::OnNewDocument()
 
 BOOL CRLoginDoc::OnOpenDocument(LPCTSTR lpszPathName) 
 {
-	m_LoadMode = 0;
+	m_LoadMode = DOCTYPE_NONE;
 
 	if ( !CDocument::OnOpenDocument(lpszPathName) )
 		return FALSE;
 
 	m_TextRam.m_bOpen = TRUE;
 
-	if ( m_LoadMode == 1 ) {
+	if ( m_LoadMode == DOCTYPE_ENTRYFILE ) {
 		UpdateAllViews(NULL, UPDATE_INITPARA, 0);
 		m_TextRam.InitHistory();
 		SetPathName(lpszPathName, TRUE);
@@ -174,7 +184,7 @@ BOOL CRLoginDoc::OnOpenDocument(LPCTSTR lpszPathName)
 			return FALSE;
 	}
 	
-	return (m_LoadMode == 0 ? FALSE : TRUE);
+	return (m_LoadMode == DOCTYPE_NONE ? FALSE : TRUE);
 }
 
 void CRLoginDoc::OnFileClose()
@@ -222,7 +232,7 @@ void CRLoginDoc::Serialize(CArchive& ar)
 		m_KeyMac.Serialize(ar);
 		m_ParamTab.Serialize(ar);
 #endif
-		m_LoadMode = 1;
+		m_LoadMode = DOCTYPE_ENTRYFILE;
 
 	} else {						// TODO: この位置に読み込み用のコードを追加してください。
 		int n;
@@ -240,7 +250,7 @@ void CRLoginDoc::Serialize(CArchive& ar)
 			index.Serialize(ar, NULL);
 			SetIndex(FALSE, index);
 			m_TextRam.SetKanjiMode(m_ServerEntry.m_KanjiCode);
-			m_LoadMode = 1;
+			m_LoadMode = DOCTYPE_ENTRYFILE;
 
 		} else if ( strncmp(tmp, "RLG2", 4) == 0 ) {
 			m_ServerEntry.Serialize(ar);
@@ -250,7 +260,7 @@ void CRLoginDoc::Serialize(CArchive& ar)
 			m_ParamTab.Serialize(ar);
 
 			m_TextRam.SetKanjiMode(m_ServerEntry.m_KanjiCode);
-			m_LoadMode = 1;
+			m_LoadMode = DOCTYPE_ENTRYFILE;
 
 		} else if ( strncmp(tmp, "RLM", 3) == 0 ) {
 			m_pMainWnd->m_AllFilePath = ar.GetFile()->GetFilePath();
@@ -258,7 +268,7 @@ void CRLoginDoc::Serialize(CArchive& ar)
 			while ( (n = ar.Read(tmp, 4096)) > 0 )
 				m_pMainWnd->m_AllFileBuf.Apend((LPBYTE)tmp, n);
 			m_pMainWnd->PostMessage(WM_COMMAND, ID_FILE_ALL_LOAD, 0);
-			m_LoadMode = 2;
+			m_LoadMode = DOCTYPE_MULTIFILE;
 
 		} else
 			AfxThrowArchiveException(CArchiveException::badIndex, ar.GetFile()->GetFileTitle());
@@ -293,16 +303,16 @@ void CRLoginDoc::SetCmdInfo(CCommandLineInfoEx *pCmdInfo)
 		m_ServerEntry.m_ProtoType = pCmdInfo->m_Proto;
 
 	if ( !pCmdInfo->m_Addr.IsEmpty() )
-		m_ServerEntry.m_HostReal = m_ServerEntry.m_HostName = pCmdInfo->m_Addr;
+		m_ServerEntry.m_HostNameProvs = m_ServerEntry.m_HostName = pCmdInfo->m_Addr;
 
 	if ( !pCmdInfo->m_Port.IsEmpty() )
 		m_ServerEntry.m_PortName = pCmdInfo->m_Port;
 
 	if ( !pCmdInfo->m_User.IsEmpty() )
-		m_ServerEntry.m_UserReal = m_ServerEntry.m_UserName = pCmdInfo->m_User;
+		m_ServerEntry.m_UserNameProvs = m_ServerEntry.m_UserName = pCmdInfo->m_User;
 
 	if ( !pCmdInfo->m_Pass.IsEmpty() )
-		m_ServerEntry.m_PassReal = m_ServerEntry.m_PassName = pCmdInfo->m_Pass;
+		m_ServerEntry.m_PassNameProvs = m_ServerEntry.m_PassName = pCmdInfo->m_Pass;
 
 	if ( !pCmdInfo->m_Term.IsEmpty() )
 		m_ServerEntry.m_TermName = pCmdInfo->m_Term;
@@ -816,7 +826,6 @@ int CRLoginDoc::SocketOpen()
 	BOOL rt;
 	int num;
 	CPassDlg dlg;
-	CString proxy[3];
 
 	if ( InternetAttemptConnect(0) != ERROR_SUCCESS )
 		return FALSE;
@@ -838,33 +847,28 @@ int CRLoginDoc::SocketOpen()
 
 	if ( rt ) {
 		dlg.m_Title    = m_ServerEntry.m_EntryName;
-		dlg.m_HostAddr = m_ServerEntry.m_ProxyHost;
-		dlg.m_UserName = m_ServerEntry.m_ProxyUser;
-		dlg.m_PassName = m_ServerEntry.m_ProxyPass;
+		dlg.m_HostAddr = m_ServerEntry.m_ProxyHostProvs;
+		dlg.m_UserName = m_ServerEntry.m_ProxyUserProvs;
+		dlg.m_PassName = m_ServerEntry.m_ProxyPassProvs;
 		dlg.m_Prompt   = _T("Proxy Password");
 		dlg.m_MaxTime  = 120;
 
 		if ( dlg.DoModal() != IDOK )
 			return FALSE;
 
-		proxy[0] = dlg.m_HostAddr;
-		proxy[1] = dlg.m_UserName;
-		proxy[2] = dlg.m_PassName;
-
-	} else {
-		proxy[0] = m_ServerEntry.m_ProxyHost;
-		proxy[1] = m_ServerEntry.m_ProxyUser;
-		proxy[2] = m_ServerEntry.m_ProxyPass;
+		m_ServerEntry.m_ProxyHost = dlg.m_HostAddr;
+		m_ServerEntry.m_ProxyUser = dlg.m_UserName;
+		m_ServerEntry.m_ProxyPass = dlg.m_PassName;
 	}
 
-	if ( m_ServerEntry.m_HostReal.IsEmpty() ||
+	if ( m_ServerEntry.m_HostName.IsEmpty() ||
 		((m_ServerEntry.m_ProtoType == PROTO_TELNET || m_ServerEntry.m_ProtoType == PROTO_SSH) && 
-		 (m_TextRam.IsOptEnable(TO_RLUSEPASS) || m_ServerEntry.m_UserReal.IsEmpty() || m_ServerEntry.m_PassReal.IsEmpty())) ) {
+			(m_TextRam.IsOptEnable(TO_RLUSEPASS) || m_ServerEntry.m_UserName.IsEmpty() || m_ServerEntry.m_PassName.IsEmpty())) ) {
 
 		dlg.m_Title    = m_ServerEntry.m_EntryName;
-		dlg.m_HostAddr = m_ServerEntry.m_HostReal;
-		dlg.m_UserName = m_ServerEntry.m_UserReal;
-		dlg.m_PassName = m_ServerEntry.m_PassReal;
+		dlg.m_HostAddr = m_ServerEntry.m_HostNameProvs;
+		dlg.m_UserName = m_ServerEntry.m_UserNameProvs;
+		dlg.m_PassName = m_ServerEntry.m_PassNameProvs;
 		dlg.m_Prompt   = _T("Password");
 		dlg.m_MaxTime  = 120;
 
@@ -890,8 +894,8 @@ int CRLoginDoc::SocketOpen()
 
 	if ( m_ServerEntry.m_ProxyMode != 0 )
 		rt = m_pSock->ProxyOpen(m_ServerEntry.m_ProxyMode,
-			proxy[0], CExtSocket::GetPortNum(m_ServerEntry.m_ProxyPort),
-			proxy[1], proxy[2], m_ServerEntry.m_HostName, num);
+			m_ServerEntry.m_ProxyHost, CExtSocket::GetPortNum(m_ServerEntry.m_ProxyPort),
+			m_ServerEntry.m_ProxyUser, m_ServerEntry.m_ProxyPass, m_ServerEntry.m_HostName, num);
 	else 
 		rt = m_pSock->AsyncOpen(m_ServerEntry.m_HostName, num);
 
@@ -1002,11 +1006,11 @@ void CRLoginDoc::OnLoadDefault()
 	m_KeyMac.Serialize(FALSE);
 	m_ParamTab.Serialize(FALSE);
 
-	if ( m_LoadMode == 1 )
+	if ( m_LoadMode == DOCTYPE_ENTRYFILE )
 		SetModifiedFlag(TRUE);
-	else if ( m_LoadMode == 2 )
+	else if ( m_LoadMode == DOCTYPE_MULTIFILE )
 		m_pMainWnd->m_ModifiedFlag = TRUE;
-	else
+	else if ( m_LoadMode == DOCTYPE_REGISTORY )
 		m_ServerEntry.m_SaveFlag = TRUE;
 
 	UpdateAllViews(NULL, UPDATE_INITPARA, NULL);
@@ -1025,17 +1029,18 @@ void CRLoginDoc::OnSetOption()
 	dlg.m_pEntry    = &m_ServerEntry;
 	dlg.m_pTextRam  = &(m_TextRam);
 	dlg.m_pKeyTab   = &(m_KeyTab);
+	dlg.m_pKeyMac   = &(m_KeyMac);
 	dlg.m_pParamTab = &(m_ParamTab);
 	dlg.m_pDocument = this;
 
 	if ( dlg.DoModal() != IDOK )
 		return;
 
-	if ( m_LoadMode == 1 )
+	if ( m_LoadMode == DOCTYPE_ENTRYFILE )
 		SetModifiedFlag(TRUE);
-	else if ( m_LoadMode == 2 )
+	else if ( m_LoadMode == DOCTYPE_MULTIFILE )
 		m_pMainWnd->m_ModifiedFlag = TRUE;
-	else
+	else if ( m_LoadMode == DOCTYPE_REGISTORY )
 		m_ServerEntry.m_SaveFlag = TRUE;
 
 	UpdateAllViews(NULL, UPDATE_INITPARA, NULL);

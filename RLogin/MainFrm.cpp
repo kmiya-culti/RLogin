@@ -1027,7 +1027,7 @@ int CMainFrame::OpenServerEntry(CServerEntry &Entry)
 	if ( dlg.m_EntryNum < 0 ) {
 		if ( pApp->m_pServerEntry != NULL ) {
 			Entry = *(pApp->m_pServerEntry);
-			Entry.m_SaveFlag = FALSE;
+			Entry.m_SaveFlag = (-1);
 			pApp->m_pServerEntry = NULL;
 			return TRUE;
 		}

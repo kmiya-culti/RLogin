@@ -410,9 +410,6 @@ public:
 	int m_KanjiCode;
 	int m_ProtoType;
 	CBuffer m_ProBuffer;
-	CString m_HostReal;
-	CString m_UserReal;
-	CString m_PassReal;
 	BOOL m_SaveFlag;
 	BOOL m_CheckFlag;
 	int m_Uid;
@@ -426,6 +423,12 @@ public:
 	CString m_Group;
 	CString m_ScriptFile;
 	CString m_ScriptStr;
+	CString m_HostNameProvs;
+	CString m_UserNameProvs;
+	CString m_PassNameProvs;
+	CString m_ProxyHostProvs;
+	CString m_ProxyUserProvs;
+	CString m_ProxyPassProvs;
 
 	void Init();
 	void SetArray(CStringArrayExt &stra);
