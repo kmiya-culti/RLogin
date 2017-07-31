@@ -143,6 +143,8 @@
 #define IDC_ENDTIME                     1048
 #define IDC_ENTRYNAME                   1049
 #define IDC_FACENAME                    1050
+#define IDC_ENTRYNAME2                  1050
+#define IDC_ENTRYMEMO                   1050
 #define IDC_FILENAME                    1051
 #define IDC_FONTCODE                    1052
 #define IDC_FILENAME2                   1052
@@ -487,13 +489,16 @@
 #define ID_EDIT_COPY_ALL                32836
 #define ID_EDIT_P                       32838
 #define ID_EDIT_PASTE_ALL               32839
+#define IDM_SERV_INPORT                 32844
+#define ID_Menu                         32845
+#define IDM_SERV_EXPORT                 32846
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        160
-#define _APS_NEXT_COMMAND_VALUE         32844
+#define _APS_NEXT_COMMAND_VALUE         32847
 #define _APS_NEXT_CONTROL_VALUE         1189
 #define _APS_NEXT_SYMED_VALUE           247
 #endif

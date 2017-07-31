@@ -1612,6 +1612,7 @@ void CServerEntry::Init()
 	m_ProxyPort.Empty();
 	m_ProxyUser.Empty();
 	m_ProxyPass.Empty();
+	m_Memo.Empty();
 }
 const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 {
@@ -1637,12 +1638,14 @@ const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 	m_ProxyPort  = data.m_ProxyPort;
 	m_ProxyUser  = data.m_ProxyUser;
 	m_ProxyPass  = data.m_ProxyPass;
+	m_Memo       = data.m_Memo;
 	return *this;
 }
 void CServerEntry::GetArray(CStringArrayExt &array)
 {
 	CIdKey key;
 	CBuffer buf;
+	CString str;
 
 	m_EntryName = array.GetAt(0);
 	m_HostName  = array.GetAt(1);
@@ -1669,6 +1672,16 @@ void CServerEntry::GetArray(CStringArrayExt &array)
 		m_ProxyUser = array.GetAt(14);
 		key.DecryptStr(m_ProxyPass, array.GetAt(15));
 	}
+
+	if ( array.GetSize() > 16 ) {
+		key.DecryptStr(str, array.GetAt(16));
+		if ( str.Compare("12345678") != 0 ) {
+			m_PassName.Empty();
+			m_ProxyPass.Empty();
+		}
+	}
+
+	m_Memo = (array.GetSize() > 17 ?  array.GetAt(17) : "");
 
 	m_ProBuffer.Clear();
 	m_HostReal = m_HostName;
@@ -1702,6 +1715,9 @@ void CServerEntry::SetArray(CStringArrayExt &array)
 	array.Add(m_ProxyUser);
 	key.EncryptStr(str, m_ProxyPass);
 	array.Add(str);
+	key.EncryptStr(str, "12345678");
+	array.Add(str);
+	array.Add(m_Memo);
 }
 void CServerEntry::SetBuffer(CBuffer &buf)
 {
@@ -2756,8 +2772,13 @@ static const char *InitAlgo[9][40] = {
 	  "camellia128-cbc@openssh.org",	"camellia192-cbc@openssh.org",	"camellia256-cbc@openssh.org",
 	  "seed-ctr@ssh.com",				"seed-cbc@ssh.com",
 	  NULL },
-	{ "hmac-sha1", "hmac-md5", "hmac-ripemd160", "hmac-sha256", "hmac-sha512", "hmac-whirlpool",
-	  "hmac-sha1-96", "hmac-md5-96", "hmac-sha256@ssh.com", NULL },
+	{ "hmac-md5",				"hmac-md5-96",			"hmac-sha1",			"hmac-sha1-96",
+	  "hmac-sha224",			"hmac-sha384",			"hmac-sha256",			"hmac-sha512",
+	  "hmac-sha224-96",			"hmac-sha384-96",		"hmac-sha256-96",		"hmac-sha512-96",
+	  "hmac-ripemd160",			"hmac-whirlpool",		"umac-64@openssh.com",
+	  "umac-32",				"umac-64",				"umac-96",				"umac-128",
+	  "hmac-sha256@ssh.com",	"hmac-sha256-96@ssh.com",
+	  NULL },
 	{ "zlib@openssh.com", "zlib", "none", NULL },
 
 	{ "aes128-ctr",						"aes192-ctr",					"aes256-ctr",
@@ -2775,8 +2796,13 @@ static const char *InitAlgo[9][40] = {
 	  "camellia128-cbc@openssh.org",	"camellia192-cbc@openssh.org",	"camellia256-cbc@openssh.org",
 	  "seed-ctr@ssh.com",				"seed-cbc@ssh.com",
 	  NULL },
-	{ "hmac-sha1", "hmac-md5", "hmac-ripemd160", "hmac-sha256", "hmac-sha512", "hmac-whirlpool",
-	  "hmac-sha1-96", "hmac-md5-96", "hmac-sha256@ssh.com", NULL },
+	{ "hmac-md5",				"hmac-md5-96",			"hmac-sha1",			"hmac-sha1-96",
+	  "hmac-sha224",			"hmac-sha384",			"hmac-sha256",			"hmac-sha512",
+	  "hmac-sha224-96",			"hmac-sha384-96",		"hmac-sha256-96",		"hmac-sha512-96",
+	  "hmac-ripemd160",			"hmac-whirlpool",		"umac-64@openssh.com",
+	  "umac-32",				"umac-64",				"umac-96",				"umac-128",
+	  "hmac-sha256@ssh.com",	"hmac-sha256-96@ssh.com",
+	  NULL },
 	{ "zlib@openssh.com", "zlib", "none", NULL },
 };
 

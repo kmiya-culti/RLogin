@@ -78,6 +78,10 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 	//CCipher::BenchMark(tmp);
 	//CExtSocket::OnReciveCallBack((void *)(LPCSTR)tmp, tmp.GetLength(), 0);
 
+	//CString tmp;
+	//CMacomp::BenchMark(tmp);
+	//CExtSocket::OnReciveCallBack((void *)(LPCSTR)tmp, tmp.GetLength(), 0);
+
 	m_SSHVer = 0;
 	m_ServerVerStr = "";
 	m_ClientVerStr = "";

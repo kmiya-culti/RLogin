@@ -38,8 +38,9 @@ CSerEntPage::CSerEntPage() : CPropertyPage(CSerEntPage::IDD)
 	m_KanjiCode = 0;
 	m_ProtoType = 0;
 	//}}AFX_DATA_INIT
-	m_DefComPort = "";
+	m_DefComPort = _T("");
 	m_IdkeyName = _T("");
+	m_Memo = _T("");
 }
 
 CSerEntPage::~CSerEntPage()
@@ -59,6 +60,7 @@ void CSerEntPage::DoDataExchange(CDataExchange* pDX)
 	DDX_Radio(pDX, IDC_KANJICODE1, m_KanjiCode);
 	DDX_Radio(pDX, IDC_PROTO1, m_ProtoType);
 	//}}AFX_DATA_MAP
+	DDX_Text(pDX, IDC_ENTRYMEMO, m_Memo);
 }
 
 
@@ -78,6 +80,7 @@ BEGIN_MESSAGE_MAP(CSerEntPage, CPropertyPage)
 	ON_BN_CLICKED(IDC_CHATEDIT, &CSerEntPage::OnChatEdit)
 	ON_BN_CLICKED(IDC_PROXYSET, &CSerEntPage::OnProxySet)
 	ON_BN_CLICKED(IDC_TERMCAP, &CSerEntPage::OnBnClickedTermcap)
+	ON_EN_CHANGE(IDC_ENTRYMEMO, OnUpdateEdit)
 END_MESSAGE_MAP()
 
 void CSerEntPage::SetEnableWind()
@@ -155,6 +158,7 @@ BOOL CSerEntPage::OnInitDialog()
 	m_ProxyPort = m_pSheet->m_pEntry->m_ProxyPort;
 	m_ProxyUser = m_pSheet->m_pEntry->m_ProxyUser;
 	m_ProxyPass = m_pSheet->m_pEntry->m_ProxyPass;
+	m_Memo      = m_pSheet->m_pEntry->m_Memo;
 	m_ExtEnvStr = m_pSheet->m_pParamTab->m_ExtEnvStr;
 
 	if ( m_PortName.Compare("serial") == 0 ) {
@@ -237,6 +241,7 @@ BOOL CSerEntPage::OnApply()
 	m_pSheet->m_pEntry->m_ProxyPort = m_ProxyPort;
 	m_pSheet->m_pEntry->m_ProxyUser = m_ProxyUser;
 	m_pSheet->m_pEntry->m_ProxyPass = m_ProxyPass;
+	m_pSheet->m_pEntry->m_Memo      = m_Memo;
 	m_pSheet->m_pParamTab->m_ExtEnvStr = m_ExtEnvStr;
 
 	return TRUE;
@@ -264,6 +269,7 @@ void CSerEntPage::OnReset()
 	m_ProxyPort = m_pSheet->m_pEntry->m_ProxyPort;
 	m_ProxyUser = m_pSheet->m_pEntry->m_ProxyUser;
 	m_ProxyPass = m_pSheet->m_pEntry->m_ProxyPass;
+	m_Memo      = m_pSheet->m_pEntry->m_Memo;
 	m_ExtEnvStr = m_pSheet->m_pParamTab->m_ExtEnvStr;
 
 	UpdateData(FALSE);

@@ -312,6 +312,7 @@ public:
 	CString m_ProxyPort;
 	CString m_ProxyUser;
 	CString m_ProxyPass;
+	CString m_Memo;
 
 	void Init();
 	void SetArray(CStringArrayExt &array);

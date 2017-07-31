@@ -2353,12 +2353,16 @@ void CTextRam::FLUSH()
 {
 	if ( m_UpdateRect == CRect(0, 0, m_Cols, m_Lines) )
 		m_pDocument->UpdateAllViews(NULL, UPDATE_INVALIDATE, NULL);
-	else if ( !m_UpdateRect.IsRectEmpty() )
+	else if ( m_UpdateRect.left < m_UpdateRect.right && m_UpdateRect.top < m_UpdateRect.bottom )
 		m_pDocument->UpdateAllViews(NULL, UPDATE_TEXTRECT, (CObject *)&m_UpdateRect);
 	else
 		m_pDocument->UpdateAllViews(NULL, UPDATE_GOTOXY, NULL);
 
-	m_UpdateRect.SetRectEmpty();
+	m_UpdateRect.left   = m_Cols;
+	m_UpdateRect.top    = m_Lines;
+	m_UpdateRect.right  = 0;
+	m_UpdateRect.bottom = 0;
+
 	m_HisUse = 0;
 }
 void CTextRam::CUROFF()
@@ -2975,6 +2979,7 @@ void CTextRam::INSMDCK(int len)
 void CTextRam::SAVERAM()
 {
 	int n;
+	CTextSave *pNext;
 	CTextSave *pSave = new CTextSave;
 
 	pSave->m_VRam = new VRAM[m_Cols * m_Lines];
@@ -3010,7 +3015,17 @@ void CTextRam::SAVERAM()
 	memcpy(pSave->m_Save_TabMap, m_Save_TabMap, sizeof(m_Save_TabMap));
 
 	pSave->m_Next = m_pTextSave;
-	m_pTextSave = pSave;
+	m_pTextSave = pNext = pSave;
+
+	for ( n = 0 ; pSave->m_Next != NULL ; n++ ) {
+		pNext = pSave;
+		pSave = pSave->m_Next;
+	}
+	if ( n > 16 ) {
+		pNext->m_Next = pSave->m_Next;
+		delete pSave->m_VRam;
+		delete pSave;
+	}
 }
 void CTextRam::LOADRAM()
 {

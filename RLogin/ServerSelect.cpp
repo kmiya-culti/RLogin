@@ -49,9 +49,12 @@ BEGIN_MESSAGE_MAP(CServerSelect, CDialog)
 	ON_COMMAND(ID_EDIT_DELETE, OnDelentry)
 	ON_COMMAND(ID_EDIT_DUPS, OnEditCopy)
 	ON_COMMAND(ID_EDIT_CHECK, OnEditCheck)
+	ON_COMMAND(IDM_SERV_INPORT, &CServerSelect::OnServInport)
+	ON_COMMAND(IDM_SERV_EXPORT, &CServerSelect::OnServExport)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_UPDATE, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_DELETE, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_DUPS, OnUpdateEditEntry)
+	ON_UPDATE_COMMAND_UI(IDM_SERV_EXPORT, OnUpdateEditEntry)
 END_MESSAGE_MAP()
 
 void CServerSelect::InitList()
@@ -269,4 +272,118 @@ void CServerSelect::OnEditCheck()
 void CServerSelect::OnUpdateEditEntry(CCmdUI* pCmdUI) 
 {
 	pCmdUI->Enable(m_List.GetSelectMarkData() >= 0);
+}
+
+void CServerSelect::OnServInport()
+{
+	CFileDialog dlg(TRUE, "rlg", "", OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, "RLogin Ì§²Ù (*.rlg)|*.rlg|All Files (*.*)|*.*||", this);
+
+	if ( dlg.DoModal() != IDOK )
+		return;
+
+	CFile File;
+
+	if ( !File.Open(dlg.GetPathName(), CFile::modeRead | CFile::shareExclusive) ) {
+		MessageBox("File Open Error");
+		return;
+	}
+
+	CWaitCursor wait;
+	CArchive Archive(&File, CArchive::load);
+
+	CServerEntry Entry;
+	CTextRam TextRam;
+	CKeyNodeTab KeyTab;
+	CKeyMacTab KeyMac;
+	CParamTab ParamTab;
+	BYTE tmp[256];
+
+	TRY {
+		Archive.ReadString((LPSTR)tmp, 256);
+		if ( strncmp((LPSTR)tmp, "RLG2", 4) != 0 )
+			AfxThrowArchiveException(CArchiveException::badIndex, Archive.GetFile()->GetFileTitle());
+
+		for ( ; ; ) {
+			Entry.Serialize(Archive);
+			TextRam.Serialize(Archive);
+			KeyTab.Serialize(Archive);
+			KeyMac.Serialize(Archive);
+			ParamTab.Serialize(Archive);
+
+			Entry.m_Uid = (-1);
+			Entry.m_ProBuffer.Clear();
+			ParamTab.m_IdKeyList.RemoveAll();
+			TextRam.Serialize(TRUE,  Entry.m_ProBuffer);
+			KeyTab.Serialize(TRUE,   Entry.m_ProBuffer);
+			KeyMac.Serialize(TRUE,   Entry.m_ProBuffer);
+			ParamTab.Serialize(TRUE, Entry.m_ProBuffer);
+
+			m_EntryNum = m_pData->AddEntry(Entry);
+
+			if ( !Archive.ReadString((LPSTR)tmp, 256) )
+				break;
+			if ( strncmp((LPSTR)tmp, "RLG21", 5) != 0 )
+				break;
+		}
+	} CATCH_ALL(e) {
+		MessageBox("File Read Error");
+	} END_CATCH_ALL
+
+	Archive.Close();
+	File.Close();
+
+	InitList();
+}
+void CServerSelect::OnServExport()
+{
+	int n;
+	CServerEntry Entry;
+	CTextRam TextRam;
+	CKeyNodeTab KeyTab;
+	CKeyMacTab KeyMac;
+	CParamTab ParamTab;
+
+	if ( (m_EntryNum = m_List.GetSelectMarkData()) < 0 )
+		return;
+
+	CFileDialog dlg(FALSE, "rlg", "", OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, "RLogin Ì§²Ù (*.rlg)|*.rlg|All Files (*.*)|*.*||", this);
+
+	if ( dlg.DoModal() != IDOK )
+		return;
+
+	CFile File;
+
+	if ( !File.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeReadWrite | CFile::shareExclusive) ) {
+		MessageBox("File Crate Error");
+		return;
+	}
+
+	CWaitCursor wait;
+	CArchive Archive(&File, CArchive::store | CArchive::bNoFlushOnDelete);
+
+	TRY {
+		for ( n = 0 ; n < m_List.GetItemCount() ; n++ ) {
+			if ( m_List.GetItemState(n, LVIS_SELECTED) == 0 )
+				continue;
+			m_EntryNum = (int)m_List.GetItemData(n);
+			Entry = m_pData->GetAt(m_EntryNum);
+
+			TextRam.Serialize(FALSE,  Entry.m_ProBuffer);
+			KeyTab.Serialize(FALSE,   Entry.m_ProBuffer);
+			KeyMac.Serialize(FALSE,   Entry.m_ProBuffer);
+			ParamTab.Serialize(FALSE, Entry.m_ProBuffer);
+
+			Archive.WriteString("RLG210\n");
+			Entry.Serialize(Archive);
+			TextRam.Serialize(Archive);
+			KeyTab.Serialize(Archive);
+			KeyMac.Serialize(Archive);
+			ParamTab.Serialize(Archive);
+		}
+	} CATCH_ALL(e) {
+		MessageBox("File Write Error");
+	} END_CATCH_ALL
+
+	Archive.Close();
+	File.Close();
 }

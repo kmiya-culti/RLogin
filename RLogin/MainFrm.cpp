@@ -886,6 +886,10 @@ void CMainFrame::SetTransPar(COLORREF rgb, int value, DWORD flag)
 	if ( (flag & LWA_ALPHA) != 0 && value == 255 )
 		flag &= ~LWA_ALPHA;
 
+	//rgb = RGB(1, 1, 1);
+	//value = 196;
+	//flag = LWA_ALPHA | LWA_COLORKEY;
+
 	if ( flag == 0 )
 		ModifyStyleEx(WS_EX_LAYERED, 0);
 	else

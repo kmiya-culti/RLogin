@@ -50,6 +50,8 @@ protected:
 	//}}AFX_MSG
 	afx_msg void OnEditCopy();
 	afx_msg void OnEditCheck();
+	afx_msg void OnServInport();
+	afx_msg void OnServExport();
 	afx_msg void OnUpdateEditEntry(CCmdUI* pCmdUI);
 	DECLARE_MESSAGE_MAP()
 };

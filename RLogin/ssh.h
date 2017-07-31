@@ -133,9 +133,12 @@ class CMacomp: public CObject
 public:
 	int m_Index;
 	const EVP_MD *m_Md;
+	HMAC_CTX m_Ctx;
 	int m_KeyLen;
 	LPBYTE m_KeyBuf;
 	int m_BlockSize;
+	void *m_UmacCtx;
+	BOOL m_UmacMode;
 
 	int Init(LPCSTR name, LPBYTE key = NULL, int len = (-1));
 	void Compute(int seq, LPBYTE inbuf, int len, CBuffer *out);
@@ -144,6 +147,8 @@ public:
 	int GetBlockSize(LPCSTR name = NULL);
 	LPCSTR GetMatchList(LPCSTR str);
 	LPCSTR GetTitle();
+
+	static void BenchMark(CString &out);
 
 	CMacomp();
 	~CMacomp();
@@ -599,5 +604,11 @@ extern u_char *derive_key(int id, int need, u_char *hash, int hashlen, BIGNUM *s
 
 extern void *mm_zalloc(void *mm, unsigned int ncount, unsigned int size);
 extern void mm_zfree(void *mm, void *address);
+
+extern struct umac_ctx *UMAC_open(int len);
+extern void UMAC_init(struct umac_ctx *ctx, u_char *key, int len);
+extern void UMAC_update(struct umac_ctx *ctx, const u_char *input, size_t len);
+extern void UMAC_final(struct umac_ctx *ctx, u_char *tag, u_char *nonce);
+extern void UMAC_close(struct umac_ctx *ctx);
 
 #endif // !defined(AFX_SSH_H__2A682FAC_4F24_4168_9082_C9CDF2DD19D7__INCLUDED_)

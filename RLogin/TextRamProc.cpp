@@ -3129,6 +3129,7 @@ void CTextRam::fc_DECSRET(int ch)
 				POPRAM();
 			else if ( ch == 'h' )
 				PUSHRAM();
+			ANSIOPT(ch, i);
 			break;
 		case TO_XTSRCUR:	// 1048 XTERM Save/Restore cursor as in DECSC/DECRC
 			if ( ch == 'l' ) {
@@ -3151,6 +3152,7 @@ void CTextRam::fc_DECSRET(int ch)
 				ERABOX(0, 0, m_Cols, m_Lines);
 				LOCATE(0, 0);
 			}
+			ANSIOPT(ch, i);
 			break;
 
 		case TO_XTMOSREP:	// 9 X10 mouse reporting

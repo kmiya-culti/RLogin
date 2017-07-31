@@ -906,7 +906,9 @@ void CRLoginView::OnLButtonDblClk(UINT nFlags, CPoint point)
 	CalcGrapPoint(point, &x, &y);
 	m_ClipStaPos = m_ClipEndPos = pDoc->m_TextRam.GetCalcPos(x, y);
 	pDoc->m_TextRam.EditWordPos(&m_ClipStaPos, &m_ClipEndPos);
-	m_ClipFlag = 1;
+	m_ClipStaOld = m_ClipStaPos;
+	m_ClipEndOld = m_ClipEndPos;
+	m_ClipFlag = 2;
 	m_ClipTimer = 0;
 	m_ClipKeyFlags = nFlags;
 	SetCapture();
@@ -1039,7 +1041,7 @@ void CRLoginView::OnLButtonUp(UINT nFlags, CPoint point)
 }
 void CRLoginView::OnMouseMove(UINT nFlags, CPoint point) 
 {
-	int x, y, pos;
+	int x, y, pos, tos;
 	CRLoginDoc *pDoc = GetDocument();
 	ASSERT(pDoc);
 
@@ -1103,11 +1105,10 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 	}
 
 	CalcGrapPoint(point, &x, &y);
-	pos = pDoc->m_TextRam.GetCalcPos(x, y);
+	pos = tos = pDoc->m_TextRam.GetCalcPos(x, y);
 
 	switch(m_ClipFlag) {
-	case 1:
-	case 2:
+	case 1:		// clip start
 		if ( pos < m_ClipStaPos ) {
 			m_ClipFlag = 4;
 			m_ClipStaPos = pos;
@@ -1116,7 +1117,24 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 			m_ClipEndPos = pos;
 		}
 		break;
-	case 3:
+
+	case 2:		// word clip start pos
+		if ( pos < m_ClipStaPos ) {
+			pDoc->m_TextRam.EditWordPos(&pos, &tos);
+			m_ClipStaPos = pos;
+		} else if ( pos > m_ClipEndPos ) {
+			pDoc->m_TextRam.EditWordPos(&tos, &pos);
+			m_ClipEndPos = pos;
+			m_ClipStaPos = m_ClipStaOld;
+			m_ClipFlag = 5;
+		} else {
+			pDoc->m_TextRam.EditWordPos(&pos, &tos);
+			if ( m_ClipStaPos < pos )
+				m_ClipStaPos = pos;
+		}
+		break;
+
+	case 3:		// clip end pos 
 		if ( pos < m_ClipStaPos ) {
 			m_ClipFlag = 4;
 			m_ClipEndPos = m_ClipStaPos;
@@ -1124,13 +1142,30 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 		} else
 			m_ClipEndPos = pos;
 		break;
-	case 4:
+
+	case 4:		// clip start pos
 		if ( pos > m_ClipEndPos ) {
 			m_ClipFlag = 3;
 			m_ClipStaPos = m_ClipEndPos;
 			m_ClipEndPos = pos;
 		} else
 			m_ClipStaPos = pos;
+		break;
+
+	case 5:		// word clip end pos
+		if ( pos < m_ClipStaPos ) {
+			pDoc->m_TextRam.EditWordPos(&pos, &tos);
+			m_ClipStaPos = pos;
+			m_ClipEndPos = m_ClipEndOld;
+			m_ClipFlag = 2;
+		} else if ( pos > m_ClipEndPos ) {
+			pDoc->m_TextRam.EditWordPos(&tos, &pos);
+			m_ClipEndPos = pos;
+		} else {
+			pDoc->m_TextRam.EditWordPos(&pos, &tos);
+			if ( m_ClipEndPos > tos )
+				m_ClipEndPos = tos;
+		}
 		break;
 	}
 

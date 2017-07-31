@@ -57,6 +57,7 @@ public:
 
 	int m_ClipFlag;
 	int m_ClipStaPos, m_ClipEndPos;
+	int m_ClipStaOld, m_ClipEndOld;
 	UINT m_ClipTimer;
 	CPoint m_ClipSavePoint;
 	UINT m_ClipKeyFlags;
