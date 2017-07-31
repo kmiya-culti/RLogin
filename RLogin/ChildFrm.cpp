@@ -73,13 +73,13 @@ BOOL CChildFrame::PreCreateWindow(CREATESTRUCT& cs)
 //	cs.style &= ~(WS_BORDER | WS_DLGFRAME);
 //	cs.dwExStyle &= ~WS_EX_CLIENTEDGE;
 
-//	if ( AfxGetApp()->GetProfileInt("ChildFrame", "Style", 1) == 1 )
+//	if ( AfxGetApp()->GetProfileInt(_T("ChildFrame"), _T("Style"), 1) == 1 )
 //		cs.style |= WS_MAXIMIZE;
 //	else {
-//		cs.x  = AfxGetApp()->GetProfileInt("ChildFrame", "x", cs.x);
-//		cs.y  = AfxGetApp()->GetProfileInt("ChildFrame", "y", cs.y);
-//		cs.cx = AfxGetApp()->GetProfileInt("ChildFrame", "cx", cs.cx);
-//		cs.cy = AfxGetApp()->GetProfileInt("ChildFrame", "cy", cs.cy);
+//		cs.x  = AfxGetApp()->GetProfileInt(_T("ChildFrame"), _T("x"), cs.x);
+//		cs.y  = AfxGetApp()->GetProfileInt(_T("ChildFrame"), _T("y"), cs.y);
+//		cs.cx = AfxGetApp()->GetProfileInt(_T("ChildFrame"), _T("cx"), cs.cx);
+//		cs.cy = AfxGetApp()->GetProfileInt(_T("ChildFrame"), _T("cy"), cs.cy);
 //	}
 
 	CRect rect;
@@ -92,7 +92,7 @@ BOOL CChildFrame::PreCreateWindow(CREATESTRUCT& cs)
 
 void CChildFrame::ActivateFrame(int nCmdShow)
 {
-//	if ( AfxGetApp()->GetProfileInt("ChildFrame", "Style", 1) == 1 )
+//	if ( AfxGetApp()->GetProfileInt(_T("ChildFrame"), _T("Style"), 1) == 1 )
 //		nCmdShow = SW_SHOWMAXIMIZED;
 	CMDIChildWnd::ActivateFrame(nCmdShow);
 }
@@ -129,7 +129,7 @@ void CChildFrame::OnSize(UINT nType, int cx, int cy)
 	CMDIChildWnd::OnSize(nType, cx, cy);
 
 //	if ( nType != SIZE_MINIMIZED )
-//		AfxGetApp()->WriteProfileInt("ChildFrame", "Style", (nType == SIZE_MAXIMIZED ? 1 : 0));
+//		AfxGetApp()->WriteProfileInt(_T("ChildFrame"), _T("Style"), (nType == SIZE_MAXIMIZED ? 1 : 0));
 }
 
 int CChildFrame::OnCreate(LPCREATESTRUCT lpCreateStruct) 
@@ -147,10 +147,10 @@ void CChildFrame::OnDestroy()
 //	if ( !IsIconic() && !IsZoomed() ) {
 //		CRect rect;
 //		GetWindowRect(&rect);
-//		AfxGetApp()->WriteProfileInt("ChildFrame", "x", rect.left);
-//		AfxGetApp()->WriteProfileInt("ChildFrame", "y", rect.top);
-//		AfxGetApp()->WriteProfileInt("ChildFrame", "cx", rect.Width());
-//		AfxGetApp()->WriteProfileInt("ChildFrame", "cy", rect.Height());
+//		AfxGetApp()->WriteProfileInt(_T("ChildFrame"), _T("x"), rect.left);
+//		AfxGetApp()->WriteProfileInt(_T("ChildFrame"), _T("y"), rect.top);
+//		AfxGetApp()->WriteProfileInt(_T("ChildFrame"), _T("cx"), rect.Width());
+//		AfxGetApp()->WriteProfileInt(_T("ChildFrame"), _T("cy"), rect.Height());
 //	}
 	((CMainFrame *)AfxGetMainWnd())->RemoveChild(this);
 	CMDIChildWnd::OnDestroy();

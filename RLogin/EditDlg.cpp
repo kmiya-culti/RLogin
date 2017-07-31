@@ -19,10 +19,10 @@ CEditDlg::CEditDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CEditDlg::IDD, pParent)
 {
 	//{{AFX_DATA_INIT(CEditDlg)
-	m_Edit = _T("");
-	m_Title = _T("");
+	m_Edit.Empty();
+	m_Title.Empty();
 	//}}AFX_DATA_INIT
-	m_WinText = _T("");
+	m_WinText.Empty();
 }
 
 

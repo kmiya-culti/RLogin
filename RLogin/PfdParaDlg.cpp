@@ -72,12 +72,12 @@ BOOL CPfdParaDlg::OnInitDialog()
 
 	CComboBox *pCombo;
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_LISTENHOST)) != NULL ) {
-		pCombo->AddString("localhost");
+		pCombo->AddString(_T("localhost"));
 		if ( m_pEntry != NULL && !m_pEntry->m_HostName.IsEmpty() )
 			pCombo->AddString(m_pEntry->m_HostName);
 	}
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_CONNECTHOST)) != NULL ) {
-		pCombo->AddString("localhost");
+		pCombo->AddString(_T("localhost"));
 		if ( m_pEntry != NULL && !m_pEntry->m_HostName.IsEmpty() )
 			pCombo->AddString(m_pEntry->m_HostName);
 	}

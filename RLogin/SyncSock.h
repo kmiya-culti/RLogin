@@ -50,9 +50,9 @@ public:
 	class CProgDlg m_ProgDlg;
 	BOOL m_ResvDoit;
 	CStringList m_ResvPath;
-	CString m_FileName;
-	CString m_PathName;
-	CString m_Message;
+	CStringA m_FileName;
+	CStringA m_PathName;
+	CStringA m_Message;
 	DWORD m_Param;
 	LONGLONG m_Size;
 	LONGLONG m_RemSize;
@@ -96,8 +96,8 @@ public:
 	void UpDownInit(LONGLONG size, LONGLONG rems = 0L);
 	void UpDownStat(LONGLONG size);
 
-	void HostKanjiConv(CString &str);
-	void LocalKanjiConv(CString &str);
+	void HostKanjiConv(CStringA &str);
+	void LocalKanjiConv(CStringA &str);
 	void ThreadCommand(int cmd);
 	void DoAbort();
 

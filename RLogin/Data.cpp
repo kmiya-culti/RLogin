@@ -149,6 +149,12 @@ void CBuffer::PutStr(LPCSTR str)
 	Put32Bit(len);
 	Apend((LPBYTE)str, len);
 }
+void CBuffer::PutStrT(LPCTSTR str)
+{
+	int len = (int)_tcslen(str) * sizeof(TCHAR);
+	Put32Bit(len);
+	Apend((LPBYTE)str, len);
+}
 void CBuffer::PutBIGNUM(BIGNUM *val)
 {
 	int bits = BN_num_bits(val);
@@ -250,7 +256,16 @@ LONGLONG CBuffer::Get64Bit()
 	Consume(8);
 	return val;
 }
-int CBuffer::GetStr(CString &str)
+int CBuffer::GetStr(CStringA &str)
+{
+	int len = Get32Bit();
+	if ( len < 0 || len > (256 * 1024) || (m_Len - m_Ofs) < len )
+		throw this;
+	memcpy(str.GetBufferSetLength(len), m_Data + m_Ofs, len);
+	Consume(len);
+	return TRUE;
+}
+int CBuffer::GetStrT(CString &str)
 {
 	int len = Get32Bit();
 	if ( len < 0 || len > (256 * 1024) || (m_Len - m_Ofs) < len )
@@ -394,12 +409,12 @@ static const char Base64DecTab[] = {
         -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
         -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
 
-LPCSTR CBuffer::Base64Decode(LPCSTR str)
+LPCTSTR CBuffer::Base64Decode(LPCTSTR str)
 {
 	int n, c, o;
 
 	Clear();
-	for ( n = o = 0 ; (c = Base64DecTab[(unsigned char)(*str)]) >= 0 ; n++, str++ ) {
+	for ( n = o = 0 ; (c = Base64DecTab[(BYTE)(*str)]) >= 0 ; n++, str++ ) {
 		switch(n % 4) {
 		case 0:
 			o = c << 2;
@@ -424,8 +439,29 @@ LPCSTR CBuffer::Base64Decode(LPCSTR str)
 }
 void CBuffer::Base64Encode(LPBYTE buf, int len)
 {
+#ifdef	_UNICODE
 	int n;
-
+	Clear();
+	for ( n = len ; n > 0 ; n -= 3, buf += 3 ) {
+		if ( n >= 3 ) {
+			PutWord(Base64EncTab[(buf[0] >> 2) & 077]);
+			PutWord(Base64EncTab[((buf[0] << 4) | (buf[1] >> 4)) & 077]);
+			PutWord(Base64EncTab[((buf[1] << 2) | (buf[2] >> 6)) & 077]);
+			PutWord(Base64EncTab[buf[2] & 077]);
+		} else if ( n >= 2 ) {
+			PutWord(Base64EncTab[(buf[0] >> 2) & 077]);
+			PutWord(Base64EncTab[((buf[0] << 4) | (buf[1] >> 4)) & 077]);
+			PutWord(Base64EncTab[(buf[1] << 2) & 077]);
+			PutWord(L'=');
+		} else {
+			PutWord(Base64EncTab[(buf[0] >> 2) & 077]);
+			PutWord(Base64EncTab[(buf[0] << 4) & 077]);
+			PutWord(L'=');
+			PutWord(L'=');
+		}
+	}
+#else
+	int n;
 	Clear();
 	for ( n = len ; n > 0 ; n -= 3, buf += 3 ) {
 		if ( n >= 3 ) {
@@ -445,10 +481,10 @@ void CBuffer::Base64Encode(LPBYTE buf, int len)
 			Put8Bit('=');
 		}
 	}
-	Put8Bit('\0');
+#endif
 }
 
-static const char QuotedEncTab[] = "0123456789abcdef";
+static const char *QuotedEncTab = "0123456789abcdef";
 static const char QuotedDecTab[] = {
 	-1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1,
 	-1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1,
@@ -467,18 +503,18 @@ static const char QuotedDecTab[] = {
 	-1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1,
 	-1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1 };
 
-LPCSTR CBuffer::QuotedDecode(LPCSTR str)
+LPCTSTR CBuffer::QuotedDecode(LPCTSTR str)
 {
     int c1, c2;
 
 	Clear();
-	while ( *str != '\0' ) {
-		if ( str[0] == '=' && (c1 = QuotedDecTab[str[1]]) >= 0 && (c2 = QuotedDecTab[str[2]]) >= 0 ) {
+	while ( *str != _T('\0') ) {
+		if ( str[0] == _T('=') && (c1 = QuotedDecTab[(BYTE)str[1]]) >= 0 && (c2 = QuotedDecTab[(BYTE)str[2]]) >= 0 ) {
 			Put8Bit((c1 << 4) | c2);
 			str += 3;
-		} else if ( str[0] == '=' && str[1] == '\n' ) {
+		} else if ( str[0] == _T('=') && str[1] == _T('\n') ) {
 		    str += 2;
-		} else if ( str[0] == '=' && str[1] == '\0' ) {
+		} else if ( str[0] == _T('=') && str[1] == _T('\0') ) {
 		    break;
 		} else {
 			Put8Bit(*str);
@@ -489,6 +525,20 @@ LPCSTR CBuffer::QuotedDecode(LPCSTR str)
 }
 void CBuffer::QuotedEncode(LPBYTE buf, int len)
 {
+#ifdef	_UNICODE
+	Clear();
+    while ( len > 0 ) {
+		if ( (*buf != '\n' && *buf != '\t' && *buf < ' ' ) || *buf >= 127 || *buf == '=' ) {
+			PutWord(L'=');
+			PutWord(QuotedEncTab[*buf >> 4]);
+			PutWord(QuotedEncTab[*buf & 15]);
+		} else {
+			PutWord(*buf);
+		}
+		buf += 1;
+		len -= 1;
+    }
+#else
 	Clear();
     while ( len > 0 ) {
 		if ( (*buf != '\n' && *buf != '\t' && *buf < ' ' ) || *buf >= 127 || *buf == '=' ) {
@@ -501,16 +551,16 @@ void CBuffer::QuotedEncode(LPBYTE buf, int len)
 		buf += 1;
 		len -= 1;
     }
-	Put8Bit('\0');
+#endif
 }
 
-LPCSTR CBuffer::Base16Decode(LPCSTR str)
+LPCTSTR CBuffer::Base16Decode(LPCTSTR str)
 {
     int c1, c2;
 
 	Clear();
-	while ( *str != '\0' ) {
-		if ( (c1 = QuotedDecTab[str[0]]) >= 0 && (c2 = QuotedDecTab[str[1]]) >= 0 ) {
+	while ( *str != _T('\0') ) {
+		if ( (c1 = QuotedDecTab[(BYTE)str[0]]) >= 0 && (c2 = QuotedDecTab[(BYTE)str[1]]) >= 0 ) {
 			Put8Bit((c1 << 4) | c2);
 			str += 2;
 		} else
@@ -520,6 +570,15 @@ LPCSTR CBuffer::Base16Decode(LPCSTR str)
 }
 void CBuffer::Base16Encode(LPBYTE buf, int len)
 {
+#ifdef	_UNICODE
+	Clear();
+    while ( len > 0 ) {
+		PutWord(QuotedEncTab[*buf >> 4]);
+		PutWord(QuotedEncTab[*buf & 15]);
+		buf += 1;
+		len -= 1;
+    }
+#else
 	Clear();
     while ( len > 0 ) {
 		Put8Bit(QuotedEncTab[*buf >> 4]);
@@ -527,18 +586,19 @@ void CBuffer::Base16Encode(LPBYTE buf, int len)
 		buf += 1;
 		len -= 1;
     }
-	Put8Bit('\0');
+#endif
 }
-void CBuffer::md5(LPCSTR str)
+void CBuffer::md5(LPCTSTR str)
 {
 	unsigned int dlen;
 	const EVP_MD *evp_md;
 	u_char digest[EVP_MAX_MD_SIZE];
 	EVP_MD_CTX md;
+	CStringA tmp(str);
 
 	evp_md = EVP_md5();
 	EVP_DigestInit(&md, evp_md);
-	EVP_DigestUpdate(&md, (LPBYTE)str, (int)strlen(str));
+	EVP_DigestUpdate(&md, (const void *)(LPCSTR)tmp, tmp.GetLength());
 	EVP_DigestFinal(&md, digest, &dlen);
 
 	Base16Encode(digest, dlen);
@@ -552,7 +612,7 @@ void CStringArrayExt::AddBin(void *buf, int len)
 	CBuffer tmp;
 
 	tmp.Base64Encode((LPBYTE)buf, len);
-	Add((LPCSTR)tmp);
+	Add((LPCTSTR)tmp);
 }
 void CStringArrayExt::GetBuf(int index, CBuffer &buf)
 {
@@ -578,7 +638,7 @@ void CStringArrayExt::SetString(CString &str, int sep)
 		str += (char)sep;
 	}
 }
-void CStringArrayExt::GetString(LPCSTR str, int sep)
+void CStringArrayExt::GetString(LPCTSTR str, int sep)
 {
 	int i, a;
 	CString work = str;
@@ -605,7 +665,7 @@ void CStringArrayExt::SetBuffer(CBuffer &buf)
 {
 	buf.Put32Bit((int)GetSize());
 	for ( int n = 0 ; n < GetSize() ; n++ )
-		buf.PutStr(GetAt(n));
+		buf.PutStrT(GetAt(n));
 }
 void CStringArrayExt::GetBuffer(CBuffer &buf)
 {
@@ -617,7 +677,7 @@ void CStringArrayExt::GetBuffer(CBuffer &buf)
 		return;
 	mx = buf.Get32Bit();
 	for ( n = 0 ; n < mx ; n++ ) {
-		buf.GetStr(str);
+		buf.GetStrT(str);
 		Add(str);
 	}
 }
@@ -630,17 +690,17 @@ void CStringArrayExt::Serialize(CArchive& ar)
 		// TODO: この位置に保存用のコードを追加してください。
 		for ( n = 0 ; n < GetSize() ; n++ ) {
 			str = GetAt(n);
-			str += "\n";
+			str += _T("\n");
 			ar.WriteString(str);
 		}
-		ar.WriteString("ENDOF\n");
+		ar.WriteString(_T("ENDOF\n"));
 
 	} else {
 		// TODO: この位置に読み込み用のコードを追加してください。
 		RemoveAll();
 		while ( ar.ReadString(str) ) {
-			str.Replace("\n", "");
-			if ( str.Compare("ENDOF") == 0 )
+			str.Replace(_T("\n"), _T(""));
+			if ( str.Compare(_T("ENDOF")) == 0 )
 				break;
 			Add(str);
 		}
@@ -653,7 +713,7 @@ const CStringArrayExt & CStringArrayExt::operator = (CStringArrayExt &data)
 		Add(data[n]);
 	return *this;
 }
-int CStringArrayExt::Find(LPCSTR str)
+int CStringArrayExt::Find(LPCTSTR str)
 {
 	for ( int n = 0 ; n < GetSize() ; n++ ) {
 		if ( GetAt(n).Compare(str) == 0 )
@@ -661,7 +721,7 @@ int CStringArrayExt::Find(LPCSTR str)
 	}
 	return (-1);
 }
-int CStringArrayExt::FindNoCase(LPCSTR str)
+int CStringArrayExt::FindNoCase(LPCTSTR str)
 {
 	for ( int n = 0 ; n < GetSize() ; n++ ) {
 		if ( GetAt(n).CompareNoCase(str) == 0 )
@@ -684,7 +744,7 @@ CBmpFile::~CBmpFile()
 		m_pPic->Release();
 }
 
-int CBmpFile::LoadFile(LPCSTR filename)
+int CBmpFile::LoadFile(LPCTSTR filename)
 {
 	CFile file;
 	HGLOBAL hGLB;
@@ -829,9 +889,9 @@ CFontChacheNode::~CFontChacheNode()
 	if ( m_pFont != NULL )
 		delete m_pFont;
 }
-CFont *CFontChacheNode::Open(LPCSTR pFontName, int Width, int Height, int CharSet, int Style, int Quality)
+CFont *CFontChacheNode::Open(LPCTSTR pFontName, int Width, int Height, int CharSet, int Style, int Quality)
 {
-    strcpy(m_LogFont.lfFaceName, pFontName);
+    _tcsncpy(m_LogFont.lfFaceName, pFontName, sizeof(m_LogFont.lfFaceName) - 1);
 	m_LogFont.lfWidth       = Width;
 	m_LogFont.lfHeight		= Height;
 	m_LogFont.lfCharSet		= CharSet;
@@ -857,7 +917,7 @@ CFont *CFontChacheNode::Open(LPCSTR pFontName, int Width, int Height, int CharSe
 
 	dc.CreateCompatibleDC(NULL);
 	pOld = dc.SelectObject(m_pFont);
-	sz = dc.GetTextExtent("亜", 2);
+	sz = dc.GetTextExtent(_T("亜"), 2);
 	dc.SelectObject(pOld);
 
 	m_KanWidMul = Width * 200 / sz.cx;
@@ -880,7 +940,7 @@ CFontChache::CFontChache()
 		m_pTop[hs] = &(m_Data[n]);
 	}
 }
-CFontChacheNode *CFontChache::GetFont(LPCSTR pFontName, int Width, int Height, int CharSet, int Style, int Quality, int Hash)
+CFontChacheNode *CFontChache::GetFont(LPCTSTR pFontName, int Width, int Height, int CharSet, int Style, int Quality, int Hash)
 {
 	CFontChacheNode *pNext, *pBack;
 
@@ -893,7 +953,7 @@ CFontChacheNode *CFontChache::GetFont(LPCSTR pFontName, int Width, int Height, i
 			 pNext->m_LogFont.lfHeight  == Height  &&
 			 pNext->m_LogFont.lfQuality == Quality &&
 			 pNext->m_Style             == Style   &&
-			 strcmp(pNext->m_LogFont.lfFaceName, pFontName) == 0 ) {
+			 _tcscmp(pNext->m_LogFont.lfFaceName, pFontName) == 0 ) {
 			if ( pNext != pBack ) {
 				pBack->m_pNext = pNext->m_pNext;
 				pNext->m_pNext = m_pTop[Hash];
@@ -907,7 +967,7 @@ CFontChacheNode *CFontChache::GetFont(LPCSTR pFontName, int Width, int Height, i
 		pNext = pNext->m_pNext;
 	}
 
-	TRACE("CacheMiss %s(%d,%d,%d,%d)\n", pFontName, CharSet, Height, Hash, Style);
+	//TRACE("CacheMiss %s(%d,%d,%d,%d)\n", CStringA(pFontName), CharSet, Height, Hash, Style);
 
 	if ( pNext->Open(pFontName, Width, Height, CharSet, Style, Quality) == NULL )
 		return NULL;
@@ -921,7 +981,7 @@ CFontChacheNode *CFontChache::GetFont(LPCSTR pFontName, int Width, int Height, i
 //////////////////////////////////////////////////////////////////////
 // CMutexLock
 
-CMutexLock::CMutexLock(LPCSTR lpszName)
+CMutexLock::CMutexLock(LPCTSTR lpszName)
 {
 	m_pMutex = new CMutex(TRUE, lpszName);
 	m_pLock  = new CSingleLock(m_pMutex, FALSE);
@@ -939,7 +999,7 @@ CMutexLock::~CMutexLock()
 
 COptObject::COptObject()
 {
-	m_pSection = "OptObject";
+	m_pSection = _T("OptObject");
 	m_MinSize = 1;
 }
 void COptObject::Init()
@@ -1062,8 +1122,8 @@ void CStrScript::SetNode(CStrScriptNode *np, CBuffer &buf)
 		buf.Put8Bit(0);
 	else {
 		buf.Put8Bit(1);
-		buf.PutStr(np->m_RecvStr);
-		buf.PutStr(np->m_SendStr);
+		buf.PutStrT(np->m_RecvStr);
+		buf.PutStrT(np->m_SendStr);
 		SetNode(np->m_Left,  buf);
 		SetNode(np->m_Right, buf);
 	}
@@ -1076,8 +1136,8 @@ CStrScriptNode *CStrScript::GetNode(CBuffer &buf)
 		return NULL;
 
 	np = new CStrScriptNode;
-	buf.GetStr(np->m_RecvStr);
-	buf.GetStr(np->m_SendStr);
+	buf.GetStrT(np->m_RecvStr);
+	buf.GetStrT(np->m_SendStr);
 	np->m_Reg.Compile(np->m_RecvStr);
 	np->m_Left  = GetNode(buf);
 	np->m_Right = GetNode(buf);
@@ -1104,8 +1164,20 @@ int CStrScript::GetBuffer(CBuffer &buf)
 
 	return (m_Node != NULL ? TRUE : FALSE);
 }
-LPCSTR CStrScript::QuoteStr(CString &tmp, LPCSTR str)
+LPCTSTR CStrScript::QuoteStr(CString &tmp, LPCTSTR str)
 {
+#ifdef	_UNICODE
+	tmp = _T("\"");
+	while ( *str != _T('\0') ) {
+		if ( *str == _T('"') ) {
+			str++;
+			tmp += _T("\\042");
+		} else
+			tmp += *(str++);
+	}
+	tmp += _T("\"");
+	return tmp;
+#else
 	tmp = "\"";
 	while ( *str != '\0' ) {
 		if ( issjis1(str[0]) && issjis2(str[1]) ) {
@@ -1119,79 +1191,84 @@ LPCSTR CStrScript::QuoteStr(CString &tmp, LPCSTR str)
 	}
 	tmp += "\"";
 	return tmp;
+#endif
 }
 void CStrScript::SetNodeStr(CStrScriptNode *np, CString &str, int nst)
 {
 	int n;
 	CString tmp;
-	LPCSTR cmd = "if ";
+	LPCTSTR cmd = _T("if ");
 
 	if ( np == NULL )
 		return;
 
 	while ( np != NULL ) {
 		for ( n = 0 ; n < nst ; n++ )
-			str += "  ";
+			str += _T("  ");
 
 		str += cmd;
 		str += QuoteStr(tmp, np->m_RecvStr);
 
 		if ( !np->m_SendStr.IsEmpty() ) {
-			str += " then ";
+			str += _T(" then ");
 			str += QuoteStr(tmp, np->m_SendStr);
 		}
-		str += "\r\n";
+		str += _T("\r\n");
 
 		SetNodeStr(np->m_Right, str, nst + 1);
 
 		np = np->m_Left;
-		cmd = "or ";
+		cmd = _T("or ");
 	}
 
 	for ( n = 0 ; n < nst ; n++ )
-		str += "  ";
-	str += "fi\r\n";
+		str += _T("  ");
+	str += _T("fi\r\n");
 }
-int CStrScript::GetLex(LPCSTR &str)
+int CStrScript::GetLex(LPCTSTR &str)
 {
 	m_LexTmp.Empty();
 
-	while ( *str != '\0' && *str <= ' ' )
+	while ( *str != _T('\0') && *str <= _T(' ') )
 		str++;
 
-	if ( *str == '\0' ) {
+	if ( *str == _T('\0') ) {
 		return EOF;
 
-	} else if ( *str == '"' ) {
+	} else if ( *str == _T('"') ) {
 		str++;
-		while ( *str != '\0' && *str != '"' ) {
+		while ( *str != _T('\0') && *str != _T('"') ) {
+#ifndef	_UNICODE
 			if ( issjis1(str[0]) && issjis2(str[1]) )
 				m_LexTmp += *(str++);
+#endif
 			m_LexTmp += *(str++);
 		}
-		if ( *str != '\0' )
+		if ( *str != _T('\0') )
 			str++;
 		return 0;
 	}
 
-	while ( *str != '\0' && *str > ' ' ) {
+	while ( *str != _T('\0') && *str > _T(' ') ) {
+#ifndef	_UNICODE
 		if ( issjis1(str[0]) && issjis2(str[1]) )
 			m_LexTmp += *(str++);
+#endif
 		m_LexTmp += *(str++);
 	}
 
-	if ( m_LexTmp.CollateNoCase("if") == 0 )
+	if ( m_LexTmp.CollateNoCase(_T("if")) == 0 )
 		return 1;
-	else if ( m_LexTmp.CollateNoCase("then") == 0 )
+	else if ( m_LexTmp.CollateNoCase(_T("then")) == 0 )
 		return 2;
-	else if ( m_LexTmp.CollateNoCase("or") == 0 )
+	else if ( m_LexTmp.CollateNoCase(_T("or")) == 0 )
 		return 3;
-	else if ( m_LexTmp.CollateNoCase("fi") == 0 )
+	else if ( m_LexTmp.CollateNoCase(_T("fi")) == 0 )
 		return 4;
 	else
 		return 0;
 }
-CStrScriptNode *CStrScript::GetNodeStr(int &lex, LPCSTR &str)
+CStrScriptNode *CStrScript::GetNodeStr(int &lex, LPCTSTR &str)
 {
 	int cmd = lex;
 	CStrScriptNode *np;
@@ -1230,7 +1307,7 @@ void CStrScript::SetString(CString &str)
 	str.Empty();
 	SetNodeStr(m_Node, str, 0);
 }
-void CStrScript::GetString(LPCSTR str)
+void CStrScript::GetString(LPCTSTR str)
 {
 	int lex;
 
@@ -1250,8 +1327,8 @@ void CStrScript::EscapeStr(LPCWSTR str, CString &buf, BOOL reg)
 	int n;
 	CString tmp;
 
-	for ( buf.Empty() ; *str != '\0' ; str++ ) {
-		if ( *str <= ' ' || *str == '\\' || *str == 0x7F ) {
+	for ( buf.Empty() ; *str != L'\0' ; str++ ) {
+		if ( *str <= L' ' || *str == L'\\' || *str == 0x7F ) {
 			switch(*str) {
 			case 0x07: buf += "\\a"; break;
 			case 0x08: buf += "\\b"; break;
@@ -1260,10 +1337,10 @@ void CStrScript::EscapeStr(LPCWSTR str, CString &buf, BOOL reg)
 			case 0x0B: buf += "\\v"; break;
 			case 0x0C: buf += "\\f"; break;
 			case 0x0D: buf += "\\r"; break;
-			case ' ':  buf += " ";   break;
-			case '\\': buf += "\\\\"; break;
+			case L' ':  buf += " ";   break;
+			case L'\\': buf += "\\\\"; break;
 			default:
-				tmp.Format("\\%03o", *str);
+				tmp.Format(_T("\\%03o"), (CHAR)*str);
 				buf += tmp;
 				break;
 			}
@@ -1271,25 +1348,25 @@ void CStrScript::EscapeStr(LPCWSTR str, CString &buf, BOOL reg)
 				for ( n = 1 ; str[0] == str[1] ; n++ )
 					str++;
 				if ( n > 1 )
-					buf += '+';
+					buf += _T('+');
 			}
 		} else if ( reg ) {
 			switch(*str) {
-			case '0': case '1': case '2': case '3': case '4':
-			case '5': case '6': case '7': case '8': case '9':
-				for ( n = 1 ; str[1] >= '0' && str[1] <= '9' ; n++ )
+			case L'0': case L'1': case L'2': case L'3': case L'4':
+			case L'5': case L'6': case L'7': case L'8': case L'9':
+				for ( n = 1 ; str[1] >= L'0' && str[1] <= L'9' ; n++ )
 					str++;
-				buf += (n > 1 ? "[0-9]+" : "[0-9]");
+				buf += (n > 1 ? _T("[0-9]+") : _T("[0-9]"));
 				break;
-			case '[': case '^': case '$': case '|':
-			case '+': case '*': case '.': case '?':
-			case '{': case '(':
-				buf += "\\";
+			case L'[': case L'^': case L'$': case L'|':
+			case L'+': case L'*': case L'.': case L'?':
+			case L'{': case L'(':
+				buf += _T("\\");
 			default:
 				buf += *str;
 				for ( n = 1 ; str[0] == str[n] ; n++ );
 				if ( n > 2 ) {
-					buf += '+';
+					buf += _T('+');
 					str += (n - 1);
 				}
 				break;
@@ -1303,7 +1380,7 @@ void CStrScript::AddNode(LPCWSTR recv, LPCWSTR send)
 {
 	CStrScriptNode *np, *tp;
 
-	if ( *recv == '\0' && send == '\0' )
+	if ( *recv == L'\0' && send == L'\0' )
 		return;
 
 	np = new CStrScriptNode;
@@ -1363,8 +1440,8 @@ void CStrScript::ExecInit()
 			m_StatDlg.Create(IDD_CHATSTAT, AfxGetMainWnd());
 			m_StatDlg.ShowWindow(SW_SHOW);
 		}
-		m_StatDlg.m_Title.SetWindowText(m_MakeFlag ? "Makeing" : "Execute");
-		m_StatDlg.SetStaus("");
+		m_StatDlg.m_Title.SetWindowText(m_MakeFlag ? _T("Makeing") : _T("Execute"));
+		m_StatDlg.SetStaus(_T(""));
 		AfxGetMainWnd()->SetFocus();
 	}
 }
@@ -1386,7 +1463,7 @@ LPCWSTR CStrScript::ExecChar(int ch)
 	} else if ( m_Exec != NULL ) {
 		for ( np = m_Exec ; np != NULL ; np = np->m_Left ) {
 			if ( !tmp.IsEmpty() )
-				tmp += " or ";
+				tmp += _T(" or ");
 			tmp += np->m_RecvStr;
 			if ( np->m_Reg.MatchChar(ch, 0, &m_Res) && (m_Res.m_Status == REG_MATCH || m_Res.m_Status == REG_MATCHOVER) ) {
 				ExecNode(np->m_Right);
@@ -1412,16 +1489,16 @@ void CStrScript::SendStr(LPCWSTR str, int len, CServerEntry *ep)
 			if ( m_Line[2].IsEmpty() )
 				m_Line[2] = m_Line[1];
 		}
-		if ( *str == '\r' ) {
+		if ( *str == L'\r' ) {
 			if ( ep != NULL ) {
-				if ( ep->m_EntryName.Compare((CString)m_Str) == 0 )
-					m_Str = "%E";
-				else if ( ep->m_UserName.Compare((CString)m_Str) == 0 )
-					m_Str = "%U";
-				else if ( ep->m_PassName.Compare((CString)m_Str) == 0 )
-					m_Str = "%P";
-				else if ( ep->m_TermName.Compare((CString)m_Str) == 0 )
-					m_Str = "%T";
+				if ( ep->m_EntryName.Compare(CString(m_Str)) == 0 )
+					m_Str = L"%E";
+				else if ( ep->m_UserName.Compare(CString(m_Str)) == 0 )
+					m_Str = L"%U";
+				else if ( ep->m_PassName.Compare(CString(m_Str)) == 0 )
+					m_Str = L"%P";
+				else if ( ep->m_TermName.Compare(CString(m_Str)) == 0 )
+					m_Str = L"%T";
 			}
 			m_Str += *str;
 			AddNode(m_Line[2], m_Str);
@@ -1439,7 +1516,7 @@ void CStrScript::SetTreeNode(CStrScriptNode *np, CTreeCtrl &tree, HTREEITEM own)
 	if ( np == NULL )
 		return;
 
-	tmp.Format("%s/%s", np->m_RecvStr, np->m_SendStr);
+	tmp.Format(_T("%s/%s"), np->m_RecvStr, np->m_SendStr);
 
 	if ( (hti = tree.InsertItem(tmp, own, TVI_LAST)) == NULL )
 		return;
@@ -1570,14 +1647,14 @@ void CServerEntry::GetArray(CStringArrayExt &array)
 
 	if ( array.GetSize() > 16 ) {
 		key.DecryptStr(str, array.GetAt(16));
-		if ( str.Compare("12345678") != 0 ) {
+		if ( str.Compare(_T("12345678")) != 0 ) {
 			m_PassName.Empty();
 			m_ProxyPass.Empty();
 		}
 	}
 
-	m_Memo       = (array.GetSize() > 17 ?  array.GetAt(17) : "");
-	m_Group      = (array.GetSize() > 18 ?  array.GetAt(18) : "");
+	m_Memo       = (array.GetSize() > 17 ?  array.GetAt(17) : _T(""));
+	m_Group      = (array.GetSize() > 18 ?  array.GetAt(18) : _T(""));
 
 	m_ProBuffer.Clear();
 	m_HostReal = m_HostName;
@@ -1611,7 +1688,7 @@ void CServerEntry::SetArray(CStringArrayExt &array)
 	array.Add(m_ProxyUser);
 	key.EncryptStr(str, m_ProxyPass);
 	array.Add(str);
-	key.EncryptStr(str, "12345678");
+	key.EncryptStr(str, _T("12345678"));
 	array.Add(str);
 	array.Add(m_Memo);
 	array.Add(m_Group);
@@ -1633,26 +1710,26 @@ int CServerEntry::GetBuffer(CBuffer &buf)
 	buf.GetBuf(&m_ProBuffer);
 	return TRUE;
 }
-void CServerEntry::SetProfile(LPCSTR pSection)
+void CServerEntry::SetProfile(LPCTSTR pSection)
 {
 	CBuffer buf;
 	CString entry;
-	entry.Format("List%02d", m_Uid);
+	entry.Format(_T("List%02d"), m_Uid);
 	SetBuffer(buf);
 	((CRLoginApp *)AfxGetApp())->WriteProfileBinary(pSection, entry, buf.GetPtr(), buf.GetSize());
 }
-int CServerEntry::GetProfile(LPCSTR pSection, int Uid)
+int CServerEntry::GetProfile(LPCTSTR pSection, int Uid)
 {
 	CBuffer buf;
 	CString entry;
-	entry.Format("List%02d", Uid);
+	entry.Format(_T("List%02d"), Uid);
 	((CRLoginApp *)AfxGetApp())->GetProfileBuffer(pSection, entry, buf);
 	return GetBuffer(buf);
 }
-void CServerEntry::DelProfile(LPCSTR pSection)
+void CServerEntry::DelProfile(LPCTSTR pSection)
 {
 	CString entry;
-	entry.Format("List%02d", m_Uid);
+	entry.Format(_T("List%02d"), m_Uid);
 	((CRLoginApp *)AfxGetApp())->DelProfileEntry(pSection, entry);
 }
 void CServerEntry::Serialize(CArchive &ar)
@@ -1670,34 +1747,34 @@ void CServerEntry::Serialize(CArchive &ar)
 			GetArray(array);
 	}
 }
-LPCSTR CServerEntry::GetKanjiCode()
+LPCTSTR CServerEntry::GetKanjiCode()
 {
 	switch(m_KanjiCode) {
-	case SJIS_SET:	return "SJIS";
-	case ASCII_SET:	return "ASCII";
-	case UTF8_SET:	return "UTF8";
-	case BIG5_SET:	return "BIG5";
-	default:		return "EUC";
+	case SJIS_SET:	return _T("SJIS");
+	case ASCII_SET:	return _T("ASCII");
+	case UTF8_SET:	return _T("UTF8");
+	case BIG5_SET:	return _T("BIG5");
+	default:		return _T("EUC");
 	}
 }
-void CServerEntry::SetKanjiCode(LPCSTR str)
+void CServerEntry::SetKanjiCode(LPCTSTR str)
 {
-	if (      strcmp(str, "EUC") == 0 )		m_KanjiCode = EUC_SET;
-	else if ( strcmp(str, "SJIS") == 0 )	m_KanjiCode = SJIS_SET;
-	else if ( strcmp(str, "ASCII") == 0 )	m_KanjiCode = ASCII_SET;
-	else if ( strcmp(str, "BIG5") == 0 )	m_KanjiCode = UTF8_SET;
-	else if ( strcmp(str, "UTF8") == 0 )	m_KanjiCode = BIG5_SET;
-	else									m_KanjiCode = EUC_SET;
+	if (      _tcscmp(str, _T("EUC")) == 0 )	m_KanjiCode = EUC_SET;
+	else if ( _tcscmp(str, _T("SJIS")) == 0 )	m_KanjiCode = SJIS_SET;
+	else if ( _tcscmp(str, _T("ASCII")) == 0 )	m_KanjiCode = ASCII_SET;
+	else if ( _tcscmp(str, _T("BIG5")) == 0 )	m_KanjiCode = UTF8_SET;
+	else if ( _tcscmp(str, _T("UTF8")) == 0 )	m_KanjiCode = BIG5_SET;
+	else									    m_KanjiCode = EUC_SET;
 }
-int CServerEntry::GetProtoType(LPCSTR str)
+int CServerEntry::GetProtoType(LPCTSTR str)
 {
-	if ( strcmp(str, "serial") == 0 )
+	if ( _tcscmp(str, _T("serial")) == 0 )
 		return PROTO_COMPORT;
-	else if ( strcmp(str, "telnet") == 0 )
+	else if ( _tcscmp(str, _T("telnet")) == 0 )
 		return PROTO_TELNET;
-	else if ( strcmp(str, "login") == 0 )
+	else if ( _tcscmp(str, _T("login")) == 0 )
 		return PROTO_LOGIN;
-	else if ( strcmp(str, "ssh") == 0 )
+	else if ( _tcscmp(str, _T("ssh")) == 0 )
 		return PROTO_SSH;
 	else
 		return PROTO_DIRECT;
@@ -1708,7 +1785,7 @@ int CServerEntry::GetProtoType(LPCSTR str)
 
 CServerEntryTab::CServerEntryTab()
 {
-	m_pSection = "ServerEntryTab";
+	m_pSection = _T("ServerEntryTab");
 	m_MinSize = 1;
 	Serialize(FALSE);
 }
@@ -1752,9 +1829,9 @@ void CServerEntryTab::Serialize(int mode)
 		pApp->GetProfileKeys(m_pSection, entry);
 		m_Data.RemoveAll();
 		for ( n = 0 ; n < entry.GetSize() ; n++ ) {
-			if ( entry[n].Left(4).Compare("List") != 0 || strchr("0123456789", entry[n][4]) == NULL )
+			if ( entry[n].Left(4).Compare(_T("List")) != 0 || _tcschr(_T("0123456789"), entry[n][4]) == NULL )
 				continue;
-			uid = atoi(entry[n].Mid(4));
+			uid = _tstoi(entry[n].Mid(4));
 			if ( tmp.GetProfile(m_pSection, uid) ) {
 				if ( tmp.m_Uid == (-1) )
 					tmp.m_Uid = uid;
@@ -1774,7 +1851,7 @@ int CServerEntryTab::AddEntry(CServerEntry &Entry)
 			return n;
 		}
 	}
-	Entry.m_Uid = ((CRLoginApp *)AfxGetApp())->GetProfileSeqNum(m_pSection, "ListMax");
+	Entry.m_Uid = ((CRLoginApp *)AfxGetApp())->GetProfileSeqNum(m_pSection, _T("ListMax"));
 	Entry.SetProfile(m_pSection);
 	return (int)m_Data.Add(Entry);
 }
@@ -1797,27 +1874,27 @@ CKeyNode::CKeyNode()
 	m_Mask = 0;
 	m_Maps.Clear();
 }
-LPCSTR CKeyNode::GetMaps()
+LPCTSTR CKeyNode::GetMaps()
 {
 	int n, c;
 	LPCWSTR p;
 	CString tmp;
 	
-	m_Temp = "";
+	m_Temp = _T("");
 	p = m_Maps;
 	for ( n = 0 ; n < m_Maps.GetSize() ; n += 2, p++ ) {
 		switch(*p) {
-		case L'\b': m_Temp += "\\b"; break;
-		case L'\t': m_Temp += "\\t"; break;
-		case L'\n': m_Temp += "\\n"; break;
-		case L'\a': m_Temp += "\\a"; break;
-		case L'\f': m_Temp += "\\f"; break;
-		case L'\r': m_Temp += "\\r"; break;
-		case L'\\': m_Temp += "\\\\"; break;
-		case L' ':  m_Temp += "\\s"; break;
+		case L'\b': m_Temp += _T("\\b"); break;
+		case L'\t': m_Temp += _T("\\t"); break;
+		case L'\n': m_Temp += _T("\\n"); break;
+		case L'\a': m_Temp += _T("\\a"); break;
+		case L'\f': m_Temp += _T("\\f"); break;
+		case L'\r': m_Temp += _T("\\r"); break;
+		case L'\\': m_Temp += _T("\\\\"); break;
+		case L' ':  m_Temp += _T("\\s"); break;
 		default:
 			if ( *p == L'\x7F' || *p < L' ' ) {
-				tmp.Format("\\%03o", *p);
+				tmp.Format(_T("\\%03o"), *p);
 				m_Temp += tmp;
 			} else {
 				tmp = *p;
@@ -1828,7 +1905,7 @@ LPCSTR CKeyNode::GetMaps()
 	}
 	return m_Temp;
 }
-void CKeyNode::SetMaps(LPCSTR str)
+void CKeyNode::SetMaps(LPCTSTR str)
 {
 	int c, n;
 	CStringW tmp;
@@ -1880,92 +1957,92 @@ void CKeyNode::SetMaps(LPCSTR str)
 
 static const struct _KeyNameTab	{
 	int		code;
-	_TCHAR	*name;
+	LPCTSTR	name;
 } KeyNameTab[] = {
-	{ VK_F1,		"F1" },
-	{ VK_F2,		"F2" },
-	{ VK_F3,		"F3" },
-	{ VK_F4,		"F4" },
-	{ VK_F5,		"F5" },
-	{ VK_F6,		"F6" },
-	{ VK_F7,		"F7" },
-	{ VK_F8,		"F8" },
-	{ VK_F9,		"F9" },
-	{ VK_F10,		"F10" },
-	{ VK_F11,		"F11" },
-	{ VK_F12,		"F12" },
-	{ VK_F13,		"F13" },
-	{ VK_F14,		"F14" },
-	{ VK_F15,		"F15" },
-	{ VK_F16,		"F16" },
-	{ VK_F17,		"F17" },
-	{ VK_F18,		"F18" },
-	{ VK_F19,		"F19" },
-	{ VK_F20,		"F20" },
-	{ VK_F21,		"F21" },
-	{ VK_F22,		"F22" },
-	{ VK_F23,		"F23" },
-	{ VK_F24,		"F24" },
+	{ VK_F1,		_T("F1")		},
+	{ VK_F2,		_T("F2")		},
+	{ VK_F3,		_T("F3")		},
+	{ VK_F4,		_T("F4")		},
+	{ VK_F5,		_T("F5")		},
+	{ VK_F6,		_T("F6")		},
+	{ VK_F7,		_T("F7")		},
+	{ VK_F8,		_T("F8")		},
+	{ VK_F9,		_T("F9")		},
+	{ VK_F10,		_T("F10")		},
+	{ VK_F11,		_T("F11")		},
+	{ VK_F12,		_T("F12")		},
+	{ VK_F13,		_T("F13")		},
+	{ VK_F14,		_T("F14")		},
+	{ VK_F15,		_T("F15")		},
+	{ VK_F16,		_T("F16")		},
+	{ VK_F17,		_T("F17")		},
+	{ VK_F18,		_T("F18")		},
+	{ VK_F19,		_T("F19")		},
+	{ VK_F20,		_T("F20")		},
+	{ VK_F21,		_T("F21")		},
+	{ VK_F22,		_T("F22")		},
+	{ VK_F23,		_T("F23")		},
+	{ VK_F24,		_T("F24")		},
 
-	{ VK_UP,		"UP" },
-	{ VK_DOWN,		"DOWN" },
-	{ VK_RIGHT,		"RIGHT" },
-	{ VK_LEFT,		"LEFT" },
+	{ VK_UP,		_T("UP")		},
+	{ VK_DOWN,		_T("DOWN")		},
+	{ VK_RIGHT,		_T("RIGHT")		},
+	{ VK_LEFT,		_T("LEFT")		},
 
-	{ VK_PRIOR,		"PRIOR" },
-	{ VK_NEXT,		"NEXT" },
-	{ VK_INSERT,	"INSERT" },
-	{ VK_DELETE,	"DELETE" },
-	{ VK_HOME,		"HOME" },
-	{ VK_END,		"END" },
+	{ VK_PRIOR,		_T("PRIOR")		},
+	{ VK_NEXT,		_T("NEXT")		},
+	{ VK_INSERT,	_T("INSERT")	},
+	{ VK_DELETE,	_T("DELETE")	},
+	{ VK_HOME,		_T("HOME")		},
+	{ VK_END,		_T("END")		},
 
-	{ VK_PAUSE,		"PAUSE" },
-	{ VK_CANCEL,	"BREAK" },
+	{ VK_PAUSE,		_T("PAUSE")		},
+	{ VK_CANCEL,	_T("BREAK")		},
 
-	{ VK_ESCAPE,	"ESCAPE" },
-	{ VK_RETURN,	"RETURN" },
-	{ VK_BACK,		"BACK" },
-	{ VK_TAB,		"TAB" },
-	{ VK_SPACE,		"SPACE" },
+	{ VK_ESCAPE,	_T("ESCAPE")	},
+	{ VK_RETURN,	_T("RETURN")	},
+	{ VK_BACK,		_T("BACK")		},
+	{ VK_TAB,		_T("TAB")		},
+	{ VK_SPACE,		_T("SPACE")		},
 
-	{ VK_NUMPAD0,	"PAD0" },
-	{ VK_NUMPAD1,	"PAD1" },
-	{ VK_NUMPAD2,	"PAD2" },
-	{ VK_NUMPAD3 ,	"PAD3" },
-	{ VK_NUMPAD4,	"PAD4" },
-	{ VK_NUMPAD5,	"PAD5" },
-	{ VK_NUMPAD6,	"PAD6" },
-	{ VK_NUMPAD7,	"PAD7" },
-	{ VK_NUMPAD8,	"PAD8" },
-	{ VK_NUMPAD9,	"PAD9" },
-	{ VK_MULTIPLY,	"PADMUL" },
-	{ VK_ADD,		"PADADD" },
-	{ VK_SEPARATOR,	"PADSEP" },
-	{ VK_SUBTRACT,	"PADSUB" },
-	{ VK_DECIMAL,	"PADDEC" },
-	{ VK_DIVIDE,	"PADDIV" },
+	{ VK_NUMPAD0,	_T("PAD0")		},
+	{ VK_NUMPAD1,	_T("PAD1")		},
+	{ VK_NUMPAD2,	_T("PAD2")		},
+	{ VK_NUMPAD3 ,	_T("PAD3")		},
+	{ VK_NUMPAD4,	_T("PAD4")		},
+	{ VK_NUMPAD5,	_T("PAD5")		},
+	{ VK_NUMPAD6,	_T("PAD6")		},
+	{ VK_NUMPAD7,	_T("PAD7")		},
+	{ VK_NUMPAD8,	_T("PAD8")		},
+	{ VK_NUMPAD9,	_T("PAD9")		},
+	{ VK_MULTIPLY,	_T("PADMUL")	},
+	{ VK_ADD,		_T("PADADD")	},
+	{ VK_SEPARATOR,	_T("PADSEP")	},
+	{ VK_SUBTRACT,	_T("PADSUB")	},
+	{ VK_DECIMAL,	_T("PADDEC")	},
+	{ VK_DIVIDE,	_T("PADDIV")	},
 
-	{ VK_OEM_1,		"$BA(:)" },
-	{ VK_OEM_PLUS,	"$BB(;)" },
-	{ VK_OEM_COMMA,	"$BC(,)" },
-	{ VK_OEM_MINUS,	"$BD(-)" },
-	{ VK_OEM_PERIOD,"$BE(.)" },
-	{ VK_OEM_2,		"$BF(/)" },
-	{ VK_OEM_3,		"$C0(@)" },
-	{ VK_OEM_4,		"$DB([)" },
-	{ VK_OEM_5,		"$DC(\\)" },
-	{ VK_OEM_6,		"$DD(])" },
-	{ VK_OEM_7,		"$DE(^)" },
-	{ VK_OEM_102,	"$E2(_)" },
+	{ VK_OEM_1,		_T("$BA(:)")	},
+	{ VK_OEM_PLUS,	_T("$BB(;)")	},
+	{ VK_OEM_COMMA,	_T("$BC(,)")	},
+	{ VK_OEM_MINUS,	_T("$BD(-)")	},
+	{ VK_OEM_PERIOD,_T("$BE(.)")	},
+	{ VK_OEM_2,		_T("$BF(/)")	},
+	{ VK_OEM_3,		_T("$C0(@)")	},
+	{ VK_OEM_4,		_T("$DB([)")	},
+	{ VK_OEM_5,		_T("$DC(\\)")	},
+	{ VK_OEM_6,		_T("$DD(])")	},
+	{ VK_OEM_7,		_T("$DE(^)")	},
+	{ VK_OEM_102,	_T("$E2(_)")	},
 
-	{ (-1),			NULL },
+	{ (-1),			NULL			},
 };
 
-LPCSTR CKeyNode::GetCode()
+LPCTSTR CKeyNode::GetCode()
 {
 	int n;
 	if ( m_Code == (-1) )
-		return "";
+		return _T("");
 	for ( n = 0 ; KeyNameTab[n].name != NULL ; n++ ) {
 		if ( KeyNameTab[n].code == m_Code )
 			return KeyNameTab[n].name;
@@ -1973,50 +2050,50 @@ LPCSTR CKeyNode::GetCode()
 	// * VK_0 - VK_9 are the same as ASCII '0' - '9' (0x30 - 0x39)
 	// * VK_A - VK_Z are the same as ASCII 'A' - 'Z' (0x41 - 0x5A)
 	if ( m_Code >= 0x30 && m_Code <= 0x39 || m_Code >= 0x41 && m_Code <= 0x5A )
-		m_Temp.Format("%c", m_Code);
+		m_Temp.Format(_T("%c"), m_Code);
 	else
-		m_Temp.Format("$%02X", m_Code);
+		m_Temp.Format(_T("$%02X"), m_Code);
 
 	return m_Temp;
 }
-void CKeyNode::SetCode(LPCSTR name)
+void CKeyNode::SetCode(LPCTSTR name)
 {
 	int n;
 	for ( n = 0 ; KeyNameTab[n].name != NULL ; n++ ) {
-		if ( strcmp(KeyNameTab[n].name, name) == 0 ) {
+		if ( _tcscmp(KeyNameTab[n].name, name) == 0 ) {
 			m_Code = KeyNameTab[n].code;
 			return;
 		}
 	}
-	if ( name[1] == '\0' && (*name >= 0x30 && *name <= 0x39 || *name >= 0x41 && *name <= 0x5A) ) {
+	if ( name[1] == _T('\0') && (*name >= 0x30 && *name <= 0x39 || *name >= 0x41 && *name <= 0x5A) ) {
 		m_Code = *name;
-	} else if ( name[0] == '$' && isxdigit(name[1]) && isxdigit(name[2]) ) {
+	} else if ( name[0] == _T('$') && isxdigit(name[1]) && isxdigit(name[2]) ) {
 		m_Code = 0;
 		if ( isdigit(name[1]) )
-			m_Code += ((name[1] - '0') * 16);
+			m_Code += ((name[1] - _T('0')) * 16);
 		else
-			m_Code += ((toupper(name[1])- 'A') * 16);
+			m_Code += ((toupper(name[1])- _T('A')) * 16);
 		if ( isdigit(name[2]) )
-			m_Code += (name[2] - '0');
+			m_Code += (name[2] - _T('0'));
 		else
-			m_Code += (toupper(name[2])- 'A');
+			m_Code += (toupper(name[2])- _T('A'));
 	} else
-		m_Code = atoi(name);
+		m_Code = _tstoi(name);
 }
-LPCSTR CKeyNode::GetMask()
+LPCTSTR CKeyNode::GetMask()
 {
-	m_Temp = "";
-	if ( (m_Mask & MASK_CTRL) )  m_Temp += "Ctrl+";
-	if ( (m_Mask & MASK_SHIFT) ) m_Temp += "Shift+";
-	if ( (m_Mask & MASK_ALT) )   m_Temp += "Alt+";
+	m_Temp = _T("");
+	if ( (m_Mask & MASK_CTRL) )  m_Temp += _T("Ctrl+");
+	if ( (m_Mask & MASK_SHIFT) ) m_Temp += _T("Shift+");
+	if ( (m_Mask & MASK_ALT) )   m_Temp += _T("Alt+");
 
-	if ( (m_Mask & MASK_APPL) )  m_Temp += "App+";
-	if ( (m_Mask & MASK_CKM) )   m_Temp += "Ckm+";
-	if ( (m_Mask & MASK_VT52) )  m_Temp += "VT52+";
+	if ( (m_Mask & MASK_APPL) )  m_Temp += _T("App+");
+	if ( (m_Mask & MASK_CKM) )   m_Temp += _T("Ckm+");
+	if ( (m_Mask & MASK_VT52) )  m_Temp += _T("VT52+");
 
-	//if ( (m_Mask & MASK_NUMLCK) ) m_Temp += "Num+";
-	//if ( (m_Mask & MASK_SCRLCK) ) m_Temp += "Scr+";
-	//if ( (m_Mask & MASK_CAPLCK) ) m_Temp += "Cap+";
+	//if ( (m_Mask & MASK_NUMLCK) ) m_Temp += _T("Num+");
+	//if ( (m_Mask & MASK_SCRLCK) ) m_Temp += _T("Scr+");
+	//if ( (m_Mask & MASK_CAPLCK) ) m_Temp += _T("Cap+");
 
 	if ( !m_Temp.IsEmpty() )
 		m_Temp.Delete(m_Temp.GetLength() - 1, 1);
@@ -2056,11 +2133,11 @@ void CKeyNode::SetComboList(CComboBox *pCombo)
 		pCombo->AddString(KeyNameTab[n].name);
 
 	for ( n = 0x30 ; n <= 0x39 ; n++ ) {
-		str.Format("%c", n);
+		str.Format(_T("%c"), n);
 		pCombo->AddString(str);
 	}
 	for ( n = 0x41 ; n <= 0x5A ; n++ ) {
-		str.Format("%c", n);
+		str.Format(_T("%c"), n);
 		pCombo->AddString(str);
 	}
 }
@@ -2138,122 +2215,122 @@ void CKeyCmdsTab::ResetMenuAll(CMenu *pMenu)
 static const struct {
 		int	code;
 		int mask;
-		LPCSTR maps;
+		LPCTSTR maps;
 } InitKeyTab[] = {
-		{ VK_UP,		0,						"\\033[A"	},
-		{ VK_DOWN,		0,						"\\033[B"	},
-		{ VK_RIGHT,		0,						"\\033[C"	},
-		{ VK_LEFT,		0,						"\\033[D"	},
-		{ VK_END,		0,						"\\033[F"	},
-		{ VK_NEXT,		0,						"\\033[G"	},
-		{ VK_HOME,		0,						"\\033[H"	},
-		{ VK_PRIOR,		0,						"\\033[I"	},
-		{ VK_INSERT,	0,						"\\033[L"	},
-		{ VK_DELETE,	0,						"\\177"		},
+		{ VK_UP,		0,						_T("\\033[A")	},
+		{ VK_DOWN,		0,						_T("\\033[B")	},
+		{ VK_RIGHT,		0,						_T("\\033[C")	},
+		{ VK_LEFT,		0,						_T("\\033[D")	},
+		{ VK_END,		0,						_T("\\033[F")	},
+		{ VK_NEXT,		0,						_T("\\033[G")	},
+		{ VK_HOME,		0,						_T("\\033[H")	},
+		{ VK_PRIOR,		0,						_T("\\033[I")	},
+		{ VK_INSERT,	0,						_T("\\033[L")	},
+		{ VK_DELETE,	0,						_T("\\177")		},
 
-		{ VK_F1,		0,						"\\033[M"	},
-		{ VK_F2,		0,						"\\033[N"	},
-		{ VK_F3,		0,						"\\033[O"	},
-		{ VK_F4,		0,						"\\033[P"	},
-		{ VK_F5,		0,						"\\033[Q"	},
-		{ VK_F6,		0,						"\\033[R"	},
-		{ VK_F7,		0,						"\\033[S"	},
-		{ VK_F8,		0,						"\\033[T"	},
-		{ VK_F9,		0,						"\\033[U"	},
-		{ VK_F10,		0,						"\\033[V"	},
-		{ VK_F11,		0,						"\\033[W"	},
-		{ VK_F12,		0,						"\\033[X"	},
+		{ VK_F1,		0,						_T("\\033[M")	},
+		{ VK_F2,		0,						_T("\\033[N")	},
+		{ VK_F3,		0,						_T("\\033[O")	},
+		{ VK_F4,		0,						_T("\\033[P")	},
+		{ VK_F5,		0,						_T("\\033[Q")	},
+		{ VK_F6,		0,						_T("\\033[R")	},
+		{ VK_F7,		0,						_T("\\033[S")	},
+		{ VK_F8,		0,						_T("\\033[T")	},
+		{ VK_F9,		0,						_T("\\033[U")	},
+		{ VK_F10,		0,						_T("\\033[V")	},
+		{ VK_F11,		0,						_T("\\033[W")	},
+		{ VK_F12,		0,						_T("\\033[X")	},
 
-		{ VK_F1,		MASK_SHIFT,				"\\033[Y"	},
-		{ VK_F2,		MASK_SHIFT,				"\\033[Z"	},
-		{ VK_F3,		MASK_SHIFT,				"\\033[a"	},
-		{ VK_F4,		MASK_SHIFT,				"\\033[b"	},
-		{ VK_F5,		MASK_SHIFT,				"\\033[c"	},
-		{ VK_F6,		MASK_SHIFT,				"\\033[d"	},
-		{ VK_F7,		MASK_SHIFT,				"\\033[e"	},
-		{ VK_F8,		MASK_SHIFT,				"\\033[f"	},
-		{ VK_F9,		MASK_SHIFT,				"\\033[g"	},
-		{ VK_F10,		MASK_SHIFT,				"\\033[h"	},
-		{ VK_F11,		MASK_SHIFT,				"\\033[i"	},
-		{ VK_F12,		MASK_SHIFT,				"\\033[j"	},
+		{ VK_F1,		MASK_SHIFT,				_T("\\033[Y")	},
+		{ VK_F2,		MASK_SHIFT,				_T("\\033[Z")	},
+		{ VK_F3,		MASK_SHIFT,				_T("\\033[a")	},
+		{ VK_F4,		MASK_SHIFT,				_T("\\033[b")	},
+		{ VK_F5,		MASK_SHIFT,				_T("\\033[c")	},
+		{ VK_F6,		MASK_SHIFT,				_T("\\033[d")	},
+		{ VK_F7,		MASK_SHIFT,				_T("\\033[e")	},
+		{ VK_F8,		MASK_SHIFT,				_T("\\033[f")	},
+		{ VK_F9,		MASK_SHIFT,				_T("\\033[g")	},
+		{ VK_F10,		MASK_SHIFT,				_T("\\033[h")	},
+		{ VK_F11,		MASK_SHIFT,				_T("\\033[i")	},
+		{ VK_F12,		MASK_SHIFT,				_T("\\033[j")	},
 
-		{ VK_F1,		MASK_CTRL,				"\\033[k"	},
-		{ VK_F2,		MASK_CTRL,				"\\033[l"	},
-		{ VK_F3,		MASK_CTRL,				"\\033[m"	},
-		{ VK_F4,		MASK_CTRL,				"\\033[n"	},
-		{ VK_F5,		MASK_CTRL,				"\\033[o"	},
-		{ VK_F6,		MASK_CTRL,				"\\033[p"	},
-		{ VK_F7,		MASK_CTRL,				"\\033[q"	},
-		{ VK_F8,		MASK_CTRL,				"\\033[r"	},
-		{ VK_F9,		MASK_CTRL,				"\\033[s"	},
-		{ VK_F10,		MASK_CTRL,				"\\033[t"	},
-		{ VK_F11,		MASK_CTRL,				"\\033[u"	},
-		{ VK_F12,		MASK_CTRL,				"\\033[v"	},
+		{ VK_F1,		MASK_CTRL,				_T("\\033[k")	},
+		{ VK_F2,		MASK_CTRL,				_T("\\033[l")	},
+		{ VK_F3,		MASK_CTRL,				_T("\\033[m")	},
+		{ VK_F4,		MASK_CTRL,				_T("\\033[n")	},
+		{ VK_F5,		MASK_CTRL,				_T("\\033[o")	},
+		{ VK_F6,		MASK_CTRL,				_T("\\033[p")	},
+		{ VK_F7,		MASK_CTRL,				_T("\\033[q")	},
+		{ VK_F8,		MASK_CTRL,				_T("\\033[r")	},
+		{ VK_F9,		MASK_CTRL,				_T("\\033[s")	},
+		{ VK_F10,		MASK_CTRL,				_T("\\033[t")	},
+		{ VK_F11,		MASK_CTRL,				_T("\\033[u")	},
+		{ VK_F12,		MASK_CTRL,				_T("\\033[v")	},
 
-		{ VK_F1,		MASK_SHIFT | MASK_CTRL,	"\\033[w"	},
-		{ VK_F2,		MASK_SHIFT | MASK_CTRL,	"\\033[x"	},
-		{ VK_F3,		MASK_SHIFT | MASK_CTRL,	"\\033[y"	},
-		{ VK_F4,		MASK_SHIFT | MASK_CTRL,	"\\033[z"	},
-		{ VK_F5,		MASK_SHIFT | MASK_CTRL,	"\\033[@"	},
-		{ VK_F6,		MASK_SHIFT | MASK_CTRL,	"\\033[["	},
-		{ VK_F7,		MASK_SHIFT | MASK_CTRL,	"\\033[<"	},
-		{ VK_F8,		MASK_SHIFT | MASK_CTRL,	"\\033[]"	},
-		{ VK_F9,		MASK_SHIFT | MASK_CTRL,	"\\033[^"	},
-		{ VK_F10,		MASK_SHIFT | MASK_CTRL,	"\\033[_"	},
-		{ VK_F11,		MASK_SHIFT | MASK_CTRL,	"\\033['"	},
-		{ VK_F12,		MASK_SHIFT | MASK_CTRL,	"\\033[{"	},
+		{ VK_F1,		MASK_SHIFT | MASK_CTRL,	_T("\\033[w")	},
+		{ VK_F2,		MASK_SHIFT | MASK_CTRL,	_T("\\033[x")	},
+		{ VK_F3,		MASK_SHIFT | MASK_CTRL,	_T("\\033[y")	},
+		{ VK_F4,		MASK_SHIFT | MASK_CTRL,	_T("\\033[z")	},
+		{ VK_F5,		MASK_SHIFT | MASK_CTRL,	_T("\\033[@")	},
+		{ VK_F6,		MASK_SHIFT | MASK_CTRL,	_T("\\033[[")	},
+		{ VK_F7,		MASK_SHIFT | MASK_CTRL,	_T("\\033[<")	},
+		{ VK_F8,		MASK_SHIFT | MASK_CTRL,	_T("\\033[]")	},
+		{ VK_F9,		MASK_SHIFT | MASK_CTRL,	_T("\\033[^")	},
+		{ VK_F10,		MASK_SHIFT | MASK_CTRL,	_T("\\033[_")	},
+		{ VK_F11,		MASK_SHIFT | MASK_CTRL,	_T("\\033['")	},
+		{ VK_F12,		MASK_SHIFT | MASK_CTRL,	_T("\\033[{")	},
 
-		{ VK_HOME,		MASK_APPL,				"\\033[1~"	},	//	kh	@0
-		{ VK_INSERT,	MASK_APPL,				"\\033[2~"	},	//	kI
-		{ VK_DELETE,	MASK_APPL,				"\\033[3~"	},	//	kD
-		{ VK_END,		MASK_APPL,				"\\033[4~"	},	//	@7	*6
-		{ VK_PRIOR,		MASK_APPL,				"\\033[5~"	},	//	kP
-		{ VK_NEXT,		MASK_APPL,				"\\033[6~"	},	//	kN
+		{ VK_HOME,		MASK_APPL,				_T("\\033[1~")	},	//	kh	@0
+		{ VK_INSERT,	MASK_APPL,				_T("\\033[2~")	},	//	kI
+		{ VK_DELETE,	MASK_APPL,				_T("\\033[3~")	},	//	kD
+		{ VK_END,		MASK_APPL,				_T("\\033[4~")	},	//	@7	*6
+		{ VK_PRIOR,		MASK_APPL,				_T("\\033[5~")	},	//	kP
+		{ VK_NEXT,		MASK_APPL,				_T("\\033[6~")	},	//	kN
 
-		{ VK_F1,		MASK_APPL,				"\\033[11~"	},	//	k1
-		{ VK_F2,		MASK_APPL,				"\\033[12~"	},	//	k2
-		{ VK_F3,		MASK_APPL,				"\\033[13~"	},	//	k3
-		{ VK_F4,		MASK_APPL,				"\\033[14~"	},	//	k4
-		{ VK_F5,		MASK_APPL,				"\\033[15~"	},	//	k5
-		{ VK_F6,		MASK_APPL,				"\\033[17~"	},	//	k6
-		{ VK_F7,		MASK_APPL,				"\\033[18~"	},	//	k7
-		{ VK_F8,		MASK_APPL,				"\\033[19~"	},	//	k8
-		{ VK_F9,		MASK_APPL,				"\\033[20~"	},	//	k9
-		{ VK_F10,		MASK_APPL,				"\\033[21~"	},	//	k;
-		{ VK_F11,		MASK_APPL,				"\\033[23~"	},	//	F1
-		{ VK_F12,		MASK_APPL,				"\\033[24~"	},	//	F2
-		{ VK_F13,		MASK_APPL,				"\\033[25~"	},	//	F3
-		{ VK_F14,		MASK_APPL,				"\\033[26~"	},	//	F4
-		{ VK_F15,		MASK_APPL,				"\\033[28~"	},	//	F5
-		{ VK_F16,		MASK_APPL,				"\\033[29~"	},	//	F6
-		{ VK_F17,		MASK_APPL,				"\\033[31~"	},	//	F7
-		{ VK_F18,		MASK_APPL,				"\\033[32~"	},	//	F8
-		{ VK_F19,		MASK_APPL,				"\\033[33~"	},	//	F9
-		{ VK_F20,		MASK_APPL,				"\\033[34~"	},	//	FA
+		{ VK_F1,		MASK_APPL,				_T("\\033[11~")	},	//	k1
+		{ VK_F2,		MASK_APPL,				_T("\\033[12~")	},	//	k2
+		{ VK_F3,		MASK_APPL,				_T("\\033[13~")	},	//	k3
+		{ VK_F4,		MASK_APPL,				_T("\\033[14~")	},	//	k4
+		{ VK_F5,		MASK_APPL,				_T("\\033[15~")	},	//	k5
+		{ VK_F6,		MASK_APPL,				_T("\\033[17~")	},	//	k6
+		{ VK_F7,		MASK_APPL,				_T("\\033[18~")	},	//	k7
+		{ VK_F8,		MASK_APPL,				_T("\\033[19~")	},	//	k8
+		{ VK_F9,		MASK_APPL,				_T("\\033[20~")	},	//	k9
+		{ VK_F10,		MASK_APPL,				_T("\\033[21~")	},	//	k;
+		{ VK_F11,		MASK_APPL,				_T("\\033[23~")	},	//	F1
+		{ VK_F12,		MASK_APPL,				_T("\\033[24~")	},	//	F2
+		{ VK_F13,		MASK_APPL,				_T("\\033[25~")	},	//	F3
+		{ VK_F14,		MASK_APPL,				_T("\\033[26~")	},	//	F4
+		{ VK_F15,		MASK_APPL,				_T("\\033[28~")	},	//	F5
+		{ VK_F16,		MASK_APPL,				_T("\\033[29~")	},	//	F6
+		{ VK_F17,		MASK_APPL,				_T("\\033[31~")	},	//	F7
+		{ VK_F18,		MASK_APPL,				_T("\\033[32~")	},	//	F8
+		{ VK_F19,		MASK_APPL,				_T("\\033[33~")	},	//	F9
+		{ VK_F20,		MASK_APPL,				_T("\\033[34~")	},	//	FA
 
-		{ VK_UP,		MASK_CKM,				"\\033OA"	},	//	ku
-		{ VK_DOWN,		MASK_CKM,				"\\033OB"	},	//	kd
-		{ VK_RIGHT,		MASK_CKM,				"\\033OC"	},	//	kr
-		{ VK_LEFT,		MASK_CKM,				"\\033OD"	},	//	kl
-		{ VK_ESCAPE,	MASK_CKM,				"\\033O["	},
+		{ VK_UP,		MASK_CKM,				_T("\\033OA")	},	//	ku
+		{ VK_DOWN,		MASK_CKM,				_T("\\033OB")	},	//	kd
+		{ VK_RIGHT,		MASK_CKM,				_T("\\033OC")	},	//	kr
+		{ VK_LEFT,		MASK_CKM,				_T("\\033OD")	},	//	kl
+		{ VK_ESCAPE,	MASK_CKM,				_T("\\033O[")	},
 
-		{ VK_UP,		MASK_VT52,				"\\033A"	},
-		{ VK_DOWN,		MASK_VT52,				"\\033B"	},
-		{ VK_RIGHT,		MASK_VT52,				"\\033C"	},
-		{ VK_LEFT,		MASK_VT52,				"\\033D"	},
+		{ VK_UP,		MASK_VT52,				_T("\\033A")	},
+		{ VK_DOWN,		MASK_VT52,				_T("\\033B")	},
+		{ VK_RIGHT,		MASK_VT52,				_T("\\033C")	},
+		{ VK_LEFT,		MASK_VT52,				_T("\\033D")	},
 
-		{ VK_PRIOR,		MASK_SHIFT,				"$PRIOR"	},
-		{ VK_NEXT,		MASK_SHIFT,				"$NEXT"		},
-		{ VK_PRIOR,		MASK_SHIFT | MASK_APPL,	"$PRIOR"	},
-		{ VK_NEXT,		MASK_SHIFT | MASK_APPL,	"$NEXT"		},
+		{ VK_PRIOR,		MASK_SHIFT,				_T("$PRIOR")	},
+		{ VK_NEXT,		MASK_SHIFT,				_T("$NEXT")		},
+		{ VK_PRIOR,		MASK_SHIFT | MASK_APPL,	_T("$PRIOR")	},
+		{ VK_NEXT,		MASK_SHIFT | MASK_APPL,	_T("$NEXT")		},
 
-		{ VK_CANCEL,	0,						"$BREAK"	},
-//		{ VK_CANCEL,	MASK_CTRL,				"$BREAK"	},
+		{ VK_CANCEL,	0,						_T("$BREAK")	},
+//		{ VK_CANCEL,	MASK_CTRL,				_T("$BREAK")	},
 
-		{ VK_OEM_7,		MASK_CTRL,				"\\036"		},	// $DE(^)
-		{ VK_OEM_2,		MASK_CTRL,				"\\037"		},	// $BF(/)
-		{ VK_OEM_3,		MASK_CTRL,				"\\000"		},	// $C0(@)
-		{ VK_SPACE,		MASK_CTRL,				"\\000"		},	// SPACE
+		{ VK_OEM_7,		MASK_CTRL,				_T("\\036")		},	// $DE(^)
+		{ VK_OEM_2,		MASK_CTRL,				_T("\\037")		},	// $BF(/)
+		{ VK_OEM_3,		MASK_CTRL,				_T("\\000")		},	// $C0(@)
+		{ VK_SPACE,		MASK_CTRL,				_T("\\000")		},	// SPACE
 
 		{ (-1),		(-1),		NULL },
 	};
@@ -2261,7 +2338,7 @@ static const struct {
 CKeyNodeTab::CKeyNodeTab()
 {
 	m_CmdsInit = FALSE;
-	m_pSection = "KeyTab";
+	m_pSection = _T("KeyTab");
 	Init();
 }
 void CKeyNodeTab::Init()
@@ -2303,7 +2380,7 @@ int CKeyNodeTab::Add(CKeyNode &node)
 	m_CmdsInit = FALSE;
 	return n;
 }
-int CKeyNodeTab::Add(LPCSTR code, int mask, LPCSTR maps)
+int CKeyNodeTab::Add(LPCTSTR code, int mask, LPCTSTR maps)
 {
 	CKeyNode tmp;
 	tmp.SetCode(code);
@@ -2311,7 +2388,7 @@ int CKeyNodeTab::Add(LPCSTR code, int mask, LPCSTR maps)
 	tmp.SetMaps(maps);
 	return Add(tmp);
 }
-int CKeyNodeTab::Add(int code, int mask, LPCSTR str)
+int CKeyNodeTab::Add(int code, int mask, LPCTSTR str)
 {
 	CKeyNode tmp;
 	tmp.m_Code = code;
@@ -2371,77 +2448,77 @@ BOOL CKeyNodeTab::FindMaps(int code, int mask, CBuffer *pBuf)
 
 #define	CAPINFOKEYMAX	60
 static const struct _CapInfoKeyTab {
-		LPCSTR name;
+		LPCTSTR name;
 		int	code;
 		int mask;
 	} CapInfoKeyTab[] = {
-		{	"@7",		VK_END,		MASK_APPL,	},
-		{	"F1",		VK_F11,		MASK_APPL,	},
-		{	"F2",		VK_F12,		MASK_APPL,	},
-		{	"F3",		VK_F13,		MASK_APPL,	},
-		{	"F4",		VK_F14,		MASK_APPL,	},
-		{	"F5",		VK_F15,		MASK_APPL,	},
-		{	"F6",		VK_F16,		MASK_APPL,	},
-		{	"F7",		VK_F17,		MASK_APPL,	},
-		{	"F8",		VK_F18,		MASK_APPL,	},
-		{	"F9",		VK_F19,		MASK_APPL,	},
-		{	"FA",		VK_F20,		MASK_APPL,	},
-		{	"k1",		VK_F1,		MASK_APPL,	},
-		{	"k2",		VK_F2,		MASK_APPL,	},
-		{	"k3",		VK_F3,		MASK_APPL,	},
-		{	"k4",		VK_F4,		MASK_APPL,	},
-		{	"k5",		VK_F5,		MASK_APPL,	},
-		{	"k6",		VK_F6,		MASK_APPL,	},
-		{	"k7",		VK_F7,		MASK_APPL,	},
-		{	"k8",		VK_F8,		MASK_APPL,	},
-		{	"k9",		VK_F9,		MASK_APPL,	},
-		{	"k;",		VK_F10,		MASK_APPL,	},
-		{	"kD",		VK_DELETE,	MASK_APPL,	},
-		{	"kI",		VK_INSERT,	MASK_APPL,	},
-		{	"kN",		VK_NEXT,	MASK_APPL,	},
-		{	"kP",		VK_PRIOR,	MASK_APPL,	},
-		{	"kcub1",	VK_LEFT,	MASK_CKM,	},
-		{	"kcud1",	VK_DOWN,	MASK_CKM,	},
-		{	"kcuf1",	VK_RIGHT,	MASK_CKM,	},
-		{	"kcuu1",	VK_UP,		MASK_CKM,	},
-		{	"kd",		VK_DOWN,	MASK_CKM,	},
-		{	"kdch1",	VK_DELETE,	MASK_APPL,	},
-		{	"kend",		VK_END,		MASK_APPL,	},
-		{	"kf1",		VK_F1,		MASK_APPL,	},
-		{	"kf10",		VK_F10,		MASK_APPL,	},
-		{	"kf11",		VK_F11,		MASK_APPL,	},
-		{	"kf12",		VK_F12,		MASK_APPL,	},
-		{	"kf13",		VK_F13,		MASK_APPL,	},
-		{	"kf14",		VK_F14,		MASK_APPL,	},
-		{	"kf15",		VK_F15,		MASK_APPL,	},
-		{	"kf16",		VK_F16,		MASK_APPL,	},
-		{	"kf17",		VK_F17,		MASK_APPL,	},
-		{	"kf18",		VK_F18,		MASK_APPL,	},
-		{	"kf19",		VK_F19,		MASK_APPL,	},
-		{	"kf2",		VK_F2,		MASK_APPL,	},
-		{	"kf20",		VK_F20,		MASK_APPL,	},
-		{	"kf3",		VK_F3,		MASK_APPL,	},
-		{	"kf4",		VK_F4,		MASK_APPL,	},
-		{	"kf5",		VK_F5,		MASK_APPL,	},
-		{	"kf6",		VK_F6,		MASK_APPL,	},
-		{	"kf7",		VK_F7,		MASK_APPL,	},
-		{	"kf8",		VK_F8,		MASK_APPL,	},
-		{	"kf9",		VK_F9,		MASK_APPL,	},
-		{	"kh",		VK_HOME,	MASK_APPL,	},
-		{	"khome",	VK_HOME,	MASK_APPL,	},
-		{	"kich1",	VK_INSERT,	MASK_APPL,	},
-		{	"kl",		VK_LEFT,	MASK_CKM,	},
-		{	"knp",		VK_NEXT,	MASK_APPL,	},
-		{	"kpp",		VK_PRIOR,	MASK_APPL,	},
-		{	"kr",		VK_RIGHT,	MASK_CKM,	},
-		{	"ku",		VK_UP,		MASK_CKM,	},
+		{	_T("@7"),		VK_END,		MASK_APPL,	},
+		{	_T("F1"),		VK_F11,		MASK_APPL,	},
+		{	_T("F2"),		VK_F12,		MASK_APPL,	},
+		{	_T("F3"),		VK_F13,		MASK_APPL,	},
+		{	_T("F4"),		VK_F14,		MASK_APPL,	},
+		{	_T("F5"),		VK_F15,		MASK_APPL,	},
+		{	_T("F6"),		VK_F16,		MASK_APPL,	},
+		{	_T("F7"),		VK_F17,		MASK_APPL,	},
+		{	_T("F8"),		VK_F18,		MASK_APPL,	},
+		{	_T("F9"),		VK_F19,		MASK_APPL,	},
+		{	_T("FA"),		VK_F20,		MASK_APPL,	},
+		{	_T("k1"),		VK_F1,		MASK_APPL,	},
+		{	_T("k2"),		VK_F2,		MASK_APPL,	},
+		{	_T("k3"),		VK_F3,		MASK_APPL,	},
+		{	_T("k4"),		VK_F4,		MASK_APPL,	},
+		{	_T("k5"),		VK_F5,		MASK_APPL,	},
+		{	_T("k6"),		VK_F6,		MASK_APPL,	},
+		{	_T("k7"),		VK_F7,		MASK_APPL,	},
+		{	_T("k8"),		VK_F8,		MASK_APPL,	},
+		{	_T("k9"),		VK_F9,		MASK_APPL,	},
+		{	_T("k;"),		VK_F10,		MASK_APPL,	},
+		{	_T("kD"),		VK_DELETE,	MASK_APPL,	},
+		{	_T("kI"),		VK_INSERT,	MASK_APPL,	},
+		{	_T("kN"),		VK_NEXT,	MASK_APPL,	},
+		{	_T("kP"),		VK_PRIOR,	MASK_APPL,	},
+		{	_T("kcub1"),	VK_LEFT,	MASK_CKM,	},
+		{	_T("kcud1"),	VK_DOWN,	MASK_CKM,	},
+		{	_T("kcuf1"),	VK_RIGHT,	MASK_CKM,	},
+		{	_T("kcuu1"),	VK_UP,		MASK_CKM,	},
+		{	_T("kd"),		VK_DOWN,	MASK_CKM,	},
+		{	_T("kdch1"),	VK_DELETE,	MASK_APPL,	},
+		{	_T("kend"),		VK_END,		MASK_APPL,	},
+		{	_T("kf1"),		VK_F1,		MASK_APPL,	},
+		{	_T("kf10"),		VK_F10,		MASK_APPL,	},
+		{	_T("kf11"),		VK_F11,		MASK_APPL,	},
+		{	_T("kf12"),		VK_F12,		MASK_APPL,	},
+		{	_T("kf13"),		VK_F13,		MASK_APPL,	},
+		{	_T("kf14"),		VK_F14,		MASK_APPL,	},
+		{	_T("kf15"),		VK_F15,		MASK_APPL,	},
+		{	_T("kf16"),		VK_F16,		MASK_APPL,	},
+		{	_T("kf17"),		VK_F17,		MASK_APPL,	},
+		{	_T("kf18"),		VK_F18,		MASK_APPL,	},
+		{	_T("kf19"),		VK_F19,		MASK_APPL,	},
+		{	_T("kf2"),		VK_F2,		MASK_APPL,	},
+		{	_T("kf20"),		VK_F20,		MASK_APPL,	},
+		{	_T("kf3"),		VK_F3,		MASK_APPL,	},
+		{	_T("kf4"),		VK_F4,		MASK_APPL,	},
+		{	_T("kf5"),		VK_F5,		MASK_APPL,	},
+		{	_T("kf6"),		VK_F6,		MASK_APPL,	},
+		{	_T("kf7"),		VK_F7,		MASK_APPL,	},
+		{	_T("kf8"),		VK_F8,		MASK_APPL,	},
+		{	_T("kf9"),		VK_F9,		MASK_APPL,	},
+		{	_T("kh"),		VK_HOME,	MASK_APPL,	},
+		{	_T("khome"),	VK_HOME,	MASK_APPL,	},
+		{	_T("kich1"),	VK_INSERT,	MASK_APPL,	},
+		{	_T("kl"),		VK_LEFT,	MASK_CKM,	},
+		{	_T("knp"),		VK_NEXT,	MASK_APPL,	},
+		{	_T("kpp"),		VK_PRIOR,	MASK_APPL,	},
+		{	_T("kr"),		VK_RIGHT,	MASK_CKM,	},
+		{	_T("ku"),		VK_UP,		MASK_CKM,	},
 	};
 
 static int CapKeyCmp(const void *src, const void *dis)
 {
-	return strcmp((const char *)src, ((struct _CapInfoKeyTab *)dis)->name);
+	return _tcscmp((LPCTSTR)src, ((struct _CapInfoKeyTab *)dis)->name);
 }
-BOOL CKeyNodeTab::FindCapInfo(LPCSTR name, CBuffer *pBuf)
+BOOL CKeyNodeTab::FindCapInfo(LPCTSTR name, CBuffer *pBuf)
 {
 	int n, b;
 
@@ -2585,7 +2662,7 @@ void CKeyNodeTab::CmdsInit()
 			str += "+";
 		str += GetAt(n).GetCode();
 		if ( (i = m_Cmds.Find(id)) >= 0 ) {
-			m_Cmds[i].m_Menu += ",";
+			m_Cmds[i].m_Menu += _T(",");
 			m_Cmds[i].m_Menu += str;
 		} else {
 			tmp.m_Id = id;
@@ -2638,7 +2715,7 @@ void CKeyNodeTab::BugFix(int fix)
 				if ( m_Node[n].m_Mask == MASK_APPL )
 					m_Node[n].m_Mask = MASK_CKM;
 			} else if ( m_Node[n].m_Code == VK_END && m_Node[n].m_Mask == 0 )
-				m_Node[n].SetMaps("\\033[F");
+				m_Node[n].SetMaps(_T("\\033[F"));
 		}
 	}
 
@@ -2800,6 +2877,28 @@ CKeyMac::~CKeyMac()
 }
 void CKeyMac::GetMenuStr(CString &str)
 {
+#ifdef	_UNICODE
+	int n;
+	LPCTSTR p;
+
+	str = _T("");
+	if ( m_Data == NULL )
+		return;
+
+	p = (LPCTSTR)m_Data;
+
+	for ( n = 0 ; *p != _T('\0') && n < 20 ; n++, p++ ) {
+		if ( *p == _T('\r') )
+			str += _T("↓");
+		else if ( *p == _T('\x7F') || *p < _T(' ') )
+			str += _T('.');
+		else
+			str += *p;
+	}
+	if ( *p != _T('\0') )
+		str += _T("...");
+
+#else
 	int n;
 	CIConv iconv;
 	CBuffer in, out;
@@ -2827,6 +2926,7 @@ void CKeyMac::GetMenuStr(CString &str)
 	}
 	if ( n < out.GetSize() )
 		str += "...";
+#endif
 }
 void CKeyMac::GetStr(CString &str)
 {
@@ -2834,7 +2934,7 @@ void CKeyMac::GetStr(CString &str)
 	LPWSTR p = (LPWSTR)m_Data;
 	CString tmp;
 
-	str = "";
+	str = _T("");
 	if ( p == NULL )
 		return;
 
@@ -2847,27 +2947,27 @@ void CKeyMac::GetStr(CString &str)
 		}
 	}
 }
-void CKeyMac::SetStr(LPCSTR str)
+void CKeyMac::SetStr(LPCTSTR str)
 {
 	int c, n;
 	CBuffer tmp;
 
-	while ( *str != '\0' ) {
-		if ( str[0] == '\\' && str[1] == 'x' ) {
+	while ( *str != _T('\0') ) {
+		if ( str[0] == _T('\\') && str[1] == _T('x') ) {
 			str += 2;
 			for ( c = n = 0 ; n < 4 ; n++) {
-				if ( *str >= '0' && *str <= '9' )
-					c = c * 16 + (*(str++) - '0');
-				else if ( *str >= 'A' && *str <= 'F' )
-					c = c * 16 + (*(str++) - 'A' + 10);
-				else if ( *str >= 'a' && *str <= 'f' )
-					c = c * 16 + (*(str++) - 'a' + 10);
+				if ( *str >= _T('0') && *str <= _T('9') )
+					c = c * 16 + (*(str++) - _T('0'));
+				else if ( *str >= _T('A') && *str <= _T('F') )
+					c = c * 16 + (*(str++) - _T('A') + 10);
+				else if ( *str >= 'a' && *str <= _T('f') )
+					c = c * 16 + (*(str++) - _T('a') + 10);
 				else
 					break;
 			}
 			tmp.PutWord(c);
 		} else {
-			tmp.PutWord(*(str++) & 0xFF);
+			tmp.PutWord(*(str++));
 		}
 	}
 	SetBuf(tmp.GetPtr(), tmp.GetSize());
@@ -2911,7 +3011,7 @@ BOOL CKeyMac::operator == (CKeyMac &data)
 
 CKeyMacTab::CKeyMacTab()
 {
-	m_pSection = "KeyMac";
+	m_pSection = _T("KeyMac");
 }
 void CKeyMacTab::Init()
 {
@@ -2988,7 +3088,7 @@ void CKeyMacTab::SetHisMenu(CWnd *pWnd)
 
 	for ( n = 0 ; n < 5 && n < m_Data.GetSize() ; n++ ) {
 		m_Data[n].GetMenuStr(tmp);
-		str.Format("&%d %s", n + 1, tmp);
+		str.Format(_T("&%d %s"), n + 1, tmp);
 		pMenu->AppendMenu(MF_STRING, ID_MACRO_HIS1 + n, str);
 	}
 }
@@ -2996,74 +3096,74 @@ void CKeyMacTab::SetHisMenu(CWnd *pWnd)
 //////////////////////////////////////////////////////////////////////
 // CParamTab
 
-static const char *InitAlgo[12][40] = {
-	{ "blowfish", "3des", "des", NULL },
-	{ "crc32", NULL },
-	{ "zlib", "none", NULL },
+static LPCTSTR InitAlgo[12][40] = {
+	{ _T("blowfish"), _T("3des"), _T("des"), NULL },
+	{ _T("crc32"), NULL },
+	{ _T("zlib"), _T("none"), NULL },
 
-	{ "aes128-ctr",						"aes192-ctr",					"aes256-ctr",
-	  "aes128-cbc",						"aes192-cbc",					"aes256-cbc",
-	  "arcfour",						"arcfour128",					"arcfour256",
-	  "blowfish-ctr",					"cast128-ctr",					"idea-ctr",
-	  "twofish-ctr",					"3des-ctr",
-	  "blowfish-cbc",					"cast128-cbc",					"idea-cbc",
-	  "twofish-cbc",					"3des-cbc",
-	  "twofish128-ctr",					"twofish192-ctr",				"twofish256-ctr",
-	  "twofish128-cbc",					"twofish192-cbc",				"twofish256-cbc",
-	  "serpent128-ctr",					"serpent192-ctr",				"serpent256-ctr",
-	  "serpent128-cbc",					"serpent192-cbc",				"serpent256-cbc",
-	  "camellia128-ctr",				"camellia192-ctr",				"camellia256-ctr",
-	  "camellia128-cbc",				"camellia192-cbc",				"camellia256-cbc",
-	  "seed-ctr@ssh.com",				"seed-cbc@ssh.com",
+	{ _T("aes128-ctr"),						_T("aes192-ctr"),					_T("aes256-ctr"),
+	  _T("aes128-cbc"),						_T("aes192-cbc"),					_T("aes256-cbc"),
+	  _T("arcfour"),						_T("arcfour128"),					_T("arcfour256"),
+	  _T("blowfish-ctr"),					_T("cast128-ctr"),					_T("idea-ctr"),
+	  _T("twofish-ctr"),					_T("3des-ctr"),
+	  _T("blowfish-cbc"),					_T("cast128-cbc"),					_T("idea-cbc"),
+	  _T("twofish-cbc"),					_T("3des-cbc"),
+	  _T("twofish128-ctr"),					_T("twofish192-ctr"),				_T("twofish256-ctr"),
+	  _T("twofish128-cbc"),					_T("twofish192-cbc"),				_T("twofish256-cbc"),
+	  _T("serpent128-ctr"),					_T("serpent192-ctr"),				_T("serpent256-ctr"),
+	  _T("serpent128-cbc"),					_T("serpent192-cbc"),				_T("serpent256-cbc"),
+	  _T("camellia128-ctr"),				_T("camellia192-ctr"),				_T("camellia256-ctr"),
+	  _T("camellia128-cbc"),				_T("camellia192-cbc"),				_T("camellia256-cbc"),
+	  _T("seed-ctr@ssh.com"),				_T("seed-cbc@ssh.com"),
 	  NULL },
 
-	{ "hmac-md5",				"hmac-md5-96",			"hmac-sha1",			"hmac-sha1-96",
-	  "hmac-sha2-256",			"hmac-sha2-256-96",		"hmac-sha2-512",		"hmac-sha2-512-96",
-	  "hmac-ripemd160",			"hmac-whirlpool",		"umac-64@openssh.com",
-	  "umac-32",				"umac-64",				"umac-96",				"umac-128",
+	{ _T("hmac-md5"),				_T("hmac-md5-96"),			_T("hmac-sha1"),			_T("hmac-sha1-96"),
+	  _T("hmac-sha2-256"),			_T("hmac-sha2-256-96"),		_T("hmac-sha2-512"),		_T("hmac-sha2-512-96"),
+	  _T("hmac-ripemd160"),			_T("hmac-whirlpool"),		_T("umac-64@openssh.com"),
+	  _T("umac-32"),				_T("umac-64"),				_T("umac-96"),				_T("umac-128"),
 	  NULL },
 
-	{ "zlib@openssh.com", "zlib", "none", NULL },
+	{ _T("zlib@openssh.com"), _T("zlib"), _T("none"), NULL },
 
-	{ "aes128-ctr",						"aes192-ctr",					"aes256-ctr",
-	  "aes128-cbc",						"aes192-cbc",					"aes256-cbc",
-	  "arcfour",						"arcfour128",					"arcfour256",
-	  "blowfish-ctr",					"cast128-ctr",					"idea-ctr",
-	  "twofish-ctr",					"3des-ctr",
-	  "blowfish-cbc",					"cast128-cbc",					"idea-cbc",
-	  "twofish-cbc",					"3des-cbc",
-	  "twofish128-ctr",					"twofish192-ctr",				"twofish256-ctr",
-	  "twofish128-cbc",					"twofish192-cbc",				"twofish256-cbc",
-	  "serpent128-ctr",					"serpent192-ctr",				"serpent256-ctr",
-	  "serpent128-cbc",					"serpent192-cbc",				"serpent256-cbc",
-	  "camellia128-ctr",				"camellia192-ctr",				"camellia256-ctr",
-	  "camellia128-cbc",				"camellia192-cbc",				"camellia256-cbc",
-	  "seed-ctr@ssh.com",				"seed-cbc@ssh.com",
+	{ _T("aes128-ctr"),						_T("aes192-ctr"),					_T("aes256-ctr"),
+	  _T("aes128-cbc"),						_T("aes192-cbc"),					_T("aes256-cbc"),
+	  _T("arcfour"),						_T("arcfour128"),					_T("arcfour256"),
+	  _T("blowfish-ctr"),					_T("cast128-ctr"),					_T("idea-ctr"),
+	  _T("twofish-ctr"),					_T("3des-ctr"),
+	  _T("blowfish-cbc"),					_T("cast128-cbc"),					_T("idea-cbc"),
+	  _T("twofish-cbc"),					_T("3des-cbc"),
+	  _T("twofish128-ctr"),					_T("twofish192-ctr"),				_T("twofish256-ctr"),
+	  _T("twofish128-cbc"),					_T("twofish192-cbc"),				_T("twofish256-cbc"),
+	  _T("serpent128-ctr"),					_T("serpent192-ctr"),				_T("serpent256-ctr"),
+	  _T("serpent128-cbc"),					_T("serpent192-cbc"),				_T("serpent256-cbc"),
+	  _T("camellia128-ctr"),				_T("camellia192-ctr"),				_T("camellia256-ctr"),
+	  _T("camellia128-cbc"),				_T("camellia192-cbc"),				_T("camellia256-cbc"),
+	  _T("seed-ctr@ssh.com"),				_T("seed-cbc@ssh.com"),
 	  NULL },
 
-	{ "hmac-md5",				"hmac-md5-96",			"hmac-sha1",			"hmac-sha1-96",
-	  "hmac-sha2-256",			"hmac-sha2-256-96",		"hmac-sha2-512",		"hmac-sha2-512-96",
-	  "hmac-ripemd160",			"hmac-whirlpool",		"umac-64@openssh.com",
-	  "umac-32",				"umac-64",				"umac-96",				"umac-128",
+	{ _T("hmac-md5"),				_T("hmac-md5-96"),			_T("hmac-sha1"),			_T("hmac-sha1-96"),
+	  _T("hmac-sha2-256"),			_T("hmac-sha2-256-96"),		_T("hmac-sha2-512"),		_T("hmac-sha2-512-96"),
+	  _T("hmac-ripemd160"),			_T("hmac-whirlpool"),		_T("umac-64@openssh.com"),
+	  _T("umac-32"),				_T("umac-64"),				_T("umac-96"),				_T("umac-128"),
 	  NULL },
 
-	{ "zlib@openssh.com", "zlib", "none", NULL },
+	{ _T("zlib@openssh.com"), _T("zlib"), _T("none"), NULL },
 
-	{ "ecdh-sha2-nistp256",		"ecdh-sha2-nistp384",	"ecdh-sha2-nistp521",
-	  "diffie-hellman-group-exchange-sha256",	"diffie-hellman-group-exchange-sha1",
-	  "diffie-hellman-group14-sha1",			"diffie-hellman-group1-sha1",
+	{ _T("ecdh-sha2-nistp256"),		_T("ecdh-sha2-nistp384"),	_T("ecdh-sha2-nistp521"),
+	  _T("diffie-hellman-group-exchange-sha256"),	_T("diffie-hellman-group-exchange-sha1"),
+	  _T("diffie-hellman-group14-sha1"),			_T("diffie-hellman-group1-sha1"),
 	  NULL },
 
-	{ "ecdsa-sha2-nistp256",	"ecdsa-sha2-nistp384",	"ecdsa-sha2-nistp521",
-	  "ssh-dss",				"ssh-rsa",
+	{ _T("ecdsa-sha2-nistp256"),	_T("ecdsa-sha2-nistp384"),	_T("ecdsa-sha2-nistp521"),
+	  _T("ssh-dss"),				_T("ssh-rsa"),
 	  NULL },
 
-	{ "publickey",		"hostbased",	"password",		"keyboard-interactive",		NULL },
+	{ _T("publickey"),		_T("hostbased"),	_T("password"),		_T("keyboard-interactive"),		NULL },
 };
 
 CParamTab::CParamTab()
 {
-	m_pSection = "ParamTab";
+	m_pSection = _T("ParamTab");
 	m_MinSize = 18;
 	Init();
 }
@@ -3072,7 +3172,7 @@ void CParamTab::Init()
 	int n, i;
 
 	for ( n = 0 ; n < 9 ; n++ )
-		m_IdKeyStr[n] = "";
+		m_IdKeyStr[n] = _T("");
 
 	for ( n = 0 ; n < 12 ; n++ ) {
 		m_AlgoTab[n].RemoveAll();
@@ -3082,8 +3182,8 @@ void CParamTab::Init()
 
 	m_PortFwd.RemoveAll();
 
-	m_XDisplay  = ":0";
-	m_ExtEnvStr = "";
+	m_XDisplay  = _T(":0");
+	m_ExtEnvStr = _T("");
 	memset(m_OptTab, 0, sizeof(m_OptTab));
 	m_HostKeyFile.Empty();
 }
@@ -3096,9 +3196,9 @@ void CParamTab::SetArray(CStringArrayExt &array)
 	array.RemoveAll();
 
 	for ( n = 0 ; n < 9 ; n++ )
-		array.Add("");
+		array.Add(_T(""));
 
-	array.SetAt(0, "IdKeyList Entry");
+	array.SetAt(0, _T("IdKeyList Entry"));
 	m_IdKeyList.SetString(array[1]);
 
 	for ( n = 0 ; n < 9 ; n++ )
@@ -3106,7 +3206,7 @@ void CParamTab::SetArray(CStringArrayExt &array)
 
 	for ( n = 0 ; n < m_PortFwd.GetSize() ; n++ )
 		array.Add(m_PortFwd[n]);
-	array.Add("EndOf");
+	array.Add(_T("EndOf"));
 
 	array.Add(m_XDisplay);
 	array.Add(m_ExtEnvStr);
@@ -3152,16 +3252,16 @@ void CParamTab::GetArray(CStringArrayExt &array)
 
 	m_PortFwd.RemoveAll();
 	while ( i < array.GetSize() ) {
-		if ( array[i].Compare("EndOf") == 0 ) {
+		if ( array[i].Compare(_T("EndOf")) == 0 ) {
 			i++;
 			break;
 		}
 		list.GetString(array[i]);
 		if ( list.GetSize() >= 4 ) {
 			if ( list.GetSize() == 4 ) {
-				if ( list[0].Compare("localhost") == 0 )
+				if ( list[0].Compare(_T("localhost")) == 0 )
 					a = PFD_LOCAL;
-				else if ( list[0].Compare("socks") == 0 )
+				else if ( list[0].Compare(_T("socks")) == 0 )
 					a = PFD_SOCKS;
 				else
 					a = PFD_REMOTE;
@@ -3173,15 +3273,15 @@ void CParamTab::GetArray(CStringArrayExt &array)
 		i++;
 	}
 
-	m_XDisplay  = (array.GetSize() > i ? array.GetAt(i++) : ":0");
-	m_ExtEnvStr = (array.GetSize() > i ? array.GetAt(i++) : "");
+	m_XDisplay  = (array.GetSize() > i ? array.GetAt(i++) : _T(":0"));
+	m_ExtEnvStr = (array.GetSize() > i ? array.GetAt(i++) : _T(""));
 
 	if ( array.GetSize() > i )
 		array.GetBin(i++, m_OptTab, sizeof(m_OptTab));
 	else
 		memset(m_OptTab, 0, sizeof(m_OptTab));
 
-	m_HostKeyFile = (array.GetSize() > i ? array.GetAt(i++) : "");		// Not use !!!!!!!
+	m_HostKeyFile = (array.GetSize() > i ? array.GetAt(i++) : _T(""));		// Not use !!!!!!!
 
 	for ( n = 9 ; n < 12 && array.GetSize() > i ; n++ ) {
 		array.GetArray(i++, m_AlgoTab[n]);
@@ -3200,7 +3300,7 @@ void CParamTab::GetArray(CStringArrayExt &array)
 		}
 	}
 
-	if ( m_IdKeyStr[0].Compare("IdKeyList Entry") == 0 ) {
+	if ( m_IdKeyStr[0].Compare(_T("IdKeyList Entry")) == 0 ) {
 		m_IdKeyList.GetString(m_IdKeyStr[1]);
 		for ( n = 0 ; n < 9 ; n++ )
 			m_IdKeyStr[n].Empty();
@@ -3268,7 +3368,7 @@ void CParamTab::SetOptValue(int opt, int len, int value)
 }
 void CParamTab::GetProp(int num, CString &str, int shuffle)
 {
-	str = "";
+	str = _T("");
 	if ( num < 0 || num >= 12 )
 		return;
 
@@ -3284,21 +3384,21 @@ void CParamTab::GetProp(int num, CString &str, int shuffle)
 		}
 		for ( n = 0 ; n < mx ; n++ ) {
 			if ( n > 0 )
-				str += ",";
+				str += _T(",");
 			str += m_AlgoTab[num][tab[n]];
 		}
 		delete tab;
 	} else {
 		for ( int i = 0 ; i < m_AlgoTab[num].GetSize() ; i++ ) {
 			if ( i > 0 )
-				str += ",";
+				str += _T(",");
 			str += m_AlgoTab[num][i];
 		}
 	}
 }
 int CParamTab::GetPropNode(int num, int node, CString &str)
 {
-	str = "";
+	str = _T("");
 	if ( num < 0 || num >= 12 || node < 0 || node >= m_AlgoTab[num].GetSize() )
 		return FALSE;
 	str = m_AlgoTab[num][node];
@@ -3374,23 +3474,23 @@ void CStringMaps::AddWStrBuf(LPBYTE lpBuf, int nLen)
 	nLen /= sizeof(WCHAR);
 
 	while ( nLen-- > 0 ) {
-		if ( *wp == '"' ) {
+		if ( *wp == L'"' ) {
 			tmp += *(wp++);
 			while ( nLen > 0 ) {
 				tmp += *wp;
 				nLen--;
-				if ( *(wp++) == '"' )
+				if ( *(wp++) == L'"' )
 					break;
 			}
-		} else if ( *wp == '\'' ) {
+		} else if ( *wp == L'\'' ) {
 			tmp += *(wp++);
 			while ( nLen > 0 ) {
 				tmp += *wp;
 				nLen--;
-				if ( *(wp++) == '\'' )
+				if ( *(wp++) == L'\'' )
 					break;
 			}
-		} else if ( *wp == ' ' ) {
+		} else if ( *wp == L' ' ) {
 			wp++;
 			if ( !tmp.IsEmpty() ) {
 				Add(tmp);
@@ -3434,13 +3534,13 @@ const CStringIndex & CStringIndex::operator = (CStringIndex &data)
 }
 static int StrIdxCmp(const void *src, const void *dis)
 {
-	return (0 - ((CStringIndex *)dis)->m_nIndex.Compare((LPCSTR)src));
+	return (0 - ((CStringIndex *)dis)->m_nIndex.Compare((LPCTSTR)src));
 }
 static int StrIdxCmpNoCase(const void *src, const void *dis)
 {
-	return (0 - ((CStringIndex *)dis)->m_nIndex.CompareNoCase((LPCSTR)src));
+	return (0 - ((CStringIndex *)dis)->m_nIndex.CompareNoCase((LPCTSTR)src));
 }
-CStringIndex & CStringIndex::operator [] (LPCSTR str)
+CStringIndex & CStringIndex::operator [] (LPCTSTR str)
 {
 	int n;
 	CStringIndex tmpData;
@@ -3451,7 +3551,7 @@ CStringIndex & CStringIndex::operator [] (LPCSTR str)
 				return m_Array[n];
 		}
 	} else {
-		if ( BinaryFind((void *)str, m_Array.GetData(), sizeof(CStringIndex), m_Array.GetSize(), m_bNoCase ? StrIdxCmp : StrIdxCmpNoCase, &n) )
+		if ( BinaryFind((void *)str, m_Array.GetData(), sizeof(CStringIndex), m_Array.GetSize(), m_bNoCase ? StrIdxCmpNoCase : StrIdxCmp, &n) )
 			return m_Array[n];
 	}
 
@@ -3461,7 +3561,7 @@ CStringIndex & CStringIndex::operator [] (LPCSTR str)
 	m_Array.InsertAt(n, tmpData);
 	return m_Array[n];
 }
-int CStringIndex::Find(LPCSTR str)
+int CStringIndex::Find(LPCTSTR str)
 {
 	int n;
 
@@ -3471,52 +3571,52 @@ int CStringIndex::Find(LPCSTR str)
 				return n;
 		}
 	} else {
-		if ( BinaryFind((void *)str, m_Array.GetData(), sizeof(CStringIndex), m_Array.GetSize(), m_bNoCase ? StrIdxCmp : StrIdxCmpNoCase, &n) )
+		if ( BinaryFind((void *)str, m_Array.GetData(), sizeof(CStringIndex), m_Array.GetSize(), m_bNoCase ? StrIdxCmpNoCase : StrIdxCmp, &n) )
 			return n;
 	}
 
 	return (-1);
 }
-void CStringIndex::SetArray(LPCSTR str)
+void CStringIndex::SetArray(LPCTSTR str)
 {
-	int c, se;
+	TCHAR c, se;
 	int st = 0;
 	CString idx;
 	CString val;
 
 	m_Array.RemoveAll();
-	while ( (c = *(str++)) != '\0' ) {
+	while ( (c = *(str++)) != _T('\0') ) {
 		switch(st) {
 		case 0:
-			if ( c == '=' ) {
+			if ( c == _T('=') ) {
 				st = 1;
-				idx.Trim(" \t\r\n");
+				idx.Trim(_T(" \t\r\n"));
 				val.Empty();
-			} else if ( c == ',' || c == ' ' || c == '\t' || c == '\r' || c == '\n' ) {
-				idx.Trim(" \t\r\n");
+			} else if ( c == _T(',') || c == _T(' ') || c == _T('\t') || c == _T('\r') || c == _T('\n') ) {
+				idx.Trim(_T(" \t\r\n"));
 				if ( !idx.IsEmpty() )
-					(*this)[idx] = "";
+					(*this)[idx] = _T("");
 				idx.Empty();
 			} else
-				idx += (char)c;
+				idx += (TCHAR)c;
 			break;
 		case 1:
-			if ( c == '"' || c == '\'' ) {
+			if ( c == _T('"') || c == _T('\'') ) {
 				se = c;
 				st = 3;
 				break;
-			} else if ( c == ' ' || c == '\t' || c == '\r' || c == '\n' )
+			} else if ( c == _T(' ') || c == _T('\t') || c == _T('\r') || c == _T('\n') )
 				break;
 			st = 2;
 		case 2:
-			if ( c == ',' ) {
-				val.Trim(" \t\r\n");
+			if ( c == _T(',') ) {
+				val.Trim(_T(" \t\r\n"));
 				if ( !idx.IsEmpty() )
 					(*this)[idx] = val;
 				st = 0;
 				idx.Empty();
 			} else
-				val += (char)c;
+				val += c;
 			break;
 		case 3:
 			if ( c == se ) {
@@ -3525,10 +3625,10 @@ void CStringIndex::SetArray(LPCSTR str)
 				st = 4;
 				idx.Empty();
 			} else
-				val += (char)c;
+				val += c;
 			break;
 		case 4:
-		    if ( c == ',' )
+		    if ( c == _T(',') )
 				st = 0;
 		    break;
 		}
@@ -3537,10 +3637,10 @@ void CStringIndex::SetArray(LPCSTR str)
     switch(st) {
     case 1:
 		if ( !idx.IsEmpty() )
-		    (*this)[idx] = "";
+		    (*this)[idx] = _T("");
 		break;
     case 2:
-		val.Trim(" \t\r\n");
+		val.Trim(_T(" \t\r\n"));
     case 3:
 		if ( !idx.IsEmpty() )
 			(*this)[idx] = val;
@@ -3550,8 +3650,8 @@ void CStringIndex::SetArray(LPCSTR str)
 void CStringIndex::GetBuffer(CBuffer *bp)
 {
 	m_Value = bp->Get32Bit();
-	bp->GetStr(m_nIndex);
-	bp->GetStr(m_String);
+	bp->GetStrT(m_nIndex);
+	bp->GetStrT(m_String);
 
 	SetSize(bp->Get32Bit());
 
@@ -3561,18 +3661,18 @@ void CStringIndex::GetBuffer(CBuffer *bp)
 void CStringIndex::SetBuffer(CBuffer *bp)
 {
 	bp->Put32Bit(m_Value);
-	bp->PutStr(m_nIndex);
-	bp->PutStr(m_String);
+	bp->PutStrT(m_nIndex);
+	bp->PutStrT(m_String);
 
 	bp->Put32Bit(GetSize());
 
 	for ( int n = 0 ; n < GetSize() ; n++ )
 		m_Array[n].SetBuffer(bp);
 }
-void CStringIndex::GetString(LPCSTR str)
+void CStringIndex::GetString(LPCTSTR str)
 {
 	CBuffer tmp;
-	if ( *str == '\0' )
+	if ( *str == _T('\0') )
 		return;
 	tmp.Base64Decode(str);
 	if ( tmp.GetSize() < 16 )
@@ -3584,7 +3684,7 @@ void CStringIndex::SetString(CString &str)
 	CBuffer tmp, work;
 	SetBuffer(&tmp);
 	work.Base64Encode(tmp.GetPtr(), tmp.GetSize());
-	str = (LPCSTR)work;
+	str = (LPCTSTR)work;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -3593,10 +3693,10 @@ void CStringIndex::SetString(CString &str)
 CStringBinary::CStringBinary()
 {
 	m_pLeft = m_pRight = NULL;
-	m_Index = "a";
+	m_Index = _T("a");
 	m_Value = (-1);
 }
-CStringBinary::CStringBinary(LPCSTR str)
+CStringBinary::CStringBinary(LPCTSTR str)
 {
 	m_pLeft = m_pRight = NULL;
 	m_Index = str;
@@ -3610,7 +3710,7 @@ CStringBinary::~CStringBinary()
 	if ( m_pRight != NULL )
 		delete m_pRight;
 }
-CStringBinary & CStringBinary::operator [] (LPCSTR str)
+CStringBinary & CStringBinary::operator [] (LPCTSTR str)
 {
 	int c = m_Index.Compare(str);
 
@@ -3642,7 +3742,7 @@ void CStringBinary::RemoveAll()
 	m_Index = "a";
 	m_Value = (-1);
 }
-CStringBinary * CStringBinary::Find(LPCSTR str)
+CStringBinary * CStringBinary::Find(LPCTSTR str)
 {
 	int c = m_Index.Compare(str);
 

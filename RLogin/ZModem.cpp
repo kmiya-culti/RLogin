@@ -739,7 +739,7 @@ int CZModem::ZUpFile()
 	int winCount = 0;
 	int toutFlag = FALSE;
 	struct _stati64 st;
-	CString opt;
+	CStringA opt;
 
 NEXTFILE:
 

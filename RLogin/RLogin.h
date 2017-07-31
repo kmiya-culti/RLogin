@@ -32,7 +32,7 @@ public:
 	virtual void ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLast);
 	BOOL ParseUrl(const TCHAR* pszParam);
 	void GetString(CString &str);
-	void SetString(LPCSTR str);
+	void SetString(LPCTSTR str);
 };
 
 // CRLoginApp:
@@ -66,10 +66,10 @@ public:
 	int GetProfileSeqNum(LPCTSTR lpszSection, LPCTSTR lpszEntry);
 	void GetProfileKeys(LPCTSTR lpszSection, CStringArrayExt &array);
 	void DelProfileEntry(LPCTSTR lpszSection, LPCTSTR lpszEntry);
-	void RegisterShellProtocol(LPCSTR pSection, LPCSTR pOption);
-	void RegisterDelete(HKEY hKey, LPCSTR pSection, LPCSTR pKey);
-	void RegisterSave(HKEY hKey, LPCSTR pSection, CBuffer &buf);
-	void RegisterLoad(HKEY hKey, LPCSTR pSection, CBuffer &buf);
+	void RegisterShellProtocol(LPCTSTR pSection, LPCTSTR pOption);
+	void RegisterDelete(HKEY hKey, LPCTSTR pSection, LPCTSTR pKey);
+	void RegisterSave(HKEY hKey, LPCTSTR pSection, CBuffer &buf);
+	void RegisterLoad(HKEY hKey, LPCTSTR pSection, CBuffer &buf);
 	void SSL_Init();
 
 	void OpenProcsCmd(CCommandLineInfoEx *pCmdInfo);

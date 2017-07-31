@@ -46,6 +46,7 @@ public:
 	void Put64Bit(LONGLONG val);
 	void PutBuf(LPBYTE buf, int len);
 	void PutStr(LPCSTR str);
+	void PutStrT(LPCTSTR str);
 	void PutBIGNUM(BIGNUM *val);
 	void PutBIGNUM2(BIGNUM *val);
 	void PutEcPoint(const EC_GROUP *curve, const EC_POINT *point);
@@ -55,7 +56,8 @@ public:
 	int Get16Bit();
 	int Get32Bit();
 	LONGLONG Get64Bit();
-	int GetStr(CString &str);
+	int GetStr(CStringA &str);
+	int GetStrT(CString &str);
 	int GetBuf(CBuffer *buf);
 	int GetBIGNUM(BIGNUM *val);
 	int GetBIGNUM2(BIGNUM *val);
@@ -73,13 +75,13 @@ public:
 	int PTR32BIT(LPBYTE pos);
 	LONGLONG PTR64BIT(LPBYTE pos);
 
-	LPCSTR Base64Decode(LPCSTR str);
+	LPCTSTR Base64Decode(LPCTSTR str);
 	void Base64Encode(LPBYTE buf, int len);
-	LPCSTR Base16Decode(LPCSTR str);
+	LPCTSTR Base16Decode(LPCTSTR str);
 	void Base16Encode(LPBYTE buf, int len);
-	LPCSTR QuotedDecode(LPCSTR str);
+	LPCTSTR QuotedDecode(LPCTSTR str);
 	void QuotedEncode(LPBYTE buf, int len);
-	void md5(LPCSTR str);
+	void md5(LPCTSTR str);
 
 	const CBuffer & operator = (CBuffer &data) { Clear(); Apend(data.GetPtr(), data.GetSize()); return *this; }
 	operator LPCSTR() { if ( m_Max <= m_Len) ReAlloc(1); m_Data[m_Len] = 0; return (LPCSTR)GetPtr(); }
@@ -113,24 +115,30 @@ public:
 	~CSpace() { if ( m_Data != NULL ) delete m_Data; }
 };
 
+class CStringLoad : public CString
+{
+public:
+	CStringLoad(int nID) { LoadString(nID); }
+};
+
 class CStringArrayExt : public CStringArray  
 {
 public:
-	void AddVal(int value) { CString str; str.Format("%d", value); Add(str); }
-	int GetVal(int index) { return atoi(GetAt(index)); }
+	void AddVal(int value) { CString str; str.Format(_T("%d"), value); Add(str); }
+	int GetVal(int index) { return _tstoi(GetAt(index)); }
 	void AddBin(void *buf, int len);
 	int GetBin(int index, void *buf, int len);
 	void GetBuf(int index, CBuffer &buf);
 	void AddArray(CStringArrayExt &array);
 	void GetArray(int index, CStringArrayExt &array);
 	void SetString(CString &str, int sep = '\t');
-	void GetString(LPCSTR str, int sep = '\t');
+	void GetString(LPCTSTR str, int sep = '\t');
 	void SetBuffer(CBuffer &buf);
 	void GetBuffer(CBuffer &buf);
 	const CStringArrayExt & operator = (CStringArrayExt &data);
 	void Serialize(CArchive& ar);
-	int Find(LPCSTR str);
-	int FindNoCase(LPCSTR str);
+	int Find(LPCTSTR str);
+	int FindNoCase(LPCTSTR str);
 };
 
 class CStringMaps : public CObject
@@ -161,24 +169,24 @@ public:
 	CArray<CStringIndex, CStringIndex &> m_Array;
 
 	const CStringIndex & operator = (CStringIndex &data);
-	CStringIndex & operator [] (LPCSTR str);
+	CStringIndex & operator [] (LPCTSTR str);
 	CStringIndex & operator [] (int nIndex) { return m_Array[nIndex]; }
-	const LPCSTR operator = (LPCSTR str) { return (m_String = str); }
+	const LPCTSTR operator = (LPCTSTR str) { return (m_String = str); }
 	operator LPCTSTR () const { return m_String; }
 
 	int GetSize() { return m_Array.GetSize(); }
 	void SetSize(int nIndex) { m_Array.SetSize(nIndex); }
-	LPCSTR GetIndex() { return m_nIndex; }
+	LPCTSTR GetIndex() { return m_nIndex; }
 	void RemoveAll() { m_Array.RemoveAll(); }
 	void SetNoCase(BOOL b) { m_bNoCase = b; }
 	void SetNoSort(BOOL b) { m_bNoSort = b; }
 
-	int Find(LPCSTR str);
-	void SetArray(LPCSTR str);
+	int Find(LPCTSTR str);
+	void SetArray(LPCTSTR str);
 
 	void GetBuffer(CBuffer *bp);
 	void SetBuffer(CBuffer *bp);
-	void GetString(LPCSTR str);
+	void GetString(LPCTSTR str);
 	void SetString(CString &str);
 
 	CStringIndex();
@@ -195,15 +203,15 @@ public:
 	int m_Value;
 
 	CStringBinary();
-	CStringBinary(LPCSTR str);
+	CStringBinary(LPCTSTR str);
 	~CStringBinary();
 
 	void RemoveAll();
-	CStringBinary * Find(LPCSTR str);
+	CStringBinary * Find(LPCTSTR str);
 	CStringBinary * FindValue(int value);
-	CStringBinary & operator [] (LPCSTR str);
-	CStringBinary & Add(LPCSTR str) { return (*this)[str]; };
-	const LPCSTR operator = (LPCSTR str) { m_Value = 0; return (m_String = str); }
+	CStringBinary & operator [] (LPCTSTR str);
+	CStringBinary & Add(LPCTSTR str) { return (*this)[str]; };
+	const LPCTSTR operator = (LPCTSTR str) { m_Value = 0; return (m_String = str); }
 	operator LPCTSTR () const { return m_String; }
 	const int operator = (int val) { return (m_Value = val); }
 	operator int () const { return m_Value; }
@@ -217,7 +225,7 @@ public:
 	int m_Width, m_Height;
 	CString m_FileName;
 
-	int LoadFile(LPCSTR filename);
+	int LoadFile(LPCTSTR filename);
 	CBitmap *GetBitmap(CDC *pDC, int width, int height);
 
 	CBmpFile();
@@ -233,7 +241,7 @@ public:
 	int m_Style;
 	int m_KanWidMul;
 
-	CFont *Open(LPCSTR pFontName, int Width, int Height, int CharSet, int Style, int Quality);
+	CFont *Open(LPCTSTR pFontName, int Width, int Height, int CharSet, int Style, int Quality);
 	CFontChacheNode();
 	~CFontChacheNode();
 };
@@ -246,7 +254,7 @@ public:
 	CFontChacheNode *m_pTop[4];
 	CFontChacheNode m_Data[FONTCACHEMAX];
 
-	CFontChacheNode *GetFont(LPCSTR pFontName, int Width, int Height, int CharSet, int Style, int Quality, int Hash);
+	CFontChacheNode *GetFont(LPCTSTR pFontName, int Width, int Height, int CharSet, int Style, int Quality, int Hash);
 	CFontChache();
 };
 
@@ -255,14 +263,14 @@ class CMutexLock : public CObject
 public:
 	CMutex *m_pMutex;
 	CSingleLock *m_pLock;
-	CMutexLock(LPCSTR lpszName = NULL); 
+	CMutexLock(LPCTSTR lpszName = NULL); 
 	~CMutexLock();
 };
 
 class COptObject : public CObject
 {
 public:
-	LPCSTR m_pSection;
+	LPCTSTR m_pSection;
 	int m_MinSize;
 
 	virtual void Init();
@@ -318,12 +326,12 @@ public:
 	void SetBuffer(CBuffer &buf);
 	int GetBuffer(CBuffer &buf);
 
-	LPCSTR QuoteStr(CString &tmp, LPCSTR str);
+	LPCTSTR QuoteStr(CString &tmp, LPCTSTR str);
 	void SetNodeStr(CStrScriptNode *np, CString &str, int nst);
-	int GetLex(LPCSTR &str);
-	CStrScriptNode *GetNodeStr(int &lex, LPCSTR &str);
+	int GetLex(LPCTSTR &str);
+	CStrScriptNode *GetNodeStr(int &lex, LPCTSTR &str);
 	void SetString(CString &str);
-	void GetString(LPCSTR str);
+	void GetString(LPCTSTR str);
 
 	void EscapeStr(LPCWSTR str, CString &buf, BOOL reg = FALSE);
 	void AddNode(LPCWSTR recv, LPCWSTR send);
@@ -382,14 +390,14 @@ public:
 	void GetArray(CStringArrayExt &array);
 	void SetBuffer(CBuffer &buf);
 	int GetBuffer(CBuffer &buf);
-	void SetProfile(LPCSTR pSection);
-	int GetProfile(LPCSTR pSection, int Uid);
-	void DelProfile(LPCSTR pSection);
+	void SetProfile(LPCTSTR pSection);
+	int GetProfile(LPCTSTR pSection, int Uid);
+	void DelProfile(LPCTSTR pSection);
 	void Serialize(CArchive &ar);
 
-	LPCSTR GetKanjiCode();
-	void SetKanjiCode(LPCSTR str);
-	int GetProtoType(LPCSTR str);
+	LPCTSTR GetKanjiCode();
+	void SetKanjiCode(LPCTSTR str);
+	int GetProtoType(LPCTSTR str);
 
 	const CServerEntry & operator = (CServerEntry &data);
 	CServerEntry();
@@ -432,11 +440,11 @@ public:
 	CBuffer m_Maps;
 	CString m_Temp;
 
-	LPCSTR GetMaps();
-	void SetMaps(LPCSTR str);
-	LPCSTR GetCode();
-	void SetCode(LPCSTR name);
-	LPCSTR GetMask();
+	LPCTSTR GetMaps();
+	void SetMaps(LPCTSTR str);
+	LPCTSTR GetCode();
+	void SetCode(LPCTSTR name);
+	LPCTSTR GetMask();
 	void CommandLine(LPCWSTR str, CStringW &cmd);
 	void SetComboList(CComboBox *pCombo);
 
@@ -488,11 +496,11 @@ public:
 
 	BOOL Find(int code, int mask, int *base);
 	int Add(CKeyNode &node);
-	int Add(int code, int mask, LPCSTR str);
-	int Add(LPCSTR code, int mask, LPCSTR maps);
+	int Add(int code, int mask, LPCTSTR str);
+	int Add(LPCTSTR code, int mask, LPCTSTR maps);
 	BOOL FindKeys(int code, int mask, CBuffer *pBuf, int base, int bits);
 	BOOL FindMaps(int code, int mask, CBuffer *pBuf);
-	BOOL FindCapInfo(LPCSTR name, CBuffer *pBuf);
+	BOOL FindCapInfo(LPCTSTR name, CBuffer *pBuf);
 
 	inline CKeyNode &GetAt(int pos) { return m_Node[pos]; }
 	inline int GetSize() { return (int)m_Node.GetSize(); }
@@ -521,7 +529,7 @@ public:
 
 	void GetMenuStr(CString &str);
 	void GetStr(CString &str);
-	void SetStr(LPCSTR str);
+	void SetStr(LPCTSTR str);
 	void SetBuf(LPBYTE buf, int len);
 
 	BOOL operator == (CKeyMac &data);

@@ -459,7 +459,7 @@ void CServerSelect::OnUpdateEditEntry(CCmdUI* pCmdUI)
 
 void CServerSelect::OnServInport()
 {
-	CFileDialog dlg(TRUE, "rlg", "", OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, "RLogin Ì§²Ù (*.rlg)|*.rlg|All Files (*.*)|*.*||", this);
+	CFileDialog dlg(TRUE, "rlg", "", OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGRLOGIN), this);
 
 	if ( dlg.DoModal() != IDOK )
 		return;
@@ -483,7 +483,7 @@ void CServerSelect::OnServInport()
 
 	TRY {
 		Archive.ReadString((LPSTR)tmp, 256);
-		if ( strncmp((LPSTR)tmp, "RLG2", 4) != 0 )
+		if ( _tcsncmp((LPSTR)tmp, _T("RLG2"), 4) != 0 )
 			AfxThrowArchiveException(CArchiveException::badIndex, Archive.GetFile()->GetFileTitle());
 
 		for ( ; ; ) {
@@ -505,7 +505,7 @@ void CServerSelect::OnServInport()
 
 			if ( !Archive.ReadString((LPSTR)tmp, 256) )
 				break;
-			if ( strncmp((LPSTR)tmp, "RLG21", 5) != 0 )
+			if ( _tcsncmp((LPSTR)tmp, _T("RLG21"), 5) != 0 )
 				break;
 		}
 	} CATCH_ALL(e) {
@@ -530,7 +530,7 @@ void CServerSelect::OnServExport()
 	if ( (m_EntryNum = m_List.GetSelectMarkData()) < 0 )
 		return;
 
-	CFileDialog dlg(FALSE, "rlg", "", OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, "RLogin Ì§²Ù (*.rlg)|*.rlg|All Files (*.*)|*.*||", this);
+	CFileDialog dlg(FALSE, "rlg", "", OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGRLOGIN), this);
 
 	if ( dlg.DoModal() != IDOK )
 		return;

@@ -333,7 +333,7 @@ void CFontTab::GetArray(CStringArrayExt &array)
 	int n, i;
 	CStringArrayExt tmp;
 
-	if ( array.GetSize() == 0 || atoi(array[0]) != (-1) )
+	if ( array.GetSize() == 0 || _tstoi(array[0]) != (-1) )
 		Init();
 	else {
 		for ( n = 0 ; n < CODE_MAX ; n++ )
@@ -377,7 +377,7 @@ int CFontTab::IndexFind(int code, LPCSTR name)
 
 	if ( name[1] == '\0' && name[0] >= '\x30' && name[0] <= '\x7E' )
 		return (code | name[0]);
-	else if ( strcmp(name, "*U") == 0 )
+	else if ( _tcscmp(name, "*U") == 0 )
 		return SET_UNICODE;
 
 	for ( n = i = 0 ;  n < (255 - 0x4F) ; n++ ) {
@@ -859,7 +859,7 @@ void CTextRam::SaveHistory()
 		}
 
 	} catch(...) {
-		AfxMessageBox("ヒストリーバックアップに失敗しました");
+		AfxMessageBox(IDE_HISTORYBACKUPERROR);
 	}
 }
 void CTextRam::HisRegCheck(int ch, DWORD pos)
@@ -1861,8 +1861,8 @@ void CTextRam::EditCopy(int sps, int eps, BOOL rectflag, BOOL lineflag)
 		}
 
 		if ( (y < y2 && x < m_Cols) || (y == y2 && lineflag) ) {
-			str.PutWord('\r');
-			str.PutWord('\n');
+			str.PutWord(L'\r');
+			str.PutWord(L'\n');
 		}
 
 		tmp.Apend(str.GetPtr(), str.GetSize());
@@ -1899,6 +1899,51 @@ ENDOF:
 	GlobalFree(hClipData);
 ENDOF2:
 	return;
+}
+void CTextRam::GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf)
+{
+	int n, ch;
+	int x, y, sx, ex;
+	VRAM *vp;
+
+	for ( y = staY ; y <= endY ; y++ ) {
+		vp = GETVRAM(0, y);
+
+		if ( vp->dm != 0 ) {
+			sx = staX / 2;
+			ex = endX / 2;
+		} else {
+			sx = staX;
+			ex = endX;
+		}
+
+		while ( sx <= ex && vp[ex].ch < ' ' )
+			ex--;
+
+		for ( x = sx ; x <= ex ; x += n ) {
+			if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].cm) && IS_2BYTE(vp[x + 1].cm) ) {
+				ch = vp[x].ch;
+				if ( (ch & 0xFFFF0000) != 0 )	// 01020304 > 02 01 04 03 (BE->LE 2Word)
+					pBuf->PutWord(ch >> 16);
+				pBuf->PutWord(ch);
+				n = 2;
+			} else if ( !IS_ASCII(vp[x].cm) || vp[x].ch == 0 ) {
+				pBuf->PutWord(' ');
+				n = 1;
+			} else {
+				ch = vp[x].ch;
+				if ( (ch & 0xFFFF0000) != 0 )	// 01020304 > 02 01 04 03 (BE->LE 2Word)
+					pBuf->PutWord(ch >> 16);
+				pBuf->PutWord(ch);
+				n = 1;
+			}
+		}
+
+		if ( y < endY && x < m_Cols ) {
+			pBuf->PutWord(L'\r');
+			pBuf->PutWord(L'\n');
+		}
+	}
 }
 
 void CTextRam::StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop, int len, char *str, int sln, int *spc, class CRLoginView *pView)
@@ -2355,7 +2400,7 @@ void CTextRam::CallReciveLine(int y)
 
 	CBuffer in, out;
 	in.Apend((LPBYTE)((LPCWSTR)tmp), tmp.GetLength() * sizeof(WCHAR));
-	m_IConv.IConvBuf("UCS-2LE", m_SendCharSet[m_LogCharSet[IsOptValue(TO_RLLOGCODE, 2)]], &in, &out);
+	m_IConv.IConvBuf(_T("UCS-2LE"), m_SendCharSet[m_LogCharSet[IsOptValue(TO_RLLOGCODE, 2)]], &in, &out);
 	m_pDocument->m_pLogFile->Write(out.GetPtr(), out.GetSize());
 }
 void CTextRam::CallReciveChar(int ch)
@@ -2496,7 +2541,7 @@ int CTextRam::UnicodeWidth(DWORD code)
 
 void CTextRam::MsToIconvUnicode(WCHAR *str, int len, LPCSTR charset)
 {
-	if ( strcmp(charset, "EUC-JISX0213") == 0 ) {
+	if ( _tcscmp(charset, "EUC-JISX0213") == 0 ) {
 		for ( ; len-- > 0 ; str++ ) {
 			switch(*str) {							/*                  iconv  MS     */
 			case 0xFFE0: *str = 0x00A2; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
@@ -2504,7 +2549,7 @@ void CTextRam::MsToIconvUnicode(WCHAR *str, int len, LPCSTR charset)
 			case 0xFFE2: *str = 0x00AC; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
 			}
 		}
-	} else if ( strcmp(charset, "SHIFT_JISX0213") == 0 ) {
+	} else if ( _tcscmp(charset, "SHIFT_JISX0213") == 0 ) {
 		for ( ; len-- > 0 ; str++ ) {
 			switch(*str) {							/*                  iconv  MS     */
 //			case 0x005C: *str = 0x00A5; break;		/* \  0x5C          U+00A5 U+005C */
@@ -2514,7 +2559,7 @@ void CTextRam::MsToIconvUnicode(WCHAR *str, int len, LPCSTR charset)
 			case 0xFFE2: *str = 0x00AC; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
 			}
 		}
-	} else if ( strcmp(charset, "EUC-JP") == 0 || strcmp(charset, "EUCJP") == 0 ) {
+	} else if ( _tcscmp(charset, "EUC-JP") == 0 || _tcscmp(charset, "EUCJP") == 0 ) {
 		for ( ; len-- > 0 ; str++ ) {
 			switch(*str) {							/*                  iconv  MS     */
 			case 0x2225: *str = 0x2016; break;		/* ∥ 0x8161(01-34) U+2016 U+2225 */
@@ -2524,8 +2569,8 @@ void CTextRam::MsToIconvUnicode(WCHAR *str, int len, LPCSTR charset)
 			case 0xFFE2: *str = 0x00AC; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
 			}
 		}
-	} else if ( strcmp(charset, "SHIFT_JIS") == 0 || strcmp(charset, "MS_KANJI") == 0 ||
-			    strcmp(charset, "SHIFT-JIS") == 0 || strcmp(charset, "SJIS") == 0 || strcmp(charset, "CSSHIFTJIS") == 0 ) {
+	} else if ( _tcscmp(charset, "SHIFT_JIS") == 0 || _tcscmp(charset, "MS_KANJI") == 0 ||
+			    _tcscmp(charset, "SHIFT-JIS") == 0 || _tcscmp(charset, "SJIS") == 0 || _tcscmp(charset, "CSSHIFTJIS") == 0 ) {
 		for ( ; len-- > 0 ; str++ ) {
 			switch(*str) {							/*                  iconv  MS     */
 //			case 0x005C: *str = 0x00A5; break;		/* \  0x5C          U+00A5 U+005C */
@@ -2931,16 +2976,13 @@ int CTextRam::GetAnsiPara(int index, int defvalue, int limit)
 void CTextRam::SetAnsiParaArea(int top)
 {
 	while ( m_AnsiPara.GetSize() < top )
-		m_AnsiPara.Add(0);
-
-	for ( int n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
-		if ( m_AnsiPara[n] == 0xFFFF )
-			m_AnsiPara[n] = 0;
-	}
+		m_AnsiPara.Add(0xFFFF);
 
 	// Start Line
 	if ( m_AnsiPara.GetSize() < (top + 1) )
 		m_AnsiPara.Add(1);
+	else if ( m_AnsiPara[top] == 0xFFFF )
+		m_AnsiPara[top] = 1;
 	if ( (m_AnsiPara[top] = m_AnsiPara[top] - 1) < 0 )
 		m_AnsiPara[top] = 0;
 	else if ( m_AnsiPara[top] >= m_Lines )
@@ -2950,6 +2992,8 @@ void CTextRam::SetAnsiParaArea(int top)
 	// Start Cols
 	if ( m_AnsiPara.GetSize() < (top + 1) )
 		m_AnsiPara.Add(1);
+	else if ( m_AnsiPara[top] == 0xFFFF )
+		m_AnsiPara[top] = 1;
 	if ( (m_AnsiPara[top] = m_AnsiPara[top] - 1) < 0 )
 		m_AnsiPara[top] = 0;
 	else if ( m_AnsiPara[top] >= m_Cols )
@@ -2959,6 +3003,8 @@ void CTextRam::SetAnsiParaArea(int top)
 	// End Line
 	if ( m_AnsiPara.GetSize() < (top + 1) )
 		m_AnsiPara.Add(m_Lines);
+	else if ( m_AnsiPara[top] == 0xFFFF )
+		m_AnsiPara[top] = m_Lines;
 	if ( (m_AnsiPara[top] = m_AnsiPara[top] - 1) < 0 )
 		m_AnsiPara[top] = 0;
 	else if ( m_AnsiPara[top] >= m_Lines )
@@ -2968,6 +3014,8 @@ void CTextRam::SetAnsiParaArea(int top)
 	// End Cols
 	if ( m_AnsiPara.GetSize() < (top + 1) )
 		m_AnsiPara.Add(m_Cols);
+	else if ( m_AnsiPara[top] == 0xFFFF )
+		m_AnsiPara[top] = m_Cols;
 	if ( (m_AnsiPara[top] = m_AnsiPara[top] - 1) < 0 )
 		m_AnsiPara[top] = 0;
 	else if ( m_AnsiPara[top] >= m_Cols )
@@ -3308,7 +3356,7 @@ void CTextRam::PUT1BYTE(int ch, int md)
 	if ( m_StsFlag ) {
 		md &= CODE_MASK;
 		ch |= m_FontTab[md].m_Shift;
-		ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, "UTF-16BE", ch);			// Char変換ではUTF-16BEを使用！
+		ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// Char変換ではUTF-16BEを使用！
 		ch = IconvToMsUnicode(ch);
 		m_LastChar = ch;
 		m_LastPos  = 0;
@@ -3337,7 +3385,7 @@ void CTextRam::PUT1BYTE(int ch, int md)
 
 	md &= CODE_MASK;
 	ch |= m_FontTab[md].m_Shift;
-	ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, "UTF-16BE", ch);			// Char変換ではUTF-16BEを使用！
+	ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// Char変換ではUTF-16BEを使用！
 	ch = IconvToMsUnicode(ch);
 
 	vp->ch = ch;
@@ -3372,7 +3420,7 @@ void CTextRam::PUT2BYTE(int ch, int md)
 	if ( m_StsFlag ) {
 		md &= CODE_MASK;
 		ch |= m_FontTab[md].m_Shift;
-		ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, "UTF-16BE", ch);			// Char変換ではUTF-16BEを使用！
+		ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// Char変換ではUTF-16BEを使用！
 		ch = IconvToMsUnicode(ch);
 		m_LastChar = ch;
 		m_LastPos  = 0;
@@ -3404,7 +3452,7 @@ void CTextRam::PUT2BYTE(int ch, int md)
 	vp[0].bc = vp[1].bc = m_AttNow.bc;
 
 	md &= CODE_MASK;
-	ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, "UTF-16BE", ch);			// Char変換ではUTF-16BEを使用！
+	ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// Char変換ではUTF-16BEを使用！
 	ch = IconvToMsUnicode(ch);
 
 	vp[0].ch = vp[1].ch = ch;
@@ -3641,6 +3689,202 @@ void CTextRam::SETPAGE(int page)
 	}
 
 	m_Page = page;
+}
+CTextSave *CTextRam::GETPAGE(int page)
+{
+	CTextSave *pSave;
+
+	if ( page < 0 )
+		page = 0;
+	else if ( page > 100 )
+		page = 100;
+
+	if ( m_PageTab.GetSize() <= page )
+		m_PageTab.SetSize(page + 1);
+
+	if ( (pSave = (CTextSave *)m_PageTab[page]) != NULL )
+		return pSave;
+
+	SAVERAM();
+
+	if ( (pSave = m_pTextSave) == NULL )
+		return NULL;
+
+	m_pTextSave = pSave->m_Next;
+	m_PageTab[page] = pSave;
+
+	int x, y;
+	VRAM *vp = pSave->m_VRam;
+
+	for ( y = 0 ; y < pSave->m_Lines ; y++ ) {
+		for ( x = 0 ; x < pSave->m_Cols ; x++ )
+			*(vp++) = m_AttSpc;
+	}
+	pSave->m_CurX = 0;
+	pSave->m_CurY = 0;
+
+	return pSave;
+}
+
+void CTextRam::COPY(int sp, int sx, int sy, int ex, int ey, int dp, int dx, int dy)
+{
+	WORD dm;
+	int nx, ny, tx, ty;
+	VRAM *np, *tp;
+	CTextSave *pSrc, *pDis;
+
+	if      ( sp < 0 )   sp = 0;
+	else if ( sp > 100 ) sp = 100;
+	if      ( dp < 0 )   dp = 0;
+	else if ( dp > 100 ) dp = 100;
+
+	if ( sx < 0 )  sx = 0;
+	if ( ex < sx ) ex = sx;
+	if ( sy < 0 )  sy = 0;
+	if ( ey < sy ) ey = sy;
+	if ( dx < 0 )  dx = 0;
+	if ( dy < 0 )  dy = 0;
+
+	if ( sp == dp ) {
+		if ( sp == m_Page ) {	// Vram to Vram
+			if ( sy > dy || (sy == dy && sx >= dx) ) {
+				for ( ty = sy, ny = dy ; ty <= ey && ny < m_Lines ; ty++, ny++ ) {
+					for ( tx = sx, nx = dx ; tx <= ex && nx < m_Cols ; tx++, nx++ ) {
+						if ( tx >= m_Cols || ty >= m_Lines )
+							tp = &m_AttSpc;
+						else
+							tp = GETVRAM(tx, ty);
+						np = GETVRAM(nx, ny);
+						if ( nx == 0 ) {
+							dm = np->dm;
+							*np = *tp;
+							np->dm = dm;
+						} else
+							*np = *tp;
+					}
+				}
+			} else {
+				for ( ty = ey, ny = dy + ey - sy ; ty >= sy && ny >= 0 ; ty--, ny-- ) {
+					if ( ny >= m_Lines )
+						continue;
+					for ( tx = ex, nx = dx + ex - sx ; tx >= sx && nx >= 0 ; tx--, nx-- ) {
+						if ( nx >= m_Cols )
+							continue;
+						if ( tx >= m_Cols || ty >= m_Lines )
+							tp = &m_AttSpc;
+						else
+							tp = GETVRAM(tx, ty);
+						np = GETVRAM(nx, ny);
+						if ( nx == 0 ) {
+							dm = np->dm;
+							*np = *tp;
+							np->dm = dm;
+						} else
+							*np = *tp;
+					}
+				}
+			}
+			DISPVRAM(dx, dy, ex - sx + 1, ey - sy + 1);
+
+		} else {				// Page to dup Page
+			pSrc = GETPAGE(sp);
+			if ( sy > dy || (sy == dy && sx >= dx) ) {
+				for ( ty = sy, ny = dy ; ty <= ey && ny < pSrc->m_Lines ; ty++, ny++ ) {
+					for ( tx = sx, nx = dx ; tx <= ex && nx < pSrc->m_Cols ; tx++, nx++ ) {
+						if ( tx >= pSrc->m_Cols || ty >= pSrc->m_Lines )
+							tp = &(pSrc->m_AttSpc);
+						else
+							tp = pSrc->m_VRam + tx + pSrc->m_Cols * ty;
+						np = pSrc->m_VRam + nx + pSrc->m_Cols * ny;
+						if ( nx == 0 ) {
+							dm = np->dm;
+							*np = *tp;
+							np->dm = dm;
+						} else
+							*np = *tp;
+					}
+				}
+			} else {
+				for ( ty = ey, ny = dy + ey - sy ; ty >= sy && ny >= 0 ; ty--, ny-- ) {
+					if ( ny >= pSrc->m_Lines )
+						continue;
+					for ( tx = ex, nx = dx + ex - sx ; tx >= sx && nx >= 0 ; tx--, nx-- ) {
+						if ( nx >= pSrc->m_Cols )
+							continue;
+						if ( tx >= pSrc->m_Cols || ty >= pSrc->m_Lines )
+							tp = &(pSrc->m_AttSpc);
+						else
+							tp = pSrc->m_VRam + tx + pSrc->m_Cols * ty;
+						np = pSrc->m_VRam + nx + pSrc->m_Cols * ny;
+						if ( nx == 0 ) {
+							dm = np->dm;
+							*np = *tp;
+							np->dm = dm;
+						} else
+							*np = *tp;
+					}
+				}
+			}
+		}
+
+	} else {
+		if ( sp == m_Page )	{			// Vram to Page
+			pDis = GETPAGE(dp);
+			for ( ty = sy, ny = dy ; ty <= ey && ny < pDis->m_Lines ; ty++, ny++ ) {
+				for ( tx = sx, nx = dx ; tx <= ex && nx < pDis->m_Cols ; tx++, nx++ ) {
+					if ( tx >= m_Cols || ty >= m_Lines )
+						tp = &m_AttSpc;
+					else
+						tp = GETVRAM(tx, ty);
+					np = pDis->m_VRam + nx + pDis->m_Cols * ny;
+					if ( nx == 0 ) {
+						dm = np->dm;
+						*np = *tp;
+						np->dm = dm;
+					} else
+						*np = *tp;
+				}
+			}
+
+		} else if ( dp == m_Page ) {	// Page to Vram
+			pSrc = GETPAGE(sp);
+			for ( ty = sy, ny = dy ; ty <= ey && ny < m_Lines ; ty++, ny++ ) {
+				for ( tx = sx, nx = dx ; tx <= ex && nx < m_Cols ; tx++, nx++ ) {
+					if ( tx >= pSrc->m_Cols || ty >= pSrc->m_Lines )
+						tp = &(pSrc->m_AttSpc);
+					else
+						tp = pSrc->m_VRam + tx + pSrc->m_Cols * ty;
+					np = GETVRAM(nx, ny);
+					if ( nx == 0 ) {
+						dm = np->dm;
+						*np = *tp;
+						np->dm = dm;
+					} else
+						*np = *tp;
+				}
+			}
+			DISPVRAM(dx, dy, ex - sx + 1, ey - sy + 1);
+
+		} else {						// Page to diff Page
+			pSrc = GETPAGE(sp);
+			pDis = GETPAGE(dp);
+			for ( ty = sy, ny = dy ; ty <= ey && ny < pDis->m_Lines ; ty++, ny++ ) {
+				for ( tx = sx, nx = dx ; tx <= ex && nx < pDis->m_Cols ; tx++, nx++ ) {
+					if ( tx >= pSrc->m_Cols || ty >= pSrc->m_Lines )
+						tp = &(pSrc->m_AttSpc);
+					else
+						tp = pSrc->m_VRam + tx + pSrc->m_Cols * ty;
+					np = pDis->m_VRam + nx + pDis->m_Cols * ny;
+					if ( nx == 0 ) {
+						dm = np->dm;
+						*np = *tp;
+						np->dm = dm;
+					} else
+						*np = *tp;
+				}
+			}
+		}
+	}
 }
 void CTextRam::TABSET(int sw)
 {

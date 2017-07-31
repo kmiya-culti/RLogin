@@ -119,7 +119,7 @@ public:
 	int IsDir();
 	int IsReg();
 	int IsLink();
-	int IsDot() { return (m_file.Compare(".") == 0 || m_file.Compare("..") == 0 ? TRUE : FALSE); }
+	int IsDot() { return (m_file.Compare(_T(".")) == 0 || m_file.Compare(_T("..")) == 0 ? TRUE : FALSE); }
 
 	int HaveSize() { return (m_flags & SSH2_FILEXFER_ATTR_SIZE); }
 	void SetSubName();

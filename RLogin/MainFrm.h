@@ -143,12 +143,12 @@ public:
 
 	void SetTransPar(COLORREF rgb, int value, DWORD flag);
 	void SetIconStyle();
-	void SetIconData(HICON hIcon, LPCSTR str);
+	void SetIconData(HICON hIcon, LPCTSTR str);
 
 	int SetAsyncSelect(SOCKET fd, CExtSocket *pSock, long lEvent = 0);
 	void DelAsyncSelect(SOCKET fd, CExtSocket *pSock);
-	int SetAsyncHostAddr(int mode, LPCSTR pHostName, CExtSocket *pSock);
-	int SetAsyncAddrInfo(int mode, LPCSTR pHostName, int PortNum, void *pHint, CExtSocket *pSock);
+	int SetAsyncHostAddr(int mode, LPCTSTR pHostName, CExtSocket *pSock);
+	int SetAsyncAddrInfo(int mode, LPCTSTR pHostName, int PortNum, void *pHint, CExtSocket *pSock);
 	int OpenServerEntry(CServerEntry &Entry);
 	BOOL SaveModified( );
 

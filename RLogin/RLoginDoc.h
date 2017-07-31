@@ -109,7 +109,7 @@ public:
 	void OnSocketClose();
 	int OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags);
 
-	void SetStatus(LPCSTR str);
+	void SetStatus(LPCTSTR str);
 	void SetEntryProBuffer();
 
 	void DoDropFile();

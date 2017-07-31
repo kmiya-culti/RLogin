@@ -107,9 +107,9 @@ BOOL CScrnPage::OnInitDialog()
 		m_Check[n] = (m_pSheet->m_pTextRam->IsOptEnable(CheckOptTab[n]) ? TRUE : FALSE);
 
 	m_ScrnFont = (m_pSheet->m_pTextRam->IsOptEnable(TO_RLFONT) ? 1 : 0);
-	m_ColsMax[0].Format("%d",   m_pSheet->m_pTextRam->m_DefCols[0]);
-	m_ColsMax[1].Format("%d",   m_pSheet->m_pTextRam->m_DefCols[1]);
-	m_FontSize.Format("%d",  m_pSheet->m_pTextRam->m_DefFontSize);
+	m_ColsMax[0].Format(_T("%d"),   m_pSheet->m_pTextRam->m_DefCols[0]);
+	m_ColsMax[1].Format(_T("%d"),   m_pSheet->m_pTextRam->m_DefCols[1]);
+	m_FontSize.Format(_T("%d"),  m_pSheet->m_pTextRam->m_DefFontSize);
 	m_FontHw = m_pSheet->m_pTextRam->m_DefFontHw - 10;
 
 	m_VisualBell = m_pSheet->m_pTextRam->IsOptValue(TO_RLADBELL, 2);
@@ -152,9 +152,9 @@ BOOL CScrnPage::OnApply()
 	else
 		m_pSheet->m_pTextRam->DisableOption(TO_RLFONT);
 
-	m_pSheet->m_pTextRam->m_DefCols[0]  = atoi(m_ColsMax[0]);
-	m_pSheet->m_pTextRam->m_DefCols[1]  = atoi(m_ColsMax[1]);
-	m_pSheet->m_pTextRam->m_DefFontSize = atoi(m_FontSize);
+	m_pSheet->m_pTextRam->m_DefCols[0]  = _tstoi(m_ColsMax[0]);
+	m_pSheet->m_pTextRam->m_DefCols[1]  = _tstoi(m_ColsMax[1]);
+	m_pSheet->m_pTextRam->m_DefFontSize = _tstoi(m_FontSize);
 	m_pSheet->m_pTextRam->m_DefFontHw   = m_FontHw + 10;
 
 	m_pSheet->m_pTextRam->SetOptValue(TO_RLADBELL, 2, m_VisualBell);
@@ -182,9 +182,9 @@ void CScrnPage::OnReset()
 		m_Check[n] = (m_pSheet->m_pTextRam->IsOptEnable(CheckOptTab[n]) ? TRUE : FALSE);
 
 	m_ScrnFont = (m_pSheet->m_pTextRam->IsOptEnable(TO_RLFONT) ? 1 : 0);
-	m_ColsMax[0].Format("%d",   m_pSheet->m_pTextRam->m_DefCols[0]);
-	m_ColsMax[1].Format("%d",   m_pSheet->m_pTextRam->m_DefCols[1]);
-	m_FontSize.Format("%d",  m_pSheet->m_pTextRam->m_DefFontSize);
+	m_ColsMax[0].Format(_T("%d"),   m_pSheet->m_pTextRam->m_DefCols[0]);
+	m_ColsMax[1].Format(_T("%d"),   m_pSheet->m_pTextRam->m_DefCols[1]);
+	m_FontSize.Format(_T("%d"),  m_pSheet->m_pTextRam->m_DefFontSize);
 	m_FontHw = m_pSheet->m_pTextRam->m_DefFontHw - 10;
 
 	m_VisualBell = m_pSheet->m_pTextRam->IsOptValue(TO_RLADBELL, 2);

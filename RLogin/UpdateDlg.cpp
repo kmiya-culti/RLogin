@@ -18,7 +18,7 @@ static char THIS_FILE[] = __FILE__;
 CUpdateDlg::CUpdateDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CUpdateDlg::IDD, pParent)
 {
-	m_DoExec = ::AfxGetApp()->GetProfileInt("CUpdateDlg", "Jobs", 1);
+	m_DoExec = ::AfxGetApp()->GetProfileInt(_T("CUpdateDlg"), _T("Jobs"), 1);
 	//{{AFX_DATA_INIT(CUpdateDlg)
 	m_FileName = _T("");
 	m_Jobs = m_DoExec & 0x7F;
@@ -50,7 +50,7 @@ END_MESSAGE_MAP()
 void CUpdateDlg::OnExec() 
 {
 	UpdateData(TRUE);
-	::AfxGetApp()->WriteProfileInt("CUpdateDlg", "Jobs", m_Jobs);
+	::AfxGetApp()->WriteProfileInt(_T("CUpdateDlg"), _T("Jobs"), m_Jobs);
 	m_DoExec = m_Jobs;
 	CDialog::OnOK();
 }
@@ -58,7 +58,7 @@ void CUpdateDlg::OnExec()
 void CUpdateDlg::OnAllExec() 
 {
 	UpdateData(TRUE);
-	::AfxGetApp()->WriteProfileInt("CUpdateDlg", "Jobs", m_Jobs);
+	::AfxGetApp()->WriteProfileInt(_T("CUpdateDlg"), _T("Jobs"), m_Jobs);
 	m_DoExec = m_Jobs | 0x80;
 	CDialog::OnOK();
 }
@@ -76,7 +76,7 @@ BOOL CUpdateDlg::OnInitDialog()
 	CWnd *pWnd = GetDlgItem(IDC_RADIO4);
 
 	if ( pWnd != NULL && m_DoResume == FALSE )
-		pWnd->SetWindowText(_T("ÄŠJ‚Å‚«‚Ü‚¹‚ñã‘‚«‚É‚È‚è‚Ü‚·"));
+		pWnd->SetWindowText(CStringLoad(IDE_UPDATERESUMEERROR));
 	
 	return TRUE;
 }

@@ -51,30 +51,30 @@ void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLas
 	case 0:
 		if ( !bFlag )
 			break;
-		if ( _tcsicmp("ip", pszParam) == 0 )
+		if ( _tcsicmp(_T("ip"), pszParam) == 0 )
 			m_PasStat = 1;
-		else if ( _tcsicmp("port", pszParam) == 0 )
+		else if ( _tcsicmp(_T("port"), pszParam) == 0 )
 			m_PasStat = 2;
-		else if ( _tcsicmp("user", pszParam) == 0 )
+		else if ( _tcsicmp(_T("user"), pszParam) == 0 )
 			m_PasStat = 3;
-		else if ( _tcsicmp("pass", pszParam) == 0 )
+		else if ( _tcsicmp(_T("pass"), pszParam) == 0 )
 			m_PasStat = 4;
-		else if ( _tcsicmp("term", pszParam) == 0 )
+		else if ( _tcsicmp(_T("term"), pszParam) == 0 )
 			m_PasStat = 5;
-		else if ( _tcsicmp("entry", pszParam) == 0 )
+		else if ( _tcsicmp(_T("entry"), pszParam) == 0 )
 			m_PasStat = 6;
-		else if ( _tcsicmp("direct", pszParam) == 0 )
+		else if ( _tcsicmp(_T("direct"), pszParam) == 0 )
 			m_Proto = PROTO_DIRECT;
-		else if ( _tcsicmp("login", pszParam) == 0 ) {
+		else if ( _tcsicmp(_T("login"), pszParam) == 0 ) {
 			m_Proto = PROTO_LOGIN;
-			m_Port  = "login";
-		} else if ( _tcsicmp("telnet", pszParam) == 0 ) {
+			m_Port  = _T("login");
+		} else if ( _tcsicmp(_T("telnet"), pszParam) == 0 ) {
 			m_Proto = PROTO_TELNET;
-			m_Port  = "telnet";
-		} else if ( _tcsicmp("ssh", pszParam) == 0 ) {
+			m_Port  = _T("telnet");
+		} else if ( _tcsicmp(_T("ssh"), pszParam) == 0 ) {
 			m_Proto = PROTO_SSH;
-			m_Port  = "ssh";
-		} else if ( _tcsicmp("inuse", pszParam) == 0 )
+			m_Port  = _T("ssh");
+		} else if ( _tcsicmp(_T("inuse"), pszParam) == 0 )
 			m_InUse = TRUE;
 		else
 			break;
@@ -199,7 +199,7 @@ void CCommandLineInfoEx::GetString(CString &str)
 
 	ary.SetString(str);
 }
-void CCommandLineInfoEx::SetString(LPCSTR str)
+void CCommandLineInfoEx::SetString(LPCTSTR str)
 {
 	CStringArrayExt ary;
 
@@ -327,10 +327,10 @@ BOOL CRLoginApp::InitInstance()
 	LoadStdProfileSettings(4);  // 標準の INI ファイルのオプションをロードします (MRU を含む)
 
 #ifdef	USE_DWMAPI
-	if ( (ExDwmApi = LoadLibrary("dwmapi.dll")) != NULL ) {
-		ExDwmIsCompositionEnabled      = (HRESULT (__stdcall *)(BOOL* pfEnabled))GetProcAddress(ExDwmApi, "DwmIsCompositionEnabled");
-		ExDwmEnableBlurBehindWindow    = (HRESULT (__stdcall *)(HWND hWnd, const DWM_BLURBEHIND* pBlurBehind))GetProcAddress(ExDwmApi, "DwmEnableBlurBehindWindow");
-		ExDwmExtendFrameIntoClientArea = (HRESULT (__stdcall *)(HWND hWnd, const MARGINS* pMarInset))GetProcAddress(ExDwmApi, "DwmExtendFrameIntoClientArea");
+	if ( (ExDwmApi = LoadLibrary(_T("dwmapi.dll"))) != NULL ) {
+		ExDwmIsCompositionEnabled      = (HRESULT (__stdcall *)(BOOL* pfEnabled))GetProcAddress(ExDwmApi, _T("DwmIsCompositionEnabled"));
+		ExDwmEnableBlurBehindWindow    = (HRESULT (__stdcall *)(HWND hWnd, const DWM_BLURBEHIND* pBlurBehind))GetProcAddress(ExDwmApi, _T("DwmEnableBlurBehindWindow"));
+		ExDwmExtendFrameIntoClientArea = (HRESULT (__stdcall *)(HWND hWnd, const MARGINS* pMarInset))GetProcAddress(ExDwmApi, _T("DwmExtendFrameIntoClientArea"));
 
 		if ( ExDwmIsCompositionEnabled != NULL )
 			ExDwmIsCompositionEnabled(&ExDwmEnable);
@@ -363,9 +363,9 @@ BOOL CRLoginApp::InitInstance()
 				if ( SUCCEEDED(CoCreateInstance(CLSID_EnumerableObjectCollection, NULL, CLSCTX_INPROC, IID_PPV_ARGS(&pObjCol))) ) {
 
 					if ( SUCCEEDED(CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pSheLink))) ) {
-						pSheLink->SetArguments("/inuse");
-						pSheLink->SetDescription("inuse");
-						pSheLink->SetIconLocation("Path", 0);
+						pSheLink->SetArguments(_T("/inuse"));
+						pSheLink->SetDescription(_T("inuse"));
+						pSheLink->SetIconLocation(_T("Path"), 0);
 
 						//IPropertyStore *pProStore;
 						//if ( SUCCEEDED(pSheLink->QueryInterface(IID_IPropertyStore, (void **)&pProStore)) ) {
@@ -468,7 +468,7 @@ BOOL CRLoginApp::InitInstance()
 
 #ifdef	_DEBUGXX
 	CScript script;
-	script.ExecFile("script.txt");
+	script.ExecFile(_T("script.txt"));
 #endif
 
 	// メイン ウィンドウが初期化されたので、表示と更新を行います。
@@ -512,7 +512,7 @@ BOOL CALLBACK RLoginEnumFunc(HWND hwnd, LPARAM lParam)
 
 	::GetWindowText(hwnd, title, 1024);
 
-	if ( _tcsncmp(title, "RLogin", 6) == 0 && ::GetWindowLongPtr(hwnd, GWLP_USERDATA) == 0x524c4f47 ) {
+	if ( _tcsncmp(title, _T("RLogin"), 6) == 0 && ::GetWindowLongPtr(hwnd, GWLP_USERDATA) == 0x524c4f47 ) {
 		pApp->m_pCmdInfo->m_InUse = FALSE;
 		pApp->m_pCmdInfo->GetString(cmdLine);
 		COPYDATASTRUCT copyData;
@@ -578,10 +578,10 @@ void CRLoginApp::GetProfileArray(LPCTSTR lpszSection, CStringArrayExt &array)
 	CString entry;
 	
 	array.RemoveAll();
-	mx = GetProfileInt(lpszSection, "ListMax", 0);
+	mx = GetProfileInt(lpszSection, _T("ListMax"), 0);
 	for ( n = 0 ; n < mx ; n++ ) {
-		entry.Format("List%02d", n);
-		array.Add(GetProfileString(lpszSection, entry, ""));
+		entry.Format(_T("List%02d"), n);
+		array.Add(GetProfileString(lpszSection, entry, _T("")));
 	}
 }
 void CRLoginApp::WriteProfileArray(LPCTSTR lpszSection, CStringArrayExt &array)
@@ -590,10 +590,10 @@ void CRLoginApp::WriteProfileArray(LPCTSTR lpszSection, CStringArrayExt &array)
 	CString entry;
 
 	for ( n = 0 ; n < array.GetSize() ; n++ ) {
-		entry.Format("List%02d", n);
+		entry.Format(_T("List%02d"), n);
 		WriteProfileString(lpszSection, entry, array.GetAt(n));
 	}
-	WriteProfileInt(lpszSection, "ListMax", n);
+	WriteProfileInt(lpszSection, _T("ListMax"), n);
 }
 int CRLoginApp::GetProfileSeqNum(LPCTSTR lpszSection, LPCTSTR lpszEntry)
 {
@@ -627,7 +627,7 @@ void CRLoginApp::DelProfileEntry(LPCTSTR lpszSection, LPCTSTR lpszEntry)
 	RegCloseKey(hSecKey);
 }
 
-void CRLoginApp::RegisterShellProtocol(LPCSTR pSection, LPCSTR pOption)
+void CRLoginApp::RegisterShellProtocol(LPCTSTR pSection, LPCTSTR pOption)
 {
 	HKEY hKey[4];
 	DWORD val;
@@ -642,8 +642,8 @@ void CRLoginApp::RegisterShellProtocol(LPCSTR pSection, LPCSTR pOption)
 	CString strOpenCommandLine;
 	CString strDefaultIconCommandLine;
 
-	strDefaultIconCommandLine.Format("%s,%d", strPathName, 1);
-	strOpenCommandLine.Format("%s %s %%1", strPathName, pOption);
+	strDefaultIconCommandLine.Format(_T("%s,%d"), strPathName, 1);
+	strOpenCommandLine.Format(_T("%s %s %%1"), strPathName, pOption);
 
 	//	HKEY_CLASSES_ROOT or HKEY_CURRENT_USER\Software\Classes
 	//
@@ -661,12 +661,12 @@ void CRLoginApp::RegisterShellProtocol(LPCSTR pSection, LPCSTR pOption)
 	//	[HKEY_CLASSES_ROOT\ssh\shell\open\command]
 	//	@ = "RLogin.exe /term xterm /inuse %1"
 
-	strTemp.Format("Software\\Classes\\%s", pSection);
+	strTemp.Format(_T("Software\\Classes\\%s"), pSection);
 
 	if ( reg.Open(HKEY_CURRENT_USER, strTemp) == ERROR_SUCCESS ) {
 		ULONG len = 0;
-		if ( reg.QueryBinaryValue("OldDefine", NULL, &len) == ERROR_SUCCESS )
-			reg.QueryBinaryValue("OldDefine", buf.PutSpc(len), &len);
+		if ( reg.QueryBinaryValue(_T("OldDefine"), NULL, &len) == ERROR_SUCCESS )
+			reg.QueryBinaryValue(_T("OldDefine"), buf.PutSpc(len), &len);
 		else
 			RegisterSave(HKEY_CURRENT_USER, strTemp, buf);
 		buf.Clear();
@@ -675,26 +675,26 @@ void CRLoginApp::RegisterShellProtocol(LPCSTR pSection, LPCSTR pOption)
 
 	if( AfxRegCreateKey(HKEY_CURRENT_USER, strTemp, &(hKey[0])) == ERROR_SUCCESS ) {
 
-		strTemp = "URL: ssh Protocol";
-		RegSetValueEx(hKey[0], "", 0, REG_SZ, (const LPBYTE)(LPCSTR)strTemp, strTemp.GetLength() + 1);
+		strTemp = _T("URL: ssh Protocol");
+		RegSetValueEx(hKey[0], _T(""), 0, REG_SZ, (const LPBYTE)(LPCTSTR)strTemp, strTemp.GetLength() + 1);
 		val = 8;
-		RegSetValueEx(hKey[0], "BrowserFlags", 0, REG_DWORD, (const LPBYTE)(&val), sizeof(val));
+		RegSetValueEx(hKey[0], _T("BrowserFlags"), 0, REG_DWORD, (const LPBYTE)(&val), sizeof(val));
 		val = 2;
-		RegSetValueEx(hKey[0], "EditFlags", 0, REG_DWORD, (const LPBYTE)(&val), sizeof(val));
+		RegSetValueEx(hKey[0], _T("EditFlags"), 0, REG_DWORD, (const LPBYTE)(&val), sizeof(val));
 		strTemp = "";
-		RegSetValueEx(hKey[0], "URL Protocol", 0, REG_SZ, (const LPBYTE)(LPCSTR)strTemp, strTemp.GetLength() + 1);
+		RegSetValueEx(hKey[0], _T("URL Protocol"), 0, REG_SZ, (const LPBYTE)(LPCTSTR)strTemp, strTemp.GetLength() + 1);
 
-		RegSetValueEx(hKey[0], "OldDefine", 0, REG_BINARY, (const LPBYTE)buf.GetPtr(), buf.GetSize());
+		RegSetValueEx(hKey[0], _T("OldDefine"), 0, REG_BINARY, (const LPBYTE)buf.GetPtr(), buf.GetSize());
 
-		if( AfxRegCreateKey(hKey[0], "DefaultIcon", &(hKey[1])) == ERROR_SUCCESS ) {
-			RegSetValueEx(hKey[1], "", 0, REG_SZ, (const LPBYTE)(LPCSTR)strDefaultIconCommandLine, strDefaultIconCommandLine.GetLength() + 1);
+		if( AfxRegCreateKey(hKey[0], _T("DefaultIcon"), &(hKey[1])) == ERROR_SUCCESS ) {
+			RegSetValueEx(hKey[1], _T(""), 0, REG_SZ, (const LPBYTE)(LPCTSTR)strDefaultIconCommandLine, strDefaultIconCommandLine.GetLength() + 1);
 			RegCloseKey(hKey[1]);
 		}
 
-		if( AfxRegCreateKey(hKey[0], "shell", &(hKey[1])) == ERROR_SUCCESS ) {
-			if( AfxRegCreateKey(hKey[1], "open", &(hKey[2])) == ERROR_SUCCESS ) {
-				if( AfxRegCreateKey(hKey[2], "command", &(hKey[3])) == ERROR_SUCCESS ) {
-					RegSetValueEx(hKey[3], "", 0, REG_SZ, (const LPBYTE)(LPCSTR)strOpenCommandLine, strOpenCommandLine.GetLength() + 1);
+		if( AfxRegCreateKey(hKey[0], _T("shell"), &(hKey[1])) == ERROR_SUCCESS ) {
+			if( AfxRegCreateKey(hKey[1], _T("open"), &(hKey[2])) == ERROR_SUCCESS ) {
+				if( AfxRegCreateKey(hKey[2], _T("command"), &(hKey[3])) == ERROR_SUCCESS ) {
+					RegSetValueEx(hKey[3], _T(""), 0, REG_SZ, (const LPBYTE)(LPCTSTR)strOpenCommandLine, strOpenCommandLine.GetLength() + 1);
 					RegCloseKey(hKey[3]);
 				}
 				RegCloseKey(hKey[2]);
@@ -705,7 +705,7 @@ void CRLoginApp::RegisterShellProtocol(LPCSTR pSection, LPCSTR pOption)
 		RegCloseKey(hKey[0]);
 	}
 }
-void CRLoginApp::RegisterDelete(HKEY hKey, LPCSTR pSection, LPCSTR pKey)
+void CRLoginApp::RegisterDelete(HKEY hKey, LPCTSTR pSection, LPCTSTR pKey)
 {
 	CRegKey reg;
 
@@ -715,23 +715,23 @@ void CRLoginApp::RegisterDelete(HKEY hKey, LPCSTR pSection, LPCSTR pKey)
 	reg.RecurseDeleteKey(pKey);
 	reg.Close();
 }
-void CRLoginApp::RegisterSave(HKEY hKey, LPCSTR pSection, CBuffer &buf)
+void CRLoginApp::RegisterSave(HKEY hKey, LPCTSTR pSection, CBuffer &buf)
 {
 	int n;
 	CRegKey reg;
 	DWORD type, len;
-	CHAR *work;
+	TCHAR *work;
 	CStringArray menba;
 
 	if ( reg.Open(hKey, pSection) != ERROR_SUCCESS )
 		return;
 
 	len = 0;
-	reg.QueryValue("", &type, NULL, &len);
+	reg.QueryValue(_T(""), &type, NULL, &len);
 	if ( len < 1024 )
 		len = 1024;
-	work = new CHAR[len];
-	reg.QueryValue("", &type, work, &len);
+	work = new TCHAR[len];
+	reg.QueryValue(_T(""), &type, work, &len);
 
 	buf.Put32Bit(type);
 	buf.PutBuf((LPBYTE)work, len);
@@ -740,7 +740,7 @@ void CRLoginApp::RegisterSave(HKEY hKey, LPCSTR pSection, CBuffer &buf)
 		len = 1020;
 		if ( reg.EnumKey(n, work, &len) != ERROR_SUCCESS )
 			break;
-		work[len] = '\0';
+		work[len] = _T('\0');
 		menba.Add(work);
 	}
 
@@ -754,7 +754,7 @@ void CRLoginApp::RegisterSave(HKEY hKey, LPCSTR pSection, CBuffer &buf)
 
 	reg.Close();
 }
-void CRLoginApp::RegisterLoad(HKEY hKey, LPCSTR pSection, CBuffer &buf)
+void CRLoginApp::RegisterLoad(HKEY hKey, LPCTSTR pSection, CBuffer &buf)
 {
 	int n;
 	CRegKey reg;
@@ -770,7 +770,7 @@ void CRLoginApp::RegisterLoad(HKEY hKey, LPCSTR pSection, CBuffer &buf)
 
 	type = buf.Get32Bit();
 	buf.GetBuf(&work);
-	reg.SetValue("", type, work.GetPtr(), work.GetSize());
+	reg.SetValue(_T(""), type, work.GetPtr(), work.GetSize());
 
 	len = buf.Get32Bit();
 	for ( n = 0 ; n < len ; n++ ) {

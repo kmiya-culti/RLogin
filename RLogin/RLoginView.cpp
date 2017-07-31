@@ -37,6 +37,7 @@ BEGIN_MESSAGE_MAP(CRLoginView, CView)
 	ON_WM_CHAR()
 	ON_MESSAGE(WM_IME_NOTIFY, OnImeNotify)
 	ON_MESSAGE(WM_IME_COMPOSITION, OnImeComposition)
+	ON_MESSAGE(WM_IME_REQUEST, OnImeRequest)
 	ON_WM_VSCROLL()
 	ON_WM_TIMER()
 	ON_WM_MOUSEWHEEL()
@@ -122,7 +123,7 @@ BOOL CRLoginView::PreCreateWindow(CREATESTRUCT& cs)
 {
 	cs.style |= WS_CLIPSIBLINGS;
 
-	cs.lpszName = "RLoginView";
+	cs.lpszName = _T("RLoginView");
 	cs.lpszClass = AfxRegisterWndClass(CS_DBLCLKS, AfxGetApp()->LoadStandardCursor(IDC_ARROW)); //, CreateSolidBrush(0xff000000));
 
 	return CView::PreCreateWindow(cs);
@@ -532,7 +533,7 @@ int CRLoginView::GetClipboad(CBuffer *bp)
 	CloseClipboard();
 
 	CTextRam::MsToIconvUnicode((WCHAR *)(buf.GetPtr()), buf.GetSize() / sizeof(WCHAR), pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode]);
-	pDoc->m_TextRam.m_IConv.IConvBuf("UCS-2LE", pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode], &buf, bp);
+	pDoc->m_TextRam.m_IConv.IConvBuf(_T("UCS-2LE"), pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode], &buf, bp);
 
 	return TRUE;
 }
@@ -543,7 +544,7 @@ int CRLoginView::SetClipboad(CBuffer *bp)
 	CBuffer buf;
 	CRLoginDoc *pDoc = GetDocument();
 
-	pDoc->m_TextRam.m_IConv.IConvBuf(pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode], "UCS-2LE", bp, &buf);
+	pDoc->m_TextRam.m_IConv.IConvBuf(pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode], _T("UCS-2LE"), bp, &buf);
 	buf.PutWord(0);
 	for ( pData = (WCHAR *)(LPCWSTR)buf ; *pData != L'\0' ; pData++ )
 		*pData = CTextRam::IconvToMsUnicode(*pData);
@@ -618,7 +619,7 @@ void CRLoginView::OnSize(UINT nType, int cx, int cy)
 
 	pDoc->UpdateAllViews(NULL, UPDATE_INITPARA, NULL);
 
-	tmp.Format("%d x %d", pDoc->m_TextRam.m_Cols, pDoc->m_TextRam.m_Lines);
+	tmp.Format(_T("%d x %d"), pDoc->m_TextRam.m_Cols, pDoc->m_TextRam.m_Lines);
 	pMain->SetMessageText(tmp);
 }
 
@@ -918,7 +919,7 @@ void CRLoginView::OnSetFocus(CWnd* pOldWnd)
 	SetCaret();
 
 	if ( pDoc->m_TextRam.IsOptEnable(TO_XTFOCEVT) )
-		pDoc->m_TextRam.UNGETSTR("%sI", pDoc->m_TextRam.m_RetChar[RC_CSI]);
+		pDoc->m_TextRam.UNGETSTR(_T("%sI"), pDoc->m_TextRam.m_RetChar[RC_CSI]);
 }
 void CRLoginView::OnKillFocus(CWnd* pNewWnd) 
 {
@@ -930,7 +931,7 @@ void CRLoginView::OnKillFocus(CWnd* pNewWnd)
 	SetCaret();
 
 	if ( pDoc->m_TextRam.IsOptEnable(TO_XTFOCEVT) )
-		pDoc->m_TextRam.UNGETSTR("%sO", pDoc->m_TextRam.m_RetChar[RC_CSI]);
+		pDoc->m_TextRam.UNGETSTR(_T("%sO"), pDoc->m_TextRam.m_RetChar[RC_CSI]);
 }
 void CRLoginView::OnActivateView(BOOL bActivate, CView* pActivateView, CView* pDeactiveView) 
 {
@@ -958,7 +959,7 @@ LRESULT CRLoginView::OnImeNotify(WPARAM wParam, LPARAM lParam)
 	case IMN_SETCOMPOSITIONWINDOW:
 		HIMC hIMC;
 		LOGFONT LogFont;
-		if ( (hIMC = ImmGetContext(m_hWnd)) ) {
+		if ( (hIMC = ImmGetContext(m_hWnd)) != NULL ) {
 			if ( ImmGetCompositionFont(hIMC, &LogFont) ) {
 				LogFont.lfWidth  = m_CharWidth;
 				LogFont.lfHeight = m_CharHeight;
@@ -976,22 +977,83 @@ LRESULT CRLoginView::OnImeNotify(WPARAM wParam, LPARAM lParam)
 }
 LRESULT CRLoginView::OnImeComposition(WPARAM wParam, LPARAM lParam)
 {
-	if ( (lParam & GCS_RESULTSTR) != 0 ) {
-		HIMC hImc;
-		LONG len;
-		CBuffer tmp;
-		CRLoginDoc *pDoc = GetDocument();
+	HIMC hIMC;
+	LONG len;
+	CBuffer tmp;
+	CRLoginDoc *pDoc = GetDocument();
 
-		hImc = ImmGetContext(m_hWnd);
-		len = ImmGetCompositionStringW(hImc, GCS_RESULTSTR, NULL, 0);
-		len = ImmGetCompositionStringW(hImc, GCS_RESULTSTR, tmp.PutSpc(len), len);
-	    ImmReleaseContext(m_hWnd, hImc);
-
+	if ( (lParam & GCS_RESULTSTR) != 0 && (hIMC = ImmGetContext(m_hWnd)) != NULL ) {
+		len = ImmGetCompositionStringW(hIMC, GCS_RESULTSTR, NULL, 0);
+		len = ImmGetCompositionStringW(hIMC, GCS_RESULTSTR, tmp.PutSpc(len), len);
+		ImmReleaseContext(m_hWnd, hIMC);
 		SendBuffer(tmp);
 		return TRUE;
 
 	} else
 		return DefWindowProc(WM_IME_COMPOSITION, wParam, lParam);
+}
+afx_msg LRESULT CRLoginView::OnImeRequest(WPARAM wParam, LPARAM lParam)
+{
+	int pos, len;
+	RECONVERTSTRING *pReConvStr = (RECONVERTSTRING*)lParam;
+	CRLoginDoc *pDoc = GetDocument();
+	CBuffer tmp;
+	CString str;
+
+	switch(wParam) {
+	case IMR_DOCUMENTFEED:
+		if ( pReConvStr != NULL ) {
+#ifdef	_UNICDE
+			pDoc->m_TextRam.GetVram(0, pDoc->m_TextRam.m_CurX - 1, pDoc->m_TextRam.m_CurY, pDoc->m_TextRam.m_CurY, &tmp);
+			pos = tmp.GetSize();
+
+			pDoc->m_TextRam.GetVram(pDoc->m_TextRam.m_CurX, pDoc->m_TextRam.m_Cols - 1, pDoc->m_TextRam.m_CurY, pDoc->m_TextRam.m_CurY, &tmp);
+			len = tmp.GetSize();
+
+			tmp.PutWord(0);
+
+			pReConvStr->dwStrLen          = len / sizeof(WCHAR);
+			pReConvStr->dwStrOffset       = sizeof(RECONVERTSTRING);
+
+			pReConvStr->dwTargetStrLen    = 0;
+			pReConvStr->dwTargetStrOffset = pos;
+
+			pReConvStr->dwCompStrLen      = 0;
+			pReConvStr->dwCompStrOffset   = 0;
+
+			if ( pReConvStr->dwSize > (sizeof(RECONVERTSTRING) + tmp.GetSize()) )
+				memcpy((char *)pReConvStr + sizeof(RECONVERTSTRING), tmp.GetPtr(), tmp.GetSize());
+
+		}
+		return sizeof(RECONVERTSTRING) + (m_Cols + 1) * sizeof(WCHAR);
+#else
+			pDoc->m_TextRam.GetVram(0, pDoc->m_TextRam.m_CurX - 1, pDoc->m_TextRam.m_CurY, pDoc->m_TextRam.m_CurY, &tmp);
+			str = (LPCWSTR)tmp;
+			pos = str.GetLength();
+
+			tmp.Clear();
+			pDoc->m_TextRam.GetVram(pDoc->m_TextRam.m_CurX, pDoc->m_TextRam.m_Cols - 1, pDoc->m_TextRam.m_CurY, pDoc->m_TextRam.m_CurY, &tmp);
+			str += (LPCWSTR)tmp;
+			len = str.GetLength();
+
+			pReConvStr->dwStrLen          = len;
+			pReConvStr->dwStrOffset       = sizeof(RECONVERTSTRING);
+
+			pReConvStr->dwTargetStrLen    = 0;
+			pReConvStr->dwTargetStrOffset = pos;
+
+			pReConvStr->dwCompStrLen      = 0;
+			pReConvStr->dwCompStrOffset   = 0;
+
+			if ( pReConvStr->dwSize > (sizeof(RECONVERTSTRING) + str.GetLength() + 1) )
+				strcpy((char *)pReConvStr + sizeof(RECONVERTSTRING), str);
+
+		}
+		return sizeof(RECONVERTSTRING) + (m_Cols + 1) * sizeof(CHAR);
+#endif
+	default:
+		return DefWindowProc(WM_IME_REQUEST, wParam, lParam);
+	}
 }
 
 void CRLoginView::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar) 
@@ -1211,9 +1273,9 @@ void CRLoginView::OnLButtonDown(UINT nFlags, CPoint point)
 		if ( pDoc->m_TextRam.m_MouseTrack == MOS_EVENT_LOCA )
 			pDoc->m_TextRam.LocReport(MOS_LOCA_LEDN, nFlags, x, y);
 		else if ( pDoc->m_TextRam.m_MouseTrack == MOS_EVENT_X10 )
-			pDoc->m_TextRam.UNGETSTR("%sM%c%c%c", pDoc->m_TextRam.m_RetChar[RC_CSI], pDoc->m_TextRam.MCHAR(pDoc->m_TextRam.m_MouseMode[0] & 3), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
+			pDoc->m_TextRam.UNGETSTR(_T("%sM%c%c%c"), pDoc->m_TextRam.m_RetChar[RC_CSI], pDoc->m_TextRam.MCHAR(pDoc->m_TextRam.m_MouseMode[0] & 3), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
 		else
-			pDoc->m_TextRam.UNGETSTR("%sM%c%c%c", pDoc->m_TextRam.m_RetChar[RC_CSI], pDoc->m_TextRam.MCHAR(pDoc->m_TextRam.m_MouseMode[0] + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0)), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
+			pDoc->m_TextRam.UNGETSTR(_T("%sM%c%c%c"), pDoc->m_TextRam.m_RetChar[RC_CSI], pDoc->m_TextRam.MCHAR(pDoc->m_TextRam.m_MouseMode[0] + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0)), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
 
 		if ( pDoc->m_TextRam.m_MouseTrack == MOS_EVENT_HILT ) {
 			m_ClipStaPos = m_ClipEndPos = pDoc->m_TextRam.GetCalcPos(x, y);
@@ -1253,9 +1315,9 @@ void CRLoginView::OnLButtonUp(UINT nFlags, CPoint point)
 			else if ( pDoc->m_TextRam.m_MouseTrack == MOS_EVENT_HILT ) {
 				m_ClipFlag = 0;
 				OnUpdate(this, UPDATE_CLIPERA, NULL);
-				pDoc->m_TextRam.UNGETSTR("%st%c%c", pDoc->m_TextRam.m_RetChar[RC_CSI], pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
+				pDoc->m_TextRam.UNGETSTR(_T("%st%c%c"), pDoc->m_TextRam.m_RetChar[RC_CSI], pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
 			} else
-				pDoc->m_TextRam.UNGETSTR("%sM%c%c%c", pDoc->m_TextRam.m_RetChar[RC_CSI], pDoc->m_TextRam.MCHAR(3 + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0)), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
+				pDoc->m_TextRam.UNGETSTR(_T("%sM%c%c%c"), pDoc->m_TextRam.m_RetChar[RC_CSI], pDoc->m_TextRam.MCHAR(3 + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0)), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
 		}
 		return;
 	}
@@ -1333,7 +1395,7 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 				break;
 			}
 			pos |= 0x20;	// motion		xx1x xxxx
-			pDoc->m_TextRam.UNGETSTR("%sM%c%c%c", pDoc->m_TextRam.m_RetChar[RC_CSI], pDoc->m_TextRam.MCHAR(pos + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0)), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
+			pDoc->m_TextRam.UNGETSTR(_T("%sM%c%c%c"), pDoc->m_TextRam.m_RetChar[RC_CSI], pDoc->m_TextRam.MCHAR(pos + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0)), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
 
 		} else if ( pDoc->m_TextRam.m_MouseTrack == MOS_EVENT_HILT ) {
 			OnUpdate(this, UPDATE_CLIPERA, NULL);
@@ -1469,9 +1531,9 @@ void CRLoginView::OnRButtonDown(UINT nFlags, CPoint point)
 		if ( pDoc->m_TextRam.m_MouseTrack == MOS_EVENT_LOCA )
 			pDoc->m_TextRam.LocReport(MOS_LOCA_RTDN, nFlags, x, y);
 		else if ( pDoc->m_TextRam.m_MouseTrack == MOS_EVENT_X10 )
-			pDoc->m_TextRam.UNGETSTR("%sM%c%c%c", pDoc->m_TextRam.m_RetChar[RC_CSI], pDoc->m_TextRam.MCHAR(pDoc->m_TextRam.m_MouseMode[1] & 3), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
+			pDoc->m_TextRam.UNGETSTR(_T("%sM%c%c%c"), pDoc->m_TextRam.m_RetChar[RC_CSI], pDoc->m_TextRam.MCHAR(pDoc->m_TextRam.m_MouseMode[1] & 3), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
 		else if ( pDoc->m_TextRam.m_MouseTrack != MOS_EVENT_HILT )
-			pDoc->m_TextRam.UNGETSTR("%sM%c%c%c", pDoc->m_TextRam.m_RetChar[RC_CSI], pDoc->m_TextRam.MCHAR(pDoc->m_TextRam.m_MouseMode[1] + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0)), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
+			pDoc->m_TextRam.UNGETSTR(_T("%sM%c%c%c"), pDoc->m_TextRam.m_RetChar[RC_CSI], pDoc->m_TextRam.MCHAR(pDoc->m_TextRam.m_MouseMode[1] + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0)), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
 		return;
 	}
 
@@ -1511,7 +1573,7 @@ void CRLoginView::OnRButtonUp(UINT nFlags, CPoint point)
 		if ( pDoc->m_TextRam.m_MouseTrack == MOS_EVENT_LOCA )
 			pDoc->m_TextRam.LocReport(MOS_LOCA_RTUP, nFlags, x, y);
 		else if ( pDoc->m_TextRam.m_MouseTrack != MOS_EVENT_HILT )
-			pDoc->m_TextRam.UNGETSTR("%sM%c%c%c", pDoc->m_TextRam.m_RetChar[RC_CSI], pDoc->m_TextRam.MCHAR(3 + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0)), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
+			pDoc->m_TextRam.UNGETSTR(_T("%sM%c%c%c"), pDoc->m_TextRam.m_RetChar[RC_CSI], pDoc->m_TextRam.MCHAR(3 + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0)), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
 	}
 }
 void CRLoginView::OnEditPaste() 
@@ -1556,7 +1618,7 @@ void CRLoginView::OnEditPaste()
 	CloseClipboard();
 
 	if ( (tmp.GetSize() / sizeof(WCHAR)) > 1000 || cr > 10 || ct > 10 ) {
-		if ( MessageBox("多くの文字をペーストしようとしています\n送信しますか？", "Question", MB_ICONQUESTION | MB_YESNO) != IDYES )
+		if ( MessageBox(CStringLoad(IDE_MESSAGE_ANYPASTE), _T("Question"), MB_ICONQUESTION | MB_YESNO) != IDYES )
 			return;
 	}
 	

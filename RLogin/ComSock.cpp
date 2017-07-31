@@ -298,8 +298,8 @@ void CComSock::GetMode(LPCSTR str)
 		}
 		if ( ComTab[a].name == NULL ) {
 			if ( array[i].Left(3).CompareNoCase("COM") == 0 ) {
-				m_ComPort = atoi(array[i].Mid(3));
-			} else if ( (b = atoi(array[i])) >= 100 ) {
+				m_ComPort = _tstoi(array[i].Mid(3));
+			} else if ( (b = _tstoi(array[i])) >= 100 ) {
 				m_BaudRate = b;
 			}
 		}

@@ -213,11 +213,11 @@ public:
 	int Compere(CIdKey *pKey);
 
 	void GetUserHostName(CString &str);
-	void MakeKey(CBuffer *bp, LPCSTR pass);
-	void Decrypt(CBuffer *bp, LPCSTR str, LPCSTR pass = NULL);
-	void Encrypt(CString &str, LPBYTE buf, int len, LPCSTR pass = NULL);
-	void DecryptStr(CString &out, LPCSTR str);
-	void EncryptStr(CString &out, LPCSTR str);
+	void MakeKey(CBuffer *bp, LPCTSTR pass);
+	void Decrypt(CBuffer *bp, LPCTSTR str, LPCTSTR pass = NULL);
+	void Encrypt(CString &str, LPBYTE buf, int len, LPCTSTR pass = NULL);
+	void DecryptStr(CString &out, LPCTSTR str);
+	void EncryptStr(CString &out, LPCTSTR str);
 
 	LPCSTR GetName();
 	int GetTypeFromName(LPCSTR name);

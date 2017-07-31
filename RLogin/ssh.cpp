@@ -109,15 +109,15 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 		if ( !IdKey.LoadPrivateKey(m_pDocument->m_ServerEntry.m_IdkeyName, m_pDocument->m_ServerEntry.m_PassName) ) {
 			CIdKeyFileDlg dlg;
 			dlg.m_OpenMode  = 1;
-			dlg.m_Title = "SSH鍵ファイルの読み込み";
-			dlg.m_Message = "作成時に設定したパスフレーズを入力してください";
+			dlg.m_Title   = _T("SSH鍵ファイルの読み込み");
+			dlg.m_Message = _T("作成時に設定したパスフレーズを入力してください");
 			dlg.m_IdkeyFile = m_pDocument->m_ServerEntry.m_IdkeyName;
 			if ( dlg.DoModal() != IDOK ) {
 				m_pDocument->m_ServerEntry.m_IdkeyName.Empty();
 				return FALSE;
 			}
 			if ( !IdKey.LoadPrivateKey(dlg.m_IdkeyFile, dlg.m_PassName) ) {
-				AfxMessageBox("鍵ファイルを読み込めませんでした");
+				AfxMessageBox(IDE_IDKEYLOADERROR);
 				return FALSE;
 			}
 		}
@@ -1230,7 +1230,7 @@ void Cssh::PortForward()
 	}
 
 	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHPFORY) && a == 0 )
-		AfxMessageBox(_T("ポートフォワードの設定が無効です"));
+		AfxMessageBox(IDE_PORTFWORDERROR);
 }
 
 void Cssh::OpenSFtpChannel()
@@ -1614,7 +1614,7 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 			while ( *p != '\0' && *p != '.' )
 				p++;
 			if ( *p == '.' )
-				n = atoi(++p);
+				n = _tstoi(++p);
 			str.Format("%04x%04x%04x%04x", rand(), rand(), rand(), rand());
 			tmp.Clear();
 			tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
@@ -2291,7 +2291,7 @@ int Cssh::SSH2MsgChannelOpen(CBuffer *bp)
 			host[1] += *(p++);
 		if ( *(p++) != ':' )
 			goto FAILURE;
-		port[1] = atoi(p);
+		port[1] = _tstoi(p);
 
 		if ( host[1].IsEmpty() || host[1].CompareNoCase("unix") == 0 )
 			host[1] = "127.0.0.1";
@@ -2556,7 +2556,7 @@ int Cssh::SSH2MsgGlobalRequestReply(CBuffer *bp, int type)
 	CString str;
 
 	if ( m_GlbReqMap.GetSize() <= 0 ) {
-		AfxMessageBox("Get Msg Global Request Underflow ?");
+		AfxMessageBox(IDE_SSHGLOBALREQERROR);
 		return FALSE;
 	}
 	num = m_GlbReqMap.GetAt(0);

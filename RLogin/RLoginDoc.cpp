@@ -142,7 +142,7 @@ BOOL CRLoginDoc::OnOpenDocument(LPCTSTR lpszPathName)
 void CRLoginDoc::Serialize(CArchive& ar)
 {
 	if ( ar.IsStoring() ) {			// TODO: この位置に保存用のコードを追加してください。
-		ar.WriteString("RLG200\n");
+		ar.Write("RLG200\n", 7);
 		m_ServerEntry.Serialize(ar);
 		m_TextRam.Serialize(ar);
 		m_KeyTab.Serialize(ar);
@@ -218,7 +218,7 @@ void CRLoginDoc::DeleteContents()
 	CDocument::DeleteContents();
 }
 
-void CRLoginDoc::SetStatus(LPCSTR str)
+void CRLoginDoc::SetStatus(LPCTSTR str)
 {
 	int n;
 	CString tmp;
@@ -232,28 +232,28 @@ void CRLoginDoc::SetStatus(LPCSTR str)
 		title = m_ServerEntry.m_HostName;
 		break;
 	case WTTL_PORT:
-		title.Format("%s:%d", m_ServerEntry.m_HostName, CExtSocket::GetPortNum(m_ServerEntry.m_PortName));
+		title.Format(_T("%s:%d"), m_ServerEntry.m_HostName, CExtSocket::GetPortNum(m_ServerEntry.m_PortName));
 		break;
 	case WTTL_USER:
 		title = m_ServerEntry.m_UserName;
 		break;
 	}
 
-	if ( str != NULL && *str != '\0' ) {
+	if ( str != NULL && *str != _T('\0') ) {
 		((CMainFrame *)AfxGetMainWnd())->SetMessageText(str);
 		m_TitleString = str;
 	}
 
 	if ( !m_TitleString.IsEmpty() && (m_TextRam.m_TitleMode & WTTL_ALGO) != 0 ) {
-		tmp.Format("(%s)", m_TitleString);
+		tmp.Format(_T("(%s)"), m_TitleString);
 		title += tmp;
 	}
 
 	if ( m_pScript != NULL ) {
 		if ( (n = m_pScript->Status()) == SCPSTAT_MAKE )
-			title += "...Chat Makeing";
+			title += _T("...Chat Makeing");
 		else if ( n == SCPSTAT_EXEC )
-			title += "...Chat Execute";
+			title += _T("...Chat Execute");
 	}
 
 	SetTitle(title);
@@ -271,46 +271,46 @@ BOOL CRLoginDoc::EntryText(CString &name)
 	CEditDlg dlg;
 	CTime tm = CTime::GetCurrentTime();
 	CString tmp;
-	LPCSTR str = name;
+	LPCTSTR str = name;
 	BOOL st = FALSE;
 
-	while ( *str != '\0' ) {
-		if ( *str == '%' ) {
+	while ( *str != _T('\0') ) {
+		if ( *str == _T('%') ) {
 			switch(str[1]) {
-			case 'E':
+			case _T('E'):
 				tmp += m_ServerEntry.m_EntryName;
 				st = TRUE;
 				break;
-			case 'U':
+			case _T('U'):
 				tmp += m_ServerEntry.m_UserName;
 				st = TRUE;
 				break;
-			case 'P':
+			case _T('P'):
 				tmp += m_ServerEntry.m_PassName;
 				st = TRUE;
 				break;
-			case 'T':
+			case _T('T'):
 				tmp += m_ServerEntry.m_TermName;
 				st = TRUE;
 				break;
-			case 'S':
+			case _T('S'):
 				tmp += m_ServerEntry.m_HostName;
 				st = TRUE;
 				break;
-			case 'p':
+			case _T('p'):
 				tmp += m_ServerEntry.m_PortName;
 				st = TRUE;
 				break;
-			case 'D':
-				tmp += tm.Format("%y%m%d");
+			case _T('D'):
+				tmp += tm.Format(_T("%y%m%d"));
 				st = TRUE;
 				break;
-			case 't':
-				tmp += tm.Format("%H%M%S");
+			case _T('t'):
+				tmp += tm.Format(_T("%H%M%S"));
 				st = TRUE;
 				break;
-			case 'I':
-				dlg.m_WinText = "FileName";
+			case _T('I'):
+				dlg.m_WinText = _T("FileName");
 				dlg.m_Title = m_ServerEntry.m_EntryName;
 				dlg.m_Edit  = tmp;
 				tmp.Empty();
@@ -318,8 +318,8 @@ BOOL CRLoginDoc::EntryText(CString &name)
 					tmp = dlg.m_Edit;
 				st = TRUE;
 				break;
-			case '%':
-				tmp += '%';
+			case _T('%'):
+				tmp += _T('%');
 				break;
 			default:
 				tmp += str[0];
@@ -345,78 +345,78 @@ void CRLoginDoc::SendScript(LPCWSTR str, LPCWSTR match)
 	CBuffer buf;
 	CStringW tmp;
 
-	while ( *str != '\0' ) {
-		if ( *str == '%' ) {
+	while ( *str != L'\0' ) {
+		if ( *str == L'%' ) {
 			switch(str[1]) {
-			case 'E':
+			case L'E':
 				tmp += m_ServerEntry.m_EntryName;
 				break;
-			case 'U':
+			case L'U':
 				tmp += m_ServerEntry.m_UserName;
 				break;
-			case 'P':
+			case L'P':
 				tmp += m_ServerEntry.m_PassName;
 				break;
-			case 'T':
+			case L'T':
 				tmp += m_ServerEntry.m_TermName;
 				break;
-			case 'S':
+			case L'S':
 				tmp += m_ServerEntry.m_HostName;
 				break;
-			case 'p':
+			case L'p':
 				tmp += m_ServerEntry.m_PortName;
 				break;
-			case 'D':
-				tmp += tm.Format("%y%m%d");
+			case L'D':
+				tmp += tm.Format(_T("%y%m%d"));
 				break;
-			case 't':
-				tmp += tm.Format("%H%M%S");
+			case L't':
+				tmp += tm.Format(_T("%H%M%S"));
 				break;
-			case 'I':
-				dlg.m_WinText = "ChatScript";
+			case L'I':
+				dlg.m_WinText = _T("ChatScript");
 				if ( match != NULL ) dlg.m_Title = match;
 				dlg.m_Edit  = tmp;
 				tmp.Empty();
 				if ( dlg.DoModal() == IDOK )
 					tmp = dlg.m_Edit;
 				break;
-			case '%':
-				tmp += '%';
+			case L'%':
+				tmp += L'%';
 				break;
 			}
 			str += 2;
-		} else if ( *str == '\\' ) {
+		} else if ( *str == L'\\' ) {
 			switch(str[1]) {
-			case 'a': tmp += '\x07'; str += 2; break;
-			case 'b': tmp += '\x08'; str += 2; break;
-			case 't': tmp += '\x09'; str += 2; break;
-			case 'n': tmp += '\x0A'; str += 2; break;
-			case 'v': tmp += '\x0B'; str += 2; break;
-			case 'f': tmp += '\x0C'; str += 2; break;
-			case 'r': tmp += '\x0D'; str += 2; break;
-			case '\\': tmp += '\\'; str += 2; break;
+			case L'a': tmp += L'\x07'; str += 2; break;
+			case L'b': tmp += L'\x08'; str += 2; break;
+			case L't': tmp += L'\x09'; str += 2; break;
+			case L'n': tmp += L'\x0A'; str += 2; break;
+			case L'v': tmp += L'\x0B'; str += 2; break;
+			case L'f': tmp += L'\x0C'; str += 2; break;
+			case L'r': tmp += L'\x0D'; str += 2; break;
+			case L'\\': tmp += L'\\'; str += 2; break;
 
-			case 'x': case 'X':
+			case L'x': case L'X':
 				str += 2;
 				for ( n = c = 0 ; n < 2 ; n++ ) {
-					if ( *str >= '0' && *str <= '9' )
-						c = c * 16 + (*(str++) - '0');
-					else if ( *str >= 'A' && *str <= 'F' )
-						c = c * 16 + (*(str++) - 'A' + 10);
-					else if ( *str >= 'a' && *str <= 'f' )
-						c = c * 16 + (*(str++) - 'a' + 10);
+					if ( *str >= L'0' && *str <= L'9' )
+						c = c * 16 + (*(str++) - L'0');
+					else if ( *str >= L'A' && *str <= L'F' )
+						c = c * 16 + (*(str++) - L'A' + 10);
+					else if ( *str >= L'a' && *str <= L'f' )
+						c = c * 16 + (*(str++) - L'a' + 10);
 					else
 						break;
 				}
 				tmp += c;
 				break;
 
-			case '0': case '1': case '2': case '3':
-			case '4': case '5': case '6': case '7':
+			case L'0': case L'1': case L'2': case L'3':
+			case L'4': case L'5': case L'6': case L'7':
 				str += 1;
 				for ( n = c = 0 ; n < 3 ; n++ ) {
-					if ( *str >= '0' && *str <= '7' )
-						c = c * 8 + (*(str++) - '0');
+					if ( *str >= L'0' && *str <= L'7' )
+						c = c * 8 + (*(str++) - L'0');
 						break;
 				}
 				tmp += c;
@@ -504,28 +504,28 @@ void CRLoginDoc::OnSocketConnect()
 		m_pScript = &(m_ServerEntry.m_Script);
 		OnReciveChar(0);
 	}
-	SetStatus("Connect");
+	SetStatus(_T("Connect"));
 
 	if ( m_TextRam.IsOptEnable(TO_RLHISDATE) && !m_TextRam.m_LogFile.IsEmpty() ) {
 		int n;
 		int num = 1;
 		CString file, dirs, name, exts;
 
-		if ( (n = m_TextRam.m_LogFile.ReverseFind('\\')) >= 0 || (n = m_TextRam.m_LogFile.ReverseFind(':')) >= 0 ) {
+		if ( (n = m_TextRam.m_LogFile.ReverseFind(_T('\\'))) >= 0 || (n = m_TextRam.m_LogFile.ReverseFind(_T(':'))) >= 0 ) {
 			dirs = m_TextRam.m_LogFile.Left(n + 1);
 			name = m_TextRam.m_LogFile.Mid(n + 1);
 		} else {
-			dirs = "";
+			dirs = _T("");
 			name = m_TextRam.m_LogFile;
 		}
 
-		if ( (n = name.ReverseFind('.')) >= 0 ) {
+		if ( (n = name.ReverseFind(_T('.'))) >= 0 ) {
 			exts = name.Mid(n);
 			name.Delete(n, exts.GetLength());
 		}
 
 		if ( !EntryText(name) ) {
-			name += "-%D";
+			name += _T("-%D");
 			EntryText(name);
 		}
 
@@ -538,7 +538,7 @@ void CRLoginDoc::OnSocketConnect()
 		if ( (m_pLogFile = new CFile) == NULL )
 			return;
 
-		file.Format("%s%s%s", dirs, name, exts);
+		file.Format(_T("%s%s%s"), dirs, name, exts);
 
 		while ( !m_pLogFile->Open(file, CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite | CFile::shareExclusive) ) {
 			if ( ++num > 20 ) {
@@ -546,7 +546,7 @@ void CRLoginDoc::OnSocketConnect()
 				m_pLogFile = NULL;
 				return;
 			}
-			file.Format("%s%s-%d%s", dirs, name, num, exts);
+			file.Format(_T("%s%s-%d%s"), dirs, name, num, exts);
 		}
 
 		m_pLogFile->SeekToEnd();
@@ -555,11 +555,11 @@ void CRLoginDoc::OnSocketConnect()
 void CRLoginDoc::OnSocketError(int err)
 {
 //	SocketClose();
-	SetStatus("Error");
+	SetStatus(_T("Error"));
 	CString tmp;
 	if ( m_ErrorPrompt.IsEmpty() )
-		m_ErrorPrompt.Format("WinSock Have Error #%d", err);
-	tmp.Format("%s Server Entry Scoket Error\n%s:%s Connection\n%s",
+		m_ErrorPrompt.Format(_T("WinSock Have Error #%d"), err);
+	tmp.Format(_T("%s Server Entry Scoket Error\n%s:%s Connection\n%s"),
 		m_ServerEntry.m_EntryName, m_ServerEntry.m_HostName, m_ServerEntry.m_PortName, m_ErrorPrompt);
 	AfxMessageBox(tmp);
 	m_ErrorPrompt.Empty();
@@ -595,7 +595,7 @@ void CRLoginDoc::OnSocketClose()
 	}
 
 	UpdateAllViews(NULL, UPDATE_GOTOXY, NULL);
-	SetStatus("Close");
+	SetStatus(_T("Close"));
 
 //	m_pMainWnd->PostMessage(WM_COMMAND, (bCanExit ? ID_APP_EXIT : ID_FILE_CLOSE), 0 );
 	if ( bCanExit )
@@ -696,7 +696,7 @@ int CRLoginDoc::SocketOpen()
 		dlg.m_HostAddr = m_ServerEntry.m_ProxyHost;
 		dlg.m_UserName = m_ServerEntry.m_ProxyUser;
 		dlg.m_PassName = m_ServerEntry.m_ProxyPass;
-		dlg.m_Prompt   = "Proxy Password";
+		dlg.m_Prompt   = _T("Proxy Password");
 		dlg.m_MaxTime  = 120;
 
 		if ( dlg.DoModal() != IDOK )
@@ -720,7 +720,7 @@ int CRLoginDoc::SocketOpen()
 		dlg.m_HostAddr = m_ServerEntry.m_HostReal;
 		dlg.m_UserName = m_ServerEntry.m_UserReal;
 		dlg.m_PassName = m_ServerEntry.m_PassReal;
-		dlg.m_Prompt   = "Password";
+		dlg.m_Prompt   = _T("Password");
 		dlg.m_MaxTime  = 120;
 
 		if ( dlg.DoModal() != IDOK )
@@ -755,9 +755,9 @@ int CRLoginDoc::SocketOpen()
 		return FALSE;
 	}
 
-	SetStatus("Open");
+	SetStatus(_T("Open"));
 
-	static const char *ProtoName[] = { "TCP", "Login", "Telnet", "SSH", "COM", "PIPE" };
+	static LPCTSTR ProtoName[] = { _T("TCP"), _T("Login"), _T("Telnet"), _T("SSH"), _T("COM"), _T("PIPE") };
 	m_pMainWnd->m_StatusString = ProtoName[m_ServerEntry.m_ProtoType];
 
 	return TRUE;
@@ -809,8 +809,7 @@ void CRLoginDoc::OnLogOpen()
 		return;
 	}
 
-	CFileDialog dlg(FALSE, "log", "RLOGIN", OFN_HIDEREADONLY,
-		"Log Files (*.log;*.txt)|*.log;*.txt|All Files (*.*)|*.*||", AfxGetMainWnd());
+	CFileDialog dlg(FALSE, _T("log"), _T("RLOGIN"), OFN_HIDEREADONLY, CStringLoad(IDS_FILEDLGLOGFILE), AfxGetMainWnd());
 
 	if ( dlg.DoModal() != IDOK )
 		return;
@@ -819,7 +818,7 @@ void CRLoginDoc::OnLogOpen()
 		return;
 
 	if ( !m_pLogFile->Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite | CFile::shareExclusive) ) {
-		AfxMessageBox("Can't open LogFile");
+		AfxMessageBox(IDE_LOGOPENERROR);
 		delete m_pLogFile;
 		m_pLogFile = NULL;
 		return;
@@ -895,6 +894,7 @@ void CRLoginDoc::OnUpdateKanjiCodeSet(CCmdUI* pCmdUI)
 
 void CRLoginDoc::OnXYZModem(UINT nID)
 {
+#if 1
 	if ( nID == IDM_KERMIT_UPLOAD || nID == IDM_KERMIT_DOWNLOAD ) {
 		if ( m_pKermit == NULL )
 			m_pKermit = new CKermit(this, AfxGetMainWnd());
@@ -913,6 +913,42 @@ void CRLoginDoc::OnXYZModem(UINT nID)
 	case IDM_KERMIT_UPLOAD:   m_pKermit->DoProc(1); break;
 	case IDM_KERMIT_DOWNLOAD: m_pKermit->DoProc(0); break;
 	}
+#else
+	CFileDialog dlg(TRUE, _T(""), _T(""), OFN_HIDEREADONLY | OFN_ALLOWMULTISELECT, CStringLoad(IDS_FILEDLGALLFILE), NULL);
+	POSITION pos;
+	CString fileName;
+	CImage image;
+	int c, x, y;
+	COLORREF rgb;
+	BYTE map[12][4];
+	CString str;
+
+	if ( dlg.DoModal() != IDOK )
+		return;
+
+	pos = dlg.GetStartPosition();
+	while ( pos != NULL ) {
+		fileName = dlg.GetNextPathName(pos);
+		if ( image.Load(fileName) )
+			continue;
+		memset(map, 0, 12 * 4);
+		for ( y = 0 ; y < image.GetHeight() && y < 24 ; y++ ) {
+			for ( x = 0 ;  x < image.GetWidth() && x < 12 ; x++ ) {
+				rgb = image.GetPixel(x, y);
+				if ( rgb == 0 )
+					map[x][y / 6] |= (1 << (y % 6));
+			}
+		}
+		str.Empty();
+		for ( y = 0 ; y < 4 ; y++ ) {
+			for ( x = 0 ; x < 12 ; x++ )
+				str += (char)(map[x][y] + 0x3F);
+			str += (y < 3 ? '/' : ';');
+		}
+		TRACE("%s %s\n", fileName, str);
+		image.Destroy();
+	}
+#endif
 }
 void CRLoginDoc::OnUpdateXYZModem(CCmdUI* pCmdUI)
 {
@@ -944,7 +980,7 @@ void CRLoginDoc::OnUpdateSendBreak(CCmdUI *pCmdUI)
 
 void CRLoginDoc::DoDropFile()
 {
-	char *p;
+	TCHAR *p;
 	CString path;
 	CStringW cmd, file;
 	CKeyNode fmt;
@@ -959,7 +995,7 @@ void CRLoginDoc::DoDropFile()
 	else
 		return;
 
-	if ( (p = strrchr((char *)(LPCSTR)path, '\\')) != NULL || (p = strrchr((char *)(LPCSTR)path, ':')) != NULL )
+	if ( (p = _tcsrchr((TCHAR *)(LPCTSTR)path, _T('\\'))) != NULL || (p = _tcsrchr((TCHAR *)(LPCTSTR)path, _T(':'))) != NULL )
 		file = p + 1;
 	else
 		file = path;

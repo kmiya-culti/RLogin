@@ -3,6 +3,7 @@
 
 #include "stdafx.h"
 #include "rlogin.h"
+#include "Data.h"
 #include "IdKeyFileDlg.h"
 
 #ifdef _DEBUG
@@ -24,7 +25,7 @@ CIdKeyFileDlg::CIdKeyFileDlg(CWnd* pParent /*=NULL*/)
 	m_PassName2 = _T("");
 	m_Message = _T("");
 	//}}AFX_DATA_INIT
-	m_Title = "IDKey File Load/Save";
+	m_Title = _T("IDKey File Load/Save");
 	m_OpenMode = 0;
 }
 
@@ -75,8 +76,7 @@ void CIdKeyFileDlg::OnIdkeysel()
 {
 	UpdateData(TRUE);
 
-	CFileDialog dlg(m_OpenMode == 1 ? TRUE : FALSE,
-		"", m_IdkeyFile, OFN_HIDEREADONLY, "All Files (*.*)|*.*||", this);
+	CFileDialog dlg(m_OpenMode == 1 ? TRUE : FALSE, _T(""), m_IdkeyFile, OFN_HIDEREADONLY, CStringLoad(IDS_FILEDLGALLFILE), this);
 
 	if ( dlg.DoModal() != IDOK )
 		return;
@@ -90,7 +90,7 @@ void CIdKeyFileDlg::OnOK()
 {
 	UpdateData(TRUE);
 	if ( m_OpenMode != 1 && m_PassName.Compare(m_PassName2) != 0 ) {
-		MessageBox("再入力されたパスフレーズが一致しません");
+		MessageBox(CStringLoad(IDE_PASSWORDNOMATCH));
 		return;
 	}
 	CDialog::OnOK();

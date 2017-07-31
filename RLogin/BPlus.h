@@ -68,7 +68,7 @@ public:
 
 	time_t		F_Ctime;
 	time_t		F_Mtime;
-	CString		F_TrueName;
+	CStringA	F_TrueName;
 	BOOL		F_FileType;
 
 	void Clear_Quote_Table();
@@ -102,7 +102,7 @@ public:
 	time_t Extract_Time(time_t zone, char **str);
 	void Process_File_Information();
 
-	int	Send_File(LPCSTR name);
+	int	Send_File(LPCSTR Name);
 	int	Receive_File(LPCSTR Name);
 
 	void BP_Term_ENQ();

@@ -393,10 +393,9 @@ static const CTextRam::CSIEXTTAB fc_CsiExtTab[] = {
 	{ 				('\'' << 8) | '|',		&CTextRam::fc_DECRQLP	},	// DECRQLP Request locator position
 	{ 				('\'' << 8) | '}',		&CTextRam::fc_DECIC		},	// DECIC Insert Column
 	{ 				('\'' << 8) | '~',		&CTextRam::fc_DECDC		},	// DECDC Delete Column(s)
-//	{ 				(')'  << 8) | 'p',		&CTextRam::fc_DECSTGLT	},	// DECSDPT Select Digital Printed Data Type
+//	{ 				(')'  << 8) | 'p',		&CTextRam::fc_POP		},	// DECSDPT Select Digital Printed Data Type
 	{ 				(')'  << 8) | '{',		&CTextRam::fc_DECSTGLT	},	// DECSTGLT Select Color Look-Up Table
 //	{ 				('*'  << 8) | 'p',		&CTextRam::fc_POP		},	// DECSPPCS Select ProPrinter Character Set
-//	{ 				('*'  << 8) | 'q',		&CTextRam::fc_POP		},	// DECSRC Secure Reset Confirmation
 //	{ 				('*'  << 8) | 'r',		&CTextRam::fc_POP		},	// DECSCS Select Communication Speed
 //	{ 				('*'  << 8) | 's',		&CTextRam::fc_POP		},	// DECSFC Select Flow Control Type
 //	{ 				('*'  << 8) | 'u',		&CTextRam::fc_POP		},	// DECSCP Select Communication Port
@@ -405,13 +404,12 @@ static const CTextRam::CSIEXTTAB fc_CsiExtTab[] = {
 	{ 				('*'  << 8) | 'z',		&CTextRam::fc_DECINVM	},	// DECINVM Invoke Macro
 //	{ 				('*'  << 8) | '|',		&CTextRam::fc_POP		},	// DECSNLS Select number of lines per screen
 //	{ 				('*'  << 8) | '}',		&CTextRam::fc_POP		},	// DECLFKC Local Function Key Control
-//	{ 				('+'  << 8) | 'p',		&CTextRam::fc_POP		},	// DECSR Secure Reset
+	{ 				('+'  << 8) | 'p',		&CTextRam::fc_DECSR		},	// DECSR Secure Reset
 //	{ 				('+'  << 8) | 'q',		&CTextRam::fc_POP		},	// DECELF Enable Local Functions
 //	{ 				('+'  << 8) | 'r',		&CTextRam::fc_POP		},	// DECSMKR Select Modifier Key Reporting
 //	{ 				('+'  << 8) | 'v',		&CTextRam::fc_POP		},	// DECMM Memory management
 //	{ 				('+'  << 8) | 'w',		&CTextRam::fc_POP		},	// DECSPP Set Port Parameter
-//	{ 				('+'  << 8) | 'x',		&CTextRam::fc_POP		},	// DECPQPLFM Program Key Free Memory Inquiry
-//	{ 				('+'  << 8) | 'y',		&CTextRam::fc_POP		},	// DECPKFMR Program Key Free Memory Report
+	{ 				('+'  << 8) | 'x',		&CTextRam::fc_DECPQPLFM	},	// DECPQPLFM Program Key Free Memory Inquiry
 //	{ 				('+'  << 8) | 'z',		&CTextRam::fc_POP		},	// DECPKA Program Key Action
 //	{ 				('-'  << 8) | 'p',		&CTextRam::fc_POP		},	// DECARR Auto Repeat Rate
 //	{ 				('-'  << 8) | 'q',		&CTextRam::fc_POP		},	// DECCRTST CRT Saver Timing
@@ -512,195 +510,197 @@ static const CTextRam::PROCTAB fc_StatTab[] = {
 
 static int	fc_EscNameTabMax = 61;
 static CTextRam::ESCNAMEPROC fc_EscNameTab[] = {
-	{	"ACS",		&CTextRam::fc_ACS,		NULL,	NULL	},
-	{	"APC",		&CTextRam::fc_APC,		NULL,	NULL	},
-	{	"BPH",		&CTextRam::fc_BPH,		NULL,	NULL	},
-	{	"CSC0",		&CTextRam::fc_CSC0,		NULL,	NULL	},
-	{	"CSC0A",	&CTextRam::fc_CSC0A,	NULL,	NULL	},
-	{	"CSC0W",	&CTextRam::fc_CSC0W,	NULL,	NULL	},
-	{	"CSC1",		&CTextRam::fc_CSC1,		NULL,	NULL	},
-	{	"CSC1A",	&CTextRam::fc_CSC1A,	NULL,	NULL	},
-	{	"CSC2",		&CTextRam::fc_CSC2,		NULL,	NULL	},
-	{	"CSC2A",	&CTextRam::fc_CSC2A,	NULL,	NULL	},
-	{	"CSC3",		&CTextRam::fc_CSC3,		NULL,	NULL	},
-	{	"CSC3A",	&CTextRam::fc_CSC3A,	NULL,	NULL	},
-	{	"CSI",		&CTextRam::fc_CSI,		NULL,	NULL	},
-	{	"DCS",		&CTextRam::fc_DCS,		NULL,	NULL	},
-	{	"DECBI",	&CTextRam::fc_BI,		NULL,	NULL	},
-	{	"DECCAHT",	&CTextRam::fc_DECAHT,	NULL,	NULL	},
-	{	"DECCAVT",	&CTextRam::fc_DECAVT,	NULL,	NULL	},
-	{	"DECFI",	&CTextRam::fc_FI,		NULL,	NULL	},
-	{	"DECHTS",	&CTextRam::fc_DECHTS,	NULL,	NULL	},
-	{	"DECPAM",	&CTextRam::fc_DECPAM,	NULL,	NULL	},
-	{	"DECPNM",	&CTextRam::fc_DECPNM,	NULL,	NULL	},
-	{	"DECRC",	&CTextRam::fc_RC,		NULL,	NULL	},
-	{	"DECSC",	&CTextRam::fc_SC,		NULL,	NULL	},
-	{	"DECSOP",	&CTextRam::fc_DECSOP,	NULL,	NULL	},
-	{	"DECVTS",	&CTextRam::fc_DECVTS,	NULL,	NULL	},
-	{	"DOCS",		&CTextRam::fc_DOCS,		NULL,	NULL	},
-	{	"EPA",		&CTextRam::fc_EPA,		NULL,	NULL	},
-	{	"ESA",		&CTextRam::fc_ESA,		NULL,	NULL	},
-	{	"HTJ",		&CTextRam::fc_HTJ,		NULL,	NULL	},
-	{	"HTS",		&CTextRam::fc_HTS,		NULL,	NULL	},
-	{	"IND",		&CTextRam::fc_IND,		NULL,	NULL	},
-	{	"LMA",		&CTextRam::fc_LMA,		NULL,	NULL	},
-	{	"LS1R",		&CTextRam::fc_LS1R,		NULL,	NULL	},
-	{	"LS2",		&CTextRam::fc_LS2,		NULL,	NULL	},
-	{	"LS2R",		&CTextRam::fc_LS2R,		NULL,	NULL	},
-	{	"LS3",		&CTextRam::fc_LS3,		NULL,	NULL	},
-	{	"LS3R",		&CTextRam::fc_LS3R,		NULL,	NULL	},
-	{	"NBH",		&CTextRam::fc_NBH,		NULL,	NULL	},
-	{	"NEL",		&CTextRam::fc_NEL,		NULL,	NULL	},
-	{	"NOP",		&CTextRam::fc_POP,		NULL,	NULL	},
-	{	"OSC",		&CTextRam::fc_OSC,		NULL,	NULL	},
-	{	"PLD",		&CTextRam::fc_PLD,		NULL,	NULL	},
-	{	"PLU",		&CTextRam::fc_PLU,		NULL,	NULL	},
-	{	"PM",		&CTextRam::fc_PM,		NULL,	NULL	},
-	{	"RI",		&CTextRam::fc_RI,		NULL,	NULL	},
-	{	"RIS",		&CTextRam::fc_RIS,		NULL,	NULL	},
-	{	"SCI",		&CTextRam::fc_SCI,		NULL,	NULL	},
-	{	"SOS",		&CTextRam::fc_SOS,		NULL,	NULL	},
-	{	"SPA",		&CTextRam::fc_SPA,		NULL,	NULL	},
-	{	"SS2",		&CTextRam::fc_SS2,		NULL,	NULL	},
-	{	"SS3",		&CTextRam::fc_SS3,		NULL,	NULL	},
-	{	"SSA",		&CTextRam::fc_SSA,		NULL,	NULL	},
-	{	"USR",		&CTextRam::fc_USR,		NULL,	NULL	},
-	{	"V5CUP",	&CTextRam::fc_V5CUP,	NULL,	NULL	},
-	{	"V5EX",		&CTextRam::fc_V5EX,		NULL,	NULL	},
-	{	"V5MCP",	&CTextRam::fc_V5MCP,	NULL,	NULL	},
-	{	"VTS",		&CTextRam::fc_VTS,		NULL,	NULL	},
+	{	_T("ACS"),		&CTextRam::fc_ACS,		NULL,	NULL	},
+	{	_T("APC"),		&CTextRam::fc_APC,		NULL,	NULL	},
+	{	_T("BPH"),		&CTextRam::fc_BPH,		NULL,	NULL	},
+	{	_T("CSC0"),		&CTextRam::fc_CSC0,		NULL,	NULL	},
+	{	_T("CSC0A"),	&CTextRam::fc_CSC0A,	NULL,	NULL	},
+	{	_T("CSC0W"),	&CTextRam::fc_CSC0W,	NULL,	NULL	},
+	{	_T("CSC1"),		&CTextRam::fc_CSC1,		NULL,	NULL	},
+	{	_T("CSC1A"),	&CTextRam::fc_CSC1A,	NULL,	NULL	},
+	{	_T("CSC2"),		&CTextRam::fc_CSC2,		NULL,	NULL	},
+	{	_T("CSC2A"),	&CTextRam::fc_CSC2A,	NULL,	NULL	},
+	{	_T("CSC3"),		&CTextRam::fc_CSC3,		NULL,	NULL	},
+	{	_T("CSC3A"),	&CTextRam::fc_CSC3A,	NULL,	NULL	},
+	{	_T("CSI"),		&CTextRam::fc_CSI,		NULL,	NULL	},
+	{	_T("DCS"),		&CTextRam::fc_DCS,		NULL,	NULL	},
+	{	_T("DECBI"),	&CTextRam::fc_BI,		NULL,	NULL	},
+	{	_T("DECCAHT"),	&CTextRam::fc_DECAHT,	NULL,	NULL	},
+	{	_T("DECCAVT"),	&CTextRam::fc_DECAVT,	NULL,	NULL	},
+	{	_T("DECFI"),	&CTextRam::fc_FI,		NULL,	NULL	},
+	{	_T("DECHTS"),	&CTextRam::fc_DECHTS,	NULL,	NULL	},
+	{	_T("DECPAM"),	&CTextRam::fc_DECPAM,	NULL,	NULL	},
+	{	_T("DECPNM"),	&CTextRam::fc_DECPNM,	NULL,	NULL	},
+	{	_T("DECRC"),	&CTextRam::fc_RC,		NULL,	NULL	},
+	{	_T("DECSC"),	&CTextRam::fc_SC,		NULL,	NULL	},
+	{	_T("DECSOP"),	&CTextRam::fc_DECSOP,	NULL,	NULL	},
+	{	_T("DECVTS"),	&CTextRam::fc_DECVTS,	NULL,	NULL	},
+	{	_T("DOCS"),		&CTextRam::fc_DOCS,		NULL,	NULL	},
+	{	_T("EPA"),		&CTextRam::fc_EPA,		NULL,	NULL	},
+	{	_T("ESA"),		&CTextRam::fc_ESA,		NULL,	NULL	},
+	{	_T("HTJ"),		&CTextRam::fc_HTJ,		NULL,	NULL	},
+	{	_T("HTS"),		&CTextRam::fc_HTS,		NULL,	NULL	},
+	{	_T("IND"),		&CTextRam::fc_IND,		NULL,	NULL	},
+	{	_T("LMA"),		&CTextRam::fc_LMA,		NULL,	NULL	},
+	{	_T("LS1R"),		&CTextRam::fc_LS1R,		NULL,	NULL	},
+	{	_T("LS2"),		&CTextRam::fc_LS2,		NULL,	NULL	},
+	{	_T("LS2R"),		&CTextRam::fc_LS2R,		NULL,	NULL	},
+	{	_T("LS3"),		&CTextRam::fc_LS3,		NULL,	NULL	},
+	{	_T("LS3R"),		&CTextRam::fc_LS3R,		NULL,	NULL	},
+	{	_T("NBH"),		&CTextRam::fc_NBH,		NULL,	NULL	},
+	{	_T("NEL"),		&CTextRam::fc_NEL,		NULL,	NULL	},
+	{	_T("NOP"),		&CTextRam::fc_POP,		NULL,	NULL	},
+	{	_T("OSC"),		&CTextRam::fc_OSC,		NULL,	NULL	},
+	{	_T("PLD"),		&CTextRam::fc_PLD,		NULL,	NULL	},
+	{	_T("PLU"),		&CTextRam::fc_PLU,		NULL,	NULL	},
+	{	_T("PM"),		&CTextRam::fc_PM,		NULL,	NULL	},
+	{	_T("RI"),		&CTextRam::fc_RI,		NULL,	NULL	},
+	{	_T("RIS"),		&CTextRam::fc_RIS,		NULL,	NULL	},
+	{	_T("SCI"),		&CTextRam::fc_SCI,		NULL,	NULL	},
+	{	_T("SOS"),		&CTextRam::fc_SOS,		NULL,	NULL	},
+	{	_T("SPA"),		&CTextRam::fc_SPA,		NULL,	NULL	},
+	{	_T("SS2"),		&CTextRam::fc_SS2,		NULL,	NULL	},
+	{	_T("SS3"),		&CTextRam::fc_SS3,		NULL,	NULL	},
+	{	_T("SSA"),		&CTextRam::fc_SSA,		NULL,	NULL	},
+	{	_T("USR"),		&CTextRam::fc_USR,		NULL,	NULL	},
+	{	_T("V5CUP"),	&CTextRam::fc_V5CUP,	NULL,	NULL	},
+	{	_T("V5EX"),		&CTextRam::fc_V5EX,		NULL,	NULL	},
+	{	_T("V5MCP"),	&CTextRam::fc_V5MCP,	NULL,	NULL	},
+	{	_T("VTS"),		&CTextRam::fc_VTS,		NULL,	NULL	},
 	{	NULL,		NULL,					NULL,	NULL	},
 };
 
-static int	fc_CsiNameTabMax = 118;
+static int	fc_CsiNameTabMax = 120;
 static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
-	{	"C25LCT",	&CTextRam::fc_C25LCT,	NULL,	NULL 	},
-	{	"CBT",		&CTextRam::fc_CBT,		NULL,	NULL	},
-	{	"CHA",		&CTextRam::fc_CHA,		NULL,	NULL	},
-	{	"CHT",		&CTextRam::fc_CHT,		NULL,	NULL	},
-	{	"CNL",		&CTextRam::fc_CNL,		NULL,	NULL	},
-	{	"CPL",		&CTextRam::fc_CPL,		NULL,	NULL	},
-	{	"CTC",		&CTextRam::fc_CTC,		NULL,	NULL	},
-	{	"CUB",		&CTextRam::fc_CUB,		NULL,	NULL	},
-	{	"CUD",		&CTextRam::fc_CUD,		NULL,	NULL	},
-	{	"CUF",		&CTextRam::fc_CUF,		NULL,	NULL	},
-	{	"CUP",		&CTextRam::fc_CUP,		NULL,	NULL	},
-	{	"CUU",		&CTextRam::fc_CUU,		NULL,	NULL	},
-	{	"CVT",		&CTextRam::fc_CVT,		NULL,	NULL	},
-	{	"DA1",		&CTextRam::fc_DA1,		NULL,	NULL	},
-	{	"DA2",		&CTextRam::fc_DA2,		NULL,	NULL	},
-	{	"DA3",		&CTextRam::fc_DA3,		NULL,	NULL	},
-	{	"DAQ",		&CTextRam::fc_DAQ,		NULL,	NULL	},
-	{	"DCH",		&CTextRam::fc_DCH,		NULL,	NULL	},
-	{	"DECATC",	&CTextRam::fc_DECATC,	NULL,	NULL	},
-	{	"DECCARA",	&CTextRam::fc_DECCARA,	NULL,	NULL	},
-	{	"DECCRA",	&CTextRam::fc_DECCRA,	NULL,	NULL	},
-	{	"DECDC",	&CTextRam::fc_DECDC,	NULL,	NULL	},
-	{	"DECDSR",	&CTextRam::fc_DECDSR,	NULL,	NULL	},
-	{	"DECEFR",	&CTextRam::fc_DECEFR,	NULL,	NULL	},
-	{	"DECELR",	&CTextRam::fc_DECELR,	NULL,	NULL	},
-	{	"DECERA",	&CTextRam::fc_DECERA,	NULL,	NULL	},
-	{	"DECFRA",	&CTextRam::fc_DECFRA,	NULL,	NULL	},
-	{	"DECIC",	&CTextRam::fc_DECIC,	NULL,	NULL	},
-	{	"DECINVM",	&CTextRam::fc_DECINVM,	NULL,	NULL	},
-	{	"DECLL",	&CTextRam::fc_DECLL,	NULL,	NULL	},
-	{	"DECMC",	&CTextRam::fc_DECMC,	NULL,	NULL	},
-	{	"DECPS",	&CTextRam::fc_DECPS,	NULL,	NULL	},
-	{	"DECRARA",	&CTextRam::fc_DECRARA,	NULL,	NULL	},
-	{	"DECRQCRA",	&CTextRam::fc_DECRQCRA,	NULL,	NULL	},
-	{	"DECRQDE",	&CTextRam::fc_DECRQDE,	NULL,	NULL	},
-	{	"DECRQLP",	&CTextRam::fc_DECRQLP,	NULL,	NULL	},
-	{	"DECRQM",	&CTextRam::fc_DECRQM,	NULL,	NULL	},
-	{	"DECRQMH",	&CTextRam::fc_DECRQMH,	NULL,	NULL	},
-	{	"DECRQPSR",	&CTextRam::fc_DECRQPSR,	NULL,	NULL	},
-	{	"DECRQTSR",	&CTextRam::fc_DECRQTSR,	NULL,	NULL	},
-	{	"DECRQUPSS",&CTextRam::fc_DECRQUPSS,NULL,	NULL	},
-	{	"DECRST",	&CTextRam::fc_DECRST,	NULL,	NULL	},
-	{	"DECSACE",	&CTextRam::fc_DECSACE,	NULL,	NULL	},
-	{	"DECSASD",	&CTextRam::fc_DECSASD,	NULL,	NULL	},
-	{	"DECSCA",	&CTextRam::fc_DECSCA,	NULL,	NULL	},
-	{	"DECSCL",	&CTextRam::fc_DECSCL,	NULL,	NULL	},
-	{	"DECSCPP",	&CTextRam::fc_DECSCPP,	NULL,	NULL	},
-	{	"DECSCUSR",	&CTextRam::fc_DECSCUSR,	NULL,	NULL	},
-	{	"DECSED",	&CTextRam::fc_DECSED,	NULL,	NULL	},
-	{	"DECSEL",	&CTextRam::fc_DECSEL,	NULL,	NULL	},
-	{	"DECSERA",	&CTextRam::fc_DECSERA,	NULL,	NULL	},
-	{	"DECSET",	&CTextRam::fc_DECSET,	NULL,	NULL	},
-	{	"DECSHTS",	&CTextRam::fc_DECSHTS,	NULL,	NULL	},
-	{	"DECSLE",	&CTextRam::fc_DECSLE,	NULL,	NULL	},
-	{	"DECSLPP",	&CTextRam::fc_DECSLPP,	NULL,	NULL	},
-	{	"DECSLRM",	&CTextRam::fc_DECSLRM,	NULL,	NULL	},
-	{	"DECSSDT",	&CTextRam::fc_DECSSDT,	NULL,	NULL	},
-	{	"DECSSL",	&CTextRam::fc_DECSSL,	NULL,	NULL	},
-	{	"DECST8C",	&CTextRam::fc_DECST8C,	NULL,	NULL	},
-	{	"DECSTBM",	&CTextRam::fc_DECSTBM,	NULL,	NULL	},
-	{	"DECSTGLT",	&CTextRam::fc_DECSTGLT,	NULL,	NULL	},
-	{	"DECSTR",	&CTextRam::fc_DECSTR,	NULL,	NULL	},
-	{	"DECSVTS",	&CTextRam::fc_DECSVTS,	NULL,	NULL	},
-	{	"DECTID",	&CTextRam::fc_DECTID,	NULL,	NULL	},
-	{	"DECTME",	&CTextRam::fc_DECTME,	NULL,	NULL	},
-	{	"DECTST",	&CTextRam::fc_DECTST,	NULL,	NULL	},
-	{	"DL",		&CTextRam::fc_DL,		NULL,	NULL	},
-	{	"DSR",		&CTextRam::fc_DSR,		NULL,	NULL	},
-	{	"EA",		&CTextRam::fc_EA,		NULL,	NULL	},
-	{	"ECH",		&CTextRam::fc_ECH,		NULL,	NULL	},
-	{	"ED",		&CTextRam::fc_ED,		NULL,	NULL	},
-	{	"EF",		&CTextRam::fc_EF,		NULL,	NULL	},
-	{	"EL",		&CTextRam::fc_EL,		NULL,	NULL	},
-	{	"FNT",		&CTextRam::fc_FNT,		NULL,	NULL	},
-	{	"HPA",		&CTextRam::fc_HPA,		NULL,	NULL	},
-	{	"HPB",		&CTextRam::fc_HPB,		NULL,	NULL	},
-	{	"HPR",		&CTextRam::fc_HPR,		NULL,	NULL	},
-	{	"HVP",		&CTextRam::fc_HVP,		NULL,	NULL	},
-	{	"ICH",		&CTextRam::fc_ICH,		NULL,	NULL	},
-	{	"IL",		&CTextRam::fc_IL,		NULL,	NULL	},
-	{	"LINUX",	&CTextRam::fc_LINUX,	NULL,	NULL	},
-	{	"MC",		&CTextRam::fc_MC,		NULL,	NULL	},
-	{	"NOP",		&CTextRam::fc_POP,		NULL,	NULL	},
-	{	"NP",		&CTextRam::fc_NP,		NULL,	NULL	},
-	{	"ORGBFAT",	&CTextRam::fc_ORGBFAT,	NULL,	NULL	},
-	{	"ORGSCD",	&CTextRam::fc_ORGSCD,	NULL,	NULL	},
-	{	"PP",		&CTextRam::fc_PP,		NULL,	NULL	},
-	{	"PPA",		&CTextRam::fc_PPA,		NULL,	NULL	},
-	{	"PPB",		&CTextRam::fc_PPB,		NULL,	NULL	},
-	{	"PPR",		&CTextRam::fc_PPR,		NULL,	NULL	},
-	{	"REP",		&CTextRam::fc_REP,		NULL,	NULL	},
-	{	"REQTPARM",	&CTextRam::fc_REQTPARM,	NULL,	NULL	},
-	{	"RM",		&CTextRam::fc_RM,		NULL,	NULL	},
-	{	"SCORC",	&CTextRam::fc_SCORC,	NULL,	NULL	},
-	{	"SCOSC",	&CTextRam::fc_SCOSC,	NULL,	NULL	},
-	{	"SD",		&CTextRam::fc_SD,		NULL,	NULL	},
-	{	"SGR",		&CTextRam::fc_SGR,		NULL,	NULL	},
-	{	"SL",		&CTextRam::fc_SL,		NULL,	NULL	},
-	{	"SM",		&CTextRam::fc_SM,		NULL,	NULL	},
-	{	"SR",		&CTextRam::fc_SR,		NULL,	NULL	},
-	{	"SU",		&CTextRam::fc_SU,		NULL,	NULL	},
-	{	"TBC",		&CTextRam::fc_TBC,		NULL,	NULL	},
-	{	"TTIMERS",	&CTextRam::fc_TTIMERS,	NULL,	NULL	},
-	{	"TTIMEST",	&CTextRam::fc_TTIMEST,	NULL,	NULL	},
-	{	"TTIMESV",	&CTextRam::fc_TTIMESV,	NULL,	NULL	},
-	{	"VPA",		&CTextRam::fc_VPA,		NULL,	NULL	},
-	{	"VPB",		&CTextRam::fc_VPB,		NULL,	NULL	},
-	{	"VPR",		&CTextRam::fc_VPR,		NULL,	NULL	},
-	{	"XTREST",	&CTextRam::fc_XTREST,	NULL,	NULL	},
-	{	"XTSAVE",	&CTextRam::fc_XTSAVE,	NULL,	NULL	},
-	{	"XTWOP",	&CTextRam::fc_XTWOP,	NULL,	NULL	},
+	{	_T("C25LCT"),	&CTextRam::fc_C25LCT,	NULL,	NULL 	},
+	{	_T("CBT"),		&CTextRam::fc_CBT,		NULL,	NULL	},
+	{	_T("CHA"),		&CTextRam::fc_CHA,		NULL,	NULL	},
+	{	_T("CHT"),		&CTextRam::fc_CHT,		NULL,	NULL	},
+	{	_T("CNL"),		&CTextRam::fc_CNL,		NULL,	NULL	},
+	{	_T("CPL"),		&CTextRam::fc_CPL,		NULL,	NULL	},
+	{	_T("CTC"),		&CTextRam::fc_CTC,		NULL,	NULL	},
+	{	_T("CUB"),		&CTextRam::fc_CUB,		NULL,	NULL	},
+	{	_T("CUD"),		&CTextRam::fc_CUD,		NULL,	NULL	},
+	{	_T("CUF"),		&CTextRam::fc_CUF,		NULL,	NULL	},
+	{	_T("CUP"),		&CTextRam::fc_CUP,		NULL,	NULL	},
+	{	_T("CUU"),		&CTextRam::fc_CUU,		NULL,	NULL	},
+	{	_T("CVT"),		&CTextRam::fc_CVT,		NULL,	NULL	},
+	{	_T("DA1"),		&CTextRam::fc_DA1,		NULL,	NULL	},
+	{	_T("DA2"),		&CTextRam::fc_DA2,		NULL,	NULL	},
+	{	_T("DA3"),		&CTextRam::fc_DA3,		NULL,	NULL	},
+	{	_T("DAQ"),		&CTextRam::fc_DAQ,		NULL,	NULL	},
+	{	_T("DCH"),		&CTextRam::fc_DCH,		NULL,	NULL	},
+	{	_T("DECATC"),	&CTextRam::fc_DECATC,	NULL,	NULL	},
+	{	_T("DECCARA"),	&CTextRam::fc_DECCARA,	NULL,	NULL	},
+	{	_T("DECCRA"),	&CTextRam::fc_DECCRA,	NULL,	NULL	},
+	{	_T("DECDC"),	&CTextRam::fc_DECDC,	NULL,	NULL	},
+	{	_T("DECDSR"),	&CTextRam::fc_DECDSR,	NULL,	NULL	},
+	{	_T("DECEFR"),	&CTextRam::fc_DECEFR,	NULL,	NULL	},
+	{	_T("DECELR"),	&CTextRam::fc_DECELR,	NULL,	NULL	},
+	{	_T("DECERA"),	&CTextRam::fc_DECERA,	NULL,	NULL	},
+	{	_T("DECFRA"),	&CTextRam::fc_DECFRA,	NULL,	NULL	},
+	{	_T("DECIC"),	&CTextRam::fc_DECIC,	NULL,	NULL	},
+	{	_T("DECINVM"),	&CTextRam::fc_DECINVM,	NULL,	NULL	},
+	{	_T("DECLL"),	&CTextRam::fc_DECLL,	NULL,	NULL	},
+	{	_T("DECMC"),	&CTextRam::fc_DECMC,	NULL,	NULL	},
+	{	_T("DECPQPLFM"),&CTextRam::fc_DECPQPLFM,NULL,	NULL	},
+	{	_T("DECPS"),	&CTextRam::fc_DECPS,	NULL,	NULL	},
+	{	_T("DECRARA"),	&CTextRam::fc_DECRARA,	NULL,	NULL	},
+	{	_T("DECRQCRA"),	&CTextRam::fc_DECRQCRA,	NULL,	NULL	},
+	{	_T("DECRQDE"),	&CTextRam::fc_DECRQDE,	NULL,	NULL	},
+	{	_T("DECRQLP"),	&CTextRam::fc_DECRQLP,	NULL,	NULL	},
+	{	_T("DECRQM"),	&CTextRam::fc_DECRQM,	NULL,	NULL	},
+	{	_T("DECRQMH"),	&CTextRam::fc_DECRQMH,	NULL,	NULL	},
+	{	_T("DECRQPSR"),	&CTextRam::fc_DECRQPSR,	NULL,	NULL	},
+	{	_T("DECRQTSR"),	&CTextRam::fc_DECRQTSR,	NULL,	NULL	},
+	{	_T("DECRQUPSS"),&CTextRam::fc_DECRQUPSS,NULL,	NULL	},
+	{	_T("DECRST"),	&CTextRam::fc_DECRST,	NULL,	NULL	},
+	{	_T("DECSACE"),	&CTextRam::fc_DECSACE,	NULL,	NULL	},
+	{	_T("DECSASD"),	&CTextRam::fc_DECSASD,	NULL,	NULL	},
+	{	_T("DECSCA"),	&CTextRam::fc_DECSCA,	NULL,	NULL	},
+	{	_T("DECSCL"),	&CTextRam::fc_DECSCL,	NULL,	NULL	},
+	{	_T("DECSCPP"),	&CTextRam::fc_DECSCPP,	NULL,	NULL	},
+	{	_T("DECSCUSR"),	&CTextRam::fc_DECSCUSR,	NULL,	NULL	},
+	{	_T("DECSED"),	&CTextRam::fc_DECSED,	NULL,	NULL	},
+	{	_T("DECSEL"),	&CTextRam::fc_DECSEL,	NULL,	NULL	},
+	{	_T("DECSERA"),	&CTextRam::fc_DECSERA,	NULL,	NULL	},
+	{	_T("DECSET"),	&CTextRam::fc_DECSET,	NULL,	NULL	},
+	{	_T("DECSHTS"),	&CTextRam::fc_DECSHTS,	NULL,	NULL	},
+	{	_T("DECSLE"),	&CTextRam::fc_DECSLE,	NULL,	NULL	},
+	{	_T("DECSLPP"),	&CTextRam::fc_DECSLPP,	NULL,	NULL	},
+	{	_T("DECSLRM"),	&CTextRam::fc_DECSLRM,	NULL,	NULL	},
+	{	_T("DECSR"),	&CTextRam::fc_DECSR,	NULL,	NULL	},
+	{	_T("DECSSDT"),	&CTextRam::fc_DECSSDT,	NULL,	NULL	},
+	{	_T("DECSSL"),	&CTextRam::fc_DECSSL,	NULL,	NULL	},
+	{	_T("DECST8C"),	&CTextRam::fc_DECST8C,	NULL,	NULL	},
+	{	_T("DECSTBM"),	&CTextRam::fc_DECSTBM,	NULL,	NULL	},
+	{	_T("DECSTGLT"),	&CTextRam::fc_DECSTGLT,	NULL,	NULL	},
+	{	_T("DECSTR"),	&CTextRam::fc_DECSTR,	NULL,	NULL	},
+	{	_T("DECSVTS"),	&CTextRam::fc_DECSVTS,	NULL,	NULL	},
+	{	_T("DECTID"),	&CTextRam::fc_DECTID,	NULL,	NULL	},
+	{	_T("DECTME"),	&CTextRam::fc_DECTME,	NULL,	NULL	},
+	{	_T("DECTST"),	&CTextRam::fc_DECTST,	NULL,	NULL	},
+	{	_T("DL"),		&CTextRam::fc_DL,		NULL,	NULL	},
+	{	_T("DSR"),		&CTextRam::fc_DSR,		NULL,	NULL	},
+	{	_T("EA"),		&CTextRam::fc_EA,		NULL,	NULL	},
+	{	_T("ECH"),		&CTextRam::fc_ECH,		NULL,	NULL	},
+	{	_T("ED"),		&CTextRam::fc_ED,		NULL,	NULL	},
+	{	_T("EF"),		&CTextRam::fc_EF,		NULL,	NULL	},
+	{	_T("EL"),		&CTextRam::fc_EL,		NULL,	NULL	},
+	{	_T("FNT"),		&CTextRam::fc_FNT,		NULL,	NULL	},
+	{	_T("HPA"),		&CTextRam::fc_HPA,		NULL,	NULL	},
+	{	_T("HPB"),		&CTextRam::fc_HPB,		NULL,	NULL	},
+	{	_T("HPR"),		&CTextRam::fc_HPR,		NULL,	NULL	},
+	{	_T("HVP"),		&CTextRam::fc_HVP,		NULL,	NULL	},
+	{	_T("ICH"),		&CTextRam::fc_ICH,		NULL,	NULL	},
+	{	_T("IL"),		&CTextRam::fc_IL,		NULL,	NULL	},
+	{	_T("LINUX"),	&CTextRam::fc_LINUX,	NULL,	NULL	},
+	{	_T("MC"),		&CTextRam::fc_MC,		NULL,	NULL	},
+	{	_T("NOP"),		&CTextRam::fc_POP,		NULL,	NULL	},
+	{	_T("NP"),		&CTextRam::fc_NP,		NULL,	NULL	},
+	{	_T("ORGBFAT"),	&CTextRam::fc_ORGBFAT,	NULL,	NULL	},
+	{	_T("ORGSCD"),	&CTextRam::fc_ORGSCD,	NULL,	NULL	},
+	{	_T("PP"),		&CTextRam::fc_PP,		NULL,	NULL	},
+	{	_T("PPA"),		&CTextRam::fc_PPA,		NULL,	NULL	},
+	{	_T("PPB"),		&CTextRam::fc_PPB,		NULL,	NULL	},
+	{	_T("PPR"),		&CTextRam::fc_PPR,		NULL,	NULL	},
+	{	_T("REP"),		&CTextRam::fc_REP,		NULL,	NULL	},
+	{	_T("REQTPARM"),	&CTextRam::fc_REQTPARM,	NULL,	NULL	},
+	{	_T("RM"),		&CTextRam::fc_RM,		NULL,	NULL	},
+	{	_T("SCORC"),	&CTextRam::fc_SCORC,	NULL,	NULL	},
+	{	_T("SCOSC"),	&CTextRam::fc_SCOSC,	NULL,	NULL	},
+	{	_T("SD"),		&CTextRam::fc_SD,		NULL,	NULL	},
+	{	_T("SGR"),		&CTextRam::fc_SGR,		NULL,	NULL	},
+	{	_T("SL"),		&CTextRam::fc_SL,		NULL,	NULL	},
+	{	_T("SM"),		&CTextRam::fc_SM,		NULL,	NULL	},
+	{	_T("SR"),		&CTextRam::fc_SR,		NULL,	NULL	},
+	{	_T("SU"),		&CTextRam::fc_SU,		NULL,	NULL	},
+	{	_T("TBC"),		&CTextRam::fc_TBC,		NULL,	NULL	},
+	{	_T("TTIMERS"),	&CTextRam::fc_TTIMERS,	NULL,	NULL	},
+	{	_T("TTIMEST"),	&CTextRam::fc_TTIMEST,	NULL,	NULL	},
+	{	_T("TTIMESV"),	&CTextRam::fc_TTIMESV,	NULL,	NULL	},
+	{	_T("VPA"),		&CTextRam::fc_VPA,		NULL,	NULL	},
+	{	_T("VPB"),		&CTextRam::fc_VPB,		NULL,	NULL	},
+	{	_T("VPR"),		&CTextRam::fc_VPR,		NULL,	NULL	},
+	{	_T("XTREST"),	&CTextRam::fc_XTREST,	NULL,	NULL	},
+	{	_T("XTSAVE"),	&CTextRam::fc_XTSAVE,	NULL,	NULL	},
+	{	_T("XTWOP"),	&CTextRam::fc_XTWOP,	NULL,	NULL	},
 	{	NULL,		NULL,					NULL,	NULL	},
 };
 
 static int	fc_DcsNameTabMax = 11;
 static CTextRam::ESCNAMEPROC fc_DcsNameTab[] = {
-	{	"DECDLD",	&CTextRam::fc_DECDLD,	NULL,	NULL	},
-	{	"DECDMAC",	&CTextRam::fc_DECDMAC,	NULL,	NULL	},
-	{	"DECREGIS",	&CTextRam::fc_DECREGIS, NULL,	NULL	},
-	{	"DECRQSS",	&CTextRam::fc_DECRQSS,	NULL,	NULL	},
-	{	"DECRSPS",	&CTextRam::fc_DECRSPS,	NULL,	NULL	},
-	{	"DECRSTS",	&CTextRam::fc_DECRSTS,	NULL,	NULL	},
-	{	"DECSIXEL",	&CTextRam::fc_DECSIXEL, NULL,	NULL	},
-	{	"DECSTUI",	&CTextRam::fc_DECSTUI,	NULL,	NULL	},
-	{	"DECUDK",	&CTextRam::fc_DECUDK,	NULL,	NULL	},
-	{	"NOP",		&CTextRam::fc_POP,		NULL,	NULL	},
-	{	"XTRQCAP",	&CTextRam::fc_XTRQCAP,	NULL,	NULL	},
+	{	_T("DECDLD"),	&CTextRam::fc_DECDLD,	NULL,	NULL	},
+	{	_T("DECDMAC"),	&CTextRam::fc_DECDMAC,	NULL,	NULL	},
+	{	_T("DECREGIS"),	&CTextRam::fc_DECREGIS, NULL,	NULL	},
+	{	_T("DECRQSS"),	&CTextRam::fc_DECRQSS,	NULL,	NULL	},
+	{	_T("DECRSPS"),	&CTextRam::fc_DECRSPS,	NULL,	NULL	},
+	{	_T("DECRSTS"),	&CTextRam::fc_DECRSTS,	NULL,	NULL	},
+	{	_T("DECSIXEL"),	&CTextRam::fc_DECSIXEL, NULL,	NULL	},
+	{	_T("DECSTUI"),	&CTextRam::fc_DECSTUI,	NULL,	NULL	},
+	{	_T("DECUDK"),	&CTextRam::fc_DECUDK,	NULL,	NULL	},
+	{	_T("NOP"),		&CTextRam::fc_POP,		NULL,	NULL	},
+	{	_T("XTRQCAP"),	&CTextRam::fc_XTRQCAP,	NULL,	NULL	},
 	{	NULL,		NULL,					NULL,	NULL	},
 };
 
@@ -726,7 +726,7 @@ const CProcNode & CProcNode::operator = (CProcNode &data)
 
 CProcTab::CProcTab()
 {
-	m_pSection = "ProcTab";
+	m_pSection = _T("ProcTab");
 	m_Data.RemoveAll();
 }
 const CProcTab & CProcTab::operator = (CProcTab &data)
@@ -747,7 +747,7 @@ void CProcTab::SetArray(CStringArrayExt &array)
 
 	array.RemoveAll();
 	for ( n = 0 ; n < m_Data.GetSize() ; n++ ) {
-		tmp.Format("%d,%d,%s,", m_Data[n].m_Type, m_Data[n].m_Code, m_Data[n].m_Name);
+		tmp.Format(_T("%d,%d,%s,"), m_Data[n].m_Type, m_Data[n].m_Code, m_Data[n].m_Name);
 		array.Add(tmp);
 	}
 }
@@ -762,13 +762,13 @@ void CProcTab::GetArray(CStringArrayExt &array)
 		tmp.GetString(array[n], ',');
 		if ( tmp.GetSize() < 3  )
 			continue;
-		node.m_Type = atoi(tmp[0]);
-		node.m_Code = atoi(tmp[1]);
+		node.m_Type = _tstoi(tmp[0]);
+		node.m_Code = _tstoi(tmp[1]);
 		node.m_Name = tmp[2];
 		m_Data.Add(node);
 	}
 }
-void CProcTab::Add(int type, int code, LPCSTR name)
+void CProcTab::Add(int type, int code, LPCTSTR name)
 {
 	CProcNode node;
 
@@ -810,7 +810,7 @@ void CTextRam::fc_Init_Proc(int stage, const PROCTAB *tp, int b)
 }
 static int fc_ProcNameCmp(const void *src, const void *dis)
 {
-	return strcmp(((CTextRam::ESCNAMEPROC *)src)->name, ((CTextRam::ESCNAMEPROC *)dis)->name);
+	return _tcscmp(((CTextRam::ESCNAMEPROC *)src)->name, ((CTextRam::ESCNAMEPROC *)dis)->name);
 }
 static int	ExtTabCodeCmp(const void *src, const void *dis)
 {
@@ -993,9 +993,9 @@ inline void CTextRam::fc_Push(int stage)
 
 static int NameProcCmp(const void *src, const void *dis)
 {
-	return strcmp((const char *)src, ((CTextRam::ESCNAMEPROC *)dis)->name);
+	return _tcscmp((LPCTSTR)src, ((CTextRam::ESCNAMEPROC *)dis)->name);
 }
-void CTextRam::EscNameProc(int ch, LPCSTR name)
+void CTextRam::EscNameProc(int ch, LPCTSTR name)
 {
 	int n;
 	void (CTextRam::*proc)(int) = &CTextRam::fc_POP;
@@ -1006,7 +1006,7 @@ void CTextRam::EscNameProc(int ch, LPCSTR name)
 	m_LocalProc[0][ch] = proc;
 	m_LocalProc[0][ch | 0x80] = proc;
 }
-LPCSTR	CTextRam::EscProcName(void (CTextRam::*proc)(int ch))
+LPCTSTR	CTextRam::EscProcName(void (CTextRam::*proc)(int ch))
 {
 	int c;
 	ESCNAMEPROC tmp;
@@ -1021,7 +1021,7 @@ LPCSTR	CTextRam::EscProcName(void (CTextRam::*proc)(int ch))
 		else
 			tp = tp->right;
 	}
-	return "NOP";
+	return _T("NOP");
 }
 void CTextRam::SetEscNameCombo(CComboBox *pCombo)
 {
@@ -1029,7 +1029,7 @@ void CTextRam::SetEscNameCombo(CComboBox *pCombo)
 		pCombo->AddString(fc_EscNameTab[n].name);
 }
 
-void CTextRam::CsiNameProc(int code, LPCSTR name)
+void CTextRam::CsiNameProc(int code, LPCTSTR name)
 {
 	int n;
 	void (CTextRam::*proc)(int) = &CTextRam::fc_POP;
@@ -1066,7 +1066,7 @@ void CTextRam::CsiNameProc(int code, LPCSTR name)
 		break;
 	}
 }
-LPCSTR	CTextRam::CsiProcName(void (CTextRam::*proc)(int ch))
+LPCTSTR	CTextRam::CsiProcName(void (CTextRam::*proc)(int ch))
 {
 	int c;
 	ESCNAMEPROC tmp;
@@ -1081,7 +1081,7 @@ LPCSTR	CTextRam::CsiProcName(void (CTextRam::*proc)(int ch))
 		else
 			tp = tp->right;
 	}
-	return "NOP";
+	return _T("NOP");
 }
 void CTextRam::SetCsiNameCombo(CComboBox *pCombo)
 {
@@ -1089,7 +1089,7 @@ void CTextRam::SetCsiNameCombo(CComboBox *pCombo)
 		pCombo->AddString(fc_CsiNameTab[n].name);
 }
 
-void CTextRam::DcsNameProc(int code, LPCSTR name)
+void CTextRam::DcsNameProc(int code, LPCTSTR name)
 {
 	int n;
 	void (CTextRam::*proc)(int) = &CTextRam::fc_POP;
@@ -1106,7 +1106,7 @@ void CTextRam::DcsNameProc(int code, LPCSTR name)
 		m_DcsExt.InsertAt(n, tmp);
 	}
 }
-LPCSTR	CTextRam::DcsProcName(void (CTextRam::*proc)(int ch))
+LPCTSTR	CTextRam::DcsProcName(void (CTextRam::*proc)(int ch))
 {
 	int c;
 	ESCNAMEPROC tmp;
@@ -1121,7 +1121,7 @@ LPCSTR	CTextRam::DcsProcName(void (CTextRam::*proc)(int ch))
 		else
 			tp = tp->right;
 	}
-	return "NOP";
+	return _T("NOP");
 }
 void CTextRam::SetDcsNameCombo(CComboBox *pCombo)
 {
@@ -1129,18 +1129,18 @@ void CTextRam::SetDcsNameCombo(CComboBox *pCombo)
 		pCombo->AddString(fc_DcsNameTab[n].name);
 }
 
-void CTextRam::EscCsiDefName(LPCSTR *esc, LPCSTR *csi,  LPCSTR *dcs)
+void CTextRam::EscCsiDefName(LPCTSTR *esc, LPCTSTR *csi,  LPCTSTR *dcs)
 {
 	int n, c;
 
 	for ( n = 0 ; n < 95 ; n++ )		// SP - ~ = 95
-		esc[n] = "NOP";
+		esc[n] = _T("NOP");
 
 	for ( n = 0 ; fc_Esc2Tab[n].proc != NULL ; n++ )
 		esc[fc_Esc2Tab[n].sc - ' '] = EscProcName(fc_Esc2Tab[n].proc);
 
 	for ( n = 0 ; n < 5355 ; n++ )		// (@ - ~) x (SP - / + 1) x (< - ? + 1) = 63 * 17 * 5 = 5355
-		csi[n] = "NOP";
+		csi[n] = _T("NOP");
 
 	for ( n = 0 ; fc_AnsiTab[n].proc != NULL ; n++ )
 		csi[fc_AnsiTab[n].sc - '@'] = CsiProcName(fc_AnsiTab[n].proc);
@@ -1164,7 +1164,7 @@ void CTextRam::EscCsiDefName(LPCSTR *esc, LPCSTR *csi,  LPCSTR *dcs)
 	}
 
 	for ( n = 0 ; n < 5355 ; n++ )		// (@ - ~) x (SP - / + 1) x (< - ? + 1) = 63 * 17 * 5 = 5355
-		dcs[n] = "NOP";
+		dcs[n] = _T("NOP");
 
 	for ( n = 0 ; fc_DcsExtTab[n].proc != NULL ; n++ ) {
 		c = (fc_DcsExtTab[n].code & 0x7F) - '@';
@@ -1209,12 +1209,12 @@ void CTextRam::ParseColor(int cmd, int idx, LPCSTR para, int ch)
 		}
 		DISPUPDATE();
 
-	} else if ( strncmp(para, "rgb:", 4) == 0 ) {
+	} else if ( _tcsncmp(para, "rgb:", 4) == 0 ) {
 		if ( sscanf(para, "rgb:%x/%x/%x", &r, &g, &b) == 3 )
 			m_ColTab[idx] = RGB(r, g, b);
 		DISPUPDATE();
 
-	} else if ( strcmp(para, "reset") == 0 ) {
+	} else if ( _tcscmp(para, "reset") == 0 ) {
 		if ( idx < 16 )
 			m_ColTab[idx] = m_DefColTab[idx];
 		else if ( idx < 232 ) {				// colors 16-231 are a 6x6x6 color cube
@@ -2582,7 +2582,7 @@ void CTextRam::fc_DECSIXEL(int ch)
 	CString tmp;
 	CGrapWnd *pGrapWnd;
 	
-	tmp.Format("Sixel - %s", m_pDocument->m_ServerEntry.m_EntryName);
+	tmp.Format(_T("Sixel - %s"), m_pDocument->m_ServerEntry.m_EntryName);
 	pGrapWnd = new CGrapWnd(this);
 	pGrapWnd->Create(NULL, tmp);
 	pGrapWnd->SetSixel(GetAnsiPara(0, 0, 0), GetAnsiPara(1, 0, 0), m_OscPara);
@@ -3098,7 +3098,7 @@ void CTextRam::fc_XTRQCAP(int ch)
 			CTextRam::MsToIconvUnicode((WCHAR *)(buf.GetPtr()), buf.GetSize() / sizeof(WCHAR), m_pDocument->m_TextRam.m_SendCharSet[m_pDocument->m_TextRam.m_KanjiMode]);
 			m_pDocument->m_TextRam.m_IConv.IConvBuf("UCS-2LE", m_pDocument->m_TextRam.m_SendCharSet[m_pDocument->m_TextRam.m_KanjiMode], &buf, &res);
 			hex.Base16Encode(res.GetPtr(), res.GetSize());
-			str += (LPCSTR)hex;
+			str += (LPCTSTR)hex;
 		}
 		if ( *p == ';' )
 			p++;
@@ -3127,7 +3127,7 @@ void CTextRam::fc_OSCEXE(int ch)
 	if ( tmp.IsEmpty() )
 		goto ENDRET;
 
-	cmd = atoi(tmp);
+	cmd = _tstoi(tmp);
 	switch(cmd) {
 	case 0:		// 0 -> Change Icon Name and Window Title to Pt
 	case 1:		// 1 -> Change Icon Name to Pt
@@ -3150,7 +3150,7 @@ void CTextRam::fc_OSCEXE(int ch)
 				p++;
 			if ( tmp.IsEmpty() )
 				break;
-			n = atoi(tmp);
+			n = _tstoi(tmp);
 			tmp.Empty();
 			while ( *p != '\0' && *p != ';' )
 				tmp += *(p++);
@@ -3169,7 +3169,7 @@ void CTextRam::fc_OSCEXE(int ch)
 				p++;
 			if ( tmp.IsEmpty() )
 				break;
-			n = atoi(tmp);
+			n = _tstoi(tmp);
 				//	n = 0  <- resource colorBD (BOLD).
 				//	n = 1  <- resource colorUL (UNDERLINE).
 				//	n = 2  <- resource colorBL (BLINK).
@@ -3179,7 +3179,7 @@ void CTextRam::fc_OSCEXE(int ch)
 				tmp += *(p++);
 			if ( *p == ';' )
 				p++;
-			if ( tmp.Compare("?") == 0 )	// XXXXXXXXXXXXXXXXXXXXX
+			if ( tmp.Compare(_T("?")) == 0 )	// XXXXXXXXXXXXXXXXXXXXX
 				ParseColor(cmd, m_AttNow.fc, tmp, ch);
 		}
 		break;
@@ -3195,7 +3195,7 @@ void CTextRam::fc_OSCEXE(int ch)
 			tmp += *(p++);
 		if ( *p == ';' )
 			p++;
-		if ( tmp.Compare("?") == 0 )	// XXXXXXXXXXXXXXXXXXXXX
+		if ( tmp.Compare(_T("?")) == 0 )	// XXXXXXXXXXXXXXXXXXXXX
 			ParseColor(cmd, m_AttNow.fc, tmp, ch);
 		break;
 	case 11:	// 11  -> Change VT100 text background color to Pt.
@@ -3207,7 +3207,7 @@ void CTextRam::fc_OSCEXE(int ch)
 			tmp += *(p++);
 		if ( *p == ';' )
 			p++;
-		if ( tmp.Compare("?") == 0 )	// XXXXXXXXXXXXXXXXXXXXX
+		if ( tmp.Compare(_T("?")) == 0 )	// XXXXXXXXXXXXXXXXXXXXX
 			ParseColor(cmd, m_AttNow.bc, tmp, ch);
 		break;
 
@@ -3229,7 +3229,7 @@ void CTextRam::fc_OSCEXE(int ch)
 				tmp += *(p++);
 			while ( *p >= '0' && *p <= '9' )
 				tmp += *(p++);
-			num = atoi(tmp);
+			num = _tstoi(tmp);
 			while ( *p != '\0' && *p == ' ' )
 				p++;
 			tmp.Empty();
@@ -3251,12 +3251,12 @@ void CTextRam::fc_OSCEXE(int ch)
 			// tmp = "s c p 0 1 2 3 4 7"	 SELECT, PRIMARY, CLIPBOARD, CUT_BUFFER0 - 7
 			CBuffer clip, work;
 			CRLoginView *pView;
-			if ( strcmp(p, "?") == 0 ) {	// Get Clipboad
+			if ( _tcscmp(p, _T("?")) == 0 ) {	// Get Clipboad
 				if ( m_pDocument != NULL && (pView = (CRLoginView *)m_pDocument->GetAciveView()) != NULL && (m_pDocument->m_TextRam.m_ClipFlag & OSC52_READ) != 0 ) {
 					pView->GetClipboad(&clip);
 					work.Base64Encode(clip.GetPtr(), clip.GetSize());
 				}
-				UNGETSTR("%s52;%s;%s%s", m_RetChar[RC_OSC], tmp, (LPCSTR)work, (ch == 0x07 ? "\007":m_RetChar[RC_ST]));
+				UNGETSTR("%s52;%s;%s%s", m_RetChar[RC_OSC], tmp, (LPCTSTR)work, (ch == 0x07 ? "\007":m_RetChar[RC_ST]));
 			} else {						// Set Clipboad
 				if ( m_pDocument != NULL && (pView = (CRLoginView *)m_pDocument->GetAciveView()) != NULL && (m_pDocument->m_TextRam.m_ClipFlag & OSC52_WRITE) != 0 ) {
 					clip.Base64Decode(p);
@@ -3275,7 +3275,7 @@ void CTextRam::fc_OSCEXE(int ch)
 				p++;
 			if ( tmp.IsEmpty() )
 				break;
-			n = atoi(tmp);
+			n = _tstoi(tmp);
 			ParseColor(cmd, n, "reset", ch);
 		}
 		break;
@@ -3289,7 +3289,7 @@ void CTextRam::fc_OSCEXE(int ch)
 				p++;
 			if ( tmp.IsEmpty() )
 				break;
-			n = atoi(tmp);
+			n = _tstoi(tmp);
 				//	n = 0  <- resource colorBD (BOLD).
 				//	n = 1  <- resource colorUL (UNDERLINE).
 				//	n = 2  <- resource colorBL (BLINK).
@@ -3303,6 +3303,7 @@ void CTextRam::fc_OSCEXE(int ch)
 	case 113:	// 113  -> Reset mouse foreground color.
 	case 115:	// 115  -> Reset Tektronix foreground color.
 	case 118:	// 118  -> Reset Tektronix cursor color.
+	case 119:	// 119  -> Reset highlight foreground color to Pt.
 		ParseColor(cmd, m_AttNow.fc, "reset", ch);
 		break;
 	case 111:	// 111  -> Reset VT100 text background color.
@@ -3323,7 +3324,7 @@ void CTextRam::fc_OSCNULL(int ch)
 	// APC ('_' << 24)			APC Application Program Command
 
 	CFile file;
-	CFileDialog dlg(FALSE, "txt", (m_OscMode == 'X' ? "SOS" : (m_OscMode == '^' ? "PM" : "APC")), OFN_OVERWRITEPROMPT, _T("すべてのファイル (*.*)|*.*||"), AfxGetMainWnd());
+	CFileDialog dlg(FALSE, "txt", (m_OscMode == 'X' ? "SOS" : (m_OscMode == '^' ? "PM" : "APC")), OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGALLFILE), AfxGetMainWnd());
 
 	if ( dlg.DoModal() == IDOK && file.Open(dlg.GetPathName(), CFile::modeWrite) ) {
 		file.Write(m_OscPara.GetPtr(), m_OscPara.GetSize());
@@ -4779,55 +4780,15 @@ void CTextRam::fc_DECRQTSR(int ch)
 void CTextRam::fc_DECCRA(int ch)
 {
 	// CSI $v	DECCRA Copy Rectangular Area
-	WORD dm;
-	int n, cx, cy, sx, sy, nx, ny;
-	VRAM *sp, *np;
 
-	SetAnsiParaArea(0);
+	//	   0     1     2     3     4     5     6     7
+	// CSI Pts ; Pls ; Pbs ; Prs ; Pps ; Ptd ; Pld ; Ppd $ v 
+	//     sy    sx    ey    ex    sp    dy    dx    dp
 
-	if ( (cy = GetAnsiPara(5, 1, 1) - 1) < 0 )
-		cy = 0;
-	else if ( cy >= m_Lines )
-		cy = m_Lines - 1;
+	COPY(GetAnsiPara(4, m_Page + 1, 1) - 1, GetAnsiPara(1, 1, 1) - 1,      GetAnsiPara(0, 1, 1) - 1,
+											GetAnsiPara(3, m_Cols, 1) - 1, GetAnsiPara(2, m_Lines, 1) - 1,
+		 GetAnsiPara(7, m_Page + 1, 1) - 1, GetAnsiPara(6, 1, 1) - 1,      GetAnsiPara(5, 1, 1) - 1);
 
-	if ( (cx = GetAnsiPara(6, 1, 1) - 1) < 0 )
-		cx = 0;
-	else if ( cx >= m_Cols )
-		cx = m_Cols - 1;
-
-	if ( m_AnsiPara[0] > cy || (m_AnsiPara[0] == cy && m_AnsiPara[1] >= cx) ) {
-		for ( sy = m_AnsiPara[0], ny = cy ; sy <= m_AnsiPara[2] && ny < m_Lines ; sy++, ny++ ) {
-			for ( sx = m_AnsiPara[1], nx = cx ; sx <= m_AnsiPara[3] && nx < m_Cols ; sx++, nx++ ) {
-				sp = GETVRAM(sx, sy);
-				np = GETVRAM(nx, ny);
-				if ( nx == 0 ) {
-					dm = np->dm;
-					*np = *sp;
-					np->dm = dm;
-				} else
-					*np = *sp;
-			}
-		}
-	} else {
-		for ( sy = m_AnsiPara[2], ny = cy + m_AnsiPara[2] - m_AnsiPara[1] ; sy >= m_AnsiPara[1] ; sy--, ny-- ) {
-			if ( ny < m_Lines ) {
-				for ( sx = m_AnsiPara[3], nx = cx + m_AnsiPara[3] - m_AnsiPara[1] ; sx >= m_AnsiPara[1] ; sx--, nx-- ) {
-					if ( nx < m_Cols ) {
-						sp = GETVRAM(sx, sy);
-						np = GETVRAM(nx, ny);
-						if ( nx == 0 ) {
-							dm = np->dm;
-							*np = *sp;
-							np->dm = dm;
-						} else
-							*np = *sp;
-					}
-				}
-			}
-		}
-	}
-
-	DISPVRAM(cx, cy, m_AnsiPara[3] - m_AnsiPara[1] + 1, m_AnsiPara[2] - m_AnsiPara[0] + 1);
 	fc_POP(ch);
 }
 void CTextRam::fc_DECRQPSR(int ch)
@@ -5038,12 +4999,32 @@ void CTextRam::fc_DECSCUSR(int ch)
 }
 void CTextRam::fc_DECTME(int ch)
 {
-	// CSI (' ' << 8) | '~'		DECTME Terminal Mode Emulation
+	// CSI Ps SP ~				DECTME Terminal Mode Emulation
+	//	Ps Terminal Mode
 
-	if ( GetAnsiPara(0, 0, 0) == 3 )
+	switch(GetAnsiPara(0, 0, 0)) {
+	case 3:		// VT52
 		m_AnsiOpt[TO_DECANM / 32] &= ~(1 << (TO_DECANM % 32));
-	else
+		break;
+
+	case 0:
+	case 1:		// VT520 (VT Level 5)
+	case 2:		// VT100
+	case 4:		// VT PCTerm
+	case 5:		// WYSE 60/160
+	case 6:		// WYSE PCTerm
+	case 7:		// WYSE 50/50+
+	case 8:		// WYSE 150/120
+	case 9:		// TVI 950
+	case 10:	// TVI 925
+	case 11:	// TVI 910+
+	case 12:	// ADDS A2
+	case 13:	// SCO Console
+	case 14:	// WYSE 325
+	default:
 		m_AnsiOpt[TO_DECANM / 32] |= (1 << (TO_DECANM % 32));
+		break;
+	}
 
 	fc_POP(ch);
 }
@@ -5255,31 +5236,33 @@ void CTextRam::fc_DECRQCRA(int ch)
 {
 	// CSI ('*' << 8) | 'y'		DECRQCRA Request Checksum of Rectangle Area
 
-	//CSI Pn1 ; Pn2 ; Pn3 ; Pn4 ; Pn5 ; Pn6 * y
-	//Pn1 A numeric label you give to identify the checksum request
-	//(DECCKSR returns this number).
-	//Pn2 The number of the page on which the rectangular area is
-	//located. If Pn2 is 0 or omitted, the terminal ignores the remaining
-	//parameters and reports a checksum for all pages in page memory. If
-	//<n2> is more than the number of pages, Reflection does a checksum on
-	//the last page.
-	//Pn3 to Pn6 define the area to be checksummed:
-	//Pn3 Top row
-	//Pn4 Right column	??? Pn4 Left
-	//Pn5 Bottom row
-	//Pn6 Left column	??? Pn6 Right
-	//If Pn3 .. Pn6 are omitted, the entire page is checksummed.  The
-	//co-ordinates are affected by DECOM.
+	// CSI Pid ; Pp ; Pt;Pl;Pb;Pr * y
 
-	int x, y, sum = 0;
+	int x, y, page, sum = 0;
+	CTextSave *pSave;
 	VRAM *vp;
 
 	SetAnsiParaArea(2);
 
-	for ( y = m_AnsiPara[2] ; y <= m_AnsiPara[4] ; y++ ) {
-		vp = GETVRAM(m_AnsiPara[3], y);
-		for ( x = m_AnsiPara[3] ; x <= m_AnsiPara[5] ; x++, vp++ )
-			sum += vp->ch;
+	if ( (page = GetAnsiPara(1, m_Page + 1, 1) - 1) < 0 )
+		page = 0;
+	else if ( page > 100 )
+		page = 100;
+
+	if ( page == m_Page ) {
+		for ( y = m_AnsiPara[2] ; y <= m_AnsiPara[4] ; y++ ) {
+			vp = GETVRAM(m_AnsiPara[3], y);
+			for ( x = m_AnsiPara[3] ; x <= m_AnsiPara[5] ; x++, vp++ )
+				sum += vp->ch;
+		}
+
+	} else {
+		pSave = GETPAGE(page);
+		for ( y = m_AnsiPara[2] ; y <= m_AnsiPara[4] ; y++ ) {
+			vp = pSave->m_VRam + m_AnsiPara[3] + pSave->m_Cols * y;
+			for ( x = m_AnsiPara[3] ; x <= m_AnsiPara[5] ; x++, vp++ )
+				sum += vp->ch;
+		}
 	}
 
 	// DECCKSR DCS Pn ! ~ Ps ST
@@ -5295,13 +5278,28 @@ void CTextRam::fc_DECINVM(int ch)
 	LPBYTE p;
 	int Pid = GetAnsiPara(0, 0, 0);
 
-	fc_POP(ch);		// XXXXXXXXX
+	fc_POP(ch);		// XXXXXXXXX fc_Callの必ず前に
 
 	if ( Pid < 64 ) {
 		p = m_Macro[Pid].GetPtr();
 		for ( n = m_Macro[Pid].GetSize() ; n > 0 ; n-- )
 			fc_Call(*(p++));
 	}
+}
+void CTextRam::fc_DECSR(int ch)
+{
+	// CSI ('+'  << 8) | 'p'	DECSR Secure Reset
+
+	RESET();
+	UNGETSTR("%s%d*q", m_RetChar[RC_CSI], GetAnsiPara(0, 0, 0));		// CSI * q	DECSRC Secure Reset Confirmation
+	fc_POP(ch);
+}
+void CTextRam::fc_DECPQPLFM(int ch)
+{
+	// CSI ('+'  << 8) | 'x'	DECRQPKFM Request Program Key Free Memory
+
+	UNGETSTR("%s%d;%d+y", m_RetChar[RC_CSI], 768, 768);		// CSI + y	DECPKFMR Program Key Free Memory Report
+	fc_POP(ch);
 }
 
 void CTextRam::fc_DECTID(int ch)
@@ -5333,7 +5331,7 @@ void CTextRam::fc_DECATC(int ch)
 	case 15: m_AttNow.at = ATT_BOLD | ATT_REVS | ATT_UNDER | ATT_SBLINK; break;
 	}
 	m_AttNow.fc = GetAnsiPara(1, 7, 0);
-	m_AttNow.bc = (GetAnsiPara(2, 0, 0) << 4);
+	m_AttNow.bc = GetAnsiPara(2, 0, 0);
 	if ( IS_ENABLE(m_AnsiOpt, TO_DECECM) == 0 ) {
 		m_AttSpc.fc = m_AttNow.fc;
 		m_AttSpc.bc = m_AttNow.bc;

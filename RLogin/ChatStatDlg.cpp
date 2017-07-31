@@ -79,7 +79,7 @@ void CChatStatDlg::OnOK()
 	CDialog::OnOK();
 }
 
-void CChatStatDlg::SetStaus(LPCSTR str)
+void CChatStatDlg::SetStaus(LPCTSTR str)
 {
 	m_Status.SetWindowText(str);
 }

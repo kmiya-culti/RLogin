@@ -64,8 +64,8 @@ END_MESSAGE_MAP()
 
 static const struct _CharSetTab {
 		int code;
-		LPCSTR name;
-		LPCSTR iconvset;
+		LPCTSTR name;
+		LPCTSTR iconvset;
 	} CharSetTab[] = {
 		{ DEFAULT_CHARSET,		_T("DEFAULT"),			_T("UTF-16LE") },
 		{ RUSSIAN_CHARSET,		_T("RUSSIAN"),			_T("CP866") },
@@ -89,48 +89,48 @@ static const struct _CharSetTab {
 		{ (-1), NULL },
 	};
 
-int CFontParaDlg::CharSetNo(LPCSTR name)
+int CFontParaDlg::CharSetNo(LPCTSTR name)
 {
 	int n;
 	for ( n = 0 ; CharSetTab[n].name != NULL ; n++ ) {
-		if ( strcmp(name, CharSetTab[n].name) == 0 )
+		if ( _tcscmp(name, CharSetTab[n].name) == 0 )
 			return CharSetTab[n].code;
 	}
-	return atoi(name);
+	return _tstoi(name);
 }
-LPCSTR CFontParaDlg::CharSetName(int code)
+LPCTSTR CFontParaDlg::CharSetName(int code)
 {
 	int n;
-    static char tmp[8];
+    static TCHAR tmp[8];
 	for ( n = 0 ; CharSetTab[n].name != NULL ; n++ ) {
 		if ( CharSetTab[n].code == code )
 			return CharSetTab[n].name;
 	}
-	sprintf(tmp, "%d", code);
+	_stprintf(tmp, _T("%d"), code);
 	return tmp;
 }
-LPCSTR CFontParaDlg::IConvName(int code)
+LPCTSTR CFontParaDlg::IConvName(int code)
 {
 	int n;
 	for ( n = 0 ; CharSetTab[n].name != NULL ; n++ ) {
 		if ( CharSetTab[n].code == code )
 			return CharSetTab[n].iconvset;
 	}
-	return "";
+	return _T("");
 }
 
-int CFontParaDlg::CodeSetNo(LPCSTR bank, LPCSTR code)
+int CFontParaDlg::CodeSetNo(LPCTSTR bank, LPCTSTR code)
 {
 	int num = 0;
 
-	if      ( strcmp(bank, "94") == 0 )		num |= SET_94;
-	else if ( strcmp(bank, "96") == 0 )		num |= SET_96;
-	else if ( strcmp(bank, "94x94") == 0 )	num |= SET_94x94;
-	else if ( strcmp(bank, "96x96") == 0 )	num |= SET_96x96;
+	if      ( _tcscmp(bank, _T("94")) == 0 )	num |= SET_94;
+	else if ( _tcscmp(bank, _T("96")) == 0 )	num |= SET_96;
+	else if ( _tcscmp(bank, _T("94x94")) == 0 )	num |= SET_94x94;
+	else if ( _tcscmp(bank, _T("96x96")) == 0 )	num |= SET_96x96;
 
-	if ( strcmp(code, "Unicode") == 0 )
+	if ( _tcscmp(code, _T("Unicode")) == 0 )
 		num = SET_UNICODE;
-	else if ( code[1] == '\0' && code[0] >= '\x30' && code[0] <= '\x7E' )
+	else if ( code[1] == _T('\0') && code[0] >= _T('\x30') && code[0] <= _T('\x7E') )
 		num |= (code[0] & 0xFF);
 	else
 		num = m_pFontTab->IndexFind(num, code);
@@ -140,17 +140,17 @@ int CFontParaDlg::CodeSetNo(LPCSTR bank, LPCSTR code)
 void CFontParaDlg::CodeSetName(int num, CString &bank, CString &code)
 {
 	if ( num == SET_UNICODE ) {
-		bank = "";
-		code = "Unicode";
+		bank = _T("");
+		code = _T("Unicode");
 	} else {
 		switch(num & SET_MASK) {
-		case SET_94:	bank = "94"; break;
-		case SET_96:	bank = "96"; break;
-		case SET_94x94:	bank = "94x94"; break;
-		case SET_96x96:	bank = "96x96"; break;
+		case SET_94:	bank = _T("94"); break;
+		case SET_96:	bank = _T("96"); break;
+		case SET_94x94:	bank = _T("94x94"); break;
+		case SET_96x96:	bank = _T("96x96"); break;
 		}
-		if ( (num & 0xFF) >= '\x30' && (num & 0xFF) <= '\x7E' )
-			code.Format("%c", num & 0xFF);
+		if ( (num & 0xFF) >= _T('\x30') && (num & 0xFF) <= _T('\x7E') )
+			code.Format(_T("%c"), num & 0xFF);
 		else
 			code = m_pFontTab->m_Data[num].m_IndexName;
 	}
@@ -184,9 +184,9 @@ BOOL CFontParaDlg::OnInitDialog()
 	CodeSetName(m_CodeSet, m_BankTemp, m_CodeTemp);
 	m_CharSetTemp = CharSetName(m_pData->m_CharSet);
 	m_ShiftTemp = (m_pData->m_Shift != 0 ? TRUE : FALSE);
-	m_ZoomTemp[0].Format("%d", m_pData->m_ZoomH);
-	m_ZoomTemp[1].Format("%d", m_pData->m_ZoomW);
-	m_OffsTemp.Format("%d", m_pData->m_Offset);
+	m_ZoomTemp[0].Format(_T("%d"), m_pData->m_ZoomH);
+	m_ZoomTemp[1].Format(_T("%d"), m_pData->m_ZoomW);
+	m_OffsTemp.Format(_T("%d"), m_pData->m_Offset);
 	m_IContName = m_pData->m_IContName;
 	m_EntryName = m_pData->m_EntryName;
 	m_FontQuality = m_pData->m_Quality;
@@ -207,9 +207,9 @@ void CFontParaDlg::OnOK()
 	m_CodeSet            = CodeSetNo(m_BankTemp, m_CodeTemp);
 	m_pData->m_CharSet   = CharSetNo(m_CharSetTemp);
 	m_pData->m_Shift     = (m_ShiftTemp ? 0x80 : 0x00);
-	m_pData->m_ZoomH     = atoi(m_ZoomTemp[0]);
-	m_pData->m_ZoomW     = atoi(m_ZoomTemp[1]);
-	m_pData->m_Offset    = atoi(m_OffsTemp);
+	m_pData->m_ZoomH     = _tstoi(m_ZoomTemp[0]);
+	m_pData->m_ZoomW     = _tstoi(m_ZoomTemp[1]);
+	m_pData->m_Offset    = _tstoi(m_OffsTemp);
 	m_pData->m_IContName = m_IContName;
 	m_pData->m_EntryName = m_EntryName;
 	m_pData->m_Quality   = m_FontQuality;
@@ -240,13 +240,11 @@ void CFontParaDlg::OnFontsel()
 	LogFont.lfPitchAndFamily = DEFAULT_PITCH | FF_DONTCARE;
 
 	if ( m_FontName.IsEmpty() && m_FontNum > 0 )
-	    strcpy(LogFont.lfFaceName, m_FontNameTab[0]);
+	    _tcscpy(LogFont.lfFaceName, m_FontNameTab[0]);
 	else
-	    strcpy(LogFont.lfFaceName, m_FontName);
+	    _tcscpy(LogFont.lfFaceName, m_FontName);
 
-	CFontDialog font(&LogFont,
-		CF_NOVERTFONTS | CF_SCREENFONTS | CF_SELECTSCRIPT,
-		NULL, this);
+	CFontDialog font(&LogFont, CF_NOVERTFONTS | CF_SCREENFONTS | CF_SELECTSCRIPT, NULL, this);
 
 	if ( font.DoModal() != IDOK )
 		return;

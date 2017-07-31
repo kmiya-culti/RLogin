@@ -416,15 +416,22 @@ void CTelnet::PrintOpt(int st, int ch, int opt)
 	TRACE(tmp);
 #endif
 }
-void CTelnet::SendStr(LPCSTR str)
+void CTelnet::SendStr(LPCTSTR str)
 {
 	int n = 0;
 	char tmp[256];
 
-	while ( *str != '\0' ) {
-		if ( *str == (char)TELC_IAC )
+#ifdef	_UNICODE
+	CStringA work(str);
+	p = work;
+#else
+	LPCSTR p = str;
+#endif
+
+	while ( *p != '\0' ) {
+		if ( *p == (char)TELC_IAC )
 			tmp[n++] = (char)TELC_IAC;
-		tmp[n++] = *(str++);
+		tmp[n++] = *(p++);
 		if ( n > 250 ) {
 			SockSend(tmp, n);
 			n = 0;
@@ -740,7 +747,7 @@ void CTelnet::SubOptFunc(char *buf, int len)
 		SockSend(tmp, n);
 
 		env.GetString(m_pDocument->m_ParamTab.m_ExtEnvStr);
-		env["USER"] = m_pDocument->m_ServerEntry.m_UserName;
+		env[_T("USER")] = m_pDocument->m_ServerEntry.m_UserName;
 		for ( i = 0 ; i < env.GetSize() ; i++ ) {
 			if ( env[i].m_Value == 0 || env[i].m_nIndex.IsEmpty() || env[i].m_String.IsEmpty() )
 				continue;
@@ -1064,6 +1071,7 @@ void CTelnet::AuthReply(char *buf, int len)
 {
 	int n, a, b;
 	char tmp[256];
+	CStringA work;
 
 	a = buf[0];
 	b = buf[2];
@@ -1084,9 +1092,10 @@ void CTelnet::AuthReply(char *buf, int len)
 
 			SraCommonKey(ska, pkb);
 
-			if ( (n = m_pDocument->m_ServerEntry.m_UserName.GetLength()) > 250 )
+			work = m_pDocument->m_ServerEntry.m_UserName;
+			if ( (n = work.GetLength()) > 250 )
 				n = 250;
-			strncpy(tmp, m_pDocument->m_ServerEntry.m_UserName, n);
+			strncpy(tmp, work, n);
 			tmp[n] = '\0';
 
 			n = SraEncode(tmp, n, &ddk);
@@ -1099,9 +1108,11 @@ void CTelnet::AuthReply(char *buf, int len)
 				SendOptData(AUTHTYPE_SRA, AUTH_WHO_CLIENT | AUTH_HOW_ONE_WAY, SRA_REJECT, NULL, 0);
 				break;
 			}
-			if ( (n = m_pDocument->m_ServerEntry.m_PassName.GetLength()) > 250 )
+
+			work = m_pDocument->m_ServerEntry.m_PassName;
+			if ( (n = work.GetLength()) > 250 )
 				n = 250;
-			strncpy(tmp, m_pDocument->m_ServerEntry.m_PassName, n);
+			strncpy(tmp, work, n);
 			tmp[n] = '\0';
 
 			n = SraEncode(tmp, n, &ddk);

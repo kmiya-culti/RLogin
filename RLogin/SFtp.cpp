@@ -1807,7 +1807,7 @@ int CSFtp::CompareNode(int src, int dis)
 
 	switch(item) {
 	case 0:			// m_file
-		rc = strcmp(pSrc->m_file, pDis->m_file);
+		rc = _tcscmp(pSrc->m_file, pDis->m_file);
 		break;
 	case 1:			// m_mtime
 		rc = (int)(pSrc->m_mtime - pDis->m_mtime);
@@ -1816,7 +1816,7 @@ int CSFtp::CompareNode(int src, int dis)
 		rc = (int)(pSrc->m_size - pDis->m_size);
 		break;
 	case 3:			// m_attr
-		rc = strcmp(pSrc->GetAttr(), pDis->GetAttr());
+		rc = _tcscmp(pSrc->GetAttr(), pDis->GetAttr());
 		break;
 	case 4:			// m_uid
 		rc = pSrc->m_uid - pDis->m_uid;
@@ -1825,12 +1825,12 @@ int CSFtp::CompareNode(int src, int dis)
 		rc = pSrc->m_uid - pDis->m_uid;
 		break;
 	case 6:			// m_sub
-		rc = strcmp(pSrc->m_sub, pDis->m_sub);
+		rc = _tcscmp(pSrc->m_sub, pDis->m_sub);
 		break;
 	}
 
 	if ( rc == 0 && item != 0 )
-		rc = strcmp(pSrc->m_file, pDis->m_file);
+		rc = _tcscmp(pSrc->m_file, pDis->m_file);
 
 	return (revs ? (0 - rc) : rc);
 }

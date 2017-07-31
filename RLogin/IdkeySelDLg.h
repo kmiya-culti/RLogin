@@ -41,7 +41,7 @@ public:
 	void OnKeyGenEndof();
 
 	void InitList();
-	void CopyToClipBorad(LPCSTR str);
+	void CopyToClipBorad(LPCTSTR str);
 	CIdkeySelDLg(CWnd* pParent = NULL);   // 標準のコンストラクタ
 	~CIdkeySelDLg();
 

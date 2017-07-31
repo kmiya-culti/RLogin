@@ -843,16 +843,17 @@ int CExtSocket::ProxyFunc()
 	CBuffer buf;
 	CString tmp;
 	CBuffer A1, A2;
+	CStringA mbs;
 
 	while ( m_ProxyStatus != PRST_NONE ) {
 		switch(m_ProxyStatus) {
 		case PRST_HTTP_START:		// HTTP
-			tmp.Format("CONNECT %s:%d HTTP/1.0\r\n"\
-					   "Host: %s\r\n"\
-					   "Connection: keep-alive\r\n"\
-					   "\r\n",
+			tmp.Format(_T("CONNECT %s:%d HTTP/1.0\r\n")\
+					   _T("Host: %s\r\n")\
+					   _T("Connection: keep-alive\r\n")\
+					   _T("\r\n"),
 					   m_ProxyHost, m_ProxyPort, m_RealHostAddr);
-			CExtSocket::Send((void *)(LPCSTR)tmp, tmp.GetLength(), 0);
+			mbs = tmp; CExtSocket::Send((void *)(LPCSTR)mbs, mbs.GetLength(), 0);
 			m_ProxyStatus = PRST_HTTP_READLINE;
 			m_ProxyStr.Empty();
 			m_ProxyResult.RemoveAll();
@@ -863,7 +864,7 @@ int CExtSocket::ProxyFunc()
 			if ( m_ProxyStr.IsEmpty() ) {
 				m_ProxyStatus = PRST_HTTP_HEADCHECK;
 				break;
-			} else if ( (m_ProxyStr[0] == '\t' || m_ProxyStr[0] == ' ') && (n = m_ProxyResult.GetSize()) > 0 )
+			} else if ( (m_ProxyStr[0] == _T('\t') || m_ProxyStr[0] == _T(' ')) && (n = m_ProxyResult.GetSize()) > 0 )
 				m_ProxyResult[n - 1] += m_ProxyStr;
 			else
 				m_ProxyResult.Add(m_ProxyStr);
@@ -875,20 +876,20 @@ int CExtSocket::ProxyFunc()
 			m_ProxyConnect = FALSE;
 			m_ProxyAuth.RemoveAll();
 			for ( n = 0 ; n < m_ProxyResult.GetSize() ; n++ ) {
-				if ( _strnicmp(m_ProxyResult[n], "HTTP", 4) == 0 ) {
-					if ( (i = m_ProxyResult[n].Find(' ')) >= 0 )
-						m_ProxyCode = atoi(m_ProxyResult[n].Mid(i + 1));
-				} else if ( _strnicmp(m_ProxyResult[n], "Content-Length:", 15) == 0 ) {
-					if ( (i = m_ProxyResult[n].Find(' ')) >= 0 )
-						m_ProxyLength = atoi(m_ProxyResult[n].Mid(i + 1));
-				} else if ( _strnicmp(m_ProxyResult[n], "WWW-Authenticate:", 17) == 0 ) {
+				if ( _tcsnicmp(m_ProxyResult[n], _T("HTTP"), 4) == 0 ) {
+					if ( (i = m_ProxyResult[n].Find(_T(' '))) >= 0 )
+						m_ProxyCode = _tstoi(m_ProxyResult[n].Mid(i + 1));
+				} else if ( _tcsnicmp(m_ProxyResult[n], _T("Content-Length:"), 15) == 0 ) {
+					if ( (i = m_ProxyResult[n].Find(_T(' '))) >= 0 )
+						m_ProxyLength = _tstoi(m_ProxyResult[n].Mid(i + 1));
+				} else if ( _tcsnicmp(m_ProxyResult[n], _T("WWW-Authenticate:"), 17) == 0 ) {
 					m_ProxyAuth.SetArray(m_ProxyResult[n]);
-				} else if ( _strnicmp(m_ProxyResult[n], "Proxy-Authenticate:", 19) == 0 ) {
+				} else if ( _tcsnicmp(m_ProxyResult[n], _T("Proxy-Authenticate:"), 19) == 0 ) {
 					m_ProxyAuth.SetArray(m_ProxyResult[n]);
-				} else if ( _strnicmp(m_ProxyResult[n], "Connection:", 11) == 0 ) {
+				} else if ( _tcsnicmp(m_ProxyResult[n], _T("Connection:"), 11) == 0 ) {
 					tmp = m_ProxyResult[n].Mid(12);
-					tmp.Trim(" \t\r\n");
-					if ( tmp.CompareNoCase("Keep-Alive") == 0 )
+					tmp.Trim(_T(" \t\r\n"));
+					if ( tmp.CompareNoCase(_T("Keep-Alive")) == 0 )
 						m_ProxyConnect = TRUE;
 				}
 			}
@@ -909,80 +910,80 @@ int CExtSocket::ProxyFunc()
 			case 401:	// Authorization Required
 			case 407:	// Proxy-Authorization Required
 				if ( m_ProxyConnect ) {
-					if ( m_ProxyAuth.Find("basic") >= 0 ) {
+					if ( m_ProxyAuth.Find(_T("basic")) >= 0 ) {
 						m_ProxyStatus = PRST_HTTP_BASIC;
 						break;
-					} else if ( m_ProxyAuth.Find("digest") >= 0 ) {
+					} else if ( m_ProxyAuth.Find(_T("digest")) >= 0 ) {
 						m_ProxyStatus = PRST_HTTP_DIGEST;
 						break;
 					}
 				}
 			default:
-				m_pDocument->m_ErrorPrompt = (m_ProxyResult.GetSize() > 0 ? m_ProxyResult[0]: "");
+				m_pDocument->m_ErrorPrompt = (m_ProxyResult.GetSize() > 0 ? m_ProxyResult[0]: _T(""));
 				GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, WSAMAKESELECTREPLY(0, WSAECONNREFUSED));
 				m_ProxyStatus = PRST_NONE;
 				return TRUE;
 			}
 			break;
 		case PRST_HTTP_BASIC:
-			tmp.Format("%s:%s", m_ProxyUser, m_ProxyPass);
-			buf.Base64Encode((LPBYTE)(LPCSTR)tmp, tmp.GetLength());
-			tmp.Format("CONNECT %s:%d HTTP/1.0\r\n"\
-					   "Host: %s\r\n"\
-					   "%sAuthorization: Basic %s\r\n"\
-					   "\r\n",
+			tmp.Format(_T("%s:%s"), m_ProxyUser, m_ProxyPass);
+			mbs = tmp; buf.Base64Encode((LPBYTE)(LPCSTR)mbs, mbs.GetLength());
+			tmp.Format(_T("CONNECT %s:%d HTTP/1.0\r\n")\
+					   _T("Host: %s\r\n")\
+					   _T("%sAuthorization: Basic %s\r\n")\
+					   _T("\r\n"),
 					   m_ProxyHost, m_ProxyPort, m_RealHostAddr,
-					   (m_ProxyCode == 407 ? "Proxy-" : ""),
-					   buf.GetPtr());
-			CExtSocket::Send((void *)(LPCSTR)tmp, tmp.GetLength(), 0);
+					   (m_ProxyCode == 407 ? _T("Proxy-") : _T("")),
+					   (LPCTSTR)buf);
+			mbs = tmp; CExtSocket::Send((void *)(LPCSTR)mbs, mbs.GetLength(), 0);
 			m_ProxyStatus = PRST_HTTP_READLINE;
 			m_ProxyStr.Empty();
 			m_ProxyResult.RemoveAll();
 			SSLClose();					// XXXXXXXX BUG???
 			break;
 		case PRST_HTTP_DIGEST:
-			if (m_ProxyAuth.Find("qop") < 0 || m_ProxyAuth["algorithm"].m_String.CompareNoCase("md5") != 0 || m_ProxyAuth.Find("realm") < 0 || m_ProxyAuth.Find("nonce") < 0 ) {
-				m_pDocument->m_ErrorPrompt = "Authorization Paramter Error";
+			if (m_ProxyAuth.Find(_T("qop")) < 0 || m_ProxyAuth[_T("algorithm")].m_String.CompareNoCase(_T("md5")) != 0 || m_ProxyAuth.Find(_T("realm")) < 0 || m_ProxyAuth.Find(_T("nonce")) < 0 ) {
+				m_pDocument->m_ErrorPrompt = _T("Authorization Paramter Error");
 				GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, WSAMAKESELECTREPLY(0, WSAECONNREFUSED));
 				m_ProxyStatus = PRST_NONE;
 				return TRUE;
 			}
 
-			tmp.Format("%s:%d", m_ProxyHost, m_ProxyPort);
-			m_ProxyAuth["uri"] = tmp;
-			m_ProxyAuth["qop"] = "auth";
-			tmp.Format("%08d", 1);
-			m_ProxyAuth["nc"] = tmp;
+			tmp.Format(_T("%s:%d"), m_ProxyHost, m_ProxyPort);
+			m_ProxyAuth[_T("uri")] = tmp;
+			m_ProxyAuth[_T("qop")] = _T("auth");
+			tmp.Format(_T("%08d"), 1);
+			m_ProxyAuth[_T("nc")] = tmp;
 			srand((int)time(NULL));
-			tmp.Format("%04x%04x%04x%04x", rand(), rand(), rand(), rand());
-			m_ProxyAuth["cnonce"] = tmp;
+			tmp.Format(_T("%04x%04x%04x%04x"), rand(), rand(), rand(), rand());
+			m_ProxyAuth[_T("cnonce")] = tmp;
 
-			tmp.Format("%s:%s:%s", m_ProxyUser, (LPCSTR)m_ProxyAuth["realm"], m_ProxyPass);
+			tmp.Format(_T("%s:%s:%s"), m_ProxyUser, (LPCTSTR)m_ProxyAuth[_T("realm")], m_ProxyPass);
 			A1.md5(tmp);
 
-			tmp.Format("%s:%s", "CONNECT", (LPCSTR)m_ProxyAuth["uri"]);
+			tmp.Format(_T("%s:%s"), _T("CONNECT"), (LPCTSTR)m_ProxyAuth[_T("uri")]);
 			A2.md5(tmp);
 
-			tmp.Format("%s:%s:%s:%s:%s:%s",
-				A1.GetPtr(), (LPCSTR)m_ProxyAuth["nonce"], (LPCSTR)m_ProxyAuth["nc"],
-				(LPCSTR)m_ProxyAuth["cnonce"], (LPCSTR)m_ProxyAuth["qop"], A2.GetPtr());
+			tmp.Format(_T("%s:%s:%s:%s:%s:%s"),
+				(LPCTSTR)A1, (LPCTSTR)m_ProxyAuth[_T("nonce")], (LPCTSTR)m_ProxyAuth[_T("nc")],
+				(LPCTSTR)m_ProxyAuth[_T("cnonce")], (LPCTSTR)m_ProxyAuth[_T("qop")], (LPCTSTR)A2);
 			buf.md5(tmp);
 
-			tmp.Format("CONNECT %s:%d HTTP/1.0\r\n"\
-					   "Host: %s\r\n"\
-					   "%sAuthorization: Digest username=\"%s\", realm=\"%s\", nonce=\"%s\","\
-					   " algorithm=%s, response=\"%s\","\
-					   " qop=%s, uri=\"%s\","\
-					   " nc=%s, cnonce=\"%s\""\
-					   "\r\n"\
-					   "\r\n",
+			tmp.Format(_T("CONNECT %s:%d HTTP/1.0\r\n")\
+					   _T("Host: %s\r\n")\
+					   _T("%sAuthorization: Digest username=\"%s\", realm=\"%s\", nonce=\"%s\",")\
+					   _T(" algorithm=%s, response=\"%s\",")\
+					   _T(" qop=%s, uri=\"%s\",")\
+					   _T(" nc=%s, cnonce=\"%s\"")\
+					   _T("\r\n")\
+					   _T("\r\n"),
 					   m_ProxyHost, m_ProxyPort, m_RealHostAddr,
-					   (m_ProxyCode == 407 ? "Proxy-" : ""),
-					   m_ProxyUser, (LPCSTR)m_ProxyAuth["realm"], (LPCSTR)m_ProxyAuth["nonce"],
-					   (LPCSTR)m_ProxyAuth["algorithm"], buf.GetPtr(),
-					   (LPCSTR)m_ProxyAuth["qop"], (LPCSTR)m_ProxyAuth["uri"],
-					   (LPCSTR)m_ProxyAuth["nc"], (LPCSTR)m_ProxyAuth["cnonce"]);
-			CExtSocket::Send((void *)(LPCSTR)tmp, tmp.GetLength(), 0);
+					   (m_ProxyCode == 407 ? _T("Proxy-") : _T("")),
+					   m_ProxyUser, (LPCTSTR)m_ProxyAuth[_T("realm")], (LPCTSTR)m_ProxyAuth[_T("nonce")],
+					   (LPCTSTR)m_ProxyAuth[_T("algorithm")], (LPCTSTR)buf,
+					   (LPCTSTR)m_ProxyAuth[_T("qop")], (LPCTSTR)m_ProxyAuth[_T("uri")],
+					   (LPCTSTR)m_ProxyAuth[_T("nc")], (LPCTSTR)m_ProxyAuth[_T("cnonce")]);
+			mbs = tmp; CExtSocket::Send((void *)(LPCSTR)mbs, mbs.GetLength(), 0);
 			m_ProxyStatus = PRST_HTTP_READLINE;
 			m_ProxyStr.Empty();
 			m_ProxyResult.RemoveAll();
@@ -1006,7 +1007,7 @@ int CExtSocket::ProxyFunc()
 			buf.Put8Bit(dw >> 8);
 			buf.Put8Bit(dw >> 16);
 			buf.Put8Bit(dw >> 24);
-			buf.Apend((LPBYTE)(LPCSTR)m_ProxyUser, m_ProxyUser.GetLength() + 1);
+			mbs = m_ProxyUser; buf.Apend((LPBYTE)(LPCSTR)mbs, mbs.GetLength() + 1);
 			CExtSocket::Send(buf.GetPtr(), buf.GetSize(), 0);
 			m_ProxyStatus = PRST_SOCKS4_READMSG;
 			m_ProxyBuff.Clear();
@@ -1024,7 +1025,7 @@ int CExtSocket::ProxyFunc()
 				m_ProxyStatus = PRST_SOCKS4_ENDOF;
 			break;
 		case PRST_SOCKS4_ENDOF:
-			m_pDocument->m_ErrorPrompt = "SOCKS4 Proxy Conection Error";
+			m_pDocument->m_ErrorPrompt = _T("SOCKS4 Proxy Conection Error");
 			GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, WSAMAKESELECTREPLY(0, WSAECONNREFUSED));
 			m_ProxyStatus = PRST_NONE;
 			return TRUE;
@@ -1057,10 +1058,12 @@ int CExtSocket::ProxyFunc()
 		case PRST_SOCKS5_SENDAUTH:	// SOCKS5_AUTH_USERPASS
 			buf.Clear();
 			buf.Put8Bit(1);
-			buf.Put8Bit(m_ProxyUser.GetLength());
-			buf.Apend((LPBYTE)(LPCSTR)m_ProxyUser, m_ProxyUser.GetLength());
-			buf.Put8Bit(m_ProxyPass.GetLength());
-			buf.Apend((LPBYTE)(LPCSTR)m_ProxyPass, m_ProxyPass.GetLength());
+			mbs = m_ProxyUser;
+			buf.Put8Bit(mbs.GetLength());
+			buf.Apend((LPBYTE)(LPCSTR)mbs, mbs.GetLength());
+			mbs = m_ProxyPass;
+			buf.Put8Bit(mbs.GetLength());
+			buf.Apend((LPBYTE)(LPCSTR)mbs, mbs.GetLength());
 
 			CExtSocket::Send(buf.GetPtr(), buf.GetSize(), 0);
 			m_ProxyStatus = PRST_SOCKS5_READAUTH;
@@ -1080,8 +1083,9 @@ int CExtSocket::ProxyFunc()
 			buf.Put8Bit(1);		// CONNECT
 			buf.Put8Bit(0);		// FLAG
 			buf.Put8Bit(3);		// DOMAIN
-			buf.Put8Bit(m_ProxyHost.GetLength());
-			buf.Apend((LPBYTE)(LPCSTR)m_ProxyHost, m_ProxyHost.GetLength());
+			mbs = m_ProxyHost;
+			buf.Put8Bit(mbs.GetLength());
+			buf.Apend((LPBYTE)(LPCSTR)mbs, mbs.GetLength());
 			buf.Put8Bit(m_ProxyPort >> 8);
 			buf.Put8Bit(m_ProxyPort);
 			CExtSocket::Send(buf.GetPtr(), buf.GetSize(), 0);
@@ -1121,7 +1125,7 @@ int CExtSocket::ProxyFunc()
 			OnPreConnect();
 			break;
 		case PRST_SOCKS5_ERROR:	// SOCKS5_ERROR
-			m_pDocument->m_ErrorPrompt = "SOCKS5 Proxy Conection Error";
+			m_pDocument->m_ErrorPrompt = _T("SOCKS5 Proxy Conection Error");
 			GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, WSAMAKESELECTREPLY(0, WSAECONNREFUSED));
 			m_ProxyStatus = PRST_NONE;
 			return TRUE;
@@ -1133,8 +1137,9 @@ int CExtSocket::ProxyFunc()
 			buf.Put8Bit(0x11);
 			buf.Put8Bit(0x85);		// HMAC-MD5
 			buf.Put8Bit(0x02);
-			buf.Put8Bit(m_ProxyUser.GetLength());
-			buf.Apend((LPBYTE)(LPCSTR)m_ProxyUser, m_ProxyUser.GetLength());
+			mbs = m_ProxyUser;
+			buf.Put8Bit(mbs.GetLength());
+			buf.Apend((LPBYTE)(LPCSTR)mbs, mbs.GetLength());
 			CExtSocket::Send(buf.GetPtr(), buf.GetSize(), 0);
 			m_ProxyConnect = FALSE;
 			m_ProxyStatus = PRST_SOCKS5_CHAPMSG;
@@ -1173,7 +1178,8 @@ int CExtSocket::ProxyFunc()
 					HMAC_CTX c;
 					u_char hmac[EVP_MAX_MD_SIZE];
 
-					HMAC_Init(&c, (LPCSTR)m_ProxyPass, m_ProxyPass.GetLength(), EVP_md5());
+					mbs = m_ProxyPass;
+					HMAC_Init(&c, (LPCSTR)mbs, mbs.GetLength(), EVP_md5());
 					HMAC_Update(&c, m_ProxyBuff.GetPtr(), m_ProxyBuff.GetSize());
 					HMAC_Final(&c, hmac, NULL);
 					HMAC_cleanup(&c);
@@ -1529,7 +1535,7 @@ void CExtSocket::GetPeerName(int fd, CString &host, int *port)
 	getpeername(fd, (struct sockaddr *)&in, &inlen);
 	getnameinfo((struct sockaddr *)&in, inlen, name, sizeof(name), serv, sizeof(serv), NI_NUMERICHOST | NI_NUMERICSERV);
 	host = name;
-	*port = atoi(serv);
+	*port = _tstoi(serv);
 #endif
 }
 void CExtSocket::GetSockName(int fd, CString &host, int *port)
@@ -1555,7 +1561,7 @@ void CExtSocket::GetSockName(int fd, CString &host, int *port)
 	getsockname(fd, (struct sockaddr *)&in, &inlen);
 	getnameinfo((struct sockaddr *)&in, inlen, name, sizeof(name), serv, sizeof(serv), NI_NUMERICHOST | NI_NUMERICSERV);
 	host = name;
-	*port = atoi(serv);
+	*port = _tstoi(serv);
 #endif
 }
 void CExtSocket::GetHostName(struct sockaddr *addr, int addrlen, CString &host)
@@ -1580,23 +1586,23 @@ int CExtSocket::GetPortNum(LPCSTR str)
 
 	if ( *str == 0 )
 		return (-1);
-	else if ( strncmp(str, "COM", 3) == 0 )
-		return (0 - atoi(str + 3));
-	else if ( (n = atoi(str)) > 0 )
+	else if ( _tcsncmp(str, "COM", 3) == 0 )
+		return (0 - _tstoi(str + 3));
+	else if ( (n = _tstoi(str)) > 0 )
 		return n;
 	else if ( (sp = getservbyname(str, "tcp")) != NULL )
 		return ntohs(sp->s_port);
-	else if ( strcmp(str, "telnet") == 0 )
+	else if ( _tcscmp(str, "telnet") == 0 )
 		return 23;
-	else if ( strcmp(str, "login") == 0 )
+	else if ( _tcscmp(str, "login") == 0 )
 		return 513;
-	else if ( strcmp(str, "ssh") == 0 )
+	else if ( _tcscmp(str, "ssh") == 0 )
 		return 22;
-	else if ( strcmp(str, "socks") == 0 )
+	else if ( _tcscmp(str, "socks") == 0 )
 		return 1080;
-	else if ( strcmp(str, "http") == 0 )
+	else if ( _tcscmp(str, "http") == 0 )
 		return 80;
-	else if ( strcmp(str, "https") == 0 )
+	else if ( _tcscmp(str, "https") == 0 )
 		return 443;
 	return 0;
 }

@@ -131,7 +131,7 @@ int CIConv::SJisToJis(int cd)
 	return (hi << 8 | lo);
 }
 
-class CIConv *CIConv::GetIConv(LPCSTR from, LPCSTR to)
+class CIConv *CIConv::GetIConv(LPCTSTR from, LPCTSTR to)
 {
 	int n;
 
@@ -140,30 +140,30 @@ class CIConv *CIConv::GetIConv(LPCSTR from, LPCSTR to)
 		m_To   = to;
 		m_Mode = 0;
 
-		if ( strcmp(from, "EUC-JISX0213") == 0 )
+		if ( _tcscmp(from, _T("EUC-JISX0213")) == 0 )
 			m_Mode |= 001;
-		else if ( strcmp(from, "SHIFT_JISX0213") == 0 )
+		else if ( _tcscmp(from, _T("SHIFT_JISX0213")) == 0 )
 			m_Mode |= 002;
-		else if ( strcmp(from, "JIS_X0213-2000.1") == 0 )
+		else if ( _tcscmp(from, _T("JIS_X0213-2000.1")) == 0 )
 			m_Mode |= 003;
-		else if ( strcmp(from, "JIS_X0213-2000.2") == 0 )
+		else if ( _tcscmp(from, _T("JIS_X0213-2000.2")) == 0 )
 			m_Mode |= 004;
 
-		if ( strcmp(to, "EUC-JISX0213") == 0 )
+		if ( _tcscmp(to, _T("EUC-JISX0213")) == 0 )
 			m_Mode |= 010;
-		else if ( strcmp(to, "SHIFT_JISX0213") == 0 )
+		else if ( _tcscmp(to, _T("SHIFT_JISX0213")) == 0 )
 			m_Mode |= 020;
-		else if ( strcmp(to, "JIS_X0213-2000.1") == 0 )
+		else if ( _tcscmp(to, _T("JIS_X0213-2000.1")) == 0 )
 			m_Mode |= 030;
-		else if ( strcmp(to, "JIS_X0213-2000.2") == 0 )
+		else if ( _tcscmp(to, _T("JIS_X0213-2000.2")) == 0 )
 			m_Mode |= 040;
 
 		if ( (m_Mode & 007) >= 003 )
-			from = "EUC-JISX0213";
+			from = _T("EUC-JISX0213");
 		if ( (m_Mode & 070) >= 030 )
-			to   = "EUC-JISX0213";
+			to   = _T("EUC-JISX0213");
 
-	    m_Cd = iconv_open(to, from);
+	    m_Cd = iconv_open(CStringA(to), CStringA(from));
 		return this;
 	}
 
@@ -180,7 +180,7 @@ class CIConv *CIConv::GetIConv(LPCSTR from, LPCSTR to)
 	}
 }
 
-void CIConv::IConvSub(LPCSTR from, LPCSTR to, CBuffer *in, CBuffer *out)
+void CIConv::IConvSub(LPCTSTR from, LPCTSTR to, CBuffer *in, CBuffer *out)
 {
 	int n = 0;
 	CIConv *cp;
@@ -213,7 +213,7 @@ RETRY:
 		goto RETRY;
 	}
 }
-int CIConv::IConvBuf(LPCSTR from, LPCSTR to, CBuffer *in, CBuffer *out)
+int CIConv::IConvBuf(LPCTSTR from, LPCTSTR to, CBuffer *in, CBuffer *out)
 {
 	int n = 0;
 	CIConv *cp;
@@ -246,7 +246,7 @@ int CIConv::IConvBuf(LPCSTR from, LPCSTR to, CBuffer *in, CBuffer *out)
 
 	return out->GetSize();
 }
-int CIConv::IConvStr(LPCSTR from, LPCSTR to, LPCSTR in, CString &out)
+int CIConv::IConvStr(LPCTSTR from, LPCTSTR to, LPCSTR in, CStringA &out)
 {
 	int n = 0;
 	CIConv *cp;
@@ -278,7 +278,7 @@ int CIConv::IConvStr(LPCSTR from, LPCSTR to, LPCSTR in, CString &out)
 
 	return out.GetLength();
 }
-int CIConv::IConvChar(LPCSTR from, LPCSTR to, int ch)
+int CIConv::IConvChar(LPCTSTR from, LPCTSTR to, int ch)
 {
 	int n = 0;
 	int od = ch;
@@ -362,12 +362,12 @@ int CIConv::IConvChar(LPCSTR from, LPCSTR to, int ch)
 		goto ENDOF;
 	}
 
-	if ( strcmp(from, "UCS-4BE") == 0 ) {
+	if ( _tcscmp(from, _T("UCS-4BE")) == 0 ) {
 		itmp[n++] = (unsigned char)(ch >> 24);
 		itmp[n++] = (unsigned char)(ch >> 16);
 		itmp[n++] = (unsigned char)(ch >> 8);
 		itmp[n++] = (unsigned char)(ch);
-	} else if ( strcmp(from, "UTF-16BE") == 0 ) {
+	} else if ( _tcscmp(from, _T("UTF-16BE")) == 0 ) {
 		if ( (ch & 0xFFFF0000) != 0 ) {
 			itmp[n++] = (unsigned char)(ch >> 24);
 			itmp[n++] = (unsigned char)(ch >> 16);
@@ -425,13 +425,13 @@ static int GetCharSet(unsigned int namescount, const char * const * names, void*
 	CStringArray *pArray = (CStringArray *)data;
 
 	for ( i = 0 ; i < namescount ; i++ )
-		pArray->Add(names[i]);
+		pArray->Add(CStringA(names[i]));
 	return 0;
 }
 void CIConv::SetListArray(CStringArray &array)
 {
 	array.RemoveAll();
 	iconvlist(GetCharSet, &array);
-	array.Add("JIS_X0213-2000.1");
-	array.Add("JIS_X0213-2000.2");
+	array.Add(_T("JIS_X0213-2000.1"));
+	array.Add(_T("JIS_X0213-2000.2"));
 }

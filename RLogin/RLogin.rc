@@ -425,7 +425,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.11.2 (2011/11/21)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.11.3 (2011/12/01)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2011 Culti",IDC_STATIC,47,15,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,148,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.0e Sep 6th, 2011",IDC_STATIC,47,29,176,8
@@ -1286,8 +1286,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,11,2,0
- PRODUCTVERSION 2,11,2,0
+ FILEVERSION 2,11,3,0
+ PRODUCTVERSION 2,11,3,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1304,12 +1304,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.11.2.0"
+            VALUE "FileVersion", "2.11.3.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2008 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.11.2.0"
+            VALUE "ProductVersion", "2.11.3.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2320,8 +2320,17 @@ END
 STRINGTABLE
 BEGIN
     IDR_MAINFRAME           "RLogin"
-    IDR_RLOGINTYPE          "\nRLogin\nRLogin\nRLogin ﾌｧｲﾙ (*.rlg)\n.rlg\nRLogin.Document\nRLogin Document"
+    IDR_RLOGINTYPE          "\nRLogin\nRLogin\nRLogin ファイル (*.rlg)\n.rlg\nRLogin.Document\nRLogin Document"
+    IDE_MESSAGE_ANYPASTE    "多くの文字をペーストしようとしています\n送信しますか？"
+    IDE_PASSWORDNOMATCH     "再入力されたパスフレーズが一致しません"
+    IDE_MAKEIDKEY           "認証キーを作成中です"
     IDP_SOCKETS_INIT_FAILED "Windows ソケットの初期化に失敗しました。"
+    IDE_DELETEKEYQES        "他に使用しているエントリーがあるかもしれません\nほんとうに削除してよいですか？"
+    IDE_USEPASSWORDIDKEY    "パスフレーズと鍵ファイルを指定してください"
+    IDE_IDKEYLOADERROR      "鍵ファイルを読み込めませんでした"
+    IDE_DUPIDKEYENTRY       "同じ鍵ファイルがすでに登録済みです"
+    IDE_IDKEYPASSERROR      "作成時に指定したパスフレーズと一致しません"
+    IDE_IDKEYSAVEERROR      "鍵ファイルに保存できませんでした"
 END
 
 STRINGTABLE
@@ -2389,38 +2398,38 @@ END
 
 STRINGTABLE
 BEGIN
-    ID_FILE_MRU_FILE1       "指定のﾌｧｲﾙを開く"
-    ID_FILE_MRU_FILE2       "指定のﾌｧｲﾙを開く"
-    ID_FILE_MRU_FILE3       "指定のﾌｧｲﾙを開く"
-    ID_FILE_MRU_FILE4       "指定のﾌｧｲﾙを開く"
-    ID_FILE_MRU_FILE5       "指定のﾌｧｲﾙを開く"
-    ID_FILE_MRU_FILE6       "指定のﾌｧｲﾙを開く"
-    ID_FILE_MRU_FILE7       "指定のﾌｧｲﾙを開く"
-    ID_FILE_MRU_FILE8       "指定のﾌｧｲﾙを開く"
-    ID_FILE_MRU_FILE9       "指定のﾌｧｲﾙを開く"
-    ID_FILE_MRU_FILE10      "指定のﾌｧｲﾙを開く"
-    ID_FILE_MRU_FILE11      "指定のﾌｧｲﾙを開く"
-    ID_FILE_MRU_FILE12      "指定のﾌｧｲﾙを開く"
-    ID_FILE_MRU_FILE13      "指定のﾌｧｲﾙを開く"
-    ID_FILE_MRU_FILE14      "指定のﾌｧｲﾙを開く"
-    ID_FILE_MRU_FILE15      "指定のﾌｧｲﾙを開く"
-    ID_FILE_MRU_FILE16      "指定のﾌｧｲﾙを開く"
+    ID_FILE_MRU_FILE1       "指定のファイルを開く"
+    ID_FILE_MRU_FILE2       "指定のファイルを開く"
+    ID_FILE_MRU_FILE3       "指定のファイルを開く"
+    ID_FILE_MRU_FILE4       "指定のファイルを開く"
+    ID_FILE_MRU_FILE5       "指定のファイルを開く"
+    ID_FILE_MRU_FILE6       "指定のファイルを開く"
+    ID_FILE_MRU_FILE7       "指定のファイルを開く"
+    ID_FILE_MRU_FILE8       "指定のファイルを開く"
+    ID_FILE_MRU_FILE9       "指定のファイルを開く"
+    ID_FILE_MRU_FILE10      "指定のファイルを開く"
+    ID_FILE_MRU_FILE11      "指定のファイルを開く"
+    ID_FILE_MRU_FILE12      "指定のファイルを開く"
+    ID_FILE_MRU_FILE13      "指定のファイルを開く"
+    ID_FILE_MRU_FILE14      "指定のファイルを開く"
+    ID_FILE_MRU_FILE15      "指定のファイルを開く"
+    ID_FILE_MRU_FILE16      "指定のファイルを開く"
 END
 
 STRINGTABLE
 BEGIN
-    ID_NEXT_PANE            "次のｳｨﾝﾄﾞｳに切り替える\n次のﾍﾟｲﾝ"
-    ID_PREV_PANE            "前のｳｨﾝﾄﾞｳに切り替える\n前のﾍﾟｲﾝ"
+    ID_NEXT_PANE            "次のウィンドウに切り替える\n次のペイン"
+    ID_PREV_PANE            "前のウィンドウに切り替える\n前のペイン"
 END
 
 STRINGTABLE
 BEGIN
     ID_WINDOW_NEW           "作業中のウィンドウを複写して表示\n新規ウィンドウ"
-    ID_WINDOW_ARRANGE       "ｳｨﾝﾄﾞｳの下部にｱｲｺﾝを整列\nｱｲｺﾝの整列"
+    ID_WINDOW_ARRANGE       "ウィンドウの下部にｱｲｺﾝを整列\nｱｲｺﾝの整列"
     ID_WINDOW_CASCADE       "ウィンドウを重ねて表示\n重ねて表示"
     ID_WINDOW_TILE_HORZ     "ウィンドウを並べて表示\n並べて表示"
-    ID_WINDOW_TILE_VERT     "ｳｨﾝﾄﾞｳを並べて表示\n並べて表示"
-    ID_WINDOW_SPLIT         "作業中のｳｨﾝﾄﾞｳを分割\n分割"
+    ID_WINDOW_TILE_VERT     "ウィンドウを並べて表示\n並べて表示"
+    ID_WINDOW_SPLIT         "作業中のウィンドウを分割\n分割"
 END
 
 STRINGTABLE
@@ -2428,12 +2437,12 @@ BEGIN
     ID_EDIT_CLEAR           "選択範囲を消去\n消去"
     ID_EDIT_CLEAR_ALL       "すべて消去\nすべて消去"
     ID_EDIT_COPY            "選択範囲をコピーしてクリップボードに保存\nコピー"
-    ID_EDIT_CUT             "選択範囲を切り取ってｸﾘｯﾌﾟﾎﾞｰﾄﾞに保存\n切り取り"
+    ID_EDIT_CUT             "選択範囲を切り取ってクリップボードに保存\n切り取り"
     ID_EDIT_FIND            "指定した文字列の検索\n検索"
     ID_EDIT_PASTE           "クリップボードの内容を貼り付け\n貼り付け"
     ID_EDIT_REPEAT          "直前に行った動作を繰り返す\n繰り返し"
     ID_EDIT_REPLACE         "指定した文字列を他の文字列で置換\n置換"
-    ID_EDIT_SELECT_ALL      "ﾌｧｲﾙ内のすべてを選択\nすべて選択"
+    ID_EDIT_SELECT_ALL      "ファイル内のすべてを選択\nすべて選択"
     ID_EDIT_UNDO            "直前に行った動作を元に戻す\n元に戻す"
     ID_EDIT_REDO            "直前に行った動作を繰り返す\n繰り返す"
 END
@@ -2446,20 +2455,20 @@ END
 
 STRINGTABLE
 BEGIN
-    AFX_IDS_SCSIZE          "ｳｨﾝﾄﾞｳのｻｲｽﾞを変更"
-    AFX_IDS_SCMOVE          "ｳｨﾝﾄﾞｳの位置を変更"
-    AFX_IDS_SCMINIMIZE      "ｳｨﾝﾄﾞｳを最小化する"
-    AFX_IDS_SCMAXIMIZE      "ｳｨﾝﾄﾞｳを最大化する"
-    AFX_IDS_SCNEXTWINDOW    "次のｳｨﾝﾄﾞｳに切り替える"
-    AFX_IDS_SCPREVWINDOW    "前のｳｨﾝﾄﾞｳに切り替える"
-    AFX_IDS_SCCLOSE         "作業中のｳｨﾝﾄﾞｳを閉じ、変更したﾌｧｲﾙの保存を指示"
+    AFX_IDS_SCSIZE          "ウィンドウのサイズを変更"
+    AFX_IDS_SCMOVE          "ウィンドウの位置を変更"
+    AFX_IDS_SCMINIMIZE      "ウィンドウを最小化する"
+    AFX_IDS_SCMAXIMIZE      "ウィンドウを最大化する"
+    AFX_IDS_SCNEXTWINDOW    "次のウィンドウに切り替える"
+    AFX_IDS_SCPREVWINDOW    "前のウィンドウに切り替える"
+    AFX_IDS_SCCLOSE         "作業中のウィンドウを閉じ、変更したファイルの保存を指示"
 END
 
 STRINGTABLE
 BEGIN
-    AFX_IDS_SCRESTORE       "ｳｨﾝﾄﾞｳを通常のｻｲｽﾞに戻す"
-    AFX_IDS_SCTASKLIST      "ｱﾌﾟﾘｹｰｼｮﾝの切り替え"
-    AFX_IDS_MDICHILD        "指定のｳｨﾝﾄﾞｳを表示"
+    AFX_IDS_SCRESTORE       "ウィンドウを通常のサイズに戻す"
+    AFX_IDS_SCTASKLIST      "アプリケーションの切り替え"
+    AFX_IDS_MDICHILD        "指定のウィンドウを表示"
 END
 
 STRINGTABLE
@@ -2534,6 +2543,41 @@ BEGIN
     IDM_SEARCH_NEXT         "次を検索します\n次を検索"
     IDM_SERV_PROTO          "プロトコルハンドラに登録\nハンドラに登録"
     ID_VIEW_SCROLLBAR       "スクロールバーの表示/非表示\nスクロールバーの表示切り替え"
+END
+
+STRINGTABLE
+BEGIN
+    IDE_IDKEYCREATEERROR    "鍵ファイルが作成できませんでした"
+    IDE_HISTORYBACKUPERROR  "ヒストリーバックアップに失敗しました"
+    IDE_LOGOPENERROR        "ログファイルを開けませんでした"
+    IDE_PORTFWORDERROR      "ポートフォワードの設定が無効です"
+    IDE_SSHGLOBALREQERROR   "SSH2グローバルリクエストエラー"
+    IDE_ALLCLOSEREQ         "すべての接続を閉じてよろしいでしょうか？"
+    IDS_IDKEYFILELOAD       "SSH鍵ファイルの読み込み"
+    IDS_IDKEYFILESAVE       "SSH鍵ファイルの保存"
+    IDS_IDKEYCREATE         "SSH鍵の作成"
+    IDS_IDKEYRENAME         "認証キーの名前が変更できます"
+    IDS_IDKEYFILELOADCOM    "作成時に設定したパスフレーズを入力してください。"
+    IDS_IDKEYFILESAVECOM    "作成時に設定したパスフレーズを入力してください。パスフレーズが一致しないと保存できません"
+    IDS_IDKEYCREATECOM      "パスフレーズは、非常に重要です。作成時に設定するパスフレーズは、ファイルに保存する場合やサーバー接続で使用する場合にも入力が必要になります。"
+    IDE_INFOCAPCONVERROR    "TERMCAPからTERMINFOに変換できない文法を含んでいます\n\n"
+    IDE_INFOCAPOVER1024     "TERMCAPのトータル文字数が1024文字の制限を超えました\n"
+    IDE_INFOCAPINFOCONVERROR "TERMINFOからTERMCAPに変換できない文法を含んでいます\n\n"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_INITBUTTON          "初期化"
+    IDS_ALLINITREQ          "すべての設定を標準に戻しますか？"
+    IDE_UPDATERESUMEERROR   "再開できません上書きになります"
+    IDS_FILEDLGIMAGE        "Image FIle (*.bmp;*.jpg)|*.bmp;*.jpg|All Files (*.*)|*.*||"
+    IDS_FILEDLGGRAPHICS     "GIF ファイル (*.gif)|*.gif|JPEG ファイル (*.jpg)|*.jpg|PNG ファイル (*.png)|*.png|BMP ファイル (*.bmp)|*.bmp||"
+    IDS_FILEDLGHISTORY      "History ファイル (*.rlh)|*.rlh|All Files (*.*)|*.*||"
+    IDS_FILEDLGLOGFILE      "ログ ファイル (*.txt)|*.txt|All Files (*.*)|*.*||"
+    IDS_FILEDLGALLFILE      "All Files (*.*)|*.*||"
+    IDS_FILEDLGRLOGIN       "RLogin ファイル (*.rlg)|*.rlg|All Files (*.*)|*.*||"
+    IDS_FILEDLGTEKIMAGE     "GIF ファイル (*.gif)|*.gif|JPEG ファイル (*.jpg)|*.jpg|PNG ファイル (*.png)|*.png|BMP ファイル (*.bmp)|*.bmp|DXF ファイル (*.dxf)|*.dxf|TEK ファイル (*.tek)|*.tek||"
+    IDS_FILEDLGTEKIMAGE2    "DXF ファイル (*.dxf)|*.dxf|TEK ファイル (*.tek)|*.tek||"
 END
 
 #endif    // 日本語 (日本) resources

@@ -86,7 +86,7 @@ void CListCtrlExt::DoSortItem()
 {
 	SortItems(CompareFunc, (DWORD_PTR)this);
 }
-void CListCtrlExt::InitColumn(LPCSTR lpszSection, const LV_COLUMN *lpColumn, int nMax)
+void CListCtrlExt::InitColumn(LPCTSTR lpszSection, const LV_COLUMN *lpColumn, int nMax)
 {
 	int n;
 	LV_COLUMN tmp;
@@ -97,11 +97,11 @@ void CListCtrlExt::InitColumn(LPCSTR lpszSection, const LV_COLUMN *lpColumn, int
 		InsertColumn(n, &tmp);
 	}
 
-	m_SortSubItem = AfxGetApp()->GetProfileInt(lpszSection, "SortItem", 0);
-	m_SortReverse = AfxGetApp()->GetProfileInt(lpszSection, "SortRevs", 0);
-	m_SortDupItem = AfxGetApp()->GetProfileInt(lpszSection, "SortDups", 0);
+	m_SortSubItem = AfxGetApp()->GetProfileInt(lpszSection, _T("SortItem"), 0);
+	m_SortReverse = AfxGetApp()->GetProfileInt(lpszSection, _T("SortRevs"), 0);
+	m_SortDupItem = AfxGetApp()->GetProfileInt(lpszSection, _T("SortDups"), 0);
 }
-void CListCtrlExt::SaveColumn(LPCSTR lpszSection)
+void CListCtrlExt::SaveColumn(LPCTSTR lpszSection)
 {
 	int n = 0;
 	LV_COLUMN tmp;
@@ -114,9 +114,9 @@ void CListCtrlExt::SaveColumn(LPCSTR lpszSection)
 	while ( GetColumn(n++, &tmp) )
 		AfxGetApp()->WriteProfileInt(lpszSection, tmp.pszText, tmp.cx);
 
-	AfxGetApp()->WriteProfileInt(lpszSection, "SortItem", m_SortSubItem);
-	AfxGetApp()->WriteProfileInt(lpszSection, "SortRevs", m_SortReverse);
-	AfxGetApp()->WriteProfileInt(lpszSection, "SortDups", m_SortDupItem);
+	AfxGetApp()->WriteProfileInt(lpszSection, _T("SortItem"), m_SortSubItem);
+	AfxGetApp()->WriteProfileInt(lpszSection, _T("SortRevs"), m_SortReverse);
+	AfxGetApp()->WriteProfileInt(lpszSection, _T("SortDups"), m_SortDupItem);
 }
 void CListCtrlExt::SetLVCheck(WPARAM ItemIndex, BOOL bCheck)
 {

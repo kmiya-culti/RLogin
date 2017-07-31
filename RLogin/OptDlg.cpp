@@ -97,7 +97,7 @@ BOOL COptDlg::OnInitDialog()
 	rect[0] = rect[1];
 	rect[0].left  -= (rect[2].left  - rect[1].left);
 	rect[0].right -= (rect[2].right - rect[1].right);
-	m_DoInit.Create("‰Šú‰»", BS_PUSHBUTTON, rect[0], this, IDC_DOINIT);
+	m_DoInit.Create(CStringLoad(IDS_INITBUTTON), BS_PUSHBUTTON, rect[0], this, IDC_DOINIT);
 
 	CFont *pFont = pWnd[1]->GetFont();
 	m_DoInit.SetFont(pFont, FALSE);
@@ -121,7 +121,7 @@ BOOL COptDlg::OnInitDialog()
 }
 void COptDlg::OnDoInit()
 {
-	if ( MessageBox("‚·‚×‚Ä‚ÌÝ’è‚ð•W€‚É–ß‚µ‚Ü‚·‚©H", "‰Šú‰»", MB_ICONQUESTION | MB_YESNO) != IDYES )
+	if ( MessageBox(CStringLoad(IDS_ALLINITREQ), "Question", MB_ICONQUESTION | MB_YESNO) != IDYES )
 		return;
 
 	m_pTextRam->Serialize(FALSE);

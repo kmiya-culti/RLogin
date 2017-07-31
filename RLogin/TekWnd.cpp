@@ -83,18 +83,13 @@ void CTekWnd::OnTekClose()
 void CTekWnd::OnTekSave()
 {
 	CDC dc;
+	CRect rect(0, 0, TEK_WIN_WIDTH / 4, TEK_WIN_HEIGHT / 4);
 #ifndef	WINSOCK11
 	CImage image;
-#endif
-	CRect rect(0, 0, TEK_WIN_WIDTH / 4, TEK_WIN_HEIGHT / 4);
-	CFileDialog dlg(FALSE, _T("gif"), _T(""), OFN_OVERWRITEPROMPT,
-#ifndef	WINSOCK11
-		_T("GIF ファイル (*.gif)|*.gif|JPEG ファイル (*.jpg)|*.jpg|PNG ファイル (*.png)|*.png|BMP ファイル (*.bmp)|*.bmp|"\
-		   "DXF ファイル (*.dxf)|*.dxf|TEK ファイル (*.tek)|*.tek||"),
+	CFileDialog dlg(FALSE, _T("gif"), _T(""), OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGTEKIMAGE), this);
 #else
-		_T("DXF ファイル (*.dxf)|*.dxf|TEK ファイル (*.tek)|*.tek||"),
+	CFileDialog dlg(FALSE, _T("gif"), _T(""), OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGTEKIMAGE2), this);
 #endif
-		   this);
 
 	if ( dlg.DoModal() != IDOK )
 		return;
@@ -125,7 +120,7 @@ BOOL CTekWnd::SaveDxf(LPCSTR file)
 	CString str;
 	static const double FontHeight[] = { 8.8,	8.2,	5.3,	4.8 };
 
-	if ( (fp = fopen(file, "wt")) == NULL )
+	if ( (fp = _tfopen(file, "wt")) == NULL )
 		return FALSE;
 
 	fprintf(fp, "  0\nSECTION\n");
@@ -176,7 +171,7 @@ BOOL CTekWnd::SaveTek(LPCSTR file)
 	int sl = (-1), sf = (-1);
 	int sx = (-1), sy = (-1);
 
-	if ( (fp = fopen(file, "wb")) == NULL )
+	if ( (fp = _tfopen(file, "wb")) == NULL )
 		return FALSE;
 
 	fprintf(fp, "\033[?38h\033\014");

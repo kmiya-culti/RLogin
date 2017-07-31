@@ -232,8 +232,8 @@
 #define	OSC52_READ		001
 #define	OSC52_WRITE		002
 
-#define	USFTWMAX		20
-#define	USFTHMAX		18
+#define	USFTWMAX		24
+#define	USFTHMAX		36
 #define	USFTLNSZ		((USFTHMAX + 5) / 6)
 #define	USFTCHSZ		(USFTWMAX * USFTLNSZ)
 
@@ -378,7 +378,7 @@ class CProcTab : public COptObject
 public:
 	CArray<CProcNode, CProcNode &> m_Data;
 
-	void Add(int type, int code, LPCSTR name);
+	void Add(int type, int code, LPCTSTR name);
 	inline void RemoveAll() { m_Data.RemoveAll(); }
 	inline int GetSize() { return m_Data.GetSize(); }
 	inline CProcNode & operator[](int nIndex) { return m_Data[nIndex]; }
@@ -618,6 +618,7 @@ public:
 	BOOL DecPos(int &x, int &y);
 	void EditWordPos(int *sps, int *eps);
 	void EditCopy(int sps, int eps, BOOL rectflag = FALSE, BOOL lineflag = FALSE);
+	void GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf);
 	void StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop, int len, char *str, int sln, int *spc, class CRLoginView *pView);
 	void DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginView *pView);
 
@@ -685,6 +686,8 @@ public:
 	void PUSHRAM();
 	void POPRAM();
 	void SETPAGE(int page);
+	CTextSave *GETPAGE(int page);
+	void COPY(int sp, int sx, int sy, int ex, int ey, int dp, int dx, int dy);
 	void TABSET(int sw);
 	void PUTSTR(LPBYTE lpBuf, int nBufLen);
 	int MCHAR(int val);
@@ -703,7 +706,7 @@ public:
 	} CSIEXTTAB;
 
 	typedef struct _ESCNAMEPROC {
-		LPCSTR		name;
+		LPCTSTR		name;
 		union {
 			void (CTextRam::*proc)(int ch);
 			BYTE byte[sizeof(void (CTextRam::*)(int))];
@@ -727,19 +730,19 @@ public:
 	inline void fc_Case(int stage);
 	inline void fc_Push(int stage);
 
-	void EscNameProc(int ch, LPCSTR name);
-	LPCSTR EscProcName(void (CTextRam::*proc)(int ch));
+	void EscNameProc(int ch, LPCTSTR name);
+	LPCTSTR EscProcName(void (CTextRam::*proc)(int ch));
 	void SetEscNameCombo(CComboBox *pCombo);
 
-	void CsiNameProc(int code, LPCSTR name);
-	LPCSTR CsiProcName(void (CTextRam::*proc)(int ch));
+	void CsiNameProc(int code, LPCTSTR name);
+	LPCTSTR CsiProcName(void (CTextRam::*proc)(int ch));
 	void SetCsiNameCombo(CComboBox *pCombo);
 
-	void DcsNameProc(int code, LPCSTR name);
-	LPCSTR DcsProcName(void (CTextRam::*proc)(int ch));
+	void DcsNameProc(int code, LPCTSTR name);
+	LPCTSTR DcsProcName(void (CTextRam::*proc)(int ch));
 	void SetDcsNameCombo(CComboBox *pCombo);
 
-	void EscCsiDefName(LPCSTR *esc, LPCSTR *csi, LPCSTR *dcs);
+	void EscCsiDefName(LPCTSTR *esc, LPCTSTR *csi, LPCTSTR *dcs);
 	void ParseColor(int cmd, int idx, LPCSTR para, int ch);
 
 	int m_Kan_Pos;
@@ -971,6 +974,8 @@ public:
 	void fc_DECSACE(int ch);
 	void fc_DECRQCRA(int ch);
 	void fc_DECINVM(int ch);
+	void fc_DECSR(int ch);
+	void fc_DECPQPLFM(int ch);
 	void fc_DECTID(int ch);
 	void fc_DECATC(int ch);
 	void fc_DA2(int ch);

@@ -291,7 +291,7 @@ private:
 
 	void SockSend(char *buf, int len);
 	void SendFlush();
-	void SendStr(LPCSTR str);
+	void SendStr(LPCTSTR str);
 	void SendOpt(int ch, int opt);
 	void SendSlcOpt();
 	void OptFunc(struct TelOptTab *tab, int opt, int sw, int ch);

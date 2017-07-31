@@ -16,7 +16,7 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // CPfdListDlg ダイアログ
 
-static const char *ListenTypeName[] = { "local", "socks", "remote" };
+static LPCTSTR	ListenTypeName[] = { _T("local"), _T("socks"), _T("remote") };
 
 CPfdListDlg::CPfdListDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CPfdListDlg::IDD, pParent)
@@ -28,7 +28,7 @@ CPfdListDlg::CPfdListDlg(CWnd* pParent /*=NULL*/)
 	m_pEntry = NULL;
 	m_ModifiedFlag = FALSE;
 	m_X11PortFlag = FALSE;
-	m_XDisplay = _T("");
+	m_XDisplay.Empty();
 }
 
 void CPfdListDlg::DoDataExchange(CDataExchange* pDX)
@@ -87,11 +87,11 @@ void CPfdListDlg::InitList()
 // CPfdListDlg メッセージ ハンドラ
 
 static const LV_COLUMN InitListTab[5] = {
-		{ LVCF_TEXT | LVCF_WIDTH, 0,  60, "Type",  0, 0 }, 
-		{ LVCF_TEXT | LVCF_WIDTH, 0, 120, "Listened Host",  0, 0 }, 
-		{ LVCF_TEXT | LVCF_WIDTH, 0,  60, "Port", 0, 0 }, 
-		{ LVCF_TEXT | LVCF_WIDTH, 0, 120, "Connect Host",   0, 0 }, 
-		{ LVCF_TEXT | LVCF_WIDTH, 0,  60, "Port",   0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0,  60, _T("Type"),  0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0, 120, _T("Listened Host"),  0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0,  60, _T("Port"), 0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0, 120, _T("Connect Host"),   0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0,  60, _T("Port"),   0, 0 }, 
 	};
 
 BOOL CPfdListDlg::OnInitDialog() 
@@ -100,7 +100,7 @@ BOOL CPfdListDlg::OnInitDialog()
 	CDialog::OnInitDialog();
 
 	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_SUBITEMIMAGES);
-	m_List.InitColumn("PfdList", InitListTab, 5);
+	m_List.InitColumn(_T("PfdList"), InitListTab, 5);
 	m_List.SetPopUpMenu(IDR_POPUPMENU, 1);
 	InitList();
 
@@ -110,7 +110,7 @@ BOOL CPfdListDlg::OnInitDialog()
 void CPfdListDlg::OnOK() 
 {
 	ASSERT(m_pData);
-	m_List.SaveColumn("PfdList");
+	m_List.SaveColumn(_T("PfdList"));
 	CDialog::OnOK();
 }
 

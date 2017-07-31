@@ -45,8 +45,8 @@ public:
 	int GetParamItem(int para);
 	int GetSelectMarkData();
 	void DoSortItem();
-	void InitColumn(LPCSTR lpszSection, const LV_COLUMN *lpColumn, int nMax);
-	void SaveColumn(LPCSTR lpszSection);
+	void InitColumn(LPCTSTR lpszSection, const LV_COLUMN *lpColumn, int nMax);
+	void SaveColumn(LPCTSTR lpszSection);
 	void SetLVCheck(WPARAM ItemIndex, BOOL bCheck);
 	BOOL GetLVCheck(WPARAM ItemIndex);
 	void SetPopUpMenu(UINT nIDResource, int Pos);

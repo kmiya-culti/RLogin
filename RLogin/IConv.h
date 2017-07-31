@@ -29,11 +29,11 @@ public:
 	int SJisToJis(int cd);
 
 	void IConvClose();
-	class CIConv *GetIConv(LPCSTR from, LPCSTR to);
-	void IConvSub(LPCSTR from, LPCSTR to, CBuffer *in, CBuffer *out);
-	int IConvBuf(LPCSTR from, LPCSTR to, CBuffer *in, CBuffer *out);
-	int IConvStr(LPCSTR from, LPCSTR to, LPCSTR in, CString &out);
-	int IConvChar(LPCSTR from, LPCSTR to, int ch);
+	class CIConv *GetIConv(LPCTSTR from, LPCTSTR to);
+	void IConvSub(LPCTSTR from, LPCTSTR to, CBuffer *in, CBuffer *out);
+	int IConvBuf(LPCTSTR from, LPCTSTR to, CBuffer *in, CBuffer *out);
+	int IConvStr(LPCTSTR from, LPCTSTR to, LPCSTR in, CStringA &out);
+	int IConvChar(LPCTSTR from, LPCTSTR to, int ch);
 
 	static void SetListArray(CStringArray &array);
 

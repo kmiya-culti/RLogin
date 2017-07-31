@@ -91,11 +91,11 @@ void CIdkeySelDLg::InitList()
 		if ( (pKey = m_pIdKeyTab->GetUid(m_Data[n])) == NULL )
 			continue;
 		switch(pKey->m_Type) {
-		case IDKEY_NONE:  str = ""; break;
-		case IDKEY_RSA1:  str = "RSA1"; break;
-		case IDKEY_RSA2:  str = "RSA2"; break;
-		case IDKEY_DSA2:  str = "DSA2"; break;
-		case IDKEY_ECDSA: str = "ECDSA"; break;
+		case IDKEY_NONE:  str = _T(""); break;
+		case IDKEY_RSA1:  str = _T("RSA1"); break;
+		case IDKEY_RSA2:  str = _T("RSA2"); break;
+		case IDKEY_DSA2:  str = _T("DSA2"); break;
+		case IDKEY_ECDSA: str = _T("ECDSA"); break;
 		}
 		m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, n, str, 0, 0, 0, n);
 		m_List.SetItemText(n, 1, pKey->m_Name);
@@ -104,21 +104,21 @@ void CIdkeySelDLg::InitList()
 	m_List.SetItemState(m_EntryNum, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
 	m_ListInit = FALSE;
 }
-void CIdkeySelDLg::CopyToClipBorad(LPCSTR str)
+void CIdkeySelDLg::CopyToClipBorad(LPCTSTR str)
 {
-	LPSTR pData;
+	LPTSTR pData;
 	HGLOBAL hClipData;
-	int size = (int)strlen(str) + 1;
+	int size = (int)(_tcslen(str) + 1) * sizeof(TCHAR);
 
 	if ( (hClipData = GlobalAlloc(GMEM_MOVEABLE, size)) == NULL )
 		return;
 
-	if ( (pData = (char *)GlobalLock(hClipData)) == NULL ) {
+	if ( (pData = (LPTSTR)GlobalLock(hClipData)) == NULL ) {
 		GlobalFree(hClipData);
 		return;
 	}
 
-	strcpy(pData, str);
+	_tcscpy(pData, str);
 
 	GlobalUnlock(hClipData);
 	
@@ -133,7 +133,11 @@ void CIdkeySelDLg::CopyToClipBorad(LPCSTR str)
 		return;
 	}
 
+#ifdef	_UNICODE
+	SetClipboardData(CF_UNICODETEXT, hClipData);
+#else
 	SetClipboardData(CF_TEXT, hClipData);
+#endif
 
 	CloseClipboard();
 }
@@ -172,8 +176,8 @@ void CIdkeySelDLg::EndofKeyGenThead()
 // CIdkeySelDLg メッセージ ハンドラ
 
 static const LV_COLUMN InitListTab[2] = {
-		{ LVCF_TEXT | LVCF_WIDTH, 0,  80, "Type", 0, 0 }, 
-		{ LVCF_TEXT | LVCF_WIDTH, 0,  160, "Name",   0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0,   80, _T("Type"), 0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0,  160, _T("Name"),   0, 0 }, 
 	};
 
 BOOL CIdkeySelDLg::OnInitDialog() 
@@ -207,7 +211,7 @@ BOOL CIdkeySelDLg::OnInitDialog()
 	}
 
 	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_CHECKBOXES);
-	m_List.InitColumn("IdkeySelDLg", InitListTab, 2);
+	m_List.InitColumn(_T("IdkeySelDLg"), InitListTab, 2);
 	m_List.SetPopUpMenu(IDR_POPUPMENU, 2);
 	InitList();
 
@@ -218,7 +222,7 @@ BOOL CIdkeySelDLg::OnInitDialog()
 void CIdkeySelDLg::OnOK() 
 {
 	if ( m_KeyGenFlag != 0 ) {
-		MessageBox("認証キーを作成中です");
+		MessageBox(CStringLoad(IDE_MAKEIDKEY));
 		return;
 	}
 	m_pParamTab->m_IdKeyList.RemoveAll();
@@ -226,7 +230,7 @@ void CIdkeySelDLg::OnOK()
 		if ( m_List.GetLVCheck(n) )
 			m_pParamTab->m_IdKeyList.AddVal(m_Data[n]);
 	}
-	m_List.SaveColumn("IdkeySelDLg");
+	m_List.SaveColumn(_T("IdkeySelDLg"));
 
 	CString str;
 	m_pParamTab->m_IdKeyList.SetString(str);
@@ -239,7 +243,7 @@ void CIdkeySelDLg::OnOK()
 void CIdkeySelDLg::OnClose()
 {
 	if ( m_KeyGenFlag != 0 ) {
-		MessageBox("認証キーを作成中です");
+		MessageBox(CStringLoad(IDE_MAKEIDKEY));
 		return;
 	}
 	CDialog::OnClose();
@@ -293,7 +297,7 @@ void CIdkeySelDLg::OnIdkeyDel()
 {
 	if ( (m_EntryNum = m_List.GetSelectionMark()) < 0 )
 		return;
-	if ( MessageBox("他に使用しているエントリーがあるかもしれません\nほんとうに削除してよいですか？", "Warning", MB_ICONWARNING | MB_OKCANCEL) != IDOK )
+	if ( MessageBox(CStringLoad(IDE_DELETEKEYQES), _T("Warning"), MB_ICONWARNING | MB_OKCANCEL) != IDOK )
 		return;
 	int n = (int)m_List.GetItemData(m_EntryNum);
 	m_pIdKeyTab->RemoveUid(m_Data[n]);
@@ -318,19 +322,19 @@ void CIdkeySelDLg::OnIdkeyInport()
 	CIdKeyFileDlg dlg;
 
 	dlg.m_OpenMode = 1;
-	dlg.m_Title = "SSH鍵ファイルの読み込み";
-	dlg.m_Message = "作成時に設定したパスフレーズを入力してください。";
+	dlg.m_Title.LoadString(IDS_IDKEYFILELOAD);;
+	dlg.m_Message.LoadString(IDS_IDKEYFILELOADCOM);
 
 	if ( dlg.DoModal() != IDOK )
 		return;
 
 	if ( dlg.m_PassName.IsEmpty() || dlg.m_IdkeyFile.IsEmpty() ) {
-		MessageBox("パスフレーズと鍵ファイルを指定してください");
+		MessageBox(CStringLoad(IDE_USEPASSWORDIDKEY));
 		return;
 	}
 
 	if ( !key.LoadPrivateKey(dlg.m_IdkeyFile, dlg.m_PassName) ) {
-		MessageBox("鍵ファイルを読み込めませんでした");
+		MessageBox(CStringLoad(IDE_IDKEYLOADERROR));
 		return;
 	}
 
@@ -338,7 +342,7 @@ void CIdkeySelDLg::OnIdkeyInport()
 	key.m_Flag = TRUE;
 
 	if ( !m_pIdKeyTab->AddEntry(key) ) {
-		MessageBox("同じ鍵ファイルがすでに登録済みです");
+		MessageBox(CStringLoad(IDE_DUPIDKEYENTRY));
 		return;
 	}
 	m_Data.InsertAt(0, key.m_Uid);
@@ -358,25 +362,24 @@ void CIdkeySelDLg::OnIdkeyExport()
 
 	CIdKeyFileDlg dlg;
 	dlg.m_OpenMode = 1;
-	dlg.m_Title = "SSH鍵ファイルの保存";
-	dlg.m_Message = "作成時に設定したパスフレーズを入力してください。"\
-					"パスフレーズが一致しないと保存できません";
+	dlg.m_Title.LoadString(IDS_IDKEYFILESAVE);
+	dlg.m_Message.LoadString(IDS_IDKEYFILESAVECOM);
 
 	if ( dlg.DoModal() != IDOK )
 		return;
 
 	if ( dlg.m_PassName.IsEmpty() || dlg.m_IdkeyFile.IsEmpty() ) {
-		MessageBox("パスフレーズと鍵ファイルを指定してください");
+		MessageBox(CStringLoad(IDE_USEPASSWORDIDKEY));
 		return;
 	}
 
 	if ( dlg.m_PassName.Compare(pKey->m_Pass) != 0 ) {
-		MessageBox("作成時に指定したパスフレーズと一致しません");
+		MessageBox(CStringLoad(IDE_IDKEYPASSERROR));
 		return;
 	}
 
 	if ( !pKey->SavePrivateKey(pKey->m_Type, dlg.m_IdkeyFile, dlg.m_PassName) )
-		MessageBox("鍵ファイルに保存できませんでした");
+		MessageBox(CStringLoad(IDE_IDKEYSAVEERROR));
 }
 void CIdkeySelDLg::OnIdkeyCreate() 
 {
@@ -387,16 +390,14 @@ void CIdkeySelDLg::OnIdkeyCreate()
 	UpdateData(TRUE);
 
 	dlg.m_OpenMode = 3;
-	dlg.m_Title = "鍵の作成";
-	dlg.m_Message = "パスフレーズは、非常に重要です。作成時に設定する"\
-					"パスフレーズは、ファイルに保存する場合やサーバー"\
-					"接続で使用する場合にも入力が必要になります。";
+	dlg.m_Title.LoadString(IDS_IDKEYCREATE);
+	dlg.m_Message.LoadString(IDS_IDKEYCREATECOM);
 
 	if ( dlg.DoModal() != IDOK )
 		return;
 
 	if ( dlg.m_PassName.IsEmpty() ) {
-		MessageBox("パスフレーズを指定してください");
+		MessageBox(CStringLoad(IDE_USEPASSWORDIDKEY));
 		return;
 	}
 
@@ -405,14 +406,14 @@ void CIdkeySelDLg::OnIdkeyCreate()
 	m_GenIdKey.m_Name = m_Name;
 	m_GenIdKey.m_Flag = TRUE;
 	m_GenIdKeyType = IDKEY_DSA2;
-	m_GenIdKeyBits = atoi(m_Bits);
+	m_GenIdKeyBits = _tstoi(m_Bits);
 	m_GenIdKeyStat = FALSE;
 
-	if ( m_Type.Compare("RSA1") == 0 )
+	if ( m_Type.Compare(_T("RSA1")) == 0 )
 		m_GenIdKeyType = IDKEY_RSA1;
-	else if ( m_Type.Compare("RSA2") == 0 )
+	else if ( m_Type.Compare(_T("RSA2")) == 0 )
 		m_GenIdKeyType = IDKEY_RSA2;
-	else if ( m_Type.Compare("ECDSA") == 0 )
+	else if ( m_Type.Compare(_T("ECDSA")) == 0 )
 		m_GenIdKeyType = IDKEY_ECDSA;
 
 	if ( (pWnd = GetDlgItem(IDC_IDKEY_TYPE)) != NULL )
@@ -450,7 +451,7 @@ void CIdkeySelDLg::OnKeyGenEndof()
 	m_KeyGenProg.EnableWindow(FALSE);
 
 	if ( !m_GenIdKeyStat || !m_pIdKeyTab->AddEntry(m_GenIdKey) ) {
-		MessageBox("鍵ファイルが作成できませんでした");
+		MessageBox(CStringLoad(IDE_IDKEYCREATEERROR));
 		return;
 	}
 	m_Data.InsertAt(0, m_GenIdKey.m_Uid);
@@ -467,7 +468,7 @@ void CIdkeySelDLg::OnEditUpdate()
 	if ( pKey == NULL )
 		return;
 	CEditDlg dlg;
-	dlg.m_Title = "認証キーの名前が変更できます";
+	dlg.m_Title.LoadString(IDS_IDKEYRENAME);
 	dlg.m_Edit  = pKey->m_Name;
 	if ( dlg.DoModal() != IDOK )
 		return;

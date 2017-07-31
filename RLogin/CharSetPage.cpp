@@ -86,14 +86,14 @@ END_MESSAGE_MAP()
 void CCharSetPage::InitList()
 {
 	int n, i;
-	static LPCSTR bankTab[] = { "94", "96", "94x94", "96x96" };
+	static LPCTSTR bankTab[] = { _T("94"), _T("96"), _T("94x94"), _T("96x96") };
 
 	m_List.DeleteAllItems();
 	for ( n = i = 0 ; n < CODE_MAX ; n++ ) {
 		if ( m_FontTab[n].m_EntryName.IsEmpty() )
 			continue;
 		m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, i, m_FontTab[n].m_EntryName, 0, 0, 0, n);
-		m_List.SetItemText(i, 1, (n == SET_UNICODE ? "" : bankTab[n >> 8]));
+		m_List.SetItemText(i, 1, (n == SET_UNICODE ? _T("") : bankTab[n >> 8]));
 		m_List.SetItemText(i, 2, m_FontTab[n].m_IndexName);
 		m_List.SetItemText(i, 3, m_FontTab[n].m_FontName[m_AltFont]);
 		m_List.SetItemData(i, n);
@@ -106,10 +106,10 @@ void CCharSetPage::InitList()
 // CCharSetPage メッセージ ハンドラ
 
 static const LV_COLUMN InitListTab[6] = {
-		{ LVCF_TEXT | LVCF_WIDTH, 0, 120, "Entry", 0, 0 }, 
-		{ LVCF_TEXT | LVCF_WIDTH, 0,  50, "Bank",  0, 0 }, 
-		{ LVCF_TEXT | LVCF_WIDTH, 0,  40, "Code",  0, 0 }, 
-		{ LVCF_TEXT | LVCF_WIDTH, 0, 100, "Face",  0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0, 120, _T("Entry"), 0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0,  50, _T("Bank"),  0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0,  40, _T("Code"),  0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0, 100, _T("Face"),  0, 0 }, 
 	};
 
 BOOL CCharSetPage::OnInitDialog() 
@@ -131,19 +131,19 @@ BOOL CCharSetPage::OnInitDialog()
 	m_CharBank4  = m_FontTab[m_pData->m_BankTab[m_KanjiCode][3]].m_EntryName;
 
 	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_SUBITEMIMAGES);
-	m_List.InitColumn("CharSetPage", InitListTab, 4);
+	m_List.InitColumn(_T("CharSetPage"), InitListTab, 4);
 	m_List.SetPopUpMenu(IDR_POPUPMENU, 1);
 	InitList();
 
 	int n, i;
 	CComboBox *pCombo[4];
-	LPCSTR pStr;
+	LPCTSTR pStr;
 
 	for ( i = 0 ; i < 4 ; i++ )
 		pCombo[i] = (CComboBox *)GetDlgItem(IDC_CHARBANK1 + i);
 	for ( n = 0 ; n < CODE_MAX ; n++ ) {
 		pStr = m_FontTab[n].m_EntryName;
-		if ( *pStr == '\0' )
+		if ( *pStr == _T('\0') )
 			continue;
 		for ( i = 0 ; i < 4 ; i++ ) {
 			if ( pCombo[i] != NULL && pCombo[i]->FindString((-1), pStr) == CB_ERR )
@@ -173,7 +173,7 @@ BOOL CCharSetPage::OnApply()
 	m_pData->m_AttNow = m_pData->m_DefAtt;
 	m_pData->m_AttSpc = m_pData->m_AttNow;
 
-	m_List.SaveColumn("CharSetPage");
+	m_List.SaveColumn(_T("CharSetPage"));
 	return TRUE;
 }
 void CCharSetPage::OnReset() 

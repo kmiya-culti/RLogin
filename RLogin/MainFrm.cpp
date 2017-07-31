@@ -389,7 +389,7 @@ void CPaneFrame::SetBuffer(CBuffer *buf)
 	CServerEntry *pEntry = NULL;
 
 	if ( m_Style == PANEFRAME_WINDOW ) {
-		tmp.Format("%d\t0\t", m_Style);
+		tmp.Format(_T("%d\t0\t"), m_Style);
 		if ( m_pServerEntry != NULL ) {
 			delete m_pServerEntry;
 			m_pServerEntry = NULL;
@@ -401,7 +401,7 @@ void CPaneFrame::SetBuffer(CBuffer *buf)
 				if ( pDoc != NULL ) {
 					pDoc->SetEntryProBuffer();
 					pEntry = &(pDoc->m_ServerEntry);
-					tmp.Format("%d\t0\t1\t", m_Style);
+					tmp.Format(_T("%d\t0\t1\t"), m_Style);
 				}
 			}
 		}
@@ -426,7 +426,7 @@ void CPaneFrame::SetBuffer(CBuffer *buf)
 		break;
 	}
 
-	tmp.Format("%d\t%d\t", m_Style, sz);
+	tmp.Format(_T("%d\t%d\t"), m_Style, sz);
 	buf->PutStr(tmp);
 	m_pLeft->SetBuffer(buf);
 	m_pRight->SetBuffer(buf);
@@ -496,6 +496,32 @@ void CPaneFrame::Dump()
 }
 #endif
 
+
+/////////////////////////////////////////////////////////////////////////////
+// CTimerObject
+
+CTimerObject::CTimerObject()
+{
+	m_Id      = 0;
+	m_Mode    = 0;
+	m_pObject = NULL;
+	m_pList   = NULL;
+}
+void CTimerObject::CallObject()
+{
+	ASSERT(m_pObject);
+
+	switch(m_Mode & 007) {
+	case TIMEREVENT_DOC:
+		((CRLoginDoc *)(m_pObject))->OnDelayRecive((-1));
+		break;
+	case TIMEREVENT_SOCK:
+		((CExtSocket *)(m_pObject))->OnTimer(m_Id);
+		break;
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
 // CMainFrame
 
 IMPLEMENT_DYNAMIC(CMainFrame, CMDIFrameWnd)
@@ -537,30 +563,6 @@ static UINT indicators[] =
 	ID_INDICATOR_SCRL,
 	ID_INDICATOR_SOCK,
 };
-
-/////////////////////////////////////////////////////////////////////////////
-// CTimerObject
-
-CTimerObject::CTimerObject()
-{
-	m_Id      = 0;
-	m_Mode    = 0;
-	m_pObject = NULL;
-	m_pList   = NULL;
-}
-void CTimerObject::CallObject()
-{
-	ASSERT(m_pObject);
-
-	switch(m_Mode & 007) {
-	case TIMEREVENT_DOC:
-		((CRLoginDoc *)(m_pObject))->OnDelayRecive((-1));
-		break;
-	case TIMEREVENT_SOCK:
-		((CExtSocket *)(m_pObject))->OnTimer(m_Id);
-		break;
-	}
-}
 
 // CMainFrame コンストラクション/デストラクション
 
@@ -704,24 +706,24 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	DockControlBar(&m_wndToolBar);
 	DockControlBar(&m_wndTabBar);
 
-	if ( (AfxGetApp()->GetProfileInt("MainFrame", "ToolBarStyle", WS_VISIBLE) & WS_VISIBLE) == 0 )
+	if ( (AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("ToolBarStyle"), WS_VISIBLE) & WS_VISIBLE) == 0 )
 		ShowControlBar(&m_wndToolBar, FALSE, 0);
-	if ( (AfxGetApp()->GetProfileInt("MainFrame", "StatusBarStyle", WS_VISIBLE) & WS_VISIBLE) == 0 )
+	if ( (AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("StatusBarStyle"), WS_VISIBLE) & WS_VISIBLE) == 0 )
 		ShowControlBar(&m_wndStatusBar, FALSE, 0);
 	ShowControlBar(&m_wndTabBar, FALSE, 0);
 
-	m_TransParValue = AfxGetApp()->GetProfileInt("MainFrame", "LayeredWindow", 255);
-	m_TransParColor = AfxGetApp()->GetProfileInt("MainFrame", "LayeredColor", RGB(0, 0 ,0));
+	m_TransParValue = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("LayeredWindow"), 255);
+	m_TransParColor = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("LayeredColor"), RGB(0, 0 ,0));
 	SetTransPar(m_TransParColor, m_TransParValue, LWA_ALPHA | LWA_COLORKEY);
 
 	CBuffer buf;
-	((CRLoginApp *)AfxGetApp())->GetProfileBuffer("MainFrame", "Pane", buf);
+	((CRLoginApp *)AfxGetApp())->GetProfileBuffer(_T("MainFrame"), _T("Pane"), buf);
 	m_pTopPane = CPaneFrame::GetBuffer(this, NULL, NULL, &buf);
 
-	if ( (m_SleepCount = AfxGetApp()->GetProfileInt("MainFrame", "WakeUpSleep", 0)) > 0 )
+	if ( (m_SleepCount = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("WakeUpSleep"), 0)) > 0 )
 		m_SleepTimer = SetTimer(TIMERID_SLEEPMODE, 5000, NULL);
 
-	m_ScrollBarFlag = AfxGetApp()->GetProfileInt("ChildFrame", "VScroll", TRUE);
+	m_ScrollBarFlag = AfxGetApp()->GetProfileInt(_T("ChildFrame"), _T("VScroll"), TRUE);
 
 	return 0;
 #endif
@@ -732,10 +734,10 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 	if( !CMDIFrameWnd::PreCreateWindow(cs) )
 		return FALSE;
 
-	cs.x  = AfxGetApp()->GetProfileInt("MainFrame", "x", cs.x);
-	cs.y  = AfxGetApp()->GetProfileInt("MainFrame", "y", cs.y);
-	cs.cx = AfxGetApp()->GetProfileInt("MainFrame", "cx", cs.cx);
-	cs.cy = AfxGetApp()->GetProfileInt("MainFrame", "cy", cs.cy);
+	cs.x  = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("x"), cs.x);
+	cs.y  = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("y"), cs.y);
+	cs.cx = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("cx"), cs.cx);
+	cs.cy = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("cy"), cs.cy);
 
 	return TRUE;
 }
@@ -773,7 +775,7 @@ void CMainFrame::DelAsyncSelect(SOCKET fd, CExtSocket *pSock)
 	}
 }
 
-int CMainFrame::SetAsyncHostAddr(int mode, LPCSTR pHostName, CExtSocket *pSock)
+int CMainFrame::SetAsyncHostAddr(int mode, LPCTSTR pHostName, CExtSocket *pSock)
 {
 	HANDLE hGetHostAddr;
 	CString *pStr = new CString(pHostName);
@@ -782,7 +784,7 @@ int CMainFrame::SetAsyncHostAddr(int mode, LPCSTR pHostName, CExtSocket *pSock)
 	memset(pData, 0, MAXGETHOSTSTRUCT);
 	if ( (hGetHostAddr = WSAAsyncGetHostByName(GetSafeHwnd(), WM_GETHOSTADDR, pHostName, pData, MAXGETHOSTSTRUCT)) == (HANDLE)0 ) {
 		CString errmsg;
-		errmsg.Format("GetHostByName Error '%s'", pHostName);
+		errmsg.Format(_T("GetHostByName Error '%s'"), pHostName);
 		AfxMessageBox(errmsg, MB_ICONSTOP);
 		return FALSE;
 	}
@@ -820,7 +822,7 @@ static UINT AddrInfoThread(LPVOID pParam)
 }
 #endif
 
-int CMainFrame::SetAsyncAddrInfo(int mode, LPCSTR pHostName, int PortNum, void *pHint, CExtSocket *pSock)
+int CMainFrame::SetAsyncAddrInfo(int mode, LPCTSTR pHostName, int PortNum, void *pHint, CExtSocket *pSock)
 {
 #ifndef	NOIPV6
 	addrinfo_param *ap;
@@ -829,7 +831,7 @@ int CMainFrame::SetAsyncAddrInfo(int mode, LPCSTR pHostName, int PortNum, void *
 	ap->pWnd = this;
 	ap->mode = mode;
 	ap->name = pHostName;
-	ap->port.Format("%d", PortNum);
+	ap->port.Format(_T("%d"), PortNum);
 	ap->ret  = 1;
 	memcpy(&(ap->hint), pHint, sizeof(struct addrinfo));
 
@@ -951,7 +953,7 @@ int CMainFrame::OpenServerEntry(CServerEntry &Entry)
 		}
 		if ( pApp->m_pCmdInfo != NULL && pApp->m_pCmdInfo->m_Proto != (-1) && !pApp->m_pCmdInfo->m_Addr.IsEmpty() && !pApp->m_pCmdInfo->m_Port.IsEmpty() ) {
 			if ( Entry.m_EntryName.IsEmpty() )
-				Entry.m_EntryName.Format("%s:%s", pApp->m_pCmdInfo->m_Addr, pApp->m_pCmdInfo->m_Port);
+				Entry.m_EntryName.Format(_T("%s:%s"), pApp->m_pCmdInfo->m_Addr, pApp->m_pCmdInfo->m_Port);
 			Entry.m_SaveFlag = FALSE;
 			return TRUE;
 		}
@@ -999,7 +1001,7 @@ void CMainFrame::SetTransPar(COLORREF rgb, int value, DWORD flag)
 }
 void CMainFrame::SetWakeUpSleep(int sec)
 {
-	AfxGetApp()->WriteProfileInt("MainFrame", "WakeUpSleep", sec);
+	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("WakeUpSleep"), sec);
 
 	if ( sec > 0 && m_SleepTimer == 0 )
 		m_SleepTimer = SetTimer(TIMERID_SLEEPMODE, 5000, NULL);
@@ -1032,17 +1034,17 @@ void CMainFrame::SetIconStyle()
 	m_IconData.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
 	m_IconData.uCallbackMessage = WM_ICONMSG;
 	m_IconData.hIcon  = m_hIcon;
-	strcpy(m_IconData.szTip, "Listen...");
+	_tcscpy(m_IconData.szTip, _T("Listen..."));
 
 	if ( (m_IconShow = Shell_NotifyIcon(NIM_ADD, &m_IconData)) )
 		ShowWindow(SW_HIDE);
 }
-void CMainFrame::SetIconData(HICON hIcon, LPCSTR str)
+void CMainFrame::SetIconData(HICON hIcon, LPCTSTR str)
 {
 	if ( m_IconShow == FALSE )
 		return;
 	m_IconData.hIcon  = hIcon;
-	strcpy(m_IconData.szTip, str);
+	_tcsncpy(m_IconData.szTip, str, sizeof(m_IconData.szTip) - 1);
 	Shell_NotifyIcon(NIM_MODIFY, &m_IconData);
 }
 
@@ -1296,16 +1298,16 @@ LRESULT CMainFrame::OnThreadMsg(WPARAM wParam, LPARAM lParam)
 
 void CMainFrame::OnDestroy() 
 {
-	AfxGetApp()->WriteProfileInt("MainFrame", "ToolBarStyle",	m_wndToolBar.GetStyle());
-	AfxGetApp()->WriteProfileInt("MainFrame", "StatusBarStyle", m_wndStatusBar.GetStyle());
+	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("ToolBarStyle"),	m_wndToolBar.GetStyle());
+	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("StatusBarStyle"), m_wndStatusBar.GetStyle());
 
 	if ( !IsIconic() && !IsZoomed() ) {
 		CRect rect;
 		GetWindowRect(&rect);
-		AfxGetApp()->WriteProfileInt("MainFrame", "x", rect.left);
-		AfxGetApp()->WriteProfileInt("MainFrame", "y", rect.top);
-		AfxGetApp()->WriteProfileInt("MainFrame", "cx", rect.Width());
-		AfxGetApp()->WriteProfileInt("MainFrame", "cy", rect.Height());
+		AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("x"), rect.left);
+		AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("y"), rect.top);
+		AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("cx"), rect.Width());
+		AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("cy"), rect.Height());
 	}
 
 	CMDIFrameWnd::OnDestroy();
@@ -1429,7 +1431,7 @@ void CMainFrame::OnPaneSave()
 
 	CBuffer buf;
 	m_pTopPane->SetBuffer(&buf);
-	((CRLoginApp *)AfxGetApp())->WriteProfileBinary("MainFrame", "Pane", buf.GetPtr(), buf.GetSize());
+	((CRLoginApp *)AfxGetApp())->WriteProfileBinary(_T("MainFrame"), _T("Pane"), buf.GetPtr(), buf.GetSize());
 }
 
 void CMainFrame::OnWindowCascade() 
@@ -1612,8 +1614,7 @@ void CMainFrame::OnFileAllSave()
 
 	CFile file;
 	CBuffer buf;
-	CFileDialog dlg(FALSE, "rlg", m_AllFilePath, OFN_OVERWRITEPROMPT,
-		"RLogin ﾌｧｲﾙ (*.rlg)|*.rlg|All Files (*.*)|*.*||", this);
+	CFileDialog dlg(FALSE, _T("rlg"), m_AllFilePath, OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGRLOGIN), this);
 
 	if ( dlg.DoModal() != IDOK )
 		return;
@@ -1633,7 +1634,7 @@ void CMainFrame::OnFileAllLoad()
 	CPaneFrame *pPane;
 
 	if ( IsConnectChild(m_pTopPane) ) {
-		if ( MessageBox("すべての接続を閉じてよろしいでしょうか？", "Warning", MB_ICONQUESTION | MB_OKCANCEL) != IDOK )
+		if ( MessageBox(CStringLoad(IDE_ALLCLOSEREQ), _T("Warning"), MB_ICONQUESTION | MB_OKCANCEL) != IDOK )
 			return;
 	}
 	
@@ -1733,7 +1734,7 @@ void CMainFrame::OnEnterMenuLoop(BOOL bIsTrackPopupMenu)
 			if ( pCmds->m_Id >= ID_MACRO_HIS1 && pCmds->m_Id <= ID_MACRO_HIS5 ) {
 				if ( pMenu->GetMenuString(pCmds->m_Id, tmp, MF_BYCOMMAND) <= 0 )
 					continue;
-				str.Format("%s\t%s", m_MenuTab[i].m_Text, pCmds->m_Menu);
+				str.Format(_T("%s\t%s"), m_MenuTab[i].m_Text, pCmds->m_Menu);
 				if ( str.Compare(tmp) == 0 )
 					continue;
 				m_MenuTab[i].m_Text = tmp;
@@ -1743,13 +1744,13 @@ void CMainFrame::OnEnterMenuLoop(BOOL bIsTrackPopupMenu)
 		} else {
 			if ( pMenu->GetMenuString(pCmds->m_Id, str, MF_BYCOMMAND) <= 0 )
 				continue;
-			if ( (i = str.Find('\t')) >= 0 )
+			if ( (i = str.Find(_T('\t'))) >= 0 )
 				str.Truncate(i);
 			pCmds->m_Flag = TRUE;
 			pCmds->m_Text = str;
 			i = m_MenuTab.Add(*pCmds);
 		}
-		str.Format("%s\t%s", m_MenuTab[i].m_Text, m_MenuTab[i].m_Menu);
+		str.Format(_T("%s\t%s"), m_MenuTab[i].m_Text, m_MenuTab[i].m_Menu);
 		pMenu->ModifyMenu(pCmds->m_Id, MF_BYCOMMAND | MF_STRING, pCmds->m_Id, str);
 	}
 
@@ -1777,7 +1778,7 @@ void CMainFrame::OnViewScrollbar()
 	if ( (pApp = AfxGetApp()) == NULL )
 		return;
 	
-	m_ScrollBarFlag = (pApp->GetProfileInt("ChildFrame", "VScroll", TRUE) ? FALSE : TRUE);
+	m_ScrollBarFlag = (pApp->GetProfileInt(_T("ChildFrame"), _T("VScroll"), TRUE) ? FALSE : TRUE);
 
 	POSITION pos = pApp->GetFirstDocTemplatePosition();
 	while ( pos != NULL ) {
@@ -1797,7 +1798,7 @@ void CMainFrame::OnViewScrollbar()
 		}
 	}
 
-	pApp->WriteProfileInt("ChildFrame", "VScroll", m_ScrollBarFlag);
+	pApp->WriteProfileInt(_T("ChildFrame"), _T("VScroll"), m_ScrollBarFlag);
 }
 
 void CMainFrame::OnUpdateViewScrollbar(CCmdUI *pCmdUI)

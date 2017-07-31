@@ -37,8 +37,8 @@ public:
 	int Rxcanfdx;
 
 	void zperr(LPCSTR s);
-	void zperr(char *s, int u) { CString str; str.Format(s, u); zperr(str); }
-	void zperr(char *s, const char *p) { CString str; str.Format(s, p); zperr(str); }
+	void zperr(LPCSTR s, int u) { CStringA str; str.Format(s, u); zperr(str); }
+	void zperr(LPCSTR s, LPCSTR p) { CStringA str; str.Format(s, p); zperr(str); }
 
 	int ZUpFile();
 	int ZDownFile();

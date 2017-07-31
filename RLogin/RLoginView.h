@@ -116,6 +116,7 @@ protected:
 	afx_msg void OnChar(UINT nChar, UINT nRepCnt, UINT nFlags);
 	afx_msg LRESULT OnImeNotify(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnImeComposition(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnImeRequest(WPARAM wParam, LPARAM lParam);
 	afx_msg void OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg BOOL OnMouseWheel(UINT nFlags, short zDelta, CPoint pt);

@@ -108,11 +108,11 @@ void CProgDlg::SetPos(LONGLONG pos)
 	m_FileSize.SetPos((int)(pos / m_Div));
 
 	if ( pos > 1000000 )
-		m_TotalSize.Format("%d.%03dM", (int)(pos / 1000000), (int)((pos / 1000) % 1000));
+		m_TotalSize.Format(_T("%d.%03dM"), (int)(pos / 1000000), (int)((pos / 1000) % 1000));
 	else if ( pos > 1000 )
-		m_TotalSize.Format("%dK", (int)(pos / 1000));
+		m_TotalSize.Format(_T("%dK"), (int)(pos / 1000));
 	else
-		m_TotalSize.Format("%d", (int)pos);
+		m_TotalSize.Format(_T("%d"), (int)pos);
 
 	if ( clock() > m_StartClock ) {
 		d = (double)(pos - m_ResumeSize) * CLOCKS_PER_SEC / (double)(clock() - m_StartClock);
@@ -120,20 +120,20 @@ void CProgDlg::SetPos(LONGLONG pos)
 		if ( d > 0.0 && m_LastSize > 0 ) {
 			n = (int)((double)(m_LastSize - pos) / d);
 			if ( n >= 3600 )
-				m_EndTime.Format("%d:%02d:%02d", n / 3600, (n % 3600) / 60, n % 60);
+				m_EndTime.Format(_T("%d:%02d:%02d"), n / 3600, (n % 3600) / 60, n % 60);
 			else if ( n >= 60 )
-				m_EndTime.Format("%d:%02d", n / 60, n % 60);
+				m_EndTime.Format(_T("%d:%02d"), n / 60, n % 60);
 			else
-				m_EndTime.Format("%d", n);
+				m_EndTime.Format(_T("%d"), n);
 		} else
-			m_EndTime = "";
+			m_EndTime = _T("");
 
 		if ( d > 10048576.0 )
-			m_TransRate.Format("%dM", (int)(d / 1048576.0));
+			m_TransRate.Format(_T("%dM"), (int)(d / 1048576.0));
 		else if ( d > 10024.0 )
-			m_TransRate.Format("%dK", (int)(d / 1024.0));
+			m_TransRate.Format(_T("%dK"), (int)(d / 1024.0));
 		else
-			m_TransRate.Format("%d", (int)(d));
+			m_TransRate.Format(_T("%d"), (int)(d));
 	}
 
 	UpdateData(FALSE);

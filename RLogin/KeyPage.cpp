@@ -99,9 +99,9 @@ void CKeyPage::InitList()
 // CKeyPage メッセージ ハンドラ
 
 static const LV_COLUMN InitListTab[] = {
-		{ LVCF_TEXT | LVCF_WIDTH, 0,  80, "Code", 0, 0 }, 
-		{ LVCF_TEXT | LVCF_WIDTH, 0, 100, "With",  0, 0 }, 
-		{ LVCF_TEXT | LVCF_WIDTH, 0, 120, "String",  0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0,  80, _T("Code"), 0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0, 100, _T("With"),  0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0, 120, _T("String"),  0, 0 }, 
 	};
 
 BOOL CKeyPage::OnInitDialog() 
@@ -113,7 +113,7 @@ BOOL CKeyPage::OnInitDialog()
 	
 	m_KeyTab = *(m_pSheet->m_pKeyTab);
 	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_SUBITEMIMAGES);
-	m_List.InitColumn("CKeyPage", InitListTab, 3);
+	m_List.InitColumn(_T("CKeyPage"), InitListTab, 3);
 	m_List.SetPopUpMenu(IDR_POPUPMENU, 1);
 	InitList();
 
@@ -154,7 +154,7 @@ BOOL CKeyPage::OnApply()
 	m_pSheet->m_pTextRam->m_WordStr = m_WordStr;
 	m_pSheet->m_pTextRam->m_ClipFlag = m_ClipFlag;
 
-	m_List.SaveColumn("CKeyPage");
+	m_List.SaveColumn(_T("CKeyPage"));
 	return TRUE;
 }
 void CKeyPage::OnReset() 

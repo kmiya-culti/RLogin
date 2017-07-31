@@ -62,15 +62,15 @@ static UINT ProcThread(LPVOID pParam)
 		pThis->m_pWnd->PostMessage(WM_THREADCMD, THCMD_ENDOF, (LPARAM)pThis);
 	return 0;
 }
-void CSyncSock::HostKanjiConv(CString &str)
+void CSyncSock::HostKanjiConv(CStringA &str)
 {
-	CString tmp = str;
-	m_pDoc->m_TextRam.m_IConv.IConvStr(m_pDoc->m_TextRam.m_SendCharSet[m_pDoc->m_TextRam.m_KanjiMode], "CP932", tmp, str);
+	CStringA tmp = str;
+	m_pDoc->m_TextRam.m_IConv.IConvStr(m_pDoc->m_TextRam.m_SendCharSet[m_pDoc->m_TextRam.m_KanjiMode], _T("CP932"), tmp, str);
 }
-void CSyncSock::LocalKanjiConv(CString &str)
+void CSyncSock::LocalKanjiConv(CStringA &str)
 {
-	CString tmp = str;
-	m_pDoc->m_TextRam.m_IConv.IConvStr("CP932", m_pDoc->m_TextRam.m_SendCharSet[m_pDoc->m_TextRam.m_KanjiMode], tmp, str);
+	CStringA tmp = str;
+	m_pDoc->m_TextRam.m_IConv.IConvStr(_T("CP932"), m_pDoc->m_TextRam.m_SendCharSet[m_pDoc->m_TextRam.m_KanjiMode], tmp, str);
 }
 void CSyncSock::ThreadCommand(int cmd)
 {
@@ -145,9 +145,7 @@ void CSyncSock::ThreadCommand(int cmd)
 				m_FileName = m_PathName;
 			m_ResvDoit = TRUE;
 		} else {
-			CFileDialog dlg(((m_Param & 1) ? TRUE : FALSE), "", m_PathName,
-				OFN_HIDEREADONLY | ((m_Param & 2) ? OFN_ALLOWMULTISELECT : 0),
-				"All Files (*.*)|*.*||", m_pWnd);
+			CFileDialog dlg(((m_Param & 1) ? TRUE : FALSE), _T(""), m_PathName, OFN_HIDEREADONLY | ((m_Param & 2) ? OFN_ALLOWMULTISELECT : 0), CStringLoad(IDS_FILEDLGALLFILE), m_pWnd);
 			if ( dlg.DoModal() == IDOK ) {
 				if ( (m_Param & 2) != 0 ) {
 					POSITION pos = dlg.GetStartPosition();
@@ -168,7 +166,7 @@ void CSyncSock::ThreadCommand(int cmd)
 		break;
 	case THCMD_YESNO:
 		HostKanjiConv(m_Message);
-		if ( m_pWnd->MessageBox(m_Message, "Question", MB_ICONQUESTION | MB_YESNO) == IDYES )
+		if ( m_pWnd->MessageBox(m_Message, _T("Question"), MB_ICONQUESTION | MB_YESNO) == IDYES )
 			m_Param = 'Y';
 		m_pParamEvent->SetEvent();
 		break;
@@ -452,7 +450,7 @@ FILE *CSyncSock::FileOpen(LPCSTR filename, LPCSTR mode, BOOL ascii)
 	m_OutBuf.Clear();
 	m_IConv.IConvClose();
 	m_HostCode = m_pDoc->m_TextRam.m_SendCharSet[m_pDoc->m_TextRam.m_KanjiMode];
-	return fopen(filename, mode);
+	return fopen(CStringA(filename), CStringA(mode));
 }
 void CSyncSock::FileClose(FILE *fp)
 {
@@ -487,7 +485,7 @@ int CSyncSock::ReadFileToHost(char *buf, int len, FILE *fp)
 			if ( tmp[i] != '\r' )
 				m_InBuf.Put8Bit(tmp[i]);
 		}
-		m_IConv.IConvSub("CP932", m_HostCode, &m_InBuf, &m_OutBuf);
+		m_IConv.IConvSub(_T("CP932"), m_HostCode, &m_InBuf, &m_OutBuf);
 	}
 
 	if ( (n = (m_OutBuf.GetSize() < len ? m_OutBuf.GetSize() : len)) > 0 ) {
@@ -511,7 +509,7 @@ int CSyncSock::WriteFileFromHost(char *buf, int len, FILE *fp)
 		} else if ( buf[n] != '\r' )
 			m_InBuf.Put8Bit(buf[n]);
 	}
-	m_IConv.IConvSub(m_HostCode, "CP932", &m_InBuf, &m_OutBuf);
+	m_IConv.IConvSub(m_HostCode, _T("CP932"), &m_InBuf, &m_OutBuf);
 
 	if ( (n = fwrite(m_OutBuf.GetPtr(), 1, m_OutBuf.GetSize(), fp)) > 0 )
 		m_OutBuf.Consume(n);

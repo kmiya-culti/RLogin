@@ -119,7 +119,7 @@ void CSerEntPage::SetEnableWind()
 	case PROTO_SSH:
 	case PROTO_LOGIN:
 	case PROTO_TELNET:
-		if ( atoi(m_PortName) <= 0 )
+		if ( _tstoi(m_PortName) <= 0 )
 			m_PortName = DefPortName[m_ProtoType];
 		break;
 
@@ -295,7 +295,7 @@ void CSerEntPage::OnComconfig()
 	if ( m_PortName.Left(3).CompareNoCase("COM") == 0 ) {
 		com.m_ComPort = (-1);
 		com.GetMode(m_HostName);
-		if ( com.m_ComPort != atoi(m_PortName.Mid(3)) )
+		if ( com.m_ComPort != _tstoi(m_PortName.Mid(3)) )
 			m_HostName = m_PortName;
 	}
 	com.ConfigDlg(this, m_HostName);
@@ -306,7 +306,7 @@ void CSerEntPage::OnComconfig()
 void CSerEntPage::OnKeyfileselect() 
 {
 	UpdateData(TRUE);
-	CFileDialog dlg(TRUE, "", m_IdkeyName, OFN_HIDEREADONLY, "All Files (*.*)|*.*||", this);
+	CFileDialog dlg(TRUE, "", m_IdkeyName, OFN_HIDEREADONLY, CStringLoad(IDS_FILEDLGALLFILE), this);
 	if ( dlg.DoModal() != IDOK ) {
 		if ( m_IdkeyName.IsEmpty() || MessageBox("認証キーファイルの設定を解除しますか？", "Question", MB_ICONQUESTION | MB_YESNO) != IDYES )
 			return;

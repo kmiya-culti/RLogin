@@ -28,7 +28,7 @@ public:
 	CStatic m_Title;
 	CProgressCtrl m_TimeProg;
 
-	void SetStaus(LPCSTR str);
+	void SetStaus(LPCTSTR str);
 	virtual BOOL OnInitDialog();
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 };

@@ -12,10 +12,10 @@ IMPLEMENT_DYNAMIC(CChatDlg, CDialog)
 
 CChatDlg::CChatDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CChatDlg::IDD, pParent)
-	, m_RecvStr(_T(""))
-	, m_SendStr(_T(""))
-	, m_MakeChat(FALSE)
 {
+	m_RecvStr.Empty();
+	m_SendStr.Empty();
+	m_MakeChat = FALSE;
 }
 
 CChatDlg::~CChatDlg()
@@ -87,7 +87,7 @@ void CChatDlg::OnBnClickedNewnode()
 	np->m_SendStr = m_SendStr;
 	np->m_Reg.Compile(np->m_RecvStr);
 
-	tmp.Format("%s/%s", m_RecvStr, m_SendStr);
+	tmp.Format(_T("%s/%s"), m_RecvStr, m_SendStr);
 
 	if ( (hti = m_NodeTree.InsertItem(tmp, hti)) == NULL )
 		delete np;
@@ -112,7 +112,7 @@ void CChatDlg::OnBnClickedNextnode()
 	np->m_SendStr = m_SendStr;
 	np->m_Reg.Compile(np->m_RecvStr);
 
-	tmp.Format("%s/%s", m_RecvStr, m_SendStr);
+	tmp.Format(_T("%s/%s"), m_RecvStr, m_SendStr);
 
 	if ( (hti = m_NodeTree.InsertItem(tmp, hti)) == NULL )
 		delete np;
@@ -137,7 +137,7 @@ void CChatDlg::OnBnClickedUpdatenode()
 	np->m_SendStr = m_SendStr;
 	np->m_Reg.Compile(np->m_RecvStr);
 
-	tmp.Format("%s/%s", m_RecvStr, m_SendStr);
+	tmp.Format(_T("%s/%s"), m_RecvStr, m_SendStr);
 	m_NodeTree.SetItemText(hti, tmp);
 }
 
@@ -204,21 +204,21 @@ void CChatDlg::OnEditCopyAll()
 {
 	CString tmp;
 	HGLOBAL hClipData;
-	CHAR *pData;
+	TCHAR *pData;
 
 	m_Script.GetTreeCtrl(m_NodeTree);
 	m_Script.SetString(tmp);
 	m_Script.SetTreeCtrl(m_NodeTree);
 
-	if ( (hClipData = GlobalAlloc(GMEM_MOVEABLE, (tmp.GetLength() + 1) * sizeof(CHAR))) == NULL )
+	if ( (hClipData = GlobalAlloc(GMEM_MOVEABLE, (tmp.GetLength() + 1) * sizeof(TCHAR))) == NULL )
 		return;
 
-	if ( (pData = (CHAR *)GlobalLock(hClipData)) == NULL ) {
+	if ( (pData = (TCHAR *)GlobalLock(hClipData)) == NULL ) {
 		GlobalFree(hClipData);
 		return;
 	}
 
-	strcpy(pData, tmp);
+	_tcscpy(pData, tmp);
 	GlobalUnlock(hClipData);
 
 	if ( !AfxGetMainWnd()->OpenClipboard() ) {
@@ -232,30 +232,39 @@ void CChatDlg::OnEditCopyAll()
 		return;
 	}
 
+#ifdef	_UNICODE
+	SetClipboardData(CF_UNICODETEXT, hClipData);
+#else
 	SetClipboardData(CF_TEXT, hClipData);
+#endif
+
 	CloseClipboard();
 }
 
 void CChatDlg::OnEditPasteAll()
 {
 	HGLOBAL hData;
-	CHAR *pData;
+	TCHAR *pData;
 
 	if ( !OpenClipboard() )
 		return;
 
+#ifdef	_UNICODE
+	if ( (hData = GetClipboardData(CF_UNICODETEXT)) == NULL ) {
+#else
 	if ( (hData = GetClipboardData(CF_TEXT)) == NULL ) {
+#endif
 		CloseClipboard();
 		return;
 	}
 
-	if ( (pData = (CHAR *)GlobalLock(hData)) == NULL ) {
+	if ( (pData = (TCHAR *)GlobalLock(hData)) == NULL ) {
         CloseClipboard();
         return;
     }
 
 	m_Script.GetTreeCtrl(m_NodeTree);
-	m_Script.GetString((LPCSTR)pData);
+	m_Script.GetString((LPCTSTR)pData);
 	m_Script.SetTreeCtrl(m_NodeTree);
 
 	GlobalUnlock(hData);

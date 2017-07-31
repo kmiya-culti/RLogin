@@ -63,7 +63,7 @@ void CAutoRenDlg::OnEnUpdateEdit3()
 
 	UpdateData(TRUE);
 	node.AutoRename(m_Name[2], tmp, 1);
-	m_NameOK = (tmp.Compare(m_Name[2]) == 0 ? "Åõ" : "Å~");
+	m_NameOK = (tmp.Compare(m_Name[2]) == 0 ? _T("Åõ") : _T("Å~"));
 	UpdateData(FALSE);
 }
 

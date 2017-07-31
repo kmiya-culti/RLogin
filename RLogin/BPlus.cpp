@@ -815,7 +815,7 @@ void CBPlus::Do_Transport_Parameters()
 void CBPlus::Check_Keep(FILE *data_File, LPCSTR Name)
 {
     char yn;
-	CString str;
+	CStringA str;
 
     fclose (data_File);
 

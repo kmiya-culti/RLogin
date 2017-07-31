@@ -22,10 +22,10 @@ public:
 	CString m_FontNameTab[16];
 	class CFontTab *m_pFontTab;
 
-	int CharSetNo(LPCSTR name);
-	LPCSTR CharSetName(int code);
-	LPCSTR IConvName(int code);
-	int CodeSetNo(LPCSTR bank, LPCSTR code);
+	int CharSetNo(LPCTSTR name);
+	LPCTSTR CharSetName(int code);
+	LPCTSTR IConvName(int code);
+	int CodeSetNo(LPCTSTR bank, LPCTSTR code);
 	void CodeSetName(int num, CString &bank, CString &code);
 
 	CFontParaDlg(CWnd* pParent = NULL);   // 標準のコンストラクタ
