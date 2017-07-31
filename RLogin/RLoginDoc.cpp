@@ -110,6 +110,7 @@ BOOL CRLoginDoc::OnNewDocument()
 		return FALSE;
 
 	m_LoadMode = (m_ServerEntry.m_SaveFlag ? 0 : 2);
+	m_ServerEntry.m_SaveFlag = FALSE;
 
 	m_TextRam.Serialize(FALSE, m_ServerEntry.m_ProBuffer);
 	m_KeyTab.Serialize(FALSE, m_ServerEntry.m_ProBuffer);
@@ -127,6 +128,8 @@ BOOL CRLoginDoc::OnNewDocument()
 		m_pScript->ExecFile(m_ServerEntry.m_ScriptFile);
 	if ( m_TextRam.IsOptEnable(TO_RLSCRDEBUG) )
 		m_pScript->OpenDebug(m_ServerEntry.m_EntryName);
+
+	SetCmdInfo(((CRLoginApp *)AfxGetApp())->m_pCmdInfo);
 
 	if ( !m_pScript->m_bOpenSock && !SocketOpen() )
 		return FALSE;
@@ -152,6 +155,8 @@ BOOL CRLoginDoc::OnOpenDocument(LPCTSTR lpszPathName)
 			m_pScript->ExecFile(m_ServerEntry.m_ScriptFile);
 		if ( m_TextRam.IsOptEnable(TO_RLSCRDEBUG) )
 			m_pScript->OpenDebug(m_ServerEntry.m_EntryName);
+
+		SetCmdInfo(((CRLoginApp *)AfxGetApp())->m_pCmdInfo);
 
 		if ( !m_pScript->m_bOpenSock && !SocketOpen() )
 			return FALSE;
@@ -224,6 +229,29 @@ void CRLoginDoc::Dump(CDumpContext& dc) const
 /////////////////////////////////////////////////////////////////////////////
 // CRLoginDoc ƒRƒ}ƒ“ƒh
 
+void CRLoginDoc::SetCmdInfo(CCommandLineInfoEx *pCmdInfo)
+{
+	if ( pCmdInfo == NULL )
+		return;
+
+	if ( pCmdInfo->m_Proto != (-1) )
+		m_ServerEntry.m_ProtoType = pCmdInfo->m_Proto;
+
+	if ( !pCmdInfo->m_Addr.IsEmpty() )
+		m_ServerEntry.m_HostReal = m_ServerEntry.m_HostName = pCmdInfo->m_Addr;
+
+	if ( !pCmdInfo->m_Port.IsEmpty() )
+		m_ServerEntry.m_PortName = pCmdInfo->m_Port;
+
+	if ( !pCmdInfo->m_User.IsEmpty() )
+		m_ServerEntry.m_UserReal = m_ServerEntry.m_UserName = pCmdInfo->m_User;
+
+	if ( !pCmdInfo->m_Pass.IsEmpty() )
+		m_ServerEntry.m_PassReal = m_ServerEntry.m_PassName = pCmdInfo->m_Pass;
+
+	if ( !pCmdInfo->m_Term.IsEmpty() )
+		m_ServerEntry.m_TermName = pCmdInfo->m_Term;
+}
 void CRLoginDoc::SetEntryProBuffer()
 {
 	m_ServerEntry.m_ProBuffer.Clear();
@@ -730,25 +758,9 @@ int CRLoginDoc::SocketOpen()
 	int num;
 	CPassDlg dlg;
 	CString proxy[3];
-	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
 
 	if ( InternetAttemptConnect(0) != ERROR_SUCCESS )
 		return FALSE;
-
-	if ( pApp->m_pCmdInfo != NULL ) {
-		if ( pApp->m_pCmdInfo->m_Proto != (-1) )
-			m_ServerEntry.m_ProtoType = pApp->m_pCmdInfo->m_Proto;
-		if ( !pApp->m_pCmdInfo->m_Addr.IsEmpty() )
-			m_ServerEntry.m_HostReal = m_ServerEntry.m_HostName = pApp->m_pCmdInfo->m_Addr;
-		if ( !pApp->m_pCmdInfo->m_Port.IsEmpty() )
-			m_ServerEntry.m_PortName = pApp->m_pCmdInfo->m_Port;
-		if ( !pApp->m_pCmdInfo->m_User.IsEmpty() )
-			m_ServerEntry.m_UserReal = m_ServerEntry.m_UserName = pApp->m_pCmdInfo->m_User;
-		if ( !pApp->m_pCmdInfo->m_Pass.IsEmpty() )
-			m_ServerEntry.m_PassReal = m_ServerEntry.m_PassName = pApp->m_pCmdInfo->m_Pass;
-		if ( !pApp->m_pCmdInfo->m_Term.IsEmpty() )
-			m_ServerEntry.m_TermName = pApp->m_pCmdInfo->m_Term;
-	}
 
 	num = CExtSocket::GetPortNum(m_ServerEntry.m_PortName);
 
@@ -935,6 +947,8 @@ void CRLoginDoc::OnLoadDefault()
 		SetModifiedFlag(TRUE);
 	else if ( m_LoadMode == 2 )
 		m_pMainWnd->m_ModifiedFlag = TRUE;
+	else
+		m_ServerEntry.m_SaveFlag = TRUE;
 
 	UpdateAllViews(NULL, UPDATE_INITPARA, NULL);
 }
@@ -962,6 +976,8 @@ void CRLoginDoc::OnSetOption()
 		SetModifiedFlag(TRUE);
 	else if ( m_LoadMode == 2 )
 		m_pMainWnd->m_ModifiedFlag = TRUE;
+	else
+		m_ServerEntry.m_SaveFlag = TRUE;
 
 	UpdateAllViews(NULL, UPDATE_INITPARA, NULL);
 }
@@ -1119,12 +1135,14 @@ void CRLoginDoc::OnTekdisp()
 {
 	if ( m_TextRam.m_pTekWnd == NULL )
 		m_TextRam.TekInit(0);
+	else if ( !m_TextRam.m_pTekWnd->IsWindowVisible() )
+		m_TextRam.TekInit(0);
 	else
 		m_TextRam.TekClose();
 }
 void CRLoginDoc::OnUpdateTekdisp(CCmdUI *pCmdUI)
 {
-	pCmdUI->SetCheck(m_TextRam.m_pTekWnd != NULL ? TRUE : FALSE);
+	pCmdUI->SetCheck(m_TextRam.m_pTekWnd != NULL && m_TextRam.m_pTekWnd->IsWindowVisible() ? TRUE : FALSE);
 }
 
 CWnd *CRLoginDoc::GetAciveView()

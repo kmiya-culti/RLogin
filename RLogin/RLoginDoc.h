@@ -26,6 +26,7 @@
 #define	UPDATE_INITSIZE		7
 #define	UPDATE_SETCURSOR	8
 #define	UPDATE_TYPECARET	9
+#define	UPDATE_TEKFLUSH		10
 
 #define	CARET_MOVE			0
 #define	CARET_CREATE		1
@@ -108,6 +109,7 @@ public:
 
 	void SetStatus(LPCTSTR str);
 	void SetEntryProBuffer();
+	void SetCmdInfo(CCommandLineInfoEx *pCmdInfo);
 
 	void DoDropFile();
 	CWnd *GetAciveView();

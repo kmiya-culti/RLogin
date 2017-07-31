@@ -93,6 +93,7 @@ static const struct _OptListTab {
 	{	TO_IMECTRL,		_T("IMEオープン"),					_T("IMEクロース")					},
 	{	TO_RLCKMESC,	_T("7727 ESCキーのCKM有効"),		_T("ESCキーのCKM無効")				},
 //	{	TO_RLMSWAPE,	_T("7786 ホイールのキー変換"),		_T("ホイールの通常動作")			},
+	{	TO_RLTEKINWND,	_T("Tekをコンソールで表示"),		_T("Tekコンソールを無効")			},
 
 	{	0,				NULL,								NULL							}
 };

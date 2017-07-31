@@ -172,6 +172,7 @@
 #define	TO_RLMSWAPE		443			// ホイールのキー変換強制		7786  -  マウスホイール - カーソルキー変換を有効にする。
 #define	TO_RLTENLM		444			// TELNET LINEMODE を禁止する
 #define	TO_RLSCRDEBUG	445			// スクリプトデバックを行う
+#define	TO_RLTEKINWND	446			// Tekウィンドウをビューで描く
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 

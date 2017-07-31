@@ -3528,6 +3528,7 @@ void CTextRam::MouseReport(int md, int sw, int x, int y)
 			stat = m_MouseMode[1];
 		else
 			stat = 0x03;	// Release
+		stat |= 0x20;		// Motion
 		break;
 
 	default:

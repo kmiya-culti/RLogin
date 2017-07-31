@@ -195,6 +195,12 @@ void CRLoginView::OnDraw(CDC* pDC)
 	if ( pDoc->m_TextRam.IsInitText() )
 		pDoc->m_TextRam.DrawVram(pDC, sx, sy, ex, ey, this);
 
+	if ( pDoc->m_TextRam.IsOptEnable(TO_RLTEKINWND) ) {
+		CRect rect;
+		GetClientRect(rect);
+		pDoc->m_TextRam.TekDraw(pDC, rect);
+	}
+
 #ifdef	USE_DIRECTWRITE
 	if ( m_pRenderTarget != NULL ) {
 		m_pRenderTarget->BeginDraw();
@@ -657,7 +663,11 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 	ASSERT(pDoc);
 	ASSERT(pFrame);
 
-	if ( lHint == UPDATE_VISUALBELL ) {
+	if ( lHint == UPDATE_TEKFLUSH ) {
+		if ( pDoc->m_TextRam.IsOptEnable(TO_RLTEKINWND) )
+			Invalidate(FALSE);
+		return;
+	} else if ( lHint == UPDATE_VISUALBELL ) {
 		if ( !m_VisualBellFlag ) {
 			SetTimer(1025, 50, NULL);
 			m_VisualBellFlag = TRUE;

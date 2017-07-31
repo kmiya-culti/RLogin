@@ -52,6 +52,8 @@ void CTekWnd::PostNcDestroy()
 BOOL CTekWnd::PreCreateWindow(CREATESTRUCT& cs)
 {
 	cs.hMenu = ::LoadMenu(cs.hInstance, MAKEINTRESOURCE(IDR_TEKWND));
+	cs.x = CW_USEDEFAULT;
+	cs.y = CW_USEDEFAULT;
 	cs.cx = AfxGetApp()->GetProfileInt(_T("TekWnd"), _T("cx"), 640);
 	cs.cy = AfxGetApp()->GetProfileInt(_T("TekWnd"), _T("cy"), 480 + 60);
 

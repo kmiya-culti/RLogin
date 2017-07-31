@@ -20,11 +20,9 @@ public:
 	virtual ~CTekWnd();
 
 protected:
-	DECLARE_MESSAGE_MAP()
-
-protected:
 	virtual void PostNcDestroy();
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
 
 public:
 	afx_msg void OnPaint();
@@ -34,11 +32,11 @@ public:
 	afx_msg void OnTekClear();
 	afx_msg void OnTekMode();
 	afx_msg void OnUpdateTekMode(CCmdUI *pCmdUI);
-	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnRButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
+	DECLARE_MESSAGE_MAP()
 };
 
 
