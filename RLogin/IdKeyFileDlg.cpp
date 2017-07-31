@@ -48,6 +48,7 @@ BOOL CIdKeyFileDlg::OnInitDialog()
 	SetWindowText(m_Title);
 	switch(m_OpenMode) {
 	case 1:
+	case 2:
 		if ( (pWnd = GetDlgItem(IDC_PASSNAME2)) != NULL )
 			pWnd->EnableWindow(FALSE);
 		break;
@@ -77,7 +78,7 @@ void CIdKeyFileDlg::OnIdkeysel()
 void CIdKeyFileDlg::OnOK() 
 {
 	UpdateData(TRUE);
-	if ( m_OpenMode != 1 && m_PassName.Compare(m_PassName2) != 0 ) {
+	if ( m_OpenMode == 3 && m_PassName.Compare(m_PassName2) != 0 ) {
 		MessageBox(CStringLoad(IDE_PASSWORDNOMATCH));
 		return;
 	}

@@ -54,18 +54,28 @@ int	BinaryFind(void *ptr, void *tab, int size, int max, int (* func)(const void 
 
 CBuffer::CBuffer(int size)
 {
+	if ( size < 0 ) {
+		m_bZero = TRUE;
+		size = 32;
+	} else
+		m_bZero = FALSE;
+
 	m_Ofs = m_Len = 0;
 	m_Max = size;
 	m_Data = new BYTE[m_Max];
 }
 CBuffer::CBuffer()
 {
+	m_bZero = FALSE;
 	m_Ofs = m_Len = 0;
 	m_Max = 32;
 	m_Data = new BYTE[m_Max];
 }
 CBuffer::~CBuffer()
 {
+	if ( m_bZero )
+		ZeroMemory(m_Data, m_Max);
+
 	delete m_Data;
 }
 void CBuffer::Consume(int len)
@@ -76,6 +86,8 @@ void CBuffer::Consume(int len)
 }
 void CBuffer::ReAlloc(int len)
 {
+	int oldMax = m_Max;
+
 	if ( (len += m_Len) <= m_Max )
 		return;
 	else if ( (len -= m_Ofs) <= m_Max ) {
@@ -91,6 +103,9 @@ void CBuffer::ReAlloc(int len)
 	if ( (m_Len -= m_Ofs) > 0 )
 		memcpy(tmp, m_Data + m_Ofs, m_Len);
 	m_Ofs = 0;
+
+	if ( m_bZero )
+		ZeroMemory(m_Data, oldMax);
 
 	delete m_Data;
 	m_Data = tmp;
@@ -108,6 +123,34 @@ void CBuffer::RoundUp(int len)
 	int n = len - (GetSize() % len);
 	while ( n-- > 0 )
 		Put8Bit(0);
+}
+
+void CBuffer::SetMbsStr(LPCTSTR str)
+{
+    CStringA tmp;
+
+	while ( *str != _T('\0') ) {
+		tmp = *(str++);
+		*this += tmp;
+	}
+}
+LPCSTR CBuffer::operator += (LPCSTR str)
+{
+	int len = strlen(str);
+
+	ReAlloc(len + sizeof(CHAR));
+	memcpy(m_Data + m_Len, str, len);
+	m_Len += len;
+	return *this;
+}
+LPCWSTR CBuffer::operator += (LPCWSTR str)
+{
+	int len = wcslen(str) * sizeof(WCHAR);
+
+	ReAlloc(len + sizeof(WCHAR));
+	memcpy(m_Data + m_Len, str, len);
+	m_Len += len;
+	return *this;
 }
 LPBYTE CBuffer::PutSpc(int len)
 {
@@ -3037,7 +3080,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	78
+#define	CMDSKEYTABMAX	79
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -3105,6 +3148,7 @@ static const struct _CmdsKeyTab {
 	{	ID_SPLIT_HEIGHT,		L"$SPLIT_HEIGHT"	},
 	{	ID_SPLIT_OVER,			L"$SPLIT_OVER"		},
 	{	ID_SPLIT_WIDTH,			L"$SPLIT_WIDTH"		},
+	{	IDM_IMAGEDISP,			L"$VIEW_IMAGEDISP"	},
 	{	ID_VIEW_MENUBAR,		L"$VIEW_MENUBAR"	},
 	{	ID_VIEW_SCROLLBAR,		L"$VIEW_SCROLLBAR"	},
 	{	IDM_SFTP,				L"$VIEW_SFTP"		},
@@ -3654,131 +3698,97 @@ void CKeyMacTab::SetHisMenu(CWnd *pWnd)
 //////////////////////////////////////////////////////////////////////
 // CParamTab
 
-static LPCTSTR InitAlgo[12][50] = {
-	{	_T("blowfish"),						_T("3des"),							_T("des"),
-		NULL },
-	{	_T("crc32"),
-		NULL },
-	{	_T("zlib"),							_T("none"),
-		NULL },
-
-	{	_T("aes128-ctr"),					_T("aes192-ctr"),					_T("aes256-ctr"),
-		_T("aes128-cbc"),					_T("aes192-cbc"),					_T("aes256-cbc"),
-		_T("arcfour"),						_T("arcfour128"),					_T("arcfour256"),
-		_T("blowfish-ctr"),					_T("cast128-ctr"),					_T("idea-ctr"),
-		_T("twofish-ctr"),					_T("3des-ctr"),
-		_T("blowfish-cbc"),					_T("cast128-cbc"),					_T("idea-cbc"),
-		_T("twofish-cbc"),					_T("3des-cbc"),
-		_T("twofish128-ctr"),				_T("twofish192-ctr"),				_T("twofish256-ctr"),
-		_T("twofish128-cbc"),				_T("twofish192-cbc"),				_T("twofish256-cbc"),
-		_T("serpent128-ctr"),				_T("serpent192-ctr"),				_T("serpent256-ctr"),
-		_T("serpent128-cbc"),				_T("serpent192-cbc"),				_T("serpent256-cbc"),
-		_T("camellia128-ctr"),				_T("camellia192-ctr"),				_T("camellia256-ctr"),
-		_T("camellia128-cbc"),				_T("camellia192-cbc"),				_T("camellia256-cbc"),
-		_T("seed-ctr@ssh.com"),				_T("seed-cbc@ssh.com"),
+#if	OPENSSL_VERSION_NUMBER >= 0x10001000L
+#define	META_AEAD_STRING	_T("AEAD_AES_128_GCM,AEAD_AES_192_GCM,AEAD_AES_256_GCM,") \
+							_T("aes128-gcm@openssh.com,aes256-gcm@openssh.com,")
+#else
+#define	META_AEAD_STRING	_T("")
+#endif
 
 #ifdef	USE_CLEFIA
-		_T("clefia128-ctr"),				_T("clefia192-ctr"),				_T("clefia256-ctr"),
-		_T("clefia128-cbc"),				_T("clefia192-cbc"),				_T("clefia256-cbc"),
+#define	META_CLEFIA_STRING	_T("clefia128-ctr,clefia192-ctr,clefia256-ctr,") \
+							_T("clefia128-cbc,clefia192-cbc,clefia256-cbc,")
+#else
+#define	META_CLEFIA_STRING	_T("")
 #endif
 
-#if	OPENSSL_VERSION_NUMBER >= 0x10001000L
-		_T("AEAD_AES_128_GCM"),				_T("AEAD_AES_192_GCM"),				_T("AEAD_AES_256_GCM"),
-		_T("aes128-gcm@openssh.com"),		_T("aes256-gcm@openssh.com"),
-#endif
-		_T("none"),
-		NULL },
+static LPCTSTR InitAlgo[12]= {
+	_T("blowfish,3des,des"),
+	_T("crc32"),
+	_T("zlib,none"),
 
-	{	_T("hmac-md5-etm@openssh.com"),
-		_T("hmac-sha1-etm@openssh.com"),
-		_T("hmac-sha2-256-etm@openssh.com"),
-		_T("hmac-sha2-512-etm@openssh.com"),
+	_T("aes128-ctr,aes192-ctr,aes256-ctr,") \
+	_T("camellia128-ctr,camellia192-ctr,camellia256-ctr,") \
+	_T("twofish128-ctr,twofish192-ctr,twofish256-ctr,") \
+	_T("serpent128-ctr,serpent192-ctr,serpent256-ctr,") \
+	_T("blowfish-ctr,cast128-ctr,idea-ctr,") \
+	_T("twofish-ctr,seed-ctr@ssh.com,3des-ctr,") \
+	_T("chacha20-poly1305@openssh.com,") \
+	META_AEAD_STRING \
+	_T("arcfour,arcfour128,arcfour256,") \
+	_T("aes128-cbc,aes192-cbc,aes256-cbc,") \
+	_T("camellia128-cbc,camellia192-cbc,camellia256-cbc,") \
+	_T("twofish128-cbc,twofish192-cbc,twofish256-cbc,") \
+	_T("serpent128-cbc,serpent192-cbc,serpent256-cbc,") \
+	_T("blowfish-cbc,cast128-cbc,idea-cbc,") \
+	_T("twofish-cbc,seed-cbc@ssh.com,3des-cbc,") \
+	META_CLEFIA_STRING \
+	_T("none"),
 
-		_T("hmac-md5"),						_T("hmac-md5-96"),
-		_T("hmac-sha1"),					_T("hmac-sha1-96"),
-		_T("hmac-sha2-256"),				_T("hmac-sha2-256-96"),
-		_T("hmac-sha2-512"),				_T("hmac-sha2-512-96"),
-		_T("hmac-ripemd160"),				_T("hmac-whirlpool"),
+	_T("hmac-md5-etm@openssh.com,hmac-sha1-etm@openssh.com,") \
+	_T("hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com,") \
+	_T("hmac-md5,hmac-md5-96,hmac-sha1,hmac-sha1-96,") \
+	_T("hmac-sha2-256,hmac-sha2-256-96,hmac-sha2-512,hmac-sha2-512-96,") \
+	_T("hmac-ripemd160,hmac-whirlpool,") \
+	_T("umac-64-etm@openssh.com,umac-128-etm@openssh.com,") \
+	_T("umac-64@openssh.com,umac-128@openssh.com,") \
+	_T("umac-32,umac-64,umac-96,umac-128,") \
+	META_AEAD_STRING \
+	_T("chacha20-poly1305@openssh.com"),
 
-		_T("umac-64-etm@openssh.com"),		_T("umac-128-etm@openssh.com"),
-		_T("umac-64@openssh.com"),			_T("umac-128@openssh.com"),
-		_T("umac-32"),						_T("umac-64"),
-		_T("umac-96"),						_T("umac-128"),
+	_T("zlib@openssh.com,zlib,none"),
 
-#if	OPENSSL_VERSION_NUMBER >= 0x10001000L
-		_T("AEAD_AES_128_GCM"),				_T("AEAD_AES_192_GCM"),				_T("AEAD_AES_256_GCM"),
-		_T("aes128-gcm@openssh.com"),		_T("aes256-gcm@openssh.com"),
-#endif
-		NULL },
+	_T("aes128-ctr,aes192-ctr,aes256-ctr,") \
+	_T("camellia128-ctr,camellia192-ctr,camellia256-ctr,") \
+	_T("twofish128-ctr,twofish192-ctr,twofish256-ctr,") \
+	_T("serpent128-ctr,serpent192-ctr,serpent256-ctr,") \
+	_T("blowfish-ctr,cast128-ctr,idea-ctr,") \
+	_T("twofish-ctr,seed-ctr@ssh.com,3des-ctr,") \
+	_T("chacha20-poly1305@openssh.com,") \
+	META_AEAD_STRING \
+	_T("arcfour,arcfour128,arcfour256,") \
+	_T("aes128-cbc,aes192-cbc,aes256-cbc,") \
+	_T("camellia128-cbc,camellia192-cbc,camellia256-cbc,") \
+	_T("twofish128-cbc,twofish192-cbc,twofish256-cbc,") \
+	_T("serpent128-cbc,serpent192-cbc,serpent256-cbc,") \
+	_T("blowfish-cbc,cast128-cbc,idea-cbc,") \
+	_T("twofish-cbc,seed-cbc@ssh.com,3des-cbc,") \
+	META_CLEFIA_STRING \
+	_T("none"),
 
-	{	_T("zlib@openssh.com"),				_T("zlib"),							_T("none"),
-		NULL },
+	_T("hmac-md5-etm@openssh.com,hmac-sha1-etm@openssh.com,") \
+	_T("hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com,") \
+	_T("hmac-md5,hmac-md5-96,hmac-sha1,hmac-sha1-96,") \
+	_T("hmac-sha2-256,hmac-sha2-256-96,hmac-sha2-512,hmac-sha2-512-96,") \
+	_T("hmac-ripemd160,hmac-whirlpool,") \
+	_T("umac-64-etm@openssh.com,umac-128-etm@openssh.com,") \
+	_T("umac-64@openssh.com,umac-128@openssh.com,") \
+	_T("umac-32,umac-64,umac-96,umac-128,") \
+	META_AEAD_STRING \
+	_T("chacha20-poly1305@openssh.com"),
 
-	{	_T("aes128-ctr"),					_T("aes192-ctr"),					_T("aes256-ctr"),
-		_T("aes128-cbc"),					_T("aes192-cbc"),					_T("aes256-cbc"),
-		_T("arcfour"),						_T("arcfour128"),					_T("arcfour256"),
-		_T("blowfish-ctr"),					_T("cast128-ctr"),					_T("idea-ctr"),
-		_T("twofish-ctr"),					_T("3des-ctr"),
-		_T("blowfish-cbc"),					_T("cast128-cbc"),					_T("idea-cbc"),
-		_T("twofish-cbc"),					_T("3des-cbc"),
-		_T("twofish128-ctr"),				_T("twofish192-ctr"),				_T("twofish256-ctr"),
-		_T("twofish128-cbc"),				_T("twofish192-cbc"),				_T("twofish256-cbc"),
-		_T("serpent128-ctr"),				_T("serpent192-ctr"),				_T("serpent256-ctr"),
-		_T("serpent128-cbc"),				_T("serpent192-cbc"),				_T("serpent256-cbc"),
-		_T("camellia128-ctr"),				_T("camellia192-ctr"),				_T("camellia256-ctr"),
-		_T("camellia128-cbc"),				_T("camellia192-cbc"),				_T("camellia256-cbc"),
-		_T("seed-ctr@ssh.com"),				_T("seed-cbc@ssh.com"),
+	_T("zlib@openssh.com,zlib,none"),
 
-#ifdef	USE_CLEFIA
-		_T("clefia128-ctr"),				_T("clefia192-ctr"),				_T("clefia256-ctr"),
-		_T("clefia128-cbc"),				_T("clefia192-cbc"),				_T("clefia256-cbc"),
-#endif
+	_T("curve25519-sha256@libssh.org,") \
+	_T("ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,") \
+	_T("diffie-hellman-group-exchange-sha256,diffie-hellman-group-exchange-sha1,") \
+	_T("diffie-hellman-group14-sha1,diffie-hellman-group1-sha1"),
 
-#if	OPENSSL_VERSION_NUMBER >= 0x10001000L
-		_T("AEAD_AES_128_GCM"),				_T("AEAD_AES_192_GCM"),				_T("AEAD_AES_256_GCM"),
-		_T("aes128-gcm@openssh.com"),		_T("aes256-gcm@openssh.com"),
-#endif
-		_T("none"),
-		NULL },
+	_T("ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,ssh-dss,ssh-rsa,") \
+	_T("ecdsa-sha2-nistp256-cert-v01@openssh.com,ecdsa-sha2-nistp384-cert-v01@openssh.com,ecdsa-sha2-nistp521-cert-v01@openssh.com,ssh-dss-cert-v01@openssh.com,ssh-rsa-cert-v01@openssh.com,") \
+	_T("ecdsa-sha2-nistp256-cert-v00@openssh.com,ecdsa-sha2-nistp384-cert-v00@openssh.com,ecdsa-sha2-nistp521-cert-v00@openssh.com,ssh-dss-cert-v00@openssh.com,ssh-rsa-cert-v00@openssh.com"),
 
-	{	_T("hmac-md5-etm@openssh.com"),
-		_T("hmac-sha1-etm@openssh.com"),
-		_T("hmac-sha2-256-etm@openssh.com"),
-		_T("hmac-sha2-512-etm@openssh.com"),
-
-		_T("hmac-md5"),						_T("hmac-md5-96"),
-		_T("hmac-sha1"),					_T("hmac-sha1-96"),
-		_T("hmac-sha2-256"),				_T("hmac-sha2-256-96"),
-		_T("hmac-sha2-512"),				_T("hmac-sha2-512-96"),
-		_T("hmac-ripemd160"),				_T("hmac-whirlpool"),
-
-		_T("umac-64-etm@openssh.com"),		_T("umac-128-etm@openssh.com"),
-		_T("umac-64@openssh.com"),			_T("umac-128@openssh.com"),
-		_T("umac-32"),						_T("umac-64"),
-		_T("umac-96"),						_T("umac-128"),
-
-#if	OPENSSL_VERSION_NUMBER >= 0x10001000L
-		_T("AEAD_AES_128_GCM"),				_T("AEAD_AES_192_GCM"),				_T("AEAD_AES_256_GCM"),
-		_T("aes128-gcm@openssh.com"),		_T("aes256-gcm@openssh.com"),
-#endif
-		NULL },
-
-	{	_T("zlib@openssh.com"),				_T("zlib"),							_T("none"), 
-		NULL },
-
-	{	_T("ecdh-sha2-nistp256"),			_T("ecdh-sha2-nistp384"),			_T("ecdh-sha2-nistp521"),
-		_T("diffie-hellman-group-exchange-sha256"),
-		_T("diffie-hellman-group-exchange-sha1"),
-		_T("diffie-hellman-group14-sha1"),	_T("diffie-hellman-group1-sha1"),
-		NULL },
-
-	{	_T("ecdsa-sha2-nistp256"),			_T("ecdsa-sha2-nistp384"),			_T("ecdsa-sha2-nistp521"),
-		_T("ssh-dss"),						_T("ssh-rsa"),
-		NULL },
-
-	{	_T("publickey"),					_T("hostbased"),
-		_T("password"),						_T("keyboard-interactive"),
-		NULL },
+	_T("publickey,hostbased,password,keyboard-interactive"),
 };
 
 CParamTab::CParamTab()
@@ -3794,11 +3804,8 @@ void CParamTab::Init()
 	for ( n = 0 ; n < 9 ; n++ )
 		m_IdKeyStr[n] = _T("");
 
-	for ( n = 0 ; n < 12 ; n++ ) {
-		m_AlgoTab[n].RemoveAll();
-		for ( i = 0 ; InitAlgo[n][i] != NULL ; i++ )
-			m_AlgoTab[n].Add(InitAlgo[n][i]);
-	}
+	for ( n = 0 ; n < 12 ; n++ )
+		m_AlgoTab[n].GetString(InitAlgo[n], _T(','));
 
 	m_PortFwd.RemoveAll();
 
@@ -3860,10 +3867,11 @@ void CParamTab::GetArray(CStringArrayExt &stra)
 		stra.GetArray(i++, m_AlgoTab[n]);
 
 		idx.RemoveAll();
-		for ( a = 0 ; InitAlgo[n][a] != NULL ; a++ ) {
-			if ( m_AlgoTab[n].Find(InitAlgo[n][a]) < 0 )
-				m_AlgoTab[n].Add(InitAlgo[n][a]);
-			idx[InitAlgo[n][a]] = a;
+		list.GetString(InitAlgo[n], _T(','));
+		for ( a = 0 ; a < list.GetSize() ; a++ ) {
+			if ( m_AlgoTab[n].Find(list[a]) < 0 )
+				m_AlgoTab[n].Add(list[a]);
+			idx[list[a]] = a;
 		}
 		for ( a = 0 ; a < m_AlgoTab[n].GetSize() ; a++ ) {
 			if ( idx[m_AlgoTab[n][a]] < 0 ) {
@@ -3910,10 +3918,11 @@ void CParamTab::GetArray(CStringArrayExt &stra)
 		stra.GetArray(i++, m_AlgoTab[n]);
 
 		idx.RemoveAll();
-		for ( a = 0 ; InitAlgo[n][a] != NULL ; a++ ) {
-			if ( m_AlgoTab[n].Find(InitAlgo[n][a]) < 0 )
-				m_AlgoTab[n].Add(InitAlgo[n][a]);
-			idx[InitAlgo[n][a]] = a;
+		list.GetString(InitAlgo[n], _T(','));
+		for ( a = 0 ; a < list.GetSize() ; a++ ) {
+			if ( m_AlgoTab[n].Find(list[a]) < 0 )
+				m_AlgoTab[n].Add(list[a]);
+			idx[list[a]] = a;
 		}
 		for ( a = 0 ; a < m_AlgoTab[n].GetSize() ; a++ ) {
 			if ( idx[m_AlgoTab[n][a]] < 0 ) {

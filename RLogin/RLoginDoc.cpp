@@ -60,6 +60,8 @@ BEGIN_MESSAGE_MAP(CRLoginDoc, CDocument)
 	ON_UPDATE_COMMAND_UI(IDM_SCRIPT, &CRLoginDoc::OnUpdateScript)
 	ON_COMMAND_RANGE(IDM_SCRIPT_MENU1, IDM_SCRIPT_MENU10, OnScriptMenu)
 	ON_COMMAND(ID_FILE_CLOSE, &CRLoginDoc::OnFileClose)
+	ON_COMMAND(IDM_IMAGEDISP, &CRLoginDoc::OnImagedisp)
+	ON_UPDATE_COMMAND_UI(IDM_IMAGEDISP, &CRLoginDoc::OnUpdateImagedisp)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1215,6 +1217,24 @@ void CRLoginDoc::OnTekdisp()
 void CRLoginDoc::OnUpdateTekdisp(CCmdUI *pCmdUI)
 {
 	pCmdUI->SetCheck(m_TextRam.m_pTekWnd != NULL && m_TextRam.m_pTekWnd->IsWindowVisible() ? TRUE : FALSE);
+}
+void CRLoginDoc::OnImagedisp()
+{
+	CRLoginView *pView;
+
+	if ( (pView = (CRLoginView *)GetAciveView()) == NULL )
+		return;
+
+	if ( m_TextRam.m_pImageWnd == NULL )
+		pView->CreateGrapImage(0);
+	else if ( m_TextRam.m_pImageWnd->IsWindowVisible() )
+		pView->CreateGrapImage(0);
+	else
+		m_TextRam.m_pImageWnd->ShowWindow(SW_SHOW);
+}
+void CRLoginDoc::OnUpdateImagedisp(CCmdUI *pCmdUI)
+{
+	pCmdUI->SetCheck(m_TextRam.m_pImageWnd != NULL ? TRUE : FALSE);
 }
 
 CWnd *CRLoginDoc::GetAciveView()

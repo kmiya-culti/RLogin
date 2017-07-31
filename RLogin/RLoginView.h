@@ -96,6 +96,7 @@ public:
 	void SendBuffer(CBuffer &buf, BOOL macflag = FALSE);
 	void SetGhostWnd(BOOL sw);
 	BOOL ModifyKeys(UINT nChar, int nStat);
+	void CreateGrapImage(int type);
 
 	inline int CalcGrapX(int x) { CRLoginDoc *pDoc = GetDocument(); return (m_Width  * x / m_Cols  + pDoc->m_TextRam.m_ScrnOffset.left); }
 	inline int CalcGrapY(int y) { return (m_Height * y / m_Lines); }

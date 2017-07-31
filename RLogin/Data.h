@@ -27,6 +27,7 @@ public:
 	int m_Ofs;
 	int m_Len;
 	LPBYTE m_Data;
+	BOOL m_bZero;
 
 	void ReAlloc(int len);
 	inline int GetSize() { return (m_Len - m_Ofs); }
@@ -86,10 +87,15 @@ public:
 	void QuotedEncode(LPBYTE buf, int len);
 	void md5(LPCTSTR str);
 
-	const CBuffer & operator = (CBuffer &data) { Clear(); Apend(data.GetPtr(), data.GetSize()); return *this; }
-	operator LPCSTR() { if ( m_Max <= m_Len) ReAlloc(1); m_Data[m_Len] = 0; return (LPCSTR)GetPtr(); }
-	operator LPCWSTR() { if ( m_Max <= (m_Len + 1) ) ReAlloc(2); m_Data[m_Len] = 0; m_Data[m_Len + 1] = 0; return (LPCWSTR)GetPtr(); }
-	operator const DWORD *() { if ( m_Max <= (m_Len + 1) ) ReAlloc(4); m_Data[m_Len] = 0; m_Data[m_Len + 1] = 0; m_Data[m_Len + 2] = 0; m_Data[m_Len + 3] = 0; return (const DWORD *)GetPtr(); }
+	void SetMbsStr(LPCTSTR str);
+	LPCSTR operator += (LPCSTR str);
+	LPCWSTR operator += (LPCWSTR str);
+	inline LPCSTR operator = (LPCSTR str) { Clear(); *this += str; return *this; }
+	inline LPCWSTR operator = (LPCWSTR str) { Clear(); *this += str; return *this; }
+	inline const CBuffer & operator = (CBuffer &data) { Clear(); Apend(data.GetPtr(), data.GetSize()); return *this; }
+	inline operator LPCSTR() { if ( m_Max <= m_Len) ReAlloc(1); m_Data[m_Len] = 0; return (LPCSTR)GetPtr(); }
+	inline operator LPCWSTR() { if ( m_Max <= (m_Len + 1) ) ReAlloc(2); m_Data[m_Len] = 0; m_Data[m_Len + 1] = 0; return (LPCWSTR)GetPtr(); }
+	inline operator const DWORD *() { if ( m_Max <= (m_Len + 1) ) ReAlloc(4); m_Data[m_Len] = 0; m_Data[m_Len + 1] = 0; m_Data[m_Len + 2] = 0; m_Data[m_Len + 3] = 0; return (const DWORD *)GetPtr(); }
 
 #ifdef	_DEBUGXXX
 	void RepSet();

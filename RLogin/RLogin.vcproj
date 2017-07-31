@@ -974,6 +974,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\curve25519.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Data.cpp"
 				>
 			</File>

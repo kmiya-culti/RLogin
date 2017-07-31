@@ -14,6 +14,7 @@
 #include "Data.h"
 #include "IConv.h"
 #include "TekWnd.h"
+#include "GrapWnd.h"
 #include "GhostWnd.h"
 
 #define	COLS_MAX		512
@@ -186,7 +187,8 @@
 #define	TO_RLCURIMD		1452		// カーソルをIで表示
 #define TO_RLRSPAST		1453		// 右クリックだけでクリップボードからペーストする
 #define	TO_RLGWDIS		1454		// ゴーストウィンドウを表示しない
-#define	TO_RLMWDIS		1455		// リサイズメッセージを表示しない	
+#define	TO_RLMWDIS		1455		// リサイズメッセージを表示しない
+#define	TO_RLGRPIND		1456		// イメージをウィンドウ内で表示
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -461,6 +463,10 @@ public:
 	int m_FontWidth;
 	int m_FontHeight;
 	CBitmap m_FontMap;
+	int m_MapType;
+
+#define	FNT_BITMAP_MONO		1
+#define	FNT_BITMAP_COLOR	2
 
 	void SetHash(int num);
 	void Init();
@@ -746,6 +752,7 @@ public:
 	DWORD m_XtOptFlag;
 	CStringArray m_TitleStack;
 	CRect m_Margin;
+	class CGrapWnd *m_pImageWnd;
 	
 	// Window Fonction
 	BOOL IsInitText() { return (m_bOpen && m_VRam != NULL ? TRUE : FALSE); }
@@ -1184,6 +1191,7 @@ public:
 	void fc_XTMDKYD(int ch);
 	void fc_XTHDPT(int ch);
 	void fc_XTSMTT(int ch);
+	void fc_RLIMGCP(int ch);
 
 	// ESC PX^_] DCS/PM/APC/SOS/OSC
 	void fc_TimerSet(LPCTSTR name);

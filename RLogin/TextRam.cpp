@@ -368,6 +368,7 @@ void CFontNode::Init()
 		m_FontName[n] = _T("");
 		m_Hash[n]     = 0;
 	}
+	m_MapType     = 0;
 }
 void CFontNode::SetArray(CStringArrayExt &stra)
 {
@@ -476,12 +477,16 @@ void CFontNode::SetUserBitmap(int code, int width, int height, CBitmap *pMap, in
 	if ( !oDc.CreateCompatibleDC(NULL) || !nDc.CreateCompatibleDC(NULL) )
 		return;
 
+	if ( m_MapType != FNT_BITMAP_COLOR && m_UserFontMap.GetSafeHandle() != NULL )
+		m_UserFontMap.DeleteObject();
+
 	if ( m_UserFontMap.GetSafeHandle() == NULL ) {
 		if ( !m_UserFontMap.CreateBitmap(USFTWMAX * 96, USFTHMAX, info.bmPlanes, info.bmBitsPixel, NULL) ) {
 			oDc.DeleteDC();
 			nDc.DeleteDC();
 			return;
 		}
+		m_MapType = FNT_BITMAP_COLOR;
 		pOld[1] = nDc.SelectObject(&m_UserFontMap);
 		nDc.FillSolidRect(0, 0, USFTWMAX * 96, USFTHMAX, RGB(0, 0, 0));
 		memset(m_UserFontDef, 0, 96 / 8);
@@ -520,11 +525,15 @@ void CFontNode::SetUserFont(int code, int width, int height, LPBYTE map)
 	if ( !dc.CreateCompatibleDC(NULL) )
 		return;
 
+	if ( m_MapType != FNT_BITMAP_MONO && m_UserFontMap.GetSafeHandle() != NULL )
+		m_UserFontMap.DeleteObject();
+
 	if ( m_UserFontMap.GetSafeHandle() == NULL ) {
 		if ( !m_UserFontMap.CreateBitmap(USFTWMAX * 96, USFTHMAX, 1, 1, NULL) ) {
 			dc.DeleteDC();
 			return;
 		}
+		m_MapType = FNT_BITMAP_MONO;
 		pOld = dc.SelectObject(&m_UserFontMap);
 		dc.FillSolidRect(0, 0, USFTWMAX * 96, USFTHMAX, RGB(255, 255, 255));
 		memset(m_UserFontDef, 0, 96 / 8);
@@ -954,6 +963,7 @@ CTextRam::CTextRam()
 
 	m_Tek_Top = m_Tek_Free = NULL;
 	m_pTekWnd = NULL;
+	m_pImageWnd = NULL;
 
 	for ( int n = 0 ; n < MODKEY_MAX ; n++ )
 		m_DefModKey[n] = (-1);
@@ -999,6 +1009,9 @@ CTextRam::~CTextRam()
 
 	if ( m_pTekWnd != NULL )
 		m_pTekWnd->DestroyWindow();
+
+	if ( m_pImageWnd != NULL )
+		m_pImageWnd->DestroyWindow();
 
 	if ( m_pCanDlg != NULL )
 		m_pCanDlg->DestroyWindow();

@@ -203,8 +203,10 @@ RETRY:
 		ots = 4096;
 		xns = tns = (ins < 2048 ? ins : 2048);
         n = (int)iconv(cp->m_Cd, (char **)&inp, &tns, &otp, &ots);
-		if ( ots < 4096 )
+		if ( ots < 4096 ) {
 			out->Apend((LPBYTE)tmp, (int)(4096 - ots));
+			ZeroMemory(tmp, (4096 - ots));
+		}
 		in->Consume(xns - tns);
 	}
 

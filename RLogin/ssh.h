@@ -99,10 +99,14 @@
 #define SSH2_CIPHER_CLE256R		117		// clefia256-ctr 
 
 #define	SSH2_AEAD_TAGSIZE		16
-#define	SSH2_CIPHER_AEAD		200
+#define	SSH2_CIPHER_AEAD(n)		((n / 100) == 2)
 #define	SSH2_AEAD_AES128GCM		200		// AEAD_AES_128_GCM
 #define	SSH2_AEAD_AES192GCM		201		// AEAD_AES_192_GCM
 #define	SSH2_AEAD_AES256GCM		202		// AEAD_AES_256_GCM
+
+#define	SSH2_POLY1305_TAGSIZE	16
+#define	SSH2_CIPHER_POLY(n)		((n / 100) == 3)
+#define	SSH2_CHACHA20_POLY1305	300		// chacha20-poly1305@openssh.com
 
 #define	COMPLEVEL		6
 
@@ -111,6 +115,13 @@
 
 #define INTBLOB_LEN     20
 #define SIGBLOB_LEN     (2*INTBLOB_LEN)
+
+#define CURVE25519_SIZE 32
+
+#define	EVP_CTRL_POLY_IV_GEN	0x30
+#define	EVP_CTRL_POLY_SET_TAG	0x31
+#define	EVP_CTRL_POLY_GET_TAG	0x32
+#define	EVP_CTRL_POLY_GET_LEN	0x33
 
 class CCipher: public CObject
 {
@@ -122,11 +133,14 @@ public:
 
 	int Init(LPCTSTR name, int mode, LPBYTE key = NULL, int len = (-1), LPBYTE iv = NULL);
 	void Close();
+	int PolyIvGen(int seq);
+	int PolyGetLen(LPBYTE inbuf);
 	int Cipher(LPBYTE inbuf, int len, CBuffer *out);
 	int GetIndex(LPCTSTR name);
 	int GetKeyLen(LPCTSTR name = NULL);
 	int GetBlockSize(LPCTSTR name = NULL);
 	BOOL IsAEAD(LPCTSTR name = NULL);
+	BOOL IsPOLY(LPCTSTR name = NULL);
 	LPCTSTR GetName(int num);
 	int GetNum(LPCTSTR str);
 	LPCTSTR GetTitle();
@@ -189,6 +203,10 @@ public:
 #define	IDKEY_DSA2EX	0104
 #define	IDKEY_ECDSAEX	0140
 
+#define	IDKEY_CERTV00	0010
+#define	IDKEY_CERTV01	0020
+#define	IDKEY_CERT_MASK	0747
+
 #define	SSHFP_KEY_RESERVED	0
 #define	SSHFP_KEY_RSA		1
 #define	SSHFP_KEY_DSA		2
@@ -208,12 +226,14 @@ public:
 	CString m_Name;
 	CString m_Pass;
 	int m_Type;
+	int m_Cert;
 	RSA *m_Rsa;
 	DSA *m_Dsa;
 	BOOL m_Flag;
 	int	 m_EcNid;
 	EC_KEY *m_EcDsa;
 	CString m_Work;
+	CBuffer m_CertBlob;
 
 	int GetIndexNid(int nid);
 	int GetIndexName(LPCTSTR name);
@@ -228,6 +248,7 @@ public:
 	int Create(int type);
 	int Generate(int type, int bits);
 	int Close();
+	int ComperePublic(CIdKey *pKey);
 	int Compere(CIdKey *pKey);
 
 	void GetUserHostName(CString &str);
@@ -237,7 +258,7 @@ public:
 	void DecryptStr(CString &out, LPCTSTR str);
 	void EncryptStr(CString &out, LPCTSTR str);
 
-	LPCTSTR GetName();
+	LPCTSTR GetName(BOOL bCert = TRUE);
 	int GetTypeFromName(LPCTSTR name);
 	int HostVerify(LPCTSTR host);
 
@@ -271,6 +292,10 @@ public:
 
 	int LoadPrivateKey(LPCTSTR file, LPCTSTR pass);
 	int SavePrivateKey(int type, LPCTSTR file, LPCTSTR pass);
+
+	int ParseCertPublicKey(LPCTSTR str);
+	int LoadCertPublicKey(LPCTSTR file);
+	int SaveCertPublicKey(LPCTSTR file);
 
 	int GetString(LPCTSTR str);
 	void SetString(CString &str);
@@ -489,6 +514,7 @@ public:
 #define	DHMODE_ECDH_S2_N256	4
 #define	DHMODE_ECDH_S2_N384	5
 #define	DHMODE_ECDH_S2_N521	6
+#define DHMODE_CURVE25519	7
 
 #define	AUTH_MODE_NONE		0
 #define	AUTH_MODE_PUBLICKEY	1
@@ -606,6 +632,8 @@ private:
 	int m_EcdhCurveNid;
 	EC_KEY *m_EcdhClientKey;
 	const EC_GROUP *m_EcdhGroup;
+	BYTE m_CurveClientKey[CURVE25519_SIZE];
+	BYTE m_CurveClientPubkey[CURVE25519_SIZE];
 	int m_AuthStat;
 	int m_AuthMode;
 	CString m_AuthMeta;
@@ -632,6 +660,7 @@ private:
 	void SendMsgKexDhInit();
 	void SendMsgKexDhGexRequest();
 	int SendMsgKexEcdhInit();
+	void SendMsgKexCurveInit();
 
 	void SendMsgServiceRequest(LPCSTR str);
 	int SendMsgUserAuthRequest(LPCSTR str);
@@ -651,6 +680,7 @@ private:
 	int SSH2MsgKexDhGexGroup(CBuffer *bp);
 	int SSH2MsgKexDhGexReply(CBuffer *bp);
 	int SSH2MsgKexEcdhReply(CBuffer *bp);
+	int SSH2MsgKexCurveReply(CBuffer *bp);
 	int SSH2MsgNewKeys(CBuffer *bp);
 
 	int SSH2MsgUserAuthPkOk(CBuffer *bp);
@@ -704,6 +734,7 @@ extern const EVP_CIPHER *evp_idea_ctr(void);
 extern const EVP_CIPHER *evp_des3_ctr(void);
 extern const EVP_CIPHER *evp_ssh1_3des(void);
 extern const EVP_CIPHER *evp_ssh1_bf(void);
+extern const EVP_CIPHER *evp_chachapoly_256(void);
 
 extern void rsa_public_encrypt(BIGNUM *out, BIGNUM *in, RSA *key);
 extern int	ssh_crc32(LPBYTE buf, int len);
@@ -717,15 +748,20 @@ extern int dh_estimate(int bits);
 extern int kex_gex_hash(BYTE *digest, LPCSTR client_version_string, LPCSTR server_version_string, LPBYTE ckexinit, int ckexinitlen, LPBYTE skexinit, int skexinitlen, LPBYTE serverhostkeyblob, int sbloblen, int min, int wantbits, int max, BIGNUM *prime, BIGNUM *gen, BIGNUM *client_dh_pub, BIGNUM *server_dh_pub, BIGNUM *shared_secret, const EVP_MD *evp_md);
 extern int key_ec_validate_public(const EC_GROUP *group, const EC_POINT *pub);
 extern int kex_ecdh_hash(BYTE *digest, LPCSTR client_version_string, LPCSTR server_version_string, LPBYTE ckexinit, int ckexinitlen, LPBYTE skexinit, int skexinitlen, LPBYTE serverhostkeyblob, int sbloblen, const EC_GROUP *ec_group, const EC_POINT *client_dh_pub, const EC_POINT *server_dh_pub, BIGNUM *shared_secret, const EVP_MD *evp_md);
+extern int kex_c25519_hash(BYTE *digest, LPCSTR client_version_string, LPCSTR server_version_string, LPBYTE ckexinit, int ckexinitlen, LPBYTE skexinit, int skexinitlen, LPBYTE serverhostkeyblob, int sbloblen, const BYTE client_dh_pub[CURVE25519_SIZE], const BYTE server_dh_pub[CURVE25519_SIZE], BIGNUM *shared_secret, const EVP_MD *evp_md);
 extern u_char *derive_key(int id, int need, u_char *hash, int hashlen, BIGNUM *shared_secret, u_char *session_id, int sesslen, const EVP_MD *evp_md);
 
 extern void *mm_zalloc(void *mm, unsigned int ncount, unsigned int size);
 extern void mm_zfree(void *mm, void *address);
+extern void rand_buf(void *buf, int len);
 
 extern struct umac_ctx *UMAC_open(int len);
 extern void UMAC_init(struct umac_ctx *ctx, u_char *key, int len);
 extern void UMAC_update(struct umac_ctx *ctx, const u_char *input, size_t len);
 extern void UMAC_final(struct umac_ctx *ctx, u_char *tag, u_char *nonce);
 extern void UMAC_close(struct umac_ctx *ctx);
+
+// curve25519.c
+extern int crypto_scalarmult_curve25519(unsigned char *, const unsigned char *, const unsigned char *);
 
 #endif // !defined(AFX_SSH_H__2A682FAC_4F24_4168_9082_C9CDF2DD19D7__INCLUDED_)

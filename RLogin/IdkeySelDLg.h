@@ -74,4 +74,6 @@ protected:
 	afx_msg void OnUpdateEditEntry(CCmdUI* pCmdUI);
 	afx_msg void OnLvnItemchangedIdkeyList(NMHDR *pNMHDR, LRESULT *pResult);
 	DECLARE_MESSAGE_MAP()
+public:
+	afx_msg void OnIdkeyCakey();
 };

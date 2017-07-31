@@ -245,6 +245,7 @@ BEGIN
         MENUITEM "スクロールバー(&V)",                 ID_VIEW_SCROLLBAR
         MENUITEM SEPARATOR
         MENUITEM "Tekウィンドウ(&K)",                IDM_TEKDISP
+        MENUITEM "Imageウィンドウ(&I)",              IDM_IMAGEDISP
         MENUITEM "ソケットステータス",                   IDM_SOCKETSTATUS
         MENUITEM SEPARATOR
         MENUITEM "オプション設定(&P)",                 ID_SETOPTION
@@ -361,6 +362,7 @@ BEGIN
         MENUITEM "認証キーを削除する",                   ID_EDIT_DELETE
         MENUITEM SEPARATOR
         MENUITEM "クリップボードへ送る",                  ID_EDIT_COPY
+        MENUITEM "署名された公開鍵の読み込み",               ID_IDKEY_CAKEY
         MENUITEM SEPARATOR
         MENUITEM "ファイルからインポート",                 IDC_IDKEY_INPORT
         MENUITEM "ファイルにエクスポート",                 IDC_IDKEY_EXPORT
@@ -426,7 +428,8 @@ BEGIN
     END
     POPUP "編集(&E)"
     BEGIN
-        MENUITEM "画面をクリア(&C)",                  IDM_TEK_CLEAR
+        MENUITEM "コピー(&C)",                     ID_EDIT_COPY
+        MENUITEM "画面をクリア(&X)",                  IDM_TEK_CLEAR
     END
     POPUP "ヘルプ(&H)"
     BEGIN
@@ -446,7 +449,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.15.3 (2013/11/25)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.15.4 (2013/12/06)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2013 Culti",IDC_STATIC,47,15,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,148,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.1e Feb 11th, 2013",IDC_STATIC,47,29,176,8
@@ -461,41 +464,39 @@ BEGIN
     LTEXT           "Originally written 2001 by Niels Moller, updated 2009.",IDC_STATIC,47,133,176,8
 END
 
-IDD_ALGOPARADLG DIALOGEX 0, 0, 310, 341
+IDD_ALGOPARADLG DIALOGEX 0, 0, 351, 343
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "SSHサポート"
 FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
 BEGIN
-    CONTROL         "List1",IDC_ALGO_LIST1,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,28,26,86,56
-    CONTROL         "List1",IDC_ALGO_LIST2,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,119,26,86,56
-    CONTROL         "List1",IDC_ALGO_LIST3,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,210,26,86,56
-    CONTROL         "",IDC_ALGO_LIST10,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,28,108,86,56
-    CONTROL         "",IDC_ALGO_LIST11,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,119,108,86,56
-    CONTROL         "List1",IDC_ALGO_LIST4,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,28,177,86,56
-    CONTROL         "List1",IDC_ALGO_LIST5,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,119,177,86,56
-    CONTROL         "List1",IDC_ALGO_LIST6,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,210,177,86,56
-    CONTROL         "List1",IDC_ALGO_LIST7,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,28,239,86,56
-    CONTROL         "List1",IDC_ALGO_LIST8,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,119,239,86,56
-    CONTROL         "List1",IDC_ALGO_LIST9,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,210,239,86,56
-    CONTROL         "暗号シャッフル",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,43,299,61,10
-    CONTROL         "検証シャッフル",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,129,299,61,10
-    DEFPUSHBUTTON   "OK",IDOK,85,320,50,14
-    PUSHBUTTON      "キャンセル",IDCANCEL,164,320,50,14
-    GROUPBOX        "SSH1",IDC_STATIC,7,7,296,82
-    GROUPBOX        "SSH2",IDC_STATIC,7,90,296,225
-    LTEXT           "入力",IDC_STATIC,11,197,15,8
-    LTEXT           "出力",IDC_STATIC,11,257,15,8
-    LTEXT           "圧縮",IDC_STATIC,241,16,15,8
-    LTEXT           "検証",IDC_STATIC,150,16,15,8
-    LTEXT           "暗号",IDC_STATIC,63,16,15,8
-    LTEXT           "圧縮",IDC_STATIC,241,167,15,8
-    LTEXT           "検証",IDC_STATIC,150,167,15,8
-    LTEXT           "暗号",IDC_STATIC,63,167,15,8
-    LTEXT           "ホスト鍵",IDC_STATIC,147,98,25,8
-    LTEXT           "鍵交換",IDC_STATIC,60,98,22,8
-    LTEXT           "認証",IDC_STATIC,11,134,15,8
-    CONTROL         "",IDC_ALGO_LIST12,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,210,108,86,56
-    LTEXT           "ログイン",IDC_STATIC,238,98,24,8
+    CONTROL         "List1",IDC_ALGO_LIST1,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,28,26,100,36
+    CONTROL         "List1",IDC_ALGO_LIST2,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,132,26,100,36
+    CONTROL         "List1",IDC_ALGO_LIST3,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,236,26,100,36
+    CONTROL         "",IDC_ALGO_LIST10,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,28,88,100,66
+    CONTROL         "",IDC_ALGO_LIST11,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,132,88,100,66
+    CONTROL         "",IDC_ALGO_LIST12,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,236,88,100,66
+    CONTROL         "List1",IDC_ALGO_LIST4,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,28,171,100,66
+    CONTROL         "List1",IDC_ALGO_LIST5,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,132,171,100,66
+    CONTROL         "List1",IDC_ALGO_LIST6,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,236,171,100,66
+    CONTROL         "List1",IDC_ALGO_LIST7,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,28,244,100,66
+    CONTROL         "List1",IDC_ALGO_LIST8,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,132,244,100,66
+    CONTROL         "List1",IDC_ALGO_LIST9,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,236,244,100,66
+    DEFPUSHBUTTON   "OK",IDOK,102,322,60,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,187,322,60,14
+    CONTROL         "暗号シャッフル",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,48,157,61,10
+    CONTROL         "検証シャッフル",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,153,157,61,10
+    GROUPBOX        "SSH1",IDC_STATIC,7,7,337,61
+    GROUPBOX        "SSH2",IDC_STATIC,7,70,337,247
+    LTEXT           "入力",IDC_STATIC,11,198,15,8
+    LTEXT           "出力",IDC_STATIC,11,269,15,8
+    LTEXT           "圧縮",IDC_STATIC,279,16,15,8
+    LTEXT           "検証",IDC_STATIC,176,16,15,8
+    LTEXT           "暗号",IDC_STATIC,71,16,15,8
+    LTEXT           "圧縮",IDC_STATIC,279,157,15,8
+    LTEXT           "ホスト鍵",IDC_STATIC,172,78,25,8
+    LTEXT           "鍵交換",IDC_STATIC,67,78,22,8
+    LTEXT           "認証",IDC_STATIC,11,118,15,8
+    LTEXT           "ログイン",IDC_STATIC,275,78,24,8
 END
 
 IDD_PASSDLG DIALOGEX 0, 0, 203, 129
@@ -943,7 +944,7 @@ BEGIN
     CONTROL         "List2",IDC_IDKEY_LIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,17,20,161,69
     PUSHBUTTON      "上へ",IDC_IDKEY_UP,188,21,50,14
     PUSHBUTTON      "下へ",IDC_IDKEY_DOWN,188,38,50,14
-    PUSHBUTTON      "削除",IDC_IDKEY_DEL,188,75,50,14
+    PUSHBUTTON      "公開鍵",IDC_IDKEY_COPY,188,75,50,14
     PUSHBUTTON      "インポート",IDC_IDKEY_INPORT,188,112,50,14
     PUSHBUTTON      "エクスポート",IDC_IDKEY_EXPORT,188,128,50,14
     COMBOBOX        IDC_IDKEY_TYPE,188,162,50,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
@@ -1423,8 +1424,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,15,3,0
- PRODUCTVERSION 2,15,3,0
+ FILEVERSION 2,15,4,0
+ PRODUCTVERSION 2,15,4,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1441,12 +1442,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.15.3.0"
+            VALUE "FileVersion", "2.15.4.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2013 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.15.3.0"
+            VALUE "ProductVersion", "2.15.4.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -1475,9 +1476,9 @@ BEGIN
     IDD_ALGOPARADLG, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 303
+        RIGHTMARGIN, 344
         TOPMARGIN, 7
-        BOTTOMMARGIN, 334
+        BOTTOMMARGIN, 336
     END
 
     IDD_PASSDLG, DIALOG
@@ -2659,6 +2660,7 @@ BEGIN
     IDS_VIEW_MENUBAR        "メニューバーの表示"
     IDS_SSH_PASS_TITLE      "SSH鍵ファイルの読み込み"
     IDS_SSH_PASS_MSG        "作成時に設定したパスフレーズを入力してください"
+    IDS_PUBLICKEYCOPYMSG    "クリップボードにコピーされる公開鍵"
 END
 
 STRINGTABLE
@@ -2791,7 +2793,7 @@ STRINGTABLE
 BEGIN
     ID_EDIT_CLEAR           "選択範囲を消去\n消去"
     ID_EDIT_CLEAR_ALL       "すべて消去\nすべて消去"
-    ID_EDIT_COPY            "選択範囲をコピーしてクリップボードに保存\nコピー"
+    ID_EDIT_COPY            "クリップボードに保存\nコピー"
     ID_EDIT_CUT             "選択範囲を切り取ってクリップボードに保存\n切り取り"
     ID_EDIT_FIND            "指定した文字列の検索\n検索"
     ID_EDIT_PASTE           "クリップボードの内容を貼り付け\n貼り付け"
@@ -2885,7 +2887,7 @@ BEGIN
     IDM_RESET_MOUSE         "マウスイベントを初期化します\nイベント初期化"
     IDM_RESET_ALL           "すべてを初期化し画面を消去します\n全初期化"
     IDM_CHATSTOP            "自動作成中のChatScriptを完了する\nCharScriptの完了"
-    IDM_TEKDISP             "Tekウィンドウを表示・非表示にします\nTek表示"
+    IDM_TEKDISP             "Tekウィンドウを表示・非表示します\nTek表示"
     IDM_TEK_CLOSE           "Tekウィンドウを閉じる\n閉じる"
     IDM_TEK_SAVE            "ファイルに保存する\n保存"
     IDM_TEK_CLEAR           "Tekウインドウをクリアする\nクリア"
@@ -2969,6 +2971,8 @@ BEGIN
     ID_VIEW_MENUBAR         "メニューバーの 表示/非表示\nメニューバーの表示切り替え"
     IDM_WINODW_NEXT         "次のウィンドウに移動します\n次に移動"
     IDM_WINDOW_PREV         "前のウィンドウに移動します\n前に移動"
+    ID_IDKEY_CAKEY          "署名された公開鍵を追加で設定します"
+    IDM_IMAGEDISP           "Imageウィンドウを表示・非表示します\nImage表示"
 END
 
 #endif    // 日本語 (日本) resources

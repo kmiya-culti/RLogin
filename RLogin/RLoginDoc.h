@@ -161,6 +161,9 @@ protected:
 	afx_msg void OnScriptMenu(UINT nID);
 	afx_msg void OnFileClose();
 	DECLARE_MESSAGE_MAP()
+public:
+	afx_msg void OnImagedisp();
+	afx_msg void OnUpdateImagedisp(CCmdUI *pCmdUI);
 };
 
 /////////////////////////////////////////////////////////////////////////////

@@ -9,6 +9,7 @@
 #include "IdkeySelDLg.h"
 #include "IdKeyFileDlg.h"
 #include "EditDlg.h"
+
 #include <math.h>
 
 /////////////////////////////////////////////////////////////////////////////
@@ -50,7 +51,7 @@ BEGIN_MESSAGE_MAP(CIdkeySelDLg, CDialog)
 	ON_WM_TIMER()
 	ON_BN_CLICKED(IDC_IDKEY_UP, OnIdkeyUp)
 	ON_BN_CLICKED(IDC_IDKEY_DOWN, OnIdkeyDown)
-	ON_BN_CLICKED(IDC_IDKEY_DEL, OnIdkeyDel)
+	ON_BN_CLICKED(IDC_IDKEY_COPY, OnIdkeyCopy)
 	ON_BN_CLICKED(IDC_IDKEY_INPORT, OnIdkeyInport)
 	ON_BN_CLICKED(IDC_IDKEY_EXPORT, OnIdkeyExport)
 	ON_BN_CLICKED(IDC_IDKEY_CREATE, OnIdkeyCreate)
@@ -67,6 +68,7 @@ BEGIN_MESSAGE_MAP(CIdkeySelDLg, CDialog)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_COPY, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(IDC_IDKEY_EXPORT, OnUpdateEditEntry)
 	ON_NOTIFY(LVN_ITEMCHANGED, IDC_IDKEY_LIST, OnLvnItemchangedIdkeyList)
+	ON_COMMAND(ID_IDKEY_CAKEY, &CIdkeySelDLg::OnIdkeyCakey)
 END_MESSAGE_MAP()
 
 void CIdkeySelDLg::InitList()
@@ -89,6 +91,7 @@ void CIdkeySelDLg::InitList()
 		}
 		m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, n, str, 0, 0, 0, n);
 		m_List.SetItemText(n, 1, pKey->m_Name);
+		m_List.SetItemText(n, 2, ((pKey->m_Cert & IDKEY_CERTV01) != 0 ? _T("V01") : ((pKey->m_Cert & IDKEY_CERTV00) != 0 ? _T("V00") : _T(""))));
 		m_List.SetLVCheck(n, pKey->m_Flag);
 	}
 	m_List.SetItemState(m_EntryNum, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
@@ -165,9 +168,10 @@ void CIdkeySelDLg::EndofKeyGenThead()
 /////////////////////////////////////////////////////////////////////////////
 // CIdkeySelDLg メッセージ ハンドラ
 
-static const LV_COLUMN InitListTab[2] = {
+static const LV_COLUMN InitListTab[3] = {
 		{ LVCF_TEXT | LVCF_WIDTH, 0,   80, _T("Type"), 0, 0 }, 
-		{ LVCF_TEXT | LVCF_WIDTH, 0,  160, _T("Name"),   0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0,  140, _T("Name"), 0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0,   40, _T("Cert"), 0, 0 }, 
 	};
 
 BOOL CIdkeySelDLg::OnInitDialog() 
@@ -201,7 +205,7 @@ BOOL CIdkeySelDLg::OnInitDialog()
 	}
 
 	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_CHECKBOXES);
-	m_List.InitColumn(_T("IdkeySelDLg"), InitListTab, 2);
+	m_List.InitColumn(_T("IdkeySelDLg"), InitListTab, 3);
 	m_List.SetPopUpMenu(IDR_POPUPMENU, 2);
 	InitList();
 
@@ -320,9 +324,16 @@ void CIdkeySelDLg::OnIdkeyCopy()
 		return;
 
 	CString str;
+	CEditDlg dlg;
 
 	pKey->WritePublicKey(str);
-	CopyToClipBorad(str);
+
+	dlg.m_WinText = _T("Public Key");
+	dlg.m_Edit = str;
+	dlg.m_Title.LoadString(IDS_PUBLICKEYCOPYMSG);
+
+	if ( dlg.DoModal() == IDOK )
+		CopyToClipBorad(dlg.m_Edit);
 }
 void CIdkeySelDLg::OnIdkeyInport() 
 {
@@ -370,7 +381,7 @@ void CIdkeySelDLg::OnIdkeyExport()
 	if ( pKey == NULL )
 		return;
 
-	dlg.m_OpenMode = 1;
+	dlg.m_OpenMode = 2;
 	dlg.m_Title.LoadString(IDS_IDKEYFILESAVE);
 	dlg.m_Message.LoadString(IDS_IDKEYFILESAVECOM);
 
@@ -575,4 +586,27 @@ void CIdkeySelDLg::OnLvnItemchangedIdkeyList(NMHDR *pNMHDR, LRESULT *pResult)
 			pKey->m_Flag = (m_List.GetLVCheck(pNMLV->iItem) ? TRUE : FALSE);
 	}
 	*pResult = 0;
+}
+
+void CIdkeySelDLg::OnIdkeyCakey()
+{
+	if ( (m_EntryNum = m_List.GetSelectionMark()) < 0 )
+		return;
+
+	int n = (int)m_List.GetItemData(m_EntryNum);
+	CIdKey *pKey = m_pIdKeyTab->GetUid(m_Data[n]);
+
+	if ( pKey == NULL )
+		return;
+
+	CFileDialog dlg(TRUE, _T(""), _T(""), OFN_HIDEREADONLY, CStringLoad(IDS_FILEDLGALLFILE), this);
+
+	if ( dlg.DoModal() != IDOK )
+		return;
+
+	if ( !pKey->LoadCertPublicKey(dlg.GetPathName()) )
+		MessageBox(CStringLoad(IDE_IDKEYLOADERROR));
+
+	m_pIdKeyTab->UpdateUid(pKey->m_Uid);
+	InitList();
 }

@@ -457,6 +457,7 @@ static const CTextRam::CSIEXTTAB fc_CsiExtTab[] = {
 	{ ('<' << 16)				| 's',		&CTextRam::fc_TTIMESV	},	// TTIMESV IME の開閉状態を保存する。
 	{ ('<' << 16)				| 't',		&CTextRam::fc_TTIMEST	},	// TTIMEST IME の開閉状態を設定する。
 	{ ('<' << 16)				| 'r',		&CTextRam::fc_TTIMERS	},	// TTIMERS IME の開閉状態を復元する。
+	{ ('<' << 16) |	('!'  << 8)	| 'i',		&CTextRam::fc_RLIMGCP	},	// 現画面をImageにコピーする
 //	{ ('=' << 16)				| 'A',		&CTextRam::fc_POP		},	// cons25 Set the border color to n
 //	{ ('=' << 16)				| 'B',		&CTextRam::fc_POP		},	// cons25 Set bell pitch (p) and duration (d)
 //	{ ('=' << 16)				| 'C',		&CTextRam::fc_POP		},	// cons25 Set global cursor type
@@ -598,7 +599,7 @@ static CTextRam::ESCNAMEPROC fc_EscNameTab[] = {
 	{	NULL,			NULL,					NULL,	NULL	},
 };
 
-static int	fc_CsiNameTabMax = 125;
+static int	fc_CsiNameTabMax = 126;
 static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	_T("C25LCT"),	&CTextRam::fc_C25LCT,	NULL,	NULL 	},
 	{	_T("CBT"),		&CTextRam::fc_CBT,		NULL,	NULL	},
@@ -695,6 +696,7 @@ static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	_T("PPR"),		&CTextRam::fc_PPR,		NULL,	NULL	},
 	{	_T("REP"),		&CTextRam::fc_REP,		NULL,	NULL	},
 	{	_T("REQTPARM"),	&CTextRam::fc_REQTPARM,	NULL,	NULL	},
+	{	_T("RLIMGCP"),	&CTextRam::fc_RLIMGCP,	NULL,	NULL	},
 	{	_T("RM"),		&CTextRam::fc_RM,		NULL,	NULL	},
 	{	_T("SCORC"),	&CTextRam::fc_SCORC,	NULL,	NULL	},
 	{	_T("SCOSC"),	&CTextRam::fc_SCOSC,	NULL,	NULL	},
@@ -2985,7 +2987,7 @@ void CTextRam::fc_DECSIXEL(int ch)
 		tmp.Format(_T("Sixel - %s"), m_pDocument->m_ServerEntry.m_EntryName);
 		pGrapWnd = new CGrapWnd(this);
 		pGrapWnd->Create(NULL, tmp);
-		pGrapWnd->SetSixel(GetAnsiPara(0, 0, 0), GetAnsiPara(1, 0, 0), m_OscPara);
+		pGrapWnd->SetSixelProc(GetAnsiPara(0, 0, 0), GetAnsiPara(1, 0, 0), m_OscPara);
 		pGrapWnd->ShowWindow(SW_SHOW);
 		AddGrapWnd((void *)pGrapWnd);
 
@@ -6451,5 +6453,16 @@ void CTextRam::fc_XTSMTT(int ch)
 		if ( m_AnsiPara[n] != PARA_NOT )
 			m_XtOptFlag |= (1 << m_AnsiPara[n]);
 	}
+	fc_POP(ch);
+}
+void CTextRam::fc_RLIMGCP(int ch)
+{
+	// CSI ('<' << 16) | ('!' << 8) | 'c'		RLIMGCP
+
+	CRLoginView *pView;
+
+	if ( m_pDocument != NULL && (pView = (CRLoginView *)m_pDocument->GetAciveView()) != NULL )
+		pView->CreateGrapImage(GetAnsiPara(0, 0, 0, 4));
+
 	fc_POP(ch);
 }

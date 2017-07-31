@@ -14,6 +14,7 @@
 #include "SearchDlg.h"
 #include "Script.h"
 #include "AnyPastDlg.h"
+#include "GrapWnd.h"
 #include "MsgWnd.h"
 
 #include <imm.h>
@@ -268,6 +269,49 @@ void CRLoginView::OnDraw(CDC* pDC)
 	pDoc->ClearActCount();
 
 //	TRACE("Draw %x(%d,%d,%d,%d)\n", m_hWnd, sx, sy, ex, ey);
+}
+void CRLoginView::CreateGrapImage(int type)
+{
+	CDC MemDC;
+	CBitmap *pBitmap;
+	CBitmap *pOldBitMap;
+	CString tmp;
+	CRLoginDoc* pDoc = GetDocument();
+
+	if ( !pDoc->m_TextRam.IsInitText() )
+		return;
+
+	tmp.Format(_T("Image - %s"), pDoc->GetTitle());
+
+	if ( pDoc->m_TextRam.m_pImageWnd == NULL ) {
+		pDoc->m_TextRam.m_pImageWnd = new CGrapWnd(&(pDoc->m_TextRam));
+		pDoc->m_TextRam.m_pImageWnd->Create(NULL, tmp);
+	} else
+		pDoc->m_TextRam.m_pImageWnd->SetWindowText(tmp);
+
+	MemDC.CreateCompatibleDC(NULL);
+	pBitmap = pDoc->m_TextRam.m_pImageWnd->GetBitmap(m_Width, m_Height);
+	pOldBitMap = (CBitmap *)MemDC.SelectObject(pBitmap);
+
+	if ( m_pBitmap != NULL ) {
+		CDC TempDC;
+		CBitmap *pOldBitMap;
+		TempDC.CreateCompatibleDC(&MemDC);
+		pOldBitMap = (CBitmap *)TempDC.SelectObject(m_pBitmap);
+		MemDC.BitBlt(0, 0, m_Width, m_Height, &TempDC, 0, 0, SRCCOPY);
+		TempDC.SelectObject(pOldBitMap);
+		MemDC.SetBkMode(TRANSPARENT);
+	}
+
+	pDoc->m_TextRam.DrawVram(&MemDC, 0, 0, m_Cols, m_Lines, this);
+	MemDC.SelectObject(pOldBitMap);
+
+	pDoc->m_TextRam.m_pImageWnd->Invalidate(FALSE);
+
+	if ( type > 0 )
+		pDoc->m_TextRam.m_pImageWnd->SaveBitmap(type - 1);
+	else if ( !pDoc->m_TextRam.m_pImageWnd->IsWindowVisible() )
+		pDoc->m_TextRam.m_pImageWnd->ShowWindow(SW_SHOW);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -2155,7 +2199,6 @@ void CRLoginView::OnSplitHeight()
 	if ( pMain == NULL )
 		return;
 
-//	pMain->SendMessage(WM_COMMAND, ID_PANE_HSPLIT);
 	pMain->SplitHeightPane();
 	OnSplitOver();
 }
@@ -2166,7 +2209,6 @@ void CRLoginView::OnSplitWidth()
 	if ( pMain == NULL )
 		return;
 
-//	pMain->SendMessage(WM_COMMAND, ID_PANE_WSPLIT);
 	pMain->SplitWidthPane();
 	OnSplitOver();
 }
