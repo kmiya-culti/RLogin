@@ -427,7 +427,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.12.9 (2012/08/20)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.12.10 (2012/10/03)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2012 Culti",IDC_STATIC,47,15,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,148,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.1c May 10th, 2012",IDC_STATIC,47,29,176,8
@@ -1330,15 +1330,6 @@ BEGIN
     LTEXT           "上記スクリプトファイル終了後に実行するスクリプトです\nこのエントリーだけで実行する部分などを直接編集できます",IDC_STATIC,17,83,217,19
 END
 
-IDD_DIALOGRES DIALOG 0, 0, 320, 200
-STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "ダイアログ"
-FONT 9, "MS UI Gothic"
-BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,209,179,50,14
-    PUSHBUTTON      "キャンセル",IDCANCEL,263,179,50,14
-END
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1713,14 +1704,6 @@ BEGIN
         RIGHTMARGIN, 244
         TOPMARGIN, 7
         BOTTOMMARGIN, 263
-    END
-
-    IDD_DIALOGRES, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 313
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 193
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -2400,16 +2383,33 @@ STRINGTABLE
 BEGIN
     IDR_MAINFRAME           "RLogin"
     IDR_RLOGINTYPE          "\nRLogin\nRLogin\nRLogin ファイル (*.rlg)\n.rlg\nRLogin.Document\nRLogin Document"
+END
+
+STRINGTABLE
+BEGIN
     IDE_MESSAGE_ANYPASTE    "多くの文字をペーストしようとしています\n送信しますか？"
     IDE_PASSWORDNOMATCH     "再入力されたパスフレーズが一致しません"
     IDE_MAKEIDKEY           "認証キーを作成中です"
-    IDP_SOCKETS_INIT_FAILED "Windows ソケットの初期化に失敗しました。"
     IDE_DELETEKEYQES        "他に使用しているエントリーがあるかもしれません\nほんとうに削除してよいですか？"
     IDE_USEPASSWORDIDKEY    "パスフレーズと鍵ファイルを指定してください"
     IDE_IDKEYLOADERROR      "鍵ファイルを読み込めませんでした"
     IDE_DUPIDKEYENTRY       "同じ鍵ファイルがすでに登録済みです"
     IDE_IDKEYPASSERROR      "作成時に指定したパスフレーズと一致しません"
     IDE_IDKEYSAVEERROR      "鍵ファイルに保存できませんでした"
+    IDE_IDKEYCREATEERROR    "鍵ファイルが作成できませんでした"
+    IDE_HISTORYBACKUPERROR  "ヒストリーバックアップに失敗しました"
+    IDE_LOGOPENERROR        "ログファイルを開けませんでした"
+    IDE_PORTFWORDERROR      "ポートフォワードの設定が無効です"
+    IDE_SSHGLOBALREQERROR   "SSH2グローバルリクエストエラー"
+    IDE_ALLCLOSEREQ         "すべての接続を閉じてよろしいでしょうか？"
+    IDE_INFOCAPCONVERROR    "TERMCAPからTERMINFOに変換できない文法を含んでいます\n\n"
+END
+
+STRINGTABLE
+BEGIN
+    IDP_SOCKETS_INIT_FAILED "Windows ソケットの初期化に失敗しました。"
+    IDS_IDKEYFILELOAD       "SSH鍵ファイルの読み込み"
+    IDS_IDKEYFILESAVE       "SSH鍵ファイルの保存"
 END
 
 STRINGTABLE
@@ -2560,6 +2560,10 @@ BEGIN
     IDM_SFTP_ABORT          "ファイル転送の中止する\n中止"
     IDM_SFTP_ALLDOWNLOAD    "ファイルの更新日時を比較してダウンロードする\nミラーダウンロード"
     IDM_SFTP_ALLUPLOAD      "ファイルの更新日時を比較してアップロードする\nミラーアップロード"
+    IDM_SFTP_CHMOD          "ファイル属性の変更\n属性変更"
+    IDM_SFTP_CLOSE          "このファイル転送ウィンドウを閉じる\n閉じる"
+    IDM_SFTP_DELETE         "選択されたファイルを削除する\nファイル削除"
+    IDM_SFTP_DOWNLOAD       "ファイルのダウンロード\nダウンロード"
 END
 
 STRINGTABLE
@@ -2570,15 +2574,37 @@ BEGIN
     ID_MOUSE_EVENT          "マウスイベントを無効にします\nマウスイベント無効"
     ID_EDIT_COPY_ALL        "すべてクリップボードにコピー\nすべてコピー"
     ID_EDIT_PASTE_ALL       "クリップボードから貼り付け\nすべて貼り付け"
+END
+
+STRINGTABLE
+BEGIN
+    IDM_BROADCAST           "キー入力を他のウィンドウにも同時送信する\n同時送信"
+    IDM_SOCKETSTATUS        "ソケットの現在の状態を表示\nソケットステータス"
     IDM_GRAPDISP            "Grapウィンドウを表示・非表示にします\nGrap表示"
 END
 
 STRINGTABLE
 BEGIN
+    IDM_SFTP_MKDIR          "新規にフォルダを作成する\nフォルダ作成"
+    IDM_SFTP_REFLESH        "ファイル情報を最新に更新する\n更新"
+    IDM_SFTP_RENAME         "ファイル名を変更する\nファイル名変更"
+    IDM_SFTP_UPLOAD         "ファイルのアップロード\nアップロード"
+    IDM_XMODEM_UPLOAD       "XModemでファイルをアップロードする\nXModemアップ"
+    IDM_YMODEM_UPLOAD       "YModemでファイルをアップロードする\nYModemアップ"
+    IDM_ZMODEM_UPLOAD       "ZModemでファイルをアップロードする\nZModemアップ"
+    IDM_XMODEM_DOWNLOAD     "XModemでファイルをダウンロードする\nXModemダウン"
+    IDM_YMODEM_DOWNLOAD     "YModemでファイルをダウンロードする\nYModemダウン"
+    IDM_ZMODEM_DOWNLOAD     "ZModemでファイルをダウンロードする\nZModemダウン"
+    IDM_KERMIT_UPLOAD       "Kermitでファイルをアップロードする\nKermitアップ"
+    IDM_KERMIT_DOWNLOAD     "Kermitでファイルをダウンロードする\nKermitダウン"
     IDM_RESET_TAB           "タブ設定を初期化します\nタブ初期化"
     IDM_RESET_BANK          "文字バンク設定を初期化します\nバンク初期化"
     IDM_RESET_ATTR          "文字属性を初期化します\n文字初期k"
     IDM_RESET_TEK           "tek40xx/41xxを初期化します\ntek初期化"
+END
+
+STRINGTABLE
+BEGIN
     IDM_RESET_ESC           "ESCシーケンスを初期化します\nESC初期化"
     IDM_RESET_MOUSE         "マウスイベントを初期化します\nイベント初期化"
     IDM_RESET_ALL           "すべてを初期化し画面を消去します\n全初期化"
@@ -2592,65 +2618,27 @@ END
 
 STRINGTABLE
 BEGIN
-    IDM_SFTP_CHMOD          "ファイル属性の変更\n属性変更"
-    IDM_SFTP_CLOSE          "このファイル転送ウィンドウを閉じる\n閉じる"
-    IDM_SFTP_DELETE         "選択されたファイルを削除する\nファイル削除"
-    IDM_SFTP_DOWNLOAD       "ファイルのダウンロード\nダウンロード"
-    IDM_SFTP_MKDIR          "新規にフォルダを作成する\nフォルダ作成"
-    IDM_SFTP_REFLESH        "ファイル情報を最新に更新する\n更新"
-    IDM_SFTP_RENAME         "ファイル名を変更する\nファイル名変更"
-    IDM_SFTP_UPLOAD         "ファイルのアップロード\nアップロード"
-    IDM_XMODEM_UPLOAD       "XModemでファイルをアップロードする\nXModemアップ"
-    IDM_YMODEM_UPLOAD       "YModemでファイルをアップロードする\nYModemアップ"
-    IDM_ZMODEM_UPLOAD       "ZModemでファイルをアップロードする\nZModemアップ"
-    IDM_XMODEM_DOWNLOAD     "XModemでファイルをダウンロードする\nXModemダウン"
-    IDM_YMODEM_DOWNLOAD     "YModemでファイルをダウンロードする\nYModemダウン"
-    IDM_ZMODEM_DOWNLOAD     "ZModemでファイルをダウンロードする\nZModemダウン"
-    IDM_KERMIT_UPLOAD       "Kermitでファイルをアップロードする\nKermitアップ"
-    IDM_KERMIT_DOWNLOAD     "Kermitでファイルをダウンロードする\nKermitダウン"
-END
-
-STRINGTABLE
-BEGIN
-    IDM_BROADCAST           "キー入力を他のウィンドウにも同時送信する\n同時送信"
-    IDM_SOCKETSTATUS        "ソケットの現在の状態を表示\nソケットステータス"
-END
-
-STRINGTABLE
-BEGIN
     IDM_SEARCH_REG          "正規表現で文字列を検索します\n文字検索"
     IDM_SEARCH_NEXT         "次を検索します\n次を検索"
     IDM_SERV_PROTO          "プロトコルハンドラに登録\nハンドラに登録"
-    ID_VIEW_SCROLLBAR       "スクロールバーの表示/非表示\nスクロールバーの表示切り替え"
     IDM_SEARCH_BACK         "前を検索します\n前を検索"
     IDM_SCRIPT              "スクリプトファイルを実行します\nスクリプト実行"
 END
 
 STRINGTABLE
 BEGIN
-    IDE_IDKEYCREATEERROR    "鍵ファイルが作成できませんでした"
-    IDE_HISTORYBACKUPERROR  "ヒストリーバックアップに失敗しました"
-    IDE_LOGOPENERROR        "ログファイルを開けませんでした"
-    IDE_PORTFWORDERROR      "ポートフォワードの設定が無効です"
-    IDE_SSHGLOBALREQERROR   "SSH2グローバルリクエストエラー"
-    IDE_ALLCLOSEREQ         "すべての接続を閉じてよろしいでしょうか？"
-    IDS_IDKEYFILELOAD       "SSH鍵ファイルの読み込み"
-    IDS_IDKEYFILESAVE       "SSH鍵ファイルの保存"
+    ID_VIEW_SCROLLBAR       "スクロールバーの表示/非表示\nスクロールバーの表示切り替え"
+END
+
+STRINGTABLE
+BEGIN
     IDS_IDKEYCREATE         "SSH鍵の作成"
     IDS_IDKEYRENAME         "認証キーの名前が変更できます"
     IDS_IDKEYFILELOADCOM    "作成時に設定したパスフレーズを入力してください。"
     IDS_IDKEYFILESAVECOM    "作成時に設定したパスフレーズを入力してください。パスフレーズが一致しないと保存できません"
     IDS_IDKEYCREATECOM      "パスフレーズは、非常に重要です。作成時に設定するパスフレーズは、ファイルに保存する場合やサーバー接続で使用する場合にも入力が必要になります。"
-    IDE_INFOCAPCONVERROR    "TERMCAPからTERMINFOに変換できない文法を含んでいます\n\n"
-    IDE_INFOCAPOVER1024     "TERMCAPのトータル文字数が1024文字の制限を超えました\n"
-    IDE_INFOCAPINFOCONVERROR "TERMINFOからTERMCAPに変換できない文法を含んでいます\n\n"
-END
-
-STRINGTABLE
-BEGIN
     IDS_INITBUTTON          "初期化"
     IDS_ALLINITREQ          "すべての設定を標準に戻しますか？"
-    IDE_UPDATERESUMEERROR   "再開できません上書きになります"
     IDS_FILEDLGIMAGE        "Image FIle (*.bmp;*.jpg)|*.bmp;*.jpg|All Files (*.*)|*.*||"
     IDS_FILEDLGGRAPHICS     "GIF ファイル (*.gif)|*.gif|JPEG ファイル (*.jpg)|*.jpg|PNG ファイル (*.png)|*.png|BMP ファイル (*.bmp)|*.bmp||"
     IDS_FILEDLGHISTORY      "History ファイル (*.rlh)|*.rlh|All Files (*.*)|*.*||"
@@ -2660,29 +2648,37 @@ BEGIN
     IDS_FILEDLGTEKIMAGE     "GIF ファイル (*.gif)|*.gif|JPEG ファイル (*.jpg)|*.jpg|PNG ファイル (*.png)|*.png|BMP ファイル (*.bmp)|*.bmp|DXF ファイル (*.dxf)|*.dxf|TEK ファイル (*.tek)|*.tek||"
     IDS_FILEDLGTEKIMAGE2    "DXF ファイル (*.dxf)|*.dxf|TEK ファイル (*.tek)|*.tek||"
     IDS_IDKEYFILEDELREQ     "認証キーファイルの設定を解除しますか？"
-    IDS_SERVERENTRYDELETE   "'%s'サーバーエントリーを削除してもよいですか？"
-    IDE_PROTOCOLENTRY       "login/telnet/sshプロトコルのみ登録できます"
-    IDE_USESERVERENTRY      "Server Entry を入力してください"
-    IDS_PROTODLGTITLE       "プロトコルハンドラの登録"
 END
 
 STRINGTABLE
 BEGIN
+    IDE_INFOCAPOVER1024     "TERMCAPのトータル文字数が1024文字の制限を超えました\n"
+    IDE_INFOCAPINFOCONVERROR "TERMINFOからTERMCAPに変換できない文法を含んでいます\n\n"
+    IDE_UPDATERESUMEERROR   "再開できません上書きになります"
+    IDE_PROTOCOLENTRY       "login/telnet/sshプロトコルのみ登録できます"
+    IDE_USESERVERENTRY      "Server Entry を入力してください"
+    IDE_FILENAMEERROR       "ファイル名変換規則に該当する名前です。変換しますか？"
+    IDE_KANJICONVERROR      "文字コード変換でエラーが発生しました。\n正しく変換されていない可能性があります"
+    IDE_MANYCHANNEL         "多くのチャンネルを開こうとしています\n続行しますか？"
+    IDE_ECDSABITSIZEERR     "ECDSAは、ビットサイズを256/384/521から選択してください"
+    IDE_DSABITSIZEERR       "DSAは、ビットサイズを768/1024から選択してください。2048以上は、将来的に使えない可能性があります"
+    IDE_RSABITSIZEERR       "RSAは、ビットサイズを768/1024/2048/4096から選択してください。推奨は、2048以上です。"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_SERVERENTRYDELETE   "'%s'サーバーエントリーを削除してもよいですか？"
+    IDS_PROTODLGTITLE       "プロトコルハンドラの登録"
     IDS_PRORODLGCOMM        "ハンドラ起動時のオプションを指定してください"
     IDS_CERTTRASTREQ        "%s\n%s\nこの証明書を信頼しますか？"
     IDS_IDKEYDUPHOSTNAME    "(別の登録あり)"
-    IDE_FILENAMEERROR       "ファイル名変換規則に該当する名前です。変換しますか？"
     IDS_LOCALFILEDELETE     "ローカルに無いファイルを削除しますか？"
     IDS_REMOTEFILEDELETE    "リモートに無いファイルを削除しますか？"
     IDS_FILEDELETEREQ       "を削除しますか？"
     IDS_FILECOUNTMSG        "%d個のファイル"
-    IDE_KANJICONVERROR      "文字コード変換でエラーが発生しました。\n正しく変換されていない可能性があります"
     IDS_CREATEDIRMSG        "新しいフォルダの作成"
     IDS_RENAMEMSG           "ファイル名の変更"
-    IDE_MANYCHANNEL         "多くのチャンネルを開こうとしています\n続行しますか？"
     IDS_FILEDLGSCRIPT       "スクリプト ファイル (*.txt)|*.txt|All Files (*.*)|*.*||"
-    IDE_ECDSABITSIZEERR     "ECDSAは、ビットサイズを256/384/521から選択してください"
-    IDE_DSABITSIZEERR       "DSA/RSAは、ビットサイズを768/1024/2048/4096から選択してください。推奨は、2048です。"
     IDS_SCRIPTNEW           "すでに読み込んでいるスクリプトを放棄しますか？"
 END
 

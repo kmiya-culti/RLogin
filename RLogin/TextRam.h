@@ -79,12 +79,12 @@
 #define CM_ASCII		0
 #define CM_1BYTE		1
 #define CM_2BYTE		2
-#define	CM_IVS			3
+#define	CM_IMAGE		3
 
 #define IS_ASCII(a) 	((a) == CM_ASCII)
 #define IS_1BYTE(a) 	((a) == CM_1BYTE)
 #define IS_2BYTE(a) 	((a) == CM_2BYTE)
-#define IS_IVS(a)	 	((a) == CM_IVS)
+#define IS_IMAGE(a)	 	((a) == CM_IMAGE)
 
 // DEC Terminal Option	0-199
 #define	TO_DECCKM		1			// Cursor key mode
@@ -103,6 +103,7 @@
 #define TO_XTMRVW		45			// XTerm Reverse-wraparound mode
 #define	TO_XTMABUF		47			// XTerm alternate buffer
 #define	TO_DECBKM		67			// Backarrow key mode (BS)
+#define	TO_DECSDM		80			// Sixel Display Mode Control reset = Scroll mode Enable
 #define	TO_DECECM		117			// SGR space color disable
 // ANSI Screen Option	0-99(200-299)
 #define	TO_ANSIKAM		(2+200)		// KAM Set Keyboard Action Mode
@@ -310,6 +311,20 @@ typedef	struct _Vram {
 	BYTE	fc;
 	BYTE	bc;
 } VRAM;
+
+typedef struct _Iram {
+	DWORD	id:12;
+	  DWORD	y:10;
+	  DWORD	x:10;
+	DWORD	at:28;
+	  DWORD	ft:4;
+	WORD	md:10;
+	  WORD	em:2;
+	  WORD	dm:2;
+	  WORD	cm:2;
+	BYTE	fc;
+	BYTE	bc;
+} IRAM;
 
 class CFontNode : public CObject
 {
@@ -546,6 +561,7 @@ public:
 	CStringW m_StsPara;
 	int m_LangMenu;
 	LPCTSTR m_RetChar[7];
+	int m_ImageIndex;
 
 	WORD m_BankTab[5][4];
 	int m_BankNow;
@@ -622,6 +638,7 @@ public:
 		int		fcn, bcn;
 		int		mod, fnm;
 		int		dmf, csz;
+		int		idx, stx, edx, sty;
 	};
 
 	int IsWord(int ch);
@@ -1081,6 +1098,7 @@ public:
 
 	CPtrArray m_GrapWndTab;
 
+	class CGrapWnd *GetGrapWnd(int index);
 	void AddGrapWnd(void *pWnd);
 	void RemoveGrapWnd(void *pWnd);
 	void *LastGrapWnd(int type);

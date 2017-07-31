@@ -2594,15 +2594,74 @@ void CTextRam::fc_DECSIXEL(int ch)
 
 	CString tmp;
 	CGrapWnd *pGrapWnd;
-	
-	tmp.Format(_T("Sixel - %s"), m_pDocument->m_ServerEntry.m_EntryName);
-	pGrapWnd = new CGrapWnd(this);
-	pGrapWnd->Create(NULL, tmp);
-	pGrapWnd->SetSixel(GetAnsiPara(0, 0, 0), GetAnsiPara(1, 0, 0), m_OscPara);
-	pGrapWnd->ShowWindow(SW_SHOW);
-	AddGrapWnd((void *)pGrapWnd);
 
 	fc_POP(ch);
+	
+	if ( this->IsOptEnable(TO_DECSDM) ) {	// Sixel Scroll Mode Disable (DECSDM = set)
+		tmp.Format(_T("Sixel - %s"), m_pDocument->m_ServerEntry.m_EntryName);
+		pGrapWnd = new CGrapWnd(this);
+		pGrapWnd->Create(NULL, tmp);
+		pGrapWnd->SetSixel(GetAnsiPara(0, 0, 0), GetAnsiPara(1, 0, 0), m_OscPara);
+		pGrapWnd->ShowWindow(SW_SHOW);
+		AddGrapWnd((void *)pGrapWnd);
+
+	} else {								// Sixel Scroll Mode Enable (DECSDM = reset)
+		pGrapWnd = new CGrapWnd(this);
+		pGrapWnd->Create(NULL, _T(""));
+		pGrapWnd->SetSixel(GetAnsiPara(0, 0, 0), GetAnsiPara(1, 0, 0), m_OscPara);
+
+		if ( pGrapWnd->m_pActMap == NULL ) {
+			pGrapWnd->DestroyWindow();
+			return;
+		}
+
+		int x, y, w, h;
+		int cx, cy, dx, dy;
+		IRAM *ip;
+		CRLoginView *pView;
+
+		if ( m_pDocument != NULL && (pView = (CRLoginView *)m_pDocument->GetAciveView()) != NULL ) {
+			w = pView->m_CharWidth;
+			h = pView->m_CharHeight;
+		} else {
+			w = 6;
+			h = w * m_DefFontHw / 10;
+		}
+
+		dx = pGrapWnd->m_MaxX * pGrapWnd->m_AspX;
+		dy = pGrapWnd->m_MaxY * pGrapWnd->m_AspY;
+
+		cx = m_Cols - m_CurX;
+		if ( (cx * w) > dx )
+			cx = (dx + w - 1) / w;
+		cy = (dy * (cx * w) / dx + h - 1) / h;
+
+		for ( y = 0 ; y < cy ; y++ ) {
+			ip = (IRAM *)GETVRAM(m_CurX, m_CurY);
+			for ( x = 0 ; x < cx ; x++ ) {
+				ip->id = m_ImageIndex;
+				ip->x  = x;
+				ip->y  = y;
+				ip->md = SET_96 | 'A';
+				ip->em = m_AttNow.em;
+				ip->cm = CM_IMAGE;
+				ip->at = m_AttNow.at;
+				ip->ft = m_AttNow.ft;
+				ip->fc = m_AttNow.fc;
+				ip->bc = m_AttNow.bc;
+				ip++;
+			}
+			ONEINDEX();
+		}
+		DISPUPDATE();
+
+		pGrapWnd->m_BlockX = cx;
+		pGrapWnd->m_BlockY = cy;
+		pGrapWnd->m_BlockW = w;
+		pGrapWnd->m_BlockH = h;
+		pGrapWnd->m_ImageIndex = m_ImageIndex++;
+		AddGrapWnd((void *)pGrapWnd);
+	}
 }
 void CTextRam::fc_DECDLD(int ch)
 {
@@ -2683,14 +2742,17 @@ void CTextRam::fc_DECDLD(int ch)
 	CStringArrayExt node, data;
 	BYTE map[USFTCHSZ];
 
-	if ( (Pfn = GetAnsiPara(0, 0, 0)) > 2 )
-		Pfn = 2;
-	if ( (Pcn = GetAnsiPara(1, 0, 0) + 0x20) > 0x7F )
-		Pcn = 0x7F;
-	Pe = GetAnsiPara(2, 0, 0);
-	Pcss = GetAnsiPara(7, 0, 0);
+	fc_POP(ch);
 
+	Pfn  = GetAnsiPara(0, 0, 0);
+	Pcn  = GetAnsiPara(1, 0, 0) + 0x20;
+	Pe   = GetAnsiPara(2, 0, 0);
+	Pcss = GetAnsiPara(7, 0, 0);
 	Pcmw = GetAnsiPara(3, 0, 0);
+
+	//if ( Pcss == 0 && Pcn < 0x21 )
+	//	Pcn = 0x21;
+
 	switch(Pcmw) {
 	case 0:
 		Pcmw = (IsOptEnable(TO_DECCOLM) ? 9 : 15);
@@ -2708,6 +2770,7 @@ void CTextRam::fc_DECDLD(int ch)
 		Pcmh = 10;
 		break;
 	}
+
 	if ( Pcmh == 0 && (Pcmh = GetAnsiPara(6, 0, 0)) == 0 )
 		Pcmh = 12;
 
@@ -2719,7 +2782,7 @@ void CTextRam::fc_DECDLD(int ch)
 	}
 
 	if ( Pcmw < 5 || Pcmw > USFTWMAX || Pcmh < 1 || Pcmh > USFTHMAX )
-		goto ENDRET;
+		return;
 
 	p = (LPCSTR)m_OscPara;
 	while ( *p != '\0' ) {
@@ -2731,7 +2794,7 @@ void CTextRam::fc_DECDLD(int ch)
 	}
 
 	if ( Pscs.IsEmpty() )
-		goto ENDRET;
+		return;
 
 	idx = m_FontTab.IndexFind((Pcss == 0 ? SET_94 : SET_96), Pscs);
 
@@ -2753,9 +2816,6 @@ void CTextRam::fc_DECDLD(int ch)
 		}
 		m_FontTab[idx].SetUserFont(Pcn + n, Pcmw, Pcmh, map);
 	}
-
-ENDRET:
-	fc_POP(ch);
 }
 void CTextRam::fc_DECRSTS(int ch)
 {
@@ -4632,10 +4692,12 @@ void CTextRam::fc_DECDSR(int ch)
 void CTextRam::fc_DECRQM(int ch)
 {
 	// CSI $p	DECRQM Request mode settings
-	int n;
-	if ( (n = GetAnsiPara(0, 1, 1)) > 99 )
-		n = 99;
-	UNGETSTR(_T("%s%d;%d$y"), m_RetChar[RC_CSI], n, IsOptEnable(200 + n) ? 1 : 2);
+	int n, f = 0;
+
+	if ( (n = GetAnsiPara(0, 1, 0)) > 0 && n < 100 )
+		f = IsOptEnable(200 + n) ? 1 : 2;
+
+	UNGETSTR(_T("%s%d;%d$y"), m_RetChar[RC_CSI], n, f);
 	fc_POP(ch);
 }
 void CTextRam::fc_DECCARA(int ch)
@@ -5105,11 +5167,27 @@ void CTextRam::fc_CSI_ETC(int ch)
 void CTextRam::fc_DECRQMH(int ch)
 {
 	// CSI ('?' << 16) | ('$' << 8) | 'p'	DECRQMH Request Mode (DEC) Host to Terminal
-	int n;
+	int i, f = 0;
 
-	if ( (n = GetAnsiPara(0, 1, 1)) > 199 )
-		n = 199;
-	UNGETSTR(_T("%s?%d;%d$y"), m_RetChar[RC_CSI], n, IsOptEnable(n) ? 1 : 2);
+	i = GetAnsiPara(0, 1, 0);
+
+	if ( i > 0 && i < 200 )				// 1-199				DEC Terminal Option
+		f = IsOptEnable(i) ? 1 : 2;
+	else if ( i >= 1000 && i < 1080 )	// 1000-1079(300-379)	XTerm Option
+		f = IsOptEnable(i - 700) ? 1 : 2;
+	if ( i >= 2000 && i < 2020 )		// 2000-2019(380-399)	XTerm Option 2
+		f = IsOptEnable(i - 1620) ? 1 : 2;
+	else if ( i >= 8400 && i < 8512 )	// 8400-8511(400-511)	RLogin Option
+		f = IsOptEnable(i - 8000) ? 1 : 2;
+
+	else if ( i == 7727 )				// 7727 - Application Escape mode を有効にする。				Application Escape mode を無効にする。  
+		f = IsOptEnable(TO_RLCKMESC) ? 1 : 2;
+	else if ( i == 7786 )				// 7786 - マウスホイール - カーソルキー変換を有効にする。		マウスホイール - カーソルキー変換を無効にする。 
+		f = IsOptEnable(TO_RLMSWAPE) ? 1 : 2;
+	else if ( i == 8840 )				// 8840 - TNAMB Aタイプをダブル幅の文字にする					シングル幅にする
+		f = IsOptEnable(TO_RLUNIAWH) ? 2 : 1;
+
+	UNGETSTR(_T("%s?%d;%d$y"), m_RetChar[RC_CSI], i, f);
 	fc_POP(ch);
 }
 

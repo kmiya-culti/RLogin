@@ -62,6 +62,7 @@ static const struct _OptListTab {
 	{	TO_XTMRVW,		_T("行頭BSによる上行右端移動"),		_T("行頭のBSで移動しない")			},
 	{	TO_XTMABUF,		_T("全画面の保存"),					_T("保存した画面の復帰")			},
 	{	TO_DECBKM,		_T("BSキー変換を行わない"),			_T("BSキーをDELキーに変換")			},
+	{	TO_DECSDM,		_T("Sixelを別ウィンドウで表示"),	_T("Sixelスクロールモード表示")		},
 	{	TO_DECECM,		_T("SGRで空白文字を設定しない"),	_T("SGRで空白文字カラーを設定")		},
 
 	// XTerm Option			1000-1099(300-379)
