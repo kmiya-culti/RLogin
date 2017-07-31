@@ -293,6 +293,27 @@ int CBuffer::GetBIGNUM2(BIGNUM *val)
 	Consume(bytes);
 	return TRUE;
 }
+int CBuffer::GetBIGNUM_SecSh(BIGNUM *val)
+{
+	int bytes = (Get32Bit() + 7) / 8;
+	if ( (m_Len - m_Ofs) < bytes )
+		throw this;
+	if ( (m_Data[m_Ofs] & 0x80) != 0 ) {
+		if ( m_Ofs > 0 ) {
+			m_Data[m_Ofs - 1] = '\0';
+		    BN_bin2bn(m_Data + m_Ofs - 1, bytes + 1, val);
+		} else {
+			LPBYTE tmp = new BYTE[bytes + 1];
+			tmp[0] = '\0';
+			memcpy(tmp + 1, m_Data + m_Ofs, bytes);
+		    BN_bin2bn(tmp, bytes + 1, val);
+			delete tmp;
+		}
+	} else
+	    BN_bin2bn(m_Data + m_Ofs, bytes, val);
+	Consume(bytes);
+	return TRUE;
+}
 int CBuffer::GetEcPoint(const EC_GROUP *curve, EC_POINT *point)
 {
 	int ret;
@@ -1496,7 +1517,7 @@ LPCWSTR CStrScript::ExecChar(int ch)
 			tmp += np->m_RecvStr;
 			if ( np->m_Reg.MatchChar(CTextRam::UCS2toUCS4(ch), 0, &m_Res) && (m_Res.m_Status == REG_MATCH || m_Res.m_Status == REG_MATCHOVER) ) {
 				ExecNode(np->m_Right);
-				np->m_Reg.ConvertRes((CStringW)np->m_SendStr, m_Str, &m_Res);
+				np->m_Reg.ConvertRes(TstrToUni(np->m_SendStr), m_Str, &m_Res);
 				if ( m_StatDlg.m_hWnd != NULL )
 					m_StatDlg.SetStaus(_T(""));
 				return m_Str;
@@ -1594,7 +1615,7 @@ void CServerEntry::Init()
 	m_PortName.Empty();
 	m_UserName.Empty();
 	m_PassName.Empty();
-	m_TermName.Empty();
+	m_TermName = _T("xterm"); //.Empty();
 	m_IdkeyName.Empty();
 	m_KanjiCode = EUC_SET;
 	m_ProtoType = PROTO_DIRECT;

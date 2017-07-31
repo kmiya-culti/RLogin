@@ -72,7 +72,7 @@ public:
 	int m_ActCharCount;
 	CMainFrame *m_pMainWnd;
 	CString m_TitleString;
-	CStrScript *m_pScript;
+	CStrScript *m_pStrScript;
 	CString m_ErrorPrompt;
 	CString m_SearchStr;
 	CStringA m_WorkMbs;

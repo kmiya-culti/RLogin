@@ -72,7 +72,7 @@ CRLoginDoc::CRLoginDoc()
 	m_ActCharCount = 0;
 	m_pMainWnd = (CMainFrame *)AfxGetMainWnd();
 	m_TitleString.Empty();
-	m_pScript = NULL;
+	m_pStrScript = NULL;
 }
 
 CRLoginDoc::~CRLoginDoc()
@@ -253,8 +253,8 @@ void CRLoginDoc::SetStatus(LPCTSTR str)
 		title += tmp;
 	}
 
-	if ( m_pScript != NULL ) {
-		if ( (n = m_pScript->Status()) == SCPSTAT_MAKE )
+	if ( m_pStrScript != NULL ) {
+		if ( (n = m_pStrScript->Status()) == SCPSTAT_MAKE )
 			title += _T("...Chat Makeing");
 		else if ( n == SCPSTAT_EXEC )
 			title += _T("...Chat Execute");
@@ -442,11 +442,11 @@ void CRLoginDoc::OnReciveChar(int ch)
 {
 	LPCWSTR str;
 
-	while ( m_pScript != NULL && (str = m_pScript->ExecChar(ch)) != NULL ) {
-		SendScript(str, m_pScript->m_Res.m_Str);
-		if ( m_pScript->m_Exec == NULL ) {
-			m_pScript->ExecStop();
-			m_pScript = NULL;
+	while ( m_pStrScript != NULL && (str = m_pStrScript->ExecChar(ch)) != NULL ) {
+		SendScript(str, m_pStrScript->m_Res.m_Str);
+		if ( m_pStrScript->m_Exec == NULL ) {
+			m_pStrScript->ExecStop();
+			m_pStrScript = NULL;
 			SetStatus(NULL);
 			break;
 		}
@@ -455,8 +455,8 @@ void CRLoginDoc::OnReciveChar(int ch)
 }
 void CRLoginDoc::OnSendBuffer(CBuffer &buf)
 {
-	if ( m_pScript != NULL && m_pScript->m_MakeFlag )
-		m_pScript->SendStr((LPCWSTR)(buf.GetPtr()), buf.GetSize() / sizeof(WCHAR), &m_ServerEntry);
+	if ( m_pStrScript != NULL && m_pStrScript->m_MakeFlag )
+		m_pStrScript->SendStr((LPCWSTR)(buf.GetPtr()), buf.GetSize() / sizeof(WCHAR), &m_ServerEntry);
 }
 
 int CRLoginDoc::DelaySend()
@@ -503,12 +503,12 @@ void CRLoginDoc::OnSocketConnect()
 {
 	if ( m_pSock == NULL )
 		return;
+
 	m_ServerEntry.m_Script.ExecInit();
 	if ( m_ServerEntry.m_Script.Status() != SCPSTAT_NON ) {
-		m_pScript = &(m_ServerEntry.m_Script);
+		m_pStrScript = &(m_ServerEntry.m_Script);
 		OnReciveChar(0);
 	}
-	SetStatus(_T("Connect"));
 
 	if ( m_TextRam.IsOptEnable(TO_RLHISDATE) && !m_TextRam.m_LogFile.IsEmpty() ) {
 		int n;
@@ -555,6 +555,8 @@ void CRLoginDoc::OnSocketConnect()
 
 		m_pLogFile->SeekToEnd();
 	}
+
+	SetStatus(_T("Connect"));
 }
 void CRLoginDoc::OnSocketError(int err)
 {
@@ -574,6 +576,7 @@ void CRLoginDoc::OnSocketClose()
 {
 	if ( m_pSock == NULL )
 		return;
+
 	if ( m_pBPlus != NULL )
 		m_pBPlus->DoAbort();
 	if ( m_pZModem != NULL )
@@ -974,15 +977,15 @@ void CRLoginDoc::OnUpdateXYZModem(CCmdUI* pCmdUI)
 
 void CRLoginDoc::OnChatStop()
 {
-	if ( m_pScript != NULL ) {
-		m_pScript->ExecStop();
-		m_pScript = NULL;
+	if ( m_pStrScript != NULL ) {
+		m_pStrScript->ExecStop();
+		m_pStrScript = NULL;
 	}
 	SetStatus(NULL);
 }
 void CRLoginDoc::OnUpdateChatStop(CCmdUI *pCmdUI)
 {
-	pCmdUI->Enable(m_pScript != NULL && m_pScript->Status() != SCPSTAT_NON ? TRUE : FALSE);
+	pCmdUI->Enable(m_pStrScript != NULL && m_pStrScript->Status() != SCPSTAT_NON ? TRUE : FALSE);
 }
 
 void CRLoginDoc::OnSendBreak()

@@ -60,6 +60,7 @@ public:
 	int GetBuf(CBuffer *buf);
 	int GetBIGNUM(BIGNUM *val);
 	int GetBIGNUM2(BIGNUM *val);
+	int GetBIGNUM_SecSh(BIGNUM *val);
 	int GetEcPoint(const EC_GROUP *curve, EC_POINT *point);
 	int GetWord();
 	int GetChar();

@@ -102,9 +102,9 @@ CRLoginView::CRLoginView()
 	m_WheelDelta = 0;
 	m_WheelTimer = FALSE;
 	m_pGhost = NULL;
+
 #ifdef	USE_DIRECTWRITE
 	m_pRenderTarget = NULL;
-	m_pSolidColorBrush = NULL;
 #endif
 }
 
@@ -112,9 +112,8 @@ CRLoginView::~CRLoginView()
 {
 	if ( m_pGhost != NULL )
 		m_pGhost->DestroyWindow();
+
 #ifdef	USE_DIRECTWRITE
-	if ( m_pSolidColorBrush != NULL )
-		m_pSolidColorBrush->Release();
 	if ( m_pRenderTarget != NULL )
 		m_pRenderTarget->Release();
 #endif
@@ -151,13 +150,16 @@ void CRLoginView::OnDraw(CDC* pDC)
 		CRect rect;
 		D2D1_SIZE_U size;
 		CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
+        D2D1_RENDER_TARGET_PROPERTIES rtProps = D2D1::RenderTargetProperties();
+        rtProps.usage =  D2D1_RENDER_TARGET_USAGE_GDI_COMPATIBLE;
 
 		GetClientRect(rect);
 		size = D2D1::SizeU(rect.Width(), rect.Height());
 
 		if ( pApp->m_pD2DFactory != NULL && pApp->m_pDWriteFactory != NULL ) {
-			if ( SUCCEEDED(pApp->GetD2D1Factory()->CreateHwndRenderTarget(D2D1::RenderTargetProperties(), D2D1::HwndRenderTargetProperties(m_hWnd, size), &m_pRenderTarget)) )
-				m_pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White), &m_pSolidColorBrush);
+			if ( SUCCEEDED(pApp->GetD2D1Factory()->CreateHwndRenderTarget(rtProps, D2D1::HwndRenderTargetProperties(m_hWnd, size), &m_pRenderTarget)) ) {
+	            m_pRenderTarget->QueryInterface(__uuidof(ID2D1GdiInteropRenderTarget), (void**)&m_pGDIRT);
+			}
 		}
 	}
 #endif
@@ -193,7 +195,7 @@ void CRLoginView::OnDraw(CDC* pDC)
 		pDoc->m_TextRam.DrawVram(pDC, sx, sy, ex, ey, this);
 
 #ifdef	USE_DIRECTWRITE
-	if ( m_pRenderTarget != NULL && m_pSolidColorBrush != NULL ) {
+	if ( m_pRenderTarget != NULL ) {
 		m_pRenderTarget->BeginDraw();
 
 		// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -201,9 +203,7 @@ void CRLoginView::OnDraw(CDC* pDC)
 		HRESULT hr = m_pRenderTarget->EndDraw();
 
 		if ( SUCCEEDED(hr) && hr == D2DERR_RECREATE_TARGET ) {
-			m_pSolidColorBrush->Release();
 			m_pRenderTarget->Release();
-			m_pSolidColorBrush = NULL;
 			m_pRenderTarget = NULL;
 		}
 	}

@@ -221,6 +221,7 @@ public:
 	static LPCTSTR GetEcNameFromNid(int nid);
 	static const EVP_MD *GetEcEvpMdFromNid(int nid);
 	int GetEcNidFromKey(EC_KEY *k);
+	void RsaGenAddPara();
 
 	int Create(int type);
 	int Generate(int type, int bits);
@@ -263,6 +264,8 @@ public:
 	int SetEvpPkey(EVP_PKEY *pk);
 	int LoadRsa1Key(FILE *fp, LPCTSTR pass);
 	int SaveRsa1Key(FILE *fp, LPCTSTR pass);
+	int LoadSecShKey(FILE *fp, LPCTSTR pass);
+	int LoadPuttyKey(FILE *fp, LPCTSTR pass);
 
 	int LoadPrivateKey(LPCTSTR file, LPCTSTR pass);
 	int SavePrivateKey(int type, LPCTSTR file, LPCTSTR pass);

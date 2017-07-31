@@ -781,7 +781,7 @@ NEXTFILE:
 			Txhdr[ZF3] = 0;
 			zshhdr(4, ZFILE, Txhdr);
 
-			opt.Format("%I64d %lo %o 0 0 0", fileSize, st.st_mtime, st.st_mode);
+			opt.Format("%I64d %I64o %o 0 0 0", fileSize, st.st_mtime, st.st_mode);
 			if ( (n = m_FileName.GetLength() + opt.GetLength() + 2) > ZBUFSIZE ) {
 				char *tmp = new char[n + 2];
 				strcpy(tmp, m_FileName);

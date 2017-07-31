@@ -4511,6 +4511,10 @@ void CTextRam::fc_DECSRET(int ch)
 				DisableOption(TO_XTSGRMOS);
 				DisableOption(TO_XTURXMOS);
 				EnableOption(i);	// Last select Enable
+			} else if ( ch == 'l' ) {
+				DisableOption(TO_XTEXTMOS);
+				DisableOption(TO_XTSGRMOS);
+				DisableOption(TO_XTURXMOS);
 			}
 			break;
 

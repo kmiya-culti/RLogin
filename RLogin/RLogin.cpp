@@ -816,6 +816,7 @@ void CRLoginApp::OnAppAbout()
 // CRLoginApp メッセージ ハンドラ
 
 int mt_idle();
+//int ScriptIdle();
 
 BOOL CRLoginApp::OnIdle(LONG lCount) 
 {
@@ -832,8 +833,13 @@ BOOL CRLoginApp::OnIdle(LONG lCount)
 			return TRUE;
 	}
 
-//	return FALSE;
-	return mt_idle();
+	//if ( ScriptIdle() )
+	//	return TRUE;
+
+	if ( mt_idle() )
+		return TRUE;
+
+	return FALSE;
 }
 
 int CRLoginApp::ExitInstance() 
