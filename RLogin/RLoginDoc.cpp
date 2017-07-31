@@ -670,6 +670,12 @@ int CRLoginDoc::OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags)
 		return nBufLen;
 
 	if ( m_pScript != NULL ) {
+		if ( m_pScript->IsSockOver() ) {
+			for ( n = 0 ; n < 100 ; n++ ) { 
+				if ( !m_pScript->Exec() )
+					break;
+			}
+		}
 		if ( m_pScript->IsSockOver() )
 			return 0;
 		if ( m_pScript->m_SockMode == DATA_BUF_HAVE ) {
@@ -1211,6 +1217,7 @@ static ScriptCmdsDefs DocBase[] = {
 	{	"Destroy",		11	},
 	{	"DoOpen",		12	},
 	{	"Connect",		13	},
+	{	"Abort",		14	},
 	{	NULL,			0	},
 }, DocLog[] = {
 	{	"File",			20	},
@@ -1322,6 +1329,9 @@ void CRLoginDoc::ScriptValue(int cmds, class CScriptValue &value, int mode)
 	case 13:			// Document.Connect
 		n = (m_pSock == NULL ? FALSE : m_pSock->m_bConnect);
 		value.SetInt(n, mode);
+		break;
+	case 14:			// Document.Abort
+		value.SetInt(m_pScript->m_bAbort, mode);
 		break;
 
 	case 20:				// Document.Log.File

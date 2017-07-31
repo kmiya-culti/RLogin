@@ -1044,8 +1044,16 @@ void CMainFrame::WakeUpSleep()
 	}
 	m_SleepStatus = 0;
 }
+
 void CMainFrame::SetIconStyle()
 {
+	if ( m_IconShow ) {
+		ShowWindow(SW_RESTORE);
+		Shell_NotifyIcon(NIM_DELETE, &m_IconData);
+		m_IconShow = FALSE;
+		return;
+	}
+
 	ZeroMemory(&m_IconData, sizeof(NOTIFYICONDATA));
 	m_IconData.cbSize = sizeof(NOTIFYICONDATA);
 
@@ -1054,7 +1062,7 @@ void CMainFrame::SetIconStyle()
 	m_IconData.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
 	m_IconData.uCallbackMessage = WM_ICONMSG;
 	m_IconData.hIcon  = m_hIcon;
-	_tcscpy(m_IconData.szTip, _T("Listen..."));
+	_tcscpy(m_IconData.szTip, _T("RLogin"));
 
 	if ( (m_IconShow = Shell_NotifyIcon(NIM_ADD, &m_IconData)) )
 		ShowWindow(SW_HIDE);
@@ -1063,8 +1071,10 @@ void CMainFrame::SetIconData(HICON hIcon, LPCTSTR str)
 {
 	if ( m_IconShow == FALSE )
 		return;
-	m_IconData.hIcon  = hIcon;
-	_tcsncpy(m_IconData.szTip, str, sizeof(m_IconData.szTip) / sizeof(TCHAR));
+	if ( hIcon != NULL )
+		m_IconData.hIcon  = hIcon;
+	if ( str != NULL )
+		_tcsncpy(m_IconData.szTip, str, sizeof(m_IconData.szTip) / sizeof(TCHAR));
 	Shell_NotifyIcon(NIM_MODIFY, &m_IconData);
 }
 

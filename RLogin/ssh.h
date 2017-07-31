@@ -98,12 +98,11 @@
 #define SSH2_CIPHER_CLE192R		116		// clefia191-ctr 
 #define SSH2_CIPHER_CLE256R		117		// clefia256-ctr 
 
-#define SSH2_CIPHER_AES128G		120		// aes128-gcm
-#define SSH2_CIPHER_AES192G		121		// aes192-gcm
-#define SSH2_CIPHER_AES256G		122		// aes256-gcm
-#define SSH2_CIPHER_AES128C		125		// aes128-ccm
-#define SSH2_CIPHER_AES192C		126		// aes192-ccm
-#define SSH2_CIPHER_AES256C		127		// aes256-ccm
+#define	SSH2_AEAD_TAGSIZE		16
+#define	SSH2_CIPHER_AEAD		200
+#define	SSH2_AEAD_AES128GCM		200		// AEAD_AES_128_GCM
+#define	SSH2_AEAD_AES192GCM		201		// AEAD_AES_192_GCM
+#define	SSH2_AEAD_AES256GCM		202		// AEAD_AES_256_GCM
 
 #define	COMPLEVEL		6
 
@@ -123,10 +122,11 @@ public:
 
 	int Init(LPCTSTR name, int mode, LPBYTE key = NULL, int len = (-1), LPBYTE iv = NULL);
 	void Close();
-	void Cipher(LPBYTE inbuf, int len, CBuffer *out);
+	int Cipher(LPBYTE inbuf, int len, CBuffer *out);
 	int GetIndex(LPCTSTR name);
 	int GetKeyLen(LPCTSTR name = NULL);
 	int GetBlockSize(LPCTSTR name = NULL);
+	BOOL IsAEAD(LPCTSTR name = NULL);
 	LPCTSTR GetName(int num);
 	int GetNum(LPCTSTR str);
 	LPCTSTR GetTitle();

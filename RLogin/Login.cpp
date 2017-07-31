@@ -41,6 +41,8 @@ int CLogin::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int 
 	}
 
 	if ( n <= (IPPORT_RESERVED / 2) ) {
+		if ( pAddrInfo != NULL )
+			FreeAddrInfo((ADDRINFOT *)pAddrInfo);
 		CString errmsg;
 		errmsg.Format(_T("LoginSocket '%s' Port Error #%d"), lpszHostAddress, IPPORT_RESERVED / 2);
 		AfxMessageBox(errmsg, MB_ICONSTOP);

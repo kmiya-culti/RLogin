@@ -283,6 +283,10 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 			break;
 
 		case 3:		// SSH2 Packet Lenght
+			if ( m_DecCip.IsAEAD() ) {
+				m_InPackStat = 5;
+				break;
+			}
 			if ( m_Incom.GetSize() < m_DecCip.GetBlockSize() )
 				return;
 			m_InPackBuf.Clear();
@@ -322,9 +326,46 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 			m_RecvPackLen++;
 			RecivePacket2(bp);
 			break;
+
+		case 5:		// SSH2 AEAD Packet length
+			if ( !m_DecCip.IsAEAD() ) {
+				m_InPackStat = 3;
+				break;
+			}
+			if ( m_Incom.GetSize() < 4 )
+				return;
+			m_InPackLen = m_Incom.PTR32BIT(m_Incom.GetPtr());
+			if ( m_InPackLen < 5 || m_InPackLen > (256 * 1024) ) {
+				m_Incom.Clear();
+				SendDisconnect2(1, "Packet Len Error");
+				throw "ssh2 packet length error";
+			}
+			m_InPackStat = 6;
+			// break; Not use
+		case 6:		// SSH2 AEAD Packet
+			if ( m_Incom.GetSize() < (4 + m_InPackLen + SSH2_AEAD_TAGSIZE) )
+				return;
+			m_InPackStat = 5;
+			tmp.Clear();
+			if ( !m_DecCip.Cipher(m_Incom.GetPtr(), 4 + m_InPackLen + SSH2_AEAD_TAGSIZE, &tmp) ) {
+				m_Incom.Clear();
+				SendDisconnect2(1, "MAC Error");
+				throw "ssh2 mac miss match error";
+			}
+			m_Incom.Consume(4 + m_InPackLen + SSH2_AEAD_TAGSIZE);
+			m_InPackLen = tmp.Get32Bit();
+			m_InPackPad = tmp.Get8Bit();
+			tmp.ConsumeEnd(m_InPackPad);
+			m_InPackBuf.Clear();
+			m_DecCmp.UnCompress(tmp.GetPtr(), tmp.GetSize(), &m_InPackBuf);
+			m_RecvPackSeq++;
+			m_RecvPackLen++;
+			RecivePacket2(&m_InPackBuf);
+			break;
 		}
 	}
  } catch(...) {
+	 ;
  }
 }
 void Cssh::SendWindSize(int x, int y)
@@ -1865,6 +1906,11 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 			return TRUE;
 	}
 
+	if ( m_EncCip.IsAEAD(m_VProp[PROP_ENC_ALGS_CTOS]) )
+		m_VProp[PROP_MAC_ALGS_CTOS] = m_VProp[PROP_ENC_ALGS_CTOS];
+	if ( m_DecCip.IsAEAD(m_VProp[PROP_ENC_ALGS_STOC]) )
+		m_VProp[PROP_MAC_ALGS_STOC] = m_VProp[PROP_ENC_ALGS_STOC];
+
 	// PROPOSAL_KEX_ALGS
 	for ( n = 0 ; kextab[n].name != NULL ; n++ ) {
 		if ( m_VProp[PROP_KEX_ALGS].Compare(kextab[n].name) == 0 ) {
@@ -2715,6 +2761,11 @@ void Cssh::RecivePacket2(CBuffer *bp)
 		if ( (m_SSH2Status & SSH2_STAT_HAVELOGIN) == 0 ) {
 			m_AuthStat = 0;
 			SendMsgServiceRequest("ssh-userauth");
+		} else {
+			if ( m_EncCmp.m_Mode == 4 )
+				m_EncCmp.Init(NULL, MODE_ENC, COMPLEVEL);
+			if ( m_DecCmp.m_Mode == 4 )
+				m_DecCmp.Init(NULL, MODE_DEC, COMPLEVEL);
 		}
 		break;
 	case SSH2_MSG_SERVICE_ACCEPT:

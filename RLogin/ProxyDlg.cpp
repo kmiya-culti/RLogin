@@ -39,7 +39,7 @@ void CProxyDlg::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(CProxyDlg, CDialog)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_RADIO1, IDC_RADIO4, OnProtoType)
-//	ON_CONTROL_RANGE(BN_CLICKED, IDC_SSL_RADIO1, IDC_SSL_RADIO4, OnProtoType)
+	ON_CONTROL_RANGE(BN_CLICKED, IDC_SSL_RADIO1, IDC_SSL_RADIO6, OnProtoType)
 END_MESSAGE_MAP()
 
 
@@ -62,8 +62,11 @@ void CProxyDlg::OnProtoType(UINT nID)
 
 	UpdateData(TRUE);
 
-	if ( nID >= IDC_SSL_RADIO1 && nID <= IDC_SSL_RADIO4 )
-		nID = IDC_RADIO1 + (m_ProxyMode == 0 ? 4 : m_ProxyMode);
+	if ( nID >= IDC_SSL_RADIO1 && nID <= IDC_SSL_RADIO6 )
+		nID = IDC_RADIO1 + m_ProxyMode;
+
+	if ( m_ProxyMode == 0 && m_SSLMode != 0 )
+		nID = IDC_RADIO1 + 4;
 
 	for ( n = 0 ; ItemTab[n].nId != 0 ; n++ ) {
 		if ( (pWnd = GetDlgItem(ItemTab[n].nId)) != NULL )

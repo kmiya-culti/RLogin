@@ -527,12 +527,18 @@ ERRRET2:
 
 		break;
 	}
-	FreeAddrInfo(aitop);
-	if ( ai == NULL ) {
-		CString errmsg;
-		errmsg.Format(_T("ExtSocket Open Error '%s:%d'"), lpszHostAddress, nHostPort);
-		AfxMessageBox(errmsg, MB_ICONSTOP);
-		return FALSE;
+	if ( nSocketPort != 0 ) {
+		if ( ai == NULL )
+			return FALSE;
+		FreeAddrInfo(aitop);
+	} else {
+		FreeAddrInfo(aitop);
+		if ( ai == NULL ) {
+			CString errmsg;
+			errmsg.Format(_T("ExtSocket Open Error '%s:%d'"), lpszHostAddress, nHostPort);
+			AfxMessageBox(errmsg, MB_ICONSTOP);
+			return FALSE;
+		}
 	}
 	return TRUE;
 #endif

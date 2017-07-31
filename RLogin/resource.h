@@ -410,7 +410,9 @@
 #define IDC_CEXT2                       1186
 #define IDC_SSL_RADIO4                  1187
 #define IDC_CEXT1                       1188
+#define IDC_SSL_RADIO5                  1188
 #define IDC_DOINIT                      1189
+#define IDC_SSL_RADIO6                  1189
 #define IDC_ATTR1                       1201
 #define IDC_ATTR2                       1202
 #define IDC_ATTR3                       1203
