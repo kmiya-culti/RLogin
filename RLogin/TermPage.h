@@ -19,9 +19,10 @@ public:
 	enum { IDD = IDD_TERMPAGE };
 
 public:
-	BOOL m_Check[10];
+//	BOOL m_Check[10];
 	CProcTab m_ProcTab;
-	CListCtrlExt m_List;
+	CListCtrlExt m_OptList;
+	CListCtrlExt m_ExtList;
 
 public:
 	void DoInit();
@@ -37,8 +38,9 @@ public:
 
 // インプリメンテーション
 protected:
-	afx_msg void OnUpdateCheck(UINT nId);
+//	afx_msg void OnUpdateCheck(UINT nId);
 	afx_msg void OnBnClickedEscedit();
-	afx_msg void OnNMClickEsclist(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnNMClickOptlist(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnNMClickExtlist(NMHDR *pNMHDR, LRESULT *pResult);
 	DECLARE_MESSAGE_MAP()
 };

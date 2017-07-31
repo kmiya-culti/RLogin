@@ -431,6 +431,8 @@
 #define IDC_CSILIST                     1180
 #define IDC_ENTRY                       1181
 #define IDC_DCSLIST                     1181
+#define IDC_ESCLIST2                    1181
+#define IDC_EXTLIST                     1181
 #define IDC_LOADINFO                    1182
 #define IDC_TERMCAP                     1182
 #define IDC_INFOCAP                     1183

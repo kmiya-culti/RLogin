@@ -543,7 +543,13 @@ void CRLoginView::SetGhostWnd(BOOL sw)
 	if ( sw ) {		// Create
 		if ( m_pGhost != NULL )
 			return;
+
 		CRect rect;
+		CRLoginDoc *pDoc = GetDocument();
+
+		if ( pDoc->m_TextRam.IsOptEnable(TO_RLGWDIS) )
+			return;
+
 		GetWindowRect(rect);
 		m_pGhost = new CGhostWnd();
 		m_pGhost->m_pView = this;
@@ -1709,7 +1715,7 @@ void CRLoginView::OnRButtonDblClk(UINT nFlags, CPoint point)
 	CRLoginDoc *pDoc = GetDocument();
 	ASSERT(pDoc);
 
-	if ( pDoc->m_TextRam.IsOptEnable(TO_RLRCLICK) )
+	if ( !pDoc->m_TextRam.IsOptEnable(TO_RLRSPAST) && pDoc->m_TextRam.IsOptEnable(TO_RLRCLICK) )
 		OnEditPaste();
 
 	CView::OnRButtonDblClk(nFlags, point);
@@ -1718,8 +1724,9 @@ void CRLoginView::OnRButtonDown(UINT nFlags, CPoint point)
 {
 	int x, y;
 	CCmdUI state;
-	CMenu *pMenu, *pMain;
+	CMenu *pMenu, *pMain, DefMenu;
 	CRLoginDoc *pDoc = GetDocument();
+	CMainFrame *pFrame = GetMainWnd();
 	ASSERT(pDoc);
 
 	CView::OnRButtonDown(nFlags, point);
@@ -1731,11 +1738,18 @@ void CRLoginView::OnRButtonDown(UINT nFlags, CPoint point)
 		return;
 	}
 
+	if ( pDoc->m_TextRam.IsOptEnable(TO_RLRSPAST) ) {
+		OnEditPaste();
+		return;
+	}
+
 	if ( pDoc->m_TextRam.IsOptEnable(TO_RLRCLICK) )
 		return;
 
-	if ( (pMain = GetMainWnd()->GetMenu()) == NULL || (pMenu = pMain->GetSubMenu(1)) == NULL )
-		return;
+	if ( (pMain = GetMainWnd()->GetMenu()) == NULL || (pMenu = pMain->GetSubMenu(1)) == NULL ) {
+		if ( !DefMenu.LoadMenu(IDR_POPUPMENU) || (pMenu = DefMenu.GetSubMenu(5)) == NULL )
+			return;
+	}
 
 	state.m_pMenu = pMenu;
 	state.m_nIndexMax = pMenu->GetMenuItemCount();
@@ -1990,9 +2004,17 @@ BOOL CRLoginView::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 {
 	if ( pWnd == this && nHitTest == HTCLIENT ) {
 		CRLoginDoc *pDoc = GetDocument();
-		::SetCursor(::LoadCursor(NULL, (pDoc->m_TextRam.m_MouseTrack != MOS_EVENT_NONE && !m_MouseEventFlag ? IDC_IBEAM : (m_BroadCast ? IDC_SIZEALL : IDC_ARROW))));
+
+		if ( pDoc->m_TextRam.m_MouseTrack != MOS_EVENT_NONE && !m_MouseEventFlag )
+			::SetCursor(AfxGetApp()->LoadStandardCursor((pDoc->m_TextRam.IsOptEnable(TO_RLCURIMD) ? IDC_ARROW : IDC_IBEAM)));
+		else if ( m_BroadCast )
+			::SetCursor(AfxGetApp()->LoadStandardCursor(IDC_SIZEALL));
+		else
+			::SetCursor(AfxGetApp()->LoadStandardCursor((pDoc->m_TextRam.IsOptEnable(TO_RLCURIMD) ? IDC_IBEAM : IDC_ARROW)));
+
 		return TRUE;
 	}
+
 	return CView::OnSetCursor(pWnd, nHitTest, message);
 }
 

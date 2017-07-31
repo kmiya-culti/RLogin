@@ -389,6 +389,12 @@ BEGIN
         MENUITEM "すべてクリップボードへコピー",              ID_EDIT_COPY_ALL
         MENUITEM "クリップボードから貼り付け",               ID_EDIT_PASTE_ALL
     END
+    POPUP "TEXTEDIT"
+    BEGIN
+        MENUITEM "コピー(&C)",                     ID_EDIT_COPY
+        MENUITEM "貼り付け(&P)",                    ID_EDIT_PASTE
+        MENUITEM "すべて選択/コピー",                   ID_EDIT_COPY_ALL
+    END
 END
 
 IDR_TEKWND MENU
@@ -440,7 +446,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.15.1 (2013/10/31)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.15.2 (2013/11/11)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2013 Culti",IDC_STATIC,47,15,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,148,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.1e Feb 11th, 2013",IDC_STATIC,47,29,176,8
@@ -671,27 +677,11 @@ CAPTION "ターミナル"
 FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
 BEGIN
     PUSHBUTTON      "ESC/CSI/DCS",IDC_ESCEDIT,167,19,70,14
-    CONTROL         "",IDC_ESCLIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,14,40,223,100
-    CONTROL         "ボールド文字を有効にする",IDC_TERMCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,177,158,10
-    CONTROL         "行末でのディレイ改行を無効にする",IDC_TERMCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,193,158,10
-    CONTROL         "ESC[mで消去文字の属性も適用する",IDC_TERMCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,209,158,10
-    CONTROL         "UnicodeのAタイプの文字を半角として表示する",IDC_TERMCHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,225,158,10
-    CONTROL         "漢字コードエラー時に自動で変更する",IDC_TERMCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,241,158,10
-    GROUPBOX        "エスケープシーケンス",IDC_STATIC,7,7,237,144
-    GROUPBOX        "オプション",IDC_STATIC,7,156,237,107
+    CONTROL         "",IDC_ESCLIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,14,40,223,92
+    GROUPBOX        "エスケープシーケンス",IDC_STATIC,7,7,237,134
+    GROUPBOX        "各種オプション",IDC_STATIC,7,144,237,119
     LTEXT           "ESC/CSI/DCSシーケンスを個別に設定します",IDC_STATIC,17,23,144,8
-    CTEXT           "kterm",IDC_STATIC,181,165,25,8
-    CTEXT           "■",IDC_STATIC,191,178,8,8,SS_CENTERIMAGE
-    CTEXT           "cons25",IDC_STATIC,208,165,25,8
-    CTEXT           "■",IDC_STATIC,216,194,8,8,SS_CENTERIMAGE
-    CTEXT           "■",IDC_STATIC,216,210,8,8,SS_CENTERIMAGE
-    CTEXT           "□",IDC_STATIC,216,226,8,8
-    CTEXT           "□",IDC_STATIC,191,226,8,8
-    CTEXT           "□",IDC_STATIC,191,210,8,8
-    CTEXT           "□",IDC_STATIC,191,194,8,8
-    CTEXT           "□",IDC_STATIC,216,178,8,8
-    CTEXT           "□",IDC_STATIC,216,242,8,8
-    CTEXT           "□",IDC_STATIC,191,242,8,8
+    CONTROL         "",IDC_EXTLIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,14,159,223,92
 END
 
 IDD_PROTOPAGE DIALOGEX 0, 0, 251, 270
@@ -1427,8 +1417,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,15,1,0
- PRODUCTVERSION 2,15,1,0
+ FILEVERSION 2,15,2,0
+ PRODUCTVERSION 2,15,2,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1445,12 +1435,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.15.1.0"
+            VALUE "FileVersion", "2.15.2.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2013 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.15.1.0"
+            VALUE "ProductVersion", "2.15.2.0"
         END
     END
     BLOCK "VarFileInfo"

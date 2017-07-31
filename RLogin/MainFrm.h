@@ -164,7 +164,7 @@ public:
 	int SetAsyncHostAddr(int mode, LPCTSTR pHostName, CExtSocket *pSock);
 	int SetAsyncAddrInfo(int mode, LPCTSTR pHostName, int PortNum, void *pHint, CExtSocket *pSock);
 	int OpenServerEntry(CServerEntry &Entry);
-	BOOL SaveModified( );
+	BOOL SaveModified();
 
 	int SetTimerEvent(int msec, int mode, void *pParam);
 	void DelTimerEvent(void *pParam);
@@ -197,6 +197,7 @@ public:
 	void InvertTracker(CRect &rect);
 	int PreLButtonDown(UINT nFlags, CPoint point);
 	int GetExecCount();
+	CMenu *GetSaveMenu(HMENU hDocMenu);
 
 // コントロール バー用メンバ
 protected: 

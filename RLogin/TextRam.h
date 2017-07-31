@@ -183,6 +183,9 @@
 #define	TO_SSHX11PF		1436		// X11ポートフォワードを使用する
 #define	TO_RLTENLM		1444		// TELNET LINEMODE を禁止する
 #define	TO_RLSCRDEBUG	1445		// スクリプトデバックを行う
+#define	TO_RLCURIMD		1452		// カーソルをIで表示
+#define TO_RLRSPAST		1453		// 右クリックだけでクリップボードからペーストする
+#define	TO_RLGWDIS		1454		// ゴーストウィンドウを表示しない
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 

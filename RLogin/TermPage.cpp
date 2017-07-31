@@ -22,9 +22,9 @@ static char THIS_FILE[] = __FILE__;
 
 IMPLEMENT_DYNCREATE(CTermPage, CPropertyPage)
 
-#define	CHECKOPTMAX		5
-#define	IDC_CHECKFAST	IDC_TERMCHECK1
-static const int CheckOptTab[] = { TO_RLBOLD, TO_RLGNDW, TO_RLGCWA, TO_RLUNIAWH, TO_RLKANAUTO };
+//#define	CHECKOPTMAX		5
+//#define	IDC_CHECKFAST	IDC_TERMCHECK1
+//static const int CheckOptTab[] = { TO_RLBOLD, TO_RLGNDW, TO_RLGCWA, TO_RLUNIAWH, TO_RLKANAUTO };
 
 static const LV_COLUMN InitListTab[3] = {
 		{ LVCF_TEXT | LVCF_WIDTH, 0,  60,	_T("番号"),				0, 0 },
@@ -84,15 +84,15 @@ static const struct _OptListTab {
 	{	TO_XTBRPAMD,	_T("Bracketed Paste Mode 有効"),	_T("Bracketed Paste Mode 無効")		},
 
 	// RLogin Option		8400-8511(400-511)
-//	{	TO_RLGCWA,		_T("SGRで空白属性を設定しない"),	_T("SGRで空白文字属性を設定")		},
-//	{	TO_RLGNDW,		_T("行末での遅延改行無効"),			_T("行末での遅延改行有効")			},
+	{	TO_RLGCWA,		_T("SGRで空白属性を設定しない"),	_T("SGRで空白文字属性を設定")		},
+	{	TO_RLGNDW,		_T("行末での遅延改行無効"),			_T("行末での遅延改行有効")			},
 //	{	TO_RLGAWL,		_T("自動ブラウザ起動をする"),		_T("自動ブラウザ起動無効")			},
-//	{	TO_RLBOLD,		_T("ボールド文字有効"),				_T("ボールド文字無効")				},
+	{	TO_RLBOLD,		_T("重ね書きでボールドを表示"),		_T("高輝度でボールドを表示")		},
 //	{	TO_RLBPLUS,		_T("BPlus/ZModem/Kermit自動"),		_T("自動ファイル転送無効")			},
 	{	TO_RLALTBDIS,	_T("画面のスタックを禁止"),			_T("画面のスタックが有効")			},
-//	{	TO_RLUNIAWH,	_T("Aタイプを半角で表示"),			_T("Aタイプを全角で表示")			},
+	{	TO_RLUNIAWH,	_T("Aタイプを半角で表示"),			_T("Aタイプを全角で表示")			},
 //	{	TO_RLNORESZ,	_T("DECCOLMでリサイズ"),			_T("ウィンドウをリサイズしない")	},
-//	{	TO_RLKANAUTO,	_T("漢字コードを自動追従"),			_T("漢字コードを変更しない")		},
+	{	TO_RLKANAUTO,	_T("漢字コードを自動追従"),			_T("漢字コードを変更しない")		},
 	{	TO_RLPNAM,		_T("ノーマルモード(DECPNM)"),		_T("アプリモード(DECPAM)")			},
 	{	TO_IMECTRL,		_T("IMEオープン"),					_T("IMEクロース")					},
 	{	TO_RLCKMESC,	_T("7727 ESCキーのCKM有効"),		_T("ESCキーのCKM無効")				},
@@ -104,12 +104,42 @@ static const struct _OptListTab {
 	{	TO_RLDRWLINE,	_T("罫線を文字で表示する"),			_T("罫線を線で表示する")			},
 
 	{	0,				NULL,								NULL								}
+}, ExtListTab[] = {
+	// RLogin SockOpt		1000-1511(0-511)
+//	{	TO_RLTENAT,		_T("自動ユーザー認証を禁止"),		_T("")		},
+//	{	TO_RLTENEC,		_T("データの暗号化を禁止する"),		_T("")		},
+//	{	TO_RLPOFF,		_T("自動でプログラムを終了"),		_T("")		},
+//	{	TO_RLUSEPASS,	_T("パスワード入力を求める"),		_T("")		},
+//	{	TO_RLRCLICK,	_T("右ダブルクリックでペースト"),	_T("")		},
+//	{	TO_RLCKCOPY,	_T("左クリックだけでコピー"),		_T("")		},
+//	{	TO_RLDSECHO,	_T("ローカルエディットモード"),		_T("")		},
+//	{	TO_RLDELAY,		_T("指定時間待って次を送信"),		_T("")		},
+//	{	TO_RLHISFILE,	_T("ヒストリーを保存・復帰"),		_T("")		},
+//	{	TO_RLKEEPAL,	_T("KeepAliveを有効にする"),		_T("")		},
+//	{	TO_SSH1MODE,	_T("SSHバージョン１で接続"),		_T("")		},
+//	{	TO_SSHPFORY,	_T("ポートフォワードだけ行う"),		_T("")		},
+//	{	TO_SSHKEEPAL,	_T("KeepAliveパケットの送信"),		_T("")		},
+//	{	TO_SSHAGENT,	_T("エージェント転送を有効"),		_T("")		},
+//	{	TO_SSHSFENC,	_T("暗号シャッフル"),				_T("")		},
+//	{	TO_SSHSFMAC,	_T("検証シャッフル"),				_T("")		},
+//	{	TO_RLHISDATE,	_T("信ログを自動作成"),				_T("")		},
+//	{	TO_RLLOGMODE,	_T("通信ログの形式1"),				_T("")		},
+//	{	TO_RLLOGMOD2,	_T("通信ログの形式2"),				_T("")		},
+//	{	TO_RLLOGCODE,	_T("ログの文字コード1"),			_T("")		},
+//	{	TO_RLLOGCOD2,	_T("ログの文字コード2"),			_T("")		},
+//	{	TO_SSHX11PF,	_T("X11ポートフォワード有効"),		_T("")		},
+//	{	TO_RLTENLM,		_T("TELNET LINEMODE を禁止"),		_T("")		},
+//	{	TO_RLSCRDEBUG,	_T("スクリプトデバック有効"),		_T("")		},
+	{	TO_RLCURIMD,	_T("カーソルをIで表示"),			_T("カーソルを通常表示")			},
+	{	TO_RLRSPAST,	_T("右クリックでペースト"),			_T("右クリックでメニュー選択")		},
+	{	TO_RLGWDIS,		_T("ゴースト表示しない"),			_T("タブにマウスでゴースト表示")	},
+	{	0,				NULL,								NULL								}
 };
 
 CTermPage::CTermPage() : CTreePropertyPage(CTermPage::IDD)
 {
-	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
-		m_Check[n] = FALSE;
+	//for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
+	//	m_Check[n] = FALSE;
 }
 
 CTermPage::~CTermPage()
@@ -120,15 +150,17 @@ void CTermPage::DoDataExchange(CDataExchange* pDX)
 {
 	CPropertyPage::DoDataExchange(pDX);
 
-	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
-		DDX_Check(pDX, IDC_TERMCHECK1 + n, m_Check[n]);
-	DDX_Control(pDX, IDC_ESCLIST, m_List);
+	//for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
+	//	DDX_Check(pDX, IDC_TERMCHECK1 + n, m_Check[n]);
+	DDX_Control(pDX, IDC_ESCLIST, m_OptList);
+	DDX_Control(pDX, IDC_EXTLIST, m_ExtList);
 }
 
 BEGIN_MESSAGE_MAP(CTermPage, CPropertyPage)
-	ON_CONTROL_RANGE(BN_CLICKED, IDC_CHECKFAST, IDC_CHECKFAST + CHECKOPTMAX - 1, OnUpdateCheck)
+//	ON_CONTROL_RANGE(BN_CLICKED, IDC_CHECKFAST, IDC_CHECKFAST + CHECKOPTMAX - 1, OnUpdateCheck)
 	ON_BN_CLICKED(IDC_ESCEDIT, &CTermPage::OnBnClickedEscedit)
-	ON_NOTIFY(NM_CLICK, IDC_ESCLIST, &CTermPage::OnNMClickEsclist)
+	ON_NOTIFY(NM_CLICK, IDC_ESCLIST, &CTermPage::OnNMClickOptlist)
+	ON_NOTIFY(NM_CLICK, IDC_EXTLIST, &CTermPage::OnNMClickExtlist)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -136,15 +168,22 @@ END_MESSAGE_MAP()
 
 void CTermPage::DoInit()
 {
-	int n;
+	int n, i;
 
-	for ( n = 0 ; n < CHECKOPTMAX ; n++ )
-		m_Check[n] = (m_pSheet->m_pTextRam->IsOptEnable(CheckOptTab[n]) ? TRUE : FALSE);
+	//for ( n = 0 ; n < CHECKOPTMAX ; n++ )
+	//	m_Check[n] = (m_pSheet->m_pTextRam->IsOptEnable(CheckOptTab[n]) ? TRUE : FALSE);
 
 	m_ProcTab = m_pSheet->m_pTextRam->m_ProcTab;
 
-	for ( n = 0 ; OptListTab[n].ename != NULL ; n++ )
-		m_List.SetLVCheck(n,  m_pSheet->m_pTextRam->IsOptEnable(OptListTab[n].num) ? TRUE : FALSE);
+	for ( i = 0 ; i < m_OptList.GetItemCount() ; i++ ) {
+		n = m_OptList.GetItemData(i);
+		m_OptList.SetLVCheck(i,  m_pSheet->m_pTextRam->IsOptEnable(OptListTab[n].num) ? TRUE : FALSE);
+	}
+
+	for ( i = 0 ; i < m_ExtList.GetItemCount() ; i++ ) {
+		n = m_ExtList.GetItemData(i);
+		m_ExtList.SetLVCheck(i,  m_pSheet->m_pTextRam->IsOptEnable(ExtListTab[n].num) ? TRUE : FALSE);
+	}
 
 	UpdateData(FALSE);
 }
@@ -158,10 +197,10 @@ BOOL CTermPage::OnInitDialog()
 	int n;
 	CString str;
 
-	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_CHECKBOXES);
-	m_List.InitColumn(_T("TermPageOpt"), InitListTab, 3);
+	m_OptList.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_CHECKBOXES);
+	m_OptList.InitColumn(_T("TermPageOpt"), InitListTab, 3);
 
-	m_List.DeleteAllItems();
+	m_OptList.DeleteAllItems();
 	for ( n = 0 ; OptListTab[n].ename != NULL ; n++ ) {
 		if ( OptListTab[n].num < 200) {				// DEC Terminal Option	0-199
 			str.Format(_T("?%d"), OptListTab[n].num);
@@ -174,9 +213,20 @@ BOOL CTermPage::OnInitDialog()
 		} else if ( OptListTab[n].num < 512 ) {		// RLogin Option		8400-8511(400-511)
 			str.Format(_T("?%d"), OptListTab[n].num + 8000);
 		}
-		m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, n, str, 0, 0, 0, n);
-		m_List.SetItemText(n, 1, OptListTab[n].ename);
-		m_List.SetItemText(n, 2, OptListTab[n].dname);
+		m_OptList.InsertItem(LVIF_TEXT | LVIF_PARAM, n, str, 0, 0, 0, n);
+		m_OptList.SetItemText(n, 1, OptListTab[n].ename);
+		m_OptList.SetItemText(n, 2, OptListTab[n].dname);
+	}
+
+	m_ExtList.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_CHECKBOXES);
+	m_ExtList.InitColumn(_T("TermPageExt"), InitListTab, 3);
+
+	m_ExtList.DeleteAllItems();
+	for ( n = 0 ; ExtListTab[n].ename != NULL ; n++ ) {
+		str.Format(_T("%d"), ExtListTab[n].num - 1000);
+		m_ExtList.InsertItem(LVIF_TEXT | LVIF_PARAM, n, str, 0, 0, 0, n);
+		m_ExtList.SetItemText(n, 1, ExtListTab[n].ename);
+		m_ExtList.SetItemText(n, 2, ExtListTab[n].dname);
 	}
 
 	DoInit();
@@ -185,6 +235,8 @@ BOOL CTermPage::OnInitDialog()
 }
 BOOL CTermPage::OnApply() 
 {
+	int n, i;
+
 	ASSERT(m_pSheet);
 	ASSERT(m_pSheet->m_pTextRam);
 
@@ -192,8 +244,10 @@ BOOL CTermPage::OnApply()
 
 	m_pSheet->m_pTextRam->m_ProcTab = m_ProcTab;
 
-	for ( int n = 0 ; OptListTab[n].ename != NULL ; n++ ) {
-		if ( m_List.GetLVCheck(n) ) {
+	for ( i = 0 ; i < m_OptList.GetItemCount() ; i++ ) {
+		n = m_OptList.GetItemData(i);
+
+		if ( m_OptList.GetLVCheck(i) ) {
 			if ( m_pSheet->m_pTextRam->IsOptEnable(OptListTab[n].num) )
 				continue;
 			if ( m_pSheet->m_pTextRam->m_VRam == NULL || m_pSheet->m_pTextRam->m_pDocument == NULL ) {
@@ -250,8 +304,15 @@ BOOL CTermPage::OnApply()
 		}
 	}
 
-	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
-		m_pSheet->m_pTextRam->SetOption(CheckOptTab[n], m_Check[n]);
+	for ( i = 0 ; i < m_ExtList.GetItemCount() ; i++ ) {
+		n = m_ExtList.GetItemData(i);
+
+		m_pSheet->m_pTextRam->SetOption(ExtListTab[n].num, m_ExtList.GetLVCheck(i) ? TRUE : FALSE);
+	}
+
+
+	//for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
+	//	m_pSheet->m_pTextRam->SetOption(CheckOptTab[n], m_Check[n]);
 
 	return TRUE;
 }
@@ -263,11 +324,12 @@ void CTermPage::OnReset()
 	DoInit();
 	SetModified(FALSE);
 }
-void CTermPage::OnUpdateCheck(UINT nID) 
-{
-	SetModified(TRUE);
-	m_pSheet->m_ModFlag |= (UMOD_TEXTRAM | UMOD_ANSIOPT);
-}
+
+//void CTermPage::OnUpdateCheck(UINT nID) 
+//{
+//	SetModified(TRUE);
+//	m_pSheet->m_ModFlag |= (UMOD_TEXTRAM | UMOD_ANSIOPT);
+//}
 
 void CTermPage::OnBnClickedEscedit()
 {
@@ -283,13 +345,25 @@ void CTermPage::OnBnClickedEscedit()
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 }
 
-void CTermPage::OnNMClickEsclist(NMHDR *pNMHDR, LRESULT *pResult)
+void CTermPage::OnNMClickOptlist(NMHDR *pNMHDR, LRESULT *pResult)
 {
 	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
 
 	if ( pNMItemActivate->iSubItem == 0 ) {
 		SetModified(TRUE);
 		m_pSheet->m_ModFlag |= (UMOD_TEXTRAM | UMOD_ANSIOPT);
+	}
+
+	*pResult = 0;
+}
+
+void CTermPage::OnNMClickExtlist(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
+
+	if ( pNMItemActivate->iSubItem == 0 ) {
+		SetModified(TRUE);
+		m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 	}
 
 	*pResult = 0;
