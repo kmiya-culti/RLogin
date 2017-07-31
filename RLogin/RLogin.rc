@@ -320,6 +320,7 @@ BEGIN
         MENUITEM "接続先を削除する",                    ID_EDIT_DELETE
         MENUITEM SEPARATOR
         MENUITEM "接続先を複写する",                    ID_EDIT_DUPS
+        MENUITEM "プロトコルハンドラに登録",                IDM_SERV_PROTO
         MENUITEM SEPARATOR
         MENUITEM "ファイルからインポート",                 IDM_SERV_INPORT
         MENUITEM "ファイルにエクスポート",                 IDM_SERV_EXPORT
@@ -422,7 +423,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.10.6 (2011/05/06)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.10.7 (2011/05/17)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2011 Culti",IDC_STATIC,47,15,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,148,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.0d Feb 8th, 2011",IDC_STATIC,47,29,176,8
@@ -1254,8 +1255,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,10,6,0
- PRODUCTVERSION 2,10,6,0
+ FILEVERSION 2,10,7,0
+ PRODUCTVERSION 2,10,7,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1272,12 +1273,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.10.6.0"
+            VALUE "FileVersion", "2.10.7.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2008 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.10.6.0"
+            VALUE "ProductVersion", "2.10.7.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2442,6 +2443,7 @@ STRINGTABLE
 BEGIN
     IDM_SEARCH_REG          "正規表現で文字列を検索します\n文字検索"
     IDM_SEARCH_NEXT         "次を検索します\n次を検索"
+    IDM_SERV_PROTO          "プロトコルハンドラに登録\nハンドラに登録"
 END
 
 #endif    // 日本語 (日本) resources

@@ -13,3 +13,22 @@ HKEY_CLASSES_ROOT\RLogin.Document\shell\open\ddeexec\application = RLogin
 
 HKEY_CLASSES_ROOT\RLogin.Document = RLogin.Document
 
+; プロトコルハンドラの設定
+;
+;[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\ssh]
+;@="URL: SSH プロトコル"
+;"BrowserFlags"=dword:00000008
+;"EditFlags"=dword:00000002
+;"URL Protocol"=""
+;
+;[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\ssh\DefaultIcon]
+;@="\"C:\\Program Files\\RLogin\\RLogin.exe\",1"
+;
+;[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\ssh\shell]
+;@="open"
+;
+;[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\ssh\shell\open]
+;
+;[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\ssh\shell\open\command]
+;@="\"C:\\Program Files\\RLogin\\RLogin.exe\" /term xterm /inuse %1"
+;

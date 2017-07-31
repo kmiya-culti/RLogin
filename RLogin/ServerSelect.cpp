@@ -9,6 +9,7 @@
 #include "ServerSelect.h"
 #include "OptDlg.h"
 #include "Data.h"
+#include "EditDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -62,6 +63,7 @@ BEGIN_MESSAGE_MAP(CServerSelect, CDialog)
 	ON_WM_SIZE()
 	ON_WM_SIZING()
 	ON_NOTIFY(TCN_SELCHANGE, IDC_SERVERTAB, &CServerSelect::OnTcnSelchangeServertab)
+	ON_COMMAND(IDM_SERV_PROTO, &CServerSelect::OnServProto)
 END_MESSAGE_MAP()
 
 void CServerSelect::InitList()
@@ -568,6 +570,50 @@ void CServerSelect::OnServExport()
 
 	Archive.Close();
 	File.Close();
+}
+void CServerSelect::OnServProto()
+{
+	CString proto, option;
+	CServerEntry *pEntry;
+	CRLoginApp *pApp = (CRLoginApp *)AfxGetApp();
+	CEditDlg dlg;
+
+	if ( (m_EntryNum = m_List.GetSelectMarkData()) < 0 || pApp == NULL )
+		return;
+
+	pEntry = &(m_pData->m_Data[m_EntryNum]);
+
+	switch(pEntry->m_ProtoType) {
+	case PROTO_LOGIN:
+		proto = "login";
+		break;
+	case PROTO_TELNET:
+		proto = "telnet";
+		break;
+	case PROTO_SSH:
+		proto = "ssh";
+		break;
+	default:
+		MessageBox("login/telnet/sshプロトコルのみ登録できます");
+		return;
+	}
+
+	if ( pEntry->m_EntryName.IsEmpty() ) {
+		MessageBox("Server Entry を入力してください");
+		return;
+	}
+	option.Format("/entry \"%s\" /inuse", pEntry->m_EntryName);
+
+	dlg.m_WinText = "プロトコルハンドラの登録";
+	dlg.m_Title = proto;
+	dlg.m_Title += "ハンドラ起動時のオプションを指定してください";
+	dlg.m_Edit = option;
+
+	if ( dlg.DoModal() != IDOK )
+		return;
+	option = dlg.m_Edit;
+
+	pApp->RegisterShellProtocol(proto, option);
 }
 
 void CServerSelect::OnClose()

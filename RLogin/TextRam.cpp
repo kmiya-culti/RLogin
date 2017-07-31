@@ -199,7 +199,7 @@ void CFontTab::Init()
 		{ "JIS X 0213-2000.2",		SET_94x94,	"P",	'\x00', "JIS_X0213-2000.2",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "‚l‚r ƒSƒVƒbƒN", "‚l‚r –¾’©" } },
 		{ "JIS X 0213-2004.1",		SET_94x94,	"Q",	'\x00', "JIS_X0213-2000.1",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "‚l‚r ƒSƒVƒbƒN", "‚l‚r –¾’©" } },
 
-		{ "UNICODE",				SET_UNICODE,"",		'\x00', "UCS-4BE",			DEFAULT_CHARSET,	100,	100,	0,	{ "Arial Unicode MS", "" } },
+		{ "UNICODE",				SET_UNICODE,"",		'\x00', "UCS-4BE",			DEFAULT_CHARSET,	100,	100,	0,	{ "‚l‚r ƒSƒVƒbƒN", "‚l‚r –¾’©" } },
 
 		{ NULL, 0, 0x00, NULL },
 	};

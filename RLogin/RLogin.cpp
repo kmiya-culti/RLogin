@@ -42,6 +42,7 @@ CCommandLineInfoEx::CCommandLineInfoEx()
 	m_User.Empty();
 	m_Pass.Empty();
 	m_Term.Empty();
+	m_Name.Empty();
 	m_InUse = FALSE;
 }
 void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLast)
@@ -60,6 +61,8 @@ void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLas
 			m_PasStat = 4;
 		else if ( _tcsicmp("term", pszParam) == 0 )
 			m_PasStat = 5;
+		else if ( _tcsicmp("entry", pszParam) == 0 )
+			m_PasStat = 6;
 		else if ( _tcsicmp("direct", pszParam) == 0 )
 			m_Proto = PROTO_DIRECT;
 		else if ( _tcsicmp("login", pszParam) == 0 ) {
@@ -110,6 +113,13 @@ void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLas
 		if ( bFlag )
 			break;
 		m_Term = pszParam;
+		ParseLast(bLast);
+		return;
+	case 6:
+		m_PasStat = 0;
+		if ( bFlag )
+			break;
+		m_Name = pszParam;
 		ParseLast(bLast);
 		return;
 	}
@@ -185,6 +195,7 @@ void CCommandLineInfoEx::GetString(CString &str)
 	ary.AddVal(m_InUse);
 	ary.Add(m_strFileName);
 	ary.AddVal(m_nShellCommand);
+	ary.Add(m_Name);
 
 	ary.SetString(str);
 }
@@ -194,7 +205,7 @@ void CCommandLineInfoEx::SetString(LPCSTR str)
 
 	ary.GetString(str);
 
-	if ( ary.GetSize() <= 8 )
+	if ( ary.GetSize() <= 9 )
 		return;
 
 	m_Proto = ary.GetVal(0);
@@ -209,6 +220,7 @@ void CCommandLineInfoEx::SetString(LPCSTR str)
 	case FileNew:  m_nShellCommand = FileNew;  break;
 	case FileOpen: m_nShellCommand = FileOpen; break;
 	}
+	m_Name = ary.GetAt(9);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -615,7 +627,159 @@ void CRLoginApp::DelProfileEntry(LPCTSTR lpszSection, LPCTSTR lpszEntry)
 	RegCloseKey(hSecKey);
 }
 
+void CRLoginApp::RegisterShellProtocol(LPCSTR pSection, LPCSTR pOption)
+{
+	HKEY hKey[4];
+	DWORD val;
+	CString strTemp;
+	CString strPathName;
+	CString oldDefine;
+	CBuffer buf;
+	CRegKey reg;
 
+	AfxGetModuleShortFileName(AfxGetInstanceHandle(), strPathName);
+
+	CString strOpenCommandLine;
+	CString strDefaultIconCommandLine;
+
+	strDefaultIconCommandLine.Format("%s,%d", strPathName, 1);
+	strOpenCommandLine.Format("%s %s %%1", strPathName, pOption);
+
+	//	HKEY_CLASSES_ROOT or HKEY_CURRENT_USER\Software\Classes
+	//
+	//	[HKEY_CLASSES_ROOT\ssh]
+	//	@ = "URL: ssh Protocol"
+	//	BrowserFlags = dword:00000008
+	//	EditFlags = dword:00000002
+	//	URL Protocol = ""
+
+	//	[HKEY_CLASSES_ROOT\ssh\DefaultIcon]
+	//	@ = "RLogin.exe,1"
+
+	//	[HKEY_CLASSES_ROOT\ssh\shell]
+	//	[HKEY_CLASSES_ROOT\ssh\shell\open]
+	//	[HKEY_CLASSES_ROOT\ssh\shell\open\command]
+	//	@ = "RLogin.exe /term xterm /inuse %1"
+
+	strTemp.Format("Software\\Classes\\%s", pSection);
+
+	if ( reg.Open(HKEY_CURRENT_USER, strTemp) == ERROR_SUCCESS ) {
+		ULONG len = 0;
+		if ( reg.QueryBinaryValue("OldDefine", NULL, &len) == ERROR_SUCCESS )
+			reg.QueryBinaryValue("OldDefine", buf.PutSpc(len), &len);
+		else
+			RegisterSave(HKEY_CURRENT_USER, strTemp, buf);
+		buf.Clear();
+		reg.Close();
+	}
+
+	if( AfxRegCreateKey(HKEY_CURRENT_USER, strTemp, &(hKey[0])) == ERROR_SUCCESS ) {
+
+		strTemp = "URL: ssh Protocol";
+		RegSetValueEx(hKey[0], "", 0, REG_SZ, (const LPBYTE)(LPCSTR)strTemp, strTemp.GetLength() + 1);
+		val = 8;
+		RegSetValueEx(hKey[0], "BrowserFlags", 0, REG_DWORD, (const LPBYTE)(&val), sizeof(val));
+		val = 2;
+		RegSetValueEx(hKey[0], "EditFlags", 0, REG_DWORD, (const LPBYTE)(&val), sizeof(val));
+		strTemp = "";
+		RegSetValueEx(hKey[0], "URL Protocol", 0, REG_SZ, (const LPBYTE)(LPCSTR)strTemp, strTemp.GetLength() + 1);
+
+		RegSetValueEx(hKey[0], "OldDefine", 0, REG_BINARY, (const LPBYTE)buf.GetPtr(), buf.GetSize());
+
+		if( AfxRegCreateKey(hKey[0], "DefaultIcon", &(hKey[1])) == ERROR_SUCCESS ) {
+			RegSetValueEx(hKey[1], "", 0, REG_SZ, (const LPBYTE)(LPCSTR)strDefaultIconCommandLine, strDefaultIconCommandLine.GetLength() + 1);
+			RegCloseKey(hKey[1]);
+		}
+
+		if( AfxRegCreateKey(hKey[0], "shell", &(hKey[1])) == ERROR_SUCCESS ) {
+			if( AfxRegCreateKey(hKey[1], "open", &(hKey[2])) == ERROR_SUCCESS ) {
+				if( AfxRegCreateKey(hKey[2], "command", &(hKey[3])) == ERROR_SUCCESS ) {
+					RegSetValueEx(hKey[3], "", 0, REG_SZ, (const LPBYTE)(LPCSTR)strOpenCommandLine, strOpenCommandLine.GetLength() + 1);
+					RegCloseKey(hKey[3]);
+				}
+				RegCloseKey(hKey[2]);
+			}
+			RegCloseKey(hKey[1]);
+		}
+
+		RegCloseKey(hKey[0]);
+	}
+}
+void CRLoginApp::RegisterDelete(HKEY hKey, LPCSTR pSection, LPCSTR pKey)
+{
+	CRegKey reg;
+
+	if ( reg.Open(hKey, pSection) != ERROR_SUCCESS )
+		return;
+
+	reg.RecurseDeleteKey(pKey);
+	reg.Close();
+}
+void CRLoginApp::RegisterSave(HKEY hKey, LPCSTR pSection, CBuffer &buf)
+{
+	int n;
+	CRegKey reg;
+	DWORD type, len;
+	CHAR *work;
+	CStringArray menba;
+
+	if ( reg.Open(hKey, pSection) != ERROR_SUCCESS )
+		return;
+
+	len = 0;
+	reg.QueryValue("", &type, NULL, &len);
+	if ( len < 1024 )
+		len = 1024;
+	work = new CHAR[len];
+	reg.QueryValue("", &type, work, &len);
+
+	buf.Put32Bit(type);
+	buf.PutBuf((LPBYTE)work, len);
+
+	for ( n = 0 ; ; n++ ) {
+		len = 1020;
+		if ( reg.EnumKey(n, work, &len) != ERROR_SUCCESS )
+			break;
+		work[len] = '\0';
+		menba.Add(work);
+	}
+
+	delete work;
+
+	buf.Put32Bit(menba.GetSize());
+	for ( n = 0 ; n < menba.GetSize() ; n++ ) {
+		buf.PutStr(menba[n]);
+		RegisterSave(reg.m_hKey, menba[n], buf);
+	}
+
+	reg.Close();
+}
+void CRLoginApp::RegisterLoad(HKEY hKey, LPCSTR pSection, CBuffer &buf)
+{
+	int n;
+	CRegKey reg;
+	DWORD type, len;
+	CString name;
+	CBuffer work;
+
+	if ( buf.GetSize() < 4 )
+		return;
+
+	if ( reg.Create(hKey, pSection) != ERROR_SUCCESS )
+		return;
+
+	type = buf.Get32Bit();
+	buf.GetBuf(&work);
+	reg.SetValue("", type, work.GetPtr(), work.GetSize());
+
+	len = buf.Get32Bit();
+	for ( n = 0 ; n < len ; n++ ) {
+		buf.GetStr(name);
+		RegisterLoad(reg.m_hKey, name, buf);
+	}
+
+	reg.Close();
+}
 
 // アプリケーションのバージョン情報に使われる CAboutDlg ダイアログ
 

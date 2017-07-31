@@ -503,13 +503,16 @@
 #define ID_5041                         5041
 #define ID_SEARCH_NEXT                  5042
 #define IDM_SEARCH_NEXT                 5043
+#define ID_SERVERLIST_5044              5044
+#define ID_SERV_PROTO                   5045
+#define IDM_SERV_PROTO                  5046
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        163
-#define _APS_NEXT_COMMAND_VALUE         5044
+#define _APS_NEXT_COMMAND_VALUE         5047
 #define _APS_NEXT_CONTROL_VALUE         3054
 #define _APS_NEXT_SYMED_VALUE           249
 #endif

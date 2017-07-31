@@ -25,6 +25,7 @@ public:
 	CString m_User;
 	CString m_Pass;
 	CString m_Term;
+	CString m_Name;
 	BOOL m_InUse;
 
 	CCommandLineInfoEx();
@@ -65,6 +66,10 @@ public:
 	int GetProfileSeqNum(LPCTSTR lpszSection, LPCTSTR lpszEntry);
 	void GetProfileKeys(LPCTSTR lpszSection, CStringArrayExt &array);
 	void DelProfileEntry(LPCTSTR lpszSection, LPCTSTR lpszEntry);
+	void RegisterShellProtocol(LPCSTR pSection, LPCSTR pOption);
+	void RegisterDelete(HKEY hKey, LPCSTR pSection, LPCSTR pKey);
+	void RegisterSave(HKEY hKey, LPCSTR pSection, CBuffer &buf);
+	void RegisterLoad(HKEY hKey, LPCSTR pSection, CBuffer &buf);
 	void SSL_Init();
 
 	void OpenProcsCmd(CCommandLineInfoEx *pCmdInfo);

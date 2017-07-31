@@ -944,8 +944,16 @@ int CMainFrame::OpenServerEntry(CServerEntry &Entry)
 
 	if ( dlg.m_EntryNum < 0 ) {
 		CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
-		if ( pApp->m_pCmdInfo != NULL && pApp->m_pCmdInfo->m_Proto != (-1) &&
-				!pApp->m_pCmdInfo->m_Addr.IsEmpty() && !pApp->m_pCmdInfo->m_Port.IsEmpty() ) {
+		if ( pApp->m_pCmdInfo != NULL && !pApp->m_pCmdInfo->m_Name.IsEmpty() ) {
+			for ( n = 0 ; n< m_ServerEntryTab.m_Data.GetSize() ; n++ ) {
+				if ( pApp->m_pCmdInfo->m_Name.Compare(m_ServerEntryTab.m_Data[n].m_EntryName) == 0 ) {
+					Entry = m_ServerEntryTab.m_Data[n];
+					Entry.m_SaveFlag = FALSE;
+					return TRUE;
+				}
+			}
+		}
+		if ( pApp->m_pCmdInfo != NULL && pApp->m_pCmdInfo->m_Proto != (-1) && !pApp->m_pCmdInfo->m_Addr.IsEmpty() && !pApp->m_pCmdInfo->m_Port.IsEmpty() ) {
 			if ( Entry.m_EntryName.IsEmpty() )
 				Entry.m_EntryName.Format("%s:%s", pApp->m_pCmdInfo->m_Addr, pApp->m_pCmdInfo->m_Port);
 			Entry.m_SaveFlag = FALSE;

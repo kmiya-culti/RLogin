@@ -71,6 +71,7 @@ public:
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnSizing(UINT fwSide, LPRECT pRect);
 	afx_msg void OnTcnSelchangeServertab(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnServProto();
 };
 
 //{{AFX_INSERT_LOCATION}}
