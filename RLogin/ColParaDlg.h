@@ -25,6 +25,7 @@ public:
 	CString m_FontColName[2];
 	COLORREF m_ColTab[16];
 	BOOL m_Attrb[24];
+	BOOL m_GlassStyle;
 
 	CImageList m_ImageList[8];
 
@@ -50,5 +51,6 @@ protected:
 	afx_msg void OnBitMapFileSel();
 	afx_msg void OnUpdateEdit();
 	afx_msg void OnEnChangeColor();
+	afx_msg void OnBnClickedGlassStyle();
 	DECLARE_MESSAGE_MAP()
 };

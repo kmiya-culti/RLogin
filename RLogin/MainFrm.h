@@ -232,6 +232,10 @@ protected:
 	afx_msg void OnViewScrollbar();
 	afx_msg void OnUpdateViewScrollbar(CCmdUI *pCmdUI);
 	DECLARE_MESSAGE_MAP()
+public:
+	afx_msg void OnViewMenubar();
+	afx_msg void OnUpdateViewMenubar(CCmdUI *pCmdUI);
+	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
 };
 
 

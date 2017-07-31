@@ -264,7 +264,7 @@ CRLoginApp theApp;
 	HRESULT (__stdcall *ExDwmExtendFrameIntoClientArea)(HWND hWnd, const MARGINS* pMarInset) = NULL;
 #endif
 
-void ExDwmEnableWindow(HWND hWnd)
+void ExDwmEnableWindow(HWND hWnd, BOOL bEnable)
 {
 #ifdef	USE_DWMAPI
 	if ( ExDwmEnable && ExDwmApi != NULL && ExDwmEnableBlurBehindWindow != NULL && hWnd != NULL ) {
@@ -274,7 +274,7 @@ void ExDwmEnableWindow(HWND hWnd)
 
 		//Enable Blur Behind and Blur Region;
 		bb.dwFlags = DWM_BB_ENABLE;
-		bb.fEnable = true;
+		bb.fEnable = bEnable;
 		bb.hRgnBlur = NULL;
 		bb.fTransitionOnMaximized = false;
 		//Enable Blur Behind
@@ -332,9 +332,9 @@ BOOL CRLoginApp::InitInstance()
 
 #ifdef	USE_DWMAPI
 	if ( (ExDwmApi = LoadLibrary(_T("dwmapi.dll"))) != NULL ) {
-		ExDwmIsCompositionEnabled      = (HRESULT (__stdcall *)(BOOL* pfEnabled))GetProcAddress(ExDwmApi, _T("DwmIsCompositionEnabled"));
-		ExDwmEnableBlurBehindWindow    = (HRESULT (__stdcall *)(HWND hWnd, const DWM_BLURBEHIND* pBlurBehind))GetProcAddress(ExDwmApi, _T("DwmEnableBlurBehindWindow"));
-		ExDwmExtendFrameIntoClientArea = (HRESULT (__stdcall *)(HWND hWnd, const MARGINS* pMarInset))GetProcAddress(ExDwmApi, _T("DwmExtendFrameIntoClientArea"));
+		ExDwmIsCompositionEnabled      = (HRESULT (__stdcall *)(BOOL* pfEnabled))GetProcAddress(ExDwmApi, "DwmIsCompositionEnabled");
+		ExDwmEnableBlurBehindWindow    = (HRESULT (__stdcall *)(HWND hWnd, const DWM_BLURBEHIND* pBlurBehind))GetProcAddress(ExDwmApi, "DwmEnableBlurBehindWindow");
+		ExDwmExtendFrameIntoClientArea = (HRESULT (__stdcall *)(HWND hWnd, const MARGINS* pMarInset))GetProcAddress(ExDwmApi, "DwmExtendFrameIntoClientArea");
 
 		if ( ExDwmIsCompositionEnabled != NULL )
 			ExDwmIsCompositionEnabled(&ExDwmEnable);

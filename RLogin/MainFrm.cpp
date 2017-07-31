@@ -600,6 +600,9 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_SCROLLBAR, &CMainFrame::OnUpdateViewScrollbar)
 	ON_COMMAND(ID_WINDOW_ROTATION, &CMainFrame::OnWindowRotation)
 	ON_UPDATE_COMMAND_UI(ID_WINDOW_ROTATION, &CMainFrame::OnUpdateWindowRotation)
+	ON_COMMAND(ID_VIEW_MENUBAR, &CMainFrame::OnViewMenubar)
+	ON_UPDATE_COMMAND_UI(ID_VIEW_MENUBAR, &CMainFrame::OnUpdateViewMenubar)
+	ON_WM_SYSCOMMAND()
 END_MESSAGE_MAP()
 
 static UINT indicators[] =
@@ -683,8 +686,6 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 {
 	if (CMDIFrameWnd::OnCreate(lpCreateStruct) == -1)
 		return -1;
-
-//	ExDwmEnableWindow(m_hWnd);
 
 	if ( !m_wndToolBar.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT,
 			WS_CHILD | WS_VISIBLE | CBRS_TOP | /*CBRS_GRIPPER | */CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC) ||
@@ -792,6 +793,15 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		m_SleepTimer = SetTimer(TIMERID_SLEEPMODE, 5000, NULL);
 
 	m_ScrollBarFlag = AfxGetApp()->GetProfileInt(_T("ChildFrame"), _T("VScroll"), TRUE);
+
+	ExDwmEnableWindow(m_hWnd, AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("GlassStyle"), FALSE));
+
+	CMenu* pSysMenu = GetSystemMenu(FALSE);
+
+	if (pSysMenu != NULL) {
+		pSysMenu->InsertMenu(0, MF_BYPOSITION | MF_SEPARATOR);
+		pSysMenu->InsertMenu(0, MF_BYPOSITION | MF_STRING, ID_VIEW_MENUBAR, CStringLoad(IDS_VIEW_MENUBAR));
+	}
 
 	return 0;
 }
@@ -1948,8 +1958,43 @@ void CMainFrame::OnViewScrollbar()
 
 	pApp->WriteProfileInt(_T("ChildFrame"), _T("VScroll"), m_ScrollBarFlag);
 }
-
 void CMainFrame::OnUpdateViewScrollbar(CCmdUI *pCmdUI)
 {
 	pCmdUI->SetCheck(m_ScrollBarFlag);
+}
+
+void CMainFrame::OnViewMenubar()
+{
+	CWinApp *pApp;
+	BOOL bMenu;
+	CChildFrame *pChild = (CChildFrame *)(MDIGetActive());
+
+	if ( (pApp = AfxGetApp()) == NULL )
+		return;
+	
+	bMenu = (pApp->GetProfileInt(_T("ChildFrame"), _T("VMenu"), TRUE) ? FALSE : TRUE);
+	pApp->WriteProfileInt(_T("ChildFrame"), _T("VMenu"), bMenu);
+
+	if ( pChild != NULL ) {
+		if ( bMenu ) {
+			pChild->OnUpdateFrameMenu(TRUE, pChild, NULL);
+			SetMenu(GetMenu());
+		} else
+			SetMenu(NULL);
+	}
+}
+void CMainFrame::OnUpdateViewMenubar(CCmdUI *pCmdUI)
+{
+	pCmdUI->SetCheck(GetMenu() != NULL ? TRUE : FALSE);
+}
+void CMainFrame::OnSysCommand(UINT nID, LPARAM lParam)
+{
+	switch(nID) {
+	case ID_VIEW_MENUBAR:
+		OnViewMenubar();
+		break;
+	default:
+		CMDIFrameWnd::OnSysCommand(nID, lParam);
+		break;
+	}
 }

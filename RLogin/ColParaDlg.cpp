@@ -33,6 +33,7 @@ CColParaDlg::CColParaDlg() : CTreePropertyPage(CColParaDlg::IDD)
 	m_FontCol[1] = 0;
 	m_FontColName[0] = _T("0");
 	m_FontColName[1] = _T("0");
+	m_GlassStyle = FALSE;
 }
 CColParaDlg::~CColParaDlg()
 {
@@ -54,6 +55,7 @@ void CColParaDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_CBIndex(pDX, IDC_COMBO2, m_WakeUpSleep);
 	DDX_Text(pDX, IDC_TEXTCOL, m_FontColName[0]);
 	DDX_Text(pDX, IDC_BACKCOL, m_FontColName[1]);
+	DDX_Check(pDX, IDC_CHECK1, m_GlassStyle);
 }
 
 BEGIN_MESSAGE_MAP(CColParaDlg, CPropertyPage)
@@ -66,6 +68,7 @@ BEGIN_MESSAGE_MAP(CColParaDlg, CPropertyPage)
 	ON_EN_CHANGE(IDC_BACKFILE, OnUpdateEdit)
 	ON_EN_CHANGE(IDC_TEXTCOL, &CColParaDlg::OnEnChangeColor)
 	ON_EN_CHANGE(IDC_BACKCOL, &CColParaDlg::OnEnChangeColor)
+	ON_BN_CLICKED(IDC_CHECK1, &CColParaDlg::OnBnClickedGlassStyle)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -140,6 +143,8 @@ void CColParaDlg::DoInit()
 	else if ( n <= 3000 ) m_WakeUpSleep = 7;
 	else                  m_WakeUpSleep = 8;
 
+	m_GlassStyle = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("GlassStyle"), 255);
+
 	UpdateData(FALSE);
 }
 BOOL CColParaDlg::OnInitDialog() 
@@ -164,6 +169,14 @@ BOOL CColParaDlg::OnInitDialog()
 	}
 
 	m_TransSlider.SetRange(10, 255);
+
+	if ( (pWnd = (CButton *)GetDlgItem(IDC_CHECK1)) != NULL ) {
+#ifdef	USE_DWMAPI
+		pWnd->EnableWindow(ExDwmEnable);
+#else
+		pWnd->EnableWindow(FALSE);
+#endif
+	}
 
 	DoInit();
 
@@ -321,6 +334,7 @@ void CColParaDlg::OnBitMapFileSel()
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 }
+
 void CColParaDlg::OnReleasedcaptureTransparent(NMHDR* pNMHDR, LRESULT* pResult) 
 {
 	int n = m_TransSlider.GetPos();
@@ -333,6 +347,14 @@ void CColParaDlg::OnReleasedcaptureTransparent(NMHDR* pNMHDR, LRESULT* pResult)
 	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("LayeredWindow"), n);
 	*pResult = 0;
 }
+void CColParaDlg::OnBnClickedGlassStyle()
+{
+	UpdateData(TRUE);
+
+	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("GlassStyle"), m_GlassStyle);
+	ExDwmEnableWindow(::AfxGetMainWnd()->GetSafeHwnd(), m_GlassStyle);
+}
+
 void CColParaDlg::OnSelendokColset() 
 {
 	UpdateData(TRUE);

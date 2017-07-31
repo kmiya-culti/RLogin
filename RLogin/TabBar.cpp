@@ -294,7 +294,7 @@ BOOL CTabBar::PreTranslateMessage(MSG* pMsg)
 {
 	if ( pMsg->hwnd == 	m_TabCtrl.m_hWnd && pMsg->message == WM_LBUTTONDOWN ) {
 		if ( !CControlBar::PreTranslateMessage(pMsg) )
-			return 0;
+			return FALSE;
 		CPoint point(LOWORD(pMsg->lParam), HIWORD(pMsg->lParam));
 		::ClientToScreen(pMsg->hwnd, &point);
 		ScreenToClient(&point);

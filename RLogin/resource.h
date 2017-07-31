@@ -5,6 +5,8 @@
 #define IDR_MAINFRAME                   100
 #define IDR_RLOGINTYPE                  101
 #define IDR_SFTPMENU                    102
+#define IDS_STRING102                   102
+#define IDS_VIEW_MENUBAR                102
 #define IDR_SFTPTOOL                    103
 #define IDI_ACTIVE                      104
 #define IDB_BITMAP1                     105
@@ -634,13 +636,15 @@
 #define ID_SPLIT_OVER                   5060
 #define ID_5061                         5061
 #define ID_WINDOW_ROTATION              5062
+#define ID_5063                         5063
+#define ID_VIEW_MENUBAR                 5064
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        171
-#define _APS_NEXT_COMMAND_VALUE         5063
+#define _APS_NEXT_COMMAND_VALUE         5065
 #define _APS_NEXT_CONTROL_VALUE         3071
 #define _APS_NEXT_SYMED_VALUE           200
 #endif

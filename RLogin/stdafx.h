@@ -97,6 +97,7 @@
 #define	UniToTstr(s)		(CStringA(s))
 #endif
 
+#define	USE_DWMAPI	1
 //#define	USE_GOZI	1
 
 #if defined _UNICODE || defined _WIN64

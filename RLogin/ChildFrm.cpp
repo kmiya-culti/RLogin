@@ -41,12 +41,8 @@ CChildFrame::~CChildFrame()
 {
 }
 
-BOOL CChildFrame::OnCreateClient(LPCREATESTRUCT /*lpcs*/, CCreateContext* pContext)
+BOOL CChildFrame::OnCreateClient(LPCREATESTRUCT lpcs, CCreateContext* pContext)
 {
-//	return m_wndSplitter.Create(this,
-//		2, 2,			// TODO: 行と列の数を調整してください。
-//		CSize(10, 10),	// TODO: 最小ペインのサイズを変更します。
-//		pContext);
 	BOOL result;
 
 	result = m_wndSplitter.Create(this, 2, 1, CSize(40, 20), pContext, WS_CHILD | WS_VISIBLE | WS_VSCROLL | SPLS_DYNAMIC_SPLIT);
@@ -62,6 +58,7 @@ BOOL CChildFrame::OnCreateClient(LPCREATESTRUCT /*lpcs*/, CCreateContext* pConte
 BOOL CChildFrame::PreCreateWindow(CREATESTRUCT& cs)
 {
 	// TODO: CREATESTRUCT cs を変更して、Window クラスまたはスタイルを変更します。
+
 	if( !CMDIChildWnd::PreCreateWindow(cs) )
 		return FALSE;
 
@@ -167,4 +164,14 @@ void CChildFrame::OnMDIActivate(BOOL bActivate, CWnd* pActivateWnd, CWnd* pDeact
 	
 	if ( bActivate && pActivateWnd->m_hWnd == m_hWnd )
 		((CMainFrame *)AfxGetMainWnd())->ActiveChild(this);	
+}
+
+void CChildFrame::OnUpdateFrameMenu(BOOL bActive, CWnd* pActiveWnd, HMENU hMenuAlt)
+{
+	CMDIFrameWnd* pFrame = GetMDIFrame();
+
+	if ( bActive && AfxGetApp()->GetProfileInt(_T("ChildFrame"), _T("VMenu"), TRUE) == FALSE )
+		pFrame->SetMenu(NULL);
+	else
+		CMDIChildWnd::OnUpdateFrameMenu(bActive, pActiveWnd, hMenuAlt);
 }

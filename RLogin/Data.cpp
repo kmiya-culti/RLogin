@@ -3003,7 +3003,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	75
+#define	CMDSKEYTABMAX	76
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -3069,6 +3069,7 @@ static const struct _CmdsKeyTab {
 	{	ID_SPLIT_HEIGHT,		L"$SPLIT_HEIGHT"	},
 	{	ID_SPLIT_OVER,			L"$SPLIT_OVER"		},
 	{	ID_SPLIT_WIDTH,			L"$SPLIT_WIDTH"		},
+	{	ID_VIEW_MENUBAR,		L"$VIEW_MENUBAR"	},
 	{	ID_VIEW_SCROLLBAR,		L"$VIEW_SCROLLBAR"	},
 	{	IDM_SFTP,				L"$VIEW_SFTP"		},
 	{	IDM_SOCKETSTATUS,		L"$VIEW_SOCKET"		},

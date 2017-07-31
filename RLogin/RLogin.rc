@@ -239,6 +239,7 @@ BEGIN
     END
     POPUP "表示(&V)"
     BEGIN
+        MENUITEM "メニューバー(&M)",                  ID_VIEW_MENUBAR
         MENUITEM "ツールバー(&T)",                   ID_VIEW_TOOLBAR
         MENUITEM "ステータスバー(&S)",                 ID_VIEW_STATUS_BAR
         MENUITEM "スクロールバー(&V)",                 ID_VIEW_SCROLLBAR
@@ -437,15 +438,15 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.14.3 (2013/04/25)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.14.4 (2013/05/02)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2013 Culti",IDC_STATIC,47,15,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,148,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.1e Feb 11th, 2013",IDC_STATIC,47,29,176,8
     LTEXT           "Copyright (c) 1998-2013 The OpenSSL Project",IDC_STATIC,47,39,176,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,47,49,176,8
     LTEXT           "All rights reserved.",IDC_STATIC,47,59,176,8
-    LTEXT           "zlib 1.2.7",IDC_STATIC,47,74,176,8
-    LTEXT           "(C) 1995-2012 Jean-loup Gailly and Mark Adler",IDC_STATIC,47,83,176,8
+    LTEXT           "zlib 1.2.8",IDC_STATIC,47,74,176,8
+    LTEXT           "(C) 1995-2013 Jean-loup Gailly and Mark Adler",IDC_STATIC,47,83,176,8
     LTEXT           "iconv (GNU libiconv 1.14)",IDC_STATIC,47,99,176,8
     LTEXT           "Copyright (C) 2000-2011 Free Software Foundation, Inc.",IDC_STATIC,47,108,176,8
     LTEXT           "Nettle library (version 2.0)",IDC_STATIC,47,124,176,8
@@ -809,33 +810,31 @@ BEGIN
     CONTROL         "",IDC_BOX13,"Static",SS_BLACKFRAME,155,62,20,20,WS_EX_STATICEDGE
     CONTROL         "",IDC_BOX14,"Static",SS_BLACKFRAME,182,62,20,20,WS_EX_STATICEDGE
     CONTROL         "",IDC_BOX15,"Static",SS_BLACKFRAME,209,62,20,20,WS_EX_STATICEDGE
+    EDITTEXT        IDC_TEXTCOL,57,108,28,14,ES_AUTOHSCROLL,WS_EX_RIGHT
     CONTROL         "",IDC_BOXTEXT,"Static",SS_BLACKFRAME,94,105,20,20,WS_EX_STATICEDGE
+    EDITTEXT        IDC_BACKCOL,57,132,28,14,ES_AUTOHSCROLL,WS_EX_RIGHT
     CONTROL         "",IDC_BOXBACK,"Static",SS_BLACKFRAME,94,129,20,20,WS_EX_STATICEDGE
-    CONTROL         "Slider1",IDC_TRANSPARENT,"msctls_trackbar32",TBS_TOP,139,112,90,21
-    LTEXT           "Sleep Time",IDC_STATIC,144,139,34,8
-    COMBOBOX        IDC_COMBO2,189,136,34,104,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "",IDC_ATTR1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,23,178,46,10
-    CONTROL         "",IDC_ATTR2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,77,178,46,10
-    CONTROL         "",IDC_ATTR3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,131,178,46,10
-    CONTROL         "",IDC_ATTR4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,185,178,46,10
-    CONTROL         "",IDC_ATTR5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,23,192,46,10
-    CONTROL         "",IDC_ATTR6,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,77,192,46,10
-    CONTROL         "",IDC_ATTR7,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,131,192,46,10
-    CONTROL         "",IDC_ATTR8,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,185,192,46,10
+    CONTROL         "Slider1",IDC_TRANSPARENT,"msctls_trackbar32",TBS_TOP,139,102,90,21
+    COMBOBOX        IDC_COMBO2,189,127,34,104,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "ガラス効果を有効にする",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,144,146,83,10
+    LTEXT           "Sleep Time",IDC_STATIC,144,130,34,8
+    CONTROL         "",IDC_ATTR1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,23,182,46,10
+    CONTROL         "",IDC_ATTR2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,77,182,46,10
+    CONTROL         "",IDC_ATTR3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,131,182,46,10
+    CONTROL         "",IDC_ATTR4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,185,182,46,10
+    CONTROL         "",IDC_ATTR5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,23,196,46,10
+    CONTROL         "",IDC_ATTR6,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,77,196,46,10
+    CONTROL         "",IDC_ATTR7,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,131,196,46,10
+    CONTROL         "",IDC_ATTR8,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,185,196,46,10
     EDITTEXT        IDC_BACKFILE,17,238,189,14,ES_AUTOHSCROLL
     PUSHBUTTON      "...",IDC_BACKSEL,210,238,24,14
     CTEXT           "文字色",IDC_STATIC,20,111,27,8
     CTEXT           "背景色",IDC_STATIC,20,135,27,8
-    GROUPBOX        "文字カラー",IDC_STATIC,7,94,115,63
+    GROUPBOX        "文字カラー",IDC_STATIC,7,94,115,69
     GROUPBOX        "16色カラーテーブル",IDC_STATIC,7,7,237,82
-    GROUPBOX        "透明化",IDC_STATIC,129,94,115,63
-    CTEXT           "0",IDC_STATIC,141,105,11,8
-    CTEXT           "255",IDC_STATIC,215,105,11,8
-    CTEXT           "128",IDC_STATIC,179,105,11,8
-    GROUPBOX        "バックグランド画像",IDC_STATIC,7,220,237,43
-    GROUPBOX        "文字装飾",IDC_STATIC,7,164,237,48
-    EDITTEXT        IDC_TEXTCOL,57,108,28,14,ES_AUTOHSCROLL,WS_EX_RIGHT
-    EDITTEXT        IDC_BACKCOL,57,132,28,14,ES_AUTOHSCROLL,WS_EX_RIGHT
+    GROUPBOX        "透明化",IDC_STATIC,129,94,115,69
+    GROUPBOX        "バックグランド画像",IDC_STATIC,7,222,237,41
+    GROUPBOX        "文字装飾",IDC_STATIC,7,170,237,45
 END
 
 IDD_ICONVDLG DIALOGEX 0, 0, 210, 135
@@ -1396,7 +1395,7 @@ FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,105,180,60,14
     PUSHBUTTON      "キャンセル",IDCANCEL,188,180,60,14
-    EDITTEXT        IDC_TEXTBOX,7,35,256,138,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_READONLY
+    EDITTEXT        IDC_TEXTBOX,7,35,256,138,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL
     LTEXT           "改行やコントロールコードを含む文字列もしくは、多くの文字数をペーストしようとしています。送信しますか？",IDC_MESSAGE,33,7,230,20
     ICON            "",IDC_ICONBOX,7,7,20,20
     CONTROL         "次回から確認しない",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,20,179,74,10
@@ -1409,8 +1408,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,14,3,0
- PRODUCTVERSION 2,14,3,0
+ FILEVERSION 2,14,4,0
+ PRODUCTVERSION 2,14,4,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1427,12 +1426,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.14.3.0"
+            VALUE "FileVersion", "2.14.4.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2013 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.14.3.0"
+            VALUE "ProductVersion", "2.14.4.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2544,6 +2543,7 @@ STRINGTABLE
 BEGIN
     IDR_MAINFRAME           "RLogin"
     IDR_RLOGINTYPE          "\nRLogin\nRLogin\nRLogin ファイル (*.rlg)\n.rlg\nRLogin.Document\nRLogin Document"
+    IDS_VIEW_MENUBAR        "メニューバーの表示"
 END
 
 STRINGTABLE
@@ -2851,6 +2851,7 @@ BEGIN
     ID_SPLIT_HEIGHT         "縦方向に画面を分割してサーバーに接続する\n縦分割接続"
     ID_SPLIT_OVER           "画面分割しないでサーバーに接続\n重ねて接続"
     ID_WINDOW_ROTATION      "表示しているペインを移動します\nペインの移動"
+    ID_VIEW_MENUBAR         "メニューバーの 表示/非表示\nメニューバーの表示切り替え"
 END
 
 #endif    // 日本語 (日本) resources

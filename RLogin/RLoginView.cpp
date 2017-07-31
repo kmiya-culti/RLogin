@@ -133,6 +133,7 @@ CRLoginView::~CRLoginView()
 
 BOOL CRLoginView::PreCreateWindow(CREATESTRUCT& cs)
 {
+	cs.style &= ~WS_BORDER;
 	cs.style |= WS_CLIPSIBLINGS;
 
 	cs.lpszName = _T("RLoginView");
@@ -213,7 +214,7 @@ void CRLoginView::OnDraw(CDC* pDC)
 		else
 			GetClientRect(rect);
 
-		pDC->FillSolidRect(&((CPaintDC *)(pDC))->m_ps.rcPaint, GetSysColor(COLOR_APPWORKSPACE));
+		pDC->FillSolidRect(rect, GetSysColor(COLOR_APPWORKSPACE));
 	}
 
 	if ( pDoc->m_TextRam.IsOptEnable(TO_RLTEKINWND) ) {
@@ -1765,7 +1766,8 @@ void CRLoginView::OnRButtonUp(UINT nFlags, CPoint point)
 void CRLoginView::OnEditPaste() 
 {
 	HGLOBAL hData;
-	WCHAR *pData, *pStr;
+	LPCWSTR pData;
+	CStringW wstr;
 	CBuffer tmp;
 	int cr = 0;
 	int ct = 0;
@@ -1779,17 +1781,18 @@ void CRLoginView::OnEditPaste()
 		return;
 	}
 
-	if ( (pStr = (WCHAR *)GlobalLock(hData)) == NULL ) {
+	if ( (pData = (WCHAR *)GlobalLock(hData)) == NULL ) {
         CloseClipboard();
         return;
     }
 
-	if ( pDoc->m_TextRam.IsOptEnable(TO_XTBRPAMD) )
-		tmp.Apend((LPBYTE)(L"\033[200~"), 6 * sizeof(WCHAR));
+	wstr = pData;
 
-	for ( pData = pStr ; *pData != 0 ; pData++ ) {
+	GlobalUnlock(hData);
+	CloseClipboard();
+
+	for ( pData = wstr ; *pData != 0 ; pData++ ) {
 		if ( *pData != L'\x0A' && *pData != L'\x1A' ) {
-			tmp.Apend((LPBYTE)pData, sizeof(WCHAR));
 			if ( *pData == L'\x0D' )
 				cr++;
 			else if ( *pData != L'\t' && *pData < L' ' )
@@ -1797,25 +1800,26 @@ void CRLoginView::OnEditPaste()
 		}
 	}
 
-	if ( pDoc->m_TextRam.IsOptEnable(TO_XTBRPAMD) )
-		tmp.Apend((LPBYTE)(L"\033[201~"), 6 * sizeof(WCHAR));
-
-	GlobalUnlock(hData);
-	CloseClipboard();
-
-	//if ( (tmp.GetSize() / sizeof(WCHAR)) > 1000 || cr > 10 || ct > 10 ) {
-	//	if ( MessageBox(CStringLoad(IDE_MESSAGE_ANYPASTE), _T("Question"), MB_ICONQUESTION | MB_YESNO) != IDYES )
-	//		return;
-	//}
-
 	if ( m_PastNoCheck == FALSE && ((tmp.GetSize() / sizeof(WCHAR)) > 1000 || cr > 0 || ct > 0) ) {
 		CAnyPastDlg dlg;
-		dlg.m_TextBox = pStr;
+		dlg.m_TextBox = wstr;
 		if ( dlg.DoModal() != IDOK )
 			return;
 		m_PastNoCheck = dlg.m_NoCheck;
+		wstr = dlg.m_TextBox;
 	}
-	
+
+	if ( pDoc->m_TextRam.IsOptEnable(TO_XTBRPAMD) )
+		tmp.Apend((LPBYTE)(L"\033[200~"), 6 * sizeof(WCHAR));
+
+	for ( pData = wstr ; *pData != 0 ; pData++ ) {
+		if ( *pData != L'\x0A' && *pData != L'\x1A' )
+			tmp.Apend((LPBYTE)pData, sizeof(WCHAR));
+	}
+
+	if ( pDoc->m_TextRam.IsOptEnable(TO_XTBRPAMD) )
+		tmp.Apend((LPBYTE)(L"\033[201~"), 6 * sizeof(WCHAR));
+
 	SendBuffer(tmp);
 }
 void CRLoginView::OnUpdateEditPaste(CCmdUI* pCmdUI) 
