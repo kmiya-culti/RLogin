@@ -13,6 +13,7 @@
 //#define	USE_DIRECTWRITE
 //#define	USE_DEBUGLOG
 #define	USE_OLE
+//#define	USE_RCDLL
 
 #define	USE_KEYMACGLOBAL
 
@@ -48,13 +49,6 @@
 #define	_MSC_VER_VS12			1700	// Visual Studio 2012
 #define	_MSC_VER_VS13			1800	// Visual Studio 2013
 #define	_MSC_VER_VS15			1900	// Visual Studio 2015
-
-#if	_MSC_VER < _MSC_VER_VS10
-  #define	WINSOCK11
-  #define	NOIPV6
-  #define	NOGDIPLUS
-  #undef	USE_JUMPLIST
-#endif
 
 #if defined(USE_JUMPLIST) || defined(USE_SAPI)
   #define USE_COMINIT
@@ -110,16 +104,12 @@
   #include <afxcmn.h>			// MFC の Windows コモン コントロール サポート
 #endif // _AFX_NO_AFXCMN_SUPPORT
 
-#ifdef	WINSOCK11
-  #include <afxsock.h>		// MFC のソケット拡張機能
-#else
-  #include "winsock2.h"
-  #include "ws2tcpip.h"
-  #include <afx.h>
-  #include <afxdlgs.h>
-  #pragma comment(lib, "ws2_32.lib")
-  #pragma comment(lib, "Dnsapi.lib")
-#endif
+#include "winsock2.h"
+#include "ws2tcpip.h"
+#include <afx.h>
+#include <afxdlgs.h>
+#pragma comment(lib, "ws2_32.lib")
+#pragma comment(lib, "Dnsapi.lib")
 
 #ifdef	USE_DIRECTWRITE
   #include <d2d1.h>
@@ -128,14 +118,11 @@
   #include <wincodec.h>
 #endif
 
-#ifndef	NOGDIPLUS
-  #include <atlimage.h>
-#endif
-
 #ifdef	USE_SAPI
   #include <sapi.h>
 #endif
 
+#include <atlimage.h>
 #include <atlbase.h>
 #include <afxpriv.h>
 #include <math.h>

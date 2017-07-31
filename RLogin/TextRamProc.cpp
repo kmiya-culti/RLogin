@@ -466,8 +466,8 @@ static const CTextRam::CSIEXTTAB fc_CsiExtTab[] = {
 //	{ ('=' << 16)				| 'A',		&CTextRam::fc_POP		},	// cons25 Set the border color to n
 //	{ ('=' << 16)				| 'B',		&CTextRam::fc_POP		},	// cons25 Set bell pitch (p) and duration (d)
 //	{ ('=' << 16)				| 'C',		&CTextRam::fc_POP		},	// cons25 Set global cursor type
-//	{ ('=' << 16)				| 'F',		&CTextRam::fc_POP		},	// cons25 Set normal foreground color to n
-//	{ ('=' << 16)				| 'G',		&CTextRam::fc_POP		},	// cons25 Set normal background color to n
+	{ ('=' << 16)				| 'F',		&CTextRam::fc_SCOSNF	},	// cons25 Set normal foreground color to n
+	{ ('=' << 16)				| 'G',		&CTextRam::fc_SCOSNB	},	// cons25 Set normal background color to n
 //	{ ('=' << 16)				| 'H',		&CTextRam::fc_POP		},	// cons25 Set normal reverse foreground color to n
 //	{ ('=' << 16)				| 'I',		&CTextRam::fc_POP		},	// cons25 Set normal reverse background color to n
 	{ ('=' << 16)				| 'S',		&CTextRam::fc_C25LCT	},	// C25LCT cons25 Set local cursor type
@@ -631,7 +631,7 @@ static CTextRam::ESCNAMEPROC fc_EscNameTab[] = {
 	{	_T("VTS"),		&CTextRam::fc_VTS,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
 };
 
-#define	CSINAMETABMAX	121
+#define	CSINAMETABMAX	123
 static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	_T("C25LCT"),	&CTextRam::fc_C25LCT,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
 	{	_T("CBT"),		&CTextRam::fc_CBT,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
@@ -732,6 +732,8 @@ static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	_T("RM"),		&CTextRam::fc_RM,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
 	{	_T("SCORC"),	&CTextRam::fc_SCORC,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
 	{	_T("SCOSC"),	&CTextRam::fc_SCOSC,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("SCOSNB"),	&CTextRam::fc_SCOSNB,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("SCOSNF"),	&CTextRam::fc_SCOSNF,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
 	{	_T("SD"),		&CTextRam::fc_SD,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
 	{	_T("SGR"),		&CTextRam::fc_SGR,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
 	{	_T("SL"),		&CTextRam::fc_SL,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
@@ -3294,7 +3296,7 @@ void CTextRam::fc_DECSIXEL(DWORD ch)
 				pGrapWnd->DestroyWindow();
 				pGrapWnd = NULL;
 			} else {
-				SizeGrapWnd(pGrapWnd);
+				SizeGrapWnd(pGrapWnd, 0, 0);
 				if ( idx == (-1) && (pTempWnd = CmpGrapWnd(pGrapWnd)) != NULL && pTempWnd->m_BlockX == pGrapWnd->m_BlockX && pTempWnd->m_BlockY == pGrapWnd->m_BlockY ) {
 					pGrapWnd->DestroyWindow();
 					pGrapWnd = pTempWnd;
@@ -3323,46 +3325,7 @@ void CTextRam::fc_DECSIXEL(DWORD ch)
 
 		m_pActGrapWnd = pGrapWnd;
 
-		DISPVRAM(m_CurX, m_CurY, pGrapWnd->m_BlockX, pGrapWnd->m_BlockY);
-		m_UpdateFlag = TRUE;	// •\Ž¦‚Ì‹@‰ï‚ð—^‚¦‚é
-
-		for ( int y = 0 ; y < pGrapWnd->m_BlockY ; y++ ) {
-			CCharCell *vp = GETVRAM(m_CurX, m_CurY);
-			for ( int x = 0 ; x < pGrapWnd->m_BlockX && (m_CurX + x) < m_Margin.right ; x++ ) {
-				vp->m_Vram.pack.image.id = pGrapWnd->m_ImageIndex;
-				vp->m_Vram.pack.image.ix = x;
-				vp->m_Vram.pack.image.iy = y;
-				vp->m_Vram.bank = SET_96 | 'A';
-				vp->m_Vram.eram = m_AttNow.eram;
-				vp->m_Vram.mode = CM_IMAGE;
-				vp->m_Vram.attr = m_AttNow.attr;
-				vp->m_Vram.font = m_AttNow.font;
-				vp->m_Vram.fcol = m_AttNow.fcol;
-				vp->m_Vram.bcol = m_AttNow.bcol;
-				vp++;
-			}
-			if ( IsOptEnable(TO_RLSIXPOS) != 0 ) {
-				if ( (y + 1) < pGrapWnd->m_BlockY )
-					ONEINDEX();
-			} else
-				ONEINDEX();
-		}
-
-		if ( IsOptEnable(TO_RLSIXPOS) != 0 ) {
-			if ( (m_CurX += pGrapWnd->m_BlockX) >= m_Margin.right ) {
-				if ( IsOptEnable(TO_DECAWM) != 0 ) {
-					if ( IsOptEnable(TO_RLGNDW) != 0 ) {
-						LOCATE(m_Margin.left, m_CurY);
-						ONEINDEX();
-					} else {
-						LOCATE(m_Margin.right - 1, m_CurY);
-						m_DoWarp = TRUE;
-					}
-				} else 
-					LOCATE(m_Margin.right - 1, m_CurY);
-			} else
-				LOCATE(m_CurX, m_CurY);
-		}
+		DispGrapWnd(pGrapWnd);
 	}
 }
 void CTextRam::fc_DECDLD(DWORD ch)
@@ -4109,13 +4072,13 @@ void CTextRam::fc_OSCEXE(DWORD ch)
 			CBuffer clip, work;
 			CRLoginView *pView;
 			if ( strcmp(p, "?") == 0 ) {	// Get Clipboad
-				if ( m_pDocument != NULL && (pView = (CRLoginView *)m_pDocument->GetAciveView()) != NULL && (m_pDocument->m_TextRam.m_ClipFlag & OSC52_READ) != 0 ) {
+				if ( (pView = (CRLoginView *)GetAciveView()) != NULL && (m_pDocument->m_TextRam.m_ClipFlag & OSC52_READ) != 0 ) {
 					pView->GetClipboard(&clip);
 					work.Base64Encode(clip.GetPtr(), clip.GetSize());
 				}
 				UNGETSTR(_T("%s52;%s;%s%s"), m_RetChar[RC_OSC], tmp, (LPCTSTR)work, (ch == 0x07 ? _T("\007") : m_RetChar[RC_ST]));
 			} else {						// Set Clipboad
-				if ( m_pDocument != NULL && (pView = (CRLoginView *)m_pDocument->GetAciveView()) != NULL && (m_pDocument->m_TextRam.m_ClipFlag & OSC52_WRITE) != 0 ) {
+				if ( (pView = (CRLoginView *)GetAciveView()) != NULL && (m_pDocument->m_TextRam.m_ClipFlag & OSC52_WRITE) != 0 ) {
 					clip.Base64Decode(MbsToTstr(p));
 					pView->SetClipboard(&clip);
 				}
@@ -4177,6 +4140,10 @@ void CTextRam::fc_OSCEXE(DWORD ch)
 		ParseColor(cmd, n, _T("reset"), ch);
 		if ( cmd == 111 )
 			m_AttNow.bcol = GETCOLIDX(GetRValue(m_ColTab[n]), GetGValue(m_ColTab[n]), GetBValue(m_ColTab[n]));
+		break;
+
+	case 1337:	// iTerm2
+		iTerm2Ext(p);
 		break;
 
 	case 800:	// Original Kanji Code Set
@@ -5352,7 +5319,6 @@ void CTextRam::fc_XTWOP(DWORD ch)
 	int w = 6;
 	int h = 12;
 	CRect rect;
-	CRLoginView *pView;
 	CWnd *pMainWnd = ::AfxGetMainWnd();
 
 	switch (n) {
@@ -5407,6 +5373,7 @@ void CTextRam::fc_XTWOP(DWORD ch)
 #endif
 		break;
     case 9:			/* Maximize or restore mx = p1 */
+	case 10:		/* Fullscreen or restore */
 		if ( IsOptEnable(TO_SETWINPOS) )
 			pMainWnd->ShowWindow(GetAnsiPara(1, 0, 0) == 0 ? SW_SHOWNORMAL : SW_SHOWMAXIMIZED);
 		break;
@@ -5427,10 +5394,7 @@ void CTextRam::fc_XTWOP(DWORD ch)
 		UNGETSTR(_T("%s8;%d;%dt"), m_RetChar[RC_CSI], m_Lines, m_Cols);
 		break;
     case 19:    	/* Report the screen's size, in characters ESC[9;h;wt */
-		if ( m_pDocument != NULL && (pView = (CRLoginView *)m_pDocument->GetAciveView()) != NULL ) {
-			w = pView->m_CharWidth;
-			h = pView->m_CharHeight;
-		}
+		GetCellSize(&w, &h);
 		CWnd::GetDesktopWindow()->GetClientRect(rect);
 		UNGETSTR(_T("%s9;%d;%dt"), m_RetChar[RC_CSI], rect.Height() / h, rect.Width() / w);
 		break;
@@ -7125,8 +7089,183 @@ void CTextRam::fc_RLIMGCP(DWORD ch)
 
 	CRLoginView *pView;
 
-	if ( m_pDocument != NULL && (pView = (CRLoginView *)m_pDocument->GetAciveView()) != NULL )
+	if ( (pView = (CRLoginView *)GetAciveView()) != NULL )
 		pView->CreateGrapImage(GetAnsiPara(0, 0, 0, 4));
 
 	fc_POP(ch);
+}
+
+/********************************************************************
+Support for `SCO ANSI' terminal features
+
+Select foreground color              \027[=PsF
+Select background color              \027[=PsG
+Select reverse color                 \027[=PsH
+Select reverse background color      \027[=PsI
+
+            SCO-ANSI Color Table
+--------------------------------------------------
+   Ps      Color             Ps      Color
+--------------------------------------------------
+   0       Black              8      Grey
+   1       Blue               9      Lt. Blue
+   2       Green             10      Lt. Green
+   3       Cyan              11      Lt. Cyan
+   4       Red               12      Lt. Red
+   5       Magenta           13      Lt. Magenta
+   6       Brown             14      Yellow
+   7       White             15      Lt. White
+--------------------------------------------------
+*********************************************************************/
+
+static	const BYTE scocolortab[] = { 000, 004, 002, 006, 001, 005, 003, 007, 010, 014, 012, 016, 011, 015, 013, 017 };
+
+void CTextRam::fc_SCOSNF(DWORD ch)
+{
+	// CSI ('=' << 16) | 'F',		SNF Select foreground color
+
+	if ( m_AnsiPara.GetSize() <= 0 )
+		m_AttNow.fcol = m_DefAtt.fcol;
+	else
+		m_AttNow.fcol = scocolortab[GetAnsiPara(0, 0, 0, 15)];
+
+	if ( IsOptEnable(TO_DECECM) == 0 )
+		m_AttSpc.fcol = m_AttNow.fcol;
+
+	fc_POP(ch);
+}
+void CTextRam::fc_SCOSNB(DWORD ch)
+{
+	// CSI ('=' << 16) | 'G',		SNB Select background color
+
+	if ( m_AnsiPara.GetSize() <= 0 )
+		m_AttNow.bcol = m_DefAtt.bcol;
+	else
+		m_AttNow.bcol = scocolortab[GetAnsiPara(0, 0, 0, 15)];
+
+	if ( IsOptEnable(TO_DECECM) == 0 )
+		m_AttSpc.bcol = m_AttNow.bcol;
+
+	fc_POP(ch);
+}
+//////////////////////////////////////////////////////////////////////
+// Grap Image Load
+
+void CTextRam::iTerm2Ext(LPCSTR param)
+{
+	int i, n;
+	int cx, cy;
+	int CharWidth = 6, CharHeight = 12;
+	CStringIndex index;
+	CBuffer tmp;
+	CString name;
+	CGrapWnd *pGrapWnd, *pTempWnd;
+	int bInLine;
+	LPCTSTR p;
+
+	index.SetKey(param);
+
+	if ( (i = index.Find(_T("File"))) >= 0 ) {
+		//	File=name=[base64];size=nn;width=[N];height=[N];preserveAspectRatio=[1];inline=[0]:[base64]
+		//
+		//	name					base-64 encoded filename. Defaults to "Unnamed file". 
+		//	size					File size in bytes. Optional; this is only used by the progress indicator. 
+		//	width					Width to render. See notes below. 
+		//	height					Height to render. See notes below. 
+		//	preserveAspectRatio		If set to 0, then the image's inherent aspect ratio will not be respected; otherwise, it will fill the specified width and height as much as possible without stretching. Defaults to 1. 
+		//	inline					If set to 1, the file will be displayed inline. Otherwise, it will be downloaded with no visual representation in the terminal session. Defaults to 0. 
+		//
+		//	N:		N character cells.
+		//	Npx:	N pixels.
+		//	N%:		N percent of the session's width or height.
+		//	auto:	The image's inherent size will be used to determine an appropriate dimension.
+
+		tmp.Base64Decode(index[i][_T("name")]);
+		name = m_pDocument->LocalStr(tmp);
+
+		tmp.Base64Decode(index[i]);
+		bInLine = index[i][_T("inline")];
+
+		if ( bInLine == 1 ) {
+			pGrapWnd = new CGrapWnd(this);
+			pGrapWnd->Create(NULL, _T("iTerm2Ext"));
+
+			if ( pGrapWnd->LoadPicture(tmp.GetPtr(), tmp.GetSize()) ) {
+				GetCellSize(&CharWidth, &CharHeight);
+
+				// default auto
+				cx = 0;
+
+				if ( (n = index[i].Find(_T("width"))) >= 0 ) {
+					p = index[i][n];
+
+					if ( !index[i][n].m_bString ) {
+						// cell width
+						cx = index[i][n];
+
+					} else if ( *p >= _T('0') && *p <= _T('9') ) {
+						// pixel width
+						for ( cx = 0 ; *p >= _T('0') && *p <= _T('9') ; p++ )
+							cx = cx * 10 + (*p - _T('0'));
+
+						if ( *p == _T('%') )
+							cx = CharWidth * m_Cols * cx / 100;
+
+						// pixel -> cell width
+						cx = (cx + CharWidth - 1) / CharWidth;
+					}
+				}
+
+				// default auto
+				cy = 0;
+
+				if ( (n = index[i].Find(_T("height"))) >= 0 ) {
+					p = index[i][n];
+
+					if ( !index[i][n].m_bString ) {
+						// cell height
+						cy = index[i][n];
+
+					} else if ( *p >= _T('0') && *p <= _T('9') ) {
+						// pixel height
+						for ( cy = 0 ; *p >= _T('0') && *p <= _T('9') ; p++ )
+							cy = cy * 10 + (*p - _T('0'));
+
+						if ( *p == _T('%') )
+							cy = CharHeight * m_Lines * cy / 100;
+
+						// cell height convert
+						cy = (cy + CharHeight - 1) / CharHeight;
+					}
+				}
+
+				SizeGrapWnd(pGrapWnd, cx, cy);
+
+				pGrapWnd->m_ImageIndex = m_ImageIndex++;
+				if ( m_ImageIndex >= 4096 )		// index max 12 bit
+					m_ImageIndex = 1024;		// 1024 - 4095
+
+				if ( (pTempWnd = GetGrapWnd(pGrapWnd->m_ImageIndex)) != NULL )
+					pTempWnd->DestroyWindow();
+
+				AddGrapWnd(pGrapWnd);
+				DispGrapWnd(pGrapWnd);
+
+			} else {
+				pGrapWnd->DestroyWindow();
+				bInLine = 0;
+			}
+		}
+
+		if ( bInLine == 0 ) {
+			CFileDialog dlg(FALSE, _T(""), name, OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGALLFILE), ::AfxGetMainWnd());
+			if ( dlg.DoModal() == IDOK ) {
+				CFile file;
+				if ( file.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeWrite) ) {
+					file.Write(tmp.GetPtr(), tmp.GetSize());
+					file.Close();
+				}
+			}
+		}
+	}
 }

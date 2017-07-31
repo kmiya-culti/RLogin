@@ -39,6 +39,7 @@ CProtoPage::CProtoPage() : CTreePage(CProtoPage::IDD)
 	for ( int n = 0 ; n < CHECKOPTMAX + CHECKOPTEXT ; n++ )
 		m_Check[n] = FALSE;
 	m_RsaExt = 0;
+	m_VerIdent.Empty();
 }
 
 CProtoPage::~CProtoPage()
@@ -53,6 +54,7 @@ void CProtoPage::DoDataExchange(CDataExchange* pDX)
 	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
 		DDX_Check(pDX, IDC_PROTOCHECK1 + n, m_Check[n]);
 	DDX_CBIndex(pDX, IDC_RSAEXTSEL, m_RsaExt);
+	DDX_Text(pDX, IDC_VERINDENT, m_VerIdent);
 }
 
 BEGIN_MESSAGE_MAP(CProtoPage, CTreePage)
@@ -63,6 +65,7 @@ BEGIN_MESSAGE_MAP(CProtoPage, CTreePage)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_CHECKFAST, IDC_CHECKFAST + CHECKOPTMAX - 1, OnUpdateCheck)
 	ON_EN_CHANGE(IDC_DELAYMSEC, OnUpdateEdit)
 	ON_CBN_SELCHANGE(IDC_RSAEXTSEL, OnUpdateEdit)
+	ON_EN_CHANGE(IDC_VERINDENT, OnUpdateEdit)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -82,6 +85,7 @@ void CProtoPage::DoInit()
 	m_PortFwd   = m_pSheet->m_pParamTab->m_PortFwd;
 	m_XDisplay  = m_pSheet->m_pParamTab->m_XDisplay;
 	m_RsaExt    = m_pSheet->m_pParamTab->m_RsaExt;
+	m_VerIdent  = m_pSheet->m_pParamTab->m_VerIdent;
 
 	UpdateData(FALSE);
 }
@@ -114,6 +118,7 @@ BOOL CProtoPage::OnApply()
 	m_pSheet->m_pParamTab->m_PortFwd   = m_PortFwd;
 	m_pSheet->m_pParamTab->m_XDisplay  = m_XDisplay;
 	m_pSheet->m_pParamTab->m_RsaExt    = m_RsaExt;
+	m_pSheet->m_pParamTab->m_VerIdent  = m_VerIdent;
 
 	return TRUE;
 }

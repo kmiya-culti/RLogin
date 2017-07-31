@@ -1025,6 +1025,7 @@ public:
 	void GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf);
 	void GetLine(int sy, CString &str);
 	BOOL IsEmptyLine(int sy);
+	void GetCellSize(int *x, int *y);
 	void GetScreenSize(int *x, int *y);
 
 	void DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, struct DrawWork &prop, class CRLoginView *pView);
@@ -1465,6 +1466,8 @@ public:
 	void fc_XTHDPT(DWORD ch);
 	void fc_XTSMTT(DWORD ch);
 	void fc_RLIMGCP(DWORD ch);
+	void fc_SCOSNF(DWORD ch);
+	void fc_SCOSNB(DWORD ch);
 
 	// ESC PX^_] DCS/PM/APC/SOS/OSC
 	void fc_TimerSet(LPCTSTR name);
@@ -1566,7 +1569,11 @@ public:
 	void RemoveGrapWnd(class CGrapWnd *pWnd);
 	void *LastGrapWnd(int type);
 	void ChkGrapWnd(int sec);
-	void SizeGrapWnd(class CGrapWnd *pWnd);
+	void SizeGrapWnd(class CGrapWnd *pWnd, int cx, int cy);
+	void DispGrapWnd(class CGrapWnd *pGrapWnd);
+
+	// iTerm2
+	void iTerm2Ext(LPCSTR param);
 };
 
 #endif // !defined(AFX_TEXTRAM_H__CBEA227A_D7D7_4213_88B1_4F4C0DF48089__INCLUDED_)

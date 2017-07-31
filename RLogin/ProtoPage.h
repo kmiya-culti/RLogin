@@ -23,6 +23,7 @@ public:
 	CStringArrayExt m_PortFwd;
 	CString m_XDisplay;
 	int m_RsaExt;
+	CString m_VerIdent;
 
 public:
 	void DoInit();

@@ -63,6 +63,7 @@ public:
 	inline void PutByte(int val) { Put8Bit(val); }
 	void PutWord(int val);
 	void PutDword(int val);
+	void PutText(LPCWSTR str);
 
 	int Get8Bit();
 	int Get16Bit();
@@ -78,6 +79,7 @@ public:
 	int GetWord();
 	inline int GetByte() { return GetChar(); }
 	int GetChar();
+	void GetText(CString &str);
 
 	inline void SET8BIT(LPBYTE pos, int val) { *pos = (BYTE)(val); }
 	void SET16BIT(LPBYTE pos, int val);
@@ -116,6 +118,7 @@ public:
 	void Dump();
 #endif
 
+	CBuffer(LPBYTE pData, int len);
 	CBuffer(int size);
 	CBuffer();
 	~CBuffer();
@@ -138,6 +141,17 @@ public:
 	~CSpace() { if ( m_Data != NULL ) delete [] m_Data; }
 };
 
+class CMenuLoad : public CMenu
+{
+public:
+	inline BOOL LoadMenu(UINT nIDResource) { return LoadMenu(MAKEINTRESOURCE(nIDResource)); }
+	BOOL LoadMenu(LPCTSTR lpszResourceName);
+	
+	static BOOL UpdateMenuShortCut(CMenu *pMenu, CMenu *pUpdateMenu, LPCTSTR pShortCut);
+	static CMenu *GetItemSubMenu(UINT nId, CMenu *pMenu);
+	static BOOL GetPopUpMenu(UINT nId, CMenu &PopUpMenu);
+};
+
 class CStringLoad : public CString
 {
 public:
@@ -147,8 +161,14 @@ public:
 	inline void operator = (LPCWSTR str) { *((CString *)this) = str; }
 	inline void operator = (LPCSTR  str) { *((CString *)this) = str; }
 
+	BOOL LoadString(UINT nID);
+
 	BOOL IsDigit(LPCTSTR str);
+	int CompareDigit(LPCTSTR dis);
+
+#ifdef	DEBUG
 	int Compare(LPCTSTR dis);
+#endif
 };
 
 class CStrNode : public CObject
@@ -197,6 +217,9 @@ public:
 	void GetParam(LPCTSTR str);
 
 	void GetCmds(LPCTSTR cmds);
+
+	CStringArrayExt();
+	CStringArrayExt(int nID);
 };
 
 class CStringMaps : public CObject
@@ -243,14 +266,19 @@ public:
 	int GetSize() { return (int)m_Array.GetSize(); }
 	void SetSize(int nIndex) { m_Array.SetSize(nIndex); }
 	LPCTSTR GetIndex() { return m_nIndex; }
-	void RemoveAll() { m_Array.RemoveAll(); }
+	void RemoveAll() { m_Array.RemoveAll(); m_bEmpty = TRUE; }
 	int Add(LPCTSTR str) { CStringIndex tmp; tmp = str; return (int)m_Array.Add(tmp); }
 	int Add(int value) { CStringIndex tmp; tmp = value; return (int)m_Array.Add(tmp); }
+	int Add(CStringIndex &data) { return (int)m_Array.Add(data); }
 	void SetNoCase(BOOL b) { m_bNoCase = b; }
 	void SetNoSort(BOOL b) { m_bNoSort = b; }
 
 	int Find(LPCTSTR str);
 	void SetArray(LPCTSTR str);
+
+	void SetValue(LPCSTR &str);
+	void SetParam(LPCSTR &str);
+	void SetKey(LPCSTR &str);
 
 	void GetBuffer(CBuffer *bp);
 	void SetBuffer(CBuffer *bp);
@@ -261,6 +289,10 @@ public:
 	LPCTSTR GetPackStr(LPCTSTR str);
 	BOOL ReadString(CArchive& ar, CString &str);
 	void Serialize(CArchive& ar, LPCSTR base = NULL);
+
+#ifdef	DEBUG
+	void Dump(int nest);
+#endif
 };
 
 class CStringBinary : public CObject
@@ -333,7 +365,6 @@ public:
 class CBmpFile : public CObject
 {
 public:
-	IPicture *m_pPic;
 	CBitmap m_Bitmap;
 	int m_Width, m_Height;
 	CString m_FileName;
@@ -341,10 +372,14 @@ public:
 	int m_Alpha;
 	class CTextBitMap *m_pTextBitMap;
 	CString m_Title;
+	CImage m_Image;
+	int m_bkIndex;
 
 	BOOL LoadFile(LPCTSTR filename);
 	CBitmap *GetBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, int Alpha = 255);
 	CBitmap *GetTextBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, class CTextBitMap *pTextBitMap, LPCTSTR title, int Alpha);
+
+	static int GifTrnsIndex(LPBYTE lpBuf, int len);
 
 	CBmpFile();
 	virtual ~CBmpFile();
@@ -738,6 +773,7 @@ public:
 	int m_SelIPver;
 	CArray<ttymode_node, ttymode_node> m_TtyMode;
 	int m_RsaExt;
+	CString m_VerIdent;
 
 	CParamTab();
 	void Init();
@@ -767,7 +803,7 @@ public:
 	void Init();
 
 	CFileExt();
-#if	_MSC_VER > 1500
+#if	_MSC_VER >= _MSC_VER_VS10
 	CFileExt(CAtlTransactionManager* pTM);
 #endif
 	CFileExt(HANDLE hFile);
@@ -776,7 +812,7 @@ public:
 	virtual ~CFileExt();
 	
 	virtual BOOL Open(LPCTSTR lpszFileName, UINT nOpenFlags, CFileException* pError = NULL);
-#if	_MSC_VER > 1500
+#if	_MSC_VER >= _MSC_VER_VS10
 	virtual BOOL Open(LPCTSTR lpszFileName, UINT nOpenFlags, CAtlTransactionManager* pTM, CFileException* pError);
 #endif
 

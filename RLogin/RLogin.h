@@ -8,12 +8,14 @@
 
 #include "resource.h"       // メイン シンボル
 #include "Data.h"
+#include "ResDataBase.h"
 
 #define	WM_SOCKSEL			(WM_USER + 0)
 #define WM_GETHOSTADDR		(WM_USER + 1)
 #define	WM_ICONMSG			(WM_USER + 2)
 #define WM_THREADCMD		(WM_USER + 3)
 #define WM_AFTEROPEN		(WM_USER + 4)
+#define WM_GETCLIPBOARD		(WM_USER + 5)
 
 #define	IDLEPROC_SOCKET		0
 #define	IDLEPROC_ENCRYPT	1
@@ -78,6 +80,7 @@ public:
 	class CFontChache m_FontData;
 	WSADATA wsaData;
 	CString m_BaseDir;
+	CString m_ExecDir;
 	CString m_PathName;
 	CCommandLineInfoEx *m_pCmdInfo;
 	CServerEntry *m_pServerEntry;
@@ -106,6 +109,8 @@ public:
 	ISpVoice *m_pVoice;
 	void Speek(LPCTSTR str);
 #endif
+
+	BOOL GetExtFilePath(LPCTSTR ext, CString &path);
 
 	void AddIdleProc(int Type, void *pParam);
 	void DelIdleProc(int Type, void *pParam);
@@ -164,6 +169,15 @@ public:
 	static HWND GetRLoginFromPoint(CPoint point);
 	static BOOL IsWinVerCheck(int ver, int op = VER_EQUAL);	// VER_GREATER_EQUAL
 
+	CResDataBase m_ResDataBase;
+
+	inline BOOL LoadResDialog(LPCTSTR lpszName, HGLOBAL &hTemplate, HGLOBAL &hInitData) { return m_ResDataBase.LoadResDialog(lpszName, hTemplate, hInitData); }
+	inline BOOL LoadResString(LPCTSTR lpszName, CString &str) { return m_ResDataBase.LoadResString(lpszName, str); }
+	inline BOOL LoadResMenu(LPCTSTR lpszName, HMENU &hMenu) { return m_ResDataBase.LoadResMenu(lpszName, hMenu); }
+	inline BOOL LoadResToolBar(LPCTSTR lpszName, CToolBar &ToolBar) { return m_ResDataBase.LoadResToolBar(lpszName, ToolBar); }
+	inline BOOL LoadResBitmap(LPCTSTR lpszName, CBitmap &Bitmap) { return m_ResDataBase.LoadResBitmap(lpszName, Bitmap); }
+	inline BOOL InitToolBarBitmap(LPCTSTR lpszName, UINT ImageId) { return m_ResDataBase.InitToolBarBitmap(lpszName, ImageId); }
+
 	CRLoginApp();
 
 // オーバーライド
@@ -188,6 +202,7 @@ public:
 	afx_msg void OnUpdateOthercast(CCmdUI *pCmdUI);
 	afx_msg void OnPassLock();
 	afx_msg void OnUpdatePassLock(CCmdUI *pCmdUI);
+	afx_msg void OnSaveresfile();
 };
 
 extern CRLoginApp theApp;

@@ -20,6 +20,7 @@ public:
 public:
 	CListCtrlExt m_List;
 	BOOL m_KeyMap[60];
+	int m_KeyLayout;
 
 	CKeyNodeTab m_KeyTab;
 	DWORD m_MetaKeys[256 / 32];

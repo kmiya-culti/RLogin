@@ -2561,45 +2561,28 @@ BOOL CSFtp::OnInitDialog()
 
 	CDialogExt::OnInitDialog();
 
-	if ( !m_wndToolBar.CToolBar::CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT, WS_CHILD | WS_VISIBLE | CBRS_TOP | CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC) || !m_wndToolBar.LoadToolBar(IDR_SFTPTOOL) )
+	if ( !m_wndToolBar.CToolBar::CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT, WS_CHILD | WS_VISIBLE | CBRS_TOP | CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC) ||
+		!((CRLoginApp *)::AfxGetApp())->LoadResToolBar(MAKEINTRESOURCE(IDR_SFTPTOOL), m_wndToolBar) )
 		MessageBox(_T("Failed to create toolbar"));
 
-	BitMap.LoadBitmap(IDB_BITMAP5);
-	m_ImageList[0].Create(16, 16, ILC_COLOR24 | ILC_MASK, 0, 10);
-	m_ImageList[0].Add(&BitMap, RGB(192, 192, 192));
-	BitMap.DeleteObject();
-
-	BitMap.LoadBitmap(IDB_BITMAP6);
-	m_ImageList[1].Create(16, 16, ILC_COLOR24 | ILC_MASK, 0, 10);
-	m_ImageList[1].Add(&BitMap, RGB(192, 192, 192));
-	BitMap.DeleteObject();
-
-	BitMap.LoadBitmap(IDB_BITMAP7);
-	m_ImageList[2].Create(16, 16, ILC_COLOR24 | ILC_MASK, 0, 10);
-	m_ImageList[2].Add(&BitMap, RGB(192, 192, 192));
-	BitMap.DeleteObject();
-
-	m_wndToolBar.SetSizes(CSize(16+7, 16+8), CSize(16, 16));
-	m_wndToolBar.SendMessage(TB_SETIMAGELIST, 0, (LPARAM)(m_ImageList[0].m_hImageList));
-	m_wndToolBar.SendMessage(TB_SETHOTIMAGELIST, 0, (LPARAM)(m_ImageList[1].m_hImageList));
-	m_wndToolBar.SendMessage(TB_SETDISABLEDIMAGELIST, 0, (LPARAM)(m_ImageList[2].m_hImageList));
 	RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST,0, reposQuery, rect);
 	m_ToolBarOfs = rect.top;
 	RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
 
-	BitMap.LoadBitmap(IDB_BITMAP4);
-	m_ImageList[3].Create(16, 16, ILC_COLOR24 | ILC_MASK, 0, 4);
-	m_ImageList[3].Add(&BitMap, RGB(192, 192, 192));
+	//BitMap.LoadBitmap(IDB_BITMAP4);
+	((CRLoginApp *)::AfxGetApp())->LoadResBitmap(MAKEINTRESOURCE(IDB_BITMAP4), BitMap);
+	m_ImageList.Create(16, 16, ILC_COLOR24 | ILC_MASK, 0, 4);
+	m_ImageList.Add(&BitMap, RGB(192, 192, 192));
 	BitMap.DeleteObject();
 
 	for ( n = 0 ; n < 4 ; n++ )
 		m_LocalList.InsertColumn(n, &lvt[n]);
-	m_LocalList.SetImageList(&m_ImageList[3], LVSIL_SMALL);
+	m_LocalList.SetImageList(&m_ImageList, LVSIL_SMALL);
 	m_LocalList.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_SUBITEMIMAGES);
 
 	for ( n = 0 ; n < 6 ; n++ )
 		m_RemoteList.InsertColumn(n, &lvt[n]);
-	m_RemoteList.SetImageList(&m_ImageList[3], LVSIL_SMALL);
+	m_RemoteList.SetImageList(&m_ImageList, LVSIL_SMALL);
 	m_RemoteList.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_SUBITEMIMAGES);
 
 	DWORD len = GetLogicalDriveStrings(0, NULL);
@@ -3055,8 +3038,8 @@ void CSFtp::OnBegindragRemoteList(NMHDR* pNMHDR, LRESULT* pResult)
 	}
 
 	m_hDragWnd = pNMHDR->hwndFrom;
-	m_ImageList[3].BeginDrag(m_DragImage, po);
-	m_ImageList[3].DragEnter(GetDesktopWindow(), pNMListView->ptAction);
+	m_ImageList.BeginDrag(m_DragImage, po);
+	m_ImageList.DragEnter(GetDesktopWindow(), pNMListView->ptAction);
 
 	m_DragAcvite = m_DragImage;
 	m_bDragList = TRUE;
@@ -3079,14 +3062,14 @@ void CSFtp::OnMouseMove(UINT nFlags, CPoint point)
 		else if ( m_hDragWnd == m_LocalList.m_hWnd )
 			image = m_DragImage;
 		if ( image == m_DragAcvite ) {
-			m_ImageList[3].DragMove(po);
-			//m_ImageList[3].DragShowNolock(FALSE);
-			//m_ImageList[3].DragShowNolock(TRUE);
+			m_ImageList.DragMove(po);
+			//m_ImageList.DragShowNolock(FALSE);
+			//m_ImageList.DragShowNolock(TRUE);
 		} else {
-			m_ImageList[3].DragLeave(GetDesktopWindow());
-			m_ImageList[3].EndDrag();
-			m_ImageList[3].BeginDrag(image, CPoint(12, 8));
-			m_ImageList[3].DragEnter(GetDesktopWindow(), po);
+			m_ImageList.DragLeave(GetDesktopWindow());
+			m_ImageList.EndDrag();
+			m_ImageList.BeginDrag(image, CPoint(12, 8));
+			m_ImageList.DragEnter(GetDesktopWindow(), po);
 			m_DragAcvite = image;
 		}
 	}
@@ -3105,8 +3088,8 @@ void CSFtp::OnLButtonUp(UINT nFlags, CPoint point)
 
 	::ReleaseCapture();
 	m_bDragList = FALSE;
-	m_ImageList[3].DragLeave(GetDesktopWindow());
-	m_ImageList[3].EndDrag();
+	m_ImageList.DragLeave(GetDesktopWindow());
+	m_ImageList.EndDrag();
 
 	ClientToScreen(&po);
 	if ( (pWnd = WindowFromPoint(po)) == NULL )
@@ -3160,7 +3143,8 @@ void CSFtp::OnSftpClose()
 
 void CSFtp::OnRclickLocalList(NMHDR* pNMHDR, LRESULT* pResult) 
 {
-	CMenu menu, *submenu;
+	CMenuLoad menu;
+	CMenu *submenu;
 	NMLISTVIEW* pNMListView = (NM_LISTVIEW*)pNMHDR;
 	CPoint point = pNMListView->ptAction;
 
@@ -3179,7 +3163,8 @@ void CSFtp::OnRclickLocalList(NMHDR* pNMHDR, LRESULT* pResult)
 
 void CSFtp::OnRclickRemoteList(NMHDR* pNMHDR, LRESULT* pResult) 
 {
-	CMenu menu, *submenu;
+	CMenuLoad menu;
+	CMenu *submenu;
 	NMLISTVIEW* pNMListView = (NM_LISTVIEW*)pNMHDR;
 	CPoint point = pNMListView->ptAction;
 

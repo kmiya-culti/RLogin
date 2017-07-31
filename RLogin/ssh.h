@@ -582,8 +582,8 @@ public:
 #define	DHMODE_ECDH_S2_N521	6
 #define DHMODE_CURVE25519	7
 #define	DHMODE_GROUP_14_256	8
-#define	DHMODE_GROUP_15_256	9
-#define	DHMODE_GROUP_16_256	10
+#define	DHMODE_GROUP_16_512	9
+#define	DHMODE_GROUP_18_512	10
 
 #define	AUTH_MODE_NONE		0
 #define	AUTH_MODE_PUBLICKEY	1
@@ -723,6 +723,7 @@ private:
 	int m_bPfdConnect;
 	BOOL m_bExtInfo;
 	CStringIndex m_ExtInfo;
+	int m_DhGexReqBits;
 
 	void LogIt(LPCTSTR format, ...);
 	void SendTextMsg(LPCSTR str, int len);

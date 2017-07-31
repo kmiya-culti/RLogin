@@ -352,7 +352,7 @@ void CIdkeySelDLg::OnIdkeyInport()
 	CIdKeyFileDlg dlg;
 
 	dlg.m_OpenMode = 1;
-	dlg.m_Title.LoadString(IDS_IDKEYFILELOAD);;
+	dlg.m_Title.LoadString(IDS_IDKEYFILELOAD);
 	dlg.m_Message.LoadString(IDS_IDKEYFILELOADCOM);
 
 	if ( dlg.DoModal() != IDOK )

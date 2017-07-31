@@ -18,10 +18,10 @@ public:
 
 public:
 	CString	m_Edit;
-	CString	m_Title;
+	CStringLoad	m_Title;
 
 	BOOL m_bPassword;
-	CString m_WinText;
+	CStringLoad m_WinText;
 
 // オーバーライド
 protected:

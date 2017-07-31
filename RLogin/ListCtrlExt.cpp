@@ -62,12 +62,12 @@ static int CALLBACK CompareFunc(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSor
 
 	s1 = pCompList->GetItemText(i1, pCompList->m_SortSubItem);
 	s2 = pCompList->GetItemText(i2, pCompList->m_SortSubItem);
-	if ( (it = s1.Compare(s2)) != 0 || pCompList->m_SortSubItem == pCompList->m_SortDupItem )
+	if ( (it = s1.CompareDigit(s2)) != 0 || pCompList->m_SortSubItem == pCompList->m_SortDupItem )
 		return it;
 
 	s1 = pCompList->GetItemText(i1, pCompList->m_SortDupItem);
 	s2 = pCompList->GetItemText(i2, pCompList->m_SortDupItem);
-	return s1.Compare(s2);
+	return s1.CompareDigit(s2);
 }
 int CListCtrlExt::GetParamItem(int para)
 {

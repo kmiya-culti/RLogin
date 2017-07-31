@@ -20,10 +20,10 @@ public:
 	CString	m_IdkeyFile;
 	CString	m_PassName;
 	CString	m_PassName2;
-	CString	m_Message;
+	CStringLoad	m_Message;
 
 	int m_OpenMode;
-	CString m_Title;
+	CStringLoad m_Title;
 
 // オーバーライド
 protected:

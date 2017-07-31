@@ -51,7 +51,9 @@ void CTekWnd::PostNcDestroy()
 
 BOOL CTekWnd::PreCreateWindow(CREATESTRUCT& cs)
 {
-	cs.hMenu = ::LoadMenu(cs.hInstance, MAKEINTRESOURCE(IDR_TEKWND));
+//	cs.hMenu = ::LoadMenu(cs.hInstance, MAKEINTRESOURCE(IDR_TEKWND));
+	((CRLoginApp *)::AfxGetApp())->LoadResMenu(MAKEINTRESOURCE(IDR_TEKWND), cs.hMenu);
+
 	cs.x = CW_USEDEFAULT;
 	cs.y = CW_USEDEFAULT;
 	cs.cx = AfxGetApp()->GetProfileInt(_T("TekWnd"), _T("cx"), 640);
@@ -83,12 +85,8 @@ void CTekWnd::OnTekSave()
 {
 	CDC dc;
 	CRect rect(0, 0, TEK_WIN_WIDTH / 4, TEK_WIN_HEIGHT / 4);
-#ifdef	NOGDIPLUS
-	CFileDialog dlg(FALSE, _T("gif"), _T(""), OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGTEKIMAGE2), this);
-#else
 	CImage image;
 	CFileDialog dlg(FALSE, _T("gif"), _T(""), OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGTEKIMAGE), this);
-#endif
 
 	if ( dlg.DoModal() != IDOK )
 		return;
@@ -100,7 +98,7 @@ void CTekWnd::OnTekSave()
 		SaveTek(dlg.GetPathName());
 		return;
 	}
-#ifndef	NOGDIPLUS
+
 	if ( !image.Create(rect.Width(), rect.Height(), 24) )
 		return;
 
@@ -109,7 +107,6 @@ void CTekWnd::OnTekSave()
 	dc.Detach();
 	image.ReleaseDC();
 	image.Save(dlg.GetPathName());
-#endif
 }
 
 BOOL CTekWnd::SaveDxf(LPCTSTR file)

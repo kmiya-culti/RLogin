@@ -782,6 +782,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_MESSAGE(WM_ICONMSG, OnIConMsg)
 	ON_MESSAGE(WM_THREADCMD, OnThreadMsg)
 	ON_MESSAGE(WM_AFTEROPEN, OnAfterOpen)
+	ON_MESSAGE(WM_GETCLIPBOARD, OnGetClipboard)
 
 	ON_COMMAND(ID_FILE_ALL_LOAD, OnFileAllLoad)
 	ON_COMMAND(ID_FILE_ALL_SAVE, OnFileAllSave)
@@ -825,8 +826,6 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 
 	ON_COMMAND(IDM_BROADCAST, &CMainFrame::OnBroadcast)
 	ON_UPDATE_COMMAND_UI(IDM_BROADCAST, &CMainFrame::OnUpdateBroadcast)
-
-	ON_COMMAND(ID_GETCLIPBOARD, &CMainFrame::OnGetClipText)
 	
 	ON_WM_CLIPBOARDUPDATE()
 END_MESSAGE_MAP()
@@ -863,7 +862,6 @@ CMainFrame::CMainFrame()
 	m_TransParValue = 255;
 	m_TransParColor = RGB(0, 0, 0);
 	m_SleepCount = 60;
-	m_MenuHand = NULL;
 	m_hMidiOut = NULL;
 	m_MidiTimer = 0;
 	m_InfoThreadCount = 0;
@@ -911,111 +909,97 @@ CMainFrame::~CMainFrame()
 		delete pMap;
 	}
 
-#ifndef	NOIPV6
 	for ( int n = 0 ; m_InfoThreadCount > 0 && n < 10 ; n++ )
 		Sleep(300);
-#endif
 }
 
 int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 {
-	int n, i, id, x, y;
+	int n, cx, cy;
 	CDC dc[2];
 	CBitmap BitMap;
 	CBitmap *pOld[2];
 	CBuffer buf;
-	CMenuBitMap *pMap;
 	CMenu *pMenu;
+	UINT nID, nSt;
 
 	if (CMDIFrameWnd::OnCreate(lpCreateStruct) == -1)
 		return -1;
 
-	if ( !m_wndToolBar.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT,
-			WS_CHILD | WS_VISIBLE | CBRS_TOP | /*CBRS_GRIPPER | */CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC) ||
-		!m_wndToolBar.LoadToolBar(IDR_MAINFRAME) ) {
-		TRACE0("Failed to create toolbar\n");
-		return -1;      // 作成に失敗
-	}
-
-	BitMap.LoadBitmap(IDB_BITMAP1);
-	m_ImageList[0].Create(16, 16, ILC_COLOR24 | ILC_MASK, 0, 10);
-	m_ImageList[0].Add(&BitMap, RGB(192, 192, 192));
-	BitMap.DeleteObject();
-
-	BitMap.LoadBitmap(IDB_BITMAP2);
-	m_ImageList[1].Create(16, 16, ILC_COLOR24 | ILC_MASK, 0, 10);
-	m_ImageList[1].Add(&BitMap, RGB(192, 192, 192));
-	BitMap.DeleteObject();
-
-	BitMap.LoadBitmap(IDB_BITMAP3);
-	m_ImageList[2].Create(16, 16, ILC_COLOR24 | ILC_MASK, 0, 10);
-	m_ImageList[2].Add(&BitMap, RGB(192, 192, 192));
-	BitMap.DeleteObject();
-
-	m_wndToolBar.SetSizes(CSize(16+7, 16+8), CSize(16, 16));
-	m_wndToolBar.SendMessage(TB_SETIMAGELIST,			0, (LPARAM)(m_ImageList[0].m_hImageList));
-	m_wndToolBar.SendMessage(TB_SETHOTIMAGELIST,		0, (LPARAM)(m_ImageList[1].m_hImageList));
-	m_wndToolBar.SendMessage(TB_SETDISABLEDIMAGELIST,	0, (LPARAM)(m_ImageList[2].m_hImageList));
-
+	// キャラクタービットマップの読み込み
 #if		USE_GOZI == 1 || USE_GOZI == 2
-	BitMap.LoadBitmap(IDB_BITMAP8);
+	((CRLoginApp *)::AfxGetApp())->LoadResBitmap(MAKEINTRESOURCE(IDB_BITMAP8), BitMap);
 	m_ImageGozi.Create(32, 32, ILC_COLOR24 | ILC_MASK, 28, 10);
 	m_ImageGozi.Add(&BitMap, RGB(192, 192, 192));
 	BitMap.DeleteObject();
 #elif	USE_GOZI == 3
-	BitMap.LoadBitmap(IDB_BITMAP8);
+	((CRLoginApp *)::AfxGetApp())->LoadResBitmap(MAKEINTRESOURCE(IDB_BITMAP8), BitMap);
 	m_ImageGozi.Create(16, 16, ILC_COLOR24 | ILC_MASK, 12, 10);
 	m_ImageGozi.Add(&BitMap, RGB(255, 255, 255));
 	BitMap.DeleteObject();
 #elif	USE_GOZI == 4
 	m_ImageGozi.Create(16, 16, ILC_COLOR24 | ILC_MASK, 12 * 13, 12);
 	for ( n = 0 ; n < 13 ; n++ ) {
-		BitMap.LoadBitmap(IDB_BITMAP10 + n);
+		((CRLoginApp *)::AfxGetApp())->LoadResBitmap(MAKEINTRESOURCE(IDB_BITMAP10 + n), BitMap);
 		m_ImageGozi.Add(&BitMap, RGB(255, 255, 255));
 		BitMap.DeleteObject();
 	}
 #endif	// USE_GOZI
 
-	x = GetSystemMetrics(SM_CXMENUCHECK);
-	y = GetSystemMetrics(SM_CYMENUCHECK);
+	// リソースデータベースからメニューイメージを作成
+	cx = GetSystemMetrics(SM_CXMENUCHECK);
+	cy = GetSystemMetrics(SM_CYMENUCHECK);
 
 	dc[0].CreateCompatibleDC(NULL);
-	BitMap.CreateBitmap(16, 16, dc[0].GetDeviceCaps(PLANES), dc[0].GetDeviceCaps(BITSPIXEL), NULL);
-	pOld[0] = dc[0].SelectObject(&BitMap);
-
 	dc[1].CreateCompatibleDC(NULL);
-	dc[1].SetStretchBltMode(HALFTONE);
 
-	for ( n = i = 0 ; n < m_wndToolBar.GetCount() ; n++ ) {
-		if ( (id = m_wndToolBar.GetItemID(n)) == ID_SEPARATOR )
+	CResDataBase *pResData = &(((CRLoginApp *)::AfxGetApp())->m_ResDataBase);
+
+	for ( n = 0 ; n < pResData->m_Bitmap.GetSize() ; n++ ) {
+		if ( pResData->m_Bitmap[n].m_hBitmap == NULL )
+			continue;
+
+		if ( GetMenuBitmap(pResData->m_Bitmap[n].m_ResId) != NULL )
+			continue;
+
+		CBitmap *pBitmap = CBitmap::FromHandle(pResData->m_Bitmap[n].m_hBitmap);
+		BITMAP mapinfo;
+		CMenuBitMap *pMap;
+
+		if ( pBitmap == NULL || !pBitmap->GetBitmap(&mapinfo) )
 			continue;
 
 		if ( (pMap = new CMenuBitMap) == NULL )
 			continue;
+
+		pMap->m_Id = pResData->m_Bitmap[n].m_ResId;
+		pMap->m_Bitmap.CreateBitmap(cx, cy, dc[1].GetDeviceCaps(PLANES), dc[1].GetDeviceCaps(BITSPIXEL), NULL);
 		m_MenuMap.Add(pMap);
 
-		pMap->m_Id = id;
-		pMap->m_Bitmap.CreateBitmap(x, y, dc[1].GetDeviceCaps(PLANES), dc[1].GetDeviceCaps(BITSPIXEL), NULL);
+		pOld[0] = dc[0].SelectObject(pBitmap);
 		pOld[1] = dc[1].SelectObject(&(pMap->m_Bitmap));
 
-		m_ImageList[0].DrawEx(&(dc[0]), i++, CPoint(0, 0), CSize(16, 16), GetSysColor(COLOR_MENU), CLR_DEFAULT, ILD_NORMAL);
-		dc[1].StretchBlt(0, 0, x, y, &(dc[0]), 0, 0, 16, 16, SRCCOPY);
+		dc[1].FillSolidRect(0, 0, cx, cy, GetSysColor(COLOR_MENU));
+		dc[1].TransparentBlt(0, 0, cx, cy, &(dc[0]), 0, 0, (mapinfo.bmWidth <= mapinfo.bmHeight ? mapinfo.bmWidth : mapinfo.bmHeight), mapinfo.bmHeight, RGB(192, 192, 192));
+
+		dc[0].SelectObject(pOld[0]);
 		dc[1].SelectObject(pOld[1]);
 	}
 
-	dc[0].SelectObject(pOld[0]);
 	dc[0].DeleteDC();
 	dc[1].DeleteDC();
+
+	// ツール・ステータス・タブ　バーの作成
+	if ( !m_wndToolBar.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT,
+			WS_CHILD | WS_VISIBLE | CBRS_TOP | /*CBRS_GRIPPER | */CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC) ||
+		!((CRLoginApp *)::AfxGetApp())->LoadResToolBar(MAKEINTRESOURCE(IDR_MAINFRAME), m_wndToolBar) ) {
+		TRACE0("Failed to create toolbar\n");
+		return -1;      // 作成に失敗
+	}
 
 	if ( !m_wndStatusBar.Create(this) || !m_wndStatusBar.SetIndicators(indicators, sizeof(indicators)/sizeof(UINT)) ) {
 		TRACE0("Failed to create status bar\n");
 		return -1;      // 作成に失敗
-	}
-
-	{
-		UINT nID, nSt;
-		m_wndStatusBar.GetPaneInfo(0, nID, nSt, n);
-		m_wndStatusBar.SetPaneInfo(0, nID, nSt, 160);
 	}
 
 	if ( !m_wndTabBar.Create(this, WS_VISIBLE| WS_CHILD|CBRS_TOP|WS_EX_WINDOWEDGE, IDC_MDI_TAB_CTRL_BAR) ) {
@@ -1023,12 +1007,16 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		return -1;      // fail to create
 	}
 
+	m_wndStatusBar.GetPaneInfo(0, nID, nSt, n);
+	m_wndStatusBar.SetPaneInfo(0, nID, nSt, 160);
+
 	m_wndToolBar.EnableDocking(CBRS_ALIGN_ANY);
 	m_wndTabBar.EnableDocking(CBRS_ALIGN_ANY);
 	EnableDocking(CBRS_ALIGN_ANY);
 	DockControlBar(&m_wndToolBar);
 	DockControlBar(&m_wndTabBar);
 
+	// バーの表示設定
 	if ( (AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("ToolBarStyle"), WS_VISIBLE) & WS_VISIBLE) == 0 )
 		ShowControlBar(&m_wndToolBar, FALSE, 0);
 	if ( (AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("StatusBarStyle"), WS_VISIBLE) & WS_VISIBLE) == 0 )
@@ -1037,12 +1025,10 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_bTabBarShow = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("TabBarShow"), FALSE);
 	ShowControlBar(&m_wndTabBar, m_bTabBarShow, 0);
 
+	// 特殊効果の設定
 	m_TransParValue = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("LayeredWindow"), 255);
 	m_TransParColor = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("LayeredColor"), RGB(0, 0 ,0));
 	SetTransPar(m_TransParColor, m_TransParValue, LWA_ALPHA | LWA_COLORKEY);
-
-	((CRLoginApp *)AfxGetApp())->GetProfileBuffer(_T("MainFrame"), _T("Pane"), buf);
-	m_pTopPane = CPaneFrame::GetBuffer(this, NULL, NULL, &buf);
 
 	if ( (m_SleepCount = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("WakeUpSleep"), 0)) > 0 )
 		m_SleepTimer = SetTimer(TIMERID_SLEEPMODE, 5000, NULL);
@@ -1052,14 +1038,22 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	ExDwmEnableWindow(m_hWnd, AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("GlassStyle"), FALSE));
 
+	// 画面分割を復帰
+	((CRLoginApp *)AfxGetApp())->GetProfileBuffer(_T("MainFrame"), _T("Pane"), buf);
+	m_pTopPane = CPaneFrame::GetBuffer(this, NULL, NULL, &buf);
+
+	// メニューの初期化
 	if ( (pMenu = GetSystemMenu(FALSE)) != NULL ) {
 		pMenu->InsertMenu(0, MF_BYPOSITION | MF_SEPARATOR);
 		pMenu->InsertMenu(0, MF_BYPOSITION | MF_STRING, ID_VIEW_MENUBAR, CStringLoad(IDS_VIEW_MENUBAR));
 	}
 
-	if ( (pMenu = GetMenu()) != NULL )
+	if ( (pMenu = GetMenu()) != NULL ) {
 		m_StartMenuHand = pMenu->GetSafeHmenu();
+		SetMenuBitmap(pMenu);
+	}
 
+	// クリップボードチェインの設定
 	if ( ExAddClipboardFormatListener != NULL && ExRemoveClipboardFormatListener != NULL ) {
 		ExAddClipboardFormatListener(m_hWnd);
 		PostMessage(WM_CLIPBOARDUPDATE);
@@ -1130,6 +1124,12 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 	if ( rc.top >= mi.rcMonitor.bottom ) {
 		if ( (cs.y -= (mi.rcMonitor.bottom - rc.bottom)) < 0 )
 			cs.y = 0;
+	}
+
+	// メニューをリソースデータベースに置き換え
+	if ( cs.hMenu != NULL ) {
+		DestroyMenu(cs.hMenu);
+		((CRLoginApp *)::AfxGetApp())->LoadResMenu(MAKEINTRESOURCE(IDR_MAINFRAME), cs.hMenu);
 	}
 
 	//TRACE("Main Style ");
@@ -1305,7 +1305,6 @@ int CMainFrame::SetAsyncHostAddr(int mode, LPCTSTR pHostName, CExtSocket *pSock)
 	return TRUE;
 }
 
-#ifndef	NOIPV6
 typedef struct _addrinfo_param {
 	CMainFrame		*pWnd;
 	int				mode;
@@ -1327,11 +1326,9 @@ static UINT AddrInfoThread(LPVOID pParam)
 
 	return 0;
 }
-#endif
 
 int CMainFrame::SetAsyncAddrInfo(int mode, LPCTSTR pHostName, int PortNum, void *pHint, CExtSocket *pSock)
 {
-#ifndef	NOIPV6
 	addrinfo_param *ap;
 
 	ap = new addrinfo_param;
@@ -1350,7 +1347,7 @@ int CMainFrame::SetAsyncAddrInfo(int mode, LPCTSTR pHostName, int PortNum, void 
 	m_HostAddrParam.Add(NULL);
 	m_HostAddrParam.Add(NULL);
 	m_HostAddrParam.Add(reinterpret_cast<void *>(mode));
-#endif
+
 	return TRUE;
 }
 
@@ -1930,6 +1927,8 @@ static UINT GetClipboardThread(LPVOID pParam)
 {
 	HGLOBAL hData;
 	LPCWSTR pData;
+	LPWSTR pBuf;
+	int len;
 	CMainFrame *pWnd = (CMainFrame *)pParam;
 
 	//if ( !IsClipboardFormatAvailable(CF_UNICODETEXT) )
@@ -1951,14 +1950,15 @@ static UINT GetClipboardThread(LPVOID pParam)
         return 1;
     }
 
-	pWnd->m_ClipText = pData;
+	len = (int)(GlobalSize(hData) / sizeof(WCHAR)) + 1;
+	pBuf = new WCHAR[len];
+	memcpy((void *)pBuf, pData, len * sizeof(WCHAR));
+	pBuf[len - 1] = _T('\0');
+
 	GlobalUnlock(hData);
 	CloseClipboard();
 
-	if ( pWnd->m_ClipText.IsEmpty() )
-		return 0;
-
-	pWnd->SendMessage(WM_COMMAND, ID_GETCLIPBOARD);
+	pWnd->PostMessage(WM_GETCLIPBOARD, (WPARAM)CF_UNICODETEXT, (LPARAM)pBuf);
 
 	return 0;
 }
@@ -2011,7 +2011,7 @@ void CMainFrame::VersionCheckProc()
 
 	((CRLoginApp *)AfxGetApp())->GetVersion(version);
 	str = AfxGetApp()->GetProfileString(_T("MainFrame"), _T("VersionNumber"), _T(""));
-	if ( version.Compare(str) < 0 )
+	if ( version.CompareDigit(str) < 0 )
 		version = str;
 
 	if ( !http.GetRequest(CStringLoad(IDS_VERSIONCHECKURL), buf) )
@@ -2047,7 +2047,7 @@ void CMainFrame::VersionCheckProc()
 		// 0      1      2          3
 		// RLogin 2.18.4 2015/05/20 http://nanno.dip.jp/softlib/
 
-		if ( pam.GetSize() >= 4 && pam[0].CompareNoCase(_T("RLogin")) == 0 && version.Compare(pam[1]) < 0 ) {
+		if ( pam.GetSize() >= 4 && pam[0].CompareNoCase(_T("RLogin")) == 0 && version.CompareDigit(pam[1]) < 0 ) {
 			AfxGetApp()->WriteProfileString(_T("MainFrame"), _T("VersionNumber"), pam[1]);
 			m_VersionMessage.Format(CStringLoad(IDS_NEWVERSIONCHECK), pam[1]);
 			m_VersionPageUrl = pam[3];
@@ -2170,7 +2170,7 @@ LRESULT CMainFrame::OnGetHostAddr(WPARAM wParam, LPARAM lParam)
 			delete pStr;
 			delete hp;
 			break;
-#ifndef	NOIPV6
+
 		} else if ( (mode & 030) == 010 && m_HostAddrParam[n] == (void *)wParam ) {
 			addrinfo_param *ap = (addrinfo_param *)wParam;
 			ADDRINFOT *info = (ADDRINFOT *)lParam;
@@ -2184,7 +2184,6 @@ LRESULT CMainFrame::OnGetHostAddr(WPARAM wParam, LPARAM lParam)
 			m_HostAddrParam.RemoveAt(n, 5);
 			delete ap;
 			break;
-#endif
 		}
 	}
 	return TRUE;
@@ -2236,6 +2235,28 @@ LRESULT CMainFrame::OnAfterOpen(WPARAM wParam, LPARAM lParam)
 			break;
 		}
 	}
+
+	return TRUE;
+}
+LRESULT CMainFrame::OnGetClipboard(WPARAM wParam, LPARAM lParam)
+{
+	CStringW str = (LPCWSTR)lParam;
+	delete [] (LPWSTR)lParam;
+
+	POSITION pos = m_ClipBoard.GetHeadPosition();
+
+	while ( pos != NULL ) {
+		if ( m_ClipBoard.GetAt(pos).Compare(UniToTstr(str)) == 0 ) {
+			m_ClipBoard.RemoveAt(pos);
+			break;
+		}
+		m_ClipBoard.GetNext(pos);
+	}
+
+	m_ClipBoard.AddHead(str);
+
+	while ( m_ClipBoard.GetSize() > 10 )
+		m_ClipBoard.RemoveTail();
 
 	return TRUE;
 }
@@ -2819,36 +2840,36 @@ void CMainFrame::SetMenuBitmap(CMenu *pMenu)
 	CMenuBitMap *pMap;
 
 	for ( n = 0 ; n < m_MenuMap.GetSize() ; n++ ) {
-		if ( (pMap = (CMenuBitMap *)m_MenuMap[n]) != NULL )
-			pMenu->SetMenuItemBitmaps(pMap->m_Id, MF_BYCOMMAND, &(pMap->m_Bitmap), NULL);
+		if ( (pMap = (CMenuBitMap *)m_MenuMap[n]) != NULL ) {
+			if ( !pMenu->SetMenuItemBitmaps(pMap->m_Id, MF_BYCOMMAND, &(pMap->m_Bitmap), NULL) && pMap->m_Id == IDM_NEWCONNECT )
+				pMenu->SetMenuItemBitmaps(ID_FILE_NEW, MF_BYCOMMAND, &(pMap->m_Bitmap), NULL);
+		}
 	}
 }
+CBitmap *CMainFrame::GetMenuBitmap(UINT nId)
+{
+	int n;
+	CMenuBitMap *pMap;
+
+	for ( n = 0 ; n < m_MenuMap.GetSize() ; n++ ) {
+		if ( (pMap = (CMenuBitMap *)m_MenuMap[n]) != NULL && pMap->m_Id == nId )
+			return &(pMap->m_Bitmap);
+	}
+	return NULL;
+}
+
 void CMainFrame::OnEnterMenuLoop(BOOL bIsTrackPopupMenu)
 {
-	CMenu *pMenu, Save;
+	CMenu *pMenu;
 	CChildFrame *pChild;
 	CRLoginDoc *pDoc;
 
 	if ( (pMenu = GetMenu()) == NULL )
 		return;
 
-	if ( m_MenuHand != pMenu->GetSafeHmenu() ) {
-		if ( m_MenuHand != NULL ) {
-			Save.Attach(m_MenuHand);
-			m_MenuTab.ResetMenuAll(&Save);
-			Save.Detach();
-		}
-		m_MenuTab.RemoveAll();
-		m_MenuHand = pMenu->GetSafeHmenu();
-	}
+	if ( (pChild = (CChildFrame *)(MDIGetActive())) != NULL && (pDoc = (CRLoginDoc *)(pChild->GetActiveDocument())) != NULL )
+		pDoc->SetMenu(pMenu);
 
-	if ( (pChild = (CChildFrame *)(MDIGetActive())) == NULL || (pDoc = (CRLoginDoc *)(pChild->GetActiveDocument())) == NULL ) {
-		m_MenuTab.ResetMenuAll(pMenu);
-		m_MenuTab.RemoveAll();
-		return;
-	}
-
-	pDoc->SetMenu(pMenu, &m_MenuTab);
 	SetMenuBitmap(pMenu);
 }
 
@@ -3028,22 +3049,6 @@ void CMainFrame::OnUpdateBroadcast(CCmdUI *pCmdUI)
 	pCmdUI->SetCheck(m_bBroadCast);
 }
 
-void CMainFrame::OnGetClipText()
-{
-	POSITION pos = m_ClipBoard.GetHeadPosition();
-	while ( pos != NULL ) {
-		if ( m_ClipBoard.GetAt(pos).Compare(UniToTstr(m_ClipText)) == 0 ) {
-			m_ClipBoard.RemoveAt(pos);
-			break;
-		}
-		m_ClipBoard.GetNext(pos);
-	}
-
-	m_ClipBoard.AddHead(m_ClipText);
-
-	while ( m_ClipBoard.GetSize() > 10 )
-		m_ClipBoard.RemoveTail();
-}
 void CMainFrame::OnDrawClipboard()
 {
 	CMDIFrameWnd::OnDrawClipboard();

@@ -19,7 +19,6 @@ public:
 public:
 	CSliderCtrl	m_TransSlider;
 	int		m_ColSet;
-	CString	m_BitMapFile;
 	int		m_WakeUpSleep;
 	CStatic	m_ColBox[18];
 	int m_FontCol[2];
@@ -59,8 +58,6 @@ protected:
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnReleasedcaptureTransparent(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnSelendokColset();
-	afx_msg void OnBitMapFileSel();
-	afx_msg void OnUpdateEdit();
 	afx_msg void OnEnChangeColor();
 	afx_msg void OnBnClickedGlassStyle();
 	afx_msg void OnUpdateCheck(UINT nId);
@@ -68,5 +65,4 @@ protected:
 	afx_msg void OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
 	afx_msg void OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct);
 	afx_msg void OnBnClickedColedit();
-	afx_msg void OnBnClickedMapoption();
 };

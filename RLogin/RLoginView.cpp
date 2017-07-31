@@ -1885,7 +1885,8 @@ void CRLoginView::GetMousePos(int *sw, int *x, int *y)
 void CRLoginView::PopUpMenu(CPoint point)
 {
 	CCmdUI state;
-	CMenu *pMenu, *pMain, DefMenu;
+	CMenu *pMenu, *pMain;
+	CMenuLoad DefMenu;
 	CRLoginDoc *pDoc = GetDocument();
 
 	if ( pDoc->m_TextRam.IsOptEnable(TO_RLRSPAST) ) {
@@ -1897,12 +1898,9 @@ void CRLoginView::PopUpMenu(CPoint point)
 		return;
 
 	if ( (pMain = GetMainWnd()->GetMenu()) == NULL || (pMenu = pMain->GetSubMenu(1)) == NULL ) {
-		//if ( !DefMenu.LoadMenu(IDR_POPUPMENU) || (pMenu = DefMenu.GetSubMenu(5)) == NULL )
-		//	return;
 		if ( !DefMenu.LoadMenu(IDR_RLOGINTYPE) )
 			return;
-		CKeyCmdsTab CmdsTab;
-		pDoc->SetMenu(&DefMenu, &CmdsTab);
+		pDoc->SetMenu(&DefMenu);
 		((CMainFrame *)::AfxGetMainWnd())->SetMenuBitmap(&DefMenu);
 		if ( (pMenu = DefMenu.GetSubMenu(1)) == NULL )
 			return;
@@ -2523,7 +2521,8 @@ void CRLoginView::OnUpdateClipboardPaste(CCmdUI* pCmdUI)
 void CRLoginView::OnClipboardMenu()
 {
 	CPoint point;
-	CMenu *pMenu, DefMenu;
+	CMenu *pMenu;
+	CMenuLoad DefMenu;
 	CMainFrame *pMain = (CMainFrame *)::AfxGetMainWnd();
 
 	if ( pMain == NULL )
@@ -2535,7 +2534,7 @@ void CRLoginView::OnClipboardMenu()
 		pMenu = &DefMenu;
 	}
 	
-	if ( (pMenu = pMenu->GetSubMenu(1)) == NULL || (pMenu = pMenu->GetSubMenu(4)) == NULL )
+	if ( (pMenu = CMenuLoad::GetItemSubMenu(IDM_CLIPBOARD_HIS1, pMenu)) == NULL )
 		return;
 
 	pMain->SetClipBoardMenu(IDM_CLIPBOARD_HIS1, pMenu);

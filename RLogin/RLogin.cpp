@@ -471,7 +471,7 @@ BEGIN_MESSAGE_MAP(CRLoginApp, CWinApp)
 	ON_UPDATE_COMMAND_UI(IDM_OTHERCAST, &CRLoginApp::OnUpdateOthercast)
 	ON_COMMAND(IDM_PASSWORDLOCK, &CRLoginApp::OnPassLock)
 	ON_UPDATE_COMMAND_UI(IDM_PASSWORDLOCK, &CRLoginApp::OnUpdatePassLock)
-
+	ON_COMMAND(IDM_SAVERESFILE, &CRLoginApp::OnSaveresfile)
 END_MESSAGE_MAP()
 
 
@@ -512,6 +512,10 @@ CRLoginApp theApp;
 	HMODULE ExClipApi = NULL;
 	BOOL (__stdcall *ExAddClipboardFormatListener)(HWND hwnd) = NULL;
 	BOOL (__stdcall *ExRemoveClipboardFormatListener)(HWND hwnd) = NULL;
+
+#ifdef	USE_RCDLL
+	HMODULE ExRcDll = NULL;
+#endif
 
 void ExDwmEnableWindow(HWND hWnd, BOOL bEnable)
 {
@@ -719,6 +723,18 @@ BOOL CRLoginApp::IsWinVerCheck(int ver, int op)
 
     return VerifyVersionInfo(&osvi, VER_MAJORVERSION | VER_MINORVERSION, dwlConditionMask);
 }
+BOOL CRLoginApp::GetExtFilePath(LPCTSTR ext, CString &path)
+{
+	path.Format(_T("%s\\%s%s"), m_BaseDir, m_pszAppName, ext);
+	if ( _taccess_s(path, 6) == 0 )
+		return TRUE;
+
+	path.Format(_T("%s\\%s%s"), m_ExecDir, m_pszAppName, ext);
+	if ( _taccess_s(path, 6) == 0 )
+		return TRUE;
+
+	return FALSE;
+}
 BOOL CRLoginApp::InitInstance()
 {
 	// デフォルトのロケールを設定 strftimeなどで必要
@@ -741,19 +757,6 @@ BOOL CRLoginApp::InitInstance()
 		return FALSE;
 #endif
 
-#if 0
-	// Windows Version取得	
-	OSVERSIONINFO VerInfo;
-	memset(&VerInfo, 0, sizeof(VerInfo));
-	VerInfo.dwOSVersionInfoSize = sizeof(VerInfo);
-	GetVersionEx(&VerInfo);
-
-	if ( VerInfo.dwPlatformId >= VER_PLATFORM_WIN32_NT )
-		m_WinVersion = (VerInfo.dwMajorVersion << 8) | VerInfo.dwMinorVersion;
-	else
-		m_WinVersion = _WIN32_WINDOWS_W98;	// XXXX
-#endif
-
 #ifdef	USE_COMINIT
 	// COMライブラリ初期化
 	if ( FAILED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED)) ) {
@@ -762,13 +765,6 @@ BOOL CRLoginApp::InitInstance()
 	}
 #endif
 
-#ifdef	WINSOCK11
-	// WINSOCK1.1の初期化
-	if ( !AfxSocketInit() ) {
-		AfxMessageBox(IDS_SOCKETS_INIT_FAILED);
-		return FALSE;
-	}
-#else
 	// WINSOCK2.2の初期化
 	WORD wVersionRequested;
 	wVersionRequested = MAKEWORD( 2, 2 );
@@ -776,12 +772,11 @@ BOOL CRLoginApp::InitInstance()
 		AfxMessageBox(IDS_SOCKETS_INIT_FAILED);
 		return FALSE;
 	}
-#endif
 
 	// 親のInitInstance呼び出し
 	CWinApp::InitInstance();
 
-	// 作業ディレクトリとプログラム名からプライベートプロファイルを見つける
+	// 作業ディレクトリとプログラム名から実行ディレクトリを設定
 	int n;
 	TCHAR PathTemp[_MAX_PATH];
 	CString iniFileName;
@@ -793,26 +788,16 @@ BOOL CRLoginApp::InitInstance()
 	GetModuleFileName(NULL, PathTemp, _MAX_PATH);
 	m_PathName = PathTemp;
 
-	if ( m_BaseDir.IsEmpty() ) {
-		m_BaseDir = m_PathName;
-		if ( (n = m_BaseDir.ReverseFind(_T('\\'))) >= 0 )
-			m_BaseDir = m_BaseDir.Left(n);
-	}
+	if ( (n = m_PathName.ReverseFind(_T('\\'))) >= 0 )
+		m_ExecDir = m_PathName.Left(n);
 
-	iniFileName.Format(_T("%s\\%s.ini"), m_BaseDir, m_pszAppName);
-	if ( _taccess_s(iniFileName, 6) == 0 ) {
+	if ( m_BaseDir.IsEmpty() )
+		m_BaseDir = m_ExecDir;
+
+	// ユーザープロファイルの検索
+	if ( GetExtFilePath(_T(".ini"), iniFileName) ) {
 		m_pszProfileName = _tcsdup(iniFileName);
 		bInitFile = TRUE;
-
-	} else {
-		iniFileName = m_PathName;
-		if ( (n = iniFileName.ReverseFind(_T('.'))) >= 0 )
-			iniFileName = iniFileName.Left(n);
-		iniFileName += _T(".ini");
-		if ( _taccess_s(iniFileName, 6) == 0 ) {
-			m_pszProfileName = _tcsdup(iniFileName);
-			bInitFile = TRUE;
-		}
 	}
 
 	// 設定が格納されているレジストリ キーを変更します。
@@ -821,6 +806,23 @@ BOOL CRLoginApp::InitInstance()
 
 	// 標準の INI ファイルのオプションをロードします (MRU を含む)
 	LoadStdProfileSettings(4);
+
+#ifdef	USE_RCDLL
+	// リソースDLL読み込み
+	CString rcDllName;
+	if ( GetExtFilePath(_T("_rc.dll"), rcDllName) && (ExRcDll = LoadLibrary(rcDllName)) != NULL )
+		AfxSetResourceHandle(ExRcDll);
+#endif
+
+	// リソースデータベースの設定
+	// m_ResDataBase.InitRessource();
+	CString rcFileName;
+	if ( GetExtFilePath(_T("_rc.txt"), rcFileName) )
+		m_ResDataBase.LoadFile(rcFileName);
+
+	// デフォルトツールバーイメージからBitmapリソースを作成
+	InitToolBarBitmap(MAKEINTRESOURCE(IDR_MAINFRAME), IDB_BITMAP1);
+	InitToolBarBitmap(MAKEINTRESOURCE(IDR_SFTPTOOL),  IDB_BITMAP5);
 
 #ifdef	USE_DWMAPI
 	// ガラス効果のDLLを設定
@@ -858,8 +860,14 @@ BOOL CRLoginApp::InitInstance()
 		RUNTIME_CLASS(CRLoginDoc),
 		RUNTIME_CLASS(CChildFrame), // カスタム MDI 子フレーム
 		RUNTIME_CLASS(CRLoginView));
-	if (!pDocTemplate)
+
+	if ( !pDocTemplate )
 		return FALSE;
+
+	// メニューをリソースデータベースに置き換え
+	DestroyMenu(pDocTemplate->m_hMenuShared);
+	LoadResMenu(MAKEINTRESOURCE(IDR_RLOGINTYPE), pDocTemplate->m_hMenuShared);
+
 	AddDocTemplate(pDocTemplate);
 
 	// DDE、file open など標準のシェル コマンドのコマンド ラインを解析します。
@@ -870,7 +878,7 @@ BOOL CRLoginApp::InitInstance()
 	// inuseオプションで別プロセスを見つけたら終了
 	if ( cmdInfo.m_InUse && InUseCheck() )
 		return FALSE;
-
+	
 	// メイン MDI フレーム ウィンドウを作成します。
 	CMainFrame* pMainFrame = new CMainFrame;
 
@@ -970,9 +978,7 @@ int CRLoginApp::ExitInstance()
 	ERR_remove_state(0);
 	ERR_free_strings();
 
-#ifndef	WINSOCK11
 	WSACleanup();
-#endif
 
 #ifdef	USE_DWMAPI
 	if ( ExDwmApi != NULL )
@@ -981,6 +987,11 @@ int CRLoginApp::ExitInstance()
 
 	if ( ExClipApi != NULL )
 		FreeLibrary(ExClipApi);
+
+#ifdef	USE_RCDLL
+	if ( ExRcDll != NULL )
+		FreeLibrary(ExRcDll);
+#endif
 
 #ifdef	USE_DIRECTWRITE
 	if ( m_pDWriteFactory != NULL )
@@ -2215,4 +2226,19 @@ void CRLoginApp::OnPassLock()
 void CRLoginApp::OnUpdatePassLock(CCmdUI *pCmdUI)
 {
 	pCmdUI->SetCheck(m_LocalPass.IsEmpty() ? FALSE : TRUE);
+}
+void CRLoginApp::OnSaveresfile()
+{
+	CString path;
+	CResDataBase work;
+
+	path.Format(_T("%s\\%s_rc.txt"), m_BaseDir, m_pszAppName);
+	CFileDialog dlg(FALSE, _T("txt"), path, OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGALLFILE), ::AfxGetMainWnd());
+
+	if ( dlg.DoModal() != IDOK )
+		return;
+
+	work = m_ResDataBase;
+	work.InitRessource();
+	work.SaveFile(dlg.GetPathName());
 }

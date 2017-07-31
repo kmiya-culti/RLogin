@@ -89,6 +89,7 @@ COptDlg::COptDlg(LPCTSTR pszCaption, CWnd* pParentWnd)
 	TRACE("CMousePage %d\n", sizeof(CMousePage));
 	TRACE("CScriptPage %d\n", sizeof(CScriptPage));
 	TRACE("CModKeyPage %d\n", sizeof(CModKeyPage));
+	TRACE("CBackPage %d\n", sizeof(CBackPage));
 	TRACE("COptDlg %d\n", sizeof(COptDlg));
 #endif
 
@@ -106,6 +107,7 @@ COptDlg::COptDlg(LPCTSTR pszCaption, CWnd* pParentWnd)
 	m_pMousePage   = new CMousePage;
 	m_pScriptPage  = new CScriptPage;
 	m_pModKeyPage  = new CModKeyPage;
+	m_pBackPage    = new CBackPage;
 
 	AddPage(m_pSerEntPage,	NULL);
 	AddPage(m_pSockOptPage,	m_pSerEntPage);
@@ -119,6 +121,7 @@ COptDlg::COptDlg(LPCTSTR pszCaption, CWnd* pParentWnd)
 	AddPage(m_pMousePage,	m_pClipPage);
 	AddPage(m_pCharSetPage,	NULL);
 	AddPage(m_pColorPage,	NULL);
+	AddPage(m_pBackPage,	m_pColorPage);
 	AddPage(m_pKeyPage,		NULL);
 	AddPage(m_pModKeyPage,	m_pKeyPage);
 
@@ -141,6 +144,7 @@ COptDlg::~COptDlg()
 	delete m_pMousePage;
 	delete m_pScriptPage;
 	delete m_pModKeyPage;
+	delete m_pBackPage;
 }
 
 /////////////////////////////////////////////////////////////////////////////

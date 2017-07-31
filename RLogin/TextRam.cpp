@@ -4450,8 +4450,8 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, struct DrawWork &prop, class CR
 	if ( prop.idx != (-1) ) {
 		// Image Draw
 		if ( (pWnd = GetGrapWnd(prop.idx)) != NULL )
-			pWnd->DrawBlock(pDC, rect, bcol, prop.stx, prop.sty, prop.edx, prop.sty + 1, pView);
-		else
+			pWnd->DrawBlock(pDC, rect, bcol, bEraBack, prop.stx, prop.sty, prop.edx, prop.sty + 1, pView);
+		else if ( bEraBack )
 			pDC->FillSolidRect(rect, bcol);
 
 		if ( bRevs )
@@ -4781,25 +4781,36 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 
 CWnd *CTextRam::GetAciveView()
 {
+	if ( m_pDocument == NULL )
+		return NULL;
+
 	return m_pDocument->GetAciveView();
 }
 void CTextRam::PostMessage(UINT message, WPARAM wParam, LPARAM lParam)
 {
-	CWnd *pView = GetAciveView();
-	if ( pView != NULL )
+	CWnd *pView;
+	
+	if ( (pView = GetAciveView()) != NULL )
 		pView->PostMessage(message, wParam, lParam);
 }
-void CTextRam::GetScreenSize(int *x, int *y)
+void CTextRam::GetCellSize(int *x, int *y)
 {
 	CRLoginView *pView;
 
 	if ( (pView = (CRLoginView *)GetAciveView()) != NULL ) {
-		*x = pView->m_CharWidth  * m_Cols;
-		*y = pView->m_CharHeight * m_Lines;
+		*x = pView->m_CharWidth;
+		*y = pView->m_CharHeight;
 	} else {
-		*x = 6 * m_Cols;
-		*y = (6 * m_DefFontHw / 10) * m_Lines;
+		*x = 8;
+		*y = *x * m_DefFontHw / 10;
 	}
+}
+void CTextRam::GetScreenSize(int *x, int *y)
+{
+	GetCellSize(x, y);
+
+	*x = *x * m_Cols;
+	*y = *y * m_Lines;
 }
 
 BOOL CTextRam::IsOptEnable(int opt)
@@ -5393,52 +5404,91 @@ void CTextRam::ChkGrapWnd(int sec)
 		}
 	}
 }
-void CTextRam::SizeGrapWnd(class CGrapWnd *pWnd)
+void CTextRam::SizeGrapWnd(class CGrapWnd *pWnd, int cx, int cy)
 {
-	int x;
-	int cx, cy, dx, dy;
-	int fw, fh, sw, sh, dw, dh;
-	CRLoginView *pView;
+	int n;
+	int dx, dy;
+	int fw, fh;
+
+	GetCellSize(&fw, &fh);
+
+	if ( (dx = pWnd->m_MaxX * pWnd->m_AspX / 100) <= 0 ) dx = 1;
+	if ( (dy = pWnd->m_MaxY * pWnd->m_AspY / 100) <= 0 ) dy = 1;
 
 	GetMargin(MARCHK_NONE);
 
-	if ( (cx = m_Margin.right - m_CurX) <= 0 )
-		cx = m_Cols - m_CurX;
+	if ( cx <= 0 ) {	// auto
+		if ( (cx = m_Margin.right - m_CurX) <= 0 )
+			cx = m_Lines - m_CurX;
 
-	if ( m_pDocument != NULL && (pView = (CRLoginView *)m_pDocument->GetAciveView()) != NULL ) {
-		fw = pView->m_CharWidth;
-		fh = pView->m_CharHeight;
-	} else {
-		fw = 6;
-		fh = fw * m_DefFontHw / 10;
+		if ( (n = fw * cx) < dx ) {
+			pWnd->m_AspX = pWnd->m_AspX * n / dx;
+			pWnd->m_AspY = pWnd->m_AspY * n / dx;
+		}
+
+	} else {			// cell width
+		n = fw * cx;
+		pWnd->m_AspX = pWnd->m_AspX * n / dx;
+		pWnd->m_AspY = pWnd->m_AspY * n / dx;
 	}
 
-	sw = fw * m_Cols;
-	sh = fh * m_Lines;
-	dw = m_Cols;
-	dh = m_Lines;
+	if ( (dx = pWnd->m_MaxX * pWnd->m_AspX / 100) <= 0 ) dx = 1;
+	if ( (dy = pWnd->m_MaxY * pWnd->m_AspY / 100) <= 0 ) dy = 1;
 
-	if ( (dx = pWnd->m_MaxX * pWnd->m_AspX / 100) <= 0 )
-		dx = 1;
-	if ( (dy = pWnd->m_MaxY * pWnd->m_AspY / 100) <= 0 )
-		dy = 1;
-
-	if ( (x = sw * cx / dw) < dx ) {
-		pWnd->m_AspX = pWnd->m_AspX * x / dx;
-		pWnd->m_AspY = pWnd->m_AspY * x / dx;
-		dx = pWnd->m_MaxX * pWnd->m_AspX / 100;
-		dy = pWnd->m_MaxY * pWnd->m_AspY / 100;
-		cy = (dy * dh + sh - 1) / sh;
-	} else {
-		cx = (dx * dw + sw - 1) / sw;
-		cy = (dy * dh + sh - 1) / sh;
+	if ( cy > 0 ) {		// cell height
+		n = fh * cy;
+		pWnd->m_AspY = pWnd->m_AspY * n / dy;
+		if ( (dy = pWnd->m_MaxY * pWnd->m_AspY / 100) <= 0 ) dy = 1;
 	}
 
-	pWnd->m_BlockX = cx;
-	pWnd->m_BlockY = cy;
+	pWnd->m_BlockX = (dx + fw - 1) / fw;
+	pWnd->m_BlockY = (dy + fh - 1) / fh;
 
 	pWnd->m_CellX = fw;
 	pWnd->m_CellY = fh;
+}
+void CTextRam::DispGrapWnd(class CGrapWnd *pGrapWnd)
+{
+	DISPVRAM(m_CurX, m_CurY, pGrapWnd->m_BlockX, pGrapWnd->m_BlockY);
+	m_UpdateFlag = TRUE;	// 表示の機会を与える
+
+	for ( int y = 0 ; y < pGrapWnd->m_BlockY ; y++ ) {
+		CCharCell *vp = GETVRAM(m_CurX, m_CurY);
+		for ( int x = 0 ; x < pGrapWnd->m_BlockX && (m_CurX + x) < m_Margin.right ; x++ ) {
+			vp->m_Vram.pack.image.id = pGrapWnd->m_ImageIndex;
+			vp->m_Vram.pack.image.ix = x;
+			vp->m_Vram.pack.image.iy = y;
+			vp->m_Vram.bank = SET_96 | 'A';
+			vp->m_Vram.eram = m_AttNow.eram;
+			vp->m_Vram.mode = CM_IMAGE;
+			vp->m_Vram.attr = m_AttNow.attr;
+			vp->m_Vram.font = m_AttNow.font;
+			vp->m_Vram.fcol = m_AttNow.fcol;
+			vp->m_Vram.bcol = m_AttNow.bcol;
+			vp++;
+		}
+		if ( IsOptEnable(TO_RLSIXPOS) != 0 ) {
+			if ( (y + 1) < pGrapWnd->m_BlockY )
+				ONEINDEX();
+		} else
+			ONEINDEX();
+	}
+
+	if ( IsOptEnable(TO_RLSIXPOS) != 0 ) {
+		if ( (m_CurX += pGrapWnd->m_BlockX) >= m_Margin.right ) {
+			if ( IsOptEnable(TO_DECAWM) != 0 ) {
+				if ( IsOptEnable(TO_RLGNDW) != 0 ) {
+					LOCATE(m_Margin.left, m_CurY);
+					ONEINDEX();
+				} else {
+					LOCATE(m_Margin.right - 1, m_CurY);
+					m_DoWarp = TRUE;
+				}
+			} else 
+				LOCATE(m_Margin.right - 1, m_CurY);
+		} else
+			LOCATE(m_CurX, m_CurY);
+	}
 }
 
 //////////////////////////////////////////////////////////////////////

@@ -48,6 +48,7 @@ protected:
 #include "ClipPage.h"
 #include "MousePage.h"
 #include "ModKeyPage.h"
+#include "BackPage.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // COptDlg
@@ -95,6 +96,7 @@ public:
 	CMousePage *m_pMousePage;
 	CScriptPage *m_pScriptPage;
 	CModKeyPage *m_pModKeyPage;
+	CBackPage *m_pBackPage;
 
 	CServerEntry *m_pEntry;
 	CTextRam *m_pTextRam;

@@ -194,14 +194,12 @@ private:
 	int SSLConnect();
 	void SSLClose();
 
-#ifndef	NOIPV6
 	ADDRINFOT *m_AddrInfoTop;
 	ADDRINFOT *m_AddrInfoNext;
 
 	int GetFamily();
 	BOOL SyncOpenAddrInfo(UINT nSockPort);
 	BOOL OpenAddrInfo();
-#endif
 
 public:
 	virtual BOOL Create(LPCTSTR lpszHostAddress, UINT nHostPort, LPCTSTR lpszRemoteAddress = NULL, int nSocketType = SOCK_STREAM, void *pAddrInfo = NULL);

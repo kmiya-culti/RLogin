@@ -101,6 +101,7 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 		m_bPfdConnect = 0;
 		m_bExtInfo = FALSE;
 		m_ExtInfo.RemoveAll();
+		m_DhGexReqBits = 4096;
 
 		//CStringA tmp;
 		//CCipher::BenchMark(tmp);
@@ -271,10 +272,11 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 						CString product, version;
 						product = AfxGetApp()->GetProfileString(_T("MainFrame"), _T("ProductName"), _T("RLogin"));
 						((CRLoginApp *)AfxGetApp())->GetVersion(version);
+
 						if ( !m_pDocument->m_TextRam.IsOptEnable(TO_SSH1MODE) &&
 							   (m_ServerVerStr.Mid(0, 5).Compare(_T("SSH-2")) == 0 ||
 								m_ServerVerStr.Mid(0, 8).Compare(_T("SSH-1.99")) == 0) ) {
-									m_ClientVerStr.Format(_T("SSH-2.0-%s-%s"), product, version);
+							m_ClientVerStr.Format(_T("SSH-2.0-%s-%s"), product, version);
 							m_InPackStat = 3;
 							m_SSHVer = 2;
 						} else {
@@ -282,7 +284,13 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 							m_InPackStat = 1;
 							m_SSHVer = 1;
 						}
-						str.Format("%s\r\n", TstrToMbs(m_ClientVerStr));
+
+						if ( !m_pDocument->m_ParamTab.m_VerIdent.IsEmpty() ) {
+							m_ClientVerStr += _T(' ');
+							m_ClientVerStr += m_pDocument->m_ParamTab.m_VerIdent;
+						}
+
+						str.Format("%s\r\n", m_pDocument->RemoteStr(m_ClientVerStr));
 						CExtSocket::Send((LPCSTR)str, str.GetLength());
 
 						DEBUGLOG("Recive Version %s", TstrToMbs(m_ServerVerStr));
@@ -1289,9 +1297,7 @@ void Cssh::DecodeProxySocks(int id)
 	} s4_req;
 	BYTE tmp[257];
 	struct sockaddr_in in;
-#ifndef	NOIPV6
     struct sockaddr_in6 in6;
-#endif
 	CChannel *cp = (CChannel *)m_pChan[id];
 
 	if ( (len = cp->m_Output.GetSize()) < 2 )
@@ -1374,7 +1380,6 @@ void Cssh::DecodeProxySocks(int id)
 			cp->m_Output.Consume(5 + p[4]);
 			tmp[p[4]] = '\0';
 			host[0] = tmp;
-#ifndef	NOIPV6
 		} else if ( p[3] == '\x04' ) {	// SOCKS5_IPV6
 			if ( len < (4 + 16 + 2) )
 				break;
@@ -1384,7 +1389,6 @@ void Cssh::DecodeProxySocks(int id)
 			in6.sin6_family = AF_INET6;
 			memcpy(&(in6.sin6_addr), tmp, 16);
 			cp->GetHostName((struct sockaddr *)&in6, sizeof(in6), host[0]);
-#endif
 		} else {
 			ChannelClose(id);
 			break;
@@ -1581,10 +1585,10 @@ void Cssh::SendMsgKexDhInit()
 		m_SaveDh = dh_new_group14();
 	else if ( m_DhMode == DHMODE_GROUP_14_256 )
 		m_SaveDh = dh_new_group14();
-	else if ( m_DhMode == DHMODE_GROUP_15_256 )
-		m_SaveDh = dh_new_group15();
-	else if ( m_DhMode == DHMODE_GROUP_16_256 )
+	else if ( m_DhMode == DHMODE_GROUP_16_512 )
 		m_SaveDh = dh_new_group16();
+	else if ( m_DhMode == DHMODE_GROUP_18_512 )
+		m_SaveDh = dh_new_group18();
 
 	dh_gen_key(m_SaveDh, m_NeedKeyLen * 8);
 
@@ -1595,19 +1599,20 @@ void Cssh::SendMsgKexDhInit()
 void Cssh::SendMsgKexDhGexRequest()
 {
 	CBuffer tmp(-1);
-	int bits = dh_estimate(m_NeedKeyLen * 8);
+	
+	m_DhGexReqBits = dh_estimate(m_NeedKeyLen * 8);
 
-	if ( bits < DHGEX_MIN_BITS )
-		bits = DHGEX_MIN_BITS;
-	else if ( bits > DHGEX_MAX_BITS )
-		bits = DHGEX_MAX_BITS;
+	if ( m_DhGexReqBits < DHGEX_MIN_BITS )
+		m_DhGexReqBits = DHGEX_MIN_BITS;
+	else if ( m_DhGexReqBits > DHGEX_MAX_BITS )
+		m_DhGexReqBits = DHGEX_MAX_BITS;
 
-	if ( IsServerVersion(_T("Cisco-1")) && bits > 4096 )
-		bits = 4096;
+	if ( m_DhGexReqBits > 4096 && IsServerVersion(_T("Cisco-1.")) )
+		m_DhGexReqBits = 4096;
 
 	tmp.Put8Bit(SSH2_MSG_KEX_DH_GEX_REQUEST);
 	tmp.Put32Bit(DHGEX_MIN_BITS);
-	tmp.Put32Bit(bits);
+	tmp.Put32Bit(m_DhGexReqBits);
 	tmp.Put32Bit(DHGEX_MAX_BITS);
 	SendPacket2(&tmp);
 }
@@ -1724,7 +1729,7 @@ BOOL Cssh::IsServerVersion(LPCTSTR pattan)
 		return FALSE;
 	str++;
 
-	if ( _tcsncmp(str, pattan, _tcslen(pattan)) == 0 )
+	if ( _tcsnicmp(str, pattan, _tcslen(pattan)) == 0 )
 		return TRUE;
 
 	return FALSE;
@@ -1799,9 +1804,9 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 				tmp.PutStr(TstrToMbs(m_pIdKey->GetName()));
 				tmp.PutBuf(blob.GetPtr(), blob.GetSize());
 				GetSockName(m_Fd, wrk, &len);
-				tmp.PutStr(m_pDocument->RemoteStr(wrk));		// client ip address
+				tmp.PutStr(m_pDocument->RemoteStr(wrk));			// client ip address
 				m_pIdKey->GetUserHostName(wrk);
-				tmp.PutStr(m_pDocument->RemoteStr(wrk));		// client user name;
+				tmp.PutStr(m_pDocument->RemoteStr(wrk));			// client user name;
 				if ( m_pIdKey->Sign(&sig, tmp.GetPtr(), tmp.GetSize(), GetSigAlgs()) ) {
 					tmp.PutBuf(sig.GetPtr(), sig.GetSize());
 					m_AuthMode = AUTH_MODE_HOSTBASED;
@@ -2216,6 +2221,17 @@ void Cssh::SendPacket2(CBuffer *bp)
 		SendMsgKexInit();
 }
 
+/*******************************************************************************************************
+		RFC 2119
+
+		MUST(‚µ‚È‚¯‚ê‚Î‚È‚ç‚È‚¢)	REQUIRED(•K{‚Å‚ ‚é)			SHALL(‚·‚é‚à‚Ì‚Æ‚·‚é)
+		SHOULD(‚·‚×‚«‚Å‚ ‚é)		RECOMMENDED(„§‚³‚ê‚é)
+		MAY(‚µ‚Ä‚à‚æ‚¢)				OPTIONAL(”CˆÓ‚Å‚ ‚é)
+
+		SHOULD NOT(‚·‚×‚«‚Å‚Í‚È‚¢)	NOT RECOMMENDED(„§‚³‚ê‚È‚¢)
+		MUST NOT(‚µ‚Ä‚Í‚È‚ç‚È‚¢)									SHALL NOT(‚µ‚È‚¢‚à‚Ì‚Æ‚·‚é)
+********************************************************************************************************/
+
 int Cssh::SSH2MsgKexInit(CBuffer *bp)
 {
 	int n;
@@ -2224,18 +2240,18 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 		int		mode;
 		LPCTSTR	name;
 	} kextab[] = {
-		{ DHMODE_ECDH_S2_N256,	_T("ecdh-sha2-nistp256")					},
-		{ DHMODE_ECDH_S2_N384,	_T("ecdh-sha2-nistp384")					},
-		{ DHMODE_ECDH_S2_N521,	_T("ecdh-sha2-nistp521")					},
-		{ DHMODE_GROUP_GEX256,	_T("diffie-hellman-group-exchange-sha256")	},
-		{ DHMODE_GROUP_GEX,		_T("diffie-hellman-group-exchange-sha1")	},
-		{ DHMODE_GROUP_14,		_T("diffie-hellman-group14-sha1")			},
-		{ DHMODE_GROUP_1,		_T("diffie-hellman-group1-sha1")			},
+		{ DHMODE_ECDH_S2_N256,	_T("ecdh-sha2-nistp256")					},	// MAY
+		{ DHMODE_ECDH_S2_N384,	_T("ecdh-sha2-nistp384")					},	// SHOULD
+		{ DHMODE_ECDH_S2_N521,	_T("ecdh-sha2-nistp521")					},	// SHOULD
+		{ DHMODE_GROUP_GEX256,	_T("diffie-hellman-group-exchange-sha256")	},	// MAY
+		{ DHMODE_GROUP_GEX,		_T("diffie-hellman-group-exchange-sha1")	},	// SHOULD NOT
+		{ DHMODE_GROUP_14,		_T("diffie-hellman-group14-sha1")			},	// SHOULD
+		{ DHMODE_GROUP_1,		_T("diffie-hellman-group1-sha1")			},	// SHOULD NOT
 		{ DHMODE_CURVE25519,	_T("curve25519-sha256@libssh.org")			},
-		{ DHMODE_CURVE25519,	_T("curve25519-sha256")						},
-		{ DHMODE_GROUP_14_256,	_T("diffie-hellman-group14-sha256")			},
-		{ DHMODE_GROUP_15_256,	_T("diffie-hellman-group15-sha256")			},
-		{ DHMODE_GROUP_16_256,	_T("diffie-hellman-group16-sha256")			},
+		{ DHMODE_CURVE25519,	_T("curve25519-sha256")						},	// MUST
+		{ DHMODE_GROUP_14_256,	_T("diffie-hellman-group14-sha256")			},	// MAY
+		{ DHMODE_GROUP_16_512,	_T("diffie-hellman-group16-sha512")			},	// SHOULD
+		{ DHMODE_GROUP_18_512,	_T("diffie-hellman-group18-sha512")			},	// MAY
 		{ 0,					NULL										},
 	};
 
@@ -2257,11 +2273,11 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 	m_pDocument->m_ParamTab.GetProp(7,  m_CProp[PROP_MAC_ALGS_CTOS], m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFMAC));	// PROPOSAL_MAC_ALGS_CTOS
 	m_pDocument->m_ParamTab.GetProp(4,  m_CProp[PROP_MAC_ALGS_STOC], m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFMAC));	// PROPOSAL_MAC_ALGS_STOC
 
-	m_pDocument->m_ParamTab.GetProp(8,  m_CProp[PROP_COMP_ALGS_CTOS]);			// PROPOSAL_COMP_ALGS_CTOS
-	m_pDocument->m_ParamTab.GetProp(5,  m_CProp[PROP_COMP_ALGS_STOC]);			// PROPOSAL_COMP_ALGS_STOC
+	m_pDocument->m_ParamTab.GetProp(8,  m_CProp[PROP_COMP_ALGS_CTOS]);		// PROPOSAL_COMP_ALGS_CTOS
+	m_pDocument->m_ParamTab.GetProp(5,  m_CProp[PROP_COMP_ALGS_STOC]);		// PROPOSAL_COMP_ALGS_STOC
 
-	m_CProp[PROP_LANG_CTOS] = m_VProp[PROP_LANG_CTOS] = _T("");						// PROPOSAL_LANG_CTOS,
-	m_CProp[PROP_LANG_STOC] = m_VProp[PROP_LANG_STOC] = _T("");						// PROPOSAL_LANG_STOC,
+	m_CProp[PROP_LANG_CTOS] = m_VProp[PROP_LANG_CTOS] = _T("");				// PROPOSAL_LANG_CTOS,
+	m_CProp[PROP_LANG_STOC] = m_VProp[PROP_LANG_STOC] = _T("");				// PROPOSAL_LANG_STOC,
 
 	for ( n = 0 ; n < 8 ; n++ ) {
 		if ( !MatchList(m_CProp[n], m_SProp[n], m_VProp[n]) )
@@ -2352,9 +2368,11 @@ int Cssh::SSH2MsgKexDhReply(CBuffer *bp)
 		evp_mod = EVP_sha1();
 		break;
 	case DHMODE_GROUP_14_256:
-	case DHMODE_GROUP_15_256:
-	case DHMODE_GROUP_16_256:
 		evp_mod = EVP_sha256();
+		break;
+	case DHMODE_GROUP_16_512:
+	case DHMODE_GROUP_18_512:
+		evp_mod = EVP_sha512();
 		break;
 	}
 
@@ -2470,7 +2488,7 @@ int Cssh::SSH2MsgKexDhGexReply(CBuffer *bp)
 		m_MyPeer.GetPtr(), m_MyPeer.GetSize(),
 		m_HisPeer.GetPtr(), m_HisPeer.GetSize(),
 		blob.GetPtr(), blob.GetSize(),
-		1024, dh_estimate(m_NeedKeyLen * 8), 8192,
+		DHGEX_MIN_BITS, m_DhGexReqBits, DHGEX_MAX_BITS,
 		m_SaveDh->p, m_SaveDh->g, m_SaveDh->pub_key,
 		spub, ssec, evp_md);
 
@@ -3281,8 +3299,8 @@ void Cssh::RecivePacket2(CBuffer *bp)
 		case DHMODE_GROUP_1:
 		case DHMODE_GROUP_14:
 		case DHMODE_GROUP_14_256:
-		case DHMODE_GROUP_15_256:
-		case DHMODE_GROUP_16_256:
+		case DHMODE_GROUP_16_512:
+		case DHMODE_GROUP_18_512:
 			SendMsgKexDhInit();
 			break;
 		case DHMODE_GROUP_GEX:
@@ -3309,8 +3327,8 @@ void Cssh::RecivePacket2(CBuffer *bp)
 		case DHMODE_GROUP_1:
 		case DHMODE_GROUP_14:
 		case DHMODE_GROUP_14_256:
-		case DHMODE_GROUP_15_256:
-		case DHMODE_GROUP_16_256:
+		case DHMODE_GROUP_16_512:
+		case DHMODE_GROUP_18_512:
 			if ( SSH2MsgKexDhReply(bp) )
 				goto DISCONNECT;
 			m_SSH2Status &= ~SSH2_STAT_HAVEPROP;

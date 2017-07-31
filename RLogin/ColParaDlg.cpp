@@ -11,7 +11,6 @@
 #include "Data.h"
 #include "ColParaDlg.h"
 #include "TtyModeDlg.h"
-#include "TextMapDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -27,7 +26,6 @@ IMPLEMENT_DYNCREATE(CColParaDlg, CTreePage)
 CColParaDlg::CColParaDlg() : CTreePage(CColParaDlg::IDD)
 {
 	m_ColSet = -1;
-	m_BitMapFile = _T("");
 	for ( int n = 0 ; n < 24 ; n++ )
 		m_Attrb[n] = 0;
 	m_WakeUpSleep = 0;
@@ -47,7 +45,6 @@ void CColParaDlg::DoDataExchange(CDataExchange* pDX)
 
 	DDX_Control(pDX, IDC_TRANSPARENT, m_TransSlider);
 	DDX_CBIndex(pDX, IDC_COLSET, m_ColSet);
-	DDX_Text(pDX, IDC_BACKFILE, m_BitMapFile);
 	for ( int n = 0 ; n < 16 ; n++ )
 		DDX_Control(pDX, IDC_BOX0 + n, m_ColBox[n]);
 	DDX_Control(pDX, IDC_BOXTEXT, m_ColBox[16]);
@@ -68,8 +65,6 @@ BEGIN_MESSAGE_MAP(CColParaDlg, CTreePage)
 	ON_WM_LBUTTONDOWN()
 	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_TRANSPARENT, OnReleasedcaptureTransparent)
 	ON_CBN_SELENDOK(IDC_COLSET, OnSelendokColset)
-	ON_BN_CLICKED(IDC_BACKSEL, OnBitMapFileSel)
-	ON_EN_CHANGE(IDC_BACKFILE, OnUpdateEdit)
 	ON_EN_CHANGE(IDC_TEXTCOL, &CColParaDlg::OnEnChangeColor)
 	ON_EN_CHANGE(IDC_BACKCOL, &CColParaDlg::OnEnChangeColor)
 	ON_BN_CLICKED(IDC_CHECK1, &CColParaDlg::OnBnClickedGlassStyle)
@@ -81,7 +76,6 @@ BEGIN_MESSAGE_MAP(CColParaDlg, CTreePage)
 	ON_WM_HSCROLL()
 	ON_WM_DRAWITEM()
 	ON_BN_CLICKED(IDC_COLEDIT, &CColParaDlg::OnBnClickedColedit)
-	ON_BN_CLICKED(IDC_MAPOPTION, &CColParaDlg::OnBnClickedMapoption)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -141,8 +135,6 @@ void CColParaDlg::DoInit()
 
 	for ( n = 0 ; n < 24 ; n++ )
 		m_Attrb[n] = (m_pSheet->m_pTextRam->m_AttNow.attr & (1 << n) ? TRUE : FALSE);
-
-	m_BitMapFile = m_pSheet->m_pTextRam->m_BitMapFile;
 
 	n = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("LayeredWindow"), 255);
 	m_TransSlider.SetPos(n);
@@ -297,8 +289,6 @@ BOOL CColParaDlg::OnApply()
 
 	m_pSheet->m_pTextRam->m_AttSpc = m_pSheet->m_pTextRam->m_AttNow;
 
-	m_pSheet->m_pTextRam->m_BitMapFile  = m_BitMapFile;
-
 	switch(m_WakeUpSleep) {
 	case 0: n = 0; break;
 	case 1: n = 60; break;
@@ -389,22 +379,6 @@ void CColParaDlg::OnLButtonDown(UINT nFlags, CPoint point)
 	CTreePage::OnLButtonDown(nFlags, point);
 }
 
-void CColParaDlg::OnBitMapFileSel() 
-{
-	UpdateData(TRUE);
-
-	CFileDialog dlg(TRUE, _T("jpg"), m_BitMapFile, OFN_HIDEREADONLY, CStringLoad(IDS_FILEDLGIMAGE), this);
-
-	if ( dlg.DoModal() != IDOK )
-		return;
-
-	m_BitMapFile = dlg.GetPathName();
-	UpdateData(FALSE);
-
-	SetModified(TRUE);
-	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
-}
-
 void CColParaDlg::OnReleasedcaptureTransparent(NMHDR* pNMHDR, LRESULT* pResult) 
 {
 	int n = m_TransSlider.GetPos();
@@ -441,11 +415,6 @@ void CColParaDlg::OnSelendokColset()
 
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= (UMOD_TEXTRAM | UMOD_COLTAB);
-}
-void CColParaDlg::OnUpdateEdit() 
-{
-	SetModified(TRUE);
-	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 }
 void CColParaDlg::OnUpdateCheck(UINT nId)
 {
@@ -540,17 +509,4 @@ void CColParaDlg::OnBnClickedColedit()
 	Invalidate(FALSE);
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_COLTAB;
-}
-
-void CColParaDlg::OnBnClickedMapoption()
-{
-	CTextMapDlg dlg;
-
-	dlg.m_pTextRam = m_pSheet->m_pTextRam;
-	
-	if ( dlg.DoModal() != IDOK )
-		return;
-
-	SetModified(TRUE);
-	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 }

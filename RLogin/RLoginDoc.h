@@ -108,7 +108,8 @@ public:
 
 	void SetIndex(int mode, CStringIndex &index);
 
-	void SetMenu(CMenu *pMenu, CKeyCmdsTab *pCmdsTab);
+	void SetMenu(CMenu *pMenu);
+
 	BOOL EntryText(CString &name);
 	void ScriptText(LPCWSTR str, LPCWSTR match, CStringW &tmp);
 
@@ -126,6 +127,7 @@ public:
 	int SocketRecive(void *lpBuf, int nBufLen);
 	void SocketSend(void *lpBuf, int nBufLen);
 	void SocketSendWindSize(int x, int y);
+	LPCSTR Utf8Str(LPCTSTR str);
 	LPCSTR RemoteStr(LPCTSTR str);
 	LPCTSTR LocalStr(LPCSTR str);
 

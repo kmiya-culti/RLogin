@@ -88,9 +88,7 @@ CExtSocket::CExtSocket(class CRLoginDoc *pDoc)
 	m_SSL_keep  = FALSE;
 	m_bConnect = FALSE;
 	m_bCallConnect = TRUE;
-#ifndef	NOIPV6
 	m_AddrInfoTop = NULL;
-#endif
 }
 
 CExtSocket::~CExtSocket()
@@ -204,7 +202,6 @@ void CExtSocket::FreeBuffer(CSockBuffer *sp)
 	m_FreeHead = sp;
 	m_FreeSema.Unlock();
 }
-#ifndef	NOIPV6
 int CExtSocket::GetFamily()
 {
 	if ( m_pDocument == NULL )
@@ -221,7 +218,6 @@ int CExtSocket::GetFamily()
 
 	return AF_UNSPEC;
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////
 
@@ -249,9 +245,6 @@ BOOL CExtSocket::AsyncCreate(LPCTSTR lpszHostAddress, UINT nHostPort, LPCTSTR lp
 
 	m_RealSocketType = nSocketType;
 
-#ifdef	NOIPV6
-	return GetMainWnd()->SetAsyncHostAddr(ASYNC_CREATE, m_RealHostAddr, this);
-#else
 	ADDRINFOT hints;
 
 	memset(&hints, 0, sizeof(hints));
@@ -260,7 +253,6 @@ BOOL CExtSocket::AsyncCreate(LPCTSTR lpszHostAddress, UINT nHostPort, LPCTSTR lp
 	hints.ai_flags = AI_PASSIVE;
 
 	return GetMainWnd()->SetAsyncAddrInfo(ASYNC_CREATEINFO, m_RealHostAddr, m_RealHostPort, &hints, this);
-#endif
 }
 BOOL CExtSocket::AsyncOpen(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType)
 {
@@ -273,9 +265,6 @@ BOOL CExtSocket::AsyncOpen(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocket
 	m_RealRemotePort = nSocketPort;
 	m_RealSocketType = nSocketType;
 
-#ifdef	NOIPV6
-	return GetMainWnd()->SetAsyncHostAddr(ASYNC_OPEN, m_RealHostAddr, this);
-#else
 	ADDRINFOT hints;
 
 	memset(&hints, 0, sizeof(hints));
@@ -283,7 +272,6 @@ BOOL CExtSocket::AsyncOpen(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocket
 	hints.ai_socktype = nSocketType;
 
 	return GetMainWnd()->SetAsyncAddrInfo(ASYNC_OPENINFO, m_RealHostAddr, m_RealHostPort, &hints, this);
-#endif
 }
 BOOL CExtSocket::ProxyOpen(int mode, BOOL keep, LPCTSTR ProxyHost, UINT ProxyPort, LPCTSTR ProxyUser, LPCTSTR ProxyPass, LPCTSTR RealHost, UINT RealPort)
 {
@@ -325,9 +313,6 @@ BOOL CExtSocket::ProxyOpen(int mode, BOOL keep, LPCTSTR ProxyHost, UINT ProxyPor
 		m_RealHostPort   = m_ProxyPort;
 	}
 
-#ifdef	NOIPV6
-	return GetMainWnd()->SetAsyncHostAddr(ASYNC_OPEN, m_RealHostAddr, this);
-#else
 	ADDRINFOT hints;
 
 	memset(&hints, 0, sizeof(hints));
@@ -335,7 +320,6 @@ BOOL CExtSocket::ProxyOpen(int mode, BOOL keep, LPCTSTR ProxyHost, UINT ProxyPor
 	hints.ai_socktype = m_RealSocketType;
 
 	return GetMainWnd()->SetAsyncAddrInfo(ASYNC_OPENINFO, m_RealHostAddr, m_RealHostPort, &hints, this);
-#endif
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -344,42 +328,6 @@ BOOL CExtSocket::Create(LPCTSTR lpszHostAddress, UINT nHostPort, LPCTSTR lpszRem
 {
 	m_SocketEvent = FD_ACCEPT | FD_CLOSE;
 
-#ifdef	NOIPV6
-	int opval;
-    struct hostent *hp;
-    struct sockaddr_in in;
-	CString host;
-
-	if ( (m_Fd = ::socket(AF_INET, nSocketType, 0)) == (-1) )
-		return FALSE;
-
-	if ( !GetMainWnd()->SetAsyncSelect(m_Fd, this, m_SocketEvent) )
-		goto ERRRET2;
-
-	opval = 1;
-	if ( ::setsockopt(m_Fd, SOL_SOCKET, SO_REUSEADDR, (const char *)(&opval), sizeof(opval)) != 0 )
-		goto ERRRET1;
-
-    memset(&in, 0, sizeof(in));
-    in.sin_family = AF_INET;
-    in.sin_addr.s_addr = INADDR_ANY;
-    in.sin_port = htons(nHostPort);
-
-	if ( lpszRemoteAddress != NULL && (hp = ::gethostbyname(TstrToMbs(lpszRemoteAddress))) != NULL )
-		in.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr))->s_addr;
-
-    if ( bind(m_Fd, (struct sockaddr *)&in, sizeof(in)) < 0 || listen(m_Fd, 128) == SOCKET_ERROR )
-		goto ERRRET1;
-
-	return TRUE;
-
-ERRRET1:
-	GetMainWnd()->DelAsyncSelect(m_Fd, this);
-ERRRET2:
-	::closesocket(m_Fd);
-	m_Fd = (-1);
-	return FALSE;
-#else
 	int opval;
 	ADDRINFOT hints, *ai, *aitop;
 	char *addr = NULL;
@@ -438,10 +386,8 @@ ERRRET2:
 	}
 	FreeAddrInfo(aitop);
 	return (m_ListenMax == 0 ? FALSE : TRUE);
-#endif
 }
 
-#ifndef	NOIPV6
 BOOL CExtSocket::SyncOpenAddrInfo(UINT nSockPort)
 {
 	DWORD val;
@@ -572,7 +518,6 @@ BOOL CExtSocket::OpenAddrInfo()
 		return TRUE;
 	}
 }
-#endif
 
 BOOL CExtSocket::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
 {
@@ -593,56 +538,6 @@ BOOL CExtSocket::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort,
 	if ( m_SSL_mode != 0 )
 		m_SocketEvent &= ~FD_READ;
 
-#ifdef	NOIPV6
-	DWORD val;
-    struct hostent *hp;
-    struct sockaddr_in in;
-	CString host;
-
-	if ( (m_Fd = ::socket(AF_INET, nSocketType, 0)) == (-1) )
-		return FALSE;
-
-	if ( !GetMainWnd()->SetAsyncSelect(m_Fd, this, m_SocketEvent) )
-		goto ERRRET2;
-
-	if ( nSocketPort != 0 ) {
-	    memset(&in, 0, sizeof(in));
-	    in.sin_family = AF_INET;
-	    in.sin_addr.s_addr = INADDR_ANY;
-	    in.sin_port = htons(nSocketPort);
-		if ( ::bind(m_Fd, (struct sockaddr *)&in, sizeof(in)) == SOCKET_ERROR )
-			goto ERRRET1;
-	}
-
-	PunyCodeAdress(lpszHostAddress, host);
-
-	if ( (hp = ::gethostbyname(TstrToMbs(host))) == NULL )
-		goto ERRRET1;
-
-	in.sin_family = AF_INET;
-	in.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr))->s_addr;
-	in.sin_port = htons(nHostPort);
-
-	val = 1;
-	if ( ::ioctlsocket(m_Fd, FIONBIO, &val) != 0 )
-		goto ERRRET1;
-
-    if ( ::connect(m_Fd, (struct sockaddr *)&in, sizeof(in)) == SOCKET_ERROR ) {
-		if ( WSAGetLastError() != WSAEWOULDBLOCK )
-			goto ERRRET1;
-	} else
-		GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, FD_CONNECT);
-
-	return TRUE;
-
-ERRRET1:
-	GetMainWnd()->DelAsyncSelect(m_Fd, this);
-ERRRET2:
-	::closesocket(m_Fd);
-	m_Fd = (-1);
-	return FALSE;
-
-#else
 	if ( pAddrInfo != NULL )
 		m_AddrInfoTop = m_AddrInfoNext = (ADDRINFOT *)pAddrInfo;
 	else {
@@ -672,29 +567,29 @@ ERRRET2:
 		return FALSE;
 
 	return TRUE;
-#endif
 }
 void CExtSocket::Close()
 {
 	SSLClose();
 
-#ifndef	NOIPV6
 	if ( m_AddrInfoTop != NULL ) {
 		FreeAddrInfo(m_AddrInfoTop);
 		m_AddrInfoTop = NULL;
 	}
-#endif
+
 	if ( m_Fd != (-1) ) {
 		GetMainWnd()->DelAsyncSelect(m_Fd, this);
 		::shutdown(m_Fd, SD_BOTH);
 		::closesocket(m_Fd);
 		m_Fd = (-1);
 	}
+
 	for ( int n = 0 ; n < m_ListenMax ; n++ ) {
 		GetMainWnd()->DelAsyncSelect(m_FdTab[n], this);
 		::shutdown(m_FdTab[n], SD_BOTH);
 		::closesocket(m_FdTab[n]);
 	}
+
 	m_ListenMax = 0;
 	m_bConnect = FALSE;
 }
@@ -968,12 +863,6 @@ BOOL CExtSocket::ProxyReadLine()
 			m_RecvHead = RemoveHead(m_RecvHead);
 		} else {
 			while ( (c = m_RecvHead->GetByte()) != EOF ) {
-
-				if ( c < ' ' || c >= 0x7F )
-					TRACE("[%02x]", c);
-				else
-					TRACE("%c", c);
-
 				m_RecvSize -= 1;
 				if ( c == '\n' )
 					break;
@@ -1466,13 +1355,14 @@ void CExtSocket::OnAsyncHostByName(int mode, LPCTSTR pHostName)
 }
 void CExtSocket::OnError(int err)
 {
-#ifndef	NOIPV6
 	if ( m_AddrInfoTop != NULL && OpenAddrInfo() )
 		return;
-#endif
+
 	Close();
+
 	if ( m_pDocument == NULL )
 		return;
+
 	m_pDocument->OnSocketError(err);
 }
 void CExtSocket::OnClose()
@@ -1484,12 +1374,10 @@ void CExtSocket::OnClose()
 }
 void CExtSocket::OnConnect()
 {
-#ifndef	NOIPV6
 	if ( m_AddrInfoTop != NULL ) {
 		FreeAddrInfo(m_AddrInfoTop);
 		m_AddrInfoTop = NULL;
 	}
-#endif
 
 	if ( m_Fd != (-1) ) {
 		m_SocketEvent &= ~FD_CONNECT;
@@ -1777,16 +1665,6 @@ BOOL CExtSocket::GetSockOpt(int nOptionName, void* lpOptionValue, int* lpOptionL
 }
 void CExtSocket::GetPeerName(SOCKET fd, CString &host, int *port)
 {
-#ifdef	NOIPV6
-	int inlen;
-	struct sockaddr_in in;
-
-	memset(&in, 0, sizeof(in));
-	inlen = sizeof(in);
-	getpeername(fd, (struct sockaddr *)&in, &inlen);
-	host = inet_ntoa(in.sin_addr);
-	*port = ntohs(in.sin_port);
-#else
 	struct sockaddr_storage in;
 	socklen_t inlen;
 	char name[NI_MAXHOST], serv[NI_MAXSERV];
@@ -1799,20 +1677,9 @@ void CExtSocket::GetPeerName(SOCKET fd, CString &host, int *port)
 	getnameinfo((struct sockaddr *)&in, inlen, name, sizeof(name), serv, sizeof(serv), NI_NUMERICHOST | NI_NUMERICSERV);
 	host = name;
 	*port = atoi(serv);
-#endif
 }
 void CExtSocket::GetSockName(SOCKET fd, CString &host, int *port)
 {
-#ifdef	NOIPV6
-	int inlen;
-	struct sockaddr_in in;
-
-	memset(&in, 0, sizeof(in));
-	inlen = sizeof(in);
-	getsockname(fd, (struct sockaddr *)&in, &inlen);
-	host = inet_ntoa(in.sin_addr);
-	*port = ntohs(in.sin_port);
-#else
 	struct sockaddr_storage in;
 	socklen_t inlen;
 	char name[NI_MAXHOST], serv[NI_MAXSERV];
@@ -1825,22 +1692,15 @@ void CExtSocket::GetSockName(SOCKET fd, CString &host, int *port)
 	getnameinfo((struct sockaddr *)&in, inlen, name, sizeof(name), serv, sizeof(serv), NI_NUMERICHOST | NI_NUMERICSERV);
 	host = name;
 	*port = atoi(serv);
-#endif
 }
 void CExtSocket::GetHostName(struct sockaddr *addr, int addrlen, CString &host)
 {
-#ifdef	NOIPV6
-	struct sockaddr_in *in = (struct sockaddr_in *)addr;
-
-	host = inet_ntoa(in->sin_addr);
-#else
 	char name[NI_MAXHOST], serv[NI_MAXSERV];
 
 	memset(name, 0, sizeof(name));
 	memset(serv, 0, sizeof(serv));
 	getnameinfo(addr, (socklen_t)addrlen, name, sizeof(name), serv, sizeof(serv), NI_NUMERICHOST | NI_NUMERICSERV);
 	host = name;
-#endif
 }
 int CExtSocket::GetPortNum(LPCTSTR str)
 {
@@ -1871,41 +1731,6 @@ int CExtSocket::GetPortNum(LPCTSTR str)
 }
 BOOL CExtSocket::SokcetCheck(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType)
 {
-#ifdef	NOIPV6
-	SOCKET Fd;
-    struct hostent *hp;
-    struct sockaddr_in in;
-
-	if ( (Fd = ::socket(AF_INET, nSocketType, 0)) == (-1) )
-		return FALSE;
-
-	if ( nSocketPort != 0 ) {
-	    memset(&in, 0, sizeof(in));
-	    in.sin_family = AF_INET;
-	    in.sin_addr.s_addr = INADDR_ANY;
-	    in.sin_port = htons(nSocketPort);
-		if ( ::bind(Fd, (struct sockaddr *)&in, sizeof(in)) == SOCKET_ERROR )
-			goto ERRRET;
-	}
-
-	if ( (hp = ::gethostbyname(TstrToMbs(lpszHostAddress))) == NULL )
-		goto ERRRET;
-
-	in.sin_family = AF_INET;
-	in.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr))->s_addr;
-	in.sin_port = htons(nHostPort);
-
-    if ( ::connect(Fd, (struct sockaddr *)&in, sizeof(in)) == SOCKET_ERROR )
-		goto ERRRET;
-
-	::closesocket(Fd);
-	return TRUE;
-
-ERRRET:
-	::closesocket(Fd);
-	return FALSE;
-
-#else
 	SOCKET Fd;
 	ADDRINFOT hints, *ai, *aitop;
     struct sockaddr_in in;
@@ -1960,7 +1785,6 @@ ERRRET:
 	FreeAddrInfo(aitop);
 	::closesocket(Fd);
 	return (ai == NULL ? FALSE : TRUE);
-#endif
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -2103,7 +1927,7 @@ int CExtSocket::SSLConnect()
 
 	switch(m_SSL_mode) {
 	case 1:
-		method = SSLv2_client_method();
+		method = SSLv23_client_method();
 		break;
 	case 2:
 		method = SSLv3_client_method();

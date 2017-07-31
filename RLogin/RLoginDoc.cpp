@@ -507,116 +507,87 @@ void CRLoginDoc::SendBuffer(CBuffer &buf)
 		pView->SendBuffer(buf, TRUE);
 }
 
-void CRLoginDoc::SetMenu(CMenu *pMenu, CKeyCmdsTab *pCmdsTab)
+void CRLoginDoc::SetMenu(CMenu *pMenu)
 {
-	int n, i, a;
-	CKeyCmds *pCmds, work;
+	int n, a;
+	CMenuLoad DefMenu;
+	CMenu *pSubMenu, *pClipMenu;
 	CString str;
-	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
-	CMenu *pSubMenu;
-	CChildFrame *pChild;
-	CRLoginDoc *pDoc;
-	int sel = (-1);
-	int clip = (-1);
+	UINT ThisId = 0;
 
-	// Clipboard Menu
-	if ( (pSubMenu = pMenu->GetSubMenu(1)) != NULL && (pSubMenu = pSubMenu->GetSubMenu(4)) != NULL )
-		((CMainFrame *)::AfxGetMainWnd())->SetClipBoardMenu(IDM_CLIPBOARD_HIS1, pSubMenu);
+	if ( !DefMenu.LoadMenu(IDR_RLOGINTYPE) )
+		return;
 
-	// His Menu
-	for ( n = 0 ; n < 5 ; n++ )
-		pMenu->DeleteMenu(ID_MACRO_HIS1 + n, MF_BYCOMMAND);
+	// Reset Menu
+	while ( pMenu->GetMenuItemCount() > 0 )
+		pMenu->DeleteMenu(0, MF_BYPOSITION);
 
+	for ( n = 0 ; n < DefMenu.GetMenuItemCount() ; n++ ) {
+		DefMenu.GetMenuString(n, str, MF_BYPOSITION);
+		if ( (pSubMenu = DefMenu.GetSubMenu(n)) != NULL ) {
+			pMenu->AppendMenu(MF_STRING | MF_POPUP, (UINT_PTR)pSubMenu->GetSafeHmenu(), str);
+			DefMenu.RemoveMenu(n, MF_BYPOSITION);
+			n--;
+		}
+	}
+	
+	// Key History Menu
+	if ( (pSubMenu = CMenuLoad::GetItemSubMenu(ID_MACRO_HIS1, pMenu)) != NULL ) {
+		pSubMenu->DeleteMenu(ID_MACRO_HIS1, MF_BYCOMMAND);
 #ifdef	USE_KEYMACGLOBAL
-	((CRLoginApp *)::AfxGetApp())->m_KeyMacGlobal.SetHisMenu(pMenu);
+		((CRLoginApp *)::AfxGetApp())->m_KeyMacGlobal.SetHisMenu(pSubMenu);
 #else
-	m_KeyMac.SetHisMenu(pMenu);
+		m_KeyMac.SetHisMenu(pSubMenu);
 #endif
+	}
 
 	// Script Menu
-	for ( n = 0 ; n < 10 ; n++ )
-		pMenu->DeleteMenu(IDM_SCRIPT_MENU1 + n, MF_BYCOMMAND);
-
 	if ( m_pScript != NULL )
 		m_pScript->SetMenu(pMenu);
 
-	// Window Menu
-	if ( (pSubMenu = pMenu->GetSubMenu(3)) != NULL ) {
-		for ( n = 0 ; n < pSubMenu->GetMenuItemCount() ; n++ ) {
-			if ( (i = pSubMenu->GetMenuItemID(n)) >= AFX_IDM_FIRST_MDICHILD ) {
-				pSubMenu->DeleteMenu(n, MF_BYPOSITION);
-				n--;
-			}
-		}
-		while ( (n = pSubMenu->GetMenuItemCount() - 1) > 0 && pSubMenu->GetMenuItemID(n) == 0 )
-			pSubMenu->DeleteMenu(n, MF_BYPOSITION);
+	// Clipboard Menu
+	if ( (pClipMenu = CMenuLoad::GetItemSubMenu(IDM_CLIPBOARD_HIS1, pMenu)) != NULL ) {
+		pClipMenu->DeleteMenu(IDM_CLIPBOARD_HIS1, MF_BYCOMMAND);
+		((CMainFrame *)::AfxGetMainWnd())->SetClipBoardMenu(IDM_CLIPBOARD_HIS1, pClipMenu);
+	}
 
-		pSubMenu->AppendMenu(MF_SEPARATOR);
+	// Window Menu
+	if ( (pSubMenu = CMenuLoad::GetItemSubMenu(IDM_FIRST_MDICHILD, pMenu)) != NULL ) {
+		pSubMenu->DeleteMenu(IDM_FIRST_MDICHILD, MF_BYCOMMAND);
+
+		CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
+		CChildFrame *pChild;
+		CRLoginDoc *pDoc;
+
 		for ( n = 0 ; (pChild = (CChildFrame *)pMain->GetTabWnd(n)) != NULL ; n++ ) {
 			if ( (pDoc = (CRLoginDoc *)pChild->GetActiveDocument()) != NULL ) {
 				str.Format(_T("&%d %s"), n + 1, pDoc->GetTitle());
 				pSubMenu->AppendMenu(MF_STRING, AFX_IDM_FIRST_MDICHILD + n, str);
 				if ( pDoc == this )
-					sel = AFX_IDM_FIRST_MDICHILD + n;
+					ThisId = AFX_IDM_FIRST_MDICHILD + n;
 			}
 		}
 	}
 
-	// Short Cut Menu
-	for ( n = 0 ; n < pCmdsTab->GetSize() ; n++ )
-		pCmdsTab->m_Data[n].m_Flag = FALSE;
-
+	// Short Cut
 	m_KeyTab.CmdsInit();
-
 	for ( n = 0 ; n < m_KeyTab.m_Cmds.GetSize() ; n++ ) {
-		pCmds = &(m_KeyTab.m_Cmds[n]);
-
-		if ( pCmds->m_Id == IDM_CLIPBOARD_MENU )
-			clip = n;
-
-		if ( pMenu->GetMenuString(pCmds->m_Id, str, MF_BYCOMMAND) <= 0 )
+		if ( pMenu->GetMenuString(m_KeyTab.m_Cmds[n].m_Id, str, MF_BYCOMMAND) <= 0 ) {
+			if ( pClipMenu != NULL && m_KeyTab.m_Cmds[n].m_Id == IDM_CLIPBOARD_MENU )
+				CMenuLoad::UpdateMenuShortCut(pMenu, pClipMenu, m_KeyTab.m_Cmds[n].m_Menu);
 			continue;
-
-		if ( (a = str.Find(_T('\t'))) >= 0 )
-			str.Truncate(a);
-
-		pCmds->m_Flag = TRUE;
-		pCmds->m_Text = str;
-
-		if ( (i = pCmdsTab->Find(pCmds->m_Id)) >= 0 )
-			pCmdsTab->m_Data[i] = *pCmds;
-
-		else if ( !(pCmds->m_Id >= IDM_SCRIPT_MENU1	       && pCmds->m_Id <= IDM_SCRIPT_MENU10) &&
-				  !(pCmds->m_Id >= ID_MACRO_HIS1           && pCmds->m_Id <= ID_MACRO_HIS4) &&
-				  !(pCmds->m_Id >= AFX_IDM_FIRST_MDICHILD  && pCmds->m_Id <= (AFX_IDM_FIRST_MDICHILD + 9))  )
-			i = pCmdsTab->Add(*pCmds);
-
-		pCmds->SetMenu(pMenu);
-	}
-
-	// Reset Other menu
-	for ( n = 0 ; n < pCmdsTab->GetSize() ; n++ ) {
-		if ( pCmdsTab->m_Data[n].m_Flag )
-			continue;
-		pCmdsTab->m_Data[n].ResetMenu(pMenu);
-		pCmdsTab->m_Data.RemoveAt(n);
-		n--;
-	}
-
-	// Window Menu Select
-	if ( sel > 0 )
-		pSubMenu->CheckMenuItem(sel, MF_BYCOMMAND | MF_CHECKED);
-
-	// Clipboard Menu
-	if ( (pSubMenu = pMenu->GetSubMenu(1)) != NULL && pSubMenu->GetMenuString(4, str, MF_BYPOSITION) > 0 ) {
-		if ( (a = str.Find(_T('\t'))) >= 0 )
-			str.Truncate(a);
-		if ( clip >= 0 ) {
-			str += _T("\t");
-			str += m_KeyTab.m_Cmds[clip].m_Menu;
 		}
-		pSubMenu->ModifyMenu(4, MF_BYPOSITION | MF_STRING, 0, str);
+
+		if ( (a = str.Find(_T('\t'))) >= 0 )
+			str.Truncate(a);
+
+		m_KeyTab.m_Cmds[n].m_Text = str;
+		m_KeyTab.m_Cmds[n].SetMenu(pMenu);
 	}
+
+	// This Window Checked
+	if ( ThisId != 0 )
+		pSubMenu->CheckMenuItem(ThisId, MF_BYCOMMAND | MF_CHECKED);
 }
 
 BOOL CRLoginDoc::EntryText(CString &name)
@@ -1516,6 +1487,11 @@ void CRLoginDoc::SocketSendWindSize(int x, int y)
 	if ( m_pSock == NULL )
 		return;
 	m_pSock->SendWindSize(x, y);
+}
+LPCSTR CRLoginDoc::Utf8Str(LPCTSTR str)
+{
+	m_TextRam.m_IConv.StrToRemote(m_TextRam.m_SendCharSet[UTF8_SET], str, m_WorkMbs);
+	return m_WorkMbs;
 }
 LPCSTR CRLoginDoc::RemoteStr(LPCTSTR str)
 {

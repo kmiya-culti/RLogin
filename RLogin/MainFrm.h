@@ -131,7 +131,6 @@ public:
 	HICON m_hIcon;
 	HICON m_hIconActive;
 	NOTIFYICONDATA m_IconData;
-	CImageList m_ImageList[3];
 	CImageList m_ImageGozi;
 	CPtrArray m_SocketParam;
 	CPtrArray m_HostAddrParam;
@@ -151,8 +150,6 @@ public:
 	int m_SleepCount;
 	int m_TransParValue;
 	COLORREF m_TransParColor;
-	HMENU m_MenuHand;
-	CKeyCmdsTab m_MenuTab;
 	HMIDIOUT m_hMidiOut;
 	UINT_PTR m_MidiTimer;
 	CList<class CMidiQue *, class CMidiQue *> m_MidiQue;
@@ -166,7 +163,6 @@ public:
 	HMENU m_StartMenuHand;
 	BOOL m_bClipChain;
 	HWND m_hNextClipWnd;
-	CString m_ClipText;
 	BOOL m_bBroadCast;
 	CList<CStringW, CStringW &> m_ClipBoard;
 	int m_ScreenX;
@@ -236,6 +232,7 @@ public:
 	CMenu *GetSaveMenu(HMENU hDocMenu);
 	void SetClipBoardMenu(UINT nId, CMenu *pMenu);
 	void SetMenuBitmap(CMenu *pMenu);
+	CBitmap *GetMenuBitmap(UINT nId);
 	void SetStatusText(LPCTSTR message);
 
 	CString m_VersionMessage;
@@ -314,13 +311,13 @@ protected:
 	afx_msg void OnFileAllSave();
 	afx_msg void OnBroadcast();
 	afx_msg void OnUpdateBroadcast(CCmdUI *pCmdUI);
-	afx_msg void OnGetClipText();
 
 	afx_msg LRESULT OnWinSockSelect(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnGetHostAddr(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnIConMsg(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnThreadMsg(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnAfterOpen(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnGetClipboard(WPARAM wParam, LPARAM lParam);
 };
 
 

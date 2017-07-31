@@ -225,7 +225,7 @@ public:
 	CString m_RemoteCurDir;
 	CArray<CFileNode, CFileNode &> m_RemoteNode;
 	CFileNode *m_pCacheNode;
-	CImageList m_ImageList[4];
+	CImageList m_ImageList;
 	CIConv m_IConv;
 	CString m_HostKanjiSet;
 	CToolBar m_wndToolBar;

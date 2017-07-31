@@ -90,6 +90,14 @@ void CBuffer::Dump()
 }
 #endif
 
+CBuffer::CBuffer(LPBYTE pData, int len)
+{
+	m_bZero = FALSE;
+	m_Ofs   = 0;
+	m_Len   = len;
+	m_Max   = 0;
+	m_Data  = pData;
+}
 CBuffer::CBuffer(int size)
 {
 	if ( size < 0 ) {
@@ -111,6 +119,9 @@ CBuffer::CBuffer()
 }
 CBuffer::~CBuffer()
 {
+	if ( m_Max == 0 )
+		return;
+
 	if ( m_bZero )
 		SecureZeroMemory(m_Data, m_Max);
 
@@ -118,6 +129,9 @@ CBuffer::~CBuffer()
 }
 void CBuffer::RemoveAll()
 {
+	if ( m_Max == 0 )
+		throw _T("RemoveAll : Read Only");
+
 	if ( m_bZero )
 		SecureZeroMemory(m_Data, m_Max);
 
@@ -129,6 +143,9 @@ void CBuffer::RemoveAll()
 }
 void CBuffer::Move(CBuffer &data)
 {
+	if ( m_Max == 0 )
+		throw _T("Move : Read Only");
+
 	if ( m_bZero )
 		SecureZeroMemory(m_Data, m_Max);
 
@@ -151,6 +168,9 @@ void CBuffer::Consume(int len)
 }
 void CBuffer::ReAlloc(int len)
 {
+	if ( m_Max == 0 )
+		throw _T("ReAlloc : Read Only");
+
 	int oldMax = m_Max;
 
 	if ( (len += m_Len) <= m_Max )
@@ -352,6 +372,14 @@ void CBuffer::PutWord(int val)
 	*p = (WORD)val;
 	m_Len += sizeof(WORD);
 }
+void CBuffer::PutText(LPCWSTR str)
+{
+	int len = (int)wcslen(str) + 1;
+
+	ReAlloc(len * sizeof(WCHAR));
+	wcscpy((WCHAR *)(m_Data + m_Len), str);
+	m_Len += (len * sizeof(WCHAR));
+}
 int CBuffer::Get8Bit()
 {
 	register LPBYTE p = m_Data + m_Ofs;
@@ -509,6 +537,16 @@ int CBuffer::GetChar()
 	}
 	return *p;
 }
+void CBuffer::GetText(CString &str)
+{
+	WCHAR ch;
+	CStringW tmp;
+
+	while ( (ch = (WCHAR)GetWord()) != L'\0' )
+		tmp += ch;
+
+	str = UniToTstr(tmp);
+}
 void CBuffer::SET16BIT(LPBYTE pos, int val)
 {
 	pos[0] = (BYTE)(val >> 8);
@@ -586,7 +624,11 @@ LPCTSTR CBuffer::Base64Decode(LPCTSTR str)
 	int n, c, o;
 
 	Clear();
-	for ( n = o = 0 ; (c = Base64DecTab[(BYTE)(*str)]) >= 0 ; n++, str++ ) {
+	for ( n = o = 0 ; *str != _T('\0') ; n++, str++ ) {
+		while ( *str == _T('\r') || *str == _T('\n') )
+			str++;
+		if ( (c = Base64DecTab[(BYTE)(*str)]) < 0 )
+			break;
 		switch(n % 4) {
 		case 0:
 			o = c << 2;
@@ -1035,6 +1077,14 @@ void CBuffer::KanjiConvert(int type)
 //////////////////////////////////////////////////////////////////////
 // CStringArrayExt
 
+CStringArrayExt::CStringArrayExt()
+{
+}
+CStringArrayExt::CStringArrayExt(int nID)
+{
+	CStringLoad str(nID);
+	GetString(str);
+}
 void CStringArrayExt::AddBin(void *buf, int len)
 {
 	CBuffer tmp;
@@ -1446,16 +1496,146 @@ int CStringArrayExt::FindSort(LPCTSTR str)
 }
 
 //////////////////////////////////////////////////////////////////////
+// CMenuLoad
+
+BOOL CMenuLoad::LoadMenu(LPCTSTR lpszResourceName)
+{
+	HMENU hMenu;
+
+	if ( !((CRLoginApp *)::AfxGetApp())->LoadResMenu(lpszResourceName, hMenu) )
+		return FALSE;
+
+	return Attach(hMenu);
+}
+BOOL CMenuLoad::UpdateMenuShortCut(CMenu *pMenu, CMenu *pUpdateMenu, LPCTSTR pShortCut)
+{
+	int n, a;
+	CString str;
+	CMenu *pSubMenu;
+
+	for ( n = 0 ; n < pMenu->GetMenuItemCount() ; n++ ) {
+		if ( (pSubMenu = pMenu->GetSubMenu(n)) == NULL )
+			continue;
+
+		if ( pSubMenu->GetSafeHmenu() == pUpdateMenu->GetSafeHmenu() ) {
+			pMenu->GetMenuString(n, str, MF_BYPOSITION);
+			if ( (a = str.Find(_T('\t'))) >= 0 )
+				str.Truncate(a);
+			str += _T("\t");
+			str += pShortCut;
+			pMenu->ModifyMenu(n, MF_BYPOSITION | MF_STRING, 0, str);
+			return TRUE;
+		}
+
+		if ( UpdateMenuShortCut(pSubMenu, pUpdateMenu, pShortCut) )
+			return TRUE;
+	}
+
+	return FALSE;
+}
+CMenu *CMenuLoad::GetItemSubMenu(UINT nId, CMenu *pMenu)
+{
+	int n;
+	UINT item;
+	CMenu *pSubMenu;
+
+	for ( n = 0 ; n < pMenu->GetMenuItemCount() ; n++ ) {
+		if ( (item = pMenu->GetMenuItemID(n)) == nId )
+			return pMenu;
+
+		if ( item == (UINT)(-1) && (pSubMenu = pMenu->GetSubMenu(n)) != NULL && (pSubMenu = GetItemSubMenu(nId, pSubMenu)) != NULL )
+			return pSubMenu;
+	}
+
+	return NULL;
+}
+BOOL CMenuLoad::GetPopUpMenu(UINT nId, CMenu &PopUpMenu)
+{
+	int n;
+	CMenu *pMenu;
+	CMenuLoad DefMenu;
+	CString str, tmp;
+
+	if ( !PopUpMenu.CreatePopupMenu() )
+		return FALSE;
+
+	if ( !DefMenu.LoadMenu(nId) )
+		return FALSE;
+
+	// Move Top SubMenu
+	for ( n = 0 ; n < DefMenu.GetMenuItemCount() ; n++ ) {
+		DefMenu.GetMenuString(n, str, MF_BYPOSITION);
+		if ( (pMenu = DefMenu.GetSubMenu(n)) != NULL ) {
+			PopUpMenu.AppendMenu(MF_STRING | MF_POPUP, (UINT_PTR)pMenu->GetSafeHmenu(), str);
+			DefMenu.RemoveMenu(n, MF_BYPOSITION);
+			n--;
+		}
+	}
+
+	// Create Key History Menu
+	if ( (pMenu = GetItemSubMenu(ID_MACRO_HIS1, &PopUpMenu)) != NULL ) {
+		if ( pMenu->GetMenuString(ID_MACRO_HIS1, tmp, MF_BYCOMMAND) <= 0 )
+			tmp = _T("Key History");
+		pMenu->DeleteMenu(ID_MACRO_HIS1, MF_BYCOMMAND);
+		for ( n = 0 ; n < 5 ; n++ ) {
+			str.Format(_T("&%d %s"), n + 1, tmp);
+			pMenu->AppendMenu(MF_STRING, ID_MACRO_HIS1 + n, str);
+		}
+	}
+
+	// Create Script Menu
+	if ( (pMenu = GetItemSubMenu(ID_CHARSCRIPT_END, &PopUpMenu)) != NULL ) {
+		tmp.LoadString(IDS_SCRIPTMENUSTR);
+		for ( n = 0 ; n < 5 ; n++ ) {
+			str.Format(_T("&%d %s"), n + 1, tmp);
+			pMenu->InsertMenu(ID_CHARSCRIPT_END, MF_BYCOMMAND, IDM_SCRIPT_MENU1 + n, str);
+		}
+	}
+
+	// Create Clipboard Menu
+	if ( (pMenu = GetItemSubMenu(IDM_CLIPBOARD_HIS1, &PopUpMenu)) != NULL ) {
+		if ( pMenu->GetMenuString(IDM_CLIPBOARD_HIS1, tmp, MF_BYCOMMAND) <= 0 )
+			tmp = _T("Clipboard History");
+		pMenu->DeleteMenu(IDM_CLIPBOARD_HIS1, MF_BYCOMMAND);
+		for ( n = 0 ; n < 10 ; n++ ) {
+			str.Format(_T("&%d %s"), (n + 1) % 10, tmp);
+			pMenu->AppendMenu(MF_STRING, IDM_CLIPBOARD_HIS1 + n, str);
+		}
+	}
+
+	// Create Window Menu
+	if ( (pMenu = GetItemSubMenu(IDM_FIRST_MDICHILD, &PopUpMenu)) != NULL ) {
+		if ( pMenu->GetMenuString(IDM_FIRST_MDICHILD, tmp, MF_BYCOMMAND) <= 0 )
+			tmp = _T("Window");
+		pMenu->DeleteMenu(IDM_FIRST_MDICHILD, MF_BYCOMMAND);
+		for ( n = 0 ; n < 10 ; n++ ) {
+			str.Format(_T("&%d %s"), (n + 1) % 10, tmp);
+			pMenu->AppendMenu(MF_STRING, AFX_IDM_FIRST_MDICHILD + n, str);
+		}
+	}
+
+	// Set Menu Bitmap
+	((CMainFrame *)::AfxGetMainWnd())->SetMenuBitmap(&PopUpMenu);
+
+	return TRUE;
+}
+
+//////////////////////////////////////////////////////////////////////
 // CStringLoad
 
 CStringLoad::CStringLoad()
 {
 }
+
+BOOL CStringLoad::LoadString(UINT nID)
+{
+	return ((CRLoginApp *)AfxGetApp())->LoadResString((LPCTSTR)nID, *this);
+}
 BOOL CStringLoad::IsDigit(LPCTSTR str)
 {
 	return (*str >= _T('0') && *str <= _T('9') ? TRUE : FALSE);
 }
-int CStringLoad::Compare(LPCTSTR dis)
+int CStringLoad::CompareDigit(LPCTSTR dis)
 {
 	int ns, nd;
 	LPCTSTR src = *this;
@@ -1480,6 +1660,13 @@ int CStringLoad::Compare(LPCTSTR dis)
 	}
 	return (*dis == _T('\0') ? 0 : 1);
 }
+#ifdef	DEBUG
+int CStringLoad::Compare(LPCTSTR dis)
+{
+	ASSERT(FALSE);
+	return CString::Compare(dis);
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////
 // CStrNode
@@ -1578,18 +1765,15 @@ BOOL CParaIndex::AddOpt(BYTE c, BOOL bAdd)
 
 CBmpFile::CBmpFile()
 {
-	m_pPic = NULL;
 	m_Width = m_Height = 0;
 	m_BkColor = 0;
 	m_Alpha = 255;
 	m_pTextBitMap = new CTextBitMap;
+	m_bkIndex = (-1);
 }
 
 CBmpFile::~CBmpFile()
 {
-	if ( m_pPic != NULL )
-		m_pPic->Release();
-
 	if ( m_pTextBitMap != NULL )
 		delete m_pTextBitMap;
 }
@@ -1599,7 +1783,7 @@ BOOL CBmpFile::LoadFile(LPCTSTR filename)
 	CFile file;
 	ULONGLONG FileSize;
 	HGLOBAL hGLB = NULL;
-	void *pBuf = NULL;
+	LPBYTE pBuf = NULL;
     LPSTREAM pStm = NULL;
 	BOOL ret = FALSE;
 
@@ -1608,9 +1792,8 @@ BOOL CBmpFile::LoadFile(LPCTSTR filename)
 
 	m_FileName = filename;
 
-	if ( m_pPic != NULL )
-		m_pPic->Release();
-	m_pPic = NULL;
+	if ( (HBITMAP)m_Image != NULL )
+		m_Image.Destroy();
 
 	if ( m_Bitmap.m_hObject != NULL )
 		m_Bitmap.DeleteObject();
@@ -1627,11 +1810,13 @@ BOOL CBmpFile::LoadFile(LPCTSTR filename)
 	if ( (hGLB = ::GlobalAlloc(GMEM_MOVEABLE, (DWORD)FileSize)) == NULL )
 		goto ERROF;
 
-	if ( (pBuf = ::GlobalLock(hGLB)) == NULL )
+	if ( (pBuf = (LPBYTE)::GlobalLock(hGLB)) == NULL )
 		goto ERROF;
 
 	if ( file.Read(pBuf, (DWORD)FileSize) != (DWORD)FileSize )
 		goto ERROF;
+
+	m_bkIndex = GifTrnsIndex((LPBYTE)pBuf, (int)FileSize);
 
 	::GlobalUnlock(hGLB);
 	pBuf = NULL;
@@ -1639,8 +1824,23 @@ BOOL CBmpFile::LoadFile(LPCTSTR filename)
 	if ( ::CreateStreamOnHGlobal(hGLB, TRUE, &pStm) != S_OK )
 		goto ERROF;
 
-    if ( ::OleLoadPicture(pStm, (DWORD)FileSize, FALSE, IID_IPicture, (LPVOID *)&m_pPic) != S_OK )
+	if ( FAILED(m_Image.Load(pStm)) )
 		goto ERROF;
+
+	if ( m_Image.GetBPP() == 32 ) {
+		for ( int y = 0 ; y < m_Image.GetHeight() ; y++ ) {
+			for ( int x = 0 ;  x < m_Image.GetWidth() ; x++ ) {
+				LPBYTE p = (BYTE *)m_Image.GetPixelAddress(x, y);
+				if ( p[3] == 0x00 )
+					p[0] = p[1] = p[2] = 0x00;
+				else if ( p[3] < 255 ) {
+					p[0] = p[0] * p[3] / 255;
+					p[1] = p[1] * p[3] / 255;
+					p[2] = p[2] * p[3] / 255;
+				}
+			}
+		}
+	}
 
 	if ( m_Bitmap.m_hObject != NULL )
 		m_Bitmap.DeleteObject();
@@ -1667,10 +1867,8 @@ CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, 
 	CBitmap *pOldMemMap = NULL;
 	CRect rect;
 	CPoint po;
-	OLE_XSIZE_HIMETRIC sx;
-	OLE_YSIZE_HIMETRIC sy;
 
-	if ( m_pPic == NULL )
+	if ( (HBITMAP)m_Image == NULL )
 		return NULL;
 
 	if ( m_Bitmap.m_hObject != NULL ) {
@@ -1689,13 +1887,8 @@ CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, 
 	MemDC.SetStretchBltMode(HALFTONE);
 	MemDC.FillSolidRect(0, 0, width, height, bkcolor);
 
-	m_pPic->get_Width(&sx);
-	m_pPic->get_Height(&sy);
-
-	CSize size(sx, sy);
+	CSize size(m_Image.GetWidth(), m_Image.GetHeight());
 	CSize offset(0, 0);
-
-	pDC->HIMETRICtoDP(&size);
 
 	cx = width  * 100 / size.cx;
 	cy = height * 100 / size.cy;
@@ -1710,9 +1903,17 @@ CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, 
 		offset.cy = ((cy - height) / 2) * size.cy / cy;
 	}
 
-	pDC->DPtoHIMETRIC(&offset);
+	if ( m_bkIndex != (-1) && (m_Image.GetBPP() == 4 || m_Image.GetBPP() == 8) ) {
+		RGBQUAD coltab[1];
+		m_Image.GetColorTable(m_bkIndex, 1, coltab);
+		coltab[0].rgbRed   = GetRValue(bkcolor);
+		coltab[0].rgbGreen = GetGValue(bkcolor);
+		coltab[0].rgbBlue  = GetBValue(bkcolor);
+		coltab[0].rgbReserved = 0;
+		m_Image.SetColorTable(m_bkIndex, 1, coltab);
+	}
 
-	m_pPic->Render(MemDC, 0, 0, cx, cy,	offset.cx, sy - offset.cy, sx, -sy, NULL);
+	m_Image.Draw(MemDC.GetSafeHdc(), 0, 0, cx, cy, offset.cx, offset.cy, size.cx, size.cy);
 
 	if ( Alpha < 254 || 257 < Alpha ) {
 
@@ -1850,6 +2051,8 @@ CBitmap *CBmpFile::GetTextBitmap(CDC *pDC, int width, int height, COLORREF bkcol
 	MemDC.CreateCompatibleDC(pDC);
 
 	if ( GetBitmap(pDC, width, height, bkcolor, Alpha) == NULL ) {
+		if ( m_Bitmap.m_hObject != NULL )
+			m_Bitmap.DeleteObject();
 		m_Bitmap.CreateCompatibleBitmap(pDC, width, height);
 		bEraBack = TRUE;
 	}
@@ -1876,7 +2079,7 @@ CBitmap *CBmpFile::GetTextBitmap(CDC *pDC, int width, int height, COLORREF bkcol
 		cb = (255 - ((255 - cb) * (511 - Alpha) / 255)); 
 	}
 
-	MemDC.SetTextColor(RGB(cr, cb, cb));
+	MemDC.SetTextColor(RGB(cr, cg, cb));
 	MemDC.SetBkMode(TRANSPARENT);
 
 	rect.left   = 0;
@@ -1915,6 +2118,74 @@ CBitmap *CBmpFile::GetTextBitmap(CDC *pDC, int width, int height, COLORREF bkcol
 	MemDC.SelectObject(pOldFont);
 
 	return (&m_Bitmap);
+}
+int CBmpFile::GifTrnsIndex(LPBYTE lpBuf, int len)
+{
+#pragma pack(push, 1)
+	struct _GifHead {
+		BYTE	tag[6];	// GIF89a
+		WORD	width;
+		WORD	height;
+			BYTE	SGCT:3;
+			BYTE	SF:1;
+			BYTE	CR:3;
+			BYTE	GCTF:1;
+		BYTE	bkindex;
+		BYTE	Aspect;
+	} *pGifHead;
+	struct _GifCtrl {
+		BYTE	id;		// 0x21
+		BYTE	label;	// 0xf9
+		BYTE	size;	// 0x04
+			BYTE	trflag:1;
+			BYTE	user:1;
+			BYTE	motd:3;
+			BYTE	resv:3;
+		WORD	delay;
+		BYTE	tridx;
+		BYTE	term;	// 0x00
+	} *pGifCtrl;
+#pragma pack(pop)
+
+	int pos = 0;
+
+	pGifHead = (struct _GifHead *)(lpBuf + pos);
+	if ( (pos += sizeof(struct _GifHead)) > len )
+		return (-1);
+
+	if ( memcmp(pGifHead->tag, "GIF89a", 6) != 0 )
+		return (-1);
+
+	if ( pGifHead->GCTF != 0 ) {
+		if ( (pos += ((1 << (pGifHead->SGCT + 1)) * 3)) > len )
+			return (-1);
+	}
+
+	while ( (pos + 3) < len ) {
+		if ( lpBuf[pos] == 0x2c )	// Image Block
+			return (-1);
+		else if ( lpBuf[pos] != 0x21 )
+			return (-1);
+
+		pGifCtrl = (struct _GifCtrl *)(lpBuf + pos);
+
+		if ( pGifCtrl->label == 0xf9 && pGifCtrl->size == 4 ) {
+			if ( pGifCtrl->trflag == 0 )
+				return (-1);
+			return pGifCtrl->tridx;
+		}
+
+		pos += 3;	// id + label + size
+		pos += pGifCtrl->size;
+
+		// 0x01=Plain Text Extension or 0xFF=Application Extension
+		if ( pGifCtrl->label == 0x01 || pGifCtrl->label == 0xFF )
+			pos += lpBuf[pos - 1];
+
+		pos += 1;	// term
+	}
+
+	return (-1);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -4143,7 +4414,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	122
+#define	CMDSKEYTABMAX	123
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -4229,6 +4500,7 @@ static const struct _CmdsKeyTab {
 	{	IDM_RESET_SIZE,				L"$RESET_SIZE"		},
 	{	IDM_RESET_TAB,				L"$RESET_TAB"		},
 	{	IDM_RESET_TEK,				L"$RESET_TEK"		},
+	{	IDM_SAVERESFILE,			L"$RESOURCE_SAVE"	},
 	{	ID_CHARSCRIPT_END,			L"$SCRIPT_END"		},
 	{	IDM_SCRIPT,					L"$SCRIPT_EXEC"		},
 	{	IDM_SCRIPT_MENU1,			L"$SCRIPT_MENU1"	},
@@ -4815,14 +5087,10 @@ void CKeyMacTab::GetAt(int nIndex, CBuffer &buf)
 		return;
 	buf.Apend(m_Data[nIndex].GetPtr(), m_Data[nIndex].GetSize());
 }
-void CKeyMacTab::SetHisMenu(CMenu *pMainMenu)
+void CKeyMacTab::SetHisMenu(CMenu *pMenu)
 {
 	int n;
 	CString str, tmp;
-	CMenu *pMenu;
-
-	if ( pMainMenu == NULL || (pMenu = pMainMenu->GetSubMenu(1)) == NULL )
-		return;
 
 	if ( m_Data.GetSize() <= 0 ) {
 		pMenu->AppendMenu(MF_STRING, ID_MACRO_HIS1, CStringLoad(IDS_HISRECDEFAULT));
@@ -4923,7 +5191,8 @@ static LPCTSTR InitAlgo[12]= {
 	_T("curve25519-sha256,curve25519-sha256@libssh.org,") \
 	_T("ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256,") \
 	_T("diffie-hellman-group-exchange-sha256,diffie-hellman-group-exchange-sha1,") \
-	_T("diffie-hellman-group14-sha256,diffie-hellman-group15-sha256,diffie-hellman-group16-sha256,") \
+	_T("diffie-hellman-group16-sha512,diffie-hellman-group18-sha512,") \
+	_T("diffie-hellman-group14-sha256,") \
 	_T("diffie-hellman-group14-sha1,diffie-hellman-group1-sha1"),
 
 	_T("ecdsa-sha2-nistp256-cert-v01@openssh.com,ecdsa-sha2-nistp384-cert-v01@openssh.com,ecdsa-sha2-nistp521-cert-v01@openssh.com,") \
@@ -4985,6 +5254,7 @@ void CParamTab::Init()
 		m_TtyMode.Add(def_ttymode[n]);
 
 	m_RsaExt = 0;
+	m_VerIdent.Empty();
 }
 void CParamTab::SetArray(CStringArrayExt &stra)
 {
@@ -5025,6 +5295,7 @@ void CParamTab::SetArray(CStringArrayExt &stra)
 	stra.Add(str);
 
 	stra.AddVal(m_RsaExt);
+	stra.Add(m_VerIdent);
 }
 void CParamTab::GetArray(CStringArrayExt &stra)
 {
@@ -5136,6 +5407,9 @@ void CParamTab::GetArray(CStringArrayExt &stra)
 	if ( stra.GetSize() > i )
 		m_RsaExt = stra.GetVal(i++);
 
+	if ( stra.GetSize() > i )
+		m_VerIdent = stra.GetAt(i++);
+
 	// Fix IdKeyList
 	if ( m_IdKeyStr[0].Compare(_T("IdKeyList Entry")) == 0 ) {
 		m_IdKeyList.GetString(m_IdKeyStr[1]);
@@ -5205,6 +5479,7 @@ void CParamTab::SetIndex(int mode, CStringIndex &index)
 		}
 
 		index[_T("RsaExt")] = m_RsaExt;
+		index[_T("VerIdent")] = m_VerIdent;
 
 	} else {			// Read
 		if ( (n = index.Find(_T("Algo"))) >= 0 ) {
@@ -5267,6 +5542,9 @@ void CParamTab::SetIndex(int mode, CStringIndex &index)
 
 		if ( (n = index.Find(_T("RsaExt"))) >= 0 )
 			m_RsaExt = index[n];
+
+		if ( (n = index.Find(_T("VerIdent"))) >= 0 )
+			m_VerIdent = index[n];
 	}
 }
 
@@ -5277,6 +5555,7 @@ static const ScriptCmdsDefs DocSsh[] = {
 	{	"Environ",		4	},
 	{	"TtyMode",		17	},
 	{	"RsaExt",		18	},
+	{	"VerIdent",		19	},
 	{	NULL,			0	},
 }, DocSshProtocol[] = {
 	{	"ssh1Cip",		5	},
@@ -5416,6 +5695,9 @@ void CParamTab::ScriptValue(int cmds, class CScriptValue &value, int mode)
 
 	case 18:				// Document.ssh.RsaExt
 		value.SetInt(m_RsaExt, mode);
+		break;
+	case 19:				// Document.ssh.VerIdent
+		value.SetStr(m_VerIdent, mode);
 		break;
 	}
 }
@@ -5718,6 +6000,57 @@ void CStringIndex::SetArray(LPCTSTR str)
 			(*this)[idx] = val;
 		break;
     }
+}
+void CStringIndex::SetValue(LPCSTR &str)
+{
+	m_bEmpty = FALSE;
+	m_bString = FALSE;
+	m_String.Empty();
+	m_Value = 0;
+
+	while ( *str != '\0' && *str != ';' && *str != ':' ) {
+		if ( *str < '0' || *str > '9' )
+			m_bString = TRUE;
+		m_String += *(str++);
+	}
+
+	if ( !m_bString )
+		m_Value = _tstoi(m_String);
+}
+void CStringIndex::SetParam(LPCSTR &str)
+{
+	CString value;
+
+	while ( *str != '\0' ) {
+		if ( *str == '=' ) {
+			(*this)[value].SetValue(++str);
+			value.Empty();
+			if ( *str == ';' ) {
+				str++;
+			} else if ( *str == ':' ) {
+				str++;
+				while ( *str != '\0' )
+					value += *(str++);
+				break;
+			}
+		} else
+			value += *(str++);
+	}
+
+	if ( !value.IsEmpty() )
+		*this = value;
+}
+void CStringIndex::SetKey(LPCSTR &str)
+{
+	CString value;
+
+	while ( *str != '\0' ) {
+		if ( *str == '=' ) {
+			(*this)[value].SetParam(++str);
+			value.Empty();
+		} else
+			value += *(str++);
+	}
 }
 void CStringIndex::GetBuffer(CBuffer *bp)
 {
@@ -6030,6 +6363,21 @@ void CStringIndex::Serialize(CArchive& ar, LPCSTR base)
 		}
 	}
 }
+#ifdef	DEBUG
+void CStringIndex::Dump(int nest)
+{
+	for ( int n = 0 ; n < nest ; n++ )
+		TRACE(_T(" "));
+
+	if ( m_bString )
+		TRACE(_T("%s = \"%s\"\n"), m_nIndex, m_String);
+	else
+		TRACE(_T("%s = %d\n"), m_nIndex, m_Value);
+
+	for ( int n = 0 ; n < m_Array.GetSize() ; n++ )
+		m_Array[n].Dump(nest + 1);
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////
 // CStringBinary Root
