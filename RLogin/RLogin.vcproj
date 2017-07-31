@@ -922,6 +922,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\CancelDlg.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\CertKeyDlg.cpp"
 				>
 			</File>
@@ -1309,6 +1313,10 @@
 			</File>
 			<File
 				RelativePath=".\BPlus.h"
+				>
+			</File>
+			<File
+				RelativePath=".\CancelDlg.h"
 				>
 			</File>
 			<File

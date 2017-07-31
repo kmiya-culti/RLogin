@@ -427,7 +427,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.12.10 (2012/10/03)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.13.0 (2012/10/13)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2012 Culti",IDC_STATIC,47,15,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,148,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.1c May 10th, 2012",IDC_STATIC,47,29,176,8
@@ -1330,6 +1330,18 @@ BEGIN
     LTEXT           "上記スクリプトファイル終了後に実行するスクリプトです\nこのエントリーだけで実行する部分などを直接編集できます",IDC_STATIC,17,83,217,19
 END
 
+IDD_CANCELDLG DIALOGEX 0, 0, 211, 121
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "シーケンス動作の確認"
+FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
+BEGIN
+    DEFPUSHBUTTON   "はい",IDOK,75,100,60,14
+    CONTROL         "",IDC_PROGRESS1,"msctls_progress32",WS_BORDER,16,55,176,14
+    LTEXT           "%sでデータをバッファリングしています。\n動作をキャンセルしますか？",IDC_MESSAGE,52,24,140,16
+    ICON            "",IDC_MSGICON,16,21,18,21
+    CONTROL         "バッファリングしたデータを書き戻す",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,79,176,10
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1337,8 +1349,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,12,9,0
- PRODUCTVERSION 2,12,9,0
+ FILEVERSION 2,13,0,0
+ PRODUCTVERSION 2,13,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1355,12 +1367,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.12.9.0"
+            VALUE "FileVersion", "2.13.0.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2012 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.12.9.0"
+            VALUE "ProductVersion", "2.13.0.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -1704,6 +1716,14 @@ BEGIN
         RIGHTMARGIN, 244
         TOPMARGIN, 7
         BOTTOMMARGIN, 263
+    END
+
+    IDD_CANCELDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 204
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 114
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -2680,6 +2700,7 @@ BEGIN
     IDS_RENAMEMSG           "ファイル名の変更"
     IDS_FILEDLGSCRIPT       "スクリプト ファイル (*.txt)|*.txt|All Files (*.*)|*.*||"
     IDS_SCRIPTNEW           "すでに読み込んでいるスクリプトを放棄しますか？"
+    IDS_FILECLOSEQES        "現在、接続中です。接続を閉じますか？"
 END
 
 #endif    // 日本語 (日本) resources

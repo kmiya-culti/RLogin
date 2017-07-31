@@ -67,7 +67,7 @@ public:
 	CBPlus *m_pBPlus;
 	CZModem *m_pZModem;
 	CKermit *m_pKermit;
-	BOOL m_DelayFlag;
+	int m_DelayFlag;
 	CBuffer m_DelayBuf;
 	int m_LoadMode;
 	int m_ActCharCount;
@@ -149,6 +149,7 @@ protected:
 	afx_msg void OnScript();
 	afx_msg void OnUpdateScript(CCmdUI *pCmdUI);
 	afx_msg void OnScriptMenu(UINT nID);
+	afx_msg void OnFileClose();
 	DECLARE_MESSAGE_MAP()
 };
 

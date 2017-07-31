@@ -66,6 +66,7 @@ public:
 #define	TIMEREVENT_DOC		001
 #define	TIMEREVENT_SOCK		002
 #define	TIMEREVENT_SCRIPT	003
+#define	TIMEREVENT_TEXTRAM	004
 #define	TIMEREVENT_INTERVAL	010
 
 #define	TIMERID_SLEEPMODE	1024
@@ -157,6 +158,8 @@ public:
 
 	int SetTimerEvent(int msec, int mode, void *pParam);
 	void DelTimerEvent(void *pParam);
+	void RemoveTimerEvent(CTimerObject *pObject);
+	void FreeTimerEvent(CTimerObject *pObject);
 
 	void SetMidiEvent(int msec, DWORD msg);
 

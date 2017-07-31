@@ -12,6 +12,7 @@
 #include "PipeSock.h"
 #include "GrapWnd.h"
 #include "SCript.h"
+#include "CancelDlg.h"
 
 #include <iconv.h>
 #include <imm.h>
@@ -134,6 +135,53 @@ const CFontNode & CFontNode::operator = (CFontNode &data)
 	}
 	return *this;
 }
+void CFontNode::SetUserBitmap(int code, int width, int height, CBitmap *pMap, int ofx, int ofy)
+{
+	CDC oDc, nDc;
+	CBitmap *pOld[2];
+	BITMAP info;
+
+	if ( (code -= 0x20) < 0 )
+		code = 0;
+	else if ( code > 95 )
+		code = 95;
+
+	if ( !pMap->GetBitmap(&info) )
+		return;
+
+	if ( !oDc.CreateCompatibleDC(NULL) || !nDc.CreateCompatibleDC(NULL) )
+		return;
+
+	if ( m_UserFontMap.GetSafeHandle() == NULL ) {
+		if ( !m_UserFontMap.CreateBitmap(USFTWMAX * 96, USFTHMAX, info.bmPlanes, info.bmBitsPixel, NULL) ) {
+			oDc.DeleteDC();
+			nDc.DeleteDC();
+			return;
+		}
+		pOld[1] = nDc.SelectObject(&m_UserFontMap);
+		nDc.FillSolidRect(0, 0, USFTWMAX * 96, USFTHMAX, RGB(0, 0, 0));
+		memset(m_UserFontDef, 0, 96 / 8);
+	} else
+		pOld[1] = nDc.SelectObject(&m_UserFontMap);
+
+	pOld[0] = oDc.SelectObject(pMap);
+
+//	nDc.BitBlt(USFTWMAX * code, 0, width, height, &oDc, ofx, ofy, SRCCOPY);
+	nDc.BitBlt(USFTWMAX * code, 0, USFTWMAX, USFTHMAX, &oDc, ofx, ofy, SRCCOPY);
+
+	oDc.SelectObject(pOld[0]);
+	nDc.SelectObject(pOld[1]);
+
+	oDc.DeleteDC();
+	nDc.DeleteDC();
+
+	m_UserFontWidth  = width;
+	m_UserFontHeight = height;
+	m_UserFontDef[code / 8] |= (1 << (code % 8));
+
+	if (  m_FontMap.GetSafeHandle() != NULL )
+		m_FontMap.DeleteObject();
+}
 void CFontNode::SetUserFont(int code, int width, int height, LPBYTE map)
 {
 	CDC dc;
@@ -169,22 +217,26 @@ void CFontNode::SetUserFont(int code, int width, int height, LPBYTE map)
 		}
 	}
 
+	dc.SelectObject(pOld);
+	dc.DeleteDC();
+
 	m_UserFontWidth  = width;
 	m_UserFontHeight = height;
 	m_UserFontDef[code / 8] |= (1 << (code % 8));
 
 	if (  m_FontMap.GetSafeHandle() != NULL )
 		m_FontMap.DeleteObject();
-
-	dc.SelectObject(pOld);
-	dc.DeleteDC();
 }
 BOOL CFontNode::SetFontImage(int width, int height)
 {
 	CDC oDc, nDc;
 	CBitmap *pOld[2];
+	BITMAP info;
 
 	if ( m_UserFontMap.GetSafeHandle() == NULL )
+		return FALSE;
+
+	if ( !m_UserFontMap.GetBitmap(&info) )
 		return FALSE;
 
 	width  = width  * USFTWMAX / m_UserFontWidth;
@@ -197,13 +249,15 @@ BOOL CFontNode::SetFontImage(int width, int height)
 		if ( !oDc.CreateCompatibleDC(NULL) || !nDc.CreateCompatibleDC(NULL) )
 			return FALSE;
 
-		if ( !m_FontMap.CreateBitmap(width * 96, height, 1, 1, NULL) )
+		if ( !m_FontMap.CreateBitmap(width * 96, height, info.bmPlanes, info.bmBitsPixel, NULL) )
 			return FALSE;
 
 		pOld[0] = oDc.SelectObject(&m_UserFontMap);
 		pOld[1] = nDc.SelectObject(&m_FontMap);
 
-		//nDc.SetStretchBltMode(HALFTONE);
+		if ( width > m_UserFontWidth || info.bmBitsPixel > 1 )
+			nDc.SetStretchBltMode(HALFTONE);
+
 		nDc.StretchBlt(0, 0, width * 96, height, &oDc, 0, 0, USFTWMAX * 96, USFTHMAX, SRCCOPY);
 
 		oDc.SelectObject(pOld[0]);
@@ -470,6 +524,9 @@ CTextRam::CTextRam()
 	m_ClipFlag = 0;
 	m_FileSaveFlag = TRUE;
 	m_ImageIndex = 0;
+	m_bOscActive = FALSE;
+	m_pCanDlg = NULL;
+	m_bIntTimer = FALSE;
 
 	m_LineEditMode = FALSE;
 	m_LineEditPos  = 0;
@@ -507,6 +564,9 @@ CTextRam::~CTextRam()
 {
 	CTextSave *pSave;
 
+	if ( m_bIntTimer )
+		((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this);
+
 	if ( m_VRam != NULL )
 		delete m_VRam;
 
@@ -533,6 +593,9 @@ CTextRam::~CTextRam()
 
 	if ( m_pTekWnd != NULL )
 		m_pTekWnd->DestroyWindow();
+
+	if ( m_pCanDlg != NULL )
+		m_pCanDlg->DestroyWindow();
 
 	while ( m_GrapWndTab.GetSize() > 0 )
 		((CWnd *)(m_GrapWndTab[0]))->DestroyWindow();
@@ -2992,7 +3055,7 @@ DWORD CTextRam::UCS4toUCS2(DWORD code)
 	// U+D800 - U+DBFF     U+DC00 - U+DFFF
 	// 1101 10** **** **** 1101 11xx xxxx xxxx
 	// 0000 0000 000? **** **** **xx xxxx xxxx	U+010000 - U+10FFFF 21 bit
-	if ( (code & 0xFFFF0000L) >= 0x00010000L && (code & 0xFFFF0000L) <= 0x0010FFFFL ) {
+	if ( code >= 0x00010000L ) {
 		code -= 0x10000L;
 		code = (((code & 0xFFC00L) << 6) | (code & 0x3FF)) | 0xD800DC00L;
 	}
@@ -4663,4 +4726,23 @@ void CTextRam::PUTSTR(LPBYTE lpBuf, int nBufLen)
 	while ( nBufLen-- > 0 )
 		fc_Call(*(lpBuf++));
 	m_RetSync = FALSE;
+}
+void CTextRam::OnTimer(int id)
+{
+	m_IntCounter++;
+
+	if ( m_bOscActive ) {
+		if ( m_pCanDlg == NULL && m_IntCounter > 3 ) {
+			m_pCanDlg = new CCancelDlg;
+			m_pCanDlg->m_pTextRam = this;
+			m_pCanDlg->m_PauseSec = 0;
+			m_pCanDlg->m_WaitSec  = 30;
+			m_pCanDlg->m_Name     = m_OscName;
+			m_pCanDlg->Create(IDD_CANCELDLG, ::AfxGetMainWnd());
+			m_pCanDlg->ShowWindow(SW_SHOW);
+		}
+	} else if ( m_IntCounter > 60 ) {
+		m_bIntTimer = FALSE;
+		((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this);
+	}
 }

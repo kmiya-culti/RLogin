@@ -59,6 +59,7 @@ BEGIN_MESSAGE_MAP(CRLoginDoc, CDocument)
 	ON_COMMAND(IDM_SCRIPT, &CRLoginDoc::OnScript)
 	ON_UPDATE_COMMAND_UI(IDM_SCRIPT, &CRLoginDoc::OnUpdateScript)
 	ON_COMMAND_RANGE(IDM_SCRIPT_MENU1, IDM_SCRIPT_MENU10, OnScriptMenu)
+	ON_COMMAND(ID_FILE_CLOSE, &CRLoginDoc::OnFileClose)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -72,7 +73,7 @@ CRLoginDoc::CRLoginDoc()
 	m_pBPlus = NULL;
 	m_pZModem = NULL;
 	m_pKermit = NULL;
-	m_DelayFlag = FALSE;
+	m_DelayFlag = DELAY_NON;
 	m_ActCharCount = 0;
 	m_pMainWnd = (CMainFrame *)AfxGetMainWnd();
 	m_TitleString.Empty();
@@ -97,7 +98,7 @@ CRLoginDoc::~CRLoginDoc()
 	if ( m_pScript != NULL )
 		delete m_pScript;
 
-	if ( m_DelayFlag )
+	if ( m_DelayFlag != DELAY_NON )
 		m_pMainWnd->DelTimerEvent(this);
 }
 
@@ -163,6 +164,14 @@ BOOL CRLoginDoc::OnOpenDocument(LPCTSTR lpszPathName)
 	}
 	
 	return (m_LoadMode == 0 ? FALSE : TRUE);
+}
+
+void CRLoginDoc::OnFileClose()
+{
+	if ( m_pSock != NULL && m_pSock->m_bConnect && AfxMessageBox(CStringLoad(IDS_FILECLOSEQES), MB_ICONQUESTION | MB_YESNO) != IDYES )
+		return;
+
+	CDocument::OnFileClose();
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -543,7 +552,8 @@ int CRLoginDoc::DelaySend()
 		if ( m_DelayBuf.GetAt(n++) == '\r' ) {
 			m_pSock->Send(m_DelayBuf.GetPtr(), n, 0);
 			m_DelayBuf.Consume(n);
-			m_DelayFlag = TRUE;
+			m_DelayFlag = DELAY_WAIT;
+			m_pMainWnd->SetTimerEvent(DELAY_ECHO_MSEC, TIMEREVENT_DOC, this);
 			return TRUE;
 		}
 	}
@@ -556,18 +566,16 @@ int CRLoginDoc::DelaySend()
 }
 void CRLoginDoc::OnDelayRecive(int ch)
 {
-	m_DelayFlag = FALSE;
+	((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this);
 
-	if ( ch >= 0 ) {
-		((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this);
-		if ( m_DelayBuf.GetSize() > 0 && m_TextRam.m_DelayMSec > 0 )
-			m_pMainWnd->SetTimerEvent(m_TextRam.m_DelayMSec, TIMEREVENT_DOC, this);
-		else if ( DelaySend() )
-			m_pMainWnd->SetTimerEvent(DELAY_ECHO_MSEC, TIMEREVENT_DOC, this);
-	} else {
-		if ( DelaySend() )
-			m_pMainWnd->SetTimerEvent(DELAY_ECHO_MSEC, TIMEREVENT_DOC, this);
+	if ( ch >= 0 && m_TextRam.m_DelayMSec > 0 ) {
+		m_DelayFlag = DELAY_PAUSE;
+		m_pMainWnd->SetTimerEvent(m_TextRam.m_DelayMSec, TIMEREVENT_DOC, this);
+		return;
 	}
+
+	m_DelayFlag = DELAY_NON;
+	DelaySend();
 }
 
 void CRLoginDoc::OnSocketConnect()
@@ -880,8 +888,8 @@ void CRLoginDoc::SocketSend(void *lpBuf, int nBufLen)
 
 	if ( m_TextRam.IsOptEnable(TO_RLDELAY) ) {
 		m_DelayBuf.Apend((LPBYTE)lpBuf, nBufLen);
-		if ( !m_DelayFlag && DelaySend() )
-			m_pMainWnd->SetTimerEvent(DELAY_ECHO_MSEC, TIMEREVENT_DOC, this);
+		if ( m_DelayFlag == DELAY_NON )
+			DelaySend();
 	} else 
 		m_pSock->Send(lpBuf, nBufLen);
 }
@@ -1394,4 +1402,3 @@ void CRLoginDoc::ScriptValue(int cmds, class CScriptValue &value, int mode)
 		break;
 	}
 }
-

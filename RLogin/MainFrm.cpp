@@ -522,6 +522,9 @@ void CTimerObject::CallObject()
 	case TIMEREVENT_SCRIPT:
 		((CScript *)(m_pObject))->OnTimer(m_Id);
 		break;
+	case TIMEREVENT_TEXTRAM:
+		((CTextRam *)(m_pObject))->OnTimer(m_Id);
+		break;
 	}
 }
 
@@ -888,25 +891,51 @@ int CMainFrame::SetTimerEvent(int msec, int mode, void *pParam)
 	SetTimer(tp->m_Id, msec, NULL);
 	tp->m_Mode = mode;
 	tp->m_pObject = pParam;
+
 	return tp->m_Id;
 }
 void CMainFrame::DelTimerEvent(void *pParam)
 {
-	CTimerObject *tp, *bp, top;
+	CTimerObject *tp, *bp;
 
-	top.m_pList = m_pTimerUsedId;
-	for ( tp = &top ; (bp = tp->m_pList) != NULL ; tp = bp ) {
-		if ( bp->m_pObject == pParam ) {
-			tp->m_pList = bp->m_pList;
-			bp->m_pList = m_pTimerFreeId;
-			m_pTimerFreeId = bp;
-			bp->m_Mode = 0;
-			bp->m_pObject = NULL;
+	for ( tp = bp = m_pTimerUsedId ; tp != NULL ; ) {
+		if ( tp->m_pObject == pParam ) {
 			KillTimer(bp->m_Id);
+			if ( tp == m_pTimerUsedId )
+				m_pTimerUsedId = tp->m_pList;
+			else
+				bp->m_pList = tp->m_pList;
+			FreeTimerEvent(tp);
 			break;
 		}
+		bp = tp;
+		tp = tp->m_pList;
 	}
-	m_pTimerUsedId = top.m_pList;
+}
+void CMainFrame::RemoveTimerEvent(CTimerObject *pObject)
+{
+	CTimerObject *tp;
+
+	KillTimer(pObject->m_Id);
+
+	if ( (tp = m_pTimerUsedId) == pObject )
+		m_pTimerUsedId = pObject->m_pList;
+	else {
+		while ( tp != NULL ) {
+			if ( tp->m_pList == pObject ) {
+				tp->m_pList = pObject->m_pList;
+				break;
+			}
+			tp = tp->m_pList;
+		}
+	}
+}
+void CMainFrame::FreeTimerEvent(CTimerObject *pObject)
+{
+	pObject->m_Mode    = 0;
+	pObject->m_pObject = NULL;
+	pObject->m_pList   = m_pTimerFreeId;
+	m_pTimerFreeId     = pObject;
 }
 void CMainFrame::SetMidiEvent(int msec, DWORD msg)
 {
@@ -1390,9 +1419,12 @@ void CMainFrame::OnTimer(UINT_PTR nIDEvent)
 	} else {
 		for ( tp = m_pTimerUsedId ; tp != NULL ; tp = tp->m_pList ) {
 			if ( tp->m_Id == (int)nIDEvent ) {
-				tp->CallObject();
-				if ( (tp->m_Mode & 070) == 000 )
-					DelTimerEvent(tp->m_pObject);
+				if ( (tp->m_Mode & 030) == 000 ) {
+					RemoveTimerEvent(tp);
+					tp->CallObject();
+					FreeTimerEvent(tp);
+				} else
+					tp->CallObject();
 				break;
 			}
 		}

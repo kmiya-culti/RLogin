@@ -174,6 +174,7 @@
 #define	TO_RLTENLM		444			// TELNET LINEMODE を禁止する
 #define	TO_RLSCRDEBUG	445			// スクリプトデバックを行う
 #define	TO_RLTEKINWND	446			// Tekウィンドウをビューで描く
+#define	TO_RLOSCPAM		447			// OSC/DCS...キャンセル時にバッファを書き戻す
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -243,6 +244,13 @@
 #define	USFTHMAX		36
 #define	USFTLNSZ		((USFTHMAX + 5) / 6)
 #define	USFTCHSZ		(USFTWMAX * USFTLNSZ)
+
+#define	DELAY_NON		0
+#define	DELAY_PAUSE		1
+#define	DELAY_WAIT		2
+
+#define	UNICODE_MAX		0x0010FFFF		// U+000000 - U+10FFFF 21 bit (サロゲート可能範囲)
+#define	UNICODE_UNKOWN	0x000025A1		// □
 
 #define issjis1(c)		(((unsigned char)(c) >= 0x81 && \
 						  (unsigned char)(c) <= 0x9F) || \
@@ -355,6 +363,7 @@ public:
 	void GetArray(CStringArrayExt &stra);
 	CFontChacheNode *GetFont(int Width, int Height, int Style, int FontNum);
 	const CFontNode & operator = (CFontNode &data);
+	void SetUserBitmap(int code, int width, int height, CBitmap *pMap, int ofx, int ofy);
 	void SetUserFont(int code, int width, int height, LPBYTE map);
 	BOOL SetFontImage(int width, int height);
 
@@ -562,6 +571,11 @@ public:
 	int m_LangMenu;
 	LPCTSTR m_RetChar[7];
 	int m_ImageIndex;
+	int m_bOscActive;
+	LPCTSTR m_OscName;
+	class CCancelDlg *m_pCanDlg;
+	BOOL m_bIntTimer;
+	int m_IntCounter;
 
 	WORD m_BankTab[5][4];
 	int m_BankNow;
@@ -613,6 +627,7 @@ public:
 	void InitText(int Width, int Height);
 	void InitScreen(int cols, int lines);
 	int Write(LPBYTE lpBuf, int nBufLen, BOOL *sync);
+	void OnTimer(int id);
 
 	int LineEdit(CBuffer &buf);
 	void LineEditEcho();
@@ -1016,6 +1031,9 @@ public:
 	void fc_TTIMERS(int ch);
 
 	// ESC PX^_] DCS/PM/APC/SOS/OSC
+	void fc_TimerSet(LPCTSTR name);
+	void fc_TimerReset();
+	void fc_TimerAbort(BOOL bOut);
 	void fc_DCS(int ch);
 	void fc_PM(int ch);
 	void fc_APC(int ch);

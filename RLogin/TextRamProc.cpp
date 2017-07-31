@@ -11,6 +11,7 @@
 #include "TextRam.h"
 #include "PipeSock.h"
 #include "GrapWnd.h"
+#include "CancelDlg.h"
 
 #include <iconv.h>
 #include <imm.h>
@@ -78,7 +79,7 @@ static const CTextRam::PROCTAB fc_96x96Tab[] = {
 	{ 0,		0,			NULL } };
 
 static const CTextRam::PROCTAB fc_Sjis1Tab[] = {
-	{ 0x20,		0x7E,		&CTextRam::fc_TEXT		},
+	{ 0x20,		0x7F,		&CTextRam::fc_TEXT		},
 	{ 0x81,		0x9F,		&CTextRam::fc_SJIS1		},
 	{ 0xA0,		0xDF,		&CTextRam::fc_TEXT		},
 	{ 0xE0,		0xFC,		&CTextRam::fc_SJIS1		},
@@ -92,7 +93,7 @@ static const CTextRam::PROCTAB fc_Sjis2Tab[] = {
 	{ 0,		0,			NULL } };
 
 static const CTextRam::PROCTAB fc_Big51Tab[] = {
-	{ 0x20,		0x7E,		&CTextRam::fc_TEXT		},
+	{ 0x20,		0x7F,		&CTextRam::fc_TEXT		},
 	{ 0xA1,		0xC6,		&CTextRam::fc_BIG51		},
 	{ 0xC7,		0xC8,		&CTextRam::fc_TEXT		},
 	{ 0xC9,		0xF9,		&CTextRam::fc_BIG51		},
@@ -113,7 +114,7 @@ static const CTextRam::PROCTAB fc_Utf8Tab[] = {
 	{ 0xF0,		0xF7,		&CTextRam::fc_UTF83		},	// UCS-2 3+6+6+6=21 bit
 	{ 0xF8,		0xFB,		&CTextRam::fc_UTF88		},	// UCS-4 2+6+6+6+6=26 bit ?
 	{ 0xFC,		0xFD,		&CTextRam::fc_UTF89		},	// UCS-4 1+6+6+6+6+6=31 bit ?
-	{ 0xF8,		0xFD,		&CTextRam::fc_UTF87		},
+//	{ 0xF8,		0xFD,		&CTextRam::fc_UTF87		},	// UCS-4 Error
 	{ 0xFE,		0xFF,		&CTextRam::fc_UTF84		},
 	{ 0,		0,			NULL } };
 static const CTextRam::PROCTAB fc_Utf82Tab[] = {
@@ -973,6 +974,8 @@ void CTextRam::fc_Init(int mode)
 		fc_Case(STAGE_BIG5);
 		break;
 	}
+
+	fc_TimerReset();
 }
 inline void CTextRam::fc_Case(int stage)
 {
@@ -1619,7 +1622,10 @@ void CTextRam::fc_UTF85(int ch)
 		m_CodeLen--;
 		break;
 	case 1:
-		m_BackChar = UCS4toUCS2(m_BackChar | (ch & 0x3F));
+		m_BackChar |= (ch & 0x3F);
+		if ( m_BackChar > UNICODE_MAX )			// U+000000 - U+10FFFF 21 bit
+			m_BackChar = UNICODE_UNKOWN;		//  
+		m_BackChar = UCS4toUCS2(m_BackChar);
 		if ( (n = UnicodeNomal(m_LastChar, m_BackChar)) != 0 ) {
 			m_BackChar = n;
 			LOCATE(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX);
@@ -1724,7 +1730,7 @@ void CTextRam::fc_LF(int ch)
 	case 2:		// LF
 	case 3:		// CR|LF
 		LOCATE(0, m_CurY);
-		if ( IsOptEnable(TO_RLDELAY) && m_pDocument->m_DelayFlag )
+		if ( IsOptEnable(TO_RLDELAY) && m_pDocument->m_DelayFlag == DELAY_WAIT )
 			m_pDocument->OnDelayRecive(ch);
 	case 0:		// CR+LF
 		ONEINDEX();
@@ -1758,7 +1764,7 @@ void CTextRam::fc_CR(int ch)
 		ONEINDEX();
 	case 0:		// CR+LF
 		LOCATE(0, m_CurY);
-		if ( IsOptEnable(TO_RLDELAY) && m_pDocument->m_DelayFlag )
+		if ( IsOptEnable(TO_RLDELAY) && m_pDocument->m_DelayFlag == DELAY_WAIT )
 			m_pDocument->OnDelayRecive(ch);
 	case 2:		// LF
 		break;
@@ -2401,13 +2407,48 @@ void CTextRam::fc_STAT(int ch)
 //////////////////////////////////////////////////////////////////////
 // fc DCS/SOS/APC/PM/OSC ...
 
+void CTextRam::fc_TimerSet(LPCTSTR name)
+{
+	m_bOscActive = TRUE;
+	m_IntCounter = 0;
+	m_OscName    = name;
+
+	if ( !m_bIntTimer ) {
+		m_bIntTimer = TRUE;
+		((CMainFrame *)AfxGetMainWnd())->SetTimerEvent(1000, TIMEREVENT_INTERVAL | TIMEREVENT_TEXTRAM, this);
+	}
+
+	if ( m_pCanDlg != NULL )
+		m_pCanDlg->DestroyWindow();
+}
+void CTextRam::fc_TimerReset()
+{
+	m_bOscActive = FALSE;
+	m_IntCounter = 0;
+
+	if ( m_pCanDlg != NULL )
+		m_pCanDlg->DestroyWindow();
+}
+void CTextRam::fc_TimerAbort(BOOL bOut)
+{
+	m_bOscActive = FALSE;
+	m_IntCounter = 0;
+
+	fc_POP('?');
+
+	if ( bOut && m_OscPara.GetSize() > 0 )
+		PUTSTR(m_OscPara.GetPtr(), m_OscPara.GetSize());
+}
+
 void CTextRam::fc_DCS(int ch)
 {
 	m_OscMode = 'P';
 	m_BackChar = 0;
+	m_OscPara.Clear();
 	m_AnsiPara.RemoveAll();
 	m_AnsiPara.Add(0xFFFF);
 	fc_Case(STAGE_OSC1);
+	fc_TimerSet(_T("DCS"));
 }
 void CTextRam::fc_SOS(int ch)
 {
@@ -2415,6 +2456,7 @@ void CTextRam::fc_SOS(int ch)
 	m_BackChar = 0;
 	m_OscPara.Clear();
 	fc_Case(STAGE_OSC2);
+	fc_TimerSet(_T("SOS"));
 }
 void CTextRam::fc_APC(int ch)
 {
@@ -2422,6 +2464,7 @@ void CTextRam::fc_APC(int ch)
 	m_BackChar = 0;
 	m_OscPara.Clear();
 	fc_Case(STAGE_OSC2);
+	fc_TimerSet(_T("APC"));
 }
 void CTextRam::fc_PM(int ch)
 {
@@ -2429,6 +2472,7 @@ void CTextRam::fc_PM(int ch)
 	m_BackChar = 0;
 	m_OscPara.Clear();
 	fc_Case(STAGE_OSC2);
+	fc_TimerSet(_T("PM"));
 }
 void CTextRam::fc_OSC(int ch)
 {
@@ -2436,6 +2480,7 @@ void CTextRam::fc_OSC(int ch)
 	m_BackChar = 0;
 	m_OscPara.Clear();
 	fc_Case(STAGE_OSC2);
+	fc_TimerSet(_T("OSC"));
 }
 void CTextRam::fc_OSC_CMD(int ch)
 {
@@ -2482,6 +2527,8 @@ void CTextRam::fc_OSC_PAM(int ch)
 void CTextRam::fc_OSC_ST(int ch)
 {
 	int n;
+
+	fc_TimerReset();
 
 	switch(m_OscMode) {
 	case 'P':	// DCS
@@ -2699,6 +2746,7 @@ void CTextRam::fc_DECDLD(int ch)
 	//		0 = text. (default)
 	//		1 = text.
 	//		2 = full cell.
+	//		3 = Sixel		XXXXXXXXXXXX RLogin ext
 	//	Pcmh Character matrix height
 	//		0 or omitted = 16 pixels high. (default)
 	//		1 = 1 pixel high.
@@ -2736,19 +2784,21 @@ void CTextRam::fc_DECDLD(int ch)
 
 	int n, i, x, b, idx;
 	LPCSTR p;
-	int Pfn, Pcn, Pe, Pcss;
+	int Pfn, Pcn, Pe, Pcss, Pt;
 	int Pcmw = 10, Pcmh = 0;
 	CString Pscs;
 	CStringArrayExt node, data;
 	BYTE map[USFTCHSZ];
+	CGrapWnd *pGrapWnd;
 
 	fc_POP(ch);
 
 	Pfn  = GetAnsiPara(0, 0, 0);
 	Pcn  = GetAnsiPara(1, 0, 0) + 0x20;
 	Pe   = GetAnsiPara(2, 0, 0);
-	Pcss = GetAnsiPara(7, 0, 0);
 	Pcmw = GetAnsiPara(3, 0, 0);
+	Pt   = GetAnsiPara(5, 0, 0);
+	Pcss = GetAnsiPara(7, 0, 0);
 
 	//if ( Pcss == 0 && Pcn < 0x21 )
 	//	Pcn = 0x21;
@@ -2803,18 +2853,30 @@ void CTextRam::fc_DECDLD(int ch)
 			m_FontTab[idx].m_UserFontMap.DeleteObject();
 	}
 
-	node.GetString(MbsToTstr(p), _T(';'));
-	for ( n = 0 ; n < node.GetSize() && (Pcn + n) < 0x80 ; n++ ) {
-		data.GetString(node[n], _T('/'));
-		memset(map, 0, USFTCHSZ);
-		for ( i = 0 ; i < data.GetSize() && i < USFTLNSZ ; i++ ) {
-			for ( x = 0 ; x < data[i].GetLength() && x < USFTWMAX ; x++ ) {
-				if ( (b = data[i][x] - 0x3F) < 0 )
-					b = 0;
-				map[x + i * USFTWMAX] = b;
-			}
+	if ( Pt == 3 ) {				// Sixel
+		pGrapWnd = new CGrapWnd(this);
+		pGrapWnd->Create(NULL, _T("DCS"));
+		pGrapWnd->SetSixel(7, 0, p);
+		for ( n = i = 0 ; ((i + 1) * Pcmh) <= pGrapWnd->m_MaxY && (Pcn + n) < 0x80 ; i++ ) {
+			for ( x = 0 ; ((x + 1) * Pcmw) <= pGrapWnd->m_MaxX && (Pcn + n) < 0x80 ; x++, n++ )
+				m_FontTab[idx].SetUserBitmap(Pcn + n, Pcmw, Pcmh, pGrapWnd->m_pActMap, x * Pcmw, i * Pcmh);
 		}
-		m_FontTab[idx].SetUserFont(Pcn + n, Pcmw, Pcmh, map);
+		pGrapWnd->DestroyWindow();
+
+	} else {
+		node.GetString(MbsToTstr(p), _T(';'));
+		for ( n = 0 ; n < node.GetSize() && (Pcn + n) < 0x80 ; n++ ) {
+			data.GetString(node[n], _T('/'));
+			memset(map, 0, USFTCHSZ);
+			for ( i = 0 ; i < data.GetSize() && i < USFTLNSZ ; i++ ) {
+				for ( x = 0 ; x < data[i].GetLength() && x < USFTWMAX ; x++ ) {
+					if ( (b = data[i][x] - 0x3F) < 0 )
+						b = 0;
+					map[x + i * USFTWMAX] = b;
+				}
+			}
+			m_FontTab[idx].SetUserFont(Pcn + n, Pcmw, Pcmh, map);
+		}
 	}
 }
 void CTextRam::fc_DECRSTS(int ch)
@@ -4264,7 +4326,11 @@ void CTextRam::fc_XTWOP(int ch)
 {
 	// CSI t	XTWOP XTERM WINOPS
 	int n = GetAnsiPara(0, 0, 0);
-    switch (n) {
+	int w = 6;
+	int h = 12;
+	CRLoginView *pView;
+
+	switch (n) {
     case 1:			/* Restore (de-iconify) window */
     case 2:			/* Minimize (iconify) window */
     case 3:			/* Move the window to the given position x = p1, y = p2 */
@@ -4293,13 +4359,21 @@ void CTextRam::fc_XTWOP(int ch)
 		UNGETSTR(_T("%s3;%d;%dt"), m_RetChar[RC_CSI], 0, 0);
 		break;
     case 14:    	/* Report the window's size in pixels ESC[4;h;wt */
-		UNGETSTR(_T("%s4;%d;%dt"), m_RetChar[RC_CSI], m_Lines * 12, m_Cols * 6);
+		if ( m_pDocument != NULL && (pView = (CRLoginView *)m_pDocument->GetAciveView()) != NULL ) {
+			w = pView->m_CharWidth;
+			h = pView->m_CharHeight;
+		}
+		UNGETSTR(_T("%s4;%d;%dt"), m_RetChar[RC_CSI], m_Lines * h, m_Cols * w);
 		break;
     case 18:    	/* Report the text's size in characters ESC[8;l;ct */
 		UNGETSTR(_T("%s8;%d;%dt"), m_RetChar[RC_CSI], m_Lines, m_Cols);
 		break;
     case 19:    	/* Report the screen's size, in characters ESC[9;h;wt */
-		UNGETSTR(_T("%s9;%d;%dt"), m_RetChar[RC_CSI], 12, 6);
+		if ( m_pDocument != NULL && (pView = (CRLoginView *)m_pDocument->GetAciveView()) != NULL ) {
+			w = pView->m_CharWidth;
+			h = pView->m_CharHeight;
+		}
+		UNGETSTR(_T("%s9;%d;%dt"), m_RetChar[RC_CSI], h, w);
 		break;
     case 20:    	/* Report the icon's label ESC]LxxxxESC\ */
     case 21:   		/* Report the window's title ESC]lxxxxxxESC\ */
