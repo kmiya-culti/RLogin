@@ -1330,6 +1330,7 @@ CTextRam::CTextRam()
 	m_LogCurY = (-1);
 	m_CharWidth = 8;
 	m_CharHeight = 16;
+	m_MarkColor = RGB(255, 255, 0);
 
 	for ( int n = 0 ; n < 8 ; n++ )
 		pGrapListIndex[n] = pGrapListImage[n] = NULL;
@@ -1864,6 +1865,17 @@ void CTextRam::HisRegCheck(DWORD ch, DWORD pos)
 		}
 	}
 }
+void CTextRam::HisMarkClear()
+{
+	int n, x;
+	CCharCell *vp;
+
+	for ( n = 1 ; n <= m_HisLen ; n++ ) {
+		vp = GETVRAM(0, m_Lines - n);
+		for ( x = 0 ; x < m_Cols ; x++ )
+			vp[x].m_Vram.attr &= ~ATT_MARK;
+	}
+}
 int CTextRam::HisRegMark(LPCTSTR str, BOOL bRegEx)
 {
 	int n, x;
@@ -2249,6 +2261,10 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		for ( n = 0 ; n < m_InlineExt.GetSize() ; n++ )
 			index[_T("InlineExt")].Add(m_InlineExt[n]);
 
+		index[_T("MarkColor")][0] = GetRValue(m_MarkColor);
+		index[_T("MarkColor")][1] = GetGValue(m_MarkColor);
+		index[_T("MarkColor")][2] = GetBValue(m_MarkColor);
+
 	} else {		// Read
 		if ( (n = index.Find(_T("Cols"))) >= 0 ) {
 			if ( (i = index[n].Find(_T("Nomal"))) >= 0 )
@@ -2466,6 +2482,9 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 				m_InlineExt.Add(index[n][i]);
 		}
 
+		if ( (n = index.Find(_T("MarkColor"))) >= 0 && index[n].GetSize() >= 3 )
+			m_MarkColor = RGB((int)index[n][0], (int)index[n][1], (int)index[n][2]);
+
 		memcpy(m_ColTab, m_DefColTab, sizeof(m_DefColTab));
 		memcpy(m_AnsiOpt, m_DefAnsiOpt, sizeof(m_AnsiOpt));
 		memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
@@ -2571,6 +2590,8 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 
 	m_InlineExt.SetString(str, _T('|'));
 	stra.Add(str);
+
+	stra.AddVal(m_MarkColor);
 }
 void CTextRam::GetArray(CStringArrayExt &stra)
 {
@@ -2778,6 +2799,9 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 
 	if ( stra.GetSize() > 68 )
 		m_InlineExt.GetString(stra.GetAt(68), _T('|'));
+
+	if ( stra.GetSize() > 69 )
+		m_MarkColor = stra.GetVal(69);
 
 	if ( m_FixVersion < 9 ) {
 		if ( m_pDocument != NULL ) {
@@ -3690,6 +3714,56 @@ void CTextRam::EditCopy(int sps, int eps, BOOL rectflag, BOOL lineflag)
 
 	((CMainFrame *)::AfxGetMainWnd())->SetClipboardText((LPCWSTR)tmp);
 }
+void CTextRam::EditMark(int sps, int eps, BOOL rectflag, BOOL lineflag)
+{
+	int n, x, y, sx, ex;
+	int x1, y1, x2, y2;
+	CCharCell *vp;
+
+	SetCalcPos(sps, &x1, &y1);
+	SetCalcPos(eps, &x2, &y2);
+
+	if ( rectflag && x1 > x2 ) {
+		x = x1; x1 = x2; x2 = x;
+	}
+
+	for ( y = y1 ; y <= y2 ; y++ ) {
+		vp = GETVRAM(0, y);
+		
+		if ( rectflag ) {
+			sx = x1;
+			ex = x2;
+		} else if ( lineflag ) {
+			sx = 0;
+			ex = m_Cols - 1;
+		} else {
+			sx = (y == y1 ? x1 : 0);
+			ex = (y == y2 ? x2 : (m_Cols - 1));
+		}
+
+		if ( vp->m_Vram.zoom != 0 ) {
+			sx /= 2;
+			ex /= 2;
+		}
+
+		if ( IS_2BYTE(vp[sx].m_Vram.mode) )
+			sx++;
+
+		for ( x = sx ; x <= ex ; x += n ) {
+			if ( vp[x].IsEmpty() ) {
+				vp[x].m_Vram.attr |= ATT_MARK;
+				n = 1;
+			} else if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].m_Vram.mode) && IS_2BYTE(vp[x + 1].m_Vram.mode) && vp[x].Compare(vp[x + 1]) == 0 ) {
+				vp[x].m_Vram.attr |= ATT_MARK;
+				vp[x + 1].m_Vram.attr |= ATT_MARK;
+				n = 2;
+			} else {
+				vp[x].m_Vram.attr |= ATT_MARK;
+				n = 1;
+			}
+		}
+	}
+}
 void CTextRam::GetLine(int sy, CString &str)
 {
 	int n, x, ex, mx, tc;
@@ -4458,7 +4532,17 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, struct DrawWork &prop, class CR
 	if ( (prop.attr & ATT_HALF) != 0 )
 		bcol = RGB((GetRValue(fcol) + GetRValue(bcol)) / 2, (GetGValue(fcol) + GetGValue(bcol)) / 2, (GetBValue(fcol) + GetBValue(bcol)) / 2);
 
-	if ( (prop.attr & ATT_CLIP) != 0 || (pView->m_ActiveFlag && (prop.attr & ATT_MARK) != 0) ) {
+	if ( (prop.attr & ATT_MARK) != 0 ) {
+		tcol = fcol;
+		fcol = bcol;
+		bcol = tcol;
+		if ( bRevs )
+			bcol = RGB((GetRValue(fcol) + GetRValue(bcol)) / 2, (GetGValue(fcol) + GetGValue(bcol)) / 2, (GetBValue(fcol) + GetBValue(bcol)) / 2);
+		bcol = RGB((GetRValue(m_MarkColor) + GetRValue(bcol)) / 2, (GetGValue(m_MarkColor) + GetGValue(bcol)) / 2, (GetBValue(m_MarkColor) + GetBValue(bcol)) / 2);
+		bRevs = TRUE;
+	}
+
+	if ( (prop.attr & ATT_CLIP) != 0 ) {
 		tcol = fcol;
 		fcol = bcol;
 		bcol = tcol;

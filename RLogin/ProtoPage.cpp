@@ -87,6 +87,10 @@ void CProtoPage::DoInit()
 	m_RsaExt    = m_pSheet->m_pParamTab->m_RsaExt;
 	m_VerIdent  = m_pSheet->m_pParamTab->m_VerIdent;
 
+	m_x11AuthFlag = m_pSheet->m_pParamTab->m_x11AuthFlag;
+	m_x11AuthName = m_pSheet->m_pParamTab->m_x11AuthName;
+	m_x11AuthData = m_pSheet->m_pParamTab->m_x11AuthData;
+
 	UpdateData(FALSE);
 }
 
@@ -119,6 +123,10 @@ BOOL CProtoPage::OnApply()
 	m_pSheet->m_pParamTab->m_XDisplay  = m_XDisplay;
 	m_pSheet->m_pParamTab->m_RsaExt    = m_RsaExt;
 	m_pSheet->m_pParamTab->m_VerIdent  = m_VerIdent;
+
+	m_pSheet->m_pParamTab->m_x11AuthFlag = m_x11AuthFlag;
+	m_pSheet->m_pParamTab->m_x11AuthName = m_x11AuthName;
+	m_pSheet->m_pParamTab->m_x11AuthData = m_x11AuthData;
 
 	return TRUE;
 }
@@ -177,13 +185,19 @@ void CProtoPage::OnSshPfd()
 	dlg.m_X11PortFlag = m_Check[CHECKOPTMAX + 2];
 	dlg.m_PortFwd     = m_PortFwd;
 	dlg.m_XDisplay    = m_XDisplay;
+	dlg.m_x11AuthFlag = m_x11AuthFlag;
+	dlg.m_x11AuthName = m_x11AuthName;
+	dlg.m_x11AuthData = m_x11AuthData;
 
 	if ( dlg.DoModal() != IDOK )
 		return;
 
 	m_Check[CHECKOPTMAX + 2] = dlg.m_X11PortFlag;
-	m_PortFwd   = dlg.m_PortFwd;
-	m_XDisplay  = dlg.m_XDisplay;
+	m_PortFwd     = dlg.m_PortFwd;
+	m_XDisplay    = dlg.m_XDisplay;
+	m_x11AuthFlag = dlg.m_x11AuthFlag;
+	m_x11AuthName = dlg.m_x11AuthName;
+	m_x11AuthData = dlg.m_x11AuthData;
 
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= (UMOD_TEXTRAM | UMOD_PARAMTAB);

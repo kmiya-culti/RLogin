@@ -495,8 +495,8 @@ CRLoginApp::CRLoginApp()
 	m_pVoice = NULL;
 #endif
 
+	m_IdleProcCount = 0;
 	m_pIdleTop = NULL;
-	m_pIdleNext = NULL;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -543,6 +543,8 @@ void ExDwmEnableWindow(HWND hWnd, BOOL bEnable)
 	}
 #endif
 }
+
+//////////////////////////////////////////////////////////////////////
 
 // CRLoginApp 初期化
 
@@ -738,6 +740,62 @@ BOOL CRLoginApp::GetExtFilePath(LPCTSTR ext, CString &path)
 
 	return FALSE;
 }
+BOOL CRLoginApp::CreateDesktopShortcut(LPCTSTR entry)
+{
+	BOOL rt = FALSE;
+	IShellLinkW  *pShellLink = NULL;
+	IPersistFile *pPersistFile = NULL;
+	WCHAR desktopPath[MAX_PATH];
+	CStringW srcParam, linkPath;
+
+#ifndef	USE_COMINIT
+	if ( FAILED(CoInitialize(NULL) )
+		return FALSE;
+#endif
+	
+	if ( FAILED(SHGetSpecialFolderPath(NULL, desktopPath, CSIDL_DESKTOPDIRECTORY, FALSE)) )
+		goto ENDOF;
+
+	srcParam.Format(L"/entry \"%s\" /inuse", TstrToUni(entry));
+	linkPath.Format(L"%s\\%s.lnk", desktopPath, TstrToUni(entry));
+	
+	if ( FAILED(CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pShellLink))) )
+		goto ENDOF;
+
+	if ( FAILED(pShellLink->SetPath(TstrToUni(m_PathName))) )
+		goto ENDOF;
+
+	if ( FAILED(pShellLink->SetArguments(TstrToUni(srcParam))) )
+		goto ENDOF;
+
+	if ( FAILED(pShellLink->SetWorkingDirectory(TstrToUni(m_BaseDir))) )
+		goto ENDOF;
+
+	if ( FAILED(pShellLink->SetIconLocation(TstrToUni(m_PathName), 1)) )
+		goto ENDOF;
+
+	if ( FAILED(pShellLink->QueryInterface(IID_PPV_ARGS(&pPersistFile))) )
+		goto ENDOF;
+
+	if ( SUCCEEDED(pPersistFile->Save(linkPath, TRUE)) )
+		rt = TRUE;
+
+ENDOF:
+	if ( pPersistFile != NULL )
+		pPersistFile->Release();
+
+	if ( pShellLink != NULL )
+		pShellLink->Release();
+
+#ifndef	USE_COMINIT
+	CoUninitialize();
+#endif
+
+	return rt;
+}
+
+//////////////////////////////////////////////////////////////////////
+
 BOOL CRLoginApp::InitInstance()
 {
 	// デフォルトのロケールを設定 strftimeなどで必要
@@ -1274,6 +1332,7 @@ BOOL CRLoginApp::OnInUseCheck(COPYDATASTRUCT *pCopyData)
 		pMain->SetActivePoint(CPoint(cmdInfo.m_ScreenX, cmdInfo.m_ScreenY));
 
 	OpenProcsCmd(&cmdInfo);
+	pMain->SetForegroundWindow();
 
 	return FALSE;	// not contine
 }
@@ -1520,7 +1579,8 @@ void CRLoginApp::OnSendBroadCastMouseWheel(COPYDATASTRUCT *pCopyData)
 			POSITION vpos = pDoc->GetFirstViewPosition();
 			while ( vpos != NULL ) {
 				CRLoginView *pView = (CRLoginView *)pDoc->GetNextView(vpos);
-				pView->OnMouseWheel(pWheelData->nFlags, pWheelData->zDelta, pWheelData->pt);
+//				pView->OnMouseWheel(pWheelData->nFlags, pWheelData->zDelta, pWheelData->pt);
+				pView->SendMessage(WM_MOUSEWHEEL, MAKEWPARAM(pWheelData->nFlags, pWheelData->zDelta), MAKELPARAM(pWheelData->pt.x, pWheelData->pt.y)); 
 			}
 		}
 	}
@@ -2083,28 +2143,16 @@ BOOL mt_proc(LPVOID pParam);
 
 BOOL CRLoginApp::OnIdle(LONG lCount) 
 {
+	int n;
+	int ProcCount = m_IdleProcCount;
 	CIdleProc *pProc;
 	BOOL rt = FALSE;
-
-//	TRACE("OnIdle %d\n", lCount);
 
 	if ( lCount >= 0 && CWinApp::OnIdle(lCount) )
 		return TRUE;
 
-	for ( pProc = m_pIdleTop ; pProc != NULL ; ) {
-
-#ifdef	DEBUG
-		CIdleProc *pTemp = m_pIdleTop;
-		while ( pTemp != NULL ) {
-			if ( pTemp == pProc )
-				break;
-			if ( (pTemp = pTemp->m_pNext) == m_pIdleTop )
-				break;
-		}
-		ASSERT(pTemp == pProc);
-#endif
-
-		m_pIdleNext = pProc->m_pNext;
+	for ( n = 0 ; !rt && n < m_IdleProcCount && (pProc = m_pIdleTop) != NULL ; n++ ) {
+		m_pIdleTop = pProc->m_pNext;
 
 		switch(pProc->m_Type) {
 		case IDLEPROC_SOCKET:
@@ -2118,16 +2166,10 @@ BOOL CRLoginApp::OnIdle(LONG lCount)
 			break;
 		}
 
-		if ( rt ) {
-			m_pIdleTop = m_pIdleNext;
-			break;
-		}
-
-		if ( (pProc = m_pIdleNext) == m_pIdleTop )
-			break;
+		if ( ProcCount != m_IdleProcCount )
+			n = 0;
 	}
 
-	m_pIdleNext = NULL;
 	return rt;
 }
 
@@ -2142,6 +2184,7 @@ void CRLoginApp::AddIdleProc(int Type, void *pParam)
 			break;
 	}
 
+	m_IdleProcCount++;
 	pProc = new CIdleProc;
 	pProc->m_Type = Type;
 	pProc->m_pParam = pParam;
@@ -2165,16 +2208,15 @@ void CRLoginApp::DelIdleProc(int Type, void *pParam)
 	while ( pProc != NULL ) {
 		if ( pProc->m_Type == Type && pProc->m_pParam == pParam ) {
 			if ( pProc->m_pNext == pProc )
-				m_pIdleTop = m_pIdleNext = NULL;
+				m_pIdleTop = NULL;
 			else {
 				pProc->m_pBack->m_pNext = pProc->m_pNext;
 				pProc->m_pNext->m_pBack = pProc->m_pBack;
 				if ( pProc == m_pIdleTop )
 					m_pIdleTop = pProc->m_pNext;
-				if ( pProc == m_pIdleNext )
-					m_pIdleNext = pProc->m_pNext;
 			}
 			delete pProc;
+			m_IdleProcCount--;
 			break;
 		}
 		if ( (pProc = pProc->m_pNext) == m_pIdleTop )

@@ -133,6 +133,8 @@ public:
 	class CRLoginDoc *m_pDocument;
 	BOOL m_bConnect;
 	BOOL m_bCallConnect;
+	CEvent *m_pSyncEvent;
+	BOOL m_bUseProc;
 
 	CBuffer m_RecvBuff;
 	CBuffer m_SendBuff;

@@ -70,6 +70,7 @@ BEGIN_MESSAGE_MAP(CServerSelect, CDialogExt)
 	ON_UPDATE_COMMAND_UI(IDM_SERV_EXPORT, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(IDM_SERV_EXCHNG, &CServerSelect::OnUpdateServExchng)
 	ON_COMMAND(IDC_LOADDEFAULT, &CServerSelect::OnLoaddefault)
+	ON_COMMAND(IDM_SHORTCUT, &CServerSelect::OnShortcut)
 END_MESSAGE_MAP()
 
 void CServerSelect::InitList()
@@ -941,6 +942,24 @@ void CServerSelect::OnLoaddefault()
 		m_EntryNum = (int)m_List.GetItemData(n);
 		m_pData->GetAt(m_EntryNum).m_ProBuffer = ProBuffer;
 		m_pData->UpdateAt(m_EntryNum);
+	}
+}
+void CServerSelect::OnShortcut()
+{
+	int n, i;
+
+	for ( n = 0 ; n < m_List.GetItemCount() ; n++ ) {
+		if ( m_List.GetItemState(n, LVIS_SELECTED) == 0 )
+			continue;
+
+		i = (int)m_List.GetItemData(n);
+		if ( m_pData->GetAt(i).m_EntryName.IsEmpty() )
+			continue;
+
+		if ( !((CRLoginApp *)AfxGetApp())->CreateDesktopShortcut(m_pData->GetAt(i).m_EntryName) ) {
+			MessageBox(_T("Can't Create Desktop Shortcut"));
+			break;
+		}
 	}
 }
 

@@ -22,6 +22,9 @@ public:
 	CStringArrayExt m_IdKeyList;
 	CStringArrayExt m_PortFwd;
 	CString m_XDisplay;
+	BOOL  m_x11AuthFlag;
+	CString m_x11AuthName;
+	CString m_x11AuthData;
 	int m_RsaExt;
 	CString m_VerIdent;
 

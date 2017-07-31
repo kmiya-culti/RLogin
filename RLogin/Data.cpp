@@ -4432,7 +4432,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	125
+#define	CMDSKEYTABMAX	127
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -4455,6 +4455,7 @@ static const struct _CmdsKeyTab {
 	{	IDM_DIALOGFONT,				L"$DIALOG_FONT"		},
 	{	ID_EDIT_COPY,				L"$EDIT_COPY"		},
 	{	ID_EDIT_COPY_ALL,			L"$EDIT_COPYALL"	},
+	{	IDM_EDIT_MARK,				L"$EDIT_MARK"		},
 	{	ID_EDIT_PASTE,				L"$EDIT_PASTE"		},
 	{	ID_APP_EXIT,				L"$EXIT"			},
 	{	ID_FILE_ALL_SAVE,			L"$FILE_ALLSAVE"	},
@@ -4462,6 +4463,7 @@ static const struct _CmdsKeyTab {
 	{	ID_FILE_NEW,				L"$FILE_NEW"		},
 	{	ID_FILE_OPEN,				L"$FILE_OPEN"		},
 	{	ID_FILE_SAVE_AS,			L"$FILE_SAVE"		},
+	{	IDM_SIMPLE_UPLOAD,			L"$FILE_UPLOAD"		},
 	{	IDM_KANJI_ASCII,			L"$KANJI_ASCII"		},
 	{	IDM_KANJI_EUC,				L"$KANJI_EUC"		},
 	{	IDM_KANJI_SJIS,				L"$KANJI_SJIS"		},
@@ -5275,6 +5277,10 @@ void CParamTab::Init()
 
 	m_RsaExt = 0;
 	m_VerIdent.Empty();
+
+	m_x11AuthFlag = FALSE;
+	m_x11AuthName.Empty();
+	m_x11AuthData.Empty();
 }
 void CParamTab::SetArray(CStringArrayExt &stra)
 {
@@ -5316,6 +5322,10 @@ void CParamTab::SetArray(CStringArrayExt &stra)
 
 	stra.AddVal(m_RsaExt);
 	stra.Add(m_VerIdent);
+
+	stra.Add(m_x11AuthName);
+	stra.Add(m_x11AuthData);
+	stra.AddVal(m_x11AuthFlag);
 }
 void CParamTab::GetArray(CStringArrayExt &stra)
 {
@@ -5430,6 +5440,15 @@ void CParamTab::GetArray(CStringArrayExt &stra)
 	if ( stra.GetSize() > i )
 		m_VerIdent = stra.GetAt(i++);
 
+	if ( stra.GetSize() > i )
+		m_x11AuthName = stra.GetAt(i++);
+
+	if ( stra.GetSize() > i )
+		m_x11AuthData = stra.GetAt(i++);
+
+	if ( stra.GetSize() > i )
+		m_x11AuthFlag = stra.GetVal(i++);
+
 	// Fix IdKeyList
 	if ( m_IdKeyStr[0].Compare(_T("IdKeyList Entry")) == 0 ) {
 		m_IdKeyList.GetString(m_IdKeyStr[1]);
@@ -5501,6 +5520,10 @@ void CParamTab::SetIndex(int mode, CStringIndex &index)
 		index[_T("RsaExt")] = m_RsaExt;
 		index[_T("VerIdent")] = m_VerIdent;
 
+		index[_T("x11AuthName")] = m_x11AuthName;
+		index[_T("x11AuthData")] = m_x11AuthData;
+		index[_T("x11AuthFlag")] = m_x11AuthFlag;
+
 	} else {			// Read
 		if ( (n = index.Find(_T("Algo"))) >= 0 ) {
 			for ( int a = 0 ; a < 12 ; a++ ) {
@@ -5565,6 +5588,15 @@ void CParamTab::SetIndex(int mode, CStringIndex &index)
 
 		if ( (n = index.Find(_T("VerIdent"))) >= 0 )
 			m_VerIdent = index[n];
+
+		if ( (n = index.Find(_T("x11AuthName"))) >= 0 )
+			m_x11AuthName = index[n];
+
+		if ( (n = index.Find(_T("x11AuthData"))) >= 0 )
+			m_x11AuthData = index[n];
+
+		if ( (n = index.Find(_T("x11AuthFlag"))) >= 0 )
+			m_x11AuthFlag = index[n];
 	}
 }
 

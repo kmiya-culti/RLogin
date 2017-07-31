@@ -69,7 +69,7 @@
 #define	SSH2_FX_TRANSTYPMSEC			100
 #define	SSH2_FX_TRANSMAXMSEC			120
 
-#define	SSH2_FX_MAXQUESIZE				128
+#define	SSH2_FX_MAXQUESIZE				64
 
 #define _S_IFLNK  0xA000		/* symbolic link */
 
@@ -248,6 +248,7 @@ public:
 	int m_AutoRenMode;
 	HICON m_hIcon;
 	int m_bShellExec[2];
+	BOOL m_bPostMsg;
 
 #ifdef	USE_OLE
 	CSFtpDropTarget m_DropTarget;
@@ -409,5 +410,6 @@ protected:
 	afx_msg void OnRclickLocalList(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnRclickRemoteList(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg BOOL OnToolTipText(UINT, NMHDR* pNMHDR, LRESULT* pResult);
+	virtual void OnCancel();
 };
 

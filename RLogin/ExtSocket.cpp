@@ -89,6 +89,8 @@ CExtSocket::CExtSocket(class CRLoginDoc *pDoc)
 	m_bConnect = FALSE;
 	m_bCallConnect = TRUE;
 	m_AddrInfoTop = NULL;
+	m_pSyncEvent = NULL;
+	m_bUseProc = FALSE;
 }
 
 CExtSocket::~CExtSocket()
@@ -825,6 +827,10 @@ void CExtSocket::OnRecvEmpty()
 }
 void CExtSocket::OnSendEmpty()
 {
+	if ( m_pSyncEvent != NULL ) {
+		m_pSyncEvent->SetEvent();
+		m_pSyncEvent = NULL;
+	}
 }
 void CExtSocket::GetStatus(CString &str)
 {
@@ -1434,7 +1440,7 @@ void CExtSocket::OnRecive(int nFlags)
 		TRACE("OnRecive SocketEvent On %04x (%d)\n", m_SocketEvent, m_RecvSize);
 	}
 
-	for ( i = 0 ; i < 2 ; i++ ) {
+	for ( i = 0 ; i < 4 ; i++ ) {
 		sp = AllocBuffer();
 		sp->m_Type = nFlags;
 		sp->AddAlloc(RECVBUFSIZ);
@@ -1442,7 +1448,7 @@ void CExtSocket::OnRecive(int nFlags)
 		n = (m_SSL_mode ? SSL_read(m_SSL_pSock, (void *)sp->GetLast(), RECVBUFSIZ):
 						  ::recv(m_Fd, (char *)sp->GetLast(), RECVBUFSIZ, nFlags));
 
-		//DEBUGLOG("OnRecive %s %d\r\n", m_SSL_mode ? "SSL" : "", n);
+//		TRACE("OnRecive (%d) %s %d\r\n", i, m_SSL_mode ? "SSL" : "", n);
 
 		if ( n > 0 )
 			sp->AddSize(n);
@@ -1472,12 +1478,11 @@ void CExtSocket::OnRecive(int nFlags)
 		TRACE("OnRecive SocketEvent Off %04x (%d)\n", m_SocketEvent, m_RecvSize);
 	}
 
-	ReciveCall();
+	//WM_SOCKSELが他のメッセージをブロック？
+	//ReciveCall();
 }
 BOOL CExtSocket::ReciveCall()
 {
-//	TRACE("ReciveCall %08x (%d)\n", this, m_RecvSize);
-
 	if ( m_ProxyStatus != PRST_NONE && ProxyFunc() )
 		return TRUE;
 
@@ -1486,6 +1491,8 @@ BOOL CExtSocket::ReciveCall()
 
 	if ( (m_OnRecvFlag & RECV_ACTIVE) != 0 )
 		return TRUE;
+
+//	TRACE("ReciveCall %08x (%d)\n", this, m_RecvSize);
 
 	m_OnRecvFlag |= RECV_ACTIVE;
 
@@ -1628,8 +1635,16 @@ int CExtSocket::OnIdle()
 		return TRUE;
 	}
 
-	if ( ReciveCall() )
+	if ( m_bUseProc ) {
+		m_bUseProc = FALSE;
+		if ( ReciveProc() )
+			return TRUE;
+	}
+
+	if ( ReciveCall() ) {
+		m_bUseProc = TRUE;
 		return TRUE;
+	}
 
 	if ( ReciveProc() )
 		return TRUE;

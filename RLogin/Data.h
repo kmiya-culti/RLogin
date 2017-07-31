@@ -775,6 +775,9 @@ public:
 	CArray<ttymode_node, ttymode_node> m_TtyMode;
 	int m_RsaExt;
 	CString m_VerIdent;
+	BOOL m_x11AuthFlag;
+	CString m_x11AuthName;
+	CString m_x11AuthData;
 
 	CParamTab();
 	void Init();

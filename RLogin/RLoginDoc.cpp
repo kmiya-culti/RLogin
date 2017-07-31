@@ -50,8 +50,8 @@ BEGIN_MESSAGE_MAP(CRLoginDoc, CDocument)
 	ON_COMMAND(ID_SETOPTION, OnSetOption)
 	ON_COMMAND_RANGE(IDM_KANJI_EUC, IDM_KANJI_UTF8, OnKanjiCodeSet)
 	ON_UPDATE_COMMAND_UI_RANGE(IDM_KANJI_EUC, IDM_KANJI_UTF8, OnUpdateKanjiCodeSet)
-	ON_COMMAND_RANGE(IDM_XMODEM_UPLOAD, IDM_KERMIT_DOWNLOAD, OnXYZModem)
-	ON_UPDATE_COMMAND_UI_RANGE(IDM_XMODEM_UPLOAD, IDM_KERMIT_DOWNLOAD, OnUpdateXYZModem)
+	ON_COMMAND_RANGE(IDM_XMODEM_UPLOAD, IDM_SIMPLE_UPLOAD, OnXYZModem)
+	ON_UPDATE_COMMAND_UI_RANGE(IDM_XMODEM_UPLOAD, IDM_SIMPLE_UPLOAD, OnUpdateXYZModem)
 	ON_COMMAND(ID_SEND_BREAK, &CRLoginDoc::OnSendBreak)
 	ON_UPDATE_COMMAND_UI(ID_SEND_BREAK, &CRLoginDoc::OnUpdateSendBreak)
 	ON_COMMAND(IDM_TEKDISP, &CRLoginDoc::OnTekdisp)
@@ -1027,6 +1027,7 @@ void CRLoginDoc::DoDropFile()
 	case 3: m_pZModem->DoProc(2); break;
 	case 4: m_pZModem->DoProc(7); break;
 	case 6: m_pKermit->DoProc(1); break;
+	case 7: m_pKermit->DoProc(3); break;
 	}
 }
 
@@ -1608,7 +1609,7 @@ void CRLoginDoc::OnXYZModem(UINT nID)
 	if ( m_pSock == NULL )
 		return;
 
-	if ( nID == IDM_KERMIT_UPLOAD || nID == IDM_KERMIT_DOWNLOAD ) {
+	if ( nID == IDM_KERMIT_UPLOAD || nID == IDM_KERMIT_DOWNLOAD || nID == IDM_SIMPLE_UPLOAD ) {
 		if ( m_pKermit == NULL )
 			m_pKermit = new CKermit(this, AfxGetMainWnd());
 	} else {
@@ -1625,6 +1626,7 @@ void CRLoginDoc::OnXYZModem(UINT nID)
 	case IDM_ZMODEM_DOWNLOAD: m_pZModem->DoProc(6); break;
 	case IDM_KERMIT_UPLOAD:   m_pKermit->DoProc(1); break;
 	case IDM_KERMIT_DOWNLOAD: m_pKermit->DoProc(0); break;
+	case IDM_SIMPLE_UPLOAD:	  m_pKermit->DoProc(3); break;
 	}
 }
 void CRLoginDoc::OnUpdateXYZModem(CCmdUI* pCmdUI)

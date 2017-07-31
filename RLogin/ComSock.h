@@ -54,7 +54,10 @@ public:
 	void SendBreak(int opt = 0);
 	int Send(const void* lpBuf, int nBufLen, int nFlags = 0);
 	void OnRecive(int nFlags);
+	void OnSend();
 	void GetStatus(CString &str);
+	int GetRecvSize();
+	int GetSendSize();
 
 	void OnReadWriteProc();
 

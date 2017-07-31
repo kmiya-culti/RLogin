@@ -222,11 +222,12 @@ BEGIN
             MENUITEM "&2 YModemアップロード",             IDM_YMODEM_UPLOAD
             MENUITEM "&3 ZModemアップロード",             IDM_ZMODEM_UPLOAD
             MENUITEM "&4 Kermitアップロード",             IDM_KERMIT_UPLOAD
+            MENUITEM "&5 ファイルアップロード",               IDM_SIMPLE_UPLOAD
             MENUITEM SEPARATOR
-            MENUITEM "&5 XModemダウンロード",             IDM_XMODEM_DOWNLOAD
-            MENUITEM "&6 YModemダウンロード",             IDM_YMODEM_DOWNLOAD
-            MENUITEM "&7 ZModemダウンロード",             IDM_ZMODEM_DOWNLOAD
-            MENUITEM "&8 Kermitダウンロード",             IDM_KERMIT_DOWNLOAD
+            MENUITEM "&6 XModemダウンロード",             IDM_XMODEM_DOWNLOAD
+            MENUITEM "&7 YModemダウンロード",             IDM_YMODEM_DOWNLOAD
+            MENUITEM "&8 ZModemダウンロード",             IDM_ZMODEM_DOWNLOAD
+            MENUITEM "&9 Kermitダウンロード",             IDM_KERMIT_DOWNLOAD
         END
         MENUITEM "スクリプトの実行(&E)",                IDM_SCRIPT
         MENUITEM SEPARATOR
@@ -245,6 +246,7 @@ BEGIN
             MENUITEM "保存されたクリップボード",                IDM_CLIPBOARD_HIS1
         END
         MENUITEM SEPARATOR
+        MENUITEM "検索マーク(&K)",                   IDM_EDIT_MARK
         MENUITEM "文字列を検索(&F)",                  IDM_SEARCH_REG
         MENUITEM "前を検索(&D)",                    IDM_SEARCH_BACK
         MENUITEM "次を検索(&N)",                    IDM_SEARCH_NEXT
@@ -392,6 +394,7 @@ BEGIN
         MENUITEM "標準の設定にする(&S)",                IDC_SAVEDEFAULT
         MENUITEM "標準の設定に戻す(&Y)",                IDC_LOADDEFAULT
         MENUITEM "プロトコルハンドラに登録(&P)",            IDM_SERV_PROTO
+        MENUITEM "ショートカットを作成(&L)",              IDM_SHORTCUT
         MENUITEM "ファイルから設定変更(&F)",              IDM_SERV_EXCHNG
         MENUITEM SEPARATOR
         MENUITEM "ファイルからインポート(&I)",             IDM_SERV_INPORT
@@ -522,7 +525,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.20.4 (2016/05/09)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.20.5a (2016/06/06)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2016 Culti",IDC_STATIC,44,16,189,8
     DEFPUSHBUTTON   "OK",IDOK,96,171,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.2h 3 May 2016",IDC_STATIC,44,29,189,8
@@ -816,19 +819,25 @@ BEGIN
     GROUPBOX        "Connect",IDC_STATIC,7,83,191,53
 END
 
-IDD_PFDLISTDLG DIALOGEX 0, 0, 257, 167
+IDD_PFDLISTDLG DIALOGEX 0, 0, 259, 248
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "SSH2 ポートフォワード"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    CONTROL         "List2",IDC_PFDLIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | WS_BORDER | WS_TABSTOP,7,7,243,109
-    CONTROL         "X11ポートフォワードを使用する",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,125,115,10
-    EDITTEXT        IDC_EDIT1,183,123,60,14,ES_AUTOHSCROLL
-    PUSHBUTTON      "新規(&N)",IDC_PFDNEW,13,146,50,14
-    PUSHBUTTON      "編集(&E)",IDC_PFDEDIT,73,146,50,14
-    PUSHBUTTON      "削除(&D)",IDC_PFDDEL,133,146,50,14
-    DEFPUSHBUTTON   "閉じる",IDOK,193,146,50,14
-    RTEXT           "DISPLAY",IDC_STATIC,138,126,40,8
+    CONTROL         "List2",IDC_PFDLIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | WS_BORDER | WS_TABSTOP,7,7,245,109
+    CONTROL         "X11ポートフォワードを使用する",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,134,228,10
+    EDITTEXT        IDC_EDIT1,144,148,100,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT2,144,182,100,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT3,144,199,100,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "新規(&N)",IDC_PFDNEW,13,227,50,14
+    PUSHBUTTON      "編集(&E)",IDC_PFDEDIT,73,227,50,14
+    PUSHBUTTON      "削除(&D)",IDC_PFDDEL,133,227,50,14
+    DEFPUSHBUTTON   "閉じる",IDOK,193,227,50,14
+    LTEXT           "X11 Local DISPLAY",IDC_STATIC,24,151,110,8
+    GROUPBOX        "X11転送",IDC_STATIC,7,121,245,99
+    LTEXT           "xauth Local Protocol Name",IDC_STATIC,24,185,110,8
+    LTEXT           "xauth Local Protocol Data",IDC_STATIC,24,202,110,8
+    CONTROL         "xauthのチェックを行わないようにする",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,168,228,10
 END
 
 IDD_CHARSETPAGE DIALOGEX 0, 0, 270, 280
@@ -1719,8 +1728,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,20,4,0
- PRODUCTVERSION 2,20,4,0
+ FILEVERSION 2,20,5,0
+ PRODUCTVERSION 2,20,5,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1737,12 +1746,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.20.4.0"
+            VALUE "FileVersion", "2.20.5.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2015 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.20.4.0"
+            VALUE "ProductVersion", "2.20.5.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -1875,9 +1884,9 @@ BEGIN
     IDD_PFDLISTDLG, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 250
+        RIGHTMARGIN, 252
         TOPMARGIN, 7
-        BOTTOMMARGIN, 160
+        BOTTOMMARGIN, 241
     END
 
     IDD_CHARSETPAGE, DIALOG
@@ -2981,6 +2990,8 @@ BEGIN
 0x4353, 0x0050, 
     IDC_COMBO1, 0x403, 7, 0
 0x654b, 0x6d72, 0x7469, "\000" 
+    IDC_COMBO1, 0x403, 5, 0
+0x6946, 0x656c, "\000" 
     0
 END
 
@@ -3333,11 +3344,24 @@ END
 
 STRINGTABLE
 BEGIN
+    IDM_ICONLOAD            "アイコンとして画像ファイルを読み込む\nアイコン設定"
+    IDM_TOOLCUST            "ツールバーを設定しす\nツールバー設定"
+    IDM_CREATEPROFILE       "プライベートプロファイルを新規作成します\nプロファイル作成"
+    IDM_SHORTCUT            "ディスクトップにショートカットを作成します\nショートカットを作成"
+    IDM_EDIT_MARK           "範囲指定した文字列を検索結果としてマークします\n検索マーク"
+    IDM_XMODEM_UPLOAD       "XModemでファイルをアップロードする\nXModemアップ"
+    IDM_YMODEM_UPLOAD       "YModemでファイルをアップロードする\nYModemアップ"
+    IDM_ZMODEM_UPLOAD       "ZModemでファイルをアップロードする\nZModemアップ"
     IDM_XMODEM_DOWNLOAD     "XModemでファイルをダウンロードする\nXModemダウン"
     IDM_YMODEM_DOWNLOAD     "YModemでファイルをダウンロードする\nYModemダウン"
     IDM_ZMODEM_DOWNLOAD     "ZModemでファイルをダウンロードする\nZModemダウン"
     IDM_KERMIT_UPLOAD       "Kermitでファイルをアップロードする\nKermitアップ"
     IDM_KERMIT_DOWNLOAD     "Kermitでファイルをダウンロードする\nKermitダウン"
+    IDM_SIMPLE_UPLOAD       "プロトコル無しでファイルをアップロードする\nファイルアップ"
+END
+
+STRINGTABLE
+BEGIN
     IDM_VERSIONCHECK        "定期的に新バージョンをチェックする\n新バージョンチェック"
     IDM_DIALOGFONT          "ダイアログフォントを設定します\nダイアログフォント"
     IDM_NONENCRYPTFILE      "空のパスフレーズで作成されています\n暗号化されない認証鍵ファイルを作成しますか？"
@@ -3397,9 +3421,6 @@ BEGIN
     IDM_TRACEDISP           "トレースウィンドウを表示・非表示\nトレースウィンドウ"
     IDM_WINDOW_PREV         "前のウィンドウに移動します\n前に移動"
     IDM_WINODW_NEXT         "次のウィンドウに移動します\n次に移動"
-    IDM_XMODEM_UPLOAD       "XModemでファイルをアップロードする\nXModemアップ"
-    IDM_YMODEM_UPLOAD       "YModemでファイルをアップロードする\nYModemアップ"
-    IDM_ZMODEM_UPLOAD       "ZModemでファイルをアップロードする\nZModemアップ"
 END
 
 STRINGTABLE
@@ -3686,13 +3707,6 @@ END
 STRINGTABLE
 BEGIN
     IDM_FIRST_MDICHILD      "アクティブウィンドウを選択\nウィンドウ選択"
-END
-
-STRINGTABLE
-BEGIN
-    IDM_ICONLOAD            "アイコンとして画像ファイルを読み込む\nアイコン設定"
-    IDM_TOOLCUST            "ツールバーを設定しす\nツールバー設定"
-    IDM_CREATEPROFILE       "プライベートプロファイルを新規作成します\nプロファイル作成"
 END
 
 #endif    // 日本語 (日本) resources

@@ -98,6 +98,8 @@ BEGIN_MESSAGE_MAP(CRLoginView, CView)
 	ON_COMMAND(ID_FILE_PRINT, &CView::OnFilePrint)
 	ON_COMMAND(ID_FILE_PRINT_DIRECT, &CView::OnFilePrint)
 	ON_COMMAND(ID_FILE_PRINT_PREVIEW, &CView::OnFilePrintPreview)
+	ON_COMMAND(IDM_EDIT_MARK, &CRLoginView::OnEditMark)
+	ON_UPDATE_COMMAND_UI(IDM_EDIT_MARK, &CRLoginView::OnUpdateEditMark)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -954,6 +956,13 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 	case UPDATE_UPDATEWINDOW:
 		UpdateWindow();
 		return;
+
+	case UPDATE_CLIPCLAER:
+		if ( m_ClipFlag != 6 )
+			return;
+		m_ClipFlag = 0;
+		lHint = UPDATE_CLIPERA;
+		break;
 	}
 
 	if ( (m_DispCaret & FGCARET_FOCUS) != 0 && pSender != this && m_ScrollOut == FALSE &&
@@ -2701,6 +2710,7 @@ void CRLoginView::OnEditCopy()
 	if ( m_ClipFlag == 6 ) {
 		CRLoginDoc *pDoc = GetDocument();
 		pDoc->m_TextRam.EditCopy(m_ClipStaPos, m_ClipEndPos, IsClipRectMode(), IsClipLineMode());
+
 		if ( !pDoc->m_TextRam.IsOptEnable(TO_RLSTAYCLIP) ) {
 			m_ClipFlag = 0;
 			OnUpdate(this, UPDATE_CLIPERA, NULL);
@@ -2711,12 +2721,27 @@ void CRLoginView::OnUpdateEditCopy(CCmdUI* pCmdUI)
 {
 	pCmdUI->Enable(m_ClipFlag == 6 ? TRUE : FALSE);
 }
+
+void CRLoginView::OnEditMark()
+{
+	if ( m_ClipFlag == 6 ) {
+		CRLoginDoc *pDoc = GetDocument();
+		pDoc->m_TextRam.EditMark(m_ClipStaPos, m_ClipEndPos, IsClipRectMode(), IsClipLineMode());
+
+		m_ClipFlag = 0;
+		OnUpdate(this, UPDATE_CLIPERA, NULL);
+	}
+}
+void CRLoginView::OnUpdateEditMark(CCmdUI *pCmdUI)
+{
+	pCmdUI->Enable(m_ClipFlag == 6 ? TRUE : FALSE);
+}
+
 void CRLoginView::OnEditCopyAll()
 {
 	CRLoginDoc *pDoc = GetDocument();
 
 	m_ClipStaPos = pDoc->m_TextRam.GetCalcPos(0, 0 - pDoc->m_TextRam.m_HisLen + pDoc->m_TextRam.m_Lines);
-//	m_ClipStaPos = pDoc->m_TextRam.GetCalcPos(0, 0);
 	m_ClipEndPos = pDoc->m_TextRam.GetCalcPos(pDoc->m_TextRam.m_Cols - 1, pDoc->m_TextRam.m_Lines - 1);
 	m_ClipFlag     = 6;
 	m_ClipTimer    = 0;
@@ -2765,7 +2790,7 @@ void CRLoginView::OnDropFiles(HDROP hDropInfo)
 	CFileStatus st;
 	BOOL doCmd = FALSE;
 
-	if ( pDoc->m_TextRam.m_DropFileMode == 0 || pDoc->m_TextRam.m_DropFileCmd[pDoc->m_TextRam.m_DropFileMode].IsEmpty() ) {
+	if ( pDoc->m_TextRam.m_DropFileMode == 0 ) { // || pDoc->m_TextRam.m_DropFileCmd[pDoc->m_TextRam.m_DropFileMode].IsEmpty() ) {
 		CView::OnDropFiles(hDropInfo);
 		return;
 	}
@@ -2787,7 +2812,7 @@ void CRLoginView::OnDropFiles(HDROP hDropInfo)
 		} else if ( pDoc->m_TextRam.m_DropFileMode == 5 ) {
 			if ( pDoc->m_pSock != NULL && pDoc->m_pSock->m_Type == ESCT_SSH_MAIN && ((Cssh *)(pDoc->m_pSock))->m_SSHVer == 2 )
 				((Cssh *)(pDoc->m_pSock))->OpenRcpUpload(FileName);
-		} else if ( pDoc->m_TextRam.m_DropFileMode == 6 ) {
+		} else if ( pDoc->m_TextRam.m_DropFileMode == 6 || pDoc->m_TextRam.m_DropFileMode == 7 ) {
 			if ( pDoc->m_pKermit == NULL )
 				pDoc->m_pKermit = new CKermit(pDoc, AfxGetMainWnd());
 			if ( pDoc->m_pKermit->m_ResvPath.IsEmpty() && !pDoc->m_pKermit->m_ThreadFlag )
@@ -3159,3 +3184,4 @@ void CRLoginView::OnPrint(CDC* pDC, CPrintInfo* pInfo)
 	pDoc->m_TextRam.m_ScrnOffset.top    = save_param[8];
 	pDoc->m_TextRam.m_ScrnOffset.bottom = save_param[9];
 }
+

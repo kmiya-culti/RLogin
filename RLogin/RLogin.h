@@ -75,8 +75,8 @@ public:
 class CRLoginApp : public CWinApp
 {
 public:
+	int m_IdleProcCount;
 	CIdleProc *m_pIdleTop;
-	CIdleProc *m_pIdleNext;
 	CPtrArray m_SocketIdle;
 	class CFontChache m_FontData;
 	WSADATA wsaData;
@@ -112,6 +112,7 @@ public:
 #endif
 
 	BOOL GetExtFilePath(LPCTSTR ext, CString &path);
+	BOOL CreateDesktopShortcut(LPCTSTR entry);
 
 	void AddIdleProc(int Type, void *pParam);
 	void DelIdleProc(int Type, void *pParam);

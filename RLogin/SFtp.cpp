@@ -574,6 +574,7 @@ CSFtp::CSFtp(CWnd* pParent /*=NULL*/)
 	m_AutoRenMode = 0;
 	m_bUidGid = FALSE;
 	m_bShellExec[0] = m_bShellExec[1] = 0;
+	m_bPostMsg = FALSE;
 }
 CSFtp::~CSFtp()
 {
@@ -623,31 +624,10 @@ int CSFtp::OnRecive(const void *lpBuf, int nBufLen)
 		return nBufLen;
 	}
 
-	int n;
-	int len = 0;
-	CBuffer *buf = NULL;
-
-	while ( m_RecvBuf.GetSize() >= 4 ) {
-		n = m_RecvBuf.PTR32BIT(m_RecvBuf.GetPtr());
-		if ( n > (256 * 1024) || n < 0 )
-			throw "sftp packet length error";
-		if ( m_RecvBuf.GetSize() < (n + 4) )
-			break;
-
-		if ( buf == NULL )
-			buf = new CBuffer[10];
-		buf[len++].Apend(m_RecvBuf.GetPtr() + 4, n);
-		m_RecvBuf.Consume(n + 4);
-
-		if ( len >= 10 ) {
-			PostMessage(WM_RECIVEBUFFER, len, (LPARAM)buf);
-			buf = NULL;
-			len = 0;
-		}
+	if ( !m_bPostMsg ) {
+		m_bPostMsg = TRUE;
+		PostMessage(WM_RECIVEBUFFER);
 	}
-
-	if ( buf != NULL )
-		PostMessage(WM_RECIVEBUFFER, len, (LPARAM)buf);
 
 	return nBufLen;
 }
@@ -2523,7 +2503,7 @@ void CSFtp::SetItemOffset(int cx, int cy)
 /////////////////////////////////////////////////////////////////////////////
 // CSFtp メッセージ ハンドラ
 
-void CSFtp::OnClose() 
+void CSFtp::OnCancel()
 {
 	if ( !IsIconic() ) {
 		CRect rect;
@@ -2534,6 +2514,11 @@ void CSFtp::OnClose()
 		AfxGetApp()->WriteProfileInt(_T("SFtpWnd"), _T("cy"), rect.bottom);
 	}
 	Close();
+	CDialogExt::OnCancel();
+}
+
+void CSFtp::OnClose() 
+{
 	CDialogExt::OnClose();
 }
 
@@ -3502,13 +3487,26 @@ void CSFtp::OnTimer(UINT_PTR nIDEvent)
 LRESULT CSFtp::OnReciveBuffer(WPARAM wParam, LPARAM lParam)
 {
 	int n;
-	int len = (int)wParam;
-	CBuffer *buf = (CBuffer *)lParam;
+	CBuffer buf;
 
-	for ( n = 0 ; n < len ; n++ )
-		ReciveBuffer(&(buf[n]));
+//	TRACE("OnReciveBuffer %d\n", m_RecvBuf.GetSize());
 
-	delete [] buf;
+	while ( m_RecvBuf.GetSize() >= 4 ) {
+		n = m_RecvBuf.PTR32BIT(m_RecvBuf.GetPtr());
+		if ( n > (256 * 1024) || n < 0 )
+			throw "sftp packet length error";
+		if ( m_RecvBuf.GetSize() < (n + 4) )
+			break;
+
+		buf.Clear();
+		buf.Apend(m_RecvBuf.GetPtr() + 4, n);
+		m_RecvBuf.Consume(n + 4);
+
+		ReciveBuffer(&buf);
+	}
+
+	m_bPostMsg = FALSE;
+
 	return TRUE;
 }
 
@@ -3557,3 +3555,4 @@ void CSFtp::OnEditPaste()
 
 	CloseClipboard();
 }
+

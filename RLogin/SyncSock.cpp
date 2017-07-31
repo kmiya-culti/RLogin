@@ -193,13 +193,13 @@ void CSyncSock::ThreadCommand(int cmd)
 		break;
 	case THCMD_SENDSYNC:
 		m_SendSema.Lock();
-		if ( m_pDoc->m_pSock != NULL )
+		if ( m_pDoc->m_pSock != NULL ) {
+			m_pDoc->m_pSock->m_pSyncEvent = m_pParamEvent;
 			m_pDoc->m_pSock->Send(m_SendBuf.GetPtr(), m_SendBuf.GetSize(), 0);
+		}
 		m_SendBuf.Clear();
 		m_SendSema.Unlock();
-		while ( m_pDoc->m_pSock->GetSendSize() > (256 * 1024) )
-			Sleep(100);
-		m_pParamEvent->SetEvent();
+		//m_pParamEvent->SetEvent();
 		break;
 	case TGCMD_MESSAGE:
 		m_pWnd->MessageBox(MbsToTstr(m_Message));
@@ -207,6 +207,13 @@ void CSyncSock::ThreadCommand(int cmd)
 		break;
 	case TGCMD_NOWAITMESSAGE:
 		m_pWnd->MessageBox(MbsToTstr(m_Message));
+		break;
+	case THCMD_ECHOBUFFER:
+		m_SendSema.Lock();
+		m_pDoc->OnSocketRecive(m_SendBuf.GetPtr(), m_SendBuf.GetSize(), 0);
+		m_SendBuf.Clear();
+		m_SendSema.Unlock();
+		m_pParamEvent->SetEvent();
 		break;
 	}
 }
@@ -374,7 +381,18 @@ void CSyncSock::SendEcho(int ch)
 	m_pWnd->PostMessage(WM_THREADCMD, THCMD_ECHO, (LPARAM)this);
 	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
 }
-
+void CSyncSock::SendEchoBuffer(char *buf, int len)
+{
+	if ( m_DoAbortFlag )
+		return;
+	m_SendSema.Lock();
+	m_SendBuf.Clear();
+	m_SendBuf.Apend((LPBYTE)buf, len);
+	m_SendSema.Unlock();
+	m_pParamEvent->ResetEvent();
+	m_pWnd->PostMessage(WM_THREADCMD, THCMD_ECHOBUFFER, (LPARAM)this);
+	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
+}
 void CSyncSock::UpDownOpen(LPCSTR msg)
 {
 	m_Message = msg;
@@ -419,6 +437,7 @@ void CSyncSock::SendString(LPCWSTR str)
 	m_SendBuf.Clear();
 	m_SendBuf.Apend((LPBYTE)str, (int)wcslen(str) * sizeof(WCHAR));
 	m_SendSema.Unlock();
+	m_pParamEvent->ResetEvent();
 	m_pWnd->PostMessage(WM_THREADCMD, THCMD_SENDSTR, (LPARAM)this);
 	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
 }
@@ -430,6 +449,7 @@ void CSyncSock::SendScript(LPCWSTR str)
 	m_SendBuf.Clear();
 	m_SendBuf.Apend((LPBYTE)str, (int)wcslen(str) * sizeof(WCHAR));
 	m_SendSema.Unlock();
+	m_pParamEvent->ResetEvent();
 	m_pWnd->PostMessage(WM_THREADCMD, THCMD_SENDSCRIPT, (LPARAM)this);
 	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
 }

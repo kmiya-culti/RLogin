@@ -15,6 +15,7 @@ public:
 
 public:
 	CTabCtrl m_TabCtrl;
+	CFont m_TabFont;
 	int m_GhostReq;
 	int m_GhostItem;
 	class CRLoginView *m_pGhostView;

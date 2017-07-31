@@ -122,9 +122,20 @@ int CTabBar::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		TRACE0("Unable to create tab control bar\n");
 		return (-1);
 	}
- 
-	CFont *font = CFont::FromHandle((HFONT)::GetStockObject(DEFAULT_GUI_FONT));
-	m_TabCtrl.SetFont(font);
+
+	CString FontName = ::AfxGetApp()->GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
+	int FontSize = ::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9);	
+
+	if ( FontName.IsEmpty() || !m_TabFont.CreatePointFont(FontSize * 10, FontName) ) {
+		CFont *font = CFont::FromHandle((HFONT)::GetStockObject(DEFAULT_GUI_FONT));
+		m_TabCtrl.SetFont(font);
+		SetFont(font);
+
+	} else {
+		m_TabCtrl.SetFont(&m_TabFont);
+		SetFont(&m_TabFont);
+	}
+
 //	m_TabCtrl.SetPadding(CSize(2, 3));
 	m_TabCtrl.SetMinTabWidth(16);
 

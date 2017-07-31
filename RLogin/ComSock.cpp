@@ -190,6 +190,26 @@ void CComSock::SetXonXoff(int sw)
 	if ( m_ThreadMode == 1 )
 		WaitForSingleObject(m_pStatEvent->m_hObject, INFINITE);
 }
+int CComSock::GetRecvSize()
+{
+	int len = CExtSocket::GetRecvSize();
+	
+	m_RecvSema.Lock();
+	len += m_RecvBuff.GetSize();
+	m_RecvSema.Unlock();
+
+	return len;
+}
+int CComSock::GetSendSize()
+{
+	int len = CExtSocket::GetSendSize();
+
+	m_SendSema.Lock();
+	len += m_SendBuff.GetSize();
+	m_SendSema.Unlock();
+
+	return len;
+}
 
 void CComSock::GetStatus(CString &str)
 {
@@ -272,6 +292,14 @@ void CComSock::OnRecive(int nFlags)
 
 	m_RecvSema.Unlock();
 }
+void CComSock::OnSend()
+{
+	// AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hCom, FD_WRITE);
+	// Send Empty Call
+
+	CExtSocket::OnSendEmpty();
+}
+
 void CComSock::OnReadWriteProc()
 {
 	DWORD n;
@@ -434,6 +462,8 @@ void CComSock::OnReadWriteProc()
 					WriteByte = 1024;
 				memcpy(WriteBuf, m_SendBuff.GetPtr(), WriteByte);
 				m_SendBuff.Consume(WriteByte);
+				if ( m_SendBuff.GetSize() == 0 )
+					AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hCom, FD_WRITE);
 				m_SendSema.Unlock();
 			} else {
 				m_pSendEvent->ResetEvent();

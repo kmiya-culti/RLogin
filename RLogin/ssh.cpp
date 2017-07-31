@@ -510,10 +510,14 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 		if ( m_StdChan != (-1) )
 			((CChannel *)m_pChan[m_StdChan])->m_pFilter->OnSendEmpty();
 
-	} catch(LPCTSTR pMsg) {
-		CString tmp;
-		tmp.Format(_T("ssh Recive Packet Error '%s'"), pMsg);
-		::AfxMessageBox(tmp);
+	} catch(LPCWSTR pMsg) {
+		CStringW tmp;
+		tmp.Format(L"ssh Recive Packet Error '%s'", pMsg);
+		::AfxMessageBox(UniToTstr(tmp));
+	} catch(LPCSTR pMsg) {
+		CStringA tmp;
+		tmp.Format("ssh Recive Packet Error '%s'", pMsg);
+		::AfxMessageBox(MbsToTstr(tmp));
 	} catch(...) {
 		::AfxMessageBox(_T("ssh Recive unkown Error"));
 	}
@@ -568,8 +572,27 @@ void Cssh::OnSendEmpty()
 {
 	if ( m_StdChan != (-1) )
 		ChannelPolling(m_StdChan);
+
 	for ( CFilter *fp = m_pListFilter ; fp != NULL ; fp = fp->m_pNext )
 		fp->OnSendEmpty();
+
+	CExtSocket::OnSendEmpty();
+}
+int Cssh::GetRecvSize()
+{
+	if ( m_StdChan == (-1) )
+		return 0;
+
+	// CStdIoFilter Send Size = Display Wait Size
+	return ((CChannel *)m_pChan[m_StdChan])->GetSendSize();
+}
+int Cssh::GetSendSize()
+{
+	if ( m_StdChan == (-1) )
+		return 0;
+
+	// CStdIoFilter Recive Size = Console input Size
+	return ((CChannel *)m_pChan[m_StdChan])->GetRecvSize();
 }
 
 void Cssh::GetStatus(CString &str)
@@ -1227,6 +1250,9 @@ void Cssh::ChannelCheck(int n)
 			case SSHFT_RCP:
 				LogIt(_T("Closed #%d rcp"), n);
 				break;
+			case SSHFT_X11:
+				LogIt(_T("Closed #%d x11"), n);
+				break;
 			}
 		} else
 			LogIt(_T("Closed #%d %s:%d -> %s:%d"), n, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
@@ -1538,6 +1564,7 @@ void Cssh::OpenSFtpChannel()
 	CSFtpFilter *pFilter = new CSFtpFilter;
 
 	((CChannel *)m_pChan[id])->m_pFilter = pFilter;
+	pFilter->m_pChan = (CChannel *)m_pChan[id];
 	pFilter->m_pSFtp = new CSFtp(NULL);
 	pFilter->m_pSFtp->m_pSSh = this;
 	pFilter->m_pSFtp->m_pChan = (CChannel *)m_pChan[id];
@@ -1970,7 +1997,7 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 	int n;
 	int sx = 0, sy = 0;
 	LPCTSTR p;
-	CBuffer tmp, tmode;
+	CBuffer tmp, tmode, dump;
 	CString str;
 	CStringIndex env;
 	CChannel *cp = (CChannel *)m_pChan[id];
@@ -2027,15 +2054,22 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 				p++;
 			if ( *p == _T('.') )
 				n = _tstoi(++p);
-			str.Format(_T("%04x%04x%04x%04x"), rand(), rand(), rand(), rand());
+
+			m_x11AuthName = _T("MIT-MAGIC-COOKIE-1");
+			rand_buf(m_x11AuthData.PutSpc(16), 16);
+			dump.Base16Encode(m_x11AuthData.GetPtr(), m_x11AuthData.GetSize());
+
+			m_x11LocalName = m_pDocument->m_ParamTab.m_x11AuthName;
+			m_x11LocalData.Base64Decode(m_pDocument->m_ParamTab.m_x11AuthData);
+
 			tmp.Clear();
 			tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
 			tmp.Put32Bit(cp->m_RemoteID);
 			tmp.PutStr("x11-req");
 			tmp.Put8Bit(0);
 			tmp.Put8Bit(0);		// XXX bool single connection
-			tmp.PutStr("MIT-MAGIC-COOKIE-1");
-			tmp.PutStr(TstrToMbs(str));
+			tmp.PutStr(TstrToMbs(m_x11AuthName));
+			tmp.PutStr(TstrToMbs((LPCTSTR)dump));
 			tmp.Put32Bit(n);	// screen number
 			SendPacket2(&tmp);
 		}
@@ -2219,7 +2253,7 @@ void Cssh::SendPacket2(CBuffer *bp)
 	m_SendPackSeq += 1;
 	m_SendPackLen += sz;
 
-	if ( (m_SSH2Status & SSH2_STAT_SENTKEXINIT) == 0 && GetSendSize() == 0 && GetRecvSize() == 0 && (m_SendPackLen >= MAX_PACKETLEN || m_RecvPackLen >= MAX_PACKETLEN) )
+	if ( (m_SSH2Status & SSH2_STAT_SENTKEXINIT) == 0 && CExtSocket::GetSendSize() == 0 && CExtSocket::GetRecvSize() == 0 && (m_SendPackLen >= MAX_PACKETLEN || m_RecvPackLen >= MAX_PACKETLEN) )
 		SendMsgKexInit();
 }
 
@@ -2887,6 +2921,9 @@ int Cssh::SSH2MsgChannelOpen(CBuffer *bp)
 		if ( host[1].IsEmpty() || host[1].CompareNoCase(_T("unix")) == 0 )
 			host[1] = _T("127.0.0.1");
 
+		cp->m_pFilter = new CX11Filter;
+		cp->m_pFilter->m_pChan = cp;
+
 		cp->m_Status |= CHAN_OPEN_REMOTE;
 		cp->m_lHost = host[1];
 		cp->m_lPort = 6000 + port[1];
@@ -2991,6 +3028,9 @@ int Cssh::SSH2MsgChannelOpenReply(CBuffer *bp, int type)
 		case SSHFT_RCP:
 			LogIt(_T("Connect #%d rcp"), id);
 			SendMsgChannelRequesstExec(id);
+			break;
+		case SSHFT_X11:
+			LogIt(_T("Connect #%d x11"), id);
 			break;
 		}
 	} else

@@ -844,9 +844,6 @@ static const UINT indicators[] =
 //	ID_INDICATOR_KANA,
 };
 
-static UINT SetClipboardThread(LPVOID pParam);
-static UINT GetClipboardThread(LPVOID pParam);
-
 /////////////////////////////////////////////////////////////////////////////
 // CMainFrame コンストラクション/デストラクション
 
@@ -1020,7 +1017,7 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	// クリップボードチェインの設定
 	if ( ExAddClipboardFormatListener != NULL && ExRemoveClipboardFormatListener != NULL ) {
 		if ( ExAddClipboardFormatListener(m_hWnd) )
-			AfxBeginThread(GetClipboardThread, this, THREAD_PRIORITY_NORMAL);
+			PostMessage(WM_GETCLIPBOARD);
 	} else {
 		m_bClipChain = TRUE;
 		m_hNextClipWnd = SetClipboardViewer();
@@ -1168,12 +1165,12 @@ void CMainFrame::PagentInit(CArray<CIdKey, CIdKey &> *pKeyTab)
 	CStringA name;
 
 	in.Put32Bit(1);
-	in.Put8Bit(SSH2_AGENTC_REQUEST_IDENTITIES);
+	in.Put8Bit(SSH_AGENTC_REQUEST_IDENTITIES);
 
 	if ( !PagentQuery(&in, &out) )
 		return;
 
-	if ( out.GetSize() < 5 || out.Get8Bit() != SSH2_AGENT_IDENTITIES_ANSWER )
+	if ( out.GetSize() < 5 || out.Get8Bit() != SSH_AGENT_IDENTITIES_ANSWER )
 		return;
 
 	for ( count = out.Get32Bit() ; count > 0 ; count-- ) {
@@ -1189,7 +1186,7 @@ int CMainFrame::PagentSign(CBuffer *blob, CBuffer *sign, LPBYTE buf, int len)
 {
 	CBuffer in, out, work;
 
-	work.Put8Bit(SSH2_AGENTC_SIGN_REQUEST);
+	work.Put8Bit(SSH_AGENTC_SIGN_REQUEST);
 	work.PutBuf(blob->GetPtr(), blob->GetSize());
 	work.PutBuf(buf, len);
 	work.Put32Bit(0);
@@ -1199,7 +1196,7 @@ int CMainFrame::PagentSign(CBuffer *blob, CBuffer *sign, LPBYTE buf, int len)
 	if ( !PagentQuery(&in, &out) )
 		return FALSE;
 
-	if ( out.GetSize() < 5 || out.Get8Bit() != SSH2_AGENT_SIGN_RESPONSE )
+	if ( out.GetSize() < 5 || out.Get8Bit() != SSH_AGENT_SIGN_RESPONSE )
 		return FALSE;
 
 	sign->Clear();
@@ -1878,88 +1875,55 @@ void CMainFrame::SetClipBoardMenu(UINT nId, CMenu *pMenu)
 }
 void *CMainFrame::CopyClipboardData(UINT type)
 {
-	int len;
+	int len, max;
 	HGLOBAL hData;
-	void *pData;
+	void *pData = NULL;
 
 	if ( !IsClipboardFormatAvailable(type) )
-		return NULL;
+		goto ERRRET2;
 
 	for ( int n = 0 ; !OpenClipboard() ; n++ ) {
 		if ( n >= 10 )
-			return NULL;
+			goto ERRRET2;
 		Sleep(100 + (rand() % 200));
 	}
 
-	if ( (hData = GetClipboardData(type)) == NULL ) {
-		CloseClipboard();
-		return NULL;
-	}
+	if ( (hData = GetClipboardData(type)) == NULL )
+		goto ERRRET;
 
-	if ( (pData = (void *)GlobalLock(hData)) == NULL ) {
-        CloseClipboard();
-        return NULL;
-    }
+	if ( (pData = (void *)GlobalLock(hData)) == NULL )
+		goto ERRRET;
 
 	// タイプ別でpDataをローカルメモリにコピー
 	if ( type == CF_UNICODETEXT ) {
-		LPWSTR pBuf;
-		len = (int)(GlobalSize(hData) / sizeof(WCHAR)) + 1;
-		pBuf = new WCHAR[len];
-		memcpy((void *)pBuf, pData, len * sizeof(WCHAR));
-		pBuf[len - 1] = _T('\0');
+		max = (int)GlobalSize(hData) / sizeof(WCHAR);
+		LPWSTR pBuf = (LPWSTR)pData;
+		for ( len = 0 ; len < max && len < (256 * 1024) && *pBuf != L'\0' ; len++ )
+			pBuf++;
+		pBuf = new WCHAR[len + 1];
+		wcsncpy(pBuf, (LPWSTR)pData, len);
+		pBuf[len] = L'\0';
 		pData = (void *)pBuf;
 
 	} else if ( type == CF_TEXT ) {
-		LPSTR pBuf;
-		len = (int)(GlobalSize(hData) / sizeof(CHAR)) + 1;
-		pBuf = new CHAR[len];
-		memcpy((void *)pBuf, pData, len * sizeof(CHAR));
-		pBuf[len - 1] = _T('\0');
+		max = (int)GlobalSize(hData) / sizeof(CHAR);
+		LPSTR pBuf = (LPSTR)pData;
+		for ( len = 0 ; len < max && len < (256 * 1024) && *pBuf != '\0' ; len++ )
+			pBuf++;
+		pBuf = new CHAR[len + 1];
+		strncpy(pBuf, (LPSTR)pData, len);
+		pBuf[len] = '\0';
 		pData = (void *)pBuf;
 
 	} else {
-		LPBYTE pBuf;
-		len = (int)GlobalSize(hData);
-		pBuf = new BYTE[len];
-		memcpy((void *)pBuf, pData, len);
-		pData = (void *)pBuf;
+		pData = NULL;
 	}
 
 	GlobalUnlock(hData);
+ERRRET:
 	CloseClipboard();
-
+ERRRET2:
 	return pData;
-}
-static UINT SetClipboardThread(LPVOID pParam)
-{
-	CMainFrame *pWnd = (CMainFrame *)::AfxGetMainWnd();
-	HGLOBAL hClipData = (HGLOBAL)pParam;
-
-	for ( int n = 0 ; !pWnd->OpenClipboard() ; n++ ) {
-		if ( n >= 10 ) {
-			GlobalFree(hClipData);
-			return 1;
-		}
-		Sleep(100 + (rand() % 200));
-	}
-
-	if ( !EmptyClipboard() ) {
-		GlobalFree(hClipData);
-		CloseClipboard();
-		return 1;
-	}
-
-#ifdef	_UNICODE
-	if ( SetClipboardData(CF_UNICODETEXT, hClipData) == NULL )
-		GlobalFree(hClipData);
-#else
-	if ( SetClipboardData(CF_TEXT, hClipData) == NULL )
-		GlobalFree(hClipData);
-#endif
-
-	CloseClipboard();
-	return 0;
 }
 BOOL CMainFrame::SetClipboardText(LPCTSTR str)
 {
@@ -1980,27 +1944,41 @@ BOOL CMainFrame::SetClipboardText(LPCTSTR str)
 	// クリップボードチェインのチェックの為の処理
 	m_bClipEnable = FALSE;
 
-	AfxBeginThread(SetClipboardThread, hData, THREAD_PRIORITY_NORMAL);
+	for ( int n = 0 ; !OpenClipboard() ; n++ ) {
+		if ( n >= 10 ) {
+			GlobalFree(hData);
+			MessageBox(_T("Clipboard Open Error"));
+			return FALSE;
+		}
+		Sleep(100 + (rand() % 200));
+	}
 
+	if ( !EmptyClipboard() ) {
+		GlobalFree(hData);
+		CloseClipboard();
+		MessageBox(_T("Clipboard Empty Error"));
+		return FALSE;
+	}
+
+#ifdef	_UNICODE
+	if ( SetClipboardData(CF_UNICODETEXT, hData) == NULL ) {
+#else
+	if ( SetClipboardData(CF_TEXT, hData) == NULL ) {
+#endif
+		GlobalFree(hData);
+		CloseClipboard();
+		MessageBox(_T("Clipboard Set Data Error"));
+		return FALSE;
+	}
+
+	CloseClipboard();
 	return TRUE;
-}
-static UINT GetClipboardThread(LPVOID pParam)
-{
-	void *pBuf;
-	CMainFrame *pWnd = (CMainFrame *)pParam;
-
-	if ( (pBuf = pWnd->CopyClipboardData(CF_UNICODETEXT)) != NULL )
-		pWnd->PostMessage(WM_GETCLIPBOARD, (WPARAM)CF_UNICODETEXT, (LPARAM)pBuf);
-
-	return 0;
 }
 BOOL CMainFrame::GetClipboardText(CString &str)
 {
-	void *pBuf;
-
 	// クリップボードチェインが動かない場合
-	if ( !m_bClipEnable && (pBuf = CopyClipboardData(CF_UNICODETEXT)) != NULL )
-		OnGetClipboard((WPARAM)CF_UNICODETEXT, (LPARAM)pBuf);
+	if ( !m_bClipEnable )
+		SendMessage(WM_GETCLIPBOARD);
 
 	if ( m_ClipBoard.IsEmpty() )
 		return FALSE;
@@ -2258,8 +2236,14 @@ LRESULT CMainFrame::OnAfterOpen(WPARAM wParam, LPARAM lParam)
 }
 LRESULT CMainFrame::OnGetClipboard(WPARAM wParam, LPARAM lParam)
 {
-	CStringW str = (WCHAR *)lParam;
-	delete [] (WCHAR *)lParam;
+	CStringW str;
+	WCHAR *pBuf;
+	
+	if ( (pBuf = (WCHAR *)CopyClipboardData(CF_UNICODETEXT)) == NULL )
+		return TRUE;
+
+	str = pBuf;
+	delete [] pBuf;
 
 	POSITION pos = m_ClipBoard.GetHeadPosition();
 
@@ -3153,7 +3137,7 @@ void CMainFrame::OnDrawClipboard()
 
 	m_bClipEnable = TRUE;	// クリップボードチェインが有効？
 
-	AfxBeginThread(GetClipboardThread, this, THREAD_PRIORITY_NORMAL);
+	PostMessage(WM_GETCLIPBOARD);
 }
 void CMainFrame::OnChangeCbChain(HWND hWndRemove, HWND hWndAfter)
 {
@@ -3168,7 +3152,7 @@ void CMainFrame::OnClipboardUpdate()
 {
 	m_bClipEnable = TRUE;	// クリップボードチェインが有効？
 
-	AfxBeginThread(GetClipboardThread, this, THREAD_PRIORITY_NORMAL);
+	PostMessage(WM_GETCLIPBOARD);
 }
 
 void CMainFrame::OnToolcust()

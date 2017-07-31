@@ -25,6 +25,7 @@ CPfdListDlg::CPfdListDlg(CWnd* pParent /*=NULL*/)
 {
 	m_pEntry = NULL;
 	m_X11PortFlag = FALSE;
+	m_x11AuthFlag = FALSE;
 	m_XDisplay.Empty();
 }
 
@@ -34,7 +35,10 @@ void CPfdListDlg::DoDataExchange(CDataExchange* pDX)
 
 	DDX_Control(pDX, IDC_PFDLIST, m_List);
 	DDX_Text(pDX, IDC_EDIT1, m_XDisplay);
+	DDX_Text(pDX, IDC_EDIT2, m_x11AuthName);
+	DDX_Text(pDX, IDC_EDIT3, m_x11AuthData);
 	DDX_Check(pDX, IDC_CHECK1, m_X11PortFlag);
+	DDX_Check(pDX, IDC_CHECK2, m_x11AuthFlag);
 }
 
 BEGIN_MESSAGE_MAP(CPfdListDlg, CDialogExt)

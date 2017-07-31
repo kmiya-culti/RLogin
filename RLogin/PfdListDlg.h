@@ -23,6 +23,9 @@ public:
 	CStringArrayExt m_PortFwd;
 	BOOL m_X11PortFlag;
 	CString m_XDisplay;
+	BOOL m_x11AuthFlag;
+	CString m_x11AuthName;
+	CString m_x11AuthData;
 
 	void InitList();
 

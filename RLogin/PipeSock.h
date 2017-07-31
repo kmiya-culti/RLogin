@@ -32,7 +32,10 @@ public:
 	int Send(const void* lpBuf, int nBufLen, int nFlags = 0);
 	void SendBreak(int opt);
 	void OnRecive(int nFlags);
+	void OnSend();
 	int OnIdle();
+	int GetRecvSize();
+	int GetSendSize();
 
 	void GetPathMaps(CStringMaps &maps);
 	void GetDirMaps(CStringMaps &maps, LPCTSTR dir, BOOL pf = FALSE);

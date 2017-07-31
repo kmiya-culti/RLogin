@@ -884,14 +884,6 @@
 #define IDM_TRACEDISP                   5066
 #define IDM_WINDOW_PREV                 5067
 #define IDM_WINODW_NEXT                 5068
-#define IDM_XMODEM_UPLOAD               5069
-#define IDM_YMODEM_UPLOAD               5070
-#define IDM_ZMODEM_UPLOAD               5071
-#define IDM_XMODEM_DOWNLOAD             5072
-#define IDM_YMODEM_DOWNLOAD             5073
-#define IDM_ZMODEM_DOWNLOAD             5074
-#define IDM_KERMIT_UPLOAD               5075
-#define IDM_KERMIT_DOWNLOAD             5076
 #define IDM_VERSIONCHECK                5077
 #define IDM_NEWVERSIONFOUND             5078
 #define IDM_DIALOGFONT                  5079
@@ -922,6 +914,17 @@
 #define IDM_ICONLOAD                    5104
 #define IDM_TOOLCUST                    5105
 #define IDM_CREATEPROFILE               5106
+#define IDM_SHORTCUT                    5107
+#define IDM_EDIT_MARK                   5108
+#define IDM_XMODEM_UPLOAD               5110
+#define IDM_YMODEM_UPLOAD               5111
+#define IDM_ZMODEM_UPLOAD               5112
+#define IDM_XMODEM_DOWNLOAD             5113
+#define IDM_YMODEM_DOWNLOAD             5114
+#define IDM_ZMODEM_DOWNLOAD             5115
+#define IDM_KERMIT_UPLOAD               5116
+#define IDM_KERMIT_DOWNLOAD             5117
+#define IDM_SIMPLE_UPLOAD               5118
 #define IDM_FIRST_MDICHILD              0xFF00
 
 // Next default values for new objects
@@ -929,7 +932,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        161
-#define _APS_NEXT_COMMAND_VALUE         5107
+#define _APS_NEXT_COMMAND_VALUE         5119
 #define _APS_NEXT_CONTROL_VALUE         2444
 #define _APS_NEXT_SYMED_VALUE           616
 #endif

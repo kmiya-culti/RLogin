@@ -1027,8 +1027,10 @@ public:
 	CStringD m_SimpStr;
 	DWORD m_SimpPos;
 	int m_SimpLen;
+	COLORREF m_MarkColor;
 
 	void HisRegCheck(DWORD ch, DWORD pos);
+	void HisMarkClear();
 	int HisRegMark(LPCTSTR str, BOOL bRegEx);
 	int HisRegNext(int msec);
 	int HisMarkCheck(int top, int line, class CRLoginView *pView);
@@ -1055,6 +1057,7 @@ public:
 	BOOL DecPos(int &x, int &y);
 	void EditWordPos(int *sps, int *eps);
 	void EditCopy(int sps, int eps, BOOL rectflag = FALSE, BOOL lineflag = FALSE);
+	void EditMark(int sps, int eps, BOOL rectflag = FALSE, BOOL lineflag = FALSE);
 	void GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf);
 	void GetLine(int sy, CString &str);
 	BOOL IsEmptyLine(int sy);

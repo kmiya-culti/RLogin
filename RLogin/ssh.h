@@ -449,6 +449,7 @@ public:
 #define	SSHFT_SFTP		2
 #define	SSHFT_AGENT		3
 #define	SSHFT_RCP		4
+#define	SSHFT_X11		5
 
 class CFilter : public CObject
 {
@@ -527,6 +528,18 @@ public:
 	int GetSendSize();
 };
 
+class CX11Filter : public CFilter
+{
+public:
+	CBuffer m_Buffer;
+
+	CX11Filter();
+	void OnRecive(const void *lpBuf, int nBufLen);
+	void OnConnect();
+	int GetSendSize();
+	int GetRecvSize();
+};
+
 class CSFtpFilter : public CFilter
 {
 public:
@@ -536,6 +549,7 @@ public:
 	void Destroy();
 	void OnConnect();
 	void OnRecive(const void *lpBuf, int nBufLen);
+	int GetSendSize();
 };
 
 class CAgent : public CFilter
@@ -545,6 +559,7 @@ public:
 
 	CAgent();
 	void OnRecive(const void *lpBuf, int nBufLen);
+	int GetSendSize();
 
 	CIdKey *GetIdKey(CIdKey *key, LPCTSTR pass);
 	void ReciveBuffer(CBuffer *bp);
@@ -630,12 +645,16 @@ public:
 	void OnRecvEmpty();
 	void OnSendEmpty();
 	void GetStatus(CString &str);
+	int GetRecvSize();
+	int GetSendSize();
 
 	int m_SSHVer;
 	CString m_HostName;
 	int m_StdChan;
 	CFilter *m_pListFilter;
 	CArray<CIdKey, CIdKey &> m_IdKeyTab;
+	CString m_x11AuthName, m_x11LocalName;
+	CBuffer m_x11AuthData, m_x11LocalData;
 
 private:
 	CString m_ServerVerStr;
@@ -725,7 +744,6 @@ private:
 	CStringIndex m_ExtInfo;
 	int m_DhGexReqBits;
 
-	void LogIt(LPCTSTR format, ...);
 	void SendTextMsg(LPCSTR str, int len);
 	void PortForward();
 	int MatchList(LPCTSTR client, LPCTSTR server, CString &str);
@@ -784,6 +802,7 @@ private:
 	void SendPacket2(CBuffer *bp);
 
 public:
+	void LogIt(LPCTSTR format, ...);
 	int GetOpenChanCount() { return m_OpenChanCount; }
 	void OpenSFtpChannel();
 	void SendMsgChannelData(int id);

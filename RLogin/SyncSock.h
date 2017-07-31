@@ -13,23 +13,24 @@
 #include "ProgDlg.h"
 #include "IConv.h"
 
-#define	THCMD_START			0
-#define	THCMD_ENDOF			1
-#define	THCMD_DLGOPEN		2
-#define	THCMD_DLGCLOSE		3
-#define	THCMD_DLGMESSAGE	4
-#define	THCMD_DLGRANGE		5
-#define	THCMD_DLGPOS		6
-#define	THCMD_SENDBUF		7
-#define	THCMD_CHECKPATH		8
-#define	THCMD_YESNO			9
-#define	THCMD_XONXOFF		10
-#define	THCMD_ECHO			11
-#define	THCMD_SENDSTR		12
-#define	THCMD_SENDSCRIPT	13
-#define	THCMD_SENDSYNC		14
-#define	TGCMD_MESSAGE		15
+#define	THCMD_START				0
+#define	THCMD_ENDOF				1
+#define	THCMD_DLGOPEN			2
+#define	THCMD_DLGCLOSE			3
+#define	THCMD_DLGMESSAGE		4
+#define	THCMD_DLGRANGE			5
+#define	THCMD_DLGPOS			6
+#define	THCMD_SENDBUF			7
+#define	THCMD_CHECKPATH			8
+#define	THCMD_YESNO				9
+#define	THCMD_XONXOFF			10
+#define	THCMD_ECHO				11
+#define	THCMD_SENDSTR			12
+#define	THCMD_SENDSCRIPT		13
+#define	THCMD_SENDSYNC			14
+#define	TGCMD_MESSAGE			15
 #define	TGCMD_NOWAITMESSAGE		16
+#define	THCMD_ECHOBUFFER		17
 
 extern const unsigned short crc16tab[];
 extern const unsigned long  crc32tab[];
@@ -75,6 +76,7 @@ public:
 	int YesOrNo(LPCSTR msg);
 	int AbortCheck();
 	void SendEcho(int ch);
+	void SendEchoBuffer(char *buf, int len);
 	void SendString(LPCWSTR str);
 	void SendScript(LPCWSTR str);
 	void Message(LPCSTR msg);

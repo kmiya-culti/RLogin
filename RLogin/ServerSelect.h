@@ -67,4 +67,5 @@ protected:
 	afx_msg void OnServExchng();
 	afx_msg void OnUpdateServExchng(CCmdUI *pCmdUI);
 	afx_msg void OnLoaddefault();
+	afx_msg void OnShortcut();
 };

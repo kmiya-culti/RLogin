@@ -200,9 +200,12 @@ protected:
 	afx_msg void OnMButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnXButtonDown(UINT nFlags, UINT nButton, CPoint point);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+	afx_msg BOOL OnMouseWheel(UINT nFlags, short zDelta, CPoint pt);
 
 	afx_msg void OnEditCopy();
 	afx_msg void OnUpdateEditCopy(CCmdUI* pCmdUI);
+	afx_msg void OnEditMark();
+	afx_msg void OnUpdateEditMark(CCmdUI *pCmdUI);
 	afx_msg void OnEditCopyAll();
 	afx_msg void OnEditPaste();
 	afx_msg void OnUpdateEditPaste(CCmdUI* pCmdUI);
@@ -232,9 +235,6 @@ protected:
 	afx_msg void OnSplitOver();
 	afx_msg void OnSplitHeightNew();
 	afx_msg void OnSplitWidthNew();
-
-public:
-	afx_msg BOOL OnMouseWheel(UINT nFlags, short zDelta, CPoint pt);
 };
 
 #ifndef _DEBUG  // RLoginView.cpp ファイルがデバッグ環境の時使用されます。

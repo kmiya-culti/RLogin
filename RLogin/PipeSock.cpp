@@ -216,6 +216,27 @@ int CPipeSock::Send(const void* lpBuf, int nBufLen, int nFlags)
 	m_SendSema.Unlock();
 	return nBufLen;
 }
+int CPipeSock::GetRecvSize()
+{
+	int len = CExtSocket::GetRecvSize();
+	
+	m_RecvSema.Lock();
+	len += m_RecvBuff.GetSize();
+	m_RecvSema.Unlock();
+
+	return len;
+}
+int CPipeSock::GetSendSize()
+{
+	int len = CExtSocket::GetSendSize();
+
+	m_SendSema.Lock();
+	len += m_SendBuff.GetSize();
+	m_SendSema.Unlock();
+
+	return len;
+}
+
 void CPipeSock::OnRecive(int nFlags)
 {
 	int n;
@@ -233,6 +254,13 @@ void CPipeSock::OnRecive(int nFlags)
 	}
 	m_RecvSema.Unlock();
 }
+void CPipeSock::OnSend()
+{
+	// AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hIn[0], FD_WRITE);
+	// Send Empty Call
+
+	CExtSocket::OnSendEmpty();
+}
 int CPipeSock::OnIdle()
 {
 	if ( CExtSocket::OnIdle() )
@@ -248,6 +276,7 @@ int CPipeSock::OnIdle()
 
 	return FALSE;
 }
+
 void CPipeSock::OnReadProc()
 {
 	DWORD n;
@@ -381,6 +410,8 @@ void CPipeSock::OnReadWriteProc()
 					WriteByte = 1024;
 				memcpy(WriteBuf, m_SendBuff.GetPtr(), WriteByte);
 				m_SendBuff.Consume(WriteByte);
+				if ( m_SendBuff.GetSize() == 0 )
+					AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hIn[0], FD_WRITE);
 				m_SendSema.Unlock();
 			} else {
 				m_pSendEvent->ResetEvent();
