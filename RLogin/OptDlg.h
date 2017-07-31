@@ -36,6 +36,7 @@ protected:
 
 #include "SerEntPage.h"
 #include "TermPage.h"
+#include "ExtOptPage.h"
 #include "ScriptPage.h"
 #include "ScrnPage.h"
 #include "SockOptPage.h"
@@ -80,19 +81,20 @@ public:
 	CStatic m_Frame;
 	CButton m_Button[4];
 
-	CSerEntPage m_SerEntPage;
-	CKeyPage m_KeyPage;
-	CColParaDlg m_ColorPage;
-	CCharSetPage m_CharSetPage;
-	CSockOptPage m_SockOptPage;
-	CProtoPage m_ProtoPage;
-	CTermPage m_TermPage;
-	CScrnPage m_ScrnPage;
-	CHisPage m_HisPage;
-	CClipPage m_ClipPage;
-	CMousePage m_MousePage;
-	CScriptPage m_ScriptPage;
-	CModKeyPage m_ModKeyPage;
+	CSerEntPage *m_pSerEntPage;
+	CKeyPage *m_pKeyPage;
+	CColParaDlg *m_pColorPage;
+	CCharSetPage *m_pCharSetPage;
+	CSockOptPage *m_pSockOptPage;
+	CProtoPage *m_pProtoPage;
+	CTermPage *m_pTermPage;
+	CExtOptPage *m_pExtOptPage;
+	CScrnPage *m_pScrnPage;
+	CHisPage *m_pHisPage;
+	CClipPage *m_pClipPage;
+	CMousePage *m_pMousePage;
+	CScriptPage *m_pScriptPage;
+	CModKeyPage *m_pModKeyPage;
 
 	CServerEntry *m_pEntry;
 	CTextRam *m_pTextRam;

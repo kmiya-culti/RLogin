@@ -847,6 +847,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\ExtOptPage.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\ExtSocket.cpp"
 				>
 			</File>
@@ -1226,6 +1230,10 @@
 			</File>
 			<File
 				RelativePath=".\EscParaDlg.h"
+				>
+			</File>
+			<File
+				RelativePath=".\ExtOptPage.h"
 				>
 			</File>
 			<File

@@ -2464,7 +2464,6 @@ void CServerEntry::Init()
 	m_KanjiCode = EUC_SET;
 	m_ProtoType = PROTO_DIRECT;
 	m_ProBuffer.Clear();
-	m_SaveFlag  = FALSE;
 	m_CheckFlag = FALSE;
 	m_Uid       = (-1);
 	m_ChatScript.Init();
@@ -2486,6 +2485,7 @@ void CServerEntry::Init()
 	m_ProxySSLKeep = FALSE;
 	m_BeforeEntry.Empty();
 	m_ReEntryFlag = FALSE;
+	m_DocType = (-1);
 }
 const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 {
@@ -2499,7 +2499,6 @@ const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 	m_KanjiCode  = data.m_KanjiCode;
 	m_ProtoType  = data.m_ProtoType;
 	m_ProBuffer  = data.m_ProBuffer;
-	m_SaveFlag   = data.m_SaveFlag;
 	m_CheckFlag  = data.m_CheckFlag;
 	m_Uid        = data.m_Uid;
 	m_ChatScript = data.m_ChatScript;
@@ -2521,6 +2520,7 @@ const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 	m_ProxySSLKeep   = data.m_ProxySSLKeep;
 	m_BeforeEntry    = data.m_BeforeEntry;
 	m_ReEntryFlag    = data.m_ReEntryFlag;
+	m_DocType        = data.m_DocType;
 	return *this;
 }
 void CServerEntry::GetArray(CStringArrayExt &stra)
@@ -2578,8 +2578,6 @@ void CServerEntry::GetArray(CStringArrayExt &stra)
 	m_ProxyHostProvs = m_ProxyHost;
 	m_ProxyUserProvs = m_ProxyUser;
 	m_ProxyPassProvs = m_ProxyPass;
-
-	m_SaveFlag = FALSE;
 }
 void CServerEntry::SetArray(CStringArrayExt &stra)
 {
@@ -2919,8 +2917,6 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 		m_ProxyHostProvs = m_ProxyHost;
 		m_ProxyUserProvs = m_ProxyUser;
 		m_ProxyPassProvs = m_ProxyPass;
-
-		m_SaveFlag = FALSE;
 	}
 }
 LPCTSTR CServerEntry::GetKanjiCode()
@@ -3525,17 +3521,38 @@ static const struct _InitKeyTab {
 		{ 0,	VK_NEXT,		MASK_CTRL,				_T("$SEARCH_NEXT")	},
 		{ 0,	VK_CANCEL,		0,						_T("$BREAK")		},
 
-		{ 6,	VK_UP,			MASK_CTRL | MASK_SHIFT,	_T("$PANE_TILEHORZ")},
 		{ 0,	VK_UP,			MASK_CTRL,				_T("$PANE_ROTATION")},
 		{ 0,	VK_DOWN,		MASK_CTRL,				_T("$SPLIT_HEIGHT")	},
-		{ 7,	VK_DOWN,		MASK_CTRL | MASK_SHIFT,	_T("$SPLIT_HEIGHTNEW")},
 		{ 0,	VK_RIGHT,		MASK_CTRL,				_T("$SPLIT_WIDTH")	},
-		{ 7,	VK_RIGHT,		MASK_CTRL | MASK_SHIFT,	_T("$SPLIT_WIDTHNEW")},
-		{ 6,	VK_LEFT,		MASK_CTRL | MASK_SHIFT,	_T("$PANE_CASCADE")	},
 		{ 0,	VK_LEFT,		MASK_CTRL,				_T("$SPLIT_OVER")	},
 
 		{ 0,	VK_TAB,			MASK_CTRL,				_T("$PANE_NEXT")	},
 		{ 0,	VK_TAB,			MASK_CTRL | MASK_SHIFT,	_T("$PANE_PREV")	},
+
+		{ 6,	VK_UP,			MASK_CTRL | MASK_SHIFT,	_T("$PANE_TILEHORZ")},
+		{ 6,	VK_LEFT,		MASK_CTRL | MASK_SHIFT,	_T("$PANE_CASCADE")	},
+
+		{ 7,	VK_DOWN,		MASK_CTRL | MASK_SHIFT,	_T("$SPLIT_HEIGHTNEW")},
+		{ 7,	VK_RIGHT,		MASK_CTRL | MASK_SHIFT,	_T("$SPLIT_WIDTHNEW")},
+
+		{ 8,	VK_UP,			MASK_ALT,				_T("$PANE_UP")		},
+		{ 8,	VK_DOWN,		MASK_ALT,				_T("$PANE_DOWN")	},
+		{ 8,	VK_RIGHT,		MASK_ALT,				_T("$PANE_RIGHT")	},
+		{ 8,	VK_LEFT,		MASK_ALT,				_T("$PANE_LEFT")	},
+
+		{ 8,	'1',			MASK_CTRL,				_T("$PANE_SEL1")	},
+		{ 8,	'2',			MASK_CTRL,				_T("$PANE_SEL2")	},
+		{ 8,	'3',			MASK_CTRL,				_T("$PANE_SEL3")	},
+		{ 8,	'4',			MASK_CTRL,				_T("$PANE_SEL4")	},
+		{ 8,	'5',			MASK_CTRL,				_T("$PANE_SEL5")	},
+		{ 8,	'6',			MASK_CTRL,				_T("$PANE_SEL6")	},
+		{ 8,	'7',			MASK_CTRL,				_T("$PANE_SEL7")	},
+		{ 8,	'8',			MASK_CTRL,				_T("$PANE_SEL8")	},
+		{ 8,	'9',			MASK_CTRL,				_T("$PANE_SEL9")	},
+		{ 8,	'0',			MASK_CTRL,				_T("$PANE_SEL10")	},
+
+		{ 8,	'V',			MASK_CTRL,				_T("$EDIT_PASTE")	},
+		{ 8,	'V',			MASK_ALT,				_T("$CLIPBORAD")	},
 
 		{ 0,	(-1),			(-1),					NULL },
 	};
@@ -3880,7 +3897,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	103
+#define	CMDSKEYTABMAX	118
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -3888,6 +3905,17 @@ static const struct _CmdsKeyTab {
 	{	ID_APP_ABOUT,			L"$ABOUT"			},
 	{	ID_SEND_BREAK,			L"$BREAK"			},
 	{	IDM_BROADCAST,			L"$BROADCAST"		},
+	{	IDM_CLIPBORAD_MENU,		L"$CLIPBORAD"		},
+	{	IDM_CLIPBORAD_HIS1,		L"$CLIPBORAD_HIS1"	},
+	{	IDM_CLIPBORAD_HIS10,	L"$CLIPBORAD_HIS10"	},
+	{	IDM_CLIPBORAD_HIS2,		L"$CLIPBORAD_HIS2"	},
+	{	IDM_CLIPBORAD_HIS3,		L"$CLIPBORAD_HIS3"	},
+	{	IDM_CLIPBORAD_HIS4,		L"$CLIPBORAD_HIS4"	},
+	{	IDM_CLIPBORAD_HIS5,		L"$CLIPBORAD_HIS5"	},
+	{	IDM_CLIPBORAD_HIS6,		L"$CLIPBORAD_HIS6"	},
+	{	IDM_CLIPBORAD_HIS7,		L"$CLIPBORAD_HIS7"	},
+	{	IDM_CLIPBORAD_HIS8,		L"$CLIPBORAD_HIS8"	},
+	{	IDM_CLIPBORAD_HIS9,		L"$CLIPBORAD_HIS9"	},
 	{	IDM_DIALOGFONT,			L"$DIALOG_FONT"		},
 	{	ID_EDIT_COPY,			L"$EDIT_COPY"		},
 	{	ID_EDIT_COPY_ALL,		L"$EDIT_COPYALL"	},
@@ -3918,9 +3946,12 @@ static const struct _CmdsKeyTab {
 	{	ID_SETOPTION,			L"$OPTION_SET"		},
 	{	ID_WINDOW_CASCADE,		L"$PANE_CASCADE"	},
 	{	ID_PANE_DELETE,			L"$PANE_DELETE"		},
+	{	IDM_MOVEPANE_DOWN,		L"$PANE_DOWN"		},
 	{	ID_PANE_HSPLIT,			L"$PANE_HSPLIT"		},
+	{	IDM_MOVEPANE_LEFT,		L"$PANE_LEFT"		},
 	{	IDM_WINODW_NEXT,		L"$PANE_NEXT"		},
 	{	IDM_WINDOW_PREV,		L"$PANE_PREV"		},
+	{	IDM_MOVEPANE_RIGHT,		L"$PANE_RIGHT"		},
 	{	ID_WINDOW_ROTATION,		L"$PANE_ROTATION"	},
 	{	ID_PANE_SAVE,			L"$PANE_SAVE"		},
 	{	IDM_WINDOW_SEL0,		L"$PANE_SEL1"		},
@@ -3934,6 +3965,7 @@ static const struct _CmdsKeyTab {
 	{	IDM_WINDOW_SEL7,		L"$PANE_SEL8"		},
 	{	IDM_WINDOW_SEL8,		L"$PANE_SEL9"		},
 	{	ID_WINDOW_TILE_HORZ,	L"$PANE_TILEHORZ"	},
+	{	IDM_MOVEPANE_UP,		L"$PANE_UP"			},
 	{	ID_PANE_WSPLIT,			L"$PANE_WSPLIT"		},
 	{	ID_FILE_PRINT_DIRECT,	L"$PRINT_DIRECT"	},
 	{	ID_FILE_PRINT_PREVIEW,	L"$PRINT_PREVIEW"	},
@@ -4056,6 +4088,7 @@ void CKeyNodeTab::SetComboList(CComboBox *pCombo)
 void CKeyNodeTab::BugFix(int fix)
 {
 	int i, n;
+	CStringBinary list;
 
 	if ( fix < 1 ) {
 		for ( n = 0 ; n < m_Node.GetSize() ; n++ ) {
@@ -4114,10 +4147,15 @@ void CKeyNodeTab::BugFix(int fix)
 		}
 	}
 
+	for ( n = 0 ; n < GetSize() ; n++ )
+		list[GetAt(n).GetMaps()] = 1;
+
 	for ( i = 0 ; InitKeyTab[i].maps != NULL ; i++ ) {
 		if ( InitKeyTab[i].fix < fix )
 			continue;
 		if ( Find(InitKeyTab[i].code, InitKeyTab[i].mask, &n) )
+			continue;
+		if ( list.Find(InitKeyTab[i].maps) != NULL )
 			continue;
 		Add(InitKeyTab[i].code, InitKeyTab[i].mask, InitKeyTab[i].maps);
 	}
@@ -4289,7 +4327,7 @@ void CKeyMac::GetMenuStr(CString &str)
 	for ( n = 0 ; n < 20 && n < len ; n++, p++ ) {
 		if ( *p == L'\r' )
 			str += _T("«");
-		else if ( *p == L'\x7F' || *p < L' ' )
+		else if ( *p == L'\x7F' || *p < L' ' || *p == L'&' || *str == L'\\' )
 			str += _T('.');
 		else
 			str += (WCHAR)*p;
@@ -4386,6 +4424,9 @@ CKeyMacTab::CKeyMacTab()
 void CKeyMacTab::Init()
 {
 	m_Data.RemoveAll();
+#ifdef	USE_KEYMACGLOBAL
+	m_bUpdate = FALSE;
+#endif
 }
 void CKeyMacTab::SetArray(CStringArrayExt &stra)
 {
@@ -4511,6 +4552,12 @@ void CKeyMacTab::SetHisMenu(CMenu *pMainMenu)
 
 	if ( pMainMenu == NULL || (pMenu = pMainMenu->GetSubMenu(1)) == NULL )
 		return;
+
+	if ( m_Data.GetSize() <= 0 ) {
+		pMenu->AppendMenu(MF_STRING, ID_MACRO_HIS1, CStringLoad(IDS_HISRECDEFAULT));
+		pMenu->EnableMenuItem(ID_MACRO_HIS1, MF_BYCOMMAND | MF_GRAYED);
+		return;
+	}
 
 	for ( n = 0 ; n < 5 && n < m_Data.GetSize() ; n++ ) {
 		m_Data[n].GetMenuStr(tmp);
@@ -5691,22 +5738,20 @@ void CStringIndex::Serialize(CArchive& ar, LPCSTR base)
 }
 
 //////////////////////////////////////////////////////////////////////
-// CStringBinary
+// CStringBinary Root
 
 CStringBinary::CStringBinary()
 {
-	m_pLeft = m_pRight = NULL;
-	m_Index = _T("a");
+	m_pRoot = m_pLeft = m_pRight = NULL;
 	m_Value = (-1);
-}
-CStringBinary::CStringBinary(LPCTSTR str)
-{
-	m_pLeft = m_pRight = NULL;
-	m_Index = str;
-	m_Value = (-1);
+	m_Index.Empty();
+	m_Balance = 0;
 }
 CStringBinary::~CStringBinary()
 {
+	if ( m_pRoot != NULL )
+		delete m_pRoot;
+
 	if ( m_pLeft != NULL )
 		delete m_pLeft;
 
@@ -5715,23 +5760,13 @@ CStringBinary::~CStringBinary()
 }
 CStringBinary & CStringBinary::operator [] (LPCTSTR str)
 {
-	int c = m_Index.Compare(str);
+	BOOL bNew = FALSE;
 
-	if ( c == 0 )
-		return *this;
-	else if ( c < 0 ) {
-		if ( m_pLeft == NULL ) {
-			m_pLeft = new CStringBinary(str);
-			return *m_pLeft;
-		} else
-			return (*m_pLeft)[str];
-	} else {
-		if ( m_pRight == NULL ) {
-			m_pRight = new CStringBinary(str);
-			return *m_pRight;
-		} else
-			return (*m_pRight)[str];
-	}
+	if ( m_pRoot == NULL ) {
+		m_pRoot = new CStringBinary(str);
+		return *m_pRoot;
+	} else
+		return *(m_pRoot->Add(&m_pRoot, str, bNew));
 }
 CStringBinary & CStringBinary::operator [] (int number)
 {
@@ -5742,17 +5777,122 @@ CStringBinary & CStringBinary::operator [] (int number)
 }
 void CStringBinary::RemoveAll()
 {
-	if ( m_pLeft != NULL )
-		delete m_pLeft;
+	if ( m_pRoot != NULL )
+		delete m_pRoot;
 
-	if ( m_pRight != NULL )
-		delete m_pRight;
-
-	m_pLeft = m_pRight = NULL;
-	m_Index = _T("a");
-	m_Value = (-1);
+	m_pRoot = NULL;
 }
 CStringBinary * CStringBinary::Find(LPCTSTR str)
+{
+	if ( m_pRoot == NULL )
+		return NULL;
+
+	return m_pRoot->FindNode(str);
+}
+CStringBinary * CStringBinary::FindValue(int value)
+{
+	if ( m_pRoot == NULL )
+		return NULL;
+
+	return m_pRoot->FindNodeValue(value);
+}
+
+//////////////////////////////////////////////////////////////////////
+// CStringBinary Node
+
+CStringBinary::CStringBinary(LPCTSTR str)
+{
+	m_pRoot = m_pLeft = m_pRight = NULL;
+	m_Value = (-1);
+	m_Index = str;
+	m_Balance = 0;
+}
+CStringBinary * CStringBinary::Add(CStringBinary **ppTop, LPCTSTR str, BOOL &bNew)
+{
+	int c = m_Index.Compare(str);
+	CStringBinary *np, *tp, *sp;
+
+	if ( c == 0 )
+		return this;
+
+	else if ( c < 0 ) {
+		if ( m_pLeft == NULL ) {
+			m_pLeft = new CStringBinary(str);
+			bNew = TRUE;
+			np = m_pLeft;
+		} else
+			np = m_pLeft->Add(&m_pLeft, str, bNew);
+
+		if ( bNew ) {
+			if ( --m_Balance == 0 ) {
+				bNew = FALSE;
+			} else if ( m_Balance < (-1) ) {
+				tp = m_pLeft;
+				if ( tp->m_Balance == (-1) || tp->m_pRight == NULL ) {
+					m_pLeft      = tp->m_pRight;
+					tp->m_pRight = this;
+
+					m_Balance     = 0;
+					tp->m_Balance = 0;
+					*ppTop = tp;
+
+				} else {
+					sp           = tp->m_pRight;
+					tp->m_pRight = sp->m_pLeft;
+					sp->m_pLeft  = tp;
+						m_pLeft  = sp->m_pRight;
+					sp->m_pRight = this;
+
+					m_Balance     = (sp->m_Balance == (-1) ?   1  : 0);
+					tp->m_Balance = (sp->m_Balance ==   1  ? (-1) : 0);
+					sp->m_Balance = 0;
+					*ppTop = sp;
+				}
+				bNew = FALSE;
+			}
+		}
+
+	} else {
+		if ( m_pRight == NULL ) {
+			m_pRight = new CStringBinary(str);
+			bNew = TRUE;
+			np = m_pRight;
+		} else
+			np = m_pRight->Add(&m_pRight, str, bNew);
+
+		if ( bNew ) {
+			if ( ++m_Balance == 0 ) {
+				bNew = FALSE;
+			} else if ( m_Balance > 1 ) {
+				tp = m_pRight;
+				if ( tp->m_Balance == 1 || tp->m_pLeft == NULL ) {
+					m_pRight     = tp->m_pLeft;
+					tp->m_pLeft  = this;
+
+					m_Balance     = 0;
+					tp->m_Balance = 0;
+					*ppTop = tp;
+
+				} else {
+					sp           = tp->m_pLeft;
+					tp->m_pLeft  = sp->m_pRight;
+					sp->m_pRight = tp;
+						m_pRight = sp->m_pLeft;
+					sp->m_pLeft  = this;
+
+					m_Balance     = (sp->m_Balance ==   1  ? (-1) : 0);
+					tp->m_Balance = (sp->m_Balance == (-1) ?   1  : 0);
+					sp->m_Balance = 0;
+					*ppTop = sp;
+				}
+				bNew = FALSE;
+			}
+		}
+	}
+
+	return np;
+}
+CStringBinary * CStringBinary::FindNode(LPCTSTR str)
 {
 	int c = m_Index.Compare(str);
 
@@ -5761,24 +5901,45 @@ CStringBinary * CStringBinary::Find(LPCTSTR str)
 	else if ( c < 0 ) {
 		if ( m_pLeft == NULL )
 			return NULL;
-		return m_pLeft->Find(str);
+		return m_pLeft->FindNode(str);
 	} else {
 		if ( m_pRight == NULL )
 			return NULL;
-		return m_pRight->Find(str);
+		return m_pRight->FindNode(str);
 	}
 }
-CStringBinary * CStringBinary::FindValue(int value)
+CStringBinary * CStringBinary::FindNodeValue(int value)
 {
 	CStringBinary *bp;
+
 	if ( m_Value == value )
 		return this;
-	if ( m_pLeft != NULL && (bp = m_pLeft->FindValue(value)) != NULL )
+
+	if ( m_pLeft != NULL && (bp = m_pLeft->FindNodeValue(value)) != NULL )
 		return bp;
-	else if ( m_pRight != NULL && (bp = m_pRight->FindValue(value)) != NULL )
+	else if ( m_pRight != NULL && (bp = m_pRight->FindNodeValue(value)) != NULL )
 		return bp;
+
 	return NULL;
 }
+
+#ifdef	DEBUG
+void CStringBinary::Tree(int nest)
+{
+	if ( m_pRoot != NULL )
+		m_pRoot->TreeNode(nest);
+}
+void CStringBinary::TreeNode(int nest)
+{
+	if ( m_pLeft != NULL )
+		m_pLeft->TreeNode(nest + 1);
+
+	TRACE(_T("%d %s(%d)\n"), nest, m_Index, m_Balance);
+
+	if ( m_pRight != NULL )
+		m_pRight->TreeNode(nest + 1);
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////
 // CFileExt

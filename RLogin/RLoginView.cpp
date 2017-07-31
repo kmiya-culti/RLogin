@@ -61,22 +61,23 @@ BEGIN_MESSAGE_MAP(CRLoginView, CView)
 	ON_MESSAGE(WM_IME_REQUEST, OnImeRequest)
 
 	ON_COMMAND(ID_EDIT_COPY, OnEditCopy)
+	ON_UPDATE_COMMAND_UI(ID_EDIT_COPY, OnUpdateEditCopy)
 	ON_COMMAND(ID_EDIT_COPY_ALL, &CRLoginView::OnEditCopyAll)
 	ON_COMMAND(ID_EDIT_PASTE, OnEditPaste)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_PASTE, OnUpdateEditPaste)
+	ON_COMMAND_RANGE(IDM_CLIPBORAD_HIS1, IDM_CLIPBORAD_HIS10, ClipboardPaste)
+	ON_UPDATE_COMMAND_UI_RANGE(IDM_CLIPBORAD_HIS1, IDM_CLIPBORAD_HIS10, OnUpdateClipboardPaste)
+	ON_COMMAND(IDM_CLIPBORAD_MENU, OnClipboardMenu)
 
 	ON_COMMAND(ID_MACRO_REC, OnMacroRec)
 	ON_UPDATE_COMMAND_UI(ID_MACRO_REC, OnUpdateMacroRec)
 	ON_COMMAND(ID_MACRO_PLAY, OnMacroPlay)
 	ON_UPDATE_COMMAND_UI(ID_MACRO_PLAY, OnUpdateMacroPlay)
-	ON_UPDATE_COMMAND_UI(ID_EDIT_COPY, OnUpdateEditCopy)
 	ON_COMMAND_RANGE(ID_MACRO_HIS1, ID_MACRO_HIS5, OnMacroHis)
+	ON_UPDATE_COMMAND_UI_RANGE(ID_MACRO_HIS1, ID_MACRO_HIS5, OnUpdateMacroHis)
 
 	ON_COMMAND(ID_MOUSE_EVENT, &CRLoginView::OnMouseEvent)
 	ON_UPDATE_COMMAND_UI(ID_MOUSE_EVENT, &CRLoginView::OnUpdateMouseEvent)
-
-	ON_COMMAND(IDM_BROADCAST, &CRLoginView::OnBroadcast)
-	ON_UPDATE_COMMAND_UI(IDM_BROADCAST, &CRLoginView::OnUpdateBroadcast)
 
 	ON_COMMAND(ID_PAGE_PRIOR, &CRLoginView::OnPagePrior)
 	ON_COMMAND(ID_PAGE_NEXT, &CRLoginView::OnPageNext)
@@ -123,7 +124,6 @@ CRLoginView::CRLoginView()
 	m_VisualBellFlag = FALSE;
 	m_BlinkFlag = 0;
 	m_MouseEventFlag = FALSE;
-	m_BroadCast = FALSE;
 	m_WheelDelta = 0;
 	m_WheelTimer = FALSE;
 	m_WheelClock = 0;
@@ -142,6 +142,8 @@ CRLoginView::CRLoginView()
 		m_GoziData[n].m_GoziPos.SetPoint(0, 0);
 	}
 #endif
+
+	m_RDownStat = 0;
 
 	m_SleepView = FALSE;
 	m_SleepCount = 0;
@@ -544,54 +546,6 @@ RETENDOF:
 
 /////////////////////////////////////////////////////////////////////////////
 
-void CRLoginView::SendBroadCastMouseWheel(UINT nFlags, short zDelta, CPoint pt)
-{
-	CWinApp *pApp;
-	CRLoginDoc *pThisDoc = GetDocument();
-	static volatile BOOL inuse = FALSE;
-
-	if ( inuse || (pApp = AfxGetApp()) == NULL )
-		return;
-
-	inuse = TRUE;
-	POSITION pos = pApp->GetFirstDocTemplatePosition();
-	while ( pos != NULL ) {
-		CDocTemplate *pDocTemp = pApp->GetNextDocTemplate(pos);
-		POSITION dpos = pDocTemp->GetFirstDocPosition();
-		while ( dpos != NULL ) {
-			CRLoginDoc *pDoc = (CRLoginDoc *)pDocTemp->GetNextDoc(dpos);
-			POSITION vpos = pDoc->GetFirstViewPosition();
-			while ( vpos != NULL ) {
-				CRLoginView *pView = (CRLoginView *)pDoc->GetNextView(vpos);
-				if ( pView != this )
-					pView->OnMouseWheel(nFlags, zDelta, pt);
-			}
-		}
-	}
-	inuse = FALSE;
-}
-void CRLoginView::SendBroadCast(CBuffer &buf)
-{
-	CBuffer tmp;
-	CWinApp *pApp;
-	CRLoginDoc *pThisDoc = GetDocument();
-
-	if ( (pApp = AfxGetApp()) == NULL )
-		return;
-
-	POSITION pos = pApp->GetFirstDocTemplatePosition();
-	while ( pos != NULL ) {
-		CDocTemplate *pDocTemp = pApp->GetNextDocTemplate(pos);
-		POSITION dpos = pDocTemp->GetFirstDocPosition();
-		while ( dpos != NULL ) {
-			CRLoginDoc *pDoc = (CRLoginDoc *)pDocTemp->GetNextDoc(dpos);
-			if ( pDoc == pThisDoc )
-				continue;
-			tmp = buf;
-			pDoc->SendBuffer(tmp);
-		}
-	}
-}
 void CRLoginView::SendBuffer(CBuffer &buf, BOOL macflag)
 {
 	int n;
@@ -604,11 +558,13 @@ void CRLoginView::SendBuffer(CBuffer &buf, BOOL macflag)
 	if ( macflag == FALSE ) {
 		if ( pDoc->m_TextRam.IsOptEnable(TO_RLDSECHO) && !pDoc->m_TextRam.LineEdit(buf) )
 			return;
+
 		pDoc->OnSendBuffer(buf);
-		if ( m_BroadCast ) {
-			m_BroadCast = FALSE;
-			SendBroadCast(buf);
-			m_BroadCast = TRUE;
+
+		if ( ((CMainFrame *)::AfxGetMainWnd())->m_bBroadCast ) {
+			((CRLoginApp *)::AfxGetApp())->SendBroadCast(buf);
+			if ( !pDoc->m_TextRam.IsOptEnable(TO_RLNOTBCAST) )
+				return;
 		}
 	}
 
@@ -819,22 +775,18 @@ int CRLoginView::GetClipboad(CBuffer *bp)
 
 	return TRUE;
 }
-int CRLoginView::SetClipboad(CBuffer *bp)
+int CRLoginView::SetClipboadText(LPCTSTR str)
 {
 	HGLOBAL hClipData;
 	TCHAR *pData;
-	CString buf;
-	CRLoginDoc *pDoc = GetDocument();
 
-	pDoc->m_TextRam.m_IConv.RemoteToStr(pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode], (LPCSTR)*bp, buf);
-
-	if ( (hClipData = GlobalAlloc(GMEM_MOVEABLE, (buf.GetLength() + 1) * sizeof(TCHAR))) == NULL )
+	if ( (hClipData = GlobalAlloc(GMEM_MOVEABLE, (_tcslen(str) + 1) * sizeof(TCHAR))) == NULL )
 		return FALSE;
 
 	if ( (pData = (TCHAR *)GlobalLock(hClipData)) == NULL )
 		goto ENDOF;
 
-	_tcscpy(pData, buf);
+	_tcscpy(pData, str);
 	GlobalUnlock(hClipData);
 
 	if ( !OpenClipboard() )
@@ -857,6 +809,14 @@ int CRLoginView::SetClipboad(CBuffer *bp)
 ENDOF:
 	GlobalFree(hClipData);
 	return FALSE;
+}
+int CRLoginView::SetClipboad(CBuffer *bp)
+{
+	CString buf;
+	CRLoginDoc *pDoc = GetDocument();
+
+	pDoc->m_TextRam.m_IConv.RemoteToStr(pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode], (LPCSTR)*bp, buf);
+	return SetClipboadText(buf);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -981,7 +941,7 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		if ( rect.PtInRect(point) ) {
 			int mode;
 			HCURSOR hCursor = NULL;
-			if ( m_BroadCast )
+			if ( ((CMainFrame *)::AfxGetMainWnd())->m_bBroadCast && !pDoc->m_TextRam.IsOptEnable(TO_RLNOTBCAST) )
 				::SetCursor(AfxGetApp()->LoadStandardCursor(IDC_SIZEALL));
 			else {
 				mode = pDoc->m_TextRam.m_XtMosPointMode;
@@ -1951,6 +1911,39 @@ void CRLoginView::GetMousePos(int *sw, int *x, int *y)
 #endif
 }
 
+void CRLoginView::PopUpMenu(CPoint point)
+{
+	CCmdUI state;
+	CMenu *pMenu, *pMain, DefMenu;
+	CRLoginDoc *pDoc = GetDocument();
+
+	if ( pDoc->m_TextRam.IsOptEnable(TO_RLRSPAST) ) {
+		OnEditPaste();
+		return;
+	}
+
+	if ( pDoc->m_TextRam.IsOptEnable(TO_RLRCLICK) )
+		return;
+
+	if ( (pMain = GetMainWnd()->GetMenu()) == NULL || (pMenu = pMain->GetSubMenu(1)) == NULL ) {
+		if ( !DefMenu.LoadMenu(IDR_POPUPMENU) || (pMenu = DefMenu.GetSubMenu(5)) == NULL )
+			return;
+	} else
+		GetMainWnd()->SendMessage(WM_ENTERMENULOOP, TRUE);
+
+	state.m_pMenu = pMenu;
+	state.m_nIndexMax = pMenu->GetMenuItemCount();
+	for ( state.m_nIndex = 0 ; state.m_nIndex < state.m_nIndexMax ; state.m_nIndex++) {
+		if ( (int)(state.m_nID = pMenu->GetMenuItemID(state.m_nIndex)) <= 0 )
+			continue;
+		state.m_pSubMenu = NULL;
+		state.DoUpdate(this, TRUE);
+	}
+
+	ClientToScreen(&point);
+	pMenu->TrackPopupMenu(TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, this);
+}
+
 BOOL CRLoginView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt) 
 {
 	int n;
@@ -1959,8 +1952,10 @@ BOOL CRLoginView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 	CRLoginDoc *pDoc = GetDocument();
 	clock_t now, msec;
 
-	if ( (nFlags & MK_SHIFT) != 0 )
-		SendBroadCastMouseWheel(nFlags, zDelta, pt);
+	if ( (nFlags & MK_SHIFT) != 0 ) {
+		((CRLoginApp *)::AfxGetApp())->SendBroadCastMouseWheel(nFlags & ~MK_SHIFT, zDelta, pt);
+		return TRUE;
+	}
 
 	now = clock();
 	msec = (now - m_WheelClock) * 1000 / CLOCKS_PER_SEC;	// msec
@@ -2030,35 +2025,6 @@ BOOL CRLoginView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 	return CView::OnMouseWheel(nFlags, zDelta, pt);
 }
 
-void CRLoginView::OnLButtonDblClk(UINT nFlags, CPoint point) 
-{
-	int x, y;
-	CRLoginDoc *pDoc = GetDocument();
-
-	m_LastMouseFlags = nFlags;
-
-	CView::OnLButtonDblClk(nFlags, point);
-
-	if ( m_ClipFlag == 6 ) {
-		m_ClipFlag = 0;
-		OnUpdate(this, UPDATE_CLIPERA, NULL);
-	} else if ( m_ClipFlag != 0 )
-		return;
-
-	CalcGrapPoint(point, &x, &y);
-
-	m_ClipStaPos = m_ClipEndPos = pDoc->m_TextRam.GetCalcPos(x, y);
-	pDoc->m_TextRam.EditWordPos(&m_ClipStaPos, &m_ClipEndPos);
-
-	m_ClipStaOld = m_ClipStaPos;
-	m_ClipEndOld = m_ClipEndPos;
-	m_ClipFlag = 2;
-	m_ClipTimer = 0;
-	m_ClipKeyFlags = nFlags;
-
-	SetCapture();
-	OnUpdate(this, UPDATE_CLIPERA, NULL);
-}
 void CRLoginView::OnLButtonDown(UINT nFlags, CPoint point) 
 {
 	int x, y;
@@ -2163,6 +2129,36 @@ void CRLoginView::OnLButtonUp(UINT nFlags, CPoint point)
 	if ( pDoc->m_TextRam.IsOptEnable(TO_RLCKCOPY) )
 		OnEditCopy();
 }
+void CRLoginView::OnLButtonDblClk(UINT nFlags, CPoint point) 
+{
+	int x, y;
+	CRLoginDoc *pDoc = GetDocument();
+
+	m_LastMouseFlags = nFlags;
+
+	CView::OnLButtonDblClk(nFlags, point);
+
+	if ( m_ClipFlag == 6 ) {
+		m_ClipFlag = 0;
+		OnUpdate(this, UPDATE_CLIPERA, NULL);
+	} else if ( m_ClipFlag != 0 )
+		return;
+
+	CalcGrapPoint(point, &x, &y);
+
+	m_ClipStaPos = m_ClipEndPos = pDoc->m_TextRam.GetCalcPos(x, y);
+	pDoc->m_TextRam.EditWordPos(&m_ClipStaPos, &m_ClipEndPos);
+
+	m_ClipStaOld = m_ClipStaPos;
+	m_ClipEndOld = m_ClipEndPos;
+	m_ClipFlag = 2;
+	m_ClipTimer = 0;
+	m_ClipKeyFlags = nFlags;
+
+	SetCapture();
+	OnUpdate(this, UPDATE_CLIPERA, NULL);
+}
+
 void CRLoginView::OnMButtonDown(UINT nFlags, CPoint point)
 {
 	CView::OnMButtonDown(nFlags, point);
@@ -2182,6 +2178,7 @@ void CRLoginView::OnXButtonDown(UINT nFlags, UINT nButton, CPoint point)
 		break;
 	}
 }
+
 void CRLoginView::OnMouseMove(UINT nFlags, CPoint point) 
 {
 	int x, y, pos, tos;
@@ -2201,6 +2198,32 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 				m_ClipEndPos = pDoc->m_TextRam.GetCalcPos(x, y);
 				OnUpdate(this, UPDATE_CLIPERA, NULL);
 			}
+
+		} else if ( m_RDownStat == 2 || (m_RDownStat == 1 && abs(point.y - m_RDownPoint.y) > m_CharHeight) ) {
+
+			if ( m_WheelTimer ) {
+				KillTimer(VTMID_WHEELMOVE);
+				m_WheelTimer = FALSE;
+			}
+
+			y = point.y - m_RDownPoint.y;
+			x = y % m_CharHeight;
+
+			if ( (y = m_RDownOfs + y / m_CharHeight) < 0 ) {
+				y = 0;
+				x = 0;
+			} else if ( y > (pDoc->m_TextRam.m_HisLen - m_Lines) ) {
+				y = pDoc->m_TextRam.m_HisLen - m_Lines;
+				x = 0;
+			}
+
+			if ( y != m_HisOfs || x != pDoc->m_TextRam.m_ScrnOffset.top ) {
+				pDoc->m_TextRam.m_ScrnOffset.top = x;
+				m_HisOfs = y;
+				OnUpdate(this, UPDATE_INVALIDATE, NULL);
+			}
+
+			m_RDownStat = 2;
 		}
 		return;
 	}
@@ -2301,24 +2324,11 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 	if ( m_ClipFlag != 1 )
 		OnUpdate(this, UPDATE_CLIPERA, NULL);
 }
-void CRLoginView::OnRButtonDblClk(UINT nFlags, CPoint point) 
-{
-	CRLoginDoc *pDoc = GetDocument();
 
-	m_LastMouseFlags = nFlags;
-
-	if ( !pDoc->m_TextRam.IsOptEnable(TO_RLRSPAST) && pDoc->m_TextRam.IsOptEnable(TO_RLRCLICK) )
-		OnEditPaste();
-
-	CView::OnRButtonDblClk(nFlags, point);
-}
 void CRLoginView::OnRButtonDown(UINT nFlags, CPoint point) 
 {
 	int x, y;
-	CCmdUI state;
-	CMenu *pMenu, *pMain, DefMenu;
 	CRLoginDoc *pDoc = GetDocument();
-	CMainFrame *pFrame = GetMainWnd();
 
 	m_LastMouseFlags = nFlags;
 
@@ -2331,32 +2341,14 @@ void CRLoginView::OnRButtonDown(UINT nFlags, CPoint point)
 		return;
 	}
 
-	if ( pDoc->m_TextRam.IsOptEnable(TO_RLRSPAST) ) {
-		OnEditPaste();
-		return;
-	}
-
-	if ( pDoc->m_TextRam.IsOptEnable(TO_RLRCLICK) )
-		return;
-
-	if ( (pMain = GetMainWnd()->GetMenu()) == NULL || (pMenu = pMain->GetSubMenu(1)) == NULL ) {
-		if ( !DefMenu.LoadMenu(IDR_POPUPMENU) || (pMenu = DefMenu.GetSubMenu(5)) == NULL )
-			return;
-	}
-
-	state.m_pMenu = pMenu;
-	state.m_nIndexMax = pMenu->GetMenuItemCount();
-	for ( state.m_nIndex = 0 ; state.m_nIndex < state.m_nIndexMax ; state.m_nIndex++) {
-		if ( (int)(state.m_nID = pMenu->GetMenuItemID(state.m_nIndex)) <= 0 )
-			continue;
-		state.m_pSubMenu = NULL;
-		state.DoUpdate(this, TRUE);
-	}
-
-	ClientToScreen(&point);
-	pMenu->TrackPopupMenu(TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, this);
+	if ( pDoc->m_TextRam.IsOptEnable(TO_RLRBSCROLL) ) {
+		m_RDownClock = clock();
+		m_RDownPoint = point;
+		m_RDownStat  = 1;
+		m_RDownOfs   = m_HisOfs;
+	} else
+		PopUpMenu(point);
 }
-
 void CRLoginView::OnRButtonUp(UINT nFlags, CPoint point)
 {
 	int x, y;
@@ -2370,17 +2362,103 @@ void CRLoginView::OnRButtonUp(UINT nFlags, CPoint point)
 	if ( pDoc->m_TextRam.m_MouseTrack != MOS_EVENT_NONE && !m_MouseEventFlag ) {
 		CalcGrapPoint(point, &x, &y);
 		pDoc->m_TextRam.MouseReport(MOS_LOCA_RTUP, nFlags, x, y);
+		return;
 	}
+
+	if ( m_RDownStat == 2 ) {
+		m_RDownStat = 0;
+
+		if ( (x = clock() - m_RDownClock) > 0 && x < 3000 ) {
+			if ( (y = (point.y - m_RDownPoint.y) * 100 / x) != 0 ) {
+				m_WheelDelta = y / m_CharHeight;
+				if ( abs(m_WheelDelta) > 3 ) {
+					SetTimer(VTMID_WHEELMOVE, 100, NULL);			// 100ms
+					m_WheelTimer = TRUE;
+				}
+			}
+		}
+
+		y = point.y - m_RDownPoint.y;
+		x = y % m_CharHeight;
+		y = m_RDownOfs + y / m_CharHeight;
+
+		if ( x > 0 )
+			y++;
+		else if ( x < 0 )
+			y--;
+
+		if ( y < 0 )
+			y = 0;
+		else if ( y > (pDoc->m_TextRam.m_HisLen - m_Lines) )
+			y = pDoc->m_TextRam.m_HisLen - m_Lines;
+
+		if ( m_HisOfs != y || pDoc->m_TextRam.m_ScrnOffset.top != 0 ) {
+			m_HisOfs = y;
+			pDoc->m_TextRam.m_ScrnOffset.top = 0;
+			OnUpdate(this, UPDATE_INVALIDATE, NULL);
+		}
+
+	} else {
+		m_RDownStat = 0;
+		PopUpMenu(point);
+	}
+}
+void CRLoginView::OnRButtonDblClk(UINT nFlags, CPoint point) 
+{
+	CRLoginDoc *pDoc = GetDocument();
+
+	m_LastMouseFlags = nFlags;
+
+	CView::OnRButtonDblClk(nFlags, point);
+
+	if ( !pDoc->m_TextRam.IsOptEnable(TO_RLRSPAST) && pDoc->m_TextRam.IsOptEnable(TO_RLRCLICK) )
+		OnEditPaste();
+}
+
+void CRLoginView::SendPasteText(LPCWSTR wstr)
+{
+	int ct = 0;
+	int len = 0;
+	LPCWSTR p;
+	CBuffer tmp;
+	CRLoginDoc *pDoc = GetDocument();
+
+	for ( p = wstr ; *p != 0 ; p++ ) {
+		if ( *p == L'\x0A' || *p == L'\x1A' )
+			continue;
+		if ( *p == L'\x0D' || (*p != L'\t' && *p < L' ') )
+			ct++;
+		else
+			len++;
+	}
+
+	if ( m_PastNoCheck == FALSE && (len > 1000 || ct > 0) ) {
+		CAnyPastDlg dlg;
+		dlg.m_TextBox = wstr;
+		if ( dlg.DoModal() != IDOK )
+			return;
+		m_PastNoCheck = dlg.m_NoCheck;
+		wstr = TstrToUni(dlg.m_TextBox);
+	}
+
+	if ( pDoc->m_TextRam.IsOptEnable(TO_XTBRPAMD) )
+		tmp.Apend((LPBYTE)(L"\033[200~"), 6 * sizeof(WCHAR));
+
+	for ( p = wstr ; *p != 0 ; p++ ) {
+		if ( *p != L'\x0A' && *p != L'\x1A' )
+			tmp.Apend((LPBYTE)p, sizeof(WCHAR));
+	}
+
+	if ( pDoc->m_TextRam.IsOptEnable(TO_XTBRPAMD) )
+		tmp.Apend((LPBYTE)(L"\033[201~"), 6 * sizeof(WCHAR));
+
+	SendBuffer(tmp);
 }
 void CRLoginView::OnEditPaste() 
 {
 	HGLOBAL hData;
 	LPCWSTR pData;
 	CStringW wstr;
-	CBuffer tmp;
-	int cr = 0;
-	int ct = 0;
-	CRLoginDoc *pDoc = GetDocument();
 
 	if ( !OpenClipboard() )
 		return;
@@ -2400,56 +2478,108 @@ void CRLoginView::OnEditPaste()
 	GlobalUnlock(hData);
 	CloseClipboard();
 
-	for ( pData = wstr ; *pData != 0 ; pData++ ) {
-		if ( *pData != L'\x0A' && *pData != L'\x1A' ) {
-			if ( *pData == L'\x0D' )
-				cr++;
-			else if ( *pData != L'\t' && *pData < L' ' )
-				ct++;
-		}
-	}
-
-	if ( m_PastNoCheck == FALSE && ((tmp.GetSize() / sizeof(WCHAR)) > 1000 || cr > 0 || ct > 0) ) {
-		CAnyPastDlg dlg;
-		dlg.m_TextBox = wstr;
-		if ( dlg.DoModal() != IDOK )
-			return;
-		m_PastNoCheck = dlg.m_NoCheck;
-		wstr = dlg.m_TextBox;
-	}
-
-	if ( pDoc->m_TextRam.IsOptEnable(TO_XTBRPAMD) )
-		tmp.Apend((LPBYTE)(L"\033[200~"), 6 * sizeof(WCHAR));
-
-	for ( pData = wstr ; *pData != 0 ; pData++ ) {
-		if ( *pData != L'\x0A' && *pData != L'\x1A' )
-			tmp.Apend((LPBYTE)pData, sizeof(WCHAR));
-	}
-
-	if ( pDoc->m_TextRam.IsOptEnable(TO_XTBRPAMD) )
-		tmp.Apend((LPBYTE)(L"\033[201~"), 6 * sizeof(WCHAR));
-
-	SendBuffer(tmp);
+	SendPasteText(wstr);
 }
 void CRLoginView::OnUpdateEditPaste(CCmdUI* pCmdUI) 
 {
-	pCmdUI->Enable(IsClipboardFormatAvailable(CF_TEXT) ? TRUE : FALSE);
+	pCmdUI->Enable(IsClipboardFormatAvailable(CF_UNICODETEXT) ? TRUE : FALSE);
+}
+void CRLoginView::ClipboardPaste(UINT nID)
+{
+	int n;
+	int index = nID - IDM_CLIPBORAD_HIS1;
+	CMainFrame *pMain = (CMainFrame *)::AfxGetMainWnd();
+	CRLoginDoc *pDoc = GetDocument();
+
+	if ( pMain == NULL || index >= pMain->m_ClipBoard.GetSize() )
+		return;
+
+	if ( index > 0 ) {
+		POSITION pos = pMain->m_ClipBoard.GetHeadPosition();
+		for ( n = 0 ; n < index && pos != NULL ; n++ )
+			pMain->m_ClipBoard.GetNext(pos);
+
+		// Global Clipborad Update
+		if ( pos != NULL ) {
+			SendPasteText(pMain->m_ClipBoard.GetAt(pos));
+			SetClipboadText(pMain->m_ClipBoard.GetAt(pos));
+		}
+
+		// Local Clipborad Update
+		//if ( pos != NULL ) {
+		//	SendPasteText(pMain->m_ClipBoard.GetAt(pos));
+		//	CStringW save = pMain->m_ClipBoard.GetAt(pos);
+		//	pMain->m_ClipBoard.RemoveAt(pos);
+		//	pMain->m_ClipBoard.AddHead(save);
+		//}
+
+	} else
+		SendPasteText(pMain->m_ClipBoard.GetHead());
+}
+void CRLoginView::OnUpdateClipboardPaste(CCmdUI* pCmdUI) 
+{
+	pCmdUI->Enable(((CMainFrame *)::AfxGetMainWnd())->m_ClipBoard.GetSize() > (pCmdUI->m_nID - IDM_CLIPBORAD_HIS1) ? TRUE : FALSE);
+}
+void CRLoginView::OnClipboardMenu()
+{
+	CPoint point;
+	CMenu *pMenu, DefMenu;
+	CMainFrame *pMain = (CMainFrame *)::AfxGetMainWnd();
+
+	if ( pMain == NULL )
+		return;
+
+	if ( (pMenu = pMain->GetMenu()) == NULL ) {
+		if ( !DefMenu.LoadMenu(IDR_RLOGINTYPE) )
+			return;
+		pMenu = &DefMenu;
+	}
+	
+	if ( (pMenu = pMenu->GetSubMenu(1)) == NULL || (pMenu = pMenu->GetSubMenu(4)) == NULL )
+		return;
+
+	pMain->SetClipBoardMenu(IDM_CLIPBORAD_HIS1, pMenu);
+
+	point.x = m_CaretX;
+	point.y = m_CaretY + m_CharHeight;
+	ClientToScreen(&point);
+	pMenu->TrackPopupMenu(TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, this);
 }
 
 void CRLoginView::OnMacroRec() 
 {
-	CRLoginDoc *pDoc = GetDocument();
+#ifdef	USE_KEYMACGLOBAL
+	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
 
 	if ( m_KeyMacFlag ) {
-		CKeyMac tmp;
-		tmp.SetBuf(m_KeyMacBuf.GetPtr(), m_KeyMacBuf.GetSize());
-		pDoc->m_KeyMac.Add(tmp);
-		pDoc->m_KeyMac.SetHisMenu(GetMainWnd()->GetMenu());
+		if ( m_KeyMacBuf.GetSize() > 0 ) {
+			CKeyMac tmp;
+			tmp.SetBuf(m_KeyMacBuf.GetPtr(), m_KeyMacBuf.GetSize());
+			pApp->m_KeyMacGlobal.m_bUpdate = TRUE;
+			pApp->m_KeyMacGlobal.Add(tmp);
+			pApp->UpdateKeyMacGlobal();
+		}
 		m_KeyMacFlag = FALSE;
 	} else {
 		m_KeyMacFlag = TRUE;
 		m_KeyMacBuf.Clear();
 	}
+#else
+	CRLoginDoc *pDoc = GetDocument();
+
+	if ( m_KeyMacFlag ) {
+		if ( m_KeyMacBuf.GetSize() > 0 ) {
+			CKeyMac tmp;
+			tmp.SetBuf(m_KeyMacBuf.GetPtr(), m_KeyMacBuf.GetSize());
+			pDoc->m_KeyMac.Add(tmp);
+			pDoc->SetModifiedFlag(TRUE);
+		}
+		m_KeyMacFlag = FALSE;
+	} else {
+		m_KeyMacFlag = TRUE;
+		m_KeyMacBuf.Clear();
+	}
+#endif
 }
 void CRLoginView::OnUpdateMacroRec(CCmdUI* pCmdUI) 
 {
@@ -2457,30 +2587,81 @@ void CRLoginView::OnUpdateMacroRec(CCmdUI* pCmdUI)
 }
 void CRLoginView::OnMacroPlay() 
 {
+#ifdef	USE_KEYMACGLOBAL
+	CBuffer tmp;
+	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
+
+	if ( pApp->m_KeyMacGlobal.m_Data.GetSize() <= 0 || !pApp->m_KeyMacGlobal.m_bUpdate )
+		return;
+
+	pApp->m_KeyMacGlobal.GetAt(0, tmp);
+	pApp->UpdateKeyMacGlobal();
+
+	SendBuffer(tmp, FALSE);
+#else
 	CBuffer tmp;
 	CRLoginDoc *pDoc = GetDocument();
 
+	if ( pDoc->m_KeyMac.m_Data.GetSize() <= 0 )
+		return;
+
 	pDoc->m_KeyMac.GetAt(0, tmp);
-	SendBuffer(tmp, TRUE);
+
+	SendBuffer(tmp, FALSE);
+#endif
 }
 void CRLoginView::OnUpdateMacroPlay(CCmdUI* pCmdUI) 
 {
+#ifdef	USE_KEYMACGLOBAL
+	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
+	pCmdUI->Enable(!m_KeyMacFlag && pApp->m_KeyMacGlobal.m_bUpdate ? TRUE : FALSE);
+#else
 	CRLoginDoc *pDoc = GetDocument();
-	pCmdUI->Enable(pDoc->m_KeyMac.m_Data.GetSize() > 0 ? TRUE : FALSE);
+	pCmdUI->Enable(!m_KeyMacFlag && pDoc->m_KeyMac.GetSize() > 0 ? TRUE : FALSE);
+#endif
 }
 void CRLoginView::OnMacroHis(UINT nID) 
 {
+#ifdef	USE_KEYMACGLOBAL
+	CBuffer tmp;
+	int n = nID - ID_MACRO_HIS1;
+	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
+
+	if ( pApp->m_KeyMacGlobal.GetSize() <= n )
+		return;
+
+	pApp->m_KeyMacGlobal.m_bUpdate = TRUE;
+	pApp->m_KeyMacGlobal.GetAt(n, tmp);
+	pApp->m_KeyMacGlobal.Top(n);
+	pApp->UpdateKeyMacGlobal();
+
+	SendBuffer(tmp, FALSE);
+#else
 	CBuffer tmp;
 	int n = nID - ID_MACRO_HIS1;
 	CRLoginDoc *pDoc = GetDocument();
 
-	pDoc->m_KeyMac.GetAt(n, tmp);
-	SendBuffer(tmp, TRUE);
+	if ( pDoc->m_KeyMac.GetSize() <= n )
+		return;
 
-	if ( n > 0 ) {
-		pDoc->m_KeyMac.Top(n);
-		pDoc->m_KeyMac.SetHisMenu(GetMainWnd()->GetMenu());
-	}
+	pDoc->m_KeyMac.GetAt(n, tmp);
+	pDoc->m_KeyMac.Top(n);
+	pDoc->SetModifiedFlag(TRUE);
+
+	SendBuffer(tmp, FALSE);
+#endif
+}
+void CRLoginView::OnUpdateMacroHis(CCmdUI* pCmdUI)
+{
+#ifdef	USE_KEYMACGLOBAL
+	int n = pCmdUI->m_nID - ID_MACRO_HIS1;
+	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
+	pCmdUI->Enable(n >= 0 && n < pApp->m_KeyMacGlobal.GetSize() ? TRUE : FALSE);
+#else
+	int n = nID - ID_MACRO_HIS1;
+	CRLoginDoc *pDoc = GetDocument();
+	pCmdUI->Enable(n >= 0 && n < pDoc->m_KeyMac.GetSize() ? TRUE : FALSE);
+#endif
 }
 
 void CRLoginView::OnEditCopy() 
@@ -2599,7 +2780,7 @@ BOOL CRLoginView::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 		CRLoginDoc *pDoc = GetDocument();
 		HCURSOR hCursor = NULL;
 
-		if ( m_BroadCast )
+		if ( ((CMainFrame *)::AfxGetMainWnd())->m_bBroadCast && !pDoc->m_TextRam.IsOptEnable(TO_RLNOTBCAST) )
 			::SetCursor(AfxGetApp()->LoadStandardCursor(IDC_SIZEALL));
 		else {
 			mode = pDoc->m_TextRam.m_XtMosPointMode;
@@ -2654,15 +2835,6 @@ void CRLoginView::OnUpdateMouseEvent(CCmdUI *pCmdUI)
 	CRLoginDoc *pDoc = GetDocument();
 	pCmdUI->Enable(pDoc->m_TextRam.m_MouseTrack != MOS_EVENT_NONE ? TRUE : FALSE);
 	pCmdUI->SetCheck(m_MouseEventFlag ? TRUE : FALSE);
-}
-
-void CRLoginView::OnBroadcast()
-{
-	m_BroadCast = (m_BroadCast ? FALSE : TRUE);
-}
-void CRLoginView::OnUpdateBroadcast(CCmdUI *pCmdUI)
-{
-	pCmdUI->SetCheck(m_BroadCast);
 }
 
 void CRLoginView::OnPagePrior()

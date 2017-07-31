@@ -74,25 +74,73 @@ COptDlg::COptDlg(LPCTSTR pszCaption, CWnd* pParentWnd)
 	m_pParamTab = NULL;
 	m_pDocument = NULL;
 
-	AddPage(&m_SerEntPage,	NULL);
-	AddPage(&m_SockOptPage,	&m_SerEntPage);
-	AddPage(&m_ProtoPage,	&m_SerEntPage);
-	AddPage(&m_ScriptPage,	&m_SerEntPage);
-	AddPage(&m_ScrnPage,	NULL);
-	AddPage(&m_TermPage,	&m_ScrnPage);
-	AddPage(&m_HisPage,		&m_ScrnPage);
-	AddPage(&m_ClipPage,	NULL);
-	AddPage(&m_MousePage,	&m_ClipPage);
-	AddPage(&m_CharSetPage,	NULL);
-	AddPage(&m_ColorPage,	NULL);
-	AddPage(&m_KeyPage,		NULL);
-	AddPage(&m_ModKeyPage,	&m_KeyPage);
+#if 0
+	TRACE("CSerEntPage %d\n", sizeof(CSerEntPage));
+	TRACE("CKeyPage %d\n", sizeof(CKeyPage));
+	TRACE("CColParaDlg %d\n", sizeof(CColParaDlg));
+	TRACE("CCharSetPage %d\n", sizeof(CCharSetPage));
+	TRACE("CSockOptPage %d\n", sizeof(CSockOptPage));
+	TRACE("CProtoPage %d\n", sizeof(CProtoPage));
+	TRACE("CTermPage %d\n", sizeof(CTermPage));
+	TRACE("CExtOptPage %d\n", sizeof(CExtOptPage));
+	TRACE("CScrnPage %d\n", sizeof(CScrnPage));
+	TRACE("CHisPage %d\n", sizeof(CHisPage));
+	TRACE("CClipPage %d\n", sizeof(CClipPage));
+	TRACE("CMousePage %d\n", sizeof(CMousePage));
+	TRACE("CScriptPage %d\n", sizeof(CScriptPage));
+	TRACE("CModKeyPage %d\n", sizeof(CModKeyPage));
+	TRACE("COptDlg %d\n", sizeof(COptDlg));
+#endif
+
+	m_pSerEntPage  = new CSerEntPage;
+	m_pKeyPage     = new CKeyPage;
+	m_pColorPage   = new CColParaDlg;
+	m_pCharSetPage = new CCharSetPage;
+	m_pSockOptPage = new CSockOptPage;
+	m_pProtoPage   = new CProtoPage;
+	m_pTermPage    = new CTermPage;
+	m_pExtOptPage  = new CExtOptPage;
+	m_pScrnPage    = new CScrnPage;
+	m_pHisPage     = new CHisPage;
+	m_pClipPage    = new CClipPage;
+	m_pMousePage   = new CMousePage;
+	m_pScriptPage  = new CScriptPage;
+	m_pModKeyPage  = new CModKeyPage;
+
+	AddPage(m_pSerEntPage,	NULL);
+	AddPage(m_pSockOptPage,	m_pSerEntPage);
+	AddPage(m_pProtoPage,	m_pSerEntPage);
+	AddPage(m_pScriptPage,	m_pSerEntPage);
+	AddPage(m_pScrnPage,	NULL);
+	AddPage(m_pTermPage,	m_pScrnPage);
+	AddPage(m_pExtOptPage,	m_pScrnPage);
+	AddPage(m_pHisPage,		m_pScrnPage);
+	AddPage(m_pClipPage,	NULL);
+	AddPage(m_pMousePage,	m_pClipPage);
+	AddPage(m_pCharSetPage,	NULL);
+	AddPage(m_pColorPage,	NULL);
+	AddPage(m_pKeyPage,		NULL);
+	AddPage(m_pModKeyPage,	m_pKeyPage);
 
 	m_ActivePage = (-1);
 	m_psh.dwFlags = 0;
 }
 COptDlg::~COptDlg()
 {
+	delete m_pSerEntPage;
+	delete m_pKeyPage;
+	delete m_pColorPage;
+	delete m_pCharSetPage;
+	delete m_pSockOptPage;
+	delete m_pProtoPage;
+	delete m_pTermPage;
+	delete m_pExtOptPage;
+	delete m_pScrnPage;
+	delete m_pHisPage;
+	delete m_pClipPage;
+	delete m_pMousePage;
+	delete m_pScriptPage;
+	delete m_pModKeyPage;
 }
 
 /////////////////////////////////////////////////////////////////////////////

@@ -22,10 +22,6 @@ static char THIS_FILE[] = __FILE__;
 
 IMPLEMENT_DYNCREATE(CTermPage, CTreePage)
 
-//#define	CHECKOPTMAX		5
-//#define	IDC_CHECKFAST	IDC_TERMCHECK1
-//static const int CheckOptTab[] = { TO_RLBOLD, TO_RLGNDW, TO_RLGCWA, TO_RLUNIAWH, TO_RLKANAUTO };
-
 static const LV_COLUMN InitListTab[3] = {
 		{ LVCF_TEXT | LVCF_WIDTH, 0,  60,	_T("番号"),				0, 0 },
 		{ LVCF_TEXT | LVCF_WIDTH, 0,  150,	_T("セット時の動作"),	0, 0 },
@@ -110,25 +106,11 @@ static const struct _OptListTab {
 	{	TO_DRCSMMv1,	_T("8800 Unicodeマッピング有効"),	_T("Unicodeマッピング無効"),		_T("ISO-2022コードセットをUnicode16面にマッピングを有効・無効にします")	},
 	{	TO_RLC1DIS,		_T("C1制御文字を無視する"),			_T("C1制御文字を処理する"),			_T("C1制御文字(80-9F)を無視する・しない")	},
 	{	0,				NULL,								NULL,								NULL	}
-}, ExtListTab[] = {
-	// RLogin SockOpt		1000-1511(0-511)
-	{	TO_RLCURIMD,	_T("カーソルをIで表示"),			_T("カーソルを通常表示"),			_T("カーソルが画面内の場合にIで表示するようにします。\n制御コードによるマウスコントロール中には、矢印とIが入れ替わります")	},
-	{	TO_RLRSPAST,	_T("右クリックでペースト"),			_T("右クリックでメニュー選択"),		_T("画面内で右クリックした場合の動作を変更します。\nクリップボードオプションの右ダブルクリックの設定と重なりますので注意してください")	},
-	{	TO_RLGWDIS,		_T("ゴースト表示しない"),			_T("タブにマウスでゴースト表示"),	_T("この接続でのゴースト表示を禁止します。\nすべて表示しないようにするにはレジストリを直接操作する必要があります。\nHCU\\Software\\Culti\\RLogin\\TabBar\\GhostWnd")	},
-	{	TO_RLMWDIS,		_T("サイズを表示しない"),			_T("画面サイズを表示する"),			_T("画面サイズが変更されると画面中央に横ｘ縦サイズを自動で表示します。\n表示は、約３秒ほどで自動で消えます")	},
-	{	TO_RLGRPIND,	_T("イメージを全表示する"),			_T("イメージを部分表示する"),		_T("Sixel/Imageを外部ウィンドウで表示する場合の表示方法を選択します\n全表示では、上下/左右に余白が表示されます")	},
-	{	TO_RLSTAYCLIP,	_T("範囲指定を解除しない"),			_T("コピー時に範囲指定を解除"),		_T("画面を範囲指定した場合にコピーしても反転表示したまにします")	},
-	{	TO_SETWINPOS,	_T("XTWOPでウィンドウ操作"),		_T("ウインドウ操作しない"),			_T("XTWOP(CSI t)でメインウィンドウの位置やサイズなどを操作できるようにします")	},
-	{	TO_RLWORDPP,	_T("ワード単位で調整"),				_T("文字単位で調整する"),			_T("プロポーショナルフォントの調整方法を選択します")	},
-	{	0,				NULL,								NULL,								NULL	}
 };
 
 CTermPage::CTermPage() : CTreePage(CTermPage::IDD)
 {
-	//for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
-	//	m_Check[n] = FALSE;
 }
-
 CTermPage::~CTermPage()
 {
 }
@@ -137,30 +119,18 @@ void CTermPage::DoDataExchange(CDataExchange* pDX)
 {
 	CTreePage::DoDataExchange(pDX);
 
-	//for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
-	//	DDX_Check(pDX, IDC_TERMCHECK1 + n, m_Check[n]);
 	DDX_Control(pDX, IDC_ESCLIST, m_OptList);
-	DDX_Control(pDX, IDC_EXTLIST, m_ExtList);
 }
 
 BEGIN_MESSAGE_MAP(CTermPage, CTreePage)
-//	ON_CONTROL_RANGE(BN_CLICKED, IDC_CHECKFAST, IDC_CHECKFAST + CHECKOPTMAX - 1, OnUpdateCheck)
 	ON_BN_CLICKED(IDC_ESCEDIT, &CTermPage::OnBnClickedEscedit)
 	ON_NOTIFY(NM_CLICK, IDC_ESCLIST, &CTermPage::OnNMClickOptlist)
-	ON_NOTIFY(NM_CLICK, IDC_EXTLIST, &CTermPage::OnNMClickExtlist)
 	ON_NOTIFY(LVN_GETINFOTIP, IDC_ESCLIST, &CTermPage::OnLvnGetInfoTipEsclist)
-	ON_NOTIFY(LVN_GETINFOTIP, IDC_EXTLIST, &CTermPage::OnLvnGetInfoTipExtlist)
 END_MESSAGE_MAP()
-
-/////////////////////////////////////////////////////////////////////////////
-// CTermPage メッセージ ハンドラ
 
 void CTermPage::DoInit()
 {
 	int n, i;
-
-	//for ( n = 0 ; n < CHECKOPTMAX ; n++ )
-	//	m_Check[n] = (m_pSheet->m_pTextRam->IsOptEnable(CheckOptTab[n]) ? TRUE : FALSE);
 
 	m_ProcTab = m_pSheet->m_pTextRam->m_ProcTab;
 
@@ -169,13 +139,12 @@ void CTermPage::DoInit()
 		m_OptList.SetLVCheck(i,  m_pSheet->m_pTextRam->IsOptEnable(OptListTab[n].num) ? TRUE : FALSE);
 	}
 
-	for ( i = 0 ; i < m_ExtList.GetItemCount() ; i++ ) {
-		n = m_ExtList.GetItemData(i);
-		m_ExtList.SetLVCheck(i,  m_pSheet->m_pTextRam->IsOptEnable(ExtListTab[n].num) ? TRUE : FALSE);
-	}
-
 	UpdateData(FALSE);
 }
+
+/////////////////////////////////////////////////////////////////////////////
+// CTermPage メッセージ ハンドラ
+
 BOOL CTermPage::OnInitDialog() 
 {
 	int n;
@@ -204,17 +173,6 @@ BOOL CTermPage::OnInitDialog()
 		m_OptList.InsertItem(LVIF_TEXT | LVIF_PARAM, n, str, 0, 0, 0, n);
 		m_OptList.SetItemText(n, 1, OptListTab[n].ename);
 		m_OptList.SetItemText(n, 2, OptListTab[n].dname);
-	}
-
-	m_ExtList.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_CHECKBOXES | LVS_EX_INFOTIP);
-	m_ExtList.InitColumn(_T("TermPageExt"), InitListTab, 3);
-
-	m_ExtList.DeleteAllItems();
-	for ( n = 0 ; ExtListTab[n].ename != NULL ; n++ ) {
-		str.Format(_T("%d"), ExtListTab[n].num - 1000);
-		m_ExtList.InsertItem(LVIF_TEXT | LVIF_PARAM, n, str, 0, 0, 0, n);
-		m_ExtList.SetItemText(n, 1, ExtListTab[n].ename);
-		m_ExtList.SetItemText(n, 2, ExtListTab[n].dname);
 	}
 
 	DoInit();
@@ -291,16 +249,6 @@ BOOL CTermPage::OnApply()
 		}
 	}
 
-	for ( i = 0 ; i < m_ExtList.GetItemCount() ; i++ ) {
-		n = m_ExtList.GetItemData(i);
-
-		m_pSheet->m_pTextRam->SetOption(ExtListTab[n].num, m_ExtList.GetLVCheck(i) ? TRUE : FALSE);
-	}
-
-
-	//for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
-	//	m_pSheet->m_pTextRam->SetOption(CheckOptTab[n], m_Check[n]);
-
 	return TRUE;
 }
 void CTermPage::OnReset() 
@@ -310,12 +258,6 @@ void CTermPage::OnReset()
 	DoInit();
 	SetModified(FALSE);
 }
-
-//void CTermPage::OnUpdateCheck(UINT nID) 
-//{
-//	SetModified(TRUE);
-//	m_pSheet->m_ModFlag |= (UMOD_TEXTRAM | UMOD_ANSIOPT);
-//}
 
 void CTermPage::OnBnClickedEscedit()
 {
@@ -330,7 +272,6 @@ void CTermPage::OnBnClickedEscedit()
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 }
-
 void CTermPage::OnNMClickOptlist(NMHDR *pNMHDR, LRESULT *pResult)
 {
 	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
@@ -342,20 +283,6 @@ void CTermPage::OnNMClickOptlist(NMHDR *pNMHDR, LRESULT *pResult)
 
 	*pResult = 0;
 }
-
-void CTermPage::OnNMClickExtlist(NMHDR *pNMHDR, LRESULT *pResult)
-{
-	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
-
-	if ( pNMItemActivate->iSubItem == 0 ) {
-		SetModified(TRUE);
-		m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
-	}
-
-	*pResult = 0;
-}
-
-
 void CTermPage::OnLvnGetInfoTipEsclist(NMHDR *pNMHDR, LRESULT *pResult)
 {
 	LPNMLVGETINFOTIP pGetInfoTip = reinterpret_cast<LPNMLVGETINFOTIP>(pNMHDR);
@@ -366,26 +293,6 @@ void CTermPage::OnLvnGetInfoTipEsclist(NMHDR *pNMHDR, LRESULT *pResult)
 		str = OptListTab[n].tip;
 	else
 		str.Format(_T("%s/%s"), OptListTab[n].ename, OptListTab[n].dname);
-
-	if ( (n = str.GetLength() + sizeof(TCHAR)) > pGetInfoTip->cchTextMax )
-		n = pGetInfoTip->cchTextMax;
-
-	lstrcpyn(pGetInfoTip->pszText, str, n);
-
-	*pResult = 0;
-}
-
-
-void CTermPage::OnLvnGetInfoTipExtlist(NMHDR *pNMHDR, LRESULT *pResult)
-{
-	LPNMLVGETINFOTIP pGetInfoTip = reinterpret_cast<LPNMLVGETINFOTIP>(pNMHDR);
-	int n = m_ExtList.GetItemData(pGetInfoTip->iItem);
-	CString str;
-
-	if ( ExtListTab[n].tip != NULL )
-		str = ExtListTab[n].tip; 
-	else
-		str.Format(_T("%s/%s"), ExtListTab[n].ename, ExtListTab[n].dname);
 
 	if ( (n = str.GetLength() + sizeof(TCHAR)) > pGetInfoTip->cchTextMax )
 		n = pGetInfoTip->cchTextMax;

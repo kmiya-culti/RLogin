@@ -62,7 +62,6 @@ public:
 	BOOL m_VisualBellFlag;
 	int m_BlinkFlag;
 	BOOL m_MouseEventFlag;
-	volatile BOOL m_BroadCast;
 	int m_WheelDelta;
 	BOOL m_WheelTimer;
 	clock_t m_WheelClock;
@@ -70,6 +69,11 @@ public:
 	BOOL m_PastNoCheck;
 	BOOL m_ScrollOut;
 	BOOL m_ClipUpdateLine;
+
+	clock_t m_RDownClock;
+	CPoint m_RDownPoint;
+	int m_RDownStat;
+	int m_RDownOfs;
 
 	int m_ClipFlag;
 	int m_ClipStaPos, m_ClipEndPos;
@@ -84,6 +88,7 @@ public:
 	inline BOOL IsClipLineMode() { return (m_ClipKeyFlags & (MK_SHIFT | 0x1000)); }
 	int GetClipboad(CBuffer *bp);
 	int SetClipboad(CBuffer *bp);
+	int SetClipboadText(LPCTSTR str);
 
 	BOOL m_KeyMacFlag;
 	CBuffer m_KeyMacBuf;
@@ -130,13 +135,13 @@ public:
 	int ImmOpenCtrl(int sw);
 	void KillCaret();
 	void SetCaret();
-	void SendBroadCastMouseWheel(UINT nFlags, short zDelta, CPoint pt);
-	void SendBroadCast(CBuffer &buf);
 	void SendBuffer(CBuffer &buf, BOOL macflag = FALSE);
 	void SetGhostWnd(BOOL sw);
 	BOOL ModifyKeys(UINT nChar, int nStat);
 	void CreateGrapImage(int type);
 	void GetMousePos(int *sw, int *x, int *y);
+	void PopUpMenu(CPoint point);
+	void SendPasteText(LPCWSTR wstr);
 
 	inline int CalcGrapX(int x)	{ CRLoginDoc *pDoc = GetDocument(); return (m_Width  * x / m_Cols  + pDoc->m_TextRam.m_ScrnOffset.left); }
 	inline int CalcGrapY(int y) { CRLoginDoc *pDoc = GetDocument(); return (m_Height * y / m_Lines + pDoc->m_TextRam.m_ScrnOffset.top); }
@@ -181,7 +186,6 @@ protected:
 	afx_msg LRESULT OnImeRequest(WPARAM wParam, LPARAM lParam);
 
 	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
-	afx_msg BOOL OnMouseWheel(UINT nFlags, short zDelta, CPoint pt);
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonDblClk(UINT nFlags, CPoint point);
@@ -192,23 +196,27 @@ protected:
 	afx_msg void OnXButtonDown(UINT nFlags, UINT nButton, CPoint point);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 
+	afx_msg void OnEditCopy();
+	afx_msg void OnUpdateEditCopy(CCmdUI* pCmdUI);
+	afx_msg void OnEditCopyAll();
 	afx_msg void OnEditPaste();
 	afx_msg void OnUpdateEditPaste(CCmdUI* pCmdUI);
+	afx_msg void ClipboardPaste(UINT nID);
+	afx_msg void OnUpdateClipboardPaste(CCmdUI* pCmdUI);
+	afx_msg void OnClipboardMenu();
+
 	afx_msg void OnMacroRec();
 	afx_msg void OnUpdateMacroRec(CCmdUI* pCmdUI);
 	afx_msg void OnMacroPlay();
 	afx_msg void OnUpdateMacroPlay(CCmdUI* pCmdUI);
-	afx_msg void OnEditCopy();
-	afx_msg void OnUpdateEditCopy(CCmdUI* pCmdUI);
+	afx_msg void OnMacroHis(UINT nID);
+	afx_msg void OnUpdateMacroHis(CCmdUI *pCmdUI);
+
 	afx_msg void OnMouseEvent();
 	afx_msg void OnUpdateMouseEvent(CCmdUI *pCmdUI);
-	afx_msg void OnBroadcast();
-	afx_msg void OnUpdateBroadcast(CCmdUI *pCmdUI);
 	afx_msg void OnGoziview();
 	afx_msg void OnUpdateGoziview(CCmdUI *pCmdUI);
 
-	afx_msg void OnEditCopyAll();
-	afx_msg void OnMacroHis(UINT nID);
 	afx_msg void OnPagePrior();
 	afx_msg void OnPageNext();
 	afx_msg void OnSearchReg();
@@ -219,6 +227,9 @@ protected:
 	afx_msg void OnSplitOver();
 	afx_msg void OnSplitHeightNew();
 	afx_msg void OnSplitWidthNew();
+
+public:
+	afx_msg BOOL OnMouseWheel(UINT nFlags, short zDelta, CPoint pt);
 };
 
 #ifndef _DEBUG  // RLoginView.cpp ファイルがデバッグ環境の時使用されます。

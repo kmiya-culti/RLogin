@@ -330,6 +330,58 @@ void CPaneFrame::SwapWnd()
 		}
 	}
 }
+void CPaneFrame::GetNextPane(int mode, class CPaneFrame *pThis, class CPaneFrame **ppPane)
+{
+	if ( m_Style == PANEFRAME_WINDOW ) {
+		if ( m_hWnd != NULL && m_hWnd != pThis->m_hWnd ) {
+			switch(mode) {
+			case 0:	// Up
+				if (  m_Frame.bottom > pThis->m_Frame.top )
+					break;
+				if ( *ppPane == NULL )
+					*ppPane = this;
+				else if ( m_Frame.bottom > (*ppPane)->m_Frame.bottom )
+					*ppPane = this;
+				else if ( m_Frame.bottom == (*ppPane)->m_Frame.bottom && abs(m_Frame.left - pThis->m_Frame.left) < abs((*ppPane)->m_Frame.left - pThis->m_Frame.left) )
+					*ppPane = this;
+				break;
+			case 1:	// Down
+				if (  m_Frame.top < pThis->m_Frame.bottom )
+					break;
+				if ( *ppPane == NULL )
+					*ppPane = this;
+				else if ( m_Frame.top < (*ppPane)->m_Frame.top )
+					*ppPane = this;
+				else if ( m_Frame.top == (*ppPane)->m_Frame.top && abs(m_Frame.left - pThis->m_Frame.left) < abs((*ppPane)->m_Frame.left - pThis->m_Frame.left) )
+					*ppPane = this;
+				break;
+			case 2:	// Right
+				if (  m_Frame.left < pThis->m_Frame.right )
+					break;
+				if ( *ppPane == NULL )
+					*ppPane = this;
+				else if ( m_Frame.left < (*ppPane)->m_Frame.left )
+					*ppPane = this;
+				else if ( m_Frame.left == (*ppPane)->m_Frame.left && abs(m_Frame.top - pThis->m_Frame.top) < abs((*ppPane)->m_Frame.top - pThis->m_Frame.top) )
+					*ppPane = this;
+				break;
+			case 3:	// Left
+				if (  m_Frame.right > pThis->m_Frame.left )
+					break;
+				if ( *ppPane == NULL )
+					*ppPane = this;
+				else if ( m_Frame.right > (*ppPane)->m_Frame.right )
+					*ppPane = this;
+				else if ( m_Frame.right == (*ppPane)->m_Frame.right && abs(m_Frame.top - pThis->m_Frame.top) < abs((*ppPane)->m_Frame.top - pThis->m_Frame.top) )
+					*ppPane = this;
+				break;
+			}
+		}
+	} else {
+		m_pLeft->GetNextPane(mode, pThis, ppPane);
+		m_pRight->GetNextPane(mode, pThis, ppPane);
+	}
+}
 BOOL CPaneFrame::IsReqSize()
 {
 	if ( m_Style == PANEFRAME_WINDOW )
@@ -554,6 +606,11 @@ void CPaneFrame::SetBuffer(CBuffer *buf)
 				if ( pDoc != NULL ) {
 					pDoc->SetEntryProBuffer();
 					pEntry = &(pDoc->m_ServerEntry);
+					pEntry->m_DocType = DOCTYPE_MULTIFILE;
+					pDoc->SetModifiedFlag(FALSE);
+#if	_MSC_VER > 1500
+					pDoc->ClearPathName();
+#endif
 					tmp.Format("%d\t0\t1\t", m_Style);
 				}
 			}
@@ -697,6 +754,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_WM_ENTERMENULOOP()
 	ON_WM_ACTIVATE()
 	ON_WM_CLOSE()
+	ON_WM_DRAWCLIPBOARD()
+	ON_WM_CHANGECBCHAIN()
 
 	ON_MESSAGE(WM_SOCKSEL, OnWinSockSelect)
 	ON_MESSAGE(WM_GETHOSTADDR, OnGetHostAddr)
@@ -731,12 +790,17 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_UPDATE_COMMAND_UI(IDM_WINODW_NEXT, &CMainFrame::OnUpdateWinodwNext)
 
 	ON_COMMAND_RANGE(IDM_WINDOW_SEL0, IDM_WINDOW_SEL9, &CMainFrame::OnWinodwSelect)
+	ON_COMMAND_RANGE(IDM_MOVEPANE_UP, IDM_MOVEPANE_LEFT, &CMainFrame::OnActiveMove)
+	ON_UPDATE_COMMAND_UI_RANGE(IDM_MOVEPANE_UP, IDM_MOVEPANE_LEFT, &CMainFrame::OnUpdateActiveMove)
 
 	ON_UPDATE_COMMAND_UI(ID_INDICATOR_SOCK, OnUpdateIndicatorSock)
 
 	ON_COMMAND(IDM_VERSIONCHECK, &CMainFrame::OnVersioncheck)
 	ON_UPDATE_COMMAND_UI(IDM_VERSIONCHECK, &CMainFrame::OnUpdateVersioncheck)
 	ON_COMMAND(IDM_NEWVERSIONFOUND, &CMainFrame::OnNewVersionFound)
+
+	ON_COMMAND(IDM_BROADCAST, &CMainFrame::OnBroadcast)
+	ON_UPDATE_COMMAND_UI(IDM_BROADCAST, &CMainFrame::OnUpdateBroadcast)
 END_MESSAGE_MAP()
 
 static const UINT indicators[] =
@@ -760,7 +824,6 @@ CMainFrame::CMainFrame()
 	m_pTrackPane = NULL;
 	m_StatusString = "";
 	m_LastPaneFlag = FALSE;
-	m_ModifiedFlag = FALSE;
 	m_TimerSeqId = TIMERID_TIMEREVENT;
 	m_pTimerUsedId = NULL;
 	m_pTimerFreeId = NULL;
@@ -776,6 +839,8 @@ CMainFrame::CMainFrame()
 	m_SplitType = PANEFRAME_WSPLIT;
 	m_StartMenuHand = NULL;
 	m_bVersionCheck = FALSE;
+	m_hNextClipWnd = NULL;
+	m_bBroadCast = FALSE;
 }
 
 CMainFrame::~CMainFrame()
@@ -952,6 +1017,8 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	if ( (pMenu = GetMenu()) != NULL )
 		m_StartMenuHand = pMenu->GetSafeHmenu();
+
+	m_hNextClipWnd = SetClipboardViewer();
 
 	return 0;
 }
@@ -1339,7 +1406,7 @@ int CMainFrame::OpenServerEntry(CServerEntry &Entry)
 	if ( m_LastPaneFlag && pTemp != NULL && m_pTopPane != NULL &&
 			(pPane = m_pTopPane->GetPane(pTemp->m_hWnd)) != NULL && pPane->m_pServerEntry != NULL ) {
 		Entry = *(pPane->m_pServerEntry);
-		Entry.m_SaveFlag = FALSE;
+		Entry.m_DocType = DOCTYPE_MULTIFILE;
 		delete pPane->m_pServerEntry;
 		pPane->m_pServerEntry = NULL;
 		if ( m_pTopPane->GetEntry() != NULL )
@@ -1360,7 +1427,6 @@ int CMainFrame::OpenServerEntry(CServerEntry &Entry)
 	if ( dlg.m_EntryNum < 0 ) {
 		if ( pApp->m_pServerEntry != NULL ) {
 			Entry = *(pApp->m_pServerEntry);
-			Entry.m_SaveFlag = (-1);
 			pApp->m_pServerEntry = NULL;
 			return TRUE;
 		}
@@ -1368,7 +1434,7 @@ int CMainFrame::OpenServerEntry(CServerEntry &Entry)
 			for ( n = 0 ; n< m_ServerEntryTab.m_Data.GetSize() ; n++ ) {
 				if ( pApp->m_pCmdInfo->m_Name.Compare(m_ServerEntryTab.m_Data[n].m_EntryName) == 0 ) {
 					Entry = m_ServerEntryTab.m_Data[n];
-					Entry.m_SaveFlag = FALSE;
+					Entry.m_DocType = DOCTYPE_SESSION;
 					return TRUE;
 				}
 			}
@@ -1376,7 +1442,7 @@ int CMainFrame::OpenServerEntry(CServerEntry &Entry)
 		if ( pApp->m_pCmdInfo != NULL && pApp->m_pCmdInfo->m_Proto != (-1) && !pApp->m_pCmdInfo->m_Addr.IsEmpty() && !pApp->m_pCmdInfo->m_Port.IsEmpty() ) {
 			if ( Entry.m_EntryName.IsEmpty() )
 				Entry.m_EntryName.Format(_T("%s:%s"), pApp->m_pCmdInfo->m_Addr, pApp->m_pCmdInfo->m_Port);
-			Entry.m_SaveFlag = FALSE;
+			Entry.m_DocType = DOCTYPE_SESSION;
 			return TRUE;
 		}
 
@@ -1386,7 +1452,7 @@ int CMainFrame::OpenServerEntry(CServerEntry &Entry)
 
 	m_ServerEntryTab.m_Data[dlg.m_EntryNum].m_CheckFlag = FALSE;
 	Entry = m_ServerEntryTab.m_Data[dlg.m_EntryNum];
-	Entry.m_SaveFlag = TRUE;
+	Entry.m_DocType = DOCTYPE_REGISTORY;
 
 	for ( n = 0 ; n < m_ServerEntryTab.m_Data.GetSize() ; n++ ) {
 		if ( m_ServerEntryTab.m_Data[n].m_CheckFlag ) {
@@ -1941,6 +2007,8 @@ void CMainFrame::OnClose()
 	if ( count > 0 && AfxMessageBox(CStringLoad(IDS_FILECLOSEQES), MB_ICONQUESTION | MB_YESNO) != IDYES )
 		return;
 
+	ChangeClipboardChain(m_hNextClipWnd);
+
 	CMDIFrameWnd::OnClose();
 }
 
@@ -2370,7 +2438,6 @@ void CMainFrame::OnFileAllSave()
 	file.Write("RLM100\n", 7);
 	file.Write(buf.GetPtr(), buf.GetSize());
 	file.Close();
-	m_ModifiedFlag = FALSE;
 }
 void CMainFrame::OnFileAllLoad() 
 {
@@ -2392,52 +2459,33 @@ void CMainFrame::OnFileAllLoad()
 
 	if ( m_pTopPane->GetEntry() != NULL ) {
 		m_LastPaneFlag = TRUE;
-		m_ModifiedFlag = FALSE;
 		AfxGetApp()->AddToRecentFileList(m_AllFilePath);
 		PostMessage(WM_COMMAND, ID_FILE_NEW, 0);
 	}
-}
-BOOL CMainFrame::SaveModified( )
-{
-	if ( !m_ModifiedFlag || m_AllFilePath.IsEmpty() )
-		return TRUE;
-
-	CFile file;
-	CBuffer buf;
-	CString prompt;
-
-	AfxFormatString1(prompt, AFX_IDP_ASK_TO_SAVE, m_AllFilePath);
-
-	switch(AfxMessageBox(prompt, MB_YESNOCANCEL, AFX_IDP_ASK_TO_SAVE)) {
-	case IDCANCEL:
-		break;
-	case IDYES:
-		m_pTopPane->SetBuffer(&buf);
-		if ( !file.Open(m_AllFilePath, CFile::modeCreate | CFile::modeWrite) )
-			return FALSE;
-		file.Write("RLM100\n", 7);
-		file.Write(buf.GetPtr(), buf.GetSize());
-		file.Close();
-		m_ModifiedFlag = FALSE;
-		break;
-	case IDNO:
-		return FALSE;
-	}
-
-	return TRUE;
 }
 
 BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCopyDataStruct)
 {
 	if ( pCopyDataStruct->dwData == 0x524c4f31 ) {
-		CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
-		CCommandLineInfoEx cmdInfo;
-		cmdInfo.SetString((LPCTSTR)(pCopyDataStruct->lpData));
-		pApp->OpenProcsCmd(&cmdInfo);
-		return TRUE;
+		return ((CRLoginApp *)::AfxGetApp())->OnInUseCheck(pCopyDataStruct);
 
 	} else if ( pCopyDataStruct->dwData == 0x524c4f32 ) {
-		return ((CRLoginApp *)::AfxGetApp())->OnlineEntry((LPCTSTR)(pCopyDataStruct->lpData));
+		return ((CRLoginApp *)::AfxGetApp())->OnlineEntry(pCopyDataStruct);
+
+#ifdef	USE_KEYMACGLOBAL
+	} else if ( pCopyDataStruct->dwData == 0x524c4f33 ) {
+		((CRLoginApp *)::AfxGetApp())->OnUpdateKeyMac(pCopyDataStruct);
+		return TRUE;
+#endif
+
+	} else if ( pCopyDataStruct->dwData == 0x524c4f34 ) {
+		if ( m_bBroadCast )
+			((CRLoginApp *)::AfxGetApp())->OnSendBroadCast(pCopyDataStruct);
+		return TRUE;
+
+	} else if ( pCopyDataStruct->dwData == 0x524c4f35 ) {
+		((CRLoginApp *)::AfxGetApp())->OnSendBroadCastMouseWheel(pCopyDataStruct);
+		return TRUE;
 	}
 
 	return CMDIFrameWnd::OnCopyData(pWnd, pCopyDataStruct);
@@ -2568,7 +2616,6 @@ void CMainFrame::OnUpdateVersioncheck(CCmdUI *pCmdUI)
 {
 	pCmdUI->SetCheck(m_bVersionCheck);
 }
-
 void CMainFrame::OnWinodwNext()
 {
 	if ( m_wndTabBar.GetSize() <= 1 )
@@ -2593,4 +2640,132 @@ void CMainFrame::OnUpdateWinodwNext(CCmdUI *pCmdUI)
 void CMainFrame::OnUpdateWindowPrev(CCmdUI *pCmdUI)
 {
 	pCmdUI->Enable(m_wndTabBar.GetSize() > 1 ? TRUE : FALSE);
+}
+void CMainFrame::OnActiveMove(UINT nID)
+{
+	CWnd *pTemp;
+	CPaneFrame *pActive;
+	CChildFrame *pWnd;
+	CPaneFrame *pPane = NULL;
+
+	if ( m_pTopPane == NULL || (pTemp  = MDIGetActive(NULL)) == NULL || (pActive = m_pTopPane->GetPane(pTemp->m_hWnd)) == NULL )
+		return;
+
+	m_pTopPane->GetNextPane(nID - IDM_MOVEPANE_UP, pActive, &pPane);
+
+	if ( pPane != NULL && (pWnd = (CChildFrame *)CWnd::FromHandle(pPane->m_hWnd)) != NULL )
+		pWnd->MDIActivate();
+}
+void CMainFrame::OnUpdateActiveMove(CCmdUI *pCmdUI)
+{
+	CWnd *pTemp;
+	CPaneFrame *pActive;
+	CChildFrame *pWnd;
+	CPaneFrame *pPane = NULL;
+
+	if ( m_pTopPane == NULL || m_wndTabBar.GetSize() <= 1 || (pTemp  = MDIGetActive(NULL)) == NULL || (pActive = m_pTopPane->GetPane(pTemp->m_hWnd)) == NULL )
+		pCmdUI->Enable(FALSE);
+	else {
+		m_pTopPane->GetNextPane(pCmdUI->m_nID - IDM_MOVEPANE_UP, pActive, &pPane);
+		pCmdUI->Enable(pPane != NULL ? TRUE : FALSE);
+	}
+}
+
+void CMainFrame::OnBroadcast()
+{
+	m_bBroadCast = (m_bBroadCast ? FALSE : TRUE);
+}
+void CMainFrame::OnUpdateBroadcast(CCmdUI *pCmdUI)
+{
+	pCmdUI->SetCheck(m_bBroadCast);
+}
+
+void CMainFrame::SetClipBoardMenu(UINT nId, CMenu *pMenu)
+{
+	int n, i;
+	int index = 1;
+	POSITION pos;
+	LPCWSTR str;
+	CString tmp;
+
+	for ( n = 0 ; n < 10 ; n++ )
+		pMenu->DeleteMenu(nId + n, MF_BYCOMMAND);
+	
+	for ( pos = m_ClipBoard.GetHeadPosition() ; pos != NULL ; ) {
+		str = (LPCWSTR)m_ClipBoard.GetNext(pos);
+
+		tmp.Format(_T("&%d "), index++);
+		for ( n = 0 ; n < 50 && *str != L'\0' ; n++, str++ ) {
+			if ( *str == L'\n' )
+				n--;
+			else if ( *str == L'\r' )
+				tmp += _T("«");
+			else if ( *str == L'\x7F' || *str < L' ' || *str == L'&' || *str == L'\\' )
+				tmp += _T('.');
+			else
+				tmp += *str;
+			if ( n == 40 && (i = wcslen(str)) > 10 ) {
+				tmp += _T(" ... ");
+				str += (i - 11);
+			}
+		}
+		pMenu->AppendMenu(MF_STRING, nId++, tmp);
+	}
+}
+void CMainFrame::OnDrawClipboard()
+{
+	CMDIFrameWnd::OnDrawClipboard();
+
+	if ( m_hNextClipWnd && m_hNextClipWnd != m_hWnd )
+		::SendMessage(m_hNextClipWnd, WM_DRAWCLIPBOARD, NULL, NULL);
+
+	if ( !IsClipboardFormatAvailable(CF_UNICODETEXT) )
+		return;
+
+	HGLOBAL hData;
+	LPCWSTR pData;
+	CStringW wstr;
+
+	if ( !OpenClipboard() )
+		return;
+
+	if ( (hData = GetClipboardData(CF_UNICODETEXT)) == NULL ) {
+		CloseClipboard();
+		return;
+	}
+
+	if ( (pData = (WCHAR *)GlobalLock(hData)) == NULL ) {
+        CloseClipboard();
+        return;
+    }
+
+	wstr = pData;
+	GlobalUnlock(hData);
+	CloseClipboard();
+
+	if ( wstr.IsEmpty() )
+		return;
+
+	POSITION pos = m_ClipBoard.GetHeadPosition();
+	while ( pos != NULL ) {
+		if ( m_ClipBoard.GetAt(pos).Compare(UniToTstr(wstr)) == 0 ) {
+			m_ClipBoard.RemoveAt(pos);
+			break;
+		}
+		m_ClipBoard.GetNext(pos);
+	}
+
+	m_ClipBoard.AddHead(wstr);
+
+	while ( m_ClipBoard.GetSize() > 10 )
+		m_ClipBoard.RemoveTail();
+}
+void CMainFrame::OnChangeCbChain(HWND hWndRemove, HWND hWndAfter)
+{
+	CMDIFrameWnd::OnChangeCbChain(hWndRemove, hWndAfter);
+
+	if ( hWndRemove == m_hNextClipWnd )
+		m_hNextClipWnd = hWndAfter;
+	else if ( m_hNextClipWnd && m_hNextClipWnd != m_hWnd )
+		::SendMessage(hWndAfter, WM_CHANGECBCHAIN, (WPARAM)hWndRemove, (LPARAM)hWndAfter); 
 }

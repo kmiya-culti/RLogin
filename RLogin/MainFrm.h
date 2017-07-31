@@ -55,6 +55,7 @@ public:
 	int GetPaneCount(int count);
 	BOOL IsReqSize();
 
+	void GetNextPane(int mode, class CPaneFrame *pThis, class CPaneFrame **ppPane);
 	void MoveFrame();
 	void SwapWnd();
 	void MoveParOwn(CRect &rect, int Style);
@@ -141,7 +142,6 @@ public:
 	BOOL m_LastPaneFlag;
 	CBuffer m_AllFileBuf;
 	CString m_AllFilePath;
-	BOOL m_ModifiedFlag;
 	int m_TimerSeqId;
 	CTimerObject *m_pTimerUsedId;
 	CTimerObject *m_pTimerFreeId;
@@ -162,6 +162,9 @@ public:
 	int m_SplitType;
 	int m_ExecCount;
 	HMENU m_StartMenuHand;
+	HWND m_hNextClipWnd;
+	BOOL m_bBroadCast;
+	CList<CStringW, CStringW &> m_ClipBoard;
 
 	BOOL PagentQuery(CBuffer *pInBuf, CBuffer *pOutBuf);
 	void PagentInit(CArray<CIdKey, CIdKey &> *pKeyTab);
@@ -177,7 +180,6 @@ public:
 	int SetAsyncAddrInfo(int mode, LPCTSTR pHostName, int PortNum, void *pHint, CExtSocket *pSock);
 	int SetAfterId(void *param);
 	int OpenServerEntry(CServerEntry &Entry);
-	BOOL SaveModified();
 
 	int SetTimerEvent(int msec, int mode, void *pParam);
 	void DelTimerEvent(void *pParam);
@@ -216,6 +218,7 @@ public:
 	int PreLButtonDown(UINT nFlags, CPoint point);
 	int GetExecCount();
 	CMenu *GetSaveMenu(HMENU hDocMenu);
+	void SetClipBoardMenu(UINT nId, CMenu *pMenu);
 
 	CString m_VersionMessage;
 	CString m_VersionPageUrl;
@@ -253,11 +256,16 @@ protected:
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
 	afx_msg void OnClose();
 
+	afx_msg void OnDrawClipboard();
+	afx_msg void OnChangeCbChain(HWND hWndRemove, HWND hWndAfter);
+
 	afx_msg void OnPaneWsplit();
 	afx_msg void OnPaneHsplit();
 	afx_msg void OnPaneDelete();
 	afx_msg void OnPaneSave();
 	afx_msg void OnWinodwSelect(UINT nID);
+	afx_msg void OnActiveMove(UINT nID);
+	afx_msg void OnUpdateActiveMove(CCmdUI *pCmdUI);
 
 	afx_msg void OnWindowCascade();
 	afx_msg void OnUpdateWindowCascade(CCmdUI* pCmdUI);
@@ -280,6 +288,8 @@ protected:
 
 	afx_msg void OnFileAllLoad();
 	afx_msg void OnFileAllSave();
+	afx_msg void OnBroadcast();
+	afx_msg void OnUpdateBroadcast(CCmdUI *pCmdUI);
 
 	afx_msg LRESULT OnWinSockSelect(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnGetHostAddr(WPARAM wParam, LPARAM lParam);

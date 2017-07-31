@@ -24,7 +24,7 @@ CIConv::CIConv()
 	m_Cd = NULL;
 	m_Left = NULL;
 	m_Right = NULL;
-	memset(m_Table, 0, sizeof(int) * 256);
+	ZeroMemory(m_Table, sizeof(m_Table));
 	m_ErrCount = 0;
 }
 
@@ -73,9 +73,9 @@ SJIS	JISX213-2
 0xFC40	0x7D21		0xFC9F	0x7E21
 *******************/
 
-int CIConv::JisToSJis(int cd)
+DWORD CIConv::JisToSJis(DWORD cd)
 {
-	int    hi,lo;
+	DWORD hi,lo;
 
 	hi = (cd >> 8) & 0xFF;
 	lo = cd & 0xFF;
@@ -104,9 +104,9 @@ int CIConv::JisToSJis(int cd)
 	return (hi << 8 | lo);
 }
 
-int CIConv::SJisToJis(int cd)
+DWORD CIConv::SJisToJis(DWORD cd)
 {
-	int    hi,lo;
+	DWORD hi,lo;
 
 	hi = (cd >> 8) & 0xFF;
 	lo = cd & 0xFF;
@@ -271,18 +271,18 @@ void CIConv::RemoteToStr(LPCTSTR from, CBuffer *in, CBuffer *out)
 {
 	CBuffer mid;
 	IConvBuf(from, _T("UTF-16LE"), in, &mid);
-	CTextRam::IconvToMsUniStr((LPCWSTR)mid, mid.GetSize() / sizeof(WCHAR), *out);
+	CTextRam::IconvToMsUniStr(from, (LPCWSTR)mid, mid.GetSize() / sizeof(WCHAR), *out);
 }
 void CIConv::RemoteToStr(LPCTSTR from, LPCSTR in, CString &out)
 {
 	CBuffer bIn, bMid, bOut;
 	bIn.Apend((LPBYTE)in, (int)strlen(in));
 	IConvBuf(from, _T("UTF-16LE"), &bIn, &bMid);
-	CTextRam::IconvToMsUniStr((LPCWSTR)bMid, bMid.GetSize() / sizeof(WCHAR), bOut);
+	CTextRam::IconvToMsUniStr(from, (LPCWSTR)bMid, bMid.GetSize() / sizeof(WCHAR), bOut);
 	out = (LPCWSTR)bOut;
 }
 
-int CIConv::IConvChar(LPCTSTR from, LPCTSTR to, DWORD ch)
+DWORD CIConv::IConvChar(LPCTSTR from, LPCTSTR to, DWORD ch)
 {
 	int n = 0;
 	DWORD od = ch;
@@ -295,8 +295,8 @@ int CIConv::IConvChar(LPCTSTR from, LPCTSTR to, DWORD ch)
 	if ( cp->m_Cd == (iconv_t)(-1) )
 		return 0x0000;
 
-	if ( (ch & 0xFFFFFF00) == 0 && m_Table[ch] != 0 )
-		return m_Table[ch];
+	if ( (ch & 0xFFFFFF00) == 0 && cp->m_Table[ch] != 0 )
+		return cp->m_Table[ch];
 
 	switch(cp->m_Mode) {
 	case 011:		// EUC-JISX0213 > EUC-JISX0213
@@ -419,7 +419,7 @@ int CIConv::IConvChar(LPCTSTR from, LPCTSTR to, DWORD ch)
 
 ENDOF:
 	if ( (od & 0xFFFFFF00) == 0 )
-		m_Table[od] = ch;
+		cp->m_Table[od] = ch;
 	return ch;
 }
 

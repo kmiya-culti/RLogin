@@ -49,7 +49,8 @@
 #define	LOGMOD_CTRL		1
 #define	LOGMOD_CHAR		2
 #define	LOGMOD_LINE		3
-#define	LOGMOD_DEBUG	4
+#define	LOGMOD_PAGE		4
+#define	LOGMOD_DEBUG	5
 
 #define ATT_BOLD		0x0000001		// [1m bold or increased intensity
 #define	ATT_HALF		0x0000002		// [2m faint, decreased intensity or second colour
@@ -219,6 +220,8 @@
 #define	TO_SLEEPTIMER	1460		// スリープを行う
 #define	TO_SETWINPOS	1461		// XTWOPでWindowsの操作を行う
 #define	TO_RLWORDPP		1462		// プロポーショナルフォントをワードで調整
+#define	TO_RLRBSCROLL	1463		// マウスのRボタンでスクロールする
+#define	TO_RLNOTBCAST	1464		// 同時送信に含めない
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -601,7 +604,7 @@ public:
 class CFontTab : public COptObject
 {
 public:
-	CFontNode m_Data[CODE_MAX];
+	CFontNode *m_Data;
 	CUniBlockTab m_UniBlockTab;
 
 	void InitUniBlock();
@@ -616,7 +619,9 @@ public:
 	void IndexRemove(int idx);
 	inline CFontNode & operator[](int nIndex) { return m_Data[nIndex]; }
 	const CFontTab & operator = (CFontTab &data);
+
 	CFontTab();
+	~CFontTab();
 };
 
 #define	PROCTYPE_ESC	0
@@ -938,6 +943,7 @@ public:
 
 	int m_LogCharSet[4];
 	BOOL m_LogTimeFlag;
+	int m_LogCurY;
 	int m_TitleMode;
 	BOOL m_FileSaveFlag;
 	DWORD m_XtOptFlag;
@@ -1008,6 +1014,7 @@ public:
 	void EditWordPos(int *sps, int *eps);
 	void EditCopy(int sps, int eps, BOOL rectflag = FALSE, BOOL lineflag = FALSE);
 	void GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf);
+	void GetLine(int sy, CString &str);
 	void GetScreenSize(int *x, int *y);
 
 #if 0
@@ -1031,7 +1038,7 @@ public:
 	int IsOptValue(int opt, int len);
 	void SetOptValue(int opt, int len, int value);
 	inline void SetOption(int opt, BOOL sw) { if ( sw ) EnableOption(opt); else DisableOption(opt); }
-	void InitDefParam(BOOL bCheck, int modFlag = (-1));
+	int InitDefParam(BOOL bCheck, int modFlag = (-1));
 	void InitModKeyTab();
 
 	inline int GetCalcPos(int x, int y) { return (m_ColsMax * (y + m_HisPos + m_HisMax) + x); }
@@ -1059,12 +1066,14 @@ public:
 
 	// Static Lib
 	static void MsToIconvUniStr(LPCTSTR charset, LPWSTR str, int len);
-	static DWORD CTextRam::IconvToMsUnicode(DWORD code);
+	static int JapanCharSet(LPCTSTR name);
+	static DWORD CTextRam::IconvToMsUnicode(int jpset, DWORD code);
+	static DWORD CTextRam::IconvToMsUnicode(LPCTSTR charset, DWORD code) { return IconvToMsUnicode(JapanCharSet(charset), code); }
 	static DWORD UCS2toUCS4(DWORD code);
 	static DWORD UCS4toUCS2(DWORD code);
 	static void UCS4ToWStr(DWORD code, CStringW &str);
 	static DWORD UnicodeNomal(DWORD code1, DWORD code2);
-	static void IconvToMsUniStr(LPCWSTR p, int len, CBuffer &out);
+	static void IconvToMsUniStr(LPCTSTR charset, LPCWSTR p, int len, CBuffer &out);
 
 	// Low Level
 	void RESET(int mode = RESET_PAGE | RESET_CURSOR | RESET_MARGIN | RESET_TABS | RESET_BANK | RESET_ATTR | RESET_COLOR | RESET_TEK | RESET_SAVE | RESET_MOUSE | RESET_CHAR);

@@ -265,22 +265,35 @@ public:
 class CStringBinary : public CObject
 {
 public:
+	CStringBinary *m_pRoot;
 	CStringBinary *m_pLeft;
 	CStringBinary *m_pRight;
 	CString m_Index;
 	CString m_String;
 	int m_Value;
+	int m_Balance;
 
 	CStringBinary();
-	CStringBinary(LPCTSTR str);
 	~CStringBinary();
 
+	// Root
 	void RemoveAll();
-	CStringBinary * Find(LPCTSTR str);
-	CStringBinary * FindValue(int value);
 	CStringBinary & operator [] (LPCTSTR str);
 	CStringBinary & operator [] (int number);
-	CStringBinary & Add(LPCTSTR str) { return (*this)[str]; };
+	CStringBinary * Find(LPCTSTR str);
+	CStringBinary * FindValue(int value);
+
+	// Node
+	CStringBinary(LPCTSTR str);
+	CStringBinary * Add(CStringBinary **ppTop, LPCTSTR str, BOOL &bNew);
+	CStringBinary * FindNode(LPCTSTR str);
+	CStringBinary * FindNodeValue(int value);
+
+#ifdef	DEBUG
+	void Tree(int nest);
+	void TreeNode(int nest);
+#endif
+
 	const LPCTSTR operator = (LPCTSTR str) { m_Value = 0; return (m_String = str); }
 	operator LPCTSTR () const { return m_String; }
 	const int operator = (int val) { return (m_Value = val); }
@@ -475,7 +488,6 @@ public:
 	int m_KanjiCode;
 	int m_ProtoType;
 	CBuffer m_ProBuffer;
-	BOOL m_SaveFlag;
 	BOOL m_CheckFlag;
 	int m_Uid;
 	CStrScript m_ChatScript;
@@ -497,6 +509,7 @@ public:
 	CString m_ProxyPassProvs;
 	CString m_BeforeEntry;
 	BOOL m_ReEntryFlag;
+	int m_DocType;
 
 	void Init();
 	void SetArray(CStringArrayExt &stra);
@@ -665,6 +678,9 @@ public:
 class CKeyMacTab : public COptObject
 {
 public:
+#ifdef	USE_KEYMACGLOBAL
+	BOOL m_bUpdate;
+#endif
 	CArray<CKeyMac, CKeyMac &> m_Data;
 
 	void Init();
@@ -680,6 +696,7 @@ public:
 	void SetHisMenu(CMenu *pMainMenu);
 
 	inline CKeyMac & operator[](int nIndex) { return m_Data[nIndex]; }
+	inline int GetSize() { return m_Data.GetSize(); }
 	const CKeyMacTab & operator = (CKeyMacTab &data);
 	CKeyMacTab();
 };

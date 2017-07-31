@@ -52,6 +52,10 @@ public:
 	CCommandLineInfoEx *m_pCmdInfo;
 	CServerEntry *m_pServerEntry;
 
+#ifdef	USE_KEYMACGLOBAL
+	CKeyMacTab m_KeyMacGlobal;
+#endif
+
 #ifdef	USE_DIRECTWRITE
 	ID2D1Factory *m_pD2DFactory;
 	IDWriteFactory *m_pDWriteFactory;
@@ -92,10 +96,20 @@ public:
 	void OpenProcsCmd(CCommandLineInfoEx *pCmdInfo);
 	void OpenCommandEntry(LPCTSTR entry);
 	void OpenCommandLine(LPCTSTR str);
-	BOOL InUseCheck();
-	BOOL OnlineCheck(LPCTSTR entry);
-	BOOL OnlineEntry(LPCTSTR entry);
 	BOOL CheckDocument(class CRLoginDoc *pDoc);
+
+	BOOL OnInUseCheck(COPYDATASTRUCT *pCopyData);
+	BOOL InUseCheck();
+	BOOL OnlineEntry(COPYDATASTRUCT *pCopyData);
+	BOOL OnlineCheck(LPCTSTR entry);
+#ifdef	USE_KEYMACGLOBAL
+	void OnUpdateKeyMac(COPYDATASTRUCT *pCopyData);
+	void UpdateKeyMacGlobal();
+#endif
+	void OnSendBroadCast(COPYDATASTRUCT *pCopyData);
+	void SendBroadCast(CBuffer &buf);
+	void OnSendBroadCastMouseWheel(COPYDATASTRUCT *pCopyData);
+	void SendBroadCastMouseWheel(UINT nFlags, short zDelta, CPoint pt);
 
 	void SetDefaultPrinter();
 
@@ -104,9 +118,8 @@ public:
 // オーバーライド
 public:
 	virtual BOOL InitInstance();
-	virtual BOOL OnIdle(LONG lCount);
 	virtual int ExitInstance();
-	virtual BOOL SaveAllModified();
+	virtual BOOL OnIdle(LONG lCount);
 
 // 実装
 	DECLARE_MESSAGE_MAP()

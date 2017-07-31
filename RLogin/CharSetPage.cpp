@@ -455,23 +455,23 @@ void CCharSetPage::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
 	case IDC_FONTSAMPLE:
 		UpdateData(TRUE);
 
-		if ( m_pSheet->m_ScrnPage.m_hWnd != NULL ) {
-			m_pSheet->m_ScrnPage.UpdateData(TRUE);
-			height = _tstoi(m_pSheet->m_ScrnPage.m_FontSize);
+		if ( m_pSheet->m_pScrnPage->m_hWnd != NULL ) {
+			m_pSheet->m_pScrnPage->UpdateData(TRUE);
+			height = _tstoi(m_pSheet->m_pScrnPage->m_FontSize);
 		} else
 			height = m_pSheet->m_pTextRam->m_DefFontSize;
 
-		if ( m_pSheet->m_ColorPage.m_hWnd != NULL ) {
-			m_pSheet->m_ColorPage.UpdateData(TRUE);
-			if ( m_pSheet->m_ColorPage.m_FontCol[0] < 16 )
-				fc = m_pSheet->m_ColorPage.m_ColTab[m_pSheet->m_ColorPage.m_FontCol[0]];
+		if ( m_pSheet->m_pColorPage->m_hWnd != NULL ) {
+			m_pSheet->m_pColorPage->UpdateData(TRUE);
+			if ( m_pSheet->m_pColorPage->m_FontCol[0] < 16 )
+				fc = m_pSheet->m_pColorPage->m_ColTab[m_pSheet->m_pColorPage->m_FontCol[0]];
 			else
-				fc = m_pSheet->m_pTextRam->m_ColTab[m_pSheet->m_ColorPage.m_FontCol[0]];
+				fc = m_pSheet->m_pTextRam->m_ColTab[m_pSheet->m_pColorPage->m_FontCol[0]];
 
-			if ( m_pSheet->m_ColorPage.m_FontCol[1] < 16 )
-				bc = m_pSheet->m_ColorPage.m_ColTab[m_pSheet->m_ColorPage.m_FontCol[1]];
+			if ( m_pSheet->m_pColorPage->m_FontCol[1] < 16 )
+				bc = m_pSheet->m_pColorPage->m_ColTab[m_pSheet->m_pColorPage->m_FontCol[1]];
 			else
-				bc = m_pSheet->m_pTextRam->m_ColTab[m_pSheet->m_ColorPage.m_FontCol[1]];
+				bc = m_pSheet->m_pTextRam->m_ColTab[m_pSheet->m_pColorPage->m_FontCol[1]];
 		} else {
 			fc = m_pSheet->m_pTextRam->m_ColTab[m_pSheet->m_pTextRam->m_DefAtt.fcol];
 			bc = m_pSheet->m_pTextRam->m_ColTab[m_pSheet->m_pTextRam->m_DefAtt.bcol];

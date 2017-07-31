@@ -22,11 +22,11 @@ public:
 	CBuffer m_SaveBuf;
 	class CIConv *m_Left;
 	class CIConv *m_Right;
-	int m_Table[256];
+	DWORD m_Table[256];
 	int m_ErrCount;
 
-	int JisToSJis(int cd);
-	int SJisToJis(int cd);
+	DWORD JisToSJis(DWORD cd);
+	DWORD SJisToJis(DWORD cd);
 
 	void IConvClose();
 	class CIConv *GetIConv(LPCTSTR from, LPCTSTR to);
@@ -36,7 +36,7 @@ public:
 	void StrToRemote(LPCTSTR to, LPCTSTR in, CStringA &out);
 	void RemoteToStr(LPCTSTR from, CBuffer *in, CBuffer *out);
 	void RemoteToStr(LPCTSTR from, LPCSTR in, CString &out);
-	int IConvChar(LPCTSTR from, LPCTSTR to, DWORD ch);
+	DWORD IConvChar(LPCTSTR from, LPCTSTR to, DWORD ch);
 
 	static void SetListArray(CStringArray &stra);
 

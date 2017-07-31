@@ -85,7 +85,6 @@ public:
 	CKermit *m_pKermit;
 	int m_DelayFlag;
 	CBuffer m_DelayBuf;
-	int m_LoadMode;
 	int m_ActCharCount;
 	CMainFrame *m_pMainWnd;
 	CString m_TitleString;
@@ -156,6 +155,9 @@ protected:
 	virtual void DeleteContents();
 	virtual BOOL OnNewDocument();
 	virtual BOOL OnOpenDocument(LPCTSTR lpszPathName);
+
+public:
+	virtual BOOL DoFileSave();
 
 // インプリメンテーション
 protected:

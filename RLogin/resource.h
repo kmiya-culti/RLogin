@@ -54,6 +54,7 @@
 #define IDD_DIALOG1                     150
 #define IDD_BLOCKDLG                    150
 #define IDD_ISO646DLG                   151
+#define IDD_EXTOPTPAGE                  152
 #define IDR_GRAPWND                     300
 #define IDR_MAINFRAME                   301
 #define IDR_POPUPMENU                   302
@@ -136,6 +137,8 @@
 #define IDS_STRING541                   541
 #define IDS_FONTSAMPLESTRING            541
 #define IDS_IDKEYHOSTKEYUPDATE          542
+#define IDS_STRING543                   543
+#define IDS_HISRECDEFAULT               543
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -165,8 +168,8 @@
 #define IDE_USESERVERENTRY              726
 #define IDE_USEIDKEYFILENAME            727
 #define IDE_IDKEYNOTSUPPORT             728
-#define IDS_STRING729                   729
 #define IDE_PFDLISTENEMPTY              729
+#define IDE_DUPENTRYSETOPTION           730
 #define ID_CHARSCRIPT_END               1000
 #define ID_DISCONNECT                   1001
 #define ID_EDIT_BOX                     1002
@@ -727,13 +730,28 @@
 #define IDM_NONENCRYPTFILE              5090
 #define IDM_SFTP_UIDGID                 5091
 #define IDM_PASTE_HISTORY               5092
+#define IDM_MOVEPANE_UP                 5093
+#define IDM_MOVEPANE_DOWN               5094
+#define IDM_MOVEPANE_RIGHT              5095
+#define IDM_MOVEPANE_LEFT               5096
+#define IDM_CLIPBORAD_HIS1              5097
+#define IDM_CLIPBORAD_HIS2              5098
+#define IDM_CLIPBORAD_HIS3              5099
+#define IDM_CLIPBORAD_HIS4              5100
+#define IDM_CLIPBORAD_HIS5              5101
+#define IDM_CLIPBORAD_HIS6              5102
+#define IDM_CLIPBORAD_HIS7              5103
+#define IDM_CLIPBORAD_HIS8              5104
+#define IDM_CLIPBORAD_HIS9              5105
+#define IDM_CLIPBORAD_HIS10             5106
+#define IDM_CLIPBORAD_MENU              5107
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        153
-#define _APS_NEXT_COMMAND_VALUE         5093
+#define _APS_NEXT_RESOURCE_VALUE        154
+#define _APS_NEXT_COMMAND_VALUE         5108
 #define _APS_NEXT_CONTROL_VALUE         2413
 #define _APS_NEXT_SYMED_VALUE           541
 #endif

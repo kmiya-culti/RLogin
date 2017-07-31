@@ -121,19 +121,6 @@ BOOL CRLoginDoc::OnNewDocument()
 	if ( !m_pMainWnd->OpenServerEntry(m_ServerEntry) )
 		return FALSE;
 
-	switch(m_ServerEntry.m_SaveFlag) {
-	case (-1):
-		m_LoadMode = DOCTYPE_SESSION;
-		break;
-	case FALSE:
-		m_LoadMode = DOCTYPE_MULTIFILE;
-		break;
-	case TRUE:
-		m_LoadMode = DOCTYPE_REGISTORY;
-		break;
-	}
-	m_ServerEntry.m_SaveFlag = FALSE;
-
 	m_TextRam.m_bOpen = TRUE;
 	m_TextRam.Serialize(FALSE, m_ServerEntry.m_ProBuffer);
 	m_KeyTab.Serialize(FALSE, m_ServerEntry.m_ProBuffer);
@@ -171,17 +158,18 @@ BOOL CRLoginDoc::OnNewDocument()
 
 BOOL CRLoginDoc::OnOpenDocument(LPCTSTR lpszPathName) 
 {
-	m_LoadMode = DOCTYPE_NONE;
+	m_ServerEntry.m_DocType = DOCTYPE_NONE;
 
 	if ( !CDocument::OnOpenDocument(lpszPathName) )
 		return FALSE;
 
 	m_TextRam.m_bOpen = TRUE;
 
-	if ( m_LoadMode == DOCTYPE_ENTRYFILE ) {
+	if ( m_ServerEntry.m_DocType == DOCTYPE_ENTRYFILE ) {
 		UpdateAllViews(NULL, UPDATE_INITPARA, 0);
 		m_TextRam.InitHistory();
 		SetPathName(lpszPathName, TRUE);
+		SetTitle(m_ServerEntry.m_EntryName);
 
 		if ( !m_ServerEntry.m_ScriptStr.IsEmpty() )
 			m_pScript->ExecStr(m_ServerEntry.m_ScriptStr);
@@ -201,9 +189,25 @@ BOOL CRLoginDoc::OnOpenDocument(LPCTSTR lpszPathName)
 		}
 	}
 	
-	return (m_LoadMode == DOCTYPE_NONE ? FALSE : TRUE);
+	return (m_ServerEntry.m_DocType == DOCTYPE_NONE ? FALSE : TRUE);
 }
+BOOL CRLoginDoc::DoFileSave()
+{
+	if ( m_ServerEntry.m_DocType == DOCTYPE_MULTIFILE ) {
+		m_pMainWnd->SendMessage(WM_COMMAND, ID_FILE_ALL_SAVE);
+		return TRUE;
 
+	} else if ( m_ServerEntry.m_DocType == DOCTYPE_REGISTORY ) {
+		SetEntryProBuffer();
+		m_pMainWnd->m_ServerEntryTab.AddEntry(m_ServerEntry);
+		return TRUE;
+
+	} else if ( m_ServerEntry.m_DocType == DOCTYPE_ENTRYFILE || m_ServerEntry.m_DocType == DOCTYPE_SESSION ) {
+		return CDocument::DoFileSave();
+	}
+
+	return FALSE;
+}
 void CRLoginDoc::OnFileClose()
 {
 	if ( m_pSock != NULL && m_pSock->m_bConnect && AfxMessageBox(CStringLoad(IDS_FILECLOSEQES), MB_ICONQUESTION | MB_YESNO) != IDYES )
@@ -256,7 +260,7 @@ void CRLoginDoc::Serialize(CArchive& ar)
 		m_KeyMac.Serialize(ar);
 		m_ParamTab.Serialize(ar);
 #endif
-		m_LoadMode = DOCTYPE_ENTRYFILE;
+		m_ServerEntry.m_DocType = DOCTYPE_ENTRYFILE;
 
 	} else {						// TODO: この位置に読み込み用のコードを追加してください。
 		int n;
@@ -274,7 +278,7 @@ void CRLoginDoc::Serialize(CArchive& ar)
 			index.Serialize(ar, NULL);
 			SetIndex(FALSE, index);
 			m_TextRam.SetKanjiMode(m_ServerEntry.m_KanjiCode);
-			m_LoadMode = DOCTYPE_ENTRYFILE;
+			m_ServerEntry.m_DocType = DOCTYPE_ENTRYFILE;
 
 		} else if ( strncmp(tmp, "RLG2", 4) == 0 ) {
 			m_ServerEntry.Serialize(ar);
@@ -284,7 +288,7 @@ void CRLoginDoc::Serialize(CArchive& ar)
 			m_ParamTab.Serialize(ar);
 
 			m_TextRam.SetKanjiMode(m_ServerEntry.m_KanjiCode);
-			m_LoadMode = DOCTYPE_ENTRYFILE;
+			m_ServerEntry.m_DocType = DOCTYPE_ENTRYFILE;
 
 		} else if ( strncmp(tmp, "RLM", 3) == 0 ) {
 			m_pMainWnd->m_AllFilePath = ar.GetFile()->GetFilePath();
@@ -292,7 +296,7 @@ void CRLoginDoc::Serialize(CArchive& ar)
 			while ( (n = ar.Read(tmp, 4096)) > 0 )
 				m_pMainWnd->m_AllFileBuf.Apend((LPBYTE)tmp, n);
 			m_pMainWnd->PostMessage(WM_COMMAND, ID_FILE_ALL_LOAD, 0);
-			m_LoadMode = DOCTYPE_MULTIFILE;
+			m_ServerEntry.m_DocType = DOCTYPE_MULTIFILE;
 
 		} else
 			AfxThrowArchiveException(CArchiveException::badIndex, ar.GetFile()->GetFileTitle());
@@ -357,12 +361,6 @@ void CRLoginDoc::DeleteContents()
 		m_TextRam.m_pTraceWnd->SendMessage(WM_CLOSE);
 
 	SocketClose();
-
-	if ( m_ServerEntry.m_SaveFlag ) {
-		SetEntryProBuffer();
-		m_pMainWnd->m_ServerEntryTab.AddEntry(m_ServerEntry);
-		m_ServerEntry.m_SaveFlag = FALSE;
-	}
 
 	if ( m_pScript != NULL ) {
 		m_pScript->Stop();
@@ -439,11 +437,19 @@ void CRLoginDoc::SetMenu(CMenu *pMenu, CKeyCmdsTab *pCmdsTab)
 	CRLoginDoc *pDoc;
 	int sel = (-1);
 
+	// Clipboard Menu
+	if ( (pSubMenu = pMenu->GetSubMenu(1)) != NULL && (pSubMenu = pSubMenu->GetSubMenu(4)) != NULL )
+		((CMainFrame *)::AfxGetMainWnd())->SetClipBoardMenu(IDM_CLIPBORAD_HIS1, pSubMenu);
+
 	// His Menu
 	for ( n = 0 ; n < 5 ; n++ )
 		pMenu->DeleteMenu(ID_MACRO_HIS1 + n, MF_BYCOMMAND);
 
+#ifdef	USE_KEYMACGLOBAL
+	((CRLoginApp *)::AfxGetApp())->m_KeyMacGlobal.SetHisMenu(pMenu);
+#else
 	m_KeyMac.SetHisMenu(pMenu);
+#endif
 
 	// Script Menu
 	for ( n = 0 ; n < 10 ; n++ )
@@ -722,8 +728,15 @@ int CRLoginDoc::DelaySend()
 
 BOOL CRLoginDoc::LogOpen(LPCTSTR filename)
 {
+	if ( m_pLogFile == NULL && (m_pLogFile = new CFileExt) == NULL )
+		return FALSE;
+
 	if ( !m_pLogFile->Open(filename, CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite | CFile::shareDenyWrite) )
 		return FALSE;
+
+	m_pLogFile->SeekToEnd();
+	m_TextRam.m_LogTimeFlag = TRUE;
+	m_TextRam.m_LogCurY = (-1);
 
 	if ( m_TextRam.m_LogMode == LOGMOD_CTRL ) {
 		m_TextRam.m_TraceLogMode |= 002;
@@ -741,6 +754,9 @@ BOOL CRLoginDoc::LogClose()
 
 	if ( m_pLogFile == NULL )
 		return FALSE;
+
+	if ( m_TextRam.m_LogMode == LOGMOD_LINE && m_TextRam.m_LogCurY != (-1) )
+		m_TextRam.CallReciveLine(m_TextRam.m_LogCurY - m_TextRam.m_HisPos);
 
 	LogWrite(NULL, 0, LOGDEBUG_NONE);
 	m_TextRam.SaveLogFile();
@@ -785,7 +801,7 @@ NEWLINE:
 	}
 
 	while ( nBufLen-- > 0 ) {
-		if ( *lpBuf < ' ' || *lpBuf >= 0x7F ) {
+		if ( *lpBuf < ' ' || *lpBuf == '[' || *lpBuf >= 0x7F ) {
 			mbs.Format("[%02x]", *lpBuf);
 			m_pLogFile->Write((LPCSTR)mbs, mbs.GetLength());
 			if ( *(lpBuf++) == 0x0A ) {
@@ -884,10 +900,8 @@ void CRLoginDoc::LogInit()
 		file.Format(_T("%s%s%s"), dirs, name, exts);
 
 		for ( num = 1 ; num < 20 ; num++ ) {
-			if ( LogOpen(file) ) {
-				m_pLogFile->SeekToEnd();
+			if ( LogOpen(file) )
 				break;
-			}
 			file.Format(_T("%s%s-%d%s"), dirs, name, num, exts);
 		}
 		if ( num >= 20 ) {
@@ -896,8 +910,6 @@ void CRLoginDoc::LogInit()
 			delete m_pLogFile;
 			m_pLogFile = NULL;
 		}
-
-		m_TextRam.m_LogTimeFlag = TRUE;
 	}
 }
 
@@ -1388,18 +1400,12 @@ void CRLoginDoc::OnLogOpen()
 	if ( dlg.DoModal() != IDOK )
 		return;
 
-	if ( (m_pLogFile = new CFileExt) == NULL )
-		return;
-
 	if ( !LogOpen(dlg.GetPathName()) ) {
 		AfxMessageBox(IDE_LOGOPENERROR);
 		delete m_pLogFile;
 		m_pLogFile = NULL;
 		return;
 	}
-
-	m_pLogFile->SeekToEnd();
-	m_TextRam.m_LogTimeFlag = TRUE;
 }
 void CRLoginDoc::OnUpdateLogOpen(CCmdUI* pCmdUI) 
 {
@@ -1416,24 +1422,21 @@ void CRLoginDoc::OnLoadDefault()
 	m_KeyMac.Serialize(FALSE);
 	m_ParamTab.Serialize(FALSE);
 
-	if ( m_LoadMode == DOCTYPE_ENTRYFILE )
-		SetModifiedFlag(TRUE);
-	else if ( m_LoadMode == DOCTYPE_MULTIFILE )
-		m_pMainWnd->m_ModifiedFlag = TRUE;
-	else if ( m_LoadMode == DOCTYPE_REGISTORY )
-		m_ServerEntry.m_SaveFlag = TRUE;
-
+	SetModifiedFlag(TRUE);
 	UpdateAllViews(NULL, UPDATE_INITPARA, NULL);
 }
 void CRLoginDoc::OnSaveDefault() 
 {
 	m_TextRam.Serialize(TRUE);
 	m_KeyTab.Serialize(TRUE);
+#ifndef	USE_KEYMACGLOBAL
 	m_KeyMac.Serialize(TRUE);
+#endif
 	m_ParamTab.Serialize(TRUE);
 }
 void CRLoginDoc::OnSetOption() 
 {
+	int LogMode = m_TextRam.m_LogMode;
 	COptDlg dlg(m_ServerEntry.m_EntryName, AfxGetMainWnd());
 
 	dlg.m_pEntry    = &m_ServerEntry;
@@ -1447,14 +1450,20 @@ void CRLoginDoc::OnSetOption()
 		return;
 
 	if ( (dlg.m_ModFlag & (UMOD_ANSIOPT | UMOD_MODKEY | UMOD_COLTAB | UMOD_BANKTAB | UMOD_DEFATT)) != 0 )
-		m_TextRam.InitDefParam(TRUE, dlg.m_ModFlag);
+		dlg.m_ModFlag = m_TextRam.InitDefParam(TRUE, dlg.m_ModFlag);
 
-	if ( m_LoadMode == DOCTYPE_ENTRYFILE )
+	if ( dlg.m_ModFlag != 0 || dlg.m_bModified )
 		SetModifiedFlag(TRUE);
-	else if ( m_LoadMode == DOCTYPE_MULTIFILE )
-		m_pMainWnd->m_ModifiedFlag = TRUE;
-	else if ( m_LoadMode == DOCTYPE_REGISTORY )
-		m_ServerEntry.m_SaveFlag = TRUE;
+
+	if ( m_pLogFile != NULL && LogMode != m_TextRam.m_LogMode ) {
+		int save = m_TextRam.m_LogMode;
+		CString FilePath = m_pLogFile->GetFilePath();
+
+		m_TextRam.m_LogMode = LogMode;
+		LogClose();
+		m_TextRam.m_LogMode = save;
+		LogOpen(FilePath);
+	}
 
 	UpdateAllViews(NULL, (dlg.m_ModFlag & UMOD_RESIZE) != 0 ? UPDATE_RESIZE : UPDATE_INITPARA, NULL);
 }
@@ -1510,12 +1519,8 @@ void CRLoginDoc::OnUpdateXYZModem(CCmdUI* pCmdUI)
 void CRLoginDoc::OnChatStop()
 {
 	if ( m_pStrScript != NULL ) {
-		if ( m_pStrScript->m_MakeFlag ) {
-			if ( m_LoadMode == DOCTYPE_ENTRYFILE )
-				SetModifiedFlag(TRUE);
-			else if ( m_LoadMode == DOCTYPE_REGISTORY )
-				m_ServerEntry.m_SaveFlag = TRUE;
-		}
+		if ( m_pStrScript->m_MakeFlag )
+			SetModifiedFlag(TRUE);
 		m_pStrScript->ExecStop();
 		m_pStrScript = NULL;
 	} else if ( m_pScript != NULL )
@@ -1804,12 +1809,7 @@ void CRLoginDoc::ScriptValue(int cmds, class CScriptValue &value, int mode)
 	case 23:				// Document.Log.Open(f)
 		if ( mode == DOC_MODE_CALL ) {
 			LogClose();
-			if ( (m_pLogFile = new CFileExt) != NULL && LogOpen((LPCTSTR)value[0]) ) {
-				m_pLogFile->SeekToEnd();
-				m_TextRam.m_LogTimeFlag = TRUE;
-				value = (int)0;
-			} else
-				value = (int)1;
+			value = (LogOpen((LPCTSTR)value[0]) ? (int)0 : (int)1);
 		}
 		break;
 	case 24:				// Document.Log.Close()

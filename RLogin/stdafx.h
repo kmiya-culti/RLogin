@@ -12,6 +12,10 @@
 //#define	USE_DIRECTWRITE	1
 #define	USE_SAPI	1
 
+#define	USE_KEYMACGLOBAL	1
+#define	USE_BCASTGLOBAL		1
+//#define	USE_BCMWGLOBAL		1
+
 //#define	WINSOCK11	1
 //#define	NOIPV6		1
 //#define	NOGDIPLUS	1

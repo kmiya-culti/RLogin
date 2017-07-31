@@ -596,6 +596,10 @@ BOOL CRLoginApp::InitInstance()
 	CreateJumpList(&(pMainFrame->m_ServerEntryTab));
 #endif
 
+#ifdef	USE_KEYMACGLOBAL
+	m_KeyMacGlobal.Serialize(FALSE);	// init
+#endif
+
 	return TRUE;
 }
 
@@ -646,72 +650,6 @@ void CRLoginApp::OpenCommandLine(LPCTSTR str)
 
 	OpenProcsCmd(&cmds);
 }
-static BOOL CALLBACK RLoginEnumFunc(HWND hwnd, LPARAM lParam)
-{
-	CRLoginApp *pApp = (CRLoginApp *)lParam;
-	TCHAR title[1024];
-	CString cmdLine;
-
-	::GetWindowText(hwnd, title, 1024);
-
-	if ( _tcsncmp(title, _T("RLogin"), 6) == 0 && ::GetWindowLongPtr(hwnd, GWLP_USERDATA) == 0x524c4f47 ) {
-		pApp->m_pCmdInfo->m_InUse = FALSE;
-		pApp->m_pCmdInfo->GetString(cmdLine);
-		COPYDATASTRUCT copyData;
-		copyData.dwData = 0x524c4f31;
-		copyData.cbData = (cmdLine.GetLength() + 1) * sizeof(TCHAR);
-		copyData.lpData = cmdLine.GetBuffer();
-		::SendMessage(hwnd, WM_COPYDATA, (WPARAM)(AfxGetMainWnd()->GetSafeHwnd()), (LPARAM)&copyData);
-		return FALSE;
-	}
-
-	return TRUE;
-}
-BOOL CRLoginApp::InUseCheck()
-{
-	if ( m_pCmdInfo == NULL )
-		return FALSE;
-
-	::EnumWindows(RLoginEnumFunc, (LPARAM)this);
-
-	return (m_pCmdInfo->m_InUse ? FALSE : TRUE);
-}
-static BOOL CALLBACK RLoginOnlineFunc(HWND hwnd, LPARAM lParam)
-{
-	TCHAR title[1024];
-	COPYDATASTRUCT copyData;
-	LPCTSTR entry = (LPCTSTR)lParam;
-
-	::GetWindowText(hwnd, title, 1024);
-
-	if ( _tcsncmp(title, _T("RLogin"), 6) == 0 && ::GetWindowLongPtr(hwnd, GWLP_USERDATA) == 0x524c4f47 ) {
-		copyData.dwData = 0x524c4f32;
-		copyData.cbData = (_tcslen(entry) + 1) * sizeof(TCHAR);
-		copyData.lpData = (PVOID)entry;
-		if ( ::SendMessage(hwnd, WM_COPYDATA, (WPARAM)(AfxGetMainWnd()->GetSafeHwnd()), (LPARAM)&copyData) )
-			return FALSE;
-	}
-
-	return TRUE;
-}
-BOOL CRLoginApp::OnlineCheck(LPCTSTR entry)
-{
-	return (::EnumWindows(RLoginOnlineFunc, (LPARAM)entry) == FALSE ? TRUE : FALSE);
-}
-BOOL CRLoginApp::OnlineEntry(LPCTSTR entry)
-{
-	POSITION pos = GetFirstDocTemplatePosition();
-	while ( pos != NULL ) {
-		CDocTemplate *pDocTemp = GetNextDocTemplate(pos);
-		POSITION dpos = pDocTemp->GetFirstDocPosition();
-		while ( dpos != NULL ) {
-			CRLoginDoc *pDoc = (CRLoginDoc *)pDocTemp->GetNextDoc(dpos);
-			if ( pDoc->m_pSock != NULL && pDoc->m_TextRam.IsInitText() && pDoc->m_ServerEntry.m_EntryName.Compare(entry) == 0 )
-				return TRUE;
-		}
-	}
-	return FALSE;
-}
 BOOL CRLoginApp::CheckDocument(class CRLoginDoc *pDoc)
 {
 	POSITION pos = GetFirstDocTemplatePosition();
@@ -725,6 +663,189 @@ BOOL CRLoginApp::CheckDocument(class CRLoginDoc *pDoc)
 	}
 	return FALSE;
 }
+
+//////////////////////////////////////////////////////////////////////
+
+static BOOL CALLBACK RLoginEnumFunc(HWND hwnd, LPARAM lParam)
+{
+	TCHAR title[1024];
+
+	if ( ::GetWindowLongPtr(hwnd, GWLP_USERDATA) != 0x524c4f47 )
+		return TRUE;
+
+	::GetWindowText(hwnd, title, 1024);
+
+	if ( _tcsncmp(title, _T("RLogin"), 6) == 0 )
+		return ::SendMessage(hwnd, WM_COPYDATA, (WPARAM)(AfxGetMainWnd()->GetSafeHwnd()), lParam);
+
+	return TRUE;
+}
+
+BOOL CRLoginApp::OnInUseCheck(COPYDATASTRUCT *pCopyData)
+{
+	CCommandLineInfoEx cmdInfo;
+
+	cmdInfo.SetString((LPCTSTR)(pCopyData->lpData));
+	OpenProcsCmd(&cmdInfo);
+	return FALSE;	// not contine
+}
+BOOL CRLoginApp::InUseCheck()
+{
+	CString cmdLine;
+	COPYDATASTRUCT copyData;
+
+	if ( m_pCmdInfo == NULL )
+		return FALSE;
+
+	m_pCmdInfo->m_InUse = FALSE;
+	m_pCmdInfo->GetString(cmdLine);
+
+	copyData.dwData = 0x524c4f31;
+	copyData.cbData = (cmdLine.GetLength() + 1) * sizeof(TCHAR);
+	copyData.lpData = cmdLine.GetBuffer();
+
+	return (::EnumWindows(RLoginEnumFunc, (LPARAM)&copyData) ? FALSE : TRUE);
+}
+
+BOOL CRLoginApp::OnlineEntry(COPYDATASTRUCT *pCopyData)
+{
+	POSITION pos = GetFirstDocTemplatePosition();
+	while ( pos != NULL ) {
+		CDocTemplate *pDocTemp = GetNextDocTemplate(pos);
+		POSITION dpos = pDocTemp->GetFirstDocPosition();
+		while ( dpos != NULL ) {
+			CRLoginDoc *pDoc = (CRLoginDoc *)pDocTemp->GetNextDoc(dpos);
+			if ( pDoc->m_pSock != NULL && pDoc->m_TextRam.IsInitText() && pDoc->m_ServerEntry.m_EntryName.Compare((LPCTSTR)(pCopyData->lpData)) == 0 )
+				return FALSE;	// not continue
+		}
+	}
+	return TRUE;	// continue
+}
+BOOL CRLoginApp::OnlineCheck(LPCTSTR entry)
+{
+	COPYDATASTRUCT copyData;
+
+	copyData.dwData = 0x524c4f32;
+	copyData.cbData = (_tcslen(entry) + 1) * sizeof(TCHAR);
+	copyData.lpData = (PVOID)entry;
+
+	return (::EnumWindows(RLoginEnumFunc, (LPARAM)&copyData) ? FALSE : TRUE);
+}
+
+#ifdef	USE_KEYMACGLOBAL
+void CRLoginApp::OnUpdateKeyMac(COPYDATASTRUCT *pCopyData)
+{
+	CKeyMac tmp;
+
+	if ( pCopyData->lpData == (PVOID)this )
+		return;
+
+	if ( m_KeyMacGlobal.m_bUpdate && m_KeyMacGlobal.m_Data.GetSize() > 0 ) {
+		tmp = m_KeyMacGlobal.m_Data[0];
+		m_KeyMacGlobal.Serialize(FALSE);	// load
+		if ( m_KeyMacGlobal.m_Data.GetSize() <= 0 || !(m_KeyMacGlobal.m_Data[0] == tmp) )
+			m_KeyMacGlobal.m_bUpdate = FALSE;
+	} else
+		m_KeyMacGlobal.Serialize(FALSE);	// load
+}
+void CRLoginApp::UpdateKeyMacGlobal()
+{
+	COPYDATASTRUCT copyData;
+
+	m_KeyMacGlobal.Serialize(TRUE);		// save
+
+	copyData.dwData = 0x524c4f33;
+	copyData.cbData = 0;
+	copyData.lpData = (PVOID)this;
+
+	::EnumWindows(RLoginEnumFunc, (LPARAM)&copyData);
+}
+#endif
+
+void CRLoginApp::OnSendBroadCast(COPYDATASTRUCT *pCopyData)
+{
+	CBuffer tmp;
+
+	tmp.Apend((LPBYTE)(pCopyData->lpData), pCopyData->cbData);
+
+	POSITION pos = GetFirstDocTemplatePosition();
+	while ( pos != NULL ) {
+		CDocTemplate *pDocTemp = GetNextDocTemplate(pos);
+		POSITION dpos = pDocTemp->GetFirstDocPosition();
+		while ( dpos != NULL ) {
+			CRLoginDoc *pDoc = (CRLoginDoc *)pDocTemp->GetNextDoc(dpos);
+			if ( !pDoc->m_TextRam.IsOptEnable(TO_RLNOTBCAST) )
+				pDoc->SendBuffer(tmp);
+		}
+	}
+}
+void CRLoginApp::SendBroadCast(CBuffer &buf)
+{
+	COPYDATASTRUCT copyData;
+
+	copyData.dwData = 0x524c4f34;
+	copyData.cbData = buf.GetSize();
+	copyData.lpData = buf.GetPtr();
+
+#ifdef	USE_BCASTGLOBAL
+	::EnumWindows(RLoginEnumFunc, (LPARAM)&copyData);
+#else
+	OnSendBroadCast(&copyData);
+#endif
+}
+
+void CRLoginApp::OnSendBroadCastMouseWheel(COPYDATASTRUCT *pCopyData)
+{
+	struct _WheelData {
+		UINT nFlags;
+		short zDelta;
+		CPoint pt;
+	} *pWheelData;
+
+	if ( pCopyData->cbData != sizeof(struct _WheelData) )
+		return;
+
+	pWheelData = (struct _WheelData *)(pCopyData->lpData);
+
+	POSITION pos = GetFirstDocTemplatePosition();
+	while ( pos != NULL ) {
+		CDocTemplate *pDocTemp = GetNextDocTemplate(pos);
+		POSITION dpos = pDocTemp->GetFirstDocPosition();
+		while ( dpos != NULL ) {
+			CRLoginDoc *pDoc = (CRLoginDoc *)pDocTemp->GetNextDoc(dpos);
+			POSITION vpos = pDoc->GetFirstViewPosition();
+			while ( vpos != NULL ) {
+				CRLoginView *pView = (CRLoginView *)pDoc->GetNextView(vpos);
+				pView->OnMouseWheel(pWheelData->nFlags, pWheelData->zDelta, pWheelData->pt);
+			}
+		}
+	}
+}
+void CRLoginApp::SendBroadCastMouseWheel(UINT nFlags, short zDelta, CPoint pt)
+{
+	COPYDATASTRUCT copyData;
+	struct {
+		UINT nFlags;
+		short zDelta;
+		CPoint pt;
+	} WheelData;
+
+	WheelData.nFlags = nFlags;
+	WheelData.zDelta = zDelta;
+	WheelData.pt = pt;
+
+	copyData.dwData = 0x524c4f35;
+	copyData.cbData = sizeof(WheelData);
+	copyData.lpData = &WheelData;
+
+#ifdef	USE_BCMWGLOBAL
+	::EnumWindows(RLoginEnumFunc, (LPARAM)&copyData);
+#else
+	OnSendBroadCastMouseWheel(&copyData);
+#endif
+}
+
+//////////////////////////////////////////////////////////////////////
 
 void CRLoginApp::SetSocketIdle(class CExtSocket *pSock)
 {
@@ -822,6 +943,7 @@ void CRLoginApp::GetProfileArray(LPCTSTR lpszSection, CStringArrayExt &stra)
 {
 	int n, mx;
 	CString entry;
+	CMutexLock Mutex(lpszSection);
 	
 	stra.RemoveAll();
 	mx = GetProfileInt(lpszSection, _T("ListMax"), 0);
@@ -834,6 +956,7 @@ void CRLoginApp::WriteProfileArray(LPCTSTR lpszSection, CStringArrayExt &stra)
 {
 	int n;
 	CString entry;
+	CMutexLock Mutex(lpszSection);
 
 	for ( n = 0 ; n < stra.GetSize() ; n++ ) {
 		entry.Format(_T("List%02d"), n);
@@ -1201,15 +1324,6 @@ int CRLoginApp::ExitInstance()
 	return CWinApp::ExitInstance();
 }
 
-BOOL CRLoginApp::SaveAllModified() 
-{
-	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
-
-	if ( pMain != NULL && !pMain->SaveModified() )
-		return FALSE;
-
-	return CWinApp::SaveAllModified();
-}
 void CRLoginApp::SSL_Init()
 {
 	static BOOL bLoadAlgo = FALSE;

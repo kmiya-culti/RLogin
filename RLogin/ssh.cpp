@@ -1363,7 +1363,7 @@ int Cssh::MatchList(LPCTSTR client, LPCTSTR server, CString &str)
 		while ( *server != _T('\0') && _tcschr(_T(" ,"), *server) == NULL )
 			tmp += *(server++);
 		if ( !tmp.IsEmpty() )
-			idx.Add(tmp);
+			idx[tmp] = 1;
 	}
 
 	while ( *client != _T('\0') ) {

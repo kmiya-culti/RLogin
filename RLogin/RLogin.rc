@@ -173,7 +173,7 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "プリンタの設定(&R)",                 ID_FILE_PRINT_SETUP
         MENUITEM SEPARATOR
-        MENUITEM "最近使ったﾌｧｲﾙ",                   ID_FILE_MRU_FILE1, GRAYED
+        MENUITEM "最近使ったファイル",                   ID_FILE_MRU_FILE1, GRAYED
         MENUITEM SEPARATOR
         MENUITEM "アプリケーションの終了(&X)",             ID_APP_EXIT
     END
@@ -232,7 +232,7 @@ BEGIN
         END
         MENUITEM "スクリプトの実行(&E)",                IDM_SCRIPT
         MENUITEM SEPARATOR
-        MENUITEM "最近使ったﾌｧｲﾙ",                   ID_FILE_MRU_FILE1
+        MENUITEM "最近使ったファイル",                   ID_FILE_MRU_FILE1
         MENUITEM SEPARATOR
         MENUITEM "アプリケーションの終了(&X)",             ID_APP_EXIT
     END
@@ -241,6 +241,11 @@ BEGIN
         MENUITEM "コピー(&C)",                     ID_EDIT_COPY
         MENUITEM "貼り付け(&P)",                    ID_EDIT_PASTE
         MENUITEM "すべて選択/コピー",                   ID_EDIT_COPY_ALL
+        MENUITEM SEPARATOR
+        POPUP "クリップボード(&B)"
+        BEGIN
+            MENUITEM "保存されたクリップボード",                IDM_CLIPBORAD_HIS1
+        END
         MENUITEM SEPARATOR
         MENUITEM "文字列を検索(&F)",                  IDM_SEARCH_REG
         MENUITEM "前を検索(&D)",                    IDM_SEARCH_BACK
@@ -256,10 +261,6 @@ BEGIN
         MENUITEM "キー操作の再現(&Q)",                 ID_MACRO_PLAY
         MENUITEM SEPARATOR
         MENUITEM "以前に記録したキー操作",                 ID_MACRO_HIS1
-        MENUITEM "以前に記録したキー操作",                 ID_MACRO_HIS2
-        MENUITEM "以前に記録したキー操作",                 ID_MACRO_HIS3
-        MENUITEM "以前に記録したキー操作",                 ID_MACRO_HIS4
-        MENUITEM "以前に記録したキー操作",                 ID_MACRO_HIS5
     END
     POPUP "表示(&V)"
     BEGIN
@@ -316,6 +317,11 @@ BEGIN
             MENUITEM "ペインの移動(&R)",                  ID_WINDOW_ROTATION
             MENUITEM "次のウィンドウに移動(&N)",              IDM_WINODW_NEXT
             MENUITEM "前のウィンドウに移動(&P)",              IDM_WINDOW_PREV
+            MENUITEM SEPARATOR
+            MENUITEM "上のウィンドウの移動",                  IDM_MOVEPANE_UP
+            MENUITEM "下のウィンドウの移動",                  IDM_MOVEPANE_DOWN
+            MENUITEM "右のウィンドウの移動",                  IDM_MOVEPANE_RIGHT
+            MENUITEM "左のウィンドウの移動",                  IDM_MOVEPANE_LEFT
         END
         MENUITEM SEPARATOR
         MENUITEM "縦方向に分割(&H)",                  ID_PANE_HSPLIT
@@ -494,7 +500,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.19.3 (2015/10/16)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.19.4 (2015/11/02)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2015 Culti",IDC_STATIC,44,16,189,8
     DEFPUSHBUTTON   "OK",IDOK,96,171,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.2d 9 Jul 2015",IDC_STATIC,44,29,189,8
@@ -733,12 +739,10 @@ STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "ターミナル"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    CONTROL         "",IDC_ESCLIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,14,40,240,97
-    CONTROL         "",IDC_EXTLIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,14,167,240,97
-    PUSHBUTTON      "ESC/CSI/DCS",IDC_ESCEDIT,184,19,70,14
-    GROUPBOX        "エスケープシーケンス",IDC_STATIC,7,7,256,139
-    GROUPBOX        "各種オプション",IDC_STATIC,7,151,256,122
-    LTEXT           "ESC/CSI/DCSシーケンスを個別に設定します",IDC_STATIC,17,23,160,8
+    CONTROL         "",IDC_ESCLIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,15,40,240,224
+    PUSHBUTTON      "ESC/CSI/DCS",IDC_ESCEDIT,185,19,70,14
+    GROUPBOX        "エスケープシーケンス",IDC_STATIC,7,7,256,266
+    LTEXT           "ESC/CSI/DCSシーケンスを個別に設定します",IDC_STATIC,15,23,160,8
 END
 
 IDD_PROTOPAGE DIALOGEX 0, 0, 270, 280
@@ -1273,28 +1277,28 @@ STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "ヒストリー"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    CONTROL         "通信ログを年月日を付けて自動作成する",IDC_TERMCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,20,159,10
+    CONTROL         "通信ログを年月日を付けて自動作成する",IDC_TERMCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,20,180,10
     EDITTEXT        IDC_AUTOLOG_PATH,17,38,180,14,ES_AUTOHSCROLL
     PUSHBUTTON      "...",IDC_AUTOLOG_SEL,204,38,50,14
     COMBOBOX        IDC_COMBO1,204,56,50,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_COMBO2,204,87,50,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "ログの先頭に時間を記録する(LINEでは不正確)",IDC_TERMCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,26,108,150,10
-    COMBOBOX        IDC_COMBO3,204,106,50,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "ヒストリーを保存し次接続時に復元する",IDC_TERMCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,144,159,10
-    EDITTEXT        IDC_HISFILE_PATH,17,161,180,14,ES_AUTOHSCROLL
-    PUSHBUTTON      "...",IDC_HISFILE_SEL,204,161,50,14
-    EDITTEXT        IDC_HISMAX,204,181,50,14,ES_AUTOHSCROLL | ES_NUMBER
-    EDITTEXT        IDC_TRACEFILE_PATH,17,231,180,14,ES_AUTOHSCROLL
-    PUSHBUTTON      "...",IDC_TRACEFILE_SEL,204,231,50,14
-    EDITTEXT        IDC_TRACE_MAX,204,251,50,14,ES_AUTOHSCROLL | ES_NUMBER
-    LTEXT           "スクロールバックできるヒストリー行数",IDC_STATIC,26,183,150,10
-    GROUPBOX        "ヒストリー",IDC_STATIC,7,131,256,72
-    GROUPBOX        "通信ログ",IDC_STATIC,7,7,256,120
-    LTEXT           "ファイルに保存する通信ログの形式を選択",IDC_STATIC,26,60,150,8
-    LTEXT           "ログの文字コードを選択",IDC_STATIC,26,92,150,8
-    LTEXT           "下記のオプションは、RAWモード以外で有効",IDC_STATIC,17,76,128,8
-    GROUPBOX        "トレースログ",IDC_STATIC,7,213,256,60
-    LTEXT           "トレースバックできる最大数",IDC_STATIC,26,253,150,10
+    COMBOBOX        IDC_COMBO2,204,105,50,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "ログの行頭に時間を記録する(LINE/PAGEでは不正確)",IDC_TERMCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,126,180,10
+    COMBOBOX        IDC_COMBO3,204,124,50,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "ヒストリーを保存し次接続時に復元する",IDC_TERMCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,159,180,10
+    EDITTEXT        IDC_HISFILE_PATH,17,176,180,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDC_HISFILE_SEL,204,176,50,14
+    EDITTEXT        IDC_HISMAX,204,196,50,14,ES_AUTOHSCROLL | ES_NUMBER
+    EDITTEXT        IDC_TRACEFILE_PATH,17,233,180,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDC_TRACEFILE_SEL,204,233,50,14
+    EDITTEXT        IDC_TRACE_MAX,204,253,50,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "スクロールバックできるヒストリー行数",IDC_STATIC,17,198,180,10
+    GROUPBOX        "ヒストリー",IDC_STATIC,7,147,256,67
+    GROUPBOX        "通信ログ",IDC_STATIC,7,7,256,136
+    LTEXT           "ファイルに保存する通信ログの形式を選択",IDC_STATIC,17,60,180,8
+    LTEXT           "ログの文字コードを選択",IDC_STATIC,17,110,180,8
+    LTEXT           "下記のオプションは、RAWモード以外で有効です\nCHAR<LINE<PAGEの順位で記録されるデータが省略されます\nDEBUGは記録される内容がバージョンにより異なります",IDC_STATIC,17,76,180,28
+    GROUPBOX        "トレースログ",IDC_STATIC,7,218,256,55
+    LTEXT           "トレースバックできる最大数",IDC_STATIC,17,255,180,10
 END
 
 IDD_SEARCHDLG DIALOGEX 0, 0, 211, 89
@@ -1425,14 +1429,15 @@ BEGIN
     CONTROL         "接続が切れると自動でプログラムを終了する",IDC_PROTOCHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,84,180,10
     CONTROL         "画面更新がないとスリープ画面に移行する(分単位）",IDC_PROTOCHECK6,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,103,180,10
     EDITTEXT        IDC_SLEEPTIME,204,101,50,14,ES_RIGHT | ES_AUTOHSCROLL
-    CONTROL         "TCPオプションのKeepAliveを有効にする",IDC_PROTOCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,147,180,10
-    CONTROL         "IPv6/IPv4",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,36,188,45,10
-    CONTROL         "IPv6のみ",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,115,188,42,10
-    CONTROL         "IPv4のみ",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,191,188,42,10
-    GROUPBOX        "オプション",IDC_STATIC,7,7,256,118
-    GROUPBOX        "TCP/IP",IDC_STATIC,7,130,256,118
-    GROUPBOX        "接続するIPバージョンの選択",IDC_STATIC,14,167,240,72
-    LTEXT           "IPv6/IPv4の場合、DNSの応答でIPv6アドレスが返されればIPv6で接続しIPv4だけならIPv4で接続します.",IDC_STATIC,26,213,218,16
+    CONTROL         "ブロードキャストからの同時送信を受け取らないようにします",IDC_PROTOCHECK7,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,122,180,10
+    CONTROL         "TCPオプションのKeepAliveを有効にする",IDC_PROTOCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,172,180,10
+    CONTROL         "IPv6/IPv4",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,36,213,45,10
+    CONTROL         "IPv6のみ",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,115,213,42,10
+    CONTROL         "IPv4のみ",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,191,213,42,10
+    GROUPBOX        "オプション",IDC_STATIC,7,7,256,136
+    GROUPBOX        "TCP/IP",IDC_STATIC,7,155,256,118
+    GROUPBOX        "接続するIPバージョンの選択",IDC_STATIC,14,192,240,72
+    LTEXT           "IPv6/IPv4の場合、DNSの応答でIPv6アドレスが返されればIPv6で接続しIPv4だけならIPv4で接続します.",IDC_STATIC,26,238,218,16
 END
 
 IDD_MODKEYPAGE DIALOGEX 0, 0, 270, 280
@@ -1459,15 +1464,15 @@ BEGIN
     LTEXT           "Shift/Alt/Ctrl＋各種キーの変更するキーコードの形式を設定します\n０以上でキーコードのパラメータにShift/Alt/Ctrlの状態を追加します",IDC_STATIC,16,7,236,23
 END
 
-IDD_ANYPASTDIG DIALOGEX 0, 0, 270, 201
-STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+IDD_ANYPASTDIG DIALOGEX 0, 0, 270, 202
+STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "ペースト確認"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,105,180,60,14
-    PUSHBUTTON      "キャンセル",IDCANCEL,188,180,60,14
+    DEFPUSHBUTTON   "OK",IDOK,119,181,60,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,203,181,60,14
     EDITTEXT        IDC_TEXTBOX,7,35,256,138,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | WS_VSCROLL
-    CONTROL         "次回から確認しない",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,20,179,74,10
+    CONTROL         "次回から確認しない",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,20,181,74,10
     LTEXT           "改行やコントロールコードを含む文字列もしくは、多くの文字数をペーストしようとしています。送信しますか？",IDC_MESSAGE,33,7,230,20
     ICON            "",IDC_ICONBOX,7,7,20,20
 END
@@ -1596,6 +1601,16 @@ BEGIN
     LTEXT           "実際に表示する文字を設定\n種類の変更で仮設定",IDC_STATIC,123,21,80,18
 END
 
+IDD_EXTOPTPAGE DIALOGEX 0, 0, 270, 280
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "拡張機能"
+FONT 9, "MS UI Gothic", 400, 0, 0x80
+BEGIN
+    CONTROL         "",IDC_EXTLIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,15,40,240,224
+    GROUPBOX        "各種オプション",IDC_STATIC,7,7,256,266
+    LTEXT           "要望のあったオプションや試験的な実装を試すことができます",IDC_STATIC,15,23,240,8
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1603,8 +1618,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,19,3,0
- PRODUCTVERSION 2,19,3,0
+ FILEVERSION 2,19,4,0
+ PRODUCTVERSION 2,19,4,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1621,12 +1636,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.19.3.0"
+            VALUE "FileVersion", "2.19.4.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2015 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.19.3.0"
+            VALUE "ProductVersion", "2.19.4.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -1993,7 +2008,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 263
         TOPMARGIN, 7
-        BOTTOMMARGIN, 194
+        BOTTOMMARGIN, 195
     END
 
     IDD_DEFPARAMDLG, DIALOG
@@ -2040,6 +2055,14 @@ BEGIN
         RIGHTMARGIN, 212
         TOPMARGIN, 7
         BOTTOMMARGIN, 276
+    END
+
+    IDD_EXTOPTPAGE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 263
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 273
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -2172,6 +2195,8 @@ BEGIN
 0x4e41, 0x4954, 0x4c41, 0x4149, 0x4553, 0x0044, 
     IDC_FONTQUALITY, 0x403, 10, 0
 0x4c43, 0x4145, 0x5452, 0x5059, 0x0045, 
+    IDC_FONTQUALITY, 0x403, 8, 0
+0x414e, 0x5554, 0x4152, 0x004c, 
     IDC_DISPZOOMW, 0x403, 4, 0
 0x3032, 0x0030, 
     IDC_DISPZOOMW, 0x403, 4, 0
@@ -2731,6 +2756,8 @@ BEGIN
 0x4843, 0x5241, "\000" 
     IDC_COMBO1, 0x403, 5, 0
 0x494c, 0x454e, "\000" 
+    IDC_COMBO1, 0x403, 5, 0
+0x4150, 0x4547, "\000" 
     IDC_COMBO1, 0x403, 6, 0
 0x4544, 0x5542, 0x0047, 
     IDC_COMBO2, 0x403, 5, 0
@@ -2916,6 +2943,7 @@ BEGIN
     IDS_VERSIONCHECKURL     "http://nanno.dip.jp/softlib/version.txt"
     IDS_FONTSAMPLESTRING    "012 abcABC 日本語"
     IDS_IDKEYHOSTKEYUPDATE  "信頼するホスト鍵のリストを更新しますか？\n登録済%d個、追加%d個、削除%d個"
+    IDS_HISRECDEFAULT       "以前に記録したキー操作"
 END
 
 STRINGTABLE
@@ -3001,6 +3029,7 @@ BEGIN
     IDE_USEIDKEYFILENAME    "認証鍵ファイルを指定してください"
     IDE_IDKEYNOTSUPPORT     "SSHでサポートされていないサイズの認証鍵です"
     IDE_PFDLISTENEMPTY      "Listenホスト/ポートが指定されていません"
+    IDE_DUPENTRYSETOPTION   "複製された接続で設定が変更されました\n設定を保存しますか？"
 END
 
 STRINGTABLE
@@ -3008,6 +3037,11 @@ BEGIN
     IDM_DIALOGFONT          "ダイアログフォントを設定します\nダイアログフォント"
     IDM_NONENCRYPTFILE      "空のパスフレーズで作成されています\n暗号化されない認証鍵ファイルを作成しますか？"
     IDM_SFTP_UIDGID         "uid/gidを名称に変換\nuid/gid変換"
+    IDM_MOVEPANE_UP         "上のウィンドウに移動します\n上に移動"
+    IDM_MOVEPANE_DOWN       "下のウィンドウに移動します\n下に移動"
+    IDM_MOVEPANE_RIGHT      "右のウィンドウに移動します\n右に移動"
+    IDM_MOVEPANE_LEFT       "左のウィンドウに移動します\n左に移動"
+    IDM_CLIPBORAD_HIS1      "保存されたクリップボード\nクリップボード"
 END
 
 STRINGTABLE
@@ -3073,6 +3107,7 @@ BEGIN
     ID_IDKEY_CAKEY          "署名された公開鍵を追加で設定します"
     ID_INDICATOR_SOCK       "        "
     ID_LOG_OPEN             "通信ログをファイルに保存する\n通信ログ"
+    ID_MACRO_HIS1           "以前に記録したキー操作\n記録キー操作"
     ID_MACRO_PLAY           "記録されたキー操作を再現します\n記録したキー操作を再現"
     ID_MACRO_REC            "キー入力を記録もしくは停止します\nキー操作の記録"
 END
@@ -3227,7 +3262,7 @@ BEGIN
     IDM_SFTP_UPLOAD         "ファイルのアップロード\nアップロード"
     IDM_SOCKETSTATUS        "ソケットの現在の状態を表示\nソケットステータス"
     IDM_SPLIT_HEIGHT_NEW    "縦方向に分割して新規に接続します\n縦新規接続"
-    IDM_SPLIT_WIDTH_NEW     "横方向に分割して新規に接続します\\横新規接続"
+    IDM_SPLIT_WIDTH_NEW     "横方向に分割して新規に接続します\n横新規接続"
     IDM_TEK_CLEAR           "Tekウインドウをクリアする\nクリア"
     IDM_TEK_CLOSE           "Tekウィンドウを閉じる\n閉じる"
     IDM_TEK_MODE            "Tek/VTモードの切換を行います\nモード切替"
