@@ -14,34 +14,29 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // CUpdateDlg ダイアログ
 
+IMPLEMENT_DYNAMIC(CUpdateDlg, CDialog)
 
 CUpdateDlg::CUpdateDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CUpdateDlg::IDD, pParent)
 {
 	m_DoExec = ::AfxGetApp()->GetProfileInt(_T("CUpdateDlg"), _T("Jobs"), 1);
-	//{{AFX_DATA_INIT(CUpdateDlg)
+
 	m_FileName = _T("");
 	m_Jobs = m_DoExec & 0x7F;
-	//}}AFX_DATA_INIT
 }
-
 
 void CUpdateDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
-	//{{AFX_DATA_MAP(CUpdateDlg)
+
 	DDX_Text(pDX, IDC_FILENAME, m_FileName);
 	DDX_Radio(pDX, IDC_RADIO1, m_Jobs);
-	//}}AFX_DATA_MAP
 }
 
-
 BEGIN_MESSAGE_MAP(CUpdateDlg, CDialog)
-	//{{AFX_MSG_MAP(CUpdateDlg)
 	ON_BN_CLICKED(IDC_BUTTON1, OnExec)
 	ON_BN_CLICKED(IDC_BUTTON2, OnAllExec)
 	ON_BN_CLICKED(IDC_BUTTON3, OnAbort)
-	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////

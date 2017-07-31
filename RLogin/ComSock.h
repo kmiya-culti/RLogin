@@ -40,11 +40,11 @@ public:
 	void GetConfig();
 	void SetConfig();
 
-	void GetMode(LPCSTR str);
+	void GetMode(LPCTSTR str);
 	void SetMode(CString &str);
 
 	void ConfigDlg(CWnd *pWnd, CString &str);
-	DWORD AliveComPort();
+	static DWORD AliveComPort();
 
 	CComSock(class CRLoginDoc *pDoc);
 	virtual ~CComSock();

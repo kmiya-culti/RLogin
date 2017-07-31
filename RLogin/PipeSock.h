@@ -32,7 +32,7 @@ public:
 	int OnIdle();
 
 	void GetPathMaps(CStringMaps &maps);
-	void GetDirMaps(CStringMaps &maps, LPCSTR dir, BOOL pf = FALSE);
+	void GetDirMaps(CStringMaps &maps, LPCTSTR dir, BOOL pf = FALSE);
 
 	void OnReadProc();
 	void OnWriteProc();

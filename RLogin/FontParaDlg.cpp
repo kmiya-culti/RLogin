@@ -15,6 +15,8 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // CFontParaDlg ダイアログ
 
+IMPLEMENT_DYNAMIC(CFontParaDlg, CDialog)
+
 CFontParaDlg::CFontParaDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CFontParaDlg::IDD, pParent)
 {

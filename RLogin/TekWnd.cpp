@@ -5,9 +5,6 @@
 #include "RLogin.h"
 #include "MainFrm.h"
 #include "TekWnd.h"
-#ifndef	WINSOCK11
-#include "atlimage.h"
-#endif
 
 // CTekWnd
 
@@ -55,8 +52,8 @@ void CTekWnd::PostNcDestroy()
 BOOL CTekWnd::PreCreateWindow(CREATESTRUCT& cs)
 {
 	cs.hMenu = ::LoadMenu(cs.hInstance, MAKEINTRESOURCE(IDR_TEKWND));
-	cs.cx = AfxGetApp()->GetProfileInt("TekWnd", "cx", 640);
-	cs.cy = AfxGetApp()->GetProfileInt("TekWnd", "cy", 480 + 60);
+	cs.cx = AfxGetApp()->GetProfileInt(_T("TekWnd"), _T("cx"), 640);
+	cs.cy = AfxGetApp()->GetProfileInt(_T("TekWnd"), _T("cy"), 480 + 60);
 
 	return CFrameWnd::PreCreateWindow(cs);
 }
@@ -66,10 +63,10 @@ void CTekWnd::OnDestroy()
 	if ( !IsIconic() && !IsZoomed() ) {
 		CRect rect;
 		GetWindowRect(&rect);
-		AfxGetApp()->WriteProfileInt("TekWnd", "x",  rect.left);
-		AfxGetApp()->WriteProfileInt("TekWnd", "y",  rect.top);
-		AfxGetApp()->WriteProfileInt("TekWnd", "cx", rect.Width());
-		AfxGetApp()->WriteProfileInt("TekWnd", "cy", rect.Height());
+		AfxGetApp()->WriteProfileInt(_T("TekWnd"), _T("x"),  rect.left);
+		AfxGetApp()->WriteProfileInt(_T("TekWnd"), _T("y"),  rect.top);
+		AfxGetApp()->WriteProfileInt(_T("TekWnd"), _T("cx"), rect.Width());
+		AfxGetApp()->WriteProfileInt(_T("TekWnd"), _T("cy"), rect.Height());
 	}
 
 	CFrameWnd::OnDestroy();
@@ -84,24 +81,24 @@ void CTekWnd::OnTekSave()
 {
 	CDC dc;
 	CRect rect(0, 0, TEK_WIN_WIDTH / 4, TEK_WIN_HEIGHT / 4);
-#ifndef	WINSOCK11
+#ifdef	NOGDIPLUS
+	CFileDialog dlg(FALSE, _T("gif"), _T(""), OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGTEKIMAGE2), this);
+#else
 	CImage image;
 	CFileDialog dlg(FALSE, _T("gif"), _T(""), OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGTEKIMAGE), this);
-#else
-	CFileDialog dlg(FALSE, _T("gif"), _T(""), OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGTEKIMAGE2), this);
 #endif
 
 	if ( dlg.DoModal() != IDOK )
 		return;
 
-	if ( dlg.GetFileExt().CompareNoCase("dxf") == 0 ) {
+	if ( dlg.GetFileExt().CompareNoCase(_T("dxf")) == 0 ) {
 		SaveDxf(dlg.GetPathName());
 		return;
-	} else if ( dlg.GetFileExt().CompareNoCase("tek") == 0 ) {
+	} else if ( dlg.GetFileExt().CompareNoCase(_T("tek")) == 0 ) {
 		SaveTek(dlg.GetPathName());
 		return;
 	}
-#ifndef	WINSOCK11
+#ifndef	NOGDIPLUS
 	if ( !image.Create(rect.Width(), rect.Height(), 24) )
 		return;
 
@@ -113,14 +110,14 @@ void CTekWnd::OnTekSave()
 #endif
 }
 
-BOOL CTekWnd::SaveDxf(LPCSTR file)
+BOOL CTekWnd::SaveDxf(LPCTSTR file)
 {
 	FILE *fp;
 	CTextRam::TEKNODE *tp;
 	CString str;
 	static const double FontHeight[] = { 8.8,	8.2,	5.3,	4.8 };
 
-	if ( (fp = _tfopen(file, "wt")) == NULL )
+	if ( (fp = _tfopen(file, _T("wt"))) == NULL )
 		return FALSE;
 
 	fprintf(fp, "  0\nSECTION\n");
@@ -150,7 +147,7 @@ BOOL CTekWnd::SaveDxf(LPCSTR file)
 			fprintf(fp, " 40\n%f\n", FontHeight[tp->st & 3] / 2.0);
 			fprintf(fp, " 41\n  1\n");
 			fprintf(fp, " 50\n  0\n");
-			fprintf(fp, "  1\n%s\n", str);
+			fprintf(fp, "  1\n%s\n", TstrToMbs(str));
 			break;
 		}
 	}
@@ -162,7 +159,7 @@ BOOL CTekWnd::SaveDxf(LPCSTR file)
 	return TRUE;
 }
 
-BOOL CTekWnd::SaveTek(LPCSTR file)
+BOOL CTekWnd::SaveTek(LPCTSTR file)
 {
 	FILE *fp;
 	CTextRam::TEKNODE *tp;
@@ -171,7 +168,7 @@ BOOL CTekWnd::SaveTek(LPCSTR file)
 	int sl = (-1), sf = (-1);
 	int sx = (-1), sy = (-1);
 
-	if ( (fp = _tfopen(file, "wb")) == NULL )
+	if ( (fp = _tfopen(file, _T("wb"))) == NULL )
 		return FALSE;
 
 	fprintf(fp, "\033[?38h\033\014");
@@ -228,7 +225,7 @@ BOOL CTekWnd::SaveTek(LPCSTR file)
 				fprintf(fp, "\037");
 				sm = tp->md;
 			}
-			fprintf(fp, "%s", str);
+			fprintf(fp, "%s", TstrToMbs(str));
 			break;
 		}
 	}
@@ -293,7 +290,7 @@ void CTekWnd::GinMouse(int ch, int x, int y)
 	x = x * TEK_WIN_WIDTH  / rect.Width();
 	y = TEK_WIN_HEIGHT - y * TEK_WIN_HEIGHT / rect.Height();
 
-	m_pTextRam->UNGETSTR("%c%c%c%c%c", ch,
+	m_pTextRam->UNGETSTR(_T("%c%c%c%c%c"), ch,
 		((x >> 7) & 0x1F) + 0x20, ((x >> 2) & 0x1F) + 0x20,
 		((y >> 7) & 0x1F) + 0x20, ((y >> 2) & 0x1F) + 0x20);
 }

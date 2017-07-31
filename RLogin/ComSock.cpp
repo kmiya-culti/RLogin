@@ -43,11 +43,11 @@ BOOL CComSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, i
 	GetMode(lpszHostAddress);
 
 	CString tmp;
-	tmp.Format((m_ComPort >= 10 ? "\\\\.\\COM%d" : "COM%d"), m_ComPort);
+	tmp.Format((m_ComPort >= 10 ? _T("\\\\.\\COM%d") : _T("COM%d")), m_ComPort);
 
 	if ( (m_hCom = CreateFile(tmp, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL)) == NULL ) {
 		CString errmsg;
-		errmsg.Format("ComSocket Open Error '%s'", lpszHostAddress);
+		errmsg.Format(_T("ComSocket Open Error '%s'"), lpszHostAddress);
 		AfxMessageBox(errmsg, MB_ICONSTOP);
 		return FALSE;
 	}
@@ -141,83 +141,83 @@ int CComSock::OnIdle()
 }
 
 static struct _ComTab {
-		char	*name;
+		LPCTSTR	name;
 		int		mode;
 		int		value;
 	} ComTab[] = {
-		{ "COM1",		0,	1			},
-		{ "COM2",		0,	2			},
-		{ "COM3",		0,	3			},
-		{ "COM4",		0,	4			},
-		{ "COM5",		0,	5			},
-		{ "COM6",		0,	6			},
-		{ "COM7",		0,	7			},
-		{ "COM8",		0,	8			},
-		{ "COM9",		0,	9			},
-		{ "COM10",		0,	10			},
-		{ "COM11",		0,	11			},
-		{ "COM12",		0,	12			},
-		{ "COM13",		0,	13			},
-		{ "COM14",		0,	14			},
-		{ "COM15",		0,	15			},
-		{ "COM16",		0,	16			},
-		{ "COM17",		0,	17			},
-		{ "COM18",		0,	18			},
-		{ "COM19",		0,	19			},
-		{ "COM20",		0,	20			},
-		{ "COM21",		0,	21			},
-		{ "COM22",		0,	22			},
-		{ "COM23",		0,	23			},
-		{ "COM24",		0,	24			},
-		{ "COM25",		0,	25			},
-		{ "COM26",		0,	26			},
-		{ "COM27",		0,	27			},
-		{ "COM28",		0,	28			},
-		{ "COM29",		0,	29			},
-		{ "COM30",		0,	30			},
-		{ "COM31",		0,	31			},
+		{	_T("COM1"),		0,	1			},
+		{	_T("COM2"),		0,	2			},
+		{	_T("COM3"),		0,	3			},
+		{	_T("COM4"),		0,	4			},
+		{	_T("COM5"),		0,	5			},
+		{	_T("COM6"),		0,	6			},
+		{	_T("COM7"),		0,	7			},
+		{	_T("COM8"),		0,	8			},
+		{	_T("COM9"),		0,	9			},
+		{	_T("COM10"),	0,	10			},
+		{	_T("COM11"),	0,	11			},
+		{	_T("COM12"),	0,	12			},
+		{	_T("COM13"),	0,	13			},
+		{	_T("COM14"),	0,	14			},
+		{	_T("COM15"),	0,	15			},
+		{	_T("COM16"),	0,	16			},
+		{	_T("COM17"),	0,	17			},
+		{	_T("COM18"),	0,	18			},
+		{	_T("COM19"),	0,	19			},
+		{	_T("COM20"),	0,	20			},
+		{	_T("COM21"),	0,	21			},
+		{	_T("COM22"),	0,	22			},
+		{	_T("COM23"),	0,	23			},
+		{	_T("COM24"),	0,	24			},
+		{	_T("COM25"),	0,	25			},
+		{	_T("COM26"),	0,	26			},
+		{	_T("COM27"),	0,	27			},
+		{	_T("COM28"),	0,	28			},
+		{	_T("COM29"),	0,	29			},
+		{	_T("COM30"),	0,	30			},
+		{	_T("COM31"),	0,	31			},
 
-		{ "110",		1,	CBR_110		},
-		{ "300",		1,	CBR_300		},
-		{ "600",		1,	CBR_600		},
-		{ "1200",		1,	CBR_1200	},
-		{ "2400",		1,	CBR_2400	},
-		{ "4800",		1,	CBR_4800	},
-		{ "9600",		1,	CBR_9600	},
-		{ "14400",		1,	CBR_14400	},
-		{ "19200",		1,	CBR_19200	},
-		{ "28800",		1,	28800		},
-		{ "38400",		1,	CBR_38400	},
-		{ "56000",		1,	CBR_56000	},
-		{ "57600",		1,	CBR_57600	},
-		{ "115200",		1,	CBR_115200	},
-		{ "128000",		1,	CBR_128000	},
-		{ "230400",		1,	230400		},
-		{ "256000",		1,	CBR_256000	},
-		{ "460800",		1,	460800		},
-		{ "512000",		1,	512000		},
-		{ "921600",		1,	921600		},
+		{	_T("110"),		1,	CBR_110		},
+		{	_T("300"),		1,	CBR_300		},
+		{	_T("600"),		1,	CBR_600		},
+		{	_T("1200"),		1,	CBR_1200	},
+		{	_T("2400"),		1,	CBR_2400	},
+		{	_T("4800"),		1,	CBR_4800	},
+		{	_T("9600"),		1,	CBR_9600	},
+		{	_T("14400"),	1,	CBR_14400	},
+		{	_T("19200"),	1,	CBR_19200	},
+		{	_T("28800"),	1,	28800		},
+		{	_T("38400"),	1,	CBR_38400	},
+		{	_T("56000"),	1,	CBR_56000	},
+		{	_T("57600"),	1,	CBR_57600	},
+		{	_T("115200"),	1,	CBR_115200	},
+		{	_T("128000"),	1,	CBR_128000	},
+		{	_T("230400"),	1,	230400		},
+		{	_T("256000"),	1,	CBR_256000	},
+		{	_T("460800"),	1,	460800		},
+		{	_T("512000"),	1,	512000		},
+		{	_T("921600"),	1,	921600		},
 
-		{ "5",			2,	5			},
-		{ "6",			2,	6			},
-		{ "7",			2,	7			},
-		{ "8",			2,	8			},
+		{	_T("5"),		2,	5			},
+		{	_T("6"),		2,	6			},
+		{	_T("7"),		2,	7			},
+		{	_T("8"),		2,	8			},
 
-		{ "EVEN",		3,	EVENPARITY	},
-		{ "ODD",		3,	ODDPARITY	},
-		{ "NOP",		3,	NOPARITY	},
-		{ "MARK",		3,	MARKPARITY	},
-		{ "SPC",		3,	SPACEPARITY	},
+		{	_T("EVEN"),		3,	EVENPARITY	},
+		{	_T("ODD"),		3,	ODDPARITY	},
+		{	_T("NOP"),		3,	NOPARITY	},
+		{	_T("MARK"),		3,	MARKPARITY	},
+		{	_T("SPC"),		3,	SPACEPARITY	},
 
-		{ "1",			4,	ONESTOPBIT	},
-		{ "1.5",		4,	ONE5STOPBITS },
-		{ "2",			4,	TWOSTOPBITS	},
+		{	_T("1"),		4,	ONESTOPBIT	},
+		{	_T("1.5"),		4,	ONE5STOPBITS },
+		{	_T("2"),		4,	TWOSTOPBITS	},
 
-		{ "NOC",		5,	0			},
-		{ "CTS",		5,	1			},
-		{ "XON",		5,	2			},
+		{	_T("NOC"),		5,	0			},
+		{	_T("CTS"),		5,	1			},
+		{	_T("XON"),		5,	2			},
 
-		{ NULL,			0,	0			},
+		{	NULL,			0,	0			},
 	};
 
 void CComSock::GetConfig()
@@ -230,7 +230,7 @@ void CComSock::GetConfig()
 }
 void CComSock::SetConfig()
 {
-	m_ComName.Format("COM%d", m_ComPort);
+	m_ComName.Format(_T("COM%d"), m_ComPort);
 
 	DWORD sz = sizeof(COMMCONFIG);
 	GetDefaultCommConfig(m_ComName, &m_ComConf, &sz);
@@ -268,7 +268,7 @@ void CComSock::SetConfig()
 	}
 }
 
-void CComSock::GetMode(LPCSTR str)
+void CComSock::GetMode(LPCTSTR str)
 {
 	int i, a, b;
 	CString work = str;
@@ -276,7 +276,7 @@ void CComSock::GetMode(LPCSTR str)
 
 	array.RemoveAll();
 	for ( i = 0 ; i < work.GetLength() ; i = a + 1 ) {
-		if ( (a = work.Find(';', i)) < 0 )
+		if ( (a = work.Find(_T(';'), i)) < 0 )
 			a = work.GetLength();
 		if ( (a - i) > 0 )
 			array.Add(work.Mid(i, a - i));
@@ -297,7 +297,7 @@ void CComSock::GetMode(LPCSTR str)
 			}
 		}
 		if ( ComTab[a].name == NULL ) {
-			if ( array[i].Left(3).CompareNoCase("COM") == 0 ) {
+			if ( array[i].Left(3).CompareNoCase(_T("COM")) == 0 ) {
 				m_ComPort = _tstoi(array[i].Mid(3));
 			} else if ( (b = _tstoi(array[i])) >= 100 ) {
 				m_BaudRate = b;
@@ -305,14 +305,14 @@ void CComSock::GetMode(LPCSTR str)
 		}
 	}
 
-	m_ComName.Format("COM%d", m_ComPort);
+	m_ComName.Format(_T("COM%d"), m_ComPort);
 }
 void CComSock::SetMode(CString &str)
 {
 	int n, r, b = 0;
 	CString tmp;
 
-	str = "";
+	str = _T("");
 	for ( n = 0 ; ComTab[n].name != NULL ; n++ ) {
 		switch(ComTab[n].mode) {
 		case 0: r = (m_ComPort  == ComTab[n].value ? TRUE : FALSE); break;
@@ -324,16 +324,16 @@ void CComSock::SetMode(CString &str)
 		}
 		if ( r == TRUE ) {
 			str += ComTab[n].name;
-			str += ";";
+			str += _T(";");
 			b |= (1 << ComTab[n].mode);
 		}
 	}
 	if ( (b & (1 << 0)) == 0 ) {
-		tmp.Format("COM%d;", m_ComPort);
+		tmp.Format(_T("COM%d;"), m_ComPort);
 		str += tmp;
 	}
 	if ( (b & (1 << 1)) == 0 ) {
-		tmp.Format("%d;", m_BaudRate);
+		tmp.Format(_T("%d;"), m_BaudRate);
 		str += tmp;
 	}
 }
@@ -357,7 +357,7 @@ DWORD CComSock::AliveComPort()
 	CString name;
 
 	for ( n = 1 ; n <= 31 ; n++ ) {
-		name.Format("COM%d", n);
+		name.Format(_T("COM%d"), n);
 		DWORD sz = sizeof(COMMCONFIG);
 		if ( GetDefaultCommConfig(name, &conf, &sz) )
 			port |= (1 << n);

@@ -6,34 +6,25 @@
 #include "IConvDlg.h"
 #include "IConv.h"
 
-#ifdef _DEBUG
-#define new DEBUG_NEW
-#undef THIS_FILE
-static char THIS_FILE[] = __FILE__;
-#endif
-
 /////////////////////////////////////////////////////////////////////////////
 // CIConvDlg ダイアログ
+
+IMPLEMENT_DYNAMIC(CIConvDlg, CDialog)
 
 CIConvDlg::CIConvDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CIConvDlg::IDD, pParent)
 {
-	//{{AFX_DATA_INIT(CIConvDlg)
-	//}}AFX_DATA_INIT
 }
 
 void CIConvDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
-	//{{AFX_DATA_MAP(CIConvDlg)
-	//}}AFX_DATA_MAP
+
 	for ( int n = 0 ; n < 4 ; n++ )
 		DDX_CBString(pDX, IDC_CHARSET1 + n, m_CharSet[n]);
 }
 
 BEGIN_MESSAGE_MAP(CIConvDlg, CDialog)
-	//{{AFX_MSG_MAP(CIConvDlg)
-	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////

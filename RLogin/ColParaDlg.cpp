@@ -22,13 +22,10 @@ static char THIS_FILE[] = __FILE__;
 
 IMPLEMENT_DYNCREATE(CColParaDlg, CPropertyPage)
 
-CColParaDlg::CColParaDlg() : CPropertyPage(CColParaDlg::IDD)
+CColParaDlg::CColParaDlg() : CTreePropertyPage(CColParaDlg::IDD)
 {
-	//{{AFX_DATA_INIT(CColParaDlg)
 	m_ColSet = -1;
 	m_BitMapFile = _T("");
-	//}}AFX_DATA_INIT
-	m_pSheet = NULL;
 	for ( int n = 0 ; n < 24 ; n++ )
 		m_Attrb[n] = 0;
 	m_WakeUpSleep = 0;
@@ -37,7 +34,6 @@ CColParaDlg::CColParaDlg() : CPropertyPage(CColParaDlg::IDD)
 	m_FontColName[0] = _T("0");
 	m_FontColName[1] = _T("0");
 }
-
 CColParaDlg::~CColParaDlg()
 {
 }
@@ -45,11 +41,10 @@ CColParaDlg::~CColParaDlg()
 void CColParaDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CPropertyPage::DoDataExchange(pDX);
-	//{{AFX_DATA_MAP(CColParaDlg)
+
 	DDX_Control(pDX, IDC_TRANSPARENT, m_TransSlider);
 	DDX_CBIndex(pDX, IDC_COLSET, m_ColSet);
 	DDX_Text(pDX, IDC_BACKFILE, m_BitMapFile);
-	//}}AFX_DATA_MAP
 	for ( int n = 0 ; n < 16 ; n++ )
 		DDX_Control(pDX, IDC_BOX0 + n, m_ColBox[n]);
 	DDX_Control(pDX, IDC_BOXTEXT, m_ColBox[16]);
@@ -62,14 +57,12 @@ void CColParaDlg::DoDataExchange(CDataExchange* pDX)
 }
 
 BEGIN_MESSAGE_MAP(CColParaDlg, CPropertyPage)
-	//{{AFX_MSG_MAP(CColParaDlg)
 	ON_WM_PAINT()
 	ON_WM_LBUTTONDBLCLK()
 	ON_WM_LBUTTONDOWN()
 	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_TRANSPARENT, OnReleasedcaptureTransparent)
 	ON_CBN_SELENDOK(IDC_COLSET, OnSelendokColset)
 	ON_BN_CLICKED(IDC_BACKSEL, OnBitMapFileSel)
-	//}}AFX_MSG_MAP
 	ON_EN_CHANGE(IDC_BACKFILE, OnUpdateEdit)
 	ON_EN_CHANGE(IDC_TEXTCOL, &CColParaDlg::OnEnChangeColor)
 	ON_EN_CHANGE(IDC_BACKCOL, &CColParaDlg::OnEnChangeColor)
@@ -106,26 +99,51 @@ static	const COLORREF	ColSetTab[][16] = {
 
 };
 
-BOOL CColParaDlg::OnInitDialog() 
+void CColParaDlg::DoInit()
 {
 	int n;
 
+	for ( n = 0 ; n < 16 ; n++ )
+		m_ColTab[n] = m_pSheet->m_pTextRam->m_DefColTab[n];
+
+	m_FontCol[0] = m_pSheet->m_pTextRam->m_DefAtt.fc;
+	m_FontCol[1] = m_pSheet->m_pTextRam->m_DefAtt.bc;
+
+	m_FontColName[0].Format(_T("%d"), m_FontCol[0]);
+	m_FontColName[1].Format(_T("%d"), m_FontCol[1]);
+
+	for ( n = 0 ; n < 24 ; n++ )
+		m_Attrb[n] = (m_pSheet->m_pTextRam->m_DefAtt.at & (1 << n) ? TRUE : FALSE);
+
+	m_BitMapFile = m_pSheet->m_pTextRam->m_BitMapFile;
+
+	n = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("LayeredWindow"), 255);
+	m_TransSlider.SetPos(n);
+
+	n = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("WakeUpSleep"), 0);
+	if      ( n ==    0 ) m_WakeUpSleep = 0;
+	else if ( n <=   60 ) m_WakeUpSleep = 1;
+	else if ( n <=  180 ) m_WakeUpSleep = 2;
+	else if ( n <=  600 ) m_WakeUpSleep = 3;
+	else if ( n <= 1200 ) m_WakeUpSleep = 4;
+	else if ( n <= 1800 ) m_WakeUpSleep = 5;
+	else if ( n <= 2400 ) m_WakeUpSleep = 6;
+	else if ( n <= 3000 ) m_WakeUpSleep = 7;
+	else                  m_WakeUpSleep = 8;
+
+	UpdateData(FALSE);
+}
+BOOL CColParaDlg::OnInitDialog() 
+{
 	ASSERT(m_pSheet);
 	ASSERT(m_pSheet->m_pTextRam);
 
 	CPropertyPage::OnInitDialog();
 
-	for ( n = 0 ; n < 16 ; n++ )
-		m_ColTab[n] = m_pSheet->m_pTextRam->m_DefColTab[n];
-
-	m_FontCol[0] = m_pSheet->m_pTextRam->m_AttNow.fc;
-	m_FontCol[1] = m_pSheet->m_pTextRam->m_AttNow.bc;
-
-	m_FontColName[0].Format(_T("%d"), m_FontCol[0]);
-	m_FontColName[1].Format(_T("%d"), m_FontCol[1]);
-
+	int n;
 	CButton *pWnd;
 	BUTTON_IMAGELIST list;
+
 	memset(&list, 0, sizeof(list));
 	list.uAlign = BUTTON_IMAGELIST_ALIGN_LEFT;
 
@@ -134,28 +152,11 @@ BOOL CColParaDlg::OnInitDialog()
 		list.himl = m_ImageList[n];
 		if ( (pWnd = (CButton *)GetDlgItem(IDC_ATTR1 + n)) != NULL )
 			pWnd->SetImageList(&list);
-		m_Attrb[n] = (m_pSheet->m_pTextRam->m_AttNow.at & (1 << n) ? TRUE : FALSE);
 	}
-	for ( n = 8 ; n < 24 ; n++ )
-		m_Attrb[n] = (m_pSheet->m_pTextRam->m_AttNow.at & (1 << n) ? TRUE : FALSE);
-
-	m_BitMapFile = m_pSheet->m_pTextRam->m_BitMapFile;
 
 	m_TransSlider.SetRange(10, 255);
-	m_TransSlider.SetPos(AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("LayeredWindow"), 255));
 
-	n = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("WakeUpSleep"), 0);
-	if ( n == 0 ) m_WakeUpSleep = 0;
-	else if ( n <= 60 ) m_WakeUpSleep = 1;
-	else if ( n <= 180 ) m_WakeUpSleep = 2;
-	else if ( n <= 600 ) m_WakeUpSleep = 3;
-	else if ( n <= 1200 ) m_WakeUpSleep = 4;
-	else if ( n <= 1800 ) m_WakeUpSleep = 5;
-	else if ( n <= 2400 ) m_WakeUpSleep = 6;
-	else if ( n <= 3000 ) m_WakeUpSleep = 7;
-	else m_WakeUpSleep = 8;
-
-	UpdateData(FALSE);
+	DoInit();
 
 	return TRUE;
 }
@@ -167,6 +168,7 @@ BOOL CColParaDlg::OnApply()
 	ASSERT(m_pSheet->m_pTextRam);
 
 	UpdateData(TRUE);
+
 	for ( n = 0 ; n < 16 ; n++ ) {
 		m_pSheet->m_pTextRam->m_DefColTab[n] = m_ColTab[n];
 		m_pSheet->m_pTextRam->m_ColTab[n] = m_ColTab[n];
@@ -204,37 +206,10 @@ BOOL CColParaDlg::OnApply()
 
 void CColParaDlg::OnReset() 
 {
-	int n;
+	ASSERT(m_pSheet);
+	ASSERT(m_pSheet->m_pTextRam);
 
-	if ( m_hWnd == NULL )
-		return;
-
-	for ( n = 0 ; n < 16 ; n++ )
-		m_ColTab[n] = m_pSheet->m_pTextRam->m_DefColTab[n];
-
-	m_FontCol[0] = m_pSheet->m_pTextRam->m_DefAtt.fc;
-	m_FontCol[1] = m_pSheet->m_pTextRam->m_DefAtt.bc;
-
-	for ( n = 0 ; n < 24 ; n++ )
-		m_Attrb[n] = (m_pSheet->m_pTextRam->m_DefAtt.at & (1 << n) ? TRUE : FALSE);
-
-	m_BitMapFile = m_pSheet->m_pTextRam->m_BitMapFile;
-
-	((CMainFrame *)AfxGetMainWnd())->m_TransParValue = 255;
-	m_TransSlider.SetPos(AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("LayeredWindow"), 255));
-
-	n = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("WakeUpSleep"), 0);
-	if ( n == 0 ) m_WakeUpSleep = 0;
-	else if ( n <= 60 ) m_WakeUpSleep = 1;
-	else if ( n <= 180 ) m_WakeUpSleep = 2;
-	else if ( n <= 600 ) m_WakeUpSleep = 3;
-	else if ( n <= 1200 ) m_WakeUpSleep = 4;
-	else if ( n <= 1800 ) m_WakeUpSleep = 5;
-	else if ( n <= 2400 ) m_WakeUpSleep = 6;
-	else if ( n <= 3000 ) m_WakeUpSleep = 7;
-	else m_WakeUpSleep = 8;
-
-	UpdateData(FALSE);
+	DoInit();
 	SetModified(FALSE);
 }
 
@@ -325,11 +300,15 @@ void CColParaDlg::OnLButtonDown(UINT nFlags, CPoint point)
 void CColParaDlg::OnBitMapFileSel() 
 {
 	UpdateData(TRUE);
+
 	CFileDialog dlg(TRUE, _T("jpg"), m_BitMapFile, OFN_HIDEREADONLY, CStringLoad(IDS_FILEDLGIMAGE), this);
+
 	if ( dlg.DoModal() != IDOK )
 		return;
+
 	m_BitMapFile = dlg.GetPathName();
 	UpdateData(FALSE);
+
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 }
@@ -340,6 +319,7 @@ void CColParaDlg::OnReleasedcaptureTransparent(NMHDR* pNMHDR, LRESULT* pResult)
 
 	if ( pWnd != NULL )
 		pWnd->SetTransPar(0, n, LWA_ALPHA);
+
 	((CMainFrame *)AfxGetMainWnd())->m_TransParValue = n;
 	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("LayeredWindow"), n);
 	*pResult = 0;
@@ -347,9 +327,11 @@ void CColParaDlg::OnReleasedcaptureTransparent(NMHDR* pNMHDR, LRESULT* pResult)
 void CColParaDlg::OnSelendokColset() 
 {
 	UpdateData(TRUE);
+
 	if ( m_ColSet >= 0 )
 		memcpy(m_ColTab, ColSetTab[m_ColSet], sizeof(m_ColTab));
 	Invalidate(FALSE);
+
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 }
@@ -362,16 +344,20 @@ void CColParaDlg::OnUpdateEdit()
 void CColParaDlg::OnEnChangeColor()
 {
 	UpdateData(TRUE);
+
 	if ( (m_FontCol[0] = _tstoi(m_FontColName[0])) < 0 )
 		m_FontCol[0] = 0;
 	else if ( m_FontCol[0] > 255 )
 		m_FontCol[0] = 255;
+
 	if ( (m_FontCol[1] = _tstoi(m_FontColName[1])) < 0 )
 		m_FontCol[1] = 0;
 	else if ( m_FontCol[1] > 255 )
 		m_FontCol[1] = 255;
+
 	Invalidate(FALSE);
 	UpdateData(FALSE);
+
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 }

@@ -42,7 +42,7 @@ int CLogin::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int 
 
 	if ( n <= (IPPORT_RESERVED / 2) ) {
 		CString errmsg;
-		errmsg.Format("LoginSocket '%s' Port Error #%d", lpszHostAddress, IPPORT_RESERVED / 2);
+		errmsg.Format(_T("LoginSocket '%s' Port Error #%d"), lpszHostAddress, IPPORT_RESERVED / 2);
 		AfxMessageBox(errmsg, MB_ICONSTOP);
 		return FALSE;
 	}
@@ -56,9 +56,9 @@ void CLogin::OnConnect()
 {
 	CRLoginDoc *pDoc = GetDocument();
 	SendStr("");
-	SendStr(pDoc->m_ServerEntry.m_UserName);
-	SendStr(pDoc->m_ServerEntry.m_UserName);
-	SendStr(pDoc->m_ServerEntry.m_TermName);
+	SendStr(pDoc->RemoteStr(pDoc->m_ServerEntry.m_UserName));
+	SendStr(pDoc->RemoteStr(pDoc->m_ServerEntry.m_UserName));
+	SendStr(pDoc->RemoteStr(pDoc->m_ServerEntry.m_TermName));
 	m_ConnectFlag = 2;
 	CExtSocket::OnConnect();
 }

@@ -96,14 +96,14 @@ public:
 	int	Incr_SA(int Old_Value);
 	int	SA_Flush();
 	void Do_Transport_Parameters();
-	void Check_Keep(FILE *data_File, LPCSTR Name);
+	void Check_Keep(FILE *data_File, LPCTSTR Path, LPCSTR Name);
 
 	LONGLONG Extract_Size(char **str);
 	time_t Extract_Time(time_t zone, char **str);
 	void Process_File_Information();
 
-	int	Send_File(LPCSTR Name);
-	int	Receive_File(LPCSTR Name);
+	int	Send_File(LPCTSTR filePath, LPCSTR fileName);
+	int	Receive_File(LPCTSTR filePath, LPCSTR fileName);
 
 	void BP_Term_ENQ();
 	int	BP_DLE_Seen();

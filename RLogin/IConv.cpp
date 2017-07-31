@@ -6,6 +6,7 @@
 #include "stdafx.h"
 #include "RLogin.h"
 #include "IConv.h"
+#include "TextRam.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -163,7 +164,7 @@ class CIConv *CIConv::GetIConv(LPCTSTR from, LPCTSTR to)
 		if ( (m_Mode & 070) >= 030 )
 			to   = _T("EUC-JISX0213");
 
-	    m_Cd = iconv_open(CStringA(to), CStringA(from));
+	    m_Cd = iconv_open(TstrToMbs(to), TstrToMbs(from));
 		return this;
 	}
 
@@ -246,38 +247,39 @@ int CIConv::IConvBuf(LPCTSTR from, LPCTSTR to, CBuffer *in, CBuffer *out)
 
 	return out->GetSize();
 }
-int CIConv::IConvStr(LPCTSTR from, LPCTSTR to, LPCSTR in, CStringA &out)
+void CIConv::StrToRemote(LPCTSTR to, CBuffer *in, CBuffer *out)
 {
-	int n = 0;
-	CIConv *cp;
-    char *inp, *otp;
-    size_t ins, ots;
-	char tmp[4096];
-
-	cp = GetIConv(from, to);
-	if ( cp->m_Cd == (iconv_t)(-1) )
-		return 0;
-
-	inp = (char *)in;
-	ins = strlen(in);
-	out = "";
-
-    while ( ins > 0 && n != (-1) ) {
-		otp = tmp;
-		ots = 4096;
-        n = (int)iconv(cp->m_Cd, (char **)&inp, &ins, &otp, &ots);
-		for ( otp = tmp ; ots < 4096 ; ots++ )
-			out += *(otp++);
-    }
-
-	otp = tmp;
-	ots = 4096;
-	iconv(cp->m_Cd, NULL, NULL, &otp, &ots);
-	for ( otp = tmp ; ots < 4096 ; ots++ )
-		out += *(otp++);
-
-	return out.GetLength();
+	CTextRam::MsToIconvUniStr(to, (LPWSTR)(LPCWSTR)(*in), in->GetSize() / sizeof(WCHAR));
+	IConvBuf(_T("UCS-2LE"), to, in, out);
 }
+void CIConv::StrToRemote(LPCTSTR to, LPCTSTR in, CStringA &out)
+{
+	CBuffer bIn, bOut;
+#ifdef	_UNICODE
+	bIn.Apend((LPBYTE)in, (int)_tcslen(in) * sizeof(WCHAR));
+	CTextRam::MsToIconvUniStr(to, (LPWSTR)(LPCWSTR)bIn, bIn.GetSize() / sizeof(WCHAR));
+	IConvBuf(_T("UCS-2LE"), to, &bIn, &bOut);
+#else
+	bIn.Apend((LPBYTE)in, (int)strlen(in));
+	IConvBuf(_T("CP932"), to, &bIn, &bOut);
+#endif
+	out = (LPCSTR)bOut;
+}
+void CIConv::RemoteToStr(LPCTSTR from, CBuffer *in, CBuffer *out)
+{
+	CBuffer mid;
+	IConvBuf(from, _T("UCS-2LE"), in, &mid);
+	CTextRam::IconvToMsUniStr((LPCWSTR)mid, mid.GetSize() / sizeof(WCHAR), *out);
+}
+void CIConv::RemoteToStr(LPCTSTR from, LPCSTR in, CString &out)
+{
+	CBuffer bIn, bMid, bOut;
+	bIn.Apend((LPBYTE)in, (int)strlen(in));
+	IConvBuf(from, _T("UCS-2LE"), &bIn, &bMid);
+	CTextRam::IconvToMsUniStr((LPCWSTR)bMid, bMid.GetSize() / sizeof(WCHAR), bOut);
+	out = (LPCWSTR)bOut;
+}
+
 int CIConv::IConvChar(LPCTSTR from, LPCTSTR to, int ch)
 {
 	int n = 0;
@@ -425,7 +427,7 @@ static int GetCharSet(unsigned int namescount, const char * const * names, void*
 	CStringArray *pArray = (CStringArray *)data;
 
 	for ( i = 0 ; i < namescount ; i++ )
-		pArray->Add(CStringA(names[i]));
+		pArray->Add(MbsToTstr(names[i]));
 	return 0;
 }
 void CIConv::SetListArray(CStringArray &array)

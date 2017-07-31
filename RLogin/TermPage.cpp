@@ -78,31 +78,26 @@ static const struct _OptListTab {
 	{	TO_XTBRPAMD,	_T("Bracketed Paste Mode 有効"),	_T("Bracketed Paste Mode 無効")		},
 
 	// RLogin Option		8400-8511(400-511)
-	{	TO_RLGCWA,		_T("SGRで空白属性を設定しない"),	_T("SGRで空白文字属性を設定")		},
-	{	TO_RLGNDW,		_T("行末での遅延改行無効"),			_T("行末での遅延改行有効")			},
-	{	TO_RLGAWL,		_T("自動ブラウザ起動をする"),		_T("自動ブラウザ起動無効")			},
-	{	TO_RLBOLD,		_T("ボールド文字有効"),				_T("ボールド文字無効")				},
-	{	TO_RLBPLUS,		_T("BPlus/ZModem/Kermit自動"),		_T("自動ファイル転送無効")			},
-	{	TO_RLUNIAWH,	_T("Aタイプを半角で表示"),			_T("Aタイプを全角で表示")			},
-	{	TO_RLNORESZ,	_T("DECCOLMでリサイズ"),			_T("ウィンドウをリサイズしない")	},
-	{	TO_RLKANAUTO,	_T("漢字コードを自動追従"),			_T("漢字コードを変更しない")		},
+//	{	TO_RLGCWA,		_T("SGRで空白属性を設定しない"),	_T("SGRで空白文字属性を設定")		},
+//	{	TO_RLGNDW,		_T("行末での遅延改行無効"),			_T("行末での遅延改行有効")			},
+//	{	TO_RLGAWL,		_T("自動ブラウザ起動をする"),		_T("自動ブラウザ起動無効")			},
+//	{	TO_RLBOLD,		_T("ボールド文字有効"),				_T("ボールド文字無効")				},
+//	{	TO_RLBPLUS,		_T("BPlus/ZModem/Kermit自動"),		_T("自動ファイル転送無効")			},
+//	{	TO_RLUNIAWH,	_T("Aタイプを半角で表示"),			_T("Aタイプを全角で表示")			},
+//	{	TO_RLNORESZ,	_T("DECCOLMでリサイズ"),			_T("ウィンドウをリサイズしない")	},
+//	{	TO_RLKANAUTO,	_T("漢字コードを自動追従"),			_T("漢字コードを変更しない")		},
 	{	TO_RLPNAM,		_T("ノーマルモード(DECPNM)"),		_T("アプリモード(DECPAM)")			},
 	{	TO_IMECTRL,		_T("IMEオープン"),					_T("IMEクロース")					},
 	{	TO_RLCKMESC,	_T("7727 ESCキーのCKM有効"),		_T("ESCキーのCKM無効")				},
-	{	TO_RLMSWAPE,	_T("7786 ホイールのキー変換"),		_T("ホイールの通常動作")			},
+//	{	TO_RLMSWAPE,	_T("7786 ホイールのキー変換"),		_T("ホイールの通常動作")			},
 
 	{	0,				NULL,								NULL							}
 };
 
-CTermPage::CTermPage() : CPropertyPage(CTermPage::IDD)
+CTermPage::CTermPage() : CTreePropertyPage(CTermPage::IDD)
 {
-	//{{AFX_DATA_INIT(CTermPage)
-	//}}AFX_DATA_INIT
 	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
 		m_Check[n] = FALSE;
-	m_pSheet = NULL;
-	m_TtlMode = 0;
-	m_TtlRep = m_TtlCng = FALSE;
 }
 
 CTermPage::~CTermPage()
@@ -112,46 +107,44 @@ CTermPage::~CTermPage()
 void CTermPage::DoDataExchange(CDataExchange* pDX)
 {
 	CPropertyPage::DoDataExchange(pDX);
-	//{{AFX_DATA_MAP(CTermPage)
-	//}}AFX_DATA_MAP
+
 	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
 		DDX_Check(pDX, IDC_TERMCHECK1 + n, m_Check[n]);
 	DDX_Control(pDX, IDC_ESCLIST, m_List);
-	DDX_CBIndex(pDX, IDC_COMBO3, m_TtlMode);
-	DDX_Check(pDX, IDC_TERMCHECK6, m_TtlRep);
-	DDX_Check(pDX, IDC_TERMCHECK7, m_TtlCng);
 }
 
 BEGIN_MESSAGE_MAP(CTermPage, CPropertyPage)
-	//{{AFX_MSG_MAP(CTermPage)
-	//}}AFX_MSG_MAP
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_CHECKFAST, IDC_CHECKFAST + CHECKOPTMAX - 1, OnUpdateCheck)
 	ON_BN_CLICKED(IDC_ESCEDIT, &CTermPage::OnBnClickedEscedit)
 	ON_NOTIFY(NM_CLICK, IDC_ESCLIST, &CTermPage::OnNMClickEsclist)
-	ON_CONTROL_RANGE(BN_CLICKED, IDC_TERMCHECK6, IDC_TERMCHECK7, OnUpdateCheck)
-	ON_CBN_SELCHANGE(IDC_COMBO3, &CTermPage::OnCbnSelchangeCombo)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
 // CTermPage メッセージ ハンドラ
 
-BOOL CTermPage::OnInitDialog() 
+void CTermPage::DoInit()
 {
 	int n;
-	CString str;
 
-	ASSERT(m_pSheet);
-	ASSERT(m_pSheet->m_pTextRam);
-
-	CPropertyPage::OnInitDialog();
 	for ( n = 0 ; n < CHECKOPTMAX ; n++ )
 		m_Check[n] = (m_pSheet->m_pTextRam->IsOptEnable(CheckOptTab[n]) ? TRUE : FALSE);
 
 	m_ProcTab = m_pSheet->m_pTextRam->m_ProcTab;
 
-	m_TtlMode = m_pSheet->m_pTextRam->m_TitleMode & 7;
-	m_TtlRep  = (m_pSheet->m_pTextRam->m_TitleMode & WTTL_REPORT) ? TRUE : FALSE;
-	m_TtlCng  = (m_pSheet->m_pTextRam->m_TitleMode & WTTL_CHENG)  ? TRUE : FALSE;
+	for ( n = 0 ; OptListTab[n].ename != NULL ; n++ )
+		m_List.SetLVCheck(n,  m_pSheet->m_pTextRam->IsOptEnable(OptListTab[n].num) ? TRUE : FALSE);
+
+	UpdateData(FALSE);
+}
+BOOL CTermPage::OnInitDialog() 
+{
+	ASSERT(m_pSheet);
+	ASSERT(m_pSheet->m_pTextRam);
+
+	CPropertyPage::OnInitDialog();
+
+	int n;
+	CString str;
 
 	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_CHECKBOXES);
 	m_List.InitColumn(_T("TermPageOpt"), InitListTab, 3);
@@ -172,10 +165,10 @@ BOOL CTermPage::OnInitDialog()
 		m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, n, str, 0, 0, 0, n);
 		m_List.SetItemText(n, 1, OptListTab[n].ename);
 		m_List.SetItemText(n, 2, OptListTab[n].dname);
-		m_List.SetLVCheck(n,  m_pSheet->m_pTextRam->IsOptEnable(OptListTab[n].num) ? TRUE : FALSE);
 	}
 
-	UpdateData(FALSE);
+	DoInit();
+
 	return TRUE;
 }
 BOOL CTermPage::OnApply() 
@@ -184,20 +177,8 @@ BOOL CTermPage::OnApply()
 	ASSERT(m_pSheet->m_pTextRam);
 
 	UpdateData(TRUE);
-	for ( int n = 0 ; n < CHECKOPTMAX ; n++ ) {
-		if ( m_Check[n] )
-			m_pSheet->m_pTextRam->EnableOption(CheckOptTab[n]);
-		else
-			m_pSheet->m_pTextRam->DisableOption(CheckOptTab[n]);
-	}
 
 	m_pSheet->m_pTextRam->m_ProcTab = m_ProcTab;
-
-	m_pSheet->m_pTextRam->m_TitleMode = m_TtlMode;
-	if ( m_TtlRep )
-		m_pSheet->m_pTextRam->m_TitleMode |= WTTL_REPORT;
-	if ( m_TtlCng )
-		m_pSheet->m_pTextRam->m_TitleMode |= WTTL_CHENG;
 
 	for ( int n = 0 ; OptListTab[n].ename != NULL ; n++ ) {
 		if ( m_List.GetLVCheck(n) ) {
@@ -257,26 +238,21 @@ BOOL CTermPage::OnApply()
 		}
 	}
 
+	for ( int n = 0 ; n < CHECKOPTMAX ; n++ ) {
+		if ( m_Check[n] )
+			m_pSheet->m_pTextRam->EnableOption(CheckOptTab[n]);
+		else
+			m_pSheet->m_pTextRam->DisableOption(CheckOptTab[n]);
+	}
+
 	return TRUE;
 }
 void CTermPage::OnReset() 
 {
-	if ( m_hWnd == NULL )
-		return;
+	ASSERT(m_pSheet);
+	ASSERT(m_pSheet->m_pTextRam);
 
-	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
-		m_Check[n] = (m_pSheet->m_pTextRam->IsOptEnable(CheckOptTab[n]) ? TRUE : FALSE);
-
-	m_ProcTab = m_pSheet->m_pTextRam->m_ProcTab;
-
-	m_TtlMode = m_pSheet->m_pTextRam->m_TitleMode & 7;
-	m_TtlRep  = (m_pSheet->m_pTextRam->m_TitleMode & WTTL_REPORT) ? TRUE : FALSE;
-	m_TtlCng  = (m_pSheet->m_pTextRam->m_TitleMode & WTTL_CHENG)  ? TRUE : FALSE;
-
-	for ( int n = 0 ; OptListTab[n].ename != NULL ; n++ )
-		m_List.SetLVCheck(n,  m_pSheet->m_pTextRam->IsOptEnable(OptListTab[n].num) ? TRUE : FALSE);
-
-	UpdateData(FALSE);
+	DoInit();
 	SetModified(FALSE);
 }
 void CTermPage::OnUpdateCheck(UINT nID) 
@@ -309,10 +285,4 @@ void CTermPage::OnNMClickEsclist(NMHDR *pNMHDR, LRESULT *pResult)
 	}
 
 	*pResult = 0;
-}
-
-void CTermPage::OnCbnSelchangeCombo()
-{
-	SetModified(TRUE);
-	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 }

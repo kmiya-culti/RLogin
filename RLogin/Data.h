@@ -46,18 +46,17 @@ public:
 	void Put64Bit(LONGLONG val);
 	void PutBuf(LPBYTE buf, int len);
 	void PutStr(LPCSTR str);
-	void PutStrT(LPCTSTR str);
 	void PutBIGNUM(BIGNUM *val);
 	void PutBIGNUM2(BIGNUM *val);
 	void PutEcPoint(const EC_GROUP *curve, const EC_POINT *point);
 	void PutWord(int val);
+	void PutDWord(DWORD dw);
 
 	int Get8Bit();
 	int Get16Bit();
 	int Get32Bit();
 	LONGLONG Get64Bit();
 	int GetStr(CStringA &str);
-	int GetStrT(CString &str);
 	int GetBuf(CBuffer *buf);
 	int GetBIGNUM(BIGNUM *val);
 	int GetBIGNUM2(BIGNUM *val);
@@ -139,6 +138,7 @@ public:
 	void Serialize(CArchive& ar);
 	int Find(LPCTSTR str);
 	int FindNoCase(LPCTSTR str);
+	int Match(LPCTSTR str);
 };
 
 class CStringMaps : public CObject

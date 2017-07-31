@@ -384,12 +384,12 @@ int CPaneFrame::BoderRect(CRect &rect)
 }
 void CPaneFrame::SetBuffer(CBuffer *buf)
 {
-	CString tmp;
+	CStringA tmp;
 	int sz = 0;
 	CServerEntry *pEntry = NULL;
 
 	if ( m_Style == PANEFRAME_WINDOW ) {
-		tmp.Format(_T("%d\t0\t"), m_Style);
+		tmp.Format("%d\t0\t", m_Style);
 		if ( m_pServerEntry != NULL ) {
 			delete m_pServerEntry;
 			m_pServerEntry = NULL;
@@ -401,7 +401,7 @@ void CPaneFrame::SetBuffer(CBuffer *buf)
 				if ( pDoc != NULL ) {
 					pDoc->SetEntryProBuffer();
 					pEntry = &(pDoc->m_ServerEntry);
-					tmp.Format(_T("%d\t0\t1\t"), m_Style);
+					tmp.Format("%d\t0\t1\t", m_Style);
 				}
 			}
 		}
@@ -426,7 +426,7 @@ void CPaneFrame::SetBuffer(CBuffer *buf)
 		break;
 	}
 
-	tmp.Format(_T("%d\t%d\t"), m_Style, sz);
+	tmp.Format("%d\t%d\t", m_Style, sz);
 	buf->PutStr(tmp);
 	m_pLeft->SetBuffer(buf);
 	m_pRight->SetBuffer(buf);
@@ -434,7 +434,7 @@ void CPaneFrame::SetBuffer(CBuffer *buf)
 class CPaneFrame *CPaneFrame::GetBuffer(class CMainFrame *pMain, class CPaneFrame *pPane, class CPaneFrame *pOwn, CBuffer *buf)
 {
 	int Size;
-	CString tmp;
+	CStringA tmp;
 	CStringArrayExt array;
 
 	if ( pPane == NULL )
@@ -445,7 +445,7 @@ class CPaneFrame *CPaneFrame::GetBuffer(class CMainFrame *pMain, class CPaneFram
 	buf->GetStr(tmp);
 	if ( tmp.IsEmpty() )
 		return pPane;
-	array.GetString(tmp);
+	array.GetString(MbsToTstr(tmp));
 	if ( array.GetSize() < 2 )
 		return pPane;
 	pPane->m_Style = array.GetVal(0);
@@ -782,7 +782,7 @@ int CMainFrame::SetAsyncHostAddr(int mode, LPCTSTR pHostName, CExtSocket *pSock)
 	char *pData = new char[MAXGETHOSTSTRUCT];
 
 	memset(pData, 0, MAXGETHOSTSTRUCT);
-	if ( (hGetHostAddr = WSAAsyncGetHostByName(GetSafeHwnd(), WM_GETHOSTADDR, pHostName, pData, MAXGETHOSTSTRUCT)) == (HANDLE)0 ) {
+	if ( (hGetHostAddr = WSAAsyncGetHostByName(GetSafeHwnd(), WM_GETHOSTADDR, TstrToMbs(pHostName), pData, MAXGETHOSTSTRUCT)) == (HANDLE)0 ) {
 		CString errmsg;
 		errmsg.Format(_T("GetHostByName Error '%s'"), pHostName);
 		AfxMessageBox(errmsg, MB_ICONSTOP);
@@ -804,16 +804,16 @@ typedef struct _addrinfo_param {
 	int				mode;
 	CString			name;
 	CString			port;
-	struct addrinfo	hint;
+	ADDRINFOT		hint;
 	int				ret;
 } addrinfo_param;
 
 static UINT AddrInfoThread(LPVOID pParam)
 {
-	struct addrinfo *ai;
+	ADDRINFOT *ai;
 	addrinfo_param *ap = (addrinfo_param *)pParam;
 
-	ap->ret = getaddrinfo(ap->name, ap->port, &(ap->hint), &ai);
+	ap->ret = GetAddrInfo(ap->name, ap->port, &(ap->hint), &ai);
 
 	if ( ap->pWnd->m_InfoThreadCount-- > 0 && ap->pWnd->m_hWnd != NULL )
 		ap->pWnd->PostMessage(WM_GETHOSTADDR, (WPARAM)ap, (LPARAM)ai);
@@ -833,7 +833,7 @@ int CMainFrame::SetAsyncAddrInfo(int mode, LPCTSTR pHostName, int PortNum, void 
 	ap->name = pHostName;
 	ap->port.Format(_T("%d"), PortNum);
 	ap->ret  = 1;
-	memcpy(&(ap->hint), pHint, sizeof(struct addrinfo));
+	memcpy(&(ap->hint), pHint, sizeof(ADDRINFOT));
 
 	m_InfoThreadCount++;
 	AfxBeginThread(AddrInfoThread, ap, THREAD_PRIORITY_NORMAL);
@@ -1260,11 +1260,11 @@ LRESULT CMainFrame::OnGetHostAddr(WPARAM wParam, LPARAM lParam)
 #ifndef	NOIPV6
 		} else if ( (mode & 030) == 010 && m_HostAddrParam[n] == (void *)wParam ) {
 			addrinfo_param *ap = (addrinfo_param *)wParam;
-			struct addrinfo *info = (struct addrinfo *)lParam;
+			ADDRINFOT *info = (ADDRINFOT *)lParam;
 			pSock = (CExtSocket *)m_HostAddrParam[n + 1];
 
 			if ( ap->ret == 0 )
-				pSock->OnAsyncHostByName(mode, (LPCSTR)info);
+				pSock->OnAsyncHostByName(mode, (LPCTSTR)info);
 			else
 				pSock->OnAsyncHostByName(mode & 003, ap->name);
 
@@ -1624,7 +1624,7 @@ void CMainFrame::OnFileAllSave()
 	if ( !file.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeWrite) )
 		return;
 
-	file.Write("RLM100\r\n", 8);
+	file.Write("RLM100\n", 7);
 	file.Write(buf.GetPtr(), buf.GetSize());
 	file.Close();
 	m_ModifiedFlag = FALSE;
@@ -1672,7 +1672,7 @@ BOOL CMainFrame::SaveModified( )
 		m_pTopPane->SetBuffer(&buf);
 		if ( !file.Open(m_AllFilePath, CFile::modeCreate | CFile::modeWrite) )
 			return FALSE;
-		file.Write("RLM100\r\n", 8);
+		file.Write("RLM100\n", 7);
 		file.Write(buf.GetPtr(), buf.GetSize());
 		file.Close();
 		m_ModifiedFlag = FALSE;
@@ -1689,7 +1689,7 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCopyDataStruct)
 	if ( pCopyDataStruct->dwData == 0x524c4f31 ) {
 		CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
 		CCommandLineInfoEx cmdInfo;
-		cmdInfo.SetString((LPCSTR)(pCopyDataStruct->lpData));
+		cmdInfo.SetString((LPCTSTR)(pCopyDataStruct->lpData));
 		pApp->OpenProcsCmd(&cmdInfo);
 		return TRUE;
 	}

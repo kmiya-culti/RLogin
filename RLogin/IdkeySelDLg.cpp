@@ -11,25 +11,18 @@
 #include "EditDlg.h"
 #include <math.h>
 
-#ifdef _DEBUG
-#define new DEBUG_NEW
-#undef THIS_FILE
-static char THIS_FILE[] = __FILE__;
-#endif
-
 /////////////////////////////////////////////////////////////////////////////
 // CIdkeySelDLg ダイアログ
+
+IMPLEMENT_DYNAMIC(CIdkeySelDLg, CDialog)
 
 CIdkeySelDLg::CIdkeySelDLg(CWnd* pParent /*=NULL*/)
 	: CDialog(CIdkeySelDLg::IDD, pParent)
 {
-	//{{AFX_DATA_INIT(CIdkeySelDLg)
 	m_Type = _T("DSA2");
 	m_Bits = _T("1024");
 	m_Name = _T("");
-	//}}AFX_DATA_INIT
 	m_pIdKeyTab = NULL;
-	m_pParamTab = NULL;
 	m_EntryNum = (-1);
 	m_pKeyGenEvent = new CEvent(FALSE, TRUE);
 	m_KeyGenFlag = 0;
@@ -45,17 +38,15 @@ CIdkeySelDLg::~CIdkeySelDLg()
 void CIdkeySelDLg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
-	//{{AFX_DATA_MAP(CIdkeySelDLg)
+
 	DDX_Control(pDX, IDC_IDKEY_PROG, m_KeyGenProg);
 	DDX_Control(pDX, IDC_IDKEY_LIST, m_List);
 	DDX_CBString(pDX, IDC_IDKEY_TYPE, m_Type);
 	DDX_CBString(pDX, IDC_IDKEY_BITS, m_Bits);
 	DDX_Text(pDX, IDC_IDKEY_NAME, m_Name);
-	//}}AFX_DATA_MAP
 }
 
 BEGIN_MESSAGE_MAP(CIdkeySelDLg, CDialog)
-	//{{AFX_MSG_MAP(CIdkeySelDLg)
 	ON_WM_TIMER()
 	ON_BN_CLICKED(IDC_IDKEY_UP, OnIdkeyUp)
 	ON_BN_CLICKED(IDC_IDKEY_DOWN, OnIdkeyDown)
@@ -65,7 +56,6 @@ BEGIN_MESSAGE_MAP(CIdkeySelDLg, CDialog)
 	ON_BN_CLICKED(IDC_IDKEY_CREATE, OnIdkeyCreate)
 	ON_NOTIFY(NM_DBLCLK, IDC_IDKEY_LIST, OnDblclkIdkeyList)
 	ON_WM_CLOSE()
-	//}}AFX_MSG_MAP
 	ON_COMMAND(ID_EDIT_UPDATE, OnEditUpdate)
 	ON_COMMAND(ID_EDIT_DELETE, OnIdkeyDel)
 	ON_COMMAND(ID_EDIT_COPY, OnIdkeyCopy)
@@ -76,7 +66,7 @@ BEGIN_MESSAGE_MAP(CIdkeySelDLg, CDialog)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_DELETE, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_COPY, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(IDC_IDKEY_EXPORT, OnUpdateEditEntry)
-	ON_NOTIFY(LVN_ITEMCHANGED, IDC_IDKEY_LIST, &CIdkeySelDLg::OnLvnItemchangedIdkeyList)
+	ON_NOTIFY(LVN_ITEMCHANGED, IDC_IDKEY_LIST, OnLvnItemchangedIdkeyList)
 END_MESSAGE_MAP()
 
 void CIdkeySelDLg::InitList()
@@ -182,9 +172,9 @@ static const LV_COLUMN InitListTab[2] = {
 
 BOOL CIdkeySelDLg::OnInitDialog() 
 {
-	CDialog::OnInitDialog();
 	ASSERT(m_pIdKeyTab);
-	ASSERT(m_pParamTab);
+
+	CDialog::OnInitDialog();
 
 	int n, i, a;
 	CIdKey *pKey;
@@ -195,9 +185,9 @@ BOOL CIdkeySelDLg::OnInitDialog()
 		m_pIdKeyTab->GetAt(n).m_Flag = FALSE;
 	}
 
-	m_pParamTab->m_IdKeyList.SetString(m_OldIdKeyList);
-	for ( n = (int)m_pParamTab->m_IdKeyList.GetSize() - 1 ; n >= 0 ; n-- ) {
-		a = m_pParamTab->m_IdKeyList.GetVal(n);
+	m_IdKeyList.SetString(m_OldIdKeyList);
+	for ( n = (int)m_IdKeyList.GetSize() - 1 ; n >= 0 ; n-- ) {
+		a = m_IdKeyList.GetVal(n);
 		if ( (pKey = m_pIdKeyTab->GetUid(a)) == NULL )
 			continue;
 		for ( i = 0 ; i < m_Data.GetSize() ; i++ ) {
@@ -221,19 +211,23 @@ BOOL CIdkeySelDLg::OnInitDialog()
 }
 void CIdkeySelDLg::OnOK() 
 {
+	ASSERT(m_pIdKeyTab);
+
 	if ( m_KeyGenFlag != 0 ) {
 		MessageBox(CStringLoad(IDE_MAKEIDKEY));
 		return;
 	}
-	m_pParamTab->m_IdKeyList.RemoveAll();
+
+	m_IdKeyList.RemoveAll();
 	for ( int n = 0 ; n < m_Data.GetSize() ; n++ ) {
 		if ( m_List.GetLVCheck(n) )
-			m_pParamTab->m_IdKeyList.AddVal(m_Data[n]);
+			m_IdKeyList.AddVal(m_Data[n]);
 	}
 	m_List.SaveColumn(_T("IdkeySelDLg"));
 
 	CString str;
-	m_pParamTab->m_IdKeyList.SetString(str);
+
+	m_IdKeyList.SetString(str);
 	if ( str.Compare(m_OldIdKeyList) != 0 )
 		CDialog::OnOK();
 	else
@@ -268,51 +262,65 @@ void CIdkeySelDLg::OnTimer(UINT_PTR nIDEvent)
 void CIdkeySelDLg::OnIdkeyUp() 
 {
 	int n1, n2, d;
+
 	if ( (m_EntryNum = m_List.GetSelectionMark()) <= 0 )
 		return;
+
 	n1 = (int)m_List.GetItemData(m_EntryNum - 1);
 	n2 = (int)m_List.GetItemData(m_EntryNum);
 	d = m_Data[n1];
 	m_Data[n1] = m_Data[n2];
 	m_Data[n2] = d;
 	m_EntryNum -= 1;
+
 	InitList();
 }
 void CIdkeySelDLg::OnIdkeyDown() 
 {
 	int n1, n2, d;
+
 	if ( (m_EntryNum = m_List.GetSelectionMark()) < 0 )
 		return;
 	else if ( m_EntryNum >= (m_List.GetItemCount() - 1) )
 		return;
+
 	n1 = (int)m_List.GetItemData(m_EntryNum + 1);
 	n2 = (int)m_List.GetItemData(m_EntryNum);
 	d = m_Data[n1];
 	m_Data[n1] = m_Data[n2];
 	m_Data[n2] = d;
 	m_EntryNum += 1;
+
 	InitList();
 }
 void CIdkeySelDLg::OnIdkeyDel() 
 {
 	if ( (m_EntryNum = m_List.GetSelectionMark()) < 0 )
 		return;
+
 	if ( MessageBox(CStringLoad(IDE_DELETEKEYQES), _T("Warning"), MB_ICONWARNING | MB_OKCANCEL) != IDOK )
 		return;
+
 	int n = (int)m_List.GetItemData(m_EntryNum);
+
 	m_pIdKeyTab->RemoveUid(m_Data[n]);
 	m_Data.RemoveAt(n);
+
 	InitList();
 }
 void CIdkeySelDLg::OnIdkeyCopy() 
 {
 	if ( (m_EntryNum = m_List.GetSelectionMark()) < 0 )
 		return;
+
 	int n = (int)m_List.GetItemData(m_EntryNum);
 	CIdKey *pKey = m_pIdKeyTab->GetUid(m_Data[n]);
+
 	if ( pKey == NULL )
 		return;
+
 	CString str;
+
 	pKey->WritePublicKey(str);
 	CopyToClipBorad(str);
 }
@@ -357,10 +365,11 @@ void CIdkeySelDLg::OnIdkeyExport()
 
 	int n = (int)m_List.GetItemData(m_EntryNum);
 	CIdKey *pKey = m_pIdKeyTab->GetUid(m_Data[n]);
+	CIdKeyFileDlg dlg;
+
 	if ( pKey == NULL )
 		return;
 
-	CIdKeyFileDlg dlg;
 	dlg.m_OpenMode = 1;
 	dlg.m_Title.LoadString(IDS_IDKEYFILESAVE);
 	dlg.m_Message.LoadString(IDS_IDKEYFILESAVECOM);
@@ -463,17 +472,23 @@ void CIdkeySelDLg::OnEditUpdate()
 {
 	if ( (m_EntryNum = m_List.GetSelectionMark()) < 0 )
 		return;
+
 	int n = (int)m_List.GetItemData(m_EntryNum);
 	CIdKey *pKey = m_pIdKeyTab->GetUid(m_Data[n]);
+	CEditDlg dlg;
+
 	if ( pKey == NULL )
 		return;
-	CEditDlg dlg;
+
 	dlg.m_Title.LoadString(IDS_IDKEYRENAME);
 	dlg.m_Edit  = pKey->m_Name;
+
 	if ( dlg.DoModal() != IDOK )
 		return;
+
 	pKey->m_Name = dlg.m_Edit;
 	m_pIdKeyTab->UpdateUid(pKey->m_Uid);
+
 	InitList();
 }
 void CIdkeySelDLg::OnEditCheck()
@@ -498,6 +513,7 @@ void CIdkeySelDLg::OnEditCheck()
 		} else
 			apend.Add(n);
 	}
+
 	for ( i = 0 ; i < m_pIdKeyTab->GetSize() ; i++ ) {
 		for ( n = 0 ; n < tab.GetSize() ; n++ ) {
 			if ( tab.GetAt(n).m_Uid == m_pIdKeyTab->GetAt(i).m_Uid )

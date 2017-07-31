@@ -108,11 +108,11 @@ static const CTextRam::PROCTAB fc_Big52Tab[] = {
 static const CTextRam::PROCTAB fc_Utf8Tab[] = {
 	{ 0x20,		0x7E,		&CTextRam::fc_TEXT		},
 	{ 0xA0,		0xBF,		&CTextRam::fc_UTF87		},
-	{ 0xC0,		0xDF,		&CTextRam::fc_UTF81		},
-	{ 0xE0,		0xEF,		&CTextRam::fc_UTF82		},
-	{ 0xF0,		0xF7,		&CTextRam::fc_UTF83		},	// Unicode 21 bit
-//	{ 0xF8,		0xFB,		&CTextRam::fc_UTF88		},	// UCS-4 ? 26 bit
-//	{ 0xFC,		0xFD,		&CTextRam::fc_UTF89		},	// UCS-4 ? 31 bit
+	{ 0xC0,		0xDF,		&CTextRam::fc_UTF81		},	// UCS-2 5+6=11 bit
+	{ 0xE0,		0xEF,		&CTextRam::fc_UTF82		},	// UCS-2 4+6+6=16 bit
+	{ 0xF0,		0xF7,		&CTextRam::fc_UTF83		},	// UCS-2 3+6+6+6=21 bit
+	{ 0xF8,		0xFB,		&CTextRam::fc_UTF88		},	// UCS-4 2+6+6+6+6=26 bit ?
+	{ 0xFC,		0xFD,		&CTextRam::fc_UTF89		},	// UCS-4 1+6+6+6+6+6=31 bit ?
 	{ 0xF8,		0xFD,		&CTextRam::fc_UTF87		},
 	{ 0xFE,		0xFF,		&CTextRam::fc_UTF84		},
 	{ 0,		0,			NULL } };
@@ -1175,7 +1175,7 @@ void CTextRam::EscCsiDefName(LPCTSTR *esc, LPCTSTR *csi,  LPCTSTR *dcs)
 		dcs[c] = DcsProcName(fc_DcsExtTab[n].proc);
 	}
 }
-void CTextRam::ParseColor(int cmd, int idx, LPCSTR para, int ch)
+void CTextRam::ParseColor(int cmd, int idx, LPCTSTR para, int ch)
 {
 	int r, g, b;
 
@@ -1184,37 +1184,37 @@ void CTextRam::ParseColor(int cmd, int idx, LPCSTR para, int ch)
 
 	if ( para[0] == '?' ) {
 		COLORREF rgb = m_ColTab[idx];
-		UNGETSTR("%s%d;%d;rgb:%04x/%04x/%04x%s", m_RetChar[RC_OSC], cmd, idx,
+		UNGETSTR(_T("%s%d;%d;rgb:%04x/%04x/%04x%s"), m_RetChar[RC_OSC], cmd, idx,
 			GetRValue(rgb), GetGValue(rgb), GetBValue(rgb),
-			(ch == 0x07 ? "\007" : m_RetChar[RC_ST]));
+			(ch == 0x07 ? _T("\007") : m_RetChar[RC_ST]));
 
-	} else if ( para[0] == '#' ) {
-		switch(strlen(para)) {
+	} else if ( para[0] == _T('#') ) {
+		switch(_tcslen(para)) {
 		case 4:		// #rgb
-			if ( sscanf(para, "#%01x%01x%01x", &r, &g, &b) == 3 )
+			if ( _stscanf(para, _T("#%01x%01x%01x"), &r, &g, &b) == 3 )
 				m_ColTab[idx] = RGB(r, g, b);
 			break;
 		case 7:		// #rrggbb
-			if ( sscanf(para, "#%02x%02x%02x", &r, &g, &b) == 3 )
+			if ( _stscanf(para, _T("#%02x%02x%02x"), &r, &g, &b) == 3 )
 				m_ColTab[idx] = RGB(r, g, b);
 			break;
 		case 10:	// #rrrgggbbb
-			if ( sscanf(para, "#%03x%03x%03x", &r, &g, &b) == 3 )
+			if ( _stscanf(para, _T("#%03x%03x%03x"), &r, &g, &b) == 3 )
 				m_ColTab[idx] = RGB(r, g, b);
 			break;
 		case 13:	// #rrrrggggbbbb
-			if ( sscanf(para, "#%04x%04x%04x", &r, &g, &b) == 3 )
+			if ( _stscanf(para, _T("#%04x%04x%04x"), &r, &g, &b) == 3 )
 				m_ColTab[idx] = RGB(r, g, b);
 			break;
 		}
 		DISPUPDATE();
 
-	} else if ( _tcsncmp(para, "rgb:", 4) == 0 ) {
-		if ( sscanf(para, "rgb:%x/%x/%x", &r, &g, &b) == 3 )
+	} else if ( _tcsncmp(para, _T("rgb:"), 4) == 0 ) {
+		if ( _stscanf(para, _T("rgb:%x/%x/%x"), &r, &g, &b) == 3 )
 			m_ColTab[idx] = RGB(r, g, b);
 		DISPUPDATE();
 
-	} else if ( _tcscmp(para, "reset") == 0 ) {
+	} else if ( _tcscmp(para, _T("reset")) == 0 ) {
 		if ( idx < 16 )
 			m_ColTab[idx] = m_DefColTab[idx];
 		else if ( idx < 232 ) {				// colors 16-231 are a 6x6x6 color cube
@@ -1533,7 +1533,7 @@ void CTextRam::fc_BIG52(int ch)
 	int n;
 
 	m_BackChar = (m_BackChar << 8) | ch;
-	if ( (n = m_IConv.IConvChar(m_SendCharSet[BIG5_SET], "UTF-16BE", m_BackChar)) == 0 )
+	if ( (n = m_IConv.IConvChar(m_SendCharSet[BIG5_SET], _T("UTF-16BE"), m_BackChar)) == 0 )
 		n = 0x25A1;
 	INSMDCK(2);
 	PUT2BYTE(n, m_BankNow);
@@ -1619,7 +1619,7 @@ void CTextRam::fc_UTF85(int ch)
 		m_CodeLen--;
 		break;
 	case 1:
-		m_BackChar |= (ch & 0x3F);
+		m_BackChar = UCS4toUCS2(m_BackChar | (ch & 0x3F));
 		if ( (n = UnicodeNomal(m_LastChar, m_BackChar)) != 0 ) {
 			m_BackChar = n;
 			LOCATE(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX);
@@ -2023,7 +2023,7 @@ void CTextRam::fc_SCI(int ch)
 {
 	// ESC Z	VT52 Identify (host to terminal).				DECID(DA1) Primary Device Attributes		// ANSI SCI Single character introducer
 	if ( !IS_ENABLE(m_AnsiOpt, TO_DECANM) ) {
-		UNGETSTR("\033/Z");
+		UNGETSTR(_T("\033/Z"));
 		fc_POP(ch);
 	} else {
 		m_AnsiPara.RemoveAll();
@@ -2527,10 +2527,10 @@ void CTextRam::fc_DECUDK(int ch)
 			m_FuncKey[n].Clear();
 	}
 
-	node.GetString((LPCSTR)m_OscPara, ';');
+	node.GetString(MbsToTstr((LPCSTR)m_OscPara), _T(';'));
 
 	for ( n = 0 ; n < node.GetSize() ; n++ ) {
-		data.GetString(node[n], '/');
+		data.GetString(node[n], _T('/'));
 		if ( data.GetSize() < 2 )
 			continue;
 
@@ -2565,7 +2565,7 @@ void CTextRam::fc_DECREGIS(int ch)
 	if ( (n & 1) == 0 && (pGrapWnd = (CGrapWnd *)LastGrapWnd(TYPE_REGIS)) != NULL )
 		pGrapWnd->SetReGIS(n, m_OscPara);
 	else {
-		tmp.Format("ReGIS - %s", m_pDocument->m_ServerEntry.m_EntryName);
+		tmp.Format(_T("ReGIS - %s"), m_pDocument->m_ServerEntry.m_EntryName);
 		pGrapWnd = new CGrapWnd(this);
 		pGrapWnd->Create(NULL, tmp);
 		pGrapWnd->SetReGIS(n, m_OscPara);
@@ -2727,9 +2727,9 @@ void CTextRam::fc_DECDLD(int ch)
 			m_FontTab[idx].m_UserFontMap.DeleteObject();
 	}
 
-	node.GetString(p, ';');
+	node.GetString(MbsToTstr(p), _T(';'));
 	for ( n = 0 ; n < node.GetSize() && (Pcn + n) < 0x80 ; n++ ) {
-		data.GetString(node[n], '/');
+		data.GetString(node[n], _T('/'));
 		memset(map, 0, USFTCHSZ);
 		for ( i = 0 ; i < data.GetSize() && i < USFTLNSZ ; i++ ) {
 			for ( x = 0 ; x < data[i].GetLength() && x < USFTWMAX ; x++ ) {
@@ -2758,9 +2758,9 @@ void CTextRam::fc_DECRSTS(int ch)
 
 	case 2:		// DECCTR Color Table Restore
 		// Pc; Pu; Px; Py; Pz / Pc; Pu; Px; Py; Pz / ...
-		node.GetString((LPCSTR)m_OscPara, '/');
+		node.GetString(MbsToTstr((LPCSTR)m_OscPara), _T('/'));
 		for ( n = 0 ; n < node.GetSize() ; n++ ) {
-			value.GetString(node[n], ';');
+			value.GetString(node[n], _T(';'));
 			if ( value.GetSize() < 5 )
 				continue;
 			Pc = value.GetVal(0);
@@ -2799,94 +2799,94 @@ void CTextRam::fc_DECRQSS(int ch)
 	switch(n) {
 	case 'm':					// SGR
 		str = m_RetChar[RC_DCS];
-		str += "1$r0";
-		if ( (m_AttNow.at & ATT_BOLD)   != 0 ) str += ";1";
-		if ( (m_AttNow.at & ATT_HALF)   != 0 ) str += ";2";
-		if ( (m_AttNow.at & ATT_ITALIC) != 0 ) str += ";3";
-		if ( (m_AttNow.at & ATT_UNDER)  != 0 ) str += ";4";
-		if ( (m_AttNow.at & ATT_SBLINK) != 0 ) str += ";5";
-		if ( (m_AttNow.at & ATT_BLINK)  != 0 ) str += ";6";
-		if ( (m_AttNow.at & ATT_REVS)   != 0 ) str += ";7";
-		if ( (m_AttNow.at & ATT_SECRET) != 0 ) str += ";8";
-		if ( (m_AttNow.at & ATT_LINE)   != 0 ) str += ";9";
-		if ( (m_AttNow.at & ATT_DUNDER) != 0 ) str += ";21";
-		if ( (m_AttNow.at & ATT_FRAME)  != 0 ) str += ";51";
-		if ( (m_AttNow.at & ATT_CIRCLE) != 0 ) str += ";52";
-		if ( (m_AttNow.at & ATT_OVER)   != 0 ) str += ";53";
-		if ( (m_AttNow.at & ATT_RSLINE) != 0 ) str += ";60";
-		if ( (m_AttNow.at & ATT_RDLINE) != 0 ) str += ";61";
-		if ( (m_AttNow.at & ATT_LSLINE) != 0 ) str += ";62";
-		if ( (m_AttNow.at & ATT_LDLINE) != 0 ) str += ";63";
-		if ( (m_AttNow.at & ATT_STRESS) != 0 ) str += ";64";
+		str += _T("1$r0");
+		if ( (m_AttNow.at & ATT_BOLD)   != 0 ) str += _T(";1");
+		if ( (m_AttNow.at & ATT_HALF)   != 0 ) str += _T(";2");
+		if ( (m_AttNow.at & ATT_ITALIC) != 0 ) str += _T(";3");
+		if ( (m_AttNow.at & ATT_UNDER)  != 0 ) str += _T(";4");
+		if ( (m_AttNow.at & ATT_SBLINK) != 0 ) str += _T(";5");
+		if ( (m_AttNow.at & ATT_BLINK)  != 0 ) str += _T(";6");
+		if ( (m_AttNow.at & ATT_REVS)   != 0 ) str += _T(";7");
+		if ( (m_AttNow.at & ATT_SECRET) != 0 ) str += _T(";8");
+		if ( (m_AttNow.at & ATT_LINE)   != 0 ) str += _T(";9");
+		if ( (m_AttNow.at & ATT_DUNDER) != 0 ) str += _T(";21");
+		if ( (m_AttNow.at & ATT_FRAME)  != 0 ) str += _T(";51");
+		if ( (m_AttNow.at & ATT_CIRCLE) != 0 ) str += _T(";52");
+		if ( (m_AttNow.at & ATT_OVER)   != 0 ) str += _T(";53");
+		if ( (m_AttNow.at & ATT_RSLINE) != 0 ) str += _T(";60");
+		if ( (m_AttNow.at & ATT_RDLINE) != 0 ) str += _T(";61");
+		if ( (m_AttNow.at & ATT_LSLINE) != 0 ) str += _T(";62");
+		if ( (m_AttNow.at & ATT_LDLINE) != 0 ) str += _T(";63");
+		if ( (m_AttNow.at & ATT_STRESS) != 0 ) str += _T(";64");
 
-		if ( m_AttNow.ft > 0 ) { wrk.Format(";%d", m_AttNow.ft + 10); str += wrk; }
+		if ( m_AttNow.ft > 0 ) { wrk.Format(_T(";%d"), m_AttNow.ft + 10); str += wrk; }
 
-		if ( m_AttNow.fc == m_DefAtt.fc ) str += "";
-		else if ( m_AttNow.fc < 8 ) { wrk.Format(";%d", m_AttNow.fc + 30); str += wrk; }
-		else if ( m_AttNow.fc < 16 ) { wrk.Format(";%d", m_AttNow.fc - 8 + 90); str += wrk; }
-		else { wrk.Format(";38;%d", m_AttNow.fc); str += wrk; }
+		if ( m_AttNow.fc == m_DefAtt.fc ) str += _T("");
+		else if ( m_AttNow.fc < 8 ) { wrk.Format(_T(";%d"), m_AttNow.fc + 30); str += wrk; }
+		else if ( m_AttNow.fc < 16 ) { wrk.Format(_T(";%d"), m_AttNow.fc - 8 + 90); str += wrk; }
+		else { wrk.Format(_T(";38;%d"), m_AttNow.fc); str += wrk; }
 
-		if ( m_AttNow.bc == m_DefAtt.bc ) str += "";
-		else if ( m_AttNow.bc < 8 ) { wrk.Format(";%d", m_AttNow.fc + 40); str += wrk; }
-		else if ( m_AttNow.bc < 16 ) { wrk.Format(";%d", m_AttNow.bc - 8 + 100); str += wrk; }
-		else { wrk.Format(";48;%d", m_AttNow.bc); str += wrk; }
+		if ( m_AttNow.bc == m_DefAtt.bc ) str += _T("");
+		else if ( m_AttNow.bc < 8 ) { wrk.Format(_T(";%d"), m_AttNow.fc + 40); str += wrk; }
+		else if ( m_AttNow.bc < 16 ) { wrk.Format(_T(";%d"), m_AttNow.bc - 8 + 100); str += wrk; }
+		else { wrk.Format(_T(";48;%d"), m_AttNow.bc); str += wrk; }
 
-		str += "m";
+		str += _T("m");
 		str += m_RetChar[RC_ST];
-		UNGETSTR(str);
+		UNGETSTR(_T("%s"), str);
 		break;
 
 	case 'r':					// DECSTBM
-		UNGETSTR("%s1$r%d;%dr%s", m_RetChar[RC_DCS], m_TopY + 1, m_BtmY + 1 - 1, m_RetChar[RC_ST]);
+		UNGETSTR(_T("%s1$r%d;%dr%s"), m_RetChar[RC_DCS], m_TopY + 1, m_BtmY + 1 - 1, m_RetChar[RC_ST]);
 		break;
 
 	case 's':					// DECSLRM Set left and right margins
-		UNGETSTR("%s1$r%d;%ds%s", m_RetChar[RC_DCS], m_LeftX + 1, m_RightX + 1 - 1, m_RetChar[RC_ST]);
+		UNGETSTR(_T("%s1$r%d;%ds%s"), m_RetChar[RC_DCS], m_LeftX + 1, m_RightX + 1 - 1, m_RetChar[RC_ST]);
 		//UNGETSTR("%s0$r%s", m_RetChar[RC_DCS], m_RetChar[RC_ST]);
 		break;
 
 	case 't':					// DECSLPP Set lines per physical page
-		UNGETSTR("%s1$r%dt%s", m_RetChar[RC_DCS], m_Lines, m_RetChar[RC_ST]);
+		UNGETSTR(_T("%s1$r%dt%s"), m_RetChar[RC_DCS], m_Lines, m_RetChar[RC_ST]);
 		//UNGETSTR("%s0$r%s", m_RetChar[RC_DCS], m_RetChar[RC_ST]);
 		break;
 
 	case ('$' << 8) | '|':		// DECSCPP
-		UNGETSTR("%s1$r%d$|%s", m_RetChar[RC_DCS], m_Cols, m_RetChar[RC_ST]);
+		UNGETSTR(_T("%s1$r%d$|%s"), m_RetChar[RC_DCS], m_Cols, m_RetChar[RC_ST]);
 		break;
 
 	case ('*' << 8) | 'x':		// DECSACE Select Attribute and Change Extent
-		UNGETSTR("%s1$r%d*x%s", m_RetChar[RC_DCS], m_Exact ? 2 : 1, m_RetChar[RC_ST]);
+		UNGETSTR(_T("%s1$r%d*x%s"), m_RetChar[RC_DCS], m_Exact ? 2 : 1, m_RetChar[RC_ST]);
 		break;
 
 	case ('*' << 8) | '|':		// DECSNLS
-		UNGETSTR("%s1$r%d*|%s", m_RetChar[RC_DCS], m_Lines, m_RetChar[RC_ST]);
+		UNGETSTR(_T("%s1$r%d*|%s"), m_RetChar[RC_DCS], m_Lines, m_RetChar[RC_ST]);
 		break;
 
 	case ('"' << 8) | 'p':		// DECSCL
 		if ( m_VtLevel == 61 )
-			UNGETSTR("%s1$r%d\"p%s", m_RetChar[RC_DCS], m_VtLevel, m_RetChar[RC_ST]);
+			UNGETSTR(_T("%s1$r%d\"p%s"), m_RetChar[RC_DCS], m_VtLevel, m_RetChar[RC_ST]);
 		else
-			UNGETSTR("%s1$r%d;%d\"p%s", m_RetChar[RC_DCS], m_VtLevel, *(m_RetChar[0]) == '\033' ? 1 : 0, m_RetChar[RC_ST]);
+			UNGETSTR(_T("%s1$r%d;%d\"p%s"), m_RetChar[RC_DCS], m_VtLevel, *(m_RetChar[0]) == '\033' ? 1 : 0, m_RetChar[RC_ST]);
 		break;
 
 	case ('"' << 8) | 'q':		// DECSCA
-		UNGETSTR("%s1$r%d\"q%s", m_RetChar[RC_DCS], (m_AttNow.em & EM_DECPROTECT) != 0 ? 1 : 0, m_RetChar[RC_ST]);
+		UNGETSTR(_T("%s1$r%d\"q%s"), m_RetChar[RC_DCS], (m_AttNow.em & EM_DECPROTECT) != 0 ? 1 : 0, m_RetChar[RC_ST]);
 		break;
 
 	case ('$' << 8) | '}':		// DECSASD Select active status display
-		UNGETSTR("%s1$r%d$}%s", m_RetChar[RC_DCS], m_StsFlag ? 1 : 0, m_RetChar[RC_ST]);
+		UNGETSTR(_T("%s1$r%d$}%s"), m_RetChar[RC_DCS], m_StsFlag ? 1 : 0, m_RetChar[RC_ST]);
 		break;
 
 	case ('$' << 8) | '~':		// DECSSDT Select status display type
-		UNGETSTR("%s1$r%d$~%s", m_RetChar[RC_DCS], m_StsMode, m_RetChar[RC_ST]);
+		UNGETSTR(_T("%s1$r%d$~%s"), m_RetChar[RC_DCS], m_StsMode, m_RetChar[RC_ST]);
 		break;
 
 	case (',' << 8) | 'q':		// DECTID Select Terminal ID
-		UNGETSTR("%s1$r%d,q%s", m_RetChar[RC_DCS], m_TermId, m_RetChar[RC_ST]);
+		UNGETSTR(_T("%s1$r%d,q%s"), m_RetChar[RC_DCS], m_TermId, m_RetChar[RC_ST]);
 		break;
 
 	case (' ' << 8) | 'q':		// DECSCUSR Set Cursor Style
-		UNGETSTR("%s1$r%d q%s", m_RetChar[RC_DCS], m_TypeCaret, m_RetChar[RC_ST]);
+		UNGETSTR(_T("%s1$r%d q%s"), m_RetChar[RC_DCS], m_TypeCaret, m_RetChar[RC_ST]);
 		break;
 
 	//case '|':					// DECTTC Select transmit termination character
@@ -2895,7 +2895,7 @@ void CTextRam::fc_DECRQSS(int ch)
 	//case ('+' << 8) | 'r':	// DECSMKR Select modifier key reporting
 	//case ('*' << 8) | '}':	// DECLFKC Local function key control
 	default:
-		UNGETSTR("%s0$r%s", m_RetChar[RC_DCS], m_RetChar[RC_ST]);		// DECRPSS
+		UNGETSTR(_T("%s0$r%s"), m_RetChar[RC_DCS], m_RetChar[RC_ST]);		// DECRPSS
 		break;
 	}
 
@@ -2916,7 +2916,7 @@ void CTextRam::fc_DECRSPS(int ch)
 	switch(GetAnsiPara(0, 0, 0)) {
 	case 1:		// DECCIR
 		// DCS 1 $ t Pr; Pc; Pp; Srend; Satt; Sflag; Pgl; Pgr; Scss; Sdesig ST
-		node.GetString((LPCSTR)m_OscPara, ';');
+		node.GetString(MbsToTstr((LPCSTR)m_OscPara), _T(';'));
 		if ( node.GetSize() > 1 ) {					// Pr ; Pc
 			LOCATE(node.GetVal(1) - 1, node.GetVal(0) - 1);
 		}
@@ -2980,16 +2980,16 @@ void CTextRam::fc_DECRSPS(int ch)
 				m_BankTab[m_KanjiMode][0] &= ~SET_96;
 		}
 		if ( node.GetSize() > 9 ) {					// Scss
-			LPCSTR p = node[9];
+			LPCTSTR p = node[9];
 			CString tmp;
 			for ( n = 0 ; n < 4 ; n++ ) {
 				tmp.Empty();
 				m_BankTab[m_KanjiMode][n] &= ~SET_94x94;
-				while ( *p != '\0' ) {
+				while ( *p != _T('\0') ) {
 					if ( *p >= 0x30 && *p <= 0x7E ) {
 						tmp += *(p++);
 						break;
-					} else if ( *p == '/' ) {
+					} else if ( *p == _T('/') ) {
 						p++;
 						m_BankTab[m_KanjiMode][n] |= SET_94x94;
 					} else
@@ -3003,7 +3003,7 @@ void CTextRam::fc_DECRSPS(int ch)
 	case 2:		// DECTABSR
 		x = m_CurX;
 		TABSET(TAB_COLSALLCLR);
-		node.GetString((LPCSTR)m_OscPara, '/');
+		node.GetString(MbsToTstr((LPCSTR)m_OscPara), _T('/'));
 		for ( n = 0 ; n < node.GetSize() ; n++ ) {
 			if ( (m_CurX = node.GetVal(n) - 1) >= 0 && m_CurX < m_Cols )
 				TABSET(TAB_COLSSET);
@@ -3035,17 +3035,19 @@ void CTextRam::fc_DECDMAC(int ch)
 	int Pdt = GetAnsiPara(1, 0, 0);
 	int Pen = GetAnsiPara(2, 0, 0);
 
-	if ( Pid >= 64 || Pdt > 1 || Pen > 1 )
+	if ( Pid >= 64 || Pdt > 1 || Pen > 1 || (m_MacroExecFlag[Pid / 32] & (1 << (Pid % 32))) != 0 )
 		goto ENDRET;
 
 	if ( Pdt == 1 ) {
-		for ( n = 0 ; n < 64 ; n++ )
-			m_Macro[n].Clear();
+		for ( n = 0 ; n < 64 ; n++ ) {
+			if ( (m_MacroExecFlag[n / 32] & (1 << (n % 32))) == 0 )
+				m_Macro[n].Clear();
+		}
 	} else
 		m_Macro[Pid].Clear();
 
 	if ( Pen == 1 )
-		GetHexPara((LPCSTR)m_OscPara, m_Macro[Pid]);
+		GetHexPara(MbsToTstr((LPCSTR)m_OscPara), m_Macro[Pid]);
 	else
 		m_Macro[Pid] = m_OscPara;
 
@@ -3091,19 +3093,18 @@ void CTextRam::fc_XTRQCAP(int ch)
 		if ( !tmp.IsEmpty() && m_pDocument->m_KeyTab.FindCapInfo(tmp, &buf) ) {
 			n = 1;
 			if ( !str.IsEmpty() )
-				str += ';';
+				str += _T(';');
 			str += tmp;
-			str += '=';
+			str += _T('=');
 			res.Clear();
-			CTextRam::MsToIconvUnicode((WCHAR *)(buf.GetPtr()), buf.GetSize() / sizeof(WCHAR), m_pDocument->m_TextRam.m_SendCharSet[m_pDocument->m_TextRam.m_KanjiMode]);
-			m_pDocument->m_TextRam.m_IConv.IConvBuf("UCS-2LE", m_pDocument->m_TextRam.m_SendCharSet[m_pDocument->m_TextRam.m_KanjiMode], &buf, &res);
+			m_pDocument->m_TextRam.m_IConv.StrToRemote(m_pDocument->m_TextRam.m_SendCharSet[m_pDocument->m_TextRam.m_KanjiMode], &buf, &res);
 			hex.Base16Encode(res.GetPtr(), res.GetSize());
 			str += (LPCTSTR)hex;
 		}
 		if ( *p == ';' )
 			p++;
 	}
-	UNGETSTR("%s%d+r%s%s", m_RetChar[RC_DCS], n, str, m_RetChar[RC_ST]);
+	UNGETSTR(_T("%s%d+r%s%s"), m_RetChar[RC_DCS], n, str, m_RetChar[RC_ST]);
 
 	fc_POP(ch);
 }
@@ -3133,7 +3134,7 @@ void CTextRam::fc_OSCEXE(int ch)
 	case 1:		// 1 -> Change Icon Name to Pt
 	case 2:		// 2 -> Change Window Title to Pt
 		if ( (m_TitleMode & WTTL_CHENG) == 0 ) {
-			m_IConv.IConvStr(m_SendCharSet[m_KanjiMode], "CP932", p, tmp);
+			m_IConv.RemoteToStr(m_SendCharSet[m_KanjiMode], p, tmp);
 			m_pDocument->SetTitle(tmp);
 		}
 		break;
@@ -3216,7 +3217,7 @@ void CTextRam::fc_OSCEXE(int ch)
 
 	case 50:	// 50;[?][+-][0-9]font		Set Font to Pt.
 		while ( *p != '\0' ) {
-			WCHAR md = '\0';
+			CHAR md = '\0';
 			int num = 0;
 			while ( *p != '\0' && *p == ' ' )
 				p++;
@@ -3238,7 +3239,7 @@ void CTextRam::fc_OSCEXE(int ch)
 			if ( *p == ';' )
 				p++;
 			if ( md == '?' )
-				UNGETSTR("%s50%s", m_RetChar[RC_OSC], (ch == 0x07 ? "\007":m_RetChar[RC_ST]));
+				UNGETSTR(_T("%s50%s"), m_RetChar[RC_OSC], (ch == 0x07 ? _T("\007") : m_RetChar[RC_ST]));
 		}
 		break;
 
@@ -3251,15 +3252,15 @@ void CTextRam::fc_OSCEXE(int ch)
 			// tmp = "s c p 0 1 2 3 4 7"	 SELECT, PRIMARY, CLIPBOARD, CUT_BUFFER0 - 7
 			CBuffer clip, work;
 			CRLoginView *pView;
-			if ( _tcscmp(p, _T("?")) == 0 ) {	// Get Clipboad
+			if ( strcmp(p, "?") == 0 ) {	// Get Clipboad
 				if ( m_pDocument != NULL && (pView = (CRLoginView *)m_pDocument->GetAciveView()) != NULL && (m_pDocument->m_TextRam.m_ClipFlag & OSC52_READ) != 0 ) {
 					pView->GetClipboad(&clip);
 					work.Base64Encode(clip.GetPtr(), clip.GetSize());
 				}
-				UNGETSTR("%s52;%s;%s%s", m_RetChar[RC_OSC], tmp, (LPCTSTR)work, (ch == 0x07 ? "\007":m_RetChar[RC_ST]));
+				UNGETSTR(_T("%s52;%s;%s%s"), m_RetChar[RC_OSC], tmp, (LPCTSTR)work, (ch == 0x07 ? _T("\007") : m_RetChar[RC_ST]));
 			} else {						// Set Clipboad
 				if ( m_pDocument != NULL && (pView = (CRLoginView *)m_pDocument->GetAciveView()) != NULL && (m_pDocument->m_TextRam.m_ClipFlag & OSC52_WRITE) != 0 ) {
-					clip.Base64Decode(p);
+					clip.Base64Decode(MbsToTstr(p));
 					pView->SetClipboad(&clip);
 				}
 			}
@@ -3276,7 +3277,7 @@ void CTextRam::fc_OSCEXE(int ch)
 			if ( tmp.IsEmpty() )
 				break;
 			n = _tstoi(tmp);
-			ParseColor(cmd, n, "reset", ch);
+			ParseColor(cmd, n, _T("reset"), ch);
 		}
 		break;
 
@@ -3294,7 +3295,7 @@ void CTextRam::fc_OSCEXE(int ch)
 				//	n = 1  <- resource colorUL (UNDERLINE).
 				//	n = 2  <- resource colorBL (BLINK).
 				//	n = 3  <- resource colorRV (REVERSE).
-			ParseColor(cmd, m_AttNow.fc, "reset", ch);		// XXXXXXXXXXXXXXXXXXXXXXXXX
+			ParseColor(cmd, m_AttNow.fc, _T("reset"), ch);		// XXXXXXXXXXXXXXXXXXXXXXXXX
 		}
 		break;
 
@@ -3304,13 +3305,13 @@ void CTextRam::fc_OSCEXE(int ch)
 	case 115:	// 115  -> Reset Tektronix foreground color.
 	case 118:	// 118  -> Reset Tektronix cursor color.
 	case 119:	// 119  -> Reset highlight foreground color to Pt.
-		ParseColor(cmd, m_AttNow.fc, "reset", ch);
+		ParseColor(cmd, m_AttNow.fc, _T("reset"), ch);
 		break;
 	case 111:	// 111  -> Reset VT100 text background color.
 	case 114:	// 114  -> Reset mouse background color.
 	case 116:	// 116  -> Reset Tektronix background color.
 	case 117:	// 117  -> Reset highlight background color.
-		ParseColor(cmd, m_AttNow.bc, "reset", ch);
+		ParseColor(cmd, m_AttNow.bc, _T("reset"), ch);
 		break;
 	}
 
@@ -3324,7 +3325,7 @@ void CTextRam::fc_OSCNULL(int ch)
 	// APC ('_' << 24)			APC Application Program Command
 
 	CFile file;
-	CFileDialog dlg(FALSE, "txt", (m_OscMode == 'X' ? "SOS" : (m_OscMode == '^' ? "PM" : "APC")), OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGALLFILE), AfxGetMainWnd());
+	CFileDialog dlg(FALSE, _T("txt"), (m_OscMode == 'X' ? _T("SOS") : (m_OscMode == '^' ? _T("PM") : _T("APC"))), OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGALLFILE), AfxGetMainWnd());
 
 	if ( dlg.DoModal() == IDOK && file.Open(dlg.GetPathName(), CFile::modeWrite) ) {
 		file.Write(m_OscPara.GetPtr(), m_OscPara.GetSize());
@@ -3764,19 +3765,19 @@ void CTextRam::fc_DA1(int ch)
 	//	46 ASCII terminal emulation				vt500
 
 	if ( m_TermId >= 10 )		// VT520
-		UNGETSTR("%s?65;1;2;3,4;6;8;9;18;21;22;29;39;42;44c", m_RetChar[RC_CSI]);
+		UNGETSTR(_T("%s?65;1;2;3,4;6;8;9;18;21;22;29;39;42;44c"), m_RetChar[RC_CSI]);
 	else if ( m_TermId >= 9 )	// VT420 ID (Intnl) CSI ? 64; 1; 2; 7; 8; 9; 15; 18; 21 c
-		UNGETSTR("%s?64;1;2;8;9;15;18;21c", m_RetChar[RC_CSI]);
+		UNGETSTR(_T("%s?64;1;2;8;9;15;18;21c"), m_RetChar[RC_CSI]);
 	else if ( m_TermId >= 7 )	// VT320 ID (Intnl) CSI ? 63; 1; 2; 7; 8; 9 c
-		UNGETSTR("%s?63;1;2;8;9c", m_RetChar[RC_CSI]);
+		UNGETSTR(_T("%s?63;1;2;8;9c"), m_RetChar[RC_CSI]);
 	else if ( m_TermId >= 5 )	// VT220 ID (Intnl) CSI ? 62; 1; 2; 7; 8; 9 c
-		UNGETSTR("%s?62;1;2;8;9c", m_RetChar[RC_CSI]);
+		UNGETSTR(_T("%s?62;1;2;8;9c"), m_RetChar[RC_CSI]);
 	else if ( m_TermId >= 2 )	// VT102 ID ESC [ ? 6 c
-		UNGETSTR("%s?6c", m_RetChar[RC_CSI]);
+		UNGETSTR(_T("%s?6c"), m_RetChar[RC_CSI]);
 	else if ( m_TermId >= 1 )	// VT101 ID ESC [ ? 1; 0 c
-		UNGETSTR("%s?1;0c", m_RetChar[RC_CSI]);
+		UNGETSTR(_T("%s?1;0c"), m_RetChar[RC_CSI]);
 	else if ( m_TermId >= 0 )	// VT100 ID ESC [ ? 1; 2 c
-		UNGETSTR("%s?1;2c", m_RetChar[RC_CSI]);
+		UNGETSTR(_T("%s?1;2c"), m_RetChar[RC_CSI]);
 
 	fc_POP(ch);
 }
@@ -3980,10 +3981,10 @@ void CTextRam::fc_DSR(int ch)
 	case 4:	// some malfunction detected, another DSR will be sent later
 		break;
 	case 5:	// a DSR is requested
-		UNGETSTR("%s0n", m_RetChar[RC_CSI]);
+		UNGETSTR(_T("%s0n"), m_RetChar[RC_CSI]);
 		break;
 	case 6:	// a report of the active presentation position or of the active data position in the form of ACTIVE POSITION REPORT (CPR) is requested
-		UNGETSTR("%s%d;%dR", m_RetChar[RC_CSI], m_CurY + 1, m_CurX + 1);
+		UNGETSTR(_T("%s%d;%dR"), m_RetChar[RC_CSI], m_CurY + 1, m_CurX + 1);
 		break;
 	}
 	fc_POP(ch);
@@ -4077,7 +4078,7 @@ void CTextRam::fc_DECLL(int ch)
 		}
 	}
 
-	str.Format("%s%s%s%s", (m_StsLed & 001) ? "1":"-", (m_StsLed & 002) ? "2":"-", (m_StsLed & 004) ? "3":"-", (m_StsLed & 010) ? "4":"-");
+	str.Format(_T("%s%s%s%s"), (m_StsLed & 001) ? _T("1") : _T("-"), (m_StsLed & 002) ? _T("2") : _T("-"), (m_StsLed & 004) ? _T("3") : _T("-"), (m_StsLed & 010) ? _T("4") : _T("-"));
 	((CMainFrame *)AfxGetMainWnd())->SetMessageText(str);
 
 	fc_POP(ch);
@@ -4189,26 +4190,26 @@ void CTextRam::fc_XTWOP(int ch)
     case 9:			/* Maximize or restore mx = p1 */
 		break;
     case 11:    	/* Report the window's state ESC[1/2t */
-		UNGETSTR("%s1t", m_RetChar[RC_CSI]);
+		UNGETSTR(_T("%s1t"), m_RetChar[RC_CSI]);
 		break;
     case 13:    	/* Report the window's position ESC[3;x;yt */
-		UNGETSTR("%s3;%d;%dt", m_RetChar[RC_CSI], 0, 0);
+		UNGETSTR(_T("%s3;%d;%dt"), m_RetChar[RC_CSI], 0, 0);
 		break;
     case 14:    	/* Report the window's size in pixels ESC[4;h;wt */
-		UNGETSTR("%s4;%d;%dt", m_RetChar[RC_CSI], m_Lines * 12, m_Cols * 6);
+		UNGETSTR(_T("%s4;%d;%dt"), m_RetChar[RC_CSI], m_Lines * 12, m_Cols * 6);
 		break;
     case 18:    	/* Report the text's size in characters ESC[8;l;ct */
-		UNGETSTR("%s8;%d;%dt", m_RetChar[RC_CSI], m_Lines, m_Cols);
+		UNGETSTR(_T("%s8;%d;%dt"), m_RetChar[RC_CSI], m_Lines, m_Cols);
 		break;
     case 19:    	/* Report the screen's size, in characters ESC[9;h;wt */
-		UNGETSTR("%s9;%d;%dt", m_RetChar[RC_CSI], 12, 6);
+		UNGETSTR(_T("%s9;%d;%dt"), m_RetChar[RC_CSI], 12, 6);
 		break;
     case 20:    	/* Report the icon's label ESC]LxxxxESC\ */
     case 21:   		/* Report the window's title ESC]lxxxxxxESC\ */
 		CString tmp;
 		if ( (m_TitleMode & WTTL_REPORT) == 0 )
-			m_IConv.IConvStr("CP932", m_SendCharSet[m_KanjiMode], m_pDocument->GetTitle(), tmp);
-		UNGETSTR("%s%c%s%s", m_RetChar[RC_OSC], (n == 20 ? 'L':'l'), tmp, m_RetChar[RC_ST]);
+			tmp = m_pDocument->GetTitle();
+		UNGETSTR(_T("%s%c%s%s"), m_RetChar[RC_OSC], (n == 20 ? 'L':'l'), tmp, m_RetChar[RC_ST]);
 		break;
 	}
 	fc_POP(ch);
@@ -4234,10 +4235,10 @@ void CTextRam::fc_REQTPARM(int ch)
 	// CSI x	DECREQTPARM Request terminal parameters 
 	switch(GetAnsiPara(0, 0, 0)) {
 	case 0:
-		UNGETSTR("%s2;1;1;112;112;1;0x", m_RetChar[RC_CSI]);
+		UNGETSTR(_T("%s2;1;1;112;112;1;0x"), m_RetChar[RC_CSI]);
 		break;
 	case 1:
-		UNGETSTR("%s3;1;1;112;112;1;0x", m_RetChar[RC_CSI]);
+		UNGETSTR(_T("%s3;1;1;112;112;1;0x"), m_RetChar[RC_CSI]);
 		break;
 	}
 	fc_POP(ch);
@@ -4517,31 +4518,31 @@ void CTextRam::fc_DECDSR(int ch)
 	case 1:		// [LA50] disable all unsolicited status reports.
 	case 2:		// [LA50] enable unsolicited brief reports and send an extended one.
 	case 3:		// [LA50] enable unsolicited extended reports and send one.
-		UNGETSTR("%s?20n", m_RetChar[RC_CSI]);	// malfunction detected [also LCP01]
+		UNGETSTR(_T("%s?20n"), m_RetChar[RC_CSI]);	// malfunction detected [also LCP01]
 		break;
 	case 6:		// a report of the active presentation position or of the active data position in the form of ACTIVE POSITION REPORT (CPR) is requested
-		UNGETSTR("%s?%d;%d;%dR", m_RetChar[RC_CSI], m_CurY + 1, m_CurX + 1, m_Page + 1);
+		UNGETSTR(_T("%s?%d;%d;%dR"), m_RetChar[RC_CSI], m_CurY + 1, m_CurX + 1, m_Page + 1);
 		break;
 	case 15:	// printer status
-		UNGETSTR("%s?13n", m_RetChar[RC_CSI]);		// no printer
+		UNGETSTR(_T("%s?13n"), m_RetChar[RC_CSI]);		// no printer
 		break;
 	case 25:	// User Definable Key status
-		UNGETSTR("%s?21n", m_RetChar[RC_CSI]);		// UDKs are locked
+		UNGETSTR(_T("%s?21n"), m_RetChar[RC_CSI]);		// UDKs are locked
 		break;
 	case 26:	// keyboard dialect
-		UNGETSTR("%s?27;1n", m_RetChar[RC_CSI]);	// North American/ASCII
+		UNGETSTR(_T("%s?27;1n"), m_RetChar[RC_CSI]);	// North American/ASCII
 		break;
 	case 53:	// xterm locator status
-		UNGETSTR("%s?50n", m_RetChar[RC_CSI]);		// locator ready
+		UNGETSTR(_T("%s?50n"), m_RetChar[RC_CSI]);		// locator ready
 		break;
 	case 55:	// locator status
-		UNGETSTR("%s?%dn", m_RetChar[RC_CSI], ((m_Loc_Mode & LOC_MODE_ENABLE) == 0 ? 50 : 58));	// locator ready/busy
+		UNGETSTR(_T("%s?%dn"), m_RetChar[RC_CSI], ((m_Loc_Mode & LOC_MODE_ENABLE) == 0 ? 50 : 58));	// locator ready/busy
 		break;
 	case 56:	// locator type
-		UNGETSTR("%s?57;1n", m_RetChar[RC_CSI]);	// Locator is a mouse
+		UNGETSTR(_T("%s?57;1n"), m_RetChar[RC_CSI]);	// Locator is a mouse
 		break;
 	case 62:	// Macro Space Report
-		UNGETSTR("%s%d*{", m_RetChar[RC_CSI], 4096 / 16);	// The terminal indicates the number of bytes available for macro
+		UNGETSTR(_T("%s%d*{"), m_RetChar[RC_CSI], 4096 / 16);	// The terminal indicates the number of bytes available for macro
 		break;
 	case 63:	// Request checksum of macro definitions
 		{
@@ -4553,14 +4554,14 @@ void CTextRam::fc_DECDSR(int ch)
 				for ( int n = m_Macro[Pid].GetSize() ; n > 0 ; n-- )
 					sum += *(p++);
 			}
-			UNGETSTR("%s%d!~%04x%s", m_RetChar[RC_DCS], Pid, sum & 0xFFFF, m_RetChar[RC_ST]);
+			UNGETSTR(_T("%s%d!~%04x%s"), m_RetChar[RC_DCS], Pid, sum & 0xFFFF, m_RetChar[RC_ST]);
 		}
 		break;
 	case 75:	// Data Integrity Report
-		UNGETSTR("%s?70n", m_RetChar[RC_CSI]);		// Ready, no power loss or comm errors
+		UNGETSTR(_T("%s?70n"), m_RetChar[RC_CSI]);		// Ready, no power loss or comm errors
 		break;
 	case 85:	// Multiple-Session Configuration Status Report
-		UNGETSTR("%s?83n", m_RetChar[RC_CSI]);		// The terminal is not configured for multiple-session operation.
+		UNGETSTR(_T("%s?83n"), m_RetChar[RC_CSI]);		// The terminal is not configured for multiple-session operation.
 		break;
 	}
 	fc_POP(ch);
@@ -4575,7 +4576,7 @@ void CTextRam::fc_DECRQM(int ch)
 	int n;
 	if ( (n = GetAnsiPara(0, 1, 1)) > 199 )
 		n = 199;
-	UNGETSTR("%s%d;%d$y", m_RetChar[RC_CSI], n, IsOptEnable(200 + n) ? 1 : 2);
+	UNGETSTR(_T("%s%d;%d$y"), m_RetChar[RC_CSI], n, IsOptEnable(200 + n) ? 1 : 2);
 	fc_POP(ch);
 }
 void CTextRam::fc_DECCARA(int ch)
@@ -4724,7 +4725,7 @@ void CTextRam::fc_DECRQTSR(int ch)
 		 * Request  CSI 1 $ u			Host request for a terminal state report
 		 * Response DCS 1 $ s Ps ST		DECTSR Terminal state report
 		*/
-		UNGETSTR("%s0$s%s", m_RetChar[RC_DCS], m_RetChar[RC_ST]);
+		UNGETSTR(_T("%s0$s%s"), m_RetChar[RC_DCS], m_RetChar[RC_ST]);
 		break;
 	case 2:
 		/*
@@ -4748,7 +4749,7 @@ void CTextRam::fc_DECRQTSR(int ch)
 			case 1:		// HLS
 				for ( n = 0 ; n < 256 ; n++ ) {
 					hls = CGrapWnd::RGBtoHLS(m_ColTab[n]);
-					tmp.Format("%d;1;%d;%d;%d", n,
+					tmp.Format(_T("%d;1;%d;%d;%d"), n,
 						GetRValue(hls) * 360 / 100,
 						GetGValue(hls) * 100 / 100,
 						GetBValue(hls) * 100 / 100);
@@ -4759,7 +4760,7 @@ void CTextRam::fc_DECRQTSR(int ch)
 				break;
 			case 2:		// RGB
 				for ( n = 0 ; n < 256 ; n++ ) {
-					tmp.Format("%d;2;%d;%d;%d", n,
+					tmp.Format(_T("%d;2;%d;%d;%d"), n,
 						GetRValue(m_ColTab[n]) * 100 / 255,
 						GetGValue(m_ColTab[n]) * 100 / 255,
 						GetBValue(m_ColTab[n]) * 100 / 255);
@@ -4770,7 +4771,7 @@ void CTextRam::fc_DECRQTSR(int ch)
 				break;
 			}
 
-			UNGETSTR("%s2$s%s%s", m_RetChar[RC_DCS], str, m_RetChar[RC_ST]);
+			UNGETSTR(_T("%s2$s%s%s"), m_RetChar[RC_DCS], str, m_RetChar[RC_ST]);
 		}
 		break;
 	}
@@ -4828,17 +4829,17 @@ void CTextRam::fc_DECRQPSR(int ch)
 		 *		  Hebrew	  %=
 		 *		  (MS Kermit uses any choice when there are multiple)
 		 */
-		UNGETSTR("%s1$u%d;%d;%d;%c;%c;%c;%d;%d;%c;%s%s%s%s%s%s%s%s%s", m_RetChar[RC_DCS],
+		UNGETSTR(_T("%s1$u%d;%d;%d;%c;%c;%c;%d;%d;%c;%s%s%s%s%s%s%s%s%s"), m_RetChar[RC_DCS],
 			m_CurY + 1, m_CurX + 1, m_Page + 1,
 			0x40 + ((m_AttNow.at & ATT_REVS)  != 0 ? 8 : 0) + ((m_AttNow.at & (ATT_SBLINK | ATT_BLINK)) != 0 ? 4 : 0) + ((m_AttNow.at & ATT_UNDER) != 0 ? 2 : 0) + ((m_AttNow.at & ATT_BOLD)  != 0 ? 1 : 0),
 			0x40 + (IsOptEnable(TO_ANSIERM) ? 1 : 0),
 			0x40 + (IsOptEnable(TO_DECAWM) ? 8 : 0) + (m_BankSG == 3 ? 4 : 0) + (m_BankSG == 2 ? 2 : 0) + (IsOptEnable(TO_DECOM) ? 1 : 0),
 			m_BankGL, m_BankGR,
 			0x40 + ((m_BankTab[m_KanjiMode][3] & SET_96) != 0 ? 8 : 0) + ((m_BankTab[m_KanjiMode][2] & SET_96) != 0 ? 4 : 0) + ((m_BankTab[m_KanjiMode][1] & SET_96) != 0 ? 2 : 0) + ((m_BankTab[m_KanjiMode][0] & SET_96) != 0 ? 1 : 0),
-			((m_BankTab[m_KanjiMode][0] & SET_94x94) != 0 ? "/" : ""), m_FontTab[m_BankTab[m_KanjiMode][0]].m_IndexName,
-			((m_BankTab[m_KanjiMode][1] & SET_94x94) != 0 ? "/" : ""), m_FontTab[m_BankTab[m_KanjiMode][1]].m_IndexName,
-			((m_BankTab[m_KanjiMode][2] & SET_94x94) != 0 ? "/" : ""), m_FontTab[m_BankTab[m_KanjiMode][2]].m_IndexName,
-			((m_BankTab[m_KanjiMode][3] & SET_94x94) != 0 ? "/" : ""), m_FontTab[m_BankTab[m_KanjiMode][3]].m_IndexName,
+			((m_BankTab[m_KanjiMode][0] & SET_94x94) != 0 ? _T("/") : _T("")), m_FontTab[m_BankTab[m_KanjiMode][0]].m_IndexName,
+			((m_BankTab[m_KanjiMode][1] & SET_94x94) != 0 ? _T("/") : _T("")), m_FontTab[m_BankTab[m_KanjiMode][1]].m_IndexName,
+			((m_BankTab[m_KanjiMode][2] & SET_94x94) != 0 ? _T("/") : _T("")), m_FontTab[m_BankTab[m_KanjiMode][2]].m_IndexName,
+			((m_BankTab[m_KanjiMode][3] & SET_94x94) != 0 ? _T("/") : _T("")), m_FontTab[m_BankTab[m_KanjiMode][3]].m_IndexName,
 			m_RetChar[RC_ST]);
 		break;
 
@@ -4850,19 +4851,19 @@ void CTextRam::fc_DECRQPSR(int ch)
 		 *	  separator "/" occurs in a real VT320 but should have been ";".
 		 */
 		str = m_RetChar[RC_DCS];
-		str += "2$u";
+		str += _T("2$u");
 		wrk.Empty();
 		i = (IsOptEnable(TO_ANSITSM) ? (m_CurY + 1) : 0);
 		for ( n = 0 ; n < m_Cols ; n++ ) {
 			if ( (m_TabMap[i][n / 8 + 1] & (0x80 >> (n % 8))) != 0 ) {
 				if ( !wrk.IsEmpty() )
-					str += "/";
-				wrk.Format("%d", n + 1);
+					str += _T("/");
+				wrk.Format(_T("%d"), n + 1);
 				str += wrk;
 			}
 		}
 		str += m_RetChar[RC_ST];
-		UNGETSTR(str);
+		UNGETSTR(_T("%s"), str);
 		break;
 	}
 
@@ -5049,7 +5050,7 @@ void CTextRam::fc_DECRQMH(int ch)
 
 	if ( (n = GetAnsiPara(0, 1, 1)) > 199 )
 		n = 199;
-	UNGETSTR("%s?%d;%d$y", m_RetChar[RC_CSI], n, IsOptEnable(n) ? 1 : 2);
+	UNGETSTR(_T("%s?%d;%d$y"), m_RetChar[RC_CSI], n, IsOptEnable(n) ? 1 : 2);
 	fc_POP(ch);
 }
 
@@ -5102,7 +5103,7 @@ void CTextRam::fc_DECRQDE(int ch)
 	// CSI ('"' << 8) | 'v'		DECRQDE Request device extent
 	// CSI Ph ; Pw ; Pml ; Pmt ; Pmp " w
 
-	UNGETSTR("%s%d;%d;%d;%d;%d\"w", m_RetChar[RC_CSI], m_Lines, m_Cols, m_LeftX + 1, m_TopY + 1, m_Page + 1);
+	UNGETSTR(_T("%s%d;%d;%d;%d;%d\"w"), m_RetChar[RC_CSI], m_Lines, m_Cols, m_LeftX + 1, m_TopY + 1, m_Page + 1);
 	fc_POP(ch);
 }
 void CTextRam::fc_DECRQUPSS(int ch)
@@ -5110,7 +5111,7 @@ void CTextRam::fc_DECRQUPSS(int ch)
 	// CSI ('&' << 8) | 'u'		DECRQUPSS Request User-Preferred Supplemental Set
 	// DCS 1 ! u A ST			The user-preferred supplemental set is ISO Latin-1 supplemental.
 
-	UNGETSTR("%s1!uA%s", m_RetChar[RC_DCS], m_RetChar[RC_ST]);
+	UNGETSTR(_T("%s1!uA%s"), m_RetChar[RC_DCS], m_RetChar[RC_ST]);
 	fc_POP(ch);
 }
 
@@ -5266,7 +5267,7 @@ void CTextRam::fc_DECRQCRA(int ch)
 	}
 
 	// DECCKSR DCS Pn ! ~ Ps ST
-	UNGETSTR("%s%d!~%04x%s", m_RetChar[RC_DCS], GetAnsiPara(0, 0, 0), sum & 0xFFFF, m_RetChar[RC_ST]);
+	UNGETSTR(_T("%s%d!~%04x%s"), m_RetChar[RC_DCS], GetAnsiPara(0, 0, 0), sum & 0xFFFF, m_RetChar[RC_ST]);
 
 	fc_POP(ch);
 }
@@ -5280,10 +5281,12 @@ void CTextRam::fc_DECINVM(int ch)
 
 	fc_POP(ch);		// XXXXXXXXX fc_Call‚Ì•K‚¸‘O‚É
 
-	if ( Pid < 64 ) {
+	if ( Pid < 64 && (m_MacroExecFlag[Pid / 32] & (1 << (Pid % 32))) == 0 ) {
+		m_MacroExecFlag[Pid / 32] |= (1 << (Pid % 32));
 		p = m_Macro[Pid].GetPtr();
-		for ( n = m_Macro[Pid].GetSize() ; n > 0 ; n-- )
+		for ( n = 0 ; n < m_Macro[Pid].GetSize() ; n++ )
 			fc_Call(*(p++));
+		m_MacroExecFlag[Pid / 32] &= ~(1 << (Pid % 32));
 	}
 }
 void CTextRam::fc_DECSR(int ch)
@@ -5291,14 +5294,14 @@ void CTextRam::fc_DECSR(int ch)
 	// CSI ('+'  << 8) | 'p'	DECSR Secure Reset
 
 	RESET();
-	UNGETSTR("%s%d*q", m_RetChar[RC_CSI], GetAnsiPara(0, 0, 0));		// CSI * q	DECSRC Secure Reset Confirmation
+	UNGETSTR(_T("%s%d*q"), m_RetChar[RC_CSI], GetAnsiPara(0, 0, 0));		// CSI * q	DECSRC Secure Reset Confirmation
 	fc_POP(ch);
 }
 void CTextRam::fc_DECPQPLFM(int ch)
 {
 	// CSI ('+'  << 8) | 'x'	DECRQPKFM Request Program Key Free Memory
 
-	UNGETSTR("%s%d;%d+y", m_RetChar[RC_CSI], 768, 768);		// CSI + y	DECPKFMR Program Key Free Memory Report
+	UNGETSTR(_T("%s%d;%d+y"), m_RetChar[RC_CSI], 768, 768);		// CSI + y	DECPKFMR Program Key Free Memory Report
 	fc_POP(ch);
 }
 
@@ -5412,7 +5415,7 @@ void CTextRam::fc_DA2(int ch)
 {
 	// CSI ('>' << 16) | 'c'	DA2 Secondary Device Attributes
 
-	UNGETSTR("%s>65;100;1c", m_RetChar[RC_CSI]);
+	UNGETSTR(_T("%s>65;100;1c"), m_RetChar[RC_CSI]);
 	fc_POP(ch);
 }
 
@@ -5420,7 +5423,7 @@ void CTextRam::fc_DA3(int ch)
 {
 	// CSI ('=' << 16) | 'c'	DA3 Tertiary Device Attributes
 
-	UNGETSTR("%s!|%04x%s", m_RetChar[RC_DCS], m_UnitId, m_RetChar[RC_ST]);
+	UNGETSTR(_T("%s!|%04x%s"), m_RetChar[RC_DCS], m_UnitId, m_RetChar[RC_ST]);
 	fc_POP(ch);
 }
 void CTextRam::fc_C25LCT(int ch)

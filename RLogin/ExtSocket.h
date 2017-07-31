@@ -174,7 +174,7 @@ private:
 	void SSLClose();
 
 public:
-	virtual BOOL Create(LPCTSTR lpszHostAddress, UINT nHostPort, LPCSTR lpszRemoteAddress = NULL, int nSocketType = SOCK_STREAM, void *pAddrInfo = NULL);
+	virtual BOOL Create(LPCTSTR lpszHostAddress, UINT nHostPort, LPCTSTR lpszRemoteAddress = NULL, int nSocketType = SOCK_STREAM, void *pAddrInfo = NULL);
 	virtual BOOL Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM, void *pAddrInfo = NULL);
 	virtual void Close();
 	virtual void SetXonXoff(int sw);
@@ -190,8 +190,8 @@ public:
 	virtual void OnSendEmpty();
 	virtual void GetStatus(CString &str);
 
-	virtual void OnAsyncHostByName(int mode, LPCSTR pHostName);
-	virtual void OnGetHostByName(LPCSTR pHostName);
+	virtual void OnAsyncHostByName(int mode, LPCTSTR pHostName);
+	virtual void OnGetHostByName(LPCTSTR pHostName);
 	virtual void OnReciveCallBack(void *lpBuf, int nBufLen, int nFlags);
 	virtual int OnReciveProcBack(void *lpBuf, int nBufLen, int nFlags);
 
@@ -206,10 +206,10 @@ public:
 	virtual int OnIdle();
 	virtual void OnTimer(UINT_PTR nIDEvent);
 
-	int AsyncGetHostByName(LPCSTR pHostName);
-	BOOL AsyncCreate(LPCTSTR lpszHostAddress, UINT nHostPort, LPCSTR lpszRemoteAddress = NULL, int nSocketType = SOCK_STREAM);
+	int AsyncGetHostByName(LPCTSTR pHostName);
+	BOOL AsyncCreate(LPCTSTR lpszHostAddress, UINT nHostPort, LPCTSTR lpszRemoteAddress = NULL, int nSocketType = SOCK_STREAM);
 	virtual BOOL AsyncOpen(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM);
-	BOOL ProxyOpen(int mode, LPCSTR ProxyHost, UINT ProxyPort, LPCSTR ProxyUser, LPCSTR ProxyPass, LPCSTR RealHost, UINT RealPort);
+	BOOL ProxyOpen(int mode, LPCTSTR ProxyHost, UINT ProxyPort, LPCTSTR ProxyUser, LPCTSTR ProxyPass, LPCTSTR RealHost, UINT RealPort);
 
 	int Accept(class CExtSocket *pSock, SOCKET hand);
 	int Attach(class CRLoginDoc *pDoc, SOCKET fd);
@@ -221,7 +221,7 @@ public:
 	static void GetPeerName(int fd, CString &host, int *port);
 	static void GetSockName(int fd, CString &host, int *port);
 	static void GetHostName(struct sockaddr *addr, int addrlen, CString &host);
-	static int GetPortNum(LPCSTR str);
+	static int GetPortNum(LPCTSTR str);
 	static BOOL SokcetCheck(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM);
 
 	void SetRecvSyncMode(BOOL mode);

@@ -72,8 +72,8 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 	//CExtSocket::OnReciveCallBack((void *)(LPCSTR)tmp, tmp.GetLength(), 0);
 
 	m_SSHVer = 0;
-	m_ServerVerStr = "";
-	m_ClientVerStr = "";
+	m_ServerVerStr = _T("");
+	m_ClientVerStr = _T("");
 	m_InPackStat = 0;
 	m_PacketStat = 0;
 	m_SSH2Status = 0;
@@ -137,34 +137,34 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 	i = AST_START;
 
 	for ( n = 0 ; m_pDocument->m_ParamTab.GetPropNode(11, n, str) ; n++ ) {
-		if ( str.CompareNoCase("publickey") == 0 ) {
+		if ( str.CompareNoCase(_T("publickey")) == 0 ) {
 			m_AuthReqTab[i] = AST_PUBKEY_TRY;
 			i = AST_PUBKEY_TRY;
-		} else if ( str.CompareNoCase("hostbased") == 0 ) {
+		} else if ( str.CompareNoCase(_T("hostbased")) == 0 ) {
 			m_AuthReqTab[i] = AST_HOST_TRY;
 			i = AST_HOST_TRY;
-		} else if ( str.CompareNoCase("password") == 0 ) {
+		} else if ( str.CompareNoCase(_T("password")) == 0 ) {
 			m_AuthReqTab[i] = AST_PASS_TRY;
 			i = AST_PASS_TRY;
-		} else if ( str.CompareNoCase("keyboard-interactive") == 0 ) {
+		} else if ( str.CompareNoCase(_T("keyboard-interactive")) == 0 ) {
 			m_AuthReqTab[i] = AST_KEYB_TRY;
 			i = AST_KEYB_TRY;
 		}
 	}
 
-	m_EncCip.Init("none", MODE_ENC);
-	m_DecCip.Init("none", MODE_DEC);
-	m_EncMac.Init("none");
-	m_DecMac.Init("none");
-	m_EncCmp.Init("none", MODE_ENC);
-	m_DecCmp.Init("none", MODE_DEC);
+	m_EncCip.Init(_T("none"), MODE_ENC);
+	m_DecCip.Init(_T("none"), MODE_DEC);
+	m_EncMac.Init(_T("none"));
+	m_DecMac.Init(_T("none"));
+	m_EncCmp.Init(_T("none"), MODE_ENC);
+	m_DecCmp.Init(_T("none"), MODE_DEC);
 
 	m_CipTabMax = 0;
 	for ( n = 0 ; n < 8 && m_pDocument->m_ParamTab.GetPropNode(0, n, str) ; n++ )
 		m_CipTab[m_CipTabMax++] = m_EncCip.GetNum(str);
 
 	n = m_pDocument->m_ParamTab.GetPropNode(2, 0, str);
-	m_CompMode = (n == FALSE || str.Compare("none") == 0 ? FALSE : TRUE);
+	m_CompMode = (n == FALSE || str.Compare(_T("none")) == 0 ? FALSE : TRUE);
 
 	if ( !CExtSocket::Open(lpszHostAddress, nHostPort, nSocketPort, nSocketType, pAddrInfo) )
 		return FALSE;
@@ -206,7 +206,7 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
   try {
 	int crc, ch;
 	CBuffer *bp, tmp, cmp, dec;
-	CString str;
+	CStringA str;
 
 	if ( nFlags != 0 )
 		return;
@@ -220,17 +220,17 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				ch = m_Incom.Get8Bit();
 				if ( ch == '\n' ) {
 					if ( !m_pDocument->m_TextRam.IsOptEnable(TO_SSH1MODE) &&
-						   (m_ServerVerStr.Mid(0, 5).Compare("SSH-2") == 0 ||
-							m_ServerVerStr.Mid(0, 8).Compare("SSH-1.99") == 0) ) {
-						m_ClientVerStr = "SSH-2.0-OpenSSH-4.0 RLogin-1.10";
+						   (m_ServerVerStr.Mid(0, 5).Compare(_T("SSH-2")) == 0 ||
+							m_ServerVerStr.Mid(0, 8).Compare(_T("SSH-1.99")) == 0) ) {
+						m_ClientVerStr = _T("SSH-2.0-OpenSSH-4.0 RLogin-1.10");
 						m_InPackStat = 3;
 						m_SSHVer = 2;
 					} else {
-						m_ClientVerStr = "SSH-1.5-OpenSSH-4.0 RLogin-1.10";
+						m_ClientVerStr = _T("SSH-1.5-OpenSSH-4.0 RLogin-1.10");
 						m_InPackStat = 1;
 						m_SSHVer = 1;
 					}
-					str.Format("%s\r\n", m_ClientVerStr);
+					str.Format("%s\r\n", TstrToMbs(m_ClientVerStr));
 					CExtSocket::Send((LPCSTR)str, str.GetLength());
 					break;
 				} else if ( ch != '\r' )
@@ -372,63 +372,63 @@ void Cssh::GetStatus(CString &str)
 
 	CExtSocket::GetStatus(str);
 
-	str += "\r\n";
-	tmp.Format("SSH Server: %d\r\n", m_SSHVer);
+	str += _T("\r\n");
+	tmp.Format(_T("SSH Server: %d\r\n"), m_SSHVer);
 	str += tmp;
 
-	tmp.Format("Version: %s\r\n", m_ServerVerStr);
+	tmp.Format(_T("Version: %s\r\n"), m_ServerVerStr);
 	str += tmp;
-	tmp.Format("Kexs: %s\r\n", m_SProp[PROP_KEX_ALGS]);
+	tmp.Format(_T("Kexs: %s\r\n"), m_SProp[PROP_KEX_ALGS]);
 	str += tmp;
-	tmp.Format("Keys: %s\r\n", m_SProp[PROP_HOST_KEY_ALGS]);
+	tmp.Format(_T("Keys: %s\r\n"), m_SProp[PROP_HOST_KEY_ALGS]);
 	str += tmp;
-	tmp.Format("Auth: %s\r\n", m_AuthMeta);
+	tmp.Format(_T("Auth: %s\r\n"), m_AuthMeta);
 	str += tmp;
-	tmp.Format("Cipher CtoS: %s\r\n", m_SProp[PROP_ENC_ALGS_CTOS]);
+	tmp.Format(_T("Cipher CtoS: %s\r\n"), m_SProp[PROP_ENC_ALGS_CTOS]);
 	str += tmp;
-	tmp.Format("Cipher StoC: %s\r\n", m_SProp[PROP_ENC_ALGS_STOC]);
+	tmp.Format(_T("Cipher StoC: %s\r\n"), m_SProp[PROP_ENC_ALGS_STOC]);
 	str += tmp;
-	tmp.Format("Mac CtoS: %s\r\n", m_SProp[PROP_MAC_ALGS_CTOS]);
+	tmp.Format(_T("Mac CtoS: %s\r\n"), m_SProp[PROP_MAC_ALGS_CTOS]);
 	str += tmp;
-	tmp.Format("Mac StoC: %s\r\n", m_SProp[PROP_MAC_ALGS_STOC]);
+	tmp.Format(_T("Mac StoC: %s\r\n"), m_SProp[PROP_MAC_ALGS_STOC]);
 	str += tmp;
-	tmp.Format("Compess CtoS: %s\r\n", m_SProp[PROP_COMP_ALGS_CTOS]);
+	tmp.Format(_T("Compess CtoS: %s\r\n"), m_SProp[PROP_COMP_ALGS_CTOS]);
 	str += tmp;
-	tmp.Format("Compess StoC: %s\r\n", m_SProp[PROP_COMP_ALGS_STOC]);
+	tmp.Format(_T("Compess StoC: %s\r\n"), m_SProp[PROP_COMP_ALGS_STOC]);
 	str += tmp;
-	tmp.Format("Language CtoS: %s\r\n", m_SProp[PROP_LANG_CTOS]);
+	tmp.Format(_T("Language CtoS: %s\r\n"), m_SProp[PROP_LANG_CTOS]);
 	str += tmp;
-	tmp.Format("Language StoC: %s\r\n", m_SProp[PROP_LANG_STOC]);
-	str += tmp;
-
-	str += "\r\n";
-	tmp.Format("Kexs: %s\r\n", m_VProp[PROP_KEX_ALGS]);
-	str += tmp;
-	tmp.Format("Encode: %s + %s + %s\r\n", m_EncCmp.GetTitle(), m_EncCip.GetTitle(), m_EncMac.GetTitle());
-	str += tmp;
-	tmp.Format("Decode: %s + %s + %s\r\n", m_DecCmp.GetTitle(), m_DecCip.GetTitle(), m_DecMac.GetTitle());
+	tmp.Format(_T("Language StoC: %s\r\n"), m_SProp[PROP_LANG_STOC]);
 	str += tmp;
 
-	str += "UserAuth: ";
+	str += _T("\r\n");
+	tmp.Format(_T("Kexs: %s\r\n"), m_VProp[PROP_KEX_ALGS]);
+	str += tmp;
+	tmp.Format(_T("Encode: %s + %s + %s\r\n"), m_EncCmp.GetTitle(), m_EncCip.GetTitle(), m_EncMac.GetTitle());
+	str += tmp;
+	tmp.Format(_T("Decode: %s + %s + %s\r\n"), m_DecCmp.GetTitle(), m_DecCip.GetTitle(), m_DecMac.GetTitle());
+	str += tmp;
+
+	str += _T("UserAuth: ");
 	switch(m_AuthMode) {
-	case AUTH_MODE_NONE:		str += "none"; break;
-	case AUTH_MODE_PUBLICKEY:	str += "publickey "; str += m_IdKey.GetName(); break;
-	case AUTH_MODE_PASSWORD:	str += "password"; break;
-	case AUTH_MODE_KEYBOARD:	str += "keyboard-interactive"; break;
-	case AUTH_MODE_HOSTBASED:	str += "hostbased "; str += m_IdKey.GetName(); break;
+	case AUTH_MODE_NONE:		str += _T("none"); break;
+	case AUTH_MODE_PUBLICKEY:	str += _T("publickey "); str += m_IdKey.GetName(); break;
+	case AUTH_MODE_PASSWORD:	str += _T("password"); break;
+	case AUTH_MODE_KEYBOARD:	str += _T("keyboard-interactive"); break;
+	case AUTH_MODE_HOSTBASED:	str += _T("hostbased "); str += m_IdKey.GetName(); break;
 	}
-	str += "\r\n";
+	str += _T("\r\n");
 
 	m_HostKey.FingerPrint(tmp);
-	str += "\r\n";
+	str += _T("\r\n");
 	str += tmp;
 
-	str += "\r\n";
-	tmp.Format("Open Channel: %d\r\n", m_OpenChanCount);
+	str += _T("\r\n");
+	tmp.Format(_T("Open Channel: %d\r\n"), m_OpenChanCount);
 	str += tmp;
 
 	for ( n = m_ChanNext ; n >= 0 ; n = m_Chan[n].m_Next ) {
-		tmp.Format("Chanel: RemoteId=%d LocalId=%d Status=%x Type=%s Read=%lld Write=%lld\r\n",
+		tmp.Format(_T("Chanel: RemoteId=%d LocalId=%d Status=%x Type=%s Read=%lld Write=%lld\r\n"),
 			m_Chan[n].m_RemoteID, m_Chan[n].m_LocalID, m_Chan[n].m_Status, m_Chan[n].m_TypeName, m_Chan[n].m_WriteByte, m_Chan[n].m_ReadByte);
 		str += tmp;
 	}
@@ -637,7 +637,8 @@ int Cssh::SMsgAuthRsaChallenge(CBuffer *bp)
 void Cssh::RecivePacket(CBuffer *bp)
 {
 	int n;
-	CString str;
+	CStringA str;
+	CString msg;
 	CBuffer tmp;
 	int type = bp->Get8Bit();
 
@@ -664,7 +665,7 @@ void Cssh::RecivePacket(CBuffer *bp)
 		if ( type != SSH_SMSG_SUCCESS )
 			goto DISCONNECT;
 		tmp.Put8Bit(SSH_CMSG_USER);
-		tmp.PutStr(m_pDocument->m_ServerEntry.m_UserName);
+		tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_UserName));
 		SendPacket(&tmp);
 		m_PacketStat = 2;
 		break;
@@ -691,7 +692,7 @@ void Cssh::RecivePacket(CBuffer *bp)
 	GO_AUTH_PASS:
 		if ( (m_SupportAuth & (1 << SSH_AUTH_PASSWORD)) != 0 ) {
 			tmp.Put8Bit(SSH_CMSG_AUTH_PASSWORD);
-			tmp.PutStr(m_pDocument->m_ServerEntry.m_PassName);
+			tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_PassName));
 			SendPacket(&tmp);
 			m_PacketStat = 4;
 			break;
@@ -708,7 +709,7 @@ void Cssh::RecivePacket(CBuffer *bp)
 		if ( type != SSH_SMSG_AUTH_TIS_CHALLENGE )
 			goto GO_AUTH_PASS;
 		tmp.Put8Bit(SSH_CMSG_AUTH_TIS_RESPONSE);
-		tmp.PutStr(m_pDocument->m_ServerEntry.m_PassName);
+		tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_PassName));
 		SendPacket(&tmp);
 		m_PacketStat = 4;
 		break;
@@ -727,16 +728,16 @@ void Cssh::RecivePacket(CBuffer *bp)
 		break;
 	case 5:		// Compression ?
 		if ( type == SSH_SMSG_SUCCESS ) {
-			m_EncCmp.Init("zlib", MODE_ENC, COMPLEVEL);
-			m_DecCmp.Init("zlib", MODE_DEC, COMPLEVEL);
+			m_EncCmp.Init(_T("zlib"), MODE_ENC, COMPLEVEL);
+			m_DecCmp.Init(_T("zlib"), MODE_DEC, COMPLEVEL);
 		} else if ( type == SSH_SMSG_FAILURE ) {
-			m_EncCmp.Init("node", MODE_ENC, COMPLEVEL);
-			m_DecCmp.Init("none", MODE_DEC, COMPLEVEL);
+			m_EncCmp.Init(_T("node"), MODE_ENC, COMPLEVEL);
+			m_DecCmp.Init(_T("none"), MODE_DEC, COMPLEVEL);
 		} else
 			goto DISCONNECT;
 	NOCOMPRESS:
 		tmp.Put8Bit(SSH_CMSG_REQUEST_PTY);
-		tmp.PutStr(m_pDocument->m_ServerEntry.m_TermName);
+		tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_TermName));
 		tmp.Put32Bit(m_pDocument->m_TextRam.m_Lines);
 		tmp.Put32Bit(m_pDocument->m_TextRam.m_Cols);
 		tmp.Put32Bit(0);
@@ -752,8 +753,8 @@ void Cssh::RecivePacket(CBuffer *bp)
 		SendPacket(&tmp);
 		m_PacketStat = 7;
 
-		str.Format("%s+%s", m_EncCmp.GetTitle(), m_EncCip.GetTitle());
-		m_pDocument->SetStatus(str);
+		msg.Format(_T("%s+%s"), m_EncCmp.GetTitle(), m_EncCip.GetTitle());
+		m_pDocument->SetStatus(msg);
 		break;
 
 	case 7:		// Client loop
@@ -798,7 +799,7 @@ void Cssh::RecivePacket(CBuffer *bp)
 // SSH2 Function
 //////////////////////////////////////////////////////////////////////
 
-void Cssh::LogIt(LPCSTR format, ...)
+void Cssh::LogIt(LPCTSTR format, ...)
 {
     va_list args;
 	CString str;
@@ -817,15 +818,16 @@ void Cssh::LogIt(LPCSTR format, ...)
 	DWORD size;
 	TCHAR buf[MAX_COMPUTERNAME_LENGTH + 2];
 
-	tmp = now.Format("%b %d %H:%M:%S ");
+	tmp = now.Format(_T("%b %d %H:%M:%S "));
 	size = MAX_COMPUTERNAME_LENGTH;
 	if ( GetComputerName(buf, &size) )
 		tmp += buf;
-	tmp += " : ";
+	tmp += _T(" : ");
 	tmp += str;
-	tmp += "\r\n";
+	tmp += _T("\r\n");
 
-	CExtSocket::OnReciveCallBack((void *)(LPCSTR)tmp, tmp.GetLength(), 0);
+	CStringA mbs(tmp);
+	CExtSocket::OnReciveCallBack((void *)(LPCSTR)mbs, mbs.GetLength(), 0);
 }
 int Cssh::ChannelOpen()
 {
@@ -857,7 +859,7 @@ int Cssh::ChannelOpen()
 	m_Chan[id].m_pSsh       = this;
 
 	m_Chan[id].m_Status     = 0;
-	m_Chan[id].m_TypeName   = "";
+	m_Chan[id].m_TypeName   = _T("");
 	m_Chan[id].m_RemoteID   = (-1);
 	m_Chan[id].m_LocalID    = id;
 	m_Chan[id].m_RemoteWind = 0;
@@ -869,9 +871,9 @@ int Cssh::ChannelOpen()
 	m_Chan[id].m_Input.Clear();
 	m_Chan[id].m_Output.Clear();
 
-	m_Chan[id].m_lHost      = "";
+	m_Chan[id].m_lHost      = _T("");
 	m_Chan[id].m_lPort      = 0;
-	m_Chan[id].m_rHost      = "";
+	m_Chan[id].m_rHost      = _T("");
 	m_Chan[id].m_rPort      = 0;
 	m_Chan[id].m_ReadByte   = 0;
 	m_Chan[id].m_WriteByte  = 0;
@@ -915,7 +917,7 @@ void Cssh::ChannelCheck(int n)
 	if ( !CHAN_OK(n) ) {
 		if ( (m_Chan[n].m_Status & CHAN_LISTEN) && (m_Chan[n].m_Eof & CEOF_DEAD) ) {
 			ChannelClose(n);
-			LogIt("Listen Closed #%d %s:%d -> %s:%d", n, m_Chan[n].m_lHost, m_Chan[n].m_lPort, m_Chan[n].m_rHost, m_Chan[n].m_rPort);
+			LogIt(_T("Listen Closed #%d %s:%d -> %s:%d"), n, m_Chan[n].m_lHost, m_Chan[n].m_lPort, m_Chan[n].m_rHost, m_Chan[n].m_rPort);
 		}
 		return;
 	}
@@ -955,9 +957,9 @@ void Cssh::ChannelCheck(int n)
 
 	if ( (m_Chan[n].m_Eof & CEOF_ICLOSE) && (m_Chan[n].m_Eof & CEOF_SCLOSE) ) {
 		if ( m_Chan[n].m_pFilter != NULL )
-			LogIt("Closed #%d Filter", n);
+			LogIt(_T("Closed #%d Filter"), n);
 		else
-			LogIt("Closed #%d %s:%d -> %s:%d", n, m_Chan[n].m_lHost, m_Chan[n].m_lPort, m_Chan[n].m_rHost, m_Chan[n].m_rPort);
+			LogIt(_T("Closed #%d %s:%d -> %s:%d"), n, m_Chan[n].m_lHost, m_Chan[n].m_lPort, m_Chan[n].m_rHost, m_Chan[n].m_rPort);
 		m_OpenChanCount--;
 		ChannelClose(n);
 		TRACE("Cannel #%d Close\n", m_Chan[n].m_LocalID);
@@ -1145,27 +1147,27 @@ void Cssh::DecodeProxySocks(int id)
 		break;
 	}
 }
-int Cssh::MatchList(LPCSTR client, LPCSTR server, CString &str)
+int Cssh::MatchList(LPCTSTR client, LPCTSTR server, CString &str)
 {
 	int n;
 	CString tmp;
 	CStringBinary idx;
 
-	while ( *server != '\0' ) {
-		while ( *server != '\0' && strchr(" ,", *server) != NULL )
+	while ( *server != _T('\0') ) {
+		while ( *server != _T('\0') && _tcschr(_T(" ,"), *server) != NULL )
 			server++;
 		tmp = "";
-		while ( *server != '\0' && strchr(" ,", *server) == NULL )
+		while ( *server != _T('\0') && _tcschr(_T(" ,"), *server) == NULL )
 			tmp += *(server++);
 		if ( !tmp.IsEmpty() )
 			idx.Add(tmp);
 	}
 
-	while ( *client != '\0' ) {
-		while ( *client != '\0' && strchr(" ,", *client) != NULL )
+	while ( *client != _T('\0') ) {
+		while ( *client != _T('\0') && _tcschr(_T(" ,"), *client) != NULL )
 			client++;
 		tmp = "";
-		while ( *client != '\0' && strchr(" ,", *client) == NULL )
+		while ( *client != _T('\0') && _tcschr(_T(" ,"), *client) == NULL )
 			tmp += *(client++);
 		if ( !tmp.IsEmpty() && idx.Find(tmp) != NULL ) {
 			str = tmp;
@@ -1190,13 +1192,13 @@ void Cssh::PortForward()
 		case PFD_LOCAL:
 			n = ChannelOpen();
 			m_Chan[n].m_Status = CHAN_LISTEN;
-			m_Chan[n].m_TypeName = "tcpip-listen";
+			m_Chan[n].m_TypeName = _T("tcpip-listen");
 			if ( !m_Chan[n].CreateListen(tmp[0], GetPortNum(tmp[1]), tmp[2], GetPortNum(tmp[3])) ) {
-				str.Format("Port Forward Error %s:%s->%s:%s", tmp[0], tmp[1], tmp[2], tmp[3]);
+				str.Format(_T("Port Forward Error %s:%s->%s:%s"), tmp[0], tmp[1], tmp[2], tmp[3]);
 				AfxMessageBox(str);
 				ChannelClose(n);
 			} else {
-				LogIt("Local Listen %s:%s", tmp[0], tmp[1]);
+				LogIt(_T("Local Listen %s:%s"), tmp[0], tmp[1]);
 				a++;
 			}
 			break;
@@ -1204,13 +1206,13 @@ void Cssh::PortForward()
 		case PFD_SOCKS:
 			n = ChannelOpen();
 			m_Chan[n].m_Status = CHAN_LISTEN | CHAN_PROXY_SOCKS;
-			m_Chan[n].m_TypeName = "socks-listen";
+			m_Chan[n].m_TypeName = _T("socks-listen");
 			if ( !m_Chan[n].CreateListen(tmp[0], GetPortNum(tmp[1]), tmp[2], GetPortNum(tmp[3])) ) {
-				str.Format("Socks Listen Error %s:%s->%s:%s", tmp[0], tmp[1], tmp[2], tmp[3]);
+				str.Format(_T("Socks Listen Error %s:%s->%s:%s"), tmp[0], tmp[1], tmp[2], tmp[3]);
 				AfxMessageBox(str);
 				ChannelClose(n);
 			} else {
-				LogIt("Local Socks %s:%s", tmp[0], tmp[1]);
+				LogIt(_T("Local Socks %s:%s"), tmp[0], tmp[1]);
 				a++;
 			}
 			break;
@@ -1223,7 +1225,7 @@ void Cssh::PortForward()
 			m_Permit[n].m_rHost = tmp[0];
 			m_Permit[n].m_rPort = GetPortNum(tmp[1]);
 			SendMsgGlobalRequest(n, "tcpip-forward", tmp[0], GetPortNum(tmp[1]));
-			LogIt("Remote Listen %s:%s", tmp[0], tmp[1]);
+			LogIt(_T("Remote Listen %s:%s"), tmp[0], tmp[1]);
 			a++;
 			break;
 		}
@@ -1245,7 +1247,7 @@ void Cssh::OpenSFtpChannel()
 	pFilter->m_pSFtp->Create(IDD_SFTPDLG, CWnd::GetDesktopWindow());
 	pFilter->m_pSFtp->ShowWindow(SW_SHOW);
 }
-void Cssh::OpenRcpUpload(LPCSTR file)
+void Cssh::OpenRcpUpload(LPCTSTR file)
 {
 	if ( file != NULL ) {
 		m_RcpCmd.m_pSsh = this;
@@ -1356,7 +1358,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 	tmp.PutBuf(m_SessionId, m_SessionIdLen);
 	skip = tmp.GetSize();
 	tmp.Put8Bit(SSH2_MSG_USERAUTH_REQUEST);
-	tmp.PutStr(m_pDocument->m_ServerEntry.m_UserName);
+	tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_UserName));
 	tmp.PutStr("ssh-connection");
 
 	if ( str == NULL ) {
@@ -1382,7 +1384,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 				len = tmp.GetSize();
 				tmp.PutStr("publickey");
 				tmp.Put8Bit(1);
-				tmp.PutStr(m_IdKey.GetName());
+				tmp.PutStr(TstrToMbs(m_IdKey.GetName()));
 				tmp.PutBuf(blob.GetPtr(), blob.GetSize());
 				len = tmp.GetSize() - len;
 				if ( m_IdKey.Sign(&sig, tmp.GetPtr(), tmp.GetSize()) ) {
@@ -1405,12 +1407,12 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 				m_IdKey.SetBlob(&blob);
 				len = tmp.GetSize();
 				tmp.PutStr("hostbased");
-				tmp.PutStr(m_IdKey.GetName());
+				tmp.PutStr(TstrToMbs(m_IdKey.GetName()));
 				tmp.PutBuf(blob.GetPtr(), blob.GetSize());
 				GetSockName(m_Fd, wrk, &len);
-				tmp.PutStr(wrk);		// client ip address
+				tmp.PutStr(m_pDocument->RemoteStr(wrk));		// client ip address
 				m_IdKey.GetUserHostName(wrk);
-				tmp.PutStr(wrk);		// client user name;
+				tmp.PutStr(m_pDocument->RemoteStr(wrk));		// client user name;
 				if ( m_IdKey.Sign(&sig, tmp.GetPtr(), tmp.GetSize()) ) {
 					tmp.PutBuf(sig.GetPtr(), sig.GetSize());
 					m_AuthMode = AUTH_MODE_HOSTBASED;
@@ -1431,7 +1433,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 				continue;
 			tmp.PutStr("password");
 			tmp.Put8Bit(0);
-			tmp.PutStr(m_pDocument->m_ServerEntry.m_PassName);
+			tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_PassName));
 			m_AuthMode = AUTH_MODE_PASSWORD;
 
 		} else if ( m_AuthStat == AST_KEYB_TRY ) {
@@ -1454,7 +1456,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 	m_AuthMode = AUTH_MODE_NONE;
 	return FALSE;
 }
-int Cssh::SendMsgChannelOpen(int n, LPCSTR type, LPCSTR lhost, int lport, LPCSTR rhost, int rport)
+int Cssh::SendMsgChannelOpen(int n, LPCSTR type, LPCTSTR lhost, int lport, LPCTSTR rhost, int rport)
 {
 	CBuffer tmp;
 
@@ -1470,9 +1472,9 @@ int Cssh::SendMsgChannelOpen(int n, LPCSTR type, LPCSTR lhost, int lport, LPCSTR
 	tmp.Put32Bit(m_Chan[n].m_LocalWind);
 	tmp.Put32Bit(m_Chan[n].m_LocalPacks);
 	if ( lhost != NULL ) {
-		tmp.PutStr(lhost);
+		tmp.PutStr(m_pDocument->RemoteStr(lhost));
 		tmp.Put32Bit(lport);
-		tmp.PutStr(rhost);
+		tmp.PutStr(m_pDocument->RemoteStr(rhost));
 		tmp.Put32Bit(rport);
 		m_Chan[n].m_lHost = lhost;
 		m_Chan[n].m_lPort = lport;
@@ -1503,9 +1505,9 @@ void Cssh::SendMsgChannelOpenConfirmation(int id)
 	TRACE("Channel OpenConf %d(%d)\n", m_Chan[id].m_LocalWind, m_Chan[id].m_LocalPacks);
 
 	if ( m_Chan[id].m_pFilter != NULL )
-		LogIt("Open Filter #%d", id);
+		LogIt(_T("Open Filter #%d"), id);
 	else
-		LogIt("Open Connect #%d %s:%d -> %s:%d", id, m_Chan[id].m_lHost, m_Chan[id].m_lPort, m_Chan[id].m_rHost, m_Chan[id].m_rPort);
+		LogIt(_T("Open Connect #%d %s:%d -> %s:%d"), id, m_Chan[id].m_lHost, m_Chan[id].m_lPort, m_Chan[id].m_rHost, m_Chan[id].m_rPort);
 }
 void Cssh::SendMsgChannelOpenFailure(int id)
 {
@@ -1558,7 +1560,7 @@ void Cssh::SendMsgChannelData(int id)
 void Cssh::SendMsgChannelRequesstShell(int id)
 {
 	int n;
-	char *p;
+	LPCTSTR p;
 	CBuffer tmp, tmode;
 	CString str;
 	CStringIndex env;
@@ -1596,26 +1598,26 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 	}
 
 	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHX11PF) ) {
-		if ( (p = getenv("DISPLAY")) == NULL ) {
+		if ( (p = _tgetenv(_T("DISPLAY"))) == NULL ) {
 			if ( m_pDocument->m_ParamTab.m_XDisplay.IsEmpty() )
-				p = ":0";
+				p = _T(":0");
 			else
-				p = (char *)(LPCSTR)m_pDocument->m_ParamTab.m_XDisplay;
+				p = m_pDocument->m_ParamTab.m_XDisplay;
 		}
 
-		while ( *p != '\0' && *p != ':' )
+		while ( *p != _T('\0') && *p != _T(':') )
 			str += *(p++);
 
-		if ( str.IsEmpty() || str.CompareNoCase("unix") == 0 )
-			str = "127.0.0.1";
+		if ( str.IsEmpty() || str.CompareNoCase(_T("unix")) == 0 )
+			str = _T("127.0.0.1");
 
-		if ( *(p++) == ':' ) { // && CExtSocket::SokcetCheck(str, 6000 + atoi(p)) ) {
+		if ( *(p++) == _T(':') ) { // && CExtSocket::SokcetCheck(str, 6000 + atoi(p)) ) {
 			n = 0;	// screen number
-			while ( *p != '\0' && *p != '.' )
+			while ( *p != _T('\0') && *p != _T('.') )
 				p++;
-			if ( *p == '.' )
+			if ( *p == _T('.') )
 				n = _tstoi(++p);
-			str.Format("%04x%04x%04x%04x", rand(), rand(), rand(), rand());
+			str.Format(_T("%04x%04x%04x%04x"), rand(), rand(), rand(), rand());
 			tmp.Clear();
 			tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
 			tmp.Put32Bit(m_Chan[id].m_RemoteID);
@@ -1623,7 +1625,7 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 			tmp.Put8Bit(0);
 			tmp.Put8Bit(0);		// XXX bool single connection
 			tmp.PutStr("MIT-MAGIC-COOKIE-1");
-			tmp.PutStr(str);
+			tmp.PutStr(TstrToMbs(str));
 			tmp.Put32Bit(n);	// screen number
 			SendPacket2(&tmp);
 		}
@@ -1634,7 +1636,7 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 	tmp.Put32Bit(m_Chan[id].m_RemoteID);
 	tmp.PutStr("pty-req");
 	tmp.Put8Bit(1);
-	tmp.PutStr(m_pDocument->m_ServerEntry.m_TermName);
+	tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_TermName));
 	tmp.Put32Bit(m_pDocument->m_TextRam.m_Cols);
 	tmp.Put32Bit(m_pDocument->m_TextRam.m_Lines);
 	tmp.Put32Bit(0);
@@ -1660,8 +1662,8 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 		tmp.Put32Bit(m_Chan[id].m_RemoteID);
 		tmp.PutStr("env");
 		tmp.Put8Bit(0);
-		tmp.PutStr(env[n].m_nIndex);
-		tmp.PutStr(env[n].m_String);
+		tmp.PutStr(m_pDocument->RemoteStr(env[n].m_nIndex));
+		tmp.PutStr(m_pDocument->RemoteStr(env[n].m_String));
 		SendPacket2(&tmp);
 	}
 
@@ -1697,14 +1699,14 @@ void Cssh::SendMsgChannelRequesstExec(int id)
 	SendPacket2(&tmp);
 	m_ChnReqMap.Add(CHAN_REQ_EXEC);
 }
-void Cssh::SendMsgGlobalRequest(int num, LPCSTR str, LPCSTR rhost, int rport)
+void Cssh::SendMsgGlobalRequest(int num, LPCSTR str, LPCTSTR rhost, int rport)
 {
 	CBuffer tmp;
 	tmp.Put8Bit(SSH2_MSG_GLOBAL_REQUEST);
 	tmp.PutStr(str);
 	tmp.Put8Bit(1);
 	if ( rhost != NULL ) {
-		tmp.PutStr(rhost);
+		tmp.PutStr(m_pDocument->RemoteStr(rhost));
 		tmp.Put32Bit(rport);
 	}
 	SendPacket2(&tmp);
@@ -1778,25 +1780,28 @@ void Cssh::SendPacket2(CBuffer *bp)
 int Cssh::SSH2MsgKexInit(CBuffer *bp)
 {
 	int n;
+	CStringA mbs;
 	static const struct {
-		int	mode;
-		char *name;
+		int		mode;
+		LPCTSTR	name;
 	} kextab[] = {
-		{ DHMODE_ECDH_S2_N256,	"ecdh-sha2-nistp256",	},
-		{ DHMODE_ECDH_S2_N384,	"ecdh-sha2-nistp384"	},
-		{ DHMODE_ECDH_S2_N521,	"ecdh-sha2-nistp521"	},
-		{ DHMODE_GROUP_GEX256,	"diffie-hellman-group-exchange-sha256",	},
-		{ DHMODE_GROUP_GEX,		"diffie-hellman-group-exchange-sha1",	},
-		{ DHMODE_GROUP_14,		"diffie-hellman-group14-sha1",			},
-		{ DHMODE_GROUP_1,		"diffie-hellman-group1-sha1",			},
+		{ DHMODE_ECDH_S2_N256,	_T("ecdh-sha2-nistp256"),	},
+		{ DHMODE_ECDH_S2_N384,	_T("ecdh-sha2-nistp384")	},
+		{ DHMODE_ECDH_S2_N521,	_T("ecdh-sha2-nistp521")	},
+		{ DHMODE_GROUP_GEX256,	_T("diffie-hellman-group-exchange-sha256"),	},
+		{ DHMODE_GROUP_GEX,		_T("diffie-hellman-group-exchange-sha1"),	},
+		{ DHMODE_GROUP_14,		_T("diffie-hellman-group14-sha1"),			},
+		{ DHMODE_GROUP_1,		_T("diffie-hellman-group1-sha1"),			},
 		{ 0,					NULL									},
 	};
 
 	m_HisPeer = *bp;
 	for ( n = 0 ; n < 16 ; n++ )
 		m_Cookie[n] = bp->Get8Bit();
-	for ( n = 0 ; n < 10 ; n++ )
-		bp->GetStr(m_SProp[n]);
+	for ( n = 0 ; n < 10 ; n++ ) {
+		bp->GetStr(mbs);
+		m_SProp[n] = mbs;
+	}
 	bp->Get8Bit();
 	bp->Get32Bit();
 
@@ -1811,8 +1816,8 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 	m_pDocument->m_ParamTab.GetProp(8,  m_CProp[PROP_COMP_ALGS_CTOS]);			// PROPOSAL_COMP_ALGS_CTOS
 	m_pDocument->m_ParamTab.GetProp(5,  m_CProp[PROP_COMP_ALGS_STOC]);			// PROPOSAL_COMP_ALGS_STOC
 
-	m_CProp[PROP_LANG_CTOS] = m_VProp[PROP_LANG_CTOS] = "";						// PROPOSAL_LANG_CTOS,
-	m_CProp[PROP_LANG_STOC] = m_VProp[PROP_LANG_STOC] = "";						// PROPOSAL_LANG_STOC,
+	m_CProp[PROP_LANG_CTOS] = m_VProp[PROP_LANG_CTOS] = _T("");						// PROPOSAL_LANG_CTOS,
+	m_CProp[PROP_LANG_STOC] = m_VProp[PROP_LANG_STOC] = _T("");						// PROPOSAL_LANG_STOC,
 
 	for ( n = 0 ; n < 8 ; n++ ) {
 		if ( !MatchList(m_CProp[n], m_SProp[n], m_VProp[n]) )
@@ -1834,7 +1839,7 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 		for ( n = 0 ; n < 16 ; n += 2 )
 			m_MyPeer.Put16Bit(rand());
 		for ( n = 0 ; n < 10 ; n++ )
-			m_MyPeer.PutStr(m_VProp[n]);
+			m_MyPeer.PutStr(TstrToMbs(m_VProp[n]));
 		m_MyPeer.Put8Bit(0);
 		m_MyPeer.Put32Bit(0);
 
@@ -1886,7 +1891,7 @@ int Cssh::SSH2MsgKexDhReply(CBuffer *bp)
 	BN_bin2bn(p, n, ssec);
 
 	hashlen = kex_dh_hash(hash,
-		m_ClientVerStr, m_ServerVerStr,
+		TstrToMbs(m_ClientVerStr), TstrToMbs(m_ServerVerStr),
 		m_MyPeer.GetPtr(), m_MyPeer.GetSize(),
 		m_HisPeer.GetPtr(), m_HisPeer.GetSize(),
 		blob.GetPtr(), blob.GetSize(), m_SaveDh->pub_key,
@@ -1982,7 +1987,7 @@ int Cssh::SSH2MsgKexDhGexReply(CBuffer *bp)
 	evp_md = (m_DhMode == DHMODE_GROUP_GEX ? EVP_sha1() : EVP_sha256());
 
 	hashlen = kex_gex_hash(hash,
-		m_ClientVerStr, m_ServerVerStr,
+		TstrToMbs(m_ClientVerStr), TstrToMbs(m_ServerVerStr),
 		m_MyPeer.GetPtr(), m_MyPeer.GetSize(),
 		m_HisPeer.GetPtr(), m_HisPeer.GetSize(),
 		blob.GetPtr(), blob.GetSize(),
@@ -2070,7 +2075,7 @@ int Cssh::SSH2MsgKexEcdhReply(CBuffer *bp)
 	}
 
 	hashlen = kex_ecdh_hash(hash,
-	    m_ClientVerStr, m_ServerVerStr,
+	    TstrToMbs(m_ClientVerStr), TstrToMbs(m_ServerVerStr),
 		m_MyPeer.GetPtr(), m_MyPeer.GetSize(),
 		m_HisPeer.GetPtr(), m_HisPeer.GetSize(),
 		blob.GetPtr(), blob.GetSize(),
@@ -2140,7 +2145,7 @@ int Cssh::SSH2MsgNewKeys(CBuffer *bp)
 int Cssh::SSH2MsgUserAuthPkOk(CBuffer *bp)
 {
 	int n;
-	CString name;
+	CStringA name;
 	CBuffer blob;
 	CIdKey ReqKey;
 	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
@@ -2166,14 +2171,15 @@ int Cssh::SSH2MsgUserAuthPkOk(CBuffer *bp)
 int Cssh::SSH2MsgUserAuthPasswdChangeReq(CBuffer *bp)
 {
 	CBuffer tmp;
-	CString info, lang, pass;
+	CStringA info, lang;
+	CString pass;
 	CPassDlg dlg;
 
 	bp->GetStr(info);
 	bp->GetStr(lang);
 
 	tmp.Put8Bit(SSH2_MSG_USERAUTH_REQUEST);
-	tmp.PutStr(m_pDocument->m_ServerEntry.m_UserName);
+	tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_UserName));
 	tmp.PutStr("ssh-connection");
 	tmp.PutStr("password");
 	tmp.Put8Bit(1);
@@ -2184,7 +2190,7 @@ int Cssh::SSH2MsgUserAuthPasswdChangeReq(CBuffer *bp)
 	dlg.m_PassName = "";
 	if ( dlg.DoModal() != IDOK )
 		return FALSE;
-	tmp.PutStr(dlg.m_PassName);
+	tmp.PutStr(m_pDocument->RemoteStr(dlg.m_PassName));
 
 	info = "Enter New Password";
 	while ( pass.IsEmpty() ) {
@@ -2207,7 +2213,7 @@ int Cssh::SSH2MsgUserAuthPasswdChangeReq(CBuffer *bp)
 			pass.Empty();
 		}
 	}
-	tmp.PutStr(pass);
+	tmp.PutStr(m_pDocument->RemoteStr(pass));
 
 	SendPacket2(&tmp);
 	return TRUE;
@@ -2216,7 +2222,7 @@ int Cssh::SSH2MsgUserAuthInfoRequest(CBuffer *bp)
 {
 	int n, e, max;
 	CBuffer tmp;
-	CString name, inst, lang, prom;
+	CStringA name, inst, lang, prom;
 	CPassDlg dlg;
 
 	bp->GetStr(name);
@@ -2233,10 +2239,10 @@ int Cssh::SSH2MsgUserAuthInfoRequest(CBuffer *bp)
 		dlg.m_HostAddr = m_pDocument->m_ServerEntry.m_HostName;
 		dlg.m_UserName = m_pDocument->m_ServerEntry.m_UserName;
 		dlg.m_Prompt   = prom;
-		dlg.m_PassName = "";
+		dlg.m_PassName = _T("");
 		if ( dlg.DoModal() != IDOK )
 			return FALSE;
-		tmp.PutStr(dlg.m_PassName);
+		tmp.PutStr(m_pDocument->RemoteStr(dlg.m_PassName));
 	}
 
 	SendPacket2(&tmp);
@@ -2246,11 +2252,11 @@ int Cssh::SSH2MsgChannelOpen(CBuffer *bp)
 {
 	int n, i, id;
 	CBuffer tmp;
-	CString type;
+	CStringA type, mbs;
 	CString host[2];
 	int port[2];
 	CString str;
-	char *p;
+	LPCTSTR p;
 
 	bp->GetStr(type);
 	id = bp->Get32Bit();
@@ -2273,28 +2279,29 @@ int Cssh::SSH2MsgChannelOpen(CBuffer *bp)
 		return FALSE;
 
 	} else if ( type.CompareNoCase("x11") == 0 ) {
-		bp->GetStr(host[0]);
+		bp->GetStr(mbs);
+		host[0] = m_pDocument->LocalStr(mbs);
 		port[0] = bp->Get32Bit();
 
 		if ( !m_pDocument->m_TextRam.IsOptEnable(TO_SSHX11PF) )
 			goto FAILURE;
 
-		if ( (p = getenv("DISPLAY")) == NULL ) {
+		if ( (p = _tgetenv(_T("DISPLAY"))) == NULL ) {
 			if ( m_pDocument->m_ParamTab.m_XDisplay.IsEmpty() )
-				p = ":0";
+				p = _T(":0");
 			else
-				p = (char *)(LPCSTR)m_pDocument->m_ParamTab.m_XDisplay;
+				p = m_pDocument->m_ParamTab.m_XDisplay;
 		}
 
 		host[1].Empty();
-		while ( *p != '\0' && *p != ':' )
+		while ( *p != _T('\0') && *p != _T(':') )
 			host[1] += *(p++);
-		if ( *(p++) != ':' )
+		if ( *(p++) != _T(':') )
 			goto FAILURE;
 		port[1] = _tstoi(p);
 
-		if ( host[1].IsEmpty() || host[1].CompareNoCase("unix") == 0 )
-			host[1] = "127.0.0.1";
+		if ( host[1].IsEmpty() || host[1].CompareNoCase(_T("unix")) == 0 )
+			host[1] = _T("127.0.0.1");
 
 		m_Chan[n].m_Status |= CHAN_OPEN_REMOTE;
 		m_Chan[n].m_lHost = host[1];
@@ -2303,7 +2310,7 @@ int Cssh::SSH2MsgChannelOpen(CBuffer *bp)
 		m_Chan[n].m_rPort = port[0];
 
 		if ( (i = m_Chan[n].Open(host[1], 6000 + port[1])) < 0 ) {
-			str.Format("Channel Open Failure %s:%d->%s:%d", host[0], port[0], host[1], 6000 + port[1]);
+			str.Format(_T("Channel Open Failure %s:%d->%s:%d"), host[0], port[0], host[1], 6000 + port[1]);
 			AfxMessageBox(str);
 			goto FAILURE;
 		}
@@ -2311,9 +2318,11 @@ int Cssh::SSH2MsgChannelOpen(CBuffer *bp)
 		return FALSE;
 
 	} else if ( type.CompareNoCase("forwarded-tcpip") == 0 ) {
-		bp->GetStr(host[0]);
+		bp->GetStr(mbs);
+		host[0] = m_pDocument->LocalStr(mbs);
 		port[0] = bp->Get32Bit();
-		bp->GetStr(host[1]);
+		bp->GetStr(mbs);
+		host[1] = m_pDocument->LocalStr(mbs);
 		port[1] = bp->Get32Bit();
 
 		for ( i = 0 ; i < m_Permit.GetSize() ; i++ ) {
@@ -2322,7 +2331,7 @@ int Cssh::SSH2MsgChannelOpen(CBuffer *bp)
 		}
 
 		if ( i >=  m_Permit.GetSize() ) {
-			str.Format("Channel Open Permit Failure %s:%d->%s:%d", host[0], port[0], host[1], port[1]);
+			str.Format(_T("Channel Open Permit Failure %s:%d->%s:%d"), host[0], port[0], host[1], port[1]);
 			AfxMessageBox(str);
 			goto FAILURE;
 		}
@@ -2334,7 +2343,7 @@ int Cssh::SSH2MsgChannelOpen(CBuffer *bp)
 		m_Chan[n].m_rPort = port[0];
 
 		if ( (i = m_Chan[n].Open(m_Permit[i].m_lHost, m_Permit[i].m_lPort)) < 0 ) {
-			str.Format("Channel Open Failure %s:%d->%s:%d", host[0], port[0], host[1], port[1]);
+			str.Format(_T("Channel Open Failure %s:%d->%s:%d"), host[0], port[0], host[1], port[1]);
 			AfxMessageBox(str);
 			goto FAILURE;
 		}
@@ -2362,9 +2371,9 @@ int Cssh::SSH2MsgChannelOpenReply(CBuffer *bp, int type)
 
 	if ( type == SSH2_MSG_CHANNEL_OPEN_FAILURE ) {
 		if ( m_Chan[id].m_pFilter != NULL )
-			LogIt("Open Failure #%d Filter", id);
+			LogIt(_T("Open Failure #%d Filter"), id);
 		else
-			LogIt("Open Failure #%d %s:%d -> %s:%d", id, m_Chan[id].m_lHost, m_Chan[id].m_lPort, m_Chan[id].m_rHost, m_Chan[id].m_rPort);
+			LogIt(_T("Open Failure #%d %s:%d -> %s:%d"), id, m_Chan[id].m_lHost, m_Chan[id].m_lPort, m_Chan[id].m_rHost, m_Chan[id].m_rPort);
 		ChannelClose(id);
 		return (id == m_StdChan ? TRUE : FALSE);
 	}
@@ -2392,7 +2401,7 @@ int Cssh::SSH2MsgChannelOpenReply(CBuffer *bp, int type)
 			break;
 		}
 	} else
-		LogIt("Open Confirmation #%d %s:%d -> %s:%d", id, m_Chan[id].m_lHost, m_Chan[id].m_lPort, m_Chan[id].m_rHost, m_Chan[id].m_rPort);
+		LogIt(_T("Open Confirmation #%d %s:%d -> %s:%d"), id, m_Chan[id].m_lHost, m_Chan[id].m_lPort, m_Chan[id].m_rHost, m_Chan[id].m_rPort);
 
 	SendMsgChannelData(id);
 	return FALSE;
@@ -2438,7 +2447,7 @@ int Cssh::SSH2MsgChannelEof(CBuffer *bp)
 int Cssh::SSH2MsgChannelRequesst(CBuffer *bp)
 {
 	int reply;
-	CString str;
+	CStringA str;
 	CBuffer tmp;
 	int id = bp->Get32Bit();
 
@@ -2504,11 +2513,11 @@ int Cssh::SSH2MsgChannelRequestReply(CBuffer *bp, int type)
 		break;
 	case CHAN_REQ_X11:		// x11-req
 		if ( type == SSH2_MSG_CHANNEL_FAILURE )
-			AfxMessageBox("X11-req Failure");
+			AfxMessageBox(_T("X11-req Failure"));
 		break;
 	case CHAN_REQ_ENV:		// env
 		if ( type == SSH2_MSG_CHANNEL_FAILURE )
-			AfxMessageBox("env Failure");
+			AfxMessageBox(_T("env Failure"));
 		break;
 	}
 	return FALSE;
@@ -2536,12 +2545,13 @@ int Cssh::SSH2MsgChannelAdjust(CBuffer *bp)
 int Cssh::SSH2MsgGlobalRequest(CBuffer *bp)
 {
 	CBuffer tmp;
-	CString str, msg;
+	CStringA str;
+	CString msg;
 	BOOL success = FALSE;
 
 	bp->GetStr(str);
 	if ( !str.IsEmpty() ) {
-		msg.Format("Get Msg Global Request '%s'", str);
+		msg.Format(_T("Get Msg Global Request '%s'"), m_pDocument->LocalStr(str));
 		AfxMessageBox(msg);
 	}
 	if ( bp->Get8Bit() > 0 ) {
@@ -2566,7 +2576,7 @@ int Cssh::SSH2MsgGlobalRequestReply(CBuffer *bp, int type)
 		return FALSE;
 
 	if ( type == SSH2_MSG_REQUEST_FAILURE && num < m_Permit.GetSize() ) {
-		str.Format("Global Request Failure %s:%d->%s:%d",
+		str.Format(_T("Global Request Failure %s:%d->%s:%d"),
 			m_Permit[num].m_lHost, m_Permit[num].m_lPort, m_Permit[num].m_rHost, m_Permit[num].m_rPort);
 		AfxMessageBox(str);
 		m_Permit.RemoveAt(num);
@@ -2576,7 +2586,7 @@ int Cssh::SSH2MsgGlobalRequestReply(CBuffer *bp, int type)
 }
 void Cssh::RecivePacket2(CBuffer *bp)
 {
-	CString str;
+	CStringA str;
 	int type = bp->Get8Bit();
 
 //	TRACE("SSH2 Type %d\n", type);
@@ -2775,7 +2785,7 @@ void Cssh::RecivePacket2(CBuffer *bp)
 		bp->GetStr(str);
 //		CExtSocket::OnReciveCallBack((void *)((LPCSTR)str), str.GetLength(), 0);
 //		Close();
-		AfxMessageBox(str);
+		AfxMessageBox(m_pDocument->LocalStr(str));
 		break;
 	case SSH2_MSG_IGNORE:
 	case SSH2_MSG_DEBUG:

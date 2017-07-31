@@ -812,7 +812,7 @@ void CBPlus::Do_Transport_Parameters()
 		Update_Quote_Table (His_QS);
 }
 
-void CBPlus::Check_Keep(FILE *data_File, LPCSTR Name)
+void CBPlus::Check_Keep(FILE *data_File, LPCTSTR Path, LPCSTR Name)
 {
     char yn;
 	CStringA str;
@@ -828,7 +828,7 @@ void CBPlus::Check_Keep(FILE *data_File, LPCSTR Name)
 		yn = 'Y';
 
     if ( yn == 'N' || yn == 'n' )
-		_unlink(Name);
+		_tunlink(Path);
 }
 
 LONGLONG CBPlus::Extract_Size(char **str)
@@ -923,7 +923,7 @@ void CBPlus::Process_File_Information()
     UpDownInit(R_Remaining, R_File_Size);
 }
 
-int	CBPlus::Receive_File(LPCSTR Name)
+int	CBPlus::Receive_File(LPCTSTR filePath, LPCSTR fileName)
 {
     FILE    *Data_File;
     int	    status;
@@ -936,7 +936,7 @@ int	CBPlus::Receive_File(LPCSTR Name)
 
     Dow_Type = 'D';         /* Assume normal downloading */
 
-    Data_File = FileOpen( Name, UPDATE_OP, F_FileType );	/* open for r/w first */
+    Data_File = FileOpen( filePath, UPDATE_OP, F_FileType );	/* open for r/w first */
 
     if ( Data_File != NULL && F_FileType == FALSE ) {
 		if ( Our_DR > 1 )
@@ -952,7 +952,7 @@ int	CBPlus::Receive_File(LPCSTR Name)
 	case 'D':
 		if( Data_File != NULL )
 			FileClose( Data_File );    /* close the read/write file */
-		Data_File = FileOpen ( Name, WRITE_OP, F_FileType );	    /* open for write */
+		Data_File = FileOpen ( filePath, WRITE_OP, F_FileType );	    /* open for write */
 		if (Data_File == NULL) {
 			Send_Failure ("CCannot create file");
 			return(FALSE);
@@ -1012,7 +1012,7 @@ int	CBPlus::Receive_File(LPCSTR Name)
 
 				if ( (status != (R_Size - 1)) ) {
 					Send_Failure ("EWrite failure");
-					Check_Keep (Data_File, Name);
+					Check_Keep (Data_File, filePath, fileName);
 					return(FALSE);
 				}
 
@@ -1035,7 +1035,7 @@ int	CBPlus::Receive_File(LPCSTR Name)
 							utm.actime  = F_Ctime;
 							utm.modtime = F_Ctime;
 						}
-						_utime(Name, &utm);
+						_tutime(filePath, &utm);
 					}
 					return(TRUE);
 				} else if ( R_buffer [1] == 'I' ) {
@@ -1043,7 +1043,7 @@ int	CBPlus::Receive_File(LPCSTR Name)
 					Process_File_Information();
 				} else if ( R_buffer [1] == 'f' ) {
 					FileClose (Data_File);       /* So...replace the file */
-					Data_File = FileOpen ( Name, WRITE_OP, F_FileType );
+					Data_File = FileOpen ( filePath, WRITE_OP, F_FileType );
 					if ( Data_File == NULL ) {
 						Send_Failure ("CCannot create file");
 						return(FALSE);
@@ -1057,23 +1057,23 @@ int	CBPlus::Receive_File(LPCSTR Name)
 					Send_ACK();
 				} else {
 			        Send_Failure ("NInvalid T Packet");
-				    Check_Keep (Data_File, Name);
+				    Check_Keep (Data_File, filePath, fileName);
 					return(FALSE);
 				}
 				break;
 			case 'F' :
 				Send_ACK();
-				Check_Keep (Data_File, Name);
+				Check_Keep (Data_File, filePath, fileName);
 				return(FALSE);
 		    }
 		} else {
-			Check_Keep (Data_File, Name);
+			Check_Keep (Data_File, filePath, fileName);
 			return(FALSE);
 		}
 	}
 }
 
-int	CBPlus::Send_File(LPCSTR name)
+int	CBPlus::Send_File(LPCTSTR filePath, LPCSTR fileName)
 {
     int	n;
     FILE *data_File;
@@ -1082,12 +1082,12 @@ int	CBPlus::Send_File(LPCSTR name)
 	struct _stati64 st;
 	struct tm *tm;
 
-	if ( _stati64(name, &st) || (st.st_mode & _S_IFMT) != _S_IFREG ) {
+	if ( _tstati64(filePath, &st) || (st.st_mode & _S_IFMT) != _S_IFREG ) {
 		Send_Failure ("MFile not found");
 		return(FALSE);
 	}
 
-    if ( (data_File = FileOpen (name, READ_OP, F_FileType)) == NULL ) {
+    if ( (data_File = FileOpen(filePath, READ_OP, F_FileType)) == NULL ) {
 		Send_Failure ("MFile open error");
 		return(FALSE);
     }
@@ -1119,8 +1119,8 @@ int	CBPlus::Send_File(LPCSTR name)
 
 		TRACE("TI %s\n", p->buf + 4); 
 
-		*(s++) = m_FileName.GetLength();
-		strcpy(s, m_FileName);
+		*(s++) = strlen(fileName);
+		strcpy(s, fileName);
 		while ( *s != '\0' ) s++;
 
 		Send_Packet((int)(s - p->buf));
@@ -1166,8 +1166,7 @@ int	CBPlus::Send_File(LPCSTR name)
 int	CBPlus::BP_DLE_Seen()
 {
     int i;
-    char *realfile;
-	CString fileName;
+	CStringA fileName;
 
     if ( !Read_Byte() || e_ch != dle )
 		return 0;
@@ -1218,17 +1217,17 @@ int	CBPlus::BP_DLE_Seen()
 			for ( i = 3 ; R_buffer[i] != '\0' && i < R_Size ; i++ )
 				fileName += R_buffer[i];
 
-			if ( (realfile = CheckFileName((R_buffer[1] == 'U' ? 1 : 0), fileName)) == NULL || realfile[0] == '\0' ) {
+			if ( CheckFileName((R_buffer[1] == 'U' ? 1 : 0), fileName) == NULL || m_PathName.IsEmpty() ) {
 				Send_Failure ("CCancell Transfer file");
 				return 0;
 			}
 
 			if (R_buffer[1] == 'U') {
 			    UpDownOpen("BPlus File Upload");
-				Send_File (realfile);
+				Send_File (m_PathName, m_FileName);
 			} else {
 			    UpDownOpen("BPlus File Download");
-				Receive_File (realfile);
+				Receive_File (m_PathName, m_FileName);
 			}
 
 		    UpDownClose();

@@ -63,7 +63,7 @@ BOOL CPipeSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, 
 
 	if ( !CreatePipe(&(m_hIn[0]), &(m_hIn[1]), &secAtt, 0) ) {
 		CString errmsg;
-		errmsg.Format("PipeSocket StdIn CreatePipe Error '%s'", lpszHostAddress);
+		errmsg.Format(_T("PipeSocket StdIn CreatePipe Error '%s'"), lpszHostAddress);
 		AfxMessageBox(errmsg, MB_ICONSTOP);
 		return FALSE;
 	}
@@ -74,7 +74,7 @@ BOOL CPipeSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, 
 
 	if ( !CreatePipe(&(m_hOut[0]), &(m_hOut[1]), &secAtt, 0) ) {
 		CString errmsg;
-		errmsg.Format("PipeSocket StdOut CreatePipe Error '%s'", lpszHostAddress);
+		errmsg.Format(_T("PipeSocket StdOut CreatePipe Error '%s'"), lpszHostAddress);
 		AfxMessageBox(errmsg, MB_ICONSTOP);
 		return FALSE;
 	}
@@ -87,9 +87,9 @@ BOOL CPipeSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, 
 	startInfo.hStdOutput = m_hIn[1];
 	startInfo.hStdError  = m_hIn[1];
 
-	if ( !CreateProcess(NULL, (LPSTR)(LPCSTR)lpszHostAddress, NULL, NULL, TRUE, CREATE_NEW_PROCESS_GROUP, NULL, NULL, &startInfo, &m_proInfo) ) {
+	if ( !CreateProcess(NULL, (LPTSTR)(LPCTSTR)lpszHostAddress, NULL, NULL, TRUE, CREATE_NEW_PROCESS_GROUP, NULL, NULL, &startInfo, &m_proInfo) ) {
 		CString errmsg;
-		errmsg.Format("PipeSocket CreateProcess Error '%s'", lpszHostAddress);
+		errmsg.Format(_T("PipeSocket CreateProcess Error '%s'"), lpszHostAddress);
 		AfxMessageBox(errmsg, MB_ICONSTOP);
 		return FALSE;
 	}
@@ -243,19 +243,19 @@ void CPipeSock::GetPathMaps(CStringMaps &maps)
 	BOOL bWork;
 	CStringW wstr;
 
-	if ( (sz = GetEnvironmentVariable("PATH", "", 0)) > 0 )
-		GetEnvironmentVariable("PATH", tmp.GetBufferSetLength(sz), sz);
+	if ( (sz = GetEnvironmentVariable(_T("PATH"), _T(""), 0)) > 0 )
+		GetEnvironmentVariable(_T("PATH"), tmp.GetBufferSetLength(sz), sz);
 	dirs.GetString(tmp, ';');
 	tmp.ReleaseBuffer();
 
-	if ( (sz = GetEnvironmentVariable("PATHEXT", "", 0)) > 0 )
-		GetEnvironmentVariable("PATHEXT", tmp.GetBufferSetLength(sz), sz);
-	exts.GetString(tmp, ';');
+	if ( (sz = GetEnvironmentVariable(_T("PATHEXT"), _T(""), 0)) > 0 )
+		GetEnvironmentVariable(_T("PATHEXT"), tmp.GetBufferSetLength(sz), sz);
+	exts.GetString(tmp, _T(';'));
 	tmp.ReleaseBuffer();
 
 	maps.RemoveAll();
 	for ( i = 0 ; i < (int)dirs.GetSize() ; i++ ) {
-		tmp.Format("%s\\*.*", dirs[i]);
+		tmp.Format(_T("%s\\*.*"), dirs[i]);
 		bWork = finder.FindFile(tmp);
 		while ( bWork ) {
 			bWork = finder.FindNextFile();
@@ -263,14 +263,14 @@ void CPipeSock::GetPathMaps(CStringMaps &maps)
 				continue;
 			tmp = finder.GetFileName();
 			if ( (a = tmp.ReverseFind('.')) >= 0 && exts.FindNoCase(tmp.Mid(a)) >= 0 ) {
-				wstr = (tmp.Mid(a).CompareNoCase(".exe") == 0 ? tmp.Left(a) : tmp);
+				wstr = (tmp.Mid(a).CompareNoCase(_T(".exe")) == 0 ? tmp.Left(a) : tmp);
 				maps.Add(wstr);
 			}
 		}
 		finder.Close();
 	}
 }
-void CPipeSock::GetDirMaps(CStringMaps &maps, LPCSTR dir, BOOL pf)
+void CPipeSock::GetDirMaps(CStringMaps &maps, LPCTSTR dir, BOOL pf)
 {
 	CString tmp;
 	CFileFind finder;
@@ -278,7 +278,7 @@ void CPipeSock::GetDirMaps(CStringMaps &maps, LPCSTR dir, BOOL pf)
 	CStringW wstr;
 
 	maps.RemoveAll();
-	tmp.Format("%s\\*.*", dir);
+	tmp.Format(_T("%s\\*.*"), dir);
 	bWork = finder.FindFile(tmp);
 	while ( bWork ) {
 		bWork = finder.FindNextFile();
@@ -286,7 +286,7 @@ void CPipeSock::GetDirMaps(CStringMaps &maps, LPCSTR dir, BOOL pf)
 			continue;
 		wstr = (pf ? finder.GetFilePath() : finder.GetFileName());
 		if ( finder.IsDirectory() )
-			wstr += '\\';
+			wstr += L'\\';
 		maps.Add(wstr);
 	}
 	finder.Close();

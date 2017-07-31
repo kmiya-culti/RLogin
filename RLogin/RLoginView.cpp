@@ -393,8 +393,7 @@ void CRLoginView::SendBuffer(CBuffer &buf, BOOL macflag)
 		break;
 	}
 
-	CTextRam::MsToIconvUnicode((WCHAR *)(buf.GetPtr()), buf.GetSize() / sizeof(WCHAR), pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode]);
-	pDoc->m_TextRam.m_IConv.IConvBuf("UCS-2LE", pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode], &buf, &tmp);
+	pDoc->m_TextRam.m_IConv.StrToRemote(pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode], &buf, &tmp);
 	pDoc->SocketSend(tmp.GetPtr(), tmp.GetSize());
 
 	if ( !pDoc->m_TextRam.IsOptEnable(TO_ANSISRM) ) {
@@ -507,55 +506,51 @@ void CRLoginView::SetGhostWnd(BOOL sw)
 int CRLoginView::GetClipboad(CBuffer *bp)
 {
 	HGLOBAL hData;
-	WCHAR *pData;
-	CBuffer buf;
+	TCHAR *pData;
+	CStringA buf;
 	CRLoginDoc *pDoc = GetDocument();
 
 	if ( !OpenClipboard() )
 		return FALSE;
 
+#ifdef	_UNICODE
 	if ( (hData = GetClipboardData(CF_UNICODETEXT)) == NULL ) {
+#else
+	if ( (hData = GetClipboardData(CF_TEXT)) == NULL ) {
+#endif
 		CloseClipboard();
 		return FALSE;
 	}
 
-	if ( (pData = (WCHAR *)GlobalLock(hData)) == NULL ) {
+	if ( (pData = (TCHAR *)GlobalLock(hData)) == NULL ) {
         CloseClipboard();
         return FALSE;
     }
 
-	for ( ; *pData != 0 ; pData++ ) {
-		if ( *pData != L'\x0A' && *pData != L'\x1A' )
-			buf.Apend((LPBYTE)pData, sizeof(WCHAR));
-	}
+	pDoc->m_TextRam.m_IConv.StrToRemote(pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode], pData, buf);
+	bp->Apend((LPBYTE)(LPCSTR)buf, buf.GetLength());
 
 	GlobalUnlock(hData);
 	CloseClipboard();
-
-	CTextRam::MsToIconvUnicode((WCHAR *)(buf.GetPtr()), buf.GetSize() / sizeof(WCHAR), pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode]);
-	pDoc->m_TextRam.m_IConv.IConvBuf(_T("UCS-2LE"), pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode], &buf, bp);
 
 	return TRUE;
 }
 int CRLoginView::SetClipboad(CBuffer *bp)
 {
 	HGLOBAL hClipData;
-	WCHAR *pData;
-	CBuffer buf;
+	TCHAR *pData;
+	CString buf;
 	CRLoginDoc *pDoc = GetDocument();
 
-	pDoc->m_TextRam.m_IConv.IConvBuf(pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode], _T("UCS-2LE"), bp, &buf);
-	buf.PutWord(0);
-	for ( pData = (WCHAR *)(LPCWSTR)buf ; *pData != L'\0' ; pData++ )
-		*pData = CTextRam::IconvToMsUnicode(*pData);
+	pDoc->m_TextRam.m_IConv.RemoteToStr(pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode], (LPCSTR)bp, buf);
 
-	if ( (hClipData = GlobalAlloc(GMEM_MOVEABLE, buf.GetSize())) == NULL )
+	if ( (hClipData = GlobalAlloc(GMEM_MOVEABLE, (buf.GetLength() + 1) * sizeof(TCHAR))) == NULL )
 		return FALSE;
 
-	if ( (pData = (WCHAR *)GlobalLock(hClipData)) == NULL )
+	if ( (pData = (TCHAR *)GlobalLock(hClipData)) == NULL )
 		goto ENDOF;
 
-	memcpy(pData, buf.GetPtr(), buf.GetSize());
+	_tcscpy(pData, buf);
 	GlobalUnlock(hClipData);
 
 	if ( !OpenClipboard() )
@@ -566,7 +561,12 @@ int CRLoginView::SetClipboad(CBuffer *bp)
 		goto ENDOF;
 	}
 
+#ifdef	_UNICODE
 	SetClipboardData(CF_UNICODETEXT, hClipData);
+#else
+	SetClipboardData(CF_TEXT, hClipData);
+#endif
+
 	CloseClipboard();
 	return TRUE;
 
@@ -956,6 +956,7 @@ void CRLoginView::OnActivateView(BOOL bActivate, CView* pActivateView, CView* pD
 LRESULT CRLoginView::OnImeNotify(WPARAM wParam, LPARAM lParam)
 {
     switch(wParam) {
+#if 0
 	case IMN_SETCOMPOSITIONWINDOW:
 		HIMC hIMC;
 		LOGFONT LogFont;
@@ -968,6 +969,7 @@ LRESULT CRLoginView::OnImeNotify(WPARAM wParam, LPARAM lParam)
 			ImmReleaseContext(m_hWnd, hIMC);
 	    }
 		return TRUE;
+#endif
     case IMN_SETSTATUSWINDOWPOS:
 		ImmSetPos(m_CaretX, m_CaretY);
 		return TRUE;
@@ -1003,7 +1005,7 @@ afx_msg LRESULT CRLoginView::OnImeRequest(WPARAM wParam, LPARAM lParam)
 	switch(wParam) {
 	case IMR_DOCUMENTFEED:
 		if ( pReConvStr != NULL ) {
-#ifdef	_UNICDE
+#ifdef	_UNICODE
 			pDoc->m_TextRam.GetVram(0, pDoc->m_TextRam.m_CurX - 1, pDoc->m_TextRam.m_CurY, pDoc->m_TextRam.m_CurY, &tmp);
 			pos = tmp.GetSize();
 
@@ -1737,7 +1739,7 @@ BOOL CRLoginView::PreTranslateMessage(MSG* pMsg)
 void CRLoginView::OnDropFiles(HDROP hDropInfo)
 {
     int i;
-	char FileName[512];
+	TCHAR FileName[512];
     int NameSize = sizeof(FileName);
     int FileNumber;
 	CRLoginDoc *pDoc = GetDocument();

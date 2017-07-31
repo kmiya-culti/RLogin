@@ -9,22 +9,14 @@
 class CChildFrame : public CMDIChildWnd
 {
 	DECLARE_DYNCREATE(CChildFrame)
+
 public:
 	CChildFrame();
-
-// 属性
-protected:
-	CSplitterWnd m_wndSplitter;
-public:
-
-// 操作
-public:
-
-// オーバーライド
-public:
-	virtual BOOL OnCreateClient(LPCREATESTRUCT lpcs, CCreateContext* pContext);
-	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
-	virtual void ActivateFrame(int nCmdShow);
+	virtual ~CChildFrame();
+#ifdef _DEBUG
+	virtual void AssertValid() const;
+	virtual void Dump(CDumpContext& dc) const;
+#endif
 
 // 実装
 public:
@@ -33,11 +25,16 @@ public:
 	BOOL m_VScrollFlag;
 
 	void SetScrollBar(BOOL flag);
-	virtual ~CChildFrame();
-#ifdef _DEBUG
-	virtual void AssertValid() const;
-	virtual void Dump(CDumpContext& dc) const;
-#endif
+
+// コントロール用メンバ
+protected:
+	CSplitterWnd m_wndSplitter;
+
+// オーバーライド
+public:
+	virtual BOOL OnCreateClient(LPCREATESTRUCT lpcs, CCreateContext* pContext);
+	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
+	virtual void ActivateFrame(int nCmdShow);
 
 // 生成された、メッセージ割り当て関数
 protected:

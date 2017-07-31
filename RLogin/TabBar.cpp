@@ -91,7 +91,7 @@ void CTabBar::OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler)
 	int n;
 	TC_ITEM tci;
 	CString title;
-	char tmp[MAX_PATH + 2];
+	TCHAR tmp[MAX_PATH + 2];
 	CWnd *pWnd;
 	CMDIFrameWnd *pMainframe = ((CMDIFrameWnd *)AfxGetMainWnd());
 	CMDIChildWnd* pActive = (pMainframe == NULL ? NULL : pMainframe->MDIGetActive(NULL));
@@ -224,7 +224,7 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 		if ( n == idx || !m_TabCtrl.GetItemRect(n, rect) || !rect.PtInRect(point) )
 			continue;
 
-		char Text[MAX_PATH + 2];
+		TCHAR Text[MAX_PATH + 2];
 
 		tci.mask = TCIF_PARAM | TCIF_TEXT;
 		tci.pszText = Text;
@@ -339,7 +339,7 @@ BOOL CTabBar::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 	int n;
 	TCHITTESTINFO htinfo;
 
-	if ( AfxGetApp()->GetProfileInt("TabBar", "GhostWnd", 0) )
+	if ( AfxGetApp()->GetProfileInt(_T("TabBar"), _T("GhostWnd"), 0) )
 		return TRUE;
 
 	GetCursorPos(&htinfo.pt);

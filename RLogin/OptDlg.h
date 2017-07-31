@@ -1,23 +1,38 @@
-#if !defined(AFX_OPTDLG_H__62A00652_C3C5_4FF6_8FDF_89A5AFB8EDBE__INCLUDED_)
-#define AFX_OPTDLG_H__62A00652_C3C5_4FF6_8FDF_89A5AFB8EDBE__INCLUDED_
+#pragma once
+
+/////////////////////////////////////////////////////////////////////////////
+// CTreePropertyPage
+
+class CTreePropertyPage : public CPropertyPage
+{
+public:
+	class COptDlg *m_pSheet;
+	HTREEITEM m_hTreeItem;
+	class CTreePropertyPage *m_pOwn;
+
+	CTreePropertyPage();
+	explicit CTreePropertyPage(UINT nIDTemplate, UINT nIDCaption = 0, DWORD dwSize = sizeof(PROPSHEETPAGE));
+	virtual void OnReset();
+};
 
 #include "SerEntPage.h"
-#include "TermPage.h"	// ClassView によって追加されました。
-#include "ScrnPage.h"	// ClassView によって追加されました。
-#include "ProtoPage.h"	// ClassView によって追加されました。
-#include "CharSetPage.h"	// ClassView によって追加されました。
-#include "ColParaDlg.h"	// ClassView によって追加されました。
-#include "KeyPage.h"	// ClassView によって追加されました。
-#include "HisPage.h"	// ClassView によって追加されました。
-
-#if _MSC_VER > 1000
-#pragma once
-#endif // _MSC_VER > 1000
-// OptDlg.h : ヘッダー ファイル
-//
+#include "TermPage.h"
+#include "ScrnPage.h"
+#include "ProtoPage.h"
+#include "CharSetPage.h"
+#include "ColParaDlg.h"
+#include "KeyPage.h"
+#include "HisPage.h"
+#include "ClipPage.h"
+#include "MousePage.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // COptDlg
+
+#define	UMOD_ENTRY		001
+#define	UMOD_TEXTRAM	002
+#define	UMOD_KEYTAB		004
+#define	UMOD_PARAMTAB	010
 
 class COptDlg : public CPropertySheet
 {
@@ -25,28 +40,13 @@ class COptDlg : public CPropertySheet
 
 // コンストラクション
 public:
-	COptDlg(UINT nIDCaption, CWnd* pParentWnd = NULL, UINT iSelectPage = 0);
 	COptDlg(LPCTSTR pszCaption, CWnd* pParentWnd = NULL, UINT iSelectPage = 0);
 
-// アトリビュート
-public:
-
-// オペレーション
-public:
-
-// オーバーライド
-	// ClassWizard は仮想関数のオーバーライドを生成します。
-	//{{AFX_VIRTUAL(COptDlg)
-	public:
-	virtual BOOL OnInitDialog();
-	protected:
-	virtual BOOL OnCommand(WPARAM wParam, LPARAM lParam);
-	//}}AFX_VIRTUAL
-
-// インプリメンテーション
+// クラスデータ
 public:
 	CButton m_DoInit;
-	CButton m_DoAppDmy;
+	CStatic m_wndFrame;
+	CTreeCtrl m_wndTree;
 
 	CSerEntPage m_SerEntPage;
 	CKeyPage m_KeyPage;
@@ -56,32 +56,28 @@ public:
 	CTermPage m_TermPage;
 	CScrnPage m_ScrnPage;
 	CHisPage m_HisPage;
+	CClipPage m_ClipPage;
+	CMousePage m_MousePage;
 
 	CServerEntry *m_pEntry;
 	CTextRam *m_pTextRam;
 	CKeyNodeTab *m_pKeyTab;
 	CParamTab *m_pParamTab;
 	class CRLoginDoc *m_pDocument;
-
-#define	UMOD_ENTRY		001
-#define	UMOD_TEXTRAM	002
-#define	UMOD_KEYTAB		004
-#define	UMOD_PARAMTAB	010
 	int m_ModFlag;
 
-	virtual ~COptDlg();
+// クラスファンクション
+public:
+	void AddPage(CTreePropertyPage *pPage, CTreePropertyPage *pOwn = NULL);
 
-	// 生成されたメッセージ マップ関数
+// オーバーライド
 protected:
-	//{{AFX_MSG(COptDlg)
-	//}}AFX_MSG
+	virtual BOOL OnCommand(WPARAM wParam, LPARAM lParam);
+	virtual BOOL OnInitDialog();
+
+// インプリメンテーション
+protected:
 	afx_msg void OnDoInit();
+	afx_msg void OnSelchangedTree(NMHDR *pNMHDR, LRESULT *pResult);
 	DECLARE_MESSAGE_MAP()
 };
-
-/////////////////////////////////////////////////////////////////////////////
-
-//{{AFX_INSERT_LOCATION}}
-// Microsoft Visual C++ は前行の直前に追加の宣言を挿入します。
-
-#endif // !defined(AFX_OPTDLG_H__62A00652_C3C5_4FF6_8FDF_89A5AFB8EDBE__INCLUDED_)

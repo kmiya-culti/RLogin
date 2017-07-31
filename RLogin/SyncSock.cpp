@@ -62,18 +62,11 @@ static UINT ProcThread(LPVOID pParam)
 		pThis->m_pWnd->PostMessage(WM_THREADCMD, THCMD_ENDOF, (LPARAM)pThis);
 	return 0;
 }
-void CSyncSock::HostKanjiConv(CStringA &str)
-{
-	CStringA tmp = str;
-	m_pDoc->m_TextRam.m_IConv.IConvStr(m_pDoc->m_TextRam.m_SendCharSet[m_pDoc->m_TextRam.m_KanjiMode], _T("CP932"), tmp, str);
-}
-void CSyncSock::LocalKanjiConv(CStringA &str)
-{
-	CStringA tmp = str;
-	m_pDoc->m_TextRam.m_IConv.IConvStr(_T("CP932"), m_pDoc->m_TextRam.m_SendCharSet[m_pDoc->m_TextRam.m_KanjiMode], tmp, str);
-}
 void CSyncSock::ThreadCommand(int cmd)
 {
+	LPCTSTR p;
+	CString work;
+
 	switch(cmd) {
 	case THCMD_START:
 		if ( m_ThreadFlag )
@@ -98,7 +91,7 @@ void CSyncSock::ThreadCommand(int cmd)
 		if ( m_pDoc != NULL )
 			m_ProgDlg.m_pSock = m_pDoc->m_pSock;
 		m_ProgDlg.Create(IDD_PROGDLG, m_pWnd);
-		m_ProgDlg.SetWindowText(m_Message);
+		m_ProgDlg.SetWindowText(MbsToTstr(m_Message));
 		m_ProgDlg.ShowWindow(SW_SHOW);
 		m_pParamEvent->SetEvent();
 		break;
@@ -108,11 +101,11 @@ void CSyncSock::ThreadCommand(int cmd)
 		m_ProgDlg.DestroyWindow();
 		break;
 	case THCMD_DLGMESSAGE:
-		HostKanjiConv(m_Message);
+		work = m_pDoc->LocalStr(m_Message);
 		if ( m_ProgDlg.m_hWnd == NULL )
-			m_pWnd->MessageBox(m_Message);
+			m_pWnd->MessageBox(work);
 		else
-			m_ProgDlg.SetMessage(m_Message);
+			m_ProgDlg.SetMessage(work);
 		break;
 	case THCMD_DLGRANGE:
 		if ( m_ProgDlg.m_hWnd == NULL )
@@ -134,18 +127,19 @@ void CSyncSock::ThreadCommand(int cmd)
 		m_SendSema.Unlock();
 		break;
 	case THCMD_CHECKPATH:
-		HostKanjiConv(m_PathName);
 		RECHECK:
 		if ( !m_ResvPath.IsEmpty() ) {
-			char *p;
 			m_PathName = m_ResvPath.RemoveHead();
-			if ( (p = strrchr((char *)(LPCSTR)m_PathName, '\\')) != NULL || (p = strrchr((char *)(LPCSTR)m_PathName, ':')) != NULL )
-				m_FileName = p + 1;
+			if ( (p = _tcsrchr(m_PathName, _T('\\'))) != NULL || (p = _tcsrchr(m_PathName, _T(':'))) != NULL )
+				m_FileName = m_pDoc->RemoteStr(p + 1);
 			else
-				m_FileName = m_PathName;
+				m_FileName = m_pDoc->RemoteStr(m_PathName);
 			m_ResvDoit = TRUE;
 		} else {
-			CFileDialog dlg(((m_Param & 1) ? TRUE : FALSE), _T(""), m_PathName, OFN_HIDEREADONLY | ((m_Param & 2) ? OFN_ALLOWMULTISELECT : 0), CStringLoad(IDS_FILEDLGALLFILE), m_pWnd);
+			m_PathName = m_pDoc->LocalStr(m_FileName);
+			if ( (p = _tcsrchr(m_PathName, _T('.'))) == NULL )
+				p = _T(".");
+			CFileDialog dlg(((m_Param & 1) ? TRUE : FALSE), p + 1, m_PathName, OFN_HIDEREADONLY | ((m_Param & 2) ? OFN_ALLOWMULTISELECT : 0), CStringLoad(IDS_FILEDLGALLFILE), m_pWnd);
 			if ( dlg.DoModal() == IDOK ) {
 				if ( (m_Param & 2) != 0 ) {
 					POSITION pos = dlg.GetStartPosition();
@@ -154,19 +148,21 @@ void CSyncSock::ThreadCommand(int cmd)
 					if ( !m_ResvPath.IsEmpty() )
 						goto RECHECK;
 					m_PathName.Empty();
+					m_FileName.Empty();
 				} else {
 					m_PathName = dlg.GetPathName();
-					m_FileName = dlg.GetFileName();
+					m_FileName = m_pDoc->RemoteStr(dlg.GetFileName());
 				}
-			} else
+			} else {
 				m_PathName.Empty();
+				m_FileName.Empty();
+			}
 		}
-		LocalKanjiConv(m_FileName);
 		m_pParamEvent->SetEvent();
 		break;
 	case THCMD_YESNO:
-		HostKanjiConv(m_Message);
-		if ( m_pWnd->MessageBox(m_Message, _T("Question"), MB_ICONQUESTION | MB_YESNO) == IDYES )
+		work = m_pDoc->LocalStr(m_Message);
+		if ( m_pWnd->MessageBox(work, _T("Question"), MB_ICONQUESTION | MB_YESNO) == IDYES )
 			m_Param = 'Y';
 		m_pParamEvent->SetEvent();
 		break;
@@ -206,7 +202,7 @@ void CSyncSock::ThreadCommand(int cmd)
 		m_pParamEvent->SetEvent();
 		break;
 	case TGCMD_MESSAGE:
-		m_pWnd->MessageBox(m_Message);
+		m_pWnd->MessageBox(MbsToTstr(m_Message));
 		m_pParamEvent->SetEvent();
 		break;
 	}
@@ -342,11 +338,11 @@ char *CSyncSock::CheckFileName(int mode, LPCSTR file)
 	if ( m_DoAbortFlag )
 		return "";
 	m_Param = mode;
-	m_PathName = file;
+	m_FileName = file;
 	m_pParamEvent->ResetEvent();
 	m_pWnd->PostMessage(WM_THREADCMD, THCMD_CHECKPATH, (LPARAM)this);
 	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
-	return (char *)((LPCSTR)(m_PathName));
+	return (char *)((LPCSTR)(m_FileName));
 }
 int CSyncSock::YesOrNo(LPCSTR msg)
 {
@@ -443,19 +439,19 @@ void CSyncSock::Message(LPCSTR msg)
 
 //////////////////////////////////////////////////////////////////////
 
-FILE *CSyncSock::FileOpen(LPCSTR filename, LPCSTR mode, BOOL ascii)
+FILE *CSyncSock::FileOpen(LPCTSTR filename, LPCSTR mode, BOOL ascii)
 {
 	m_IsAscii = ascii;
 	m_InBuf.Clear();
 	m_OutBuf.Clear();
 	m_IConv.IConvClose();
 	m_HostCode = m_pDoc->m_TextRam.m_SendCharSet[m_pDoc->m_TextRam.m_KanjiMode];
-	return fopen(CStringA(filename), CStringA(mode));
+	return _tfopen(filename, MbsToTstr(mode));
 }
 void CSyncSock::FileClose(FILE *fp)
 {
 	if ( m_IConv.m_ErrCount > 0 || m_InBuf.GetSize() > 0 )
-		Message("文字コード変換でエラーが発生しました。\n正しく変換されていない可能性があります");
+		Message(TstrToMbs(CStringLoad(IDE_KANJICONVERROR)));
 	fclose(fp);
 }
 int CSyncSock::ReadCharToHost(FILE *fp)

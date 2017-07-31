@@ -14,29 +14,23 @@
 
 class CRLoginView : public CView
 {
+	DECLARE_DYNCREATE(CRLoginView)
+
 protected: // シリアライズ機能のみから作成します。
 	CRLoginView();
-	DECLARE_DYNCREATE(CRLoginView)
+
+public:
+	virtual ~CRLoginView();
+#ifdef _DEBUG
+	virtual void AssertValid() const;
+	virtual void Dump(CDumpContext& dc) const;
+#endif
 
 // アトリビュート
 public:
 	CRLoginDoc* GetDocument();
 
 // オペレーション
-public:
-
-// オーバーライド
-	// ClassWizard は仮想関数のオーバーライドを生成します。
-	//{{AFX_VIRTUAL(CRLoginView)
-	public:
-	virtual void OnDraw(CDC* pDC);  // このビューを描画する際にオーバーライドされます。
-	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
-	protected:
-	virtual void OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint);
-	virtual void OnActivateView(BOOL bActivate, CView* pActivateView, CView* pDeactiveView);
-	//}}AFX_VIRTUAL
-
-// インプリメンテーション
 public:
 	int m_Width, m_Height;
 	int m_Cols, m_Lines;
@@ -61,6 +55,7 @@ public:
 	UINT m_ClipTimer;
 	CPoint m_ClipSavePoint;
 	UINT m_ClipKeyFlags;
+
 	inline BOOL IsClipRectMode() { return (m_ClipKeyFlags & MK_CONTROL); }
 	inline BOOL IsClipLineMode() { return (m_ClipKeyFlags & (MK_SHIFT | 0x1000)); }
 	int GetClipboad(CBuffer *bp);
@@ -95,18 +90,19 @@ public:
 	inline class CMainFrame *GetMainWnd() { return (class CMainFrame *)AfxGetMainWnd(); }
 	inline class CRLoginApp *GetApp() { return (class CRLoginApp *)AfxGetApp(); }
 
-	virtual ~CRLoginView();
-#ifdef _DEBUG
-	virtual void AssertValid() const;
-	virtual void Dump(CDumpContext& dc) const;
-#endif
-
 protected:
 	int OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags);
 
-// 生成されたメッセージ マップ関数
+// オーバーライド
 protected:
-	//{{AFX_MSG(CRLoginView)
+	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
+	virtual void OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint);
+	virtual void OnActivateView(BOOL bActivate, CView* pActivateView, CView* pDeactiveView);
+	virtual void OnDraw(CDC* pDC);
+
+// インプリメンテーション
+protected:
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnMove(int x, int y);
@@ -134,11 +130,7 @@ protected:
 	afx_msg void OnRButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnEditCopy();
 	afx_msg void OnUpdateEditCopy(CCmdUI* pCmdUI);
-	//}}AFX_MSG
 	afx_msg void OnMacroHis(UINT nID);
-	DECLARE_MESSAGE_MAP()
-public:
-	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	afx_msg void OnDropFiles(HDROP hDropInfo);
 	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
 	afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
@@ -152,6 +144,7 @@ public:
 	afx_msg void OnKeyUp(UINT nChar, UINT nRepCnt, UINT nFlags);
 	afx_msg void OnSearchReg();
 	afx_msg void OnSearchNext();
+	DECLARE_MESSAGE_MAP()
 };
 
 #ifndef _DEBUG  // RLoginView.cpp ファイルがデバッグ環境の時使用されます。

@@ -92,20 +92,14 @@ public:
 class CMainFrame : public CMDIFrameWnd
 {
 	DECLARE_DYNAMIC(CMainFrame)
+
 public:
 	CMainFrame();
-
-// 属性
-public:
-
-// 操作
-public:
-
-// オーバーライド
-public:
-	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
-	virtual void RecalcLayout(BOOL bNotify = TRUE);
-	virtual BOOL PreTranslateMessage(MSG* pMsg);
+	virtual ~CMainFrame();
+#ifdef _DEBUG
+	virtual void AssertValid() const;
+	virtual void Dump(CDumpContext& dc) const;
+#endif
 
 // 実装
 public:
@@ -178,16 +172,17 @@ public:
 	void InvertTracker(CRect &rect);
 	int PreLButtonDown(UINT nFlags, CPoint point);
 
-	virtual ~CMainFrame();
-#ifdef _DEBUG
-	virtual void AssertValid() const;
-	virtual void Dump(CDumpContext& dc) const;
-#endif
-
-protected:  // コントロール バー用メンバ
+// コントロール バー用メンバ
+protected: 
 	CStatusBar  m_wndStatusBar;
 	CToolBar    m_wndToolBar;
 	CTabBar		m_wndTabBar;
+
+// オーバーライド
+public:
+	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
+	virtual void RecalcLayout(BOOL bNotify = TRUE);
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
 
 // 生成された、メッセージ割り当て関数
 protected:
@@ -206,21 +201,18 @@ protected:
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void OnFileAllSave();
-	//}}AFX_MSG
 	afx_msg LRESULT OnWinSockSelect(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnGetHostAddr(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnIConMsg(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnThreadMsg(WPARAM wParam, LPARAM lParam);
 	afx_msg void OnUpdateIndicatorSock(CCmdUI* pCmdUI);
 	afx_msg void OnFileAllLoad();
-	DECLARE_MESSAGE_MAP()
-
-public:
 	afx_msg BOOL OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCopyDataStruct);
 	afx_msg void OnEnterMenuLoop(BOOL bIsTrackPopupMenu);
 	afx_msg void OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized);
 	afx_msg void OnViewScrollbar();
 	afx_msg void OnUpdateViewScrollbar(CCmdUI *pCmdUI);
+	DECLARE_MESSAGE_MAP()
 };
 
 

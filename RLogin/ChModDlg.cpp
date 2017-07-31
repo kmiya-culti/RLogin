@@ -5,21 +5,14 @@
 #include "rlogin.h"
 #include "ChModDlg.h"
 
-#ifdef _DEBUG
-#define new DEBUG_NEW
-#undef THIS_FILE
-static char THIS_FILE[] = __FILE__;
-#endif
-
 /////////////////////////////////////////////////////////////////////////////
 // CChModDlg ダイアログ
 
+IMPLEMENT_DYNAMIC(CChModDlg, CDialog)
 
 CChModDlg::CChModDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CChModDlg::IDD, pParent)
 {
-	//{{AFX_DATA_INIT(CChModDlg)
-	//}}AFX_DATA_INIT
 	for ( int n = 0 ; n < 9 ; n++ )
 		m_Mode[n] = FALSE;
 	m_Attr = 0;
@@ -28,16 +21,12 @@ CChModDlg::CChModDlg(CWnd* pParent /*=NULL*/)
 void CChModDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
-	//{{AFX_DATA_MAP(CChModDlg)
-	//}}AFX_DATA_MAP
+
 	for ( int n = 0 ; n < 9 ; n++ )
 		DDX_Check(pDX, IDC_CHMOD1 + n, m_Mode[n]);
 }
 
-
 BEGIN_MESSAGE_MAP(CChModDlg, CDialog)
-	//{{AFX_MSG_MAP(CChModDlg)
-	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////

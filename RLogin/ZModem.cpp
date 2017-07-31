@@ -193,7 +193,7 @@ int CZModem::Send_blk(FILE *fp, int bk, int len, int crcopt, int hd)
 		if ( hd == 1 ) {
 			strcpy(tmp, m_FileName);
 			while ( tmp[sz++] != '\0' ) ;
-			if ( !_stati64(m_PathName, &st) ) {
+			if ( !_tstati64(m_PathName, &st) ) {
 				sprintf(tmp + sz, "%I64d %I64o %o", st.st_size, st.st_mtime, st.st_mode);
 				while ( tmp[sz++] != '\0' ) ;
 			}
@@ -306,7 +306,7 @@ int CZModem::XUpLoad()
 	if ( m_PathName.IsEmpty() )
 		goto CANRET;
 
-    if ( (fp = fopen(m_PathName, "rb")) == NULL )
+    if ( (fp = _tfopen(m_PathName, _T("rb"))) == NULL )
 		goto CANRET;
 
     _fseeki64(fp, 0L, SEEK_END);
@@ -388,7 +388,7 @@ int CZModem::XDownLoad()
 	if ( m_PathName.IsEmpty() )
 		goto CANRET;
 
-	if ( (fp = fopen(m_PathName, "wb")) == NULL )
+	if ( (fp = _tfopen(m_PathName, _T("wb"))) == NULL )
 		goto CANRET;
 
     UpDownOpen("XModem File Download");
@@ -482,7 +482,7 @@ int CZModem::YUpLoad()
 	if ( m_PathName.IsEmpty() )
 		goto CANRET;
 
-    if ( (fp = fopen(m_PathName, "rb")) == NULL )
+    if ( (fp = _tfopen(m_PathName, _T("rb"))) == NULL )
 		goto CANRET;
 
     _fseeki64(fp, 0L, SEEK_END);
@@ -638,7 +638,7 @@ RELOAD:
 	if ( m_PathName.IsEmpty() )
 		goto CANRET;
 
-	if ( (fp = fopen(m_PathName, "wb")) == NULL )
+	if ( (fp = _tfopen(m_PathName, _T("wb"))) == NULL )
 		goto CANRET;
 
     UpDownOpen("YModem File Download");
@@ -701,7 +701,7 @@ RELOAD:
 	if ( file_time != 0 ) {
 		utm.actime  = (time_t)file_time;
 		utm.modtime = (time_t)file_time;
-		_utime(m_PathName, &utm);
+		_tutime(m_PathName, &utm);
 	}
 	goto RELOAD;
 
@@ -748,7 +748,7 @@ NEXTFILE:
 	if ( m_PathName.IsEmpty() )
 		return ERR;
 
-	if ( _stati64(m_PathName, &st) )
+	if ( _tstati64(m_PathName, &st) )
 		return ERR;
 
 	if ( st.st_size > 0x7FFFFFFF ) {
@@ -756,7 +756,7 @@ NEXTFILE:
 		return ERR;
 	}
 
-    if ( (fp = fopen(m_PathName, "rb")) == NULL )
+    if ( (fp = _tfopen(m_PathName, _T("rb"))) == NULL )
 		return ERR;
 
 	fileSize = (ULONG)st.st_size;
@@ -962,7 +962,7 @@ int CZModem::ZDownFile()
 
 	Txpos = 0;
 
-	if ( (fp = fopen(m_PathName, "rb+")) != NULL ) {
+	if ( (fp = _tfopen(m_PathName, _T("rb+"))) != NULL ) {
 		crc = 0xFFFFFFFFL;
 		for ( ; (c = fgetc(fp)) != EOF ; Txpos++ )
 			crc = UPDC32(c, crc);
@@ -985,7 +985,7 @@ int CZModem::ZDownFile()
 		}
 	}
 	
-	if ( fp == NULL && (fp = fopen(m_PathName, "wb")) == NULL )
+	if ( fp == NULL && (fp = _tfopen(m_PathName, _T("wb"))) == NULL )
 		goto ERRRET;
 
 	UpDownOpen("ZModem File Download");
@@ -1042,7 +1042,7 @@ int CZModem::ZDownFile()
 				struct _utimbuf utm;
 				utm.actime  = (time_t)fileMtime;
 				utm.modtime = (time_t)fileMtime;
-				_utime(m_PathName, &utm);
+				_tutime(m_PathName, &utm);
 			}
 			return FALSE;
 

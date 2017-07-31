@@ -26,23 +26,20 @@ static char THIS_FILE[] = __FILE__;
 IMPLEMENT_DYNCREATE(CProtoPage, CPropertyPage)
 
 #define	CHECKOPTMAX		13
-#define	CHECKOPTEXT		2
+#define	CHECKOPTEXT		3
 #define	IDC_CHECKFAST	IDC_PROTOCHECK1
 static const int CheckOptTab[] = { TO_RLTENAT, TO_RLTENEC,   TO_SSH1MODE,  TO_SSHPFORY,
 								   TO_RLPOFF,  TO_RLUSEPASS, TO_RLDSECHO,  TO_RLBPLUS,
 								   TO_RLDELAY, TO_RLKEEPAL,  TO_SSHKEEPAL, TO_SSHAGENT,
 								   TO_RLTENLM,
-								   TO_SSHSFENC,TO_SSHSFMAC	};								// Extend
+								   TO_SSHSFENC,TO_SSHSFMAC,  TO_SSHX11PF	};		// Extend
 
-CProtoPage::CProtoPage() : CPropertyPage(CProtoPage::IDD)
+CProtoPage::CProtoPage() : CTreePropertyPage(CProtoPage::IDD)
 {
-	//{{AFX_DATA_INIT(CProtoPage)
 	m_DelayMsec = 0;
 	m_KeepAlive = 0;
-	//}}AFX_DATA_INIT
 	for ( int n = 0 ; n < CHECKOPTMAX + CHECKOPTEXT ; n++ )
 		m_Check[n] = FALSE;
-	m_pSheet = NULL;
 }
 
 CProtoPage::~CProtoPage()
@@ -52,27 +49,42 @@ CProtoPage::~CProtoPage()
 void CProtoPage::DoDataExchange(CDataExchange* pDX)
 {
 	CPropertyPage::DoDataExchange(pDX);
-	//{{AFX_DATA_MAP(CProtoPage)
+
 	DDX_Text(pDX, IDC_DELAYMSEC, m_DelayMsec);
 	DDV_MinMaxUInt(pDX, m_DelayMsec, 0, 3000);
 	DDX_Text(pDX, IDC_KEEPALIVE, m_KeepAlive);
-	//}}AFX_DATA_MAP
 	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
 		DDX_Check(pDX, IDC_PROTOCHECK1 + n, m_Check[n]);
 }
 
 BEGIN_MESSAGE_MAP(CProtoPage, CPropertyPage)
-	//{{AFX_MSG_MAP(CProtoPage)
 	ON_BN_CLICKED(IDC_SSHALGO, OnSshAlgo)
 	ON_BN_CLICKED(IDC_SSHIDKEY, OnSshIdkey)
 	ON_BN_CLICKED(IDC_SSHPFD, OnSshPfd)
-	//}}AFX_MSG_MAP
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_CHECKFAST, IDC_CHECKFAST + CHECKOPTMAX - 1, OnUpdateCheck)
 	ON_EN_CHANGE(IDC_DELAYMSEC, OnUpdateEdit)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
 // CProtoPage メッセージ ハンドラ
+
+void CProtoPage::DoInit()
+{
+	for ( int n = 0 ; n < CHECKOPTMAX + CHECKOPTEXT ; n++ )
+		m_Check[n] = (m_pSheet->m_pTextRam->IsOptEnable(CheckOptTab[n]) ? TRUE : FALSE);
+
+	m_DelayMsec = m_pSheet->m_pTextRam->m_DelayMSec;
+	m_KeepAlive = m_pSheet->m_pTextRam->m_KeepAliveSec;
+	
+	for ( int n = 0 ; n < 12 ; n++ )
+		m_AlgoTab[n] = m_pSheet->m_pParamTab->m_AlgoTab[n];
+
+	m_IdKeyList = m_pSheet->m_pParamTab->m_IdKeyList;
+	m_PortFwd   = m_pSheet->m_pParamTab->m_PortFwd;
+	m_XDisplay  = m_pSheet->m_pParamTab->m_XDisplay;
+
+	UpdateData(FALSE);
+}
 
 BOOL CProtoPage::OnInitDialog() 
 {
@@ -81,14 +93,8 @@ BOOL CProtoPage::OnInitDialog()
 	ASSERT(m_pSheet->m_pParamTab);
 
 	CPropertyPage::OnInitDialog();
-	for ( int n = 0 ; n < CHECKOPTMAX + CHECKOPTEXT ; n++ )
-		m_Check[n] = (m_pSheet->m_pTextRam->IsOptEnable(CheckOptTab[n]) ? TRUE : FALSE);
 
-	m_DelayMsec = m_pSheet->m_pTextRam->m_DelayMSec;
-	m_KeepAlive = m_pSheet->m_pTextRam->m_KeepAliveSec;
-	ParamTabTemp = *(m_pSheet->m_pParamTab);
-
-	UpdateData(FALSE);
+	DoInit();
 
 	return TRUE;
 }
@@ -99,6 +105,7 @@ BOOL CProtoPage::OnApply()
 	ASSERT(m_pSheet->m_pParamTab);
 
 	UpdateData(TRUE);
+
 	for ( int n = 0 ; n < CHECKOPTMAX + CHECKOPTEXT ; n++ ) {
 		if ( m_Check[n] )
 			m_pSheet->m_pTextRam->EnableOption(CheckOptTab[n]);
@@ -108,67 +115,81 @@ BOOL CProtoPage::OnApply()
 
 	m_pSheet->m_pTextRam->m_DelayMSec    = m_DelayMsec;
 	m_pSheet->m_pTextRam->m_KeepAliveSec = m_KeepAlive;
-	*(m_pSheet->m_pParamTab) = ParamTabTemp;
+
+	for ( int n = 0 ; n < 12 ; n++ )
+		m_pSheet->m_pParamTab->m_AlgoTab[n] = m_AlgoTab[n];
+
+	m_pSheet->m_pParamTab->m_IdKeyList = m_IdKeyList;
+	m_pSheet->m_pParamTab->m_PortFwd   = m_PortFwd;
+	m_pSheet->m_pParamTab->m_XDisplay  = m_XDisplay;
 
 	return TRUE;
 }
 void CProtoPage::OnReset() 
 {
-	if ( m_hWnd == NULL )
-		return;
+	ASSERT(m_pSheet);
+	ASSERT(m_pSheet->m_pTextRam);
+	ASSERT(m_pSheet->m_pParamTab);
 
-	for ( int n = 0 ; n < CHECKOPTMAX + CHECKOPTEXT ; n++ )
-		m_Check[n] = (m_pSheet->m_pTextRam->IsOptEnable(CheckOptTab[n]) ? TRUE : FALSE);
-
-	m_DelayMsec = m_pSheet->m_pTextRam->m_DelayMSec;
-	m_KeepAlive = m_pSheet->m_pTextRam->m_KeepAliveSec;
-	ParamTabTemp = *(m_pSheet->m_pParamTab);
-
-	UpdateData(FALSE);
+	DoInit();
 	SetModified(FALSE);
 }
 
 void CProtoPage::OnSshAlgo() 
 {
-	ASSERT(m_pSheet);
+	int n;
 	CAlgoDlg dlg;
-	dlg.m_pData = &ParamTabTemp;
+
+	for ( n = 0 ; n < 12 ; n++ )
+		dlg.m_AlgoTab[n] = m_AlgoTab[n];
+
 	dlg.m_EncShuffle = m_Check[CHECKOPTMAX + 0];
 	dlg.m_MacShuffle = m_Check[CHECKOPTMAX + 1];
+
 	if ( dlg.DoModal() != IDOK )
 		return;
-	SetModified(TRUE);
+
+	for ( n = 0 ; n < 12 ; n++ )
+		m_AlgoTab[n] = dlg.m_AlgoTab[n];
+
 	m_Check[CHECKOPTMAX + 0] = dlg.m_EncShuffle;
 	m_Check[CHECKOPTMAX + 1] = dlg.m_MacShuffle;
+
+	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= (UMOD_TEXTRAM | UMOD_PARAMTAB);
 }
 void CProtoPage::OnSshIdkey() 
 {
-	ASSERT(m_pSheet);
 	CIdkeySelDLg dlg;
+
 	dlg.m_pIdKeyTab = &(((CMainFrame *)AfxGetMainWnd())->m_IdKeyTab);
-	dlg.m_pParamTab = &ParamTabTemp;
+	dlg.m_IdKeyList = m_IdKeyList;
+
 	if ( dlg.DoModal() != IDOK )
 		return;
+
+	m_IdKeyList = dlg.m_IdKeyList;
+
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= (UMOD_TEXTRAM | UMOD_PARAMTAB);
 }
 void CProtoPage::OnSshPfd() 
 {
-	ASSERT(m_pSheet);
 	CPfdListDlg dlg;
-	dlg.m_pData = &ParamTabTemp;
-	dlg.m_pEntry = m_pSheet->m_pEntry;
-	dlg.m_X11PortFlag = (m_pSheet->m_pTextRam->IsOptEnable(TO_SSHX11PF) ? TRUE : FALSE);
-	dlg.m_XDisplay = ParamTabTemp.m_XDisplay;
-	dlg.DoModal();
-	if ( !dlg.m_ModifiedFlag )
+
+	dlg.m_pEntry      = m_pSheet->m_pEntry;
+
+	dlg.m_X11PortFlag = m_Check[CHECKOPTMAX + 2];
+	dlg.m_PortFwd     = m_PortFwd;
+	dlg.m_XDisplay    = m_XDisplay;
+
+	if ( dlg.DoModal() != IDOK )
 		return;
-	if ( dlg.m_X11PortFlag )
-		m_pSheet->m_pTextRam->EnableOption(TO_SSHX11PF);
-	else
-		m_pSheet->m_pTextRam->DisableOption(TO_SSHX11PF);
-	ParamTabTemp.m_XDisplay = dlg.m_XDisplay;
+
+	m_Check[CHECKOPTMAX + 2] = dlg.m_X11PortFlag;
+	m_PortFwd   = dlg.m_PortFwd;
+	m_XDisplay  = dlg.m_XDisplay;
+
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= (UMOD_TEXTRAM | UMOD_PARAMTAB);
 }

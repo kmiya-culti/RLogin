@@ -517,7 +517,7 @@ BOOL CALLBACK RLoginEnumFunc(HWND hwnd, LPARAM lParam)
 		pApp->m_pCmdInfo->GetString(cmdLine);
 		COPYDATASTRUCT copyData;
 		copyData.dwData = 0x524c4f31;
-		copyData.cbData = cmdLine.GetAllocLength();
+		copyData.cbData = cmdLine.GetLength() * sizeof(TCHAR);
 		copyData.lpData = cmdLine.GetBuffer();
 		::SendMessage(hwnd, WM_COPYDATA, (WPARAM)(pApp->m_pMainWnd->GetSafeHwnd()), (LPARAM)&copyData);
 		return FALSE;
@@ -675,26 +675,26 @@ void CRLoginApp::RegisterShellProtocol(LPCTSTR pSection, LPCTSTR pOption)
 
 	if( AfxRegCreateKey(HKEY_CURRENT_USER, strTemp, &(hKey[0])) == ERROR_SUCCESS ) {
 
-		strTemp = _T("URL: ssh Protocol");
-		RegSetValueEx(hKey[0], _T(""), 0, REG_SZ, (const LPBYTE)(LPCTSTR)strTemp, strTemp.GetLength() + 1);
+		strTemp.Format(_T("URL: %s Protocol"), pSection);
+		RegSetValueEx(hKey[0], _T(""), 0, REG_SZ, (const LPBYTE)(LPCTSTR)strTemp, (strTemp.GetLength() + 1) * sizeof(TCHAR));
 		val = 8;
 		RegSetValueEx(hKey[0], _T("BrowserFlags"), 0, REG_DWORD, (const LPBYTE)(&val), sizeof(val));
 		val = 2;
 		RegSetValueEx(hKey[0], _T("EditFlags"), 0, REG_DWORD, (const LPBYTE)(&val), sizeof(val));
 		strTemp = "";
-		RegSetValueEx(hKey[0], _T("URL Protocol"), 0, REG_SZ, (const LPBYTE)(LPCTSTR)strTemp, strTemp.GetLength() + 1);
+		RegSetValueEx(hKey[0], _T("URL Protocol"), 0, REG_SZ, (const LPBYTE)(LPCTSTR)strTemp, (strTemp.GetLength() + 1) * sizeof(TCHAR));
 
 		RegSetValueEx(hKey[0], _T("OldDefine"), 0, REG_BINARY, (const LPBYTE)buf.GetPtr(), buf.GetSize());
 
 		if( AfxRegCreateKey(hKey[0], _T("DefaultIcon"), &(hKey[1])) == ERROR_SUCCESS ) {
-			RegSetValueEx(hKey[1], _T(""), 0, REG_SZ, (const LPBYTE)(LPCTSTR)strDefaultIconCommandLine, strDefaultIconCommandLine.GetLength() + 1);
+			RegSetValueEx(hKey[1], _T(""), 0, REG_SZ, (const LPBYTE)(LPCTSTR)strDefaultIconCommandLine, (strDefaultIconCommandLine.GetLength() + 1) * sizeof(TCHAR));
 			RegCloseKey(hKey[1]);
 		}
 
 		if( AfxRegCreateKey(hKey[0], _T("shell"), &(hKey[1])) == ERROR_SUCCESS ) {
 			if( AfxRegCreateKey(hKey[1], _T("open"), &(hKey[2])) == ERROR_SUCCESS ) {
 				if( AfxRegCreateKey(hKey[2], _T("command"), &(hKey[3])) == ERROR_SUCCESS ) {
-					RegSetValueEx(hKey[3], _T(""), 0, REG_SZ, (const LPBYTE)(LPCTSTR)strOpenCommandLine, strOpenCommandLine.GetLength() + 1);
+					RegSetValueEx(hKey[3], _T(""), 0, REG_SZ, (const LPBYTE)(LPCTSTR)strOpenCommandLine, (strOpenCommandLine.GetLength() + 1) * sizeof(TCHAR));
 					RegCloseKey(hKey[3]);
 				}
 				RegCloseKey(hKey[2]);
@@ -748,7 +748,7 @@ void CRLoginApp::RegisterSave(HKEY hKey, LPCTSTR pSection, CBuffer &buf)
 
 	buf.Put32Bit(menba.GetSize());
 	for ( n = 0 ; n < menba.GetSize() ; n++ ) {
-		buf.PutStr(menba[n]);
+		buf.PutStr(TstrToMbs(menba[n]));
 		RegisterSave(reg.m_hKey, menba[n], buf);
 	}
 
@@ -761,6 +761,7 @@ void CRLoginApp::RegisterLoad(HKEY hKey, LPCTSTR pSection, CBuffer &buf)
 	DWORD type, len;
 	CString name;
 	CBuffer work;
+	CStringA mbs;
 
 	if ( buf.GetSize() < 4 )
 		return;
@@ -774,7 +775,8 @@ void CRLoginApp::RegisterLoad(HKEY hKey, LPCTSTR pSection, CBuffer &buf)
 
 	len = buf.Get32Bit();
 	for ( n = 0 ; n < len ; n++ ) {
-		buf.GetStr(name);
+		buf.GetStr(mbs);
+		name = mbs;
 		RegisterLoad(reg.m_hKey, name, buf);
 	}
 

@@ -47,10 +47,10 @@ CFileNode::CFileNode()
 	m_atime = 0;
 	m_mtime = 0;
 	m_icon  = 1;
-	m_file  = "";
-	m_sub   = "";
-	m_path  = "";
-	m_name  = "";
+	m_file  = _T("");
+	m_sub   = _T("");
+	m_path  = _T("");
+	m_name  = _T("");
 	m_pLeft = NULL;
 	m_pRight = NULL;
 	m_link  = FALSE;
@@ -133,26 +133,26 @@ const CFileNode & CFileNode::operator = (CFileNode &data)
 	m_link  = data.m_link;
 	return *this;
 }
-int CFileNode::SetFileStat(LPCSTR file)
+int CFileNode::SetFileStat(LPCTSTR file)
 {
 	struct _utimbuf utm;
 
 	utm.actime  = m_atime;
 	utm.modtime = m_mtime;
 
-	if ( _utime(file, &utm) )
+	if ( _tutime(file, &utm) )
 		return FALSE;
 
-	if ( _chmod(file, m_attr) )
+	if ( _tchmod(file, m_attr) )
 		return FALSE;
 
 	return TRUE;
 }
-int CFileNode::GetFileStat(LPCSTR path, LPCSTR file)
+int CFileNode::GetFileStat(LPCTSTR path, LPCTSTR file)
 {
 	struct _stati64 st;
 
-	if ( _stati64(path, &st) )
+	if ( _tstati64(path, &st) )
 		return FALSE;
 
 	m_flags = SSH2_FILEXFER_ATTR_SIZE | SSH2_FILEXFER_ATTR_PERMISSIONS | SSH2_FILEXFER_ATTR_ACMODTIME;
@@ -164,91 +164,94 @@ int CFileNode::GetFileStat(LPCSTR path, LPCSTR file)
 	m_mtime = st.st_mtime;
 	m_file  = file;
 	m_path  = path;
-	m_name  = "";
+	m_name  = _T("");
 
 	SetSubName();
 
 	return TRUE;
 }
-LPCSTR CFileNode::GetFileSize()
+LPCTSTR CFileNode::GetFileSize()
 {
 	if ( (m_flags & SSH2_FILEXFER_ATTR_SIZE) == 0 )
-		return "";
+		return _T("");
 	if ( (m_flags & SSH2_FILEXFER_ATTR_PERMISSIONS) != 0 && (m_attr & _S_IFMT) == _S_IFDIR )
-		return "DIR";
-	m_name.Format("%I64d", m_size);
+		return _T("DIR");
+	m_name.Format(_T("%I64d"), m_size);
 	return m_name;
 }
-LPCSTR CFileNode::GetUserID()
+LPCTSTR CFileNode::GetUserID()
 {
 	if ( (m_flags & SSH2_FILEXFER_ATTR_UIDGID) == 0 )
-		return "";
-	m_name.Format("%d", m_uid);
+		return _T("");
+	m_name.Format(_T("%d"), m_uid);
 	return m_name;
 }
-LPCSTR CFileNode::GetGroupID()
+LPCTSTR CFileNode::GetGroupID()
 {
 	if ( (m_flags & SSH2_FILEXFER_ATTR_UIDGID) == 0 )
-		return "";
-	m_name.Format("%d", m_gid);
+		return _T("");
+	m_name.Format(_T("%d"), m_gid);
 	return m_name;
 }
-LPCSTR CFileNode::GetAttr()
+LPCTSTR CFileNode::GetAttr()
 {
 	if ( (m_flags & SSH2_FILEXFER_ATTR_PERMISSIONS) == 0 )
-		return "";
+		return _T("");
 
-	m_name = ((m_link || (m_attr & _S_IFMT) == _S_IFLNK) ? "l" : ((m_attr & _S_IFMT) == _S_IFDIR ? "d" : "-"));
+	m_name = ((m_link || (m_attr & _S_IFMT) == _S_IFLNK) ? _T("l") : ((m_attr & _S_IFMT) == _S_IFDIR ? _T("d") : _T("-")));
 	for ( int b = 0400 ; b != 0 ; ) {
-		m_name += ((m_attr & b) != 0 ? 'r' : '-'); b >>= 1;
-		m_name += ((m_attr & b) != 0 ? 'w' : '-'); b >>= 1;
-		m_name += ((m_attr & b) != 0 ? 'x' : '-'); b >>= 1;
+		m_name += ((m_attr & b) != 0 ? _T('r') : _T('-')); b >>= 1;
+		m_name += ((m_attr & b) != 0 ? _T('w') : _T('-')); b >>= 1;
+		m_name += ((m_attr & b) != 0 ? _T('x') : _T('-')); b >>= 1;
 	}
 
 	return m_name;
 }
-LPCSTR CFileNode::GetAcsTime()
+LPCTSTR CFileNode::GetAcsTime()
 {
 	if ( (m_flags & SSH2_FILEXFER_ATTR_ACMODTIME) == 0 )
-		return "";
+		return _T("");
 	CTime t(m_atime);
-	m_name = t.Format("%y/%m/%d %H:%M:%S");
+	m_name = t.Format(_T("%y/%m/%d %H:%M:%S"));
 	return m_name;
 }
-LPCSTR CFileNode::GetModTime()
+LPCTSTR CFileNode::GetModTime()
 {
 	if ( (m_flags & SSH2_FILEXFER_ATTR_ACMODTIME) == 0 )
-		return "";
+		return _T("");
 	CTime t(m_mtime);
-	m_name = t.Format("%y/%m/%d %H:%M:%S");
+	m_name = t.Format(_T("%y/%m/%d %H:%M:%S"));
 	return m_name;
 }
-void CFileNode::AutoRename(LPCSTR p, CString &tmp, int mode)
+void CFileNode::AutoRename(LPCTSTR p, CString &tmp, int mode)
 {
 	int n;
 	CString work;
-	LPCSTR s;
-	LPCSTR ext = (mode == 0 ? "%00%" : "!");
+	LPCTSTR s;
+	LPCTSTR ext = (mode == 0 ? _T("%00%") : _T("!"));
 
-	static const char *renStr = "\\<>:\"/?*%";
-	static const char *renTab[] = { "￥", "＜", "＞", "：", "”", "／", "？", "＊", "%" };
-	static const char *badTab[] = {
-		"AUX",		"CLOCK$",	"COM1",		"COM2",		"COM3",		// 5
-		"COM4",		"COM5",		"COM6",		"COM7",		"COM8",		// 10
-		"COM9",		"CON",		"CONFIG$",	"LPT1",		"LPT2",		// 15
-		"LPT3",		"LPT4",		"LPT5",		"LPT6",		"LPT7",		// 20
-		"LPT8",		"LPT9",		"NUL",		"PRN"					// 24
+	static LPCTSTR renStr = _T("\\<>:\"/?*%");
+	static LPCTSTR renTab[] = { _T("￥"), _T("＜"), _T("＞"), _T("："), _T("”"), _T("／"), _T("？"), _T("＊"), _T("%") };
+	static LPCTSTR badTab[] = {
+		_T("AUX"),		_T("CLOCK$"),	_T("COM1"),		_T("COM2"),		_T("COM3"),		// 5
+		_T("COM4"),		_T("COM5"),		_T("COM6"),		_T("COM7"),		_T("COM8"),		// 10
+		_T("COM9"),		_T("CON"),		_T("CONFIG$"),	_T("LPT1"),		_T("LPT2"),		// 15
+		_T("LPT3"),		_T("LPT4"),		_T("LPT5"),		_T("LPT6"),		_T("LPT7"),		// 20
+		_T("LPT8"),		_T("LPT9"),		_T("NUL"),		_T("PRN")						// 24
 	};
 
-	for ( ; *p != '\0' ; p++ ) {
+	for ( ; *p != _T('\0') ; p++ ) {
+#ifndef	_UNICODE
 		if ( issjis1(p[0]) && issjis2(p[1]) ) {
 			tmp += *(p++);
 			tmp += *p;
-		} else if ( (s = strchr(renStr, *p)) != NULL || *p < ' ' ) {
+		} else
+#endif
+		if ( (s = _tcschr(renStr, *p)) != NULL || *p < _T(' ') ) {
 			if ( s != NULL && mode != 0 ) {
-				tmp += renTab[(int)(s - renStr)];
+				tmp += renTab[(int)(s - renStr) / sizeof(TCHAR)];
 			} else {
-				work.Format("%%%02x%%", *p);
+				work.Format(_T("%%%02x%%"), *p);
 				tmp += work;
 			}
 		} else
@@ -258,14 +261,14 @@ void CFileNode::AutoRename(LPCSTR p, CString &tmp, int mode)
 	if ( (n = tmp.GetLength()) == 0 )
 		return;
 
-	if ( tmp[n - 1] == ' ' || tmp[n - 1] == '.' || BinaryFind((void *)(LPCSTR)tmp, badTab, sizeof(char *), 24, (int (*)(const void *, const void *))stricmp, NULL) )
+	if ( tmp[n - 1] == _T(' ') || tmp[n - 1] == _T('.') || BinaryFind((void *)(LPCTSTR)tmp, badTab, sizeof(char *), 24, (int (*)(const void *, const void *))_tcsicmp, NULL) )
 		tmp += ext;
 }
-LPCSTR CFileNode::GetLocalPath(LPCSTR dir, class CSFtp *pWnd)
+LPCTSTR CFileNode::GetLocalPath(LPCTSTR dir, class CSFtp *pWnd)
 {
 	m_name = dir;
-	if ( m_name.Right(1).Compare("\\") != 0 )
-		m_name += "\\";
+	if ( m_name.Right(1).Compare(_T("\\")) != 0 )
+		m_name += _T("\\");
 
 	CString tmp[4];
 	struct _stati64 st;
@@ -277,9 +280,9 @@ LPCSTR CFileNode::GetLocalPath(LPCSTR dir, class CSFtp *pWnd)
 		tmp[2] = m_name + tmp[0];
 		tmp[3] = m_name + tmp[1];
 
-		if ( !_stati64(tmp[2], &st) )
+		if ( !_tstati64(tmp[2], &st) )
 			m_name += tmp[0];
-		else if ( !_stati64(tmp[3], &st) )
+		else if ( !_tstati64(tmp[3], &st) )
 			m_name += tmp[1];
 		else {
 			CAutoRenDlg dlg(pWnd);
@@ -288,7 +291,7 @@ LPCSTR CFileNode::GetLocalPath(LPCSTR dir, class CSFtp *pWnd)
 			dlg.m_Name[0] = tmp[0];
 			dlg.m_Name[1] = tmp[1];
 			dlg.m_Name[2] = m_file;
-			dlg.m_NameOK  = "×";
+			dlg.m_NameOK  = _T("×");
 
 			if ( (pWnd->m_AutoRenMode & 0x80) == 0 || pWnd->m_AutoRenMode == 0x82 ) {
 				if ( dlg.DoModal() != IDOK )
@@ -311,21 +314,24 @@ LPCSTR CFileNode::GetLocalPath(LPCSTR dir, class CSFtp *pWnd)
 
 #define	htoc(c)		(isdigit(c) ? ((c) - '0') : ((c) >= 'a' ? ((c) - 'a' + 10) : ((c) - 'A') + 10))
 
-LPCSTR CFileNode::GetRemotePath(LPCSTR dir, class CSFtp *pWnd)
+LPCTSTR CFileNode::GetRemotePath(LPCTSTR dir, class CSFtp *pWnd)
 {
 	m_name = dir;
-	if ( m_name.Right(1).Compare("/") != 0 )
-		m_name += "/";
+	if ( m_name.Right(1).Compare(_T("/")) != 0 )
+		m_name += _T("/");
 
-	LPCSTR p = m_file;
+	LPCTSTR p = m_file;
 	CString tmp;
 
-	for ( ; *p != '\0' ; p++ ) {
+	for ( ; *p != _T('\0') ; p++ ) {
+#ifndef	_UNICODE
 		if ( issjis1(p[0]) && issjis2(p[1]) ) {
 			tmp += *(p++);
 			tmp += *p;
-		} else if ( p[0] == '%' && isxdigit(p[1]) && isxdigit(p[2]) && p[3] == '%' ) {
-			tmp += (char)(htoc(p[1]) * 16 + htoc(p[2]));
+		} else
+#endif
+		if ( p[0] == _T('%') && isxdigit(p[1]) && isxdigit(p[2]) && p[3] == _T('%') ) {
+			tmp += (TCHAR)(htoc(p[1]) * 16 + htoc(p[2]));
 			p += 3;
 		} else
 			tmp += *p;
@@ -337,7 +343,7 @@ LPCSTR CFileNode::GetRemotePath(LPCSTR dir, class CSFtp *pWnd)
 		else if ( (pWnd->m_AutoRenMode & 0x80) != 0 )
 			m_name += m_file;
 		else {
-			if ( pWnd->MessageBox("ファイル名変換規則に該当する名前です。変換しますか？", "QUESTION", MB_YESNO) == IDYES ) {
+			if ( pWnd->MessageBox(CStringLoad(IDE_FILENAMEERROR), _T("QUESTION"), MB_YESNO) == IDYES ) {
 				pWnd->m_AutoRenMode = 0x80;
 				m_name += tmp;
 			} else
@@ -350,15 +356,15 @@ LPCSTR CFileNode::GetRemotePath(LPCSTR dir, class CSFtp *pWnd)
 }
 
 static const struct _SubTab {
-		char	*name;
+		LPCTSTR	name;
 		int		icon;
 	} tab[] = {
-		{ "avi",	5 },{ "bat",	6 },{ "bmp",	4 },{ "c",  	2 },{ "c++",	2 },	// 5
-		{ "com",	6 },{ "cpp",	2 },{ "cs", 	2 },{ "doc",	2 },{ "exe",	6 },	// 10
-		{ "gif",	4 },{ "h",  	2 },{ "htm",	3 },{ "html",	3 },{ "ico",	4 },	// 15
-		{ "jpeg",	4 },{ "jpg",	4 },{ "log",	2 },{ "mov",	5 },{ "mp3",	5 },	// 20
-		{ "mpeg",	5 },{ "mpg",	5 },{ "php",	3 },{ "txt",	2 },{ "wav",	5 },	// 25
-		{ "wma",	5 },{ "wmv",	5 },{ "xml",	3 }										// 28
+		{ _T("avi"),	5 },{ _T("bat"),	6 },{ _T("bmp"),	4 },{ _T("c"),  	2 },{ _T("c++"),	2 },	// 5
+		{ _T("com"),	6 },{ _T("cpp"),	2 },{ _T("cs"), 	2 },{ _T("doc"),	2 },{ _T("exe"),	6 },	// 10
+		{ _T("gif"),	4 },{ _T("h"),  	2 },{ _T("htm"),	3 },{ _T("html"),	3 },{ _T("ico"),	4 },	// 15
+		{ _T("jpeg"),	4 },{ _T("jpg"),	4 },{ _T("log"),	2 },{ _T("mov"),	5 },{ _T("mp3"),	5 },	// 20
+		{ _T("mpeg"),	5 },{ _T("mpg"),	5 },{ _T("php"),	3 },{ _T("txt"),	2 },{ _T("wav"),	5 },	// 25
+		{ _T("wma"),	5 },{ _T("wmv"),	5 },{ _T("xml"),	3 }												// 28
 	};
 
 static int SubNameCmp(const void *src, const void *dis)
@@ -369,7 +375,7 @@ void CFileNode::SetSubName()
 {
 	int n;
 
-	if ( (n = m_file.ReverseFind('.')) >= 0 )
+	if ( (n = m_file.ReverseFind(_T('.'))) >= 0 )
 		m_sub = m_file.Mid(n + 1);
 
 	if ( IsDir() )
@@ -411,7 +417,7 @@ class CFileNode *CFileNode::Add(class CFileNode *pNode)
 		return m_pRight;
 	}
 }
-class CFileNode *CFileNode::Find(LPCSTR path)
+class CFileNode *CFileNode::Find(LPCTSTR path)
 {
 	int c;
 
@@ -440,6 +446,8 @@ CCmdQue::CCmdQue()
 // CSFtp
 /////////////////////////////////////////////////////////////////////////////
 
+IMPLEMENT_DYNAMIC(CSFtp, CDialog)
+
 CSFtp::CSFtp(CWnd* pParent /*=NULL*/)
 	: CDialog(CSFtp::IDD, pParent)
 {
@@ -451,7 +459,7 @@ CSFtp::CSFtp(CWnd* pParent /*=NULL*/)
 	m_SeqId   = 0;
 	m_LocalSortItem  = 0;
 	m_RemoteSortItem = 0;
-	m_HostKanjiSet   = "SJIS";
+	m_HostKanjiSet   = _T("SJIS");
 	m_UpDownCount = 0;
 	m_bDragList = FALSE;
 	m_DoAbort = FALSE;
@@ -483,12 +491,10 @@ CSFtp::~CSFtp()
 void CSFtp::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
-	//{{AFX_DATA_MAP(CSFtp)
 	DDX_Control(pDX, IDC_REMOTE_LIST, m_RemoteList);
 	DDX_Control(pDX, IDC_REMOTE_CWD, m_RemoteCwd);
 	DDX_Control(pDX, IDC_LOCAL_LIST, m_LocalList);
 	DDX_Control(pDX, IDC_LOCAL_CWD, m_LocalCwd);
-	//}}AFX_DATA_MAP
 	DDX_Control(pDX, IDC_PROGRESS1, m_UpDownProg);
 	DDX_Control(pDX, IDC_STATUS1, m_UpDownStat[0]);
 	DDX_Control(pDX, IDC_STATUS2, m_UpDownStat[1]);
@@ -569,7 +575,7 @@ int CSFtp::ReciveBuffer(CBuffer *bp)
 
 	if ( type == SSH2_FXP_VERSION ) {
 		if ( (m_VerId = id) != SSH2_FILEXFER_VERSION ) {
-			MessageBox("SFTP Version Error");
+			MessageBox(_T("SFTP Version Error"));
 			Close();
 			return FALSE;
 		}
@@ -586,7 +592,7 @@ int CSFtp::ReciveBuffer(CBuffer *bp)
 			m_CmdQue.GetNext(pos);
 		}
 		if ( pos == NULL )
-			MessageBox("Unkown sftp Message Recived");
+			MessageBox(_T("Unkown sftp Message Recived"));
 	}
 
 	SendWaitQue();
@@ -638,7 +644,7 @@ void CSFtp::RemoveWaitQue()
 
 int CSFtp::RemoteMakePacket(class CCmdQue *pQue, int Type)
 {
-	CString tmp;
+	CStringA tmp;
 
 	pQue->m_Msg.Clear();
 	pQue->m_Msg.Put32Bit(0);		// Packet Size
@@ -705,7 +711,7 @@ int CSFtp::RemoteLinkStatRes(int type, CBuffer *bp, class CCmdQue *pQue)
 
 	return TRUE;
 }
-void CSFtp::RemoteLinkStat(LPCSTR path, CCmdQue *pOwner, int index)
+void CSFtp::RemoteLinkStat(LPCTSTR path, CCmdQue *pOwner, int index)
 {
 	CCmdQue *pQue = new CCmdQue;
 
@@ -719,12 +725,12 @@ void CSFtp::RemoteLinkStat(LPCSTR path, CCmdQue *pOwner, int index)
 int CSFtp::RemoteMakeDirRes(int type, CBuffer *bp, class CCmdQue *pQue)
 {
 	if ( type != SSH2_FXP_STATUS || bp->Get32Bit() != SSH2_FX_OK )
-		DispErrMsg("Create Dir Error", pQue->m_Path);
+		DispErrMsg(_T("Create Dir Error"), pQue->m_Path);
 	else if ( pQue->m_Max )
 		RemoteUpdateCwd(pQue->m_Path);
 	return TRUE;
 }
-void CSFtp::RemoteMakeDir(LPCSTR dir, int show)
+void CSFtp::RemoteMakeDir(LPCTSTR dir, int show)
 {
 	CCmdQue *pQue = new CCmdQue;
 
@@ -739,7 +745,7 @@ void CSFtp::RemoteMakeDir(LPCSTR dir, int show)
 int CSFtp::RemoteDeleteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 {
 	if ( type != SSH2_FXP_STATUS || bp->Get32Bit() != SSH2_FX_OK )
-		DispErrMsg("Delete File/Dir Error", pQue->m_Path);
+		DispErrMsg(_T("Delete File/Dir Error"), pQue->m_Path);
 	else if ( pQue->m_Max )
 		RemoteUpdateCwd(pQue->m_Path);
 	return TRUE;
@@ -763,7 +769,7 @@ void CSFtp::RemoteDelete(CFileNode *pNode, int show)
 int CSFtp::RemoteSetAttrRes(int type, CBuffer *bp, class CCmdQue *pQue)
 {
 	if ( type != SSH2_FXP_STATUS || bp->Get32Bit() != SSH2_FX_OK )
-		DispErrMsg("Set Attr Error", pQue->m_Path);
+		DispErrMsg(_T("Set Attr Error"), pQue->m_Path);
 	else if ( pQue->m_Max )
 		RemoteUpdateCwd(pQue->m_Path);
 	return TRUE;
@@ -783,12 +789,12 @@ void CSFtp::RemoteSetAttr(CFileNode *pNode, int attr, int show)
 int CSFtp::RemoteRenameRes(int type, CBuffer *bp, class CCmdQue *pQue)
 {
 	if ( type != SSH2_FXP_STATUS || bp->Get32Bit() != SSH2_FX_OK )
-		DispErrMsg("Reanme Error", pQue->m_Path);
+		DispErrMsg(_T("Reanme Error"), pQue->m_Path);
 	else if ( pQue->m_Max )
 		RemoteUpdateCwd(pQue->m_Path);
 	return TRUE;
 }
-void CSFtp::RemoteRename(CFileNode *pNode, LPCSTR newname, int show)
+void CSFtp::RemoteRename(CFileNode *pNode, LPCTSTR newname, int show)
 {
 	CCmdQue *pQue = new CCmdQue;
 
@@ -810,7 +816,7 @@ CFileNode *CSFtp::RemoteCacheAdd(CFileNode *pNode)
 	*m_pCacheNode = *pNode;
 	return m_pCacheNode;
 }
-CFileNode *CSFtp::RemoteCacheFind(LPCSTR path)
+CFileNode *CSFtp::RemoteCacheFind(LPCTSTR path)
 {
 	if ( m_pCacheNode != NULL )
 		return 	m_pCacheNode->Find(path);
@@ -842,7 +848,7 @@ int CSFtp::RemoteMirrorUploadRes(int st, class CCmdQue *pQue)
 	int n, i;
 
 	if ( st != SSH2_FX_OK ) {
-		DispErrMsg("Remote Mirror Upload Error", pQue->m_Path);
+		DispErrMsg(_T("Remote Mirror Upload Error"), pQue->m_Path);
 		return TRUE;
 	}
 
@@ -854,7 +860,7 @@ int CSFtp::RemoteMirrorUploadRes(int st, class CCmdQue *pQue)
 		if ( i >= pQue->m_SaveNode.GetSize() ) {
 			if ( (m_DoUpdate & 0x20) == 0 ) {
 				m_DoUpdate |= 0x20;
-				if ( MessageBox(_T("ローカルに無いファイルを削除しますか？"), "Question", MB_YESNO | MB_ICONQUESTION) != IDYES ) {
+				if ( MessageBox(CStringLoad(IDS_LOCALFILEDELETE), _T("Question"), MB_YESNO | MB_ICONQUESTION) != IDYES ) {
 					m_DoUpdate &= ~0x40;
 					break;
 				}
@@ -868,7 +874,7 @@ int CSFtp::RemoteMirrorUploadRes(int st, class CCmdQue *pQue)
 int CSFtp::RemoteDeleteDirRes(int st, class CCmdQue *pQue)
 {
 	if ( st != SSH2_FX_OK ) {
-		DispErrMsg("Remote Directory Error", pQue->m_Path);
+		DispErrMsg(_T("Remote Directory Error"), pQue->m_Path);
 		return TRUE;
 	}
 
@@ -886,13 +892,13 @@ int CSFtp::RemoteCopyDirRes(int st, class CCmdQue *pQue)
 	CFileNode node;
 
 	if ( st != SSH2_FX_OK ) {
-		DispErrMsg("Directory Copy Error", pQue->m_Path);
+		DispErrMsg(_T("Directory Copy Error"), pQue->m_Path);
 		return TRUE;
 	}
 
 	if ( !CreateDirectory(pQue->m_CopyPath, NULL) ) {
 		if ( GetLastError() != ERROR_ALREADY_EXISTS ) {
-			DispErrMsg("Create Directory Error", pQue->m_CopyPath);
+			DispErrMsg(_T("Create Directory Error"), pQue->m_CopyPath);
 			return TRUE;
 		}
 	} else
@@ -906,7 +912,7 @@ int CSFtp::RemoteCopyDirRes(int st, class CCmdQue *pQue)
 	if ( (m_DoUpdate & 0x40) == 0 )
 		return TRUE;
 
-	tmp.Format("%s\\*.*", pQue->m_CopyPath);
+	tmp.Format(_T("%s\\*.*"), pQue->m_CopyPath);
 	pQue->m_SaveNode.RemoveAll();
 	DoLoop = Finder.FindFile(tmp);
 	while ( DoLoop != FALSE ) {
@@ -926,7 +932,7 @@ int CSFtp::RemoteCopyDirRes(int st, class CCmdQue *pQue)
 		if ( i >= pQue->m_FileNode.GetSize() ) {
 			if ( (m_DoUpdate & 0x20) == 0 ) {
 				m_DoUpdate |= 0x20;
-				if ( MessageBox(_T("リモートに無いファイルを削除しますか？"), "Question", MB_YESNO | MB_ICONQUESTION) != IDYES ) {
+				if ( MessageBox(CStringLoad(IDS_REMOTEFILEDELETE), _T("Question"), MB_YESNO | MB_ICONQUESTION) != IDYES ) {
 					m_DoUpdate &= ~0x40;
 					break;
 				}
@@ -941,7 +947,7 @@ int CSFtp::RemoteSetListRes(int st, class CCmdQue *pQue)
 	int n, i;
 
 	if ( st != SSH2_FX_OK ) {
-		DispErrMsg("Set Remote Cwd Error", pQue->m_Path);
+		DispErrMsg(_T("Set Remote Cwd Error"), pQue->m_Path);
 		return TRUE;
 	}
 
@@ -986,7 +992,8 @@ int CSFtp::RemoteCloseDirRes(int type, CBuffer *bp, class CCmdQue *pQue)
 int CSFtp::RemoteReadDirRes(int type, CBuffer *bp, class CCmdQue *pQue)
 {
 	int n, i, max;
-	CString cwd, tmp;
+	CString cwd;
+	CStringA tmp;
 	CFileNode node;
 
 	if ( type != SSH2_FXP_NAME ) {
@@ -997,8 +1004,8 @@ int CSFtp::RemoteReadDirRes(int type, CBuffer *bp, class CCmdQue *pQue)
 	}
 	
 	cwd = pQue->m_Path;
-	if ( cwd.Compare("/") == 0 )
-		cwd = "";
+	if ( cwd.Compare(_T("/")) == 0 )
+		cwd = _T("");
 
 	max = bp->Get32Bit();
 	for ( n = 0 ; n < max ; n++ ) {
@@ -1006,7 +1013,7 @@ int CSFtp::RemoteReadDirRes(int type, CBuffer *bp, class CCmdQue *pQue)
 		KanjiConvToLocal(tmp, node.m_file);
 		bp->GetStr(tmp);	// dummy strring read
 		node.DecodeAttr(bp);
-		node.m_path.Format("%s/%s", cwd, node.m_file);
+		node.m_path.Format(_T("%s/%s"), cwd, node.m_file);
 		node.SetSubName();
 		if ( !node.IsDot() ) {
 			if ( node.IsDir() || node.IsReg() )
@@ -1036,10 +1043,10 @@ int CSFtp::RemoteOpenDirRes(int type, CBuffer *bp, class CCmdQue *pQue)
 int CSFtp::RemoteSetCwdRes(int type, CBuffer *bp, class CCmdQue *pQue)
 {
 	CFileNode node;
-	CString tmp;
+	CStringA tmp;
 
 	if ( type != SSH2_FXP_NAME || bp->Get32Bit() != 1 ) {
-		DispErrMsg("Get Real Path Error", pQue->m_Path);
+		DispErrMsg(_T("Get Real Path Error"), pQue->m_Path);
 		return TRUE;
 	}
 
@@ -1058,7 +1065,7 @@ int CSFtp::RemoteSetCwdRes(int type, CBuffer *bp, class CCmdQue *pQue)
 	SetUpDownCount(1);
 	return FALSE;
 }
-void CSFtp::RemoteSetCwd(LPCSTR path)
+void CSFtp::RemoteSetCwd(LPCTSTR path)
 {
 	CCmdQue *pQue = new CCmdQue;
 
@@ -1089,7 +1096,7 @@ int CSFtp::RemoteMtimeCwdRes(int type, CBuffer *bp, class CCmdQue *pQue)
 	SetUpDownCount(1);
 	return FALSE;
 }
-void CSFtp::RemoteMtimeCwd(LPCSTR path)
+void CSFtp::RemoteMtimeCwd(LPCTSTR path)
 {
 	CCmdQue *pQue = new CCmdQue;
 
@@ -1099,12 +1106,12 @@ void CSFtp::RemoteMtimeCwd(LPCSTR path)
 	RemoteMakePacket(pQue, SSH2_FXP_STAT);
 	SendCommand(pQue, &CSFtp::RemoteMtimeCwdRes, SENDCMD_NOWAIT);
 }
-void CSFtp::RemoteUpdateCwd(LPCSTR path)
+void CSFtp::RemoteUpdateCwd(LPCTSTR path)
 {
 	int n;
 	CString tmp = path;
 
-	if ( (n = tmp.ReverseFind('/')) >= 0 )
+	if ( (n = tmp.ReverseFind(_T('/'))) >= 0 )
 		tmp = tmp.Left(n);
 
 	if ( tmp.Compare(m_RemoteCurDir) != 0 )
@@ -1119,7 +1126,7 @@ void CSFtp::RemoteUpdateCwd(LPCSTR path)
 	SendCommand(pQue, &CSFtp::RemoteOpenDirRes, SENDCMD_NOWAIT);
 	SetUpDownCount(1);
 }
-void CSFtp::RemoteDeleteDir(LPCSTR path)
+void CSFtp::RemoteDeleteDir(LPCTSTR path)
 {
 	CCmdQue *pQue = new CCmdQue;
 
@@ -1130,7 +1137,7 @@ void CSFtp::RemoteDeleteDir(LPCSTR path)
 	SendCommand(pQue, &CSFtp::RemoteOpenDirRes, SENDCMD_HEAD);
 	SetUpDownCount(1);
 }
-void CSFtp::RemoteCacheDir(LPCSTR path)
+void CSFtp::RemoteCacheDir(LPCTSTR path)
 {
 	CCmdQue *pQue = new CCmdQue;
 
@@ -1154,15 +1161,15 @@ int CSFtp::RemoteCloseReadRes(int type, CBuffer *bp, class CCmdQue *pQue)
 
 	if ( type >= 0 ) {
 		if ( type != SSH2_FXP_STATUS || bp->Get32Bit() != SSH2_FX_OK )
-			DispErrMsg("Close Read Error", pQue->m_Path);
+			DispErrMsg(_T("Close Read Error"), pQue->m_Path);
 		else if ( pQue->m_Len == (-1) )
-			DispErrMsg("File Read Error", pQue->m_Path);
+			DispErrMsg(_T("File Read Error"), pQue->m_Path);
 		else if ( pQue->m_Len == (-2) )
-			DispErrMsg("Local File Create Error", pQue->m_FileNode[0].m_path);
+			DispErrMsg(_T("Local File Create Error"), pQue->m_FileNode[0].m_path);
 		else if ( pQue->m_Len == (-3) )
-			DispErrMsg("Local File Write Error", pQue->m_FileNode[0].m_path);
+			DispErrMsg(_T("Local File Write Error"), pQue->m_FileNode[0].m_path);
 	} else if ( type == (-1) )
-		DispErrMsg("Open Read Error", pQue->m_Path);
+		DispErrMsg(_T("Open Read Error"), pQue->m_Path);
 
 	if ( pQue->m_Len != (-10) )
 		LocalUpdateCwd(pQue->m_CopyPath);
@@ -1186,7 +1193,7 @@ int CSFtp::RemoteDataReadRes(int type, CBuffer *bp, class CCmdQue *pQue)
 	if ( type != SSH2_FXP_DATA || m_DoAbort ) {
 		if ( pQue->m_pOwner != NULL ) {
 			if ( !m_DoAbort )
-				DispErrMsg("Remote Read Error", pOwner->m_Path);
+				DispErrMsg(_T("Remote Read Error"), pOwner->m_Path);
 			return TRUE;
 		}
 		pQue->m_Len = (type == SSH2_FXP_STATUS && bp->Get32Bit() == SSH2_FX_EOF ? 0 : (m_DoAbort ? 0 : (-1)));
@@ -1250,7 +1257,7 @@ int CSFtp::RemoteOpenReadRes(int type, CBuffer *bp, class CCmdQue *pQue)
 		return RemoteCloseReadRes((-1), bp, pQue);
 	bp->GetBuf(&pQue->m_Handle);
 
-	if ( (pQue->m_Fd = _open(pQue->m_CopyPath, (pQue->m_NextOfs != 0 ? _O_BINARY | _O_WRONLY : _O_BINARY | _O_WRONLY | _O_CREAT | _O_TRUNC), _S_IREAD | _S_IWRITE)) == (-1) ) {
+	if ( (pQue->m_Fd = _topen(pQue->m_CopyPath, (pQue->m_NextOfs != 0 ? _O_BINARY | _O_WRONLY : _O_BINARY | _O_WRONLY | _O_CREAT | _O_TRUNC), _S_IREAD | _S_IWRITE)) == (-1) ) {
 		pQue->m_Len = (-2);
 		RemoteMakePacket(pQue, SSH2_FXP_CLOSE);
 		SendCommand(pQue, &CSFtp::RemoteCloseReadRes, SENDCMD_NOWAIT);
@@ -1271,7 +1278,7 @@ int CSFtp::RemoteOpenReadRes(int type, CBuffer *bp, class CCmdQue *pQue)
 
 	return FALSE;
 }
-void CSFtp::DownLoadFile(CFileNode *pNode, LPCSTR file)
+void CSFtp::DownLoadFile(CFileNode *pNode, LPCTSTR file)
 {
 	CCmdQue *pQue;
 	LONGLONG resume = 0;
@@ -1292,7 +1299,7 @@ void CSFtp::DownLoadFile(CFileNode *pNode, LPCSTR file)
 		return;
 	}
 
-	if ( !_stati64(file, &st) ) {
+	if ( !_tstati64(file, &st) ) {
 		if ( (m_DoUpdate & 0x80) == 0 ) {
 			CUpdateDlg dlg(this);
 			dlg.m_FileName = file;
@@ -1348,19 +1355,19 @@ int CSFtp::RemoteCloseWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 
 	if ( type >= 0 ) {
 		if ( type != SSH2_FXP_STATUS || bp->Get32Bit() != SSH2_FX_OK )
-			DispErrMsg("Close Write Error", pQue->m_Path);
+			DispErrMsg(_T("Close Write Error"), pQue->m_Path);
 		else if ( pQue->m_Len == (-1) )
-			DispErrMsg("File Read Error", pQue->m_FileNode[0].m_path);
+			DispErrMsg(_T("File Read Error"), pQue->m_FileNode[0].m_path);
 		else if ( pQue->m_Len == (-2) )
-			DispErrMsg("Remote Write Error", pQue->m_Path);
+			DispErrMsg(_T("Remote Write Error"), pQue->m_Path);
 		else if ( pQue->m_Len == (-3) )
-			DispErrMsg("Set Attr Error", pQue->m_Path);
+			DispErrMsg(_T("Set Attr Error"), pQue->m_Path);
 	} else if ( type == (-1) )
-		DispErrMsg("File / Dir Write Error", pQue->m_Path);
+		DispErrMsg(_T("File / Dir Write Error"), pQue->m_Path);
 	else if ( type == (-2) )
-		DispErrMsg("Make Directory Error", pQue->m_Path);
+		DispErrMsg(_T("Make Directory Error"), pQue->m_Path);
 	else if ( type == (-3) )
-		DispErrMsg("Open Write Error", pQue->m_Path);
+		DispErrMsg(_T("Open Write Error"), pQue->m_Path);
 
 	if ( m_DoAbort ) {
 		RemoveWaitQue();
@@ -1392,7 +1399,7 @@ int CSFtp::RemoteDataWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 	if ( type != SSH2_FXP_STATUS || bp->Get32Bit() != SSH2_FX_OK || m_DoAbort ) {
 		if ( pQue->m_pOwner != NULL ) {
 			if ( !m_DoAbort )
-				DispErrMsg("Remote Write Error", pOwner->m_Path);
+				DispErrMsg(_T("Remote Write Error"), pOwner->m_Path);
 			return TRUE;
 		}
 		pQue->m_Len = (m_DoAbort ? 0 : (-2));
@@ -1482,7 +1489,7 @@ int CSFtp::RemoteOpenWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 		return RemoteCloseWriteRes((-3), bp, pQue);
 	bp->GetBuf(&pQue->m_Handle);
 
-	if ( (pQue->m_Fd = _open(pQue->m_FileNode[0].m_path, _O_BINARY | _O_RDONLY)) == (-1) )
+	if ( (pQue->m_Fd = _topen(pQue->m_FileNode[0].m_path, _O_BINARY | _O_RDONLY)) == (-1) )
 		goto CLOSEWRITE;
 
 	pQue->m_pOwner  = NULL;
@@ -1522,7 +1529,7 @@ int CSFtp::RemoteMkDirWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 	}
 
 	SetUpDownCount(-1);
-	tmp.Format("%s\\*.*", pQue->m_FileNode[0].m_path);
+	tmp.Format(_T("%s\\*.*"), pQue->m_FileNode[0].m_path);
 
 	pQue->m_SaveNode.RemoveAll();
 	DoLoop = Finder.FindFile(tmp);
@@ -1616,7 +1623,7 @@ int CSFtp::RemoteStatWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 	}
 	return FALSE;
 }
-void CSFtp::UpLoadFile(CFileNode *pNode, LPCSTR file)
+void CSFtp::UpLoadFile(CFileNode *pNode, LPCTSTR file)
 {
 	CFileNode *np;
 
@@ -1646,7 +1653,7 @@ TRACE(" Stat\n");
 
 /////////////////////////////////////////////////////////////////////////////
 
-int CSFtp::LocalDelete(LPCSTR path)
+int CSFtp::LocalDelete(LPCTSTR path)
 {
 	CString str;
 	DWORD FileAttr;
@@ -1663,7 +1670,7 @@ int CSFtp::LocalDelete(LPCSTR path)
 	}
 
 	if ( (FileAttr & FILE_ATTRIBUTE_DIRECTORY) != 0 ) {
-		str.Format("%s\\*.*", path);
+		str.Format(_T("%s\\*.*"), path);
 		DoLoop = Finder.FindFile(str);
 		while ( DoLoop != FALSE ) {
 			DoLoop = Finder.FindNextFile();
@@ -1682,23 +1689,23 @@ int CSFtp::LocalDelete(LPCSTR path)
 
 	return TRUE;
 }
-int CSFtp::LocalSetCwd(LPCSTR path)
+int CSFtp::LocalSetCwd(LPCTSTR path)
 {
 	int n, i;
 	BOOL DoLoop;
 	CString tmp;
     CFileFind Finder;
-	char buf[_MAX_DIR];
+	TCHAR buf[_MAX_DIR];
 	CFileNode node;
 	struct _stati64 st;
 
-	if ( _chdir(path) )
+	if ( _tchdir(path) )
 		return FALSE;
 
-	if ( _getcwd(buf, _MAX_DIR) == NULL )
+	if ( _tgetcwd(buf, _MAX_DIR) == NULL )
 		return FALSE;
 
-	if ( !_stati64(buf, &st) )
+	if ( !_tstati64(buf, &st) )
 		m_LocalCurTime = st.st_mtime;
 
 	m_LocalCwd.SetWindowText(buf);
@@ -1709,7 +1716,7 @@ int CSFtp::LocalSetCwd(LPCSTR path)
 	SetLocalCwdHis(buf);
 
 	m_LocalNode.RemoveAll();
-	tmp.Format("%s\\*.*", buf);
+	tmp.Format(_T("%s\\*.*"), buf);
 	DoLoop = Finder.FindFile(tmp);
 
 	while ( DoLoop != FALSE ) {
@@ -1734,12 +1741,12 @@ int CSFtp::LocalSetCwd(LPCSTR path)
 
 	return TRUE;
 }
-void CSFtp::LocalUpdateCwd(LPCSTR path)
+void CSFtp::LocalUpdateCwd(LPCTSTR path)
 {
 	int n;
-	CString tmp = path;
+	CString tmp(path);
 
-	if ( (n = tmp.ReverseFind('\\')) >= 0 )
+	if ( (n = tmp.ReverseFind(_T('\\'))) >= 0 )
 		tmp = tmp.Left(n);
 
 	if ( tmp.Compare(m_LocalCurDir) == 0 )
@@ -1748,7 +1755,7 @@ void CSFtp::LocalUpdateCwd(LPCSTR path)
 
 /////////////////////////////////////////////////////////////////////////////
 
-void CSFtp::SetLocalCwdHis(LPCSTR cwd)
+void CSFtp::SetLocalCwdHis(LPCTSTR cwd)
 {
 	int n;
 	POSITION pos;
@@ -1760,11 +1767,11 @@ void CSFtp::SetLocalCwdHis(LPCSTR cwd)
 
 	pos = m_LocalCwdHis.GetHeadPosition();
 	for ( n = 0 ; n < 10 && pos != NULL ; n++ ) {
-		tmp.Format("LoCurDir_%s_%d", m_pSSh->m_HostName, n);
-		AfxGetApp()->WriteProfileString("CSFtp", tmp, m_LocalCwdHis.GetNext(pos));
+		tmp.Format(_T("LoCurDir_%s_%d"), m_pSSh->m_HostName, n);
+		AfxGetApp()->WriteProfileString(_T("CSFtp"), tmp, m_LocalCwdHis.GetNext(pos));
 	}
 }
-void CSFtp::SetRemoteCwdHis(LPCSTR cwd)
+void CSFtp::SetRemoteCwdHis(LPCTSTR cwd)
 {
 	int n;
 	POSITION pos;
@@ -1776,8 +1783,8 @@ void CSFtp::SetRemoteCwdHis(LPCSTR cwd)
 
 	pos = m_RemoteCwdHis.GetHeadPosition();
 	for ( n = 0 ; n < 10 && pos != NULL ; n++ ) {
-		tmp.Format("ReCurDir_%s_%d", m_pSSh->m_HostName, n);
-		AfxGetApp()->WriteProfileString("CSFtp", tmp, m_RemoteCwdHis.GetNext(pos));
+		tmp.Format(_T("ReCurDir_%s_%d"), m_pSSh->m_HostName, n);
+		AfxGetApp()->WriteProfileString(_T("CSFtp"), tmp, m_RemoteCwdHis.GetNext(pos));
 	}
 }
 
@@ -1847,8 +1854,8 @@ void CSFtp::ListSort(int num, int item)
 				m_LocalSortItem = item;
 		}
 		m_LocalList.SortItems(ListCompareFunc, (LPARAM)this);
-		tmp.Format("LocalSort_%s", m_pSSh->m_HostName);
-		AfxGetApp()->WriteProfileInt("CSFtp", tmp, m_LocalSortItem);
+		tmp.Format(_T("LocalSort_%s"), m_pSSh->m_HostName);
+		AfxGetApp()->WriteProfileInt(_T("CSFtp"), tmp, m_LocalSortItem);
 		break;
 	case 1:			// m_RemoteNode
 		if ( item >= 0 ) {
@@ -1858,8 +1865,8 @@ void CSFtp::ListSort(int num, int item)
 				m_RemoteSortItem = item;
 		}
 		m_RemoteList.SortItems(ListCompareFunc, (LPARAM)this);
-		tmp.Format("RemoteSort_%s", m_pSSh->m_HostName);
-		AfxGetApp()->WriteProfileInt("CSFtp", tmp, m_RemoteSortItem);
+		tmp.Format(_T("RemoteSort_%s"), m_pSSh->m_HostName);
+		AfxGetApp()->WriteProfileInt(_T("CSFtp"), tmp, m_RemoteSortItem);
 		break;
 	}
 }
@@ -1868,20 +1875,20 @@ void CSFtp::SetUpDownCount(int count)
 {
 	CString tmp;
 	m_UpDownCount += count;
-	tmp.Format("%d", m_UpDownCount);
+	tmp.Format(_T("%d"), m_UpDownCount);
 	m_UpDownStat[0].SetWindowText(tmp);
 	m_UpDownStat[0].EnableWindow(m_UpDownCount > 0);
-	tmp.Format((m_UpDownCount > 0 ? "SFtp(%d)":"SFtp"), m_UpDownCount);
+	tmp.Format((m_UpDownCount > 0 ? _T("SFtp(%d)") : _T("SFtp")), m_UpDownCount);
 	SetWindowText(tmp);
 }
-void CSFtp::SetRangeProg(LPCSTR file, LONGLONG size, LONGLONG ofs)
+void CSFtp::SetRangeProg(LPCTSTR file, LONGLONG size, LONGLONG ofs)
 {
 	if ( size <= 0 ) {
 		m_ProgDiv = 0;
 
 		m_UpDownProg.SetRange(0, 0);
 		m_UpDownProg.SetPos(0);
-		m_UpDownStat[1].SetWindowText(file == NULL ? "" : file);
+		m_UpDownStat[1].SetWindowText(file == NULL ? _T("") : file);
 
 		m_UpDownProg.EnableWindow(FALSE);
 		m_UpDownStat[1].EnableWindow(FALSE);
@@ -1903,9 +1910,9 @@ void CSFtp::SetRangeProg(LPCSTR file, LONGLONG size, LONGLONG ofs)
 
 		m_UpDownProg.SetRange(0, (int)(size / m_ProgDiv));
 		m_UpDownProg.SetPos(0);
-		m_UpDownStat[1].SetWindowText(file == NULL ? "" : file);
-		m_UpDownStat[2].SetWindowText("");
-		m_UpDownStat[3].SetWindowText("");
+		m_UpDownStat[1].SetWindowText(file == NULL ? _T("") : file);
+		m_UpDownStat[2].SetWindowText(_T(""));
+		m_UpDownStat[3].SetWindowText(_T(""));
 	}
 }
 void CSFtp::SetPosProg(LONGLONG pos)
@@ -1924,19 +1931,19 @@ void CSFtp::SetPosProg(LONGLONG pos)
 			e = (double)(m_ProgSize - pos) / d;
 			n = (int)e;
 			if ( n >= 3600 )
-				tmp[1].Format("%d:%02d:%02d", n / 3600, (n % 3600) / 60, n % 60);
+				tmp[1].Format(_T("%d:%02d:%02d"), n / 3600, (n % 3600) / 60, n % 60);
 			else if ( n >= 60 )
-				tmp[1].Format("%d:%02d", n / 60, n % 60);
+				tmp[1].Format(_T("%d:%02d"), n / 60, n % 60);
 			else
-				tmp[1].Format("%d", n);
+				tmp[1].Format(_T("%d"), n);
 		}
 
 		if ( d > 10048576.0 )
-			tmp[0].Format("%dMB/Sec", (int)(d / 1048576.0));
+			tmp[0].Format(_T("%dMB/Sec"), (int)(d / 1048576.0));
 		else if ( d > 10024.0 )
-			tmp[0].Format("%dKB/Sec", (int)(d / 1024.0));
+			tmp[0].Format(_T("%dKB/Sec"), (int)(d / 1024.0));
 		else
-			tmp[0].Format("%dB/Sec", (int)(d));
+			tmp[0].Format(_T("%dB/Sec"), (int)(d));
 
 		m_UpDownRate = (int)d;
 	}
@@ -1944,47 +1951,16 @@ void CSFtp::SetPosProg(LONGLONG pos)
 	m_UpDownStat[2].SetWindowText(tmp[0]);
 	m_UpDownStat[3].SetWindowText(tmp[1]);
 }
-void CSFtp::DispErrMsg(LPCSTR msg, LPCSTR file)
+void CSFtp::DispErrMsg(LPCTSTR msg, LPCTSTR file)
 {
 	CString tmp;
 
 	if ( file != NULL )
-		tmp.Format("%s\n%s", file, msg);
+		tmp.Format(_T("%s\n%s"), file, msg);
 	else
 		tmp = msg;
 
 	MessageBox(tmp);
-}
-void CSFtp::KanjiConvToLocal(LPCSTR in, CString &out)
-{
-	if ( m_HostKanjiSet.Compare("UTF-8") == 0 ) {
-		DWORD *p, *m, d;
-		CBuffer bIn, bOut;
-		bIn.Apend((LPBYTE)in, (int)strlen(in));
-		m_IConv.IConvBuf("UTF-8", "UCS-4LE", &bIn, &bOut);
-		bIn.Clear();
-		bOut.Put32Bit(0);
-		p = (DWORD *)(bOut.GetPtr());
-		m = (DWORD *)(bOut.GetPtr() + bOut.GetSize());
-		while ( p < m ) {
-			if ( (d = CTextRam::UnicodeNomal(p[0], p[1])) != 0 ) {
-				bIn.Put32Bit(d);
-				p += 2;
-			} else {
-				bIn.Put32Bit(p[0]);
-				p += 1;
-			}
-		}
-		bOut.Clear();
-		m_IConv.IConvBuf("UCS-4BE", "CP932", &bIn, &bOut);
-		bOut.Put8Bit(0);
-		out = bOut.GetPtr();
-	} else
-		m_IConv.IConvStr(m_HostKanjiSet, "CP932", in, out);
-}
-void CSFtp::KanjiConvToRemote(LPCSTR in, CString &out)
-{
-	m_IConv.IConvStr("CP932", m_HostKanjiSet, in, out);
 }
 
 BEGIN_MESSAGE_MAP(CSFtp, CDialog)
@@ -2144,10 +2120,10 @@ void CSFtp::OnClose()
 	if ( !IsIconic() ) {
 		CRect rect;
 		GetWindowRect(rect);
-		AfxGetApp()->WriteProfileInt("SFtpWnd", "x",  rect.left);
-		AfxGetApp()->WriteProfileInt("SFtpWnd", "y",  rect.top);
-		AfxGetApp()->WriteProfileInt("SFtpWnd", "cx", rect.right);
-		AfxGetApp()->WriteProfileInt("SFtpWnd", "cy", rect.bottom);
+		AfxGetApp()->WriteProfileInt(_T("SFtpWnd"), _T("x"),  rect.left);
+		AfxGetApp()->WriteProfileInt(_T("SFtpWnd"), _T("y"),  rect.top);
+		AfxGetApp()->WriteProfileInt(_T("SFtpWnd"), _T("cx"), rect.right);
+		AfxGetApp()->WriteProfileInt(_T("SFtpWnd"), _T("cy"), rect.bottom);
 	}
 	Close();
 	CDialog::OnClose();
@@ -2162,7 +2138,7 @@ void CSFtp::OnDestroy()
 
 void CSFtp::PostNcDestroy() 
 {
-	_chdir(((CRLoginApp *)AfxGetApp())->m_BaseDir);
+	_tchdir(((CRLoginApp *)AfxGetApp())->m_BaseDir);
 	CDialog::PostNcDestroy();
 	delete this;
 }
@@ -2173,12 +2149,12 @@ BOOL CSFtp::OnInitDialog()
 	CRect rect;
 	CBitmap BitMap;
 	static LV_COLUMN lvt[6] = {
-		{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_LEFT,	180, "Name",	0, 0 },
-		{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  110, "Date",	0, 0 },
-		{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,   70, "Size",	0, 0 },
-		{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,   80, "Attr",	0, 0 },
-		{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,   40, "uid",		0, 0 },
-		{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,   40, "gid",		0, 0 },
+		{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_LEFT,	180, _T("Name"),	0, 0 },
+		{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  110, _T("Date"),	0, 0 },
+		{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,   70, _T("Size"),	0, 0 },
+		{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,   80, _T("Attr"),	0, 0 },
+		{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,   40, _T("uid"),		0, 0 },
+		{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,   40, _T("gid"),		0, 0 },
 	};
 
 	CDialog::OnInitDialog();
@@ -2240,31 +2216,31 @@ BOOL CSFtp::OnInitDialog()
 	m_LocalCwdHis.RemoveAll();
 	m_RemoteCwdHis.RemoveAll();
 	for ( n = 1 ; n < 10 ; n++ ) {
-		tmp.Format("LoCurDir_%s_%d", m_pSSh->m_HostName, n);
-		tmp = AfxGetApp()->GetProfileString("CSFtp", tmp, "");
+		tmp.Format(_T("LoCurDir_%s_%d"), m_pSSh->m_HostName, n);
+		tmp = AfxGetApp()->GetProfileString(_T("CSFtp"), tmp, _T(""));
 		if ( !tmp.IsEmpty() ) {
 			m_LocalCwdHis.AddTail(tmp);
 			m_LocalCwd.AddString(tmp);
 		}
-		tmp.Format("ReCurDir_%s_%d", m_pSSh->m_HostName, n);
-		tmp = AfxGetApp()->GetProfileString("CSFtp", tmp, "");
+		tmp.Format(_T("ReCurDir_%s_%d"), m_pSSh->m_HostName, n);
+		tmp = AfxGetApp()->GetProfileString(_T("CSFtp"), tmp, _T(""));
 		if ( !tmp.IsEmpty() ) {
 			m_RemoteCwdHis.AddTail(tmp);
 			m_RemoteCwd.AddString(tmp);
 		}
 	}
 
-	tmp.Format("LocalSort_%s", m_pSSh->m_HostName);
-	m_LocalSortItem  = AfxGetApp()->GetProfileInt("CSFtp", tmp, 0);
-	tmp.Format("RemoteSort_%s", m_pSSh->m_HostName);
-	m_RemoteSortItem = AfxGetApp()->GetProfileInt("CSFtp", tmp, 0);
+	tmp.Format(_T("LocalSort_%s"), m_pSSh->m_HostName);
+	m_LocalSortItem  = AfxGetApp()->GetProfileInt(_T("CSFtp"), tmp, 0);
+	tmp.Format(_T("RemoteSort_%s"), m_pSSh->m_HostName);
+	m_RemoteSortItem = AfxGetApp()->GetProfileInt(_T("CSFtp"), tmp, 0);
 
-	tmp.Format("LoCurDir_%s_%d", m_pSSh->m_HostName, 0);
-	work  = ::AfxGetApp()->GetProfileString("CSFtp", tmp, ".");
+	tmp.Format(_T("LoCurDir_%s_%d"), m_pSSh->m_HostName, 0);
+	work  = ::AfxGetApp()->GetProfileString(_T("CSFtp"), tmp, _T("."));
 	LocalSetCwd(work);
 
-	tmp.Format("ReCurDir_%s_%d", m_pSSh->m_HostName, 0);
-	work = ::AfxGetApp()->GetProfileString("CSFtp", tmp, ".");
+	tmp.Format(_T("ReCurDir_%s_%d"), m_pSSh->m_HostName, 0);
+	work = ::AfxGetApp()->GetProfileString(_T("CSFtp"), tmp, _T("."));
 	RemoteSetCwd(work);
 	SendWaitQue();
 
@@ -2276,10 +2252,10 @@ BOOL CSFtp::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);
 
 	GetWindowRect(rect);
-	rect.left   = AfxGetApp()->GetProfileInt("SFtpWnd", "x",  rect.left);
-	rect.top    = AfxGetApp()->GetProfileInt("SFtpWnd", "y",  rect.top);
-	rect.right  = AfxGetApp()->GetProfileInt("SFtpWnd", "cx", rect.right);
-	rect.bottom = AfxGetApp()->GetProfileInt("SFtpWnd", "cy", rect.bottom);
+	rect.left   = AfxGetApp()->GetProfileInt(_T("SFtpWnd"), _T("x"),  rect.left);
+	rect.top    = AfxGetApp()->GetProfileInt(_T("SFtpWnd"), _T("y"),  rect.top);
+	rect.right  = AfxGetApp()->GetProfileInt(_T("SFtpWnd"), _T("cx"), rect.right);
+	rect.bottom = AfxGetApp()->GetProfileInt(_T("SFtpWnd"), _T("cy"), rect.bottom);
 	MoveWindow(rect, FALSE);
 
 	SetTimer(1120, 3000, NULL);
@@ -2345,17 +2321,17 @@ BOOL CSFtp::OnToolTipText(UINT, NMHDR* pNMHDR, LRESULT* pResult)
 
 void CSFtp::OnLocalUp() 
 {
-	LocalSetCwd("..");
+	LocalSetCwd(_T(".."));
 }
 
 void CSFtp::OnRemoteUp() 
 {
 	int n;
 	CString tmp;
-	if ( (n = m_RemoteCurDir.ReverseFind('/')) >= 0 )
+	if ( (n = m_RemoteCurDir.ReverseFind(_T('/'))) >= 0 )
 		tmp = m_RemoteCurDir.Left(n);
 	if ( tmp.IsEmpty() )
-		tmp = "/";
+		tmp = _T("/");
 	if ( tmp.Compare(m_RemoteCurDir) != 0 )
 		RemoteSetCwd(tmp);
 	SendWaitQue();
@@ -2458,13 +2434,13 @@ int CSFtp::DropFiles(HWND hWnd, HDROP hDropInfo)
 {
 	int n, i;
 	int max = DragQueryFile(hDropInfo, 0xFFFFFFFF, NULL, 0);
-	char path[_MAX_PATH + 4];
+	TCHAR path[_MAX_PATH + 4];
 	CString tmp, file;
 
 	for ( n = 0 ; n < max ; n++ ) {
 		DragQueryFile(hDropInfo, n, path, _MAX_PATH);
 		tmp = path;
-		if ( (i = tmp.ReverseFind('\\')) > 0 )
+		if ( (i = tmp.ReverseFind(_T('\\'))) > 0 )
 			file = tmp.Mid(i + 1);
 		else
 			file = tmp;
@@ -2475,8 +2451,8 @@ int CSFtp::DropFiles(HWND hWnd, HDROP hDropInfo)
 			SendWaitQue();
 		} else if ( hWnd == m_LocalList.m_hWnd ) {
 			tmp = m_LocalCurDir;
-			if ( tmp.Right(1).Compare("\\") != 0 )
-				tmp += "\\";
+			if ( tmp.Right(1).Compare(_T("\\")) != 0 )
+				tmp += _T("\\");
 			tmp += file;
 			CopyFile(path, tmp, TRUE);
 			LocalSetCwd(m_LocalCurDir);
@@ -2654,17 +2630,17 @@ void CSFtp::OnSftpDelete()
 					tmp += ",";
 					tmp += m_LocalNode[i].m_file;
 				} else
-					tmp.Format(_T("%d個のファイル"), len);
+					tmp.Format(CStringLoad(IDS_FILECOUNTMSG), len);
 			}
 		}
-		tmp += _T("を削除しますか？");
-		if ( MessageBox(tmp, "Question", MB_YESNO | MB_ICONQUESTION) != IDYES )
+		tmp += CStringLoad(IDS_FILEDELETEREQ);
+		if ( MessageBox(tmp, _T("Question"), MB_YESNO | MB_ICONQUESTION) != IDYES )
 			return;
 		for ( n = 0 ; n < m_LocalList.GetItemCount() ; n++ ) {
 			if ( m_LocalList.GetItemState(n, LVIS_SELECTED) != 0 ) {
 				i = (int)m_LocalList.GetItemData(n);
 				if ( !LocalDelete(m_LocalNode[i].m_path) )
-					DispErrMsg("Can't Delete Folder", m_LocalNode[i].m_path);
+					DispErrMsg(_T("Can't Delete Folder"), m_LocalNode[i].m_path);
 			}
 		}
 		LocalSetCwd(m_LocalCurDir);
@@ -2679,11 +2655,11 @@ void CSFtp::OnSftpDelete()
 					tmp += ",";
 					tmp += m_RemoteNode[i].m_file;
 				} else
-					tmp.Format(_T("%d個のファイル"), len);
+					tmp.Format(CStringLoad(IDS_FILECOUNTMSG), len);
 			}
 		}
-		tmp += _T("を削除しますか？");
-		if ( MessageBox(tmp, "Question", MB_YESNO | MB_ICONQUESTION) != IDYES )
+		tmp += CStringLoad(IDS_FILEDELETEREQ);
+		if ( MessageBox(tmp, _T("Question"), MB_YESNO | MB_ICONQUESTION) != IDYES )
 			return;
 		for ( n = 0 ; n < m_RemoteList.GetItemCount() ; n++ ) {
 			if ( m_RemoteList.GetItemState(n, LVIS_SELECTED) != 0 ) {
@@ -2700,20 +2676,20 @@ void CSFtp::OnSftpMkdir()
 	CEditDlg dlg(this);
 	CListCtrl *pList = (CListCtrl *)GetFocus();
 
-	dlg.m_Title = _T("新しいフォルダの作成");
+	dlg.m_Title.LoadString(IDS_CREATEDIRMSG);
 	if ( pList->m_hWnd == m_LocalList.m_hWnd ) {
 		dlg.m_Edit = m_LocalCurDir;
-		if ( m_LocalCurDir.Right(1).Compare("\\") != 0 )
-			dlg.m_Edit += "\\";
+		if ( m_LocalCurDir.Right(1).Compare(_T("\\")) != 0 )
+			dlg.m_Edit += _T("\\");
 		if ( dlg.DoModal() != IDOK )
 			return;
 		if ( !CreateDirectory(dlg.m_Edit, NULL) )
-			DispErrMsg("Can't Create Directory", dlg.m_Edit);
+			DispErrMsg(_T("Can't Create Directory"), dlg.m_Edit);
 		LocalSetCwd(m_LocalCurDir);
 	} else if ( pList->m_hWnd == m_RemoteList.m_hWnd ) {
 		dlg.m_Edit = m_RemoteCurDir;
-		if ( m_RemoteCurDir.Right(1).Compare("/") != 0 )
-			dlg.m_Edit += "/";
+		if ( m_RemoteCurDir.Right(1).Compare(_T("/")) != 0 )
+			dlg.m_Edit += _T("/");
 		if ( dlg.DoModal() != IDOK )
 			return;
 		RemoteMakeDir(dlg.m_Edit, TRUE);
@@ -2734,13 +2710,13 @@ void CSFtp::OnSftpRename()
 	if ( (n = pList->GetSelectionMark()) < 0 || (n = (int)pList->GetItemData(n)) < 0 )
 		return;
 
-	dlg.m_Title = _T("ファイル名の変更");
+	dlg.m_Title.LoadString(IDS_RENAMEMSG);
 	if ( pList->m_hWnd == m_LocalList.m_hWnd ) {
 		dlg.m_Edit = m_LocalNode[n].m_file;
 		if ( dlg.DoModal() != IDOK )
 			return;
-		if ( rename(m_LocalNode[n].m_file, dlg.m_Edit) )
-			DispErrMsg("Rename Error", m_LocalNode[n].m_file);
+		if ( _trename(m_LocalNode[n].m_file, dlg.m_Edit) )
+			DispErrMsg(_T("Rename Error"), m_LocalNode[n].m_file);
 		LocalSetCwd(m_LocalCurDir);
 	} else if ( pList->m_hWnd == m_RemoteList.m_hWnd ) {
 		dlg.m_Edit = m_RemoteNode[n].m_path;
@@ -2835,7 +2811,7 @@ void CSFtp::OnSftpAlldownload()
 	m_DoAbort  = FALSE;
 
 	tmp = m_RemoteCurDir;
-	if ( (n = tmp.ReverseFind('/')) >= 0 )
+	if ( (n = tmp.ReverseFind(_T('/'))) >= 0 )
 		tmp = tmp.Mid(n + 1);
 
 	node.m_file = tmp;
@@ -2862,7 +2838,7 @@ void CSFtp::OnSftpAllupload()
 	m_DoAbort  = FALSE;
 
 	tmp = m_LocalCurDir;
-	if ( (n = tmp.ReverseFind('\\')) >= 0 )
+	if ( (n = tmp.ReverseFind(_T('\\'))) >= 0 )
 		tmp = tmp.Mid(n + 1);
 
 	node.m_file = tmp;
@@ -2919,7 +2895,7 @@ void CSFtp::OnTimer(UINT_PTR nIDEvent)
 
 	if ( m_UpdateCheckMode ) {	// Local
 		struct _stati64 st;
-		if ( !_stati64(m_LocalCurDir, &st) && m_LocalCurTime < st.st_mtime && !m_DoExec )
+		if ( !_tstati64(m_LocalCurDir, &st) && m_LocalCurTime < st.st_mtime && !m_DoExec )
 			LocalSetCwd(m_LocalCurDir);
 	} else {					// Remote
 		if ( !m_RemoteCurDir.IsEmpty() && m_CmdQue.IsEmpty() && m_WaitQue.IsEmpty() && !m_DoExec )

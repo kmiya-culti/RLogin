@@ -77,21 +77,36 @@
 #define IDD_UPDATEDLG                   137
 #define IDS_FILEDLGTEKIMAGE             137
 #define IDD_IDKEYSELDLG                 138
-#define IDS_STRING138                   138
 #define IDS_FILEDLGTEKIMAGE2            138
+#define IDS_IDKEYFILEDELREQ             139
 #define IDR_POPUPMENU                   140
+#define IDS_SERVERENTRYDELETE           140
 #define IDD_ENTRYPAGE                   141
 #define IDD_SERENTPAGE                  141
 #define IDR_TEKWND                      141
+#define IDE_PROTOCOLENTRY               141
 #define IDR_GRAPWND                     142
+#define IDE_USESERVERENTRY              142
+#define IDS_PROTODLGTITLE               143
+#define IDS_PRORODLGCOMM                144
+#define IDS_CERTTRASTREQ                145
 #define IDD_CHATDLG                     146
+#define IDS_STRING146                   146
+#define IDS_IDKEYDUPHOSTNAME            146
 #define IDD_CHATSTAT                    147
-#define IDD_SCRIPTDLG                   148
+#define IDE_FILENAMEERROR               147
+#define IDS_LOCALFILEDELETE             148
 #define IDD_PROXYDLG                    149
+#define IDS_REMOTEFILEDELETE            149
 #define IDD_SCRNPAGE                    150
+#define IDS_FILEDELETEREQ               150
+#define IDS_FILECOUNTMSG                151
 #define IDD_AUTORENDLG                  152
-#define IDD_METADLG                     153
+#define IDE_KANJICONVERROR              152
+#define IDS_CREATEDIRMSG                153
 #define IDD_INFOCAPDLG                  154
+#define IDS_STRING154                   154
+#define IDS_RENAMEMSG                   154
 #define IDD_ENVDLG                      155
 #define IDD_ESCDLG                      156
 #define IDD_ESCPARADLG                  157
@@ -101,6 +116,8 @@
 #define IDD_HISPAGE                     161
 #define IDD_SEARCHDLG                   162
 #define IDD_CERTKEYDLG                  163
+#define IDD_CLIPBOARDPAGE               164
+#define IDD_MOUSEPAGE                   165
 #define IDM_KANJI_EUC                   200
 #define IDM_KANJI_SJIS                  201
 #define IDM_KANJI_ASCII                 202
@@ -203,6 +220,7 @@
 #define IDC_EDITENTRY                   1047
 #define IDC_EDIT3                       1047
 #define IDC_ENDTIME                     1048
+#define IDC_EDIT4                       1048
 #define IDC_ENTRYNAME                   1049
 #define IDC_FACENAME                    1050
 #define IDC_ENTRYMEMO                   1050
@@ -350,7 +368,6 @@
 #define IDC_TIMEPROG                    1167
 #define IDC_STATUS                      1168
 #define IDC_EDIT2                       1170
-#define IDC_TEXT                        1170
 #define IDC_NAMEOK                      1174
 #define IDC_ALL_SET                     1175
 #define IDC_ALL_CLR                     1176
@@ -557,7 +574,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        164
+#define _APS_NEXT_RESOURCE_VALUE        167
 #define _APS_NEXT_COMMAND_VALUE         5049
 #define _APS_NEXT_CONTROL_VALUE         3057
 #define _APS_NEXT_SYMED_VALUE           249

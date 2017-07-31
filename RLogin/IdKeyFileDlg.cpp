@@ -6,46 +6,35 @@
 #include "Data.h"
 #include "IdKeyFileDlg.h"
 
-#ifdef _DEBUG
-#define new DEBUG_NEW
-#undef THIS_FILE
-static char THIS_FILE[] = __FILE__;
-#endif
-
 /////////////////////////////////////////////////////////////////////////////
 // CIdKeyFileDlg ダイアログ
 
+IMPLEMENT_DYNAMIC(CIdKeyFileDlg, CDialog)
 
 CIdKeyFileDlg::CIdKeyFileDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CIdKeyFileDlg::IDD, pParent)
 {
-	//{{AFX_DATA_INIT(CIdKeyFileDlg)
 	m_IdkeyFile = _T("");
 	m_PassName = _T("");
 	m_PassName2 = _T("");
 	m_Message = _T("");
-	//}}AFX_DATA_INIT
+
 	m_Title = _T("IDKey File Load/Save");
 	m_OpenMode = 0;
 }
 
-
 void CIdKeyFileDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
-	//{{AFX_DATA_MAP(CIdKeyFileDlg)
+
 	DDX_Text(pDX, IDC_IDKEYFILE, m_IdkeyFile);
 	DDX_Text(pDX, IDC_PASSNAME, m_PassName);
 	DDX_Text(pDX, IDC_PASSNAME2, m_PassName2);
 	DDX_Text(pDX, IDC_MESSAGE, m_Message);
-	//}}AFX_DATA_MAP
 }
 
-
 BEGIN_MESSAGE_MAP(CIdKeyFileDlg, CDialog)
-	//{{AFX_MSG_MAP(CIdKeyFileDlg)
 	ON_BN_CLICKED(IDC_IDKEYSEL, OnIdkeysel)
-	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -84,7 +73,6 @@ void CIdKeyFileDlg::OnIdkeysel()
 	m_IdkeyFile = dlg.GetPathName();
 	UpdateData(FALSE);
 }
-
 
 void CIdKeyFileDlg::OnOK() 
 {

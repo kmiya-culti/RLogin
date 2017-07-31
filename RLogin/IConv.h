@@ -32,7 +32,10 @@ public:
 	class CIConv *GetIConv(LPCTSTR from, LPCTSTR to);
 	void IConvSub(LPCTSTR from, LPCTSTR to, CBuffer *in, CBuffer *out);
 	int IConvBuf(LPCTSTR from, LPCTSTR to, CBuffer *in, CBuffer *out);
-	int IConvStr(LPCTSTR from, LPCTSTR to, LPCSTR in, CStringA &out);
+	void StrToRemote(LPCTSTR to, CBuffer *in, CBuffer *out);
+	void StrToRemote(LPCTSTR to, LPCTSTR in, CStringA &out);
+	void RemoteToStr(LPCTSTR from, CBuffer *in, CBuffer *out);
+	void RemoteToStr(LPCTSTR from, LPCSTR in, CString &out);
 	int IConvChar(LPCTSTR from, LPCTSTR to, int ch);
 
 	static void SetListArray(CStringArray &array);

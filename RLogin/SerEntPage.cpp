@@ -26,9 +26,8 @@ static char THIS_FILE[] = __FILE__;
 
 IMPLEMENT_DYNCREATE(CSerEntPage, CPropertyPage)
 
-CSerEntPage::CSerEntPage() : CPropertyPage(CSerEntPage::IDD)
+CSerEntPage::CSerEntPage() : CTreePropertyPage(CSerEntPage::IDD)
 {
-	//{{AFX_DATA_INIT(CSerEntPage)
 	m_EntryName = _T("");
 	m_HostName = _T("");
 	m_PortName = _T("");
@@ -37,13 +36,11 @@ CSerEntPage::CSerEntPage() : CPropertyPage(CSerEntPage::IDD)
 	m_TermName = _T("");
 	m_KanjiCode = 0;
 	m_ProtoType = 0;
-	//}}AFX_DATA_INIT
 	m_DefComPort = _T("");
 	m_IdkeyName = _T("");
 	m_Memo = _T("");
 	m_Group = _T("");
 }
-
 CSerEntPage::~CSerEntPage()
 {
 }
@@ -51,7 +48,7 @@ CSerEntPage::~CSerEntPage()
 void CSerEntPage::DoDataExchange(CDataExchange* pDX)
 {
 	CPropertyPage::DoDataExchange(pDX);
-	//{{AFX_DATA_MAP(CSerEntPage)
+
 	DDX_Text(pDX, IDC_ENTRYNAME, m_EntryName);
 	DDX_CBString(pDX, IDC_SERVERNAME, m_HostName);
 	DDX_CBString(pDX, IDC_SOCKNO, m_PortName);
@@ -60,17 +57,13 @@ void CSerEntPage::DoDataExchange(CDataExchange* pDX)
 	DDX_CBString(pDX, IDC_TERMNAME, m_TermName);
 	DDX_Radio(pDX, IDC_KANJICODE1, m_KanjiCode);
 	DDX_Radio(pDX, IDC_PROTO1, m_ProtoType);
-	//}}AFX_DATA_MAP
 	DDX_Text(pDX, IDC_ENTRYMEMO, m_Memo);
 	DDX_CBString(pDX, IDC_GROUP, m_Group);
 }
 
-
 BEGIN_MESSAGE_MAP(CSerEntPage, CPropertyPage)
-	//{{AFX_MSG_MAP(CSerEntPage)
 	ON_BN_CLICKED(IDC_COMCONFIG, OnComconfig)
 	ON_BN_CLICKED(IDC_KEYFILESELECT, OnKeyfileselect)
-	//}}AFX_MSG_MAP
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_PROTO1, IDC_PROTO6, OnProtoType)
 	ON_EN_CHANGE(IDC_ENTRYNAME, OnUpdateEdit)
 	ON_CBN_EDITCHANGE(IDC_SERVERNAME, OnUpdateEdit)
@@ -89,7 +82,7 @@ void CSerEntPage::SetEnableWind()
 {
 	int n;
 	CWnd *pWnd;
-	static const char *DefPortName[] = { "", "login", "telnet", "ssh", "COM1", "" };
+	static LPCTSTR	DefPortName[] = { _T(""), _T("login"), _T("telnet"), _T("ssh"), _T("COM1"), _T("") };
 	static const struct {
 		int		nId;
 		BOOL	mode[6];
@@ -112,7 +105,7 @@ void CSerEntPage::SetEnableWind()
 
 	switch(m_ProtoType) {
 	case PROTO_COMPORT:
-		if ( m_PortName.Left(3).Compare("COM") != 0 )
+		if ( m_PortName.Left(3).Compare(_T("COM")) != 0 )
 			m_PortName = m_DefComPort;
 		break;
 
@@ -134,17 +127,9 @@ void CSerEntPage::SetEnableWind()
 /////////////////////////////////////////////////////////////////////////////
 // CSerEntPage メッセージ ハンドラ
 
-BOOL CSerEntPage::OnInitDialog() 
+void CSerEntPage::DoInit()
 {
-	CPropertyPage::OnInitDialog();
-
-	int n, i;
-	CComboBox *pCombo;
-	CString str;
 	CComSock com(NULL);
-
-	ASSERT(m_pSheet);
-	ASSERT(m_pSheet->m_pEntry);
 
 	m_EntryName = m_pSheet->m_pEntry->m_EntryName;
 	m_HostName  = m_pSheet->m_pEntry->m_HostReal;
@@ -164,16 +149,31 @@ BOOL CSerEntPage::OnInitDialog()
 	m_Group     = m_pSheet->m_pEntry->m_Group;
 	m_ExtEnvStr = m_pSheet->m_pParamTab->m_ExtEnvStr;
 
-	if ( m_PortName.Compare("serial") == 0 ) {
+	if ( m_PortName.Compare(_T("serial")) == 0 ) {
 		com.GetMode(m_HostName);
 		m_PortName = com.m_ComName;
 	}
-	UpdateData(FALSE);
 
-	DWORD pb = com.AliveComPort();
+	UpdateData(FALSE);
+}
+
+BOOL CSerEntPage::OnInitDialog() 
+{
+	CPropertyPage::OnInitDialog();
+
+	ASSERT(m_pSheet);
+	ASSERT(m_pSheet->m_pEntry);
+
+	int n, i;
+	CString str;
+	CComboBox *pCombo;
+	DWORD pb = CComSock::AliveComPort();
+
+	DoInit();
+
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_SOCKNO)) != NULL ) {
 		for ( n = 1 ; n <= 31 ; n++ ) {
-			str.Format("COM%d", n);
+			str.Format(_T("COM%d"), n);
 			if ( (pb & (1 << n)) != 0 ) {
 				if ( (i = pCombo->FindString((-1), str)) == CB_ERR )
 					pCombo->AddString(str);
@@ -185,39 +185,39 @@ BOOL CSerEntPage::OnInitDialog()
 		}
 	}
 
-	m_pTab = &(((CMainFrame *)AfxGetMainWnd())->m_ServerEntryTab);
+	CServerEntryTab *pTab = &(((CMainFrame *)AfxGetMainWnd())->m_ServerEntryTab);
 
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_SERVERNAME)) != NULL ) {
-		for ( n = 0 ; n < m_pTab->m_Data.GetSize() ; n++ ) {
-			str = m_pTab->m_Data[n].m_HostName;
+		for ( n = 0 ; n < pTab->m_Data.GetSize() ; n++ ) {
+			str = pTab->m_Data[n].m_HostName;
 			if ( !str.IsEmpty() && pCombo->FindString((-1), str) == CB_ERR )
 				pCombo->AddString(str);
 		}
 	}
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_LOGINNAME)) != NULL ) {
-		for ( n = 0 ; n < m_pTab->m_Data.GetSize() ; n++ ) {
-			str = m_pTab->m_Data[n].m_UserName;
+		for ( n = 0 ; n < pTab->m_Data.GetSize() ; n++ ) {
+			str = pTab->m_Data[n].m_UserName;
 			if ( !str.IsEmpty() && pCombo->FindString((-1), str) == CB_ERR )
 				pCombo->AddString(str);
 		}
 	}
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_TERMNAME)) != NULL ) {
-		for ( n = 0 ; n < m_pTab->m_Data.GetSize() ; n++ ) {
-			str = m_pTab->m_Data[n].m_TermName;
+		for ( n = 0 ; n < pTab->m_Data.GetSize() ; n++ ) {
+			str = pTab->m_Data[n].m_TermName;
 			if ( !str.IsEmpty() && pCombo->FindString((-1), str) == CB_ERR )
 				pCombo->AddString(str);
 		}
 	}
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_SOCKNO)) != NULL ) {
-		for ( n = 0 ; n < m_pTab->m_Data.GetSize() ; n++ ) {
-			str = m_pTab->m_Data[n].m_PortName;
+		for ( n = 0 ; n < pTab->m_Data.GetSize() ; n++ ) {
+			str = pTab->m_Data[n].m_PortName;
 			if ( !str.IsEmpty() && pCombo->FindString((-1), str) == CB_ERR )
 				pCombo->AddString(str);
 		}
 	}
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_GROUP)) != NULL ) {
-		for ( n = 0 ; n < m_pTab->m_Data.GetSize() ; n++ ) {
-			str = m_pTab->m_Data[n].m_Group;
+		for ( n = 0 ; n < pTab->m_Data.GetSize() ; n++ ) {
+			str = pTab->m_Data[n].m_Group;
 			if ( !str.IsEmpty() && pCombo->FindString((-1), str) == CB_ERR )
 				pCombo->AddString(str);
 		}
@@ -260,45 +260,26 @@ BOOL CSerEntPage::OnApply()
 
 void CSerEntPage::OnReset() 
 {
-	if ( m_hWnd == NULL )
-		return;
-
 	ASSERT(m_pSheet);
 	ASSERT(m_pSheet->m_pEntry);
 
-	m_EntryName = m_pSheet->m_pEntry->m_EntryName;
-	m_HostName  = m_pSheet->m_pEntry->m_HostReal;
-	m_PortName  = m_pSheet->m_pEntry->m_PortName;
-	m_UserName  = m_pSheet->m_pEntry->m_UserReal;
-	m_PassName  = m_pSheet->m_pEntry->m_PassReal;
-	m_TermName  = m_pSheet->m_pEntry->m_TermName;
-	m_IdkeyName = m_pSheet->m_pEntry->m_IdkeyName;
-	m_KanjiCode = m_pSheet->m_pEntry->m_KanjiCode;
-	m_ProtoType = m_pSheet->m_pEntry->m_ProtoType;
-	m_ProxyMode = m_pSheet->m_pEntry->m_ProxyMode;
-	m_ProxyHost = m_pSheet->m_pEntry->m_ProxyHost;
-	m_ProxyPort = m_pSheet->m_pEntry->m_ProxyPort;
-	m_ProxyUser = m_pSheet->m_pEntry->m_ProxyUser;
-	m_ProxyPass = m_pSheet->m_pEntry->m_ProxyPass;
-	m_Memo      = m_pSheet->m_pEntry->m_Memo;
-	m_Group     = m_pSheet->m_pEntry->m_Group;
-	m_ExtEnvStr = m_pSheet->m_pParamTab->m_ExtEnvStr;
-
-	UpdateData(FALSE);
+	DoInit();
 	SetModified(FALSE);
 }
 
 void CSerEntPage::OnComconfig() 
 {
 	CComSock com(NULL);
+
 	UpdateData(TRUE);
-	if ( m_PortName.Left(3).CompareNoCase("COM") == 0 ) {
+	if ( m_PortName.Left(3).CompareNoCase(_T("COM")) == 0 ) {
 		com.m_ComPort = (-1);
 		com.GetMode(m_HostName);
 		if ( com.m_ComPort != _tstoi(m_PortName.Mid(3)) )
 			m_HostName = m_PortName;
 	}
 	com.ConfigDlg(this, m_HostName);
+
 	UpdateData(FALSE);
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_ENTRY;
@@ -306,13 +287,16 @@ void CSerEntPage::OnComconfig()
 void CSerEntPage::OnKeyfileselect() 
 {
 	UpdateData(TRUE);
-	CFileDialog dlg(TRUE, "", m_IdkeyName, OFN_HIDEREADONLY, CStringLoad(IDS_FILEDLGALLFILE), this);
+
+	CFileDialog dlg(TRUE, _T(""), m_IdkeyName, OFN_HIDEREADONLY, CStringLoad(IDS_FILEDLGALLFILE), this);
+
 	if ( dlg.DoModal() != IDOK ) {
-		if ( m_IdkeyName.IsEmpty() || MessageBox("認証キーファイルの設定を解除しますか？", "Question", MB_ICONQUESTION | MB_YESNO) != IDYES )
+		if ( m_IdkeyName.IsEmpty() || MessageBox(CStringLoad(IDS_IDKEYFILEDELREQ), _T("Question"), MB_ICONQUESTION | MB_YESNO) != IDYES )
 			return;
 		m_IdkeyName.Empty();
 	} else
 		m_IdkeyName = dlg.GetPathName();
+
 	UpdateData(FALSE);
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_ENTRY;
@@ -321,6 +305,7 @@ void CSerEntPage::OnProtoType(UINT nID)
 {
 	UpdateData(TRUE);
 	SetEnableWind();
+
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_ENTRY;
 }
@@ -340,11 +325,13 @@ void CSerEntPage::OnChatEdit()
 
 	dlg.m_Script = m_pSheet->m_pEntry->m_Script;
 
-	if ( dlg.DoModal() == IDOK ) {
-		m_pSheet->m_pEntry->m_Script = dlg.m_Script;
-		SetModified(TRUE);
-		m_pSheet->m_ModFlag |= UMOD_ENTRY;
-	}
+	if ( dlg.DoModal() != IDOK )
+		return;
+
+	m_pSheet->m_pEntry->m_Script = dlg.m_Script;
+
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= UMOD_ENTRY;
 }
 
 void CSerEntPage::OnProxySet()
@@ -383,17 +370,17 @@ void CSerEntPage::OnBnClickedTermcap()
 	dlg.m_Env.GetString(m_ExtEnvStr);
 
 	if ( !m_TermName.IsEmpty() ) {
-		dlg.m_Env["TERM"].m_Value  = 0;
-		dlg.m_Env["TERM"].m_String = m_TermName;
+		dlg.m_Env[_T("TERM")].m_Value  = 0;
+		dlg.m_Env[_T("TERM")].m_String = m_TermName;
 	}
 
 	if ( dlg.DoModal() != IDOK )
 		return;
 
-	if ( (n = dlg.m_Env.Find("TERM")) >= 0 ) {
-		dlg.m_Env["TERM"].m_Value = 0;
-		if ( !dlg.m_Env["TERM"].m_String.IsEmpty() )
-			m_TermName = dlg.m_Env["TERM"];
+	if ( (n = dlg.m_Env.Find(_T("TERM"))) >= 0 ) {
+		dlg.m_Env[_T("TERM")].m_Value = 0;
+		if ( !dlg.m_Env[_T("TERM")].m_String.IsEmpty() )
+			m_TermName = dlg.m_Env[_T("TERM")];
 	}
 
 	dlg.m_Env.SetString(m_ExtEnvStr);

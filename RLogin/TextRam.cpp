@@ -38,13 +38,13 @@ void CFontNode::Init()
 	m_ZoomH       = 100;
 	m_Offset      = 0;
 	m_CharSet     = 0;
-	m_EntryName   = "";
-	m_IContName   = "";
-	m_IndexName   = "";
+	m_EntryName   = _T("");
+	m_IContName   = _T("");
+	m_IndexName   = _T("");
 	m_Quality     = DEFAULT_QUALITY;
 	m_Init        = FALSE;
 	for ( int n = 0 ; n < 16 ; n++ ) {
-		m_FontName[n] = "";
+		m_FontName[n] = _T("");
 		m_Hash[n]     = 0;
 	}
 }
@@ -83,8 +83,8 @@ void CFontNode::GetArray(CStringArrayExt &array)
 	m_IContName   = array.GetAt(6);
 	m_ZoomW		  = (array.GetSize() > 7 ? array.GetVal(7) : m_ZoomH);
 
-	if ( m_IContName.Compare("GB2312-80") == 0 )	// Debug!!
-		m_IContName = "GB_2312-80";
+	if ( m_IContName.Compare(_T("GB2312-80")) == 0 )	// Debug!!
+		m_IContName = _T("GB_2312-80");
 
 	for ( int n = 1 ; n < 16 ; n++ ) {				// 8 - 23
 		if ( array.GetSize() > (7 + n) ) {
@@ -104,8 +104,8 @@ void CFontNode::GetArray(CStringArrayExt &array)
 void CFontNode::SetHash(int num)
 {
 	m_Hash[num] = 0;
-	LPCSTR p = m_FontName[num];
-	while ( *p != '\0' )
+	LPCTSTR p = m_FontName[num];
+	while ( *p != _T('\0') )
 		m_Hash[num] = m_Hash[num] * 31 + *(p++);
 }
 CFontChacheNode *CFontNode::GetFont(int Width, int Height, int Style, int FontNum)
@@ -223,69 +223,69 @@ BOOL CFontNode::SetFontImage(int width, int height)
 
 CFontTab::CFontTab()
 {
-	m_pSection = "FontTab";
+	m_pSection = _T("FontTab");
 	Init();
 }
 void CFontTab::Init()
 {
 	int n, i;
 	static const struct _FontInitTab	{
-		char	*name;
+		LPCTSTR	name;
 		WORD	mode;
-		char	*scs;
+		LPCTSTR	scs;
 		char	bank;
-		char	*iset;
+		LPCTSTR	iset;
 		WORD	cset;
 		WORD	zoomw;
 		WORD	zoomh;
 		WORD	offset;
-		char	*font[2];
+		LPCTSTR	font[2];
 	} FontInitTab[] = {
-		{ "VT100-GRAPHIC",			SET_94,		"0",	'\x00', "",					SYMBOL_CHARSET,		100,	100,	0,	{ "Tera Special", "" } },
-		{ "IBM437-GR",				SET_94,		"1",	'\x80', "IBM437",			DEFAULT_CHARSET,	100,	100,	0,	{ "Arial Unicode MS", "" } },
+		{ _T("VT100-GRAPHIC"),			SET_94,		_T("0"),	'\x00', _T(""),					SYMBOL_CHARSET,		100,	100,	0,	{ _T("Tera Special"), _T("") } },
+		{ _T("IBM437-GR"),				SET_94,		_T("1"),	'\x80', _T("IBM437"),			DEFAULT_CHARSET,	100,	100,	0,	{ _T("Arial Unicode MS"), _T("") } },
 
-		{ "ISO646-US",				SET_94,		"@",	'\x00', "ISO646-US",		ANSI_CHARSET,		100,	100,	0,	{ "Lucida Console", "" } },
-		{ "ASCII(ANSI X3.4-1968)",	SET_94,		"B",	'\x00', "ANSI_X3.4-1968",	ANSI_CHARSET,		100,	100,	0,	{ "Lucida Console", "" } },
-		{ "JIS X 0201-Kana",		SET_94,		"I",	'\x80', "JISX0201-1976",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "ÇlÇr ÉSÉVÉbÉN", "ÇlÇr ñæí©" } },
-		{ "JIS X 0201-Roman",		SET_94,		"J",	'\x00', "JISX0201-1976",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "ÇlÇr ÉSÉVÉbÉN", "ÇlÇr ñæí©" } },
-		{ "GB 1988-80",				SET_94,		"T",	'\x00', "GB_1988-80",		DEFAULT_CHARSET,	100,	100,	0,	{ "", "" } },
+		{ _T("ISO646-US"),				SET_94,		_T("@"),	'\x00', _T("ISO646-US"),		ANSI_CHARSET,		100,	100,	0,	{ _T("Lucida Console"), _T("") } },
+		{ _T("ASCII(ANSI X3.4-1968)"),	SET_94,		_T("B"),	'\x00', _T("ANSI_X3.4-1968"),	ANSI_CHARSET,		100,	100,	0,	{ _T("Lucida Console"), _T("") } },
+		{ _T("JIS X 0201-Kana"),		SET_94,		_T("I"),	'\x80', _T("JISX0201-1976"),	SHIFTJIS_CHARSET,	100,	100,	0,	{ _T("ÇlÇr ÉSÉVÉbÉN"), _T("ÇlÇr ñæí©") } },
+		{ _T("JIS X 0201-Roman"),		SET_94,		_T("J"),	'\x00', _T("JISX0201-1976"),	SHIFTJIS_CHARSET,	100,	100,	0,	{ _T("ÇlÇr ÉSÉVÉbÉN"), _T("ÇlÇr ñæí©") } },
+		{ _T("GB 1988-80"),				SET_94,		_T("T"),	'\x00', _T("GB_1988-80"),		DEFAULT_CHARSET,	100,	100,	0,	{ _T(""), _T("") } },
 
-		{ "Russian",				SET_94,		"&5",	'\x00',	"CP866",			RUSSIAN_CHARSET,	100,	100,	0,	{ "", "" } },
-		{ "Turkish",				SET_94,		"%2",	'\x00',	"CP1254",			TURKISH_CHARSET,	100,	100,	0,	{ "", "" } },
+		{ _T("Russian"),				SET_94,		_T("&5"),	'\x00',	_T("CP866"),			RUSSIAN_CHARSET,	100,	100,	0,	{ _T(""), _T("") } },
+		{ _T("Turkish"),				SET_94,		_T("%2"),	'\x00',	_T("CP1254"),			TURKISH_CHARSET,	100,	100,	0,	{ _T(""), _T("") } },
 
 		/*
-		{ "ChineseBig5",			SET_94x94,	"?",	'\x00',	"CP950",			CHINESEBIG5_CHARSET,100,	100,	0,	{ "", "" } },
-		{ "Johab",					SET_94x94,	"?",	'\x00',	"CP1361",			JOHAB_CHARSET,		100,	100,	0,	{ "", "" } },
+		{ _T("ChineseBig5"),			SET_94x94,	_T("?"),	'\x00',	_T("CP950"),			CHINESEBIG5_CHARSET,100,	100,	0,	{ _T(""), _T("") } },
+		{ _T("Johab"),					SET_94x94,	_T("?"),	'\x00',	_T("CP1361"),			JOHAB_CHARSET,		100,	100,	0,	{ _T(""), _T("") } },
 		*/
 
-		{ "LATIN1 (ISO8859-1)",		SET_96,		"A",	'\x80', "LATIN1",			EASTEUROPE_CHARSET,	100,	100,	0,	{ "", "" } },
-		{ "LATIN2 (ISO8859-2)",		SET_96,		"B",	'\x80', "LATIN2",			DEFAULT_CHARSET,	100,	100,	0,	{ "Arial Unicode MS", "" } },
-		{ "LATIN3 (ISO8859-3)",		SET_96,		"C",	'\x80', "LATIN3",			DEFAULT_CHARSET,	100,	100,	0,	{ "Arial Unicode MS", "" } },
-		{ "LATIN4 (ISO8859-4)",		SET_96,		"D",	'\x80', "LATIN4",			DEFAULT_CHARSET,	100,	100,	0,	{ "Arial Unicode MS", "" } },
-		{ "CYRILLIC (ISO8859-5)",	SET_96,		"L",	'\x80', "ISO8859-5",		DEFAULT_CHARSET,	100,	100,	0,	{ "Arial Unicode MS", "" } },
-		{ "ARABIC (ISO8859-6)",		SET_96,		"G",	'\x80', "ISO8859-6",		ARABIC_CHARSET,		100,	100,	0,	{ "", "" } },
-		{ "GREEK (ISO8859-7)",		SET_96,		"F",	'\x80', "ISO8859-7",		GREEK_CHARSET,		100,	100,	0,	{ "", "" } },
-		{ "HEBREW (ISO8859-8)",		SET_96,		"H",	'\x80', "ISO8859-8",		HEBREW_CHARSET,		100,	100,	0,	{ "", "" } },
-		{ "LATIN5 (ISO8859-9)",		SET_96,		"M",	'\x80', "LATIN5",			DEFAULT_CHARSET,	100,	100,	0,	{ "", "" } },
-		{ "LATIN6 (ISO8859-10)",	SET_96,		"V",	'\x80', "LATIN6",			DEFAULT_CHARSET,	100,	100,	0,	{ "", "" } },
-		{ "THAI (ISO8859-11)",		SET_96,		"T",	'\x80', "ISO-8859-11",		THAI_CHARSET,		100,	100,	0,	{ "", "" } },
-		{ "VIETNAMESE (ISO8859-12)",SET_96,		"Z",	'\x80', "CP1258",			VIETNAMESE_CHARSET,	100,	100,	0,	{ "", "" } },
-		{ "BALTIC (ISO8859-13)",	SET_96,		"Y",	'\x80', "ISO-8859-13",		BALTIC_CHARSET,		100,	100,	0,	{ "", "" } },
-		{ "CELTIC (ISO8859-14)",	SET_96,		"_",	'\x80', "ISO-8859-14",		DEFAULT_CHARSET,	100,	100,	0,	{ "", "" } },
-		{ "LATIN9 (ISO8859-15)",	SET_96,		"b",	'\x80', "ISO-8859-15",		DEFAULT_CHARSET,	100,	100,	0,	{ "", "" } },
-		{ "ROMANIAN (ISO8859-16)",	SET_96,		"f",	'\x80', "ISO-8859-16",		DEFAULT_CHARSET,	100,	100,	0,	{ "", "" } },
+		{ _T("LATIN1 (ISO8859-1)"),		SET_96,		_T("A"),	'\x80', _T("LATIN1"),			EASTEUROPE_CHARSET,	100,	100,	0,	{ _T(""), _T("") } },
+		{ _T("LATIN2 (ISO8859-2)"),		SET_96,		_T("B"),	'\x80', _T("LATIN2"),			DEFAULT_CHARSET,	100,	100,	0,	{ _T("Arial Unicode MS"), _T("") } },
+		{ _T("LATIN3 (ISO8859-3)"),		SET_96,		_T("C"),	'\x80', _T("LATIN3"),			DEFAULT_CHARSET,	100,	100,	0,	{ _T("Arial Unicode MS"), _T("") } },
+		{ _T("LATIN4 (ISO8859-4)"),		SET_96,		_T("D"),	'\x80', _T("LATIN4"),			DEFAULT_CHARSET,	100,	100,	0,	{ _T("Arial Unicode MS"), _T("") } },
+		{ _T("CYRILLIC (ISO8859-5)"),	SET_96,		_T("L"),	'\x80', _T("ISO8859-5"),		DEFAULT_CHARSET,	100,	100,	0,	{ _T("Arial Unicode MS"), _T("") } },
+		{ _T("ARABIC (ISO8859-6)"),		SET_96,		_T("G"),	'\x80', _T("ISO8859-6"),		ARABIC_CHARSET,		100,	100,	0,	{ _T(""), _T("") } },
+		{ _T("GREEK (ISO8859-7)"),		SET_96,		_T("F"),	'\x80', _T("ISO8859-7"),		GREEK_CHARSET,		100,	100,	0,	{ _T(""), _T("") } },
+		{ _T("HEBREW (ISO8859-8)"),		SET_96,		_T("H"),	'\x80', _T("ISO8859-8"),		HEBREW_CHARSET,		100,	100,	0,	{ _T(""), _T("") } },
+		{ _T("LATIN5 (ISO8859-9)"),		SET_96,		_T("M"),	'\x80', _T("LATIN5"),			DEFAULT_CHARSET,	100,	100,	0,	{ _T(""), _T("") } },
+		{ _T("LATIN6 (ISO8859-10)"),	SET_96,		_T("V"),	'\x80', _T("LATIN6"),			DEFAULT_CHARSET,	100,	100,	0,	{ _T(""), _T("") } },
+		{ _T("THAI (ISO8859-11)"),		SET_96,		_T("T"),	'\x80', _T("ISO-8859-11"),		THAI_CHARSET,		100,	100,	0,	{ _T(""), _T("") } },
+		{ _T("VIETNAMESE (ISO8859-12)"),SET_96,		_T("Z"),	'\x80', _T("CP1258"),			VIETNAMESE_CHARSET,	100,	100,	0,	{ _T(""), _T("") } },
+		{ _T("BALTIC (ISO8859-13)"),	SET_96,		_T("Y"),	'\x80', _T("ISO-8859-13"),		BALTIC_CHARSET,		100,	100,	0,	{ _T(""), _T("") } },
+		{ _T("CELTIC (ISO8859-14)"),	SET_96,		_T("_"),	'\x80', _T("ISO-8859-14"),		DEFAULT_CHARSET,	100,	100,	0,	{ _T(""), _T("") } },
+		{ _T("LATIN9 (ISO8859-15)"),	SET_96,		_T("b"),	'\x80', _T("ISO-8859-15"),		DEFAULT_CHARSET,	100,	100,	0,	{ _T(""), _T("") } },
+		{ _T("ROMANIAN (ISO8859-16)"),	SET_96,		_T("f"),	'\x80', _T("ISO-8859-16"),		DEFAULT_CHARSET,	100,	100,	0,	{ _T(""), _T("") } },
 
-		{ "JIS X 0208-1978",		SET_94x94,	"@",	'\x00', "JIS_X0208-1983",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "ÇlÇr ÉSÉVÉbÉN", "ÇlÇr ñæí©" } },
-		{ "GB2312-1980",			SET_94x94,	"A",	'\x00', "GB_2312-80",		GB2312_CHARSET,		100,	100,	0,	{ "", "" } },
-		{ "JIS X 0208-1983",		SET_94x94,	"B",	'\x00', "JIS_X0208-1983",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "ÇlÇr ÉSÉVÉbÉN", "ÇlÇr ñæí©" } },
-		{ "KSC5601-1987",			SET_94x94,	"C",	'\x00', "KS_C_5601-1987",	HANGEUL_CHARSET,	100,	100,	0,	{ "", "" } },
-		{ "JIS X 0212-1990",		SET_94x94,	"D",	'\x00', "JIS_X0212-1990",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "ÇlÇr ÉSÉVÉbÉN", "ÇlÇr ñæí©" } },
-		{ "ISO-IR-165",				SET_94x94,	"E",	'\x00', "ISO-IR-165",		DEFAULT_CHARSET,	100,	100,	0,	{ "", "" } },
-		{ "JIS X 0213-2000.1",		SET_94x94,	"O",	'\x00', "JIS_X0213-2000.1",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "ÇlÇr ÉSÉVÉbÉN", "ÇlÇr ñæí©" } },
-		{ "JIS X 0213-2000.2",		SET_94x94,	"P",	'\x00', "JIS_X0213-2000.2",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "ÇlÇr ÉSÉVÉbÉN", "ÇlÇr ñæí©" } },
-		{ "JIS X 0213-2004.1",		SET_94x94,	"Q",	'\x00', "JIS_X0213-2000.1",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "ÇlÇr ÉSÉVÉbÉN", "ÇlÇr ñæí©" } },
+		{ _T("JIS X 0208-1978"),		SET_94x94,	_T("@"),	'\x00', _T("JIS_X0208-1983"),	SHIFTJIS_CHARSET,	100,	100,	0,	{ _T("ÇlÇr ÉSÉVÉbÉN"), _T("ÇlÇr ñæí©") } },
+		{ _T("GB2312-1980"),			SET_94x94,	_T("A"),	'\x00', _T("GB_2312-80"),		GB2312_CHARSET,		100,	100,	0,	{ _T(""), _T("") } },
+		{ _T("JIS X 0208-1983"),		SET_94x94,	_T("B"),	'\x00', _T("JIS_X0208-1983"),	SHIFTJIS_CHARSET,	100,	100,	0,	{ _T("ÇlÇr ÉSÉVÉbÉN"), _T("ÇlÇr ñæí©") } },
+		{ _T("KSC5601-1987"),			SET_94x94,	_T("C"),	'\x00', _T("KS_C_5601-1987"),	HANGEUL_CHARSET,	100,	100,	0,	{ _T(""), _T("") } },
+		{ _T("JIS X 0212-1990"),		SET_94x94,	_T("D"),	'\x00', _T("JIS_X0212-1990"),	SHIFTJIS_CHARSET,	100,	100,	0,	{ _T("ÇlÇr ÉSÉVÉbÉN"), _T("ÇlÇr ñæí©") } },
+		{ _T("ISO-IR-165"),				SET_94x94,	_T("E"),	'\x00', _T("ISO-IR-165"),		DEFAULT_CHARSET,	100,	100,	0,	{ _T(""), _T("") } },
+		{ _T("JIS X 0213-2000.1"),		SET_94x94,	_T("O"),	'\x00', _T("JIS_X0213-2000.1"),	SHIFTJIS_CHARSET,	100,	100,	0,	{ _T("ÇlÇr ÉSÉVÉbÉN"), _T("ÇlÇr ñæí©") } },
+		{ _T("JIS X 0213-2000.2"),		SET_94x94,	_T("P"),	'\x00', _T("JIS_X0213-2000.2"),	SHIFTJIS_CHARSET,	100,	100,	0,	{ _T("ÇlÇr ÉSÉVÉbÉN"), _T("ÇlÇr ñæí©") } },
+		{ _T("JIS X 0213-2004.1"),		SET_94x94,	_T("Q"),	'\x00', _T("JIS_X0213-2000.1"),	SHIFTJIS_CHARSET,	100,	100,	0,	{ _T("ÇlÇr ÉSÉVÉbÉN"), _T("ÇlÇr ñæí©") } },
 
-		{ "UNICODE",				SET_UNICODE,"*U",	'\x00', "UCS-4BE",			DEFAULT_CHARSET,	100,	100,	0,	{ "ÇlÇr ÉSÉVÉbÉN", "ÇlÇr ñæí©" } },
+		{ _T("UNICODE"),				SET_UNICODE,_T("*U"),	'\x00', _T("UCS-4BE"),			DEFAULT_CHARSET,	100,	100,	0,	{ _T("ÇlÇr ÉSÉVÉbÉN"), _T("ÇlÇr ñæí©") } },
 
 		{ NULL, 0, 0x00, NULL },
 	};
@@ -317,12 +317,12 @@ void CFontTab::SetArray(CStringArrayExt &array)
 	CStringArrayExt tmp;
 
 	array.RemoveAll();
-	array.Add("-1");
+	array.Add(_T("-1"));
 	for ( n = 0 ; n < CODE_MAX ; n++ ) {
 		if ( m_Data[n].m_EntryName.IsEmpty() )
 			continue;
 		m_Data[n].SetArray(tmp);
-		str.Format("%d", n);
+		str.Format(_T("%d"), n);
 		tmp.InsertAt(0, str);
 		tmp.SetString(str);
 		array.Add(str);
@@ -350,11 +350,11 @@ void CFontTab::GetArray(CStringArrayExt &array)
 		m_Data[i].GetArray(tmp);
 		if ( m_Data[i].m_IndexName.IsEmpty() ) {
 			if ( i == SET_UNICODE )
-				m_Data[i].m_IndexName = "*U";
+				m_Data[i].m_IndexName = _T("*U");
 			else
 				m_Data[i].m_IndexName = (CHAR)(i & 0xFF);
-		} else if ( m_Data[i].m_IndexName.Compare("Unicode") == 0 )
-			m_Data[i].m_IndexName = "*U";
+		} else if ( m_Data[i].m_IndexName.Compare(_T("Unicode")) == 0 )
+			m_Data[i].m_IndexName = _T("*U");
 	}
 }
 const CFontTab & CFontTab::operator = (CFontTab &data)
@@ -363,7 +363,7 @@ const CFontTab & CFontTab::operator = (CFontTab &data)
 		m_Data[n] = data.m_Data[n];
 	return *this;
 }
-int CFontTab::Find(LPCSTR entry)
+int CFontTab::Find(LPCTSTR entry)
 {
 	for ( int n = 0 ; n < CODE_MAX ; n++ ) {
 		if ( m_Data[n].m_EntryName.Compare(entry) == 0 )
@@ -371,13 +371,13 @@ int CFontTab::Find(LPCSTR entry)
 	}
 	return 0;
 }
-int CFontTab::IndexFind(int code, LPCSTR name)
+int CFontTab::IndexFind(int code, LPCTSTR name)
 {
 	int n, i;
 
-	if ( name[1] == '\0' && name[0] >= '\x30' && name[0] <= '\x7E' )
+	if ( name[1] == _T('\0') && name[0] >= _T('\x30') && name[0] <= _T('\x7E') )
 		return (code | name[0]);
-	else if ( _tcscmp(name, "*U") == 0 )
+	else if ( _tcscmp(name, _T("*U")) == 0 )
 		return SET_UNICODE;
 
 	for ( n = i = 0 ;  n < (255 - 0x4F) ; n++ ) {
@@ -485,7 +485,7 @@ CTextRam::CTextRam()
 
 	fc_Init(EUC_SET);
 
-	m_pSection = "TextRam";
+	m_pSection = _T("TextRam");
 	m_MinSize = 16;
 	Serialize(FALSE);
 }
@@ -745,11 +745,11 @@ void CTextRam::OpenHisFile()
 	if ( m_pDocument != NULL )
 		m_pDocument->EntryText(name);
 
-	if ( (n = name.ReverseFind('.')) >= 0 )
+	if ( (n = name.ReverseFind(_T('.'))) >= 0 )
 		base = name.Left(n);
 
 	while ( num < 20 && !m_HisFhd.Open(name, CFile::modeReadWrite | CFile::modeCreate | CFile::modeNoTruncate | CFile::shareExclusive) )
-		name.Format("%s(%d).rlh", base, num++);
+		name.Format(_T("%s(%d).rlh"), base, num++);
 }
 void CTextRam::InitHistory()
 {
@@ -876,7 +876,7 @@ void CTextRam::HisRegCheck(int ch, DWORD pos)
 		}
 	}
 }
-int CTextRam::HisRegMark(LPCSTR str)
+int CTextRam::HisRegMark(LPCTSTR str)
 {
 	int n, x;
 	VRAM *vp;
@@ -1001,11 +1001,11 @@ static const VRAM TempAtt = {
 	//  ch  at  ft  md  dm  cm  em  fc  bc
 		0,  0,  0,  0,  0,  0,  0,  7,  0
 };
-static const char *DropCmdTab[] = {
-	//	Non				BPlus			XModem			YModem
-		"",				"bp -d %s\\r",	"rx %s\\r",		"rb\\r",
-	//	ZModem			SCP				Kermit
-		"rz\\r",		"scp -t %s",	"kermit -i -r",	"",
+static LPCTSTR	DropCmdTab[] = {
+	//	Non					BPlus				XModem					YModem
+		_T(""),				_T("bp -d %s\\r"),	_T("rx %s\\r"),			_T("rb\\r"),
+	//	ZModem				SCP					Kermit
+		_T("rz\\r"),		_T("scp -t %s"),	_T("kermit -i -r"),		_T(""),
 	};
 
 void CTextRam::Init()
@@ -1033,20 +1033,20 @@ void CTextRam::Init()
 	memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
 	memcpy(m_DefBankTab, DefBankTab, sizeof(m_DefBankTab));
 	memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
-	m_SendCharSet[0] = "EUCJP-MS";
-	m_SendCharSet[1] = "SHIFT-JIS";
-	m_SendCharSet[2] = "ISO-2022-JP";
-	m_SendCharSet[3] = "UTF-8";
-	m_SendCharSet[4] = "BIG-5";
+	m_SendCharSet[0] = _T("EUCJP-MS");
+	m_SendCharSet[1] = _T("SHIFT-JIS");
+	m_SendCharSet[2] = _T("ISO-2022-JP");
+	m_SendCharSet[3] = _T("UTF-8");
+	m_SendCharSet[4] = _T("BIG-5");
 	m_WheelSize      = 2;
-	m_BitMapFile     = "";
+	m_BitMapFile     = _T("");
 	m_DelayMSec      = 0;
-	m_HisFile        = "";
+	m_HisFile        = _T("");
 	m_KeepAliveSec   = 0;
 	m_DropFileMode   = 0;
 	for ( int n = 0 ; n < 8 ; n++ )
 		m_DropFileCmd[n] = DropCmdTab[n];
-	m_WordStr        = "\\/._";
+	m_WordStr        = _T("\\/._");
 	m_MouseTrack     = MOS_EVENT_NONE;
 	m_MouseRect.SetRectEmpty();
 	m_MouseMode[0]   = 0;
@@ -1066,6 +1066,8 @@ void CTextRam::Init()
 		m_Macro[n].Clear();
 	m_UnitId = 0;
 	m_ClipFlag = 0;
+	memset(m_MacroExecFlag, 0, sizeof(m_MacroExecFlag));
+	m_ShellExec.GetString(_T("http://|https://|ftp://|mailto://"), _T('|'));
 
 	m_ProcTab.Init();
 
@@ -1108,7 +1110,7 @@ void CTextRam::SetArray(CStringArrayExt &array)
 	array.AddBin(m_MetaKeys,  sizeof(m_MetaKeys));
 
 	m_ProcTab.SetArray(tmp);
-	tmp.SetString(str, ';');
+	tmp.SetString(str, _T(';'));
 	array.Add(str);
 
 	array.AddVal(4);	// AnsiOpt Bugfix
@@ -1116,6 +1118,9 @@ void CTextRam::SetArray(CStringArrayExt &array)
 	array.Add(m_SendCharSet[4]);
 	array.AddVal(m_ClipFlag);
 	array.AddVal(m_DefFontHw);
+
+	m_ShellExec.SetString(str, _T('|'));
+	array.Add(str);
 }
 void CTextRam::GetArray(CStringArrayExt &array)
 {
@@ -1159,16 +1164,16 @@ void CTextRam::GetArray(CStringArrayExt &array)
 	m_BitMapFile   = array.GetAt(15);
 
 	m_DelayMSec    = (array.GetSize() > 16 ? array.GetVal(16) : 0);
-	m_HisFile      = (array.GetSize() > 17 ? array.GetAt(17) : "");
+	m_HisFile      = (array.GetSize() > 17 ? array.GetAt(17) : _T(""));
 	m_KeepAliveSec = (array.GetSize() > 18 ? array.GetVal(18) : 0);
-	m_LogFile      = (array.GetSize() > 19 ? array.GetAt(19) : "");
+	m_LogFile      = (array.GetSize() > 19 ? array.GetAt(19) : _T(""));
 	m_DefCols[1]   = (array.GetSize() > 20 ? array.GetVal(20) : 132);
 
 	m_DropFileMode = (array.GetSize() > 21 ? array.GetVal(21) : 0);
 	for ( n = 0 ; n < 8 ; n++ )
 		m_DropFileCmd[n]  = (array.GetSize() > (22 + n) ? array.GetAt(22 + n) : DropCmdTab[n]);
 
-	m_WordStr      = (array.GetSize() > 30 ? array.GetAt(30) : "\\/._");
+	m_WordStr      = (array.GetSize() > 30 ? array.GetAt(30) : _T("\\/._"));
 
 	m_MouseMode[0] = (array.GetSize() > 31 ? array.GetVal(31) : 0);
 	m_MouseMode[1] = (array.GetSize() > 32 ? array.GetVal(32) : 1);
@@ -1179,7 +1184,7 @@ void CTextRam::GetArray(CStringArrayExt &array)
 		array.GetBin(35, m_MetaKeys, sizeof(m_MetaKeys));
 
 	if ( array.GetSize() > 36 ) {
-		ext.GetString(array.GetAt(36), ';');
+		ext.GetString(array.GetAt(36), _T(';'));
 		m_ProcTab.GetArray(ext);
 	}
 
@@ -1211,6 +1216,9 @@ void CTextRam::GetArray(CStringArrayExt &array)
 
 	if ( array.GetSize() > 41 )
 		m_DefFontHw = array.GetVal(41);
+
+	if ( array.GetSize() > 42 )
+		m_ShellExec.GetString(array.GetAt(42), _T('|'));
 
 	RESET();
 }
@@ -1267,6 +1275,7 @@ const CTextRam & CTextRam::operator = (CTextRam &data)
 	m_LangMenu = data.m_LangMenu;
 	m_UnitId = data.m_UnitId;
 	m_ClipFlag  = data.m_ClipFlag;
+	m_ShellExec = data.m_ShellExec;
 
 	return *this;
 }
@@ -1369,14 +1378,12 @@ void CTextRam::LineEditEcho()
 	EnableOption(TO_RLGNDW);	// No Do Warp
 
 	tmp.Clear();
-	MsToIconvUnicode((WCHAR *)(left.GetPtr()), left.GetSize() / sizeof(WCHAR), m_SendCharSet[m_KanjiMode]);
-	m_IConv.IConvBuf("UCS-2LE", m_SendCharSet[m_KanjiMode], &left, &tmp);
+	m_IConv.StrToRemote(m_SendCharSet[m_KanjiMode], &left, &tmp);
 	PUTSTR(tmp.GetPtr(), tmp.GetSize());
 	cx = m_CurX; cy = m_CurY;
 
 	tmp.Clear();
-	MsToIconvUnicode((WCHAR *)(right.GetPtr()), right.GetSize() / sizeof(WCHAR), m_SendCharSet[m_KanjiMode]);
-	m_IConv.IConvBuf("UCS-2LE", m_SendCharSet[m_KanjiMode], &right, &tmp);
+	m_IConv.StrToRemote(m_SendCharSet[m_KanjiMode], &right, &tmp);
 	PUTSTR(tmp.GetPtr(), tmp.GetSize());
 	ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1);
 
@@ -1466,18 +1473,18 @@ int CTextRam::LineEdit(CBuffer &buf)
 						}
 					} else {
 						m_LineEditMapsIndex = 1;
-						if ( m_LineEditMapsStr.GetAt(0) == '\\' || m_LineEditMapsStr.Find(':') >= 0 ) {
+						if ( m_LineEditMapsStr.GetAt(0) == 'L\\' || m_LineEditMapsStr.Find(L':') >= 0 ) {
 							ds = TRUE;
-							if ( (n = m_LineEditMapsStr.ReverseFind('\\')) >= 0 )
+							if ( (n = m_LineEditMapsStr.ReverseFind(L'\\')) >= 0 )
 								dir = m_LineEditMapsStr.Left(n);
-							else if ( (n = m_LineEditMapsStr.ReverseFind(':')) >= 0 )
+							else if ( (n = m_LineEditMapsStr.ReverseFind(L':')) >= 0 )
 								dir = m_LineEditMapsStr.Left(n + 1);
 							else
 								dir = m_LineEditMapsStr;
 						} else {
 							LineEditCwd(m_LineEditX - 1, m_LineEditY, wstr);
 							dir = wstr;
-							if ( (n = m_LineEditMapsStr.ReverseFind('\\')) >= 0 ) {
+							if ( (n = m_LineEditMapsStr.ReverseFind(L'\\')) >= 0 ) {
 								SetCurrentDirectory(dir);
 								m_LineEditMapsDir = m_LineEditMapsStr.Left(n + 1);
 								dir = m_LineEditMapsStr.Left(n);
@@ -1501,9 +1508,9 @@ int CTextRam::LineEdit(CBuffer &buf)
 				m_LineEditMapsIndex = 2;
 			}
 
-			if ( m_LineEditMapsIndex < 2 && wstr.Find(' ') >= 0 ) {
-				wstr.Insert(0, '"');
-				wstr += '"';
+			if ( m_LineEditMapsIndex < 2 && wstr.Find(L' ') >= 0 ) {
+				wstr.Insert(0, L'"');
+				wstr += L'"';
 			}
 
 			tmp.Clear();
@@ -1714,9 +1721,10 @@ void CTextRam::EditWordPos(int *sps, int *eps)
 	if ( IS_ENABLE(m_AnsiOpt, TO_RLGAWL) != 0 ) {
 		for ( tx = 0, ty = sy ; tx <= sx ; tx++ ) {
 			tmp.Empty();
-			for ( n = 0 ; n < 6 ; n++ )
+			for ( n = 0 ; n < 10 ; n++ )
 				tmp += (WCHAR)GetPos(tx + n, ty);
-			if ( wcsncmp(tmp, L"http:", 5) != 0 && wcsncmp(tmp, L"https:", 6) != 0 && wcsncmp(tmp, L"ftp:", 4) != 0 )
+
+			if ( m_ShellExec.Match((UniToTstr(tmp))) < 0 )
 				continue;
 
 			ex = tx;
@@ -1787,7 +1795,6 @@ void CTextRam::EditCopy(int sps, int eps, BOOL rectflag, BOOL lineflag)
 	WCHAR *pData;
 	VRAM *vp;
 	CBuffer tmp, str;
-	LPWSTR p;
 
 	SetCalcPos(sps, &x1, &y1);
 	SetCalcPos(eps, &x2, &y2);
@@ -1869,10 +1876,11 @@ void CTextRam::EditCopy(int sps, int eps, BOOL rectflag, BOOL lineflag)
 	}
 
 	tmp.PutWord(0);
-	p = (LPWSTR)(tmp.GetPtr());
 
-	if ( IS_ENABLE(m_AnsiOpt, TO_RLGAWL) != 0 && tmp.GetSize() > 10 && p[0] == 'h' && p[1] == 't' && p[2] == 't' && p[3] == 'p' && p[4] == ':' )
-		ShellExecuteW(AfxGetMainWnd()->GetSafeHwnd(), NULL, (LPCWSTR)(tmp.GetPtr()), NULL, NULL, SW_NORMAL);
+	if ( IS_ENABLE(m_AnsiOpt, TO_RLGAWL) != 0 ) {
+		if ( m_ShellExec.Match(UniToTstr((LPCWSTR)tmp)) >= 0 )
+			ShellExecuteW(AfxGetMainWnd()->GetSafeHwnd(), NULL, (LPCWSTR)tmp, NULL, NULL, SW_NORMAL);
+	}
 
 	if ( (hClipData = GlobalAlloc(GMEM_MOVEABLE, tmp.GetSize())) == NULL )
 		return;
@@ -2400,7 +2408,7 @@ void CTextRam::CallReciveLine(int y)
 
 	CBuffer in, out;
 	in.Apend((LPBYTE)((LPCWSTR)tmp), tmp.GetLength() * sizeof(WCHAR));
-	m_IConv.IConvBuf(_T("UCS-2LE"), m_SendCharSet[m_LogCharSet[IsOptValue(TO_RLLOGCODE, 2)]], &in, &out);
+	m_IConv.StrToRemote(m_SendCharSet[m_LogCharSet[IsOptValue(TO_RLLOGCODE, 2)]], &in, &out);
 	m_pDocument->m_pLogFile->Write(out.GetPtr(), out.GetSize());
 }
 void CTextRam::CallReciveChar(int ch)
@@ -2451,7 +2459,7 @@ void CTextRam::CallReciveChar(int ch)
 
 	CBuffer in, out;
 	in.Apend((LPBYTE)((LPCWSTR)tmp), tmp.GetLength() * sizeof(WCHAR));
-	m_IConv.IConvBuf("UCS-2LE", m_SendCharSet[m_LogCharSet[IsOptValue(TO_RLLOGCODE, 2)]], &in, &out);
+	m_IConv.StrToRemote(m_SendCharSet[m_LogCharSet[IsOptValue(TO_RLLOGCODE, 2)]], &in, &out);
 	m_pDocument->m_pLogFile->Write(out.GetPtr(), out.GetSize());
 }
 
@@ -2539,9 +2547,9 @@ int CTextRam::UnicodeWidth(DWORD code)
 // Static Lib
 //////////////////////////////////////////////////////////////////////
 
-void CTextRam::MsToIconvUnicode(WCHAR *str, int len, LPCSTR charset)
+void CTextRam::MsToIconvUniStr(LPCTSTR charset, LPWSTR str, int len)
 {
-	if ( _tcscmp(charset, "EUC-JISX0213") == 0 ) {
+	if ( _tcscmp(charset, _T("EUC-JISX0213")) == 0 ) {
 		for ( ; len-- > 0 ; str++ ) {
 			switch(*str) {							/*                  iconv  MS     */
 			case 0xFFE0: *str = 0x00A2; break;		/* Åë 0x8191(01-81) U+00A2 U+FFE0 */
@@ -2549,7 +2557,7 @@ void CTextRam::MsToIconvUnicode(WCHAR *str, int len, LPCSTR charset)
 			case 0xFFE2: *str = 0x00AC; break;		/* Å  0x81CA(02-44) U+00AC U+FFE2 */
 			}
 		}
-	} else if ( _tcscmp(charset, "SHIFT_JISX0213") == 0 ) {
+	} else if ( _tcscmp(charset, _T("SHIFT_JISX0213")) == 0 ) {
 		for ( ; len-- > 0 ; str++ ) {
 			switch(*str) {							/*                  iconv  MS     */
 //			case 0x005C: *str = 0x00A5; break;		/* \  0x5C          U+00A5 U+005C */
@@ -2559,7 +2567,7 @@ void CTextRam::MsToIconvUnicode(WCHAR *str, int len, LPCSTR charset)
 			case 0xFFE2: *str = 0x00AC; break;		/* Å  0x81CA(02-44) U+00AC U+FFE2 */
 			}
 		}
-	} else if ( _tcscmp(charset, "EUC-JP") == 0 || _tcscmp(charset, "EUCJP") == 0 ) {
+	} else if ( _tcscmp(charset, _T("EUC-JP")) == 0 || _tcscmp(charset, _T("EUCJP")) == 0 ) {
 		for ( ; len-- > 0 ; str++ ) {
 			switch(*str) {							/*                  iconv  MS     */
 			case 0x2225: *str = 0x2016; break;		/* Åa 0x8161(01-34) U+2016 U+2225 */
@@ -2569,8 +2577,8 @@ void CTextRam::MsToIconvUnicode(WCHAR *str, int len, LPCSTR charset)
 			case 0xFFE2: *str = 0x00AC; break;		/* Å  0x81CA(02-44) U+00AC U+FFE2 */
 			}
 		}
-	} else if ( _tcscmp(charset, "SHIFT_JIS") == 0 || _tcscmp(charset, "MS_KANJI") == 0 ||
-			    _tcscmp(charset, "SHIFT-JIS") == 0 || _tcscmp(charset, "SJIS") == 0 || _tcscmp(charset, "CSSHIFTJIS") == 0 ) {
+	} else if ( _tcscmp(charset, _T("SHIFT_JIS")) == 0 || _tcscmp(charset, _T("MS_KANJI")) == 0 ||
+			    _tcscmp(charset, _T("SHIFT-JIS")) == 0 || _tcscmp(charset, _T("SJIS")) == 0 || _tcscmp(charset, _T("CSSHIFTJIS")) == 0 ) {
 		for ( ; len-- > 0 ; str++ ) {
 			switch(*str) {							/*                  iconv  MS     */
 //			case 0x005C: *str = 0x00A5; break;		/* \  0x5C          U+00A5 U+005C */
@@ -2585,7 +2593,6 @@ void CTextRam::MsToIconvUnicode(WCHAR *str, int len, LPCSTR charset)
 		}
 	}
 }
-
 DWORD CTextRam::IconvToMsUnicode(DWORD code)
 {
 	switch(code) {							/*                  iconv  MS     */
@@ -2600,38 +2607,6 @@ DWORD CTextRam::IconvToMsUnicode(DWORD code)
 	case 0x301C: code = 0xFF5E; break;		/* Å` 0x8160(01-33) U+301C U+FF5E */
 	}
 	return code;
-}
-DWORD CTextRam::UnicodeNomal(DWORD code1, DWORD code2)
-{
-	#include "UniNomalTab.h"
-	static BOOL UniNomInitFlag = FALSE;
-	static struct _UNINOMTAB *HashTab[256];
-
-	int n, c, hs;
-	struct _UNINOMTAB *tp;
-
-	if ( !UniNomInitFlag ) {
-		for ( n = 0 ; n < 256 ; n++ )
-			HashTab[n] = NULL;
-		for ( n = 0 ; n < UNINOMALTABMAX ; n++ ) {
-			hs = (UniNomalTab[n].code[0] * 31 + UniNomalTab[n].code[1]) & 255;
-			UniNomalTab[n].next = HashTab[hs];
-			HashTab[hs] = &(UniNomalTab[n]);
-		}
-		UniNomInitFlag = TRUE;
-	}
-
-	code1 = UCS2toUCS4(code1);
-	code2 = UCS2toUCS4(code2);
-
-	hs = (code1 * 31 + code2) & 255;
-	for ( tp = HashTab[hs] ; tp != NULL ; tp = tp->next ) {
-		if ( (c = (int)(tp->code[0] - code1)) == 0 && (c = (int)(tp->code[1] - code2)) == 0 )
-			return UCS4toUCS2(tp->code[2]);
-		else if ( c < 0 )
-			break;
-	}
-	return 0;
 }
 DWORD CTextRam::UCS2toUCS4(DWORD code)
 {
@@ -2649,27 +2624,89 @@ DWORD CTextRam::UCS4toUCS2(DWORD code)
 	}
 	return code;
 }
+DWORD CTextRam::UnicodeNomal(DWORD code1, DWORD code2)
+{
+	#include "UniNomalTab.h"
+	static BOOL UniNomInitFlag = FALSE;
+	static struct _UNINOMTAB *HashTab[256];
+
+	int n, c, hs;
+	struct _UNINOMTAB *tp;
+
+	if ( !UniNomInitFlag ) {
+		for ( n = 0 ; n < 256 ; n++ )
+			HashTab[n] = NULL;
+		for ( n = 0 ; n < UNINOMALTABMAX ; n++ ) {
+			for ( c = 0 ; c < 3 ; c++ )
+				UniNomalTab[n].code[c] = UCS4toUCS2(UniNomalTab[n].code[c]);
+			hs = (UniNomalTab[n].code[0] * 31 + UniNomalTab[n].code[1]) & 255;
+			UniNomalTab[n].next = HashTab[hs];
+			HashTab[hs] = &(UniNomalTab[n]);
+		}
+		UniNomInitFlag = TRUE;
+	}
+
+	hs = (code1 * 31 + code2) & 255;
+	for ( tp = HashTab[hs] ; tp != NULL ; tp = tp->next ) {
+		if ( (c = (int)(tp->code[0] - code1)) == 0 && (c = (int)(tp->code[1] - code2)) == 0 )
+			return tp->code[2];
+		else if ( c < 0 )
+			break;
+	}
+	return 0;
+}
+void CTextRam::IconvToMsUniStr(LPCWSTR p, int len, CBuffer &out)
+{
+	DWORD d1 = 0, d2, d3;
+
+	while ( len-- > 0 ) {
+		//  1101 10xx	U+D800 - U+DBFF	è„à ÉTÉçÉQÅ[Ég	1101 11xx	U+DC00 - U+DFFF	â∫à ÉTÉçÉQÅ[Ég
+		if ( (p[0] & 0xFC00) == 0xD800 && (p[1] & 0xFC00) == 0xDC00 ) {
+			d2 = (p[0] << 16) | p[1];
+			p += 2;
+		} else
+			d2 = *(p++);
+
+		if ( d1 != 0 ) {
+			if ( (d3 = UnicodeNomal(d1, d2)) != 0 )
+				d2 = d3;
+			else {
+				d1 = IconvToMsUnicode(d1);
+				if ( (d1 & 0xFFFF0000L) != 0 )
+					out.PutWord((WORD)(d1 >> 16));
+				out.PutWord((WORD)d1);
+			}
+		}
+		d1 = d2;
+	}
+	if ( d1 != 0 ) {
+		d1 = IconvToMsUnicode(d1);
+		if ( (d1 & 0xFFFF0000L) != 0 )
+			out.PutWord((WORD)(d1 >> 16));
+		out.PutWord((WORD)d1);
+	}
+}
 
 //////////////////////////////////////////////////////////////////////
 
 void CTextRam::SetRetChar(BOOL f8)
 {
 	if ( f8 ) {
-		m_RetChar[RC_DCS] = "\x90";
-		m_RetChar[RC_SOS] = "\x98";
-		m_RetChar[RC_CSI] = "\x9b";
-		m_RetChar[RC_ST]  = "\x9c";
-		m_RetChar[RC_OSC] = "\x9d";
-		m_RetChar[RC_PM]  = "\x9e";
-		m_RetChar[RC_APC] = "\x9f";
+		m_RetChar[RC_DCS] = _T("\x90");
+		m_RetChar[RC_SOS] = _T("\x98");
+		m_RetChar[RC_CSI] = _T("\x9b");
+		m_RetChar[RC_ST]  = _T("\x9c");
+		m_RetChar[RC_OSC] = _T("\x9d");
+		m_RetChar[RC_PM]  = _T("\x9e");
+		m_RetChar[RC_APC] = _T("\x9f");
 	} else {
-		m_RetChar[RC_DCS] = "\033P";
-		m_RetChar[RC_SOS] = "\033X";
-		m_RetChar[RC_CSI] = "\033[";
-		m_RetChar[RC_ST]  = "\033\\";
-		m_RetChar[RC_OSC] = "\033]";
-		m_RetChar[RC_PM]  = "\033^";
-		m_RetChar[RC_APC] = "\033_";
+		m_RetChar[RC_DCS] = _T("\033P");
+		m_RetChar[RC_SOS] = _T("\033X");
+		m_RetChar[RC_CSI] = _T("\033[");
+		m_RetChar[RC_ST]  = _T("\033\\");
+		m_RetChar[RC_OSC] = _T("\033]");
+		m_RetChar[RC_PM]  = _T("\033^");
+		m_RetChar[RC_APC] = _T("\033_");
 	}
 }
 void CTextRam::AddGrapWnd(void *pWnd)
@@ -2786,6 +2823,7 @@ void CTextRam::RESET(int mode)
 		memcpy(m_Save_TabMap, m_TabMap, sizeof(m_TabMap));
 		for ( int n = 0 ; n < 64 ; n++ )
 			m_Macro[n].Clear();
+		memset(m_MacroExecFlag, 0, sizeof(m_MacroExecFlag));
 	}
 
 	m_RecvCrLf = IsOptValue(TO_RLRECVCR, 2);
@@ -2836,14 +2874,17 @@ VRAM *CTextRam::GETVRAM(int cols, int lines)
 		pos -= m_HisMax;
 	return (m_VRam + cols + m_ColsMax * pos);
 }
-void CTextRam::UNGETSTR(LPCSTR str, ...)
+void CTextRam::UNGETSTR(LPCTSTR str, ...)
 {
 	CString tmp;
+	CStringA mbs;
 	va_list arg;
 	va_start(arg, str);
 	tmp.FormatV(str, arg);
-	if ( m_pDocument != NULL )
-		m_pDocument->SocketSend((void *)(LPCSTR)tmp, tmp.GetLength());
+	if ( m_pDocument != NULL ) {
+		m_pDocument->m_TextRam.m_IConv.StrToRemote(m_pDocument->m_TextRam.m_SendCharSet[m_pDocument->m_TextRam.m_KanjiMode], tmp, mbs);
+		m_pDocument->SocketSend((void *)(LPCSTR)mbs, mbs.GetLength());
+	}
 	va_end(arg);
 }
 void CTextRam::BEEP()
@@ -3117,7 +3158,7 @@ void CTextRam::LocReport(int md, int sw, int x, int y)
 		y *= 12;
 	}
 
-	UNGETSTR("%s%d;%d;%d;%d;%d&w", m_RetChar[RC_CSI], Pe, m_Loc_Pb, y + 1, x + 1, 0);
+	UNGETSTR(_T("%s%d;%d;%d;%d;%d&w"), m_RetChar[RC_CSI], Pe, m_Loc_Pb, y + 1, x + 1, 0);
 
 	if ( (m_Loc_Mode & LOC_MODE_ONESHOT) != 0 ) {
 		m_Loc_Mode &= ~(LOC_MODE_ENABLE | LOC_MODE_ONESHOT);
@@ -3125,7 +3166,7 @@ void CTextRam::LocReport(int md, int sw, int x, int y)
 		m_pDocument->UpdateAllViews(NULL, UPDATE_SETCURSOR, NULL);
 	}
 }
-LPCSTR CTextRam::GetHexPara(LPCSTR str, CBuffer &buf)
+LPCTSTR CTextRam::GetHexPara(LPCTSTR str, CBuffer &buf)
 {
 	// ! Pn ; D...D ;		! is the repeat sequence introducer.
 
@@ -3133,16 +3174,16 @@ LPCSTR CTextRam::GetHexPara(LPCSTR str, CBuffer &buf)
 	CBuffer tmp;
 
 	buf.Clear();
-	while ( *str != '\0' ) {
-		if ( *str == ';' ) {
+	while ( *str != _T('\0') ) {
+		if ( *str == _T(';') ) {
 			str++;
 			break;
 
-		} else if ( *str == '!' ) {
+		} else if ( *str == _T('!') ) {
 			str++;
 			for ( n = 0 ; isdigit(*str) ; )
-				n = n * 10 + (*(str++) - '0');
-			if ( *str != ';' )
+				n = n * 10 + (*(str++) - _T('0'));
+			if ( *str != _T(';') )
 				break;
 			str++;
 			str = GetHexPara(str, tmp);

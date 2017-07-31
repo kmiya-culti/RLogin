@@ -107,15 +107,15 @@ public:
 	LPBYTE m_KeyBuf;
 	EVP_CIPHER_CTX m_Evp;
 
-	int Init(LPCSTR name, int mode, LPBYTE key = NULL, int len = (-1), LPBYTE iv = NULL);
+	int Init(LPCTSTR name, int mode, LPBYTE key = NULL, int len = (-1), LPBYTE iv = NULL);
 	void Cipher(LPBYTE inbuf, int len, CBuffer *out);
-	int GetIndex(LPCSTR name);
-	int GetKeyLen(LPCSTR name = NULL);
-	int GetBlockSize(LPCSTR name = NULL);
-	LPCSTR GetName(int num);
-	int GetNum(LPCSTR str);
-	LPCSTR GetTitle();
-	void MakeKey(CBuffer *bp, LPCSTR pass);
+	int GetIndex(LPCTSTR name);
+	int GetKeyLen(LPCTSTR name = NULL);
+	int GetBlockSize(LPCTSTR name = NULL);
+	LPCTSTR GetName(int num);
+	int GetNum(LPCTSTR str);
+	LPCTSTR GetTitle();
+	void MakeKey(CBuffer *bp, LPCTSTR pass);
 
 	static void CCipher::BenchMark(CString &out);
 
@@ -135,12 +135,12 @@ public:
 	void *m_UmacCtx;
 	BOOL m_UmacMode;
 
-	int Init(LPCSTR name, LPBYTE key = NULL, int len = (-1));
+	int Init(LPCTSTR name, LPBYTE key = NULL, int len = (-1));
 	void Compute(DWORD seq, LPBYTE inbuf, int len, CBuffer *out);
-	int GetIndex(LPCSTR name);
-	int GetKeyLen(LPCSTR name = NULL);
-	int GetBlockSize(LPCSTR name = NULL);
-	LPCSTR GetTitle();
+	int GetIndex(LPCTSTR name);
+	int GetKeyLen(LPCTSTR name = NULL);
+	int GetBlockSize(LPCTSTR name = NULL);
+	LPCTSTR GetTitle();
 
 	static void BenchMark(CString &out);
 
@@ -155,10 +155,10 @@ public:
 	z_stream m_InCompStr;
 	z_stream m_OutCompStr;
 
-	int Init(LPCSTR name, int mode, int level = 6);
+	int Init(LPCTSTR name, int mode, int level = 6);
 	void Compress(LPBYTE inbuf, int len, CBuffer *out);
 	void UnCompress(LPBYTE inbuf, int len, CBuffer *out);
-	LPCSTR GetTitle();
+	LPCTSTR GetTitle();
 
 	CCompress();
 	~CCompress();
@@ -199,11 +199,11 @@ public:
 	CString m_Work;
 
 	int GetIndexNid(int nid);
-	int GetIndexName(LPCSTR name);
+	int GetIndexName(LPCTSTR name);
 	const EVP_MD *GetEvpMdIdx(int idx);
 
-	static int GetEcNidFromName(LPCSTR name);
-	static LPCSTR GetEcNameFromNid(int nid);
+	static int GetEcNidFromName(LPCTSTR name);
+	static LPCTSTR GetEcNameFromNid(int nid);
 	static const EVP_MD *GetEcEvpMdFromNid(int nid);
 	int GetEcNidFromKey(EC_KEY *k);
 
@@ -219,9 +219,9 @@ public:
 	void DecryptStr(CString &out, LPCTSTR str);
 	void EncryptStr(CString &out, LPCTSTR str);
 
-	LPCSTR GetName();
-	int GetTypeFromName(LPCSTR name);
-	int HostVerify(LPCSTR host);
+	LPCTSTR GetName();
+	int GetTypeFromName(LPCTSTR name);
+	int HostVerify(LPCTSTR host);
 
 	int RsaSign(CBuffer *bp, LPBYTE buf, int len);
 	int DssSign(CBuffer *bp, LPBYTE buf, int len);
@@ -239,24 +239,24 @@ public:
 	int GetPrivateBlob(CBuffer *bp);
 	int SetPrivateBlob(CBuffer *bp);
 
-	int ReadPublicKey(LPCSTR str);
+	int ReadPublicKey(LPCTSTR str);
 	int WritePublicKey(CString &str);
 
-	int ReadPrivateKey(LPCSTR str, LPCSTR pass);
-	int WritePrivateKey(CString &str, LPCSTR pass);
+	int ReadPrivateKey(LPCTSTR str, LPCTSTR pass);
+	int WritePrivateKey(CString &str, LPCTSTR pass);
 
 	int SetEvpPkey(EVP_PKEY *pk);
-	int LoadRsa1Key(FILE *fp, LPCSTR pass);
-	int SaveRsa1Key(FILE *fp, LPCSTR pass);
+	int LoadRsa1Key(FILE *fp, LPCTSTR pass);
+	int SaveRsa1Key(FILE *fp, LPCTSTR pass);
 
-	int LoadPrivateKey(LPCSTR file, LPCSTR pass);
-	int SavePrivateKey(int type, LPCSTR file, LPCSTR pass);
+	int LoadPrivateKey(LPCTSTR file, LPCTSTR pass);
+	int SavePrivateKey(int type, LPCTSTR file, LPCTSTR pass);
 
-	int GetString(LPCSTR str);
+	int GetString(LPCTSTR str);
 	void SetString(CString &str);
-	int GetProfile(LPCSTR pSection, int Uid);
-	void SetProfile(LPCSTR pSection);
-	void DelProfile(LPCSTR pSection);
+	int GetProfile(LPCTSTR pSection, int Uid);
+	void SetProfile(LPCTSTR pSection);
+	void DelProfile(LPCTSTR pSection);
 	const CIdKey & operator = (CIdKey &data);
 
 	int GetSize();
@@ -345,7 +345,7 @@ public:
 	int m_Type;
 	class CChannel *m_pChan;
 	class CFilter *m_pNext;
-	CString m_Cmd;
+	CStringA m_Cmd;
 
 	CFilter();
 	virtual ~CFilter();
@@ -404,7 +404,7 @@ public:
 	void OnSendEmpty();
 
 	void DoClose();
-	int CreateListen(LPCTSTR lpszHostAddress, UINT nHostPort, LPCSTR lpszRemoteAddress, UINT nRemotePort);
+	int CreateListen(LPCTSTR lpszHostAddress, UINT nHostPort, LPCTSTR lpszRemoteAddress, UINT nRemotePort);
 };
 
 class CStdIoFilter : public CFilter
@@ -456,8 +456,6 @@ public:
 	void OnRecive(const void *lpBuf, int nBufLen);
 	void OnClose();
 	void OnSendEmpty();
-
-	void HostKanjiStr(LPCSTR str, CString &tmp);
 
 	CRcpUpload();
 	~CRcpUpload();
@@ -601,9 +599,9 @@ private:
 	CBuffer m_StdInRes;
 	CRcpUpload m_RcpCmd;
 
-	void LogIt(LPCSTR format, ...);
+	void LogIt(LPCTSTR format, ...);
 	void PortForward();
-	int MatchList(LPCSTR client, LPCSTR server, CString &str);
+	int MatchList(LPCTSTR client, LPCTSTR server, CString &str);
 	int ChannelOpen();
 	void ChannelClose(int id);
 
@@ -616,12 +614,12 @@ private:
 	void SendMsgServiceRequest(LPCSTR str);
 	int SendMsgUserAuthRequest(LPCSTR str);
 
-	int SendMsgChannelOpen(int n, LPCSTR type, LPCSTR lhost = NULL, int lport = 0, LPCSTR rhost = NULL, int rport = 0);
+	int SendMsgChannelOpen(int n, LPCSTR type, LPCTSTR lhost = NULL, int lport = 0, LPCTSTR rhost = NULL, int rport = 0);
 	void SendMsgChannelRequesstShell(int id);
 	void SendMsgChannelRequesstSubSystem(int id);
 	void SendMsgChannelRequesstExec(int id);
 
-	void SendMsgGlobalRequest(int num, LPCSTR str, LPCSTR rhost = NULL, int rport = 0);
+	void SendMsgGlobalRequest(int num, LPCSTR str, LPCTSTR rhost = NULL, int rport = 0);
 	void SendMsgKeepAlive();
 	void SendMsgUnimplemented();
 	void SendDisconnect2(int st, LPCSTR str);
@@ -662,7 +660,7 @@ public:
 	void ChannelCheck(int n);
 	void ChannelPolling(int id);
 	void ChannelAccept(int id, SOCKET hand);
-	void OpenRcpUpload(LPCSTR file);
+	void OpenRcpUpload(LPCTSTR file);
 };
 
 //////////////////////////////////////////////////////////////////////

@@ -42,27 +42,19 @@
 
 class CRLoginDoc : public CDocument
 {
-protected: // シリアライズ機能のみから作成します。
-	CRLoginDoc();
 	DECLARE_DYNCREATE(CRLoginDoc)
 
-// アトリビュート
+protected: // シリアライズ機能のみから作成します。
+	CRLoginDoc();
+
 public:
+	virtual ~CRLoginDoc();
+#ifdef _DEBUG
+	virtual void AssertValid() const;
+	virtual void Dump(CDumpContext& dc) const;
+#endif
 
 // オペレーション
-public:
-
-//オーバーライド
-	// ClassWizard は仮想関数のオーバーライドを生成します。
-	//{{AFX_VIRTUAL(CRLoginDoc)
-	public:
-	virtual BOOL OnNewDocument();
-	virtual void Serialize(CArchive& ar);
-	virtual void DeleteContents();
-	virtual BOOL OnOpenDocument(LPCTSTR lpszPathName);
-	//}}AFX_VIRTUAL
-
-// インプリメンテーション
 public:
 	CExtSocket *m_pSock;
 	CTextRam m_TextRam;
@@ -83,6 +75,8 @@ public:
 	CStrScript *m_pScript;
 	CString m_ErrorPrompt;
 	CString m_SearchStr;
+	CStringA m_WorkMbs;
+	CString m_WorkStr;
 
 	BOOL EntryText(CString &name);
 
@@ -103,6 +97,8 @@ public:
 	int SocketRecive(void *lpBuf, int nBufLen);
 	void SocketSend(void *lpBuf, int nBufLen);
 	void SocketSendWindSize(int x, int y);
+	LPCSTR RemoteStr(LPCTSTR str);
+	LPCTSTR LocalStr(LPCSTR str);
 
 	void OnSocketConnect();
 	void OnSocketError(int err);
@@ -115,17 +111,15 @@ public:
 	void DoDropFile();
 	CWnd *GetAciveView();
 
-	virtual ~CRLoginDoc();
-#ifdef _DEBUG
-	virtual void AssertValid() const;
-	virtual void Dump(CDumpContext& dc) const;
-#endif
-
+//オーバーライド
 protected:
+	virtual void Serialize(CArchive& ar);
+	virtual void DeleteContents();
+	virtual BOOL OnNewDocument();
+	virtual BOOL OnOpenDocument(LPCTSTR lpszPathName);
 
-// 生成されたメッセージ マップ関数
+// インプリメンテーション
 protected:
-	//{{AFX_MSG(CRLoginDoc)
 	afx_msg void OnLogOpen();
 	afx_msg void OnUpdateLogOpen(CCmdUI* pCmdUI);
 	afx_msg void OnLoadDefault();
@@ -135,13 +129,10 @@ protected:
 	afx_msg void OnUpdateSftp(CCmdUI* pCmdUI);
 	afx_msg void OnChatStop();
 	afx_msg void OnUpdateChatStop(CCmdUI *pCmdUI);
-	//}}AFX_MSG
 	afx_msg void OnKanjiCodeSet(UINT nID);
 	afx_msg void OnUpdateKanjiCodeSet(CCmdUI* pCmdUI);
 	afx_msg void OnXYZModem(UINT nID);
 	afx_msg void OnUpdateXYZModem(CCmdUI* pCmdUI);
-	DECLARE_MESSAGE_MAP()
-public:
 	afx_msg void OnSendBreak();
 	afx_msg void OnUpdateSendBreak(CCmdUI *pCmdUI);
 	afx_msg void OnTekdisp();
@@ -149,6 +140,7 @@ public:
 	afx_msg void OnScreenReset(UINT nID);
 	afx_msg void OnSocketstatus();
 	afx_msg void OnUpdateSocketstatus(CCmdUI *pCmdUI);
+	DECLARE_MESSAGE_MAP()
 };
 
 /////////////////////////////////////////////////////////////////////////////

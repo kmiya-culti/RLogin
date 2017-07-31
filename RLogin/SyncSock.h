@@ -50,8 +50,8 @@ public:
 	class CProgDlg m_ProgDlg;
 	BOOL m_ResvDoit;
 	CStringList m_ResvPath;
+	CString m_PathName;
 	CStringA m_FileName;
-	CStringA m_PathName;
 	CStringA m_Message;
 	DWORD m_Param;
 	LONGLONG m_Size;
@@ -84,7 +84,7 @@ public:
 	CBuffer m_OutBuf;
 
 	inline void SetFileType(BOOL ascii) { m_IsAscii = ascii; }
-	FILE *FileOpen(LPCSTR filename, LPCSTR mode, BOOL ascii);
+	FILE *FileOpen(LPCTSTR filename, LPCSTR mode, BOOL ascii);
 	void FileClose(FILE *fp);
 	int ReadCharToHost(FILE *fp);
 	int ReadFileToHost(char *buf, int len, FILE *fp);
@@ -96,8 +96,6 @@ public:
 	void UpDownInit(LONGLONG size, LONGLONG rems = 0L);
 	void UpDownStat(LONGLONG size);
 
-	void HostKanjiConv(CStringA &str);
-	void LocalKanjiConv(CStringA &str);
 	void ThreadCommand(int cmd);
 	void DoAbort();
 

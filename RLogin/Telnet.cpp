@@ -35,7 +35,7 @@ CMint::CMint(LPCSTR s)
 }
 CMint::CMint(int n)
 {
-	CString s;
+	CStringA s;
 	s.Format("%x", n);
 	bn = BN_new();
 	BN_hex2bn(&bn, s);
@@ -125,7 +125,7 @@ void CMint::sdiv(short d, short *ro)
 	BN_free(&q);
 	BN_CTX_free(c);
 }
-void CMint::mtox(CString &tmp)
+void CMint::mtox(CStringA &tmp)
 {
 	char *s = BN_bn2hex(bn);
 	tmp = s;
@@ -201,7 +201,7 @@ static const char *slc_flag[] = {
 		"NOSUPPORT", "CANTCHANGE", "VARIABLE", "DEFAULT"
 	};
 
-static const struct {
+static const struct _slc_init {
 	BYTE	code;
 	BYTE	flag;
 	BYTE	ch;
@@ -420,13 +420,7 @@ void CTelnet::SendStr(LPCTSTR str)
 {
 	int n = 0;
 	char tmp[256];
-
-#ifdef	_UNICODE
-	CStringA work(str);
-	p = work;
-#else
-	LPCSTR p = str;
-#endif
+	LPCSTR p = m_pDocument->RemoteStr(str);
 
 	while ( *p != '\0' ) {
 		if ( *p == (char)TELC_IAC )
@@ -515,64 +509,64 @@ void CTelnet::GetStatus(CString &str)
 {
 	int n;
 	CString tmp;
-	static const char *optsts[] = { "OFF", "ON", "WOFF", "WON", "ROFF", "RON" };
+	static LPCTSTR optsts[] = { _T("OFF"), _T("ON"), _T("WOFF"), _T("WON"), _T("ROFF"), _T("RON") };
 
 	CExtSocket::GetStatus(str);
 
-	str += "\r\n";
-	tmp.Format("Telnet Status: %d\r\n", ReciveStatus);
+	str += _T("\r\n");
+	tmp.Format(_T("Telnet Status: %d\r\n"), ReciveStatus);
 	str += tmp;
 
-	str += "\r\n";
-	tmp.Format("Server Option: ");
-	str += tmp;
-
-	for ( n = 0 ; n < TELOPT_MAX ; n++ ) {
-		tmp.Format(" %s:%s", telopts[n], optsts[HisOpt[n].status]);
-		str += tmp;
-	}
-	str += "\r\n";
-
-	str += "\r\n";
-	tmp.Format("Client Option: ");
+	str += _T("\r\n");
+	tmp.Format(_T("Server Option: "));
 	str += tmp;
 
 	for ( n = 0 ; n < TELOPT_MAX ; n++ ) {
-		tmp.Format(" %s:%s", telopts[n], optsts[MyOpt[n].status]);
+		tmp.Format(_T(" %s:%s"), MbsToTstr(telopts[n]), optsts[HisOpt[n].status]);
 		str += tmp;
 	}
-	str += "\r\n";
+	str += _T("\r\n");
 
-	str += "\r\n";
-	str += "Linemode SLC: ";
+	str += _T("\r\n");
+	tmp.Format(_T("Client Option: "));
+	str += tmp;
+
+	for ( n = 0 ; n < TELOPT_MAX ; n++ ) {
+		tmp.Format(_T(" %s:%s"), MbsToTstr(telopts[n]), optsts[MyOpt[n].status]);
+		str += tmp;
+	}
+	str += _T("\r\n");
+
+	str += _T("\r\n");
+	str += _T("Linemode SLC: ");
 	for ( n = SLC_SYNCH ; n <= SLC_EEOL ; n++ ) {
-		tmp.Format("%s %s%s%s%s %d; ", slc_list[n], slc_flag[slc_tab[n].flag & 3],
-			((slc_tab[n].flag & SLC_ACK) != 0 ? "|ACK" : ""),
-			((slc_tab[n].flag & SLC_FLUSHIN) != 0 ? "|FLUSHIN" : ""),
-			((slc_tab[n].flag & SLC_FLUSHOUT) != 0 ? "|FLUSHOUT" : ""),
+		tmp.Format(_T("%s %s%s%s%s %d; "), MbsToTstr(slc_list[n]), MbsToTstr(slc_flag[slc_tab[n].flag & 3]),
+			((slc_tab[n].flag & SLC_ACK) != 0 ? _T("|ACK") : _T("")),
+			((slc_tab[n].flag & SLC_FLUSHIN) != 0 ? _T("|FLUSHIN") : _T("")),
+			((slc_tab[n].flag & SLC_FLUSHOUT) != 0 ? _T("|FLUSHOUT") : _T("")),
 			slc_tab[n].ch);
 		str += tmp;
 	}
-	str += "\r\n";
+	str += _T("\r\n");
 
-	str += "Linemode Mode: ";
-	if ( (slc_mode & MODE_EDIT)     != 0 ) str += "EDIT ";
-	if ( (slc_mode & MODE_TRAPSIG)  != 0 ) str += "TRAPSIG ";
-	if ( (slc_mode & MODE_ACK)      != 0 ) str += "ACK ";
-	if ( (slc_mode & MODE_SOFT_TAB) != 0 ) str += "SOFT_TAB ";
-	if ( (slc_mode & MODE_LIT_ECHO) != 0 ) str += "LIT_ECHO ";
-	str += "\r\n";
+	str += _T("Linemode Mode: ");
+	if ( (slc_mode & MODE_EDIT)     != 0 ) str += _T("EDIT ");
+	if ( (slc_mode & MODE_TRAPSIG)  != 0 ) str += _T("TRAPSIG ");
+	if ( (slc_mode & MODE_ACK)      != 0 ) str += _T("ACK ");
+	if ( (slc_mode & MODE_SOFT_TAB) != 0 ) str += _T("SOFT_TAB ");
+	if ( (slc_mode & MODE_LIT_ECHO) != 0 ) str += _T("LIT_ECHO ");
+	str += _T("\r\n");
 
 	if ( EncryptOutputFlag || EncryptInputFlag )
-		str += "\r\n";
+		str += _T("\r\n");
 
 	if ( EncryptOutputFlag ) {
-		tmp.Format("EncryptOut: %s\r\n", (stream[DIR_ENC].mode == ENCTYPE_DES_CFB64 ? "des-cfb" : "des-ofb"));
+		tmp.Format(_T("EncryptOut: %s\r\n"), (stream[DIR_ENC].mode == ENCTYPE_DES_CFB64 ? _T("des-cfb") : _T("des-ofb")));
 		str += tmp;
 	}
 
 	if ( EncryptInputFlag ) {
-		tmp.Format("EncryptIn: %s\r\n", (stream[DIR_DEC].mode == ENCTYPE_DES_CFB64 ? "des-cfb" : "des-ofb"));
+		tmp.Format(_T("EncryptIn: %s\r\n"), (stream[DIR_DEC].mode == ENCTYPE_DES_CFB64 ? _T("des-cfb") : _T("des-ofb")));
 		str += tmp;
 	}
 }
@@ -1092,7 +1086,7 @@ void CTelnet::AuthReply(char *buf, int len)
 
 			SraCommonKey(ska, pkb);
 
-			work = m_pDocument->m_ServerEntry.m_UserName;
+			work = m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_UserName);
 			if ( (n = work.GetLength()) > 250 )
 				n = 250;
 			strncpy(tmp, work, n);
@@ -1109,7 +1103,7 @@ void CTelnet::AuthReply(char *buf, int len)
 				break;
 			}
 
-			work = m_pDocument->m_ServerEntry.m_PassName;
+			work = m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_PassName);
 			if ( (n = work.GetLength()) > 250 )
 				n = 250;
 			strncpy(tmp, work, n);
@@ -1183,7 +1177,7 @@ void CTelnet::SraGenkey(char *p, char *s)
 	sk.msup(mod);
 	pk.pow(root, sk, mod);
 
-	CString tmp;
+	CStringA tmp;
 
 	sk.mtox(tmp);
 	strcpy(s, tmp);

@@ -15,15 +15,15 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // CPfdParaDlg ダイアログ
 
+IMPLEMENT_DYNAMIC(CPfdParaDlg, CDialog)
+
 CPfdParaDlg::CPfdParaDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CPfdParaDlg::IDD, pParent)
 {
-	//{{AFX_DATA_INIT(CPfdParaDlg)
 	m_ListenHost = _T("");
 	m_ListenPort = _T("");
 	m_ConnectHost = _T("");
 	m_ConnectPort = _T("");
-	//}}AFX_DATA_INIT
 	m_pData = NULL;
 	m_pEntry = NULL;
 	m_EntryNum = (-1);
@@ -33,18 +33,15 @@ CPfdParaDlg::CPfdParaDlg(CWnd* pParent /*=NULL*/)
 void CPfdParaDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
-	//{{AFX_DATA_MAP(CPfdParaDlg)
+
 	DDX_CBString(pDX, IDC_LISTENHOST, m_ListenHost);
 	DDX_CBString(pDX, IDC_LISTENPORT, m_ListenPort);
 	DDX_CBString(pDX, IDC_CONNECTHOST, m_ConnectHost);
 	DDX_CBString(pDX, IDC_CONNECTPORT, m_ConnectPort);
 	DDX_Radio(pDX, IDC_RADIO1, m_ListenType);
-	//}}AFX_DATA_MAP
 }
 
 BEGIN_MESSAGE_MAP(CPfdParaDlg, CDialog)
-	//{{AFX_MSG_MAP(CPfdParaDlg)
-	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -57,8 +54,8 @@ BOOL CPfdParaDlg::OnInitDialog()
 	CDialog::OnInitDialog();
 	CStringArrayExt array;
 
-	if ( m_EntryNum >= 0 && m_EntryNum < m_pData->m_PortFwd.GetSize() )
-		array.GetString(m_pData->m_PortFwd[m_EntryNum]);
+	if ( m_EntryNum >= 0 && m_EntryNum < m_pData->GetSize() )
+		array.GetString(m_pData->GetAt(m_EntryNum));
 	else
 		m_EntryNum = (-1);
 
@@ -103,9 +100,9 @@ void CPfdParaDlg::OnOK()
 	array.SetString(str);
 
 	if ( m_EntryNum >= 0 )
-		m_pData->m_PortFwd[m_EntryNum] = str;
+		(*m_pData)[m_EntryNum] = str;
 	else
-		m_pData->m_PortFwd.Add(str);
+		m_pData->Add(str);
 
 	CDialog::OnOK();
 }

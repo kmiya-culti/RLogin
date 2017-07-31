@@ -149,12 +149,6 @@ void CBuffer::PutStr(LPCSTR str)
 	Put32Bit(len);
 	Apend((LPBYTE)str, len);
 }
-void CBuffer::PutStrT(LPCTSTR str)
-{
-	int len = (int)_tcslen(str) * sizeof(TCHAR);
-	Put32Bit(len);
-	Apend((LPBYTE)str, len);
-}
 void CBuffer::PutBIGNUM(BIGNUM *val)
 {
 	int bits = BN_num_bits(val);
@@ -224,6 +218,10 @@ void CBuffer::PutWord(int val)
 	WORD wd = (WORD)val;
 	Apend((LPBYTE)(&wd), sizeof(WORD));
 }
+void CBuffer::PutDWord(DWORD dw)
+{
+	Apend((LPBYTE)(&dw), sizeof(DWORD));
+}
 int CBuffer::Get8Bit()
 {
 	if ( GetSize() < 1 )
@@ -257,15 +255,6 @@ LONGLONG CBuffer::Get64Bit()
 	return val;
 }
 int CBuffer::GetStr(CStringA &str)
-{
-	int len = Get32Bit();
-	if ( len < 0 || len > (256 * 1024) || (m_Len - m_Ofs) < len )
-		throw this;
-	memcpy(str.GetBufferSetLength(len), m_Data + m_Ofs, len);
-	Consume(len);
-	return TRUE;
-}
-int CBuffer::GetStrT(CString &str)
 {
 	int len = Get32Bit();
 	if ( len < 0 || len > (256 * 1024) || (m_Len - m_Ofs) < len )
@@ -665,24 +654,54 @@ void CStringArrayExt::SetBuffer(CBuffer &buf)
 {
 	buf.Put32Bit((int)GetSize());
 	for ( int n = 0 ; n < GetSize() ; n++ )
-		buf.PutStrT(GetAt(n));
+		buf.PutStr(TstrToMbs(GetAt(n)));
 }
 void CStringArrayExt::GetBuffer(CBuffer &buf)
 {
 	int n, mx;
-	CString str;
+	CStringA str;
 
 	RemoveAll();
 	if ( buf.GetSize() < 4 )
 		return;
 	mx = buf.Get32Bit();
 	for ( n = 0 ; n < mx ; n++ ) {
-		buf.GetStrT(str);
-		Add(str);
+		buf.GetStr(str);
+		Add(MbsToTstr(str));
 	}
 }
 void CStringArrayExt::Serialize(CArchive& ar)
 {
+#ifdef	_UNICODE
+	int n;
+	CStringA str;
+	CHAR tmp[4];
+
+	if ( ar.IsStoring() ) {
+		// TODO: この位置に保存用のコードを追加してください。
+		for ( n = 0 ; n < GetSize() ; n++ ) {
+			str = GetAt(n);
+			str += "\n";
+			ar.Write((LPCSTR)str, str.GetLength());
+		}
+		ar.Write("ENDOF\n", 6);
+
+	} else {
+		// TODO: この位置に読み込み用のコードを追加してください。
+		RemoveAll();
+		str.Empty();
+		while ( ar.Read(tmp, 1) == 1 ) {
+			if ( tmp[0] == '\n' ) {
+				if ( str.Compare("ENDOF") == 0 )
+					break;
+				Add(MbsToTstr(str));
+				str.Empty();
+			} else if ( tmp[0] != '\r' )
+				str += tmp[0];
+		}
+	}
+
+#else
 	int n;
 	CString str;
 
@@ -705,6 +724,7 @@ void CStringArrayExt::Serialize(CArchive& ar)
 			Add(str);
 		}
 	}
+#endif
 }
 const CStringArrayExt & CStringArrayExt::operator = (CStringArrayExt &data)
 {
@@ -725,6 +745,14 @@ int CStringArrayExt::FindNoCase(LPCTSTR str)
 {
 	for ( int n = 0 ; n < GetSize() ; n++ ) {
 		if ( GetAt(n).CompareNoCase(str) == 0 )
+			return n;
+	}
+	return (-1);
+}
+int CStringArrayExt::Match(LPCTSTR str)
+{
+	for ( int n = 0 ; n < GetSize() ; n++ ) {
+		if ( _tcsncmp(str, GetAt(n), GetAt(n).GetLength()) == 0 )
 			return n;
 	}
 	return (-1);
@@ -1122,22 +1150,23 @@ void CStrScript::SetNode(CStrScriptNode *np, CBuffer &buf)
 		buf.Put8Bit(0);
 	else {
 		buf.Put8Bit(1);
-		buf.PutStrT(np->m_RecvStr);
-		buf.PutStrT(np->m_SendStr);
+		buf.PutStr(TstrToMbs(np->m_RecvStr));
+		buf.PutStr(TstrToMbs(np->m_SendStr));
 		SetNode(np->m_Left,  buf);
 		SetNode(np->m_Right, buf);
 	}
 }
 CStrScriptNode *CStrScript::GetNode(CBuffer &buf)
 {
+	CStringA mbs;
 	CStrScriptNode *np;
 
 	if ( buf.Get8Bit() == 0 )
 		return NULL;
 
 	np = new CStrScriptNode;
-	buf.GetStrT(np->m_RecvStr);
-	buf.GetStrT(np->m_SendStr);
+	buf.GetStr(mbs); np->m_RecvStr = mbs;
+	buf.GetStr(mbs); np->m_SendStr = mbs;
 	np->m_Reg.Compile(np->m_RecvStr);
 	np->m_Left  = GetNode(buf);
 	np->m_Right = GetNode(buf);
@@ -1469,7 +1498,7 @@ LPCWSTR CStrScript::ExecChar(int ch)
 				ExecNode(np->m_Right);
 				np->m_Reg.ConvertRes((CStringW)np->m_SendStr, m_Str, &m_Res);
 				if ( m_StatDlg.m_hWnd != NULL )
-					m_StatDlg.SetStaus("");
+					m_StatDlg.SetStaus(_T(""));
 				return m_Str;
 			}
 		}
@@ -2212,7 +2241,7 @@ void CKeyCmdsTab::ResetMenuAll(CMenu *pMenu)
 //////////////////////////////////////////////////////////////////////
 // CKeyNodeTab
 
-static const struct {
+static const struct _InitKeyTab {
 		int	code;
 		int mask;
 		LPCTSTR maps;
@@ -2877,56 +2906,25 @@ CKeyMac::~CKeyMac()
 }
 void CKeyMac::GetMenuStr(CString &str)
 {
-#ifdef	_UNICODE
 	int n;
-	LPCTSTR p;
+	LPCWSTR p;
 
 	str = _T("");
 	if ( m_Data == NULL )
 		return;
 
-	p = (LPCTSTR)m_Data;
+	p = (LPCWSTR)m_Data;
 
-	for ( n = 0 ; *p != _T('\0') && n < 20 ; n++, p++ ) {
-		if ( *p == _T('\r') )
+	for ( n = 0 ; *p != L'\0' && n < 20 ; n++, p++ ) {
+		if ( *p == L'\r' )
 			str += _T("↓");
-		else if ( *p == _T('\x7F') || *p < _T(' ') )
+		else if ( *p == L'\x7F' || *p < L' ' )
 			str += _T('.');
 		else
-			str += *p;
+			str += (WCHAR)*p;
 	}
-	if ( *p != _T('\0') )
+	if ( *p != L'\0' )
 		str += _T("...");
-
-#else
-	int n;
-	CIConv iconv;
-	CBuffer in, out;
-	LPCSTR p;
-
-	str = "";
-	if ( m_Data == NULL )
-		return;
-
-	in.Apend(m_Data, m_Len);
-	iconv.IConvBuf("UCS-2LE", "CP932", &in, &out);
-	p = (LPCSTR)(out.GetPtr());
-
-	for ( n = 0 ; n < out.GetSize() && n < 20 ; n++, p++ ) {
-		if ( issjis1(p[0]) && issjis2(p[1]) ) {
-			str += *(p++);
-			n++;
-			str += *p;
-		} else if ( *p == '\r' )
-			str += _T("↓");
-		else if ( *p == '\x7F' || *p < ' ' )
-			str += '.';
-		else
-			str += *p;
-	}
-	if ( n < out.GetSize() )
-		str += "...";
-#endif
 }
 void CKeyMac::GetStr(CString &str)
 {
@@ -2939,8 +2937,8 @@ void CKeyMac::GetStr(CString &str)
 		return;
 
 	for ( n = 0 ; n < m_Len ; n += 2, p++ ) {
-		if ( *p >= ' ' && *p < 0x7F )
-			str += (char)(*p);
+		if ( *p >= L' ' && *p < 0x7F )
+			str += (CHAR)(*p);
 		else {
 			tmp.Format(_T("\\x%04x"), *p);
 			str += tmp;
@@ -3649,9 +3647,11 @@ void CStringIndex::SetArray(LPCTSTR str)
 }
 void CStringIndex::GetBuffer(CBuffer *bp)
 {
+	CStringA mbs;
+
 	m_Value = bp->Get32Bit();
-	bp->GetStrT(m_nIndex);
-	bp->GetStrT(m_String);
+	bp->GetStr(mbs); m_nIndex = mbs;
+	bp->GetStr(mbs); m_String = mbs;
 
 	SetSize(bp->Get32Bit());
 
@@ -3661,8 +3661,8 @@ void CStringIndex::GetBuffer(CBuffer *bp)
 void CStringIndex::SetBuffer(CBuffer *bp)
 {
 	bp->Put32Bit(m_Value);
-	bp->PutStrT(m_nIndex);
-	bp->PutStrT(m_String);
+	bp->PutStr(TstrToMbs(m_nIndex));
+	bp->PutStr(TstrToMbs(m_String));
 
 	bp->Put32Bit(GetSize());
 

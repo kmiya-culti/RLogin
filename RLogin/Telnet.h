@@ -252,7 +252,7 @@ public:
 	void msup(CMint &rm);
 	void pow(CMint &bm, CMint &em, CMint &mm);
 	void sdiv(short d, short *ro);
-	void mtox(CString &tmp);
+	void mtox(CStringA &tmp);
 	void Deskey(DesData *key);
 	void Ideakey(IdeaData *key);
 	void Debug();

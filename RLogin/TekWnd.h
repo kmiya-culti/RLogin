@@ -13,8 +13,8 @@ public:
 	class CTextRam *m_pTextRam;
 
 	void GinMouse(int ch, int x, int y);
-	BOOL SaveDxf(LPCSTR file);
-	BOOL SaveTek(LPCSTR file);
+	BOOL SaveDxf(LPCTSTR file);
+	BOOL SaveTek(LPCTSTR file);
 
 	CTekWnd(class CTextRam *pTextRam, CWnd *pWnd);
 	virtual ~CTekWnd();

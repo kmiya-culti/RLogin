@@ -1,38 +1,49 @@
 #pragma once
 
-
 // CScrnPage ダイアログ
 
-class CScrnPage : public CPropertyPage
+class CScrnPage : public CTreePropertyPage
 {
 	DECLARE_DYNAMIC(CScrnPage)
 
+// コンストラクタ
 public:
-	class COptDlg *m_pSheet;
-
-	CScrnPage();   // 標準コンストラクタ
+	CScrnPage();
 	virtual ~CScrnPage();
-	virtual BOOL OnApply();
-	virtual void OnReset();
 
 // ダイアログ データ
 	enum { IDD = IDD_SCRNPAGE };
-	int		m_ScrnFont;
+
+public:
+	int m_ScrnFont;
 	CString	m_FontSize;
 	CString	m_ColsMax[2];
 	int m_VisualBell;
 	int m_RecvCrLf;
 	int m_SendCrLf;
 	BOOL m_Check[10];
-	int m_MouseMode[4];
 	int m_FontHw;
+	int m_TtlMode;
+	BOOL m_TtlRep;
+	BOOL m_TtlCng;
 
+public:
+	void InitDlgItem();
+	void DoInit();
+
+// オーバーライド
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート
-
 	virtual BOOL OnInitDialog();
-	//}}AFX_MSG
+
+public:
+	virtual BOOL OnApply();
+	virtual void OnReset();
+
+// インプリメンテーション
+protected:
 	afx_msg void OnUpdateCheck(UINT nId);
 	afx_msg void OnUpdateEdit();
+	afx_msg void OnCbnSelchangeCombo();
 	DECLARE_MESSAGE_MAP()
 };

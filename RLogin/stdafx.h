@@ -21,11 +21,11 @@
 #endif
 
 #ifndef WINVER				// Windows XP 以降のバージョンに固有の機能の使用を許可します。
-#define WINVER 0x0501		// これを Windows の他のバージョン向けに適切な値に変更してください。
+#define WINVER 0x0502		// これを Windows の他のバージョン向けに適切な値に変更してください。
 #endif
 
 #ifndef _WIN32_WINNT		// Windows XP 以降のバージョンに固有の機能の使用を許可します。                   
-#define _WIN32_WINNT 0x0501	// これを Windows の他のバージョン向けに適切な値に変更してください。
+#define _WIN32_WINNT 0x0502	// これを Windows の他のバージョン向けに適切な値に変更してください。
 #endif						
 
 #ifndef _WIN32_WINDOWS		// Windows 98 以降のバージョンに固有の機能の使用を許可します。
@@ -73,7 +73,29 @@
 	#include <dwrite.h>
 	#include <wincodec.h>
 #endif
-#include <afxcontrolbars.h>
+
+#ifndef	NOGDIPLUS
+#include <atlimage.h>
+#endif
+
+#include <atlbase.h>
+#include <afxpriv.h>
+#include <math.h>
+
+#define	UniToMbs(s)			(CStringA(s))
+#define	MbsToUni(s)			(CStringW(s))
+
+#ifdef	_UNICODE
+#define	TstrToMbs(s)		(CStringA(s))
+#define	TstrToUni(s)		(s)
+#define	MbsToTstr(s)		(CStringW(s))
+#define	UniToTstr(s)		(s)
+#else
+#define	TstrToMbs(s)		(s)
+#define	TstrToUni(s)		(CStringW(s))
+#define	MbsToTstr(s)		(s)
+#define	UniToTstr(s)		(CStringA(s))
+#endif
 
 #if defined _UNICODE || defined _WIN64
 #if defined _M_IX86

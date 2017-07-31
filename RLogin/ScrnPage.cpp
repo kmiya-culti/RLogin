@@ -10,7 +10,7 @@
 #include "OptDlg.h"
 #include "ScrnPage.h"
 
-
+/////////////////////////////////////////////////////////////////////////////
 // CScrnPage ダイアログ
 
 IMPLEMENT_DYNAMIC(CScrnPage, CPropertyPage)
@@ -19,7 +19,7 @@ IMPLEMENT_DYNAMIC(CScrnPage, CPropertyPage)
 #define	IDC_CHECKFAST	IDC_TERMCHECK1
 static const int CheckOptTab[] = { TO_RLNORESZ };
 
-CScrnPage::CScrnPage() : CPropertyPage(CScrnPage::IDD)
+CScrnPage::CScrnPage() : CTreePropertyPage(CScrnPage::IDD)
 {
 	m_ScrnFont = -1;
 	m_FontSize = _T("");
@@ -30,12 +30,9 @@ CScrnPage::CScrnPage() : CPropertyPage(CScrnPage::IDD)
 	m_SendCrLf = 0;
 	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
 		m_Check[n] = FALSE;
-	m_pSheet = NULL;
-	m_MouseMode[0] = 0;
-	m_MouseMode[1] = 1;
-	m_MouseMode[2] = 0;
-	m_MouseMode[3] = 2;
 	m_FontHw = 10;
+	m_TtlMode = 0;
+	m_TtlRep = m_TtlCng = FALSE;
 }
 
 CScrnPage::~CScrnPage()
@@ -45,7 +42,7 @@ CScrnPage::~CScrnPage()
 void CScrnPage::DoDataExchange(CDataExchange* pDX)
 {
 	CPropertyPage::DoDataExchange(pDX);
-	//{{AFX_DATA_MAP(CTermPage)
+
 	DDX_Radio(pDX, IDC_SCRNSIZE1, m_ScrnFont);
 	DDX_CBString(pDX, IDC_SCSZFONT, m_FontSize);
 	DDX_Text(pDX, IDC_SCSZCOLS, m_ColsMax[0]);
@@ -53,14 +50,12 @@ void CScrnPage::DoDataExchange(CDataExchange* pDX)
 	DDX_CBIndex(pDX, IDC_VISUALBELL, m_VisualBell);
 	DDX_CBIndex(pDX, IDC_RECVCRLF, m_RecvCrLf);
 	DDX_CBIndex(pDX, IDC_SENDCRLF, m_SendCrLf);
-	//}}AFX_DATA_MAP
 	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
 		DDX_Check(pDX, IDC_TERMCHECK1 + n, m_Check[n]);
-	DDX_CBIndex(pDX, IDC_MOUSE_BTN1, m_MouseMode[0]);
-	DDX_CBIndex(pDX, IDC_MOUSE_BTN2, m_MouseMode[1]);
-	DDX_CBIndex(pDX, IDC_MOUSE_KEY1, m_MouseMode[2]);
-	DDX_CBIndex(pDX, IDC_MOUSE_KEY2, m_MouseMode[3]);
 	DDX_CBIndex(pDX, IDC_FONTHW, m_FontHw);
+	DDX_CBIndex(pDX, IDC_COMBO3, m_TtlMode);
+	DDX_Check(pDX, IDC_TERMCHECK2, m_TtlRep);
+	DDX_Check(pDX, IDC_TERMCHECK3, m_TtlCng);
 }
 
 BEGIN_MESSAGE_MAP(CScrnPage, CPropertyPage)
@@ -74,35 +69,30 @@ BEGIN_MESSAGE_MAP(CScrnPage, CPropertyPage)
 	ON_CBN_SELCHANGE(IDC_VISUALBELL, OnUpdateEdit)
 	ON_CBN_SELCHANGE(IDC_RECVCRLF,   OnUpdateEdit)
 	ON_CBN_SELCHANGE(IDC_SENDCRLF,   OnUpdateEdit)
-	ON_CBN_SELCHANGE(IDC_MOUSE_BTN1, OnUpdateEdit)
-	ON_CBN_SELCHANGE(IDC_MOUSE_BTN2, OnUpdateEdit)
-	ON_CBN_SELCHANGE(IDC_MOUSE_KEY1, OnUpdateEdit)
-	ON_CBN_SELCHANGE(IDC_MOUSE_KEY2, OnUpdateEdit)
+	ON_CBN_SELCHANGE(IDC_COMBO3, OnCbnSelchangeCombo)
+	ON_CONTROL_RANGE(BN_CLICKED, IDC_TERMCHECK2, IDC_TERMCHECK3, OnUpdateCheck)
 END_MESSAGE_MAP()
 
-// Mouse Event Tracking
-// Left			xxxx xx00	1	// Right		xxxx xx01	2
-// Middle		xxxx xx10	3	// Button 1		x1xx xx00	4
-// Button 2		x1xx xx01	5	// Button 3		x1xx xx10	6
-// Release		xxxx xx11
-// shift		xxxx x1xx		// meta			xxxx 1xxx
-// ctrl			xxx1 xxxx
-
-static const BYTE MouseModeTab[] = {
-	0x00,	0x01,	0x02,	0x40,	0x41,	0x42,
-	0x04,	0x08,	0x10,
-};
-
+/////////////////////////////////////////////////////////////////////////////
 // CScrnPage メッセージ ハンドラ
 
-BOOL CScrnPage::OnInitDialog() 
+void CScrnPage::InitDlgItem()
+{
+	CWnd *pWnd;
+
+	if ( (pWnd = GetDlgItem(IDC_SCSZCOLS)) != NULL )
+		pWnd->EnableWindow(m_ScrnFont == 0 ? TRUE : FALSE);
+	if ( (pWnd = GetDlgItem(IDC_SCSZCOLS2)) != NULL )
+		pWnd->EnableWindow(m_ScrnFont == 0 ? TRUE : FALSE);
+	if ( (pWnd = GetDlgItem(IDC_TERMCHECK1)) != NULL )
+		pWnd->EnableWindow(m_ScrnFont == 0 ? TRUE : FALSE);
+	if ( (pWnd = GetDlgItem(IDC_SCSZFONT)) != NULL )
+		pWnd->EnableWindow(m_ScrnFont != 0 ? TRUE : FALSE);
+}
+void CScrnPage::DoInit()
 {
 	int n;
 
-	ASSERT(m_pSheet);
-	ASSERT(m_pSheet->m_pTextRam);
-
-	CPropertyPage::OnInitDialog();
 	for ( n = 0 ; n < CHECKOPTMAX ; n++ )
 		m_Check[n] = (m_pSheet->m_pTextRam->IsOptEnable(CheckOptTab[n]) ? TRUE : FALSE);
 
@@ -116,30 +106,33 @@ BOOL CScrnPage::OnInitDialog()
 	m_RecvCrLf   = m_pSheet->m_pTextRam->IsOptValue(TO_RLRECVCR, 2);
 	m_SendCrLf   = m_pSheet->m_pTextRam->IsOptValue(TO_RLECHOCR, 2);
 
-	for ( n = 0 ; n < 6 ; n++ ) {
-		if ( MouseModeTab[n] == m_pSheet->m_pTextRam->m_MouseMode[0] )
-			m_MouseMode[0] = n;
-		if ( MouseModeTab[n] == m_pSheet->m_pTextRam->m_MouseMode[1] )
-			m_MouseMode[1] = n;
-	}
-	for ( n = 0 ; n < 3 ; n++ ) {
-		if ( MouseModeTab[n + 6] == m_pSheet->m_pTextRam->m_MouseMode[2] )
-			m_MouseMode[2] = n;
-		if ( MouseModeTab[n + 6] == m_pSheet->m_pTextRam->m_MouseMode[3] )
-			m_MouseMode[3] = n;
-	}
+	m_TtlMode = m_pSheet->m_pTextRam->m_TitleMode & 7;
+	m_TtlRep  = (m_pSheet->m_pTextRam->m_TitleMode & WTTL_REPORT) ? TRUE : FALSE;
+	m_TtlCng  = (m_pSheet->m_pTextRam->m_TitleMode & WTTL_CHENG)  ? TRUE : FALSE;
 
+	InitDlgItem();
 	UpdateData(FALSE);
+}
+BOOL CScrnPage::OnInitDialog() 
+{
+	ASSERT(m_pSheet);
+	ASSERT(m_pSheet->m_pTextRam);
+
+	CPropertyPage::OnInitDialog();
+
+	DoInit();
+
 	return TRUE;
 }
 BOOL CScrnPage::OnApply() 
 {
-	int n;
-
 	ASSERT(m_pSheet);
 	ASSERT(m_pSheet->m_pTextRam);
 
+	int n;
+
 	UpdateData(TRUE);
+
 	for ( n = 0 ; n < CHECKOPTMAX ; n++ ) {
 		if ( m_Check[n] )
 			m_pSheet->m_pTextRam->EnableOption(CheckOptTab[n]);
@@ -164,47 +157,20 @@ BOOL CScrnPage::OnApply()
 	m_pSheet->m_pTextRam->m_RecvCrLf = m_RecvCrLf;
 	m_pSheet->m_pTextRam->m_SendCrLf = m_SendCrLf;
 
-	m_pSheet->m_pTextRam->m_MouseMode[0] = MouseModeTab[m_MouseMode[0]];
-	m_pSheet->m_pTextRam->m_MouseMode[1] = MouseModeTab[m_MouseMode[1]];
-	m_pSheet->m_pTextRam->m_MouseMode[2] = MouseModeTab[m_MouseMode[2] + 6];
-	m_pSheet->m_pTextRam->m_MouseMode[3] = MouseModeTab[m_MouseMode[3] + 6];
+	m_pSheet->m_pTextRam->m_TitleMode = m_TtlMode;
+	if ( m_TtlRep )
+		m_pSheet->m_pTextRam->m_TitleMode |= WTTL_REPORT;
+	if ( m_TtlCng )
+		m_pSheet->m_pTextRam->m_TitleMode |= WTTL_CHENG;
 
 	return TRUE;
 }
 void CScrnPage::OnReset() 
 {
-	int n;
+	ASSERT(m_pSheet);
+	ASSERT(m_pSheet->m_pTextRam);
 
-	if ( m_hWnd == NULL )
-		return;
-
-	for ( n = 0 ; n < CHECKOPTMAX ; n++ )
-		m_Check[n] = (m_pSheet->m_pTextRam->IsOptEnable(CheckOptTab[n]) ? TRUE : FALSE);
-
-	m_ScrnFont = (m_pSheet->m_pTextRam->IsOptEnable(TO_RLFONT) ? 1 : 0);
-	m_ColsMax[0].Format(_T("%d"),   m_pSheet->m_pTextRam->m_DefCols[0]);
-	m_ColsMax[1].Format(_T("%d"),   m_pSheet->m_pTextRam->m_DefCols[1]);
-	m_FontSize.Format(_T("%d"),  m_pSheet->m_pTextRam->m_DefFontSize);
-	m_FontHw = m_pSheet->m_pTextRam->m_DefFontHw - 10;
-
-	m_VisualBell = m_pSheet->m_pTextRam->IsOptValue(TO_RLADBELL, 2);
-	m_RecvCrLf   = m_pSheet->m_pTextRam->IsOptValue(TO_RLRECVCR, 2);
-	m_SendCrLf   = m_pSheet->m_pTextRam->IsOptValue(TO_RLECHOCR, 2);
-
-	for ( n = 0 ; n < 6 ; n++ ) {
-		if ( MouseModeTab[n] == m_pSheet->m_pTextRam->m_MouseMode[0] )
-			m_MouseMode[0] = n;
-		if ( MouseModeTab[n] == m_pSheet->m_pTextRam->m_MouseMode[1] )
-			m_MouseMode[1] = n;
-	}
-	for ( n = 0 ; n < 3 ; n++ ) {
-		if ( MouseModeTab[n + 6] == m_pSheet->m_pTextRam->m_MouseMode[2] )
-			m_MouseMode[2] = n;
-		if ( MouseModeTab[n + 6] == m_pSheet->m_pTextRam->m_MouseMode[3] )
-			m_MouseMode[3] = n;
-	}
-
-	UpdateData(FALSE);
+	DoInit();
 	SetModified(FALSE);
 }
 
@@ -214,6 +180,14 @@ void CScrnPage::OnUpdateEdit()
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 }
 void CScrnPage::OnUpdateCheck(UINT nID) 
+{
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+
+	if ( nID == IDC_SCRNSIZE1 || nID == IDC_SCRNSIZE2 )
+		InitDlgItem();
+}
+void CScrnPage::OnCbnSelchangeCombo()
 {
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;

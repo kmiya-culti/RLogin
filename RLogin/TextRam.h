@@ -350,8 +350,8 @@ public:
 	void SetArray(CStringArrayExt &array);
 	void GetArray(CStringArrayExt &array);
 
-	int Find(LPCSTR entry);
-	int IndexFind(int code, LPCSTR name);
+	int Find(LPCTSTR entry);
+	int IndexFind(int code, LPCTSTR name);
 	void IndexRemove(int idx);
 	inline CFontNode & operator[](int nIndex) { return m_Data[nIndex]; }
 	const CFontTab & operator = (CFontTab &data);
@@ -467,6 +467,7 @@ public:	// Options
 	CProcTab m_ProcTab;
 	CBuffer m_FuncKey[FKEY_MAX];
 	int m_ClipFlag;
+	CStringArrayExt m_ShellExec;
 
 	void Init();
 	void SetArray(CStringArrayExt &array);
@@ -524,6 +525,7 @@ public:
 	BOOL m_RetSync;
 	BOOL m_Exact;
 	CString m_StrPara;
+	DWORD m_MacroExecFlag[64 / 32];
 	CBuffer m_Macro[64];
 	DWORD m_UnitId;
 
@@ -534,7 +536,7 @@ public:
 	int m_StsLed;
 	CStringW m_StsPara;
 	int m_LangMenu;
-	char *m_RetChar[7];
+	LPCTSTR m_RetChar[7];
 
 	WORD m_BankTab[5][4];
 	int m_BankNow;
@@ -601,7 +603,7 @@ public:
 	BOOL m_MarkEol;
 
 	void HisRegCheck(int ch, DWORD pos);
-	int HisRegMark(LPCSTR str);
+	int HisRegMark(LPCTSTR str);
 	int HisRegNext();
 	int HisMarkCheck(int top, int line, class CRLoginView *pView);
 
@@ -644,16 +646,17 @@ public:
 	void SetRetChar(BOOL f8);
 
 	// Static Lib
-	static void CTextRam::MsToIconvUnicode(WCHAR *str, int len, LPCSTR charset);
+	static void CTextRam::MsToIconvUniStr(LPCTSTR charset, LPWSTR str, int len);
 	static DWORD CTextRam::IconvToMsUnicode(DWORD code);
-	static DWORD CTextRam::UnicodeNomal(DWORD code1, DWORD code2);
 	static DWORD UCS2toUCS4(DWORD code);
 	static DWORD UCS4toUCS2(DWORD code);
+	static DWORD CTextRam::UnicodeNomal(DWORD code1, DWORD code2);
+	static void CTextRam::IconvToMsUniStr(LPCWSTR p, int len, CBuffer &out);
 
 	// Low Level
 	void RESET(int mode = RESET_CURSOR | RESET_TABS | RESET_BANK | RESET_ATTR | RESET_COLOR | RESET_TEK | RESET_SAVE | RESET_MOUSE | RESET_CHAR);
 	VRAM *GETVRAM(int cols, int lines);
-	void UNGETSTR(LPCSTR str, ...);
+	void UNGETSTR(LPCTSTR str, ...);
 	void BEEP();
 	void FLUSH();
 	void CUROFF();
@@ -665,7 +668,7 @@ public:
 	// Mid Level
 	int GetAnsiPara(int index, int defvalue, int limit);
 	void SetAnsiParaArea(int top);
-	LPCSTR GetHexPara(LPCSTR str, CBuffer &buf);
+	LPCTSTR GetHexPara(LPCTSTR str, CBuffer &buf);
 	void LOCATE(int x, int y);
 	void ERABOX(int sx, int sy, int ex, int ey, int df = 0);
 	void FORSCROLL(int sy, int ey);
@@ -743,7 +746,7 @@ public:
 	void SetDcsNameCombo(CComboBox *pCombo);
 
 	void EscCsiDefName(LPCTSTR *esc, LPCTSTR *csi, LPCTSTR *dcs);
-	void ParseColor(int cmd, int idx, LPCSTR para, int ch);
+	void ParseColor(int cmd, int idx, LPCTSTR para, int ch);
 
 	int m_Kan_Pos;
 	BYTE m_Kan_Buf[KANBUFMAX];

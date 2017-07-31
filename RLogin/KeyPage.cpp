@@ -11,7 +11,6 @@
 #include "Data.h"
 #include "KeyPage.h"
 #include "KeyParaDlg.h"
-#include "MetaDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -19,27 +18,17 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
+#define	KEYTABMAX	52
+
 /////////////////////////////////////////////////////////////////////////////
 // CKeyPage プロパティ ページ
 
 IMPLEMENT_DYNCREATE(CKeyPage, CPropertyPage)
 
-#define	CHECKOPTMAX		4
-#define	IDC_CHECKFAST	IDC_PROTOCHECK1
-static const int CheckOptTab[] = { TO_RLRCLICK, TO_RLGAWL, TO_RLCKCOPY, TO_RLSPCTAB };
-
-CKeyPage::CKeyPage() : CPropertyPage(CKeyPage::IDD)
+CKeyPage::CKeyPage() : CTreePropertyPage(CKeyPage::IDD)
 {
-	//{{AFX_DATA_INIT(CKeyPage)
-		// メモ - ClassWizard はこの位置にメンバの初期化処理を追加します。
-	//}}AFX_DATA_INIT
-	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
-		m_Check[n] = FALSE;
-	m_pSheet = NULL;
-	m_DropMode = 0;
-	m_CmdWork = _T("");
-	m_WordStr = _T("");
-	m_ClipFlag = 0;
+	for ( int n = 0 ; n < KEYTABMAX ; n++ )
+		m_KeyMap[n] = FALSE;
 }
 
 CKeyPage::~CKeyPage()
@@ -49,25 +38,18 @@ CKeyPage::~CKeyPage()
 void CKeyPage::DoDataExchange(CDataExchange* pDX)
 {
 	CPropertyPage::DoDataExchange(pDX);
-	//{{AFX_DATA_MAP(CKeyPage)
+
 	DDX_Control(pDX, IDC_KEYLIST, m_List);
-	//}}AFX_DATA_MAP
-	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
-		DDX_Check(pDX, IDC_PROTOCHECK1 + n, m_Check[n]);
-	DDX_CBIndex(pDX, IDC_COMBO1, m_DropMode);
-	DDX_Text(pDX, IDC_EDIT1, m_CmdWork);
-	DDX_Text(pDX, IDC_EDIT3, m_WordStr);
-	DDX_CBIndex(pDX, IDC_COMBO2, m_ClipFlag);
+
+	for ( int n = 0 ; n < KEYTABMAX ; n++ )
+		DDX_Check(pDX, IDC_METAKEY1 + n, m_KeyMap[n]);
 }
 
 BEGIN_MESSAGE_MAP(CKeyPage, CPropertyPage)
-	//{{AFX_MSG_MAP(CKeyPage)
 	ON_BN_CLICKED(IDC_KEYASNNEW, OnKeyAsnNew)
 	ON_BN_CLICKED(IDC_KEYASNEDIT, OnKeyAsnEdit)
 	ON_BN_CLICKED(IDC_KEYASNDEL, OnKeyAsnDel)
 	ON_NOTIFY(NM_DBLCLK, IDC_KEYLIST, OnDblclkKeyList)
-	//}}AFX_MSG_MAP
-	ON_CONTROL_RANGE(BN_CLICKED, IDC_CHECKFAST, IDC_CHECKFAST + CHECKOPTMAX - 1, OnUpdateCheck)
 	ON_COMMAND(ID_EDIT_NEW, OnKeyAsnNew)
 	ON_COMMAND(ID_EDIT_UPDATE, OnKeyAsnEdit)
 	ON_COMMAND(ID_EDIT_DELETE, OnKeyAsnDel)
@@ -75,11 +57,9 @@ BEGIN_MESSAGE_MAP(CKeyPage, CPropertyPage)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_UPDATE, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_DELETE, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_DUPS, OnUpdateEditEntry)
-	ON_EN_CHANGE(IDC_EDIT1, &CKeyPage::OnUpdateChangeDropMode)
-	ON_CBN_SELCHANGE(IDC_COMBO1, &CKeyPage::OnCbnSelchangeDropMode)
-	ON_EN_CHANGE(IDC_EDIT3, &CKeyPage::OnEnChangeEdit3)
-	ON_BN_CLICKED(IDC_KEYASNMETA, &CKeyPage::OnKeyAsnMeta)
-	ON_CBN_SELCHANGE(IDC_COMBO2, &CKeyPage::OnCbnSelchangeCombo2)
+	ON_BN_CLICKED(IDC_ALL_SET, &CKeyPage::OnBnClickedAllSet)
+	ON_BN_CLICKED(IDC_ALL_CLR, &CKeyPage::OnBnClickedAllClr)
+	ON_CONTROL_RANGE(BN_CLICKED, IDC_METAKEY1, IDC_METAKEY1 + KEYTABMAX - 1, &CKeyPage::OnBnClickedMetakey)
 END_MESSAGE_MAP()
 
 void CKeyPage::InitList()
@@ -104,31 +84,44 @@ static const LV_COLUMN InitListTab[] = {
 		{ LVCF_TEXT | LVCF_WIDTH, 0, 120, _T("String"),  0, 0 }, 
 	};
 
+static const BYTE VKeyTab[] = {
+	'1',			'2',			'3',			'4',			'5',
+	'6',			'7',			'8',			'9',			'0',
+	VK_OEM_MINUS,	VK_OEM_7,		VK_OEM_5,		VK_BACK,		VK_TAB,
+	'Q',			'W',			'E',			'R',			'T',
+	'Y',			'U',			'I',			'O',			'P',
+	VK_OEM_3,		VK_OEM_4,
+	'A',			'S',			'D',			'F',			'G',
+	'H',			'J',			'K',			'L',			VK_OEM_PLUS,
+	VK_OEM_1,		VK_OEM_6,		VK_RETURN,
+	'Z',			'X',			'C',			'V',			'B',
+	'N',			'M',			VK_OEM_COMMA,	VK_OEM_PERIOD,	VK_OEM_2,
+	VK_OEM_102,		VK_SPACE,
+};
+
+void CKeyPage::DoInit()
+{
+	m_KeyTab = *(m_pSheet->m_pKeyTab);
+	memcpy(m_MetaKeys, m_pSheet->m_pTextRam->m_MetaKeys, sizeof(m_MetaKeys));
+
+	for ( int n = 0 ; n < KEYTABMAX ; n++ )
+		m_KeyMap[n] = (m_MetaKeys[VKeyTab[n] / 32] & (1 << (VKeyTab[n] % 32)) ? TRUE : FALSE);
+
+	InitList();
+	UpdateData(FALSE);
+}
 BOOL CKeyPage::OnInitDialog() 
 {
 	ASSERT(m_pSheet);
 	ASSERT(m_pSheet->m_pKeyTab);
 
 	CPropertyPage::OnInitDialog();
-	
-	m_KeyTab = *(m_pSheet->m_pKeyTab);
+
 	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_SUBITEMIMAGES);
 	m_List.InitColumn(_T("CKeyPage"), InitListTab, 3);
 	m_List.SetPopUpMenu(IDR_POPUPMENU, 1);
-	InitList();
 
-	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
-		m_Check[n] = (m_pSheet->m_pTextRam->IsOptEnable(CheckOptTab[n]) ? TRUE : FALSE);
-
-	m_DropMode = m_pSheet->m_pTextRam->m_DropFileMode;
-	for ( int n = 0 ; n < 8 ; n++ )
-		m_DropCmd[n] = m_pSheet->m_pTextRam->m_DropFileCmd[n];
-	m_CmdWork  = m_DropCmd[m_DropMode];
-
-	m_WordStr = m_pSheet->m_pTextRam->m_WordStr;
-	m_ClipFlag = m_pSheet->m_pTextRam->m_ClipFlag;
-
-	UpdateData(FALSE);
+	DoInit();
 
 	return TRUE;
 }
@@ -137,59 +130,45 @@ BOOL CKeyPage::OnApply()
 	ASSERT(m_pSheet);
 	ASSERT(m_pSheet->m_pKeyTab);
 
-	*(m_pSheet->m_pKeyTab) = m_KeyTab;
-
 	UpdateData(TRUE);
-	for ( int n = 0 ; n < CHECKOPTMAX ; n++ ) {
-		if ( m_Check[n] )
-			m_pSheet->m_pTextRam->EnableOption(CheckOptTab[n]);
-		else
-			m_pSheet->m_pTextRam->DisableOption(CheckOptTab[n]);
+
+	memset(m_MetaKeys, 0, sizeof(m_MetaKeys));
+
+	for ( int n = 0 ; n < KEYTABMAX ; n++ ) {
+		if ( m_KeyMap[n] )
+			m_MetaKeys[VKeyTab[n] / 32] |= (1 << (VKeyTab[n] % 32));
 	}
 
-	m_pSheet->m_pTextRam->m_DropFileMode = m_DropMode;
-	for ( int n = 0 ; n < 8 ; n++ )
-		m_pSheet->m_pTextRam->m_DropFileCmd[n] = m_DropCmd[n];
-
-	m_pSheet->m_pTextRam->m_WordStr = m_WordStr;
-	m_pSheet->m_pTextRam->m_ClipFlag = m_ClipFlag;
+	memcpy(m_pSheet->m_pTextRam->m_MetaKeys, m_MetaKeys, sizeof(m_MetaKeys));
+	*(m_pSheet->m_pKeyTab) = m_KeyTab;
 
 	m_List.SaveColumn(_T("CKeyPage"));
+
 	return TRUE;
 }
 void CKeyPage::OnReset() 
 {
-	if ( m_hWnd == NULL )
-		return;
+	ASSERT(m_pSheet);
+	ASSERT(m_pSheet->m_pKeyTab);
 
-	m_KeyTab = *(m_pSheet->m_pKeyTab);
-	InitList();
-
-	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
-		m_Check[n] = (m_pSheet->m_pTextRam->IsOptEnable(CheckOptTab[n]) ? TRUE : FALSE);
-
-	m_DropMode = m_pSheet->m_pTextRam->m_DropFileMode;
-	for ( int n = 0 ; n < 8 ; n++ )
-		m_DropCmd[n] = m_pSheet->m_pTextRam->m_DropFileCmd[n];
-	m_CmdWork  = m_DropCmd[m_DropMode];
-
-	m_WordStr = m_pSheet->m_pTextRam->m_WordStr;
-	m_ClipFlag = m_pSheet->m_pTextRam->m_ClipFlag;
-
-	UpdateData(FALSE);
+	DoInit();
 	SetModified(FALSE);
 }
 
 void CKeyPage::OnKeyAsnNew() 
 {
-	CKeyParaDlg dlg;
 	CKeyNode tmp;
+	CKeyParaDlg dlg;
 
 	dlg.m_pData = &tmp;
+
 	if ( dlg.DoModal() != IDOK )
 		return;
+
 	m_KeyTab.Add(tmp);
+
 	InitList();
+
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_KEYTAB;
 }
@@ -197,26 +176,36 @@ void CKeyPage::OnKeyAsnEdit()
 {
 	int n;
 	CKeyParaDlg dlg;
+
 	if ( (n = m_List.GetSelectMarkData()) < 0 )
 		return;
+
 	dlg.m_pData = &(m_KeyTab[n]);
+
 	if ( dlg.DoModal() != IDOK )
 		return;
+
 	InitList();
+
 	if ( (n = m_List.GetParamItem(n)) >= 0 ) {
 		m_List.SetItemState(n, LVIS_SELECTED, LVIS_SELECTED);
 		m_List.EnsureVisible(n, FALSE);
 	}
+
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_KEYTAB;
 }
 void CKeyPage::OnKeyAsnDel() 
 {
 	int n;
+
 	if ( (n = m_List.GetSelectMarkData()) < 0 )
 		return;
+
 	m_KeyTab.RemoveAt(n);
+
 	InitList();
+
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_KEYTAB;
 }
@@ -225,18 +214,25 @@ void CKeyPage::OnEditDups()
 	int n;
 	CKeyParaDlg dlg;
 	CKeyNode tmp;
+
 	if ( (n = m_List.GetSelectMarkData()) < 0 )
 		return;
+
 	tmp = m_KeyTab[n];
 	dlg.m_pData = &tmp;
+
 	if ( dlg.DoModal() != IDOK )
 		return;
+
 	m_KeyTab.Add(tmp);
+
 	InitList();
+
 	if ( (n = m_List.GetParamItem(n)) >= 0 ) {
 		m_List.SetItemState(n, LVIS_SELECTED, LVIS_SELECTED);
 		m_List.EnsureVisible(n, FALSE);
 	}
+
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_KEYTAB;
 }
@@ -246,57 +242,39 @@ void CKeyPage::OnDblclkKeyList(NMHDR* pNMHDR, LRESULT* pResult)
 	*pResult = 0;
 }
 
-void CKeyPage::OnUpdateCheck(UINT nID) 
-{
-	SetModified(TRUE);
-	m_pSheet->m_ModFlag |= UMOD_KEYTAB;
-}
 void CKeyPage::OnUpdateEditEntry(CCmdUI* pCmdUI) 
 {
 	pCmdUI->Enable(m_List.GetSelectMarkData() >= 0);
 }
 
-void CKeyPage::OnUpdateChangeDropMode()
+void CKeyPage::OnBnClickedAllSet()
 {
-	UpdateData(TRUE);
-	m_DropCmd[m_DropMode] = m_CmdWork;
+	for ( int n = 0 ; n < KEYTABMAX ; n++ )
+		m_KeyMap[n] = TRUE;
 	UpdateData(FALSE);
 
-	SetModified(TRUE);
-	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
-}
-
-void CKeyPage::OnCbnSelchangeDropMode()
-{
-	UpdateData(TRUE);
-	m_CmdWork = m_DropCmd[m_DropMode];
-	UpdateData(FALSE);
-
-	SetModified(TRUE);
-	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
-}
-
-void CKeyPage::OnEnChangeEdit3()
-{
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_KEYTAB;
 }
 
-void CKeyPage::OnKeyAsnMeta()
+void CKeyPage::OnBnClickedAllClr()
 {
-	CMetaDlg dlg;
-
-	dlg.m_pMetaMap = m_pSheet->m_pTextRam->m_MetaKeys;
-
-	if ( dlg.DoModal() != IDOK )
-		return;
+	for ( int n = 0 ; n < KEYTABMAX ; n++ )
+		m_KeyMap[n] = FALSE;
+	UpdateData(FALSE);
 
 	SetModified(TRUE);
-	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+	m_pSheet->m_ModFlag |= UMOD_KEYTAB;
 }
 
-void CKeyPage::OnCbnSelchangeCombo2()
+void CKeyPage::OnBnClickedMetakey(UINT nID)
 {
+	int n = nID - IDC_METAKEY1;
+
+	UpdateData(TRUE);
+	m_KeyMap[n] = (m_KeyMap[n] ? FALSE : TRUE);
+	UpdateData(FALSE);
+
 	SetModified(TRUE);
-	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+	m_pSheet->m_ModFlag |= UMOD_KEYTAB;
 }

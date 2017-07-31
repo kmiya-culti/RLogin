@@ -1,9 +1,9 @@
 #pragma once
+
 #include "afxcmn.h"
 #include "RegEx.h"
 #include "Data.h"
 #include "afxwin.h"
-
 
 // CChatDlg ダイアログ
 
@@ -11,18 +11,14 @@ class CChatDlg : public CDialog
 {
 	DECLARE_DYNAMIC(CChatDlg)
 
+// コンストラクタ
 public:
-	CChatDlg(CWnd* pParent = NULL);   // 標準コンストラクタ
+	CChatDlg(CWnd* pParent = NULL);
 	virtual ~CChatDlg();
 
 // ダイアログ データ
 	enum { IDD = IDD_CHATDLG };
 
-protected:
-	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート
-	virtual void OnOK();
-
-	DECLARE_MESSAGE_MAP()
 public:
 	CTreeCtrl m_NodeTree;
 	CString m_RecvStr;
@@ -30,18 +26,24 @@ public:
 	CButton m_UpdNode;
 	CButton m_DelNode;
 	CStrScript m_Script;
+	BOOL m_MakeChat;
 
+// オーバーライド
+protected:
+	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート
 	virtual BOOL OnInitDialog();
+	virtual void OnOK();
 
-public:
+// インプリメンテーション
+protected:
 	afx_msg void OnBnClickedNewnode();
 	afx_msg void OnBnClickedNextnode();
 	afx_msg void OnBnClickedUpdatenode();
 	afx_msg void OnBnClickedDelnode();
 	afx_msg void OnTvnSelchangedNodetree(NMHDR *pNMHDR, LRESULT *pResult);
-	BOOL m_MakeChat;
 	afx_msg void OnTvnDeleteitemNodetree(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnNMRClickNodetree(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnEditCopyAll();
 	afx_msg void OnEditPasteAll();
+	DECLARE_MESSAGE_MAP()
 };

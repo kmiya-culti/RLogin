@@ -1,11 +1,4 @@
-#if !defined(AFX_FONTPARADLG_H__9F95C64C_47CC_4607_857E_1936DAB498AC__INCLUDED_)
-#define AFX_FONTPARADLG_H__9F95C64C_47CC_4607_857E_1936DAB498AC__INCLUDED_
-
-#if _MSC_VER > 1000
 #pragma once
-#endif // _MSC_VER > 1000
-// FontParaDlg.h : ヘッダー ファイル
-//
 
 #include "TextRam.h"
 #include "Data.h"
@@ -15,24 +8,16 @@
 
 class CFontParaDlg : public CDialog
 {
+	DECLARE_DYNAMIC(CFontParaDlg)
+	
 // コンストラクション
 public:
-	int m_CodeSet;
-	class CFontNode *m_pData;
-	CString m_FontNameTab[16];
-	class CFontTab *m_pFontTab;
-
-	int CharSetNo(LPCTSTR name);
-	LPCTSTR CharSetName(int code);
-	LPCTSTR IConvName(int code);
-	int CodeSetNo(LPCTSTR bank, LPCTSTR code);
-	void CodeSetName(int num, CString &bank, CString &code);
-
 	CFontParaDlg(CWnd* pParent = NULL);   // 標準のコンストラクタ
 
 // ダイアログ データ
-	//{{AFX_DATA(CFontParaDlg)
 	enum { IDD = IDD_FONTPARADLG };
+
+public:
 	BOOL	m_ShiftTemp;
 	CString	m_CharSetTemp;
 	CString	m_ZoomTemp[2];
@@ -44,31 +29,28 @@ public:
 	CString m_FontName;
 	int m_FontNum;
 	int m_FontQuality;
-	//}}AFX_DATA
 
+	int m_CodeSet;
+	CString m_FontNameTab[16];
+	class CFontNode *m_pData;
+	class CFontTab *m_pFontTab;
+
+public:
+	int CharSetNo(LPCTSTR name);
+	LPCTSTR CharSetName(int code);
+	LPCTSTR IConvName(int code);
+	int CodeSetNo(LPCTSTR bank, LPCTSTR code);
+	void CodeSetName(int num, CString &bank, CString &code);
 
 // オーバーライド
-	// ClassWizard は仮想関数のオーバーライドを生成します。
-	//{{AFX_VIRTUAL(CFontParaDlg)
-	protected:
+protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート
-	//}}AFX_VIRTUAL
+	virtual BOOL OnInitDialog();
+	virtual void OnOK();
 
 // インプリメンテーション
 protected:
-
-	// 生成されたメッセージ マップ関数
-	//{{AFX_MSG(CFontParaDlg)
 	afx_msg void OnFontsel();
-	virtual BOOL OnInitDialog();
-	virtual void OnOK();
-	//}}AFX_MSG
-	DECLARE_MESSAGE_MAP()
-public:
 	afx_msg void OnCbnSelchangeFontnum();
+	DECLARE_MESSAGE_MAP()
 };
-
-//{{AFX_INSERT_LOCATION}}
-// Microsoft Visual C++ は前行の直前に追加の宣言を挿入します。
-
-#endif // !defined(AFX_FONTPARADLG_H__9F95C64C_47CC_4607_857E_1936DAB498AC__INCLUDED_)

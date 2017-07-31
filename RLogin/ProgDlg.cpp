@@ -16,6 +16,7 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // CProgDlg ダイアログ
 
+IMPLEMENT_DYNAMIC(CProgDlg, CDialog)
 
 CProgDlg::CProgDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CProgDlg::IDD, pParent)
@@ -138,13 +139,13 @@ void CProgDlg::SetPos(LONGLONG pos)
 
 	UpdateData(FALSE);
 }
-void CProgDlg::SetFileName(LPCSTR file)
+void CProgDlg::SetFileName(LPCTSTR file)
 {
 	UpdateData(TRUE);
 	m_FileName = file;
 	UpdateData(FALSE);
 }
-void CProgDlg::SetMessage(LPCSTR msg)
+void CProgDlg::SetMessage(LPCTSTR msg)
 {
 	UpdateData(TRUE);
 	m_Message = msg;

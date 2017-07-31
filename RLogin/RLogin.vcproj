@@ -552,7 +552,7 @@
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="1"
 			UseOfMFC="1"
-			CharacterSet="2"
+			CharacterSet="1"
 			WholeProgramOptimization="1"
 			>
 			<Tool
@@ -580,7 +580,7 @@
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
 				AdditionalIncludeDirectories="openssl-1.0.0e\inc32,libiconv-1.14\include,zlib-1.2.5"
-				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG;WINSOCK11;NOIPV6;"
+				PreprocessorDefinitions="WIN32;_WINDOWS;NDEBUG;WINSOCK11;NOIPV6;NOGDIPLUS;"
 				MinimalRebuild="false"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="2"
@@ -946,6 +946,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\ClipPage.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\ColParaDlg.cpp"
 				>
 			</File>
@@ -1050,7 +1054,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\MetaDlg.cpp"
+				RelativePath=".\MousePage.cpp"
 				>
 			</File>
 			<File
@@ -1099,10 +1103,6 @@
 			</File>
 			<File
 				RelativePath=".\RLoginView.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\ScriptDlg.cpp"
 				>
 			</File>
 			<File
@@ -1320,6 +1320,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\ClipPage.h"
+				>
+			</File>
+			<File
 				RelativePath=".\ColParaDlg.h"
 				>
 			</File>
@@ -1428,7 +1432,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\MetaDlg.h"
+				RelativePath=".\MousePage.h"
 				>
 			</File>
 			<File
@@ -1481,10 +1485,6 @@
 			</File>
 			<File
 				RelativePath=".\RLoginView.h"
-				>
-			</File>
-			<File
-				RelativePath=".\ScriptDlg.h"
 				>
 			</File>
 			<File

@@ -20,12 +20,11 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // CServerSelect ダイアログ
 
+IMPLEMENT_DYNAMIC(CServerSelect, CDialog)
+
 CServerSelect::CServerSelect(CWnd* pParent /*=NULL*/)
 	: CDialog(CServerSelect::IDD, pParent)
 {
-	//{{AFX_DATA_INIT(CServerSelect)
-		// メモ - ClassWizard はこの位置にマッピング用のマクロを追加または削除します。
-	//}}AFX_DATA_INIT
 	m_EntryNum = (-1);
 	m_pData = NULL;
 	m_Group.Empty();
@@ -35,19 +34,16 @@ CServerSelect::CServerSelect(CWnd* pParent /*=NULL*/)
 void CServerSelect::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
-	//{{AFX_DATA_MAP(CServerSelect)
+
 	DDX_Control(pDX, IDC_SERVERLIST, m_List);
 	DDX_Control(pDX, IDC_SERVERTAB, m_Tab);
-	//}}AFX_DATA_MAP
 }
 
 BEGIN_MESSAGE_MAP(CServerSelect, CDialog)
-	//{{AFX_MSG_MAP(CServerSelect)
 	ON_BN_CLICKED(IDC_NEWENTRY, OnNewentry)
 	ON_BN_CLICKED(IDC_EDITENTRY, OnEditentry)
 	ON_BN_CLICKED(IDC_DELENTRY, OnDelentry)
 	ON_NOTIFY(NM_DBLCLK, IDC_SERVERLIST, OnDblclkServerlist)
-	//}}AFX_MSG_MAP
 	ON_COMMAND(ID_EDIT_NEW, OnNewentry)
 	ON_COMMAND(ID_EDIT_UPDATE, OnEditentry)
 	ON_COMMAND(ID_EDIT_DELETE, OnDelentry)
@@ -94,7 +90,7 @@ void CServerSelect::InitList()
 	}
 
 	if ( m_TabEntry.GetSize() == 0 )
-		m_TabEntry[""].m_Value = 1;
+		m_TabEntry[_T("")].m_Value = 1;
 
 	for ( n = 0 ; n < m_TabEntry.GetSize() ; n++ )
 		m_Tab.InsertItem(n, m_TabEntry[n].m_nIndex);
@@ -233,12 +229,12 @@ void CServerSelect::UpdateTabWnd()
 // CServerSelect メッセージ ハンドラ
 
 static const LV_COLUMN InitListTab[6] = {
-		{ LVCF_TEXT | LVCF_WIDTH, 0,  80, "Entry",  0, 0 }, 
-		{ LVCF_TEXT | LVCF_WIDTH, 0,  60, "Server", 0, 0 }, 
-		{ LVCF_TEXT | LVCF_WIDTH, 0,  50, "User",   0, 0 }, 
-		{ LVCF_TEXT | LVCF_WIDTH, 0,  50, "Term",   0, 0 }, 
-		{ LVCF_TEXT | LVCF_WIDTH, 0,  40, "Kanji",  0, 0 }, 
-		{ LVCF_TEXT | LVCF_WIDTH, 0,  40, "Socket", 0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0,  80, _T("Entry"),  0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0,  60, _T("Server"), 0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0,  50, _T("User"),   0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0,  50, _T("Term"),   0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0,  40, _T("Kanji"),  0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0,  40, _T("Socket"), 0, 0 }, 
 	};
 
 BOOL CServerSelect::OnInitDialog() 
@@ -252,11 +248,11 @@ BOOL CServerSelect::OnInitDialog()
 	m_TabEntry.SetNoSort(FALSE);
 
 	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT);
-	m_List.InitColumn("ServerSelect", InitListTab, 6);
+	m_List.InitColumn(_T("ServerSelect"), InitListTab, 6);
 	m_List.SetPopUpMenu(IDR_POPUPMENU, 0);
 
 	if ( m_EntryNum == (-1) ) {
-		m_EntryNum = AfxGetApp()->GetProfileInt("ServerSelect", "LastAccess", (-1));
+		m_EntryNum = AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("LastAccess"), (-1));
 		if ( m_EntryNum >= m_pData->GetSize() )
 			m_EntryNum = (-1);
 	}
@@ -267,8 +263,8 @@ BOOL CServerSelect::OnInitDialog()
 	GetWindowRect(rect);
 	m_MinWidth = rect.Width();
 	m_MinHeight = rect.Height();
-	cx = AfxGetApp()->GetProfileInt("ServerSelect", "cx", rect.Width());
-	cy = AfxGetApp()->GetProfileInt("ServerSelect", "cy", rect.Height());
+	cx = AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("cx"), rect.Width());
+	cy = AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("cy"), rect.Height());
 	MoveWindow(rect.left, rect.top, cx, cy, FALSE);
 	UpdateTabWnd();
 
@@ -278,12 +274,12 @@ void CServerSelect::OnOK()
 {
 	CRect rect;
 	GetWindowRect(rect);
-	AfxGetApp()->WriteProfileInt("ServerSelect", "cx", rect.Width());
-	AfxGetApp()->WriteProfileInt("ServerSelect", "cy", rect.Height());
+	AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("cx"), rect.Width());
+	AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("cy"), rect.Height());
 
 	m_EntryNum = m_List.GetSelectMarkData();
-	AfxGetApp()->WriteProfileInt("ServerSelect", "LastAccess", m_EntryNum);
-	m_List.SaveColumn("ServerSelect");
+	AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("LastAccess"), m_EntryNum);
+	m_List.SaveColumn(_T("ServerSelect"));
 
 	int n, i;
 
@@ -313,7 +309,7 @@ void CServerSelect::OnNewentry()
 	CKeyNodeTab KeyTab;
 	CKeyMacTab KeyMac;
 	CParamTab ParamTab;
-	COptDlg dlg("Server New Entry", this);
+	COptDlg dlg(_T("Server New Entry"), this);
 
 	Entry.m_Group = m_Group;
 
@@ -353,7 +349,7 @@ void CServerSelect::OnEditentry()
 	KeyMac.Serialize(FALSE,   Entry.m_ProBuffer);
 	ParamTab.Serialize(FALSE, Entry.m_ProBuffer);
 
-	COptDlg dlg("Server Edit Entry", this);
+	COptDlg dlg(_T("Server Edit Entry"), this);
 
 	dlg.m_pEntry    = &Entry;
 	dlg.m_pTextRam  = &TextRam;
@@ -380,8 +376,8 @@ void CServerSelect::OnDelentry()
 	CString tmp;
 	if ( (m_EntryNum = m_List.GetSelectMarkData()) < 0 )
 		return;
-	tmp.Format("'%s'サーバーエントリーを削除してもよいですか？", m_pData->m_Data[m_EntryNum].m_EntryName);
-	if ( MessageBox(tmp, "Question", MB_YESNO | MB_ICONQUESTION ) != IDYES )
+	tmp.Format(CStringLoad(IDS_SERVERENTRYDELETE), m_pData->m_Data[m_EntryNum].m_EntryName);
+	if ( MessageBox(tmp, _T("Question"), MB_YESNO | MB_ICONQUESTION ) != IDYES )
 		return;
 	m_pData->RemoveAt(m_EntryNum);
 	InitList();
@@ -395,7 +391,7 @@ void CServerSelect::OnEditCopy()
 	CServerEntry tmp;
 	tmp = m_pData->GetAt(m_EntryNum);
 	for ( i = 2 ; ; i++ ) {
-		tmp.m_EntryName.Format("%s(%d)", m_pData->GetAt(m_EntryNum).m_EntryName, i);
+		tmp.m_EntryName.Format(_T("%s(%d)"), m_pData->GetAt(m_EntryNum).m_EntryName, i);
 		for ( n = 0 ; n < m_pData->GetSize() ; n++ ) {
 			if ( tmp.m_EntryName.Compare(m_pData->GetAt(n).m_EntryName) == 0 )
 				break;
@@ -459,7 +455,7 @@ void CServerSelect::OnUpdateEditEntry(CCmdUI* pCmdUI)
 
 void CServerSelect::OnServInport()
 {
-	CFileDialog dlg(TRUE, "rlg", "", OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGRLOGIN), this);
+	CFileDialog dlg(TRUE, _T("rlg"), _T(""), OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGRLOGIN), this);
 
 	if ( dlg.DoModal() != IDOK )
 		return;
@@ -467,7 +463,7 @@ void CServerSelect::OnServInport()
 	CFile File;
 
 	if ( !File.Open(dlg.GetPathName(), CFile::modeRead | CFile::shareExclusive) ) {
-		MessageBox("File Open Error");
+		MessageBox(_T("File Open Error"));
 		return;
 	}
 
@@ -479,11 +475,16 @@ void CServerSelect::OnServInport()
 	CKeyNodeTab KeyTab;
 	CKeyMacTab KeyMac;
 	CParamTab ParamTab;
-	BYTE tmp[256];
+	int n;
+	CHAR tmp[32];
 
 	TRY {
-		Archive.ReadString((LPSTR)tmp, 256);
-		if ( _tcsncmp((LPSTR)tmp, _T("RLG2"), 4) != 0 )
+		memset(tmp, 16, 0);
+		for ( n = 0 ; n < 16 && Archive.Read(&(tmp[n]), 1) == 1 ; n++ ) {
+			if ( tmp[n] == '\n' )
+				break;
+		}
+		if ( strncmp((LPSTR)tmp, "RLG2", 4) != 0 )
 			AfxThrowArchiveException(CArchiveException::badIndex, Archive.GetFile()->GetFileTitle());
 
 		for ( ; ; ) {
@@ -503,13 +504,16 @@ void CServerSelect::OnServInport()
 
 			m_EntryNum = m_pData->AddEntry(Entry);
 
-			if ( !Archive.ReadString((LPSTR)tmp, 256) )
-				break;
-			if ( _tcsncmp((LPSTR)tmp, _T("RLG21"), 5) != 0 )
+			memset(tmp, 16, 0);
+			for ( n = 0 ; n < 16 && Archive.Read(&(tmp[n]), 1) == 1 ; n++ ) {
+				if ( tmp[n] == '\n' )
+					break;
+			}
+			if ( strncmp((LPSTR)tmp, "RLG21", 5) != 0 )
 				break;
 		}
 	} CATCH_ALL(e) {
-		MessageBox("File Read Error");
+		MessageBox(_T("File Read Error"));
 	} END_CATCH_ALL
 
 	Archive.Close();
@@ -530,7 +534,7 @@ void CServerSelect::OnServExport()
 	if ( (m_EntryNum = m_List.GetSelectMarkData()) < 0 )
 		return;
 
-	CFileDialog dlg(FALSE, "rlg", "", OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGRLOGIN), this);
+	CFileDialog dlg(FALSE, _T("rlg"), _T(""), OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGRLOGIN), this);
 
 	if ( dlg.DoModal() != IDOK )
 		return;
@@ -538,7 +542,7 @@ void CServerSelect::OnServExport()
 	CFile File;
 
 	if ( !File.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeReadWrite | CFile::shareExclusive) ) {
-		MessageBox("File Crate Error");
+		MessageBox(_T("File Crate Error"));
 		return;
 	}
 
@@ -557,7 +561,7 @@ void CServerSelect::OnServExport()
 			KeyMac.Serialize(FALSE,   Entry.m_ProBuffer);
 			ParamTab.Serialize(FALSE, Entry.m_ProBuffer);
 
-			Archive.WriteString("RLG210\n");
+			Archive.Write("RLG210\n", 7);
 			Entry.Serialize(Archive);
 			TextRam.Serialize(Archive);
 			KeyTab.Serialize(Archive);
@@ -565,7 +569,7 @@ void CServerSelect::OnServExport()
 			ParamTab.Serialize(Archive);
 		}
 	} CATCH_ALL(e) {
-		MessageBox("File Write Error");
+		MessageBox(_T("File Write Error"));
 	} END_CATCH_ALL
 
 	Archive.Close();
@@ -585,28 +589,28 @@ void CServerSelect::OnServProto()
 
 	switch(pEntry->m_ProtoType) {
 	case PROTO_LOGIN:
-		proto = "login";
+		proto = _T("login");
 		break;
 	case PROTO_TELNET:
-		proto = "telnet";
+		proto = _T("telnet");
 		break;
 	case PROTO_SSH:
-		proto = "ssh";
+		proto = _T("ssh");
 		break;
 	default:
-		MessageBox("login/telnet/sshプロトコルのみ登録できます");
+		MessageBox(CStringLoad(IDE_PROTOCOLENTRY));
 		return;
 	}
 
 	if ( pEntry->m_EntryName.IsEmpty() ) {
-		MessageBox("Server Entry を入力してください");
+		MessageBox(CStringLoad(IDE_USESERVERENTRY));
 		return;
 	}
-	option.Format("/entry \"%s\" /inuse", pEntry->m_EntryName);
+	option.Format(_T("/entry \"%s\" /inuse"), pEntry->m_EntryName);
 
-	dlg.m_WinText = "プロトコルハンドラの登録";
+	dlg.m_WinText.LoadString(IDS_PROTODLGTITLE);
 	dlg.m_Title = proto;
-	dlg.m_Title += "ハンドラ起動時のオプションを指定してください";
+	dlg.m_Title += CStringLoad(IDS_PRORODLGCOMM);
 	dlg.m_Edit = option;
 
 	if ( dlg.DoModal() != IDOK )
@@ -621,8 +625,8 @@ void CServerSelect::OnClose()
 	CRect rect;
 
 	GetWindowRect(rect);
-	AfxGetApp()->WriteProfileInt("ServerSelect", "cx", rect.Width());
-	AfxGetApp()->WriteProfileInt("ServerSelect", "cy", rect.Height());
+	AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("cx"), rect.Width());
+	AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("cy"), rect.Height());
 
 	CDialog::OnClose();
 }

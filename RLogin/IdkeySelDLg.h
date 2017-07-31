@@ -1,11 +1,4 @@
-#if !defined(AFX_IDKEYSELDLG_H__EDF57990_40BB_4B33_92B1_28A625E046D4__INCLUDED_)
-#define AFX_IDKEYSELDLG_H__EDF57990_40BB_4B33_92B1_28A625E046D4__INCLUDED_
-
-#if _MSC_VER > 1000
 #pragma once
-#endif // _MSC_VER > 1000
-// IdkeySelDLg.h : ヘッダー ファイル
-//
 
 #include <afxmt.h>
 #include <afxtempl.h>
@@ -17,10 +10,25 @@
 
 class CIdkeySelDLg : public CDialog
 {
+	DECLARE_DYNAMIC(CIdkeySelDLg)
+	
 // コンストラクション
 public:
+	CIdkeySelDLg(CWnd* pParent = NULL);
+	virtual ~CIdkeySelDLg();
+
+// ダイアログ データ
+	enum { IDD = IDD_IDKEYSELDLG };
+
+public:
+	CProgressCtrl	m_KeyGenProg;
+	CListCtrlExt m_List;
+	CString	m_Type;
+	CString	m_Bits;
+	CString	m_Name;
+
 	CIdKeyTab *m_pIdKeyTab;
-	CParamTab *m_pParamTab;
+	CStringArrayExt m_IdKeyList;
 	CWordArray m_Data;
 	int m_EntryNum;
 	CEvent *m_pKeyGenEvent;
@@ -42,34 +50,15 @@ public:
 
 	void InitList();
 	void CopyToClipBorad(LPCTSTR str);
-	CIdkeySelDLg(CWnd* pParent = NULL);   // 標準のコンストラクタ
-	~CIdkeySelDLg();
-
-// ダイアログ データ
-	//{{AFX_DATA(CIdkeySelDLg)
-	enum { IDD = IDD_IDKEYSELDLG };
-	CProgressCtrl	m_KeyGenProg;
-	CListCtrlExt m_List;
-	CString	m_Type;
-	CString	m_Bits;
-	CString	m_Name;
-	//}}AFX_DATA
-
 
 // オーバーライド
-	// ClassWizard は仮想関数のオーバーライドを生成します。
-	//{{AFX_VIRTUAL(CIdkeySelDLg)
-	protected:
+protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート
-	//}}AFX_VIRTUAL
+	virtual BOOL OnInitDialog();
+	virtual void OnOK();
 
 // インプリメンテーション
 protected:
-
-	// 生成されたメッセージ マップ関数
-	//{{AFX_MSG(CIdkeySelDLg)
-	virtual BOOL OnInitDialog();
-	virtual void OnOK();
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnIdkeyUp();
 	afx_msg void OnIdkeyDown();
@@ -79,17 +68,10 @@ protected:
 	afx_msg void OnIdkeyCreate();
 	afx_msg void OnDblclkIdkeyList(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnClose();
-	//}}AFX_MSG
 	afx_msg void OnIdkeyCopy();
 	afx_msg void OnEditUpdate();
 	afx_msg void OnEditCheck();
 	afx_msg void OnUpdateEditEntry(CCmdUI* pCmdUI);
-	DECLARE_MESSAGE_MAP()
-public:
 	afx_msg void OnLvnItemchangedIdkeyList(NMHDR *pNMHDR, LRESULT *pResult);
+	DECLARE_MESSAGE_MAP()
 };
-
-//{{AFX_INSERT_LOCATION}}
-// Microsoft Visual C++ は前行の直前に追加の宣言を挿入します。
-
-#endif // !defined(AFX_IDKEYSELDLG_H__EDF57990_40BB_4B33_92B1_28A625E046D4__INCLUDED_)

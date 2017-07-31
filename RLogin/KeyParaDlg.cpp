@@ -5,19 +5,14 @@
 #include "rlogin.h"
 #include "KeyParaDlg.h"
 
-#ifdef _DEBUG
-#define new DEBUG_NEW
-#undef THIS_FILE
-static char THIS_FILE[] = __FILE__;
-#endif
-
 /////////////////////////////////////////////////////////////////////////////
 // CKeyParaDlg ダイアログ
+
+IMPLEMENT_DYNAMIC(CKeyParaDlg, CDialog)
 
 CKeyParaDlg::CKeyParaDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CKeyParaDlg::IDD, pParent)
 {
-	//{{AFX_DATA_INIT(CKeyParaDlg)
 	m_WithShift = FALSE;
 	m_WithCtrl  = FALSE;
 	m_WithAlt   = FALSE;
@@ -29,14 +24,14 @@ CKeyParaDlg::CKeyParaDlg(CWnd* pParent /*=NULL*/)
 	m_WithCap   = FALSE;
 	m_KeyCode = _T("");
 	m_Maps = _T("");
-	//}}AFX_DATA_INIT
+
 	m_pData = NULL;
 }
 
 void CKeyParaDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
-	//{{AFX_DATA_MAP(CKeyParaDlg)
+
 	DDX_Check(pDX, IDC_KEYSTAT1, m_WithShift);
 	DDX_Check(pDX, IDC_KEYSTAT2, m_WithCtrl);
 	DDX_Check(pDX, IDC_KEYSTAT3, m_WithAlt);
@@ -48,12 +43,9 @@ void CKeyParaDlg::DoDataExchange(CDataExchange* pDX)
 	//DDX_Check(pDX, IDC_KEYSTAT9, m_WithCap);
 	DDX_CBString(pDX, IDC_KEYCODE, m_KeyCode);
 	DDX_CBString(pDX, IDC_KEYMAPS, m_Maps);
-	//}}AFX_DATA_MAP
 }
 
 BEGIN_MESSAGE_MAP(CKeyParaDlg, CDialog)
-	//{{AFX_MSG_MAP(CKeyParaDlg)
-	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////

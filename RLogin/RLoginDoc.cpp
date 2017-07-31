@@ -152,10 +152,14 @@ void CRLoginDoc::Serialize(CArchive& ar)
 
 	} else {						// TODO: この位置に読み込み用のコードを追加してください。
 		int n;
-		BYTE tmp[4096];
+		CHAR tmp[4096];
 
-		ar.ReadString((LPSTR)tmp, 4096);
-		if ( strncmp((LPSTR)tmp, "RLG2", 4) == 0 ) {
+		memset(tmp, 16, 0);
+		for ( n = 0 ; n < 16 && ar.Read(&(tmp[n]), 1) == 1 ; n++ ) {
+			if ( tmp[n] == '\n' )
+				break;
+		}
+		if ( strncmp(tmp, "RLG2", 4) == 0 ) {
 			m_ServerEntry.Serialize(ar);
 			m_TextRam.Serialize(ar);
 			m_KeyTab.Serialize(ar);
@@ -164,11 +168,11 @@ void CRLoginDoc::Serialize(CArchive& ar)
 			m_TextRam.SetKanjiMode(m_ServerEntry.m_KanjiCode);
 			m_LoadMode = 1;
 
-		} else if ( strncmp((LPSTR)tmp, "RLM", 3) == 0 ) {
+		} else if ( strncmp(tmp, "RLM", 3) == 0 ) {
 			m_pMainWnd->m_AllFilePath = ar.GetFile()->GetFilePath();
 			m_pMainWnd->m_AllFileBuf.Clear();
 			while ( (n = ar.Read(tmp, 4096)) > 0 )
-				m_pMainWnd->m_AllFileBuf.Apend(tmp, n);
+				m_pMainWnd->m_AllFileBuf.Apend((LPBYTE)tmp, n);
 			m_pMainWnd->PostMessage(WM_COMMAND, ID_FILE_ALL_LOAD, 0);
 			m_LoadMode = 2;
 
@@ -798,6 +802,16 @@ void CRLoginDoc::SocketSendWindSize(int x, int y)
 	if ( m_pSock == NULL )
 		return;
 	m_pSock->SendWindSize(x, y);
+}
+LPCSTR CRLoginDoc::RemoteStr(LPCTSTR str)
+{
+	m_TextRam.m_IConv.StrToRemote(m_TextRam.m_SendCharSet[m_TextRam.m_KanjiMode], str, m_WorkMbs);
+	return m_WorkMbs;
+}
+LPCTSTR CRLoginDoc::LocalStr(LPCSTR str)
+{
+	m_TextRam.m_IConv.RemoteToStr(m_TextRam.m_SendCharSet[m_TextRam.m_KanjiMode], str, m_WorkStr);
+	return m_WorkStr;
 }
 
 void CRLoginDoc::OnLogOpen() 
