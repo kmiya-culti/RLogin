@@ -348,7 +348,7 @@ public:
 	int m_BankGL;
 	int m_BankGR;
 	int m_BankSG;
-	WORD m_BankTab[4][4];
+	WORD m_BankTab[5][4];
 
 	BYTE m_TabMap[LINE_MAX + 1][COLS_MAX / 8 + 1];
 
@@ -364,7 +364,7 @@ public:
 	int m_Save_BankGL;
 	int m_Save_BankGR;
 	int m_Save_BankSG;
-	WORD m_Save_BankTab[4][4];
+	WORD m_Save_BankTab[5][4];
 
 	BYTE m_Save_TabMap[LINE_MAX + 1][COLS_MAX / 8 + 1];
 };
@@ -488,7 +488,7 @@ public:
 	int m_Save_BankGR;
 	int m_Save_BankSG;
 	BOOL m_Save_DoWarp;
-	WORD m_Save_BankTab[4][4];
+	WORD m_Save_BankTab[5][4];
 	BYTE m_Save_TabMap[LINE_MAX + 1][COLS_MAX / 8 + 1];
 
 	int m_Page;

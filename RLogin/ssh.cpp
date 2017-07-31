@@ -1731,8 +1731,10 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 
 	if ( (m_SSH2Status & SSH2_STAT_SENTKEXINIT) == 0 ) {
 		m_MyPeer.Clear();
-		for ( n = 0 ; n < 16 ; n++ )
-			m_MyPeer.Put8Bit(m_Cookie[n]);
+//		for ( n = 0 ; n < 16 ; n++ )
+//			m_MyPeer.Put8Bit(m_Cookie[n]);
+		for ( n = 0 ; n < 16 ; n += 2 )
+			m_MyPeer.Put16Bit(rand());
 		for ( n = 0 ; n < 10 ; n++ ) {
 			if ( n >= 2 && n < 8 )
 				m_MyPeer.PutStr(m_VProp[n - 2]);

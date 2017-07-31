@@ -1599,6 +1599,7 @@ LPCSTR CServerEntry::GetKanjiCode()
 	case SJIS_SET:	return "SJIS";
 	case ASCII_SET:	return "ASCII";
 	case UTF8_SET:	return "UTF8";
+	case BIG5_SET:	return "BIG5";
 	default:		return "EUC";
 	}
 }
@@ -1607,7 +1608,8 @@ void CServerEntry::SetKanjiCode(LPCSTR str)
 	if (      strcmp(str, "EUC") == 0 )		m_KanjiCode = EUC_SET;
 	else if ( strcmp(str, "SJIS") == 0 )	m_KanjiCode = SJIS_SET;
 	else if ( strcmp(str, "ASCII") == 0 )	m_KanjiCode = ASCII_SET;
-	else if ( strcmp(str, "UTF8") == 0 )	m_KanjiCode = UTF8_SET;
+	else if ( strcmp(str, "BIG5") == 0 )	m_KanjiCode = UTF8_SET;
+	else if ( strcmp(str, "UTF8") == 0 )	m_KanjiCode = BIG5_SET;
 	else									m_KanjiCode = EUC_SET;
 }
 int CServerEntry::GetProtoType(LPCSTR str)
