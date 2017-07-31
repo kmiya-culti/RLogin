@@ -790,6 +790,29 @@ int CStringArrayExt::Match(LPCTSTR str)
 }
 
 //////////////////////////////////////////////////////////////////////
+// CWordIndex
+
+CWordIndex::CWordIndex()
+{
+	m_Data = 0;
+}
+CWordIndex::CWordIndex(WORD data)
+{
+	m_Data = data;
+}
+CWordIndex::~CWordIndex()
+{
+}
+const CWordIndex & CWordIndex::operator = (CWordIndex &data)
+{
+	m_Data = data.m_Data;
+	m_Array.SetSize(data.m_Array.GetSize());
+	for ( int n = 0 ; n < data.m_Array.GetSize() ; n++ )
+		m_Array[n] = data.m_Array[n];
+	return *this;
+}
+
+//////////////////////////////////////////////////////////////////////
 // CBmpFile
 
 CBmpFile::CBmpFile()
@@ -3510,6 +3533,7 @@ void CParamTab::Init()
 	m_ExtEnvStr = _T("");
 	memset(m_OptTab, 0, sizeof(m_OptTab));
 	m_Reserve.Empty();
+	m_SelIPver = SEL_IPV6V4;
 }
 void CParamTab::SetArray(CStringArrayExt &stra)
 {
@@ -3539,6 +3563,8 @@ void CParamTab::SetArray(CStringArrayExt &stra)
 
 	for ( n = 9 ; n < 12 ; n++ )
 		stra.AddArray(m_AlgoTab[n]);
+
+	stra.AddVal(m_SelIPver);
 }
 void CParamTab::GetArray(CStringArrayExt &stra)
 {
@@ -3623,6 +3649,11 @@ void CParamTab::GetArray(CStringArrayExt &stra)
 			}
 		}
 	}
+
+	if ( stra.GetSize() > i )
+		m_SelIPver = stra.GetVal(i++);
+	else
+		m_SelIPver = SEL_IPV6V4;
 
 	if ( m_IdKeyStr[0].Compare(_T("IdKeyList Entry")) == 0 ) {
 		m_IdKeyList.GetString(m_IdKeyStr[1]);
@@ -4221,82 +4252,3 @@ CStringBinary * CStringBinary::FindValue(int value)
 		return bp;
 	return NULL;
 }
-
-//////////////////////////////////////////////////////////////////////
-// WordAlloc
-
-							//	 3     7     15    31
-static void		*pMemFree[4] = { NULL, NULL, NULL, NULL };
-static void		*pMemTop = NULL;
-
-#define	ALLOCMAX	(32 * 1024)
-
-WCHAR *WCharAlloc(int len)
-{
-	int n, a;
-	int hs;
-	BYTE *bp;
-	WCHAR *wp;
-
-	switch(len) {
-	case 0: case 1:	case 2:	case 3:
-		len = 3;
-		hs  = 0;
-		break;
-	case 4: case 5:	case 6:	case 7:
-		len = 7;
-		hs  = 1;
-		break;
-	case  8: case  9: case 10: case 11:
-	case 12: case 13: case 14: case 15:
-		len = 15;
-		hs  = 2;
-		break;
-	default:
-		len = 31;
-		hs  = 3;
-		break;
-	}
-
-	if ( pMemFree[hs] == NULL ) {
-		bp = new BYTE[ALLOCMAX];
-		*((void **)bp) = pMemTop;
-		pMemTop = (void *)bp;
-		n = sizeof(void *);
-		a = (1 + len) * sizeof(WCHAR);
-		ASSERT(sizeof(void *) <= a);
-		while ( (n + a) <= ALLOCMAX ) {
-			wp = (WCHAR *)(bp + n);
-			*((void **)wp) = pMemFree[hs];
-			pMemFree[hs] = (void *)wp;
-			n += a;
-		}
-	}
-
-	wp = (WCHAR *)pMemFree[hs];
-	pMemFree[hs] = *((void **)wp);
-	*(wp++) = hs;
-	return wp;
-}
-void WCharFree(WCHAR *ptr)
-{
-	int hs = *(--ptr);
-	ASSERT(hs >= 0 && hs < 4);
-	*((void **)ptr) = pMemFree[hs];
-	pMemFree[hs] = (void *)ptr;
-}
-int WCharSize(WCHAR *ptr)
-{
-	static int sizeTab[] = { 3, 7, 15, 31 };
-	return sizeTab[*(ptr - 1)];
-}
-void AllWCharAllocFree()
-{
-	void *ptr;
-
-	while ( (ptr = pMemTop) != NULL ) {
-		pMemTop = *((void **)ptr);
-		delete ptr;
-	}
-}
-

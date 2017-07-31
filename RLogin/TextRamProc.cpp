@@ -204,12 +204,14 @@ static const CTextRam::PROCTAB fc_CsiTab[] = {
 	{ 0x1B,		0,			&CTextRam::fc_CSI_ESC	},
 	{ 0x20,		0x2F,		&CTextRam::fc_CSI_EXT	},	// SP!"#$%&'()*+,-./
 	{ 0x30,		0x39,		&CTextRam::fc_CSI_DIGIT	},
-	{ 0x3B,		0,			&CTextRam::fc_CSI_SEPA	},
+	{ 0x3A,		0,			&CTextRam::fc_CSI_PUSH	},	// :
+	{ 0x3B,		0,			&CTextRam::fc_CSI_SEPA	},	// ;
 	{ 0x3C,		0x3F,		&CTextRam::fc_CSI_EXT	},	// <=>?
 	{ 0x40,		0x7F,		&CTextRam::fc_POP		},
 	{ 0x80,		0x9F,		&CTextRam::fc_SESC		},
 	{ 0xA0,		0xAF,		&CTextRam::fc_CSI_EXT	},
 	{ 0xB0,		0xB9,		&CTextRam::fc_CSI_DIGIT	},
+	{ 0xBA,		0,			&CTextRam::fc_CSI_PUSH	},
 	{ 0xBB,		0,			&CTextRam::fc_CSI_SEPA	},
 	{ 0xBC,		0xBF,		&CTextRam::fc_CSI_EXT	},
 	{ 0xC0,		0xFF,		&CTextRam::fc_POP		},
@@ -452,12 +454,14 @@ static const CTextRam::PROCTAB fc_Osc1Tab[] = {
 	{ 0x1B,		0,			&CTextRam::fc_OSC_CMD	},
 	{ 0x20,		0x2F,		&CTextRam::fc_OSC_CMD	},
 	{ 0x30,		0x39,		&CTextRam::fc_CSI_DIGIT	},
+	{ 0x3A,		0,			&CTextRam::fc_CSI_PUSH	},
 	{ 0x3B,		0,			&CTextRam::fc_CSI_SEPA	},
 	{ 0x3C,		0x3F,		&CTextRam::fc_OSC_CMD	},
 	{ 0x40,		0x7E,		&CTextRam::fc_OSC_CMD	},
 	{ 0x9C,		0,			&CTextRam::fc_OSC_CMD	},	// ST String terminator
 	{ 0xA0,		0xAF,		&CTextRam::fc_OSC_CMD	},
 	{ 0xB0,		0xB9,		&CTextRam::fc_CSI_DIGIT	},
+	{ 0xBA,		0,			&CTextRam::fc_CSI_PUSH	},
 	{ 0xBB,		0,			&CTextRam::fc_CSI_SEPA	},
 	{ 0xBC,		0xBF,		&CTextRam::fc_OSC_CMD	},
 	{ 0xC0,		0xFE,		&CTextRam::fc_OSC_CMD	},
@@ -977,9 +981,110 @@ void CTextRam::fc_Init(int mode)
 
 	fc_TimerReset();
 }
+void CTextRam::fc_TraceCall(int ch)
+{
+#ifdef	DEBUG
+	static struct {
+		LPCTSTR		name;
+		union {
+			void (CTextRam::*proc)(int ch);
+			BYTE byte[sizeof(void (CTextRam::*)(int))];
+		} data;
+	} funcname[] = {
+		{ _T("A3CDW"),		&CTextRam::fc_A3CDW		},
+		{ _T("A3CLT"),		&CTextRam::fc_A3CLT		},
+		{ _T("A3CRT"),		&CTextRam::fc_A3CRT		},
+		{ _T("A3CUP"),		&CTextRam::fc_A3CUP		},
+		{ _T("BEL"),		&CTextRam::fc_BEL		},
+		{ _T("BIG51"),		&CTextRam::fc_BIG51		},
+		{ _T("BIG52"),		&CTextRam::fc_BIG52		},
+		{ _T("BIG53"),		&CTextRam::fc_BIG53		},
+		{ _T("BS"),			&CTextRam::fc_BS		},
+		{ _T("CAN"),		&CTextRam::fc_CAN		},
+		{ _T("CR"),			&CTextRam::fc_CR		},
+		{ _T("CSI_DIGIT"),	&CTextRam::fc_CSI_DIGIT	},
+		{ _T("CSI_ESC"),	&CTextRam::fc_CSI_ESC	},
+		{ _T("CSI_EXT"),	&CTextRam::fc_CSI_EXT	},
+		{ _T("CSI_PUSH"),	&CTextRam::fc_CSI_PUSH	},
+		{ _T("CSI_SEPA"),	&CTextRam::fc_CSI_SEPA	},
+		{ _T("DLE"),		&CTextRam::fc_DLE		},
+		{ _T("ENQ"),		&CTextRam::fc_ENQ		},
+		{ _T("ESC"),		&CTextRam::fc_ESC		},
+		{ _T("FF"),			&CTextRam::fc_FF		},
+		{ _T("HT"),			&CTextRam::fc_HT		},
+		{ _T("IGNORE"),		&CTextRam::fc_IGNORE	},
+		{ _T("LF"),			&CTextRam::fc_LF		},
+		{ _T("OSC_CMD"),	&CTextRam::fc_OSC_CMD	},
+		{ _T("OSC_PAM"),	&CTextRam::fc_OSC_PAM	},
+		{ _T("POP"),		&CTextRam::fc_POP		},
+		{ _T("RETRY"),		&CTextRam::fc_RETRY		},
+		{ _T("SESC"),		&CTextRam::fc_SESC		},
+		{ _T("SI"),			&CTextRam::fc_SI		},
+		{ _T("SJIS1"),		&CTextRam::fc_SJIS1		},
+		{ _T("SJIS2"),		&CTextRam::fc_SJIS2		},
+		{ _T("SJIS3"),		&CTextRam::fc_SJIS3		},
+		{ _T("SO"),			&CTextRam::fc_SO		},
+		{ _T("SOH"),		&CTextRam::fc_SOH		},
+		{ _T("STAT"),		&CTextRam::fc_STAT		},
+		{ _T("TEK_DOWN"),	&CTextRam::fc_TEK_DOWN	},
+		{ _T("TEK_FLUSH"),	&CTextRam::fc_TEK_FLUSH	},
+		{ _T("TEK_LEFT"),	&CTextRam::fc_TEK_LEFT	},
+		{ _T("TEK_MODE"),	&CTextRam::fc_TEK_MODE	},
+		{ _T("TEK_RIGHT"),	&CTextRam::fc_TEK_RIGHT	},
+		{ _T("TEK_STAT"),	&CTextRam::fc_TEK_STAT	},
+		{ _T("TEK_UP"),		&CTextRam::fc_TEK_UP	},
+		{ _T("TEXT"),		&CTextRam::fc_TEXT		},
+		{ _T("TEXT2"),		&CTextRam::fc_TEXT2		},
+		{ _T("TEXT3"),		&CTextRam::fc_TEXT3		},
+		{ _T("UTF81"),		&CTextRam::fc_UTF81		},
+		{ _T("UTF82"),		&CTextRam::fc_UTF82		},
+		{ _T("UTF83"),		&CTextRam::fc_UTF83		},
+		{ _T("UTF84"),		&CTextRam::fc_UTF84		},
+		{ _T("UTF85"),		&CTextRam::fc_UTF85		},
+		{ _T("UTF86"),		&CTextRam::fc_UTF86		},
+		{ _T("UTF87"),		&CTextRam::fc_UTF87		},
+		{ _T("UTF88"),		&CTextRam::fc_UTF88		},
+		{ _T("UTF89"),		&CTextRam::fc_UTF89		},
+		{ _T("VT"),			&CTextRam::fc_VT		},
+		{ NULL,				NULL					},
+	};
+	static char *stage[] = {
+		"ESC",		"CSI",		"EXT1",		"EXT2",		"EXT3",
+		"EXT4",		"EUC",
+		"94X94",	"96X96",
+		"SJIS",		"SJIS2",
+		"BIG5",		"BIG52",
+		"UTF8",		"UTF82",
+		"OSC1",		"OSC2",
+		"TEK",
+		"STAT",
+	};
+	int n;
+	LPCTSTR name = _T("NOP");
+	ESCNAMEPROC tmp;
 
+	tmp.data.proc = m_Func[ch];
+	for ( n = 0 ; funcname[n].name != NULL ; n++ ) {
+		if ( memcmp(funcname[n].data.byte, tmp.data.byte, sizeof(void (CTextRam::*)(int))) == 0 )
+			break;
+	}
+	if ( funcname[n].name != NULL )
+		name = funcname[n].name;
+	else {
+		name = EscProcName(m_Func[ch]);
+		if ( _tcscmp(name, _T("NOP")) == 0 ) {	
+			name = CsiProcName(m_Func[ch]);
+			if ( _tcscmp(name, _T("NOP")) == 0 )
+				name = DcsProcName(m_Func[ch]);
+		}
+	}
+
+	TRACE("%s : %02x %s\n", stage[m_Stage], ch, TstrToMbs(name));
+#endif
+}
 inline void CTextRam::fc_Call(int ch)
 {
+//	fc_TraceCall(ch);
 	(this->*m_Func[ch])(ch);
 }
 inline void CTextRam::fc_Case(int stage)
@@ -1597,7 +1702,7 @@ void CTextRam::fc_UTF84(int ch)
 void CTextRam::fc_UTF85(int ch)
 {
 	// 10xx xxxx
-	int n;
+	int n, cf;
 	CVram *vp;
 
 	fc_KANJI(ch);
@@ -1623,55 +1728,91 @@ void CTextRam::fc_UTF85(int ch)
 		m_BackChar |= (ch & 0x3F);
 		if ( m_BackChar > UNICODE_MAX )			// U+000000 - U+10FFFF 21 bit
 			m_BackChar = UNICODE_UNKOWN;		// □
+
+		// 以降、サロゲートされたUTF-16で処理
 		m_BackChar = UCS4toUCS2(m_BackChar);
-		if ( !IsOptEnable(TO_RLUNINOM) && (n = UnicodeNomal(m_LastChar, m_BackChar)) != 0 ) {
-			m_LastChar = 0;
-			m_BackChar = n;
-			LOCATE(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX);
+		cf = UnicodeCharFlag(m_BackChar);
+
+		if ( !IsOptEnable(TO_RLUNINOM) ) {		// TO_RLUNINOM(8448)が解除(default)
+
+			// Unicode Normalization
+			// ２文字から１文字のみノーマライズ
+			// U+1100 U+1161        -> U+AC00
+			// U+1100 U+1161 U+11A8 -> U+AC00 U+11A8 -> U+AC01
+			if ( (n = UnicodeNomal(m_LastChar, m_BackChar)) != 0 ) {
+				m_LastChar = 0;
+				m_LastFlag = 0;
+				m_BackChar = n;
+				cf = UnicodeCharFlag(m_BackChar);
+				LOCATE(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX);
+			}
+
+			// Mark文字をそれなりに解釈
+			// 200E;N # LEFT-TO-RIGHT MARK
+			// 200F;N # RIGHT-TO-LEFT MARK
+			// 202A;N # LEFT-TO-RIGHT EMBEDDING
+			// 202B;N # RIGHT-TO-LEFT EMBEDDING
+			// 202C;N # POP DIRECTIONAL FORMATTING
+			// 202D;N # LEFT-TO-RIGHT OVERRIDE
+			// 202E;N # RIGHT-TO-LEFT OVERRIDE
+			if ( (cf & UNI_CTL) != 0 ) {
+				switch(m_BackChar) {
+				case 0x200E:	// LEFT-TO-RIGHT MARK
+				case 0x202A:	// LEFT-TO-RIGHT EMBEDDING
+				case 0x202D:	// LEFT-TO-RIGHT OVERRIDE
+					//PushRtl(FALSE);
+					m_bRtoL = FALSE;
+					break;
+				case 0x200F:	// RIGHT-TO-LEFT MARK
+				case 0x202B:	// RIGHT-TO-LEFT EMBEDDING
+				case 0x202E:	// RIGHT-TO-LEFT OVERRIDE
+					//PushRtl(TRUE);
+					m_bRtoL = TRUE;
+					break;
+				case 0x202C:	// POP DIRECTIONAL FORMATTING
+					//PopRtl();
+					m_bRtoL = FALSE;
+					break;
+				}
+				goto BREAK;
+			}
+
+			// ノーマライズされないハングル字母は、重ねて表示(表示が変!)
+			// U+1100-11FF ハングル字母
+			// U+1100-115F は初声子音
+			// U+1160-11A2 は中声母音
+			// U+11A8-11F9 は終声子音
+			if ( (m_LastFlag & (UNI_HNF | UNI_HNM)) != 0 ) {
+				if ( (cf & UNI_HNM) != 0 ) {
+					PUTADD(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX, m_BackChar, cf);
+					goto BREAK;
+				} else if ( (cf & UNI_HNL) != 0 ) {
+					PUTADD(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX, m_BackChar, cf);
+					m_LastChar = m_LastFlag = 0;
+					goto BREAK;
+				}
+			}
 		}
+
 		// VARIATION SELECTOR
 		// U+180B - U+180D
 		// U+FE00 - U+FE0F
-		// U+E0100 = U+DB40 U+DD00
-		// U+E01EF = U+DB40 U+DDEF
-		if ( (m_BackChar >= 0x180B && m_BackChar <= 0x180D) ||
-			 (m_BackChar >= 0xFE00 && m_BackChar <= 0xFE0F) ||
-			 (m_BackChar >= 0xDB40DD00 && m_BackChar <= 0xDB40DDEF) ) {
-			if ( m_LastChar > 0 )
-				PUTADD(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX, m_BackChar);
+		// U+E0100 = U+DB40 U+DD00 - U+E01EF = U+DB40 U+DDEF
+		// Non Spaceing Mark (with VARIATION SELECTOR !!)
+		if ( m_LastChar > 0 && (cf & (UNI_IVS | UNI_NSM)) != 0 ) {
+			PUTADD(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX, m_BackChar, cf);
+			goto BREAK;
+		}
 
-		//200E;N # LEFT-TO-RIGHT MARK
-		//200F;N # RIGHT-TO-LEFT MARK
-		//202A;N # LEFT-TO-RIGHT EMBEDDING
-		//202B;N # RIGHT-TO-LEFT EMBEDDING
-		//202C;N # POP DIRECTIONAL FORMATTING
-		//202D;N # LEFT-TO-RIGHT OVERRIDE
-		//202E;N # RIGHT-TO-LEFT OVERRIDE
-		} else if ( (m_BackChar >= 0x200E && m_BackChar <= 0x200F) ||
-					(m_BackChar >= 0x202A && m_BackChar <= 0x202E) ) {
-			switch(m_BackChar) {
-			case 0x200E:	// LEFT-TO-RIGHT MARK
-			case 0x202A:	// LEFT-TO-RIGHT EMBEDDING
-			case 0x202D:	// LEFT-TO-RIGHT OVERRIDE
-				//PushRtl(FALSE);
-				m_bRtoL = FALSE;
-				break;
-			case 0x200F:	// RIGHT-TO-LEFT MARK
-			case 0x202B:	// RIGHT-TO-LEFT EMBEDDING
-			case 0x202E:	// RIGHT-TO-LEFT OVERRIDE
-				//PushRtl(TRUE);
-				m_bRtoL = TRUE;
-				break;
-			case 0x202C:	// POP DIRECTIONAL FORMATTING
-				//PopRtl();
-				m_bRtoL = FALSE;
-				break;
-			}
+		if ( (cf & UNI_WID) != 0 )
+			n = 2;
+		else if ( (cf & UNI_AMB) != 0 )
+			n = (IsOptEnable(TO_RLUNIAWH) ? 1 : 2);
+		else
+			n = 1;
 
-		} else if ( m_LastChar > 0 && UnicodeNonSpcMrk(m_BackChar) ) {
-			PUTADD(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX, m_BackChar);
-
-		} else if ( UnicodeWidth(m_BackChar) == 1 ) {
+		// 1 Cell type Unicode
+		if ( n == 1 ) {
 			INSMDCK(1);
 			if ( m_BackChar < 0x0080 )
 				PUT1BYTE(m_BackChar & 0x7F, m_BankTab[m_KanjiMode][0]);
@@ -1679,11 +1820,16 @@ void CTextRam::fc_UTF85(int ch)
 				PUT1BYTE(m_BackChar & 0x7F, m_BankTab[m_KanjiMode][1]);
 			else
 				PUT1BYTE(m_BackChar, SET_UNICODE);
+			m_LastFlag = cf;
 
+		// 2 Cell type Unicode
 		} else {
 			INSMDCK(2);
 			PUT2BYTE(m_BackChar, SET_UNICODE);
+			m_LastFlag = cf;
 		}
+
+	BREAK:
 		m_BankNow  = SET_UNICODE;
 	case 0:
 		fc_POP(ch);
@@ -2684,7 +2830,7 @@ void CTextRam::fc_DECSIXEL(int ch)
 	} else {								// Sixel Scroll Mode Enable (DECSDM = reset)
 		pGrapWnd = new CGrapWnd(this);
 		pGrapWnd->Create(NULL, _T(""));
-		pGrapWnd->SetSixel(GetAnsiPara(0, 0, 0), GetAnsiPara(1, 0, 0), m_OscPara);
+		pGrapWnd->SetSixel(GetAnsiPara(0, 0, 0), GetAnsiPara(1, 0, 0), m_OscPara, m_ColTab[m_AttNow.bc]);
 
 		if ( pGrapWnd->m_pActMap == NULL ) {
 			pGrapWnd->DestroyWindow();
@@ -2892,7 +3038,7 @@ void CTextRam::fc_DECDLD(int ch)
 	if ( Pt == 3 ) {				// Sixel
 		pGrapWnd = new CGrapWnd(this);
 		pGrapWnd->Create(NULL, _T("DCS"));
-		pGrapWnd->SetSixel(7, 0, p);
+		pGrapWnd->SetSixel(7, 0, p, m_ColTab[m_AttNow.bc]);
 		for ( n = i = 0 ; ((i + 1) * Pcmh) <= pGrapWnd->m_MaxY && (Pcn + n) < 0x80 ; i++ ) {
 			for ( x = 0 ; ((x + 1) * Pcmw) <= pGrapWnd->m_MaxX && (Pcn + n) < 0x80 ; x++, n++ )
 				m_FontTab[idx].SetUserBitmap(Pcn + n, Pcmw, Pcmh, pGrapWnd->m_pActMap, x * Pcmw, i * Pcmh);
@@ -3551,6 +3697,12 @@ void CTextRam::fc_CSI_DIGIT(int ch)
 	else
 		m_AnsiPara[n] = m_AnsiPara[n] * 10 + ch;
 }
+void CTextRam::fc_CSI_PUSH(int ch)
+{
+	int n = (int)m_AnsiPara.GetSize() - 1;
+	m_AnsiPara[n].Add(m_AnsiPara[n]);
+	m_AnsiPara[n] = 0xFFFF;
+}
 void CTextRam::fc_CSI_SEPA(int ch)
 {
 	m_AnsiPara.Add(0xFFFF);
@@ -4042,6 +4194,12 @@ void CTextRam::fc_RM(int ch)
 void CTextRam::fc_MC(int ch)
 {
 	// CSI i	MC Media copy
+
+	fc_POP(ch);
+
+	if ( (m_ClipFlag & OSC52_WRITE) == 0 )
+		return;
+
 	switch(GetAnsiPara(0, 0, 0)) {
 	case 0:
 		if ( IsOptEnable(TO_DECPEX) )
@@ -4053,7 +4211,6 @@ void CTextRam::fc_MC(int ch)
 		EditCopy(GetCalcPos(0, m_CurY), GetCalcPos(m_Cols - 1, m_CurY), FALSE, TRUE);
 		break;
 	}
-	fc_POP(ch);
 }
 void CTextRam::fc_HPB(int ch)
 {
@@ -4070,9 +4227,13 @@ void CTextRam::fc_VPB(int ch)
 void CTextRam::fc_SGR(int ch)
 {
 	// CSI m	SGR Select Graphic Rendition
-	int n, i;
+	int n, i, a;
+								//  0  1  2  3  4  5  6  7
+	static int Sgr38ParamLen[8] = { 0, 0, 3, 0, 0, 1, 0, 0 }; 
+
 	if ( m_AnsiPara.GetSize() <= 0 )
 		m_AnsiPara.Add(0);
+
 	for ( n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
 		switch(GetAnsiPara(n, 0, 0)) {
 		case 0: m_AttNow.fc = m_DefAtt.fc; m_AttNow.bc = m_DefAtt.bc; m_AttNow.at = m_DefAtt.at; break;
@@ -4106,26 +4267,62 @@ void CTextRam::fc_SGR(int ch)
 		case 34: case 35: case 36: case 37:
 			m_AttNow.fc = (GetAnsiPara(n, 0, 0) - 30);
 			break;
+
 		case 38:
-			if ( GetAnsiPara(n + 1, 0, 0) == 5 ) {	// 256 color
-				if ( (i = GetAnsiPara(n + 2, 0, 0)) < 256 )
-					m_AttNow.fc = i;
-				n += 2;
+		case 48:
+			a = n;	// base index
+
+			// :(Colon) Style		38:5:n or 38:2:r:g:b
+			if ( m_AnsiPara[a].GetSize() > 0 ) {
+				if ( m_AnsiPara[a] != 0xFFFF )
+					m_AnsiPara[a].Add(m_AnsiPara[a]);
+
+			// ;(Semicolon) Style	38;5;n or 38;2;r;g;b
+			} else if ( m_AnsiPara.GetSize() > (n + 1) ) {
+				m_AnsiPara[a].Add(GetAnsiPara(n, 0, 0));		// 38
+				m_AnsiPara[a].Add(GetAnsiPara(++n, 0, 0));		// 5/2
+
+				i = (m_AnsiPara[a][1] < 8 ? Sgr38ParamLen[m_AnsiPara[a][1]] : 0);
+				for ( ; i > 0 && (n + 1) < m_AnsiPara.GetSize() ; i-- )
+					m_AnsiPara[a].Add(GetAnsiPara(++n, 0, 0));
+
+			} else
+				break;
+
+			for ( i = 0 ; i < m_AnsiPara[a].GetSize() ; i++ ) {
+				if ( m_AnsiPara[a][i] == 0xFFFF )
+					m_AnsiPara[a][i] = 0;
+			}
+
+			if ( m_AnsiPara[a].GetSize() <= 1 )
+				break;
+
+			switch(m_AnsiPara[a][1]) {
+			case 2:				// RGB color
+				if ( m_AnsiPara[a].GetSize() <= 4 )
+					break;
+				if ( m_AnsiPara[a][0] == 38 )
+					m_AttNow.fc = GETCOLIDX(m_AnsiPara[a][2], m_AnsiPara[a][3], m_AnsiPara[a][4]);
+				else
+					m_AttNow.bc = GETCOLIDX(m_AnsiPara[a][2], m_AnsiPara[a][3], m_AnsiPara[a][4]);
+				break;
+			case 5:				// 256 index color
+				if ( m_AnsiPara[a].GetSize() <= 2 || m_AnsiPara[a][2] > 255 )
+					break;
+				if ( m_AnsiPara[a][0] == 38 )
+					m_AttNow.fc = m_AnsiPara[a][2];
+				else
+					m_AttNow.bc = m_AnsiPara[a][2];
+				break;
 			}
 			break;
+
 		case 39:
 			m_AttNow.fc = m_DefAtt.fc;
 			break;
 		case 40: case 41: case 42: case 43:
 		case 44: case 45: case 46: case 47:
 			m_AttNow.bc = (GetAnsiPara(n, 0, 0) - 40);
-			break;
-		case 48:
-			if ( GetAnsiPara(n + 1, 0, 0) == 5 ) {	// 256 color
-				if ( (i = GetAnsiPara(n + 2, 0, 0)) < 256 )
-					m_AttNow.bc = i;
-				n += 2;
-			}
 			break;
 		case 49:
 			m_AttNow.bc = m_DefAtt.bc;
@@ -4545,6 +4742,12 @@ void CTextRam::fc_DECST8C(int ch)
 void CTextRam::fc_DECMC(int ch)
 {
 	// CSI ? i	DECMC	Media Copy (DEC)
+
+	fc_POP(ch);
+
+	if ( (m_ClipFlag & OSC52_WRITE) == 0 )
+		return;
+
 	switch(GetAnsiPara(0, 1, 0)) {
 	case 0:
 		if ( IsOptEnable(TO_DECPEX) )
@@ -4561,7 +4764,6 @@ void CTextRam::fc_DECMC(int ch)
 		EditCopy(GetCalcPos(0, 0 - m_HisLen + m_Lines), GetCalcPos(m_Cols - 1, m_Lines - 1), FALSE, TRUE);
 		break;
 	}
-	fc_POP(ch);
 }
 void CTextRam::fc_DECSET(int ch)
 {

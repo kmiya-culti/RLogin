@@ -56,6 +56,7 @@ COptDlg::COptDlg(LPCTSTR pszCaption, CWnd* pParentWnd, UINT iSelectPage)
 	m_pDocument = NULL;
 
 	AddPage(&m_SerEntPage,	NULL);
+	AddPage(&m_SockOptPage,	&m_SerEntPage);
 	AddPage(&m_ProtoPage,	&m_SerEntPage);
 	AddPage(&m_ScriptPage,	&m_SerEntPage);
 	AddPage(&m_ScrnPage,	NULL);

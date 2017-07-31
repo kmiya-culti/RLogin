@@ -86,6 +86,9 @@ CExtSocket::CExtSocket(class CRLoginDoc *pDoc)
 	m_SSL_pCtx  = NULL;
 	m_SSL_pSock = NULL;
 	m_bConnect = FALSE;
+#ifndef	NOIPV6
+	m_AddrInfoTop = NULL;
+#endif
 }
 
 CExtSocket::~CExtSocket()
@@ -184,6 +187,24 @@ void CExtSocket::FreeBuffer(CSockBuffer *sp)
 	m_FreeHead = sp;
 	m_FreeSema.Unlock();
 }
+#ifndef	NOIPV6
+int CExtSocket::GetFamily()
+{
+	if ( m_pDocument == NULL )
+		return AF_UNSPEC;
+
+	switch(m_pDocument->m_ParamTab.m_SelIPver) {
+	case SEL_IPV6V4:
+		return AF_UNSPEC;
+	case SEL_IPV6:
+		return AF_INET6;
+	case SEL_IPV4:
+		return AF_INET;
+	}
+
+	return AF_UNSPEC;
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////
 
@@ -230,7 +251,7 @@ BOOL CExtSocket::AsyncOpen(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocket
 	ADDRINFOT hints;
 
 	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = AF_UNSPEC;
+	hints.ai_family = GetFamily();
 	hints.ai_socktype = nSocketType;
 
 	return GetMainWnd()->SetAsyncAddrInfo(ASYNC_OPENINFO, lpszHostAddress, nHostPort, &hints, this);
@@ -277,7 +298,7 @@ BOOL CExtSocket::ProxyOpen(int mode, LPCTSTR ProxyHost, UINT ProxyPort, LPCTSTR 
 	ADDRINFOT hints;
 
 	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = AF_UNSPEC;
+	hints.ai_family = GetFamily();
 	hints.ai_socktype = m_RealSocketType;
 
 	return GetMainWnd()->SetAsyncAddrInfo(ASYNC_OPENINFO, m_RealHostAddr, m_RealHostPort, &hints, this);
@@ -383,6 +404,140 @@ ERRRET2:
 	return (m_ListenMax == 0 ? FALSE : TRUE);
 #endif
 }
+
+#ifndef	NOIPV6
+BOOL CExtSocket::SyncOpenAddrInfo(UINT nSockPort)
+{
+	DWORD val;
+	ADDRINFOT *ai;
+    struct sockaddr_in in;
+    struct sockaddr_in6 in6;
+	struct in6_addr in6addr_any = IN6ADDR_ANY_INIT;
+
+	if ( m_AddrInfoTop == NULL )
+		return FALSE;
+
+	for ( ai = m_AddrInfoNext ; ai != NULL ; ai = ai->ai_next ) {
+		if ( ai->ai_family != AF_INET && ai->ai_family != AF_INET6 )
+			continue;
+
+		if ( (m_Fd = ::socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) == (-1) )
+			continue;
+
+		if ( ai->ai_family == AF_INET ) {
+			memset(&in, 0, sizeof(in));
+			in.sin_family = AF_INET;
+			in.sin_addr.s_addr = INADDR_ANY;
+			in.sin_port = htons(nSockPort);
+			if ( ::bind(m_Fd, (struct sockaddr *)&in, sizeof(in)) == SOCKET_ERROR ) {
+				::closesocket(m_Fd);
+				m_Fd = (-1);
+				continue;
+			}
+		} else {	// AF_INET6
+			memset(&in6, 0, sizeof(in6));
+			in6.sin6_family = AF_INET6;
+			in6.sin6_addr = in6addr_any;
+			in6.sin6_port = htons(nSockPort);
+			if ( ::bind(m_Fd, (struct sockaddr *)&in6, sizeof(in6)) == SOCKET_ERROR ) {
+				::closesocket(m_Fd);
+				m_Fd = (-1);
+				continue;
+			}
+		}
+
+	    if ( ::connect(m_Fd, ai->ai_addr, (int)ai->ai_addrlen) == SOCKET_ERROR ) {
+			::closesocket(m_Fd);
+			m_Fd = (-1);
+			continue;
+		} else
+			GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, FD_CONNECT);
+
+		if ( !GetMainWnd()->SetAsyncSelect(m_Fd, this, m_SocketEvent) ) {
+			::closesocket(m_Fd);
+			m_Fd = (-1);
+			continue;
+		}
+
+		val = 1;
+		if ( ::ioctlsocket(m_Fd, FIONBIO, &val) != 0 ) {
+			GetMainWnd()->DelAsyncSelect(m_Fd, this);
+			::closesocket(m_Fd);
+			m_Fd = (-1);
+			continue;
+		}
+
+		break;
+	}
+
+	if ( ai == NULL ) {
+		m_AddrInfoTop = m_AddrInfoNext = NULL;
+		return FALSE;
+	} else {
+		m_AddrInfoNext = ai->ai_next;
+		return TRUE;
+	}
+}
+BOOL CExtSocket::OpenAddrInfo()
+{
+	DWORD val;
+	ADDRINFOT *ai;
+
+	if ( m_Fd != (-1) ) {
+		GetMainWnd()->DelAsyncSelect(m_Fd, this);
+		::shutdown(m_Fd, SD_BOTH);
+		::closesocket(m_Fd);
+		m_Fd = (-1);
+	}
+
+	if ( m_AddrInfoTop == NULL )
+		return FALSE;
+
+	for ( ai = m_AddrInfoNext ; ai != NULL ; ai = ai->ai_next ) {
+		if ( ai->ai_family != AF_INET && ai->ai_family != AF_INET6 )
+			continue;
+
+		if ( (m_Fd = ::socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) == (-1) )
+			continue;
+
+		if ( !GetMainWnd()->SetAsyncSelect(m_Fd, this, m_SocketEvent) ) {
+			::closesocket(m_Fd);
+			m_Fd = (-1);
+			continue;
+		}
+
+		val = 1;
+		if ( ::ioctlsocket(m_Fd, FIONBIO, &val) != 0 ) {
+			GetMainWnd()->DelAsyncSelect(m_Fd, this);
+			::closesocket(m_Fd);
+			m_Fd = (-1);
+			continue;
+		}
+
+	    if ( ::connect(m_Fd, ai->ai_addr, (int)ai->ai_addrlen) == SOCKET_ERROR ) {
+			if ( WSAGetLastError() != WSAEWOULDBLOCK ) {
+				GetMainWnd()->DelAsyncSelect(m_Fd, this);
+				::closesocket(m_Fd);
+				m_Fd = (-1);
+				continue;
+			}
+		} else
+			GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, FD_CONNECT);
+
+		break;
+	}
+
+	if ( ai == NULL ) {
+		FreeAddrInfo(m_AddrInfoTop);
+		m_AddrInfoTop = m_AddrInfoNext = NULL;
+		return FALSE;
+	} else {
+		m_AddrInfoNext = ai->ai_next;
+		return TRUE;
+	}
+}
+#endif
+
 BOOL CExtSocket::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
 {
 	while ( m_ProcHead != NULL )
@@ -449,97 +604,32 @@ ERRRET2:
 	return FALSE;
 
 #else
-	DWORD val;
-	ADDRINFOT hints, *ai, *aitop;
-    struct sockaddr_in in;
-    struct sockaddr_in6 in6;
-	CString str;
-	struct in6_addr in6addr_any = IN6ADDR_ANY_INIT;
-
 	if ( pAddrInfo != NULL )
-		aitop = (ADDRINFOT *)pAddrInfo;
+		m_AddrInfoTop = m_AddrInfoNext = (ADDRINFOT *)pAddrInfo;
 	else {
+		ADDRINFOT hints;
+		CString str;
+
 		memset(&hints, 0, sizeof(hints));
-		hints.ai_family = AF_UNSPEC;
+		hints.ai_family = GetFamily();
 		hints.ai_socktype = nSocketType;
 		str.Format(_T("%d"), nHostPort);
 
-		if ( GetAddrInfo(lpszHostAddress, str, &hints, &aitop) != 0 )
+		if ( GetAddrInfo(lpszHostAddress, str, &hints, &m_AddrInfoNext) != 0 )
 			return FALSE;
+
+		m_AddrInfoTop = m_AddrInfoNext;
 	}
 
-	for ( ai = aitop ; ai != NULL ; ai = ai->ai_next ) {
-		if ( ai->ai_family != AF_INET && ai->ai_family != AF_INET6 )
-			continue;
-
-		if ( (m_Fd = ::socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) == (-1) )
-			continue;
-
-		if ( !GetMainWnd()->SetAsyncSelect(m_Fd, this, m_SocketEvent) ) {
-			::closesocket(m_Fd);
-			m_Fd = (-1);
-			continue;
-		}
-
-		if ( nSocketPort != 0 ) {
-			if ( ai->ai_family == AF_INET ) {
-			    memset(&in, 0, sizeof(in));
-			    in.sin_family = AF_INET;
-			    in.sin_addr.s_addr = INADDR_ANY;
-			    in.sin_port = htons(nSocketPort);
-				if ( ::bind(m_Fd, (struct sockaddr *)&in, sizeof(in)) == SOCKET_ERROR ) {
-					GetMainWnd()->DelAsyncSelect(m_Fd, this);
-					::closesocket(m_Fd);
-					m_Fd = (-1);
-					continue;
-				}
-			} else {	// AF_INET6
-			    memset(&in6, 0, sizeof(in6));
-			    in6.sin6_family = AF_INET6;
-			    in6.sin6_addr = in6addr_any;
-			    in6.sin6_port = htons(nSocketPort);
-				if ( ::bind(m_Fd, (struct sockaddr *)&in6, sizeof(in6)) == SOCKET_ERROR ) {
-					GetMainWnd()->DelAsyncSelect(m_Fd, this);
-					::closesocket(m_Fd);
-					m_Fd = (-1);
-					continue;
-				}
-			}
-		}
-
-		val = 1;
-		if ( ::ioctlsocket(m_Fd, FIONBIO, &val) != 0 ) {
-			GetMainWnd()->DelAsyncSelect(m_Fd, this);
-			::closesocket(m_Fd);
-			m_Fd = (-1);
-			continue;
-		}
-
-	    if ( ::connect(m_Fd, ai->ai_addr, (int)ai->ai_addrlen) == SOCKET_ERROR ) {
-			if ( WSAGetLastError() != WSAEWOULDBLOCK ) {
-				GetMainWnd()->DelAsyncSelect(m_Fd, this);
-				::closesocket(m_Fd);
-				m_Fd = (-1);
-				continue;
-			}
-		} else
-			GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, FD_CONNECT);
-
-		break;
-	}
 	if ( nSocketPort != 0 ) {
-		if ( ai == NULL )
+		if ( !SyncOpenAddrInfo(nSocketPort) )
 			return FALSE;
-		FreeAddrInfo(aitop);
-	} else {
-		FreeAddrInfo(aitop);
-		if ( ai == NULL ) {
-			CString errmsg;
-			errmsg.Format(_T("ExtSocket Open Error '%s:%d'"), lpszHostAddress, nHostPort);
-			AfxMessageBox(errmsg, MB_ICONSTOP);
-			return FALSE;
-		}
-	}
+		FreeAddrInfo(m_AddrInfoTop);
+		m_AddrInfoTop = NULL;
+
+	} else if ( !OpenAddrInfo() )
+		return FALSE;
+
 	return TRUE;
 #endif
 }
@@ -547,6 +637,12 @@ void CExtSocket::Close()
 {
 	SSLClose();
 
+#ifndef	NOIPV6
+	if ( m_AddrInfoTop != NULL ) {
+		FreeAddrInfo(m_AddrInfoTop);
+		m_AddrInfoTop = NULL;
+	}
+#endif
 	if ( m_Fd != (-1) ) {
 		GetMainWnd()->DelAsyncSelect(m_Fd, this);
 		::shutdown(m_Fd, SD_BOTH);
@@ -1279,6 +1375,10 @@ void CExtSocket::OnAsyncHostByName(int mode, LPCTSTR pHostName)
 }
 void CExtSocket::OnError(int err)
 {
+#ifndef	NOIPV6
+	if ( m_AddrInfoTop != NULL && OpenAddrInfo() )
+		return;
+#endif
 	Close();
 	if ( m_pDocument == NULL )
 		return;
@@ -1293,6 +1393,12 @@ void CExtSocket::OnClose()
 }
 void CExtSocket::OnConnect()
 {
+#ifndef	NOIPV6
+	if ( m_AddrInfoTop != NULL ) {
+		FreeAddrInfo(m_AddrInfoTop);
+		m_AddrInfoTop = NULL;
+	}
+#endif
 	m_bConnect = TRUE;
 	if ( m_pDocument == NULL )
 		return;

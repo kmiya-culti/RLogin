@@ -16,7 +16,6 @@ public:
 	enum { IDD = IDD_PROTOPAGE };
 
 public:
-	UINT m_DelayMsec;
 	UINT m_KeepAlive;
 	BOOL m_Check[18];
 	CStringArrayExt m_AlgoTab[12];

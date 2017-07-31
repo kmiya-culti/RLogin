@@ -113,6 +113,7 @@ BOOL CRLoginDoc::OnNewDocument()
 	m_LoadMode = (m_ServerEntry.m_SaveFlag ? 0 : 2);
 	m_ServerEntry.m_SaveFlag = FALSE;
 
+	m_TextRam.m_bOpen = TRUE;
 	m_TextRam.Serialize(FALSE, m_ServerEntry.m_ProBuffer);
 	m_KeyTab.Serialize(FALSE, m_ServerEntry.m_ProBuffer);
 	m_KeyMac.Serialize(FALSE, m_ServerEntry.m_ProBuffer);
@@ -151,6 +152,8 @@ BOOL CRLoginDoc::OnOpenDocument(LPCTSTR lpszPathName)
 
 	if ( !CDocument::OnOpenDocument(lpszPathName) )
 		return FALSE;
+
+	m_TextRam.m_bOpen = TRUE;
 
 	if ( m_LoadMode == 1 ) {
 		UpdateAllViews(NULL, UPDATE_INITPARA, 0);
@@ -295,6 +298,7 @@ void CRLoginDoc::DeleteContents()
 	m_pScript->SetDocumet(this);
 
 	m_ServerEntry.Init();
+	m_TextRam.m_bOpen = FALSE;
 	CDocument::DeleteContents();
 }
 

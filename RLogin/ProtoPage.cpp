@@ -25,18 +25,15 @@ static char THIS_FILE[] = __FILE__;
 
 IMPLEMENT_DYNCREATE(CProtoPage, CPropertyPage)
 
-#define	CHECKOPTMAX		13
+#define	CHECKOPTMAX		7
 #define	CHECKOPTEXT		3
 #define	IDC_CHECKFAST	IDC_PROTOCHECK1
-static const int CheckOptTab[] = { TO_RLTENAT, TO_RLTENEC,   TO_SSH1MODE,  TO_SSHPFORY,
-								   TO_RLPOFF,  TO_RLUSEPASS, TO_RLDSECHO,  TO_RLBPLUS,
-								   TO_RLDELAY, TO_RLKEEPAL,  TO_SSHKEEPAL, TO_SSHAGENT,
-								   TO_RLTENLM,
-								   TO_SSHSFENC,TO_SSHSFMAC,  TO_SSHX11PF	};		// Extend
+static const int CheckOptTab[] = { TO_RLTENAT,  TO_RLTENEC,  TO_RLTENLM,
+								   TO_SSH1MODE, TO_SSHPFORY, TO_SSHAGENT, TO_SSHKEEPAL,
+								   TO_SSHSFENC, TO_SSHSFMAC, TO_SSHX11PF	};		// Extend
 
 CProtoPage::CProtoPage() : CTreePropertyPage(CProtoPage::IDD)
 {
-	m_DelayMsec = 0;
 	m_KeepAlive = 0;
 	for ( int n = 0 ; n < CHECKOPTMAX + CHECKOPTEXT ; n++ )
 		m_Check[n] = FALSE;
@@ -50,8 +47,6 @@ void CProtoPage::DoDataExchange(CDataExchange* pDX)
 {
 	CPropertyPage::DoDataExchange(pDX);
 
-	DDX_Text(pDX, IDC_DELAYMSEC, m_DelayMsec);
-	DDV_MinMaxUInt(pDX, m_DelayMsec, 0, 3000);
 	DDX_Text(pDX, IDC_KEEPALIVE, m_KeepAlive);
 	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
 		DDX_Check(pDX, IDC_PROTOCHECK1 + n, m_Check[n]);
@@ -73,7 +68,6 @@ void CProtoPage::DoInit()
 	for ( int n = 0 ; n < CHECKOPTMAX + CHECKOPTEXT ; n++ )
 		m_Check[n] = (m_pSheet->m_pTextRam->IsOptEnable(CheckOptTab[n]) ? TRUE : FALSE);
 
-	m_DelayMsec = m_pSheet->m_pTextRam->m_DelayMSec;
 	m_KeepAlive = m_pSheet->m_pTextRam->m_KeepAliveSec;
 	
 	for ( int n = 0 ; n < 12 ; n++ )
@@ -113,7 +107,6 @@ BOOL CProtoPage::OnApply()
 			m_pSheet->m_pTextRam->DisableOption(CheckOptTab[n]);
 	}
 
-	m_pSheet->m_pTextRam->m_DelayMSec    = m_DelayMsec;
 	m_pSheet->m_pTextRam->m_KeepAliveSec = m_KeepAlive;
 
 	for ( int n = 0 ; n < 12 ; n++ )

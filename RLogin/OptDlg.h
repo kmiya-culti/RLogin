@@ -19,6 +19,7 @@ public:
 #include "TermPage.h"
 #include "ScriptPage.h"
 #include "ScrnPage.h"
+#include "SockOptPage.h"
 #include "ProtoPage.h"
 #include "CharSetPage.h"
 #include "ColParaDlg.h"
@@ -53,6 +54,7 @@ public:
 	CKeyPage m_KeyPage;
 	CColParaDlg m_ColorPage;
 	CCharSetPage m_CharSetPage;
+	CSockOptPage m_SockOptPage;
 	CProtoPage m_ProtoPage;
 	CTermPage m_TermPage;
 	CScrnPage m_ScrnPage;

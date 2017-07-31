@@ -222,6 +222,26 @@ public:
 	operator int () const { return m_Value; }
 };
 
+class CWordIndex : CObject
+{
+public:
+	WORD m_Data;
+	CArray<CWordIndex, CWordIndex &> m_Array;
+
+	CWordIndex();
+	CWordIndex(WORD data);
+	~CWordIndex();
+
+	const CWordIndex & operator = (CWordIndex &data);
+	const WORD operator = (WORD data) { m_Data = data; return m_Data; }
+	CWordIndex & operator [] (int nIndex) { return m_Array[nIndex]; }
+	operator WORD () const { return m_Data; }
+	INT_PTR Add(WORD data) { CWordIndex tmp(data); return m_Array.Add(tmp); }
+	INT_PTR GetSize() { return m_Array.GetSize(); }
+	void SetSize(INT_PTR nNewSize, INT_PTR nGrowBy = -1) { m_Array.SetSize(nNewSize, nGrowBy); }
+	void RemoveAll() { m_Array.RemoveAll(); }
+};
+
 class CBmpFile : public CObject
 {
 public:
@@ -576,6 +596,10 @@ public:
 #define	PFD_SOCKS		1
 #define	PFD_REMOTE		2
 
+#define	SEL_IPV6V4		0
+#define	SEL_IPV6		1
+#define	SEL_IPV4		2
+
 class CParamTab : public COptObject
 {
 public:
@@ -587,6 +611,7 @@ public:
 	CString m_ExtEnvStr;
 	DWORD m_OptTab[8];
 	CString m_Reserve;
+	int m_SelIPver;
 
 	CParamTab();
 	void Init();
@@ -607,10 +632,5 @@ public:
 
 	const CParamTab & operator = (CParamTab &data);
 };
-
-WCHAR *WCharAlloc(int len);
-void WCharFree(WCHAR *ptr);
-int WCharSize(WCHAR *ptr);
-void AllWCharAllocFree();
 
 #endif // !defined(AFX_DATA_H__6A23DC3E_3DDC_47BD_A6FC_E0127564AE6E__INCLUDED_)

@@ -194,6 +194,16 @@ void CRLoginView::OnDraw(CDC* pDC)
 
 	if ( pDoc->m_TextRam.IsInitText() )
 		pDoc->m_TextRam.DrawVram(pDC, sx, sy, ex, ey, this);
+	else {
+		CRect rect;
+
+		if ( !pDC->IsPrinting() )
+			rect = ((CPaintDC *)(pDC))->m_ps.rcPaint;
+		else
+			GetClientRect(rect);
+
+		pDC->FillSolidRect(&((CPaintDC *)(pDC))->m_ps.rcPaint, GetSysColor(COLOR_APPWORKSPACE));
+	}
 
 	if ( pDoc->m_TextRam.IsOptEnable(TO_RLTEKINWND) ) {
 		CRect rect;

@@ -253,6 +253,18 @@
 #define	UNICODE_MAX		0x0010FFFF		// U+000000 - U+10FFFF 21 bit (サロゲート可能範囲)
 #define	UNICODE_UNKOWN	0x000025A1		// □
 
+#define	UNI_NAR			0x00000000		// 1 width char
+#define	UNI_WID			0x00000001		// 2 width char
+#define	UNI_AMB			0x00000002		// A type char 1 or 2 width
+#define	UNI_NSM			0x00000004		// Non Spaceing Mark char
+#define	UNI_IVS			0x00000008		// IVS Mark
+#define	UNI_SGH			0x00000010		// サロゲート Hi
+#define	UNI_SGL			0x00000020		// サロゲート Low
+#define	UNI_CTL			0x00000040		// RtoL LtoR Control char
+#define	UNI_HNF			0x00000080		// Hangle Fast
+#define	UNI_HNM			0x00000100		// Hangle Mid
+#define	UNI_HNL			0x00000200		// Hangle Last
+
 #define issjis1(c)		(((unsigned char)(c) >= 0x81 && \
 						  (unsigned char)(c) <= 0x9F) || \
 						 ((unsigned char)(c) >= 0xE0 && \
@@ -339,13 +351,16 @@ typedef struct _Iram {
 	BYTE	bc;			// 背景色番号
 } IRAM;
 
-
 //#define	FIXWCHAR	1
 
 #ifdef	FIXWCHAR
-#define	MAXCHARSIZE	8
+#define	MAXCHARSIZE	10
 #else
 #define	MAXCHARSIZE	31
+WCHAR *WCharAlloc(int len);
+void WCharFree(WCHAR *ptr);
+int WCharSize(WCHAR *ptr);
+void AllWCharAllocFree();
 #endif
 
 class CVram
@@ -358,16 +373,16 @@ public:
 #endif
 	IRAM		pr;
 
-	CVram();
-	~CVram();
+	inline CVram();
+	inline ~CVram();
 
 	inline void Empty() { ch[0] = 0; }
 	inline BOOL IsEmpty() { return (ch[0] == 0 ? TRUE : FALSE); }
 	inline operator LPCWSTR () { return ch; }
+	inline const CVram & operator = (CVram &data);
+	inline void operator = (VRAM &ram);
 
-	const CVram & operator = (CVram &data);
-	void operator = (VRAM &ram);
-	void operator = (DWORD c);
+	inline void operator = (DWORD c);
 	void operator += (DWORD c);
 	void SetVRAM(VRAM &ram);
 
@@ -560,6 +575,7 @@ public:
 	class CRLoginDoc *m_pDocument;
 	class CFontTab m_FontTab;
 
+	BOOL m_bOpen;
 	CVram *m_VRam;
 	VRAM m_AttSpc;
 	VRAM m_AttNow;
@@ -595,10 +611,11 @@ public:
 	DWORD m_BackChar;
 	int m_BackMode;
 	DWORD m_LastChar;
+	int m_LastFlag;
 	int m_LastPos;
 	BOOL m_bRtoL;
 
-	CWordArray m_AnsiPara;
+	CWordIndex m_AnsiPara;
 	int m_OscMode;
 	CBuffer m_OscPara;
 	BYTE m_TabMap[LINE_MAX + 1][COLS_MAX / 8 + 1];
@@ -670,7 +687,7 @@ public:
 	BOOL m_FileSaveFlag;
 	
 	// Window Fonction
-	BOOL IsInitText() { return (m_VRam == NULL ? FALSE : TRUE); }
+	BOOL IsInitText() { return (m_bOpen && m_VRam != NULL ? TRUE : FALSE); }
 	void InitText(int Width, int Height);
 	void InitScreen(int cols, int lines);
 	int Write(LPBYTE lpBuf, int nBufLen, BOOL *sync);
@@ -731,8 +748,8 @@ public:
 	void OnClose();
 	void CallReciveLine(int y);
 	void CallReciveChar(int ch);
+	int UnicodeCharFlag(DWORD code);
 	int UnicodeWidth(DWORD code);
-	int UnicodeNonSpcMrk(DWORD code);
 	void SetRetChar(BOOL f8);
 
 	// Static Lib
@@ -754,6 +771,7 @@ public:
 	void DISPVRAM(int sx, int sy, int w, int h);
 	void DISPUPDATE();
 	int BLINKUPDATE(class CRLoginView *pView);
+	int GETCOLIDX(int red, int green, int blue);
 
 	// Mid Level
 	int GetAnsiPara(int index, int defvalue, int limit, int maxvalue = -1);
@@ -772,7 +790,7 @@ public:
 	void REVINDEX();
 	void PUT1BYTE(int ch, int md);
 	void PUT2BYTE(int ch, int md);
-	void PUTADD(int x, int y, int ch);
+	void PUTADD(int x, int y, int ch, int cf);
 	void INSMDCK(int len);
 	void ANSIOPT(int opt, int bit);
 	void SAVERAM();
@@ -819,6 +837,7 @@ public:
 	void fc_Init_Proc(int stage, const PROCTAB *tp, int b = 0);
 	ESCNAMEPROC *fc_InitProcName(CTextRam::ESCNAMEPROC *tab, int *max);
 	void fc_Init(int mode);
+	void fc_TraceCall(int ch);
 	inline void fc_Call(int ch);
 	inline void fc_Case(int stage);
 	inline void fc_Push(int stage);
@@ -948,6 +967,7 @@ public:
 	void fc_CSI(int ch);
 	void fc_CSI_ESC(int ch);
 	void fc_CSI_DIGIT(int ch);
+	void fc_CSI_PUSH(int ch);
 	void fc_CSI_SEPA(int ch);
 	void fc_CSI_EXT(int ch);
 	void fc_CSI_ETC(int ch);

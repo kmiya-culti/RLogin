@@ -67,6 +67,7 @@
 #define IDD_SCRIPTPAGE                  162
 #define IDD_ABORTDLG                    163
 #define IDD_CANCELDLG                   163
+#define IDD_SOCKOPTPAGE                 164
 #define IDP_SOCKETS_INIT_FAILED         300
 #define IDS_INDICATOR_STAT              301
 #define IDS_IDKEYFILELOAD               302
@@ -566,6 +567,7 @@
 #define IDC_SCRIPTSTR                   3064
 #define IDC_SCRIPT_STR                  3064
 #define IDC_CODESTACK                   3065
+#define IDC_DISIPV6                     3066
 #define ID_FILE_ALL_LOAD                5000
 #define ID_EDIT_BOX                     5001
 #define ID_PAGE_PRIOR                   5002
@@ -611,9 +613,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        164
+#define _APS_NEXT_RESOURCE_VALUE        165
 #define _APS_NEXT_COMMAND_VALUE         5051
-#define _APS_NEXT_CONTROL_VALUE         3066
+#define _APS_NEXT_CONTROL_VALUE         3067
 #define _APS_NEXT_SYMED_VALUE           200
 #endif
 #endif

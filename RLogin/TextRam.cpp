@@ -23,23 +23,103 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
+#ifndef	FIXWCHAR
+
+//////////////////////////////////////////////////////////////////////
+// WordAlloc
+							//	 3     7     15    31
+static void		*pMemFree[4] = { NULL, NULL, NULL, NULL };
+static void		*pMemTop = NULL;
+
+#define	ALLOCMAX	(256 * 1024)
+
+WCHAR *WCharAlloc(int len)
+{
+	int n, a;
+	int hs;
+	BYTE *bp;
+	WCHAR *wp;
+
+	switch(len) {
+	case 0: case 1:	case 2:	case 3:
+		len = 3;
+		hs  = 0;
+		break;
+	case 4: case 5:	case 6:	case 7:
+		len = 7;
+		hs  = 1;
+		break;
+	case  8: case  9: case 10: case 11:
+	case 12: case 13: case 14: case 15:
+		len = 15;
+		hs  = 2;
+		break;
+	default:
+		len = 31;
+		hs  = 3;
+		break;
+	}
+
+	if ( pMemFree[hs] == NULL ) {
+		bp = new BYTE[ALLOCMAX];
+		*((void **)bp) = pMemTop;
+		pMemTop = (void *)bp;
+		n = sizeof(void *);
+		a = (1 + len) * sizeof(WCHAR);
+		ASSERT(sizeof(void *) <= a);
+		while ( (n + a) <= ALLOCMAX ) {
+			wp = (WCHAR *)(bp + n);
+			*((void **)wp) = pMemFree[hs];
+			pMemFree[hs] = (void *)wp;
+			n += a;
+		}
+	}
+
+	wp = (WCHAR *)pMemFree[hs];
+	pMemFree[hs] = *((void **)wp);
+	*(wp++) = hs;
+	return wp;
+}
+void WCharFree(WCHAR *ptr)
+{
+	int hs = *(--ptr);
+	ASSERT(hs >= 0 && hs < 4);
+	*((void **)ptr) = pMemFree[hs];
+	pMemFree[hs] = (void *)ptr;
+}
+inline int WCharSize(WCHAR *ptr)
+{
+	static int sizeTab[] = { 3, 7, 15, 31 };
+	return sizeTab[*(ptr - 1)];
+}
+void AllWCharAllocFree()
+{
+	void *ptr;
+
+	while ( (ptr = pMemTop) != NULL ) {
+		pMemTop = *((void **)ptr);
+		delete ptr;
+	}
+}
+#endif
+
 //////////////////////////////////////////////////////////////////////
 // CVram
 
-CVram::CVram()
+inline CVram::CVram()
 {
 #ifndef	FIXWCHAR
 	ch = WCharAlloc(3);
 #endif
 	Empty();
 }
-CVram::~CVram()
+inline CVram::~CVram()
 {
 #ifndef	FIXWCHAR
 	WCharFree(ch);
 #endif
 }
-const CVram & CVram::operator = (CVram &data)
+inline const CVram & CVram::operator = (CVram &data)
 {
 #ifdef	FIXWCHAR
 	memcpy(this, &data, sizeof(CVram));
@@ -54,7 +134,7 @@ const CVram & CVram::operator = (CVram &data)
 #endif
 	return *this;
 }
-void CVram::operator = (VRAM &ram)
+inline void CVram::operator = (VRAM &ram)
 {
 #ifdef	FIXWCHAR
 	memcpy(&pr, &ram, sizeof(pr));
@@ -76,7 +156,7 @@ void CVram::operator = (VRAM &ram)
 		*this = ram.ch;
 #endif
 }
-void CVram::operator = (DWORD c)
+inline void CVram::operator = (DWORD c)
 {
 	Empty();
 	*this += c;
@@ -681,6 +761,7 @@ void CFontTab::IndexRemove(int idx)
 CTextRam::CTextRam()
 {
 	m_pDocument = NULL;
+	m_bOpen = FALSE;
 	m_VRam = NULL;
 	m_Cols = m_ColsMax = 80;
 	m_LineUpdate = 0;
@@ -705,6 +786,7 @@ CTextRam::CTextRam()
 	m_KeepAliveSec = 0;
 	m_RecvCrLf = m_SendCrLf = 0;
 	m_LastChar = 0;
+	m_LastFlag = 0;
 	m_LastPos  = 0;
 	m_DropFileMode = 0;
 	m_WordStr.Empty();
@@ -808,6 +890,9 @@ void CTextRam::InitText(int Width, int Height)
 	int cx, cy, ox, oy, cw, ch;
 	int cols, lines;
 	int colsmax, hismax;
+
+	if ( !m_bOpen )
+		return;
 
 	if ( IS_ENABLE(m_AnsiOpt, TO_RLFONT) ) {
 		ch = m_DefFontSize;
@@ -2942,6 +3027,26 @@ void CTextRam::OnClose()
 	for ( y = 0 ; y < my ; y++ )
 		CallReciveLine(y);
 }
+void CTextRam::OnTimer(int id)
+{
+	m_IntCounter++;
+
+	if ( m_bOscActive ) {
+		if ( m_pCanDlg == NULL && m_IntCounter > 3 ) {
+			m_pCanDlg = new CCancelDlg;
+			m_pCanDlg->m_pTextRam = this;
+			m_pCanDlg->m_PauseSec = 0;
+			m_pCanDlg->m_WaitSec  = 30;
+			m_pCanDlg->m_Name     = m_OscName;
+			m_pCanDlg->Create(IDD_CANCELDLG, ::AfxGetMainWnd());
+			m_pCanDlg->ShowWindow(SW_SHOW);
+		}
+	} else if ( m_IntCounter > 60 ) {
+		m_bIntTimer = FALSE;
+		((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this);
+	}
+}
+
 void CTextRam::CallReciveLine(int y)
 {
 	int n, i;
@@ -2973,8 +3078,9 @@ void CTextRam::CallReciveChar(int ch)
 		L"CAN",	L"EM",	L"SUB",	L"ESC",	L"FS",	L"GS",	L"RS",	L"US",
 	};
 
-	if ( ch < ' ' ) {
+	if ( (ch & 0xFFFF0000) == 0 && ch < ' ' ) {
 		m_LastChar = 0;
+		m_LastFlag = 0;
 		m_bRtoL = FALSE;
 	}
 
@@ -3028,184 +3134,34 @@ void CTextRam::CallReciveChar(int ch)
 	m_pDocument->m_pLogFile->Write(out.GetPtr(), out.GetSize());
 }
 
-static int DwrodCmp(const void *src, const void *dis)
+int CTextRam::UnicodeCharFlag(DWORD code)
 {
-	if ( *((DWORD *)src) == *((DWORD *)dis) )
-		return 0;
-	else if ( *((DWORD *)src) < *((DWORD *)dis) )
-		return (-1);
-	else
-		return 1;
-}
-int CTextRam::UnicodeWidth(DWORD code)
-{
-// EastAsianWidth-6.2.0.txt
-// Date: 2012-05-15, 18:30:00 GMT [KW]
-#define UNIWIDTABSIZE   407
-	static const DWORD UnicodeWidthTab[] = {
-		0x000000A1,	0x000000A2,	0x000000A4,	0x000000A5,	0x000000A7,	0x000000A9,	0x000000AA,	0x000000AB,
-		0x000000AD,	0x000000AF,	0x000000B0,	0x000000B5,	0x000000B6,	0x000000BB,	0x000000BC,	0x000000C0,
-		0x000000C6,	0x000000C7,	0x000000D0,	0x000000D1,	0x000000D7,	0x000000D9,	0x000000DE,	0x000000E2,
-		0x000000E6,	0x000000E7,	0x000000E8,	0x000000EB,	0x000000EC,	0x000000EE,	0x000000F0,	0x000000F1,
-		0x000000F2,	0x000000F4,	0x000000F7,	0x000000FB,	0x000000FC,	0x000000FD,	0x000000FE,	0x000000FF,
-		0x00000101,	0x00000102,	0x00000111,	0x00000112,	0x00000113,	0x00000114,	0x0000011B,	0x0000011C,
-		0x00000126,	0x00000128,	0x0000012B,	0x0000012C,	0x00000131,	0x00000134,	0x00000138,	0x00000139,
-		0x0000013F,	0x00000143,	0x00000144,	0x00000145,	0x00000148,	0x0000014C,	0x0000014D,	0x0000014E,
-		0x00000152,	0x00000154,	0x00000166,	0x00000168,	0x0000016B,	0x0000016C,	0x000001CE,	0x000001CF,
-		0x000001D0,	0x000001D1,	0x000001D2,	0x000001D3,	0x000001D4,	0x000001D5,	0x000001D6,	0x000001D7,
-		0x000001D8,	0x000001D9,	0x000001DA,	0x000001DB,	0x000001DC,	0x000001DD,	0x00000251,	0x00000252,
-		0x00000261,	0x00000262,	0x000002C4,	0x000002C5,	0x000002C7,	0x000002C8,	0x000002C9,	0x000002CC,
-		0x000002CD,	0x000002CE,	0x000002D0,	0x000002D1,	0x000002D8,	0x000002DC,	0x000002DD,	0x000002DE,
-		0x000002DF,	0x000002E0,	0x00000300,	0x00000370,	0x00000391,	0x000003A2,	0x000003A3,	0x000003AA,
-		0x000003B1,	0x000003C2,	0x000003C3,	0x000003CA,	0x00000401,	0x00000402,	0x00000410,	0x00000450,
-		0x00000451,	0x00000452,	0x00001100,	0x00001160,	0x00002010,	0x00002011,	0x00002013,	0x00002017,
-		0x00002018,	0x0000201A,	0x0000201C,	0x0000201E,	0x00002020,	0x00002023,	0x00002024,	0x00002028,
-		0x00002030,	0x00002031,	0x00002032,	0x00002034,	0x00002035,	0x00002036,	0x0000203B,	0x0000203C,
-		0x0000203E,	0x0000203F,	0x00002074,	0x00002075,	0x0000207F,	0x00002080,	0x00002081,	0x00002085,
-		0x000020AC,	0x000020AD,	0x00002103,	0x00002104,	0x00002105,	0x00002106,	0x00002109,	0x0000210A,
-		0x00002113,	0x00002114,	0x00002116,	0x00002117,	0x00002121,	0x00002123,	0x00002126,	0x00002127,
-		0x0000212B,	0x0000212C,	0x00002153,	0x00002155,	0x0000215B,	0x0000215F,	0x00002160,	0x0000216C,
-		0x00002170,	0x0000217A,	0x00002189,	0x0000218A,	0x00002190,	0x0000219A,	0x000021B8,	0x000021BA,
-		0x000021D2,	0x000021D3,	0x000021D4,	0x000021D5,	0x000021E7,	0x000021E8,	0x00002200,	0x00002201,
-		0x00002202,	0x00002204,	0x00002207,	0x00002209,	0x0000220B,	0x0000220C,	0x0000220F,	0x00002210,
-		0x00002211,	0x00002212,	0x00002215,	0x00002216,	0x0000221A,	0x0000221B,	0x0000221D,	0x00002221,
-		0x00002223,	0x00002224,	0x00002225,	0x00002226,	0x00002227,	0x0000222D,	0x0000222E,	0x0000222F,
-		0x00002234,	0x00002238,	0x0000223C,	0x0000223E,	0x00002248,	0x00002249,	0x0000224C,	0x0000224D,
-		0x00002252,	0x00002253,	0x00002260,	0x00002262,	0x00002264,	0x00002268,	0x0000226A,	0x0000226C,
-		0x0000226E,	0x00002270,	0x00002282,	0x00002284,	0x00002286,	0x00002288,	0x00002295,	0x00002296,
-		0x00002299,	0x0000229A,	0x000022A5,	0x000022A6,	0x000022BF,	0x000022C0,	0x00002312,	0x00002313,
-		0x00002329,	0x0000232B,	0x00002460,	0x000024EA,	0x000024EB,	0x0000254C,	0x00002550,	0x00002574,
-		0x00002580,	0x00002590,	0x00002592,	0x00002596,	0x000025A0,	0x000025A2,	0x000025A3,	0x000025AA,
-		0x000025B2,	0x000025B4,	0x000025B6,	0x000025B8,	0x000025BC,	0x000025BE,	0x000025C0,	0x000025C2,
-		0x000025C6,	0x000025C9,	0x000025CB,	0x000025CC,	0x000025CE,	0x000025D2,	0x000025E2,	0x000025E6,
-		0x000025EF,	0x000025F0,	0x00002605,	0x00002607,	0x00002609,	0x0000260A,	0x0000260E,	0x00002610,
-		0x00002614,	0x00002616,	0x0000261C,	0x0000261D,	0x0000261E,	0x0000261F,	0x00002640,	0x00002641,
-		0x00002642,	0x00002643,	0x00002660,	0x00002662,	0x00002663,	0x00002666,	0x00002667,	0x0000266B,
-		0x0000266C,	0x0000266E,	0x0000266F,	0x00002670,	0x0000269E,	0x000026A0,	0x000026BE,	0x000026C0,
-		0x000026C4,	0x000026CE,	0x000026CF,	0x000026E2,	0x000026E3,	0x000026E4,	0x000026E8,	0x00002700,
-		0x0000273D,	0x0000273E,	0x00002757,	0x00002758,	0x00002776,	0x00002780,	0x00002B55,	0x00002B5A,
-		0x00002E80,	0x00002E9A,	0x00002E9B,	0x00002EF4,	0x00002F00,	0x00002FD6,	0x00002FF0,	0x00002FFC,
-		0x00003000,	0x0000303F,	0x00003041,	0x00003097,	0x00003099,	0x00003100,	0x00003105,	0x0000312E,
-		0x00003131,	0x0000318F,	0x00003190,	0x000031BB,	0x000031C0,	0x000031E4,	0x000031F0,	0x0000321F,
-		0x00003220,	0x000032FF,	0x00003300,	0x00004DC0,	0x00004E00,	0x0000A48D,	0x0000A490,	0x0000A4C7,
-		0x0000A960,	0x0000A97D,	0x0000AC00,	0x0000D7A4,	0x0000E000,	0x0000FB00,	0x0000FE00,	0x0000FE1A,
-		0x0000FE30,	0x0000FE53,	0x0000FE54,	0x0000FE67,	0x0000FE68,	0x0000FE6C,	0x0000FF01,	0x0000FF61,
-		0x0000FFE0,	0x0000FFE7,	0x0000FFFD,	0x0000FFFE,	0xD82CDC00,	0xD82CDC02,	0xD83CDD00,	0xD83CDD0B,
-		0xD83CDD10,	0xD83CDD2E,	0xD83CDD30,	0xD83CDD6A,	0xD83CDD70,	0xD83CDD9B,	0xD83CDE00,	0xD83CDE03,
-		0xD83CDE10,	0xD83CDE3B,	0xD83CDE40,	0xD83CDE49,	0xD83CDE50,	0xD83CDE52,	0xD840DC00,	0xD87FDFFE,
-		0xD880DC00,	0xD8BFDFFE,	0xDB40DD00,	0xDB40DDF0,	0xDB80DC00,	0xDBBFDFFE,	0xDBC0DC00, };
-
-#define UNIWIDTABSIZEA   70
-	static const DWORD UnicodeWidthTabA[] = {
-		0x00001100,	0x00001160,	0x00002329,	0x0000232B,	0x00002E80,	0x00002E9A,	0x00002E9B,	0x00002EF4,
-		0x00002F00,	0x00002FD6,	0x00002FF0,	0x00002FFC,	0x00003000,	0x0000303F,	0x00003041,	0x00003097,
-		0x00003099,	0x00003100,	0x00003105,	0x0000312E,	0x00003131,	0x0000318F,	0x00003190,	0x000031BB,
-		0x000031C0,	0x000031E4,	0x000031F0,	0x0000321F,	0x00003220,	0x00003248,	0x00003250,	0x000032FF,
-		0x00003300,	0x00004DC0,	0x00004E00,	0x0000A48D,	0x0000A490,	0x0000A4C7,	0x0000A960,	0x0000A97D,
-		0x0000AC00,	0x0000D7A4,	0x0000F900,	0x0000FB00,	0x0000FE10,	0x0000FE1A,	0x0000FE30,	0x0000FE53,
-		0x0000FE54,	0x0000FE67,	0x0000FE68,	0x0000FE6C,	0x0000FF01,	0x0000FF61,	0x0000FFE0,	0x0000FFE7,
-		0xD82CDC00,	0xD82CDC02,	0xD83CDE00,	0xD83CDE03,	0xD83CDE10,	0xD83CDE3B,	0xD83CDE40,	0xD83CDE49,
-		0xD83CDE50,	0xD83CDE52,	0xD840DC00,	0xD87FDFFE,	0xD880DC00,	0xD8BFDFFE, };
-
-	int n, b, m;
-
-	if ( IsOptEnable(TO_RLUNIAWH) ) {
-		b = 0;
-		m = UNIWIDTABSIZEA - 1;
-	    while ( b <= m ) {
-			n = (b + m) / 2;
-			if ( code >= UnicodeWidthTabA[n] )
-			    b = n + 1;
-			else
-			    m = n - 1;
-		}
-	} else {
-		b = 0;
-		m = UNIWIDTABSIZE - 1;
-	    while ( b <= m ) {
-			n = (b + m) / 2;
-			if ( code >= UnicodeWidthTab[n] )
-			    b = n + 1;
-			else
-			    m = n - 1;
-		}
-	}
-    return ((b & 1) ? 2 : 1);
-}
-int CTextRam::UnicodeNonSpcMrk(DWORD code)
-{
-// UnicodeData.txt 6.2.0
-// Bidirectional Character Types NSM(Non-Spacing Mark)
-#define	UNINSMSIZE	432
-	static const DWORD UnicodeNsmTab[] = {
-		0x00000300,	0x00000370,	0x00000483,	0x0000048A,	0x00000591,	0x000005BE,	0x000005BF,	0x000005C0,
-		0x000005C1,	0x000005C3,	0x000005C4,	0x000005C6,	0x000005C7,	0x000005C8,	0x00000610,	0x0000061B,
-		0x0000064B,	0x00000660,	0x00000670,	0x00000671,	0x000006D6,	0x000006DD,	0x000006DF,	0x000006E5,
-		0x000006E7,	0x000006E9,	0x000006EA,	0x000006EE,	0x00000711,	0x00000712,	0x00000730,	0x0000074B,
-		0x000007A6,	0x000007B1,	0x000007EB,	0x000007F4,	0x00000816,	0x0000081A,	0x0000081B,	0x00000824,
-		0x00000825,	0x00000828,	0x00000829,	0x0000082E,	0x00000859,	0x0000085C,	0x000008E4,	0x000008FF,
-		0x00000900,	0x00000903,	0x0000093A,	0x0000093B,	0x0000093C,	0x0000093D,	0x00000941,	0x00000949,
-		0x0000094D,	0x0000094E,	0x00000951,	0x00000958,	0x00000962,	0x00000964,	0x00000981,	0x00000982,
-		0x000009BC,	0x000009BD,	0x000009C1,	0x000009C5,	0x000009CD,	0x000009CE,	0x000009E2,	0x000009E4,
-		0x00000A01,	0x00000A03,	0x00000A3C,	0x00000A3D,	0x00000A41,	0x00000A43,	0x00000A47,	0x00000A49,
-		0x00000A4B,	0x00000A4E,	0x00000A51,	0x00000A52,	0x00000A70,	0x00000A72,	0x00000A75,	0x00000A76,
-		0x00000A81,	0x00000A83,	0x00000ABC,	0x00000ABD,	0x00000AC1,	0x00000AC6,	0x00000AC7,	0x00000AC9,
-		0x00000ACD,	0x00000ACE,	0x00000AE2,	0x00000AE4,	0x00000B01,	0x00000B02,	0x00000B3C,	0x00000B3D,
-		0x00000B3F,	0x00000B40,	0x00000B41,	0x00000B45,	0x00000B4D,	0x00000B4E,	0x00000B56,	0x00000B57,
-		0x00000B62,	0x00000B64,	0x00000B82,	0x00000B83,	0x00000BC0,	0x00000BC1,	0x00000BCD,	0x00000BCE,
-		0x00000C3E,	0x00000C41,	0x00000C46,	0x00000C49,	0x00000C4A,	0x00000C4E,	0x00000C55,	0x00000C57,
-		0x00000C62,	0x00000C64,	0x00000CBC,	0x00000CBD,	0x00000CCC,	0x00000CCE,	0x00000CE2,	0x00000CE4,
-		0x00000D41,	0x00000D45,	0x00000D4D,	0x00000D4E,	0x00000D62,	0x00000D64,	0x00000DCA,	0x00000DCB,
-		0x00000DD2,	0x00000DD5,	0x00000DD6,	0x00000DD7,	0x00000E31,	0x00000E32,	0x00000E34,	0x00000E3B,
-		0x00000E47,	0x00000E4F,	0x00000EB1,	0x00000EB2,	0x00000EB4,	0x00000EBA,	0x00000EBB,	0x00000EBD,
-		0x00000EC8,	0x00000ECE,	0x00000F18,	0x00000F1A,	0x00000F35,	0x00000F36,	0x00000F37,	0x00000F38,
-		0x00000F39,	0x00000F3A,	0x00000F71,	0x00000F7F,	0x00000F80,	0x00000F85,	0x00000F86,	0x00000F88,
-		0x00000F8D,	0x00000F98,	0x00000F99,	0x00000FBD,	0x00000FC6,	0x00000FC7,	0x0000102D,	0x00001031,
-		0x00001032,	0x00001038,	0x00001039,	0x0000103B,	0x0000103D,	0x0000103F,	0x00001058,	0x0000105A,
-		0x0000105E,	0x00001061,	0x00001071,	0x00001075,	0x00001082,	0x00001083,	0x00001085,	0x00001087,
-		0x0000108D,	0x0000108E,	0x0000109D,	0x0000109E,	0x0000135D,	0x00001360,	0x00001712,	0x00001715,
-		0x00001732,	0x00001735,	0x00001752,	0x00001754,	0x00001772,	0x00001774,	0x000017B4,	0x000017B6,
-		0x000017B7,	0x000017BE,	0x000017C6,	0x000017C7,	0x000017C9,	0x000017D4,	0x000017DD,	0x000017DE,
-		0x0000180B,	0x0000180E,	0x000018A9,	0x000018AA,	0x00001920,	0x00001923,	0x00001927,	0x00001929,
-		0x00001932,	0x00001933,	0x00001939,	0x0000193C,	0x00001A17,	0x00001A19,	0x00001A56,	0x00001A57,
-		0x00001A58,	0x00001A5F,	0x00001A60,	0x00001A61,	0x00001A62,	0x00001A63,	0x00001A65,	0x00001A6D,
-		0x00001A73,	0x00001A7D,	0x00001A7F,	0x00001A80,	0x00001B00,	0x00001B04,	0x00001B34,	0x00001B35,
-		0x00001B36,	0x00001B3B,	0x00001B3C,	0x00001B3D,	0x00001B42,	0x00001B43,	0x00001B6B,	0x00001B74,
-		0x00001B80,	0x00001B82,	0x00001BA2,	0x00001BA6,	0x00001BA8,	0x00001BAA,	0x00001BAB,	0x00001BAC,
-		0x00001BE6,	0x00001BE7,	0x00001BE8,	0x00001BEA,	0x00001BED,	0x00001BEE,	0x00001BEF,	0x00001BF2,
-		0x00001C2C,	0x00001C34,	0x00001C36,	0x00001C38,	0x00001CD0,	0x00001CD3,	0x00001CD4,	0x00001CE1,
-		0x00001CE2,	0x00001CE9,	0x00001CED,	0x00001CEE,	0x00001CF4,	0x00001CF5,	0x00001DC0,	0x00001DE7,
-		0x00001DFC,	0x00001E00,	0x000020D0,	0x000020F1,	0x00002CEF,	0x00002CF2,	0x00002D7F,	0x00002D80,
-		0x00002DE0,	0x00002E00,	0x0000302A,	0x0000302E,	0x00003099,	0x0000309B,	0x0000A66F,	0x0000A673,
-		0x0000A674,	0x0000A67E,	0x0000A69F,	0x0000A6A0,	0x0000A6F0,	0x0000A6F2,	0x0000A802,	0x0000A803,
-		0x0000A806,	0x0000A807,	0x0000A80B,	0x0000A80C,	0x0000A825,	0x0000A827,	0x0000A8C4,	0x0000A8C5,
-		0x0000A8E0,	0x0000A8F2,	0x0000A926,	0x0000A92E,	0x0000A947,	0x0000A952,	0x0000A980,	0x0000A983,
-		0x0000A9B3,	0x0000A9B4,	0x0000A9B6,	0x0000A9BA,	0x0000A9BC,	0x0000A9BD,	0x0000AA29,	0x0000AA2F,
-		0x0000AA31,	0x0000AA33,	0x0000AA35,	0x0000AA37,	0x0000AA43,	0x0000AA44,	0x0000AA4C,	0x0000AA4D,
-		0x0000AAB0,	0x0000AAB1,	0x0000AAB2,	0x0000AAB5,	0x0000AAB7,	0x0000AAB9,	0x0000AABE,	0x0000AAC0,
-		0x0000AAC1,	0x0000AAC2,	0x0000AAEC,	0x0000AAEE,	0x0000AAF6,	0x0000AAF7,	0x0000ABE5,	0x0000ABE6,
-		0x0000ABE8,	0x0000ABE9,	0x0000ABED,	0x0000ABEE,	0x0000FB1E,	0x0000FB1F,	0x0000FE00,	0x0000FE10,
-		0x0000FE20,	0x0000FE27,	0xD800DDFD,	0xD800DDFE,	0xD802DE01,	0xD802DE04,	0xD802DE05,	0xD802DE07,
-		0xD802DE0C,	0xD802DE10,	0xD802DE38,	0xD802DE3B,	0xD802DE3F,	0xD802DE40,	0xD804DC01,	0xD804DC02,
-		0xD804DC38,	0xD804DC47,	0xD804DC80,	0xD804DC82,	0xD804DCB3,	0xD804DCB7,	0xD804DCB9,	0xD804DCBB,
-		0xD804DD00,	0xD804DD03,	0xD804DD27,	0xD804DD2C,	0xD804DD2D,	0xD804DD35,	0xD804DD80,	0xD804DD82,
-		0xD804DDB6,	0xD804DDBF,	0xD805DEAB,	0xD805DEAC,	0xD805DEAD,	0xD805DEAE,	0xD805DEB0,	0xD805DEB6,
-		0xD805DEB7,	0xD805DEB8,	0xD81BDF8F,	0xD81BDF93,	0xD834DD67,	0xD834DD6A,	0xD834DD7B,	0xD834DD83,
-		0xD834DD85,	0xD834DD8C,	0xD834DDAA,	0xD834DDAE,	0xD834DE42,	0xD834DE45,	0xDB40DD00,	0xDB40DDF0,	};
-
+	#include "UniCharTab.h"
 	int n, b, m;
 
 	b = 0;
-	m = UNINSMSIZE - 1;
+	m = UNICHARTABMAX - 1;
 	while ( b <= m ) {
 		n = (b + m) / 2;
-		if ( code >= UnicodeNsmTab[n] )
+		if ( code == UniCharTab[n].code )
+			return UniCharTab[n].flag;
+		else if ( code > UniCharTab[n].code )
 			b = n + 1;
 		else
 			m = n - 1;
 	}
+	return UniCharTab[b - 1].flag;
+}
+int CTextRam::UnicodeWidth(DWORD code)
+{
+	int cf = UnicodeCharFlag(code);
 
-	return ((b & 1) ? TRUE : FALSE);
+	if ( (cf & UNI_WID) != 0 )
+		return 2;
+	else if ( (cf & UNI_AMB) != 0 )
+		return (IsOptEnable(TO_RLUNIAWH) ? 1 : 2);
+	else
+		return 1;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -3303,15 +3259,13 @@ DWORD CTextRam::UnicodeNomal(DWORD code1, DWORD code2)
 	#define HASH_MASK (HASH_MAX - 1)
 	static struct _UNINOMTAB *HashTab[HASH_MAX];
 
-	int n, c, hs;
+	int n, hs;
 	struct _UNINOMTAB *tp;
 
 	if ( !UniNomInitFlag ) {
 		for ( n = 0 ; n < HASH_MAX ; n++ )
 			HashTab[n] = NULL;
 		for ( n = 0 ; n < UNINOMALTABMAX ; n++ ) {
-			for ( c = 0 ; c < 3 ; c++ )
-				UniNomalTab[n].code[c] = UCS4toUCS2(UniNomalTab[n].code[c]);
 			hs = (UniNomalTab[n].code[0] * 31 + UniNomalTab[n].code[1]) & HASH_MASK;
 			UniNomalTab[n].next = HashTab[hs];
 			HashTab[hs] = &(UniNomalTab[n]);
@@ -3434,6 +3388,7 @@ void CTextRam::RESET(int mode)
 		m_DoWarp = FALSE;
 		m_Status = ST_NON;
 		m_LastChar = 0;
+		m_LastFlag = 0;
 		m_LastPos  = 0;
 		m_Kan_Pos = 0;
 		memset(m_Kan_Buf, 0, sizeof(m_Kan_Buf));
@@ -3692,11 +3647,21 @@ int CTextRam::BLINKUPDATE(class CRLoginView *pView)
 int CTextRam::GetAnsiPara(int index, int defvalue, int limit, int maxvalue)
 {
 	int val;
-	if ( index >= m_AnsiPara.GetSize() || m_AnsiPara[index] == 0xFFFF || m_AnsiPara[index] < limit )
+
+	if ( index >= m_AnsiPara.GetSize() )
 		return defvalue;
-	val = m_AnsiPara[index];
+
+	if ( m_AnsiPara[index].GetSize() > 0 )
+		val = m_AnsiPara[index][0];
+	else
+		val = m_AnsiPara[index];
+
+	if ( val == 0xFFFF || val < limit )
+		return defvalue;
+
 	if ( maxvalue >= 0 && val > maxvalue )
 		val = maxvalue;
+
 	return val;
 }
 void CTextRam::SetAnsiParaArea(int top)
@@ -4269,6 +4234,7 @@ void CTextRam::PUT1BYTE(int ch, int md)
 		ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// Char変換ではUTF-16BEを使用！
 		ch = IconvToMsUnicode(ch);
 		m_LastChar = ch;
+		m_LastFlag = 0;
 		m_LastPos  = 0;
 		if ( (ch & 0xFFFF0000) != 0 )
 			m_StsPara += (WCHAR)(ch >> 16);
@@ -4307,6 +4273,7 @@ void CTextRam::PUT1BYTE(int ch, int md)
 		DISPVRAM(m_CurX, m_CurY, 1, 1);
 
 	m_LastChar = ch;
+	m_LastFlag = 0;
 	m_LastPos  = m_CurX + m_CurY * COLS_MAX;
 
 	if ( ++m_CurX >= mx ) {
@@ -4334,6 +4301,7 @@ void CTextRam::PUT2BYTE(int ch, int md)
 		ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// Char変換ではUTF-16BEを使用！
 		ch = IconvToMsUnicode(ch);
 		m_LastChar = ch;
+		m_LastFlag = 0;
 		m_LastPos  = 0;
 		if ( (ch & 0xFFFF0000) != 0 )
 			m_StsPara += (WCHAR)(ch >> 16);
@@ -4377,6 +4345,7 @@ void CTextRam::PUT2BYTE(int ch, int md)
 		DISPVRAM(m_CurX, m_CurY, 2, 1);
 
 	m_LastChar = ch;
+	m_LastFlag = 0;
 	m_LastPos  = m_CurX + m_CurY * COLS_MAX;
 
 	if ( (m_CurX += 2) >= mx ) {
@@ -4396,9 +4365,9 @@ void CTextRam::PUT2BYTE(int ch, int md)
 	if ( ch != 0 )
 		CallReciveChar(ch);
 }
-void CTextRam::PUTADD(int x, int y, int ch)
+void CTextRam::PUTADD(int x, int y, int ch, int cf)
 {
-	int n;
+	int n, i;
 	CVram *vp;
 
 	if ( x < 0 || x >= m_Cols )
@@ -4409,7 +4378,14 @@ void CTextRam::PUTADD(int x, int y, int ch)
 	vp = GETVRAM(x, y);
 	n = (x < (m_Cols - 1) && IS_1BYTE(vp[0].pr.cm) && IS_2BYTE(vp[1].pr.cm)) ? 2 : 1;
 
-	if ( n == 2 || UnicodeWidth(ch) == n ) {
+	if ( (cf & UNI_WID) != 0 )
+		i = 2;
+	else if ( (cf & UNI_AMB) != 0 )
+		i = (IsOptEnable(TO_RLUNIAWH) ? 1 : 2);
+	else
+		i = 1;
+
+	if ( n == 2 || i == n ) {
 		*vp += (DWORD)ch;
 		DISPVRAM(x, y, IS_1BYTE(vp->pr.cm) ? 2 : 1, 1);
 	} else {
@@ -4970,22 +4946,25 @@ void CTextRam::PUTSTR(LPBYTE lpBuf, int nBufLen)
 		fc_Call(*(lpBuf++));
 	m_RetSync = FALSE;
 }
-void CTextRam::OnTimer(int id)
+int CTextRam::GETCOLIDX(int red, int green, int blue)
 {
-	m_IntCounter++;
+	int i;
+	int idx = 0;
+	DWORD min = 0xFFFFFF;	// 255 * 255 * 3 + 255 * 255 * 9 + 255 * 255 = 845325 = 0x000CE60D
 
-	if ( m_bOscActive ) {
-		if ( m_pCanDlg == NULL && m_IntCounter > 3 ) {
-			m_pCanDlg = new CCancelDlg;
-			m_pCanDlg->m_pTextRam = this;
-			m_pCanDlg->m_PauseSec = 0;
-			m_pCanDlg->m_WaitSec  = 30;
-			m_pCanDlg->m_Name     = m_OscName;
-			m_pCanDlg->Create(IDD_CANCELDLG, ::AfxGetMainWnd());
-			m_pCanDlg->ShowWindow(SW_SHOW);
+	if ( red   > 255 ) red   = 255;
+	if ( green > 255 ) green = 255;
+	if ( blue  > 255 ) blue  = 255;
+
+	for ( i = 0 ; i < 256 ; i++ ) {
+		int r = GetRValue(m_ColTab[i]) - red;
+		int g = GetGValue(m_ColTab[i]) - green;
+		int b = GetBValue(m_ColTab[i]) - blue;
+		DWORD d = r * r * 3 + g * g * 9 + b * b;
+		if ( min > d ) {
+			idx = i;
+			min = d;
 		}
-	} else if ( m_IntCounter > 60 ) {
-		m_bIntTimer = FALSE;
-		((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this);
 	}
+	return idx;
 }

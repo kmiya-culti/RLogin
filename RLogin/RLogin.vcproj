@@ -1150,6 +1150,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\SockOptPage.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\ssh.cpp"
 				>
 			</File>
@@ -1553,6 +1557,10 @@
 			</File>
 			<File
 				RelativePath=".\SFtp.h"
+				>
+			</File>
+			<File
+				RelativePath=".\SockOptPage.h"
 				>
 			</File>
 			<File
