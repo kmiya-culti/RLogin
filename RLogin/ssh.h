@@ -32,6 +32,7 @@
 #define SSH2_CIPHER_3DES_CFB	12		// 3des-cfb
 #define SSH2_CIPHER_3DES_OFB	13		// 3des-ofb
 #define SSH2_CIPHER_3DES_CTR	14		// 3des-ctr
+#define	SSH2_CIPHER_DES_CBC		15		// des-cbc
 
 #define SSH2_CIPHER_BLF_CBC		20		// blowfish-cbc
 #define SSH2_CIPHER_BLF_ECB		21		// blowfish-ecb
@@ -244,6 +245,7 @@ public:
 	int ReadPrivateKey(LPCSTR str, LPCSTR pass);
 	int WritePrivateKey(CString &str, LPCSTR pass);
 
+	int SetEvpPkey(EVP_PKEY *pk);
 	int LoadRsa1Key(FILE *fp, LPCSTR pass);
 	int SaveRsa1Key(FILE *fp, LPCSTR pass);
 

@@ -230,7 +230,7 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 						m_InPackStat = 1;
 						m_SSHVer = 1;
 					}
-					str.Format("%s\n", m_ClientVerStr);
+					str.Format("%s\r\n", m_ClientVerStr);
 					CExtSocket::Send((LPCSTR)str, str.GetLength());
 					break;
 				} else if ( ch != '\r' )
@@ -1151,9 +1151,8 @@ int Cssh::MatchList(LPCSTR client, LPCSTR server, CString &str)
 {
 	int n;
 	CString tmp;
-	CStringArray arry;
+	CStringBinary idx;
 
-	arry.RemoveAll();
 	while ( *server != '\0' ) {
 		while ( *server != '\0' && strchr(" ,", *server) != NULL )
 			server++;
@@ -1161,7 +1160,7 @@ int Cssh::MatchList(LPCSTR client, LPCSTR server, CString &str)
 		while ( *server != '\0' && strchr(" ,", *server) == NULL )
 			tmp += *(server++);
 		if ( !tmp.IsEmpty() )
-			arry.Add(tmp);
+			idx.Add(tmp);
 	}
 
 	while ( *client != '\0' ) {
@@ -1170,13 +1169,9 @@ int Cssh::MatchList(LPCSTR client, LPCSTR server, CString &str)
 		tmp = "";
 		while ( *client != '\0' && strchr(" ,", *client) == NULL )
 			tmp += *(client++);
-		if ( !tmp.IsEmpty() ) {
-			for ( n = 0 ; n < arry.GetSize() ; n++ ) {
-				if ( tmp.Compare(arry[n]) == 0 ) {
-					str = tmp;
-					return TRUE;
-				}
-			}
+		if ( !tmp.IsEmpty() && idx.Find(tmp) != NULL ) {
+			str = tmp;
+			return TRUE;
 		}
 	}
 

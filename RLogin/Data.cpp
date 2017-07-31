@@ -3438,6 +3438,22 @@ void CStringBinary::RemoveAll()
 	m_Index = "a";
 	m_Value = (-1);
 }
+CStringBinary * CStringBinary::Find(LPCSTR str)
+{
+	int c = m_Index.Compare(str);
+
+	if ( c == 0 )
+		return this;
+	else if ( c < 0 ) {
+		if ( m_pLeft == NULL )
+			return NULL;
+		return m_pLeft->Find(str);
+	} else {
+		if ( m_pRight == NULL )
+			return NULL;
+		return m_pRight->Find(str);
+	}
+}
 CStringBinary * CStringBinary::FindValue(int value)
 {
 	CStringBinary *bp;

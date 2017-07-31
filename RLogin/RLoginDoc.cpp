@@ -642,7 +642,7 @@ int CRLoginDoc::OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags)
 	}
 	nBufLen = n;
 
-	if ( m_pLogFile != NULL && m_TextRam.IsOptValue(TO_RLLOGMODE, 2) == 0 )
+	if ( m_pLogFile != NULL && m_TextRam.IsOptValue(TO_RLLOGMODE, 2) == LOGMOD_RAW )
 		m_pLogFile->Write(lpBuf, nBufLen);
 
 	m_pMainWnd->WakeUpSleep();

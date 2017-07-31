@@ -2170,7 +2170,7 @@ void CTextRam::OnClose()
 
 	SaveHistory();
 
-	if ( m_pDocument == NULL || m_pDocument->m_pLogFile == NULL || IsOptValue(TO_RLLOGMODE, 2) != 3 )
+	if ( m_pDocument == NULL || m_pDocument->m_pLogFile == NULL || IsOptValue(TO_RLLOGMODE, 2) != LOGMOD_LINE )
 		return;
 
 	while ( my > 0 ) {
@@ -2192,7 +2192,7 @@ void CTextRam::CallReciveLine(int y)
 	int n, i;
 	CStringW tmp;
 
-	if ( m_pDocument == NULL || m_pDocument->m_pLogFile == NULL || IsOptValue(TO_RLLOGMODE, 2) != 3 )
+	if ( m_pDocument == NULL || m_pDocument->m_pLogFile == NULL || IsOptValue(TO_RLLOGMODE, 2) != LOGMOD_LINE )
 		return;
 
 	LineEditCwd(m_Cols, y, tmp);
@@ -2241,18 +2241,18 @@ void CTextRam::CallReciveChar(int ch)
 	}
 #endif
 
-	if ( md == 0 || md == 3 )
+	if ( md == LOGMOD_RAW || md == LOGMOD_LINE )
 		return;
 
 	CStringW tmp;
-	if ( (ch & 0xFFFF0000) != 0 )
-		tmp = (WCHAR)(ch >> 16);
-	tmp += (WCHAR)(ch & 0xFFFF);
-
 	if ( ch >= 0 && ch < 0x20 && ch != 0x09 && ch != 0x0A && ch != 0x0D ) {
-		if ( md == 2 && ch != 0x08 )
+		if ( md == LOGMOD_CHAR && ch != 0x08 )
 			return;
 		tmp.Format(L"<%s>", CtrlName[ch]);
+	} else {
+		if ( (ch & 0xFFFF0000) != 0 )
+			tmp = (WCHAR)(ch >> 16);
+		tmp += (WCHAR)(ch & 0xFFFF);
 	}
 
 	CBuffer in, out;

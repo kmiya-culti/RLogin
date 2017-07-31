@@ -569,8 +569,10 @@ public:
 	~CStringBinary();
 
 	void RemoveAll();
+	CStringBinary * Find(LPCSTR str);
 	CStringBinary * FindValue(int value);
 	CStringBinary & operator [] (LPCSTR str);
+	CStringBinary & Add(LPCSTR str) { return (*this)[str]; };
 	const LPCSTR operator = (LPCSTR str) { m_Value = 0; return (m_String = str); }
 	operator LPCTSTR () const { return m_String; }
 	const int operator = (int val) { return (m_Value = val); }

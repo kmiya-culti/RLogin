@@ -1700,6 +1700,12 @@ int CExtSocket::SSLConnect()
 {
 	DWORD val;
 	const SSL_METHOD *method;
+	long result = 0;
+	X509 *cert = NULL;
+	const char *errstr;
+	CString tmp, dig;
+	CIdKey key;
+	BOOL rf = FALSE;
 
 	WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), 0, 0);
 
@@ -1721,21 +1727,40 @@ int CExtSocket::SSLConnect()
 	}
 
 	if ( (m_SSL_pCtx = SSL_CTX_new((SSL_METHOD *)method)) == NULL )
-		return FALSE;
+		goto ERRENDOF;
 
-	if ( (m_SSL_pSock = SSL_new(m_SSL_pCtx)) == NULL ) {
-		SSL_CTX_free(m_SSL_pCtx);
-		return FALSE;
-	}
+	if ( (m_SSL_pSock = SSL_new(m_SSL_pCtx)) == NULL )
+		goto ERRENDOF;
 
 	SSL_CTX_set_mode(m_SSL_pCtx, SSL_MODE_AUTO_RETRY);
 	SSL_set_fd(m_SSL_pSock, m_Fd);
 
-	if ( SSL_connect(m_SSL_pSock) < 0 ) {
-		SSL_free(m_SSL_pSock);
-		SSL_CTX_free(m_SSL_pCtx);
-		return FALSE;
+	if ( SSL_connect(m_SSL_pSock) < 0 )
+		goto ERRENDOF;
+
+	cert   = SSL_get_peer_certificate(m_SSL_pSock);
+	result = SSL_get_verify_result(m_SSL_pSock);
+
+	if ( cert == NULL || result != 0 ) {
+		if ( cert != NULL && cert->name != NULL && cert->cert_info != NULL && cert->cert_info->key != NULL && cert->cert_info->key->pkey != NULL ) {
+			key.SetEvpPkey(cert->cert_info->key->pkey);
+			key.WritePublicKey(dig);
+			tmp = AfxGetApp()->GetProfileString("Certificate", cert->name, "");
+			if ( !tmp.IsEmpty() && tmp.Compare(dig) == 0 )
+				rf = TRUE;
+		}
+		if ( rf == FALSE ) {
+			errstr = X509_verify_cert_error_string(result);
+			tmp.Format("%s\n%s\nÚ‘±‚µ‚Ü‚·‚©H", (cert != NULL && cert->name != NULL ? cert->name : "unknown"),  errstr);
+			if ( AfxMessageBox(tmp, MB_ICONQUESTION | MB_YESNO) != IDYES )
+				goto ERRENDOF;
+			if ( cert != NULL && cert->name != NULL && !dig.IsEmpty() )
+				AfxGetApp()->WriteProfileString("Certificate", cert->name, dig);
+		}
 	}
+
+	if ( cert != NULL )
+		X509_free(cert);
 
 	val = 1;
 	::ioctlsocket(m_Fd, FIONBIO, &val);
@@ -1744,6 +1769,12 @@ int CExtSocket::SSLConnect()
 	WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), WM_SOCKSEL, m_SocketEvent);
 
 	return TRUE;
+
+ERRENDOF:
+	if ( cert != NULL )
+		X509_free(cert);
+	SSLClose();
+	return FALSE;
 }
 void CExtSocket::SSLClose()
 {

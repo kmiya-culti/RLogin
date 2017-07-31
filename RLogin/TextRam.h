@@ -32,6 +32,11 @@
 #define	UTF8_SET		3
 #define	BIG5_SET		4
 
+#define	LOGMOD_RAW		0
+#define	LOGMOD_CTRL		1
+#define	LOGMOD_CHAR		2
+#define	LOGMOD_LINE		3
+
 #define ATT_BOLD		0x0000001		// [1m bold or increased intensity
 #define	ATT_HALF		0x0000002		// [2m faint, decreased intensity or second colour
 #define ATT_ITALIC		0x0000004		// [3m italicized
