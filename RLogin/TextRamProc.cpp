@@ -3113,7 +3113,7 @@ void CTextRam::fc_DECSIXEL(DWORD ch)
 		pGrapWnd->SetSixelProc(GetAnsiPara(0, 0, 0), GetAnsiPara(1, 0, 0), GetAnsiPara(2, 0, 0), m_OscPara, m_ColTab[m_AttNow.bc]);
 
 		// Delete Non Display GrapWnd
-		if ( ChkGrapWnd() )	if ( ChkGrapWnd() )	ChkGrapWnd();
+		ChkGrapWnd();
 
 		if ( (pTempWnd = GetGrapWnd(m_ImageIndex)) != NULL )
 			pTempWnd->DestroyWindow();
@@ -3165,6 +3165,9 @@ void CTextRam::fc_DECSIXEL(DWORD ch)
 			cy = (dy * dh + sh - 1) / sh;
 		}
 
+		DISPVRAM(m_CurX, m_CurY, cx, cy);
+		m_UpdateFlag = TRUE;	// 表示の機会を与える
+
 		for ( y = 0 ; y < cy ; y++ ) {
 			vp = GETVRAM(m_CurX, m_CurY);
 			for ( x = 0 ; x < cx && (m_CurX + x) < m_Margin.right ; x++ ) {
@@ -3186,7 +3189,6 @@ void CTextRam::fc_DECSIXEL(DWORD ch)
 			} else
 				ONEINDEX();
 		}
-		DISPUPDATE();
 
 		pGrapWnd->m_ImageIndex = m_ImageIndex++;
 		pGrapWnd->m_BlockX = cx;
@@ -3676,11 +3678,11 @@ void CTextRam::fc_DECDMAC(DWORD ch)
 	int Pdt = GetAnsiPara(1, 0, 0);
 	int Pen = GetAnsiPara(2, 0, 0);
 
-	if ( Pid >= 64 || Pdt > 1 || Pen > 1 || (m_MacroExecFlag[Pid / 32] & (1 << (Pid % 32))) != 0 )
+	if ( Pid >= MACROMAX || Pdt > 1 || Pen > 1 || (m_MacroExecFlag[Pid / 32] & (1 << (Pid % 32))) != 0 )
 		goto ENDRET;
 
 	if ( Pdt == 1 ) {
-		for ( n = 0 ; n < 64 ; n++ ) {
+		for ( n = 0 ; n < MACROMAX ; n++ ) {
 			if ( (m_MacroExecFlag[n / 32] & (1 << (n % 32))) == 0 )
 				m_Macro[n].Clear();
 		}
@@ -6465,7 +6467,7 @@ void CTextRam::fc_DECINVM(DWORD ch)
 
 	fc_POP(ch);		// XXXXXXXXX fc_Callの必ず前に
 
-	if ( Pid < 64 && (m_MacroExecFlag[Pid / 32] & (1 << (Pid % 32))) == 0 ) {
+	if ( Pid < MACROMAX && (m_MacroExecFlag[Pid / 32] & (1 << (Pid % 32))) == 0 ) {
 		m_MacroExecFlag[Pid / 32] |= (1 << (Pid % 32));
 		p = m_Macro[Pid].GetPtr();
 		for ( n = 0 ; n < m_Macro[Pid].GetSize() ; n++ )

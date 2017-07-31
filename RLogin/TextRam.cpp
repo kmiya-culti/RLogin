@@ -1621,6 +1621,7 @@ void CTextRam::Init()
 	memset(m_MacroExecFlag, 0, sizeof(m_MacroExecFlag));
 	m_ShellExec.GetString(_T("http://|https://|ftp://|mailto://"), _T('|'));
 	m_ScrnOffset.SetRect(0, 0, 0, 0);
+	m_TimeFormat = _T("%H:%M:%S ");
 
 	for ( int n = 0 ; n < MODKEY_MAX ; n++ ) {
 		m_DefModKey[n] = (-1);
@@ -1737,6 +1738,8 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		index[_T("ScreenOffset")].Add(m_ScrnOffset.right);
 		index[_T("ScreenOffset")].Add(m_ScrnOffset.top);
 		index[_T("ScreenOffset")].Add(m_ScrnOffset.bottom);
+
+		index[_T("TimeFormat")] = m_TimeFormat;
 
 	} else {		// Read
 		if ( (n = index.Find(_T("Cols"))) >= 0 ) {
@@ -1872,6 +1875,9 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 				m_ScrnOffset.bottom = (int)(index[_T("ScreenOffset")][3]);
 		}
 
+		if ( (n = index.Find(_T("TimeFormat"))) >= 0 )
+			m_TimeFormat = index[n];
+
 		if ( (n = index.Find(_T("Option"))) >= 0 ) {
 			memset(m_DefAnsiOpt, 0, sizeof(m_DefAnsiOpt));
 			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
@@ -1974,6 +1980,8 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 	stra.AddVal(m_ScrnOffset.right);
 	stra.AddVal(m_ScrnOffset.top);
 	stra.AddVal(m_ScrnOffset.bottom);
+
+	stra.Add(m_TimeFormat);
 }
 void CTextRam::GetArray(CStringArrayExt &stra)
 {
@@ -2124,6 +2132,9 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 		m_ScrnOffset.top = stra.GetVal(54);
 	if ( stra.GetSize() > 55 )
 		m_ScrnOffset.bottom = stra.GetVal(55);
+
+	if ( stra.GetSize() > 56 )
+		m_TimeFormat = stra.GetAt(56);
 
 	RESET();
 }
@@ -3924,7 +3935,7 @@ void CTextRam::CallReciveLine(int y)
 	CTime now = CTime::GetCurrentTime();
 
 	if ( IsOptEnable(TO_RLLOGTIME) ) {
-		str = now.Format("%H:%M:%S ");
+		str = now.Format(m_TimeFormat);
 		in.Apend((LPBYTE)((LPCWSTR)str), str.GetLength() * sizeof(WCHAR));
 	}
 
@@ -3996,7 +4007,7 @@ void CTextRam::CallReciveChar(DWORD ch)
 	CTime now = CTime::GetCurrentTime();
 
 	if ( m_LogTimeFlag && IsOptEnable(TO_RLLOGTIME) ) {
-		str = now.Format("%H:%M:%S ");
+		str = now.Format(m_TimeFormat);
 		in.Apend((LPBYTE)((LPCWSTR)str), str.GetLength() * sizeof(WCHAR));
 		m_LogTimeFlag = FALSE;
 	}
@@ -4239,38 +4250,35 @@ void *CTextRam::LastGrapWnd(int type)
 	}
 	return NULL;
 }
-BOOL CTextRam::IsUseGrapWnd(int index)
+void CTextRam::ChkGrapWnd()
 {
-	int x, y;
+	int n, x, y;
 	CVram *vp;
+	BYTE use[4096];	// Max index
 
 	if ( m_VRam == NULL )
-		return FALSE;
+		return;
+
+	memset(use, 0, sizeof(use));
 
 	for ( y = 0 - m_HisLen + m_Lines ; y < m_Lines ; y++ ) {
 		vp = GETVRAM(0, y);
 		for ( x = 0 ; x < m_ColsMax ; x++ ) {
-			if ( IS_IMAGE(vp->pr.cm) && vp->pr.pk.im.id == index )
-				return TRUE;
+			if ( IS_IMAGE(vp->pr.cm) && (n = vp->pr.pk.im.id) >= 0 && n < 4096 )
+				use[n] = 1;
 			vp++;
 		}
 	}
 
-	return FALSE;
-}
-BOOL CTextRam::ChkGrapWnd()
-{
-	for ( int n = 0 ; n < m_GrapWndTab.GetSize() ; n++ ) { 
+	for ( n = 0 ; n < m_GrapWndTab.GetSize() ; n++ ) { 
 		CGrapWnd *pTempWnd = (CGrapWnd *)m_GrapWndTab[n];
 		if ( pTempWnd->m_ImageIndex == (-1) )
 			continue;
-		if ( !IsUseGrapWnd(pTempWnd->m_ImageIndex) ) {
+		if ( use[pTempWnd->m_ImageIndex] == 0 ) {
 			pTempWnd->DestroyWindow();
-			return TRUE;
+			n--;
 		}
-		break;
 	}
-	return FALSE;
 }
 
 //////////////////////////////////////////////////////////////////////

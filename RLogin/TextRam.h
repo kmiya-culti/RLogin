@@ -23,6 +23,7 @@
 #define	DEF_TAB			8
 #define	FKEY_MAX		24
 #define	KANBUFMAX		128
+#define	MACROMAX		64
 
 #define	TEK_WIN_WIDTH	4096
 #define	TEK_WIN_HEIGHT	3072
@@ -622,6 +623,7 @@ public:	// Options
 	CStringArrayExt m_ShellExec;
 	int m_DefModKey[MODKEY_MAX];
 	CRect m_ScrnOffset;
+	CString m_TimeFormat;
 
 	void Init();
 	void SetIndex(int mode, CStringIndex &index);
@@ -690,8 +692,8 @@ public:
 	BOOL m_RetSync;
 	BOOL m_Exact;
 	CString m_StrPara;
-	DWORD m_MacroExecFlag[64 / 32];
-	CBuffer m_Macro[64];
+	DWORD m_MacroExecFlag[MACROMAX / 32];
+	CBuffer m_Macro[MACROMAX];
 	DWORD m_UnitId;
 
 	int m_VtLevel;
@@ -1294,8 +1296,7 @@ public:
 	void AddGrapWnd(void *pWnd);
 	void RemoveGrapWnd(void *pWnd);
 	void *LastGrapWnd(int type);
-	BOOL IsUseGrapWnd(int index);
-	BOOL ChkGrapWnd();
+	void ChkGrapWnd();
 };
 
 #endif // !defined(AFX_TEXTRAM_H__CBEA227A_D7D7_4213_88B1_4F4C0DF48089__INCLUDED_)
