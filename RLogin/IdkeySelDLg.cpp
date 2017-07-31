@@ -105,7 +105,7 @@ void CIdkeySelDLg::InitList()
 	m_List.SetItemState(m_EntryNum, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
 	m_ListInit = FALSE;
 }
-void CIdkeySelDLg::CopyToClipBorad(LPCTSTR str)
+void CIdkeySelDLg::CopyToClipBoard(LPCTSTR str)
 {
 	LPTSTR pData;
 	HGLOBAL hClipData;
@@ -344,7 +344,7 @@ void CIdkeySelDLg::OnIdkeyCopy()
 	dlg.m_Title.LoadString(IDS_PUBLICKEYCOPYMSG);
 
 	if ( dlg.DoModal() == IDOK )
-		CopyToClipBorad(dlg.m_Edit);
+		CopyToClipBoard(dlg.m_Edit);
 }
 void CIdkeySelDLg::OnIdkeyInport() 
 {

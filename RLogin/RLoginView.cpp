@@ -65,9 +65,9 @@ BEGIN_MESSAGE_MAP(CRLoginView, CView)
 	ON_COMMAND(ID_EDIT_COPY_ALL, &CRLoginView::OnEditCopyAll)
 	ON_COMMAND(ID_EDIT_PASTE, OnEditPaste)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_PASTE, OnUpdateEditPaste)
-	ON_COMMAND_RANGE(IDM_CLIPBORAD_HIS1, IDM_CLIPBORAD_HIS10, ClipboardPaste)
-	ON_UPDATE_COMMAND_UI_RANGE(IDM_CLIPBORAD_HIS1, IDM_CLIPBORAD_HIS10, OnUpdateClipboardPaste)
-	ON_COMMAND(IDM_CLIPBORAD_MENU, OnClipboardMenu)
+	ON_COMMAND_RANGE(IDM_CLIPBOARD_HIS1, IDM_CLIPBOARD_HIS10, ClipboardPaste)
+	ON_UPDATE_COMMAND_UI_RANGE(IDM_CLIPBOARD_HIS1, IDM_CLIPBOARD_HIS10, OnUpdateClipboardPaste)
+	ON_COMMAND(IDM_CLIPBOARD_MENU, OnClipboardMenu)
 
 	ON_COMMAND(ID_MACRO_REC, OnMacroRec)
 	ON_UPDATE_COMMAND_UI(ID_MACRO_REC, OnUpdateMacroRec)
@@ -743,7 +743,7 @@ void CRLoginView::SetGhostWnd(BOOL sw)
 		m_pGhost = NULL;
 	}
 }
-int CRLoginView::GetClipboad(CBuffer *bp)
+int CRLoginView::GetClipboard(CBuffer *bp)
 {
 	HGLOBAL hData;
 	TCHAR *pData;
@@ -775,7 +775,7 @@ int CRLoginView::GetClipboad(CBuffer *bp)
 
 	return TRUE;
 }
-int CRLoginView::SetClipboadText(LPCTSTR str)
+int CRLoginView::SetClipboardText(LPCTSTR str)
 {
 	HGLOBAL hClipData;
 	TCHAR *pData;
@@ -810,13 +810,13 @@ ENDOF:
 	GlobalFree(hClipData);
 	return FALSE;
 }
-int CRLoginView::SetClipboad(CBuffer *bp)
+int CRLoginView::SetClipboard(CBuffer *bp)
 {
 	CString buf;
 	CRLoginDoc *pDoc = GetDocument();
 
 	pDoc->m_TextRam.m_IConv.RemoteToStr(pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode], (LPCSTR)*bp, buf);
-	return SetClipboadText(buf);
+	return SetClipboardText(buf);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -888,7 +888,7 @@ void CRLoginView::OnSize(UINT nType, int cx, int cy)
 	pMain->SetMessageText(tmp);
 
 	if ( pDoc->m_TextRam.IsInitText() && !pDoc->m_TextRam.IsOptEnable(TO_RLMWDIS) )
-		m_MsgWnd.Message(tmp, this);
+		m_MsgWnd.Message(tmp, this, pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.bcol]);
 
 	if ( m_BtnWnd.m_hWnd != NULL )
 		m_BtnWnd.DoButton(this, NULL);
@@ -988,7 +988,7 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 
 	case UPDATE_DISPINDEX:
 		pMain->GetTabTitle(pFrame, str);
-		m_MsgWnd.Message(str, this);
+		m_MsgWnd.Message(str, this, pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.bcol]);
 		return;
 
 	case UPDATE_WAKEUP:
@@ -1926,7 +1926,14 @@ void CRLoginView::PopUpMenu(CPoint point)
 		return;
 
 	if ( (pMain = GetMainWnd()->GetMenu()) == NULL || (pMenu = pMain->GetSubMenu(1)) == NULL ) {
-		if ( !DefMenu.LoadMenu(IDR_POPUPMENU) || (pMenu = DefMenu.GetSubMenu(5)) == NULL )
+		//if ( !DefMenu.LoadMenu(IDR_POPUPMENU) || (pMenu = DefMenu.GetSubMenu(5)) == NULL )
+		//	return;
+		if ( !DefMenu.LoadMenu(IDR_RLOGINTYPE) )
+			return;
+		CKeyCmdsTab CmdsTab;
+		pDoc->SetMenu(&DefMenu, &CmdsTab);
+		((CMainFrame *)::AfxGetMainWnd())->SetMenuBitmap(&DefMenu);
+		if ( (pMenu = DefMenu.GetSubMenu(1)) == NULL )
 			return;
 	} else
 		GetMainWnd()->SendMessage(WM_ENTERMENULOOP, TRUE);
@@ -2398,7 +2405,7 @@ void CRLoginView::OnRButtonUp(UINT nFlags, CPoint point)
 			OnUpdate(this, UPDATE_INVALIDATE, NULL);
 		}
 
-	} else {
+	} else if ( m_RDownStat != 0 ) {
 		m_RDownStat = 0;
 		PopUpMenu(point);
 	}
@@ -2415,13 +2422,16 @@ void CRLoginView::OnRButtonDblClk(UINT nFlags, CPoint point)
 		OnEditPaste();
 }
 
-void CRLoginView::SendPasteText(LPCWSTR wstr)
+BOOL CRLoginView::SendPasteText(LPCWSTR wstr)
 {
 	int ct = 0;
 	int len = 0;
 	LPCWSTR p;
 	CBuffer tmp;
+	BOOL rt = FALSE;
+	CAnyPastDlg dlg;
 	CRLoginDoc *pDoc = GetDocument();
+	BOOL bSave[2];
 
 	for ( p = wstr ; *p != 0 ; p++ ) {
 		if ( *p == L'\x0A' || *p == L'\x1A' )
@@ -2432,13 +2442,27 @@ void CRLoginView::SendPasteText(LPCWSTR wstr)
 			len++;
 	}
 
-	if ( m_PastNoCheck == FALSE && (len > 1000 || ct > 0) ) {
-		CAnyPastDlg dlg;
-		dlg.m_TextBox = wstr;
+	bSave[0] = dlg.m_bDelayPast  = pDoc->m_TextRam.IsOptEnable(TO_RLDELYPAST) ? TRUE : FALSE;
+	bSave[1] = dlg.m_bUpdateText = pDoc->m_TextRam.IsOptEnable(TO_RLUPDPAST)  ? TRUE : FALSE;
+
+	if ( pDoc->m_TextRam.IsOptEnable(TO_RLEDITPAST) || (m_PastNoCheck == FALSE && (len > 500 || ct > 0)) ) {
+		dlg.m_NoCheck     = m_PastNoCheck;
+		dlg.m_TextBox     = wstr;
+
 		if ( dlg.DoModal() != IDOK )
-			return;
+			return FALSE;
+
 		m_PastNoCheck = dlg.m_NoCheck;
 		wstr = TstrToUni(dlg.m_TextBox);
+
+		if ( bSave[0] != dlg.m_bDelayPast || bSave[1] != dlg.m_bUpdateText ) {
+			pDoc->m_TextRam.SetOption(TO_RLDELYPAST, dlg.m_bDelayPast);
+			pDoc->m_TextRam.SetOption(TO_RLUPDPAST,  dlg.m_bUpdateText);
+			pDoc->SetModifiedFlag(TRUE);
+		}
+
+		if ( dlg.m_bUpdateText )
+			rt = SetClipboardText(dlg.m_TextBox);
 	}
 
 	if ( pDoc->m_TextRam.IsOptEnable(TO_XTBRPAMD) )
@@ -2452,7 +2476,9 @@ void CRLoginView::SendPasteText(LPCWSTR wstr)
 	if ( pDoc->m_TextRam.IsOptEnable(TO_XTBRPAMD) )
 		tmp.Apend((LPBYTE)(L"\033[201~"), 6 * sizeof(WCHAR));
 
+	pDoc->m_bDelayPast = dlg.m_bDelayPast;
 	SendBuffer(tmp);
+	return rt;
 }
 void CRLoginView::OnEditPaste() 
 {
@@ -2487,7 +2513,7 @@ void CRLoginView::OnUpdateEditPaste(CCmdUI* pCmdUI)
 void CRLoginView::ClipboardPaste(UINT nID)
 {
 	int n;
-	int index = nID - IDM_CLIPBORAD_HIS1;
+	int index = nID - IDM_CLIPBOARD_HIS1;
 	CMainFrame *pMain = (CMainFrame *)::AfxGetMainWnd();
 	CRLoginDoc *pDoc = GetDocument();
 
@@ -2499,13 +2525,13 @@ void CRLoginView::ClipboardPaste(UINT nID)
 		for ( n = 0 ; n < index && pos != NULL ; n++ )
 			pMain->m_ClipBoard.GetNext(pos);
 
-		// Global Clipborad Update
+		// Global Clipboard Update
 		if ( pos != NULL ) {
-			SendPasteText(pMain->m_ClipBoard.GetAt(pos));
-			SetClipboadText(pMain->m_ClipBoard.GetAt(pos));
+			if ( !SendPasteText(pMain->m_ClipBoard.GetAt(pos)) )
+				SetClipboardText(pMain->m_ClipBoard.GetAt(pos));
 		}
 
-		// Local Clipborad Update
+		// Local Clipboard Update
 		//if ( pos != NULL ) {
 		//	SendPasteText(pMain->m_ClipBoard.GetAt(pos));
 		//	CStringW save = pMain->m_ClipBoard.GetAt(pos);
@@ -2518,7 +2544,7 @@ void CRLoginView::ClipboardPaste(UINT nID)
 }
 void CRLoginView::OnUpdateClipboardPaste(CCmdUI* pCmdUI) 
 {
-	pCmdUI->Enable(((CMainFrame *)::AfxGetMainWnd())->m_ClipBoard.GetSize() > (pCmdUI->m_nID - IDM_CLIPBORAD_HIS1) ? TRUE : FALSE);
+	pCmdUI->Enable(((CMainFrame *)::AfxGetMainWnd())->m_ClipBoard.GetSize() > (pCmdUI->m_nID - IDM_CLIPBOARD_HIS1) ? TRUE : FALSE);
 }
 void CRLoginView::OnClipboardMenu()
 {
@@ -2538,12 +2564,18 @@ void CRLoginView::OnClipboardMenu()
 	if ( (pMenu = pMenu->GetSubMenu(1)) == NULL || (pMenu = pMenu->GetSubMenu(4)) == NULL )
 		return;
 
-	pMain->SetClipBoardMenu(IDM_CLIPBORAD_HIS1, pMenu);
+	pMain->SetClipBoardMenu(IDM_CLIPBOARD_HIS1, pMenu);
+
+	if ( (m_DispCaret & FGCARET_CREATE) != 0 )
+		HideCaret();
 
 	point.x = m_CaretX;
 	point.y = m_CaretY + m_CharHeight;
 	ClientToScreen(&point);
 	pMenu->TrackPopupMenu(TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, this);
+
+	if ( (m_DispCaret & FGCARET_CREATE) != 0 )
+		ShowCaret();
 }
 
 void CRLoginView::OnMacroRec() 

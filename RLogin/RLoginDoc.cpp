@@ -83,6 +83,7 @@ CRLoginDoc::CRLoginDoc()
 	m_pBPlus = NULL;
 	m_pZModem = NULL;
 	m_pKermit = NULL;
+	m_bDelayPast = FALSE;
 	m_DelayFlag = DELAY_NON;
 	m_ActCharCount = 0;
 	m_pMainWnd = (CMainFrame *)AfxGetMainWnd();
@@ -436,10 +437,11 @@ void CRLoginDoc::SetMenu(CMenu *pMenu, CKeyCmdsTab *pCmdsTab)
 	CChildFrame *pChild;
 	CRLoginDoc *pDoc;
 	int sel = (-1);
+	int clip = (-1);
 
 	// Clipboard Menu
 	if ( (pSubMenu = pMenu->GetSubMenu(1)) != NULL && (pSubMenu = pSubMenu->GetSubMenu(4)) != NULL )
-		((CMainFrame *)::AfxGetMainWnd())->SetClipBoardMenu(IDM_CLIPBORAD_HIS1, pSubMenu);
+		((CMainFrame *)::AfxGetMainWnd())->SetClipBoardMenu(IDM_CLIPBOARD_HIS1, pSubMenu);
 
 	// His Menu
 	for ( n = 0 ; n < 5 ; n++ )
@@ -489,8 +491,12 @@ void CRLoginDoc::SetMenu(CMenu *pMenu, CKeyCmdsTab *pCmdsTab)
 	for ( n = 0 ; n < m_KeyTab.m_Cmds.GetSize() ; n++ ) {
 		pCmds = &(m_KeyTab.m_Cmds[n]);
 
+		if ( pCmds->m_Id == IDM_CLIPBOARD_MENU )
+			clip = n;
+
 		if ( pMenu->GetMenuString(pCmds->m_Id, str, MF_BYCOMMAND) <= 0 )
 			continue;
+
 		if ( (a = str.Find(_T('\t'))) >= 0 )
 			str.Truncate(a);
 
@@ -520,6 +526,17 @@ void CRLoginDoc::SetMenu(CMenu *pMenu, CKeyCmdsTab *pCmdsTab)
 	// Window Menu Select
 	if ( sel > 0 )
 		pSubMenu->CheckMenuItem(sel, MF_BYCOMMAND | MF_CHECKED);
+
+	// Clipboard Menu
+	if ( (pSubMenu = pMenu->GetSubMenu(1)) != NULL && pSubMenu->GetMenuString(4, str, MF_BYPOSITION) > 0 ) {
+		if ( (a = str.Find(_T('\t'))) >= 0 )
+			str.Truncate(a);
+		if ( clip >= 0 ) {
+			str += _T("\t");
+			str += m_KeyTab.m_Cmds[clip].m_Menu;
+		}
+		pSubMenu->ModifyMenu(4, MF_BYPOSITION | MF_STRING, 0, str);
+	}
 }
 
 BOOL CRLoginDoc::EntryText(CString &name)
@@ -704,6 +721,7 @@ int CRLoginDoc::DelaySend()
 
 	if ( m_pSock == NULL ) {
 		m_DelayBuf.Clear();
+		m_bDelayPast = FALSE;
 		return FALSE;
 	}
 
@@ -713,12 +731,15 @@ int CRLoginDoc::DelaySend()
 			m_DelayBuf.Consume(n);
 			m_DelayFlag = DELAY_WAIT;
 			m_pMainWnd->SetTimerEvent(DELAY_ECHO_MSEC, TIMEREVENT_DOC, this);
+			if ( m_DelayBuf.GetSize() == 0 )
+				m_bDelayPast = FALSE;
 			return TRUE;
 		}
 	}
 	if ( n > 0 ) {
 		m_pSock->Send(m_DelayBuf.GetPtr(), m_DelayBuf.GetSize(), 0);
 		m_DelayBuf.Clear();
+		m_bDelayPast = FALSE;
 	}
 
 	return FALSE;
@@ -1361,7 +1382,7 @@ void CRLoginDoc::SocketSend(void *lpBuf, int nBufLen)
 	//	return;
 	//}
 
-	if ( m_TextRam.IsOptEnable(TO_RLDELAY) ) {
+	if ( m_bDelayPast || m_TextRam.IsOptEnable(TO_RLDELAY) ) {
 		m_DelayBuf.Apend((LPBYTE)lpBuf, nBufLen);
 		if ( m_DelayFlag == DELAY_NON )
 			DelaySend();

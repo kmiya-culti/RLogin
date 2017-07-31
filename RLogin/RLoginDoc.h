@@ -85,6 +85,7 @@ public:
 	CKermit *m_pKermit;
 	int m_DelayFlag;
 	CBuffer m_DelayBuf;
+	BOOL m_bDelayPast;
 	int m_ActCharCount;
 	CMainFrame *m_pMainWnd;
 	CString m_TitleString;

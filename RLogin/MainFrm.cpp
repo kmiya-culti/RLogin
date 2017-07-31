@@ -2490,6 +2490,17 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCopyDataStruct)
 
 	return CMDIFrameWnd::OnCopyData(pWnd, pCopyDataStruct);
 }
+
+void CMainFrame::SetMenuBitmap(CMenu *pMenu)
+{
+	int n;
+	CMenuBitMap *pMap;
+
+	for ( n = 0 ; n < m_MenuMap.GetSize() ; n++ ) {
+		if ( (pMap = (CMenuBitMap *)m_MenuMap[n]) != NULL )
+			pMenu->SetMenuItemBitmaps(pMap->m_Id, MF_BYCOMMAND, &(pMap->m_Bitmap), NULL);
+	}
+}
 void CMainFrame::OnEnterMenuLoop(BOOL bIsTrackPopupMenu)
 {
 	int n;
@@ -2497,7 +2508,6 @@ void CMainFrame::OnEnterMenuLoop(BOOL bIsTrackPopupMenu)
 	CChildFrame *pChild;
 	CRLoginDoc *pDoc;
 	CKeyCmds *pCmds;
-	CMenuBitMap *pMap;
 
 	if ( (pMenu = GetMenu()) == NULL )
 		return;
@@ -2519,11 +2529,7 @@ void CMainFrame::OnEnterMenuLoop(BOOL bIsTrackPopupMenu)
 	}
 
 	pDoc->SetMenu(pMenu, &m_MenuTab);
-
-	for ( n = 0 ; n < m_MenuMap.GetSize() ; n++ ) {
-		if ( (pMap = (CMenuBitMap *)m_MenuMap[n]) != NULL )
-			pMenu->SetMenuItemBitmaps(pMap->m_Id, MF_BYCOMMAND, &(pMap->m_Bitmap), NULL);
-	}
+	SetMenuBitmap(pMenu);
 }
 
 void CMainFrame::OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized)
@@ -2694,7 +2700,7 @@ void CMainFrame::SetClipBoardMenu(UINT nId, CMenu *pMenu)
 	for ( pos = m_ClipBoard.GetHeadPosition() ; pos != NULL ; ) {
 		str = (LPCWSTR)m_ClipBoard.GetNext(pos);
 
-		tmp.Format(_T("&%d "), index++);
+		tmp.Format(_T("&%d "), (index++) % 10);
 		for ( n = 0 ; n < 50 && *str != L'\0' ; n++, str++ ) {
 			if ( *str == L'\n' )
 				n--;

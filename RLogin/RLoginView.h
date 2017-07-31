@@ -86,9 +86,9 @@ public:
 
 	inline BOOL IsClipRectMode() { return (m_ClipKeyFlags & MK_CONTROL); }
 	inline BOOL IsClipLineMode() { return (m_ClipKeyFlags & (MK_SHIFT | 0x1000)); }
-	int GetClipboad(CBuffer *bp);
-	int SetClipboad(CBuffer *bp);
-	int SetClipboadText(LPCTSTR str);
+	int GetClipboard(CBuffer *bp);
+	int SetClipboard(CBuffer *bp);
+	int SetClipboardText(LPCTSTR str);
 
 	BOOL m_KeyMacFlag;
 	CBuffer m_KeyMacBuf;
@@ -141,7 +141,7 @@ public:
 	void CreateGrapImage(int type);
 	void GetMousePos(int *sw, int *x, int *y);
 	void PopUpMenu(CPoint point);
-	void SendPasteText(LPCWSTR wstr);
+	BOOL SendPasteText(LPCWSTR wstr);
 
 	inline int CalcGrapX(int x)	{ CRLoginDoc *pDoc = GetDocument(); return (m_Width  * x / m_Cols  + pDoc->m_TextRam.m_ScrnOffset.left); }
 	inline int CalcGrapY(int y) { CRLoginDoc *pDoc = GetDocument(); return (m_Height * y / m_Lines + pDoc->m_TextRam.m_ScrnOffset.top); }

@@ -3789,7 +3789,7 @@ void CTextRam::GetLine(int sy, CString &str)
 	for ( ; tc > 0 ; tc-- )
 		str += _T(' ');
 
-	if ( ex < mx )
+//	if ( ex < mx || IsOptEnable(TO_RLLOGTIME) )
 		str += _T("\r\n");
 }
 void CTextRam::GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf)

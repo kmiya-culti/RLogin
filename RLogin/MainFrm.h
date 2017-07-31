@@ -219,6 +219,7 @@ public:
 	int GetExecCount();
 	CMenu *GetSaveMenu(HMENU hDocMenu);
 	void SetClipBoardMenu(UINT nId, CMenu *pMenu);
+	void SetMenuBitmap(CMenu *pMenu);
 
 	CString m_VersionMessage;
 	CString m_VersionPageUrl;

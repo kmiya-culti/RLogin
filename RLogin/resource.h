@@ -79,19 +79,6 @@
 #define IDB_BITMAP7                     414
 #define IDB_BITMAP8                     415
 #define IDB_BITMAP9                     416
-#define IDB_BITMAP10                    417
-#define IDB_BITMAP11                    418
-#define IDB_BITMAP12                    419
-#define IDB_BITMAP13                    420
-#define IDB_BITMAP14                    421
-#define IDB_BITMAP15                    422
-#define IDB_BITMAP16                    423
-#define IDB_BITMAP17                    424
-#define IDB_BITMAP18                    425
-#define IDB_BITMAP19                    426
-#define IDB_BITMAP20                    427
-#define IDB_BITMAP21                    428
-#define IDB_BITMAP22                    429
 #define IDI_ACTIVE                      430
 #define IDS_AGENT_DELKEY                500
 #define IDS_ALLINITREQ                  501
@@ -289,6 +276,7 @@
 #define IDC_CHECK1                      2075
 #define IDC_CHECK2                      2076
 #define IDC_CHMOD1                      2077
+#define IDC_CHECK3                      2077
 #define IDC_CHMOD2                      2078
 #define IDC_CHMOD3                      2079
 #define IDC_CHMOD4                      2080
@@ -734,17 +722,17 @@
 #define IDM_MOVEPANE_DOWN               5094
 #define IDM_MOVEPANE_RIGHT              5095
 #define IDM_MOVEPANE_LEFT               5096
-#define IDM_CLIPBORAD_HIS1              5097
-#define IDM_CLIPBORAD_HIS2              5098
-#define IDM_CLIPBORAD_HIS3              5099
-#define IDM_CLIPBORAD_HIS4              5100
-#define IDM_CLIPBORAD_HIS5              5101
-#define IDM_CLIPBORAD_HIS6              5102
-#define IDM_CLIPBORAD_HIS7              5103
-#define IDM_CLIPBORAD_HIS8              5104
-#define IDM_CLIPBORAD_HIS9              5105
-#define IDM_CLIPBORAD_HIS10             5106
-#define IDM_CLIPBORAD_MENU              5107
+#define IDM_CLIPBOARD_HIS1              5097
+#define IDM_CLIPBOARD_HIS2              5098
+#define IDM_CLIPBOARD_HIS3              5099
+#define IDM_CLIPBOARD_HIS4              5100
+#define IDM_CLIPBOARD_HIS5              5101
+#define IDM_CLIPBOARD_HIS6              5102
+#define IDM_CLIPBOARD_HIS7              5103
+#define IDM_CLIPBOARD_HIS8              5104
+#define IDM_CLIPBOARD_HIS9              5105
+#define IDM_CLIPBOARD_HIS10             5106
+#define IDM_CLIPBOARD_MENU              5107
 
 // Next default values for new objects
 // 

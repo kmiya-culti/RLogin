@@ -2262,7 +2262,7 @@ void CTextRam::fc_LF(DWORD ch)
 	case 2:		// LF
 	case 3:		// CR|LF
 		LOCATE(GetLeftMargin(), m_CurY);
-		if ( IsOptEnable(TO_RLDELAY) && m_pDocument->m_DelayFlag == DELAY_WAIT )
+		if ( (m_pDocument->m_bDelayPast || IsOptEnable(TO_RLDELAY)) && m_pDocument->m_DelayFlag == DELAY_WAIT )
 			m_pDocument->OnDelayRecive(ch);
 	case 0:		// CR+LF
 		ONEINDEX();
@@ -2301,7 +2301,7 @@ void CTextRam::fc_CR(DWORD ch)
 		ONEINDEX();
 	case 0:		// CR+LF
 		LOCATE(GetLeftMargin(), m_CurY);
-		if ( IsOptEnable(TO_RLDELAY) && m_pDocument->m_DelayFlag == DELAY_WAIT )
+		if ( (m_pDocument->m_bDelayPast || IsOptEnable(TO_RLDELAY)) && m_pDocument->m_DelayFlag == DELAY_WAIT )
 			m_pDocument->OnDelayRecive(ch);
 	case 2:		// LF
 		break;
@@ -4112,14 +4112,14 @@ void CTextRam::fc_OSCEXE(DWORD ch)
 			CRLoginView *pView;
 			if ( strcmp(p, "?") == 0 ) {	// Get Clipboad
 				if ( m_pDocument != NULL && (pView = (CRLoginView *)m_pDocument->GetAciveView()) != NULL && (m_pDocument->m_TextRam.m_ClipFlag & OSC52_READ) != 0 ) {
-					pView->GetClipboad(&clip);
+					pView->GetClipboard(&clip);
 					work.Base64Encode(clip.GetPtr(), clip.GetSize());
 				}
 				UNGETSTR(_T("%s52;%s;%s%s"), m_RetChar[RC_OSC], tmp, (LPCTSTR)work, (ch == 0x07 ? _T("\007") : m_RetChar[RC_ST]));
 			} else {						// Set Clipboad
 				if ( m_pDocument != NULL && (pView = (CRLoginView *)m_pDocument->GetAciveView()) != NULL && (m_pDocument->m_TextRam.m_ClipFlag & OSC52_WRITE) != 0 ) {
 					clip.Base64Decode(MbsToTstr(p));
-					pView->SetClipboad(&clip);
+					pView->SetClipboard(&clip);
 				}
 			}
 		}

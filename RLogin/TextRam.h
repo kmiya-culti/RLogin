@@ -222,6 +222,9 @@
 #define	TO_RLWORDPP		1462		// プロポーショナルフォントをワードで調整
 #define	TO_RLRBSCROLL	1463		// マウスのRボタンでスクロールする
 #define	TO_RLNOTBCAST	1464		// 同時送信に含めない
+#define	TO_RLEDITPAST	1465		// 常にペーストを確認する
+#define	TO_RLDELYPAST	1466		// ペースト時に改行確認する
+#define	TO_RLUPDPAST	1467		// ペースト時の編集後コピーする
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 

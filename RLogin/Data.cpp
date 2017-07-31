@@ -3552,7 +3552,7 @@ static const struct _InitKeyTab {
 		{ 8,	'0',			MASK_CTRL,				_T("$PANE_SEL10")	},
 
 		{ 8,	'V',			MASK_CTRL,				_T("$EDIT_PASTE")	},
-		{ 8,	'V',			MASK_ALT,				_T("$CLIPBORAD")	},
+		{ 8,	'V',			MASK_ALT,				_T("$CLIPBOARD")	},
 
 		{ 0,	(-1),			(-1),					NULL },
 	};
@@ -3786,7 +3786,7 @@ void CKeyNodeTab::SetArray(CStringArrayExt &stra)
 
 	tmp.RemoveAll();
 	tmp.AddVal(-1);
-	tmp.AddVal(7);			// KeyCode Bug Fix
+	tmp.AddVal(8);			// KeyCode Bug Fix
 	stra.AddArray(tmp);
 }
 void CKeyNodeTab::GetArray(CStringArrayExt &stra)
@@ -3905,17 +3905,17 @@ static const struct _CmdsKeyTab {
 	{	ID_APP_ABOUT,			L"$ABOUT"			},
 	{	ID_SEND_BREAK,			L"$BREAK"			},
 	{	IDM_BROADCAST,			L"$BROADCAST"		},
-	{	IDM_CLIPBORAD_MENU,		L"$CLIPBORAD"		},
-	{	IDM_CLIPBORAD_HIS1,		L"$CLIPBORAD_HIS1"	},
-	{	IDM_CLIPBORAD_HIS10,	L"$CLIPBORAD_HIS10"	},
-	{	IDM_CLIPBORAD_HIS2,		L"$CLIPBORAD_HIS2"	},
-	{	IDM_CLIPBORAD_HIS3,		L"$CLIPBORAD_HIS3"	},
-	{	IDM_CLIPBORAD_HIS4,		L"$CLIPBORAD_HIS4"	},
-	{	IDM_CLIPBORAD_HIS5,		L"$CLIPBORAD_HIS5"	},
-	{	IDM_CLIPBORAD_HIS6,		L"$CLIPBORAD_HIS6"	},
-	{	IDM_CLIPBORAD_HIS7,		L"$CLIPBORAD_HIS7"	},
-	{	IDM_CLIPBORAD_HIS8,		L"$CLIPBORAD_HIS8"	},
-	{	IDM_CLIPBORAD_HIS9,		L"$CLIPBORAD_HIS9"	},
+	{	IDM_CLIPBOARD_MENU,		L"$CLIPBOARD"		},
+	{	IDM_CLIPBOARD_HIS1,		L"$CLIPBOARD_HIS1"	},
+	{	IDM_CLIPBOARD_HIS10,	L"$CLIPBOARD_HIS10"	},
+	{	IDM_CLIPBOARD_HIS2,		L"$CLIPBOARD_HIS2"	},
+	{	IDM_CLIPBOARD_HIS3,		L"$CLIPBOARD_HIS3"	},
+	{	IDM_CLIPBOARD_HIS4,		L"$CLIPBOARD_HIS4"	},
+	{	IDM_CLIPBOARD_HIS5,		L"$CLIPBOARD_HIS5"	},
+	{	IDM_CLIPBOARD_HIS6,		L"$CLIPBOARD_HIS6"	},
+	{	IDM_CLIPBOARD_HIS7,		L"$CLIPBOARD_HIS7"	},
+	{	IDM_CLIPBOARD_HIS8,		L"$CLIPBOARD_HIS8"	},
+	{	IDM_CLIPBOARD_HIS9,		L"$CLIPBOARD_HIS9"	},
 	{	IDM_DIALOGFONT,			L"$DIALOG_FONT"		},
 	{	ID_EDIT_COPY,			L"$EDIT_COPY"		},
 	{	ID_EDIT_COPY_ALL,		L"$EDIT_COPYALL"	},
@@ -4144,6 +4144,17 @@ void CKeyNodeTab::BugFix(int fix)
 			if ( Find(InitKeyTab[i].code, InitKeyTab[i].mask, &n) )
 				continue;
 			Add(InitKeyTab[i].code, InitKeyTab[i].mask, InitKeyTab[i].maps);
+		}
+	}
+
+	//	$CLIPBORAD -> $CLIPBOARD
+	if ( fix < 8 ) {
+		for ( n = 0 ; n < GetSize() ; n++ ) {
+			if ( wcsncmp(GetAt(n).m_Maps, L"$CLIPBORAD", 10) == 0 ) {
+				LPWSTR p = (LPWSTR)GetAt(n).m_Maps.GetPtr();
+				p[7] = L'A';
+				p[8] = L'R';
+			}
 		}
 	}
 
