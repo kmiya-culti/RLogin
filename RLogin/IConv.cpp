@@ -250,7 +250,7 @@ int CIConv::IConvBuf(LPCTSTR from, LPCTSTR to, CBuffer *in, CBuffer *out)
 void CIConv::StrToRemote(LPCTSTR to, CBuffer *in, CBuffer *out)
 {
 	CTextRam::MsToIconvUniStr(to, (LPWSTR)(LPCWSTR)(*in), in->GetSize() / sizeof(WCHAR));
-	IConvBuf(_T("UCS-2LE"), to, in, out);
+	IConvBuf(_T("UTF-16LE"), to, in, out);
 }
 void CIConv::StrToRemote(LPCTSTR to, LPCTSTR in, CStringA &out)
 {
@@ -258,7 +258,7 @@ void CIConv::StrToRemote(LPCTSTR to, LPCTSTR in, CStringA &out)
 #ifdef	_UNICODE
 	bIn.Apend((LPBYTE)in, (int)_tcslen(in) * sizeof(WCHAR));
 	CTextRam::MsToIconvUniStr(to, (LPWSTR)(LPCWSTR)bIn, bIn.GetSize() / sizeof(WCHAR));
-	IConvBuf(_T("UCS-2LE"), to, &bIn, &bOut);
+	IConvBuf(_T("UTF-16LE"), to, &bIn, &bOut);
 #else
 	bIn.Apend((LPBYTE)in, (int)strlen(in));
 	IConvBuf(_T("CP932"), to, &bIn, &bOut);
@@ -268,14 +268,14 @@ void CIConv::StrToRemote(LPCTSTR to, LPCTSTR in, CStringA &out)
 void CIConv::RemoteToStr(LPCTSTR from, CBuffer *in, CBuffer *out)
 {
 	CBuffer mid;
-	IConvBuf(from, _T("UCS-2LE"), in, &mid);
+	IConvBuf(from, _T("UTF-16LE"), in, &mid);
 	CTextRam::IconvToMsUniStr((LPCWSTR)mid, mid.GetSize() / sizeof(WCHAR), *out);
 }
 void CIConv::RemoteToStr(LPCTSTR from, LPCSTR in, CString &out)
 {
 	CBuffer bIn, bMid, bOut;
 	bIn.Apend((LPBYTE)in, (int)strlen(in));
-	IConvBuf(from, _T("UCS-2LE"), &bIn, &bMid);
+	IConvBuf(from, _T("UTF-16LE"), &bIn, &bMid);
 	CTextRam::IconvToMsUniStr((LPCWSTR)bMid, bMid.GetSize() / sizeof(WCHAR), bOut);
 	out = (LPCWSTR)bOut;
 }

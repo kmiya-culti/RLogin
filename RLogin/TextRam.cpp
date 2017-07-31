@@ -285,7 +285,7 @@ void CFontTab::Init()
 		{ _T("JIS X 0213-2000.2"),		SET_94x94,	_T("P"),	'\x00', _T("JIS_X0213-2000.2"),	SHIFTJIS_CHARSET,	100,	100,	0,	{ _T("‚l‚r ƒSƒVƒbƒN"), _T("‚l‚r –¾’©") } },
 		{ _T("JIS X 0213-2004.1"),		SET_94x94,	_T("Q"),	'\x00', _T("JIS_X0213-2000.1"),	SHIFTJIS_CHARSET,	100,	100,	0,	{ _T("‚l‚r ƒSƒVƒbƒN"), _T("‚l‚r –¾’©") } },
 
-		{ _T("UNICODE"),				SET_UNICODE,_T("*U"),	'\x00', _T("UCS-4BE"),			DEFAULT_CHARSET,	100,	100,	0,	{ _T("‚l‚r ƒSƒVƒbƒN"), _T("‚l‚r –¾’©") } },
+		{ _T("UNICODE"),				SET_UNICODE,_T("*U"),	'\x00', _T("UTF-16BE"),			DEFAULT_CHARSET,	100,	100,	0,	{ _T("‚l‚r ƒSƒVƒbƒN"), _T("‚l‚r –¾’©") } },
 
 		{ NULL, 0, 0x00, NULL },
 	};
@@ -355,6 +355,8 @@ void CFontTab::GetArray(CStringArrayExt &array)
 				m_Data[i].m_IndexName = (CHAR)(i & 0xFF);
 		} else if ( m_Data[i].m_IndexName.Compare(_T("Unicode")) == 0 )
 			m_Data[i].m_IndexName = _T("*U");
+		if ( i == SET_UNICODE )
+			m_Data[i].m_IContName = _T("UTF-16BE");
 	}
 }
 const CFontTab & CFontTab::operator = (CFontTab &data)
@@ -926,7 +928,10 @@ int CTextRam::HisRegNext()
 
 		for ( x = 0 ; x <= ex ; x += n ) {
 			vp[x].at &= ~ATT_MARK;
-			if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].cm) && IS_2BYTE(vp[x + 1].cm) ) {
+			if ( x < (m_Cols - 1) && IS_IVS(vp[x].cm) && IS_2BYTE(vp[x + 1].cm) ) {
+				ch = vp[x].ch;
+				n = 2;
+			} else if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].cm) && IS_2BYTE(vp[x + 1].cm) ) {
 				ch = vp[x].ch;
 				n = 2;
 			} else if ( !IS_ASCII(vp[x].cm) || vp[x].ch == 0 ) {
@@ -1333,9 +1338,17 @@ void CTextRam::LineEditCwd(int ex, int sy, CStringW &cwd)
 
 	vp = GETVRAM(0, sy);
 	for ( x = 0 ; x < ex ; x += n ) {
-		if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].cm) && IS_2BYTE(vp[x + 1].cm) ) {
-			//ch = m_IConv.IConvChar(m_FontTab[vp[x].md & CODE_MASK].m_IContName, "UTF-16BE", vp[x].ch);		// Char•ÏŠ·‚Å‚ÍUTF-16BE‚ðŽg—pI
-			//ch = IconvToMsUnicode(ch);
+		if ( x < (m_Cols - 1) && IS_IVS(vp[x].cm) && IS_2BYTE(vp[x + 1].cm) ) {
+			ch = vp[x].ch;
+			if ( (ch & 0xFFFF0000) != 0 )	// 01020304 > 02 01 04 03 (BE->LE 2Word)
+				str.PutWord(ch >> 16);
+			str.PutWord(ch);
+			ch = vp[x + 1].ch;
+			if ( (ch & 0xFFFF0000) != 0 )	// 01020304 > 02 01 04 03 (BE->LE 2Word)
+				str.PutWord(ch >> 16);
+			str.PutWord(ch);
+			n = 2;
+		} else if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].cm) && IS_2BYTE(vp[x + 1].cm) ) {
 			ch = vp[x].ch;
 			if ( (ch & 0xFFFF0000) != 0 )	// 01020304 > 02 01 04 03 (BE->LE 2Word)
 				str.PutWord(ch >> 16);
@@ -1346,8 +1359,6 @@ void CTextRam::LineEditCwd(int ex, int sy, CStringW &cwd)
 			str.PutWord(ch);
 			n = 1;
 		} else {
-			//ch = m_IConv.IConvChar(m_FontTab[vp[x].md & CODE_MASK].m_IContName, "UTF-16BE", vp[x].ch | m_FontTab[vp[x].md & CODE_MASK].m_Shift);		// Char•ÏŠ·‚Å‚ÍUTF-16BE‚ðŽg—pI
-			//ch = IconvToMsUnicode(ch);
 			ch = vp[x].ch;
 			if ( (ch & 0xFFFF0000) != 0 )	// 01020304 > 02 01 04 03 (BE->LE 2Word)
 				str.PutWord(ch >> 16);
@@ -1654,7 +1665,7 @@ int CTextRam::LineEdit(CBuffer &buf)
 
 	return rt;
 }
-int CTextRam::IsWord(WCHAR ch)
+int CTextRam::IsWord(int ch)
 {
 	if ( ch == 0 )
 		return 0;
@@ -1662,7 +1673,7 @@ int CTextRam::IsWord(WCHAR ch)
 		return 2;
 	else if ( ch >= 0x30A0 && ch <= 0x30FF )		// 30A0 - 30FF ƒJƒ^ƒJƒi
 		return 3;
-	else if ( UnicodeWidth(UCS2toUCS4(ch)) == 2 && iswalnum(ch) )
+	else if ( UnicodeWidth(ch) == 2 && iswalnum(ch) )
 		return 4;
 	else if ( iswalnum(ch) || m_WordStr.Find(ch) >= 0 )
 		return 1;
@@ -1670,6 +1681,7 @@ int CTextRam::IsWord(WCHAR ch)
 }
 int CTextRam::GetPos(int x, int y)
 {
+	VRAM *vp;
 	if ( x < 0 ) {
 		if ( --y < (0 - m_HisLen + m_Lines) )
 			return 0;
@@ -1679,7 +1691,13 @@ int CTextRam::GetPos(int x, int y)
 			return 0;
 		x -= m_Cols;
 	}
-	return GETVRAM(x, y)->ch;
+	vp = GETVRAM(x, y);
+	if ( IS_2BYTE(vp->cm) ) {
+		if ( x <= 0 )
+			return 0;
+		vp--;
+	}
+	return vp->ch;
 }
 BOOL CTextRam::IncPos(int &x, int &y)
 {
@@ -1781,7 +1799,7 @@ SKIP:
 	if ( IS_2BYTE(GETVRAM(sx, sy)->cm) )
 		DecPos(sx, sy);
 
-	if ( IS_1BYTE(GETVRAM(ex, ey)->cm) )
+	if ( IS_1BYTE(GETVRAM(ex, ey)->cm) || IS_IVS(GETVRAM(ex, ey)->cm) )
 		IncPos(ex, ey);
 
 	*sps = GetCalcPos(sx, sy);
@@ -1831,9 +1849,17 @@ void CTextRam::EditCopy(int sps, int eps, BOOL rectflag, BOOL lineflag)
 		tc = 0;
 		str.Clear();
 		for ( x = sx ; x <= ex ; x += n ) {
-			if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].cm) && IS_2BYTE(vp[x + 1].cm) ) {
-				//ch = m_IConv.IConvChar(m_FontTab[vp[x].md & CODE_MASK].m_IContName, "UTF-16BE", vp[x].ch);		// Char•ÏŠ·‚Å‚ÍUTF-16BE‚ðŽg—pI
-				//ch = IconvToMsUnicode(ch);
+			if ( x < (m_Cols - 1) && IS_IVS(vp[x].cm) && IS_2BYTE(vp[x + 1].cm) ) {
+				ch = vp[x].ch;
+				if ( (ch & 0xFFFF0000) != 0 )	// 01020304 > 02 01 04 03 (BE->LE 2Word)
+					str.PutWord(ch >> 16);
+				str.PutWord(ch);
+				ch = vp[x + 1].ch;
+				if ( (ch & 0xFFFF0000) != 0 )	// 01020304 > 02 01 04 03 (BE->LE 2Word)
+					str.PutWord(ch >> 16);
+				str.PutWord(ch);
+				n = 2;
+			} else if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].cm) && IS_2BYTE(vp[x + 1].cm) ) {
 				ch = vp[x].ch;
 				if ( (ch & 0xFFFF0000) != 0 )	// 01020304 > 02 01 04 03 (BE->LE 2Word)
 					str.PutWord(ch >> 16);
@@ -1844,8 +1870,6 @@ void CTextRam::EditCopy(int sps, int eps, BOOL rectflag, BOOL lineflag)
 				str.PutWord(ch);
 				n = 1;
 			} else {
-				//ch = m_IConv.IConvChar(m_FontTab[vp[x].md & CODE_MASK].m_IContName, "UTF-16BE", vp[x].ch | m_FontTab[vp[x].md & CODE_MASK].m_Shift);		// Char•ÏŠ·‚Å‚ÍUTF-16BE‚ðŽg—pI
-				//ch = IconvToMsUnicode(ch);
 				ch = vp[x].ch;
 				if ( (ch & 0xFFFF0000) != 0 )	// 01020304 > 02 01 04 03 (BE->LE 2Word)
 					str.PutWord(ch >> 16);
@@ -1929,7 +1953,17 @@ void CTextRam::GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf)
 			ex--;
 
 		for ( x = sx ; x <= ex ; x += n ) {
-			if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].cm) && IS_2BYTE(vp[x + 1].cm) ) {
+			if ( x < (m_Cols - 1) && IS_IVS(vp[x].cm) && IS_2BYTE(vp[x + 1].cm) ) {
+				ch = vp[x].ch;
+				if ( (ch & 0xFFFF0000) != 0 )	// 01020304 > 02 01 04 03 (BE->LE 2Word)
+					pBuf->PutWord(ch >> 16);
+				pBuf->PutWord(ch);
+				ch = vp[x + 1].ch;
+				if ( (ch & 0xFFFF0000) != 0 )	// 01020304 > 02 01 04 03 (BE->LE 2Word)
+					pBuf->PutWord(ch >> 16);
+				pBuf->PutWord(ch);
+				n = 2;
+			} else if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].cm) && IS_2BYTE(vp[x + 1].cm) ) {
 				ch = vp[x].ch;
 				if ( (ch & 0xFFFF0000) != 0 )	// 01020304 > 02 01 04 03 (BE->LE 2Word)
 					pBuf->PutWord(ch >> 16);
@@ -1954,7 +1988,7 @@ void CTextRam::GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf)
 	}
 }
 
-void CTextRam::StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop, int len, char *str, int sln, int *spc, class CRLoginView *pView)
+void CTextRam::StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop, int len, LPCWSTR str, int *spc, class CRLoginView *pView)
 {
 	int n, c, x, y, o;
 	int at = prop.att;
@@ -1962,7 +1996,7 @@ void CTextRam::StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop,
 	int wd = (prop.dmf == 0 ? 1 : 2);
 	int hd = (prop.dmf <= 1 ? 1 : 2);
 	COLORREF fc, bc, tc;
-	LPCWSTR p = (LPCWSTR)str;
+	LPCWSTR p = str;
 	CFontChacheNode *pFontCache;
 	CFontNode *pFontNode = (prop.mod < 0 ? NULL : &(m_FontTab[prop.mod]));
 	CBitmap *pOld;
@@ -2039,7 +2073,7 @@ void CTextRam::StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop,
 			y = pRect->bottom - pRect->top;
 			o = (prop.dmf == 3 ? pView->m_CharHeight : 0);
 
-			for ( n = 0 ; n < (len / 2) ; n++, p++ ) {
+			for ( n = 0 ; n < len ; n++, p++ ) {
 				if ( (c = *p - 0x20) >= 0 && c < 96 && (pFontNode->m_UserFontDef[c / 8] & (1 << (c % 8))) != 0 )
 					pDC->BitBlt(x, pRect->top, spc[n], y, pWdc, pFontNode->m_FontWidth * c, o, ((pView->m_pBitmap == NULL || rv != FALSE) ? SRCCOPY: SRCPAINT));
 				else {
@@ -2056,7 +2090,7 @@ void CTextRam::StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop,
 			x = pRect->left;
 			y = pRect->top - pView->m_CharHeight * pFontNode->m_Offset / 100 - (prop.dmf == 3 ? pView->m_CharHeight : 0);
 
-			::ExtTextOutW(pDC->m_hDC, x, y, ((pView->m_pBitmap == NULL || rv != FALSE) ? (ETO_OPAQUE | ETO_CLIPPED) : ETO_CLIPPED), pRect, (LPCWSTR)str, len / 2, spc);
+			::ExtTextOutW(pDC->m_hDC, x, y, ((pView->m_pBitmap == NULL || rv != FALSE) ? (ETO_OPAQUE | ETO_CLIPPED) : ETO_CLIPPED), pRect, str, len, spc);
 
 			if ( (at & ATT_BOLD) != 0 && (IS_ENABLE(m_AnsiOpt, TO_RLBOLD) || prop.fcn >= 16) ) {
 				n = pDC->SetBkMode(TRANSPARENT);
@@ -2114,7 +2148,9 @@ void CTextRam::StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop,
 		POINT point[9];
 
 		y = pRect->left;
-		for ( x = 0 ; x < sln ; x++ ) {
+		for ( x = 0 ; x < len ; x++ ) {
+			if ( spc[x] == 0 )
+				continue;
 			if ( (at & ATT_FRAME) != 0 ) {
 				point[0].x = y; point[0].y = pRect->top + 1;
 				point[1].x = y + spc[x] - 2; point[1].y = pRect->top + 1;
@@ -2176,14 +2212,14 @@ void CTextRam::StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop,
 }
 void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginView *pView)
 {
-	int ch, x, y;
+	int ch, vs, n, x, y;
 	struct DrawWork work, prop;
 	int pos, spos, epos;
 	int csx, cex, csy, cey;
 	VRAM *vp, *tp;
 	int len, sln;
-	char tmp[COLS_MAX * 8];
-	int spc[COLS_MAX];
+	WCHAR tmp[COLS_MAX * 4];
+	int spc[COLS_MAX * 4];
 	CFont *pFontOld = pDC->SelectObject(CFont::FromHandle((HFONT)GetStockObject(SYSTEM_FONT)));
 	RECT rect;
 	CDC wDc;
@@ -2226,7 +2262,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 
 			if ( x >= 0 && x < m_Cols ) {
 				vp = tp + x;
-				if ( x > 0 && IS_2BYTE(vp[0].cm) && IS_1BYTE(vp[-1].cm) ) {
+				if ( x > 0 && IS_2BYTE(vp[0].cm) && (IS_1BYTE(vp[-1].cm) || IS_IVS(vp[-1].cm)) ) {
 					x--;
 					vp--;
 				}
@@ -2237,16 +2273,14 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 				work.mod = vp->md & CODE_MASK;
 				work.csz = 1;
 				ch = vp->ch;
-				if ( x < (m_Cols - 1) && IS_1BYTE(vp[0].cm) && IS_2BYTE(vp[1].cm) ) {
-					//ch = m_IConv.IConvChar(m_FontTab[cm].m_IContName, "UTF-16BE", ch);			// Char•ÏŠ·‚Å‚ÍUTF-16BE‚ðŽg—pI
-					//ch = IconvToMsUnicode(ch);
+				vs = 0;
+				if ( x < (m_Cols - 1) && IS_IVS(vp[0].cm) && IS_2BYTE(vp[1].cm) ) {
+					vs = vp[1].ch;
+					work.csz = 2;
+				} else if ( x < (m_Cols - 1) && IS_1BYTE(vp[0].cm) && IS_2BYTE(vp[1].cm) ) {
 					work.csz = 2;
 				} else if ( !IS_ASCII(vp->cm) ) {
 					ch = 0;
-				//} else {
-				//	ch |= m_FontTab[cm].m_Shift;
-				//	ch = m_IConv.IConvChar(m_FontTab[cm].m_IContName, "UTF-16BE", ch);			// Char•ÏŠ·‚Å‚ÍUTF-16BE‚ðŽg—pI
-				//	ch = IconvToMsUnicode(ch);
 				}
 				if ( ch == 0 )
 					work.mod = (-1);
@@ -2277,7 +2311,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 			if ( memcmp(&prop, &work, sizeof(work)) != 0 ) {
 				if ( len > 0 ) {
 					rect.right = pView->CalcGrapX(x) * (work.dmf ? 2 : 1);
-					StrOut(pDC, &wDc, &rect, prop, len, tmp, sln, spc, pView);
+					StrOut(pDC, &wDc, &rect, prop, len, tmp, spc, pView);
 				}
 				memcpy(&prop, &work, sizeof(work));
 				len = sln = 0;
@@ -2285,21 +2319,25 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 			}
 
 			if ( work.mod != (-1) ) {
-				if ( (ch & 0xFFFF0000) != 0 ) {				// 01020304 > 02 01 04 03 (BE->LE 2Word)
-					tmp[len++] = (char)(ch >> 16);
-					tmp[len++] = (char)(ch >> 24);
-				}
-				tmp[len++] = (char)(ch);
-				tmp[len++] = (char)(ch >> 8);
+				if ( (ch & 0xFFFF0000) != 0 )
+					tmp[len++] = (WCHAR)(ch >> 16);
+				tmp[len++] = (WCHAR)(ch);
+				if ( (vs & 0xFFFF0000) != 0 )
+					tmp[len++] = (WCHAR)(vs >> 16);
+				if ( vs != 0 )
+					tmp[len++] = (WCHAR)(vs);
 			} else
-				len += work.csz;
+				tmp[len++] = L'\0';
 
 			spc[sln++] = (pView->CalcGrapX(x + work.csz) - pView->CalcGrapX(x)) * (work.dmf ? 2 : 1);
 			x += work.csz;
+
+			while ( sln < len )
+				spc[sln++] = 0;
 		}
 		if ( len > 0 ) {
 			rect.right = pView->CalcGrapX(x) * (work.dmf ? 2 : 1);
-			StrOut(pDC, &wDc, &rect, prop, len, tmp, sln, spc, pView);
+			StrOut(pDC, &wDc, &rect, prop, len, tmp, spc, pView);
 		}
 	}
 
@@ -2465,74 +2503,79 @@ void CTextRam::CallReciveChar(int ch)
 
 static int DwrodCmp(const void *src, const void *dis)
 {
-	return (*((DWORD *)src) - *((DWORD *)dis));
+	if ( *((DWORD *)src) == *((DWORD *)dis) )
+		return 0;
+	else if ( *((DWORD *)src) < *((DWORD *)dis) )
+		return (-1);
+	else
+		return 1;
 }
 int CTextRam::UnicodeWidth(DWORD code)
 {
 #define UNIWIDTABSIZE   379
 	static const DWORD UnicodeWidthTab[] = {
-		0x0000A1, 0x0000A2, 0x0000A4, 0x0000A5, 0x0000A7, 0x0000A9, 0x0000AA, 0x0000AB,
-		0x0000AD, 0x0000AF, 0x0000B0, 0x0000B5, 0x0000B6, 0x0000BB, 0x0000BC, 0x0000C0,
-		0x0000C6, 0x0000C7, 0x0000D0, 0x0000D1, 0x0000D7, 0x0000D9, 0x0000DE, 0x0000E2,
-		0x0000E6, 0x0000E7, 0x0000E8, 0x0000EB, 0x0000EC, 0x0000EE, 0x0000F0, 0x0000F1,
-		0x0000F2, 0x0000F4, 0x0000F7, 0x0000FB, 0x0000FC, 0x0000FD, 0x0000FE, 0x0000FF,
-		0x000101, 0x000102, 0x000111, 0x000112, 0x000113, 0x000114, 0x00011B, 0x00011C,
-		0x000126, 0x000128, 0x00012B, 0x00012C, 0x000131, 0x000134, 0x000138, 0x000139,
-		0x00013F, 0x000143, 0x000144, 0x000145, 0x000148, 0x00014C, 0x00014D, 0x00014E,
-		0x000152, 0x000154, 0x000166, 0x000168, 0x00016B, 0x00016C, 0x0001CE, 0x0001CF,
-		0x0001D0, 0x0001D1, 0x0001D2, 0x0001D3, 0x0001D4, 0x0001D5, 0x0001D6, 0x0001D7,
-		0x0001D8, 0x0001D9, 0x0001DA, 0x0001DB, 0x0001DC, 0x0001DD, 0x000251, 0x000252,
-		0x000261, 0x000262, 0x0002C4, 0x0002C5, 0x0002C7, 0x0002C8, 0x0002C9, 0x0002CC,
-		0x0002CD, 0x0002CE, 0x0002D0, 0x0002D1, 0x0002D8, 0x0002DC, 0x0002DD, 0x0002DE,
-		0x0002DF, 0x0002E0, 0x000300, 0x000370, 0x000391, 0x0003A2, 0x0003A3, 0x0003AA,
-		0x0003B1, 0x0003C2, 0x0003C3, 0x0003CA, 0x000401, 0x000402, 0x000410, 0x000450,
-		0x000451, 0x000452, 0x001100, 0x00115A, 0x00115F, 0x001160, 0x002010, 0x002011,
-		0x002013, 0x002017, 0x002018, 0x00201A, 0x00201C, 0x00201E, 0x002020, 0x002023,
-		0x002024, 0x002028, 0x002030, 0x002031, 0x002032, 0x002034, 0x002035, 0x002036,
-		0x00203B, 0x00203C, 0x00203E, 0x00203F, 0x002074, 0x002075, 0x00207F, 0x002080,
-		0x002081, 0x002085, 0x0020AC, 0x0020AD, 0x002103, 0x002104, 0x002105, 0x002106,
-		0x002109, 0x00210A, 0x002113, 0x002114, 0x002116, 0x002117, 0x002121, 0x002123,
-		0x002126, 0x002127, 0x00212B, 0x00212C, 0x002153, 0x002155, 0x00215B, 0x00215F,
-		0x002160, 0x00216C, 0x002170, 0x00217A, 0x002190, 0x00219A, 0x0021B8, 0x0021BA,
-		0x0021D2, 0x0021D3, 0x0021D4, 0x0021D5, 0x0021E7, 0x0021E8, 0x002200, 0x002201,
-		0x002202, 0x002204, 0x002207, 0x002209, 0x00220B, 0x00220C, 0x00220F, 0x002210,
-		0x002211, 0x002212, 0x002215, 0x002216, 0x00221A, 0x00221B, 0x00221D, 0x002221,
-		0x002223, 0x002224, 0x002225, 0x002226, 0x002227, 0x00222D, 0x00222E, 0x00222F,
-		0x002234, 0x002238, 0x00223C, 0x00223E, 0x002248, 0x002249, 0x00224C, 0x00224D,
-		0x002252, 0x002253, 0x002260, 0x002262, 0x002264, 0x002268, 0x00226A, 0x00226C,
-		0x00226E, 0x002270, 0x002282, 0x002284, 0x002286, 0x002288, 0x002295, 0x002296,
-		0x002299, 0x00229A, 0x0022A5, 0x0022A6, 0x0022BF, 0x0022C0, 0x002312, 0x002313,
-		0x002329, 0x00232B, 0x002460, 0x0024EA, 0x0024EB, 0x00254C, 0x002550, 0x002574,
-		0x002580, 0x002590, 0x002592, 0x002596, 0x0025A0, 0x0025A2, 0x0025A3, 0x0025AA,
-		0x0025B2, 0x0025B4, 0x0025B6, 0x0025B8, 0x0025BC, 0x0025BE, 0x0025C0, 0x0025C2,
-		0x0025C6, 0x0025C9, 0x0025CB, 0x0025CC, 0x0025CE, 0x0025D2, 0x0025E2, 0x0025E6,
-		0x0025EF, 0x0025F0, 0x002605, 0x002607, 0x002609, 0x00260A, 0x00260E, 0x002610,
-		0x002614, 0x002616, 0x00261C, 0x00261D, 0x00261E, 0x00261F, 0x002640, 0x002641,
-		0x002642, 0x002643, 0x002660, 0x002662, 0x002663, 0x002666, 0x002667, 0x00266B,
-		0x00266C, 0x00266E, 0x00266F, 0x002670, 0x00273D, 0x00273E, 0x002776, 0x002780,
-		0x002E80, 0x002E9A, 0x002E9B, 0x002EF4, 0x002F00, 0x002FD6, 0x002FF0, 0x002FFC,
-		0x003000, 0x00303F, 0x003041, 0x003097, 0x003099, 0x003100, 0x003105, 0x00312D,
-		0x003131, 0x00318F, 0x003190, 0x0031B8, 0x0031C0, 0x0031D0, 0x0031F0, 0x00321F,
-		0x003220, 0x003244, 0x003250, 0x0032FF, 0x003300, 0x004DB6, 0x004E00, 0x009FBC,
-		0x00A000, 0x00A48D, 0x00A490, 0x00A4C7, 0x00AC00, 0x00D7A4, 0x00E000, 0x00FA2E,
-		0x00FA30, 0x00FA6B, 0x00FA70, 0x00FADA, 0x00FE00, 0x00FE1A, 0x00FE30, 0x00FE53,
-		0x00FE54, 0x00FE67, 0x00FE68, 0x00FE6C, 0x00FF01, 0x00FF61, 0x00FFE0, 0x00FFE7,
-		0x00FFFD, 0x00FFFE, 0x020000, 0x02FFFE, 0x030000, 0x03FFFE, 0x0E0100, 0x0E01F0,
-		0x0F0000, 0x0FFFFE, 0x100000 };
+		0x000000A1, 0x000000A2, 0x000000A4, 0x000000A5, 0x000000A7, 0x000000A9, 0x000000AA, 0x000000AB,
+		0x000000AD, 0x000000AF, 0x000000B0, 0x000000B5, 0x000000B6, 0x000000BB, 0x000000BC, 0x000000C0,
+		0x000000C6, 0x000000C7, 0x000000D0, 0x000000D1, 0x000000D7, 0x000000D9, 0x000000DE, 0x000000E2,
+		0x000000E6, 0x000000E7, 0x000000E8, 0x000000EB, 0x000000EC, 0x000000EE, 0x000000F0, 0x000000F1,
+		0x000000F2, 0x000000F4, 0x000000F7, 0x000000FB, 0x000000FC, 0x000000FD, 0x000000FE, 0x000000FF,
+		0x00000101, 0x00000102, 0x00000111, 0x00000112, 0x00000113, 0x00000114, 0x0000011B, 0x0000011C,
+		0x00000126, 0x00000128, 0x0000012B, 0x0000012C, 0x00000131, 0x00000134, 0x00000138, 0x00000139,
+		0x0000013F, 0x00000143, 0x00000144, 0x00000145, 0x00000148, 0x0000014C, 0x0000014D, 0x0000014E,
+		0x00000152, 0x00000154, 0x00000166, 0x00000168, 0x0000016B, 0x0000016C, 0x000001CE, 0x000001CF,
+		0x000001D0, 0x000001D1, 0x000001D2, 0x000001D3, 0x000001D4, 0x000001D5, 0x000001D6, 0x000001D7,
+		0x000001D8, 0x000001D9, 0x000001DA, 0x000001DB, 0x000001DC, 0x000001DD, 0x00000251, 0x00000252,
+		0x00000261, 0x00000262, 0x000002C4, 0x000002C5, 0x000002C7, 0x000002C8, 0x000002C9, 0x000002CC,
+		0x000002CD, 0x000002CE, 0x000002D0, 0x000002D1, 0x000002D8, 0x000002DC, 0x000002DD, 0x000002DE,
+		0x000002DF, 0x000002E0, 0x00000300, 0x00000370, 0x00000391, 0x000003A2, 0x000003A3, 0x000003AA,
+		0x000003B1, 0x000003C2, 0x000003C3, 0x000003CA, 0x00000401, 0x00000402, 0x00000410, 0x00000450,
+		0x00000451, 0x00000452, 0x00001100, 0x0000115A, 0x0000115F, 0x00001160, 0x00002010, 0x00002011,
+		0x00002013, 0x00002017, 0x00002018, 0x0000201A, 0x0000201C, 0x0000201E, 0x00002020, 0x00002023,
+		0x00002024, 0x00002028, 0x00002030, 0x00002031, 0x00002032, 0x00002034, 0x00002035, 0x00002036,
+		0x0000203B, 0x0000203C, 0x0000203E, 0x0000203F, 0x00002074, 0x00002075, 0x0000207F, 0x00002080,
+		0x00002081, 0x00002085, 0x000020AC, 0x000020AD, 0x00002103, 0x00002104, 0x00002105, 0x00002106,
+		0x00002109, 0x0000210A, 0x00002113, 0x00002114, 0x00002116, 0x00002117, 0x00002121, 0x00002123,
+		0x00002126, 0x00002127, 0x0000212B, 0x0000212C, 0x00002153, 0x00002155, 0x0000215B, 0x0000215F,
+		0x00002160, 0x0000216C, 0x00002170, 0x0000217A, 0x00002190, 0x0000219A, 0x000021B8, 0x000021BA,
+		0x000021D2, 0x000021D3, 0x000021D4, 0x000021D5, 0x000021E7, 0x000021E8, 0x00002200, 0x00002201,
+		0x00002202, 0x00002204, 0x00002207, 0x00002209, 0x0000220B, 0x0000220C, 0x0000220F, 0x00002210,
+		0x00002211, 0x00002212, 0x00002215, 0x00002216, 0x0000221A, 0x0000221B, 0x0000221D, 0x00002221,
+		0x00002223, 0x00002224, 0x00002225, 0x00002226, 0x00002227, 0x0000222D, 0x0000222E, 0x0000222F,
+		0x00002234, 0x00002238, 0x0000223C, 0x0000223E, 0x00002248, 0x00002249, 0x0000224C, 0x0000224D,
+		0x00002252, 0x00002253, 0x00002260, 0x00002262, 0x00002264, 0x00002268, 0x0000226A, 0x0000226C,
+		0x0000226E, 0x00002270, 0x00002282, 0x00002284, 0x00002286, 0x00002288, 0x00002295, 0x00002296,
+		0x00002299, 0x0000229A, 0x000022A5, 0x000022A6, 0x000022BF, 0x000022C0, 0x00002312, 0x00002313,
+		0x00002329, 0x0000232B, 0x00002460, 0x000024EA, 0x000024EB, 0x0000254C, 0x00002550, 0x00002574,
+		0x00002580, 0x00002590, 0x00002592, 0x00002596, 0x000025A0, 0x000025A2, 0x000025A3, 0x000025AA,
+		0x000025B2, 0x000025B4, 0x000025B6, 0x000025B8, 0x000025BC, 0x000025BE, 0x000025C0, 0x000025C2,
+		0x000025C6, 0x000025C9, 0x000025CB, 0x000025CC, 0x000025CE, 0x000025D2, 0x000025E2, 0x000025E6,
+		0x000025EF, 0x000025F0, 0x00002605, 0x00002607, 0x00002609, 0x0000260A, 0x0000260E, 0x00002610,
+		0x00002614, 0x00002616, 0x0000261C, 0x0000261D, 0x0000261E, 0x0000261F, 0x00002640, 0x00002641,
+		0x00002642, 0x00002643, 0x00002660, 0x00002662, 0x00002663, 0x00002666, 0x00002667, 0x0000266B,
+		0x0000266C, 0x0000266E, 0x0000266F, 0x00002670, 0x0000273D, 0x0000273E, 0x00002776, 0x00002780,
+		0x00002E80, 0x00002E9A, 0x00002E9B, 0x00002EF4, 0x00002F00, 0x00002FD6, 0x00002FF0, 0x00002FFC,
+		0x00003000, 0x0000303F, 0x00003041, 0x00003097, 0x00003099, 0x00003100, 0x00003105, 0x0000312D,
+		0x00003131, 0x0000318F, 0x00003190, 0x000031B8, 0x000031C0, 0x000031D0, 0x000031F0, 0x0000321F,
+		0x00003220, 0x00003244, 0x00003250, 0x000032FF, 0x00003300, 0x00004DB6, 0x00004E00, 0x00009FBC,
+		0x0000A000, 0x0000A48D, 0x0000A490, 0x0000A4C7, 0x0000AC00, 0x0000D7A4, 0x0000E000, 0x0000FA2E,
+		0x0000FA30, 0x0000FA6B, 0x0000FA70, 0x0000FADA, 0x0000FE00, 0x0000FE1A, 0x0000FE30, 0x0000FE53,
+		0x0000FE54, 0x0000FE67, 0x0000FE68, 0x0000FE6C, 0x0000FF01, 0x0000FF61, 0x0000FFE0, 0x0000FFE7,
+		0x0000FFFD, 0x0000FFFE, 0xD840DC00, 0xD87FDFFE, 0xD880DC00, 0xD8BFDFFE, 0xDB40DD00, 0xDB40DDF0,
+		0xDB80DC00, 0xDBBFDFFE, 0x00100000 };
 		
 #define UNIWIDTABSIZEA   66
 	static const DWORD UnicodeWidthTabA[] = {
-		0x001100, 0x00115A, 0x00115F, 0x001160, 0x002329, 0x00232B, 0x002E80, 0x002E9A,
-		0x002E9B, 0x002EF4, 0x002F00, 0x002FD6, 0x002FF0, 0x002FFC, 0x003000, 0x00303F,
-		0x003041, 0x003097, 0x003099, 0x003100, 0x003105, 0x00312D, 0x003131, 0x00318F,
-		0x003190, 0x0031B8, 0x0031C0, 0x0031D0, 0x0031F0, 0x00321F, 0x003220, 0x003244,
-		0x003250, 0x0032FF, 0x003300, 0x004DB6, 0x004E00, 0x009FBC, 0x00A000, 0x00A48D,
-		0x00A490, 0x00A4C7, 0x00AC00, 0x00D7A4, 0x00F900, 0x00FA2E, 0x00FA30, 0x00FA6B,
-		0x00FA70, 0x00FADA, 0x00FE10, 0x00FE1A, 0x00FE30, 0x00FE53, 0x00FE54, 0x00FE67,
-		0x00FE68, 0x00FE6C, 0x00FF01, 0x00FF61, 0x00FFE0, 0x00FFE7, 0x020000, 0x02FFFE,
-		0x030000, 0x03FFFE };
+		0x00001100, 0x0000115A, 0x0000115F, 0x00001160, 0x00002329, 0x0000232B, 0x00002E80, 0x00002E9A,
+		0x00002E9B, 0x00002EF4, 0x00002F00, 0x00002FD6, 0x00002FF0, 0x00002FFC, 0x00003000, 0x0000303F,
+		0x00003041, 0x00003097, 0x00003099, 0x00003100, 0x00003105, 0x0000312D, 0x00003131, 0x0000318F,
+		0x00003190, 0x000031B8, 0x000031C0, 0x000031D0, 0x000031F0, 0x0000321F, 0x00003220, 0x00003244,
+		0x00003250, 0x000032FF, 0x00003300, 0x00004DB6, 0x00004E00, 0x00009FBC, 0x0000A000, 0x0000A48D,
+		0x0000A490, 0x0000A4C7, 0x0000AC00, 0x0000D7A4, 0x0000F900, 0x0000FA2E, 0x0000FA30, 0x0000FA6B,
+		0x0000FA70, 0x0000FADA, 0x0000FE10, 0x0000FE1A, 0x0000FE30, 0x0000FE53, 0x0000FE54, 0x0000FE67,
+		0x0000FE68, 0x0000FE6C, 0x0000FF01, 0x0000FF61, 0x0000FFE0, 0x0000FFE7, 0xD840DC00, 0xD87FDFFE,
+		0xD880DC00, 0xD8BFDFFE };
 
-    int b;
+	int b;
 
 	if ( IsOptEnable(TO_RLUNIAWH) )
 		BinaryFind((void *)&code, (void *)(UnicodeWidthTabA), sizeof(DWORD), UNIWIDTABSIZEA, DwrodCmp, &b);
@@ -2620,7 +2663,7 @@ DWORD CTextRam::UCS4toUCS2(DWORD code)
 {
 	if ( (code & 0xFFFF0000L) >= 0x00010000L && (code & 0xFFFF0000L) < 0x00100000L ) {
 		code -= 0x10000L;
-		code = (((code & 0xFFC00L) << 2) | (code & 0x3FF)) | 0xD800DC00L;
+		code = (((code & 0xFFC00L) << 6) | (code & 0x3FF)) | 0xD800DC00L;
 	}
 	return code;
 }
@@ -3508,6 +3551,69 @@ void CTextRam::PUT2BYTE(int ch, int md)
 
 	if ( ch != 0 )
 		CallReciveChar(ch);
+
+	if ( (m_CurX += 2) >= mx ) {
+		if ( IS_ENABLE(m_AnsiOpt, TO_DECAWM) != 0 ) {
+			if ( IS_ENABLE(m_AnsiOpt, TO_RLGNDW) != 0 ) {
+				ONEINDEX();
+				m_CurX = 0;
+				m_LastPos -= COLS_MAX;
+			} else {
+				m_CurX = mx - 1;
+				m_DoWarp = TRUE;
+			}
+		} else 
+			m_CurX = mx - 1;
+	}
+}
+void CTextRam::PUTIVS(int hi, int low)
+{
+	if ( m_StsFlag ) {
+		m_LastChar = hi;
+		m_LastPos  = 0;
+		if ( (hi & 0xFFFF0000) != 0 )
+			m_StsPara += (WCHAR)(hi >> 16);
+		m_StsPara += (WCHAR)hi;
+		if ( (hi & 0xFFFF0000) != 0 )
+			m_StsPara += (WCHAR)(low >> 16);
+		m_StsPara += (WCHAR)low;
+		((CMainFrame *)AfxGetMainWnd())->SetMessageText(CString(m_StsPara));
+		return;
+	}
+
+	if ( !m_DoWarp && (m_CurX + 1) >= m_Cols )
+		PUT1BYTE(0, SET_UNICODE);
+
+	DOWARP();
+
+	VRAM *vp;
+	int dm = GetDm(m_CurY);
+	int mx = (dm != 0 ? (m_Cols / 2) : m_Cols);
+
+	vp = GETVRAM(m_CurX, m_CurY);
+	vp[0].md = vp[1].md = SET_UNICODE;
+	vp[0].em = vp[1].em = m_AttNow.em;
+//	vp[0].dm = vp[1].dm = m_AttNow.dm;	no Init
+	vp[0].cm = CM_IVS;
+	vp[1].cm = CM_2BYTE;
+	vp[0].at = vp[1].at = m_AttNow.at;
+	vp[0].ft = vp[1].ft = m_AttNow.ft;
+	vp[0].fc = vp[1].fc = m_AttNow.fc;
+	vp[0].bc = vp[1].bc = m_AttNow.bc;
+
+	vp[0].ch = hi;
+	vp[1].ch = low;
+
+	if ( dm != 0 )
+		DISPVRAM(m_CurX * 2, m_CurY, 4, 1);
+	else
+		DISPVRAM(m_CurX, m_CurY, 2, 1);
+
+	m_LastChar = hi;
+	m_LastPos  = m_CurX + m_CurY * COLS_MAX;
+
+	CallReciveChar(hi);
+	CallReciveChar(low);
 
 	if ( (m_CurX += 2) >= mx ) {
 		if ( IS_ENABLE(m_AnsiOpt, TO_DECAWM) != 0 ) {

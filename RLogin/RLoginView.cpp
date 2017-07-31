@@ -253,7 +253,7 @@ void CRLoginView::CalcPosRect(CRect &rect)
 
 	rect.NormalizeRect();
 
-	rect.right  += 1;
+	rect.right  += 2;
 	rect.bottom += 1;
 }
 void CRLoginView::InvalidateTextRect(CRect rect)

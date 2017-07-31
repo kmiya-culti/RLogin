@@ -1624,7 +1624,20 @@ void CTextRam::fc_UTF85(int ch)
 			m_BackChar = n;
 			LOCATE(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX);
 		}
-		if ( UnicodeWidth(UCS2toUCS4(m_BackChar)) == 1 ) {
+		// VARIATION SELECTOR
+		// U+180B - U+180D
+		// U+FE00 - U+FE0F
+		// U+E0100 = U+DB40 U+DD00
+		// U+E01EF = U+DB40 U+DDEF
+		if ( (m_BackChar >= 0x180B && m_BackChar <= 0x180D) ||
+			 (m_BackChar >= 0xFE00 && m_BackChar <= 0xFE0F) ||
+			 (m_BackChar >= 0xDB40DD00 && m_BackChar <= 0xDB40DDEF) ) {
+			if ( m_LastChar > 0 ) {
+				INSMDCK(2);
+				LOCATE(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX);
+				PUTIVS(m_LastChar, m_BackChar);
+			}
+		} else if ( UnicodeWidth(m_BackChar) == 1 ) {
 			INSMDCK(1);
 			if ( m_BackChar < 0x0080 )
 				PUT1BYTE(m_BackChar & 0x7F, m_BankTab[m_KanjiMode][0]);

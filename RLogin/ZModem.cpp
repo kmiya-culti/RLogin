@@ -903,7 +903,7 @@ NEXTFILE:
 		case ZACK:
 			if ( --ackCount < 0 )
 				ackCount = 0;
-			if ( winCount < 8 )
+			if ( winCount < ZM_PKTQUE )
 				winCount++;
 			toutFlag = FALSE;
 			nakCount = 0;

@@ -12,6 +12,8 @@
 #include "SyncSock.h"
 #include "zm.h"
 
+#define	ZM_PKTQUE	16
+
 class CZModem : public CSyncSock  
 {
 public:

@@ -482,7 +482,7 @@ void CServerSelect::OnServInport()
 	CHAR tmp[32];
 
 	TRY {
-		memset(tmp, 16, 0);
+		memset(tmp, 0, 16);
 		for ( n = 0 ; n < 16 && Archive.Read(&(tmp[n]), 1) == 1 ; n++ ) {
 			if ( tmp[n] == '\n' )
 				break;
@@ -507,7 +507,7 @@ void CServerSelect::OnServInport()
 
 			m_EntryNum = m_pData->AddEntry(Entry);
 
-			memset(tmp, 16, 0);
+			memset(tmp, 0, 16);
 			for ( n = 0 ; n < 16 && Archive.Read(&(tmp[n]), 1) == 1 ; n++ ) {
 				if ( tmp[n] == '\n' )
 					break;

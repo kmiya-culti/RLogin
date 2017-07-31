@@ -154,7 +154,7 @@ void CRLoginDoc::Serialize(CArchive& ar)
 		int n;
 		CHAR tmp[4096];
 
-		memset(tmp, 16, 0);
+		memset(tmp, 0, 16);
 		for ( n = 0 ; n < 16 && ar.Read(&(tmp[n]), 1) == 1 ; n++ ) {
 			if ( tmp[n] == '\n' )
 				break;

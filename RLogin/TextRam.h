@@ -79,11 +79,12 @@
 #define CM_ASCII		0
 #define CM_1BYTE		1
 #define CM_2BYTE		2
-#define	CM_RESV			3
+#define	CM_IVS			3
 
 #define IS_ASCII(a) 	((a) == CM_ASCII)
 #define IS_1BYTE(a) 	((a) == CM_1BYTE)
 #define IS_2BYTE(a) 	((a) == CM_2BYTE)
+#define IS_IVS(a)	 	((a) == CM_IVS)
 
 // DEC Terminal Option	0-199
 #define	TO_DECCKM		1			// Cursor key mode
@@ -513,9 +514,9 @@ public:
 	int m_RecvCrLf;
 	int m_SendCrLf;
 
-	int m_BackChar;
+	DWORD m_BackChar;
 	int m_BackMode;
-	int m_LastChar;
+	DWORD m_LastChar;
 	int m_LastPos;
 
 	CWordArray m_AnsiPara;
@@ -614,14 +615,14 @@ public:
 		int		dmf, csz;
 	};
 
-	int IsWord(WCHAR ch);
+	int IsWord(int ch);
 	int GetPos(int x, int y);
 	BOOL IncPos(int &x, int &y);
 	BOOL DecPos(int &x, int &y);
 	void EditWordPos(int *sps, int *eps);
 	void EditCopy(int sps, int eps, BOOL rectflag = FALSE, BOOL lineflag = FALSE);
 	void GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf);
-	void StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop, int len, char *str, int sln, int *spc, class CRLoginView *pView);
+	void StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop, int len, LPCWSTR str, int *spc, class CRLoginView *pView);
 	void DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginView *pView);
 
 	CWnd *GetAciveView();
@@ -682,6 +683,7 @@ public:
 	void REVINDEX();
 	void PUT1BYTE(int ch, int md);
 	void PUT2BYTE(int ch, int md);
+	void PUTIVS(int hi, int low);
 	void INSMDCK(int len);
 	void ANSIOPT(int opt, int bit);
 	void SAVERAM();

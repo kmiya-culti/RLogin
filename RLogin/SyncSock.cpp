@@ -228,6 +228,7 @@ void CSyncSock::DoAbort()
 		return;
 	m_DoAbortFlag = TRUE;
 	m_ProgDlg.m_AbortFlag = TRUE;
+	m_pParamEvent->SetEvent();
 	if ( m_pDoc != NULL && m_pDoc->m_pSock != NULL )
 		m_pDoc->m_pSock->SyncAbort();
 	WaitForSingleObject(m_pThreadEvent->m_hObject, INFINITE);
