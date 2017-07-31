@@ -198,10 +198,13 @@
 #define IDC_LISTENHOST                  1079
 #define IDC_KEYSTAT4                    1079
 #define IDC_LISTENPORT                  1080
+#define IDC_KEYSTAT5                    1080
 #define IDC_LOADDEFAULT                 1081
+#define IDC_KEYSTAT6                    1081
 #define IDC_LOCAL_CWD                   1082
 #define IDC_LOCAL_LIST                  1083
 #define IDC_LOGINNAME                   1084
+#define IDC_KEYSTAT9                    1084
 #define IDC_MDI_TAB_CTRL                1085
 #define IDC_MDI_TAB_CTRL_BAR            1086
 #define IDC_NEWENTRY                    1087

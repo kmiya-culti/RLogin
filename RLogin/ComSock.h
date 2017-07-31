@@ -44,7 +44,7 @@ public:
 	void SetMode(CString &str);
 
 	void ConfigDlg(CWnd *pWnd, CString &str);
-	int AliveComPort();
+	DWORD AliveComPort();
 
 	CComSock(class CRLoginDoc *pDoc);
 	virtual ~CComSock();

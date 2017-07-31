@@ -640,8 +640,20 @@ int CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 		st |= MASK_CTRL;
 	if ( (GetKeyState(VK_MENU) & 0x80) != 0 )
 		st |= MASK_ALT;
-	if ( pDoc->m_TextRam.IsOptEnable(TO_DECCKM) )
+	if ( pDoc->m_TextRam.IsOptEnable(TO_DECPAM) )
 		st |= MASK_APPL;
+
+	if ( !pDoc->m_TextRam.IsOptEnable(TO_DECANM) )
+		st |= MASK_VT52;
+	else if ( pDoc->m_TextRam.IsOptEnable(TO_DECCKM) )
+		st |= MASK_CKM;
+
+	//if ( (GetKeyState(VK_NUMLOCK) & 0x01) != 0 )
+	//	st |= MASK_NUMLCK;
+	//if ( (GetKeyState(VK_SCROLL) & 0x01) != 0 )
+	//	st |= MASK_SCRLCK;
+	//if ( (GetKeyState(VK_CAPITAL) & 0x01) != 0 )
+	//	st |= MASK_CAPLCK;
 
 	//TRACE("OnKey %02x(%02x)\n", nChar, st);
 
@@ -858,7 +870,7 @@ BOOL CRLoginView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 	ofs = zDelta * pDoc->m_TextRam.m_WheelSize / (WHEEL_DELTA / 2);
 
 	if ( (!pDoc->m_TextRam.IsOptEnable(TO_RLMSWAPP) && pDoc->m_TextRam.IsOptEnable(TO_DECCKM)) || (pDoc->m_TextRam.m_MouseTrack > 0 && !m_MouseEventFlag) || (nFlags & MK_CONTROL) != 0 ) {
-		if ( pDoc->m_KeyTab.FindMaps((ofs > 0 ? VK_UP : VK_DOWN), (pDoc->m_TextRam.IsOptEnable(TO_DECCKM) ? MASK_APPL : 0), &tmp) ) {
+		if ( pDoc->m_KeyTab.FindMaps((ofs > 0 ? VK_UP : VK_DOWN), (pDoc->m_TextRam.IsOptEnable(TO_DECCKM) ? MASK_CKM : 0), &tmp) ) {
 			for ( pos = (ofs < 0 ? (0 - ofs) : ofs) ; pos > 0 ; pos-- )
 				SendBuffer(tmp);
 		}

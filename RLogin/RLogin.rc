@@ -13,13 +13,11 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// 日本語 resources
+// 日本語 (日本) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_JPN)
-#ifdef _WIN32
 LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
 #pragma code_page(932)
-#endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -95,7 +93,7 @@ IDB_ATTR8               BITMAP                  "res\\attr8.bmp"
 // Toolbar
 //
 
-IDR_MAINFRAME TOOLBAR  16, 15
+IDR_MAINFRAME TOOLBAR 16, 15
 BEGIN
     BUTTON      ID_FILE_NEW
     BUTTON      ID_FILE_CLOSE
@@ -127,7 +125,7 @@ BEGIN
     BUTTON      ID_APP_ABOUT
 END
 
-IDR_SFTPTOOL TOOLBAR  16, 15
+IDR_SFTPTOOL TOOLBAR 16, 15
 BEGIN
     BUTTON      IDM_SFTP_UPLOAD
     BUTTON      IDM_SFTP_DOWNLOAD
@@ -150,7 +148,7 @@ END
 // Menu
 //
 
-IDR_MAINFRAME MENU 
+IDR_MAINFRAME MENU
 BEGIN
     POPUP "ファイル(&F)"
     BEGIN
@@ -183,7 +181,7 @@ BEGIN
     END
 END
 
-IDR_RLOGINTYPE MENU 
+IDR_RLOGINTYPE MENU
 BEGIN
     POPUP "ファイル(&F)"
     BEGIN
@@ -285,7 +283,7 @@ BEGIN
     END
 END
 
-IDR_SFTPMENU MENU 
+IDR_SFTPMENU MENU
 BEGIN
     POPUP "ﾌｧｲﾙ(&F)"
     BEGIN
@@ -311,7 +309,7 @@ BEGIN
     END
 END
 
-IDR_POPUPMENU MENU 
+IDR_POPUPMENU MENU
 BEGIN
     POPUP "SERVERLIST"
     BEGIN
@@ -373,7 +371,7 @@ BEGIN
     END
 END
 
-IDR_TEKWND MENU 
+IDR_TEKWND MENU
 BEGIN
     POPUP "ファイル(&F)"
     BEGIN
@@ -404,10 +402,10 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.8.5 (2010/05/24)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.8.6 (2010/07/21)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2010 Culti",IDC_STATIC,47,15,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,148,50,14,WS_GROUP
-    LTEXT           "OpenSSL 1.0.0 Mar 29th, 2010",IDC_STATIC,47,29,176,8
+    LTEXT           "OpenSSL 1.0.0a Jun 01th, 2010",IDC_STATIC,47,29,176,8
     LTEXT           "Copyright (c) 1998-2009 The OpenSSL Project",IDC_STATIC,47,39,176,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,47,49,176,8
     LTEXT           "All rights reserved.",IDC_STATIC,47,59,176,8
@@ -597,23 +595,25 @@ BEGIN
     LTEXT           "Font Quality",IDC_STATIC,155,197,45,8
 END
 
-IDD_KEYPARADLG DIALOGEX 0, 0, 214, 108
+IDD_KEYPARADLG DIALOGEX 0, 0, 195, 123
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Assign Key String"
 FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
 BEGIN
-    COMBOBOX        IDC_KEYCODE,7,20,48,88,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "Shift",IDC_KEYSTAT1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,75,22,26,10
-    CONTROL         "Ctrl",IDC_KEYSTAT2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,109,22,26,10
-    CONTROL         "Alt",IDC_KEYSTAT3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,143,22,26,10
-    CONTROL         "Appli",IDC_KEYSTAT4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,177,22,26,10
-    DEFPUSHBUTTON   "OK",IDOK,50,87,50,14
-    PUSHBUTTON      "キャンセル",IDCANCEL,113,87,50,14
-    LTEXT           "KeyCode",IDC_STATIC,7,7,30,8
-    GROUPBOX        "",IDC_STATIC,69,7,138,36
-    CTEXT           "+",IDC_STATIC,59,22,8,8
-    LTEXT           "Assign String",IDC_STATIC,7,45,43,8
-    COMBOBOX        IDC_KEYMAPS,7,60,200,110,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_KEYCODE,7,30,48,88,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Shift",IDC_KEYSTAT1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,78,22,26,10
+    CONTROL         "Ctrl",IDC_KEYSTAT2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,114,22,26,10
+    CONTROL         "Alt",IDC_KEYSTAT3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,150,22,26,10
+    CONTROL         "App",IDC_KEYSTAT4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,78,42,26,10
+    CONTROL         "CKM",IDC_KEYSTAT5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,114,42,26,10
+    CONTROL         "VT52",IDC_KEYSTAT6,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,150,42,26,10
+    COMBOBOX        IDC_KEYMAPS,7,80,181,110,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    DEFPUSHBUTTON   "OK",IDOK,41,102,50,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,104,102,50,14
+    LTEXT           "KeyCode",IDC_STATIC,7,17,30,8
+    GROUPBOX        "",IDC_STATIC,70,7,118,55
+    CTEXT           "+",IDC_STATIC,59,32,8,8
+    LTEXT           "Assign String",IDC_STATIC,7,65,43,8
 END
 
 IDD_TERMPAGE DIALOGEX 0, 0, 251, 270
@@ -1213,8 +1213,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,8,5,0
- PRODUCTVERSION 2,8,5,0
+ FILEVERSION 2,8,6,0
+ PRODUCTVERSION 2,8,6,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1231,12 +1231,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2, 8, 5, 0"
+            VALUE "FileVersion", "2, 8, 6, 0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2008 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2, 8, 5, 0"
+            VALUE "ProductVersion", "2, 8, 6, 0"
         END
     END
     BLOCK "VarFileInfo"
@@ -1252,7 +1252,7 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO 
+GUIDELINES DESIGNINFO
 BEGIN
     IDD_ABOUTBOX, DIALOG
     BEGIN
@@ -1337,9 +1337,9 @@ BEGIN
     IDD_KEYPARADLG, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 207
+        RIGHTMARGIN, 188
         TOPMARGIN, 7
-        BOTTOMMARGIN, 101
+        BOTTOMMARGIN, 116
     END
 
     IDD_TERMPAGE, DIALOG
@@ -2174,30 +2174,30 @@ END
 // String Table
 //
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     IDR_MAINFRAME           "RLogin"
     IDR_RLOGINTYPE          "\nRLogin\nRLogin\nRLogin ﾌｧｲﾙ (*.rlg)\n.rlg\nRLogin.Document\nRLogin Document"
     IDP_SOCKETS_INIT_FAILED "Windows ソケットの初期化に失敗しました。"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     IDC_LOADDEFAULT         "すべてのオプション設定を標準に戻します\n標準に戻す"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     IDC_SAVEDEFAULT         "現在のオプション設定を標準に設定します\n標準に設定"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     AFX_IDS_APP_TITLE       "RLogin"
     AFX_IDS_IDLEMESSAGE     " "
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     ID_INDICATOR_EXT        "EXT"
     ID_INDICATOR_CAPS       "CAP"
@@ -2208,14 +2208,14 @@ BEGIN
     ID_INDICATOR_KANA       "ｶﾅ"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     ID_DISCONNECT           "サーバーとの接続を閉じます\n接続を閉じる"
     ID_INDICATOR_SOCK       "        "
     ID_LOG_OPEN             "通信ログをファイルに保存する\n通信ログ"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     ID_MACRO_PLAY           "記録されたキー操作を再現します\n記録したキー操作を再現"
     ID_MACRO_REC            "キー入力を記録もしくわ停止します\nキー操作の記録"
@@ -2229,7 +2229,7 @@ BEGIN
     ID_FILE_ALL_SAVE        "サーバー情報とウインドウ状態も含めてファイルに保存\nすべて保存"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     ID_FILE_NEW             "サーバーに接続する\nサーバー接続"
     ID_FILE_OPEN            "既存のサーバー情報ファイルを開く\n開く"
@@ -2238,13 +2238,13 @@ BEGIN
     ID_FILE_SAVE_AS         "接続中のサーバー情報を新しい名前で保存\n名前をつけて保存"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     ID_APP_ABOUT            "プログラムの情報、バージョンそして著作権を表示\nバージョン情報"
     ID_APP_EXIT             "アプリケーションを終了し、ファイルの保存を指示\n終了"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     ID_FILE_MRU_FILE1       "指定のﾌｧｲﾙを開く"
     ID_FILE_MRU_FILE2       "指定のﾌｧｲﾙを開く"
@@ -2264,13 +2264,13 @@ BEGIN
     ID_FILE_MRU_FILE16      "指定のﾌｧｲﾙを開く"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     ID_NEXT_PANE            "次のｳｨﾝﾄﾞｳに切り替える\n次のﾍﾟｲﾝ"
     ID_PREV_PANE            "前のｳｨﾝﾄﾞｳに切り替える\n前のﾍﾟｲﾝ"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     ID_WINDOW_NEW           "作業中のウィンドウを複写して表示\n新規ウィンドウ"
     ID_WINDOW_ARRANGE       "ｳｨﾝﾄﾞｳの下部にｱｲｺﾝを整列\nｱｲｺﾝの整列"
@@ -2280,7 +2280,7 @@ BEGIN
     ID_WINDOW_SPLIT         "作業中のｳｨﾝﾄﾞｳを分割\n分割"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     ID_EDIT_CLEAR           "選択範囲を消去\n消去"
     ID_EDIT_CLEAR_ALL       "すべて消去\nすべて消去"
@@ -2295,13 +2295,13 @@ BEGIN
     ID_EDIT_REDO            "直前に行った動作を繰り返す\n繰り返す"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     ID_VIEW_TOOLBAR         "ツールバーの 表示/非表示\nツールバーの表示切り替え"
     ID_VIEW_STATUS_BAR      "ステータスバーの 表示/非表示\nステータスバーの表示切り替え"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     AFX_IDS_SCSIZE          "ｳｨﾝﾄﾞｳのｻｲｽﾞを変更"
     AFX_IDS_SCMOVE          "ｳｨﾝﾄﾞｳの位置を変更"
@@ -2312,14 +2312,14 @@ BEGIN
     AFX_IDS_SCCLOSE         "作業中のｳｨﾝﾄﾞｳを閉じ、変更したﾌｧｲﾙの保存を指示"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     AFX_IDS_SCRESTORE       "ｳｨﾝﾄﾞｳを通常のｻｲｽﾞに戻す"
     AFX_IDS_SCTASKLIST      "ｱﾌﾟﾘｹｰｼｮﾝの切り替え"
     AFX_IDS_MDICHILD        "指定のｳｨﾝﾄﾞｳを表示"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     IDM_KANJI_EUC           "漢字コードをEUCで処理する\nEUC"
     IDM_KANJI_SJIS          "漢字コードをSHIFTJISで処理する\nSJIS"
@@ -2331,7 +2331,7 @@ BEGIN
     IDM_SFTP_ALLUPLOAD      "ファイルの更新日時を比較してアップロードする\nミラーアップロード"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     ID_EDIT_CHECK           "他の変更を確認して最新の情報に更新します\n更新"
     ID_SEND_BREAK           "シリアル通信の場合Break信号をおくります\nBreak送信"
@@ -2340,7 +2340,7 @@ BEGIN
     ID_EDIT_PASTE_ALL       "クリップボードから貼り付け\nすべて貼り付け"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     IDM_RESET_TAB           "タブ設定を初期化します\nタブ初期化"
     IDM_RESET_BANK          "文字バンク設定を初期化します\nバンク初期化"
@@ -2357,7 +2357,7 @@ BEGIN
     IDM_TEK_MODE            "Tek/VTモードの切換を行います\nモード切替"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     IDM_SFTP_CHMOD          "ファイル属性の変更\n属性変更"
     IDM_SFTP_CLOSE          "このファイル転送ウィンドウを閉じる\n閉じる"
@@ -2377,13 +2377,13 @@ BEGIN
     IDM_KERMIT_DOWNLOAD     "Kermitでファイルをダウンロードする\nKermitダウン"
 END
 
-STRINGTABLE 
+STRINGTABLE
 BEGIN
     IDM_BROADCAST           "キー入力を他のウィンドウにも同時送信する\n同時送信"
     IDM_SOCKETSTATUS        "ソケットの現在の状態を表示\nソケットステータス"
 END
 
-#endif    // 日本語 resources
+#endif    // 日本語 (日本) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

@@ -331,10 +331,15 @@ public:
 	CServerEntryTab();
 };
 
-#define	MASK_SHIFT	001
-#define	MASK_CTRL	002
-#define	MASK_ALT	004
-#define	MASK_APPL	010
+#define	MASK_SHIFT	0001
+#define	MASK_CTRL	0002
+#define	MASK_ALT	0004
+#define	MASK_APPL	0010
+#define	MASK_CKM	0020
+#define	MASK_VT52	0040
+#define	MASK_NUMLCK	0100
+#define	MASK_SCRLCK	0200
+#define	MASK_CAPLCK	0400
 
 class CKeyNode : public CObject
 {
@@ -398,10 +403,12 @@ public:
 	void SetArray(CStringArrayExt &array);
 	void GetArray(CStringArrayExt &array);
 
-	BOOL FindMaps(int code, int mask, CBuffer *pBuf);
+	BOOL Find(int code, int mask, int *base);
 	int Add(CKeyNode &node);
 	int Add(int code, int mask, LPCSTR str);
 	int Add(LPCSTR code, int mask, LPCSTR maps);
+	BOOL FindKeys(int code, int mask, CBuffer *pBuf, int base, int bits);
+	BOOL FindMaps(int code, int mask, CBuffer *pBuf);
 
 	inline CKeyNode &GetAt(int pos) { return m_Node[pos]; }
 	inline int GetSize() { return (int)m_Node.GetSize(); }
@@ -412,6 +419,7 @@ public:
 	const CKeyNodeTab & operator = (CKeyNodeTab &data);
 	CKeyNodeTab();
 
+	void BugFix(int fix);
 	void CmdsInit();
 	static int GetCmdsKey(LPCWSTR str);
 	static void SetComboList(CComboBox *pCombo);

@@ -1494,9 +1494,10 @@ void CTextRam::EditCopy(int sps, int eps, BOOL rectflag, BOOL lineflag)
 				tc++;
 				if ( (x % m_DefTab) == (m_DefTab - 1) ) {
 //					if ( tc > (m_DefTab / 2) ) {
+					if ( tc > 1 ) {
 						str.ConsumeEnd(tc * 2);
 						str.PutWord('\t');
-//					}
+					}
 					tc = 0;
 				}
 			} else

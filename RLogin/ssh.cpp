@@ -1409,7 +1409,7 @@ void Cssh::SendMsgChannelOpenFailure(int id)
 
 	tmp.Put8Bit(SSH2_MSG_CHANNEL_OPEN_FAILURE);
 	tmp.Put32Bit(m_Chan[id].m_RemoteID);
-	tmp.Put32Bit(SSH2_OPEN_ADMINISTRATIVELY_PROHIBITED);
+	tmp.Put32Bit(SSH2_OPEN_CONNECT_FAILED);
 	tmp.PutStr("open failed");
 	tmp.PutStr("");
 	SendPacket2(&tmp);
@@ -2053,7 +2053,7 @@ FAILURE:
 	tmp.Clear();
 	tmp.Put8Bit(SSH2_MSG_CHANNEL_OPEN_FAILURE);
 	tmp.Put32Bit(id);
-	tmp.Put32Bit(SSH2_OPEN_ADMINISTRATIVELY_PROHIBITED);
+	tmp.Put32Bit(SSH2_OPEN_CONNECT_FAILED);
 	tmp.PutStr("open failed");
 	tmp.PutStr("");
 	SendPacket2(&tmp);

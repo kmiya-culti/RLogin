@@ -1819,23 +1819,45 @@ static const struct _KeyNameTab	{
 	{ VK_F22,		"F22" },
 	{ VK_F23,		"F23" },
 	{ VK_F24,		"F24" },
+
 	{ VK_UP,		"UP" },
 	{ VK_DOWN,		"DOWN" },
 	{ VK_RIGHT,		"RIGHT" },
 	{ VK_LEFT,		"LEFT" },
+
 	{ VK_PRIOR,		"PRIOR" },
 	{ VK_NEXT,		"NEXT" },
 	{ VK_INSERT,	"INSERT" },
 	{ VK_DELETE,	"DELETE" },
 	{ VK_HOME,		"HOME" },
 	{ VK_END,		"END" },
+
 	{ VK_PAUSE,		"PAUSE" },
 	{ VK_CANCEL,	"BREAK" },
+
 	{ VK_ESCAPE,	"ESCAPE" },
 	{ VK_RETURN,	"RETURN" },
 	{ VK_BACK,		"BACK" },
 	{ VK_TAB,		"TAB" },
 	{ VK_SPACE,		"SPACE" },
+
+	{ VK_NUMPAD0,	"PAD0" },
+	{ VK_NUMPAD1,	"PAD1" },
+	{ VK_NUMPAD2,	"PAD2" },
+	{ VK_NUMPAD3 ,	"PAD3" },
+	{ VK_NUMPAD4,	"PAD4" },
+	{ VK_NUMPAD5,	"PAD5" },
+	{ VK_NUMPAD6,	"PAD6" },
+	{ VK_NUMPAD7,	"PAD7" },
+	{ VK_NUMPAD8,	"PAD8" },
+	{ VK_NUMPAD9,	"PAD9" },
+	{ VK_MULTIPLY,	"PADMUL" },
+	{ VK_ADD,		"PADADD" },
+	{ VK_SEPARATOR,	"PADSEP" },
+	{ VK_SUBTRACT,	"PADSUB" },
+	{ VK_DECIMAL,	"PADDEC" },
+	{ VK_DIVIDE,	"PADDIV" },
+
 	{ VK_OEM_1,		"$BA(:)" },
 	{ VK_OEM_PLUS,	"$BB(;)" },
 	{ VK_OEM_COMMA,	"$BC(,)" },
@@ -1900,7 +1922,14 @@ LPCSTR CKeyNode::GetMask()
 	if ( (m_Mask & MASK_CTRL) )  m_Temp += "Ctrl+";
 	if ( (m_Mask & MASK_SHIFT) ) m_Temp += "Shift+";
 	if ( (m_Mask & MASK_ALT) )   m_Temp += "Alt+";
-	if ( (m_Mask & MASK_APPL) )  m_Temp += "Appl+";
+
+	if ( (m_Mask & MASK_APPL) )  m_Temp += "App+";
+	if ( (m_Mask & MASK_CKM) )   m_Temp += "Ckm+";
+	if ( (m_Mask & MASK_VT52) )  m_Temp += "VT52+";
+
+	if ( (m_Mask & MASK_NUMLCK) ) m_Temp += "Num+";
+	if ( (m_Mask & MASK_SCRLCK) ) m_Temp += "Scr+";
+	if ( (m_Mask & MASK_CAPLCK) ) m_Temp += "Cap+";
 
 	if ( !m_Temp.IsEmpty() )
 		m_Temp.Delete(m_Temp.GetLength() - 1, 1);
@@ -2033,16 +2062,7 @@ void CKeyCmdsTab::ResetMenuAll(CMenu *pMenu)
 //////////////////////////////////////////////////////////////////////
 // CKeyNodeTab
 
-CKeyNodeTab::CKeyNodeTab()
-{
-	m_CmdsInit = FALSE;
-	m_pSection = "KeyTab";
-	Init();
-}
-void CKeyNodeTab::Init()
-{
-	int n;
-	static const struct {
+static const struct {
 		int	code;
 		int mask;
 		_TCHAR *maps;
@@ -2051,11 +2071,13 @@ void CKeyNodeTab::Init()
 		{ VK_DOWN,	0,			"\\033[B" },
 		{ VK_RIGHT,	0,			"\\033[C" },
 		{ VK_LEFT,	0,			"\\033[D" },
-		{ VK_END,	0,			"\\033[E" },
+		{ VK_END,	0,			"\\033[F" },
 		{ VK_NEXT,	0,			"\\033[G" },
 		{ VK_HOME,	0,			"\\033[H" },
 		{ VK_PRIOR,	0,			"\\033[I" },
 		{ VK_INSERT,0,			"\\033[L" },
+		{ VK_DELETE,0,			"\\177" },
+
 		{ VK_F1,	0,			"\\033[M" },
 		{ VK_F2,	0,			"\\033[N" },
 		{ VK_F3,	0,			"\\033[O" },
@@ -2068,7 +2090,45 @@ void CKeyNodeTab::Init()
 		{ VK_F10,	0,			"\\033[V" },
 		{ VK_F11,	0,			"\\033[W" },
 		{ VK_F12,	0,			"\\033[X" },
-		{ VK_DELETE,0,			"\\177" },
+
+		{ VK_F1,	MASK_SHIFT,	"\\033[Y" },
+		{ VK_F2,	MASK_SHIFT,	"\\033[Z" },
+		{ VK_F3,	MASK_SHIFT,	"\\033[a" },
+		{ VK_F4,	MASK_SHIFT,	"\\033[b" },
+		{ VK_F5,	MASK_SHIFT,	"\\033[c" },
+		{ VK_F6,	MASK_SHIFT,	"\\033[d" },
+		{ VK_F7,	MASK_SHIFT,	"\\033[e" },
+		{ VK_F8,	MASK_SHIFT,	"\\033[f" },
+		{ VK_F9,	MASK_SHIFT,	"\\033[g" },
+		{ VK_F10,	MASK_SHIFT,	"\\033[h" },
+		{ VK_F11,	MASK_SHIFT,	"\\033[i" },
+		{ VK_F12,	MASK_SHIFT,	"\\033[j" },
+
+		{ VK_F1,	MASK_CTRL,	"\\033[k" },
+		{ VK_F2,	MASK_CTRL,	"\\033[l" },
+		{ VK_F3,	MASK_CTRL,	"\\033[m" },
+		{ VK_F4,	MASK_CTRL,	"\\033[n" },
+		{ VK_F5,	MASK_CTRL,	"\\033[o" },
+		{ VK_F6,	MASK_CTRL,	"\\033[p" },
+		{ VK_F7,	MASK_CTRL,	"\\033[q" },
+		{ VK_F8,	MASK_CTRL,	"\\033[r" },
+		{ VK_F9,	MASK_CTRL,	"\\033[s" },
+		{ VK_F10,	MASK_CTRL,	"\\033[t" },
+		{ VK_F11,	MASK_CTRL,	"\\033[u" },
+		{ VK_F12,	MASK_CTRL,	"\\033[v" },
+
+		{ VK_F1,	MASK_SHIFT | MASK_CTRL,	"\\033[w" },
+		{ VK_F2,	MASK_SHIFT | MASK_CTRL,	"\\033[x" },
+		{ VK_F3,	MASK_SHIFT | MASK_CTRL,	"\\033[y" },
+		{ VK_F4,	MASK_SHIFT | MASK_CTRL,	"\\033[z" },
+		{ VK_F5,	MASK_SHIFT | MASK_CTRL,	"\\033[@" },
+		{ VK_F6,	MASK_SHIFT | MASK_CTRL,	"\\033[[" },
+		{ VK_F7,	MASK_SHIFT | MASK_CTRL,	"\\033[<" },
+		{ VK_F8,	MASK_SHIFT | MASK_CTRL,	"\\033[]" },
+		{ VK_F9,	MASK_SHIFT | MASK_CTRL,	"\\033[^" },
+		{ VK_F10,	MASK_SHIFT | MASK_CTRL,	"\\033[_" },
+		{ VK_F11,	MASK_SHIFT | MASK_CTRL,	"\\033['" },
+		{ VK_F12,	MASK_SHIFT | MASK_CTRL,	"\\033[{" },
 
 		{ VK_HOME,	MASK_APPL,	"\\033[1~" },	//	kh	@0
 		{ VK_INSERT,MASK_APPL,	"\\033[2~" },	//	kI
@@ -2098,10 +2158,15 @@ void CKeyNodeTab::Init()
 		{ VK_F19,	MASK_APPL,	"\\033[33~" },	//	F9
 		{ VK_F20,	MASK_APPL,	"\\033[34~" },	//	FA
 
-		{ VK_UP,	MASK_APPL,	"\\033OA" },	//	ku
-		{ VK_DOWN,	MASK_APPL,	"\\033OB" },	//	kd
-		{ VK_RIGHT,	MASK_APPL,	"\\033OC" },	//	kr
-		{ VK_LEFT,	MASK_APPL,	"\\033OD" },	//	kl
+		{ VK_UP,	MASK_CKM,	"\\033OA" },	//	ku
+		{ VK_DOWN,	MASK_CKM,	"\\033OB" },	//	kd
+		{ VK_RIGHT,	MASK_CKM,	"\\033OC" },	//	kr
+		{ VK_LEFT,	MASK_CKM,	"\\033OD" },	//	kl
+
+		{ VK_UP,	MASK_VT52,	"\\033A" },
+		{ VK_DOWN,	MASK_VT52,	"\\033B" },
+		{ VK_RIGHT,	MASK_VT52,	"\\033C" },
+		{ VK_LEFT,	MASK_VT52,	"\\033D" },
 
 		{ VK_PRIOR,	MASK_SHIFT,	"$PRIOR" },
 		{ VK_NEXT,	MASK_SHIFT,	"$NEXT" },
@@ -2119,11 +2184,21 @@ void CKeyNodeTab::Init()
 		{ (-1),		(-1),		NULL },
 	};
 
+CKeyNodeTab::CKeyNodeTab()
+{
+	m_CmdsInit = FALSE;
+	m_pSection = "KeyTab";
+	Init();
+}
+void CKeyNodeTab::Init()
+{
+	int n;
+
 	m_Node.RemoveAll();
 	for ( n = 0 ; InitKeyTab[n].maps != NULL ; n++ )
 		Add(InitKeyTab[n].code, InitKeyTab[n].mask, InitKeyTab[n].maps);
 }
-int CKeyNodeTab::Add(CKeyNode &node)
+BOOL CKeyNodeTab::Find(int code, int mask, int *base)
 {
 	int c;
 	int n;
@@ -2132,17 +2207,28 @@ int CKeyNodeTab::Add(CKeyNode &node)
 
 	while ( b <= m ) {
 		n = (b + m) / 2;
-		if ( (c = m_Node[n].m_Code - node.m_Code) == 0 && (c = m_Node[n].m_Mask - node.m_Mask) == 0 ) {
-			m_Node[n] = node;
-			return n;
+		if ( (c = m_Node[n].m_Code - code) == 0 && (c = m_Node[n].m_Mask - mask) == 0 ) {
+			*base = n;
+			return TRUE;
 		} else if ( c < 0 )
 			b = n + 1;
 		else
 			m = n - 1;
 	}
-	m_Node.InsertAt(b, node);
+	*base = b;
+	return FALSE;
+}
+int CKeyNodeTab::Add(CKeyNode &node)
+{
+	int n;
+
+	if ( Find(node.m_Code, node.m_Mask, &n) )
+		m_Node[n] = node;
+	else
+		m_Node.InsertAt(n, node);
+
 	m_CmdsInit = FALSE;
-	return b;
+	return n;
 }
 int CKeyNodeTab::Add(LPCSTR code, int mask, LPCSTR maps)
 {
@@ -2160,30 +2246,89 @@ int CKeyNodeTab::Add(int code, int mask, LPCSTR str)
 	tmp.SetMaps(str);
 	return Add(tmp);
 }
+BOOL CKeyNodeTab::FindKeys(int code, int mask, CBuffer *pBuf, int base, int bits)
+{
+	if ( (mask & bits & MASK_VT52) != 0 ) {
+		if ( FindKeys(code, mask, pBuf, base, bits & ~MASK_VT52) )
+			return TRUE;
+		if ( FindKeys(code, mask & ~MASK_VT52, pBuf, base, bits & ~MASK_VT52) )
+			return TRUE;
+	} else if ( (mask & bits & MASK_CKM) != 0 ) {
+		if ( FindKeys(code, mask, pBuf, base, bits & ~MASK_CKM) )
+			return TRUE;
+		if ( FindKeys(code, mask & ~MASK_CKM, pBuf, base, bits & ~MASK_CKM) )
+			return TRUE;
+	} else if ( (mask & bits & MASK_APPL) != 0 ) {
+		if ( FindKeys(code, mask, pBuf, base, bits & ~MASK_APPL) )
+			return TRUE;
+		if ( FindKeys(code, mask & ~MASK_APPL, pBuf, base, bits & ~MASK_APPL) )
+			return TRUE;
+	} else if ( (mask & bits & MASK_SHIFT) != 0 ) {
+		if ( FindKeys(code, mask, pBuf, base, bits & ~MASK_SHIFT) )
+			return TRUE;
+		if ( FindKeys(code, mask & ~MASK_SHIFT, pBuf, base, bits & ~MASK_SHIFT) )
+			return TRUE;
+	} else {
+		for ( int i = base ; i < m_Node.GetSize() && m_Node[i].m_Code == code ; i++ ) {
+			if ( m_Node[i].m_Mask == mask ) {
+				*pBuf = m_Node[i].m_Maps;
+				return TRUE;
+			}
+		}
+	}
+	return FALSE;
+}
 BOOL CKeyNodeTab::FindMaps(int code, int mask, CBuffer *pBuf)
 {
-	int c;
-	int n;
-	int b = 0;
-	int m = (int)m_Node.GetSize() - 1;
+	int n, m[8], i;
 
-	while ( b <= m ) {
-		n = (b + m) / 2;
-		if ( (c = m_Node[n].m_Code - code) == 0 && (c = m_Node[n].m_Mask - mask) == 0 ) {
-			*pBuf = m_Node[n].m_Maps;
-			return TRUE;
-		} else if ( c < 0 )
-			b = n + 1;
-		else
-			m = n - 1;
+	if ( Find(code, mask, &n) ) {
+		*pBuf = m_Node[n].m_Maps;
+		return TRUE;
 	}
 
-	if ( (mask & MASK_SHIFT) != 0 && FindMaps(code, mask & ~MASK_SHIFT, pBuf) )
-		return TRUE;
-	else if ( (mask & MASK_APPL) != 0 && FindMaps(code, mask & ~MASK_APPL, pBuf) )
-		return TRUE;
+	while ( n > 0 && m_Node[n - 1].m_Code == code )
+		n--;
+
+	if ( n >= GetSize() || m_Node[n].m_Code != code )
+		return FALSE;
+
+	return FindKeys(code, mask, pBuf, n, MASK_VT52 | MASK_CKM | MASK_APPL | MASK_SHIFT);
+
+/**************
+	for ( m[0] = mask ; ; ) {
+		for ( m[1] = mask ; ; ) {
+			for ( m[2] = mask ; ; ) {
+				for ( m[3] = mask ; ; ) {
+					for ( int i = n ; m_Node[i].m_Code == code ; i++ ) {
+						if ( m_Node[i].m_Mask == mask ) {
+							*pBuf = m_Node[i].m_Maps;
+							return TRUE;
+						}
+					}
+					if ( (mask & MASK_SHIFT) == 0 )
+						break;
+					mask &= ~MASK_SHIFT;
+				}
+				mask = m[3];
+				if ( (mask & MASK_APPL) == 0 )
+					break;
+				mask &= ~MASK_APPL;
+			}
+			mask = m[2];
+			if ( (mask & MASK_CKM) == 0 )
+				break;
+			mask &= ~MASK_CKM;
+		}
+		mask = m[1];
+		if ( (mask & MASK_VT52) == 0 )
+			break;
+		mask &= ~MASK_VT52;
+	}
+	mask = m[0];
 
 	return FALSE;
+****************/
 }
 void CKeyNodeTab::SetArray(CStringArrayExt &array)
 {
@@ -2200,19 +2345,28 @@ void CKeyNodeTab::SetArray(CStringArrayExt &array)
 		tmp.Add(m_Node[n].GetMaps());
 		array.AddArray(tmp);
 	}
+
+	tmp.RemoveAll();
+	tmp.AddVal(-1);
+	tmp.AddVal(1);			// KeyCode Bug Fix
+	array.AddArray(tmp);
 }
 void CKeyNodeTab::GetArray(CStringArrayExt &array)
 {
-	int n;
+	int n, fix = 0;
 	CStringArrayExt tmp;
 
 	m_Node.RemoveAll();
 	for ( n = 0 ; n < array.GetSize() ; n++ ) {
 		array.GetArray(n, tmp);
-		if ( tmp.GetSize() < 3 )
+		if ( tmp.GetSize() < 3 ) {
+			if ( tmp.GetVal(0) == (-1) )
+				fix = tmp.GetVal(1);
 			continue;
+		}
 		Add(tmp.GetVal(0), tmp.GetVal(1), tmp.GetAt(2));
 	}
+	BugFix(fix);
 }
 const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 {
@@ -2350,6 +2504,25 @@ void CKeyNodeTab::SetComboList(CComboBox *pCombo)
 	for ( n = 0 ; n < CMDSKEYTABMAX ; n++ ) {
 		str = CmdsKeyTab[n].name;
 		pCombo->AddString(str);
+	}
+}
+void CKeyNodeTab::BugFix(int fix)
+{
+	int i, n;
+
+	if ( fix < 1 ) {
+		for ( n = 0 ; n < m_Node.GetSize() ; n++ ) {
+			if ( m_Node[n].m_Code == VK_UP || m_Node[n].m_Code == VK_DOWN || m_Node[n].m_Code == VK_RIGHT || m_Node[n].m_Code == VK_LEFT ) {
+				if ( m_Node[n].m_Mask == MASK_APPL )
+					m_Node[n].m_Mask = MASK_CKM;
+			} else if ( m_Node[n].m_Code == VK_END && m_Node[n].m_Mask == 0 )
+				m_Node[n].SetMaps("\\033[F");
+		}
+	}
+
+	for ( i = 0 ; InitKeyTab[i].maps != NULL ; i++ ) {
+		if ( !Find(InitKeyTab[i].code, InitKeyTab[i].mask, &n) )
+			Add(InitKeyTab[i].code, InitKeyTab[i].mask, InitKeyTab[i].maps);
 	}
 }
 

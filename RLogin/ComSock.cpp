@@ -42,7 +42,10 @@ BOOL CComSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, i
 	Close();
 	GetMode(lpszHostAddress);
 
-	if ( (m_hCom = CreateFile(m_ComName, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL)) == NULL ) {
+	CString tmp;
+	tmp.Format((m_ComPort >= 10 ? "\\\\.\\COM%d" : "COM%d"), m_ComPort);
+
+	if ( (m_hCom = CreateFile(tmp, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL)) == NULL ) {
 		CString errmsg;
 		errmsg.Format("ComSocket Open Error '%s'", lpszHostAddress);
 		AfxMessageBox(errmsg, MB_ICONSTOP);
@@ -158,6 +161,21 @@ static struct _ComTab {
 		{ "COM14",		0,	14			},
 		{ "COM15",		0,	15			},
 		{ "COM16",		0,	16			},
+		{ "COM17",		0,	17			},
+		{ "COM18",		0,	18			},
+		{ "COM19",		0,	19			},
+		{ "COM20",		0,	20			},
+		{ "COM21",		0,	21			},
+		{ "COM22",		0,	22			},
+		{ "COM23",		0,	23			},
+		{ "COM24",		0,	24			},
+		{ "COM25",		0,	25			},
+		{ "COM26",		0,	26			},
+		{ "COM27",		0,	27			},
+		{ "COM28",		0,	28			},
+		{ "COM29",		0,	29			},
+		{ "COM30",		0,	30			},
+		{ "COM31",		0,	31			},
 
 		{ "110",		1,	CBR_110		},
 		{ "300",		1,	CBR_300		},
@@ -252,7 +270,7 @@ void CComSock::SetConfig()
 
 void CComSock::GetMode(LPCSTR str)
 {
-	int i, a;
+	int i, a, b;
 	CString work = str;
 	CStringArray array;
 
@@ -266,15 +284,23 @@ void CComSock::GetMode(LPCSTR str)
 
 	for ( i = 0 ; i < array.GetSize() ; i++ ) {
 		for ( a = 0 ; ComTab[a].name != NULL ; a++ ) {
-			if ( array[i].CompareNoCase(ComTab[a].name) != 0 )
-				continue;
-			switch(ComTab[a].mode) {
-			case 0: m_ComPort  = ComTab[a].value; break;
-			case 1: m_BaudRate = ComTab[a].value; break;
-			case 2: m_ByteSize = ComTab[a].value; break;
-			case 3: m_Parity   = ComTab[a].value; break;
-			case 4: m_StopBits = ComTab[a].value; break;
-			case 5: m_FlowCtrl = ComTab[a].value; break;
+			if ( array[i].CompareNoCase(ComTab[a].name) == 0 ) {
+				switch(ComTab[a].mode) {
+				case 0: m_ComPort  = ComTab[a].value; break;
+				case 1: m_BaudRate = ComTab[a].value; break;
+				case 2: m_ByteSize = ComTab[a].value; break;
+				case 3: m_Parity   = ComTab[a].value; break;
+				case 4: m_StopBits = ComTab[a].value; break;
+				case 5: m_FlowCtrl = ComTab[a].value; break;
+				}
+				break;
+			}
+		}
+		if ( ComTab[a].name == NULL ) {
+			if ( array[i].Left(3).CompareNoCase("COM") == 0 ) {
+				m_ComPort = atoi(array[i].Mid(3));
+			} else if ( (b = atoi(array[i])) >= 100 ) {
+				m_BaudRate = b;
 			}
 		}
 	}
@@ -283,7 +309,8 @@ void CComSock::GetMode(LPCSTR str)
 }
 void CComSock::SetMode(CString &str)
 {
-	int n, r;
+	int n, r, b = 0;
+	CString tmp;
 
 	str = "";
 	for ( n = 0 ; ComTab[n].name != NULL ; n++ ) {
@@ -298,7 +325,16 @@ void CComSock::SetMode(CString &str)
 		if ( r == TRUE ) {
 			str += ComTab[n].name;
 			str += ";";
+			b |= (1 << ComTab[n].mode);
 		}
+	}
+	if ( (b & (1 << 0)) == 0 ) {
+		tmp.Format("COM%d;", m_ComPort);
+		str += tmp;
+	}
+	if ( (b & (1 << 1)) == 0 ) {
+		tmp.Format("%d;", m_BaudRate);
+		str += tmp;
 	}
 }
 
@@ -313,14 +349,14 @@ void CComSock::ConfigDlg(CWnd *pWnd, CString &str)
 	GetConfig();
 	SetMode(str);
 }
-int CComSock::AliveComPort()
+DWORD CComSock::AliveComPort()
 {
 	int n;
-	int port = 0;
+	DWORD port = 0;
 	COMMCONFIG conf;
 	CString name;
 
-	for ( n = 1 ; n <= 16 ; n++ ) {
+	for ( n = 1 ; n <= 31 ; n++ ) {
 		name.Format("COM%d", n);
 		DWORD sz = sizeof(COMMCONFIG);
 		if ( GetDefaultCommConfig(name, &conf, &sz) )

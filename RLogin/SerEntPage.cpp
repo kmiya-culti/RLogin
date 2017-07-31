@@ -167,9 +167,9 @@ BOOL CSerEntPage::OnInitDialog()
 	}
 	UpdateData(FALSE);
 
-	int pb = com.AliveComPort();
+	DWORD pb = com.AliveComPort();
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_SOCKNO)) != NULL ) {
-		for ( n = 1 ; n <= 16 ; n++ ) {
+		for ( n = 1 ; n <= 31 ; n++ ) {
 			str.Format("COM%d", n);
 			if ( (pb & (1 << n)) != 0 ) {
 				if ( (i = pCombo->FindString((-1), str)) == CB_ERR )

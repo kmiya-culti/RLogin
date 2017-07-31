@@ -91,6 +91,7 @@
 #define TO_XTMRVW		45			// XTerm Reverse-wraparound mode
 #define	TO_XTMABUF		47			// XTerm alternate buffer
 #define	TO_DECECM		117			// SGR space color disable
+#define	TO_DECPAM		199			// 0:Normal Keypad (DECPNM) / 1:Application Keypad (DECPAM)
 // ANSI Screen Option	0-99(200-299)
 #define	TO_ANSIIRM		(4+200)		// IRM Insertion replacement mode
 #define	TO_ANSIERM		(6+200)		// ERM Erasure mode
@@ -689,6 +690,8 @@ public:
 	void fc_LMA(int ch);
 	void fc_USR(int ch);
 	void fc_V5EX(int ch);
+	void fc_DECPAM(int ch);
+	void fc_DECPNM(int ch);
 	void fc_SS2(int ch);
 	void fc_SS3(int ch);
 	void fc_LS2(int ch);

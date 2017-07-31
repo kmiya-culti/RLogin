@@ -27,6 +27,11 @@ public:
 	BOOL	m_WithCtrl;
 	BOOL	m_WithAlt;
 	BOOL	m_WithAppli;
+	BOOL	m_WithCkm;
+	BOOL	m_WithVt52;
+	BOOL	m_WithNum;
+	BOOL	m_WithScr;
+	BOOL	m_WithCap;
 	CString	m_KeyCode;
 	CString	m_Maps;
 	//}}AFX_DATA

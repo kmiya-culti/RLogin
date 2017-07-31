@@ -138,8 +138,8 @@ static const CTextRam::PROCTAB fc_Esc2Tab[] = {
 	{ '8',		0,			&CTextRam::fc_RC		},	// DECRC Restore Cursor
 	{ '9',		0,			&CTextRam::fc_FI		},	// DECFI Forward Index
 	{ '<',		0,			&CTextRam::fc_V5EX		},	//											VT52 Exit VT52 mode. Enter VT100 mode.
-//	{ '=',		0,			&CTextRam::fc_POP		},	//											VT52 Enter alternate keypad mode.
-//	{ '>',		0,			&CTextRam::fc_POP		},	//											VT52 Exit alternate keypad mode.
+	{ '=',		0,			&CTextRam::fc_DECPAM	},	// DECPAM Application Keypad				VT52 Enter alternate keypad mode.
+	{ '>',		0,			&CTextRam::fc_DECPNM	},	// DECPNM Normal Keypad						VT52 Exit alternate keypad mode.
 	{ 'A',		0,			&CTextRam::fc_V5CUP		},	//											VT52 Cursor up.
 	{ 'B',		0,			&CTextRam::fc_BPH		},	// BPH Break permitted here					VT52 Cursor down
 	{ 'C',		0,			&CTextRam::fc_NBH		},	// NBH No break here						VT52 Cursor right
@@ -358,7 +358,7 @@ static const CTextRam::PROCTAB fc_StatTab[] = {
 	{ 0x00,		0xFF,		&CTextRam::fc_STAT		},
 	{ 0,		0,			NULL } };
 
-static int	fc_EscNameTabMax = 55;
+static int	fc_EscNameTabMax = 57;
 static CTextRam::ESCNAMEPROC fc_EscNameTab[] = {
 	{	"ACS",		&CTextRam::fc_ACS,		NULL,	NULL	},
 	{	"BPH",		&CTextRam::fc_BPH,		NULL,	NULL	},
@@ -379,6 +379,8 @@ static CTextRam::ESCNAMEPROC fc_EscNameTab[] = {
 	{	"DECCAVT",	&CTextRam::fc_CAVT,		NULL,	NULL	},
 	{	"DECFI",	&CTextRam::fc_FI,		NULL,	NULL	},
 	{	"DECHTS",	&CTextRam::fc_DECHTS,	NULL,	NULL	},
+	{	"DECPAM",	&CTextRam::fc_DECPAM,	NULL,	NULL	},
+	{	"DECPNM",	&CTextRam::fc_DECPNM,	NULL,	NULL	},
 	{	"DECRC",	&CTextRam::fc_RC,		NULL,	NULL	},
 	{	"DECSC",	&CTextRam::fc_SC,		NULL,	NULL	},
 	{	"DECSOP",	&CTextRam::fc_DECSOP,	NULL,	NULL	},
@@ -1743,6 +1745,18 @@ void CTextRam::fc_V5EX(int ch)
 {
 	// ESC <	VT52 Exit VT52 mode. Enter VT100 mode.
 	m_AnsiOpt[TO_DECANM / 32] |= (1 << (TO_DECANM % 32));
+	fc_POP(ch);
+}
+void CTextRam::fc_DECPAM(int ch)
+{
+	// ESC =	DECPAM Application Keypad				VT52 Enter alternate keypad mode.
+	m_AnsiOpt[TO_DECPAM / 32] |= (1 << (TO_DECPAM % 32));
+	fc_POP(ch);
+}
+void CTextRam::fc_DECPNM(int ch)
+{
+	// ESC >	DECPNM Normal Keypad						VT52 Exit alternate keypad mode.
+	m_AnsiOpt[TO_DECPAM / 32] &= ~(1 << (TO_DECPAM % 32));
 	fc_POP(ch);
 }
 void CTextRam::fc_SS2(int ch)
