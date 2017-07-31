@@ -361,7 +361,7 @@ CTextRam::CTextRam()
 	m_DropFileMode = 0;
 	m_WordStr.Empty();
 	m_Exact = FALSE;
-	m_MouseTrack = 0;
+	m_MouseTrack = MOS_EVENT_NONE;
 	m_MouseRect.SetRectEmpty();
 	m_Loc_Mode  = 0;
 	m_Loc_Pb    = 0;
@@ -762,36 +762,112 @@ void CTextRam::SaveHistory()
 		AfxMessageBox("ヒストリーバックアップに失敗しました");
 	}
 }
-//void CTextRam::HisKeyWord()
-//{
-//	int x, n, i, a, ch;
-//	VRAM *vp = GETVRAM(0, -1);
-//	CRegEx reg;
-//	CRegExRes res;
-//
-//	reg.Compile("[eE][rR][rR][oO][rR]");
-//	reg.MatchCharInit();
-//
-//	for ( x = 0 ; x < m_Cols ; x += n ) {
-//		vp[x].em = 0;
-//		if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].cm) && IS_2BYTE(vp[x + 1].cm) ) {
-//			ch = vp[x].ch;
-//			n = 2;
-//		} else if ( !IS_ASCII(vp[x].cm) || vp[x].ch == 0 ) {
-//			ch = ' ';
-//			n = 1;
-//		} else {
-//			ch = vp[x].ch;
-//			n = 1;
-//		}
-//		if ( reg.MatchChar(ch, x, &res) && (res.m_Status == REG_MATCH || res.m_Status == REG_MATCHOVER) ) {
-//			for ( i = 0 ; i < res.GetSize() ; i++ ) {
-//				for ( a = res[i].m_SPos ; a < res[i].m_EPos ; a++ )
-//					vp[res.m_Idx[a]].ex |= 001;
-//			}
-//		}
-//	}
-//}
+void CTextRam::HisRegCheck(int ch, DWORD pos)
+{
+	int i, a;
+	CRegExRes res;
+
+	if ( m_MarkReg.MatchChar(ch, pos, &res) && (res.m_Status == REG_MATCH || res.m_Status == REG_MATCHOVER) ) {
+		for ( i = 0 ; i < res.GetSize() ; i++ ) {
+			for ( a = res[i].m_SPos ; a < res[i].m_EPos ; a++ ) {
+				if ( res.m_Idx[a] != 0xFFFFFFFF )
+					m_VRam[res.m_Idx[a]].at |= ATT_MARK;
+			}
+		}
+	}
+}
+int CTextRam::HisRegMark(LPCSTR str)
+{
+	int n, x;
+	VRAM *vp;
+
+	m_MarkPos = m_HisPos + m_Lines - m_HisLen;
+
+	while ( m_MarkPos < 0 )
+		m_MarkPos += m_HisMax;
+
+	while ( m_MarkPos >= m_HisMax )
+		m_MarkPos -= m_HisMax;
+
+	if ( str == NULL || *str == '\0' ) {
+		for ( n = 0 ; n < m_HisLen ; n++ ) {
+			vp = m_VRam + m_ColsMax * m_MarkPos;
+			for ( x = 0 ; x < m_Cols ; x++ )
+				vp[x].at &= ~ATT_MARK;
+			while ( ++m_MarkPos >= m_HisMax )
+				m_MarkPos -= m_HisMax;
+		}
+		return 0;
+	}
+
+	m_MarkReg.Compile(str);
+	m_MarkReg.MatchCharInit();
+
+	m_MarkLen = 0;
+	m_MarkEol = TRUE;
+
+	return m_HisLen;
+}
+int CTextRam::HisRegNext()
+{
+	int n, x, ex, ch, mx;
+	VRAM *vp;
+
+	for ( mx = m_MarkLen + 500 ; m_MarkLen < mx && m_MarkLen < m_HisLen ; m_MarkLen++ ) {
+		vp = m_VRam + m_ColsMax * m_MarkPos;
+		for ( ex = m_Cols - 1 ; ex >= 0 ; ex-- ) {
+			if ( vp[ex].ch >= ' ' )
+				break;
+			vp[ex].at &= ~ATT_MARK;
+		}
+
+		if ( m_MarkEol )
+			HisRegCheck(L'\n', 0xFFFFFFFF);
+
+		for ( x = 0 ; x <= ex ; x += n ) {
+			vp[x].at &= ~ATT_MARK;
+			if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].cm) && IS_2BYTE(vp[x + 1].cm) ) {
+				ch = vp[x].ch;
+				n = 2;
+			} else if ( !IS_ASCII(vp[x].cm) || vp[x].ch == 0 ) {
+				ch = ' ';
+				n = 1;
+			} else {
+				ch = vp[x].ch;
+				n = 1;
+			}
+
+			if ( (ch & 0xFFFF0000) != 0 )
+				HisRegCheck(ch >> 16, m_ColsMax * m_MarkPos + x);
+			HisRegCheck(ch & 0xFFFF, m_ColsMax * m_MarkPos + x);
+		}
+
+		if ( x < m_Cols ) {
+			HisRegCheck(L'\r', 0xFFFFFFFF);
+			m_MarkEol = TRUE;
+		} else
+			m_MarkEol = FALSE;
+
+		while ( ++m_MarkPos >= m_HisMax )
+			m_MarkPos -= m_HisMax;
+	}
+
+	return m_MarkLen;
+}
+int CTextRam::HisMarkCheck(int top, int line, class CRLoginView *pView)
+{
+	int x, y;
+	VRAM *vp;
+
+	for ( y = 0 ; y < line ; y++ ) {
+		vp = GETVRAM(0, top + y);
+		for ( x = 0 ; x < m_Cols ; x++ ) {
+			if ( (vp->at & ATT_MARK) != 0 )
+				return TRUE;
+		}
+	}
+	return FALSE;
+}
 
 static const COLORREF DefColTab[16] = {
 		RGB(  0,   0,   0),	RGB(196,   0,   0),
@@ -870,7 +946,7 @@ void CTextRam::Init()
 	for ( int n = 0 ; n < 8 ; n++ )
 		m_DropFileCmd[n] = DropCmdTab[n];
 	m_WordStr        = "\\/._";
-	m_MouseTrack     = 0;
+	m_MouseTrack     = MOS_EVENT_NONE;
 	m_MouseRect.SetRectEmpty();
 	m_MouseMode[0]   = 0;
 	m_MouseMode[1]   = 1;
@@ -1013,6 +1089,8 @@ void CTextRam::GetArray(CStringArrayExt &array)
 	}
 	if ( n < 4 )
 		EnableOption(TO_ANSISRM);	//  12 SRM Set Send/Receive mode (Local echo off)
+
+	DisableOption(TO_IMECTRL);
 	memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_DefAnsiOpt));
 
 	if ( array.GetSize() > 38 )
@@ -1736,7 +1814,7 @@ void CTextRam::StrOut(CDC* pDC, LPCRECT pRect, struct DrawWork &prop, int len, c
 	if ( (at & ATT_SECRET) != 0 )
 		fc = bc;
 
-	if ( (at & ATT_CLIP) != 0 ) {
+	if ( (at & ATT_CLIP) != 0 || (pView->m_ActiveFlag && (at & ATT_MARK) != 0) ) {
 		tc = fc;
 		fc = bc;
 		bc = tc;
@@ -2517,7 +2595,7 @@ void CTextRam::RESET(int mode)
 	m_SendCrLf = IsOptValue(TO_RLECHOCR, 2);
 
 	if ( mode & RESET_MOUSE ) {
-		m_MouseTrack = 0;
+		m_MouseTrack = MOS_EVENT_NONE;
 		m_MouseRect.SetRectEmpty();
 		m_Loc_Mode  = 0;
 		m_Loc_Pb    = 0;
@@ -2778,12 +2856,12 @@ void CTextRam::LocReport(int md, int sw, int x, int y)
 
 	int Pe = 0;
 
-	if ( md == 0 ) {			// Init Mode
-		m_MouseTrack = ((m_Loc_Mode & LOC_MODE_ENABLE) != 0 ? 6 : 0);
+	if ( md == MOS_LOCA_INIT ) {			// Init Mode
+		m_MouseTrack = ((m_Loc_Mode & LOC_MODE_ENABLE) != 0 ? MOS_EVENT_LOCA : MOS_EVENT_NONE);
 		m_pDocument->UpdateAllViews(NULL, UPDATE_SETCURSOR, NULL);
 		return;
 
-	} else if ( md == 6 ) {		// Request
+	} else if ( md == MOS_LOCA_REQ ) {		// Request
 		if ( (m_Loc_Mode & LOC_MODE_ENABLE) != 0 )
 			Pe = 1;
 
@@ -2799,19 +2877,19 @@ void CTextRam::LocReport(int md, int sw, int x, int y)
 			m_Loc_Pb |= 4;
 
 		switch(md) {
-		case 1:	// Left Down
+		case MOS_LOCA_LEDN:	// Left Down
 			Pe = 2;
 			break;
-		case 2:	// Left Up
+		case MOS_LOCA_LEUP:	// Left Up
 			Pe = 3;
 			break;
-		case 3:	// Right Down
+		case MOS_LOCA_RTDN:	// Right Down
 			Pe = 6;
 			break;
-		case 4:	// Right Up
+		case MOS_LOCA_RTUP:	// Right Up
 			Pe = 7;
 			break;
-		case 5:	// Mouse Move
+		case MOS_LOCA_MOVE:	// Mouse Move
 			if ( (m_Loc_Mode & LOC_MODE_FILTER) == 0 )
 				return;
 			if ( !m_Loc_Rect.IsRectEmpty() && m_Loc_Rect.PtInRect(CPoint(m_Loc_LastX, m_Loc_LastY)) )
@@ -2824,9 +2902,9 @@ void CTextRam::LocReport(int md, int sw, int x, int y)
 		if ( (m_Loc_Mode & LOC_MODE_ONESHOT) == 0 ) {
 			if ( (m_Loc_Mode & LOC_MODE_EVENT) == 0 )
 				return;
-			else if ( (md == 1 || md == 3) && (m_Loc_Mode & LOC_MODE_DOWN) == 0 )
+			else if ( (md == MOS_LOCA_LEDN || md == MOS_LOCA_RTDN) && (m_Loc_Mode & LOC_MODE_DOWN) == 0 )
 				return;
-			else if ( (md == 2 || md == 4) && (m_Loc_Mode & LOC_MODE_UP) == 0 )
+			else if ( (md == MOS_LOCA_LEUP || md == MOS_LOCA_RTUP) && (m_Loc_Mode & LOC_MODE_UP) == 0 )
 				return;
 		}
 	}
@@ -2843,7 +2921,7 @@ void CTextRam::LocReport(int md, int sw, int x, int y)
 
 	if ( (m_Loc_Mode & LOC_MODE_ONESHOT) != 0 ) {
 		m_Loc_Mode &= ~(LOC_MODE_ENABLE | LOC_MODE_ONESHOT);
-		m_MouseTrack = 0;
+		m_MouseTrack = MOS_EVENT_NONE;
 		m_pDocument->UpdateAllViews(NULL, UPDATE_SETCURSOR, NULL);
 	}
 }

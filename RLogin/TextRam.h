@@ -21,6 +21,7 @@
 #define	HIS_MAX			200000			// HIS_MAX * COLS_MAX * sizeof(VRAM) = 1,228,800,000 byte
 #define	DEF_TAB			8
 #define	FKEY_MAX		24
+#define	KANBUFMAX		128
 
 #define	TEK_WIN_WIDTH	4096
 #define	TEK_WIN_HEIGHT	3072
@@ -49,6 +50,7 @@
 #define ATT_LSLINE		0x008000		// [62m left side line
 #define ATT_LDLINE		0x010000		// [63m double line on the left side
 #define ATT_STRESS		0x020000		// [64m stress marking
+#define	ATT_MARK		0x400000		// Search Mark
 #define	ATT_CLIP		0x800000		// Mouse Clip
 
 #define CODE_MAX		0x0400
@@ -153,9 +155,11 @@
 #define	TO_SSHX11PF		436			// X11ポートフォワードを使用する
 #define	TO_RLKANAUTO	437			// 漢字コードを自動で追従する
 #define	TO_RLMOSWHL		438			// マウスホイールをヌルヌル禁止
-#define	TO_RLMSWAPP		439			// マウスホイールのアプリモード動作を禁止
+#define	TO_RLMSWAPP		439			// マウスホイールのCKMモード時カーソルキー動作を禁止
 #define	TO_RLPNAM		440			// 0:Normal Keypad (DECPNM) / 1:Application Keypad (DECPAM)
 #define	TO_IMECTRL		441			// IME Open/Close
+#define	TO_RLCKMESC		442			// ESCキーをDECCKMに含める		7727  -  Application Escape mode を有効にする。 
+#define	TO_RLMSWAPE		443			// ホイールのキー変換強制		7786  -  マウスホイール - カーソルキー変換を有効にする。
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -170,6 +174,76 @@
 #define	ERM_ISOPRO		0001		// SPA,EPA,ERM	ED, EL, EF, EA
 #define	ERM_DECPRO		0002		// DECSCA		DECSERA, DECSED, DECSEL
 #define	ERM_SAVEDM		0004		// DECDHL...
+
+#define	MOS_EVENT_NONE	0
+#define	MOS_EVENT_X10	1			//    9 X10 mouse reporting
+#define	MOS_EVENT_NORM	2			// 1000 X11 normal mouse tracking
+#define	MOS_EVENT_HILT	3			// 1001 X11 hilite mouse tracking
+#define	MOS_EVENT_BTNE	4			// 1002 X11 button-event mouse tracking
+#define	MOS_EVENT_ANYE	5			// 1003 X11 any-event mouse tracking
+#define	MOS_EVENT_LOCA	6			// DECLRP (Locator report)
+
+#define	MOS_LOCA_INIT	0			//	Init Mode
+#define	MOS_LOCA_LEDN	1			//	Left Down
+#define	MOS_LOCA_LEUP	2			//	Left Up
+#define	MOS_LOCA_RTDN	3			//	Right Down
+#define	MOS_LOCA_RTUP	4			//	Right Up
+#define	MOS_LOCA_MOVE	5			//	Mouse Move
+#define	MOS_LOCA_REQ	6			//	Request
+
+#define	LOC_MODE_ENABLE		0x0001
+#define	LOC_MODE_ONESHOT	0x0002
+#define	LOC_MODE_FILTER		0x0004
+#define	LOC_MODE_PIXELS		0x0008
+#define	LOC_MODE_EVENT		0x0010
+#define	LOC_MODE_UP			0x0020
+#define	LOC_MODE_DOWN		0x0040
+
+#define	UTF16BE			0
+#define	UTF16LE			1
+
+#define	RESET_CURSOR	0x0001
+#define	RESET_TABS		0x0002
+#define	RESET_BANK		0x0004
+#define	RESET_ATTR		0x0008
+#define	RESET_COLOR		0x0010
+#define	RESET_TEK		0x0020
+#define	RESET_SAVE		0x0040
+#define	RESET_MOUSE		0x0080
+#define	RESET_CHAR		0x0100
+#define	RESET_OPTION	0x0200
+#define	RESET_CLS		0x0400
+
+#define	RC_DCS		0
+#define	RC_SOS		1
+#define	RC_CSI		2
+#define	RC_ST		3
+#define	RC_OSC		4
+#define	RC_PM		5
+#define	RC_APC		6
+
+#define issjis1(c)		(((unsigned char)(c) >= 0x81 && \
+						  (unsigned char)(c) <= 0x9F) || \
+						 ((unsigned char)(c) >= 0xE0 && \
+						  (unsigned char)(c) <= 0xFC) )
+
+#define issjis2(c)		(((unsigned char)(c) >= 0x40 && \
+						  (unsigned char)(c) <= 0x7E) || \
+						 ((unsigned char)(c) >= 0x80 && \
+						  (unsigned char)(c) <= 0xFC) )
+
+#define iskana(c)		((unsigned char)(c) >= 0xA0 && \
+						 (unsigned char)(c) <= 0xDF)
+
+#define isbig51(c)		(((unsigned char)(c) >= 0xA1 && \
+						  (unsigned char)(c) <= 0xC6) || \
+						 ((unsigned char)(c) >= 0xC9 && \
+						  (unsigned char)(c) <= 0xF9) )
+
+#define isbig52(c)		(((unsigned char)(c) >= 0x40 && \
+						  (unsigned char)(c) <= 0x7E) || \
+						 ((unsigned char)(c) >= 0xA1 && \
+						  (unsigned char)(c) <= 0xFE) )
 
 enum ETextRamStat {
 		ST_NON,
@@ -203,44 +277,6 @@ enum EStageNum {
 		STAGE_STAT,
 		STAGE_MAX,
 };
-
-#define	UTF16BE			0
-#define	UTF16LE			1
-
-#define	RESET_CURSOR	0x0001
-#define	RESET_TABS		0x0002
-#define	RESET_BANK		0x0004
-#define	RESET_ATTR		0x0008
-#define	RESET_COLOR		0x0010
-#define	RESET_TEK		0x0020
-#define	RESET_SAVE		0x0040
-#define	RESET_MOUSE		0x0080
-#define	RESET_CHAR		0x0100
-#define	RESET_OPTION	0x0200
-#define	RESET_CLS		0x0400
-
-#define issjis1(c)		(((unsigned char)(c) >= 0x81 && \
-						  (unsigned char)(c) <= 0x9F) || \
-						 ((unsigned char)(c) >= 0xE0 && \
-						  (unsigned char)(c) <= 0xFC) )
-
-#define issjis2(c)		(((unsigned char)(c) >= 0x40 && \
-						  (unsigned char)(c) <= 0x7E) || \
-						 ((unsigned char)(c) >= 0x80 && \
-						  (unsigned char)(c) <= 0xFC) )
-
-#define iskana(c)		((unsigned char)(c) >= 0xA0 && \
-						 (unsigned char)(c) <= 0xDF)
-
-#define isbig51(c)		(((unsigned char)(c) >= 0xA1 && \
-						  (unsigned char)(c) <= 0xC6) || \
-						 ((unsigned char)(c) >= 0xC9 && \
-						  (unsigned char)(c) <= 0xF9) )
-
-#define isbig52(c)		(((unsigned char)(c) >= 0x40 && \
-						  (unsigned char)(c) <= 0x7E) || \
-						 ((unsigned char)(c) >= 0xA1 && \
-						  (unsigned char)(c) <= 0xFE) )
 
 typedef	struct _Vram {
 	DWORD	ch;
@@ -464,15 +500,6 @@ public:
 	int m_StsLed;
 	CStringW m_StsPara;
 	int m_LangMenu;
-
-#define	RC_DCS		0
-#define	RC_SOS		1
-#define	RC_CSI		2
-#define	RC_ST		3
-#define	RC_OSC		4
-#define	RC_PM		5
-#define	RC_APC		6
-
 	char *m_RetChar[7];
 
 	WORD m_BankTab[5][4];
@@ -534,8 +561,15 @@ public:
 	void InitHistory();
 	void SaveHistory();
 
-//	CRegEx	m_RegWord[4];
-//	void HisKeyWord();
+	CRegEx m_MarkReg;
+	int m_MarkPos;
+	int m_MarkLen;
+	BOOL m_MarkEol;
+
+	void HisRegCheck(int ch, DWORD pos);
+	int HisRegMark(LPCSTR str);
+	int HisRegNext();
+	int HisMarkCheck(int top, int line, class CRLoginView *pView);
 
 	struct DrawWork {
 		int		att;
@@ -666,8 +700,6 @@ public:
 	void SetCsiNameCombo(CComboBox *pCombo);
 
 	void EscCsiDefName(LPCSTR *esc, LPCSTR *csi);
-
-#define	KANBUFMAX		128
 
 	int m_Kan_Pos;
 	BYTE m_Kan_Buf[KANBUFMAX];
@@ -902,7 +934,9 @@ public:
 	void fc_DA2(int ch);
 	void fc_DA3(int ch);
 	void fc_C25LCT(int ch);
-
+	void fc_TTIMESV(int ch);
+	void fc_TTIMEST(int ch);
+	void fc_TTIMERS(int ch);
 
 	// ESC PX^_] DCS/PM/APC/SOS/OSC
 	void fc_DCS(int ch);
@@ -962,14 +996,6 @@ public:
 	void fc_TEK_FLUSH(int ch);
 	void fc_TEK_MODE(int ch);
 	void fc_TEK_STAT(int ch);
-
-#define	LOC_MODE_ENABLE		0x0001
-#define	LOC_MODE_ONESHOT	0x0002
-#define	LOC_MODE_FILTER		0x0004
-#define	LOC_MODE_PIXELS		0x0008
-#define	LOC_MODE_EVENT		0x0010
-#define	LOC_MODE_UP			0x0020
-#define	LOC_MODE_DOWN		0x0040
 
 	// DEC Locator
 	int m_Loc_Mode;

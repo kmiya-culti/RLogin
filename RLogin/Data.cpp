@@ -1982,9 +1982,9 @@ LPCSTR CKeyNode::GetMask()
 	if ( (m_Mask & MASK_CKM) )   m_Temp += "Ckm+";
 	if ( (m_Mask & MASK_VT52) )  m_Temp += "VT52+";
 
-	if ( (m_Mask & MASK_NUMLCK) ) m_Temp += "Num+";
-	if ( (m_Mask & MASK_SCRLCK) ) m_Temp += "Scr+";
-	if ( (m_Mask & MASK_CAPLCK) ) m_Temp += "Cap+";
+	//if ( (m_Mask & MASK_NUMLCK) ) m_Temp += "Num+";
+	//if ( (m_Mask & MASK_SCRLCK) ) m_Temp += "Scr+";
+	//if ( (m_Mask & MASK_CAPLCK) ) m_Temp += "Cap+";
 
 	if ( !m_Temp.IsEmpty() )
 		m_Temp.Delete(m_Temp.GetLength() - 1, 1);
@@ -2217,6 +2217,7 @@ static const struct {
 		{ VK_DOWN,	MASK_CKM,	"\\033OB" },	//	kd
 		{ VK_RIGHT,	MASK_CKM,	"\\033OC" },	//	kr
 		{ VK_LEFT,	MASK_CKM,	"\\033OD" },	//	kl
+		{ VK_ESCAPE,MASK_CKM,	"\\033O[" },
 
 		{ VK_UP,	MASK_VT52,	"\\033A" },
 		{ VK_DOWN,	MASK_VT52,	"\\033B" },
@@ -2349,41 +2350,6 @@ BOOL CKeyNodeTab::FindMaps(int code, int mask, CBuffer *pBuf)
 		return FALSE;
 
 	return FindKeys(code, mask, pBuf, n, MASK_VT52 | MASK_CKM | MASK_APPL | MASK_SHIFT);
-
-/**************
-	for ( m[0] = mask ; ; ) {
-		for ( m[1] = mask ; ; ) {
-			for ( m[2] = mask ; ; ) {
-				for ( m[3] = mask ; ; ) {
-					for ( int i = n ; m_Node[i].m_Code == code ; i++ ) {
-						if ( m_Node[i].m_Mask == mask ) {
-							*pBuf = m_Node[i].m_Maps;
-							return TRUE;
-						}
-					}
-					if ( (mask & MASK_SHIFT) == 0 )
-						break;
-					mask &= ~MASK_SHIFT;
-				}
-				mask = m[3];
-				if ( (mask & MASK_APPL) == 0 )
-					break;
-				mask &= ~MASK_APPL;
-			}
-			mask = m[2];
-			if ( (mask & MASK_CKM) == 0 )
-				break;
-			mask &= ~MASK_CKM;
-		}
-		mask = m[1];
-		if ( (mask & MASK_VT52) == 0 )
-			break;
-		mask &= ~MASK_VT52;
-	}
-	mask = m[0];
-
-	return FALSE;
-****************/
 }
 void CKeyNodeTab::SetArray(CStringArrayExt &array)
 {
@@ -2436,7 +2402,7 @@ static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
 } CmdsKeyTab[] = {
-#define	CMDSKEYTABMAX	56
+#define	CMDSKEYTABMAX	58
 	{	ID_APP_ABOUT,			L"$ABOUT"			},
 	{	ID_SEND_BREAK,			L"$BREAK"			},
 	{	IDM_BROADCAST,			L"$BROADCAST"		},
@@ -2481,6 +2447,8 @@ static const struct _CmdsKeyTab {
 	{	IDM_RESET_TAB,			L"$RESET_TAB"		},
 	{	IDM_RESET_TEK,			L"$RESET_TEK"		},
 	{	ID_CHARSCRIPT_END,		L"$SCRIPT_END"		},
+	{	IDM_SEARCH_NEXT,		L"$SEARCH_NEXT"		},
+	{	IDM_SEARCH_REG,			L"$SEARCH_REG"		},
 	{	IDM_SFTP,				L"$VIEW_SFTP"		},
 	{	ID_VIEW_STATUS_BAR,		L"$VIEW_STATUSBAR"	},
 	{	IDM_TEKDISP,			L"$VIEW_TEKDISP"	},
@@ -2814,11 +2782,12 @@ static const char *InitAlgo[11][40] = {
 	  NULL },
 
 	{ "hmac-md5",				"hmac-md5-96",			"hmac-sha1",			"hmac-sha1-96",
-	  "hmac-sha224",			"hmac-sha384",			"hmac-sha256",			"hmac-sha512",
-	  "hmac-sha224-96",			"hmac-sha384-96",		"hmac-sha256-96",		"hmac-sha512-96",
+	  "hmac-sha2-256",			"hmac-sha2-256-96",		"hmac-sha2-512",		"hmac-sha2-512-96",
+//	  "hmac-sha224",			"hmac-sha384",			"hmac-sha256",			"hmac-sha512",
+//	  "hmac-sha224-96",			"hmac-sha384-96",		"hmac-sha256-96",		"hmac-sha512-96",
 	  "hmac-ripemd160",			"hmac-whirlpool",		"umac-64@openssh.com",
 	  "umac-32",				"umac-64",				"umac-96",				"umac-128",
-	  "hmac-sha256@ssh.com",	"hmac-sha256-96@ssh.com",
+//	  "hmac-sha256@ssh.com",	"hmac-sha256-96@ssh.com",
 	  NULL },
 
 	{ "zlib@openssh.com", "zlib", "none", NULL },
@@ -2840,11 +2809,12 @@ static const char *InitAlgo[11][40] = {
 	  NULL },
 
 	{ "hmac-md5",				"hmac-md5-96",			"hmac-sha1",			"hmac-sha1-96",
-	  "hmac-sha224",			"hmac-sha384",			"hmac-sha256",			"hmac-sha512",
-	  "hmac-sha224-96",			"hmac-sha384-96",		"hmac-sha256-96",		"hmac-sha512-96",
+	  "hmac-sha2-256",			"hmac-sha2-256-96",		"hmac-sha2-512",		"hmac-sha2-512-96",
+//	  "hmac-sha224",			"hmac-sha384",			"hmac-sha256",			"hmac-sha512",
+//	  "hmac-sha224-96",			"hmac-sha384-96",		"hmac-sha256-96",		"hmac-sha512-96",
 	  "hmac-ripemd160",			"hmac-whirlpool",		"umac-64@openssh.com",
 	  "umac-32",				"umac-64",				"umac-96",				"umac-128",
-	  "hmac-sha256@ssh.com",	"hmac-sha256-96@ssh.com",
+//	  "hmac-sha256@ssh.com",	"hmac-sha256-96@ssh.com",
 	  NULL },
 
 	{ "zlib@openssh.com", "zlib", "none", NULL },

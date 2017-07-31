@@ -86,12 +86,12 @@ static const struct _OptListTab {
 	{	TO_RLUNIAWH,	"Aタイプを半角で表示",			"Aタイプを全角で表示"			},
 	{	TO_RLNORESZ,	"DECCOLMでリサイズ",			"ウィンドウをリサイズしない"	},
 	{	TO_RLKANAUTO,	"漢字コードを自動追従",			"漢字コードを変更しない"		},
-	{	TO_RLMOSWHL,	"ホイールの通常動作",			"ホイールをヌルヌルにする"		},
-	{	TO_RLMSWAPP,	"ホイールでスクロールのみ",		"ホイールでキーコード発生"		},
 	{	TO_RLPNAM,		"ノーマルモード(DECPNM)",		"アプリモード(DECPAM)"			},
 	{	TO_IMECTRL,		"IMEオープン",					"IMEクロース"					},
+	{	TO_RLCKMESC,	"7727 ESCキーのCKM有効",		"ESCキーのCKM無効"				},
+	{	TO_RLMSWAPE,	"7786 ホイールのキー変換",		"ホイールの通常動作"			},
 
-	{	0,				NULL	}
+	{	0,				NULL,							NULL							}
 };
 
 CTermPage::CTermPage() : CPropertyPage(CTermPage::IDD)

@@ -61,6 +61,7 @@
 #define IDD_STATUS_DLG                  160
 #define IDD_GHOSTWND                    161
 #define IDD_HISPAGE                     161
+#define IDD_SEARCHDLG                   162
 #define IDM_KANJI_EUC                   200
 #define IDM_KANJI_SJIS                  201
 #define IDM_KANJI_ASCII                 202
@@ -494,13 +495,17 @@
 #define ID_EDIT_PASTE_ALL               5037
 #define ID_5038                         5038
 #define IDM_GRAPDISP                    5039
+#define IDM_SEARCH_REG                  5040
+#define ID_5041                         5041
+#define ID_SEARCH_NEXT                  5042
+#define IDM_SEARCH_NEXT                 5043
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        162
-#define _APS_NEXT_COMMAND_VALUE         5040
+#define _APS_NEXT_RESOURCE_VALUE        163
+#define _APS_NEXT_COMMAND_VALUE         5044
 #define _APS_NEXT_CONTROL_VALUE         3053
 #define _APS_NEXT_SYMED_VALUE           249
 #endif

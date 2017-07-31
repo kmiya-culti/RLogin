@@ -328,6 +328,9 @@ static const CTextRam::CSIEXTTAB fc_CsiExtTab[] = {
 	{ 				(','  << 8) | 'q',		&CTextRam::fc_DECTID	},	// DECTID Select Terminal ID
 	{ 				(','  << 8) | '}',		&CTextRam::fc_DECATC	},	// DECATC Alternate Text Colors
 	{ 				(','  << 8) | '~',		&CTextRam::fc_DECPS		},	// DECPS Play Sound
+	{ ('<' << 16)				| 's',		&CTextRam::fc_TTIMESV	},	// TTIMESV IME の開閉状態を保存する。
+	{ ('<' << 16)				| 't',		&CTextRam::fc_TTIMEST	},	// TTIMEST IME の開閉状態を設定する。
+	{ ('<' << 16)				| 'r',		&CTextRam::fc_TTIMERS	},	// TTIMERS IME の開閉状態を復元する。
 	{ ('=' << 16)				| 'S',		&CTextRam::fc_C25LCT	},	// C25LCT cons25 Set local cursor type
 	{ ('=' << 16)				| 'c',		&CTextRam::fc_DA3		},	// DA3 Tertiary Device Attributes
 	{ ('>' << 16)				| 'c',		&CTextRam::fc_DA2		},	// DA2 Secondary Device Attributes
@@ -436,7 +439,7 @@ static CTextRam::ESCNAMEPROC fc_EscNameTab[] = {
 	{	NULL,		NULL,					NULL,	NULL	},
 };
 
-static int	fc_CsiNameTabMax = 114;
+static int	fc_CsiNameTabMax = 117;
 static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	"C25LCT",	&CTextRam::fc_C25LCT,	NULL,	NULL 	},
 	{	"CBT",		&CTextRam::fc_CBT,		NULL,	NULL	},
@@ -546,6 +549,9 @@ static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 //	{	"SRS",		&CTextRam::fc_SRS,		NULL,	NULL	},
 	{	"SU",		&CTextRam::fc_SU,		NULL,	NULL	},
 	{	"TBC",		&CTextRam::fc_TBC,		NULL,	NULL	},
+	{	"TTIMERS",	&CTextRam::fc_TTIMERS,	NULL,	NULL	},
+	{	"TTIMEST",	&CTextRam::fc_TTIMEST,	NULL,	NULL	},
+	{	"TTIMESV",	&CTextRam::fc_TTIMESV,	NULL,	NULL	},
 	{	"VPA",		&CTextRam::fc_VPA,		NULL,	NULL	},
 	{	"VPB",		&CTextRam::fc_VPB,		NULL,	NULL	},
 	{	"VPR",		&CTextRam::fc_VPR,		NULL,	NULL	},
@@ -3640,6 +3646,10 @@ void CTextRam::fc_DECSRET(int ch)
 			i -= 1620;		// 380-399
 		else if ( i >= 8400 && i < 8512 )
 			i -= 8000;		// 400-511
+		else if ( i == 7727 )
+			i = TO_RLCKMESC;	// 7727  -  Application Escape mode を有効にする。				Application Escape mode を無効にする。  
+		else if ( i == 7786 )
+			i = TO_RLMSWAPE;	// 7786  -  マウスホイール - カーソルキー変換を有効にする。		マウスホイール - カーソルキー変換を無効にする。  
 		else if ( i >= 200 )
 			continue;
 
@@ -3663,6 +3673,7 @@ void CTextRam::fc_DECSRET(int ch)
 			else
 				CUROFF();
 			break;
+
 		case TO_DECTEK:		// 38 DECTEK
 			if ( ch == 'h' ) {
 				TekInit(4014);
@@ -3704,7 +3715,7 @@ void CTextRam::fc_DECSRET(int ch)
 			break;
 
 		case TO_XTMOSREP:	// 9 X10 mouse reporting
-			m_MouseTrack = (IsOptEnable(i) ? 1 : 0);
+			m_MouseTrack = (IsOptEnable(i) ? MOS_EVENT_X10 : MOS_EVENT_NONE);
 			m_MouseRect.SetRectEmpty();
 			m_pDocument->UpdateAllViews(NULL, UPDATE_SETCURSOR, NULL);
 			break;
@@ -3712,7 +3723,7 @@ void CTextRam::fc_DECSRET(int ch)
 		case TO_XTHILTRK:	// 1001 X11 hilite mouse tracking
 		case TO_XTBEVTRK:	// 1002 X11 button-event mouse tracking
 		case TO_XTAEVTRK:	// 1003 X11 any-event mouse tracking
-			m_MouseTrack = (IsOptEnable(i) ? (i - TO_XTNOMTRK + 2) : 0);
+			m_MouseTrack = (IsOptEnable(i) ? (i - TO_XTNOMTRK + MOS_EVENT_NORM) : MOS_EVENT_NONE);
 			m_MouseRect.SetRectEmpty();
 			m_pDocument->UpdateAllViews(NULL, UPDATE_SETCURSOR, NULL);
 			break;
@@ -4491,7 +4502,7 @@ void CTextRam::fc_DECELR(int ch)
 		break;
 	}
 
-	LocReport(0, 0, 0, 0);
+	LocReport(MOS_LOCA_INIT, 0, 0, 0);
 
 	fc_POP(ch);
 }
@@ -4523,7 +4534,7 @@ void CTextRam::fc_DECSLE(int ch)
 			break;
 		}
 	}
-	LocReport(0, 0, 0, 0);
+	LocReport(MOS_LOCA_INIT, 0, 0, 0);
 
 	fc_POP(ch);
 }
@@ -4531,7 +4542,7 @@ void CTextRam::fc_DECRQLP(int ch)
 {
 	// CSI ('\'' << 8) | '|'		DECRQLP Request locator position
 
-	LocReport(6, 0, 0, 0);
+	LocReport(MOS_LOCA_REQ, 0, 0, 0);
 	fc_POP(ch);
 }
 void CTextRam::fc_DECIC(int ch)
@@ -4744,7 +4755,7 @@ void CTextRam::fc_DA2(int ch)
 {
 	// CSI ('>' << 16) | 'c'	DA2 Secondary Device Attributes
 
-	UNGETSTR("%s>65;10;1c", m_RetChar[RC_CSI]);
+	UNGETSTR("%s>65;100;1c", m_RetChar[RC_CSI]);
 	fc_POP(ch);
 }
 void CTextRam::fc_DA3(int ch)
@@ -4777,3 +4788,26 @@ void CTextRam::fc_C25LCT(int ch)
 	fc_POP(ch);
 }
 
+void CTextRam::fc_TTIMESV(int ch)
+{
+	//	CSI ('<' << 16) | 's',		TTIMESV IME の開閉状態を保存する。
+	m_AnsiPara.RemoveAll();
+	m_AnsiPara.Add(TO_IMECTRL + 8000);
+	fc_DECSRET('s');
+}
+void CTextRam::fc_TTIMEST(int ch)
+{
+	//	CSI ('<' << 16) | 't',		TTIMEST IME の開閉状態を設定する。
+
+	int n = GetAnsiPara(0, 0, 0);
+	m_AnsiPara.RemoveAll();
+	m_AnsiPara.Add(TO_IMECTRL + 8000);
+	fc_DECSRET(n == 0 ? 'l' : 'h');
+}
+void CTextRam::fc_TTIMERS(int ch)
+{
+	//	CSI ('<' << 16) | 'r',		TTIMERS IME の開閉状態を復元する。
+	m_AnsiPara.RemoveAll();
+	m_AnsiPara.Add(TO_IMECTRL + 8000);
+	fc_DECSRET('r');
+}

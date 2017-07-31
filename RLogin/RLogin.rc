@@ -215,8 +215,10 @@ BEGIN
     BEGIN
         MENUITEM "コピー(&C)",                     ID_EDIT_COPY
         MENUITEM "貼り付け(&P)",                    ID_EDIT_PASTE
-        MENUITEM SEPARATOR
         MENUITEM "すべて選択/コピー",                   ID_EDIT_COPY_ALL
+        MENUITEM SEPARATOR
+        MENUITEM "正規表現で検索(&F)",                 IDM_SEARCH_REG
+        MENUITEM "次を検索(&N)",                    IDM_SEARCH_NEXT
         MENUITEM SEPARATOR
         MENUITEM "ChatScriptの完了(&S)",           ID_CHARSCRIPT_END
         MENUITEM "Brark信号を送る(&B)",              ID_SEND_BREAK
@@ -420,7 +422,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.10.3 (2011/04/05)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.10.4 (2011/04/11)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2011 Culti",IDC_STATIC,47,15,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,148,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.0d Feb 8th, 2011",IDC_STATIC,47,29,176,8
@@ -1232,6 +1234,17 @@ BEGIN
     LTEXT           "ログの文字コードを選択(RAWモード以外で有効）",IDC_STATIC,26,78,150,8
 END
 
+IDD_SEARCHDLG DIALOGEX 0, 0, 233, 74
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "文字列検索"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    COMBOBOX        IDC_COMBO1,7,7,219,100,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    DEFPUSHBUTTON   "検索",IDOK,58,53,50,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,125,53,50,14
+    CONTROL         "",IDC_PROGRESS1,"msctls_progress32",WS_BORDER,7,28,219,14
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1239,8 +1252,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,10,3,0
- PRODUCTVERSION 2,10,3,0
+ FILEVERSION 2,10,4,0
+ PRODUCTVERSION 2,10,4,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1257,12 +1270,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.10.3.0"
+            VALUE "FileVersion", "2.10.4.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2008 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.10.3.0"
+            VALUE "ProductVersion", "2.10.4.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -1566,6 +1579,14 @@ BEGIN
         RIGHTMARGIN, 244
         TOPMARGIN, 7
         BOTTOMMARGIN, 263
+    END
+
+    IDD_SEARCHDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 226
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 67
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -2087,16 +2108,12 @@ BEGIN
 0x656d, 0x6174, "\000" 
     IDC_MOUSE_KEY1, 0x403, 5, 0
 0x7463, 0x6c72, "\000" 
-    IDC_MOUSE_KEY1, 0x403, 6, 0
-0x6f6d, 0x6974, 0x006e, 
     IDC_MOUSE_KEY2, 0x403, 6, 0
 0x6873, 0x6669, 0x0074, 
     IDC_MOUSE_KEY2, 0x403, 5, 0
 0x656d, 0x6174, "\000" 
     IDC_MOUSE_KEY2, 0x403, 5, 0
 0x7463, 0x6c72, "\000" 
-    IDC_MOUSE_KEY2, 0x403, 6, 0
-0x6f6d, 0x6974, 0x006e, 
     0
 END
 
@@ -2368,6 +2385,7 @@ END
 STRINGTABLE
 BEGIN
     ID_EDIT_CHECK           "他の変更を確認して最新の情報に更新します\n更新"
+    ID_CHARSCRIPT_END       "実行中のChatScriptを中断します\nChatScript完了"
     ID_SEND_BREAK           "シリアル通信の場合Break信号をおくります\nBreak送信"
     ID_MOUSE_EVENT          "マウスイベントを無効にします\nマウスイベント無効"
     ID_EDIT_COPY_ALL        "すべてクリップボードにコピー\nすべてコピー"
@@ -2416,6 +2434,12 @@ STRINGTABLE
 BEGIN
     IDM_BROADCAST           "キー入力を他のウィンドウにも同時送信する\n同時送信"
     IDM_SOCKETSTATUS        "ソケットの現在の状態を表示\nソケットステータス"
+END
+
+STRINGTABLE
+BEGIN
+    IDM_SEARCH_REG          "正規表現で文字列を検索します\n文字検索"
+    IDM_SEARCH_NEXT         "次を検索します\n次を検索"
 END
 
 #endif    // 日本語 (日本) resources

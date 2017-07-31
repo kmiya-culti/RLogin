@@ -946,6 +946,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\ComboBoxHis.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\ComSock.cpp"
 				>
 			</File>
@@ -1099,6 +1103,10 @@
 			</File>
 			<File
 				RelativePath=".\ScrnPage.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\SearchDlg.cpp"
 				>
 			</File>
 			<File
@@ -1308,6 +1316,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\ComboBoxHis.h"
+				>
+			</File>
+			<File
 				RelativePath=".\ComSock.h"
 				>
 			</File>
@@ -1469,6 +1481,10 @@
 			</File>
 			<File
 				RelativePath=".\ScrnPage.h"
+				>
+			</File>
+			<File
+				RelativePath=".\SearchDlg.h"
 				>
 			</File>
 			<File

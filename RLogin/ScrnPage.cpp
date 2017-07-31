@@ -84,11 +84,11 @@ END_MESSAGE_MAP()
 // Button 2		x1xx xx01	5	// Button 3		x1xx xx10	6
 // Release		xxxx xx11
 // shift		xxxx x1xx		// meta			xxxx 1xxx
-// ctrl			xxx1 xxxx		// motion		xx1x xxxx
+// ctrl			xxx1 xxxx
 
 static const BYTE MouseModeTab[] = {
 	0x00,	0x01,	0x02,	0x40,	0x41,	0x42,
-	0x04,	0x08,	0x10,	0x20,
+	0x04,	0x08,	0x10,
 };
 
 // CScrnPage メッセージ ハンドラ
@@ -119,7 +119,7 @@ BOOL CScrnPage::OnInitDialog()
 		if ( MouseModeTab[n] == m_pSheet->m_pTextRam->m_MouseMode[1] )
 			m_MouseMode[1] = n;
 	}
-	for ( n = 0 ; n < 4 ; n++ ) {
+	for ( n = 0 ; n < 3 ; n++ ) {
 		if ( MouseModeTab[n + 6] == m_pSheet->m_pTextRam->m_MouseMode[2] )
 			m_MouseMode[2] = n;
 		if ( MouseModeTab[n + 6] == m_pSheet->m_pTextRam->m_MouseMode[3] )
@@ -192,7 +192,7 @@ void CScrnPage::OnReset()
 		if ( MouseModeTab[n] == m_pSheet->m_pTextRam->m_MouseMode[1] )
 			m_MouseMode[1] = n;
 	}
-	for ( n = 0 ; n < 4 ; n++ ) {
+	for ( n = 0 ; n < 3 ; n++ ) {
 		if ( MouseModeTab[n + 6] == m_pSheet->m_pTextRam->m_MouseMode[2] )
 			m_MouseMode[2] = n;
 		if ( MouseModeTab[n + 6] == m_pSheet->m_pTextRam->m_MouseMode[3] )

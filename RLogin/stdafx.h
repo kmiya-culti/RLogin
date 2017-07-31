@@ -72,6 +72,7 @@
 	#include <dwrite.h>
 	#include <wincodec.h>
 #endif
+#include <afxcontrolbars.h>
 
 #if defined _UNICODE || defined _WIN64
 #if defined _M_IX86

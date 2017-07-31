@@ -146,6 +146,8 @@ public:
 	afx_msg void OnPagePrior();
 	afx_msg void OnPageNext();
 	afx_msg void OnKeyUp(UINT nChar, UINT nRepCnt, UINT nFlags);
+	afx_msg void OnSearchReg();
+	afx_msg void OnSearchNext();
 };
 
 #ifndef _DEBUG  // RLoginView.cpp ファイルがデバッグ環境の時使用されます。

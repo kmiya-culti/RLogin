@@ -82,6 +82,7 @@ public:
 	CString m_TitleString;
 	CStrScript *m_pScript;
 	CString m_ErrorPrompt;
+	CString m_SearchStr;
 
 	BOOL EntryText(CString &name);
 

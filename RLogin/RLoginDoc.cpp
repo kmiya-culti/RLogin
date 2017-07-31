@@ -1035,7 +1035,6 @@ void CRLoginDoc::OnSocketstatus()
 
 	dlg.DoModal();
 }
-
 void CRLoginDoc::OnUpdateSocketstatus(CCmdUI *pCmdUI)
 {
 	pCmdUI->Enable(m_pSock != NULL ? TRUE : FALSE);

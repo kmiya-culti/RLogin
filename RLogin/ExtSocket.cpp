@@ -1361,11 +1361,11 @@ void CExtSocket::OnRecive(int nFlags)
 }
 int CExtSocket::ReciveCall()
 {
+	if ( m_RecvHead != NULL && m_ProxyStatus != PRST_NONE && ProxyFunc() )
+		return m_RecvSize;
+
 	if ( m_RecvHead == NULL )
 		return 0;
-
-	if ( m_ProxyStatus != PRST_NONE && ProxyFunc() )
-		return m_RecvSize;
 
 	if ( (m_OnRecvFlag & RECV_ACTIVE) != 0 )
 		return m_RecvSize;

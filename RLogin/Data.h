@@ -335,15 +335,15 @@ public:
 	CServerEntryTab();
 };
 
-#define	MASK_SHIFT	0001
-#define	MASK_CTRL	0002
-#define	MASK_ALT	0004
-#define	MASK_APPL	0010
-#define	MASK_CKM	0020
-#define	MASK_VT52	0040
-#define	MASK_NUMLCK	0100
-#define	MASK_SCRLCK	0200
-#define	MASK_CAPLCK	0400
+#define	MASK_SHIFT	00001
+#define	MASK_CTRL	00002
+#define	MASK_ALT	00004
+#define	MASK_APPL	00010
+#define	MASK_CKM	00020
+#define	MASK_VT52	00040
+//#define	MASK_NUMLCK	00100
+//#define	MASK_SCRLCK	00200
+//#define	MASK_CAPLCK	00400
 
 class CKeyNode : public CObject
 {
