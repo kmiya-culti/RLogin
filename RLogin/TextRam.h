@@ -270,6 +270,7 @@
 #define	RESET_CHAR		0x0100
 #define	RESET_OPTION	0x0200
 #define	RESET_CLS		0x0400
+#define	RESET_HISTORY	0x0800
 #define	RESET_PAGE		0x1000
 #define	RESET_MARGIN	0x2000
 #define	RESET_ALL		0xFFFF
@@ -998,6 +999,7 @@ public:
 	void CallReciveChar(DWORD ch, LPCTSTR name = NULL);
 	int UnicodeCharFlag(DWORD code);
 	int UnicodeWidth(DWORD code);
+//	int UnicodeBlock(DWORD code);
 	void SetRetChar(BOOL f8);
 
 	// Static Lib

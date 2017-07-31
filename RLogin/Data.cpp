@@ -1233,7 +1233,6 @@ void CStringArrayExt::GetParam(LPCTSTR str)
 	//for ( int n = 0 ; n < GetSize() ; n++ )
 	//	TRACE("%s\n", TstrToMbs((*this)[n]));
 }
-
 void CStringArrayExt::GetCmds(LPCTSTR cmds)
 {
 	CString tmp;
@@ -1263,6 +1262,42 @@ void CStringArrayExt::GetCmds(LPCTSTR cmds)
 
 	if ( !tmp.IsEmpty() )
 		Add(tmp);
+}
+void CStringArrayExt::AddSort(LPCTSTR str)
+{
+	int n, c;
+	int b = 0;
+	int m = GetSize() - 1;
+
+	while ( b <= m ) {
+		n = (b + m) / 2;
+		if ( (c = GetAt(n).Compare(str)) == 0 )
+			return;
+		else if ( c > 0 )
+			b = n + 1;
+		else
+			m = n - 1;
+	}
+
+	InsertAt(b, str);
+}
+int CStringArrayExt::FindSort(LPCTSTR str)
+{
+	int n, c;
+	int b = 0;
+	int m = GetSize() - 1;
+
+	while ( b <= m ) {
+		n = (b + m) / 2;
+		if ( (c = GetAt(n).Compare(str)) == 0 )
+			return n;
+		else if ( c > 0 )
+			b = n + 1;
+		else
+			m = n - 1;
+	}
+
+	return (-1);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -3683,7 +3718,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	101
+#define	CMDSKEYTABMAX	102
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -3747,6 +3782,7 @@ static const struct _CmdsKeyTab {
 	{	IDM_RESET_BANK,			L"$RESET_BANK"		},
 	{	IDM_RESET_ESC,			L"$RESET_ESC"		},
 	{	IDM_RESET_MOUSE,		L"$RESET_MOUSE"		},
+	{	IDM_RESET_SCREEN,		L"$RESET_SCREEN"	},
 	{	IDM_RESET_TAB,			L"$RESET_TAB"		},
 	{	IDM_RESET_TEK,			L"$RESET_TEK"		},
 	{	ID_CHARSCRIPT_END,		L"$SCRIPT_END"		},
@@ -5534,6 +5570,13 @@ CStringBinary & CStringBinary::operator [] (LPCTSTR str)
 			return (*m_pRight)[str];
 	}
 }
+CStringBinary & CStringBinary::operator [] (int number)
+{
+	CString index;
+
+	index.Format(_T("%d"), number);
+	return (*this)[index];
+}
 void CStringBinary::RemoveAll()
 {
 	if ( m_pLeft != NULL )
@@ -5543,7 +5586,7 @@ void CStringBinary::RemoveAll()
 		delete m_pRight;
 
 	m_pLeft = m_pRight = NULL;
-	m_Index = "a";
+	m_Index = _T("a");
 	m_Value = (-1);
 }
 CStringBinary * CStringBinary::Find(LPCTSTR str)

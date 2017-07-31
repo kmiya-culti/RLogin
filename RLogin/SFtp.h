@@ -102,8 +102,8 @@ public:
 
 	int GetIcon() { return m_icon; }
 	LPCTSTR GetFileSize();
-	LPCTSTR GetUserID();
-	LPCTSTR GetGroupID();
+	LPCTSTR GetUserID(CStringBinary *pName = NULL);
+	LPCTSTR GetGroupID(CStringBinary *pName = NULL);
 	LPCTSTR GetAttr();
 	LPCTSTR GetAcsTime();
 	LPCTSTR GetModTime();
@@ -171,6 +171,9 @@ public:
 	int m_UpdateCheckMode;
 	time_t m_LocalCurTime;
 	time_t m_RemoteCurTime;
+	BOOL m_bUidGid;
+	CStringBinary m_UserUid;
+	CStringBinary m_GroupGid;
 
 	BOOL m_bDragList;
 	HWND m_hDragWnd;
@@ -225,7 +228,7 @@ public:
 	int RemoteOpenDirRes(int type, CBuffer *bp, class CCmdQue *pQue);
 	int RemoteSetCwdRes(int type, CBuffer *bp, class CCmdQue *pQue);
 	int RemoteMtimeCwdRes(int type, CBuffer *bp, class CCmdQue *pQue);
-	void RemoteSetCwd(LPCTSTR path);
+	void RemoteSetCwd(LPCTSTR path, BOOL bNoWait = TRUE);
 	void RemoteMtimeCwd(LPCTSTR path);
 	void RemoteUpdateCwd(LPCTSTR path);
 	void RemoteDeleteDir(LPCTSTR path);
@@ -235,6 +238,11 @@ public:
 	int RemoteDataReadRes(int type, CBuffer *bp, class CCmdQue *pQue);
 	int RemoteOpenReadRes(int type, CBuffer *bp, class CCmdQue *pQue);
 	void DownLoadFile(CFileNode *pNode, LPCTSTR file);
+
+	int RemoteCloseMemReadRes(int type, CBuffer *bp, class CCmdQue *pQue);
+	int RemoteDataMemReadRes(int type, CBuffer *bp, class CCmdQue *pQue);
+	int RemoteOpenMemReadRes(int type, CBuffer *bp, class CCmdQue *pQue);
+	void MemLoadFile(LPCTSTR file, int id);
 
 	int RemoteCloseWriteRes(int type, CBuffer *bp, class CCmdQue *pQue);
 	int RemoteAttrWriteRes(int type, CBuffer *bp, class CCmdQue *pQue);
@@ -289,7 +297,17 @@ protected:
 
 // インプリメンテーション
 protected:
+	afx_msg HCURSOR OnQueryDragIcon();
+	afx_msg BOOL OnToolTipText(UINT, NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg LRESULT OnReciveBuffer(WPARAM wParam, LPARAM lParam);
+	afx_msg void OnClose();
 	afx_msg void OnDestroy();
+	afx_msg void OnPaint();
+	afx_msg void OnSize(UINT nType, int cx, int cy);
+	afx_msg void OnTimer(UINT_PTR nIDEvent);
+	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
+
 	afx_msg void OnLocalUp();
 	afx_msg void OnRemoteUp();
 	afx_msg void OnSelendokLocalCwd();
@@ -300,10 +318,7 @@ protected:
 	afx_msg void OnDblclkRemoteList(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnColumnclickLocalList(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnColumnclickRemoteList(NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnBegindragLocalList(NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
-	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnBegindragRemoteList(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnSftpClose();
 	afx_msg void OnRclickLocalList(NMHDR* pNMHDR, LRESULT* pResult);
@@ -318,12 +333,7 @@ protected:
 	afx_msg void OnSftpAbort();
 	afx_msg void OnSftpRename();
 	afx_msg void OnSftpReflesh();
-	afx_msg void OnPaint();
-	afx_msg HCURSOR OnQueryDragIcon();
-	afx_msg void OnClose();
-	afx_msg void OnTimer(UINT_PTR nIDEvent);
-	afx_msg BOOL OnToolTipText(UINT, NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg LRESULT OnReciveBuffer(WPARAM wParam, LPARAM lParam);
+	afx_msg void OnSftpUidgid();
 	DECLARE_MESSAGE_MAP()
 };
 
@@ -347,6 +357,7 @@ public:
 	CArray<CFileNode, CFileNode &> m_FileNode;
 	CArray<CFileNode, CFileNode &> m_SaveNode;
 	class CCmdQue *m_pOwner;
+	CBuffer m_MemData;
 
 	CCmdQue();
 };

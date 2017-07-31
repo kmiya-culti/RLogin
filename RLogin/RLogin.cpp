@@ -400,6 +400,8 @@ void CRLoginApp::CreateJumpList(CServerEntryTab *pEntry)
 }
 #endif
 
+#include "Fifo.h"
+
 BOOL CRLoginApp::InitInstance()
 {
 	setlocale(LC_ALL, "");
@@ -1092,13 +1094,6 @@ BOOL CRLoginApp::OnIdle(LONG lCount)
 		return TRUE;
 
 	for ( int n = 0 ; n < m_SocketIdle.GetSize() ; n++ ) {
-		//if ( m_NextSock >= m_SocketIdle.GetSize() )
-		//	m_NextSock = 0;
-		//CExtSocket *pSock = (CExtSocket *)(m_SocketIdle[m_NextSock]);
-
-		//if ( ++m_NextSock >= m_SocketIdle.GetSize() )
-		//	m_NextSock = 0;
-
 		CExtSocket *pSock = (CExtSocket *)(m_SocketIdle[n]);
 
 		ASSERT(pSock->m_Type >= 0 && pSock->m_Type < 10 );
@@ -1170,7 +1165,6 @@ void CRLoginApp::SSL_Init()
 	SSLeay_add_all_algorithms();
 	SSLeay_add_ssl_algorithms();
 }
-
 void CRLoginApp::SetDefaultPrinter()
 {
 	int n;
@@ -1312,7 +1306,7 @@ void CRLoginApp::OnDialogfont()
 	LogFont.lfClipPrecision  = CLIP_DEFAULT_PRECIS;
 	LogFont.lfQuality        = DEFAULT_QUALITY;
 	LogFont.lfPitchAndFamily = DEFAULT_PITCH | FF_DONTCARE;
-    _tcsncpy(LogFont.lfFaceName, FontName, 32);
+    _tcsncpy(LogFont.lfFaceName, FontName, LF_FACESIZE);
 
 	CFontDialog font(&LogFont, CF_NOVERTFONTS | CF_SCREENFONTS | CF_SELECTSCRIPT, NULL, ::AfxGetMainWnd());
 

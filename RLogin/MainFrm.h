@@ -80,6 +80,7 @@ public:
 
 #define	TIMERID_SLEEPMODE	1024
 #define	TIMERID_MIDIEVENT	1025
+#define	TIMERID_IDLECHECK	1026
 #define	TIMERID_TIMEREVENT	1100
 
 class CTimerObject : public CObject
@@ -237,6 +238,7 @@ protected:
 
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnDestroy();
+	afx_msg void OnEnterIdle(UINT nWhy, CWnd* pWho);
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);

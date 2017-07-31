@@ -484,6 +484,9 @@ void CTelnet::SendWindSize(int x, int y)
    if ( ReciveStatus == RVST_NON )
 	   return;
 
+   if ( (MyOpt[TELOPT_NAWS].flags & TELFLAG_ON) == 0 )
+	   return;
+
 	tmp[n++] = (char)TELC_IAC;
 	tmp[n++] = (char)TELC_SB;
 	tmp[n++] = (char)TELOPT_NAWS;

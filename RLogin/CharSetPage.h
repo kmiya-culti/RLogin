@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ListCtrlExt.h"
+#include "afxwin.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CCharSetPage ダイアログ
@@ -28,6 +29,9 @@ public:
 	CString	m_CharBank4;
 	int		m_AltFont;
 	CString m_DefFontName;
+	CStatic m_FontSample;
+	int		m_ListIndex;
+	CStringBinary m_FontSet;
 
 public:
 	class CFontTab m_FontTab;
@@ -61,7 +65,9 @@ protected:
 	afx_msg void OnEditDups();
 	afx_msg void OnUpdateEditEntry(CCmdUI* pCmdUI);
 	afx_msg void OnCbnSelchangeFontnum();
-	afx_msg void OnBnClickedFontsel();
 	afx_msg void OnEditDelall();
 	afx_msg void OnUpdateFontName();
+	afx_msg void OnCbnSelchangeFontName();
+	afx_msg void OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct);
+	afx_msg void OnLvnItemchangedFontlist(NMHDR *pNMHDR, LRESULT *pResult);
 };

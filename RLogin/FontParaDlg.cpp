@@ -163,8 +163,16 @@ void CFontParaDlg::CodeSetName(int num, CString &bank, CString &code)
 	}
 }
 
-extern int CALLBACK EnumFontFamExComboAddStr(ENUMLOGFONTEX *lpelfe, NEWTEXTMETRICEX *lpntme, int FontType, LPARAM lParam);
+static int CALLBACK EnumFontFamExComboAddStr(ENUMLOGFONTEX *lpelfe, NEWTEXTMETRICEX *lpntme, int FontType, LPARAM lParam)
+{
+	CComboBox *pCombo = (CComboBox *)lParam;
+	LPCTSTR name = lpelfe->elfLogFont.lfFaceName;
 
+	if ( name[0] != _T('@') && pCombo->FindStringExact((-1), name) == CB_ERR )
+		pCombo->AddString(name);
+
+	return TRUE;
+}
 void CFontParaDlg::SetFontFace(int nID)
 {
 	CClientDC dc(this);
@@ -216,6 +224,13 @@ BOOL CFontParaDlg::OnInitDialog()
 	m_IContName = m_pData->m_IContName;
 	m_EntryName = m_pData->m_EntryName;
 	m_FontQuality = m_pData->m_Quality;
+
+	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_FONTCODE)) != NULL ) {
+		if ( m_CodeTemp.GetLength() == 1 && m_CodeTemp[0] >= _T('a') && m_CodeTemp[0] <= _T('z') )
+			pCombo->AddString(m_CodeTemp);
+		else if ( pCombo->FindStringExact((-1), m_CodeTemp) == CB_ERR )
+			pCombo->AddString(m_CodeTemp);
+	}
 
 	for ( n = 0 ; n < 16 ; n++ )
 		m_FontNameTab[n] = m_pData->m_FontName[n];
@@ -270,9 +285,9 @@ void CFontParaDlg::OnFontsel()
 	LogFont.lfPitchAndFamily = DEFAULT_PITCH | FF_DONTCARE;
 
 	if ( m_FontName.IsEmpty() && m_FontNum > 0 )
-	    _tcscpy(LogFont.lfFaceName, m_FontNameTab[0]);
+	    _tcsncpy(LogFont.lfFaceName, m_FontNameTab[0], LF_FACESIZE);
 	else
-	    _tcscpy(LogFont.lfFaceName, m_FontName);
+	    _tcsncpy(LogFont.lfFaceName, m_FontName, LF_FACESIZE);
 
 #define	CF_INACTIVEFONTS	0x02000000L
 
@@ -295,7 +310,16 @@ void CFontParaDlg::OnCbnSelchangeFontnum()
 
 void CFontParaDlg::OnCbnSelchangeCharset()
 {
+	int n;
+	CComboBox *pCombo = (CComboBox *)this->GetDlgItem(IDC_CHARSET);
+
+	if ( pCombo == NULL || (n = pCombo->GetCurSel()) < 0 )
+		return;
+
 	UpdateData(TRUE);
+	pCombo->GetLBText(n, m_CharSetTemp);
+	UpdateData(FALSE);
+
 	SetFontFace(IDC_FACENAME);
 }
 

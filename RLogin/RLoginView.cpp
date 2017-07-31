@@ -637,7 +637,7 @@ void CRLoginView::ImmSetPos(int x, int y)
 	if ( ImmGetCompositionFont(hIMC, &LogFont) && (LogFont.lfWidth != m_CharWidth || LogFont.lfHeight != m_CharHeight || _tcscmp(LogFont.lfFaceName, fontName) != 0) ) {
 		LogFont.lfWidth  = m_CharWidth;
 		LogFont.lfHeight = m_CharHeight;
-		_tcsncpy(LogFont.lfFaceName, fontName, sizeof(LogFont.lfFaceName) / sizeof(TCHAR));
+		_tcsncpy(LogFont.lfFaceName, fontName, LF_FACESIZE);
 		ImmSetCompositionFont(hIMC, &LogFont);
 	}
 
@@ -1347,7 +1347,7 @@ LRESULT CRLoginView::OnImeNotify(WPARAM wParam, LPARAM lParam)
 			if ( ImmGetCompositionFont(hIMC, &LogFont) ) {
 				LogFont.lfWidth  = m_CharWidth;
 				LogFont.lfHeight = m_CharHeight;
-				_tcsncpy(LogFont.lfFaceName, pDoc->m_TextRam.m_FontTab[SET_94x94 | '@'].m_FontName[0], sizeof(LogFont.lfFaceName) / sizeof(TCHAR));
+				_tcsncpy(LogFont.lfFaceName, pDoc->m_TextRam.m_FontTab[SET_94x94 | '@'].m_FontName[0], LF_FACESIZE);
 				ImmSetCompositionFont(hIMC, &LogFont);
 			}
 			ImmReleaseContext(m_hWnd, hIMC);

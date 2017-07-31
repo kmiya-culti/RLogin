@@ -292,8 +292,9 @@ BEGIN
             MENUITEM "ESCシーケンスリセット",                IDM_RESET_ESC
             MENUITEM "マウスイベントリセット",                 IDM_RESET_MOUSE
             MENUITEM "tek40/41xxリセット",              IDM_RESET_TEK
+            MENUITEM "スクリーンリセット",                   IDM_RESET_SCREEN
             MENUITEM SEPARATOR
-            MENUITEM "スクリーンリセット",                   IDM_RESET_ALL
+            MENUITEM "すべてリセット",                     IDM_RESET_ALL
         END
     END
     POPUP "ウィンドウ(&W)"
@@ -354,6 +355,7 @@ BEGIN
         MENUITEM "ミラーアップロード(&S)",               IDM_SFTP_ALLUPLOAD
         MENUITEM "ミラーダウンロード(&L)",               IDM_SFTP_ALLDOWNLOAD
         MENUITEM SEPARATOR
+        MENUITEM "uid/gidを名称に変換(&I)",           IDM_SFTP_UIDGID
         MENUITEM "ファイル転送の中止(&Z)",               IDM_SFTP_ABORT
         MENUITEM "最新の情報に更新(&R)",                IDM_SFTP_REFLESH
     END
@@ -491,7 +493,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.19.0 (2015/08/17)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.19.1 (2015/09/07)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2015 Culti",IDC_STATIC,44,16,189,8
     DEFPUSHBUTTON   "OK",IDOK,96,171,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.2d 9 Jul 2015",IDC_STATIC,44,29,189,8
@@ -667,7 +669,7 @@ CAPTION "Font Parameter"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     EDITTEXT        IDC_ENTRYNAME,15,31,154,14,ES_AUTOHSCROLL
-    COMBOBOX        IDC_FONTCODE,176,31,43,140,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_FONTCODE,176,31,43,140,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_ICONVSET,15,62,154,106,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_CHARBANK,176,62,43,50,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_CHARSET,15,111,154,70,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
@@ -814,8 +816,7 @@ BEGIN
     COMBOBOX        IDC_CHARBANK2,94,73,160,80,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_CHARBANK3,94,91,160,80,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_CHARBANK4,94,109,160,80,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_FONTNAME,14,151,162,80,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "デフォルトフォント",IDC_FONTSEL,184,151,70,14
+    COMBOBOX        IDC_FONTNAME,50,149,100,80,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
     CONTROL         "List1",IDC_FONTLIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,14,170,240,77
     COMBOBOX        IDC_FONTNUM,48,253,21,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "新規(&N)",IDC_FONTLISTNEW,85,253,45,14
@@ -831,6 +832,8 @@ BEGIN
     GROUPBOX        "文字バンク",IDC_STATIC,73,43,190,85
     GROUPBOX        "フォントセット",IDC_STATIC,7,136,256,137
     LTEXT           "Alt.Font",IDC_STATIC,18,255,24,8
+    CONTROL         "",IDC_FONTSAMPLE,"Static",SS_OWNERDRAW,154,145,100,20,WS_EX_STATICEDGE
+    LTEXT           "デフォルト",IDC_STATIC,17,151,26,8
 END
 
 IDD_COLORPARADLG DIALOGEX 0, 0, 270, 280
@@ -1532,8 +1535,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,19,0,0
- PRODUCTVERSION 2,19,0,0
+ FILEVERSION 2,19,1,0
+ PRODUCTVERSION 2,19,1,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1550,12 +1553,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.19.0.0"
+            VALUE "FileVersion", "2.19.1.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2015 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.19.0.0"
+            VALUE "ProductVersion", "2.19.1.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2833,11 +2836,37 @@ BEGIN
     IDS_SSH_PASS_TITLE      "SSH鍵ファイルの読み込み"
     IDS_TOOMANYHOSTNAME     "多くのホスト名に展開します。接続しますか？"
     IDS_VIEW_MENUBAR        "メニューバーの表示"
+    IDS_NEWVERSIONCHECK     "新しいバージョンのRLogin(%s)があります。\n今すぐダウンロードページを表示しますか？"
+    IDS_VERSIONCHECKURL     "http://nanno.dip.jp/softlib/version.txt"
+    IDS_FONTSAMPLESTRING    "012 abcABC 日本語"
+END
+
+STRINGTABLE
+BEGIN
     IDE_ALLCLOSEREQ         "すべての接続を閉じてよろしいでしょうか？"
     IDE_DELETEKEYQES        "他に使用しているエントリーがあるかもしれません\nほんとうに削除してよいですか？"
     IDE_DSABITSIZEERR       "DSAは、ビットサイズを768/1024から選択してください。2048以上は、将来的に使えない可能性があります"
     IDE_DUPIDKEYENTRY       "同じ鍵ファイルがすでに登録済みです"
+END
+
+STRINGTABLE
+BEGIN
     IDE_ECDSABITSIZEERR     "ECDSAは、ビットサイズを256/384/521から選択してください"
+    IDE_FILENAMEERROR       "ファイル名変換規則に該当する名前です。変換しますか？"
+    IDE_HISTORYBACKUPERROR  "ヒストリーバックアップに失敗しました"
+    IDE_IDKEYCREATEERROR    "鍵ファイルが作成できませんでした"
+    IDE_IDKEYLOADERROR      "鍵ファイルを読み込めませんでした"
+    IDE_IDKEYPASSERROR      "作成時に指定したパスフレーズと一致しません"
+    IDE_IDKEYSAVEERROR      "鍵ファイルに保存できませんでした"
+    IDE_INFOCAPCONVERROR    "TERMCAPからTERMINFOに変換できない文法を含んでいます\n\n"
+    IDE_INFOCAPINFOCONVERROR "TERMINFOからTERMCAPに変換できない文法を含んでいます\n\n"
+    IDE_INFOCAPOVER1024     "TERMCAPのトータル文字数が1024文字の制限を超えました\n"
+    IDE_KANJICONVERROR      "文字コード変換でエラーが発生しました。\n正しく変換されていない可能性があります"
+    IDE_LOGOPENERROR        "ログファイルを開けませんでした"
+    IDE_MAKEIDKEY           "認証キーを作成中です"
+    IDE_MANYCHANNEL         "多くのチャンネルを開こうとしています\n続行しますか？"
+    IDE_MESSAGE_ANYPASTE    "多くの文字をペーストしようとしています\n送信しますか？"
+    IDE_PASSWORDNOMATCH     "再入力されたパスフレーズが一致しません"
 END
 
 STRINGTABLE
@@ -2858,6 +2887,7 @@ END
 
 STRINGTABLE
 BEGIN
+    IDM_RESET_ALL           "すべてを初期化し画面を消去します\n全初期化"
     IDM_SCRIPT              "スクリプトファイルを実行します\nスクリプト実行"
     IDM_SEARCH_BACK         "前を検索します\n前を検索"
     IDM_SEARCH_NEXT         "次を検索します\n次を検索"
@@ -2867,41 +2897,23 @@ END
 
 STRINGTABLE
 BEGIN
-    IDE_FILENAMEERROR       "ファイル名変換規則に該当する名前です。変換しますか？"
-    IDE_HISTORYBACKUPERROR  "ヒストリーバックアップに失敗しました"
-    IDE_IDKEYCREATEERROR    "鍵ファイルが作成できませんでした"
-    IDE_IDKEYLOADERROR      "鍵ファイルを読み込めませんでした"
-    IDE_IDKEYPASSERROR      "作成時に指定したパスフレーズと一致しません"
-    IDE_IDKEYSAVEERROR      "鍵ファイルに保存できませんでした"
-    IDE_INFOCAPCONVERROR    "TERMCAPからTERMINFOに変換できない文法を含んでいます\n\n"
-    IDE_INFOCAPINFOCONVERROR "TERMINFOからTERMCAPに変換できない文法を含んでいます\n\n"
-    IDE_INFOCAPOVER1024     "TERMCAPのトータル文字数が1024文字の制限を超えました\n"
-    IDE_KANJICONVERROR      "文字コード変換でエラーが発生しました。\n正しく変換されていない可能性があります"
-    IDE_LOGOPENERROR        "ログファイルを開けませんでした"
-    IDE_MAKEIDKEY           "認証キーを作成中です"
-    IDE_MANYCHANNEL         "多くのチャンネルを開こうとしています\n続行しますか？"
-    IDE_MESSAGE_ANYPASTE    "多くの文字をペーストしようとしています\n送信しますか？"
-    IDE_PASSWORDNOMATCH     "再入力されたパスフレーズが一致しません"
     IDE_PORTFWORDERROR      "ポートフォワードの設定が無効です"
-END
-
-STRINGTABLE
-BEGIN
     IDE_PROTOCOLENTRY       "login/telnet/sshプロトコルのみ登録できます"
     IDE_RSABITSIZEERR       "RSAは、ビットサイズを768/1024/2048/4096/8192から選択してください。推奨は、2048以上です。"
     IDE_SSHGLOBALREQERROR   "SSH2グローバルリクエストエラー"
     IDE_UPDATERESUMEERROR   "再開できません上書きになります"
     IDE_USEPASSWORDIDKEY    "空のパスフレーズを指定しています。\n空のままで処理を続行しますか？"
     IDE_USESERVERENTRY      "Server Entry を入力してください"
-    IDS_NEWVERSIONCHECK     "新しいバージョンのRLogin(%s)があります。\n今すぐダウンロードページを表示しますか？"
-    IDS_VERSIONCHECKURL     "http://nanno.dip.jp/softlib/version.txt"
     IDE_USEIDKEYFILENAME    "認証鍵ファイルを指定してください"
     IDE_IDKEYNOTSUPPORT     "SSHでサポートされていないサイズの認証鍵です"
+    IDE_PFDLISTENEMPTY      "Listenホスト/ポートが指定されていません"
 END
 
 STRINGTABLE
 BEGIN
+    IDM_DIALOGFONT          "ダイアログフォントを設定します\nダイアログフォント"
     IDM_NONENCRYPTFILE      "空のパスフレーズで作成されています\n暗号化されない認証鍵ファイルを作成しますか？"
+    IDM_SFTP_UIDGID         "uid/gidを名称に変換\nuid/gid変換"
 END
 
 STRINGTABLE
@@ -3099,7 +3111,7 @@ BEGIN
     IDM_RESET_TEK           "tek40xx/41xxを初期化します\ntek初期化"
     IDM_RESET_ESC           "ESCシーケンスを初期化します\nESC初期化"
     IDM_RESET_MOUSE         "マウスイベントを初期化します\nイベント初期化"
-    IDM_RESET_ALL           "すべてを初期化し画面を消去します\n全初期化"
+    IDM_RESET_SCREEN        "スクリーン画面を消去します\nスクリーン消去"
 END
 
 STRINGTABLE
@@ -3114,7 +3126,6 @@ BEGIN
     IDM_KERMIT_UPLOAD       "Kermitでファイルをアップロードする\nKermitアップ"
     IDM_KERMIT_DOWNLOAD     "Kermitでファイルをダウンロードする\nKermitダウン"
     IDM_VERSIONCHECK        "定期的に新バージョンをチェックする\n新バージョンチェック"
-    IDM_DIALOGFONT          "ダイアログフォントを設定します\nダイアログフォント"
 END
 
 STRINGTABLE

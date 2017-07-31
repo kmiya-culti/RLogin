@@ -38,9 +38,9 @@ public:
 	class CFontTab *m_pFontTab;
 
 public:
-	int CharSetNo(LPCTSTR name);
-	LPCTSTR CharSetName(int code);
-	LPCTSTR IConvName(int code);
+	static int CharSetNo(LPCTSTR name);
+	static LPCTSTR CharSetName(int code);
+	static LPCTSTR IConvName(int code);
 	int CodeSetNo(LPCTSTR bank, LPCTSTR code);
 	void CodeSetName(int num, CString &bank, CString &code);
 	void SetFontFace(int nID);

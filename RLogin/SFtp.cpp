@@ -180,18 +180,22 @@ LPCTSTR CFileNode::GetFileSize()
 	m_name.Format(_T("%I64d"), m_size);
 	return m_name;
 }
-LPCTSTR CFileNode::GetUserID()
+LPCTSTR CFileNode::GetUserID(CStringBinary *pName)
 {
 	if ( (m_flags & SSH2_FILEXFER_ATTR_UIDGID) == 0 )
 		return _T("");
 	m_name.Format(_T("%d"), m_uid);
+	if ( pName != NULL && (pName = pName->Find(m_name)) != NULL )
+		return pName->m_String;
 	return m_name;
 }
-LPCTSTR CFileNode::GetGroupID()
+LPCTSTR CFileNode::GetGroupID(CStringBinary *pName)
 {
 	if ( (m_flags & SSH2_FILEXFER_ATTR_UIDGID) == 0 )
 		return _T("");
 	m_name.Format(_T("%d"), m_gid);
+	if ( pName != NULL && (pName = pName->Find(m_name)) != NULL )
+		return pName->m_String;
 	return m_name;
 }
 LPCTSTR CFileNode::GetAttr()
@@ -441,6 +445,7 @@ class CFileNode *CFileNode::Find(LPCTSTR path)
 CCmdQue::CCmdQue()
 {
 	m_Fd = (-1);
+	m_EndFunc = NULL;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -470,6 +475,7 @@ CSFtp::CSFtp(CWnd* pParent /*=NULL*/)
 	m_pCacheNode = NULL;
 	m_UpdateCheckMode = 0;
 	m_AutoRenMode = 0;
+	m_bUidGid = FALSE;
 }
 CSFtp::~CSFtp()
 {
@@ -972,8 +978,8 @@ int CSFtp::RemoteSetListRes(int st, class CCmdQue *pQue)
 		m_RemoteList.SetItemText(i, 1, m_RemoteNode[n].GetModTime());
 		m_RemoteList.SetItemText(i, 2, m_RemoteNode[n].GetFileSize());
 		m_RemoteList.SetItemText(i, 3, m_RemoteNode[n].GetAttr());
-		m_RemoteList.SetItemText(i, 4, m_RemoteNode[n].GetUserID());
-		m_RemoteList.SetItemText(i, 5, m_RemoteNode[n].GetGroupID());
+		m_RemoteList.SetItemText(i, 4, m_RemoteNode[n].GetUserID(&m_UserUid));
+		m_RemoteList.SetItemText(i, 5, m_RemoteNode[n].GetGroupID(&m_GroupGid));
 	}
 	ListSort(1, (-1));
 
@@ -1066,7 +1072,7 @@ int CSFtp::RemoteSetCwdRes(int type, CBuffer *bp, class CCmdQue *pQue)
 	SetUpDownCount(1);
 	return FALSE;
 }
-void CSFtp::RemoteSetCwd(LPCTSTR path)
+void CSFtp::RemoteSetCwd(LPCTSTR path, BOOL bNoWait)
 {
 	CCmdQue *pQue = new CCmdQue;
 
@@ -1074,7 +1080,7 @@ void CSFtp::RemoteSetCwd(LPCTSTR path)
 	pQue->m_Len  = 0;
 
 	RemoteMakePacket(pQue, SSH2_FXP_REALPATH);
-	SendCommand(pQue, &CSFtp::RemoteSetCwdRes, SENDCMD_NOWAIT);
+	SendCommand(pQue, &CSFtp::RemoteSetCwdRes, bNoWait ? SENDCMD_NOWAIT : SENDCMD_TAIL);
 }
 int CSFtp::RemoteMtimeCwdRes(int type, CBuffer *bp, class CCmdQue *pQue)
 {
@@ -1180,9 +1186,15 @@ int CSFtp::RemoteCloseReadRes(int type, CBuffer *bp, class CCmdQue *pQue)
 		m_UpDownCount = 0;
 		m_TotalSize = 0;
 		SetUpDownCount(0);
-	} else
+		SetRangeProg(NULL, 0, 0);
+
+	} else {
 		SetUpDownCount(-1);
-	SetRangeProg(NULL, 0, 0);
+		SetRangeProg(NULL, 0, 0);
+
+		//if ( pQue->m_EndFunc != NULL )
+		//	return (this->*(pQue->m_EndFunc))(SSH2_FX_OK, pQue);
+	}
 
 	return TRUE;
 }
@@ -1345,6 +1357,121 @@ void CSFtp::DownLoadFile(CFileNode *pNode, LPCTSTR file)
 	pQue->m_FileNode[0].EncodeAttr(&(pQue->m_Msg));
 	SendCommand(pQue, &CSFtp::RemoteOpenReadRes, SENDCMD_TAIL);
 	SetUpDownCount(1);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+int CSFtp::RemoteCloseMemReadRes(int type, CBuffer *bp, class CCmdQue *pQue)
+{
+	CString line, tmp;
+	CStringArrayExt param;
+	LPCTSTR p, s;
+
+	if ( type >= 0 ) {
+		if ( type != SSH2_FXP_STATUS || bp->Get32Bit() != SSH2_FX_OK )
+			return TRUE;
+		else if ( pQue->m_Len == (-1) )
+			return TRUE;
+	} else if ( type == (-1) )
+		return TRUE;
+
+	KanjiConvToLocal(pQue->m_MemData, tmp);
+
+	for ( s = tmp ; *s != _T('\0') ; s++ ) {
+		if ( *s == _T('\n') ) {
+			p = line;
+			while ( *p != _T('\0') && *p <= _T(' ') )
+				p++;
+			if ( *p != _T('#') )
+				param.GetString(p, _T(':'));
+			switch(pQue->m_Fd) {
+			case 0:		// /etc/passwd
+				// hogehoge:x:500:500:hogeo:/home/hogehoge:/bin/bash
+				if ( param.GetSize() > 2 && m_UserUid.Find(param[2]) == NULL )
+					m_UserUid[param[2]] = param[0];
+				break;
+			case 1:		// /etc/group
+				// hoge_group:x:501:hoge_user3,hoge_user2
+				if ( param.GetSize() > 2 && m_GroupGid.Find(param[2]) == NULL )
+					m_GroupGid[param[2]] = param[0];
+				break;
+			}
+			line.Empty();
+			param.RemoveAll();
+		} else if ( *s != _T('\r') )
+			line += *s;
+	}
+
+	return TRUE;
+}
+int CSFtp::RemoteDataMemReadRes(int type, CBuffer *bp, class CCmdQue *pQue)
+{
+	int n;
+
+	if ( type != SSH2_FXP_DATA || m_DoAbort ) {
+		pQue->m_Len = (type == SSH2_FXP_STATUS && bp->Get32Bit() == SSH2_FX_EOF ? 0 : (-1));
+		RemoteMakePacket(pQue, SSH2_FXP_CLOSE);
+		SendCommand(pQue, &CSFtp::RemoteCloseMemReadRes, SENDCMD_NOWAIT);
+		return FALSE;
+	}
+
+	n = bp->Get32Bit();
+	pQue->m_MemData.Apend(bp->GetPtr(), n);
+
+	pQue->m_Offset += n;
+	pQue->m_Len    = SSH2_FX_TRANSBUFLEN;
+
+	RemoteMakePacket(pQue, SSH2_FXP_READ);
+	SendCommand(pQue, &CSFtp::RemoteDataMemReadRes, SENDCMD_NOWAIT);
+
+	return FALSE;
+}
+int CSFtp::RemoteOpenMemReadRes(int type, CBuffer *bp, class CCmdQue *pQue)
+{
+	if ( type != SSH2_FXP_HANDLE )
+		return RemoteCloseMemReadRes((-1), bp, pQue);
+	bp->GetBuf(&pQue->m_Handle);
+
+	pQue->m_pOwner = NULL;
+	pQue->m_Max    = 1;
+	pQue->m_Size   = 0;
+	pQue->m_Offset = pQue->m_NextOfs;
+	pQue->m_Len    = SSH2_FX_TRANSBUFLEN;
+	pQue->m_MemData.Clear();
+
+	RemoteMakePacket(pQue, SSH2_FXP_READ);
+	SendCommand(pQue, &CSFtp::RemoteDataMemReadRes, SENDCMD_NOWAIT);
+	pQue->m_NextOfs += pQue->m_Len;
+
+	return FALSE;
+}
+void CSFtp::MemLoadFile(LPCTSTR file, int id)
+{
+	CCmdQue *pQue;
+	CFileNode FileNode;
+
+	if ( file == NULL )
+		return;
+
+	pQue = new CCmdQue;
+	pQue->m_Path = file;
+	pQue->m_FileNode.RemoveAll();
+	pQue->m_NextOfs = 0;
+	pQue->m_Fd = id;
+
+	switch(pQue->m_Fd) {
+	case 0:		// /etc/passwd
+		m_UserUid.RemoveAll();
+		break;
+	case 1:		// /etc/group
+		m_GroupGid.RemoveAll();
+		break;
+	}
+
+	RemoteMakePacket(pQue, SSH2_FXP_OPEN);
+	pQue->m_Msg.Put32Bit(SSH2_FXF_READ);
+	FileNode.EncodeAttr(&(pQue->m_Msg));
+	SendCommand(pQue, &CSFtp::RemoteOpenMemReadRes, SENDCMD_TAIL);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -2003,6 +2130,7 @@ BEGIN_MESSAGE_MAP(CSFtp, CDialogExt)
 	ON_NOTIFY_EX_RANGE(TTN_NEEDTEXTW, 0, 0xFFFF, OnToolTipText)
 	ON_NOTIFY_EX_RANGE(TTN_NEEDTEXTA, 0, 0xFFFF, OnToolTipText)
 	ON_MESSAGE(WM_RECIVEBUFFER, OnReciveBuffer)
+	ON_COMMAND(IDM_SFTP_UIDGID, &CSFtp::OnSftpUidgid)
 END_MESSAGE_MAP()
 
 #define	ITM_LEFT_HALF	0001
@@ -2154,8 +2282,8 @@ BOOL CSFtp::OnInitDialog()
 		{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  110, _T("Date"),	0, 0 },
 		{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,   70, _T("Size"),	0, 0 },
 		{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,   80, _T("Attr"),	0, 0 },
-		{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,   40, _T("uid"),		0, 0 },
-		{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,   40, _T("gid"),		0, 0 },
+		{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,   60, _T("uid"),		0, 0 },
+		{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,   60, _T("gid"),		0, 0 },
 	};
 
 	CDialogExt::OnInitDialog();
@@ -2241,9 +2369,17 @@ BOOL CSFtp::OnInitDialog()
 	work  = ::AfxGetApp()->GetProfileString(_T("CSFtp"), tmp, _T("."));
 	LocalSetCwd(work);
 
+	tmp.Format(_T("RemoteUidGid_%s"), m_pSSh->m_HostName);
+	m_bUidGid = AfxGetApp()->GetProfileInt(_T("CSFtp"), tmp, FALSE);
+
+	if ( m_bUidGid ) {
+		MemLoadFile(_T("/etc/passwd"), 0);
+		MemLoadFile(_T("/etc/group"),  1);
+	}
+
 	tmp.Format(_T("ReCurDir_%s_%d"), m_pSSh->m_HostName, 0);
 	work = ::AfxGetApp()->GetProfileString(_T("CSFtp"), tmp, _T("."));
-	RemoteSetCwd(work);
+	RemoteSetCwd(work, FALSE);
 	SendWaitQue();
 
 	InitItemOffset();
@@ -2609,8 +2745,10 @@ void CSFtp::OnRclickLocalList(NMHDR* pNMHDR, LRESULT* pResult)
 
 	menu.LoadMenu(IDR_SFTPMENU);
 	m_LocalList.ClientToScreen(&point);
-	if ( (submenu = menu.GetSubMenu(1)) != NULL )
+	if ( (submenu = menu.GetSubMenu(1)) != NULL ) {
+		submenu->EnableMenuItem(IDM_SFTP_UIDGID, MF_BYCOMMAND | MF_GRAYED);
 		submenu->TrackPopupMenu(TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, this);
+	}
 	*pResult = 0;
 }
 
@@ -2622,8 +2760,10 @@ void CSFtp::OnRclickRemoteList(NMHDR* pNMHDR, LRESULT* pResult)
 
 	menu.LoadMenu(IDR_SFTPMENU);
 	m_RemoteList.ClientToScreen(&point);
-	if ( (submenu = menu.GetSubMenu(1)) != NULL )
+	if ( (submenu = menu.GetSubMenu(1)) != NULL ) {
+		submenu->CheckMenuItem(IDM_SFTP_UIDGID, MF_BYCOMMAND | (m_bUidGid ? MF_CHECKED : MF_UNCHECKED));
 		submenu->TrackPopupMenu(TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, this);
+	}
 	*pResult = 0;
 }
 
@@ -2869,6 +3009,27 @@ void CSFtp::OnSftpReflesh()
 	LocalSetCwd(m_LocalCurDir);
 	RemoteSetCwd(m_RemoteCurDir);
 	SendWaitQue();
+}
+
+void CSFtp::OnSftpUidgid()
+{
+	CString tmp;
+
+	if ( m_bUidGid ) {
+		m_bUidGid = FALSE;
+		m_UserUid.RemoveAll();
+		m_GroupGid.RemoveAll();
+	} else {
+		m_bUidGid = TRUE;
+		MemLoadFile(_T("/etc/passwd"), 0);
+		MemLoadFile(_T("/etc/group"),  1);
+	}
+
+	RemoteSetCwd(m_RemoteCurDir, FALSE);
+	SendWaitQue();
+
+	tmp.Format(_T("RemoteUidGid_%s"), m_pSSh->m_HostName);
+	AfxGetApp()->WriteProfileInt(_T("CSFtp"), tmp, m_bUidGid);
 }
 
 void CSFtp::OnSftpAbort() 

@@ -19,7 +19,7 @@ CListCtrlExt::CListCtrlExt()
 	m_SortSubItem = 0;
 	m_SortReverse = 0;
 	m_SortDupItem = 0;
-	m_pSubMenu    = NULL;
+	m_SubMenuPos  = (-1);
 	m_EditSubItem = 0;
 	m_bSort = TRUE;
 	m_bMove = FALSE;
@@ -131,7 +131,7 @@ BOOL CListCtrlExt::GetLVCheck(WPARAM ItemIndex)
 void CListCtrlExt::SetPopUpMenu(UINT nIDResource, int Pos)
 {
 	m_PopUpMenu.LoadMenu(nIDResource);
-	m_pSubMenu = m_PopUpMenu.GetSubMenu(Pos);
+	m_SubMenuPos = Pos;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -158,28 +158,29 @@ BOOL CListCtrlExt::OnRclick(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	*pResult = 0;
 
-	if ( m_pSubMenu == NULL )
+	if ( m_SubMenuPos < 0 )
 		return FALSE;
 
+	CMenu *pSubMenu = m_PopUpMenu.GetSubMenu(m_SubMenuPos);
 	CCmdUI state;
 	NMLISTVIEW* pNMListView = (NM_LISTVIEW*)pNMHDR;
 	CPoint point = pNMListView->ptAction;
 	CWnd *pOwner = GetOwner();
 
-	if ( pOwner == NULL )
+	if ( pOwner == NULL || pSubMenu == NULL )
 		return FALSE;
 
-	state.m_pMenu = m_pSubMenu;
-	state.m_nIndexMax = m_pSubMenu->GetMenuItemCount();
+	state.m_pMenu = pSubMenu;
+	state.m_nIndexMax = pSubMenu->GetMenuItemCount();
 	for ( state.m_nIndex = 0 ; state.m_nIndex < state.m_nIndexMax ; state.m_nIndex++) {
-		if ( (int)(state.m_nID = m_pSubMenu->GetMenuItemID(state.m_nIndex)) <= 0 )
+		if ( (int)(state.m_nID = pSubMenu->GetMenuItemID(state.m_nIndex)) <= 0 )
 			continue;
 		state.m_pSubMenu = NULL;
 		state.DoUpdate(pOwner, TRUE);
 	}
 
 	ClientToScreen(&point);
-	m_pSubMenu->TrackPopupMenu(TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, pOwner);
+	pSubMenu->TrackPopupMenu(TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, pOwner);
 	return TRUE;
 }
 void CListCtrlExt::OpenEditBox(int item, int num, int fmt, CRect &rect)
@@ -303,17 +304,18 @@ BOOL CListCtrlExt::PreTranslateMessage(MSG* pMsg)
 			::DispatchMessage(pMsg);
 			return TRUE;
 		}
-	} else if ( m_pSubMenu != NULL && pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_APPS ) {
+	} else if ( m_SubMenuPos >= 0 && pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_APPS ) {
 		int n, flag;
 		CCmdUI state;
 		CPoint point;
 		CRect rect;
 		CWnd *pOwner = GetOwner();
+		CMenu *pSubMenu = m_PopUpMenu.GetSubMenu(m_SubMenuPos);
 
-		state.m_pMenu = m_pSubMenu;
-		state.m_nIndexMax = m_pSubMenu->GetMenuItemCount();
+		state.m_pMenu = pSubMenu;
+		state.m_nIndexMax = pSubMenu->GetMenuItemCount();
 		for ( state.m_nIndex = 0 ; state.m_nIndex < state.m_nIndexMax ; state.m_nIndex++) {
-			if ( (int)(state.m_nID = m_pSubMenu->GetMenuItemID(state.m_nIndex)) <= 0 )
+			if ( (int)(state.m_nID = pSubMenu->GetMenuItemID(state.m_nIndex)) <= 0 )
 				continue;
 			state.m_pSubMenu = NULL;
 			state.DoUpdate(pOwner, TRUE);
@@ -332,7 +334,7 @@ BOOL CListCtrlExt::PreTranslateMessage(MSG* pMsg)
 			flag = TPM_CENTERALIGN | TPM_VCENTERALIGN;
 		}
 
-		m_pSubMenu->TrackPopupMenu(flag | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, pOwner);
+		pSubMenu->TrackPopupMenu(flag | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, pOwner);
 		return TRUE;
 	}
 	return CListCtrl::PreTranslateMessage(pMsg);

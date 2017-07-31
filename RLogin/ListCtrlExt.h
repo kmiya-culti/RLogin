@@ -16,7 +16,7 @@ public:
 	int m_SortReverse;
 	int m_SortDupItem;
 	CMenu m_PopUpMenu;
-	CMenu *m_pSubMenu;
+	int m_SubMenuPos;
 
 	int m_EditSubItem;
 	int m_EditFlag;

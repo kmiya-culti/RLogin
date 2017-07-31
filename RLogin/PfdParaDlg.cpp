@@ -99,6 +99,11 @@ void CPfdParaDlg::OnOK()
 	stra.AddVal(m_ListenType);
 	stra.SetString(str);
 
+	if ( m_ListenHost.IsEmpty() || m_ListenPort.IsEmpty() ) {
+		MessageBox(CStringLoad(IDE_PFDLISTENEMPTY), NULL, MB_ICONSTOP);
+		return;
+	}
+
 	if ( m_EntryNum >= 0 )
 		(*m_pData)[m_EntryNum] = str;
 	else

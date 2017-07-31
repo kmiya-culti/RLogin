@@ -227,6 +227,7 @@ void CCharCell::GetCCharCell(CCharCell &data)
 		memcpy(m_Data, data.m_Data, sizeof(WCHAR) * WCharSize(m_Data));
 	}
 	m_Vram = data.m_Vram;
+	m_Block = data.m_Block;
 }
 #endif
 void CCharCell::operator = (DWORD ch)
@@ -4207,7 +4208,6 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 							work.fcn = EXTCOL_MAX + 24 - n;
 					}
 				}
-
 			}
 
 #ifdef	USE_TEXTFRAME
@@ -4577,6 +4577,31 @@ int CTextRam::UnicodeWidth(DWORD code)
 	else
 		return 1;
 }
+
+#if 0
+#include "UniBlockTab.h"
+
+int CTextRam::UnicodeBlock(DWORD code)
+{
+	int n, b, m;
+
+	if ( (code & 0xFFFF0000L) != 0 && (code & 0xFC00FC00L) != 0xD800DC00L )
+		code &= 0x0000FFFFL;
+
+	b = 0;
+	m = UNIBLOCKTABMAX - 1;
+	while ( b <= m ) {
+		n = (b + m) / 2;
+		if ( code == UniBlockTab[n].code )
+			return n;
+		else if ( code > UniBlockTab[n].code )
+			b = n + 1;
+		else
+			m = n - 1;
+	}
+	return (b - 1);
+}
+#endif
 
 //////////////////////////////////////////////////////////////////////
 // Static Lib
@@ -5001,6 +5026,9 @@ void CTextRam::RESET(int mode)
 
 	if ( mode & RESET_CLS )
 		ERABOX(0, 0, m_Cols, m_Lines);
+
+	if ( mode & RESET_HISTORY )
+		m_HisLen = m_Lines;
 
 	if ( mode & RESET_SAVE ) {
 		m_Save_CurX = m_CurX;
@@ -6011,6 +6039,7 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at)
 		vp->m_Vram.attr |= ATT_BORDER;
 
 	*vp = (DWORD)ch;
+//	vp->m_Block = UnicodeBlock(ch);
 
 	if ( dm != 0 )
 		DISPVRAM(m_CurX * 2, m_CurY, 2, 1);
@@ -6107,6 +6136,7 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at)
 
 	vp[0] = (DWORD)ch;
 	vp[1] = (DWORD)ch;
+//	vp[0].m_Block = vp[1].m_Block = UnicodeBlock(ch);
 
 	if ( dm != 0 )
 		DISPVRAM(m_CurX * 2, m_CurY, 4, 1);
@@ -6171,6 +6201,8 @@ void CTextRam::PUTADD(int x, int y, DWORD ch, int cf)
 		*vp += (DWORD)ch;
 		vp[1] = (LPCWSTR)(*vp);
 	}
+
+//	vp[0].m_Block = vp[1].m_Block = UnicodeBlock((DWORD)vp[0]);
 }
 void CTextRam::ANSIOPT(int opt, int bit)
 {

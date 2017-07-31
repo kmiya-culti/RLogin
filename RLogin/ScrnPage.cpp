@@ -21,7 +21,7 @@ static const int CheckOptTab[] = { TO_RLNORESZ };
 
 CScrnPage::CScrnPage() : CTreePage(CScrnPage::IDD)
 {
-	m_ScrnFont = -1;
+	m_ScrnFont = (-1);
 	m_FontSize = _T("");
 	m_ColsMax[0] = _T("");
 	m_ColsMax[1] = _T("");
@@ -108,8 +108,11 @@ void CScrnPage::DoInit()
 	m_ScrnFont = (m_pSheet->m_pTextRam->IsOptEnable(TO_RLFONT) ? 1 : 0);
 	m_ColsMax[0].Format(_T("%d"), m_pSheet->m_pTextRam->m_DefCols[0]);
 	m_ColsMax[1].Format(_T("%d"), m_pSheet->m_pTextRam->m_DefCols[1]);
-	m_FontSize.Format(_T("%d"),   m_pSheet->m_pTextRam->m_DefFontSize);
+
 	m_FontHw = m_pSheet->m_pTextRam->m_DefFontHw - 10;
+
+	// LOGPIXELSY 96/inc	POINT 72/inc
+	m_FontSize.Format(_T("%d (%.2f)"), m_pSheet->m_pTextRam->m_DefFontSize, (double)(m_pSheet->m_pTextRam->m_DefFontSize) * 72.0 / m_PixDpiY);
 
 	m_VisualBell = m_pSheet->m_pTextRam->IsOptValue(TO_RLADBELL, 2);
 	if ( (m_DefTypeCaret = m_pSheet->m_pTextRam->m_DefTypeCaret) > 0 )
@@ -134,6 +137,21 @@ BOOL CScrnPage::OnInitDialog()
 
 	CTreePage::OnInitDialog();
 
+	int n;
+	CString tmp;
+	CClientDC dc(this);
+	CComboBox *pCombo = (CComboBox *)GetDlgItem(IDC_SCSZFONT);
+
+	m_PixDpiY = (double)(dc.GetDeviceCaps(LOGPIXELSY));
+
+	for ( n = pCombo->GetCount() - 1 ; n >= 0; n-- )
+		pCombo->DeleteString(n);
+
+	for ( n = 2 ; n < 20 ; n++ ) {
+		tmp.Format(_T("%d (%.2f)"), n, (double)n * 72.0 / m_PixDpiY);
+		pCombo->AddString(tmp);
+	}
+
 	DoInit();
 
 	return TRUE;
@@ -153,6 +171,7 @@ BOOL CScrnPage::OnApply()
 
 	m_pSheet->m_pTextRam->m_DefCols[0]  = _tstoi(m_ColsMax[0]);
 	m_pSheet->m_pTextRam->m_DefCols[1]  = _tstoi(m_ColsMax[1]);
+
 	m_pSheet->m_pTextRam->m_DefFontSize = _tstoi(m_FontSize);
 	m_pSheet->m_pTextRam->m_DefFontHw   = m_FontHw + 10;
 

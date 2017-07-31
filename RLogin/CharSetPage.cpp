@@ -34,6 +34,7 @@ CCharSetPage::CCharSetPage() : CTreePage(CCharSetPage::IDD)
 	m_CharBank3 = _T("");
 	m_CharBank4 = _T("");
 	m_AltFont = 0;
+	m_ListIndex = (-1);
 }
 
 CCharSetPage::~CCharSetPage()
@@ -54,6 +55,7 @@ void CCharSetPage::DoDataExchange(CDataExchange* pDX)
 	DDX_CBString(pDX, IDC_CHARBANK4, m_CharBank4);
 	DDX_CBIndex(pDX, IDC_FONTNUM, m_AltFont);
 	DDX_CBString(pDX, IDC_FONTNAME, m_DefFontName);
+	DDX_Control(pDX, IDC_FONTSAMPLE, m_FontSample);
 }
 
 BEGIN_MESSAGE_MAP(CCharSetPage, CTreePage)
@@ -75,10 +77,11 @@ BEGIN_MESSAGE_MAP(CCharSetPage, CTreePage)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_DELETE, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_DUPS, OnUpdateEditEntry)
 	ON_CBN_SELCHANGE(IDC_FONTNUM, &CCharSetPage::OnCbnSelchangeFontnum)
-	ON_BN_CLICKED(IDC_FONTSEL, &CCharSetPage::OnBnClickedFontsel)
 	ON_COMMAND(ID_EDIT_DELALL, &CCharSetPage::OnEditDelall)
 	ON_CBN_EDITCHANGE(IDC_FONTNAME, &CCharSetPage::OnUpdateFontName)
-	ON_CBN_SELCHANGE(IDC_FONTNAME, &CCharSetPage::OnUpdateFontName)
+	ON_CBN_SELCHANGE(IDC_FONTNAME, &CCharSetPage::OnCbnSelchangeFontName)
+	ON_NOTIFY(LVN_ITEMCHANGED, IDC_FONTLIST, &CCharSetPage::OnLvnItemchangedFontlist)
+	ON_WM_DRAWITEM()
 END_MESSAGE_MAP()
 
 void CCharSetPage::InitList()
@@ -93,32 +96,39 @@ void CCharSetPage::InitList()
 		m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, i, m_FontTab[n].m_EntryName, 0, 0, 0, n);
 		m_List.SetItemText(i, 1, (n == SET_UNICODE ? _T("") : bankTab[n >> 8]));
 		m_List.SetItemText(i, 2, m_FontTab[n].m_IndexName);
-		m_List.SetItemText(i, 3, m_FontTab[n].m_FontName[m_AltFont]);
+		m_List.SetItemText(i, 3, CFontParaDlg::CharSetName(m_FontTab[n].m_CharSet));
+		m_List.SetItemText(i, 4, m_FontTab[n].m_FontName[m_AltFont]);
+		m_List.SetItemText(i, 5, m_FontTab[n].m_CharSet == DEFAULT_CHARSET ? _T("") : ((int)m_FontSet[m_FontTab[n].m_FontName[m_AltFont].IsEmpty() ? m_DefFontName : m_FontTab[n].m_FontName[m_AltFont]][m_FontTab[n].m_CharSet] == 1 ? _T("○") : _T("×")));
 		m_List.SetItemData(i, n);
 		i++;
 	}
 	m_List.DoSortItem();
 }
-int CALLBACK EnumFontFamExComboAddStr(ENUMLOGFONTEX *lpelfe, NEWTEXTMETRICEX *lpntme, int FontType, LPARAM lParam)
+
+static int CALLBACK EnumFontFamExComboAddStr(ENUMLOGFONTEX *lpelfe, NEWTEXTMETRICEX *lpntme, int FontType, LPARAM lParam)
 {
-	CComboBox *pCombo = (CComboBox *)lParam;
+	CCharSetPage *pWnd = (CCharSetPage *)lParam;
+	CComboBox *pCombo = (CComboBox *)pWnd->GetDlgItem(IDC_FONTNAME);
 	LPCTSTR name = lpelfe->elfLogFont.lfFaceName;
 
-	if ( pCombo != NULL && pCombo->FindStringExact((-1), name) == CB_ERR && name[0] != _T('@') )
+	if ( name[0] != _T('@') && pCombo->FindStringExact((-1), name) == CB_ERR )
 		pCombo->AddString(name);
+
+	pWnd->m_FontSet[name][lpelfe->elfLogFont.lfCharSet] = 1;
 
 	return TRUE;
 }
-
 
 /////////////////////////////////////////////////////////////////////////////
 // CCharSetPage メッセージ ハンドラ
 
 static const LV_COLUMN InitListTab[6] = {
-		{ LVCF_TEXT | LVCF_WIDTH, 0, 120, _T("Entry"), 0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0, 110, _T("Entry"), 0, 0 }, 
 		{ LVCF_TEXT | LVCF_WIDTH, 0,  50, _T("Bank"),  0, 0 }, 
 		{ LVCF_TEXT | LVCF_WIDTH, 0,  40, _T("Code"),  0, 0 }, 
-		{ LVCF_TEXT | LVCF_WIDTH, 0, 100, _T("Face"),  0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0,  70, _T("CSet"),  0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0,  90, _T("Face"),  0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0,  30, _T("In"),    0, 0 }, 
 	};
 
 void CCharSetPage::DoInit()
@@ -151,15 +161,21 @@ BOOL CCharSetPage::OnInitDialog()
 
 	CTreePage::OnInitDialog();
 
-	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_SUBITEMIMAGES);
-	m_List.InitColumn(_T("CharSetPage"), InitListTab, 4);
-	m_List.SetPopUpMenu(IDR_POPUPMENU, 6);
-
-	DoInit();
-
 	int n, i;
 	CComboBox *pCombo[4];
 	LPCTSTR pStr;
+	CClientDC dc(this);
+	LOGFONT logfont;
+
+	ZeroMemory(&logfont, sizeof(LOGFONT)); 
+	logfont.lfCharSet = DEFAULT_CHARSET;
+	::EnumFontFamiliesEx(dc.m_hDC, &logfont, (FONTENUMPROC)EnumFontFamExComboAddStr, (LPARAM)this, 0);
+
+	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_SUBITEMIMAGES);
+	m_List.InitColumn(_T("CharSetPage"), InitListTab, 6);
+	m_List.SetPopUpMenu(IDR_POPUPMENU, 6);
+
+	DoInit();
 
 	for ( i = 0 ; i < 4 ; i++ )
 		pCombo[i] = (CComboBox *)GetDlgItem(IDC_CHARBANK1 + i);
@@ -174,14 +190,6 @@ BOOL CCharSetPage::OnInitDialog()
 		}
 	}
 	
-	
-	CClientDC dc(this);
-	LOGFONT logfont;
-
-	ZeroMemory(&logfont, sizeof(LOGFONT)); 
-	logfont.lfCharSet = DEFAULT_CHARSET;
-	::EnumFontFamiliesEx(dc.m_hDC, &logfont, (FONTENUMPROC)EnumFontFamExComboAddStr, (LPARAM)GetDlgItem(IDC_FONTNAME), 0);
-
 	return TRUE;
 }
 BOOL CCharSetPage::OnApply() 
@@ -279,6 +287,7 @@ void CCharSetPage::OnFontListEdit()
 		m_List.SetItemState(n, LVIS_SELECTED, LVIS_SELECTED);
 		m_List.EnsureVisible(n, FALSE);
 	}
+	m_ListIndex = dlg.m_CodeSet;
 
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
@@ -364,38 +373,7 @@ void CCharSetPage::OnCbnSelchangeFontnum()
 	InitList();
 	m_DefFontTab[oldAltFont] = m_DefFontName;
 	m_DefFontName = m_DefFontTab[m_AltFont];
-	UpdateData(FALSE);
-
-	SetModified(TRUE);
-	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
-}
-
-void CCharSetPage::OnBnClickedFontsel()
-{
-	LOGFONT LogFont;
-
-	UpdateData(TRUE);
-	memset(&(LogFont), 0, sizeof(LOGFONT));
-	LogFont.lfWidth          = 0;
-	LogFont.lfHeight         = m_pSheet->m_pTextRam->m_DefFontSize;
-	LogFont.lfWeight         = FW_DONTCARE;
-	LogFont.lfCharSet        = DEFAULT_CHARSET;
-	LogFont.lfOutPrecision   = OUT_DEFAULT_PRECIS;
-	LogFont.lfClipPrecision  = CLIP_DEFAULT_PRECIS;
-	LogFont.lfQuality        = DEFAULT_QUALITY;
-	LogFont.lfPitchAndFamily = DEFAULT_PITCH | FF_DONTCARE;
-
-    _tcscpy(LogFont.lfFaceName, m_DefFontName);
-
-#define	CF_INACTIVEFONTS	0x02000000L
-
-	CFontDialog font(&LogFont, CF_NOVERTFONTS | CF_SCREENFONTS | CF_INACTIVEFONTS, NULL, this);
-
-	if ( font.DoModal() != IDOK )
-		return;
-
-    m_DefFontName = LogFont.lfFaceName;
-	m_DefFontTab[m_AltFont] = m_DefFontName;
+	m_FontSample.Invalidate(FALSE);
 	UpdateData(FALSE);
 
 	SetModified(TRUE);
@@ -419,6 +397,149 @@ void CCharSetPage::OnEditDelall()
 
 void CCharSetPage::OnUpdateFontName()
 {
+	UpdateData(TRUE);
+
+	m_DefFontName;
+	m_DefFontTab[m_AltFont] = m_DefFontName;
+	m_ListIndex = (-1);
+
+	InitList();
+	m_FontSample.Invalidate(FALSE);
+
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+}
+void CCharSetPage::OnCbnSelchangeFontName()
+{
+	int n;
+	CComboBox *pCombo = (CComboBox *)this->GetDlgItem(IDC_FONTNAME);
+
+	if ( pCombo == NULL || (n = pCombo->GetCurSel()) < 0 )
+		return;
+
+	UpdateData(TRUE);
+
+	pCombo->GetLBText(n, m_DefFontName);
+	m_DefFontTab[m_AltFont] = m_DefFontName;
+	m_ListIndex = (-1);
+
+	UpdateData(FALSE);
+
+	InitList();
+	m_FontSample.Invalidate(FALSE);
+
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+}
+
+void CCharSetPage::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
+{
+	CDC *pDC;
+	CFont font, *pOld;
+	LOGFONT logfont;
+	CRect rect(lpDrawItemStruct->rcItem);
+	CSize sz;
+	int height;
+	COLORREF fc, bc;
+	CStringLoad sample(IDS_FONTSAMPLESTRING);
+
+	switch(nIDCtl) {
+	case IDC_FONTSAMPLE:
+		UpdateData(TRUE);
+
+		if ( m_pSheet->m_ScrnPage.m_hWnd != NULL ) {
+			m_pSheet->m_ScrnPage.UpdateData(TRUE);
+			height = _tstoi(m_pSheet->m_ScrnPage.m_FontSize);
+		} else
+			height = m_pSheet->m_pTextRam->m_DefFontSize;
+
+		if ( m_pSheet->m_ColorPage.m_hWnd != NULL ) {
+			m_pSheet->m_ColorPage.UpdateData(TRUE);
+			if ( m_pSheet->m_ColorPage.m_FontCol[0] < 16 )
+				fc = m_pSheet->m_ColorPage.m_ColTab[m_pSheet->m_ColorPage.m_FontCol[0]];
+			else
+				fc = m_pSheet->m_pTextRam->m_ColTab[m_pSheet->m_ColorPage.m_FontCol[0]];
+
+			if ( m_pSheet->m_ColorPage.m_FontCol[1] < 16 )
+				bc = m_pSheet->m_ColorPage.m_ColTab[m_pSheet->m_ColorPage.m_FontCol[1]];
+			else
+				bc = m_pSheet->m_pTextRam->m_ColTab[m_pSheet->m_ColorPage.m_FontCol[1]];
+		} else {
+			fc = m_pSheet->m_pTextRam->m_ColTab[m_pSheet->m_pTextRam->m_DefAtt.fcol];
+			bc = m_pSheet->m_pTextRam->m_ColTab[m_pSheet->m_pTextRam->m_DefAtt.bcol];
+		}
+
+		pDC = CDC::FromHandle(lpDrawItemStruct->hDC);
+		pDC->FillSolidRect(rect, bc);
+
+		ZeroMemory(&logfont, sizeof(logfont));
+		logfont.lfWidth		= 0;
+		logfont.lfHeight	= height;
+		logfont.lfCharSet	= m_ListIndex < 0 ? DEFAULT_CHARSET : m_FontTab[m_ListIndex].m_CharSet;
+		logfont.lfWeight	= FW_DONTCARE;
+		logfont.lfItalic	= FALSE;
+		logfont.lfUnderline	= FALSE;
+		logfont.lfQuality   = DEFAULT_QUALITY;
+
+		if ( m_ListIndex >= 0 && !m_FontTab[m_ListIndex].m_FontName[m_AltFont].IsEmpty() )
+			_tcsncpy(logfont.lfFaceName, m_FontTab[m_ListIndex].m_FontName[m_AltFont], LF_FACESIZE);
+		else
+			_tcsncpy(logfont.lfFaceName, m_DefFontName, LF_FACESIZE);
+
+		font.CreateFontIndirect(&logfont);
+
+		if ( m_ListIndex >= 0 ) {
+			CIConv iconv;
+			union { DWORD d; WCHAR c[2]; } wc;
+			if ( (m_ListIndex & SET_MASK) <= SET_96 ) {
+				sample.Empty();
+				for ( LPCSTR p = "012 abcABC \\^|" ; *p != '\0' ; p++ ) {
+					wc.d = iconv.IConvChar(m_FontTab[m_ListIndex].m_IContName, _T("UTF-16BE"), *p | m_FontTab[m_ListIndex].m_Shift);
+					if ( (wc.d & 0xFFFF0000) != 0 ) {
+						sample += wc.c[1];
+						sample += wc.c[0];
+					} else if ( (wc.d & 0xFFFF) != 0 ) {
+						sample += wc.c[0];
+					}
+				}
+			} else if ( m_FontTab[m_ListIndex].m_CharSet == SHIFTJIS_CHARSET )
+				sample = L"\U00003042\U00003044\U00003046 \U000065e5\U0000672c\U00008a9e";
+			else if ( m_FontTab[m_ListIndex].m_CharSet == HANGEUL_CHARSET )
+				sample = L"\U0000c544\U0000c774\U0000c6b0 \U0000d55c\U0000ae00";
+			else if ( m_FontTab[m_ListIndex].m_CharSet == GB2312_CHARSET )
+				sample = L"\U00004e02\U00004e04\U00004e05 \U00007b80\U00004f53\U00005b57";
+			else if ( m_FontTab[m_ListIndex].m_CharSet == CHINESEBIG5_CHARSET )
+				sample = L"\U00004e11\U00004e10\U00004e0d \U00007e41\U00004f53\U00005b57";
+		}
+
+		pOld = pDC->SelectObject(&font);
+		sz = pDC->GetTextExtent(sample);
+
+		pDC->SetTextColor(fc);
+		pDC->SetBkColor(bc);
+		pDC->TextOut(rect.left + (rect.Width() - sz.cx) / 2, rect.top + (rect.Height() - sz.cy) / 2, sample);
+
+		pDC->SelectObject(pOld);
+		break;
+	default:
+		CTreePage::OnDrawItem(nIDCtl, lpDrawItemStruct);
+		break;
+	}
+}
+
+void CCharSetPage::OnLvnItemchangedFontlist(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	LPNMLISTVIEW pNMLV = reinterpret_cast<LPNMLISTVIEW>(pNMHDR);
+
+	if ( pNMLV->iItem < 0 || pNMLV->uNewState != (LVIS_FOCUSED | LVIS_SELECTED) ) {
+		if ( m_ListIndex >= 0 ) {
+			m_ListIndex = (-1);
+			m_FontSample.Invalidate(FALSE);
+		}
+	} else {
+		m_ListIndex = m_List.GetItemData(pNMLV->iItem);
+		m_FontSample.Invalidate(FALSE);
+	}
+
+	*pResult = 0;
 }

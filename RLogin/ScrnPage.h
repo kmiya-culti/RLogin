@@ -29,6 +29,7 @@ public:
 	BOOL m_TtlCng;
 	CString m_ScrnOffsLeft;
 	CString m_ScrnOffsRight;
+	double m_PixDpiY;
 
 public:
 	void InitDlgItem();

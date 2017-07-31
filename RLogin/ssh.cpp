@@ -2767,6 +2767,8 @@ int Cssh::SSH2MsgChannelOpenReply(CBuffer *bp, int type)
 	cp->m_RemoteMax   = bp->Get32Bit();
 	cp->m_ConnectTime = CTime::GetCurrentTime();
 	m_OpenChanCount++;
+	
+//	while ( cp->OnIdle() );	// Channel Recive data check XXXXXX
 
 	if ( cp->m_pFilter != NULL ) {
 		switch(cp->m_pFilter->m_Type) {

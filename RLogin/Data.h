@@ -184,6 +184,8 @@ public:
 	int Find(LPCTSTR str);
 	int FindNoCase(LPCTSTR str);
 	int Match(LPCTSTR str);
+	void AddSort(LPCTSTR str);
+	int FindSort(LPCTSTR str);
 
 	CStrNode *ParseWord(LPCTSTR *ptr);
 	CStrNode *ParseLine(CStrNode *top, LPCTSTR *ptr, BOOL bNest);
@@ -275,6 +277,7 @@ public:
 	CStringBinary * Find(LPCTSTR str);
 	CStringBinary * FindValue(int value);
 	CStringBinary & operator [] (LPCTSTR str);
+	CStringBinary & operator [] (int number);
 	CStringBinary & Add(LPCTSTR str) { return (*this)[str]; };
 	const LPCTSTR operator = (LPCTSTR str) { m_Value = 0; return (m_String = str); }
 	operator LPCTSTR () const { return m_String; }

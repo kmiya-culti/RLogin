@@ -645,6 +645,7 @@ IMPLEMENT_DYNAMIC(CMainFrame, CMDIFrameWnd)
 BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_WM_CREATE()
 	ON_WM_DESTROY()
+	ON_WM_ENTERIDLE()
 	ON_WM_SYSCOMMAND()
 	ON_WM_TIMER()
 	ON_WM_SETCURSOR()
@@ -1927,6 +1928,14 @@ void CMainFrame::OnDestroy()
 	CMDIFrameWnd::OnDestroy();
 }
 
+void CMainFrame::OnEnterIdle(UINT nWhy, CWnd* pWho)
+{
+	CMDIFrameWnd::OnEnterIdle(nWhy, pWho);
+
+	if ( nWhy == MSGF_MENU )
+		((CRLoginApp *)AfxGetApp())->OnIdle(-1);
+}
+
 void CMainFrame::OnTimer(UINT_PTR nIDEvent) 
 {
 	CTimerObject *tp;
@@ -1946,6 +1955,7 @@ void CMainFrame::OnTimer(UINT_PTR nIDEvent)
 			KillTimer(nIDEvent);
 			m_SleepTimer = 0;
 		}
+
 	} else if ( nIDEvent == m_MidiTimer ) {
 		KillTimer(nIDEvent);
 		m_MidiTimer = 0;
