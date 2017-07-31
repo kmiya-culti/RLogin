@@ -224,6 +224,7 @@ public:
 #define	SSHFP_KEY_RSA		1
 #define	SSHFP_KEY_DSA		2
 #define	SSHFP_KEY_ECDSA		3
+#define	SSHFP_KEY_ED25519	4 
 
 #define	SSHFP_HASH_RESERVED	0
 #define	SSHFP_HASH_SHA1		1

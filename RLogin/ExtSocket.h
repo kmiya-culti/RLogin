@@ -216,7 +216,7 @@ public:
 
 	void OnPreConnect();
 	void OnPreClose();
-	virtual void OnError(int err, int fs = 0);
+	virtual void OnError(int err);
 	virtual void OnConnect();
 	virtual void OnAccept(SOCKET hand);
 	virtual void OnClose();

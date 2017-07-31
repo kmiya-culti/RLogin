@@ -282,10 +282,10 @@ void CIConv::RemoteToStr(LPCTSTR from, LPCSTR in, CString &out)
 	out = (LPCWSTR)bOut;
 }
 
-int CIConv::IConvChar(LPCTSTR from, LPCTSTR to, int ch)
+int CIConv::IConvChar(LPCTSTR from, LPCTSTR to, DWORD ch)
 {
 	int n = 0;
-	int od = ch;
+	DWORD od = ch;
 	CIConv *cp;
     char *inp, *otp;
     size_t ins, ots;

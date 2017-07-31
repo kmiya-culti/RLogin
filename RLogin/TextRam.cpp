@@ -1401,7 +1401,7 @@ void CTextRam::SaveHistory()
 		AfxMessageBox(IDE_HISTORYBACKUPERROR);
 	}
 }
-void CTextRam::HisRegCheck(int ch, DWORD pos)
+void CTextRam::HisRegCheck(DWORD ch, DWORD pos)
 {
 	int i, a;
 	CRegExRes res;
@@ -2770,7 +2770,7 @@ int CTextRam::LineEdit(CBuffer &buf)
 
 	return rt;
 }
-int CTextRam::IsWord(int ch)
+int CTextRam::IsWord(DWORD ch)
 {
 	if ( ch < 0x20 )
 		return 0;
@@ -3932,7 +3932,7 @@ void CTextRam::CallReciveLine(int y)
 	m_IConv.StrToRemote(m_SendCharSet[m_LogCharSet[IsOptValue(TO_RLLOGCODE, 2)]], &in, &out);
 	m_pDocument->m_pLogFile->Write(out.GetPtr(), out.GetSize());
 }
-void CTextRam::CallReciveChar(int ch)
+void CTextRam::CallReciveChar(DWORD ch)
 {
 	static const WCHAR *CtrlName[] = {
 		L"NUL",	L"SOH",	L"STX",	L"ETX",	L"EOT",	L"ACK",	L"ENQ",	L"BEL",
@@ -5292,7 +5292,7 @@ void CTextRam::REVINDEX()
 			m_CurY = 0;
 	}
 }
-void CTextRam::PUT1BYTE(int ch, int md, int at)
+void CTextRam::PUT1BYTE(DWORD ch, int md, int at)
 {
 	if ( m_StsFlag ) {
 		md &= CODE_MASK;
@@ -5376,7 +5376,7 @@ void CTextRam::PUT1BYTE(int ch, int md, int at)
 	if ( ch != 0 )
 		CallReciveChar(ch);
 }
-void CTextRam::PUT2BYTE(int ch, int md, int at)
+void CTextRam::PUT2BYTE(DWORD ch, int md, int at)
 {
 	if ( m_StsFlag ) {
 		md &= CODE_MASK;
@@ -5472,7 +5472,7 @@ void CTextRam::PUT2BYTE(int ch, int md, int at)
 	if ( ch != 0 )
 		CallReciveChar(ch);
 }
-void CTextRam::PUTADD(int x, int y, int ch, int cf)
+void CTextRam::PUTADD(int x, int y, DWORD ch, int cf)
 {
 	int n, i;
 	CVram *vp;

@@ -76,13 +76,13 @@ public:
 
 	int Init_CRC(int val);
 	int	Upd_CRC(int value);
-	void Do_CheckSum(int c);
+	void Do_CheckSum(BYTE c);
 
 	void Send_ACK();
 	void Send_NAK();
 	void Send_ENQ();
 	void Send_Failure(char *Reason);
-	void Send_Masked_Byte(int ch);
+	void Send_Masked_Byte(BYTE c);
 	int	ReSync();
 	int Get_ACK();
 	int Read_Byte();

@@ -212,7 +212,7 @@ int	CBPlus::Upd_CRC(int value)
     crc_16 = crc16tab[((crc_16 >> 8) ^ ((UNSIG)value)) & 0xff] ^ (crc_16 << 8);
     return( crc_16 );
 }
-void CBPlus::Do_CheckSum(int c)
+void CBPlus::Do_CheckSum(BYTE c)
 {
     c &= 0xFF;
     if ( B_Plus && Use_CRC )
@@ -227,15 +227,13 @@ void CBPlus::Do_CheckSum(int c)
     }
 }
 
-void CBPlus::Send_Masked_Byte(int ch)
+void CBPlus::Send_Masked_Byte(BYTE c)
 {
-    ch &= 0xff;
-
-    if (Quote_Table [ch] != 0) {
+    if (Quote_Table [c] != 0) {
     	Bufferd_Send(dle);
-		Bufferd_Send(Quote_Table[ch]);
+		Bufferd_Send(Quote_Table[c]);
     } else
-		Bufferd_Send(ch);
+		Bufferd_Send(c);
 }
 void CBPlus::Send_ACK()
 {

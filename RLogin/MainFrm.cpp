@@ -1486,7 +1486,7 @@ LRESULT CMainFrame::OnWinSockSelect(WPARAM wParam, LPARAM lParam)
 
 //	if( ((fs & pSock->m_SocketEvent) & (FD_CONNECT | FD_CLOSE)) != 0  && WSAGETSELECTERROR(lParam) != 0 ) {
 	if( WSAGETSELECTERROR(lParam) != 0 ) {
-		pSock->OnError(WSAGETSELECTERROR(lParam), fs);
+		pSock->OnError(WSAGETSELECTERROR(lParam));
 		return TRUE;
 	}
 

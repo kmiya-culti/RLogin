@@ -568,7 +568,7 @@ void CRLoginDoc::SendScript(LPCWSTR str, LPCWSTR match)
 	buf.Apend((LPBYTE)((LPCWSTR)tmp), tmp.GetLength() * sizeof(WCHAR));
 	SendBuffer(buf);
 }
-void CRLoginDoc::OnReciveChar(int ch, int pos)
+void CRLoginDoc::OnReciveChar(DWORD ch, int pos)
 {
 	LPCWSTR str;
 
@@ -707,13 +707,13 @@ void CRLoginDoc::OnSocketConnect()
 
 	SetStatus(_T("Connect"));
 }
-void CRLoginDoc::OnSocketError(int err, int fs)
+void CRLoginDoc::OnSocketError(int err)
 {
 //	SocketClose();
 	SetStatus(_T("Error"));
 	CString tmp;
 	if ( m_ErrorPrompt.IsEmpty() )
-		m_ErrorPrompt.Format(_T("WinSock Have Error #%d(%02x)"), err, fs);
+		m_ErrorPrompt.Format(_T("WinSock Have Error #%d"), err);
 	tmp.Format(_T("%s Server Entry Scoket Error\n%s:%s Connection\n%s"),
 		m_ServerEntry.m_EntryName, m_ServerEntry.m_HostName, m_ServerEntry.m_PortName, m_ErrorPrompt);
 	AfxMessageBox(tmp);

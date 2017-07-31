@@ -268,7 +268,7 @@ public:
 	void RemoveAll() { m_Array.RemoveAll(); }
 	BOOL IsEmpty() { return (m_Data == PARA_NOT || m_Data == PARA_OPT ? TRUE : FALSE); }
 	BOOL IsOpt() { return (m_Data == PARA_OPT ? TRUE : FALSE); }
-	BOOL AddOpt(int ch, BOOL bAdd);
+	BOOL AddOpt(BYTE c, BOOL bAdd);
 };
 
 class CBmpFile : public CObject
@@ -395,7 +395,7 @@ public:
 	void ExecStop();
 
 	void ExecNode(CStrScriptNode *np);
-	LPCWSTR ExecChar(int ch);
+	LPCWSTR ExecChar(DWORD ch);
 
 	void SendStr(LPCWSTR str, int len, class CServerEntry *ep = NULL);
 
@@ -568,7 +568,7 @@ public:
 	int Add(LPCTSTR code, int mask, LPCTSTR maps);
 	BOOL FindKeys(int code, int mask, CBuffer *pBuf, int base, int bits);
 	BOOL FindMaps(int code, int mask, CBuffer *pBuf);
-	BOOL FindCapInfo(LPCTSTR name, CBuffer *pBuf);
+	BOOL FindCapInfo(LPCTSTR name, CBuffer &buf);
 
 	inline CKeyNode &GetAt(int pos) { return m_Node[pos]; }
 	inline int GetSize() { return (int)m_Node.GetSize(); }

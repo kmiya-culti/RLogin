@@ -36,7 +36,7 @@ public:
 	void StrToRemote(LPCTSTR to, LPCTSTR in, CStringA &out);
 	void RemoteToStr(LPCTSTR from, CBuffer *in, CBuffer *out);
 	void RemoteToStr(LPCTSTR from, LPCSTR in, CString &out);
-	int IConvChar(LPCTSTR from, LPCTSTR to, int ch);
+	int IConvChar(LPCTSTR from, LPCTSTR to, DWORD ch);
 
 	static void SetListArray(CStringArray &stra);
 

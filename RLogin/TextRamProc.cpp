@@ -12,6 +12,7 @@
 #include "PipeSock.h"
 #include "GrapWnd.h"
 #include "CancelDlg.h"
+#include "InfoCapDlg.h"
 
 #include <iconv.h>
 #include <imm.h>
@@ -26,7 +27,7 @@ static char THIS_FILE[]=__FILE__;
 // fc Init
 
 static int fc_Init_Flag = FALSE;
-static void (CTextRam::*fc_Proc[STAGE_MAX][256])(int ch);
+static void (CTextRam::*fc_Proc[STAGE_MAX][256])(DWORD ch);
 static CTextRam::ESCNAMEPROC	*fc_pEscProc = NULL;
 static CTextRam::ESCNAMEPROC	*fc_pCsiProc = NULL;
 static CTextRam::ESCNAMEPROC	*fc_pDcsProc = NULL;
@@ -1042,13 +1043,13 @@ void CTextRam::fc_Init(int mode)
 
 	fc_TimerReset();
 }
-void CTextRam::fc_TraceCall(int ch)
+void CTextRam::fc_TraceCall(DWORD ch)
 {
 #ifdef	DEBUG
 	static const struct {
 		LPCTSTR		name;
 		union {
-			void (CTextRam::*proc)(int ch);
+			void (CTextRam::*proc)(DWORD ch);
 			BYTE byte[sizeof(void (CTextRam::*)(int))];
 		} data;
 	} funcname[] = {
@@ -1143,7 +1144,7 @@ void CTextRam::fc_TraceCall(int ch)
 	TRACE("%s : %02x %s\n", stage[m_Stage], ch, TstrToMbs(name));
 #endif
 }
-inline void CTextRam::fc_Call(int ch)
+inline void CTextRam::fc_Call(DWORD ch)
 {
 //	fc_TraceCall(ch);
 	(this->*m_Func[ch])(ch);
@@ -1169,10 +1170,10 @@ static int NameProcCmp(const void *src, const void *dis)
 {
 	return _tcscmp((LPCTSTR)src, ((CTextRam::ESCNAMEPROC *)dis)->name);
 }
-void CTextRam::EscNameProc(int ch, LPCTSTR name)
+void CTextRam::EscNameProc(DWORD ch, LPCTSTR name)
 {
 	int n;
-	void (CTextRam::*proc)(int) = &CTextRam::fc_POP;
+	void (CTextRam::*proc)(DWORD) = &CTextRam::fc_POP;
 
 	if ( BinaryFind((void *)name, (void *)fc_EscNameTab, sizeof(ESCNAMEPROC), fc_EscNameTabMax, NameProcCmp, &n) )
 		proc = fc_EscNameTab[n].data.proc;
@@ -1180,7 +1181,7 @@ void CTextRam::EscNameProc(int ch, LPCTSTR name)
 	m_LocalProc[0][ch] = proc;
 	m_LocalProc[0][ch | 0x80] = proc;
 }
-LPCTSTR	CTextRam::EscProcName(void (CTextRam::*proc)(int ch))
+LPCTSTR	CTextRam::EscProcName(void (CTextRam::*proc)(DWORD ch))
 {
 	int c;
 	ESCNAMEPROC tmp;
@@ -1206,7 +1207,7 @@ void CTextRam::SetEscNameCombo(CComboBox *pCombo)
 void CTextRam::CsiNameProc(int code, LPCTSTR name)
 {
 	int n;
-	void (CTextRam::*proc)(int) = &CTextRam::fc_POP;
+	void (CTextRam::*proc)(DWORD) = &CTextRam::fc_POP;
 	CSIEXTTAB tmp;
 
 	if ( BinaryFind((void *)name, (void *)fc_CsiNameTab, sizeof(ESCNAMEPROC), fc_CsiNameTabMax, NameProcCmp, &n) )
@@ -1240,7 +1241,7 @@ void CTextRam::CsiNameProc(int code, LPCTSTR name)
 		break;
 	}
 }
-LPCTSTR	CTextRam::CsiProcName(void (CTextRam::*proc)(int ch))
+LPCTSTR	CTextRam::CsiProcName(void (CTextRam::*proc)(DWORD ch))
 {
 	int c;
 	ESCNAMEPROC tmp;
@@ -1266,7 +1267,7 @@ void CTextRam::SetCsiNameCombo(CComboBox *pCombo)
 void CTextRam::DcsNameProc(int code, LPCTSTR name)
 {
 	int n;
-	void (CTextRam::*proc)(int) = &CTextRam::fc_POP;
+	void (CTextRam::*proc)(DWORD) = &CTextRam::fc_POP;
 	CSIEXTTAB tmp;
 
 	if ( BinaryFind((void *)name, (void *)fc_DcsNameTab, sizeof(ESCNAMEPROC), fc_DcsNameTabMax, NameProcCmp, &n) )
@@ -1280,7 +1281,7 @@ void CTextRam::DcsNameProc(int code, LPCTSTR name)
 		m_DcsExt.InsertAt(n, tmp);
 	}
 }
-LPCTSTR	CTextRam::DcsProcName(void (CTextRam::*proc)(int ch))
+LPCTSTR	CTextRam::DcsProcName(void (CTextRam::*proc)(DWORD ch))
 {
 	int c;
 	ESCNAMEPROC tmp;
@@ -1356,7 +1357,7 @@ static int x11ColCmp(const void *src, const void *dis)
 {
 	return _tcsicmp((LPCTSTR)src, ((struct _x11coltab *)dis)->name);
 }
-void CTextRam::ParseColor(int cmd, int idx, LPCTSTR para, int ch)
+void CTextRam::ParseColor(int cmd, int idx, LPCTSTR para, DWORD ch)
 {
 	int n, r, g, b;
 
@@ -1428,31 +1429,39 @@ void CTextRam::ParseColor(int cmd, int idx, LPCTSTR para, int ch)
 		DISPUPDATE();
 	}
 }
+void CTextRam::ToHexStr(CBuffer &buf, CString &out)
+{
+	CBuffer res, hex;
+
+	m_pDocument->m_TextRam.m_IConv.StrToRemote(m_pDocument->m_TextRam.m_SendCharSet[m_pDocument->m_TextRam.m_KanjiMode], &buf, &res);
+	hex.Base16Encode(res.GetPtr(), res.GetSize());
+	out = (LPCTSTR)hex;
+}
 
 //////////////////////////////////////////////////////////////////////
 // fc Procs...
 
-void CTextRam::fc_IGNORE(int ch)
+void CTextRam::fc_IGNORE(DWORD ch)
 {
 	fc_KANJI(ch);
 	if ( ch < 0x20 )
 		CallReciveChar(ch);
 }
-void CTextRam::fc_POP(int ch)
+void CTextRam::fc_POP(DWORD ch)
 {
 	if ( ch < 0x20 )
 		CallReciveChar(ch);
 	if ( m_StPos > 0 )
 		fc_Case(m_Stack[--m_StPos]);
 }
-void CTextRam::fc_RETRY(int ch)
+void CTextRam::fc_RETRY(DWORD ch)
 {
 	if ( m_StPos > 0 ) {
 		fc_Case(m_Stack[--m_StPos]);
 		fc_Call(ch);
 	}
 }
-void CTextRam::fc_SESC(int ch)
+void CTextRam::fc_SESC(DWORD ch)
 {
 	fc_KANJI(ch);
 	CallReciveChar(0x1B);
@@ -1461,7 +1470,7 @@ void CTextRam::fc_SESC(int ch)
 	fc_Push(STAGE_ESC);
 	fc_Call(ch);
 }
-void CTextRam::fc_CESC(int ch)
+void CTextRam::fc_CESC(DWORD ch)
 {
 	fc_KANJI(ch);
 	CallReciveChar(ch);
@@ -1516,7 +1525,7 @@ static int IsKanjiCode(WORD code, const WORD *tab, int len)
 	}
 	return ((b - 1) & 1);
 }
-void CTextRam::fc_KANJI(int ch)
+void CTextRam::fc_KANJI(DWORD ch)
 {
 	if ( ch >= 128 || m_Kan_Buf[(m_Kan_Pos - 1) & (KANBUFMAX - 1)] >= 128 ) {
 		m_Kan_Buf[m_Kan_Pos++] = ch; 
@@ -1684,7 +1693,7 @@ void CTextRam::fc_KANCHK()
 //////////////////////////////////////////////////////////////////////
 // fc Print
 
-void CTextRam::fc_TEXT(int ch)
+void CTextRam::fc_TEXT(DWORD ch)
 {
 	fc_KANJI(ch);
 
@@ -1725,7 +1734,7 @@ void CTextRam::fc_TEXT(int ch)
 		break;
 	}
 }
-void CTextRam::fc_TEXT2(int ch)
+void CTextRam::fc_TEXT2(DWORD ch)
 {
 	fc_KANJI(ch);
 
@@ -1736,7 +1745,7 @@ void CTextRam::fc_TEXT2(int ch)
 	}
 	fc_POP(ch);
 }
-void CTextRam::fc_TEXT3(int ch)
+void CTextRam::fc_TEXT3(DWORD ch)
 {
 	fc_POP(ch);
 
@@ -1748,7 +1757,7 @@ void CTextRam::fc_TEXT3(int ch)
 	if ( IsOptEnable(TO_RLKANAUTO) )
 		fc_KANCHK();
 }
-void CTextRam::fc_SJIS1(int ch)
+void CTextRam::fc_SJIS1(DWORD ch)
 {
 	fc_KANJI(ch);
 
@@ -1756,7 +1765,7 @@ void CTextRam::fc_SJIS1(int ch)
 	m_BankNow  = m_BankTab[m_KanjiMode][2];
 	fc_Push(STAGE_SJIS2);
 }
-void CTextRam::fc_SJIS2(int ch)
+void CTextRam::fc_SJIS2(DWORD ch)
 {
 	int n;
 
@@ -1774,7 +1783,7 @@ void CTextRam::fc_SJIS2(int ch)
 	PUT2BYTE(n, m_BankNow);
 	fc_POP(ch);
 }
-void CTextRam::fc_SJIS3(int ch)
+void CTextRam::fc_SJIS3(DWORD ch)
 {
 	fc_POP(ch);
 
@@ -1786,13 +1795,13 @@ void CTextRam::fc_SJIS3(int ch)
 	if ( IsOptEnable(TO_RLKANAUTO) )
 		fc_KANCHK();
 }
-void CTextRam::fc_BIG51(int ch)
+void CTextRam::fc_BIG51(DWORD ch)
 {
 	m_BackChar = ch;
 	m_BankNow  = SET_UNICODE;
 	fc_Push(STAGE_BIG52);
 }
-void CTextRam::fc_BIG52(int ch)
+void CTextRam::fc_BIG52(DWORD ch)
 {
 	int n;
 
@@ -1803,14 +1812,14 @@ void CTextRam::fc_BIG52(int ch)
 	PUT2BYTE(n, m_BankNow);
 	fc_POP(ch);
 }
-void CTextRam::fc_BIG53(int ch)
+void CTextRam::fc_BIG53(DWORD ch)
 {
 	fc_POP(ch);
 
 	if ( ch < 0x20 )
 		fc_Call(ch);
 }
-void CTextRam::fc_UTF81(int ch)
+void CTextRam::fc_UTF81(DWORD ch)
 {
 	// 110x xxxx
 	fc_KANJI(ch);
@@ -1818,7 +1827,7 @@ void CTextRam::fc_UTF81(int ch)
 	m_CodeLen = 1;
 	fc_Push(STAGE_UTF82);
 }
-void CTextRam::fc_UTF82(int ch)
+void CTextRam::fc_UTF82(DWORD ch)
 {
 	// 1110 xxxx
 	fc_KANJI(ch);
@@ -1826,7 +1835,7 @@ void CTextRam::fc_UTF82(int ch)
 	m_CodeLen = 2;
 	fc_Push(STAGE_UTF82);
 }
-void CTextRam::fc_UTF83(int ch)
+void CTextRam::fc_UTF83(DWORD ch)
 {
 	// 1111 0xxx
 	fc_KANJI(ch);
@@ -1834,7 +1843,7 @@ void CTextRam::fc_UTF83(int ch)
 	m_CodeLen = 3;
 	fc_Push(STAGE_UTF82);
 }
-void CTextRam::fc_UTF88(int ch)
+void CTextRam::fc_UTF88(DWORD ch)
 {
 	// 1111 10xx
 	fc_KANJI(ch);
@@ -1842,7 +1851,7 @@ void CTextRam::fc_UTF88(int ch)
 	m_CodeLen = 4;
 	fc_Push(STAGE_UTF82);
 }
-void CTextRam::fc_UTF89(int ch)
+void CTextRam::fc_UTF89(DWORD ch)
 {
 	// 1111 110x
 	fc_KANJI(ch);
@@ -1850,7 +1859,7 @@ void CTextRam::fc_UTF89(int ch)
 	m_CodeLen = 5;
 	fc_Push(STAGE_UTF82);
 }
-void CTextRam::fc_UTF84(int ch)
+void CTextRam::fc_UTF84(DWORD ch)
 {
 	// 1111 111x BOM
 	fc_KANJI(ch);
@@ -1858,7 +1867,7 @@ void CTextRam::fc_UTF84(int ch)
 	m_CodeLen = 0;
 	fc_Push(STAGE_UTF82);
 }
-void CTextRam::fc_UTF85(int ch)
+void CTextRam::fc_UTF85(DWORD ch)
 {
 	// 10xx xxxx
 	int n, cf;
@@ -2011,7 +2020,7 @@ void CTextRam::fc_UTF85(int ch)
 		break;
 	}
 }
-void CTextRam::fc_UTF86(int ch)
+void CTextRam::fc_UTF86(DWORD ch)
 {
 	fc_POP(ch);
 
@@ -2023,7 +2032,7 @@ void CTextRam::fc_UTF86(int ch)
 	if ( IsOptEnable(TO_RLKANAUTO) )
 		fc_KANCHK();
 }
-void CTextRam::fc_UTF87(int ch)
+void CTextRam::fc_UTF87(DWORD ch)
 {
 	fc_KANJI(ch);
 
@@ -2034,24 +2043,24 @@ void CTextRam::fc_UTF87(int ch)
 //////////////////////////////////////////////////////////////////////
 // fc CTRLs...
 
-void CTextRam::fc_SOH(int ch)
+void CTextRam::fc_SOH(DWORD ch)
 {
 	if ( IsOptEnable(TO_RLBPLUS) )
 		m_RetSync = TRUE;
 	CallReciveChar(ch);
 }
-void CTextRam::fc_ENQ(int ch)
+void CTextRam::fc_ENQ(DWORD ch)
 {
 	if ( IsOptEnable(TO_RLBPLUS) )
 		m_RetSync = TRUE;
 	CallReciveChar(ch);
 }
-void CTextRam::fc_BEL(int ch)
+void CTextRam::fc_BEL(DWORD ch)
 {
 	BEEP();
 	CallReciveChar(ch);
 }
-void CTextRam::fc_BS(int ch)
+void CTextRam::fc_BS(DWORD ch)
 {
 	fc_KANJI(ch);
 	CallReciveChar(ch);
@@ -2067,14 +2076,14 @@ void CTextRam::fc_BS(int ch)
 			m_CurX = m_Margin.left;
 	}
 }
-void CTextRam::fc_HT(int ch)
+void CTextRam::fc_HT(DWORD ch)
 {
 	fc_KANJI(ch);
 	CallReciveChar(ch);
 
 	TABSET(TAB_COLSNEXT);
 }
-void CTextRam::fc_LF(int ch)
+void CTextRam::fc_LF(DWORD ch)
 {
 	fc_KANJI(ch);
 	CallReciveChar(ch);
@@ -2091,7 +2100,7 @@ void CTextRam::fc_LF(int ch)
 		break;
 	}
 }
-void CTextRam::fc_VT(int ch)
+void CTextRam::fc_VT(DWORD ch)
 {
 	CallReciveChar(ch);
 
@@ -2100,7 +2109,7 @@ void CTextRam::fc_VT(int ch)
 	if ( IsOptEnable(TO_ANSILNM) )
 		LOCATE(GetLeftMargin(), m_CurY);
 }
-void CTextRam::fc_FF(int ch)
+void CTextRam::fc_FF(DWORD ch)
 {
 	CallReciveChar(ch);
 
@@ -2109,7 +2118,7 @@ void CTextRam::fc_FF(int ch)
 	if ( IsOptEnable(TO_ANSILNM) )
 		LOCATE(GetLeftMargin(), m_CurY);
 }
-void CTextRam::fc_CR(int ch)
+void CTextRam::fc_CR(DWORD ch)
 {
 	fc_KANJI(ch);
 	CallReciveChar(ch);
@@ -2126,53 +2135,53 @@ void CTextRam::fc_CR(int ch)
 		break;
 	}
 }
-void CTextRam::fc_SO(int ch)
+void CTextRam::fc_SO(DWORD ch)
 {
 	m_BankGL = 1;
 	CallReciveChar(ch);
 }
-void CTextRam::fc_SI(int ch)
+void CTextRam::fc_SI(DWORD ch)
 {
 	m_BankGL = 0;
 	CallReciveChar(ch);
 }
-void CTextRam::fc_DLE(int ch)
+void CTextRam::fc_DLE(DWORD ch)
 {
 	if ( IsOptEnable(TO_RLBPLUS) )
 		m_RetSync = TRUE;
 	CallReciveChar(ch);
 }
-void CTextRam::fc_CAN(int ch)
+void CTextRam::fc_CAN(DWORD ch)
 {
 	if ( m_LastChar == '*' && IsOptEnable(TO_RLBPLUS) )
 		m_RetSync = TRUE;
 	CallReciveChar(ch);
 }
-void CTextRam::fc_ESC(int ch)
+void CTextRam::fc_ESC(DWORD ch)
 {
 	fc_KANJI(ch);
 	CallReciveChar(ch);
 	fc_Push(STAGE_ESC);
 }
-void CTextRam::fc_A3CRT(int ch)
+void CTextRam::fc_A3CRT(DWORD ch)
 {
 	// ADM-3 Cursole Right
 	CallReciveChar(ch);
 	LOCATE(m_CurX + 1, m_CurY);
 }
-void CTextRam::fc_A3CLT(int ch)
+void CTextRam::fc_A3CLT(DWORD ch)
 {
 	// ADM-3 Cursole Left
 	CallReciveChar(ch);
 	LOCATE(m_CurX - 1, m_CurY);
 }
-void CTextRam::fc_A3CUP(int ch)
+void CTextRam::fc_A3CUP(DWORD ch)
 {
 	// ADM-3 Cursole Up
 	CallReciveChar(ch);
 	LOCATE(m_CurX, m_CurY - 1);
 }
-void CTextRam::fc_A3CDW(int ch)
+void CTextRam::fc_A3CDW(DWORD ch)
 {
 	// ADM-3 Cursole Down
 	CallReciveChar(ch);
@@ -2182,31 +2191,31 @@ void CTextRam::fc_A3CDW(int ch)
 //////////////////////////////////////////////////////////////////////
 // fc ESC
 
-void CTextRam::fc_DECHTS(int ch)
+void CTextRam::fc_DECHTS(DWORD ch)
 {
 	// ESC 1	DECHTS Horizontal tab set
 	TABSET(TAB_COLSSET);
 	fc_POP(ch);
 }
-void CTextRam::fc_DECAHT(int ch)
+void CTextRam::fc_DECAHT(DWORD ch)
 {
 	// ESC 2	DECCAHT Clear all horizontal tabs
 	TABSET(TAB_COLSALLCLR);
 	fc_POP(ch);
 }
-void CTextRam::fc_DECVTS(int ch)
+void CTextRam::fc_DECVTS(DWORD ch)
 {
 	// ESC 3	DECVTS Vertical tab set
 	TABSET(TAB_LINESET);
 	fc_POP(ch);
 }
-void CTextRam::fc_DECAVT(int ch)
+void CTextRam::fc_DECAVT(DWORD ch)
 {
 	// ESC 4	DECCAVT Clear all vertical tabs
 	TABSET(TAB_LINEALLCLR);
 	fc_POP(ch);
 }
-void CTextRam::fc_BI(int ch)
+void CTextRam::fc_BI(DWORD ch)
 {
 	// ESC 6	DECBI Back Index
 	if ( m_CurX == GetLeftMargin() )
@@ -2215,7 +2224,7 @@ void CTextRam::fc_BI(int ch)
 		LOCATE(m_CurX - 1, m_CurY);
 	fc_POP(ch);
 }
-void CTextRam::fc_SC(int ch)
+void CTextRam::fc_SC(DWORD ch)
 {
 	// ESC 7	DECSC Save Cursor
 	m_Save_CurX   = m_CurX;
@@ -2232,7 +2241,7 @@ void CTextRam::fc_SC(int ch)
 	memcpy(m_Save_TabMap, m_TabMap, sizeof(m_TabMap));
 	fc_POP(ch);
 }
-void CTextRam::fc_RC(int ch)
+void CTextRam::fc_RC(DWORD ch)
 {
 	// ESC 8	DECRC Restore Cursor
 	m_CurX   = m_Save_CurX;
@@ -2249,7 +2258,7 @@ void CTextRam::fc_RC(int ch)
 	memcpy(m_TabMap, m_Save_TabMap, sizeof(m_TabMap));
 	fc_POP(ch);
 }
-void CTextRam::fc_FI(int ch)
+void CTextRam::fc_FI(DWORD ch)
 {
 	// ESC 9	DECFI Forward Index
 	if ( (m_CurX + 1) == GetRightMargin() )
@@ -2258,27 +2267,27 @@ void CTextRam::fc_FI(int ch)
 		LOCATE(m_CurX + 1, m_CurY);
 	fc_POP(ch);
 }
-void CTextRam::fc_V5CUP(int ch)
+void CTextRam::fc_V5CUP(DWORD ch)
 {
 	// ESC A	VT52 Cursor up.
 	LOCATE(m_CurX, m_CurY - 1);
 	fc_POP(ch);
 }
-void CTextRam::fc_BPH(int ch)
+void CTextRam::fc_BPH(DWORD ch)
 {
 	// ESC B	VT52 Cursor down								ANSI BPH Break permitted here
 	if ( !IsOptEnable(TO_DECANM) )
 		LOCATE(m_CurX, m_CurY + 1);
 	fc_POP(ch);
 }
-void CTextRam::fc_NBH(int ch)
+void CTextRam::fc_NBH(DWORD ch)
 {
 	// ESC C	VT52 Cursor right								ANSI NBH No break here
 	if ( !IsOptEnable(TO_DECANM) )
 		LOCATE(m_CurX + 1, m_CurY);
 	fc_POP(ch);
 }
-void CTextRam::fc_IND(int ch)
+void CTextRam::fc_IND(DWORD ch)
 {
 	// ESC D	VT52 Cursor left								ANSI IND Index
 	if ( !IsOptEnable(TO_DECANM) )
@@ -2287,7 +2296,7 @@ void CTextRam::fc_IND(int ch)
 		ONEINDEX();
 	fc_POP(ch);
 }
-void CTextRam::fc_NEL(int ch)
+void CTextRam::fc_NEL(DWORD ch)
 {
 	// ESC E													ANSI NEL Next Line
 
@@ -2297,7 +2306,7 @@ void CTextRam::fc_NEL(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_SSA(int ch)
+void CTextRam::fc_SSA(DWORD ch)
 {
 	// ESC F	VT52 Enter graphics mode.						ANSI SSA Start selected area
 	if ( !IsOptEnable(TO_DECANM) ) {
@@ -2309,7 +2318,7 @@ void CTextRam::fc_SSA(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_ESA(int ch)
+void CTextRam::fc_ESA(DWORD ch)
 {
 	// ESC F	VT52 Exit graphics mode.						ANSI ESA End selected area
 	if ( !IsOptEnable(TO_DECANM) ) {
@@ -2321,7 +2330,7 @@ void CTextRam::fc_ESA(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_HTS(int ch)
+void CTextRam::fc_HTS(DWORD ch)
 {
 	// ESC H	VT52 Cursor to home position.					ANSI HTS Character tabulation set
 	if ( !IsOptEnable(TO_DECANM) )
@@ -2330,7 +2339,7 @@ void CTextRam::fc_HTS(int ch)
 		TABSET(TAB_COLSSET);
 	fc_POP(ch);
 }
-void CTextRam::fc_HTJ(int ch)
+void CTextRam::fc_HTJ(DWORD ch)
 {
 	// ESC I	VT52 Reverse line feed.							ANSI HTJ Character tabulation with justification
 	if ( !IsOptEnable(TO_DECANM) )
@@ -2339,7 +2348,7 @@ void CTextRam::fc_HTJ(int ch)
 		TABSET(TAB_COLSNEXT);
 	fc_POP(ch);
 }
-void CTextRam::fc_VTS(int ch)
+void CTextRam::fc_VTS(DWORD ch)
 {
 	// ESC J	VT52 Erase from cursor to end of screen.		ANSI VTS Line tabulation set
 	if ( !IsOptEnable(TO_DECANM) ) {
@@ -2349,7 +2358,7 @@ void CTextRam::fc_VTS(int ch)
 		TABSET(TAB_LINESET);
 	fc_POP(ch);
 }
-void CTextRam::fc_PLD(int ch)
+void CTextRam::fc_PLD(DWORD ch)
 {
 	// ESC K	VT52 Erase from cursor to end of line.			ANSI PLD Partial line forward
 	if ( !IsOptEnable(TO_DECANM) )
@@ -2358,54 +2367,54 @@ void CTextRam::fc_PLD(int ch)
 		LOCATE(m_CurX, m_CurY + 1);
 	fc_POP(ch);
 }
-void CTextRam::fc_PLU(int ch)
+void CTextRam::fc_PLU(DWORD ch)
 {
 	// ESC L													ANSI PLU Partial line backward
 	LOCATE(m_CurX, m_CurY - 1);
 	fc_POP(ch);
 }
-void CTextRam::fc_RI(int ch)
+void CTextRam::fc_RI(DWORD ch)
 {
 	// ESC M													ANSI RI Reverse index
 	REVINDEX();
 	fc_POP(ch);
 }
-void CTextRam::fc_STS(int ch)
+void CTextRam::fc_STS(DWORD ch)
 {
 	// ESC S													ANSI STS Set transmit state
 	fc_POP(ch);
 }
-void CTextRam::fc_CCH(int ch)
+void CTextRam::fc_CCH(DWORD ch)
 {
 	// ESC T													ANSI CCH Cancel character
 	fc_POP(ch);
 }
-void CTextRam::fc_MW(int ch)
+void CTextRam::fc_MW(DWORD ch)
 {
 	// ESC U													ANSI MW Message waiting
 	fc_POP(ch);
 }
-void CTextRam::fc_SPA(int ch)
+void CTextRam::fc_SPA(DWORD ch)
 {
 	// ESC V	VT52 Print the line with the cursor.			ANSI SPA Start of guarded area
 	if ( IsOptEnable(TO_DECANM) )
 		m_AttNow.em |= EM_ISOPROTECT;
 	fc_POP(ch);
 }
-void CTextRam::fc_EPA(int ch)
+void CTextRam::fc_EPA(DWORD ch)
 {
 	// ESC W	VT52 Enter printer controller mode.				ANSI EPA End of guarded area
 	if ( IsOptEnable(TO_DECANM) )
 		m_AttNow.em &= ~EM_ISOPROTECT;
 	fc_POP(ch);
 }
-void CTextRam::fc_V5MCP(int ch)
+void CTextRam::fc_V5MCP(DWORD ch)
 {
 	// ESC Y	VT52 Move cursor to column Pn.
 	m_Status = ST_COLM_SET;
 	fc_Case(STAGE_GOTOXY);
 }
-void CTextRam::fc_SCI(int ch)
+void CTextRam::fc_SCI(DWORD ch)
 {
 	// ESC Z	VT52 Identify (host to terminal).				DECID(DA1) Primary Device Attributes		// ANSI SCI Single character introducer
 	if ( !IsOptEnable(TO_DECANM) ) {
@@ -2417,85 +2426,85 @@ void CTextRam::fc_SCI(int ch)
 		fc_DA1(ch);
 	}
 }
-void CTextRam::fc_RIS(int ch)
+void CTextRam::fc_RIS(DWORD ch)
 {
 	// ESC c													ANSI RIS Reset to initial state
 	RESET();
 	fc_POP(ch);
 }
-void CTextRam::fc_LMA(int ch)
+void CTextRam::fc_LMA(DWORD ch)
 {
 	// ESC l	HP fc_LMA LOCK
 	m_TopY = m_CurY;
 	fc_POP(ch);
 }
-void CTextRam::fc_USR(int ch)
+void CTextRam::fc_USR(DWORD ch)
 {
 	// ESC m	HP USR UNLOCK
 	m_TopY = 0;
 	fc_POP(ch);
 }
-void CTextRam::fc_V5EX(int ch)
+void CTextRam::fc_V5EX(DWORD ch)
 {
 	// ESC <	VT52 Exit VT52 mode. Enter VT100 mode.
 	EnableOption(TO_DECANM);
 	fc_POP(ch);
 }
-void CTextRam::fc_DECPAM(int ch)
+void CTextRam::fc_DECPAM(DWORD ch)
 {
 	// ESC =	DECPAM Application Keypad				VT52 Enter alternate keypad mode.
 	EnableOption(TO_RLPNAM);
 	fc_POP(ch);
 }
-void CTextRam::fc_DECPNM(int ch)
+void CTextRam::fc_DECPNM(DWORD ch)
 {
 	// ESC >	DECPNM Normal Keypad						VT52 Exit alternate keypad mode.
 	DisableOption(TO_RLPNAM);
 	fc_POP(ch);
 }
-void CTextRam::fc_SS2(int ch)
+void CTextRam::fc_SS2(DWORD ch)
 {
 	// ESC O	SS2 Single shift 2
 	m_BankSG = 2;
 	fc_POP(ch);
 }
-void CTextRam::fc_SS3(int ch)
+void CTextRam::fc_SS3(DWORD ch)
 {
 	// ESC P	SS3 Single shift 3
 	m_BankSG = 3;
 	fc_POP(ch);
 }
-void CTextRam::fc_LS2(int ch)
+void CTextRam::fc_LS2(DWORD ch)
 {
 	// ESC n	LS2 Locking-shift two
 	m_BankGL = 2;
 	fc_POP(ch);
 }
-void CTextRam::fc_LS3(int ch)
+void CTextRam::fc_LS3(DWORD ch)
 {
 	// ESC o	LS3 Locking-shift three
 	m_BankGL = 3;
 	fc_POP(ch);
 }
-void CTextRam::fc_LS1R(int ch)
+void CTextRam::fc_LS1R(DWORD ch)
 {
 	// ESC ~	LS1R
 	m_BankGR = 1;
 	fc_POP(ch);
 }
-void CTextRam::fc_LS2R(int ch)
+void CTextRam::fc_LS2R(DWORD ch)
 {
 	// ESC }	LS2R
 	m_BankGR = 2;
 	fc_POP(ch);
 }
-void CTextRam::fc_LS3R(int ch)
+void CTextRam::fc_LS3R(DWORD ch)
 {
 	// ESC |	LS3R
 	m_BankGR = 3;
 	fc_POP(ch);
 }
-void CTextRam::fc_CSC0W(int ch)
+void CTextRam::fc_CSC0W(DWORD ch)
 {
 	// ESC $	CSC0W Char Set
 	m_BackChar = 0;
@@ -2504,7 +2513,7 @@ void CTextRam::fc_CSC0W(int ch)
 	m_StrPara.Empty();
 	fc_Case(STAGE_STAT);
 }
-void CTextRam::fc_CSC0(int ch)
+void CTextRam::fc_CSC0(DWORD ch)
 {
 	// ESC (	CSC0 G0 charset
 	m_BackChar = 0;
@@ -2513,7 +2522,7 @@ void CTextRam::fc_CSC0(int ch)
 	m_StrPara.Empty();
 	fc_Case(STAGE_STAT);
 }
-void CTextRam::fc_CSC1(int ch)
+void CTextRam::fc_CSC1(DWORD ch)
 {
 	// ESC )	CSC1 G1 charset
 	m_BackChar = 1;
@@ -2522,7 +2531,7 @@ void CTextRam::fc_CSC1(int ch)
 	m_StrPara.Empty();
 	fc_Case(STAGE_STAT);
 }
-void CTextRam::fc_CSC2(int ch)
+void CTextRam::fc_CSC2(DWORD ch)
 {
 	// ESC *	CSC2 G2 charset
 	m_BackChar = 2;
@@ -2531,7 +2540,7 @@ void CTextRam::fc_CSC2(int ch)
 	m_StrPara.Empty();
 	fc_Case(STAGE_STAT);
 }
-void CTextRam::fc_CSC3(int ch)
+void CTextRam::fc_CSC3(DWORD ch)
 {
 	// ESC +	CSC3 G3 charset
 	m_BackChar = 3;
@@ -2540,7 +2549,7 @@ void CTextRam::fc_CSC3(int ch)
 	m_StrPara.Empty();
 	fc_Case(STAGE_STAT);
 }
-void CTextRam::fc_CSC0A(int ch)
+void CTextRam::fc_CSC0A(DWORD ch)
 {
 	// ESC ,	CSC0A G0 charset
 	m_BackChar = 0;
@@ -2549,7 +2558,7 @@ void CTextRam::fc_CSC0A(int ch)
 	m_StrPara.Empty();
 	fc_Case(STAGE_STAT);
 }
-void CTextRam::fc_CSC1A(int ch)
+void CTextRam::fc_CSC1A(DWORD ch)
 {
 	// ESC -	CSC1A G1 charset
 	m_BackChar = 1;
@@ -2558,7 +2567,7 @@ void CTextRam::fc_CSC1A(int ch)
 	m_StrPara.Empty();
 	fc_Case(STAGE_STAT);
 }
-void CTextRam::fc_CSC2A(int ch)
+void CTextRam::fc_CSC2A(DWORD ch)
 {
 	// ESC .	CSC2A G2 charset
 	m_BackChar = 2;
@@ -2567,7 +2576,7 @@ void CTextRam::fc_CSC2A(int ch)
 	m_StrPara.Empty();
 	fc_Case(STAGE_STAT);
 }
-void CTextRam::fc_CSC3A(int ch)
+void CTextRam::fc_CSC3A(DWORD ch)
 {
 	// ESC /	CSC3A G3 charset
 	m_BackChar = 3;
@@ -2576,28 +2585,28 @@ void CTextRam::fc_CSC3A(int ch)
 	m_StrPara.Empty();
 	fc_Case(STAGE_STAT);
 }
-void CTextRam::fc_DECSOP(int ch)
+void CTextRam::fc_DECSOP(DWORD ch)
 {
 	// ESC #	DEC Screen Opt
 	m_BackChar = 0;
 	m_Status = ST_DEC_OPT;
 	fc_Case(STAGE_STAT);
 }
-void CTextRam::fc_ACS(int ch)
+void CTextRam::fc_ACS(DWORD ch)
 {
 	// ESC 20	ACS
 	m_BackChar = 0;
 	m_Status = ST_CONF_LEVEL;
 	fc_Case(STAGE_STAT);
 }
-void CTextRam::fc_ESCI(int ch)
+void CTextRam::fc_ESCI(DWORD ch)
 {
 	// ESC 2/x
 	m_BackChar = 0;
 	m_Status = ST_NULL;
 	fc_Case(STAGE_STAT);
 }
-void CTextRam::fc_DOCS(int ch)
+void CTextRam::fc_DOCS(DWORD ch)
 {
 	// ESC %	DOCS Designate other coding system
 	m_BackChar = 0;
@@ -2608,7 +2617,7 @@ void CTextRam::fc_DOCS(int ch)
 //////////////////////////////////////////////////////////////////////
 // fc ESC ...
 
-void CTextRam::fc_GOTOXY(int ch)
+void CTextRam::fc_GOTOXY(DWORD ch)
 {
 	switch(m_Status) {
 	case ST_COLM_SET:
@@ -2621,7 +2630,7 @@ void CTextRam::fc_GOTOXY(int ch)
 		break;
 	}
 }
-void CTextRam::fc_STAT(int ch)
+void CTextRam::fc_STAT(DWORD ch)
 {
 	switch(m_Status) {
 	case ST_NULL:
@@ -2837,7 +2846,7 @@ void CTextRam::fc_TimerAbort(BOOL bOut)
 		PUTSTR(m_OscPara.GetPtr(), m_OscPara.GetSize());
 }
 
-void CTextRam::fc_DCS(int ch)
+void CTextRam::fc_DCS(DWORD ch)
 {
 	m_OscMode = 'P';
 	m_BackChar = 0;
@@ -2848,7 +2857,7 @@ void CTextRam::fc_DCS(int ch)
 	fc_Case(STAGE_OSC1);
 	fc_TimerSet(_T("DCS"));
 }
-void CTextRam::fc_SOS(int ch)
+void CTextRam::fc_SOS(DWORD ch)
 {
 	m_OscMode = 'X';
 	m_BackChar = 0;
@@ -2857,7 +2866,7 @@ void CTextRam::fc_SOS(int ch)
 	fc_Case(STAGE_OSC2);
 	fc_TimerSet(_T("SOS"));
 }
-void CTextRam::fc_APC(int ch)
+void CTextRam::fc_APC(DWORD ch)
 {
 	m_OscMode = '_';
 	m_BackChar = 0;
@@ -2866,7 +2875,7 @@ void CTextRam::fc_APC(int ch)
 	fc_Case(STAGE_OSC2);
 	fc_TimerSet(_T("APC"));
 }
-void CTextRam::fc_PM(int ch)
+void CTextRam::fc_PM(DWORD ch)
 {
 	m_OscMode = '^';
 	m_BackChar = 0;
@@ -2875,7 +2884,7 @@ void CTextRam::fc_PM(int ch)
 	fc_Case(STAGE_OSC2);
 	fc_TimerSet(_T("PM"));
 }
-void CTextRam::fc_OSC(int ch)
+void CTextRam::fc_OSC(DWORD ch)
 {
 	m_OscMode = ']';
 	m_BackChar = 0;
@@ -2884,7 +2893,7 @@ void CTextRam::fc_OSC(int ch)
 	fc_Case(STAGE_OSC2);
 	fc_TimerSet(_T("OSC"));
 }
-void CTextRam::fc_OSC_CMD(int ch)
+void CTextRam::fc_OSC_CMD(DWORD ch)
 {
 	if ( m_LastChar == '\033' && ch == '\\' ) {
 		fc_OSC_ST(ch);
@@ -2911,7 +2920,7 @@ void CTextRam::fc_OSC_CMD(int ch)
 		}
 	}
 }
-void CTextRam::fc_OSC_PAM(int ch)
+void CTextRam::fc_OSC_PAM(DWORD ch)
 {
 	if ( m_LastChar == '\033' && ch == '\\' ) {
 		if ( m_OscPara.GetSize() > 0 )
@@ -2953,7 +2962,7 @@ void CTextRam::fc_OSC_PAM(int ch)
 		m_LastChar = ch;
 	}
 }
-void CTextRam::fc_OSC_ST(int ch)
+void CTextRam::fc_OSC_ST(DWORD ch)
 {
 	int n;
 
@@ -2980,7 +2989,7 @@ void CTextRam::fc_OSC_ST(int ch)
 
 	m_OscPara.Clear();
 }
-void CTextRam::fc_OSC_CAN(int ch)
+void CTextRam::fc_OSC_CAN(DWORD ch)
 {
 	fc_TimerReset();
 	m_OscPara.Clear();
@@ -2990,7 +2999,7 @@ void CTextRam::fc_OSC_CAN(int ch)
 //////////////////////////////////////////////////////////////////////
 // fc DCS... 
 
-void CTextRam::fc_DECUDK(int ch)
+void CTextRam::fc_DECUDK(DWORD ch)
 {
 	// DCS ('P' << 24) | '|':						DECUDK User Defined Keys
 	/*
@@ -3048,7 +3057,7 @@ void CTextRam::fc_DECUDK(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_DECREGIS(int ch)
+void CTextRam::fc_DECREGIS(DWORD ch)
 {
 	// DCS ('P' << 24) | 'p'					DECREGIS ReGIS graphics
 
@@ -3070,7 +3079,7 @@ void CTextRam::fc_DECREGIS(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_DECSIXEL(int ch)
+void CTextRam::fc_DECSIXEL(DWORD ch)
 {
 	// DCS ('P' << 24) | 'q'					DECSIXEL Sixel graphics
 
@@ -3196,7 +3205,7 @@ void CTextRam::fc_DECSIXEL(int ch)
 		}
 	}
 }
-void CTextRam::fc_DECDLD(int ch)
+void CTextRam::fc_DECDLD(DWORD ch)
 {
 	// DCS ('P' << 24) | '{'					DECDLD Dynamically Redefinable Character Sets Extension
 
@@ -3365,7 +3374,7 @@ void CTextRam::fc_DECDLD(int ch)
 		}
 	}
 }
-void CTextRam::fc_DECRSTS(int ch)
+void CTextRam::fc_DECRSTS(DWORD ch)
 {
 	// DCS ('P' << 24) | ('$' << 8) | 'p'		DECRSTS Restore Terminal State
 
@@ -3405,7 +3414,7 @@ void CTextRam::fc_DECRSTS(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_DECRQSS(int ch)
+void CTextRam::fc_DECRQSS(DWORD ch)
 {
 	// DCS ('P' << 24) | ('$' << 8) | 'q'		DECRQSS Request Selection or Setting
 
@@ -3522,7 +3531,7 @@ void CTextRam::fc_DECRQSS(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_DECRSPS(int ch)
+void CTextRam::fc_DECRSPS(DWORD ch)
 {
 	// DCS Ps $ t D...D ST						DECRSPS Restore Presentation State
 
@@ -3635,7 +3644,7 @@ void CTextRam::fc_DECRSPS(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_DECDMAC(int ch)
+void CTextRam::fc_DECDMAC(DWORD ch)
 {
 	// DCS Pid ; Pdt ; Pen ! z D...D ST			DECDMAC Define Macro
 
@@ -3675,7 +3684,7 @@ void CTextRam::fc_DECDMAC(int ch)
 ENDRET:
 	fc_POP(ch);
 }
-void CTextRam::fc_DECSTUI(int ch)
+void CTextRam::fc_DECSTUI(DWORD ch)
 {
 	// DCS ! {						DECSTUI Set Terminal Unit ID
 
@@ -3695,37 +3704,67 @@ void CTextRam::fc_DECSTUI(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_XTRQCAP(int ch)
+void CTextRam::fc_XTRQCAP(DWORD ch)
 {
 	//DCS ('P' << 24) | ('+' << 8) | 'q'		XTRQCAP Request Termcap/Terminfo String (xterm, experimental)
 
-	int n;
+	int i;
+	int res = 0;
+	BOOL have, pe;
 	LPCSTR p;
-	CString tmp, str, wrk;
-	CBuffer buf, res, hex;
+	CString tmp, str, hex;
+	CBuffer buf, wrk;
+	CStringIndex env, cap;
+	CStringBinary info, *bp;
+	CInfoCapDlg dlg;
 
-	p = (LPCSTR)m_OscPara;
-	str.Empty();
-	n = 0;
-	while ( *p != '\0' ) {
-		tmp.Empty();
+	env.GetString(m_pDocument->m_ParamTab.m_ExtEnvStr);
+	dlg.SetEntry(cap, env[_T("TERMCAP")]);
+	dlg.InfoNameToCapName(info);
+
+	for ( p = (LPCSTR)m_OscPara ; *p != '\0' ; ) {
+
+		hex.Empty();
 		while ( *p != '\0' && *p != ';' )
-			tmp += *(p++);
-		if ( !tmp.IsEmpty() && m_pDocument->m_KeyTab.FindCapInfo(tmp, &buf) ) {
-			n = 1;
+			hex += *(p++);
+		buf.Base16Decode(hex);
+		m_pDocument->m_TextRam.m_IConv.RemoteToStr(m_pDocument->m_TextRam.m_SendCharSet[m_pDocument->m_TextRam.m_KanjiMode], (LPCSTR)buf, tmp);
+		have = FALSE;
+
+		if ( !tmp.IsEmpty() && (i = cap.Find(tmp)) >= 0 ) {
+			dlg.SetEscStr(cap[i].m_String.Mid(1), wrk);
+			have = TRUE;
+
+		} else if ( !tmp.IsEmpty() && (bp = info.Find(tmp)) != NULL && (i = cap.Find(*bp)) >= 0 ) {
+			pe = FALSE;
+			dlg.SetEscStr(dlg.CapToInfo(cap[i].m_String.Mid(1), &pe), wrk);
+			if ( pe == FALSE )
+				have = TRUE;
+
+		} else if ( !tmp.IsEmpty() && m_pDocument->m_KeyTab.FindCapInfo(tmp, wrk) ) {
+			have = TRUE;
+		}
+
+		if ( have ) {
+			res = 1;
 			if ( !str.IsEmpty() )
 				str += _T(';');
-			str += tmp;
-			str += _T('=');
-			res.Clear();
-			m_pDocument->m_TextRam.m_IConv.StrToRemote(m_pDocument->m_TextRam.m_SendCharSet[m_pDocument->m_TextRam.m_KanjiMode], &buf, &res);
-			hex.Base16Encode(res.GetPtr(), res.GetSize());
-			str += (LPCTSTR)hex;
+			buf = tmp;
+			ToHexStr(buf, hex);
+			str += hex;
+
+			if ( wrk.GetSize() > 0 ) {
+				str += _T('=');
+				ToHexStr(wrk, hex);
+				str += hex;
+			}
 		}
+
 		if ( *p == ';' )
 			p++;
 	}
-	UNGETSTR(_T("%s%d+r%s%s"), m_RetChar[RC_DCS], n, str, m_RetChar[RC_ST]);
+
+	UNGETSTR(_T("%s%d+r%s%s"), m_RetChar[RC_DCS], res, str, m_RetChar[RC_ST]);
 
 	fc_POP(ch);
 }
@@ -3733,7 +3772,7 @@ void CTextRam::fc_XTRQCAP(int ch)
 //////////////////////////////////////////////////////////////////////
 // fc OSC
 
-void CTextRam::fc_OSCEXE(int ch)
+void CTextRam::fc_OSCEXE(DWORD ch)
 {
 	// OSC (']' << 24)					OSC Operating System Command
 
@@ -3997,7 +4036,7 @@ void CTextRam::fc_OSCEXE(int ch)
 ENDRET:
 	fc_POP(ch);
 }
-void CTextRam::fc_OSCNULL(int ch)
+void CTextRam::fc_OSCNULL(DWORD ch)
 {
 	// SOS ('X' << 24)			SOS Start of String
 	// PM  ('^' << 24)			PM
@@ -4020,14 +4059,14 @@ void CTextRam::fc_OSCNULL(int ch)
 //////////////////////////////////////////////////////////////////////
 // fc CSI... 
 
-void CTextRam::fc_CSI(int ch)
+void CTextRam::fc_CSI(DWORD ch)
 {
 	m_BackChar = 0;
 	m_AnsiPara.RemoveAll();
 	m_AnsiPara.Add(PARA_NOT);
 	fc_Case(STAGE_CSI);
 }
-void CTextRam::fc_CSI_ESC(int ch)
+void CTextRam::fc_CSI_ESC(DWORD ch)
 {
 	fc_Case(STAGE_ESC);
 }
@@ -4050,7 +4089,7 @@ void CTextRam::fc_CSI_ESC(int ch)
 //	CSI 31 ! ; ! m	-> Size=2 Cmds="!m"		Para[0]="31!", Para[1]=NOT
 //
 
-void CTextRam::fc_CSI_RST(int ch)
+void CTextRam::fc_CSI_RST(DWORD ch)
 {
 	m_BackChar = ch;
 
@@ -4072,7 +4111,7 @@ void CTextRam::fc_CSI_RST(int ch)
 		break;
 	}
 }
-void CTextRam::fc_CSI_DIGIT(int ch)
+void CTextRam::fc_CSI_DIGIT(DWORD ch)
 {
 	int n, a;
 	DWORD v;
@@ -4114,7 +4153,7 @@ void CTextRam::fc_CSI_DIGIT(int ch)
 			m_AnsiPara[n][a] = v;
 	}
 }
-void CTextRam::fc_CSI_PUSH(int ch)
+void CTextRam::fc_CSI_PUSH(DWORD ch)
 {
 	// CSI ! :  -> [0]=OPT, [1][0]=NOT
 	if ( (m_BackChar & 0x0000FF00) != 0 ) {
@@ -4126,7 +4165,7 @@ void CTextRam::fc_CSI_PUSH(int ch)
 
 	m_AnsiPara[m_AnsiPara.GetSize() - 1].Add(PARA_NOT);
 }
-void CTextRam::fc_CSI_SEPA(int ch)
+void CTextRam::fc_CSI_SEPA(DWORD ch)
 {
 	// CSI ! ; -> [0]=OPT, [1]=NOT
 	if ( (m_BackChar & 0x0000FF00) != 0 ) {
@@ -4136,7 +4175,7 @@ void CTextRam::fc_CSI_SEPA(int ch)
 
 	m_AnsiPara.Add(PARA_NOT);
 }
-void CTextRam::fc_CSI_EXT(int ch)
+void CTextRam::fc_CSI_EXT(DWORD ch)
 {
 	int n, a;
 
@@ -4183,7 +4222,7 @@ void CTextRam::fc_CSI_EXT(int ch)
 //////////////////////////////////////////////////////////////////////
 // fc CSI @-Z
 
-void CTextRam::fc_ICH(int ch)
+void CTextRam::fc_ICH(DWORD ch)
 {
 	// CSI @	ICH	Insert Character
 
@@ -4192,7 +4231,7 @@ void CTextRam::fc_ICH(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_CUU(int ch)
+void CTextRam::fc_CUU(DWORD ch)
 {
 	// CSI A	CUU Cursor Up
 	int m = GetTopMargin();
@@ -4201,7 +4240,7 @@ void CTextRam::fc_CUU(int ch)
 	LOCATE(m_CurX, m_CurY);
 	fc_POP(ch);
 }
-void CTextRam::fc_CUD(int ch)
+void CTextRam::fc_CUD(DWORD ch)
 {
 	// CSI B	CUD Cursor Down
 	int m = GetBottomMargin();
@@ -4210,7 +4249,7 @@ void CTextRam::fc_CUD(int ch)
 	LOCATE(m_CurX, m_CurY);
 	fc_POP(ch);
 }
-void CTextRam::fc_CUF(int ch)
+void CTextRam::fc_CUF(DWORD ch)
 {
 	// CSI C	CUF Cursor Forward
 
@@ -4220,7 +4259,7 @@ void CTextRam::fc_CUF(int ch)
 	LOCATE(m_CurX, m_CurY);
 	fc_POP(ch);
 }
-void CTextRam::fc_CUB(int ch)
+void CTextRam::fc_CUB(DWORD ch)
 {
 	// CSI D	CUB Cursor Backward
 	int m = GetLeftMargin();
@@ -4229,7 +4268,7 @@ void CTextRam::fc_CUB(int ch)
 	LOCATE(m_CurX, m_CurY);
 	fc_POP(ch);
 }
-void CTextRam::fc_CNL(int ch)
+void CTextRam::fc_CNL(DWORD ch)
 {
 	// CSI E	CNL Move the cursor to the next line.
 	int m = GetBottomMargin();
@@ -4238,7 +4277,7 @@ void CTextRam::fc_CNL(int ch)
 	LOCATE((IsOptEnable(TO_DECOM) ? GetLeftMargin() : 0), m_CurY);
 	fc_POP(ch);
 }
-void CTextRam::fc_CPL(int ch)
+void CTextRam::fc_CPL(DWORD ch)
 {
 	// CSI F	CPL Move the cursor to the preceding line.
 	int m = GetTopMargin();
@@ -4247,7 +4286,7 @@ void CTextRam::fc_CPL(int ch)
 	LOCATE((IsOptEnable(TO_DECOM) ? GetLeftMargin() : 0), m_CurY);
 	fc_POP(ch);
 }
-void CTextRam::fc_CHA(int ch)
+void CTextRam::fc_CHA(DWORD ch)
 {
 	// CSI G	CHA Move the active position to the n-th character of the active line.
 	if ( IsOptEnable(TO_DECOM) ) {
@@ -4259,7 +4298,7 @@ void CTextRam::fc_CHA(int ch)
 		LOCATE(GetAnsiPara(0, 1, 1) - 1, m_CurY);
 	fc_POP(ch);
 }
-void CTextRam::fc_CUP(int ch)
+void CTextRam::fc_CUP(DWORD ch)
 {
 	// CSI H	CUP Cursor Position
 	if ( IsOptEnable(TO_DECOM) ) {
@@ -4273,14 +4312,14 @@ void CTextRam::fc_CUP(int ch)
 		LOCATE(GetAnsiPara(1, 1, 1) - 1, GetAnsiPara(0, 1, 1) - 1);
 	fc_POP(ch);
 }
-void CTextRam::fc_CHT(int ch)
+void CTextRam::fc_CHT(DWORD ch)
 {
 	// CSI I	CHT Move the active position n tabs forward.
 	for ( int i = GetAnsiPara(0, 1, 0, m_Cols) ; i > 0 ; i-- )
 		TABSET(TAB_COLSNEXT);
 	fc_POP(ch);
 }
-void CTextRam::fc_ED(int ch)
+void CTextRam::fc_ED(DWORD ch)
 {
 	// CSI J	ED Erase in page
 	switch(GetAnsiPara(0, 0, 0)) {
@@ -4299,7 +4338,7 @@ void CTextRam::fc_ED(int ch)
 	}
 	fc_POP(ch);
 }
-void CTextRam::fc_EL(int ch)
+void CTextRam::fc_EL(DWORD ch)
 {
 	// CSI K	EL Erase in line
 	switch(GetAnsiPara(0, 0, 0)) {
@@ -4315,7 +4354,7 @@ void CTextRam::fc_EL(int ch)
 	}
 	fc_POP(ch);
 }
-void CTextRam::fc_IL(int ch)
+void CTextRam::fc_IL(DWORD ch)
 {
 	// CSI L	IL Insert Line
 
@@ -4326,7 +4365,7 @@ void CTextRam::fc_IL(int ch)
 	}
 	fc_POP(ch);
 }
-void CTextRam::fc_DL(int ch)
+void CTextRam::fc_DL(DWORD ch)
 {
 	// CSI M	DL Delete Line
 
@@ -4338,7 +4377,7 @@ void CTextRam::fc_DL(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_EF(int ch)
+void CTextRam::fc_EF(DWORD ch)
 {
 	// CSI N	EF Erase in field
 	switch(GetAnsiPara(0, 0, 0)) {
@@ -4357,7 +4396,7 @@ void CTextRam::fc_EF(int ch)
 	}
 	fc_POP(ch);
 }
-void CTextRam::fc_EA(int ch)
+void CTextRam::fc_EA(DWORD ch)
 {
 	// CSI O	EA Erase in area
 	switch(GetAnsiPara(0, 0, 0)) {
@@ -4376,7 +4415,7 @@ void CTextRam::fc_EA(int ch)
 	}
 	fc_POP(ch);
 }
-void CTextRam::fc_DCH(int ch)
+void CTextRam::fc_DCH(DWORD ch)
 {
 	// CSI P	DCH Delete Character
 
@@ -4385,12 +4424,12 @@ void CTextRam::fc_DCH(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_SEE(int ch)
+void CTextRam::fc_SEE(DWORD ch)
 {
 	// CSI Q	SEE SELECT EDITING EXTENT
 	fc_POP(ch);
 }
-void CTextRam::fc_SU(int ch)
+void CTextRam::fc_SU(DWORD ch)
 {
 	// CSI S	SU Scroll Up
 
@@ -4401,7 +4440,7 @@ void CTextRam::fc_SU(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_SD(int ch)
+void CTextRam::fc_SD(DWORD ch)
 {
 	// CSI T	SD Scroll Down or xterm Track Mouse
 	if ( m_AnsiPara.GetSize() > 1 || GetAnsiPara(0, 1, 0) == 0 ) {
@@ -4434,21 +4473,21 @@ void CTextRam::fc_SD(int ch)
 	}
 	fc_POP(ch);
 }
-void CTextRam::fc_NP(int ch)
+void CTextRam::fc_NP(DWORD ch)
 {
 	// CSI U	NP Next Page
 	for ( int n = GetAnsiPara(0, 1, 1, 100) ; n > 0 ; n-- )
 		PostMessage(WM_VSCROLL, SB_PAGEDOWN, 0);
 	fc_POP(ch);
 }
-void CTextRam::fc_PP(int ch)
+void CTextRam::fc_PP(DWORD ch)
 {
 	// CSI V	PP Preceding Page
 	for ( int n = GetAnsiPara(0, 1, 1, 100) ; n > 0 ; n-- )
 		PostMessage(WM_VSCROLL, SB_PAGEUP, 0);
 	fc_POP(ch);
 }
-void CTextRam::fc_CTC(int ch)
+void CTextRam::fc_CTC(DWORD ch)
 {
 	// CSI W	CTC Cursor tabulation control
 	switch(GetAnsiPara(0, 0, 0)) {
@@ -4476,13 +4515,13 @@ void CTextRam::fc_CTC(int ch)
 	}
 	fc_POP(ch);
 }
-void CTextRam::fc_ECH(int ch)
+void CTextRam::fc_ECH(DWORD ch)
 {
 	// CSI X	ECH Erase character
 	ERABOX(m_CurX, m_CurY, m_CurX + GetAnsiPara(0, 1, 1), m_CurY + 1, ERM_ISOPRO | ERM_SAVEDM);
 	fc_POP(ch);
 }
-void CTextRam::fc_CVT(int ch)
+void CTextRam::fc_CVT(DWORD ch)
 {
 	// CSI Y	CVT Cursor line tabulation
 
@@ -4491,7 +4530,7 @@ void CTextRam::fc_CVT(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_CBT(int ch)
+void CTextRam::fc_CBT(DWORD ch)
 {
 	// CSI Z	CBT Move the active position n tabs backward.
 
@@ -4500,22 +4539,22 @@ void CTextRam::fc_CBT(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_SRS(int ch)
+void CTextRam::fc_SRS(DWORD ch)
 {
 	// CSI [	SRS START REVERSED STRING
 	fc_POP(ch);
 }
-void CTextRam::fc_PTX(int ch)
+void CTextRam::fc_PTX(DWORD ch)
 {
 	// CSI \	PTX PARALLEL TEXTS
 	fc_POP(ch);
 }
-void CTextRam::fc_SDS(int ch)
+void CTextRam::fc_SDS(DWORD ch)
 {
 	// CSI ]	SDS START DIRECTED STRING
 	fc_POP(ch);
 }
-void CTextRam::fc_SIMD(int ch)
+void CTextRam::fc_SIMD(DWORD ch)
 {
 	// CSI ^	SIMD Select implicit movement direction
 	// 0 the direction of implicit movement is the same as that of the character progression
@@ -4526,7 +4565,7 @@ void CTextRam::fc_SIMD(int ch)
 //////////////////////////////////////////////////////////////////////
 // fc CSI a-z
 
-void CTextRam::fc_HPA(int ch)
+void CTextRam::fc_HPA(DWORD ch)
 {
 	// CSI `	HPA Horizontal Position Absolute
 	if ( IsOptEnable(TO_DECOM) ) {
@@ -4540,7 +4579,7 @@ void CTextRam::fc_HPA(int ch)
 		LOCATE(GetAnsiPara(0, 1, 1) - 1, m_CurY);
 	fc_POP(ch);
 }
-void CTextRam::fc_HPR(int ch)
+void CTextRam::fc_HPR(DWORD ch)
 {
 	// CSI a	HPR Horizontal Position Relative
 	if ( IsOptEnable(TO_DECOM) ) {
@@ -4554,7 +4593,7 @@ void CTextRam::fc_HPR(int ch)
 		LOCATE(m_CurX + GetAnsiPara(0, 1, 0), m_CurY);
 	fc_POP(ch);
 }
-void CTextRam::fc_REP(int ch)
+void CTextRam::fc_REP(DWORD ch)
 {
 	// CSI b	REP Repeat
 	if ( m_LastChar != 0 ) {
@@ -4566,7 +4605,7 @@ void CTextRam::fc_REP(int ch)
 	}
 	fc_POP(ch);
 }
-void CTextRam::fc_DA1(int ch)
+void CTextRam::fc_DA1(DWORD ch)
 {
 	// CSI c	DA1 Primary Device Attributes
 	//
@@ -4616,7 +4655,7 @@ void CTextRam::fc_DA1(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_VPA(int ch)
+void CTextRam::fc_VPA(DWORD ch)
 {
 	// CSI d	VPA Vertical Line Position Absolute
 	if ( IsOptEnable(TO_DECOM) ) {
@@ -4630,7 +4669,7 @@ void CTextRam::fc_VPA(int ch)
 		LOCATE(m_CurX, GetAnsiPara(0, 1, 1) - 1);
 	fc_POP(ch);
 }
-void CTextRam::fc_VPR(int ch)
+void CTextRam::fc_VPR(DWORD ch)
 {
 	// CSI e	VPR Vertical Position Relative
 	if ( IsOptEnable(TO_DECOM) ) {
@@ -4644,7 +4683,7 @@ void CTextRam::fc_VPR(int ch)
 		LOCATE(m_CurX, m_CurY + GetAnsiPara(0, 1, 0));
 	fc_POP(ch);
 }
-void CTextRam::fc_HVP(int ch)
+void CTextRam::fc_HVP(DWORD ch)
 {
 	// CSI f	HVP Horizontal and Vertical Position
 
@@ -4660,7 +4699,7 @@ void CTextRam::fc_HVP(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_TBC(int ch)
+void CTextRam::fc_TBC(DWORD ch)
 {
 	// CSI g	TBC Tab Clear
 	switch(GetAnsiPara(0, 0, 0)) {
@@ -4685,7 +4724,7 @@ void CTextRam::fc_TBC(int ch)
 	}
 	fc_POP(ch);
 }
-void CTextRam::fc_SM(int ch)
+void CTextRam::fc_SM(DWORD ch)
 {
 	// CSI h	SM Mode Set
 	int n, i;
@@ -4695,7 +4734,7 @@ void CTextRam::fc_SM(int ch)
 	}
 	fc_POP(ch);
 }
-void CTextRam::fc_RM(int ch)
+void CTextRam::fc_RM(DWORD ch)
 {
 	// CSI l	RM Mode ReSet
 	int n, i;
@@ -4705,7 +4744,7 @@ void CTextRam::fc_RM(int ch)
 	}
 	fc_POP(ch);
 }
-void CTextRam::fc_MC(int ch)
+void CTextRam::fc_MC(DWORD ch)
 {
 	// CSI i	MC Media copy
 
@@ -4726,19 +4765,19 @@ void CTextRam::fc_MC(int ch)
 		break;
 	}
 }
-void CTextRam::fc_HPB(int ch)
+void CTextRam::fc_HPB(DWORD ch)
 {
 	// CSI j	HPB Character position backward
 	LOCATE(m_CurX - GetAnsiPara(0, 1, 0), m_CurY);
 	fc_POP(ch);
 }
-void CTextRam::fc_VPB(int ch)
+void CTextRam::fc_VPB(DWORD ch)
 {
 	// CSI k	VPB Line position backward
 	LOCATE(m_CurX, m_CurY - GetAnsiPara(0, 1, 0));
 	fc_POP(ch);
 }
-void CTextRam::fc_SGR(int ch)
+void CTextRam::fc_SGR(DWORD ch)
 {
 	// CSI m	SGR Select Graphic Rendition
 	int n, i, a;
@@ -4897,7 +4936,7 @@ void CTextRam::fc_SGR(int ch)
 	}
 	fc_POP(ch);
 }
-void CTextRam::fc_DSR(int ch)
+void CTextRam::fc_DSR(DWORD ch)
 {
 	// CSI n	DSR Device status report
 	switch(GetAnsiPara(0, 0, 0)) {
@@ -4934,7 +4973,7 @@ void CTextRam::fc_DSR(int ch)
 	}
 	fc_POP(ch);
 }
-void CTextRam::fc_DAQ(int ch)
+void CTextRam::fc_DAQ(DWORD ch)
 {
 	// CSI o	DAQ Define area qualification
 	/*
@@ -4968,7 +5007,7 @@ void CTextRam::fc_DAQ(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_ORGBFAT(int ch)
+void CTextRam::fc_ORGBFAT(DWORD ch)
 {
 	// CSI p	ORGBFAT Begin field attribute : DEC private
 	int n = GetAnsiPara(0, 0, 0);
@@ -4982,7 +5021,7 @@ void CTextRam::fc_ORGBFAT(int ch)
 		m_AttSpc.at = m_AttNow.at;
 	fc_POP(ch);
 }
-void CTextRam::fc_DECSSL(int ch)
+void CTextRam::fc_DECSSL(DWORD ch)
 {
 	// CSI p	DECSSL Select Set-Up Language
 	// 0, 1 or none English
@@ -4993,7 +5032,7 @@ void CTextRam::fc_DECSSL(int ch)
 	m_LangMenu = GetAnsiPara(0, 1, 1);
 	fc_POP(ch);
 }
-void CTextRam::fc_DECLL(int ch)
+void CTextRam::fc_DECLL(DWORD ch)
 {
 	// CSI q	DECLL Load LEDs
 
@@ -5030,7 +5069,7 @@ void CTextRam::fc_DECLL(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_DECSTBM(int ch)
+void CTextRam::fc_DECSTBM(DWORD ch)
 {
 	// CSI r	DECSTBM Set Top and Bottom Margins
 	int n, i;
@@ -5048,7 +5087,7 @@ void CTextRam::fc_DECSTBM(int ch)
 		LOCATE(m_CurX, m_BtmY - 1);
 	fc_POP(ch);
 }
-void CTextRam::fc_DECSLRM(int ch)
+void CTextRam::fc_DECSLRM(DWORD ch)
 {
 	// CSI s	DECSLRM Set left and right margins
 	// Sets left margin to Pn1, right margin to Pn2
@@ -5065,7 +5104,7 @@ void CTextRam::fc_DECSLRM(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_DECSLPP(int ch)
+void CTextRam::fc_DECSLPP(DWORD ch)
 {
 	// CSI t	DECSLPP Set Lines Per Page
 
@@ -5073,7 +5112,7 @@ void CTextRam::fc_DECSLPP(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_DECSHTS(int ch)
+void CTextRam::fc_DECSHTS(DWORD ch)
 {
 	// CSI u	DECSHTS Set horizontal tab stops
 	int n, s;
@@ -5089,7 +5128,7 @@ void CTextRam::fc_DECSHTS(int ch)
 	m_CurX = s;
 	fc_POP(ch);
 }
-void CTextRam::fc_DECSVTS(int ch)
+void CTextRam::fc_DECSVTS(DWORD ch)
 {
 	// CSI v	DECSVTS Set vertical tab stops
 	int n, s;
@@ -5105,7 +5144,7 @@ void CTextRam::fc_DECSVTS(int ch)
 	m_CurY = s;
 	fc_POP(ch);
 }
-void CTextRam::fc_SCOSC(int ch)
+void CTextRam::fc_SCOSC(DWORD ch)
 {
 	// CSI s	SCOSC Save Cursol Pos
 
@@ -5118,7 +5157,7 @@ void CTextRam::fc_SCOSC(int ch)
 		fc_POP(ch);
 	}
 }
-void CTextRam::fc_XTWOP(int ch)
+void CTextRam::fc_XTWOP(DWORD ch)
 {
 	// CSI t	XTWOP XTERM WINOPS
 	int i;
@@ -5229,14 +5268,14 @@ void CTextRam::fc_XTWOP(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_SCORC(int ch)
+void CTextRam::fc_SCORC(DWORD ch)
 {
 	// CSI u	SCORC Load Cursol Pos
 	LOCATE(m_Save_CurX, m_Save_CurY);
 	m_DoWarp = m_Save_DoWarp;
 	fc_POP(ch);
 }
-void CTextRam::fc_ORGSCD(int ch)
+void CTextRam::fc_ORGSCD(DWORD ch)
 {
 	// CSI v	ORGSCD Set Cursol Display
 	switch(GetAnsiPara(0, 0, 0)) {
@@ -5245,7 +5284,7 @@ void CTextRam::fc_ORGSCD(int ch)
 	}
 	fc_POP(ch);
 }
-void CTextRam::fc_REQTPARM(int ch)
+void CTextRam::fc_REQTPARM(DWORD ch)
 {
 	// CSI x	DECREQTPARM Request terminal parameters 
 	switch(GetAnsiPara(0, 0, 0)) {
@@ -5258,7 +5297,7 @@ void CTextRam::fc_REQTPARM(int ch)
 	}
 	fc_POP(ch);
 }
-void CTextRam::fc_DECTST(int ch)
+void CTextRam::fc_DECTST(DWORD ch)
 {
 	// CSI y	DECTST Invoke confidence test
 
@@ -5279,17 +5318,17 @@ void CTextRam::fc_DECTST(int ch)
 	}
 	fc_POP(ch);
 }
-void CTextRam::fc_DECVERP(int ch)
+void CTextRam::fc_DECVERP(DWORD ch)
 {
 	// CSI z	DECVERP Set vertical pitch
 	fc_POP(ch);
 }
-void CTextRam::fc_DECFNK(int ch)
+void CTextRam::fc_DECFNK(DWORD ch)
 {
 	// CSI Ps1 ; Ps2 ~	DECFNK Function Key
 	fc_POP(ch);
 }
-void CTextRam::fc_LINUX(int ch)
+void CTextRam::fc_LINUX(DWORD ch)
 {
 	// CSI ]	LINUX Linux Console
 	switch(GetAnsiPara(0, 0, 0)) {
@@ -5310,7 +5349,7 @@ void CTextRam::fc_LINUX(int ch)
 //////////////////////////////////////////////////////////////////////
 // fc CSI ? ...
 //
-void CTextRam::fc_DECSED(int ch)
+void CTextRam::fc_DECSED(DWORD ch)
 {
 	// CSI ? J	DECSED Selective Erase in Display
 	switch(GetAnsiPara(0, 0, 0)) {
@@ -5328,7 +5367,7 @@ void CTextRam::fc_DECSED(int ch)
 	}
 	fc_POP(ch);
 }
-void CTextRam::fc_DECSEL(int ch)
+void CTextRam::fc_DECSEL(DWORD ch)
 {
 	// CSI ? K	DECSEL Selective Erase in Line
 	switch(GetAnsiPara(0, 0, 0)) {
@@ -5344,13 +5383,13 @@ void CTextRam::fc_DECSEL(int ch)
 	}
 	fc_POP(ch);
 }
-void CTextRam::fc_DECST8C(int ch)
+void CTextRam::fc_DECST8C(DWORD ch)
 {
 	// CSI ? W	DECST8C Set Tab at every 8 columns
 	TABSET(TAB_RESET);
 	fc_POP(ch);
 }
-void CTextRam::fc_DECMC(int ch)
+void CTextRam::fc_DECMC(DWORD ch)
 {
 	// CSI ? i	DECMC	Media Copy (DEC)
 
@@ -5376,27 +5415,27 @@ void CTextRam::fc_DECMC(int ch)
 		break;
 	}
 }
-void CTextRam::fc_DECSET(int ch)
+void CTextRam::fc_DECSET(DWORD ch)
 {
 	// CSI ? h	DECSET
 	fc_DECSRET('h');
 }
-void CTextRam::fc_DECRST(int ch)
+void CTextRam::fc_DECRST(DWORD ch)
 {
 	// CSI ? l	DECRST
 	fc_DECSRET('l');
 }
-void CTextRam::fc_XTREST(int ch)
+void CTextRam::fc_XTREST(DWORD ch)
 {
 	// CSI ? r	XTREST
 	fc_DECSRET('r');
 }
-void CTextRam::fc_XTSAVE(int ch)
+void CTextRam::fc_XTSAVE(DWORD ch)
 {
 	// CSI ? s	XTSAVE
 	fc_DECSRET('s');
 }
-void CTextRam::fc_DECSRET(int ch)
+void CTextRam::fc_DECSRET(DWORD ch)
 {
 	// CSI ? h	DECSET
 	// CSI ? l	DECRST
@@ -5563,7 +5602,7 @@ void CTextRam::fc_DECSRET(int ch)
 	}
 	fc_POP(ch);
 }
-void CTextRam::fc_DECDSR(int ch)
+void CTextRam::fc_DECDSR(DWORD ch)
 {
 	// CSI ? n	DECDSR Device status report
 	switch(GetAnsiPara(0, 0, 0)) {
@@ -5643,7 +5682,7 @@ void CTextRam::fc_DECDSR(int ch)
 //////////////////////////////////////////////////////////////////////
 // fc CSI $ ...
 //
-void CTextRam::fc_DECRQM(int ch)
+void CTextRam::fc_DECRQM(DWORD ch)
 {
 	// CSI $p	DECRQM Request mode settings
 	int n, f = 0;
@@ -5654,7 +5693,7 @@ void CTextRam::fc_DECRQM(int ch)
 	UNGETSTR(_T("%s%d;%d$y"), m_RetChar[RC_CSI], n, f);
 	fc_POP(ch);
 }
-void CTextRam::fc_DECCARA(int ch)
+void CTextRam::fc_DECCARA(DWORD ch)
 {
 	// CSI $r	DECCARA Change Attribute in Rectangle
 	int n, i, x, y;
@@ -5770,7 +5809,7 @@ void CTextRam::fc_DECCARA(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_DECRARA(int ch)
+void CTextRam::fc_DECRARA(DWORD ch)
 {
 	// CSI $t	DECRARA Reverse Attribute in Rectangle
 	int n, x, y;
@@ -5818,7 +5857,7 @@ void CTextRam::fc_DECRARA(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_DECRQTSR(int ch)
+void CTextRam::fc_DECRQTSR(DWORD ch)
 {
 	// CSI $u	DECRQTSR Request Terminal State Report
 
@@ -5881,7 +5920,7 @@ void CTextRam::fc_DECRQTSR(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_DECCRA(int ch)
+void CTextRam::fc_DECCRA(DWORD ch)
 {
 	// CSI $v	DECCRA Copy Rectangular Area
 
@@ -5895,7 +5934,7 @@ void CTextRam::fc_DECCRA(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_DECRQPSR(int ch)
+void CTextRam::fc_DECRQPSR(DWORD ch)
 {
 	// CSI $w	DECRQPSR Request Presentation State Report
 	int n, i;
@@ -5972,7 +6011,7 @@ void CTextRam::fc_DECRQPSR(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_DECFRA(int ch)
+void CTextRam::fc_DECFRA(DWORD ch)
 {
 	// CSI $x	DECFRA Fill Rectangular Area
 	int n, x, y;
@@ -5994,21 +6033,21 @@ void CTextRam::fc_DECFRA(int ch)
 	DISPVRAM(m_AnsiPara[2], m_AnsiPara[1], m_AnsiPara[4] - m_AnsiPara[2] + 1, m_AnsiPara[3] - m_AnsiPara[1] + 1);
 	fc_POP(ch);
 }
-void CTextRam::fc_DECERA(int ch)
+void CTextRam::fc_DECERA(DWORD ch)
 {
 	// CSI $z	DECERA Erase Rectangular Area
 	SetAnsiParaArea(0);
 	ERABOX(m_AnsiPara[1], m_AnsiPara[0], m_AnsiPara[3] + 1, m_AnsiPara[2] + 1, ERM_SAVEDM);
 	fc_POP(ch);
 }
-void CTextRam::fc_DECSERA(int ch)
+void CTextRam::fc_DECSERA(DWORD ch)
 {
 	// CSI ${	DECSERA Selective Erase Rectangular Area
 	SetAnsiParaArea(0);
 	ERABOX(m_AnsiPara[1], m_AnsiPara[0], m_AnsiPara[3] + 1, m_AnsiPara[2] + 1, ERM_DECPRO | ERM_SAVEDM);
 	fc_POP(ch);
 }
-void CTextRam::fc_DECSCPP(int ch)
+void CTextRam::fc_DECSCPP(DWORD ch)
 {
 	// CSI $|	DECSCPP Set Ps columns per page
 
@@ -6024,14 +6063,14 @@ void CTextRam::fc_DECSCPP(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_DECSASD(int ch)
+void CTextRam::fc_DECSASD(DWORD ch)
 {
 	// CSI $}	DECSASD Select Active Status Display
 	m_StsFlag = GetAnsiPara(0, 0, 0) == 1 ? TRUE : FALSE;
 	m_StsPara.Empty();
 	fc_POP(ch);
 }
-void CTextRam::fc_DECSSDT(int ch)
+void CTextRam::fc_DECSSDT(DWORD ch)
 {
 	//	CSI $~	DECSSDT Set Status Display (Line) Type
 	m_StsMode = GetAnsiPara(0, 0, 0);
@@ -6041,7 +6080,7 @@ void CTextRam::fc_DECSSDT(int ch)
 //////////////////////////////////////////////////////////////////////
 // fc CSI SP ...
 //
-void CTextRam::fc_SL(int ch)
+void CTextRam::fc_SL(DWORD ch)
 {
 	// CSI (' ' << 8) | '@'		SL Scroll left
 	int n;
@@ -6050,7 +6089,7 @@ void CTextRam::fc_SL(int ch)
 		LEFTSCROLL();
 	fc_POP(ch);
 }
-void CTextRam::fc_SR(int ch)
+void CTextRam::fc_SR(DWORD ch)
 {
 	// CSI (' ' << 8) | 'A'		SR Scroll Right
 	int n;
@@ -6059,32 +6098,32 @@ void CTextRam::fc_SR(int ch)
 		RIGHTSCROLL();
 	fc_POP(ch);
 }
-void CTextRam::fc_FNT(int ch)
+void CTextRam::fc_FNT(DWORD ch)
 {
 	// CSI (' ' << 8) | 'D'		FNT Font selection
 	if ( (m_AttNow.ft = GetAnsiPara(0, 0, 0)) > 10 )
 		m_AttNow.ft = 10;
 	fc_POP(ch);
 }
-void CTextRam::fc_PPA(int ch)
+void CTextRam::fc_PPA(DWORD ch)
 {
 	// CSI (' ' << 8) | 'P'		PPA Page Position Absolute
 	SETPAGE(GetAnsiPara(0, 1, 1) - 1);
 	fc_POP(ch);
 }
-void CTextRam::fc_PPR(int ch)
+void CTextRam::fc_PPR(DWORD ch)
 {
 	// CSI (' ' << 8) | 'Q'		PPR Page Position Relative
 	SETPAGE(m_Page + GetAnsiPara(0, 1, 0));
 	fc_POP(ch);
 }
-void CTextRam::fc_PPB(int ch)
+void CTextRam::fc_PPB(DWORD ch)
 {
 	// CSI (' ' << 8) | 'R'		PPB Page Position Backwards
 	SETPAGE(m_Page - GetAnsiPara(0, 1, 0));
 	fc_POP(ch);
 }
-void CTextRam::fc_DECSCUSR(int ch)
+void CTextRam::fc_DECSCUSR(DWORD ch)
 {
 	// CSI (' ' << 8) | 'q'		DECSCUSR Set Cursor Style
 
@@ -6102,7 +6141,7 @@ void CTextRam::fc_DECSCUSR(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_DECTME(int ch)
+void CTextRam::fc_DECTME(DWORD ch)
 {
 	// CSI Ps SP ~				DECTME Terminal Mode Emulation
 	//	Ps Terminal Mode
@@ -6137,7 +6176,7 @@ void CTextRam::fc_DECTME(int ch)
 //////////////////////////////////////////////////////////////////////
 // fc CSI Ext...
 
-void CTextRam::fc_CSI_ETC(int ch)
+void CTextRam::fc_CSI_ETC(DWORD ch)
 {
 	int n;
 	int d = (m_BackChar | ch) & 0x7F7F7F7F;
@@ -6147,7 +6186,7 @@ void CTextRam::fc_CSI_ETC(int ch)
 	else
 		fc_POP(ch);
 }
-void CTextRam::fc_DECRQMH(int ch)
+void CTextRam::fc_DECRQMH(DWORD ch)
 {
 	// CSI ('?' << 16) | ('$' << 8) | 'p'	DECRQMH Request Mode (DEC) Host to Terminal
 	int i, f = 0;
@@ -6174,7 +6213,7 @@ void CTextRam::fc_DECRQMH(int ch)
 	fc_POP(ch);
 }
 
-void CTextRam::fc_DECSTR(int ch)
+void CTextRam::fc_DECSTR(DWORD ch)
 {
 	// CSI ('!' << 8) | 'p'		DECSTR Soft terminal reset
 
@@ -6182,7 +6221,7 @@ void CTextRam::fc_DECSTR(int ch)
 	fc_POP(ch);
 }
 
-void CTextRam::fc_DECSCL(int ch)
+void CTextRam::fc_DECSCL(DWORD ch)
 {
 	// CSI Ps1 ; Ps2 "p			DECSCL Set compatibility level
 
@@ -6207,7 +6246,7 @@ void CTextRam::fc_DECSCL(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_DECSCA(int ch)
+void CTextRam::fc_DECSCA(DWORD ch)
 {
 	// CSI ('"' << 8) | 'q'		DECSCA Select character attributes
 
@@ -6218,7 +6257,7 @@ void CTextRam::fc_DECSCA(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_DECRQDE(int ch)
+void CTextRam::fc_DECRQDE(DWORD ch)
 {
 	// CSI ('"' << 8) | 'v'		DECRQDE Request device extent
 	// CSI Ph ; Pw ; Pml ; Pmt ; Pmp " w
@@ -6226,7 +6265,7 @@ void CTextRam::fc_DECRQDE(int ch)
 	UNGETSTR(_T("%s%d;%d;%d;%d;%d\"w"), m_RetChar[RC_CSI], m_Lines, m_Cols, m_LeftX + 1, m_TopY + 1, m_Page + 1);
 	fc_POP(ch);
 }
-void CTextRam::fc_DECRQUPSS(int ch)
+void CTextRam::fc_DECRQUPSS(DWORD ch)
 {
 	// CSI ('&' << 8) | 'u'		DECRQUPSS Request User-Preferred Supplemental Set
 	// DCS 1 ! u A ST			The user-preferred supplemental set is ISO Latin-1 supplemental.
@@ -6235,7 +6274,7 @@ void CTextRam::fc_DECRQUPSS(int ch)
 	fc_POP(ch);
 }
 
-void CTextRam::fc_DECEFR(int ch)
+void CTextRam::fc_DECEFR(DWORD ch)
 {
 	// CSI ('\'' << 8) | 'w'		DECEFR Enable filter rectangle
 
@@ -6252,7 +6291,7 @@ void CTextRam::fc_DECEFR(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_DECELR(int ch)
+void CTextRam::fc_DECELR(DWORD ch)
 {
 	// CSI ('\'' << 8) | 'z'		DECELR Enable locator reports
 
@@ -6287,7 +6326,7 @@ void CTextRam::fc_DECELR(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_DECSLE(int ch)
+void CTextRam::fc_DECSLE(DWORD ch)
 {
 	// CSI ('\'' << 8) | '{'		DECSLE Select locator events
 	int n;
@@ -6321,14 +6360,14 @@ void CTextRam::fc_DECSLE(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_DECRQLP(int ch)
+void CTextRam::fc_DECRQLP(DWORD ch)
 {
 	// CSI ('\'' << 8) | '|'		DECRQLP Request locator position
 
 	LocReport(MOS_LOCA_REQ, 0, 0, 0);
 	fc_POP(ch);
 }
-void CTextRam::fc_DECIC(int ch)
+void CTextRam::fc_DECIC(DWORD ch)
 {
 	// CSI ('\'' << 8) | '}'		DECIC Insert Column(s)
 
@@ -6344,7 +6383,7 @@ void CTextRam::fc_DECIC(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_DECDC(int ch)
+void CTextRam::fc_DECDC(DWORD ch)
 {
 	// CSI ('\'' << 8) | '~'		DECDC Delete Column(s)
 
@@ -6361,13 +6400,13 @@ void CTextRam::fc_DECDC(int ch)
 	fc_POP(ch);
 }
 
-void CTextRam::fc_DECSACE(int ch)
+void CTextRam::fc_DECSACE(DWORD ch)
 {
 	// CSI ('*' << 8) | 'x'		DECSACE Select Attribute and Change Extent
 	m_Exact = (GetAnsiPara(0, 1, 1) == 2 ? TRUE : FALSE);
 	fc_POP(ch);
 }
-void CTextRam::fc_DECRQCRA(int ch)
+void CTextRam::fc_DECRQCRA(DWORD ch)
 {
 	// CSI ('*' << 8) | 'y'		DECRQCRA Request Checksum of Rectangle Area
 
@@ -6405,7 +6444,7 @@ void CTextRam::fc_DECRQCRA(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_DECINVM(int ch)
+void CTextRam::fc_DECINVM(DWORD ch)
 {
 	// CSI ('*' << 8) | 'z'		DECINVM Invoke Macro
 
@@ -6423,7 +6462,7 @@ void CTextRam::fc_DECINVM(int ch)
 		m_MacroExecFlag[Pid / 32] &= ~(1 << (Pid % 32));
 	}
 }
-void CTextRam::fc_DECSR(int ch)
+void CTextRam::fc_DECSR(DWORD ch)
 {
 	// CSI ('+'  << 8) | 'p'	DECSR Secure Reset
 
@@ -6431,7 +6470,7 @@ void CTextRam::fc_DECSR(int ch)
 	UNGETSTR(_T("%s%d*q"), m_RetChar[RC_CSI], GetAnsiPara(0, 0, 0));		// CSI * q	DECSRC Secure Reset Confirmation
 	fc_POP(ch);
 }
-void CTextRam::fc_DECPQPLFM(int ch)
+void CTextRam::fc_DECPQPLFM(DWORD ch)
 {
 	// CSI ('+'  << 8) | 'x'	DECRQPKFM Request Program Key Free Memory
 
@@ -6439,7 +6478,7 @@ void CTextRam::fc_DECPQPLFM(int ch)
 	fc_POP(ch);
 }
 
-void CTextRam::fc_DECAC(int ch)
+void CTextRam::fc_DECAC(DWORD ch)
 {
 	// CSI Ps1 Ps2 Ps3 , |		DECAC Assign Color
 
@@ -6462,13 +6501,13 @@ void CTextRam::fc_DECAC(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_DECTID(int ch)
+void CTextRam::fc_DECTID(DWORD ch)
 {
 	// CSI (',' << 8) | 'q'		DECTID Select Terminal ID
 	m_TermId = GetAnsiPara(0, 10, 0);
 	fc_POP(ch);
 }
-void CTextRam::fc_DECATC(int ch)
+void CTextRam::fc_DECATC(DWORD ch)
 {
 	// CSI (',' << 8) | '}'		DECATC Alternate Text Colors
 
@@ -6502,7 +6541,7 @@ void CTextRam::fc_DECATC(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_DECPS(int ch)
+void CTextRam::fc_DECPS(DWORD ch)
 {
 	// CSI Pv ; Pd ; Pn , ~		DECPS Play Sound
 	/*
@@ -6548,7 +6587,7 @@ void CTextRam::fc_DECPS(int ch)
 	fc_POP(ch);
 }
 
-void CTextRam::fc_DECSTGLT(int ch)
+void CTextRam::fc_DECSTGLT(DWORD ch)
 {
 	// CSI (')' << 8 | '{'		DECSTGLT Select Color Look-Up Table
 	int n, c;
@@ -6569,7 +6608,7 @@ void CTextRam::fc_DECSTGLT(int ch)
 	fc_POP(ch);
 }
 
-void CTextRam::fc_DA2(int ch)
+void CTextRam::fc_DA2(DWORD ch)
 {
 	// CSI ('>' << 16) | 'c'	DA2 Secondary Device Attributes
 
@@ -6578,7 +6617,7 @@ void CTextRam::fc_DA2(int ch)
 	fc_POP(ch);
 }
 
-void CTextRam::fc_DA3(int ch)
+void CTextRam::fc_DA3(DWORD ch)
 {
 	// CSI ('=' << 16) | 'c'	DA3 Tertiary Device Attributes
 
@@ -6586,7 +6625,7 @@ void CTextRam::fc_DA3(int ch)
 		UNGETSTR(_T("%s!|%04x%s"), m_RetChar[RC_DCS], m_UnitId, m_RetChar[RC_ST]);
 	fc_POP(ch);
 }
-void CTextRam::fc_C25LCT(int ch)
+void CTextRam::fc_C25LCT(DWORD ch)
 {
 	// CSI ('=' << 16) | 'S'	C25LCT cons25 Set local cursor type
 
@@ -6598,14 +6637,14 @@ void CTextRam::fc_C25LCT(int ch)
 	fc_POP(ch);
 }
 
-void CTextRam::fc_TTIMESV(int ch)
+void CTextRam::fc_TTIMESV(DWORD ch)
 {
 	//	CSI ('<' << 16) | 's',		TTIMESV IME の開閉状態を保存する。
 	m_AnsiPara.RemoveAll();
 	m_AnsiPara.Add(TO_IMECTRL + 8000);
 	fc_DECSRET('s');
 }
-void CTextRam::fc_TTIMEST(int ch)
+void CTextRam::fc_TTIMEST(DWORD ch)
 {
 	//	CSI ('<' << 16) | 't',		TTIMEST IME の開閉状態を設定する。
 
@@ -6614,14 +6653,14 @@ void CTextRam::fc_TTIMEST(int ch)
 	m_AnsiPara.Add(TO_IMECTRL + 8000);
 	fc_DECSRET(n == 0 ? 'l' : 'h');
 }
-void CTextRam::fc_TTIMERS(int ch)
+void CTextRam::fc_TTIMERS(DWORD ch)
 {
 	//	CSI ('<' << 16) | 'r',		TTIMERS IME の開閉状態を復元する。
 	m_AnsiPara.RemoveAll();
 	m_AnsiPara.Add(TO_IMECTRL + 8000);
 	fc_DECSRET('r');
 }
-void CTextRam::fc_XTRMTT(int ch)
+void CTextRam::fc_XTRMTT(DWORD ch)
 {
 	// CSI { ('>' << 16) | 'T',		xterm CASE_RM_TITLE
 	//    Ps = 0  -> Do not set window/icon labels using hexadecimal.
@@ -6635,7 +6674,7 @@ void CTextRam::fc_XTRMTT(int ch)
 	}
 	fc_POP(ch);
 }
-void CTextRam::fc_XTMDKEY(int ch)
+void CTextRam::fc_XTMDKEY(DWORD ch)
 {
 	// CSI > Ps; Ps m
 	//	  Set or reset resource-values used by xterm to decide whether
@@ -6664,7 +6703,7 @@ void CTextRam::fc_XTMDKEY(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_XTMDKYD(int ch)
+void CTextRam::fc_XTMDKYD(DWORD ch)
 {
 	//CSI > Ps n
 	//	  Disable modifiers which may be enabled via the CSI > Ps; Ps m
@@ -6688,7 +6727,7 @@ void CTextRam::fc_XTMDKYD(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_XTHDPT(int ch)
+void CTextRam::fc_XTHDPT(DWORD ch)
 {
 	//CSI > Ps p
 	//	  Set resource value pointerMode.  This is used by xterm to
@@ -6703,7 +6742,7 @@ void CTextRam::fc_XTHDPT(int ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_XTSMTT(int ch)
+void CTextRam::fc_XTSMTT(DWORD ch)
 {
 	// CSI ('>' << 16) | 't',		xterm CASE_SM_TITLE
 	//    Ps = 0  -> Set window/icon labels using hexadecimal.
@@ -6717,7 +6756,7 @@ void CTextRam::fc_XTSMTT(int ch)
 	}
 	fc_POP(ch);
 }
-void CTextRam::fc_RLIMGCP(int ch)
+void CTextRam::fc_RLIMGCP(DWORD ch)
 {
 	// CSI ('<' << 16) | ('!' << 8) | 'c'		RLIMGCP
 

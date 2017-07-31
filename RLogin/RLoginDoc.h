@@ -95,7 +95,7 @@ public:
 
 	void SendBuffer(CBuffer &buf);
 	void SendScript(LPCWSTR str, LPCWSTR match);
-	void OnReciveChar(int ch, int pos);
+	void OnReciveChar(DWORD ch, int pos);
 	void OnSendBuffer(CBuffer &buf);
 
 	int DelaySend();
@@ -114,7 +114,7 @@ public:
 	LPCTSTR LocalStr(LPCSTR str);
 
 	void OnSocketConnect();
-	void OnSocketError(int err, int fs);
+	void OnSocketError(int err);
 	void OnSocketClose();
 	int OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags);
 

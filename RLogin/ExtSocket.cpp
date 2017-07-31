@@ -1428,7 +1428,7 @@ void CExtSocket::OnAsyncHostByName(int mode, LPCTSTR pHostName)
 		break;
 	}
 }
-void CExtSocket::OnError(int err, int fs)
+void CExtSocket::OnError(int err)
 {
 #ifndef	NOIPV6
 	if ( m_AddrInfoTop != NULL && OpenAddrInfo() )
@@ -1437,7 +1437,7 @@ void CExtSocket::OnError(int err, int fs)
 	Close();
 	if ( m_pDocument == NULL )
 		return;
-	m_pDocument->OnSocketError(err, fs);
+	m_pDocument->OnSocketError(err);
 }
 void CExtSocket::OnClose()
 {

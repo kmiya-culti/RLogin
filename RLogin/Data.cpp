@@ -883,16 +883,16 @@ const CParaIndex & CParaIndex::operator = (CParaIndex &data)
 		m_Array[n] = data.m_Array[n];
 	return *this;
 }
-BOOL CParaIndex::AddOpt(int ch, BOOL bAdd)
+BOOL CParaIndex::AddOpt(BYTE c, BOOL bAdd)
 {
 	int n = GetSize() - 1;
 
 	if ( n >= 0 ) {
-		if ( m_Array[n].AddOpt(ch, bAdd) && bAdd )
+		if ( m_Array[n].AddOpt(c, bAdd) && bAdd )
 			Add(PARA_NOT);
 		return FALSE;
 	} else {
-		m_Str += (CHAR)ch;
+		m_Str += (CHAR)c;
 		m_Data = PARA_OPT;
 		return TRUE;
 	}
@@ -1643,7 +1643,7 @@ void CStrScript::ExecInit()
 		AfxGetMainWnd()->SetFocus();
 	}
 }
-LPCWSTR CStrScript::ExecChar(int ch)
+LPCWSTR CStrScript::ExecChar(DWORD ch)
 {
 	CString tmp;
 	CStrScriptNode *np;
@@ -2982,14 +2982,14 @@ static int CapKeyCmp(const void *src, const void *dis)
 {
 	return _tcscmp((LPCTSTR)src, ((struct _CapInfoKeyTab *)dis)->name);
 }
-BOOL CKeyNodeTab::FindCapInfo(LPCTSTR name, CBuffer *pBuf)
+BOOL CKeyNodeTab::FindCapInfo(LPCTSTR name, CBuffer &buf)
 {
 	int n, b;
 
 	if ( BinaryFind((void *)name, (void *)CapInfoKeyTab, sizeof(struct _CapInfoKeyTab), CAPINFOKEYMAX, CapKeyCmp, &n) ) {
 		if ( !Find(CapInfoKeyTab[n].code, CapInfoKeyTab[n].mask, &b) )
 			return FALSE;
-		*pBuf = m_Node[b].m_Maps;
+		buf = m_Node[b].m_Maps;
 		return TRUE;
 	}
 	return FALSE;
