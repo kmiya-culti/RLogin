@@ -136,6 +136,7 @@
 #define	TO_RLNORESZ		435			// DECCOLMの文字数切換でウィンドウをリサイズする
 #define	TO_SSHX11PF		436			// X11ポートフォワードを使用する
 #define	TO_RLKANAUTO	437			// 漢字コードを自動で追従する
+#define	TO_RLMOSWHL		438			// マウスホイールをヌルヌル動かす
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -225,6 +226,7 @@ public:
 	CString m_EntryName;
 	CString m_IContName;
 	int m_Hash[16];
+	int m_Quality;
 
 	void SetHash(int num);
 	void Init();

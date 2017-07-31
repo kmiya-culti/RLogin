@@ -490,6 +490,10 @@ int CRLoginApp::ExitInstance()
 	CBuffer tmp;
 	tmp.Report();
 #endif
+
+	extern void FreeBufPtr();
+	FreeBufPtr();
+
 	return CWinApp::ExitInstance();
 }
 

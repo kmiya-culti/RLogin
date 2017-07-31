@@ -42,6 +42,7 @@ public:
 	CString m_EntryName;
 	CString m_FontName;
 	int m_FontNum;
+	int m_FontQuality;
 	//}}AFX_DATA
 
 

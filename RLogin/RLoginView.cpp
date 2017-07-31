@@ -778,7 +778,7 @@ BOOL CRLoginView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 			} else
 				m_WheelDelta = ofs;
 		} else {
-			if ( ofs > 3 || ofs < -3 ) {
+			if ( !pDoc->m_TextRam.IsOptEnable(TO_RLMOSWHL) && (ofs > 3 || ofs < -3) ) {
 				m_WheelDelta = ofs;
 				SetTimer(1027, 100, NULL);
 				m_WheelTimer = TRUE;

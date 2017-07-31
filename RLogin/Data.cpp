@@ -26,17 +26,104 @@ static char THIS_FILE[]=__FILE__;
 //////////////////////////////////////////////////////////////////////
 // CBuffer
 
+#define	STATICBUFFER
+
+typedef struct _BufPtr {
+	int				size;
+	struct _BufPtr	*next;
+} BUFPTR;
+
+static	BOOL	BufPtrInit = FALSE;
+static	BUFPTR	*BufPtrHash[256];
+
+static	int	CalcHash(int size)
+{
+	int n = size >> 8;
+
+	if ( n >= 16 )
+		n = (n >> 2) + 16;
+	if ( n >= 64 )
+		n = (n >> 2) + 64;
+	if ( n >= 256 )
+		n = 255;
+	return n;
+}
+static	LPBYTE	GetBufPtr(int size)
+{
+	int n;
+	BUFPTR *bp, *tp;
+
+	if ( !BufPtrInit ) {
+		for ( n = 0 ; n < 256 ; n++ )
+			BufPtrHash[n] = NULL;
+		BufPtrInit = TRUE;
+	}
+
+	n = CalcHash(size);
+
+	for ( bp = tp = BufPtrHash[n] ; bp != NULL ; ) {
+		if ( bp->size >= size ) {
+			if ( bp == tp )
+				BufPtrHash[n] = bp->next;
+			else
+				tp->next = bp->next;
+			return (LPBYTE)bp;
+		}
+		tp = bp;
+		bp = bp->next;
+	}
+
+	return new BYTE[size];
+}
+static	void	SetBufPtr(int size, LPBYTE buf)
+{
+	int n;
+	BUFPTR *bp;
+
+	n = CalcHash(size);
+
+	bp = (BUFPTR *)buf;
+	bp->size = size;
+	bp->next = BufPtrHash[n];
+	BufPtrHash[n] = bp;
+}
+void	FreeBufPtr()
+{
+	int n;
+	BUFPTR *bp;
+
+	if ( !BufPtrInit )
+		return;
+
+	for ( n = 0 ; n < 256 ; n++ ) {
+		while ( (bp = BufPtrHash[n]) != NULL ) {
+			BufPtrHash[n] = bp->next;
+			delete (LPBYTE)bp;
+		}
+	}
+}
+
 CBuffer::CBuffer(int size)
 {
 	m_Ofs = m_Len = 0;
+#ifdef	STATICBUFFER
+	m_Max = (size + NIMALLOC) & ~(NIMALLOC - 1);
+	m_Data = GetBufPtr(m_Max);
+#else
 	m_Max = size;
 	m_Data = new BYTE[m_Max];
+#endif
 }
 CBuffer::CBuffer()
 {
 	m_Ofs = m_Len = 0;
+#ifdef	STATICBUFFER
+	m_Max = NIMALLOC;
+	m_Data = GetBufPtr(m_Max);
+#else
 	m_Max = 32;
 	m_Data = new BYTE[m_Max];
+#endif
 }
 #ifdef	_DEBUGXXX
 static	int	report[32] = {
@@ -79,7 +166,12 @@ CBuffer::~CBuffer()
 #ifdef	_DEBUGXXX
 	RepSet();
 #endif
+
+#ifdef	STATICBUFFER
+	SetBufPtr(m_Max, m_Data);
+#else
 	delete m_Data;
+#endif
 }
 void CBuffer::Consume(int len)
 {
@@ -98,14 +190,25 @@ void CBuffer::ReAlloc(int len)
 		return;
 	}
 
+#ifdef	STATICBUFFER
+	int old = m_Max;
+	m_Max = (len * 2 + NIMALLOC) & ~(NIMALLOC - 1);
+	LPBYTE tmp = GetBufPtr(m_Max);
+#else
 	m_Max = (len * 2 + NIMALLOC) & ~(NIMALLOC - 1);
 	LPBYTE tmp = new BYTE[m_Max];
+#endif
 
 	if ( (m_Len -= m_Ofs) > 0 )
 		memcpy(tmp, m_Data + m_Ofs, m_Len);
 	m_Ofs = 0;
 
+#ifdef	STATICBUFFER
+	SetBufPtr(old, m_Data);
+#else
 	delete m_Data;
+#endif
+
 	m_Data = tmp;
 }
 void CBuffer::Apend(LPBYTE buff, int len)
@@ -773,7 +876,7 @@ CFontChacheNode::CFontChacheNode()
 	m_LogFont.lfCharSet        = ANSI_CHARSET;
 	m_LogFont.lfOutPrecision   = OUT_CHARACTER_PRECIS;
 	m_LogFont.lfClipPrecision  = CLIP_CHARACTER_PRECIS;
-	m_LogFont.lfQuality        = DEFAULT_QUALITY;
+	m_LogFont.lfQuality        = DEFAULT_QUALITY; // NONANTIALIASED_QUALITY, ANTIALIASED_QUALITY, CLEARTYPE_QUALITY
 	m_LogFont.lfPitchAndFamily = FIXED_PITCH | FF_MODERN;
 	m_Style = 0;
 	m_KanWidMul = 100;
@@ -783,7 +886,7 @@ CFontChacheNode::~CFontChacheNode()
 	if ( m_pFont != NULL )
 		delete m_pFont;
 }
-CFont *CFontChacheNode::Open(LPCSTR pFontName, int Width, int Height, int CharSet, int Style)
+CFont *CFontChacheNode::Open(LPCSTR pFontName, int Width, int Height, int CharSet, int Style, int Quality)
 {
     strcpy(m_LogFont.lfFaceName, pFontName);
 	m_LogFont.lfWidth       = Width;
@@ -792,6 +895,7 @@ CFont *CFontChacheNode::Open(LPCSTR pFontName, int Width, int Height, int CharSe
 	m_LogFont.lfWeight      = ((Style & 1) != 0 ? FW_BOLD : FW_DONTCARE);
 	m_LogFont.lfItalic      = ((Style & 2) != 0 ? TRUE : FALSE);
 	m_LogFont.lfUnderline	= ((Style & 4) != 0 ? TRUE : FALSE);
+	m_LogFont.lfQuality     = Quality;
 	m_Style = Style;
 
 	if ( m_pFont != NULL )
@@ -833,7 +937,7 @@ CFontChache::CFontChache()
 		m_pTop[hs] = &(m_Data[n]);
 	}
 }
-CFontChacheNode *CFontChache::GetFont(LPCSTR pFontName, int Width, int Height, int CharSet, int Style, int Hash)
+CFontChacheNode *CFontChache::GetFont(LPCSTR pFontName, int Width, int Height, int CharSet, int Style, int Quality, int Hash)
 {
 	CFontChacheNode *pNext, *pBack;
 
@@ -844,6 +948,7 @@ CFontChacheNode *CFontChache::GetFont(LPCSTR pFontName, int Width, int Height, i
 			 pNext->m_LogFont.lfCharSet == CharSet &&
 			 pNext->m_LogFont.lfWidth   == Width   &&
 			 pNext->m_LogFont.lfHeight  == Height  &&
+			 pNext->m_LogFont.lfQuality == Quality &&
 			 pNext->m_Style             == Style   &&
 			 strcmp(pNext->m_LogFont.lfFaceName, pFontName) == 0 ) {
 			if ( pNext != pBack ) {
@@ -861,7 +966,7 @@ CFontChacheNode *CFontChache::GetFont(LPCSTR pFontName, int Width, int Height, i
 
 	TRACE("CacheMiss %s(%d,%d,%d,%d)\n", pFontName, CharSet, Height, Hash, Style);
 
-	if ( pNext->Open(pFontName, Width, Height, CharSet, Style) == NULL )
+	if ( pNext->Open(pFontName, Width, Height, CharSet, Style, Quality) == NULL )
 		return NULL;
 
 	pBack->m_pNext = pNext->m_pNext;

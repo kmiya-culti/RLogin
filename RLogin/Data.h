@@ -163,7 +163,7 @@ public:
 	int m_Style;
 	int m_KanWidMul;
 
-	CFont *Open(LPCSTR pFontName, int Width, int Height, int CharSet, int Style);
+	CFont *Open(LPCSTR pFontName, int Width, int Height, int CharSet, int Style, int Quality);
 	CFontChacheNode();
 	~CFontChacheNode();
 };
@@ -176,7 +176,7 @@ public:
 	CFontChacheNode *m_pTop[4];
 	CFontChacheNode m_Data[FONTCACHEMAX];
 
-	CFontChacheNode *GetFont(LPCSTR pFontName, int Width, int Height, int CharSet, int Style, int Hash);
+	CFontChacheNode *GetFont(LPCSTR pFontName, int Width, int Height, int CharSet, int Style, int Quality, int Hash);
 	CFontChache();
 };
 

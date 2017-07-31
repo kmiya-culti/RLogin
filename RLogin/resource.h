@@ -127,6 +127,8 @@
 #define IDC_DSA2COPY                    1043
 #define IDC_DISPZOOM2                   1043
 #define IDC_DSA2MAKE                    1044
+#define IDC_DISPOFFSET2                 1044
+#define IDC_FONTQUALITY                 1044
 #define IDC_DSA2PUB                     1045
 #define IDC_EDIT1                       1046
 #define IDC_EDITENTRY                   1047

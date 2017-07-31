@@ -36,6 +36,7 @@ void CFontNode::Init()
 	m_CharSet     = 0;
 	m_EntryName   = "";
 	m_IContName   = "";
+	m_Quality     = DEFAULT_QUALITY;
 	for ( int n = 0 ; n < 16 ; n++ ) {
 		m_FontName[n] = "";
 		m_Hash[n]     = 0;
@@ -55,6 +56,7 @@ void CFontNode::SetArray(CStringArrayExt &array)
 	array.AddVal(m_ZoomW);
 	for ( int n = 1 ; n < 16 ; n++ )
 		array.Add(m_FontName[n]);
+	array.AddVal(m_Quality);
 }
 void CFontNode::GetArray(CStringArrayExt &array)
 {
@@ -82,6 +84,9 @@ void CFontNode::GetArray(CStringArrayExt &array)
 			SetHash(n);
 		}
 	}
+
+	if ( array.GetSize() > (7 + 16) )
+		m_Quality = array.GetVal(7 + 16);
 }
 void CFontNode::SetHash(int num)
 {
@@ -96,7 +101,7 @@ CFontChacheNode *CFontNode::GetFont(int Width, int Height, int Style, int FontNu
 		FontNum = 0;
 	
 	return ((CRLoginApp *)AfxGetApp())->m_FontData.GetFont(m_FontName[FontNum],
-				Width * m_ZoomW / 100, Height * m_ZoomH / 100, m_CharSet, Style, m_Hash[FontNum]);
+				Width * m_ZoomW / 100, Height * m_ZoomH / 100, m_CharSet, Style, m_Quality, m_Hash[FontNum]);
 }
 const CFontNode & CFontNode::operator = (CFontNode &data)
 {
@@ -107,6 +112,7 @@ const CFontNode & CFontNode::operator = (CFontNode &data)
 	m_CharSet   = data.m_CharSet;
 	m_EntryName = data.m_EntryName;
 	m_IContName = data.m_IContName;
+	m_Quality   = data.m_Quality;
 	for ( int n = 0 ; n < 16 ; n++ ) {
 		m_FontName[n] = data.m_FontName[n];
 		m_Hash[n]     = data.m_Hash[n];

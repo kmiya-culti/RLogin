@@ -2175,6 +2175,7 @@ void CSFtp::OnDestroy()
 
 void CSFtp::PostNcDestroy() 
 {
+	_chdir(((CRLoginApp *)AfxGetApp())->m_BaseDir);
 	CDialog::PostNcDestroy();
 	delete this;
 }

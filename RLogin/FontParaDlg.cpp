@@ -30,6 +30,7 @@ CFontParaDlg::CFontParaDlg(CWnd* pParent /*=NULL*/)
 	m_EntryName = _T("");
 	m_FontName = _T("");
 	m_FontNum  = 0;
+	m_FontQuality = DEFAULT_QUALITY;
 	//}}AFX_DATA_INIT
 	m_pData = NULL;
 }
@@ -50,6 +51,7 @@ void CFontParaDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_FACENAME, m_FontName);
 	//}}AFX_DATA_MAP
 	DDX_CBIndex(pDX, IDC_FONTNUM, m_FontNum);
+	DDX_CBIndex(pDX, IDC_FONTQUALITY, m_FontQuality);
 }
 
 BEGIN_MESSAGE_MAP(CFontParaDlg, CDialog)
@@ -177,6 +179,7 @@ BOOL CFontParaDlg::OnInitDialog()
 	m_OffsTemp.Format("%d", m_pData->m_Offset);
 	m_IContName = m_pData->m_IContName;
 	m_EntryName = m_pData->m_EntryName;
+	m_FontQuality = m_pData->m_Quality;
 
 	for ( n = 0 ; n < 16 ; n++ )
 		m_FontNameTab[n] = m_pData->m_FontName[n];
@@ -199,6 +202,7 @@ void CFontParaDlg::OnOK()
 	m_pData->m_Offset    = atoi(m_OffsTemp);
 	m_pData->m_IContName = m_IContName;
 	m_pData->m_EntryName = m_EntryName;
+	m_pData->m_Quality   = m_FontQuality;
 
 	m_FontNameTab[m_FontNum] = m_FontName;
 	for ( int n = 0 ; n < 16 ; n++ ) {

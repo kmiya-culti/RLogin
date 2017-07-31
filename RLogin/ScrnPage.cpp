@@ -15,9 +15,9 @@
 
 IMPLEMENT_DYNAMIC(CScrnPage, CPropertyPage)
 
-#define	CHECKOPTMAX		2
+#define	CHECKOPTMAX		3
 #define	IDC_CHECKFAST	IDC_TERMCHECK1
-static const int CheckOptTab[] = { TO_RLHISFILE, TO_RLNORESZ };
+static const int CheckOptTab[] = { TO_RLHISFILE, TO_RLNORESZ, TO_RLMOSWHL };
 
 CScrnPage::CScrnPage() : CPropertyPage(CScrnPage::IDD)
 {
