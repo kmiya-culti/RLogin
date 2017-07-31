@@ -31,7 +31,8 @@
 #define	TGCMD_MESSAGE		15
 #define	TGCMD_NOWAITMESSAGE		16
 
-extern const unsigned short CRCTable[];
+extern const unsigned short crc16tab[];
+extern const unsigned long  crc32tab[];
 
 class CSyncSock : public CObject  
 {

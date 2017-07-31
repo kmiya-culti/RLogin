@@ -1871,7 +1871,7 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		}
 
 		if ( (n = index.Find(_T("Option"))) >= 0 ) {
-			memset(m_AnsiOpt, 0, sizeof(m_AnsiOpt));
+			memset(m_DefAnsiOpt, 0, sizeof(m_DefAnsiOpt));
 			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
 				int a, b = index[n][i];
 
@@ -3347,7 +3347,7 @@ void CTextRam::StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop,
 		if ( prop.idx != (-1) ) {
 			CGrapWnd *pWnd;
 			if ( (pWnd = GetGrapWnd(prop.idx)) != NULL )
-				pWnd->DrawBlock(pDC, pRect, bc, prop.stx, prop.sty, prop.edx, prop.sty + 1);
+				pWnd->DrawBlock(pDC, pRect, bc, prop.stx, prop.sty, prop.edx, prop.sty + 1, pView);
 			else
 				pDC->FillSolidRect(pRect, bc);
 		} else if ( pView->m_pBitmap == NULL )
@@ -4108,26 +4108,26 @@ DWORD CTextRam::UnicodeNomal(DWORD code1, DWORD code2)
 	static BOOL UniNomInitFlag = FALSE;
 	#define HASH_MAX 1024
 	#define HASH_MASK (HASH_MAX - 1)
-	static struct _UNINOMTAB *HashTab[HASH_MAX];
+	static short HashTab[HASH_MAX];
+	static short NodeTab[UNINOMALTABMAX];
 
 	int n, hs;
-	struct _UNINOMTAB *tp;
 
 	if ( !UniNomInitFlag ) {
 		for ( n = 0 ; n < HASH_MAX ; n++ )
-			HashTab[n] = NULL;
+			HashTab[n] = (-1);
 		for ( n = 0 ; n < UNINOMALTABMAX ; n++ ) {
 			hs = (UniNomalTab[n].code[0] * 31 + UniNomalTab[n].code[1]) & HASH_MASK;
-			UniNomalTab[n].next = HashTab[hs];
-			HashTab[hs] = &(UniNomalTab[n]);
+			NodeTab[n] = HashTab[hs];
+			HashTab[hs] = n;
 		}
 		UniNomInitFlag = TRUE;
 	}
 
 	hs = (code1 * 31 + code2) & HASH_MASK;
-	for ( tp = HashTab[hs] ; tp != NULL ; tp = tp->next ) {
-		if ( tp->code[0] == code1 && tp->code[1] == code2 )
-			return tp->code[2];
+	for ( n = HashTab[hs] ; n != (-1) ; n = NodeTab[n] ) {
+		if ( UniNomalTab[n].code[0] == code1 && UniNomalTab[n].code[1] == code2 )
+			return UniNomalTab[n].code[2];
 	}
 	return 0;
 }

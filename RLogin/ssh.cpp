@@ -355,16 +355,16 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 			m_InPackStat = 6;
 			// break; Not use
 		case 6:		// SSH2 AEAD Packet
-			if ( m_Incom.GetSize() < (4 + m_InPackLen + SSH2_AEAD_TAGSIZE) )
+			if ( m_Incom.GetSize() < (4 + m_InPackLen + SSH2_GCM_TAGSIZE) )
 				return;
 			m_InPackStat = 5;
 			tmp.Clear();
-			if ( !m_DecCip.Cipher(m_Incom.GetPtr(), 4 + m_InPackLen + SSH2_AEAD_TAGSIZE, &tmp) ) {
+			if ( !m_DecCip.Cipher(m_Incom.GetPtr(), 4 + m_InPackLen + SSH2_GCM_TAGSIZE, &tmp) ) {
 				m_Incom.Clear();
 				SendDisconnect2(1, "MAC Error");
 				throw "ssh2 mac miss match error";
 			}
-			m_Incom.Consume(4 + m_InPackLen + SSH2_AEAD_TAGSIZE);
+			m_Incom.Consume(4 + m_InPackLen + SSH2_GCM_TAGSIZE);
 			m_InPackLen = tmp.Get32Bit();
 			m_InPackPad = tmp.Get8Bit();
 			tmp.ConsumeEnd(m_InPackPad);
@@ -2052,8 +2052,13 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 
 	if ( m_EncCip.IsAEAD(m_VProp[PROP_ENC_ALGS_CTOS]) || m_EncCip.IsPOLY(m_VProp[PROP_ENC_ALGS_CTOS]) )
 		m_VProp[PROP_MAC_ALGS_CTOS] = m_VProp[PROP_ENC_ALGS_CTOS];
+	else if ( m_EncMac.IsAEAD(m_VProp[PROP_MAC_ALGS_CTOS]) )
+		m_VProp[PROP_ENC_ALGS_CTOS] = m_VProp[PROP_MAC_ALGS_CTOS];
+
 	if ( m_DecCip.IsAEAD(m_VProp[PROP_ENC_ALGS_STOC]) || m_DecCip.IsPOLY(m_VProp[PROP_ENC_ALGS_STOC]) )
 		m_VProp[PROP_MAC_ALGS_STOC] = m_VProp[PROP_ENC_ALGS_STOC];
+	else if ( m_DecMac.IsAEAD(m_VProp[PROP_MAC_ALGS_STOC]) )
+		m_VProp[PROP_ENC_ALGS_STOC] = m_VProp[PROP_MAC_ALGS_STOC];
 
 	// PROPOSAL_KEX_ALGS
 	for ( n = 0 ; kextab[n].name != NULL ; n++ ) {

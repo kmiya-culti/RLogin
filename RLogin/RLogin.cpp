@@ -324,11 +324,48 @@ BOOL CRLoginApp::InitInstance()
 	// これらの機能を使わずに最終的な実行可能ファイルの
 	// サイズを縮小したい場合は、以下から不要な初期化
 	// ルーチンを削除してください。
+	
+	int n;
+	TCHAR tmp[_MAX_PATH];
+	CString iniFileName;
+	BOOL bInitFile = FALSE;
+
+	if ( _tgetcwd(tmp, _MAX_PATH) != NULL )
+		m_BaseDir = tmp;
+
+	GetModuleFileName(NULL, tmp, _MAX_PATH);
+
+	if ( m_BaseDir.IsEmpty() ) {
+		m_BaseDir = tmp;
+		if ( (n = m_BaseDir.ReverseFind(_T('\\'))) >= 0 )
+			m_BaseDir = m_BaseDir.Left(n);
+	}
+
+	iniFileName.Format(_T("%s\\%s.ini"), m_BaseDir, m_pszAppName);
+	if ( _taccess_s(iniFileName, 6) == 0 ) {
+		m_pszProfileName = _tcsdup(iniFileName);
+		bInitFile = TRUE;
+
+	} else {
+		iniFileName = tmp;
+		if ( (n = iniFileName.ReverseFind(_T('.'))) >= 0 )
+			iniFileName = iniFileName.Left(n);
+		iniFileName += _T(".ini");
+		if ( _taccess_s(iniFileName, 6) == 0 ) {
+			m_pszProfileName = _tcsdup(iniFileName);
+			bInitFile = TRUE;
+		}
+	}
+
 	// 設定が格納されているレジストリ キーを変更します。
 	// TODO: 会社名または組織名などの適切な文字列に
 	// この文字列を変更してください。
-	SetRegistryKey(_T("Culti"));
+
+	if ( bInitFile == FALSE )
+		SetRegistryKey(_T("Culti"));
+
 	LoadStdProfileSettings(4);  // 標準の INI ファイルのオプションをロードします (MRU を含む)
+
 
 #ifdef	USE_DWMAPI
 	if ( (ExDwmApi = LoadLibrary(_T("dwmapi.dll"))) != NULL ) {
@@ -468,16 +505,6 @@ BOOL CRLoginApp::InitInstance()
 	// if (!ProcessShellCommand(cmdInfo))
 	//	return FALSE;
 
-	char tmp[_MAX_DIR];
-	if ( _getcwd(tmp, _MAX_DIR) != NULL )
-		m_BaseDir = tmp;
-	else {
-		int n;
-		m_BaseDir = _pgmptr;
-		if ( (n = m_BaseDir.ReverseFind('\\')) >= 0 )
-			m_BaseDir = m_BaseDir.Left(n);
-	}
-
 	// メイン ウィンドウが初期化されたので、表示と更新を行います。
 	pMainFrame->ShowWindow(m_nCmdShow);
 	pMainFrame->UpdateWindow();
@@ -555,6 +582,28 @@ void CRLoginApp::DelSocketIdle(class CExtSocket *pSock)
 		}
 	}
 }
+CString CRLoginApp::GetProfileString(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPCTSTR lpszDefault)
+{
+	if ( m_pszRegistryKey != NULL )
+		return CWinApp::GetProfileString(lpszSection, lpszEntry, lpszDefault);
+	else {
+		ASSERT(m_pszProfileName != NULL);
+		if (lpszDefault == NULL)
+			lpszDefault = _T("");	// don't pass in NULL
+
+		DWORD dw;
+		CBuffer work(64 * 1024);
+		for ( ; ; ) {
+			dw = ::GetPrivateProfileString(lpszSection, lpszEntry, lpszDefault, (LPWSTR)(work.GetPtr()), work.m_Max / sizeof(TCHAR), m_pszProfileName);
+			if ( dw < (work.m_Max / sizeof(TCHAR) - 1) ) {
+				work.m_Len = dw * sizeof(TCHAR);
+				break;
+			}
+			work.ReAlloc(work.m_Max * 2);
+		}
+		return (LPCTSTR)work;
+	}
+}
 void CRLoginApp::GetProfileData(LPCTSTR lpszSection, LPCTSTR lpszEntry, void *lpBuf, int nBufLen, void *lpDef)
 {
 	LPBYTE pData;
@@ -613,26 +662,56 @@ int CRLoginApp::GetProfileSeqNum(LPCTSTR lpszSection, LPCTSTR lpszEntry)
 void CRLoginApp::GetProfileKeys(LPCTSTR lpszSection, CStringArrayExt &stra)
 {
 	stra.RemoveAll();
-	HKEY hAppKey;
-	if ( (hAppKey = GetAppRegistryKey()) == NULL )
-		return;
-	HKEY hSecKey;
-	if ( RegOpenKeyEx(hAppKey, lpszSection, 0, KEY_READ, &hSecKey) == ERROR_SUCCESS && hSecKey != NULL ) {
-		TCHAR name[1024];
-		DWORD len = 1024;
-		for ( int n = 0 ; RegEnumValue(hSecKey, n, name, &len, NULL, NULL, NULL, NULL) != ERROR_NO_MORE_ITEMS ; n++, len = 1024 )
-			stra.Add(name);
-		RegCloseKey(hSecKey);
+	if ( m_pszRegistryKey != NULL ) {
+		HKEY hAppKey;
+		if ( (hAppKey = GetAppRegistryKey()) == NULL )
+			return;
+		HKEY hSecKey;
+		if ( RegOpenKeyEx(hAppKey, lpszSection, 0, KEY_READ, &hSecKey) == ERROR_SUCCESS && hSecKey != NULL ) {
+			TCHAR name[1024];
+			DWORD len = 1024;
+			for ( int n = 0 ; RegEnumValue(hSecKey, n, name, &len, NULL, NULL, NULL, NULL) != ERROR_NO_MORE_ITEMS ; n++, len = 1024 )
+				stra.Add(name);
+			RegCloseKey(hSecKey);
+		}
+		RegCloseKey(hAppKey);
+
+	} else {
+		DWORD dw, sz = 64 * 1024;
+		CString key;
+		TCHAR *p, *work = new TCHAR[sz];
+		for ( ; ; ) {
+			dw = GetPrivateProfileSection(lpszSection, work, sz, m_pszProfileName);
+			if ( dw < (sz - 2) )
+				break;
+			sz *= 2;
+			delete work;
+			work = new TCHAR[sz];
+		}
+		for ( p = work ; *p != _T('\0') ; ) {
+			key.Empty();
+			while ( *p != _T('\0') && *p != _T('=') )
+				key += *(p++);
+			if ( !key.IsEmpty() )
+				stra.Add(key);
+			while ( *(p++) != _T('\0') )
+				;
+		}
+		delete work;
 	}
-	RegCloseKey(hAppKey);
 }
 void CRLoginApp::DelProfileEntry(LPCTSTR lpszSection, LPCTSTR lpszEntry)
 {
-	HKEY hSecKey;
-	if ( (hSecKey = GetSectionKey(lpszSection)) == NULL )
-		return;
-	RegDeleteValue(hSecKey, lpszEntry);
-	RegCloseKey(hSecKey);
+	if ( m_pszRegistryKey != NULL ) {
+		HKEY hSecKey;
+		if ( (hSecKey = GetSectionKey(lpszSection)) == NULL )
+			return;
+		RegDeleteValue(hSecKey, lpszEntry);
+		RegCloseKey(hSecKey);
+
+	} else {
+		WritePrivateProfileString(lpszSection, lpszEntry, NULL, m_pszProfileName);
+	}
 }
 
 void CRLoginApp::RegisterShellProtocol(LPCTSTR pSection, LPCTSTR pOption)

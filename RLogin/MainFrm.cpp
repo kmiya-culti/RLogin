@@ -680,9 +680,10 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_UPDATE_COMMAND_UI(IDM_WINDOW_PREV, &CMainFrame::OnUpdateWindowPrev)
 	ON_COMMAND(IDM_WINODW_NEXT, &CMainFrame::OnWinodwNext)
 	ON_UPDATE_COMMAND_UI(IDM_WINODW_NEXT, &CMainFrame::OnUpdateWinodwNext)
+	ON_COMMAND_RANGE(IDM_WINDOW_SEL0, IDM_WINDOW_SEL9, &CMainFrame::OnWinodwSelect)
 END_MESSAGE_MAP()
 
-static UINT indicators[] =
+static const UINT indicators[] =
 {
 	ID_SEPARATOR,           // ステータス ライン インジケータ
 	ID_INDICATOR_CAPS,
@@ -2207,7 +2208,6 @@ void CMainFrame::OnSysCommand(UINT nID, LPARAM lParam)
 	}
 }
 
-
 void CMainFrame::OnWinodwNext()
 {
 	if ( m_wndTabBar.GetSize() <= 1 )
@@ -2219,6 +2219,10 @@ void CMainFrame::OnWindowPrev()
 	if ( m_wndTabBar.GetSize() <= 1 )
 		return;
 	m_wndTabBar.PrevActive();
+}
+void CMainFrame::OnWinodwSelect(UINT nID)
+{
+	m_wndTabBar.SelectActive(nID - IDM_WINDOW_SEL0);
 }
 
 void CMainFrame::OnUpdateWinodwNext(CCmdUI *pCmdUI)

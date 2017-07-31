@@ -244,8 +244,6 @@ protected:
 	afx_msg void OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized);
 	afx_msg void OnViewScrollbar();
 	afx_msg void OnUpdateViewScrollbar(CCmdUI *pCmdUI);
-	DECLARE_MESSAGE_MAP()
-public:
 	afx_msg void OnViewMenubar();
 	afx_msg void OnUpdateViewMenubar(CCmdUI *pCmdUI);
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
@@ -253,6 +251,8 @@ public:
 	afx_msg void OnUpdateWindowPrev(CCmdUI *pCmdUI);
 	afx_msg void OnWinodwNext();
 	afx_msg void OnUpdateWinodwNext(CCmdUI *pCmdUI);
+	afx_msg void OnWinodwSelect(UINT nID);
+	DECLARE_MESSAGE_MAP()
 };
 
 

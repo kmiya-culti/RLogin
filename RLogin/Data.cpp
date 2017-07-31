@@ -1911,7 +1911,7 @@ void CServerEntry::SetArray(CStringArrayExt &stra)
 	stra.Add(m_ScriptStr);
 }
 
-static ScriptCmdsDefs DocEntry[] = {
+static const ScriptCmdsDefs DocEntry[] = {
 	{	"Host",			1	},
 	{	"Port",			2	},
 	{	"User",			3	},
@@ -3123,7 +3123,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	79
+#define	CMDSKEYTABMAX	89
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -3164,6 +3164,16 @@ static const struct _CmdsKeyTab {
 	{	IDM_WINODW_NEXT,		L"$PANE_NEXT"		},
 	{	IDM_WINDOW_PREV,		L"$PANE_PREV"		},
 	{	ID_WINDOW_ROTATION,		L"$PANE_ROTATION"	},
+	{	IDM_WINDOW_SEL0,		L"$PANE_SEL0"		},
+	{	IDM_WINDOW_SEL1,		L"$PANE_SEL1"		},
+	{	IDM_WINDOW_SEL2,		L"$PANE_SEL2"		},
+	{	IDM_WINDOW_SEL3,		L"$PANE_SEL3"		},
+	{	IDM_WINDOW_SEL4,		L"$PANE_SEL4"		},
+	{	IDM_WINDOW_SEL5,		L"$PANE_SEL5"		},
+	{	IDM_WINDOW_SEL6,		L"$PANE_SEL6"		},
+	{	IDM_WINDOW_SEL7,		L"$PANE_SEL7"		},
+	{	IDM_WINDOW_SEL8,		L"$PANE_SEL8"		},
+	{	IDM_WINDOW_SEL9,		L"$PANE_SEL9"		},
 	{	ID_WINDOW_TILE_HORZ,	L"$PANE_TILEHORZ"	},
 	{	ID_PANE_WSPLIT,			L"$PANE_WSPLIT"		},
 	{	ID_PAGE_PRIOR,			L"$PRIOR"			},
@@ -3341,7 +3351,7 @@ void CKeyNodeTab::BugFix(int fix)
 }
 int CKeyNodeTab::GetDecKeyToCode(int code)
 {
-	static	BYTE	DecKeyCode[] = {
+	static const BYTE DecKeyCode[] = {
 		0,					// 0	
 		VK_KANJI,			// 1	”¼Šp/‘SŠp
 		'1',				// 2	1
@@ -3743,7 +3753,7 @@ void CKeyMacTab::SetHisMenu(CWnd *pWnd)
 // CParamTab
 
 #if	OPENSSL_VERSION_NUMBER >= 0x10001000L
-#define	META_AEAD_STRING	_T("AEAD_AES_128_GCM,AEAD_AES_192_GCM,AEAD_AES_256_GCM,") \
+#define	META_AEAD_STRING	_T("AEAD_AES_128_GCM,AEAD_AES_256_GCM,AEAD_AES_128_CCM,AEAD_AES_256_CCM,") \
 							_T("aes128-gcm@openssh.com,aes256-gcm@openssh.com,")
 #else
 #define	META_AEAD_STRING	_T("")
@@ -3992,7 +4002,7 @@ void CParamTab::GetArray(CStringArrayExt &stra)
 		m_IdKeyList.RemoveAll();
 		for ( n = 0 ; n < 9 ; n += 3 ) {
 			if ( !key.ReadPublicKey(m_IdKeyStr[n + 0]) ||
-				 !key.ReadPrivateKey(m_IdKeyStr[n + 1], m_IdKeyStr[n + 2]) )
+				 !key.ReadPrivateKey(m_IdKeyStr[n + 1], m_IdKeyStr[n + 2], TRUE) )
 				continue;
 			for ( i = 0 ; i < pMain->m_IdKeyTab.GetSize() ; i++ ) {
 				if ( pMain->m_IdKeyTab.GetAt(i).Compere(&key) == 0 )
@@ -4095,7 +4105,7 @@ void CParamTab::SetIndex(int mode, CStringIndex &index)
 	}
 }
 
-static ScriptCmdsDefs DocSsh[] = {
+static const ScriptCmdsDefs DocSsh[] = {
 	{	"Protocol",		1	},
 	{	"PortForward",	2	},
 	{	"XDisplay",		3	},

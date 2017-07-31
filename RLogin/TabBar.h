@@ -28,6 +28,7 @@ public:
 	void SetGhostWnd(BOOL sw);
 	void NextActive();
 	void PrevActive();
+	void SelectActive(int idx);
 
 protected:
 	virtual void OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler);

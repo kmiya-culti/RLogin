@@ -449,7 +449,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.16.0 (2014/02/21)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.16.1 (2014/03/07)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2014 Culti",IDC_STATIC,47,15,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,151,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.1f 6 Jan 2014",IDC_STATIC,47,29,176,8
@@ -1427,8 +1427,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,16,0,0
- PRODUCTVERSION 2,16,0,0
+ FILEVERSION 2,16,1,0
+ PRODUCTVERSION 2,16,1,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1445,12 +1445,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.16.0.0"
+            VALUE "FileVersion", "2.16.1.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2013 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.16.0.0"
+            VALUE "ProductVersion", "2.16.1.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2860,6 +2860,7 @@ BEGIN
     ID_MOUSE_EVENT          "マウスイベントを無効にします\nマウスイベント無効"
     ID_EDIT_COPY_ALL        "すべてクリップボードにコピー\nすべてコピー"
     ID_EDIT_PASTE_ALL       "クリップボードから貼り付け\nすべて貼り付け"
+    ID_VIEW_SCROLLBAR       "スクロールバーの表示/非表示\nスクロールバーの表示切り替え"
 END
 
 STRINGTABLE
@@ -2913,8 +2914,16 @@ END
 
 STRINGTABLE
 BEGIN
-    ID_VIEW_SCROLLBAR       "スクロールバーの表示/非表示\nスクロールバーの表示切り替え"
     ID_GOZIVIEW             "Nekoを飼う\nNeko"
+    ID_SPLIT_WIDTH          "横方向に画面を分割してサーバーに接続する\n横分割接続"
+    ID_SPLIT_HEIGHT         "縦方向に画面を分割してサーバーに接続する\n縦分割接続"
+    ID_SPLIT_OVER           "画面分割しないでサーバーに接続\n重ねて接続"
+    ID_WINDOW_ROTATION      "表示しているペインを移動します\nペインの移動"
+    ID_VIEW_MENUBAR         "メニューバーの 表示/非表示\nメニューバーの表示切り替え"
+    IDM_WINODW_NEXT         "次のウィンドウに移動します\n次に移動"
+    IDM_WINDOW_PREV         "前のウィンドウに移動します\n前に移動"
+    ID_IDKEY_CAKEY          "署名された公開鍵を追加で設定します"
+    IDM_IMAGEDISP           "Imageウィンドウを表示・非表示します\nImage表示"
 END
 
 STRINGTABLE
@@ -2968,19 +2977,6 @@ BEGIN
     IDS_FILEDLGSCRIPT       "スクリプト ファイル (*.txt)|*.txt|All Files (*.*)|*.*||"
     IDS_SCRIPTNEW           "すでに読み込んでいるスクリプトを放棄しますか？"
     IDS_FILECLOSEQES        "現在、接続中です。接続を閉じますか？"
-END
-
-STRINGTABLE
-BEGIN
-    ID_SPLIT_WIDTH          "横方向に画面を分割してサーバーに接続する\n横分割接続"
-    ID_SPLIT_HEIGHT         "縦方向に画面を分割してサーバーに接続する\n縦分割接続"
-    ID_SPLIT_OVER           "画面分割しないでサーバーに接続\n重ねて接続"
-    ID_WINDOW_ROTATION      "表示しているペインを移動します\nペインの移動"
-    ID_VIEW_MENUBAR         "メニューバーの 表示/非表示\nメニューバーの表示切り替え"
-    IDM_WINODW_NEXT         "次のウィンドウに移動します\n次に移動"
-    IDM_WINDOW_PREV         "前のウィンドウに移動します\n前に移動"
-    ID_IDKEY_CAKEY          "署名された公開鍵を追加で設定します"
-    IDM_IMAGEDISP           "Imageウィンドウを表示・非表示します\nImage表示"
 END
 
 #endif    // 日本語 (日本) resources

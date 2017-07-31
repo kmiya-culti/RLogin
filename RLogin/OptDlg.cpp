@@ -96,7 +96,7 @@ BOOL COptDlg::OnInitDialog()
 	int n;
 	CWnd *pWnd[4];
 	CRect rect[4], temp, frame;
-	static int idTab[] = { IDC_DOINIT, IDOK, IDCANCEL, ID_APPLY_NOW };
+	static const int idTab[] = { IDC_DOINIT, IDOK, IDCANCEL, ID_APPLY_NOW };
 
 	CTreePropertyPage *pPage;
 	CTabCtrl* pTab = GetTabControl();

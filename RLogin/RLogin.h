@@ -61,6 +61,7 @@ public:
 
 	void SetSocketIdle(class CExtSocket *pSock);
 	void DelSocketIdle(class CExtSocket *pSock);
+	virtual CString GetProfileString(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPCTSTR lpszDefault = NULL);
 	void GetProfileData(LPCTSTR lpszSection, LPCTSTR lpszEntry, void *lpBuf, int nBufLen, void *lpDef = NULL);
 	void GetProfileBuffer(LPCTSTR lpszSection, LPCTSTR lpszEntry, CBuffer &Buf);
 	void GetProfileArray(LPCTSTR lpszSection, CStringArrayExt &stra);

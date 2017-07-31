@@ -212,6 +212,16 @@ void CTabBar::PrevActive()
 	if ( (pWnd = (CChildFrame *)GetAt(idx)) != NULL )
 		pWnd->MDIActivate();
 }
+void CTabBar::SelectActive(int idx)
+{
+	CChildFrame *pWnd;
+
+	if ( idx < 0 || idx >= GetSize() )
+		return;
+
+	if ( (pWnd = (CChildFrame *)GetAt(idx)) != NULL )
+		pWnd->MDIActivate();
+}
 
 void CTabBar::OnSelchange(NMHDR* pNMHDR, LRESULT* pResult) 
 {

@@ -1045,7 +1045,7 @@ void CTextRam::fc_Init(int mode)
 void CTextRam::fc_TraceCall(int ch)
 {
 #ifdef	DEBUG
-	static struct {
+	static const struct {
 		LPCTSTR		name;
 		union {
 			void (CTextRam::*proc)(int ch);
@@ -1109,7 +1109,7 @@ void CTextRam::fc_TraceCall(int ch)
 		{ _T("VT"),			&CTextRam::fc_VT		},
 		{ NULL,				NULL					},
 	};
-	static char *stage[] = {
+	static const char *stage[] = {
 		"ESC",		"CSI",		"EXT1",		"EXT2",		"EXT3",
 		"EXT4",		"EUC",
 		"94X94",	"96X96",
@@ -3085,7 +3085,8 @@ void CTextRam::fc_DECSIXEL(int ch)
 			return;
 		}
 
-		int x, y, w, h;
+		int x, y;
+		int fw, fh, sw, sh, dw, dh;
 		int cx, cy, dx, dy;
 		CVram *vp;
 		CRLoginView *pView;
@@ -3095,25 +3096,34 @@ void CTextRam::fc_DECSIXEL(int ch)
 			cx = m_Cols - m_CurX;
 
 		if ( m_pDocument != NULL && (pView = (CRLoginView *)m_pDocument->GetAciveView()) != NULL ) {
-			w = pView->m_CharWidth;
-			h = pView->m_CharHeight;
+			fw = pView->m_CharWidth;
+			fh = pView->m_CharHeight;
+			sw = pView->m_Width;
+			sh = pView->m_Height;
+			dw = pView->m_Cols;
+			dh = pView->m_Lines;
 		} else {
-			w = 6 + cx;
-			h = w * m_DefFontHw / 10;
+			fw = 10;
+			fh = fw * m_DefFontHw / 10;
+			sw = fw * m_Cols;
+			sh = fh * m_Lines;
+			dw = m_Cols;
+			dh = m_Lines;
 		}
 
-		dx = (pGrapWnd->m_MaxX * pGrapWnd->m_AspX + 99) / 100;
-		dy = (pGrapWnd->m_MaxY * pGrapWnd->m_AspY + 99) / 100;
+		dx = pGrapWnd->m_MaxX * pGrapWnd->m_AspX / 100;
+		dy = pGrapWnd->m_MaxY * pGrapWnd->m_AspY / 100;
 
-		if ( (cx * w) < dx ) {
-			pGrapWnd->m_AspX = pGrapWnd->m_AspX * (cx * w) / dx;
-			pGrapWnd->m_AspY = pGrapWnd->m_AspY * (cx * w) / dx;
-			dx = (pGrapWnd->m_MaxX * pGrapWnd->m_AspX + 99) / 100;
-			dy = (pGrapWnd->m_MaxY * pGrapWnd->m_AspY + 99) / 100;
+		if ( (x = sw * cx / dw) < dx ) {
+			pGrapWnd->m_AspX = pGrapWnd->m_AspX * x / dx;
+			pGrapWnd->m_AspY = pGrapWnd->m_AspY * x / dx;
+			dx = pGrapWnd->m_MaxX * pGrapWnd->m_AspX / 100;
+			dy = pGrapWnd->m_MaxY * pGrapWnd->m_AspY / 100;
+			cy = (dy * dh + sh - 1) / sh;
+		} else {
+			cx = (dx * dw + sw - 1) / sw;
+			cy = (dy * dh + sh - 1) / sh;
 		}
-
-		cx = (dx + w - 1) / w;
-		cy = (dy + h - 1) / h;
 
 		for ( y = 0 ; y < cy ; y++ ) {
 			vp = GETVRAM(m_CurX, m_CurY);
@@ -3138,15 +3148,13 @@ void CTextRam::fc_DECSIXEL(int ch)
 		}
 		DISPUPDATE();
 
+		pGrapWnd->m_ImageIndex = m_ImageIndex++;
 		pGrapWnd->m_BlockX = cx;
 		pGrapWnd->m_BlockY = cy;
-		pGrapWnd->m_BlockW = w;
-		pGrapWnd->m_BlockH = h;
 
-		pGrapWnd->m_ImageIndex = m_ImageIndex++;
 		AddGrapWnd((void *)pGrapWnd);
 
-		TRACE("AddGrapWnd %d(%d)\n", m_ImageIndex - 1, m_GrapWndTab.GetSize());
+		TRACE("AddGrapWnd %d(%d)\n", pGrapWnd->m_ImageIndex, m_GrapWndTab.GetSize());
 
 		if ( m_ImageIndex >= 4096 )		// index max 12 bit
 			m_ImageIndex = 0;

@@ -1251,7 +1251,7 @@ void CTelnet::NsaDecode(char *p, int len, char *key)
 
 void CTelnet::AuthSend(char *buf, int len)
 {
-	static char nosup[] = { (char)TELC_IAC, (char)TELC_SB, (char)TELOPT_AUTHENTICATION, (char)TELQUAL_IS, 
+	static const char nosup[] = { (char)TELC_IAC, (char)TELC_SB, (char)TELOPT_AUTHENTICATION, (char)TELQUAL_IS, 
 							(char)AUTHTYPE_NULL, (char)0, (char)TELC_IAC, (char)TELC_SE };
 
 	while ( len >= 2 ) {
@@ -1271,7 +1271,7 @@ void CTelnet::AuthSend(char *buf, int len)
 		buf += 2;
 	}
 
-	SockSend(nosup, sizeof(nosup));
+	SockSend((char *)nosup, sizeof(nosup));
 }
 
 void CTelnet::AuthReply(char *buf, int len)
@@ -1415,7 +1415,7 @@ int CTelnet::SraEncode(char *p, int len, DesData *key)
 	DesData tk;
     des_key_schedule ks;
 	int n, mx;
-	static char hextab[17] = "0123456789ABCDEF";
+	static const char hextab[17] = "0123456789ABCDEF";
 
 	memset(buf, 0, 256);
 	memset(tk, 0, 8);

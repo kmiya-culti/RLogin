@@ -1315,7 +1315,7 @@ void CRLoginDoc::OnUpdateScript(CCmdUI *pCmdUI)
 	pCmdUI->Enable(m_pScript != NULL && m_pScript->IsExec() ? FALSE : TRUE);
 }
 
-static ScriptCmdsDefs DocBase[] = {
+static const ScriptCmdsDefs DocBase[] = {
 	{	"Entry",		1	},
 	{	"Screen",		2	},
 	{	"KeyCode",		3	},

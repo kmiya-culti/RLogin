@@ -2148,7 +2148,7 @@ BOOL CSFtp::OnInitDialog()
 	int n;
 	CRect rect;
 	CBitmap BitMap;
-	static LV_COLUMN lvt[6] = {
+	static const LV_COLUMN lvt[6] = {
 		{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_LEFT,	180, _T("Name"),	0, 0 },
 		{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  110, _T("Date"),	0, 0 },
 		{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,   70, _T("Size"),	0, 0 },

@@ -76,7 +76,7 @@ static const char DQ_Minimal[]={
         	(char)0x14, (char)0x00, (char)0xd4, (char)0x00,
         	(char)0x00, (char)0x00, (char)0x00, (char)0x00 };
 
-const unsigned short CRCTable[] = {
+const unsigned short crc16tab[] = {
     0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50A5, 0x60C6, 0x70E7,
     0x8108, 0x9129, 0xA14A, 0xB16B, 0xC18C, 0xD1AD, 0xE1CE, 0xF1EF,
     0x1231, 0x0210, 0x3273, 0x2252, 0x52B5, 0x4294, 0x72F7, 0x62D6,
@@ -209,7 +209,7 @@ int CBPlus::Init_CRC(int val)
 int	CBPlus::Upd_CRC(int value)
 {
     value &= 0xFF;
-    crc_16 = CRCTable[((crc_16 >> 8) ^ ((UNSIG)value)) & 0xff] ^ (crc_16 << 8);
+    crc_16 = crc16tab[((crc_16 >> 8) ^ ((UNSIG)value)) & 0xff] ^ (crc_16 << 8);
     return( crc_16 );
 }
 void CBPlus::Do_CheckSum(int c)

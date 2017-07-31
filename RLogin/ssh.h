@@ -98,15 +98,21 @@
 #define SSH2_CIPHER_CLE192R		116		// clefia191-ctr 
 #define SSH2_CIPHER_CLE256R		117		// clefia256-ctr 
 
-#define	SSH2_AEAD_TAGSIZE		16
-#define	SSH2_CIPHER_AEAD(n)		((n / 100) == 2)
+#define	SSH2_GCM_TAGSIZE		16
+#define	SSH2_CIPHER_GCM(n)		((n / 100) == 2)
 #define	SSH2_AEAD_AES128GCM		200		// AEAD_AES_128_GCM
 #define	SSH2_AEAD_AES192GCM		201		// AEAD_AES_192_GCM
 #define	SSH2_AEAD_AES256GCM		202		// AEAD_AES_256_GCM
 
+#define	SSH2_CCM_TAGSIZE		16
+#define	SSH2_CIPHER_CCM(n)		((n / 100) == 3)
+#define	SSH2_AEAD_AES128CCM		300		// AEAD_AES_128_CCM
+#define	SSH2_AEAD_AES192CCM		301		// AEAD_AES_192_CCM
+#define	SSH2_AEAD_AES256CCM		302		// AEAD_AES_256_CCM
+
 #define	SSH2_POLY1305_TAGSIZE	16
-#define	SSH2_CIPHER_POLY(n)		((n / 100) == 3)
-#define	SSH2_CHACHA20_POLY1305	300		// chacha20-poly1305@openssh.com
+#define	SSH2_CIPHER_POLY(n)		((n / 100) == 4)
+#define	SSH2_CHACHA20_POLY1305	400		// chacha20-poly1305@openssh.com
 
 #define	COMPLEVEL		6
 
@@ -172,6 +178,7 @@ public:
 	int GetBlockSize(LPCTSTR name = NULL);
 	LPCTSTR GetTitle();
 	inline BOOL IsEtm() { return m_EtmMode; }
+	BOOL IsAEAD(LPCTSTR name = NULL);
 
 	static void BenchMark(CString &out);
 
@@ -254,6 +261,7 @@ public:
 	CBuffer m_CertBlob;
 	BOOL m_bSecInit;
 	CString m_SecBlob;
+	BOOL m_bHostPass;
 
 	int GetIndexNid(int nid);
 	int GetIndexName(LPCTSTR name);
@@ -273,9 +281,9 @@ public:
 	int Compere(CIdKey *pKey);
 
 	void GetUserHostName(CString &str);
-	void MakeKey(CBuffer *bp, LPCTSTR pass);
-	void Decrypt(CBuffer *bp, LPCTSTR str, LPCTSTR pass = NULL);
-	void Encrypt(CString &str, LPBYTE buf, int len, LPCTSTR pass = NULL);
+	void MakeKey(CBuffer *bp, LPCTSTR pass, BOOL bHost = TRUE);
+	void Decrypt(CBuffer *bp, LPCTSTR str, LPCTSTR pass = NULL, BOOL bHost = TRUE);
+	void Encrypt(CString &str, LPBYTE buf, int len, LPCTSTR pass = NULL, BOOL bHost = TRUE);
 	void DecryptStr(CString &out, LPCTSTR str);
 	void EncryptStr(CString &out, LPCTSTR str);
 
@@ -313,7 +321,7 @@ public:
 	int ReadPublicKey(LPCTSTR str);
 	int WritePublicKey(CString &str);
 
-	int ReadPrivateKey(LPCTSTR str, LPCTSTR pass);
+	int ReadPrivateKey(LPCTSTR str, LPCTSTR pass, BOOL bHost);
 	int WritePrivateKey(CString &str, LPCTSTR pass);
 
 	int SetEvpPkey(EVP_PKEY *pk);

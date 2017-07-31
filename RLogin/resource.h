@@ -635,34 +635,44 @@
 #define ID_CHARSCRIPT_END               5028
 #define ID_SEND_BREAK                   5029
 #define ID_MOUSE_EVENT                  5030
-#define ID_CAPLIST_TERMCAP              5033
-#define ID_CAPLIST_TERMINFO             5034
-#define ID_EDIT_COPY_ALL                5035
-#define ID_EDIT_PASTE_ALL               5037
-#define ID_SEARCH_NEXT                  5042
-#define ID_SERVERLIST_5044              5044
-#define ID_SERV_PROTO                   5045
-#define ID_VIEW_SCROLLBAR               5048
-#define ID_SEARCH_BACK                  5050
-#define IDM_SERV_EXCHNG                 5051
-#define ID_GOZIVIEW                     5053
-#define ID_SPLIT_WIDTH                  5057
-#define ID_SPLIT_HEIGHT                 5058
-#define ID_SPLIT_OVER                   5060
-#define ID_WINDOW_ROTATION              5062
-#define ID_VIEW_MENUBAR                 5064
-#define IDM_WINODW_NEXT                 5067
-#define IDM_WINDOW_PREV                 5068
-#define ID_IDKEYLIST_5069               5069
-#define ID_IDKEY_CAKEY                  5070
-#define IDM_IMAGEDISP                   5071
+#define ID_CAPLIST_TERMCAP              5031
+#define ID_CAPLIST_TERMINFO             5032
+#define ID_EDIT_COPY_ALL                5033
+#define ID_EDIT_PASTE_ALL               5034
+#define ID_SEARCH_NEXT                  5035
+#define ID_SERVERLIST_5044              5036
+#define ID_SERV_PROTO                   5037
+#define ID_VIEW_SCROLLBAR               5038
+#define ID_SEARCH_BACK                  5039
+#define IDM_SERV_EXCHNG                 5040
+#define ID_GOZIVIEW                     5041
+#define ID_SPLIT_WIDTH                  5042
+#define ID_SPLIT_HEIGHT                 5043
+#define ID_SPLIT_OVER                   5044
+#define ID_WINDOW_ROTATION              5045
+#define ID_VIEW_MENUBAR                 5046
+#define IDM_WINODW_NEXT                 5047
+#define IDM_WINDOW_PREV                 5048
+#define ID_IDKEYLIST_5069               5049
+#define ID_IDKEY_CAKEY                  5050
+#define IDM_IMAGEDISP                   5051
+#define IDM_WINDOW_SEL0                 5052
+#define IDM_WINDOW_SEL1                 5053
+#define IDM_WINDOW_SEL2                 5054
+#define IDM_WINDOW_SEL3                 5055
+#define IDM_WINDOW_SEL4                 5056
+#define IDM_WINDOW_SEL5                 5057
+#define IDM_WINDOW_SEL6                 5058
+#define IDM_WINDOW_SEL7                 5059
+#define IDM_WINDOW_SEL8                 5060
+#define IDM_WINDOW_SEL9                 5061
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        173
-#define _APS_NEXT_COMMAND_VALUE         5072
+#define _APS_NEXT_COMMAND_VALUE         5061
 #define _APS_NEXT_CONTROL_VALUE         3072
 #define _APS_NEXT_SYMED_VALUE           200
 #endif
