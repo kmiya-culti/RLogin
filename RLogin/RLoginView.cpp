@@ -735,7 +735,7 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 
 		m_BmpFile.LoadFile(pDoc->m_TextRam.m_BitMapFile);
 		m_pBitmap = m_BmpFile.GetBitmap(GetDC(), m_Width, m_Height);
-		pDoc->SetStatus(NULL);
+		//pDoc->SetStatus(NULL);
 
 		// No break
 	case UPDATE_INVALIDATE:
@@ -1426,7 +1426,8 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 		return;
 	}
 
-	OnUpdate(this, UPDATE_CLIPERA, NULL);
+	if ( m_ClipFlag != 1 )
+		OnUpdate(this, UPDATE_CLIPERA, NULL);
 
 	m_ClipKeyFlags = nFlags;
 
@@ -1461,7 +1462,7 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 		if ( pos < m_ClipStaPos ) {
 			m_ClipFlag = 4;
 			m_ClipStaPos = pos;
-		} else if ( pos >= m_ClipEndPos ) {
+		} else if ( pos > m_ClipEndPos ) {
 			m_ClipFlag = 3;
 			m_ClipEndPos = pos;
 		}
@@ -1518,7 +1519,8 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 		break;
 	}
 
-	OnUpdate(this, UPDATE_CLIPERA, NULL);
+	if ( m_ClipFlag != 1 )
+		OnUpdate(this, UPDATE_CLIPERA, NULL);
 }
 void CRLoginView::OnRButtonDblClk(UINT nFlags, CPoint point) 
 {

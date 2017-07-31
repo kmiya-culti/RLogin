@@ -23,6 +23,8 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
+#define	USE_TEXTFRAME	1
+
 #ifndef	FIXWCHAR
 
 //////////////////////////////////////////////////////////////////////
@@ -876,6 +878,9 @@ CTextRam::CTextRam()
 	m_pCanDlg = NULL;
 	m_bIntTimer = FALSE;
 	m_bRtoL = FALSE;
+	m_XtOptFlag = 0;
+	m_TitleStack.RemoveAll();
+	m_FrameCheck = FALSE;
 
 	m_LineEditMode = FALSE;
 	m_LineEditPos  = 0;
@@ -3012,10 +3017,10 @@ void CTextRam::StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop,
 		}
 	}
 
-	if ( (at & (ATT_OVER | ATT_LINE | ATT_UNDER | ATT_DUNDER | ATT_STRESS)) != 0 ) {
+	if ( (at & (ATT_OVER | ATT_DOVER | ATT_LINE | ATT_UNDER | ATT_DUNDER | ATT_STRESS)) != 0 ) {
 		CPen cPen(PS_SOLID, 1, fc);
 		CPen *oPen = pDC->SelectObject(&cPen);
-		POINT point[2];
+		POINT point[4];
 		point[0].x = pRect->left;
 		point[1].x = pRect->right;
 
@@ -3023,6 +3028,15 @@ void CTextRam::StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop,
 			point[0].y = pRect->top;
 			point[1].y = pRect->top;
 			pDC->Polyline(point, 2);
+		} else if ( (at & ATT_DOVER) != 0 ) {
+			point[0].y = pRect->top;
+			point[1].y = pRect->top;
+			pDC->Polyline(point, 2);
+			point[2].x = ((at & ATT_LDLINE) != 0 ? (pRect->left + 2) : pRect->left);
+			point[2].y = pRect->top + 2;
+			point[3].x = ((at & ATT_RDLINE) != 0 ? (pRect->right - 3) : pRect->right);
+			point[3].y = pRect->top + 2;
+			pDC->Polyline(&(point[2]), 2);
 		}
 
 		if ( (at & ATT_LINE) != 0 ) {
@@ -3046,9 +3060,11 @@ void CTextRam::StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop,
 			point[0].y = pRect->bottom - 1;
 			point[1].y = pRect->bottom - 1;
 			pDC->Polyline(point, 2);
-			point[0].y = pRect->bottom - 3;
-			point[1].y = pRect->bottom - 3;
-			pDC->Polyline(point, 2);
+			point[2].x = ((at & ATT_LDLINE) != 0 ? (pRect->left + 2) : pRect->left);
+			point[2].y = pRect->bottom - 3;
+			point[3].x = ((at & ATT_RDLINE) != 0 ? (pRect->right - 3) : pRect->right);
+			point[3].y = pRect->bottom - 3;
+			pDC->Polyline(&(point[2]), 2);
 		}
 
 		pDC->SelectObject(oPen);
@@ -3063,6 +3079,7 @@ void CTextRam::StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop,
 		for ( x = 0 ; x < len ; x++ ) {
 			if ( spc[x] == 0 )
 				continue;
+
 			if ( (at & ATT_FRAME) != 0 ) {
 				point[0].x = y; point[0].y = pRect->top + 1;
 				point[1].x = y + spc[x] - 2; point[1].y = pRect->top + 1;
@@ -3092,8 +3109,10 @@ void CTextRam::StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop,
 				point[0].x = y + spc[x] - 1; point[0].y = pRect->top;
 				point[1].x = y + spc[x] - 1; point[1].y = pRect->bottom - 1;
 				pDC->Polyline(point, 2);
-				point[0].x = y + spc[x] - 3; point[0].y = pRect->top;
-				point[1].x = y + spc[x] - 3; point[1].y = pRect->bottom - 1;
+				point[0].x = y + spc[x] - 3;
+				point[0].y = ((at & ATT_DOVER) != 0 ? (pRect->top + 2) : pRect->top);
+				point[1].x = y + spc[x] - 3;
+				point[1].y = ((at & ATT_DUNDER) != 0 ? (pRect->bottom - 3) : (pRect->bottom - 1));
 				pDC->Polyline(point, 2);
 			}
 
@@ -3105,8 +3124,10 @@ void CTextRam::StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop,
 				point[0].x = y; point[0].y = pRect->top;
 				point[1].x = y; point[1].y = pRect->bottom - 1;
 				pDC->Polyline(point, 2);
-				point[0].x = y + 2; point[0].y = pRect->top;
-				point[1].x = y + 2; point[1].y = pRect->bottom - 1;
+				point[0].x = y + 2;
+				point[0].y = ((at & ATT_DOVER) != 0 ? (pRect->top + 2) : pRect->top);
+				point[1].x = y + 2;
+				point[1].y = ((at & ATT_DUNDER) != 0 ? (pRect->bottom - 3) : (pRect->bottom - 1));
 				pDC->Polyline(point, 2);
 			}
 
@@ -3124,7 +3145,7 @@ void CTextRam::StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop,
 }
 void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginView *pView)
 {
-	int n, x, y;
+	int n, x, y, ex;
 	struct DrawWork work, prop;
 	int pos, spos, epos;
 	int csx, cex, csy, cey;
@@ -3173,7 +3194,19 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 		tp = GETVRAM(0, y - pView->m_HisOfs + pView->m_HisMin);
 		work.dmf = tp->pr.dm;
 
-		for ( x = (work.dmf != 0 ? (x1 / 2) : x1) ; x < x2 ; ) {
+		x = (work.dmf != 0 ? (x1 / 2) : x1);
+		ex = x2;
+
+		if ( x > 0 && (tp[x].pr.at & ATT_RTOL) != 0 ) {
+			while ( x > 0 && (tp[x - 1].pr.at & ATT_RTOL) != 0 )
+				x--;
+		}
+		if ( ex < m_Cols && (tp[ex].pr.at & ATT_RTOL) != 0 ) {
+			while ( (ex + 1) < m_Cols && (tp[ex + 1].pr.at & ATT_RTOL) != 0 )
+				ex++;
+		}
+
+		while ( x < ex ) {
 			if ( work.dmf != 0 && x >= (m_Cols / 2) )
 				break;
 
@@ -3217,6 +3250,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 					} else if ( str.IsEmpty() )
 						work.mod = (-1);
 				}
+
 			} else {
 				work.att = m_DefAtt.at;
 				work.fnm = m_DefAtt.ft;
@@ -3226,6 +3260,37 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 				work.csz = 1;
 				str.Empty();
 			}
+
+#ifdef	USE_TEXTFRAME
+			if ( (work.att & ATT_FRAME) != 0 ) {
+				n = (ATT_LSLINE | ATT_RSLINE | ATT_OVER | ATT_UNDER);
+				if ( x > 0 && (vp[-1].pr.at & ATT_FRAME) != 0 )
+					n &= ~ATT_LSLINE;
+				if ( x < (m_Cols - work.csz) && (vp[work.csz].pr.at & ATT_FRAME) != 0 )
+					n &= ~ATT_RSLINE;
+				if ( y > 0 && (GETVRAM(x, y - pView->m_HisOfs + pView->m_HisMin - 1)->pr.at & ATT_FRAME) != 0 )
+					n &= ~ATT_OVER;
+				if ( y < (m_Lines - 1) && (GETVRAM(x, y - pView->m_HisOfs + pView->m_HisMin + 1)->pr.at & ATT_FRAME) != 0 )
+					n &= ~ATT_UNDER;
+				work.att &= ~(ATT_FRAME | ATT_CIRCLE);
+				work.att |= n;
+				m_FrameCheck = TRUE;
+
+			} else if ( (work.att & ATT_CIRCLE) != 0 ) {
+				n = (ATT_LDLINE | ATT_RDLINE | ATT_DOVER | ATT_DUNDER);
+				if ( x > 0 && (vp[-1].pr.at & ATT_CIRCLE) != 0 )
+					n &= ~ATT_LDLINE;
+				if ( x < (m_Cols - work.csz) && (vp[work.csz].pr.at & ATT_CIRCLE) != 0 )
+					n &= ~ATT_RDLINE;
+				if ( y > 0 && (GETVRAM(x, y - pView->m_HisOfs + pView->m_HisMin - 1)->pr.at & ATT_CIRCLE) != 0 )
+					n &= ~ATT_DOVER;
+				if ( y < (m_Lines - 1) && (GETVRAM(x, y - pView->m_HisOfs + pView->m_HisMin + 1)->pr.at & ATT_CIRCLE) != 0 )
+					n &= ~ATT_DUNDER;
+				work.att &= ~(ATT_FRAME | ATT_CIRCLE);
+				work.att |= n;
+				m_FrameCheck = TRUE;
+			}
+#endif
 
 			if ( pView->m_ClipFlag ) {
 				pos = GetCalcPos((work.dmf != 0 ? (x * 2) : x), y - pView->m_HisOfs + pView->m_HisMin);
@@ -3789,6 +3854,10 @@ void CTextRam::RESET(int mode)
 		m_LangMenu = 0;
 		SetRetChar(FALSE);
 		m_FileSaveFlag = TRUE;
+		m_XtOptFlag = 0;
+		m_TitleStack.RemoveAll();
+		if ( m_pDocument != NULL )
+			m_pDocument->SetStatus(NULL);
 	}
 
 	if ( mode & RESET_CLS )
@@ -3906,6 +3975,7 @@ void CTextRam::DISPUPDATE()
 	m_UpdateRect.top    = 0;
 	m_UpdateRect.right  = m_Cols;
 	m_UpdateRect.bottom = m_Lines;
+	m_FrameCheck = FALSE;
 
 	if ( IsOptEnable(TO_DECSCLM) )
 		m_UpdateFlag = TRUE;
@@ -3916,6 +3986,15 @@ void CTextRam::DISPVRAM(int sx, int sy, int w, int h)
 {
 	int ex = sx + w;
 	int ey = sy + h;
+
+#ifdef	USE_TEXTFRAME
+	if ( m_FrameCheck ) {
+		if ( sx > 0 ) sx--;
+		if ( ex < m_Cols ) ex++;
+		if ( sy > 0 ) sy--;
+		if ( ey < m_Lines ) ey++;
+	}
+#endif
 
 	if ( m_UpdateRect.left > sx )
 		m_UpdateRect.left = sx;
@@ -4572,7 +4651,7 @@ void CTextRam::REVINDEX()
 	} else if ( --m_CurY < 0 )
 		m_CurY = 0;
 }
-void CTextRam::PUT1BYTE(int ch, int md)
+void CTextRam::PUT1BYTE(int ch, int md, int at)
 {
 	if ( m_StsFlag ) {
 		md &= CODE_MASK;
@@ -4595,12 +4674,17 @@ void CTextRam::PUT1BYTE(int ch, int md)
 	int dm = GetDm(m_CurY);
 	int mx = (dm != 0 ? (m_Cols / 2) : m_Cols);
 
+	if ( m_bRtoL ) {
+		md = SET_UNICODE;
+		at = ATT_RTOL;
+	}
+
 	vp = GETVRAM(m_CurX, m_CurY);
-	vp->pr.md = (WORD)(m_bRtoL ? SET_UNICODE : md);
+	vp->pr.md = (WORD)md;
 	vp->pr.em = m_AttNow.em;
 //	vp->pr.dm = m_AttNow.dm;	no Init
 	vp->pr.cm = CM_ASCII;
-	vp->pr.at = m_AttNow.at;
+	vp->pr.at = m_AttNow.at | at;
 	vp->pr.ft = m_AttNow.ft;
 	vp->pr.fc = m_AttNow.fc;
 	vp->pr.bc = m_AttNow.bc;
@@ -4639,7 +4723,7 @@ void CTextRam::PUT1BYTE(int ch, int md)
 	if ( ch != 0 )
 		CallReciveChar(ch);
 }
-void CTextRam::PUT2BYTE(int ch, int md)
+void CTextRam::PUT2BYTE(int ch, int md, int at)
 {
 	if ( m_StsFlag ) {
 		md &= CODE_MASK;
@@ -4673,7 +4757,7 @@ void CTextRam::PUT2BYTE(int ch, int md)
 //	vp[0].dm = vp[1].dm = m_AttNow.dm;	no Init
 	vp[0].pr.cm = CM_1BYTE;
 	vp[1].pr.cm = CM_2BYTE;
-	vp[0].pr.at = vp[1].pr.at = m_AttNow.at;
+	vp[0].pr.at = vp[1].pr.at = m_AttNow.at | at;
 	vp[0].pr.ft = vp[1].pr.ft = m_AttNow.ft;
 	vp[0].pr.fc = vp[1].pr.fc = m_AttNow.fc;
 	vp[0].pr.bc = vp[1].pr.bc = m_AttNow.bc;

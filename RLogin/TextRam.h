@@ -55,8 +55,10 @@
 #define ATT_LSLINE		0x0008000		// [62m left side line
 #define ATT_LDLINE		0x0010000		// [63m double line on the left side
 #define ATT_STRESS		0x0020000		// [64m stress marking
+#define ATT_DOVER		0x0040000		// double over line
 #define	ATT_MARK		0x0400000		// Search Mark
 #define	ATT_CLIP		0x0800000		// Mouse Clip
+#define	ATT_RTOL		0x1000000		// RtoL Char
 #define	ATT_BITS		0x8000000		// 7 * 4 = 28 bit
 
 #define CODE_MAX		0x0400
@@ -262,6 +264,13 @@
 #define	UNI_HNF			0x00000080		// Hangle Fast
 #define	UNI_HNM			0x00000100		// Hangle Mid
 #define	UNI_HNL			0x00000200		// Hangle Last
+#define	UNI_RTL			0x00000400		// Right to Left block
+
+										// CSI > Ps T/t		xterm CASE_RM_TITLE/CASE_SM_TITLE option flag bits m_XtOptFlag
+#define	XTOP_SETHEX		0x0001			//    Ps = 0  -> Set window/icon labels using hexadecimal.
+#define	XTOP_GETHEX		0x0002			//    Ps = 1  -> Query window/icon labels using hexadecimal.
+#define	XTOP_SETUTF		0x0004			//    Ps = 2  -> Set window/icon labels using UTF-8.
+#define	XTOP_GETUTF		0x0008			//    Ps = 3  -> Query window/icon labels using UTF-8.
 
 #define issjis1(c)		(((unsigned char)(c) >= 0x81 && \
 						  (unsigned char)(c) <= 0x9F) || \
@@ -668,6 +677,7 @@ public:
 	CIConv m_IConv;
 	CRect m_UpdateRect;
 	BOOL m_UpdateFlag;
+	BOOL m_FrameCheck;
 
 	BOOL m_LineEditMode;
 	int m_LineEditIndex;
@@ -687,6 +697,8 @@ public:
 	int m_LogCharSet[4];
 	int m_TitleMode;
 	BOOL m_FileSaveFlag;
+	DWORD m_XtOptFlag;
+	CStringArray m_TitleStack;
 	
 	// Window Fonction
 	BOOL IsInitText() { return (m_bOpen && m_VRam != NULL ? TRUE : FALSE); }
@@ -790,8 +802,8 @@ public:
 	void DELCHAR();
 	void ONEINDEX();
 	void REVINDEX();
-	void PUT1BYTE(int ch, int md);
-	void PUT2BYTE(int ch, int md);
+	void PUT1BYTE(int ch, int md, int at = 0);
+	void PUT2BYTE(int ch, int md, int at = 0);
 	void PUTADD(int x, int y, int ch, int cf);
 	void INSMDCK(int len);
 	void ANSIOPT(int opt, int bit);
@@ -1099,6 +1111,11 @@ public:
 	void fc_TTIMESV(int ch);
 	void fc_TTIMEST(int ch);
 	void fc_TTIMERS(int ch);
+	void fc_XTRMTT(int ch);
+	void fc_XTMDFK(int ch);
+	void fc_XTMDFK0(int ch);
+	void fc_XTHDPT(int ch);
+	void fc_XTSMTT(int ch);
 
 	// ESC PX^_] DCS/PM/APC/SOS/OSC
 	void fc_TimerSet(LPCTSTR name);

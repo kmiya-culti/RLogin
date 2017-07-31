@@ -440,12 +440,12 @@ static const CTextRam::CSIEXTTAB fc_CsiExtTab[] = {
 //	{ ('=' << 16)				| 'I',		&CTextRam::fc_POP		},	// cons25 Set normal reverse background color to n
 	{ ('=' << 16)				| 'S',		&CTextRam::fc_C25LCT	},	// C25LCT cons25 Set local cursor type
 	{ ('=' << 16)				| 'c',		&CTextRam::fc_DA3		},	// DA3 Tertiary Device Attributes
-//	{ ('>' << 16)				| 'T',		&CTextRam::fc_POP		},	// xterm CASE_RM_TITLE
-//	{ ('>' << 16)				| 'm',		&CTextRam::fc_POP		},	// xterm CASE_SET_MOD_FKEYS
-//	{ ('>' << 16)				| 'n',		&CTextRam::fc_POP		},	// xterm CASE_SET_MOD_FKEYS0
-//	{ ('>' << 16)				| 'p',		&CTextRam::fc_POP		},	// xterm CASE_HIDE_POINTER
+	{ ('>' << 16)				| 'T',		&CTextRam::fc_XTRMTT	},	// xterm CASE_RM_TITLE
+//	{ ('>' << 16)				| 'm',		&CTextRam::fc_XTMDFK	},	// xterm CASE_SET_MOD_FKEYS
+//	{ ('>' << 16)				| 'n',		&CTextRam::fc_XTMDFK0	},	// xterm CASE_SET_MOD_FKEYS0
+//	{ ('>' << 16)				| 'p',		&CTextRam::fc_XTHDPT	},	// xterm CASE_HIDE_POINTER
 	{ ('>' << 16)				| 'c',		&CTextRam::fc_DA2		},	// DA2 Secondary Device Attributes
-//	{ ('>' << 16)				| 't',		&CTextRam::fc_POP		},	// xterm CASE_SM_TITLE
+	{ ('>' << 16)				| 't',		&CTextRam::fc_XTSMTT	},	// xterm CASE_SM_TITLE
 	{ ('?' << 16) | ('$'  << 8) | 'p',		&CTextRam::fc_DECRQMH	},	// DECRQMH Request Mode (DEC) Host to Terminal
 	{							    0,		NULL } };
 
@@ -575,7 +575,7 @@ static CTextRam::ESCNAMEPROC fc_EscNameTab[] = {
 	{	NULL,		NULL,					NULL,	NULL	},
 };
 
-static int	fc_CsiNameTabMax = 120;
+static int	fc_CsiNameTabMax = 122;
 static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	_T("C25LCT"),	&CTextRam::fc_C25LCT,	NULL,	NULL 	},
 	{	_T("CBT"),		&CTextRam::fc_CBT,		NULL,	NULL	},
@@ -688,7 +688,9 @@ static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	_T("VPB"),		&CTextRam::fc_VPB,		NULL,	NULL	},
 	{	_T("VPR"),		&CTextRam::fc_VPR,		NULL,	NULL	},
 	{	_T("XTREST"),	&CTextRam::fc_XTREST,	NULL,	NULL	},
+	{	_T("XTRMTT"),	&CTextRam::fc_XTRMTT,	NULL,	NULL	},
 	{	_T("XTSAVE"),	&CTextRam::fc_XTSAVE,	NULL,	NULL	},
+	{	_T("XTSMTT"),	&CTextRam::fc_XTSMTT,	NULL,	NULL	},
 	{	_T("XTWOP"),	&CTextRam::fc_XTWOP,	NULL,	NULL	},
 	{	NULL,		NULL,					NULL,	NULL	},
 };
@@ -1804,7 +1806,7 @@ void CTextRam::fc_UTF85(int ch)
 			// U+1100-115F ‚Í‰ºŽq‰¹
 			// U+1160-11A2 ‚Í’†º•ê‰¹
 			// U+11A8-11F9 ‚ÍIºŽq‰¹
-			if ( (m_LastFlag & (UNI_HNF | UNI_HNM)) != 0 ) {
+			if ( (m_LastFlag & UNI_HNF) != 0 ) {
 				if ( (cf & UNI_HNM) != 0 ) {
 					PUTADD(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX, m_BackChar, cf);
 					goto BREAK;
@@ -1841,13 +1843,13 @@ void CTextRam::fc_UTF85(int ch)
 			else if ( m_BackChar < 0x0100 )
 				PUT1BYTE(m_BackChar & 0x7F, m_BankTab[m_KanjiMode][1]);
 			else
-				PUT1BYTE(m_BackChar, SET_UNICODE);
+				PUT1BYTE(m_BackChar, SET_UNICODE, ((cf & UNI_RTL) ? ATT_RTOL : 0));
 			m_LastFlag = cf;
 
 		// 2 Cell type Unicode
 		} else {
 			INSMDCK(2);
-			PUT2BYTE(m_BackChar, SET_UNICODE);
+			PUT2BYTE(m_BackChar, SET_UNICODE, ((cf & UNI_RTL) ? ATT_RTOL : 0));
 			m_LastFlag = cf;
 		}
 
@@ -2641,6 +2643,7 @@ void CTextRam::fc_DCS(int ch)
 {
 	m_OscMode = 'P';
 	m_BackChar = 0;
+	m_CodeLen = 0;
 	m_OscPara.Clear();
 	m_AnsiPara.RemoveAll();
 	m_AnsiPara.Add(PARA_NOT);
@@ -2651,6 +2654,7 @@ void CTextRam::fc_SOS(int ch)
 {
 	m_OscMode = 'X';
 	m_BackChar = 0;
+	m_CodeLen = 0;
 	m_OscPara.Clear();
 	fc_Case(STAGE_OSC2);
 	fc_TimerSet(_T("SOS"));
@@ -2659,6 +2663,7 @@ void CTextRam::fc_APC(int ch)
 {
 	m_OscMode = '_';
 	m_BackChar = 0;
+	m_CodeLen = 0;
 	m_OscPara.Clear();
 	fc_Case(STAGE_OSC2);
 	fc_TimerSet(_T("APC"));
@@ -2667,6 +2672,7 @@ void CTextRam::fc_PM(int ch)
 {
 	m_OscMode = '^';
 	m_BackChar = 0;
+	m_CodeLen = 0;
 	m_OscPara.Clear();
 	fc_Case(STAGE_OSC2);
 	fc_TimerSet(_T("PM"));
@@ -2675,6 +2681,7 @@ void CTextRam::fc_OSC(int ch)
 {
 	m_OscMode = ']';
 	m_BackChar = 0;
+	m_CodeLen = 0;
 	m_OscPara.Clear();
 	fc_Case(STAGE_OSC2);
 	fc_TimerSet(_T("OSC"));
@@ -2713,8 +2720,35 @@ void CTextRam::fc_OSC_PAM(int ch)
 			m_OscPara.ConsumeEnd(1);
 		fc_OSC_ST(ch);
 
-	} else if ( (m_OscMode == ']' && ch == 0x07) || ((m_KanjiMode == EUC_SET || m_KanjiMode == ASCII_SET || m_KanjiMode == UTF8_SET) && ch == 0x9C) ) {
+	} else if ( m_OscMode == ']' && ch == 0x07 ) {
 		fc_OSC_ST(ch);
+
+	} else if ( (m_KanjiMode == EUC_SET || m_KanjiMode == ASCII_SET) && ch == 0x9C ) {
+		fc_OSC_ST(ch);
+
+	} else if ( m_KanjiMode == UTF8_SET ) {
+		m_OscPara.Put8Bit(ch);
+		m_LastChar = ch;
+
+		if ( m_CodeLen > 0 && ch >= 0x80 && ch <= 0xBF )
+			m_CodeLen--;
+		else {
+			if ( ch == 0x9C ) {
+				m_OscPara.ConsumeEnd(1);
+				fc_OSC_ST(ch);
+			} else if ( ch >= 0xC0 && ch <= 0xDF )
+				m_CodeLen = 1;
+			else if ( ch >= 0xE0 && ch <= 0xEF )
+				m_CodeLen = 2;
+			else if ( ch >= 0xF0 && ch <= 0xF7 )
+				m_CodeLen = 3;
+			else if ( ch >= 0xF8 && ch <= 0xFB )
+				m_CodeLen = 4;
+			else if ( ch >= 0xFC && ch <= 0xFD )
+				m_CodeLen = 5;
+			else
+				m_CodeLen = 0;
+		}
 
 	} else {
 		m_OscPara.Put8Bit(ch);
@@ -3473,7 +3507,20 @@ void CTextRam::fc_OSCEXE(int ch)
 	case 1:		// 1 -> Change Icon Name to Pt
 	case 2:		// 2 -> Change Window Title to Pt
 		if ( (m_TitleMode & WTTL_CHENG) == 0 ) {
-			m_IConv.RemoteToStr(m_SendCharSet[m_KanjiMode], p, tmp);
+			if ( (m_XtOptFlag & XTOP_SETUTF) != 0 )
+				m_IConv.RemoteToStr(m_SendCharSet[UTF8_SET], p, tmp);
+			else
+				m_IConv.RemoteToStr(m_SendCharSet[m_KanjiMode], p, tmp);
+
+			if ( (m_XtOptFlag & XTOP_SETHEX) != 0 ) {
+				CBuffer buf;
+				buf.Base16Decode(tmp);
+				if ( (m_XtOptFlag & XTOP_SETUTF) != 0 )
+					m_IConv.RemoteToStr(m_SendCharSet[UTF8_SET], (LPCSTR)buf, tmp);
+				else
+					m_IConv.RemoteToStr(m_SendCharSet[m_KanjiMode], (LPCSTR)buf, tmp);
+			}
+
 			m_pDocument->SetTitle(tmp);
 		}
 		break;
@@ -4276,7 +4323,7 @@ void CTextRam::fc_SGR(int ch)
 			m_AttNow.ft = GetAnsiPara(n, 0, 0) - 10;
 			break;
 
-		case 21: m_AttNow.at |= ATT_DUNDER; break;	// 21 doubly underlined
+		case 21: m_AttNow.at |= ATT_DUNDER; break;					// 21 doubly underlined
 		case 22: m_AttNow.at &= ~(ATT_BOLD | ATT_HALF); break;		// 22 normal colour or normal intensity (neither bold nor faint)
 		case 23: m_AttNow.at &= ~ATT_ITALIC; break;					// 23 not italicized, not fraktur
 		case 24: m_AttNow.at &= ~(ATT_UNDER | ATT_DUNDER); break;	// 24 not underlined (neither singly nor doubly)
@@ -4364,8 +4411,8 @@ void CTextRam::fc_SGR(int ch)
 			m_AttNow.bc = m_DefAtt.bc;
 			break;
 
-		case 51: m_AttNow.at |= ATT_FRAME; break;					// 51  framed
-		case 52: m_AttNow.at |= ATT_CIRCLE; break;					// 52  encircled
+		case 51: m_AttNow.at |= ATT_FRAME;  m_FrameCheck = TRUE; break;		// 51  framed
+		case 52: m_AttNow.at |= ATT_CIRCLE; m_FrameCheck = TRUE; break;		// 52  encircled
 		case 53: m_AttNow.at |= ATT_OVER;   break;					// 53  overlined
 		case 54: m_AttNow.at &= ~(ATT_FRAME | ATT_CIRCLE); break;	// 54  not framed, not encircled
 		case 55: m_AttNow.at &= ~ATT_OVER; break;					// 55  not overlined
@@ -4594,6 +4641,7 @@ void CTextRam::fc_SCOSC(int ch)
 void CTextRam::fc_XTWOP(int ch)
 {
 	// CSI t	XTWOP XTERM WINOPS
+	int i;
 	int n = GetAnsiPara(0, 0, 0);
 	int w = 6;
 	int h = 12;
@@ -4646,12 +4694,51 @@ void CTextRam::fc_XTWOP(int ch)
 		break;
     case 20:    	/* Report the icon's label ESC]LxxxxESC\ */
     case 21:   		/* Report the window's title ESC]lxxxxxxESC\ */
-		CString tmp;
-		if ( (m_TitleMode & WTTL_REPORT) == 0 )
-			tmp = m_pDocument->GetTitle();
-		UNGETSTR(_T("%s%c%s%s"), m_RetChar[RC_OSC], (n == 20 ? 'L':'l'), tmp, m_RetChar[RC_ST]);
+		if ( (m_TitleMode & WTTL_REPORT) == 0 ) {
+			CStringA mbs, tmp;
+			if ( (m_XtOptFlag & XTOP_GETUTF) != 0 )
+				m_IConv.StrToRemote(m_SendCharSet[UTF8_SET], m_pDocument->GetTitle(), mbs);
+			else
+				m_IConv.StrToRemote(m_SendCharSet[m_KanjiMode], m_pDocument->GetTitle(), mbs);
+
+			if ( (m_XtOptFlag & XTOP_GETHEX) != 0 ) {
+				CBuffer buf;
+				buf.Base16Encode((LPBYTE)(LPCSTR)mbs, mbs.GetLength());
+				mbs.Empty();
+				for ( LPCTSTR p = buf ; *p != _T('\0') ; )
+					mbs += *(p++);
+			}
+
+			tmp.Format("%s%c%s%s", TstrToMbs(m_RetChar[RC_OSC]), (n == 20 ? 'L':'l'), mbs, TstrToMbs(m_RetChar[RC_ST]));
+			m_pDocument->SocketSend((void *)(LPCSTR)mbs, mbs.GetLength());
+
+		} else
+			UNGETSTR(_T("%s%c%s"), m_RetChar[RC_OSC], (n == 20 ? 'L':'l'), m_RetChar[RC_ST]);
+		break;
+
+	case 22:		/* save the window's title(s) on stack  */
+		switch(GetAnsiPara(1, 0, 0)) {
+		case 0:
+		case 1:
+		case 2:
+			m_TitleStack.Add(m_pDocument->GetTitle());
+			break;
+		}
+		break;
+	case 23:		/* restore the window's title(s) from stack */
+		switch(GetAnsiPara(1, 0, 0)) {
+		case 0:
+		case 1:
+		case 2:
+			if ( (i = m_TitleStack.GetSize() - 1) >= 0 ) {
+				m_pDocument->SetTitle(m_TitleStack[i]);
+				m_TitleStack.RemoveAt(i);
+			}
+			break;
+		}
 		break;
 	}
+
 	fc_POP(ch);
 }
 void CTextRam::fc_SCORC(int ch)
@@ -5947,4 +6034,83 @@ void CTextRam::fc_TTIMERS(int ch)
 	m_AnsiPara.RemoveAll();
 	m_AnsiPara.Add(TO_IMECTRL + 8000);
 	fc_DECSRET('r');
+}
+void CTextRam::fc_XTRMTT(int ch)
+{
+	// CSI { ('>' << 16) | 'T',		xterm CASE_RM_TITLE
+	//    Ps = 0  -> Do not set window/icon labels using hexadecimal.
+	//    Ps = 1  -> Do not query window/icon labels using hexadecimal.
+	//    Ps = 2  -> Do not set window/icon labels using UTF-8.
+	//    Ps = 3  -> Do not query window/icon labels using UTF-8.
+
+	for ( int n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
+		if ( m_AnsiPara[n] != PARA_NOT )
+			m_XtOptFlag &= ~(1 << m_AnsiPara[n]);
+	}
+	fc_POP(ch);
+}
+void CTextRam::fc_XTMDFK(int ch)
+{
+	// CSI > Ps; Ps m
+	//	  Set or reset resource-values used by xterm to decide whether
+	//	  to construct escape sequences holding information about the
+	//	  modifiers pressed with a given key.  The first parameter iden-
+	//	  tifies the resource to set/reset.  The second parameter is the
+	//	  value to assign to the resource.  If the second parameter is
+	//	  omitted, the resource is reset to its initial value.
+	//	    Ps = 0  -> modifyKeyboard.
+	//	    Ps = 1  -> modifyCursorKeys.
+	//	    Ps = 2  -> modifyFunctionKeys.
+	//	    Ps = 4  -> modifyOtherKeys.
+	//	  If no parameters are given, all resources are reset to their
+	//	  initial values.
+
+	fc_POP(ch);
+}
+void CTextRam::fc_XTMDFK0(int ch)
+{
+	//CSI > Ps n
+	//	  Disable modifiers which may be enabled via the CSI > Ps; Ps m
+	//	  sequence.  This corresponds to a resource value of "-1", which
+	//	  cannot be set with the other sequence.  The parameter identi-
+	//	  fies the resource to be disabled:
+	//	    Ps = 0  -> modifyKeyboard.
+	//	    Ps = 1  -> modifyCursorKeys.
+	//	    Ps = 2  -> modifyFunctionKeys.
+	//	    Ps = 4  -> modifyOtherKeys.
+	//	  If the parameter is omitted, modifyFunctionKeys is disabled.
+	//	  When modifyFunctionKeys is disabled, xterm uses the modifier
+	//	  keys to make an extended sequence of functions rather than
+	//	  adding a parameter to each function key to denote the modifiers.
+
+	fc_POP(ch);
+}
+void CTextRam::fc_XTHDPT(int ch)
+{
+	//CSI > Ps p
+	//	  Set resource value pointerMode.  This is used by xterm to
+	//	  decide whether to hide the pointer cursor as the user types.
+	//	  Valid values for the parameter:
+	//	    Ps = 0  -> never hide the pointer.
+	//	    Ps = 1  -> hide if the mouse tracking mode is not enabled.
+	//	    Ps = 2  -> always hide the pointer, except when leaving the window.
+	//	    Ps = 3  -> always hide the pointer, even if leaving/entering the window.
+	//    If no parameter is given, xterm uses the default,
+	//	  which is 1 .
+
+	fc_POP(ch);
+}
+void CTextRam::fc_XTSMTT(int ch)
+{
+	// CSI ('>' << 16) | 't',		xterm CASE_SM_TITLE
+	//    Ps = 0  -> Set window/icon labels using hexadecimal.
+	//    Ps = 1  -> Query window/icon labels using hexadecimal.
+	//    Ps = 2  -> Set window/icon labels using UTF-8.
+	//    Ps = 3  -> Query window/icon labels using UTF-8.  (See discussion of "Title Modes")
+
+	for ( int n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
+		if ( m_AnsiPara[n] != PARA_NOT )
+			m_XtOptFlag |= (1 << m_AnsiPara[n]);
+	}
+	fc_POP(ch);
 }
