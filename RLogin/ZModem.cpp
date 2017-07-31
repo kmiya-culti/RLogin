@@ -183,6 +183,7 @@ int CZModem::Send_blk(FILE *fp, int bk, int len, int crcopt, int hd)
     char    head[3];
     char    tmp[1024];
 	struct _stati64 st;
+	CStringA str;
 
     head[0] = len >= 1024 ? STX:SOH;
     head[1] = bk;
@@ -191,10 +192,12 @@ int CZModem::Send_blk(FILE *fp, int bk, int len, int crcopt, int hd)
 	if ( bk == 0 && len >= 1024 && hd > 0 ) {
 		sz = 0;
 		if ( hd == 1 ) {
-			strcpy(tmp, m_FileName);
+			strncpy(tmp, m_FileName, 1023);
 			while ( tmp[sz++] != '\0' ) ;
 			if ( !_tstati64(m_PathName, &st) ) {
-				sprintf(tmp + sz, "%I64d %I64o %o", st.st_size, st.st_mtime, st.st_mode);
+				str.Format("%I64d %I64o %o", st.st_size, st.st_mtime, st.st_mode);
+				if ( (strlen(tmp) + strlen(str) + 2) < 1024 )
+					strcpy(tmp + sz, str);
 				while ( tmp[sz++] != '\0' ) ;
 			}
 		}
@@ -621,7 +624,7 @@ RELOAD:
 	Bufferd_Send(ACK);
     Bufferd_Flush();
 
-	if ( tmp[0] == '\0' )
+	if ( tmp[0] == '\0' && tmp[1] == '\0' )
 		goto ENDRET;
 
 	p = tmp;
@@ -730,7 +733,7 @@ int CZModem::ZUpFile()
 	int c, n, e;
 	long sz;
 	char txbuf[ZBUFSIZE + 4];
-	ULONG fileSize  = 0;
+	LONGLONG fileSize  = 0;
 	FILE *fp = NULL;
 	long crc;
 	int sendStat = 1;
@@ -759,11 +762,11 @@ NEXTFILE:
     if ( (fp = _tfopen(m_PathName, _T("rb"))) == NULL )
 		return ERR;
 
-	fileSize = (ULONG)st.st_size;
+	fileSize = st.st_size;
 	Rxpos = Txpos = 0L;
 
 	UpDownOpen("ZModem File Upload");
-	UpDownInit((LONGLONG)fileSize);
+	UpDownInit(fileSize);
 
 	for ( ; ; ) {
 		if ( AbortCheck() )
@@ -777,7 +780,7 @@ NEXTFILE:
 			Txhdr[ZF3] = 0;
 			zshhdr(4, ZFILE, Txhdr);
 
-			opt.Format("%ld %lo %o 0 0 0", fileSize, st.st_mtime, st.st_mode);
+			opt.Format("%I64d %lo %o 0 0 0", fileSize, st.st_mtime, st.st_mode);
 			if ( (n = m_FileName.GetLength() + opt.GetLength() + 2) > ZBUFSIZE ) {
 				char *tmp = new char[n + 2];
 				strcpy(tmp, m_FileName);
@@ -796,10 +799,10 @@ NEXTFILE:
 
 		case 2:
 			crc = 0xFFFFFFFFL;
-			if ( fseek(fp, 0L, 0) )
+			if ( _fseeki64(fp, 0L, 0) )
 				goto ERRRET;
 			if ( Rxpos == 0 )
-				Rxpos = (long)fileSize;
+				Rxpos = fileSize;
 			for ( sz = 0 ; sz < Rxpos && (c = fgetc(fp)) != EOF ; sz++ )
 				crc = UPDC32(c, crc);
 			clearerr(fp);
@@ -903,7 +906,7 @@ NEXTFILE:
 			if ( --ackCount < 0 )
 				ackCount = 0;
 			toutFlag = FALSE;
-			UpDownStat((LONGLONG)Rxpos);
+			UpDownStat(Rxpos);
 			break;
 
 		case ZCRC:
@@ -911,7 +914,7 @@ NEXTFILE:
 			break;
 
 		case ZRPOS:
-			if ( fseek(fp, Rxpos, 0) )
+			if ( _fseeki64(fp, Rxpos, 0) )
 				goto ERRRET;
 			Txpos = Rxpos;
 		case TIMEOUT:
@@ -938,7 +941,7 @@ int CZModem::ZDownFile()
 {
 	int c, n;
 	char buf[ZBUFSIZE + 4];
-	ULONG fileSize  = 0;
+	LONGLONG fileSize  = 0;
 	long fileMtime = 0;
 	int fileMode = 0666;
 	FILE *fp = NULL;
@@ -958,7 +961,7 @@ int CZModem::ZDownFile()
 
 	char *p = buf + 1 + strlen(buf);
 	if ( *p != '\0' )
-		sscanf(p, "%ld %lo %o", &fileSize, &fileMtime, &fileMode);
+		sscanf(p, "%I64d %lo %o", &fileSize, &fileMtime, &fileMode);
 
 	Txpos = 0;
 
@@ -968,7 +971,7 @@ int CZModem::ZDownFile()
 			crc = UPDC32(c, crc);
 		crc = ~crc;
 		clearerr(fp);
-		fseek(fp, Txpos, SEEK_SET);
+		_fseeki64(fp, Txpos, SEEK_SET);
 
 		stohdr(Txpos);
 		zshhdr(4, ZCRC, Txhdr);
@@ -989,7 +992,7 @@ int CZModem::ZDownFile()
 		goto ERRRET;
 
 	UpDownOpen("ZModem File Download");
-	UpDownInit((LONGLONG)fileSize, (LONGLONG)Txpos);
+	UpDownInit(fileSize, Txpos);
 
 	for ( ; ; ) {
 		stohdr(Txpos);
@@ -1004,8 +1007,8 @@ int CZModem::ZDownFile()
 
 		switch(c) {
 		case ZDATA:
-			UpDownStat((LONGLONG)Txpos);
-			if ( Txpos != rclhdr(Rxhdr) ) {
+			UpDownStat(Txpos);
+			if ( (Txpos & 0xFFFFFFFFL) != rclhdr(Rxhdr) ) {
 				zrdata(buf, ZBUFSIZE);
 				break;
 			}
@@ -1022,7 +1025,7 @@ int CZModem::ZDownFile()
 				if ( c == GOTCRCE || c == GOTCRCW )
 					break;
 				if ( n > 10 ) {
-					UpDownStat((LONGLONG)Txpos);
+					UpDownStat(Txpos);
 					n = 0;
 				}
 			}
@@ -1030,7 +1033,7 @@ int CZModem::ZDownFile()
 
 		case ZEOF:
 			UpDownStat(Txpos);
-			if ( Txpos != rclhdr(Rxhdr) )
+			if ( (Txpos & 0xFFFFFFFFL) != rclhdr(Rxhdr) )
 				break;
 			if ( fileSize != 0 && fileSize != Txpos ) {
 				zperr("File Size Error");
@@ -2080,7 +2083,7 @@ int CZModem::noxrd7()
 }
 
 /* Store long integer pos in Txhdr */
-void CZModem::stohdr(long pos)
+void CZModem::stohdr(LONGLONG pos)
 {
 	Txhdr[ZP0] = (char)(pos);
 	Txhdr[ZP1] = (char)(pos>>8);
@@ -2089,9 +2092,9 @@ void CZModem::stohdr(long pos)
 }
 
 /* Recover a long integer from a header */
-long CZModem::rclhdr(register char *hdr)
+LONGLONG CZModem::rclhdr(register char *hdr)
 {
-	register long l;
+	LONGLONG l;
 
 	l = (hdr[ZP3] & 0377);
 	l = (l << 8) | (hdr[ZP2] & 0377);

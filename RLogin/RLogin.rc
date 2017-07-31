@@ -426,11 +426,11 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.11.5 (2011/12/16)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
-    LTEXT           "Copyright (C) 1998-2011 Culti",IDC_STATIC,47,15,176,8
+    LTEXT           "RLogin Version 2.11.6 (2012/01/16)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "Copyright (C) 1998-2012 Culti",IDC_STATIC,47,15,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,148,50,14,WS_GROUP
-    LTEXT           "OpenSSL 1.0.0e Sep 6th, 2011",IDC_STATIC,47,29,176,8
-    LTEXT           "Copyright (c) 1998-2011 The OpenSSL Project",IDC_STATIC,47,39,176,8
+    LTEXT           "OpenSSL 1.0.0f Jan 4th, 2012",IDC_STATIC,47,29,176,8
+    LTEXT           "Copyright (c) 1998-2012 The OpenSSL Project",IDC_STATIC,47,39,176,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,47,49,176,8
     LTEXT           "All rights reserved.",IDC_STATIC,47,59,176,8
     LTEXT           "zlib 1.2.5",IDC_STATIC,47,74,176,8
@@ -1307,8 +1307,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,11,5,0
- PRODUCTVERSION 2,11,5,0
+ FILEVERSION 2,11,6,0
+ PRODUCTVERSION 2,11,6,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1325,12 +1325,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.11.5.0"
+            VALUE "FileVersion", "2.11.6.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2008 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.11.5.0"
+            VALUE "ProductVersion", "2.11.6.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2386,13 +2386,13 @@ END
 STRINGTABLE
 BEGIN
     ID_MACRO_PLAY           "記録されたキー操作を再現します\n記録したキー操作を再現"
-    ID_MACRO_REC            "キー入力を記録もしくわ停止します\nキー操作の記録"
+    ID_MACRO_REC            "キー入力を記録もしくは停止します\nキー操作の記録"
     ID_PANE_DELETE          "分割を閉じて上位ウインドと同じサイズにします\n閉分割"
     ID_PANE_HSPLIT          "縦方向に分割する\n縦分割"
     ID_PANE_SAVE            "現在の分割状態を保存し次回起動時に戻します\n分割保存"
     ID_PANE_WSPLIT          "横方向に分割する\n横分割"
-    ID_PROP_SET             "色々な設定を行います\nオプション設定"
-    ID_SETOPTION            "色々な設定を行います\nオプション設定"
+    ID_PROP_SET             "オプション設定を行います\nオプション設定"
+    ID_SETOPTION            "オプション設定を行います\nオプション設定"
     ID_WINDOW_CLOSE         "作業中のウィンドウを閉じます\n閉じる"
     ID_FILE_ALL_SAVE        "サーバー情報とウインドウ状態も含めてファイルに保存\nすべて保存"
 END
@@ -2408,7 +2408,7 @@ END
 
 STRINGTABLE
 BEGIN
-    ID_APP_ABOUT            "プログラムの情報、バージョンそして著作権を表示\nバージョン情報"
+    ID_APP_ABOUT            "プログラムの情報、バージョン、著作権を表示\nバージョン情報"
     ID_APP_EXIT             "アプリケーションを終了し、ファイルの保存を指示\n終了"
 END
 

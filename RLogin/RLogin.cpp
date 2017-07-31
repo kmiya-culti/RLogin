@@ -19,10 +19,6 @@
 #include "RLoginView.h"
 #include "ExtSocket.h"
 
-#ifdef	_DEBUGXX
-#include "Script.h"
-#endif
-
 #include <direct.h>
 #include <openssl/ssl.h>
 
@@ -465,11 +461,6 @@ BOOL CRLoginApp::InitInstance()
 		if ( (n = m_BaseDir.ReverseFind('\\')) >= 0 )
 			m_BaseDir = m_BaseDir.Left(n);
 	}
-
-#ifdef	_DEBUGXX
-	CScript script;
-	script.ExecFile(_T("script.txt"));
-#endif
 
 	// メイン ウィンドウが初期化されたので、表示と更新を行います。
 	pMainFrame->ShowWindow(m_nCmdShow);

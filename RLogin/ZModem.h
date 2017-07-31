@@ -51,8 +51,8 @@ public:
 	int Rxcount;			/* Count of data bytes received */
 	char Rxhdr[ZMAXHLEN];	/* Received header */
 	char Txhdr[ZMAXHLEN];	/* Transmitted header */
-	long Rxpos;				/* Received file position */
-	long Txpos;				/* Transmitted file position */
+	LONGLONG Rxpos;				/* Received file position */
+	LONGLONG Txpos;				/* Transmitted file position */
 	int Txfcs32;			/* TURE means send binary frames with 32 bit FCS */
 	int Crc32t;				/* Controls 32 bit CRC being sent */
 							/* 1 == CRC32,  2 == CRC32 + RLE */
@@ -84,8 +84,8 @@ public:
 	int zgeth1();
 	int zdlread();
 	int noxrd7();
-	void stohdr(long pos);
-	long rclhdr(register char *hdr);
+	void stohdr(LONGLONG pos);
+	LONGLONG rclhdr(register char *hdr);
 
 	void zsdar32(char *buf, int length, int frameend);
 	int zrdatr32(char *buf, int length);

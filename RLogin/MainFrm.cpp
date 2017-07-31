@@ -1206,7 +1206,7 @@ LRESULT CMainFrame::OnWinSockSelect(WPARAM wParam, LPARAM lParam)
 {
 	int	fs = WSAGETSELECTEVENT(lParam);
 	CExtSocket *pSock = NULL;
-	
+
 	for ( int n = 0 ; n < m_SocketParam.GetSize() ; n += 2 ) {
 		if ( m_SocketParam[n] == (void *)wParam ) {
 			pSock = (CExtSocket *)(m_SocketParam[n + 1]);

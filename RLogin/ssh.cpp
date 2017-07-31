@@ -63,7 +63,7 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
 	CIdKey IdKey, *pKey;
 
-	//CString tmp;
+	//CStringA tmp;
 	//CCipher::BenchMark(tmp);
 	//CExtSocket::OnReciveCallBack((void *)(LPCSTR)tmp, tmp.GetLength(), 0);
 

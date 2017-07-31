@@ -117,7 +117,7 @@ public:
 	LPCTSTR GetTitle();
 	void MakeKey(CBuffer *bp, LPCTSTR pass);
 
-	static void CCipher::BenchMark(CString &out);
+	static void CCipher::BenchMark(CStringA &out);
 
 	CCipher();
 	~CCipher();
