@@ -817,8 +817,10 @@ int CMainFrame::OpenServerEntry(CServerEntry &Entry)
 	Entry.m_SaveFlag = TRUE;
 
 	for ( n = 0 ; n < m_ServerEntryTab.m_Data.GetSize() ; n++ ) {
-		if ( m_ServerEntryTab.m_Data[n].m_CheckFlag )
+		if ( m_ServerEntryTab.m_Data[n].m_CheckFlag ) {
 			PostMessage(WM_COMMAND, ID_FILE_NEW, 0);
+			break;
+		}
 	}
 	return TRUE;
 }

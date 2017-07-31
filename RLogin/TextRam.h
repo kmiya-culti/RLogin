@@ -547,6 +547,7 @@ public:
 	CArray<CTextRam::CSIEXTTAB, CTextRam::CSIEXTTAB &> m_CsiExt;
 
 	void fc_Init_Proc(int stage, const PROCTAB *tp, int b = 0);
+	ESCNAMEPROC *fc_InitProcName(CTextRam::ESCNAMEPROC *tab, int *max);
 	void fc_Init(int mode);
 	inline void fc_Call(int ch) { (this->*m_Func[ch])(ch); }
 	inline void fc_Case(int stage);

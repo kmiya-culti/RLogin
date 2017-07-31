@@ -478,13 +478,16 @@
 #define IDM_INFO_EXPORT                 32818
 #define IDM_INFO_CLIPBORD               32819
 #define IDM_BROADCAST                   32833
+#define ID_EDIT_COPY_ALL                32836
+#define ID_EDIT_P                       32838
+#define ID_EDIT_PASTE_ALL               32839
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        160
-#define _APS_NEXT_COMMAND_VALUE         32835
+#define _APS_NEXT_COMMAND_VALUE         32841
 #define _APS_NEXT_CONTROL_VALUE         1189
 #define _APS_NEXT_SYMED_VALUE           244
 #endif

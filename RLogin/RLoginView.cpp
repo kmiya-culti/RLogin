@@ -62,6 +62,8 @@ BEGIN_MESSAGE_MAP(CRLoginView, CView)
 	ON_UPDATE_COMMAND_UI(ID_MOUSE_EVENT, &CRLoginView::OnUpdateMouseEvent)
 	ON_COMMAND(IDM_BROADCAST, &CRLoginView::OnBroadcast)
 	ON_UPDATE_COMMAND_UI(IDM_BROADCAST, &CRLoginView::OnUpdateBroadcast)
+	ON_COMMAND(ID_EDIT_COPY_ALL, &CRLoginView::OnEditCopyAll)
+//	ON_UPDATE_COMMAND_UI(ID_EDIT_COPY_ALL, &CRLoginView::OnUpdateEditCopyAll)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1210,10 +1212,28 @@ void CRLoginView::OnEditCopy()
 		OnUpdate(this, UPDATE_CLIPERA, NULL);
 	}
 }
-
 void CRLoginView::OnUpdateEditCopy(CCmdUI* pCmdUI) 
 {
 	pCmdUI->Enable(m_ClipFlag == 6 ? TRUE : FALSE);
+}
+void CRLoginView::OnEditCopyAll()
+{
+	CRLoginDoc *pDoc = GetDocument();
+	ASSERT(pDoc);
+
+	m_ClipStaPos = pDoc->m_TextRam.GetCalcPos(0, 0 - pDoc->m_TextRam.m_HisLen + pDoc->m_TextRam.m_Lines);
+//	m_ClipStaPos = pDoc->m_TextRam.GetCalcPos(0, 0);
+	m_ClipEndPos = pDoc->m_TextRam.GetCalcPos(pDoc->m_TextRam.m_Cols - 1, pDoc->m_TextRam.m_Lines - 1);
+	m_ClipFlag     = 6;
+	m_ClipTimer    = 0;
+	m_ClipKeyFlags = 0;
+
+	if ( pDoc->m_TextRam.IsOptEnable(TO_RLCKCOPY) ) {
+		pDoc->m_TextRam.EditCopy(m_ClipStaPos, m_ClipEndPos, IsClipRectMode());
+		m_ClipFlag = 0;
+	}
+
+	OnUpdate(this, UPDATE_CLIPERA, NULL);
 }
 
 BOOL CRLoginView::PreTranslateMessage(MSG* pMsg)

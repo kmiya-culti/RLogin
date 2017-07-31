@@ -1166,6 +1166,90 @@ int CStrScript::GetBuffer(CBuffer &buf)
 
 	return (m_Node != NULL ? TRUE : FALSE);
 }
+LPCSTR CStrScript::QuoteStr(CString &tmp, LPCSTR str)
+{
+	tmp = "\"";
+	while ( *str != '\0' ) {
+		if ( issjis1(str[0]) && issjis2(str[1]) ) {
+			tmp += *(str++);
+			tmp += *(str++);
+		} else if ( *str == '"' ) {
+			str++;
+			tmp += "\\042";
+		} else
+			tmp += *(str++);
+	}
+	tmp += "\"";
+	return tmp;
+}
+void CStrScript::SetNodeStr(CStrScriptNode *np, CString &str, LPCSTR cmd, int nst)
+{
+	for ( int n = 0 ; n < nst ; n++ )
+		str += "  ";
+
+	if ( np == NULL )
+		str += "nop\r\n";
+	else {
+		str += cmd;
+		str += "\t";
+		str += np->m_RecvStr;
+		str += "\t";
+		str += np->m_SendStr;
+		str += "\r\n";
+		SetNodeStr(np->m_Right, str, "if", nst + 1);
+		SetNodeStr(np->m_Left,  str, "or", nst);
+	}
+}
+CStrScriptNode *CStrScript::GetNodeStr(LPCSTR &str)
+{
+	CString tmp;
+	CStringArray aray;
+	CStrScriptNode *np;
+
+	while ( *str != '\0' ) {
+		if ( *str == '\n' ) {
+			str++;
+			break;
+		} else if ( *str == '\r' ) {
+			str++;
+		} else if ( *str == '\t' ) {
+			str++;
+			aray.Add(tmp);
+			tmp.Empty();
+		} else
+			tmp += *(str++);
+	}
+	aray.Add(tmp);
+
+	if ( aray.GetSize() < 3 )
+		return NULL;
+
+	np = new CStrScriptNode;
+	np->m_RecvStr = aray[1];
+	np->m_SendStr = aray[2];
+	np->m_Reg.Compile(np->m_RecvStr);
+	np->m_Right = GetNodeStr(str);
+	np->m_Left  = GetNodeStr(str);
+
+	return np;
+}
+void CStrScript::SetString(CString &str)
+{
+	str.Empty();
+	SetNodeStr(m_Node, str, "if", 0);
+}
+void CStrScript::GetString(LPCSTR str)
+{
+	m_MakeChat = FALSE;
+
+	if ( m_Node != NULL )
+		delete m_Node;
+
+	m_Node = GetNodeStr(str);
+
+	m_MakeFlag = FALSE;
+	m_Exec = NULL;
+}
 void CStrScript::EscapeStr(LPCWSTR str, CString &buf, BOOL reg)
 {
 	int n;

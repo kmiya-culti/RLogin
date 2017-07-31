@@ -41,6 +41,9 @@ BEGIN_MESSAGE_MAP(CChatDlg, CDialog)
 	ON_BN_CLICKED(IDC_DELNODE, &CChatDlg::OnBnClickedDelnode)
 	ON_NOTIFY(TVN_SELCHANGED, IDC_NODETREE, &CChatDlg::OnTvnSelchangedNodetree)
 	ON_NOTIFY(TVN_DELETEITEM, IDC_NODETREE, &CChatDlg::OnTvnDeleteitemNodetree)
+	ON_NOTIFY(NM_RCLICK, IDC_NODETREE, &CChatDlg::OnNMRClickNodetree)
+	ON_COMMAND(ID_EDIT_COPY_ALL, &CChatDlg::OnEditCopyAll)
+	ON_COMMAND(ID_EDIT_PASTE_ALL, &CChatDlg::OnEditPasteAll)
 END_MESSAGE_MAP()
 
 
@@ -180,4 +183,81 @@ void CChatDlg::OnTvnDeleteitemNodetree(NMHDR *pNMHDR, LRESULT *pResult)
 	if ( (np = (CStrScriptNode *)(pNMTreeView->itemOld.lParam)) != NULL )
 		delete np;
 	*pResult = 0;
+}
+
+void CChatDlg::OnNMRClickNodetree(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	CPoint point;
+	CMenu PopUpMenu;
+	CMenu *pSubMenu;
+
+	PopUpMenu.LoadMenu(IDR_POPUPMENU);
+	pSubMenu = PopUpMenu.GetSubMenu(4);
+
+	GetCursorPos(&point);
+	pSubMenu->TrackPopupMenu(TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, this);
+
+	*pResult = 0;
+}
+
+void CChatDlg::OnEditCopyAll()
+{
+	CString tmp;
+	HGLOBAL hClipData;
+	CHAR *pData;
+
+	m_Script.GetTreeCtrl(m_NodeTree);
+	m_Script.SetString(tmp);
+	m_Script.SetTreeCtrl(m_NodeTree);
+
+	if ( (hClipData = GlobalAlloc(GMEM_MOVEABLE, (tmp.GetLength() + 1) * sizeof(CHAR))) == NULL )
+		return;
+
+	if ( (pData = (CHAR *)GlobalLock(hClipData)) == NULL ) {
+		GlobalFree(hClipData);
+		return;
+	}
+
+	strcpy(pData, tmp);
+	GlobalUnlock(hClipData);
+
+	if ( !AfxGetMainWnd()->OpenClipboard() ) {
+		GlobalFree(hClipData);
+		return;
+	}
+
+	if ( !EmptyClipboard() ) {
+		CloseClipboard();
+		GlobalFree(hClipData);
+		return;
+	}
+
+	SetClipboardData(CF_TEXT, hClipData);
+	CloseClipboard();
+}
+
+void CChatDlg::OnEditPasteAll()
+{
+	HGLOBAL hData;
+	CHAR *pData;
+
+	if ( !OpenClipboard() )
+		return;
+
+	if ( (hData = GetClipboardData(CF_TEXT)) == NULL ) {
+		CloseClipboard();
+		return;
+	}
+
+	if ( (pData = (CHAR *)GlobalLock(hData)) == NULL ) {
+        CloseClipboard();
+        return;
+    }
+
+	m_Script.GetTreeCtrl(m_NodeTree);
+	m_Script.GetString((LPCSTR)pData);
+	m_Script.SetTreeCtrl(m_NodeTree);
+
+	GlobalUnlock(hData);
+	CloseClipboard();
 }

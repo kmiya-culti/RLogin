@@ -240,10 +240,17 @@ public:
 
 	void Init();
 	CStrScriptNode *CopyNode(CStrScriptNode *np);
+
 	void SetNode(CStrScriptNode *np, CBuffer &buf);
 	CStrScriptNode *GetNode(CBuffer &buf);
 	void SetBuffer(CBuffer &buf);
 	int GetBuffer(CBuffer &buf);
+
+	LPCSTR QuoteStr(CString &tmp, LPCSTR str);
+	void SetNodeStr(CStrScriptNode *np, CString &str, LPCSTR cmd, int nst);
+	CStrScriptNode *GetNodeStr(LPCSTR &str);
+	void SetString(CString &str);
+	void GetString(LPCSTR str);
 
 	void EscapeStr(LPCWSTR str, CString &buf, BOOL reg = FALSE);
 	void AddNode(LPCWSTR recv, LPCWSTR send);

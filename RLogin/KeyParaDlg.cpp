@@ -60,9 +60,10 @@ BOOL CKeyParaDlg::OnInitDialog()
 	m_WithAlt   = (m_pData->m_Mask & MASK_ALT)   ? TRUE : FALSE;
 	m_WithAppli = (m_pData->m_Mask & MASK_APPL)  ? TRUE : FALSE;
 	m_Maps = m_pData->GetMaps();
-	UpdateData(FALSE);
 	
 	m_pData->SetComboList((CComboBox *)GetDlgItem(IDC_KEYCODE));
+
+	UpdateData(FALSE);
 
 	return TRUE;
 }

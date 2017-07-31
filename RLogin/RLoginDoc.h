@@ -80,6 +80,8 @@ public:
 	CStrScript *m_pScript;
 	CString m_ErrorPrompt;
 
+	BOOL EntryText(CString &name);
+
 	void SendBuffer(CBuffer &buf);
 	void SendScript(LPCWSTR str, LPCWSTR match);
 	void OnReciveChar(int ch);

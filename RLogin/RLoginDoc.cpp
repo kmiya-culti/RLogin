@@ -244,13 +244,84 @@ void CRLoginDoc::SendBuffer(CBuffer &buf)
 	if ( (pos = GetFirstViewPosition()) != NULL && (pView = (CRLoginView *)GetNextView(pos)) != NULL )
 		pView->SendBuffer(buf, TRUE);
 }
+BOOL CRLoginDoc::EntryText(CString &name)
+{
+	CEditDlg dlg;
+	CTime tm = CTime::GetCurrentTime();
+	CString tmp;
+	LPCSTR str = name;
+	BOOL st = FALSE;
+
+	while ( *str != '\0' ) {
+		if ( *str == '%' ) {
+			switch(str[1]) {
+			case 'E':
+				tmp += m_ServerEntry.m_EntryName;
+				st = TRUE;
+				break;
+			case 'U':
+				tmp += m_ServerEntry.m_UserName;
+				st = TRUE;
+				break;
+			case 'P':
+				tmp += m_ServerEntry.m_PassName;
+				st = TRUE;
+				break;
+			case 'T':
+				tmp += m_ServerEntry.m_TermName;
+				st = TRUE;
+				break;
+			case 'S':
+				tmp += m_ServerEntry.m_HostName;
+				st = TRUE;
+				break;
+			case 'p':
+				tmp += m_ServerEntry.m_PortName;
+				st = TRUE;
+				break;
+			case 'D':
+				tmp += tm.Format("%y%m%d");
+				st = TRUE;
+				break;
+			case 't':
+				tmp += tm.Format("%H%M%S");
+				st = TRUE;
+				break;
+			case 'I':
+				dlg.m_WinText = "FileName";
+				dlg.m_Title = m_ServerEntry.m_EntryName;
+				dlg.m_Edit  = tmp;
+				tmp.Empty();
+				if ( dlg.DoModal() == IDOK )
+					tmp = dlg.m_Edit;
+				st = TRUE;
+				break;
+			case '%':
+				tmp += '%';
+				break;
+			default:
+				tmp += str[0];
+				tmp += str[1];
+				break;
+			}
+			str += 2;
+		} else
+			tmp += *(str++);
+	}
+
+	if ( st )
+		name = tmp;
+
+	return st;
+}
 void CRLoginDoc::SendScript(LPCWSTR str, LPCWSTR match)
 {
 	int n;
 	WCHAR c;
+	CEditDlg dlg;
+	CTime tm = CTime::GetCurrentTime();
 	CBuffer buf;
 	CStringW tmp;
-	CEditDlg dlg;
 
 	while ( *str != '\0' ) {
 		if ( *str == '%' ) {
@@ -266,6 +337,18 @@ void CRLoginDoc::SendScript(LPCWSTR str, LPCWSTR match)
 				break;
 			case 'T':
 				tmp += m_ServerEntry.m_TermName;
+				break;
+			case 'S':
+				tmp += m_ServerEntry.m_HostName;
+				break;
+			case 'p':
+				tmp += m_ServerEntry.m_PortName;
+				break;
+			case 'D':
+				tmp += tm.Format("%y%m%d");
+				break;
+			case 't':
+				tmp += tm.Format("%H%M%S");
 				break;
 			case 'I':
 				dlg.m_WinText = "ChatScript";
@@ -404,12 +487,25 @@ void CRLoginDoc::OnSocketConnect()
 	if ( m_TextRam.IsOptEnable(TO_RLHISDATE) && !m_TextRam.m_LogFile.IsEmpty() ) {
 		int n;
 		int num = 1;
-		CTime t = CTime::GetCurrentTime();
-		CString file;
-		CString base = m_TextRam.m_LogFile;
+		CString file, dirs, name, exts;
 
-		if ( (n = m_TextRam.m_LogFile.ReverseFind('.')) >= 0 )
-			base = m_TextRam.m_LogFile.Left(n);
+		if ( (n = m_TextRam.m_LogFile.ReverseFind('\\')) >= 0 || (n = m_TextRam.m_LogFile.ReverseFind(':')) >= 0 ) {
+			dirs = m_TextRam.m_LogFile.Left(n + 1);
+			name = m_TextRam.m_LogFile.Mid(n + 1);
+		} else {
+			dirs = "";
+			name = m_TextRam.m_LogFile;
+		}
+
+		if ( (n = name.ReverseFind('.')) >= 0 ) {
+			exts = name.Mid(n);
+			name.Delete(n, exts.GetLength());
+		}
+
+		if ( !EntryText(name) ) {
+			name += "-%D";
+			EntryText(name);
+		}
 
 		if ( m_pLogFile != NULL ) {
 			m_pLogFile->Close();
@@ -420,7 +516,7 @@ void CRLoginDoc::OnSocketConnect()
 		if ( (m_pLogFile = new CFile) == NULL )
 			return;
 
-		file.Format("%s-%s.txt", base, t.Format("%y%m%d"));
+		file.Format("%s%s%s", dirs, name, exts);
 
 		while ( !m_pLogFile->Open(file, CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite | CFile::shareExclusive) ) {
 			if ( ++num > 20 ) {
@@ -428,7 +524,7 @@ void CRLoginDoc::OnSocketConnect()
 				m_pLogFile = NULL;
 				return;
 			}
-			file.Format("%s-%s-%d.txt", base, t.Format("%y%m%d"), num);
+			file.Format("%s%s-%d%s", dirs, name, num, exts);
 		}
 
 		m_pLogFile->SeekToEnd();

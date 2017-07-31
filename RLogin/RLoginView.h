@@ -129,6 +129,7 @@ public:
 	afx_msg void OnUpdateMouseEvent(CCmdUI *pCmdUI);
 	afx_msg void OnBroadcast();
 	afx_msg void OnUpdateBroadcast(CCmdUI *pCmdUI);
+	afx_msg void OnEditCopyAll();
 };
 
 #ifndef _DEBUG  // RLoginView.cpp ファイルがデバッグ環境の時使用されます。

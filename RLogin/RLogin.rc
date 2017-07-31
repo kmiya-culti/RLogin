@@ -216,6 +216,8 @@ BEGIN
         MENUITEM "コピー(&C)",                     ID_EDIT_COPY
         MENUITEM "貼り付け(&P)",                    ID_EDIT_PASTE
         MENUITEM SEPARATOR
+        MENUITEM "すべて選択/コピー",                   ID_EDIT_COPY_ALL
+        MENUITEM SEPARATOR
         MENUITEM "ChatScriptの完了(&S)",           ID_CHARSCRIPT_END
         MENUITEM "Brark信号を送る(&B)",              ID_SEND_BREAK
         MENUITEM "マウスイベントを無効(&M)",              ID_MOUSE_EVENT
@@ -358,6 +360,11 @@ BEGIN
             MENUITEM "クリップボードに送る",                  IDM_INFO_CLIPBORD
         END
     END
+    POPUP "CHATDLG"
+    BEGIN
+        MENUITEM "すべてクリップボードへコピー",              ID_EDIT_COPY_ALL
+        MENUITEM "クリップボードから貼り付け",               ID_EDIT_PASTE_ALL
+    END
 END
 
 IDR_TEKWND MENU 
@@ -391,7 +398,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.7.0 (2009/09/07)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.7.1 (2009/09/16)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2009 Culti",IDC_STATIC,47,18,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,145,50,14,WS_GROUP
     LTEXT           "OpenSSL 0.9.8k 25 Mar 2009",IDC_STATIC,47,35,176,8
@@ -1187,8 +1194,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,7,0,0
- PRODUCTVERSION 2,7,0,0
+ FILEVERSION 2,7,1,0
+ PRODUCTVERSION 2,7,1,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1205,12 +1212,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2, 7, 0, 0"
+            VALUE "FileVersion", "2, 7, 1, 0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2008 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2, 7, 0, 0"
+            VALUE "ProductVersion", "2, 7, 1, 0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2319,6 +2326,8 @@ END
 STRINGTABLE 
 BEGIN
     IDM_BROADCAST           "キー入力を他のウィンドウにも同時送信する\n同時送信"
+    ID_EDIT_COPY_ALL        "すべてクリップボードにコピー\nすべてコピー"
+    ID_EDIT_PASTE_ALL       "クリップボードから貼り付け\nすべて貼り付け"
 END
 
 #endif    // 日本語 resources

@@ -41,4 +41,7 @@ public:
 	afx_msg void OnTvnSelchangedNodetree(NMHDR *pNMHDR, LRESULT *pResult);
 	BOOL m_MakeChat;
 	afx_msg void OnTvnDeleteitemNodetree(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnNMRClickNodetree(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnEditCopyAll();
+	afx_msg void OnEditPasteAll();
 };
