@@ -10,6 +10,7 @@
 #include "RLoginView.h"
 #include "TextRam.h"
 #include "PipeSock.h"
+#include "GrapWnd.h"
 
 #include <iconv.h>
 #include <imm.h>
@@ -2258,16 +2259,22 @@ void CTextRam::fc_OSC_ST(int ch)
 		}
 		break;
 
-#if 0
 	case ('P' << 24) | 'p':						// ReGIS graphics
-#endif
+		tmp.Format("ReGIS - %s", m_pDocument->m_ServerEntry.m_EntryName);
+		pGrapWnd = new CGrapWnd(this);
+		pGrapWnd->Create(NULL, tmp);
+		pGrapWnd->SetReGIS(GetAnsiPara(0, 0, 0),m_OscPara);
+		pGrapWnd->ShowWindow(SW_SHOW);
+		AddGrapWnd((void *)pGrapWnd);
+		break;
 
 	case ('P' << 24) | 'q':						// Sixel graphics
-		tmp.Format("Grapics - %s", m_pDocument->m_ServerEntry.m_EntryName);
+		tmp.Format("Sixel - %s", m_pDocument->m_ServerEntry.m_EntryName);
 		pGrapWnd = new CGrapWnd(this);
 		pGrapWnd->Create(NULL, tmp);
 		pGrapWnd->SetSixel(GetAnsiPara(0, 0, 0), GetAnsiPara(1, 0, 0), m_OscPara);
 		pGrapWnd->ShowWindow(SW_SHOW);
+		AddGrapWnd((void *)pGrapWnd);
 		break;
 
 #if 0

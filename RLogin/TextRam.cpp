@@ -346,6 +346,9 @@ CTextRam::~CTextRam()
 
 	if ( m_pTekWnd != NULL )
 		m_pTekWnd->DestroyWindow();
+
+	while ( m_GrapWndTab.GetSize() > 0 )
+		((CWnd *)(m_GrapWndTab[0]))->DestroyWindow();
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -2271,6 +2274,19 @@ void CTextRam::SetRetChar(BOOL f8)
 		m_RetChar[RC_OSC] = "\033]";
 		m_RetChar[RC_PM]  = "\033^";
 		m_RetChar[RC_APC] = "\033_";
+	}
+}
+void CTextRam::AddGrapWnd(void *pWnd)
+{
+	m_GrapWndTab.Add(pWnd);
+}
+void CTextRam::RemoveGrapWnd(void *pWnd)
+{
+	for ( int n = 0 ; n < m_GrapWndTab.GetSize() ; n++ ) {
+		if ( m_GrapWndTab[n] == pWnd ) {
+			m_GrapWndTab.RemoveAt(n);
+			break;
+		}
 	}
 }
 

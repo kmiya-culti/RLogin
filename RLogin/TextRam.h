@@ -14,7 +14,6 @@
 #include "Data.h"
 #include "IConv.h"
 #include "TekWnd.h"
-#include "GrapWnd.h"
 #include "GhostWnd.h"
 
 #define	COLS_MAX		512
@@ -957,6 +956,11 @@ public:
 	int m_Loc_LastY;
 
 	void LocReport(int md, int sw, int x, int y);
+
+	CPtrArray m_GrapWndTab;
+
+	void AddGrapWnd(void *pWnd);
+	void RemoveGrapWnd(void *pWnd);
 };
 
 #endif // !defined(AFX_TEXTRAM_H__CBEA227A_D7D7_4213_88B1_4F4C0DF48089__INCLUDED_)
