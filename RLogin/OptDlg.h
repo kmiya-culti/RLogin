@@ -8,6 +8,7 @@
 #include "CharSetPage.h"	// ClassView によって追加されました。
 #include "ColParaDlg.h"	// ClassView によって追加されました。
 #include "KeyPage.h"	// ClassView によって追加されました。
+#include "HisPage.h"	// ClassView によって追加されました。
 
 #if _MSC_VER > 1000
 #pragma once
@@ -54,6 +55,7 @@ public:
 	CProtoPage m_ProtoPage;
 	CTermPage m_TermPage;
 	CScrnPage m_ScrnPage;
+	CHisPage m_HisPage;
 
 	CServerEntry *m_pEntry;
 	CTextRam *m_pTextRam;

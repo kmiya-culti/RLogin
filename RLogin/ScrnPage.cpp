@@ -15,18 +15,16 @@
 
 IMPLEMENT_DYNAMIC(CScrnPage, CPropertyPage)
 
-#define	CHECKOPTMAX		3
+#define	CHECKOPTMAX		1
 #define	IDC_CHECKFAST	IDC_TERMCHECK1
-static const int CheckOptTab[] = { TO_RLHISFILE, TO_RLNORESZ, TO_RLMOSWHL };
+static const int CheckOptTab[] = { TO_RLNORESZ };
 
 CScrnPage::CScrnPage() : CPropertyPage(CScrnPage::IDD)
 {
 	m_ScrnFont = -1;
-	m_HisMax = _T("");
 	m_FontSize = _T("");
 	m_ColsMax[0] = _T("");
 	m_ColsMax[1] = _T("");
-	m_WheelSize = _T("");
 	m_VisualBell = 0;
 	m_RecvCrLf = 0;
 	m_SendCrLf = 0;
@@ -48,11 +46,9 @@ void CScrnPage::DoDataExchange(CDataExchange* pDX)
 	CPropertyPage::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CTermPage)
 	DDX_Radio(pDX, IDC_SCRNSIZE1, m_ScrnFont);
-	DDX_Text(pDX, IDC_HISMAX, m_HisMax);
 	DDX_CBString(pDX, IDC_SCSZFONT, m_FontSize);
 	DDX_Text(pDX, IDC_SCSZCOLS, m_ColsMax[0]);
 	DDX_Text(pDX, IDC_SCSZCOLS2, m_ColsMax[1]);
-	DDX_CBString(pDX, IDC_WHEELSIZE, m_WheelSize);
 	DDX_CBIndex(pDX, IDC_VISUALBELL, m_VisualBell);
 	DDX_CBIndex(pDX, IDC_RECVCRLF, m_RecvCrLf);
 	DDX_CBIndex(pDX, IDC_SENDCRLF, m_SendCrLf);
@@ -67,16 +63,12 @@ void CScrnPage::DoDataExchange(CDataExchange* pDX)
 
 
 BEGIN_MESSAGE_MAP(CScrnPage, CPropertyPage)
-	ON_BN_CLICKED(IDC_HISFILE_SEL, OnHisfileSel)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_CHECKFAST, IDC_CHECKFAST + CHECKOPTMAX - 1, OnUpdateCheck)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_SCRNSIZE1, IDC_SCRNSIZE2, OnUpdateCheck)
 	ON_EN_CHANGE(IDC_SCSZCOLS, OnUpdateEdit)
 	ON_EN_CHANGE(IDC_SCSZCOLS2, OnUpdateEdit)
-	ON_EN_CHANGE(IDC_HISMAX,   OnUpdateEdit)
 	ON_CBN_EDITCHANGE(IDC_SCSZFONT,  OnUpdateEdit)
 	ON_CBN_SELCHANGE(IDC_SCSZFONT,	 OnUpdateEdit)
-	ON_CBN_EDITCHANGE(IDC_WHEELSIZE, OnUpdateEdit)
-	ON_CBN_SELCHANGE(IDC_WHEELSIZE,	 OnUpdateEdit)
 	ON_CBN_SELCHANGE(IDC_VISUALBELL, OnUpdateEdit)
 	ON_CBN_SELCHANGE(IDC_RECVCRLF,   OnUpdateEdit)
 	ON_CBN_SELCHANGE(IDC_SENDCRLF,   OnUpdateEdit)
@@ -116,9 +108,6 @@ BOOL CScrnPage::OnInitDialog()
 	m_ColsMax[0].Format("%d",   m_pSheet->m_pTextRam->m_DefCols[0]);
 	m_ColsMax[1].Format("%d",   m_pSheet->m_pTextRam->m_DefCols[1]);
 	m_FontSize.Format("%d",  m_pSheet->m_pTextRam->m_DefFontSize);
-	m_HisMax.Format("%d",    m_pSheet->m_pTextRam->m_DefHisMax);
-	m_WheelSize.Format("%d", m_pSheet->m_pTextRam->m_WheelSize);
-	m_HisFile = m_pSheet->m_pTextRam->m_HisFile;
 
 	m_VisualBell = m_pSheet->m_pTextRam->IsOptValue(TO_RLADBELL, 2);
 	m_RecvCrLf   = m_pSheet->m_pTextRam->IsOptValue(TO_RLRECVCR, 2);
@@ -155,9 +144,6 @@ BOOL CScrnPage::OnApply()
 			m_pSheet->m_pTextRam->DisableOption(CheckOptTab[n]);
 	}
 
-	if ( m_pSheet->m_pTextRam->IsOptEnable(TO_RLHISFILE) && m_HisFile.IsEmpty() )
-		m_HisFile.Format("%s\\%s.rlh", ((CRLoginApp *)AfxGetApp())->m_BaseDir, m_pSheet->m_pEntry->m_EntryName);
-
 	if ( m_ScrnFont == 1 )
 		m_pSheet->m_pTextRam->EnableOption(TO_RLFONT);
 	else
@@ -166,9 +152,6 @@ BOOL CScrnPage::OnApply()
 	m_pSheet->m_pTextRam->m_DefCols[0]  = atoi(m_ColsMax[0]);
 	m_pSheet->m_pTextRam->m_DefCols[1]  = atoi(m_ColsMax[1]);
 	m_pSheet->m_pTextRam->m_DefFontSize = atoi(m_FontSize);
-	m_pSheet->m_pTextRam->m_DefHisMax   = atoi(m_HisMax);
-	m_pSheet->m_pTextRam->m_WheelSize   = atoi(m_WheelSize);
-	m_pSheet->m_pTextRam->m_HisFile     = m_HisFile;
 
 	m_pSheet->m_pTextRam->SetOptValue(TO_RLADBELL, 2, m_VisualBell);
 	m_pSheet->m_pTextRam->SetOptValue(TO_RLRECVCR, 2, m_RecvCrLf);
@@ -198,9 +181,6 @@ void CScrnPage::OnReset()
 	m_ColsMax[0].Format("%d",   m_pSheet->m_pTextRam->m_DefCols[0]);
 	m_ColsMax[1].Format("%d",   m_pSheet->m_pTextRam->m_DefCols[1]);
 	m_FontSize.Format("%d",  m_pSheet->m_pTextRam->m_DefFontSize);
-	m_HisMax.Format("%d",    m_pSheet->m_pTextRam->m_DefHisMax);
-	m_WheelSize.Format("%d", m_pSheet->m_pTextRam->m_WheelSize);
-	m_HisFile = m_pSheet->m_pTextRam->m_HisFile;
 
 	m_VisualBell = m_pSheet->m_pTextRam->IsOptValue(TO_RLADBELL, 2);
 	m_RecvCrLf   = m_pSheet->m_pTextRam->IsOptValue(TO_RLRECVCR, 2);
@@ -225,21 +205,6 @@ void CScrnPage::OnReset()
 
 void CScrnPage::OnUpdateEdit() 
 {
-	SetModified(TRUE);
-	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
-}
-void CScrnPage::OnHisfileSel() 
-{
-	if ( m_HisFile.IsEmpty() )
-		m_HisFile.Format("%s\\%s.rlh", ((CRLoginApp *)AfxGetApp())->m_BaseDir, m_pSheet->m_pEntry->m_EntryName);
-
-	CFileDialog dlg(FALSE, "rlh", m_HisFile, 0,
-		"History Ì§²Ù (*.rlh)|*.rlh|All Files (*.*)|*.*||", this);
-
-	if ( dlg.DoModal() != IDOK )
-		return;
-
-	m_HisFile = dlg.GetPathName();
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 }

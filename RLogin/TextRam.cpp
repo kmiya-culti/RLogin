@@ -1493,10 +1493,10 @@ void CTextRam::EditCopy(int sps, int eps, BOOL rectflag, BOOL lineflag)
 			if ( n == 1 && ch == ' ' && IS_ENABLE(m_AnsiOpt, TO_RLSPCTAB) != 0 ) {
 				tc++;
 				if ( (x % m_DefTab) == (m_DefTab - 1) ) {
-					if ( tc > (m_DefTab / 2) ) {
+//					if ( tc > (m_DefTab / 2) ) {
 						str.ConsumeEnd(tc * 2);
 						str.PutWord('\t');
-					}
+//					}
 					tc = 0;
 				}
 			} else

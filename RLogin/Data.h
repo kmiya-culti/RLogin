@@ -17,18 +17,6 @@
 
 #define	NIMALLOC	256
 
-typedef	union _MEMSWAP {
-	LONGLONG	ll;
-	LONG		l[2];
-	WORD		w[4];
-	BYTE		b[8];
-} MEMSWAP, *LPMEMSWAP;
-
-#define	WORDSWAP(d, s)		{ d->b[1] = s->b[0]; d->b[0] = s->b[1]; }
-#define	LONGSWAP(d, s)		{ d->b[3] = s->b[0]; d->b[2] = s->b[1]; d->b[1] = s->b[2]; d->b[0] = s->b[3]; }
-#define	LONGLONGSWAP(d, s)	{ d->b[7] = s->b[0]; d->b[6] = s->b[1]; d->b[5] = s->b[2]; d->b[4] = s->b[3]; \
-							  d->b[3] = s->b[4]; d->b[2] = s->b[5]; d->b[1] = s->b[6]; d->b[0] = s->b[7]; }
-
 class CBuffer : public CObject
 {
 public:

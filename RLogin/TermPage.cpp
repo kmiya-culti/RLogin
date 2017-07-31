@@ -22,9 +22,9 @@ static char THIS_FILE[] = __FILE__;
 
 IMPLEMENT_DYNCREATE(CTermPage, CPropertyPage)
 
-#define	CHECKOPTMAX		6
+#define	CHECKOPTMAX		5
 #define	IDC_CHECKFAST	IDC_TERMCHECK1
-static const int CheckOptTab[] = { TO_RLBOLD, TO_RLGNDW, TO_RLGCWA, TO_RLUNIAWH, TO_RLHISDATE, TO_RLKANAUTO };
+static const int CheckOptTab[] = { TO_RLBOLD, TO_RLGNDW, TO_RLGCWA, TO_RLUNIAWH, TO_RLKANAUTO };
 
 static const LV_COLUMN InitListTab[2] = {
 		{ LVCF_TEXT | LVCF_WIDTH, 0,  80,	"Mode",			0, 0 },
@@ -58,7 +58,7 @@ static const struct _OptListTab {
 	{	TO_XTMABUF,		"Alternate Screen mode"				},
 	{	TO_DECECM,		"SGR space color disable"			},
 
-	// XTerm Option			1000-1099(300-399)
+	// XTerm Option			1000-1099(300-379)
 	{	TO_XTNOMTRK,	"X11 normal mouse tracking"			},
 	{	TO_XTHILTRK,	"X11 hilite mouse tracking"			},
 	{	TO_XTBEVTRK,	"X11 button-event mouse tracking"	},
@@ -66,6 +66,9 @@ static const struct _OptListTab {
 	{	TO_XTALTSCR,	"Alternate/Normal screen buffer"	},
 	{	TO_XTSRCUR,		"Save/Restore cursor"				},
 	{	TO_XTALTCLR,	"Alternate screen with clearing"	},
+
+	// XTerm Option 2		2000-2019(380-399)
+	{	TO_XTBRPAMD,	"Bracketed Paste Mode"				},
 
 	{	0,				NULL	}
 };
@@ -77,8 +80,6 @@ CTermPage::CTermPage() : CPropertyPage(CTermPage::IDD)
 	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
 		m_Check[n] = FALSE;
 	m_pSheet = NULL;
-	m_LogMode = 0;
-	m_LogCode = 0;
 	m_TtlMode = 0;
 	m_TtlRep = m_TtlCng = FALSE;
 }
@@ -95,23 +96,18 @@ void CTermPage::DoDataExchange(CDataExchange* pDX)
 	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
 		DDX_Check(pDX, IDC_TERMCHECK1 + n, m_Check[n]);
 	DDX_Control(pDX, IDC_ESCLIST, m_List);
-	DDX_CBIndex(pDX, IDC_COMBO1, m_LogMode);
-	DDX_CBIndex(pDX, IDC_COMBO2, m_LogCode);
 	DDX_CBIndex(pDX, IDC_COMBO3, m_TtlMode);
-	DDX_Check(pDX, IDC_TERMCHECK7, m_TtlRep);
-	DDX_Check(pDX, IDC_TERMCHECK8, m_TtlCng);
+	DDX_Check(pDX, IDC_TERMCHECK6, m_TtlRep);
+	DDX_Check(pDX, IDC_TERMCHECK7, m_TtlCng);
 }
 
 BEGIN_MESSAGE_MAP(CTermPage, CPropertyPage)
 	//{{AFX_MSG_MAP(CTermPage)
 	//}}AFX_MSG_MAP
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_CHECKFAST, IDC_CHECKFAST + CHECKOPTMAX - 1, OnUpdateCheck)
-	ON_BN_CLICKED(IDC_AUTOLOG_SEL, OnBnClickedAutologSel)
 	ON_BN_CLICKED(IDC_ESCEDIT, &CTermPage::OnBnClickedEscedit)
 	ON_NOTIFY(NM_CLICK, IDC_ESCLIST, &CTermPage::OnNMClickEsclist)
-	ON_CONTROL_RANGE(BN_CLICKED, IDC_TERMCHECK7, IDC_TERMCHECK9, OnUpdateCheck)
-	ON_CBN_SELCHANGE(IDC_COMBO1, &CTermPage::OnCbnSelchangeCombo)
-	ON_CBN_SELCHANGE(IDC_COMBO2, &CTermPage::OnCbnSelchangeCombo)
+	ON_CONTROL_RANGE(BN_CLICKED, IDC_TERMCHECK6, IDC_TERMCHECK7, OnUpdateCheck)
 	ON_CBN_SELCHANGE(IDC_COMBO3, &CTermPage::OnCbnSelchangeCombo)
 END_MESSAGE_MAP()
 
@@ -130,9 +126,6 @@ BOOL CTermPage::OnInitDialog()
 	for ( n = 0 ; n < CHECKOPTMAX ; n++ )
 		m_Check[n] = (m_pSheet->m_pTextRam->IsOptEnable(CheckOptTab[n]) ? TRUE : FALSE);
 
-	m_LogFile = m_pSheet->m_pTextRam->m_LogFile;
-	m_LogMode = m_pSheet->m_pTextRam->IsOptValue(TO_RLLOGMODE, 2);
-	m_LogCode = m_pSheet->m_pTextRam->IsOptValue(TO_RLLOGCODE, 2);
 	m_ProcTab = m_pSheet->m_pTextRam->m_ProcTab;
 
 	m_TtlMode = m_pSheet->m_pTextRam->m_TitleMode & 7;
@@ -148,8 +141,10 @@ BOOL CTermPage::OnInitDialog()
 			str.Format("?%d", OptListTab[n].num);
 		} else if ( OptListTab[n].num < 300 ) {		// ANSI Screen Option	0-99(200-299)
 			str.Format("%d", OptListTab[n].num - 200);
-		} else if ( OptListTab[n].num < 400 ) {		// XTerm Option			1000-1099(300-399)
+		} else if ( OptListTab[n].num < 380 ) {		// XTerm Option			1000-1079(300-379)
 			str.Format("?%d", OptListTab[n].num + 700);
+		} else if ( OptListTab[n].num < 400 ) {		// XTerm Option 2		2000-2019(380-399)
+			str.Format("?%d", OptListTab[n].num + 1620);
 		} else if ( OptListTab[n].num < 512 ) {		// RLogin Option		400-511
 			str.Format("?%d", OptListTab[n].num + 1600);
 		}
@@ -174,9 +169,6 @@ BOOL CTermPage::OnApply()
 			m_pSheet->m_pTextRam->DisableOption(CheckOptTab[n]);
 	}
 
-	m_pSheet->m_pTextRam->m_LogFile     = m_LogFile;
-	m_pSheet->m_pTextRam->SetOptValue(TO_RLLOGMODE, 2, m_LogMode);
-	m_pSheet->m_pTextRam->SetOptValue(TO_RLLOGCODE, 2, m_LogCode);
 	m_pSheet->m_pTextRam->m_ProcTab = m_ProcTab;
 
 	m_pSheet->m_pTextRam->m_TitleMode = m_TtlMode;
@@ -200,8 +192,12 @@ BOOL CTermPage::OnApply()
 				m_pSheet->m_pTextRam->fc_DECSRET('h');
 			} else if ( OptListTab[n].num < 300 ) {		// ANSI Screen Option	0-99(200-299)
 				m_pSheet->m_pTextRam->EnableOption(OptListTab[n].num);
-			} else if ( OptListTab[n].num < 400 ) {		// XTerm Option			1000-1099(300-399)
+			} else if ( OptListTab[n].num < 380 ) {		// XTerm Option			1000-1079(300-379)
 				m_pSheet->m_pTextRam->m_AnsiPara.Add(OptListTab[n].num + 700);
+				m_pSheet->m_pTextRam->fc_Push(STAGE_CSI);
+				m_pSheet->m_pTextRam->fc_DECSRET('h');
+			} else if ( OptListTab[n].num < 400 ) {		// XTerm Option 2		2000-2019(380-399)
+				m_pSheet->m_pTextRam->m_AnsiPara.Add(OptListTab[n].num + 1620);
 				m_pSheet->m_pTextRam->fc_Push(STAGE_CSI);
 				m_pSheet->m_pTextRam->fc_DECSRET('h');
 			} else if ( OptListTab[n].num < 512 ) {		// RLogin Option		400-511
@@ -221,8 +217,12 @@ BOOL CTermPage::OnApply()
 				m_pSheet->m_pTextRam->fc_DECSRET('l');
 			} else if ( OptListTab[n].num < 300 ) {		// ANSI Screen Option	0-99(200-299)
 				m_pSheet->m_pTextRam->DisableOption(OptListTab[n].num);
-			} else if ( OptListTab[n].num < 400 ) {		// XTerm Option			1000-1099(300-399)
+			} else if ( OptListTab[n].num < 380 ) {		// XTerm Option			1000-1079(300-379)
 				m_pSheet->m_pTextRam->m_AnsiPara.Add(OptListTab[n].num + 700);
+				m_pSheet->m_pTextRam->fc_Push(STAGE_CSI);
+				m_pSheet->m_pTextRam->fc_DECSRET('l');
+			} else if ( OptListTab[n].num < 400 ) {		// XTerm Option 2		2000-2019(380-399)
+				m_pSheet->m_pTextRam->m_AnsiPara.Add(OptListTab[n].num + 1620);
 				m_pSheet->m_pTextRam->fc_Push(STAGE_CSI);
 				m_pSheet->m_pTextRam->fc_DECSRET('l');
 			} else if ( OptListTab[n].num < 512 ) {		// RLogin Option		400-511
@@ -241,9 +241,6 @@ void CTermPage::OnReset()
 	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
 		m_Check[n] = (m_pSheet->m_pTextRam->IsOptEnable(CheckOptTab[n]) ? TRUE : FALSE);
 
-	m_LogFile = m_pSheet->m_pTextRam->m_LogFile;
-	m_LogMode = m_pSheet->m_pTextRam->IsOptValue(TO_RLLOGMODE, 2);
-	m_LogCode = m_pSheet->m_pTextRam->IsOptValue(TO_RLLOGCODE, 2);
 	m_ProcTab = m_pSheet->m_pTextRam->m_ProcTab;
 
 	m_TtlMode = m_pSheet->m_pTextRam->m_TitleMode & 7;
@@ -258,22 +255,6 @@ void CTermPage::OnReset()
 }
 void CTermPage::OnUpdateCheck(UINT nID) 
 {
-	SetModified(TRUE);
-	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
-}
-
-void CTermPage::OnBnClickedAutologSel()
-{
-	if ( m_LogFile.IsEmpty() )
-		m_LogFile.Format("%s\\%s.txt", ((CRLoginApp *)AfxGetApp())->m_BaseDir, m_pSheet->m_pEntry->m_EntryName);
-
-	CFileDialog dlg(FALSE, "txt", m_LogFile, 0,
-		"ログ ファイル (*.txt)|*.txt|All Files (*.*)|*.*||", this);
-
-	if ( dlg.DoModal() != IDOK )
-		return;
-
-	m_LogFile = dlg.GetPathName();
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 }

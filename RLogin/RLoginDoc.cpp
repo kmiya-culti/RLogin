@@ -655,6 +655,8 @@ int CRLoginDoc::SocketOpen()
 {
 	BOOL rt;
 	int num;
+	CPassDlg dlg;
+	CString proxy[3];
 	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
 
 	if ( InternetAttemptConnect(0) != ERROR_SUCCESS )
@@ -677,15 +679,49 @@ int CRLoginDoc::SocketOpen()
 
 	num = CExtSocket::GetPortNum(m_ServerEntry.m_PortName);
 
+	rt = FALSE;
+	switch(m_ServerEntry.m_ProxyMode & 7) {
+	case 1:	// HTTP
+	case 3:	// SOCKS5
+		if ( m_ServerEntry.m_ProxyPass.IsEmpty() )
+			rt = TRUE;
+		// no break;
+	case 2:	// SOCKS4
+		if ( m_ServerEntry.m_ProxyHost.IsEmpty() || m_ServerEntry.m_ProxyUser.IsEmpty() )
+			rt = TRUE;
+		break;
+	}
+
+	if ( rt ) {
+		dlg.m_Title    = m_ServerEntry.m_EntryName;
+		dlg.m_HostAddr = m_ServerEntry.m_ProxyHost;
+		dlg.m_UserName = m_ServerEntry.m_ProxyUser;
+		dlg.m_PassName = m_ServerEntry.m_ProxyPass;
+		dlg.m_Prompt   = "Proxy Password";
+		dlg.m_MaxTime  = 120;
+
+		if ( dlg.DoModal() != IDOK )
+			return FALSE;
+
+		proxy[0] = dlg.m_HostAddr;
+		proxy[1] = dlg.m_UserName;
+		proxy[2] = dlg.m_PassName;
+
+	} else {
+		proxy[0] = m_ServerEntry.m_ProxyHost;
+		proxy[1] = m_ServerEntry.m_ProxyUser;
+		proxy[2] = m_ServerEntry.m_ProxyPass;
+	}
+
 	if ( m_ServerEntry.m_HostReal.IsEmpty() ||
 		((m_ServerEntry.m_ProtoType == PROTO_TELNET || m_ServerEntry.m_ProtoType == PROTO_SSH) && 
 		 (m_TextRam.IsOptEnable(TO_RLUSEPASS) || m_ServerEntry.m_UserReal.IsEmpty() || m_ServerEntry.m_PassReal.IsEmpty())) ) {
-		CPassDlg dlg;
 
 		dlg.m_Title    = m_ServerEntry.m_EntryName;
 		dlg.m_HostAddr = m_ServerEntry.m_HostReal;
 		dlg.m_UserName = m_ServerEntry.m_UserReal;
 		dlg.m_PassName = m_ServerEntry.m_PassReal;
+		dlg.m_Prompt   = "Password";
 		dlg.m_MaxTime  = 120;
 
 		if ( dlg.DoModal() != IDOK )
@@ -710,9 +746,8 @@ int CRLoginDoc::SocketOpen()
 
 	if ( m_ServerEntry.m_ProxyMode != 0 )
 		rt = m_pSock->ProxyOpen(m_ServerEntry.m_ProxyMode,
-			m_ServerEntry.m_ProxyHost, CExtSocket::GetPortNum(m_ServerEntry.m_ProxyPort),
-			m_ServerEntry.m_ProxyUser, m_ServerEntry.m_ProxyPass,
-			m_ServerEntry.m_HostName, num);
+			proxy[0], CExtSocket::GetPortNum(m_ServerEntry.m_ProxyPort),
+			proxy[1], proxy[2], m_ServerEntry.m_HostName, num);
 	else 
 		rt = m_pSock->AsyncOpen(m_ServerEntry.m_HostName, num);
 

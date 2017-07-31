@@ -35,6 +35,7 @@ COptDlg::COptDlg(UINT nIDCaption, CWnd* pParentWnd, UINT iSelectPage)
 	AddPage(&m_SerEntPage);	 m_SerEntPage.m_pSheet  = this;
 	AddPage(&m_TermPage);	 m_TermPage.m_pSheet    = this;
 	AddPage(&m_ScrnPage);	 m_ScrnPage.m_pSheet    = this;
+	AddPage(&m_HisPage);     m_HisPage.m_pSheet     = this;
 	AddPage(&m_ProtoPage);	 m_ProtoPage.m_pSheet   = this;
 	AddPage(&m_CharSetPage); m_CharSetPage.m_pSheet = this;
 	AddPage(&m_ColorPage);   m_ColorPage.m_pSheet   = this;
@@ -54,6 +55,7 @@ COptDlg::COptDlg(LPCTSTR pszCaption, CWnd* pParentWnd, UINT iSelectPage)
 	AddPage(&m_SerEntPage);	 m_SerEntPage.m_pSheet  = this;
 	AddPage(&m_TermPage);    m_TermPage.m_pSheet    = this;
 	AddPage(&m_ScrnPage);	 m_ScrnPage.m_pSheet    = this;
+	AddPage(&m_HisPage);     m_HisPage.m_pSheet     = this;
 	AddPage(&m_ProtoPage);   m_ProtoPage.m_pSheet   = this;
 	AddPage(&m_CharSetPage); m_CharSetPage.m_pSheet = this;
 	AddPage(&m_ColorPage);   m_ColorPage.m_pSheet   = this;
@@ -133,6 +135,7 @@ void COptDlg::OnDoInit()
 	m_CharSetPage.OnReset();
 	m_ColorPage.OnReset();
 	m_KeyPage.OnReset();
+	m_HisPage.OnReset();
 
 	if ( m_pDocument != NULL )
 		m_pDocument->UpdateAllViews(NULL, UPDATE_INITPARA, NULL);

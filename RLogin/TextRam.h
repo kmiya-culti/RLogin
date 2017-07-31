@@ -96,7 +96,7 @@
 #define	TO_ANSIERM		(6+200)		// ERM Erasure mode
 #define	TO_ANSITSM		(18+200)	// ISM Tabulation stop mode
 #define	TO_ANSILNM		(20+200)	// LNM Line feed/new line mode
-// XTerm Option			1000-1099(300-399)
+// XTerm Option			1000-1079(300-379)
 #define	TO_XTNOMTRK		(1000-700)	// X11 normal mouse tracking
 #define	TO_XTHILTRK		(1001-700)	// X11 hilite mouse tracking
 #define	TO_XTBEVTRK		(1002-700)	// X11 button-event mouse tracking
@@ -104,6 +104,8 @@
 #define	TO_XTALTSCR		(1047-700)	// Alternate/Normal screen buffer
 #define	TO_XTSRCUR		(1048-700)	// Save/Restore cursor as in DECSC/DECRC
 #define	TO_XTALTCLR		(1049-700)	// Alternate screen with clearing
+// XTerm Option 2		2000-2019(380-399)
+#define	TO_XTBRPAMD		(2004-1620)	// Bracketed Paste Mode
 // RLogin Option		400-511
 #define	TO_RLGCWA		400			// ESC[m space att enable
 #define	TO_RLGNDW		401			// 行末での遅延改行を無効にする
@@ -143,7 +145,8 @@
 #define	TO_RLNORESZ		435			// DECCOLMの文字数切換でウィンドウをリサイズする
 #define	TO_SSHX11PF		436			// X11ポートフォワードを使用する
 #define	TO_RLKANAUTO	437			// 漢字コードを自動で追従する
-#define	TO_RLMOSWHL		438			// マウスホイールをヌルヌル動かす
+#define	TO_RLMOSWHL		438			// マウスホイールをヌルヌル禁止
+#define	TO_RLMSWAPP		439			// マウスホイールのアプリモード動作を禁止
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 

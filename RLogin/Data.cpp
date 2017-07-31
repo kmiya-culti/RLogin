@@ -26,157 +26,21 @@ static char THIS_FILE[]=__FILE__;
 //////////////////////////////////////////////////////////////////////
 // CBuffer
 
-//#define	STATICBUFFER
-
-#ifdef	STATICBUFFER
-
-typedef struct _BufPtr {
-	int				size;
-	struct _BufPtr	*next;
-} BUFPTR;
-
-static	BOOL	BufPtrInit = FALSE;
-static	BUFPTR	*BufPtrHash[256];
-
-static	int	CalcHash(int size)
-{
-	int n = size >> 8;
-
-	if ( n >= 16 )
-		n = (n >> 2) + 16;
-	if ( n >= 64 )
-		n = (n >> 2) + 64;
-	if ( n >= 256 )
-		n = 255;
-	return n;
-}
-static	LPBYTE	GetBufPtr(int size)
-{
-	int n;
-	BUFPTR *bp, *tp;
-
-	if ( !BufPtrInit ) {
-		for ( n = 0 ; n < 256 ; n++ )
-			BufPtrHash[n] = NULL;
-		BufPtrInit = TRUE;
-	}
-
-	n = CalcHash(size);
-
-	for ( bp = tp = BufPtrHash[n] ; bp != NULL ; ) {
-		if ( bp->size >= size ) {
-			if ( bp == tp )
-				BufPtrHash[n] = bp->next;
-			else
-				tp->next = bp->next;
-			return (LPBYTE)bp;
-		}
-		tp = bp;
-		bp = bp->next;
-	}
-
-	return new BYTE[size];
-}
-static	void	SetBufPtr(int size, LPBYTE buf)
-{
-	int n;
-	BUFPTR *bp;
-
-	n = CalcHash(size);
-
-	bp = (BUFPTR *)buf;
-	bp->size = size;
-	bp->next = BufPtrHash[n];
-	BufPtrHash[n] = bp;
-}
-#endif
-void	FreeBufPtr()
-{
-#ifdef	STATICBUFFER
-	int n;
-	BUFPTR *bp;
-
-	if ( !BufPtrInit )
-		return;
-
-	for ( n = 0 ; n < 256 ; n++ ) {
-		while ( (bp = BufPtrHash[n]) != NULL ) {
-			BufPtrHash[n] = bp->next;
-			delete (LPBYTE)bp;
-		}
-	}
-#endif
-}
-
 CBuffer::CBuffer(int size)
 {
 	m_Ofs = m_Len = 0;
-#ifdef	STATICBUFFER
-	m_Max = (size + NIMALLOC) & ~(NIMALLOC - 1);
-	m_Data = GetBufPtr(m_Max);
-#else
 	m_Max = size;
 	m_Data = new BYTE[m_Max];
-#endif
 }
 CBuffer::CBuffer()
 {
 	m_Ofs = m_Len = 0;
-#ifdef	STATICBUFFER
-	m_Max = NIMALLOC;
-	m_Data = GetBufPtr(m_Max);
-#else
 	m_Max = 32;
 	m_Data = new BYTE[m_Max];
-#endif
 }
-#ifdef	_DEBUGXXX
-static	int	report[32] = {
-	0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0
-};
-void CBuffer::RepSet()
-{
-	int n, b;
-	b = 0x80000000;
-	for ( n = 0 ; n < 32 ; n++ ) {
-		if ( (m_Max & b) != 0 ) {
-			report[n]++;
-			break;
-		}
-		b >>= 1;
-	}
-}
-void CBuffer::Report()
-{
-	int n, b;
-	b = 0x00000001;
-	for ( n = 31 ; n > 0 ; n-- ) {
-		TRACE("%d:%d\n", b, report[n]);
-		b <<= 1;
-	}
-}
-void CBuffer::Debug()
-{
-	int n;
-	for ( n = 0 ; n < m_Len ; n++ )
-		TRACE("%02x ", m_Data[m_Ofs + n] & 0xFF);
-	TRACE("\n");
-}
-#endif
 CBuffer::~CBuffer()
 {
-#ifdef	_DEBUGXXX
-	RepSet();
-#endif
-
-#ifdef	STATICBUFFER
-	SetBufPtr(m_Max, m_Data);
-#else
 	delete m_Data;
-#endif
 }
 void CBuffer::Consume(int len)
 {
@@ -195,25 +59,14 @@ void CBuffer::ReAlloc(int len)
 		return;
 	}
 
-#ifdef	STATICBUFFER
-	int old = m_Max;
-	m_Max = (len * 2 + NIMALLOC) & ~(NIMALLOC - 1);
-	LPBYTE tmp = GetBufPtr(m_Max);
-#else
 	m_Max = (len * 2 + NIMALLOC) & ~(NIMALLOC - 1);
 	LPBYTE tmp = new BYTE[m_Max];
-#endif
 
 	if ( (m_Len -= m_Ofs) > 0 )
 		memcpy(tmp, m_Data + m_Ofs, m_Len);
 	m_Ofs = 0;
 
-#ifdef	STATICBUFFER
-	SetBufPtr(old, m_Data);
-#else
 	delete m_Data;
-#endif
-
 	m_Data = tmp;
 }
 void CBuffer::Apend(LPBYTE buff, int len)
@@ -399,45 +252,49 @@ int CBuffer::GetWord()
 }
 void CBuffer::SET16BIT(LPBYTE pos, int val)
 {
-	register LPMEMSWAP p = (LPMEMSWAP)pos;
-	register LPMEMSWAP w = (LPMEMSWAP)(&val);
-	WORDSWAP(p, w);
+	pos[0] = (BYTE)(val >> 8);
+	pos[1] = (BYTE)(val >> 0);
 }
 void CBuffer::SET32BIT(LPBYTE pos, int val)
 {
-	register LPMEMSWAP p = (LPMEMSWAP)pos;
-	register LPMEMSWAP w = (LPMEMSWAP)(&val);
-	LONGSWAP(p, w);
+	pos[0] = (BYTE)(val >> 24);
+	pos[1] = (BYTE)(val >> 16);
+	pos[2] = (BYTE)(val >>  8);
+	pos[3] = (BYTE)(val >>  0);
 }
 void CBuffer::SET64BIT(LPBYTE pos, LONGLONG val)
 {
-	register LPMEMSWAP p = (LPMEMSWAP)pos;
-	register LPMEMSWAP w = (LPMEMSWAP)(&val);
-	LONGLONGSWAP(p, w);
+	pos[0] = (BYTE)(val >> 56);
+	pos[1] = (BYTE)(val >> 48);
+	pos[2] = (BYTE)(val >> 40);
+	pos[3] = (BYTE)(val >> 32);
+	pos[4] = (BYTE)(val >> 24);
+	pos[5] = (BYTE)(val >> 16);
+	pos[6] = (BYTE)(val >>  8);
+	pos[7] = (BYTE)(val >>  0);
 }
 int CBuffer::PTR16BIT(LPBYTE pos)
 {
-	int val = 0;
-	register LPMEMSWAP p = (LPMEMSWAP)pos;
-	register LPMEMSWAP w = (LPMEMSWAP)(&val);
-	WORDSWAP(w, p);
-	return val;
+	return ((int)pos[0] << 8) |
+		   ((int)pos[1] << 0);
 }
 int CBuffer::PTR32BIT(LPBYTE pos)
 {
-	int val;
-	register LPMEMSWAP p = (LPMEMSWAP)pos;
-	register LPMEMSWAP w = (LPMEMSWAP)(&val);
-	LONGSWAP(w, p);
-	return val;
+	return ((int)pos[0] << 24) |
+		   ((int)pos[1] << 16) |
+		   ((int)pos[2] <<  8) |
+		   ((int)pos[3] <<  0);
 }
 LONGLONG CBuffer::PTR64BIT(LPBYTE pos)
 {
-	LONGLONG val;
-	register LPMEMSWAP p = (LPMEMSWAP)pos;
-	register LPMEMSWAP w = (LPMEMSWAP)(&val);
-	LONGLONGSWAP(w, p);
-	return val;
+	return ((LONGLONG)pos[0] << 56) |
+		   ((LONGLONG)pos[1] << 48) |
+		   ((LONGLONG)pos[2] << 40) |
+		   ((LONGLONG)pos[3] << 32) |
+		   ((LONGLONG)pos[4] << 24) |
+		   ((LONGLONG)pos[5] << 16) |
+		   ((LONGLONG)pos[6] <<  8) |
+		   ((LONGLONG)pos[7] <<  0);
 }
 
 static const char *Base64EncTab = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";

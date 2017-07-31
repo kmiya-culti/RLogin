@@ -986,6 +986,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\HisPage.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\IConv.cpp"
 				>
 			</File>
@@ -1337,6 +1341,10 @@
 			</File>
 			<File
 				RelativePath=".\GhostWnd.h"
+				>
+			</File>
+			<File
+				RelativePath=".\HisPage.h"
 				>
 			</File>
 			<File

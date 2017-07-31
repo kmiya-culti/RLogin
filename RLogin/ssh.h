@@ -140,7 +140,7 @@ public:
 	BOOL m_UmacMode;
 
 	int Init(LPCSTR name, LPBYTE key = NULL, int len = (-1));
-	void Compute(int seq, LPBYTE inbuf, int len, CBuffer *out);
+	void Compute(DWORD seq, LPBYTE inbuf, int len, CBuffer *out);
 	int GetIndex(LPCSTR name);
 	int GetKeyLen(LPCSTR name = NULL);
 	int GetBlockSize(LPCSTR name = NULL);
@@ -487,8 +487,8 @@ private:
 #define	SSH2_STAT_HAVEPFWD		0100
 #define	SSH2_STAT_HAVEAGENT		0200
 
-	int m_SendPackSeq;
-	int m_RecvPackSeq;
+	DWORD m_SendPackSeq;
+	DWORD m_RecvPackSeq;
 	CBuffer m_InPackBuf;
 	BYTE m_Cookie[16];
 	CString m_SProp[10], m_CProp[10], m_VProp[6];

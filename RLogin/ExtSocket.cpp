@@ -8,6 +8,7 @@
 #include "RLoginDoc.h"
 #include "RLoginView.h"
 #include "ExtSocket.h"
+#include "PassDlg.h"
 #include "ssh.h"
 
 #ifdef _DEBUG
@@ -1009,6 +1010,7 @@ int CExtSocket::ProxyFunc()
 			buf.Apend((LPBYTE)(LPCSTR)m_ProxyUser, m_ProxyUser.GetLength());
 			buf.Put8Bit(m_ProxyPass.GetLength());
 			buf.Apend((LPBYTE)(LPCSTR)m_ProxyPass, m_ProxyPass.GetLength());
+
 			CExtSocket::Send(buf.GetPtr(), buf.GetSize(), 0);
 			m_ProxyStatus = 23;
 			m_ProxyBuff.Clear();

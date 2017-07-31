@@ -166,7 +166,7 @@ public:
 	class CChannel *m_pChan;
 	class Cssh *m_pSSh;
 	int m_VerId;
-	int m_SeqId;
+	DWORD m_SeqId;
 	CString m_LocalCurDir;
 	CArray<CFileNode, CFileNode &> m_LocalNode;
 	CString m_RemoteCurDir;
@@ -339,7 +339,7 @@ protected:
 class CCmdQue : public CObject
 {
 public:
-	int m_ExtId;
+	DWORD m_ExtId;
 	CTime m_SendTime;
 	CBuffer m_Msg;
 	int (CSFtp::*m_Func)(int type, CBuffer *bp, class CCmdQue *pQue);

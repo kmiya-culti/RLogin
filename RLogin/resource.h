@@ -59,6 +59,7 @@
 #define IDD_CSIPARADLG                  158
 #define IDD_STATUS_DLG                  160
 #define IDD_GHOSTWND                    161
+#define IDD_HISPAGE                     161
 #define IDM_KANJI_EUC                   200
 #define IDM_KANJI_SJIS                  201
 #define IDM_KANJI_ASCII                 202

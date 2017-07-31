@@ -539,14 +539,6 @@ int CRLoginApp::ExitInstance()
 	WSACleanup();
 #endif
 
-#ifdef	_DEBUGXXX
-	CBuffer tmp;
-	tmp.Report();
-#endif
-
-	extern void FreeBufPtr();
-	FreeBufPtr();
-
 #ifdef	DWMAPI
 	if ( ExDwmApi != NULL )
 		FreeLibrary(ExDwmApi);

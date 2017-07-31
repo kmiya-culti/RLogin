@@ -3090,8 +3090,10 @@ void CTextRam::fc_DECSRET(int ch)
 	for ( n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
 		if ( (i = GetAnsiPara(n, 0, 0)) < 1 )
 			continue;
-		else if ( i >= 1000 && i < 1100 )
-			i -= 700;		// 300-399
+		else if ( i >= 1000 && i < 1080 )
+			i -= 700;		// 300-379
+		else if ( i >= 2000 && i < 2020 )
+			i -= 1620;		// 380-399
 		else if ( i >= 200 )
 			continue;
 

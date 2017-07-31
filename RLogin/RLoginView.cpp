@@ -857,7 +857,7 @@ BOOL CRLoginView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 
 	ofs = zDelta * pDoc->m_TextRam.m_WheelSize / (WHEEL_DELTA / 2);
 
-	if ( pDoc->m_TextRam.IsOptEnable(TO_DECCKM) || (pDoc->m_TextRam.m_MouseTrack > 0 && !m_MouseEventFlag) || (nFlags & MK_CONTROL) != 0 ) {
+	if ( (!pDoc->m_TextRam.IsOptEnable(TO_RLMSWAPP) && pDoc->m_TextRam.IsOptEnable(TO_DECCKM)) || (pDoc->m_TextRam.m_MouseTrack > 0 && !m_MouseEventFlag) || (nFlags & MK_CONTROL) != 0 ) {
 		if ( pDoc->m_KeyTab.FindMaps((ofs > 0 ? VK_UP : VK_DOWN), (pDoc->m_TextRam.IsOptEnable(TO_DECCKM) ? MASK_APPL : 0), &tmp) ) {
 			for ( pos = (ofs < 0 ? (0 - ofs) : ofs) ; pos > 0 ; pos-- )
 				SendBuffer(tmp);
@@ -1262,6 +1262,7 @@ void CRLoginView::OnEditPaste()
 	WCHAR *pData;
 	CBuffer tmp;
 	int cr = 0;
+	CRLoginDoc *pDoc = GetDocument();
 
 	if ( !OpenClipboard() )
 		return;
@@ -1276,6 +1277,9 @@ void CRLoginView::OnEditPaste()
         return;
     }
 
+	if ( pDoc->m_TextRam.IsOptEnable(TO_XTBRPAMD) )
+		tmp.Apend((LPBYTE)(L"\033[200~"), 6 * sizeof(WCHAR));
+
 	for ( ; *pData != 0 ; pData++ ) {
 		if ( *pData != L'\x0A' && *pData != L'\x1A' ) {
 			tmp.Apend((LPBYTE)pData, sizeof(WCHAR));
@@ -1283,6 +1287,9 @@ void CRLoginView::OnEditPaste()
 				cr++;
 		}
 	}
+
+	if ( pDoc->m_TextRam.IsOptEnable(TO_XTBRPAMD) )
+		tmp.Apend((LPBYTE)(L"\033[201~"), 6 * sizeof(WCHAR));
 
 	GlobalUnlock(hData);
 	CloseClipboard();

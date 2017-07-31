@@ -28,9 +28,6 @@ public:
 	enum { IDD = IDD_TERMPAGE };
 	//}}AFX_DATA
 	BOOL m_Check[10];
-	CString m_LogFile;
-	int m_LogMode;
-	int m_LogCode;
 	CProcTab m_ProcTab;
 	CListCtrlExt m_List;
 	int m_TtlMode;
@@ -57,7 +54,6 @@ protected:
 	afx_msg void OnUpdateCheck(UINT nId);
 	DECLARE_MESSAGE_MAP()
 public:
-	afx_msg void OnBnClickedAutologSel();
 	afx_msg void OnBnClickedEscedit();
 	afx_msg void OnNMClickEsclist(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnCbnSelchangeCombo();
