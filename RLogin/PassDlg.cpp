@@ -43,7 +43,7 @@ END_MESSAGE_MAP()
 BOOL CPassDlg::OnInitDialog() 
 {
 	CWnd *pPassWnd = GetDlgItem(IDC_PASSNAME);
-	ASSERT(pPassWnd);
+	ASSERT(pPassWnd != NULL);
 
 	CDialog::OnInitDialog();
 	

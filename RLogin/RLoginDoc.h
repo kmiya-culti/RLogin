@@ -35,6 +35,7 @@
 #define	UPDATE_TEKFLUSH		10
 #define	UPDATE_RESIZE		11
 #define	UPDATE_CANCELBTN	12
+#define	UPDATE_DISPINDEX	13
 
 #define	CARET_MOVE			0
 #define	CARET_CREATE		1
@@ -91,6 +92,7 @@ public:
 
 	void SetIndex(int mode, CStringIndex &index);
 
+	void SetMenu(CMenu *pMenu, CKeyCmdsTab *pCmdsTab);
 	BOOL EntryText(CString &name);
 
 	void SendBuffer(CBuffer &buf);

@@ -557,7 +557,7 @@ void CSFtp::OnConnect()
 }
 void CSFtp::Close()
 {
-	ASSERT(m_pChan);
+	ASSERT(m_pChan != NULL);
 	m_pChan->DoClose();
 }
 

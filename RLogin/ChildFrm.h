@@ -36,15 +36,14 @@ public:
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
 	virtual void ActivateFrame(int nCmdShow);
 	virtual void OnUpdateFrameMenu(BOOL bActive, CWnd* pActiveWnd, HMENU hMenuAlt);
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
 
 // 生成された、メッセージ割り当て関数
 protected:
+	DECLARE_MESSAGE_MAP()
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnDestroy();
 	afx_msg void OnWindowClose();
 	afx_msg void OnMDIActivate(BOOL bActivate, CWnd* pActivateWnd, CWnd* pDeactivateWnd);
-	DECLARE_MESSAGE_MAP()
-public:
-	virtual BOOL PreTranslateMessage(MSG* pMsg);
 };

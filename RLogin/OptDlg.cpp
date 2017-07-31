@@ -198,6 +198,8 @@ BOOL COptDlg::OnInitDialog()
 		pWnd[n]->MoveWindow(rect[n]);
 	}
 
+	m_wndTree.SetFocus();
+
 	return bResult;
 }
 void COptDlg::OnDoInit()
@@ -254,6 +256,8 @@ void COptDlg::OnSelchangedTree(NMHDR *pNMHDR, LRESULT *pResult)
 	HTREEITEM hti;
 	CPropertyPage *pPage;
 
-	if ( (hti = m_wndTree.GetSelectedItem()) != NULL && (pPage = (CPropertyPage *)m_wndTree.GetItemData(hti)) != NULL )
+	if ( (hti = m_wndTree.GetSelectedItem()) != NULL && (pPage = (CPropertyPage *)m_wndTree.GetItemData(hti)) != NULL ) {
 		SetActivePage(pPage);
+		m_wndTree.SetFocus();
+	}
 }

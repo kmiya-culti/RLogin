@@ -49,7 +49,7 @@ END_MESSAGE_MAP()
 
 BOOL CPfdParaDlg::OnInitDialog() 
 {
-	ASSERT(m_pData);
+	ASSERT(m_pData != NULL);
 
 	CDialog::OnInitDialog();
 	CStringArrayExt stra;
@@ -86,7 +86,7 @@ BOOL CPfdParaDlg::OnInitDialog()
 
 void CPfdParaDlg::OnOK() 
 {
-	ASSERT(m_pData);
+	ASSERT(m_pData != NULL);
 
 	CString str;
 	CStringArrayExt stra;

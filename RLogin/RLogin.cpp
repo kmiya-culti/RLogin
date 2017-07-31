@@ -236,6 +236,7 @@ BEGIN_MESSAGE_MAP(CRLoginApp, CWinApp)
 	// 標準のファイル基本ドキュメント コマンド
 	ON_COMMAND(ID_FILE_NEW, &CWinApp::OnFileNew)
 	ON_COMMAND(ID_FILE_OPEN, &CWinApp::OnFileOpen)
+	ON_COMMAND(IDM_DISPWINIDX, &CRLoginApp::OnDispwinidx)
 END_MESSAGE_MAP()
 
 
@@ -1121,4 +1122,17 @@ void CRLoginApp::OnFilePrintSetup()
 
 	::GlobalUnlock(m_hDevMode);
 	::GlobalUnlock(m_hDevNames);
+}
+
+void CRLoginApp::OnDispwinidx()
+{
+	POSITION pos = GetFirstDocTemplatePosition();
+	while ( pos != NULL ) {
+		CDocTemplate *pDocTemp = GetNextDocTemplate(pos);
+		POSITION dpos = pDocTemp->GetFirstDocPosition();
+		while ( dpos != NULL ) {
+			CRLoginDoc *pDoc = (CRLoginDoc *)pDocTemp->GetNextDoc(dpos);
+			pDoc->UpdateAllViews(NULL, UPDATE_DISPINDEX, NULL);
+		}
+	}
 }

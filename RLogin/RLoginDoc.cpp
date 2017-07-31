@@ -407,6 +407,95 @@ void CRLoginDoc::SendBuffer(CBuffer &buf)
 	if ( (pos = GetFirstViewPosition()) != NULL && (pView = (CRLoginView *)GetNextView(pos)) != NULL )
 		pView->SendBuffer(buf, TRUE);
 }
+
+void CRLoginDoc::SetMenu(CMenu *pMenu, CKeyCmdsTab *pCmdsTab)
+{
+	int n, i, a;
+	CKeyCmds *pCmds, work;
+	CString str;
+	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
+	CMenu *pSubMenu;
+	CChildFrame *pChild;
+	CRLoginDoc *pDoc;
+	int sel = (-1);
+
+	// His Menu
+	for ( n = 0 ; n < 5 ; n++ )
+		pMenu->DeleteMenu(ID_MACRO_HIS1 + n, MF_BYCOMMAND);
+
+	m_KeyMac.SetHisMenu(pMenu);
+
+	// Script Menu
+	for ( n = 0 ; n < 10 ; n++ )
+		pMenu->DeleteMenu(IDM_SCRIPT_MENU1 + n, MF_BYCOMMAND);
+
+	if ( m_pScript != NULL )
+		m_pScript->SetMenu(pMenu);
+
+	// Window Menu
+	if ( (pSubMenu = pMenu->GetSubMenu(3)) != NULL ) {
+		for ( n = 0 ; n < pSubMenu->GetMenuItemCount() ; n++ ) {
+			if ( (i = pSubMenu->GetMenuItemID(n)) >= AFX_IDM_FIRST_MDICHILD || (i >= IDM_WINDOW_SEL0 && i <= IDM_WINDOW_SEL9) ) {
+				pSubMenu->DeleteMenu(n, MF_BYPOSITION);
+				n--;
+			}
+		}
+		while ( (n = pSubMenu->GetMenuItemCount() - 1) > 0 && pSubMenu->GetMenuItemID(n) == 0 )
+			pSubMenu->DeleteMenu(n, MF_BYPOSITION);
+
+		pSubMenu->AppendMenu(MF_SEPARATOR);
+		for ( n = 0 ; (pChild = (CChildFrame *)pMain->GetTabWnd(n)) != NULL ; n++ ) {
+			if ( (pDoc = (CRLoginDoc *)pChild->GetActiveDocument()) != NULL ) {
+				str.Format(_T("&%d %s"), n + 1, pDoc->GetTitle());
+				pSubMenu->AppendMenu(MF_STRING, IDM_WINDOW_SEL0 + n, str);
+				if ( pDoc == this )
+					sel = IDM_WINDOW_SEL0 + n;
+			}
+		}
+	}
+
+	// Short Cut Menu
+	for ( n = 0 ; n < pCmdsTab->GetSize() ; n++ )
+		pCmdsTab->m_Data[n].m_Flag = FALSE;
+
+	m_KeyTab.CmdsInit();
+
+	for ( n = 0 ; n < m_KeyTab.m_Cmds.GetSize() ; n++ ) {
+		pCmds = &(m_KeyTab.m_Cmds[n]);
+
+		if ( pMenu->GetMenuString(pCmds->m_Id, str, MF_BYCOMMAND) <= 0 )
+			continue;
+		if ( (a = str.Find(_T('\t'))) >= 0 )
+			str.Truncate(a);
+
+		pCmds->m_Flag = TRUE;
+		pCmds->m_Text = str;
+
+		if ( (i = pCmdsTab->Find(pCmds->m_Id)) >= 0 )
+			pCmdsTab->m_Data[i] = *pCmds;
+
+		else if ( !(pCmds->m_Id >= IDM_SCRIPT_MENU1 && pCmds->m_Id <= IDM_SCRIPT_MENU10) &&
+				  !(pCmds->m_Id >= ID_MACRO_HIS1    && pCmds->m_Id <= ID_MACRO_HIS4) &&
+				  !(pCmds->m_Id >= IDM_WINDOW_SEL0  && pCmds->m_Id <= IDM_WINDOW_SEL9)  )
+			i = pCmdsTab->Add(*pCmds);
+
+		pCmds->SetMenu(pMenu);
+	}
+
+	// Reset Other menu
+	for ( n = 0 ; n < pCmdsTab->GetSize() ; n++ ) {
+		if ( pCmdsTab->m_Data[n].m_Flag )
+			continue;
+		pCmdsTab->m_Data[n].ResetMenu(pMenu);
+		pCmdsTab->m_Data.RemoveAt(n);
+		n--;
+	}
+
+	// Window Menu Select
+	if ( sel > 0 )
+		pSubMenu->CheckMenuItem(sel, MF_BYCOMMAND | MF_CHECKED);
+}
+
 BOOL CRLoginDoc::EntryText(CString &name)
 {
 	CEditDlg dlg;
@@ -420,6 +509,10 @@ BOOL CRLoginDoc::EntryText(CString &name)
 			switch(str[1]) {
 			case _T('E'):
 				tmp += m_ServerEntry.m_EntryName;
+				st = TRUE;
+				break;
+			case _T('G'):
+				tmp += m_ServerEntry.m_Group;
 				st = TRUE;
 				break;
 			case _T('U'):
@@ -461,6 +554,7 @@ BOOL CRLoginDoc::EntryText(CString &name)
 				break;
 			case _T('%'):
 				tmp += _T('%');
+				st = TRUE;
 				break;
 			default:
 				tmp += str[0];
@@ -491,6 +585,9 @@ void CRLoginDoc::SendScript(LPCWSTR str, LPCWSTR match)
 			switch(str[1]) {
 			case L'E':
 				tmp += m_ServerEntry.m_EntryName;
+				break;
+			case _T('G'):
+				tmp += m_ServerEntry.m_Group;
 				break;
 			case L'U':
 				tmp += m_ServerEntry.m_UserName;
@@ -749,12 +846,12 @@ void CRLoginDoc::OnSocketClose()
 		bCanExit = TRUE;
 		CRLoginDoc *pDoc;
 		CDocTemplate *pDocTemp = GetDocTemplate();
-		ASSERT(pDocTemp);
+		ASSERT(pDocTemp != NULL);
 		POSITION pos = pDocTemp->GetFirstDocPosition();
 
 		while ( pos != NULL ) {
 			pDoc = (CRLoginDoc *)(pDocTemp->GetNextDoc(pos));
-			ASSERT(pDoc);
+			ASSERT(pDoc != NULL);
 			if ( pDoc != this && pDoc->m_pSock != NULL )
 				bCanExit = FALSE;
 		}
@@ -1344,7 +1441,6 @@ void CRLoginDoc::OnScript()
 		return;
 
 	if ( m_pScript->m_Code.GetSize() > 0 && AfxMessageBox(IDS_SCRIPTNEW, MB_ICONQUESTION | MB_YESNO) == IDYES ) {
-		m_pScript->SetMenu(AfxGetMainWnd(), TRUE);
 		if ( m_pScript != NULL )
 			delete m_pScript;
 		m_pScript = new CScript;
@@ -1541,8 +1637,11 @@ void CRLoginDoc::OnTracedisp()
 	if ( m_TextRam.m_pTraceWnd == NULL ) {
 		m_TextRam.SetTraceLog(TRUE);
 		m_TextRam.m_pTraceWnd = new CTraceDlg(NULL);
-		m_TextRam.m_pTraceWnd->m_Title = m_ServerEntry.m_EntryName;
 		m_TextRam.m_pTraceWnd->m_pDocument = this;
+		m_TextRam.m_pTraceWnd->m_Title = GetTitle();
+		m_TextRam.m_pTraceWnd->m_TraceLogFile  = m_TextRam.m_TraceLogFile;
+		EntryText(m_TextRam.m_pTraceWnd->m_TraceLogFile);
+		m_TextRam.m_pTraceWnd->m_TraceMaxCount = m_TextRam.m_TraceMaxCount;
 		m_TextRam.m_pTraceWnd->Create(IDD_TRACEDLG, CWnd::GetDesktopWindow());
 		m_TextRam.m_pTraceWnd->ShowWindow(SW_SHOW);
 //		::AfxGetMainWnd()->SetFocus();

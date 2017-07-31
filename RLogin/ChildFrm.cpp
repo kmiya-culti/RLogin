@@ -181,21 +181,17 @@ void CChildFrame::OnUpdateFrameMenu(BOOL bActive, CWnd* pActiveWnd, HMENU hMenuA
 {
 	CMenu cMenu;
 	CMainFrame *pFrame = (CMainFrame *)GetMDIFrame();
-	CRLoginDoc *pDoc = (CRLoginDoc *)GetActiveDocument();
 
-	if ( bActive && AfxGetApp()->GetProfileInt(_T("ChildFrame"), _T("VMenu"), TRUE) == FALSE )
+	if ( bActive && AfxGetApp()->GetProfileInt(_T("ChildFrame"), _T("VMenu"), TRUE) == FALSE ) {
 		pFrame->SetMenu(NULL);
-	else if ( !bActive && pActiveWnd == NULL && pFrame != NULL && pFrame->m_StartMenuHand != NULL ) {
+
+	} else if ( !bActive && pActiveWnd == NULL && pFrame != NULL && pFrame->m_StartMenuHand != NULL ) {
 		cMenu.Attach(pFrame->m_StartMenuHand);
 		pFrame->SetMenu(&cMenu);
 		cMenu.Detach();
+
 	} else {
 		CMDIChildWnd::OnUpdateFrameMenu(bActive, pActiveWnd, hMenuAlt);
-		if ( bActive && pActiveWnd != NULL && pDoc != NULL && pFrame != NULL ) {
-			pDoc->m_KeyMac.SetHisMenu(pFrame);
-			if ( pDoc->m_pScript != NULL )
-				pDoc->m_pScript->SetMenu(pFrame);
-		}
 	}
 }
 

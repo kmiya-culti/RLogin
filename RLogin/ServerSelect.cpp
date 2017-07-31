@@ -40,28 +40,33 @@ void CServerSelect::DoDataExchange(CDataExchange* pDX)
 }
 
 BEGIN_MESSAGE_MAP(CServerSelect, CDialog)
+	ON_WM_CLOSE()
+	ON_WM_SIZE()
+	ON_WM_SIZING()
+
+	ON_NOTIFY(NM_DBLCLK, IDC_SERVERLIST, OnDblclkServerlist)
+	ON_NOTIFY(TCN_SELCHANGE, IDC_SERVERTAB, &CServerSelect::OnTcnSelchangeServertab)
+
 	ON_BN_CLICKED(IDC_NEWENTRY, OnNewentry)
 	ON_BN_CLICKED(IDC_EDITENTRY, OnEditentry)
 	ON_BN_CLICKED(IDC_DELENTRY, OnDelentry)
-	ON_NOTIFY(NM_DBLCLK, IDC_SERVERLIST, OnDblclkServerlist)
+
 	ON_COMMAND(ID_EDIT_NEW, OnNewentry)
 	ON_COMMAND(ID_EDIT_UPDATE, OnEditentry)
 	ON_COMMAND(ID_EDIT_DELETE, OnDelentry)
 	ON_COMMAND(ID_EDIT_DUPS, OnEditCopy)
 	ON_COMMAND(ID_EDIT_CHECK, OnEditCheck)
+
 	ON_COMMAND(IDM_SERV_INPORT, &CServerSelect::OnServInport)
 	ON_COMMAND(IDM_SERV_EXPORT, &CServerSelect::OnServExport)
+	ON_COMMAND(IDM_SERV_PROTO, &CServerSelect::OnServProto)
+	ON_COMMAND(IDC_SAVEDEFAULT, &CServerSelect::OnSavedefault)
+	ON_COMMAND(IDM_SERV_EXCHNG, &CServerSelect::OnServExchng)
+
 	ON_UPDATE_COMMAND_UI(ID_EDIT_UPDATE, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_DELETE, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_DUPS, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(IDM_SERV_EXPORT, OnUpdateEditEntry)
-	ON_WM_CLOSE()
-	ON_WM_SIZE()
-	ON_WM_SIZING()
-	ON_NOTIFY(TCN_SELCHANGE, IDC_SERVERTAB, &CServerSelect::OnTcnSelchangeServertab)
-	ON_COMMAND(IDM_SERV_PROTO, &CServerSelect::OnServProto)
-	ON_COMMAND(IDC_SAVEDEFAULT, &CServerSelect::OnSavedefault)
-	ON_COMMAND(IDM_SERV_EXCHNG, &CServerSelect::OnServExchng)
 	ON_UPDATE_COMMAND_UI(IDM_SERV_EXCHNG, &CServerSelect::OnUpdateServExchng)
 END_MESSAGE_MAP()
 
@@ -244,8 +249,10 @@ BOOL CServerSelect::OnInitDialog()
 {
 	int cx, cy;
 	CRect rect;
+
+	ASSERT(m_pData != NULL);
+
 	CDialog::OnInitDialog();
-	ASSERT(m_pData);
 
 	m_TabEntry.SetNoCase(FALSE);
 	m_TabEntry.SetNoSort(FALSE);

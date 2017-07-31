@@ -27,11 +27,13 @@ public:
 	CString	m_CharBank3;
 	CString	m_CharBank4;
 	int		m_AltFont;
+	CString m_DefFontName;
 
 public:
 	class CFontTab m_FontTab;
 	WORD m_BankTab[5][4];
 	CString m_SendCharSet[5];
+	CString m_DefFontTab[16];
 
 public:
 	void InitList();
@@ -48,6 +50,7 @@ public:
 
 // インプリメンテーション
 protected:
+	DECLARE_MESSAGE_MAP()
 	afx_msg void OnFontListNew();
 	afx_msg void OnFontListEdit();
 	afx_msg void OnFontListDel();
@@ -58,5 +61,7 @@ protected:
 	afx_msg void OnEditDups();
 	afx_msg void OnUpdateEditEntry(CCmdUI* pCmdUI);
 	afx_msg void OnCbnSelchangeFontnum();
-	DECLARE_MESSAGE_MAP()
+	afx_msg void OnBnClickedFontsel();
+	afx_msg void OnEditDelall();
+	afx_msg void OnUpdateFontName();
 };

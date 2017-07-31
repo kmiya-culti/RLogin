@@ -29,6 +29,7 @@ public:
 	void NextActive();
 	void PrevActive();
 	void SelectActive(int idx);
+	int GetIndex(CWnd *pWnd);
 
 protected:
 	virtual void OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler);

@@ -184,7 +184,10 @@ public:
 	void RemoveChild(CWnd *pWnd);
 	void ActiveChild(CWnd *pWnd);
 	void MoveChild(CWnd *pWnd, CPoint point);
+	void SwapChild(CWnd *pLeft, CWnd *pRight);
 	BOOL IsOverLap(HWND hWnd);
+	int GetTabIndex(CWnd *pWnd);
+	CWnd *GetTabWnd(int idx);
 
 	void GetFrameRect(CRect &frame);
 	void AdjustRect(CRect &rect);
@@ -216,6 +219,7 @@ public:
 
 // 生成された、メッセージ割り当て関数
 protected:
+	DECLARE_MESSAGE_MAP()
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnDestroy();
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
@@ -252,7 +256,6 @@ protected:
 	afx_msg void OnWinodwNext();
 	afx_msg void OnUpdateWinodwNext(CCmdUI *pCmdUI);
 	afx_msg void OnWinodwSelect(UINT nID);
-	DECLARE_MESSAGE_MAP()
 };
 
 

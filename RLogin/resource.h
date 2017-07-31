@@ -245,6 +245,8 @@
 #define IDC_CHARBANK3                   1019
 #define IDC_CHARBANK4                   1020
 #define IDC_CHARSET                     1021
+#define IDC_CHARBANK5                   1021
+#define IDC_FONTNAME                    1021
 #define IDC_CHARSET1                    1022
 #define IDC_CHARSET2                    1023
 #define IDC_CHARSET3                    1024
@@ -289,6 +291,7 @@
 #define IDC_FONTSEL                     1057
 #define IDC_HISMAX                      1058
 #define IDC_ICONVSET                    1059
+#define IDC_TRACE_MAX                   1059
 #define IDC_IDKEYFILE                   1060
 #define IDC_IDKEYLOAD                   1061
 #define IDC_IDKEYSAVE                   1062
@@ -399,6 +402,7 @@
 #define IDC_IDKEY_LIST                  1138
 #define IDC_MOUSE_KEY2                  1138
 #define IDC_ESCEDIT                     1138
+#define IDC_TRACEFILE_SEL               1138
 #define IDC_BUTTON4                     1139
 #define IDC_IDKEY_UP                    1139
 #define IDC_COMBO3                      1139
@@ -599,6 +603,7 @@
 #define IDC_AUTOLOG_PATH                3058
 #define IDC_HISFILE_PATH                3059
 #define IDC_MSGICON                     3060
+#define IDC_TRACEFILE_PATH              3060
 #define IDC_SCRIPT_PATH                 3061
 #define IDC_SCRIPT_SEL                  3062
 #define IDC_CONTINUE                    3063
@@ -610,6 +615,8 @@
 #define IDC_ICONBOX                     3070
 #define IDC_SLIDER_CONTRAST             3071
 #define IDC_SLIDER_BRIGHT               3072
+#define IDC_SLIDER_BRIGHT2              3073
+#define IDC_SLIDER_HUECOL               3073
 #define IDC_MODE_LIST                   3074
 #define ID_FILE_ALL_LOAD                5000
 #define ID_EDIT_BOX                     5001
@@ -677,14 +684,18 @@
 #define ID_Menu5063                     5063
 #define ID_VIEW_TRACE                   5065
 #define IDM_TRACEDISP                   5066
+#define ID_5067                         5067
+#define IDM_DISPWINIDX                  5068
+#define ID_FONTLIST_5069                5069
+#define ID_EDIT_DELALL                  5070
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        177
-#define _APS_NEXT_COMMAND_VALUE         5067
-#define _APS_NEXT_CONTROL_VALUE         3075
+#define _APS_NEXT_COMMAND_VALUE         5071
+#define _APS_NEXT_CONTROL_VALUE         3077
 #define _APS_NEXT_SYMED_VALUE           202
 #endif
 #endif

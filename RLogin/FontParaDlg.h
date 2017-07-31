@@ -41,6 +41,7 @@ public:
 	LPCTSTR IConvName(int code);
 	int CodeSetNo(LPCTSTR bank, LPCTSTR code);
 	void CodeSetName(int num, CString &bank, CString &code);
+	void SetFontFace(int nID);
 
 // オーバーライド
 protected:
@@ -53,4 +54,7 @@ protected:
 	afx_msg void OnFontsel();
 	afx_msg void OnCbnSelchangeFontnum();
 	DECLARE_MESSAGE_MAP()
+public:
+	afx_msg void OnCbnSelchangeCharset();
+	afx_msg void OnCbnEditchangeCharset();
 };

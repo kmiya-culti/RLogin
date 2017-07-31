@@ -112,8 +112,7 @@ void CKeyPage::DoInit()
 }
 BOOL CKeyPage::OnInitDialog() 
 {
-	ASSERT(m_pSheet);
-	ASSERT(m_pSheet->m_pKeyTab);
+	ASSERT(m_pSheet != NULL && m_pSheet->m_pKeyTab != NULL);
 
 	CPropertyPage::OnInitDialog();
 
@@ -127,8 +126,7 @@ BOOL CKeyPage::OnInitDialog()
 }
 BOOL CKeyPage::OnApply() 
 {
-	ASSERT(m_pSheet);
-	ASSERT(m_pSheet->m_pKeyTab);
+	ASSERT(m_pSheet != NULL && m_pSheet->m_pKeyTab != NULL);
 
 	UpdateData(TRUE);
 
@@ -148,8 +146,7 @@ BOOL CKeyPage::OnApply()
 }
 void CKeyPage::OnReset() 
 {
-	ASSERT(m_pSheet);
-	ASSERT(m_pSheet->m_pKeyTab);
+	ASSERT(m_pSheet != NULL && m_pSheet->m_pKeyTab != NULL);
 
 	DoInit();
 	SetModified(FALSE);

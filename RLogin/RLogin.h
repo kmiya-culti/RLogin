@@ -91,9 +91,10 @@ public:
 	virtual BOOL SaveAllModified();
 
 // ŽÀ‘•
+	DECLARE_MESSAGE_MAP()
 	afx_msg void OnAppAbout();
 	afx_msg void OnFilePrintSetup();
-	DECLARE_MESSAGE_MAP()
+	afx_msg void OnDispwinidx();
 };
 
 extern CRLoginApp theApp;

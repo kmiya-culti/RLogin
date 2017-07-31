@@ -199,13 +199,12 @@ void CTermPage::DoInit()
 }
 BOOL CTermPage::OnInitDialog() 
 {
-	ASSERT(m_pSheet);
-	ASSERT(m_pSheet->m_pTextRam);
-
-	CPropertyPage::OnInitDialog();
-
 	int n;
 	CString str;
+
+	ASSERT(m_pSheet != NULL && m_pSheet->m_pTextRam != NULL);
+
+	CPropertyPage::OnInitDialog();
 
 	m_OptList.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_CHECKBOXES | LVS_EX_INFOTIP);
 	m_OptList.InitColumn(_T("TermPageOpt"), InitListTab, 3);
@@ -247,8 +246,7 @@ BOOL CTermPage::OnApply()
 {
 	int n, i;
 
-	ASSERT(m_pSheet);
-	ASSERT(m_pSheet->m_pTextRam);
+	ASSERT(m_pSheet != NULL && m_pSheet->m_pTextRam != NULL);
 
 	UpdateData(TRUE);
 
@@ -328,8 +326,7 @@ BOOL CTermPage::OnApply()
 }
 void CTermPage::OnReset() 
 {
-	ASSERT(m_pSheet);
-	ASSERT(m_pSheet->m_pTextRam);
+	ASSERT(m_pSheet != NULL && m_pSheet->m_pTextRam != NULL);
 
 	DoInit();
 	SetModified(FALSE);

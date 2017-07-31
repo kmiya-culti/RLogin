@@ -156,6 +156,7 @@ void CListCtrlExt::OnColumnclick(NMHDR* pNMHDR, LRESULT* pResult)
 BOOL CListCtrlExt::OnRclick(NMHDR* pNMHDR, LRESULT* pResult) 
 {
 	*pResult = 0;
+
 	if ( m_pSubMenu == NULL )
 		return FALSE;
 
@@ -301,6 +302,37 @@ BOOL CListCtrlExt::PreTranslateMessage(MSG* pMsg)
 			::DispatchMessage(pMsg);
 			return TRUE;
 		}
+	} else if ( m_pSubMenu != NULL && pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_APPS ) {
+		int n, flag;
+		CCmdUI state;
+		CPoint point;
+		CRect rect;
+		CWnd *pOwner = GetOwner();
+
+		state.m_pMenu = m_pSubMenu;
+		state.m_nIndexMax = m_pSubMenu->GetMenuItemCount();
+		for ( state.m_nIndex = 0 ; state.m_nIndex < state.m_nIndexMax ; state.m_nIndex++) {
+			if ( (int)(state.m_nID = m_pSubMenu->GetMenuItemID(state.m_nIndex)) <= 0 )
+				continue;
+			state.m_pSubMenu = NULL;
+			state.DoUpdate(pOwner, TRUE);
+		}
+
+
+		if ( (n = GetSelectionMark()) >= 0 && GetItemRect(n, rect, LVIR_LABEL) ) {
+			point.x = (rect.left + rect.right) / 2;
+			point.y = (rect.top + rect.bottom) / 2;
+			ClientToScreen(&point);
+			flag = TPM_LEFTALIGN | TPM_LEFTBUTTON;
+		} else {
+			pOwner->GetWindowRect(rect);
+			point.x = (rect.left + rect.right) / 2;
+			point.y = (rect.top + rect.bottom) / 2;
+			flag = TPM_CENTERALIGN | TPM_VCENTERALIGN;
+		}
+
+		m_pSubMenu->TrackPopupMenu(flag | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, pOwner);
+		return TRUE;
 	}
 	return CListCtrl::PreTranslateMessage(pMsg);
 }

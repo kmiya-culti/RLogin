@@ -183,12 +183,12 @@ static const LV_COLUMN InitListTab[3] = {
 
 BOOL CIdkeySelDLg::OnInitDialog() 
 {
-	ASSERT(m_pIdKeyTab);
-
-	CDialog::OnInitDialog();
-
 	int n, i, a;
 	CIdKey *pKey;
+
+	ASSERT(m_pIdKeyTab != NULL);
+
+	CDialog::OnInitDialog();
 
 	m_Data.RemoveAll();
 	for ( n = 0 ; n < m_pIdKeyTab->GetSize() ; n++ ) {
@@ -222,7 +222,7 @@ BOOL CIdkeySelDLg::OnInitDialog()
 }
 void CIdkeySelDLg::OnOK() 
 {
-	ASSERT(m_pIdKeyTab);
+	ASSERT(m_pIdKeyTab != NULL);
 
 	if ( m_KeyGenFlag != 0 ) {
 		MessageBox(CStringLoad(IDE_MAKEIDKEY));

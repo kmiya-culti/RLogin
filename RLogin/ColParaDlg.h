@@ -29,11 +29,14 @@ public:
 	BOOL m_GlassStyle;
 	CSliderCtrl m_SliderConstrast;
 	CSliderCtrl m_SliderBright;
+	CSliderCtrl m_SliderHuecol;
 
 	CImageList m_ImageList[8];
-	int m_Contrast;
-	int m_Bright;
 	CRect m_InvRect;
+
+	double m_Constrast;
+	double m_Bright;
+	int m_Huecol[3];
 
 public:
 	void DoInit();

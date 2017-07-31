@@ -178,7 +178,6 @@ BOOL CRLoginView::PreCreateWindow(CREATESTRUCT& cs)
 void CRLoginView::OnDraw(CDC* pDC)
 {
 	CRLoginDoc* pDoc = GetDocument();
-	ASSERT_VALID(pDoc);
 
 	if ( (m_DispCaret & FGCARET_CREATE) != 0 )
 		HideCaret();
@@ -470,7 +469,6 @@ void CRLoginView::SendBuffer(CBuffer &buf, BOOL macflag)
 	WCHAR *p;
 	CBuffer tmp;
 	CRLoginDoc *pDoc = GetDocument();
-	ASSERT(pDoc);
 
 	m_ScrollOut = FALSE;
 
@@ -813,11 +811,11 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 	int x, y;
 	CPoint point;
 	CRect rect, box;
+	CString str;
 	CRLoginDoc *pDoc = GetDocument();
 	CChildFrame *pFrame = GetFrameWnd();
 
-	ASSERT(pDoc);
-	ASSERT(pFrame);
+	ASSERT(pFrame != NULL);
 
 	switch(lHint) {
 	case UPDATE_RESIZE:
@@ -891,6 +889,11 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 				m_BtnWnd.ShowWindow(SW_SHOW);
 		}
 		return;
+
+	case UPDATE_DISPINDEX:
+		str.Format(_T("%d %s"), ((CMainFrame *)AfxGetMainWnd())->GetTabIndex(pFrame) + 1, pDoc->GetTitle());
+		m_MsgWnd.Message(str, this);
+		return;
 	}
 
 	if ( (m_DispCaret & FGCARET_FOCUS) != 0 && pSender != this && m_ScrollOut == FALSE &&
@@ -923,7 +926,9 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		
 		KillCaret();
 
-		m_BmpFile.LoadFile(pDoc->m_TextRam.m_BitMapFile);
+		str = pDoc->m_TextRam.m_BitMapFile;
+		pDoc->EntryText(str);
+		m_BmpFile.LoadFile(str);
 		m_pBitmap = m_BmpFile.GetBitmap(GetDC(), m_Width, m_Height, 1);
 		//pDoc->SetStatus(NULL);
 
@@ -1126,7 +1131,6 @@ int CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 	int st = 0;
 	CBuffer tmp;
 	CRLoginDoc *pDoc = GetDocument();
-	ASSERT(pDoc);
 
 	//CView::OnKeyDown(nChar, nRepCnt, nFlags);
 
@@ -1281,13 +1285,10 @@ void CRLoginView::OnActivateView(BOOL bActivate, CView* pActivateView, CView* pD
 	if ( bActivate && pActivateView->m_hWnd == m_hWnd ) {
 		CRLoginDoc *pDoc = GetDocument();
 		CChildFrame *pFrame = GetFrameWnd();
-		ASSERT(pDoc);
-		ASSERT(pFrame);
+
+		ASSERT(pFrame != NULL);
 
 		m_ActiveFlag = TRUE;
-		pDoc->m_KeyMac.SetHisMenu(GetMainWnd());
-		if ( pDoc->m_pScript != NULL )
-			pDoc->m_pScript->SetMenu(GetMainWnd());
 		SetFrameRect(-1, -1);
 		pDoc->UpdateAllViews(NULL, UPDATE_INITPARA, NULL);
 	} else if ( !bActivate && pDeactiveView->m_hWnd == m_hWnd )
@@ -1425,7 +1426,6 @@ afx_msg LRESULT CRLoginView::OnImeRequest(WPARAM wParam, LPARAM lParam)
 void CRLoginView::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar) 
 {
 	CRLoginDoc *pDoc = GetDocument();
-	ASSERT(pDoc);
 
 	int pos = m_HisOfs;
 	int min = 0;
@@ -1486,9 +1486,6 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 	int style, anime, move;
 	CRect rect;
 	CRLoginDoc *pDoc = GetDocument();
-
-	ASSERT(pDoc != NULL);
-	ASSERT(m_hWnd != NULL);
 
 	CView::OnTimer(nIDEvent);
 
@@ -1721,7 +1718,6 @@ BOOL CRLoginView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 	int pos, ofs;
 	CBuffer tmp;
 	CRLoginDoc *pDoc = GetDocument();
-	ASSERT(pDoc);
 
 	if ( (nFlags & MK_SHIFT) != 0 )
 		SendBroadCastMouseWheel(nFlags, zDelta, pt);
@@ -1775,7 +1771,6 @@ void CRLoginView::OnLButtonDblClk(UINT nFlags, CPoint point)
 {
 	int x, y;
 	CRLoginDoc *pDoc = GetDocument();
-	ASSERT(pDoc);
 
 	m_LastMouseFlags = nFlags;
 
@@ -1805,7 +1800,6 @@ void CRLoginView::OnLButtonDown(UINT nFlags, CPoint point)
 {
 	int x, y;
 	CRLoginDoc *pDoc = GetDocument();
-	ASSERT(pDoc);
 
 	m_LastMouseFlags = nFlags;
 
@@ -1844,7 +1838,6 @@ void CRLoginView::OnLButtonUp(UINT nFlags, CPoint point)
 {
 	int x, y, pos;
 	CRLoginDoc *pDoc = GetDocument();
-	ASSERT(pDoc);
 
 	m_LastMouseFlags = nFlags;
 
@@ -1910,7 +1903,6 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 {
 	int x, y, pos, tos;
 	CRLoginDoc *pDoc = GetDocument();
-	ASSERT(pDoc);
 
 	m_LastMouseFlags = nFlags;
 
@@ -2029,7 +2021,6 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 void CRLoginView::OnRButtonDblClk(UINT nFlags, CPoint point) 
 {
 	CRLoginDoc *pDoc = GetDocument();
-	ASSERT(pDoc);
 
 	m_LastMouseFlags = nFlags;
 
@@ -2045,7 +2036,6 @@ void CRLoginView::OnRButtonDown(UINT nFlags, CPoint point)
 	CMenu *pMenu, *pMain, DefMenu;
 	CRLoginDoc *pDoc = GetDocument();
 	CMainFrame *pFrame = GetMainWnd();
-	ASSERT(pDoc);
 
 	m_LastMouseFlags = nFlags;
 
@@ -2088,7 +2078,6 @@ void CRLoginView::OnRButtonUp(UINT nFlags, CPoint point)
 {
 	int x, y;
 	CRLoginDoc *pDoc = GetDocument();
-	ASSERT(pDoc);
 
 	m_LastMouseFlags = nFlags;
 
@@ -2167,13 +2156,12 @@ void CRLoginView::OnUpdateEditPaste(CCmdUI* pCmdUI)
 void CRLoginView::OnMacroRec() 
 {
 	CRLoginDoc *pDoc = GetDocument();
-	ASSERT(pDoc);
 
 	if ( m_KeyMacFlag ) {
 		CKeyMac tmp;
 		tmp.SetBuf(m_KeyMacBuf.GetPtr(), m_KeyMacBuf.GetSize());
 		pDoc->m_KeyMac.Add(tmp);
-		pDoc->m_KeyMac.SetHisMenu(GetMainWnd());
+		pDoc->m_KeyMac.SetHisMenu(GetMainWnd()->GetMenu());
 		m_KeyMacFlag = FALSE;
 	} else {
 		m_KeyMacFlag = TRUE;
@@ -2188,7 +2176,6 @@ void CRLoginView::OnMacroPlay()
 {
 	CBuffer tmp;
 	CRLoginDoc *pDoc = GetDocument();
-	ASSERT(pDoc);
 
 	pDoc->m_KeyMac.GetAt(0, tmp);
 	SendBuffer(tmp, TRUE);
@@ -2196,7 +2183,6 @@ void CRLoginView::OnMacroPlay()
 void CRLoginView::OnUpdateMacroPlay(CCmdUI* pCmdUI) 
 {
 	CRLoginDoc *pDoc = GetDocument();
-	ASSERT(pDoc);
 	pCmdUI->Enable(pDoc->m_KeyMac.m_Data.GetSize() > 0 ? TRUE : FALSE);
 }
 void CRLoginView::OnMacroHis(UINT nID) 
@@ -2204,14 +2190,13 @@ void CRLoginView::OnMacroHis(UINT nID)
 	CBuffer tmp;
 	int n = nID - ID_MACRO_HIS1;
 	CRLoginDoc *pDoc = GetDocument();
-	ASSERT(pDoc);
 
 	pDoc->m_KeyMac.GetAt(n, tmp);
 	SendBuffer(tmp, TRUE);
 
 	if ( n > 0 ) {
 		pDoc->m_KeyMac.Top(n);
-		pDoc->m_KeyMac.SetHisMenu(GetMainWnd());
+		pDoc->m_KeyMac.SetHisMenu(GetMainWnd()->GetMenu());
 	}
 }
 
@@ -2219,7 +2204,6 @@ void CRLoginView::OnEditCopy()
 {
 	if ( m_ClipFlag == 6 ) {
 		CRLoginDoc *pDoc = GetDocument();
-		ASSERT(pDoc);
 		pDoc->m_TextRam.EditCopy(m_ClipStaPos, m_ClipEndPos, IsClipRectMode(), IsClipLineMode());
 		m_ClipFlag = 0;
 		OnUpdate(this, UPDATE_CLIPERA, NULL);
@@ -2232,7 +2216,6 @@ void CRLoginView::OnUpdateEditCopy(CCmdUI* pCmdUI)
 void CRLoginView::OnEditCopyAll()
 {
 	CRLoginDoc *pDoc = GetDocument();
-	ASSERT(pDoc);
 
 	m_ClipStaPos = pDoc->m_TextRam.GetCalcPos(0, 0 - pDoc->m_TextRam.m_HisLen + pDoc->m_TextRam.m_Lines);
 //	m_ClipStaPos = pDoc->m_TextRam.GetCalcPos(0, 0);
@@ -2541,8 +2524,8 @@ void CRLoginView::OnPrint(CDC* pDC, CPrintInfo* pInfo)
 	save_param[2] = m_CharWidth;
 	save_param[3] = m_CharHeight;
 
-	save_param[4] = pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.fc];
-	save_param[5] = pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.bc];
+	save_param[4] = pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.fcol];
+	save_param[5] = pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.bcol];
 
 	save_param[6] = pDoc->m_TextRam.m_ScrnOffset.left;
 	save_param[7] = pDoc->m_TextRam.m_ScrnOffset.right;
@@ -2571,8 +2554,8 @@ void CRLoginView::OnPrint(CDC* pDC, CPrintInfo* pInfo)
 	m_CharWidth  = m_Width  / m_Cols;
 	m_CharHeight = m_Height / m_Lines;
 
-	pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.fc] = RGB(0, 0, 0);
-	pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.bc] = RGB(255, 255, 255);
+	pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.fcol] = RGB(0, 0, 0);
+	pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.bcol] = RGB(255, 255, 255);
 
 	pDoc->m_TextRam.m_ScrnOffset.SetRect(box.left, box.top, 0, 0);
 
@@ -2600,8 +2583,8 @@ void CRLoginView::OnPrint(CDC* pDC, CPrintInfo* pInfo)
 	m_CharWidth  = save_param[2];
 	m_CharHeight = save_param[3];
 
-	pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.fc] = save_param[4];
-	pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.bc] = save_param[5];
+	pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.fcol] = save_param[4];
+	pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.bcol] = save_param[5];
 
 	pDoc->m_TextRam.m_ScrnOffset.left   = save_param[6];
 	pDoc->m_TextRam.m_ScrnOffset.right  = save_param[7];

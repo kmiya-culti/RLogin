@@ -131,7 +131,8 @@ void CBuffer::ReAlloc(int len)
 
 	if ( (len += m_Len) <= m_Max )
 		return;
-	else if ( (len -= m_Ofs) <= m_Max ) {
+	
+	if ( (len -= m_Ofs) <= m_Max ) {
 		if ( (m_Len -= m_Ofs) > 0 )
 			memcpy(m_Data, m_Data + m_Ofs, m_Len);
 		m_Ofs = 0;
@@ -2924,6 +2925,13 @@ const CKeyCmds & CKeyCmds::operator = (CKeyCmds &data)
 
 	return *this;
 }
+void CKeyCmds::SetMenu(CMenu *pMenu)
+{
+	CString str;
+
+	str.Format(_T("%s\t%s"), m_Text, m_Menu);
+	pMenu->ModifyMenu(m_Id, MF_BYCOMMAND | MF_STRING, m_Id, str);
+}
 void CKeyCmds::ResetMenu(CMenu *pMenu)
 {
 	int i;
@@ -2977,6 +2985,14 @@ void CKeyCmdsTab::ResetMenuAll(CMenu *pMenu)
 
 	for ( n = 0 ; n < GetSize() ; n++ )
 		m_Data[n].ResetMenu(pMenu);
+}
+static int KeyCmdsTextCmp(const void *src, const void *dis)
+{
+	return ((CKeyCmds *)src)->m_Text.Compare(((CKeyCmds *)dis)->m_Text);
+}
+void CKeyCmdsTab::SortText()
+{
+	qsort(m_Data.GetData(), m_Data.GetSize(), sizeof(CKeyCmds), KeyCmdsTextCmp);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -3402,7 +3418,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	95
+#define	CMDSKEYTABMAX	96
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -3444,16 +3460,16 @@ static const struct _CmdsKeyTab {
 	{	IDM_WINDOW_PREV,		L"$PANE_PREV"		},
 	{	ID_WINDOW_ROTATION,		L"$PANE_ROTATION"	},
 	{	ID_PANE_SAVE,			L"$PANE_SAVE"		},
-	{	IDM_WINDOW_SEL0,		L"$PANE_SEL0"		},
-	{	IDM_WINDOW_SEL1,		L"$PANE_SEL1"		},
-	{	IDM_WINDOW_SEL2,		L"$PANE_SEL2"		},
-	{	IDM_WINDOW_SEL3,		L"$PANE_SEL3"		},
-	{	IDM_WINDOW_SEL4,		L"$PANE_SEL4"		},
-	{	IDM_WINDOW_SEL5,		L"$PANE_SEL5"		},
-	{	IDM_WINDOW_SEL6,		L"$PANE_SEL6"		},
-	{	IDM_WINDOW_SEL7,		L"$PANE_SEL7"		},
-	{	IDM_WINDOW_SEL8,		L"$PANE_SEL8"		},
-	{	IDM_WINDOW_SEL9,		L"$PANE_SEL9"		},
+	{	IDM_WINDOW_SEL0,		L"$PANE_SEL1"		},
+	{	IDM_WINDOW_SEL9,		L"$PANE_SEL10"		},
+	{	IDM_WINDOW_SEL1,		L"$PANE_SEL2"		},
+	{	IDM_WINDOW_SEL2,		L"$PANE_SEL3"		},
+	{	IDM_WINDOW_SEL3,		L"$PANE_SEL4"		},
+	{	IDM_WINDOW_SEL4,		L"$PANE_SEL5"		},
+	{	IDM_WINDOW_SEL5,		L"$PANE_SEL6"		},
+	{	IDM_WINDOW_SEL6,		L"$PANE_SEL7"		},
+	{	IDM_WINDOW_SEL7,		L"$PANE_SEL8"		},
+	{	IDM_WINDOW_SEL8,		L"$PANE_SEL9"		},
 	{	ID_WINDOW_TILE_HORZ,	L"$PANE_TILEHORZ"	},
 	{	ID_PANE_WSPLIT,			L"$PANE_WSPLIT"		},
 	{	ID_FILE_PRINT_DIRECT,	L"$PRINT_DIRECT"	},
@@ -3495,6 +3511,7 @@ static const struct _CmdsKeyTab {
 	{	ID_VIEW_TOOLBAR,		L"$VIEW_TOOLBAR"	},
 	{	IDM_TRACEDISP,			L"$VIEW_TRACEDISP"	},
 	{	ID_WINDOW_CLOSE,		L"$WINDOW_CLOSE"	},
+	{	IDM_DISPWINIDX,			L"$WINDOW_INDEX"	},
 	{	ID_WINDOW_NEW,			L"$WINDOW_NEW"		},
 	{	IDM_XMODEM_DOWNLOAD,	L"$XMODEM_DOWNLOAD"	},
 	{	IDM_XMODEM_UPLOAD,		L"$XMODEM_UPLOAD"	},
@@ -3527,6 +3544,8 @@ void CKeyNodeTab::CmdsInit()
 		} else {
 			tmp.m_Id = id;
 			tmp.m_Menu = str;
+			tmp.m_Flag = FALSE;
+			tmp.m_Text.Empty();
 			m_Cmds.Add(tmp);
 		}
 	}
@@ -4015,17 +4034,14 @@ void CKeyMacTab::GetAt(int nIndex, CBuffer &buf)
 		return;
 	buf.Apend(m_Data[nIndex].GetPtr(), m_Data[nIndex].GetSize());
 }
-void CKeyMacTab::SetHisMenu(CWnd *pWnd)
+void CKeyMacTab::SetHisMenu(CMenu *pMainMenu)
 {
 	int n;
 	CString str, tmp;
-	CMenu *pMenu, *pMain;
+	CMenu *pMenu;
 
-	if ( pWnd == NULL || (pMain = pWnd->GetMenu()) == NULL|| (pMenu = pMain->GetSubMenu(1)) == NULL )
+	if ( pMainMenu == NULL || (pMenu = pMainMenu->GetSubMenu(1)) == NULL )
 		return;
-
-	for ( n = 0 ; n < 5 ; n++ )
-		pMenu->DeleteMenu(ID_MACRO_HIS1 + n, MF_BYCOMMAND);
 
 	for ( n = 0 ; n < 5 && n < m_Data.GetSize() ; n++ ) {
 		m_Data[n].GetMenuStr(tmp);
@@ -4044,6 +4060,15 @@ void CKeyMacTab::SetHisMenu(CWnd *pWnd)
 #define	META_AEAD_STRING	_T("")
 #endif
 
+#ifdef	USE_NETTLE
+#define	META_NETTLE_STRING	_T("twofish128-ctr,twofish192-ctr,twofish256-ctr,") \
+							_T("serpent128-ctr,serpent192-ctr,serpent256-ctr,") \
+							_T("twofish128-cbc,twofish192-cbc,twofish256-cbc,") \
+							_T("serpent128-cbc,serpent192-cbc,serpent256-cbc,")
+#else
+#define	META_NETTLE_STRING	_T("")
+#endif
+
 #ifdef	USE_CLEFIA
 #define	META_CLEFIA_STRING	_T("clefia128-ctr,clefia192-ctr,clefia256-ctr,") \
 							_T("clefia128-cbc,clefia192-cbc,clefia256-cbc,")
@@ -4058,8 +4083,6 @@ static LPCTSTR InitAlgo[12]= {
 
 	_T("aes128-ctr,aes192-ctr,aes256-ctr,") \
 	_T("camellia128-ctr,camellia192-ctr,camellia256-ctr,") \
-	_T("twofish128-ctr,twofish192-ctr,twofish256-ctr,") \
-	_T("serpent128-ctr,serpent192-ctr,serpent256-ctr,") \
 	_T("blowfish-ctr,cast128-ctr,idea-ctr,") \
 	_T("twofish-ctr,seed-ctr@ssh.com,3des-ctr,") \
 	_T("chacha20-poly1305@openssh.com,") \
@@ -4067,10 +4090,9 @@ static LPCTSTR InitAlgo[12]= {
 	_T("arcfour,arcfour128,arcfour256,") \
 	_T("aes128-cbc,aes192-cbc,aes256-cbc,") \
 	_T("camellia128-cbc,camellia192-cbc,camellia256-cbc,") \
-	_T("twofish128-cbc,twofish192-cbc,twofish256-cbc,") \
-	_T("serpent128-cbc,serpent192-cbc,serpent256-cbc,") \
 	_T("blowfish-cbc,cast128-cbc,idea-cbc,") \
 	_T("twofish-cbc,seed-cbc@ssh.com,3des-cbc,") \
+	META_NETTLE_STRING \
 	META_CLEFIA_STRING \
 	_T("none"),
 
@@ -4089,8 +4111,6 @@ static LPCTSTR InitAlgo[12]= {
 
 	_T("aes128-ctr,aes192-ctr,aes256-ctr,") \
 	_T("camellia128-ctr,camellia192-ctr,camellia256-ctr,") \
-	_T("twofish128-ctr,twofish192-ctr,twofish256-ctr,") \
-	_T("serpent128-ctr,serpent192-ctr,serpent256-ctr,") \
 	_T("blowfish-ctr,cast128-ctr,idea-ctr,") \
 	_T("twofish-ctr,seed-ctr@ssh.com,3des-ctr,") \
 	_T("chacha20-poly1305@openssh.com,") \
@@ -4098,10 +4118,9 @@ static LPCTSTR InitAlgo[12]= {
 	_T("arcfour,arcfour128,arcfour256,") \
 	_T("aes128-cbc,aes192-cbc,aes256-cbc,") \
 	_T("camellia128-cbc,camellia192-cbc,camellia256-cbc,") \
-	_T("twofish128-cbc,twofish192-cbc,twofish256-cbc,") \
-	_T("serpent128-cbc,serpent192-cbc,serpent256-cbc,") \
 	_T("blowfish-cbc,cast128-cbc,idea-cbc,") \
 	_T("twofish-cbc,seed-cbc@ssh.com,3des-cbc,") \
+	META_NETTLE_STRING \
 	META_CLEFIA_STRING \
 	_T("none"),
 

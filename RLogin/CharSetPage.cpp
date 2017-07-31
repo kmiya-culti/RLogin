@@ -53,6 +53,7 @@ void CCharSetPage::DoDataExchange(CDataExchange* pDX)
 	DDX_CBString(pDX, IDC_CHARBANK3, m_CharBank3);
 	DDX_CBString(pDX, IDC_CHARBANK4, m_CharBank4);
 	DDX_CBIndex(pDX, IDC_FONTNUM, m_AltFont);
+	DDX_CBString(pDX, IDC_FONTNAME, m_DefFontName);
 }
 
 BEGIN_MESSAGE_MAP(CCharSetPage, CPropertyPage)
@@ -74,6 +75,10 @@ BEGIN_MESSAGE_MAP(CCharSetPage, CPropertyPage)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_DELETE, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_DUPS, OnUpdateEditEntry)
 	ON_CBN_SELCHANGE(IDC_FONTNUM, &CCharSetPage::OnCbnSelchangeFontnum)
+	ON_BN_CLICKED(IDC_FONTSEL, &CCharSetPage::OnBnClickedFontsel)
+	ON_COMMAND(ID_EDIT_DELALL, &CCharSetPage::OnEditDelall)
+	ON_CBN_EDITCHANGE(IDC_FONTNAME, &CCharSetPage::OnUpdateFontName)
+	ON_CBN_SELCHANGE(IDC_FONTNAME, &CCharSetPage::OnUpdateFontName)
 END_MESSAGE_MAP()
 
 void CCharSetPage::InitList()
@@ -94,6 +99,17 @@ void CCharSetPage::InitList()
 	}
 	m_List.DoSortItem();
 }
+int CALLBACK EnumFontFamExComboAddStr(ENUMLOGFONTEX *lpelfe, NEWTEXTMETRICEX *lpntme, int FontType, LPARAM lParam)
+{
+	CComboBox *pCombo = (CComboBox *)lParam;
+	LPCTSTR name = lpelfe->elfLogFont.lfFaceName;
+
+	if ( pCombo != NULL && pCombo->FindStringExact((-1), name) == CB_ERR && name[0] != _T('@') )
+		pCombo->AddString(name);
+
+	return TRUE;
+}
+
 
 /////////////////////////////////////////////////////////////////////////////
 // CCharSetPage メッセージ ハンドラ
@@ -107,12 +123,15 @@ static const LV_COLUMN InitListTab[6] = {
 
 void CCharSetPage::DoInit()
 {
-
-	m_AltFont    = m_pSheet->m_pTextRam->m_AttNow.ft;
+	m_AltFont    = m_pSheet->m_pTextRam->m_AttNow.font;
 	m_FontTab    = m_pSheet->m_pTextRam->m_FontTab;
 	m_KanjiCode  = m_pSheet->m_pTextRam->m_KanjiMode;
 	m_CharBankGL = m_pSheet->m_pTextRam->m_BankGL;
 	m_CharBankGR = m_pSheet->m_pTextRam->m_BankGR;
+
+	for ( int n = 0 ; n < 16 ; n++ )
+		m_DefFontTab[n] = m_pSheet->m_pTextRam->m_DefFontName[n];
+	m_DefFontName = m_DefFontTab[m_AltFont];
 
 	memcpy(m_BankTab, m_pSheet->m_pTextRam->m_BankTab, sizeof(m_BankTab));
 	m_CharBank1  = m_FontTab[m_BankTab[m_KanjiCode][0]].m_EntryName;
@@ -128,14 +147,13 @@ void CCharSetPage::DoInit()
 }
 BOOL CCharSetPage::OnInitDialog() 
 {
-	ASSERT(m_pSheet);
-	ASSERT(m_pSheet->m_pTextRam);
+	ASSERT(m_pSheet != NULL && m_pSheet->m_pTextRam != NULL);
 
 	CPropertyPage::OnInitDialog();
 
 	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_SUBITEMIMAGES);
 	m_List.InitColumn(_T("CharSetPage"), InitListTab, 4);
-	m_List.SetPopUpMenu(IDR_POPUPMENU, 1);
+	m_List.SetPopUpMenu(IDR_POPUPMENU, 6);
 
 	DoInit();
 
@@ -155,21 +173,33 @@ BOOL CCharSetPage::OnInitDialog()
 				pCombo[i]->AddString(pStr);
 		}
 	}
+	
+	
+	CClientDC dc(this);
+	LOGFONT logfont;
+
+	ZeroMemory(&logfont, sizeof(LOGFONT)); 
+	logfont.lfCharSet = DEFAULT_CHARSET;
+	::EnumFontFamiliesEx(dc.m_hDC, &logfont, (FONTENUMPROC)EnumFontFamExComboAddStr, (long)GetDlgItem(IDC_FONTNAME), 0);
 
 	return TRUE;
 }
 BOOL CCharSetPage::OnApply() 
 {
-	ASSERT(m_pSheet);
-	ASSERT(m_pSheet->m_pTextRam);
+	ASSERT(m_pSheet != NULL && m_pSheet->m_pTextRam != NULL);
 
 	UpdateData(TRUE);
 
-	m_pSheet->m_pTextRam->m_AttNow.ft = m_AltFont;
+	m_pSheet->m_pTextRam->m_AttNow.font = m_AltFont;
 	m_pSheet->m_pTextRam->SetKanjiMode(m_KanjiCode);
 	m_pSheet->m_pTextRam->m_BankGL    = m_CharBankGL;
 	m_pSheet->m_pTextRam->m_BankGR    = m_CharBankGR;
 	m_pSheet->m_pTextRam->m_FontTab   = m_FontTab;
+
+	m_DefFontTab[m_AltFont] = m_DefFontName;
+
+	for ( int  n = 0 ; n < 16 ; n++ )
+		m_pSheet->m_pTextRam->m_DefFontName[n] = m_DefFontTab[n];
 
 	m_BankTab[m_KanjiCode][0] = m_FontTab.Find(m_CharBank1);
 	m_BankTab[m_KanjiCode][1] = m_FontTab.Find(m_CharBank2);
@@ -187,8 +217,7 @@ BOOL CCharSetPage::OnApply()
 }
 void CCharSetPage::OnReset() 
 {
-	ASSERT(m_pSheet);
-	ASSERT(m_pSheet->m_pTextRam);
+	ASSERT(m_pSheet != NULL && m_pSheet->m_pTextRam != NULL);
 
 	DoInit();
 	SetModified(FALSE);
@@ -327,10 +356,66 @@ void CCharSetPage::OnUpdateEditEntry(CCmdUI* pCmdUI)
 
 void CCharSetPage::OnCbnSelchangeFontnum()
 {
+	int oldAltFont = m_AltFont;
+	UpdateData(TRUE);
+	InitList();
+	m_DefFontTab[oldAltFont] = m_DefFontName;
+	m_DefFontName = m_DefFontTab[m_AltFont];
+	UpdateData(FALSE);
+
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+}
+
+void CCharSetPage::OnBnClickedFontsel()
+{
+	LOGFONT LogFont;
+
+	UpdateData(TRUE);
+	memset(&(LogFont), 0, sizeof(LOGFONT));
+	LogFont.lfWidth          = 0;
+	LogFont.lfHeight         = m_pSheet->m_pTextRam->m_DefFontSize;
+	LogFont.lfWeight         = FW_DONTCARE;
+	LogFont.lfCharSet        = DEFAULT_CHARSET;
+	LogFont.lfOutPrecision   = OUT_DEFAULT_PRECIS;
+	LogFont.lfClipPrecision  = CLIP_DEFAULT_PRECIS;
+	LogFont.lfQuality        = DEFAULT_QUALITY;
+	LogFont.lfPitchAndFamily = DEFAULT_PITCH | FF_DONTCARE;
+
+    _tcscpy(LogFont.lfFaceName, m_DefFontName);
+
+#define	CF_INACTIVEFONTS	0x02000000L
+
+	CFontDialog font(&LogFont, CF_NOVERTFONTS | CF_SCREENFONTS | CF_INACTIVEFONTS, NULL, this);
+
+	if ( font.DoModal() != IDOK )
+		return;
+
+    m_DefFontName = LogFont.lfFaceName;
+	m_DefFontTab[m_AltFont] = m_DefFontName;
+	UpdateData(FALSE);
+
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+}
+
+void CCharSetPage::OnEditDelall()
+{
+	if ( MessageBox(CStringLoad(IDS_ALLINITREQ), _T("Warning"), MB_ICONWARNING | MB_OKCANCEL) != IDOK )
+		return;
+
+	m_FontTab.Init();
+
 	UpdateData(TRUE);
 	InitList();
 	UpdateData(FALSE);
 
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+}
+
+void CCharSetPage::OnUpdateFontName()
+{
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 }

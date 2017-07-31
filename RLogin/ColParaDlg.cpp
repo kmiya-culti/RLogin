@@ -58,6 +58,7 @@ void CColParaDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CHECK1, m_GlassStyle);
 	DDX_Control(pDX, IDC_SLIDER_CONTRAST, m_SliderConstrast);
 	DDX_Control(pDX, IDC_SLIDER_BRIGHT, m_SliderBright);
+	DDX_Control(pDX, IDC_SLIDER_HUECOL, m_SliderHuecol);
 }
 
 BEGIN_MESSAGE_MAP(CColParaDlg, CPropertyPage)
@@ -73,6 +74,7 @@ BEGIN_MESSAGE_MAP(CColParaDlg, CPropertyPage)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_ATTR1, IDC_ATTR8, &CColParaDlg::OnUpdateCheck)
 	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_SLIDER_CONTRAST, &CColParaDlg::OnNMReleasedcaptureContrast)
 	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_SLIDER_BRIGHT, &CColParaDlg::OnNMReleasedcaptureContrast)
+	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_SLIDER_HUECOL, &CColParaDlg::OnNMReleasedcaptureContrast)
 	ON_WM_VSCROLL()
 	ON_WM_DRAWITEM()
 END_MESSAGE_MAP()
@@ -126,14 +128,14 @@ void CColParaDlg::DoInit()
 	for ( n = 0 ; n < 16 ; n++ )
 		m_ColTab[n] = m_pSheet->m_pTextRam->m_ColTab[n];
 
-	m_FontCol[0] = m_pSheet->m_pTextRam->m_AttNow.fc;
-	m_FontCol[1] = m_pSheet->m_pTextRam->m_AttNow.bc;
+	m_FontCol[0] = m_pSheet->m_pTextRam->m_AttNow.fcol;
+	m_FontCol[1] = m_pSheet->m_pTextRam->m_AttNow.bcol;
 
 	m_FontColName[0].Format(_T("%d"), m_FontCol[0]);
 	m_FontColName[1].Format(_T("%d"), m_FontCol[1]);
 
 	for ( n = 0 ; n < 24 ; n++ )
-		m_Attrb[n] = (m_pSheet->m_pTextRam->m_AttNow.at & (1 << n) ? TRUE : FALSE);
+		m_Attrb[n] = (m_pSheet->m_pTextRam->m_AttNow.attr & (1 << n) ? TRUE : FALSE);
 
 	m_BitMapFile = m_pSheet->m_pTextRam->m_BitMapFile;
 
@@ -157,34 +159,64 @@ void CColParaDlg::DoInit()
 }
 void CColParaDlg::SetDarkLight()
 {
-	double d = (double)(100 - m_SliderConstrast.GetPos()) / 10.0;
-	m_Contrast = (int)(d * d + 5.0 * d + 50.0);
-	m_Bright = m_SliderBright.GetPos() - 150;
+	int n;
+
+	// Contrast  0 -  50 - 100	->	10.0 - 1.0 - 0.1
+	// Bright    0 -  50 - 100	->	10.0 - 1.0 - 0.1
+	// Huecol   50 - 150 - 250  ->  0 - 100
+
+	n = m_SliderConstrast.GetPos();
+	m_Constrast = pow(100.0, (double)(100 - n) / 100.0) / 10.0;
+
+	n = m_SliderBright.GetPos();
+	m_Bright = pow(100.0, (double)(100 - n) / 100.0) / 10.0;
+
+	n = m_SliderHuecol.GetPos();
+
+	if ( (n += 150) > 300 )
+		n -= 300;
+
+	if ( n < 100 ) {
+		m_Huecol[0] = 100 - n;
+		m_Huecol[1] = n;
+		m_Huecol[2] = 0;
+	} else if ( n < 200 ) {
+		m_Huecol[0] = 0;
+		m_Huecol[1] = 200 - n;
+		m_Huecol[2] = n - 100;
+	} else {
+		m_Huecol[0] = n - 200;
+		m_Huecol[1] = 0;
+		m_Huecol[2] = 300 - n;
+	}
 }
 COLORREF CColParaDlg::EditColor(int num)
 {
-	int r = GetRValue(m_ColTab[num]);
-	int g = GetGValue(m_ColTab[num]);
-	int b = GetBValue(m_ColTab[num]);
+	int n, col[3];
+	double rgb[3];
+	BYTE r, g, b;
 
-	r = (r - 127) * m_Contrast / 100 + 127;
-	g = (g - 127) * m_Contrast / 100 + 127;
-	b = (b - 127) * m_Contrast / 100 + 127;
+	rgb[0] = (double)GetRValue(m_ColTab[num]);
+	rgb[1] = (double)GetGValue(m_ColTab[num]);
+	rgb[2] = (double)GetBValue(m_ColTab[num]);
 
-	r = r - m_Bright;
-	g = g - m_Bright;
-	b = b - m_Bright;
+	for ( n = 0 ; n < 3 ; n++ ) {
+		col[n] = (int)(((rgb[n] - 128.0) * m_Constrast + 128.0) * m_Bright);
+		if ( col[n] < 0 )
+			col[n] = 0;
+		else if ( col[n] > 255 )
+			col[n] = 255;
+	}
 
-	if ( r < 0 ) r = 0; else if ( r > 255 ) r = 255;
-	if ( g < 0 ) g = 0; else if ( g > 255 ) g = 255;
-	if ( b < 0 ) b = 0; else if ( b > 255 ) b = 255;
+	r = (BYTE)((col[0] * m_Huecol[0] + col[1] * m_Huecol[1] + col[2] * m_Huecol[2]) / 100);
+	g = (BYTE)((col[1] * m_Huecol[0] + col[2] * m_Huecol[1] + col[0] * m_Huecol[2]) / 100);
+	b = (BYTE)((col[2] * m_Huecol[0] + col[0] * m_Huecol[1] + col[1] * m_Huecol[2]) / 100);
 
 	return RGB(r, g, b);
 }
 BOOL CColParaDlg::OnInitDialog() 
 {
-	ASSERT(m_pSheet);
-	ASSERT(m_pSheet->m_pTextRam);
+	ASSERT(m_pSheet != NULL && m_pSheet->m_pTextRam != NULL);
 
 	CPropertyPage::OnInitDialog();
 
@@ -207,8 +239,11 @@ BOOL CColParaDlg::OnInitDialog()
 	m_SliderConstrast.SetRange(0, 100);
 	m_SliderConstrast.SetPos(50);
 
-	m_SliderBright.SetRange(0, 300);
-	m_SliderBright.SetPos(150);
+	m_SliderBright.SetRange(0, 100);
+	m_SliderBright.SetPos(50);
+
+	m_SliderHuecol.SetRange(50, 250);
+	m_SliderHuecol.SetPos(150);
 
 	CRect rect;
 	m_ColBox[0].GetWindowRect(rect);
@@ -237,8 +272,7 @@ BOOL CColParaDlg::OnApply()
 {
 	int n;
 
-	ASSERT(m_pSheet);
-	ASSERT(m_pSheet->m_pTextRam);
+	ASSERT(m_pSheet != NULL && m_pSheet->m_pTextRam != NULL);
 
 	UpdateData(TRUE);
 
@@ -250,11 +284,11 @@ BOOL CColParaDlg::OnApply()
 	m_FontCol[0] = _tstoi(m_FontColName[0]);
 	m_FontCol[1] = _tstoi(m_FontColName[1]);
 
-	m_pSheet->m_pTextRam->m_AttNow.fc = m_FontCol[0];
-	m_pSheet->m_pTextRam->m_AttNow.bc = m_FontCol[1];
-	m_pSheet->m_pTextRam->m_AttNow.at = 0;
+	m_pSheet->m_pTextRam->m_AttNow.fcol = m_FontCol[0];
+	m_pSheet->m_pTextRam->m_AttNow.bcol = m_FontCol[1];
+	m_pSheet->m_pTextRam->m_AttNow.attr = 0;
 	for ( n = 0 ; n < 24 ; n++ )
-		m_pSheet->m_pTextRam->m_AttNow.at |= (m_Attrb[n] ? (1 << n) : 0);
+		m_pSheet->m_pTextRam->m_AttNow.attr |= (m_Attrb[n] ? (1 << n) : 0);
 
 	m_pSheet->m_pTextRam->m_AttSpc = m_pSheet->m_pTextRam->m_AttNow;
 
@@ -278,8 +312,7 @@ BOOL CColParaDlg::OnApply()
 
 void CColParaDlg::OnReset() 
 {
-	ASSERT(m_pSheet);
-	ASSERT(m_pSheet->m_pTextRam);
+	ASSERT(m_pSheet != NULL && m_pSheet->m_pTextRam != NULL);
 
 	DoInit();
 	SetModified(FALSE);
@@ -395,7 +428,8 @@ void CColParaDlg::OnSelendokColset()
 		memcpy(m_ColTab, ColSetTab[m_ColSet], sizeof(m_ColTab));
 
 	m_SliderConstrast.SetPos(50);
-	m_SliderBright.SetPos(150);
+	m_SliderBright.SetPos(50);
+	m_SliderHuecol.SetPos(150);
 	SetDarkLight();
 
 	Invalidate(FALSE);
@@ -444,11 +478,10 @@ void CColParaDlg::OnNMReleasedcaptureContrast(NMHDR *pNMHDR, LRESULT *pResult)
 }
 void CColParaDlg::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 {
-	if ( nSBCode == SB_THUMBTRACK && pScrollBar != NULL ) {
+	if ( pScrollBar != NULL ) {
 		SetDarkLight();
 		InvalidateRect(m_InvRect, FALSE);
 	}
-
 	CTreePropertyPage::OnVScroll(nSBCode, nPos, pScrollBar);
 }
 void CColParaDlg::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)

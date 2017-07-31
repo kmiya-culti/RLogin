@@ -53,9 +53,10 @@ END_MESSAGE_MAP()
 
 BOOL CKeyParaDlg::OnInitDialog() 
 {
+	ASSERT(m_pData != NULL);
+
 	CDialog::OnInitDialog();
 	
-	ASSERT(m_pData);
 	m_KeyCode   = m_pData->GetCode();
 	m_WithShift = (m_pData->m_Mask & MASK_SHIFT)  ? TRUE : FALSE;
 	m_WithCtrl  = (m_pData->m_Mask & MASK_CTRL)   ? TRUE : FALSE;
@@ -78,8 +79,10 @@ BOOL CKeyParaDlg::OnInitDialog()
 
 void CKeyParaDlg::OnOK() 
 {
+	ASSERT(m_pData != NULL);
+
 	UpdateData(TRUE);
-	ASSERT(m_pData);
+
 	m_pData->SetCode(m_KeyCode);
 	m_pData->m_Mask = 0;
 	if ( m_WithShift ) m_pData->m_Mask |= MASK_SHIFT;

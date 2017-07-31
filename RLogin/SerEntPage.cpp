@@ -159,15 +159,14 @@ void CSerEntPage::DoInit()
 
 BOOL CSerEntPage::OnInitDialog() 
 {
-	CPropertyPage::OnInitDialog();
-
-	ASSERT(m_pSheet);
-	ASSERT(m_pSheet->m_pEntry);
-
 	int n, i;
 	CString str;
 	CComboBox *pCombo;
 	DWORD pb = CComSock::AliveComPort();
+
+	ASSERT(m_pSheet != NULL && m_pSheet->m_pEntry != NULL);
+
+	CPropertyPage::OnInitDialog();
 
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_SOCKNO)) != NULL ) {
 		for ( n = 1 ; n <= 31 ; n++ ) {
@@ -229,8 +228,7 @@ BOOL CSerEntPage::OnInitDialog()
 }
 BOOL CSerEntPage::OnApply() 
 {
-	ASSERT(m_pSheet);
-	ASSERT(m_pSheet->m_pEntry);
+	ASSERT(m_pSheet != NULL && m_pSheet->m_pEntry != NULL);
 
 	UpdateData(TRUE);
 
@@ -263,8 +261,7 @@ BOOL CSerEntPage::OnApply()
 
 void CSerEntPage::OnReset() 
 {
-	ASSERT(m_pSheet);
-	ASSERT(m_pSheet->m_pEntry);
+	ASSERT(m_pSheet != NULL && m_pSheet->m_pEntry != NULL);
 
 	DoInit();
 	SetModified(FALSE);

@@ -84,9 +84,7 @@ void CProtoPage::DoInit()
 
 BOOL CProtoPage::OnInitDialog() 
 {
-	ASSERT(m_pSheet);
-	ASSERT(m_pSheet->m_pTextRam);
-	ASSERT(m_pSheet->m_pParamTab);
+	ASSERT(m_pSheet != NULL && m_pSheet->m_pTextRam != NULL && m_pSheet->m_pParamTab != NULL);
 
 	CPropertyPage::OnInitDialog();
 
@@ -96,9 +94,7 @@ BOOL CProtoPage::OnInitDialog()
 }
 BOOL CProtoPage::OnApply() 
 {
-	ASSERT(m_pSheet);
-	ASSERT(m_pSheet->m_pTextRam);
-	ASSERT(m_pSheet->m_pParamTab);
+	ASSERT(m_pSheet != NULL && m_pSheet->m_pTextRam != NULL && m_pSheet->m_pParamTab != NULL);
 
 	UpdateData(TRUE);
 
@@ -118,9 +114,7 @@ BOOL CProtoPage::OnApply()
 }
 void CProtoPage::OnReset() 
 {
-	ASSERT(m_pSheet);
-	ASSERT(m_pSheet->m_pTextRam);
-	ASSERT(m_pSheet->m_pParamTab);
+	ASSERT(m_pSheet != NULL && m_pSheet->m_pTextRam != NULL && m_pSheet->m_pParamTab != NULL);
 
 	DoInit();
 	SetModified(FALSE);

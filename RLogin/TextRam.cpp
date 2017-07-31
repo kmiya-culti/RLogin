@@ -113,147 +113,148 @@ void AllWCharAllocFree()
 CVram::CVram()
 {
 #ifndef	FIXWCHAR
-	ch = pr.pk.cb;
+	m_Data = m_Vram.pack.wcbuf;
 #endif
 }
 CVram::~CVram()
 {
 #ifndef	FIXWCHAR
-	if ( ch != pr.pk.cb )
-		WCharFree(ch);
+	if ( m_Data != m_Vram.pack.wcbuf )
+		WCharFree(m_Data);
 #endif
 }
 #ifndef	FIXWCHAR
 void CVram::GetCVram(CVram &data)
 {
-	if ( data.ch == data.pr.pk.cb ) {
-		if ( ch != pr.pk.cb ) {
-			WCharFree(ch);
-			ch = pr.pk.cb;
+	if ( data.m_Data == data.m_Vram.pack.wcbuf ) {
+		if ( m_Data != m_Vram.pack.wcbuf ) {
+			WCharFree(m_Data);
+			m_Data = m_Vram.pack.wcbuf;
 		}
 	} else {
-		if ( ch != pr.pk.cb )
-			WCharFree(ch);
-		ch = WCharAlloc(WCharSize(data.ch));
-		memcpy(ch, data.ch, sizeof(WCHAR) * WCharSize(ch));
+		if ( m_Data != m_Vram.pack.wcbuf )
+			WCharFree(m_Data);
+		m_Data = WCharAlloc(WCharSize(data.m_Data));
+		memcpy(m_Data, data.m_Data, sizeof(WCHAR) * WCharSize(m_Data));
 	}
-	pr = data.pr;
+	m_Vram = data.m_Vram;
 }
 #endif
-void CVram::operator = (DWORD c)
+void CVram::operator = (DWORD ch)
 {
-	if ( IS_IMAGE(pr.cm) )
+	if ( IS_IMAGE(m_Vram.mode) )
 		return;
 
 #ifndef	FIXWCHAR
-	if ( (c & 0xFFFF0000) != 0 ) {
-		if ( ch == pr.pk.cb )
-			ch = WCharAlloc(3);
-		//else if ( WCharSize(ch) < 3 ) {	not use min 7 word
-		//	WCharFree(ch);
-		//	ch = WCharAlloc(3);
+	if ( (ch & 0xFFFF0000) != 0 ) {
+		if ( m_Data == m_Vram.pack.wcbuf )
+			m_Data = WCharAlloc(3);
+		//else if ( WCharSize(m_Data) < 3 ) {	not use min 7 word
+		//	WCharFree(m_Data);
+		//	m_Data = WCharAlloc(3);
 		//}
-		ch[0] = (WCHAR)(c >> 16);
-		ch[1] = (WCHAR)(c);
-		ch[2] = L'\0';
+		m_Data[0] = (WCHAR)(ch >> 16);
+		m_Data[1] = (WCHAR)(ch);
+		m_Data[2] = L'\0';
 	} else {
-		if ( ch != pr.pk.cb ) {
-			WCharFree(ch);
-			ch = pr.pk.cb;
+		if ( m_Data != m_Vram.pack.wcbuf ) {
+			WCharFree(m_Data);
+			m_Data = m_Vram.pack.wcbuf;
 		}
-		ch[0] = (WCHAR)(c);
-		ch[1] = L'\0';
+		m_Data[0] = (WCHAR)(ch);
+		m_Data[1] = L'\0';
 	}
 #else
 	if ( (c & 0xFFFF0000) != 0 ) {
-		ch[0] = (WCHAR)(c >> 16);
-		ch[1] = (WCHAR)(c);
-		ch[2] = L'\0';
+		m_Data[0] = (WCHAR)(ch >> 16);
+		m_Data[1] = (WCHAR)(ch);
+		m_Data[2] = L'\0';
 	} else {
-		ch[0] = (WCHAR)(c);
-		ch[1] = L'\0';
+		m_Data[0] = (WCHAR)(ch);
+		m_Data[1] = L'\0';
 	}
 #endif
 }
-void CVram::operator += (DWORD c)
+void CVram::operator += (DWORD ch)
 {
 	int n, a, b;
 
-	if ( c == 0 || IS_IMAGE(pr.cm) )
+	if ( ch == 0 || IS_IMAGE(m_Vram.mode) )
 		return;
 
-	for ( n = 0 ; ch[n] != 0 ; )
+	for ( n = 0 ; m_Data[n] != 0 ; )
 		n++;
 
-	b = ((c & 0xFFFF0000) != 0 ? 2 : 1);
+	b = ((ch & 0xFFFF0000) != 0 ? 2 : 1);
 
 	if ( (a = n + b + 1) > MAXCHARSIZE )
 		return;
 
 #ifndef	FIXWCHAR
-	if ( a > (ch == pr.pk.cb ? 2 : WCharSize(ch)) ) {
+	if ( a > (m_Data == m_Vram.pack.wcbuf ? 2 : WCharSize(m_Data)) ) {
 		WCHAR *nw = WCharAlloc(a);
-		for ( n = 0 ; ch[n] != 0 ; n++ )
-			nw[n] = ch[n];
-		if ( ch != pr.pk.cb )
-			WCharFree(ch);
-		ch = nw;
+		for ( n = 0 ; m_Data[n] != 0 ; n++ )
+			nw[n] = m_Data[n];
+		if ( m_Data != m_Vram.pack.wcbuf )
+			WCharFree(m_Data);
+		m_Data = nw;
 	}
 #endif
 
-	if ( (c & 0xFFFF0000) != 0 )
-		ch[n++] = (c >> 16);
+	if ( (ch & 0xFFFF0000) != 0 )
+		m_Data[n++] = (ch >> 16);
 
-	if ( (c & 0x0000FFFF) != 0 )
-		ch[n++] = c;
+	if ( (ch & 0x0000FFFF) != 0 )
+		m_Data[n++] = ch;
 
-	ch[n] = 0;
+	m_Data[n] = 0;
 }
 void CVram::operator = (LPCWSTR str)
 {
 	int n;
 	int a = wcslen(str) + 1;
 
-	if ( IS_IMAGE(pr.cm) )
+	if ( IS_IMAGE(m_Vram.mode) )
 		return;
 
 #ifndef	FIXWCHAR
 	if ( a <= 2 ) {
-		if ( ch != pr.pk.cb ) {
-			WCharFree(ch);
-			ch = pr.pk.cb;
+		if ( m_Data != m_Vram.pack.wcbuf ) {
+			WCharFree(m_Data);
+			m_Data = m_Vram.pack.wcbuf;
 		}
-	} else if ( ch == pr.pk.cb ) {
-		ch = WCharAlloc(a);
-	} else if ( a > WCharSize(ch) ) {
-		WCharFree(ch);
-		ch = WCharAlloc(a);
+	} else if ( m_Data == m_Vram.pack.wcbuf ) {
+		m_Data = WCharAlloc(a);
+	} else if ( a > WCharSize(m_Data) ) {
+		WCharFree(m_Data);
+		m_Data = WCharAlloc(a);
 	}
 #endif
 
 	for ( n = 0 ; n < a ; n++ ) {
 		if ( n >= (MAXCHARSIZE - 1) ) {
-			ch[MAXCHARSIZE - 1] = L'\0';
+			TRACE("CVram over %d\n", a);
+			m_Data[MAXCHARSIZE - 1] = L'\0';
 			break;
 		}
-		ch[n] = *(str++);
+		m_Data[n] = *(str++);
 	}
 }
 void CVram::SetVRAM(VRAM &ram)
 {
-	ram = pr;
+	ram = m_Vram;
 
-	if ( !IS_IMAGE(pr.cm) ) {
-		if ( ch[0] != 0 && ch[1] != 0 )
-			ram.pk.ch = (ch[0] << 16) | ch[1];
+	if ( !IS_IMAGE(m_Vram.mode) ) {
+		if ( m_Data[0] != 0 && m_Data[1] != 0 )
+			ram.pack.dchar = (m_Data[0] << 16) | m_Data[1];
 		else
-			ram.pk.ch = ch[0];
+			ram.pack.dchar = m_Data[0];
 	}
 }
 
 void CVram::SetBuffer(CBuffer &buf)
 {
-	buf.Apend((LPBYTE)&pr, sizeof(pr));
+	buf.Apend((LPBYTE)&m_Vram, sizeof(m_Vram));
 
 	for ( LPCWSTR p = *this ; ; p++ ) {
 		buf.PutWord(*p);
@@ -265,11 +266,11 @@ void CVram::GetBuffer(CBuffer &buf)
 {
 	int c;
 
-	if ( buf.GetSize() < sizeof(pr) )
+	if ( buf.GetSize() < sizeof(m_Vram) )
 		return;
 
-	memcpy(&pr, buf.GetPtr(), sizeof(pr));
-	buf.Consume(sizeof(pr));
+	memcpy(&m_Vram, buf.GetPtr(), sizeof(m_Vram));
+	buf.Consume(sizeof(m_Vram));
 
 	Empty();
 	while ( (c = buf.GetWord()) != 0 )
@@ -289,7 +290,7 @@ void CVram::GetString(LPCTSTR str)
 	CBuffer tmp;
 
 	tmp.Base64Decode(str);
-	if ( tmp.GetSize() < (sizeof(pr) + 2) )
+	if ( tmp.GetSize() < (sizeof(m_Vram) + 2) )
 		return;
 	GetBuffer(tmp);
 }
@@ -305,14 +306,14 @@ void CVram::Read(CFile &file, int ver)
 		if ( file.Read(tmp, 8) != 8 )
 			AfxThrowFileException(CFileException::endOfFile);
 
-		ram.pk.ch = tmp[0] | (tmp[1] << 8) | (tmp[2] << 16) | (tmp[3] << 24);
-		ram.md = tmp[4] | (tmp[5] << 8);
-		ram.em = tmp[5] >> 2;
-		ram.dm = tmp[5] >> 4;
-		ram.cm = tmp[5] >> 6;
-		ram.at = tmp[6];
-		ram.fc = tmp[7] & 0x0F;
-		ram.bc = tmp[7] >> 4;
+		ram.pack.dchar = tmp[0] | (tmp[1] << 8) | (tmp[2] << 16) | (tmp[3] << 24);
+		ram.bank = tmp[4] | (tmp[5] << 8);
+		ram.eram = tmp[5] >> 2;
+		ram.zoom = tmp[5] >> 4;
+		ram.mode = tmp[5] >> 6;
+		ram.attr = tmp[6];
+		ram.fcol = tmp[7] & 0x0F;
+		ram.bcol = tmp[7] >> 4;
 
 		*this = ram;
 		break;
@@ -324,7 +325,7 @@ void CVram::Read(CFile &file, int ver)
 		break;
 
 	case 3:
-		if ( file.Read(&pr, sizeof(pr)) != sizeof(pr) )
+		if ( file.Read(&m_Vram, sizeof(m_Vram)) != sizeof(m_Vram) )
 			AfxThrowFileException(CFileException::endOfFile);
 		Empty();
 		do {
@@ -335,8 +336,8 @@ void CVram::Read(CFile &file, int ver)
 		break;
 	}
 
-	if ( IS_IMAGE(pr.cm) ) {
-		pr.cm = CM_ASCII;
+	if ( IS_IMAGE(m_Vram.mode) ) {
+		m_Vram.mode = CM_ASCII;
 		Empty();
 	}
 }
@@ -346,6 +347,53 @@ void CVram::Write(CFile &file)
 
 	SetBuffer(tmp);
 	file.Write(tmp.GetPtr(), tmp.GetSize());
+}
+void CVram::Copy(CVram *dis, CVram *src, int size)
+{
+#ifdef	FIXWCHAR
+	memcpy(dis, src, sizeof(CVram) * size);
+#elif 0
+	CVram *end;
+
+	for ( end = dis + size ; dis < end ; )
+		*(dis++) = *(src++);
+
+#else
+	register CVram *ptr;
+	CVram *end;
+
+	for ( ptr = dis, end = ptr + size ; ptr < end ; ptr++ ) {
+		if ( ptr->m_Data != ptr->m_Vram.pack.wcbuf )
+			WCharFree(ptr->m_Data);
+	}
+
+	memcpy(dis, src, sizeof(CVram) * size);
+
+	for ( ptr = dis, end = ptr + size ; ptr < end ; ptr++, src++ ) {
+		if ( src->m_Data == src->m_Vram.pack.wcbuf )
+			ptr->m_Data = ptr->m_Vram.pack.wcbuf;
+		else {
+			ptr->m_Data = WCharAlloc(WCharSize(src->m_Data));
+			memcpy(ptr->m_Data, src->m_Data, sizeof(WCHAR) * WCharSize(src->m_Data));
+		}
+	}
+#endif
+}
+void CVram::Fill(CVram *dis, VRAM &vram, int size)
+{
+	register CVram *ptr;
+	CVram *end;
+
+	for ( ptr = dis, end = ptr + size ; ptr < end ; ptr++ ) {
+#ifndef	FIXWCHAR
+		if ( ptr->m_Data != ptr->m_Vram.pack.wcbuf ) {
+			WCharFree(ptr->m_Data);
+			ptr->m_Data = ptr->m_Vram.pack.wcbuf;
+		}
+#endif
+		ptr->m_Vram = vram;
+		ptr->m_Data[0] = 0;
+	}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -441,12 +489,13 @@ void CFontNode::SetHash(int num)
 	while ( *p != _T('\0') )
 		m_Hash[num] = m_Hash[num] * 31 + *(p++);
 }
-CFontChacheNode *CFontNode::GetFont(int Width, int Height, int Style, int FontNum)
+CFontChacheNode *CFontNode::GetFont(int Width, int Height, int Style, int FontNum, LPCTSTR DefFontName)
 {
 	if ( m_FontName[FontNum].IsEmpty() )
 		FontNum = 0;
 	
-	return ((CRLoginApp *)AfxGetApp())->m_FontData.GetFont(m_FontName[FontNum], Width * m_ZoomW / 100, Height * m_ZoomH / 100, m_CharSet, Style, m_Quality, m_Hash[FontNum]);
+	return ((CRLoginApp *)AfxGetApp())->m_FontData.GetFont((m_FontName[FontNum].IsEmpty() ? DefFontName : m_FontName[FontNum]),
+					Width * m_ZoomW / 100, Height * m_ZoomH / 100, m_CharSet, Style, m_Quality, m_Hash[FontNum]);
 }
 const CFontNode & CFontNode::operator = (CFontNode &data)
 {
@@ -638,12 +687,12 @@ void CFontTab::Init()
 		LPCTSTR	font[2];
 	} FontInitTab[] = {
 		{ _T("VT100-GRAPHIC"),			SET_94,		_T("0"),	'\x00', _T(""),					SYMBOL_CHARSET,		100,	100,	0,	0,	{ _T("Tera Special"), _T("") } },
-		{ _T("IBM437-GR"),				SET_94,		_T("1"),	'\x80', _T("IBM437"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T("Arial Unicode MS"), _T("") } },
+		{ _T("IBM437-GR"),				SET_94,		_T("1"),	'\x80', _T("IBM437"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
 
-		{ _T("ISO646-US"),				SET_94,		_T("@"),	'\x00', _T("ISO646-US"),		ANSI_CHARSET,		100,	100,	0,	0,	{ _T("Lucida Console"), _T("") } },
-		{ _T("ASCII(ANSI X3.4-1968)"),	SET_94,		_T("B"),	'\x00', _T("ANSI_X3.4-1968"),	ANSI_CHARSET,		100,	100,	0,	0,	{ _T("Lucida Console"), _T("") } },
-		{ _T("JIS X 0201-Kana"),		SET_94,		_T("I"),	'\x80', _T("JISX0201-1976"),	SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T("ＭＳ ゴシック"), _T("ＭＳ 明朝") } },
-		{ _T("JIS X 0201-Roman"),		SET_94,		_T("J"),	'\x00', _T("JISX0201-1976"),	SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T("ＭＳ ゴシック"), _T("ＭＳ 明朝") } },
+		{ _T("ISO646-US"),				SET_94,		_T("@"),	'\x00', _T("ISO646-US"),		ANSI_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") } },
+		{ _T("ASCII(ANSI X3.4-1968)"),	SET_94,		_T("B"),	'\x00', _T("ANSI_X3.4-1968"),	ANSI_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") } },
+		{ _T("JIS X 0201-Kana"),		SET_94,		_T("I"),	'\x80', _T("JISX0201-1976"),	SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
+		{ _T("JIS X 0201-Roman"),		SET_94,		_T("J"),	'\x00', _T("JISX0201-1976"),	SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
 		{ _T("GB 1988-80"),				SET_94,		_T("T"),	'\x00', _T("GB_1988-80"),		DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
 
 		{ _T("Russian"),				SET_94,		_T("&5"),	'\x00',	_T("CP866"),			RUSSIAN_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
@@ -655,10 +704,10 @@ void CFontTab::Init()
 		*/
 
 		{ _T("LATIN1 (ISO8859-1)"),		SET_96,		_T("A"),	'\x80', _T("LATIN1"),			EASTEUROPE_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
-		{ _T("LATIN2 (ISO8859-2)"),		SET_96,		_T("B"),	'\x80', _T("LATIN2"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T("Arial Unicode MS"), _T("") } },
-		{ _T("LATIN3 (ISO8859-3)"),		SET_96,		_T("C"),	'\x80', _T("LATIN3"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T("Arial Unicode MS"), _T("") } },
-		{ _T("LATIN4 (ISO8859-4)"),		SET_96,		_T("D"),	'\x80', _T("LATIN4"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T("Arial Unicode MS"), _T("") } },
-		{ _T("CYRILLIC (ISO8859-5)"),	SET_96,		_T("L"),	'\x80', _T("ISO8859-5"),		DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T("Arial Unicode MS"), _T("") } },
+		{ _T("LATIN2 (ISO8859-2)"),		SET_96,		_T("B"),	'\x80', _T("LATIN2"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
+		{ _T("LATIN3 (ISO8859-3)"),		SET_96,		_T("C"),	'\x80', _T("LATIN3"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
+		{ _T("LATIN4 (ISO8859-4)"),		SET_96,		_T("D"),	'\x80', _T("LATIN4"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
+		{ _T("CYRILLIC (ISO8859-5)"),	SET_96,		_T("L"),	'\x80', _T("ISO8859-5"),		DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
 		{ _T("ARABIC (ISO8859-6)"),		SET_96,		_T("G"),	'\x80', _T("ISO8859-6"),		ARABIC_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") } },
 		{ _T("GREEK (ISO8859-7)"),		SET_96,		_T("F"),	'\x80', _T("ISO8859-7"),		GREEK_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") } },
 		{ _T("HEBREW (ISO8859-8)"),		SET_96,		_T("H"),	'\x80', _T("ISO8859-8"),		HEBREW_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") } },
@@ -671,17 +720,17 @@ void CFontTab::Init()
 		{ _T("LATIN9 (ISO8859-15)"),	SET_96,		_T("b"),	'\x80', _T("ISO-8859-15"),		DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
 		{ _T("ROMANIAN (ISO8859-16)"),	SET_96,		_T("f"),	'\x80', _T("ISO-8859-16"),		DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
 
-		{ _T("JIS X 0208-1978"),		SET_94x94,	_T("@"),	'\x00', _T("JIS_X0208-1983"),	SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T("ＭＳ ゴシック"), _T("ＭＳ 明朝") } },
+		{ _T("JIS X 0208-1978"),		SET_94x94,	_T("@"),	'\x00', _T("JIS_X0208-1983"),	SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
 		{ _T("GB2312-1980"),			SET_94x94,	_T("A"),	'\x00', _T("GB_2312-80"),		GB2312_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") } },
-		{ _T("JIS X 0208-1983"),		SET_94x94,	_T("B"),	'\x00', _T("JIS_X0208-1983"),	SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T("ＭＳ ゴシック"), _T("ＭＳ 明朝") } },
+		{ _T("JIS X 0208-1983"),		SET_94x94,	_T("B"),	'\x00', _T("JIS_X0208-1983"),	SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
 		{ _T("KSC5601-1987"),			SET_94x94,	_T("C"),	'\x00', _T("KS_C_5601-1987"),	HANGEUL_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
-		{ _T("JIS X 0212-1990"),		SET_94x94,	_T("D"),	'\x00', _T("JIS_X0212-1990"),	SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T("ＭＳ ゴシック"), _T("ＭＳ 明朝") } },
+		{ _T("JIS X 0212-1990"),		SET_94x94,	_T("D"),	'\x00', _T("JIS_X0212-1990"),	SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
 		{ _T("ISO-IR-165"),				SET_94x94,	_T("E"),	'\x00', _T("ISO-IR-165"),		DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
-		{ _T("JIS X 0213-2000.1"),		SET_94x94,	_T("O"),	'\x00', _T("JIS_X0213-2000.1"),	SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T("ＭＳ ゴシック"), _T("ＭＳ 明朝") } },
-		{ _T("JIS X 0213-2000.2"),		SET_94x94,	_T("P"),	'\x00', _T("JIS_X0213-2000.2"),	SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T("ＭＳ ゴシック"), _T("ＭＳ 明朝") } },
-		{ _T("JIS X 0213-2004.1"),		SET_94x94,	_T("Q"),	'\x00', _T("JIS_X0213-2000.1"),	SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T("ＭＳ ゴシック"), _T("ＭＳ 明朝") } },
+		{ _T("JIS X 0213-2000.1"),		SET_94x94,	_T("O"),	'\x00', _T("JIS_X0213-2000.1"),	SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
+		{ _T("JIS X 0213-2000.2"),		SET_94x94,	_T("P"),	'\x00', _T("JIS_X0213-2000.2"),	SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
+		{ _T("JIS X 0213-2004.1"),		SET_94x94,	_T("Q"),	'\x00', _T("JIS_X0213-2000.1"),	SHIFTJIS_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
 
-		{ _T("UNICODE"),				SET_UNICODE,_T("*U"),	'\x00', _T("UTF-16BE"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T("ＭＳ ゴシック"), _T("ＭＳ 明朝") } },
+		{ _T("UNICODE"),				SET_UNICODE,_T("*U"),	'\x00', _T("UTF-16BE"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
 
 		{ NULL, 0, 0x00, NULL },
 	};
@@ -984,6 +1033,7 @@ CTextRam::CTextRam()
 	m_TraceSaveCount = 0;
 	m_bTraceUpdate = FALSE;
 	m_bTraceActive = FALSE;
+	m_TraceMaxCount = 1000;
 	m_pActGrapWnd = NULL;
 	m_GrapWndChkCLock = clock();
 
@@ -1140,21 +1190,16 @@ void CTextRam::InitText(int Width, int Height)
 	} else {
 		newColsMax = (m_ColsMax >= newCols && m_LineUpdate < (m_Lines * 4) ? m_ColsMax : newCols);
 		tmp = new CVram[newColsMax * newHisMax];
-		tmp[0] = m_DefAtt;
-		for ( n = 1 ; n < (newColsMax * newHisMax) ; n++ )
-			tmp[n] = tmp[0];
+		CVram::Fill(tmp, m_DefAtt, newColsMax * newHisMax);
 
 		if ( m_VRam != NULL ) {
 			oldCurX = (m_ColsMax < newColsMax ? m_ColsMax : newColsMax);
 			oldCurY = (m_HisMax < newHisMax ? m_HisMax : newHisMax);
-			for ( n = 1 ; n <= oldCurY ; n++ ) {
-				vp = GETVRAM(0, m_Lines - n);
-				wp = tmp + (newHisMax - n) * newColsMax;
-				for ( x = 0 ; x < oldCurX ; x++ )
-					*(wp++) = *(vp++);
-			}
-//				memcpy(tmp + (hismax - n) * colsmax, GETVRAM(0, m_Lines - n), sizeof(VRAM) * cx);
+
+			for ( n = 1 ; n <= oldCurY ; n++ )
+				CVram::Copy(tmp + (newHisMax - n) * newColsMax, GETVRAM(0, m_Lines - n), oldCurX);
 			delete [] m_VRam;
+
 			oldCurX  = m_CurX;
 			oldCurY  = m_CurY;
 			oldCols  = m_Cols;
@@ -1249,18 +1294,11 @@ void CTextRam::InitScreen(int cols, int lines)
 
 	} else if ( pWnd->IsIconic() || pWnd->IsZoomed() || !IsOptEnable(TO_RLNORESZ) ) {
 		tmp = new CVram[colsmax * m_HisMax];
-		tmp[0] = m_DefAtt;
-		for ( n = 1 ; n < (colsmax * m_HisMax) ; n++ )
-			tmp[n] = tmp[0];
+		CVram::Fill(tmp, m_DefAtt, colsmax * m_HisMax);
 
 		cx = (m_ColsMax < colsmax ? m_ColsMax : colsmax);
-		for ( n = 1 ; n <= m_HisMax ; n++ ) {
-			vp = GETVRAM(0, m_Lines - n);
-			wp = tmp + (m_HisMax - n) * colsmax;
-			for ( x = 0 ; x < cx ; x++ )
-				*(wp++) = *(vp++);
-		}
-//			memcpy(tmp + (m_HisMax - n) * colsmax, GETVRAM(0, m_Lines - n), sizeof(VRAM) * cx);
+		for ( n = 1 ; n <= m_HisMax ; n++ )
+			CVram::Copy(tmp + (m_HisMax - n) * colsmax, GETVRAM(0, m_Lines - n), cx);
 
 		delete [] m_VRam;
 		m_VRam    = tmp;
@@ -1452,7 +1490,7 @@ void CTextRam::HisRegCheck(DWORD ch, DWORD pos)
 		for ( i = 0 ; i < res.GetSize() ; i++ ) {
 			for ( a = res[i].m_SPos ; a < res[i].m_EPos ; a++ ) {
 				if ( res.m_Idx[a] != 0xFFFFFFFF )
-					m_VRam[res.m_Idx[a]].pr.at |= ATT_MARK;
+					m_VRam[res.m_Idx[a]].m_Vram.attr |= ATT_MARK;
 			}
 		}
 	}
@@ -1474,7 +1512,7 @@ int CTextRam::HisRegMark(LPCTSTR str)
 		for ( n = 0 ; n < m_HisLen ; n++ ) {
 			vp = m_VRam + m_ColsMax * m_MarkPos;
 			for ( x = 0 ; x < m_Cols ; x++ )
-				vp[x].pr.at &= ~ATT_MARK;
+				vp[x].m_Vram.attr &= ~ATT_MARK;
 			while ( ++m_MarkPos >= m_HisMax )
 				m_MarkPos -= m_HisMax;
 		}
@@ -1501,7 +1539,7 @@ int CTextRam::HisRegNext()
 		for ( ex = m_Cols - 1 ; ex >= 0 ; ex-- ) {
 			if ( !vp[ex].IsEmpty() )
 				break;
-			vp[ex].pr.at &= ~ATT_MARK;
+			vp[ex].m_Vram.attr &= ~ATT_MARK;
 		}
 
 		if ( m_MarkEol )
@@ -1509,11 +1547,11 @@ int CTextRam::HisRegNext()
 
 		for ( x = 0 ; x <= ex ; x += n ) {
 			str.Empty();
-			vp[x].pr.at &= ~ATT_MARK;
-			if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].pr.cm) && IS_2BYTE(vp[x + 1].pr.cm) && vp[x].Compare(vp[x + 1]) == 0 ) {
+			vp[x].m_Vram.attr &= ~ATT_MARK;
+			if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].m_Vram.mode) && IS_2BYTE(vp[x + 1].m_Vram.mode) && vp[x].Compare(vp[x + 1]) == 0 ) {
 				str += (LPCWSTR)vp[x];
 				n = 2;
-			} else if ( !IS_ASCII(vp[x].pr.cm) || (DWORD)(vp[x]) == 0 ) {
+			} else if ( !IS_ASCII(vp[x].m_Vram.mode) || (DWORD)(vp[x]) == 0 ) {
 				str += (DCHAR)' ';
 				n = 1;
 			} else {
@@ -1545,7 +1583,7 @@ int CTextRam::HisMarkCheck(int top, int line, class CRLoginView *pView)
 	for ( y = 0 ; y < line ; y++ ) {
 		vp = GETVRAM(0, top + y);
 		for ( x = 0 ; x < m_Cols ; x++, vp++ ) {
-			if ( (vp->pr.at & ATT_MARK) != 0 )
+			if ( (vp->m_Vram.attr & ATT_MARK) != 0 )
 				return TRUE;
 		}
 	}
@@ -1611,6 +1649,7 @@ void CTextRam::Init()
 	m_BankGL		= 0;
 	m_BankGR		= 1;
 	m_DefAtt		= TempAtt;
+
 	memcpy(m_DefColTab, DefColTab, sizeof(m_DefColTab));
 	memcpy(m_ColTab, m_DefColTab, sizeof(m_DefColTab));
 	memset(m_AnsiOpt, 0, sizeof(DWORD) * 16);
@@ -1625,6 +1664,7 @@ void CTextRam::Init()
 	EnableOption(TO_DECBKM);	// ?67 Backarrow key mode (BS)
 	EnableOption(TO_RLFONT);	// ?8404 フォントサイズから一行あたりの文字数を決定
 	EnableOption(TO_DRCSMMv1);	// ?8800 Unicode 16 Maping
+
 	memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
 	memcpy(m_DefBankTab, DefBankTab, sizeof(m_DefBankTab));
 	memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
@@ -1633,14 +1673,17 @@ void CTextRam::Init()
 	m_SendCharSet[2] = _T("ISO-2022-JP");
 	m_SendCharSet[3] = _T("UTF-8");
 	m_SendCharSet[4] = _T("BIG-5");
+
 	m_WheelSize      = 2;
 	m_BitMapFile     = _T("");
 	m_DelayMSec      = 0;
 	m_HisFile        = _T("");
 	m_KeepAliveSec   = 0;
 	m_DropFileMode   = 0;
+
 	for ( int n = 0 ; n < 8 ; n++ )
 		m_DropFileCmd[n] = DropCmdTab[n];
+
 	m_WordStr        = _T("\\/._");
 	m_MouseTrack     = MOS_EVENT_NONE;
 	m_MouseRect.SetRectEmpty();
@@ -1648,6 +1691,7 @@ void CTextRam::Init()
 	m_MouseMode[1]   = 1;
 	m_MouseMode[2]   = 4;
 	m_MouseMode[3]   = 16;
+
 	memset(m_MetaKeys, 0, sizeof(m_MetaKeys));
 	m_TitleMode = WTTL_ENTRY;
 	m_VtLevel = 65;
@@ -1657,14 +1701,21 @@ void CTextRam::Init()
 	m_StsMode = 0;
 	m_StsLed  = 0;
 	SetRetChar(FALSE);
+
 	for ( int n = 0 ; n < 64 ; n++ )
 		m_Macro[n].Clear();
+
 	m_UnitId = 0;
 	m_ClipFlag = 0;
 	memset(m_MacroExecFlag, 0, sizeof(m_MacroExecFlag));
 	m_ShellExec.GetString(_T("http://|https://|ftp://|mailto://"), _T('|'));
 	m_ScrnOffset.SetRect(0, 0, 0, 0);
 	m_TimeFormat = _T("%H:%M:%S ");
+	m_DefFontName[0] = _T("ＭＳ ゴシック");
+	m_DefFontName[1] = _T("ＭＳ 明朝");
+
+	m_TraceLogFile.Empty();
+	m_TraceMaxCount = 1000;
 
 	for ( int n = 0 ; n < MODKEY_MAX ; n++ ) {
 		m_DefModKey[n] = (-1);
@@ -1695,9 +1746,9 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		index[_T("GL")] = m_BankGL;
 		index[_T("GR")] = m_BankGR;
 
-		index[_T("Attribute")] = m_DefAtt.at;
-		index[_T("TextColor")] = m_DefAtt.fc;
-		index[_T("BackColor")] = m_DefAtt.bc;
+		index[_T("Attribute")] = m_DefAtt.attr;
+		index[_T("TextColor")] = m_DefAtt.fcol;
+		index[_T("BackColor")] = m_DefAtt.bcol;
 
 		index[_T("ColorTable")].SetSize(16);
 		for ( n = 0 ; n < 16 ; n++ ) {
@@ -1784,6 +1835,12 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 
 		index[_T("TimeFormat")] = m_TimeFormat;
 
+		for ( n = 0 ; n < 16 ; n++ )
+			index[_T("DefFontName")].Add(m_DefFontName[n]);
+
+		index[_T("TraceLogFile")]  = m_TraceLogFile;
+		index[_T("TraceMaxCount")] = m_TraceMaxCount;
+
 	} else {		// Read
 		if ( (n = index.Find(_T("Cols"))) >= 0 ) {
 			if ( (i = index[n].Find(_T("Nomal"))) >= 0 )
@@ -1805,11 +1862,11 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 			m_BankGR = index[n];
 
 		if ( (n = index.Find(_T("Attribute"))) >= 0 )
-			m_DefAtt.at = index[n];
+			m_DefAtt.attr = index[n];
 		if ( (n = index.Find(_T("TextColor"))) >= 0 )
-			m_DefAtt.fc = index[n];
+			m_DefAtt.fcol = index[n];
 		if ( (n = index.Find(_T("BackColor"))) >= 0 )
-			m_DefAtt.bc = index[n];
+			m_DefAtt.bcol = index[n];
 
 		if ( (n = index.Find(_T("ColorTable"))) >= 0 ) {
 			for ( i = 0 ; i < 16 && i < index[n].GetSize() ; i++ ) {
@@ -1921,6 +1978,16 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		if ( (n = index.Find(_T("TimeFormat"))) >= 0 )
 			m_TimeFormat = index[n];
 
+		if ( (n = index.Find(_T("DefFontName"))) >= 0 ) {
+			for ( i = 0 ; i < 16 && i < index[n].GetSize() ; i++ )
+				m_DefFontName[i] = index[n][i];
+		}
+
+		if ( (n = index.Find(_T("TraceLogFile"))) >= 0 )
+			m_TraceLogFile = index[n];
+		if ( (n = index.Find(_T("TraceMaxCount"))) >= 0 )
+			m_TraceMaxCount = index[n];
+
 		if ( (n = index.Find(_T("Option"))) >= 0 ) {
 			memset(m_DefAnsiOpt, 0, sizeof(m_DefAnsiOpt));
 			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
@@ -2025,6 +2092,15 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 	stra.AddVal(m_ScrnOffset.bottom);
 
 	stra.Add(m_TimeFormat);
+
+	tmp.RemoveAll();
+	for ( int n = 0 ; n < 16 ; n++ )
+		tmp.Add(m_DefFontName[n]);
+	tmp.SetString(str, _T(';'));
+	stra.Add(str);
+
+	stra.Add(m_TraceLogFile);
+	stra.AddVal(m_TraceMaxCount);
 }
 void CTextRam::GetArray(CStringArrayExt &stra)
 {
@@ -2045,9 +2121,9 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 		memcpy(&m_DefAtt, tmp, sizeof(VRAM));
 	else if ( n == 8 ) {
 		memset(&m_DefAtt, 0, sizeof(VRAM));
-		m_DefAtt.at = tmp[6];
-		m_DefAtt.fc = tmp[7] & 0x0F;
-		m_DefAtt.bc = tmp[7] >> 4;
+		m_DefAtt.attr = tmp[6];
+		m_DefAtt.fcol = tmp[7] & 0x0F;
+		m_DefAtt.bcol = tmp[7] >> 4;
 	}
 
 	stra.GetBin(7, m_DefColTab,  sizeof(m_DefColTab));
@@ -2180,6 +2256,17 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 
 	if ( stra.GetSize() > 56 )
 		m_TimeFormat = stra.GetAt(56);
+
+	if ( stra.GetSize() > 57 ) {
+		ext.GetString(stra.GetAt(57), _T(';'));
+		for ( n = 0 ; n < 16 && n < ext.GetSize() ; n++ )
+			m_DefFontName[n] = ext[n];
+	}
+
+	if ( stra.GetSize() > 58 )
+		m_TraceLogFile = stra.GetAt(58);
+	if ( stra.GetSize() > 59 )
+		m_TraceMaxCount = stra.GetVal(59);
 
 	RESET();
 }
@@ -2374,24 +2461,24 @@ void CTextRam::ScriptValue(int cmds, class CScriptValue &value, int mode)
 		break;
 
 	case 26:				// Document.Screen.Style.Color
-		n = m_AttNow.fc;
+		n = m_AttNow.fcol;
 		value.SetInt(n, mode);
-		m_AttNow.fc = (BYTE)n;
+		m_AttNow.fcol = (BYTE)n;
 		break;
 	case 27:				// Document.Screen.Style.BackColor
-		n = m_AttNow.bc;
+		n = m_AttNow.bcol;
 		value.SetInt(n, mode);
-		m_AttNow.bc = (BYTE)n;
+		m_AttNow.bcol = (BYTE)n;
 		break;
 	case 28:				// Document.Screen.Style.Attribute
-		n = m_AttNow.at;
+		n = m_AttNow.attr;
 		value.SetInt(n, mode);
-		m_AttNow.at = (DWORD)n;
+		m_AttNow.attr = (DWORD)n;
 		break;
 	case 29:				// Document.Screen.Style.FontNumber
-		n = m_AttNow.ft;
+		n = m_AttNow.font;
 		value.SetInt(n, mode);
-		m_AttNow.ft = (DWORD)n;
+		m_AttNow.font = (DWORD)n;
 		break;
 	}
 }
@@ -2514,11 +2601,11 @@ void CTextRam::LineEditCwd(int ex, int sy, CStringW &cwd)
 
 	vp = GETVRAM(0, sy);
 	for ( x = 0 ; x < ex ; x += n ) {
-		if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].pr.cm) && IS_2BYTE(vp[x + 1].pr.cm) && vp[x].Compare(vp[x + 1]) == 0 ) {
+		if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].m_Vram.mode) && IS_2BYTE(vp[x + 1].m_Vram.mode) && vp[x].Compare(vp[x + 1]) == 0 ) {
 			for ( p = vp[x] ; *p != 0 ; p++ )
 				str.PutWord(*p);
 			n = 2;
-		} else if ( !IS_ASCII(vp[x].pr.cm) ) { //|| vp[x].ch == 0 ) {
+		} else if ( !IS_ASCII(vp[x].m_Vram.mode) ) { //|| vp[x].ch == 0 ) {
 			str.PutWord(' ');
 			n = 1;
 		} else {
@@ -2856,7 +2943,7 @@ int CTextRam::GetPos(int x, int y)
 	vp = GETVRAM(x, y);
 	if ( vp->IsEmpty() )
 		return 0;
-	else if ( IS_2BYTE(vp->pr.cm) ) {
+	else if ( IS_2BYTE(vp->m_Vram.mode) ) {
 		if ( x <= 0 )
 			return 0;
 		vp--;
@@ -2897,7 +2984,7 @@ void CTextRam::EditWordPos(int *sps, int *eps)
 
 	SetCalcPos(*sps, &sx, &sy);
 
-	if ( sx > 0 && IS_2BYTE(GETVRAM(sx, sy)->pr.cm) )
+	if ( sx > 0 && IS_2BYTE(GETVRAM(sx, sy)->m_Vram.mode) )
 		sx--;
 
 	if ( IsOptEnable(TO_RLGAWL) != 0 ) {
@@ -2960,10 +3047,10 @@ void CTextRam::EditWordPos(int *sps, int *eps)
 	}
 
 SKIP:
-	if ( IS_2BYTE(GETVRAM(sx, sy)->pr.cm) )
+	if ( IS_2BYTE(GETVRAM(sx, sy)->m_Vram.mode) )
 		DecPos(sx, sy);
 
-	if ( IS_1BYTE(GETVRAM(ex, ey)->pr.cm) )
+	if ( IS_1BYTE(GETVRAM(ex, ey)->m_Vram.mode) )
 		IncPos(ex, ey);
 
 	*sps = GetCalcPos(sx, sy);
@@ -3000,7 +3087,7 @@ void CTextRam::EditCopy(int sps, int eps, BOOL rectflag, BOOL lineflag)
 			ex = (y == y2 ? x2 : (m_Cols - 1));
 		}
 
-		if ( vp->pr.dm != 0 ) {
+		if ( vp->m_Vram.zoom != 0 ) {
 			sx /= 2;
 			ex /= 2;
 		}
@@ -3008,13 +3095,13 @@ void CTextRam::EditCopy(int sps, int eps, BOOL rectflag, BOOL lineflag)
 		while ( sx <= ex && vp[ex].IsEmpty() )
 			ex--;
 
-		if ( IS_2BYTE(vp[sx].pr.cm) )
+		if ( IS_2BYTE(vp[sx].m_Vram.mode) )
 			sx++;
 
 		tc = 0;
 		str.Clear();
 		for ( x = sx ; x <= ex ; x += n ) {
-			if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].pr.cm) && IS_2BYTE(vp[x + 1].pr.cm) && vp[x].Compare(vp[x + 1]) == 0 ) {
+			if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].m_Vram.mode) && IS_2BYTE(vp[x + 1].m_Vram.mode) && vp[x].Compare(vp[x + 1]) == 0 ) {
 				p = vp[x]; ch = *p;
 				while ( *p != 0 )
 					str.PutWord(*(p++));
@@ -3095,7 +3182,7 @@ void CTextRam::GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf)
 	for ( y = staY ; y <= endY ; y++ ) {
 		vp = GETVRAM(0, y);
 
-		if ( vp->pr.dm != 0 ) {
+		if ( vp->m_Vram.zoom != 0 ) {
 			sx = staX / 2;
 			ex = endX / 2;
 		} else {
@@ -3107,7 +3194,7 @@ void CTextRam::GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf)
 			ex--;
 
 		for ( x = sx ; x <= ex ; x += n ) {
-			if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].pr.cm) && IS_2BYTE(vp[x + 1].pr.cm) && vp[x].Compare(vp[x + 1]) == 0 ) {
+			if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].m_Vram.mode) && IS_2BYTE(vp[x + 1].m_Vram.mode) && vp[x].Compare(vp[x + 1]) == 0 ) {
 				for ( p = vp[x] ; *p != 0 ; p++ )
 					pBuf->PutWord(*p);
 				n = 2;
@@ -3358,6 +3445,7 @@ void CTextRam::StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop,
 	CFontNode *pFontNode = (prop.mod < 0 ? NULL : &(m_FontTab[prop.mod]));
 	CBitmap *pOld;
 	CRect box(*pRect);
+	LPCTSTR DefFontName;
 
 	if ( (at & ATT_BOLD) != 0 && !IsOptEnable(TO_RLBOLD) && prop.fcn < 16 )
 		prop.fcn ^= 0x08;
@@ -3422,7 +3510,9 @@ void CTextRam::StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop,
 		y = pView->m_CharHeight * hd;
 		n = (at & ATT_ITALIC) != 0 ? 2 : 0;
 
-		pFontCache = pFontNode->GetFont(x, y, n, prop.fnm);
+		DefFontName = (m_DefFontName[prop.fnm].IsEmpty() ? m_DefFontName[0] : m_DefFontName[prop.fnm]);
+
+		pFontCache = pFontNode->GetFont(x, y, n, prop.fnm, DefFontName);
 		pDC->SelectObject(pFontCache != NULL ? pFontCache->m_pFont : CFont::FromHandle((HFONT)GetStockObject(SYSTEM_FONT)));
 
 		pDC->SetTextColor(fc);
@@ -3431,7 +3521,7 @@ void CTextRam::StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop,
 		if ( prop.csz == 1 && pFontCache != NULL && prop.mod == SET_UNICODE && !IsOptEnable(TO_RLUNIAHF) ) {
 			CSize sz = pDC->GetTextExtent(str, len);
 			if ( sz.cx > (pRect->right - pRect->left) ) {
-				if ( (pFontCache = pFontNode->GetFont(x / 2, y, n, prop.fnm)) != NULL )
+				if ( (pFontCache = pFontNode->GetFont(x / 2, y, n, prop.fnm, DefFontName)) != NULL )
 					pDC->SelectObject(pFontCache->m_pFont);
 			}
 		}
@@ -3648,17 +3738,17 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 		rect.top    = pView->CalcGrapY(y);
 		rect.bottom = pView->CalcGrapY(y + 1);
 		tp = GETVRAM(0, y - pView->m_HisOfs + pView->m_HisMin);
-		work.dmf = tp->pr.dm;
+		work.dmf = tp->m_Vram.zoom;
 
 		x = (work.dmf != 0 ? (x1 / 2) : x1);
 		ex = x2;
 
-		if ( x > 0 && (tp[x].pr.at & ATT_RTOL) != 0 ) {
-			while ( x > 0 && (tp[x - 1].pr.at & ATT_RTOL) != 0 )
+		if ( x > 0 && (tp[x].m_Vram.attr & ATT_RTOL) != 0 ) {
+			while ( x > 0 && (tp[x - 1].m_Vram.attr & ATT_RTOL) != 0 )
 				x--;
 		}
-		if ( ex < m_Cols && (tp[ex].pr.at & ATT_RTOL) != 0 ) {
-			while ( (ex + 1) < m_Cols && (tp[ex + 1].pr.at & ATT_RTOL) != 0 )
+		if ( ex < m_Cols && (tp[ex].m_Vram.attr & ATT_RTOL) != 0 ) {
+			while ( (ex + 1) < m_Cols && (tp[ex + 1].m_Vram.attr & ATT_RTOL) != 0 )
 				ex++;
 		}
 
@@ -3672,44 +3762,44 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 			work.sty = 0;
 
 			if ( x < 0 ) {
-				work.att = tp->pr.at & (ATT_REVS | ATT_CLIP | ATT_MARK | ATT_SBLINK | ATT_BLINK);
-				work.fnm = tp->pr.ft;
-				work.fcn = tp->pr.fc;
-				work.bcn = tp->pr.bc;
+				work.att = tp->m_Vram.attr & (ATT_REVS | ATT_CLIP | ATT_MARK | ATT_SBLINK | ATT_BLINK);
+				work.fnm = tp->m_Vram.font;
+				work.fcn = tp->m_Vram.fcol;
+				work.bcn = tp->m_Vram.bcol;
 				work.mod = (-1);
 				work.csz = 1;
 				str.Empty();
 			} else if ( x >= m_Cols ) {
 				vp = tp + (m_Cols - 1);
-				work.att = vp->pr.at & (ATT_REVS | ATT_CLIP | ATT_MARK | ATT_SBLINK | ATT_BLINK);
-				work.fnm = vp->pr.ft;
-				work.fcn = vp->pr.fc;
-				work.bcn = vp->pr.bc;
+				work.att = vp->m_Vram.attr & (ATT_REVS | ATT_CLIP | ATT_MARK | ATT_SBLINK | ATT_BLINK);
+				work.fnm = vp->m_Vram.font;
+				work.fcn = vp->m_Vram.fcol;
+				work.bcn = vp->m_Vram.bcol;
 				work.mod = (-1);
 				work.csz = 1;
 				str.Empty();
 			} else {
 				vp = tp + x;
-				if ( x > 0 && IS_2BYTE(vp[0].pr.cm) && IS_1BYTE(vp[-1].pr.cm) && vp[-1].Compare(vp[0]) == 0 ) {
+				if ( x > 0 && IS_2BYTE(vp[0].m_Vram.mode) && IS_1BYTE(vp[-1].m_Vram.mode) && vp[-1].Compare(vp[0]) == 0 ) {
 					x--;
 					vp--;
 				}
-				work.att = vp->pr.at;
-				work.fnm = vp->pr.ft;
-				work.fcn = vp->pr.fc;
-				work.bcn = vp->pr.bc;
-				work.mod = vp->pr.md & CODE_MASK;
+				work.att = vp->m_Vram.attr;
+				work.fnm = vp->m_Vram.font;
+				work.fcn = vp->m_Vram.fcol;
+				work.bcn = vp->m_Vram.bcol;
+				work.mod = vp->m_Vram.bank & CODE_MASK;
 				work.csz = 1;
 				str = (LPCWSTR)*vp;
 
-				if ( x < (m_Cols - 1) && IS_1BYTE(vp[0].pr.cm) && IS_2BYTE(vp[1].pr.cm) && vp[0].Compare(vp[1]) == 0 ) {
+				if ( x < (m_Cols - 1) && IS_1BYTE(vp[0].m_Vram.mode) && IS_2BYTE(vp[1].m_Vram.mode) && vp[0].Compare(vp[1]) == 0 ) {
 					work.csz = 2;
-				} else if ( IS_IMAGE(vp->pr.cm) ) {
+				} else if ( IS_IMAGE(vp->m_Vram.mode) ) {
 					work.mod = (-1);
-					work.idx = vp->pr.pk.im.id;
-					work.stx = vp->pr.pk.im.ix;
-					work.edx = vp->pr.pk.im.ix + 1;
-					work.sty = vp->pr.pk.im.iy;
+					work.idx = vp->m_Vram.pack.image.id;
+					work.stx = vp->m_Vram.pack.image.ix;
+					work.edx = vp->m_Vram.pack.image.ix + 1;
+					work.sty = vp->m_Vram.pack.image.iy;
 					str.Empty();
 					stx = work.stx;
 					edx = work.edx;
@@ -3718,7 +3808,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 						work.edx = prop.edx;
 					}
 				} else {
-					if ( !IS_ASCII(vp->pr.cm) || str.IsEmpty() || str[0] < _T(' ') ) {
+					if ( !IS_ASCII(vp->m_Vram.mode) || str.IsEmpty() || str[0] < _T(' ') ) {
 						str.Empty();
 						work.mod = (-1);
 					}
@@ -3728,13 +3818,13 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 #ifdef	USE_TEXTFRAME
 			if ( (work.att & ATT_FRAME) != 0 ) {
 				n = (ATT_LSLINE | ATT_RSLINE | ATT_OVER | ATT_UNDER);
-				if ( x > 0 && (vp[-1].pr.at & ATT_FRAME) != 0 )
+				if ( x > 0 && (vp[-1].m_Vram.attr & ATT_FRAME) != 0 )
 					n &= ~ATT_LSLINE;
-				if ( x < (m_Cols - work.csz) && (vp[work.csz].pr.at & ATT_FRAME) != 0 )
+				if ( x < (m_Cols - work.csz) && (vp[work.csz].m_Vram.attr & ATT_FRAME) != 0 )
 					n &= ~ATT_RSLINE;
-				if ( y > 0 && (GETVRAM(x, y - pView->m_HisOfs + pView->m_HisMin - 1)->pr.at & ATT_FRAME) != 0 )
+				if ( y > 0 && (GETVRAM(x, y - pView->m_HisOfs + pView->m_HisMin - 1)->m_Vram.attr & ATT_FRAME) != 0 )
 					n &= ~ATT_OVER;
-				if ( y < (m_Lines - 1) && (GETVRAM(x, y - pView->m_HisOfs + pView->m_HisMin + 1)->pr.at & ATT_FRAME) != 0 )
+				if ( y < (m_Lines - 1) && (GETVRAM(x, y - pView->m_HisOfs + pView->m_HisMin + 1)->m_Vram.attr & ATT_FRAME) != 0 )
 					n &= ~ATT_UNDER;
 				work.att &= ~(ATT_FRAME | ATT_CIRCLE);
 				work.att |= n;
@@ -3742,13 +3832,13 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 
 			} else if ( (work.att & ATT_CIRCLE) != 0 ) {
 				n = (ATT_LDLINE | ATT_RDLINE | ATT_DOVER | ATT_DUNDER);
-				if ( x > 0 && (vp[-1].pr.at & ATT_CIRCLE) != 0 )
+				if ( x > 0 && (vp[-1].m_Vram.attr & ATT_CIRCLE) != 0 )
 					n &= ~ATT_LDLINE;
-				if ( x < (m_Cols - work.csz) && (vp[work.csz].pr.at & ATT_CIRCLE) != 0 )
+				if ( x < (m_Cols - work.csz) && (vp[work.csz].m_Vram.attr & ATT_CIRCLE) != 0 )
 					n &= ~ATT_RDLINE;
-				if ( y > 0 && (GETVRAM(x, y - pView->m_HisOfs + pView->m_HisMin - 1)->pr.at & ATT_CIRCLE) != 0 )
+				if ( y > 0 && (GETVRAM(x, y - pView->m_HisOfs + pView->m_HisMin - 1)->m_Vram.attr & ATT_CIRCLE) != 0 )
 					n &= ~ATT_DOVER;
-				if ( y < (m_Lines - 1) && (GETVRAM(x, y - pView->m_HisOfs + pView->m_HisMin + 1)->pr.at & ATT_CIRCLE) != 0 )
+				if ( y < (m_Lines - 1) && (GETVRAM(x, y - pView->m_HisOfs + pView->m_HisMin + 1)->m_Vram.attr & ATT_CIRCLE) != 0 )
 					n &= ~ATT_DUNDER;
 				work.att &= ~(ATT_FRAME | ATT_CIRCLE);
 				work.att |= n;
@@ -4335,7 +4425,7 @@ void CTextRam::ChkGrapWnd(int sec)
 	for ( y = 0 - m_HisLen + m_Lines ; y < m_Lines ; y++ ) {
 		vp = GETVRAM(0, y);
 		for ( x = 0 ; x < m_ColsMax ; x++ ) {
-			if ( IS_IMAGE(vp->pr.cm) && (n = vp->pr.pk.im.id) >= 0 && n < 4096 )
+			if ( IS_IMAGE(vp->m_Vram.mode) && (n = vp->m_Vram.pack.image.id) >= 0 && n < 4096 )
 				use[n] = 1;
 			vp++;
 		}
@@ -4450,12 +4540,12 @@ void CTextRam::RESET(int mode)
 	}
 
 	if ( mode & RESET_ATTR ) {
-		m_DefAtt.pk.ch = 0;
-		m_DefAtt.md = m_BankTab[m_KanjiMode][m_BankGL];
-		m_DefAtt.em = 0;
-		m_DefAtt.dm = 0;
-		m_DefAtt.cm = 0;
-//		m_DefAtt.at = 0;
+		m_DefAtt.pack.dchar = 0;
+		m_DefAtt.bank = m_BankTab[m_KanjiMode][m_BankGL];
+		m_DefAtt.eram = 0;
+		m_DefAtt.zoom = 0;
+		m_DefAtt.mode = 0;
+//		m_DefAtt.attr = 0;
 		m_AttSpc = m_DefAtt;
 		m_AttNow = m_DefAtt;
 	}
@@ -4613,9 +4703,9 @@ void CTextRam::FLUSH()
 		if ( m_pTraceNow != NULL && m_bTraceUpdate ) {
 			m_pTraceNow->m_CurX = m_CurX;
 			m_pTraceNow->m_CurY = m_CurY;
-			m_pTraceNow->m_Attr = m_AttNow.at;
-			m_pTraceNow->m_ForCol = m_AttNow.fc;
-			m_pTraceNow->m_BakCol = m_AttNow.bc;
+			m_pTraceNow->m_Attr = m_AttNow.attr;
+			m_pTraceNow->m_ForCol = m_AttNow.fcol;
+			m_pTraceNow->m_BakCol = m_AttNow.bcol;
 			m_pTraceWnd->AddTraceNode(m_pTraceNow);
 			m_bTraceUpdate = FALSE;
 		}
@@ -4679,7 +4769,7 @@ void CTextRam::DISPRECT(int sx, int sy, int ex, int ey)
 
 	if ( sx > 0 ) {
 		for ( y = sy ; y < ey ; y++ ) {
-			if ( IS_2BYTE(GETVRAM(sx, y)->pr.cm) ) {
+			if ( IS_2BYTE(GETVRAM(sx, y)->m_Vram.mode) ) {
 				sx--;
 				break;
 			}
@@ -4687,7 +4777,7 @@ void CTextRam::DISPRECT(int sx, int sy, int ex, int ey)
 	}
 	if ( ex < m_Cols ) {
 		for ( y = sy ; y < ey ; y++ ) {
-			if ( IS_1BYTE(GETVRAM(ex, y)->pr.cm) ) {
+			if ( IS_1BYTE(GETVRAM(ex, y)->m_Vram.mode) ) {
 				ex++;
 				break;
 			}
@@ -4708,13 +4798,13 @@ int CTextRam::BLINKUPDATE(class CRLoginView *pView)
 
 	for ( y = 0 ; y < m_Lines ; y++ ) {
 		vp = GETVRAM(0, y - pView->m_HisOfs + pView->m_HisMin);
-		dm = vp->pr.dm;
+		dm = vp->m_Vram.zoom;
 		rect.left   = m_Cols;
 		rect.right  = 0;
 		rect.top    = y - pView->m_HisOfs + pView->m_HisMin;
 		rect.bottom = rect.top + 1;
 		for ( x = 0 ; x < m_Cols ; x++ ) {
-			if ( (vp->pr.at & mk) != 0 ) {
+			if ( (vp->m_Vram.attr & mk) != 0 ) {
 				if ( rect.left > x ) {
 					rect.left  = x;
 					rect.right = x + 1;
@@ -4734,7 +4824,7 @@ int CTextRam::BLINKUPDATE(class CRLoginView *pView)
 					rect.right = x + 1;
 					rt |= 3;
 				}
-			} else if ( (vp->pr.at & ATT_SBLINK) != 0 )
+			} else if ( (vp->m_Vram.attr & ATT_SBLINK) != 0 )
 				rt |= 2;
 			vp++;
 		}
@@ -5201,33 +5291,34 @@ void CTextRam::ERABOX(int sx, int sy, int ex, int ey, int df)
 	spc = m_AttSpc;
 	for ( y = sy ; y < ey ; y++ ) {
 		tp = GETVRAM(0, y);
-		dm = tp->pr.dm;
+		dm = tp->m_Vram.zoom;
 		vp = tp + sx;
 
 		switch(df & (ERM_ISOPRO | ERM_DECPRO)) {
 		case 0:		// clear em
-			for ( x = sx ; x < ex ; x++ )
-				*(vp++) = spc;
+			CVram::Fill(vp, m_AttSpc, ex - sx);
+			//for ( x = sx ; x < ex ; x++ )
+			//	*(vp++) = spc;
 			break;
 		case ERM_ISOPRO:
 			for ( x = sx ; x < ex ; x++, vp++ ) {
-				if ( (vp->pr.em & EM_ISOPROTECT) == 0 )
+				if ( (vp->m_Vram.eram & EM_ISOPROTECT) == 0 )
 					*vp = spc;
 			}
 			break;
 		case ERM_DECPRO:
 			for ( x = sx ; x < ex ; x++, vp++ ) {
-				if ( (vp->pr.em & EM_DECPROTECT) == 0 )
+				if ( (vp->m_Vram.eram & EM_DECPROTECT) == 0 )
 					*vp = spc;
 			}
 			break;
 		}
 
 		if ( (df & ERM_SAVEDM) == 0 ) {
-			tp->pr.dm = 0;
+			tp->m_Vram.zoom = 0;
 			DISPVRAM(sx, y, ex - sx, 1);
 		} else {
-			if ( (tp->pr.dm = dm) != 0 )
+			if ( (tp->m_Vram.zoom = dm) != 0 )
 				DISPVRAM(sx * 2, y, (ex - sx) * 2, 1);
 			else
 				DISPVRAM(sx, y, ex - sx, 1);
@@ -5241,13 +5332,12 @@ void CTextRam::FORSCROLL(int sx, int sy, int ex, int ey)
 	ASSERT(ex > 0 && ex <= m_Cols);
 	ASSERT(ey > 0 && ey <= m_Lines);
 
-	int x, y;
-	CVram *vp, *wp;
-
 	m_DoWarp = FALSE;
+
 	if ( sy == 0 && ey == m_Lines && sx == 0 && ex == m_Cols && !m_LineEditMode && !m_bTraceActive ) {
 		CallReciveLine(0);
 		m_HisUse++;
+
 		if ( (m_HisPos += 1) >= m_HisMax )
 			m_HisPos -= m_HisMax;
 		if ( m_HisLen < (m_HisMax - 1) )
@@ -5255,27 +5345,16 @@ void CTextRam::FORSCROLL(int sx, int sy, int ex, int ey)
 		if ( m_LineUpdate < m_Lines )
 			m_LineUpdate++;
 
-		vp = GETVRAM(0, m_Lines - 1);
-		vp[0] = m_AttSpc;
-		for ( x = 1 ; x < m_ColsMax ; x++ )
-				vp[x] = vp[0];
+		CVram::Fill(GETVRAM(0, m_Lines - 1), m_AttSpc, m_ColsMax);
 
 	} else {
-#ifdef	FIXWCHAR
-		for ( y = sy + 1; y < ey ; y++ )
-			memcpy(GETVRAM(sx, y - 1), GETVRAM(sx, y), sizeof(CVram) * (ex - sx));
-#else
-		for ( y = sy + 1; y < ey ; y++ ) {
-			vp = GETVRAM(sx, y - 1);
-			wp = GETVRAM(sx, y);
-			for ( x = sx ; x < ex ; x++ )
-				*(vp++) = *(wp++);
-		}
-#endif
+		for ( int y = sy + 1; y < ey ; y++ )
+			CVram::Copy(GETVRAM(sx, y - 1), GETVRAM(sx, y), ex - sx);
+
 		ERABOX(sx, ey - 1, ex, ey);
 	}
+
 	DISPRECT(sx, sy, ex, ey);
-//	DISPVRAM(sx, sy, ex - sx, ey - sy);
 }
 void CTextRam::BAKSCROLL(int sx, int sy, int ex, int ey)
 {
@@ -5289,20 +5368,11 @@ void CTextRam::BAKSCROLL(int sx, int sy, int ex, int ey)
 
 	m_DoWarp = FALSE;
 
-#ifdef	FIXWCHAR
 	for ( y = ey - 1; y > sy ; y-- )
-		memcpy(GETVRAM(sx, y), GETVRAM(sx, y - 1), sizeof(CVram) * (ex - sx));
-#else
-	for ( y = ey - 1; y > sy ; y-- ) {
-		vp = GETVRAM(sx, y);
-		wp = GETVRAM(sx, y - 1);
-		for ( x = sx ; x < ex ; x++ )
-			*(vp++) = *(wp++);
-	}
-#endif
+		CVram::Copy(GETVRAM(sx, y), GETVRAM(sx, y - 1), ex - sx);
+
 	ERABOX(sx, sy, ex, sy + 1);
 	DISPRECT(sx, sy, ex, ey);
-//	DISPVRAM(sx, sy, ex - sx, ey - sy);
 }
 void CTextRam::LEFTSCROLL()
 {
@@ -5313,16 +5383,15 @@ void CTextRam::LEFTSCROLL()
 
 	for ( n = m_Margin.top ; n < m_Margin.bottom ; n++ ) {
 		vp = GETVRAM(0, n);
-		dm = vp->pr.dm;
+		dm = vp->m_Vram.zoom;
 		for ( i = m_Margin.left + 1 ; i < m_Margin.right ; i++ )
 			vp[i - 1] = vp[i];
 		vp[m_Margin.right - 1] = m_AttSpc;
-		vp->pr.dm = dm;
+		vp->m_Vram.zoom = dm;
 	}
 
 
 	DISPRECT(m_Margin.left, m_Margin.top, m_Margin.right, m_Margin.bottom);
-//	DISPVRAM(m_Margin.left, m_Margin.top, m_Margin.Width(), m_Margin.Height());
 }
 void CTextRam::RIGHTSCROLL()
 {
@@ -5333,15 +5402,14 @@ void CTextRam::RIGHTSCROLL()
 
 	for ( n = m_Margin.top ; n < m_Margin.bottom ; n++ ) {
 		vp = GETVRAM(0, n);
-		dm = vp->pr.dm;
+		dm = vp->m_Vram.zoom;
 		for ( i = m_Margin.right - 1 ; i > m_Margin.left ; i-- )
 			vp[i] = vp[i - 1];
 		vp[m_Margin.left] = m_AttSpc;
-		vp->pr.dm = dm;
+		vp->m_Vram.zoom = dm;
 	}
 
 	DISPRECT(m_Margin.left, m_Margin.top, m_Margin.right, m_Margin.bottom);
-//	DISPVRAM(m_Margin.left, m_Margin.top, m_Margin.Width(), m_Margin.Height());
 }
 void CTextRam::DOWARP()
 {
@@ -5374,13 +5442,13 @@ void CTextRam::INSCHAR(BOOL bMargin)
 
 	if ( st ) {
 		vp = GETVRAM(0, m_CurY);
-		dm = vp->pr.dm;
+		dm = vp->m_Vram.zoom;
 
 		for ( n = m_Margin.right - 1 ; n > m_CurX ; n-- )
 			vp[n] = vp[n - 1];
 
 		vp[n] = m_AttSpc;
-		vp->pr.dm = dm;
+		vp->m_Vram.zoom = dm;
 
 		if ( dm != 0 )
 			DISPVRAM(0, m_CurY, m_Cols, 1);
@@ -5397,19 +5465,38 @@ void CTextRam::DELCHAR()
 
 	if ( GetMargin(MARCHK_COLS) ) {
 		vp = GETVRAM(0, m_CurY);
-		dm = vp->pr.dm;
+		dm = vp->m_Vram.zoom;
 
 		for ( n = m_CurX + 1; n < m_Margin.right ; n++ )
 			vp[n - 1] = vp[n];
 
 		vp[n - 1] = m_AttSpc;
-		vp->pr.dm = dm;
+		vp->m_Vram.zoom = dm;
 
 		if ( dm != 0 )
 			DISPVRAM(0, m_CurY, m_Cols, 1);
 		else
 			DISPVRAM(m_CurX, m_CurY, m_Margin.right - m_CurX, 1);
 	}
+}
+void CTextRam::FILLCHAR(int ch)
+{
+	int x, y, dm;
+	CVram *vp, tmp;
+
+	tmp = m_AttNow;
+	tmp.m_Vram.bank = m_BankTab[m_KanjiMode][0];
+	tmp = (DWORD)ch;
+
+	for ( y = 0 ; y < m_Lines ; y++ ) {
+		vp = GETVRAM(0, y);
+		dm = vp->m_Vram.zoom;
+		for ( x = 0 ; x < m_Cols ; x++ )
+			*(vp++) = tmp;
+		vp->m_Vram.zoom = dm;
+	}
+
+	DISPVRAM(0, 0, m_Cols, m_Lines);
 }
 void CTextRam::ONEINDEX()
 {
@@ -5479,14 +5566,14 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at)
 
 	vp = GETVRAM(m_CurX, m_CurY);
 
-	vp->pr.md = (WORD)md;
-	vp->pr.em = m_AttNow.em;
-//	vp->pr.dm = m_AttNow.dm;	no Init
-	vp->pr.cm = CM_ASCII;
-	vp->pr.at = m_AttNow.at | at;
-	vp->pr.ft = m_AttNow.ft;
-	vp->pr.fc = m_AttNow.fc;
-	vp->pr.bc = m_AttNow.bc;
+	vp->m_Vram.bank = (WORD)md;
+	vp->m_Vram.eram = m_AttNow.eram;
+//	vp->m_Vram.zoom = m_AttNow.dm;	no Init
+	vp->m_Vram.mode = CM_ASCII;
+	vp->m_Vram.attr = m_AttNow.attr | at;
+	vp->m_Vram.font = m_AttNow.font;
+	vp->m_Vram.fcol = m_AttNow.fcol;
+	vp->m_Vram.bcol = m_AttNow.bcol;
 
 	md &= CODE_MASK;
 	ch |= m_FontTab[md].m_Shift;
@@ -5494,7 +5581,7 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at)
 	ch = IconvToMsUnicode(ch);
 
 	if ( ch >= 0x2500 && ch <= 0x257F && !IsOptEnable(TO_RLDRWLINE) )		// Border Char
-		vp->pr.at |= ATT_BORDER;
+		vp->m_Vram.attr |= ATT_BORDER;
 
 	*vp = (DWORD)ch;
 
@@ -5574,22 +5661,22 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at)
 
 	vp = GETVRAM(m_CurX, m_CurY);
 
-	vp[0].pr.md = vp[1].pr.md = (WORD)md;
-	vp[0].pr.em = vp[1].pr.em = m_AttNow.em;
+	vp[0].m_Vram.bank = vp[1].m_Vram.bank = (WORD)md;
+	vp[0].m_Vram.eram = vp[1].m_Vram.eram = m_AttNow.eram;
 //	vp[0].dm = vp[1].dm = m_AttNow.dm;	no Init
-	vp[0].pr.cm = CM_1BYTE;
-	vp[1].pr.cm = CM_2BYTE;
-	vp[0].pr.at = vp[1].pr.at = m_AttNow.at | at;
-	vp[0].pr.ft = vp[1].pr.ft = m_AttNow.ft;
-	vp[0].pr.fc = vp[1].pr.fc = m_AttNow.fc;
-	vp[0].pr.bc = vp[1].pr.bc = m_AttNow.bc;
+	vp[0].m_Vram.mode = CM_1BYTE;
+	vp[1].m_Vram.mode = CM_2BYTE;
+	vp[0].m_Vram.attr = vp[1].m_Vram.attr = m_AttNow.attr | at;
+	vp[0].m_Vram.font = vp[1].m_Vram.font = m_AttNow.font;
+	vp[0].m_Vram.fcol = vp[1].m_Vram.fcol = m_AttNow.fcol;
+	vp[0].m_Vram.bcol = vp[1].m_Vram.bcol = m_AttNow.bcol;
 
 	md &= CODE_MASK;
 	ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// Char変換ではUTF-16BEを使用！
 	ch = IconvToMsUnicode(ch);
 
 	if ( ch >= 0x2500 && ch <= 0x257F&& !IsOptEnable(TO_RLDRWLINE) )		// Border Char
-		vp[0].pr.at |= ATT_BORDER;
+		vp[0].m_Vram.attr |= ATT_BORDER;
 
 	vp[0] = (DWORD)ch;
 	vp[1] = (DWORD)ch;
@@ -5631,7 +5718,7 @@ void CTextRam::PUTADD(int x, int y, DWORD ch, int cf)
 		return;
 
 	vp = GETVRAM(x, y);
-	n = (x < (m_Cols - 1) && IS_1BYTE(vp[0].pr.cm) && IS_2BYTE(vp[1].pr.cm)) ? 2 : 1;
+	n = (x < (m_Cols - 1) && IS_1BYTE(vp[0].m_Vram.mode) && IS_2BYTE(vp[1].m_Vram.mode)) ? 2 : 1;
 
 	if ( (cf & UNI_WID) != 0 )
 		i = 2;
@@ -5642,11 +5729,11 @@ void CTextRam::PUTADD(int x, int y, DWORD ch, int cf)
 
 	if ( n == 2 || i == n ) {
 		*vp += (DWORD)ch;
-//		if ( IS_1BYTE(vp->pr.cm) && IS_2BYTE(vp[1].pr.cm) )	not use
+//		if ( IS_1BYTE(vp->m_Vram.mode) && IS_2BYTE(vp[1].m_Vram.mode) )	not use
 			vp[1] = (LPCWSTR)(*vp);
-		DISPVRAM(x, y, IS_1BYTE(vp->pr.cm) ? 2 : 1, 1);
+		DISPVRAM(x, y, IS_1BYTE(vp->m_Vram.mode) ? 2 : 1, 1);
 	} else {
-		CStringW str = vp->ch;
+		CStringW str = *vp;
 		LPCWSTR p = str;
 		LOCATE(x, y);
 		PUT2BYTE(0, SET_UNICODE);
@@ -5704,13 +5791,13 @@ CTextSave *CTextRam::GETSAVERAM(BOOL bAll)
 		vp = GETVRAM(0, n);
 		wp = pSave->m_VRam + n * m_Cols;
 		for ( x = 0 ; x < m_Cols ; x++ ) {
-			if ( IS_IMAGE(vp->pr.cm) && vp->pr.pk.im.id >= 0 ) {
+			if ( IS_IMAGE(vp->m_Vram.mode) && vp->m_Vram.pack.image.id >= 0 ) {
 				for ( i = 0 ; i < pSave->m_GrapIdx.GetSize() ; i++ ) {
-					if ( pSave->m_GrapIdx[i] == vp->pr.pk.im.id )
+					if ( pSave->m_GrapIdx[i] == vp->m_Vram.pack.image.id )
 						break;
 				}
 				if ( i >= pSave->m_GrapIdx.GetSize() )
-					pSave->m_GrapIdx.Add(vp->pr.pk.im.id);
+					pSave->m_GrapIdx.Add(vp->m_Vram.pack.image.id);
 			}
 			*(wp++) = *(vp++);
 		}
@@ -6069,9 +6156,9 @@ void CTextRam::COPY(int sp, int sx, int sy, int ex, int ey, int dp, int dx, int 
 							tp = GETVRAM(tx, ty);
 						np = GETVRAM(nx, ny);
 						if ( nx == 0 ) {
-							dm = np->pr.dm;
+							dm = np->m_Vram.zoom;
 							*np = *tp;
-							np->pr.dm = dm;
+							np->m_Vram.zoom = dm;
 						} else
 							*np = *tp;
 					}
@@ -6089,9 +6176,9 @@ void CTextRam::COPY(int sp, int sx, int sy, int ex, int ey, int dp, int dx, int 
 							tp = GETVRAM(tx, ty);
 						np = GETVRAM(nx, ny);
 						if ( nx == 0 ) {
-							dm = np->pr.dm;
+							dm = np->m_Vram.zoom;
 							*np = *tp;
-							np->pr.dm = dm;
+							np->m_Vram.zoom = dm;
 						} else
 							*np = *tp;
 					}
@@ -6113,9 +6200,9 @@ void CTextRam::COPY(int sp, int sx, int sy, int ex, int ey, int dp, int dx, int 
 							tp = pSrc->m_VRam + tx + pSrc->m_Cols * ty;
 						np = pSrc->m_VRam + nx + pSrc->m_Cols * ny;
 						if ( nx == 0 ) {
-							dm = np->pr.dm;
+							dm = np->m_Vram.zoom;
 							*np = *tp;
-							np->pr.dm = dm;
+							np->m_Vram.zoom = dm;
 						} else
 							*np = *tp;
 					}
@@ -6133,9 +6220,9 @@ void CTextRam::COPY(int sp, int sx, int sy, int ex, int ey, int dp, int dx, int 
 							tp = pSrc->m_VRam + tx + pSrc->m_Cols * ty;
 						np = pSrc->m_VRam + nx + pSrc->m_Cols * ny;
 						if ( nx == 0 ) {
-							dm = np->pr.dm;
+							dm = np->m_Vram.zoom;
 							*np = *tp;
-							np->pr.dm = dm;
+							np->m_Vram.zoom = dm;
 						} else
 							*np = *tp;
 					}
@@ -6155,9 +6242,9 @@ void CTextRam::COPY(int sp, int sx, int sy, int ex, int ey, int dp, int dx, int 
 						tp = GETVRAM(tx, ty);
 					np = pDis->m_VRam + nx + pDis->m_Cols * ny;
 					if ( nx == 0 ) {
-						dm = np->pr.dm;
+						dm = np->m_Vram.zoom;
 						*np = *tp;
-						np->pr.dm = dm;
+						np->m_Vram.zoom = dm;
 					} else
 						*np = *tp;
 				}
@@ -6174,9 +6261,9 @@ void CTextRam::COPY(int sp, int sx, int sy, int ex, int ey, int dp, int dx, int 
 						tp = pSrc->m_VRam + tx + pSrc->m_Cols * ty;
 					np = GETVRAM(nx, ny);
 					if ( nx == 0 ) {
-						dm = np->pr.dm;
+						dm = np->m_Vram.zoom;
 						*np = *tp;
-						np->pr.dm = dm;
+						np->m_Vram.zoom = dm;
 					} else
 						*np = *tp;
 				}
@@ -6196,9 +6283,9 @@ void CTextRam::COPY(int sp, int sx, int sy, int ex, int ey, int dp, int dx, int 
 						tp = pSrc->m_VRam + tx + pSrc->m_Cols * ty;
 					np = pDis->m_VRam + nx + pDis->m_Cols * ny;
 					if ( nx == 0 ) {
-						dm = np->pr.dm;
+						dm = np->m_Vram.zoom;
 						*np = *tp;
-						np->pr.dm = dm;
+						np->m_Vram.zoom = dm;
 					} else
 						*np = *tp;
 				}

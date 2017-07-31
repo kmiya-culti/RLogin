@@ -381,30 +381,30 @@ enum EStageNum {
 
 typedef struct _Vram {
 	union {
-		DWORD	ch;
+		DWORD	dchar;
 		struct {
 			DWORD	id:12;		// イメージ番号
 			  DWORD	iy:10;		// イメージ横位置
 			  DWORD	ix:10;		// イメージ縦位置
-		} im;
-		WCHAR	cb[2];
-	} pk;
+		} image;
+		WCHAR	wcbuf[2];
+	} pack;
 
-	DWORD	at:28;		// アトリビュート
-	  DWORD	ft:4;		// フォント番号
+	DWORD	attr:28;		// アトリビュート
+	  DWORD	font:4;			// フォント番号
 
-	WORD	md:10;		// フォントバンク
-	  WORD	em:2;		// 消去属性
-	  WORD	dm:2;		// 拡大属性
-	  WORD	cm:2;		// 文字種
-	BYTE	fc;			// 文字色番号
-	BYTE	bc;			// 背景色番号
+	WORD	bank:10;		// フォントバンク
+	  WORD	eram:2;			// 消去属性
+	  WORD	zoom:2;			// 拡大属性
+	  WORD	mode:2;			// 文字種
+	BYTE	fcol;			// 文字色番号
+	BYTE	bcol;			// 背景色番号
 } VRAM;
 
 //#define	FIXWCHAR	1
 
 #ifdef	FIXWCHAR
-#define	MAXCHARSIZE	6
+#define	MAXCHARSIZE	8
 #else
 #define	MAXCHARSIZE	31
 WCHAR *WCharAlloc(int len);
@@ -413,39 +413,44 @@ int WCharSize(WCHAR *ptr);
 void AllWCharAllocFree();
 #endif
 
+/////////////////////////////////////////////////
+//				   FIXW       x64        x32
+// sizeof(Cram) == 24 Byte or 20 Byte or 16 Byte
+//
 class CVram
 {
 public:
 #ifdef	FIXWCHAR
-	WCHAR		ch[MAXCHARSIZE];
+	WCHAR		m_Data[MAXCHARSIZE - 2];	// WCHAR * (8 - m_Vram.pack.wcbuf[2]) = 12 Byte
+	VRAM		m_Vram;						// DWORD * 3 = 12 Byte
 #else
-	WCHAR		*ch;
+	WCHAR		*m_Data;					// (WCHAR *) = 4 / 8 Byte
+	VRAM		m_Vram;						// DWORD * 3 = 12 Byte
 #endif
-	VRAM		pr;		// DWORD * 3 = 12 Byte
 
 	CVram();
 	~CVram();
 
-	inline void Empty() { if ( !IS_IMAGE(pr.cm) ) ch[0] = 0; }
-	inline BOOL IsEmpty() { return (IS_IMAGE(pr.cm) || ch[0] == 0 ? TRUE : FALSE); }
-	inline operator LPCWSTR () { return (IS_IMAGE(pr.cm) ? L"" : ch); }
-	inline operator DWORD () { return ((ch[0] == 0 ? 0 : (ch[1] == 0 ? ch[0] : ((ch[0] << 16) | ch[1])))); }
+	inline void Empty() { if ( !IS_IMAGE(m_Vram.mode) ) m_Data[0] = 0; }
+	inline BOOL IsEmpty() { return (IS_IMAGE(m_Vram.mode) || m_Data[0] == 0 ? TRUE : FALSE); }
+	inline operator LPCWSTR () { return (IS_IMAGE(m_Vram.mode) ? L"" : m_Data); }
+	inline operator DWORD () { return ((m_Data[0] == 0 ? 0 : (m_Data[1] == 0 ? m_Data[0] : ((m_Data[0] << 16) | m_Data[1])))); }
 
 //	inline int Compare(LPCWSTR str) { return wcscmp(str, (LPCWSTR)*this); }
 	inline int Compare(LPCWSTR str) { return 0; }
 
-	void operator = (DWORD c);
+	void operator = (DWORD ch);
 	void operator = (LPCWSTR str);
-	void operator += (DWORD c);
+	void operator += (DWORD ch);
 	void SetVRAM(VRAM &ram);
 
 #ifdef	FIXWCHAR
 	inline const CVram & operator = (CVram &data) { memcpy(this, &data, sizeof(CVram)); return *this; }
 #else
 	void GetCVram(CVram &data);
-	inline const CVram & operator = (CVram &data) { if ( data.ch == data.pr.pk.cb && ch == pr.pk.cb ) pr = data.pr; else GetCVram(data); return *this; }
+	inline const CVram & operator = (CVram &data) { if ( data.m_Data == data.m_Vram.pack.wcbuf && m_Data == m_Vram.pack.wcbuf ) m_Vram = data.m_Vram; else GetCVram(data); return *this; }
 #endif
-	inline void operator = (VRAM &ram) { pr = ram; *this = ram.pk.ch; }
+	inline void operator = (VRAM &ram) { m_Vram = ram; *this = ram.pack.dchar; }
 
 	void SetBuffer(CBuffer &buf);
 	void GetBuffer(CBuffer &buf);
@@ -454,6 +459,9 @@ public:
 
 	void Read(CFile &file, int ver = 3);
 	void Write(CFile &file);
+
+	static void Copy(CVram *dis, CVram *src, int size);
+	static void Fill(CVram *dis, VRAM &vram, int size);
 };
 
 class CFontNode : public CObject
@@ -488,7 +496,7 @@ public:
 	void Init();
 	void SetArray(CStringArrayExt &stra);
 	void GetArray(CStringArrayExt &stra);
-	CFontChacheNode *GetFont(int Width, int Height, int Style, int FontNum);
+	CFontChacheNode *GetFont(int Width, int Height, int Style, int FontNum, LPCTSTR DefFontName);
 	const CFontNode & operator = (CFontNode &data);
 	void SetUserBitmap(int code, int width, int height, CBitmap *pMap, int ofx, int ofy);
 	void SetUserFont(int code, int width, int height, LPBYTE map);
@@ -549,6 +557,10 @@ public:
 	const CProcTab & operator = (CProcTab &data);
 	CProcTab();
 };
+
+#define	TRACE_OUT		0
+#define	TRACE_NON		1
+#define	TRACE_SIXEL		2
 
 class CTraceNode : public CObject
 {
@@ -670,6 +682,9 @@ public:	// Options
 	int m_DefModKey[MODKEY_MAX];
 	CRect m_ScrnOffset;
 	CString m_TimeFormat;
+	CString m_DefFontName[16];
+	CString m_TraceLogFile;
+	int m_TraceMaxCount;
 
 	void Init();
 	void SetIndex(int mode, CStringIndex &index);
@@ -878,8 +893,8 @@ public:
 
 	inline int GetCalcPos(int x, int y) { return (m_ColsMax * (y + m_HisPos + m_HisMax) + x); }
 	inline void SetCalcPos(int pos, int *x, int *y) { *x = pos % m_ColsMax; *y = (pos / m_ColsMax - m_HisPos - m_HisMax); }
-	inline int GetDm(int y) { CVram *vp = GETVRAM(0, y); return vp->pr.dm; }
-	inline void SetDm(int y, int dm) { CVram *vp = GETVRAM(0, y); vp->pr.dm = dm; }
+	inline int GetDm(int y) { CVram *vp = GETVRAM(0, y); return vp->m_Vram.zoom; }
+	inline void SetDm(int y, int dm) { CVram *vp = GETVRAM(0, y); vp->m_Vram.zoom = dm; }
 
 	inline int GetLeftMargin() { return (IsOptEnable(TO_DECLRMM) ? m_LeftX : 0); }
 	inline int GetRightMargin() { return (IsOptEnable(TO_DECLRMM) ? m_RightX : m_Cols); }
@@ -935,6 +950,7 @@ public:
 	void DOWARP();
 	void INSCHAR(BOOL bMargin = TRUE);
 	void DELCHAR();
+	void FILLCHAR(int ch);
 	void ONEINDEX();
 	void REVINDEX();
 	void PUT1BYTE(DWORD ch, int md, int at = 0);
@@ -1000,7 +1016,7 @@ public:
 
 	void SetTraceLog(BOOL bSw);
 	void fc_TraceLogChar(DWORD ch);
-	void fc_TraceLogFlush(ESCNAMEPROC *tp, BOOL bParam);
+	void fc_TraceLogFlush(ESCNAMEPROC *pProc, BOOL bParam);
 	void fc_TraceCall(DWORD ch);
 	void fc_FuncCall(DWORD ch) { (this->*m_Func[ch])(ch); }
 

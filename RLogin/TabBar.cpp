@@ -222,6 +222,17 @@ void CTabBar::SelectActive(int idx)
 	if ( (pWnd = (CChildFrame *)GetAt(idx)) != NULL )
 		pWnd->MDIActivate();
 }
+int CTabBar::GetIndex(CWnd *pWnd)
+{
+	int n;
+	CWnd *pFrame;
+
+	for ( n = 0 ; n <  GetSize() ; n++ ) {
+		if ( (pFrame = GetAt(n)) != NULL && pFrame->m_hWnd == pWnd->m_hWnd )
+			return n;
+	}
+	return (-1);
+}
 
 void CTabBar::OnSelchange(NMHDR* pNMHDR, LRESULT* pResult) 
 {
@@ -243,10 +254,15 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 	CRect rect;
 	TC_ITEM tci;
 	int idx = m_TabCtrl.GetCurSel();
+	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
+	CWnd *pLeft = GetAt(idx);
+	CWnd *pRight;
+	CString title;
+	TCHAR Text[MAX_PATH + 2];
 
 	CControlBar::OnLButtonDown(nFlags, point);
 
-	if ( !m_TabCtrl.GetItemRect(idx, rect) || !rect.PtInRect(point) )
+	if ( pLeft == NULL || !m_TabCtrl.GetItemRect(idx, rect) || !rect.PtInRect(point) )
 		return;
 
 	CRectTracker tracker(rect, CRectTracker::hatchedBorder);
@@ -263,8 +279,7 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 		if ( n == idx || !m_TabCtrl.GetItemRect(n, rect) || !rect.PtInRect(point) )
 			continue;
 
-		TCHAR Text[MAX_PATH + 2];
-
+#if 1
 		tci.mask = TCIF_PARAM | TCIF_TEXT;
 		tci.pszText = Text;
 		tci.cchTextMax = MAX_PATH;
@@ -274,25 +289,39 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 		m_TabCtrl.DeleteItem(idx);
 		tci.mask = TCIF_PARAM | TCIF_TEXT;
 		m_TabCtrl.InsertItem(n, &tci);
+#else
+		if ( (pRight = GetAt(n)) == NULL )
+			return;
+
+		pLeft->GetWindowText(title);
+		tci.mask = TCIF_PARAM | TCIF_TEXT;
+		tci.lParam = (LPARAM)pLeft->m_hWnd;
+		tci.pszText = title.LockBuffer();
+		m_TabCtrl.SetItem(n, &tci);
+		title.UnlockBuffer();
+
+		pRight->GetWindowText(title);
+		tci.mask = TCIF_PARAM | TCIF_TEXT;
+		tci.lParam = (LPARAM)pRight->m_hWnd;
+		tci.pszText = title.LockBuffer();
+		m_TabCtrl.SetItem(idx, &tci);
+		title.UnlockBuffer();
+
+		pMain->SwapChild(pLeft, pRight);
+#endif
 		return;
 	}
-
-	tci.mask = TCIF_PARAM;
-	if ( !m_TabCtrl.GetItem(idx, &tci) )
-		return;
-
-	CWnd *pWnd = FromHandle((HWND)tci.lParam);
-	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
 
 	ClientToScreen(&point);
 	pMain->GetWindowRect(rect);
+
 	if ( rect.PtInRect(point) ) {
 		pMain->ScreenToClient(&point);
-		pMain->MoveChild(pWnd, point);
+		pMain->MoveChild(pLeft, point);
 		return;
 	}
 
-	pWnd->PostMessage(WM_CLOSE);
+	pLeft->PostMessage(WM_CLOSE);
 }
 
 CSize CTabBar::CalcFixedLayout(BOOL bStretch, BOOL bHorz)

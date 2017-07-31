@@ -547,6 +547,7 @@ public:
 	CString m_Menu;
 	CString m_Text;
 
+	void SetMenu(CMenu *pMenu);
 	void ResetMenu(CMenu *pMenu);
 	const CKeyCmds & operator = (CKeyCmds &data);
 };
@@ -559,6 +560,7 @@ public:
 	int Add(CKeyCmds &cmds);
 	int Find(int id);
 	void ResetMenuAll(CMenu *pMenu);
+	void SortText();
 
 	inline CKeyCmds & operator [] (int nIndex) { return m_Data[nIndex]; }
 	inline int GetSize() { return (int)m_Data.GetSize(); }
@@ -642,7 +644,7 @@ public:
 	void Top(int nIndex);
 	void Add(CKeyMac &tmp);
 	void GetAt(int nIndex, CBuffer &buf);
-	void SetHisMenu(CWnd *pWnd);
+	void SetHisMenu(CMenu *pMainMenu);
 
 	inline CKeyMac & operator[](int nIndex) { return m_Data[nIndex]; }
 	const CKeyMacTab & operator = (CKeyMacTab &data);

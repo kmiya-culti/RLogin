@@ -34,9 +34,9 @@ CFontParaDlg::CFontParaDlg(CWnd* pParent /*=NULL*/)
 	m_FontName = _T("");
 	m_FontNum  = 0;
 	m_FontQuality = DEFAULT_QUALITY;
-	//}}AFX_DATA_INIT
 	m_pData = NULL;
 	m_pFontTab = NULL;
+	//}}AFX_DATA_INIT
 }
 
 void CFontParaDlg::DoDataExchange(CDataExchange* pDX)
@@ -53,17 +53,19 @@ void CFontParaDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_CBString(pDX, IDC_FONTCODE, m_CodeTemp);
 	DDX_CBString(pDX, IDC_ICONVSET, m_IContName);
 	DDX_Text(pDX, IDC_ENTRYNAME, m_EntryName);
-	DDX_Text(pDX, IDC_FACENAME, m_FontName);
-	//}}AFX_DATA_MAP
+	DDX_CBString(pDX, IDC_FACENAME, m_FontName);
 	DDX_CBIndex(pDX, IDC_FONTNUM, m_FontNum);
 	DDX_CBIndex(pDX, IDC_FONTQUALITY, m_FontQuality);
+	//}}AFX_DATA_MAP
 }
 
 BEGIN_MESSAGE_MAP(CFontParaDlg, CDialog)
 	//{{AFX_MSG_MAP(CFontParaDlg)
 	ON_BN_CLICKED(IDC_FONTSEL, OnFontsel)
-	//}}AFX_MSG_MAP
 	ON_CBN_SELCHANGE(IDC_FONTNUM, &CFontParaDlg::OnCbnSelchangeFontnum)
+	//}}AFX_MSG_MAP
+	ON_CBN_SELCHANGE(IDC_CHARSET, &CFontParaDlg::OnCbnSelchangeCharset)
+	ON_CBN_EDITCHANGE(IDC_CHARSET, &CFontParaDlg::OnCbnEditchangeCharset)
 END_MESSAGE_MAP()
 
 static const struct _CharSetTab {
@@ -160,16 +162,37 @@ void CFontParaDlg::CodeSetName(int num, CString &bank, CString &code)
 	}
 }
 
+extern int CALLBACK EnumFontFamExComboAddStr(ENUMLOGFONTEX *lpelfe, NEWTEXTMETRICEX *lpntme, int FontType, LPARAM lParam);
+
+void CFontParaDlg::SetFontFace(int nID)
+{
+	CClientDC dc(this);
+	LOGFONT logfont;
+	CComboBox *pCombo = (CComboBox *)GetDlgItem(nID);
+
+	if ( pCombo == NULL )
+		return;
+
+	for ( int n = pCombo->GetCount() - 1 ; n >= 0; n-- )
+		pCombo->DeleteString(n);
+
+	ZeroMemory(&logfont, sizeof(LOGFONT)); 
+	logfont.lfCharSet = CharSetNo(m_CharSetTemp);
+	::EnumFontFamiliesEx(dc.m_hDC, &logfont, (FONTENUMPROC)EnumFontFamExComboAddStr, (long)GetDlgItem(nID), 0);
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // CFontParaDlg メッセージ ハンドラ
 
 BOOL CFontParaDlg::OnInitDialog() 
 {
-	CDialog::OnInitDialog();
-
 	int n;
 	CComboBox *pCombo;
 	CStringArray stra;
+
+	ASSERT(m_pData != NULL && m_pFontTab != NULL);
+
+	CDialog::OnInitDialog();
 
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_CHARSET)) != NULL ) {
 		for ( n = 0 ; CharSetTab[n].name != NULL ; n++ )
@@ -181,9 +204,6 @@ BOOL CFontParaDlg::OnInitDialog()
 		for ( n = 0 ; n < stra.GetSize() ; n++ )
 			pCombo->AddString(stra[n]);
 	}
-
-	ASSERT(m_pData);
-	ASSERT(m_pFontTab);
 
 	CodeSetName(m_CodeSet, m_BankTemp, m_CodeTemp);
 	m_CharSetTemp = CharSetName(m_pData->m_CharSet);
@@ -198,6 +218,8 @@ BOOL CFontParaDlg::OnInitDialog()
 
 	for ( n = 0 ; n < 16 ; n++ )
 		m_FontNameTab[n] = m_pData->m_FontName[n];
+
+	SetFontFace(IDC_FACENAME);
 	m_FontName  = m_FontNameTab[m_FontNum];
 
 	UpdateData(FALSE);
@@ -206,9 +228,10 @@ BOOL CFontParaDlg::OnInitDialog()
 }
 void CFontParaDlg::OnOK()
 {
+	ASSERT(m_pData != NULL);
+
 	UpdateData(TRUE);
 
-	ASSERT(m_pData);
 	m_CodeSet            = CodeSetNo(m_BankTemp, m_CodeTemp);
 	m_pData->m_CharSet   = CharSetNo(m_CharSetTemp);
 	m_pData->m_Shift     = (m_ShiftTemp ? 0x80 : 0x00);
@@ -250,7 +273,9 @@ void CFontParaDlg::OnFontsel()
 	else
 	    _tcscpy(LogFont.lfFaceName, m_FontName);
 
-	CFontDialog font(&LogFont, CF_NOVERTFONTS | CF_SCREENFONTS | CF_SELECTSCRIPT, NULL, this);
+#define	CF_INACTIVEFONTS	0x02000000L
+
+	CFontDialog font(&LogFont, CF_NOVERTFONTS | CF_SCREENFONTS | CF_SELECTSCRIPT | CF_INACTIVEFONTS, NULL, this);
 
 	if ( font.DoModal() != IDOK )
 		return;
@@ -265,4 +290,16 @@ void CFontParaDlg::OnCbnSelchangeFontnum()
 	UpdateData(TRUE);
 	m_FontName  = m_FontNameTab[m_FontNum];
 	UpdateData(FALSE);
+}
+
+void CFontParaDlg::OnCbnSelchangeCharset()
+{
+	UpdateData(TRUE);
+	SetFontFace(IDC_FACENAME);
+}
+
+void CFontParaDlg::OnCbnEditchangeCharset()
+{
+	UpdateData(TRUE);
+	SetFontFace(IDC_FACENAME);
 }

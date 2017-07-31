@@ -897,7 +897,7 @@ int CExtSocket::Send(const void* lpBuf, int nBufLen, int nFlags)
 		m_SendHead = AddTail(sp, m_SendHead);
 	m_SendSize += nBufLen;
 
-//	TRACE("Send Save %d\n", nBufLen);
+	//TRACE("Send Save %d\n", m_SendSize);
 	
 	if ( (m_SocketEvent & FD_WRITE) == 0 ) {
 		m_SocketEvent |= FD_WRITE;
@@ -1512,7 +1512,7 @@ void CExtSocket::OnSend()
 		n = (m_SSL_mode ? SSL_write(m_SSL_pSock, m_SendHead->GetPtr(), m_SendHead->GetSize()):
 						  ::send(m_Fd, (char *)m_SendHead->GetPtr(), m_SendHead->GetSize(), m_SendHead->m_Type));
 
-		//DEBUGLOG("OnSend %s %d\r\n", m_SSL_mode ? "SSL" : "", n);
+		//TRACE("OnSend %s %d\r\n", m_SSL_mode ? "SSL" : "", n);
 
 		if ( n <= 0 ) {
 			m_SocketEvent |= FD_WRITE;

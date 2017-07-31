@@ -125,8 +125,7 @@ void CScrnPage::DoInit()
 }
 BOOL CScrnPage::OnInitDialog() 
 {
-	ASSERT(m_pSheet);
-	ASSERT(m_pSheet->m_pTextRam);
+	ASSERT(m_pSheet != NULL && m_pSheet->m_pTextRam != NULL);
 
 	CPropertyPage::OnInitDialog();
 
@@ -136,10 +135,9 @@ BOOL CScrnPage::OnInitDialog()
 }
 BOOL CScrnPage::OnApply() 
 {
-	ASSERT(m_pSheet);
-	ASSERT(m_pSheet->m_pTextRam);
-
 	int n;
+
+	ASSERT(m_pSheet != NULL && m_pSheet->m_pTextRam != NULL);
 
 	UpdateData(TRUE);
 
@@ -177,8 +175,7 @@ BOOL CScrnPage::OnApply()
 }
 void CScrnPage::OnReset() 
 {
-	ASSERT(m_pSheet);
-	ASSERT(m_pSheet->m_pTextRam);
+	ASSERT(m_pSheet != NULL && m_pSheet->m_pTextRam != NULL);
 
 	DoInit();
 	SetModified(FALSE);

@@ -99,6 +99,8 @@
 
 #define	USE_DWMAPI	1
 //#define	USE_GOZI	1
+#define	USE_NETTLE	1
+//#define	USE_CLEFIA	1
 
 #if defined _UNICODE || defined _WIN64
 #if defined _M_IX86

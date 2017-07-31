@@ -236,8 +236,7 @@ int CPaneFrame::SetActive(HWND hWnd)
 	if ( m_Style == PANEFRAME_WINDOW )
 		return (m_hWnd == hWnd ? TRUE : FALSE);
 
-	ASSERT(m_pLeft);
-	ASSERT(m_pRight);
+	ASSERT(m_pLeft != NULL && m_pRight != NULL);
 
 	if ( m_pLeft->SetActive(hWnd) )
 		return TRUE;
@@ -338,8 +337,7 @@ void CPaneFrame::MoveParOwn(CRect &rect, int Style)
 		m_Frame = rect;
 		MoveFrame();
 	} else {
-		ASSERT(m_pLeft);
-		ASSERT(m_pRight);
+		ASSERT(m_pLeft != NULL && m_pRight != NULL);
 
 		CRect left  = rect;
 		CRect right = rect;
@@ -523,8 +521,7 @@ void CPaneFrame::SetBuffer(CBuffer *buf)
 		return;
 	}
 
-	ASSERT(m_pLeft);
-	ASSERT(m_pRight);
+	ASSERT(m_pLeft != NULL && m_pRight != NULL);
 
 	switch(m_Style) {
 	case PANEFRAME_WIDTH:
@@ -621,7 +618,7 @@ CTimerObject::CTimerObject()
 }
 void CTimerObject::CallObject()
 {
-	ASSERT(m_pObject);
+	ASSERT(m_pObject != NULL);
 
 	switch(m_Mode & 007) {
 	case TIMEREVENT_DOC:
@@ -1405,16 +1402,57 @@ void CMainFrame::MoveChild(CWnd *pWnd, CPoint point)
 		return;
 
 	point.y -= m_Frame.top;
-	CPaneFrame *pThis = m_pTopPane->GetPane(pWnd->m_hWnd);
-	CPaneFrame *pPane = m_pTopPane->HitTest(point);
 
-	if ( pThis == NULL || pPane == NULL || pPane->m_Style != PANEFRAME_WINDOW || pPane->m_hWnd == pWnd->m_hWnd )
+	HWND hLeft, hRight;
+	CPaneFrame *pLeftPane  = m_pTopPane->GetPane(pWnd->m_hWnd);
+	CPaneFrame *pRightPane = m_pTopPane->HitTest(point);
+
+	if ( pLeftPane == NULL || pRightPane == NULL )
 		return;
 
-	pThis->m_hWnd = pPane->m_hWnd;
-	pThis->MoveFrame();
-	pPane->m_hWnd = pWnd->m_hWnd;
-	pPane->MoveFrame();
+	if ( pLeftPane->m_Style != PANEFRAME_WINDOW || pRightPane->m_Style != PANEFRAME_WINDOW )
+		return;
+
+	if ( (hLeft = pLeftPane->m_hWnd) == NULL || (hRight = pRightPane->m_hWnd) == NULL || hLeft == hRight )
+		return;
+
+	pLeftPane->m_hWnd = hRight;
+	pRightPane->m_hWnd = hLeft;
+
+	pLeftPane->MoveFrame();
+	pRightPane->MoveFrame();
+}
+void CMainFrame::SwapChild(CWnd *pLeft, CWnd *pRight)
+{
+	if ( m_pTopPane == NULL || pLeft == NULL || pRight == NULL )
+		return;
+
+	HWND hLeft, hRight;
+	CPaneFrame *pLeftPane  = m_pTopPane->GetPane(pLeft->m_hWnd);
+	CPaneFrame *pRightPane = m_pTopPane->GetPane(pRight->m_hWnd);
+
+	if ( pLeftPane == NULL || pRightPane == NULL )
+		return;
+
+	if ( pLeftPane->m_Style != PANEFRAME_WINDOW || pRightPane->m_Style != PANEFRAME_WINDOW )
+		return;
+
+	if ( (hLeft = pLeftPane->m_hWnd) == NULL || (hRight = pRightPane->m_hWnd) == NULL || hLeft == hRight )
+		return;
+
+	pLeftPane->m_hWnd = hRight;
+	pRightPane->m_hWnd = hLeft;
+
+	pLeftPane->MoveFrame();
+	pRightPane->MoveFrame();
+}
+int CMainFrame::GetTabIndex(CWnd *pWnd)
+{
+	return m_wndTabBar.GetIndex(pWnd);
+}
+CWnd *CMainFrame::GetTabWnd(int idx)
+{
+	return m_wndTabBar.GetAt(idx);
 }
 
 BOOL CMainFrame::IsOverLap(HWND hWnd)
@@ -1820,6 +1858,8 @@ void CMainFrame::OnWindowRotation()
 		pPushPane->m_hWnd = hPushWnd;
 		pPushPane->MoveFrame();
 	}
+
+	PostMessage(WM_COMMAND, IDM_DISPWINIDX);
 }
 void CMainFrame::OnUpdateWindowCascade(CCmdUI* pCmdUI) 
 {
@@ -2068,11 +2108,10 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCopyDataStruct)
 }
 void CMainFrame::OnEnterMenuLoop(BOOL bIsTrackPopupMenu)
 {
-	int n, i;
+	int n;
 	CMenu *pMenu, Save;
-	CChildFrame *pWnd;
+	CChildFrame *pChild;
 	CRLoginDoc *pDoc;
-	CString str, tmp;
 	CKeyCmds *pCmds;
 	CMenuBitMap *pMap;
 
@@ -2089,50 +2128,13 @@ void CMainFrame::OnEnterMenuLoop(BOOL bIsTrackPopupMenu)
 		m_MenuHand = pMenu->GetSafeHmenu();
 	}
 
-	if ( (pWnd = (CChildFrame *)(MDIGetActive())) == NULL || (pDoc = (CRLoginDoc *)(pWnd->GetActiveDocument())) == NULL ) {
+	if ( (pChild = (CChildFrame *)(MDIGetActive())) == NULL || (pDoc = (CRLoginDoc *)(pChild->GetActiveDocument())) == NULL ) {
 		m_MenuTab.ResetMenuAll(pMenu);
 		m_MenuTab.RemoveAll();
 		return;
 	}
 
-	for ( n = 0 ; n < m_MenuTab.GetSize() ; n++ )
-		m_MenuTab[n].m_Flag = FALSE;
-
-	pDoc->m_KeyTab.CmdsInit();
-	for ( n = 0 ; n < pDoc->m_KeyTab.m_Cmds.GetSize() ; n++ ) {
-		pCmds = &(pDoc->m_KeyTab.m_Cmds[n]);
-		if ( (i = m_MenuTab.Find(pCmds->m_Id)) >= 0 ) {
-			m_MenuTab[i].m_Flag = TRUE;
-			if ( pCmds->m_Id >= ID_MACRO_HIS1 && pCmds->m_Id <= ID_MACRO_HIS5 ) {
-				if ( pMenu->GetMenuString(pCmds->m_Id, tmp, MF_BYCOMMAND) <= 0 )
-					continue;
-				str.Format(_T("%s\t%s"), m_MenuTab[i].m_Text, pCmds->m_Menu);
-				if ( str.Compare(tmp) == 0 )
-					continue;
-				m_MenuTab[i].m_Text = tmp;
-			} else if ( m_MenuTab[i].m_Menu.Compare(pCmds->m_Menu) == 0 )
-				continue;
-			m_MenuTab[i].m_Menu = pCmds->m_Menu;
-		} else {
-			if ( pMenu->GetMenuString(pCmds->m_Id, str, MF_BYCOMMAND) <= 0 )
-				continue;
-			if ( (i = str.Find(_T('\t'))) >= 0 )
-				str.Truncate(i);
-			pCmds->m_Flag = TRUE;
-			pCmds->m_Text = str;
-			i = m_MenuTab.Add(*pCmds);
-		}
-		str.Format(_T("%s\t%s"), m_MenuTab[i].m_Text, m_MenuTab[i].m_Menu);
-		pMenu->ModifyMenu(pCmds->m_Id, MF_BYCOMMAND | MF_STRING, pCmds->m_Id, str);
-	}
-
-	for ( n = 0 ; n < m_MenuTab.GetSize() ; n++ ) {
-		if ( m_MenuTab[n].m_Flag )
-			continue;
-		m_MenuTab[n].ResetMenu(pMenu);
-		m_MenuTab.RemoveAt(n);
-		n--;
-	}
+	pDoc->SetMenu(pMenu, &m_MenuTab);
 
 	for ( n = 0 ; n < m_MenuMap.GetSize() ; n++ ) {
 		if ( (pMap = (CMenuBitMap *)m_MenuMap[n]) != NULL )
