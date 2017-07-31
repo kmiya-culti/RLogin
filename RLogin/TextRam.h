@@ -645,7 +645,7 @@ public:
 	void SetOptValue(int opt, int len, int value);
 
 	inline int GetCalcPos(int x, int y) { return (m_ColsMax * (y + m_HisPos + m_HisMax) + x); }
-	inline void SetCalcPos(int pos, int *x, int *y) { *x = pos % m_ColsMax; *y = (pos / m_Cols - m_HisPos - m_HisMax); }
+	inline void SetCalcPos(int pos, int *x, int *y) { *x = pos % m_ColsMax; *y = (pos / m_ColsMax - m_HisPos - m_HisMax); }
 	inline int GetDm(int y) { VRAM *vp = GETVRAM(0, y); return vp->dm; }
 	inline void SetDm(int y, int dm) { VRAM *vp = GETVRAM(0, y); vp->dm = dm; }
 

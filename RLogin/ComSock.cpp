@@ -127,10 +127,11 @@ BOOL CComSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, i
 	CString tmp;
 	tmp.Format((m_ComPort >= 10 ? _T("\\\\.\\COM%d") : _T("COM%d")), m_ComPort);
 
-	if ( (m_hCom = CreateFile(tmp, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL)) == NULL ) {
+	if ( (m_hCom = CreateFile(tmp, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL)) == INVALID_HANDLE_VALUE ) {
 		CString errmsg;
 		errmsg.Format(_T("ComSocket Open Error '%s'"), lpszHostAddress);
 		AfxMessageBox(errmsg, MB_ICONSTOP);
+		m_hCom = NULL;
 		return FALSE;
 	}
 

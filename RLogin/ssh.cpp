@@ -1660,7 +1660,7 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 		{ 50,1 },	{ 51,1 },	{ 53,1 },	{ 54,1 },	{ 55,0 },	{ 56,0 },	{ 57,0 },	{ 58,0 },
 	//	IEXTEN		ECHOCTL		ECHOKE		PENDIN
 		{ 59,1 },	{ 60,1 },	{ 61,1 },	{ 62,1 },
-	//	OPOST		OLCUC		OCRNL		ONOCR		ONLRET
+	//	OPOST		ONLCR		OCRNL		ONOCR		ONLRET
 		{ 70,1 },	{ 72,1 },	{ 73,0 },	{ 74,0 },	{ 75,0 },
 	//	CS7			CS8			PARENB		PARODD
 		{ 90,1 },	{ 91,1 },	{ 92,0 },	{ 93,0 },

@@ -184,6 +184,7 @@
 #define IDM_SCRIPT_MENU8                256
 #define IDM_SCRIPT_MENU9                257
 #define IDM_SCRIPT_MENU10               258
+#define IDD_DIALOGRES                   259
 #define IDC_BACKFILE                    1000
 #define IDC_BACKSEL                     1001
 #define IDC_BANKGL1                     1002
@@ -610,6 +611,6 @@
 #define _APS_NEXT_RESOURCE_VALUE        170
 #define _APS_NEXT_COMMAND_VALUE         5054
 #define _APS_NEXT_CONTROL_VALUE         3066
-#define _APS_NEXT_SYMED_VALUE           259
+#define _APS_NEXT_SYMED_VALUE           260
 #endif
 #endif

@@ -4431,10 +4431,13 @@ void CTextRam::fc_DECSRET(int ch)
 		else if ( i >= 8400 && i < 8512 )
 			i -= 8000;		// 400-511
 		else if ( i == 7727 )
-			i = TO_RLCKMESC;	// 7727  -  Application Escape mode を有効にする。				Application Escape mode を無効にする。  
+			i = TO_RLCKMESC;	// 7727 - Application Escape mode を有効にする。				Application Escape mode を無効にする。  
 		else if ( i == 7786 )
-			i = TO_RLMSWAPE;	// 7786  -  マウスホイール - カーソルキー変換を有効にする。		マウスホイール - カーソルキー変換を無効にする。  
-		else if ( i >= 200 )
+			i = TO_RLMSWAPE;	// 7786 - マウスホイール - カーソルキー変換を有効にする。		マウスホイール - カーソルキー変換を無効にする。  
+		else if ( i == 8840 ) {	// 8840 - TNAMB Aタイプをダブル幅の文字にする					シングル幅にする
+			i = TO_RLUNIAWH;
+			ch = (ch == 'h' ? 'l': (ch == 'l' ? 'h' : ch));
+		} else if ( i >= 200 )
 			continue;
 
 		ANSIOPT(ch, i);
@@ -4614,6 +4617,10 @@ void CTextRam::fc_DECDSR(int ch)
 		break;
 	case 85:	// Multiple-Session Configuration Status Report
 		UNGETSTR(_T("%s?83n"), m_RetChar[RC_CSI]);		// The terminal is not configured for multiple-session operation.
+		break;
+
+	case 8840:	// TNREPTAMB UnicodeAタイプ文字がシングル幅の時8841, ダブル幅の時8842
+		UNGETSTR(_T("%s?%dn"), m_RetChar[RC_CSI], (IsOptEnable(TO_RLUNIAWH) ? 8841 : 8842));
 		break;
 	}
 	fc_POP(ch);
@@ -5467,7 +5474,8 @@ void CTextRam::fc_DA2(int ch)
 {
 	// CSI ('>' << 16) | 'c'	DA2 Secondary Device Attributes
 
-	UNGETSTR(_T("%s>65;100;1c"), m_RetChar[RC_CSI]);
+	if ( m_AnsiPara.GetSize() == 0 || m_AnsiPara[0] == 0xFFFF || m_AnsiPara[0] == 0 )
+		UNGETSTR(_T("%s>65;100;1c"), m_RetChar[RC_CSI]);
 	fc_POP(ch);
 }
 
@@ -5475,7 +5483,8 @@ void CTextRam::fc_DA3(int ch)
 {
 	// CSI ('=' << 16) | 'c'	DA3 Tertiary Device Attributes
 
-	UNGETSTR(_T("%s!|%04x%s"), m_RetChar[RC_DCS], m_UnitId, m_RetChar[RC_ST]);
+	if ( m_AnsiPara.GetSize() == 0 || m_AnsiPara[0] == 0xFFFF || m_AnsiPara[0] == 0 )
+		UNGETSTR(_T("%s!|%04x%s"), m_RetChar[RC_DCS], m_UnitId, m_RetChar[RC_ST]);
 	fc_POP(ch);
 }
 void CTextRam::fc_C25LCT(int ch)
