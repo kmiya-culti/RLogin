@@ -1451,7 +1451,7 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 	char *p;
 	CBuffer tmp, tmode;
 	CString str;
-	CStringEnv env;
+	CStringIndex env;
 	static const struct _dummy_ttymode {
 		BYTE	opcode;
 		DWORD	param;
@@ -1638,12 +1638,10 @@ void Cssh::SendPacket2(CBuffer *bp)
 	tmp.SET8BIT(tmp.GetPos(4), pad);
 
 	if ( !padflag ) {
-		for ( n = 0 ; n < 64 ; n += 4 ) {
+		for ( n = 0 ; n < 64 ; n += 2 ) {
 			i = rand();
-			padimage[n + 3] = (BYTE)(i >> 24);
-			padimage[n + 2] = (BYTE)(i >> 16);
-			padimage[n + 1] = (BYTE)(i >>  8);
-			padimage[n + 0] = (BYTE)(i >>  0);
+			padimage[n + 1] = (BYTE)(i >> 8);
+			padimage[n + 0] = (BYTE)(i >> 0);
 		}
 		padflag = TRUE;
 	}

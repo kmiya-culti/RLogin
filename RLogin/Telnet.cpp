@@ -529,7 +529,7 @@ void CTelnet::SubOptFunc(char *buf, int len)
 	int n, i;
 	int ptr = 0;
 	char tmp[256];
-	CStringEnv env;
+	CStringIndex env;
 
 #define	SB_GETC()	(ptr >= len ? EOF : (buf[ptr++] & 0xFF))
 

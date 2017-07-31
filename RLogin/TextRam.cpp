@@ -1774,7 +1774,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 		}
 	}
 
-	for ( y = y1 ; y <= y2 ; y++ ) {
+	for ( y = y1 ; y < y2 ; y++ ) {
 		len = sln = 0;
 		memset(&prop, 0, sizeof(prop));
 		rect.top    = pView->CalcGrapY(y);
@@ -1782,7 +1782,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 		tp = GETVRAM(0, y - pView->m_HisOfs + pView->m_HisMin);
 		work.dmf = tp->dm;
 
-		for ( x = (work.dmf != 0 ? (x1 / 2) : x1) ; x <= x2 ; ) {
+		for ( x = (work.dmf != 0 ? (x1 / 2) : x1) ; x < x2 ; ) {
 			if ( work.dmf != 0 && x >= (m_Cols / 2) )
 				break;
 

@@ -733,51 +733,6 @@ int CStringArrayExt::FindNoCase(LPCSTR str)
 }
 
 //////////////////////////////////////////////////////////////////////
-// CArraySort
-
-template<class TYPE, class ARG_TYPE>
-INT_PTR CArraySort<TYPE, ARG_TYPE>::Add(ARG_TYPE newElement)
-{
-	int c;
-	int n;
-	int b = 0;
-	int m = GetSize() - 1;
-
-	while ( b <= m ) {
-		n = (b + m) / 2;
-		if ( (c = (*this)[n].Compare(newElement)) == 0 ) {
-			(*this)[n] = newElement;
-			return n;
-		} else if ( c > 0 )
-			b = n + 1;
-		else
-			m = n - 1;
-	}
-	InsertAt(b, newElement);
-	return b;
-}
-
-template<class TYPE, class ARG_TYPE>
-INT_PTR CArraySort<TYPE, ARG_TYPE>::Find(ARG_TYPE Element)
-{
-	int c;
-	int n;
-	int b = 0;
-	int m = GetSize() - 1;
-
-	while ( b <= m ) {
-		n = (b + m) / 2;
-		if ( (c = (*this)[n].Compare(Element)) == 0 )
-			return n;
-		else if ( c > 0 )
-			b = n + 1;
-		else
-			m = n - 1;
-	}
-	return (-1);
-}
-
-//////////////////////////////////////////////////////////////////////
 // CBmpFile
 
 CBmpFile::CBmpFile()
@@ -3070,84 +3025,12 @@ void CStringMaps::AddWStrBuf(LPBYTE lpBuf, int nLen)
 }
 
 //////////////////////////////////////////////////////////////////////
-// CFifoBuffer
-
-CFifoBuffer::CFifoBuffer()
-{
-	m_pEvent = new CEvent(FALSE, TRUE);
-}
-CFifoBuffer::~CFifoBuffer()
-{
-	delete m_pEvent;
-}
-int CFifoBuffer::GetData(LPBYTE lpBuf, int nBufLen, int sec)
-{
-	int n;
-	int len = 0;
-	time_t st, nt;
-
-	time(&st);
-	m_Sema.Lock();
-	for ( ; ; ) {
-		if ( (n = m_Data.GetSize()) > nBufLen )
-			n = nBufLen;
-		if ( n > 0 ) {
-			memcpy(lpBuf, m_Data.GetPtr(), n);
-			m_Data.Consume(n);
-			len += n;
-			lpBuf += n;
-			if ( (nBufLen -= n) <= 0 )
-				break;
-		}
-		time(&nt);
-		if ( (nt - st) > sec )
-			break;
-		m_pEvent->ResetEvent();
-		m_Sema.Unlock();
-		WaitForSingleObject(m_pEvent->m_hObject, sec * 1000);
-		m_Sema.Lock();
-	}
-	m_Sema.Unlock();
-	return len;
-}
-void CFifoBuffer::SetData(LPBYTE lpBuf, int nBufLen)
-{
-	m_Sema.Lock();
-	m_Data.Apend(lpBuf, nBufLen);
-	if ( m_Data.GetSize() > (32 * 1024) )
-		m_Data.Consume(m_Data.GetSize() - (32 * 1024));
-	m_pEvent->SetEvent();
-	m_Sema.Unlock();
-}
-WCHAR CFifoBuffer::GetWChar(int sec)
-{
-	WCHAR ch;
-	if ( GetData((LPBYTE)&ch, sizeof(WCHAR), sec) < sizeof(WCHAR) )
-		return EOF;
-	return ch;
-}
-void CFifoBuffer::SetWChar(WCHAR ch)
-{
-	SetData((LPBYTE)&ch, sizeof(WCHAR));
-}
-int CFifoBuffer::WReadLine(CStringW &str, int sec)
-{
-	WCHAR ch;
-	str.Empty();
-	while ( (ch = GetWChar(sec)) != EOF ) {
-		str += ch;
-		if ( ch == '\n' )
-			return TRUE;
-	}
-	return FALSE;
-}
-
-//////////////////////////////////////////////////////////////////////
 // CStringIndex
 
 CStringIndex::CStringIndex()
 {
 	m_bNoCase = TRUE;
+	m_bNoSort = FALSE;
 	m_Value = 0;
 	m_nIndex.Empty();
 	m_String.Empty();
@@ -3159,6 +3042,7 @@ CStringIndex::~CStringIndex()
 const CStringIndex & CStringIndex::operator = (CStringIndex &data)
 {
 	m_bNoCase = data.m_bNoCase;
+	m_bNoSort = data.m_bNoSort;
 	m_Value   = data.m_Value;
 	m_nIndex  = data.m_nIndex;
 	m_String  = data.m_String;
@@ -3174,38 +3058,59 @@ CStringIndex & CStringIndex::operator [] (LPCSTR str)
 	int n, b, m, c;
 	CStringIndex tmpData;
 
-	b = 0;
-	m = m_Array.GetSize() - 1;
-	while ( b <= m ) {
-		n = (b + m) / 2;
-		c = (m_bNoCase ? m_Array[n].m_nIndex.CompareNoCase(str) : m_Array[n].m_nIndex.Compare(str));
-		if ( c == 0 )
-			return m_Array[n];
-		else if ( c < 0 )
-			b = n + 1;
-		else
-			m = n - 1;
-	}
 	tmpData.SetNoCase(m_bNoCase);
-	tmpData.m_nIndex = str;
-	m_Array.InsertAt(b, tmpData);
-	return m_Array[b];
+	tmpData.SetNoSort(m_bNoSort);
+
+	if ( m_bNoSort ) {
+		for ( n = 0 ; n < m_Array.GetSize() ; n++ ) {
+			c = (m_bNoCase ? m_Array[n].m_nIndex.CompareNoCase(str) : m_Array[n].m_nIndex.Compare(str));
+			if ( c == 0 )
+				return m_Array[n];
+		}
+		tmpData.m_nIndex = str;
+		n = m_Array.Add(tmpData);
+		return m_Array[n];
+	} else {
+		b = 0;
+		m = m_Array.GetSize() - 1;
+		while ( b <= m ) {
+			n = (b + m) / 2;
+			c = (m_bNoCase ? m_Array[n].m_nIndex.CompareNoCase(str) : m_Array[n].m_nIndex.Compare(str));
+			if ( c == 0 )
+				return m_Array[n];
+			else if ( c < 0 )
+				b = n + 1;
+			else
+				m = n - 1;
+		}
+		tmpData.m_nIndex = str;
+		m_Array.InsertAt(b, tmpData);
+		return m_Array[b];
+	}
 }
 int CStringIndex::Find(LPCSTR str)
 {
 	int n, b, m, c;
 
-	b = 0;
-	m = m_Array.GetSize() - 1;
-	while ( b <= m ) {
-		n = (b + m) / 2;
-		c = (m_bNoCase ? m_Array[n].m_nIndex.CompareNoCase(str) : m_Array[n].m_nIndex.Compare(str));
-		if ( c == 0 )
-			return n;
-		else if ( c < 0 )
-			b = n + 1;
-		else
-			m = n - 1;
+	if ( m_bNoSort ) {
+		for ( n = 0 ; n < m_Array.GetSize() ; n++ ) {
+			c = (m_bNoCase ? m_Array[n].m_nIndex.CompareNoCase(str) : m_Array[n].m_nIndex.Compare(str));
+			if ( c == 0 )
+				return n;
+		}
+	} else {
+		b = 0;
+		m = m_Array.GetSize() - 1;
+		while ( b <= m ) {
+			n = (b + m) / 2;
+			c = (m_bNoCase ? m_Array[n].m_nIndex.CompareNoCase(str) : m_Array[n].m_nIndex.Compare(str));
+			if ( c == 0 )
+				return n;
+			else if ( c < 0 )
+				b = n + 1;
+			else
+				m = n - 1;
+		}
 	}
 	return (-1);
 }
@@ -3279,57 +3184,7 @@ void CStringIndex::SetArray(LPCSTR str)
 		break;
     }
 }
-
-//////////////////////////////////////////////////////////////////////
-// CStringEnv
-
-CStringEnv::CStringEnv()
-{
-	m_Value = 0;
-	m_nIndex.Empty();
-	m_String.Empty();
-	m_Array.RemoveAll();
-}
-CStringEnv::~CStringEnv()
-{
-}
-const CStringEnv & CStringEnv::operator = (CStringEnv &data)
-{
-	m_Value   = data.m_Value;
-	m_nIndex  = data.m_nIndex;
-	m_String  = data.m_String;
-
-	m_Array.RemoveAll();
-	for ( int n = 0 ; n < data.m_Array.GetSize() ; n++ )
-		m_Array.Add(data.m_Array[n]);
-
-	return *this;
-}
-CStringEnv & CStringEnv::operator [] (LPCSTR str)
-{
-	int n;
-	CStringEnv tmpData;
-
-	for ( n = 0 ; n < GetSize() ; n++ ) {
-		if ( m_Array[n].m_nIndex.CompareNoCase(str) == 0 )
-			return m_Array[n];
-	}
-
-	tmpData.m_nIndex = str;
-	n = m_Array.Add(tmpData);
-	return m_Array[n];
-}
-int CStringEnv::Find(LPCSTR str)
-{
-	int n;
-
-	for ( n = 0 ; n < GetSize() ; n++ ) {
-		if ( m_Array[n].m_nIndex.CompareNoCase(str) == 0 )
-			return n;
-	}
-	return (-1);
-}
-void CStringEnv::GetBuffer(CBuffer *bp)
+void CStringIndex::GetBuffer(CBuffer *bp)
 {
 	m_Value = bp->Get32Bit();
 	bp->GetStr(m_nIndex);
@@ -3340,7 +3195,7 @@ void CStringEnv::GetBuffer(CBuffer *bp)
 	for ( int n = 0 ; n < GetSize() ; n++ )
 		m_Array[n].GetBuffer(bp);
 }
-void CStringEnv::SetBuffer(CBuffer *bp)
+void CStringIndex::SetBuffer(CBuffer *bp)
 {
 	bp->Put32Bit(m_Value);
 	bp->PutStr(m_nIndex);
@@ -3351,7 +3206,7 @@ void CStringEnv::SetBuffer(CBuffer *bp)
 	for ( int n = 0 ; n < GetSize() ; n++ )
 		m_Array[n].SetBuffer(bp);
 }
-void CStringEnv::GetString(LPCSTR str)
+void CStringIndex::GetString(LPCSTR str)
 {
 	CBuffer tmp;
 	if ( *str == '\0' )
@@ -3361,7 +3216,7 @@ void CStringEnv::GetString(LPCSTR str)
 		return;
 	GetBuffer(&tmp);
 }
-void CStringEnv::SetString(CString &str)
+void CStringIndex::SetString(CString &str)
 {
 	CBuffer tmp, work;
 	SetBuffer(&tmp);

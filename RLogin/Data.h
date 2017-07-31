@@ -139,14 +139,6 @@ public:
 	int FindNoCase(LPCSTR str);
 };
 
-template<class TYPE, class ARG_TYPE = const TYPE&>
-class CArraySort : public CArray<TYPE, ARG_TYPE>
-{
-public:
-	INT_PTR Add(ARG_TYPE newElement);
-	INT_PTR Find(ARG_TYPE Element);
-};
-
 class CBmpFile : public CObject
 {
 public:
@@ -514,28 +506,11 @@ public:
 	~CStringMaps();
 };
 
-class CFifoBuffer : public CObject
-{
-public:
-	CSemaphore m_Sema;
-	CEvent *m_pEvent;
-	CBuffer m_Data;
-
-	int GetData(LPBYTE lpBuf, int nBufLen, int sec = 0);
-	void SetData(LPBYTE lpBuf, int nBufLen);
-
-	WCHAR GetWChar(int sec = 0);
-	void SetWChar(WCHAR ch);
-	int WReadLine(CStringW &str, int sec = 0);
-
-	CFifoBuffer();
-	~CFifoBuffer();
-};
-
 class CStringIndex : public CObject
 {
 public:
 	BOOL m_bNoCase;
+	BOOL m_bNoSort;
 	int m_Value;
 	CString m_nIndex;
 	CString m_String;
@@ -552,40 +527,18 @@ public:
 	LPCSTR GetIndex() { return m_nIndex; }
 	void RemoveAll() { m_Array.RemoveAll(); }
 	void SetNoCase(BOOL b) { m_bNoCase = b; }
+	void SetNoSort(BOOL b) { m_bNoSort = b; }
+
 	int Find(LPCSTR str);
 	void SetArray(LPCSTR str);
-
-	CStringIndex();
-	~CStringIndex();
-};
-
-class CStringEnv : public CObject
-{
-public:
-	int m_Value;
-	CString m_nIndex;
-	CString m_String;
-	CArray<CStringEnv, CStringEnv &> m_Array;
-
-	const CStringEnv & operator = (CStringEnv &data);
-	CStringEnv & operator [] (LPCSTR str);
-	CStringEnv & operator [] (int nIndex) { return m_Array[nIndex]; }
-	const LPCSTR operator = (LPCSTR str) { return (m_String = str); }
-	operator LPCTSTR () const { return m_String; }
-
-	int GetSize() { return m_Array.GetSize(); }
-	void SetSize(int nIndex) { m_Array.SetSize(nIndex); }
-	LPCSTR GetIndex() { return m_nIndex; }
-	void RemoveAll() { m_Array.RemoveAll(); }
-	int Find(LPCSTR str);
 
 	void GetBuffer(CBuffer *bp);
 	void SetBuffer(CBuffer *bp);
 	void GetString(LPCSTR str);
 	void SetString(CString &str);
 
-	CStringEnv();
-	~CStringEnv();
+	CStringIndex();
+	~CStringIndex();
 };
 
 class CStringBinary : public CObject

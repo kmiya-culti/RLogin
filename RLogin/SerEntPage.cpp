@@ -367,6 +367,7 @@ void CSerEntPage::OnBnClickedTermcap()
 
 	UpdateData(TRUE);
 
+	dlg.m_Env.SetNoSort(TRUE);
 	dlg.m_Env.GetString(m_ExtEnvStr);
 
 	if ( !m_TermName.IsEmpty() ) {

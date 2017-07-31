@@ -133,10 +133,19 @@ void CRLoginView::OnDraw(CDC* pDC)
 
 	if ( !pDC->IsPrinting() ) {
 		CRect rect(((CPaintDC *)(pDC))->m_ps.rcPaint);
-		sx = rect.left * m_Cols / m_Width;
-		ex = (rect.right + m_CharWidth - 1) * m_Cols / m_Width - 1;
-		sy = rect.top * m_Lines / m_Height;
-		ey = (rect.bottom + m_CharHeight - 1) * m_Lines / m_Height - 1;
+		sx = (rect.left + 1) * m_Cols / m_Width;
+		ex = (rect.right + m_CharWidth) * m_Cols / m_Width;
+		sy = (rect.top + 1) * m_Lines / m_Height;
+		ey = (rect.bottom + m_CharHeight) * m_Lines / m_Height;
+
+		if ( (sx * m_Width / m_Cols) > rect.left )
+			sx--;
+		if ( (ex * m_Width / m_Cols) < rect.right )
+			ex++;
+		if ( (sy * m_Height / m_Lines) > rect.top )
+			sy--;
+		if ( (ey * m_Height / m_Lines) < rect.bottom )
+			ey++;
 
 		if ( m_pBitmap != NULL ) {
 			CDC TempDC;
