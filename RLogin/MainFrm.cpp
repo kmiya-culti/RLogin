@@ -1705,7 +1705,8 @@ BOOL CMainFrame::PreTranslateMessage(MSG* pMsg)
 		if ( PreLButtonDown((UINT)pMsg->wParam, point) )
 			return TRUE;
 
-	} else if ( (pMsg->message >= WM_KEYFIRST && pMsg->message <= WM_KEYLAST) && 
+	} else if ( (pMsg->message == WM_KEYDOWN || pMsg->message == WM_SYSKEYDOWN) &&
+//	} else if ( (pMsg->message >= WM_KEYFIRST && pMsg->message <= WM_KEYLAST) && 
 			    (pMsg->wParam == VK_TAB || pMsg->wParam == VK_F6) && (GetKeyState(VK_CONTROL) & 0x80) != 0 )
 		return TRUE;
 

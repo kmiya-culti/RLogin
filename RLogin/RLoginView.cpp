@@ -754,7 +754,7 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		}
 
 		m_BmpFile.LoadFile(pDoc->m_TextRam.m_BitMapFile);
-		m_pBitmap = m_BmpFile.GetBitmap(GetDC(), m_Width, m_Height);
+		m_pBitmap = m_BmpFile.GetBitmap(GetDC(), m_Width, m_Height, 1);
 		//pDoc->SetStatus(NULL);
 
 		// No break
@@ -842,7 +842,7 @@ void CRLoginView::OnChar(UINT nChar, UINT nRepCnt, UINT nFlags)
 	CBuffer tmp;
 	CRLoginDoc *pDoc = GetDocument();
 
-//	TRACE("OnChar %02x(%04x)\n", nChar, nFlags);
+	//TRACE("OnChar %02x(%04x)\n", nChar, nFlags);
 
 	CView::OnChar(nChar, nRepCnt, nFlags);
 

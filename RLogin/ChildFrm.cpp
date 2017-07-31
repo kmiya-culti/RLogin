@@ -191,7 +191,8 @@ void CChildFrame::OnUpdateFrameMenu(BOOL bActive, CWnd* pActiveWnd, HMENU hMenuA
 
 BOOL CChildFrame::PreTranslateMessage(MSG* pMsg)
 {
-	if ( (pMsg->message >= WM_KEYFIRST && pMsg->message <= WM_KEYLAST) && 
+	if ( (pMsg->message == WM_KEYDOWN || pMsg->message == WM_SYSKEYDOWN) &&
+//	if ( (pMsg->message >= WM_KEYFIRST && pMsg->message <= WM_KEYLAST) && 
 			    (pMsg->wParam == VK_TAB || pMsg->wParam == VK_F6) && (GetKeyState(VK_CONTROL) & 0x80) != 0 )
 		return TRUE;
 

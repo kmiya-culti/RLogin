@@ -1347,14 +1347,22 @@ void CTextRam::ParseColor(int cmd, int idx, LPCTSTR para, int ch)
 {
 	int r, g, b;
 
-	if ( idx < 0 || idx > 255 )
-		idx = 0;
+	if ( idx < 0 || idx >= EXTCOL_MAX )
+		return;
 
 	if ( para[0] == '?' ) {
-		COLORREF rgb = m_ColTab[idx];
-		UNGETSTR(_T("%s%d;%d;rgb:%04x/%04x/%04x%s"), m_RetChar[RC_OSC], cmd, idx,
-			GetRValue(rgb), GetGValue(rgb), GetBValue(rgb),
-			(ch == 0x07 ? _T("\007") : m_RetChar[RC_ST]));
+		if ( (cmd >= 10 && cmd <= 19) || (cmd >= 110 && cmd <= 119) )
+			UNGETSTR(_T("%s%d;rgb:%04x/%04x/%04x%s"), m_RetChar[RC_OSC], cmd,
+				GetRValue(m_ColTab[idx]), GetGValue(m_ColTab[idx]), GetBValue(m_ColTab[idx]),
+				(ch == 0x07 ? _T("\007") : m_RetChar[RC_ST]));
+		else if ( cmd == 5 )
+			UNGETSTR(_T("%s%d;%d;rgb:%04x/%04x/%04x%s"), m_RetChar[RC_OSC], cmd, idx - EXTCOL_SP_BEGIN,
+				GetRValue(m_ColTab[idx]), GetGValue(m_ColTab[idx]), GetBValue(m_ColTab[idx]),
+				(ch == 0x07 ? _T("\007") : m_RetChar[RC_ST]));
+		else
+			UNGETSTR(_T("%s%d;%d;rgb:%04x/%04x/%04x%s"), m_RetChar[RC_OSC], cmd, idx,
+				GetRValue(m_ColTab[idx]), GetGValue(m_ColTab[idx]), GetBValue(m_ColTab[idx]),
+				(ch == 0x07 ? _T("\007") : m_RetChar[RC_ST]));
 
 	} else if ( para[0] == _T('#') ) {
 		switch(_tcslen(para)) {
@@ -1383,9 +1391,9 @@ void CTextRam::ParseColor(int cmd, int idx, LPCTSTR para, int ch)
 		DISPUPDATE();
 
 	} else if ( _tcscmp(para, _T("reset")) == 0 ) {
-		if ( idx < 16 )
+		if ( idx < 16 ) {
 			m_ColTab[idx] = m_DefColTab[idx];
-		else if ( idx < 232 ) {				// colors 16-231 are a 6x6x6 color cube
+		} else if ( idx < 232 ) {				// colors 16-231 are a 6x6x6 color cube
 			r = ((idx - 16) / 6 / 6) % 6;
 			g = ((idx - 16) / 6) % 6;
 			b = (idx - 16) % 6;
@@ -1395,6 +1403,10 @@ void CTextRam::ParseColor(int cmd, int idx, LPCTSTR para, int ch)
 			g = (idx - 232) * 11;
 			b = (idx - 232) * 11;
 			m_ColTab[idx] = RGB(r, g, b);
+		} else if ( idx == EXTCOL_VT_TEXT_FORE ) {
+			m_ColTab[idx] = m_DefColTab[m_DefAtt.fc];
+		} else if ( idx == EXTCOL_VT_TEXT_BACK ) {
+			m_ColTab[idx] = m_DefColTab[m_DefAtt.bc];
 		}
 		DISPUPDATE();
 	}
@@ -3663,7 +3675,7 @@ void CTextRam::fc_OSCEXE(int ch)
 				p++;
 			if ( tmp.IsEmpty() )
 				break;
-			n = _tstoi(tmp);
+			n = EXTCOL_SP_BEGIN + _tstoi(tmp);
 				//	n = 0  <- resource colorBD (BOLD).
 				//	n = 1  <- resource colorUL (UNDERLINE).
 				//	n = 2  <- resource colorBL (BLINK).
@@ -3673,8 +3685,10 @@ void CTextRam::fc_OSCEXE(int ch)
 				tmp += *(p++);
 			if ( *p == ';' )
 				p++;
-			if ( tmp.Compare(_T("?")) == 0 )	// XXXXXXXXXXXXXXXXXXXXX
-				ParseColor(cmd, m_AttNow.fc, tmp, ch);
+			if ( n < EXTCOL_MAX ) {
+				m_ColTab[n] = m_ColTab[m_AttNow.fc];
+				ParseColor(cmd, n, tmp, ch);
+			}
 		}
 		break;
 
@@ -3684,25 +3698,35 @@ void CTextRam::fc_OSCEXE(int ch)
 	case 15:	// 15  -> Change Tektronix foreground color to Pt.
 	case 18:	// 18  -> Change Tektronix cursor color to Pt.
 	case 19:	// 19  -> Change highlight foreground color to Pt.
-		tmp.Empty();
-		while ( *p != '\0' && *p != ';' )
-			tmp += *(p++);
-		if ( *p == ';' )
-			p++;
-		if ( tmp.Compare(_T("?")) == 0 )	// XXXXXXXXXXXXXXXXXXXXX
-			ParseColor(cmd, m_AttNow.fc, tmp, ch);
+		while ( *p != '\0' ) {
+			tmp.Empty();
+			while ( *p != '\0' && *p != ';' )
+				tmp += *(p++);
+			if ( *p == ';' )
+				p++;
+			n = EXTCOL_BEGIN + (cmd - 10);
+			m_ColTab[n] = m_ColTab[m_AttNow.fc];
+			ParseColor(cmd, n, tmp, ch);
+			if ( cmd == 10 )
+				m_AttNow.fc = GETCOLIDX(GetRValue(m_ColTab[n]), GetGValue(m_ColTab[n]), GetBValue(m_ColTab[n]));
+		}
 		break;
 	case 11:	// 11  -> Change VT100 text background color to Pt.
 	case 14:	// 14  -> Change mouse background color to Pt.
 	case 16:	// 16  -> Change Tektronix background color to Pt.
 	case 17:	// 17  -> Change highlight background color to Pt.
-		tmp.Empty();
-		while ( *p != '\0' && *p != ';' )
-			tmp += *(p++);
-		if ( *p == ';' )
-			p++;
-		if ( tmp.Compare(_T("?")) == 0 )	// XXXXXXXXXXXXXXXXXXXXX
-			ParseColor(cmd, m_AttNow.bc, tmp, ch);
+		while ( *p != '\0' ) {
+			tmp.Empty();
+			while ( *p != '\0' && *p != ';' )
+				tmp += *(p++);
+			if ( *p == ';' )
+				p++;
+			n = EXTCOL_BEGIN + (cmd - 10);
+			m_ColTab[n] = m_ColTab[m_AttNow.bc];
+			ParseColor(cmd, n, tmp, ch);
+			if ( cmd == 11 )
+				m_AttNow.bc = GETCOLIDX(GetRValue(m_ColTab[n]), GetGValue(m_ColTab[n]), GetBValue(m_ColTab[n]));
+		}
 		break;
 
 	case 46:	// 46  -> Change Log File to Pt.
@@ -3783,12 +3807,15 @@ void CTextRam::fc_OSCEXE(int ch)
 				p++;
 			if ( tmp.IsEmpty() )
 				break;
-			n = _tstoi(tmp);
+			n = EXTCOL_SP_BEGIN + _tstoi(tmp);
 				//	n = 0  <- resource colorBD (BOLD).
 				//	n = 1  <- resource colorUL (UNDERLINE).
 				//	n = 2  <- resource colorBL (BLINK).
 				//	n = 3  <- resource colorRV (REVERSE).
-			ParseColor(cmd, m_AttNow.fc, _T("reset"), ch);		// XXXXXXXXXXXXXXXXXXXXXXXXX
+			if ( n < EXTCOL_MAX ) {
+				m_ColTab[n] = m_ColTab[m_AttNow.fc];
+				ParseColor(cmd, n, _T("reset"), ch);
+			}
 		}
 		break;
 
@@ -3798,13 +3825,21 @@ void CTextRam::fc_OSCEXE(int ch)
 	case 115:	// 115  -> Reset Tektronix foreground color.
 	case 118:	// 118  -> Reset Tektronix cursor color.
 	case 119:	// 119  -> Reset highlight foreground color to Pt.
-		ParseColor(cmd, m_AttNow.fc, _T("reset"), ch);
+		n = EXTCOL_BEGIN + (cmd - 110);
+		m_ColTab[n] = m_ColTab[m_AttNow.fc];
+		ParseColor(cmd, n, _T("reset"), ch);
+		if ( cmd == 110 )
+			m_AttNow.fc = GETCOLIDX(GetRValue(m_ColTab[n]), GetGValue(m_ColTab[n]), GetBValue(m_ColTab[n]));
 		break;
 	case 111:	// 111  -> Reset VT100 text background color.
 	case 114:	// 114  -> Reset mouse background color.
 	case 116:	// 116  -> Reset Tektronix background color.
 	case 117:	// 117  -> Reset highlight background color.
-		ParseColor(cmd, m_AttNow.bc, _T("reset"), ch);
+		n = EXTCOL_BEGIN + (cmd - 110);
+		m_ColTab[n] = m_ColTab[m_AttNow.bc];
+		ParseColor(cmd, n, _T("reset"), ch);
+		if ( cmd == 111 )
+			m_AttNow.bc = GETCOLIDX(GetRValue(m_ColTab[n]), GetGValue(m_ColTab[n]), GetBValue(m_ColTab[n]));
 		break;
 
 	case 800:	// Original Kanji Code Set
@@ -4631,7 +4666,25 @@ void CTextRam::fc_DSR(int ch)
 		UNGETSTR(_T("%s0n"), m_RetChar[RC_CSI]);
 		break;
 	case 6:	// a report of the active presentation position or of the active data position in the form of ACTIVE POSITION REPORT (CPR) is requested
-		UNGETSTR(_T("%s%d;%dR"), m_RetChar[RC_CSI], m_CurY + 1, m_CurX + 1);
+		if ( IsOptEnable(TO_DECOM) ) {
+			int x = m_CurX;
+			int y = m_CurY;
+
+			GetMargin(MARCHK_NONE);
+
+			if ( x < m_Margin.left )
+				x = m_Margin.left;
+			else if ( x >= m_Margin.right )
+				x = m_Margin.right - 1;
+
+			if ( y < m_Margin.top )
+				y = m_Margin.top;
+			else if ( y >= m_Margin.bottom )
+				y = m_Margin.bottom - 1;
+
+			UNGETSTR(_T("%s%d;%dR"), m_RetChar[RC_CSI], y - m_Margin.top + 1, x - m_Margin.left + 1);
+		} else
+			UNGETSTR(_T("%s%d;%dR"), m_RetChar[RC_CSI], m_CurY + 1, m_CurX + 1);
 		break;
 	}
 	fc_POP(ch);
@@ -5263,7 +5316,24 @@ void CTextRam::fc_DECDSR(int ch)
 		UNGETSTR(_T("%s?20n"), m_RetChar[RC_CSI]);	// malfunction detected [also LCP01]
 		break;
 	case 6:		// a report of the active presentation position or of the active data position in the form of ACTIVE POSITION REPORT (CPR) is requested
-		UNGETSTR(_T("%s?%d;%d;%dR"), m_RetChar[RC_CSI], m_CurY + 1, m_CurX + 1, m_Page + 1);
+		if ( IsOptEnable(TO_DECOM) ) {
+			int x = m_CurX;
+			int y = m_CurY;
+
+			GetMargin(MARCHK_NONE);
+
+			if ( x < m_Margin.left )
+				x = m_Margin.left;
+			else if ( x >= m_Margin.right )
+				x = m_Margin.right - 1;
+
+			if ( y < m_Margin.top )
+				y = m_Margin.top;
+			else if ( y >= m_Margin.bottom )
+				y = m_Margin.bottom - 1;
+
+		} else
+			UNGETSTR(_T("%s?%d;%d;%dR"), m_RetChar[RC_CSI], m_CurY + 1, m_CurX + 1, m_Page + 1);
 		break;
 	case 15:	// printer status
 		UNGETSTR(_T("%s?13n"), m_RetChar[RC_CSI]);		// no printer

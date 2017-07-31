@@ -883,7 +883,7 @@ ERROF:
 	return FALSE;
 }
 
-CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height)
+CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, int align)
 {
 	int x, y, cx, cy;
 	CDC MemDC;
@@ -913,24 +913,52 @@ CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height)
 
 	m_pPic->get_Width(&sx);
 	m_pPic->get_Height(&sy);
+
 	CSize size(sx, sy);
+	CSize offset(0, 0);
+
 	pDC->HIMETRICtoDP(&size);
 
 	cx = width  * 100 / size.cx;
 	cy = height * 100 / size.cy;
 
-	if ( cx > 100 && cy > 100 ) {
-		cx = size.cx;
-		cy = size.cy;
-	} else if ( cx < cy ) {
-		cx = width;
-		cy = width  * size.cy / size.cx;
-	} else {
-		cx = height * size.cx / size.cy;
-		cy = height;
+	switch(align) {
+	case 0:			// •À‚×‚Ä•\Ž¦
+		if ( cx > 100 && cy > 100 ) {
+			cx = size.cx;
+			cy = size.cy;
+		} else if ( cx < cy ) {
+			cx = width;
+			cy = width  * size.cy / size.cx;
+		} else {
+			cx = height * size.cx / size.cy;
+			cy = height;
+		}
+		break;
+
+	case 1:			// Šg‘å‚µ‚Ä•\Ž¦
+		//if ( cx < 100 && cy < 100 ) {
+		//	cx = size.cx;
+		//	cy = size.cy;
+		//	offset.cx = (size.cx - width) / 2;
+		//	offset.cy = (size.cy - height) / 2;
+		//} else 
+		if ( cx < cy ) {
+			cx = height * size.cx / size.cy;
+			cy = height;
+			offset.cx = ((cx - width) / 2) * size.cx / cx;
+		} else {
+			cx = width;
+			cy = width  * size.cy / size.cx;
+			offset.cy = ((cy - height) / 2) * size.cy / cy;
+		}
+		break;
 	}
 
-	m_pPic->Render(MemDC, 0, 0, cx, cy, 0, sy, sx, -sy, NULL);
+	pDC->DPtoHIMETRIC(&offset);
+
+	m_pPic->Render(MemDC, 0, 0, cx, cy,	offset.cx, sy - offset.cy, sx, -sy, NULL);
+
 	for ( y = 0 ; y < height ; y += cy ) {
 		for ( x = 0 ; x < width ; x += cx ) {
 			if ( x > 0 || y > 0 )

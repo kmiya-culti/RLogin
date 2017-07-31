@@ -205,6 +205,31 @@ void CVram::operator += (DWORD c)
 
 	ch[n] = 0;
 }
+void CVram::operator = (LPCWSTR str)
+{
+	int n;
+	int a = wcslen(str) + 1;
+
+	if ( IS_IMAGE(pr.cm) )
+		return;
+
+#ifndef	FIXWCHAR
+	if ( a <= 2 ) {
+		if ( ch != pr.pk.cb ) {
+			WCharFree(ch);
+			ch = pr.pk.cb;
+		}
+	} else if ( ch == pr.pk.cb ) {
+		ch = WCharAlloc(a);
+	} else if ( a > WCharSize(ch) ) {
+		WCharFree(ch);
+		ch = WCharAlloc(a);
+	}
+#endif
+
+	for ( n = 0 ; n < a && n < MAXCHARSIZE ; n++ )
+		ch[n] = *(str++);
+}
 void CVram::SetVRAM(VRAM &ram)
 {
 	ram = pr;
@@ -1414,7 +1439,7 @@ int CTextRam::HisRegNext()
 		for ( x = 0 ; x <= ex ; x += n ) {
 			str.Empty();
 			vp[x].pr.at &= ~ATT_MARK;
-			if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].pr.cm) && IS_2BYTE(vp[x + 1].pr.cm) ) {
+			if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].pr.cm) && IS_2BYTE(vp[x + 1].pr.cm) && vp[x].Compare(vp[x + 1]) == 0 ) {
 				str += (LPCWSTR)vp[x];
 				n = 2;
 			} else if ( !IS_ASCII(vp[x].pr.cm) || (DWORD)(vp[x]) == 0 ) {
@@ -2120,8 +2145,9 @@ void CTextRam::ScriptValue(int cmds, class CScriptValue &value, int mode)
 	case 4:					// Document.Screen.Color
 		if ( mode == DOC_MODE_CALL ) {			// Document.Screen.Color(n, r, g, b)
 			if ( value.GetSize() >= 4 && (n = value[0]) >= 0 && n < 256 ) {
-				m_DefColTab[n] = RGB((int)value[n][1], (int)value[n][2], (int)value[n][3]);
-				m_ColTab[n] = m_DefColTab[n];
+				m_ColTab[n] = RGB((int)value[n][1], (int)value[n][2], (int)value[n][3]);
+				if ( n < 16 )
+					m_DefColTab[n] = m_ColTab[n];
 				value = (int)0;
 			} else
 				value = (int)1;
@@ -2134,8 +2160,8 @@ void CTextRam::ScriptValue(int cmds, class CScriptValue &value, int mode)
 			}
 		} else if ( mode == DOC_MODE_SAVE ) {
 			for ( n = 0 ; n < 256 && n < value.GetSize() ; n++ )
-				m_DefColTab[n] = RGB((int)value[n][0], (int)value[n][1], (int)value[n][2]);
-			memcpy(m_ColTab, m_DefColTab, sizeof(m_DefColTab));
+				m_ColTab[n] = RGB((int)value[n][0], (int)value[n][1], (int)value[n][2]);
+			memcpy(m_DefColTab, m_ColTab, sizeof(m_DefColTab));
 		}
 		break;
 
@@ -2367,7 +2393,7 @@ void CTextRam::LineEditCwd(int ex, int sy, CStringW &cwd)
 
 	vp = GETVRAM(0, sy);
 	for ( x = 0 ; x < ex ; x += n ) {
-		if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].pr.cm) && IS_2BYTE(vp[x + 1].pr.cm) ) {
+		if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].pr.cm) && IS_2BYTE(vp[x + 1].pr.cm) && vp[x].Compare(vp[x + 1]) == 0 ) {
 			for ( p = vp[x] ; *p != 0 ; p++ )
 				str.PutWord(*p);
 			n = 2;
@@ -2867,7 +2893,7 @@ void CTextRam::EditCopy(int sps, int eps, BOOL rectflag, BOOL lineflag)
 		tc = 0;
 		str.Clear();
 		for ( x = sx ; x <= ex ; x += n ) {
-			if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].pr.cm) && IS_2BYTE(vp[x + 1].pr.cm) ) {
+			if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].pr.cm) && IS_2BYTE(vp[x + 1].pr.cm) && vp[x].Compare(vp[x + 1]) == 0 ) {
 				p = vp[x]; ch = *p;
 				while ( *p != 0 )
 					str.PutWord(*(p++));
@@ -2960,7 +2986,7 @@ void CTextRam::GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf)
 			ex--;
 
 		for ( x = sx ; x <= ex ; x += n ) {
-			if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].pr.cm) && IS_2BYTE(vp[x + 1].pr.cm) ) {
+			if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].pr.cm) && IS_2BYTE(vp[x + 1].pr.cm) && vp[x].Compare(vp[x + 1]) == 0 ) {
 				for ( p = vp[x] ; *p != 0 ; p++ )
 					pBuf->PutWord(*p);
 				n = 2;
@@ -3513,7 +3539,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 
 			if ( x >= 0 && x < m_Cols ) {
 				vp = tp + x;
-				if ( x > 0 && IS_2BYTE(vp[0].pr.cm) && IS_1BYTE(vp[-1].pr.cm) ) {
+				if ( x > 0 && IS_2BYTE(vp[0].pr.cm) && IS_1BYTE(vp[-1].pr.cm) && vp[-1].Compare(vp[0]) == 0 ) {
 					x--;
 					vp--;
 				}
@@ -3529,7 +3555,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 				work.sty = 0;
 				str = (LPCWSTR)*vp;
 
-				if ( x < (m_Cols - 1) && IS_1BYTE(vp[0].pr.cm) && IS_2BYTE(vp[1].pr.cm) ) {
+				if ( x < (m_Cols - 1) && IS_1BYTE(vp[0].pr.cm) && IS_2BYTE(vp[1].pr.cm) && vp[0].Compare(vp[1]) == 0 ) {
 					work.csz = 2;
 				} else if ( IS_IMAGE(vp->pr.cm) ) {
 					work.mod = (-1);
@@ -4320,6 +4346,28 @@ void CTextRam::DISPVRAM(int sx, int sy, int w, int h)
 	else
 		m_pDocument->IncActCount();
 }
+void CTextRam::DISPRECT(int sx, int sy, int ex, int ey)
+{
+	int y;
+
+	if ( sx > 0 ) {
+		for ( y = sy ; y < ey ; y++ ) {
+			if ( IS_2BYTE(GETVRAM(sx, y)->pr.cm) ) {
+				sx--;
+				break;
+			}
+		}
+	}
+	if ( ex < m_Cols ) {
+		for ( y = sy ; y < ey ; y++ ) {
+			if ( IS_1BYTE(GETVRAM(ex, y)->pr.cm) ) {
+				ex++;
+				break;
+			}
+		}
+	}
+	DISPVRAM(sx, sy, ex - sx, ey - sy);
+}
 int CTextRam::BLINKUPDATE(class CRLoginView *pView)
 {
 	int x, y, dm;
@@ -4899,7 +4947,8 @@ void CTextRam::FORSCROLL(int sx, int sy, int ex, int ey)
 #endif
 		ERABOX(sx, ey - 1, ex, ey);
 	}
-	DISPVRAM(sx, sy, ex - sx, ey - sy);
+	DISPRECT(sx, sy, ex, ey);
+//	DISPVRAM(sx, sy, ex - sx, ey - sy);
 }
 void CTextRam::BAKSCROLL(int sx, int sy, int ex, int ey)
 {
@@ -4912,6 +4961,7 @@ void CTextRam::BAKSCROLL(int sx, int sy, int ex, int ey)
 	CVram *vp, *wp;
 
 	m_DoWarp = FALSE;
+
 #ifdef	FIXWCHAR
 	for ( y = ey - 1; y > sy ; y-- )
 		memcpy(GETVRAM(left, y), GETVRAM(left, y - 1), sizeof(CVram) * (right - left));
@@ -4924,7 +4974,8 @@ void CTextRam::BAKSCROLL(int sx, int sy, int ex, int ey)
 	}
 #endif
 	ERABOX(sx, sy, ex, sy + 1);
-	DISPVRAM(sx, sy, ex - sx, ey - sy);
+	DISPRECT(sx, sy, ex, ey);
+//	DISPVRAM(sx, sy, ex - sx, ey - sy);
 }
 void CTextRam::LEFTSCROLL()
 {
@@ -4942,7 +4993,9 @@ void CTextRam::LEFTSCROLL()
 		vp->pr.dm = dm;
 	}
 
-	DISPVRAM(m_Margin.left, m_Margin.top, m_Margin.Width(), m_Margin.Height());
+
+	DISPRECT(m_Margin.left, m_Margin.top, m_Margin.right, m_Margin.bottom);
+//	DISPVRAM(m_Margin.left, m_Margin.top, m_Margin.Width(), m_Margin.Height());
 }
 void CTextRam::RIGHTSCROLL()
 {
@@ -4960,7 +5013,8 @@ void CTextRam::RIGHTSCROLL()
 		vp->pr.dm = dm;
 	}
 
-	DISPVRAM(m_Margin.left, m_Margin.top, m_Margin.Width(), m_Margin.Height());
+	DISPRECT(m_Margin.left, m_Margin.top, m_Margin.right, m_Margin.bottom);
+//	DISPVRAM(m_Margin.left, m_Margin.top, m_Margin.Width(), m_Margin.Height());
 }
 void CTextRam::DOWARP()
 {
@@ -5097,6 +5151,7 @@ void CTextRam::PUT1BYTE(int ch, int md, int at)
 	}
 
 	vp = GETVRAM(m_CurX, m_CurY);
+
 	vp->pr.md = (WORD)md;
 	vp->pr.em = m_AttNow.em;
 //	vp->pr.dm = m_AttNow.dm;	no Init
@@ -5115,7 +5170,6 @@ void CTextRam::PUT1BYTE(int ch, int md, int at)
 		vp->pr.at |= ATT_BORDER;
 
 	*vp = (DWORD)ch;
-//	vp->ch = ch;
 
 	if ( dm != 0 )
 		DISPVRAM(m_CurX * 2, m_CurY, 2, 1);
@@ -5192,6 +5246,7 @@ void CTextRam::PUT2BYTE(int ch, int md, int at)
 	}
 
 	vp = GETVRAM(m_CurX, m_CurY);
+
 	vp[0].pr.md = vp[1].pr.md = (WORD)md;
 	vp[0].pr.em = vp[1].pr.em = m_AttNow.em;
 //	vp[0].dm = vp[1].dm = m_AttNow.dm;	no Init
@@ -5210,7 +5265,7 @@ void CTextRam::PUT2BYTE(int ch, int md, int at)
 		vp[0].pr.at |= ATT_BORDER;
 
 	vp[0] = (DWORD)ch;
-	vp[1].Empty();
+	vp[1] = (DWORD)ch;
 
 	if ( dm != 0 )
 		DISPVRAM(m_CurX * 2, m_CurY, 4, 1);
@@ -5260,6 +5315,8 @@ void CTextRam::PUTADD(int x, int y, int ch, int cf)
 
 	if ( n == 2 || i == n ) {
 		*vp += (DWORD)ch;
+//		if ( IS_1BYTE(vp->pr.cm) && IS_2BYTE(vp[1].pr.cm) )	not use
+			vp[1] = (LPCWSTR)(*vp);
 		DISPVRAM(x, y, IS_1BYTE(vp->pr.cm) ? 2 : 1, 1);
 	} else {
 		CStringW str = vp->ch;
@@ -5271,6 +5328,7 @@ void CTextRam::PUTADD(int x, int y, int ch, int cf)
 		while ( *p != L'\0' )
 			*vp += (DWORD)(*(p++));
 		*vp += (DWORD)ch;
+		vp[1] = (LPCWSTR)(*vp);
 	}
 }
 void CTextRam::ANSIOPT(int opt, int bit)
@@ -5602,7 +5660,9 @@ void CTextRam::COPY(int sp, int sx, int sy, int ex, int ey, int dp, int dx, int 
 					}
 				}
 			}
-			DISPVRAM(dx, dy, ex - sx + 1, ey - sy + 1);
+//			DISPVRAM(dx, dy, ex - sx + 1, ey - sy + 1);
+			DISPRECT(dx, dy, dx + ex - sx + 1, dy + ey - sy + 1);
+
 
 		} else {				// Page to dup Page
 			pSrc = GETPAGE(sp);
@@ -5684,7 +5744,8 @@ void CTextRam::COPY(int sp, int sx, int sy, int ex, int ey, int dp, int dx, int 
 						*np = *tp;
 				}
 			}
-			DISPVRAM(dx, dy, ex - sx + 1, ey - sy + 1);
+//			DISPVRAM(dx, dy, ex - sx + 1, ey - sy + 1);
+			DISPRECT(dx, dy, dx + ex - sx + 1, dy + ey - sy + 1);
 
 		} else {						// Page to diff Page
 			pSrc = GETPAGE(sp);

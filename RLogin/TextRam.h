@@ -288,6 +288,26 @@
 #define	MODKEY_STRING	5				//    how to handle string() modifiers
 #define	MODKEY_MAX		6
 
+#define	EXTCOL_BEGIN			256
+#define	EXTCOL_VT_TEXT_FORE		256				// 10  -> Change VT100 text foreground color to Pt.
+#define	EXTCOL_VT_TEXT_BACK		257				// 11  -> Change VT100 text background color to Pt.
+#define	EXTCOL_TEXT_CURSOR		258				// 12  -> Change text cursor color to Pt.
+#define	EXTCOL_MOUSE_FORE		259				// 13  -> Change mouse foreground color to Pt.
+#define	EXTCOL_MOUDE_BACK		260				// 14  -> Change mouse background color to Pt.
+#define	EXTCOL_TEK_FORE			261				// 15  -> Change Tektronix foreground color to Pt.
+#define	EXTCOL_TEK_BACK			262				// 16  -> Change Tektronix background color to Pt.
+#define	EXTCOL_HILIGHT_BACK		263				// 17  -> Change highlight background color to Pt.
+#define	EXTCOL_TEK_CURSOR		264				// 18  -> Change Tektronix cursor color to Pt.
+#define	EXTCOL_HILIGHT_FORE		265				// 19  -> Change highlight foreground color to Pt.
+
+#define	EXTCOL_SP_BEGIN			266
+#define	EXTCOL_TEXT_BOLD		266				// 5;0 <- resource colorBD (BOLD).
+#define	EXTCOL_TEXT_UNDER		267				// 5;1 <- resource colorUL (UNDERLINE).
+#define	EXTCOL_TEXT_BLINK		268				// 5;2 <- resource colorBL (BLINK).
+#define	EXTCOL_TEXT_REVERSE		269				// 5;3 <- resource colorRV (REVERSE).
+
+#define	EXTCOL_MAX				270
+
 #define issjis1(c)		(((unsigned char)(c) >= 0x81 && \
 						  (unsigned char)(c) <= 0x9F) || \
 						 ((unsigned char)(c) >= 0xE0 && \
@@ -397,8 +417,11 @@ public:
 	inline operator DWORD () { return ((ch[0] == 0 ? 0 : (ch[1] == 0 ? ch[0] : ((ch[0] << 16) | ch[1])))); }
 	inline const CVram & operator = (CVram &data);
 	inline void operator = (VRAM &ram);
+//	inline int Compare(LPCWSTR str) { return wcscmp(str, (LPCWSTR)*this); }
+	inline int Compare(LPCWSTR str) { return 0; }
 
 	inline void operator = (DWORD c);
+	void operator = (LPCWSTR str);
 	void operator += (DWORD c);
 	void SetVRAM(VRAM &ram);
 
@@ -612,7 +635,7 @@ public:
 	int m_LeftX;
 	int m_RightX;
 	int m_DefTab;
-	COLORREF m_ColTab[256];
+	COLORREF m_ColTab[EXTCOL_MAX];
 	DWORD m_AnsiOpt[16];
 	DWORD m_OptTab[16];
 	int m_ModKey[MODKEY_MAX];
@@ -817,6 +840,7 @@ public:
 	void CURON();
 	void DISPVRAM(int sx, int sy, int w, int h);
 	void DISPUPDATE();
+	void DISPRECT(int sx, int sy, int ex, int ey);
 	int BLINKUPDATE(class CRLoginView *pView);
 	int GETCOLIDX(int red, int green, int blue);
 

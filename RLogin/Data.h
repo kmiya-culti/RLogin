@@ -266,7 +266,7 @@ public:
 	CString m_FileName;
 
 	int LoadFile(LPCTSTR filename);
-	CBitmap *GetBitmap(CDC *pDC, int width, int height);
+	CBitmap *GetBitmap(CDC *pDC, int width, int height, int align);
 
 	CBmpFile();
 	virtual ~CBmpFile();
