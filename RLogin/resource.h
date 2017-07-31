@@ -638,13 +638,17 @@
 #define ID_WINDOW_ROTATION              5062
 #define ID_5063                         5063
 #define ID_VIEW_MENUBAR                 5064
+#define ID_5065                         5065
+#define ID_5066                         5066
+#define IDM_WINODW_NEXT                 5067
+#define IDM_WINDOW_PREV                 5068
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        171
-#define _APS_NEXT_COMMAND_VALUE         5065
+#define _APS_NEXT_COMMAND_VALUE         5069
 #define _APS_NEXT_CONTROL_VALUE         3071
 #define _APS_NEXT_SYMED_VALUE           200
 #endif

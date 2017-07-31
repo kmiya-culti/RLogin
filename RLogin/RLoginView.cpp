@@ -1089,7 +1089,8 @@ void CRLoginView::OnActivateView(BOOL bActivate, CView* pActivateView, CView* pD
 
 		m_ActiveFlag = TRUE;
 		pDoc->m_KeyMac.SetHisMenu(GetMainWnd());
-		pDoc->m_pScript->SetMenu(GetMainWnd());
+		if ( pDoc->m_pScript != NULL )
+			pDoc->m_pScript->SetMenu(GetMainWnd());
 		pDoc->m_TextRam.InitText(pFrame->m_Width, pFrame->m_Height);
 		pFrame->m_Cols  = pDoc->m_TextRam.m_Cols;
 		pFrame->m_Lines = pDoc->m_TextRam.m_Lines;

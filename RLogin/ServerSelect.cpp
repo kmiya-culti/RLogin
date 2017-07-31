@@ -383,6 +383,8 @@ void CServerSelect::OnEditentry()
 void CServerSelect::OnDelentry() 
 {
 	CString tmp;
+
+	/**********
 	if ( (m_EntryNum = m_List.GetSelectMarkData()) < 0 )
 		return;
 	tmp.Format(CStringLoad(IDS_SERVERENTRYDELETE), m_pData->m_Data[m_EntryNum].m_EntryName);
@@ -391,6 +393,21 @@ void CServerSelect::OnDelentry()
 	m_pData->RemoveAt(m_EntryNum);
 	InitList();
 	UpdateTabWnd();
+	***********/
+
+	for ( int n = 0 ; n < m_List.GetItemCount() ; ) {
+		if ( m_List.GetItemState(n, LVIS_SELECTED) == 0 ) {
+			n++;
+			continue;
+		}
+		m_EntryNum = (int)m_List.GetItemData(n);
+		tmp.Format(CStringLoad(IDS_SERVERENTRYDELETE), m_pData->m_Data[m_EntryNum].m_EntryName);
+		if ( MessageBox(tmp, _T("Question"), MB_YESNO | MB_ICONQUESTION ) != IDYES )
+			break;
+		m_pData->RemoveAt(m_EntryNum);
+		InitList();
+		UpdateTabWnd();
+	}
 }
 void CServerSelect::OnEditCopy() 
 {

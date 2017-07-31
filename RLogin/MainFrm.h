@@ -150,6 +150,7 @@ public:
 	CPtrArray m_MenuMap;
 	int m_SplitType;
 	int m_ExecCount;
+	HMENU m_StartMenuHand;
 
 	void SetTransPar(COLORREF rgb, int value, DWORD flag);
 	void SetIconStyle();
@@ -238,6 +239,10 @@ public:
 	afx_msg void OnViewMenubar();
 	afx_msg void OnUpdateViewMenubar(CCmdUI *pCmdUI);
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
+	afx_msg void OnWindowPrev();
+	afx_msg void OnUpdateWindowPrev(CCmdUI *pCmdUI);
+	afx_msg void OnWinodwNext();
+	afx_msg void OnUpdateWinodwNext(CCmdUI *pCmdUI);
 };
 
 

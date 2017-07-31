@@ -8,6 +8,7 @@
 #include "RLoginView.h"
 #include "TextRam.h"
 #include "Data.h"
+#include "Script.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -168,10 +169,31 @@ void CChildFrame::OnMDIActivate(BOOL bActivate, CWnd* pActivateWnd, CWnd* pDeact
 
 void CChildFrame::OnUpdateFrameMenu(BOOL bActive, CWnd* pActiveWnd, HMENU hMenuAlt)
 {
-	CMDIFrameWnd* pFrame = GetMDIFrame();
+	CMenu cMenu;
+	CMainFrame *pFrame = (CMainFrame *)GetMDIFrame();
+	CRLoginDoc *pDoc = (CRLoginDoc *)GetActiveDocument();
 
 	if ( bActive && AfxGetApp()->GetProfileInt(_T("ChildFrame"), _T("VMenu"), TRUE) == FALSE )
 		pFrame->SetMenu(NULL);
-	else
+	else if ( !bActive && pActiveWnd == NULL && pFrame != NULL && pFrame->m_StartMenuHand != NULL ) {
+		cMenu.Attach(pFrame->m_StartMenuHand);
+		pFrame->SetMenu(&cMenu);
+		cMenu.Detach();
+	} else {
 		CMDIChildWnd::OnUpdateFrameMenu(bActive, pActiveWnd, hMenuAlt);
+		if ( bActive && pActiveWnd != NULL && pDoc != NULL && pFrame != NULL ) {
+			pDoc->m_KeyMac.SetHisMenu(pFrame);
+			if ( pDoc->m_pScript != NULL )
+				pDoc->m_pScript->SetMenu(pFrame);
+		}
+	}
+}
+
+BOOL CChildFrame::PreTranslateMessage(MSG* pMsg)
+{
+	if ( (pMsg->message >= WM_KEYFIRST && pMsg->message <= WM_KEYLAST) && 
+			    (pMsg->wParam == VK_TAB || pMsg->wParam == VK_F6) && (GetKeyState(VK_CONTROL) & 0x80) != 0 )
+		return TRUE;
+
+	return CMDIChildWnd::PreTranslateMessage(pMsg);
 }

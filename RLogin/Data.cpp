@@ -2104,8 +2104,8 @@ void CServerEntry::SetKanjiCode(LPCTSTR str)
 	if (      _tcscmp(str, _T("EUC")) == 0 )	m_KanjiCode = EUC_SET;
 	else if ( _tcscmp(str, _T("SJIS")) == 0 )	m_KanjiCode = SJIS_SET;
 	else if ( _tcscmp(str, _T("ASCII")) == 0 )	m_KanjiCode = ASCII_SET;
-	else if ( _tcscmp(str, _T("BIG5")) == 0 )	m_KanjiCode = UTF8_SET;
-	else if ( _tcscmp(str, _T("UTF8")) == 0 )	m_KanjiCode = BIG5_SET;
+	else if ( _tcscmp(str, _T("UTF8")) == 0 )	m_KanjiCode = UTF8_SET;
+	else if ( _tcscmp(str, _T("BIG5")) == 0 )	m_KanjiCode = BIG5_SET;
 	else									    m_KanjiCode = EUC_SET;
 }
 LPCTSTR CServerEntry::GetProtoName()
@@ -2676,6 +2676,9 @@ static const struct _InitKeyTab {
 		{ VK_RIGHT,		MASK_CTRL,				_T("$SPLIT_WIDTH")	},
 		{ VK_LEFT,		MASK_CTRL,				_T("$SPLIT_OVER")	},
 
+		{ VK_TAB,		MASK_CTRL,				_T("$PANE_NEXT")	},
+		{ VK_TAB,		MASK_CTRL | MASK_SHIFT,	_T("$PANE_PREV")	},
+
 		{ (-1),		(-1),		NULL },
 	};
 
@@ -2892,7 +2895,7 @@ void CKeyNodeTab::SetArray(CStringArrayExt &stra)
 
 	tmp.RemoveAll();
 	tmp.AddVal(-1);
-	tmp.AddVal(4);			// KeyCode Bug Fix
+	tmp.AddVal(5);			// KeyCode Bug Fix
 	stra.AddArray(tmp);
 }
 void CKeyNodeTab::GetArray(CStringArrayExt &stra)
@@ -3003,7 +3006,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	76
+#define	CMDSKEYTABMAX	78
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -3041,6 +3044,8 @@ static const struct _CmdsKeyTab {
 	{	ID_WINDOW_CASCADE,		L"$PANE_CASCADE"	},
 	{	ID_PANE_DELETE,			L"$PANE_DELETE"		},
 	{	ID_PANE_HSPLIT,			L"$PANE_HSPLIT"		},
+	{	IDM_WINODW_NEXT,		L"$PANE_NEXT"		},
+	{	IDM_WINDOW_PREV,		L"$PANE_PREV"		},
 	{	ID_WINDOW_ROTATION,		L"$PANE_ROTATION"	},
 	{	ID_WINDOW_TILE_HORZ,	L"$PANE_TILEHORZ"	},
 	{	ID_PANE_WSPLIT,			L"$PANE_WSPLIT"		},
@@ -3192,6 +3197,16 @@ void CKeyNodeTab::BugFix(int fix)
 			}
 		}
 		for ( i = 0 ; InitKeyTab[i].maps != NULL ; i++ ) {
+			if ( Find(InitKeyTab[i].code, InitKeyTab[i].mask, &n) )
+				continue;
+			Add(InitKeyTab[i].code, InitKeyTab[i].mask, InitKeyTab[i].maps);
+		}
+	}
+
+	if ( fix < 5 ) {
+		for ( i = 0 ; InitKeyTab[i].maps != NULL ; i++ ) {
+			if ( InitKeyTab[i].code != VK_TAB || (InitKeyTab[i].mask & MASK_CTRL) == 0 )
+				continue;
 			if ( Find(InitKeyTab[i].code, InitKeyTab[i].mask, &n) )
 				continue;
 			Add(InitKeyTab[i].code, InitKeyTab[i].mask, InitKeyTab[i].maps);
@@ -3947,6 +3962,7 @@ void CParamTab::SetIndex(int mode, CStringIndex &index)
 		}
 
 		if ( (n = index.Find(_T("PortFwd"))) >= 0 ) {
+			m_PortFwd.RemoveAll();
 			for ( i = 0 ; i < index[n].GetSize() ; i++ )
 				m_PortFwd.Add(index[n][i]);
 		}
@@ -4529,7 +4545,7 @@ LPCTSTR CStringIndex::GetPackStr(LPCTSTR str)
 			while ( *str != _T('\0') && *str != _T('"') ) {
 				if ( *str == _T('\\') ) {
 					switch(*(++str)) {
-					case _T('\0'):
+					case _T('0'):
 						break;
 
 					case _T('x'): case _T('X'):
@@ -4555,12 +4571,12 @@ LPCTSTR CStringIndex::GetPackStr(LPCTSTR str)
 							m_String += (WCHAR)c;
 						break;
 
-					case _T('\b'): m_String += _T("\b"); str++; break;
-					case _T('\t'): m_String += _T("\t"); str++; break;
-					case _T('\n'): m_String += _T("\n"); str++; break;
-					case _T('\a'): m_String += _T("\a"); str++; break;
-					case _T('\f'): m_String += _T("\f"); str++; break;
-					case _T('\r'): m_String += _T("\r"); str++; break;
+					case _T('b'): m_String += _T("\b"); str++; break;
+					case _T('t'): m_String += _T("\t"); str++; break;
+					case _T('n'): m_String += _T("\n"); str++; break;
+					case _T('a'): m_String += _T("\a"); str++; break;
+					case _T('f'): m_String += _T("\f"); str++; break;
+					case _T('r'): m_String += _T("\r"); str++; break;
 
 					default:
 						m_String += *(str++);

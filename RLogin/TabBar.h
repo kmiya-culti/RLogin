@@ -26,6 +26,8 @@ public:
 	CWnd *GetAt(int nIndex);
 	void ReSize();
 	void SetGhostWnd(BOOL sw);
+	void NextActive();
+	void PrevActive();
 
 protected:
 	virtual void OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler);

@@ -603,6 +603,10 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_COMMAND(ID_VIEW_MENUBAR, &CMainFrame::OnViewMenubar)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_MENUBAR, &CMainFrame::OnUpdateViewMenubar)
 	ON_WM_SYSCOMMAND()
+	ON_COMMAND(IDM_WINDOW_PREV, &CMainFrame::OnWindowPrev)
+	ON_UPDATE_COMMAND_UI(IDM_WINDOW_PREV, &CMainFrame::OnUpdateWindowPrev)
+	ON_COMMAND(IDM_WINODW_NEXT, &CMainFrame::OnWinodwNext)
+	ON_UPDATE_COMMAND_UI(IDM_WINODW_NEXT, &CMainFrame::OnUpdateWinodwNext)
 END_MESSAGE_MAP()
 
 static UINT indicators[] =
@@ -640,6 +644,7 @@ CMainFrame::CMainFrame()
 	m_MidiTimer = 0;
 	m_InfoThreadCount = 0;
 	m_SplitType = PANEFRAME_WSPLIT;
+	m_StartMenuHand = NULL;
 }
 
 CMainFrame::~CMainFrame()
@@ -802,6 +807,10 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		pSysMenu->InsertMenu(0, MF_BYPOSITION | MF_SEPARATOR);
 		pSysMenu->InsertMenu(0, MF_BYPOSITION | MF_STRING, ID_VIEW_MENUBAR, CStringLoad(IDS_VIEW_MENUBAR));
 	}
+
+	CMenu *pMenu = GetMenu();
+	if ( pMenu != NULL )
+		m_StartMenuHand = pMenu->GetSafeHmenu();
 
 	return 0;
 }
@@ -1695,7 +1704,11 @@ BOOL CMainFrame::PreTranslateMessage(MSG* pMsg)
 		ScreenToClient(&point);
 		if ( PreLButtonDown((UINT)pMsg->wParam, point) )
 			return TRUE;
-	}
+
+	} else if ( (pMsg->message >= WM_KEYFIRST && pMsg->message <= WM_KEYLAST) && 
+			    (pMsg->wParam == VK_TAB || pMsg->wParam == VK_F6) && (GetKeyState(VK_CONTROL) & 0x80) != 0 )
+		return TRUE;
+
 	return CMDIFrameWnd::PreTranslateMessage(pMsg);
 }
 
@@ -2049,4 +2062,27 @@ void CMainFrame::OnSysCommand(UINT nID, LPARAM lParam)
 		CMDIFrameWnd::OnSysCommand(nID, lParam);
 		break;
 	}
+}
+
+
+void CMainFrame::OnWinodwNext()
+{
+	if ( m_wndTabBar.GetSize() <= 1 )
+		return;
+	m_wndTabBar.NextActive();
+}
+void CMainFrame::OnWindowPrev()
+{
+	if ( m_wndTabBar.GetSize() <= 1 )
+		return;
+	m_wndTabBar.PrevActive();
+}
+
+void CMainFrame::OnUpdateWinodwNext(CCmdUI *pCmdUI)
+{
+	pCmdUI->Enable(m_wndTabBar.GetSize() > 1 ? TRUE : FALSE);
+}
+void CMainFrame::OnUpdateWindowPrev(CCmdUI *pCmdUI)
+{
+	pCmdUI->Enable(m_wndTabBar.GetSize() > 1 ? TRUE : FALSE);
 }

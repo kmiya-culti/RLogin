@@ -1474,9 +1474,10 @@ void Cssh::SendMsgServiceRequest(LPCSTR str)
 }
 int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 {
-	int skip, len;
+	int skip, len, atry;
 	CBuffer tmp, blob, sig;
 	CString wrk;
+	CPassDlg dlg;
 
 	tmp.PutBuf(m_SessionId, m_SessionIdLen);
 	skip = tmp.GetSize();
@@ -1490,7 +1491,10 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 	}
 	m_AuthMeta = str;
 
-	while ( m_AuthStat != AST_DONE ) {
+	for ( atry = 0 ; atry < 5 ; atry++ ) {
+		if ( m_AuthStat == AST_DONE )
+			m_AuthStat = m_AuthReqTab[AST_START];
+
 		if ( m_AuthStat == AST_START ) {
 			tmp.PutStr("none");
 			m_IdKeyPos = 0;
@@ -1498,7 +1502,8 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 			m_AuthMode = AUTH_MODE_NONE;
 
 		} else if ( m_AuthStat == AST_PUBKEY_TRY ) {
-			m_AuthMode = AUTH_MODE_NONE;
+			if ( m_AuthMode == AUTH_MODE_PUBLICKEY )
+				m_AuthMode = AUTH_MODE_NONE;
 			while ( strstr(str, "publickey") != NULL && m_IdKeyPos < m_IdKeyTab.GetSize() ) {
 				m_IdKey = m_IdKeyTab[m_IdKeyPos++];
 				if ( m_IdKey.m_Type == IDKEY_RSA1 )
@@ -1517,14 +1522,15 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 				}
 				tmp.ConsumeEnd(len);
 			}
-			if ( m_AuthMode == AUTH_MODE_NONE ) {
+			if ( m_AuthMode != AUTH_MODE_PUBLICKEY ) {
 				m_IdKeyPos = 0;
 				m_AuthStat = m_AuthReqTab[AST_PUBKEY_TRY];
 				continue;
 			}
 
 		} else if ( m_AuthStat == AST_HOST_TRY ) {
-			m_AuthMode = AUTH_MODE_NONE;
+			if ( m_AuthMode == AUTH_MODE_HOSTBASED )
+				m_AuthMode = AUTH_MODE_NONE;
 			while ( strstr(str, "hostbased") != NULL && m_IdKeyPos < m_IdKeyTab.GetSize() ) {
 				m_IdKey = m_IdKeyTab[m_IdKeyPos++];
 				m_IdKey.SetBlob(&blob);
@@ -1543,7 +1549,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 				}
 				tmp.ConsumeEnd(len);
 			}
-			if ( m_AuthMode == AUTH_MODE_NONE ) {
+			if ( m_AuthMode != AUTH_MODE_HOSTBASED ) {
 				m_IdKeyPos = 0;
 				m_AuthStat = m_AuthReqTab[AST_HOST_TRY];
 				continue;
@@ -1552,11 +1558,20 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 		} else if ( m_AuthStat == AST_PASS_TRY ) {
 			m_IdKeyPos = 0;
 			m_AuthStat = m_AuthReqTab[AST_PASS_TRY];
-			if ( strstr(str, "password") == NULL || m_pDocument->m_ServerEntry.m_PassName.IsEmpty() )
+			if ( strstr(str, "password") == NULL )
 				continue;
+			dlg.m_PassName = m_pDocument->m_ServerEntry.m_PassName;
+			if ( m_pDocument->m_ServerEntry.m_PassName.IsEmpty() || m_AuthMode == AUTH_MODE_PASSWORD ) {
+				dlg.m_HostAddr = m_pDocument->m_ServerEntry.m_HostName;
+				dlg.m_UserName = m_pDocument->m_ServerEntry.m_UserName;
+				dlg.m_Prompt   = _T("ssh Password");
+				dlg.m_PassName = m_pDocument->m_ServerEntry.m_PassName;
+				if ( dlg.DoModal() != IDOK )
+					continue;
+			}
 			tmp.PutStr("password");
 			tmp.Put8Bit(0);
-			tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_PassName));
+			tmp.PutStr(m_pDocument->RemoteStr(dlg.m_PassName));
 			m_AuthMode = AUTH_MODE_PASSWORD;
 
 		} else if ( m_AuthStat == AST_KEYB_TRY ) {

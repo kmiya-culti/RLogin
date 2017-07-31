@@ -184,6 +184,35 @@ void CTabBar::ReSize()
 	sz = m_TabCtrl.SetItemSize(sz);
 }
 
+void CTabBar::NextActive()
+{
+	int idx = GetCurSel();
+	CChildFrame *pWnd;
+
+	if ( idx < 0 || idx >= GetSize() )
+		return;
+
+	if ( ++idx >= GetSize() )
+		idx = 0;
+
+	if ( (pWnd = (CChildFrame *)GetAt(idx)) != NULL )
+		pWnd->MDIActivate();
+}
+void CTabBar::PrevActive()
+{
+	int idx = GetCurSel();
+	CChildFrame *pWnd;
+
+	if ( idx < 0 || idx >= GetSize() )
+		return;
+
+	if ( --idx < 0 )
+		idx = GetSize() - 1;
+	
+	if ( (pWnd = (CChildFrame *)GetAt(idx)) != NULL )
+		pWnd->MDIActivate();
+}
+
 void CTabBar::OnSelchange(NMHDR* pNMHDR, LRESULT* pResult) 
 {
 	TC_ITEM tci;
