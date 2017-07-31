@@ -5404,50 +5404,86 @@ void CTextRam::ChkGrapWnd(int sec)
 		}
 	}
 }
-void CTextRam::SizeGrapWnd(class CGrapWnd *pWnd, int cx, int cy)
+void CTextRam::SizeGrapWnd(class CGrapWnd *pWnd, int cx, int cy, BOOL bAspect)
 {
-	int n;
+	int n, t;
 	int dx, dy;
 	int fw, fh;
+	int wax, way;
+	int hax, hay;
 
 	GetCellSize(&fw, &fh);
 
+	// disp image size
 	if ( (dx = pWnd->m_MaxX * pWnd->m_AspX / 100) <= 0 ) dx = 1;
 	if ( (dy = pWnd->m_MaxY * pWnd->m_AspY / 100) <= 0 ) dy = 1;
 
-	GetMargin(MARCHK_NONE);
+	// width zoom calc
+	if ( cx <= 0 ) {	// auto width
+		GetMargin(MARCHK_NONE);
 
-	if ( cx <= 0 ) {	// auto
-		if ( (cx = m_Margin.right - m_CurX) <= 0 )
-			cx = m_Lines - m_CurX;
+		if ( (t = m_Margin.right - m_CurX) <= 0 )
+			t = m_Lines - m_CurX;
 
-		if ( (n = fw * cx) < dx ) {
-			pWnd->m_AspX = pWnd->m_AspX * n / dx;
-			pWnd->m_AspY = pWnd->m_AspY * n / dx;
+		if ( (n = fw * t) < dx ) {
+			// zoom out
+			wax = pWnd->m_AspX * n / dx;
+			way = pWnd->m_AspY * n / dx;
+		} else {
+			// no zoom
+			wax = pWnd->m_AspX;
+			way = pWnd->m_AspY;
 		}
-
 	} else {			// cell width
+		// zoom in/out
 		n = fw * cx;
-		pWnd->m_AspX = pWnd->m_AspX * n / dx;
-		pWnd->m_AspY = pWnd->m_AspY * n / dx;
+		wax = pWnd->m_AspX * n / dx;
+		way = pWnd->m_AspY * n / dx;
 	}
 
+	// height zoom calc
+	if ( cy <= 0 ) {	// auto height
+		// no zoom
+		hax = pWnd->m_AspX;
+		hay = pWnd->m_AspY;
+	} else {			// cell height
+		// zoom in/out
+		n = fh * cy;
+		hax = pWnd->m_AspX * n / dy;
+		hay = pWnd->m_AspY * n / dy;
+	}
+
+	if ( bAspect ) {
+		// Preserve Aspect Ratio
+		if ( wax < hax || way < hay ) {
+			pWnd->m_AspX = wax;
+			pWnd->m_AspY = way;
+		} else {
+			pWnd->m_AspX = hax;
+			pWnd->m_AspY = hay;
+		}
+	} else {
+		pWnd->m_AspX = wax;
+		pWnd->m_AspY = hay;
+	}
+
+	// disp image size recalc
 	if ( (dx = pWnd->m_MaxX * pWnd->m_AspX / 100) <= 0 ) dx = 1;
 	if ( (dy = pWnd->m_MaxY * pWnd->m_AspY / 100) <= 0 ) dy = 1;
 
-	if ( cy > 0 ) {		// cell height
-		n = fh * cy;
-		pWnd->m_AspY = pWnd->m_AspY * n / dy;
-		if ( (dy = pWnd->m_MaxY * pWnd->m_AspY / 100) <= 0 ) dy = 1;
-	}
+	// auto cell size calc
+	if ( cx <= 0 )		// auto
+		cx = (dx + fw - 1) / fw;
+	if ( cy <= 0 )		// auto
+		cy = (dy + fh - 1) / fh;
 
-	pWnd->m_BlockX = (dx + fw - 1) / fw;
-	pWnd->m_BlockY = (dy + fh - 1) / fh;
+	pWnd->m_BlockX = cx;
+	pWnd->m_BlockY = cy;
 
 	pWnd->m_CellX = fw;
 	pWnd->m_CellY = fh;
 }
-void CTextRam::DispGrapWnd(class CGrapWnd *pGrapWnd)
+void CTextRam::DispGrapWnd(class CGrapWnd *pGrapWnd, BOOL bNextCols)
 {
 	DISPVRAM(m_CurX, m_CurY, pGrapWnd->m_BlockX, pGrapWnd->m_BlockY);
 	m_UpdateFlag = TRUE;	// 表示の機会を与える
@@ -5467,17 +5503,17 @@ void CTextRam::DispGrapWnd(class CGrapWnd *pGrapWnd)
 			vp->m_Vram.bcol = m_AttNow.bcol;
 			vp++;
 		}
-		if ( IsOptEnable(TO_RLSIXPOS) != 0 ) {
+		if ( bNextCols ) {
 			if ( (y + 1) < pGrapWnd->m_BlockY )
 				ONEINDEX();
 		} else
 			ONEINDEX();
 	}
 
-	if ( IsOptEnable(TO_RLSIXPOS) != 0 ) {
+	if ( bNextCols ) {
 		if ( (m_CurX += pGrapWnd->m_BlockX) >= m_Margin.right ) {
-			if ( IsOptEnable(TO_DECAWM) != 0 ) {
-				if ( IsOptEnable(TO_RLGNDW) != 0 ) {
+			if ( IsOptEnable(TO_DECAWM) ) {
+				if ( IsOptEnable(TO_RLGNDW) ) {
 					LOCATE(m_Margin.left, m_CurY);
 					ONEINDEX();
 				} else {

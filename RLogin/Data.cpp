@@ -6014,8 +6014,15 @@ void CStringIndex::SetValue(LPCSTR &str)
 		m_String += *(str++);
 	}
 
-	if ( !m_bString )
+	if ( !m_bString ) {
 		m_Value = _tstoi(m_String);
+	} else if ( m_String.CompareNoCase(_T("true")) == 0 ) {
+		m_Value = 1;
+		m_bString = FALSE;
+	} else if ( m_String.CompareNoCase(_T("false")) == 0 ) {
+		m_Value = 0;
+		m_bString = FALSE;
+	}
 }
 void CStringIndex::SetParam(LPCSTR &str)
 {

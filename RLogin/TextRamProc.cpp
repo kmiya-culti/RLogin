@@ -3296,7 +3296,7 @@ void CTextRam::fc_DECSIXEL(DWORD ch)
 				pGrapWnd->DestroyWindow();
 				pGrapWnd = NULL;
 			} else {
-				SizeGrapWnd(pGrapWnd, 0, 0);
+				SizeGrapWnd(pGrapWnd, 0, 0, TRUE);
 				if ( idx == (-1) && (pTempWnd = CmpGrapWnd(pGrapWnd)) != NULL && pTempWnd->m_BlockX == pGrapWnd->m_BlockX && pTempWnd->m_BlockY == pGrapWnd->m_BlockY ) {
 					pGrapWnd->DestroyWindow();
 					pGrapWnd = pTempWnd;
@@ -3325,7 +3325,7 @@ void CTextRam::fc_DECSIXEL(DWORD ch)
 
 		m_pActGrapWnd = pGrapWnd;
 
-		DispGrapWnd(pGrapWnd);
+		DispGrapWnd(pGrapWnd, IsOptEnable(TO_RLSIXPOS));
 	}
 }
 void CTextRam::fc_DECDLD(DWORD ch)
@@ -7162,7 +7162,9 @@ void CTextRam::iTerm2Ext(LPCSTR param)
 	CGrapWnd *pGrapWnd, *pTempWnd;
 	int bInLine;
 	LPCTSTR p;
+	BOOL bAspect = TRUE; 
 
+	index.SetNoCase(TRUE);
 	index.SetKey(param);
 
 	if ( (i = index.Find(_T("File"))) >= 0 ) {
@@ -7239,7 +7241,10 @@ void CTextRam::iTerm2Ext(LPCSTR param)
 					}
 				}
 
-				SizeGrapWnd(pGrapWnd, cx, cy);
+				if ( (n = index[i].Find(_T("preserveAspectRatio"))) >= 0 && !index[i][n].m_bString )
+					bAspect = ((int)index[i][n] == 0 ? FALSE : TRUE);
+
+				SizeGrapWnd(pGrapWnd, cx, cy, bAspect);
 
 				pGrapWnd->m_ImageIndex = m_ImageIndex++;
 				if ( m_ImageIndex >= 4096 )		// index max 12 bit
@@ -7249,7 +7254,7 @@ void CTextRam::iTerm2Ext(LPCSTR param)
 					pTempWnd->DestroyWindow();
 
 				AddGrapWnd(pGrapWnd);
-				DispGrapWnd(pGrapWnd);
+				DispGrapWnd(pGrapWnd, TRUE);
 
 			} else {
 				pGrapWnd->DestroyWindow();

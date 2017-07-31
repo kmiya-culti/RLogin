@@ -1885,7 +1885,7 @@ void CRLoginView::GetMousePos(int *sw, int *x, int *y)
 void CRLoginView::PopUpMenu(CPoint point)
 {
 	CCmdUI state;
-	CMenu *pMenu, *pMain;
+	CMenu *pMenu;
 	CMenuLoad DefMenu;
 	CRLoginDoc *pDoc = GetDocument();
 
@@ -1897,15 +1897,16 @@ void CRLoginView::PopUpMenu(CPoint point)
 	if ( pDoc->m_TextRam.IsOptEnable(TO_RLRCLICK) )
 		return;
 
-	if ( (pMain = GetMainWnd()->GetMenu()) == NULL || (pMenu = pMain->GetSubMenu(1)) == NULL ) {
+	if ( (pMenu = GetMainWnd()->GetMenu()) == NULL ) {
 		if ( !DefMenu.LoadMenu(IDR_RLOGINTYPE) )
 			return;
-		pDoc->SetMenu(&DefMenu);
-		((CMainFrame *)::AfxGetMainWnd())->SetMenuBitmap(&DefMenu);
-		if ( (pMenu = DefMenu.GetSubMenu(1)) == NULL )
-			return;
-	} else
-		GetMainWnd()->SendMessage(WM_ENTERMENULOOP, TRUE);
+		pMenu = &DefMenu;
+	}
+
+	pDoc->SetMenu(pMenu);
+	((CMainFrame *)::AfxGetMainWnd())->SetMenuBitmap(pMenu);
+	if ( (pMenu = pMenu->GetSubMenu(1)) == NULL )
+		return;
 
 	state.m_pMenu = pMenu;
 	state.m_nIndexMax = pMenu->GetMenuItemCount();

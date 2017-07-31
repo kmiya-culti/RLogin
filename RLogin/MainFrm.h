@@ -241,6 +241,9 @@ public:
 	void VersionCheckProc();
 	void VersionCheck();
 
+	inline CImageList *GetTabImageList() { return &(m_wndTabBar.m_ImageList); }
+	inline int GetTabImageIndex(LPCTSTR filename) { return m_wndTabBar.GetImageIndex(filename); }
+
 // コントロール バー用メンバ
 protected: 
 	CStatusBar  m_wndStatusBar;

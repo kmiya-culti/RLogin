@@ -1569,8 +1569,8 @@ public:
 	void RemoveGrapWnd(class CGrapWnd *pWnd);
 	void *LastGrapWnd(int type);
 	void ChkGrapWnd(int sec);
-	void SizeGrapWnd(class CGrapWnd *pWnd, int cx, int cy);
-	void DispGrapWnd(class CGrapWnd *pGrapWnd);
+	void SizeGrapWnd(class CGrapWnd *pWnd, int cx, int cy, BOOL bAspect);
+	void DispGrapWnd(class CGrapWnd *pGrapWnd, BOOL bNextCols);
 
 	// iTerm2
 	void iTerm2Ext(LPCSTR param);
