@@ -278,7 +278,7 @@ int CBuffer::GetBIGNUM(BIGNUM *val)
 {
 	int bytes;
 	int bits = Get16Bit();
-	if ( (bytes = (bits + 7) / 8) > (8 * 1024) )
+	if ( (bytes = (bits + 7) / 8) > (8 * 1024) || bytes < 0 )
 		throw this;
 	if ( (m_Len - m_Ofs) < bytes )
 		throw this;
@@ -289,7 +289,7 @@ int CBuffer::GetBIGNUM(BIGNUM *val)
 int CBuffer::GetBIGNUM2(BIGNUM *val)
 {
 	int bytes = Get32Bit();
-	if ( (m_Len - m_Ofs) < bytes )
+	if ( bytes < 0 || bytes > (32 * 1024) || (m_Len - m_Ofs) < bytes )
 		throw this;
     BN_bin2bn(m_Data + m_Ofs, bytes, val);
 	Consume(bytes);
@@ -298,7 +298,7 @@ int CBuffer::GetBIGNUM2(BIGNUM *val)
 int CBuffer::GetBIGNUM_SecSh(BIGNUM *val)
 {
 	int bytes = (Get32Bit() + 7) / 8;
-	if ( (m_Len - m_Ofs) < bytes )
+	if ( bytes < 0 || bytes > (32 * 1024) || (m_Len - m_Ofs) < bytes )
 		throw this;
 	if ( (m_Data[m_Ofs] & 0x80) != 0 ) {
 		if ( m_Ofs > 0 ) {
@@ -323,7 +323,7 @@ int CBuffer::GetEcPoint(const EC_GROUP *curve, EC_POINT *point)
 	LPBYTE buf = GetPtr();
 	BN_CTX *bnctx;
 
-	if ( (m_Len - m_Ofs) < len || len <= 0 )
+	if ( len <= 0 || len > (32 * 1024) || (m_Len - m_Ofs) < len )
 		return FALSE;
 
 	if ( buf[0] != POINT_CONVERSION_UNCOMPRESSED )
@@ -976,7 +976,8 @@ CFont *CFontChacheNode::Open(LPCTSTR pFontName, int Width, int Height, int CharS
 
 	dc.CreateCompatibleDC(NULL);
 	pOld = dc.SelectObject(m_pFont);
-	sz = dc.GetTextExtent(_T("ˆŸ"), 2);
+//	sz = dc.GetTextExtent(_T("ˆŸ"), 1);
+	sz = dc.GetTextExtent(_T("„Ÿ"), 2);
 	dc.SelectObject(pOld);
 
 	m_KanWidMul = Width * 200 / sz.cx;
@@ -4220,3 +4221,82 @@ CStringBinary * CStringBinary::FindValue(int value)
 		return bp;
 	return NULL;
 }
+
+//////////////////////////////////////////////////////////////////////
+// WordAlloc
+
+							//	 3     7     15    31
+static void		*pMemFree[4] = { NULL, NULL, NULL, NULL };
+static void		*pMemTop = NULL;
+
+#define	ALLOCMAX	(32 * 1024)
+
+WCHAR *WCharAlloc(int len)
+{
+	int n, a;
+	int hs;
+	BYTE *bp;
+	WCHAR *wp;
+
+	switch(len) {
+	case 0: case 1:	case 2:	case 3:
+		len = 3;
+		hs  = 0;
+		break;
+	case 4: case 5:	case 6:	case 7:
+		len = 7;
+		hs  = 1;
+		break;
+	case  8: case  9: case 10: case 11:
+	case 12: case 13: case 14: case 15:
+		len = 15;
+		hs  = 2;
+		break;
+	default:
+		len = 31;
+		hs  = 3;
+		break;
+	}
+
+	if ( pMemFree[hs] == NULL ) {
+		bp = new BYTE[ALLOCMAX];
+		*((void **)bp) = pMemTop;
+		pMemTop = (void *)bp;
+		n = sizeof(void *);
+		a = (1 + len) * sizeof(WCHAR);
+		ASSERT(sizeof(void *) <= a);
+		while ( (n + a) <= ALLOCMAX ) {
+			wp = (WCHAR *)(bp + n);
+			*((void **)wp) = pMemFree[hs];
+			pMemFree[hs] = (void *)wp;
+			n += a;
+		}
+	}
+
+	wp = (WCHAR *)pMemFree[hs];
+	pMemFree[hs] = *((void **)wp);
+	*(wp++) = hs;
+	return wp;
+}
+void WCharFree(WCHAR *ptr)
+{
+	int hs = *(--ptr);
+	ASSERT(hs >= 0 && hs < 4);
+	*((void **)ptr) = pMemFree[hs];
+	pMemFree[hs] = (void *)ptr;
+}
+int WCharSize(WCHAR *ptr)
+{
+	static int sizeTab[] = { 3, 7, 15, 31 };
+	return sizeTab[*(ptr - 1)];
+}
+void AllWCharAllocFree()
+{
+	void *ptr;
+
+	while ( (ptr = pMemTop) != NULL ) {
+		pMemTop = *((void **)ptr);
+		delete ptr;
+	}
+}
+

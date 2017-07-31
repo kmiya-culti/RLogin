@@ -876,6 +876,8 @@ int CRLoginApp::ExitInstance()
 		m_pD2DFactory->Release();
 #endif
 
+	AllWCharAllocFree();
+
 	return CWinApp::ExitInstance();
 }
 

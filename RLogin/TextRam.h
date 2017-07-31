@@ -18,7 +18,7 @@
 
 #define	COLS_MAX		512
 #define	LINE_MAX		512
-#define	HIS_MAX			200000			// HIS_MAX * COLS_MAX * sizeof(VRAM) = 1,228,800,000 byte
+#define	HIS_MAX			200000			// HIS_MAX * COLS_MAX * sizeof(CVram) = 1,638,400,000 byte
 #define	DEF_TAB			8
 #define	FKEY_MAX		24
 #define	KANBUFMAX		128
@@ -175,6 +175,7 @@
 #define	TO_RLSCRDEBUG	445			// スクリプトデバックを行う
 #define	TO_RLTEKINWND	446			// Tekウィンドウをビューで描く
 #define	TO_RLOSCPAM		447			// OSC/DCS...キャンセル時にバッファを書き戻す
+#define	TO_RLUNINOM		448			// Unicode ノーマライズを禁止する
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -310,8 +311,10 @@ enum EStageNum {
 
 typedef	struct _Vram {
 	DWORD	ch;
+
 	DWORD	at:28;
 	  DWORD	ft:4;
+
 	WORD	md:10;
 	  WORD	em:2;
 	  WORD	dm:2;
@@ -321,18 +324,61 @@ typedef	struct _Vram {
 } VRAM;
 
 typedef struct _Iram {
-	DWORD	id:12;
-	  DWORD	y:10;
-	  DWORD	x:10;
-	DWORD	at:28;
-	  DWORD	ft:4;
-	WORD	md:10;
-	  WORD	em:2;
-	  WORD	dm:2;
-	  WORD	cm:2;
-	BYTE	fc;
-	BYTE	bc;
+	DWORD	id:12;		// イメージ番号
+	  DWORD	iy:10;		// イメージ横位置
+	  DWORD	ix:10;		// イメージ縦位置
+
+	DWORD	at:28;		// アトリビュート
+	  DWORD	ft:4;		// フォント番号
+
+	WORD	md:10;		// フォントバンク
+	  WORD	em:2;		// 消去属性
+	  WORD	dm:2;		// 拡大属性
+	  WORD	cm:2;		// 文字種
+	BYTE	fc;			// 文字色番号
+	BYTE	bc;			// 背景色番号
 } IRAM;
+
+
+//#define	FIXWCHAR	1
+
+#ifdef	FIXWCHAR
+#define	MAXCHARSIZE	8
+#else
+#define	MAXCHARSIZE	31
+#endif
+
+class CVram
+{
+public:
+#ifdef	FIXWCHAR
+	WCHAR		ch[MAXCHARSIZE];
+#else
+	WCHAR		*ch;
+#endif
+	IRAM		pr;
+
+	CVram();
+	~CVram();
+
+	inline void Empty() { ch[0] = 0; }
+	inline BOOL IsEmpty() { return (ch[0] == 0 ? TRUE : FALSE); }
+	inline operator LPCWSTR () { return ch; }
+
+	const CVram & operator = (CVram &data);
+	void operator = (VRAM &ram);
+	void operator = (DWORD c);
+	void operator += (DWORD c);
+	void SetVRAM(VRAM &ram);
+
+	void SetBuffer(CBuffer &buf);
+	void GetBuffer(CBuffer &buf);
+	void SetString(CString &str);
+	void GetString(LPCTSTR str);
+
+	void Read(CFile &file, int ver = 3);
+	void Write(CFile &file);
+};
 
 class CFontNode : public CObject
 {
@@ -426,7 +472,7 @@ class CTextSave : public CObject
 public:
 	class CTextSave *m_Next;
 
-	VRAM *m_VRam;
+	CVram *m_VRam;
 	VRAM m_AttNow;
 	VRAM m_AttSpc;
 
@@ -514,7 +560,7 @@ public:
 	class CRLoginDoc *m_pDocument;
 	class CFontTab m_FontTab;
 
-	VRAM *m_VRam;
+	CVram *m_VRam;
 	VRAM m_AttSpc;
 	VRAM m_AttNow;
 
@@ -550,6 +596,7 @@ public:
 	int m_BackMode;
 	DWORD m_LastChar;
 	int m_LastPos;
+	BOOL m_bRtoL;
 
 	CWordArray m_AnsiPara;
 	int m_OscMode;
@@ -678,13 +725,14 @@ public:
 
 	inline int GetCalcPos(int x, int y) { return (m_ColsMax * (y + m_HisPos + m_HisMax) + x); }
 	inline void SetCalcPos(int pos, int *x, int *y) { *x = pos % m_ColsMax; *y = (pos / m_ColsMax - m_HisPos - m_HisMax); }
-	inline int GetDm(int y) { VRAM *vp = GETVRAM(0, y); return vp->dm; }
-	inline void SetDm(int y, int dm) { VRAM *vp = GETVRAM(0, y); vp->dm = dm; }
+	inline int GetDm(int y) { CVram *vp = GETVRAM(0, y); return vp->pr.dm; }
+	inline void SetDm(int y, int dm) { CVram *vp = GETVRAM(0, y); vp->pr.dm = dm; }
 
 	void OnClose();
 	void CallReciveLine(int y);
 	void CallReciveChar(int ch);
 	int UnicodeWidth(DWORD code);
+	int UnicodeNonSpcMrk(DWORD code);
 	void SetRetChar(BOOL f8);
 
 	// Static Lib
@@ -697,7 +745,7 @@ public:
 
 	// Low Level
 	void RESET(int mode = RESET_CURSOR | RESET_TABS | RESET_BANK | RESET_ATTR | RESET_COLOR | RESET_TEK | RESET_SAVE | RESET_MOUSE | RESET_CHAR);
-	VRAM *GETVRAM(int cols, int lines);
+	CVram *GETVRAM(int cols, int lines);
 	void UNGETSTR(LPCTSTR str, ...);
 	void BEEP();
 	void FLUSH();
@@ -724,7 +772,7 @@ public:
 	void REVINDEX();
 	void PUT1BYTE(int ch, int md);
 	void PUT2BYTE(int ch, int md);
-	void PUTIVS(int hi, int low);
+	void PUTADD(int x, int y, int ch);
 	void INSMDCK(int len);
 	void ANSIOPT(int opt, int bit);
 	void SAVERAM();
@@ -771,7 +819,7 @@ public:
 	void fc_Init_Proc(int stage, const PROCTAB *tp, int b = 0);
 	ESCNAMEPROC *fc_InitProcName(CTextRam::ESCNAMEPROC *tab, int *max);
 	void fc_Init(int mode);
-	inline void fc_Call(int ch) { (this->*m_Func[ch])(ch); }
+	inline void fc_Call(int ch);
 	inline void fc_Case(int stage);
 	inline void fc_Push(int stage);
 

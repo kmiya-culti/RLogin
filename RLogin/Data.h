@@ -49,8 +49,9 @@ public:
 	void PutBIGNUM(BIGNUM *val);
 	void PutBIGNUM2(BIGNUM *val);
 	void PutEcPoint(const EC_GROUP *curve, const EC_POINT *point);
-	void PutDword(int val);
+	inline void PutByte(int val) { Put8Bit(val); }
 	void PutWord(int val);
+	void PutDword(int val);
 
 	int Get8Bit();
 	int Get16Bit();
@@ -64,6 +65,7 @@ public:
 	int GetEcPoint(const EC_GROUP *curve, EC_POINT *point);
 	int GetDword();
 	int GetWord();
+	inline int GetByte() { return GetChar(); }
 	int GetChar();
 
 	inline void SET8BIT(LPBYTE pos, int val) { *pos = (BYTE)(val); }
@@ -605,5 +607,10 @@ public:
 
 	const CParamTab & operator = (CParamTab &data);
 };
+
+WCHAR *WCharAlloc(int len);
+void WCharFree(WCHAR *ptr);
+int WCharSize(WCHAR *ptr);
+void AllWCharAllocFree();
 
 #endif // !defined(AFX_DATA_H__6A23DC3E_3DDC_47BD_A6FC_E0127564AE6E__INCLUDED_)

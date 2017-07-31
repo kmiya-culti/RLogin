@@ -119,8 +119,15 @@ BOOL CRLoginDoc::OnNewDocument()
 	m_ParamTab.Serialize(FALSE, m_ServerEntry.m_ProBuffer);
 	m_TextRam.SetKanjiMode(m_ServerEntry.m_KanjiCode);
 
-	UpdateAllViews(NULL, UPDATE_INITPARA, 0);
+	CRLoginView *pView;
+	CChildFrame *pFrame;
+	if ( (pView = (CRLoginView *)GetAciveView()) != NULL ) {
+		if ( (pFrame = pView->GetFrameWnd()) != NULL )
+			m_TextRam.InitText(pFrame->m_Width, pFrame->m_Height);
+	}
+	UpdateAllViews(NULL, UPDATE_INITSIZE, 0);
 	m_TextRam.InitHistory();
+
 	SetTitle(m_ServerEntry.m_EntryName);
 
 	if ( !m_ServerEntry.m_ScriptStr.IsEmpty() )

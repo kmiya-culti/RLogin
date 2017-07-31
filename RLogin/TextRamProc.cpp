@@ -107,7 +107,7 @@ static const CTextRam::PROCTAB fc_Big52Tab[] = {
 	{ 0,		0,			NULL } };
 	
 static const CTextRam::PROCTAB fc_Utf8Tab[] = {
-	{ 0x20,		0x7E,		&CTextRam::fc_TEXT		},
+	{ 0x20,		0x7F,		&CTextRam::fc_TEXT		},
 	{ 0xA0,		0xBF,		&CTextRam::fc_UTF87		},
 	{ 0xC0,		0xDF,		&CTextRam::fc_UTF81		},	// UCS-2 5+6=11 bit
 	{ 0xE0,		0xEF,		&CTextRam::fc_UTF82		},	// UCS-2 4+6+6=16 bit
@@ -977,6 +977,11 @@ void CTextRam::fc_Init(int mode)
 
 	fc_TimerReset();
 }
+
+inline void CTextRam::fc_Call(int ch)
+{
+	(this->*m_Func[ch])(ch);
+}
 inline void CTextRam::fc_Case(int stage)
 {
 	if ( (m_Stage = stage) <= STAGE_EXT3 )
@@ -1429,21 +1434,15 @@ void CTextRam::fc_TEXT(int ch)
 
 	switch(m_BankNow & SET_MASK) {
 	case SET_94:
-		ch &= 0x7F;
-		if ( ch >= 0x21 && ch <= 0x7E ) {
-			INSMDCK(1);
-			PUT1BYTE(ch, m_BankNow);
-		} else if ( ch == 0x20 ) {
-			INSMDCK(1);
-			PUT1BYTE(0x20, m_BankNow);
-		}
-		break;
+		//if ( (ch &= 0x7F) == 0x7F )
+		//	break;
+		//INSMDCK(1);
+		//PUT1BYTE(ch, m_BankNow);
+		//break;
 	case SET_96:
 		ch &= 0x7F;
-		if ( ch >= 0x20 && ch <= 0x7F ) {
-			INSMDCK(1);
-			PUT1BYTE(ch, m_BankNow);
-		}
+		INSMDCK(1);
+		PUT1BYTE(ch, m_BankNow);
 		break;
 	case SET_94x94:
 		if ( (ch & 0x7F) < 0x21 || (ch & 0x7F) > 0x7E )
@@ -1451,8 +1450,6 @@ void CTextRam::fc_TEXT(int ch)
 		fc_Push(STAGE_94X94);
 		goto CODELEN;
 	case SET_96x96:
-		if ( (ch & 0x7F) < 0x21 || (ch & 0x7F) > 0x7E )
-			break;
 		fc_Push(STAGE_96X96);
 	CODELEN:
 		switch(m_BankNow & CODE_MASK) {
@@ -1601,6 +1598,7 @@ void CTextRam::fc_UTF85(int ch)
 {
 	// 10xx xxxx
 	int n;
+	CVram *vp;
 
 	fc_KANJI(ch);
 
@@ -1626,7 +1624,8 @@ void CTextRam::fc_UTF85(int ch)
 		if ( m_BackChar > UNICODE_MAX )			// U+000000 - U+10FFFF 21 bit
 			m_BackChar = UNICODE_UNKOWN;		//  
 		m_BackChar = UCS4toUCS2(m_BackChar);
-		if ( (n = UnicodeNomal(m_LastChar, m_BackChar)) != 0 ) {
+		if ( !IsOptEnable(TO_RLUNINOM) && (n = UnicodeNomal(m_LastChar, m_BackChar)) != 0 ) {
+			m_LastChar = 0;
 			m_BackChar = n;
 			LOCATE(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX);
 		}
@@ -1638,11 +1637,40 @@ void CTextRam::fc_UTF85(int ch)
 		if ( (m_BackChar >= 0x180B && m_BackChar <= 0x180D) ||
 			 (m_BackChar >= 0xFE00 && m_BackChar <= 0xFE0F) ||
 			 (m_BackChar >= 0xDB40DD00 && m_BackChar <= 0xDB40DDEF) ) {
-			if ( m_LastChar > 0 ) {
-				INSMDCK(2);
-				LOCATE(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX);
-				PUTIVS(m_LastChar, m_BackChar);
+			if ( m_LastChar > 0 )
+				PUTADD(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX, m_BackChar);
+
+		//200E;N # LEFT-TO-RIGHT MARK
+		//200F;N # RIGHT-TO-LEFT MARK
+		//202A;N # LEFT-TO-RIGHT EMBEDDING
+		//202B;N # RIGHT-TO-LEFT EMBEDDING
+		//202C;N # POP DIRECTIONAL FORMATTING
+		//202D;N # LEFT-TO-RIGHT OVERRIDE
+		//202E;N # RIGHT-TO-LEFT OVERRIDE
+		} else if ( (m_BackChar >= 0x200E && m_BackChar <= 0x200F) ||
+					(m_BackChar >= 0x202A && m_BackChar <= 0x202E) ) {
+			switch(m_BackChar) {
+			case 0x200E:	// LEFT-TO-RIGHT MARK
+			case 0x202A:	// LEFT-TO-RIGHT EMBEDDING
+			case 0x202D:	// LEFT-TO-RIGHT OVERRIDE
+				//PushRtl(FALSE);
+				m_bRtoL = FALSE;
+				break;
+			case 0x200F:	// RIGHT-TO-LEFT MARK
+			case 0x202B:	// RIGHT-TO-LEFT EMBEDDING
+			case 0x202E:	// RIGHT-TO-LEFT OVERRIDE
+				//PushRtl(TRUE);
+				m_bRtoL = TRUE;
+				break;
+			case 0x202C:	// POP DIRECTIONAL FORMATTING
+				//PopRtl();
+				m_bRtoL = FALSE;
+				break;
 			}
+
+		} else if ( m_LastChar > 0 && UnicodeNonSpcMrk(m_BackChar) ) {
+			PUTADD(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX, m_BackChar);
+
 		} else if ( UnicodeWidth(m_BackChar) == 1 ) {
 			INSMDCK(1);
 			if ( m_BackChar < 0x0080 )
@@ -1651,6 +1679,7 @@ void CTextRam::fc_UTF85(int ch)
 				PUT1BYTE(m_BackChar & 0x7F, m_BankTab[m_KanjiMode][1]);
 			else
 				PUT1BYTE(m_BackChar, SET_UNICODE);
+
 		} else {
 			INSMDCK(2);
 			PUT2BYTE(m_BackChar, SET_UNICODE);
@@ -2240,7 +2269,7 @@ void CTextRam::fc_DOCS(int ch)
 void CTextRam::fc_STAT(int ch)
 {
 	int n, i;
-	VRAM *vp;
+	CVram *vp;
 
 	switch(m_Status) {
 
@@ -2305,8 +2334,8 @@ void CTextRam::fc_STAT(int ch)
 				vp = GETVRAM(0, n);
 				for ( i = 0 ; i < m_Cols ; i++ ) {
 					*vp = m_AttNow;
-					vp->md = m_BankTab[m_KanjiMode][0];
-					vp->ch = 'E';
+					vp->pr.md = m_BankTab[m_KanjiMode][0];
+					*vp = (DWORD)'E';
 					vp++;
 				}
 			}
@@ -2640,7 +2669,7 @@ void CTextRam::fc_DECSIXEL(int ch)
 	// DCS ('P' << 24) | 'q'					DECSIXEL Sixel graphics
 
 	CString tmp;
-	CGrapWnd *pGrapWnd;
+	CGrapWnd *pGrapWnd, *pTempWnd;
 
 	fc_POP(ch);
 	
@@ -2664,7 +2693,7 @@ void CTextRam::fc_DECSIXEL(int ch)
 
 		int x, y, w, h;
 		int cx, cy, dx, dy;
-		IRAM *ip;
+		CVram *vp;
 		CRLoginView *pView;
 
 		if ( m_pDocument != NULL && (pView = (CRLoginView *)m_pDocument->GetAciveView()) != NULL ) {
@@ -2684,19 +2713,19 @@ void CTextRam::fc_DECSIXEL(int ch)
 		cy = (dy * (cx * w) / dx + h - 1) / h;
 
 		for ( y = 0 ; y < cy ; y++ ) {
-			ip = (IRAM *)GETVRAM(m_CurX, m_CurY);
+			vp = GETVRAM(m_CurX, m_CurY);
 			for ( x = 0 ; x < cx ; x++ ) {
-				ip->id = m_ImageIndex;
-				ip->x  = x;
-				ip->y  = y;
-				ip->md = SET_96 | 'A';
-				ip->em = m_AttNow.em;
-				ip->cm = CM_IMAGE;
-				ip->at = m_AttNow.at;
-				ip->ft = m_AttNow.ft;
-				ip->fc = m_AttNow.fc;
-				ip->bc = m_AttNow.bc;
-				ip++;
+				vp->pr.id = m_ImageIndex;
+				vp->pr.ix = x;
+				vp->pr.iy = y;
+				vp->pr.md = SET_96 | 'A';
+				vp->pr.em = m_AttNow.em;
+				vp->pr.cm = CM_IMAGE;
+				vp->pr.at = m_AttNow.at;
+				vp->pr.ft = m_AttNow.ft;
+				vp->pr.fc = m_AttNow.fc;
+				vp->pr.bc = m_AttNow.bc;
+				vp++;
 			}
 			ONEINDEX();
 		}
@@ -2706,8 +2735,15 @@ void CTextRam::fc_DECSIXEL(int ch)
 		pGrapWnd->m_BlockY = cy;
 		pGrapWnd->m_BlockW = w;
 		pGrapWnd->m_BlockH = h;
+
+		if ( (pTempWnd = GetGrapWnd(m_ImageIndex)) != NULL )
+			pTempWnd->DestroyWindow();
+
 		pGrapWnd->m_ImageIndex = m_ImageIndex++;
 		AddGrapWnd((void *)pGrapWnd);
+
+		if ( m_ImageIndex >= 4096 )		// index max 12 bit
+			m_ImageIndex = 0;
 	}
 }
 void CTextRam::fc_DECDLD(int ch)
@@ -3924,13 +3960,13 @@ void CTextRam::fc_DA1(int ch)
 	//	46 ASCII terminal emulation				vt500
 
 	if ( m_TermId >= 10 )		// VT520
-		UNGETSTR(_T("%s?65;1;2;3,4;6;8;9;18;21;22;29;39;42;44c"), m_RetChar[RC_CSI]);
+		UNGETSTR(_T("%s?65;1;2;3,4;6;7;8;9;15;18;21;22;29;39;42;44c"), m_RetChar[RC_CSI]);
 	else if ( m_TermId >= 9 )	// VT420 ID (Intnl) CSI ? 64; 1; 2; 7; 8; 9; 15; 18; 21 c
-		UNGETSTR(_T("%s?64;1;2;8;9;15;18;21c"), m_RetChar[RC_CSI]);
+		UNGETSTR(_T("%s?64;1;2;7;8;9;15;18;21c"), m_RetChar[RC_CSI]);
 	else if ( m_TermId >= 7 )	// VT320 ID (Intnl) CSI ? 63; 1; 2; 7; 8; 9 c
-		UNGETSTR(_T("%s?63;1;2;8;9c"), m_RetChar[RC_CSI]);
+		UNGETSTR(_T("%s?63;1;2;7;8;9c"), m_RetChar[RC_CSI]);
 	else if ( m_TermId >= 5 )	// VT220 ID (Intnl) CSI ? 62; 1; 2; 7; 8; 9 c
-		UNGETSTR(_T("%s?62;1;2;8;9c"), m_RetChar[RC_CSI]);
+		UNGETSTR(_T("%s?62;1;2;7;8;9c"), m_RetChar[RC_CSI]);
 	else if ( m_TermId >= 2 )	// VT102 ID ESC [ ? 6 c
 		UNGETSTR(_T("%s?6c"), m_RetChar[RC_CSI]);
 	else if ( m_TermId >= 1 )	// VT101 ID ESC [ ? 1; 0 c
@@ -4778,7 +4814,7 @@ void CTextRam::fc_DECCARA(int ch)
 {
 	// CSI $r	DECCARA Change Attribute in Rectangle
 	int n, i, x, y;
-	VRAM *vp;
+	CVram *vp;
 	SetAnsiParaArea(0);
 	while ( m_AnsiPara.GetSize() < 5 )
 		m_AnsiPara.Add(0);
@@ -4791,83 +4827,83 @@ void CTextRam::fc_DECCARA(int ch)
 			vp = GETVRAM(x, y);
 			for ( n = 4 ; n < m_AnsiPara.GetSize() ; n++ ) {
 				switch(GetAnsiPara(n, 0, 0)) {
-				case 0: vp->at = 0; break;
-				case 1: vp->at |= ATT_BOLD;   break;
-				case 2: vp->at |= ATT_HALF;   break;
-				case 3: vp->at |= ATT_ITALIC; break;
-				case 4: vp->at |= ATT_UNDER;  break;
-				case 5: vp->at |= ATT_SBLINK; break;
-				case 6: vp->at |= ATT_BLINK;  break;
-				case 7: vp->at |= ATT_REVS;   break;
-				case 8: vp->at |= ATT_SECRET; break;
-				case 9: vp->at |= ATT_LINE;   break;
-				case 21: vp->at |= ATT_DUNDER; break;
+				case 0: vp->pr.at = 0; break;
+				case 1: vp->pr.at |= ATT_BOLD;   break;
+				case 2: vp->pr.at |= ATT_HALF;   break;
+				case 3: vp->pr.at |= ATT_ITALIC; break;
+				case 4: vp->pr.at |= ATT_UNDER;  break;
+				case 5: vp->pr.at |= ATT_SBLINK; break;
+				case 6: vp->pr.at |= ATT_BLINK;  break;
+				case 7: vp->pr.at |= ATT_REVS;   break;
+				case 8: vp->pr.at |= ATT_SECRET; break;
+				case 9: vp->pr.at |= ATT_LINE;   break;
+				case 21: vp->pr.at |= ATT_DUNDER; break;
 
 				case 10: case 11: case 12:
 				case 13: case 14: case 15:
 				case 16: case 17: case 18:
 				case 19: case 20:
-					vp->ft = GetAnsiPara(n, 0, 0) - 10;
+					vp->pr.ft = GetAnsiPara(n, 0, 0) - 10;
 					break;
 
-				case 22: vp->at &= ~(ATT_BOLD | ATT_HALF); break;
-				case 23: vp->at &= ~ATT_ITALIC; break;
-				case 24: vp->at &= ~ATT_UNDER; break;
-				case 25: vp->at &= ~(ATT_SBLINK | ATT_BLINK); break;
-				case 27: vp->at &= ~ATT_REVS; break;
-				case 28: vp->at &= ~ATT_SECRET; break;
-				case 29: vp->at &= ~ATT_LINE; break;
+				case 22: vp->pr.at &= ~(ATT_BOLD | ATT_HALF); break;
+				case 23: vp->pr.at &= ~ATT_ITALIC; break;
+				case 24: vp->pr.at &= ~ATT_UNDER; break;
+				case 25: vp->pr.at &= ~(ATT_SBLINK | ATT_BLINK); break;
+				case 27: vp->pr.at &= ~ATT_REVS; break;
+				case 28: vp->pr.at &= ~ATT_SECRET; break;
+				case 29: vp->pr.at &= ~ATT_LINE; break;
 
 				case 30: case 31: case 32: case 33:
 				case 34: case 35: case 36: case 37:
-					vp->fc = (GetAnsiPara(n, 0, 0) - 30);
+					vp->pr.fc = (GetAnsiPara(n, 0, 0) - 30);
 					break;
 				case 38:
 					if ( GetAnsiPara(n + 1, 0, 0) == 5 ) {	// 256 color
 						if ( (i = GetAnsiPara(n + 2, 0, 0)) < 256 )
-							vp->fc = i;
+							vp->pr.fc = i;
 						n += 2;
 					}
 					break;
 				case 39:
-					vp->fc = m_DefAtt.fc;
+					vp->pr.fc = m_DefAtt.fc;
 					break;
 				case 40: case 41: case 42: case 43:
 				case 44: case 45: case 46: case 47:
-					vp->bc = (GetAnsiPara(n, 0, 0) - 40);
+					vp->pr.bc = (GetAnsiPara(n, 0, 0) - 40);
 					break;
 				case 48:
 					if ( GetAnsiPara(n + 1, 0, 0) == 5 ) {	// 256 color
 						if ( (i = GetAnsiPara(n + 2, 0, 0)) < 256 )
-							vp->bc = i;
+							vp->pr.bc = i;
 						n += 2;
 					}
 					break;
 				case 49:
-					vp->bc = m_DefAtt.bc;
+					vp->pr.bc = m_DefAtt.bc;
 					break;
 
-				case 51: vp->at |= ATT_FRAME; break;					// 51  framed
-				case 52: vp->at |= ATT_CIRCLE; break;					// 52  encircled
-				case 53: vp->at |= ATT_OVER;   break;					// 53  overlined
-				case 54: vp->at &= ~(ATT_FRAME | ATT_CIRCLE); break;	// 54  not framed, not encircled
-				case 55: vp->at &= ~ATT_OVER; break;					// 55  not overlined
+				case 51: vp->pr.at |= ATT_FRAME; break;					// 51  framed
+				case 52: vp->pr.at |= ATT_CIRCLE; break;					// 52  encircled
+				case 53: vp->pr.at |= ATT_OVER;   break;					// 53  overlined
+				case 54: vp->pr.at &= ~(ATT_FRAME | ATT_CIRCLE); break;	// 54  not framed, not encircled
+				case 55: vp->pr.at &= ~ATT_OVER; break;					// 55  not overlined
 
-				case 60: vp->at |= ATT_RSLINE; break;					// 60  ideogram underline or right side line
-				case 61: vp->at |= ATT_RDLINE; break;					// 61  ideogram double underline or double line on the right side
-				case 62: vp->at |= ATT_LSLINE; break;					// 62  ideogram overline or left side line
-				case 63: vp->at |= ATT_LDLINE; break;					// 63  ideogram double overline or double line on the left side
-				case 64: vp->at |= ATT_STRESS; break;					// 64  ideogram stress marking
-				case 65: vp->at &= ~(ATT_RSLINE | ATT_RDLINE |
+				case 60: vp->pr.at |= ATT_RSLINE; break;					// 60  ideogram underline or right side line
+				case 61: vp->pr.at |= ATT_RDLINE; break;					// 61  ideogram double underline or double line on the right side
+				case 62: vp->pr.at |= ATT_LSLINE; break;					// 62  ideogram overline or left side line
+				case 63: vp->pr.at |= ATT_LDLINE; break;					// 63  ideogram double overline or double line on the left side
+				case 64: vp->pr.at |= ATT_STRESS; break;					// 64  ideogram stress marking
+				case 65: vp->pr.at &= ~(ATT_RSLINE | ATT_RDLINE |
 							ATT_LSLINE | ATT_LDLINE | ATT_STRESS); break;	// 65  cancels the effect of the rendition aspects established by parameter values 60 to 64
 
 				case 90: case 91: case 92: case 93:
 				case 94: case 95: case 96: case 97:
-					vp->fc = (GetAnsiPara(n, 0, 0) - 90 + 8);
+					vp->pr.fc = (GetAnsiPara(n, 0, 0) - 90 + 8);
 					break;
 				case 100: case 101:  case 102: case 103:
 				case 104: case 105:  case 106: case 107:
-					vp->bc = (GetAnsiPara(n, 0, 0) - 100 + 8);
+					vp->pr.bc = (GetAnsiPara(n, 0, 0) - 100 + 8);
 					break;
 				}
 			}
@@ -4880,7 +4916,7 @@ void CTextRam::fc_DECRARA(int ch)
 {
 	// CSI $t	DECRARA Reverse Attribute in Rectangle
 	int n, x, y;
-	VRAM *vp;
+	CVram *vp;
 	SetAnsiParaArea(0);
 	while ( m_AnsiPara.GetSize() < 5 )
 		m_AnsiPara.Add(0);
@@ -4893,16 +4929,16 @@ void CTextRam::fc_DECRARA(int ch)
 			vp = GETVRAM(x, y);
 			for ( n = 4 ; n < m_AnsiPara.GetSize() ; n++ ) {
 				switch(GetAnsiPara(n, 0, 0)) {
-				case 0: vp->at ^= (ATT_BOLD | ATT_HALF | ATT_ITALIC | ATT_UNDER | ATT_SBLINK | ATT_BLINK | ATT_REVS | ATT_SECRET | ATT_LINE); break;
-				case 1: vp->at ^= ATT_BOLD; break;
-				case 2: vp->at ^= ATT_HALF; break;
-				case 3: vp->at ^= ATT_ITALIC; break;
-				case 4: vp->at ^= ATT_UNDER; break;
-				case 5: vp->at ^= ATT_SBLINK; break;
-				case 6: vp->at ^= ATT_BLINK; break;
-				case 7: vp->at ^= ATT_REVS; break;
-				case 8: vp->at ^= ATT_SECRET; break;
-				case 9: vp->at ^= ATT_LINE; break;
+				case 0: vp->pr.at ^= (ATT_BOLD | ATT_HALF | ATT_ITALIC | ATT_UNDER | ATT_SBLINK | ATT_BLINK | ATT_REVS | ATT_SECRET | ATT_LINE); break;
+				case 1: vp->pr.at ^= ATT_BOLD; break;
+				case 2: vp->pr.at ^= ATT_HALF; break;
+				case 3: vp->pr.at ^= ATT_ITALIC; break;
+				case 4: vp->pr.at ^= ATT_UNDER; break;
+				case 5: vp->pr.at ^= ATT_SBLINK; break;
+				case 6: vp->pr.at ^= ATT_BLINK; break;
+				case 7: vp->pr.at ^= ATT_REVS; break;
+				case 8: vp->pr.at ^= ATT_SECRET; break;
+				case 9: vp->pr.at ^= ATT_LINE; break;
 				}
 			}
 		}
@@ -5068,19 +5104,19 @@ void CTextRam::fc_DECFRA(int ch)
 {
 	// CSI $x	DECFRA Fill Rectangular Area
 	int n, x, y;
-	VRAM *vp;
+	CVram *vp;
 	SetAnsiParaArea(1);
 	n = GetAnsiPara(0, 0, 0);
 	for ( y = m_AnsiPara[1] ; y <= m_AnsiPara[3] ; y++ ) {
 		for ( x = m_AnsiPara[2] ; x <= m_AnsiPara[4] ; x++ ) {
 			vp = GETVRAM(x, y);
-			vp->ch = (BYTE)n;
-			vp->at = m_AttNow.at;
-			vp->fc = m_AttNow.fc;
-			vp->bc = m_AttNow.bc;
-			vp->em = m_AttNow.em;
-			vp->md = m_BankTab[m_KanjiMode][(n & 0x80) == 0 ? m_BankGL : m_BankGR];
-			vp->cm = CM_ASCII;
+			*vp = (DWORD)n;
+			vp->pr.at = m_AttNow.at;
+			vp->pr.fc = m_AttNow.fc;
+			vp->pr.bc = m_AttNow.bc;
+			vp->pr.em = m_AttNow.em;
+			vp->pr.md = m_BankTab[m_KanjiMode][(n & 0x80) == 0 ? m_BankGL : m_BankGR];
+			vp->pr.cm = CM_ASCII;
 		}
 	}
 	DISPVRAM(m_AnsiPara[2], m_AnsiPara[1], m_AnsiPara[4] - m_AnsiPara[2] + 1, m_AnsiPara[3] - m_AnsiPara[1] + 1);
@@ -5452,7 +5488,7 @@ void CTextRam::fc_DECRQCRA(int ch)
 
 	int x, y, page, sum = 0;
 	CTextSave *pSave;
-	VRAM *vp;
+	CVram *vp;
 
 	SetAnsiParaArea(2);
 
@@ -5465,7 +5501,7 @@ void CTextRam::fc_DECRQCRA(int ch)
 		for ( y = m_AnsiPara[2] ; y <= m_AnsiPara[4] ; y++ ) {
 			vp = GETVRAM(m_AnsiPara[3], y);
 			for ( x = m_AnsiPara[3] ; x <= m_AnsiPara[5] ; x++, vp++ )
-				sum += vp->ch;
+				sum += vp->ch[0];
 		}
 
 	} else {
@@ -5473,7 +5509,7 @@ void CTextRam::fc_DECRQCRA(int ch)
 		for ( y = m_AnsiPara[2] ; y <= m_AnsiPara[4] ; y++ ) {
 			vp = pSave->m_VRam + m_AnsiPara[3] + pSave->m_Cols * y;
 			for ( x = m_AnsiPara[3] ; x <= m_AnsiPara[5] ; x++, vp++ )
-				sum += vp->ch;
+				sum += vp->ch[0];
 		}
 	}
 

@@ -1451,7 +1451,7 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 		if ( pos < m_ClipStaPos ) {
 			m_ClipFlag = 4;
 			m_ClipStaPos = pos;
-		} else if ( pos > m_ClipEndPos ) {
+		} else if ( pos >= m_ClipEndPos ) {
 			m_ClipFlag = 3;
 			m_ClipEndPos = pos;
 		}
