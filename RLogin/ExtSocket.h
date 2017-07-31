@@ -54,6 +54,18 @@
 #define FD_SEND_EMPTY_BIT		(FD_MAX_EVENTS + 2)
 #define FD_SEND_EMPTY			(1 << FD_SEND_EMPTY_BIT)
 
+#define	LISTENSOCKS			8
+
+//#define	USE_DEBUG			1
+
+#ifdef	USE_DEBUG
+#define	DEBUGLOG			m_pDocument->LogDebug
+#define	DEBUGDUMP			m_pDocument->LogDump
+#else
+#define	DEBUGLOG(f,...)
+#define	DEBUGDUMP(p,s)
+#endif
+
 enum EProxyStat {
 	PRST_NONE = 0,
 
@@ -112,10 +124,6 @@ public:
 	CSockBuffer();
 	~CSockBuffer();
 };
-
-#define	LISTENSOCKS		8
-
-#define	DEBUGLOG(s, ...)
 
 class CExtSocket : public CObject  
 {
@@ -269,10 +277,6 @@ public:
 
 	CExtSocket(class CRLoginDoc *pDoc);
 	virtual ~CExtSocket();
-
-#ifndef DEBUGLOG
-	void DEBUGLOG(LPCSTR str, ...);
-#endif
 };
 
 #endif // !defined(AFX_EXTSOCKET_H__60F33E1D_5DAA_46A5_975E_01CB4B853E45__INCLUDED_)

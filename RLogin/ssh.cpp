@@ -251,9 +251,12 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 						m_InPackStat = 1;
 						m_SSHVer = 1;
 					}
-					TRACE(_T("SSH Version %s\n"), m_ClientVerStr);
 					str.Format("%s\r\n", TstrToMbs(m_ClientVerStr));
 					CExtSocket::Send((LPCSTR)str, str.GetLength());
+
+					DEBUGLOG("Recive Version %s", TstrToMbs(m_ServerVerStr));
+					DEBUGLOG("Send Version %s", TstrToMbs(str));
+
 					break;
 				} else if ( ch != '\r' )
 					m_ServerVerStr += (char)ch;
@@ -498,7 +501,6 @@ void Cssh::SendWindSize(int x, int y)
 		tmp.Put32Bit(sx);
 		tmp.Put32Bit(sy);
 		SendPacket2(&tmp);
-		TRACE("SendWindSize %d,%d (%d,%d)\n", x, y, sx, sy);
 		break;
 	}
  } catch(...) {
@@ -1109,7 +1111,6 @@ void Cssh::ChannelCheck(int n)
 			tmp.Put8Bit(SSH2_MSG_CHANNEL_EOF);
 			tmp.Put32Bit(cp->m_RemoteID);
 			SendPacket2(&tmp);
-			TRACE("Cannel #%d Send Eof\n", cp->m_LocalID);
 		}
 	}
 
@@ -1121,7 +1122,6 @@ void Cssh::ChannelCheck(int n)
 			tmp.Put8Bit(SSH2_MSG_CHANNEL_CLOSE);
 			tmp.Put32Bit(cp->m_RemoteID);
 			SendPacket2(&tmp);
-			TRACE("Cannel #%d Send Close\n", cp->m_LocalID);
 		}
 	}
 
@@ -1135,7 +1135,6 @@ void Cssh::ChannelCheck(int n)
 			LogIt(_T("Closed #%d %s:%d -> %s:%d"), n, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
 		m_OpenChanCount--;
 		ChannelClose(n);
-		TRACE("Cannel #%d Close\n", cp->m_LocalID);
 	}
 }
 void Cssh::ChannelAccept(int id, SOCKET hand)
@@ -1172,8 +1171,6 @@ void Cssh::ChannelPolling(int id)
 	if ( (m_SSH2Status & SSH2_STAT_SENTKEXINIT) != 0 )
 		return;
 
-//	TRACE("ChannelPolling %d(%d/%d)\n", cp->GetSendSize(), cp->m_LocalComs, cp->m_LocalWind);
-
 	if ( (n = cp->m_LocalComs - cp->GetSendSize()) >= (cp->m_LocalWind / 2) ) {
 		tmp.Clear();
 		tmp.Put8Bit(SSH2_MSG_CHANNEL_WINDOW_ADJUST);
@@ -1181,7 +1178,6 @@ void Cssh::ChannelPolling(int id)
 		tmp.Put32Bit(n);
 		SendPacket2(&tmp);
 		cp->m_LocalComs -= n;
-		TRACE("Send Window Adjust %d SendSize=%d, RecvSize=%d (%d/%d)\n", n, cp->GetSendSize(), cp->GetRecvSize(), cp->m_LocalComs, cp->m_LocalWind);
 	}
 
 	if ( cp->GetSendSize() <= 0 )
@@ -1547,7 +1543,11 @@ int Cssh::SendMsgKexEcdhInit()
 void Cssh::SendMsgKexCurveInit()
 {
 	CBuffer tmp(-1);
-	static const BYTE basepoint[CURVE25519_SIZE] = {9};
+//	static const BYTE basepoint[CURVE25519_SIZE] = { 9 };	// CURVE25519_SIZE = 32, Zero Init ?
+	BYTE basepoint[CURVE25519_SIZE];
+
+	ZeroMemory(basepoint, sizeof(basepoint));
+	basepoint[0] = 9;
 
 	rand_buf(m_CurveClientKey, sizeof(m_CurveClientKey));
 
@@ -1620,7 +1620,6 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 				tmp.Put8Bit(1);
 				tmp.PutStr(TstrToMbs(m_pIdKey->GetName()));
 				tmp.PutBuf(blob.GetPtr(), blob.GetSize());
-				len = tmp.GetSize() - len;
 				if ( m_pIdKey->Sign(&sig, tmp.GetPtr(), tmp.GetSize()) ) {
 					tmp.PutBuf(sig.GetPtr(), sig.GetSize());
 					m_AuthMode = AUTH_MODE_PUBLICKEY;
@@ -1733,8 +1732,6 @@ int Cssh::SendMsgChannelOpen(int n, LPCSTR type, LPCTSTR lhost, int lport, LPCTS
 	}
 	SendPacket2(&tmp);
 
-	TRACE("Channel Open %d(%d)\n", cp->m_LocalWind, cp->m_LocalPacks);
-
 	return n;
 }
 void Cssh::SendMsgChannelOpenConfirmation(int id)
@@ -1752,8 +1749,6 @@ void Cssh::SendMsgChannelOpenConfirmation(int id)
 	tmp.Put32Bit(cp->m_LocalWind);
 	tmp.Put32Bit(cp->m_LocalPacks);
 	SendPacket2(&tmp);
-
-	TRACE("Channel OpenConf %d(%d)\n", cp->m_LocalWind, cp->m_LocalPacks);
 
 	if ( cp->m_pFilter != NULL )
 		LogIt(_T("Open Filter #%d"), id);
@@ -1980,8 +1975,6 @@ void Cssh::SendMsgKeepAlive()
 	if ( (m_SSH2Status & SSH2_STAT_SENTKEXINIT) != 0 )
 		return;
 
-//	TRACE("SendMsgKeepAlive (%x)\n", m_Fd);
-
 	tmp.Put8Bit(SSH2_MSG_GLOBAL_REQUEST);
 	tmp.PutStr("keepalive@openssh.com");
 	tmp.Put8Bit(1);
@@ -2013,7 +2006,8 @@ void Cssh::SendPacket2(CBuffer *bp)
 	static int padflag = FALSE;
 	static BYTE padimage[64];
 
-	DEBUGLOG("SendPacket2 %d(%d) Seq=%d\r\n", bp->PTR8BIT(bp->GetPtr()), bp->GetSize(), m_SendPackSeq);
+	DEBUGLOG("SendPacket2 %d(%d) Seq=%d", bp->PTR8BIT(bp->GetPtr()), bp->GetSize(), m_SendPackSeq);
+	DEBUGDUMP(bp->GetPtr(), bp->GetSize());
 
 	tmp.PutSpc(4 + 1);		// Size + Pad Era
 	m_EncCmp.Compress(bp->GetPtr(), bp->GetSize(), &tmp);
@@ -2058,8 +2052,6 @@ void Cssh::SendPacket2(CBuffer *bp)
 
 	m_SendPackSeq += 1;
 	m_SendPackLen += sz;
-
-	//TRACE(" Seq=%d Len=%d\n", m_SendPackSeq, m_SendPackLen); 
 
 	if ( (m_SSH2Status & SSH2_STAT_SENTKEXINIT) == 0 && GetSendSize() == 0 && GetRecvSize() == 0 && (m_SendPackLen >= MAX_PACKETLEN || m_RecvPackLen >= MAX_PACKETLEN) )
 		SendMsgKexInit();
@@ -2403,7 +2395,7 @@ int Cssh::SSH2MsgKexEcdhReply(CBuffer *bp)
 
 ENDRET:
 	if ( kbuf != NULL )
-		delete kbuf;
+		delete [] kbuf;
 	if ( shared_secret != NULL )
 		BN_clear_free(shared_secret);
 	if ( server_public != NULL )
@@ -2646,8 +2638,6 @@ int Cssh::SSH2MsgChannelOpen(CBuffer *bp)
 	cp->m_RemoteMax  = bp->Get32Bit();
 	cp->m_LocalComs  = 0;
 
-	TRACE("Channel Open Recive %s(%d)\n", type, n);
-
 	if ( type.CompareNoCase("auth-agent@openssh.com") == 0 ) {
 		cp->m_pFilter = new CAgent;
 		cp->m_pFilter->m_pChan = cp;
@@ -2702,8 +2692,6 @@ int Cssh::SSH2MsgChannelOpen(CBuffer *bp)
 		bp->GetStr(mbs);
 		host[1] = m_pDocument->LocalStr(mbs);
 		port[1] = bp->Get32Bit();
-
-		TRACE("Channel Open req %s:%d->%s:%d", host[0], port[0], host[1], port[1]);
 
 		for ( i = 0 ; i < m_Permit.GetSize() ; i++ ) {
 			if ( port[0] == m_Permit[i].m_rPort )
@@ -2768,8 +2756,6 @@ int Cssh::SSH2MsgChannelOpenReply(CBuffer *bp, int type)
 	cp->m_ConnectTime = CTime::GetCurrentTime();
 	m_OpenChanCount++;
 
-	TRACE("Channel OpenReply Recive %d(%d)\n", cp->m_RemoteWind, cp->m_RemoteMax);
-
 	if ( cp->m_pFilter != NULL ) {
 		switch(cp->m_pFilter->m_Type) {
 		case SSHFT_STDIO:
@@ -2814,8 +2800,6 @@ int Cssh::SSH2MsgChannelData(CBuffer *bp, int type)
 
 	if ( type == SSH2_MSG_CHANNEL_DATA )
 		((CChannel *)m_pChan[id])->Send(tmp.GetPtr(), tmp.GetSize());
-
-//	TRACE("ChannelData %d %d (%d/%d)\n", type, tmp.GetSize(), ((CChannel *)m_pChan[id])->m_LocalComs, ((CChannel *)m_pChan[id])->m_LocalWind);
 
 	ChannelPolling(id);
 	return FALSE;
@@ -2932,8 +2916,6 @@ int Cssh::SSH2MsgChannelAdjust(CBuffer *bp)
 
 	((CChannel *)m_pChan[id])->m_RemoteWind += len;
 
-	TRACE("Recive Window Adjust %d\n", len);
-
 	if ( ((CChannel *)m_pChan[id])->m_Output.GetSize() > 0 )
 		SendMsgChannelData(id);
 
@@ -3001,7 +2983,6 @@ int Cssh::SSH2MsgGlobalRequestReply(CBuffer *bp, int type)
 		return FALSE;
 
 	if ( m_bPfdConnect ) {
-//		CExtSocket::OnConnect();
 		m_bPfdConnect = FALSE;
 		m_bConnect = TRUE;
 		m_pDocument->OnSocketConnect();
@@ -3018,10 +2999,11 @@ int Cssh::SSH2MsgGlobalRequestReply(CBuffer *bp, int type)
 }
 void Cssh::RecivePacket2(CBuffer *bp)
 {
+	DEBUGLOG("RecivePacket2 %d(%d) Seq=%d", bp->PTR8BIT(bp->GetPtr()), bp->GetSize(), m_RecvPackSeq);
+	DEBUGDUMP(bp->GetPtr(), bp->GetSize());
+
 	CStringA str;
 	int type = bp->Get8Bit();
-
-	DEBUGLOG("RecivePacket2 %d(%d) Seq=%d\r\n", type, bp->GetSize() + 1, m_RecvPackSeq);
 
 	switch(type) {
 	case SSH2_MSG_KEXINIT:

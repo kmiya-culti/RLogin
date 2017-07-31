@@ -216,7 +216,6 @@ public:
 	CString m_VersionMessage;
 	CString m_VersionPageUrl;
 
-	int VersionCompare(LPCTSTR src, LPCTSTR dis);
 	void VersionCheckProc();
 	void VersionCheck();
 

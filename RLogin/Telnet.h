@@ -289,7 +289,6 @@ public:
 	void mtox(CStringA &tmp);
 	void Deskey(DesData *key);
 	void Ideakey(IdeaData *key);
-	void Debug();
 
 	const CMint & operator = (CMint &rm) { BN_copy(bn, rm.bn); return *this; }
 

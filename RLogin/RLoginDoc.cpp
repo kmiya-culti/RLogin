@@ -91,6 +91,7 @@ CRLoginDoc::CRLoginDoc()
 	m_InPane = FALSE;
 	m_AfterId = (-1);
 	m_bUseIdle = FALSE;
+	m_LogSendRecv = LOGDEBUG_NONE;
 }
 
 CRLoginDoc::~CRLoginDoc()
@@ -723,7 +724,7 @@ BOOL CRLoginDoc::LogOpen(LPCTSTR filename)
 	if ( !m_pLogFile->Open(filename, CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite | CFile::shareDenyWrite) )
 		return FALSE;
 
-	if ( m_TextRam.IsOptValue(TO_RLLOGMODE, 2) == LOGMOD_CTRL ) {
+	if ( m_TextRam.m_LogMode == LOGMOD_CTRL ) {
 		m_TextRam.m_TraceLogMode |= 002;
 		m_TextRam.m_pCallPoint = &CTextRam::fc_TraceCall;
 	}
@@ -740,6 +741,7 @@ BOOL CRLoginDoc::LogClose()
 	if ( m_pLogFile == NULL )
 		return FALSE;
 
+	LogWrite(NULL, 0, LOGDEBUG_NONE);
 	m_TextRam.SaveLogFile();
 	m_pLogFile->Close();
 
@@ -748,6 +750,156 @@ BOOL CRLoginDoc::LogClose()
 
 	return TRUE;
 }
+void CRLoginDoc::LogWrite(LPBYTE lpBuf, int nBufLen, int SendRecv)
+{
+	CStringA mbs;
+
+	if ( m_pLogFile == NULL || m_TextRam.m_LogMode != LOGMOD_DEBUG )
+		return;
+
+NEWLINE:
+	if ( SendRecv != m_LogSendRecv ) {
+		if ( m_LogSendRecv != LOGDEBUG_NONE )
+			m_pLogFile->Write("\r\n", 2);
+
+		if ( nBufLen > 0 ) {
+			CTime now = CTime::GetCurrentTime();
+
+			if ( m_TextRam.IsOptEnable(TO_RLLOGTIME) ) {
+				mbs = now.Format(m_TextRam.m_TimeFormat);
+				m_pLogFile->Write((LPCSTR)mbs, mbs.GetLength());
+			}
+
+			if ( SendRecv == LOGDEBUG_RECV )
+				m_pLogFile->Write("RECV:", 5);
+			else if ( SendRecv == LOGDEBUG_SEND )
+				m_pLogFile->Write("SEND:", 5);
+			else if ( SendRecv == LOGDEBUG_INSIDE )
+				m_pLogFile->Write("DEBUG:", 6);
+
+			m_LogSendRecv = SendRecv;
+
+		} else
+			m_LogSendRecv = LOGDEBUG_NONE;
+	}
+
+	while ( nBufLen-- > 0 ) {
+		if ( *lpBuf < ' ' || *lpBuf >= 0x7F ) {
+			mbs.Format("[%02x]", *lpBuf);
+			m_pLogFile->Write((LPCSTR)mbs, mbs.GetLength());
+			if ( *(lpBuf++) == 0x0A ) {
+				m_LogSendRecv = LOGDEBUG_FLASH;
+				goto NEWLINE;
+			}
+		} else
+			m_pLogFile->Write(lpBuf++, 1);
+	}
+}
+void CRLoginDoc::LogDebug(LPCSTR str, ...)
+{
+	CStringA tmp;
+	va_list arg;
+
+	if ( m_pLogFile == NULL || m_TextRam.m_LogMode != LOGMOD_DEBUG )
+		return;
+
+	va_start(arg, str);
+	tmp.FormatV(str, arg);
+	va_end(arg);
+
+	LogWrite((LPBYTE)(LPCSTR)tmp, tmp.GetLength(), LOGDEBUG_INSIDE);
+	LogWrite(NULL, 0, LOGDEBUG_FLASH);
+}
+void CRLoginDoc::LogDump(LPBYTE lpBuf, int nBufLen)
+{
+	int n, addr = 0;
+	CStringA tmp, str;
+
+	if ( m_pLogFile == NULL || m_TextRam.m_LogMode != LOGMOD_DEBUG )
+		return;
+
+	while ( nBufLen > 0 ) {
+		str.Format("%04x  ", addr);
+		tmp = str;
+
+		for ( n = 0 ; n < 16 ; n++ ) {
+			if ( n == 8 )
+				tmp += ' ';
+			if ( n < nBufLen ) {
+				str.Format("%02x ", lpBuf[n]);
+				tmp += str;
+			} else
+				tmp += "   ";
+		}
+		tmp += ' ';
+
+		for ( n = 0 ; n < nBufLen && n < 16 ; n++ ) {
+			if ( n == 8 )
+				tmp += ' ';
+			if ( lpBuf[n] < ' ' || lpBuf[n] >= 0x7F )
+				tmp += '.';
+			else
+				tmp += (CHAR)lpBuf[n];
+		}
+
+		LogWrite((LPBYTE)(LPCSTR)tmp, tmp.GetLength(), LOGDEBUG_INSIDE);
+		LogWrite(NULL, 0, LOGDEBUG_FLASH);
+
+		tmp.Empty();
+		nBufLen -= 16;
+		lpBuf   += 16;
+		addr    += 16;
+	}
+}
+void CRLoginDoc::LogInit()
+{
+	if ( m_TextRam.IsOptEnable(TO_RLHISDATE) && !m_TextRam.m_LogFile.IsEmpty() ) {
+		int n, num;
+		CString file, dirs, name, exts;
+
+		if ( (n = m_TextRam.m_LogFile.ReverseFind(_T('\\'))) >= 0 || (n = m_TextRam.m_LogFile.ReverseFind(_T(':'))) >= 0 ) {
+			dirs = m_TextRam.m_LogFile.Left(n + 1);
+			name = m_TextRam.m_LogFile.Mid(n + 1);
+		} else {
+			dirs = _T("");
+			name = m_TextRam.m_LogFile;
+		}
+
+		if ( (n = name.ReverseFind(_T('.'))) >= 0 ) {
+			exts = name.Mid(n);
+			name.Delete(n, exts.GetLength());
+		}
+
+		if ( !EntryText(name) ) {
+			name += _T("-%D");
+			EntryText(name);
+		}
+
+		LogClose();
+
+		if ( (m_pLogFile = new CFileExt) == NULL )
+			return;
+
+		file.Format(_T("%s%s%s"), dirs, name, exts);
+
+		for ( num = 1 ; num < 20 ; num++ ) {
+			if ( LogOpen(file) ) {
+				m_pLogFile->SeekToEnd();
+				break;
+			}
+			file.Format(_T("%s%s-%d%s"), dirs, name, num, exts);
+		}
+		if ( num >= 20 ) {
+			file.Format(_T("LogFile Open Error '%s%s%s'"), dirs, name, exts);
+			AfxMessageBox(file);
+			delete m_pLogFile;
+			m_pLogFile = NULL;
+		}
+
+		m_TextRam.m_LogTimeFlag = TRUE;
+	}
+}
+
 void CRLoginDoc::DoDropFile()
 {
 	TCHAR *p;
@@ -876,51 +1028,8 @@ void CRLoginDoc::OnSocketConnect()
 		OnReciveChar(0, (-1));
 	}
 
-	if ( m_TextRam.IsOptEnable(TO_RLHISDATE) && !m_TextRam.m_LogFile.IsEmpty() ) {
-		int n, num;
-		CString file, dirs, name, exts;
-
-		if ( (n = m_TextRam.m_LogFile.ReverseFind(_T('\\'))) >= 0 || (n = m_TextRam.m_LogFile.ReverseFind(_T(':'))) >= 0 ) {
-			dirs = m_TextRam.m_LogFile.Left(n + 1);
-			name = m_TextRam.m_LogFile.Mid(n + 1);
-		} else {
-			dirs = _T("");
-			name = m_TextRam.m_LogFile;
-		}
-
-		if ( (n = name.ReverseFind(_T('.'))) >= 0 ) {
-			exts = name.Mid(n);
-			name.Delete(n, exts.GetLength());
-		}
-
-		if ( !EntryText(name) ) {
-			name += _T("-%D");
-			EntryText(name);
-		}
-
-		LogClose();
-
-		if ( (m_pLogFile = new CFileExt) == NULL )
-			return;
-
-		file.Format(_T("%s%s%s"), dirs, name, exts);
-
-		for ( num = 1 ; num < 20 ; num++ ) {
-			if ( LogOpen(file) ) {
-				m_pLogFile->SeekToEnd();
-				break;
-			}
-			file.Format(_T("%s%s-%d%s"), dirs, name, num, exts);
-		}
-		if ( num >= 20 ) {
-			file.Format(_T("LogFile Open Error '%s%s%s'"), dirs, name, exts);
-			AfxMessageBox(file);
-			delete m_pLogFile;
-			m_pLogFile = NULL;
-		}
-
-		m_TextRam.m_LogTimeFlag = TRUE;
-	}
+	if ( m_TextRam.m_LogMode != LOGMOD_DEBUG )
+		LogInit();
 
 	if ( m_AfterId != (-1) ) {
 		((CMainFrame *)::AfxGetMainWnd())->PostMessage(WM_AFTEROPEN, (WPARAM)m_AfterId, (LPARAM)0);
@@ -1051,8 +1160,12 @@ int CRLoginDoc::OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags)
 
 	nBufLen = n;
 
-	if ( m_pLogFile != NULL && m_TextRam.IsOptValue(TO_RLLOGMODE, 2) == LOGMOD_RAW )
-		m_pLogFile->Write(lpBuf, nBufLen);
+	if ( m_pLogFile != NULL ) {
+		if ( m_TextRam.m_LogMode == LOGMOD_RAW )
+			m_pLogFile->Write(lpBuf, nBufLen);
+		else if ( m_TextRam.m_LogMode == LOGMOD_DEBUG )
+			LogWrite(lpBuf, nBufLen, LOGDEBUG_RECV);
+	}
 
 	m_pMainWnd->WakeUpSleep();
 	UpdateAllViews(NULL, UPDATE_WAKEUP, NULL);
@@ -1196,6 +1309,9 @@ SKIPINPUT:
 	static LPCTSTR ProtoName[] = { _T("TCP"), _T("Login"), _T("Telnet"), _T("SSH"), _T("COM"), _T("PIPE") };
 	m_pMainWnd->m_StatusString = ProtoName[m_ServerEntry.m_ProtoType];
 
+	if ( m_TextRam.m_LogMode == LOGMOD_DEBUG )
+		LogInit();
+
 	return TRUE;
 }
 void CRLoginDoc::SocketClose()
@@ -1234,6 +1350,9 @@ void CRLoginDoc::SocketSend(void *lpBuf, int nBufLen)
 			DelaySend();
 	} else 
 		m_pSock->Send(lpBuf, nBufLen);
+
+	if ( m_pLogFile != NULL && m_TextRam.m_LogMode == LOGMOD_DEBUG )
+		LogWrite((LPBYTE)lpBuf, nBufLen, LOGDEBUG_SEND);
 }
 void CRLoginDoc::SocketSendWindSize(int x, int y)
 {
@@ -1667,10 +1786,7 @@ void CRLoginDoc::ScriptValue(int cmds, class CScriptValue &value, int mode)
 		}
 		break;
 	case 21:				// Document.Log.Mode
-		n = m_TextRam.IsOptValue(TO_RLLOGMODE, 2);
-		value.SetInt(n, mode);
-		if ( m_pLogFile == NULL )
-			m_TextRam.SetOptValue(TO_RLLOGMODE, 2, n);
+		value.SetInt(m_TextRam.m_LogMode, mode);
 		break;
 	case 22:				// Document.Log.Code
 		n = m_TextRam.IsOptValue(TO_RLLOGCODE, 2);

@@ -30,7 +30,7 @@ CSockBuffer::CSockBuffer()
 }
 CSockBuffer::~CSockBuffer()
 {
-	delete m_Data;
+	delete [] m_Data;
 }
 void CSockBuffer::AddAlloc(int len)
 {
@@ -50,7 +50,7 @@ void CSockBuffer::AddAlloc(int len)
 		memcpy(tmp, m_Data + m_Ofs, m_Len);
 	m_Ofs = 0;
 
-	delete m_Data;
+	delete [] m_Data;
 	m_Data = tmp;
 }
 void CSockBuffer::Apend(LPBYTE buff, int len, int type)
@@ -113,30 +113,6 @@ CExtSocket::~CExtSocket()
 		delete sp;
 	}
 }
-
-#ifndef DEBUGLOG
-void CExtSocket::DEBUGLOG(LPCSTR str, ...)
-{
-	LPCSTR p;
-	CStringA tmp, hex, work;
-	va_list arg;
-
-	va_start(arg, str);
-	tmp.FormatV(str, arg);
-	va_end(arg);
-
-	for ( p = tmp ; *p != '\0' ; p++ ) {
-		if ( *p != '\r' && *p != '\n' && (*p < ' ' || *p > '\x7E') ) {
-			hex.Format("?%02x", *p & 255);
-			work += hex;
-		} else
-			work += *p;
-	}
-
-	OnReciveProcBack((void *)(LPCSTR)work, work.GetLength(), 0);
-	TRACE("%s", work);
-}
-#endif
 
 void CExtSocket::Destroy()
 {
@@ -1055,7 +1031,7 @@ int CExtSocket::ProxyFunc()
 					   _T("\r\n"),
 					   m_ProxyHost, m_ProxyPort, m_RealHostAddr);
 			mbs = tmp; CExtSocket::Send((void *)(LPCSTR)mbs, mbs.GetLength(), 0);
-			DEBUGLOG("%s", mbs);
+			DEBUGLOG("ProxyFunc PRST_HTTP_START %s", mbs);
 			m_ProxyStatus = PRST_HTTP_READLINE;
 			m_ProxyStr.Empty();
 			m_ProxyResult.RemoveAll();
@@ -1063,7 +1039,7 @@ int CExtSocket::ProxyFunc()
 		case PRST_HTTP_READLINE:
 			if ( !ProxyReadLine() )
 				return TRUE;
-			DEBUGLOG("%s\r\n", TstrToMbs(m_ProxyStr));
+			DEBUGLOG("ProxyFunc PRST_HTTP_READLINE %s", TstrToMbs(m_ProxyStr));
 			if ( m_ProxyStr.IsEmpty() ) {
 				m_ProxyStatus = PRST_HTTP_HEADCHECK;
 				break;
@@ -1102,7 +1078,6 @@ int CExtSocket::ProxyFunc()
 		case PRST_HTTP_BODYREAD:
 			if ( !ProxyReadBuff(m_ProxyLength) )
 				return TRUE;
-			//DEBUGLOG("%s", (LPCSTR)m_ProxyBuff);
 			m_ProxyStatus = PRST_HTTP_CODECHECK;
 			break;
 		case PRST_HTTP_CODECHECK:
@@ -1152,7 +1127,7 @@ int CExtSocket::ProxyFunc()
 					   (m_ProxyCode == 407 ? _T("Proxy-") : _T("")),
 					   (LPCTSTR)buf);
 			mbs = tmp; CExtSocket::Send((void *)(LPCSTR)mbs, mbs.GetLength(), 0);
-			DEBUGLOG("%s", mbs);
+			DEBUGLOG("ProxyFunc PRST_HTTP_BASIC %s", mbs);
 			m_ProxyStatus = PRST_HTTP_READLINE;
 			m_ProxyStr.Empty();
 			m_ProxyResult.RemoveAll();
@@ -1204,7 +1179,7 @@ int CExtSocket::ProxyFunc()
 					   (LPCTSTR)m_ProxyAuth[_T("qop")], (LPCTSTR)m_ProxyAuth[_T("uri")],
 					   (LPCTSTR)m_ProxyAuth[_T("nc")], (LPCTSTR)m_ProxyAuth[_T("cnonce")]);
 			mbs = tmp; CExtSocket::Send((void *)(LPCSTR)mbs, mbs.GetLength(), 0);
-			DEBUGLOG("%s", mbs);
+			DEBUGLOG("ProxyFunc PRST_HTTP_DIGEST %s", mbs);
 			m_ProxyStatus = PRST_HTTP_READLINE;
 			m_ProxyStr.Empty();
 			m_ProxyResult.RemoveAll();

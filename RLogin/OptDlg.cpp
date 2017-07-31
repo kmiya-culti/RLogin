@@ -30,7 +30,6 @@ CTreePage::CTreePage(UINT nIDTemplate)
 	m_pSheet = NULL;
 	m_hTreeItem = NULL;
 	m_pOwn = NULL;
-	m_Size.cx = m_Size.cy = 0;
 
 	SetBackColor(GetSysColor(COLOR_WINDOW));
 }
@@ -104,6 +103,31 @@ void COptDlg::AddPage(CTreePage *pPage, CTreePage *pOwn)
 	pPage->m_pOwn   = pOwn;
 	pPage->m_nPage  = m_Tab.Add(pPage);
 }
+BOOL COptDlg::CreatePage(int nPage)
+{
+	CRect frame;
+	CTreePage *pPage;
+
+	if ( nPage < 0 || nPage >= GetPageCount() || (pPage = GetPage(nPage)) == NULL )
+		return FALSE;
+
+	if ( pPage->m_hWnd != NULL )
+		return TRUE;
+
+	if ( !pPage->Create(pPage->m_nIDTemplate, this) )
+		return FALSE;
+
+	pPage->ModifyStyle(WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_DLGFRAME | WS_POPUP | WS_BORDER, WS_CHILD);
+	pPage->ModifyStyleEx(WS_EX_DLGMODALFRAME | WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE, 0);
+	pPage->SetParent(this);
+
+	m_Frame.GetClientRect(frame);
+	m_Frame.ClientToScreen(frame);
+	ScreenToClient(frame);
+	pPage->MoveWindow(frame, FALSE);
+
+	return TRUE;
+}
 void COptDlg::SetActivePage(int nPage)
 {
 	CTreePage *pPage;
@@ -113,7 +137,7 @@ void COptDlg::SetActivePage(int nPage)
 
 	m_ActivePage = (-1);
 
-	if ( nPage >= 0 && nPage < GetPageCount() && (pPage = GetPage(nPage)) != NULL ) {
+	if ( CreatePage(nPage) && (pPage = GetPage(nPage)) != NULL ) {
 		pPage->ShowWindow(SW_SHOW);
 		m_Tree.SetItemState(pPage->m_hTreeItem, TVIS_SELECTED, TVIS_SELECTED);
 		m_ActivePage = nPage;
@@ -198,20 +222,22 @@ BOOL COptDlg::OnInitDialog()
 		if ( (pPage = GetPage(n)) == NULL )
 			continue;
 
-		pPage->Create(pPage->m_nIDTemplate, this);
-		pPage->ModifyStyle(WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_DLGFRAME | WS_POPUP | WS_BORDER, WS_CHILD);
-		pPage->ModifyStyleEx(WS_EX_DLGMODALFRAME | WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE, 0);
-		pPage->SetParent(this);
+		if ( !pPage->GetSizeAndText(&pageSize, title) )
+			continue;
 
-		pPage->GetSizeInPixels(&pageSize);
+		if ( n < 2 ) {
+			pPage->Create(pPage->m_nIDTemplate, this);
+			pPage->ModifyStyle(WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_DLGFRAME | WS_POPUP | WS_BORDER, WS_CHILD);
+			pPage->ModifyStyleEx(WS_EX_DLGMODALFRAME | WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE, 0);
+			pPage->SetParent(this);
+			pPage->MoveWindow(frame, FALSE);
+		}
+
 		if ( size.cx < pageSize.cx )
 			size.cx = pageSize.cx;
 		if ( size.cy < pageSize.cy )
 			size.cy = pageSize.cy;
 
-		pPage->MoveWindow(frame, FALSE);
-
-		pPage->GetWindowText(title);
 		own = (pPage->m_pOwn != NULL ? pPage->m_pOwn->m_hTreeItem : NULL);
 		if ( (hti = m_Tree.InsertItem(title, own)) != NULL ) {
 			m_Tree.SetItemData(hti, (DWORD_PTR)pPage);
@@ -311,16 +337,16 @@ BOOL COptDlg::OnInitDialog()
 	}
 
 	for ( n = 0 ; n < GetPageCount() ; n++ ) {
-		if ( (pWnd = GetPage(n)) == NULL )
+		if ( (pPage = GetPage(n)) == NULL || pPage->m_hWnd == NULL )
 			continue;
 
-		pWnd->GetWindowPlacement(&place);
+		pPage->GetWindowPlacement(&place);
 
 		place.rcNormalPosition.right  = cx - ItemOfs[i].right;
 		place.rcNormalPosition.bottom = cy - ItemOfs[i].bottom;
 		place.showCmd = SW_HIDE;
 
-		pWnd->SetWindowPlacement(&place);
+		pPage->SetWindowPlacement(&place);
 	}
 
 	// ダイアログ初期化
@@ -388,7 +414,7 @@ void COptDlg::OnDoInit()
 	CTreePage *pPage;
 
 	for ( n = 0; n < GetPageCount() ; n++ ) {
-		if ( (pPage = GetPage(n)) == NULL )
+		if ( !CreatePage(n) || (pPage = GetPage(n)) == NULL )
 			continue;
 		if ( pPage->m_hWnd != NULL )
 			pPage->OnReset();

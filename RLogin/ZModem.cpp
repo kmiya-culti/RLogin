@@ -789,7 +789,7 @@ NEXTFILE:
 				strcpy(tmp, m_FileName);
 				strcpy(tmp + m_FileName.GetLength() + 1, opt);
 				zsdata(tmp, n, ZCRCW);
-				delete tmp;
+				delete [] tmp;
 			} else {
 				strcpy(txbuf, m_FileName);
 				strcpy(txbuf + m_FileName.GetLength() + 1, opt);

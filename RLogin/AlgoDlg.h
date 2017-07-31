@@ -6,7 +6,7 @@
 #endif // _MSC_VER > 1000
 // AlgoDlg.h : ヘッダー ファイル
 //
-#include "ListCtrlMove.h"
+#include "ListCtrlExt.h"
 #include "DialogExt.h"
 #include "Data.h"
 
@@ -23,7 +23,7 @@ public:
 	enum { IDD = IDD_ALGOPARADLG };
 
 public:
-	CListCtrlMove m_List[12];
+	CListCtrlExt m_List[12];
 	CStringArrayExt m_AlgoTab[12];
 	BOOL m_EncShuffle;
 	BOOL m_MacShuffle;

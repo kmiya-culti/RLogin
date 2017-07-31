@@ -2208,10 +2208,11 @@ BOOL CSFtp::OnInitDialog()
 	LPTSTR p;
 	GetLogicalDriveStrings(len + 4, buf);
 	for ( p = buf ; *p != '\0' ; ) {
-		m_LocalCwd.AddString(p);
+		if ( m_LocalCwd.FindStringExact((-1), p) == CB_ERR )
+			m_LocalCwd.AddString(p);
 		while ( *(p++) != '\0' );
 	}
-	delete buf;
+	delete [] buf;
 
 	CString tmp, work;
 	m_LocalCwdHis.RemoveAll();
@@ -2219,13 +2220,13 @@ BOOL CSFtp::OnInitDialog()
 	for ( n = 1 ; n < 10 ; n++ ) {
 		tmp.Format(_T("LoCurDir_%s_%d"), m_pSSh->m_HostName, n);
 		tmp = AfxGetApp()->GetProfileString(_T("CSFtp"), tmp, _T(""));
-		if ( !tmp.IsEmpty() ) {
+		if ( !tmp.IsEmpty() && m_LocalCwd.FindStringExact((-1), tmp) == CB_ERR ) {
 			m_LocalCwdHis.AddTail(tmp);
 			m_LocalCwd.AddString(tmp);
 		}
 		tmp.Format(_T("ReCurDir_%s_%d"), m_pSSh->m_HostName, n);
 		tmp = AfxGetApp()->GetProfileString(_T("CSFtp"), tmp, _T(""));
-		if ( !tmp.IsEmpty() ) {
+		if ( !tmp.IsEmpty() && m_RemoteCwd.FindStringExact((-1), tmp) == CB_ERR ) {
 			m_RemoteCwdHis.AddTail(tmp);
 			m_RemoteCwd.AddString(tmp);
 		}

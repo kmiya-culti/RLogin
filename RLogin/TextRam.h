@@ -43,6 +43,7 @@
 #define	LOGMOD_CTRL		1
 #define	LOGMOD_CHAR		2
 #define	LOGMOD_LINE		3
+#define	LOGMOD_DEBUG	4
 
 #define ATT_BOLD		0x0000001		// [1m bold or increased intensity
 #define	ATT_HALF		0x0000002		// [2m faint, decreased intensity or second colour
@@ -63,12 +64,16 @@
 #define ATT_LDLINE		0x0010000		// [63m double line on the left side
 #define ATT_STRESS		0x0020000		// [64m stress marking
 #define ATT_DOVER		0x0040000		// double over line
+//						0x0080000
+//						0x0100000
+//						0x0200000
 #define	ATT_MARK		0x0400000		// Search Mark
 #define	ATT_CLIP		0x0800000		// Mouse Clip
 #define	ATT_RTOL		0x1000000		// RtoL Char
 #define	ATT_BORDER		0x2000000		// U+2500 Border Char
-#define	ATT_BITS		0x8000000		// 7 * 4 = 28 bit
-#define	ATT_MASK		0x00FFFFF
+//						0x4000000
+//						0x8000000		// max 7 * 4 = 28 bit
+#define	ATT_MASK		0x0FFFFFF
 
 #define CODE_MAX		0x0400
 #define CODE_MASK		0x03FF
@@ -727,6 +732,7 @@ public:	// Options
 	int m_DefTypeCaret;
 	int m_FixVersion;
 	int m_SleepMax;
+	int m_LogMode;
 
 	void Init();
 	void SetIndex(int mode, CStringIndex &index);

@@ -1635,26 +1635,6 @@ static UINT VersionCheckThead(LPVOID pParam)
 	pWnd->VersionCheckProc();
 	return 0;
 }
-int CMainFrame::VersionCompare(LPCTSTR src, LPCTSTR dis)
-{
-	int ns, nd;
-
-	while ( *src != _T('\0') ) {
-		if ( isdigit(*src) && isdigit(*dis) ) {
-			for ( ns = 0 ; isdigit(*src) ; src++ )
-				ns = ns * 10 + (*src - _T('0'));
-			for ( nd = 0 ; isdigit(*dis) ; dis++ )
-				nd = nd * 10 + (*dis - _T('0'));
-			if ( ns != nd )
-				return (ns > nd ? 1 : (-1));
-		} else if ( *src == *dis ) {
-			src++;
-			dis++;
-		} else
-			return (*src > *dis ? 1 : (-1));
-	}
-	return (*dis == _T('\0') ? 0 : 1);
-}
 void CMainFrame::VersionCheckProc()
 {
 	CBuffer buf;
@@ -1662,7 +1642,7 @@ void CMainFrame::VersionCheckProc()
 	CHAR *p, *e;
 	CString str;
 	CStringArray pam;
-	CString version;
+	CStringLoad version;
 
 	((CRLoginApp *)AfxGetApp())->GetVersion(version);
 
@@ -1699,7 +1679,7 @@ void CMainFrame::VersionCheckProc()
 		// 0      1      2          3
 		// RLogin 2.18.4 2015/05/20 http://nanno.dip.jp/softlib/
 
-		if ( pam.GetSize() >= 4 && pam[0].CompareNoCase(_T("RLogin")) == 0 && VersionCompare(version, pam[1]) < 0 ) {
+		if ( pam.GetSize() >= 4 && pam[0].CompareNoCase(_T("RLogin")) == 0 && version.Compare(pam[1]) < 0 ) {
 			m_VersionMessage.Format(CStringLoad(IDS_NEWVERSIONCHECK), pam[1]);
 			m_VersionPageUrl = pam[3];
 			PostMessage(WM_COMMAND, IDM_NEWVERSIONFOUND);

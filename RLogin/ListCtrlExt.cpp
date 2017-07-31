@@ -22,25 +22,26 @@ CListCtrlExt::CListCtrlExt()
 	m_pSubMenu    = NULL;
 	m_EditSubItem = 0;
 	m_bSort = TRUE;
+	m_bMove = FALSE;
 }
 CListCtrlExt::~CListCtrlExt()
 {
 }
 
 BEGIN_MESSAGE_MAP(CListCtrlExt, CListCtrl)
-	//{{AFX_MSG_MAP(CListCtrlExt)
+	ON_WM_VSCROLL()
+	ON_WM_KEYDOWN()
+	ON_EN_KILLFOCUS(ID_EDIT_BOX, OnKillfocusEditBox)
 	ON_NOTIFY_REFLECT(LVN_COLUMNCLICK, OnColumnclick)
+	ON_NOTIFY_REFLECT(LVN_BEGINDRAG, OnLvnBegindrag)
 	ON_NOTIFY_REFLECT_EX(NM_RCLICK, OnRclick)
 	ON_NOTIFY_REFLECT_EX(NM_DBLCLK, OnDblclk)
-	ON_WM_VSCROLL()
-	ON_EN_KILLFOCUS(ID_EDIT_BOX, OnKillfocusEditBox)
-	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
 static int CALLBACK CompareFunc(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort)
 {
 	int i1, i2, it;
-	CString s1, s2;
+	CStringLoad s1, s2;
 	LV_FINDINFO lvinfo;
 	CListCtrlExt *pCompList = (CListCtrlExt *)lParamSort;
 
@@ -344,4 +345,185 @@ void CListCtrlExt::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 		m_EditWnd.DestroyWindow();
 	}
 	CListCtrl::OnVScroll(nSBCode, nPos, pScrollBar);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+void CListCtrlExt::SwapItemText(int src, int dis)
+{
+	int n;
+	CString text[2];
+	DWORD_PTR data[2];
+	BOOL bchk[2];
+	LVCOLUMN lvc;
+
+	lvc.mask = LVCF_WIDTH;
+	for ( n = 0 ; GetColumn(n, &lvc) ; n++ ) {
+		text[0] = GetItemText(src, n);
+		text[1] = GetItemText(dis, n);
+
+		SetItemText(src, n, text[1]);
+		SetItemText(dis, n, text[0]);
+	}
+
+	data[0] = GetItemData(src);
+	data[1] = GetItemData(dis);
+
+	SetItemData(src, data[1]);
+	SetItemData(dis, data[0]);
+
+	bchk[0] = GetLVCheck(src);
+	bchk[1] = GetLVCheck(dis);
+
+	SetLVCheck(src, bchk[1]);
+	SetLVCheck(dis, bchk[0]);
+}
+void CListCtrlExt::MoveItemText(int src, int dis)
+{
+	int n;
+	CStringArray text;
+	DWORD_PTR data;
+	BOOL bchk;
+	LVCOLUMN lvc;
+
+	lvc.mask = LVCF_WIDTH;
+	for ( n = 0 ; GetColumn(n, &lvc) ; n++ )
+		text.Add(GetItemText(src, n));
+	data = GetItemData(src);
+	bchk = GetLVCheck(src);
+
+	DeleteItem(src);
+	InsertItem(dis, text[0]);
+
+	for ( n = 1 ; GetColumn(n, &lvc) ; n++ )
+		SetItemText(dis, n, text[n]);
+	SetItemData(dis, data);
+	SetLVCheck(dis, bchk);
+}
+
+void CListCtrlExt::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags) 
+{
+	int n, m;
+
+	if ( !m_bMove ) {
+		CListCtrl::OnKeyDown(nChar, nRepCnt, nFlags);
+		return;
+	}
+
+	switch(nChar) {
+	case VK_UP:
+		if ( (GetKeyState(VK_SHIFT) & 0x80) == 0 )
+			break;
+	case VK_ADD:
+		if ( (n = GetSelectionMark()) <= 0 )
+			break;
+		SwapItemText(n - 1, n);
+		SetSelectionMark(n - 1);
+		SetItemState(n - 1, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
+		EnsureVisible(n - 1, 0);
+		return;
+	case VK_DOWN:
+		if ( (GetKeyState(VK_SHIFT) & 0x80) == 0 )
+			break;
+	case VK_SUBTRACT:
+		if ( (n = GetSelectionMark()) < 0 || (n + 1) >=  GetItemCount() )
+			break;
+		SwapItemText(n + 1, n);
+		SetSelectionMark(n + 1);
+		SetItemState(n + 1, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
+		EnsureVisible(n + 1, 0);
+		return;
+
+	case VK_HOME:
+		if ( (GetKeyState(VK_SHIFT) & 0x80) == 0 )
+			break;
+		if ( (n = GetSelectionMark()) <= 0 )
+			break;
+		MoveItemText(n, 0);
+		SetSelectionMark(0);
+		SetItemState(0, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
+		EnsureVisible(0, 0);
+		return;
+	case VK_END:
+		if ( (GetKeyState(VK_SHIFT) & 0x80) == 0 )
+			break;
+		if ( (m = GetItemCount() - 1) < 0 )
+			break;
+		if ( (n = GetSelectionMark()) < 0 || n >= m )
+			break;
+		MoveItemText(n, m);
+		SetSelectionMark(m);
+		SetItemState(m, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
+		EnsureVisible(m, 0);
+		return;
+	}
+
+	CListCtrl::OnKeyDown(nChar, nRepCnt, nFlags);
+}
+
+class CRectTrackerList : public CRectTracker
+{
+public:
+	CListCtrlExt *m_pOwner;
+
+	virtual void OnChangedRect(const CRect& rectOld);
+};
+
+void CRectTrackerList::OnChangedRect(const CRect& rectOld)
+{
+	CPoint point;
+	CRect rect;
+
+	if ( !GetCursorPos(&point) )
+		return;
+
+	m_pOwner->ScreenToClient(&point);
+	m_pOwner->GetClientRect(rect);
+
+	if ( point.y < 0 )
+		m_pOwner->Scroll(CSize(0, point.y));
+	else if ( point.y > rect.Height() )
+		m_pOwner->Scroll(CSize(0, point.y - rect.Height()));
+}
+
+void CListCtrlExt::OnLvnBegindrag(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	int item, y;
+	CRect rect;
+	CRectTrackerList tracker;
+	LPNMLISTVIEW pNMLV = reinterpret_cast<LPNMLISTVIEW>(pNMHDR);
+
+	if ( !m_bMove )
+		return;
+
+	GetItemRect(pNMLV->iItem, rect, LVIR_LABEL);
+	tracker.m_rect = rect;
+	tracker.m_nStyle = CRectTracker::hatchedBorder | CRectTracker::resizeOutside;
+	tracker.m_pOwner = this;
+
+	if ( tracker.Track(this, pNMLV->ptAction, FALSE, NULL) ) {
+		y = pNMLV->ptAction.y + (tracker.m_rect.top - rect.top);
+
+		for ( item = GetTopIndex() ; item < GetItemCount() ; item++ ) {
+			if ( !GetItemRect(item, rect, LVIR_LABEL) )
+				break;
+			if ( y < rect.top )
+				break;
+			if ( y >= rect.top && y <= rect.bottom )
+				break;
+		}
+
+		if ( item != pNMLV->iItem ) {
+			if ( item > pNMLV->iItem )
+				item--;
+			MoveItemText(pNMLV->iItem, item);
+			SetSelectionMark(item);
+			SetItemState(item, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
+			EnsureVisible(item, 0);
+		}
+	}
+
+	Invalidate(FALSE);
+
+	*pResult = 0;
 }

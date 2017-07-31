@@ -167,12 +167,6 @@ void CMint::Ideakey(IdeaData *key)
 		*(p++) = (unsigned char)r;
 	}
 }
-void CMint::Debug()
-{
-	char *s = BN_bn2hex(bn);
-	TRACE("%s\n", s);
-	OPENSSL_free(s);
-}
 
 //////////////////////////////////////////////////////////////////////
 // CTelnet
@@ -371,7 +365,6 @@ int CTelnet::Send(const void* lpBuf, int nBufLen, int nFlags)
 						tmp[0] = (char)TELC_IAC;
 						tmp[1] = (char)slc_tab[i].tc;
 						SockSend(tmp, 2);
-						TRACE("SEND %s\n", slc_list[i]);
 					}
 					break;
 				}
@@ -410,7 +403,6 @@ void CTelnet::SendBreak(int opt)
 		tmp[0] = (char)TELC_IAC;
 		tmp[1] = (char)TELC_BREAK;
 		SockSend(tmp, 2);
-		TRACE("SEND BREAK\n");
 	}
 }
 void CTelnet::PrintOpt(int st, int ch, int opt)
@@ -469,7 +461,6 @@ void CTelnet::SendSlcOpt()
 	tmp[len++] = (char)TELOPT_LINEMODE;
 	tmp[len++] = (char)LM_SLC;
 
-	TRACE("SEND SB LINEMODE SLC\n");
 	for ( n = SLC_SYNCH ; n <= SLC_EEOL ; n++ ) {
 		if ( slc_tab[n].flag == 0 )
 			continue;
@@ -478,12 +469,6 @@ void CTelnet::SendSlcOpt()
 		tmp[len++] = slc_tab[n].flag;
 		if ( (tmp[len++] = slc_tab[n].ch) == (char)TELC_IAC )
 			tmp[len++] = (char)TELC_IAC;
-
-		TRACE("%s %s%s%s%s %d\n", slc_list[n], slc_flag[slc_tab[n].flag & 3],
-			((slc_tab[n].flag & SLC_ACK) != 0 ? "|ACK" : ""),
-			((slc_tab[n].flag & SLC_FLUSHIN) != 0 ? "|FLUSHIN" : ""),
-			((slc_tab[n].flag & SLC_FLUSHOUT) != 0 ? "|FLUSHOUT" : ""),
-			slc_tab[n].ch);
 	}
 
 	tmp[len++] = (char)TELC_IAC;
@@ -789,7 +774,6 @@ void CTelnet::SubOptFunc(char *buf, int len)
 		case TELQUAL_IS:
 			if ( MyOpt[TELOPT_AUTHENTICATION].status == TELSTS_OFF )
 				return;
-			TRACE("auth_is\n");
 			break;
 		case TELQUAL_SEND:
 			if ( MyOpt[TELOPT_AUTHENTICATION].status == TELSTS_WANT_OFF )
@@ -804,7 +788,6 @@ void CTelnet::SubOptFunc(char *buf, int len)
 		case TELQUAL_NAME:
 			if ( MyOpt[TELOPT_AUTHENTICATION].status == TELSTS_OFF )
 				return;
-			TRACE("auth_name\n");
 			break;
 		}
 		break;
@@ -824,7 +807,6 @@ void CTelnet::SubOptFunc(char *buf, int len)
 		case ENCRYPT_SUPPORT:
 			if ( MyOpt[TELOPT_AUTHENTICATION].status == TELSTS_WANT_OFF )
 				return;
-			TRACE("encrypt_support\n");
 			break;
 		case ENCRYPT_REQSTART:
 			if ( MyOpt[TELOPT_AUTHENTICATION].status == TELSTS_WANT_OFF )
@@ -866,12 +848,6 @@ void CTelnet::SubOptFunc(char *buf, int len)
 				if ( n >= SLC_SYNCH && n <= SLC_EEOL && (i = SB_GETC()) != EOF && (v = SB_GETC()) != EOF ) {
 					slc_tab[n].flag = i;
 					slc_tab[n].ch   = v;
-
-					TRACE("%s %s%s%s%s %d\n", slc_list[n], slc_flag[slc_tab[n].flag & 3],
-						((slc_tab[n].flag & SLC_ACK) != 0 ? "|ACK" : ""),
-						((slc_tab[n].flag & SLC_FLUSHIN) != 0 ? "|FLUSHIN" : ""),
-						((slc_tab[n].flag & SLC_FLUSHOUT) != 0 ? "|FLUSHOUT" : ""),
-						slc_tab[n].ch);
 				}
 			}
 			break;
@@ -1459,8 +1435,6 @@ int CTelnet::SraDecode(char *p, int len, DesData *key)
 
 void CTelnet::EncryptSendSupport()
 {
-	TRACE("EncryptSendSupport\n");
-
 	EncryptSendRequestStart();
 
 	int n = 0;
@@ -1477,8 +1451,6 @@ void CTelnet::EncryptSendSupport()
 }
 void CTelnet::EncryptSessionKey()
 {
-	TRACE("EncryptSessionKey\n");
-
 	memcpy(&krb_key, &ddk, sizeof(DesData));
 
 	memcpy(&(stream[DIR_ENC].ikey), &krb_key, sizeof(DesData));
@@ -1498,8 +1470,6 @@ void CTelnet::EncryptSessionKey()
 void CTelnet::EncryptIs(char *p, int len)
 {
 	int n = 0;
-
-	TRACE("EncryptIs %x\n", stream[DIR_DEC].status);
 
 	if ( len < 1 )
 		return;
@@ -1538,8 +1508,6 @@ void CTelnet::EncryptReply(char *p, int len)
 {
 	int n, i = 0;
 
-	TRACE("EncryptReply %x\n", stream[DIR_ENC].status);
-
 	if ( len < 2 || p[1] != (char)FB64_IV_OK )
 		return;
 
@@ -1565,8 +1533,6 @@ void CTelnet::EncryptReply(char *p, int len)
 	stream[DIR_ENC].keyid[0] = '\0';
 	stream[DIR_ENC].status |= STM_HAVE_KEYID;
 
-	TRACE("Send Keyid %d = %d %d\n", DIR_ENC, stream[DIR_ENC].keylen, stream[DIR_ENC].keyid[0]);
-
 	feed[i++] = (char)TELC_IAC;
 	feed[i++] = (char)TELC_SB;
 	feed[i++] = (char)TELOPT_ENCRYPT;
@@ -1585,8 +1551,6 @@ void CTelnet::EncryptReply(char *p, int len)
 void CTelnet::EncryptKeyid(int dir, char *p, int len)
 {
 	int n, i = 0;
-
-	TRACE("EncryptKeyid %d = %d %d ? %d %d\n", dir, len, *p, stream[dir].keylen, stream[dir].keyid[0]);
 
 	if ( len == 0 ) {
 		if ( stream[dir].keylen == 0 )
@@ -1615,8 +1579,6 @@ void CTelnet::EncryptKeyid(int dir, char *p, int len)
 		return;
 	}
 
-	TRACE("Send Keyid %d = %d %d\n", dir, stream[dir].keylen, stream[dir].keyid[0]);
-
 	feed[i++] = (char)TELC_IAC;
 	feed[i++] = (char)TELC_SB;
 	feed[i++] = (char)TELOPT_ENCRYPT;
@@ -1636,8 +1598,6 @@ void CTelnet::EncryptSendRequestStart()
 {
 	int n, i = 0;
 
-	TRACE("EncryptSendRequestStart %x\n", stream[DIR_DEC].status);
-
 	feed[i++] = (char)TELC_IAC;
 	feed[i++] = (char)TELC_SB;
 	feed[i++] = (char)TELOPT_ENCRYPT;
@@ -1656,8 +1616,6 @@ void CTelnet::EncryptSendRequestStart()
 void CTelnet::EncryptSendTempFeed()
 {
 	int n, i = 0;
-
-	TRACE("EncryptSendTempFeed %x %x\n",stream[DIR_DEC].status, stream[DIR_ENC].status);
 
 	des_random_key(&temp_feed);
 	des_ecb_encrypt(&temp_feed, &temp_feed, krb_sched, 1);
@@ -1684,8 +1642,6 @@ void CTelnet::EncryptSendStart()
 {
 	int n, i = 0;
 
-	TRACE("EncryptOutputStart %x\n", stream[DIR_ENC].status);
-
 	if ( stream[DIR_ENC].status != STM_HAVE_OK )
 		return;
 
@@ -1709,8 +1665,6 @@ void CTelnet::EncryptSendStart()
 }
 void CTelnet::EncryptStart(char *p, int len)
 {
-	TRACE("EncryptInputStart %x\n", stream[DIR_DEC].status);
-
 	if ( stream[DIR_DEC].status == STM_HAVE_OK )
 		EncryptInputFlag = TRUE;
 
@@ -1719,20 +1673,16 @@ void CTelnet::EncryptStart(char *p, int len)
 }
 void CTelnet::EncryptEnd()
 {
-	TRACE("EncryptEnd\n");
 	EncryptInputFlag = FALSE;
 	EncryptStatus();
 }
 void CTelnet::EncryptRequestStart()
 {
-	TRACE("EncryptRequestStart\n");
 	EncryptSendStart();
 }
 void CTelnet::EncryptRequestEnd()
 {
 	int i = 0;
-
-	TRACE("EncryptRequestEnd\n");
 
 	if ( EncryptOutputFlag == FALSE )
 		return;

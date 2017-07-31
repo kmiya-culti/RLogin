@@ -25,6 +25,7 @@ public:
 	CEdit m_EditWnd;
 	CString m_EditOld;
 	BOOL m_bSort;
+	BOOL m_bMove;
 
 	int GetParamItem(int para);
 	int GetSelectMarkData();
@@ -37,16 +38,21 @@ public:
 	void OpenEditBox(int item, int num, int fmt, CRect &rect);
 	void EditItem(int item, int num);
 
+	void SwapItemText(int src, int dis);
+	void MoveItemText(int src, int dis);
+
 // オーバーライド
 protected:
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 
 // インプリメンテーション
 protected:
+	DECLARE_MESSAGE_MAP()
 	afx_msg void OnColumnclick(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg BOOL OnRclick(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg BOOL OnDblclk(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
 	afx_msg void OnKillfocusEditBox();
-	DECLARE_MESSAGE_MAP()
+	afx_msg void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags);
+	afx_msg void OnLvnBegindrag(NMHDR *pNMHDR, LRESULT *pResult);
 };

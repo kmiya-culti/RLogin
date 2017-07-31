@@ -99,6 +99,7 @@ void CIdkeySelDLg::InitList()
 		default:             str = _T(""); break;
 		}
 		m_List.SetItemText(n, 2, str);
+		m_List.SetItemData(n, n);
 		m_List.SetLVCheck(n, pKey->m_Flag);
 	}
 	m_List.SetItemState(m_EntryNum, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
@@ -214,6 +215,7 @@ BOOL CIdkeySelDLg::OnInitDialog()
 	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_CHECKBOXES);
 	m_List.InitColumn(_T("IdkeySelDLg"), InitListTab, 3);
 	m_List.SetPopUpMenu(IDR_POPUPMENU, 2);
+	m_List.m_bMove = TRUE;
 	InitList();
 
 	m_KeyGenProg.EnableWindow(FALSE);
@@ -231,8 +233,10 @@ void CIdkeySelDLg::OnOK()
 
 	m_IdKeyList.RemoveAll();
 	for ( int n = 0 ; n < m_Data.GetSize() ; n++ ) {
-		if ( m_List.GetLVCheck(n) )
-			m_IdKeyList.AddVal(m_Data[n]);
+		if ( m_List.GetLVCheck(n) ) {
+			int i = m_List.GetItemData(n);
+			m_IdKeyList.AddVal(m_Data[i]);
+		}
 	}
 	m_List.SaveColumn(_T("IdkeySelDLg"));
 

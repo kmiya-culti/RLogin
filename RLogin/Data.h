@@ -126,19 +126,26 @@ public:
 
 	inline int GetSize() { return m_Len; }
 	inline LPBYTE GetPtr() { return m_Data; }
-	LPBYTE PutBuf(LPBYTE buf, int len)  { if ( m_Data != NULL ) delete m_Data; if ( len <= 0 ) m_Data = NULL; else { m_Data = new BYTE[len]; memcpy(m_Data, buf, len); } m_Len = len; return m_Data; }
-	LPBYTE SetSize(int len) { if ( m_Data != NULL ) delete m_Data; if ( len <= 0 ) m_Data = NULL; else m_Data = new BYTE[len]; m_Len = len; return m_Data;  }
+	LPBYTE PutBuf(LPBYTE buf, int len)  { if ( m_Data != NULL ) delete [] m_Data; if ( len <= 0 ) m_Data = NULL; else { m_Data = new BYTE[len]; memcpy(m_Data, buf, len); } m_Len = len; return m_Data; }
+	LPBYTE SetSize(int len) { if ( m_Data != NULL ) delete [] m_Data; if ( len <= 0 ) m_Data = NULL; else m_Data = new BYTE[len]; m_Len = len; return m_Data;  }
 
 	const CSpace & operator = (CSpace &data) { PutBuf(data.GetPtr(), data.GetSize()); return *this; }
 
 	CSpace() { m_Len = 0; m_Data = NULL; }
-	~CSpace() { if ( m_Data != NULL ) delete m_Data; }
+	~CSpace() { if ( m_Data != NULL ) delete [] m_Data; }
 };
 
 class CStringLoad : public CString
 {
 public:
+	CStringLoad();
 	CStringLoad(int nID) { LoadString(nID); }
+
+	inline void operator = (LPCWSTR str) { *((CString *)this) = str; }
+	inline void operator = (LPCSTR  str) { *((CString *)this) = str; }
+
+	BOOL IsDigit(LPCTSTR str);
+	int Compare(LPCTSTR dis);
 };
 
 class CStrNode : public CObject
@@ -311,9 +318,10 @@ public:
 	CBitmap m_Bitmap;
 	int m_Width, m_Height;
 	CString m_FileName;
+	COLORREF m_BkColor;
 
 	int LoadFile(LPCTSTR filename);
-	CBitmap *GetBitmap(CDC *pDC, int width, int height, int align);
+	CBitmap *GetBitmap(CDC *pDC, int width, int height, int align, COLORREF bkcolor);
 
 	CBmpFile();
 	virtual ~CBmpFile();

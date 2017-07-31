@@ -343,7 +343,7 @@ CRegExNode::~CRegExNode(void)
 	if ( m_List != NULL )
 		delete [] m_List;
 	if ( m_Map != NULL )
-		delete m_Map;
+		delete [] m_Map;
 }
 const CRegExNode & CRegExNode::operator = (CRegExNode &data)
 {
@@ -351,7 +351,7 @@ const CRegExNode & CRegExNode::operator = (CRegExNode &data)
 	m_SChar = data.m_SChar;
 	m_EChar = data.m_EChar;
 	if ( m_Map != NULL )
-		delete m_Map;
+		delete [] m_Map;
 	m_Map = NULL;
 	if ( data.m_Map != NULL ) {
 		m_Map = new DWORD[MAPARRAY];

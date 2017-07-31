@@ -193,7 +193,7 @@ void AllWCharAllocFree()
 
 	while ( (ptr = pMemTop) != NULL ) {
 		pMemTop = *((void **)ptr);
-		delete ptr;
+		delete [] ptr;
 	}
 }
 
@@ -1135,6 +1135,7 @@ CTextRam::CTextRam()
 	m_pWorkGrapWnd = NULL;
 	m_GrapWndChkCLock = clock();
 	m_GrapWndChkStat = 0;
+	m_LogMode = LOGMOD_RAW;
 
 	for ( int n = 0 ; n < 8 ; n++ )
 		pGrapListIndex[n] = pGrapListImage[n] = NULL;
@@ -1710,7 +1711,7 @@ void CTextRam::SaveLogFile()
 	int my = m_Lines;
 	CCharCell *vp;
 
-	if ( m_pDocument == NULL || m_pDocument->m_pLogFile == NULL || IsOptValue(TO_RLLOGMODE, 2) != LOGMOD_LINE )
+	if ( m_pDocument == NULL || m_pDocument->m_pLogFile == NULL || m_LogMode != LOGMOD_LINE )
 		return;
 
 	while ( my > 0 ) {
@@ -2397,6 +2398,7 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 
 	stra.AddVal(m_DefTypeCaret);
 	stra.AddVal(m_SleepMax);
+	stra.AddVal(m_LogMode);
 }
 void CTextRam::GetArray(CStringArrayExt &stra)
 {
@@ -2571,6 +2573,11 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 
 	if ( stra.GetSize() > 61 )
 		m_SleepMax = stra.GetVal(61);
+
+	if ( stra.GetSize() > 62 )
+		m_LogMode = stra.GetVal(62);
+	else
+		m_LogMode = IsOptValue(TO_RLLOGMODE, 2);
 
 	if ( m_FixVersion < 9 ) {
 		if ( m_pDocument != NULL ) {
@@ -2867,6 +2874,7 @@ const CTextRam & CTextRam::operator = (CTextRam &data)
 	m_ScrnOffset = data.m_ScrnOffset;
 	m_FixVersion = data.m_FixVersion;
 	m_SleepMax = data.m_SleepMax;
+	m_LogMode = data.m_LogMode;
 
 	return *this;
 }
@@ -4400,7 +4408,7 @@ void CTextRam::CallReciveLine(int y)
 	int n, i;
 	CStringW tmp, str;
 
-	if ( m_pDocument == NULL || m_pDocument->m_pLogFile == NULL || IsOptValue(TO_RLLOGMODE, 2) != LOGMOD_LINE )
+	if ( m_pDocument == NULL || m_pDocument->m_pLogFile == NULL || m_LogMode != LOGMOD_LINE )
 		return;
 
 	LineEditCwd(m_Cols, y, tmp);
@@ -4451,9 +4459,7 @@ void CTextRam::CallReciveChar(DWORD ch, LPCTSTR name)
 	if ( m_pDocument->m_pLogFile == NULL )
 		return;
 
-	int md = IsOptValue(TO_RLLOGMODE, 2);
-
-	if ( md == LOGMOD_RAW || md == LOGMOD_LINE )
+	if ( m_LogMode == LOGMOD_RAW || m_LogMode == LOGMOD_LINE || m_LogMode == LOGMOD_DEBUG )
 		return;
 
 	CStringW tmp, str;
@@ -4897,6 +4903,26 @@ void CTextRam::RESET(int mode)
 		// colors 232-255 are a grayscale ramp, intentionally leaving out
 		for ( int g = 0 ; g < 24 ; g++ )
 			m_ColTab[n++] = RGB(g * 11, g * 11, g * 11);
+
+#if 0
+		// ext color 256-265
+		m_ColTab[EXTCOL_VT_TEXT_FORE] = m_ColTab[m_DefAtt.fcol];
+		m_ColTab[EXTCOL_VT_TEXT_BACK] = m_ColTab[m_DefAtt.bcol];
+		m_ColTab[EXTCOL_TEXT_CURSOR]  = m_ColTab[m_DefAtt.fcol];
+		m_ColTab[EXTCOL_MOUSE_FORE]   = m_ColTab[m_DefAtt.fcol];
+		m_ColTab[EXTCOL_MOUDE_BACK]   = m_ColTab[m_DefAtt.bcol];
+		m_ColTab[EXTCOL_TEK_FORE]     = m_ColTab[m_DefAtt.fcol];
+		m_ColTab[EXTCOL_TEK_BACK]     = m_ColTab[m_DefAtt.bcol];
+		m_ColTab[EXTCOL_HILIGHT_BACK] = m_ColTab[m_DefAtt.bcol];
+		m_ColTab[EXTCOL_TEK_CURSOR]   = m_ColTab[m_DefAtt.fcol];
+		m_ColTab[EXTCOL_HILIGHT_FORE] = m_ColTab[m_DefAtt.fcol];
+
+		// sp color 266-269
+		m_ColTab[EXTCOL_TEXT_BOLD]    = m_ColTab[m_DefAtt.fcol];
+		m_ColTab[EXTCOL_TEXT_UNDER]   = m_ColTab[m_DefAtt.fcol];
+		m_ColTab[EXTCOL_TEXT_BLINK]   = m_ColTab[m_DefAtt.fcol];
+		m_ColTab[EXTCOL_TEXT_REVERSE] = m_ColTab[m_DefAtt.fcol];
+#endif
 
 		// matrix color
 		n = EXTCOL_MAX;

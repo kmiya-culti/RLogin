@@ -751,7 +751,7 @@ void CRLoginApp::GetProfileData(LPCTSTR lpszSection, LPCTSTR lpszEntry, void *lp
 			memcpy(lpBuf, pData, nBufLen);
 		else if ( lpDef != NULL )
 			memcpy(lpBuf, lpDef, nBufLen);
-		delete pData;
+		delete [] pData;
 	} else if ( lpDef != NULL )
 		memcpy(lpBuf, lpDef, nBufLen);
 }
@@ -763,7 +763,7 @@ void CRLoginApp::GetProfileBuffer(LPCTSTR lpszSection, LPCTSTR lpszEntry, CBuffe
 	Buf.Clear();
 	if ( GetProfileBinary(lpszSection, lpszEntry, &pData, &len) ) {
 		Buf.Apend(pData, len);
-		delete pData;
+		delete [] pData;
 	}
 }
 void CRLoginApp::GetProfileArray(LPCTSTR lpszSection, CStringArrayExt &stra)
@@ -822,7 +822,7 @@ void CRLoginApp::GetProfileKeys(LPCTSTR lpszSection, CStringArrayExt &stra)
 			if ( dw < (sz - 2) )
 				break;
 			sz *= 2;
-			delete work;
+			delete [] work;
 			work = new TCHAR[sz];
 		}
 		for ( p = work ; *p != _T('\0') ; ) {
@@ -834,7 +834,7 @@ void CRLoginApp::GetProfileKeys(LPCTSTR lpszSection, CStringArrayExt &stra)
 			while ( *(p++) != _T('\0') )
 				;
 		}
-		delete work;
+		delete [] work;
 	}
 }
 void CRLoginApp::DelProfileEntry(LPCTSTR lpszSection, LPCTSTR lpszEntry)
@@ -968,7 +968,7 @@ void CRLoginApp::RegisterSave(HKEY hKey, LPCTSTR pSection, CBuffer &buf)
 		menba.Add(work);
 	}
 
-	delete work;
+	delete [] work;
 
 	buf.Put32Bit(menba.GetSize());
 	for ( n = 0 ; n < menba.GetSize() ; n++ ) {

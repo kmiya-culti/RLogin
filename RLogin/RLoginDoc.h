@@ -51,6 +51,12 @@
 
 #define	DELAY_ECHO_MSEC		1000
 
+#define	LOGDEBUG_NONE		0
+#define	LOGDEBUG_RECV		1
+#define	LOGDEBUG_SEND		2
+#define	LOGDEBUG_INSIDE		3
+#define	LOGDEBUG_FLASH		4
+
 class CRLoginDoc : public CDocument
 {
 	DECLARE_DYNCREATE(CRLoginDoc)
@@ -92,6 +98,7 @@ public:
 	BOOL m_InPane;
 	BOOL m_bUseIdle;
 	int m_AfterId;
+	int m_LogSendRecv;
 
 	void SetIndex(int mode, CStringIndex &index);
 
@@ -133,6 +140,10 @@ public:
 
 	BOOL LogOpen(LPCTSTR filename);
 	BOOL LogClose();
+	void LogWrite(LPBYTE lpBuf, int nBufLen, int SendRecv);
+	void LogDebug(LPCSTR str, ...);
+	void LogDump(LPBYTE lpBuf, int nBufLen);
+	void LogInit();
 
 	void ScriptInit(int cmds, int shift, class CScriptValue &value);
 	void ScriptValue(int cmds, class CScriptValue &value, int mode);

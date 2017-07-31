@@ -115,6 +115,7 @@ public:
 	void AddPage(CTreePage *pPage, CTreePage *pOwn = NULL);
 	inline CTreePage *GetPage(int nPage) { return (CTreePage *)m_Tab[nPage]; }
 	inline int GetPageCount() { return m_Tab.GetSize(); }
+	BOOL CreatePage(int nPage);
 	void SetActivePage(int nPage);
 	void SetModified(BOOL bModified);
 

@@ -972,7 +972,7 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		str = pDoc->m_TextRam.m_BitMapFile;
 		pDoc->EntryText(str);
 		m_BmpFile.LoadFile(str);
-		m_pBitmap = m_BmpFile.GetBitmap(GetDC(), m_Width, m_Height, 1);
+		m_pBitmap = m_BmpFile.GetBitmap(GetDC(), m_Width, m_Height, 1, pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.bcol]);
 		//pDoc->SetStatus(NULL);
 
 		if ( m_BtnWnd.m_hWnd == NULL && pDoc->m_TextRam.m_bOscActive && pDoc->m_TextRam.m_IntCounter >= 10 ) {
@@ -2687,12 +2687,14 @@ void CRLoginView::OnSplitOver()
 void CRLoginView::OnSplitHeightNew()
 {
 	CCommandLineInfoEx cmds;
+	CRLoginDoc *pDoc = GetDocument();
 	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
 	CMainFrame *pMain = (CMainFrame *)::AfxGetMainWnd();
 
 	if ( pMain == NULL )
 		return;
 
+	pDoc->m_InPane = TRUE;
 	pMain->SplitHeightPane();
 	cmds.ParseParam(_T("inpane"), TRUE, TRUE);
 	pApp->OpenProcsCmd(&cmds);
@@ -2700,12 +2702,14 @@ void CRLoginView::OnSplitHeightNew()
 void CRLoginView::OnSplitWidthNew()
 {
 	CCommandLineInfoEx cmds;
+	CRLoginDoc *pDoc = GetDocument();
 	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
 	CMainFrame *pMain = (CMainFrame *)::AfxGetMainWnd();
 
 	if ( pMain == NULL )
 		return;
 
+	pDoc->m_InPane = TRUE;
 	pMain->SplitWidthPane();
 	cmds.ParseParam(_T("inpane"), TRUE, TRUE);
 	pApp->OpenProcsCmd(&cmds);

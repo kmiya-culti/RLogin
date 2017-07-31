@@ -92,14 +92,14 @@ CBuffer::~CBuffer()
 	if ( m_bZero )
 		ZeroMemory(m_Data, m_Max);
 
-	delete m_Data;
+	delete [] m_Data;
 }
 void CBuffer::RemoveAll()
 {
 	if ( m_bZero )
 		ZeroMemory(m_Data, m_Max);
 
-	delete m_Data;
+	delete [] m_Data;
 
 	m_Len = m_Ofs = 0;
 	m_Max = 32;
@@ -109,7 +109,7 @@ void CBuffer::Move(CBuffer &data)
 {
 	if ( m_bZero )
 		ZeroMemory(m_Data, m_Max);
-	delete m_Data;
+	delete [] m_Data;
 
 	m_Len  = data.m_Len;
 	m_Ofs  = data.m_Ofs;
@@ -150,7 +150,7 @@ void CBuffer::ReAlloc(int len)
 	if ( m_bZero )
 		ZeroMemory(m_Data, oldMax);
 
-	delete m_Data;
+	delete [] m_Data;
 	m_Data = tmp;
 }
 void CBuffer::Apend(LPBYTE buff, int len)
@@ -261,7 +261,7 @@ void CBuffer::PutBIGNUM(BIGNUM *val)
 		throw this;
 	Put16Bit(bits);
 	Apend(tmp, len);
-	delete tmp;
+	delete [] tmp;
 }
 void CBuffer::PutBIGNUM2(BIGNUM *val)
 {
@@ -291,7 +291,7 @@ void CBuffer::PutBIGNUM2(BIGNUM *val)
 	hnoh = (tmp[1] & 0x80) ? 0 : 1;
 	Put32Bit(bytes - hnoh);
 	Apend(tmp + hnoh, bytes - hnoh);
-	delete tmp;
+	delete [] tmp;
 }
 void CBuffer::PutEcPoint(const EC_GROUP *curve, const EC_POINT *point)
 {
@@ -313,7 +313,7 @@ void CBuffer::PutEcPoint(const EC_GROUP *curve, const EC_POINT *point)
 	PutBuf(tmp, len);
 
 	BN_CTX_free(bnctx);
-	delete tmp;
+	delete [] tmp;
 }
 void CBuffer::PutDword(int val)
 {
@@ -429,7 +429,7 @@ int CBuffer::GetBIGNUM_SecSh(BIGNUM *val)
 			tmp[0] = '\0';
 			memcpy(tmp + 1, m_Data + m_Ofs, bytes);
 		    BN_bin2bn(tmp, bytes + 1, val);
-			delete tmp;
+			delete [] tmp;
 		}
 	} else
 	    BN_bin2bn(m_Data + m_Ofs, bytes, val);
@@ -760,7 +760,7 @@ BOOL CBuffer::LoadFile(LPCTSTR filename)
 	if ( m_bZero )
 		ZeroMemory(m_Data, m_Max);
 
-	delete m_Data;
+	delete [] m_Data;
 
 	m_Len = m_Ofs = 0;
 	m_Max = (int)FileSize;
@@ -1266,6 +1266,42 @@ void CStringArrayExt::GetCmds(LPCTSTR cmds)
 }
 
 //////////////////////////////////////////////////////////////////////
+// CStringLoad
+
+CStringLoad::CStringLoad()
+{
+}
+BOOL CStringLoad::IsDigit(LPCTSTR str)
+{
+	return (*str >= _T('0') && *str <= _T('9') ? TRUE : FALSE);
+}
+int CStringLoad::Compare(LPCTSTR dis)
+{
+	int ns, nd;
+	LPCTSTR src = *this;
+
+	while ( *src != _T('\0') ) {
+		if ( IsDigit(src) && IsDigit(dis) ) {
+			for ( ns = 0 ; IsDigit(src) ; src++ )
+				ns = ns * 10 + (*src - _T('0'));
+
+			for ( nd = 0 ; IsDigit(dis) ; dis++ )
+				nd = nd * 10 + (*dis - _T('0'));
+
+			if ( ns != nd )
+				return (ns > nd ? 1 : (-1));
+
+		} else if ( *src == *dis ) {
+			src++;
+			dis++;
+
+		} else
+			return (*src > *dis ? 1 : (-1));
+	}
+	return (*dis == _T('\0') ? 0 : 1);
+}
+
+//////////////////////////////////////////////////////////////////////
 // CStrNode
 
 CStrNode::CStrNode()
@@ -1363,6 +1399,8 @@ BOOL CParaIndex::AddOpt(BYTE c, BOOL bAdd)
 CBmpFile::CBmpFile()
 {
 	m_pPic = NULL;
+	m_Width = m_Height = 0;
+	m_BkColor = 0;
 }
 
 CBmpFile::~CBmpFile()
@@ -1428,7 +1466,7 @@ ERROF:
 	return FALSE;
 }
 
-CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, int align)
+CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, int align, COLORREF bkcolor)
 {
 	int x, y, cx, cy;
 	CDC MemDC;
@@ -1442,7 +1480,7 @@ CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, int align)
 		return NULL;
 
 	if ( m_Bitmap.m_hObject != NULL ) {
-		if ( m_Width == width && m_Height == height )
+		if ( m_Width == width && m_Height == height && m_BkColor == bkcolor )
 			return (&m_Bitmap);
 		m_Bitmap.DeleteObject();
 	}
@@ -1455,6 +1493,7 @@ CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, int align)
 
 	po = MemDC.GetBrushOrg();
 	MemDC.SetStretchBltMode(HALFTONE);
+	MemDC.FillSolidRect(0, 0, width, height, bkcolor);
 
 	m_pPic->get_Width(&sx);
 	m_pPic->get_Height(&sy);
@@ -1511,8 +1550,9 @@ CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, int align)
 		}
 	}
 
-	m_Width  = width;
-	m_Height = height;
+	m_Width   = width;
+	m_Height  = height;
+	m_BkColor = bkcolor;
 
 	MemDC.SelectObject(pOldMemMap);
 	MemDC.SetBrushOrg(po);
@@ -4016,7 +4056,7 @@ CKeyMac::CKeyMac()
 CKeyMac::~CKeyMac()
 {
 	if ( m_Data != NULL )
-		delete m_Data;
+		delete [] m_Data;
 }
 void CKeyMac::GetMenuStr(CString &str)
 {
@@ -4089,7 +4129,7 @@ void CKeyMac::SetStr(LPCTSTR str)
 void CKeyMac::SetBuf(LPBYTE buf, int len)
 {
 	if ( m_Data != NULL )
-		delete m_Data;
+		delete [] m_Data;
 	m_Len = len;
 	m_Data = new BYTE[len];
 	memcpy(m_Data, buf, len);
@@ -4098,7 +4138,7 @@ const CKeyMac & CKeyMac::operator = (CKeyMac &data)
 {
 	if ( data.m_Data == NULL ) {
 		if ( m_Data != NULL )
-			delete m_Data;
+			delete [] m_Data;
 		m_Data = NULL;
 		m_Len = 0;
 	} else
@@ -4268,24 +4308,24 @@ void CKeyMacTab::SetHisMenu(CMenu *pMainMenu)
 // CParamTab
 
 #if	OPENSSL_VERSION_NUMBER >= 0x10001000L
-#define	META_AEAD_STRING	_T("AEAD_AES_128_GCM,AEAD_AES_256_GCM,AEAD_AES_128_CCM,AEAD_AES_256_CCM,") \
-							_T("aes128-gcm@openssh.com,aes256-gcm@openssh.com,")
+#define	META_AEAD_STRING	_T("AEAD_AES_256_GCM,AEAD_AES_128_GCM,AEAD_AES_256_CCM,AEAD_AES_128_CCM,") \
+							_T("aes256-gcm@openssh.com,aes128-gcm@openssh.com,")
 #else
 #define	META_AEAD_STRING	_T("")
 #endif
 
 #ifdef	USE_NETTLE
-#define	META_NETTLE_STRING	_T("twofish128-ctr,twofish192-ctr,twofish256-ctr,") \
-							_T("serpent128-ctr,serpent192-ctr,serpent256-ctr,") \
-							_T("twofish128-cbc,twofish192-cbc,twofish256-cbc,") \
-							_T("serpent128-cbc,serpent192-cbc,serpent256-cbc,")
+#define	META_NETTLE_STRING	_T("twofish256-ctr,twofish192-ctr,twofish128-ctr,") \
+							_T("serpent256-ctr,serpent192-ctr,serpent128-ctr,") \
+							_T("twofish256-cbc,twofish192-cbc,twofish128-cbc,") \
+							_T("serpent256-cbc,serpent192-cbc,serpent128-cbc,")
 #else
 #define	META_NETTLE_STRING	_T("")
 #endif
 
 #ifdef	USE_CLEFIA
-#define	META_CLEFIA_STRING	_T("clefia128-ctr,clefia192-ctr,clefia256-ctr,") \
-							_T("clefia128-cbc,clefia192-cbc,clefia256-cbc,")
+#define	META_CLEFIA_STRING	_T("clefia256-ctr,clefia192-ctr,clefia128-ctr,") \
+							_T("clefia256-cbc,clefia192-cbc,clefia128-cbc,")
 #else
 #define	META_CLEFIA_STRING	_T("")
 #endif
@@ -4295,64 +4335,64 @@ static LPCTSTR InitAlgo[12]= {
 	_T("crc32"),
 	_T("zlib,none"),
 
-	_T("aes128-ctr,aes192-ctr,aes256-ctr,") \
-	_T("camellia128-ctr,camellia192-ctr,camellia256-ctr,") \
+	_T("chacha20-poly1305@openssh.com,") \
+	_T("aes256-ctr,aes192-ctr,aes128-ctr,") \
+	_T("camellia256-ctr,camellia192-ctr,camellia128-ctr,") \
 	_T("blowfish-ctr,cast128-ctr,idea-ctr,") \
 	_T("twofish-ctr,seed-ctr@ssh.com,3des-ctr,") \
-	_T("chacha20-poly1305@openssh.com,") \
 	META_AEAD_STRING \
-	_T("arcfour,arcfour128,arcfour256,") \
-	_T("aes128-cbc,aes192-cbc,aes256-cbc,") \
-	_T("camellia128-cbc,camellia192-cbc,camellia256-cbc,") \
+	_T("arcfour256,arcfour128,arcfour,") \
+	_T("aes256-cbc,aes192-cbc,aes128-cbc,") \
+	_T("camellia256-cbc,camellia192-cbc,camellia128-cbc,") \
 	_T("blowfish-cbc,cast128-cbc,idea-cbc,") \
 	_T("twofish-cbc,seed-cbc@ssh.com,3des-cbc,") \
 	META_NETTLE_STRING \
 	META_CLEFIA_STRING \
 	_T("none"),
 
+	_T("hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,") \
 	_T("hmac-md5-etm@openssh.com,hmac-sha1-etm@openssh.com,") \
-	_T("hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com,") \
+	_T("hmac-sha2-512,hmac-sha2-512-96,hmac-sha2-256,hmac-sha2-256-96,") \
 	_T("hmac-md5,hmac-md5-96,hmac-sha1,hmac-sha1-96,") \
-	_T("hmac-sha2-256,hmac-sha2-256-96,hmac-sha2-512,hmac-sha2-512-96,") \
 	_T("hmac-ripemd160,hmac-whirlpool,") \
 	_T("umac-64-etm@openssh.com,umac-128-etm@openssh.com,") \
 	_T("umac-64@openssh.com,umac-128@openssh.com,") \
-	_T("umac-32,umac-64,umac-96,umac-128,") \
+	_T("umac-128,umac-96,umac-64,umac-32,") \
 	META_AEAD_STRING \
 	_T("chacha20-poly1305@openssh.com"),
 
 	_T("zlib@openssh.com,zlib,none"),
 
-	_T("aes128-ctr,aes192-ctr,aes256-ctr,") \
-	_T("camellia128-ctr,camellia192-ctr,camellia256-ctr,") \
+	_T("chacha20-poly1305@openssh.com,") \
+	_T("aes256-ctr,aes192-ctr,aes128-ctr,") \
+	_T("camellia256-ctr,camellia192-ctr,camellia128-ctr,") \
 	_T("blowfish-ctr,cast128-ctr,idea-ctr,") \
 	_T("twofish-ctr,seed-ctr@ssh.com,3des-ctr,") \
-	_T("chacha20-poly1305@openssh.com,") \
 	META_AEAD_STRING \
-	_T("arcfour,arcfour128,arcfour256,") \
-	_T("aes128-cbc,aes192-cbc,aes256-cbc,") \
-	_T("camellia128-cbc,camellia192-cbc,camellia256-cbc,") \
+	_T("arcfour256,arcfour128,arcfour,") \
+	_T("aes256-cbc,aes192-cbc,aes128-cbc,") \
+	_T("camellia256-cbc,camellia192-cbc,camellia128-cbc,") \
 	_T("blowfish-cbc,cast128-cbc,idea-cbc,") \
 	_T("twofish-cbc,seed-cbc@ssh.com,3des-cbc,") \
 	META_NETTLE_STRING \
 	META_CLEFIA_STRING \
 	_T("none"),
 
+	_T("hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,") \
 	_T("hmac-md5-etm@openssh.com,hmac-sha1-etm@openssh.com,") \
-	_T("hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com,") \
+	_T("hmac-sha2-512,hmac-sha2-512-96,hmac-sha2-256,hmac-sha2-256-96,") \
 	_T("hmac-md5,hmac-md5-96,hmac-sha1,hmac-sha1-96,") \
-	_T("hmac-sha2-256,hmac-sha2-256-96,hmac-sha2-512,hmac-sha2-512-96,") \
 	_T("hmac-ripemd160,hmac-whirlpool,") \
 	_T("umac-64-etm@openssh.com,umac-128-etm@openssh.com,") \
 	_T("umac-64@openssh.com,umac-128@openssh.com,") \
-	_T("umac-32,umac-64,umac-96,umac-128,") \
+	_T("umac-128,umac-96,umac-64,umac-32,") \
 	META_AEAD_STRING \
 	_T("chacha20-poly1305@openssh.com"),
 
 	_T("zlib@openssh.com,zlib,none"),
 
 	_T("curve25519-sha256@libssh.org,") \
-	_T("ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,") \
+	_T("ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256,") \
 	_T("diffie-hellman-group-exchange-sha256,diffie-hellman-group-exchange-sha1,") \
 	_T("diffie-hellman-group14-sha1,diffie-hellman-group1-sha1"),
 
@@ -4855,7 +4895,7 @@ void CParamTab::GetProp(int num, CString &str, int shuffle)
 				str += _T(",");
 			str += m_AlgoTab[num][tab[n]];
 		}
-		delete tab;
+		delete [] tab;
 	} else {
 		for ( int i = 0 ; i < m_AlgoTab[num].GetSize() ; i++ ) {
 			if ( i > 0 )

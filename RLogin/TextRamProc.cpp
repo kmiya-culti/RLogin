@@ -1228,7 +1228,7 @@ void CTextRam::fc_TraceCall(DWORD ch)
 	(this->*m_Func[ch])(ch);
 	tp = FindProcName(m_TraceFunc);
 
-	if ( (m_TraceLogMode & 002) != 0 && tp != NULL && m_pDocument->m_pLogFile != NULL && IsOptValue(TO_RLLOGMODE, 2) == LOGMOD_CTRL &&
+	if ( (m_TraceLogMode & 002) != 0 && tp != NULL && m_pDocument->m_pLogFile != NULL && m_LogMode == LOGMOD_CTRL &&
 				m_TraceFunc != &CTextRam::fc_BS  && m_TraceFunc != &CTextRam::fc_HT  && m_TraceFunc != &CTextRam::fc_LF  &&
 				m_TraceFunc != &CTextRam::fc_VT  && m_TraceFunc != &CTextRam::fc_FF  && m_TraceFunc != &CTextRam::fc_CR  &&
 				m_TraceFunc != &CTextRam::fc_ESC && m_TraceFunc != &CTextRam::fc_DCS && m_TraceFunc != &CTextRam::fc_CSI ) {
@@ -1480,9 +1480,15 @@ void CTextRam::EscCsiDefName(LPCTSTR *esc, LPCTSTR *csi,  LPCTSTR *dcs)
 
 //////////////////////////////////////////////////////////////////////
 
+#define	GetRValue16(n)		(int)((DWORD)GetRValue(n) * 65535 / 255)
+#define	GetGValue16(n)		(int)((DWORD)GetGValue(n) * 65535 / 255)
+#define	GetBValue16(n)		(int)((DWORD)GetBValue(n) * 65535 / 255)
+#define	RoundMulDiv(d,m)	(BYTE)(((DWORD)(d) * 255 + (m / 2)) / m)
+
 void CTextRam::ParseColor(int cmd, int idx, LPCTSTR para, DWORD ch)
 {
 	int n, r, g, b;
+	float rf, gf, bf;
 
 	if ( idx < 0 || idx >= EXTCOL_MAX )
 		return;
@@ -1490,41 +1496,65 @@ void CTextRam::ParseColor(int cmd, int idx, LPCTSTR para, DWORD ch)
 	if ( para[0] == '?' ) {
 		if ( (cmd >= 10 && cmd <= 19) || (cmd >= 110 && cmd <= 119) )
 			UNGETSTR(_T("%s%d;rgb:%04x/%04x/%04x%s"), m_RetChar[RC_OSC], cmd,
-				GetRValue(m_ColTab[idx]), GetGValue(m_ColTab[idx]), GetBValue(m_ColTab[idx]),
+				GetRValue16(m_ColTab[idx]), GetGValue16(m_ColTab[idx]), GetBValue16(m_ColTab[idx]),
 				(ch == 0x07 ? _T("\007") : m_RetChar[RC_ST]));
 		else if ( cmd == 5 )
 			UNGETSTR(_T("%s%d;%d;rgb:%04x/%04x/%04x%s"), m_RetChar[RC_OSC], cmd, idx - EXTCOL_SP_BEGIN,
-				GetRValue(m_ColTab[idx]), GetGValue(m_ColTab[idx]), GetBValue(m_ColTab[idx]),
+				GetRValue16(m_ColTab[idx]), GetGValue16(m_ColTab[idx]), GetBValue16(m_ColTab[idx]),
 				(ch == 0x07 ? _T("\007") : m_RetChar[RC_ST]));
 		else
 			UNGETSTR(_T("%s%d;%d;rgb:%04x/%04x/%04x%s"), m_RetChar[RC_OSC], cmd, idx,
-				GetRValue(m_ColTab[idx]), GetGValue(m_ColTab[idx]), GetBValue(m_ColTab[idx]),
+				GetRValue16(m_ColTab[idx]), GetGValue16(m_ColTab[idx]), GetBValue16(m_ColTab[idx]),
 				(ch == 0x07 ? _T("\007") : m_RetChar[RC_ST]));
 
 	} else if ( para[0] == _T('#') ) {
+		para += 1;
 		switch(_tcslen(para)) {
-		case 4:		// #rgb
-			if ( _stscanf(para, _T("#%01x%01x%01x"), &r, &g, &b) == 3 )
+		case 3:		// rgb
+			if ( _stscanf(para, _T("%01x%01x%01x"), &r, &g, &b) == 3 )
+				m_ColTab[idx] = RGB(RoundMulDiv(r, 15), RoundMulDiv(g, 15), RoundMulDiv(b, 15));
+			break;
+		case 6:		// rrggbb
+			if ( _stscanf(para, _T("%02x%02x%02x"), &r, &g, &b) == 3 )
 				m_ColTab[idx] = RGB(r, g, b);
 			break;
-		case 7:		// #rrggbb
-			if ( _stscanf(para, _T("#%02x%02x%02x"), &r, &g, &b) == 3 )
-				m_ColTab[idx] = RGB(r, g, b);
+		case 9:	// rrrgggbbb
+			if ( _stscanf(para, _T("%03x%03x%03x"), &r, &g, &b) == 3 )
+				m_ColTab[idx] = RGB(RoundMulDiv(r, 4095), RoundMulDiv(g, 4095), RoundMulDiv(b, 4095));
 			break;
-		case 10:	// #rrrgggbbb
-			if ( _stscanf(para, _T("#%03x%03x%03x"), &r, &g, &b) == 3 )
-				m_ColTab[idx] = RGB(r, g, b);
-			break;
-		case 13:	// #rrrrggggbbbb
-			if ( _stscanf(para, _T("#%04x%04x%04x"), &r, &g, &b) == 3 )
-				m_ColTab[idx] = RGB(r, g, b);
+		case 12:	// rrrrggggbbbb
+			if ( _stscanf(para, _T("%04x%04x%04x"), &r, &g, &b) == 3 )
+				m_ColTab[idx] = RGB(RoundMulDiv(r, 65535), RoundMulDiv(g, 65535), RoundMulDiv(b, 65535));
 			break;
 		}
 		DISPUPDATE();
 
 	} else if ( _tcsnicmp(para, _T("rgb:"), 4) == 0 ) {
-		if ( _stscanf(para + 4, _T("%x/%x/%x"), &r, &g, &b) == 3 )
-			m_ColTab[idx] = RGB(r, g, b);
+		para += 4;
+		switch(_tcslen(para)) {
+		case (3 + 2):	// r/g/b
+			if ( _stscanf(para, _T("%01x/%01x/%01x"), &r, &g, &b) == 3 )
+				m_ColTab[idx] = RGB(RoundMulDiv(r, 15), RoundMulDiv(g, 15), RoundMulDiv(b, 15));
+			break;
+		case (6 + 2):	// rr/gg/bb
+			if ( _stscanf(para, _T("%02x/%02x/%02x"), &r, &g, &b) == 3 )
+				m_ColTab[idx] = RGB(r, g, b);
+			break;
+		case (9 + 2):	// rrr/ggg/bbb
+			if ( _stscanf(para, _T("%03x/%03x/%03x"), &r, &g, &b) == 3 )
+				m_ColTab[idx] = RGB(RoundMulDiv(r, 4095), RoundMulDiv(g, 4095), RoundMulDiv(b, 4095));
+			break;
+		case (12 + 2):	// rrrr/gggg/bbbb
+			if ( _stscanf(para, _T("%04x/%04x/%04x"), &r, &g, &b) == 3 )
+				m_ColTab[idx] = RGB(RoundMulDiv(r, 65535), RoundMulDiv(g, 65535), RoundMulDiv(b, 65535));
+			break;
+		}
+		DISPUPDATE();
+
+	} else if ( _tcsnicmp(para, _T("rgbi:"), 5) == 0 ) {
+		para += 5;
+		if ( _stscanf(para, _T("%f/%f/%f"), &rf, &gf, &bf) == 3 )
+			m_ColTab[idx] = RGB((BYTE)(rf * 255.0 + 0.5), (BYTE)(gf * 255.0 + 0.5), (BYTE)(bf * 255.0 + 0.5));
 		DISPUPDATE();
 
 	} else if ( _tcsicmp(para, _T("reset")) == 0 ) {
@@ -4000,10 +4030,8 @@ void CTextRam::fc_OSCEXE(DWORD ch)
 				tmp += *(p++);
 			if ( *p == ';' )
 				p++;
-			if ( n < EXTCOL_MAX ) {
-				m_ColTab[n] = m_ColTab[m_AttNow.fcol];
-				ParseColor(cmd, n, tmp, ch);
-			}
+			m_ColTab[n] = m_ColTab[m_AttNow.fcol];
+			ParseColor(cmd, n, tmp, ch);
 		}
 		break;
 
@@ -4127,10 +4155,8 @@ void CTextRam::fc_OSCEXE(DWORD ch)
 				//	n = 1  <- resource colorUL (UNDERLINE).
 				//	n = 2  <- resource colorBL (BLINK).
 				//	n = 3  <- resource colorRV (REVERSE).
-			if ( n < EXTCOL_MAX ) {
-				m_ColTab[n] = m_ColTab[m_AttNow.fcol];
-				ParseColor(cmd, n, _T("reset"), ch);
-			}
+			m_ColTab[n] = m_ColTab[m_AttNow.fcol];
+			ParseColor(cmd, n, _T("reset"), ch);
 		}
 		break;
 
