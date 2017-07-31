@@ -166,9 +166,8 @@ enum ETabSetNum {
 };
 
 enum EStageNum {
-		STAGE_ESC = 0,	STAGE_CSI,		STAGE_EXT1,		STAGE_EXT2,		// Use 0,1,2,3 !!! Look up fc_Case()
-		STAGE_EXT3,
-		STAGE_EUC,
+		STAGE_ESC = 0,	STAGE_CSI,		STAGE_EXT1,		STAGE_EXT2,		STAGE_EXT3,		// Use 0,1,2,3,4 !!! Look up fc_Case()
+		STAGE_EXT4,		STAGE_EUC,
 		STAGE_94X94,	STAGE_96X96,
 		STAGE_SJIS,		STAGE_SJIS2,
 		STAGE_UTF8,		STAGE_UTF82,
@@ -571,7 +570,7 @@ public:
 	int m_Stage;
 	int m_StPos;
 	int m_Stack[16];
-	void (CTextRam::*m_LocalProc[4][256])(int ch);
+	void (CTextRam::*m_LocalProc[5][256])(int ch);
 	CArray<CTextRam::CSIEXTTAB, CTextRam::CSIEXTTAB &> m_CsiExt;
 
 	void fc_Init_Proc(int stage, const PROCTAB *tp, int b = 0);
@@ -624,7 +623,7 @@ public:
 	// Ctrl...
 	void fc_SOH(int ch);
 	void fc_ENQ(int ch);
-	void fc_BELL(int ch);
+	void fc_BEL(int ch);
 	void fc_BS(int ch);
 	void fc_HT(int ch);
 	void fc_LF(int ch);
@@ -633,7 +632,7 @@ public:
 	void fc_CR(int ch);
 	void fc_SO(int ch);
 	void fc_SI(int ch);
-	void fc_DC0(int ch);
+	void fc_DLE(int ch);
 	void fc_CAN(int ch);
 	void fc_ESC(int ch);
 	void fc_A3CUP(int ch);

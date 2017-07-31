@@ -31,7 +31,7 @@ static CTextRam::ESCNAMEPROC	*fc_pCsiProc = NULL;
 static const CTextRam::PROCTAB fc_CtrlTab[] = {
 	{ 0x01,		0,			&CTextRam::fc_SOH		},
 	{ 0x05,		0,			&CTextRam::fc_ENQ		},
-	{ 0x07,		0,			&CTextRam::fc_BELL		},
+	{ 0x07,		0,			&CTextRam::fc_BEL		},
 	{ 0x08,		0,			&CTextRam::fc_BS		},
 	{ 0x09,		0,			&CTextRam::fc_HT		},
 	{ 0x0A,		0,			&CTextRam::fc_LF		},
@@ -40,7 +40,7 @@ static const CTextRam::PROCTAB fc_CtrlTab[] = {
 	{ 0x0D,		0,			&CTextRam::fc_CR		},
 	{ 0x0E,		0,			&CTextRam::fc_SO		},
 	{ 0x0F,		0,			&CTextRam::fc_SI		},
-	{ 0x10,		0,			&CTextRam::fc_DC0		},
+	{ 0x10,		0,			&CTextRam::fc_DLE		},
 	{ 0x18,		0,			&CTextRam::fc_CAN		},
 	{ 0x1B,		0,			&CTextRam::fc_ESC		},
 	{ 0x1C,		0,			&CTextRam::fc_A3CRT		},	// ADM-3 Cursole Right
@@ -215,6 +215,8 @@ static const CTextRam::PROCTAB fc_AnsiTab[] = {
 	{ 'N',		0,			&CTextRam::fc_EF		},	// EF Erase in field
 	{ 'O',		0,			&CTextRam::fc_EA		},	// EA Erase in area
 	{ 'P',		0,			&CTextRam::fc_DCH		},	// DCH Delete Character
+//	{ 'Q',		0,			&CTextRam::fc_SEE		},	// SEE SELECT EDITING EXTENT
+//	{ 'R',		0,			&CTextRam::fc_CPR		},	// CPR ACTIVE POSITION REPORT
 	{ 'S',		0,			&CTextRam::fc_SU		},	// SU Scroll Up
 	{ 'T',		0,			&CTextRam::fc_SD		},	// SD Scroll Down
 	{ 'U',		0,			&CTextRam::fc_NP		},	// NP Next Page
@@ -223,7 +225,9 @@ static const CTextRam::PROCTAB fc_AnsiTab[] = {
 	{ 'X',		0,			&CTextRam::fc_ECH		},	// ECH Erase character
 	{ 'Y',		0,			&CTextRam::fc_CVT		},	// CVT Cursor line tabulation
 	{ 'Z',		0,			&CTextRam::fc_CBT		},	// CBT Move the active position n tabs backward.
-//	{ ']',		0,			&CTextRam::fc_LINUX		},	// LINUX console
+//	{ '[',		0,			&CTextRam::fc_SRS		},	// SRS START REVERSED STRING
+//	{ '\\',		0,			&CTextRam::fc_PTX		},	// PTX PARALLEL TEXTS
+//	{ ']',		0,			&CTextRam::fc_SDS		},	// SDS START DIRECTED STRING
 //	{ '^',		0,			&CTextRam::fc_SIMD		},	// SIMD Select implicit movement direction
 	{ '`',		0,			&CTextRam::fc_HPA		},	// HPA Horizontal Position Absolute
 	{ 'a',		0,			&CTextRam::fc_HPR		},	// HPR Horizontal Position Relative
@@ -271,14 +275,16 @@ static const CTextRam::PROCTAB fc_Ext2Tab[] = {			// ('$' << 8) | sc
 	{ 'z',		0,			&CTextRam::fc_DECERA	},	// DECERA Erase Rectangular Area
 	{ '{',		0,			&CTextRam::fc_DECSERA	},	// DECSERA Selective Erase Rectangular Area
 	{ 0,		0,			NULL } };
-static const CTextRam::PROCTAB fc_Ext3Tab[] = {
+static const CTextRam::PROCTAB fc_Ext3Tab[] = {			// (' ' << 8) | sc
+	{ '@',		0,			&CTextRam::fc_SL		},	// SL Scroll left
+	{ 'A',		0,			&CTextRam::fc_SR		},	// SRScroll Right
+	{ '~',		0,			&CTextRam::fc_DECTME	},	// DECTME Terminal Mode Emulation
+	{ 0,		0,			NULL } };
+static const CTextRam::PROCTAB fc_Ext4Tab[] = {
 	{ 0x40,		0x7F,		&CTextRam::fc_CSI_ETC	},
 	{ 0,		0,			NULL } };
 static const CTextRam::CSIEXTTAB fc_CsiExtTab[] = {
 	{ ('?' << 16) | ('$'  << 8) | 'p',		&CTextRam::fc_DECRQMH	},	// DECRQMH Request Mode (DEC) Host to Terminal
-	{ 				(' '  << 8) | '@',		&CTextRam::fc_SL		},	// SL Scroll left
-	{ 				(' '  << 8) | 'A',		&CTextRam::fc_SR		},	// SRScroll Right
-	{ 				(' '  << 8) | '~',		&CTextRam::fc_DECTME	},	// DECTME Terminal Mode Emulation
 	{ 				('!'  << 8) | 'p',		&CTextRam::fc_DECSTR	},	// DECSTR Soft terminal reset
 	{ 				('"'  << 8) | 'q',		&CTextRam::fc_DECSCA	},	// DECSCA Select character attributes
 	{ 				('\'' << 8) | 'w',		&CTextRam::fc_DECEFR	},	// DECEFR Enable filter rectangle
@@ -697,6 +703,10 @@ void CTextRam::fc_Init(int mode)
 		fc_Init_Proc(STAGE_EXT3, fc_CsiTab);
 		fc_Init_Proc(STAGE_EXT3, fc_Ext3Tab, 0x80);
 
+		fc_Init_Proc(STAGE_EXT4, fc_CtrlTab);
+		fc_Init_Proc(STAGE_EXT4, fc_CsiTab);
+		fc_Init_Proc(STAGE_EXT4, fc_Ext4Tab, 0x80);
+
 		fc_Init_Proc(STAGE_OSC1, fc_Osc1Tab);
 		fc_Init_Proc(STAGE_OSC1, fc_EucTab);		// EUC ASCII
 		fc_Init_Proc(STAGE_OSC2, fc_Osc1Tab);
@@ -717,6 +727,7 @@ void CTextRam::fc_Init(int mode)
 	memcpy(m_LocalProc[1], fc_Proc[STAGE_CSI], sizeof(m_LocalProc[1]));
 	memcpy(m_LocalProc[2], fc_Proc[STAGE_EXT1], sizeof(m_LocalProc[2]));
 	memcpy(m_LocalProc[3], fc_Proc[STAGE_EXT2], sizeof(m_LocalProc[3]));
+	memcpy(m_LocalProc[4], fc_Proc[STAGE_EXT3], sizeof(m_LocalProc[4]));
 
 	m_CsiExt.RemoveAll();
 	for ( i = 0 ; fc_CsiExtTab[i].proc != NULL ; i++ ) {
@@ -767,7 +778,7 @@ void CTextRam::fc_Init(int mode)
 }
 inline void CTextRam::fc_Case(int stage)
 {
-	if ( (m_Stage = stage) <= STAGE_EXT2 )
+	if ( (m_Stage = stage) <= STAGE_EXT3 )
 		m_Func = m_LocalProc[stage];
 	else
 		m_Func = fc_Proc[stage];
@@ -858,6 +869,10 @@ void CTextRam::CsiNameProc(int code, LPCSTR name)
 		m_LocalProc[3][code & 0x7F] = proc;
 		m_LocalProc[3][code & 0x7F | 0x80] = proc;
 		break;
+	case ' ' << 8:
+		m_LocalProc[4][code & 0x7F] = proc;
+		m_LocalProc[4][code & 0x7F | 0x80] = proc;
+		break;
 	default:
 		b = 0;
 		m = m_CsiExt.GetSize() - 1;
@@ -922,6 +937,9 @@ void CTextRam::EscCsiDefName(LPCSTR *esc, LPCSTR *csi)
 
 	for ( n = 0 ; fc_Ext2Tab[n].proc != NULL ; n++ )		// ('$' << 8) | sc
 		csi[fc_Ext2Tab[n].sc - '@' + 63 * 5] = CsiProcName(fc_Ext2Tab[n].proc);
+
+	for ( n = 0 ; fc_Ext3Tab[n].proc != NULL ; n++ )		// (' ' << 8) | sc
+		csi[fc_Ext3Tab[n].sc - '@' + 63 * 1] = CsiProcName(fc_Ext3Tab[n].proc);
 
 	for ( n = 0 ; fc_CsiExtTab[n].proc != NULL ; n++ ) {
 		c = (fc_CsiExtTab[n].code & 0x7F) - '@';
@@ -1365,7 +1383,7 @@ void CTextRam::fc_ENQ(int ch)
 	CallReciveChar(ch);
 	m_LastChar = ch;
 }
-void CTextRam::fc_BELL(int ch)
+void CTextRam::fc_BEL(int ch)
 {
 	BEEP();
 	CallReciveChar(ch);
@@ -1458,7 +1476,7 @@ void CTextRam::fc_SI(int ch)
 	CallReciveChar(ch);
 	m_LastChar = ch;
 }
-void CTextRam::fc_DC0(int ch)
+void CTextRam::fc_DLE(int ch)
 {
 	if ( IsOptEnable(TO_RLBPLUS) )
 		m_RetSync = TRUE;
@@ -2313,8 +2331,11 @@ void CTextRam::fc_CSI_EXT(int ch)
 	case '$' << 8:
 		fc_Case(STAGE_EXT2);
 		break;
-	default:
+	case ' ' << 8:
 		fc_Case(STAGE_EXT3);
+		break;
+	default:
+		fc_Case(STAGE_EXT4);
 		break;
 	}
 }
@@ -3413,38 +3434,8 @@ void CTextRam::fc_DECSERA(int ch)
 }
 
 //////////////////////////////////////////////////////////////////////
-// fc CSI Ext...
-
-void CTextRam::fc_CSI_ETC(int ch)
-{
-	int n, c, d, b, m;
-
-	d = (m_BackChar | ch) & 0x7F7F7F;
-	b = 0;
-	m = m_CsiExt.GetSize() - 1;
-
-	while ( b <= m ) {
-		n = (b + m) / 2;
-		if ( (c = d - m_CsiExt[n].code) == 0 ) {
-			(this->*m_CsiExt[n].proc)(ch);
-			return;
-		} else if ( c < 0 )
-			b = n + 1;
-		else
-			m = n - 1;
-	}
-	fc_POP(ch);
-}
-void CTextRam::fc_DECRQMH(int ch)
-{
-	// CSI ('?' << 16) | ('$' << 8) | 'p'	DECRQMH Request Mode (DEC) Host to Terminal
-	int n;
-
-	if ( (n = GetAnsiPara(0, 1)) > 199 )
-		n = 199;
-	UNGETSTR("\033[?%d;%d$y", n, IsOptEnable(n) ? 1 : 2);
-	fc_POP(ch);
-}
+// fc CSI SP ...
+//
 void CTextRam::fc_SL(int ch)
 {
 	// CSI (' ' << 8) | '@'		SL Scroll left
@@ -3536,6 +3527,40 @@ void CTextRam::fc_DECTME(int ch)
 	else
 		m_AnsiOpt[TO_DECANM / 32] |= (1 << (TO_DECANM % 32));
 
+	fc_POP(ch);
+}
+
+//////////////////////////////////////////////////////////////////////
+// fc CSI Ext...
+
+void CTextRam::fc_CSI_ETC(int ch)
+{
+	int n, c, d, b, m;
+
+	d = (m_BackChar | ch) & 0x7F7F7F;
+	b = 0;
+	m = m_CsiExt.GetSize() - 1;
+
+	while ( b <= m ) {
+		n = (b + m) / 2;
+		if ( (c = d - m_CsiExt[n].code) == 0 ) {
+			(this->*m_CsiExt[n].proc)(ch);
+			return;
+		} else if ( c < 0 )
+			b = n + 1;
+		else
+			m = n - 1;
+	}
+	fc_POP(ch);
+}
+void CTextRam::fc_DECRQMH(int ch)
+{
+	// CSI ('?' << 16) | ('$' << 8) | 'p'	DECRQMH Request Mode (DEC) Host to Terminal
+	int n;
+
+	if ( (n = GetAnsiPara(0, 1)) > 199 )
+		n = 199;
+	UNGETSTR("\033[?%d;%d$y", n, IsOptEnable(n) ? 1 : 2);
 	fc_POP(ch);
 }
 void CTextRam::fc_DECSTR(int ch)

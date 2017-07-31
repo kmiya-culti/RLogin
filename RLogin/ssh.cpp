@@ -56,7 +56,7 @@ static void ssh_ctr_inc(u_char *ctr, u_int len)
 			return;
 }
 
-static int ssh_aes_ctr(EVP_CIPHER_CTX *ctx, u_char *dest, const u_char *src, u_int len)
+static int ssh_aes_ctr(EVP_CIPHER_CTX *ctx, u_char *dest, const u_char *src, size_t len)
 {
 	struct ssh_aes_ctr_ctx *c;
 	u_int n = 0;
@@ -106,7 +106,7 @@ static int ssh_aes_ctr_cleanup(EVP_CIPHER_CTX *ctx)
 	return (1);
 }
 
-static void ssh_aes_ctr_iv(EVP_CIPHER_CTX *evp, int doset, u_char * iv, u_int len)
+static void ssh_aes_ctr_iv(EVP_CIPHER_CTX *evp, int doset, u_char * iv, size_t len)
 {
 	struct ssh_aes_ctr_ctx *c;
 
@@ -182,7 +182,7 @@ static int ssh1_3des_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char *
 	return (1);
 }
 
-static int ssh1_3des_cbc(EVP_CIPHER_CTX *ctx, u_char *dest, const u_char *src, u_int len)
+static int ssh1_3des_cbc(EVP_CIPHER_CTX *ctx, u_char *dest, const u_char *src, size_t len)
 {
 	struct ssh1_3des_ctx *c;
 
@@ -268,9 +268,9 @@ static void swap_bytes(const u_char *src, u_char *dst, int n)
 	}
 }
 
-static int (*orig_bf)(EVP_CIPHER_CTX *, u_char *, const u_char *, u_int) = NULL;
+static int (*orig_bf)(EVP_CIPHER_CTX *, u_char *, const u_char *, size_t) = NULL;
 
-static int bf_ssh1_cipher(EVP_CIPHER_CTX *ctx, u_char *out, const u_char *in, u_int len)
+static int bf_ssh1_cipher(EVP_CIPHER_CTX *ctx, u_char *out, const u_char *in, size_t len)
 {
 	int ret;
 
@@ -1237,6 +1237,7 @@ const CIdKey & CIdKey::operator = (CIdKey &data)
 		break;
 	case IDKEY_RSA1:
 	case IDKEY_RSA2:
+	case IDKEY_RSA_CERT:
 		Create(data.m_Type);
 		BN_copy(m_Rsa->n, data.m_Rsa->n);
 		BN_copy(m_Rsa->e, data.m_Rsa->e);
@@ -1246,6 +1247,7 @@ const CIdKey & CIdKey::operator = (CIdKey &data)
 		BN_copy(m_Rsa->iqmp, data.m_Rsa->iqmp);
 		break;
 	case IDKEY_DSA2:
+	case IDKEY_DSA_CERT:
 		Create(data.m_Type);
 		BN_copy(m_Dsa->p, data.m_Dsa->p);
 		BN_copy(m_Dsa->q, data.m_Dsa->q);
@@ -1263,6 +1265,7 @@ int CIdKey::Create(int type)
 	switch(type) {
 	case IDKEY_RSA1:
 	case IDKEY_RSA2:
+	case IDKEY_RSA_CERT:
 		m_Type = type;
 		if ( m_Rsa != NULL )
 			break;
@@ -1276,7 +1279,8 @@ int CIdKey::Create(int type)
 			return Close();
 		break;
 	case IDKEY_DSA2:
-		m_Type = IDKEY_DSA2;
+	case IDKEY_DSA_CERT:
+		m_Type = type;
 		if ( m_Dsa != NULL )
 			break;
 		if ( (m_Dsa = DSA_new()) == NULL )
@@ -1333,6 +1337,7 @@ int CIdKey::Compere(CIdKey *pKey)
 	switch(m_Type) {
 	case IDKEY_RSA1:
 	case IDKEY_RSA2:
+	case IDKEY_RSA_CERT:
 		if ( m_Rsa == NULL || pKey->m_Rsa == NULL )
 			break;
 		if ( BN_cmp(m_Rsa->e, pKey->m_Rsa->e) != 0 )
@@ -1341,6 +1346,7 @@ int CIdKey::Compere(CIdKey *pKey)
 			break;
 		return 0;
 	case IDKEY_DSA2:
+	case IDKEY_DSA_CERT:
 		if ( m_Dsa == NULL || pKey->m_Dsa == NULL )
 			break;
 		if ( BN_cmp(m_Dsa->p, pKey->m_Dsa->p) != 0 )
@@ -1361,6 +1367,8 @@ LPCSTR CIdKey::GetName()
 	case IDKEY_RSA1: return "rsa1";
 	case IDKEY_RSA2: return "ssh-rsa";
 	case IDKEY_DSA2: return "ssh-dss";
+	case IDKEY_RSA_CERT: return "ssh-rsa-cert-v00@openssh.com";
+	case IDKEY_DSA_CERT: return "ssh-dss-cert-v00@openssh.com";
 	}
 	return "";
 }
@@ -1372,6 +1380,10 @@ int CIdKey::GetTypeFromName(LPCSTR name)
 		return IDKEY_RSA2;
 	else if ( strcmp(name, "dsa") == 0 || strcmp(name, "ssh-dss") == 0 )
 		return IDKEY_DSA2;
+	//else if ( strcmp(name, "ssh-rsa-cert-v00@openssh.com") == 0 )
+	//	return IDKEY_RSA_CERT;
+	//else if ( strcmp(name, "ssh-dss-cert-v00@openssh.com") == 0 )
+	//	return IDKEY_DSA_CERT;
 	else
 		return IDKEY_NONE;
 }
@@ -1967,7 +1979,8 @@ int CIdKey::SavePrivateKey(int type, LPCSTR file, LPCSTR pass)
 	FILE *fp;
 	int rt = FALSE;
 	int len = (int)strlen(pass);
-	const EVP_CIPHER *cipher = EVP_des_ede3_cbc();
+//	const EVP_CIPHER *cipher = EVP_des_ede3_cbc();
+	const EVP_CIPHER *cipher = EVP_aes_128_cbc();
 
 	if ( (fp = fopen(file, "w")) == NULL )
 		return FALSE;

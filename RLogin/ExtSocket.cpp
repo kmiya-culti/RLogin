@@ -1603,7 +1603,7 @@ ERRRET:
 int CExtSocket::SSLConnect()
 {
 	DWORD val;
-	SSL_METHOD *method;
+	const SSL_METHOD *method;
 
 	WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), 0, 0);
 
@@ -1624,7 +1624,7 @@ int CExtSocket::SSLConnect()
 		break;
 	}
 
-	if ( (m_SSL_pCtx = SSL_CTX_new(method)) == NULL )
+	if ( (m_SSL_pCtx = SSL_CTX_new((SSL_METHOD *)method)) == NULL )
 		return FALSE;
 
 	if ( (m_SSL_pSock = SSL_new(m_SSL_pCtx)) == NULL ) {
