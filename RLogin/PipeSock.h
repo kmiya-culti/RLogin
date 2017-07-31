@@ -15,13 +15,15 @@ public:
 
 	CEvent *m_pInEvent;
 	CEvent *m_pOutEvent;
-	CEvent *m_pWaitEvent;
+	CEvent *m_pSendEvent;
 
 	CSemaphore m_RecvSema;
 	CSemaphore m_SendSema;
 
-	CBuffer m_ReadBuff;
 	PROCESS_INFORMATION m_proInfo;
+
+	OVERLAPPED m_ReadOverLap;
+	OVERLAPPED m_WriteOverLap;
 
 public:
 	BOOL Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM, void *pAddrInfo = NULL);
@@ -29,6 +31,7 @@ public:
 	void Close();
 	int Send(const void* lpBuf, int nBufLen, int nFlags = 0);
 	void SendBreak(int opt);
+	void OnRecive(int nFlags);
 	int OnIdle();
 
 	void GetPathMaps(CStringMaps &maps);
@@ -36,6 +39,7 @@ public:
 
 	void OnReadProc();
 	void OnWriteProc();
+	void OnReadWriteProc();
 
 	CPipeSock(class CRLoginDoc *pDoc);
 	virtual ~CPipeSock(void);

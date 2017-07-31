@@ -33,6 +33,12 @@
 #define	TEK_WIN_WIDTH	4096
 #define	TEK_WIN_HEIGHT	3072
 
+#define	DEFVAL_VTLEVEL	65
+#define	DEFVAL_FIRMVER	277
+#define	DEFVAL_TERMID	10
+#define	DEFVAL_UNITID	0
+#define	DEFVAL_KEYBID	0
+
 #define	EUC_SET			0
 #define	SJIS_SET		1
 #define	ASCII_SET		2
@@ -317,6 +323,12 @@
 #define	MODKEY_OTHER	4				//    how to handle other key-modifiers
 #define	MODKEY_STRING	5				//    how to handle string() modifiers
 #define	MODKEY_MAX		6
+
+#define	TERMPARA_VTLEVEL		0
+#define	TERMPARA_FIRMVER		1
+#define	TERMPARA_TERMID			2
+#define	TERMPARA_UNITID			3
+#define	TERMPARA_KEYBID			4
 
 #define	EXTCOL_BEGIN			256
 #define	EXTCOL_VT_TEXT_FORE		256				// 10  -> Change VT100 text foreground color to Pt.
@@ -733,6 +745,7 @@ public:	// Options
 	int m_FixVersion;
 	int m_SleepMax;
 	int m_LogMode;
+	int m_DefTermPara[5];
 
 	void Init();
 	void SetIndex(int mode, CStringIndex &index);
@@ -813,10 +826,13 @@ public:
 	CString m_StrPara;
 	DWORD m_MacroExecFlag[MACROMAX / 32];
 	CBuffer m_Macro[MACROMAX];
-	DWORD m_UnitId;
 
+	int m_FirmVer;
+	int m_UnitId;
 	int m_VtLevel;
 	int m_TermId;
+	int m_KeybId;
+
 	BOOL m_StsFlag;
 	int m_StsMode;
 	int m_StsLed;

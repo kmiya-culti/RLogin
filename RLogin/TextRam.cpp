@@ -1104,8 +1104,11 @@ CTextRam::CTextRam()
 	m_StsFlag = FALSE;
 	m_StsMode = 0;
 	m_StsLed  = 0;
-	m_VtLevel = 65;
-	m_TermId  = 10;
+	m_DefTermPara[TERMPARA_VTLEVEL] = m_VtLevel = DEFVAL_VTLEVEL;
+	m_DefTermPara[TERMPARA_FIRMVER] = m_FirmVer = DEFVAL_FIRMVER;
+	m_DefTermPara[TERMPARA_TERMID]  = m_TermId  = DEFVAL_TERMID;
+	m_DefTermPara[TERMPARA_UNITID]  = m_UnitId  = DEFVAL_UNITID;
+	m_DefTermPara[TERMPARA_KEYBID]  = m_KeybId  = DEFVAL_KEYBID;
 	m_LangMenu = 0;
 	SetRetChar(FALSE);
 	m_ClipFlag = 0;
@@ -1973,8 +1976,13 @@ void CTextRam::Init()
 
 	memset(m_MetaKeys, 0, sizeof(m_MetaKeys));
 	m_TitleMode = WTTL_ENTRY;
-	m_VtLevel = 65;
-	m_TermId  = 10;
+
+	m_DefTermPara[TERMPARA_VTLEVEL] = m_VtLevel = DEFVAL_VTLEVEL;
+	m_DefTermPara[TERMPARA_FIRMVER] = m_FirmVer = DEFVAL_FIRMVER;
+	m_DefTermPara[TERMPARA_TERMID]  = m_TermId  = DEFVAL_TERMID;
+	m_DefTermPara[TERMPARA_UNITID]  = m_UnitId  = DEFVAL_UNITID;
+	m_DefTermPara[TERMPARA_KEYBID]  = m_KeybId  = DEFVAL_KEYBID;
+
 	m_LangMenu = 0;
 	m_StsFlag = FALSE;
 	m_StsMode = 0;
@@ -1984,7 +1992,6 @@ void CTextRam::Init()
 	for ( int n = 0 ; n < 64 ; n++ )
 		m_Macro[n].Clear();
 
-	m_UnitId = 0;
 	m_ClipFlag = 0;
 	memset(m_MacroExecFlag, 0, sizeof(m_MacroExecFlag));
 	m_ShellExec.GetString(_T("http://|https://|ftp://|mailto://"), _T('|'));
@@ -2125,6 +2132,9 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		index[_T("Caret")] = m_DefTypeCaret;
 		index[_T("BugFix")] = FIX_VERSION;
 		index[_T("SleepTime")] = m_SleepMax;
+
+		for ( n = 0 ; n < 5 ; n++ )
+			index[_T("TermParaId")].Add(m_DefTermPara[n]);
 
 	} else {		// Read
 		if ( (n = index.Find(_T("Cols"))) >= 0 ) {
@@ -2312,6 +2322,16 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 			}
 		}
 
+		if ( (n = index.Find(_T("TermParaId"))) >= 0 ) {
+			for ( i = 0 ; i < 5 && i < index[n].GetSize() ; i++ )
+				m_DefTermPara[i] = index[n][i];
+			m_VtLevel = m_DefTermPara[TERMPARA_VTLEVEL];
+			m_FirmVer = m_DefTermPara[TERMPARA_FIRMVER];
+			m_TermId  = m_DefTermPara[TERMPARA_TERMID];
+			m_UnitId  = m_DefTermPara[TERMPARA_UNITID];
+			m_KeybId  = m_DefTermPara[TERMPARA_KEYBID];
+		}
+
 		memcpy(m_ColTab, m_DefColTab, sizeof(m_DefColTab));
 		memcpy(m_AnsiOpt, m_DefAnsiOpt, sizeof(m_AnsiOpt));
 		memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
@@ -2399,6 +2419,12 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 	stra.AddVal(m_DefTypeCaret);
 	stra.AddVal(m_SleepMax);
 	stra.AddVal(m_LogMode);
+
+	tmp.RemoveAll();
+	for ( int n = 0 ; n < 5 ; n++ )
+		tmp.AddVal(m_DefTermPara[n]);
+	tmp.SetString(str, _T(';'));
+	stra.Add(str);
 }
 void CTextRam::GetArray(CStringArrayExt &stra)
 {
@@ -2578,6 +2604,12 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 		m_LogMode = stra.GetVal(62);
 	else
 		m_LogMode = IsOptValue(TO_RLLOGMODE, 2);
+
+	if ( stra.GetSize() > 63 ) {
+		ext.GetString(stra.GetAt(63), _T(';'));
+		for ( n = 0 ; n < 5 && n < ext.GetSize() ; n++ )
+			m_DefTermPara[n] = _tstoi(ext[n]);
+	}
 
 	if ( m_FixVersion < 9 ) {
 		if ( m_pDocument != NULL ) {
@@ -2860,8 +2892,12 @@ const CTextRam & CTextRam::operator = (CTextRam &data)
 	memcpy(m_MetaKeys,  data.m_MetaKeys,  sizeof(m_MetaKeys));
 	m_ProcTab = data.m_ProcTab;
 	m_TitleMode = data.m_TitleMode;
+	m_UnitId = data.m_UnitId;
+	m_FirmVer = data.m_FirmVer;
 	m_VtLevel = data.m_VtLevel;
 	m_TermId  = data.m_TermId;
+	m_KeybId  = data.m_KeybId;
+	memcpy(m_DefTermPara, data.m_DefTermPara, sizeof(m_DefTermPara));
 	m_LangMenu = data.m_LangMenu;
 	m_UnitId = data.m_UnitId;
 	m_ClipFlag  = data.m_ClipFlag;
@@ -4934,8 +4970,13 @@ void CTextRam::RESET(int mode)
 
 	if ( mode & RESET_OPTION ) {
 		memcpy(m_AnsiOpt, m_DefAnsiOpt, sizeof(m_AnsiOpt));
-		m_VtLevel = 65;
-		m_TermId  = 10;
+
+		m_VtLevel = m_DefTermPara[TERMPARA_VTLEVEL];
+		m_FirmVer = m_DefTermPara[TERMPARA_FIRMVER];
+		m_TermId  = m_DefTermPara[TERMPARA_TERMID];
+		m_UnitId  = m_DefTermPara[TERMPARA_UNITID];
+		m_KeybId  = m_DefTermPara[TERMPARA_KEYBID];
+
 		m_LangMenu = 0;
 		SetRetChar(FALSE);
 		m_FileSaveFlag = TRUE;

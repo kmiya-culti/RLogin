@@ -17,23 +17,24 @@ public:
 	HANDLE m_hCom;
 	CString m_ComName;
 	int m_ComPort;
-	BOOL m_ThreadEnd;
-	BOOL m_PauseReq;
-	CSemaphore m_ComSema;
-	CEvent *m_pReadEvent;
-	CEvent *m_pWriteEvent;
-	CEvent *m_pEndEvent;
-	CEvent *m_pPauseEvent;
+	int m_SendBreak;
+	BOOL m_bCommState;
+	DWORD m_CommError;
+	DWORD m_ModemStatus;
+	BOOL m_bGetStatus;
+
+	volatile int m_ThreadMode;
+
+	CEvent *m_pThredEvent;
+	CEvent *m_pSendEvent;
+	CEvent *m_pStatEvent;
+
+	CSemaphore m_RecvSema;
+	CSemaphore m_SendSema;
+
 	OVERLAPPED m_ReadOverLap;
 	OVERLAPPED m_WriteOverLap;
 	OVERLAPPED m_CommOverLap;
-	BOOL m_UseReadOverLap;
-	BOOL m_UseWriteOverLap;
-	DWORD m_WriteOverLapByte;
-	DWORD m_EventMask;
-	DWORD m_EventCode;
-	BYTE m_ReadOverLapBuf[1024];
-	BYTE m_WriteOverLapBuf[1024];
 
 private:
 	COMMCONFIG m_ComConf;
@@ -52,9 +53,10 @@ public:
 	void SetXonXoff(int sw);
 	void SendBreak(int opt = 0);
 	int Send(const void* lpBuf, int nBufLen, int nFlags = 0);
-	void OnRecvEmpty();
 	void OnRecive(int nFlags);
-	void OnSend();
+	void GetStatus(CString &str);
+
+	void OnReadWriteProc();
 
 	void GetConfig();
 	void SetConfig();
@@ -64,8 +66,6 @@ public:
 
 	void ConfigDlg(CWnd *pWnd, CString &str);
 	static DWORD AliveComPort();
-
-	void ModEventMask(DWORD add, DWORD del);
 
 	CComSock(class CRLoginDoc *pDoc);
 	virtual ~CComSock();

@@ -491,7 +491,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.18.8 (2015/07/10)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.18.9 (2015/07/24)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2015 Culti",IDC_STATIC,44,16,189,8
     DEFPUSHBUTTON   "OK",IDOK,96,171,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.2d 9 Jul 2015",IDC_STATIC,44,29,189,8
@@ -1204,20 +1204,22 @@ BEGIN
     PUSHBUTTON      "キャンセル",IDCANCEL,195,162,64,14
 END
 
-IDD_ESCDLG DIALOGEX 0, 0, 251, 265
+IDD_ESCDLG DIALOGEX 0, 0, 251, 311
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "ESC/CSI/DCS"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    CONTROL         "",IDC_ESCLIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,16,20,96,111
-    CONTROL         "",IDC_DCSLIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,16,159,96,67
-    CONTROL         "",IDC_CSILIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,139,19,96,207
-    PUSHBUTTON      "初期化",IDC_RESET,29,243,55,15
-    DEFPUSHBUTTON   "OK",IDOK,97,243,55,15
-    PUSHBUTTON      "キャンセル",IDCANCEL,165,243,55,15
-    GROUPBOX        "ESCシーケンス",IDC_STATIC,7,7,114,133
-    GROUPBOX        "CSIシーケンス",IDC_STATIC,130,7,114,229
-    GROUPBOX        "DCSシーケンス",IDC_STATIC,7,146,114,90
+    CONTROL         "",IDC_ESCLIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,16,20,96,67
+    CONTROL         "",IDC_DCSLIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,16,112,96,67
+    CONTROL         "",IDC_CSILIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,139,19,96,160
+    PUSHBUTTON      "初期化",IDC_RESET,29,289,55,15
+    DEFPUSHBUTTON   "OK",IDOK,97,289,55,15
+    PUSHBUTTON      "キャンセル",IDCANCEL,165,289,55,15
+    GROUPBOX        "ESCシーケンス",IDC_STATIC,7,7,114,90
+    GROUPBOX        "CSIシーケンス",IDC_STATIC,130,7,114,182
+    GROUPBOX        "DCSシーケンス",IDC_STATIC,7,99,114,90
+    GROUPBOX        "各種ID",IDC_STATIC,7,191,237,91
+    CONTROL         "",IDC_PARALIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,15,204,222,70
 END
 
 IDD_ESCPARADLG DIALOGEX 0, 0, 184, 63
@@ -1488,7 +1490,7 @@ BEGIN
     DEFPUSHBUTTON   "はい",IDOK,60,144,60,14
     PUSHBUTTON      "いいえ",IDCANCEL,133,144,60,14
     LTEXT           "ESCシーケンスなどにより変化する設定が変更されました。\n現在の設定をこの接続の初期値として保存しますか？",IDC_STATIC,53,22,188,16
-    ICON            "",IDC_MSGICON,21,20,20,20
+    ICON            "",IDC_MSGICON,21,20,18,21
 END
 
 IDD_TTYMODEDLG DIALOGEX 0, 0, 291, 242
@@ -1523,15 +1525,6 @@ BEGIN
     CONTROL         "",IDC_FRAME,"Static",SS_BLACKFRAME,63,7,246,150
 END
 
-IDD_DIALOGEXT DIALOG 0, 0, 320, 200
-STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "ダイアログ"
-FONT 9, "MS UI Gothic"
-BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,209,179,50,14
-    PUSHBUTTON      "キャンセル",IDCANCEL,263,179,50,14
-END
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1539,8 +1532,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,18,8,0
- PRODUCTVERSION 2,18,8,0
+ FILEVERSION 2,18,9,0
+ PRODUCTVERSION 2,18,9,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1557,12 +1550,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.18.8.0"
+            VALUE "FileVersion", "2.18.9.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2015 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.18.8.0"
+            VALUE "ProductVersion", "2.18.9.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -1817,7 +1810,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 244
         TOPMARGIN, 7
-        BOTTOMMARGIN, 258
+        BOTTOMMARGIN, 304
     END
 
     IDD_ESCPARADLG, DIALOG
@@ -1968,14 +1961,6 @@ BEGIN
         RIGHTMARGIN, 309
         TOPMARGIN, 7
         BOTTOMMARGIN, 178
-    END
-
-    IDD_DIALOGEXT, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 313
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 193
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -2906,10 +2891,16 @@ BEGIN
     IDE_RSABITSIZEERR       "RSAは、ビットサイズを768/1024/2048/4096/8192から選択してください。推奨は、2048以上です。"
     IDE_SSHGLOBALREQERROR   "SSH2グローバルリクエストエラー"
     IDE_UPDATERESUMEERROR   "再開できません上書きになります"
-    IDE_USEPASSWORDIDKEY    "パスフレーズと鍵ファイルを指定してください"
+    IDE_USEPASSWORDIDKEY    "空のパスフレーズを指定しています。\n空のままで処理を続行しますか？"
     IDE_USESERVERENTRY      "Server Entry を入力してください"
     IDS_NEWVERSIONCHECK     "新しいバージョンのRLogin(%s)があります。\n今すぐダウンロードページを表示しますか？"
     IDS_VERSIONCHECKURL     "http://nanno.dip.jp/softlib/version.txt"
+    IDE_USEIDKEYFILENAME    "認証鍵ファイルを指定してください"
+END
+
+STRINGTABLE
+BEGIN
+    IDM_NONENCRYPTFILE      "空のパスフレーズで作成されています\n暗号化されない認証鍵ファイルを作成しますか？"
 END
 
 STRINGTABLE

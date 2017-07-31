@@ -3873,7 +3873,7 @@ void CTextRam::fc_DECSTUI(DWORD ch)
 }
 void CTextRam::fc_XTRQCAP(DWORD ch)
 {
-	//DCS ('P' << 24) | ('+' << 8) | 'q'		XTRQCAP Request Termcap/Terminfo String (xterm, experimental)
+	//DCS ('+' << 8) | 'q'			XTRQCAP Request Termcap/Terminfo String (xterm, experimental)
 
 	int i;
 	int res = 0;
@@ -3888,6 +3888,10 @@ void CTextRam::fc_XTRQCAP(DWORD ch)
 	env.GetString(m_pDocument->m_ParamTab.m_ExtEnvStr);
 	dlg.SetEntry(cap, env[_T("TERMCAP")]);
 	dlg.InfoNameToCapName(info);
+
+	cap[_T("Co")] = _T("#256");
+	tmp.Format(_T("=%s"), m_pDocument->m_ServerEntry.m_TermName);
+	cap[_T("TN")] = tmp;
 
 	for ( p = (LPCSTR)m_OscPara ; *p != '\0' ; ) {
 
@@ -6910,7 +6914,7 @@ void CTextRam::fc_DA2(DWORD ch)
 	// CSI ('>' << 16) | 'c'	DA2 Secondary Device Attributes
 
 	if ( m_AnsiPara.GetSize() == 0 || m_AnsiPara[0].IsEmpty() || m_AnsiPara[0] == 0 )
-		UNGETSTR(_T("%s>65;100;1c"), m_RetChar[RC_CSI]);
+		UNGETSTR(_T("%s>%d;%d;%dc"), m_RetChar[RC_CSI], m_VtLevel, m_FirmVer, m_KeybId);
 	fc_POP(ch);
 }
 

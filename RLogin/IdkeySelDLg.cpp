@@ -358,8 +358,8 @@ void CIdkeySelDLg::OnIdkeyInport()
 	if ( dlg.DoModal() != IDOK )
 		return;
 
-	if ( dlg.m_PassName.IsEmpty() || dlg.m_IdkeyFile.IsEmpty() ) {
-		MessageBox(CStringLoad(IDE_USEPASSWORDIDKEY));
+	if ( dlg.m_IdkeyFile.IsEmpty() ) {
+		MessageBox(CStringLoad(IDE_USEIDKEYFILENAME));
 		return;
 	}
 
@@ -398,8 +398,8 @@ void CIdkeySelDLg::OnIdkeyExport()
 	if ( dlg.DoModal() != IDOK )
 		return;
 
-	if ( dlg.m_PassName.IsEmpty() || dlg.m_IdkeyFile.IsEmpty() ) {
-		MessageBox(CStringLoad(IDE_USEPASSWORDIDKEY));
+	if ( dlg.m_IdkeyFile.IsEmpty() ) {
+		MessageBox(CStringLoad(IDE_USEIDKEYFILENAME));
 		return;
 	}
 
@@ -454,8 +454,8 @@ void CIdkeySelDLg::OnIdkeyCreate()
 		return;
 
 	if ( dlg.m_PassName.IsEmpty() ) {
-		MessageBox(CStringLoad(IDE_USEPASSWORDIDKEY));
-		return;
+		if ( MessageBox(CStringLoad(IDE_USEPASSWORDIDKEY), _T("Warning"), MB_ICONWARNING | MB_OKCANCEL) != IDOK )
+			return;
 	}
 
 	if ( (pWnd = GetDlgItem(IDC_IDKEY_TYPE)) != NULL )

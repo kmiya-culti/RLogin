@@ -20,17 +20,27 @@ CPipeSock::CPipeSock(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 
 	m_pInEvent   = new CEvent(FALSE, TRUE);
 	m_pOutEvent  = new CEvent(FALSE, TRUE);
-	m_pWaitEvent = new CEvent(FALSE, TRUE);
+	m_pSendEvent = new CEvent(FALSE, TRUE);
 
 	memset(&m_proInfo, 0, sizeof(PROCESS_INFORMATION));
+
+	memset(&m_ReadOverLap,  0, sizeof(OVERLAPPED));
+	memset(&m_WriteOverLap, 0, sizeof(OVERLAPPED));
+
+	m_ReadOverLap.hEvent  = CreateEvent(NULL, TRUE, FALSE, NULL);
+	m_WriteOverLap.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 }
 
 CPipeSock::~CPipeSock(void)
 {
 	Close();
+
 	delete m_pInEvent;
 	delete m_pOutEvent;
-	delete m_pWaitEvent;
+	delete m_pSendEvent;
+
+	CloseHandle(m_ReadOverLap.hEvent);
+	CloseHandle(m_WriteOverLap.hEvent);
 }
 static UINT PipeInThread(LPVOID pParam)
 {
@@ -50,64 +60,88 @@ static UINT PipeOutThread(LPVOID pParam)
 	pThis->m_OutThreadMode = 3;
 	return 0;
 }
+static UINT PipeInOutThread(LPVOID pParam)
+{
+	CPipeSock *pThis = (CPipeSock *)pParam;
+
+	pThis->OnReadWriteProc();
+	pThis->m_pOutEvent->SetEvent();
+	pThis->m_OutThreadMode = 3;
+	return 0;
+}
 BOOL CPipeSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
 {
 	Close();
 
-	SECURITY_ATTRIBUTES secAtt;
-	STARTUPINFO startInfo;
+	if ( _tcsncmp(lpszHostAddress, _T("\\\\.\\pipe\\"), 9) == 0 ) {
 
-	secAtt.nLength = sizeof(SECURITY_ATTRIBUTES);
-	secAtt.lpSecurityDescriptor = NULL;
-	secAtt.bInheritHandle = TRUE;
+		if ( (m_hIn[0] = CreateFile(lpszHostAddress, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL)) == INVALID_HANDLE_VALUE ) {
+			CString errmsg;
+			errmsg.Format(_T("NamedPipe Open Error '%s'"), lpszHostAddress);
+			AfxMessageBox(errmsg, MB_ICONSTOP);
+			return FALSE;
+		}
 
-	if ( !CreatePipe(&(m_hIn[0]), &(m_hIn[1]), &secAtt, 0) ) {
-		CString errmsg;
-		errmsg.Format(_T("PipeSocket StdIn CreatePipe Error '%s'"), lpszHostAddress);
-		AfxMessageBox(errmsg, MB_ICONSTOP);
-		return FALSE;
+		m_OutThreadMode = 1;
+		m_pOutEvent->ResetEvent();
+		m_OutThread = AfxBeginThread(PipeInOutThread, this, THREAD_PRIORITY_BELOW_NORMAL);
+
+	} else {
+
+		SECURITY_ATTRIBUTES secAtt;
+		STARTUPINFO startInfo;
+
+		secAtt.nLength = sizeof(SECURITY_ATTRIBUTES);
+		secAtt.lpSecurityDescriptor = NULL;
+		secAtt.bInheritHandle = TRUE;
+
+		if ( !CreatePipe(&(m_hIn[0]), &(m_hIn[1]), &secAtt, 0) ) {
+			CString errmsg;
+			errmsg.Format(_T("PipeSocket StdIn CreatePipe Error '%s'"), lpszHostAddress);
+			AfxMessageBox(errmsg, MB_ICONSTOP);
+			return FALSE;
+		}
+
+		secAtt.nLength = sizeof(SECURITY_ATTRIBUTES);
+		secAtt.lpSecurityDescriptor = NULL;
+		secAtt.bInheritHandle = TRUE;
+
+		if ( !CreatePipe(&(m_hOut[0]), &(m_hOut[1]), &secAtt, 0) ) {
+			CString errmsg;
+			errmsg.Format(_T("PipeSocket StdOut CreatePipe Error '%s'"), lpszHostAddress);
+			AfxMessageBox(errmsg, MB_ICONSTOP);
+			return FALSE;
+		}
+
+		memset(&startInfo,0,sizeof(STARTUPINFO));
+		startInfo.cb = sizeof(STARTUPINFO);
+		startInfo.dwFlags = STARTF_USEFILLATTRIBUTE | STARTF_USECOUNTCHARS | STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
+		startInfo.wShowWindow = SW_HIDE;
+		startInfo.hStdInput  = m_hOut[0];
+		startInfo.hStdOutput = m_hIn[1];
+		startInfo.hStdError  = m_hIn[1];
+
+		if ( !CreateProcess(NULL, (LPTSTR)(LPCTSTR)lpszHostAddress, NULL, NULL, TRUE, CREATE_NEW_PROCESS_GROUP, NULL, NULL, &startInfo, &m_proInfo) ) {
+			CString errmsg;
+			errmsg.Format(_T("PipeSocket CreateProcess Error '%s'"), lpszHostAddress);
+			AfxMessageBox(errmsg, MB_ICONSTOP);
+			return FALSE;
+		}
+
+		m_InThreadMode = 1;
+		m_pInEvent->ResetEvent();
+		m_InThread = AfxBeginThread(PipeInThread, this, THREAD_PRIORITY_BELOW_NORMAL);
+
+		m_OutThreadMode = 1;
+		m_pOutEvent->ResetEvent();
+		m_OutThread = AfxBeginThread(PipeOutThread, this, THREAD_PRIORITY_BELOW_NORMAL);
 	}
-
-	secAtt.nLength = sizeof(SECURITY_ATTRIBUTES);
-	secAtt.lpSecurityDescriptor = NULL;
-	secAtt.bInheritHandle = TRUE;
-
-	if ( !CreatePipe(&(m_hOut[0]), &(m_hOut[1]), &secAtt, 0) ) {
-		CString errmsg;
-		errmsg.Format(_T("PipeSocket StdOut CreatePipe Error '%s'"), lpszHostAddress);
-		AfxMessageBox(errmsg, MB_ICONSTOP);
-		return FALSE;
-	}
-
-	memset(&startInfo,0,sizeof(STARTUPINFO));
-	startInfo.cb = sizeof(STARTUPINFO);
-	startInfo.dwFlags = STARTF_USEFILLATTRIBUTE | STARTF_USECOUNTCHARS | STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
-	startInfo.wShowWindow = SW_HIDE;
-	startInfo.hStdInput  = m_hOut[0];
-	startInfo.hStdOutput = m_hIn[1];
-	startInfo.hStdError  = m_hIn[1];
-
-	if ( !CreateProcess(NULL, (LPTSTR)(LPCTSTR)lpszHostAddress, NULL, NULL, TRUE, CREATE_NEW_PROCESS_GROUP, NULL, NULL, &startInfo, &m_proInfo) ) {
-		CString errmsg;
-		errmsg.Format(_T("PipeSocket CreateProcess Error '%s'"), lpszHostAddress);
-		AfxMessageBox(errmsg, MB_ICONSTOP);
-		return FALSE;
-	}
-
-	m_SendBuff.Clear();
-	m_pWaitEvent->ResetEvent();
-
-	m_InThreadMode = 1;
-	m_pInEvent->ResetEvent();
-	m_InThread = AfxBeginThread(PipeInThread, this, THREAD_PRIORITY_BELOW_NORMAL);
-
-	m_OutThreadMode = 1;
-	m_pOutEvent->ResetEvent();
-	m_OutThread = AfxBeginThread(PipeOutThread, this, THREAD_PRIORITY_BELOW_NORMAL);
 
 	GetApp()->SetSocketIdle(this);
+	GetMainWnd()->SetAsyncSelect((SOCKET)m_hIn[0], this, 0);
 
-	CExtSocket::OnConnect();
+//	CExtSocket::OnConnect();
+	AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hIn[0], FD_CONNECT);
 
 	return TRUE;
 }
@@ -117,6 +151,9 @@ BOOL CPipeSock::AsyncOpen(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketP
 }
 void CPipeSock::Close()
 {
+	if ( m_hIn[0] != NULL )
+		GetMainWnd()->DelAsyncSelect((SOCKET)m_hIn[0], this, FALSE);
+
 	if ( m_proInfo.hProcess != NULL ) {
 		DWORD ec;
 		if ( GetExitCodeProcess(m_proInfo.hProcess, &ec) ) {
@@ -141,7 +178,9 @@ void CPipeSock::Close()
 	}
 	if ( m_OutThreadMode != 0 ) {
 		m_OutThreadMode = 2;
-		m_pWaitEvent->SetEvent();
+		m_pSendEvent->SetEvent();
+		SetEvent(m_ReadOverLap.hEvent);
+		SetEvent(m_WriteOverLap.hEvent);
 		WaitForSingleObject(m_pOutEvent->m_hObject, INFINITE);
 		m_OutThreadMode = 0;
 	}
@@ -155,6 +194,9 @@ void CPipeSock::Close()
 	m_hOut[0] = m_hOut[1] = NULL;
 
 	GetApp()->DelSocketIdle(this);
+
+	m_SendBuff.Clear();
+	m_pSendEvent->ResetEvent();
 
 	CExtSocket::Close();
 }
@@ -170,24 +212,31 @@ int CPipeSock::Send(const void* lpBuf, int nBufLen, int nFlags)
 		return 0;
 	m_SendSema.Lock();
 	m_SendBuff.Apend((LPBYTE)lpBuf, nBufLen);
-	m_pWaitEvent->SetEvent();
+	m_pSendEvent->SetEvent();
 	m_SendSema.Unlock();
 	return nBufLen;
+}
+void CPipeSock::OnRecive(int nFlags)
+{
+	int n;
+	BYTE buff[1024];
+
+	m_RecvSema.Lock();
+	while ( (n = m_RecvBuff.GetSize()) > 0 ) {
+		if ( n > 1024 )
+			n = 1024;
+		memcpy(buff, m_RecvBuff.GetPtr(), n);
+		m_RecvBuff.Consume(n);
+		m_RecvSema.Unlock();
+		OnReciveCallBack(buff, n, nFlags);
+		m_RecvSema.Lock();
+	}
+	m_RecvSema.Unlock();
 }
 int CPipeSock::OnIdle()
 {
 	if ( CExtSocket::OnIdle() )
 		return TRUE;
-
-	if ( m_hIn == NULL )
-		return FALSE;
-
-	m_RecvSema.Lock();
-	if ( m_ReadBuff.GetSize() > 0 ) {
-		OnReciveCallBack(m_ReadBuff.GetPtr(), m_ReadBuff.GetSize(), 0);
-		m_ReadBuff.Clear();
-	}
-	m_RecvSema.Unlock();
 
 	if ( m_proInfo.hProcess != NULL ) {
 		DWORD ec;
@@ -202,15 +251,16 @@ int CPipeSock::OnIdle()
 void CPipeSock::OnReadProc()
 {
 	DWORD n;
-	BYTE buff[4096];
+	BYTE buff[1024];
 
 	while ( m_InThreadMode == 1 ) {
-		if ( !ReadFile(m_hIn[0], buff, 4096, &n, NULL ) )
+		if ( !ReadFile(m_hIn[0], buff, 1024, &n, NULL ) )
 			break;
 		if ( n > 0 ) {
 			m_RecvSema.Lock();
-			m_ReadBuff.Apend(buff, n);
+			m_RecvBuff.Apend(buff, n);
 			m_RecvSema.Unlock();
+			AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hIn[0], FD_READ);
 		}
 	}
 }
@@ -232,11 +282,181 @@ void CPipeSock::OnWriteProc()
 			}
 			FlushFileBuffers(m_hOut[1]);
 		} else {
-			m_pWaitEvent->ResetEvent();
+			m_pSendEvent->ResetEvent();
 			m_SendSema.Unlock();
-			WaitForSingleObject(m_pWaitEvent->m_hObject, INFINITE);
+			WaitForSingleObject(m_pSendEvent->m_hObject, INFINITE);
 		}
 	}
+}
+void CPipeSock::OnReadWriteProc()
+{
+	DWORD n;
+	int HandleCount = 0;
+	HANDLE HandleTab[4];
+	BOOL bReadOverLap   = FALSE;
+	BOOL bWriteOverLap  = FALSE;
+	BOOL bHaveRecvData  = TRUE;
+	BOOL bHaveSendData  = TRUE;
+	BOOL bHaveSendReady = TRUE;
+	DWORD HaveError = 0;
+	DWORD ReadByte  = 0;
+	DWORD WriteByte = 0;
+	DWORD WriteTop = 0;
+	BYTE ReadBuf[1024];
+	BYTE WriteBuf[1024];
+	CEvent TimerEvent(FALSE, TRUE);
+
+	while ( m_OutThreadMode == 1 ) {
+
+		HandleCount = 0;
+
+		// ReadOverLap
+		if ( bReadOverLap ) {
+			if ( GetOverlappedResult(m_hIn[0], &m_ReadOverLap, &n, FALSE) ) {
+				if ( n > 0 ) {
+					ReadByte += n;
+					m_RecvSema.Lock();
+					m_RecvBuff.Apend(ReadBuf, n);
+					m_RecvSema.Unlock();
+				} else
+					bHaveRecvData = FALSE;
+				bReadOverLap = FALSE;
+			} else if ( (n = ::GetLastError()) == ERROR_IO_INCOMPLETE || n == ERROR_IO_PENDING ) {
+				HandleTab[HandleCount++] = m_ReadOverLap.hEvent;
+				bReadOverLap = TRUE;
+			} else {
+				HaveError = n;
+				goto ERRENDOF;
+			}
+		}
+
+		// ReadFile
+		if ( !bReadOverLap && bHaveRecvData ) {
+			if ( ReadFile(m_hIn[0], ReadBuf, 1024, &n, &m_ReadOverLap) ) {
+				if ( n > 0 ) {
+					ReadByte += n;
+					m_RecvSema.Lock();
+					m_RecvBuff.Apend(ReadBuf, n);
+					m_RecvSema.Unlock();
+				} else
+					bHaveRecvData = FALSE;
+			} else if ( (n = ::GetLastError()) == ERROR_IO_PENDING ) {
+				HandleTab[HandleCount++] = m_ReadOverLap.hEvent;
+				bReadOverLap = TRUE;
+			} else {
+				HaveError = n;
+				goto ERRENDOF;
+			}
+		}
+
+		// PostMsg Call OnRecive
+		if ( ReadByte > 0 ) {
+			ReadByte = 0;
+			AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hIn[0], FD_READ);
+		}
+
+		// WriteOverLap
+		if ( bWriteOverLap ) {
+			if ( GetOverlappedResult(m_hIn[0], &m_WriteOverLap, &n, FALSE) ) {
+				if ( n > 0 )
+					WriteTop += n;
+				else
+					bHaveSendReady = FALSE;
+				bWriteOverLap = FALSE;
+			} else if ( (n = ::GetLastError()) == ERROR_IO_INCOMPLETE || n == ERROR_IO_PENDING ) {
+				HandleTab[HandleCount++] = m_WriteOverLap.hEvent;
+				bWriteOverLap = TRUE;
+			} else {
+				HaveError = n;
+				goto ERRENDOF;
+			}
+		}
+
+		// Check WriteData
+		if ( !bWriteOverLap && bHaveSendData && WriteTop >= WriteByte ) {
+			WriteTop = 0;
+			m_SendSema.Lock();
+			if ( (WriteByte = m_SendBuff.GetSize()) > 0 ) {
+				if ( WriteByte > 1024 )
+					WriteByte = 1024;
+				memcpy(WriteBuf, m_SendBuff.GetPtr(), WriteByte);
+				m_SendBuff.Consume(WriteByte);
+				m_SendSema.Unlock();
+			} else {
+				m_pSendEvent->ResetEvent();
+				m_SendSema.Unlock();
+				bHaveSendData = FALSE;
+			}
+		}
+
+		// WriteFile
+		if ( !bWriteOverLap && bHaveSendReady && WriteTop < WriteByte ) {
+			while ( WriteTop < WriteByte ) {
+				if ( WriteFile(m_hIn[0], WriteBuf + WriteTop, WriteByte - WriteTop, &n, &m_WriteOverLap) ) {
+					if ( n > 0 ) {
+						WriteTop += n;
+					}else {
+						bHaveSendReady = FALSE;
+						break;
+					}
+				} else if ( (n = ::GetLastError()) == ERROR_IO_PENDING ) {
+					HandleTab[HandleCount++] = m_WriteOverLap.hEvent;
+					bWriteOverLap = TRUE;
+					break;
+				} else {
+					HaveError = n;
+					goto ERRENDOF;
+				}
+			}
+		}
+
+		// ReadData Loop Check
+		if ( !bReadOverLap && bHaveRecvData ) {
+			if ( !bWriteOverLap && !bHaveSendData && bHaveSendReady )
+				bHaveSendData = TRUE;
+			continue;
+		}
+
+		// WriteData Loop Check
+		if ( !bWriteOverLap && bHaveSendData && bHaveSendReady ) {
+			if ( !bReadOverLap && !bHaveRecvData )
+				bHaveRecvData = TRUE;
+			continue;
+		}
+
+		// NoOverLap or NotSendReady Timer Set
+		if ( HandleCount == 0 || !bHaveSendReady ) {
+			TimerEvent.ResetEvent();
+			timeSetEvent(300, 10, (LPTIMECALLBACK)(TimerEvent.m_hObject), 0, TIME_ONESHOT | TIME_CALLBACK_EVENT_SET);
+			HandleTab[HandleCount++] = TimerEvent.m_hObject;
+		}
+
+		// SendData Event Add
+		if ( !bHaveSendData )
+			HandleTab[HandleCount++] = m_pSendEvent->m_hObject;
+
+		TRACE("PipeThredProc ReadOverLap=%d, WriteOverLap=%d, HaveSendData=%d, HaveRecvData=%d, WaitFor=%d\n",
+			bReadOverLap, bWriteOverLap, bHaveSendData, bHaveRecvData, HandleCount);
+
+		// Wait For Event
+		ASSERT(HandleCount > 0);
+		n = WaitForMultipleObjects(HandleCount, HandleTab, FALSE, INFINITE);
+		if ( n >= WAIT_OBJECT_0 && (n -= WAIT_OBJECT_0) < HandleCount ) {
+			if ( HandleTab[n] == m_pSendEvent->m_hObject )
+				bHaveSendData = TRUE;
+			else if ( HandleTab[n] == TimerEvent.m_hObject ) {
+				bHaveRecvData  = TRUE;
+				bHaveSendReady = TRUE;
+			}
+		}
+	}
+
+ERRENDOF:
+	if ( HaveError != 0 )
+		AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hIn[0], WSAMAKESELECTREPLY(0, HaveError));
+
+	if ( bReadOverLap || bWriteOverLap )
+		CancelIo(m_hIn[0]);
 }
 void CPipeSock::GetPathMaps(CStringMaps &maps)
 {

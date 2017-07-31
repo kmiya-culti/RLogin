@@ -158,7 +158,7 @@
 #define IDE_USESERVERENTRY              565
 #define IDS_NEWVERSIONCHECK             566
 #define IDS_VERSIONCHECKURL             567
-#define IDD_DIALOGEXT                   568
+#define IDE_USEIDKEYFILENAME            568
 #define ID_CHARSCRIPT_END               1000
 #define ID_DISCONNECT                   1001
 #define ID_EDIT_BOX                     1002
@@ -304,6 +304,7 @@
 #define IDC_DEFPAMCHECK4                1141
 #define IDC_DEFPAMCHECK5                1142
 #define IDC_DELAYMSEC                   1143
+#define IDC_DEFPAMCHECK6                1143
 #define IDC_DELENTRY                    1144
 #define IDC_DELAYMSEC2                  1144
 #define IDC_SLEEPTIME                   1144
@@ -390,6 +391,7 @@
 #define IDC_KEYSTAT8                    1225
 #define IDC_KEYSTAT9                    1226
 #define IDC_LIST1                       1227
+#define IDC_PARALIST                    1227
 #define IDC_LIST2                       1228
 #define IDC_LISTENHOST                  1229
 #define IDC_LISTENPORT                  1230
@@ -667,13 +669,14 @@
 #define IDM_VERSIONCHECK                5085
 #define IDM_NEWVERSIONFOUND             5086
 #define IDM_DIALOGFONT                  5087
+#define IDM_NONENCRYPTFILE              5088
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        188
-#define _APS_NEXT_COMMAND_VALUE         5088
+#define _APS_NEXT_COMMAND_VALUE         5089
 #define _APS_NEXT_CONTROL_VALUE         1416
 #define _APS_NEXT_SYMED_VALUE           569
 #endif
