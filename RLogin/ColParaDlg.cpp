@@ -69,6 +69,7 @@ BEGIN_MESSAGE_MAP(CColParaDlg, CPropertyPage)
 	ON_EN_CHANGE(IDC_TEXTCOL, &CColParaDlg::OnEnChangeColor)
 	ON_EN_CHANGE(IDC_BACKCOL, &CColParaDlg::OnEnChangeColor)
 	ON_BN_CLICKED(IDC_CHECK1, &CColParaDlg::OnBnClickedGlassStyle)
+	ON_CONTROL_RANGE(BN_CLICKED, IDC_ATTR1, IDC_ATTR8, &CColParaDlg::OnUpdateCheck)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -116,16 +117,16 @@ void CColParaDlg::DoInit()
 	int n;
 
 	for ( n = 0 ; n < 16 ; n++ )
-		m_ColTab[n] = m_pSheet->m_pTextRam->m_DefColTab[n];
+		m_ColTab[n] = m_pSheet->m_pTextRam->m_ColTab[n];
 
-	m_FontCol[0] = m_pSheet->m_pTextRam->m_DefAtt.fc;
-	m_FontCol[1] = m_pSheet->m_pTextRam->m_DefAtt.bc;
+	m_FontCol[0] = m_pSheet->m_pTextRam->m_AttNow.fc;
+	m_FontCol[1] = m_pSheet->m_pTextRam->m_AttNow.bc;
 
 	m_FontColName[0].Format(_T("%d"), m_FontCol[0]);
 	m_FontColName[1].Format(_T("%d"), m_FontCol[1]);
 
 	for ( n = 0 ; n < 24 ; n++ )
-		m_Attrb[n] = (m_pSheet->m_pTextRam->m_DefAtt.at & (1 << n) ? TRUE : FALSE);
+		m_Attrb[n] = (m_pSheet->m_pTextRam->m_AttNow.at & (1 << n) ? TRUE : FALSE);
 
 	m_BitMapFile = m_pSheet->m_pTextRam->m_BitMapFile;
 
@@ -191,21 +192,18 @@ BOOL CColParaDlg::OnApply()
 
 	UpdateData(TRUE);
 
-	for ( n = 0 ; n < 16 ; n++ ) {
-		m_pSheet->m_pTextRam->m_DefColTab[n] = m_ColTab[n];
+	for ( n = 0 ; n < 16 ; n++ )
 		m_pSheet->m_pTextRam->m_ColTab[n] = m_ColTab[n];
-	}
 
 	m_FontCol[0] = _tstoi(m_FontColName[0]);
 	m_FontCol[1] = _tstoi(m_FontColName[1]);
 
-	m_pSheet->m_pTextRam->m_DefAtt.fc = m_FontCol[0];
-	m_pSheet->m_pTextRam->m_DefAtt.bc = m_FontCol[1];
-	m_pSheet->m_pTextRam->m_DefAtt.at = 0;
+	m_pSheet->m_pTextRam->m_AttNow.fc = m_FontCol[0];
+	m_pSheet->m_pTextRam->m_AttNow.bc = m_FontCol[1];
+	m_pSheet->m_pTextRam->m_AttNow.at = 0;
 	for ( n = 0 ; n < 24 ; n++ )
-		m_pSheet->m_pTextRam->m_DefAtt.at |= (m_Attrb[n] ? (1 << n) : 0);
+		m_pSheet->m_pTextRam->m_AttNow.at |= (m_Attrb[n] ? (1 << n) : 0);
 
-	m_pSheet->m_pTextRam->m_AttNow = m_pSheet->m_pTextRam->m_DefAtt;
 	m_pSheet->m_pTextRam->m_AttSpc = m_pSheet->m_pTextRam->m_AttNow;
 
 	m_pSheet->m_pTextRam->m_BitMapFile  = m_BitMapFile;
@@ -275,7 +273,7 @@ void CColParaDlg::OnLButtonDblClk(UINT nFlags, CPoint point)
 			Invalidate(FALSE);
 			UpdateData(FALSE);
 			SetModified(TRUE);
-			m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+			m_pSheet->m_ModFlag |= (UMOD_TEXTRAM | UMOD_COLTAB);
 			break;
 		}
 	}
@@ -308,7 +306,7 @@ void CColParaDlg::OnLButtonDown(UINT nFlags, CPoint point)
 						UpdateData(FALSE);
 						Invalidate(FALSE);
 						SetModified(TRUE);
-						m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+						m_pSheet->m_ModFlag |= (UMOD_TEXTRAM | UMOD_DEFATT);
 						break;
 					}
 				}
@@ -364,14 +362,18 @@ void CColParaDlg::OnSelendokColset()
 	Invalidate(FALSE);
 
 	SetModified(TRUE);
-	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+	m_pSheet->m_ModFlag |= (UMOD_TEXTRAM | UMOD_COLTAB);
 }
 void CColParaDlg::OnUpdateEdit() 
 {
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 }
-
+void CColParaDlg::OnUpdateCheck(UINT nId)
+{
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= (UMOD_TEXTRAM | UMOD_DEFATT);
+}
 void CColParaDlg::OnEnChangeColor()
 {
 	UpdateData(TRUE);
@@ -390,5 +392,5 @@ void CColParaDlg::OnEnChangeColor()
 	UpdateData(FALSE);
 
 	SetModified(TRUE);
-	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+	m_pSheet->m_ModFlag |= (UMOD_TEXTRAM | UMOD_DEFATT);
 }

@@ -52,5 +52,6 @@ protected:
 	afx_msg void OnUpdateEdit();
 	afx_msg void OnEnChangeColor();
 	afx_msg void OnBnClickedGlassStyle();
+	afx_msg void OnUpdateCheck(UINT nId);
 	DECLARE_MESSAGE_MAP()
 };

@@ -44,6 +44,7 @@ public:
 protected:
 	afx_msg void OnUpdateCheck(UINT nId);
 	afx_msg void OnUpdateEdit();
+	afx_msg void OnUpdateEditOpt();
 	afx_msg void OnCbnSelchangeCombo();
 	DECLARE_MESSAGE_MAP()
 };

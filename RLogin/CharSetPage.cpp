@@ -108,7 +108,7 @@ static const LV_COLUMN InitListTab[6] = {
 void CCharSetPage::DoInit()
 {
 
-	m_AltFont    = m_pSheet->m_pTextRam->m_DefAtt.ft;
+	m_AltFont    = m_pSheet->m_pTextRam->m_AttNow.ft;
 	m_FontTab    = m_pSheet->m_pTextRam->m_FontTab;
 	m_KanjiCode  = m_pSheet->m_pTextRam->m_KanjiMode;
 	m_CharBankGL = m_pSheet->m_pTextRam->m_BankGL;
@@ -165,7 +165,7 @@ BOOL CCharSetPage::OnApply()
 
 	UpdateData(TRUE);
 
-	m_pSheet->m_pTextRam->m_DefAtt.ft = m_AltFont;
+	m_pSheet->m_pTextRam->m_AttNow.ft = m_AltFont;
 	m_pSheet->m_pTextRam->SetKanjiMode(m_KanjiCode);
 	m_pSheet->m_pTextRam->m_BankGL    = m_CharBankGL;
 	m_pSheet->m_pTextRam->m_BankGR    = m_CharBankGR;
@@ -177,13 +177,9 @@ BOOL CCharSetPage::OnApply()
 	m_BankTab[m_KanjiCode][3] = m_FontTab.Find(m_CharBank4);
 
 	memcpy(m_pSheet->m_pTextRam->m_BankTab, m_BankTab, sizeof(m_BankTab));
-	memcpy(m_pSheet->m_pTextRam->m_DefBankTab, m_BankTab, sizeof(m_BankTab));
 
 	for ( int n = 0 ; n < 4 ; n++ )
 		m_pSheet->m_pTextRam->m_SendCharSet[n] = m_SendCharSet[n];
-
-	m_pSheet->m_pTextRam->m_AttNow = m_pSheet->m_pTextRam->m_DefAtt;
-	m_pSheet->m_pTextRam->m_AttSpc = m_pSheet->m_pTextRam->m_AttNow;
 
 	m_List.SaveColumn(_T("CharSetPage"));
 
@@ -207,7 +203,7 @@ void CCharSetPage::OnCharSet(UINT nID)
 	UpdateData(FALSE);
 
 	SetModified(TRUE);
-	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+	m_pSheet->m_ModFlag |= (UMOD_TEXTRAM | UMOD_BANKTAB);
 }
 void CCharSetPage::OnFontListNew() 
 {
@@ -322,7 +318,7 @@ void CCharSetPage::OnDblclkFontlist(NMHDR* pNMHDR, LRESULT* pResult)
 void CCharSetPage::OnUpdateCheck(UINT nID) 
 {
 	SetModified(TRUE);
-	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+	m_pSheet->m_ModFlag |= (UMOD_TEXTRAM | UMOD_BANKTAB);
 }
 void CCharSetPage::OnUpdateEditEntry(CCmdUI* pCmdUI) 
 {

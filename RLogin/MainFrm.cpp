@@ -883,6 +883,23 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 			cs.cy = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("cy"), cs.cy);
 	}
 
+	HMONITOR hMonitor;
+    MONITORINFOEX  mi;
+	CRect rc(cs.x, cs.y, cs.x + cs.cx, cs.y + cs.cy);
+
+	hMonitor = MonitorFromRect(&rc, MONITOR_DEFAULTTONEAREST);
+	mi.cbSize = sizeof(MONITORINFO);
+	GetMonitorInfo(hMonitor, &mi);
+
+	if ( rc.left > mi.rcMonitor.right ) {
+		if ( (cs.x -= (mi.rcMonitor.right - rc.right)) < 0 )
+			cs.x = 0;
+	}
+	if ( rc.top > mi.rcMonitor.bottom ) {
+		if ( (cs.y -= (mi.rcMonitor.bottom - rc.bottom)) < 0 )
+			cs.y = 0;
+	}
+
 	return TRUE;
 }
 

@@ -564,7 +564,7 @@ void CRLoginApp::GetProfileData(LPCTSTR lpszSection, LPCTSTR lpszEntry, void *lp
 	if ( GetProfileBinary(lpszSection, lpszEntry, &pData, &len) ) {
 		if ( len == (UINT)nBufLen )
 			memcpy(lpBuf, pData, nBufLen);
-		else
+		else if ( lpDef != NULL )
 			memcpy(lpBuf, lpDef, nBufLen);
 		delete pData;
 	} else if ( lpDef != NULL )

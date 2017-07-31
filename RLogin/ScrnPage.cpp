@@ -66,7 +66,7 @@ BEGIN_MESSAGE_MAP(CScrnPage, CPropertyPage)
 	ON_CBN_EDITCHANGE(IDC_SCSZFONT,  OnUpdateEdit)
 	ON_CBN_SELCHANGE(IDC_SCSZFONT,	 OnUpdateEdit)
 	ON_CBN_SELCHANGE(IDC_FONTHW,     OnUpdateEdit)
-	ON_CBN_SELCHANGE(IDC_VISUALBELL, OnUpdateEdit)
+	ON_CBN_SELCHANGE(IDC_VISUALBELL, OnUpdateEditOpt)
 	ON_CBN_SELCHANGE(IDC_RECVCRLF,   OnUpdateEdit)
 	ON_CBN_SELCHANGE(IDC_SENDCRLF,   OnUpdateEdit)
 	ON_CBN_SELCHANGE(IDC_COMBO3, OnCbnSelchangeCombo)
@@ -171,15 +171,22 @@ void CScrnPage::OnUpdateEdit()
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 }
+void CScrnPage::OnUpdateEditOpt() 
+{
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= (UMOD_TEXTRAM | UMOD_ANSIOPT);
+}
 void CScrnPage::OnUpdateCheck(UINT nID) 
 {
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 
 	if ( nID == IDC_SCRNSIZE1 || nID == IDC_SCRNSIZE2 ) {
+		m_pSheet->m_ModFlag |= UMOD_ANSIOPT;
 		UpdateData(TRUE);
 		InitDlgItem();
-	}
+	} else if ( nID >= IDC_CHECKFAST && nID <= (IDC_CHECKFAST + CHECKOPTMAX - 1) )
+		m_pSheet->m_ModFlag |= UMOD_ANSIOPT;
 }
 void CScrnPage::OnCbnSelchangeCombo()
 {

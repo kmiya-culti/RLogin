@@ -440,7 +440,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.15.0 (2013/10/16)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.15.1 (2013/10/31)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2013 Culti",IDC_STATIC,47,15,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,148,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.1e Feb 11th, 2013",IDC_STATIC,47,29,176,8
@@ -1403,6 +1403,23 @@ BEGIN
     CONTROL         "次回から確認しない",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,20,179,74,10
 END
 
+IDD_DEFPARAMDLG DIALOGEX 0, 0, 255, 165
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "初期値として保存"
+FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
+BEGIN
+    CONTROL         "CSIオプションの値(SM,RM,DECSET,DECRST)",IDC_DEFPAMCHECK1,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,40,53,157,10
+    CONTROL         "modify Keysの設定(CSI>m,CSI>n)",IDC_DEFPAMCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,40,69,157,10
+    CONTROL         "カラーパレットの設定(OSC4)",IDC_DEFPAMCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,40,85,157,10
+    CONTROL         "文字バンクの設定(ISO-2022による設定)",IDC_DEFPAMCHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,40,101,157,10
+    CONTROL         "文字色・属性の設定(SGR)",IDC_DEFPAMCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,40,117,157,10
+    LTEXT           "ESCシーケンスなどにより変化する設定が変更されました。\n現在の設定をこの接続の初期値として保存しますか？",IDC_STATIC,53,22,188,16
+    ICON            "",IDC_MSGICON,21,20,20,20
+    DEFPUSHBUTTON   "はい",IDOK,60,144,60,14
+    PUSHBUTTON      "いいえ",IDCANCEL,133,144,60,14
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1410,8 +1427,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,15,0,0
- PRODUCTVERSION 2,15,0,0
+ FILEVERSION 2,15,1,0
+ PRODUCTVERSION 2,15,1,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1428,12 +1445,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.15.0.0"
+            VALUE "FileVersion", "2.15.1.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2013 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.15.0.0"
+            VALUE "ProductVersion", "2.15.1.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -1809,6 +1826,14 @@ BEGIN
         RIGHTMARGIN, 263
         TOPMARGIN, 7
         BOTTOMMARGIN, 194
+    END
+
+    IDD_DEFPARAMDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 248
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 158
     END
 END
 #endif    // APSTUDIO_INVOKED

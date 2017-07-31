@@ -13,6 +13,8 @@
 #include "GrapWnd.h"
 #include "SCript.h"
 #include "CancelDlg.h"
+#include "OptDlg.h"
+#include "DefParamDlg.h"
 
 #include <iconv.h>
 #include <imm.h>
@@ -3740,6 +3742,32 @@ void CTextRam::SetOptValue(int opt, int len, int value)
 		value >>= 1;
 	}
 }
+void CTextRam::InitDefParam(BOOL bCheck, int modFlag)
+{
+	CDefParamDlg dlg;
+
+	if ( bCheck ) {
+		dlg.m_InitFlag = modFlag;
+		if ( dlg.DoModal() != IDOK )
+			return;
+		modFlag = dlg.m_InitFlag;
+	}
+
+	if ( (modFlag & UMOD_ANSIOPT) != 0 )
+		memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_DefAnsiOpt));
+
+	if ( (modFlag & UMOD_MODKEY) != 0 )
+		memcpy(m_DefModKey, m_ModKey, sizeof (m_DefModKey));
+
+	if ( (modFlag & UMOD_COLTAB) != 0 )
+		memcpy(m_DefColTab, m_ColTab, sizeof(m_DefColTab));
+
+	if ( (modFlag & UMOD_BANKTAB) != 0 )
+		memcpy(m_DefBankTab, m_BankTab, sizeof(m_DefBankTab));
+
+	if ( (modFlag & UMOD_DEFATT) != 0 )
+		m_DefAtt = m_AttNow;
+}
 void CTextRam::InitModKeyTab()
 {
 	int n;
@@ -4164,7 +4192,7 @@ void CTextRam::RESET(int mode)
 		m_DefAtt.em = 0;
 		m_DefAtt.dm = 0;
 		m_DefAtt.cm = 0;
-		m_DefAtt.at = 0;
+//		m_DefAtt.at = 0;
 		m_AttSpc = m_DefAtt;
 		m_AttNow = m_DefAtt;
 	}

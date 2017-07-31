@@ -1038,7 +1038,8 @@ void CRLoginDoc::OnSetOption()
 	if ( dlg.DoModal() != IDOK )
 		return;
 
-	m_TextRam.InitDefAnsiOpt();
+	if ( (dlg.m_ModFlag & (UMOD_ANSIOPT | UMOD_MODKEY | UMOD_COLTAB | UMOD_BANKTAB | UMOD_DEFATT)) != 0 )
+		m_TextRam.InitDefParam(TRUE, dlg.m_ModFlag);
 
 	if ( m_LoadMode == DOCTYPE_ENTRYFILE )
 		SetModifiedFlag(TRUE);

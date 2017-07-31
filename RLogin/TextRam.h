@@ -796,7 +796,7 @@ public:
 	int IsOptValue(int opt, int len);
 	void SetOptValue(int opt, int len, int value);
 	inline void SetOption(int opt, BOOL sw) { if ( sw ) EnableOption(opt); else DisableOption(opt); }
-	inline void InitDefAnsiOpt() { memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_DefAnsiOpt)); }
+	void InitDefParam(BOOL bCheck, int modFlag = (-1));
 	void InitModKeyTab();
 
 	inline int GetCalcPos(int x, int y) { return (m_ColsMax * (y + m_HisPos + m_HisMax) + x); }

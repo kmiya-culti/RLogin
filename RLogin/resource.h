@@ -72,6 +72,7 @@
 #define IDD_SOCKOPTPAGE                 164
 #define IDD_MODKEYPAGE                  165
 #define IDD_ANYPASTDIG                  170
+#define IDD_DEFPARAMDLG                 171
 #define IDP_SOCKETS_INIT_FAILED         300
 #define IDS_INDICATOR_STAT              301
 #define IDS_IDKEYFILELOAD               302
@@ -201,14 +202,19 @@
 #define IDC_BACKFILE                    1000
 #define IDC_BACKSEL                     1001
 #define IDC_KEYCODE1                    1001
+#define IDC_DEFPAMCHECK1                1001
 #define IDC_BANKGL1                     1002
 #define IDC_KEYCODE2                    1002
+#define IDC_DEFPAMCHECK2                1002
 #define IDC_BANKGL2                     1003
 #define IDC_KEYCODE3                    1003
+#define IDC_DEFPAMCHECK3                1003
 #define IDC_BANKGL3                     1004
 #define IDC_KEYCODE4                    1004
+#define IDC_DEFPAMCHECK4                1004
 #define IDC_BANKGL4                     1005
 #define IDC_KEYCODE5                    1005
+#define IDC_DEFPAMCHECK5                1005
 #define IDC_BANKGR1                     1006
 #define IDC_BANKGR2                     1007
 #define IDC_BANKGR3                     1008
@@ -399,6 +405,7 @@
 #define IDC_NODETREE                    1159
 #define IDC_SENDSTR                     1160
 #define IDC_RECVSTR                     1161
+#define IDC_CHECK5                      1161
 #define IDC_NEWNODE                     1162
 #define IDC_UPDATENODE                  1163
 #define IDC_DELNODE                     1164
@@ -638,7 +645,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        171
+#define _APS_NEXT_RESOURCE_VALUE        172
 #define _APS_NEXT_COMMAND_VALUE         5069
 #define _APS_NEXT_CONTROL_VALUE         3071
 #define _APS_NEXT_SYMED_VALUE           200

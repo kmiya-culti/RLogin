@@ -978,6 +978,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\DefParamDlg.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\EditDlg.cpp"
 				>
 			</File>
@@ -1385,6 +1389,10 @@
 			</File>
 			<File
 				RelativePath=".\Data.h"
+				>
+			</File>
+			<File
+				RelativePath=".\DefParamDlg.h"
 				>
 			</File>
 			<File

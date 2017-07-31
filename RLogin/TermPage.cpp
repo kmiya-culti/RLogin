@@ -266,7 +266,7 @@ void CTermPage::OnReset()
 void CTermPage::OnUpdateCheck(UINT nID) 
 {
 	SetModified(TRUE);
-	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+	m_pSheet->m_ModFlag |= (UMOD_TEXTRAM | UMOD_ANSIOPT);
 }
 
 void CTermPage::OnBnClickedEscedit()
@@ -289,7 +289,7 @@ void CTermPage::OnNMClickEsclist(NMHDR *pNMHDR, LRESULT *pResult)
 
 	if ( pNMItemActivate->iSubItem == 0 ) {
 		SetModified(TRUE);
-		m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+		m_pSheet->m_ModFlag |= (UMOD_TEXTRAM | UMOD_ANSIOPT);
 	}
 
 	*pResult = 0;
