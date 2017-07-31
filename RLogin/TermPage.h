@@ -25,6 +25,8 @@ public:
 public:
 	void DoInit();
 
+	static int IsSupport(int opt);
+
 // オーバーライド
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート

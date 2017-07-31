@@ -42,6 +42,7 @@ void CPfdParaDlg::DoDataExchange(CDataExchange* pDX)
 }
 
 BEGIN_MESSAGE_MAP(CPfdParaDlg, CDialogExt)
+	ON_CONTROL_RANGE(BN_CLICKED, IDC_RADIO1, IDC_RADIO3, OnBnClickedListen)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -92,6 +93,7 @@ void CPfdParaDlg::OnOK()
 	CStringArrayExt stra;
 
 	UpdateData(TRUE);
+
 	stra.Add(m_ListenHost);
 	stra.Add(m_ListenPort);
 	stra.Add(m_ConnectHost);
@@ -110,4 +112,17 @@ void CPfdParaDlg::OnOK()
 		m_pData->Add(str);
 
 	CDialogExt::OnOK();
+}
+
+void CPfdParaDlg::OnBnClickedListen(UINT nID)
+{
+	CWnd *pWnd;
+
+	UpdateData(TRUE);
+
+	if ( (pWnd = GetDlgItem(IDC_CONNECTHOST)) != NULL )
+		pWnd->EnableWindow(m_ListenType == 1 ? FALSE : TRUE);
+
+	if ( (pWnd = GetDlgItem(IDC_CONNECTPORT)) != NULL )
+		pWnd->EnableWindow(m_ListenType == 1 ? FALSE : TRUE);
 }

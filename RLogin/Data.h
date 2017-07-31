@@ -37,6 +37,15 @@ BOOL IsZeroMemory(void *ptr, int len);
 #define	MAPING_CENTER	4
 #define	MAPING_PAN		5
 #define	MAPING_DESKTOP	6
+#define	MAPING_LEFTOP	7
+#define	MAPING_LEFCEN	8
+#define	MAPING_LEFBTM	9
+#define	MAPING_CENTOP	10
+#define	MAPING_CENCEN	11
+#define	MAPING_CENBTM	12
+#define	MAPING_RIGTOP	13
+#define	MAPING_RIGCEN	14
+#define	MAPING_RIGBTM	15
 
 class CBuffer : public CObject
 {
@@ -431,6 +440,7 @@ public:
 	int m_Style;
 	int m_Quality;
 	BOOL m_bFixed;
+	TEXTMETRIC m_Metric;
 
 	CFont *Open(LPCTSTR pFontName, int Width, int Height, int CharSet, int Style, int Quality);
 

@@ -811,6 +811,21 @@ ENDOF:
 
 BOOL CRLoginApp::InitInstance()
 {
+	// LoadLibrary Search Path
+	HMODULE hModule;
+	if ((hModule = GetModuleHandle(_T("kernel32.dll"))) != NULL) {
+		BOOL (WINAPI *pSetSearchPathMode)(DWORD);
+		BOOL (WINAPI *pSetDefaultDllDirectories)(DWORD); 
+		BOOL (WINAPI *pSetDllDirectoryA)(LPCSTR);
+
+		if ( (pSetSearchPathMode = (BOOL (WINAPI *)(DWORD))GetProcAddress(hModule, "SetSearchPathMode")) != NULL )
+			pSetSearchPathMode(BASE_SEARCH_PATH_ENABLE_SAFE_SEARCHMODE | BASE_SEARCH_PATH_PERMANENT);
+		else if ( (pSetDefaultDllDirectories = (BOOL (WINAPI *)(DWORD))GetProcAddress(hModule, "SetDefaultDllDirectories")) != NULL )
+			pSetDefaultDllDirectories(0x00000800);	// LOAD_LIBRARY_SEARCH_SYSTEM32
+		else if ( (pSetDllDirectoryA = (BOOL (WINAPI *)(LPCSTR))GetProcAddress(hModule, "SetDllDirectoryA")) != NULL )
+			pSetDllDirectoryA("");
+	}
+
 	// デフォルトのロケールを設定 strftimeなどで必要
 	setlocale(LC_ALL, "");
 

@@ -789,7 +789,8 @@ void CRLoginDoc::ScriptText(LPCWSTR str, LPCWSTR match, CStringW &tmp)
 {
 	int n;
 	WCHAR c;
-	CEditDlg dlg;
+	CEditDlg edit;
+	CPassDlg dlg;
 	CTime tm = CTime::GetCurrentTime();
 	DWORD size;
 	TCHAR buf[MAX_COMPUTERNAME_LENGTH + 2];
@@ -825,22 +826,36 @@ void CRLoginDoc::ScriptText(LPCWSTR str, LPCWSTR match, CStringW &tmp)
 				tmp += tm.Format(_T("%H%M%S"));
 				break;
 			case L'I':
-				dlg.m_WinText = _T("ChatScript");
-				if ( match != NULL ) dlg.m_Title = match;
-				dlg.m_Edit  = tmp;
+				edit.m_WinText = _T("ChatScript");
+				if ( match != NULL )
+					edit.m_Title = match;
+				edit.m_Edit  = tmp;
 				tmp.Empty();
-				if ( dlg.DoModal() == IDOK )
-					tmp = dlg.m_Edit;
+				if ( edit.DoModal() == IDOK )
+					tmp = edit.m_Edit;
 				break;
-			case _T('s'):
+			case L'i':
+				dlg.m_Title    = m_ServerEntry.m_EntryName;
+				dlg.m_HostAddr = m_ServerEntry.m_HostName;
+				dlg.m_UserName = m_ServerEntry.m_UserName;
+				dlg.m_PassName = m_ServerEntry.m_PassName;
+				dlg.m_Prompt   = _T("Password");
+				dlg.m_MaxTime  = 120;
+				if ( dlg.DoModal() == IDOK ) {
+					m_ServerEntry.m_HostName = dlg.m_HostAddr;
+					m_ServerEntry.m_UserName = dlg.m_UserName;
+					m_ServerEntry.m_PassName = dlg.m_PassName;
+				}
+				break;
+			case L's':
 				tmp += m_SockStatus;
 				break;
-			case 'u':
+			case L'u':
 				size = MAX_COMPUTERNAME_LENGTH;
 				if ( GetUserName(buf, &size) )
 					tmp += buf;
 				break;
-			case 'h':
+			case L'h':
 				size = MAX_COMPUTERNAME_LENGTH;
 				if ( GetComputerName(buf, &size) )
 					tmp += buf;
@@ -1550,6 +1565,8 @@ int CRLoginDoc::SocketOpen()
 		dlg.m_UserName = m_ServerEntry.m_UserName;
 		dlg.m_PassName = m_ServerEntry.m_PassName;
 		dlg.m_Prompt   = _T("Password");
+		if ( m_ServerEntry.m_ProtoType == PROTO_SSH )
+			dlg.m_Prompt += _T("/phrase");
 		dlg.m_MaxTime  = 120;
 
 		if ( dlg.DoModal() != IDOK )

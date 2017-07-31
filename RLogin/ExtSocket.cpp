@@ -1205,6 +1205,9 @@ BOOL CExtSocket::ProxyFunc()
 				m_ProxyLength = 4 + 16 + 2;
 				m_ProxyStatus = PRST_SOCKS5_CONNECT;
 				break;
+			default:
+				m_ProxyStatus = PRST_SOCKS5_ERROR;
+				break;
 			}
 			break;
 		case PRST_SOCKS5_READSTAT:

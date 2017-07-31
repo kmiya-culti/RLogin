@@ -50,36 +50,42 @@
 #define	LOGMOD_PAGE		4
 #define	LOGMOD_DEBUG	5
 
-#define ATT_BOLD		0x0000001		// [1m bold or increased intensity
-#define	ATT_HALF		0x0000002		// [2m faint, decreased intensity or second colour
-#define ATT_ITALIC		0x0000004		// [3m italicized
-#define ATT_UNDER		0x0000008		// [4m singly underlined
-#define ATT_SBLINK		0x0000010		// [5m slowly blinking
-#define ATT_REVS		0x0000020		// [7m negative image
-#define ATT_SECRET		0x0000040		// [8m concealed characters
-#define ATT_LINE		0x0000080		// [9m crossed-out
-#define ATT_BLINK		0x0000100		// [6m rapidly blinking 
-#define ATT_DUNDER		0x0000200		// [21m doubly underlined
-#define ATT_FRAME		0x0000400		// [51m framed
-#define ATT_CIRCLE		0x0000800		// [52m encircled
-#define ATT_OVER		0x0001000		// [53m overlined
-#define ATT_RSLINE		0x0002000		// [60m right side line
-#define ATT_RDLINE		0x0004000		// [61m double line on the right side
-#define ATT_LSLINE		0x0008000		// [62m left side line
-#define ATT_LDLINE		0x0010000		// [63m double line on the left side
-#define ATT_STRESS		0x0020000		// [64m stress marking
-#define ATT_DOVER		0x0040000		//      double over line
-#define	ATT_SUNDER		0x0080000		// [50m signle under line
-//						0x0100000
-#define	ATT_EXTVRAM		0x0200000		// extend vram
-#define	ATT_MARK		0x0400000		// Search Mark
-#define	ATT_CLIP		0x0800000		// Mouse Clip
-#define	ATT_RTOL		0x1000000		// RtoL Char
-#define	ATT_BORDER		0x2000000		// U+2500 Border Char
-#define	ATT_MIRROR		0x4000000		// Mirror Draw
-#define	ATT_RETURN		0x8000000		// CR/LF Mark		// max 7 * 4 = 28 bit
-#define	ATT_MASK		0x0FFFFFF
-#define	ATT_MASKEXT		0x7FFFFFF
+#define ATT_BOLD		0x00000001		// [1m bold or increased intensity
+#define	ATT_HALF		0x00000002		// [2m faint, decreased intensity or second colour
+#define ATT_ITALIC		0x00000004		// [3m italicized
+#define ATT_UNDER		0x00000008		// [4m singly underlined
+#define ATT_SBLINK		0x00000010		// [5m slowly blinking
+#define ATT_REVS		0x00000020		// [7m negative image
+#define ATT_SECRET		0x00000040		// [8m concealed characters
+#define ATT_LINE		0x00000080		// [9m crossed-out
+#define ATT_BLINK		0x00000100		// [6m rapidly blinking 
+#define ATT_DUNDER		0x00000200		// [21m doubly underlined
+#define ATT_FRAME		0x00000400		// [51m framed
+#define ATT_CIRCLE		0x00000800		// [52m encircled
+#define ATT_OVER		0x00001000		// [53m overlined
+#define ATT_RSLINE		0x00002000		// [60m right side line
+#define ATT_RDLINE		0x00004000		// [61m double line on the right side
+#define ATT_LSLINE		0x00008000		// [62m left side line
+#define ATT_LDLINE		0x00010000		// [63m double line on the left side
+#define ATT_STRESS		0x00020000		// [64m stress marking
+#define ATT_DOVER		0x00040000		//      double over line
+#define	ATT_SUNDER		0x00080000		// [50m signle under line
+//						0x00100000
+#define	ATT_EXTVRAM		0x00200000		// extend vram
+#define	ATT_SMARK		0x00400000		// Search Mark
+//						0x00800000
+#define	ATT_RTOL		0x01000000		// RtoL Char
+#define	ATT_BORDER		0x02000000		// U+2500 Border Char
+//						0x04000000
+#define	ATT_RETURN		0x08000000		// CR/LF Mark		// max 7 * 4 = 28 bit
+#define	ATT_MASK		0x00FFFFFF
+#define	ATT_MASKEXT		0x07FFFFFF
+
+// 保存されないアトリビュート
+#define	ATT_CLIP		0x10000000		// Mouse Clip
+#define	ATT_MIRROR		0x20000000		// Mirror Draw
+#define	ATT_OVERCHAR	0x40000000		// Over Write Charctor
+//						0x80000000
 
 #define	BLINK_TIME		300				// ATT_BLINK time (ms)
 #define	SBLINK_TIME		600				// ATT_SBLINK time (ms)
@@ -131,6 +137,7 @@
 #define	TO_XTMCUS		41			// XTerm tab bug fix
 #define TO_XTMRVW		45			// XTerm Reverse-wraparound mode
 #define	TO_XTMABUF		47			// XTerm alternate buffer
+#define	TO_DECNKM		66			// Numeric Keypad Mode
 #define	TO_DECBKM		67			// Backarrow key mode (BS)
 #define	TO_DECLRMM		69			// Left Right Margin Mode
 #define	TO_DECSDM		80			// Sixel Display Mode Control reset = Scroll mode Enable
@@ -189,6 +196,7 @@
 #define	TO_RLC1DIS		454			// C1制御を行わない
 #define TO_RLCLSBACK	455			// 全画面消去でスクロールする
 #define	TO_RLBRKMBCS	456			// 壊れたMBCSの代替え表示
+#define	TO_TTCTH		457			// 8200 画面クリア(ED 2)時にカーソルを左上に移動する。
 
 // RLogin SockOpt		1000-1511(0-511)
 #define	TO_RLTENAT		1406		// 自動ユーザー認証を行わない
@@ -609,6 +617,7 @@ public:
 	CString m_UniBlock;
 	CString m_Iso646Name[2];
 	DWORD m_Iso646Tab[12];
+	CString m_OverZero;
 
 	void SetHash(int num);
 	void Init();
@@ -620,7 +629,10 @@ public:
 	void SetUserFont(int code, int width, int height, LPBYTE map);
 	BOOL SetFontImage(int width, int height);
 	int Compare(CFontNode &data);
-	LPCTSTR GetEntryName() { return (!m_EntryName.IsEmpty() ? m_EntryName : m_IndexName); }
+	inline LPCTSTR GetEntryName() { return (!m_EntryName.IsEmpty() ? m_EntryName : m_IndexName); }
+
+	inline BOOL IsOverChar(LPCTSTR str) { return (!m_OverZero.IsEmpty() && _tcscmp(str, _T("0")) == 0 ? TRUE : FALSE); }
+	inline LPCTSTR OverCharStr(LPCTSTR str) { return m_OverZero; }
 
 	CFontNode();
 	~CFontNode();
@@ -1080,6 +1092,7 @@ public:
 		COLORREF brgb;
 		clock_t	aclock;
 		BOOL	print;
+		int		descent;
 	};
 
 	int IsWord(DWORD ch);
@@ -1100,6 +1113,7 @@ public:
 	void DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, struct DrawWork &prop, class CRLoginView *pView);
 	void DrawHoriLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, struct DrawWork &prop, class CRLoginView *pView);
 	void DrawVertLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, struct DrawWork &prop, class CRLoginView *pView);
+	void DrawOverChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, struct DrawWork &prop, class CRLoginView *pView);
 	void DrawString(CDC *pDC, CRect &rect, struct DrawWork &prop, class CRLoginView *pView);
 	void DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginView *pView, BOOL bPrint);
 

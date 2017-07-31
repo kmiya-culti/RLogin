@@ -34,6 +34,7 @@ public:
 	CString m_UniBlock;
 	CString m_Iso646Name[2];
 	DWORD m_Iso646Tab[12];
+	CString m_OverZero;
 
 	int m_CodeSet;
 	CString m_FontNameTab[16];

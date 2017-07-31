@@ -61,6 +61,7 @@ void CFontParaDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_CBString(pDX, IDC_FACENAME, m_FontName);
 	DDX_CBIndex(pDX, IDC_FONTNUM, m_FontNum);
 	DDX_CBIndex(pDX, IDC_FONTQUALITY, m_FontQuality);
+	DDX_CBString(pDX, IDC_OVERZERO, m_OverZero);
 	//}}AFX_DATA_MAP
 }
 
@@ -248,6 +249,8 @@ BOOL CFontParaDlg::OnInitDialog()
 	SetFontFace(IDC_FACENAME);
 	m_FontName  = m_FontNameTab[m_FontNum];
 
+	m_OverZero = m_pData->m_OverZero;
+
 	UpdateData(FALSE);
 
 	return TRUE;
@@ -273,6 +276,7 @@ void CFontParaDlg::OnOK()
 	m_pData->m_Iso646Name[0] = m_Iso646Name[0];
 	m_pData->m_Iso646Name[1] = m_Iso646Name[1];
 	memcpy(m_pData->m_Iso646Tab, m_Iso646Tab, sizeof(m_Iso646Tab));
+	m_pData->m_OverZero = m_OverZero;
 
 	m_FontNameTab[m_FontNum] = m_FontName;
 	for ( int n = 0 ; n < 16 ; n++ ) {

@@ -1377,8 +1377,10 @@ void Cssh::DecodeProxySocks(int id)
 {
 	int n;
 	int len;
+	int id_len, dm_len;
+	BOOL bS4a = FALSE;
 	DWORD dw;
-	LPBYTE p;
+	LPBYTE p, e;
 	CString host[2];
 	int port[2];
 	struct {
@@ -1388,6 +1390,7 @@ void Cssh::DecodeProxySocks(int id)
 		union {
 			struct in_addr	in_addr;
 			DWORD			dw_addr;
+			BYTE			bt_addr[4];
 		} dest;
 	} s4_req;
 	BYTE tmp[257];
@@ -1399,21 +1402,50 @@ void Cssh::DecodeProxySocks(int id)
 		return;
 
 	p = cp->m_Output.GetPtr();
+	e = p + len;
+
 	switch(p[0]) {
 	case 4:
-		if ( len < sizeof(s4_req) )
+		if ( len < 8 )
 			break;
-		for ( n = sizeof(s4_req) ; n < len ; n++ ) {
-			if ( p[n] == '\0' )
+
+		if ( p[1] != 0x01 ) {		// CONNECT Command
+			ChannelClose(id);
+			return;
+		}
+
+		p += (1 + 1 + 2);			// version + command +  dest_port
+
+		if ( p[0] == 0 && p[1] == 0 && p[2] == 0 && p[3] != 0 )
+			bS4a = TRUE;
+
+		p += 4;						// in_addr
+
+		// UserID Skip
+		for ( id_len = 0 ; ; ) {
+			if ( p >= e )
+				return;
+			id_len++;
+			if ( *(p++) == '\0' )
 				break;
 		}
-		if ( n++ >= len )
-			break;
-		s4_req.version   = cp->m_Output.Get8Bit();
-		s4_req.command   = cp->m_Output.Get8Bit();
-		s4_req.dest_port = *((WORD *)(cp->m_Output.GetPtr())); cp->m_Output.Consume(2);
-		s4_req.dest.dw_addr = *((DWORD *)(cp->m_Output.GetPtr())); cp->m_Output.Consume(4);
-		cp->m_Output.Consume( n - sizeof(s4_req));
+		// Domain Name Skip
+		for ( dm_len = 0 ; bS4a ; ) {
+			if ( p >= e )
+				return;
+			if ( dm_len < 256 )
+				tmp[dm_len++] = *p;
+			if ( *(p++) == '\0' )
+				break;
+		}
+		tmp[dm_len] = '\0';
+
+		s4_req.version      = cp->m_Output.Get8Bit();
+		s4_req.command      = cp->m_Output.Get8Bit();
+		s4_req.dest_port    = cp->m_Output.GetWord();	// LT Word
+		s4_req.dest.dw_addr = cp->m_Output.GetDword();	// LT DWord
+		cp->m_Output.Consume(id_len);					// UserID
+		cp->m_Output.Consume(dm_len);					// Domain Name
 
 		cp->m_Input.Put8Bit(0);
 		cp->m_Input.Put8Bit(90);
@@ -1422,7 +1454,7 @@ void Cssh::DecodeProxySocks(int id)
 		cp->Send(cp->m_Input.GetPtr(), cp->m_Input.GetSize());
 		cp->m_Input.Clear();
 
-		host[0] = inet_ntoa(s4_req.dest.in_addr);
+		host[0] = (bS4a && dm_len > 0 ? (LPCSTR)tmp : inet_ntoa(s4_req.dest.in_addr));
 		port[0] = ntohs(s4_req.dest_port);
 		host[1] = cp->m_lHost;
 		port[1] = cp->m_lPort;

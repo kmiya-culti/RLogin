@@ -345,6 +345,7 @@
 #define IDT_TERM_LIST62                 961
 #define IDT_TERM_LIST63                 962
 #define IDT_TERM_LIST64                 963
+#define IDT_TERM_LIST65                 964
 #define ID_CHARSCRIPT_END               1000
 #define ID_DISCONNECT                   1001
 #define ID_EDIT_BOX                     1002
@@ -542,6 +543,7 @@
 #define IDC_UNIBLOCK2                   2142
 #define IDC_ISO646SET                   2142
 #define IDC_HISFILE_SEL                 2143
+#define IDC_OVERZERO                    2143
 #define IDC_HISMAX                      2144
 #define IDC_HOSTADDR                    2145
 #define IDC_HOSTNAME                    2146

@@ -35,4 +35,5 @@ protected:
 // インプリメンテーション
 protected:
 	DECLARE_MESSAGE_MAP()
+	afx_msg void OnBnClickedListen(UINT nID);
 };

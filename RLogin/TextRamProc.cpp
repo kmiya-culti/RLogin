@@ -14,6 +14,8 @@
 #include "InfoCapDlg.h"
 #include "StatusDlg.h"
 #include "TraceDlg.h"
+#include "OptDlg.h"
+#include "TermPage.h"
 
 #include <iconv.h>
 #include <imm.h>
@@ -2622,12 +2624,14 @@ void CTextRam::fc_DECPAM(DWORD ch)
 {
 	// ESC =	DECPAM Application Keypad				VT52 Enter alternate keypad mode.
 	EnableOption(TO_RLPNAM);
+	EnableOption(TO_DECNKM);
 	fc_POP(ch);
 }
 void CTextRam::fc_DECPNM(DWORD ch)
 {
 	// ESC >	DECPNM Normal Keypad						VT52 Exit alternate keypad mode.
 	DisableOption(TO_RLPNAM);
+	DisableOption(TO_DECNKM);
 	fc_POP(ch);
 }
 void CTextRam::fc_SS2(DWORD ch)
@@ -3553,115 +3557,242 @@ void CTextRam::fc_DECRQSS(DWORD ch)
 
 	int n;
 	LPCSTR p;
-	CString str, wrk;
+	int res = 0;	// 0 Host’s request is valid.
+	CString pre, str, cmd, wrk;
+	CDWordArray para;
+	void (CTextRam::*pFunc)(DWORD ch) = NULL;
 
-	p = (LPCSTR)m_OscPara;
-	for ( n = 0 ; *p != '\0' ; p++ )
-		n = (n << 8) | *p;
+	m_BackChar = 0;
+	m_AnsiPara.RemoveAll();
+	m_AnsiPara.Add(PARA_NOT);
 
-	switch(n) {
-	case 'm':					// SGR
-		str = m_RetChar[RC_DCS];
-		str += _T("1$r0");
-		if ( (m_AttNow.std.attr & ATT_BOLD)   != 0 ) str += _T(";1");
-		if ( (m_AttNow.std.attr & ATT_HALF)   != 0 ) str += _T(";2");
-		if ( (m_AttNow.std.attr & ATT_ITALIC) != 0 ) str += _T(";3");
-		if ( (m_AttNow.std.attr & ATT_UNDER)  != 0 ) str += _T(";4");
-		if ( (m_AttNow.std.attr & ATT_SBLINK) != 0 ) str += _T(";5");
-		if ( (m_AttNow.std.attr & ATT_BLINK)  != 0 ) str += _T(";6");
-		if ( (m_AttNow.std.attr & ATT_REVS)   != 0 ) str += _T(";7");
-		if ( (m_AttNow.std.attr & ATT_SECRET) != 0 ) str += _T(";8");
-		if ( (m_AttNow.std.attr & ATT_LINE)   != 0 ) str += _T(";9");
-		if ( (m_AttNow.std.attr & ATT_DUNDER) != 0 ) str += _T(";21");
-		if ( (m_AttNow.std.attr & ATT_SUNDER) != 0 ) str += _T(";50");
-		if ( (m_AttNow.std.attr & ATT_FRAME)  != 0 ) str += _T(";51");
-		if ( (m_AttNow.std.attr & ATT_CIRCLE) != 0 ) str += _T(";52");
-		if ( (m_AttNow.std.attr & ATT_OVER)   != 0 ) str += _T(";53");
-		if ( (m_AttNow.std.attr & ATT_RSLINE) != 0 ) str += _T(";60");
-		if ( (m_AttNow.std.attr & ATT_RDLINE) != 0 ) str += _T(";61");
-		if ( (m_AttNow.std.attr & ATT_LSLINE) != 0 ) str += _T(";62");
-		if ( (m_AttNow.std.attr & ATT_LDLINE) != 0 ) str += _T(";63");
-		if ( (m_AttNow.std.attr & ATT_STRESS) != 0 ) str += _T(";64");
-
-		if ( m_AttNow.std.font > 0 ) { wrk.Format(_T(";%d"), m_AttNow.std.font + 10); str += wrk; }
-
-		if ( m_AttNow.std.fcol == m_DefAtt.std.fcol ) str += _T("");
-		else if ( m_AttNow.std.fcol < 8 ) { wrk.Format(_T(";%d"), m_AttNow.std.fcol + 30); str += wrk; }
-		else if ( m_AttNow.std.fcol < 16 ) { wrk.Format(_T(";%d"), m_AttNow.std.fcol - 8 + 90); str += wrk; }
-		else { wrk.Format(_T(";38;5;%d"), m_AttNow.std.fcol); str += wrk; }
-
-		if ( m_AttNow.std.bcol == m_DefAtt.std.bcol ) str += _T("");
-		else if ( m_AttNow.std.bcol < 8 ) { wrk.Format(_T(";%d"), m_AttNow.std.fcol + 40); str += wrk; }
-		else if ( m_AttNow.std.bcol < 16 ) { wrk.Format(_T(";%d"), m_AttNow.std.bcol - 8 + 100); str += wrk; }
-		else { wrk.Format(_T(";48;5;%d"), m_AttNow.std.bcol); str += wrk; }
-
-		str += _T("m");
-		str += m_RetChar[RC_ST];
-		UNGETSTR(_T("%s"), str);
-		break;
-
-	case 'r':					// DECSTBM
-		UNGETSTR(_T("%s1$r%d;%dr%s"), m_RetChar[RC_DCS], m_TopY + 1, m_BtmY + 1 - 1, m_RetChar[RC_ST]);
-		break;
-
-	case 's':					// DECSLRM Set left and right margins
-		UNGETSTR(_T("%s1$r%d;%ds%s"), m_RetChar[RC_DCS], m_LeftX + 1, m_RightX + 1 - 1, m_RetChar[RC_ST]);
-		//UNGETSTR("%s0$r%s", m_RetChar[RC_DCS], m_RetChar[RC_ST]);
-		break;
-
-	case 't':					// DECSLPP Set lines per physical page
-		UNGETSTR(_T("%s1$r%dt%s"), m_RetChar[RC_DCS], m_Lines, m_RetChar[RC_ST]);
-		//UNGETSTR("%s0$r%s", m_RetChar[RC_DCS], m_RetChar[RC_ST]);
-		break;
-
-	case ('$' << 8) | '|':		// DECSCPP
-		UNGETSTR(_T("%s1$r%d$|%s"), m_RetChar[RC_DCS], m_Cols, m_RetChar[RC_ST]);
-		break;
-
-	case ('*' << 8) | 'x':		// DECSACE Select Attribute and Change Extent
-		UNGETSTR(_T("%s1$r%d*x%s"), m_RetChar[RC_DCS], m_Exact ? 2 : 1, m_RetChar[RC_ST]);
-		break;
-
-	case ('*' << 8) | '|':		// DECSNLS
-		UNGETSTR(_T("%s1$r%d*|%s"), m_RetChar[RC_DCS], m_Lines, m_RetChar[RC_ST]);
-		break;
-
-	case ('"' << 8) | 'p':		// DECSCL
-		if ( m_VtLevel == 61 )
-			UNGETSTR(_T("%s1$r%d\"p%s"), m_RetChar[RC_DCS], m_VtLevel, m_RetChar[RC_ST]);
-		else
-			UNGETSTR(_T("%s1$r%d;%d\"p%s"), m_RetChar[RC_DCS], m_VtLevel, *(m_RetChar[0]) == '\033' ? 1 : 0, m_RetChar[RC_ST]);
-		break;
-
-	case ('"' << 8) | 'q':		// DECSCA
-		UNGETSTR(_T("%s1$r%d\"q%s"), m_RetChar[RC_DCS], (m_AttNow.std.eram & EM_DECPROTECT) != 0 ? 1 : 0, m_RetChar[RC_ST]);
-		break;
-
-	case ('$' << 8) | '}':		// DECSASD Select active status display
-		UNGETSTR(_T("%s1$r%d$}%s"), m_RetChar[RC_DCS], m_StsFlag ? 1 : 0, m_RetChar[RC_ST]);
-		break;
-
-	case ('$' << 8) | '~':		// DECSSDT Select status display type
-		UNGETSTR(_T("%s1$r%d$~%s"), m_RetChar[RC_DCS], m_StsMode, m_RetChar[RC_ST]);
-		break;
-
-	case (',' << 8) | 'q':		// DECTID Select Terminal ID
-		UNGETSTR(_T("%s1$r%d,q%s"), m_RetChar[RC_DCS], m_TermId, m_RetChar[RC_ST]);
-		break;
-
-	case (' ' << 8) | 'q':		// DECSCUSR Set Cursor Style
-		UNGETSTR(_T("%s1$r%d q%s"), m_RetChar[RC_DCS], m_TypeCaret, m_RetChar[RC_ST]);
-		break;
-
-	//case '|':					// DECTTC Select transmit termination character
-	//case ('\'' << 8) | 's':	// DECTLTC
-	//case ('+' << 8) | 'q':	// DECELF Enable local functions
-	//case ('+' << 8) | 'r':	// DECSMKR Select modifier key reporting
-	//case ('*' << 8) | '}':	// DECLFKC Local function key control
-	default:
-		UNGETSTR(_T("%s0$r%s"), m_RetChar[RC_DCS], m_RetChar[RC_ST]);		// DECRPSS
-		break;
+	for ( p = (LPCSTR)m_OscPara ; *p != '\0' ; p++ ) {
+		if ( *p >= 0x20 && *p <= 0x2F )			// SP!"#$%&'()*+,-./
+			fc_CSI_EXT(*p);
+		else if ( *p >= 0x3C && *p <= 0x3F )	// <=>?
+			fc_CSI_EXT(*p);
+		else if ( *p >= 0x30 && *p < 0x39 )
+			fc_CSI_DIGIT(*p);
+		else if ( *p == ';' )
+			fc_CSI_SEPA(*p);
+		else if ( *p == ':' )
+			fc_CSI_PUSH(*p);
+		else if ( *p >= 0x40 && *p <= 0x7E ) {
+			m_BackChar = (m_BackChar & 0xFFFFFF00) | (BYTE)*p;
+			break;
+		}
 	}
+
+	if ( (m_BackChar & 0x00FF0000) != 0 )
+		pre += (CHAR)(m_BackChar >> 16);
+
+	if ( (m_BackChar & 0x0000FF00) != 0 )
+		cmd += (CHAR)(m_BackChar >> 8);
+
+	if ( (m_BackChar & 0x000000FF) != 0 ) {
+		cmd += (CHAR)(m_BackChar >> 0);
+		switch(m_BackChar & 0x7F7F7F00) {
+		case 0:
+			pFunc = m_LocalProc[STAGE_CSI][m_BackChar & 0x7F];
+			break;
+		case '?' << 16:
+			pFunc = m_LocalProc[STAGE_EXT1][m_BackChar & 0x7F];
+			break;
+		case '$' << 8:
+			pFunc = m_LocalProc[STAGE_EXT2][m_BackChar & 0x7F];
+			break;
+		case ' ' << 8:
+			pFunc = m_LocalProc[STAGE_EXT3][m_BackChar & 0x7F];
+			break;
+		default:
+			if ( BinaryFind((void *)&m_BackChar, m_CsiExt.GetData(), sizeof(CSIEXTTAB), (int)m_CsiExt.GetSize(), ProcCodeCmp, &n) )
+				pFunc = m_CsiExt[n].proc;
+			break;
+		}
+	}
+
+	if ( pFunc == &CTextRam::fc_SGR ) {		// 'm'		SGR
+		para.Add(0);
+		if ( (m_AttNow.std.attr & ATT_BOLD)   != 0 ) para.Add(1);
+		if ( (m_AttNow.std.attr & ATT_HALF)   != 0 ) para.Add(2);
+		if ( (m_AttNow.std.attr & ATT_ITALIC) != 0 ) para.Add(3);
+		if ( (m_AttNow.std.attr & ATT_UNDER)  != 0 ) para.Add(4);
+		if ( (m_AttNow.std.attr & ATT_SBLINK) != 0 ) para.Add(5);
+		if ( (m_AttNow.std.attr & ATT_BLINK)  != 0 ) para.Add(6);
+		if ( (m_AttNow.std.attr & ATT_REVS)   != 0 ) para.Add(7);
+		if ( (m_AttNow.std.attr & ATT_SECRET) != 0 ) para.Add(8);
+		if ( (m_AttNow.std.attr & ATT_LINE)   != 0 ) para.Add(9);
+		if ( (m_AttNow.std.attr & ATT_DUNDER) != 0 ) para.Add(2);
+		if ( (m_AttNow.std.attr & ATT_SUNDER) != 0 ) para.Add(50);
+		if ( (m_AttNow.std.attr & ATT_FRAME)  != 0 ) para.Add(51);
+		if ( (m_AttNow.std.attr & ATT_CIRCLE) != 0 ) para.Add(52);
+		if ( (m_AttNow.std.attr & ATT_OVER)   != 0 ) para.Add(53);
+		if ( (m_AttNow.std.attr & ATT_RSLINE) != 0 ) para.Add(60);
+		if ( (m_AttNow.std.attr & ATT_RDLINE) != 0 ) para.Add(61);
+		if ( (m_AttNow.std.attr & ATT_LSLINE) != 0 ) para.Add(62);
+		if ( (m_AttNow.std.attr & ATT_LDLINE) != 0 ) para.Add(63);
+		if ( (m_AttNow.std.attr & ATT_STRESS) != 0 ) para.Add(64);
+
+		if ( m_AttNow.std.font != m_DefAtt.std.font )
+			para.Add(m_AttNow.std.font + 10);
+
+		if ( m_AttNow.std.fcol != m_DefAtt.std.fcol ) {
+			if ( m_AttNow.std.fcol < 8 )
+				para.Add(m_AttNow.std.fcol + 30);
+			else if ( m_AttNow.std.fcol < 16 )
+				para.Add(m_AttNow.std.fcol - 8 + 90);
+			else {
+				para.Add(38);
+				para.Add(5);
+				para.Add(m_AttNow.std.fcol);
+			}
+		}
+
+		if ( m_AttNow.std.bcol != m_DefAtt.std.bcol ) {
+			if ( m_AttNow.std.bcol < 8 )
+				para.Add(m_AttNow.std.fcol + 40);
+			else if ( m_AttNow.std.bcol < 16 )
+				para.Add(m_AttNow.std.bcol - 8 + 100);
+			else {
+				para.Add(48);
+				para.Add(5);
+				para.Add(m_AttNow.std.bcol);
+			}
+		}
+
+	} else if ( pFunc == &CTextRam::fc_DECSSL ) {		// 'p'		DECSSL Select Set-Up Language
+		para.Add(m_LangMenu);
+
+	} else if ( pFunc == &CTextRam::fc_DECLL ) {		// 'q'		DECLL Load LEDs
+		if ( m_StsLed == 0 )
+			para.Add(0);
+		else {
+			if ( (m_StsLed & 001) != 0 ) para.Add(1);
+			if ( (m_StsLed & 002) != 0 ) para.Add(2);
+			if ( (m_StsLed & 004) != 0 ) para.Add(3);
+			if ( (m_StsLed & 010) != 0 ) para.Add(4);
+		}
+
+	} else if ( pFunc == &CTextRam::fc_DECSTBM ) {		// 'r'		DECSTBM
+		para.Add(m_TopY + 1);
+		para.Add(m_BtmY + 1 - 1);
+
+	} else if ( pFunc == &CTextRam::fc_DECSLRM ) {		// 's'		DECSLRM Set left and right margins
+		para.Add(m_LeftX + 1);
+		para.Add(m_RightX + 1 - 1);
+
+	} else if ( pFunc == &CTextRam::fc_SCOSC && IsOptEnable(TO_DECLRMM) ) {		// 's'	DECSLRM Set left and right margins
+		para.Add(m_LeftX + 1);
+		para.Add(m_RightX + 1 - 1);
+
+	} else if ( pFunc == &CTextRam::fc_DECSLPP || pFunc == &CTextRam::fc_XTWOP ) {		// 't'		DECSLPP Set lines per physical page
+		para.Add(m_Lines);
+
+	} else if ( pFunc == &CTextRam::fc_DECSCPP ) {		// ('$' << 8) | '|'		DECSCPP
+		para.Add(m_Cols);
+
+	} else if ( pFunc == &CTextRam::fc_DECSACE ) {		// ('*' << 8) | 'x'		DECSACE Select Attribute and Change Extent
+		para.Add(m_Exact ? 2 : 1);
+
+	} else if ( pFunc == &CTextRam::fc_DECSCL ) {		// ('"' << 8) | 'p'		DECSCL
+		para.Add(m_VtLevel);
+		if ( m_VtLevel != 61 )
+			para.Add(*(m_RetChar[0]) == '\033' ? 1 : 0);
+
+	} else if ( pFunc == &CTextRam::fc_DECSCA ) {		// ('"' << 8) | 'q'		DECSCA
+		para.Add((m_AttNow.std.eram & EM_DECPROTECT) != 0 ? 1 : 0);
+
+	} else if ( pFunc == &CTextRam::fc_DECSASD ) {		// ('$' << 8) | '}'		DECSASD Select active status display
+		para.Add( m_StsFlag ? 1 : 0);
+
+	} else if ( pFunc == &CTextRam::fc_DECSSDT ) {		// ('$' << 8) | '~'		DECSSDT Select status display type
+		para.Add(m_StsMode);
+
+	} else if ( pFunc == &CTextRam::fc_DECTID ) {		// (',' << 8) | 'q'		DECTID Select Terminal ID
+		para.Add(m_TermId);
+
+	} else if ( pFunc == &CTextRam::fc_DECATC ) {		// (',' << 8) | '}'		DECATC Alternate Text Colors
+		switch(m_AttNow.std.attr & (ATT_BOLD | ATT_REVS | ATT_UNDER | ATT_SBLINK)) {
+		case 0: n = 0; break;
+		case ATT_BOLD: n = 1; break;
+		case ATT_REVS: n = 2; break;
+		case ATT_UNDER: n = 3; break;
+		case ATT_SBLINK: n = 4; break;
+		case ATT_BOLD | ATT_REVS: n = 5; break;
+		case ATT_BOLD | ATT_UNDER: n = 6; break;
+		case ATT_BOLD | ATT_SBLINK: n = 7; break;
+		case ATT_REVS | ATT_UNDER: n = 8; break;
+		case ATT_REVS | ATT_SBLINK: n = 9; break;
+		case ATT_UNDER | ATT_SBLINK: n = 10; break;
+		case ATT_BOLD | ATT_REVS | ATT_UNDER: n = 11; break;
+		case ATT_BOLD | ATT_REVS | ATT_SBLINK: n = 12; break;
+		case ATT_BOLD | ATT_UNDER | ATT_SBLINK: n = 13; break;
+		case ATT_REVS | ATT_UNDER | ATT_SBLINK: n = 14; break;
+		case ATT_BOLD | ATT_REVS | ATT_UNDER | ATT_SBLINK: n = 15; break;
+		}
+		para.Add(n);
+		para.Add( m_AttNow.std.fcol);
+		para.Add(m_AttNow.std.bcol);
+
+	} else if ( pFunc == &CTextRam::fc_DECAC ) {		// (',' << 8) | '|'	DECAC Assign Color
+		para.Add(m_AttNow.std.fcol);
+		para.Add(m_AttNow.std.bcol);
+
+	} else if ( pFunc == &CTextRam::fc_FNT ) {			// (' ' << 8) | 'D'		FNT Font selection
+		para.Add(m_AttNow.std.font);
+
+	} else if ( pFunc == &CTextRam::fc_PPA ) {			// (' ' << 8) | 'P'		PPA Page Position Absolute
+		para.Add(m_Page + 1);
+
+	} else if ( pFunc == &CTextRam::fc_DECSCUSR ) {		// (' ' << 8) | 'q'		DECSCUSR Set Cursor Style
+		para.Add(m_TypeCaret);
+
+	} else if ( pFunc == &CTextRam::fc_XTRMTT ) {		// ('>' << 16) | 'T'	XTRMTT xterm CASE_RM_TITLE
+		if ( (m_XtOptFlag & XTOP_SETHEX) == 0 ) para.Add(0);
+		if ( (m_XtOptFlag & XTOP_GETHEX) == 0 ) para.Add(1);
+		if ( (m_XtOptFlag & XTOP_SETUTF) == 0 ) para.Add(2);
+		if ( (m_XtOptFlag & XTOP_GETUTF) == 0 ) para.Add(3);
+
+	} else if ( pFunc == &CTextRam::fc_XTSMTT ) {		// ('>' << 16) | 't'	xterm CASE_SM_TITLE
+		if ( (m_XtOptFlag & XTOP_SETHEX) != 0 ) para.Add(0);
+		if ( (m_XtOptFlag & XTOP_GETHEX) != 0 ) para.Add(1);
+		if ( (m_XtOptFlag & XTOP_SETUTF) != 0 ) para.Add(2);
+		if ( (m_XtOptFlag & XTOP_GETUTF) != 0 ) para.Add(3);
+
+	} else if ( pFunc == &CTextRam::fc_XTMDKEY ) {		// ('>' << 16) | 'm'	XTMDKEY 
+		if ( m_ModKey[MODKEY_ALLOW]  != (-1) ) { para.Add(0); para.Add(m_ModKey[MODKEY_ALLOW]);  }
+		if ( m_ModKey[MODKEY_CURSOR] != (-1) ) { para.Add(1); para.Add(m_ModKey[MODKEY_CURSOR]); }
+		if ( m_ModKey[MODKEY_FUNC]   != (-1) ) { para.Add(2); para.Add(m_ModKey[MODKEY_FUNC]);   }
+		if ( m_ModKey[MODKEY_KEYPAD] != (-1) ) { para.Add(3); para.Add(m_ModKey[MODKEY_KEYPAD]); }
+		if ( m_ModKey[MODKEY_OTHER]  != (-1) ) { para.Add(4); para.Add(m_ModKey[MODKEY_OTHER]);  }
+		if ( m_ModKey[MODKEY_STRING] != (-1) ) { para.Add(5); para.Add(m_ModKey[MODKEY_STRING]); }
+
+	} else if ( pFunc == &CTextRam::fc_XTMDKYD ) {		// ('>' << 16) | 'n'	XTMDKYD 
+		if ( m_ModKey[MODKEY_ALLOW]  == (-1) ) para.Add(0);
+		if ( m_ModKey[MODKEY_CURSOR] == (-1) ) para.Add(1);
+		if ( m_ModKey[MODKEY_FUNC]   == (-1) ) para.Add(2);
+		if ( m_ModKey[MODKEY_KEYPAD] == (-1) ) para.Add(3);
+		if ( m_ModKey[MODKEY_OTHER]  == (-1) ) para.Add(4);
+		if ( m_ModKey[MODKEY_STRING] == (-1) ) para.Add(5);
+
+	} else if ( pFunc == &CTextRam::fc_XTHDPT ) {		// ('>' << 16) | 'p'	XTHDPT 
+		para.Add(m_XtMosPointMode);
+
+	} else if ( pFunc == &CTextRam::fc_RLCURCOL ) {		// ('<' << 16) | ('!' << 8) | 'q'	RLCURCOL
+		para.Add(GetRValue(m_CaretColor));
+		para.Add(GetGValue(m_CaretColor));
+		para.Add(GetBValue(m_CaretColor));
+
+	} else if ( pFunc == NULL || pFunc == &CTextRam::fc_POP || pFunc == &CTextRam::fc_IGNORE ) {
+		res = 1;	// Host’s request is invalid.
+	}
+
+	for ( n = 0 ; n < para.GetSize() ; n++ ) {
+		wrk.Format(_T("%s%d"), n > 0 ? _T(";") : _T(""), para[n]);
+		str += wrk;
+	}
+
+	UNGETSTR(_T("%s%d$r%s%s%s%s"), m_RetChar[RC_DCS], res, pre, str, cmd, m_RetChar[RC_ST]);
 
 	fc_POP(ch);
 }
@@ -4506,7 +4637,8 @@ void CTextRam::fc_ED(DWORD ch)
 		ERABOX(0, 0, m_Cols, m_CurY, ERM_ISOPRO);
 		break;
 	case 2:
-//		LOCATE(0, 0);
+		if ( IsOptEnable(TO_TTCTH) )
+			LOCATE(0, 0);
 		ERABOX(0, 0, m_Cols, m_Lines, ERM_ISOPRO);
 		break;
 	}
@@ -5728,34 +5860,20 @@ void CTextRam::fc_DECSRET(DWORD ch)
 	int n, i;
 	ch &= 0x7F;
 	for ( n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
-		if ( (i = GetAnsiPara(n, 0, 0)) < 1 )
-			continue;
-		else if ( i >= 1000 && i < 1080 )
-			i -= 700;		// 300-379
-		else if ( i >= 2000 && i < 2020 )
-			i -= 1620;		// 380-399
-		else if ( i >= 8400 && i < 8512 )
-			i -= 8000;		// 400-511
-		else if ( i == 7727 )
-			i = TO_RLCKMESC;	// 7727 - Application Escape mode を有効にする。				Application Escape mode を無効にする。  
-		else if ( i == 7786 )
-			i = TO_RLMSWAPE;	// 7786 - マウスホイール - カーソルキー変換を有効にする。		カーソルキー変換を無効にする。  
-		else if ( i == 8800 )
-			i = TO_DRCSMMv1;	// 8800	- Unicode16面のISO-2022マッピング有効					マッピング無効
-		else if ( i >= 200 )
+		if ( (i = OptionToIndex(GetAnsiPara(n, 0, 0))) < 0 || i > 511 )
 			continue;
 
 		ANSIOPT(ch, i);
 
 		switch(i) {
 		case TO_XTCBLINK:
-	// case 0:		// meaning Blinking Block
-	// case 1:		// Blinking Block
-	// case 2:		// Steady Block
-	// case 3:		// Blink Underline
-	// case 4:		// Steady Underline
-	// case 5:		// Blink Vertical
-	// case 6:		// Steady Vertical
+			// case 0:		// meaning Blinking Block
+			// case 1:		// Blinking Block
+			// case 2:		// Steady Block
+			// case 3:		// Blink Underline
+			// case 4:		// Steady Underline
+			// case 5:		// Blink Vertical
+			// case 6:		// Steady Vertical
 			if ( IsOptEnable(TO_XTCBLINK) ) {
 				// Enable  0->2, 1->2, 3->4, 5->6
 				switch(m_TypeCaret) {
@@ -5820,6 +5938,11 @@ void CTextRam::fc_DECSRET(DWORD ch)
 				SAVERAM();
 			ANSIOPT(ch, i);
 			break;
+
+		case TO_DECNKM:		// 66 Numeric Keypad Mode
+			SetOption(TO_RLPNAM, IsOptEnable(TO_DECNKM));
+			break;
+
 		case TO_XTALTSCR:	// 1047 XTERM Use Alternate/Normal screen buffer
 			if ( IsOptEnable(TO_RLALTBDIS) )
 				break;
@@ -6012,8 +6135,12 @@ void CTextRam::fc_DECRQM(DWORD ch)
 	// CSI $p	DECRQM Request mode settings
 	int n, f = 0;
 
-	if ( (n = GetAnsiPara(0, 0, 0)) > 0 && n < 100 )
-		f = IsOptEnable(200 + n) ? 1 : 2;
+	n = GetAnsiPara(0, 0, 0);
+
+	// ANSI Screen Option	0-99(200-299)
+
+	if ( n > 0 && n < 100 && (f = CTermPage::IsSupport(n + 200)) > 0 && !IsOptEnable(n + 200) )
+		f++;	// Reset 1->2, 3->4
 
 	UNGETSTR(_T("%s%d;%d$y"), m_RetChar[RC_CSI], n, f);
 	fc_POP(ch);
@@ -6545,27 +6672,14 @@ void CTextRam::fc_CSI_ETC(DWORD ch)
 void CTextRam::fc_DECRQMH(DWORD ch)
 {
 	// CSI ('?' << 16) | ('$' << 8) | 'p'	DECRQMH Request Mode (DEC) Host to Terminal
-	int i, f = 0;
+	int n, i, f = 0;
 
-	i = GetAnsiPara(0, 0, 0);
+	n = GetAnsiPara(0, 0, 0);
 
-	if ( i > 0 && i < 200 )				// 1-199				DEC Terminal Option
-		f = IsOptEnable(i) ? 1 : 2;
-	else if ( i >= 1000 && i < 1080 )	// 1000-1079(300-379)	XTerm Option
-		f = IsOptEnable(i - 700) ? 1 : 2;
-	if ( i >= 2000 && i < 2020 )		// 2000-2019(380-399)	XTerm Option 2
-		f = IsOptEnable(i - 1620) ? 1 : 2;
-	else if ( i >= 8400 && i < 8512 )	// 8400-8511(400-511)	RLogin Option
-		f = IsOptEnable(i - 8000) ? 1 : 2;
+	if ( (i = OptionToIndex(n)) >= 0 && (f = CTermPage::IsSupport(i)) > 0 && !IsOptEnable(i) )
+		f++;	// Reset 1->2, 3->4
 
-	else if ( i == 7727 )				// 7727 - Application Escape mode を有効にする。				Application Escape mode を無効にする。  
-		f = IsOptEnable(TO_RLCKMESC) ? 1 : 2;
-	else if ( i == 7786 )				// 7786 - マウスホイール - カーソルキー変換を有効にする。		マウスホイール - カーソルキー変換を無効にする。 
-		f = IsOptEnable(TO_RLMSWAPE) ? 1 : 2;
-	else if ( i == 8840 )				// 8840 - TNAMB Aタイプをダブル幅の文字にする					シングル幅にする
-		f = IsOptEnable(TO_RLUNIAWH) ? 2 : 1;
-
-	UNGETSTR(_T("%s?%d;%d$y"), m_RetChar[RC_CSI], i, f);
+	UNGETSTR(_T("%s?%d;%d$y"), m_RetChar[RC_CSI], n, f);
 	fc_POP(ch);
 }
 
@@ -7111,8 +7225,10 @@ void CTextRam::fc_XTMDKYD(DWORD ch)
 	//	  adding a parameter to each function key to denote the modifiers.
 
 	if ( m_AnsiPara.GetSize() > 0 && !m_AnsiPara[0].IsEmpty() ) {
-		if ( m_AnsiPara[0] < MODKEY_MAX )
-			m_ModKey[m_AnsiPara[0]] = (-1);
+		for ( int n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
+			if ( !m_AnsiPara[n].IsEmpty() && m_AnsiPara[n] < MODKEY_MAX )
+				m_ModKey[m_AnsiPara[n]] = (-1);
+		}
 	} else
 		m_ModKey[MODKEY_FUNC] = (-1);
 

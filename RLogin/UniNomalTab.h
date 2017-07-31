@@ -1,4 +1,4 @@
-// NormalizationTest-9.0.0.txt
+// NormalizationTest-10.0.0.txt
 //
 // c2 ==  toNFC(c1) == toNFC(c3)
 // c4 ==  toNFC(c5)

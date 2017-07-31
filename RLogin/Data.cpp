@@ -2119,28 +2119,6 @@ CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, 
 		}
 		break;
 
-	case MAPING_CENTER:
-		// Center	アスペクト比を維持して中央に表示、余白あり
-
-		if ( size.cx >= width ) {
-			offset.cx = (size.cx - width) / 2; 
-			size.cx = width;
-		} else {
-			x = (width - size.cx) / 2;
-			cx = size.cx;
-		}
-
-		if ( size.cy >= height ) {
-			offset.cy = (size.cy - height) / 2; 
-			size.cy = height;
-		} else {
-			y = (height - size.cy) / 2;
-			cy = size.cy;
-		}
-
-		m_Image.Draw(MemDC.GetSafeHdc(), x, y, cx, cy, offset.cx, offset.cy, size.cx, size.cy);
-		break;
-
 	case MAPING_PAN:
 		// Pan		メインウィンドウを基準にFill
 
@@ -2189,6 +2167,75 @@ CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, 
 		offset.cy += (rect.top * size.cy / frame.Height());
 		size.cx = rect.Width() * size.cx / frame.Width();
 		size.cy = rect.Height() * size.cy / frame.Height();
+
+		m_Image.Draw(MemDC.GetSafeHdc(), x, y, cx, cy, offset.cx, offset.cy, size.cx, size.cy);
+		break;
+
+	case MAPING_CENTER:
+		Style = MAPING_CENCEN;
+		// no break;
+	case MAPING_LEFTOP:
+	case MAPING_LEFCEN:
+	case MAPING_LEFBTM:
+	case MAPING_CENTOP:
+	case MAPING_CENCEN:
+	case MAPING_CENBTM:
+	case MAPING_RIGTOP:
+	case MAPING_RIGCEN:
+	case MAPING_RIGBTM:
+		switch((Style - MAPING_LEFTOP) / 3) {
+		case 0:
+			if ( size.cx > width )
+				size.cx = width;
+			else
+				cx = size.cx;
+			break;
+		case 1:
+			if ( size.cx >= width ) {
+				offset.cx = (size.cx - width) / 2; 
+				size.cx = width;
+			} else {
+				x = (width - size.cx) / 2;
+				cx = size.cx;
+			}
+			break;
+		case 2:
+			if ( size.cx >= width ) {
+				offset.cx = size.cx - width; 
+				size.cx = width;
+			} else {
+				x = width - size.cx;
+				cx = size.cx;
+			}
+			break;
+		}
+
+		switch((Style - MAPING_LEFTOP) % 3) {
+		case 0:	// TOP
+			if ( size.cy > height )
+				size.cy = height;
+			else
+				cy = size.cy;
+			break;
+		case 1:	// VCENTER
+			if ( size.cy >= height ) {
+				offset.cy = (size.cy - height) / 2; 
+				size.cy = height;
+			} else {
+				y = (height - size.cy) / 2;
+				cy = size.cy;
+			}
+			break;
+		case 2:	// BOTTOM
+			if ( size.cy >= height ) {
+				offset.cy = size.cy - height; 
+				size.cy = height;
+			} else {
+				y = height - size.cy;
+				cy = size.cy;
+			}
+			break;
+		}
 
 		m_Image.Draw(MemDC.GetSafeHdc(), x, y, cx, cy, offset.cx, offset.cy, size.cx, size.cy);
 		break;
@@ -2496,6 +2543,8 @@ CFontChacheNode::CFontChacheNode()
 	m_Style   = 0;
 	m_Quality = 0;
 	m_bFixed  = FALSE;
+
+	ZeroMemory(&m_Metric, sizeof(m_Metric));
 }
 CFontChacheNode::~CFontChacheNode()
 {
@@ -2519,6 +2568,9 @@ CFont *CFontChacheNode::Open(LPCTSTR pFontName, int Width, int Height, int CharS
 	m_Style   = Style;
 	m_Quality = Quality;
 	m_bFixed  = FALSE;
+
+	ZeroMemory(&m_Metric, sizeof(m_Metric));
+	m_Metric.tmHeight = m_Metric.tmAscent = Height;
 
 	if ( m_pFont != NULL )
 		delete m_pFont;
@@ -2546,9 +2598,21 @@ CFont *CFontChacheNode::Open(LPCTSTR pFontName, int Width, int Height, int CharS
 		// AvgWidth Check Width > 'A'
 		sz = dc.GetTextExtent(_T("ABC012abc"), 9);
 
-		//		TEXTMETRIC metric;
-		//		dc.GetTextMetrics(&metric);
-		//
+		// Resize Width ?
+		if ( sz.cx > 0 && (sz.cx * 100 / (m_Width * 9)) < 80 ) {
+			dc.SelectObject(pOld);
+			m_pFont->DeleteObject();
+
+			m_LogFont.lfWidth  = m_LogFont.lfWidth * (m_Width * 9) / sz.cx;
+
+			if ( !m_pFont->CreateFontIndirect(&m_LogFont) )
+				m_pFont->Attach((HFONT)GetStockObject(SYSTEM_FONT));
+
+			pOld = dc.SelectObject(m_pFont);
+		}
+
+		dc.GetTextMetrics(&m_Metric);
+
 		//		---- ---+---+
 		//				|	| tmInternalLeading	
 		//		----	| --+
@@ -2566,14 +2630,6 @@ CFont *CFontChacheNode::Open(LPCTSTR pFontName, int Width, int Height, int CharS
 		//	tmInternalLeading	6		5		5		3		0		0
 
 		dc.SelectObject(pOld);
-
-		// Resize Width ?
-		if ( sz.cx > 0 && (sz.cx * 100 / (m_Width * 9)) < 80 ) {
-			m_LogFont.lfWidth  = m_LogFont.lfWidth * (m_Width * 9) / sz.cx;
-			m_pFont->DeleteObject();
-			if ( !m_pFont->CreateFontIndirect(&m_LogFont) )
-				m_pFont->Attach((HFONT)GetStockObject(SYSTEM_FONT));
-		}
 	}
 
 	return m_pFont;

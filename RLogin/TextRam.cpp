@@ -358,6 +358,7 @@ void CFontNode::Init()
 	}
 	m_MapType     = 0;
 	m_UniBlock    = _T("");
+	m_OverZero    = _T("");
 
 	// ISO646-US/JP				//	US->JP		JP->US
 	m_Iso646Tab[0]  = 0x0023;
@@ -395,6 +396,8 @@ void CFontNode::SetArray(CStringArrayExt &stra)
 	stra.Add(m_Iso646Name[1]);
 	for ( int n = 0 ; n < 12 ; n++ )
 		stra.AddVal(m_Iso646Tab[n]);
+	stra.Add(m_OverZero);
+
 }
 void CFontNode::GetArray(CStringArrayExt &stra)
 {
@@ -445,6 +448,9 @@ void CFontNode::GetArray(CStringArrayExt &stra)
 		if ( stra.GetSize() > (13 + 16 + n) )
 			m_Iso646Tab[n] = stra.GetVal(13 + 16 + n);
 	}
+
+	if ( stra.GetSize() > (13 + 16 + 12) )
+		m_OverZero = stra.GetAt(13 + 16 + 12);
 	
 	m_Init = TRUE;
 }
@@ -477,14 +483,20 @@ const CFontNode & CFontNode::operator = (CFontNode &data)
 	m_Quality   = data.m_Quality;
 	m_Init      = data.m_Init;
 	m_UniBlock  = data.m_UniBlock;
+
 	for ( int n = 0 ; n < 16 ; n++ ) {
 		m_FontName[n] = data.m_FontName[n];
 		m_Hash[n]     = data.m_Hash[n];
 	}
+
 	m_Iso646Name[0] = data.m_Iso646Name[0];
 	m_Iso646Name[1] = data.m_Iso646Name[1];
+
 	for ( int n = 0 ; n < 12 ; n++ )
 		m_Iso646Tab[n] = data.m_Iso646Tab[n];
+
+	m_OverZero = data.m_OverZero;
+
 	return *this;
 }
 int CFontNode::Compare(CFontNode &data)
@@ -2010,7 +2022,7 @@ void CTextRam::HisRegCheck(DWORD ch, DWORD pos)
 			if ( m_SimpStr[m_SimpLen] == _T('\0') ) {
 				if ( m_SimpPos != 0xFFFFFFFF ) {
 					for ( a = (int)m_SimpPos ; a <= (int)pos ; a++ )
-						GETVRAM(a % m_ColsMax, a / m_ColsMax - m_HisPos)->m_Vram.attr |= ATT_MARK;
+						GETVRAM(a % m_ColsMax, a / m_ColsMax - m_HisPos)->m_Vram.attr |= ATT_SMARK;
 				}
 				m_SimpPos = 0xFFFFFFFF;
 				m_SimpLen = 0;
@@ -2025,7 +2037,7 @@ void CTextRam::HisRegCheck(DWORD ch, DWORD pos)
 			for ( i = 0 ; i < res.GetSize() ; i++ ) {
 				for ( a = res[i].m_SPos ; a < res[i].m_EPos ; a++ ) {
 					if ( res.m_Idx[a] != 0xFFFFFFFF )
-						GETVRAM(res.m_Idx[a] % m_ColsMax, res.m_Idx[a] / m_ColsMax - m_HisPos)->m_Vram.attr |= ATT_MARK;
+						GETVRAM(res.m_Idx[a] % m_ColsMax, res.m_Idx[a] / m_ColsMax - m_HisPos)->m_Vram.attr |= ATT_SMARK;
 				}
 			}
 		}
@@ -2039,7 +2051,7 @@ void CTextRam::HisMarkClear()
 	for ( n = 1 ; n <= m_HisLen ; n++ ) {
 		vp = GETVRAM(0, m_Lines - n);
 		for ( x = 0 ; x < m_Cols ; x++ )
-			vp[x].m_Vram.attr &= ~ATT_MARK;
+			vp[x].m_Vram.attr &= ~ATT_SMARK;
 	}
 }
 int CTextRam::HisRegMark(LPCTSTR str, BOOL bRegEx)
@@ -2059,7 +2071,7 @@ int CTextRam::HisRegMark(LPCTSTR str, BOOL bRegEx)
 		for ( n = 0 ; n < m_HisLen ; n++ ) {
 			vp = GETVRAM(0, m_MarkPos - m_HisPos);
 			for ( x = 0 ; x < m_Cols ; x++ )
-				vp[x].m_Vram.attr &= ~ATT_MARK;
+				vp[x].m_Vram.attr &= ~ATT_SMARK;
 			while ( ++m_MarkPos >= m_HisMax )
 				m_MarkPos -= m_HisMax;
 		}
@@ -2097,7 +2109,7 @@ int CTextRam::HisRegNext(int msec)
 		for ( ex = m_Cols - 1 ; ex >= 0 ; ex-- ) {
 			if ( !vp[ex].IsEmpty() )
 				break;
-			vp[ex].m_Vram.attr &= ~ATT_MARK;
+			vp[ex].m_Vram.attr &= ~ATT_SMARK;
 		}
 
 		if ( m_MarkEol )
@@ -2105,7 +2117,7 @@ int CTextRam::HisRegNext(int msec)
 
 		for ( x = 0 ; x <= ex ; x += n ) {
 			str.Empty();
-			vp[x].m_Vram.attr &= ~ATT_MARK;
+			vp[x].m_Vram.attr &= ~ATT_SMARK;
 			if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].m_Vram.mode) && IS_2BYTE(vp[x + 1].m_Vram.mode) ) { // && vp[x].Compare(vp[x + 1]) == 0 ) {
 				str += (LPCWSTR)vp[x];
 				n = 2;
@@ -2144,7 +2156,7 @@ int CTextRam::HisMarkCheck(int top, int line, class CRLoginView *pView)
 	for ( y = 0 ; y < line ; y++ ) {
 		vp = GETVRAM(0, top + y);
 		for ( x = 0 ; x < m_Cols ; x++, vp++ ) {
-			if ( (vp->m_Vram.attr & ATT_MARK) != 0 )
+			if ( (vp->m_Vram.attr & ATT_SMARK) != 0 )
 				return TRUE;
 		}
 	}
@@ -3403,21 +3415,10 @@ void CTextRam::ScriptValue(int cmds, class CScriptValue &value, int mode)
 			if ( value.GetSize() < 1 )
 				break;
 			else if ( value.GetSize() < 2 ) {
-				if ( opt < 1 )
-					opt = 0;
-				else if ( opt >= 1000 && opt < 1080 )
-					opt -= 700;
-				else if ( opt >= 2000 && opt < 2020 )
-					opt -= 1620;		// 380-399
-				else if ( opt >= 8400 && opt < 8512 )
-					opt -= 8000;		// 400-511
-				else if ( opt == 7727 )
-					opt = TO_RLCKMESC;	// 7727  -  Application Escape mode を有効にする。				Application Escape mode を無効にする。  
-				else if ( opt == 7786 )
-					opt = TO_RLMSWAPE;	// 7786  -  マウスホイール - カーソルキー変換を有効にする。		マウスホイール - カーソルキー変換を無効にする。  
-				else if ( opt > 199 )
-					opt = 199;
-				value = (int)(IsOptEnable(opt) ? 1 : 0);
+				if ( (opt = OptionToIndex(opt)) > 0 && opt < 512 )
+					value = (int)(IsOptEnable(opt) ? 1 : 0);
+				else
+					value = (int)0;
 			} else {
 				CParaIndex save;
 				save = m_AnsiPara;
@@ -4220,14 +4221,14 @@ void CTextRam::EditMark(int sps, int eps, BOOL rectflag, BOOL lineflag)
 
 		for ( x = sx ; x <= ex ; x += n ) {
 			if ( vp[x].IsEmpty() ) {
-				vp[x].m_Vram.attr |= ATT_MARK;
+				vp[x].m_Vram.attr |= ATT_SMARK;
 				n = 1;
 			} else if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].m_Vram.mode) && IS_2BYTE(vp[x + 1].m_Vram.mode) && vp[x].Compare(vp[x + 1]) == 0 ) {
-				vp[x].m_Vram.attr |= ATT_MARK;
-				vp[x + 1].m_Vram.attr |= ATT_MARK;
+				vp[x].m_Vram.attr |= ATT_SMARK;
+				vp[x + 1].m_Vram.attr |= ATT_SMARK;
 				n = 2;
 			} else {
-				vp[x].m_Vram.attr |= ATT_MARK;
+				vp[x].m_Vram.attr |= ATT_SMARK;
 				n = 1;
 			}
 		}
@@ -4673,7 +4674,7 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 	CStringW str;
 	CFontChacheNode *pFontCache;
 	CFontNode *pFontNode = &(m_FontTab[prop.bank]);
-	LPCTSTR deffont = (m_DefFontName[prop.font].IsEmpty() ? m_DefFontName[0] : m_DefFontName[prop.font]);;
+	LPCTSTR deffont = (m_DefFontName[prop.font].IsEmpty() ? m_DefFontName[0] : m_DefFontName[prop.font]);
 	CDC workDC, mirDC, *pSaveDC;
 	CBitmap *pOldMap, *pOldMirMap, MirMap;
 
@@ -5056,6 +5057,58 @@ void CTextRam::DrawVertLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, str
 //	pDC->SetROP2(OldRop2);
 	pDC->SelectObject(oPen);
 }
+void CTextRam::DrawOverChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, struct DrawWork &prop, class CRLoginView *pView)
+{
+	int n, i, a, x, y, w;
+	CFontChacheNode *pFontCache;
+	CFontNode *pFontNode = &(m_FontTab[prop.bank]);
+	CString str;
+	LPCTSTR over;
+	LPCTSTR deffont = (m_DefFontName[prop.font].IsEmpty() ? m_DefFontName[0] : m_DefFontName[prop.font]);
+	int width  = pView->m_CharWidth  * (prop.zoom == 0 ? 1 : 2);
+	int height = pView->m_CharHeight * (prop.zoom <= 1 ? 1 : 2);
+	int style  = (prop.attr & ATT_BOLD) != 0 && IsOptEnable(TO_RLBOLD) ? 1 : 0;
+	CSize sz;
+	CRect box;
+
+	if ( (prop.attr & ATT_ITALIC) != 0 ) {
+		style |= 2;
+		width = width * 80 / 100;
+	}
+
+	pFontCache = pFontNode->GetFont(width, height, style, prop.font, deffont);
+	pDC->SelectObject(pFontCache->m_pFont);
+	pDC->SetTextColor(fc);
+	int OldBkMode = pDC->SetBkMode(TRANSPARENT);
+
+	box.left = rect.left;
+	box.top = rect.top;
+	box.bottom = rect.bottom;
+
+	for ( n = i = a = 0 ; n < prop.size ; n++, i++ ) {
+		while ( prop.pSpace[i] == 0 )
+			i++;
+		w = prop.pSpace[i];
+
+		str.Empty();
+		while ( a <= i )
+			str += prop.pText[a++];
+
+		if ( (over = pFontNode->OverCharStr(str)) != NULL ) {
+			sz = pDC->GetTextExtent(over);
+			box.right = box.left + w;
+
+			x = box.left + pView->m_CharWidth * pFontNode->m_OffsetW / 100 + (box.Width() - sz.cx) / 2;
+			y = box.top - pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? pView->m_CharHeight : 0);
+
+			pDC->ExtTextOutW(x, y, ETO_CLIPPED, box, over, (int)_tcslen(over), NULL);
+		}
+
+		box.left += w;
+	}
+
+	pDC->SetBkMode(OldBkMode);
+}
 void CTextRam::DrawString(CDC *pDC, CRect &rect, struct DrawWork &prop, class CRLoginView *pView)
 {
 	BOOL bRevs = FALSE;
@@ -5112,7 +5165,7 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, struct DrawWork &prop, class CR
 	if ( (prop.attr & ATT_HALF) != 0 )
 		bcol = RGB((GetRValue(fcol) + GetRValue(bcol)) / 2, (GetGValue(fcol) + GetGValue(bcol)) / 2, (GetBValue(fcol) + GetBValue(bcol)) / 2);
 
-	if ( (prop.attr & ATT_MARK) != 0 ) {
+	if ( (prop.attr & ATT_SMARK) != 0 ) {
 		tcol = fcol;
 		fcol = bcol;
 		bcol = tcol;
@@ -5184,6 +5237,9 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, struct DrawWork &prop, class CR
 		// Text Draw
 		DrawChar(pDC, rect, fcol, bcol, bEraBack, prop, pView);
 	}
+
+	if ( (prop.attr & ATT_OVERCHAR) != 0 )
+		DrawOverChar(pDC, rect, fcol, bcol, prop, pView);
 
 	if ( (prop.attr & (ATT_OVER | ATT_DOVER | ATT_LINE | ATT_UNDER | ATT_DUNDER | ATT_SUNDER | ATT_STRESS)) != 0 )
 		DrawHoriLine(pDC, rect, fcol, bcol, prop, pView);
@@ -5314,14 +5370,14 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 				work.bcol = m_DefAtt.std.bcol;
 
 			} else if ( x < 0 ) {
-				work.attr = top->m_Vram.attr & (ATT_REVS | ATT_CLIP | ATT_MARK | ATT_SBLINK | ATT_BLINK);
+				work.attr = top->m_Vram.attr & (ATT_REVS | ATT_SMARK | ATT_SBLINK | ATT_BLINK);
 				work.font = top->m_Vram.font;
 				work.fcol = top->m_Vram.fcol;
 				work.bcol = top->m_Vram.bcol;
 
 			} else if ( x >= m_Cols ) {
 				vp = top + (m_Cols - 1);
-				work.attr = vp->m_Vram.attr & (ATT_REVS | ATT_CLIP | ATT_MARK | ATT_SBLINK | ATT_BLINK);
+				work.attr = vp->m_Vram.attr & (ATT_REVS | ATT_SMARK | ATT_SBLINK | ATT_BLINK);
 				work.font = vp->m_Vram.font;
 				work.fcol = vp->m_Vram.fcol;
 				work.bcol = vp->m_Vram.bcol;
@@ -5382,6 +5438,9 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 					}
 					pView->SetCellSize(x, y, 0);
 				}
+
+				if ( work.bank != (-1) && m_FontTab[work.bank].IsOverChar(str) )
+					work.attr |= ATT_OVERCHAR;
 			}
 
 			// Matrox View
@@ -5544,15 +5603,28 @@ void CTextRam::GetScreenSize(int *x, int *y)
 
 int CTextRam::OptionToIndex(int value)
 {
-	if ( value >= 8400 )			// RLogin Option		8400-8511(400-511)
-		value -= (8400 - 400);
-	else if ( value >= 2000 )		// XTerm Option 2		2000-2019(380-399)
-		value -= (2000 - 380);
-	else if ( value >= 1000 )		// XTerm Option			1000-1079(300-379)
-		value -= (1000 - 300);
-	else if ( value >= 200 )		// ANSI Screen Option	200-299(200-299)
-		value -= (200 - 200);
-									// DEC Terminal Option	0-199
+	if ( value > 0 && value <= 199 )
+		value += 0;								// DEC Terminal Option	0-199
+	else if ( value >= 1000 && value <= 1079 )
+		value -= 700;							// XTerm Option			1000-1079(300-379)
+	else if ( value >= 2000 && value <= 2019 )
+		value -= 1620;							// XTerm Option 2		2000-2019(380-399)
+	else if ( value >= 8400 && value <= 8512 )
+		value -= 8000;							// RLogin Option		8400-8511(400-511)
+
+	else if ( value == 7727 )
+		value = TO_RLCKMESC;					// 7727 - Application Escape mode を有効にする。				Application Escape mode を無効にする。  
+	else if ( value == 7786 )
+		value = TO_RLMSWAPE;					// 7786 - マウスホイール - カーソルキー変換を有効にする。		マウスホイール - カーソルキー変換を無効にする。 
+	else if ( value == 8200 )
+		value = TO_TTCTH;						// 8200 - 画面クリア(ED 2)時にカーソルを左上に移動する。		移動しない
+	else if ( value == 8800 )
+		value = TO_DRCSMMv1;					// 8800 - Unicodeマッピング有効									Unicodeマッピング無効 
+	else if ( value == 8840 )
+		value = TO_RLUNIAWH;					// 8840 - TNAMB Aタイプをダブル幅の文字にする					シングル幅にする
+	else
+		value = (-1);
+
 	return value;
 }
 int CTextRam::IndexToOption(int value)

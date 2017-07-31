@@ -59,6 +59,7 @@ static const struct _OptListTab {
 	{	TO_XTMCUS,		IDT_TERM_LIST21	},
 	{	TO_XTMRVW,		IDT_TERM_LIST22	},
 	{	TO_XTMABUF,		IDT_TERM_LIST23	},
+	{	TO_DECNKM,		IDT_TERM_LIST51	},		// TO_DECNKM == TO_RLPNAM
 	{	TO_DECBKM,		IDT_TERM_LIST24	},
 	{	TO_DECLRMM,		IDT_TERM_LIST25	},
 	{	TO_DECSDM,		IDT_TERM_LIST26	},
@@ -85,27 +86,28 @@ static const struct _OptListTab {
 	// RLogin Option		8400-8511(400-511)
 	{	TO_RLGCWA,		IDT_TERM_LIST42	},
 	{	TO_RLGNDW,		IDT_TERM_LIST43	},
-//	{	TO_RLGAWL,		IDT_TERM_LIST44	},
+	{	TO_RLGAWL,		0 /* IDT_TERM_LIST44 */	},
 	{	TO_RLBOLD,		IDT_TERM_LIST45	},
-//	{	TO_RLBPLUS,		IDT_TERM_LIST46	},
+	{	TO_RLBPLUS,		0 /* IDT_TERM_LIST46 */	},
 	{	TO_RLALTBDIS,	IDT_TERM_LIST47	},
 	{	TO_RLUNIAWH,	IDT_TERM_LIST48	},
-//	{	TO_RLNORESZ,	IDT_TERM_LIST49	},
+	{	TO_RLNORESZ,	0 /* IDT_TERM_LIST49 */	},
 	{	TO_RLKANAUTO,	IDT_TERM_LIST50	},
 	{	TO_RLPNAM,		IDT_TERM_LIST51	},
 	{	TO_IMECTRL,		IDT_TERM_LIST52	},
 	{	TO_RLCKMESC,	IDT_TERM_LIST53	},
-//	{	TO_RLMSWAPE,	IDT_TERM_LIST54	},
+	{	TO_RLMSWAPE,	0 /* IDT_TERM_LIST54 */	},
 	{	TO_RLTEKINWND,	IDT_TERM_LIST55	},
 	{	TO_RLUNINOM,	IDT_TERM_LIST56	},
 	{	TO_RLUNIAHF,	IDT_TERM_LIST57	},
-//	{	TO_RLMODKEY,	IDT_TERM_LIST58	},
+	{	TO_RLMODKEY,	0 /* IDT_TERM_LIST58 */	},
 	{	TO_RLDRWLINE,	IDT_TERM_LIST59	},
 	{	TO_RLSIXPOS,	IDT_TERM_LIST60	},
 	{	TO_DRCSMMv1,	IDT_TERM_LIST61	},
 	{	TO_RLC1DIS,		IDT_TERM_LIST62	},
 	{	TO_RLCLSBACK,	IDT_TERM_LIST63	},
 	{	TO_RLBRKMBCS,	IDT_TERM_LIST64	},
+	{	TO_TTCTH,		IDT_TERM_LIST65	},
 	{	0,				0				}
 };
 
@@ -143,12 +145,27 @@ void CTermPage::DoInit()
 	UpdateData(FALSE);
 }
 
+int CTermPage::IsSupport(int opt)
+{
+	// 0	Not Support
+	// 1	Support Option Set
+	// 2	... Reset
+	// 3	Permanently Option Set
+	// 4	... Reset
+
+	for ( int n = 0 ; OptListTab[n].num != 0 ; n++ ) {
+		if ( OptListTab[n].num == opt )
+			return (OptListTab[n].nid != 0 ? 1 : 3);
+	}
+	return 0;
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // CTermPage メッセージ ハンドラ
 
 BOOL CTermPage::OnInitDialog() 
 {
-	int n;
+	int n, i;
 	CString str;
 
 	ASSERT(m_pSheet != NULL && m_pSheet->m_pTextRam != NULL);
@@ -159,12 +176,15 @@ BOOL CTermPage::OnInitDialog()
 	m_OptList.InitColumn(_T("TermPageOpt"), InitListTab, 3);
 
 	m_OptList.DeleteAllItems();
-	for ( n = 0 ; OptListTab[n].num != 0 ; n++ ) {
+	for ( n = i = 0 ; OptListTab[n].num != 0 ; n++ ) {
+		if ( OptListTab[n].nid == 0 )
+			continue;
 		CStringArrayExt param(OptListTab[n].nid);
 		CTextRam::OptionString(OptListTab[n].num, str);
-		m_OptList.InsertItem(LVIF_TEXT | LVIF_PARAM, n, str, 0, 0, 0, n);
-		m_OptList.SetItemText(n, 1, param[0]);
-		m_OptList.SetItemText(n, 2, param[1]);
+		m_OptList.InsertItem(LVIF_TEXT | LVIF_PARAM, i, str, 0, 0, 0, n);
+		m_OptList.SetItemText(i, 1, param[0]);
+		m_OptList.SetItemText(i, 2, param[1]);
+		i++;
 	}
 
 	DoInit();
