@@ -1380,6 +1380,7 @@ void CRLoginView::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 
 void CRLoginView::OnTimer(UINT_PTR nIDEvent) 
 {
+	int mx, my;
 	int style, anime, move;
 	CRect rect;
 	CRLoginDoc *pDoc = GetDocument();
@@ -1426,6 +1427,7 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 		break;
 
 	case 1028:		// Gozi Timer
+#if 0	// GOZI
 		rect.SetRect(m_GoziPos.x, m_GoziPos.y, m_GoziPos.x + 32, m_GoziPos.y + 32);
 		InvalidateRect(rect, FALSE);
 
@@ -1494,6 +1496,90 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 
 		rect.SetRect(m_GoziPos.x, m_GoziPos.y, m_GoziPos.x + 32, m_GoziPos.y + 32);
 		InvalidateRect(rect, FALSE);
+
+#else	// NEKO
+		rect.SetRect(m_GoziPos.x, m_GoziPos.y, m_GoziPos.x + 32, m_GoziPos.y + 32);
+		InvalidateRect(rect, FALSE);
+
+		if ( !m_GoziView || pDoc == NULL || !pDoc->m_TextRam.IsInitText() ) {
+			KillTimer(1028);
+			break;
+		}
+
+		GetClientRect(rect);
+
+		move  = m_GoziStyle & 0x0F;
+		style = m_GoziStyle >> 4;
+		anime = style & 3;
+		style &= ~3;
+
+		if ( m_GoziPos.x > rect.right )
+			m_GoziPos.x = rect.right - 32;
+
+		if ( m_GoziPos.y > rect.bottom )
+			m_GoziPos.y = rect.bottom - 32;
+
+		if ( ((mx = m_CaretX + m_CharWidth + 2) + 32) > rect.right )
+			mx = m_CaretX - 32;
+		else if ( mx < 0 )
+			mx = 0;
+
+		if ( ((my = m_CaretY + m_CharHeight - 32) + 32) > rect.bottom )
+			my = rect.bottom - 32;
+		else if ( my < 0 )
+			my = 0;
+
+		move = 0;
+
+		if ( m_GoziPos.x < mx )
+			move |= 1;
+		else if ( m_GoziPos.x > mx )
+			move |= 2;
+
+		if ( m_GoziPos.y < my )
+			move |= 4;
+		else if ( m_GoziPos.y > my )
+			move |= 8;
+
+		// 0-3=Down, 4-7=Up, 8-11=Right, 12-15=Left, 16-19=SRight, 20-23=SLeft, 24-27=SFire 
+
+		if ( move == 0 ) {
+			if ( style == 16 || style == 20 ) {
+				if ( --m_GoziCount < 0 )
+					style = 24;
+			} else if ( style != 24 ) {
+				m_GoziCount = 16 + rand() % 24;
+				style = (mx == (m_CaretX - 32) ? 16 : 20);
+			}
+		}
+
+		if ( (move & 1) != 0 ) {
+			if ( (m_GoziPos.x += 8) > mx )
+				m_GoziPos.x = mx;
+			style = 8;
+		}
+		if ( (move & 2) != 0 ) {
+			if ( (m_GoziPos.x -= 8) < mx )
+				m_GoziPos.x = mx;
+			style = 12;
+		}
+		if ( (move & 4) != 0 ) {
+			if ( (m_GoziPos.y += 8) > my )
+				m_GoziPos.y = my;
+			style = 4;
+		}
+		if ( (move & 8) != 0 ) {
+			if ( (m_GoziPos.y -= 8) < my )
+				m_GoziPos.y = my;
+			style = 0;
+		}
+
+		if ( ++anime > 3 ) anime = 0;
+		m_GoziStyle = ((style + anime) << 4) | move;
+
+		rect.SetRect(m_GoziPos.x, m_GoziPos.y, m_GoziPos.x + 32, m_GoziPos.y + 32);
+		InvalidateRect(rect, FALSE);
+#endif
 		break;
 	}
 }

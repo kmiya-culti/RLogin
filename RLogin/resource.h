@@ -80,6 +80,7 @@
 #define IDD_MODKEYPAGE                  165
 #define IDD_ANYPASTDIG                  170
 #define IDD_DEFPARAMDLG                 171
+#define IDB_BITMAP8                     172
 #define IDP_SOCKETS_INIT_FAILED         300
 #define IDS_INDICATOR_STAT              301
 #define IDS_IDKEYFILELOAD               302
@@ -658,7 +659,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        172
+#define _APS_NEXT_RESOURCE_VALUE        173
 #define _APS_NEXT_COMMAND_VALUE         5072
 #define _APS_NEXT_CONTROL_VALUE         3071
 #define _APS_NEXT_SYMED_VALUE           200

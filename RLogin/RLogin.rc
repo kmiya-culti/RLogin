@@ -87,6 +87,7 @@ IDB_ATTR5               BITMAP                  "res\\attr5.bmp"
 IDB_ATTR6               BITMAP                  "res\\attr6.bmp"
 IDB_ATTR7               BITMAP                  "res\\attr7.bmp"
 IDB_ATTR8               BITMAP                  "res\\attr8.bmp"
+IDB_BITMAP8             BITMAP                  "res\\bitmap8.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -247,6 +248,7 @@ BEGIN
         MENUITEM "Tekウィンドウ(&K)",                IDM_TEKDISP
         MENUITEM "Imageウィンドウ(&I)",              IDM_IMAGEDISP
         MENUITEM "ソケットステータス",                   IDM_SOCKETSTATUS
+        MENUITEM "Nekoを飼う",                     ID_GOZIVIEW
         MENUITEM SEPARATOR
         MENUITEM "オプション設定(&P)",                 ID_SETOPTION
         MENUITEM "標準の設定に戻す",                    IDC_LOADDEFAULT
@@ -443,15 +445,15 @@ END
 // Dialog
 //
 
-IDD_ABOUTBOX DIALOGEX 0, 0, 243, 169
+IDD_ABOUTBOX DIALOGEX 0, 0, 243, 193
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
-    ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.15.5 (2013/12/13)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    ICON            IDR_MAINFRAME,IDC_STATIC,7,7,21,20
+    LTEXT           "RLogin Version 2.15.6 (2013/12/24)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2013 Culti",IDC_STATIC,47,15,176,8
-    DEFPUSHBUTTON   "OK",IDOK,96,148,50,14,WS_GROUP
+    DEFPUSHBUTTON   "OK",IDOK,96,172,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.1e Feb 11th, 2013",IDC_STATIC,47,29,176,8
     LTEXT           "Copyright (c) 1998-2013 The OpenSSL Project",IDC_STATIC,47,39,176,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,47,49,176,8
@@ -462,6 +464,8 @@ BEGIN
     LTEXT           "Copyright (C) 2000-2011 Free Software Foundation, Inc.",IDC_STATIC,47,108,176,8
     LTEXT           "Nettle library (version 2.0)",IDC_STATIC,47,124,176,8
     LTEXT           "Originally written 2001 by Niels Moller, updated 2009.",IDC_STATIC,47,133,176,8
+    LTEXT           "Cursol Neko (1987-8)",IDC_STATIC,47,148,176,8
+    LTEXT           "Original by idea tantan/naoshi (PC98/MS-DOS)",IDC_STATIC,47,157,176,8
 END
 
 IDD_ALGOPARADLG DIALOGEX 0, 0, 351, 343
@@ -1426,8 +1430,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,15,5,0
- PRODUCTVERSION 2,15,5,0
+ FILEVERSION 2,15,6,0
+ PRODUCTVERSION 2,15,6,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1444,12 +1448,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.15.5.0"
+            VALUE "FileVersion", "2.15.6.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2013 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.15.5.0"
+            VALUE "ProductVersion", "2.15.6.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -1472,7 +1476,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 236
         TOPMARGIN, 7
-        BOTTOMMARGIN, 162
+        BOTTOMMARGIN, 186
     END
 
     IDD_ALGOPARADLG, DIALOG
@@ -2910,7 +2914,7 @@ END
 STRINGTABLE
 BEGIN
     ID_VIEW_SCROLLBAR       "スクロールバーの表示/非表示\nスクロールバーの表示切り替え"
-    ID_GOZIVIEW             "Goziを飼う\nGozi"
+    ID_GOZIVIEW             "Nekoを飼う\nNeko"
 END
 
 STRINGTABLE

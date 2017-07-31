@@ -29,6 +29,7 @@
 #define	THCMD_SENDSCRIPT	13
 #define	THCMD_SENDSYNC		14
 #define	TGCMD_MESSAGE		15
+#define	TGCMD_NOWAITMESSAGE		16
 
 extern const unsigned short CRCTable[];
 
@@ -76,6 +77,7 @@ public:
 	void SendString(LPCWSTR str);
 	void SendScript(LPCWSTR str);
 	void Message(LPCSTR msg);
+	void NoWaitMessage(LPCSTR msg);
 
 	BOOL m_IsAscii;
 	CString m_HostCode;

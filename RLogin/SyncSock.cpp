@@ -205,6 +205,9 @@ void CSyncSock::ThreadCommand(int cmd)
 		m_pWnd->MessageBox(MbsToTstr(m_Message));
 		m_pParamEvent->SetEvent();
 		break;
+	case TGCMD_NOWAITMESSAGE:
+		m_pWnd->MessageBox(MbsToTstr(m_Message));
+		break;
 	}
 }
 
@@ -437,6 +440,12 @@ void CSyncSock::Message(LPCSTR msg)
 	m_pWnd->PostMessage(WM_THREADCMD, TGCMD_MESSAGE, (LPARAM)this);
 	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
 }
+void CSyncSock::NoWaitMessage(LPCSTR msg)
+{
+	m_Message = msg;
+	m_pParamEvent->ResetEvent();
+	m_pWnd->PostMessage(WM_THREADCMD, TGCMD_NOWAITMESSAGE, (LPARAM)this);
+}
 
 //////////////////////////////////////////////////////////////////////
 
@@ -452,7 +461,7 @@ FILE *CSyncSock::FileOpen(LPCTSTR filename, LPCSTR mode, BOOL ascii)
 void CSyncSock::FileClose(FILE *fp)
 {
 	if ( m_IConv.m_ErrCount > 0 || m_InBuf.GetSize() > 0 )
-		Message(TstrToMbs(CStringLoad(IDE_KANJICONVERROR)));
+		NoWaitMessage(TstrToMbs(CStringLoad(IDE_KANJICONVERROR)));
 	fclose(fp);
 }
 int CSyncSock::ReadCharToHost(FILE *fp)

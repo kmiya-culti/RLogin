@@ -385,7 +385,7 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 			m_InPackStat = 8;
 			// break; Not use
 		case 8:		// SSH2 etm Packet
-			if ( m_Incom.GetSize() < (4 + m_InPackLen + m_DecCip.GetBlockSize()) )
+			if ( m_Incom.GetSize() < (4 + m_InPackLen + m_DecMac.GetBlockSize()) )
 				return;
 			m_InPackStat = 7;
 			dec.Clear();
