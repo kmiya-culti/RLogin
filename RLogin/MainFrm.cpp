@@ -8,6 +8,7 @@
 #include "RLoginDoc.h"
 #include "RLoginView.h"
 #include "ServerSelect.h"
+#include "Script.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -518,6 +519,9 @@ void CTimerObject::CallObject()
 	case TIMEREVENT_SOCK:
 		((CExtSocket *)(m_pObject))->OnTimer(m_Id);
 		break;
+	case TIMEREVENT_SCRIPT:
+		((CScript *)(m_pObject))->OnTimer(m_Id);
+		break;
 	}
 }
 
@@ -864,6 +868,8 @@ int CMainFrame::SetAsyncAddrInfo(int mode, LPCTSTR pHostName, int PortNum, void 
 int CMainFrame::SetTimerEvent(int msec, int mode, void *pParam)
 {
 	CTimerObject *tp;
+
+	DelTimerEvent(pParam);
 
 	if ( m_pTimerFreeId == NULL ) {
 		for ( int n = 0 ; n < 16 ; n++ ) {

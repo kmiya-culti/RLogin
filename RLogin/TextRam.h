@@ -171,6 +171,7 @@
 #define	TO_RLCKMESC		442			// ESCキーをDECCKMに含める		7727  -  Application Escape mode を有効にする。 
 #define	TO_RLMSWAPE		443			// ホイールのキー変換強制		7786  -  マウスホイール - カーソルキー変換を有効にする。
 #define	TO_RLTENLM		444			// TELNET LINEMODE を禁止する
+#define	TO_RLSCRDEBUG	445			// スクリプトデバックを行う
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -642,8 +643,8 @@ public:
 	int IsOptValue(int opt, int len);
 	void SetOptValue(int opt, int len, int value);
 
-	inline int GetCalcPos(int x, int y) { return (m_Cols * (m_HisMax + y) + x); }
-	inline void SetCalcPos(int pos, int *x, int *y) { *x = pos % m_Cols; *y = (pos / m_Cols - m_HisMax); }
+	inline int GetCalcPos(int x, int y) { return (m_ColsMax * (y + m_HisPos + m_HisMax) + x); }
+	inline void SetCalcPos(int pos, int *x, int *y) { *x = pos % m_ColsMax; *y = (pos / m_Cols - m_HisPos - m_HisMax); }
 	inline int GetDm(int y) { VRAM *vp = GETVRAM(0, y); return vp->dm; }
 	inline void SetDm(int y, int dm) { VRAM *vp = GETVRAM(0, y); vp->dm = dm; }
 
@@ -1052,7 +1053,7 @@ public:
 	void TekForcus(BOOL fg);
 	void TekFlush();
 	void TekDraw(CDC *pDC, CRect &frame);
-	void TekClear();
+	void TekClear(BOOL bFlush = TRUE);
 	void TekLine(int st, int sx, int sy, int ex, int ey);
 	void TekText(int st, int sx, int sy, int ch);
 	void TekMark(int st, int no, int sx, int sy);

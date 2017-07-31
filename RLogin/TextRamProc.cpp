@@ -1698,6 +1698,7 @@ void CTextRam::fc_BEL(int ch)
 void CTextRam::fc_BS(int ch)
 {
 	fc_KANJI(ch);
+	CallReciveChar(ch);
 	if ( --m_CurX < 0 ) {
 		if ( IS_ENABLE(m_AnsiOpt, TO_XTMRVW) != 0 ) {
 			m_CurX = m_Cols - 1;
@@ -1707,17 +1708,17 @@ void CTextRam::fc_BS(int ch)
 			m_CurX = 0;
 	}
 	m_DoWarp = FALSE;
-	CallReciveChar(ch);
 }
 void CTextRam::fc_HT(int ch)
 {
 	fc_KANJI(ch);
-	TABSET(TAB_COLSNEXT);
 	CallReciveChar(ch);
+	TABSET(TAB_COLSNEXT);
 }
 void CTextRam::fc_LF(int ch)
 {
 	fc_KANJI(ch);
+	CallReciveChar(ch);
 
 	switch(IsOptEnable(TO_ANSILNM) ? 2 : m_RecvCrLf) {
 	case 2:		// LF
@@ -1730,26 +1731,26 @@ void CTextRam::fc_LF(int ch)
 	case 1:		// CR
 		break;
 	}
-	CallReciveChar(ch);
 }
 void CTextRam::fc_VT(int ch)
 {
+	CallReciveChar(ch);
 	TABSET(TAB_LINENEXT);
 	if ( IsOptEnable(TO_ANSILNM) )
 		LOCATE(0, m_CurY);
-	CallReciveChar(ch);
 }
 void CTextRam::fc_FF(int ch)
 {
+	CallReciveChar(ch);
 	for ( int n = 0 ; n < m_Lines ; n++ )
 		FORSCROLL(0, m_Lines);
 	if ( IsOptEnable(TO_ANSILNM) )
 		LOCATE(0, m_CurY);
-	CallReciveChar(ch);
 }
 void CTextRam::fc_CR(int ch)
 {
 	fc_KANJI(ch);
+	CallReciveChar(ch);
 
 	switch(m_RecvCrLf) {
 	case 1:		// CR
@@ -1762,7 +1763,6 @@ void CTextRam::fc_CR(int ch)
 	case 2:		// LF
 		break;
 	}
-	CallReciveChar(ch);
 }
 void CTextRam::fc_SO(int ch)
 {
@@ -1789,32 +1789,32 @@ void CTextRam::fc_CAN(int ch)
 void CTextRam::fc_ESC(int ch)
 {
 	fc_KANJI(ch);
-	fc_Push(STAGE_ESC);
 	CallReciveChar(ch);
+	fc_Push(STAGE_ESC);
 }
 void CTextRam::fc_A3CRT(int ch)
 {
 	// ADM-3 Cursole Right
-	LOCATE(m_CurX + 1, m_CurY);
 	CallReciveChar(ch);
+	LOCATE(m_CurX + 1, m_CurY);
 }
 void CTextRam::fc_A3CLT(int ch)
 {
 	// ADM-3 Cursole Left
-	LOCATE(m_CurX - 1, m_CurY);
 	CallReciveChar(ch);
+	LOCATE(m_CurX - 1, m_CurY);
 }
 void CTextRam::fc_A3CUP(int ch)
 {
 	// ADM-3 Cursole Up
-	LOCATE(m_CurX, m_CurY - 1);
 	CallReciveChar(ch);
+	LOCATE(m_CurX, m_CurY - 1);
 }
 void CTextRam::fc_A3CDW(int ch)
 {
 	// ADM-3 Cursole Down
-	LOCATE(m_CurX, m_CurY + 1);
 	CallReciveChar(ch);
+	LOCATE(m_CurX, m_CurY + 1);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -4617,8 +4617,8 @@ void CTextRam::fc_DECRQM(int ch)
 {
 	// CSI $p	DECRQM Request mode settings
 	int n;
-	if ( (n = GetAnsiPara(0, 1, 1)) > 199 )
-		n = 199;
+	if ( (n = GetAnsiPara(0, 1, 1)) > 99 )
+		n = 99;
 	UNGETSTR(_T("%s%d;%d$y"), m_RetChar[RC_CSI], n, IsOptEnable(200 + n) ? 1 : 2);
 	fc_POP(ch);
 }

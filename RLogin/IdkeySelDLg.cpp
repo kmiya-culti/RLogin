@@ -19,8 +19,8 @@ IMPLEMENT_DYNAMIC(CIdkeySelDLg, CDialog)
 CIdkeySelDLg::CIdkeySelDLg(CWnd* pParent /*=NULL*/)
 	: CDialog(CIdkeySelDLg::IDD, pParent)
 {
-	m_Type = _T("DSA2");
-	m_Bits = _T("1024");
+	m_Type = _T("RSA2");
+	m_Bits = _T("2048");
 	m_Name = _T("");
 	m_pIdKeyTab = NULL;
 	m_EntryNum = (-1);
@@ -398,18 +398,6 @@ void CIdkeySelDLg::OnIdkeyCreate()
 
 	UpdateData(TRUE);
 
-	dlg.m_OpenMode = 3;
-	dlg.m_Title.LoadString(IDS_IDKEYCREATE);
-	dlg.m_Message.LoadString(IDS_IDKEYCREATECOM);
-
-	if ( dlg.DoModal() != IDOK )
-		return;
-
-	if ( dlg.m_PassName.IsEmpty() ) {
-		MessageBox(CStringLoad(IDE_USEPASSWORDIDKEY));
-		return;
-	}
-
 	m_GenIdKey.Close();
 	m_GenIdKey.m_Pass = dlg.m_PassName;
 	m_GenIdKey.m_Name = m_Name;
@@ -424,6 +412,26 @@ void CIdkeySelDLg::OnIdkeyCreate()
 		m_GenIdKeyType = IDKEY_RSA2;
 	else if ( m_Type.Compare(_T("ECDSA")) == 0 )
 		m_GenIdKeyType = IDKEY_ECDSA;
+
+	if ( m_GenIdKeyType == IDKEY_ECDSA && m_GenIdKeyBits > 521 ) {
+		if ( MessageBox(CStringLoad(IDE_ECDSABITSIZEERR), _T("Warning"), MB_ICONWARNING | MB_OKCANCEL) != IDOK )
+			return;
+	} else if ( m_GenIdKeyType != IDKEY_ECDSA && m_GenIdKeyBits <= 1024 ) {
+		if ( MessageBox(CStringLoad(IDE_DSABITSIZEERR), _T("Warning"), MB_ICONWARNING | MB_OKCANCEL) != IDOK )
+			return;
+	}
+
+	dlg.m_OpenMode = 3;
+	dlg.m_Title.LoadString(IDS_IDKEYCREATE);
+	dlg.m_Message.LoadString(IDS_IDKEYCREATECOM);
+
+	if ( dlg.DoModal() != IDOK )
+		return;
+
+	if ( dlg.m_PassName.IsEmpty() ) {
+		MessageBox(CStringLoad(IDE_USEPASSWORDIDKEY));
+		return;
+	}
 
 	if ( (pWnd = GetDlgItem(IDC_IDKEY_TYPE)) != NULL )
 		pWnd->EnableWindow(FALSE);

@@ -85,6 +85,7 @@ CExtSocket::CExtSocket(class CRLoginDoc *pDoc)
 	m_SSL_mode  = 0;
 	m_SSL_pCtx  = NULL;
 	m_SSL_pSock = NULL;
+	m_bConnect = FALSE;
 }
 
 CExtSocket::~CExtSocket()
@@ -552,6 +553,7 @@ void CExtSocket::Close()
 		::closesocket(m_FdTab[n]);
 	}
 	m_ListenMax = 0;
+	m_bConnect = FALSE;
 }
 int CExtSocket::Accept(class CExtSocket *pSock, SOCKET hand)
 {
@@ -1285,6 +1287,7 @@ void CExtSocket::OnClose()
 }
 void CExtSocket::OnConnect()
 {
+	m_bConnect = TRUE;
 	if ( m_pDocument == NULL )
 		return;
 	if ( m_pDocument->m_TextRam.IsOptEnable(TO_RLKEEPAL) ) {

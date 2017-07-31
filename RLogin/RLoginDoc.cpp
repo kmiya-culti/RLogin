@@ -56,6 +56,9 @@ BEGIN_MESSAGE_MAP(CRLoginDoc, CDocument)
 	ON_COMMAND_RANGE(IDM_RESET_TAB, IDM_RESET_ALL, &CRLoginDoc::OnScreenReset)
 	ON_COMMAND(IDM_SOCKETSTATUS, &CRLoginDoc::OnSocketstatus)
 	ON_UPDATE_COMMAND_UI(IDM_SOCKETSTATUS, &CRLoginDoc::OnUpdateSocketstatus)
+	ON_COMMAND(IDM_SCRIPT, &CRLoginDoc::OnScript)
+	ON_UPDATE_COMMAND_UI(IDM_SCRIPT, &CRLoginDoc::OnUpdateScript)
+	ON_COMMAND_RANGE(IDM_SCRIPT_MENU1, IDM_SCRIPT_MENU10, OnScriptMenu)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -114,13 +117,19 @@ BOOL CRLoginDoc::OnNewDocument()
 	m_ParamTab.Serialize(FALSE, m_ServerEntry.m_ProBuffer);
 	m_TextRam.SetKanjiMode(m_ServerEntry.m_KanjiCode);
 
-	if ( !SocketOpen() )
-		return FALSE;
-
 	UpdateAllViews(NULL, UPDATE_INITPARA, 0);
 	m_TextRam.InitHistory();
 	SetTitle(m_ServerEntry.m_EntryName);
-	m_pScript->ExecFile(m_ServerEntry.m_ScriptFile);
+
+	if ( !m_ServerEntry.m_ScriptStr.IsEmpty() )
+		m_pScript->ExecStr(m_ServerEntry.m_ScriptStr);
+	if ( !m_ServerEntry.m_ScriptFile.IsEmpty() )
+		m_pScript->ExecFile(m_ServerEntry.m_ScriptFile);
+	if ( m_TextRam.IsOptEnable(TO_RLSCRDEBUG) )
+		m_pScript->OpenDebug(m_ServerEntry.m_EntryName);
+
+	if ( !m_pScript->m_bOpenSock && !SocketOpen() )
+		return FALSE;
 
 	return TRUE;
 }
@@ -133,14 +142,19 @@ BOOL CRLoginDoc::OnOpenDocument(LPCTSTR lpszPathName)
 		return FALSE;
 
 	if ( m_LoadMode == 1 ) {
-
-		if ( !SocketOpen() )
-			return FALSE;
-
 		UpdateAllViews(NULL, UPDATE_INITPARA, 0);
 		m_TextRam.InitHistory();
 		SetPathName(lpszPathName, TRUE);
-		m_pScript->ExecFile(m_ServerEntry.m_ScriptFile);
+
+		if ( !m_ServerEntry.m_ScriptStr.IsEmpty() )
+			m_pScript->ExecStr(m_ServerEntry.m_ScriptStr);
+		if ( !m_ServerEntry.m_ScriptFile.IsEmpty() )
+			m_pScript->ExecFile(m_ServerEntry.m_ScriptFile);
+		if ( m_TextRam.IsOptEnable(TO_RLSCRDEBUG) )
+			m_pScript->OpenDebug(m_ServerEntry.m_EntryName);
+
+		if ( !m_pScript->m_bOpenSock && !SocketOpen() )
+			return FALSE;
 	}
 	
 	return (m_LoadMode == 0 ? FALSE : TRUE);
@@ -228,8 +242,10 @@ void CRLoginDoc::DeleteContents()
 		m_ServerEntry.m_SaveFlag = FALSE;
 	}
 
-	if ( m_pScript != NULL )
+	if ( m_pScript != NULL ) {
+		m_pScript->Stop();
 		delete m_pScript;
+	}
 
 	m_pScript = new CScript;
 	m_pScript->SetDocumet(this);
@@ -454,14 +470,19 @@ void CRLoginDoc::SendScript(LPCWSTR str, LPCWSTR match)
 	buf.Apend((LPBYTE)((LPCWSTR)tmp), tmp.GetLength() * sizeof(WCHAR));
 	SendBuffer(buf);
 }
-void CRLoginDoc::OnReciveChar(int ch)
+void CRLoginDoc::OnReciveChar(int ch, int pos)
 {
 	LPCWSTR str;
 
-	if ( m_pScript != NULL && m_pScript->m_SockMode == DATA_BUF_CHAR && ch != 0 ) {
-		if ( (ch & 0xFFFF0000) != 0 )
-			m_pScript->m_SockBuff.PutWord(ch >> 16);
-		m_pScript->m_SockBuff.PutWord(ch);
+	if ( m_pScript != NULL && !m_pScript->m_bConsOut ) {
+		if ( m_pScript->m_RegMatch < 0 )
+			m_pScript->OnSockChar(CTextRam::UCS2toUCS4(ch));
+		if ( m_pScript->m_ConsMode != DATA_BUF_NONE && ch != 0 ) {
+			DWORD tmp[2];
+			tmp[0] = ch;
+			tmp[1] = pos;
+			m_pScript->SetConsBuff((LPBYTE)tmp, 2 * sizeof(DWORD));
+		}
 	}
 
 	while ( m_pStrScript != NULL && (str = m_pStrScript->ExecChar(ch)) != NULL ) {
@@ -527,12 +548,12 @@ void CRLoginDoc::OnSocketConnect()
 		return;
 
 	if ( m_pScript != NULL )
-		m_pScript->Call(_T("OnConnect"));
+		m_pScript->OnConnect();
 
 	m_ServerEntry.m_ChatScript.ExecInit();
 	if ( m_ServerEntry.m_ChatScript.Status() != SCPSTAT_NON ) {
 		m_pStrScript = &(m_ServerEntry.m_ChatScript);
-		OnReciveChar(0);
+		OnReciveChar(0, (-1));
 	}
 
 	if ( m_TextRam.IsOptEnable(TO_RLHISDATE) && !m_TextRam.m_LogFile.IsEmpty() ) {
@@ -603,7 +624,7 @@ void CRLoginDoc::OnSocketClose()
 		return;
 
 	if ( m_pScript != NULL )
-		m_pScript->Call(_T("OnClose"));
+		m_pScript->OnClose();
 
 	if ( m_pBPlus != NULL )
 		m_pBPlus->DoAbort();
@@ -648,7 +669,7 @@ int CRLoginDoc::OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags)
 	if ( nFlags != 0 )
 		return nBufLen;
 
-	if ( m_pScript != NULL & m_pScript->m_SockMode != DATA_BUF_NONE ) {
+	if ( m_pScript != NULL ) {
 		if ( m_pScript->IsSockOver() )
 			return 0;
 		if ( m_pScript->m_SockMode == DATA_BUF_HAVE ) {
@@ -834,17 +855,10 @@ void CRLoginDoc::SocketSend(void *lpBuf, int nBufLen)
 	if ( m_pSock == NULL )
 		return;
 
-	if ( m_pScript != NULL && m_pScript->m_ConsMode != DATA_BUF_NONE ) {
-		if ( m_pScript->m_ConsMode == DATA_BUF_CHAR ) {
-			CBuffer in, out;
-			in.Apend((LPBYTE)lpBuf, nBufLen);
-			m_TextRam.m_IConv.RemoteToStr(m_TextRam.m_SendCharSet[m_TextRam.m_KanjiMode], &in, &out);
-			m_pScript->SetConsBuff(out.GetPtr(), out.GetSize());
-		} else
-			m_pScript->SetConsBuff((LPBYTE)lpBuf, nBufLen);
-		if ( m_pScript->m_ConsMode == DATA_BUF_HAVE )
-			return;
-	}
+	//if ( m_pScript != NULL && m_pScript->m_ConsMode == DATA_BUF_HAVE ) {
+	//	m_pScript->SetConsBuff((LPBYTE)lpBuf, nBufLen);
+	//	return;
+	//}
 
 	if ( m_TextRam.IsOptEnable(TO_RLDELAY) ) {
 		m_DelayBuf.Apend((LPBYTE)lpBuf, nBufLen);
@@ -968,6 +982,9 @@ void CRLoginDoc::OnUpdateKanjiCodeSet(CCmdUI* pCmdUI)
 void CRLoginDoc::OnXYZModem(UINT nID)
 {
 #if 1
+	if ( m_pSock == NULL )
+		return;
+
 	if ( nID == IDM_KERMIT_UPLOAD || nID == IDM_KERMIT_DOWNLOAD ) {
 		if ( m_pKermit == NULL )
 			m_pKermit = new CKermit(this, AfxGetMainWnd());
@@ -1033,12 +1050,13 @@ void CRLoginDoc::OnChatStop()
 	if ( m_pStrScript != NULL ) {
 		m_pStrScript->ExecStop();
 		m_pStrScript = NULL;
-	}
+	} else if ( m_pScript != NULL )
+		m_pScript->OpenDebug();
 	SetStatus(NULL);
 }
 void CRLoginDoc::OnUpdateChatStop(CCmdUI *pCmdUI)
 {
-	pCmdUI->Enable(m_pStrScript != NULL && m_pStrScript->Status() != SCPSTAT_NON ? TRUE : FALSE);
+	pCmdUI->Enable(m_pStrScript != NULL && m_pStrScript->Status() != SCPSTAT_NON ? TRUE : (m_pScript != NULL && m_pScript->m_CodePos != (-1) ? TRUE : FALSE));
 }
 
 void CRLoginDoc::OnSendBreak()
@@ -1049,6 +1067,11 @@ void CRLoginDoc::OnSendBreak()
 void CRLoginDoc::OnUpdateSendBreak(CCmdUI *pCmdUI)
 {
 	pCmdUI->Enable(m_pSock != NULL && m_pSock->m_Type == ESCT_COMDEV ? TRUE : FALSE);
+}
+void CRLoginDoc::OnScriptMenu(UINT nID)
+{
+	if ( m_pScript != NULL )
+		m_pScript->Call(m_pScript->m_MenuTab[nID - IDM_SCRIPT_MENU1].func);
 }
 
 void CRLoginDoc::DoDropFile()
@@ -1149,6 +1172,31 @@ void CRLoginDoc::OnUpdateSocketstatus(CCmdUI *pCmdUI)
 	pCmdUI->Enable(m_pSock != NULL ? TRUE : FALSE);
 }
 
+void CRLoginDoc::OnScript()
+{
+	if ( m_pScript == NULL )
+		return;
+
+	CFileDialog dlg(FALSE, _T("txt"), _T(""), 0, CStringLoad(IDS_FILEDLGSCRIPT), AfxGetMainWnd());
+
+	if ( dlg.DoModal() != IDOK )
+		return;
+
+	if ( m_pScript->m_Code.GetSize() > 0 && AfxMessageBox(IDS_SCRIPTNEW, MB_ICONQUESTION | MB_YESNO) == IDYES ) {
+		m_pScript->SetMenu(AfxGetMainWnd(), TRUE);
+		if ( m_pScript != NULL )
+			delete m_pScript;
+		m_pScript = new CScript;
+		m_pScript->SetDocumet(this);
+	}
+
+	m_pScript->ExecFile(dlg.GetPathName());
+}
+void CRLoginDoc::OnUpdateScript(CCmdUI *pCmdUI)
+{
+	pCmdUI->Enable(m_pScript != NULL && m_pScript->IsExec() ? FALSE : TRUE);
+}
+
 static ScriptCmdsDefs DocBase[] = {
 	{	"Entry",		1	},
 	{	"Screen",		2	},
@@ -1158,6 +1206,11 @@ static ScriptCmdsDefs DocBase[] = {
 	{	"Title",		6	},
 	{	"Command",		7	},
 	{	"Log",			8	},
+	{	"Open",			9	},
+	{	"Close",		10	},
+	{	"Destroy",		11	},
+	{	"DoOpen",		12	},
+	{	"Connect",		13	},
 	{	NULL,			0	},
 }, DocLog[] = {
 	{	"File",			20	},
@@ -1177,6 +1230,9 @@ void CRLoginDoc::ScriptInit(int cmds, int shift, class CScriptValue &value)
 	m_KeyTab.ScriptInit     ((DocBase[2].cmds << shift) | cmds, shift + 6, value[DocBase[2].name]);
 	m_KeyMac.ScriptInit     ((DocBase[3].cmds << shift) | cmds, shift + 6, value[DocBase[3].name]);
 	m_ParamTab.ScriptInit   ((DocBase[4].cmds << shift) | cmds, shift + 6, value[DocBase[4].name]);
+
+	for ( int n = 5 ; DocBase[n].name != NULL ; n++ )
+		value[DocBase[n].name].m_DocCmds = (DocBase[n].cmds << shift) | cmds;
 
 	for ( int n = 0 ; DocLog[n].name != NULL ; n++ )
 		value["Log"][DocLog[n].name].m_DocCmds = (DocLog[n].cmds << shift) | cmds;
@@ -1245,6 +1301,29 @@ void CRLoginDoc::ScriptValue(int cmds, class CScriptValue &value, int mode)
 		}
 		break;
 
+	case 9:				// Document.Open()
+		if ( mode == DOC_MODE_CALL )
+			SocketOpen();
+		break;
+	case 10:			// Document.Close()
+		if ( mode == DOC_MODE_CALL )
+			SocketClose();
+		break;
+	case 11:			// Document.Destroy()
+		if ( mode == DOC_MODE_CALL ) {
+			CWnd *pWnd = GetAciveView();
+			if ( pWnd != NULL )
+				pWnd->PostMessage(WM_COMMAND, ID_FILE_CLOSE, 0 );
+		}
+		break;
+	case 12:			// Document.DoOpen
+		value.SetInt(m_pScript->m_bOpenSock, mode);
+		break;
+	case 13:			// Document.Connect
+		n = (m_pSock == NULL ? FALSE : m_pSock->m_bConnect);
+		value.SetInt(n, mode);
+		break;
+
 	case 20:				// Document.Log.File
 		if ( mode == DOC_MODE_IDENT ) {
 			if ( m_pLogFile != NULL )
@@ -1287,3 +1366,4 @@ void CRLoginDoc::ScriptValue(int cmds, class CScriptValue &value, int mode)
 		break;
 	}
 }
+

@@ -522,6 +522,7 @@ public:
 
 	BOOL Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM, void *pAddrInfo = NULL);
 	void Close();
+	void OnConnect();
 	void OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags = 0);
 	int Send(const void* lpBuf, int nBufLen, int nFlags = 0);
 	void SendWindSize(int x, int y);

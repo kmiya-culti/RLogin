@@ -204,6 +204,11 @@ int Cssh::Send(const void* lpBuf, int nBufLen, int nFlags)
 	return 0;
   }
 }
+void Cssh::OnConnect()
+{
+	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHPFORY) )
+		CExtSocket::OnConnect();
+}
 void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 {
   try {
@@ -2539,6 +2544,7 @@ int Cssh::SSH2MsgChannelRequestReply(CBuffer *bp, int type)
 		if ( type == SSH2_MSG_CHANNEL_FAILURE )
 			return TRUE;
 		m_SSH2Status |= SSH2_STAT_HAVESTDIO;
+		CExtSocket::OnConnect();
 		break;
 	case CHAN_REQ_SHELL:	// shell
 		if ( type == SSH2_MSG_CHANNEL_FAILURE )

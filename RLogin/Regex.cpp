@@ -122,7 +122,7 @@ CStringD &CStringD::operator += (LPCWSTR str)
 CStringD &CStringD::operator += (LPCDSTR str)
 {
 	while ( *str != 0 )
-		*this += *str;
+		*this += *(str++);
 	return *this;
 }
 LPCWSTR CStringD::WStr(CStringW &str)

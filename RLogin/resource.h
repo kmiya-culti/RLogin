@@ -2,7 +2,6 @@
 // Microsoft Visual C++ generated include file.
 // Used by RLogin.rc
 //
-#define IDC_RESET                       3
 #define IDR_MAINFRAME                   100
 #define IDR_RLOGINTYPE                  101
 #define IDR_SFTPMENU                    102
@@ -91,7 +90,6 @@
 #define IDS_PRORODLGCOMM                144
 #define IDS_CERTTRASTREQ                145
 #define IDD_CHATDLG                     146
-#define IDS_STRING146                   146
 #define IDS_IDKEYDUPHOSTNAME            146
 #define IDD_CHATSTAT                    147
 #define IDE_FILENAMEERROR               147
@@ -105,13 +103,16 @@
 #define IDE_KANJICONVERROR              152
 #define IDS_CREATEDIRMSG                153
 #define IDD_INFOCAPDLG                  154
-#define IDS_STRING154                   154
 #define IDS_RENAMEMSG                   154
 #define IDD_ENVDLG                      155
 #define IDE_MANYCHANNEL                 155
 #define IDD_ESCDLG                      156
+#define IDS_FILEDLGSCRIPT               156
 #define IDD_ESCPARADLG                  157
+#define IDE_ECDSABITSIZEERR             157
 #define IDD_CSIPARADLG                  158
+#define IDE_DSABITSIZEERR               158
+#define IDS_SCRIPTNEW                   159
 #define IDD_STATUS_DLG                  160
 #define IDD_GHOSTWND                    161
 #define IDD_HISPAGE                     161
@@ -122,6 +123,8 @@
 #define IDD_INITALLDLG                  167
 #define IDD_DIALOG1                     168
 #define IDD_SCRIPTDLG                   168
+#define IDD_SCRIPTPAGE                  169
+#define IDC_RESET                       170
 #define IDM_KANJI_EUC                   200
 #define IDM_KANJI_SJIS                  201
 #define IDM_KANJI_ASCII                 202
@@ -171,6 +174,16 @@
 #define IDM_SERV_INPORT                 246
 #define IDM_SERV_EXPORT                 247
 #define IDM_SOCKETSTATUS                248
+#define IDM_SCRIPT_MENU1                249
+#define IDM_SCRIPT_MENU2                250
+#define IDM_SCRIPT_MENU3                251
+#define IDM_SCRIPT_MENU4                252
+#define IDM_SCRIPT_MENU5                253
+#define IDM_SCRIPT_MENU6                254
+#define IDM_SCRIPT_MENU7                255
+#define IDM_SCRIPT_MENU8                256
+#define IDM_SCRIPT_MENU9                257
+#define IDM_SCRIPT_MENU10               258
 #define IDC_BACKFILE                    1000
 #define IDC_BACKSEL                     1001
 #define IDC_BANKGL1                     1002
@@ -535,6 +548,12 @@
 #define IDC_AUTOLOG_PATH                3058
 #define IDC_HISFILE_PATH                3059
 #define IDC_MSGICON                     3060
+#define IDC_SCRIPT_PATH                 3061
+#define IDC_SCRIPT_SEL                  3062
+#define IDC_CONTINUE                    3063
+#define IDC_SCRIPTSTR                   3064
+#define IDC_SCRIPT_STR                  3064
+#define IDC_CODESTACK                   3065
 #define ID_FILE_ALL_LOAD                5000
 #define ID_EDIT_BOX                     5001
 #define ID_PAGE_PRIOR                   5002
@@ -578,17 +597,17 @@
 #define ID_SERV_PROTO                   5045
 #define IDM_SERV_PROTO                  5046
 #define ID_VIEW_SCROLLBAR               5048
-#define ID_SE                           5049
 #define ID_SEARCH_BACK                  5050
 #define IDM_SEARCH_BACK                 5051
+#define IDM_SCRIPT                      5053
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        169
-#define _APS_NEXT_COMMAND_VALUE         5052
-#define _APS_NEXT_CONTROL_VALUE         3061
-#define _APS_NEXT_SYMED_VALUE           249
+#define _APS_NEXT_RESOURCE_VALUE        170
+#define _APS_NEXT_COMMAND_VALUE         5054
+#define _APS_NEXT_CONTROL_VALUE         3066
+#define _APS_NEXT_SYMED_VALUE           259
 #endif
 #endif

@@ -184,8 +184,10 @@ void CScrnPage::OnUpdateCheck(UINT nID)
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 
-	if ( nID == IDC_SCRNSIZE1 || nID == IDC_SCRNSIZE2 )
+	if ( nID == IDC_SCRNSIZE1 || nID == IDC_SCRNSIZE2 ) {
+		UpdateData(TRUE);
 		InitDlgItem();
+	}
 }
 void CScrnPage::OnCbnSelchangeCombo()
 {

@@ -49,8 +49,8 @@ public:
 	void PutBIGNUM(BIGNUM *val);
 	void PutBIGNUM2(BIGNUM *val);
 	void PutEcPoint(const EC_GROUP *curve, const EC_POINT *point);
+	void PutDword(int val);
 	void PutWord(int val);
-	void PutDWord(DWORD dw);
 
 	int Get8Bit();
 	int Get16Bit();
@@ -62,6 +62,7 @@ public:
 	int GetBIGNUM2(BIGNUM *val);
 	int GetBIGNUM_SecSh(BIGNUM *val);
 	int GetEcPoint(const EC_GROUP *curve, EC_POINT *point);
+	int GetDword();
 	int GetWord();
 	int GetChar();
 
@@ -387,6 +388,7 @@ public:
 	CString m_Memo;
 	CString m_Group;
 	CString m_ScriptFile;
+	CString m_ScriptStr;
 
 	void Init();
 	void SetArray(CStringArrayExt &stra);

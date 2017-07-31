@@ -83,7 +83,7 @@ public:
 
 	void SendBuffer(CBuffer &buf);
 	void SendScript(LPCWSTR str, LPCWSTR match);
-	void OnReciveChar(int ch);
+	void OnReciveChar(int ch, int pos);
 	void OnSendBuffer(CBuffer &buf);
 
 	int DelaySend();
@@ -144,6 +144,9 @@ protected:
 	afx_msg void OnScreenReset(UINT nID);
 	afx_msg void OnSocketstatus();
 	afx_msg void OnUpdateSocketstatus(CCmdUI *pCmdUI);
+	afx_msg void OnScript();
+	afx_msg void OnUpdateScript(CCmdUI *pCmdUI);
+	afx_msg void OnScriptMenu(UINT nID);
 	DECLARE_MESSAGE_MAP()
 };
 

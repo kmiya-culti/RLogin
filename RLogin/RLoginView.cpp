@@ -12,6 +12,7 @@
 #include "Ssh.h"
 #include "Data.h"
 #include "SearchDlg.h"
+#include "Script.h"
 
 #include <imm.h>
 
@@ -247,9 +248,12 @@ void CRLoginView::CalcPosRect(CRect &rect)
 	CRLoginDoc *pDoc = GetDocument();
 
 	pDoc->m_TextRam.SetCalcPos(m_ClipStaPos, &x, &y);
-	rect.left = x; rect.top = y;
+	rect.left = x;
+	rect.top = y;
+
 	pDoc->m_TextRam.SetCalcPos(m_ClipEndPos, &x, &y);
-	rect.right = x; rect.bottom = y;
+	rect.right = x;
+	rect.bottom = y;
 
 	rect.NormalizeRect();
 
@@ -960,6 +964,7 @@ void CRLoginView::OnActivateView(BOOL bActivate, CView* pActivateView, CView* pD
 
 		m_ActiveFlag = TRUE;
 		pDoc->m_KeyMac.SetHisMenu(GetMainWnd());
+		pDoc->m_pScript->SetMenu(GetMainWnd());
 		pDoc->m_TextRam.InitText(pFrame->m_Width, pFrame->m_Height);
 		pFrame->m_Cols  = pDoc->m_TextRam.m_Cols;
 		pFrame->m_Lines = pDoc->m_TextRam.m_Lines;

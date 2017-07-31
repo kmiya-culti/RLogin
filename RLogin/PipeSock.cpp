@@ -192,7 +192,7 @@ int CPipeSock::OnIdle()
 		}
 	}
 
-	return TRUE;
+	return FALSE;
 }
 void CPipeSock::OnReadProc()
 {

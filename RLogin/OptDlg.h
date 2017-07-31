@@ -17,6 +17,7 @@ public:
 
 #include "SerEntPage.h"
 #include "TermPage.h"
+#include "ScriptPage.h"
 #include "ScrnPage.h"
 #include "ProtoPage.h"
 #include "CharSetPage.h"
@@ -58,6 +59,7 @@ public:
 	CHisPage m_HisPage;
 	CClipPage m_ClipPage;
 	CMousePage m_MousePage;
+	CScriptPage m_ScriptPage;
 
 	CServerEntry *m_pEntry;
 	CTextRam *m_pTextRam;

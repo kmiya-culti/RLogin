@@ -214,14 +214,15 @@ void CBuffer::PutEcPoint(const EC_GROUP *curve, const EC_POINT *point)
 	BN_CTX_free(bnctx);
 	delete tmp;
 }
+void CBuffer::PutDword(int val)
+{
+	DWORD dw = (WORD)val;
+	Apend((LPBYTE)(&dw), sizeof(DWORD));
+}
 void CBuffer::PutWord(int val)
 {
 	WORD wd = (WORD)val;
 	Apend((LPBYTE)(&wd), sizeof(WORD));
-}
-void CBuffer::PutDWord(DWORD dw)
-{
-	Apend((LPBYTE)(&dw), sizeof(DWORD));
 }
 int CBuffer::Get8Bit()
 {
@@ -337,6 +338,14 @@ int CBuffer::GetEcPoint(const EC_GROUP *curve, EC_POINT *point)
 	Consume(len);
 
 	return (ret == 1 ? TRUE : FALSE);
+}
+int CBuffer::GetDword()
+{
+	if ( GetSize() < sizeof(DWORD) )
+		throw this;
+	DWORD dw = *((DWORD *)GetPtr());
+	Consume(sizeof(DWORD));
+	return (int)dw;
 }
 int CBuffer::GetWord()
 {
@@ -1636,6 +1645,7 @@ void CServerEntry::Init()
 	m_Memo.Empty();
 	m_Group.Empty();
 	m_ScriptFile.Empty();
+	m_ScriptStr.Empty();
 }
 const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 {
@@ -1664,6 +1674,7 @@ const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 	m_Memo       = data.m_Memo;
 	m_Group      = data.m_Group;
 	m_ScriptFile = data.m_ScriptFile;
+	m_ScriptStr  = data.m_ScriptStr;
 	return *this;
 }
 void CServerEntry::GetArray(CStringArrayExt &stra)
@@ -1709,6 +1720,7 @@ void CServerEntry::GetArray(CStringArrayExt &stra)
 	m_Memo       = (stra.GetSize() > 17 ?  stra.GetAt(17) : _T(""));
 	m_Group      = (stra.GetSize() > 18 ?  stra.GetAt(18) : _T(""));
 	m_ScriptFile = (stra.GetSize() > 19 ?  stra.GetAt(19) : _T(""));
+	m_ScriptStr  = (stra.GetSize() > 20 ?  stra.GetAt(20) : _T(""));
 
 	m_ProBuffer.Clear();
 	m_HostReal = m_HostName;
@@ -1747,6 +1759,7 @@ void CServerEntry::SetArray(CStringArrayExt &stra)
 	stra.Add(m_Memo);
 	stra.Add(m_Group);
 	stra.Add(m_ScriptFile);
+	stra.Add(m_ScriptStr);
 }
 
 static ScriptCmdsDefs DocEntry[] = {
@@ -1759,7 +1772,8 @@ static ScriptCmdsDefs DocEntry[] = {
 	{	"Memo",			7	},
 	{	"Group",		8	},
 	{	"Script",		9	},
-	{	"CodeSet",		10	},
+	{	"AddScript",	10	},
+	{	"CodeSet",		11	},
 	{	"Protocol",		12	},
 	{	"Chat",			13	},
 	{	"Proxy",		14	},
@@ -1832,22 +1846,25 @@ void CServerEntry::ScriptValue(int cmds, class CScriptValue &value, int mode)
 	case 9:					// Document.Entry.Script
 		value.SetStr(m_ScriptFile, mode);
 		break;
+	case 10:				// Document.Entry.AddScript
+		value.SetStr(m_ScriptStr, mode);
+		break;
 
-	case 10:				// Document.Entry.CodeSet
+	case 11:				// Document.Entry.CodeSet
 		str = GetKanjiCode();
 		value.SetStr(str, mode);
 		SetKanjiCode(str);
-	case 11:				// Document.Entry.Protocol
+	case 12:				// Document.Entry.Protocol
 		str = GetProtoName();
 		value.SetStr(str, mode);
 		m_ProtoType = GetProtoType(str);
-	case 12:				// Document.Entry.Chat
+	case 13:				// Document.Entry.Chat
 		m_ChatScript.SetString(str);
 		value.SetStr(str, mode);
 		m_ChatScript.GetString(str);
 		break;
 
-	case 13:				// Document.Entry.Proxy
+	case 14:				// Document.Entry.Proxy
 		if ( mode == DOC_MODE_SAVE ) {
 			for ( n = 0 ; DocEntryProxy[n].name != NULL ; n++ ) {
 				if ( (i = value.Find(DocEntryProxy[n].name)) >= 0 )
@@ -2819,7 +2836,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	61
+#define	CMDSKEYTABMAX	71
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -2868,6 +2885,16 @@ static const struct _CmdsKeyTab {
 	{	IDM_RESET_TAB,			L"$RESET_TAB"		},
 	{	IDM_RESET_TEK,			L"$RESET_TEK"		},
 	{	ID_CHARSCRIPT_END,		L"$SCRIPT_END"		},
+	{	IDM_SCRIPT_MENU1,		L"$SCRIPT_MENU1"	},
+	{	IDM_SCRIPT_MENU10,		L"$SCRIPT_MENU10"	},
+	{	IDM_SCRIPT_MENU2,		L"$SCRIPT_MENU2"	},
+	{	IDM_SCRIPT_MENU3,		L"$SCRIPT_MENU3"	},
+	{	IDM_SCRIPT_MENU4,		L"$SCRIPT_MENU4"	},
+	{	IDM_SCRIPT_MENU5,		L"$SCRIPT_MENU5"	},
+	{	IDM_SCRIPT_MENU6,		L"$SCRIPT_MENU6"	},
+	{	IDM_SCRIPT_MENU7,		L"$SCRIPT_MENU7"	},
+	{	IDM_SCRIPT_MENU8,		L"$SCRIPT_MENU8"	},
+	{	IDM_SCRIPT_MENU9,		L"$SCRIPT_MENU9"	},
 	{	IDM_SEARCH_BACK,		L"$SEARCH_BACK"		},
 	{	IDM_SEARCH_NEXT,		L"$SEARCH_NEXT"		},
 	{	IDM_SEARCH_REG,			L"$SEARCH_REG"		},

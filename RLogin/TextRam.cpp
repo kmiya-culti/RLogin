@@ -1240,6 +1240,8 @@ static ScriptCmdsDefs DocScrn[] = {
 	{	"Cursol",		1	},
 	{	"Size",			2	},
 	{	"Style",		3	},
+	{	"Mode",			10	},
+	{	"ExtMode",		11	},
 	{	NULL,			0	},
 }, DocScrnCursol[] = {
 	{	"x",			20	},
@@ -1309,6 +1311,61 @@ void CTextRam::ScriptValue(int cmds, class CScriptValue &value, int mode)
 		break;
 	case 3:					// Document.Screen.Style
 		ScriptTable(DocScrnStyle, value, mode);
+		break;
+
+	case 10:				// Document.Screen.Mode
+		if ( mode == DOC_MODE_CALL ) {
+			int opt = (int)value[0];
+			if ( opt < 0 ) opt = 0;
+			else if ( opt > 99 ) opt = 99;
+			opt += 200;		// 200-299
+			if ( value.GetSize() < 1 )
+				break;
+			else if ( value.GetSize() < 2 )
+				value = (int)(IsOptEnable(opt) ? 1 : 0);
+			else {
+				if ( (int)value[1] != 0 )
+					EnableOption(opt);
+				else
+					DisableOption(opt);
+			}
+		}
+		break;
+	case 11:				// Document.Screen.ExtMode
+		if ( mode == DOC_MODE_CALL ) {
+			int opt = (int)value[0];
+			if ( value.GetSize() < 1 )
+				break;
+			else if ( value.GetSize() < 2 ) {
+				if ( opt < 1 )
+					opt = 0;
+				else if ( opt >= 1000 && opt < 1080 )
+					opt -= 700;
+				else if ( opt >= 2000 && opt < 2020 )
+					opt -= 1620;		// 380-399
+				else if ( opt >= 8400 && opt < 8512 )
+					opt -= 8000;		// 400-511
+				else if ( opt == 7727 )
+					opt = TO_RLCKMESC;	// 7727  -  Application Escape mode を有効にする。				Application Escape mode を無効にする。  
+				else if ( opt == 7786 )
+					opt = TO_RLMSWAPE;	// 7786  -  マウスホイール - カーソルキー変換を有効にする。		マウスホイール - カーソルキー変換を無効にする。  
+				else if ( opt > 199 )
+					opt = 199;
+				value = (int)(IsOptEnable(opt) ? 1 : 0);
+			} else {
+				int n;
+				CWordArray save;
+				for ( n = 0 ; n < m_AnsiPara.GetSize() ; n++ )
+					save.Add(m_AnsiPara[n]);
+				m_AnsiPara.RemoveAll();
+				m_AnsiPara.Add(opt);
+				fc_Push(STAGE_CSI);
+				fc_DECSRET((int)value[1] != 0 ? 'h' : 'l');
+				m_AnsiPara.RemoveAll();
+				for ( n = 0 ; n < save.GetSize() ; n++ )
+					m_AnsiPara.Add(save[n]);
+			}
+		}
 		break;
 
 	case 20:				// Document.Screen.Cursol.x
@@ -2607,7 +2664,14 @@ void CTextRam::CallReciveChar(int ch)
 	if ( m_pDocument == NULL )
 		return;
 
-	m_pDocument->OnReciveChar(ch);
+	int pos = m_CurY + m_HisPos;
+	
+	while ( pos < 0 )
+		pos += m_HisMax;
+	while ( pos >= m_HisMax )
+		pos -= m_HisMax;
+
+	m_pDocument->OnReciveChar(ch, m_CurX + pos * m_ColsMax);
 
 	if ( m_pDocument->m_pLogFile == NULL )
 		return;

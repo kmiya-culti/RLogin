@@ -1118,6 +1118,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\ScriptPage.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\ScrnPage.cpp"
 				>
 			</File>
@@ -1509,6 +1513,10 @@
 			</File>
 			<File
 				RelativePath=".\ScriptDlg.h"
+				>
+			</File>
+			<File
+				RelativePath=".\ScriptPage.h"
 				>
 			</File>
 			<File

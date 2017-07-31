@@ -206,6 +206,7 @@ BEGIN
             MENUITEM "ZModemダウンロード",                IDM_ZMODEM_DOWNLOAD
             MENUITEM "Kermitダウンロード",                IDM_KERMIT_DOWNLOAD
         END
+        MENUITEM "スクリプトの実行(&P)",                IDM_SCRIPT
         MENUITEM SEPARATOR
         MENUITEM "最近使ったﾌｧｲﾙ",                   ID_FILE_MRU_FILE1
         MENUITEM SEPARATOR
@@ -221,7 +222,7 @@ BEGIN
         MENUITEM "前を検索(&D)",                    IDM_SEARCH_BACK
         MENUITEM "次を検索(&N)",                    IDM_SEARCH_NEXT
         MENUITEM SEPARATOR
-        MENUITEM "ChatScriptの完了(&S)",           ID_CHARSCRIPT_END
+        MENUITEM "スクリプトの停止(&S)",                ID_CHARSCRIPT_END
         MENUITEM "Brark信号を送る(&B)",              ID_SEND_BREAK
         MENUITEM "マウスイベントを無効(&M)",              ID_MOUSE_EVENT
         MENUITEM SEPARATOR
@@ -426,7 +427,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.12.2 (2012/02/28)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.12.3 (2012/03/12)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2012 Culti",IDC_STATIC,47,15,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,148,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.0g Jan 18th, 2012",IDC_STATIC,47,29,176,8
@@ -1303,11 +1304,28 @@ END
 IDD_SCRIPTDLG DIALOGEX 0, 0, 291, 232
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Dialog"
-FONT 8, "ＭＳ ゴシック", 400, 0, 0x80
+FONT 9, "ＭＳ ゴシック", 400, 0, 0x80
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,105,211,82,14
+    DEFPUSHBUTTON   "OK",IDOK,116,210,59,15
     EDITTEXT        IDC_FILENAME,7,7,277,14,ES_AUTOHSCROLL | ES_READONLY
-    EDITTEXT        IDC_TEXT,7,26,277,179,ES_MULTILINE | ES_AUTOVSCROLL | ES_NOHIDESEL | ES_READONLY | ES_WANTRETURN | WS_VSCROLL
+    EDITTEXT        IDC_TEXT,7,26,277,160,ES_MULTILINE | ES_AUTOVSCROLL | ES_NOHIDESEL | ES_READONLY | ES_WANTRETURN | WS_VSCROLL
+    PUSHBUTTON      "キャンセル",IDCANCEL,188,210,59,15
+    PUSHBUTTON      "続行",IDC_CONTINUE,44,210,59,15
+    COMBOBOX        IDC_CODESTACK,7,191,277,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+END
+
+IDD_SCRIPTPAGE DIALOGEX 0, 0, 251, 270
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "スクリプト"
+FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
+BEGIN
+    EDITTEXT        IDC_SCRIPT_PATH,17,38,171,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDC_SCRIPT_SEL,194,38,40,14
+    CONTROL         "実行時にトレース・デバッグを行う",IDC_TERMCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,61,171,10
+    GROUPBOX        "エントリー・スクリプト",IDC_STATIC,7,7,237,72
+    LTEXT           "サーバーエントリーに接続時に実行するスクリプト・ファイルを指定します",IDC_STATIC,17,22,217,8
+    EDITTEXT        IDC_SCRIPT_STR,7,105,237,158,ES_MULTILINE | ES_AUTOHSCROLL | ES_WANTRETURN
+    LTEXT           "上記スクリプトファイル終了後に実行するスクリプトです\nこのエントリーだけで実行する部分などを直接編集できます",IDC_STATIC,17,83,217,19
 END
 
 
@@ -1317,8 +1335,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,12,2,0
- PRODUCTVERSION 2,12,2,0
+ FILEVERSION 2,12,3,0
+ PRODUCTVERSION 2,12,3,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1335,12 +1353,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.12.2.0"
+            VALUE "FileVersion", "2.12.3.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2008 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.12.2.0"
+            VALUE "ProductVersion", "2.12.3.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -1676,6 +1694,14 @@ BEGIN
         RIGHTMARGIN, 284
         TOPMARGIN, 7
         BOTTOMMARGIN, 225
+    END
+
+    IDD_SCRIPTPAGE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 244
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 263
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -2578,6 +2604,7 @@ BEGIN
     IDM_SERV_PROTO          "プロトコルハンドラに登録\nハンドラに登録"
     ID_VIEW_SCROLLBAR       "スクロールバーの表示/非表示\nスクロールバーの表示切り替え"
     IDM_SEARCH_BACK         "前を検索します\n前を検索"
+    IDM_SCRIPT              "スクリプトファイルを実行します\nスクリプト実行"
 END
 
 STRINGTABLE
@@ -2634,6 +2661,10 @@ BEGIN
     IDS_CREATEDIRMSG        "新しいフォルダの作成"
     IDS_RENAMEMSG           "ファイル名の変更"
     IDE_MANYCHANNEL         "多くのチャンネルを開こうとしています\n続行しますか？"
+    IDS_FILEDLGSCRIPT       "スクリプト ファイル (*.txt)|*.txt|All Files (*.*)|*.*||"
+    IDE_ECDSABITSIZEERR     "ECDSAは、ビットサイズを256/384/521から選択してください"
+    IDE_DSABITSIZEERR       "DSA/RSAは、ビットサイズを768/1024/2048/4096から選択してください。推奨は、2048です。"
+    IDS_SCRIPTNEW           "すでに読み込んでいるスクリプトを放棄しますか？"
 END
 
 #endif    // 日本語 (日本) resources

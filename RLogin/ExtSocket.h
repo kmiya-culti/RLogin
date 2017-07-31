@@ -119,6 +119,7 @@ public:
 	int m_ListenMax;
 	SOCKET m_Fd, m_FdTab[LISTENSOCKS];
 	class CRLoginDoc *m_pDocument;
+	BOOL m_bConnect;
 
 	CBuffer m_RecvBuff;
 	CBuffer m_SendBuff;
