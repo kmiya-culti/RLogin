@@ -560,6 +560,8 @@ public:
 	static void CTextRam::MsToIconvUnicode(WCHAR *str, int len, LPCSTR charset);
 	static DWORD CTextRam::IconvToMsUnicode(DWORD code);
 	static DWORD CTextRam::UnicodeNomal(DWORD code1, DWORD code2);
+	static DWORD UCS2toUCS4(DWORD code);
+	static DWORD UCS4toUCS2(DWORD code);
 
 	// Low Level
 	void RESET(int mode = RESET_CURSOR | RESET_TABS | RESET_BANK | RESET_ATTR | RESET_COLOR | RESET_TEK | RESET_SAVE | RESET_MOUSE | RESET_CHAR);

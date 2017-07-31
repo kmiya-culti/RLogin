@@ -63,7 +63,7 @@ BOOL CTekWnd::PreCreateWindow(CREATESTRUCT& cs)
 
 void CTekWnd::OnDestroy()
 {
-	if ( !IsIconic() ) {
+	if ( !IsIconic() && !IsZoomed() ) {
 		CRect rect;
 		GetWindowRect(&rect);
 		AfxGetApp()->WriteProfileInt("TekWnd", "x",  rect.left);

@@ -1347,7 +1347,7 @@ int CTextRam::IsWord(WCHAR ch)
 		return 2;
 	else if ( ch >= 0x30A0 && ch <= 0x30FF )		// 30A0 - 30FF カタカナ
 		return 3;
-	else if ( UnicodeWidth(ch) == 2 && iswalnum(ch) )
+	else if ( UnicodeWidth(UCS2toUCS4(ch)) == 2 && iswalnum(ch) )
 		return 4;
 	else if ( iswalnum(ch) || m_WordStr.Find(ch) >= 0 )
 		return 1;
@@ -2248,15 +2248,37 @@ DWORD CTextRam::UnicodeNomal(DWORD code1, DWORD code2)
 		UniNomInitFlag = TRUE;
 	}
 
+	code1 = UCS2toUCS4(code1);
+	code2 = UCS2toUCS4(code2);
+
 	hs = (code1 * 31 + code2) & 255;
 	for ( tp = HashTab[hs] ; tp != NULL ; tp = tp->next ) {
 		if ( (c = (int)(tp->code[0] - code1)) == 0 && (c = (int)(tp->code[1] - code2)) == 0 )
-			return tp->code[2];
+			return UCS4toUCS2(tp->code[2]);
 		else if ( c < 0 )
 			break;
 	}
 	return 0;
 }
+DWORD CTextRam::UCS2toUCS4(DWORD code)
+{
+	//  1101 10xx	U+D800 - U+DBFF	上位サロゲート
+	//	1101 11xx	U+DC00 - U+DFFF	下位サロゲート
+	if ( (code & 0xFC00FC00L) == 0xD800DC00L )
+		code = (((code & 0x03FF0000L) >> 6) | (code & 0x3FF)) + 0x10000L;
+	return code;
+}
+DWORD CTextRam::UCS4toUCS2(DWORD code)
+{
+	if ( (code & 0xFFFF0000L) >= 0x00010000L && (code & 0xFFFF0000L) < 0x00100000L ) {
+		code -= 0x10000L;
+		code = (((code & 0xFFC00L) << 2) | (code & 0x3FF)) | 0xD800DC00L;
+	}
+	return code;
+}
+
+//////////////////////////////////////////////////////////////////////
+
 void CTextRam::SetRetChar(BOOL f8)
 {
 	if ( f8 ) {

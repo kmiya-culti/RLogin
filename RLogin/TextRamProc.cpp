@@ -1344,7 +1344,7 @@ void CTextRam::fc_UTF85(int ch)
 			m_BackChar = n;
 			LOCATE(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX);
 		}
-		if ( UnicodeWidth(m_BackChar) == 1 ) {
+		if ( UnicodeWidth(UCS2toUCS4(m_BackChar)) == 1 ) {
 			INSMDCK(1);
 			if ( m_BackChar < 0x0080 )
 				PUT1BYTE(m_BackChar & 0x7F, m_BankTab[m_KanjiMode][0]);
