@@ -357,8 +357,14 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 
 	CControlBar::OnLButtonDown(nFlags, point);
 
-	if ( idx < 0 || !m_TabCtrl.GetItemRect(idx, rect) || !rect.PtInRect(point) )
-		return;
+	if ( idx < 0 || !m_TabCtrl.GetItemRect(idx, rect) || !rect.PtInRect(point) ) {
+		for ( idx = 0 ; idx < m_TabCtrl.GetItemCount() ; idx++ ) {
+			if ( m_TabCtrl.GetItemRect(idx, rect) && rect.PtInRect(point) )
+				break;
+		}
+		if ( idx >= m_TabCtrl.GetItemCount() )
+			return;
+	}
 
 	if ( (pChild = (CChildFrame *)GetAt(idx)) == NULL || (pDoc = (CRLoginDoc*)pChild->GetActiveDocument()) == NULL )
 		return;
@@ -400,6 +406,7 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 	for ( ; ; ) {
 		if ( CWnd::GetCapture() != this ) {
 			track.DestroyWindow();
+			ReleaseCapture();
 			return;
 		}
 
@@ -589,18 +596,28 @@ void CTabBar::GetTitle(int nIndex, CString &title)
 {
 	TC_ITEM tci;
 	TCHAR tmp[MAX_PATH + 2];
+	CWnd *pWnd;
+	CString str;
 
-	tci.mask = TCIF_TEXT;
+	ZeroMemory(&tci, sizeof(tci));
+	tci.mask = TCIF_TEXT | TCIF_PARAM;
 	tci.pszText = tmp;
 	tci.cchTextMax = MAX_PATH;
 
 	if ( !m_TabCtrl.GetItem(nIndex, &tci) )
 		return;
 
+	str = tci.pszText;
+
+	if ( str.IsEmpty() && tci.lParam != NULL ) {
+		pWnd = (CChildFrame *)FromHandle((HWND)tci.lParam);
+		pWnd->GetWindowText(str);
+	}
+
 	if ( m_bNumber )
-		title = tci.pszText;
+		title = str;
 	else
-		title.Format(_T("%d %s"), nIndex + 1, tci.pszText);
+		title.Format(_T("%d %s"), nIndex + 1, str);
 }
 
 void CTabBar::ReSize()

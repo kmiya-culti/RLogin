@@ -165,6 +165,13 @@ CRLoginView::CRLoginView()
 	m_pCellSize = NULL;
 	m_pSelectGrapWnd = NULL;
 
+	m_OrigCaretFlag = 0;
+	m_OrigCaretSize.cx = m_OrigCaretSize.cy = 1;
+	m_OrigCaretRect.SetRectEmpty();
+	m_OrigCaretMapSize.cx = m_OrigCaretMapSize.cy = 0;
+	m_OrigCaretColor = 0;
+	m_bOrigCaretAllocCol = FALSE;
+
 #ifdef	USE_DIRECTWRITE
 	m_pRenderTarget = NULL;
 #endif
@@ -223,8 +230,7 @@ void CRLoginView::OnDraw(CDC* pDC)
 	CRLoginDoc* pDoc = GetDocument();
 	CRect frame;
 
-	if ( (m_DispCaret & FGCARET_CREATE) != 0 )
-		HideCaret();
+	DispCaret(FALSE);
 
 	GetClientRect(frame);
 	m_HaveBack = FALSE;
@@ -337,15 +343,12 @@ void CRLoginView::OnDraw(CDC* pDC)
 	}
 #endif
 
-	if ( (m_DispCaret & FGCARET_CREATE) != 0 ) {
-		if ( m_ClipUpdateLine && m_pCellSize != NULL && m_CaretX != 0 ) {
-			m_CaretX = GetGrapPos(pDoc->m_TextRam.m_CurX, (pDoc->m_TextRam.m_CurY + m_HisOfs - m_HisMin));
-			SetCaret();
-		}
-		ShowCaret();
+	if ( (m_DispCaret & FGCARET_CREATE) != 0 && m_ClipUpdateLine && m_pCellSize != NULL && m_CaretX != 0 ) {
+		m_CaretX = GetGrapPos(pDoc->m_TextRam.m_CurX, (pDoc->m_TextRam.m_CurY + m_HisOfs - m_HisMin));
+		SetCaret();
 	}
 
-	//TRACE("Draw %x(%d,%d,%d,%d)\n", m_hWnd, sx, sy, ex, ey);
+	DispCaret(TRUE);
 }
 void CRLoginView::CreateGrapImage(int type)
 {
@@ -673,66 +676,171 @@ void CRLoginView::SendBuffer(CBuffer &buf, BOOL macflag)
 		pDoc->m_TextRam.FLUSH();
 	}
 }
+
+void CRLoginView::DispCaret(BOOL bShow)
+{
+	if ( (m_DispCaret & FGCARET_CREATE) == 0 )
+		return;
+
+	if ( (bShow && (m_OrigCaretFlag & 001) == 0) || (!bShow && (m_OrigCaretFlag & 001) != 0) ) {
+		CDC *pDC;
+
+		if ( m_hWnd != NULL && (pDC = GetDC()) != NULL && pDC->m_hDC != NULL ) {
+			CDC TempDC;
+			CBitmap *pOldBitMap;
+			CRLoginDoc *pDoc = GetDocument();
+
+			TempDC.CreateCompatibleDC(pDC);
+
+			if ( m_OrigCaretBitmap.m_hObject == NULL || m_OrigCaretMapSize.cx < m_OrigCaretSize.cx || m_OrigCaretMapSize.cy < m_OrigCaretSize.cy ) {
+				if ( m_OrigCaretBitmap.m_hObject != NULL )
+					m_OrigCaretBitmap.DeleteObject();
+
+				if ( m_OrigCaretColor == 0 && (m_OrigCaretColor = pDoc->m_TextRam.m_CaretColor) == 0 ) {
+					m_bOrigCaretAllocCol = TRUE;
+					m_OrigCaretColor = OrigCaretColor();
+				}
+
+				m_OrigCaretMapSize.cx = m_CharWidth  * 4;
+				m_OrigCaretMapSize.cy = m_CharHeight * 4;
+				m_OrigCaretBitmap.CreateCompatibleBitmap(pDC, m_OrigCaretMapSize.cx, m_OrigCaretMapSize.cy);
+
+				pOldBitMap = (CBitmap *)TempDC.SelectObject(&m_OrigCaretBitmap);
+
+				TempDC.FillSolidRect(0, 0, m_OrigCaretMapSize.cx, m_OrigCaretMapSize.cy, m_OrigCaretColor);
+
+			} else
+				pOldBitMap = (CBitmap *)TempDC.SelectObject(&m_OrigCaretBitmap);
+
+			pDC->BitBlt(m_OrigCaretRect.left, m_OrigCaretRect.top, m_OrigCaretRect.Width(), m_OrigCaretRect.Height(), &TempDC, 0, 0, SRCINVERT);
+
+			TempDC.SelectObject(pOldBitMap);
+			TempDC.DeleteDC();
+
+			//pDC->InvertRect(m_OrigCaretRect);
+			ReleaseDC(pDC);
+		}
+
+		m_OrigCaretFlag ^= 001;
+	}
+}
+COLORREF CRLoginView::OrigCaretColor()
+{
+	static int hue = 120, lum = 80, sat = 100;
+
+	if ( (hue += 60) >= 360 )
+		hue = 0;
+
+	return CGrapWnd::HLStoRGB(hue, lum, sat);
+}
+void CRLoginView::OrigCaretPos(POINT point)
+{
+	DispCaret(FALSE);
+
+	m_OrigCaretRect.left = point.x;
+	m_OrigCaretRect.top  = point.y;
+
+	m_OrigCaretRect.right  = m_OrigCaretRect.left + m_OrigCaretSize.cx;
+	m_OrigCaretRect.bottom = m_OrigCaretRect.top  + m_OrigCaretSize.cy;
+
+	m_OrigCaretFlag |= 002;
+	DispCaret(TRUE);
+}
+void CRLoginView::OrigCaretSize(int width, int height)
+{
+	m_OrigCaretSize.cx = width;
+	m_OrigCaretSize.cy = height;
+}
+void CRLoginView::UpdateCaret()
+{
+	CRLoginDoc *pDoc = GetDocument();
+
+	KillCaret();
+
+	if ( m_OrigCaretBitmap.m_hObject != NULL )
+		m_OrigCaretBitmap.DeleteObject();
+
+	if ( m_bOrigCaretAllocCol ) {
+		if ( pDoc->m_TextRam.m_CaretColor != 0 ) {
+			m_bOrigCaretAllocCol = FALSE;
+			m_OrigCaretColor = 0;
+		}
+	} else
+		m_OrigCaretColor = 0;
+
+	SetCaret();
+}
+
 void CRLoginView::KillCaret()
 {
 	if ( (m_DispCaret & FGCARET_CREATE) != 0 ) {
 		KillTimer(VTMID_CARETUPDATE);
-		DestroyCaret();
+		DispCaret(FALSE);
 		m_DispCaret &= ~FGCARET_CREATE;
 	}
 }
 void CRLoginView::SetCaret()
 {
+	int n;
 	CPoint po(m_CaretX, m_CaretY);
 	CRLoginDoc *pDoc = GetDocument();
 
 	// 001 = CreateCaret Flag, 002 = CurSol ON/OFF, 004 = Focus Flag, 010 = Redraw Caret
 	// TRACE("SetCaret %02x\n", m_DispCaret);
 
-	if ( (m_DispCaret & FGCARET_REDRAW) != 0 ) {
-		m_DispCaret &= ~FGCARET_REDRAW;
-		KillCaret();
-	}
-
 	switch(m_DispCaret) {
-	case FGCARET_FOCUS | FGCARET_ONOFF:					// 006
+	case FGCARET_FOCUS | FGCARET_ONOFF:
+
 		switch(pDoc->m_TextRam.m_TypeCaret) {
-		case 2:
-			SetTimer(VTMID_CARETUPDATE, GetCaretBlinkTime() * 2 / 3, NULL);
-		case 0: case 1:	
-			CreateSolidCaret(m_CharWidth, m_CharHeight);
-			break;
-		case 4:
-			SetTimer(VTMID_CARETUPDATE, GetCaretBlinkTime() * 2 / 3, NULL);
-		case 3:
-			po.y += m_CharHeight;
-			CreateSolidCaret(m_CharWidth, 1);
-			break;
-		case 6:
-			SetTimer(VTMID_CARETUPDATE, GetCaretBlinkTime() * 2 / 3, NULL);
-		case 5:
-			CreateSolidCaret(1, m_CharHeight);
+		case 0: case 1: case 3: case 5:	// blink
+			if ( (n = GetCaretBlinkTime()) <= 100 )
+				n = 100;
+			SetTimer(VTMID_CARETUPDATE, n, NULL);
 			break;
 		}
-		SetCaretPos(po);
+
+		switch(pDoc->m_TextRam.m_TypeCaret) {
+		case 0: case 1:	case 2:
+			OrigCaretSize(m_CharWidth, m_CharHeight);
+			break;
+		case 3: case 4:
+			po.y += m_CharHeight;
+			OrigCaretSize(m_CharWidth, 1);
+			break;
+		case 5: case 6:
+			OrigCaretSize(1, m_CharHeight);
+			break;
+		}
+
+		if ( (m_bOrigCaretAllocCol && pDoc->m_TextRam.m_CaretColor != 0) || (!m_bOrigCaretAllocCol && m_OrigCaretColor != pDoc->m_TextRam.m_CaretColor) ) {
+			if ( m_OrigCaretBitmap.m_hObject != NULL )
+				m_OrigCaretBitmap.DeleteObject();
+			m_bOrigCaretAllocCol = FALSE;
+			m_OrigCaretColor = 0;
+		}
+
+		OrigCaretPos(po);
 		ImmSetPos(m_CaretX, m_CaretY);
-		ShowCaret();
 		m_DispCaret |= FGCARET_CREATE;
+		DispCaret(TRUE);
 		break;
-	case FGCARET_FOCUS | FGCARET_ONOFF | FGCARET_CREATE:	//	007:
+
+	case FGCARET_FOCUS | FGCARET_ONOFF | FGCARET_CREATE:
 		if ( pDoc->m_TextRam.m_TypeCaret == 3 || pDoc->m_TextRam.m_TypeCaret == 4 )
 			po.y += m_CharHeight;
-		SetCaretPos(po);
+		OrigCaretPos(po);
 		ImmSetPos(m_CaretX, m_CaretY);
 		break;
-	case FGCARET_FOCUS:									// 004:
+
+	case FGCARET_FOCUS:
 		ImmSetPos(m_CaretX, m_CaretY);
 		break;
-	case FGCARET_FOCUS | FGCARET_CREATE:					// 005:
+
+	case FGCARET_FOCUS | FGCARET_CREATE:
 		ImmSetPos(m_CaretX, m_CaretY);
 		// no break
-	case FGCARET_CREATE:									// 001:
-	case FGCARET_ONOFF | FGCARET_CREATE:					// 003:
+	case FGCARET_CREATE:
+	case FGCARET_ONOFF | FGCARET_CREATE:
 		KillCaret();
 		break;
 	}
@@ -962,8 +1070,7 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		return;
 
 	case UPDATE_TYPECARET:
-		m_DispCaret |= FGCARET_REDRAW;
-		SetCaret();
+		UpdateCaret();
 		return;
 
 	case UPDATE_CANCELBTN:
@@ -1039,18 +1146,20 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		KillCaret();
 
 		if ( !pDoc->m_TextRam.m_BitMapFile.IsEmpty() || pDoc->m_TextRam.m_TextBitMap.m_bEnable ) {
+			CDC *pDC = GetDC();
 			GetClientRect(rect);
 			str = pDoc->m_TextRam.m_BitMapFile;
 			pDoc->EntryText(str);
 			m_BmpFile.LoadFile(str);
-			m_pBitmap = m_BmpFile.GetBitmap(GetDC(), rect.Width(), rect.Height(), pDoc->m_TextRam.GetBackColor(pDoc->m_TextRam.m_DefAtt), pDoc->m_TextRam.m_BitMapAlpha, pDoc->m_TextRam.m_BitMapStyle, this);
+			m_pBitmap = m_BmpFile.GetBitmap(pDC, rect.Width(), rect.Height(), pDoc->m_TextRam.GetBackColor(pDoc->m_TextRam.m_DefAtt), pDoc->m_TextRam.m_BitMapAlpha, pDoc->m_TextRam.m_BitMapStyle, this);
 			if ( pDoc->m_TextRam.m_TextBitMap.m_bEnable && !pDoc->m_TextRam.m_TextBitMap.m_Text.IsEmpty() ) {
 				str.Empty();
 				pDoc->ScriptText(pDoc->m_TextRam.m_TextBitMap.m_Text, NULL, str);
-				m_pBitmap = m_BmpFile.GetTextBitmap(GetDC(), rect.Width(), rect.Height(), pDoc->m_TextRam.GetBackColor(pDoc->m_TextRam.m_DefAtt), &(pDoc->m_TextRam.m_TextBitMap), str, pDoc->m_TextRam.m_BitMapAlpha, pDoc->m_TextRam.m_BitMapStyle, this);
+				m_pBitmap = m_BmpFile.GetTextBitmap(pDC, rect.Width(), rect.Height(), pDoc->m_TextRam.GetBackColor(pDoc->m_TextRam.m_DefAtt), &(pDoc->m_TextRam.m_TextBitMap), str, pDoc->m_TextRam.m_BitMapAlpha, pDoc->m_TextRam.m_BitMapStyle, this);
 			}
 			if ( m_BmpFile.m_Style == MAPING_DESKTOP )
 				((CMainFrame *)::AfxGetMainWnd())->m_UseBitmapUpdate = TRUE;
+			ReleaseDC(pDC);
 		} else
 			m_pBitmap = NULL;
 
@@ -1656,7 +1765,10 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 		break;
 
 	case VTMID_CARETUPDATE:		// Caret Timer
-		SetCaretBlinkTime(GetCaretBlinkTime());
+		if ( (m_OrigCaretFlag & 002) == 0 )
+			DispCaret(m_OrigCaretFlag ^ 001);
+		else
+			m_OrigCaretFlag ^= 002;
 		break;
 
 	case VTMID_GOZIUPDATE:		// Gozi Timer
@@ -2661,16 +2773,14 @@ void CRLoginView::OnClipboardMenu()
 
 	pMain->SetClipBoardMenu(IDM_CLIPBOARD_HIS1, pMenu);
 
-	if ( (m_DispCaret & FGCARET_CREATE) != 0 )
-		HideCaret();
+	DispCaret(FALSE);
 
 	point.x = m_CaretX;
 	point.y = m_CaretY + m_CharHeight;
 	ClientToScreen(&point);
 	pMenu->TrackPopupMenu(TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, this);
 
-	if ( (m_DispCaret & FGCARET_CREATE) != 0 )
-		ShowCaret();
+	DispCaret(TRUE);
 }
 
 void CRLoginView::OnMacroRec() 

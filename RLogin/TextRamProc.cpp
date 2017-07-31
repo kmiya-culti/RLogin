@@ -2945,11 +2945,20 @@ void CTextRam::fc_STAT(DWORD ch)
 		else if ( ch == '/' ) { m_BackChar = 3; m_BackMode = SET_96x96; m_Status = ST_CHARSET_1; return; }
 		// no break;
 	case ST_CHARSET_1:
-		m_StrPara += (CHAR)ch;
-		if ( ch >= '\x30' && ch <= '\x7E' )
+		// Dscs Function
+		// I I F        
+		// Generic Dscs.
+		// A Dscs can consist of 0 to 2 intermediates (I) and a final (F).
+		// Intermediates are in the range 2/0 to 2/15.
+		// Finals are in the range 3/0 to 7/14. 
+		if ( ch >= '\x20' && ch <= '\x2F' ) {
+			if ( m_StrPara.GetLength() < 2 )
+				m_StrPara += (CHAR)ch;
+		} else if ( ch >= '\x30' && ch <= '\x7E' ) {
+			m_StrPara += (CHAR)ch;
 			m_BankTab[m_KanjiMode][m_BackChar] = m_FontTab.IndexFind(m_BackMode, m_StrPara);
-		else
-			return;
+		} else
+			return;	// not POP
 		break;
 	}
 

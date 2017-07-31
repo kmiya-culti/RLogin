@@ -93,6 +93,9 @@ IDB_BITMAP9             BITMAP                  "res\\bitmap9.bmp"
 IDB_MENUMAP1            BITMAP                  "res\\menumap1.bmp"
 IDB_MENUMAP2            BITMAP                  "res\\menumap2.bmp"
 IDB_MENUMAP3            BITMAP                  "res\\menumap3.bmp"
+IDB_HATCH1              BITMAP                  "res\\hatch1.bmp"
+IDB_HATCH2              BITMAP                  "res\\hatch2.bmp"
+IDB_HATCH3              BITMAP                  "res\\hatch3.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -527,10 +530,10 @@ CAPTION "RLoginのバージョン情報"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.21.2 (2017/01/10)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.21.3 (2017/02/01)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2017 Culti",IDC_STATIC,44,16,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,171,60,14,WS_GROUP
-    LTEXT           "OpenSSL 1.1.0c 10 Nov 2016",IDC_STATIC,44,29,189,8
+    LTEXT           "OpenSSL 1.1.0d 26 Jan 2017",IDC_STATIC,44,29,189,8
     LTEXT           "Copyright (c) 1998-2016 The OpenSSL Project",IDC_STATIC,44,38,189,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,47,189,8
     LTEXT           "All rights reserved.",IDC_STATIC,44,56,189,8
@@ -1189,15 +1192,16 @@ CAPTION "スクリーン"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     CONTROL         "一行あたりの文字数からフォントサイズを決定",IDC_SCRNSIZE1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,17,23,180,10
+    CONTROL         "DECCOLMでウィンドウをリサイズする",IDC_TERMCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,24,41,173,10
     CONTROL         "フォントサイズから一行あたりの文字数を決定",IDC_SCRNSIZE2,"Button",BS_AUTORADIOBUTTON,17,59,180,10
     EDITTEXT        IDC_SCSZCOLS,204,21,50,12,ES_AUTOHSCROLL | WS_GROUP
-    CONTROL         "DECCOLMでウィンドウをリサイズする",IDC_TERMCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,24,41,173,10
     EDITTEXT        IDC_SCSZCOLS2,204,39,50,12,ES_AUTOHSCROLL
     COMBOBOX        IDC_SCSZFONT,204,57,50,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_SCRNOFFSLEFT,149,75,50,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_SCRNOFFSRIGHT,204,75,50,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_FONTHW,204,93,50,100,CBS_DROPDOWNLIST | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_VISUALBELL,204,111,50,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "",IDC_CARETCOL,"Static",SS_OWNERDRAW | SS_NOTIFY,187,130,12,12,WS_EX_STATICEDGE
     COMBOBOX        IDC_DEFCARET,204,129,50,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_COMBO3,204,168,50,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     CONTROL         "CSI 20/21 t でウィンドウタイトルの報告を禁止する",IDC_TERMCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,183,180,10
@@ -1213,7 +1217,7 @@ BEGIN
     LTEXT           "フォントの縦横比を変更する (標準 2.0)",IDC_STATIC,17,95,180,10
     GROUPBOX        "ウィンドウタイトル",IDC_STATIC,7,156,256,60
     LTEXT           "スクリーン左右の余白設定",IDC_STATIC,17,77,125,10
-    LTEXT           "デフォルトの文字カーソル形状(DECSCUSRで変化)",IDC_STATIC,17,131,180,10
+    LTEXT           "文字カーソルの形状(DECSCUSRで変化)と色を設定",IDC_STATIC,17,131,165,10
 END
 
 IDD_AUTORENDLG DIALOGEX 0, 0, 271, 141
@@ -1534,21 +1538,20 @@ BEGIN
     RTEXT           "",IDC_CTRLCODE1,80,7,24,14,SS_CENTERIMAGE,WS_EX_CLIENTEDGE
 END
 
-IDD_DEFPARAMDLG DIALOGEX 0, 0, 255, 165
+IDD_DEFPARAMDLG DIALOGEX 0, 0, 255, 179
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "初期値として保存"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    CONTROL         "CSIオプションの値(SM,RM,DECSET,DECRST)",IDC_DEFPAMCHECK1,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,40,53,157,10
-    CONTROL         "modify Keysの設定(CSI>m,CSI>n)",IDC_DEFPAMCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,40,69,157,10
-    CONTROL         "カラーパレットの設定(OSC4)",IDC_DEFPAMCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,40,85,157,10
-    CONTROL         "文字バンクの設定(ISO-2022による設定)",IDC_DEFPAMCHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,40,101,157,10
-    CONTROL         "文字色・属性の設定(SGR)",IDC_DEFPAMCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,40,117,157,10
-    DEFPUSHBUTTON   "はい",IDOK,60,144,60,14
-    PUSHBUTTON      "いいえ",IDCANCEL,133,144,60,14
-    LTEXT           "ESCシーケンスなどにより変化する設定が変更されました。\n現在の設定をこの接続の初期値として保存しますか？",IDC_STATIC,53,22,188,16
-    ICON            "",IDC_MSGICON,21,20,18,21
+    CONTROL         "CSIオプションの設定",IDC_DEFPAMCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,36,66,190,10
+    CONTROL         "modify Keysの設定(CSI>m,CSI>n)",IDC_DEFPAMCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,36,82,190,10
+    CONTROL         "カラーパレットの設定(OSC4)",IDC_DEFPAMCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,36,98,190,10
+    CONTROL         "文字バンクの設定(ISO-2022による設定)",IDC_DEFPAMCHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,36,114,190,10
+    CONTROL         "文字色・属性の設定(SGR)",IDC_DEFPAMCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,36,130,190,10
+    PUSHBUTTON      "はい",IDOK,60,158,60,14
+    DEFPUSHBUTTON   "いいえ",IDCANCEL,133,158,60,14
+    LTEXT           "ESCシーケンスなどにより変化する設定が変更されました。\n意図しない設定がされている可能性があります。\n現在の設定をこの接続の初期値として保存しますか？",IDC_DEFPARAMSG,53,14,188,44
+    ICON            "",IDC_MSGICON,21,20,20,20
 END
 
 IDD_TTYMODEDLG DIALOGEX 0, 0, 291, 242
@@ -1736,8 +1739,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,21,2,0
- PRODUCTVERSION 2,21,2,0
+ FILEVERSION 2,21,3,0
+ PRODUCTVERSION 2,21,3,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1754,12 +1757,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.21.2.0"
+            VALUE "FileVersion", "2.21.3.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2015 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.21.2.0"
+            VALUE "ProductVersion", "2.21.3.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2134,7 +2137,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 248
         TOPMARGIN, 7
-        BOTTOMMARGIN, 158
+        BOTTOMMARGIN, 172
     END
 
     IDD_TTYMODEDLG, DIALOG
@@ -3317,6 +3320,7 @@ BEGIN
     IDS_CREATEPROFILE       "作成したプロファイルは、次回起動時から使用します"
     IDS_SSHCLOSEALL         "別のチャンネルが開いています。閉じますか？"
     IDS_ENTRYMULTIEDIT      "複数のエントリーを以下の差分で変更しますか？\r\n"
+    IDS_DEFPARACSIOPTMSG    "\r\nCSIオプションに初期値に適さない設定があります！"
 END
 
 STRINGTABLE
@@ -3334,6 +3338,7 @@ BEGIN
     IDE_DUPENTRYSETOPTION   "複製された接続で設定が変更されました\n設定を保存しますか？"
     IDE_DNSDIGESTNOTMATCH   "DNSに登録されたホスト鍵と一致しません\n接続を続行しますか？"
     IDE_RESVERSIONMISMATCH  "リソースファイルのバージョンが違います\n読み込みを続行しますか？"
+    IDE_ENTRYLOADERROR      "サーバーエントリーの読み込みに失敗しました\nレジストリ／プロファイルが壊れている可能性があります\nこのエントリーを削除しますか？"
 END
 
 STRINGTABLE

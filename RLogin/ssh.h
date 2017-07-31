@@ -24,15 +24,6 @@
 #include "openssl/md5.h"
 #include "openssl/pem.h"
 
-#if	OPENSSL_VERSION_NUMBER >= 0x10100000L
-#include "crypto/dsa/dsa_locl.h"
-#include "crypto/rsa/rsa_locl.h"
-#include "crypto/ec/ec_lcl.h"
-#include "crypto/dh/dh_locl.h"
-#include "crypto/evp/evp_locl.h"
-#include "internal/evp_int.h"
-#endif
-
 #define SSH_CIPHER_NONE         0       // none
 #define SSH_CIPHER_DES          2       // des
 #define SSH_CIPHER_3DES         3       // 3des
@@ -298,7 +289,7 @@ public:
 	static LPCTSTR GetEcNameFromNid(int nid);
 	static const EVP_MD *GetEcEvpMdFromNid(int nid);
 	int GetEcNidFromKey(EC_KEY *k);
-	void RsaGenAddPara();
+	void RsaGenAddPara(BIGNUM *iqmp);
 
 	int Init(LPCTSTR pass);
 	int Create(int type);
@@ -360,7 +351,7 @@ public:
 	int LoadSecShKey(FILE *fp, LPCTSTR pass);
 	int LoadPuttyKey(FILE *fp, LPCTSTR pass);
 
-	inline BOOL IsNotSupport() { return (m_Type == IDKEY_DSA2 && m_Dsa != NULL && BN_num_bits(m_Dsa->q) > 160 ? TRUE : FALSE); }
+	BOOL IsNotSupport();
 
 	int LoadPrivateKey(LPCTSTR file, LPCTSTR pass);
 	int SavePrivateKey(int type, LPCTSTR file, LPCTSTR pass);
@@ -855,6 +846,33 @@ extern EVP_MD_CTX *EVP_MD_CTX_new(void);
 extern void EVP_MD_CTX_free(EVP_MD_CTX *pCtx);
 extern HMAC_CTX *HMAC_CTX_new(void);
 extern void HMAC_CTX_free(HMAC_CTX *pHmac);
+const EVP_CIPHER *EVP_CIPHER_CTX_cipher(const EVP_CIPHER_CTX *ctx);
+int EVP_CIPHER_CTX_block_size(const EVP_CIPHER_CTX *ctx);
+int EVP_CIPHER_CTX_encrypting(const EVP_CIPHER_CTX *ctx);
+int EVP_PKEY_id(const EVP_PKEY *pkey);
+int RSA_bits(const RSA *r);
+int RSA_size(const RSA *r);
+void RSA_get0_key(const RSA *r, const BIGNUM **n, const BIGNUM **e, const BIGNUM **d);
+void RSA_get0_factors(const RSA *r, const BIGNUM **p, const BIGNUM **q);
+void RSA_get0_crt_params(const RSA *r, const BIGNUM **dmp1, const BIGNUM **dmq1, const BIGNUM **iqmp);
+int RSA_set0_key(RSA *r, BIGNUM *n, BIGNUM *e, BIGNUM *d);
+int RSA_set0_factors(RSA *r, BIGNUM *p, BIGNUM *q);
+int RSA_set0_crt_params(RSA *r, BIGNUM *dmp1, BIGNUM *dmq1, BIGNUM *iqmp);
+int DSA_bits(const DSA *dsa);
+void DSA_get0_pqg(const DSA *d, const BIGNUM **p, const BIGNUM **q, const BIGNUM **g);
+void DSA_get0_key(const DSA *d, const BIGNUM **pub_key, const BIGNUM **priv_key);
+int DSA_set0_pqg(DSA *d, BIGNUM *p, BIGNUM *q, BIGNUM *g);
+int DSA_set0_key(DSA *d, BIGNUM *pub_key, BIGNUM *priv_key);
+void DSA_SIG_get0(const DSA_SIG *sig, const BIGNUM **pr, const BIGNUM **ps);
+int DSA_SIG_set0(DSA_SIG *sig, BIGNUM *r, BIGNUM *s);
+void ECDSA_SIG_get0(const ECDSA_SIG *sig, const BIGNUM **pr, const BIGNUM **ps);
+int ECDSA_SIG_set0(ECDSA_SIG *sig, BIGNUM *r, BIGNUM *s);
+int DH_bits(const DH *dh);
+void DH_get0_pqg(const DH *dh, const BIGNUM **p, const BIGNUM **q, const BIGNUM **g);
+int DH_set0_pqg(DH *dh, BIGNUM *p, BIGNUM *q, BIGNUM *g);
+void DH_get0_key(const DH *dh, const BIGNUM **pub_key, const BIGNUM **priv_key);
+int DH_set0_key(DH *dh, BIGNUM *pub_key, BIGNUM *priv_key);
+int DH_set_length(DH *dh, long length);
 #endif
 
 extern const EVP_CIPHER *evp_aes_128_ctr(void);
@@ -876,7 +894,7 @@ extern const EVP_CIPHER *evp_chachapoly_256(void);
 
 extern void rsa_public_encrypt(BIGNUM *out, BIGNUM *in, RSA *key);
 extern int	ssh_crc32(LPBYTE buf, int len);
-extern int dh_pub_is_valid(DH *dh, BIGNUM *dh_pub);
+extern int dh_pub_is_valid(DH *dh, const BIGNUM *dh_pub);
 extern int dh_gen_key(DH *dh, int need);
 extern DH *dh_new_group_asc(const char *gen, const char *modulus);
 extern DH *dh_new_group1(void);

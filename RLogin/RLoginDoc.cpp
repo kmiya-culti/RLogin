@@ -1203,6 +1203,21 @@ void CRLoginDoc::OnSocketError(int err)
 
 	SetStatus(_T("Error"));
 
+	if ( m_pStrScript != NULL ) {
+		m_pStrScript->ExecStop();
+		m_pStrScript = NULL;
+	}
+
+	if ( m_pScript != NULL )
+		m_pScript->OnClose();
+
+	if ( m_pBPlus != NULL )
+		m_pBPlus->DoAbort();
+	if ( m_pZModem != NULL )
+		m_pZModem->DoAbort();
+	if ( m_pKermit != NULL )
+		m_pKermit->DoAbort();
+
 	if ( m_AfterId != (-1) ) {
 		((CMainFrame *)::AfxGetMainWnd())->PostMessage(WM_AFTEROPEN, (WPARAM)m_AfterId, (LPARAM)err);
 		m_AfterId = (-1);
@@ -1231,6 +1246,11 @@ void CRLoginDoc::OnSocketClose()
 {
 	if ( m_pSock == NULL )
 		return;
+
+	if ( m_pStrScript != NULL ) {
+		m_pStrScript->ExecStop();
+		m_pStrScript = NULL;
+	}
 
 	if ( m_pScript != NULL )
 		m_pScript->OnClose();

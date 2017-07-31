@@ -14,6 +14,19 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
+static const WORD DecTCS[] = {
+	0x25A1,	0x23B7,	0x250C,	0x2500,	0x2320,	0x2321,	0x2502,	0x23A1,	0x23A3,	0x23A4,	0x23A6,	0x239B,	0x239D,	0x239E,	0x23A0,	0x23A8,	// 02/00-02/15
+	0x23AC,	0x25A1,	0x25A1,	0x2572,	0x2571,	0x2510,	0x2518,	0x25A1,	0x25A1,	0x25A1,	0x25A1,	0x25A1,	0x2264,	0x2260,	0x2265,	0x222B,	// 03/00-03/15
+	0x2234,	0x221D,	0x221E,	0x00F7,	0x0394,	0x2207,	0x03A6,	0x0393,	0x223C,	0x2243,	0x0398,	0x00D7,	0x039B,	0x21D4,	0x21D2,	0x2261,	// 04/00-04/15
+	0x03A0,	0x03A8,	0x25A1,	0x03A3,	0x25A1,	0x25A1,	0x221A,	0x03A9,	0x039E,	0x03A5,	0x2282,	0x2283,	0x2229,	0x222A,	0x2227,	0x2228,	// 05/00-05/15
+	0x00AC,	0x03B1,	0x03B2,	0x03C7,	0x03B4,	0x03B5,	0x03C6,	0x03B3,	0x03B7,	0x03B9,	0x03B8,	0x03BA,	0x03BB,	0x25A1,	0x03BD,	0x2202,	// 06/00-06/15
+	0x03C0,	0x03C8,	0x03C1,	0x03C3,	0x03C4,	0x25A1,	0x0192,	0x03C9,	0x03BE,	0x03C5,	0x03B6,	0x2190,	0x2191,	0x2192,	0x2193,	0x25A1,	// 07/00-07/15
+};
+static const WORD DecSGCS[] = {
+	0x25C6,	0x2592,	0x2409,	0x240C,	0x240D,	0x240A,	0x00B0,	0x00B1,	0x2424,	0x240B,	0x2518,	0x2510,	0x250C,	0x2514,	0x253C,	0x23BA,	// 06/00-06/15
+	0x23BB,	0x2500,	0x23BC,	0x23BD,	0x251C,	0x2524,	0x2534,	0x252C,	0x2502,	0x2264,	0x2265,	0x03C0,	0x2260,	0x00A3,	0x00B7,	0x007F,	// 07/00-07/15
+};
+
 //////////////////////////////////////////////////////////////////////
 // \’z/Á–Å
 //////////////////////////////////////////////////////////////////////
@@ -149,6 +162,10 @@ class CIConv *CIConv::GetIConv(LPCTSTR from, LPCTSTR to)
 			m_Mode |= 003;
 		else if ( _tcscmp(from, _T("JIS_X0213-2000.2")) == 0 )
 			m_Mode |= 004;
+		else if ( _tcscmp(from, _T("DEC_TCS-GR")) == 0 )
+			m_Mode |= 005;
+		else if ( _tcscmp(from, _T("DEC_SGCS-GR")) == 0 )
+			m_Mode |= 006;
 
 		if ( _tcscmp(to, _T("EUC-JISX0213")) == 0 )
 			m_Mode |= 010;
@@ -159,8 +176,11 @@ class CIConv *CIConv::GetIConv(LPCTSTR from, LPCTSTR to)
 		else if ( _tcscmp(to, _T("JIS_X0213-2000.2")) == 0 )
 			m_Mode |= 040;
 
-		if ( (m_Mode & 007) >= 003 )
+		if ( (m_Mode & 007) >= 005 )
+			from = _T("UCS-4BE");
+		else if ( (m_Mode & 007) >= 003 )
 			from = _T("EUC-JISX0213");
+
 		if ( (m_Mode & 070) >= 030 )
 			to   = _T("EUC-JISX0213");
 
@@ -364,6 +384,19 @@ DWORD CIConv::IConvChar(LPCTSTR from, LPCTSTR to, DWORD ch)
 		goto ENDOF;
 	case 044:		// JISX0213.2 > JISX0213.2
 		goto ENDOF;
+
+	case 005:		// DEC_TCS-GR > ???
+		ch &= 0x7F;
+		if ( ch >= 0x0020 && ch <= 0x007F )
+			ch = DecTCS[ch - 0x20];
+		from = _T("UCS-4BE");
+		break;
+	case 006:		// DEC_SGCS-GR > ???
+		ch &= 0x7F;
+		if ( ch >= 0x0060 && ch <= 0x007F )
+			ch = DecSGCS[ch - 0x60];
+		from = _T("UCS-4BE");
+		break;
 	}
 
 	if ( _tcscmp(from, _T("UCS-4BE")) == 0 ) {
@@ -438,4 +471,6 @@ void CIConv::SetListArray(CStringArray &stra)
 	iconvlist(GetCharSet, &stra);
 	stra.Add(_T("JIS_X0213-2000.1"));
 	stra.Add(_T("JIS_X0213-2000.2"));
+	stra.Add(_T("DEC_TCS-GR"));
+	stra.Add(_T("DEC_SGCS-GR"));
 }

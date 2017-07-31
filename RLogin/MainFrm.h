@@ -20,7 +20,8 @@
 #define	PANEFRAME_WEVEN			7
 #define	PANEFRAME_HEVEN			8
 
-#define	PANEMINSIZE				32
+#define	PANEMIN_WIDTH			32
+#define	PANEMIN_HEIGHT			32
 
 class CPaneFrame : public CObject
 {
@@ -62,7 +63,7 @@ public:
 	class CPaneFrame *HitTest(CPoint &po);
 	int BoderRect(CRect &rect);
 
-	void SetBuffer(CBuffer *buf);
+	void SetBuffer(CBuffer *buf, BOOL bEntry = TRUE);
 	static class CPaneFrame *GetBuffer(class CMainFrame *pMain, class CPaneFrame *pPane, class CPaneFrame *pOwn, CBuffer *buf);
 
 	CPaneFrame(class CMainFrame *pMain, HWND hWnd, class CPaneFrame *pOwn);
@@ -285,6 +286,7 @@ protected:
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
 	afx_msg void OnClose();
 	afx_msg void OnMoving(UINT fwSide, LPRECT pRect);
+	afx_msg void OnGetMinMaxInfo(MINMAXINFO* lpMMI);
 
 	afx_msg void OnDrawClipboard();
 	afx_msg void OnChangeCbChain(HWND hWndRemove, HWND hWndAfter);

@@ -16,7 +16,6 @@
 #define	FGCARET_CREATE	001
 #define	FGCARET_ONOFF	002
 #define	FGCARET_FOCUS	004
-#define	FGCARET_REDRAW	010
 
 #define	VTMID_MOUSEMOVE		1024
 #define	VTMID_VISUALBELL	1025
@@ -139,10 +138,26 @@ public:
 	void CalcGrapPoint(CPoint po, int *x, int *y);
 	int HitTest(CPoint point);
 	void SetFrameRect(int cx, int cy);
-	void ImmSetPos(int x, int y);
-	int ImmOpenCtrl(int sw);
+
+	int m_OrigCaretFlag;
+	CSize m_OrigCaretSize;
+	CRect m_OrigCaretRect;
+	CSize m_OrigCaretMapSize;
+	CBitmap m_OrigCaretBitmap;
+	COLORREF m_OrigCaretColor;
+	BOOL m_bOrigCaretAllocCol;
+
+	COLORREF OrigCaretColor();
+	void OrigCaretPos(POINT point);
+	void OrigCaretSize(int width, int height);
+
+	void DispCaret(BOOL bShow);
+	void UpdateCaret();
 	void KillCaret();
 	void SetCaret();
+	void ImmSetPos(int x, int y);
+	int ImmOpenCtrl(int sw);
+
 	void SendBuffer(CBuffer &buf, BOOL macflag = FALSE);
 	void SetGhostWnd(BOOL sw);
 	BOOL ModifyKeys(UINT nChar, int nStat);

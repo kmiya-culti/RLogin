@@ -86,6 +86,9 @@
 #define IDB_MENUMAP1                    417
 #define IDB_MENUMAP2                    418
 #define IDB_MENUMAP3                    419
+#define IDB_HATCH1                      420
+#define IDB_HATCH2                      421
+#define IDB_HATCH3                      422
 #define IDI_ACTIVE                      430
 #define IDS_AGENT_DELKEY                500
 #define IDS_ALLINITREQ                  501
@@ -207,6 +210,7 @@
 #define IDS_CREATEPROFILE               617
 #define IDS_SSHCLOSEALL                 618
 #define IDS_ENTRYMULTIEDIT              619
+#define IDS_DEFPARACSIOPTMSG            620
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -240,6 +244,7 @@
 #define IDE_DUPENTRYSETOPTION           730
 #define IDE_DNSDIGESTNOTMATCH           731
 #define IDE_RESVERSIONMISMATCH          732
+#define IDE_ENTRYLOADERROR              733
 #define IDT_EXTOPT_LIST01               800
 #define IDT_EXTOPT_LIST02               801
 #define IDT_EXTOPT_LIST03               802
@@ -823,6 +828,8 @@
 #define IDC_VERINDENT                   2443
 #define IDC_HALIGN2                     2443
 #define IDC_MAPSTYLE                    2443
+#define IDC_DEFPARAMSG                  2444
+#define IDC_CARETCOL                    2445
 #define IDM_BROADCAST                   5000
 #define IDM_CAP_CLIPBORD                5001
 #define IDM_CAP_EXPORT                  5002
@@ -943,7 +950,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        161
 #define _APS_NEXT_COMMAND_VALUE         5123
-#define _APS_NEXT_CONTROL_VALUE         2444
-#define _APS_NEXT_SYMED_VALUE           620
+#define _APS_NEXT_CONTROL_VALUE         2446
+#define _APS_NEXT_SYMED_VALUE           621
 #endif
 #endif

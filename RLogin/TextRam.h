@@ -28,6 +28,7 @@
 #define	FKEY_MAX		24
 #define	KANBUFMAX		128
 #define	MACROMAX		64
+#define	DEFCOLTAB		0				// Black=0, Amber=1, Green=2, Sian=3, White=4, Solarized=5, Pastel=6
 
 #define	TEK_WIN_WIDTH	4096
 #define	TEK_WIN_HEIGHT	3072
@@ -906,6 +907,8 @@ public:
 
 	int m_DispCaret;
 	int m_TypeCaret;
+	COLORREF m_CaretColor;
+
 	BOOL m_DoWarp;
 	int m_Status;
 	int m_RecvCrLf;
@@ -1072,6 +1075,7 @@ public:
 	void GetCellSize(int *x, int *y);
 	void GetScreenSize(int *x, int *y);
 
+	void DrawBitmap(CDC *pDestDC, CRect &rect, CDC *pSrcDC, int width, int height, DWORD dwRop);
 	void DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, struct DrawWork &prop, class CRLoginView *pView);
 	void DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, struct DrawWork &prop, class CRLoginView *pView);
 	void DrawHoriLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, struct DrawWork &prop, class CRLoginView *pView);
@@ -1126,6 +1130,7 @@ public:
 	static void IconvToMsUniStr(LPCTSTR charset, LPCWSTR p, int len, CBuffer &out);
 	static int OptionToIndex(int value);
 	static int IndexToOption(int value);
+	static void OptionString(int value, CString &str);
 
 	// Low Level
 	void RESET(int mode = RESET_PAGE | RESET_CURSOR | RESET_MARGIN | RESET_TABS | RESET_BANK | RESET_ATTR | RESET_COLOR | RESET_TEK | RESET_SAVE | RESET_MOUSE | RESET_CHAR | RESET_OPTION | RESET_XTOPT | RESET_MODKEY);

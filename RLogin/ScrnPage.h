@@ -30,6 +30,8 @@ public:
 	CString m_ScrnOffsLeft;
 	CString m_ScrnOffsRight;
 	double m_PixDpiY;
+	CStatic m_ColBox;
+	COLORREF m_CaretColor;
 
 public:
 	void InitDlgItem();
@@ -46,9 +48,11 @@ public:
 
 // インプリメンテーション
 protected:
+	DECLARE_MESSAGE_MAP()
 	afx_msg void OnUpdateCheck(UINT nId);
 	afx_msg void OnUpdateEdit();
 	afx_msg void OnUpdateEditOpt();
 	afx_msg void OnCbnSelchangeCombo();
-	DECLARE_MESSAGE_MAP()
+	afx_msg void OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct);
+	afx_msg void OnStnClickedCaretCol();
 };

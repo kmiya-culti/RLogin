@@ -66,8 +66,8 @@ public:
 	void Put64Bit(LONGLONG val);
 	void PutBuf(LPBYTE buf, int len);
 	void PutStr(LPCSTR str);
-	void PutBIGNUM(BIGNUM *val);
-	void PutBIGNUM2(BIGNUM *val);
+	void PutBIGNUM(const BIGNUM *val);
+	void PutBIGNUM2(const BIGNUM *val);
 	void PutEcPoint(const EC_GROUP *curve, const EC_POINT *point);
 	inline void PutByte(int val) { Put8Bit(val); }
 	void PutWord(int val);
@@ -82,7 +82,7 @@ public:
 	int GetBuf(CBuffer *buf);
 	BIGNUM *GetBIGNUM(BIGNUM *val);
 	BIGNUM *GetBIGNUM2(BIGNUM *val);
-	int GetBIGNUM_SecSh(BIGNUM *val);
+	BIGNUM *GetBIGNUM_SecSh(BIGNUM *val);
 	int GetEcPoint(const EC_GROUP *curve, EC_POINT *point);
 	int GetDword();
 	int GetWord();

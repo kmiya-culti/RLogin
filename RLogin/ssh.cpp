@@ -769,28 +769,31 @@ int Cssh::SMsgPublicKey(CBuffer *bp)
 	int n;
 	RSA *host_key;
 	RSA *server_key;
+	BIGNUM *host_key_n, *host_key_e;
+	BIGNUM *server_key_n, *server_key_e;
+	BIGNUM *m_host_key_n, *m_host_key_e;
 	CBuffer tmp;
 
 	for ( n = 0 ; n < 8 ; n++ )
 		m_Cookie[n] = bp->Get8Bit();
 
 	server_key = RSA_new();
-	server_key->n = BN_new();
-	server_key->e = BN_new();
 	n = bp->Get32Bit();
-	bp->GetBIGNUM(server_key->e);
-	bp->GetBIGNUM(server_key->n);
+	server_key_e = bp->GetBIGNUM(NULL);
+	server_key_n = bp->GetBIGNUM(NULL);
+	RSA_set0_key(server_key, server_key_n, server_key_e, NULL);
 
 	host_key = RSA_new();
-	host_key->n = BN_new();
-	host_key->e = BN_new();
 	n = bp->Get32Bit();
-	bp->GetBIGNUM(host_key->e);
-	bp->GetBIGNUM(host_key->n);
+	host_key_e = bp->GetBIGNUM(NULL);
+	host_key_n = bp->GetBIGNUM(NULL);
+	RSA_set0_key(host_key, host_key_n, host_key_e, NULL);
 
 	m_HostKey.Create(IDKEY_RSA1);
-	BN_copy(m_HostKey.m_Rsa->e, host_key->e);
-	BN_copy(m_HostKey.m_Rsa->n, host_key->n);
+	m_host_key_e = BN_dup(host_key_e);
+	m_host_key_n = BN_dup(host_key_n);
+	RSA_set0_key(m_HostKey.m_Rsa, m_host_key_n, m_host_key_e, NULL);
+
 	if ( !m_HostKey.HostVerify(m_HostName) )
 		return FALSE;
 
@@ -808,12 +811,12 @@ int Cssh::SMsgPublicKey(CBuffer *bp)
 	md_ctx = EVP_MD_CTX_new();
 	EVP_DigestInit(md_ctx, evp_md);
 
-	len = BN_num_bytes(host_key->n);
-    BN_bn2bin(host_key->n, nbuf);
+	len = BN_num_bytes(host_key_n);
+    BN_bn2bin(host_key_n, nbuf);
     EVP_DigestUpdate(md_ctx, nbuf, len);
 
-	len = BN_num_bytes(server_key->n);
-    BN_bn2bin(server_key->n, nbuf);
+	len = BN_num_bytes(server_key_n);
+    BN_bn2bin(server_key_n, nbuf);
     EVP_DigestUpdate(md_ctx, nbuf, len);
     EVP_DigestUpdate(md_ctx, m_Cookie, 8);
     EVP_DigestFinal(md_ctx, obuf, NULL);
@@ -832,7 +835,7 @@ int Cssh::SMsgPublicKey(CBuffer *bp)
 			BN_add_word(key, m_SessionKey[n]);
     }
 
-	if ( BN_cmp(server_key->n, host_key->n) < 0 ) {
+	if ( BN_cmp(server_key_n, host_key_n) < 0 ) {
 		rsa_public_encrypt(key, key, server_key);
 		rsa_public_encrypt(key, key, host_key);
 	} else {
@@ -894,7 +897,7 @@ int Cssh::SMsgAuthRsaChallenge(CBuffer *bp)
 	inbuf.SetSize(BN_num_bytes(challenge));
 	BN_bn2bin(challenge, inbuf.GetPtr());
 
-	otbuf.SetSize(BN_num_bytes(m_pIdKey->m_Rsa->n));
+	otbuf.SetSize(RSA_size(m_pIdKey->m_Rsa));
 
 	if ( (len = RSA_private_decrypt(inbuf.GetSize(), inbuf.GetPtr(), otbuf.GetPtr(), m_pIdKey->m_Rsa, RSA_PKCS1_PADDING)) <= 0 ) {
 		BN_free(challenge);
@@ -965,7 +968,11 @@ void Cssh::RecivePacket(CBuffer *bp)
 			goto DISCONNECT;
 		if ( (m_SupportAuth & (1 << SSH_AUTH_RSA)) != 0 && m_pIdKey->m_Rsa != NULL ) {
 			tmp.Put8Bit(SSH_CMSG_AUTH_RSA);
-			tmp.PutBIGNUM(m_pIdKey->m_Rsa->n);
+			{
+				BIGNUM const *n = NULL;
+				RSA_get0_key(m_pIdKey->m_Rsa, &n, NULL, NULL);
+				tmp.PutBIGNUM(n);
+			}
 			SendPacket(&tmp);
 			m_PacketStat = 10;
 			break;
@@ -1672,8 +1679,13 @@ void Cssh::SendMsgKexDhInit()
 
 	dh_gen_key(m_SaveDh, m_NeedKeyLen * 8);
 
+	BIGNUM const *pub_key = NULL;
+
+	DH_get0_key(m_SaveDh, &pub_key, NULL);
+
 	tmp.Put8Bit(SSH2_MSG_KEXDH_INIT);
-	tmp.PutBIGNUM2(m_SaveDh->pub_key);
+	tmp.PutBIGNUM2(pub_key);
+
 	SendPacket2(&tmp);
 }
 void Cssh::SendMsgKexDhGexRequest()
@@ -2568,11 +2580,15 @@ int Cssh::SSH2MsgKexDhReply(CBuffer *bp)
 	n = DH_compute_key(p, spub, m_SaveDh);
 	BN_bin2bn(p, n, ssec);
 
+	BIGNUM const *pub_key = NULL;
+
+	DH_get0_key(m_SaveDh, &pub_key, NULL);
+
 	hashlen = kex_dh_hash(hash,
 		TstrToMbs(m_ClientVerStr), TstrToMbs(m_ServerVerStr),
 		m_MyPeer.GetPtr(), m_MyPeer.GetSize(),
 		m_HisPeer.GetPtr(), m_HisPeer.GetSize(),
-		blob.GetPtr(), blob.GetSize(), m_SaveDh->pub_key,
+		blob.GetPtr(), blob.GetSize(), (BIGNUM *)pub_key,
 		spub, ssec,
 		evp_mod);
 
@@ -2611,12 +2627,12 @@ int Cssh::SSH2MsgKexDhGexGroup(CBuffer *bp)
 	if ( (m_SaveDh = DH_new()) == NULL )
 		return TRUE;
 
-	if ( (m_SaveDh->p = bp->GetBIGNUM2(m_SaveDh->p)) == NULL )
-		return TRUE;
-	if ( (m_SaveDh->g = bp->GetBIGNUM2(m_SaveDh->g)) == NULL )
-		return TRUE;
+	BIGNUM *p = bp->GetBIGNUM2(NULL);
+	BIGNUM *g = bp->GetBIGNUM2(NULL);
 
-	int grp_bits = BN_num_bits(m_SaveDh->p);
+	DH_set0_pqg(m_SaveDh, p, NULL, g);
+
+	int grp_bits = DH_bits(m_SaveDh);
 
 	if ( DHGEX_MIN_BITS > grp_bits || grp_bits > DHGEX_MAX_BITS )
 		return TRUE;
@@ -2624,8 +2640,12 @@ int Cssh::SSH2MsgKexDhGexGroup(CBuffer *bp)
 	if ( dh_gen_key(m_SaveDh, m_NeedKeyLen * 8) )
 		return TRUE;
 
+	BIGNUM const *pub_key = NULL;
+
+	DH_get0_key(m_SaveDh, &pub_key, NULL);
+
 	tmp.Put8Bit(SSH2_MSG_KEX_DH_GEX_INIT);
-	tmp.PutBIGNUM2(m_SaveDh->pub_key);
+	tmp.PutBIGNUM2(pub_key);
 	SendPacket2(&tmp);
 
 	return FALSE;
@@ -2666,13 +2686,18 @@ int Cssh::SSH2MsgKexDhGexReply(CBuffer *bp)
 
 	evp_md = (m_DhMode == DHMODE_GROUP_GEX ? EVP_sha1() : EVP_sha256());
 
+	BIGNUM const *dhp = NULL, *dhg = NULL, *dhpub_key = NULL;
+
+	DH_get0_pqg(m_SaveDh, &dhp, NULL, &dhg);
+	DH_get0_key(m_SaveDh, &dhpub_key, NULL);
+
 	hashlen = kex_gex_hash(hash,
 		TstrToMbs(m_ClientVerStr), TstrToMbs(m_ServerVerStr),
 		m_MyPeer.GetPtr(), m_MyPeer.GetSize(),
 		m_HisPeer.GetPtr(), m_HisPeer.GetSize(),
 		blob.GetPtr(), blob.GetSize(),
 		DHGEX_MIN_BITS, m_DhGexReqBits, DHGEX_MAX_BITS,
-		m_SaveDh->p, m_SaveDh->g, m_SaveDh->pub_key,
+		(BIGNUM *)dhp, (BIGNUM *)dhg, (BIGNUM *)dhpub_key,
 		spub, ssec, evp_md);
 
 	if ( m_SessionIdLen == 0 ) {

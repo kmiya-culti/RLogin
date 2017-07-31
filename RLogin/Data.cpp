@@ -294,28 +294,36 @@ void CBuffer::PutStr(LPCSTR str)
 	Put32Bit(len);
 	Apend((LPBYTE)str, len);
 }
-void CBuffer::PutBIGNUM(BIGNUM *val)
+void CBuffer::PutBIGNUM(const BIGNUM *val)
 {
+	if ( val == NULL ) {
+		Put16Bit(0);
+		return;
+	}
+
 	int bits = BN_num_bits(val);
 	int bin_size = (bits + 7) / 8;
 	LPBYTE tmp = new BYTE[bin_size];
 	int len;
+
 	if ( (len = BN_bn2bin(val, tmp)) != bin_size )
 		throw _T("CBuffer PutBIGNUM");
+
 	Put16Bit(bits);
 	Apend(tmp, len);
 	delete [] tmp;
 }
-void CBuffer::PutBIGNUM2(BIGNUM *val)
+void CBuffer::PutBIGNUM2(const BIGNUM *val)
 {
 	int bytes;
 	int hnoh;
 	LPBYTE tmp;
 
-	if (BN_is_zero(val)) {
+	if ( val == NULL || BN_is_zero(val) ) {
 		Put32Bit(0);
 		return;
 	}
+
 	if ( BN_is_negative(val) )	// val->neg )
 		throw _T("CBuffer PutBIGNUM2 neg");
 
@@ -476,11 +484,16 @@ BIGNUM *CBuffer::GetBIGNUM2(BIGNUM *val)
 
 	return val;
 }
-int CBuffer::GetBIGNUM_SecSh(BIGNUM *val)
+BIGNUM *CBuffer::GetBIGNUM_SecSh(BIGNUM *val)
 {
+	if ( val == NULL && (val = BN_new()) == NULL )
+		throw _T("CBuffer GetBIGNUM_SecSh BN_new");
+
 	int bytes = (Get32Bit() + 7) / 8;
+
 	if ( bytes < 0 || bytes > (32 * 1024) || (m_Len - m_Ofs) < bytes )
 		throw _T("CBuffer GetBIGNUM_SecSh");
+
 	if ( (m_Data[m_Ofs] & 0x80) != 0 ) {
 		if ( m_Ofs > 0 ) {
 			m_Data[m_Ofs - 1] = '\0';
@@ -494,8 +507,9 @@ int CBuffer::GetBIGNUM_SecSh(BIGNUM *val)
 		}
 	} else
 	    BN_bin2bn(m_Data + m_Ofs, bytes, val);
+
 	Consume(bytes);
-	return TRUE;
+	return val;
 }
 int CBuffer::GetEcPoint(const EC_GROUP *curve, EC_POINT *point)
 {
@@ -1180,13 +1194,18 @@ void CStringArrayExt::GetBuffer(CBuffer &buf)
 	int n, mx;
 	CStringA str;
 
-	RemoveAll();
-	if ( buf.GetSize() < 4 )
+	try {
+		RemoveAll();
+		if ( buf.GetSize() < 4 )
+			return;
+		mx = buf.Get32Bit();
+		for ( n = 0 ; n < mx ; n++ ) {
+			buf.GetStr(str);
+			Add(MbsToTstr(str));
+		}
+	} catch(...) {
+		RemoveAll();
 		return;
-	mx = buf.Get32Bit();
-	for ( n = 0 ; n < mx ; n++ ) {
-		buf.GetStr(str);
-		Add(MbsToTstr(str));
 	}
 }
 void CStringArrayExt::Serialize(CArchive& ar)
@@ -3452,12 +3471,18 @@ void CServerEntry::SetBuffer(CBuffer &buf)
 int CServerEntry::GetBuffer(CBuffer &buf)
 {
 	CStringArrayExt stra;
-	stra.GetBuffer(buf);
-	if ( stra.GetSize() < 9 )
-		return FALSE; 
-	GetArray(stra);
-	buf.GetBuf(&m_ProBuffer);
-	return TRUE;
+
+	try {
+		stra.GetBuffer(buf);
+		if ( stra.GetSize() < 9 )
+			return FALSE; 
+		GetArray(stra);
+		m_ProBuffer.Clear();
+		buf.GetBuf(&m_ProBuffer);
+		return TRUE;
+	} catch(...) {
+		return FALSE;
+	}
 }
 void CServerEntry::SetProfile(LPCTSTR pSection)
 {
@@ -3471,9 +3496,17 @@ int CServerEntry::GetProfile(LPCTSTR pSection, int Uid)
 {
 	CBuffer buf;
 	CString entry;
+
 	entry.Format(_T("List%02d"), Uid);
 	((CRLoginApp *)AfxGetApp())->GetProfileBuffer(pSection, entry, buf);
-	return GetBuffer(buf);
+
+	if ( !GetBuffer(buf) ) {
+		if ( ::AfxMessageBox(IDE_ENTRYLOADERROR,  MB_ICONERROR | MB_YESNO) == IDYES )
+			((CRLoginApp *)AfxGetApp())->DelProfileEntry(pSection, entry);
+		return FALSE;
+	}
+
+	return TRUE;
 }
 void CServerEntry::DelProfile(LPCTSTR pSection)
 {
@@ -5526,7 +5559,7 @@ static LPCTSTR InitAlgo[12]= {
 	_T("curve25519-sha256,curve25519-sha256@libssh.org,") \
 	_T("ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256,") \
 	_T("diffie-hellman-group-exchange-sha256,diffie-hellman-group-exchange-sha1,") \
-	_T("diffie-hellman-group16-sha512,diffie-hellman-group15-sha512,diffie-hellman-group17-sha512,diffie-hellman-group18-sha512") \
+	_T("diffie-hellman-group16-sha512,diffie-hellman-group15-sha512,diffie-hellman-group17-sha512,diffie-hellman-group18-sha512,") \
 	_T("diffie-hellman-group14-sha256,") \
 	_T("diffie-hellman-group14-sha1,diffie-hellman-group1-sha1"),
 

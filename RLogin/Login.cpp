@@ -35,18 +35,17 @@ int CLogin::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int 
 	int n;
 	BOOL val = 1;
 
-	for ( n = IPPORT_RESERVED - 1 ; n > (IPPORT_RESERVED / 2) ; n-- ) {
+	for ( n = IPPORT_RESERVED - 1 ; ; n-- ) {
 		if ( CExtSocket::Open(lpszHostAddress, nHostPort, n, SOCK_STREAM, pAddrInfo) )
 			break;
-	}
-
-	if ( n <= (IPPORT_RESERVED / 2) ) {
-		if ( pAddrInfo != NULL )
-			FreeAddrInfo((ADDRINFOT *)pAddrInfo);
-		CString errmsg;
-		errmsg.Format(_T("LoginSocket '%s' Port Error #%d"), lpszHostAddress, IPPORT_RESERVED / 2);
-		AfxMessageBox(errmsg, MB_ICONSTOP);
-		return FALSE;
+		if ( WSAGetLastError() != 0 || n <= (IPPORT_RESERVED / 2) ) {
+			if ( pAddrInfo != NULL )
+				FreeAddrInfo((ADDRINFOT *)pAddrInfo);
+			CString errmsg;
+			errmsg.Format(_T("LoginSocket '%s' Port Error #%d"), lpszHostAddress, IPPORT_RESERVED / 2);
+			AfxMessageBox(errmsg, MB_ICONSTOP);
+			return FALSE;
+		}
 	}
 
 	SetSockOpt(TCP_NODELAY, &val, sizeof(BOOL), SOL_SOCKET);
@@ -101,12 +100,12 @@ void CLogin::SendWindSize(int x, int y)
 
 void CLogin::OnReciveCallBack(void *lpBuf, int nBufLen, int nFlags)
 {
-	if ( m_ConnectFlag >= 2 && nFlags == 0 ) {
+	if ( m_ConnectFlag == 3 && nFlags == 0 ) {
 		CExtSocket::OnReciveCallBack(lpBuf, nBufLen, 0);
 		return;
 	}
 
-	char *buf = (char *)lpBuf;
+	BYTE *buf = (BYTE *)lpBuf;
 	CRLoginDoc *pDoc = GetDocument();
 
 #define TIOCPKT_FLUSHREAD	0x01	/* flush packet */
@@ -119,7 +118,7 @@ void CLogin::OnReciveCallBack(void *lpBuf, int nBufLen, int nFlags)
 #define TIOCPKT_WINDOW		0x80
 
 	for ( int n = 0 ; n < nBufLen ; n++ ) {
-		if ( (buf[n] & 0x80) != 0 )
+		if ( pDoc != NULL && (buf[n] & 0x80) != 0 )
 			SendWindSize(pDoc->m_TextRam.m_Cols, pDoc->m_TextRam.m_Lines);
 		TRACE("Resv OOB %02x\n", buf[n]);
 	}

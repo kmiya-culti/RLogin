@@ -160,18 +160,7 @@ BOOL CTermPage::OnInitDialog()
 	m_OptList.DeleteAllItems();
 	for ( n = 0 ; OptListTab[n].num != 0 ; n++ ) {
 		CStringArrayExt param(OptListTab[n].nid);
-
-		if ( OptListTab[n].num < 200) {				// DEC Terminal Option	0-199
-			str.Format(_T("?%d"), OptListTab[n].num);
-		} else if ( OptListTab[n].num < 300 ) {		// ANSI Screen Option	0-99(200-299)
-			str.Format(_T("%d"), OptListTab[n].num - 200);
-		} else if ( OptListTab[n].num < 380 ) {		// XTerm Option			1000-1079(300-379)
-			str.Format(_T("?%d"), OptListTab[n].num + 700);
-		} else if ( OptListTab[n].num < 400 ) {		// XTerm Option 2		2000-2019(380-399)
-			str.Format(_T("?%d"), OptListTab[n].num + 1620);
-		} else if ( OptListTab[n].num < 512 ) {		// RLogin Option		8400-8511(400-511)
-			str.Format(_T("?%d"), OptListTab[n].num + 8000);
-		}
+		CTextRam::OptionString(OptListTab[n].num, str);
 		m_OptList.InsertItem(LVIF_TEXT | LVIF_PARAM, n, str, 0, 0, 0, n);
 		m_OptList.SetItemText(n, 1, param[0]);
 		m_OptList.SetItemText(n, 2, param[1]);

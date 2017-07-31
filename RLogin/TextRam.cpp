@@ -18,6 +18,7 @@
 #include "FontParaDlg.h"
 #include "StatusDlg.h"
 #include "TraceDlg.h"
+#include "ColParaDlg.h"
 
 #include <iconv.h>
 #include <imm.h>
@@ -29,6 +30,9 @@ static char THIS_FILE[]=__FILE__;
 #endif
 
 #include "UniBlockTab.h"
+#include "UniCharTab.h"
+#include "UniNomalTab.h"
+#include "BorderLine.h"
 
 //////////////////////////////////////////////////////////////////////
 // CMemMap
@@ -796,8 +800,9 @@ void CFontTab::Init()
 		WORD	offseth;
 		LPCTSTR	font[2];
 	} FontInitTab[] = {
-		{ _T("VT100-GRAPHIC"),			SET_94,		_T("0"),	'\x00', _T(""),					SYMBOL_CHARSET,		100,	100,	0,	0,	{ _T("Tera Special"), _T("") } },
+		{ _T("VT100-GRAPHIC"),			SET_94,		_T("0"),	'\x80', _T("DEC_SGCS-GR"),		DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
 		{ _T("IBM437-GR"),				SET_94,		_T("1"),	'\x80', _T("IBM437"),			DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
+		{ _T("DEC_TCS-GR"),				SET_94,		_T("2"),	'\x80', _T("DEC_TCS-GR"),		DEFAULT_CHARSET,	100,	100,	0,	0,	{ _T(""), _T("") } },
 
 		{ _T("ISO646-US"),				SET_94,		_T("@"),	'\x00', _T("ISO646-US"),		ANSI_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") } },
 		{ _T("ASCII(ANSI X3.4-1968)"),	SET_94,		_T("B"),	'\x00', _T("ANSI_X3.4-1968"),	ANSI_CHARSET,		100,	100,	0,	0,	{ _T(""), _T("") } },
@@ -1377,6 +1382,7 @@ CTextRam::CTextRam()
 	m_DispCaret = FGCARET_ONOFF;
 	m_DefTypeCaret = 1;
 	m_TypeCaret = m_DefTypeCaret;
+	m_CaretColor = RGB(255, 255, 255);
 	m_UpdateRect.SetRectEmpty();
 	m_UpdateFlag = FALSE;
 	m_DelayMSec = 0;
@@ -1562,8 +1568,10 @@ void CTextRam::InitText(int Width, int Height)
 	} else {
 		newCols = m_DefCols[0];
 
-		if ( (charWidth  = Width / newCols) <= 0 )
+		if ( (charWidth = Width / newCols) <= 0 ) {
 			charWidth = 1;
+			newCols = Width;
+		}
 
 		if ( (charHeight = charWidth * m_DefFontHw / 10) <= 0 )
 			charHeight = 1;
@@ -1571,8 +1579,10 @@ void CTextRam::InitText(int Width, int Height)
 		if ( IsOptValue(TO_DECCOLM, 1) == 1 ) {
 			newCols = m_DefCols[1];
 
-			if ( (charWidth  = Width / newCols) <= 0 )
+			if ( (charWidth = Width / newCols) <= 0 ) {
 				charWidth = 1;
+				newCols = Width;
+			}
 		}
 
 		newLines = Height / charHeight;
@@ -1586,6 +1596,16 @@ void CTextRam::InitText(int Width, int Height)
 
 			charWidth  = Width  / newCols;
 			charHeight = Height / newLines;
+		}
+
+		if ( charWidth <= 0 ) {
+			charWidth = 1;
+			newCols = Width / charWidth;
+		}
+
+		if ( charHeight <= 0 ) {
+			charHeight = 1;
+			newLines = Height / charHeight;
 		}
 	}
 
@@ -2097,12 +2117,6 @@ int CTextRam::HisMarkCheck(int top, int line, class CRLoginView *pView)
 	return FALSE;
 }
 
-static const COLORREF DefColTab[16] = {
-		RGB(  0,   0,   0),	RGB(196,  96,  96),	RGB( 64, 196,  64),	RGB(196, 196,  64),
-		RGB( 96,  96, 196),	RGB(196,  64, 196),	RGB( 64, 196, 196),	RGB(196, 196, 196),
-		RGB(128, 128, 128),	RGB(255,  64,  64),	RGB( 64, 255,  64),	RGB(255, 255,  64),
-		RGB( 64,  64, 255),	RGB(255,  64, 255),	RGB( 64, 255, 255),	RGB(255, 255, 255),
-	};
 static const WORD DefBankTab[5][4] = {
 	/* EUC */
 	{ { SET_94    | 'J' }, 	{ SET_94x94 | 'Q' },
@@ -2152,7 +2166,7 @@ void CTextRam::Init()
 	m_BankGR		= 1;
 	m_DefAtt		= TempAtt;
 
-	memcpy(m_DefColTab, DefColTab, sizeof(m_DefColTab));
+	memcpy(m_DefColTab, ColSetTab[DEFCOLTAB], sizeof(m_DefColTab));
 	memcpy(m_ColTab, m_DefColTab, sizeof(m_DefColTab));
 	memset(m_AnsiOpt, 0, sizeof(DWORD) * 16);
 	memset(m_OptTab,  0, sizeof(DWORD) * 16);
@@ -2188,7 +2202,9 @@ void CTextRam::Init()
 	m_KeepAliveSec   = 0;
 	m_DropFileMode   = 0;
 	m_DispCaret      = FGCARET_ONOFF;
-	m_TypeCaret      = m_DefTypeCaret; 
+	m_TypeCaret      = m_DefTypeCaret;
+	m_CaretColor = RGB(255, 255, 255);
+	m_MarkColor = RGB(255, 255, 0);
 
 	for ( int n = 0 ; n < 8 ; n++ )
 		m_DropFileCmd[n] = DropCmdTab[n];
@@ -2372,6 +2388,10 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		index[_T("MarkColor")].Add(GetGValue(m_MarkColor));
 		index[_T("MarkColor")].Add(GetBValue(m_MarkColor));
 
+		index[_T("CaretColor")].Add(GetRValue(m_CaretColor));
+		index[_T("CaretColor")].Add(GetGValue(m_CaretColor));
+		index[_T("CaretColor")].Add(GetBValue(m_CaretColor));
+
 	} else {		// Read
 		if ( (n = index.Find(_T("Cols"))) >= 0 ) {
 			if ( (i = index[n].Find(_T("Nomal"))) >= 0 )
@@ -2505,6 +2525,21 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 					m_MetaKeys[b / 32] |= (1 << (b % 32));
 			}
 		}
+		if ( (n = index.Find(_T("MetaKeysAdd"))) >= 0 ) {
+			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
+				int b = index[n][i];
+				if ( b >= 0 && b <= 255 )
+					m_MetaKeys[b / 32] |= (1 << (b % 32));
+			}
+		}
+		if ( (n = index.Find(_T("MetaKeysDel"))) >= 0 ) {
+			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
+				int b = index[n][i];
+				if ( b >= 0 && b <= 255 )
+					m_MetaKeys[b / 32] &= ~(1 << (b % 32));
+			}
+		}
+
 
 		if ( (n = index.Find(_T("ScreenOffset"))) >= 0 ) {
 			if ( index[n].GetSize() > 0 )
@@ -2580,7 +2615,6 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 			}
 		}
 		if ( (n = index.Find(_T("SocketOptDel"))) >= 0 ) {
-			memset(m_OptTab, 0, sizeof(m_OptTab));
 			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
 				int b = index[n][i];
 				if ( b >= 0 && b <= 511 )
@@ -2612,6 +2646,9 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 
 		if ( (n = index.Find(_T("MarkColor"))) >= 0 && index[n].GetSize() >= 3 )
 			m_MarkColor = RGB((int)index[n][0], (int)index[n][1], (int)index[n][2]);
+
+		if ( (n = index.Find(_T("CaretColor"))) >= 0 && index[n].GetSize() >= 3 )
+			m_CaretColor = RGB((int)index[n][0], (int)index[n][1], (int)index[n][2]);
 
 		memcpy(m_ColTab, m_DefColTab, sizeof(m_DefColTab));
 		memcpy(m_AnsiOpt, m_DefAnsiOpt, sizeof(m_AnsiOpt));
@@ -2747,14 +2784,14 @@ void CTextRam::DiffIndex(CTextRam &orig, CStringIndex &index)
 	}
 
 	if ( memcmp(m_MetaKeys, orig.m_MetaKeys, sizeof(m_MetaKeys)) != 0 ) {
-		for ( n = i = 0 ; n < (32 * 8) ; n++ ) {
-			if ( IS_ENABLE(m_MetaKeys, n) ) {
-				index[_T("MetaKeys")].Add(n);
-				i++;
+		for ( n = 0 ; n < (32 * 8) ; n++ ) {
+			if ( IS_ENABLE(m_MetaKeys, n) != IS_ENABLE(orig.m_MetaKeys, n) ) {
+				if ( IS_ENABLE(m_MetaKeys, n) )
+					index[_T("MetaKeysAdd")].Add(n);
+				else
+					index[_T("MetaKeysDel")].Add(n);
 			}
 		}
-		if ( i == 0 )
-			index[_T("MetaKeys")] = _T("");
 	}
 
 	if ( memcmp(m_DefAnsiOpt, orig.m_DefAnsiOpt, sizeof(m_DefAnsiOpt)) != 0 ) {
@@ -2833,6 +2870,12 @@ void CTextRam::DiffIndex(CTextRam &orig, CStringIndex &index)
 		index[_T("MarkColor")].Add(GetRValue(m_MarkColor));
 		index[_T("MarkColor")].Add(GetGValue(m_MarkColor));
 		index[_T("MarkColor")].Add(GetBValue(m_MarkColor));
+	}
+
+	if ( m_CaretColor != orig.m_CaretColor ) {
+		index[_T("CaretColor")].Add(GetRValue(m_CaretColor));
+		index[_T("CaretColor")].Add(GetGValue(m_CaretColor));
+		index[_T("CaretColor")].Add(GetBValue(m_CaretColor));
 	}
 }
 void CTextRam::SetArray(CStringArrayExt &stra)
@@ -2935,8 +2978,8 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 	stra.Add(str);
 
 	stra.AddVal(m_MarkColor);
-
 	stra.AddVal(m_BitMapStyle);
+	stra.AddVal(m_CaretColor);
 }
 void CTextRam::GetArray(CStringArrayExt &stra)
 {
@@ -3152,6 +3195,9 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 
 	if ( stra.GetSize() > 70 )
 		m_BitMapStyle = stra.GetVal(70);
+
+	if ( stra.GetSize() > 71 )
+		m_CaretColor = stra.GetVal(71);
 
 	if ( m_FixVersion < 9 ) {
 		if ( m_pDocument != NULL ) {
@@ -3470,7 +3516,9 @@ const CTextRam & CTextRam::operator = (CTextRam &data)
 	m_InlineExt = data.m_InlineExt;
 	m_DefTypeCaret = data.m_DefTypeCaret;
 	m_TypeCaret = data.m_TypeCaret;
+	m_CaretColor = data.m_CaretColor;
 	m_KeepAliveSec = data.m_KeepAliveSec;
+	m_MarkColor = data.m_MarkColor;
 
 	return *this;
 }
@@ -4232,6 +4280,20 @@ void CTextRam::GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf)
 	}
 }
 
+void CTextRam::DrawBitmap(CDC *pDestDC, CRect &rect, CDC *pSrcDC, int width, int height, DWORD dwRop)
+{
+	if ( rect.Width() <= width && rect.Height() <= height ) {
+		pDestDC->BitBlt(rect.left, rect.top, rect.Width(), rect.Height(), pSrcDC, 0, 0, dwRop);
+		return;
+	}
+
+	for ( int y = 0 ; y < rect.Height() ; y += height ) {
+		for ( int x = 0 ; x < rect.Width() ; x += width )
+			pDestDC->BitBlt(rect.left + x, rect.top + y,
+				(x + width) < rect.Width() ? width : rect.Width() - x,
+				(y + height) < rect.Height() ? height : rect.Height() - y, pSrcDC, 0, 0, dwRop);
+	}
+}
 void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, struct DrawWork &prop, class CRLoginView *pView)
 {
 	int n, i, a;
@@ -4239,15 +4301,13 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 	CPen cPen[5], *oPen;
 	LOGBRUSH LogBrush;
 	CPoint point[2];
-	CRect box(rect);
-	CRect era(rect);
+	CRect box(rect), tmp;
 	static const DWORD PenExtTab[3][4]  = {	{ 3, 1, 3, 1 }, { 2, 1, 2, 1 },	{ 1, 1, 1, 1 } };
-	#include "BorderLine.h"
 
-	cPen[0].CreatePen(PS_SOLID, 1, fc);
+	cPen[0].CreatePen(PS_SOLID, BD_SIZE, fc);
 
 	if ( pView->m_CharHeight < BD_HALFSIZE )
-		cPen[4].CreatePen(PS_SOLID, 1, RGB((GetRValue(fc) + GetRValue(bc)) / 2, (GetGValue(fc) + GetGValue(bc)) / 2, (GetBValue(fc) + GetBValue(bc)) / 2));
+		cPen[4].CreatePen(PS_SOLID, BD_SIZE, RGB((GetRValue(fc) + GetRValue(bc)) / 2, (GetGValue(fc) + GetGValue(bc)) / 2, (GetBValue(fc) + GetBValue(bc)) / 2));
 
 	oPen = pDC->SelectObject(&(cPen[0]));
 
@@ -4266,11 +4326,14 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 		while ( prop.pSpace[i] == 0 )
 			i++;
 		box.right = box.left + prop.pSpace[i];
-		era.right = era.left + prop.pSpace[i];
 
-		if ( prop.pText[a] >= 0x2500 && prop.pText[a] <= 0x257F ) {
+		if ( box.Width() < 2 || box.Height() < 2 ) {
+			pDC->FillSolidRect(box, RGB((GetRValue(fc) + GetRValue(bc)) / 2, (GetGValue(fc) + GetGValue(bc)) / 2, (GetBValue(fc) + GetBValue(bc)) / 2));
+
+		} else if ( prop.pText[a] >= 0x2500 && prop.pText[a] <= 0x257F ) {		// U+002500 Box Drawing
 			const BYTE *tab = BorderTab[prop.pText[a] - 0x2500];
 			CPoint center((box.left + box.right) / 2, (box.top + box.bottom) / 2);
+			int corner = (box.Height() < 12 ? 2 : box.Height() / 6);
 
 			for ( c = 0 ; c < 4 ; c++ ) {
 				if ( tab[c] == BD_NONE )
@@ -4287,19 +4350,19 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 				case BD_LINE1 | BD_DOT2:
 				case BD_LINE2 | BD_DOT2:
 					if ( cPen[1].m_hObject == NULL )
-						cPen[1].CreatePen(PS_USERSTYLE, 1, &LogBrush, 4, PenExtTab[0]);
+						cPen[1].CreatePen(PS_USERSTYLE, BD_SIZE, &LogBrush, 4, PenExtTab[0]);
 					pDC->SelectObject(&(cPen[1]));
 					break;
 				case BD_LINE1 | BD_DOT3:
 				case BD_LINE2 | BD_DOT3:
 					if ( cPen[2].m_hObject == NULL )
-						cPen[2].CreatePen(PS_USERSTYLE, 1, &LogBrush, 4, PenExtTab[1]);
+						cPen[2].CreatePen(PS_USERSTYLE, BD_SIZE, &LogBrush, 4, PenExtTab[1]);
 					pDC->SelectObject(&(cPen[2]));
 					break;
 				case BD_LINE1 | BD_DOT4:
 				case BD_LINE2 | BD_DOT4:
 					if ( cPen[3].m_hObject == NULL )
-						cPen[3].CreatePen(PS_USERSTYLE, 1, &LogBrush, 4, PenExtTab[2]);
+						cPen[3].CreatePen(PS_USERSTYLE, BD_SIZE, &LogBrush, 4, PenExtTab[2]);
 					pDC->SelectObject(&(cPen[3]));
 					break;
 				}
@@ -4331,8 +4394,8 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 						break;
 					case BD_LINE4:	// ╮
 						pDC->MoveTo(box.left, center.y);
-						pDC->LineTo(center.x - BD_CORNER, center.y);
-						pDC->LineTo(center.x, center.y + BD_CORNER);
+						pDC->LineTo(center.x - corner, center.y);
+						pDC->LineTo(center.x, center.y + corner);
 						pDC->LineTo(center.x, box.bottom);
 						break;
 					case BD_LINE5:	// ╱
@@ -4364,8 +4427,8 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 						break;
 					case BD_LINE4:	// ╰
 						pDC->MoveTo(center.x, box.top);
-						pDC->LineTo(center.x, center.y - BD_CORNER);
-						pDC->LineTo(center.x + BD_CORNER, center.y);
+						pDC->LineTo(center.x, center.y - corner);
+						pDC->LineTo(center.x + corner, center.y);
 						pDC->LineTo(box.right, center.y);
 						break;
 					case BD_LINE5:	// ╱
@@ -4398,8 +4461,8 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 						break;
 					case BD_LINE4:	// ╯
 						pDC->MoveTo(box.left, center.y);
-						pDC->LineTo(center.x - BD_CORNER, center.y);
-						pDC->LineTo(center.x, center.y - BD_CORNER);
+						pDC->LineTo(center.x - corner, center.y);
+						pDC->LineTo(center.x, center.y - corner);
 						pDC->LineTo(center.x, box.top - 1);
 						break;
 					case BD_LINE5:	// ╲
@@ -4431,8 +4494,8 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 						break;
 					case BD_LINE4:	// ╭
 						pDC->MoveTo(box.right, center.y);
-						pDC->LineTo(center.x + BD_CORNER, center.y);
-						pDC->LineTo(center.x, center.y + BD_CORNER);
+						pDC->LineTo(center.x + corner, center.y);
+						pDC->LineTo(center.x, center.y + corner);
 						pDC->LineTo(center.x, box.bottom);
 						break;
 					case BD_LINE5:	// ╲
@@ -4443,10 +4506,96 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 					break;
 				}
 			}
+
+		} else if ( prop.pText[a] >= 0x2580 && prop.pText[a] <= 0x259F ) {		// U+002580 Block Elements
+			CPoint center((box.left + box.right) / 2, (box.top + box.bottom) / 2);
+			int line = (box.Width() < 8 ? 1 : box.Width() / 8);
+
+			for ( c = 0 ; c < 2 ; c++ ) {
+				int style = FillboxTab[prop.pText[a] - 0x2580][c];
+
+				if ( style == FI_NONE )
+					continue;
+
+				switch(style & 07000) {		// left
+				case FI_L_LEFT:	tmp.left = box.left; break;
+				case FI_L_CENTER:	tmp.left = center.x; break;
+				case FI_L_RIGHT:	tmp.left = box.right - line; break;
+				}
+
+				switch(style & 00700) {		// right
+				case FI_R_LEFT:	tmp.right = box.left + line; break;
+				case FI_R_CENTER:	tmp.right = center.x; break;
+				case FI_R_RIGHT:	tmp.right = box.right; break;
+				case FI_R_CALC:
+					// U+2589 - U+258F
+					if ( (line = box.Width() * (8 - (prop.pText[a] - 0x2588)) / 8) <= 0 ) line = 1;
+					tmp.right = box.left + line;
+					break;
+				}
+
+				switch(style & 00070) {		// top
+				case FI_T_TOP:		tmp.top = box.top; break;
+				case FI_T_CENTER:	tmp.top = center.y; break;
+				case FI_T_BOTTOM:	tmp.top = box.bottom - line; break;
+				case FI_T_CALC:
+					// U+2581 - U+2587
+					if ( (line = box.Height() * (prop.pText[a] - 0x2580) / 8) <= 0 ) line = 1;
+					tmp.top = box.bottom - line;
+					break;
+				}
+
+				switch(style & 00007) {		// bottom
+				case FI_B_TOP:		tmp.bottom = box.top + line; break;
+				case FI_B_CENTER:	tmp.bottom = center.y; break;
+				case FI_B_BOTTOM:	tmp.bottom = box.bottom; break;
+				}
+
+				switch(prop.pText[a]) {
+				case 0x2591:
+				case 0x2592:
+				case 0x2593:
+					{
+						CDC TempDC;
+						CBitmap BitMap, *pOld;
+						BITMAP MapInfo;
+
+						TempDC.CreateCompatibleDC(pDC);
+						((CRLoginApp *)::AfxGetApp())->LoadResBitmap(MAKEINTRESOURCE(IDB_HATCH3 - (prop.pText[a] - 0x2591)), BitMap);
+						BitMap.GetBitmap(&MapInfo);
+						pOld = TempDC.SelectObject(&BitMap);
+
+						if ( bEraBack ) {
+							pDC->SetTextColor(fc);
+							pDC->SetBkColor(bc);
+							DrawBitmap(pDC, tmp, &TempDC, MapInfo.bmWidth, MapInfo.bmHeight, SRCCOPY);
+
+						} else {
+							pDC->SetTextColor(RGB(0, 0, 0));
+							pDC->SetBkColor(RGB(255, 255, 255));
+							DrawBitmap(pDC, tmp, &TempDC, MapInfo.bmWidth, MapInfo.bmHeight, SRCAND);
+
+							pDC->SetTextColor(fc);
+							pDC->SetBkColor(RGB(0, 0, 0));
+							DrawBitmap(pDC, tmp, &TempDC, MapInfo.bmWidth, MapInfo.bmHeight, SRCPAINT);
+
+							pDC->SetBkColor(bc);
+						}
+
+						TempDC.SelectObject(pOld);
+					}
+					//pDC->FillSolidRect(tmp, RGB((GetRValue(fc) + GetRValue(bc) * 2) / 3, (GetGValue(fc) + GetGValue(bc) * 2) / 3, (GetBValue(fc) + GetBValue(bc) * 2) / 3));
+					//pDC->FillSolidRect(tmp, RGB((GetRValue(fc) + GetRValue(bc)) / 2, (GetGValue(fc) + GetGValue(bc)) / 2, (GetBValue(fc) + GetBValue(bc)) / 2));
+					//pDC->FillSolidRect(tmp, RGB((GetRValue(fc) * 2 + GetRValue(bc)) / 3, (GetGValue(fc) * 2 + GetGValue(bc)) / 3, (GetBValue(fc) * 2 + GetBValue(bc)) / 3));
+					break;
+				default:
+					pDC->FillSolidRect(tmp, fc);
+					break;
+				}
+			}
 		}
 
 		box.left += prop.pSpace[i];
-		era.left += prop.pSpace[i];
 		a = ++i;
 	}
 
@@ -5349,6 +5498,19 @@ int CTextRam::IndexToOption(int value)
 									// DEC Terminal Option	0-199
 	return value;
 }
+void CTextRam::OptionString(int value, CString &str)
+{
+	if ( value >= 400 )					// RLogin Option		8400-8511(400-511)
+		str.Format(_T("?%d"), value + (8400 - 400));
+	else if ( value >= 380 )			// XTerm Option 2		2000-2019(380-399)
+		str.Format(_T("?%d"), value + (2000 - 380));
+	else if ( value >= 300 )			// XTerm Option			1000-1079(300-379)
+		str.Format(_T("?%d"), value	+ (1000 - 300));
+	else if ( value >= 200 )			// ANSI Screen Option	0-99(200-299)
+		str.Format(_T("%d"), value + (0 - 200));
+	else							// DEC Terminal Option	0-199
+		str.Format(_T("?%d"), value);
+}
 BOOL CTextRam::IsOptEnable(int opt)
 {
 	if ( opt >= 1000 && opt <= 1511 ) {
@@ -5411,6 +5573,7 @@ int CTextRam::InitDefParam(BOOL bCheck, int modFlag)
 
 	if ( bCheck ) {
 		dlg.m_InitFlag = modFlag;
+		dlg.m_pTextRam = this;
 		if ( dlg.DoModal() != IDOK )
 			return (modFlag & ~(UMOD_ANSIOPT | UMOD_MODKEY | UMOD_COLTAB | UMOD_BANKTAB | UMOD_DEFATT));
 		modFlag = dlg.m_InitFlag;
@@ -5578,7 +5741,6 @@ void CTextRam::CallReciveChar(DWORD ch, LPCTSTR name)
 
 int CTextRam::UnicodeCharFlag(DWORD code)
 {
-	#include "UniCharTab.h"
 	int n, b, m;
 
 	b = 0;
@@ -5777,7 +5939,6 @@ void CTextRam::UCS4ToWStr(DWORD code, CStringW &str)
 }
 DWORD CTextRam::UnicodeNomal(DWORD code1, DWORD code2)
 {
-	#include "UniNomalTab.h"
 	static BOOL UniNomInitFlag = FALSE;
 	#define HASH_MAX 1024
 	#define HASH_MASK (HASH_MAX - 1)
@@ -7288,7 +7449,7 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at)
 	} else if ( md == SET_UNICODE && (block = m_FontTab.m_UniBlockTab.Find(ch)) != (-1) )
 		vp->m_Vram.bank = (WORD)block;
 
-	if ( ch >= 0x2500 && ch <= 0x257F && !IsOptEnable(TO_RLDRWLINE) )		// Border Char
+	if ( ch >= 0x2500 && ch <= 0x259F && !IsOptEnable(TO_RLDRWLINE) )		// Border Char
 		vp->m_Vram.attr |= ATT_BORDER;
 
 	*vp = (DWORD)ch;
@@ -7389,7 +7550,7 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at)
 	if ( md == SET_UNICODE && (block = m_FontTab.m_UniBlockTab.Find(ch)) != (-1) )
 		vp[0].m_Vram.bank = vp[1].m_Vram.bank = (WORD)block;
 
-	if ( ch >= 0x2500 && ch <= 0x257F&& !IsOptEnable(TO_RLDRWLINE) )		// Border Char
+	if ( ch >= 0x2500 && ch <= 0x259F && !IsOptEnable(TO_RLDRWLINE) )		// Border Char
 		vp[0].m_Vram.attr |= ATT_BORDER;
 
 	vp[0] = (DWORD)ch;

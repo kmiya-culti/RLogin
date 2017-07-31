@@ -680,7 +680,7 @@ void CRLoginApp::SSL_Init()
 #if	OPENSSL_VERSION_NUMBER < 0x10100000L
 	SSLeay_add_all_algorithms();
 #else
-	SSL_library_init();
+	OPENSSL_init_ssl(0, NULL);
 #endif
 }
 
@@ -870,6 +870,7 @@ BOOL CRLoginApp::InitInstance()
 
 	// ユーザープロファイルの検索
 	if ( GetExtFilePath(_T(".ini"), iniFileName) ) {
+		free((void*)m_pszProfileName);
 		m_pszProfileName = _tcsdup(iniFileName);
 		bInitFile = TRUE;
 	}
@@ -924,7 +925,7 @@ BOOL CRLoginApp::InitInstance()
 
 	// モニターDPIのライブラリを取得
 	if ( (ExShcoreApi = LoadLibrary(_T("Shcore.dll"))) != NULL )
-		ExGetDpiForMonitor       = (HRESULT (__stdcall *)(HMONITOR hmonitor, MONITOR_DPI_TYPE dpiType, UINT *dpiX, UINT *dpiY))GetProcAddress(ExShcoreApi, "GetDpiForMonitor");
+		ExGetDpiForMonitor = (HRESULT (__stdcall *)(HMONITOR hmonitor, MONITOR_DPI_TYPE dpiType, UINT *dpiX, UINT *dpiY))GetProcAddress(ExShcoreApi, "GetDpiForMonitor");
 
 #ifdef	USE_DIRECTWRITE
 	// DirectWriteを試す
@@ -1054,17 +1055,21 @@ BOOL CRLoginApp::InitInstance()
 
 int CRLoginApp::ExitInstance() 
 {
+#if	OPENSSL_VERSION_NUMBER >= 0x10100000L
+	CONF_modules_finish();
+	CONF_modules_unload(1);
+	ERR_remove_state(0);
+	crypto_cleanup_all_ex_data_int();
+#else
 	CONF_modules_finish();
 	CONF_modules_unload(1);
 	CONF_modules_free();
 	EVP_cleanup();
 	ENGINE_cleanup();
 	CRYPTO_cleanup_all_ex_data();
-#if	OPENSSL_VERSION_NUMBER >= 0x10100000L
-	crypto_cleanup_all_ex_data_int();
-#endif
 	ERR_remove_state(0);
 	ERR_free_strings();
+#endif
 
 	WSACleanup();
 
@@ -1205,7 +1210,9 @@ BOOL CRLoginApp::OnEntryData(COPYDATASTRUCT *pCopyData)
 	sx = tmp.Get32Bit();
 	sy = tmp.Get32Bit();
 
-	entry.GetBuffer(tmp);
+	if ( !entry.GetBuffer(tmp) )
+		return FALSE;
+
 	entry.m_DocType = DOCTYPE_ENTRYFILE;
 	m_pServerEntry = &entry;
 

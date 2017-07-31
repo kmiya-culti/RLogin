@@ -95,7 +95,7 @@ void CPaneFrame::CreatePane(int Style, HWND hWnd)
 		break;
 	}
 
-	if ( m_pLeft->m_Frame.Width() < PANEMINSIZE || m_pLeft->m_Frame.Height() < PANEMINSIZE || m_pRight->m_Frame.Width() < PANEMINSIZE || m_pRight->m_Frame.Height() < PANEMINSIZE ) {
+	if ( m_pLeft->m_Frame.Width() < PANEMIN_WIDTH || m_pLeft->m_Frame.Height() < PANEMIN_HEIGHT || m_pRight->m_Frame.Width() < PANEMIN_WIDTH || m_pRight->m_Frame.Height() < PANEMIN_HEIGHT ) {
 		m_Style = PANEFRAME_MAXIM;
 		m_pLeft->m_Frame  = m_Frame;
 		m_pRight->m_Frame = m_Frame;
@@ -509,7 +509,7 @@ void CPaneFrame::MoveParOwn(CRect &rect, int Style)
 			break;
 		}
 
-		if ( left.Width() < PANEMINSIZE || left.Height() < PANEMINSIZE || right.Width() < PANEMINSIZE || right.Height() < PANEMINSIZE ) {
+		if ( left.Width() < PANEMIN_WIDTH || left.Height() < PANEMIN_HEIGHT || right.Width() < PANEMIN_WIDTH || right.Height() < PANEMIN_HEIGHT ) {
 			Style = m_Style = PANEFRAME_MAXIM;
 			left  = rect;
 			right = rect;
@@ -585,7 +585,7 @@ int CPaneFrame::BoderRect(CRect &rect)
 	m_pMain->AdjustRect(rect);
 	return TRUE;
 }
-void CPaneFrame::SetBuffer(CBuffer *buf)
+void CPaneFrame::SetBuffer(CBuffer *buf, BOOL bEntry)
 {
 	CStringA tmp;
 	int sz = 0;
@@ -597,7 +597,7 @@ void CPaneFrame::SetBuffer(CBuffer *buf)
 			delete m_pServerEntry;
 			m_pServerEntry = NULL;
 		}
-		if ( m_hWnd != NULL ) {
+		if ( bEntry && m_hWnd != NULL ) {
 			CChildFrame *pWnd = (CChildFrame *)(CWnd::FromHandlePermanent(m_hWnd));
 			if ( pWnd != NULL ) {
 				CRLoginDoc *pDoc = (CRLoginDoc *)(pWnd->GetActiveDocument());
@@ -658,6 +658,11 @@ class CPaneFrame *CPaneFrame::GetBuffer(class CMainFrame *pMain, class CPaneFram
 	pPane->m_Style = stra.GetVal(0);
 	Size = stra.GetVal(1);
 
+	if ( pPane->m_Style < PANEFRAME_MAXIM || pPane->m_Style > PANEFRAME_WINDOW ) {
+		delete pPane;
+		return NULL;
+	}
+
 	if ( pPane->m_Style == PANEFRAME_WINDOW ) {
 		if ( stra.GetSize() > 2 && stra.GetVal(2) == 1 ) {
 			pPane->m_pServerEntry = new CServerEntry;
@@ -673,15 +678,30 @@ class CPaneFrame *CPaneFrame::GetBuffer(class CMainFrame *pMain, class CPaneFram
 	case PANEFRAME_WIDTH:
 		pPane->m_pLeft->m_Frame.right = pPane->m_Frame.Width() * Size / 1000;
 		pPane->m_pRight->m_Frame.left = pPane->m_pLeft->m_Frame.right + pPane->m_BoderSize;
+		if ( pPane->m_pLeft->m_Frame.Width() < PANEMIN_WIDTH || pPane->m_pRight->m_Frame.Width() < PANEMIN_WIDTH ) {
+			pPane->m_pLeft->m_Frame = pPane->m_Frame;
+			pPane->m_pRight->m_Frame = pPane->m_Frame;
+			pPane->m_Style = PANEFRAME_MAXIM;
+		}
 		break;
 	case PANEFRAME_HEIGHT:
 		pPane->m_pLeft->m_Frame.bottom = pPane->m_Frame.Height() * Size / 1000;
 		pPane->m_pRight->m_Frame.top   = pPane->m_pLeft->m_Frame.bottom + pPane->m_BoderSize;
+		if ( pPane->m_pLeft->m_Frame.Height() < PANEMIN_HEIGHT || pPane->m_pRight->m_Frame.Height() < PANEMIN_HEIGHT ) {
+			pPane->m_pLeft->m_Frame = pPane->m_Frame;
+			pPane->m_pRight->m_Frame = pPane->m_Frame;
+			pPane->m_Style = PANEFRAME_MAXIM;
+		}
 		break;
 	}
 
 	pPane->m_pLeft  = GetBuffer(pMain, pPane->m_pLeft,  pPane, buf);
 	pPane->m_pRight = GetBuffer(pMain, pPane->m_pRight, pPane, buf);
+
+	if ( pPane->m_pLeft == NULL || pPane->m_pRight == NULL ) {
+		delete pPane;
+		return NULL;
+	}
 
 	return pPane;
 }
@@ -811,6 +831,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_COMMAND(IDM_TOOLCUST, &CMainFrame::OnToolcust)
 	ON_COMMAND(IDM_CLIPCHAIN, &CMainFrame::OnClipchain)
 	ON_UPDATE_COMMAND_UI(IDM_CLIPCHAIN, &CMainFrame::OnUpdateClipchain)
+	ON_WM_GETMINMAXINFO()
 END_MESSAGE_MAP()
 
 static const UINT indicators[] =
@@ -986,8 +1007,18 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	ExDwmEnableWindow(m_hWnd, m_bGlassStyle);
 
 	// ‰æ–Ê•ªŠ„‚ð•œ‹A
-	((CRLoginApp *)AfxGetApp())->GetProfileBuffer(_T("MainFrame"), _T("Pane"), buf);
-	m_pTopPane = CPaneFrame::GetBuffer(this, NULL, NULL, &buf);
+	try {
+		((CRLoginApp *)AfxGetApp())->GetProfileBuffer(_T("MainFrame"), _T("Pane"), buf);
+		m_pTopPane = CPaneFrame::GetBuffer(this, NULL, NULL, &buf);
+	} catch(LPCTSTR pMsg) {
+		CString tmp;
+		tmp.Format(_T("Pane Init Error '%s'"), pMsg);
+		::AfxMessageBox(tmp);
+	} catch(...) {
+		CString tmp;
+		tmp.Format(_T("Pane Init Error #%d"), ::GetLastError());
+		::AfxMessageBox(tmp);
+	}
 
 	// ƒƒjƒ…[‚Ì‰Šú‰»
 	if ( (pMenu = GetSystemMenu(FALSE)) != NULL ) {
@@ -2578,7 +2609,7 @@ void CMainFrame::OnPaneSave()
 		return;
 
 	CBuffer buf;
-	m_pTopPane->SetBuffer(&buf);
+	m_pTopPane->SetBuffer(&buf, FALSE);
 	((CRLoginApp *)AfxGetApp())->WriteProfileBinary(_T("MainFrame"), _T("Pane"), buf.GetPtr(), buf.GetSize());
 }
 
@@ -2744,21 +2775,21 @@ void CMainFrame::OffsetTrack(CPoint point)
 	if ( m_pTrackPane->m_Style == PANEFRAME_WIDTH ) {
 		m_TrackRect += CPoint(point.x - m_TrackPoint.x, 0);
 		int w = m_TrackRect.Width();
-		if ( m_TrackRect.left < (rect.left + PANEMINSIZE) ) {
-			m_TrackRect.left = rect.left + PANEMINSIZE;
+		if ( m_TrackRect.left < (rect.left + PANEMIN_WIDTH) ) {
+			m_TrackRect.left = rect.left + PANEMIN_WIDTH;
 			m_TrackRect.right = m_TrackRect.left + w;
-		} else if ( m_TrackRect.right > (rect.right - PANEMINSIZE) ) {
-			m_TrackRect.right = rect.right - PANEMINSIZE;
+		} else if ( m_TrackRect.right > (rect.right - PANEMIN_WIDTH) ) {
+			m_TrackRect.right = rect.right - PANEMIN_WIDTH;
 			m_TrackRect.left = m_TrackRect.right - w;
 		}
 	} else {
 		m_TrackRect += CPoint(0, point.y - m_TrackPoint.y);
 		int h = m_TrackRect.Height();
-		if ( m_TrackRect.top < (rect.top + PANEMINSIZE) ) {
-			m_TrackRect.top = rect.top + PANEMINSIZE;
+		if ( m_TrackRect.top < (rect.top + PANEMIN_HEIGHT) ) {
+			m_TrackRect.top = rect.top + PANEMIN_HEIGHT;
 			m_TrackRect.bottom = m_TrackRect.top + h;
-		} else if ( m_TrackRect.bottom > (rect.bottom - PANEMINSIZE) ) {
-			m_TrackRect.bottom = rect.bottom - PANEMINSIZE;
+		} else if ( m_TrackRect.bottom > (rect.bottom - PANEMIN_HEIGHT) ) {
+			m_TrackRect.bottom = rect.bottom - PANEMIN_HEIGHT;
 			m_TrackRect.top = m_TrackRect.bottom - h;
 		}
 	}
@@ -2907,8 +2938,13 @@ void CMainFrame::OnFileAllLoad()
 			return;
 	}
 	
-	if ( (pPane = CPaneFrame::GetBuffer(this, NULL, NULL, &m_AllFileBuf)) == NULL )
+	try {
+		if ( (pPane = CPaneFrame::GetBuffer(this, NULL, NULL, &m_AllFileBuf)) == NULL )
+			return;
+	} catch(...) {
+		::AfxMessageBox(_T("File All Load Error"));
 		return;
+	}
 
 	AfxGetApp()->CloseAllDocuments(FALSE);
 
@@ -3354,4 +3390,23 @@ void CMainFrame::OnMoving(UINT fwSide, LPRECT pRect)
 			}
 		}
 	}
+}
+void CMainFrame::OnGetMinMaxInfo(MINMAXINFO* lpMMI)
+{
+	CRect rect;
+	int cx = 200, cy = 200;
+
+	if ( m_hWnd != NULL ) {
+		GetWindowRect(rect);
+
+		if ( !m_Frame.IsRectEmpty() && !rect.IsRectEmpty() ) {
+			cx = rect.Width()  - m_Frame.Width()  + PANEMIN_WIDTH  * 4;
+			cy = rect.Height() - m_Frame.Height() + PANEMIN_HEIGHT * 2;
+		}
+	}
+
+	lpMMI->ptMinTrackSize.x = cx;
+	lpMMI->ptMinTrackSize.y = cy;
+
+	CMDIFrameWnd::OnGetMinMaxInfo(lpMMI);
 }

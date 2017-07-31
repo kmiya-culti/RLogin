@@ -4,6 +4,8 @@
 /////////////////////////////////////////////////////////////////////////////
 // CColParaDlg ダイアログ
 
+extern	const COLORREF	ColSetTab[7][16];
+
 class CColParaDlg : public CTreePage
 {
 	DECLARE_DYNCREATE(CColParaDlg)

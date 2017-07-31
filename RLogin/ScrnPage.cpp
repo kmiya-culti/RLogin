@@ -35,6 +35,7 @@ CScrnPage::CScrnPage() : CTreePage(CScrnPage::IDD)
 	m_FontHw = 10;
 	m_TtlMode = 0;
 	m_TtlRep = m_TtlCng = FALSE;
+	m_CaretColor = RGB(0, 0, 0);
 }
 
 CScrnPage::~CScrnPage()
@@ -61,6 +62,7 @@ void CScrnPage::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_TERMCHECK3, m_TtlCng);
 	DDX_CBString(pDX, IDC_SCRNOFFSLEFT, m_ScrnOffsLeft);
 	DDX_CBString(pDX, IDC_SCRNOFFSRIGHT, m_ScrnOffsRight);
+	DDX_Control(pDX, IDC_CARETCOL, m_ColBox);
 }
 
 BEGIN_MESSAGE_MAP(CScrnPage, CTreePage)
@@ -81,6 +83,8 @@ BEGIN_MESSAGE_MAP(CScrnPage, CTreePage)
 	ON_CBN_SELCHANGE(IDC_SCRNOFFSLEFT,	 OnUpdateEdit)
 	ON_CBN_EDITCHANGE(IDC_SCRNOFFSRIGHT,  OnUpdateEdit)
 	ON_CBN_SELCHANGE(IDC_SCRNOFFSRIGHT,	 OnUpdateEdit)
+	ON_WM_DRAWITEM()
+	ON_STN_CLICKED(IDC_CARETCOL, &CScrnPage::OnStnClickedCaretCol)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -128,6 +132,8 @@ void CScrnPage::DoInit()
 
 	m_ScrnOffsLeft.Format(_T("%d"),   m_pSheet->m_pTextRam->m_ScrnOffset.left);
 	m_ScrnOffsRight.Format(_T("%d"),  m_pSheet->m_pTextRam->m_ScrnOffset.right);
+
+	m_CaretColor = m_pSheet->m_pTextRam->m_CaretColor;
 
 	InitDlgItem();
 	UpdateData(FALSE);
@@ -199,6 +205,8 @@ BOOL CScrnPage::OnApply()
 		m_pSheet->m_ModFlag |= UMOD_RESIZE;
 	}
 
+	m_pSheet->m_pTextRam->m_CaretColor = m_CaretColor;
+	
 	return TRUE;
 }
 void CScrnPage::OnReset() 
@@ -233,6 +241,31 @@ void CScrnPage::OnUpdateCheck(UINT nID)
 }
 void CScrnPage::OnCbnSelchangeCombo()
 {
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+}
+void CScrnPage::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
+{
+	CDC dc;
+	CRect rect;
+
+	if ( nIDCtl == IDC_CARETCOL ) {
+		dc.Attach(lpDrawItemStruct->hDC);
+		m_ColBox.GetClientRect(rect);
+		dc.FillSolidRect(rect, m_CaretColor);
+		dc.Detach();
+	} else
+		CTreePage::OnDrawItem(nIDCtl, lpDrawItemStruct);
+}
+void CScrnPage::OnStnClickedCaretCol()
+{
+	CColorDialog cdl(m_CaretColor, CC_ANYCOLOR | CC_FULLOPEN | CC_RGBINIT, this);
+
+	if ( cdl.DoModal() != IDOK )
+		return;
+
+	m_CaretColor = cdl.GetColor();
+	m_ColBox.Invalidate(FALSE);
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 }
