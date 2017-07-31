@@ -3595,7 +3595,8 @@ void CTextRam::fc_OSCEXE(int ch)
 
 	int n, cmd;
 	LPCSTR p;
-	CString tmp;
+	LPCTSTR s;
+	CString tmp, wrk, ctr;
 
 	p = (LPCSTR)m_OscPara;
 	while ( *p != '\0' && *p != ';' )
@@ -3624,8 +3625,17 @@ void CTextRam::fc_OSCEXE(int ch)
 				else
 					m_IConv.RemoteToStr(m_SendCharSet[m_KanjiMode], (LPCSTR)buf, tmp);
 			}
-
-			m_pDocument->SetTitle(tmp);
+			wrk.Empty();
+			for ( n = 0, s = tmp ; n < 1024 && *s != _T('\0') ; n++, s++ ) {
+				if ( *s < _T(' ') || *s == 0x7F ) {	// || (*s >= 0x80 && *s <= 0x9F) ) {
+					ctr.Format(_T("<%02X>"), *s);
+					wrk += ctr;
+				} else
+					wrk += *s;
+			}
+			if ( n >= 1024 )
+				wrk = _T("Too many Title Strings...");
+			m_pDocument->SetTitle(wrk);
 		}
 		break;
 

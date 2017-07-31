@@ -59,6 +59,7 @@
 #define	ATT_MARK		0x0400000		// Search Mark
 #define	ATT_CLIP		0x0800000		// Mouse Clip
 #define	ATT_RTOL		0x1000000		// RtoL Char
+#define	ATT_BORDER		0x2000000		// U+2500 Border Char
 #define	ATT_BITS		0x8000000		// 7 * 4 = 28 bit
 
 #define CODE_MAX		0x0400
@@ -155,6 +156,7 @@
 #define	TO_RLUNINOM		448			// Unicode ノーマライズを禁止する
 #define	TO_RLUNIAHF		449			// Unicodeの半角時にサイズを調整する
 #define	TO_RLMODKEY		450			// modfiyKeysを優先する
+#define	TO_RLDRWLINE	451			// 罫線を線描画に置き換えない
 
 // RLogin SockOpt		1000-1511(0-511)
 #define	TO_RLTENAT		1406		// 自動ユーザー認証を行わない

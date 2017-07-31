@@ -2598,103 +2598,50 @@ static const struct _InitKeyTab {
 		{ VK_DOWN,		0,						_T("\\033[B")		},
 		{ VK_RIGHT,		0,						_T("\\033[C")		},
 		{ VK_LEFT,		0,						_T("\\033[D")		},
-		{ VK_END,		0,						_T("\\033[F")		},
-		{ VK_NEXT,		0,						_T("\\033[G")		},
-		{ VK_HOME,		0,						_T("\\033[H")		},
-		{ VK_PRIOR,		0,						_T("\\033[I")		},
-		{ VK_INSERT,	0,						_T("\\033[L")		},
-		{ VK_DELETE,	0,						_T("\\177")			},
 
-		{ VK_F1,		0,						_T("\\033[M")		},
-		{ VK_F2,		0,						_T("\\033[N")		},
-		{ VK_F3,		0,						_T("\\033[O")		},
-		{ VK_F4,		0,						_T("\\033[P")		},
-		{ VK_F5,		0,						_T("\\033[Q")		},
-		{ VK_F6,		0,						_T("\\033[R")		},
-		{ VK_F7,		0,						_T("\\033[S")		},
-		{ VK_F8,		0,						_T("\\033[T")		},
-		{ VK_F9,		0,						_T("\\033[U")		},
-		{ VK_F10,		0,						_T("\\033[V")		},
-		{ VK_F11,		0,						_T("\\033[W")		},
-		{ VK_F12,		0,						_T("\\033[X")		},
-
-		{ VK_F1,		MASK_SHIFT,				_T("\\033[Y")		},
-		{ VK_F2,		MASK_SHIFT,				_T("\\033[Z")		},
-		{ VK_F3,		MASK_SHIFT,				_T("\\033[a")		},
-		{ VK_F4,		MASK_SHIFT,				_T("\\033[b")		},
-		{ VK_F5,		MASK_SHIFT,				_T("\\033[c")		},
-		{ VK_F6,		MASK_SHIFT,				_T("\\033[d")		},
-		{ VK_F7,		MASK_SHIFT,				_T("\\033[e")		},
-		{ VK_F8,		MASK_SHIFT,				_T("\\033[f")		},
-		{ VK_F9,		MASK_SHIFT,				_T("\\033[g")		},
-		{ VK_F10,		MASK_SHIFT,				_T("\\033[h")		},
-		{ VK_F11,		MASK_SHIFT,				_T("\\033[i")		},
-		{ VK_F12,		MASK_SHIFT,				_T("\\033[j")		},
-
-		{ VK_F1,		MASK_CTRL,				_T("\\033[k")		},
-		{ VK_F2,		MASK_CTRL,				_T("\\033[l")		},
-		{ VK_F3,		MASK_CTRL,				_T("\\033[m")		},
-		{ VK_F4,		MASK_CTRL,				_T("\\033[n")		},
-		{ VK_F5,		MASK_CTRL,				_T("\\033[o")		},
-		{ VK_F6,		MASK_CTRL,				_T("\\033[p")		},
-		{ VK_F7,		MASK_CTRL,				_T("\\033[q")		},
-		{ VK_F8,		MASK_CTRL,				_T("\\033[r")		},
-		{ VK_F9,		MASK_CTRL,				_T("\\033[s")		},
-		{ VK_F10,		MASK_CTRL,				_T("\\033[t")		},
-		{ VK_F11,		MASK_CTRL,				_T("\\033[u")		},
-		{ VK_F12,		MASK_CTRL,				_T("\\033[v")		},
-
-		{ VK_F1,		MASK_SHIFT | MASK_CTRL,	_T("\\033[w")		},
-		{ VK_F2,		MASK_SHIFT | MASK_CTRL,	_T("\\033[x")		},
-		{ VK_F3,		MASK_SHIFT | MASK_CTRL,	_T("\\033[y")		},
-		{ VK_F4,		MASK_SHIFT | MASK_CTRL,	_T("\\033[z")		},
-		{ VK_F5,		MASK_SHIFT | MASK_CTRL,	_T("\\033[@")		},
-		{ VK_F6,		MASK_SHIFT | MASK_CTRL,	_T("\\033[[")		},
-		{ VK_F7,		MASK_SHIFT | MASK_CTRL,	_T("\\033[<")		},
-		{ VK_F8,		MASK_SHIFT | MASK_CTRL,	_T("\\033[]")		},
-		{ VK_F9,		MASK_SHIFT | MASK_CTRL,	_T("\\033[^")		},
-		{ VK_F10,		MASK_SHIFT | MASK_CTRL,	_T("\\033[_")		},
-		{ VK_F11,		MASK_SHIFT | MASK_CTRL,	_T("\\033['")		},
-		{ VK_F12,		MASK_SHIFT | MASK_CTRL,	_T("\\033[{")		},
-
-		{ VK_HOME,		MASK_APPL,				_T("\\033[1~")		},	//	kh	@0
-		{ VK_INSERT,	MASK_APPL,				_T("\\033[2~")		},	//	kI
-		{ VK_DELETE,	MASK_APPL,				_T("\\033[3~")		},	//	kD
-		{ VK_END,		MASK_APPL,				_T("\\033[4~")		},	//	@7	*6
-		{ VK_PRIOR,		MASK_APPL,				_T("\\033[5~")		},	//	kP
-		{ VK_NEXT,		MASK_APPL,				_T("\\033[6~")		},	//	kN
-
-		{ VK_F1,		MASK_APPL,				_T("\\033[11~")		},	//	k1
-		{ VK_F2,		MASK_APPL,				_T("\\033[12~")		},	//	k2
-		{ VK_F3,		MASK_APPL,				_T("\\033[13~")		},	//	k3
-		{ VK_F4,		MASK_APPL,				_T("\\033[14~")		},	//	k4
-		{ VK_F5,		MASK_APPL,				_T("\\033[15~")		},	//	k5
-		{ VK_F6,		MASK_APPL,				_T("\\033[17~")		},	//	k6
-		{ VK_F7,		MASK_APPL,				_T("\\033[18~")		},	//	k7
-		{ VK_F8,		MASK_APPL,				_T("\\033[19~")		},	//	k8
-		{ VK_F9,		MASK_APPL,				_T("\\033[20~")		},	//	k9
-		{ VK_F10,		MASK_APPL,				_T("\\033[21~")		},	//	k;
-		{ VK_F11,		MASK_APPL,				_T("\\033[23~")		},	//	F1
-		{ VK_F12,		MASK_APPL,				_T("\\033[24~")		},	//	F2
-		{ VK_F13,		MASK_APPL,				_T("\\033[25~")		},	//	F3
-		{ VK_F14,		MASK_APPL,				_T("\\033[26~")		},	//	F4
-		{ VK_F15,		MASK_APPL,				_T("\\033[28~")		},	//	F5
-		{ VK_F16,		MASK_APPL,				_T("\\033[29~")		},	//	F6
-		{ VK_F17,		MASK_APPL,				_T("\\033[31~")		},	//	F7
-		{ VK_F18,		MASK_APPL,				_T("\\033[32~")		},	//	F8
-		{ VK_F19,		MASK_APPL,				_T("\\033[33~")		},	//	F9
-		{ VK_F20,		MASK_APPL,				_T("\\033[34~")		},	//	FA
+		{ VK_HOME,		0,						_T("\\033[H")		},	//	kh
+		{ VK_INSERT,	0,						_T("\\033[2~")		},	//	kI
+		{ VK_DELETE,	0,						_T("\\033[3~")		},	//	kD
+		{ VK_END,		0,						_T("\\033[F")		},	//	@7
+		{ VK_PRIOR,		0,						_T("\\033[5~")		},	//	kP
+		{ VK_NEXT,		0,						_T("\\033[6~")		},	//	kN
 
 		{ VK_UP,		MASK_CKM,				_T("\\033OA")		},	//	ku
 		{ VK_DOWN,		MASK_CKM,				_T("\\033OB")		},	//	kd
 		{ VK_RIGHT,		MASK_CKM,				_T("\\033OC")		},	//	kr
 		{ VK_LEFT,		MASK_CKM,				_T("\\033OD")		},	//	kl
+
+		{ VK_HOME,		MASK_CKM,				_T("\\033OH")		},
+		{ VK_END,		MASK_CKM,				_T("\\033OF")		},
 		{ VK_ESCAPE,	MASK_CKM,				_T("\\033O[")		},
 
 		{ VK_UP,		MASK_VT52,				_T("\\033A")		},
 		{ VK_DOWN,		MASK_VT52,				_T("\\033B")		},
 		{ VK_RIGHT,		MASK_VT52,				_T("\\033C")		},
 		{ VK_LEFT,		MASK_VT52,				_T("\\033D")		},
+
+		{ VK_F1,		0,						_T("\\033OP")		},	//	k1
+		{ VK_F2,		0,						_T("\\033OQ")		},	//	k2
+		{ VK_F3,		0,						_T("\\033OR")		},	//	k3
+		{ VK_F4,		0,						_T("\\033OS")		},	//	k4
+		{ VK_F5,		0,						_T("\\033[15~")		},	//	k5
+		{ VK_F6,		0,						_T("\\033[17~")		},	//	k6
+		{ VK_F7,		0,						_T("\\033[18~")		},	//	k7
+		{ VK_F8,		0,						_T("\\033[19~")		},	//	k8
+		{ VK_F9,		0,						_T("\\033[20~")		},	//	k9
+		{ VK_F10,		0,						_T("\\033[21~")		},	//	k;
+		{ VK_F11,		0,						_T("\\033[23~")		},	//	F1
+		{ VK_F12,		0,						_T("\\033[24~")		},	//	F2
+		{ VK_F13,		0,						_T("\\033[25~")		},	//	F3
+		{ VK_F14,		0,						_T("\\033[26~")		},	//	F4
+		{ VK_F15,		0,						_T("\\033[28~")		},	//	F5
+		{ VK_F16,		0,						_T("\\033[29~")		},	//	F6
+		{ VK_F17,		0,						_T("\\033[31~")		},	//	F7
+		{ VK_F18,		0,						_T("\\033[32~")		},	//	F8
+		{ VK_F19,		0,						_T("\\033[33~")		},	//	F9
+		{ VK_F20,		0,						_T("\\033[34~")		},	//	FA
+
+		{ VK_TAB,		MASK_SHIFT,				_T("\\033[Z")		},
 
 		{ VK_OEM_7,		MASK_CTRL,				_T("\\036")			},	// $DE(^)
 		{ VK_OEM_2,		MASK_CTRL,				_T("\\037")			},	// $BF(/)
@@ -2849,64 +2796,64 @@ static const struct _CapInfoKeyTab {
 		int	code;
 		int mask;
 	} CapInfoKeyTab[] = {
-		{	_T("@7"),		VK_END,		MASK_APPL,	},
-		{	_T("F1"),		VK_F11,		MASK_APPL,	},
-		{	_T("F2"),		VK_F12,		MASK_APPL,	},
-		{	_T("F3"),		VK_F13,		MASK_APPL,	},
-		{	_T("F4"),		VK_F14,		MASK_APPL,	},
-		{	_T("F5"),		VK_F15,		MASK_APPL,	},
-		{	_T("F6"),		VK_F16,		MASK_APPL,	},
-		{	_T("F7"),		VK_F17,		MASK_APPL,	},
-		{	_T("F8"),		VK_F18,		MASK_APPL,	},
-		{	_T("F9"),		VK_F19,		MASK_APPL,	},
-		{	_T("FA"),		VK_F20,		MASK_APPL,	},
-		{	_T("k1"),		VK_F1,		MASK_APPL,	},
-		{	_T("k2"),		VK_F2,		MASK_APPL,	},
-		{	_T("k3"),		VK_F3,		MASK_APPL,	},
-		{	_T("k4"),		VK_F4,		MASK_APPL,	},
-		{	_T("k5"),		VK_F5,		MASK_APPL,	},
-		{	_T("k6"),		VK_F6,		MASK_APPL,	},
-		{	_T("k7"),		VK_F7,		MASK_APPL,	},
-		{	_T("k8"),		VK_F8,		MASK_APPL,	},
-		{	_T("k9"),		VK_F9,		MASK_APPL,	},
-		{	_T("k;"),		VK_F10,		MASK_APPL,	},
-		{	_T("kD"),		VK_DELETE,	MASK_APPL,	},
-		{	_T("kI"),		VK_INSERT,	MASK_APPL,	},
-		{	_T("kN"),		VK_NEXT,	MASK_APPL,	},
-		{	_T("kP"),		VK_PRIOR,	MASK_APPL,	},
+		{	_T("@7"),		VK_END,		0,			},
+		{	_T("F1"),		VK_F11,		0,			},
+		{	_T("F2"),		VK_F12,		0,			},
+		{	_T("F3"),		VK_F13,		0,			},
+		{	_T("F4"),		VK_F14,		0,			},
+		{	_T("F5"),		VK_F15,		0,			},
+		{	_T("F6"),		VK_F16,		0,			},
+		{	_T("F7"),		VK_F17,		0,			},
+		{	_T("F8"),		VK_F18,		0,			},
+		{	_T("F9"),		VK_F19,		0,			},
+		{	_T("FA"),		VK_F20,		0,			},
+		{	_T("k1"),		VK_F1,		0,			},
+		{	_T("k2"),		VK_F2,		0,			},
+		{	_T("k3"),		VK_F3,		0,			},
+		{	_T("k4"),		VK_F4,		0,			},
+		{	_T("k5"),		VK_F5,		0,			},
+		{	_T("k6"),		VK_F6,		0,			},
+		{	_T("k7"),		VK_F7,		0,			},
+		{	_T("k8"),		VK_F8,		0,			},
+		{	_T("k9"),		VK_F9,		0,			},
+		{	_T("k;"),		VK_F10,		0,			},
+		{	_T("kD"),		VK_DELETE,	0,			},
+		{	_T("kI"),		VK_INSERT,	0,			},
+		{	_T("kN"),		VK_NEXT,	0,			},
+		{	_T("kP"),		VK_PRIOR,	0,			},
 		{	_T("kcub1"),	VK_LEFT,	MASK_CKM,	},
 		{	_T("kcud1"),	VK_DOWN,	MASK_CKM,	},
 		{	_T("kcuf1"),	VK_RIGHT,	MASK_CKM,	},
 		{	_T("kcuu1"),	VK_UP,		MASK_CKM,	},
 		{	_T("kd"),		VK_DOWN,	MASK_CKM,	},
-		{	_T("kdch1"),	VK_DELETE,	MASK_APPL,	},
-		{	_T("kend"),		VK_END,		MASK_APPL,	},
-		{	_T("kf1"),		VK_F1,		MASK_APPL,	},
-		{	_T("kf10"),		VK_F10,		MASK_APPL,	},
-		{	_T("kf11"),		VK_F11,		MASK_APPL,	},
-		{	_T("kf12"),		VK_F12,		MASK_APPL,	},
-		{	_T("kf13"),		VK_F13,		MASK_APPL,	},
-		{	_T("kf14"),		VK_F14,		MASK_APPL,	},
-		{	_T("kf15"),		VK_F15,		MASK_APPL,	},
-		{	_T("kf16"),		VK_F16,		MASK_APPL,	},
-		{	_T("kf17"),		VK_F17,		MASK_APPL,	},
-		{	_T("kf18"),		VK_F18,		MASK_APPL,	},
-		{	_T("kf19"),		VK_F19,		MASK_APPL,	},
-		{	_T("kf2"),		VK_F2,		MASK_APPL,	},
-		{	_T("kf20"),		VK_F20,		MASK_APPL,	},
-		{	_T("kf3"),		VK_F3,		MASK_APPL,	},
-		{	_T("kf4"),		VK_F4,		MASK_APPL,	},
-		{	_T("kf5"),		VK_F5,		MASK_APPL,	},
-		{	_T("kf6"),		VK_F6,		MASK_APPL,	},
-		{	_T("kf7"),		VK_F7,		MASK_APPL,	},
-		{	_T("kf8"),		VK_F8,		MASK_APPL,	},
-		{	_T("kf9"),		VK_F9,		MASK_APPL,	},
-		{	_T("kh"),		VK_HOME,	MASK_APPL,	},
-		{	_T("khome"),	VK_HOME,	MASK_APPL,	},
-		{	_T("kich1"),	VK_INSERT,	MASK_APPL,	},
+		{	_T("kdch1"),	VK_DELETE,	0,			},
+		{	_T("kend"),		VK_END,		0,			},
+		{	_T("kf1"),		VK_F1,		0,			},
+		{	_T("kf10"),		VK_F10,		0,			},
+		{	_T("kf11"),		VK_F11,		0,			},
+		{	_T("kf12"),		VK_F12,		0,			},
+		{	_T("kf13"),		VK_F13,		0,			},
+		{	_T("kf14"),		VK_F14,		0,			},
+		{	_T("kf15"),		VK_F15,		0,			},
+		{	_T("kf16"),		VK_F16,		0,			},
+		{	_T("kf17"),		VK_F17,		0,			},
+		{	_T("kf18"),		VK_F18,		0,			},
+		{	_T("kf19"),		VK_F19,		0,			},
+		{	_T("kf2"),		VK_F2,		0,			},
+		{	_T("kf20"),		VK_F20,		0,			},
+		{	_T("kf3"),		VK_F3,		0,			},
+		{	_T("kf4"),		VK_F4,		0,			},
+		{	_T("kf5"),		VK_F5,		0,			},
+		{	_T("kf6"),		VK_F6,		0,			},
+		{	_T("kf7"),		VK_F7,		0,			},
+		{	_T("kf8"),		VK_F8,		0,			},
+		{	_T("kf9"),		VK_F9,		0,			},
+		{	_T("kh"),		VK_HOME,	0,			},
+		{	_T("khome"),	VK_HOME,	0,			},
+		{	_T("kich1"),	VK_INSERT,	0,			},
 		{	_T("kl"),		VK_LEFT,	MASK_CKM,	},
-		{	_T("knp"),		VK_NEXT,	MASK_APPL,	},
-		{	_T("kpp"),		VK_PRIOR,	MASK_APPL,	},
+		{	_T("knp"),		VK_NEXT,	0,			},
+		{	_T("kpp"),		VK_PRIOR,	0,			},
 		{	_T("kr"),		VK_RIGHT,	MASK_CKM,	},
 		{	_T("ku"),		VK_UP,		MASK_CKM,	},
 	};
@@ -2945,7 +2892,7 @@ void CKeyNodeTab::SetArray(CStringArrayExt &stra)
 
 	tmp.RemoveAll();
 	tmp.AddVal(-1);
-	tmp.AddVal(3);			// KeyCode Bug Fix
+	tmp.AddVal(4);			// KeyCode Bug Fix
 	stra.AddArray(tmp);
 }
 void CKeyNodeTab::GetArray(CStringArrayExt &stra)
@@ -3230,6 +3177,20 @@ void CKeyNodeTab::BugFix(int fix)
 		for ( i = 0 ; InitKeyTab[i].maps != NULL ; i++ ) {
 			if ( InitKeyTab[i].code < VK_NUMPAD0 || InitKeyTab[i].code > VK_DIVIDE )
 				continue;
+			if ( Find(InitKeyTab[i].code, InitKeyTab[i].mask, &n) )
+				continue;
+			Add(InitKeyTab[i].code, InitKeyTab[i].mask, InitKeyTab[i].maps);
+		}
+	}
+
+	if ( fix < 4 ) {
+		for ( i = 0 ; i < m_Node.GetSize() ; i++ ) {
+			if ( GetCmdsKey((LPCWSTR)(m_Node[i].m_Maps)) <= 0 ) {
+				m_Node.RemoveAt(i);
+				i--;
+			}
+		}
+		for ( i = 0 ; InitKeyTab[i].maps != NULL ; i++ ) {
 			if ( Find(InitKeyTab[i].code, InitKeyTab[i].mask, &n) )
 				continue;
 			Add(InitKeyTab[i].code, InitKeyTab[i].mask, InitKeyTab[i].maps);

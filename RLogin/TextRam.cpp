@@ -1,4 +1,4 @@
-// TextRam.cpp: CTextRam ÉNÉâÉXÇÃÉCÉìÉvÉäÉÅÉìÉeÅ[ÉVÉáÉì
+Ôªø// TextRam.cpp: CTextRam „ÇØ„É©„Çπ„ÅÆ„Ç§„É≥„Éó„É™„É°„É≥„ÉÜ„Éº„Ç∑„Éß„É≥
 //
 //////////////////////////////////////////////////////////////////////
 
@@ -592,8 +592,8 @@ void CFontTab::Init()
 
 		{ _T("ISO646-US"),				SET_94,		_T("@"),	'\x00', _T("ISO646-US"),		ANSI_CHARSET,		100,	100,	0,	{ _T("Lucida Console"), _T("") } },
 		{ _T("ASCII(ANSI X3.4-1968)"),	SET_94,		_T("B"),	'\x00', _T("ANSI_X3.4-1968"),	ANSI_CHARSET,		100,	100,	0,	{ _T("Lucida Console"), _T("") } },
-		{ _T("JIS X 0201-Kana"),		SET_94,		_T("I"),	'\x80', _T("JISX0201-1976"),	SHIFTJIS_CHARSET,	100,	100,	0,	{ _T("ÇlÇr ÉSÉVÉbÉN"), _T("ÇlÇr ñæí©") } },
-		{ _T("JIS X 0201-Roman"),		SET_94,		_T("J"),	'\x00', _T("JISX0201-1976"),	SHIFTJIS_CHARSET,	100,	100,	0,	{ _T("ÇlÇr ÉSÉVÉbÉN"), _T("ÇlÇr ñæí©") } },
+		{ _T("JIS X 0201-Kana"),		SET_94,		_T("I"),	'\x80', _T("JISX0201-1976"),	SHIFTJIS_CHARSET,	100,	100,	0,	{ _T("Ôº≠Ôº≥ „Ç¥„Ç∑„ÉÉ„ÇØ"), _T("Ôº≠Ôº≥ ÊòéÊúù") } },
+		{ _T("JIS X 0201-Roman"),		SET_94,		_T("J"),	'\x00', _T("JISX0201-1976"),	SHIFTJIS_CHARSET,	100,	100,	0,	{ _T("Ôº≠Ôº≥ „Ç¥„Ç∑„ÉÉ„ÇØ"), _T("Ôº≠Ôº≥ ÊòéÊúù") } },
 		{ _T("GB 1988-80"),				SET_94,		_T("T"),	'\x00', _T("GB_1988-80"),		DEFAULT_CHARSET,	100,	100,	0,	{ _T(""), _T("") } },
 
 		{ _T("Russian"),				SET_94,		_T("&5"),	'\x00',	_T("CP866"),			RUSSIAN_CHARSET,	100,	100,	0,	{ _T(""), _T("") } },
@@ -621,17 +621,17 @@ void CFontTab::Init()
 		{ _T("LATIN9 (ISO8859-15)"),	SET_96,		_T("b"),	'\x80', _T("ISO-8859-15"),		DEFAULT_CHARSET,	100,	100,	0,	{ _T(""), _T("") } },
 		{ _T("ROMANIAN (ISO8859-16)"),	SET_96,		_T("f"),	'\x80', _T("ISO-8859-16"),		DEFAULT_CHARSET,	100,	100,	0,	{ _T(""), _T("") } },
 
-		{ _T("JIS X 0208-1978"),		SET_94x94,	_T("@"),	'\x00', _T("JIS_X0208-1983"),	SHIFTJIS_CHARSET,	100,	100,	0,	{ _T("ÇlÇr ÉSÉVÉbÉN"), _T("ÇlÇr ñæí©") } },
+		{ _T("JIS X 0208-1978"),		SET_94x94,	_T("@"),	'\x00', _T("JIS_X0208-1983"),	SHIFTJIS_CHARSET,	100,	100,	0,	{ _T("Ôº≠Ôº≥ „Ç¥„Ç∑„ÉÉ„ÇØ"), _T("Ôº≠Ôº≥ ÊòéÊúù") } },
 		{ _T("GB2312-1980"),			SET_94x94,	_T("A"),	'\x00', _T("GB_2312-80"),		GB2312_CHARSET,		100,	100,	0,	{ _T(""), _T("") } },
-		{ _T("JIS X 0208-1983"),		SET_94x94,	_T("B"),	'\x00', _T("JIS_X0208-1983"),	SHIFTJIS_CHARSET,	100,	100,	0,	{ _T("ÇlÇr ÉSÉVÉbÉN"), _T("ÇlÇr ñæí©") } },
+		{ _T("JIS X 0208-1983"),		SET_94x94,	_T("B"),	'\x00', _T("JIS_X0208-1983"),	SHIFTJIS_CHARSET,	100,	100,	0,	{ _T("Ôº≠Ôº≥ „Ç¥„Ç∑„ÉÉ„ÇØ"), _T("Ôº≠Ôº≥ ÊòéÊúù") } },
 		{ _T("KSC5601-1987"),			SET_94x94,	_T("C"),	'\x00', _T("KS_C_5601-1987"),	HANGEUL_CHARSET,	100,	100,	0,	{ _T(""), _T("") } },
-		{ _T("JIS X 0212-1990"),		SET_94x94,	_T("D"),	'\x00', _T("JIS_X0212-1990"),	SHIFTJIS_CHARSET,	100,	100,	0,	{ _T("ÇlÇr ÉSÉVÉbÉN"), _T("ÇlÇr ñæí©") } },
+		{ _T("JIS X 0212-1990"),		SET_94x94,	_T("D"),	'\x00', _T("JIS_X0212-1990"),	SHIFTJIS_CHARSET,	100,	100,	0,	{ _T("Ôº≠Ôº≥ „Ç¥„Ç∑„ÉÉ„ÇØ"), _T("Ôº≠Ôº≥ ÊòéÊúù") } },
 		{ _T("ISO-IR-165"),				SET_94x94,	_T("E"),	'\x00', _T("ISO-IR-165"),		DEFAULT_CHARSET,	100,	100,	0,	{ _T(""), _T("") } },
-		{ _T("JIS X 0213-2000.1"),		SET_94x94,	_T("O"),	'\x00', _T("JIS_X0213-2000.1"),	SHIFTJIS_CHARSET,	100,	100,	0,	{ _T("ÇlÇr ÉSÉVÉbÉN"), _T("ÇlÇr ñæí©") } },
-		{ _T("JIS X 0213-2000.2"),		SET_94x94,	_T("P"),	'\x00', _T("JIS_X0213-2000.2"),	SHIFTJIS_CHARSET,	100,	100,	0,	{ _T("ÇlÇr ÉSÉVÉbÉN"), _T("ÇlÇr ñæí©") } },
-		{ _T("JIS X 0213-2004.1"),		SET_94x94,	_T("Q"),	'\x00', _T("JIS_X0213-2000.1"),	SHIFTJIS_CHARSET,	100,	100,	0,	{ _T("ÇlÇr ÉSÉVÉbÉN"), _T("ÇlÇr ñæí©") } },
+		{ _T("JIS X 0213-2000.1"),		SET_94x94,	_T("O"),	'\x00', _T("JIS_X0213-2000.1"),	SHIFTJIS_CHARSET,	100,	100,	0,	{ _T("Ôº≠Ôº≥ „Ç¥„Ç∑„ÉÉ„ÇØ"), _T("Ôº≠Ôº≥ ÊòéÊúù") } },
+		{ _T("JIS X 0213-2000.2"),		SET_94x94,	_T("P"),	'\x00', _T("JIS_X0213-2000.2"),	SHIFTJIS_CHARSET,	100,	100,	0,	{ _T("Ôº≠Ôº≥ „Ç¥„Ç∑„ÉÉ„ÇØ"), _T("Ôº≠Ôº≥ ÊòéÊúù") } },
+		{ _T("JIS X 0213-2004.1"),		SET_94x94,	_T("Q"),	'\x00', _T("JIS_X0213-2000.1"),	SHIFTJIS_CHARSET,	100,	100,	0,	{ _T("Ôº≠Ôº≥ „Ç¥„Ç∑„ÉÉ„ÇØ"), _T("Ôº≠Ôº≥ ÊòéÊúù") } },
 
-		{ _T("UNICODE"),				SET_UNICODE,_T("*U"),	'\x00', _T("UTF-16BE"),			DEFAULT_CHARSET,	100,	100,	0,	{ _T("ÇlÇr ÉSÉVÉbÉN"), _T("ÇlÇr ñæí©") } },
+		{ _T("UNICODE"),				SET_UNICODE,_T("*U"),	'\x00', _T("UTF-16BE"),			DEFAULT_CHARSET,	100,	100,	0,	{ _T("Ôº≠Ôº≥ „Ç¥„Ç∑„ÉÉ„ÇØ"), _T("Ôº≠Ôº≥ ÊòéÊúù") } },
 
 		{ NULL, 0, 0x00, NULL },
 	};
@@ -2164,9 +2164,9 @@ void CTextRam::ScriptValue(int cmds, class CScriptValue &value, int mode)
 				else if ( opt >= 8400 && opt < 8512 )
 					opt -= 8000;		// 400-511
 				else if ( opt == 7727 )
-					opt = TO_RLCKMESC;	// 7727  -  Application Escape mode ÇóLå¯Ç…Ç∑ÇÈÅB				Application Escape mode Çñ≥å¯Ç…Ç∑ÇÈÅB  
+					opt = TO_RLCKMESC;	// 7727  -  Application Escape mode „ÇíÊúâÂäπ„Å´„Åô„Çã„ÄÇ				Application Escape mode „ÇíÁÑ°Âäπ„Å´„Åô„Çã„ÄÇ  
 				else if ( opt == 7786 )
-					opt = TO_RLMSWAPE;	// 7786  -  É}ÉEÉXÉzÉCÅ[Éã - ÉJÅ[É\ÉãÉLÅ[ïœä∑ÇóLå¯Ç…Ç∑ÇÈÅB		É}ÉEÉXÉzÉCÅ[Éã - ÉJÅ[É\ÉãÉLÅ[ïœä∑Çñ≥å¯Ç…Ç∑ÇÈÅB  
+					opt = TO_RLMSWAPE;	// 7786  -  „Éû„Ç¶„Çπ„Éõ„Ç§„Éº„É´ - „Ç´„Éº„ÇΩ„É´„Ç≠„ÉºÂ§âÊèõ„ÇíÊúâÂäπ„Å´„Åô„Çã„ÄÇ		„Éû„Ç¶„Çπ„Éõ„Ç§„Éº„É´ - „Ç´„Éº„ÇΩ„É´„Ç≠„ÉºÂ§âÊèõ„ÇíÁÑ°Âäπ„Å´„Åô„Çã„ÄÇ  
 				else if ( opt > 199 )
 					opt = 199;
 				value = (int)(IsOptEnable(opt) ? 1 : 0);
@@ -2679,9 +2679,9 @@ int CTextRam::IsWord(int ch)
 {
 	if ( ch == 0 )
 		return 0;
-	else if ( ch >= 0x3040 && ch <= 0x309F )		// 3040 - 309F Ç–ÇÁÇ™Ç»
+	else if ( ch >= 0x3040 && ch <= 0x309F )		// 3040 - 309F „Å≤„Çâ„Åå„Å™
 		return 2;
-	else if ( ch >= 0x30A0 && ch <= 0x30FF )		// 30A0 - 30FF ÉJÉ^ÉJÉi
+	else if ( ch >= 0x30A0 && ch <= 0x30FF )		// 30A0 - 30FF „Ç´„Çø„Ç´„Éä
 		return 3;
 	else if ( UnicodeWidth(ch) == 2 && iswalnum(ch) )
 		return 4;
@@ -2782,7 +2782,7 @@ void CTextRam::EditWordPos(int *sps, int *eps)
 		while ( IsWord(GetPos(ex + 1, ey)) == 1 )
 			IncPos(ex, ey);
 		break;
-	case 2:	// Ç–ÇÁÇ™Ç»
+	case 2:	// „Å≤„Çâ„Åå„Å™
 		while ( IsWord(GetPos(sx - 1, sy)) == 2 )
 			DecPos(sx, sy);
 		while ( IsWord(GetPos(sx - 1, sy)) == 4 )
@@ -2790,13 +2790,13 @@ void CTextRam::EditWordPos(int *sps, int *eps)
 		while ( IsWord(GetPos(ex + 1, ey)) == 2 )
 			IncPos(ex, ey);
 		break;
-	case 3:	// ÉJÉ^ÉJÉi
+	case 3:	// „Ç´„Çø„Ç´„Éä
 		while ( IsWord(GetPos(sx - 1, sy)) == 3 )
 			DecPos(sx, sy);
 		while ( IsWord(GetPos(ex + 1, ey)) == 3 )
 			IncPos(ex, ey);
 		break;
-	case 4:	// ÇªÇÃëº
+	case 4:	// „Åù„ÅÆ‰ªñ
 		while ( IsWord(GetPos(sx - 1, sy)) == 4 )
 			DecPos(sx, sy);
 		while ( IsWord(GetPos(ex + 1, ey)) == 4 )
@@ -2975,6 +2975,8 @@ void CTextRam::GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf)
 	}
 }
 
+#include "BorderLine.h"
+
 void CTextRam::StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop, int len, LPCWSTR str, int *spc, class CRLoginView *pView)
 {
 	int n, c, x, y, o;
@@ -3040,6 +3042,219 @@ void CTextRam::StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop,
 				pDC->FillSolidRect(pRect, bc);
 		} else if ( pView->m_pBitmap == NULL )
 			pDC->FillSolidRect(pRect, bc);
+
+	} else if ( (at & ATT_BORDER) != 0 ) {
+
+		CPen cPen[5], *oPen;
+		LOGBRUSH LogBrush;
+		CPoint point[2];
+		CRect era(box);
+		static const DWORD PenExtTab[3][4]  = {	{ 3, 1, 3, 1 }, { 2, 1, 2, 1 },	{ 1, 1, 1, 1 } };
+
+		cPen[0].CreatePen(PS_SOLID, 1, fc);
+
+		if ( pView->m_CharHeight < BD_HALFSIZE )
+			cPen[4].CreatePen(PS_SOLID, 1, RGB((GetRValue(fc) + GetRValue(bc)) / 2, (GetGValue(fc) + GetGValue(bc)) / 2, (GetBValue(fc) + GetBValue(bc)) / 2));
+
+		oPen = pDC->SelectObject(&(cPen[0]));
+
+		LogBrush.lbColor = fc;
+		LogBrush.lbStyle = BS_SOLID;
+
+		if ( prop.dmf ==  2 )
+			box.bottom += pView->m_CharHeight;
+		else if ( prop.dmf ==  3 )
+			box.top -= pView->m_CharHeight;
+
+		for ( n = 0 ; n < len ; n++, p++ ) {
+			box.right = box.left + spc[n];
+			era.right = era.left + spc[n];
+
+			if ( pView->m_pBitmap == NULL || rv != FALSE )
+				pDC->FillSolidRect(era, bc);
+
+			if ( *p >= 0x2500 && *p <= 0x257F ) {
+				const BYTE *tab = BorderTab[*p - 0x2500];
+				CPoint center((box.left + box.right) / 2, (box.top + box.bottom) / 2);
+
+				for ( c = 0 ; c < 4 ; c++ ) {
+					if ( tab[c] == BD_NONE )
+						continue;
+
+					switch(tab[c]) {
+					case BD_LINE1:
+					case BD_LINE2:
+					case BD_LINE3:
+					case BD_LINE4:
+					case BD_LINE5:
+						pDC->SelectObject(&(cPen[0]));
+						break;
+					case BD_LINE1 | BD_DOT2:
+					case BD_LINE2 | BD_DOT2:
+						if ( cPen[1].m_hObject == NULL )
+							cPen[1].CreatePen(PS_USERSTYLE, 1, &LogBrush, 4, PenExtTab[0]);
+						pDC->SelectObject(&(cPen[1]));
+						break;
+					case BD_LINE1 | BD_DOT3:
+					case BD_LINE2 | BD_DOT3:
+						if ( cPen[2].m_hObject == NULL )
+							cPen[2].CreatePen(PS_USERSTYLE, 1, &LogBrush, 4, PenExtTab[1]);
+						pDC->SelectObject(&(cPen[2]));
+						break;
+					case BD_LINE1 | BD_DOT4:
+					case BD_LINE2 | BD_DOT4:
+						if ( cPen[3].m_hObject == NULL )
+							cPen[3].CreatePen(PS_USERSTYLE, 1, &LogBrush, 4, PenExtTab[2]);
+						pDC->SelectObject(&(cPen[3]));
+						break;
+					}
+
+					point[0] = center;
+					point[1] = center;
+
+					switch(c) {
+					case 0:		// Left
+						point[0].x = box.left;
+						point[1].x++;
+
+						switch(tab[c] & 0x0F) {
+						case BD_LINE1:
+							pDC->Polyline(point, 2);
+							break;
+						case BD_LINE2:
+							pDC->Polyline(point, 2);
+							if ( pView->m_CharHeight < BD_HALFSIZE )
+								pDC->SelectObject(&(cPen[4]));
+						case BD_LINE3:
+							pDC->MoveTo(point[0].x, point[0].y - BD_SIZE);
+							o = (tab[2] == BD_LINE3 ? -BD_SIZE : (tab[2] == BD_NONE && tab[3] >= BD_LINE2 ? BD_SIZE : (tab[2] == BD_LINE1 ? -1 : 0)));
+							pDC->LineTo(point[1].x + o, point[1].y - BD_SIZE);
+
+							pDC->MoveTo(point[0].x, point[0].y + BD_SIZE);
+							o = (tab[3] == BD_LINE3 ? -BD_SIZE : (tab[3] == BD_NONE && tab[2] >= BD_LINE2 ? BD_SIZE : (tab[3] == BD_LINE1 ? -1 : 0)));
+							pDC->LineTo(point[1].x + o, point[1].y + BD_SIZE);
+							break;
+						case BD_LINE4:	// ‚ïÆ
+							pDC->MoveTo(box.left, center.y);
+							pDC->LineTo(center.x - BD_CORNER, center.y);
+							pDC->LineTo(center.x, center.y + BD_CORNER);
+							pDC->LineTo(center.x, box.bottom);
+							break;
+						case BD_LINE5:	// ‚ï±
+							pDC->MoveTo(box.right - 1, box.top);
+							pDC->LineTo(box.left, box.bottom - 1);
+							break;
+						}
+						break;
+
+					case 1:		// Right
+						point[1].x = box.right;
+
+						switch(tab[c] & 0x0F) {
+						case BD_LINE1:
+							pDC->Polyline(point, 2);
+							break;
+						case BD_LINE2:
+							pDC->Polyline(point, 2);
+							if ( pView->m_CharHeight < BD_HALFSIZE )
+								pDC->SelectObject(&(cPen[4]));
+						case BD_LINE3:
+							o = (tab[2] == BD_LINE3 ? BD_SIZE : (tab[2] == BD_NONE && tab[3] >= BD_LINE2 ? -BD_SIZE : (tab[2] == BD_LINE1 ? 1 : 0)));
+							pDC->MoveTo(point[0].x + o, point[0].y - BD_SIZE);
+							pDC->LineTo(point[1].x, point[1].y - BD_SIZE);
+
+							o = (tab[3] == BD_LINE3 ? BD_SIZE : (tab[3] == BD_NONE && tab[2] >= BD_LINE2 ? -BD_SIZE : (tab[3] == BD_LINE1 ? 1 : 0)));
+							pDC->MoveTo(point[0].x + o, point[0].y + BD_SIZE);
+							pDC->LineTo(point[1].x, point[1].y + BD_SIZE);
+							break;
+						case BD_LINE4:	// ‚ï∞
+							pDC->MoveTo(center.x, box.top);
+							pDC->LineTo(center.x, center.y - BD_CORNER);
+							pDC->LineTo(center.x + BD_CORNER, center.y);
+							pDC->LineTo(box.right, center.y);
+							break;
+						case BD_LINE5:	// ‚ï±
+							pDC->MoveTo(box.right - 1, box.top);
+							pDC->LineTo(box.left, box.bottom - 1);
+							break;
+						}
+						break;
+
+					case 2:		// Up
+						point[0].y = box.top;
+						point[1].y++;
+
+						switch(tab[c] & 0x0F) {
+						case BD_LINE1:
+							pDC->Polyline(point, 2);
+							break;
+						case BD_LINE2:
+							pDC->Polyline(point, 2);
+							if ( pView->m_CharHeight < BD_HALFSIZE )
+								pDC->SelectObject(&(cPen[4]));
+						case BD_LINE3:
+							pDC->MoveTo(point[0].x - BD_SIZE, point[0].y);
+							o = (tab[0] >= BD_LINE2 ? -BD_SIZE : (tab[0] == BD_NONE && tab[1] >= BD_LINE2 ? BD_SIZE : (tab[0] == BD_LINE1 ? -1 : 0)));
+							pDC->LineTo(point[1].x - BD_SIZE, point[1].y + o);
+
+							pDC->MoveTo(point[0].x + BD_SIZE, point[0].y);
+							o = (tab[1] >= BD_LINE2 ? -BD_SIZE : (tab[1] == BD_NONE && tab[0] >= BD_LINE2 ? BD_SIZE : (tab[1] == BD_LINE1 ? -1 : 0)));
+							pDC->LineTo(point[1].x + BD_SIZE, point[1].y + o);
+							break;
+						case BD_LINE4:	// ‚ïØ
+							pDC->MoveTo(box.left, center.y);
+							pDC->LineTo(center.x - BD_CORNER, center.y);
+							pDC->LineTo(center.x, center.y - BD_CORNER);
+							pDC->LineTo(center.x, box.top - 1);
+							break;
+						case BD_LINE5:	// ‚ï≤
+							pDC->MoveTo(box.left, box.top);
+							pDC->LineTo(box.right - 1, box.bottom - 1);
+							break;
+						}
+						break;
+
+					case 3:		// Down
+						point[1].y = box.bottom;
+
+						switch(tab[c] & 0x0F) {
+						case BD_LINE1:
+							pDC->Polyline(point, 2);
+							break;
+						case BD_LINE2:
+							pDC->Polyline(point, 2);
+							if ( pView->m_CharHeight < BD_HALFSIZE )
+								pDC->SelectObject(&(cPen[4]));
+						case BD_LINE3:
+							o = (tab[0] >= BD_LINE2 ? BD_SIZE : (tab[0] == BD_NONE && tab[1] >= BD_LINE2 ? -BD_SIZE : (tab[0] == BD_LINE1 ? 1 : 0)));
+							pDC->MoveTo(point[0].x - BD_SIZE, point[0].y + o);
+							pDC->LineTo(point[1].x - BD_SIZE, point[1].y);
+
+							o = (tab[1] >= BD_LINE2 ? BD_SIZE : (tab[1] == BD_NONE && tab[0] >= BD_LINE2 ? -BD_SIZE : (tab[1] == BD_LINE1 ? 1 : 0)));
+							pDC->MoveTo(point[0].x + BD_SIZE, point[0].y + o);
+							pDC->LineTo(point[1].x + BD_SIZE, point[1].y);
+							break;
+						case BD_LINE4:	// ‚ï≠
+							pDC->MoveTo(box.right, center.y);
+							pDC->LineTo(center.x + BD_CORNER, center.y);
+							pDC->LineTo(center.x, center.y + BD_CORNER);
+							pDC->LineTo(center.x, box.bottom);
+							break;
+						case BD_LINE5:	// ‚ï≤
+							pDC->MoveTo(box.left, box.top);
+							pDC->LineTo(box.right - 1, box.bottom - 1);
+							break;
+						}
+						break;
+					}
+				}
+			}
+
+			box.left += spc[n];
+			era.left += spc[n];
+		}
+
+		pDC->SelectObject(oPen);
 
 	} else {
 		x = pView->m_CharWidth  * wd;
@@ -3678,9 +3893,9 @@ void CTextRam::MsToIconvUniStr(LPCTSTR charset, LPWSTR str, int len)
 	if ( _tcscmp(charset, _T("EUC-JISX0213")) == 0 ) {
 		for ( ; len-- > 0 ; str++ ) {
 			switch(*str) {							/*                  iconv  MS     */
-			case 0xFFE0: *str = 0x00A2; break;		/* Åë 0x8191(01-81) U+00A2 U+FFE0 */
-			case 0xFFE1: *str = 0x00A3; break;		/* Åí 0x8192(01-82) U+00A3 U+FFE1 */
-			case 0xFFE2: *str = 0x00AC; break;		/* Å  0x81CA(02-44) U+00AC U+FFE2 */
+			case 0xFFE0: *str = 0x00A2; break;		/* Ôø† 0x8191(01-81) U+00A2 U+FFE0 */
+			case 0xFFE1: *str = 0x00A3; break;		/* Ôø° 0x8192(01-82) U+00A3 U+FFE1 */
+			case 0xFFE2: *str = 0x00AC; break;		/* Ôø¢ 0x81CA(02-44) U+00AC U+FFE2 */
 			}
 		}
 	} else if ( _tcscmp(charset, _T("SHIFT_JISX0213")) == 0 ) {
@@ -3688,19 +3903,19 @@ void CTextRam::MsToIconvUniStr(LPCTSTR charset, LPWSTR str, int len)
 			switch(*str) {							/*                  iconv  MS     */
 //			case 0x005C: *str = 0x00A5; break;		/* \  0x5C          U+00A5 U+005C */
 //			case 0x007E: *str = 0x203E; break;		/* ~  0x7E          U+203E U+007E */
-			case 0xFFE0: *str = 0x00A2; break;		/* Åë 0x8191(01-81) U+00A2 U+FFE0 */
-			case 0xFFE1: *str = 0x00A3; break;		/* Åí 0x8192(01-82) U+00A3 U+FFE1 */
-			case 0xFFE2: *str = 0x00AC; break;		/* Å  0x81CA(02-44) U+00AC U+FFE2 */
+			case 0xFFE0: *str = 0x00A2; break;		/* Ôø† 0x8191(01-81) U+00A2 U+FFE0 */
+			case 0xFFE1: *str = 0x00A3; break;		/* Ôø° 0x8192(01-82) U+00A3 U+FFE1 */
+			case 0xFFE2: *str = 0x00AC; break;		/* Ôø¢ 0x81CA(02-44) U+00AC U+FFE2 */
 			}
 		}
 	} else if ( _tcscmp(charset, _T("EUC-JP")) == 0 || _tcscmp(charset, _T("EUCJP")) == 0 ) {
 		for ( ; len-- > 0 ; str++ ) {
 			switch(*str) {							/*                  iconv  MS     */
-			case 0x2225: *str = 0x2016; break;		/* Åa 0x8161(01-34) U+2016 U+2225 */
-			case 0xFF0D: *str = 0x2212; break;		/* Å| 0x817C(01-61) U+2212 U+FF0D */
-			case 0xFFE0: *str = 0x00A2; break;		/* Åë 0x8191(01-81) U+00A2 U+FFE0 */
-			case 0xFFE1: *str = 0x00A3; break;		/* Åí 0x8192(01-82) U+00A3 U+FFE1 */
-			case 0xFFE2: *str = 0x00AC; break;		/* Å  0x81CA(02-44) U+00AC U+FFE2 */
+			case 0x2225: *str = 0x2016; break;		/* ‚à• 0x8161(01-34) U+2016 U+2225 */
+			case 0xFF0D: *str = 0x2212; break;		/* Ôºç 0x817C(01-61) U+2212 U+FF0D */
+			case 0xFFE0: *str = 0x00A2; break;		/* Ôø† 0x8191(01-81) U+00A2 U+FFE0 */
+			case 0xFFE1: *str = 0x00A3; break;		/* Ôø° 0x8192(01-82) U+00A3 U+FFE1 */
+			case 0xFFE2: *str = 0x00AC; break;		/* Ôø¢ 0x81CA(02-44) U+00AC U+FFE2 */
 			}
 		}
 	} else if ( _tcscmp(charset, _T("SHIFT_JIS")) == 0 || _tcscmp(charset, _T("MS_KANJI")) == 0 ||
@@ -3709,12 +3924,12 @@ void CTextRam::MsToIconvUniStr(LPCTSTR charset, LPWSTR str, int len)
 			switch(*str) {							/*                  iconv  MS     */
 //			case 0x005C: *str = 0x00A5; break;		/* \  0x5C          U+00A5 U+005C */
 //			case 0x007E: *str = 0x203E; break;		/* ~  0x7E          U+203E U+007E */
-			case 0x2225: *str = 0x2016; break;		/* Åa 0x8161(01-34) U+2016 U+2225 */
-			case 0xFF0D: *str = 0x2212; break;		/* Å| 0x817C(01-61) U+2212 U+FF0D */
-			case 0xFF5E: *str = 0x301C; break;		/* Å` 0x8160(01-33) U+301C U+FF5E */
-			case 0xFFE0: *str = 0x00A2; break;		/* Åë 0x8191(01-81) U+00A2 U+FFE0 */
-			case 0xFFE1: *str = 0x00A3; break;		/* Åí 0x8192(01-82) U+00A3 U+FFE1 */
-			case 0xFFE2: *str = 0x00AC; break;		/* Å  0x81CA(02-44) U+00AC U+FFE2 */
+			case 0x2225: *str = 0x2016; break;		/* ‚à• 0x8161(01-34) U+2016 U+2225 */
+			case 0xFF0D: *str = 0x2212; break;		/* Ôºç 0x817C(01-61) U+2212 U+FF0D */
+			case 0xFF5E: *str = 0x301C; break;		/* ÔΩû 0x8160(01-33) U+301C U+FF5E */
+			case 0xFFE0: *str = 0x00A2; break;		/* Ôø† 0x8191(01-81) U+00A2 U+FFE0 */
+			case 0xFFE1: *str = 0x00A3; break;		/* Ôø° 0x8192(01-82) U+00A3 U+FFE1 */
+			case 0xFFE2: *str = 0x00AC; break;		/* Ôø¢ 0x81CA(02-44) U+00AC U+FFE2 */
 			}
 		}
 	}
@@ -3722,21 +3937,21 @@ void CTextRam::MsToIconvUniStr(LPCTSTR charset, LPWSTR str, int len)
 DWORD CTextRam::IconvToMsUnicode(DWORD code)
 {
 	switch(code) {							/*                  iconv  MS     */
-	case 0x00A2: code = 0xFFE0; break;		/* Åë 0x8191(01-81) U+00A2 U+FFE0 */
-	case 0x00A3: code = 0xFFE1; break;		/* Åí 0x8192(01-82) U+00A3 U+FFE1 */
+	case 0x00A2: code = 0xFFE0; break;		/* Ôø† 0x8191(01-81) U+00A2 U+FFE0 */
+	case 0x00A3: code = 0xFFE1; break;		/* Ôø° 0x8192(01-82) U+00A3 U+FFE1 */
 	case 0x00A5: code = 0x005C; break;		/* \  0x5C          U+00A5 U+005C */
-	case 0x00AC: code = 0xFFE2; break;		/* Å  0x81CA(02-44) U+00AC U+FFE2 */
-	case 0x2014: code = 0x2015; break;		/* Å\ 0x815C(01-29) U+2014 U+2015 */
-	case 0x2016: code = 0x2225; break;		/* Åa 0x8161(01-34) U+2016 U+2225 */
+	case 0x00AC: code = 0xFFE2; break;		/* Ôø¢ 0x81CA(02-44) U+00AC U+FFE2 */
+	case 0x2014: code = 0x2015; break;		/* ‚Äï 0x815C(01-29) U+2014 U+2015 */
+	case 0x2016: code = 0x2225; break;		/* ‚à• 0x8161(01-34) U+2016 U+2225 */
 	case 0x203E: code = 0x007E; break;		/* ~  0x7E          U+203E U+007E */
-	case 0x2212: code = 0xFF0D; break;		/* Å| 0x817C(01-61) U+2212 U+FF0D */
-	case 0x301C: code = 0xFF5E; break;		/* Å` 0x8160(01-33) U+301C U+FF5E */
+	case 0x2212: code = 0xFF0D; break;		/* Ôºç 0x817C(01-61) U+2212 U+FF0D */
+	case 0x301C: code = 0xFF5E; break;		/* ÔΩû 0x8160(01-33) U+301C U+FF5E */
 	}
 	return code;
 }
 DWORD CTextRam::UCS2toUCS4(DWORD code)
 {
-	// è„à ÉTÉçÉQÅ[Ég      â∫à ÉTÉçÉQÅ[Ég
+	// ‰∏ä‰Ωç„Çµ„É≠„Ç≤„Éº„Éà      ‰∏ã‰Ωç„Çµ„É≠„Ç≤„Éº„Éà
 	// U+D800 - U+DBFF     U+DC00 - U+DFFF
 	// 1101 10** **** **** 1101 11xx xxxx xxxx
 	// 0000 0000 000? **** **** **xx xxxx xxxx	U+010000 - U+10FFFF 21 bit
@@ -3746,7 +3961,7 @@ DWORD CTextRam::UCS2toUCS4(DWORD code)
 }
 DWORD CTextRam::UCS4toUCS2(DWORD code)
 {
-	// è„à ÉTÉçÉQÅ[Ég      â∫à ÉTÉçÉQÅ[Ég
+	// ‰∏ä‰Ωç„Çµ„É≠„Ç≤„Éº„Éà      ‰∏ã‰Ωç„Çµ„É≠„Ç≤„Éº„Éà
 	// U+D800 - U+DBFF     U+DC00 - U+DFFF
 	// 1101 10** **** **** 1101 11xx xxxx xxxx
 	// 0000 0000 000? **** **** **xx xxxx xxxx	U+010000 - U+10FFFF 21 bit
@@ -3790,7 +4005,7 @@ void CTextRam::IconvToMsUniStr(LPCWSTR p, int len, CBuffer &out)
 	DWORD d1 = 0, d2, d3;
 
 	while ( len-- > 0 ) {
-		//  1101 10xx	U+D800 - U+DBFF	è„à ÉTÉçÉQÅ[Ég	1101 11xx	U+DC00 - U+DFFF	â∫à ÉTÉçÉQÅ[Ég
+		//  1101 10xx	U+D800 - U+DBFF	‰∏ä‰Ωç„Çµ„É≠„Ç≤„Éº„Éà	1101 11xx	U+DC00 - U+DFFF	‰∏ã‰Ωç„Çµ„É≠„Ç≤„Éº„Éà
 		if ( (p[0] & 0xFC00) == 0xD800 && (p[1] & 0xFC00) == 0xDC00 ) {
 			d2 = (p[0] << 16) | p[1];
 			p += 2;
@@ -4781,7 +4996,7 @@ void CTextRam::PUT1BYTE(int ch, int md, int at)
 	if ( m_StsFlag ) {
 		md &= CODE_MASK;
 		ch |= m_FontTab[md].m_Shift;
-		ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// Charïœä∑Ç≈ÇÕUTF-16BEÇégópÅI
+		ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// CharÂ§âÊèõ„Åß„ÅØUTF-16BE„Çí‰ΩøÁî®ÔºÅ
 		ch = IconvToMsUnicode(ch);
 		m_LastChar = ch;
 		m_LastFlag = 0;
@@ -4822,8 +5037,11 @@ void CTextRam::PUT1BYTE(int ch, int md, int at)
 
 	md &= CODE_MASK;
 	ch |= m_FontTab[md].m_Shift;
-	ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// Charïœä∑Ç≈ÇÕUTF-16BEÇégópÅI
+	ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// CharÂ§âÊèõ„Åß„ÅØUTF-16BE„Çí‰ΩøÁî®ÔºÅ
 	ch = IconvToMsUnicode(ch);
+
+	if ( ch >= 0x2500 && ch <= 0x257F && !IsOptEnable(TO_RLDRWLINE) )		// Border Char
+		vp->pr.at |= ATT_BORDER;
 
 	*vp = (DWORD)ch;
 //	vp->ch = ch;
@@ -4859,7 +5077,7 @@ void CTextRam::PUT2BYTE(int ch, int md, int at)
 	if ( m_StsFlag ) {
 		md &= CODE_MASK;
 		ch |= m_FontTab[md].m_Shift;
-		ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// Charïœä∑Ç≈ÇÕUTF-16BEÇégópÅI
+		ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// CharÂ§âÊèõ„Åß„ÅØUTF-16BE„Çí‰ΩøÁî®ÔºÅ
 		ch = IconvToMsUnicode(ch);
 		m_LastChar = ch;
 		m_LastFlag = 0;
@@ -4909,8 +5127,11 @@ void CTextRam::PUT2BYTE(int ch, int md, int at)
 	vp[0].pr.bc = vp[1].pr.bc = m_AttNow.bc;
 
 	md &= CODE_MASK;
-	ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// Charïœä∑Ç≈ÇÕUTF-16BEÇégópÅI
+	ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// CharÂ§âÊèõ„Åß„ÅØUTF-16BE„Çí‰ΩøÁî®ÔºÅ
 	ch = IconvToMsUnicode(ch);
+
+	if ( ch >= 0x2500 && ch <= 0x257F&& !IsOptEnable(TO_RLDRWLINE) )		// Border Char
+		vp[0].pr.at |= ATT_BORDER;
 
 	vp[0] = (DWORD)ch;
 	vp[1].Empty();

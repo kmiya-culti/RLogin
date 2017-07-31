@@ -1320,6 +1320,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\BorderLine.h"
+				>
+			</File>
+			<File
 				RelativePath=".\BPlus.h"
 				>
 			</File>

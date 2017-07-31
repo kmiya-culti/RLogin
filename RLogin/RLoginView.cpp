@@ -906,10 +906,20 @@ NOTDEF:
 	if ( num != MODKEY_OTHER && num != MODKEY_STRING )
 		return FALSE;
 
-	if ( (nStat & MASK_APPL) == 0 )
-		fmt.Format(L"\033[%s%d;%du", mod >= 3 ? L">" : L"", nChar, msk + 1);
-	else
-		fmt.Format(L"\033[%s27;%d;%d~", mod >= 3 ? L">" : L"", msk + 1, nChar);
+	switch(mod) {
+	case (-1):
+	case 0:
+		return FALSE;
+	case 1:
+		fmt.Format(L"\033[%d;%du", nChar, msk + 1);
+		break;
+	case 2:
+		fmt.Format(L"\033[27;%d;%d~", msk + 1, nChar);
+		break;
+	case 3:
+		fmt.Format(L"\033[>27;%d;%d~", msk + 1, nChar);
+		break;
+	}
 
 SENDFMT:
 	tmp.Clear();
@@ -1317,6 +1327,7 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 
 		OnUpdate(this, UPDATE_INVALIDATE, NULL);
 		break;
+
 	case 1028:		// Gozi Timer
 		rect.SetRect(m_GoziPos.x, m_GoziPos.y, m_GoziPos.x + 32, m_GoziPos.y + 32);
 		InvalidateRect(rect, FALSE);
