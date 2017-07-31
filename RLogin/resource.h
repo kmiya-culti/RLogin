@@ -90,6 +90,9 @@
 #define IDB_HATCH1                      420
 #define IDB_HATCH2                      421
 #define IDB_HATCH3                      422
+#define IDB_CHECKBOX1                   423
+#define IDB_CHECKBOX2                   424
+#define IDB_CHECKBOX3                   425
 #define IDI_ACTIVE                      430
 #define IDS_AGENT_DELKEY                500
 #define IDS_ALLINITREQ                  501
@@ -221,6 +224,7 @@
 #define IDS_REOPENSOCK                  627
 #define IDS_OPTFIXEDMSG                 628
 #define IDS_OPTFIXEDSAVEMSG             629
+#define IDS_TTYMODE_LIST56              630
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -274,6 +278,7 @@
 #define IDT_EXTOPT_LIST16               815
 #define IDT_EXTOPT_LIST17               816
 #define IDT_EXTOPT_LIST18               817
+#define IDT_EXTOPT_LIST19               818
 #define IDT_TERM_LIST01                 900
 #define IDT_TERM_LIST02                 901
 #define IDT_TERM_LIST03                 902
@@ -991,6 +996,6 @@
 #define _APS_NEXT_RESOURCE_VALUE        163
 #define _APS_NEXT_COMMAND_VALUE         5126
 #define _APS_NEXT_CONTROL_VALUE         2470
-#define _APS_NEXT_SYMED_VALUE           630
+#define _APS_NEXT_SYMED_VALUE           631
 #endif
 #endif

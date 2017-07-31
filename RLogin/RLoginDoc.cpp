@@ -98,6 +98,9 @@ CRLoginDoc::CRLoginDoc()
 	m_bReqDlg = FALSE;
 	m_PostIdleCount = 0;
 	m_TitleName.Empty();
+	m_bCastLock = FALSE;
+	m_ConnectTime = 0;
+	m_CloseTime = 0;
 }
 
 CRLoginDoc::~CRLoginDoc()
@@ -549,6 +552,9 @@ void CRLoginDoc::DeleteContents()
 	m_TextRam.m_bOpen = FALSE;
 	m_InPane = FALSE;
 	m_AfterId = (-1);
+	m_bCastLock = FALSE;
+	m_ConnectTime = 0;
+	m_CloseTime = 0;
 
 	CDocument::DeleteContents();
 }
@@ -1281,6 +1287,7 @@ void CRLoginDoc::OnSocketConnect()
 		m_AfterId = (-1);
 	}
 
+	time(&m_ConnectTime);
 	SetStatus(_T("Connect"));
 }
 void CRLoginDoc::OnSocketError(int err)
@@ -1289,6 +1296,7 @@ void CRLoginDoc::OnSocketError(int err)
 	CString tmp;
 
 	SetStatus(_T("Error"));
+	time(&m_CloseTime);
 
 	if ( m_pStrScript != NULL ) {
 		m_pStrScript->ExecStop();
@@ -1375,6 +1383,7 @@ void CRLoginDoc::OnSocketClose()
 
 	UpdateAllViews(NULL, UPDATE_GOTOXY, NULL);
 	SetStatus(_T("Close"));
+	time(&m_CloseTime);
 
 	if ( m_TextRam.IsOptEnable(TO_RLNOTCLOSE) )
 		UpdateAllViews(NULL, UPDATE_DISPMSG, (CObject *)_T("Closed"));

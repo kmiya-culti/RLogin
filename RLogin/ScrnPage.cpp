@@ -176,7 +176,7 @@ BOOL CScrnPage::OnInitDialog()
 	for ( n = pCombo->GetCount() - 1 ; n >= 0; n-- )
 		pCombo->DeleteString(n);
 
-	for ( n = 2 ; n < 20 ; n++ ) {
+	for ( n = 2 ; n <= 30 ; n++ ) {
 		tmp.Format(_T("%d (%.2f)"), n, (double)n * 72.0 / m_PixDpiY);
 		pCombo->AddString(tmp);
 	}

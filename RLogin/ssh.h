@@ -441,7 +441,7 @@ public:
 
 #define	CHAN_REQ_PTY	0
 #define	CHAN_REQ_SHELL	1
-#define	CHAN_REQ_SFTP	2
+#define	CHAN_REQ_SUBSYS	2
 #define	CHAN_REQ_EXEC	3
 #define	CHAN_REQ_X11	4
 #define	CHAN_REQ_ENV	5
@@ -786,7 +786,7 @@ private:
 
 	int SendMsgChannelOpen(int n, LPCSTR type, LPCTSTR lhost = NULL, int lport = 0, LPCTSTR rhost = NULL, int rport = 0);
 	void SendMsgChannelRequesstShell(int id);
-	void SendMsgChannelRequesstSubSystem(int id);
+	void SendMsgChannelRequesstSubSystem(int id, LPCSTR cmds);
 	void SendMsgChannelRequesstExec(int id);
 
 	void SendMsgGlobalRequest(int num, LPCSTR str, LPCTSTR rhost = NULL, int rport = 0);

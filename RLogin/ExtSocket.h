@@ -52,9 +52,6 @@
 
 #define	SEND_EMPTY			001
 
-#define FD_ONIDLE_BIT		(FD_MAX_EVENTS + 1)
-#define FD_ONIDLE			(1 << FD_ONIDLE_BIT)
-
 #define	LISTENSOCKS			8
 
 #ifdef	USE_DEBUGLOG

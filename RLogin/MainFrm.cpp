@@ -2229,8 +2229,7 @@ LRESULT CMainFrame::OnWinSockSelect(WPARAM wParam, LPARAM lParam)
 
 	ASSERT(pSock->m_Type >= 0 && pSock->m_Type < 10 );
 
-//	if( ((fs & pSock->m_SocketEvent) & (FD_CONNECT | FD_CLOSE)) != 0  && WSAGETSELECTERROR(lParam) != 0 ) {
-	if( WSAGETSELECTERROR(lParam) != 0 ) {
+	if ( (fs & FD_CLOSE) == 0 && WSAGETSELECTERROR(lParam) != 0 ) {
 		pSock->OnError(WSAGETSELECTERROR(lParam));
 		return TRUE;
 	}
@@ -2247,9 +2246,6 @@ LRESULT CMainFrame::OnWinSockSelect(WPARAM wParam, LPARAM lParam)
 		pSock->OnSend();
 	if ( (fs & FD_CLOSE) != 0 )
 		pSock->OnPreClose();
-
-	//if ( (fs & FD_ONIDLE) != 0 )
-	//	pSock->OnIdle();
 
 	return TRUE;
 }

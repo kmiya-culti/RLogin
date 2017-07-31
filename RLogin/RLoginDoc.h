@@ -107,6 +107,9 @@ public:
 	BOOL m_bReqDlg;
 	CString m_CmdLine;
 	CString m_TitleName;
+	BOOL m_bCastLock;
+	time_t m_ConnectTime;
+	time_t m_CloseTime;
 
 	static void LoadOption(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab);
 	static void SaveOption(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab);

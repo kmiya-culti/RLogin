@@ -563,7 +563,7 @@ void Cssh::SendWindSize(int x, int y)
 			SendPacket(&tmp);
 			break;
 		case 2:
-			if ( m_StdChan == (-1) || !CHAN_OK(m_StdChan) )	// ((CChannel *)m_pChan[m_StdChan])->m_RemoteID == (-1) )
+			if ( m_StdChan == (-1) || !CHAN_OK(m_StdChan) || !CEOF_OK(m_StdChan) )	// ((CChannel *)m_pChan[m_StdChan])->m_RemoteID == (-1) )
 				break;
 			tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
 			tmp.Put32Bit(((CChannel *)m_pChan[m_StdChan])->m_RemoteID);
@@ -2302,7 +2302,7 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 	SendPacket2(&tmp);
 	m_ChnReqMap.Add(CHAN_REQ_SHELL);
 }
-void Cssh::SendMsgChannelRequesstSubSystem(int id)
+void Cssh::SendMsgChannelRequesstSubSystem(int id, LPCSTR cmds)
 {
 	CBuffer tmp;
 	CChannel *cp = (CChannel *)m_pChan[id];
@@ -2311,9 +2311,9 @@ void Cssh::SendMsgChannelRequesstSubSystem(int id)
 	tmp.Put32Bit(cp->m_RemoteID);
 	tmp.PutStr("subsystem");
 	tmp.Put8Bit(1);
-	tmp.PutStr("sftp");
+	tmp.PutStr(cmds);
 	SendPacket2(&tmp);
-	m_ChnReqMap.Add(CHAN_REQ_SFTP);
+	m_ChnReqMap.Add(CHAN_REQ_SUBSYS);
 }
 void Cssh::SendMsgChannelRequesstExec(int id)
 {
@@ -3354,7 +3354,7 @@ int Cssh::SSH2MsgChannelOpenReply(CBuffer *bp, int type)
 			break;
 		case SSHFT_SFTP:
 			LogIt(_T("Connect #%d sftp"), id);
-			SendMsgChannelRequesstSubSystem(id);
+			SendMsgChannelRequesstSubSystem(id, "sftp");
 			break;
 		case SSHFT_AGENT:
 			LogIt(_T("Connect #%d agent"), id);
@@ -3484,7 +3484,7 @@ int Cssh::SSH2MsgChannelRequestReply(CBuffer *bp, int type)
 			m_StdInRes.Clear();
 		}
 		break;
-	case CHAN_REQ_SFTP:		// subsystem
+	case CHAN_REQ_SUBSYS:	// subsystem
 	case CHAN_REQ_EXEC:		// exec
 		if ( type == SSH2_MSG_CHANNEL_FAILURE ) {
 			((CChannel *)m_pChan[id])->m_Eof |= CEOF_DEAD;
@@ -3908,7 +3908,7 @@ void Cssh::RecivePacket2(CBuffer *bp)
 	case SSH2_MSG_DISCONNECT:
 		bp->Get32Bit();
 		bp->GetStr(str);
-		str.Format("SSH2 Recive Disconnect Message\n%s", m_pDocument->LocalStr(str));
+		str.Format("SSH2 Recive Disconnect Message\n%s", TstrToMbs(m_pDocument->LocalStr(str)));
 		AfxMessageBox(MbsToTstr(str));
 		break;
 	case SSH2_MSG_IGNORE:

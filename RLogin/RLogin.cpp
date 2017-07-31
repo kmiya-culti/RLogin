@@ -1542,7 +1542,7 @@ void CRLoginApp::OnSendBroadCast(COPYDATASTRUCT *pCopyData)
 		while ( dpos != NULL ) {
 			CRLoginDoc *pDoc = (CRLoginDoc *)pDocTemp->GetNextDoc(dpos);
 
-			if ( pDoc != NULL && !pDoc->m_TextRam.IsOptEnable(TO_RLNTBCRECV) && !pDoc->m_TextRam.IsOptEnable(TO_RLGROUPCAST) ) {
+			if ( pDoc != NULL && !pDoc->m_bCastLock && !pDoc->m_TextRam.IsOptEnable(TO_RLNTBCRECV) && !pDoc->m_TextRam.IsOptEnable(TO_RLGROUPCAST) ) {
 				if ( !m_bLookCast || ((CMainFrame *)AfxGetMainWnd())->IsTopLevelDoc(pDoc) )
 					pDoc->SendBuffer(tmp);
 			}
@@ -1565,7 +1565,7 @@ void CRLoginApp::OnSendGroupCast(COPYDATASTRUCT *pCopyData)
 		while ( dpos != NULL ) {
 			CRLoginDoc *pDoc = (CRLoginDoc *)pDocTemp->GetNextDoc(dpos);
 
-			if ( pDoc != NULL && !pDoc->m_TextRam.IsOptEnable(TO_RLNTBCRECV) && group.Compare(pDoc->m_TextRam.m_GroupCast) == 0 ) {
+			if ( pDoc != NULL && !pDoc->m_bCastLock && !pDoc->m_TextRam.IsOptEnable(TO_RLNTBCRECV) && group.Compare(pDoc->m_TextRam.m_GroupCast) == 0 ) {
 				if ( !m_bLookCast || ((CMainFrame *)AfxGetMainWnd())->IsTopLevelDoc(pDoc) )
 					pDoc->SendBuffer(buf);
 			}
@@ -1592,7 +1592,7 @@ void CRLoginApp::SendBroadCast(CBuffer &buf, LPCTSTR pGroup)
 	if ( m_bOtherCast )
 		::EnumWindows(RLoginEnumFunc, (LPARAM)&copyData);
 	else
-		OnSendBroadCast(&copyData);
+		AfxGetMainWnd()->SendMessage(WM_COPYDATA, (WPARAM)NULL, (LPARAM)&copyData);
 }
 
 void CRLoginApp::OnSendBroadCastMouseWheel(COPYDATASTRUCT *pCopyData)

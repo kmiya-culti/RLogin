@@ -239,6 +239,7 @@
 #define	TO_RLBACKHALF	1473		// アクティブでないウィンドウの輝度を下げる
 #define	TO_RLLOGFLUSH	1474		// ログの書き出しを定期的に行う
 #define	TO_RLCARETANI	1475		// カレットアニメーション
+#define	TO_RLTABINFO	1476		// タブにツールチップを表示する
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -398,6 +399,10 @@
 #define	TRACE_UNGET				3
 #define	TRACE_IGNORE			4
 
+#define	OSCCLIP_LF				0
+#define	OSCCLIP_CR				1
+#define	OSCCLIP_CRLF			2
+
 #define UNIBLOCKTABMAX			262
 
 typedef struct _UNIBLOCKTAB {
@@ -481,6 +486,7 @@ public:
 	MEMMAPNODE *m_pMapTop;
 	MEMMAPNODE m_MapData[MEMMAPCACHE];
 	ULONGLONG m_MapSize;
+	ULONGLONG m_MapPage;
 
 	CMemMap();
 	~CMemMap();
@@ -612,6 +618,7 @@ public:
 	void SetUserFont(int code, int width, int height, LPBYTE map);
 	BOOL SetFontImage(int width, int height);
 	int Compare(CFontNode &data);
+	LPCTSTR GetEntryName() { return (!m_EntryName.IsEmpty() ? m_EntryName : m_IndexName); }
 
 	CFontNode();
 	~CFontNode();
@@ -837,6 +844,7 @@ public:	// Options
 	CProcTab m_ProcTab;
 	CBuffer m_FuncKey[FKEY_MAX];
 	int m_ClipFlag;
+	int m_ClipCrLf;
 	CStringArrayExt m_ShellExec;
 	int m_DefModKey[MODKEY_MAX];
 	CRect m_ScrnOffset;
@@ -1159,6 +1167,7 @@ public:
 	int GetAnsiPara(int index, int defvalue, int minvalue, int maxvalue = -1);
 	void SetAnsiParaArea(int top);
 	LPCTSTR GetHexPara(LPCTSTR str, CBuffer &buf);
+	void AddOscClipCrLf(CString &text);
 
 	void LOCATE(int x, int y);
 	void ERABOX(int sx, int sy, int ex, int ey, int df = 0);

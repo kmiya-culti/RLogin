@@ -96,6 +96,9 @@ IDB_MENUMAP3            BITMAP                  "res\\menumap3.bmp"
 IDB_HATCH1              BITMAP                  "res\\hatch1.bmp"
 IDB_HATCH2              BITMAP                  "res\\hatch2.bmp"
 IDB_HATCH3              BITMAP                  "res\\hatch3.bmp"
+IDB_CHECKBOX1           BITMAP                  "res\\checkbox1.bmp"
+IDB_CHECKBOX2           BITMAP                  "res\\checkbox2.bmp"
+IDB_CHECKBOX3           BITMAP                  "res\\checkbox.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -534,10 +537,10 @@ CAPTION "RLoginのバージョン情報"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.22.2 (2017/04/24)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.22.3 (2017/05/29)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2017 Culti",IDC_STATIC,44,16,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,171,60,14,WS_GROUP
-    LTEXT           "OpenSSL 1.1.0e 16 Feb 2017",IDC_STATIC,44,29,189,8
+    LTEXT           "OpenSSL 1.1.0f 25 May 2017",IDC_STATIC,44,29,189,8
     LTEXT           "Copyright (c) 1998-2017 The OpenSSL Project",IDC_STATIC,44,38,189,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,47,189,8
     LTEXT           "All rights reserved.",IDC_STATIC,44,56,189,8
@@ -1396,7 +1399,7 @@ BEGIN
     CONTROL         "常にクリップボードからペーストするテキストを確認する",IDC_OPTCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,99,240,10
     EDITTEXT        IDC_EDIT3,15,151,240,14,ES_AUTOHSCROLL
     EDITTEXT        IDC_EDIT4,15,203,240,14,ES_AUTOHSCROLL
-    CONTROL         "OSC 52 ? によるクリップボードの読み込みを許可する",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,243,240,10
+    CONTROL         "OSC 52 ? によるクリップボードの読み込みを許可する",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,243,190,10
     CONTROL         "OSC 52 によるクリップボードの書き込みを許可する",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,257,240,10
     GROUPBOX        "クリップボード",IDC_STATIC,7,7,256,110
     GROUPBOX        "ワード選択文字",IDC_STATIC,7,123,256,48
@@ -1404,6 +1407,7 @@ BEGIN
     GROUPBOX        "制御コードによるクリップボード操作",IDC_STATIC,7,230,256,43
     GROUPBOX        "URL文字列",IDC_STATIC,7,179,256,44
     LTEXT           "http://などのURLの開始文字列を | で区切って指定します",IDC_STATIC,15,191,240,8
+    COMBOBOX        IDC_COMBO1,215,242,40,50,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 END
 
 IDD_MOUSEPAGE DIALOGEX 0, 0, 270, 280
@@ -1778,8 +1782,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,22,2,0
- PRODUCTVERSION 2,22,2,0
+ FILEVERSION 2,22,3,0
+ PRODUCTVERSION 2,22,3,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1796,12 +1800,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.22.2.0"
+            VALUE "FileVersion", "2.22.3.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2017 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.22.2.0"
+            VALUE "ProductVersion", "2.22.3.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2758,6 +2762,26 @@ BEGIN
 0x3931, "\000" 
     IDC_SCSZFONT, 0x403, 3, 0
 0x3032, "\000" 
+    IDC_SCSZFONT, 0x403, 3, 0
+0x3132, "\000" 
+    IDC_SCSZFONT, 0x403, 3, 0
+0x3232, "\000" 
+    IDC_SCSZFONT, 0x403, 3, 0
+0x3332, "\000" 
+    IDC_SCSZFONT, 0x403, 3, 0
+0x3432, "\000" 
+    IDC_SCSZFONT, 0x403, 3, 0
+0x3532, "\000" 
+    IDC_SCSZFONT, 0x403, 3, 0
+0x3632, "\000" 
+    IDC_SCSZFONT, 0x403, 3, 0
+0x3732, "\000" 
+    IDC_SCSZFONT, 0x403, 3, 0
+0x3832, "\000" 
+    IDC_SCSZFONT, 0x403, 3, 0
+0x3932, "\000" 
+    IDC_SCSZFONT, 0x403, 3, 0
+0x3033, "\000" 
     IDC_SCRNOFFSLEFT, 0x403, 2, 0
 0x0030, 
     IDC_SCRNOFFSLEFT, 0x403, 2, 0
@@ -3176,6 +3200,38 @@ BEGIN
 0x3033, 0x3378, 0x0030, 
     IDC_COMBO1, 0x403, 6, 0
 0x3233, 0x3378, 0x0032, 
+    IDC_COMBO1, 0x403, 6, 0
+0x3333, 0x3378, 0x0033, 
+    IDC_COMBO1, 0x403, 6, 0
+0x3433, 0x3378, 0x0034, 
+    IDC_COMBO1, 0x403, 6, 0
+0x3533, 0x3378, 0x0035, 
+    IDC_COMBO1, 0x403, 6, 0
+0x3633, 0x3378, 0x0036, 
+    IDC_COMBO1, 0x403, 6, 0
+0x3733, 0x3378, 0x0037, 
+    IDC_COMBO1, 0x403, 6, 0
+0x3833, 0x3378, 0x0038, 
+    IDC_COMBO1, 0x403, 6, 0
+0x3933, 0x3378, 0x0039, 
+    IDC_COMBO1, 0x403, 6, 0
+0x3034, 0x3478, 0x0030, 
+    IDC_COMBO1, 0x403, 6, 0
+0x3134, 0x3478, 0x0031, 
+    IDC_COMBO1, 0x403, 6, 0
+0x3234, 0x3478, 0x0032, 
+    IDC_COMBO1, 0x403, 6, 0
+0x3334, 0x3478, 0x0033, 
+    IDC_COMBO1, 0x403, 6, 0
+0x3434, 0x3478, 0x0034, 
+    IDC_COMBO1, 0x403, 6, 0
+0x3534, 0x3478, 0x0035, 
+    IDC_COMBO1, 0x403, 6, 0
+0x3634, 0x3478, 0x0036, 
+    IDC_COMBO1, 0x403, 6, 0
+0x3734, 0x3478, 0x0037, 
+    IDC_COMBO1, 0x403, 6, 0
+0x3834, 0x3478, 0x0038, 
     0
 END
 
@@ -3396,6 +3452,17 @@ BEGIN
     0
 END
 
+IDD_CLIPBOARDPAGE DLGINIT
+BEGIN
+    IDC_COMBO1, 0x403, 3, 0
+0x464c, "\000" 
+    IDC_COMBO1, 0x403, 3, 0
+0x5243, "\000" 
+    IDC_COMBO1, 0x403, 5, 0
+0x5243, 0x464c, "\000" 
+    0
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -3599,7 +3666,8 @@ BEGIN
     IDS_SEPARATESTRING      "区切り記号"
     IDS_REOPENSOCK          "サーバーに再接続(&A)"
     IDS_OPTFIXEDMSG         "変更できません。\n標準の設定を使用します\nサーバーのオプションを確認してください"
-	IDS_OPTFIXEDSAVEMSG     "標準の設定を使用しているエントリーです。\n前設定を上書きして使用を解除しますか？"
+    IDS_OPTFIXEDSAVEMSG     "標準の設定を使用しているエントリーです。\n前設定を上書きして使用を解除しますか？"
+    IDS_TTYMODE_LIST56      "端末でUTF-8エンコードを使用する"
 END
 
 STRINGTABLE
@@ -3944,6 +4012,7 @@ STRINGTABLE
 BEGIN
     IDT_EXTOPT_LIST17       "通信ログをフラッシュする\t通信ログをフラッシュしない\t通信ログファイルを定期的に書き出し更新する"
     IDT_EXTOPT_LIST18       "微妙なカレット\t通常のカレット\t文字カレットを動画で点滅させます"
+    IDT_EXTOPT_LIST19       "タブにマウスで情報表示\t情報表示を行わない\tタブにマウスで接続先の情報をツールチップで表示する"
 END
 
 STRINGTABLE

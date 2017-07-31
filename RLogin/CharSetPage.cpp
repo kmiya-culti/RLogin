@@ -144,10 +144,10 @@ void CCharSetPage::DoInit()
 	m_DefFontName = m_DefFontTab[m_AltFont];
 
 	memcpy(m_BankTab, m_pSheet->m_pTextRam->m_BankTab, sizeof(m_BankTab));
-	m_CharBank1  = m_FontTab[m_BankTab[m_KanjiCode][0]].m_EntryName;
-	m_CharBank2  = m_FontTab[m_BankTab[m_KanjiCode][1]].m_EntryName;
-	m_CharBank3  = m_FontTab[m_BankTab[m_KanjiCode][2]].m_EntryName;
-	m_CharBank4  = m_FontTab[m_BankTab[m_KanjiCode][3]].m_EntryName;
+	m_CharBank1  = m_FontTab[m_BankTab[m_KanjiCode][0]].GetEntryName();
+	m_CharBank2  = m_FontTab[m_BankTab[m_KanjiCode][1]].GetEntryName();
+	m_CharBank3  = m_FontTab[m_BankTab[m_KanjiCode][2]].GetEntryName();
+	m_CharBank4  = m_FontTab[m_BankTab[m_KanjiCode][3]].GetEntryName();
 
 	for ( int n = 0 ; n < 4 ; n++ )
 		m_SendCharSet[n] = m_pSheet->m_pTextRam->m_SendCharSet[n];

@@ -42,7 +42,8 @@ CMemMap::CMemMap()
 	SYSTEM_INFO SystemInfo;
 
 	GetSystemInfo(&SystemInfo);
-	m_MapSize = (ULONGLONG)((MEMMAPSIZE + SystemInfo.dwAllocationGranularity - 1) / SystemInfo.dwAllocationGranularity * SystemInfo.dwAllocationGranularity);
+	m_MapPage = (ULONGLONG)((MEMMAPSIZE + SystemInfo.dwAllocationGranularity - 1) / SystemInfo.dwAllocationGranularity * SystemInfo.dwAllocationGranularity);
+	m_MapSize = m_MapPage * 2;
 
 	m_pMapTop = NULL;
 
@@ -63,7 +64,12 @@ HANDLE CMemMap::Create(ULONGLONG size)
 	HANDLE hFile;
 
 	mapname.Format(_T("RLoginTextRam_%08x_%d"), (unsigned)GetCurrentThreadId(), SeqNum++);
-	size = ((size + m_MapSize - 1) / m_MapSize) * m_MapSize;
+
+	// サイズをm_MapPageで丸めるが1ページ余分に確保
+	// MapView時にMapPageの倍のm_MapSizeで割り当てる為
+	// COLS_MAX * sizeof(CCharCell)=0x4000がページ(0x10000)
+	// で割り切れるので必要ないが念の為の処置
+	size = ((size + m_MapPage - 1) / m_MapPage + 1) * m_MapPage;
 
 	hFile = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, (DWORD)(size >> 32), (DWORD)size, mapname);
 
@@ -92,8 +98,10 @@ void *CMemMap::MemMap(HANDLE hFile, ULONGLONG pos)
 	MEMMAPNODE *pNext, *pBack;
 
 	pNext = pBack = m_pMapTop;
-	offset = (pos / m_MapSize) * m_MapSize;
+	offset = (pos / m_MapPage) * m_MapPage;
 	diff = (int)(pos - offset);
+
+	ASSERT((m_MapSize - diff) >= (COLS_MAX * sizeof(CCharCell)));
 
 	for ( ; ; ) {
 		if ( pNext->hFile == hFile && pNext->Offset == offset )
@@ -114,7 +122,7 @@ void *CMemMap::MemMap(HANDLE hFile, ULONGLONG pos)
 	if ( pNext->pAddress == NULL )
 		AfxThrowMemoryException();
 
-	//TRACE("MemMap %d page\n", (int)(offset / m_MapSize));
+	//TRACE("MemMap %d page\n", (int)(offset / m_MapPage));
 
 ENDOF:
 	if ( pNext != pBack ) {
@@ -1107,7 +1115,7 @@ const CFontTab & CFontTab::operator = (CFontTab &data)
 int CFontTab::Find(LPCTSTR entry)
 {
 	for ( int n = 0 ; n < CODE_MAX ; n++ ) {
-		if ( m_Data[n].m_EntryName.Compare(entry) == 0 )
+		if ( _tcscmp(entry, m_Data[n].GetEntryName()) == 0 )
 			return n;
 	}
 	return 0;
@@ -1416,6 +1424,7 @@ CTextRam::CTextRam()
 	m_LangMenu = 0;
 	SetRetChar(FALSE);
 	m_ClipFlag = 0;
+	m_ClipCrLf = OSCCLIP_LF;
 	m_FileSaveFlag = TRUE;
 	m_ImageIndex = 1024;
 	m_bOscActive = FALSE;
@@ -2262,6 +2271,7 @@ void CTextRam::Init()
 		m_Macro[n].Clear();
 
 	m_ClipFlag = 0;
+	m_ClipCrLf = OSCCLIP_LF;
 	memset(m_MacroExecFlag, 0, sizeof(m_MacroExecFlag));
 	m_ShellExec.GetString(_T("http://|https://|ftp://|mailto://"), _T('|'));
 	m_InlineExt.GetString(_T("doc|txt|pdf|mp3|avi|mpg"), _T('|'));
@@ -2354,6 +2364,7 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 
 		index[_T("TitleMode")] = m_TitleMode;
 		index[_T("ClipFlag")]  = m_ClipFlag;
+		index[_T("ClipCrLf")]  = m_ClipCrLf;
 		index[_T("FontHw")]    = m_DefFontHw;
 
 		index[_T("RecvCrLf")]  = m_RecvCrLf;
@@ -2518,6 +2529,8 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 			m_TitleMode = index[n];
 		if ( (n = index.Find(_T("ClipFlag"))) >= 0 )
 			m_ClipFlag = index[n];
+		if ( (n = index.Find(_T("ClipCrLf"))) >= 0 )
+			m_ClipCrLf = index[n];
 		if ( (n = index.Find(_T("FontHw"))) >= 0 )
 			m_DefFontHw = index[n];
 
@@ -2788,6 +2801,8 @@ void CTextRam::DiffIndex(CTextRam &orig, CStringIndex &index)
 		index[_T("TitleMode")] = m_TitleMode;
 	if ( m_ClipFlag != orig.m_ClipFlag )
 		index[_T("ClipFlag")]  = m_ClipFlag;
+	if ( m_ClipCrLf != orig.m_ClipCrLf )
+		index[_T("ClipCrLf")]  = m_ClipCrLf;
 	if ( m_DefFontHw != orig.m_DefFontHw )
 		index[_T("FontHw")]    = m_DefFontHw;
 
@@ -3017,6 +3032,7 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 	stra.AddVal(m_DefCaretColor);
 
 	stra.Add(m_TitleName);
+	stra.AddVal(m_ClipCrLf);
 }
 void CTextRam::GetArray(CStringArrayExt &stra)
 {
@@ -3238,6 +3254,8 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 
 	if ( stra.GetSize() > 72 )
 		m_TitleName = stra.GetAt(72);
+	if ( stra.GetSize() > 73 )
+		m_ClipCrLf = stra.GetVal(73);
 
 	if ( m_FixVersion < 9 ) {
 		if ( m_pDocument != NULL ) {
@@ -6859,6 +6877,8 @@ void CTextRam::LocReport(int md, int sw, int x, int y)
 }
 void CTextRam::MouseReport(int md, int sw, int x, int y)
 {
+	TRACE("MouseReport %d,%d\n", md, sw);
+
 	if ( x < 0 )
 		x = 0;
 	else if ( x >= m_Cols  )
@@ -7058,6 +7078,20 @@ LPCTSTR CTextRam::GetHexPara(LPCTSTR str, CBuffer &buf)
 			break;
 	}
 	return str;
+}
+void CTextRam::AddOscClipCrLf(CString &text)
+{
+	switch(m_ClipCrLf) {
+	case OSCCLIP_LF:
+		text += _T('\x0A');
+		break;
+	case OSCCLIP_CR:
+		text += _T('\x0D');
+		break;
+	case OSCCLIP_CRLF:
+		text += _T("\x0D\x0A");
+		break;
+	}
 }
 
 void CTextRam::LOCATE(int x, int y)

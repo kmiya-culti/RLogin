@@ -2064,6 +2064,9 @@ void CTextRam::fc_UTF85(DWORD ch)
 		if ( m_BackChar > UNICODE_MAX )			// U+000000 - U+10FFFF 21 bit
 			m_BackChar = UNICODE_UNKOWN;		// □
 
+		if ( m_BackChar == 0xFEFF || m_BackChar == 0xFFFE )	// BOM Code
+			goto BREAK;
+
 		// 以降、サロゲートされたUTF-16で処理
 		m_BackChar = UCS4toUCS2(m_BackChar);
 		cf = UnicodeCharFlag(m_BackChar);
@@ -2797,16 +2800,17 @@ void CTextRam::fc_GOTOXY(DWORD ch)
 }
 void CTextRam::fc_STAT(DWORD ch)
 {
+	// 7bit ?
+	ch &= 0x7F;
+
 	switch(m_Status) {
 	case ST_NULL:
-		ch &= 0x7F;
 		m_BackChar = (m_BackChar << 8) | ch;
 		if ( ch >= 0x20 && ch <= 0x2F )
 			return;
 		break;
 
 	case ST_CONF_LEVEL:			// ESC 20...	ACS
-		ch &= 0x7F;
 		m_BackChar = (m_BackChar << 8) | ch;
 		if ( ch >= 0x20 && ch <= 0x2F )
 			return;
@@ -2834,7 +2838,6 @@ void CTextRam::fc_STAT(DWORD ch)
 		break;
 
 	case ST_DEC_OPT:			// ESC #...
-		ch &= 0x7F;
 		m_BackChar = (m_BackChar << 8) | ch;
 		if ( ch >= 0x20 && ch <= 0x2F )
 			return;
@@ -2872,7 +2875,6 @@ void CTextRam::fc_STAT(DWORD ch)
 
 
 	case ST_DOCS_OPT:			// ESC %...		DOCS
-		ch &= 0x7F;
 		m_BackChar = (m_BackChar << 8) | ch;
 
 		switch(m_BackChar) {
@@ -2953,9 +2955,9 @@ void CTextRam::fc_STAT(DWORD ch)
 		} else if ( ch >= '\x30' && ch <= '\x7E' ) {
 			m_StrPara += (CHAR)ch;
 			m_BankTab[m_KanjiMode][m_BackChar] = m_FontTab.IndexFind(m_BackMode, m_StrPara);
-		} else
-			return;	// not POP
-		break;
+			break;
+		}
+		return;	// not POP
 	}
 
 	fc_POP(ch);

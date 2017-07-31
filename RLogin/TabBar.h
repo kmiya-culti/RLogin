@@ -31,6 +31,9 @@ public:
 	BOOL m_bFontCheck;
 	UINT_PTR m_SetCurTimer;
 	UINT_PTR m_GhostWndTimer;
+	int m_TabHeight;
+	int m_BoderSize;
+	int m_TabLines;
 
 	BOOL Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID);
 
@@ -49,6 +52,7 @@ public:
 	int GetIndex(CWnd *pWnd);
 	int HitPoint(CPoint point);
 	void SetTabTitle(BOOL bNumber);
+	void ReSetAllTab();
 
 protected:
 	virtual void OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler);
@@ -64,4 +68,5 @@ protected:
 	afx_msg void OnSelchange(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
+	afx_msg void OnGetDispInfo(NMHDR* pNMHDR, LRESULT* pResult);
 };

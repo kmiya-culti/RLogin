@@ -1208,13 +1208,32 @@ void CRLoginView::SetGhostWnd(BOOL sw)
 int CRLoginView::GetClipboard(CBuffer *bp)
 {
 	CStringA buf;
-	CString text;
+	CString text, tmp;
 	CRLoginDoc *pDoc = GetDocument();
 
 	if ( !((CMainFrame *)AfxGetMainWnd())->GetClipboardText(text) )
 		return FALSE;
 
-	pDoc->m_TextRam.m_IConv.StrToRemote(pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode], text, buf);
+	for ( LPCTSTR p = text ; *p != _T('\0') ; ) {
+		if ( p[0] == _T('\x0D') && p[1] == _T('\x0A') ) {
+			pDoc->m_TextRam.AddOscClipCrLf(tmp);
+			p += 2;
+		} else if ( p[0] == _T('\x0A') && p[1] == _T('\x0D') ) {
+			pDoc->m_TextRam.AddOscClipCrLf(tmp);
+			p += 2;
+		} else if ( p[0] == _T('\x0D') ) {
+			pDoc->m_TextRam.AddOscClipCrLf(tmp);
+			p += 1;
+		} else if ( p[0] == _T('\x0A') ) {
+			pDoc->m_TextRam.AddOscClipCrLf(tmp);
+			p += 1;
+		} else if ( p[0] == _T('\x1A') && p[1] == _T('\0') ) {
+			p += 1;
+		} else
+			tmp += *(p++);
+	}
+
+	pDoc->m_TextRam.m_IConv.StrToRemote(pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode], tmp, buf);
 	bp->Apend((LPBYTE)(LPCSTR)buf, buf.GetLength());
 
 	return TRUE;
@@ -2561,13 +2580,6 @@ void CRLoginView::OnLButtonDown(UINT nFlags, CPoint point)
 	} else if ( m_ClipFlag != 0 )
 		return;
 
-	if ( m_LastMouseClock != 0 && !pDoc->m_TextRam.IsOptEnable(TO_RLCKCOPY) && (UINT)((clock() - m_LastMouseClock) * 1000 / CLOCKS_PER_SEC) <= GetDoubleClickTime() )
-		m_bLButtonTrClk = TRUE;
-	else
-		m_bLButtonTrClk = FALSE;
-
-	m_LastMouseClock = 0;
-
 	CalcGrapPoint(point, &x, &y);
 
 	if ( pDoc->m_TextRam.m_MouseTrack != MOS_EVENT_NONE && !m_MouseEventFlag ) {
@@ -2581,6 +2593,13 @@ void CRLoginView::OnLButtonDown(UINT nFlags, CPoint point)
 
 		return;
 	}
+
+	if ( m_LastMouseClock != 0 && !pDoc->m_TextRam.IsOptEnable(TO_RLCKCOPY) && (UINT)((clock() - m_LastMouseClock) * 1000 / CLOCKS_PER_SEC) <= GetDoubleClickTime() )
+		m_bLButtonTrClk = TRUE;
+	else
+		m_bLButtonTrClk = FALSE;
+
+	m_LastMouseClock = 0;
 
 	m_ClipStaPos   = m_ClipEndPos = pDoc->m_TextRam.GetCalcPos(x, y);
 	m_ClipFlag     = 1;
@@ -2686,6 +2705,18 @@ void CRLoginView::OnLButtonDblClk(UINT nFlags, CPoint point)
 		return;
 
 	CalcGrapPoint(point, &x, &y);
+
+	if ( pDoc->m_TextRam.m_MouseTrack != MOS_EVENT_NONE && !m_MouseEventFlag ) {
+		pDoc->m_TextRam.MouseReport(MOS_LOCA_LEDN, nFlags, x, y);
+
+		if ( pDoc->m_TextRam.m_MouseTrack == MOS_EVENT_HILT ) {
+			m_ClipStaPos = m_ClipEndPos = pDoc->m_TextRam.GetCalcPos(x, y);
+			m_ClipFlag     = 6;
+			m_ClipKeyFlags = 0;
+		}
+
+		return;
+	}
 
 	m_ClipStaPos = m_ClipEndPos = pDoc->m_TextRam.GetCalcPos(x, y);
 	pDoc->m_TextRam.EditWordPos(&m_ClipStaPos, &m_ClipEndPos);
@@ -3020,6 +3051,13 @@ void CRLoginView::OnRButtonDblClk(UINT nFlags, CPoint point)
 	m_LastMouseFlags = nFlags;
 
 	CView::OnRButtonDblClk(nFlags, point);
+
+	if ( pDoc->m_TextRam.m_MouseTrack != MOS_EVENT_NONE && !m_MouseEventFlag ) {
+		int x, y;
+		CalcGrapPoint(point, &x, &y);
+		pDoc->m_TextRam.MouseReport(MOS_LOCA_RTDN, nFlags, x, y);
+		return;
+	}
 
 	if ( m_RclickTimer != 0 ) {
 		KillTimer(m_RclickTimer);
