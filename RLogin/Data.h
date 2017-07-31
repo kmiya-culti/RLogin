@@ -238,6 +238,8 @@ public:
 	BOOL			m_MakeFlag;
 	CStringW		m_Line[3];
 
+	CString			m_LexTmp;
+
 	void Init();
 	CStrScriptNode *CopyNode(CStrScriptNode *np);
 
@@ -247,8 +249,9 @@ public:
 	int GetBuffer(CBuffer &buf);
 
 	LPCSTR QuoteStr(CString &tmp, LPCSTR str);
-	void SetNodeStr(CStrScriptNode *np, CString &str, LPCSTR cmd, int nst);
-	CStrScriptNode *GetNodeStr(LPCSTR &str);
+	void SetNodeStr(CStrScriptNode *np, CString &str, int nst);
+	int GetLex(LPCSTR &str);
+	CStrScriptNode *GetNodeStr(int &lex, LPCSTR &str);
 	void SetString(CString &str);
 	void GetString(LPCSTR str);
 

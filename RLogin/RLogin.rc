@@ -398,7 +398,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.7.1 (2009/09/16)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.7.2 (2009/09/25)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2009 Culti",IDC_STATIC,47,18,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,145,50,14,WS_GROUP
     LTEXT           "OpenSSL 0.9.8k 25 Mar 2009",IDC_STATIC,47,35,176,8
@@ -1194,8 +1194,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,7,1,0
- PRODUCTVERSION 2,7,1,0
+ FILEVERSION 2,7,2,0
+ PRODUCTVERSION 2,7,2,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1212,12 +1212,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2, 7, 1, 0"
+            VALUE "FileVersion", "2, 7, 2, 0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2008 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2, 7, 1, 0"
+            VALUE "ProductVersion", "2, 7, 2, 0"
         END
     END
     BLOCK "VarFileInfo"

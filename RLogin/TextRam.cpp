@@ -513,6 +513,9 @@ void CTextRam::OpenHisFile()
 	CString name = m_HisFile;
 	CString base = name;
 	
+	if ( m_pDocument != NULL )
+		m_pDocument->EntryText(name);
+
 	if ( (n = name.ReverseFind('.')) >= 0 )
 		base = name.Left(n);
 
@@ -527,6 +530,10 @@ void CTextRam::InitHistory()
 		return;
 
 	OpenHisFile();
+
+	if ( m_HisFhd.m_hFile == NULL )
+		return;
+
 	VRAM *vp = NULL;
 
 	TRY {
@@ -885,6 +892,7 @@ const CTextRam & CTextRam::operator = (CTextRam &data)
 	memcpy(m_MouseMode, data.m_MouseMode, sizeof(m_MouseMode));
 	fc_Init(m_KanjiMode);
 	memcpy(m_MetaKeys,  data.m_MetaKeys,  sizeof(m_MetaKeys));
+	m_ProcTab = data.m_ProcTab;
 
 	return *this;
 }

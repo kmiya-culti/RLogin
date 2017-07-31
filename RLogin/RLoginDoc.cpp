@@ -540,7 +540,8 @@ void CRLoginDoc::OnSocketError(int err)
 	tmp.Format("%s Server Entry Scoket Error\n%s:%s Connection\n%s",
 		m_ServerEntry.m_EntryName, m_ServerEntry.m_HostName, m_ServerEntry.m_PortName, m_ErrorPrompt);
 	AfxMessageBox(tmp);
-	m_pMainWnd->PostMessage(WM_COMMAND, ID_FILE_CLOSE, 0 );
+//	m_pMainWnd->PostMessage(WM_COMMAND, ID_FILE_CLOSE, 0 );
+	OnFileClose();
 	m_ErrorPrompt.Empty();
 }
 void CRLoginDoc::OnSocketClose()
@@ -572,7 +573,11 @@ void CRLoginDoc::OnSocketClose()
 	UpdateAllViews(NULL, UPDATE_GOTOXY, NULL);
 	SetStatus("Close");
 
-	m_pMainWnd->PostMessage(WM_COMMAND, (bCanExit ? ID_APP_EXIT : ID_FILE_CLOSE), 0 );
+//	m_pMainWnd->PostMessage(WM_COMMAND, (bCanExit ? ID_APP_EXIT : ID_FILE_CLOSE), 0 );
+	if ( bCanExit )
+		m_pMainWnd->PostMessage(WM_COMMAND, ID_APP_EXIT, 0 );
+	else
+		OnFileClose();
 }
 int CRLoginDoc::OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags)
 {

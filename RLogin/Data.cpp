@@ -1182,70 +1182,127 @@ LPCSTR CStrScript::QuoteStr(CString &tmp, LPCSTR str)
 	tmp += "\"";
 	return tmp;
 }
-void CStrScript::SetNodeStr(CStrScriptNode *np, CString &str, LPCSTR cmd, int nst)
+void CStrScript::SetNodeStr(CStrScriptNode *np, CString &str, int nst)
 {
-	for ( int n = 0 ; n < nst ; n++ )
-		str += "  ";
+	int n;
+	CString tmp;
+	LPCSTR cmd = "if ";
 
 	if ( np == NULL )
-		str += "nop\r\n";
-	else {
+		return;
+
+	while ( np != NULL ) {
+		for ( n = 0 ; n < nst ; n++ )
+			str += "  ";
+
 		str += cmd;
-		str += "\t";
-		str += np->m_RecvStr;
-		str += "\t";
-		str += np->m_SendStr;
+		str += QuoteStr(tmp, np->m_RecvStr);
+
+		if ( !np->m_SendStr.IsEmpty() ) {
+			str += " then ";
+			str += QuoteStr(tmp, np->m_SendStr);
+		}
 		str += "\r\n";
-		SetNodeStr(np->m_Right, str, "if", nst + 1);
-		SetNodeStr(np->m_Left,  str, "or", nst);
+
+		SetNodeStr(np->m_Right, str, nst + 1);
+
+		np = np->m_Left;
+		cmd = "or ";
 	}
+
+	for ( n = 0 ; n < nst ; n++ )
+		str += "  ";
+	str += "fi\r\n";
 }
-CStrScriptNode *CStrScript::GetNodeStr(LPCSTR &str)
+int CStrScript::GetLex(LPCSTR &str)
 {
-	CString tmp;
-	CStringArray aray;
+	m_LexTmp.Empty();
+
+	while ( *str != '\0' && *str <= ' ' )
+		str++;
+
+	if ( *str == '\0' ) {
+		return EOF;
+
+	} else if ( *str == '"' ) {
+		str++;
+		while ( *str != '\0' && *str != '"' ) {
+			if ( issjis1(str[0]) && issjis2(str[1]) )
+				m_LexTmp += *(str++);
+			m_LexTmp += *(str++);
+		}
+		if ( *str != '\0' )
+			str++;
+		return 0;
+	}
+
+	while ( *str != '\0' && *str > ' ' ) {
+		if ( issjis1(str[0]) && issjis2(str[1]) )
+			m_LexTmp += *(str++);
+		m_LexTmp += *(str++);
+	}
+
+	if ( m_LexTmp.CollateNoCase("if") == 0 )
+		return 1;
+	else if ( m_LexTmp.CollateNoCase("then") == 0 )
+		return 2;
+	else if ( m_LexTmp.CollateNoCase("or") == 0 )
+		return 3;
+	else if ( m_LexTmp.CollateNoCase("fi") == 0 )
+		return 4;
+	else
+		return 0;
+}
+CStrScriptNode *CStrScript::GetNodeStr(int &lex, LPCSTR &str)
+{
+	int cmd = lex;
 	CStrScriptNode *np;
 
-	while ( *str != '\0' ) {
-		if ( *str == '\n' ) {
-			str++;
-			break;
-		} else if ( *str == '\r' ) {
-			str++;
-		} else if ( *str == '\t' ) {
-			str++;
-			aray.Add(tmp);
-			tmp.Empty();
-		} else
-			tmp += *(str++);
-	}
-	aray.Add(tmp);
+	if ( lex != 1 && lex != 3 )	// if || or
+		return NULL;
 
-	if ( aray.GetSize() < 3 )
+	if ( (lex = GetLex(str)) != 0 )	// str
 		return NULL;
 
 	np = new CStrScriptNode;
-	np->m_RecvStr = aray[1];
-	np->m_SendStr = aray[2];
+	np->m_RecvStr = m_LexTmp;
+	np->m_SendStr.Empty();
 	np->m_Reg.Compile(np->m_RecvStr);
-	np->m_Right = GetNodeStr(str);
-	np->m_Left  = GetNodeStr(str);
+
+	if ( (lex = GetLex(str)) == 2 ) {	// then
+		if ( (lex = GetLex(str)) == 0 ) {	// str
+			np->m_SendStr = m_LexTmp;
+			lex = GetLex(str);
+		}
+	}
+
+	if ( lex == 1 )	// if
+		np->m_Right = GetNodeStr(lex, str);
+
+	while ( lex == 3 )	// or
+		np->m_Left  = GetNodeStr(lex, str);
+
+	if ( cmd == 1 && lex == 4 )	// if ... fi
+		lex = GetLex(str);
 
 	return np;
 }
 void CStrScript::SetString(CString &str)
 {
 	str.Empty();
-	SetNodeStr(m_Node, str, "if", 0);
+	SetNodeStr(m_Node, str, 0);
 }
 void CStrScript::GetString(LPCSTR str)
 {
+	int lex;
+
 	m_MakeChat = FALSE;
 
 	if ( m_Node != NULL )
 		delete m_Node;
 
-	m_Node = GetNodeStr(str);
+	lex = GetLex(str);
+	m_Node = GetNodeStr(lex, str);
 
 	m_MakeFlag = FALSE;
 	m_Exec = NULL;
