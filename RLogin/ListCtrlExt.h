@@ -24,6 +24,7 @@ public:
 	int m_EditNum;
 	CEdit m_EditWnd;
 	CString m_EditOld;
+	BOOL m_bSort;
 
 	int GetParamItem(int para);
 	int GetSelectMarkData();

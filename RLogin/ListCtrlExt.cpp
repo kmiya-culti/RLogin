@@ -21,6 +21,7 @@ CListCtrlExt::CListCtrlExt()
 	m_SortDupItem = 0;
 	m_pSubMenu    = NULL;
 	m_EditSubItem = 0;
+	m_bSort = TRUE;
 }
 CListCtrlExt::~CListCtrlExt()
 {
@@ -138,13 +139,19 @@ void CListCtrlExt::SetPopUpMenu(UINT nIDResource, int Pos)
 void CListCtrlExt::OnColumnclick(NMHDR* pNMHDR, LRESULT* pResult) 
 {
 	NM_LISTVIEW* pNMListView = (NM_LISTVIEW*)pNMHDR;
+
+	*pResult = 0;
+
+	if ( !m_bSort )
+		return;
+
 	if ( m_SortSubItem == pNMListView->iSubItem )
 		m_SortReverse ^= 1;
 	else
 		m_SortReverse = 0;
+
 	m_SortSubItem = pNMListView->iSubItem;
 	SortItems(CompareFunc, (DWORD_PTR)this);
-	*pResult = 0;
 }
 BOOL CListCtrlExt::OnRclick(NMHDR* pNMHDR, LRESULT* pResult) 
 {

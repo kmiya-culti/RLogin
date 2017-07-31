@@ -259,6 +259,10 @@ BOOL CServerSelect::OnInitDialog()
 		if ( m_EntryNum >= m_pData->GetSize() )
 			m_EntryNum = (-1);
 	}
+
+	if ( m_EntryNum < 0 && m_pData->GetSize() > 0 )
+		m_Group = m_pData->GetAt(0).m_Group;
+
 	InitList();
 
 	InitItemOffset();

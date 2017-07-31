@@ -20,6 +20,7 @@
 #include "Wininet.h"
 #include "EditDlg.h"
 #include "StatusDlg.h"
+#include "TraceDlg.h"
 #include "Script.h"
 
 #ifdef _DEBUG
@@ -62,6 +63,7 @@ BEGIN_MESSAGE_MAP(CRLoginDoc, CDocument)
 	ON_COMMAND(IDM_IMAGEDISP, &CRLoginDoc::OnImagedisp)
 	ON_UPDATE_COMMAND_UI(IDM_IMAGEDISP, &CRLoginDoc::OnUpdateImagedisp)
 	ON_COMMAND(IDC_CANCELBTN, OnCancelBtn)
+	ON_COMMAND(IDM_TRACEDISP, &CRLoginDoc::OnTracedisp)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -196,6 +198,10 @@ void CRLoginDoc::OnFileClose()
 
 	CDocument::OnFileClose();
 }
+void CRLoginDoc::OnIdle()
+{
+	m_TextRam.ChkGrapWnd(60);
+}
 
 /////////////////////////////////////////////////////////////////////////////
 // CRLoginDoc シリアライゼーション
@@ -328,6 +334,9 @@ void CRLoginDoc::SetEntryProBuffer()
 }
 void CRLoginDoc::DeleteContents() 
 {
+	if ( m_TextRam.m_pTraceWnd != NULL )
+		m_TextRam.m_pTraceWnd->SendMessage(WM_CLOSE);
+
 	SocketClose();
 
 	if ( m_ServerEntry.m_SaveFlag ) {
@@ -1526,4 +1535,17 @@ void CRLoginDoc::ScriptValue(int cmds, class CScriptValue &value, int mode)
 		}
 		break;
 	}
+}
+void CRLoginDoc::OnTracedisp()
+{
+	if ( m_TextRam.m_pTraceWnd == NULL ) {
+		m_TextRam.SetTraceLog(TRUE);
+		m_TextRam.m_pTraceWnd = new CTraceDlg(NULL);
+		m_TextRam.m_pTraceWnd->m_Title = m_ServerEntry.m_EntryName;
+		m_TextRam.m_pTraceWnd->m_pDocument = this;
+		m_TextRam.m_pTraceWnd->Create(IDD_TRACEDLG, CWnd::GetDesktopWindow());
+		m_TextRam.m_pTraceWnd->ShowWindow(SW_SHOW);
+//		::AfxGetMainWnd()->SetFocus();
+	} else
+		m_TextRam.m_pTraceWnd->SendMessage(WM_CLOSE);
 }

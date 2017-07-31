@@ -1310,6 +1310,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\TraceDlg.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\TtyModeDlg.cpp"
 				>
 			</File>
@@ -1649,6 +1653,10 @@
 			</File>
 			<File
 				RelativePath=".\TextRam.h"
+				>
+			</File>
+			<File
+				RelativePath=".\TraceDlg.h"
 				>
 			</File>
 			<File

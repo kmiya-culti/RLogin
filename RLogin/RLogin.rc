@@ -255,6 +255,7 @@ BEGIN
         MENUITEM "Tekウィンドウ(&K)",                IDM_TEKDISP
         MENUITEM "Imageウィンドウ(&I)",              IDM_IMAGEDISP
         MENUITEM "ソケットステータス",                   IDM_SOCKETSTATUS
+        MENUITEM "トレースウィンドウ",                   IDM_TRACEDISP
         MENUITEM SEPARATOR
         MENUITEM "オプション設定(&P)",                 ID_SETOPTION
         MENUITEM "標準の設定に戻す",                    IDC_LOADDEFAULT
@@ -456,8 +457,8 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSM
 CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
-    ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.17.2 (2014/11/07)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    ICON            IDR_MAINFRAME,IDC_STATIC,7,7,21,20
+    LTEXT           "RLogin Version 2.17.3 (2014/11/21)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2014 Culti",IDC_STATIC,47,15,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,151,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.1j 15 Oct 2014",IDC_STATIC,47,29,176,8
@@ -1200,11 +1201,11 @@ BEGIN
 END
 
 IDD_STATUS_DLG DIALOGEX 0, 0, 329, 196
-STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "Socket Status"
 FONT 8, "ＭＳ ゴシック", 400, 0, 0x80
 BEGIN
-    EDITTEXT        IDC_EDIT1,7,7,315,182,ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL
+    EDITTEXT        IDC_EDIT1,0,0,329,196,ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL
 END
 
 IDD_HISPAGE DIALOGEX 0, 0, 251, 270
@@ -1443,6 +1444,15 @@ BEGIN
     CONTROL         "",IDC_MODE_LIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,8,7,276,202
 END
 
+IDD_TRACEDLG DIALOGEX 0, 0, 371, 183
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Trace"
+MENU IDR_GRAPWND
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_LIST2,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,0,0,371,182
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1450,8 +1460,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,17,2,0
- PRODUCTVERSION 2,17,2,0
+ FILEVERSION 2,17,3,0
+ PRODUCTVERSION 2,17,3,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1468,12 +1478,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.17.2.0"
+            VALUE "FileVersion", "2.17.3.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2014 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.17.2.0"
+            VALUE "ProductVersion", "2.17.3.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -1865,6 +1875,14 @@ BEGIN
         RIGHTMARGIN, 284
         TOPMARGIN, 7
         BOTTOMMARGIN, 234
+    END
+
+    IDD_TRACEDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 364
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 176
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -3028,6 +3046,11 @@ BEGIN
     IDS_FILEDLGSCRIPT       "スクリプト ファイル (*.txt)|*.txt|All Files (*.*)|*.*||"
     IDS_SCRIPTNEW           "すでに読み込んでいるスクリプトを放棄しますか？"
     IDS_FILECLOSEQES        "現在、接続中です。接続を閉じますか？"
+END
+
+STRINGTABLE
+BEGIN
+    IDM_TRACEDISP           "トレースウィンドウを表示・非表示\nトレースウィンドウ"
 END
 
 #endif    // 日本語 (日本) resources

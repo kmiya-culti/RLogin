@@ -129,6 +129,8 @@ public:
 	void ScriptInit(int cmds, int shift, class CScriptValue &value);
 	void ScriptValue(int cmds, class CScriptValue &value, int mode);
 
+	void OnIdle();
+
 //オーバーライド
 protected:
 	virtual void Serialize(CArchive& ar);
@@ -165,6 +167,7 @@ protected:
 	afx_msg void OnImagedisp();
 	afx_msg void OnUpdateImagedisp(CCmdUI *pCmdUI);
 	afx_msg void OnCancelBtn();
+	afx_msg void OnTracedisp();
 	DECLARE_MESSAGE_MAP()
 };
 

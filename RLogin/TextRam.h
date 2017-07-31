@@ -404,7 +404,7 @@ typedef struct _Vram {
 //#define	FIXWCHAR	1
 
 #ifdef	FIXWCHAR
-#define	MAXCHARSIZE	10
+#define	MAXCHARSIZE	6
 #else
 #define	MAXCHARSIZE	31
 WCHAR *WCharAlloc(int len);
@@ -421,24 +421,31 @@ public:
 #else
 	WCHAR		*ch;
 #endif
-	VRAM		pr;
+	VRAM		pr;		// DWORD * 3 = 12 Byte
 
-	inline CVram();
-	inline ~CVram();
+	CVram();
+	~CVram();
 
 	inline void Empty() { if ( !IS_IMAGE(pr.cm) ) ch[0] = 0; }
 	inline BOOL IsEmpty() { return (IS_IMAGE(pr.cm) || ch[0] == 0 ? TRUE : FALSE); }
 	inline operator LPCWSTR () { return (IS_IMAGE(pr.cm) ? L"" : ch); }
 	inline operator DWORD () { return ((ch[0] == 0 ? 0 : (ch[1] == 0 ? ch[0] : ((ch[0] << 16) | ch[1])))); }
-	inline const CVram & operator = (CVram &data);
-	inline void operator = (VRAM &ram);
+
 //	inline int Compare(LPCWSTR str) { return wcscmp(str, (LPCWSTR)*this); }
 	inline int Compare(LPCWSTR str) { return 0; }
 
-	inline void operator = (DWORD c);
+	void operator = (DWORD c);
 	void operator = (LPCWSTR str);
 	void operator += (DWORD c);
 	void SetVRAM(VRAM &ram);
+
+#ifdef	FIXWCHAR
+	inline const CVram & operator = (CVram &data) { memcpy(this, &data, sizeof(CVram)); return *this; }
+#else
+	void GetCVram(CVram &data);
+	inline const CVram & operator = (CVram &data) { if ( data.ch == data.pr.pk.cb && ch == pr.pk.cb ) pr = data.pr; else GetCVram(data); return *this; }
+#endif
+	inline void operator = (VRAM &ram) { pr = ram; *this = ram.pk.ch; }
 
 	void SetBuffer(CBuffer &buf);
 	void GetBuffer(CBuffer &buf);
@@ -543,10 +550,33 @@ public:
 	CProcTab();
 };
 
+class CTraceNode : public CObject
+{
+public:
+	int m_CurX;
+	int m_CurY;
+	int m_Attr;
+	int m_ForCol;
+	int m_BakCol;
+	int m_Flag;
+	int m_Index;
+	CString m_Name;
+	CBuffer m_Buffer;
+	class CTextSave *m_pSave;
+	class CTraceNode *m_Next;
+	class CTraceNode *m_Back;
+
+	CTraceNode();
+	~CTraceNode();
+};
+
 class CTextSave : public CObject
 {
 public:
 	class CTextSave *m_Next;
+	class CTextRam *m_pTextRam;
+
+	BOOL m_bAll;
 
 	CVram *m_VRam;
 	VRAM m_AttNow;
@@ -562,6 +592,11 @@ public:
 	int m_RightX;
 
 	int m_DoWarp;
+	BOOL m_Exact;
+	DWORD m_LastChar;
+	int m_LastFlag;
+	int m_LastPos;
+
 	DWORD m_AnsiOpt[16];
 
 	int m_BankGL;
@@ -585,8 +620,17 @@ public:
 	int m_Save_BankGR;
 	int m_Save_BankSG;
 	WORD m_Save_BankTab[5][4];
-
 	BYTE m_Save_TabMap[LINE_MAX + 1][COLS_MAX / 8 + 1];
+
+	int m_XtMosPointMode;
+	DWORD m_XtOptFlag;
+	int m_DispCaret;
+	int m_TypeCaret;
+
+	CWordArray m_GrapIdx;
+
+	CTextSave();
+	~CTextSave();
 };
 
 class CTextRam : public COptObject
@@ -707,7 +751,6 @@ public:
 	int m_LangMenu;
 	LPCTSTR m_RetChar[7];
 	int m_ImageIndex;
-	int m_ImageCheck;
 	int m_bOscActive;
 	LPCTSTR m_OscName;
 	CString m_SeqMsg;
@@ -758,15 +801,19 @@ public:
 	int m_LineEditMapsInit;
 	int m_LineEditMapsIndex;
 	CStringMaps m_LineEditMapsTab[3];
+
 	int m_LogCharSet[4];
 	BOOL m_LogTimeFlag;
 	int m_TitleMode;
 	BOOL m_FileSaveFlag;
 	DWORD m_XtOptFlag;
 	int m_XtMosPointMode;
-	CStringArray m_TitleStack;
+	CStringArrayExt m_TitleStack;
 	CRect m_Margin;
 	class CGrapWnd *m_pImageWnd;
+
+	CTextRam();
+	virtual ~CTextRam();
 	
 	// Window Fonction
 	BOOL IsInitText() { return (m_bOpen && m_VRam != NULL ? TRUE : FALSE); }
@@ -784,6 +831,7 @@ public:
 	void InitHistory();
 	void SaveHistory();
 
+	// Serch Word
 	CRegEx m_MarkReg;
 	int m_MarkPos;
 	int m_MarkLen;
@@ -794,6 +842,7 @@ public:
 	int HisRegNext();
 	int HisMarkCheck(int top, int line, class CRLoginView *pView);
 
+	// TextRam
 	struct DrawWork {
 		int		att;
 		int		fcn, bcn;
@@ -876,6 +925,7 @@ public:
 	int GetAnsiPara(int index, int defvalue, int minvalue, int maxvalue = -1);
 	void SetAnsiParaArea(int top);
 	LPCTSTR GetHexPara(LPCTSTR str, CBuffer &buf);
+
 	void LOCATE(int x, int y);
 	void ERABOX(int sx, int sy, int ex, int ey, int df = 0);
 	void FORSCROLL(int sx, int sy, int ex, int ey);
@@ -892,6 +942,8 @@ public:
 	void PUTADD(int x, int y, DWORD ch, int cf);
 	void INSMDCK(int len);
 	void ANSIOPT(int opt, int bit);
+	CTextSave *GETSAVERAM(BOOL bAll);
+	void SETSAVERAM(CTextSave *pSave);
 	void SAVERAM();
 	void LOADRAM();
 	void PUSHRAM();
@@ -901,9 +953,6 @@ public:
 	void COPY(int sp, int sx, int sy, int ex, int ey, int dp, int dx, int dy);
 	void TABSET(int sw);
 	void PUTSTR(LPBYTE lpBuf, int nBufLen);
-
-	CTextRam();
-	virtual ~CTextRam();
 
 	typedef struct _PROCTAB {
 		BYTE	sc, ec;
@@ -916,16 +965,17 @@ public:
 	} CSIEXTTAB;
 
 	typedef struct _ESCNAMEPROC {
-		LPCTSTR		name;
+		LPCTSTR	name;
 		union {
 			void (CTextRam::*proc)(DWORD ch);
 			BYTE byte[sizeof(void (CTextRam::*)(DWORD))];
 		} data;
 		struct _ESCNAMEPROC	*left;
 		struct _ESCNAMEPROC	*right;
+		int		flag;
 	} ESCNAMEPROC;
 
-	void ((CTextRam::**m_Func)(DWORD ch));
+	void (CTextRam::**m_Func)(DWORD ch);
 	int m_Stage;
 	int m_StPos;
 	int m_Stack[16];
@@ -936,10 +986,30 @@ public:
 	void fc_Init_Proc(int stage, const PROCTAB *tp, int b = 0);
 	ESCNAMEPROC *fc_InitProcName(CTextRam::ESCNAMEPROC *tab, int *max);
 	void fc_Init(int mode);
+
+	// Trace Func
+	class CTraceDlg *m_pTraceWnd;
+	class CTraceNode *m_pTraceTop;
+	class CTraceNode *m_pTraceNow;
+	void (CTextRam::*m_TraceFunc)(DWORD ch);
+	void (CTextRam::*m_pCallPoint)(DWORD ch);
+	ESCNAMEPROC *m_pTraceProc;
+	int m_TraceSaveCount;
+	BOOL m_bTraceUpdate;
+	BOOL m_bTraceActive;
+
+	void SetTraceLog(BOOL bSw);
+	void fc_TraceLogChar(DWORD ch);
+	void fc_TraceLogFlush(ESCNAMEPROC *tp, BOOL bParam);
 	void fc_TraceCall(DWORD ch);
-	inline void fc_Call(DWORD ch);
+	void fc_FuncCall(DWORD ch) { (this->*m_Func[ch])(ch); }
+
+	// Proc
+	inline void fc_Call(DWORD ch) { (this->*m_pCallPoint)(ch); }
 	inline void fc_Case(int stage);
 	inline void fc_Push(int stage);
+
+	ESCNAMEPROC *FindProcName(ESCNAMEPROC *top, void (CTextRam::*proc)(DWORD ch));
 
 	void EscNameProc(DWORD ch, LPCTSTR name);
 	LPCTSTR EscProcName(void (CTextRam::*proc)(DWORD ch));
@@ -957,6 +1027,7 @@ public:
 	void ParseColor(int cmd, int idx, LPCTSTR para, DWORD ch);
 	void ToHexStr(CBuffer &buf, CString &out);
 
+	// Kanji Check
 	int m_Kan_Pos;
 	BYTE m_Kan_Buf[KANBUFMAX];
 	
@@ -966,7 +1037,6 @@ public:
 	// Print...
 	void fc_IGNORE(DWORD ch);
 	void fc_POP(DWORD ch);
-	void fc_RETRY(DWORD ch);
 	void fc_TEXT(DWORD ch);
 	void fc_TEXT2(DWORD ch);
 	void fc_TEXT3(DWORD ch);
@@ -987,8 +1057,6 @@ public:
 	void fc_UTF89(DWORD ch);
 	void fc_SESC(DWORD ch);
 	void fc_CESC(DWORD ch);
-	void fc_STAT(DWORD ch);
-	void fc_GOTOXY(DWORD ch);
 
 	// Ctrl...
 	void fc_SOH(DWORD ch);
@@ -1065,6 +1133,10 @@ public:
 	void fc_ACS(DWORD ch);
 	void fc_ESCI(DWORD ch);
 	void fc_DOCS(DWORD ch);
+
+	// Ext ESC
+	void fc_STAT(DWORD ch);
+	void fc_GOTOXY(DWORD ch);
 
 	// ESC [ CSI
 	void fc_CSI(DWORD ch);
@@ -1292,13 +1364,18 @@ public:
 	void LocReport(int md, int sw, int x, int y);
 	void MouseReport(int md, int sw, int x, int y);
 
+	// ReGIS/Sixel/Image
 	CPtrArray m_GrapWndTab;
+	class CGrapWnd *m_pActGrapWnd;
+	clock_t m_GrapWndChkCLock;
 
 	class CGrapWnd *GetGrapWnd(int index);
+	class CGrapWnd *CmpGrapWnd(class CGrapWnd *pWnd);
 	void AddGrapWnd(void *pWnd);
 	void RemoveGrapWnd(void *pWnd);
 	void *LastGrapWnd(int type);
-	void ChkGrapWnd();
+	void ChkGrapWnd(int sec);
+	void SizeGrapWnd(class CGrapWnd *pWnd);
 };
 
 #endif // !defined(AFX_TEXTRAM_H__CBEA227A_D7D7_4213_88B1_4F4C0DF48089__INCLUDED_)

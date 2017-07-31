@@ -358,13 +358,13 @@ void CTabBar::SetGhostWnd(BOOL sw)
 			return;
 		if ( !pMain->IsOverLap((HWND)tci.lParam) )
 			return;
-		TRACE("Ghost Req %d\n", m_GhostReq);
+//		TRACE("Ghost Req %d\n", m_GhostReq);
 		m_GhostItem = m_GhostReq;
 		SetTimer(1025, 200, NULL);
 		if ( (pFrame = (CChildFrame *)GetAt(m_GhostItem)) != NULL && (m_pGhostView = (CRLoginView *)pFrame->GetActiveView()) != NULL )
 			m_pGhostView->SetGhostWnd(TRUE);
 	} else {		// Destory Ghost Wnd
-		TRACE("Ghost Close %d\n", m_GhostItem);
+//		TRACE("Ghost Close %d\n", m_GhostItem);
 		if ( m_GhostItem >= 0 )
 			KillTimer(1025);
 		if ( m_pGhostView != NULL )

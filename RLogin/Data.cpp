@@ -202,25 +202,40 @@ LPBYTE CBuffer::PutSpc(int len)
 void CBuffer::Put8Bit(int val)
 {
 	ReAlloc(1);
-	SET8BIT(m_Data + m_Len, val);
+	register LPBYTE p = m_Data + m_Len;
+	*p = (BYTE)val;
 	m_Len += 1;
 }
 void CBuffer::Put16Bit(int val)
 {
 	ReAlloc(2);
-	SET16BIT(m_Data + m_Len, val);
+	register LPBYTE p = m_Data + m_Len;
+	p[0] = (BYTE)(val >> 8);
+	p[1] = (BYTE)(val >> 0);
 	m_Len += 2;
 }
 void CBuffer::Put32Bit(int val)
 {
 	ReAlloc(4);
-	SET32BIT(m_Data + m_Len, val);
+	register LPBYTE p = m_Data + m_Len;
+	p[0] = (BYTE)(val >> 24);
+	p[1] = (BYTE)(val >> 16);
+	p[2] = (BYTE)(val >>  8);
+	p[3] = (BYTE)(val >>  0);
 	m_Len += 4;
 }
 void CBuffer::Put64Bit(LONGLONG val)
 {
 	ReAlloc(8);
-	SET64BIT(m_Data + m_Len, val);
+	register LPBYTE p = m_Data + m_Len;
+	p[0] = (BYTE)(val >> 56);
+	p[1] = (BYTE)(val >> 48);
+	p[2] = (BYTE)(val >> 40);
+	p[3] = (BYTE)(val >> 32);
+	p[4] = (BYTE)(val >> 24);
+	p[5] = (BYTE)(val >> 16);
+	p[6] = (BYTE)(val >>  8);
+	p[7] = (BYTE)(val >>  0);
 	m_Len += 8;
 }
 void CBuffer::PutBuf(LPBYTE buf, int len)
@@ -300,45 +315,64 @@ void CBuffer::PutEcPoint(const EC_GROUP *curve, const EC_POINT *point)
 }
 void CBuffer::PutDword(int val)
 {
-	DWORD dw = (WORD)val;
-	Apend((LPBYTE)(&dw), sizeof(DWORD));
+	ReAlloc(sizeof(DWORD));
+	register LPDWORD p = (LPDWORD)(m_Data + m_Len);
+	*p = (DWORD)val;
+	m_Len += sizeof(DWORD);
 }
 void CBuffer::PutWord(int val)
 {
-	WORD wd = (WORD)val;
-	Apend((LPBYTE)(&wd), sizeof(WORD));
+	ReAlloc(sizeof(WORD));
+	register LPWORD p = (LPWORD)(m_Data + m_Len);
+	*p = (WORD)val;
+	m_Len += sizeof(WORD);
 }
 int CBuffer::Get8Bit()
 {
-	if ( GetSize() < 1 )
+	register LPBYTE p = m_Data + m_Ofs;
+	if ( (m_Ofs += 1) > m_Len ) {
+		m_Len = m_Ofs = 0;
 		throw this;
-	int val = PTR8BIT(GetPtr());
-	Consume(1);
-	return val;
+	}
+	return *p;
 }
 int CBuffer::Get16Bit()
 {
-	if ( GetSize() < 2 )
+	register LPBYTE p = m_Data + m_Ofs;
+	if ( (m_Ofs += 2) > m_Len ) {
+		m_Len = m_Ofs = 0;
 		throw this;
-	int val = PTR16BIT(GetPtr());
-	Consume(2);
-	return val;
+	}
+	return ((int)p[0] << 8) |
+		   ((int)p[1] << 0);
 }
 int CBuffer::Get32Bit()
 {
-	if ( GetSize() < 4 )
+	register LPBYTE p = m_Data + m_Ofs;
+	if ( (m_Ofs += 4) > m_Len ) {
+		m_Len = m_Ofs = 0;
 		throw this;
-	int val = PTR32BIT(GetPtr());
-	Consume(4);
-	return val;
+	}
+	return ((int)p[0] << 24) |
+		   ((int)p[1] << 16) |
+		   ((int)p[2] <<  8) |
+		   ((int)p[3] <<  0);
 }
 LONGLONG CBuffer::Get64Bit()
 {
-	if ( GetSize() < 8 )
+	register LPBYTE p = m_Data + m_Ofs;
+	if ( (m_Ofs += 8) > m_Len ) {
+		m_Len = m_Ofs = 0;
 		throw this;
-	LONGLONG val = PTR64BIT(GetPtr());
-	Consume(8);
-	return val;
+	}
+	return ((LONGLONG)p[0] << 56) |
+		   ((LONGLONG)p[1] << 48) |
+		   ((LONGLONG)p[2] << 40) |
+		   ((LONGLONG)p[3] << 32) |
+		   ((LONGLONG)p[4] << 24) |
+		   ((LONGLONG)p[5] << 16) |
+		   ((LONGLONG)p[6] <<  8) |
+		   ((LONGLONG)p[7] <<  0);
 }
 int CBuffer::GetStr(CStringA &str)
 {
@@ -425,27 +459,30 @@ int CBuffer::GetEcPoint(const EC_GROUP *curve, EC_POINT *point)
 }
 int CBuffer::GetDword()
 {
-	if ( GetSize() < sizeof(DWORD) )
+	register LPDWORD p = (LPDWORD)(m_Data + m_Ofs);
+	if ( (m_Ofs += sizeof(DWORD)) > m_Len ) {
+		m_Len = m_Ofs = 0;
 		throw this;
-	DWORD dw = *((DWORD *)GetPtr());
-	Consume(sizeof(DWORD));
-	return (int)dw;
+	}
+	return *p;
 }
 int CBuffer::GetWord()
 {
-	if ( GetSize() < sizeof(WORD) )
+	register LPWORD p = (LPWORD)(m_Data + m_Ofs);
+	if ( (m_Ofs += sizeof(WORD)) > m_Len ) {
+		m_Len = m_Ofs = 0;
 		throw this;
-	WORD wd = *((WORD *)GetPtr());
-	Consume(sizeof(WORD));
-	return (int)wd;
+	}
+	return *p;
 }
 int CBuffer::GetChar()
 {
-	if ( GetSize() < 1 )
-		return (-1);
-	int val = PTR8BIT(GetPtr());
-	Consume(1);
-	return val;
+	register LPBYTE p = (LPBYTE)(m_Data + m_Ofs);
+	if ( (m_Ofs += sizeof(BYTE)) > m_Len ) {
+		m_Len = m_Ofs = 0;
+		throw this;
+	}
+	return *p;
 }
 void CBuffer::SET16BIT(LPBYTE pos, int val)
 {
@@ -3365,7 +3402,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	94
+#define	CMDSKEYTABMAX	95
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -3456,6 +3493,7 @@ static const struct _CmdsKeyTab {
 	{	ID_VIEW_STATUS_BAR,		L"$VIEW_STATUSBAR"	},
 	{	IDM_TEKDISP,			L"$VIEW_TEKDISP"	},
 	{	ID_VIEW_TOOLBAR,		L"$VIEW_TOOLBAR"	},
+	{	IDM_TRACEDISP,			L"$VIEW_TRACEDISP"	},
 	{	ID_WINDOW_CLOSE,		L"$WINDOW_CLOSE"	},
 	{	ID_WINDOW_NEW,			L"$WINDOW_NEW"		},
 	{	IDM_XMODEM_DOWNLOAD,	L"$XMODEM_DOWNLOAD"	},

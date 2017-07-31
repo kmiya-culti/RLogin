@@ -84,6 +84,7 @@
 #define IDD_DEFPARAMDLG                 171
 #define IDB_BITMAP9                     174
 #define IDD_TTYMODEDLG                  175
+#define IDD_TRACEDLG                    176
 #define IDC_CANCELBTN                   201
 #define IDP_SOCKETS_INIT_FAILED         300
 #define IDS_INDICATOR_STAT              301
@@ -674,13 +675,15 @@
 #define IDM_WINDOW_SEL9                 5061
 #define ID_Menu                         5062
 #define ID_Menu5063                     5063
+#define ID_VIEW_TRACE                   5065
+#define IDM_TRACEDISP                   5066
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        176
-#define _APS_NEXT_COMMAND_VALUE         5064
+#define _APS_NEXT_RESOURCE_VALUE        177
+#define _APS_NEXT_COMMAND_VALUE         5067
 #define _APS_NEXT_CONTROL_VALUE         3075
 #define _APS_NEXT_SYMED_VALUE           202
 #endif
