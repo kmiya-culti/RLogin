@@ -2374,5 +2374,5 @@ void CRLoginView::OnSplitOver()
 	pDoc->SetEntryProBuffer();
 	pApp->m_pServerEntry = &(pDoc->m_ServerEntry);
 	cmds.ParseParam(_T("inpane"), TRUE, FALSE);
-	((CRLoginApp *)::AfxGetApp())->OpenProcsCmd(&cmds);
+	pApp->OpenProcsCmd(&cmds);
 }

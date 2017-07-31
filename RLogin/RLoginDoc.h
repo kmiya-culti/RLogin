@@ -121,6 +121,7 @@ public:
 	void SetStatus(LPCTSTR str);
 	void SetEntryProBuffer();
 	void SetCmdInfo(CCommandLineInfoEx *pCmdInfo);
+	void OpenEntryCmds(LPCTSTR entry);
 
 	void DoDropFile();
 	CWnd *GetAciveView();
