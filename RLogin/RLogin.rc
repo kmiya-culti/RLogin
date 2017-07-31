@@ -1,0 +1,2032 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// 日本語 resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_JPN)
+#ifdef _WIN32
+LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
+#pragma code_page(932)
+#endif //_WIN32
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "#define _AFX_NO_OLE_RESOURCES\r\n"
+    "#define _AFX_NO_TRACKER_RESOURCES\r\n"
+    "#define _AFX_NO_PROPERTY_RESOURCES\r\n"
+    "\r\n"
+    "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_JPN)\r\n"
+    "LANGUAGE 17, 1\r\n"
+    "#pragma code_page(932)\r\n"
+    "#include ""res\\RLogin.rc2""  // Microsoft Visual C++ 以外で編集されたリソース\r\n"
+    "#include ""afxres.rc""         // 標準コンポーネント\r\n"
+    "#endif\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDR_MAINFRAME           ICON                    "res\\RLogin.ico"
+IDR_RLOGINTYPE          ICON                    "res\\RLoginDoc.ico"
+IDI_ACTIVE              ICON                    "res\\Active.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDR_MAINFRAME           BITMAP                  "res\\Toolbar.bmp"
+IDR_SFTPTOOL            BITMAP                  "res\\toolbar1.bmp"
+IDB_BITMAP7             BITMAP                  "res\\bitmap7.bmp"
+IDB_BITMAP6             BITMAP                  "res\\bitmap6.bmp"
+IDB_BITMAP5             BITMAP                  "res\\bitmap5.bmp"
+IDB_BITMAP4             BITMAP                  "res\\bitmap4.bmp"
+IDB_BITMAP3             BITMAP                  "res\\bitmap3.bmp"
+IDB_BITMAP2             BITMAP                  "res\\bitmap2.bmp"
+IDB_BITMAP1             BITMAP                  "res\\bitmap1.bmp"
+IDB_ATTR1               BITMAP                  "res\\attr1.bmp"
+IDB_ATTR2               BITMAP                  "res\\attr2.bmp"
+IDB_ATTR3               BITMAP                  "res\\attr3.bmp"
+IDB_ATTR4               BITMAP                  "res\\attr4.bmp"
+IDB_ATTR5               BITMAP                  "res\\attr5.bmp"
+IDB_ATTR6               BITMAP                  "res\\attr6.bmp"
+IDB_ATTR7               BITMAP                  "res\\attr7.bmp"
+IDB_ATTR8               BITMAP                  "res\\attr8.bmp"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Toolbar
+//
+
+IDR_MAINFRAME TOOLBAR  16, 15
+BEGIN
+    BUTTON      ID_FILE_NEW
+    BUTTON      ID_FILE_CLOSE
+    BUTTON      ID_FILE_OPEN
+    BUTTON      ID_FILE_SAVE
+    SEPARATOR
+    BUTTON      ID_LOG_OPEN
+    BUTTON      IDM_SFTP
+    SEPARATOR
+    BUTTON      ID_EDIT_COPY
+    BUTTON      ID_EDIT_PASTE
+    BUTTON      ID_MOUSE_EVENT
+    SEPARATOR
+    BUTTON      ID_MACRO_REC
+    BUTTON      ID_MACRO_PLAY
+    SEPARATOR
+    BUTTON      IDM_KANJI_EUC
+    BUTTON      IDM_KANJI_SJIS
+    BUTTON      IDM_KANJI_ASCII
+    BUTTON      IDM_KANJI_UTF8
+    SEPARATOR
+    BUTTON      ID_PANE_HSPLIT
+    BUTTON      ID_PANE_WSPLIT
+    BUTTON      ID_PANE_DELETE
+    SEPARATOR
+    BUTTON      ID_SETOPTION
+    BUTTON      ID_APP_ABOUT
+END
+
+IDR_SFTPTOOL TOOLBAR  16, 15
+BEGIN
+    BUTTON      IDM_SFTP_UPLOAD
+    BUTTON      IDM_SFTP_DOWNLOAD
+    SEPARATOR
+    BUTTON      IDM_SFTP_MKDIR
+    BUTTON      IDM_SFTP_DELETE
+    BUTTON      IDM_SFTP_RENAME
+    BUTTON      IDM_SFTP_CHMOD
+    SEPARATOR
+    BUTTON      IDM_SFTP_ALLUPLOAD
+    BUTTON      IDM_SFTP_ALLDOWNLOAD
+    SEPARATOR
+    BUTTON      IDM_SFTP_REFLESH
+    BUTTON      IDM_SFTP_ABORT
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MAINFRAME MENU 
+BEGIN
+    POPUP "ファイル(&F)"
+    BEGIN
+        MENUITEM "サーバーに接続(&N)",                 ID_FILE_NEW
+        MENUITEM "サーバー情報を開く(&O)...\t",          ID_FILE_OPEN
+        MENUITEM SEPARATOR
+        MENUITEM "最近使ったﾌｧｲﾙ",                   ID_FILE_MRU_FILE1, GRAYED
+        MENUITEM SEPARATOR
+        MENUITEM "アプリケーションの終了(&X)",             ID_APP_EXIT
+    END
+    POPUP "表示(&V)"
+    BEGIN
+        MENUITEM "ツールバー(&T)",                   ID_VIEW_TOOLBAR
+        MENUITEM "ステータスバー(&S)",                 ID_VIEW_STATUS_BAR
+    END
+    POPUP "ウィンドウ(&W)"
+    BEGIN
+        MENUITEM "縦方向に分割(&H)",                  ID_PANE_HSPLIT
+        MENUITEM "横方向に分割(&W)",                  ID_PANE_WSPLIT
+        MENUITEM "分割を閉じる(&X)",                  ID_PANE_DELETE
+        MENUITEM SEPARATOR
+        MENUITEM "重ねて表示(&O)",                   ID_WINDOW_CASCADE
+        MENUITEM "並べて表示(&T)",                   ID_WINDOW_TILE_HORZ
+        MENUITEM SEPARATOR
+        MENUITEM "現在の分割を保存(&S)",                ID_PANE_SAVE
+    END
+    POPUP "ヘルプ(&H)"
+    BEGIN
+        MENUITEM "RLogin のバージョン情報(&A)...",      ID_APP_ABOUT
+    END
+END
+
+IDR_RLOGINTYPE MENU 
+BEGIN
+    POPUP "ファイル(&F)"
+    BEGIN
+        MENUITEM "サーバーに接続(&N)",                 ID_FILE_NEW
+        MENUITEM "接続を閉じる(&C)",                  ID_FILE_CLOSE
+        MENUITEM SEPARATOR
+        MENUITEM "サーバー情報を開く(&O)...\t",          ID_FILE_OPEN
+        MENUITEM "サーバー情報を保存(&S)",               ID_FILE_SAVE_AS
+        MENUITEM "すべての状態を保存(&W)",               ID_FILE_ALL_SAVE
+        MENUITEM SEPARATOR
+        MENUITEM "ログファイルに保存(&L)",               ID_LOG_OPEN
+        MENUITEM "SFTPファイルの転送(&T)",             IDM_SFTP
+        POPUP "XYZModemファイル転送"
+        BEGIN
+            MENUITEM "XModemアップロード",                IDM_XMODEM_UPLOAD
+            MENUITEM "YModemアップロード",                IDM_YMODEM_UPLOAD
+            MENUITEM "ZModemアップロード",                IDM_ZMODEM_UPLOAD
+            MENUITEM SEPARATOR
+            MENUITEM "XModemダウンロード",                IDM_XMODEM_DOWNLOAD
+            MENUITEM "YModemダウンロード",                IDM_YMODEM_DOWNLOAD
+            MENUITEM "ZModemダウンロード",                IDM_ZMODEM_DOWNLOAD
+        END
+        MENUITEM SEPARATOR
+        MENUITEM "最近使ったﾌｧｲﾙ",                   ID_FILE_MRU_FILE1, GRAYED
+        MENUITEM SEPARATOR
+        MENUITEM "アプリケーションの終了(&X)",             ID_APP_EXIT
+    END
+    POPUP "編集(&E)"
+    BEGIN
+        MENUITEM "コピー(&C)",                     ID_EDIT_COPY
+        MENUITEM "貼り付け(&P)",                    ID_EDIT_PASTE
+        MENUITEM SEPARATOR
+        MENUITEM "ChatScriptの完了(&S)",           ID_CHARSCRIPT_END
+        MENUITEM "Brark信号を送る(&B)",              ID_SEND_BREAK
+        MENUITEM "マウスイベントを無効(&M)",              ID_MOUSE_EVENT
+        MENUITEM SEPARATOR
+        MENUITEM "キー操作の記録(&R)",                 ID_MACRO_REC
+        MENUITEM "キー操作の再現(&Q)",                 ID_MACRO_PLAY
+        MENUITEM SEPARATOR
+        MENUITEM "以前に記録したキー操作",                 ID_MACRO_HIS1
+        MENUITEM "以前に記録したキー操作",                 ID_MACRO_HIS2
+        MENUITEM "以前に記録したキー操作",                 ID_MACRO_HIS3
+        MENUITEM "以前に記録したキー操作",                 ID_MACRO_HIS4
+        MENUITEM "以前に記録したキー操作",                 ID_MACRO_HIS5
+    END
+    POPUP "表示(&V)"
+    BEGIN
+        MENUITEM "ツールバー(&T)",                   ID_VIEW_TOOLBAR
+        MENUITEM "ステータスバー(&S)",                 ID_VIEW_STATUS_BAR
+        MENUITEM "Tekウィンドウ(&K)",                IDM_TEKDISP
+        MENUITEM SEPARATOR
+        MENUITEM "オプション設定(&P)",                 ID_SETOPTION
+        MENUITEM "標準の設定に戻す",                    IDC_LOADDEFAULT
+        MENUITEM "標準に設定する",                     IDC_SAVEDEFAULT
+        MENUITEM SEPARATOR
+        POPUP "漢字コードの変更"
+        BEGIN
+            MENUITEM "EUC",                         IDM_KANJI_EUC
+            MENUITEM "SJIS",                        IDM_KANJI_SJIS
+            MENUITEM "ASCII",                       IDM_KANJI_ASCII
+            MENUITEM "UTF8",                        IDM_KANJI_UTF8
+        END
+    END
+    POPUP "ウィンドウ(&W)"
+    BEGIN
+        MENUITEM "別ウィンドウを開く(&N)",               ID_WINDOW_NEW
+        MENUITEM "ウィンドウを閉じる(&C)",               ID_WINDOW_CLOSE
+        MENUITEM SEPARATOR
+        MENUITEM "縦方向に分割(&H)",                  ID_PANE_HSPLIT
+        MENUITEM "横方向に分割(&W)",                  ID_PANE_WSPLIT
+        MENUITEM "分割を閉じる(&X)",                  ID_PANE_DELETE
+        MENUITEM SEPARATOR
+        MENUITEM "重ねて表示(&O)",                   ID_WINDOW_CASCADE
+        MENUITEM "並べて表示(&T)",                   ID_WINDOW_TILE_HORZ
+        MENUITEM SEPARATOR
+        MENUITEM "現在の分割を保存(&S)",                ID_PANE_SAVE
+    END
+    POPUP "ヘルプ(&H)"
+    BEGIN
+        MENUITEM "RLogin のバージョン情報(&A)...",      ID_APP_ABOUT
+    END
+END
+
+IDR_SFTPMENU MENU 
+BEGIN
+    POPUP "ﾌｧｲﾙ(&F)"
+    BEGIN
+        MENUITEM "別のファイルの転送を開く(&T)",            IDM_SFTP
+        MENUITEM SEPARATOR
+        MENUITEM "このファイル転送を閉じる(&X)",            IDM_SFTP_CLOSE
+    END
+    POPUP "操作"
+    BEGIN
+        MENUITEM "ファイルのアップロード(&U)",             IDM_SFTP_UPLOAD
+        MENUITEM "ファイルのダウンロード(&D)",             IDM_SFTP_DOWNLOAD
+        MENUITEM SEPARATOR
+        MENUITEM "フォルダの作成(&M)",                 IDM_SFTP_MKDIR
+        MENUITEM "ファイルの削除(&X)",                 IDM_SFTP_DELETE
+        MENUITEM "ファイル名の変更(&N)",                IDM_SFTP_RENAME
+        MENUITEM "ファイル属性の変更(&A)",               IDM_SFTP_CHMOD
+        MENUITEM SEPARATOR
+        MENUITEM "ミラーアップロード(&S)",               IDM_SFTP_ALLUPLOAD
+        MENUITEM "ミラーダウンロード(&L)",               IDM_SFTP_ALLDOWNLOAD
+        MENUITEM SEPARATOR
+        MENUITEM "ファイル転送の中止(&Z)",               IDM_SFTP_ABORT
+        MENUITEM "最新の情報に更新(&R)",                IDM_SFTP_REFLESH
+    END
+END
+
+IDR_POPUPMENU MENU 
+BEGIN
+    POPUP "SERVERLIST"
+    BEGIN
+        MENUITEM "接続先を新規作成",                    ID_EDIT_NEW
+        MENUITEM "接続先を編集する",                    ID_EDIT_UPDATE
+        MENUITEM "接続先を削除する",                    ID_EDIT_DELETE
+        MENUITEM SEPARATOR
+        MENUITEM "接続先を複写する",                    ID_EDIT_DUPS
+        MENUITEM SEPARATOR
+        MENUITEM "最新の情報に更新",                    ID_EDIT_CHECK
+    END
+    POPUP "EDITLIST"
+    BEGIN
+        MENUITEM "新規作成",                        ID_EDIT_NEW
+        MENUITEM "項目編集",                        ID_EDIT_UPDATE
+        MENUITEM "項目削除",                        ID_EDIT_DELETE
+        MENUITEM SEPARATOR
+        MENUITEM "項目複写",                        ID_EDIT_DUPS
+    END
+    POPUP "IDKEYLIST"
+    BEGIN
+        MENUITEM "優先順位を上へ",                     IDC_IDKEY_UP
+        MENUITEM "優先順位を下へ",                     IDC_IDKEY_DOWN
+        MENUITEM SEPARATOR
+        MENUITEM "名前を編集する",                     ID_EDIT_UPDATE
+        MENUITEM "認証キーを削除する",                   ID_EDIT_DELETE
+        MENUITEM SEPARATOR
+        MENUITEM "クリップボードへ送る",                  ID_EDIT_COPY
+        MENUITEM SEPARATOR
+        MENUITEM "ファイルからインポート",                 IDC_IDKEY_INPORT
+        MENUITEM "ファイルへエクスポート",                 IDC_IDKEY_EXPORT
+        MENUITEM SEPARATOR
+        MENUITEM "最新の情報に更新",                    ID_EDIT_CHECK
+    END
+END
+
+IDR_TEKWND MENU 
+BEGIN
+    POPUP "ファイル(&F)"
+    BEGIN
+        MENUITEM "ファイルに保存(&S)",                 IDM_TEK_SAVE
+        MENUITEM SEPARATOR
+        MENUITEM "閉じる(&X)",                     IDM_TEK_CLOSE
+    END
+    POPUP "編集(&E)"
+    BEGIN
+        MENUITEM "画面をクリア(&C)",                  IDM_TEK_CLEAR
+        MENUITEM "Tek/VTモード切換(&M)",             IDM_TEK_MODE
+    END
+    POPUP "ヘルプ(&H)"
+    BEGIN
+        MENUITEM "RLogin のバージョン情報(&A)...",      ID_APP_ABOUT
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_ABOUTBOX DIALOGEX 0, 0, 243, 166
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "RLoginのバージョン情報"
+FONT 8, "MS Shell Dlg", 400, 0, 0x80
+BEGIN
+    ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
+    LTEXT           "RLogin Version 2.6.2 (2009/01/30)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "Copyright (C) 1998-2009 Culti",IDC_STATIC,47,18,176,8
+    DEFPUSHBUTTON   "OK",IDOK,96,145,50,14,WS_GROUP
+    LTEXT           "OpenSSL 0.9.8j Jan 7th, 2009",IDC_STATIC,47,35,176,8
+    LTEXT           "Copyright (c) 1998-2008 The OpenSSL Project",IDC_STATIC,47,46,176,8
+    LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,47,57,176,8
+    LTEXT           "All rights reserved.",IDC_STATIC,47,68,176,8
+    LTEXT           "zlib 1.2.3",IDC_STATIC,47,84,176,8
+    LTEXT           "(C) 1995-2005 Jean-loup Gailly and Mark Adler",IDC_STATIC,47,94,176,8
+    LTEXT           "iconv (GNU libiconv 1.12)",IDC_STATIC,47,113,176,8
+    LTEXT           "Copyright (C) 2000-2002 Free Software Foundation, Inc.",IDC_STATIC,47,124,176,8
+END
+
+IDD_ALGOPARADLG DIALOGEX 0, 0, 299, 253
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "SSHサポート"
+FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,85,232,50,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,164,232,50,14
+    CONTROL         "List1",IDC_ALGO_LIST1,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,35,31,77,47
+    CONTROL         "List1",IDC_ALGO_LIST2,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,121,31,77,47
+    CONTROL         "List1",IDC_ALGO_LIST3,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,207,31,77,47
+    CONTROL         "List1",IDC_ALGO_LIST4,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,35,105,77,47
+    CONTROL         "List1",IDC_ALGO_LIST5,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,121,105,77,47
+    CONTROL         "List1",IDC_ALGO_LIST6,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,207,105,77,47
+    CONTROL         "List1",IDC_ALGO_LIST7,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,35,160,77,47
+    CONTROL         "List1",IDC_ALGO_LIST8,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,121,160,77,47
+    CONTROL         "List1",IDC_ALGO_LIST9,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,207,160,77,47
+    GROUPBOX        "SSH1",IDC_STATIC,7,18,285,68
+    GROUPBOX        "SSH2",IDC_STATIC,7,91,285,137
+    LTEXT           "入力",IDC_STATIC,12,125,15,8
+    LTEXT           "出力",IDC_STATIC,12,178,15,8
+    LTEXT           "圧縮",IDC_STATIC,235,7,15,8
+    LTEXT           "検証",IDC_STATIC,150,7,15,8
+    LTEXT           "暗号",IDC_STATIC,65,7,15,8
+    CONTROL         "暗号シャッフル",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,43,212,61,10
+    CONTROL         "検証シャッフル",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,129,212,61,10
+END
+
+IDD_PASSDLG DIALOGEX 0, 0, 171, 128
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "パスワード入力"
+FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
+BEGIN
+    EDITTEXT        IDC_HOSTADDR,79,17,76,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_USERNAME,79,37,76,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_PASSNAME,79,57,76,14,ES_PASSWORD | ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "OK",IDOK,31,107,50,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,91,107,50,14
+    LTEXT           "Password",IDC_PROMPT,18,57,53,14,SS_CENTERIMAGE
+    LTEXT           "User Name",IDC_STATIC,18,37,53,14,SS_CENTERIMAGE
+    CONTROL         "Progress1",IDC_TIMELIMIT,"msctls_progress32",0x0,16,77,139,14
+    LTEXT           "Server Address",IDC_STATIC,18,17,53,14,SS_CENTERIMAGE
+    GROUPBOX        "",IDC_STATIC,7,7,157,93
+END
+
+IDD_IDKEYFILEDLG DIALOGEX 0, 0, 243, 195
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "認証キー"
+FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
+BEGIN
+    EDITTEXT        IDC_IDKEYFILE,19,25,173,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDC_IDKEYSEL,196,25,26,14
+    EDITTEXT        IDC_PASSNAME,74,100,94,14,ES_PASSWORD | ES_AUTOHSCROLL
+    EDITTEXT        IDC_PASSNAME2,74,122,94,14,ES_PASSWORD | ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "OK",IDOK,54,174,50,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,137,174,50,14
+    LTEXT           "パスフレーズ",IDC_STATIC,29,103,39,8
+    LTEXT           "パス再入力",IDC_STATIC,29,125,35,8
+    GROUPBOX        "ファイル",IDC_STATIC,7,7,229,154
+    GROUPBOX        "",IDC_STATIC,15,49,212,103
+    LTEXT           "",IDC_MESSAGE,25,61,192,33
+END
+
+IDD_SFTPDLG DIALOGEX 0, 0, 458, 227
+STYLE DS_SETFONT | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "SFTP"
+FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
+BEGIN
+    PUSHBUTTON      "..",IDC_LOCAL_UP,7,7,16,14
+    COMBOBOX        IDC_LOCAL_CWD,27,7,200,150,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "List1",IDC_LOCAL_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | WS_TABSTOP,7,25,220,175,WS_EX_ACCEPTFILES | WS_EX_CLIENTEDGE
+    PUSHBUTTON      "..",IDC_REMOTE_UP,232,7,16,14
+    COMBOBOX        IDC_REMOTE_CWD,251,7,200,150,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "List1",IDC_REMOTE_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | WS_TABSTOP,231,25,220,175,WS_EX_ACCEPTFILES | WS_EX_CLIENTEDGE
+    CONTROL         "Progress1",IDC_PROGRESS1,"msctls_progress32",0x0,231,206,137,14
+    RTEXT           "",IDC_STATUS3,372,206,45,14,SS_CENTERIMAGE | SS_SUNKEN
+    RTEXT           "",IDC_STATUS4,421,206,30,14,SS_CENTERIMAGE | SS_SUNKEN
+    RTEXT           "",IDC_STATUS2,41,206,186,14,SS_CENTERIMAGE | SS_SUNKEN
+    RTEXT           "",IDC_STATUS1,7,206,30,14,SS_CENTERIMAGE | SS_SUNKEN
+END
+
+IDD_UPDATEDLG DIALOGEX 0, 0, 246, 148
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "同名ファイルの処理方法"
+FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
+BEGIN
+    DEFPUSHBUTTON   "上記の処理を実行",IDC_BUTTON1,7,127,70,14
+    PUSHBUTTON      "以降も同じ処理",IDC_BUTTON2,88,127,70,14
+    PUSHBUTTON      "すべて中止する",IDC_BUTTON3,169,127,70,14
+    CONTROL         "無条件で上書きする",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,15,29,152,10
+    CONTROL         "更新日時が新しければ上書きする",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,15,48,152,10
+    CONTROL         "更新日時とサイズが違えば上書きする",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON,15,67,152,10
+    CONTROL         "中断されたと見なして再開する",IDC_RADIO4,"Button",BS_AUTORADIOBUTTON,15,86,152,10
+    CONTROL         "上書きしないで無視する",IDC_RADIO5,"Button",BS_AUTORADIOBUTTON,15,105,152,10
+    LTEXT           "",IDC_FILENAME,7,7,230,14,SS_CENTERIMAGE | SS_SUNKEN
+END
+
+IDD_CHMODDLG DIALOGEX 0, 0, 232, 200
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "ファイル属性"
+FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,47,177,59,15
+    PUSHBUTTON      "キャンセル",IDCANCEL,126,177,59,15
+    GROUPBOX        "オーナー",IDC_STATIC,8,8,216,49
+    CONTROL         "読み込み",IDC_CHMOD1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,25,30,50,11
+    CONTROL         "書き込み",IDC_CHMOD2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,96,30,49,11
+    CONTROL         "実行",IDC_CHMOD3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,166,30,35,11
+    GROUPBOX        "グループ",IDC_STATIC,8,63,216,49
+    CONTROL         "読み込み",IDC_CHMOD4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,25,85,50,11
+    CONTROL         "書き込み",IDC_CHMOD5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,96,85,49,11
+    CONTROL         "実行",IDC_CHMOD6,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,166,85,35,11
+    GROUPBOX        "アザー",IDC_STATIC,8,120,216,49
+    CONTROL         "読み込み",IDC_CHMOD7,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,25,142,50,11
+    CONTROL         "書き込み",IDC_CHMOD8,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,96,142,49,11
+    CONTROL         "実行",IDC_CHMOD9,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,166,142,35,11
+END
+
+IDD_EDITDLG DIALOGEX 0, 0, 287, 104
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "ファイル／フォルダ名入力"
+FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
+BEGIN
+    EDITTEXT        IDC_EDIT1,18,47,250,14,ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "OK",IDOK,74,83,50,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,162,83,50,14
+    GROUPBOX        "",IDC_STATIC,7,7,274,68
+    LTEXT           "Static",IDC_TITLE,18,22,250,14,SS_CENTERIMAGE
+END
+
+IDD_SERVERLIST DIALOGEX 0, 0, 290, 124
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Server Select"
+FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,233,7,50,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,233,24,50,14
+    CONTROL         "List1",IDC_SERVERLIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,7,7,220,110
+    PUSHBUTTON      "新規",IDC_NEWENTRY,233,65,50,14
+    PUSHBUTTON      "編集",IDC_EDITENTRY,233,84,50,14
+    PUSHBUTTON      "削除",IDC_DELENTRY,233,103,50,14
+END
+
+IDD_FONTPARADLG DIALOGEX 0, 0, 233, 257
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Font Parameter"
+FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
+BEGIN
+    EDITTEXT        IDC_ENTRYNAME,15,31,154,14,ES_AUTOHSCROLL
+    COMBOBOX        IDC_FONTCODE,176,31,43,140,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_ICONVSET,15,62,154,106,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_CHARBANK,176,62,43,50,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_CHARSET,15,111,154,70,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Font",IDC_FONTSEL,179,110,40,14
+    EDITTEXT        IDC_FACENAME,15,140,204,14,ES_AUTOHSCROLL
+    COMBOBOX        IDC_DISPZOOM2,15,209,50,70,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_DISPZOOM,90,209,50,70,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_DISPOFFSET,169,209,50,70,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    DEFPUSHBUTTON   "OK",IDOK,55,236,50,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,127,236,50,14
+    CONTROL         "GRバンク用として上位80h～FFhを使用する",IDC_SHIFT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,180,188,10
+    LTEXT           "Entry Name",IDC_STATIC,15,19,108,8
+    LTEXT           "Code",IDC_STATIC,176,19,18,8
+    LTEXT           "Windows Charactrer Set",IDC_STATIC,15,99,108,8
+    LTEXT           "Font Face Name",IDC_STATIC,15,128,108,8
+    LTEXT           "Bank",IDC_STATIC,176,50,16,8
+    LTEXT           "IConv Character Set",IDC_STATIC,15,50,108,8
+    LTEXT           "Disp Offset",IDC_STATIC,169,197,50,8
+    LTEXT           "Height Zoom",IDC_STATIC,90,197,50,8
+    GROUPBOX        "Character Set Property",IDC_STATIC,7,7,219,75
+    GROUPBOX        "Windows Font Property",IDC_STATIC,7,86,219,74
+    GROUPBOX        "Display Property",IDC_STATIC,7,164,219,65
+    LTEXT           "Width Zoom",IDC_STATIC,15,197,50,8
+END
+
+IDD_KEYPARADLG DIALOGEX 0, 0, 191, 108
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Assign Key String"
+FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
+BEGIN
+    COMBOBOX        IDC_KEYCODE,7,20,48,88,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Shift",IDC_KEYSTAT1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,77,22,31,10
+    CONTROL         "Ctrl",IDC_KEYSTAT2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,116,22,28,10
+    CONTROL         "Appli",IDC_KEYSTAT3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,152,22,31,10
+    EDITTEXT        IDC_KEYMAPS,7,60,177,14,ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "OK",IDOK,39,87,50,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,102,87,50,14
+    LTEXT           "KeyCode",IDC_STATIC,7,7,30,8
+    GROUPBOX        "",IDC_STATIC,69,7,115,35
+    CTEXT           "+",IDC_STATIC,59,22,8,8
+    LTEXT           "Assign String",IDC_STATIC,7,45,43,8
+END
+
+IDD_TERMPAGE DIALOGEX 0, 0, 251, 270
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "ターミナル"
+FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
+BEGIN
+    CONTROL         "行末での自動改行を有効にする",IDC_TERMCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,28,113,10
+    CONTROL         "行頭でのBSで上行に移動を有効",IDC_TERMCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,44,113,10
+    CONTROL         "キーコードをアプリモードにする",IDC_TERMCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,59,113,10
+    CONTROL         "ボールド文字を有効にする",IDC_TERMCHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,100,158,10
+    CONTROL         "行末でのディレイ改行を無効にする",IDC_TERMCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,116,158,10
+    CONTROL         "ESC[mで消去文字の属性も適用する",IDC_TERMCHECK6,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,132,158,10
+    CONTROL         "UnicodeのAタイプの文字を半角として表示する",IDC_TERMCHECK7,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,148,158,10
+    CONTROL         "漢字コードエラー時に自動で変更する",IDC_TERMCHECK9,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,165,158,10
+    CONTROL         "通信ログを年月日を付けて自動作成する",IDC_TERMCHECK8,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,207,159,10
+    PUSHBUTTON      "...",IDC_AUTOLOG_SEL,187,205,40,14
+    COMBOBOX        IDC_COMBO1,187,224,40,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COMBO2,187,242,40,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    GROUPBOX        "エスケープシーケンス",IDC_STATIC,7,7,237,69
+    CTEXT           "kterm",IDC_STATIC,180,15,25,8
+    CTEXT           "cons25",IDC_STATIC,207,15,25,8
+    CTEXT           "■",IDC_STATIC,191,44,8,8,SS_CENTERIMAGE
+    CTEXT           "□",IDC_STATIC,191,59,8,8,SS_CENTERIMAGE
+    CTEXT           "■",IDC_STATIC,191,100,8,8,SS_CENTERIMAGE
+    CTEXT           "■",IDC_STATIC,216,116,8,8,SS_CENTERIMAGE
+    LTEXT           "ESC [ ? 7 h",IDC_STATIC,144,28,35,8
+    LTEXT           "ESC [ ? 45 h",IDC_STATIC,144,44,38,8
+    LTEXT           "ESC [ ? 0 h",IDC_STATIC,144,59,35,8
+    CTEXT           "■",IDC_STATIC,216,132,8,8,SS_CENTERIMAGE
+    GROUPBOX        "オプション",IDC_STATIC,7,84,237,101
+    CTEXT           "■",IDC_STATIC,191,28,8,8,SS_CENTERIMAGE
+    CTEXT           "□",IDC_STATIC,216,148,8,8
+    CTEXT           "□",IDC_STATIC,191,148,8,8
+    CTEXT           "□",IDC_STATIC,191,132,8,8
+    CTEXT           "□",IDC_STATIC,191,116,8,8
+    CTEXT           "□",IDC_STATIC,216,100,8,8
+    CTEXT           "■",IDC_STATIC,216,59,8,8
+    CTEXT           "□",IDC_STATIC,216,44,8,8
+    CTEXT           "□",IDC_STATIC,216,28,8,8
+    GROUPBOX        "通信ログ",IDC_STATIC,7,192,237,71
+    LTEXT           "ファイルに保存する通信ログの形式を選択",IDC_STATIC,26,227,150,8
+    LTEXT           "ログの文字コードを選択(RAWモード以外で有効）",IDC_STATIC,26,244,150,8
+    CTEXT           "□",IDC_STATIC,216,165,8,8
+    CTEXT           "□",IDC_STATIC,191,165,8,8
+END
+
+IDD_PROTOPAGE DIALOGEX 0, 0, 251, 270
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "通信"
+FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
+BEGIN
+    CONTROL         "自動ユーザー認証を行わない",IDC_PROTOCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,19,148,10
+    CONTROL         "データの暗号化を禁止する",IDC_PROTOCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,34,148,10
+    CONTROL         "SSHバージョン１で接続する",IDC_PROTOCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,72,148,10
+    CONTROL         "ポートフォワードだけ行う （SSH2のみ）",IDC_PROTOCHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,88,148,10
+    CONTROL         "エージェント転送を有効にする(SSH2のみ)",IDC_PROTOCHECK12,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,104,148,10
+    CONTROL         "KeepAliveパケットの送信間隔(sec)",IDC_PROTOCHECK11,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,120,117,10
+    EDITTEXT        IDC_KEEPALIVE,140,117,24,14,ES_RIGHT | ES_AUTOHSCROLL
+    PUSHBUTTON      "暗号方式",IDC_SSHALGO,174,72,63,14
+    PUSHBUTTON      "認証キー",IDC_SSHIDKEY,174,95,63,14
+    PUSHBUTTON      "ポートフォワード",IDC_SSHPFD,174,117,63,14
+    CONTROL         "改行(CR)を確認し指定時間待って次を送信する(ms)",IDC_PROTOCHECK9,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,165,173,10
+    EDITTEXT        IDC_DELAYMSEC,199,163,38,14,ES_RIGHT | ES_AUTOHSCROLL
+    CONTROL         "BPlus/ZModemファイル転送を有効にする",IDC_PROTOCHECK8,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,181,173,10
+    CONTROL         "キーボード入力をローカルエディットモードにする",IDC_PROTOCHECK7,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,197,173,10
+    CONTROL         "接続時にパスワード入力を求める",IDC_PROTOCHECK6,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,213,173,10
+    CONTROL         "接続が切れると自動でプログラムを終了する",IDC_PROTOCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,229,173,10
+    CONTROL         "TCPオプションのKeepAliveを有効にする",IDC_PROTOCHECK10,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,245,173,10
+    GROUPBOX        "TELNET",IDC_STATIC,7,7,237,44
+    GROUPBOX        "SSH",IDC_STATIC,7,57,237,85
+    GROUPBOX        "オプション",IDC_STATIC,7,149,237,114
+END
+
+IDD_PFDPARADLG DIALOGEX 0, 0, 331, 78
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "SSH2 ポートフォワード設定"
+FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
+BEGIN
+    COMBOBOX        IDC_LISTENHOST,7,29,102,100,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_LISTENPORT,111,29,48,100,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_CONNECTHOST,172,29,102,100,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_CONNECTPORT,276,29,48,100,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    DEFPUSHBUTTON   "OK",IDOK,105,57,50,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,175,57,50,14
+    LTEXT           "Listened Host Name",IDC_STATIC,24,14,60,8
+    LTEXT           "Listened Port",IDC_STATIC,113,14,40,8
+    LTEXT           "Connect Host Name",IDC_STATIC,190,14,60,8
+    LTEXT           "Connect Port",IDC_STATIC,278,14,39,8
+END
+
+IDD_PFDLISTDLG DIALOGEX 0, 0, 257, 167
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "SSH2 ポートフォワード"
+FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
+BEGIN
+    DEFPUSHBUTTON   "閉じる",IDOK,193,146,50,14
+    CONTROL         "List2",IDC_PFDLIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | WS_BORDER | WS_TABSTOP,7,7,243,109
+    PUSHBUTTON      "新規",IDC_PFDNEW,13,146,50,14
+    PUSHBUTTON      "編集",IDC_PFDEDIT,73,146,50,14
+    PUSHBUTTON      "削除",IDC_PFDDEL,133,146,50,14
+    EDITTEXT        IDC_EDIT1,183,123,60,14,ES_AUTOHSCROLL
+    CONTROL         "X11ポートフォワードを使用する",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,125,106,10
+    LTEXT           "DISPLAY",IDC_STATIC,151,126,27,8
+END
+
+IDD_CHARSETPAGE DIALOGEX 0, 0, 251, 270
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "文字セット"
+FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
+BEGIN
+    CONTROL         "EUC",IDC_CHARSET1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,14,20,30,10
+    CONTROL         "SJIS",IDC_CHARSET2,"Button",BS_AUTORADIOBUTTON,58,20,31,10
+    CONTROL         "ASCII",IDC_CHARSET3,"Button",BS_AUTORADIOBUTTON,103,20,34,10
+    CONTROL         "UTF-8",IDC_CHARSET4,"Button",BS_AUTORADIOBUTTON,151,20,34,10
+    PUSHBUTTON      "iconv",IDC_ICONVSET,197,18,38,14
+    CONTROL         "",IDC_BANKGL1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,14,57,8,8
+    CONTROL         "",IDC_BANKGL2,"Button",BS_AUTORADIOBUTTON,14,78,8,8
+    CONTROL         "",IDC_BANKGL3,"Button",BS_AUTORADIOBUTTON,14,99,8,8
+    CONTROL         "",IDC_BANKGL4,"Button",BS_AUTORADIOBUTTON,14,120,8,8
+    CONTROL         "",IDC_BANKGR1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,47,57,8,8
+    CONTROL         "",IDC_BANKGR2,"Button",BS_AUTORADIOBUTTON,47,78,8,8
+    CONTROL         "",IDC_BANKGR3,"Button",BS_AUTORADIOBUTTON,47,99,8,8
+    CONTROL         "",IDC_BANKGR4,"Button",BS_AUTORADIOBUTTON,47,120,8,8
+    COMBOBOX        IDC_CHARBANK1,94,55,135,80,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_CHARBANK2,94,76,135,80,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_CHARBANK3,94,97,135,80,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_CHARBANK4,94,118,135,80,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "List1",IDC_FONTLIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | WS_BORDER | WS_TABSTOP,12,160,226,77
+    PUSHBUTTON      "新規",IDC_FONTLISTNEW,44,241,45,14
+    PUSHBUTTON      "編集",IDC_FONTLISTEDIT,102,241,45,14
+    PUSHBUTTON      "削除",IDC_FONTLISTDEL,160,241,45,14
+    CTEXT           "0",IDC_STATIC,81,57,8,8
+    CTEXT           "1",IDC_STATIC,81,78,8,8
+    CTEXT           "2",IDC_STATIC,81,99,8,8
+    CTEXT           "3",IDC_STATIC,81,120,8,8
+    GROUPBOX        "Character Set",IDC_STATIC,7,7,237,30
+    GROUPBOX        "GL",IDC_STATIC,7,41,22,96
+    GROUPBOX        "GR",IDC_STATIC,40,41,22,96
+    GROUPBOX        "Charactor Bank",IDC_STATIC,74,41,170,96
+    GROUPBOX        "Fonts Set",IDC_STATIC,7,145,237,118
+END
+
+IDD_COLORPARADLG DIALOGEX 0, 0, 251, 270
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "カラー"
+FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
+BEGIN
+    COMBOBOX        IDC_COLSET,95,18,60,50,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "",IDC_BOX0,"Static",SS_BLACKFRAME,20,38,20,20,WS_EX_STATICEDGE
+    CONTROL         "",IDC_BOX1,"Static",SS_BLACKFRAME,47,38,20,20,WS_EX_STATICEDGE
+    CONTROL         "",IDC_BOX2,"Static",SS_BLACKFRAME,74,38,20,20,WS_EX_STATICEDGE
+    CONTROL         "",IDC_BOX3,"Static",SS_BLACKFRAME,101,38,20,20,WS_EX_STATICEDGE
+    CONTROL         "",IDC_BOX4,"Static",SS_BLACKFRAME,128,38,20,20,WS_EX_STATICEDGE
+    CONTROL         "",IDC_BOX5,"Static",SS_BLACKFRAME,155,38,20,20,WS_EX_STATICEDGE
+    CONTROL         "",IDC_BOX6,"Static",SS_BLACKFRAME,182,38,20,20,WS_EX_STATICEDGE
+    CONTROL         "",IDC_BOX7,"Static",SS_BLACKFRAME,209,38,20,20,WS_EX_STATICEDGE
+    CONTROL         "",IDC_BOX8,"Static",SS_BLACKFRAME,20,62,20,20,WS_EX_STATICEDGE
+    CONTROL         "",IDC_BOX9,"Static",SS_BLACKFRAME,47,62,20,20,WS_EX_STATICEDGE
+    CONTROL         "",IDC_BOX10,"Static",SS_BLACKFRAME,74,62,20,20,WS_EX_STATICEDGE
+    CONTROL         "",IDC_BOX11,"Static",SS_BLACKFRAME,101,62,20,20,WS_EX_STATICEDGE
+    CONTROL         "",IDC_BOX12,"Static",SS_BLACKFRAME,128,62,20,20,WS_EX_STATICEDGE
+    CONTROL         "",IDC_BOX13,"Static",SS_BLACKFRAME,155,62,20,20,WS_EX_STATICEDGE
+    CONTROL         "",IDC_BOX14,"Static",SS_BLACKFRAME,182,62,20,20,WS_EX_STATICEDGE
+    CONTROL         "",IDC_BOX15,"Static",SS_BLACKFRAME,209,62,20,20,WS_EX_STATICEDGE
+    CONTROL         "",IDC_BOXTEXT,"Static",SS_BLACKFRAME,85,105,20,20,WS_EX_STATICEDGE
+    CONTROL         "",IDC_BOXBACK,"Static",SS_BLACKFRAME,85,129,20,20,WS_EX_STATICEDGE
+    CONTROL         "Slider1",IDC_TRANSPARENT,"msctls_trackbar32",TBS_TOP,139,112,90,21
+    LTEXT           "Sleep Time",IDC_STATIC,144,139,34,8
+    COMBOBOX        IDC_COMBO2,189,136,34,104,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "",IDC_ATTR1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,23,178,46,10
+    CONTROL         "",IDC_ATTR2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,77,178,46,10
+    CONTROL         "",IDC_ATTR3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,131,178,46,10
+    CONTROL         "",IDC_ATTR4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,185,178,46,10
+    CONTROL         "",IDC_ATTR5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,23,192,46,10
+    CONTROL         "",IDC_ATTR6,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,77,192,46,10
+    CONTROL         "",IDC_ATTR7,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,131,192,46,10
+    CONTROL         "",IDC_ATTR8,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,185,192,46,10
+    EDITTEXT        IDC_BACKFILE,17,238,189,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDC_BACKSEL,210,238,24,14
+    CTEXT           "Text Color",IDC_STATIC,20,111,54,8
+    CTEXT           "Backgrand Color",IDC_STATIC,20,135,54,8
+    GROUPBOX        "Chacter",IDC_STATIC,7,94,115,63
+    GROUPBOX        "Color Table",IDC_STATIC,7,7,237,82
+    GROUPBOX        "Transparent",IDC_STATIC,129,94,115,63
+    CTEXT           "0",IDC_STATIC,141,105,11,8
+    CTEXT           "255",IDC_STATIC,215,105,11,8
+    CTEXT           "128",IDC_STATIC,179,105,11,8
+    GROUPBOX        "バックグランド画像",IDC_STATIC,7,220,237,43
+    GROUPBOX        "Attribute",IDC_STATIC,7,164,237,48
+END
+
+IDD_ICONVDLG DIALOGEX 0, 0, 210, 135
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "IConv Character Set"
+FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,46,114,50,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,113,114,50,14
+    CTEXT           "EUC",IDC_STATIC,13,17,30,8,SS_CENTERIMAGE
+    CTEXT           "SJIS",IDC_STATIC,13,41,30,8,SS_CENTERIMAGE
+    CTEXT           "ASCII",IDC_STATIC,13,65,30,8,SS_CENTERIMAGE
+    CTEXT           "UTF-8",IDC_STATIC,13,89,30,8,SS_CENTERIMAGE
+    COMBOBOX        IDC_CHARSET1,53,15,136,106,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_CHARSET2,53,39,136,106,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_CHARSET3,53,63,136,106,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_CHARSET4,53,87,136,106,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+END
+
+IDD_KEYLISTPAGE DIALOGEX 0, 0, 251, 270
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "その他"
+FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
+BEGIN
+    CONTROL         "左クリックの範囲指定だけでクリップボードにコピーする",IDC_PROTOCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,20,208,10
+    CONTROL         "右ダブルクリックだけでクリップボードからペーストする",IDC_PROTOCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,37,208,10
+    CONTROL         "http;//で始まる文字列をコピーすると自動でブラウザを起動する",IDC_PROTOCHECK2,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,54,208,10
+    CONTROL         "選択した文字列から連続したスペースをタブに変換する",IDC_PROTOCHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,71,208,10
+    EDITTEXT        IDC_EDIT3,123,85,114,14,ES_AUTOHSCROLL
+    COMBOBOX        IDC_COMBO1,123,104,40,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_EDIT1,170,104,67,14,ES_AUTOHSCROLL
+    CONTROL         "List1",IDC_KEYLIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | WS_BORDER | WS_TABSTOP,11,143,226,91
+    PUSHBUTTON      "新規",IDC_KEYASNNEW,44,241,45,14
+    PUSHBUTTON      "編集",IDC_KEYASNEDIT,103,241,45,14
+    PUSHBUTTON      "削除",IDC_KEYASNDEL,162,241,45,14
+    GROUPBOX        "クリップボード",IDC_STATIC,7,7,237,118
+    GROUPBOX        "キーコード",IDC_STATIC,7,129,237,134
+    LTEXT           "ファイルをドロップした時の動作",IDC_STATIC,19,106,91,8
+    LTEXT           "英数字以外のワード文字列",IDC_STATIC,19,89,80,8
+END
+
+IDD_PROGDLG DIALOGEX 0, 0, 267, 128
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "ファイル転送"
+FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
+BEGIN
+    PUSHBUTTON      "キャンセル",IDCANCEL,108,105,50,14
+    CONTROL         "Progress1",IDC_SIZEPROG,"msctls_progress32",WS_BORDER,16,83,235,14
+    GROUPBOX        "",IDC_STATIC,7,7,253,114
+    EDITTEXT        IDC_FILENAME,16,17,235,14,ES_AUTOHSCROLL | ES_READONLY
+    RTEXT           "",IDC_TRANSRATE,108,61,39,12,SS_CENTERIMAGE | SS_SUNKEN
+    RTEXT           "",IDC_ENDTIME,194,61,39,12,SS_CENTERIMAGE | SS_SUNKEN
+    RTEXT           "",IDC_TOTALSIZE,16,61,54,12,SS_CENTERIMAGE | SS_SUNKEN
+    LTEXT           "Byte",IDC_STATIC,77,63,15,8
+    LTEXT           "Byte/Sec",IDC_STATIC,152,63,29,8
+    LTEXT           "Sec",IDC_STATIC,239,63,12,8
+    EDITTEXT        IDC_MESSAGE,16,38,235,14,ES_AUTOHSCROLL | ES_READONLY
+END
+
+IDD_IDKEYSELDLG DIALOGEX 0, 0, 253, 271
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "認証キー"
+FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
+BEGIN
+    CONTROL         "List2",IDC_IDKEY_LIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,17,20,161,69
+    PUSHBUTTON      "上へ",IDC_IDKEY_UP,188,21,50,14
+    PUSHBUTTON      "下へ",IDC_IDKEY_DOWN,188,38,50,14
+    PUSHBUTTON      "削除",IDC_IDKEY_DEL,188,75,50,14
+    PUSHBUTTON      "インポート",IDC_IDKEY_INPORT,188,112,50,14
+    PUSHBUTTON      "エクスポート",IDC_IDKEY_EXPORT,188,128,50,14
+    COMBOBOX        IDC_IDKEY_TYPE,188,162,50,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_IDKEY_BITS,188,178,50,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_IDKEY_NAME,188,194,50,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "作成",IDC_IDKEY_CREATE,188,212,50,14
+    DEFPUSHBUTTON   "閉じる",IDOK,101,250,50,14
+    GROUPBOX        "ファイル",IDC_STATIC,7,102,239,47
+    GROUPBOX        "新規",IDC_STATIC,7,152,239,95
+    LTEXT           "SSH1はRSA1のみ、SSH2はRSA2/DSA2を選択",IDC_STATIC,17,164,161,8
+    LTEXT           "任意の名前が指定できます",IDC_STATIC,17,196,161,8
+    LTEXT           "上記の条件で認証キーを作成します",IDC_STATIC,17,214,161,8
+    LTEXT           "認証キーのビットサイズを指定します",IDC_STATIC,17,180,161,8
+    LTEXT           "ファイルから認証キーを読み込みます",IDC_STATIC,17,115,161,8
+    LTEXT           "ファイルに認証キーを保存します",IDC_STATIC,17,131,161,8
+    GROUPBOX        "認証キーリスト",IDC_STATIC,7,7,239,92
+    CONTROL         "Progress1",IDC_IDKEY_PROG,"msctls_progress32",0x0,15,231,222,10
+END
+
+IDD_SERENTPAGE DIALOGEX 0, 0, 251, 270
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "サーバー"
+FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
+BEGIN
+    EDITTEXT        IDC_ENTRYNAME,15,22,220,14,ES_AUTOHSCROLL
+    CONTROL         "direct",IDC_PROTO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,20,52,29,10
+    CONTROL         "login",IDC_PROTO2,"Button",BS_AUTORADIOBUTTON,56,52,29,10
+    CONTROL         "telnet",IDC_PROTO3,"Button",BS_AUTORADIOBUTTON,92,52,29,10
+    CONTROL         "ssh",IDC_PROTO4,"Button",BS_AUTORADIOBUTTON,128,52,29,10
+    CONTROL         "com",IDC_PROTO5,"Button",BS_AUTORADIOBUTTON,164,52,29,10
+    CONTROL         "pipe",IDC_PROTO6,"Button",BS_AUTORADIOBUTTON,200,52,29,10
+    COMBOBOX        IDC_SERVERNAME,15,110,141,60,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "com",IDC_COMCONFIG,160,110,20,14
+    COMBOBOX        IDC_SOCKNO,189,110,46,100,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_LOGINNAME,15,146,65,62,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_PASSWORD,92,146,65,14,ES_PASSWORD | ES_AUTOHSCROLL
+    COMBOBOX        IDC_TERMNAME,170,146,65,59,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "参照",IDC_KEYFILESELECT,171,185,65,14
+    CONTROL         "EUC",IDC_KANJICODE1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,20,239,30,10
+    CONTROL         "SJIS",IDC_KANJICODE2,"Button",BS_AUTORADIOBUTTON,76,239,31,10
+    CONTROL         "ASCII",IDC_KANJICODE3,"Button",BS_AUTORADIOBUTTON,133,239,34,10
+    CONTROL         "UTF-8",IDC_KANJICODE4,"Button",BS_AUTORADIOBUTTON,193,239,34,10
+    CTEXT           "Server Address",IDC_STATIC,15,98,141,8
+    CTEXT           "User Name",IDC_STATIC,15,134,65,8
+    CTEXT           "Terminal",IDC_STATIC,170,134,65,8
+    GROUPBOX        "Default Kanji Code",IDC_STATIC,7,221,237,42
+    CTEXT           "Password",IDC_STATIC,92,134,65,8
+    CTEXT           "SSH Identity Key",IDC_STATIC,171,174,65,8
+    CTEXT           "Socket Port",IDC_STATIC,189,98,46,8
+    GROUPBOX        "Server Entry",IDC_STATIC,7,7,237,71
+    GROUPBOX        "Protocol",IDC_STATIC,14,40,221,29
+    GROUPBOX        "Socket Option",IDC_STATIC,7,85,237,125
+    PUSHBUTTON      "編集",IDC_CHATEDIT,15,186,65,14
+    CTEXT           "Chat Script",IDC_STATIC,15,174,65,8
+    PUSHBUTTON      "設定",IDC_PROXYSET,93,186,65,14
+    CTEXT           "Proxy Server",IDC_STATIC,93,174,65,8
+END
+
+IDD_CHATDLG DIALOGEX 0, 0, 299, 247
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Chat Scipt"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,77,226,50,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,173,226,50,14
+    CONTROL         "",IDC_NODETREE,"SysTreeView32",TVS_HASBUTTONS | TVS_HASLINES | TVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,14,16,271,121
+    EDITTEXT        IDC_RECVSTR,18,157,128,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_SENDSTR,154,157,128,14,ES_AUTOHSCROLL
+    LTEXT           "受信文字列（正規表現）",IDC_STATIC,41,142,81,8
+    LTEXT           "送信文字列",IDC_STATIC,198,142,41,8
+    PUSHBUTTON      "次に追加",IDC_NEWNODE,33,178,50,14
+    PUSHBUTTON      "更新",IDC_UPDATENODE,155,178,50,14
+    PUSHBUTTON      "削除",IDC_DELNODE,216,178,50,14
+    GROUPBOX        "",IDC_STATIC,7,7,285,213
+    PUSHBUTTON      "ORで追加",IDC_NEXTNODE,94,178,50,14
+    CONTROL         "次回接続時にChatScriptを自動で作成する",IDC_MAKECHAT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,22,201,174,10
+END
+
+IDD_CHATSTAT DIALOGEX 0, 0, 247, 86
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Chat Script"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "終了",IDOK,78,65,90,14
+    CONTROL         "",IDC_TIMEPROG,"msctls_progress32",0x0,17,43,213,8
+    GROUPBOX        "",IDC_TITLE,7,7,233,55
+    EDITTEXT        IDC_STATUS,17,20,213,14,ES_AUTOHSCROLL | ES_READONLY
+END
+
+IDD_SCRIPTDLG DIALOGEX 0, 0, 291, 233
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Script"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,104,212,82,14
+    EDITTEXT        IDC_FILENAME,7,7,277,14,ES_AUTOHSCROLL | ES_READONLY
+    EDITTEXT        IDC_TEXT,7,27,277,179,ES_MULTILINE | ES_AUTOVSCROLL | ES_NOHIDESEL | ES_READONLY | ES_WANTRETURN | WS_VSCROLL
+END
+
+IDD_PROXYDLG DIALOGEX 0, 0, 268, 156
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Proxy Server"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "使用しない",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,21,22,51,10
+    CONTROL         "HTTP",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,91,22,33,10
+    CONTROL         "SOCKS4",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON,143,22,42,10
+    CONTROL         "SOCKS5",IDC_RADIO4,"Button",BS_AUTORADIOBUTTON,204,22,42,10
+    EDITTEXT        IDC_SERVERNAME,19,72,167,13,ES_AUTOHSCROLL
+    COMBOBOX        IDC_SOCKNO,193,72,54,100,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_USERNAME,19,101,76,13,ES_AUTOHSCROLL
+    EDITTEXT        IDC_PASSWORD,109,101,76,13,ES_PASSWORD | ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "OK",IDOK,52,135,71,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,145,135,71,14
+    GROUPBOX        "Select Proxy Protocol",IDC_STATIC,7,7,254,35
+    CTEXT           "Proxy Server Address",IDC_STATIC,19,61,165,8
+    CTEXT           "User Name",IDC_STATIC,19,90,76,8
+    CTEXT           "Password",IDC_STATIC,109,90,76,8
+    CTEXT           "Socket Port",IDC_STATIC,193,61,54,8
+    GROUPBOX        "Server Option",IDC_STATIC,7,49,254,76
+END
+
+IDD_SCRNPAGE DIALOGEX 0, 0, 251, 270
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "スクリーン"
+FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
+BEGIN
+    CONTROL         "一行あたりの文字数からフォントサイズを決定",IDC_SCRNSIZE1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,17,21,164,10
+    EDITTEXT        IDC_SCSZCOLS,187,19,40,14,ES_AUTOHSCROLL
+    CONTROL         "DECCOLMの文字数切換でウィンドウをリサイズする",IDC_TERMCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,38,164,10
+    EDITTEXT        IDC_SCSZCOLS2,187,36,40,14,ES_AUTOHSCROLL
+    CONTROL         "フォントサイズから一行あたりの文字数を決定",IDC_SCRNSIZE2,"Button",BS_AUTORADIOBUTTON,17,55,159,10
+    COMBOBOX        IDC_SCSZFONT,187,53,40,100,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_VISUALBELL,187,69,40,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_RECVCRLF,187,104,40,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_SENDCRLF,187,121,40,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_MOUSE_BTN1,79,158,40,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_MOUSE_BTN2,187,158,40,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_MOUSE_KEY1,79,175,40,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_MOUSE_KEY2,187,175,40,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_HISMAX,187,210,40,14,ES_AUTOHSCROLL | ES_NUMBER
+    COMBOBOX        IDC_WHEELSIZE,187,227,40,100,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "ヒストリーを保存し次接続時に復元する",IDC_TERMCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,245,159,10
+    PUSHBUTTON      "...",IDC_HISFILE_SEL,187,243,40,14
+    LTEXT           "ベルコード(07)による動作を選択",IDC_STATIC,17,71,159,10
+    LTEXT           "スクロールバックできるヒストリー行数",IDC_STATIC,17,212,159,10
+    LTEXT           "マウスのホイールでスクロールする方向と量",IDC_STATIC,17,229,159,10
+    GROUPBOX        "スクリーン",IDC_STATIC,7,7,237,82
+    LTEXT           "受信した改行コードの動作を設定",IDC_STATIC,17,106,159,10
+    LTEXT           "送信する改行コードの設定",IDC_STATIC,17,123,159,10
+    GROUPBOX        "改行コード",IDC_STATIC,7,92,237,49
+    GROUPBOX        "ヒストリー",IDC_STATIC,7,200,237,63
+    GROUPBOX        "マウスイベント",IDC_STATIC,7,143,237,54
+    LTEXT           "マウス左ボタン",IDC_STATIC,17,161,44,8
+    LTEXT           "Shiftキー",IDC_STATIC,17,178,28,8
+    LTEXT           "マウス右ボタン",IDC_STATIC,133,161,44,8
+    LTEXT           "Ctrlキー",IDC_STATIC,133,178,26,8
+END
+
+IDD_AUTORENDLG DIALOGEX 0, 0, 286, 140
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "ファイ名の制限の処理方法"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "上記の処理を実行",IDC_BUTTON1,53,120,82,13
+    PUSHBUTTON      "以降も同じ処理",IDC_BUTTON2,149,120,82,13
+    CONTROL         "復元可能な名前で保存",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,17,32,93,10
+    CONTROL         "全角文字に変換して保存",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,17,53,98,10
+    CONTROL         "名前を変更して保存",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON,17,74,82,10
+    CONTROL         "ダウンロードをスキップする",IDC_RADIO4,"Button",BS_AUTORADIOBUTTON,17,95,95,10
+    LTEXT           "Windowsのファイル名制限に該当します。下記の処理を選択してください",IDC_STATIC,18,12,224,8
+    EDITTEXT        IDC_EDIT1,143,30,120,14,ES_AUTOHSCROLL | ES_READONLY
+    EDITTEXT        IDC_EDIT2,143,51,120,14,ES_AUTOHSCROLL | ES_READONLY
+    EDITTEXT        IDC_EDIT3,143,72,120,14,ES_AUTOHSCROLL
+    CTEXT           "×",IDC_NAMEOK,129,75,8,8
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 2,6,2,0
+ PRODUCTVERSION 2,6,2,0
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x4L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "041103a4"
+        BEGIN
+            VALUE "CompanyName", "Culti"
+            VALUE "FileDescription", "RLogin MFC アプリケーション"
+            VALUE "FileVersion", "2, 6, 2, 0"
+            VALUE "InternalName", "RLogin.exe"
+            VALUE "LegalCopyright", "Copyright (C) 2008 Culti  All rights reserved."
+            VALUE "OriginalFilename", "RLogin.exe"
+            VALUE "ProductName", "RLogin アプリケーション"
+            VALUE "ProductVersion", "2, 6, 2, 0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x411, 932
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO 
+BEGIN
+    IDD_ABOUTBOX, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 236
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 159
+    END
+
+    IDD_ALGOPARADLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 292
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 246
+    END
+
+    IDD_PASSDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 164
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 121
+    END
+
+    IDD_IDKEYFILEDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 236
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 188
+    END
+
+    IDD_SFTPDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 451
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 220
+    END
+
+    IDD_UPDATEDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 239
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 141
+    END
+
+    IDD_CHMODDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 192
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 176
+    END
+
+    IDD_EDITDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 280
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 97
+    END
+
+    IDD_SERVERLIST, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 283
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 117
+    END
+
+    IDD_FONTPARADLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 226
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 250
+    END
+
+    IDD_KEYPARADLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 184
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 101
+    END
+
+    IDD_TERMPAGE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 244
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 263
+    END
+
+    IDD_PROTOPAGE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 244
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 263
+    END
+
+    IDD_PFDPARADLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 324
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 71
+    END
+
+    IDD_PFDLISTDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 250
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 160
+    END
+
+    IDD_CHARSETPAGE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 244
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 263
+    END
+
+    IDD_COLORPARADLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 244
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 263
+    END
+
+    IDD_ICONVDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 203
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 128
+    END
+
+    IDD_KEYLISTPAGE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 244
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 263
+    END
+
+    IDD_PROGDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 260
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 121
+    END
+
+    IDD_IDKEYSELDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 246
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 264
+    END
+
+    IDD_SERENTPAGE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 244
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 263
+    END
+
+    IDD_CHATDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 292
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 240
+    END
+
+    IDD_CHATSTAT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 240
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 79
+    END
+
+    IDD_SCRIPTDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 284
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 226
+    END
+
+    IDD_PROXYDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 261
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 149
+    END
+
+    IDD_SCRNPAGE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 244
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 263
+    END
+
+    IDD_AUTORENDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 279
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 133
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog Info
+//
+
+IDD_FONTPARADLG DLGINIT
+BEGIN
+    IDC_FONTCODE, 0x403, 2, 0
+0x0030, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x0031, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x0032, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x0033, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x0034, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x0035, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x0036, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x0037, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x0038, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x0039, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x0040, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x0041, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x0042, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x0043, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x0044, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x0045, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x0046, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x0047, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x0048, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x0049, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x004a, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x004b, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x004c, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x004d, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x004e, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x004f, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x0050, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x0051, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x0052, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x0053, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x0054, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x0055, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x0056, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x0057, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x0058, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x0059, 
+    IDC_FONTCODE, 0x403, 2, 0
+0x005a, 
+    IDC_FONTCODE, 0x403, 8, 0
+0x6e55, 0x6369, 0x646f, 0x0065, 
+    IDC_CHARBANK, 0x403, 3, 0
+0x3439, "\000" 
+    IDC_CHARBANK, 0x403, 3, 0
+0x3639, "\000" 
+    IDC_CHARBANK, 0x403, 6, 0
+0x3439, 0x3978, 0x0034, 
+    IDC_CHARBANK, 0x403, 6, 0
+0x3639, 0x3978, 0x0034, 
+    IDC_CHARBANK, 0x403, 1, 0
+"\000" 
+    IDC_DISPZOOM2, 0x403, 4, 0
+0x3032, 0x0030, 
+    IDC_DISPZOOM2, 0x403, 4, 0
+0x3931, 0x0030, 
+    IDC_DISPZOOM2, 0x403, 4, 0
+0x3831, 0x0030, 
+    IDC_DISPZOOM2, 0x403, 4, 0
+0x3631, 0x0030, 
+    IDC_DISPZOOM2, 0x403, 4, 0
+0x3531, 0x0030, 
+    IDC_DISPZOOM2, 0x403, 4, 0
+0x3431, 0x0030, 
+    IDC_DISPZOOM2, 0x403, 4, 0
+0x3331, 0x0030, 
+    IDC_DISPZOOM2, 0x403, 4, 0
+0x3231, 0x0030, 
+    IDC_DISPZOOM2, 0x403, 4, 0
+0x3131, 0x0030, 
+    IDC_DISPZOOM2, 0x403, 4, 0
+0x3031, 0x0030, 
+    IDC_DISPZOOM2, 0x403, 3, 0
+0x3039, "\000" 
+    IDC_DISPZOOM2, 0x403, 3, 0
+0x3038, "\000" 
+    IDC_DISPZOOM2, 0x403, 3, 0
+0x3037, "\000" 
+    IDC_DISPZOOM2, 0x403, 3, 0
+0x3036, "\000" 
+    IDC_DISPZOOM2, 0x403, 3, 0
+0x3035, "\000" 
+    IDC_DISPZOOM, 0x403, 4, 0
+0x3032, 0x0030, 
+    IDC_DISPZOOM, 0x403, 4, 0
+0x3931, 0x0030, 
+    IDC_DISPZOOM, 0x403, 4, 0
+0x3831, 0x0030, 
+    IDC_DISPZOOM, 0x403, 4, 0
+0x3631, 0x0030, 
+    IDC_DISPZOOM, 0x403, 4, 0
+0x3531, 0x0030, 
+    IDC_DISPZOOM, 0x403, 4, 0
+0x3431, 0x0030, 
+    IDC_DISPZOOM, 0x403, 4, 0
+0x3331, 0x0030, 
+    IDC_DISPZOOM, 0x403, 4, 0
+0x3231, 0x0030, 
+    IDC_DISPZOOM, 0x403, 4, 0
+0x3131, 0x0030, 
+    IDC_DISPZOOM, 0x403, 4, 0
+0x3031, 0x0030, 
+    IDC_DISPZOOM, 0x403, 3, 0
+0x3039, "\000" 
+    IDC_DISPZOOM, 0x403, 3, 0
+0x3038, "\000" 
+    IDC_DISPZOOM, 0x403, 3, 0
+0x3037, "\000" 
+    IDC_DISPZOOM, 0x403, 3, 0
+0x3036, "\000" 
+    IDC_DISPZOOM, 0x403, 3, 0
+0x3035, "\000" 
+    IDC_DISPOFFSET, 0x403, 3, 0
+0x3035, "\000" 
+    IDC_DISPOFFSET, 0x403, 3, 0
+0x3034, "\000" 
+    IDC_DISPOFFSET, 0x403, 3, 0
+0x3033, "\000" 
+    IDC_DISPOFFSET, 0x403, 3, 0
+0x3032, "\000" 
+    IDC_DISPOFFSET, 0x403, 3, 0
+0x3031, "\000" 
+    IDC_DISPOFFSET, 0x403, 2, 0
+0x0030, 
+    IDC_DISPOFFSET, 0x403, 4, 0
+0x312d, 0x0030, 
+    IDC_DISPOFFSET, 0x403, 4, 0
+0x322d, 0x0030, 
+    IDC_DISPOFFSET, 0x403, 4, 0
+0x332d, 0x0030, 
+    IDC_DISPOFFSET, 0x403, 4, 0
+0x342d, 0x0030, 
+    IDC_DISPOFFSET, 0x403, 4, 0
+0x352d, 0x0030, 
+    0
+END
+
+IDD_KEYPARADLG DLGINIT
+BEGIN
+    IDC_KEYCODE, 0x403, 3, 0
+0x3146, "\000" 
+    IDC_KEYCODE, 0x403, 3, 0
+0x3246, "\000" 
+    IDC_KEYCODE, 0x403, 3, 0
+0x3346, "\000" 
+    IDC_KEYCODE, 0x403, 3, 0
+0x3446, "\000" 
+    IDC_KEYCODE, 0x403, 3, 0
+0x3546, "\000" 
+    IDC_KEYCODE, 0x403, 3, 0
+0x3646, "\000" 
+    IDC_KEYCODE, 0x403, 3, 0
+0x3746, "\000" 
+    IDC_KEYCODE, 0x403, 3, 0
+0x3846, "\000" 
+    IDC_KEYCODE, 0x403, 3, 0
+0x3946, "\000" 
+    IDC_KEYCODE, 0x403, 4, 0
+0x3146, 0x0030, 
+    IDC_KEYCODE, 0x403, 4, 0
+0x3146, 0x0031, 
+    IDC_KEYCODE, 0x403, 4, 0
+0x3146, 0x0032, 
+    IDC_KEYCODE, 0x403, 3, 0
+0x5055, "\000" 
+    IDC_KEYCODE, 0x403, 5, 0
+0x4f44, 0x4e57, "\000" 
+    IDC_KEYCODE, 0x403, 5, 0
+0x454c, 0x5446, "\000" 
+    IDC_KEYCODE, 0x403, 6, 0
+0x4952, 0x4847, 0x0054, 
+    IDC_KEYCODE, 0x403, 6, 0
+0x5250, 0x4f49, 0x0052, 
+    IDC_KEYCODE, 0x403, 5, 0
+0x454e, 0x5458, "\000" 
+    IDC_KEYCODE, 0x403, 7, 0
+0x4e49, 0x4553, 0x5452, "\000" 
+    IDC_KEYCODE, 0x403, 7, 0
+0x4544, 0x454c, 0x4554, "\000" 
+    IDC_KEYCODE, 0x403, 5, 0
+0x4f48, 0x454d, "\000" 
+    IDC_KEYCODE, 0x403, 4, 0
+0x4e45, 0x0044, 
+    IDC_KEYCODE, 0x403, 6, 0
+0x4150, 0x5355, 0x0045, 
+    IDC_KEYCODE, 0x403, 6, 0
+0x5242, 0x4145, 0x004b, 
+    IDC_KEYCODE, 0x403, 7, 0
+0x5345, 0x4143, 0x4550, "\000" 
+    IDC_KEYCODE, 0x403, 7, 0
+0x4552, 0x5554, 0x4e52, "\000" 
+    IDC_KEYCODE, 0x403, 5, 0
+0x4142, 0x4b43, "\000" 
+    IDC_KEYCODE, 0x403, 4, 0
+0x4154, 0x0042, 
+    IDC_KEYCODE, 0x403, 6, 0
+0x5053, 0x4341, 0x0045, 
+    IDC_KEYCODE, 0x403, 5, 0
+0x454f, 0x314d, "\000" 
+    IDC_KEYCODE, 0x403, 5, 0
+0x454f, 0x324d, "\000" 
+    IDC_KEYCODE, 0x403, 5, 0
+0x454f, 0x334d, "\000" 
+    IDC_KEYCODE, 0x403, 5, 0
+0x454f, 0x344d, "\000" 
+    IDC_KEYCODE, 0x403, 5, 0
+0x454f, 0x354d, "\000" 
+    IDC_KEYCODE, 0x403, 5, 0
+0x454f, 0x364d, "\000" 
+    IDC_KEYCODE, 0x403, 5, 0
+0x454f, 0x374d, "\000" 
+    IDC_KEYCODE, 0x403, 5, 0
+0x454f, 0x384d, "\000" 
+    0
+END
+
+IDD_PFDPARADLG DLGINIT
+BEGIN
+    IDC_LISTENPORT, 0x403, 5, 0
+0x6f70, 0x3370, "\000" 
+    IDC_LISTENPORT, 0x403, 5, 0
+0x6d73, 0x7074, "\000" 
+    IDC_LISTENPORT, 0x403, 6, 0
+0x6f6c, 0x6967, 0x006e, 
+    IDC_LISTENPORT, 0x403, 7, 0
+0x6574, 0x6e6c, 0x7465, "\000" 
+    IDC_CONNECTPORT, 0x403, 5, 0
+0x6f70, 0x3370, "\000" 
+    IDC_CONNECTPORT, 0x403, 5, 0
+0x6d73, 0x7074, "\000" 
+    IDC_CONNECTPORT, 0x403, 6, 0
+0x6f6c, 0x6967, 0x006e, 
+    IDC_CONNECTPORT, 0x403, 7, 0
+0x6574, 0x6e6c, 0x7465, "\000" 
+    0
+END
+
+IDD_COLORPARADLG DLGINIT
+BEGIN
+    IDC_COLSET, 0x403, 9, 0
+0x7583, 0x8983, 0x6283, 0x4e83, "\000" 
+    IDC_COLSET, 0x403, 9, 0
+0x4183, 0x9383, 0x6f83, 0x5b81, "\000" 
+    IDC_COLSET, 0x403, 9, 0
+0x4f83, 0x8a83, 0x5b81, 0x9383, "\000" 
+    IDC_COLSET, 0x403, 7, 0
+0x5683, 0x4183, 0x9383, "\000" 
+    IDC_COLSET, 0x403, 9, 0
+0x7a83, 0x8f83, 0x4383, 0x6783, "\000" 
+    IDC_COMBO2, 0x403, 5, 0
+0x6f4e, 0x656e, "\000" 
+    IDC_COMBO2, 0x403, 5, 0
+0x6d31, 0x6e69, "\000" 
+    IDC_COMBO2, 0x403, 5, 0
+0x6d33, 0x6e69, "\000" 
+    IDC_COMBO2, 0x403, 6, 0
+0x3031, 0x696d, 0x006e, 
+    IDC_COMBO2, 0x403, 6, 0
+0x3032, 0x696d, 0x006e, 
+    IDC_COMBO2, 0x403, 6, 0
+0x3033, 0x696d, 0x006e, 
+    IDC_COMBO2, 0x403, 6, 0
+0x3034, 0x696d, 0x006e, 
+    IDC_COMBO2, 0x403, 6, 0
+0x3035, 0x696d, 0x006e, 
+    IDC_COMBO2, 0x403, 6, 0
+0x3036, 0x696d, 0x006e, 
+    0
+END
+
+IDD_IDKEYSELDLG DLGINIT
+BEGIN
+    IDC_IDKEY_TYPE, 0x403, 5, 0
+0x5352, 0x3141, "\000" 
+    IDC_IDKEY_TYPE, 0x403, 5, 0
+0x5352, 0x3241, "\000" 
+    IDC_IDKEY_TYPE, 0x403, 5, 0
+0x5344, 0x3241, "\000" 
+    IDC_IDKEY_BITS, 0x403, 4, 0
+0x3637, 0x0038, 
+    IDC_IDKEY_BITS, 0x403, 5, 0
+0x3031, 0x3432, "\000" 
+    IDC_IDKEY_BITS, 0x403, 5, 0
+0x3032, 0x3834, "\000" 
+    IDC_IDKEY_BITS, 0x403, 5, 0
+0x3034, 0x3639, "\000" 
+    0
+END
+
+IDD_SERENTPAGE DLGINIT
+BEGIN
+    IDC_SOCKNO, 0x403, 6, 0
+0x6f6c, 0x6967, 0x006e, 
+    IDC_SOCKNO, 0x403, 7, 0
+0x6574, 0x6e6c, 0x7465, "\000" 
+    IDC_SOCKNO, 0x403, 4, 0
+0x7373, 0x0068, 
+    IDC_SOCKNO, 0x403, 5, 0
+0x6f70, 0x3370, "\000" 
+    IDC_SOCKNO, 0x403, 5, 0
+0x7468, 0x7074, "\000" 
+    IDC_SOCKNO, 0x403, 4, 0
+0x7466, 0x0070, 
+    IDC_SOCKNO, 0x403, 5, 0
+0x4f43, 0x314d, "\000" 
+    IDC_SOCKNO, 0x403, 5, 0
+0x4f43, 0x324d, "\000" 
+    IDC_SOCKNO, 0x403, 5, 0
+0x4f43, 0x334d, "\000" 
+    IDC_SOCKNO, 0x403, 5, 0
+0x4f43, 0x344d, "\000" 
+    IDC_TERMNAME, 0x403, 6, 0
+0x746b, 0x7265, 0x006d, 
+    IDC_TERMNAME, 0x403, 6, 0
+0x7476, 0x3031, 0x0030, 
+    IDC_TERMNAME, 0x403, 7, 0
+0x6f63, 0x736e, 0x3532, "\000" 
+    IDC_TERMNAME, 0x403, 5, 0
+0x6e61, 0x6973, "\000" 
+    IDC_TERMNAME, 0x403, 6, 0
+0x7476, 0x3232, 0x0030, 
+    0
+END
+
+IDD_PROXYDLG DLGINIT
+BEGIN
+    IDC_SOCKNO, 0x403, 5, 0
+0x7468, 0x7074, "\000" 
+    IDC_SOCKNO, 0x403, 6, 0
+0x6f73, 0x6b63, 0x0073, 
+    0
+END
+
+IDD_SCRNPAGE DLGINIT
+BEGIN
+    IDC_SCSZFONT, 0x403, 2, 0
+0x0032, 
+    IDC_SCSZFONT, 0x403, 2, 0
+0x0033, 
+    IDC_SCSZFONT, 0x403, 2, 0
+0x0034, 
+    IDC_SCSZFONT, 0x403, 2, 0
+0x0035, 
+    IDC_SCSZFONT, 0x403, 2, 0
+0x0036, 
+    IDC_SCSZFONT, 0x403, 2, 0
+0x0037, 
+    IDC_SCSZFONT, 0x403, 2, 0
+0x0038, 
+    IDC_SCSZFONT, 0x403, 2, 0
+0x0039, 
+    IDC_SCSZFONT, 0x403, 3, 0
+0x3031, "\000" 
+    IDC_SCSZFONT, 0x403, 3, 0
+0x3131, "\000" 
+    IDC_SCSZFONT, 0x403, 3, 0
+0x3231, "\000" 
+    IDC_SCSZFONT, 0x403, 3, 0
+0x3331, "\000" 
+    IDC_SCSZFONT, 0x403, 3, 0
+0x3431, "\000" 
+    IDC_SCSZFONT, 0x403, 3, 0
+0x3531, "\000" 
+    IDC_SCSZFONT, 0x403, 3, 0
+0x3631, "\000" 
+    IDC_SCSZFONT, 0x403, 3, 0
+0x3731, "\000" 
+    IDC_SCSZFONT, 0x403, 3, 0
+0x3831, "\000" 
+    IDC_SCSZFONT, 0x403, 3, 0
+0x3931, "\000" 
+    IDC_SCSZFONT, 0x403, 3, 0
+0x3032, "\000" 
+    IDC_VISUALBELL, 0x403, 6, 0
+0x6f53, 0x6e75, 0x0064, 
+    IDC_VISUALBELL, 0x403, 5, 0
+0x6f4e, 0x656e, "\000" 
+    IDC_VISUALBELL, 0x403, 5, 0
+0x6f42, 0x6874, "\000" 
+    IDC_VISUALBELL, 0x403, 7, 0
+0x6956, 0x7573, 0x6c61, "\000" 
+    IDC_RECVCRLF, 0x403, 6, 0
+0x5243, 0x4c2b, 0x0046, 
+    IDC_RECVCRLF, 0x403, 3, 0
+0x5243, "\000" 
+    IDC_RECVCRLF, 0x403, 3, 0
+0x464c, "\000" 
+    IDC_RECVCRLF, 0x403, 6, 0
+0x5243, 0x4c2f, 0x0046, 
+    IDC_SENDCRLF, 0x403, 3, 0
+0x5243, "\000" 
+    IDC_SENDCRLF, 0x403, 3, 0
+0x464c, "\000" 
+    IDC_SENDCRLF, 0x403, 6, 0
+0x5243, 0x4c2b, 0x0046, 
+    IDC_MOUSE_BTN1, 0x403, 2, 0
+0x0031, 
+    IDC_MOUSE_BTN1, 0x403, 2, 0
+0x0032, 
+    IDC_MOUSE_BTN1, 0x403, 2, 0
+0x0033, 
+    IDC_MOUSE_BTN1, 0x403, 2, 0
+0x0034, 
+    IDC_MOUSE_BTN1, 0x403, 2, 0
+0x0035, 
+    IDC_MOUSE_BTN1, 0x403, 2, 0
+0x0036, 
+    IDC_MOUSE_BTN2, 0x403, 2, 0
+0x0031, 
+    IDC_MOUSE_BTN2, 0x403, 2, 0
+0x0032, 
+    IDC_MOUSE_BTN2, 0x403, 2, 0
+0x0033, 
+    IDC_MOUSE_BTN2, 0x403, 2, 0
+0x0034, 
+    IDC_MOUSE_BTN2, 0x403, 2, 0
+0x0035, 
+    IDC_MOUSE_BTN2, 0x403, 2, 0
+0x0036, 
+    IDC_MOUSE_KEY1, 0x403, 6, 0
+0x6873, 0x6669, 0x0074, 
+    IDC_MOUSE_KEY1, 0x403, 5, 0
+0x656d, 0x6174, "\000" 
+    IDC_MOUSE_KEY1, 0x403, 5, 0
+0x7463, 0x6c72, "\000" 
+    IDC_MOUSE_KEY1, 0x403, 6, 0
+0x6f6d, 0x6974, 0x006e, 
+    IDC_MOUSE_KEY2, 0x403, 6, 0
+0x6873, 0x6669, 0x0074, 
+    IDC_MOUSE_KEY2, 0x403, 5, 0
+0x656d, 0x6174, "\000" 
+    IDC_MOUSE_KEY2, 0x403, 5, 0
+0x7463, 0x6c72, "\000" 
+    IDC_MOUSE_KEY2, 0x403, 6, 0
+0x6f6d, 0x6974, 0x006e, 
+    IDC_WHEELSIZE, 0x403, 2, 0
+0x0035, 
+    IDC_WHEELSIZE, 0x403, 2, 0
+0x0034, 
+    IDC_WHEELSIZE, 0x403, 2, 0
+0x0033, 
+    IDC_WHEELSIZE, 0x403, 2, 0
+0x0032, 
+    IDC_WHEELSIZE, 0x403, 2, 0
+0x0031, 
+    IDC_WHEELSIZE, 0x403, 2, 0
+0x0030, 
+    IDC_WHEELSIZE, 0x403, 3, 0
+0x312d, "\000" 
+    IDC_WHEELSIZE, 0x403, 3, 0
+0x322d, "\000" 
+    IDC_WHEELSIZE, 0x403, 3, 0
+0x332d, "\000" 
+    IDC_WHEELSIZE, 0x403, 3, 0
+0x342d, "\000" 
+    IDC_WHEELSIZE, 0x403, 3, 0
+0x352d, "\000" 
+    0
+END
+
+IDD_TERMPAGE DLGINIT
+BEGIN
+    IDC_COMBO1, 0x403, 4, 0
+0x4152, 0x0057, 
+    IDC_COMBO1, 0x403, 5, 0
+0x5443, 0x4c52, "\000" 
+    IDC_COMBO1, 0x403, 5, 0
+0x4843, 0x5241, "\000" 
+    IDC_COMBO1, 0x403, 5, 0
+0x494c, 0x454e, "\000" 
+    IDC_COMBO2, 0x403, 5, 0
+0x4a53, 0x5349, "\000" 
+    IDC_COMBO2, 0x403, 4, 0
+0x5545, 0x0043, 
+    IDC_COMBO2, 0x403, 6, 0
+0x5455, 0x2d46, 0x0038, 
+    IDC_COMBO2, 0x403, 6, 0
+0x5341, 0x4943, 0x0049, 
+    0
+END
+
+IDD_KEYLISTPAGE DLGINIT
+BEGIN
+    IDC_COMBO1, 0x403, 4, 0
+0x6f4e, 0x006e, 
+    IDC_COMBO1, 0x403, 6, 0
+0x5042, 0x756c, 0x0073, 
+    IDC_COMBO1, 0x403, 7, 0
+0x4d58, 0x646f, 0x6d65, "\000" 
+    IDC_COMBO1, 0x403, 7, 0
+0x4d59, 0x646f, 0x6d65, "\000" 
+    IDC_COMBO1, 0x403, 7, 0
+0x4d5a, 0x646f, 0x6d65, "\000" 
+    IDC_COMBO1, 0x403, 4, 0
+0x4353, 0x0050, 
+    0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE 
+BEGIN
+    IDR_MAINFRAME           "RLogin"
+    IDR_RLOGINTYPE          "\nRLogin\nRLogin\nRLogin ﾌｧｲﾙ (*.rlg)\n.rlg\nRLogin.Document\nRLogin Document"
+    IDP_SOCKETS_INIT_FAILED "Windows ソケットの初期化に失敗しました。"
+END
+
+STRINGTABLE 
+BEGIN
+    IDC_LOADDEFAULT         "すべてのオプション設定を標準に戻します\n標準に戻す"
+END
+
+STRINGTABLE 
+BEGIN
+    IDC_SAVEDEFAULT         "現在のオプション設定を標準に設定します\n標準に設定"
+END
+
+STRINGTABLE 
+BEGIN
+    AFX_IDS_APP_TITLE       "RLogin"
+    AFX_IDS_IDLEMESSAGE     " "
+END
+
+STRINGTABLE 
+BEGIN
+    ID_INDICATOR_EXT        "EXT"
+    ID_INDICATOR_CAPS       "CAP"
+    ID_INDICATOR_NUM        "NUM"
+    ID_INDICATOR_SCRL       "SCRL"
+    ID_INDICATOR_OVR        "上書"
+    ID_INDICATOR_REC        "記録"
+    ID_INDICATOR_KANA       "ｶﾅ"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_DISCONNECT           "サーバーとの接続を閉じます\n接続を閉じる"
+    ID_INDICATOR_SOCK       "        "
+    ID_LOG_OPEN             "通信ログをファイルに保存する\n通信ログ"
+    ID_MACRO_PLAY           "記録されたキー操作を再現します\n記録したキー操作を再現"
+    ID_MACRO_REC            "キー入力を記録もしくわ停止します\nキー操作の記録"
+    ID_PANE_DELETE          "分割を閉じて上位ウインドと同じサイズにします\n閉分割"
+    ID_PANE_HSPLIT          "縦方向に分割する\n縦分割"
+    ID_PANE_SAVE            "現在の分割状態を保存し次回起動時に戻します\n分割保存"
+    ID_PANE_WSPLIT          "横方向に分割する\n横分割"
+    ID_PROP_SET             "色々な設定を行います\nオプション設定"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_FILE_NEW             "サーバーに接続する\nサーバー接続"
+    ID_FILE_OPEN            "既存のサーバー情報ファイルを開く\n開く"
+    ID_FILE_CLOSE           "サーバーとの接続を閉じます\n接続を閉じる"
+    ID_FILE_SAVE            "接続中のサーバー情報を上書きして保存\n保存"
+    ID_FILE_SAVE_AS         "接続中のサーバー情報を新しい名前で保存\n名前をつけて保存"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_APP_ABOUT            "プログラムの情報、バージョンそして著作権を表示\nバージョン情報"
+    ID_APP_EXIT             "アプリケーションを終了し、ファイルの保存を指示\n終了"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_FILE_MRU_FILE1       "指定のﾌｧｲﾙを開く"
+    ID_FILE_MRU_FILE2       "指定のﾌｧｲﾙを開く"
+    ID_FILE_MRU_FILE3       "指定のﾌｧｲﾙを開く"
+    ID_FILE_MRU_FILE4       "指定のﾌｧｲﾙを開く"
+    ID_FILE_MRU_FILE5       "指定のﾌｧｲﾙを開く"
+    ID_FILE_MRU_FILE6       "指定のﾌｧｲﾙを開く"
+    ID_FILE_MRU_FILE7       "指定のﾌｧｲﾙを開く"
+    ID_FILE_MRU_FILE8       "指定のﾌｧｲﾙを開く"
+    ID_FILE_MRU_FILE9       "指定のﾌｧｲﾙを開く"
+    ID_FILE_MRU_FILE10      "指定のﾌｧｲﾙを開く"
+    ID_FILE_MRU_FILE11      "指定のﾌｧｲﾙを開く"
+    ID_FILE_MRU_FILE12      "指定のﾌｧｲﾙを開く"
+    ID_FILE_MRU_FILE13      "指定のﾌｧｲﾙを開く"
+    ID_FILE_MRU_FILE14      "指定のﾌｧｲﾙを開く"
+    ID_FILE_MRU_FILE15      "指定のﾌｧｲﾙを開く"
+    ID_FILE_MRU_FILE16      "指定のﾌｧｲﾙを開く"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_NEXT_PANE            "次のｳｨﾝﾄﾞｳに切り替える\n次のﾍﾟｲﾝ"
+    ID_PREV_PANE            "前のｳｨﾝﾄﾞｳに切り替える\n前のﾍﾟｲﾝ"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_WINDOW_NEW           "作業中のウィンドウを複写して表示\n新規ウィンドウ"
+    ID_WINDOW_ARRANGE       "ｳｨﾝﾄﾞｳの下部にｱｲｺﾝを整列\nｱｲｺﾝの整列"
+    ID_WINDOW_CASCADE       "ウィンドウを重ねて表示\n重ねて表示"
+    ID_WINDOW_TILE_HORZ     "ウィンドウを並べて表示\n並べて表示"
+    ID_WINDOW_TILE_VERT     "ｳｨﾝﾄﾞｳを並べて表示\n並べて表示"
+    ID_WINDOW_SPLIT         "作業中のｳｨﾝﾄﾞｳを分割\n分割"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_EDIT_CLEAR           "選択範囲を消去\n消去"
+    ID_EDIT_CLEAR_ALL       "すべて消去\nすべて消去"
+    ID_EDIT_COPY            "選択範囲をコピーしてクリップボードに保存\nコピー"
+    ID_EDIT_CUT             "選択範囲を切り取ってｸﾘｯﾌﾟﾎﾞｰﾄﾞに保存\n切り取り"
+    ID_EDIT_FIND            "指定した文字列の検索\n検索"
+    ID_EDIT_PASTE           "クリップボードの内容を貼り付け\n貼り付け"
+    ID_EDIT_REPEAT          "直前に行った動作を繰り返す\n繰り返し"
+    ID_EDIT_REPLACE         "指定した文字列を他の文字列で置換\n置換"
+    ID_EDIT_SELECT_ALL      "ﾌｧｲﾙ内のすべてを選択\nすべて選択"
+    ID_EDIT_UNDO            "直前に行った動作を元に戻す\n元に戻す"
+    ID_EDIT_REDO            "直前に行った動作を繰り返す\n繰り返す"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_VIEW_TOOLBAR         "ツールバーの 表示/非表示\nツールバーの表示切り替え"
+    ID_VIEW_STATUS_BAR      "ステータスバーの 表示/非表示\nステータスバーの表示切り替え"
+END
+
+STRINGTABLE 
+BEGIN
+    AFX_IDS_SCSIZE          "ｳｨﾝﾄﾞｳのｻｲｽﾞを変更"
+    AFX_IDS_SCMOVE          "ｳｨﾝﾄﾞｳの位置を変更"
+    AFX_IDS_SCMINIMIZE      "ｳｨﾝﾄﾞｳを最小化する"
+    AFX_IDS_SCMAXIMIZE      "ｳｨﾝﾄﾞｳを最大化する"
+    AFX_IDS_SCNEXTWINDOW    "次のｳｨﾝﾄﾞｳに切り替える"
+    AFX_IDS_SCPREVWINDOW    "前のｳｨﾝﾄﾞｳに切り替える"
+    AFX_IDS_SCCLOSE         "作業中のｳｨﾝﾄﾞｳを閉じ、変更したﾌｧｲﾙの保存を指示"
+END
+
+STRINGTABLE 
+BEGIN
+    AFX_IDS_SCRESTORE       "ｳｨﾝﾄﾞｳを通常のｻｲｽﾞに戻す"
+    AFX_IDS_SCTASKLIST      "ｱﾌﾟﾘｹｰｼｮﾝの切り替え"
+    AFX_IDS_MDICHILD        "指定のｳｨﾝﾄﾞｳを表示"
+END
+
+STRINGTABLE 
+BEGIN
+    IDM_KANJI_EUC           "漢字コードをEUCで処理する\nEUC"
+    IDM_KANJI_SJIS          "漢字コードをSHIFTJISで処理する\nSJIS"
+    IDM_KANJI_ASCII         "漢字コードをASCII(英字セット)で処理する\nASCII"
+    IDM_KANJI_UTF8          "漢字コードをUTF8で処理する\nUTF8"
+    IDM_SFTP                "ファイル転送を行う\nファイル転送"
+    IDM_SFTP_ABORT          "ファイル転送の中止する\n中止"
+    IDM_SFTP_ALLDOWNLOAD    "ファイルの更新日時を比較してダウンロードする\nミラーダウンロード"
+    IDM_SFTP_ALLUPLOAD      "ファイルの更新日時を比較してアップロードする\nミラーアップロード"
+END
+
+STRINGTABLE 
+BEGIN
+    ID_SETOPTION            "色々な設定を行います\nオプション設定"
+    ID_WINDOW_CLOSE         "作業中のウィンドウを閉じます\n閉じる"
+    ID_FILE_ALL_SAVE        "サーバー情報とウインドウ状態も含めてファイルに保存\nすべて保存"
+    ID_EDIT_CHECK           "他の変更を確認して最新の情報に更新します\n更新"
+    IDM_CHATSTOP            "自動作成中のChatScriptを完了する\nCharScriptの完了"
+    ID_SEND_BREAK           "シリアル通信の場合Break信号をおくります\nBreak送信"
+    ID_MOUSE_EVENT          "マウスイベントを無効にします\nマウスイベント無効"
+END
+
+STRINGTABLE 
+BEGIN
+    IDM_SFTP_CHMOD          "ファイル属性の変更\n属性変更"
+    IDM_SFTP_CLOSE          "このファイル転送ウィンドウを閉じる\n閉じる"
+    IDM_SFTP_DELETE         "選択されたファイルを削除する\nファイル削除"
+    IDM_SFTP_DOWNLOAD       "ファイルのダウンロード\nダウンロード"
+    IDM_SFTP_MKDIR          "新規にフォルダを作成する\nフォルダ作成"
+    IDM_SFTP_REFLESH        "ファイル情報を最新に更新する\n更新"
+    IDM_SFTP_RENAME         "ファイル名を変更する\nファイル名変更"
+    IDM_SFTP_UPLOAD         "ファイルのアップロード\nアップロード"
+    IDM_XMODEM_UPLOAD       "XModemでファイルをアップロードする\nXModemアップ"
+    IDM_YMODEM_UPLOAD       "YModemでファイルをアップロードする\nYModemアップ"
+    IDM_ZMODEM_UPLOAD       "ZModemでファイルをアップロードする\nZModemアップ"
+    IDM_XMODEM_DOWNLOAD     "XModemでファイルをダウンロードする\nXModemダウン"
+    IDM_YMODEM_DOWNLOAD     "YModemでファイルをダウンロードする\nYModemダウン"
+    IDM_ZMODEM_DOWNLOAD     "ZModemでファイルをダウンロードする\nZModemダウン"
+END
+
+STRINGTABLE 
+BEGIN
+    IDM_TEKDISP             "Tekウィンドウを表示・非表示にします\nTek表示"
+    IDM_TEK_CLOSE           "Tekウィンドウを閉じる\n閉じる"
+    IDM_TEK_SAVE            "ファイルに保存する\n保存"
+    IDM_TEK_CLEAR           "Tekウインドウをクリアする\nクリア"
+    IDM_TEK_MODE            "Tek/VTモードの切換を行います\nモード切替"
+END
+
+#endif    // 日本語 resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+#define _AFX_NO_OLE_RESOURCES
+#define _AFX_NO_TRACKER_RESOURCES
+#define _AFX_NO_PROPERTY_RESOURCES
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_JPN)
+LANGUAGE 17, 1
+#pragma code_page(932)
+#include "res\RLogin.rc2"  // Microsoft Visual C++ 以外で編集されたリソース
+#include "afxres.rc"         // 標準コンポーネント
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

@@ -1,0 +1,266 @@
+*** /usr/home/kmiya/tmp/regis.trm	2010-09-24 10:43:32.000000000 +0900
+--- term/regis.trm	2010-09-24 07:47:21.000000000 +0900
+***************
+*** 69,84 ****
+  TERM_PUBLIC void REGIS_reset __PROTO((void));
+  TERM_PUBLIC void REGIS_options __PROTO((void));
+  
+! #define REGISXMAX 800
+! #define REGISYMAX 440
+  
+  #define REGISXLAST (REGISXMAX - 1)
+  #define REGISYLAST (REGISYMAX - 1)
+  
+! #define REGISVCHAR		20
+! #define REGISHCHAR		9
+! #define REGISVTIC		8
+! #define REGISHTIC		6
+  
+  /* is defined in plot.h
+  #define TRUE 1
+--- 69,90 ----
+  TERM_PUBLIC void REGIS_reset __PROTO((void));
+  TERM_PUBLIC void REGIS_options __PROTO((void));
+  
+! TERM_PUBLIC void REGIS_fillbox __PROTO((int style, unsigned int x, unsigned int y, unsigned int width, unsigned int height));
+! TERM_PUBLIC void REGIS_linewidth __PROTO((double lw));
+! TERM_PUBLIC void REGIS_filled_polygon __PROTO((int, gpiPoint *));
+! 
+! #define REGISXMAX 1200	// 800
+! #define REGISYMAX 900	// 440
+  
+  #define REGISXLAST (REGISXMAX - 1)
+  #define REGISYLAST (REGISYMAX - 1)
+  
+! #define REGISVCHAR	30	// 20
+! #define REGISHCHAR	18	// 9
+! #define REGISVTIC	12	// 8
+! #define REGISHTIC	12	// 6
+! 
+! #define	REGISfont	2
+  
+  /* is defined in plot.h
+  #define TRUE 1
+***************
+*** 86,105 ****
+  */
+  #endif
+  
+- 
+- 
+  #ifndef TERM_PROTO_ONLY
+  #ifdef TERM_BODY
+  
+! static int REGIS16color = FALSE;
+! 
+  static int REGISang = 0;
+  
+  TERM_PUBLIC void
+  REGIS_init()
+  {
+-     fputs("\033[r\033[24;1H", gpoutfile);
+      /*     1     2
+       * 1. reset scrolling region
+       * 2. locate cursor on bottom line
+       */
+--- 92,108 ----
+  */
+  #endif
+  
+  #ifndef TERM_PROTO_ONLY
+  #ifdef TERM_BODY
+  
+! static int REGIS16color = TRUE;
+  static int REGISang = 0;
+  
+  TERM_PUBLIC void
+  REGIS_init()
+  {
+      /*     1     2
++     fputs("\033[r\033[24;1H", gpoutfile);
+       * 1. reset scrolling region
+       * 2. locate cursor on bottom line
+       */
+***************
+*** 110,116 ****
+  TERM_PUBLIC void
+  REGIS_graphics()
+  {
+!     fputs("\033[2J\033P1pS(C0)S(E)T(A0)\n", gpoutfile);
+      /*     1      2      3    4   5
+       * 1. clear screen
+       * 2. enter ReGIS graphics
+--- 113,121 ----
+  TERM_PUBLIC void
+  REGIS_graphics()
+  {
+!     /* fputs("\033[2J\033P1pS(C0)S(E)T(A0)\n", gpoutfile); */
+!     fputs("\033P0pS(C0)S(E)T(A0)\n", gpoutfile);
+!     fprintf(gpoutfile, "S(A[0,0][%d,%d])\n", REGISXLAST, REGISYLAST);
+      /*     1      2      3    4   5
+       * 1. clear screen
+       * 2. enter ReGIS graphics
+***************
+*** 125,131 ****
+  TERM_PUBLIC void
+  REGIS_text()
+  {
+!     fputs("\033\\\033[24;1H", gpoutfile);
+      /*     1    2
+       * 1. Leave ReGIS graphics mode
+       * 2. locate cursor on last line of screen
+--- 130,137 ----
+  TERM_PUBLIC void
+  REGIS_text()
+  {
+!     /* fputs("\033\\\033[24;1H", gpoutfile); */
+!     fputs("\033\\", gpoutfile);
+      /*     1    2
+       * 1. Leave ReGIS graphics mode
+       * 2. locate cursor on last line of screen
+***************
+*** 190,199 ****
+--- 196,215 ----
+  TERM_PUBLIC void
+  REGIS_put_text(unsigned int x, unsigned int y, const char *str)
+  {
++ /*
+      if (REGISang == 1)
+  	REGIS_move(x - REGISVCHAR / 2 - 1, y);
+      else
+  	REGIS_move(x, y + REGISVCHAR / 2 - 1);
++ */
++     int r = REGISVCHAR / 2;
++     double q = (double)(REGISang + 90) * 3.141592 / 180.0;
++ 
++     x = x + (int)(r * cos(q));
++     y = y + (int)(r * sin(q));
++ 
++     REGIS_move(x, y);
++ 
+      (void) putc('T', gpoutfile);
+      (void) putc('\'', gpoutfile);
+      while (*str) {
+***************
+*** 210,220 ****
+--- 226,240 ----
+  TERM_PUBLIC int
+  REGIS_text_angle(int ang)
+  {
++ /*
+      REGISang = (ang ? 1 : 0);
+      if (REGISang == 1)
+  	fputs("T(D90,S1)\n", gpoutfile);
+      else
+  	fputs("T(D0,S1)\n", gpoutfile);
++ */
++     REGISang = ang;
++     fprintf(gpoutfile, "T(D%dS%d)\n", REGISang, REGISfont);
+      return TRUE;
+  }
+  
+***************
+*** 222,228 ****
+--- 242,250 ----
+  TERM_PUBLIC void
+  REGIS_reset()
+  {
++     /*
+      fputs("\033[2J\033[24;1H", gpoutfile);
++     */
+  }
+  
+  TERM_PUBLIC void
+***************
+*** 234,242 ****
+      if (!END_OF_COMMAND) {
+  	i = (int) real(const_express(&a));
+      }
+!     REGIS16color = (i == 16);
+      sprintf(term_options, "%s", REGIS16color ? "16" : "4");
+  }
+  
+  #endif
+  
+--- 256,312 ----
+      if (!END_OF_COMMAND) {
+  	i = (int) real(const_express(&a));
+      }
+!     REGIS16color = (i == 4) ? FALSE : TRUE;
+      sprintf(term_options, "%s", REGIS16color ? "16" : "4");
+  }
++ TERM_PUBLIC void
++ REGIS_fillbox(int style, unsigned int x, unsigned int y, unsigned int w, unsigned int h)
++ {
++     fprintf(gpoutfile, "P[%d,%d]\n", x, REGISYLAST - y);
++     switch(style & 0xf) {
++     case FS_SOLID:
++ 	style >>= 4;
++ 	fprintf(gpoutfile, "W(S1I%d)\n", style % 16);
++ 	break;
++     case FS_PATTERN:
++ 	style >>= 4;
++ 	if ( style == 0 )
++ 	    fprintf(gpoutfile, "W(S1P0)\n");
++ 	else
++ 	    fprintf(gpoutfile, "W(S%d)\n", style);
++ 	break;
++     default:
++ 	fprintf(gpoutfile, "W(S1)\n");
++ 	break;
++     }
++     fprintf(gpoutfile, "V[,-%d][+%d]W(P1S0)\n", h, w);
++ }
++ 
++ TERM_PUBLIC void
++ REGIS_linewidth(double lw)
++ {
++     fprintf(gpoutfile, "W(L%d)\n", (int) (lw + 0.5));
++ }
++ 
++ TERM_PUBLIC void
++ REGIS_filled_polygon(int points, gpiPoint *corners)
++ {
++     int n;
++ 
++     fprintf(gpoutfile, "W(S1)\n");
++     for ( n = 0 ; n < points ; n++ ) {
++ 	if ( n == 0 )
++     	    fprintf(gpoutfile, "P");
++ 	else if ( n == 1 )
++     	    fprintf(gpoutfile, "F(V");
++ 
++     	fprintf(gpoutfile, "[%d,%d]\n", 
++ 		corners[n].x, REGISYLAST - corners[n].y);
++     }
++     if ( n > 1 )
++         fprintf(gpoutfile, ")\n");
++     fprintf(gpoutfile, "W(S0)\n");
++ }
+  
+  #endif
+  
+***************
+*** 248,254 ****
+      REGISVTIC, REGISHTIC, REGIS_options, REGIS_init, REGIS_reset,
+      REGIS_text, null_scale, REGIS_graphics, REGIS_move, REGIS_vector,
+      REGIS_linetype, REGIS_put_text, REGIS_text_angle,
+!     null_justify_text, line_and_point, do_arrow, set_font_null
+  TERM_TABLE_END(regis_driver)
+  
+  #undef LAST_TERM
+--- 318,331 ----
+      REGISVTIC, REGISHTIC, REGIS_options, REGIS_init, REGIS_reset,
+      REGIS_text, null_scale, REGIS_graphics, REGIS_move, REGIS_vector,
+      REGIS_linetype, REGIS_put_text, REGIS_text_angle,
+!     null_justify_text, line_and_point, do_arrow, set_font_null,
+! 
+!     0, 0, 0, 0, REGIS_fillbox, REGIS_linewidth,
+! #ifdef USE_MOUSE
+!     0, 0, 0, 0, 0,
+! #endif
+!     0, 0, 0, REGIS_filled_polygon
+! 
+  TERM_TABLE_END(regis_driver)
+  
+  #undef LAST_TERM

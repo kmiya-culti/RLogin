@@ -1,0 +1,3094 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<META http-equiv="Content-Style-Type" content="text/css">
+<TITLE>スクリプト</TITLE>
+<STYLE type="text/css">
+<!--
+TD {
+  background-color : #ffffff;
+  font-size : 90%;
+}
+.BOX{
+  background-color : silver;
+}
+-->
+</STYLE>
+</HEAD>
+<BODY bgcolor="#000000" background="/image/bla6b.gif">
+<CENTER>
+<TABLE cellpadding="10" bgcolor="#ffffff" width="1300">
+  <TBODY>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><B>2.7 スクリプト仕様書</B></P>
+      <HR size="1">
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="0" background="/image/bla6b.gif" width="1000">
+        <TBODY>
+          <TR>
+            <TD width="180" align="left" valign="top">
+            <OL>
+              <LI><A href="#I1">定数</A>
+              <LI><A href="#I2">変数</A>
+              <LI><A href="#I3">配列</A>
+              <LI><A href="#I4">文字配列</A>
+              <LI><A href="#I5">演算子</A>
+              <LI><A href="#I6">構文</A>
+              <LI><A href="#I7">基本関数</A>
+            </OL>
+            </TD>
+            <TD width="180" align="left" valign="top">
+            <OL start="8">
+              <LI><A href="#I8">文字列関数</A>
+              <LI><A href="#I9">正規表現関数</A>
+              <LI><A href="#I10">文字変換関数</A>
+              <LI><A href="#I11">コンソール関数</A>
+              <LI><A href="#I12">入出力関数</A>
+              <LI><A href="#I13">ファイル関数</A>
+              <LI><A href="#I14">数学関数</A>
+            </OL>
+            </TD>
+            <TD width="180" align="left" valign="top">
+            <OL start="15">
+              <LI><A href="#I15">複素数関数</A>
+              <LI><A href="#I16">グラフィック関数</A>
+              <LI><A href="#I17">ダイアログ関数</A>
+              <LI><A href="#I18">データベース関数</A>
+              <LI><A href="#I20">ドキュメント変数</A>
+              <LI><A href="#I21">エントリー変数</A>
+              <LI><A href="#I22">スクリーン変数</A>
+            </OL>
+            </TD>
+            <TD width="180" align="left" valign="top">
+            <OL start="22">
+              <LI><A href="#I23">キーコード変数</A>
+              <LI><A href="#I24">キーマクロ変数</A>
+              <LI><A href="#I25">SSH関連変数</A>
+              <LI><A href="#I26">System変数</A>
+            </OL>
+            </TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="I1"></A>1 定数</P>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1000">
+        <TBODY>
+          <TR>
+            <TD colspan="2" align="center" width="30%">定数</TD>
+            <TD align="center" width="10%">型</TD>
+            <TD align="center" width="30%">説明</TD>
+            <TD align="center" width="30%">例</TD>
+          </TR>
+          <TR>
+            <TD rowspan="2" align="center" width="10%">文字</TD>
+            <TD width="20%">8ビット文字</TD>
+            <TD align="center">char</TD>
+            <TD>文字定数</TD>
+            <TD>'A', '\n', '\033'</TD>
+          </TR>
+          <TR>
+            <TD>16ビット文字</TD>
+            <TD align="center">wchar</TD>
+            <TD>UTF-16文字定数</TD>
+            <TD>L'A', L'\n'</TD>
+          </TR>
+          <TR>
+            <TD rowspan="4" align="center">数値</TD>
+            <TD>32ビット整数</TD>
+            <TD align="center">int</TD>
+            <TD>符号付き32ビットの整数</TD>
+            <TD>0, 1, -1, 0xFF</TD>
+          </TR>
+          <TR>
+            <TD>64ビット整数</TD>
+            <TD align="center">int64</TD>
+            <TD>符号付き64ビットの整数</TD>
+            <TD>0L, 10L, 2147483648</TD>
+          </TR>
+          <TR>
+            <TD>浮動小数点</TD>
+            <TD align="center">double</TD>
+            <TD>64ビットの浮動小数点</TD>
+            <TD>0.1, 10E-3, PI, E</TD>
+          </TR>
+          <TR>
+            <TD>複素数</TD>
+            <TD align="center">complex</TD>
+            <TD>64ビットの複素数の虚数部</TD>
+            <TD>0.01i, (1+0j)</TD>
+          </TR>
+          <TR>
+            <TD rowspan="3" align="center">文字列</TD>
+            <TD>8ビット文字列</TD>
+            <TD align="center">str</TD>
+            <TD>基本SHIFT-JISの8ビット文字列</TD>
+            <TD>&quot;sample&quot;</TD>
+          </TR>
+          <TR>
+            <TD>UTF-16文字列</TD>
+            <TD align="center">wstr</TD>
+            <TD>UTF-16の16ビット文字列</TD>
+            <TD>L&quot;sample&quot;</TD>
+          </TR>
+          <TR>
+            <TD>UCS-4文字列</TD>
+            <TD align="center">dstr</TD>
+            <TD>UCS-4の32ビット文字列</TD>
+            <TD>dstr(&quot;sample&quot;)</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="I2"></A>2 変数</P>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1000">
+        <TBODY>
+          <TR>
+            <TD colspan="5">_,A-Z,a-zで始まり_,A-Z,a-z,0-9で構成される文字列<BR>
+            型は、基本的に自動で内部変換されますが、参照時に指定できます。</TD>
+          </TR>
+          <TR>
+            <TD colspan="2" align="center" width="30%">変数</TD>
+            <TD align="center" width="10%">型</TD>
+            <TD align="center" width="30%">説明</TD>
+            <TD align="center" width="30%">例</TD>
+          </TR>
+          <TR>
+            <TD rowspan="4" align="center">数値</TD>
+            <TD>32ビット整数</TD>
+            <TD align="center">int</TD>
+            <TD>符号付き32ビットの整数</TD>
+            <TD>abc = 0, int(abc), #abc</TD>
+          </TR>
+          <TR>
+            <TD>64ビット整数</TD>
+            <TD align="center">int64</TD>
+            <TD>符号付き64ビットの整数</TD>
+            <TD>abc = 0L, int64(abc)</TD>
+          </TR>
+          <TR>
+            <TD>浮動小数点</TD>
+            <TD align="center">double</TD>
+            <TD>64ビットの浮動小数点</TD>
+            <TD>abc = 0.0</TD>
+          </TR>
+          <TR>
+            <TD>複素数</TD>
+            <TD align="center">complex</TD>
+            <TD>64ビットの実数、虚数</TD>
+            <TD>abc = 1 + 2i</TD>
+          </TR>
+          <TR>
+            <TD rowspan="3" align="center">文字列</TD>
+            <TD>8ビット文字列</TD>
+            <TD align="center">str</TD>
+            <TD>基本SHIFT-JISの8ビット文字列</TD>
+            <TD>abc = &quot;sample&quot;, str(abc), $abc</TD>
+          </TR>
+          <TR>
+            <TD>UTF-16文字列</TD>
+            <TD align="center">wstr</TD>
+            <TD>UTF-16の16ビット文字列</TD>
+            <TD>abc = L&quot;sample&quot;, wstr(abc)</TD>
+          </TR>
+          <TR>
+            <TD>UCS-4文字列</TD>
+            <TD align="center">dstr</TD>
+            <TD>UCS-4の32ビット文字列</TD>
+            <TD>dstr(abc)</TD>
+          </TR>
+          <TR>
+            <TD colspan="5">予約済みの変数として<A href="#I20">ドキュメント変数</A>「Document」とグローバル変数の「System」があります。<BR>
+            System変数は、プログラム内のすべての接続で共有の変数となりますが、現在は、何も設定していません。</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="I3"></A>3 配列</P>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1000">
+        <TBODY>
+          <TR>
+            <TD colspan="4">[ ] で変数を参照、代入で自動で配列を作成します。<BR>
+            インデックスは、数値もしくは、文字列を使用した連想配列を構成します</TD>
+          </TR>
+          <TR>
+            <TD width="10%">[ 数値 ]</TD>
+            <TD width="10%">int</TD>
+            <TD width="40%">符号付き32ビットの整数<BR>
+            <FONT size="-1">（自動で配列を拡張しますので大きな数値を指定すると処理速度が下がります）</FONT></TD>
+            <TD width="40%">abc[10] = 2, abc[#xyz] = 3<BR>
+            <FONT size="-1">(変数の型が不確定の場合など#で参照すると数値として参照します)</FONT></TD>
+          </TR>
+          <TR>
+            <TD>[ 文字列 ]</TD>
+            <TD>str</TD>
+            <TD>基本SHIFT-JISの8ビット文字列</TD>
+            <TD>abc[&quot;test&quot;] = 2, abc[$xyz] = 3<BR>
+            <FONT size="-1">(変数の型が不確定の場合など$で参照すると文字列として参照します)<BR>
+            また、文字列の連想配列を「.」で連結して参照・代入することができます<BR>
+            abc[&quot;def&quot;][&quot;xyz&quot;] と abc.def.xyz は、同一の変数を示します<BR>
+            </FONT></TD>
+          </TR>
+          <TR>
+            <TD>[ ]</TD>
+            <TD></TD>
+            <TD>最後に追加して配列を拡張します</TD>
+            <TD>abc[] = 2</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="I4"></A>4 文字配列</P>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1000">
+        <TBODY>
+          <TR>
+            <TD colspan="4">{ } で文字列変数の文字を参照・代入することができます</TD>
+          </TR>
+          <TR>
+            <TD width="10%">{ 数値 }</TD>
+            <TD width="10%">int</TD>
+            <TD width="40%">符号付き32ビットの整数（文字数を自動で拡張します）</TD>
+            <TD width="40%">abc{3} = 'A'</TD>
+          </TR>
+          <TR>
+            <TD>{ }</TD>
+            <TD></TD>
+            <TD>最後に追加して文字列を拡張します</TD>
+            <TD>abc{} = 'A'</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="I5"></A>5 演算子</P>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1000">
+        <TBODY>
+          <TR>
+            <TD align="center" width="10%">優先順位</TD>
+            <TD align="center" width="20%">演算子</TD>
+            <TD align="center" width="35%">説明</TD>
+            <TD align="center" width="35%">例</TD>
+          </TR>
+          <TR>
+            <TD align="center" rowspan="3">1</TD>
+            <TD align="center"><I>name</I>.<I>index</I></TD>
+            <TD>連想配列<BR>
+            ※変数名と「．」を繋げる事</TD>
+            <TD>abc.xyz</TD>
+          </TR>
+          <TR>
+            <TD align="center">( <I>expr</I> )</TD>
+            <TD>演算優先</TD>
+            <TD>x = (a + b) * c</TD>
+          </TR>
+          <TR>
+            <TD align="center">[ <I>[index]</I> : <I>expr</I> , ... ]</TD>
+            <TD>配列定義</TD>
+            <TD>a = [&quot;abc&quot;, &quot;xyz&quot;]</TD>
+          </TR>
+          <TR>
+            <TD align="center">2</TD>
+            <TD align="center"><I>expr</I> [ <I>expr</I> ]</TD>
+            <TD>配列</TD>
+            <TD>a[1], abc[&quot;xyz&quot;]</TD>
+          </TR>
+          <TR>
+            <TD align="center">3</TD>
+            <TD align="center"><I>name</I> ( <I>expr</I>, ... )</TD>
+            <TD>関数</TD>
+            <TD>abs(1), echo(&quot;test&quot;)</TD>
+          </TR>
+          <TR>
+            <TD align="center">4</TD>
+            <TD align="center"><I>expr</I> { <I>expr</I> }</TD>
+            <TD>文字配列</TD>
+            <TD>a{3} = 'A'</TD>
+          </TR>
+          <TR>
+            <TD align="center" rowspan="4">5</TD>
+            <TD align="center">++<I>expr</I></TD>
+            <TD>インクリメント後参照</TD>
+            <TD>++a</TD>
+          </TR>
+          <TR>
+            <TD align="center">--<I>expr</I></TD>
+            <TD>デクリメント後参照</TD>
+            <TD>--a</TD>
+          </TR>
+          <TR>
+            <TD align="center"><I>expr</I>++</TD>
+            <TD>参照後インクリメント</TD>
+            <TD>a++</TD>
+          </TR>
+          <TR>
+            <TD align="center"><I>expr</I>--</TD>
+            <TD>参照後デクリメント</TD>
+            <TD>a--</TD>
+          </TR>
+          <TR>
+            <TD align="center" rowspan="6">6</TD>
+            <TD align="center">+</TD>
+            <TD>正の単項演算子</TD>
+            <TD>+10</TD>
+          </TR>
+          <TR>
+            <TD align="center">-</TD>
+            <TD>負の単項演算子</TD>
+            <TD>-10</TD>
+          </TR>
+          <TR>
+            <TD align="center">~</TD>
+            <TD>ビット反転</TD>
+            <TD>^1</TD>
+          </TR>
+          <TR>
+            <TD align="center">!</TD>
+            <TD>論理反転</TD>
+            <TD>!(a == 0)</TD>
+          </TR>
+          <TR>
+            <TD align="center">#</TD>
+            <TD>数値参照</TD>
+            <TD>#abc</TD>
+          </TR>
+          <TR>
+            <TD align="center">$</TD>
+            <TD>文字列参照</TD>
+            <TD>$abc</TD>
+          </TR>
+          <TR>
+            <TD align="center" rowspan="3">7</TD>
+            <TD align="center">*</TD>
+            <TD>乗算</TD>
+            <TD>a = 2 * 3</TD>
+          </TR>
+          <TR>
+            <TD align="center">/</TD>
+            <TD>除算</TD>
+            <TD>a = 6 / 2</TD>
+          </TR>
+          <TR>
+            <TD align="center">%</TD>
+            <TD>剰余</TD>
+            <TD>a = 7 / 3</TD>
+          </TR>
+          <TR>
+            <TD align="center" rowspan="3">8</TD>
+            <TD align="center">+</TD>
+            <TD>加算</TD>
+            <TD>a = 1 + 2</TD>
+          </TR>
+          <TR>
+            <TD align="center">-</TD>
+            <TD>減算</TD>
+            <TD>a = 3 - 2</TD>
+          </TR>
+          <TR>
+            <TD align="center">.</TD>
+            <TD>文字列連結<BR>
+            ※前にスペース必要</TD>
+            <TD>a = &quot;abc&quot; . &quot;xyz&quot;</TD>
+          </TR>
+          <TR>
+            <TD align="center" rowspan="2">9</TD>
+            <TD align="center">&lt;&lt;</TD>
+            <TD>左ビットシフト</TD>
+            <TD>1 &lt;&lt; 8</TD>
+          </TR>
+          <TR>
+            <TD align="center">&gt;&gt;</TD>
+            <TD>右ビットシフト</TD>
+            <TD>16 &gt;&gt; 4</TD>
+          </TR>
+          <TR>
+            <TD align="center" rowspan="3">10</TD>
+            <TD align="center">&amp;</TD>
+            <TD>ビットAND</TD>
+            <TD>100 &amp; 15</TD>
+          </TR>
+          <TR>
+            <TD align="center">^</TD>
+            <TD>ビットXOR</TD>
+            <TD>100 ^ 0x01</TD>
+          </TR>
+          <TR>
+            <TD align="center">|</TD>
+            <TD>ビットOR</TD>
+            <TD>100 | 0x01</TD>
+          </TR>
+          <TR>
+            <TD align="center">11</TD>
+            <TD align="center">&lt; &lt;= &gt; &gt;=</TD>
+            <TD>関係演算子</TD>
+            <TD>1 &gt; 0</TD>
+          </TR>
+          <TR>
+            <TD align="center">12</TD>
+            <TD align="center">== !=</TD>
+            <TD>関係演算子</TD>
+            <TD>a == 0</TD>
+          </TR>
+          <TR>
+            <TD align="center">13</TD>
+            <TD align="center">&amp;&amp;</TD>
+            <TD>論理積</TD>
+            <TD>a == 1 &amp;&amp; x == 2</TD>
+          </TR>
+          <TR>
+            <TD align="center">14</TD>
+            <TD align="center">||</TD>
+            <TD>論理和</TD>
+            <TD>a == 1 || a == 2</TD>
+          </TR>
+          <TR>
+            <TD align="center">15</TD>
+            <TD align="center"><I>expr</I> ? <I>expr</I> : <I>expr</I></TD>
+            <TD>条件参照</TD>
+            <TD>a == 0 ? 1 : 2</TD>
+          </TR>
+          <TR>
+            <TD align="center">16</TD>
+            <TD align="center">= *= /= += ...</TD>
+            <TD>代入</TD>
+            <TD>a = 1 + 2</TD>
+          </TR>
+          <TR>
+            <TD align="center">17</TD>
+            <TD align="center"><I>expr</I> , <I>expr</I></TD>
+            <TD>列挙</TD>
+            <TD>a = 1, b = 2</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="I6"></A>6 構文</P>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1000">
+        <TBODY>
+          <TR>
+            <TD align="center" width="30%">構文</TD>
+            <TD align="center" width="35%">説明</TD>
+            <TD align="center" width="35%">例</TD>
+          </TR>
+          <TR>
+            <TD valign="top"><I>stmt</I> ;</TD>
+            <TD valign="top">演算子を使った式</TD>
+            <TD valign="top">a = 1 + 2 ;</TD>
+          </TR>
+          <TR>
+            <TD valign="top">{ <I>stmt</I> ; <I>stmt</I> ; }</TD>
+            <TD valign="top">構文列挙</TD>
+            <TD valign="top">
+            <PRE>{
+  a = 1 + 2;
+  b = 3 + 4;
+}</PRE>
+            </TD>
+          </TR>
+          <TR>
+            <TD valign="top">if ( <I>expr</I> ) <I>stmt</I><BR>
+            else if ( <I>expr</I> ) <I>stmt</I><BR>
+            else <I>stmt</I></TD>
+            <TD valign="top">条件判断</TD>
+            <TD valign="top">
+            <PRE>if ( a == 1 )
+  b = 2;
+else if ( a == 2 )
+  b = 3;
+else
+  b = 4;</PRE>
+            </TD>
+          </TR>
+          <TR>
+            <TD valign="top">while ( <I>expr</I> ) <I>stmt</I></TD>
+            <TD rowspan="3" valign="top">反復条件判断</TD>
+            <TD valign="top">
+            <PRE>while ( a == 1 )
+  a = abc(a);</PRE>
+            </TD>
+          </TR>
+          <TR>
+            <TD valign="top">do <I>stmt</I> while ( <I>expr</I> ) ;</TD>
+            <TD valign="top">
+            <PRE>do {
+  a = abc(a);
+} while ( a == 1 );</PRE>
+            </TD>
+          </TR>
+          <TR>
+            <TD valign="top">for ( <I>expr</I> ; <I>expr</I> ; <I>expr</I> ) <I>stmt</I></TD>
+            <TD valign="top">
+            <PRE>for ( n = 0 ; n &lt; 5 ; n++ ) {
+  if ( a == 0 )
+    continue;
+  else if ( a == 1 )
+    break;
+}</PRE>
+            </TD>
+          </TR>
+          <TR>
+            <TD valign="top">foreach ( <I>[key : ] value</I> in <I>array</I> )<BR>
+            <I>stm</I>t</TD>
+            <TD valign="top">配列代入反復</TD>
+            <TD valign="top">
+            <PRE>foreach ( v in [ 1, 2, 3 ] )
+  echo(v);</PRE>
+            </TD>
+          </TR>
+          <TR>
+            <TD valign="top">switch ( <I>expr</I> ) {<BR>
+            case <I>expr</I> : <I>stmt</I><BR>
+            default : <I>stmt</I><BR>
+            }</TD>
+            <TD valign="top">条件分岐</TD>
+            <TD valign="top">
+            <PRE>switch(a) {
+case 0: a = 1 + 1; break;
+case 1: a = 1 + 2;
+default: a = 1 + 3; break;
+}</PRE>
+            </TD>
+          </TR>
+          <TR>
+            <TD valign="top">function <I>name</I> ( <I>name</I> ... ) <I>stmt</I></TD>
+            <TD valign="top">関数定義<BR>
+            <BR>
+            <FONT size="-1">「var」による明示的な変数定義によって関数内のローカル変数を定義できる。明示的に指定しない場合は、グローバル変数と見なす。 </FONT></TD>
+            <TD valign="top">
+            <PRE>function abc(x) {
+  var n;
+  if ( x == y )
+    n = z;
+  return n;
+}</PRE>
+            </TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="I7"></A>7 基本関数</P>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1000">
+        <TBODY>
+          <TR>
+            <TD align="center" width="20%"><FONT size="-1">関数</FONT></TD>
+            <TD align="center" width="25%"><FONT size="-1">説明</FONT></TD>
+            <TD align="center" width="5%"><FONT size="-1">戻り値</FONT></TD>
+            <TD align="center" width="25%"><FONT size="-1">例</FONT></TD>
+            <TD align="center" width="25%"><FONT size="-1">実行結果</FONT></TD>
+          </TR>
+          <TR>
+            <TD valign="top">echo ( <I>string</I> , ... )</TD>
+            <TD valign="top">コンソールに文字列を表示する。<BR>
+            文字列中の&quot;\n&quot;は、&quot;\r\n&quot;に変換されます</TD>
+            <TD valign="top"></TD>
+            <TD valign="top">echo(&quot;Hello world\n&quot;);</TD>
+            <TD valign="top">Hello world<BR>
+            ■</TD>
+          </TR>
+          <TR>
+            <TD valign="top">debug ( <I>var</I> )</TD>
+            <TD valign="top">変数の状態を文字列で返します。</TD>
+            <TD valign="top">str</TD>
+            <TD valign="top">a = 99;<BR>
+            a[&quot;ABC&quot;] = 777;<BR>
+            echo(debug(a));</TD>
+            <TD valign="top">:(ident)={a:(int)=99<BR>
+            [0:ABC:(int)=777]}</TD>
+          </TR>
+          <TR>
+            <TD valign="top">dump ( <I>string</I> )</TD>
+            <TD valign="top">文字列を16進数文字列に変換します。</TD>
+            <TD valign="top">str</TD>
+            <TD valign="top">echo(dump(&quot;012&quot;));</TD>
+            <TD valign="top">30 31 32</TD>
+          </TR>
+          <TR>
+            <TD valign="top">beep ( )</TD>
+            <TD valign="top">ビープサウンドを鳴らす</TD>
+            <TD valign="top"></TD>
+            <TD valign="top">beep();</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">include ( <I>filename</I> )</TD>
+            <TD valign="top">別のスクリプトファイルを読み込み実行します</TD>
+            <TD valign="top"></TD>
+            <TD valign="top">include(&quot;userlib.txt&quot;);</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">execstr ( <I>string</I> )</TD>
+            <TD valign="top">文字列のスクリプト実行します。<BR>
+            実行する度にコンパイルコードが追加されますので注意。</TD>
+            <TD valign="top"></TD>
+            <TD valign="top">execstr(&quot;function abc() {<BR>
+            echo(\&quot;Hello World\\n\&quot;);}&quot;);</TD>
+            <TD valign="top">abc関数を追加</TD>
+          </TR>
+          <TR>
+            <TD valign="top">sleep ( <I>msec</I> )</TD>
+            <TD valign="top">ミリ秒単位で処理を中断します。</TD>
+            <TD valign="top"></TD>
+            <TD valign="top">sleep(1000);</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">time ( )</TD>
+            <TD valign="top">現在時刻を返します。</TD>
+            <TD valign="top">int</TD>
+            <TD valign="top"><A href="#strftime">strftime</A>を参照</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">command ( <I>arg</I>, ... )</TD>
+            <TD valign="top">RLoginの<A href="index.html#CMDLINE">コマンドライン</A>を実行します。</TD>
+            <TD valign="top"></TD>
+            <TD valign="top">command(&quot;/telnet&quot;, &quot;/ip &quot;,host);</TD>
+            <TD valign="top">別タブでtelnetを開く</TD>
+          </TR>
+          <TR>
+            <TD valign="top">exit ( <I>value</I> )</TD>
+            <TD valign="top">スクリプトの実行を終了します。<BR>
+            現在は、<I>value</I>を無視します。</TD>
+            <TD valign="top"></TD>
+            <TD valign="top">exit(0);</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">menu ( <I>no, str, func, [menu] </I>)</TD>
+            <TD valign="top">メニューに関数を登録します。<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD valign="top" align="center">no</TD>
+                  <TD>0-9のメニュー番号</TD>
+                </TR>
+                <TR>
+                  <TD valign="top" align="center">str</TD>
+                  <TD>メニューに表示される文字</TD>
+                </TR>
+                <TR>
+                  <TD valign="top" align="center">func</TD>
+                  <TD>ユーザー定義関数名を文字列で指定。組み込み関数は、指定出来ません。</TD>
+                </TR>
+                <TR>
+                  <TD valign="top" align="center">menu</TD>
+                  <TD>追加されるメニュー位置キー定義で使用している$から始まる文字が指定できます。指定無きは、「スクリプトの停止」の上に追加します</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+            <TD valign="top"></TD>
+            <TD valign="top">function Hello() {<BR>
+            echo(&quot;Hello World\n&quot;);<BR>
+            }<BR>
+            menu(0, &quot;こんにちは&quot;, &quot;Hello&quot;);</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">menucall (<I>menu</I> )</TD>
+            <TD valign="top">キー定義で使用している$から始まる文字でメニューを実行します</TD>
+            <TD valign="top"></TD>
+            <TD valign="top">menucall(&quot;$WINDOW_CLOSE&quot;);</TD>
+            <TD valign="top">ウィンドウを閉じる</TD>
+          </TR>
+          <TR>
+            <TD valign="top">iconstyle ( <I>msg</I> )</TD>
+            <TD valign="top">タスクトレーにアイコン化します</TD>
+            <TD valign="top"></TD>
+            <TD valign="top"></TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">getproint ( <I>profile, [value]</I> )</TD>
+            <TD valign="top">レジストリprofile名から整数を読み込みます。valueは、設定無しの場合のデフォルト値です</TD>
+            <TD valign="top">int</TD>
+            <TD valign="top" rowspan="4">logdate = getproint(&quot;date&quot;, time());<BR>
+            logfile = getprostr(&quot;file&quot;, &quot;Log.txt&quot;);<BR>
+            <BR>
+            putproint(&quot;date&quot;, logdate);<BR>
+            putprostr(&quot;file&quot;, logfile);<BR>
+            <BR>
+            ;</TD>
+            <TD valign="top" rowspan="4"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">putproint ( <I>profile, value</I> )</TD>
+            <TD valign="top">レジストリにprofile名で整数を書き出します。</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">getprostr ( <I>profile, [str]</I> )</TD>
+            <TD valign="top">レジストリprofile名から文字列を読み込みます。valueは、設定無しの場合のデフォルト値です</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">putprostr ( <I>profile, str</I> )</TD>
+            <TD valign="top">レジストリにprofile名で文字列を書き出します。</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">int ( <I>string</I> )</TD>
+            <TD valign="top">符号付き32ビット整数を返します。</TD>
+            <TD valign="top">int</TD>
+            <TD valign="top">a = &quot;10&quot;;<BR>
+            b[a] = &quot;STR &quot;;<BR>
+            b[int(a)] = &quot;DIGIT &quot;;<BR>
+            echo(b[&quot;10&quot;], b[10]);</TD>
+            <TD valign="top">STR DIGIT</TD>
+          </TR>
+          <TR>
+            <TD valign="top">int64 ( <I>string</I> )</TD>
+            <TD valign="top">符号付き64ビット整数を返します。</TD>
+            <TD valign="top">int64</TD>
+            <TD valign="top">echo(sprintf(&quot;%I64d&quot;,int64(&quot;100&quot;));</TD>
+            <TD valign="top">100</TD>
+          </TR>
+          <TR>
+            <TD valign="top">str ( <I>value</I> )</TD>
+            <TD valign="top">8ビット文字列を返します。</TD>
+            <TD valign="top">str</TD>
+            <TD valign="top">str(100) == &quot;100&quot;</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">wstr ( <I>value</I> )</TD>
+            <TD valign="top">16ビット文字列を返します。</TD>
+            <TD valign="top">wstr</TD>
+            <TD valign="top">wstr(100) == L&quot;100&quot;</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">dstr ( <I>value</I> )</TD>
+            <TD valign="top">32ビット文字列を返します。</TD>
+            <TD valign="top">dstr</TD>
+            <TD valign="top">dstr(100) == L&quot;100&quot;</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">length ( <I>string</I> )</TD>
+            <TD valign="top">文字数を返します</TD>
+            <TD valign="top">int</TD>
+            <TD valign="top">echo(length(&quot;ABC&quot;) );</TD>
+            <TD valign="top">3</TD>
+          </TR>
+          <TR>
+            <TD valign="top">sort ( <I>var</I> )<BR>
+            rsort ( <I>var</I> )</TD>
+            <TD valign="top">配列を整列します。<BR>
+            空の配列は、詰められます。</TD>
+            <TD valign="top"></TD>
+            <TD valign="top">a = [&quot;XYZ&quot;,&quot;ABC&quot;,&quot;DEF&quot;];<BR>
+            sort(a);<BR>
+            echo(a[0], a[1], a[2]);</TD>
+            <TD valign="top">ABCDEFXYZ</TD>
+          </TR>
+          <TR>
+            <TD valign="top">ksort ( <I>var</I> )<BR>
+            krsort ( <I>var</I> )</TD>
+            <TD valign="top">配列のキーによって整列します。<BR>
+            空の配列は、詰められます。</TD>
+            <TD valign="top"></TD>
+            <TD valign="top">a = [&quot;XYZ&quot;:1,&quot;ABC&quot;:2,&quot;DEF&quot;:3];<BR>
+            ksort(a);<BR>
+            echo(a[0], a[1], a[2]);</TD>
+            <TD valign="top">231</TD>
+          </TR>
+          <TR>
+            <TD valign="top">count ( <I>var</I> )</TD>
+            <TD valign="top">配列の要素数を返します。</TD>
+            <TD valign="top">int</TD>
+            <TD valign="top">a = [&quot;XYZ&quot;,&quot;ABC&quot;,&quot;DEF&quot;];<BR>
+            echo( count(a) );</TD>
+            <TD valign="top">3</TD>
+          </TR>
+          <TR>
+            <TD valign="top">key ( <I>var</I> )</TD>
+            <TD valign="top">連想配列のキーを返します。</TD>
+            <TD valign="top">str</TD>
+            <TD valign="top">a[&quot;ABC&quot;] = 1;<BR>
+            echo( key(a[0]) );</TD>
+            <TD valign="top">ABC</TD>
+          </TR>
+          <TR>
+            <TD valign="top">reset ( <I>var</I> )</TD>
+            <TD valign="top">変数を初期化します。</TD>
+            <TD valign="top"></TD>
+            <TD valign="top">a = 1;<BR>
+            a[&quot;ABC&quot;] = 1;<BR>
+            reset(a);<BR>
+            echo( a, count(a) );</TD>
+            <TD valign="top">00</TD>
+          </TR>
+          <TR>
+            <TD valign="top">pack ( <I>var</I> )</TD>
+            <TD valign="top">変数を配列を含めてパックします</TD>
+            <TD valign="top">str</TD>
+            <TD valign="top" rowspan="2">b = pack(a);<BR>
+            a = unpack(b);</TD>
+            <TD valign="top" rowspan="2"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">unpack ( <I>string</I> )</TD>
+            <TD valign="top">packされた変数を元に戻します</TD>
+            <TD valign="top">var</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="I8"></A>8 文字列関数</P>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1000">
+        <TBODY>
+          <TR>
+            <TD align="center" width="20%"><FONT size="-1">関数</FONT></TD>
+            <TD align="center" width="25%"><FONT size="-1">説明</FONT></TD>
+            <TD align="center" width="5%"><FONT size="-1">戻り値</FONT></TD>
+            <TD align="center" width="25%"><FONT size="-1">例</FONT></TD>
+            <TD align="center" width="25%"><FONT size="-1">実行結果</FONT></TD>
+          </TR>
+          <TR>
+            <TD valign="top">substr ( <I>string</I> , <I>index</I> ,<BR>
+            <I>length</I> )</TD>
+            <TD valign="top">stringのindex目からlength個の文字を返す</TD>
+            <TD valign="top">str</TD>
+            <TD valign="top" rowspan="2">a = &quot;ABCXYZDEF&quot;;<BR>
+            b = strstr(a, &quot;XYZ&quot;);<BR>
+            c = substr(a, b, 3);<BR>
+            echo(b . &quot; &quot; . c);</TD>
+            <TD valign="top" rowspan="2">3 XYZ</TD>
+          </TR>
+          <TR>
+            <TD valign="top">strstr ( <I>string</I> , <I>pattan</I> )</TD>
+            <TD valign="top">stringのpattanに一致する文字列の位置を返す</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">trim ( <I>string , pattan</I> )</TD>
+            <TD valign="top">stringからpattanに一致する両端の文字を削除する</TD>
+            <TD valign="top">wstr</TD>
+            <TD valign="top" rowspan="3">a = &quot;ABCCBAXYZFEDDEF&quot;;<BR>
+            echo(trim(a, &quot;ABC&quot;).&quot;\n&quot;);<BR>
+            echo(trim(a, &quot;XYZ&quot;).&quot;\n&quot;);<BR>
+            echo(trim(a, &quot;DEF&quot;).&quot;\n&quot;);</TD>
+            <TD valign="top" rowspan="3">XYZFEDDEF<BR>
+            ABCCBAXYZFEDDEF<BR>
+            ABCCBAXYZ</TD>
+          </TR>
+          <TR>
+            <TD valign="top">trimleft ( <I>string , pattan</I> )</TD>
+            <TD valign="top">stringからpattanに一致する左端の文字を削除する</TD>
+            <TD valign="top">wstr</TD>
+          </TR>
+          <TR>
+            <TD valign="top">trimright ( <I>string , pattan</I> )</TD>
+            <TD valign="top">stringからpattanに一致する右端の文字を削除する</TD>
+            <TD valign="top">wstr</TD>
+          </TR>
+          <TR>
+            <TD valign="top">ctos ( <I>char</I> )</TD>
+            <TD valign="top">charコードを文字列に変換する。<BR>
+            コードは、UCS-4を想定してサロゲート処理する</TD>
+            <TD valign="top">wstr</TD>
+            <TD valign="top">a = 0x10000;<BR>
+            s = ctos(a);<BR>
+            echo(dump(s));</TD>
+            <TD valign="top">D800 DC00</TD>
+          </TR>
+          <TR>
+            <TD valign="top">sprintf (<I> format</I> , ... )</TD>
+            <TD valign="top">引数をフォーマットして文字列を返す</TD>
+            <TD valign="top">str</TD>
+            <TD valign="top">echo(sprintf(&quot;TEST=%02x\n&quot;,41));</TD>
+            <TD valign="top">TEST=29</TD>
+          </TR>
+          <TR>
+            <TD valign="top">escstr ( <I>strring</I> )</TD>
+            <TD valign="top">データベース引数用に文字をエスケープする。</TD>
+            <TD valign="top">str</TD>
+            <TD valign="top"></TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">escshell( <I>string</I> )</TD>
+            <TD valign="top">シェルの引数用に文字をエスケープする。</TD>
+            <TD valign="top">str</TD>
+            <TD valign="top">echo(escshell(&quot;abc &gt; xyz&quot;));</TD>
+            <TD valign="top">abc\ \&gt;\ xyz</TD>
+          </TR>
+          <TR>
+            <TD valign="top"><A name="strftime"></A>strftime ( <I>format , time</I> )</TD>
+            <TD valign="top">time()で返される日時をフォーマットして文字列を返す</TD>
+            <TD valign="top">str</TD>
+            <TD valign="top" rowspan="3">a = time();<BR>
+            echo(<BR>
+            strftime(&quot;%m/%d/%y %H:%M:%S\n&quot;, a));<BR>
+            b = getdate(a);<BR>
+            c = mktime(b.hour, b.min, b.sec, <BR>
+            b.mon, b.mday, b.year);<BR>
+            echo(<BR>
+            strftime(&quot;%m/%d/%y %H:%M:%S\n&quot;, c));</TD>
+            <TD valign="top" rowspan="3">03/02/12 08:50:56<BR>
+            03/02/12 08:50:56</TD>
+          </TR>
+          <TR>
+            <TD valign="top">getdate ( <I>time</I> )</TD>
+            <TD valign="top">time()で返される日時を配列で返す<BR>
+            <TABLE cellpadding="1" width="100%">
+              <TBODY>
+                <TR>
+                  <TD>mday</TD>
+                  <TD>日/月</TD>
+                  <TD>yday</TD>
+                  <TD>日/年</TD>
+                </TR>
+                <TR>
+                  <TD>wday</TD>
+                  <TD>曜日</TD>
+                  <TD>sec</TD>
+                  <TD>秒</TD>
+                </TR>
+                <TR>
+                  <TD>mon</TD>
+                  <TD>月</TD>
+                  <TD>min</TD>
+                  <TD>分</TD>
+                </TR>
+                <TR>
+                  <TD>year</TD>
+                  <TD>年</TD>
+                  <TD>hour</TD>
+                  <TD>時</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+            <TD valign="top">array</TD>
+          </TR>
+          <TR>
+            <TD valign="top">mktime ( <I>[hour] , [minute] ,<BR>
+            [second] ,[month] , [day] ,<BR>
+            [yea r], [dst</I>] )</TD>
+            <TD valign="top">個々の日時要素からtime()と同じ経過時間を返す</TD>
+            <TD valign="top">int</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="I9"></A>9 正規表現関数</P>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1000">
+        <TBODY>
+          <TR>
+            <TD align="center" width="20%"><FONT size="-1">関数</FONT></TD>
+            <TD align="center" width="25%"><FONT size="-1">説明</FONT></TD>
+            <TD align="center" width="5%"><FONT size="-1">戻り値</FONT></TD>
+            <TD align="center" width="25%"><FONT size="-1">例</FONT></TD>
+            <TD align="center" width="25%"><FONT size="-1">実行結果</FONT></TD>
+          </TR>
+          <TR>
+            <TD valign="top">ereg ( <I>pattan</I>, <I>string</I> )</TD>
+            <TD valign="top">正規表現で一致した数と要素を返す</TD>
+            <TD valign="top">int<BR>
+            array</TD>
+            <TD valign="top"><FONT size="-1">a = &quot;abc012xyz345&quot;;<BR>
+            b = ereg(&quot;([0-9]+)[^0-9]*([0-9]+)&quot;, a);<BR>
+            for( n = 0 ; n &lt; b ; n++ )<BR>
+            echo(sprintf(&quot;%d='%s'\n&quot;, n, b[n]));</FONT></TD>
+            <TD valign="top">0='012xyz345'<BR>
+            1='012'<BR>
+            2='345'</TD>
+          </TR>
+          <TR>
+            <TD valign="top">replace ( <I>pattan ,<BR>
+            replace , string</I> )</TD>
+            <TD valign="top">正規表現で一致した文字列を置き換える</TD>
+            <TD valign="top">str</TD>
+            <TD valign="top">a = &quot;abc012xyz345&quot;;<BR>
+            b = replace(&quot;[0-9]+&quot;, &quot;DIG&quot;, a);<BR>
+            echo(b);</TD>
+            <TD valign="top">abcDIGxyzDIG</TD>
+          </TR>
+          <TR>
+            <TD valign="top">split ( <I>pattan , string</I> )</TD>
+            <TD valign="top">正規表現で一致した文字列で分割する</TD>
+            <TD valign="top">int<BR>
+            array</TD>
+            <TD valign="top">a = &quot;abc def xyz &quot;;<BR>
+            b = split(&quot;[ \t]+&quot;, a);<BR>
+            for( n = 0 ; n &lt; b ; n++ )<BR>
+            echo(sprintf(&quot;%d='%s'\n&quot;, n, b[n]));</TD>
+            <TD valign="top">0='abc'<BR>
+            1='def'<BR>
+            2='xyz'</TD>
+          </TR>
+          <TR>
+            <TD valign="top">regopen (<I> pattan</I> )</TD>
+            <TD valign="top">正規表現を準備する</TD>
+            <TD valign="top">ptr</TD>
+            <TD valign="top" rowspan="4">
+            <PRE style="font-size : 8pt;">Document.Open();
+wait(CONNECT);
+copen();
+p = regopen(&quot;[eE][rR][rR][oO][rR]&quot;);
+while ( (a = cgetc()) != EOF ) {
+  if ( regchar(a, p) )
+    beep();
+}
+regclose(p);
+cclose();</PRE>
+            </TD>
+            <TD valign="top" rowspan="4">ERRORが表示されるとビープ音が鳴ります。</TD>
+          </TR>
+          <TR>
+            <TD valign="top">regclose ( <I>ptr</I> )</TD>
+            <TD valign="top">regopenで準備した構成を放棄する</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">regchar ( <I>char, ptr</I> )</TD>
+            <TD valign="top">1文字(UCS-4)単位で正規表現をチェックする一致した場合は、[0]に一致文字列を返しcharでpos指定した場合には、そのposも返す。</TD>
+            <TD valign="top">int<BR>
+            array</TD>
+          </TR>
+          <TR>
+            <TD valign="top">regstr ( <I>string , ptr</I> )</TD>
+            <TD valign="top">文字列単位で正規表現をチェックする</TD>
+            <TD valign="top">int<BR>
+            array</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="I10"></A>10 文字変換関数</P>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1000">
+        <TBODY>
+          <TR>
+            <TD align="center" width="20%"><FONT size="-1">関数</FONT></TD>
+            <TD align="center" width="25%"><FONT size="-1">説明</FONT></TD>
+            <TD align="center" width="5%"><FONT size="-1">戻り値</FONT></TD>
+            <TD align="center" width="25%"><FONT size="-1">例</FONT></TD>
+            <TD align="center" width="25%"><FONT size="-1">実行結果</FONT></TD>
+          </TR>
+          <TR>
+            <TD valign="top">remotestr ( <I>string</I> )</TD>
+            <TD valign="top">現在の漢字コードに文字列を変換します</TD>
+            <TD valign="top">str</TD>
+            <TD valign="top">cwrite(remotestr(&quot;漢字&quot;));</TD>
+            <TD valign="top">漢字</TD>
+          </TR>
+          <TR>
+            <TD valign="top">localstr ( <I>string</I> )</TD>
+            <TD valign="top">現在の漢字コードの文字列から変換します</TD>
+            <TD valign="top">str</TD>
+            <TD valign="top">echo(localstr(sread(20)));</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">iconv ( <I>from , to , string</I> )</TD>
+            <TD valign="top">iconvを使って文字列を変換します。<BR>
+            ※内部漢字コードが変化しますので動作には、注意が必要です。<BR>
+            ※内部文字コードは、「CP932」です。</TD>
+            <TD valign="top">str</TD>
+            <TD valign="top" rowspan="3">a = &quot;漢字&quot;;<BR>
+            b = iconv(&quot;CP932&quot;, &quot;UTF-8&quot;, a);<BR>
+            echo(dump(a), dump(b));</TD>
+            <TD valign="top" rowspan="3">8A BF 8E 9A <BR>
+            E6 BC A2 E5 AD 97</TD>
+          </TR>
+          <TR>
+            <TD valign="top">iconvw ( <I>from , to , string</I> )</TD>
+            <TD valign="top">wstr「UTF-16LE」に変換します。</TD>
+            <TD valign="top">wstr</TD>
+          </TR>
+          <TR>
+            <TD valign="top">iconvd ( <I>from , to , string</I> )</TD>
+            <TD valign="top">dstr「UCS-4LE」に変換します。</TD>
+            <TD valign="top">dstr</TD>
+          </TR>
+          <TR>
+            <TD valign="top">md5 ( <I>string , [base16]</I> )</TD>
+            <TD valign="top" rowspan="2">md5/sha1ハッシュ関数で文字列をコード化します。base16を「0」で16進数文字列に変換します。「0」以外では、バイナリーのまま返します。</TD>
+            <TD valign="top">str</TD>
+            <TD valign="top" rowspan="2">a = &quot;ABCDEF&quot;;<BR>
+            echo(md5(a).&quot;\n&quot;);<BR>
+            echo(sha1(a).&quot;\n&quot;);</TD>
+            <TD valign="top" rowspan="2">8827a41122a5028b9808<BR>
+            c7bf84b9fcf6<BR>
+            970093678b182127f60b<BR>
+            b51b8af2c94d539eca3a</TD>
+          </TR>
+          <TR>
+            <TD valign="top">sha1 ( <I>string , [base16]</I> )</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">base64e ( <I>string</I> )</TD>
+            <TD valign="top" rowspan="6">base64/base16/quotedで文字列を変換します。末尾の「e」でエンコード「d」でデコードです。</TD>
+            <TD valign="top">str</TD>
+            <TD valign="top" rowspan="6">a = &quot;ABCDEF&quot;;<BR>
+            b = base16e(a);<BR>
+            c = base16d(b);<BR>
+            echo(a, &quot;\n&quot;, b, &quot;\n&quot;, c);</TD>
+            <TD valign="top" rowspan="6">ABCDEF<BR>
+            414243444546<BR>
+            ABCDEF<BR>
+            </TD>
+          </TR>
+          <TR>
+            <TD valign="top">base64d ( <I>string</I> )</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">base16e ( <I>string</I> )</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">base16d ( <I>string</I> )</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">quotede ( <I>string</I> )</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">quotedd ( <I>string</I> )</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">crc16 ( <I>crc , int</I> )</TD>
+            <TD valign="top" rowspan="2">crc16/32で数値をコード化します。</TD>
+            <TD valign="top">int</TD>
+            <TD valign="top" rowspan="2">a = &quot;ABCDEF&quot;;<BR>
+            for ( n = c = 0 ; n &lt; length(a) ; n++ )<BR>
+            c = crc16(c, a{n});<BR>
+            echo(sprintf(&quot;%04X\n&quot;, c));</TD>
+            <TD valign="top" rowspan="2">944D</TD>
+          </TR>
+          <TR>
+            <TD valign="top">crc32 ( <I>crc , int</I> )</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">cipopen (<I> type, key, ec</I> )</TD>
+            <TD valign="top">暗号化処理を開きます</TD>
+            <TD valign="top">ptr</TD>
+            <TD valign="top" rowspan="3">p = cipopen(&quot;aes128-ctr&quot;, &quot;key&quot;, 0);<BR>
+            s = cipstr(&quot;Sample&quot;, p);<BR>
+            echo(base16e(s));<BR>
+            cipclose(p);</TD>
+            <TD valign="top" rowspan="3"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">cipclose( <I>ptr</I> )</TD>
+            <TD valign="top">暗号化処理を閉じます</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">cipstr ( <I>str, ptr</I> )</TD>
+            <TD valign="top">文字列を暗号化します</TD>
+            <TD valign="top">str</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="I11"></A>11 コンソール関数</P>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1000">
+        <TBODY>
+          <TR>
+            <TD align="center" width="20%"><FONT size="-1">関数</FONT></TD>
+            <TD align="center" width="25%"><FONT size="-1">説明</FONT></TD>
+            <TD align="center" width="5%"><FONT size="-1">戻り値</FONT></TD>
+            <TD align="center" width="25%"><FONT size="-1">例</FONT></TD>
+            <TD align="center" width="25%"><FONT size="-1">実行結果</FONT></TD>
+          </TR>
+          <TR>
+            <TD valign="top">copen ( )</TD>
+            <TD valign="top">画面表示される文字読み取りを開始します。cputsなどの出力は、無限ループを避ける為に、入力しませんが、ソケットからの入力は、通常コンソールに出力されコンソール入力として読み取ります。<BR>
+            sputs()などのソケット出力がエコーバックされる場合、無限ループになる可能性があります注意してくだい</TD>
+            <TD valign="top"></TD>
+            <TD valign="top" rowspan="13">
+            <PRE style="font-size : 8pt;">Document.Open();
+wait(CONNECT);
+copen();
+p = regopen(&quot;[eE][rR][rR][oO][rR]&quot;);
+while ( (a = cgetc()) != EOF ) {
+  if ( (b = regchar(a, p)) ) {
+    for ( n = 0 ; 
+          n &lt; length(b[0]) ; n++ ) {
+      c = getchar(b[0][&quot;pos&quot;] + n);
+      c.fc = 1;
+      setchar(c, b[0][&quot;pos&quot;] + n);
+    }
+  }
+}
+regclose(p);
+cclose();</PRE>
+            </TD>
+            <TD valign="top" rowspan="13">ERRORが表示されると文字色を赤に変える</TD>
+          </TR>
+          <TR>
+            <TD valign="top">cclose ( )</TD>
+            <TD valign="top">コンソール読み取りを閉じます</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">cgetc (<I>[msec]</I> )</TD>
+            <TD valign="top">画面に表示される文字をUCS-4で読み込み「pos」配列に画面表示位置情報を返します。<BR>
+            空の場合は、画面更新があるまで処理を最大msecミリ秒中断します。<BR>
+            msecに０を指定した場合は、タイムアウトしません。<BR>
+            ソケットが開いていない場合、もしくは、msecに(-1)を指定した場合はEOF(-1)を返します</TD>
+            <TD valign="top">char</TD>
+          </TR>
+          <TR>
+            <TD valign="top">cgets (<I>[msec]</I> )</TD>
+            <TD valign="top">画面に表示される文字をUTF-16の16ビット文字列で「\n(0A)」で改行されるまで読み込みます。<BR>
+            ソケットが開いていない場合は、&quot;&quot;空白を返します</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">cputc ( <I>char</I> )</TD>
+            <TD valign="top">UCS-4文字を現在の漢字コードに変換して画面に表示します</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">cputs ( <I>string</I> )</TD>
+            <TD valign="top">現在の漢字コードに文字列を変換して画面に表示します。<BR>
+            echo()と似ていますが「\n」を変換しません</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">cwrite ( <I>string</I> )</TD>
+            <TD valign="top">文字列をそのままの形で画面に送ります</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">locate ( <I>x , y</I> )</TD>
+            <TD valign="top">カーソル位置を移動し画面の位置情報を返します</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">getchar ( <I>pos</I> )</TD>
+            <TD valign="top">locateやcgetcで取得した位置情報から画面に表示されている文字情報を取得します。<BR>
+            <TABLE cellpadding="1" width="100%">
+              <TBODY>
+                <TR>
+                  <TD>fc</TD>
+                  <TD>文字色</TD>
+                  <TD>at</TD>
+                  <TD>文字属性</TD>
+                </TR>
+                <TR>
+                  <TD>bc</TD>
+                  <TD>背景色</TD>
+                  <TD>ft</TD>
+                  <TD>フォント番号</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+            <TD valign="top">char<BR>
+            array</TD>
+          </TR>
+          <TR>
+            <TD valign="top">setchar (<I>char, pos</I> )</TD>
+            <TD valign="top">getcharで取得した文字情報を指定した位置に戻し画面表示を更新します。</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">getpos ( )</TD>
+            <TD valign="top">現在のカーソル位置のposを返す。</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">xypos ( <I>x, y</I> )</TD>
+            <TD valign="top">指定画面位置のposを返す。</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">getstr ( <I>spos, epos</I> )</TD>
+            <TD valign="top">指定pos位置の画面に表示されてい<BR>
+            る文字列を返す</TD>
+            <TD valign="top">wstr</TD>
+          </TR>
+          <TR>
+            <TD valign="top">swait ( <I>sec</I> ,<BR>
+            <I>[pattan, ...]</I>)</TD>
+            <TD valign="top">最大sec秒間、正規表現と一致する文字列が表示されるまで処理を中断します。</TD>
+            <TD valign="top">int</TD>
+            <TD valign="top">
+            <PRE style="font-size : 8pt;">switch(swait(10, &quot;CONNECT&quot;, &quot;ERR&quot;)) {
+case (-1): // Time Out
+  Document.Close();
+  break;
+case 0:    // CONNECT
+  sputs(&quot;%s\r&quot;, Document.Entry.User);
+  break;
+case 1:    // ERR
+  echo(&quot;Command Error\n&quot;);
+  break;
+}</PRE>
+            </TD>
+            <TD valign="top"></TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="I12"></A>12 入出力関数</P>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1000">
+        <TBODY>
+          <TR>
+            <TD align="center" width="20%"><FONT size="-1">関数</FONT></TD>
+            <TD align="center" width="25%"><FONT size="-1">説明</FONT></TD>
+            <TD align="center" width="5%"><FONT size="-1">戻り値</FONT></TD>
+            <TD align="center" width="25%"><FONT size="-1">例</FONT></TD>
+            <TD align="center" width="25%"><FONT size="-1">実行結果</FONT></TD>
+          </TR>
+          <TR>
+            <TD valign="top">sopen ( <I>mode</I> )</TD>
+            <TD valign="top">ソケット入力を開きます
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD>OPEN_LOOK</TD>
+                  <TD>0</TD>
+                  <TD>ソケット入力を読み取ります<BR>
+                  画面表示にも送られます</TD>
+                </TR>
+                <TR>
+                  <TD>OPEN_CATCH</TD>
+                  <TD>1</TD>
+                  <TD>ソケット入力を横取りします<BR>
+                  画面表示には送られません</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+            <TD valign="top"></TD>
+            <TD valign="top" rowspan="8">
+            <PRE style="font-size : 8pt;">Document.Open();
+wait(CONNECT);
+sopen(OPEN_LOOK);
+while ( (s = sgets()) != &quot;&quot; ) {
+  if ( strstr(s, &quot;ERROR&quot;) &gt;= 0 )
+    beep();
+}
+sclose();</PRE>
+            </TD>
+            <TD valign="top" rowspan="8">ERRORとソケットから入力があればビープを鳴らします。</TD>
+          </TR>
+          <TR>
+            <TD valign="top">sclose ( )</TD>
+            <TD valign="top">ソケット入力を閉じます。</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">sgetc ( <I>[msec]</I> )</TD>
+            <TD valign="top">ソケットからの入力をを8ビット文字として読み込みます。<BR>
+            空の場合は、ソケット入力があるまで処理を最大msecミリ秒中断します。msecに０を指定した場合は、タイムアウトしません。<BR>
+            ソケットが開いていない場合、もしくは、msecに(-1)を指定した場合は、EOF(-1)を返します</TD>
+            <TD valign="top">char</TD>
+          </TR>
+          <TR>
+            <TD valign="top">sgets (<I>[msec]</I> )</TD>
+            <TD valign="top">ソケットからの入力を8ビット文字列として改行コード「\n(0A)」が入力されるまで読み込みます<BR>
+            ソケットが開いていない場合は、「&quot;&quot;」空白を返します</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">sread ( <I>size, [msec]</I> )</TD>
+            <TD valign="top">ソケットからの入力を指定サイズまで読み込みます。入力文字数がサイズ未満でも文字列を返します。<BR>
+            ソケットが開いていない場合は、「&quot;&quot;」空白を返します</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">sputc ( <I>char</I> )</TD>
+            <TD valign="top">UCS-4文字を現在の漢字コードに変換してソケットに送ります。</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">sputs ( <I>string</I> )</TD>
+            <TD valign="top">現在の漢字コードに文字列を変換してソケットに送ります。</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">swrite ( <I>string</I> )</TD>
+            <TD valign="top">文字列をそのままの形でソケットに送ります。</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">wait ( <I>mode</I> )</TD>
+            <TD valign="top">
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD>CONNECT</TD>
+                  <TD>0</TD>
+                  <TD>ソケットが接続するまで処理を中断します</TD>
+                </TR>
+                <TR>
+                  <TD>CLOSE</TD>
+                  <TD>1</TD>
+                  <TD>ソケットが閉じるまで処理を中断します</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+            <TD valign="top"></TD>
+            <TD valign="top">Document.Open();<BR>
+            wait(CONNECT);<BR>
+            echo(&quot;Hello&quot;);</TD>
+            <TD valign="top">サーバー接続後「Hello」を表示</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="I13"></A>13 ファイル関数</P>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1000">
+        <TBODY>
+          <TR>
+            <TD align="center" width="20%"><FONT size="-1">関数</FONT></TD>
+            <TD align="center" width="25%"><FONT size="-1">説明</FONT></TD>
+            <TD align="center" width="5%"><FONT size="-1">戻り値</FONT></TD>
+            <TD align="center" width="25%"><FONT size="-1">例</FONT></TD>
+            <TD align="center" width="25%"><FONT size="-1">実行結果</FONT></TD>
+          </TR>
+          <TR>
+            <TD valign="top">fopen ( <I>filename , mode ,<BR>
+            [share]</I> )</TD>
+            <TD valign="top">shareに下記の値を設定するとファイル共有モードでファイルを開きます。<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD>SH_DENYNO</TD>
+                  <TD>0</TD>
+                  <TD>読み出しアクセスおよび書き込みアクセスを許可します</TD>
+                </TR>
+                <TR>
+                  <TD>SH_DENYRD</TD>
+                  <TD>1</TD>
+                  <TD>ファイルの読み出しを禁止します。</TD>
+                </TR>
+                <TR>
+                  <TD>SH_DENYWR</TD>
+                  <TD>2</TD>
+                  <TD>ファイルの書き込みを禁止します。</TD>
+                </TR>
+                <TR>
+                  <TD>SH_DENYRW</TD>
+                  <TD>3</TD>
+                  <TD>ファイルの読み出しと書き込みを禁止します。</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+            <TD valign="top">fp</TD>
+            <TD valign="top" rowspan="14"></TD>
+            <TD valign="top" rowspan="14"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">fclose ( <I>fp</I> )</TD>
+            <TD valign="top">ファイルを閉じます</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">popen ( <I>cmdline , mode</I> )</TD>
+            <TD valign="top">パイプ接続の外部プログラムを実行します。</TD>
+            <TD valign="top">fp</TD>
+          </TR>
+          <TR>
+            <TD valign="top">pclose ( <I>fp</I> )</TD>
+            <TD valign="top">popenしたfpを終了します。</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">fgetc ( <I>fp</I> )</TD>
+            <TD valign="top">1バイト読み込み</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">fgets ( <I>fp</I> )</TD>
+            <TD valign="top">1行読み込み</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">fread ( <I>size , fp</I> )</TD>
+            <TD valign="top">指定サイズ読み込み</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">fputc ( <I>char , fp</I> )</TD>
+            <TD valign="top">1バイト書き込み</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">fputs ( <I>string</I> , <I>fp</I> )</TD>
+            <TD valign="top">1行書き込み</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">fwrite ( <I>string , fp</I> )</TD>
+            <TD valign="top">指定サイズ書き込み</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">feof ( <I>fp</I> )</TD>
+            <TD valign="top">終端チェック</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">ferror ( <I>fp</I> )</TD>
+            <TD valign="top">エラーチェック</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">fflush ( <I>fp</I> )</TD>
+            <TD valign="top">バッファをフラッシュ</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">ftell ( <I>fp</I> )</TD>
+            <TD valign="top">現在位置を返す</TD>
+            <TD valign="top">int64</TD>
+          </TR>
+          <TR>
+            <TD valign="top">file ( <I>filename</I> )</TD>
+            <TD valign="top">ファイルを配列に読み込み行数を返します。</TD>
+            <TD valign="top">int<BR>
+            array</TD>
+            <TD valign="top">len = file(&quot;test.txt&quot;);<BR>
+            echo(,len,&quot; lines\n&quot;);</TD>
+            <TD valign="top">0 lines</TD>
+          </TR>
+          <TR>
+            <TD valign="top">stat ( <I>filename</I> )</TD>
+            <TD valign="top">ファイルの下記の属性を配列で返します
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="50">dev</TD>
+                  <TD width="50">uid</TD>
+                  <TD width="50">atime</TD>
+                </TR>
+                <TR>
+                  <TD width="50">ino</TD>
+                  <TD width="50">gid</TD>
+                  <TD width="50">mtime</TD>
+                </TR>
+                <TR>
+                  <TD width="50">mode</TD>
+                  <TD width="50">rdev</TD>
+                  <TD width="50">ctime</TD>
+                </TR>
+                <TR>
+                  <TD width="50">nlink</TD>
+                  <TD width="50">size</TD>
+                  <TD width="50"></TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+            <TD valign="top">int<BR>
+            array</TD>
+            <TD valign="top">if ( !stat(&quot;test.txt&quot;) )<BR>
+            echo(&quot;Not Found&quot;);</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">basename ( <I>pathname</I> )</TD>
+            <TD valign="top">パス名からファイル名を返します</TD>
+            <TD valign="top">str</TD>
+            <TD valign="top">echo(basename(&quot;c:\hello\world.txt&quot;));</TD>
+            <TD valign="top">world.txt</TD>
+          </TR>
+          <TR>
+            <TD valign="top">dirname ( <I>pathname</I> )</TD>
+            <TD valign="top">パス名からディレクトリ名を返します</TD>
+            <TD valign="top">str</TD>
+            <TD valign="top">echo(dirname(&quot;c:\hello\world.txt&quot;));</TD>
+            <TD valign="top">c:\hello</TD>
+          </TR>
+          <TR>
+            <TD valign="top">copy ( <I>srcfile , newfile</I> )</TD>
+            <TD valign="top">ファイルをコピーします</TD>
+            <TD valign="top">int</TD>
+            <TD valign="top" rowspan="4">&nbsp;</TD>
+            <TD valign="top" rowspan="4"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">rename ( <I>srcfile , newfile</I> )</TD>
+            <TD valign="top">ファイル名を変更します</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">delete ( <I>filename</I> )</TD>
+            <TD valign="top">ファイルを削除します</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">chdir ( <I>dirname</I> )</TD>
+            <TD valign="top">カレントディレクトリを変更します</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">play ( <I>filename</I> )</TD>
+            <TD valign="top">サウンドファイルを鳴らします</TD>
+            <TD valign="top"></TD>
+            <TD valign="top">play(&quot;beep.wav&quot;);</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">shellexec ( <I>pathname , param , workdir</I> )</TD>
+            <TD valign="top">プログラム・URLなどを実行します</TD>
+            <TD valign="top">int</TD>
+            <TD valign="top">shellexec(&quot;http://www.yahoo.co.jp/&quot;);</TD>
+            <TD valign="top"></TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="I14"></A>14 数学関数</P>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1000">
+        <TBODY>
+          <TR>
+            <TD align="center" width="20%"><FONT size="-1">関数</FONT></TD>
+            <TD align="center" width="25%"><FONT size="-1">説明</FONT></TD>
+            <TD align="center" width="5%"><FONT size="-1">戻り値</FONT></TD>
+            <TD align="center" width="22%"><FONT size="-1">例</FONT></TD>
+            <TD align="center" width="27%"><FONT size="-1">実行結果</FONT></TD>
+          </TR>
+          <TR>
+            <TD valign="top">rand ( )</TD>
+            <TD valign="top">擬似乱数</TD>
+            <TD valign="top">int</TD>
+            <TD valign="top" rowspan="21">
+            <PRE style="font-size : 7pt;">tekopen();
+ox = 2000;
+oy = 1500;
+rh = 600;
+rm = 900;
+rs = 1000;
+rt = 200;
+
+for ( ; ; ) {
+  tekclear();
+  t = getdate(time());
+
+  sx = ox + rh * sin(2 * PI * 
+            (t.hour * 60 + t.min) / 720);
+  sy = oy + rh * cos(2 * PI * 
+            (t.hour * 60 + t.min) / 720);
+  tekline(ox, oy, sx, sy, 2, 0, 2);
+
+  sx = ox + rm * sin(2 * PI * 
+             (t.min * 60 + t.sec) / 3600);
+  sy = oy + rm * cos(2 * PI * 
+             (t.min * 60 + t.sec) / 3600);
+  tekline(ox, oy, sx, sy, 2, 0, 2);
+
+  sx = ox + rs * sin(2 * PI * t.sec / 60);
+  sy = oy + rs * cos(2 * PI * t.sec / 60);
+  ex = ox - rt * sin(2 * PI * t.sec / 60);
+  ey = oy - rt * cos(2 * PI * t.sec / 60);
+  tekline(ex, ey, sx, sy, 1, 0, 1);
+
+  sleep(1000);
+}</PRE>
+            </TD>
+            <TD valign="top" rowspan="21"><IMG src="image101.jpg" width="264" height="234" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">srand ( <I>int</I> )</TD>
+            <TD valign="top">擬似乱数の基数</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">floor ( <I>double</I> )</TD>
+            <TD valign="top">床関数</TD>
+            <TD valign="top">double</TD>
+          </TR>
+          <TR>
+            <TD valign="top">abs ( <I>double</I> )</TD>
+            <TD valign="top">絶対値</TD>
+            <TD valign="top">double</TD>
+          </TR>
+          <TR>
+            <TD valign="top">sqrt ( <I>double</I> )</TD>
+            <TD valign="top">平方根</TD>
+            <TD valign="top">double</TD>
+          </TR>
+          <TR>
+            <TD valign="top">pow ( <I>double</I>, <I>double</I> )</TD>
+            <TD valign="top">べき乗</TD>
+            <TD valign="top">double</TD>
+          </TR>
+          <TR>
+            <TD valign="top">ceil ( <I>double</I> )</TD>
+            <TD valign="top">天井関数</TD>
+            <TD valign="top">double</TD>
+          </TR>
+          <TR>
+            <TD valign="top">fmod ( <I>double</I>, <I>double</I>)</TD>
+            <TD valign="top">剰余</TD>
+            <TD valign="top">double</TD>
+          </TR>
+          <TR>
+            <TD valign="top">sin ( <I>double</I> )</TD>
+            <TD valign="top">正弦</TD>
+            <TD valign="top">double</TD>
+          </TR>
+          <TR>
+            <TD valign="top">cos ( <I>double</I> )</TD>
+            <TD valign="top">余弦</TD>
+            <TD valign="top">double</TD>
+          </TR>
+          <TR>
+            <TD valign="top">tan ( <I>double</I> )</TD>
+            <TD valign="top">正接</TD>
+            <TD valign="top">double</TD>
+          </TR>
+          <TR>
+            <TD valign="top">asin ( <I>double</I> )</TD>
+            <TD valign="top">逆正弦</TD>
+            <TD valign="top">double</TD>
+          </TR>
+          <TR>
+            <TD valign="top">acos ( <I>double</I> )</TD>
+            <TD valign="top">逆余弦</TD>
+            <TD valign="top">double</TD>
+          </TR>
+          <TR>
+            <TD valign="top">atan ( <I>double</I> )</TD>
+            <TD valign="top">逆正接</TD>
+            <TD valign="top">double</TD>
+          </TR>
+          <TR>
+            <TD valign="top">atan2 ( <I>double</I>, <I>double</I> )</TD>
+            <TD valign="top">直角三角形の逆正接</TD>
+            <TD valign="top">double</TD>
+          </TR>
+          <TR>
+            <TD valign="top">sinh ( <I>double</I> )</TD>
+            <TD valign="top">双曲線正弦</TD>
+            <TD valign="top">double</TD>
+          </TR>
+          <TR>
+            <TD valign="top">cosh ( <I>double</I> )</TD>
+            <TD valign="top">双曲線余弦</TD>
+            <TD valign="top">double</TD>
+          </TR>
+          <TR>
+            <TD valign="top">tanh ( <I>double</I> )</TD>
+            <TD valign="top">双曲線正接</TD>
+            <TD valign="top">double</TD>
+          </TR>
+          <TR>
+            <TD valign="top">log ( <I>double</I> )</TD>
+            <TD valign="top">自然対数</TD>
+            <TD valign="top">double</TD>
+          </TR>
+          <TR>
+            <TD valign="top">log10 ( <I>double</I> )</TD>
+            <TD valign="top">常用対数</TD>
+            <TD valign="top">double</TD>
+          </TR>
+          <TR>
+            <TD valign="top">exp ( <I>double</I> )</TD>
+            <TD valign="top">指数関数</TD>
+            <TD valign="top">double</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="I15"></A>15 複素数関数</P>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1000">
+        <TBODY>
+          <TR>
+            <TD align="center" width="20%"><FONT size="-1">関数</FONT></TD>
+            <TD align="center" width="25%"><FONT size="-1">説明</FONT></TD>
+            <TD align="center" width="5%"><FONT size="-1">戻り値</FONT></TD>
+            <TD align="center" width="22%"><FONT size="-1">例</FONT></TD>
+            <TD align="center" width="27%"><FONT size="-1">実行結果</FONT></TD>
+          </TR>
+          <TR>
+            <TD valign="top">complex ( <I>real , imaginary</I> )</TD>
+            <TD valign="top">実数虚数</TD>
+            <TD valign="top">complex</TD>
+            <TD valign="top" rowspan="12">
+            <PRE style="font-size : 7pt;">tekopen();
+ofx = 200;  ofy = 200; szx = 3700; szy = 2500;
+tekbox(ofx, ofy, ofx + szx, ofy + szy);
+for ( n = 0 ; n &lt; 10 ; n++ ) {
+  sy = n * szy / 10;
+  tekline(ofx, ofy + sy,
+    ofx + szx, ofy + sy, 0, 1);
+}
+for ( f = 10 ; f &lt; 100000 ; f *= 10 ) {
+  for ( i = 0 ; i &lt; 10 ; i++ ) {
+    n = (log10(f + (f * i)) - 1) * 2.5;
+    sx = n * szx / 10;
+    tekline(ofx + sx, ofy,
+      ofx + sx, ofy + szy, 0, 1);
+  }
+}
+h = 8; r = 0.68 * pow(10, -3);
+c = 5.6 * pow(10, -6);
+d = log(1.122); v = pow(1.122, 90);
+for ( n = 0 ; n &lt;= 10 ; n += 0.1 ) {
+ f = pow(10, n / 2.5 + 1);
+ u = 2 * PI * f;
+ zh = complex(h, 0);
+ zr = complex(0, u * r);
+ zc = 1 / complex(0, u * c);
+ zx = 1 / (1 / zh + 1 / zc);
+ t = v * (zx / (zr + zx));
+ w = (log(cabs(t)) / d - 50) * 2;
+ s.x = n * szx / 10  + ofx;
+ s.y = w * szy / 100 + ofy;
+ if ( w &gt; 0 ) xy[] = s;
+}
+tekpoly(xy, 4, 0);</PRE>
+            </TD>
+            <TD valign="top" rowspan="12"><IMG src="image102.jpg" width="265" height="236" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">cpow ( <I>complex , complex</I> )</TD>
+            <TD valign="top">べき乗</TD>
+            <TD valign="top">complex</TD>
+          </TR>
+          <TR>
+            <TD valign="top">csqrt ( <I>complex</I> )</TD>
+            <TD valign="top">平方根</TD>
+            <TD valign="top">complex</TD>
+          </TR>
+          <TR>
+            <TD valign="top">csin ( <I>complex</I> )</TD>
+            <TD valign="top">正弦</TD>
+            <TD valign="top">complex</TD>
+          </TR>
+          <TR>
+            <TD valign="top">ccos ( <I>complex</I> )</TD>
+            <TD valign="top">余弦</TD>
+            <TD valign="top">complex</TD>
+          </TR>
+          <TR>
+            <TD valign="top">ctan ( <I>complex</I> )</TD>
+            <TD valign="top">正接</TD>
+            <TD valign="top">complex</TD>
+          </TR>
+          <TR>
+            <TD valign="top">clog ( <I>complex</I> )</TD>
+            <TD valign="top">自然対数</TD>
+            <TD valign="top">complex</TD>
+          </TR>
+          <TR>
+            <TD valign="top">cexp ( <I>complex</I> )</TD>
+            <TD valign="top">指数関数</TD>
+            <TD valign="top">complex</TD>
+          </TR>
+          <TR>
+            <TD valign="top">cabs ( <I>complex</I> )</TD>
+            <TD valign="top">絶対値</TD>
+            <TD valign="top">double</TD>
+          </TR>
+          <TR>
+            <TD valign="top">carg ( <I>complex</I> )</TD>
+            <TD valign="top">偏角</TD>
+            <TD valign="top">double</TD>
+          </TR>
+          <TR>
+            <TD valign="top">creal ( <I>complex</I> )</TD>
+            <TD valign="top">実数</TD>
+            <TD valign="top">double</TD>
+          </TR>
+          <TR>
+            <TD valign="top">cimg ( <I>complex</I> )</TD>
+            <TD valign="top">虚数</TD>
+            <TD valign="top">double</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="I16"></A>16 グラフィック関数</P>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1000">
+        <TBODY>
+          <TR>
+            <TD align="center" width="20%"><FONT size="-1">関数</FONT></TD>
+            <TD align="center" width="25%"><FONT size="-1">説明</FONT></TD>
+            <TD align="center" width="30%"><FONT size="-1">例</FONT></TD>
+            <TD align="center" width="25%"><FONT size="-1">実行結果</FONT></TD>
+          </TR>
+          <TR>
+            <TD valign="top">tekopen ( <I>show</I> )</TD>
+            <TD valign="top">tekウィンドウを開きます<BR>
+            show 0 別ウィンドウ<BR>
+            show 1 コンソールに重ねる</TD>
+            <TD valign="top" rowspan="6">
+            <PRE style="font-size : 8pt;">tekopen();
+ofx = 200;
+ofy = 200;
+szx = 3700;
+szy = 2500;
+
+tekbox(ofx, ofy, ofx + szx, ofy + szy);
+for ( n = 0 ; n &lt; 10 ; n++ ) {
+  sx = n * szx / 10;
+  sy = n * szy / 10;
+  st = n == 5 ? 0 : 1;
+  tekline(ofx, ofy + sy, 
+          ofx + szx, ofy + sy, 0, st);
+  tekline(ofx + sx, ofy,
+          ofx + sx, ofy + szy, 0, st);
+}
+
+for ( n = 0.0 ; n &lt; (PI * 6) ; n += 0.1 ) {
+  a.x = n * szx / (PI * 6) + ofx;
+  a.y = sin(n) * szy / 2.0 + szy / 2 + ofy;
+  xy[] = a;
+}
+tekpoly(xy, 4, 0);</PRE>
+            </TD>
+            <TD valign="top" rowspan="6"><IMG src="image103.jpg" width="263" height="236" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">tekclose ( )</TD>
+            <TD valign="top">tekウィンドウを閉じます</TD>
+          </TR>
+          <TR>
+            <TD valign="top">tekclear ( <I>[flush]</I> )</TD>
+            <TD valign="top">tekウィンドウを初期化します</TD>
+          </TR>
+          <TR>
+            <TD valign="top">tekmark ( <I>no, sx, sy,<BR>
+            color, style, size, [flush]</I> )</TD>
+            <TD valign="top">マークを指定位置に表示します。<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD>sx,sy</TD>
+                  <TD>0から4095までの座標左下が0,0です。</TD>
+                </TR>
+                <TR>
+                  <TD>no</TD>
+                  <TD>0から10のマークを指定</TD>
+                </TR>
+                <TR>
+                  <TD>color</TD>
+                  <TD>0から15までの色を指定</TD>
+                </TR>
+                <TR>
+                  <TD>style</TD>
+                  <TD>0から7までの線種を指定</TD>
+                </TR>
+                <TR>
+                  <TD>size</TD>
+                  <TD>1,2の線幅を指定</TD>
+                </TR>
+                <TR>
+                  <TD>flush</TD>
+                  <TD>0 画面を更新する<BR>
+                  1 画面の更新しない</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD valign="top">tektext ( <I>sx, sy, str,<BR>
+            color, size, angle, [flush]</I> )</TD>
+            <TD valign="top">文字列を描きます<BR>
+            <TABLE cellpadding="2">
+              <TBODY>
+                <TR>
+                  <TD>angle</TD>
+                  <TD>0から359までの角度</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD valign="top">tekline ( <I>sx, sy, ex, ey,<BR>
+            color, style, size, [flush]</I> )</TD>
+            <TD valign="top">線を描きます</TD>
+          </TR>
+          <TR>
+            <TD valign="top">tekbox ( <I>sx, sy, ex, ey,<BR>
+            color, style, size, [flush]</I>)</TD>
+            <TD valign="top">四角形を描きます</TD>
+            <TD valign="top" rowspan="8">
+            <PRE style="font-size : 8pt;">tekopen();
+ofx = 200;
+ofy = 200;
+szx = 3700;
+szy = 2500;
+xys = [
+  complex(200, 300),
+  complex(1200, 600),
+  complex(2200, 2200),
+  complex(3200, 1500),
+  complex(3900, 300) ];
+
+tekbox(ofx, ofy,
+       ofx + szx, ofy + szy, 0, 0, 1, 1);
+for ( n = 0 ; n &lt; 10 ; n++ ) {
+  sx = n * szx / 10;
+  sy = n * szy / 10;
+  tekline(ofx, ofy + sy,
+          ofx + szx, ofy + sy, 0, 1);
+  tekline(ofx + sx, ofy,
+          ofx + sx, ofy + szy, 0, 1);
+}
+tekpoly(xys, 1, 0);
+teksmooth(xys, 2);
+tekspline(xys, 3);
+teklesq(xys, 3, 4);
+tekflush();</PRE>
+            </TD>
+            <TD valign="top" rowspan="8"><IMG src="image104.jpg" width="262" height="235" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">tekarc ( <I>x, y, r,<BR>
+            color, style, size, [flush]</I>)</TD>
+            <TD valign="top">円を中心位置と半径で描きます</TD>
+          </TR>
+          <TR>
+            <TD valign="top">tekpoly ( <I>xys,<BR>
+            color, style, size, [flush]</I> )</TD>
+            <TD valign="top">xysの「x」「y」配列もしくは、complex配列で線を描きます</TD>
+          </TR>
+          <TR>
+            <TD valign="top">tekbezier ( <I>xys,<BR>
+            color, style, size, [flush]</I> )</TD>
+            <TD valign="top">ベジェ曲線で線を描きます</TD>
+          </TR>
+          <TR>
+            <TD valign="top">teksmooth ( <I>xys,<BR>
+            color, style, size, [flush]</I> )</TD>
+            <TD valign="top">ベジェ曲線で補間線を描きます</TD>
+          </TR>
+          <TR>
+            <TD valign="top">tekspline ( <I>xys,<BR>
+            color, style, size, [flush]</I> )</TD>
+            <TD valign="top">スプライン曲線で補間線を描きます</TD>
+          </TR>
+          <TR>
+            <TD valign="top">teklesq ( <I>xys, n,<BR>
+            color, style, size, [flush]</I> )</TD>
+            <TD valign="top">n次の最小二乗法で補間線を描きます</TD>
+          </TR>
+          <TR>
+            <TD valign="top">tekflush ( )</TD>
+            <TD valign="top">表示の更新</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="I17"></A>16 ダイアログ関数</P>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1000">
+        <TBODY>
+          <TR>
+            <TD align="center" width="20%"><FONT size="-1">関数</FONT></TD>
+            <TD align="center" width="25%"><FONT size="-1">説明</FONT></TD>
+            <TD align="center" width="5%"><FONT size="-1">戻り値</FONT></TD>
+            <TD align="center" width="25%"><FONT size="-1">例</FONT></TD>
+            <TD align="center" width="25%"><FONT size="-1">実行結果</FONT></TD>
+          </TR>
+          <TR>
+            <TD valign="top">msgdlg ( <I>string</I> )</TD>
+            <TD valign="top">メッセージボックスを表示します。</TD>
+            <TD valign="top"></TD>
+            <TD valign="top" rowspan="2">if ( yesnodlg(&quot;終了しますか？&quot;) )<BR>
+            exit(0);</TD>
+            <TD valign="top" rowspan="2">「終了しますか？」のメッセージダイアログを表示し「はい」を選択するとスクリプトを終了します</TD>
+          </TR>
+          <TR>
+            <TD valign="top">yesnodlg (<I>string</I> )</TD>
+            <TD valign="top">はい、いいえの選択メッセージボックスを表示します。</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">filedlg ( <I>rw, ext, file, filter</I> )</TD>
+            <TD valign="top">ファイル選択ダイアログを表示してファイルパスを返します。</TD>
+            <TD valign="top">str</TD>
+            <TD valign="top">filename = filedlg(TRUE);<BR>
+            echo(filename);</TD>
+            <TD valign="top">ファイルの保存モードでファイル選択ダイアログを表示しま<BR>
+            す</TD>
+          </TR>
+          <TR>
+            <TD valign="top">inputdlg ( <I>title, msg, string</I> )</TD>
+            <TD valign="top">文字入力ダイアログを表示して文字列を返します</TD>
+            <TD valign="top">str</TD>
+            <TD valign="top" rowspan="2">filename = inputdlg(&quot;&quot;, &quot;ファイル名&quot;);</TD>
+            <TD valign="top" rowspan="2">「ファイル名」と表示した文字入力ダイアログを表示します</TD>
+          </TR>
+          <TR>
+            <TD valign="top">passdlg ( <I>host, user, pass,<BR>
+            [prompt], [title], [sec]</I> )</TD>
+            <TD valign="top">パスワード入力ダイアログを表示してパスワードを返します。<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD>[0]</TD>
+                  <TD width="100%">ホスト名</TD>
+                </TR>
+                <TR>
+                  <TD>[1]</TD>
+                  <TD>ユーザー名</TD>
+                </TR>
+                <TR>
+                  <TD>[2]</TD>
+                  <TD>パスワード</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+            <TD valign="top">int<BR>
+            array</TD>
+          </TR>
+          <TR>
+            <TD valign="top"><FONT color="#c0c0c0">textwnd(<I>title, msg</I> )</FONT></TD>
+            <TD valign="top"><FONT color="#c0c0c0">テキストウィンドウ変数を返す</FONT></TD>
+            <TD valign="top">wnd</TD>
+            <TD valign="top" rowspan="5">msg&nbsp;=&nbsp;textwnd(&quot;Test&quot;,&nbsp;&quot;Hello&quot;);<BR>
+            msg.open();<BR>
+            msg.settext(&quot;Hello&nbsp;World\r\n&quot;);<BR>
+            msg.addtext(&quot;This&nbsp;is&nbsp;Test\r\n&quot;);<BR>
+            msg.close();</TD>
+            <TD valign="top" rowspan="5">テキストウィンドウを開きます</TD>
+          </TR>
+          <TR>
+            <TD valign="top"><FONT color="#c0c0c0"><I>wnd.</I>open()</FONT></TD>
+            <TD valign="top"><FONT color="#c0c0c0">ウィンドウを表示します</FONT></TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top"><FONT color="#c0c0c0"><I>wnd.</I>settext(msg)</FONT></TD>
+            <TD valign="top"><FONT color="#c0c0c0">テキストを置き換え表示します</FONT></TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top"><FONT color="#c0c0c0"><I>wnd.addtext(msg)</I></FONT></TD>
+            <TD valign="top"><FONT color="#c0c0c0">テキストを追加表示します</FONT></TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top"><FONT color="#c0c0c0"><I>wnd.close()</I></FONT></TD>
+            <TD valign="top"><FONT color="#c0c0c0">ウィンドウを閉じます</FONT></TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">dialog ( <I>name, size , [child],<BR>
+            [point], [face]</I> )</TD>
+            <TD valign="top">ダイアログ変数を返す。<BR>
+            nameは、ウィンドウタイトルsizeは、[ x, y, width, height ]の配列で位置とサイズを指定。<BR>
+            childは、下記のaddと同じ引数を配列で指定できます。<BR>
+            point,faceは、ダイアログで使用するフォントを指定します。<BR>
+            point 1/10ポイント(90)<BR>
+            face フォント名(&quot;&quot;)</TD>
+            <TD valign="top">dialog</TD>
+            <TD valign="top" rowspan="3">
+            <PRE style="font-size : 8pt;">abc = dialog(&quot;Test&quot;, [ 100,100,130,120 ],
+ [
+  [ &quot;static&quot;, [ 10,10,100,20 ], &quot;Hello&quot; ],
+  [ &quot;edit&quot;,   [ 10,30,100,20 ], &quot;World&quot; ],
+  [ &quot;button&quot;, [ 10,60,100,20 ], &quot;OK&quot;,
+     0, &quot;OnClickOk&quot; ],
+ ]
+);
+
+abc.open();
+abc.center();
+abc.show(1);
+abc.wait();
+
+function OnClickOk ( id, node ) {
+  echo( &quot;Input &quot;, abc.gettext(1), &quot;\n&quot;);
+  abc.close();
+}</PRE>
+            </TD>
+            <TD valign="top" rowspan="3"><IMG src="image105.jpg" width="140" height="130" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top"><I>dislog</I>.add( <I>type, size, text,<BR>
+            check, func</I> )</TD>
+            <TD valign="top">ダイアログに下記のウィンドウを追加してそのインデックスを返します。ただし下記のopen()するまでに追加してください。
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD>type</TD>
+                  <TD>説明</TD>
+                </TR>
+                <TR>
+                  <TD>static</TD>
+                  <TD>スタティックテキスト</TD>
+                </TR>
+                <TR>
+                  <TD>group</TD>
+                  <TD>グループテキスト</TD>
+                </TR>
+                <TR>
+                  <TD>edit</TD>
+                  <TD>エディットボックス</TD>
+                </TR>
+                <TR>
+                  <TD>combo</TD>
+                  <TD>コンボボックス</TD>
+                </TR>
+                <TR>
+                  <TD>list</TD>
+                  <TD>ダウンリストボックス</TD>
+                </TR>
+                <TR>
+                  <TD>check</TD>
+                  <TD>チェックボックス</TD>
+                </TR>
+                <TR>
+                  <TD>radiotop</TD>
+                  <TD>最初のラジオボタン</TD>
+                </TR>
+                <TR>
+                  <TD>radio</TD>
+                  <TD>ラジオボタン要素</TD>
+                </TR>
+                <TR>
+                  <TD>button</TD>
+                  <TD>プッシュボタン</TD>
+                </TR>
+                <TR>
+                  <TD>progress</TD>
+                  <TD>プログレスバー</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            sizeは、[ x, y, width, height ]の配列で位置とサイズを指定。<BR>
+            textは、ウィンドウに表示される文字列を指定。<BR>
+            checkは、チェックボックス、ラジオボタンの状態を指定。<BR>
+            funcは、エディットの変更、ボタンのクリックなどで呼び出す関数名を文字列で指定します。</TD>
+            <TD valign="top">id</TD>
+          </TR>
+          <TR>
+            <TD valign="top"><I>dislog</I> .open ( )</TD>
+            <TD valign="top">ダイアログを作成する。ただしshow関数で指定されるまで表示されません。<BR>
+            正常に作成された場合は、1を返します。</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top" colspan="3">下記の関数は、dialog.open()後に有効な関数です。</TD>
+            <TD valign="top" rowspan="18"></TD>
+            <TD valign="top" rowspan="18"></TD>
+          </TR>
+          <TR>
+            <TD valign="top"><I>dialog</I> .close ( )</TD>
+            <TD valign="top">ダイアログを閉じる</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top"><I>dialog</I> .center ( )</TD>
+            <TD valign="top">ダイアログの表示位置を中心に移動する。</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top"><I>dialog</I> .show ( <I>mode</I> )</TD>
+            <TD valign="top">0 ダイアログを非表示にする<BR>
+            1 ダイアログを表示する</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top"><I>dialog</I> .wait ( )</TD>
+            <TD valign="top">ダイアログの終了を待つ</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top"><I>dialog</I> .modstyle ( <I>id,<BR>
+            del, add, [delex, addex]</I> )</TD>
+            <TD valign="top">ウィンドウスタイルの変更。<BR>
+            idは、addの返り値かウィンドウ配列の順番号。<BR>
+            delで削除、addで追加です<BR>
+            詳細は、ModifyStyleなどのウィンドウスタイルを参照ください</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top"><I>dialog</I> .sendmsg ( <I>id, msg,<BR>
+            wparam, [lparam]</I> )</TD>
+            <TD valign="top">子ウィンドウに直接メッセージを送信します。</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top"><I>dialog</I> .gettext ( <I>id</I> )</TD>
+            <TD valign="top">エディットボックスから文字列を読み取る。</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top"><I>dialog</I> .getcheck ( <I>id</I> )</TD>
+            <TD valign="top">チェックボックスの状態を返す</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top"><I>dialog</I> .getradio ( <I>id</I> )</TD>
+            <TD valign="top">ラジオボックスグループの番号を返す。</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top"><I>dialog</I> .getselect ( <I>id</I> )</TD>
+            <TD valign="top">ダウンリストの選択番号</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top"><I>dialog</I> .settext ( <I>id, str</I> )</TD>
+            <TD valign="top">ウィンドウテキストの変更</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top"><I>dialog</I> .setcheck ( <I>id, check</I> )</TD>
+            <TD valign="top">チェックボックスの変更</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top"><I>dialog</I> .setradio ( <I>id, num</I> )</TD>
+            <TD valign="top">ラジオボタンの変更</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top"><I>dialog</I> .setselect ( <I>id, num</I> )</TD>
+            <TD valign="top">ダウンリストの変更</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top"><I>dialog</I> .setlist ( <I>id, lists</I> )</TD>
+            <TD valign="top">コンボボックス・ダウンリストのエントリーを配列で指定</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top"><I>dialog</I> .setrange ( <I>id, min,<BR>
+            max</I> )</TD>
+            <TD valign="top">プログレスバーの範囲を設定</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top"><I>dialog</I> .setpos ( <I>id, pos</I> )</TD>
+            <TD valign="top">プログレスバーの位置を設定</TD>
+            <TD valign="top"></TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="I18"></A>18 データベース関数</P>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1000">
+        <TBODY>
+          <TR>
+            <TD align="center" width="20%"><FONT size="-1">関数</FONT></TD>
+            <TD align="center" width="25%"><FONT size="-1">説明</FONT></TD>
+            <TD align="center" width="5%"><FONT size="-1">戻り値</FONT></TD>
+            <TD align="center" width="25%"><FONT size="-1">例</FONT></TD>
+            <TD align="center" width="25%"><FONT size="-1">実行結果</FONT></TD>
+          </TR>
+          <TR>
+            <TD valign="top">database ( )</TD>
+            <TD valign="top">データベース変数を返す</TD>
+            <TD valign="top">ptr</TD>
+            <TD valign="top" rowspan="7">db = database();<BR>
+            db.open(&quot;DSN=Sample&quot;);<BR>
+            db.sql(&quot;select * from SampTable&quot;);<BR>
+            while ( (a = db.fetch()) )<BR>
+            echo(a[0]);<BR>
+            db.close();</TD>
+            <TD valign="top" rowspan="7"></TD>
+          </TR>
+          <TR>
+            <TD valign="top"><I>database</I>.open ( <I>name, [mode]</I> )</TD>
+            <TD valign="top">データベースを開く</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top"><I>database</I>.close ( )</TD>
+            <TD valign="top">データベースを閉じる</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top"><I>database</I>.sql (<I> sql</I> )</TD>
+            <TD valign="top">sqlを実行する</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top"><I>database</I>.fetch ( )</TD>
+            <TD valign="top">レコードを読み込みフィールド数を返す。<BR>
+            フィールドデータは、配列にフィールド名をキーとして格納される</TD>
+            <TD valign="top">int<BR>
+            array</TD>
+          </TR>
+          <TR>
+            <TD valign="top"><I>database</I>.count ( )</TD>
+            <TD valign="top">レコード数を返す</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top"><I>database</I>.move ( <I>pos</I> )</TD>
+            <TD valign="top">レコード位置の移動</TD>
+            <TD valign="top"></TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="I20"></A>19 ドキュメント変数</P>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1000">
+        <TBODY>
+          <TR>
+            <TD align="center" width="40%"><FONT size="-1">変数</FONT></TD>
+            <TD align="center" width="50%"><FONT size="-1">説明</FONT></TD>
+            <TD align="center" width="10%"><FONT size="-1">型</FONT></TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Entry</TD>
+            <TD valign="top">エントリー変数</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Screen</TD>
+            <TD valign="top">スクリーン変数</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.KeyCode</TD>
+            <TD valign="top">キーコード変数</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.KeyMacro</TD>
+            <TD valign="top">キーマクロ変数</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.ssh</TD>
+            <TD valign="top">ssh関連変数</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Title</TD>
+            <TD valign="top">ウィンドウタイトルを返します</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.CmdLine</TD>
+            <TD valign="top">このエントリーのコマンドライン文字列</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Command ( <I>id</I> )</TD>
+            <TD valign="top">メニュー操作を行います</TD>
+            <TD valign="top">func</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Open ( )</TD>
+            <TD valign="top">ソケットを開きます</TD>
+            <TD valign="top">func</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Close ( )</TD>
+            <TD valign="top">ソケットを閉じます</TD>
+            <TD valign="top">func</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Destroy ( )</TD>
+            <TD valign="top">ドキュメントを閉じます</TD>
+            <TD valign="top">func</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.DoOpen</TD>
+            <TD valign="top">0 スクリプト終了時にソケットを開かない<BR>
+            1 スクリプト終了時にソケットを開く</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Connect</TD>
+            <TD valign="top">0 ソケットに接続していない<BR>
+            1 ソケットに接続中</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Abort</TD>
+            <TD valign="top">1 スクリプト終了要求あり</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Log</TD>
+            <TD valign="top">0 現在、ログファイルを開いていない<BR>
+            1 ログファイルが開いている</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Log.File</TD>
+            <TD valign="top">ログファイル名</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Log.Mode</TD>
+            <TD valign="top">ログモード</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Log.Code</TD>
+            <TD valign="top">ログ漢字コード</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Log.Open ( <I>filename</I> )</TD>
+            <TD valign="top">ログファイルを開く</TD>
+            <TD valign="top">func</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Log.Close ( )</TD>
+            <TD valign="top">ログファイルを閉じる</TD>
+            <TD valign="top">func</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="I21"></A>20 エントリー変数</P>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1000">
+        <TBODY>
+          <TR>
+            <TD align="center" width="40%"><FONT size="-1">変数</FONT></TD>
+            <TD align="center" width="50%"><FONT size="-1">説明</FONT></TD>
+            <TD align="center" width="10%"><FONT size="-1">型</FONT></TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Entry</TD>
+            <TD valign="top">サーバーエントリー名</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Entry.Host</TD>
+            <TD valign="top">ホスト名</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Entry.Port</TD>
+            <TD valign="top">ポート番号</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Entry.User</TD>
+            <TD valign="top">ユーザー名</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Entry.Pass</TD>
+            <TD valign="top">パスワード</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Entry.Term</TD>
+            <TD valign="top">端末名</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Entry.sshKey</TD>
+            <TD valign="top">sshキーファイル名</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Entry.Memo</TD>
+            <TD valign="top">メモ</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Entry.Group</TD>
+            <TD valign="top">グループ名</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Entry.Script</TD>
+            <TD valign="top">スクリプトファイル名</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Entry.AddScript</TD>
+            <TD valign="top">追加スクリプト</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Entry.CodeSet</TD>
+            <TD valign="top">漢字コード</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Entry.Protocol</TD>
+            <TD valign="top">接続プロトコル名</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Entry.Chat</TD>
+            <TD valign="top">チャットスクリプト</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Entry.Proxy.Mode</TD>
+            <TD valign="top">プロキシーモード</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Entry.Proxy.Host</TD>
+            <TD valign="top">プロキシーホスト名</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Entry.Proxy.Port</TD>
+            <TD valign="top">プロキシーポート番号</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Entry.Proxy.User</TD>
+            <TD valign="top">プロキシーユーザー名</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Entry.Proxy.Pass</TD>
+            <TD valign="top">プロキシーパスワード</TD>
+            <TD valign="top">str</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="I22"></A>21 スクリーン変数</P>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1000">
+        <TBODY>
+          <TR>
+            <TD align="center" width="40%"><FONT size="-1">変数</FONT></TD>
+            <TD align="center" width="50%"><FONT size="-1">説明</FONT></TD>
+            <TD align="center" width="10%"><FONT size="-1">型</FONT></TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Screen.Mode ( <I>mode , [flag]</I> )</TD>
+            <TD valign="top">flag指定無しで参照<BR>
+            flag = 0 <A href="ctrlcode.html#RM">RM</A><BR>
+            flag = 1 <A href="ctrlcode.html#SM">SM</A></TD>
+            <TD valign="top">func</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Screen.ExtMode ( <I>mode , [flag]</I> )</TD>
+            <TD valign="top">flag指定無しで参照<BR>
+            flag = 0 <A href="ctrlcode.html#DECRST">DECRST</A><BR>
+            flag = 1 <A href="ctrlcode.html#DECSET">DECSET</A></TD>
+            <TD valign="top">func</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Screen.Color</TD>
+            <TD valign="top">カラーパレット</TD>
+            <TD valign="top">array</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Screen.Cursol.x</TD>
+            <TD valign="top">カーソル横位置</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Screen.Cursol.y</TD>
+            <TD valign="top">カーソル縦位置</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Screen.Cursol.Display</TD>
+            <TD valign="top">カーソル表示状態</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Screen.Cursol.Style</TD>
+            <TD valign="top">カーソルスタイル</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Screen.Size.x</TD>
+            <TD valign="top">画面サイズ</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Screen.Size.y</TD>
+            <TD valign="top">画面サイズ</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Screen.Style.Color</TD>
+            <TD valign="top">文字色</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Screen.Style.BackColor</TD>
+            <TD valign="top">文字背景色</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Screen.Style.Attribute</TD>
+            <TD valign="top">文字属性</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.Screen.Style.FontNumber</TD>
+            <TD valign="top">文字フォント番号</TD>
+            <TD valign="top">int</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="I23"></A>22 キーコード変数</P>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1000">
+        <TBODY>
+          <TR>
+            <TD align="center" width="40%"><FONT size="-1">変数</FONT></TD>
+            <TD align="center" width="50%"><FONT size="-1">説明</FONT></TD>
+            <TD align="center" width="10%"><FONT size="-1">型</FONT></TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.KeyCode</TD>
+            <TD valign="top">キーコード変数</TD>
+            <TD valign="top">array</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.KeyCode.Add ( <I>key</I> )</TD>
+            <TD valign="top">キーコードを追加・変更</TD>
+            <TD valign="top">func</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.KeyCode.Find ( <I>key</I> )</TD>
+            <TD valign="top">キーコード定義を確認</TD>
+            <TD valign="top">func</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="I24"></A>23 キーマクロ変数</P>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1000">
+        <TBODY>
+          <TR>
+            <TD align="center" width="40%"><FONT size="-1">変数</FONT></TD>
+            <TD align="center" width="50%"><FONT size="-1">説明</FONT></TD>
+            <TD align="center" width="10%"><FONT size="-1">型</FONT></TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.KeyMacro</TD>
+            <TD valign="top">キーマクロ変数</TD>
+            <TD valign="top">array</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.KeyMacro.Add ( <I>str</I> )</TD>
+            <TD valign="top">キーマクロ追加</TD>
+            <TD valign="top">func</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="I25"></A>24 SSH関連変数</P>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1000">
+        <TBODY>
+          <TR>
+            <TD align="center" width="40%"><FONT size="-1">変数</FONT></TD>
+            <TD align="center" width="50%"><FONT size="-1">説明</FONT></TD>
+            <TD align="center" width="10%"><FONT size="-1">型</FONT></TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.ssh.PortForward</TD>
+            <TD valign="top">ポートフォワード変数</TD>
+            <TD valign="top">array</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.ssh.XDisplay</TD>
+            <TD valign="top">XDISPLAY変数</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.ssh.Environ</TD>
+            <TD valign="top">環境変数</TD>
+            <TD valign="top">array</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.ssh.Protocol.ssh1Cip</TD>
+            <TD valign="top" rowspan="3">ssh1プロトコル変数</TD>
+            <TD valign="top">array</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.ssh.Protocol.ssh1Mac</TD>
+            <TD valign="top">array</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.ssh.Protocol.ssh1Comp</TD>
+            <TD valign="top">array</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.ssh.Protocol.InpCip</TD>
+            <TD valign="top" rowspan="3">ssh2入力プロトコル</TD>
+            <TD valign="top">array</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.ssh.Protocol.InpMac</TD>
+            <TD valign="top">array</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.ssh.Protocol.InpComp</TD>
+            <TD valign="top">array</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.ssh.Protocol.OutCip</TD>
+            <TD valign="top" rowspan="3">ssh2出力プロトコル</TD>
+            <TD valign="top">array</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.ssh.Protocol.OutMac</TD>
+            <TD valign="top">array</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.ssh.Protocol.OutComp</TD>
+            <TD valign="top">array</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.ssh.Protocol.Kexs</TD>
+            <TD valign="top">ssh2ホスト認証</TD>
+            <TD valign="top">array</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.ssh.Protocol.HostKey</TD>
+            <TD valign="top">ssh2ホスト鍵</TD>
+            <TD valign="top">array</TD>
+          </TR>
+          <TR>
+            <TD valign="top">Document.ssh.Protocol.UserAuth</TD>
+            <TD valign="top">ssh2ユーザー認証</TD>
+            <TD valign="top">array</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="I26"></A>25 System変数</P>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1000">
+        <TBODY>
+          <TR>
+            <TD align="center" width="40%"><FONT size="-1">変数</FONT></TD>
+            <TD align="center" width="50%"><FONT size="-1">説明</FONT></TD>
+            <TD align="center" width="10%"><FONT size="-1">型</FONT></TD>
+          </TR>
+          <TR>
+            <TD valign="top">Sytem.FullPath</TD>
+            <TD valign="top">RLoginプログラムのフルパス名</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">System.AppName</TD>
+            <TD valign="top">プログラム名</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">System.WorkDir</TD>
+            <TD valign="top">起動時のワーキングディレクトリ</TD>
+            <TD valign="top">str</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+  </TBODY>
+</TABLE>
+</CENTER>
+</BODY>
+</HTML>

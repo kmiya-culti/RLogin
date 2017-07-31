@@ -1,0 +1,4717 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<META http-equiv="Content-Style-Type" content="text/css">
+<TITLE>エスケープシーケンス一覧</TITLE>
+<STYLE type="text/css">
+<!--
+TD {
+  background-color : #ffffff;
+  font-size : 90%;
+}
+.BOX{
+  background-color : silver;
+}
+-->
+</STYLE>
+</HEAD>
+<BODY bgcolor="#000000" background="/image/bla6b.gif">
+<CENTER>
+<TABLE cellpadding="10" bgcolor="#ffffff" width="1300">
+  <TBODY>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><B>2.6 対応している制御コード一覧</B></P>
+      <HR size="1">
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="0">
+        <TBODY>
+          <TR>
+            <TD width="180">
+            <OL>
+              <LI><A href="#CTRL">制御コード一覧</A>
+              <LI><A href="#ESC">ESC 一覧</A>
+              <LI><A href="#CSI">CSI 一覧</A>
+            </OL>
+            </TD>
+            <TD width="180">
+            <OL start="4">
+              <LI><A href="#OSC">OSC 一覧</A>
+              <LI><A href="#DCS">DCS 一覧</A>
+              <LI><A href="#OPT">オプション一覧</A>
+            </OL>
+            </TD>
+            <TD width="180">
+            <OL start="7">
+              <LI><A href="#DECOPT">拡張オプション一覧</A>
+              <LI><A href="#DSCS">文字セット一覧</A>
+              <LI><A href="#UNICODE">UTF-8表示仕様</A>
+            </OL>
+            </TD>
+            <TD width="180" valign="top">
+            <OL start="10">
+              <LI><A href="vttest/index.html">vttestのスナップ</A>
+            </OL>
+            </TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="CTRL"></A><B>2.6.1 制御コード一覧</B></P>
+      <HR size="1">
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX">
+        <TBODY>
+          <TR>
+            <TD width="120">　01</TD>
+            <TD align="center" width="120">SOH</TD>
+            <TD width="680">Kermitプロトコル開始</TD>
+          </TR>
+          <TR>
+            <TD width="120">　05</TD>
+            <TD align="center" width="120">ENQ</TD>
+            <TD width="680">BPlusプロトコルENQ</TD>
+          </TR>
+          <TR>
+            <TD width="120">　07</TD>
+            <TD align="center" width="120">BEL</TD>
+            <TD width="680">ビープを鳴らす</TD>
+          </TR>
+          <TR>
+            <TD width="120">　08</TD>
+            <TD align="center" width="120">BS</TD>
+            <TD width="680"><A name="BS"></A>カーソルを左に1文字移動（<A href="#EOPT45">拡張オプション45</A>の影響を受ける）</TD>
+          </TR>
+          <TR>
+            <TD width="120">　09</TD>
+            <TD align="center" width="120">HT</TD>
+            <TD width="680">カーソルを次の横タブ位置に移動</TD>
+          </TR>
+          <TR>
+            <TD width="120">　0A</TD>
+            <TD align="center" width="120">LF</TD>
+            <TD width="680"><A name="LF"></A>カーソルを一行下に移動（<A href="#LNM">LNM</A>の影響を受ける。スクロールアップあり)</TD>
+          </TR>
+          <TR>
+            <TD width="120">　0B</TD>
+            <TD align="center" width="120">VT</TD>
+            <TD width="680"><A name="VT"></A>カーソルを次の縦タブ位置に移動（<A href="#LNM">LNM</A>の影響を受ける）</TD>
+          </TR>
+          <TR>
+            <TD width="120">　0C</TD>
+            <TD align="center" width="120">FF</TD>
+            <TD width="680"><A name="FF"></A>LFと同じ（<A href="#LNM">LNM</A>の影響を受ける。スクロールアップ）</TD>
+          </TR>
+          <TR>
+            <TD width="120">　0D</TD>
+            <TD align="center" width="120">CR</TD>
+            <TD width="680">カーソルを左端に移動</TD>
+          </TR>
+          <TR>
+            <TD width="120">　0E</TD>
+            <TD align="center" width="120">SO</TD>
+            <TD width="680">文字バンクをGRに設定</TD>
+          </TR>
+          <TR>
+            <TD width="120">　0F</TD>
+            <TD align="center" width="120">SI</TD>
+            <TD width="680">文字バンクをGLに設定</TD>
+          </TR>
+          <TR>
+            <TD width="120">　10</TD>
+            <TD align="center" width="120">DC0</TD>
+            <TD width="680">BPlusプロトコル開始</TD>
+          </TR>
+          <TR>
+            <TD width="120">　18</TD>
+            <TD align="center" width="120">CAN</TD>
+            <TD width="680">ZModemの開始/ESCシーケンスの中断</TD>
+          </TR>
+          <TR>
+            <TD width="120">　1B</TD>
+            <TD align="center" width="120">ESC</TD>
+            <TD width="680"><A href="#ESC">エスケープシーケンス開始</A></TD>
+          </TR>
+          <TR>
+            <TD width="120">　1C</TD>
+            <TD align="center" width="120">FS *2</TD>
+            <TD width="680">カーソルを右に1文字移動(ADM3)</TD>
+          </TR>
+          <TR>
+            <TD width="120">　1D</TD>
+            <TD align="center" width="120">GS *2</TD>
+            <TD width="680">カーソルを左に1文字移動(ADM3)</TD>
+          </TR>
+          <TR>
+            <TD width="120">　1E</TD>
+            <TD align="center" width="120">RS *2</TD>
+            <TD width="680">カーソルを上に1行字移動(ADM3)</TD>
+          </TR>
+          <TR>
+            <TD width="120">　1F</TD>
+            <TD align="center" width="120">US *2</TD>
+            <TD width="680">カーソルを下に1行字移動(ADM3)</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="ESC"></A><B>2.6.2 ESC 一覧</B></P>
+      <HR size="1">
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX">
+        <TBODY>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC FF</TD>
+            <TD align="center" width="120">*5</TD>
+            <TD width="680">Tek40xxモードに移行</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC SP F</TD>
+            <TD align="center" width="120">S7C1T</TD>
+            <TD width="680">7ビットコントロール文字を返す(CSI=ESC [ )</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC SP G</TD>
+            <TD align="center" width="120">S8C1T</TD>
+            <TD width="680">8ビットコントロール文字を返す(CSI=0x9B)</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC SP L</TD>
+            <TD align="center" width="120">*1</TD>
+            <TD width="680">Level1 G0=ASCII G1=Latan GL=G0 GR=G1</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC SP M</TD>
+            <TD align="center" width="120">*1</TD>
+            <TD width="680">Level2 G0=ASCII G1=Latan GL=G0 GR=G1</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC SP N</TD>
+            <TD align="center" width="120">*1</TD>
+            <TD width="680">Level3 G0=ASCII GL=G0</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC # 3</TD>
+            <TD align="center" width="120">DECDHL</TD>
+            <TD width="680">縦・横2倍表示(上部）</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC # 4</TD>
+            <TD align="center" width="120">DECDHL</TD>
+            <TD width="680">縦・横2倍表示(下部）</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC # 5</TD>
+            <TD align="center" width="120">DECSWL</TD>
+            <TD width="680">通常表示</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC # 6</TD>
+            <TD align="center" width="120">DECDWL</TD>
+            <TD width="680">横2倍表示</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC # 8</TD>
+            <TD align="center" width="120">DECALN</TD>
+            <TD width="680">画面を「E」で埋める</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC $ ( <I><FONT size="-1">Dscs</FONT></I></TD>
+            <TD align="center" width="120">GZM4</TD>
+            <TD width="680">文字バンクG0に文字セット94x94の<I><FONT size="-1"><A href="#DSCS">Dscs</A></FONT></I> を設定</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC $ ) <I><FONT size="-1">Dscs</FONT></I></TD>
+            <TD align="center" width="120">G1M4</TD>
+            <TD width="680">文字バンクG1に文字セット94x94の<I><FONT size="-1"><A href="#DSCS">Dscs</A></FONT></I> を設定</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC $ + <I><FONT size="-1">Dscs</FONT></I></TD>
+            <TD align="center" width="120">G2M4</TD>
+            <TD width="680">文字バンクG2に文字セット94x94の<I><FONT size="-1"><A href="#DSCS">Dscs</A></FONT></I> を設定</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC $ * <I><FONT size="-1">Dscs</FONT></I></TD>
+            <TD align="center" width="120">G3M4</TD>
+            <TD width="680">文字バンクG3に文字セット94x94の<I><FONT size="-1"><A href="#DSCS">Dscs</A></FONT></I> を設定</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC $ , <I><FONT size="-1">Dscs</FONT></I></TD>
+            <TD align="center" width="120">GZM6</TD>
+            <TD width="680">文字バンクG0に文字セット96x96の<I><FONT size="-1"><A href="#DSCS">Dscs</A></FONT></I> を設定</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC $ - <I><FONT size="-1">Dscs</FONT></I></TD>
+            <TD align="center" width="120">G1M6</TD>
+            <TD width="680">文字バンクG1に文字セット96x96の<I><FONT size="-1"><A href="#DSCS">Dscs</A></FONT></I> を設定</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC $ . <I><FONT size="-1">Dscs</FONT></I></TD>
+            <TD align="center" width="120">G2M6</TD>
+            <TD width="680">文字バンクG2に文字セット96x96の<I><FONT size="-1"><A href="#DSCS">Dscs</A></FONT></I> を設定</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC $ / <I><FONT size="-1">Dscs</FONT></I></TD>
+            <TD align="center" width="120">G3M6</TD>
+            <TD width="680">文字バンクG3に文字セット96x96の<I><FONT size="-1"><A href="#DSCS">Dscs</A></FONT></I> を設定</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC % ! 1</TD>
+            <TD align="center" width="120">*5</TD>
+            <TD width="680">Tek41xxモードに移行</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC ( <I><FONT size="-1">Dscs</FONT></I></TD>
+            <TD align="center" width="120">GZD4</TD>
+            <TD width="680">文字バンクG0に文字セット94の<I><FONT size="-1"><A href="#DSCS">Dscs</A></FONT></I> を設定</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC ) <I><FONT size="-1">Dscs</FONT></I></TD>
+            <TD align="center" width="120">G1D4</TD>
+            <TD width="680">文字バンクG1に文字セット94の<I><FONT size="-1"><A href="#DSCS">Dscs</A></FONT></I> を設定</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC * <I><FONT size="-1">Dscs</FONT></I></TD>
+            <TD align="center" width="120">G2D4</TD>
+            <TD width="680">文字バンクG2に文字セット94の<I><FONT size="-1"><A href="#DSCS">Dscs</A></FONT></I> を設定</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC + <I><FONT size="-1">Dscs</FONT></I></TD>
+            <TD align="center" width="120">G3D4</TD>
+            <TD width="680">文字バンクG3に文字セット94の<I><FONT size="-1"><A href="#DSCS">Dscs</A></FONT></I> を設定</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC , <I><FONT size="-1">Dscs</FONT></I></TD>
+            <TD align="center" width="120">GZD6</TD>
+            <TD width="680">文字バンクG0に文字セット96の<I><FONT size="-1"><A href="#DSCS">Dscs</A></FONT></I> を設定</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC - <I><FONT size="-1">Dscs</FONT></I></TD>
+            <TD align="center" width="120">G1D6</TD>
+            <TD width="680">文字バンクG1に文字セット96の<I><FONT size="-1"><A href="#DSCS">Dscs</A></FONT></I> を設定</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC . <I><FONT size="-1">Dscs</FONT></I></TD>
+            <TD align="center" width="120">G2D6</TD>
+            <TD width="680">文字バンクG2に文字セット96の<I><FONT size="-1"><A href="#DSCS">Dscs</A></FONT></I> を設定</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC / <I><FONT size="-1">Dscs</FONT></I></TD>
+            <TD align="center" width="120">G3D6</TD>
+            <TD width="680">文字バンクG3に文字セット96の<I><FONT size="-1"><A href="#DSCS">Dscs</A></FONT></I> を設定</TD>
+          </TR>
+          <TR>
+            <TD width="120" align="left" colspan="2">ESC 1</TD>
+            <TD width="120" align="center">DECHTS</TD>
+            <TD width="680">現在のカーソル位置に横タブをセット</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC 2</TD>
+            <TD align="center" width="120">DECCAHT</TD>
+            <TD width="680">すべての横タブをクリア</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC 3</TD>
+            <TD align="center" width="120">DECVTS</TD>
+            <TD width="680">現在のカーソル位置に縦タブをセット</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC 4</TD>
+            <TD align="center" width="120">DECAVT</TD>
+            <TD width="680">すべての縦タブをクリア</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC 6</TD>
+            <TD align="center" width="120">DECBI</TD>
+            <TD width="680">カーソルを左に1文字移動(ライトスクロールあり)</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC 7</TD>
+            <TD align="center" width="120">DECSC</TD>
+            <TD width="680">カーソル位置、文字属性、文字バンク、タブ位置、オプションを保存</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC 8</TD>
+            <TD align="center" width="120">DECRC</TD>
+            <TD width="680">DECSCで保存されたカーソル位置などを復元</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC 9</TD>
+            <TD align="center" width="120">DECFI</TD>
+            <TD width="680">カーソルを右に1文字移動（レフトスクロールあり）</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC &lt;</TD>
+            <TD align="center" width="120">V5EX *1</TD>
+            <TD width="680">VT52モードを終了</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC =</TD>
+            <TD align="center" width="120">DECPAM</TD>
+            <TD width="680"><A name="DECPAM"></A>[App]モードが有効なキーコードを送信（アプリケーションキーモード)</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC &gt;</TD>
+            <TD align="center" width="120">DECPNM</TD>
+            <TD width="680"><A name="DECPNM"></A>[App]モードが無効なキーコードを送信（ノーマルキーモード）</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="80">ESC A</TD>
+            <TD align="center">81</TD>
+            <TD align="center" width="120">CUP *1</TD>
+            <TD width="680">カーソルを上に1行字移動</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="80">ESC B</TD>
+            <TD align="center">82</TD>
+            <TD align="center" width="120">BPH *1</TD>
+            <TD width="680">カーソルを下に1行字移動</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="80">ESC C</TD>
+            <TD align="center">83</TD>
+            <TD align="center" width="120">NBH *1</TD>
+            <TD width="680">カーソルを右に1文字移動</TD>
+          </TR>
+          <TR>
+            <TD rowspan="2" align="left" width="80">ESC D</TD>
+            <TD align="center" rowspan="2">84</TD>
+            <TD align="center" width="120">IND</TD>
+            <TD width="680">1行下に移動（スクロールアップあり）</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="120">*1</TD>
+            <TD width="680">カーソルを左に1文字移動</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="80">ESC E</TD>
+            <TD align="center">85</TD>
+            <TD align="center" width="120">NEL</TD>
+            <TD width="680">1行下の行頭に移動（スクロールアップあり）</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="80">ESC F</TD>
+            <TD align="center">86</TD>
+            <TD align="center" width="120">SSA *1</TD>
+            <TD width="680">グラフィックモード設定 ESC(0 ESC)0を実行</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="80">ESC G</TD>
+            <TD align="center">87</TD>
+            <TD align="center" width="120">ESA *1</TD>
+            <TD width="680">グラフィックモード解除 ESC(B ESC)0を実行</TD>
+          </TR>
+          <TR>
+            <TD rowspan="2" align="left" width="80">ESC H</TD>
+            <TD align="center" rowspan="2">88</TD>
+            <TD align="center" width="120">HTS</TD>
+            <TD width="680">現在のカーソル位置に横タブを設定</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="120">*1</TD>
+            <TD width="680">カーソルをホームポジションに移動</TD>
+          </TR>
+          <TR>
+            <TD align="left" rowspan="2" width="80">ESC I</TD>
+            <TD align="center" rowspan="2">89</TD>
+            <TD align="center" width="120">HTJ</TD>
+            <TD width="680">カーソルを次の横タブ位置に移動</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="120">*1</TD>
+            <TD width="680">1行上に移動（バックスクロールあり）</TD>
+          </TR>
+          <TR>
+            <TD align="left" rowspan="2" width="80">ESC J</TD>
+            <TD align="center" rowspan="2">8A</TD>
+            <TD align="center" width="120">VTS</TD>
+            <TD width="680">現在のカーソル位置に縦タブを設定</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="120">*1</TD>
+            <TD width="680">現在のカーソル位置の右側と下を消去</TD>
+          </TR>
+          <TR>
+            <TD align="left" rowspan="2" width="80">ESC K</TD>
+            <TD align="center" rowspan="2">8B</TD>
+            <TD align="center" width="120">PLD</TD>
+            <TD width="680">1行下に移動</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="120">*1</TD>
+            <TD width="680">現在のカーソル位置の右側を消去</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="80">ESC L</TD>
+            <TD align="center">8C</TD>
+            <TD align="center" width="120">PLU</TD>
+            <TD width="680">1行上に移動</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="80">ESC M</TD>
+            <TD align="center">8D</TD>
+            <TD align="center" width="120">RI</TD>
+            <TD width="680">1行上に移動（バックスクロールあり）</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="80">ESC N</TD>
+            <TD align="center">8E</TD>
+            <TD align="center" width="120">SS2</TD>
+            <TD width="680">文字バンクのGRをG2に設定</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="80">ESC O</TD>
+            <TD align="center">8F</TD>
+            <TD align="center" width="120">SS3</TD>
+            <TD width="680">文字バンクのGRをG3に設定</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="80">ESC P</TD>
+            <TD align="center">90</TD>
+            <TD align="center" width="120">DCS</TD>
+            <TD width="680"><A href="#DCS">DCS開始</A></TD>
+          </TR>
+          <TR>
+            <TD align="left" width="80">ESC V</TD>
+            <TD align="center">96</TD>
+            <TD align="center" width="120">SPA</TD>
+            <TD width="680"><A name="SPA"></A>文字消去ガード開始</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="80">ESC W</TD>
+            <TD align="center">97</TD>
+            <TD align="center" width="120">EPA</TD>
+            <TD width="680"><A name="EPA"></A>文字消去ガード終了</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="80">ESC X</TD>
+            <TD align="center">98</TD>
+            <TD align="center" width="120">SOS</TD>
+            <TD width="680">SOS開始</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="80">ESC Y <FONT size="-1"><I>y x</I></FONT></TD>
+            <TD align="center">99</TD>
+            <TD align="center" width="120">MCP *1</TD>
+            <TD width="680">カーソルをx, yに移動（x,y=SP+n)</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="80">ESC Z</TD>
+            <TD align="center">9A</TD>
+            <TD align="center" width="120">SCI *1</TD>
+            <TD width="680">ESC/Zを返す(ANMによりDA1)</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="80">ESC [</TD>
+            <TD align="center">9B</TD>
+            <TD align="center" width="120">CSI</TD>
+            <TD width="680"><A href="#CSI">CSI開始</A></TD>
+          </TR>
+          <TR>
+            <TD align="left" width="80">ESC \</TD>
+            <TD align="center">9C</TD>
+            <TD align="center" width="120">ST</TD>
+            <TD width="680">DCS/SOS/OSC/PM/APC終了</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="80">ESC ]</TD>
+            <TD align="center">9D</TD>
+            <TD align="center" width="120">OSC</TD>
+            <TD width="680"><A href="#OSC">OSC開始</A></TD>
+          </TR>
+          <TR>
+            <TD align="left" width="80">ESC ^</TD>
+            <TD align="center">9E</TD>
+            <TD align="center" width="120">PM</TD>
+            <TD width="680">PM開始</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="80">ESC _</TD>
+            <TD align="center">9F</TD>
+            <TD align="center" width="120">APC</TD>
+            <TD width="680">APC開始</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC c</TD>
+            <TD align="center" width="120">RIS</TD>
+            <TD width="680">すべての設定を初期設定に戻す</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC l</TD>
+            <TD align="center" width="120">LMA *1</TD>
+            <TD width="680">画面分割の上辺を現在のカーソル位置に設定</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC m</TD>
+            <TD align="center" width="120">USR *1</TD>
+            <TD width="680">画面分割の上辺をトップに戻す</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC n</TD>
+            <TD align="center" width="120">LS2</TD>
+            <TD width="680">文字バンクのGLをG2に設定</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC o</TD>
+            <TD align="center" width="120">LS3</TD>
+            <TD width="680">文字バンクのGLをG3に設定</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC |</TD>
+            <TD align="center" width="120">LS3R</TD>
+            <TD width="680">文字バンクのGRをG3に設定</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC }</TD>
+            <TD align="center" width="120">LS2R</TD>
+            <TD width="680">文字バンクのGRをG2に設定</TD>
+          </TR>
+          <TR>
+            <TD align="left" width="120" colspan="2">ESC ~</TD>
+            <TD align="center" width="120">LS1R</TD>
+            <TD width="680">文字バンクのGRをG1に設定</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="CSI"></A><B>2.6.2 CSI 一覧</B></P>
+      <HR size="1">
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX">
+        <TBODY>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I><FONT size="-1"><FONT size="-1">Pn</FONT></FONT></I></FONT> @</TD>
+            <TD width="120" align="center">ICH</TD>
+            <TD width="680">現在のカーソル位置に<FONT size="-1"><FONT size="-1"><I>Pn</I></FONT></FONT>[1]個の空白文字を挿入（現在行のみライトスクロール）</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">Pn </FONT></I>SP @</TD>
+            <TD align="center" width="120">SL</TD>
+            <TD width="680"><I><FONT size="-1">Pn</FONT></I>[1]回左に全画面横スクロール（レフトスクロール）</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><FONT size="-1"><I>Pn</I></FONT></FONT> A</TD>
+            <TD align="center" width="120">CUU</TD>
+            <TD width="680"><FONT size="-1"><FONT size="-1"><I>Pn</I></FONT></FONT>[1]行カーソルを上に移動（<A href="#DECSTBM">DECSTBM</A>の影響を受ける）</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">Pn </FONT></I>SP A</TD>
+            <TD align="center" width="120">SR</TD>
+            <TD width="680"><I><FONT size="-1">Pn</FONT></I>[1]回右に全画面横スクロール（ライトスクロール）</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><FONT size="-1"><I>Pn</I></FONT></FONT> B</TD>
+            <TD align="center" width="120">CUD</TD>
+            <TD width="680"><FONT size="-1"><I>Pn</I></FONT>[1]行カーソルを下に移動（<A href="#DECSTBM">DECSTBM</A>の影響を受ける）</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> C</TD>
+            <TD align="center" width="120">CUF</TD>
+            <TD width="680"><FONT size="-1"><I>Pn</I></FONT>[1]桁カーソルを右に移動（<A href="#DECLRMM">DECLRMM</A>設定時、<A href="#DECSLRM">DECSLRM</A>の影響を受ける）</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> D</TD>
+            <TD align="center" width="120">CUB</TD>
+            <TD width="680"><FONT size="-1"><I>Pn</I></FONT>[1]桁カーソルを左に移動（<A href="#DECLRMM">DECLRMM</A>設定時、<A href="#DECSLRM">DECSLRM</A>の影響を受ける）</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">Pn</FONT></I> SP D</TD>
+            <TD align="center" width="120">FNT</TD>
+            <TD width="680">フォントセット（0～10）を<I><FONT size="-1">Pn</FONT></I>[0]に変更</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> E</TD>
+            <TD align="center" width="120">CNL</TD>
+            <TD width="680"><FONT size="-1"><I>Pn</I></FONT>[1]行カーソルを下の左端に移動（<A href="#DECSTBM">DECSTBM</A>の影響を受ける）</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> F</TD>
+            <TD align="center" width="120">CPL</TD>
+            <TD width="680"><FONT size="-1"><I>Pn</I></FONT>[1]行カーソルを上の左端に移動（<A href="#DECSTBM">DECSTBM</A>の影響を受ける）</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> G</TD>
+            <TD align="center" width="120">CHA</TD>
+            <TD width="680">x = <FONT size="-1"><I>Pn</I></FONT>[1]にカーソルを移動（<A href="#DECOM">DECOM</A>の影響を受ける）</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">Pl</FONT></I> ; <FONT size="-1"><I>Pc</I></FONT> H</TD>
+            <TD align="center" width="120">CUP</TD>
+            <TD width="680"><A name="CUP"></A>x = <I><FONT size="-1">Pc</FONT></I>[1], y = <FONT size="-1"><I>Pl</I></FONT> [1]にカーソルを移動（<A href="#DECOM">DECOM</A>の影響を受ける）</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> I</TD>
+            <TD align="center" width="120">CHT</TD>
+            <TD width="680"><FONT size="-1"><I>Pn</I></FONT>[1]個カーソルをタブ位置に移動</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> J</TD>
+            <TD align="center" width="120">ED</TD>
+            <TD width="680">
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD colspan="2"><A name="ED"></A><A href="#SPA">SPA</A>と<A href="#ERM">ERM</A>の影響を受ける</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><FONT size="-1"><I>Pn</I></FONT> = [0]</TD>
+                  <TD>現在のカーソル位置の右側と下を消去</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><FONT size="-1"><I>Pn</I></FONT> = 1</TD>
+                  <TD>現在のカーソル位置の左側と上を消去</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><FONT size="-1"><I>Pn</I></FONT> = 2</TD>
+                  <TD>全画面消去</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI ? <FONT size="-1"><I>Pn</I></FONT> J</TD>
+            <TD width="120" align="center">DECSED</TD>
+            <TD width="680"><A href="#DECSCA">DECSCA</A>の影響を受ける<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><FONT size="-1"><I>Pn</I></FONT> = [0]</TD>
+                  <TD>現在のカーソル位置の右側と下を消去</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><FONT size="-1"><I>Pn</I></FONT> = 1</TD>
+                  <TD>現在のカーソル位置の左側と上を消去</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><FONT size="-1"><I>Pn</I></FONT> = 2</TD>
+                  <TD>全画面消去</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> K</TD>
+            <TD align="center" width="120">EL</TD>
+            <TD width="680">
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD colspan="2"><A href="#SPA">SPA</A>と<A href="#ERM">ERM</A>の影響を受ける</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><FONT size="-1"><I>Pn</I></FONT> = [0]</TD>
+                  <TD>現在のカーソル位置の右側を消去</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><FONT size="-1"><I>Pn</I></FONT> = 1</TD>
+                  <TD>現在のカーソル位置の左側を消去</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><FONT size="-1"><I>Pn</I></FONT> = 2</TD>
+                  <TD>現在のカーソル位置の行を消去</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI ? <FONT size="-1"><I>Pn</I></FONT> K</TD>
+            <TD align="center" width="120">DECSEL</TD>
+            <TD width="680"><A href="#DECSCA">DECSCA</A>の影響を受ける<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><FONT size="-1"><I>Pn</I></FONT> = [0]</TD>
+                  <TD>現在のカーソル位置の右側を消去</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><FONT size="-1"><I>Pn</I></FONT> = 1</TD>
+                  <TD>現在のカーソル位置の左側を消去</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><FONT size="-1"><I>Pn</I></FONT> = 2</TD>
+                  <TD>現在のカーソル位置の行を消去</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> L</TD>
+            <TD align="center" width="120">IL</TD>
+            <TD width="680">現在のカーソル位置に<FONT size="-1"><I>Pn</I></FONT>[1]行挿入（バックスクロールあり）（<A href="#DECSTBM">DECSTBM</A>の影響を受ける）</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> M</TD>
+            <TD align="center" width="120">DL</TD>
+            <TD width="680">現在のカーソル位置に<FONT size="-1"><I>Pn</I></FONT>[1]行削除（スクロールアップあり）（<A href="#DECSTBM">DECSTBM</A>の影響を受ける）</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> N</TD>
+            <TD align="center" width="120">EF</TD>
+            <TD width="680"><A href="#ED">ED</A>に同じ</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> O</TD>
+            <TD align="center" width="120">EA</TD>
+            <TD width="680"><A href="#ED">ED</A>に同じ</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> P</TD>
+            <TD align="center" width="120">DCH</TD>
+            <TD width="680">現在のカーソル位置から<FONT size="-1"><I>Pn</I></FONT>[1]文字削除（現在行のみレフトスクロールあり）</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">Pn</FONT></I> SP P</TD>
+            <TD align="center" width="120">PPA</TD>
+            <TD width="680"><I><FONT size="-1">Pn</FONT></I>[1]ページに移動</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">Pn</FONT></I> SP Q</TD>
+            <TD align="center" width="120">PPR</TD>
+            <TD width="680">+<I><FONT size="-1">Pn</FONT></I>[1]ページにオフセット移動</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">Pn</FONT></I> SP R</TD>
+            <TD align="center" width="120">PPB</TD>
+            <TD width="680">-<I><FONT size="-1">Pn</FONT></I>[1]ページにオフセット移動</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> S</TD>
+            <TD align="center" width="120">SU</TD>
+            <TD width="680"><FONT size="-1"><I>Pn</I></FONT>[1]行スクロールアップ（<A href="#DECSTBM">DECSTBM</A>の影響を受ける）</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI = <FONT size="-1"><I>Pn</I></FONT> S</TD>
+            <TD align="center" width="120">C25LCT *3</TD>
+            <TD width="680">
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = [0]</TD>
+                  <TD>カーソルを表示</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 1</TD>
+                  <TD>カーソルを非表示</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD>CSI ?<FONT size="-1"> <I>Pi; Pa; Pv</I></FONT> S</TD>
+            <TD align="center">XTCOLREG *4</TD>
+            <TD>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pi</FONT></I> = 1</TD>
+                  <TD>ReGIS/Sixelのカラーパレット</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pa</FONT></I> = 1</TD>
+                  <TD>read カラーパレットの数を返す</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Pa</FONT></I> = 2</TD>
+                  <TD>reset デフォルトにもどす</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Pa</FONT></I> = 3</TD>
+                  <TD>set カラーパレットを設定する（現時点では無視）</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            CSI ? Pi; Ps; Pv Sの形式で応答する<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Ps</FONT></I> = 0</TD>
+                  <TD>Pvに現在のカラーパレットの数</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> T</TD>
+            <TD align="center" width="120">SD</TD>
+            <TD width="680">
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="200"><FONT size="-1"><I>Pn</I></FONT> = [1]</TD>
+                  <TD>バックスクロール（<A href="#DECSTBM">DECSTBM</A>の影響を受ける）</TD>
+                </TR>
+                <TR>
+                  <TD width="200"><I><FONT size="-1">Pn1</FONT></I> ; <I><FONT size="-1">Pn2</FONT></I> ; <I><FONT size="-1">Pn3</FONT></I> ; <I><FONT size="-1">Pn4</FONT></I> ; <I><FONT size="-1">Pn5</FONT></I></TD>
+                  <TD>ハイライト・マウス・トラックの範囲指定</TD>
+                </TR>
+                <TR>
+                  <TD></TD>
+                  <TD><FONT size="-1">Pn4</FONT> = [1] スタート行　<I><FONT size="-1">Pn5</FONT></I> = [1] エンド行</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD>CSI &gt; T</TD>
+            <TD align="center">XTRMTT *4</TD>
+            <TD><A name="XTRMTT"></A>ウィンドウタイトル形式の設定を解除する
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD colspan="2">CSI &gt; <I>Pn</I> t</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><FONT size="-1"><I>Pn</I></FONT> = 0</TD>
+                  <TD><A href="#OSC">OSC</A>のタイトル設定を16進数デコードしない</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><FONT size="-1"><I>Pn</I></FONT> = 1</TD>
+                  <TD><A href="#XTWOP">XTWOP</A>でタイトルを16進数エンコードしない</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><FONT size="-1"><I>Pn</I></FONT> = 2</TD>
+                  <TD><A href="#OSC">OSC</A>のタイトル設定を現在の漢字コードで扱う</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><FONT size="-1"><I>Pn</I></FONT> = 3</TD>
+                  <TD><A href="#XTWOP">XTWOP</A>でタイトルを現在の漢字コードで返す</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> U</TD>
+            <TD align="center" width="120">NP</TD>
+            <TD width="680"><FONT size="-1"><I>Pn</I></FONT>[1]ページヒストリーアップ（スクロールバーのページ操作を行う）</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> V</TD>
+            <TD align="center" width="120">PP</TD>
+            <TD width="680"><FONT size="-1"><I>Pn</I></FONT>[1]ページヒストリーバック（スクロールバーのページ操作を行う）</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> W</TD>
+            <TD align="center" width="120">CTC</TD>
+            <TD width="680">
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = [0]</TD>
+                  <TD>横タブをセット</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 1</TD>
+                  <TD>縦タブをセット</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 2</TD>
+                  <TD>横タブをクリア</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 3</TD>
+                  <TD>縦タブをクリア</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 4</TD>
+                  <TD>現在行の縦タブが有効なら横タブをすべてクリア</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 5</TD>
+                  <TD>現在行の横タブをすべてクリア</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 6</TD>
+                  <TD>すべての縦タブをクリア</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI ? W</TD>
+            <TD align="center" width="120">DECST8C</TD>
+            <TD width="680">横タブ位置を8文字に初期化</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> X</TD>
+            <TD align="center" width="120">ECH</TD>
+            <TD width="680">現在のカーソル位置から<FONT size="-1"><I>Pn</I></FONT>[1]文字消去</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> Y</TD>
+            <TD align="center" width="120">CVT</TD>
+            <TD width="680"><FONT size="-1"><I>Pn</I></FONT>[1]個カーソルを次の縦タブ位置に移動</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> Z</TD>
+            <TD align="center" width="120">CBT</TD>
+            <TD width="680"><FONT size="-1"><I>Pn</I></FONT>[1]回バック横タブ</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> `</TD>
+            <TD align="center" width="120">HPA</TD>
+            <TD width="680">x = <FONT size="-1"><I>Pn</I></FONT>[1]にカーソルを移動（<A href="#DECOM">DECOM</A>の影響を受ける）</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> a</TD>
+            <TD align="center" width="120">HPR</TD>
+            <TD width="680">x + <FONT size="-1"><I>Pn</I></FONT>[1]にカーソルをオフセット移動（<A href="#DECOM">DECOM</A>の影響を受ける）</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> b</TD>
+            <TD align="center" width="120">REP</TD>
+            <TD width="680">直前の文字を<FONT size="-1"><I>Pn</I></FONT>[1]回繰り返す</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> c</TD>
+            <TD align="center" width="120">DA1</TD>
+            <TD width="680">
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">TermID</FONT></I></TD>
+                  <TD><A href="#DECTID">DECTID</A>の<I><FONT size="-1">TermID</FONT></I>設定によりレスポンスが異なる</TD>
+                </TR>
+                <TR>
+                  <TD width="90">[10]</TD>
+                  <TD>CSI ? 65;1;2;3;4;6;8;9;18;21;22;29;39;42;44 c</TD>
+                </TR>
+                <TR>
+                  <TD width="90">9</TD>
+                  <TD>CSI ? 64;1;2;8;9;15;18;21 c</TD>
+                </TR>
+                <TR>
+                  <TD width="90">7, 8</TD>
+                  <TD>CSI ? 63;1;2;8;9 c</TD>
+                </TR>
+                <TR>
+                  <TD width="90">5, 6</TD>
+                  <TD>CSI ? 62;1;2;8;9 c</TD>
+                </TR>
+                <TR>
+                  <TD width="90">2, 3</TD>
+                  <TD>CSI ? 6 c</TD>
+                </TR>
+                <TR>
+                  <TD width="90">1</TD>
+                  <TD>CSI ? 1;0 c</TD>
+                </TR>
+                <TR>
+                  <TD width="90">0</TD>
+                  <TD>CSI ? 1;2 c</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI = c&nbsp;</TD>
+            <TD align="center" width="120">DA3&nbsp;</TD>
+            <TD width="680">DCS ! | 000000 ST を返す(<A href="./#ESCCSIDCS">ESC/CSI/DCSの設定</A>で変更可能）</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI &gt; c</TD>
+            <TD align="center" width="120">DA2&nbsp;</TD>
+            <TD width="680">CSI &gt; 65 ; 277 ; 0 c を返す(<A href="./#ESCCSIDCS">ESC/CSI/DCSの設定</A>で変更可能）</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> d</TD>
+            <TD align="center" width="120">VPA</TD>
+            <TD width="680">y = <FONT size="-1"><I>Pn</I></FONT>[1]にカーソルを移動（<A href="#DECOM">DECOM</A>の影響を受ける）</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> e</TD>
+            <TD align="center" width="120">VPR</TD>
+            <TD width="680">y + <FONT size="-1"><I>Pn</I></FONT>[1]にカーソルをオフセット移動（<A href="#DECOM">DECOM</A>の影響を受ける）</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">Pl</FONT></I> ; <I><FONT size="-1">Pc</FONT></I> f</TD>
+            <TD align="center" width="120">HVP</TD>
+            <TD width="680">x = <I><FONT size="-1">Pc</FONT></I>[1], y = <I><FONT size="-1">Pl</FONT></I>[1] にカーソルを移動（<A href="#DECOM">DECOM</A>の影響を受ける）</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> g</TD>
+            <TD align="center" width="120">TBC</TD>
+            <TD width="680">
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = [0]</TD>
+                  <TD>横タブをクリア</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 1</TD>
+                  <TD>縦タブをクリア</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 2</TD>
+                  <TD>現在行の縦タブが有効なら横タブをすべてクリア</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 3</TD>
+                  <TD>現在行の横タブをすべてクリア</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 4</TD>
+                  <TD>すべての縦タブをクリア</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 5</TD>
+                  <TD>すべての縦・横タブをクリア</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> h</TD>
+            <TD align="center" width="120">SM</TD>
+            <TD width="680"><A href="#SM">オプションを設定</A></TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI ? <FONT size="-1"><I>Pn</I></FONT> h</TD>
+            <TD align="center" width="120">DECSET</TD>
+            <TD width="680"><A href="#DECSET">拡張オプションの設定</A></TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> i</TD>
+            <TD align="center" width="120">MC</TD>
+            <TD width="680"><A name="MC"></A>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = [0]</TD>
+                  <TD>全画面をクリップボードにコピー（<A href="#DECPEX">DECPEX</A>の影響を受ける）</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 1</TD>
+                  <TD>現在行のみクリップボードにコピー</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI ? <FONT size="-1"><I>Pn</I></FONT> i</TD>
+            <TD align="center" width="120">DECMC</TD>
+            <TD width="680"><A name="DECMC"></A>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = [0]</TD>
+                  <TD>全画面をクリップボードにコピー（<A href="#DECPEX">DECPEX</A>の影響を受ける）</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 1</TD>
+                  <TD>現在行のみクリップボードにコピー</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 10</TD>
+                  <TD>全画面をクリップボードにコピー</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 11</TD>
+                  <TD>ヒストリーを含めててすべてコピー</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD>CSI &lt; <I><FONT size="-1">Pn</FONT></I> ! i</TD>
+            <TD align="center">RLIMGCP</TD>
+            <TD>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = [0]</TD>
+                  <TD>表示されている画面をImageウィンドウにグラフィックイメージに変換して表示します</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 1</TD>
+                  <TD>GIFファイルにグラフィックイメージに変換して保存</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 2</TD>
+                  <TD>JPGファイルにグラフィックイメージに変換して保存</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 3</TD>
+                  <TD>PNGファイルにグラフィックイメージに変換して保存</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Pn</FONT></I> = 4</TD>
+                  <TD>BMPファイルにグラフィックイメージに変換して保存</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            ※w2kバイナリでは、ファイルに保存することが出来ません</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> j</TD>
+            <TD align="center" width="120">HPB</TD>
+            <TD width="680"><FONT size="-1"><I>Pn</I></FONT>[1]個左にカーソル位置を移動</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> k</TD>
+            <TD align="center" width="120">VPB</TD>
+            <TD width="680"><FONT size="-1"><I>Pn</I></FONT>[1]行上にカーソル位置を移動</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> l</TD>
+            <TD align="center" width="120">RM</TD>
+            <TD width="680"><A href="#RM">オプションを解除</A></TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI ? <FONT size="-1"><I>Pn</I></FONT> l</TD>
+            <TD align="center" width="120">DECRST</TD>
+            <TD width="680"><A href="#DECRST">拡張オプションの解除</A></TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> m</TD>
+            <TD align="center" width="120">SGR</TD>
+            <TD width="680">
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="130"><A name="SGR"></A><I><FONT size="-1">Pn</FONT></I> = [0]</TD>
+                  <TD>すべての文字属性を解除</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 1</TD>
+                  <TD>太文字/高輝度に設定</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 2</TD>
+                  <TD>低輝度に設定</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 3</TD>
+                  <TD>イタリックに設定</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 4</TD>
+                  <TD>下線に設定</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 5</TD>
+                  <TD>文字を低速点滅</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 6</TD>
+                  <TD>文字を高速点滅</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 7</TD>
+                  <TD>文字色と背景色を反転</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 8</TD>
+                  <TD>文字色を背景色と同じにする</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 9</TD>
+                  <TD>文字の打ち消し線を設定</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 10～20</TD>
+                  <TD>フォントセットの設定</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 21</TD>
+                  <TD>2重下線を設定</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 22</TD>
+                  <TD>太文字と低輝度を解除</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 23</TD>
+                  <TD>イタリックを解除</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 24</TD>
+                  <TD>下線を解除</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 25</TD>
+                  <TD>点滅を解除</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 27</TD>
+                  <TD>反転を解除</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 28</TD>
+                  <TD>シークレットを解除</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 29</TD>
+                  <TD>打ち消し線を解除</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 30～37</TD>
+                  <TD>文字色の設定</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Pn</FONT></I> = 38:2:<I>r:g:b</I></TD>
+                  <TD>RGBで近似色を設定</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 38;5;0～255</TD>
+                  <TD>拡張文字色を設定</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 39</TD>
+                  <TD>文字色をデフォルト色に戻す</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 40～47</TD>
+                  <TD>背景色の設定</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Pn</FONT></I> = 48:2:<I>r:g:b</I></TD>
+                  <TD>RGBで近似色を設定</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 48;5;0～255</TD>
+                  <TD>拡張背景色の設定</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 49</TD>
+                  <TD>背景色をデフォルト色に戻す</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 51</TD>
+                  <TD>□を重ねる</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 52</TD>
+                  <TD>○を重ねる</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 53</TD>
+                  <TD>上線を設定</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 54</TD>
+                  <TD>□○を取り消し</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 55</TD>
+                  <TD>上線を取り消し</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 60</TD>
+                  <TD>右側に縦線</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 61</TD>
+                  <TD>右側に２本線</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 62</TD>
+                  <TD>左側に縦線</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 63</TD>
+                  <TD>左側に２本線</TD>
+                </TR>
+                <TR>
+                  <TD width="130"><I><FONT size="-1">Pn</FONT></I> = 64</TD>
+                  <TD>2重打ち消し線</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Pn</FONT></I> = 65</TD>
+                  <TD>60～64を取り消し</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Pn</FONT></I> = 90～97</TD>
+                  <TD>高輝度の文字色設定</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Pn</FONT></I> = 100～107</TD>
+                  <TD>高輝度の背景色設定</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD>CSI &gt; <FONT size="-1"><I>Pn</I></FONT> ; <I><FONT size="-1">Ps</FONT></I> m</TD>
+            <TD align="center">XTMDKEY *4</TD>
+            <TD>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD colspan="3"><I>Pn</I> キーセットの選択</TD>
+                </TR>
+                <TR>
+                  <TD width="60"><I>Pn</I> = 1</TD>
+                  <TD width="150">modifyCursorKeys</TD>
+                  <TD><FONT size="-1">UP,DOWN,RIGHT,LEFT,PRIOR,NEXT,HOME,END,INSERT,DELETE</FONT></TD>
+                </TR>
+                <TR>
+                  <TD><I>Pn</I> = 2</TD>
+                  <TD>modifyFunctionKeys</TD>
+                  <TD>F1-F12</TD>
+                </TR>
+                <TR>
+                  <TD><I>Pn</I> = 3</TD>
+                  <TD>modifyKeypadKeys</TD>
+                  <TD>NumLockオン時のキーパッド</TD>
+                </TR>
+                <TR>
+                  <TD><I>Pn</I> = 4</TD>
+                  <TD>modifyOtherKeys</TD>
+                  <TD>ESCAPE,RETURN,BACK,TAB,SPACE</TD>
+                </TR>
+                <TR>
+                  <TD><I>Pn</I> = 5</TD>
+                  <TD>modifyStringKeys</TD>
+                  <TD>0-9,A-Z</TD>
+                </TR>
+                <TR>
+                  <TD colspan="2"><I>Ps</I> キーコードの選択</TD>
+                  <TD>例 (Shift + ↑)</TD>
+                </TR>
+                <TR>
+                  <TD><I>Ps</I> = 0</TD>
+                  <TD>CSI/SS3で返す</TD>
+                  <TD>CSI 2 A / SS3 2 A</TD>
+                </TR>
+                <TR>
+                  <TD><I>Ps</I> = 1</TD>
+                  <TD>CSIで返す</TD>
+                  <TD>CSI 2 A</TD>
+                </TR>
+                <TR>
+                  <TD><I>Ps</I> = 2</TD>
+                  <TD>CSIで返す(1)</TD>
+                  <TD>CSI 1 ; 2 A</TD>
+                </TR>
+                <TR>
+                  <TD><I>Ps</I> = 3</TD>
+                  <TD>CSI &gt;で返す</TD>
+                  <TD>CSI &gt; 1 ; 2 A</TD>
+                </TR>
+                <TR>
+                  <TD colspan="3">追加パラメータ</TD>
+                </TR>
+                <TR>
+                  <TD align="center">2</TD>
+                  <TD>Shift</TD>
+                  <TD></TD>
+                </TR>
+                <TR>
+                  <TD align="center">3</TD>
+                  <TD>Alt</TD>
+                  <TD></TD>
+                </TR>
+                <TR>
+                  <TD align="center">4</TD>
+                  <TD>Shift + Alt</TD>
+                  <TD></TD>
+                </TR>
+                <TR>
+                  <TD align="center">5</TD>
+                  <TD>Ctrl</TD>
+                  <TD></TD>
+                </TR>
+                <TR>
+                  <TD align="center">6</TD>
+                  <TD>Ctrl + Shift</TD>
+                  <TD></TD>
+                </TR>
+                <TR>
+                  <TD align="center">7</TD>
+                  <TD>Ctrl + Alt</TD>
+                  <TD></TD>
+                </TR>
+                <TR>
+                  <TD align="center">8</TD>
+                  <TD>Ctrl + Shift + Alt</TD>
+                  <TD></TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            発生するキーコードは、各種DECPAM/DECPNM/DECCKM/DECANMの設定により異なる<BR>
+            また、キー別に設定したキーコードがCSI/SS3の場合にのみ追加されメニューのショートカット<BR>
+            が設定されている場合は、拡張オプション8450により優先が変わる</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> n</TD>
+            <TD align="center" width="120">DSR</TD>
+            <TD width="680">
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 5</TD>
+                  <TD>CSI 0 n を返す</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 6</TD>
+                  <TD>CSI y ; x R にてカーソル位置を報告する</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD>CSI &gt; <FONT size="-1"><I>Pn</I></FONT> n</TD>
+            <TD align="center">XTMDKYD *4</TD>
+            <TD>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD colspan="3"><I>Pn</I> 選択したキーセットの拡張を解除する</TD>
+                </TR>
+                <TR>
+                  <TD width="60"><I>Pn</I> = 1</TD>
+                  <TD width="150">modifyCursorKeys</TD>
+                  <TD><FONT size="-1">UP,DOWN,RIGHT,LEFT,PRIOR,NEXT,HOME,END,INSERT,DELETE</FONT></TD>
+                </TR>
+                <TR>
+                  <TD><I>Pn</I> = 2</TD>
+                  <TD>modifyFunctionKeys</TD>
+                  <TD>F1-F12</TD>
+                </TR>
+                <TR>
+                  <TD><I>Pn</I> = 3</TD>
+                  <TD>modifyKeypadKeys</TD>
+                  <TD>NumLocオン時のキーパッド</TD>
+                </TR>
+                <TR>
+                  <TD><I>Pn</I> = 4</TD>
+                  <TD>modifyOtherKeys</TD>
+                  <TD>ESCAPE,RETURN,BACK,TAB,SPACE</TD>
+                </TR>
+                <TR>
+                  <TD><I>Pn</I> = 5</TD>
+                  <TD>modifyStringKeys</TD>
+                  <TD>0-9,A-Z</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI ? <FONT size="-1"><I>Pn</I></FONT> n</TD>
+            <TD align="center" width="120">DECDSR</TD>
+            <TD width="680">
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD align="left" width="90">1/2/3</TD>
+                  <TD width="200">malfunction detected</TD>
+                  <TD>CSI ? 20 n</TD>
+                </TR>
+                <TR>
+                  <TD align="left" width="90">6</TD>
+                  <TD width="200">カーソル位置</TD>
+                  <TD>CSI Pl ; Pc ; Pp R</TD>
+                </TR>
+                <TR>
+                  <TD align="left" width="90">15</TD>
+                  <TD width="200">プリンタ無し</TD>
+                  <TD>CSI ? 13 n</TD>
+                </TR>
+                <TR>
+                  <TD align="left" width="90">25</TD>
+                  <TD width="200">UDK固定</TD>
+                  <TD>CSI ? 21 n</TD>
+                </TR>
+                <TR>
+                  <TD align="left" width="90">26</TD>
+                  <TD width="200">ASCIIキーボード</TD>
+                  <TD>CSI ? 27 ; 1 n</TD>
+                </TR>
+                <TR>
+                  <TD align="left" width="90">53/55</TD>
+                  <TD width="200">locatorの状態</TD>
+                  <TD>CSI ? 50 n</TD>
+                </TR>
+                <TR>
+                  <TD align="left" width="90">56</TD>
+                  <TD width="200">locatorあり</TD>
+                  <TD>CSI ? 57 ; 1 n</TD>
+                </TR>
+                <TR>
+                  <TD align="left" width="90">62</TD>
+                  <TD width="200">Macro Space=0</TD>
+                  <TD>CSI 0 * {</TD>
+                </TR>
+                <TR>
+                  <TD align="left" width="90">63</TD>
+                  <TD width="200">チェックサム0を返す</TD>
+                  <TD>DCS <FONT size="-1"><I>Pn</I></FONT> ! ~ 0 ST</TD>
+                </TR>
+                <TR>
+                  <TD align="left" width="90">75</TD>
+                  <TD width="200">Ready</TD>
+                  <TD>CSI ? 70 n</TD>
+                </TR>
+                <TR>
+                  <TD align="left" width="90">85</TD>
+                  <TD width="200">not multiple-session</TD>
+                  <TD>CSI ? 83 n</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> o</TD>
+            <TD align="center" width="120">DAQ</TD>
+            <TD width="680">
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = [0]</TD>
+                  <TD>文字消去ガード終了（<A href="#EPA">EPA</A>と同じ）</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 1,8</TD>
+                  <TD>文字消去ガード開始（<A href="#SPA">SPA</A>と同じ）</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD rowspan="2" width="120">CSI <FONT size="-1"><I>Pn</I></FONT> p</TD>
+            <TD align="center" width="120">RLBFAT *3</TD>
+            <TD width="680">
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD colspan="2"><I><FONT size="-1">Pn</FONT></I>[0]の各ビットに応じた文字属性変更</TD>
+                </TR>
+                <TR>
+                  <TD width="90">Bit 0 (1)</TD>
+                  <TD>太文字/高輝度に設定</TD>
+                </TR>
+                <TR>
+                  <TD width="90">Bit 1 (2)</TD>
+                  <TD>文字を高速点滅</TD>
+                </TR>
+                <TR>
+                  <TD width="90">Bit 2 (4)</TD>
+                  <TD>文字色を背景色と同じにする</TD>
+                </TR>
+                <TR>
+                  <TD width="90">Bit 3 (8)</TD>
+                  <TD>下線に設定</TD>
+                </TR>
+                <TR>
+                  <TD width="90">Bit 4 (16)</TD>
+                  <TD>文字色と背景色を反転</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD align="center" width="120">DECSSL *6</TD>
+            <TD width="680">メニュー言語設定(未実装)</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI ! p&nbsp;</TD>
+            <TD align="center" width="120">DECSTR&nbsp;</TD>
+            <TD width="680">リセット、設定を初期化して全画面消去、カーソルをホームに移動</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">Pn</FONT></I> ; <I><FONT size="-1">Ps</FONT></I> &quot; p</TD>
+            <TD align="center" width="120">DECSCL</TD>
+            <TD width="680">
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 61～65</TD>
+                  <TD>VTターミナル設定</TD>
+                </TR>
+                <TR>
+                  <TD></TD>
+                  <TD><I>Pn</I>が62以上の場合、以下の<I><FONT size="-1">Ps</FONT></I>が有効</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Ps</FONT></I> = [0]</TD>
+                  <TD>S8C1Tと同じ</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Ps</FONT></I> = 1</TD>
+                  <TD>S7C1Tと同じ</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">Pn</FONT></I> $ p</TD>
+            <TD align="center" width="120">DECRQM</TD>
+            <TD width="680">CSI <I><FONT size="-1">Pn</FONT></I> h / l のオプション設定の状態を CSI <I><FONT size="-1">Pn</FONT></I> ; <I><FONT size="-1">Pv</FONT></I> $ y で返す<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD><I><FONT size="-1">Pv</FONT></I> = 0</TD>
+                  <TD>非対応</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pv</FONT></I> = 1</TD>
+                  <TD>オプション設定状態（CSI <I><FONT size="-1">Pn</FONT></I> h）</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pv</FONT></I> = 2</TD>
+                  <TD>オプション解除状態（CSI <I><FONT size="-1">Pn</FONT></I> l）</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD>CSI <FONT size="-1"><I>Pn</I></FONT> + p</TD>
+            <TD align="center">DECSR</TD>
+            <TD width="680">画面と設定を初期化して(DECSRC) CSI <FONT size="-1"><I>Pn </I></FONT>* q を返す</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI ? <FONT size="-1"><I>Pn</I></FONT> $ p</TD>
+            <TD align="center" width="120">DECRQMH&nbsp;</TD>
+            <TD width="680">拡張オプション設定の状態を CSI ?<I><FONT size="-1">Pn</FONT></I> ; <I><FONT size="-1">Pv</FONT></I> $ y で返す<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pv</FONT></I> = 0</TD>
+                  <TD colspan="2">非対応</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pv</FONT></I> = 1</TD>
+                  <TD colspan="2">オプション設定状態（CSI ?<I><FONT size="-1">Pn</FONT></I> h）</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pv</FONT></I> = 2</TD>
+                  <TD colspan="2">オプション解除状態（CSI ?<I><FONT size="-1">Pn</FONT></I> l）</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pv</FONT></I> = 3</TD>
+                  <TD width="200">オプション設定状態</TD>
+                  <TD rowspan="2"><A href="./#TERMOPT">ターミナルのオプション設定</A><BR>
+                  で変更できないオプション</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pv</FONT></I> = 4</TD>
+                  <TD width="200">オプション解除状態</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD>CSI &gt; <I><FONT size="-1">Pn</FONT></I> p</TD>
+            <TD align="center">XTHDPT *4</TD>
+            <TD>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = [0]</TD>
+                  <TD>マウスカーソルを表示する</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Pn</FONT></I> = 1</TD>
+                  <TD>マウスイベント時のみ表示する</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Pn</FONT></I> = 2,3</TD>
+                  <TD>マウスカーソルを表示しない</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> q</TD>
+            <TD align="center" width="120">DECLL</TD>
+            <TD width="680">ステータスバーに (1234) の文字を表示する<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = [0]</TD>
+                  <TD width="100">すべてクリア</TD>
+                  <TD align="center">----</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 1</TD>
+                  <TD width="100">1を表示</TD>
+                  <TD align="center">1---</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 2</TD>
+                  <TD width="100">2を表示</TD>
+                  <TD align="center">-2--</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 3</TD>
+                  <TD width="100">3を表示</TD>
+                  <TD align="center">--3-</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 4</TD>
+                  <TD width="100">4を表示</TD>
+                  <TD align="center">---4</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">Pn</FONT></I> SP q</TD>
+            <TD align="center" width="120">DECSCUSR</TD>
+            <TD width="680">
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = [0],1</TD>
+                  <TD align="center">□</TD>
+                  <TD>ブロックカーソル</TD>
+                  <TD>点滅</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 2</TD>
+                  <TD align="center">□</TD>
+                  <TD>ブロックカーソル</TD>
+                  <TD></TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 3</TD>
+                  <TD align="center">_</TD>
+                  <TD>アンダーラインカーソル</TD>
+                  <TD>点滅</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Pn</FONT></I> = 4</TD>
+                  <TD align="center">_</TD>
+                  <TD>アンダーラインカーソル</TD>
+                  <TD></TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Pn</FONT></I> = 5</TD>
+                  <TD align="center">|</TD>
+                  <TD>縦ラインカーソル</TD>
+                  <TD>点滅</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Pn</FONT></I> = 6</TD>
+                  <TD align="center">|</TD>
+                  <TD>縦ラインカーソル</TD>
+                  <TD></TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD>CSI &lt;<I><FONT size="-1">Pn</FONT></I> ! q</TD>
+            <TD align="center">RLCURCOL *3</TD>
+            <TD>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> =</TD>
+                  <TD>デフォルト文字カーソルカラー</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 0-255</TD>
+                  <TD>文字カーソルをカラーパレット色に変更</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pr,Pg,Pb</FONT></I></TD>
+                  <TD>文字カーソルをRGBで変更</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">Pn</FONT></I> &quot; q</TD>
+            <TD align="center" width="120">DECSCA</TD>
+            <TD width="680"><A name="DECSCA"></A>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = [0]</TD>
+                  <TD>プロテクト無効</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 1</TD>
+                  <TD>プロテクト有効</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> , q</TD>
+            <TD align="center" width="120">DECTID</TD>
+            <TD width="680"><A name="DECTID"></A>ターミナルIDを<FONT size="-1"><I>Pn</I></FONT>[10]に設定</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">Pt</FONT></I> ; <I><FONT size="-1">Pb</FONT></I> r</TD>
+            <TD align="center" width="120">DECSTBM</TD>
+            <TD width="680"><A name="DECSTBM"></A>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD colspan="2">スクロール範囲を設定</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pt</FONT></I> = [1]</TD>
+                  <TD>スクロール開始行</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pb</FONT></I> = [<I><FONT size="-1">lines</FONT></I>]</TD>
+                  <TD>スクロール終了行</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">P..</FONT></I>. $ r</TD>
+            <TD align="center" width="120">DECCARA</TD>
+            <TD width="680">指定範囲の文字属性を変更<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD colspan="2">CSI <I><FONT size="-1">Pt</FONT></I> ; <I><FONT size="-1">Pl</FONT></I> ; <I><FONT size="-1">Pb</FONT></I> ; <I><FONT size="-1">Pr</FONT></I> ; <I><FONT size="-1">Pn..</FONT></I>. $ r</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pt</FONT></I> = [1]</TD>
+                  <TD>上行位置</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pl</FONT></I> = [1]</TD>
+                  <TD>左桁位置（<A href="#DECSACE">DECSACE</A>の影響を受ける）</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Pb</FONT></I> = [<I><FONT size="-1">lines</FONT></I>]</TD>
+                  <TD>下行位置</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Pr</FONT></I> = [<I><FONT size="-1">cols</FONT></I>]</TD>
+                  <TD>右桁位置（<A href="#DECSACE">DECSACE</A>の影響を受ける）</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Pn...</FONT></I> = [0]</TD>
+                  <TD>文字属性（<A href="#SGR">SGR</A>と同じ形式）</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI &lt; r</TD>
+            <TD align="center" width="120">TTIMERS *7</TD>
+            <TD width="680">CSI &lt; s で保存したIMEの状態を復帰</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI ? <FONT size="-1"><I>Pn</I></FONT> r</TD>
+            <TD align="center" width="120">XTREST *4</TD>
+            <TD width="680">拡張オプションの復元</TD>
+          </TR>
+          <TR>
+            <TD rowspan="2" width="120">CSI s</TD>
+            <TD align="center" width="120">SCOSC</TD>
+            <TD width="680"><A name="SCOSC"></A>カーソル位置を保存</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="120">DECSLRM *6</TD>
+            <TD width="680"><A name="DECSLRM"></A>左右マージン設定(<A href="#DECLRMM">DECLRMM</A>設定時)<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn1</FONT></I> = [1]</TD>
+                  <TD>左マージン位置</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn2</FONT></I> = [cols]</TD>
+                  <TD>右マージン位置</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI &lt; s</TD>
+            <TD align="center" width="120">TTIMESV *7</TD>
+            <TD width="680">現在のIME状態を保存</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI ? <FONT size="-1"><I>Pn</I></FONT> s</TD>
+            <TD align="center" width="120">XTSAVE *4</TD>
+            <TD width="680">拡張オプションの保存</TD>
+          </TR>
+          <TR>
+            <TD rowspan="2" width="120">CSI <FONT size="-1"><I>Pn ; P1 ; P2</I></FONT> t</TD>
+            <TD align="center" width="120">XTWOP *4</TD>
+            <TD width="680"><A name="XTWOP"></A><A href="./#TERMOPT">ターミナルのオプション設定</A>の461の設定で動作が許可されます。<BR>
+            デフォルトでは、メインウィンドウの操作が出来ないようにしています。
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD valign="top"><I><FONT size="-1">Pn</FONT></I> = 1</TD>
+                  <TD>メインウィンドウをノーマル表示</TD>
+                </TR>
+                <TR>
+                  <TD valign="top"><I><FONT size="-1">Pn</FONT></I> = 2</TD>
+                  <TD>メインウィンドウをアイコン表示</TD>
+                </TR>
+                <TR>
+                  <TD valign="top"><I><FONT size="-1">Pn</FONT></I> = 3</TD>
+                  <TD>メインウィンドウの表示位置を設定<BR>
+                  <TABLE>
+                    <TBODY>
+                      <TR>
+                        <TD width="60"><FONT size="-1"><I>P1</I></FONT> = x</TD>
+                        <TD width="100">横の位置</TD>
+                        <TD>pixel</TD>
+                      </TR>
+                      <TR>
+                        <TD><FONT size="-1"><I>P2</I></FONT> = y</TD>
+                        <TD>縦の位置</TD>
+                        <TD>pixel</TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  </TD>
+                </TR>
+                <TR>
+                  <TD valign="top"><I><FONT size="-1">Pn</FONT></I> = 4</TD>
+                  <TD>メインウィンドウのサイズを設定<BR>
+                  <TABLE>
+                    <TBODY>
+                      <TR>
+                        <TD width="60"><FONT size="-1"><I>P1</I></FONT> = h</TD>
+                        <TD width="100">縦のサイズ</TD>
+                        <TD>pixel</TD>
+                      </TR>
+                      <TR>
+                        <TD><FONT size="-1"><I>P2</I></FONT> = w</TD>
+                        <TD>横のサイズ</TD>
+                        <TD>pixel</TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  </TD>
+                </TR>
+                <TR>
+                  <TD valign="top"><I><FONT size="-1">Pn</FONT></I> = 5</TD>
+                  <TD>メインウィンドウを前面に移動</TD>
+                </TR>
+                <TR>
+                  <TD valign="top"><I><FONT size="-1">Pn</FONT></I> = 6</TD>
+                  <TD>メインウィンドウを背面に移動</TD>
+                </TR>
+                <TR>
+                  <TD valign="top"><I><FONT size="-1">Pn</FONT></I> = 7</TD>
+                  <TD>メインウィンドウを再表示</TD>
+                </TR>
+                <TR>
+                  <TD width="90" valign="top"><I><FONT size="-1">Pn</FONT></I> = 8</TD>
+                  <TD>スクリーンサイズを変更<BR>
+                  <TABLE>
+                    <TBODY>
+                      <TR>
+                        <TD width="60"><FONT size="-1"><I>P1</I></FONT> = h</TD>
+                        <TD width="100">行数</TD>
+                        <TD>文字単位</TD>
+                      </TR>
+                      <TR>
+                        <TD><FONT size="-1"><I>P2</I></FONT> = w</TD>
+                        <TD>文字数</TD>
+                        <TD>文字単位</TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  </TD>
+                </TR>
+                <TR>
+                  <TD valign="top"><I><FONT size="-1">Pn</FONT></I> = 9</TD>
+                  <TD>メインウィンドウを最大化(P1=1)</TD>
+                </TR>
+                <TR>
+                  <TD width="90" valign="top"><I><FONT size="-1">Pn</FONT></I> = 11</TD>
+                  <TD>CSI <FONT size="-1"><I>Pn</I></FONT> t でメインウィンドウの状態を返す<BR>
+                  <TABLE>
+                    <TBODY>
+                      <TR>
+                        <TD width="60"><FONT size="-1"><I>Pｎ</I></FONT> = 1</TD>
+                        <TD width="100">ノーマル表示</TD>
+                      </TR>
+                      <TR>
+                        <TD><FONT size="-1"><I>Pn</I></FONT> = 2</TD>
+                        <TD>アイコン表示</TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  </TD>
+                </TR>
+                <TR>
+                  <TD width="90" valign="top"><I><FONT size="-1">Pn</FONT></I> = 13</TD>
+                  <TD>CSI 3<I><FONT size="-1"> ; P1 ; P2</FONT></I> t でメインウィンドウの位置を返す<BR>
+                  <TABLE>
+                    <TBODY>
+                      <TR>
+                        <TD width="60"><FONT size="-1"><I>P1</I></FONT> = x</TD>
+                        <TD width="100">横の位置</TD>
+                        <TD>pixel</TD>
+                      </TR>
+                      <TR>
+                        <TD><FONT size="-1"><I>P2</I></FONT> = y</TD>
+                        <TD>縦の位置</TD>
+                        <TD>pixel</TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  </TD>
+                </TR>
+                <TR>
+                  <TD width="90" valign="top"><I><FONT size="-1">Pn</FONT></I> = 14</TD>
+                  <TD>CSI 4 ; <I><FONT size="-1">P1l</FONT></I> ; <I><FONT size="-1">P2</FONT></I> t でメインウィンドウのサイズを返す<BR>
+                  <TABLE>
+                    <TBODY>
+                      <TR>
+                        <TD width="60"><FONT size="-1"><I>P1</I></FONT> = h</TD>
+                        <TD width="100">縦のサイズ</TD>
+                        <TD>pixel</TD>
+                      </TR>
+                      <TR>
+                        <TD><FONT size="-1"><I>P2</I></FONT> = w</TD>
+                        <TD>横のサイズ</TD>
+                        <TD>pixel</TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  </TD>
+                </TR>
+                <TR>
+                  <TD valign="top"><I><FONT size="-1">Pn</FONT></I> = 18</TD>
+                  <TD>CSI 8 ; <I><FONT size="-1">P1</FONT></I> ; <I><FONT size="-1">P2</FONT></I> t でスクリーンサイズを返す<BR>
+                  <TABLE>
+                    <TBODY>
+                      <TR>
+                        <TD width="60"><FONT size="-1"><I>P1</I></FONT> = h</TD>
+                        <TD width="100">行数</TD>
+                        <TD>文字単位</TD>
+                      </TR>
+                      <TR>
+                        <TD><FONT size="-1"><I>P2</I></FONT> = w</TD>
+                        <TD>文字数</TD>
+                        <TD>文字単位</TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  </TD>
+                </TR>
+                <TR>
+                  <TD valign="top"><I><FONT size="-1">Pn</FONT></I> = 19</TD>
+                  <TD>CSI 9 ; <I><FONT size="-1">P1</FONT></I> ; <I><FONT size="-1">P2</FONT></I> t でルートウィンドウのサイズを返す<BR>
+                  <TABLE>
+                    <TBODY>
+                      <TR>
+                        <TD width="60"><FONT size="-1"><I>P1</I></FONT> = h</TD>
+                        <TD width="100">行数</TD>
+                        <TD>文字単位</TD>
+                      </TR>
+                      <TR>
+                        <TD><FONT size="-1"><I>P2</I></FONT> = w</TD>
+                        <TD>文字数</TD>
+                        <TD>文字単位</TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  </TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Pn</FONT></I> = 20</TD>
+                  <TD>DCS L <I><FONT size="-1">Title</FONT></I> ST でウィンドウタイトルを返す</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Pn</FONT></I> = 21</TD>
+                  <TD>DCS l <I><FONT size="-1">Title</FONT></I> ST でウィンドウタイトルを返す</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Pn</FONT></I> = 22</TD>
+                  <TD>ウィンドウタイトルをスタックに保存</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Pn</FONT></I> = 23</TD>
+                  <TD>ウィンドウタイトルをスタックから復帰</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Pn</FONT></I> = 24以上</TD>
+                  <TD>DECSLPPを実行</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD align="center" width="120">DECSLPP *6</TD>
+            <TD width="680"><I><FONT size="-1">Pn</FONT></I> = [<I><FONT size="-1">lines</FONT></I>] 表示行数の変更</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">P..</FONT></I>. $ t</TD>
+            <TD align="center" width="120">DECRARA</TD>
+            <TD width="680">指定範囲の文字属性を反転<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD colspan="2">CSI <I><FONT size="-1">Pt</FONT></I> ; <I><FONT size="-1">Pl</FONT></I> ; <I><FONT size="-1">Pb</FONT></I> ; <I><FONT size="-1">Pr</FONT></I> ; <I><FONT size="-1">Psn..</FONT></I>. $ t</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pt</FONT></I> = [1]</TD>
+                  <TD>上行位置</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pl</FONT></I> = [1]</TD>
+                  <TD>左桁位置（<A href="#DECSACE">DECSACE</A>の影響を受ける）</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Pb</FONT></I> = [<I><FONT size="-1">lines</FONT></I>]</TD>
+                  <TD>下行位置</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Pr</FONT></I> = [<I><FONT size="-1">cols</FONT></I>]</TD>
+                  <TD>右桁位置（<A href="#DECSACE">DECSACE</A>の影響を受ける）</TD>
+                </TR>
+                <TR>
+                  <TD valign="top"><I><FONT size="-1">Pn...</FONT></I> = [0]</TD>
+                  <TD rowspan="2" valign="top">0 すべての属性を反転<BR>
+                  1 太文字/高輝度を反転<BR>
+                  2 低輝度を反転<BR>
+                  3 イタリックを反転<BR>
+                  4 下線を反転<BR>
+                  5 低速点滅を反転<BR>
+                  6 高速点滅を反転<BR>
+                  7 反転表示を反転<BR>
+                  8 シークレットを反転<BR>
+                  9 打ち消し線を反転</TD>
+                </TR>
+                <TR>
+                  <TD></TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI &lt; <FONT size="-1"><I>Pn</I></FONT> t</TD>
+            <TD align="center" width="120">TTIMEST *7</TD>
+            <TD width="680">
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = [0]</TD>
+                  <TD>IMEクロース</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 1</TD>
+                  <TD>IMEオープン</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD>CSI &gt; <FONT size="-1"><I>Pn</I></FONT> t</TD>
+            <TD align="center">XTSMTT *4</TD>
+            <TD><A name="XTSMTT"></A>ウィンドウタイトル形式の設定する<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><FONT size="-1"><I>Pn</I></FONT> = 0</TD>
+                  <TD><A href="#OSC">OSC</A>のタイトル設定を16進数デコードする</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><FONT size="-1"><I>Pn</I></FONT> = 1</TD>
+                  <TD><A href="#XTWOP">XTWOP</A>でタイトルを16進数エンコードする</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><FONT size="-1"><I>Pn</I></FONT> = 2</TD>
+                  <TD><A href="#OSC">OSC</A>のタイトル設定をUTF-8文字列で扱う</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><FONT size="-1"><I>Pn</I></FONT> = 3</TD>
+                  <TD><A href="#XTWOP">XTWOP</A>でタイトルをUTF-8文字列で返す</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD rowspan="2" width="120">CSI <I><FONT size="-1">Pn </FONT></I>u</TD>
+            <TD align="center" width="120">SCORC</TD>
+            <TD width="680"><A href="#SCOSC">SCOSC</A>で保存されたカーソル位置に復帰</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="120">DECSHTS *6</TD>
+            <TD width="680"><I><FONT size="-1">Pn</FONT></I>[1]で設定した位置に横タブを設定</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">Pn</FONT></I> $ u</TD>
+            <TD align="center" width="120">DECRQTSR</TD>
+            <TD width="680"><A name="DECCTR"></A>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 1</TD>
+                  <TD>DECTSR(DCS 0 $ s ST)を返す</TD>
+                </TR>
+                <TR>
+                  <TD width="90" valign="top"><I><FONT size="-1">Pn</FONT></I> = 2</TD>
+                  <TD>すべてのフォントカラー情報を<BR>
+                  DECCTR(DCS 2 $ s <I><FONT size="-1">Ps...</FONT></I> ST)で返す</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI &amp; u</TD>
+            <TD align="center" width="120">DECRQUPSS</TD>
+            <TD width="680">DCS 1 ! u A ST を返す</TD>
+          </TR>
+          <TR>
+            <TD rowspan="2" width="120">CSI <FONT size="-1"><I>Pn</I></FONT> v</TD>
+            <TD align="center" width="120">RLSCD *3</TD>
+            <TD width="680">
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = [0]</TD>
+                  <TD>カーソルを表示</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 1</TD>
+                  <TD>カーソルを非表示</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD align="center" width="120">DECSVTS *6</TD>
+            <TD width="680"><I><FONT size="-1">Pn</FONT></I>[1]で設定した位置に縦タブを設定</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">Pn</FONT></I> &quot; v</TD>
+            <TD align="center" width="120">DECRQDE</TD>
+            <TD width="680">CSI <I><FONT size="-1">Ph</FONT></I> ; <I><FONT size="-1">Pw</FONT></I> ; <I><FONT size="-1">Pml</FONT></I> ; <I><FONT size="-1">Pmt</FONT></I> ; <I><FONT size="-1">Pmp</FONT></I> &quot; w　を返す<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Ph</FONT></I></TD>
+                  <TD>画面行数</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pw</FONT></I></TD>
+                  <TD>画面桁数</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pml</FONT></I></TD>
+                  <TD>左マージン</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pmt</FONT></I></TD>
+                  <TD>上マージン</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pmp</FONT></I></TD>
+                  <TD>現在ページ番号</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">P...</FONT></I> $ v</TD>
+            <TD align="center" width="120">DECCRA</TD>
+            <TD width="680">指定範囲の文字をコピー<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD colspan="2">CSI <I><FONT size="-1">Pts ; Pls ; Pbs ; Prs ; Pps ; Ptd ; Pld ; Ppd</FONT></I> $ v</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pts</FONT></I> = [1]</TD>
+                  <TD width="200">ソース上行位置</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pls</FONT></I> = [1]</TD>
+                  <TD>ソース左桁位置</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pbs</FONT></I> = [<I><FONT size="-1">lines</FONT></I>]</TD>
+                  <TD>ソース下行位置</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Prs</FONT></I> = [<I><FONT size="-1">cols</FONT></I>]</TD>
+                  <TD>ソース右桁位置</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pps</FONT></I> = [<I><FONT size="-1">page</FONT></I>]</TD>
+                  <TD>ソースページ番号</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Ptd</FONT></I> = [1]</TD>
+                  <TD>コピー先上行位置</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pld</FONT></I> = [1]</TD>
+                  <TD>コピー先左桁位置</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Ppd</FONT></I> = [<I><FONT size="-1">page</FONT></I>]</TD>
+                  <TD>コピー先ページ番号</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">Pn</FONT></I> $ w</TD>
+            <TD align="center" width="120">DECRQPSR</TD>
+            <TD width="680"><A name="DECRQPSR"></A>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 1</TD>
+                  <TD>カーソル位置情報や文字バンク情報を<BR>
+                  DECCIR (DCS 1 $ u ... ST)で返す</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 2</TD>
+                  <TD>すべての横タブ位置情報を<BR>
+                  DECTABSR (DCS 2 $ u ... ST)で返す</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">P..</FONT></I>. ' w</TD>
+            <TD align="center" width="120">DECEFR</TD>
+            <TD width="680">マウス・ロケーターの選択矩形域を指定<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD colspan="2">CSI <I><FONT size="-1">Pt</FONT></I> ; <I><FONT size="-1">Pl</FONT></I> ; <I><FONT size="-1">Pb</FONT></I> ; <I><FONT size="-1">Pr</FONT></I> ' w</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pt</FONT></I> = [1]</TD>
+                  <TD>上行位置</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pl</FONT></I> = [1]</TD>
+                  <TD>左桁位置</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pb</FONT></I> = [<I><FONT size="-1">lines</FONT></I>]</TD>
+                  <TD>下行位置</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pr</FONT></I> = [<I><FONT size="-1">cols</FONT></I>]</TD>
+                  <TD>右桁位置</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">Pn</FONT></I> x</TD>
+            <TD align="center" width="120">DECREQTPARM</TD>
+            <TD width="680">CSI 2;1;1;112;112;1;0 x を返す</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">P...</FONT></I> $ x</TD>
+            <TD align="center" width="120">DECFRA</TD>
+            <TD width="680">指定範囲を指定の文字で埋める<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD colspan="2">CSI <I><FONT size="-1">Pc</FONT></I> ; <I><FONT size="-1">Pt</FONT></I> ; <I><FONT size="-1">Pl</FONT></I> ; <I><FONT size="-1">Pb</FONT></I> ; <I><FONT size="-1">Pr</FONT></I> $ x</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pc</FONT></I> = [0]</TD>
+                  <TD>文字コード番号</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pt</FONT></I> = [1]</TD>
+                  <TD>上行位置</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pl</FONT></I> = [1]</TD>
+                  <TD>左桁位置</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pb</FONT></I> = [<I><FONT size="-1">lines</FONT></I>]</TD>
+                  <TD>下行位置</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pr</FONT></I> = [<I><FONT size="-1">cols</FONT></I>]</TD>
+                  <TD>右桁位置</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> * x</TD>
+            <TD align="center" width="120">DECSACE</TD>
+            <TD width="680"><A name="DECSACE"></A>DECCARA,DECRARAの横範囲方法を設定<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = [1]</TD>
+                  <TD>全桁の範囲を選択（デフォルト）</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 2</TD>
+                  <TD><I><FONT size="-1">Pl, Pr</FONT></I>パラメータで横範囲を指定</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD>CSI + x</TD>
+            <TD align="center">DECPQPLFM</TD>
+            <TD width="680">プログラムキーフリーエリアとして(DECPKFMR) CSI 768 ; 768 + y を返す</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">Pn</FONT></I> y</TD>
+            <TD align="center" width="120">DECTST</TD>
+            <TD width="680">テスト(全画面消去してカーソルを左上原点に移動)</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">P...</FONT></I> * y</TD>
+            <TD align="center" width="120">DECRQCRA</TD>
+            <TD width="680">指定範囲のチェックサムを返す(DECCKSR) DCS <I><FONT size="-1">Pn</FONT></I> ! ~ <I><FONT size="-1">Ps</FONT></I> ST<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD colspan="2">CSI <I><FONT size="-1">Pn</FONT></I> ; <I><FONT size="-1">Pp</FONT></I> ; <I><FONT size="-1">Pt</FONT></I> ; <I><FONT size="-1">Pl</FONT></I> ; <I><FONT size="-1">Pb</FONT></I> ; <I><FONT size="-1">Pr</FONT></I> * y</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = [0]</TD>
+                  <TD width="200">リクエスト番号</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pp</FONT></I> = [<I><FONT size="-1">page</FONT></I>]</TD>
+                  <TD>ページ番号</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pt</FONT></I> = [1]</TD>
+                  <TD>上行位置</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pl</FONT></I> = [1]</TD>
+                  <TD>左桁位置</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pb</FONT></I> = [<I><FONT size="-1">lines</FONT></I>]</TD>
+                  <TD>下行位置</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pr</FONT></I> = [<I><FONT size="-1">cols</FONT></I>]</TD>
+                  <TD>右桁位置</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">P...</FONT></I> $ z</TD>
+            <TD align="center" width="120">DECERA</TD>
+            <TD width="680">指定範囲の消去<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD colspan="2">CSI <I><FONT size="-1">Pt</FONT></I> ; <I><FONT size="-1">Pl</FONT></I> ; <I><FONT size="-1">Pb</FONT></I> ; <I><FONT size="-1">Pr</FONT></I> $ z</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pt</FONT></I> = [1]</TD>
+                  <TD>上行位置</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pl</FONT></I> = [1]</TD>
+                  <TD>左桁位置</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pb</FONT></I> = [<I><FONT size="-1">lines</FONT></I>]</TD>
+                  <TD>下行位置</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pr</FONT></I> = [<I><FONT size="-1">cols</FONT></I>]</TD>
+                  <TD>右桁位置</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">Pn</FONT></I> ; <I><FONT size="-1">Ps</FONT></I> ' z</TD>
+            <TD align="center" width="120">DECELR</TD>
+            <TD width="680">
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = [0]</TD>
+                  <TD>マウス・ロケーターを無効</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 1</TD>
+                  <TD>マウス・ロケーターを有効</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 2</TD>
+                  <TD>マウス・ロケーターを有効（ワンショットモード）</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Ps</FONT></I> = 1</TD>
+                  <TD>ピクセルモードでマウス位置を報告</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Ps</FONT></I> = [2]</TD>
+                  <TD>文字モード（桁行）でマウス位置を報告</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> * z</TD>
+            <TD align="center" width="120">DECINVM</TD>
+            <TD width="680"><A name="DECINVM"></A><A href="#DECDMAC">DECDMAC</A>で設定した<I><FONT size="-1">Pn</FONT></I>[0]番号のマクロを実行</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">P...</FONT></I> $ {</TD>
+            <TD align="center" width="120">DECSERA</TD>
+            <TD width="680">指定範囲の消去(<A href="#DECSCA">DECSCA</A>の影響を受ける)<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD colspan="2">CSI <I><FONT size="-1">Pt</FONT></I> ; <I><FONT size="-1">Pl</FONT></I> ; <I><FONT size="-1">Pb</FONT></I> ; <I><FONT size="-1">Pr</FONT></I> $ {</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pt</FONT></I> = [1]</TD>
+                  <TD>上行位置</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pl</FONT></I> = [1]</TD>
+                  <TD>左桁位置</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pb</FONT></I> = [<I><FONT size="-1">lines</FONT></I>]</TD>
+                  <TD>下行位置</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pr</FONT></I> = [<I><FONT size="-1">cols</FONT></I>]</TD>
+                  <TD>右桁位置</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">Pn</FONT></I> ' {</TD>
+            <TD align="center" width="120">DECSLE</TD>
+            <TD width="680">
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = [0]</TD>
+                  <TD>マウス・ロケーター・イベント無効</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 1</TD>
+                  <TD>マウス・ボタン・ダウンでイベント有効</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Pn</FONT></I> = 2</TD>
+                  <TD>マウス・ボタン・ダウンでイベント無効</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Pn</FONT></I> = 3</TD>
+                  <TD>マウス・ボタン・アップでイベント有効</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Pn</FONT></I> = 4</TD>
+                  <TD>マウス・ボタン・アップでイベント無効</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> ) {</TD>
+            <TD align="center" width="120">DECSTGLT</TD>
+            <TD width="680">
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = [0]</TD>
+                  <TD>文字色をモノクロモードに設定</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 1,2,3</TD>
+                  <TD>文字色をカラーモード（初期状態）に戻す</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">Pn</FONT></I> $ |</TD>
+            <TD align="center" width="120">DECSCPP</TD>
+            <TD width="680">フォントサイズ固定の場合は、<I><FONT size="-1">Pn</FONT></I>[<I><FONT size="-1">cols</FONT></I>]で画面を初期化<BR>
+            桁数固定の場合は、<I><FONT size="-1">Pn</FONT></I>[0] &gt; 80で<A href="#DECCOLM">DECCOLM</A>(132桁)オプションをセット</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI ' |</TD>
+            <TD align="center" width="120">DECRQLP</TD>
+            <TD width="680">マウス・ロケーターの位置を返します(DECLRP)<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD colspan="2">CSI <I><FONT size="-1">Pe ; Pb ; Pr ; Pc ; Pp</FONT></I> &amp; w</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pe</FONT></I></TD>
+                  <TD>0 イベントなし<BR>
+                  1 DECRQLP応答<BR>
+                  2 左ボタン・ダウン<BR>
+                  3 左ボタン・アップ<BR>
+                  6 右ボタン・ダウン<BR>
+                  7 右ボタン・アップ<BR>
+                  10 選択矩形範囲外</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pb</FONT></I></TD>
+                  <TD>Bit 0(1) 左ボタン・ダウン<BR>
+                  Bit 2(4) 右ボタン・ダウン</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pr</FONT></I></TD>
+                  <TD>行（y)位置</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pc</FONT></I></TD>
+                  <TD>桁（x)位置</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Pp</FONT></I></TD>
+                  <TD>常に0</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">Pn</FONT></I> $ }</TD>
+            <TD align="center" width="120">DECSASD</TD>
+            <TD width="680">
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = [0]</TD>
+                  <TD>通常動作</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 1</TD>
+                  <TD>以降の文字をステータスバーに表示</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">Pn</FONT></I> ' }</TD>
+            <TD align="center" width="120">DECIC</TD>
+            <TD width="680"><I><FONT size="-1">Pn</FONT></I>[1]個の空白文字の挿入（その行のみライトスクロール）</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>P...</I></FONT> , }</TD>
+            <TD align="center" width="120">DECATC</TD>
+            <TD width="680">文字属性を変更<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD colspan="2">CSI <I><FONT size="-1">Pa</FONT></I> ; <I><FONT size="-1">Pc</FONT></I> ; <I><FONT size="-1">Pb</FONT></I> , }</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pa</FONT></I> = [0]</TD>
+                  <TD>文字属性の設定</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pf</FONT></I> = [7]</TD>
+                  <TD>文字色の設定</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pb</FONT></I> = [0]</TD>
+                  <TD>背景色の設定</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">Pn</FONT></I> SP ~</TD>
+            <TD align="center" width="120">DECTME</TD>
+            <TD width="680">
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = [0]</TD>
+                  <TD>通常モード</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 3</TD>
+                  <TD>VT52モードに移行</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">Pn</FONT></I> $ ~</TD>
+            <TD align="center" width="120">DECSSDT</TD>
+            <TD width="680">現在、DECRQSSにのみ応答</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> ' ~</TD>
+            <TD align="center" width="120">DECDC</TD>
+            <TD width="680"><I><FONT size="-1">Pn</FONT></I>[1]個の文字の削除（その行のみレフトスクロール）</TD>
+          </TR>
+          <TR>
+            <TD width="120">CSI <I><FONT size="-1">P...</FONT></I> , ~</TD>
+            <TD align="center" width="120">DECPS</TD>
+            <TD width="680">ピアノ音色のMIDIで音を再生<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD colspan="2">CSI <I><FONT size="-1">Pv</FONT></I> ; <I><FONT size="-1">Pd</FONT></I> ; <I><FONT size="-1">Pn</FONT></I> , ~</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pv</FONT></I> = [0]</TD>
+                  <TD>音量（0-7)</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pd</FONT></I> = [0]</TD>
+                  <TD>1/32秒</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = [0]</TD>
+                  <TD>1 = C3, 2 = C#3, 3 = D3</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="OSC"></A><B>2.6.4 OSC 一覧</B></P>
+      <HR size="1">
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX">
+        <TBODY>
+          <TR>
+            <TD width="120">OSC <FONT size="-1"><I>Pn </I></FONT>; <I><FONT size="-1">P...</FONT></I> BEL</TD>
+            <TD width="120" align="center">*4</TD>
+            <TD width="680">
+            <DL>
+              <DT>OSC 0/1/2 ; <I><FONT size="-1">Title</FONT></I> BEL
+              <DD>ウィンドウタイトルを<I><FONT size="-1">Title</FONT></I>に変更
+              <DD><I>Title</I>は<A href="#XTSMTT">XTSMTT</A>/<A href="#XTRMTT">XTRMTT</A>の影響を受けます
+              <DT>OSC 4 ; <I><FONT size="-1">Pc</FONT></I> ; <I><FONT size="-1">spec</FONT></I> BEL
+              <DD><I><FONT size="-1">Pc</FONT></I>番のカラーパレットを以下の<I><FONT size="-1">spec</FONT></I>で設定
+              <DD>
+              <TABLE cellpadding="1">
+                <TBODY>
+                  <TR>
+                    <TD width="90">#<I><FONT size="-1">rrggbb</FONT></I></TD>
+                    <TD>16進数で色を指定</TD>
+                  </TR>
+                  <TR>
+                    <TD width="90">rgb:<I><FONT size="-1">rr/gg/bb</FONT></I></TD>
+                    <TD>16進数で色を指定</TD>
+                  </TR>
+                  <TR>
+                    <TD>rgbi:<I>r/g/b</I></TD>
+                    <TD>0.0から1.0の数値で指定</TD>
+                  </TR>
+                  <TR>
+                    <TD width="90">reset</TD>
+                    <TD>デフォルトに戻す</TD>
+                  </TR>
+                  <TR>
+                    <TD width="90">?</TD>
+                    <TD>OSC 4 ; <I><FONT size="-1">Pc</FONT></I> ; rgb:<I><FONT size="-1">rrrr/gggg/bbbb</FONT></I> BEL で現在の値を返す</TD>
+                  </TR>
+                </TBODY>
+              </TABLE>
+              <DT>OSC 5 ; <I><FONT size="-1">Pn</FONT></I> ; <I><FONT size="-1">spec</FONT></I> BEL
+              <DD>リポートの場合は現在の文字色を返す
+              <DT>OSC 10/12/13/15/18/19 ; <I><FONT size="-1">spec</FONT></I> BEL
+              <DD>リポートの場合は現在の文字色を返す
+              <DD>10の設定の場合は、文字色を近似色に設定する
+              <DT>OSC 11/14/16/17 ; <I><FONT size="-1">spec</FONT></I> BEL
+              <DD>リポートの場合は現在の背景色を返す
+              <DD>11の設定の場合は、背景色を近似色に設定する
+              <DT>OSC 52 ; <I><FONT size="-1">Pn</FONT></I> ; <I><FONT size="-1">spec</FONT></I> BEL
+              <DD>クリップボードのテキスト内容を操作
+              <TABLE cellpadding="1">
+                <TBODY>
+                  <TR>
+                    <TD width="90"><I><FONT size="-1">Base64</FONT></I></TD>
+                    <TD>Base64でエンコードされた文字列をクリップボードにコピー</TD>
+                  </TR>
+                  <TR>
+                    <TD width="90">?</TD>
+                    <TD>OSC 52 ; <I><FONT size="-1">Pn</FONT></I> ; <I><FONT size="-1">Base64</FONT></I> BEL で現在のクリップボードの内容を返す</TD>
+                  </TR>
+                </TBODY>
+              </TABLE>
+              <DT>OSC 104 ; <I><FONT size="-1">Pc</FONT></I> BEL
+              <DD><I><FONT size="-1">Pc</FONT></I>番のカラーパレットをデフォルトに戻す
+              <DT>OSC 105 ; <I><FONT size="-1">Pn</FONT></I> BEL
+              <DD>目に見える動作は無い
+              <DT>OSC 110/112/113/115/118/119 BEL
+              <DD>110の設定の場合は、文字色をデフォルトに設定する
+              <DT>OSC 111/114/116/117 BEL
+              <DD>111の設定の場合は、背景色をデフォルトに設定する
+            </DL>
+            </TD>
+          </TR>
+          <TR>
+            <TD>OSC 1337 ; BEL</TD>
+            <TD align="center">*9</TD>
+            <TD>
+            <DL>
+              <DT>OSC 1337 ; <FONT size="-1">File=name=[base64];size=nn;width=[auto];height=[auto];preserveAspectRatio=[1];inline=[0]:[base64]</FONT> BEL
+              <DD>
+              <TABLE cellpadding="2">
+                <TBODY>
+                  <TR>
+                    <TD valign="top">name</TD>
+                    <TD>base64</TD>
+                    <TD>ファイル名をbase64でエンコード</TD>
+                  </TR>
+                  <TR>
+                    <TD valign="top">size</TD>
+                    <TD>N</TD>
+                    <TD>ファイルサイズ</TD>
+                  </TR>
+                  <TR>
+                    <TD rowspan="4" valign="top">width</TD>
+                    <TD>auto</TD>
+                    <TD>表示サイズを画像サイズから計算</TD>
+                  </TR>
+                  <TR>
+                    <TD>N</TD>
+                    <TD>表示サイズを文字単位で指定</TD>
+                  </TR>
+                  <TR>
+                    <TD>Npx</TD>
+                    <TD>表示サイズをピクセルで指定</TD>
+                  </TR>
+                  <TR>
+                    <TD>N%</TD>
+                    <TD>表示サイズを画面桁数の割合で指定</TD>
+                  </TR>
+                  <TR>
+                    <TD rowspan="4" valign="top">height</TD>
+                    <TD>auto</TD>
+                    <TD>表示サイズを画像サイズから計算</TD>
+                  </TR>
+                  <TR>
+                    <TD>N</TD>
+                    <TD>表示サイズを文字単位で指定</TD>
+                  </TR>
+                  <TR>
+                    <TD>Npx</TD>
+                    <TD>表示サイズをピクセルで指定</TD>
+                  </TR>
+                  <TR>
+                    <TD>N%</TD>
+                    <TD>表示サイズを画面行数の割合で指定</TD>
+                  </TR>
+                  <TR>
+                    <TD valign="top" rowspan="2">preserveAspectRatio</TD>
+                    <TD>0</TD>
+                    <TD>縦横の比率を無視して拡大縮小</TD>
+                  </TR>
+                  <TR>
+                    <TD>1</TD>
+                    <TD>縦横の比率を維持して拡大縮小</TD>
+                  </TR>
+                  <TR>
+                    <TD rowspan="2" valign="top">inline</TD>
+                    <TD>0</TD>
+                    <TD>ファイルに保存</TD>
+                  </TR>
+                  <TR>
+                    <TD>1</TD>
+                    <TD>対応画像(gif/png/jpg/bmp)なら画面に表示</TD>
+                  </TR>
+                  <TR>
+                    <TD valign="top"></TD>
+                    <TD>base64</TD>
+                    <TD>画像データなどをbase64でエンコード</TD>
+                  </TR>
+                </TBODY>
+              </TABLE>
+            </DL>
+            </TD>
+          </TR>
+          <TR>
+            <TD>OSC 800 ; <I><FONT size="-1">Pc</FONT></I> BEL</TD>
+            <TD align="center">*3</TD>
+            <TD>
+            <DL>
+              <DT>OSC 800 ; <I><FONT size="-1">Pc</FONT></I> BEL
+              <DD>漢字コードを変更・参照する
+              <TABLE cellpadding="1">
+                <TBODY>
+                  <TR>
+                    <TD width="80"><I><FONT size="-1">Pc</FONT></I> = 0</TD>
+                    <TD>EUC</TD>
+                  </TR>
+                  <TR>
+                    <TD width="80"><I><FONT size="-1">Pc</FONT></I> = 1</TD>
+                    <TD>SJIS</TD>
+                  </TR>
+                  <TR>
+                    <TD width="80"><I><FONT size="-1">Pc</FONT></I> = 2</TD>
+                    <TD>ASCII</TD>
+                  </TR>
+                  <TR>
+                    <TD width="80"><I><FONT size="-1">Pc</FONT></I> = 3</TD>
+                    <TD>UTF-8</TD>
+                  </TR>
+                  <TR>
+                    <TD width="80"><I><FONT size="-1">Pc</FONT></I> = ?</TD>
+                    <TD>OSC<I><FONT size="-1"> 800</FONT></I> ; <FONT size="-1"><I>Pc</I></FONT> BEL で現在の漢字コードを返す</TD>
+                  </TR>
+                </TBODY>
+              </TABLE>
+            </DL>
+            </TD>
+          </TR>
+          <TR>
+            <TD>OSC 801 ; <I><FONT size="-1">p...</FONT></I> BEL</TD>
+            <TD align="center">*3</TD>
+            <TD>
+            <DL>
+              <DT>OSC 801 ; <I><FONT size="-1">Str</FONT></I> BEL
+              <DD>音声合成で文字列を発音する
+              <DD><I>Str</I>は<A href="#XTSMTT">XTSMTT</A>/<A href="#XTRMTT">XTRMTT</A>の影響を受けます
+            </DL>
+            </TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="DCS"></A><B>2.6.5 DCS 一覧</B></P>
+      <HR size="1">
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX">
+        <TBODY>
+          <TR>
+            <TD width="120">DCS <FONT size="-1"><I>Pn</I></FONT> | <I><FONT size="-1">P...</FONT></I> ST</TD>
+            <TD align="center" width="120">DECUDK</TD>
+            <TD width="680">ファンクションキーに文字列を設定
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD colspan="2">DCS <I><FONT size="-1">Pn</FONT></I> | <I><FONT size="-1">Pk</FONT></I> / <I><FONT size="-1">Base16</FONT></I> ; ... ST</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><FONT size="-1"><I>Pn</I></FONT> = [0]</TD>
+                  <TD>すべてのファンクションキー定義をクリア</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><FONT size="-1"><I>Pn</I></FONT> = 1</TD>
+                  <TD>指定したファンクションキー定義のみ置き換え</TD>
+                </TR>
+                <TR>
+                  <TD valign="top"><I><FONT size="-1">Pk</FONT></I></TD>
+                  <TD>
+                  <TABLE cellpadding="1">
+                    <TBODY>
+                      <TR>
+                        <TD width="40" align="center">11</TD>
+                        <TD align="center">=</TD>
+                        <TD width="40" align="center">F1</TD>
+                        <TD width="40" align="center">12</TD>
+                        <TD align="center">=</TD>
+                        <TD width="40" align="center">F2</TD>
+                        <TD width="40" align="center">13</TD>
+                        <TD align="center">=</TD>
+                        <TD width="40" align="center">F3</TD>
+                        <TD width="40" align="center">14</TD>
+                        <TD align="center">=</TD>
+                        <TD width="40" align="center">F4</TD>
+                      </TR>
+                      <TR>
+                        <TD width="40" align="center">15</TD>
+                        <TD align="center">=</TD>
+                        <TD width="40" align="center">F5</TD>
+                        <TD width="40" align="center">17</TD>
+                        <TD align="center">=</TD>
+                        <TD width="40" align="center">F6</TD>
+                        <TD width="40" align="center">18</TD>
+                        <TD align="center">=</TD>
+                        <TD width="40" align="center">F7</TD>
+                        <TD width="40" align="center">19</TD>
+                        <TD align="center">=</TD>
+                        <TD width="40" align="center">F8</TD>
+                      </TR>
+                      <TR>
+                        <TD width="40" align="center">20</TD>
+                        <TD align="center">=</TD>
+                        <TD width="40" align="center">F9</TD>
+                        <TD width="40" align="center">21</TD>
+                        <TD align="center">=</TD>
+                        <TD width="40" align="center">F10</TD>
+                        <TD width="40" align="center">22</TD>
+                        <TD align="center">=</TD>
+                        <TD width="40" align="center">F11</TD>
+                        <TD width="40" align="center">23</TD>
+                        <TD align="center">=</TD>
+                        <TD width="40" align="center">F12</TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  </TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Base16</FONT></I></TD>
+                  <TD>16進数化した文字列</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">DCS <FONT size="-1"><I>Pn</I></FONT> p <I><FONT size="-1">P...</FONT></I> ST</TD>
+            <TD align="center" width="120">DECREGIS</TD>
+            <TD width="680">ReGISグラフィックウィンドウを開く<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><FONT size="-1"><I>Pn</I></FONT> = [0]</TD>
+                  <TD>すでにReGISウィンドウを開いていれば追加で描画</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><FONT size="-1"><I>Pn</I></FONT> = 1</TD>
+                  <TD>常に新しいReGISウィンドウを開いて描画</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">DCS <FONT size="-1"><I>Pn </I></FONT>q <I><FONT size="-1">P...</FONT></I> ST</TD>
+            <TD align="center" width="120">DECSIXEL</TD>
+            <TD width="680">Sixelグラフィックウィンドウを開く<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD colspan="2">DCS <FONT size="-1"><I>Pn1 ; Pn2 ; Pn3 ; Pn4 </I></FONT>q <I><FONT size="-1">P...</FONT></I> ST</TD>
+                </TR>
+                <TR>
+                  <TD width="120" valign="top"><FONT size="-1"><I>Pn1</I></FONT> = [0],1...9</TD>
+                  <TD width="400">横の縮小率を指定（アスペクト比の設定）<BR>
+                  <TABLE width="300" cellpadding="1">
+                    <TBODY>
+                      <TR>
+                        <TD width="40">[0]</TD>
+                        <TD>50%</TD>
+                        <TD width="40">5</TD>
+                        <TD>60%</TD>
+                      </TR>
+                      <TR>
+                        <TD>1</TD>
+                        <TD>50%</TD>
+                        <TD>6</TD>
+                        <TD>70%</TD>
+                      </TR>
+                      <TR>
+                        <TD>2</TD>
+                        <TD>20%</TD>
+                        <TD>7</TD>
+                        <TD>80%</TD>
+                      </TR>
+                      <TR>
+                        <TD>3</TD>
+                        <TD>30%</TD>
+                        <TD>8</TD>
+                        <TD>90%</TD>
+                      </TR>
+                      <TR>
+                        <TD>4</TD>
+                        <TD>40%</TD>
+                        <TD>9</TD>
+                        <TD>100%</TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  </TD>
+                </TR>
+                <TR>
+                  <TD valign="top"><FONT size="-1"><I>Pn2</I></FONT> = [0],1,2</TD>
+                  <TD>背景色の設定<BR>
+                  <TABLE width="370" cellpadding="1">
+                    <TBODY>
+                      <TR>
+                        <TD colspan="2"><A href="#DECTID">DECTID</A>が5以上（デフォルト)</TD>
+                      </TR>
+                      <TR>
+                        <TD>1</TD>
+                        <TD>現在の文字背景色の補色で初期化</TD>
+                      </TR>
+                      <TR>
+                        <TD width="50">[0], 2</TD>
+                        <TD>現在の文字背景色で初期化</TD>
+                      </TR>
+                      <TR>
+                        <TD colspan="2">パレットをカラーで初期化</TD>
+                      </TR>
+                      <TR>
+                        <TD colspan="2">
+                        <TABLE cellpadding="1">
+                          <TBODY>
+                            <TR>
+                              <TD align="right">0</TD>
+                              <TD>Black</TD>
+                              <TD align="right">4</TD>
+                              <TD>Magenta</TD>
+                              <TD align="right">8</TD>
+                              <TD>Gray-25%</TD>
+                              <TD align="right">12</TD>
+                              <TD>Magenta*</TD>
+                            </TR>
+                            <TR>
+                              <TD align="right">1</TD>
+                              <TD>Blue</TD>
+                              <TD align="right">5</TD>
+                              <TD>Cyan</TD>
+                              <TD align="right">9</TD>
+                              <TD>Blue*</TD>
+                              <TD align="right">13</TD>
+                              <TD>Cyan*</TD>
+                            </TR>
+                            <TR>
+                              <TD align="right">2</TD>
+                              <TD>Red</TD>
+                              <TD align="right">6</TD>
+                              <TD>Yellow</TD>
+                              <TD align="right">10</TD>
+                              <TD>Red*</TD>
+                              <TD align="right">14</TD>
+                              <TD>Yellow*</TD>
+                            </TR>
+                            <TR>
+                              <TD align="right">3</TD>
+                              <TD>Green</TD>
+                              <TD align="right">7</TD>
+                              <TD>Gray-50%</TD>
+                              <TD align="right">11</TD>
+                              <TD>Green*</TD>
+                              <TD align="right">15</TD>
+                              <TD>Gray-75%</TD>
+                            </TR>
+                          </TBODY>
+                        </TABLE>
+                        </TD>
+                      </TR>
+                      <TR>
+                        <TD colspan="2"></TD>
+                      </TR>
+                      <TR>
+                        <TD colspan="2"><A href="#DECTID">DECTID</A>が4以下の場合</TD>
+                      </TR>
+                      <TR>
+                        <TD>[0], 1</TD>
+                        <TD>白色で初期化</TD>
+                      </TR>
+                      <TR>
+                        <TD>2</TD>
+                        <TD>現在の文字背景色で初期化</TD>
+                      </TR>
+                      <TR>
+                        <TD colspan="2">パレットをモノクロで初期化</TD>
+                      </TR>
+                      <TR>
+                        <TD colspan="2">
+                        <TABLE cellpadding="1">
+                          <TBODY>
+                            <TR>
+                              <TD align="right">0</TD>
+                              <TD>Black</TD>
+                              <TD align="right">4</TD>
+                              <TD>Gray-10%</TD>
+                              <TD align="right">8</TD>
+                              <TD>Black</TD>
+                              <TD align="right">12</TD>
+                              <TD>Gray-10%</TD>
+                            </TR>
+                            <TR>
+                              <TD align="right">1</TD>
+                              <TD>Gray-20%</TD>
+                              <TD align="right">5</TD>
+                              <TD>Gray-30%</TD>
+                              <TD align="right">9</TD>
+                              <TD>Gray-20%</TD>
+                              <TD align="right">13</TD>
+                              <TD>Gray-30%</TD>
+                            </TR>
+                            <TR>
+                              <TD align="right">2</TD>
+                              <TD>Gray-40%</TD>
+                              <TD align="right">6</TD>
+                              <TD>Gray-50%</TD>
+                              <TD align="right">10</TD>
+                              <TD>Gray-40%</TD>
+                              <TD align="right">14</TD>
+                              <TD>Gray-50%</TD>
+                            </TR>
+                            <TR>
+                              <TD align="right">3</TD>
+                              <TD>Gray-60%</TD>
+                              <TD align="right">7</TD>
+                              <TD>White</TD>
+                              <TD align="right">11</TD>
+                              <TD>Gray-60%</TD>
+                              <TD align="right">15</TD>
+                              <TD>White</TD>
+                            </TR>
+                          </TBODY>
+                        </TABLE>
+                        </TD>
+                      </TR>
+                      <TR>
+                        <TD colspan="2"></TD>
+                      </TR>
+                      <TR>
+                        <TD colspan="2">※パレット色が背景色と同じ場合は補色に変更</TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  </TD>
+                </TR>
+                <TR>
+                  <TD valign="top"><I><FONT size="-1">Pn3</FONT></I> = [0],1... 20</TD>
+                  <TD>全体の拡大縮小を指定(Grid Size指定)<BR>
+                  [0]=100%<BR>
+                  1=10% .... 10=100% ... 20=200%</TD>
+                </TR>
+                <TR>
+                  <TD valign="top"><FONT size="-1"><I>Pn4</I></FONT> = 0 ... 1023</TD>
+                  <TD>インデックス番号を指定し同じ画像をインデックス番号のみ<BR>
+                  で再表示させることができます<BR>
+                  ※これは2.17.3以降の独自拡張です</TD>
+                </TR>
+                <TR>
+                  <TD valign="top" colspan="2">※<A href="#DECSDM">DECSDM</A>によりコンソール・外部ウィンドウと表示方法が異なる<BR>
+                  ※<I>Pn1,Pn3</I> の設定より、Sixel内のDECGRA(&quot;)のPan(V),Pad(H)が優先されます<BR>
+                  ※ 2.17.2よりDECGCI(#Pc;Pu;Px;Py;Pz)のPu=3で0-255のRGBが指定できます</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">DCS <FONT size="-1"><I>Pn </I></FONT>{ <I><FONT size="-1">P...</FONT></I> ST</TD>
+            <TD align="center" width="120">DECDLD</TD>
+            <TD width="680">ユーザーフォントの設定<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD colspan="2">DCS <I><FONT size="-1">Pfn ; Pcn ; Pe ; Pcmw ; Pss ; Pt ; Pcmh ; Pcss { &lt;Dscs&gt;&lt;font-pattern
+                  ; ...&gt;</FONT></I> ST</TD>
+                </TR>
+                <TR>
+                  <TD width="120"><FONT size="-1"><I>Pfn</I></FONT> = [0],1,2</TD>
+                  <TD>フォント番号</TD>
+                </TR>
+                <TR>
+                  <TD width="120"><FONT size="-1"><I>Pcn</I></FONT> = [0]</TD>
+                  <TD>定義スタート文字番号 0=SP</TD>
+                </TR>
+                <TR>
+                  <TD width="120" valign="top"><FONT size="-1"><I>Pe</I></FONT> = [0],1,2</TD>
+                  <TD>0 指定<A href="#DSCS">Dscs</A>のすべてのフォント定義をクリア<BR>
+                  1 指定フォントを置き換え<BR>
+                  2 すべてのユーザーフォントをクリア</TD>
+                </TR>
+                <TR>
+                  <TD width="120" valign="top"><FONT size="-1"><I>Pcmw</I></FONT> = [0],2,3,4</TD>
+                  <TD>フォント横サイズ<BR>
+                  0 Fw = 15<BR>
+                  2 Fw = 5, Fh = 10<BR>
+                  3 Fw = 6, Fh = 10<BR>
+                  4 Fw = 7, Fh = 10<BR>
+                  5以上 Fw = <I><FONT size="-1">Pcmw</FONT></I></TD>
+                </TR>
+                <TR>
+                  <TD width="120"><FONT size="-1"><I>Pss</I></FONT> = [0]</TD>
+                  <TD>Font set size (無視)</TD>
+                </TR>
+                <TR>
+                  <TD width="120" valign="top"><FONT size="-1"><I>Pt</I></FONT> = [0],3</TD>
+                  <TD>0,1,2 Text or full cell（無視）<BR>
+                  3 Sixelグラフィック</TD>
+                </TR>
+                <TR>
+                  <TD width="120" valign="top"><FONT size="-1"><I>Pcmh</I></FONT> = [0]</TD>
+                  <TD>フォント縦サイズ<BR>
+                  0 Fh = 15<BR>
+                  1以上 Fh = <I><FONT size="-1">Pcmh</FONT></I></TD>
+                </TR>
+                <TR>
+                  <TD width="120" valign="top"><FONT size="-1"><I>Pcss</I></FONT> = [0]</TD>
+                  <TD>0 文字セット94<BR>
+                  1 文字セット96</TD>
+                </TR>
+                <TR>
+                  <TD width="120"><FONT size="-1"><I>&lt;Dscs&gt;</I></FONT></TD>
+                  <TD>文字セットコード<I><A href="#DSCS"><FONT size="-1">Dscs</FONT></A></I> を指定</TD>
+                </TR>
+                <TR>
+                  <TD width="120" valign="top"><FONT size="-1"><I>&lt;font-pattern&gt;</I></FONT></TD>
+                  <TD>6ビット単位のフォントパターン<BR>
+                  <TABLE>
+                    <TBODY>
+                      <TR>
+                        <TD>
+                        <TABLE bgcolor="#999999" cellspacing="1" cellpadding="0">
+                          <TBODY>
+                            <TR>
+                              <TD width="10" height="10" align="center" valign="middle" style="background-color : #eeeeee;"><FONT style="font-size: 6pt;">0</FONT></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                            </TR>
+                            <TR>
+                              <TD width="10" height="10" align="center" valign="middle" style="background-color: #eeeeee;"><FONT style="font-size: 6pt;">1</FONT></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                            </TR>
+                            <TR>
+                              <TD width="10" height="10" align="center" valign="middle" style="background-color: #eeeeee;"><FONT style="font-size: 6pt;">2</FONT></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10" style="background-color: #999999;"></TD>
+                              <TD width="10" height="10" style="background-color: #999999;"></TD>
+                              <TD width="10" height="10" style="background-color: #999999;"></TD>
+                              <TD width="10" height="10" style="background-color: #999999;"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                            </TR>
+                            <TR>
+                              <TD width="10" height="10" align="center" valign="middle" style="background-color: #eeeeee;"><FONT style="font-size: 6pt;">3</FONT></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10" style="background-color: #999999;"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10" style="background-color: #999999;"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                            </TR>
+                            <TR>
+                              <TD width="10" height="10" align="center" valign="middle" style="background-color: #eeeeee;"><FONT style="font-size: 6pt;">4</FONT></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10" style="background-color: #999999;"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10" style="background-color: #999999;"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                            </TR>
+                            <TR>
+                              <TD width="10" height="10" align="center" valign="middle" style="background-color: #eeeeee;"><FONT style="font-size: 6pt;">5</FONT></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10" style="background-color: #999999;"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10" style="background-color: #999999;"></TD>
+                              <TD width="10" height="10"></TD>
+                            </TR>
+                          </TBODY>
+                        </TABLE>
+                        </TD>
+                        <TD><FONT size="-1">左上から下にBit0～Bit5、右にバイトで<BR>
+                        列挙し3F(?)を足して文字とする</FONT><BR>
+                        <TABLE cellspacing="0" cellpadding="3">
+                          <TBODY>
+                            <TR>
+                              <TD align="center" valign="middle"><FONT size="-1">00</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">00</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">3C</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">04</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">04</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">04</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">08</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">10</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">20</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">00</FONT></TD>
+                            </TR>
+                            <TR>
+                              <TD align="center" valign="middle"><FONT size="-1">?</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">?</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">{</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">C</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">C</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">C</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">G</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">G</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">-</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">?</FONT></TD>
+                            </TR>
+                          </TBODY>
+                        </TABLE>
+                        </TD>
+                      </TR>
+                      <TR>
+                        <TD height="3"></TD>
+                        <TD height="3"></TD>
+                      </TR>
+                      <TR>
+                        <TD>
+                        <TABLE bgcolor="#999999" cellspacing="1" cellpadding="0">
+                          <TBODY>
+                            <TR>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10" style="background-color: #999999;"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10" style="background-color: #999999;"></TD>
+                              <TD width="10" height="10"></TD>
+                            </TR>
+                            <TR>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10" style="background-color: #999999;"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10" style="background-color: #999999;"></TD>
+                              <TD width="10" height="10"></TD>
+                            </TR>
+                            <TR>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10" style="background-color: #999999;"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10" style="background-color: #999999;"></TD>
+                              <TD width="10" height="10"></TD>
+                            </TR>
+                            <TR>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10" style="background-color: #999999;"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10" style="background-color: #999999;"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                            </TR>
+                            <TR>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10" style="background-color: #999999;"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10" style="background-color: #999999;"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                            </TR>
+                            <TR>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10" style="background-color: #999999;"></TD>
+                              <TD width="10" height="10" style="background-color: #999999;"></TD>
+                              <TD width="10" height="10" style="background-color: #999999;"></TD>
+                              <TD width="10" height="10" style="background-color: #999999;"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                            </TR>
+                          </TBODY>
+                        </TABLE>
+                        </TD>
+                        <TD>
+                        <TABLE cellspacing="0" cellpadding="3">
+                          <TBODY>
+                            <TR>
+                              <TD align="center" valign="middle"><FONT size="-1">00</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">00</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">3F</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">20</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">20</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">20</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">10</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">08</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">07</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">00</FONT></TD>
+                            </TR>
+                            <TR>
+                              <TD align="center" valign="middle"><FONT size="-1">?</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">?</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">~</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">-</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">-</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">-</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">O</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">G</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">F</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">?</FONT></TD>
+                            </TR>
+                          </TBODY>
+                        </TABLE>
+                        </TD>
+                      </TR>
+                      <TR>
+                        <TD height="3"></TD>
+                        <TD height="3"></TD>
+                      </TR>
+                      <TR>
+                        <TD>
+                        <TABLE bgcolor="#999999" cellspacing="1" cellpadding="0">
+                          <TBODY>
+                            <TR>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="5" height="5"></TD>
+                              <TD width="10" height="10"></TD>
+                            </TR>
+                            <TR>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                            </TR>
+                            <TR>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                            </TR>
+                            <TR>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                              <TD width="10" height="10"></TD>
+                            </TR>
+                          </TBODY>
+                        </TABLE>
+                        </TD>
+                        <TD>
+                        <TABLE cellspacing="0" cellpadding="3">
+                          <TBODY>
+                            <TR>
+                              <TD align="center" valign="middle"><FONT size="-1">00</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">00</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">00</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">00</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">00</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">00</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">00</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">00</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">00</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">00</FONT></TD>
+                            </TR>
+                            <TR>
+                              <TD align="center" valign="middle"><FONT size="-1">?</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">?</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">?</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">?</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">?</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">?</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">?</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">?</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">?</FONT></TD>
+                              <TD align="center" valign="middle"><FONT size="-1">?</FONT></TD>
+                            </TR>
+                          </TBODY>
+                        </TABLE>
+                        </TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  上記のフォントパターン<BR>
+                  ??{CCCGG-?/??~---OGF?/????????;</TD>
+                </TR>
+                <TR>
+                  <TD valign="top"></TD>
+                  <TD>Pt = 3 の場合、&lt;font-pattern&gt;をSixelグラフィックと<BR>
+                  解釈してビットマップをPcmw/Pcmhのマトリクスに<BR>
+                  分割し、カラーフォントパターンとして文字コードに<BR>
+                  割り当てます。</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">DCS <FONT size="-1"><I>Pn</I></FONT> ! z <I><FONT size="-1">P...</FONT></I> ST</TD>
+            <TD align="center" width="120">DECDMAC</TD>
+            <TD width="680"><A name="DECDMAC"></A>マクロの定義<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD colspan="2">DCS <I><FONT size="-1">Pid ; Pdt ; Pen ! z D...D</FONT></I> ST</TD>
+                </TR>
+                <TR>
+                  <TD width="120"><FONT size="-1"><I>Pid</I></FONT> = [0]-63</TD>
+                  <TD><A href="#DECINVM">DECINVM</A>で使用するマクロ番号</TD>
+                </TR>
+                <TR>
+                  <TD width="120" valign="top"><FONT size="-1"><I>Pdt</I></FONT> = [0],1</TD>
+                  <TD>0 <I><FONT size="-1">Pid</FONT></I>のマクロをクリア<BR>
+                  1 すべてのマクロをクリア</TD>
+                </TR>
+                <TR>
+                  <TD width="120" valign="top"><FONT size="-1"><I>Pen</I></FONT> = [0],1</TD>
+                  <TD>0 <FONT size="-1"><I>D...D</I></FONT> は、テキスト<BR>
+                  1 <FONT size="-1"><I>D...D</I></FONT> は、16進数エンコード＋リピート</TD>
+                </TR>
+                <TR>
+                  <TD width="120" valign="top"><FONT size="-1"><I>D...D</I></FONT></TD>
+                  <TD>基本16進数エンコードにリピート指定文字「！」<BR>
+                  例　ABCxyzxyzxyzDEF = 414243!3;78797a;444546</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">DCS ! { <I><FONT size="-1">P...</FONT></I> ST</TD>
+            <TD align="center" width="120">DECSTUI</TD>
+            <TD width="680">16進数４桁でターミナルIDを設定</TD>
+          </TR>
+          <TR>
+            <TD width="120">DCS <FONT size="-1"><I>Pn</I></FONT> $ <I><FONT size="-1">P...</FONT></I> ST</TD>
+            <TD align="center" width="120">DECRSTS</TD>
+            <TD width="680">
+            <TABLE>
+              <TBODY>
+                <TR>
+                  <TD width="90"><FONT size="-1"><I>Pn</I></FONT> = 2</TD>
+                  <TD><A href="#DECCTR">DECCTR</A>の復元</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">DCS $ q <I><FONT size="-1">P...</FONT></I> ST</TD>
+            <TD width="120" align="center">DECRQSS</TD>
+            <TD width="680">
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="70">m</TD>
+                  <TD align="left" width="90"><A href="#SGR">SGR</A></TD>
+                  <TD>DCS 0 $ r 0 m ST</TD>
+                </TR>
+                <TR>
+                  <TD width="70">r</TD>
+                  <TD align="left" width="90"><A href="#DECSTBM">DECSTBM</A></TD>
+                  <TD>DCS 0 $ r 1 ; 25 r ST</TD>
+                </TR>
+                <TR>
+                  <TD width="70">s</TD>
+                  <TD align="left" width="90">DECSLRM</TD>
+                  <TD>DCS 0 $ r 1 ; 80 s ST</TD>
+                </TR>
+                <TR>
+                  <TD width="70">t</TD>
+                  <TD align="left" width="90">DECSLPP</TD>
+                  <TD>DCS 0 $ r 25 t ST</TD>
+                </TR>
+                <TR>
+                  <TD width="70">$ |</TD>
+                  <TD align="left" width="90">DECSCPP</TD>
+                  <TD>DCS 0 $ r 80 $ | ST</TD>
+                </TR>
+                <TR>
+                  <TD width="70">$ }</TD>
+                  <TD align="left" width="90">DECSASD</TD>
+                  <TD>DCS 0 $ r 0 $ } ST</TD>
+                </TR>
+                <TR>
+                  <TD width="70">$ ~</TD>
+                  <TD align="left" width="90">DECSSDT</TD>
+                  <TD>DCS 0 $ r 0 $ ~ ST</TD>
+                </TR>
+                <TR>
+                  <TD width="70">* |</TD>
+                  <TD align="left" width="90">DECNLS</TD>
+                  <TD>DCS 0 $ r 25 * | ST</TD>
+                </TR>
+                <TR>
+                  <TD width="70">* x</TD>
+                  <TD align="left" width="90"><A href="#DECSACE">DECSACE</A></TD>
+                  <TD>DCS 0 $ r 1 * x ST</TD>
+                </TR>
+                <TR>
+                  <TD width="70">&quot; p</TD>
+                  <TD align="left" width="90">DECSCL</TD>
+                  <TD>DCS 0 $ r 65 &quot; p ST</TD>
+                </TR>
+                <TR>
+                  <TD width="70">&quot; q</TD>
+                  <TD align="left" width="90"><A href="#DECSCA">DECSCA</A></TD>
+                  <TD>DCS 0 $ r 1 &quot; q ST</TD>
+                </TR>
+                <TR>
+                  <TD colspan="2">非対応CSI</TD>
+                  <TD>DCS 1 $ r ST</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="120">DCS <FONT size="-1"><I>Pn</I></FONT> $ t <I><FONT size="-1">P...</FONT></I> ST</TD>
+            <TD align="center" width="120">DECRSPS</TD>
+            <TD width="680">
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><FONT size="-1"><I>Pn</I></FONT> = 1</TD>
+                  <TD><A href="#DECRQPSR">DECCIR</A>の復元</TD>
+                </TR>
+                <TR>
+                  <TD><FONT size="-1"><I>Pn</I></FONT> = 2</TD>
+                  <TD><A href="#DECRQPSR">DECTABSR</A>の復元</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD>DCS + q <FONT size="-1"><I>P...</I></FONT> ST</TD>
+            <TD align="center">XTRQCAP *4</TD>
+            <TD>Termcap/Infoの各種設定を応答する<BR>
+            <TABLE>
+              <TBODY>
+                <TR>
+                  <TD colspan="2">DCS + q <I><FONT size="-1">Base16</FONT></I> ; ... ST</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Base16</FONT></I></TD>
+                  <TD>Termcap/Infoの項目名を16進数にエンコードして指定</TD>
+                </TR>
+                <TR>
+                  <TD>Co(436f)</TD>
+                  <TD>扱える文字色の総数を返す（256に固定）</TD>
+                </TR>
+                <TR>
+                  <TD>TN(544e)</TD>
+                  <TD>TERM環境変数の名前を返す</TD>
+                </TR>
+                <TR>
+                  <TD>k1(6b31)</TD>
+                  <TD>ファンクションキー1のキーコード</TD>
+                </TR>
+                <TR>
+                  <TD></TD>
+                  <TD>その他、キーコードなどを調べることができる</TD>
+                </TR>
+                <TR>
+                  <TD>設定あり</TD>
+                  <TD>DCS 1 + r <FONT size="-1"><I>Base16</I></FONT> = <FONT size="-1"><I>Base16</I></FONT> ; ... STで返す</TD>
+                </TR>
+                <TR>
+                  <TD>設定なし</TD>
+                  <TD>DCS 0 + r STで返す</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Base16</FONT></I></TD>
+                  <TD>項目名</TD>
+                </TR>
+                <TR>
+                  <TD>= <I><FONT size="-1">Base16</FONT></I></TD>
+                  <TD>設定値など</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            例　termcapのCo（色数）を調べる<BR>
+            送信 &quot;\033P+q436f\033\134&quot;<BR>
+            受信 &quot;\033P+r436f=323536\033\134&quot;</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="OPT"></A><B>2.6.6 オプション一覧</B></P>
+      <HR size="1">
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX">
+        <TBODY>
+          <TR>
+            <TD align="center" width="70">番号</TD>
+            <TD align="center" width="120">略号</TD>
+            <TD width="360" align="center"><A name="SM"></A>設定 SM （CSI <I><FONT size="-1">Pn</FONT></I> h)</TD>
+            <TD align="center" width="360"><A name="RM"></A>解除 RM (CSI <I><FONT size="-1">Pn</FONT></I> l)</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">2</TD>
+            <TD align="center" width="120">KAM</TD>
+            <TD width="360">キー入力を無視</TD>
+            <TD width="360">キー入力を有効</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">4</TD>
+            <TD align="center" width="120">IRM</TD>
+            <TD width="360">挿入モード</TD>
+            <TD width="360">上書きモード</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">6</TD>
+            <TD align="center" width="120">ERM</TD>
+            <TD width="360"><A name="ERM"></A><A href="#SPA">SPA</A>の保護を無効</TD>
+            <TD width="360"><A href="#SPA">SPA</A>の保護を有効</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">12</TD>
+            <TD align="center" width="120">SRM</TD>
+            <TD width="360">ローカルエコーを無効</TD>
+            <TD width="360">ローカルエコーを有効</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">18</TD>
+            <TD align="center" width="120">ISM</TD>
+            <TD width="360">各行別のタブ設定（マルチ）</TD>
+            <TD width="360">全行で同じタブ設定(シングル)</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">20</TD>
+            <TD align="center" width="120">LNM</TD>
+            <TD width="360"><A name="LNM"></A><A href="#LF">LF</A>/<A href="#VT">VT</A>/<A href="#FF">FF</A>で行頭に移動</TD>
+            <TD width="360"><A href="#LF">LF</A>/<A href="#VT">VT</A>/<A href="#FF">FF</A>で通常動作</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="DECOPT"></A><B>2.6.7 拡張オプション一覧</B></P>
+      <HR size="1">
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX">
+        <TBODY>
+          <TR>
+            <TD align="center" width="70">番号</TD>
+            <TD align="center" width="120">略号</TD>
+            <TD width="360" align="center"><A name="DECSET"></A>設定 DECSET （CSI ?<I><FONT size="-1">Pn</FONT></I> h)</TD>
+            <TD align="center" width="360"><A name="DECRST"></A>解除 DECRST （CSI ?<I><FONT size="-1">Pn</FONT></I> l)</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">1</TD>
+            <TD align="center" width="120">DECCKM</TD>
+            <TD width="360">[CKM]モードが有効のキーコードを送信</TD>
+            <TD width="360">[CKM]モードが無効のキーコードを送信</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">2</TD>
+            <TD align="center" width="120">DECANM</TD>
+            <TD width="360">VT100(ANSI)モード</TD>
+            <TD width="360">VT52モード</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">3</TD>
+            <TD align="center" width="120">DECCOLM</TD>
+            <TD width="360"><A name="DECCOLM"></A>132文字表示モード</TD>
+            <TD width="360">80文字表示モード</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">4</TD>
+            <TD align="center" width="120">DECSCLM</TD>
+            <TD width="360">スムーズスクロールモード</TD>
+            <TD width="360">ジャンプスクロールモード</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">5</TD>
+            <TD align="center" width="120">DECSCNM</TD>
+            <TD width="360">反転表示モード</TD>
+            <TD width="360">通常表示モード</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">6</TD>
+            <TD align="center" width="120">DECOM</TD>
+            <TD width="360"><A name="DECOM"></A><A href="#DECSTBM">DECSTBM</A>、<A href="#DECLRMM">DECLRMM</A>、<A href="#DECSLRM">DECSLRM</A>の影響を受ける</TD>
+            <TD width="360">常に左上原点</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">7</TD>
+            <TD align="center" width="120">DECAWM</TD>
+            <TD width="360">行末のオートワープを有効</TD>
+            <TD width="360">行末を超える移動を行わない</TD>
+          </TR>
+          <TR>
+            <TD align="center">8</TD>
+            <TD align="center">DECAWM</TD>
+            <TD>キーのオートリピートが有効</TD>
+            <TD>キーのオートリピートが無効</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">9</TD>
+            <TD align="center" width="120">*4</TD>
+            <TD width="360">マウスリポートを有効</TD>
+            <TD width="360">マウスリポートを無効</TD>
+          </TR>
+          <TR>
+            <TD align="center">12</TD>
+            <TD align="center">*4</TD>
+            <TD>カーソルの点滅を禁止する</TD>
+            <TD>カーソルの点滅を行う</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">19</TD>
+            <TD align="center" width="120">DECPEX</TD>
+            <TD width="360"><A name="DECPEX"></A><A href="#MC">MC</A>/<A href="#DECMC">DECMC</A>で<A href="#DECSTBM">DECSTBM</A>の影響を受けない</TD>
+            <TD width="360"><A href="#MC">MC</A>/<A href="#DECMC">DECMC</A>で<A href="#DECSTBM">DECSTBM</A>の影響を受ける</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">25</TD>
+            <TD align="center" width="120">DECTCEM</TD>
+            <TD width="360">カーソルの表示</TD>
+            <TD width="360">カーソルを非表示</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">38</TD>
+            <TD align="center" width="120">*5</TD>
+            <TD width="360">Tekモードに移行</TD>
+            <TD width="360">Tekモードから抜ける</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">40</TD>
+            <TD align="center" width="120">*4</TD>
+            <TD width="360"><A href="#DECCOLM">DECCOLM</A>有効</TD>
+            <TD width="360"><A href="#DECCOLM">DECCOLM</A>無効</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">41</TD>
+            <TD align="center" width="120">*4</TD>
+            <TD width="360">タブ(HT)のバグ修正モード</TD>
+            <TD width="360">xtermタブバグ互換モード</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">45</TD>
+            <TD align="center" width="120">*4</TD>
+            <TD width="360"><A name="EOPT45"></A>行頭<A href="#BS">BS</A>による上行右端移動</TD>
+            <TD width="360">行頭の<A href="#BS">BS</A>で移動しない</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">47</TD>
+            <TD align="center" width="120">*4</TD>
+            <TD width="360">現在の画面の保存</TD>
+            <TD width="360">保存した画面の復帰</TD>
+          </TR>
+          <TR>
+            <TD align="center">66</TD>
+            <TD align="center">DECNKM</TD>
+            <TD width="360">ノーマルキーモード(<A href="#DECPNM">DECPNM</A>)</TD>
+            <TD width="360">アプリケーションキーモード(<A href="#DECPAM">DECPAM</A>)</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">67</TD>
+            <TD align="center" width="120">DECBKM</TD>
+            <TD width="360">BSキー変換を行わない</TD>
+            <TD width="360">BSキーをDELキーに変換</TD>
+          </TR>
+          <TR>
+            <TD align="center">69</TD>
+            <TD align="center">DECLRMM</TD>
+            <TD><A name="DECLRMM"></A>左右マージンを有効</TD>
+            <TD>左右マージン無効</TD>
+          </TR>
+          <TR>
+            <TD align="center">80</TD>
+            <TD align="center">DECSDM</TD>
+            <TD><A name="DECSDM"></A>Sixelを別ウィンドウで表示</TD>
+            <TD>Sixelスクロールモード表示</TD>
+          </TR>
+          <TR>
+            <TD align="center">95</TD>
+            <TD align="center">DECNCSM</TD>
+            <TD>DECCOLM時に画面をクリアしない</TD>
+            <TD>132/80文字表示変更時に画面をクリア</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">117&nbsp;</TD>
+            <TD align="center" width="120">DECECM&nbsp;</TD>
+            <TD width="360"><A href="#SGR">SGR</A>で空白文字の設定を無効</TD>
+            <TD width="360"><A href="#SGR">SGR</A>で空白文字のカラーを設定</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">1000</TD>
+            <TD align="center" width="120">*4</TD>
+            <TD width="360">normal mouse tracking</TD>
+            <TD width="360">マウストラックキング無効</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">1001</TD>
+            <TD align="center" width="120">*4</TD>
+            <TD width="360">hilite mouse tracking</TD>
+            <TD width="360">マウストラックキング無効</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">1002</TD>
+            <TD align="center" width="120">*4</TD>
+            <TD width="360">button-event mouse tracking</TD>
+            <TD width="360">マウストラックキング無効</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">1003</TD>
+            <TD align="center" width="120">*4</TD>
+            <TD width="360">any-event mouse tracking</TD>
+            <TD width="360">マウストラックキング無効</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">1004</TD>
+            <TD align="center" width="120">*4</TD>
+            <TD width="360">フォーカスイベントの有効</TD>
+            <TD width="360">フォーカスイベント無効</TD>
+          </TR>
+          <TR>
+            <TD align="center">1005</TD>
+            <TD align="center">*4</TD>
+            <TD>Extended Mouse Mode</TD>
+            <TD>Extended Mode 無効</TD>
+          </TR>
+          <TR>
+            <TD align="center">1006</TD>
+            <TD align="center">*4</TD>
+            <TD>SGR Extended Mouse Mode</TD>
+            <TD>SGR Mode 無効</TD>
+          </TR>
+          <TR>
+            <TD align="center">1015</TD>
+            <TD align="center">*4</TD>
+            <TD>URXVT Extended Mouse Mode</TD>
+            <TD>URXVT Mode 無効</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">1047</TD>
+            <TD align="center" width="120">*4</TD>
+            <TD width="360">現在画面と拡張画面の切換</TD>
+            <TD width="360">拡張画面と保存画面の切換</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">1048</TD>
+            <TD align="center" width="120">*4</TD>
+            <TD width="360">カーソル位置の保存</TD>
+            <TD width="360">保存したカーソル位置の復帰</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">1049</TD>
+            <TD align="center" width="120">*4</TD>
+            <TD width="360">現在の画面の保存後にクリア</TD>
+            <TD width="360">保存した画面の復帰</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">2004</TD>
+            <TD align="center" width="120">*4</TD>
+            <TD width="360">Bracketed&nbsp;Paste&nbsp;Mode 有効</TD>
+            <TD width="360">Bracketed&nbsp;Paste&nbsp;Mode 無効</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">8400</TD>
+            <TD align="center" width="120">*3</TD>
+            <TD width="360"><A href="#SGR">SGR</A>で空白属性を設定しない</TD>
+            <TD width="360"><A href="#SGR">SGR</A>で空白文字属性を設定</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">8401</TD>
+            <TD align="center" width="120">*3</TD>
+            <TD width="360">行末での遅延改行無効</TD>
+            <TD width="360">行末での遅延改行有効</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">8402</TD>
+            <TD align="center" width="120">*3</TD>
+            <TD width="360">自動ブラウザ起動をする</TD>
+            <TD width="360">自動ブラウザ起動無効</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">8403</TD>
+            <TD align="center" width="120">*3</TD>
+            <TD width="360">ボールド文字有効</TD>
+            <TD width="360">ボールド文字無効</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">8405</TD>
+            <TD align="center" width="120">*3</TD>
+            <TD width="360">BPlus/ZModem/Kermit自動</TD>
+            <TD width="360">自動ファイル転送無効</TD>
+          </TR>
+          <TR>
+            <TD align="center">8406</TD>
+            <TD align="center">*3</TD>
+            <TD>画面のスタックを禁止</TD>
+            <TD>画面のスタックが有効</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">8428</TD>
+            <TD align="center" width="120">RLAMBCHM *3</TD>
+            <TD width="360">Aタイプを半角で表示</TD>
+            <TD width="360">Aタイプを全角で表示</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">8435</TD>
+            <TD align="center" width="120">*3</TD>
+            <TD width="360"><A href="#DECCOLM">DECCOLM</A>でリサイズ</TD>
+            <TD width="360">ウィンドウをリサイズしない</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">8437</TD>
+            <TD align="center" width="120">*3</TD>
+            <TD width="360">漢字コードを自動追従</TD>
+            <TD width="360">漢字コードを変更しない</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">8440</TD>
+            <TD align="center" width="120">*3</TD>
+            <TD width="360">ノーマルキーモード(<A href="#DECPNM">DECPNM</A>)</TD>
+            <TD width="360">アプリケーションキーモード(<A href="#DECPAM">DECPAM</A>)</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">8441</TD>
+            <TD align="center" width="120">*3</TD>
+            <TD width="360">IMEオープン</TD>
+            <TD width="360">IMEクロース</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">8442</TD>
+            <TD align="center" width="120">7727 *8</TD>
+            <TD width="360">ESCキーを[CKM]モードに含める</TD>
+            <TD width="360">ESCキーを[CKM]モードに含めない</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="70">8443</TD>
+            <TD align="center" width="120">7786 *8</TD>
+            <TD width="360">ホイールでカーソルキーを発生</TD>
+            <TD width="360">通常のホイール動作</TD>
+          </TR>
+          <TR>
+            <TD align="center">8448</TD>
+            <TD align="center">*3</TD>
+            <TD>UTF-8ノーマライズを禁止</TD>
+            <TD>UTF-8ノーマライズを行う</TD>
+          </TR>
+          <TR>
+            <TD align="center">8449</TD>
+            <TD align="center">*3</TD>
+            <TD>Unicde半角の調整をしない</TD>
+            <TD>Unicde半角の調整を行う</TD>
+          </TR>
+          <TR>
+            <TD align="center">8450</TD>
+            <TD align="center">*3</TD>
+            <TD>modifyKeysを優先する</TD>
+            <TD>ショートカットを優先する</TD>
+          </TR>
+          <TR>
+            <TD align="center">8451</TD>
+            <TD align="center">*3</TD>
+            <TD>罫線を文字で表示する</TD>
+            <TD>罫線を線で表示する</TD>
+          </TR>
+          <TR>
+            <TD align="center">8452</TD>
+            <TD align="center">*3</TD>
+            <TD>Sixel画像の右にカーソル</TD>
+            <TD>Sixel画像の下にカーソル</TD>
+          </TR>
+          <TR>
+            <TD align="center">8453</TD>
+            <TD align="center">8800 DRCSMMv1</TD>
+            <TD>Unicodeマッピング有効</TD>
+            <TD>Unicodeマッピング無効</TD>
+          </TR>
+          <TR>
+            <TD align="center">8455</TD>
+            <TD align="center">*3</TD>
+            <TD>スクロールして消去</TD>
+            <TD>通常の全画面消去</TD>
+          </TR>
+          <TR>
+            <TD align="center">8456</TD>
+            <TD align="center">*3</TD>
+            <TD>記号を表示する</TD>
+            <TD>壊れたMBCを無視</TD>
+          </TR>
+          <TR>
+            <TD align="center">8457</TD>
+            <TD align="center">8200 *7</TD>
+            <TD>画面クリア(ED 2)時にカーソルを左上に移動する</TD>
+            <TD>画面クリア(ED 2)時にカーソル位置を移動しない</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      <BLOCKQUOTE>
+      <TABLE width="900">
+        <TBODY>
+          <TR>
+            <TD align="center">*1:VT52モード *2:ADM-3互換 *3:オリジナル *4:XTerm互換 *5:Tekモード *6:設定による *7:TeraTerm互換
+            *8:mintty *9:iTerm2互換</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </BLOCKQUOTE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="DSCS"></A><B>2.6.8 文字セット一覧</B></P>
+      <HR size="1">
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX" width="954">
+        <TBODY>
+          <TR>
+            <TD align="center" width="60"><FONT size="-1">文字セット</FONT></TD>
+            <TD align="center" width="60"><I>Dscs</I></TD>
+            <TD align="center" width="200">エントリー名</TD>
+            <TD align="center" width="200">iconvセット</TD>
+            <TD align="center">コメント</TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">0</TD>
+            <TD>VT100-GRAPHIC</TD>
+            <TD>DEC_SGCS-GR</TD>
+            <TD><FONT size="-1">DEC Special Graphic</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">1</TD>
+            <TD>IBM437-GR</TD>
+            <TD>IBM437</TD>
+            <TD><FONT size="-1">MS-DOS Latin US</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">2</TD>
+            <TD>DEC_TCS-GR</TD>
+            <TD>DEC_TCS-GR</TD>
+            <TD><FONT size="-1">DEC Technical Character Set</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">@</TD>
+            <TD>ISO646-US</TD>
+            <TD>ISO646-US</TD>
+            <TD><FONT size="-1">IRV of ISO 646 : 1983?</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">B</TD>
+            <TD>ASCII(ANSI X3.4-1968)</TD>
+            <TD>ANSI_X3.4-1968</TD>
+            <TD><FONT size="-1">ISO 646, USA Version X3.4 - 1968</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">I</TD>
+            <TD>JIS X 0201-Kana</TD>
+            <TD>JISX0201-1976</TD>
+            <TD><FONT size="-1">Katakana Character Set JIS C6220-1969?</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">J</TD>
+            <TD>JIS X 0201-Roman</TD>
+            <TD>JISX0201-1976</TD>
+            <TD><FONT size="-1">ISO 646, Japanese Version for Roman Characters JIS C6220-1969?</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">T</TD>
+            <TD>GB 1988-80</TD>
+            <TD>GB_1988-80</TD>
+            <TD><FONT size="-1">Coded Character Set for Information Interchange, Standard Chinese GB 1988-80</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">&amp;5</TD>
+            <TD>Russian</TD>
+            <TD>CP866</TD>
+            <TD><FONT size="-1">Russian NRCS</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">94</TD>
+            <TD align="center">%2</TD>
+            <TD>Turkish</TD>
+            <TD>CP1254</TD>
+            <TD><FONT size="-1">Turkish NRCS</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">96</TD>
+            <TD align="center">A</TD>
+            <TD>LATIN1 (ISO8859-1)</TD>
+            <TD>LATIN1</TD>
+            <TD><FONT size="-1">Right-hand Part of Latin Alphabet No.1 ISO 8859/1, ECMA-94</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">96</TD>
+            <TD align="center">B</TD>
+            <TD>LATIN2 (ISO8859-2)</TD>
+            <TD>LATIN2</TD>
+            <TD><FONT size="-1">Right-hand Part of Latin Alphabet No.2 ISO 8859/2, ECMA-94</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">96</TD>
+            <TD align="center">C</TD>
+            <TD>LATIN3 (ISO8859-3)</TD>
+            <TD>LATIN3</TD>
+            <TD><FONT size="-1">Right-hand Part of Latin Alphabet No.3 ISO DIS 8859/3, ECMA-94</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">96</TD>
+            <TD align="center">D</TD>
+            <TD>LATIN4 (ISO8859-4)</TD>
+            <TD>LATIN4</TD>
+            <TD><FONT size="-1">Right-hand Part of Latin Alphabet No.4 ISO DIS 8859/4, ECMA-94</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">96</TD>
+            <TD align="center">F</TD>
+            <TD>GREEK (ISO8859-7)</TD>
+            <TD>ISO8859-7</TD>
+            <TD><FONT size="-1">Right-hand Part of the Latin/Greek Alphabet Standard ELOT 928, ECMA-118,
+            ISO DIS 8859/7</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">96</TD>
+            <TD align="center">G</TD>
+            <TD>ARABIC (ISO8859-6)</TD>
+            <TD>ISO8859-6</TD>
+            <TD><FONT size="-1">Right-hand Part of the Latin/Arabic Alphabet ECMA-114, ISO 8859/6</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">96</TD>
+            <TD align="center">H</TD>
+            <TD>HEBREW (ISO8859-8)</TD>
+            <TD>ISO8859-8</TD>
+            <TD><FONT size="-1">Latin/Hebrew Alphabet Standard ECMA-121</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">96</TD>
+            <TD align="center">L</TD>
+            <TD>CYRILLIC (ISO8859-5)</TD>
+            <TD>ISO8859-5</TD>
+            <TD><FONT size="-1">Cyrillic part of the Latin/Cyrillic Alphabet</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">96</TD>
+            <TD align="center">M</TD>
+            <TD>LATIN5 (ISO8859-9)</TD>
+            <TD>LATIN5</TD>
+            <TD><FONT size="-1">Right-hand part of Latin Alphabet No.5</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">96</TD>
+            <TD align="center">T</TD>
+            <TD>THAI (ISO8859-11)</TD>
+            <TD>ISO-8859-11</TD>
+            <TD><FONT size="-1">Thai Set</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">96</TD>
+            <TD align="center">V</TD>
+            <TD>LATIN6 (ISO8859-10)</TD>
+            <TD>LATIN6</TD>
+            <TD><FONT size="-1">Supplementary Set for Latin Alphabet No. 6</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">96</TD>
+            <TD align="center">Y</TD>
+            <TD>BALTIC (ISO8859-13)</TD>
+            <TD>ISO-8859-13</TD>
+            <TD><FONT size="-1">Baltic Rim Supplementary Set</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">96</TD>
+            <TD align="center">Z</TD>
+            <TD>VIETNAMESE (ISO8859-12)</TD>
+            <TD>CP1258</TD>
+            <TD><FONT size="-1">Vietnamese Standard Code for Information Interchange</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">96</TD>
+            <TD align="center">_</TD>
+            <TD>CELTIC (ISO8859-14)</TD>
+            <TD>ISO-8859-14</TD>
+            <TD><FONT size="-1">Celtic Supplementary Latin Set</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">96</TD>
+            <TD align="center">b</TD>
+            <TD>LATIN9 (ISO8859-15)</TD>
+            <TD>ISO-8859-15</TD>
+            <TD><FONT size="-1">European Supplementary Latin Set (&quot;Latin 9&quot;)</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">96</TD>
+            <TD align="center">f</TD>
+            <TD>ROMANIAN (ISO8859-16)</TD>
+            <TD>ISO-8859-16</TD>
+            <TD><FONT size="-1">Romanian Character Set for Information Interchange</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">94x94</TD>
+            <TD align="center">@</TD>
+            <TD>JIS X 0208-1978</TD>
+            <TD>JIS_X0208-1983</TD>
+            <TD><FONT size="-1">Japanese Character Set JISC C 6226-1978</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">94x94</TD>
+            <TD align="center">A</TD>
+            <TD>GB2312-1980</TD>
+            <TD>GB_2312-80</TD>
+            <TD><FONT size="-1">Chinese Character Set Chinese Standard GB 2312-80</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">94x94</TD>
+            <TD align="center">B</TD>
+            <TD>JIS X 0208-1983</TD>
+            <TD>JIS_X0208-1983</TD>
+            <TD><FONT size="-1">Japanese Character Set JIS C 6226-1983</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">94x94</TD>
+            <TD align="center">C</TD>
+            <TD>KSC5601-1987</TD>
+            <TD>KS_C_5601-1987</TD>
+            <TD><FONT size="-1">Korean Graphic Character Set, Korean Standard KSC 5601-1987</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">94x94</TD>
+            <TD align="center">D</TD>
+            <TD>JIS X 0212-1990</TD>
+            <TD>JIS_X0212-1990</TD>
+            <TD><FONT size="-1">Supplementary Japanese Graphic Character Set for Information Interchange</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">94x94</TD>
+            <TD align="center">E</TD>
+            <TD>ISO-IR-165</TD>
+            <TD>ISO-IR-165</TD>
+            <TD><FONT size="-1">Blissymbol Graphic Character Set</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">94x94</TD>
+            <TD align="center">O</TD>
+            <TD>JIS X 0213-2000.1</TD>
+            <TD>JIS_X0213-2000.1</TD>
+            <TD><FONT size="-1">Japanese Graphic Character Set for Information Interchange --- Plane 1</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">94x94</TD>
+            <TD align="center">P</TD>
+            <TD>JIS X 0213-2000.2</TD>
+            <TD>JIS_X0213-2000.2</TD>
+            <TD><FONT size="-1">Japanese Graphic Character Set for Information Interchange --- Plane 2</FONT></TD>
+          </TR>
+          <TR>
+            <TD align="center">94x94</TD>
+            <TD align="center">Q</TD>
+            <TD>JIS X 0213-2004.1</TD>
+            <TD>JIS_X0213-2000.1</TD>
+            <TD><FONT size="-1">Japanese Graphic Character Set for Information Interchange, Plane 1 (Update
+            of ISO-IR 228)</FONT></TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR size="1">
+      <P><A name="UNICODE"></A><B>2.6.9 UTF-8表示仕様</B>（文字セットをUTF-8にした場合の処理）</P>
+      <HR size="1">
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" width="954" class="BOX">
+        <TBODY>
+          <TR>
+            <TD width="200">Unicode正規化</TD>
+            <TD width="800" valign="top">NFC(Normalization Form Canonical Composition)の1文字に正規化できる２文字のみ正規化して表示します。<BR>
+            ハングルなどの３文字で正規化する文字もその順番が正しければ随時、正規化されます。</TD>
+          </TR>
+          <TR>
+            <TD>Unicode結合文字</TD>
+            <TD valign="top">NSM(Non Spacing Mark)は、直前の文字があれば、合成して表示します。<BR>
+            IVS(Variation Selector)は、直前の文字に追加して異体字を表示します。<BR>
+            正規化されないハングル字母は、初声子音から終声子音までを重ねて表示します（正しく表示されません）</TD>
+          </TR>
+          <TR>
+            <TD>RTLの扱い</TD>
+            <TD>アラビア文字のRTL(Right to Left)は、ひとまとまりでそれなりに表示します。またU+200FなどのRIGHT-TO-LEFT MARKを指定すると解除されるまでRTL文字としてまとめて表示します。<BR>
+            ※範囲指定などで選択するとRTL文字列は、正しく再表示されません。</TD>
+          </TR>
+          <TR>
+            <TD>8428拡張オプション</TD>
+            <TD>設定 DECSET （CSI ? 8428 h) Aタイプを半角で表示<BR>
+            解除 DECRST （CSI ? 8428 l) Aタイプを全角で表示<BR>
+            EastAsianWidth.txtでAタイプ(Ambiguous)で定義された文字の表示幅を設定します。<BR>
+            表示に使用するフォントにより見た目が異なりますが、それなりに幅を調整して表示します。</TD>
+          </TR>
+          <TR>
+            <TD>8448拡張オプション</TD>
+            <TD>設定 DECSET （CSI ? 8448 h) Unicode正規化、ハングル合成、RTLマーク処理を行いません。<BR>
+            解除 DECRST （CSI ? 8448 l)　上記の処理をすべて行います。<BR>
+            解除の状態で正規化などの処理行うとクリップボードにコピーした場合に正規化後の文字がコピーされます。<BR>
+            この8448をセットすると入力された文字をできるだけそのままの形で表示・コピーするようになります。</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+  </TBODY>
+</TABLE>
+</CENTER>
+</BODY>
+</HTML>

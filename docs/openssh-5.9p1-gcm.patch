@@ -1,0 +1,374 @@
+diff -cr openssh-5.9p1/cipher.c openssh-5.9p1-gcm/cipher.c
+*** openssh-5.9p1/cipher.c	2009-01-28 14:38:41.000000000 +0900
+--- openssh-5.9p1-gcm/cipher.c	2012-03-20 08:58:21.000000000 +0900
+***************
+*** 64,94 ****
+  	u_int	key_len;
+  	u_int	discard_len;
+  	u_int	cbc_mode;
+  	const EVP_CIPHER	*(*evptype)(void);
+  } ciphers[] = {
+! 	{ "none",		SSH_CIPHER_NONE, 8, 0, 0, 0, EVP_enc_null },
+! 	{ "des",		SSH_CIPHER_DES, 8, 8, 0, 1, EVP_des_cbc },
+! 	{ "3des",		SSH_CIPHER_3DES, 8, 16, 0, 1, evp_ssh1_3des },
+! 	{ "blowfish",		SSH_CIPHER_BLOWFISH, 8, 32, 0, 1, evp_ssh1_bf },
+! 
+! 	{ "3des-cbc",		SSH_CIPHER_SSH2, 8, 24, 0, 1, EVP_des_ede3_cbc },
+! 	{ "blowfish-cbc",	SSH_CIPHER_SSH2, 8, 16, 0, 1, EVP_bf_cbc },
+! 	{ "cast128-cbc",	SSH_CIPHER_SSH2, 8, 16, 0, 1, EVP_cast5_cbc },
+! 	{ "arcfour",		SSH_CIPHER_SSH2, 8, 16, 0, 0, EVP_rc4 },
+! 	{ "arcfour128",		SSH_CIPHER_SSH2, 8, 16, 1536, 0, EVP_rc4 },
+! 	{ "arcfour256",		SSH_CIPHER_SSH2, 8, 32, 1536, 0, EVP_rc4 },
+! 	{ "aes128-cbc",		SSH_CIPHER_SSH2, 16, 16, 0, 1, EVP_aes_128_cbc },
+! 	{ "aes192-cbc",		SSH_CIPHER_SSH2, 16, 24, 0, 1, EVP_aes_192_cbc },
+! 	{ "aes256-cbc",		SSH_CIPHER_SSH2, 16, 32, 0, 1, EVP_aes_256_cbc },
+  	{ "rijndael-cbc@lysator.liu.se",
+! 				SSH_CIPHER_SSH2, 16, 32, 0, 1, EVP_aes_256_cbc },
+! 	{ "aes128-ctr",		SSH_CIPHER_SSH2, 16, 16, 0, 0, evp_aes_128_ctr },
+! 	{ "aes192-ctr",		SSH_CIPHER_SSH2, 16, 24, 0, 0, evp_aes_128_ctr },
+! 	{ "aes256-ctr",		SSH_CIPHER_SSH2, 16, 32, 0, 0, evp_aes_128_ctr },
+  #ifdef USE_CIPHER_ACSS
+! 	{ "acss@openssh.org",	SSH_CIPHER_SSH2, 16, 5, 0, 0, EVP_acss },
+  #endif
+! 	{ NULL,			SSH_CIPHER_INVALID, 0, 0, 0, 0, NULL }
+  };
+  
+  /*--*/
+--- 64,100 ----
+  	u_int	key_len;
+  	u_int	discard_len;
+  	u_int	cbc_mode;
++ 	u_int	aead_mode;
+  	const EVP_CIPHER	*(*evptype)(void);
+  } ciphers[] = {
+! 	{ "none",		SSH_CIPHER_NONE, 8, 0, 0, 0, 0, EVP_enc_null },
+! 	{ "des",		SSH_CIPHER_DES, 8, 8, 0, 1, 0, EVP_des_cbc },
+! 	{ "3des",		SSH_CIPHER_3DES, 8, 16, 0, 1, 0, evp_ssh1_3des },
+! 	{ "blowfish",		SSH_CIPHER_BLOWFISH, 8, 32, 0, 1, 0, evp_ssh1_bf },
+! 
+! 	{ "3des-cbc",		SSH_CIPHER_SSH2, 8, 24, 0, 1, 0, EVP_des_ede3_cbc },
+! 	{ "blowfish-cbc",	SSH_CIPHER_SSH2, 8, 16, 0, 1, 0, EVP_bf_cbc },
+! 	{ "cast128-cbc",	SSH_CIPHER_SSH2, 8, 16, 0, 1, 0, EVP_cast5_cbc },
+! 	{ "arcfour",		SSH_CIPHER_SSH2, 8, 16, 0, 0, 0, EVP_rc4 },
+! 	{ "arcfour128",		SSH_CIPHER_SSH2, 8, 16, 1536, 0, 0, EVP_rc4 },
+! 	{ "arcfour256",		SSH_CIPHER_SSH2, 8, 32, 1536, 0, 0, EVP_rc4 },
+! 	{ "aes128-cbc",		SSH_CIPHER_SSH2, 16, 16, 0, 1, 0, EVP_aes_128_cbc },
+! 	{ "aes192-cbc",		SSH_CIPHER_SSH2, 16, 24, 0, 1, 0, EVP_aes_192_cbc },
+! 	{ "aes256-cbc",		SSH_CIPHER_SSH2, 16, 32, 0, 1, 0, EVP_aes_256_cbc },
+  	{ "rijndael-cbc@lysator.liu.se",
+! 				SSH_CIPHER_SSH2, 16, 32, 0, 1, 0, EVP_aes_256_cbc },
+! 	{ "aes128-ctr",		SSH_CIPHER_SSH2, 16, 16, 0, 0, 0, evp_aes_128_ctr },
+! 	{ "aes192-ctr",		SSH_CIPHER_SSH2, 16, 24, 0, 0, 0, evp_aes_128_ctr },
+! 	{ "aes256-ctr",		SSH_CIPHER_SSH2, 16, 32, 0, 0, 0, evp_aes_128_ctr },
+  #ifdef USE_CIPHER_ACSS
+! 	{ "acss@openssh.org",	SSH_CIPHER_SSH2, 16, 5, 0, 0, 0, EVP_acss },
+  #endif
+! #if	OPENSSL_VERSION_NUMBER >= 0x10001000L
+! 	{ "AEAD_AES_128_GCM",	SSH_CIPHER_SSH2, 16, 16, 0, 0, 1, EVP_aes_128_gcm },
+! 	{ "AEAD_AES_192_GCM",	SSH_CIPHER_SSH2, 16, 24, 0, 0, 1, EVP_aes_192_gcm },
+! 	{ "AEAD_AES_256_GCM",	SSH_CIPHER_SSH2, 16, 32, 0, 0, 1, EVP_aes_256_gcm },
+! #endif
+! 	{ NULL,			SSH_CIPHER_INVALID, 0, 0, 0, 0, 0, NULL }
+  };
+  
+  /*--*/
+***************
+*** 118,123 ****
+--- 124,135 ----
+  }
+  
+  u_int
++ cipher_is_aead(const Cipher *c)
++ {
++ 	return (c->aead_mode);
++ }
++ 
++ u_int
+  cipher_mask_ssh1(int client)
+  {
+  	u_int mask = 0;
+***************
+*** 259,264 ****
+--- 271,278 ----
+  	if (EVP_CipherInit(&cc->evp, NULL, (u_char *)key, NULL, -1) == 0)
+  		fatal("cipher_init: EVP_CipherInit: set key failed for %s",
+  		    cipher->name);
++ 	if ( cipher->aead_mode && iv != NULL )
++ 		EVP_CIPHER_CTX_ctrl(&cc->evp, EVP_CTRL_GCM_SET_IV_FIXED, -1, (void *)iv);
+  #endif
+  
+  	if (cipher->discard_len > 0) {
+***************
+*** 276,284 ****
+  void
+  cipher_crypt(CipherContext *cc, u_char *dest, const u_char *src, u_int len)
+  {
+  	if (len % cc->cipher->block_size)
+  		fatal("cipher_encrypt: bad plaintext length %d", len);
+! 	if (EVP_Cipher(&cc->evp, dest, (u_char *)src, len) == 0)
+  		fatal("evp_crypt: EVP_Cipher failed");
+  }
+  
+--- 290,337 ----
+  void
+  cipher_crypt(CipherContext *cc, u_char *dest, const u_char *src, u_int len)
+  {
++ 	u_char iv[16];
++ 
+  	if (len % cc->cipher->block_size)
+  		fatal("cipher_encrypt: bad plaintext length %d", len);
+! 
+! 	if (cc->cipher->aead_mode) {
+! 		if (cc->evp.encrypt) {
+! 			if ( len < 4 )
+! 				fatal("cipher_encrypt: bad plaintext length %d", len);
+! 			EVP_CIPHER_CTX_ctrl(&cc->evp, EVP_CTRL_GCM_IV_GEN, 12, iv);
+! 			// AAD uint32 = 0 ?
+! 			if ( EVP_Cipher(&cc->evp, NULL, src, 4) < 0 )
+! 				fatal("evp_crypt: EVP_Cipher failed");
+! 			memcpy(dest, src, 4);	// Packet Length not encrypt !!
+! 			dest += 4;
+! 			src += 4;
+! 			len -= 4;
+! 			if ( EVP_Cipher(&cc->evp, dest, src, len) != (int)len )
+! 				fatal("evp_crypt: EVP_Cipher failed");
+! 			if ( EVP_Cipher(&cc->evp, NULL, NULL, 0) < 0 )
+! 				fatal("evp_crypt: EVP_Cipher failed");
+! 			EVP_CIPHER_CTX_ctrl(&cc->evp, EVP_CTRL_GCM_GET_TAG, 16, dest + len);
+! 
+! 		} else {
+! 			if ( (len -= 16) < 4 )
+! 				fatal("cipher_encrypt: bad plaintext length %d", len);
+! 			EVP_CIPHER_CTX_ctrl(&cc->evp, EVP_CTRL_GCM_IV_GEN, 12, iv);
+! 			EVP_CIPHER_CTX_ctrl(&cc->evp, EVP_CTRL_GCM_SET_TAG, 16, (void *)(src + len));
+! 			// AAD uint32 = 0 ?
+! 			if ( EVP_Cipher(&cc->evp, NULL, src, 4) < 0 )
+! 				fatal("evp_crypt: EVP_Cipher failed");
+! 			memcpy(dest, src, 4);	// Packet Length not dencrypt !!
+! 			dest += 4;
+! 			src += 4;
+! 			len -= 4;
+! 			if ( EVP_Cipher(&cc->evp, dest, src, len) != (int)len )
+! 				fatal("evp_crypt: EVP_Cipher failed");
+! 			if ( EVP_Cipher(&cc->evp, NULL, NULL, 0) < 0 )
+! 				fatal("evp_crypt: EVP_Cipher failed");
+! 		}
+! 
+! 	} else if (EVP_Cipher(&cc->evp, dest, (u_char *)src, len) == 0)
+  		fatal("evp_crypt: EVP_Cipher failed");
+  }
+  
+***************
+*** 343,349 ****
+  		evplen = EVP_CIPHER_CTX_iv_length(&cc->evp);
+  		if (evplen <= 0)
+  			return;
+! 		if ((u_int)evplen != len)
+  			fatal("%s: wrong iv length %d != %d", __func__,
+  			    evplen, len);
+  #ifdef USE_BUILTIN_RIJNDAEL
+--- 396,402 ----
+  		evplen = EVP_CIPHER_CTX_iv_length(&cc->evp);
+  		if (evplen <= 0)
+  			return;
+! 		if (!c->aead_mode && (u_int)evplen != len)
+  			fatal("%s: wrong iv length %d != %d", __func__,
+  			    evplen, len);
+  #ifdef USE_BUILTIN_RIJNDAEL
+diff -cr openssh-5.9p1/cipher.h openssh-5.9p1-gcm/cipher.h
+*** openssh-5.9p1/cipher.h	2009-01-28 14:38:41.000000000 +0900
+--- openssh-5.9p1-gcm/cipher.h	2012-03-20 08:46:18.000000000 +0900
+***************
+*** 82,87 ****
+--- 82,88 ----
+  u_int	 cipher_blocksize(const Cipher *);
+  u_int	 cipher_keylen(const Cipher *);
+  u_int	 cipher_is_cbc(const Cipher *);
++ u_int    cipher_is_aead(const Cipher *);
+  
+  u_int	 cipher_get_number(const Cipher *);
+  void	 cipher_get_keyiv(CipherContext *, u_char *, u_int);
+diff -cr openssh-5.9p1/kex.c openssh-5.9p1-gcm/kex.c
+*** openssh-5.9p1/kex.c	2010-09-24 21:11:14.000000000 +0900
+--- openssh-5.9p1-gcm/kex.c	2012-03-20 12:59:44.000000000 +0900
+***************
+*** 439,445 ****
+  		nmac  = ctos ? PROPOSAL_MAC_ALGS_CTOS  : PROPOSAL_MAC_ALGS_STOC;
+  		ncomp = ctos ? PROPOSAL_COMP_ALGS_CTOS : PROPOSAL_COMP_ALGS_STOC;
+  		choose_enc (&newkeys->enc,  cprop[nenc],  sprop[nenc]);
+! 		choose_mac (&newkeys->mac,  cprop[nmac],  sprop[nmac]);
+  		choose_comp(&newkeys->comp, cprop[ncomp], sprop[ncomp]);
+  		debug("kex: %s %s %s %s",
+  		    ctos ? "client->server" : "server->client",
+--- 439,449 ----
+  		nmac  = ctos ? PROPOSAL_MAC_ALGS_CTOS  : PROPOSAL_MAC_ALGS_STOC;
+  		ncomp = ctos ? PROPOSAL_COMP_ALGS_CTOS : PROPOSAL_COMP_ALGS_STOC;
+  		choose_enc (&newkeys->enc,  cprop[nenc],  sprop[nenc]);
+! 		if ( newkeys->enc.cipher != NULL && 
+! 		    cipher_is_aead(newkeys->enc.cipher) )
+! 			choose_mac (&newkeys->mac, newkeys->enc.name, sprop[nmac]);
+! 		else
+! 			choose_mac (&newkeys->mac,  cprop[nmac],  sprop[nmac]);
+  		choose_comp(&newkeys->comp, cprop[ncomp], sprop[ncomp]);
+  		debug("kex: %s %s %s %s",
+  		    ctos ? "client->server" : "server->client",
+diff -cr openssh-5.9p1/mac.c openssh-5.9p1-gcm/mac.c
+*** openssh-5.9p1/mac.c	2011-08-17 09:29:03.000000000 +0900
+--- openssh-5.9p1-gcm/mac.c	2012-03-20 08:47:51.000000000 +0900
+***************
+*** 46,51 ****
+--- 46,52 ----
+  
+  #define SSH_EVP		1	/* OpenSSL EVP-based MAC */
+  #define SSH_UMAC	2	/* UMAC (not integrated with OpenSSL) */
++ #define SSH_AEAD	3	/* AEAD Dummy MAC */
+  
+  struct {
+  	char		*name;
+***************
+*** 68,73 ****
+--- 69,79 ----
+  	{ "hmac-ripemd160",		SSH_EVP, EVP_ripemd160, 0, -1, -1 },
+  	{ "hmac-ripemd160@openssh.com",	SSH_EVP, EVP_ripemd160, 0, -1, -1 },
+  	{ "umac-64@openssh.com",	SSH_UMAC, NULL, 0, 128, 64 },
++ #if	OPENSSL_VERSION_NUMBER >= 0x10001000L
++ 	{ "AEAD_AES_128_GCM",		SSH_AEAD, NULL, 0, -1, -1 },
++ 	{ "AEAD_AES_192_GCM",		SSH_AEAD, NULL, 0, -1, -1 },
++ 	{ "AEAD_AES_256_GCM",		SSH_AEAD, NULL, 0, -1, -1 },
++ #endif
+  	{ NULL,				0, NULL, 0, -1, -1 }
+  };
+  
+***************
+*** 81,86 ****
+--- 87,95 ----
+  		if ((evp_len = EVP_MD_size(mac->evp_md)) <= 0)
+  			fatal("mac %s len %d", mac->name, evp_len);
+  		mac->key_len = mac->mac_len = (u_int)evp_len;
++ 	} else if (mac->type == SSH_AEAD) {
++ 		mac->evp_md = NULL;
++ 		mac->key_len = mac->mac_len = 0;
+  	} else {
+  		mac->mac_len = macs[which].len / 8;
+  		mac->key_len = macs[which].key_len / 8;
+***************
+*** 121,126 ****
+--- 130,136 ----
+  	case SSH_UMAC:
+  		mac->umac_ctx = umac_new(mac->key);
+  		return 0;
++ 	case SSH_AEAD:
+  	default:
+  		return -1;
+  	}
+***************
+*** 150,155 ****
+--- 160,168 ----
+  		umac_update(mac->umac_ctx, data, datalen);
+  		umac_final(mac->umac_ctx, m, nonce);
+  		break;
++ 	case SSH_AEAD:
++ 		memset(m, 0, sizeof(m));
++ 		break;
+  	default:
+  		fatal("mac_compute: unknown MAC type");
+  	}
+diff -cr openssh-5.9p1/myproposal.h openssh-5.9p1-gcm/myproposal.h
+*** openssh-5.9p1/myproposal.h	2011-08-17 09:29:03.000000000 +0900
+--- openssh-5.9p1-gcm/myproposal.h	2012-03-20 08:50:25.000000000 +0900
+***************
+*** 70,80 ****
+--- 70,88 ----
+  	"ssh-rsa," \
+  	"ssh-dss"
+  
++ #if	OPENSSL_VERSION_NUMBER >= 0x10001000L
++   #define AEAD_METHODS "AEAD_AES_128_GCM,AEAD_AES_256_GCM,"
++ #else
++   #define AEAD_METHODS
++ #endif
++ 
+  #define	KEX_DEFAULT_ENCRYPT \
+  	"aes128-ctr,aes192-ctr,aes256-ctr," \
++ 	AEAD_METHODS \
+  	"arcfour256,arcfour128," \
+  	"aes128-cbc,3des-cbc,blowfish-cbc,cast128-cbc," \
+  	"aes192-cbc,aes256-cbc,arcfour,rijndael-cbc@lysator.liu.se"
++ 
+  #ifdef HAVE_EVP_SHA256
+  #define	SHA2_HMAC_MODES \
+  	"hmac-sha2-256," \
+***************
+*** 89,94 ****
+--- 97,103 ----
+  	"hmac-sha1," \
+  	"umac-64@openssh.com," \
+  	SHA2_HMAC_MODES \
++ 	AEAD_METHODS \
+  	"hmac-ripemd160," \
+  	"hmac-ripemd160@openssh.com," \
+  	"hmac-sha1-96," \
+diff -cr openssh-5.9p1/packet.c openssh-5.9p1-gcm/packet.c
+*** openssh-5.9p1/packet.c	2011-05-15 07:58:15.000000000 +0900
+--- openssh-5.9p1-gcm/packet.c	2012-03-20 08:53:17.000000000 +0900
+***************
+*** 934,940 ****
+  	}
+  	/* encrypt packet and append to output buffer. */
+  	cp = buffer_append_space(&active_state->output,
+! 	    buffer_len(&active_state->outgoing_packet));
+  	cipher_crypt(&active_state->send_context, cp,
+  	    buffer_ptr(&active_state->outgoing_packet),
+  	    buffer_len(&active_state->outgoing_packet));
+--- 934,941 ----
+  	}
+  	/* encrypt packet and append to output buffer. */
+  	cp = buffer_append_space(&active_state->output,
+! 	    buffer_len(&active_state->outgoing_packet) +
+! 		(cipher_is_aead(active_state->send_context.cipher) ? 16 : 0));
+  	cipher_crypt(&active_state->send_context, cp,
+  	    buffer_ptr(&active_state->outgoing_packet),
+  	    buffer_len(&active_state->outgoing_packet));
+***************
+*** 1252,1257 ****
+--- 1253,1280 ----
+  	maclen = mac && mac->enabled ? mac->mac_len : 0;
+  	block_size = enc ? enc->block_size : 8;
+  
++     if(cipher_is_aead(active_state->receive_context.cipher)) {
++ 	if (active_state->packlen == 0) {
++ 		if (buffer_len(&active_state->input) < 4)
++ 			return SSH_MSG_NONE;
++ 		active_state->packlen = get_u32(buffer_ptr(&active_state->input));
++ 		if (active_state->packlen < 1 + 4 ||
++ 		    active_state->packlen > PACKET_MAX_SIZE) {
++ 			logit("Bad packet length %u.", active_state->packlen);
++ 			packet_start_discard(enc, mac, active_state->packlen,
++ 			    PACKET_MAX_SIZE);
++ 			return SSH_MSG_NONE;
++ 		}
++ 	}
++ 	need = 4 + active_state->packlen;
++ 	if (buffer_len(&active_state->input) < (need + 16))
++ 		return SSH_MSG_NONE;
++ 	cp = buffer_append_space(&active_state->incoming_packet, need);
++ 	cipher_crypt(&active_state->receive_context, cp,
++ 	    buffer_ptr(&active_state->input), need + 16);
++ 	buffer_consume(&active_state->input, need + 16);
++ 
++     } else {
+  	if (active_state->packlen == 0) {
+  		/*
+  		 * check if input size is less than the cipher block size,
+***************
+*** 1325,1330 ****
+--- 1348,1356 ----
+  		DBG(debug("MAC #%d ok", active_state->p_read.seqnr));
+  		buffer_consume(&active_state->input, mac->mac_len);
+  	}
++ 
++     } // active_state->receive_context.cipher.aead_mode
++ 
+  	/* XXX now it's safe to use fatal/packet_disconnect */
+  	if (seqnr_p != NULL)
+  		*seqnr_p = active_state->p_read.seqnr;

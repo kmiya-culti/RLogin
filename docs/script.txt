@@ -1,0 +1,317 @@
+
+//////////////////////////////////////////
+// キーコマンド拡張
+// ALT+S	ウィンドウを分割して同じエントリーで接続
+// ALT+C	接続を閉じてウィンドウ分割も閉じる
+
+function SplitCmd() {
+
+	menu(0, "スプリットウィンドウ", "SplitCmd.Open");
+	menu(1, "スプリットクロース",   "SplitCmd.Close");
+
+	Document.KeyCode.Add('S', 4, "$SCRIPT_MENU1");
+	Document.KeyCode.Add('C', 4, "$SCRIPT_MENU2");
+
+	function Open() {
+		menucall("$PANE_HSPLIT");
+		command("/entry", Document.Entry);
+	}
+	function Close() {
+		menucall("$WINDOW_CLOSE");
+		menucall("$PANE_DELETE");
+	}
+}
+
+//////////////////////////////////////////
+// 指定文字列に色を付ける
+
+function MatStrCol() {
+
+	menu(0, "文字列の着色", "MatDlg");
+
+	for ( n = 0 ; n < 5 ; n++ ) {
+		matstr[n] = getprostr("MatReg" . "Str" . n, "");
+		matcol[n] = getproint("MatReg" . "Col" . n, n + 1);
+		matreg[n] = 0;
+	}
+
+	matnew = 0;
+	MatInit();
+
+	if ( !Document.Connect ) {
+		Document.Open();
+		wait(CONNECT);
+	}
+
+	copen();
+	while ( (a = cgetc()) != EOF ) {
+		if ( matnew == 1 ) {
+			MatInit();
+			matnew = 0;
+		}
+		for ( n = 0 ; n < 5 ; n++ ) {
+			if ( matreg[n] && (b = regchar(a, matreg[n])) ) {
+				for ( i = 0 ; i < length(b[0]) ; i++ ) {
+					c = getchar(b[0]["pos"] + i);
+					c.fc = matcol[n];
+					setchar(c, b[0]["pos"] + i);
+				}
+			}
+		}
+	}
+	cclose();
+
+	MatClose();
+	Document.Destroy();
+}
+
+function MatInit() {
+    for ( n = 0 ; n < 5 ; n++ ) {
+	    if ( matreg[n] ) {
+			regclose(matreg[n]);
+			matreg[n] = 0;
+		}
+	    if ( matstr[n] )
+			matreg[n] = regopen(matstr[n]);
+	}
+}
+
+function MatClose() {
+    for ( n = 0 ; n < 5 ; n++ ) {
+	    if ( matreg[n] )
+			regclose(matreg[n]);
+	}
+}
+
+function MatDlg() {
+	var n;
+	var dlg, id, cl;
+	var result;
+
+	dlg = dialog("文字列マッチ", [ 0, 0, 290, 220 ],
+		[
+			[ "static", [  80,  10, 200, 20 ], "正規表現"	],
+			[ "static", [ 230,  10,  50, 20 ], "カラー"		],
+			[ "button", [  60, 160,  80, 20 ], "OK",			0,	"MatDlg.OnOk"		],
+			[ "button", [ 150, 160,  80, 20 ], "キャンセル",	0,	"MatDlg.OnCancel"	],
+		]
+	);
+
+	for ( n = 0 ; n < 5 ; n++ ) {
+		id[n] = dlg.add("edit", [  10, 30 + n * 25, 200,  20 ], "");
+		cl[n] = dlg.add("list", [ 220, 30 + n * 25,  50, 100 ]);
+	}
+
+	function OnOk() {
+		result = 1;
+		dlg.close();
+	}
+	function OnCancel() {
+		result = 0;
+		dlg.close();
+	}
+
+	dlg.open();
+
+	for ( n = 0 ; n < 5 ; n++ ) {
+		dlg.settext(id[n], matstr[n]);
+		dlg.setlist(cl[n], [ "黒色", "赤色", "緑色", "黄色", "青色", "紫色", "水色", "白色" ]);
+		dlg.setselect(cl[n], matcol[n]);
+	}
+
+	dlg.center();
+	dlg.show(1);
+	dlg.wait();
+
+	if ( result == 0 )
+		return;
+
+	for ( n = 0 ; n < 5 ; n++ ) {
+		matstr[n] = dlg.gettext(id[n]);
+		matcol[n] = dlg.getselect(cl[n]);
+
+		putprostr("MatReg" . "Str" . n, matstr[n]);
+		putproint("MatReg" . "Col" . n, matcol[n]);
+	}
+
+	matnew = 1;
+}
+
+//////////////////////////////////////////
+// アナログ時計
+
+function TekClock() {
+	ox = 2000;
+	oy = 1500;
+	rh = 600;	// 短針
+	rm = 900;	// 長針
+	rs = 950;	// 秒針
+	rt = 200;	// 秒針のびしろ
+	rp = 930;
+
+	tekopen();
+	for ( ; ; ) {
+		tekclear(1);
+		t = getdate(time());
+
+		for ( n = 0 ; n < 60 ; n++ ) {
+			sx = ox + (rp - ((n % 5) == 0 ? 20 : 0)) * sin(2 * PI * n / 60);
+			sy = oy + (rp - ((n % 5) == 0 ? 20 : 0)) * cos(2 * PI * n / 60);
+			ex = ox + (rp + 50) * sin(2 * PI * n / 60);
+			ey = oy + (rp + 50) * cos(2 * PI * n / 60);
+			tekline(ex, ey, sx, sy, 4, 0, 1, 1);
+		}
+
+		sx = ox + rh * sin(2 * PI * (t.hour * 60 + t.min) / 720);
+		sy = oy + rh * cos(2 * PI * (t.hour * 60 + t.min) / 720);
+		tekline(ox, oy, sx, sy, 2, 0, 2, 1);
+
+		sx = ox + rm * sin(2 * PI * (t.min * 60 + t.sec) / 3600);
+		sy = oy + rm * cos(2 * PI * (t.min * 60 + t.sec) / 3600);
+		tekline(ox, oy, sx, sy, 2, 0, 2, 1);
+
+		sx = ox + rs * sin(2 * PI * t.sec / 60);
+		sy = oy + rs * cos(2 * PI * t.sec / 60);
+		ex = ox - rt * sin(2 * PI * t.sec / 60);
+		ey = oy - rt * cos(2 * PI * t.sec / 60);
+		tekline(ex, ey, sx, sy, 1, 0, 1, 1);
+
+		tekflush();
+		sleep(1000);	// 1秒待ち
+	}
+}
+
+//////////////////////////////////////////
+// 複素数アナログ時計
+
+function TekClock2() {
+	ofs = complex(2000, 1500);
+	hou = [ complex(0, 600), complex(40, 0), complex(0, -100), complex(-40, 0), complex(0, 600) ];
+	min = [ complex(0, 900), complex(40, 0), complex(0, -100), complex(-40, 0), complex(0, 900) ];
+	sec = [ complex(0, 920), complex(20, 0), complex(0, -200), complex(-20, 0), complex(0, 920) ];
+	d = -2 * PI;
+
+	tekopen();
+	for ( ; ; ) {
+		tekclear(1);
+		t = getdate(time());
+
+		for ( n = 0 ; n < 60 ; n++ ) {
+			i = d * n / 60;
+			pxy[0] = complex(0, (n % 5) == 0 ? 930 : 950) * complex(cos(i), sin(i)) + ofs;
+			pxy[1] = complex(0, 990) * complex(cos(i), sin(i)) + ofs;
+			tekpoly(pxy, 4, 0, 1, 1);
+		}
+
+		for ( n = 0 ; n < 5 ; n++ ) {
+			i = d * (t.hour * 60 + t.min) / 720;
+			hxy[n] = hou[n] * complex(cos(i), sin(i)) + ofs;
+			i = d * (t.min * 60 + t.sec) / 3600;
+			mxy[n] = min[n] * complex(cos(i), sin(i)) + ofs;
+			i = d * t.sec / 60;
+			sxy[n] = sec[n] * complex(cos(i), sin(i)) + ofs;
+		}
+
+		tekpoly(hxy, 2, 0, 1, 1);
+		tekpoly(mxy, 2, 0, 1, 1);
+		tekpoly(sxy, 1, 0, 1, 1);
+
+		tekflush();
+		sleep(1000);	// 1秒待ち
+	}
+}
+
+//////////////////////////////////////////
+// スピーカーフィルター特性
+
+function TekFeq() {
+
+	menu(0, "ローパスフィルター", "TekFeq");
+
+	// グラフサイズ
+	var ofx = 200;
+	var ofy = 200;
+	var szx = 3700;
+	var szy = 2500;
+
+	dlg = dialog("ローパスフィルター", [ 0, 0, 320, 200 ],
+		[
+			[ "edit",		[ 140,  20, 100, 20 ],	"8"				],
+			[ "edit",		[ 140,  50, 100, 20 ],	"0.68"			],
+			[ "edit",		[ 140,  80, 100, 20 ],	"5.6"			],
+			[ "edit",		[ 140, 100, 100, 20 ],	"90"			],
+
+			[ "static",		[  20,  20, 100, 20 ],	"ウーファー"	],
+			[ "static",		[  20,  50, 100, 20 ],	"コイル"		],
+			[ "static",		[  20,  80, 100, 20 ],	"コンデンサー"	],
+			[ "static",		[  20, 110, 100, 20 ],	"効率"			],
+
+			[ "static",		[ 260,  20,  40, 20 ],	"Ω"			],
+			[ "static",		[ 260,  50,  40, 20 ],	"mH"			],
+			[ "static",		[ 260,  80,  40, 20 ],	"uF"			],
+			[ "static",		[ 260, 100,  40, 20 ],	"dB"			],
+
+			[ "button",		[ 110, 140,  80, 20 ],	"計算",	0, "TekFeq.OnOk" ],
+		]
+	);
+
+	var result = 0;
+
+	function OnOk() {
+		result = 1;
+		dlg.close();
+	}
+
+	dlg.open();
+	dlg.center();
+	dlg.show(1);
+	dlg.wait();
+
+	var h = dlg.gettext(0) * 1.0;				// ウーファー(Ω)
+	var r = dlg.gettext(1) * pow(10, -3);		// コイル(mH)
+	var c = dlg.gettext(2) * pow(10, -6);		// コンデンサー(uF)
+	var v = pow(1.122, dlg.gettext(3));			// 効率(dB)
+	var d = log(1.122);
+
+	tekopen();
+	tekclear();
+	tekbox(ofx, ofy, ofx + szx, ofy + szy, 0, 0, 1);
+	for ( n = 0 ; n < 10 ; n++ ) {
+		sx = n * szx / 10;
+		sy = n * szy / 10;
+		tekline(ofx, ofy + sy, ofx + szx, ofy + sy, 0, 1);
+	}
+
+	for ( f = 10 ; f < 100000 ; f *= 10 ) {
+		for ( i = 0 ; i < 10 ; i++ ) {
+			n = (log10(f + (f * i)) - 1) * 2.5;
+			sx = n * szx / 10;
+			tekline(ofx + sx, ofy, ofx + sx, ofy + szy, 0, 1);
+		}
+	}
+
+	var zh, zr, zc, zx;
+	var xy;
+	reset(xy);
+
+	for ( n = 0 ; n <= 10 ; n += 0.1 ) {
+		f = pow(10, n / 2.5 + 1);
+		u = 2 * PI * f;
+
+  		zh = complex(h, 0);
+		zr = complex(0, u * r);
+		zc = 1 / complex(0, u * c);
+		zx = 1 / (1 / zh + 1 / zc);
+
+		t = v * (zx / (zr + zx));
+		w = (log(cabs(t)) / d - 50) * 2;
+
+		s.x = n * szx / 10  + ofx;
+		s.y = w * szy / 100 + ofy;
+
+		if ( w > 0 )
+			xy[] = s;
+	}
+	tekpoly(xy, 4, 0);
+}
+

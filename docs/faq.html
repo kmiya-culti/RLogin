@@ -1,0 +1,1436 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<META http-equiv="Content-Style-Type" content="text/css">
+<TITLE>RLogin使い方説明</TITLE>
+<STYLE type="text/css">
+<!--
+TD {
+  background-color : #ffffff;
+  font-size : 90%;
+}
+.BOX{
+  background-color : silver;
+}
+-->
+</STYLE>
+</HEAD>
+<BODY bgcolor="#000000" background="/image/bla6b.gif">
+<CENTER>
+<TABLE cellpadding="10" cellspacing="0" bgcolor="#ffffff" width="1300">
+  <TBODY>
+    <TR>
+      <TD>
+      <HR noshade size="0">
+      <P><B><A name="COLSET"></A>5.1 文字色の一括変更</B></P>
+      <HR>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" width="1250">
+        <TBODY>
+          <TR>
+            <TD valign="top" width="600" align="left">メモ帳などのテキストエディタで下記のような文字列を入力します。<BR>
+            <BR>
+            Screen.ColorTable=[[0,0,0],[196,0,0],[0,196,0],[196,196,0],[0,0,196],[196,0,196],
+            [0,196,196],[196,196,196],[128,128,128],[255,0,0],[0,255,0], [255,255,0],[0,0,255],[255,0,255],[0,255,255],[255,255,255]]<BR>
+            <BR>
+            適当なファイル名で保存してサーバー選択ダイアログの変更したいエントリーを右クリックして「ファイルから設定変更」を実行して保存しておいたファイルを読み込みめば設定が変更されます。<BR>
+            <BR>
+            この「ファイルから設定変更」で読み込まれるテキストフォーマットは、同じく右クリックで表示されるポップアップメニューの「ファイルにエクスポート」で保存される設定と同じです。エクスポートは、<BR>
+            すべての設定がファイルに書き込まれますのでメモ帳などで編集、コピーなどして上記文字色の設定以外でも変更が可能です。<BR>
+            <BR>
+            また、「ファイルから設定変更」は、複数のエントリーを選択して実行することも出来ます。</TD>
+            <TD><IMG src="image201.jpg" width="527" height="333" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top" align="left" width="600">バージョン2.18.7より<A href="./#COLOPT">カラーのオプション設定</A>で１６色カラーテーブルを数値編集出来るようにしました。各RGBをダブルクリックすると変更できます。<BR>
+            <BR>
+            また右クリックのポップアップメニューでクリップボードにタブ区切りのテキストでコピーします。Excelなどに貼り付けて編集してからクリップボード経由で貼り付けることもできます。<BR>
+            <BR>
+            <IMG src="image218.jpg" width="525" height="401" border="0"></TD>
+            <TD><IMG src="image217.jpg" width="611" height="511" border="0"><BR>
+            </TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR noshade size="0">
+      <P><B><A name="LOGON"></A>5.2 ログイン手順の自動化</B></P>
+      <HR>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE width="1250" cellpadding="5">
+        <TBODY>
+          <TR>
+            <TD width="600" valign="top">Chat Scriptを設定するとログイン時に実行したいパスワード入力やコマンド実行などを記録して自動化することができます。<BR>
+            <BR>
+            このChat Scriptと<A href="./#SCRIPT">スクリプトのオプション設定</A>の<A href="script.html">スクリプト</A>は、まったくの別物です。スクリプトは、プログラミング的な要素が非常に強い言語ですのでログインなどの自動化では、あまりお勧め出来ません。Chat
+            Scriptは、指定した文字列を待って文字列を送信するだけに絞っていますが単純なログインなどの手順では、有効です。また、自動作成機能で最初にキー入力を覚えさせるだけで自動化することが出来ますのでプログラミングの知識も不要です。</TD>
+            <TD><IMG src="image210.jpg" width="567" height="484" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top" width="600"><A href="index.html#CHATSCRIPT">チャットスクリプトの設定</A>の「次回接続時にChatScriptを自動で作成する」にチェックして接続し自動化したい手順でキー入力を行ってください。その時にプロンプトになる文字列を表示しながらキー入力を記録しChat
+            Scriptダイアログの「終了」をクリックまでの手順が自動で実行されるようになります。<BR>
+            <BR>
+            <IMG src="image202.jpg" width="409" height="163" border="0"></TD>
+            <TD><IMG src="image203.jpg" width="529" height="403" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top" width="600">接続を終了して再度Chat Scriptダイアログを表示すると初回のログイン手順が表示され右クリックでのポップアップメニューにて「すべてクリップボードへコピー」を選択すると下記のようなテキストがコピーされますのでメモ帳などで再編集することが可能です。<BR>
+            <BR>
+            if &quot;Password:&quot; then &quot;%P\r&quot;<BR>
+            fi<BR>
+            <BR>
+            記録された受信文字列は、正規表現に見合うように変換され送信文字列も「送信文字列の特殊文字」に一致した場合には、変換されます。上記の&quot;%P&quot;は、<A href="index.html#SERVEROPT">サーバーのオプション設定</A>のPasswordと一致した為に自動で変換された特殊文字です。<BR>
+            <BR>
+            このChat Scriptは、ログイン手順以外でもプロンプトと文字入力を記録するだけですので踏み台サーバー経由の単純なリレーログインも自動化することが可能です。<BR>
+            <PRE>if &quot;hoge&lt;[0-9]+&gt;&quot; then &quot;telnet localhost\r&quot;
+  if &quot;User \(hoge): &quot; then &quot;hoge\r&quot;
+    if &quot;Password: &quot; then &quot;hoge\r&quot;
+    fi
+  fi
+fi</PRE>
+            </TD>
+            <TD><IMG src="image204.jpg" width="529" height="403" border="0"></TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR>
+      <P><B><A name="C1ABORT"></A>5.3 文字表示が停止する</B></P>
+      <HR>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE width="1250" cellpadding="5">
+        <TBODY>
+          <TR>
+            <TD width="600" valign="top">文字コードがEUCなどの場合にUTF-8やSJISコードを含む文書をcatなどで表示しようとした場合にC1制御文字($80-$9F)が働いて文字表示が停止し画面がフリーズしたようになります。<BR>
+            <BR>
+            これはDCS($90),SOS($98),OSC($9D),PM($9E),APC($9F)が送られてくる文字をデータとしてST($9C)やBEL($07)が来るまでバッファリングしている為です。<BR>
+            <BR>
+            ReGISやSixelなどのグラフィック表示などはDCSとして、RGBによる文字色設定やクリップボードへのアクセスはOSCとして実装されています。また、EUC文字コードではSS2($8E)を半角カタカナ指定などで使用します。<BR>
+            <BR>
+            C1制御文字はESC A-_までの文字で置き換えることが出来ますので使用しない設定も可能です（DCS($90)は「ESC P」など）。その場合は、オプション設定、ターミナル、エスケープシーケンスの「?8454
+            C1制御文字を無視する」をチェックしてください。<BR>
+            <BR>
+            不意にC1制御文字によるバッファリングが行われている場合に一定時間経過すると画面右上に(C)が点滅してそれをクリックするとキャンセルが出来るようにしています。またメニューの表示、リセット、ESCシーケンスリセットでも同様にキャンセルできます。<BR>
+            <BR>
+            ＰＳ．Unix系のcatコマンドは、文書を表示するコマンドでは、ありません。標準出力に出力するフィルターでファイルなどを連結(catenate)する物です。表示するにはmore/less/lvなどを使用します。最近では、文字コードを自動で判別して表示しくれますので便利です。昔ながらの文字コード自動判別ならnkfが有名ですね。</TD>
+            <TD valign="top"><IMG src="image205.jpg" width="531" height="405" border="0"></TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR>
+      <P><B><A name="SHORTCUT"></A>5.4 Ctrl+Vでペースト</B></P>
+      <HR>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE width="1250" cellpadding="5">
+        <TBODY>
+          <TR>
+            <TD width="600" valign="top"><A href="./#KEYOPT">キーボードのオプション設定</A>のキーコード「新規」でKeyCode「V」＋CttをlチェックしてAssginStringにて「$EDIT_PASTE」とするとメニューのショットカットを定義することができます。<BR>
+            <BR>
+            KeyCodeは任意で同時に押すキーは「Shift / Ctrl / Alt」から選んでください。<BR>
+            <BR>
+            <IMG src="image207.jpg" width="347" height="217" border="0"><BR>
+            <BR>
+            <BR>
+            またキーモードとして「App / CKM / VT52」などあります、これはエスケープシーケンスにてキーのモードを変更した場合に発生するキーコードを変えることができます。<BR>
+            <BR>
+            <TABLE cellpadding="3" class="BOX" cellspacing="1">
+              <TBODY>
+                <TR>
+                  <TD align="center">モード</TD>
+                  <TD align="center">ONシーケンス</TD>
+                  <TD align="center">名称</TD>
+                  <TD align="center">OFFシーケンス</TD>
+                  <TD align="center">名称</TD>
+                </TR>
+                <TR>
+                  <TD align="center">App</TD>
+                  <TD>ESC =</TD>
+                  <TD>ESCPAM</TD>
+                  <TD>ESC &gt;</TD>
+                  <TD>DECPNM</TD>
+                </TR>
+                <TR>
+                  <TD align="center">CKM</TD>
+                  <TD>ESC [ ? 1 h</TD>
+                  <TD>DECCKM Set</TD>
+                  <TD>ESC [ ? 1 l</TD>
+                  <TD>DECCKM Reset</TD>
+                </TR>
+                <TR>
+                  <TD align="center">VT52</TD>
+                  <TD>ESC [ ? 2 h</TD>
+                  <TD>DECANM Set</TD>
+                  <TD>ESC [ ? 2 l</TD>
+                  <TD>DECANM Reset</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            <BR>
+            あまりモードを意識する必要は、ありません。それぞれのモードがセットされていても<BR>
+            VT52&lt;CKM&lt;App&lt;Shiftの優先順位で検索してコードを決定しています。<BR>
+            <BR>
+            メニューのショットカットは、「＄」から始まる文字列です。<A href="./#MENU">メニューの説明</A>ですべてのキーワードを記載しています。設定されたショートカットは、メニューにて確認することができます。<BR>
+            <BR>
+            また、予め設定されたショットカットとしてスプリットコマンドのShift+DOWNやCtrl+TABなどがありますが、それらもここで変更することができます。<BR>
+            </TD>
+            <TD valign="top"><IMG src="image206.jpg" width="567" height="484" border="0"></TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR>
+      <P><B><A name="LOGINPROT"></A>5.5 SSH2でのユーザー認証</B></P>
+      <HR>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE width="1250" cellpadding="5">
+        <TBODY>
+          <TR>
+            <TD width="600" valign="top">SSH2のユーザー認証方法としてpublickey/hostbased/password/keyboard-interactiveに対応しています。どの認証方法を許可するかは、サーバー側で決定しますのでクライアントとしては、どの方式を優先的に使用するかを決める必要があります。<BR>
+            <BR>
+            これらのとこは、暗号方式だったり鍵交換、ホスト鍵などについても言えることでサーバーで許可された方式から任意の優先順位でクライアントが選択して使用します。<BR>
+            <BR>
+            RLoginでは、<A href="./#SSHPROTOCOL">暗号方式などの設定</A>でSSHで使用できる暗号、検証、圧縮、鍵交換、ホスト鍵、ログインの優先順位の並び替えが可能です。<BR>
+            <BR>
+            例えばログイン手順の公開鍵認証(publickey)よりパスワード認証(password)を優先したいならpublickeyよりpasswordを上に移動(Shift+↑）させることで設定することが出来ます。<BR>
+            </TD>
+            <TD><IMG src="image208.jpg" width="620" height="547" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">また、passwordとkeyboard-interactiveは、サーバーの実装によって同じように見えますがRLoginは、passwordの場合、事前に設定れたパスワードがあれば自動で挿入しますがkeyboard-interactiveでは、何の入力を要求するかは、サーバー側が任意に決定できる為（パスワードとは限りません）<S>必ずユーザーのキーボード入力を求めます。</S><BR>
+            <BR>
+            <S>keyboard-interactiveの場合は、サーバー設定の画面のPasswordを空白にすると接続前にパスワード入力を求められて入力しても後で無視される結果になりますのでダミーのPasswordを設定しておく必要があるかもしれません。</S><BR>
+            <BR>
+            2.18.4からkeyboad-interactiveの初回には、保存されたPasswordを送信するようにしました。認証に失敗した場合は、再度ユーザーのキーボード入力を求めます。</TD>
+            <TD><IMG src="image209.jpg" width="567" height="484" border="0"></TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR>
+      <P><B><A name="SSHPUBLIC"></A>5.6 SSHでの公開鍵認証</B></P>
+      <HR>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE width="1250" cellpadding="5">
+        <TBODY>
+          <TR>
+            <TD width="600" valign="top">SSHで公開鍵認証を行うには、まず認証鍵を用意する必要がありサーバー管理者が用意される以外は、自分で作成します。<BR>
+            <BR>
+            作成にはssh-keygenやputty、Tera Termなどでファイルとして作成する方法とRLoginが内部で管理する<A href="./#SSHKEYSET">認証キーの設定</A>による方法があります。<BR>
+            <BR>
+            ファイルの場合には、扱えるファイル形式、暗号方式を確認する必要がありますが、<A href="./#SERVEROPT">サーバーのオプション設定</A>の「SSH Identity Key」で直接指定することができます。※ここで注意するのは、指定するファイルは、<FONT color="#ff0000">秘密鍵を含む認証鍵ファイル</FONT>です。公開鍵ファイルでは、ありません。<BR>
+            <BR>
+            <TABLE width="400" cellpadding="3" class="BOX" cellspacing="1">
+              <TBODY>
+                <TR>
+                  <TD colspan="2">対応している鍵のファイル形式</TD>
+                </TR>
+                <TR>
+                  <TD valign="top">opensslのPEM形式</TD>
+                  <TD>ssh-rsa,ssh-dss<BR>
+                  ecdsa-sha2-*</TD>
+                </TR>
+                <TR>
+                  <TD valign="top">openssh独自形式</TD>
+                  <TD>ssh-rsa,ssh-dss<BR>
+                  ecdsa-sha2-*<BR>
+                  ssh-ed25519</TD>
+                </TR>
+                <TR>
+                  <TD valign="top">ssh.com</TD>
+                  <TD>ssh-rsa,ssh-dss</TD>
+                </TR>
+                <TR>
+                  <TD valign="top">putty</TD>
+                  <TD>ssh-rsa,ssh-dss</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            <BR>
+            RLoginが内部で管理する場合は、<FONT color="#ff0000">認証キーリストでチェックするだけ</FONT>でそのエントリーで複数の使用・不使用が選択できアクセストライ（上へ・下へで移動）も任意の順位で指定できます。<BR>
+            ※内部で管理している鍵をファイルにエクスポートして「SSH Identity Key」で指定する必要はありません。二重に指定することになるだけです。<BR>
+            <BR>
+            また、認証鍵もファイルからインポート（読み込み）や新規作成してすべてのエントリーで共通に管理することができます。認証鍵をレジストリやプライベートプロファイルに保存しますので注意が必要かもしれませんが、パスコードによる保護は、ファイルと同じです。<BR>
+            <BR>
+            新規作成する場合の暗号方式ですが、RSA/DSA/ECDSA/ED25519から選択し、さらに各種方式の暗号強度を示すビットサイズを選択します。<BR>
+            <BR>
+            <TABLE cellpadding="3" cellspacing="1" class="BOX">
+              <TBODY>
+                <TR>
+                  <TD></TD>
+                  <TD width="30" align="center">-</TD>
+                  <TD align="center" width="30">256</TD>
+                  <TD align="center" width="30">384</TD>
+                  <TD align="center" width="30">521</TD>
+                  <TD align="center" width="30">768</TD>
+                  <TD align="center" width="30">1024</TD>
+                  <TD align="center" width="30">2048</TD>
+                  <TD align="center" width="30">4096</TD>
+                  <TD align="center" width="30">8192</TD>
+                </TR>
+                <TR>
+                  <TD>RSA1/2</TD>
+                  <TD align="center">-</TD>
+                  <TD align="center">-</TD>
+                  <TD align="center">-</TD>
+                  <TD align="center">-</TD>
+                  <TD align="center">△</TD>
+                  <TD align="center">○</TD>
+                  <TD align="center">◎</TD>
+                  <TD align="center">○</TD>
+                  <TD align="center">△</TD>
+                </TR>
+                <TR>
+                  <TD>DSA2</TD>
+                  <TD align="center">-</TD>
+                  <TD align="center">-</TD>
+                  <TD align="center">-</TD>
+                  <TD align="center">-</TD>
+                  <TD align="center">△</TD>
+                  <TD align="center">△</TD>
+                  <TD align="center">×</TD>
+                  <TD align="center">×</TD>
+                  <TD align="center">×</TD>
+                </TR>
+                <TR>
+                  <TD>ECDSA</TD>
+                  <TD align="center">-</TD>
+                  <TD align="center">◎</TD>
+                  <TD align="center">◎</TD>
+                  <TD align="center">○</TD>
+                  <TD align="center">-</TD>
+                  <TD align="center">-</TD>
+                  <TD align="center">-</TD>
+                  <TD align="center">-</TD>
+                  <TD align="center">-</TD>
+                </TR>
+                <TR>
+                  <TD>ED25519</TD>
+                  <TD align="center">◎</TD>
+                  <TD align="center">-</TD>
+                  <TD align="center">-</TD>
+                  <TD align="center">-</TD>
+                  <TD align="center">-</TD>
+                  <TD align="center">-</TD>
+                  <TD align="center">-</TD>
+                  <TD align="center">-</TD>
+                  <TD align="center">-</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            <BR>
+            まず暗号方式では、古いサーバーや互換性を考えるならRSAの2048ビットあたりが無難ですが暗号強度的に不満がありRSAの4096/8192なら計算速度的に不満があります。もしサーバーがopenssh-5.7以上ならECDSAの256ビット、openssh-6.5以上ならED25519が最近の暗号方式なので安全かもしれません。DSAは、互換性や暗号強度を考えると使用しないほうが無難です。<BR>
+            （追記：DSAは、openssh-7.0以降デフォルトで使用出来ません）<BR>
+            <BR>
+            RLoginで管理するならED25519&gt;ECDSA-256&gt;RSA-2048の３つを作成してアクセストライさせれば古いサーバーでもどれかで認証せるような設定が可能です。<BR>
+            <BR>
+            認証鍵が用意できれば次にそのペアとなる公開鍵をサーバー側の自分のホームにある設定ファイル「~/.ssh/authorized_keys」に新規・追加する必要があります。<BR>
+            <BR>
+            外部ファイルの場合は公開鍵ファイルの内容を設定します。<BR>
+            <BR>
+            cat id_rsa.pub &gt;&gt;~/.ssh/authorized_keys<BR>
+            <BR>
+            RLogin内部の場合は認証キーリストのキーを選択して「公開鍵」をクリックしクリップボードに公開鍵を転送してから<BR>
+            <BR>
+            cat &gt;&gt;~/.ssh/authorized_keys<BR>
+            「メニュー」「編集」「貼り付け」をしてEnter(改行)CTRL+D(eof)で設定します。<BR>
+            <BR>
+            ※authorized_keysファイルを新規作成する場合には、&quot;chmod 600 authorized_keys&quot;などでアクセスパーミッションを設定しないとサーバー側で怒られるかもしれません。(.sshディレクトリーも同様に&quot;chmod
+            755 .ssh&quot;などのgw/ow属性のオフがsshサーバーで確認されます）<BR>
+            <BR>
+            ※また、場合によっては、サーバー側のsshd_configの内容変更してパスワードログインなどを禁止する設定（PasswordAuthentication
+            no）をしたほうが無難です。<BR>
+            <BR>
+            ※自分がどのような方法で接続しているかの確認は、「メニュー」「表示」「ソケットステータス」で確認することができます。<BR>
+            <BR>
+            Kexs: ecdh-sha2-nistp521<BR>
+            Encode: zlib + aes256-ctr + hmac-sha2-512-etm@openssh.com<BR>
+            Decode: zlib + aes256-ctr + hmac-sha2-512-etm@openssh.com<BR>
+            UserAuth: publickey ecdsa-sha2-nistp256<BR>
+            </TD>
+            <TD valign="top"><IMG src="image219.jpg" width="459" height="445" border="0"><BR>
+            <IMG src="image220.jpg" width="469" height="193" border="0"></TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR>
+      <P><B><A name="DIALOGFONT"></A>5.7 ダイアログフォントを変更する</B></P>
+      <HR>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE width="1250" cellpadding="5">
+        <TBODY>
+          <TR>
+            <TD width="600" valign="top">バージョン2.18.5からオプション設定などのダイアログで使用するフォントとサイズを変更できるようにしてみました。[メニュー][ヘルプ][ダイアログフォントの設定]<BR>
+            <BR>
+            現在の設定では、WindowsXPを意識して「MS UI Gothic」の9ポイントを採用しています<BR>
+            <BR>
+            <IMG src="image214.jpg" width="381" height="159" border="0"></TD>
+            <TD><IMG src="image211.jpg" width="611" height="511" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top" width="600">Windows2000時代の名残なら「ＭＳ Ｐゴシック」の9ポイントが良いかもしれません。<BR>
+            <BR>
+            ※2.18.3以前の、標準の設定です</TD>
+            <TD><IMG src="image212.jpg" width="611" height="511" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top" width="600">Windows7以降なら「Meiryo UI」の8ポイントを選択したら今時かもしれません・・・<BR>
+            <BR>
+            ※2.18.3以前のバージョンでWindows8や10のプレビューでオプション設定などの表示が縦長なのが気持ち悪いので調べてみた結果、自前で設定出来るようにするのが良いなと思い実装してみました・・・</TD>
+            <TD><IMG src="image213.jpg" width="611" height="589" border="0"></TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR>
+      <P><B><A name="TERM"></A>5.8 TERM環境変数の設定</B></P>
+      <HR>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE width="1250" cellpadding="5">
+        <TBODY>
+          <TR>
+            <TD width="600" valign="top">rlogin/telnet/sshでは、TERM環境変数をクライアントで設定してコンソールの動作を決める必要があります。このTERM環境変数は、サーバー側のtermcap/terminfoにエントリーが設定されている必要があり、歴史的に非常に難解で多数の物があります。<BR>
+            <BR>
+            tmuxやGNU Screen、vimなどで画面の表示が崩れる、おかしな挙動などのほとんど原因は、このTERM環境変数に設定されたtermcap/terminfoのエントリーが実際の端末の動作と合わない設定がされている事が多いものです。さらにキーコードの設定などもtermcap/terminfo内でされておりキー動作がおかしいなどもこのTERM環境変数で起こります。<BR>
+            <BR>
+            RLoginでは、出来るだけxtermの挙動と互換性を持つようにしていますがxterm-colorなどではEUCとの相性が悪い物がありますので注意が必要です（文字バンク1をVT100-GRAPHICに変更してしまう）<BR>
+            <BR>
+            オリジナルの設定も出来るように「Terminal」「TERMCAP」（<A href="./#ENVSET">環境変数の設定</A>）で用意していますが、残念ながらかなり難解でサーバー側で多く設定などもありお勧めできるような物ではありません。しかし完全な動作を望むなら設定するほうがよいかもしれません。<BR>
+            <BR>
+            termcapの場合は・・・<BR>
+            sshd_configにAcceptEnv TERMCAPしてTERMCAP環境変数を送る<BR>
+            <BR>
+            root権限ですべてのユーザーで使用するなら・・・<BR>
+            /etc/termcapを直接編集してcap_mkdbする<BR>
+            <BR>
+            tertminfoの場合は・・・<BR>
+            tic rogin.ti<BR>
+            <BR>
+            などですね・・・<BR>
+            <BR>
+            <BR>
+            デフォルトのRLoginオリジナルのtermcap/terminfoです・・・<BR>
+            <PRE style="font-size : 9pt;">rlogin-color:\
+        :am:ut:xn:km:mi:ms:co#80:it#8:li#24:Co#256:pa#64:bt=\E[Z:bl=^G:\
+        :cr=^M:cs=\E[%i%d;%dr:ct=\E[3g:cl=\E[H\E[2J:cb=\E[1K:ce=\E[K:\
+        :cd=\E[J:ch=\E[%i%dG:cm=\E[%i%d;%dH:do=^J:ho=\E[H:vi=\E[?25l:\
+        :le=^H:ve=\E[?25h:nd=\E[C:up=\E[A:vs=\E[?25h:dc=\E[P:dl=\E[M:\
+        :as=\E(0:SA=\E[?7h:mb=\E[5m:md=\E[1m:ti=\E7\E[?47h:mh=\E[2m:\
+        :im=\E[4h:ZH=\E[3m:mr=\E[7m:mk=\E[8m:so=\E[7m:us=\E[4m:\
+        :ec=\E[%dX:ae=\E(B:RA=\E[?7l:me=\E[m:te=\E[2J\E[?47l\E8:\
+        :ei=\E[4l:ZR=\E[23m:se=\E[27m:ue=\E[24m:\
+        :is=\E[m\E[?7h\E[4l\E&gt;\E7\E[r\E[?1;3;4;6l\E8:al=\E[L:kb=^H:\
+        :kD=\E[3~:kd=\EOB:@7=\E[F:k1=\EOP:k;=\E[21~:F1=\E[23~:\
+        :F2=\E[24~:k2=\EOQ:k3=\EOR:k4=\EOS:k5=\E[15~:k6=\E[17~:\
+        :k7=\E[18~:k8=\E[19~:k9=\E[20~:kh=\E[H:kI=\E[2~:kl=\EOD:\
+        :Km=\E[M:kN=\E[6~:kP=\E[5~:kr=\EOC:ku=\EOA:ke=\E[?1l\E&gt;:\
+        :ks=\E[?1h\E=:op=\E[39;49m:DC=\E[%dP:DL=\E[%dM:DO=\E[%dB:\
+        :IC=\E[%d@:SF=\E[%dS:AL=\E[%dL:LE=\E[%dD:RI=\E[%dC:SR=\E[%dT:\
+        :UP=\E[%dA:r1=\Ec:rc=\E8:cv=\E[%i%dd:sc=\E7:sf=^J:sr=\EM:\
+        :AB=\E[48;5;%dm:AF=\E[38;5;%dm:st=\EH:ta=^I:bs:kn#12:pt:ml=\El:\
+        :mu=\Em:</PRE>
+            <PRE style="font-size : 9pt;">rlogin-color, 
+        am, bce, xenl, km, mir, msgr, cols#80, it#8, lines#24, 
+        colors#256, pairs#64, cbt=\E[Z, bel=^G, cr=^M, 
+        csr=\E[%i%p1%d;%p2%dr, tbc=\E[3g, clear=\E[H\E[2J, 
+        el1=\E[1K, el=\E[K, ed=\E[J, hpa=\E[%i%p1%dG, 
+        cup=\E[%i%p1%d;%p2%dH, cud1=^J, home=\E[H, civis=\E[?25l, 
+        cub1=^H, cnorm=\E[?25h, cuf1=\E[C, cuu1=\E[A, 
+        cvvis=\E[?25h, dch1=\E[P, dl1=\E[M, smacs=\E(0, 
+        smam=\E[?7h, blink=\E[5m, bold=\E[1m, smcup=\E7\E[?47h, 
+        dim=\E[2m, smir=\E[4h, sitm=\E[3m, rev=\E[7m, invis=\E[8m, 
+        smso=\E[7m, smul=\E[4m, ech=\E[%p1%dX, rmacs=\E(B, 
+        rmam=\E[?7l, sgr0=\E[m, rmcup=\E[2J\E[?47l\E8, rmir=\E[4l, 
+        ritm=\E[23m, rmso=\E[27m, rmul=\E[24m, 
+        is2=\E[m\E[?7h\E[4l\E&gt;\E7\E[r\E[?1;3;4;6l\E8, il1=\E[L, 
+        kbs=^H, kdch1=\E[3~, kcud1=\EOB, kend=\E[F, kf1=\EOP, 
+        kf10=\E[21~, kf11=\E[23~, kf12=\E[24~, kf2=\EOQ, kf3=\EOR, 
+        kf4=\EOS, kf5=\E[15~, kf6=\E[17~, kf7=\E[18~, kf8=\E[19~, 
+        kf9=\E[20~, khome=\E[H, kich1=\E[2~, kcub1=\EOD, 
+        kmous=\E[M, knp=\E[6~, kpp=\E[5~, kcuf1=\EOC, kcuu1=\EOA, 
+        rmkx=\E[?1l\E&gt;, smkx=\E[?1h\E=, op=\E[39;49m, 
+        dch=\E[%p1%dP, dl=\E[%p1%dM, cud=\E[%p1%dB, ich=\E[%p1%d@, 
+        indn=\E[%p1%dS, il=\E[%p1%dL, cub=\E[%p1%dD, cuf=\E[%p1%dC, 
+        rin=\E[%p1%dT, cuu=\E[%p1%dA, rs1=\Ec, rc=\E8, 
+        vpa=\E[%i%p1%dd, sc=\E7, ind=^J, ri=\EM, setab=\E[48;5;%p1%dm, 
+        setaf=\E[38;5;%p1%dm, hts=\EH, ht=^I, OTbs, OTkn#12, OTpt, 
+        meml=\El, memu=\Em, </PRE>
+            </TD>
+            <TD valign="top"><IMG src="image215.jpg" width="611" height="511" border="0"><BR>
+            <IMG src="image216.jpg" width="559" height="394" border="0"></TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR>
+      <P><B><A name="FONTSET"></A>5.9 フォントの設定</B></P>
+      <HR>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE width="1250" cellpadding="5">
+        <TBODY>
+          <TR>
+            <TD width="600" valign="top">端末で表示されるフォントを設定する場合、まず<A href="./#SCREENOPT">スクリーンのオプション設定</A>でフォントの大きさを決める方法を選択してからそれぞれの値を設定します。<BR>
+            <BR>
+            <TABLE cellpadding="3" cellspacing="1" class="BOX">
+              <TBODY>
+                <TR>
+                  <TD width="200" valign="top">一行あたりの文字数から<BR>
+                  フォントサイズを決定</TD>
+                  <TD valign="top">フォントサイズが可変で文字数が固定されます。<BR>
+                  ウィンドウサイズを変更するとフォントが拡大・縮小します。<BR>
+                  <BR>
+                  画面サイズの横の文字数を設定できます。（DECCOLSMなどのコントロールコートで制御される文字数も設定できます）昔のパソコンや端末では８０文字固定が多く古いソフトなどでは、８０文字を想定して作られていることが多かったと記憶しています</TD>
+                </TR>
+                <TR>
+                  <TD valign="top">フォントサイズから一行<BR>
+                  あたりの文字数を決定</TD>
+                  <TD valign="top">フォントサイズが固定で文字数が可変されます<BR>
+                  ウィンドウサイズを変更すると文字数が増減します。<BR>
+                  <BR>
+                  縦のサイズをピクセル（画素数）で指定できます。2.19.1から括弧内でポイント換算した値を示すようにしていますが、ポイントでは端数となって整数では、表現できない値となってしまいます。X11が出てきた頃のxterm/ktermで画面の文字数が可変になったころ以降では、この設定が多いように思います。</TD>
+                </TR>
+                <TR>
+                  <TD valign="top">フォントの縦横比を変更する<BR>
+                  （標準2.0)</TD>
+                  <TD valign="top">漢字などの場合、全角は、半角の倍の横サイズで表し全角は、縦横同じサイズ（昔の日本製パソコンは、そうですね）とした場合に半角は、横サイズの2倍が縦サイズで表すことになります。欧文フォントの場合には、そんな考えが無いので1.4や1.6などの場合があります。</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+            <TD><IMG src="image022.jpg" width="611" height="511" border="0" align="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top" width="600">次に<A href="./#CHAROPT">フォントのオプション設定</A>で使用するフォントの種類を設定します。これはISO2022に従った難解な方法で表示されるフォントセットが選択されますが、まずサーバーの仕様に従った文字セットを決定します。古い仕様のサーバーならEUC/SJISが多かったですが、最近ではUTF-8が多いように思います。サーバーのファイル名に使用される文字コードが選択の基本になるでしょう。shellやアプリケーションなどは、LANG環境変数で&quot;ja_JP.eucJP&quot;や&quot;UTF-8&quot;などに設定され利用しています。（接続時のデフォルト文字セットは、<A href="./#SERVEROPT">サーバーのオプション設定</A>で行います）<BR>
+            <BR>
+            文字セットのEUC/SJIS/ASCII/UTF-8を変更するとデフォルトの文字バンクが変更されますがコントロールコードで随時変更されます。このあたりのISO2022については割愛しますが、00-7Fまでの文字コードがGLに割り当てられたG0のフォントセットで80-FFがGRに割り当てられたG1のフォントセットとなります。（この仕組みは７ビットの文字コードで多言語の文字を表す為の物です）<BR>
+            <BR>
+            表示したいフォントを変更するには、その仕組みを理解する必要がありますが、<FONT color="#ff0000">大まかにフォントセットのデフォルトのフォントを設定するだけでそれなりに十分です</FONT>。注意点としては、文字幅が固定のFixedフォントを使用しないと表示が見づらくなります。「MS ゴシック」が固定幅で「MS Pゴシック」がプロポーショナル、可変幅のフォントとなります。<BR>
+            <BR>
+            多言語の表示をしたい場合やASCIIで「＼」が「￥」で表示されるのが気持ち悪い場合は、それぞれのフォントセットのフォントを設定してください。設定の指針としてフォントセットのリストでWindows
+            Charactor Setによる判定を○×で表示しています。Ｘのフォントセットのフォントを設定するするようにすればよいでしょう。ただしCSetがDEFAULTの場合は、判定できません。<BR>
+            <BR>
+            右の表示では、MS ゴシックでは、ARABICを表示できませんが、BALTICは表示できることを示しています。しかしWindowsの機能でARABICの場合は、勝手にフォントを変えて表示することになります。このWindowsの機能は、FontLinkと合わせてデフォルトフォントを欧文フォントなどにした場合やMS　ゴシックでハングルを表示しようと場合にでも自動でフォントが置換されることになります。</TD>
+            <TD valign="top"><IMG src="image221.jpg" width="611" height="511" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top" width="600">各フォントセットの設定内容は、新規に追加するには重要ですが、&quot;Font Face Name&quot;でフォントの変更程度が望ましいと思います。表示の微調整で無理して合わせることも出来ますがあまり好ましい結果にならないことが多いです。しかし欧文フォントと漢字フォントをバランス良く合わせる場合は、漢字フォントをこの表示の微調整のHeight　Zoomを小さくする(80～90%)のが良いと思います。欧文フォントを大きくすると文字種によって正しく表示されないでしょう。また欧文フォントは、比較的大きなベースラインを持っていますのでその場合は、漢字フォントのHeight
+            Offsetを少しつけて(0～10%)調整します。<BR>
+            <BR>
+            Font Face NameやFont選択で重要なのはWindows Character Setによって変化することです。上記でも示しましたがWindowsの機能で判定する基準になるのがWindows
+            Character Setになります。これをDEFAULTにするとどの言語のフォントでも選択可能になりますが、判定ができなくなります。<BR>
+            <BR>
+            また、2.19.2より<A href="./#UNIBLOCK">UNICODEのブロック設定</A>でUTF-8時のUNICODEフォントセットをブロック単位で置換することができます。これも難解な設定ですが細かく表示するフォントを選択するには必要な設定になります。しかし基本的にISO2022の多言語の仕様とUnicode
+            Blockの区分け基準の相性が非常に悪い為、設定が困難です。したがってUnicode Block Fontsetでは、サンプル表示を基準に使用するかどうを自身で判断するようにしています。<BR>
+            <BR>
+            フォントセットのUNICODEエントリーのフォントを&quot;Arial Unicode MS&quot;や&quot;Meiryo UI&quot;など多くの文字に対応したフォントを選択しておいて日本語などの文字をブロックで指定するのが良いと思います。またUnicodeのAタイプ(Ambiguous)で定義された文字の表示幅もサンプル表示で点線で確認することができます。<BR>
+            <BR>
+            SHIFTJISセットの&quot;JIS X 0208-1978&quot;をUnicode Blockに割り当てた例です。<BR>
+            <BR>
+            <TABLE width="550" cellpadding="0" cellspacing="0">
+              <TBODY>
+                <TR>
+                  <TD><FONT size="-1">U+002E80</FONT></TD>
+                  <TD><FONT size="-1">JIS X 0208-1978</FONT></TD>
+                  <TD><FONT size="-1">CJK Radicals Supplement</FONT></TD>
+                </TR>
+                <TR>
+                  <TD><FONT size="-1">U+003000</FONT></TD>
+                  <TD><FONT size="-1">JIS X 0208-1978</FONT></TD>
+                  <TD><FONT size="-1">CJK Symbols and Punctuation</FONT></TD>
+                </TR>
+                <TR>
+                  <TD><FONT size="-1">U+003040</FONT></TD>
+                  <TD><FONT size="-1">JIS X 0208-1978</FONT></TD>
+                  <TD><FONT size="-1">Hiragana</FONT></TD>
+                </TR>
+                <TR>
+                  <TD><FONT size="-1">U+0030A0</FONT></TD>
+                  <TD><FONT size="-1">JIS X 0208-1978</FONT></TD>
+                  <TD><FONT size="-1">Katakana</FONT></TD>
+                </TR>
+                <TR>
+                  <TD><FONT size="-1">U+003190</FONT></TD>
+                  <TD><FONT size="-1">JIS X 0208-1978</FONT></TD>
+                  <TD><FONT size="-1">Kanbun</FONT></TD>
+                </TR>
+                <TR>
+                  <TD><FONT size="-1">U+0031C0</FONT></TD>
+                  <TD><FONT size="-1">JIS X 0208-1978</FONT></TD>
+                  <TD><FONT size="-1">CJK Strokes</FONT></TD>
+                </TR>
+                <TR>
+                  <TD><FONT size="-1">U+0031F0</FONT></TD>
+                  <TD><FONT size="-1">JIS X 0208-1978</FONT></TD>
+                  <TD><FONT size="-1">Katakana Phonetic Extensions</FONT></TD>
+                </TR>
+                <TR>
+                  <TD><FONT size="-1">U+003200</FONT></TD>
+                  <TD><FONT size="-1">JIS X 0208-1978</FONT></TD>
+                  <TD><FONT size="-1">Enclosed CJK Letters and Months</FONT></TD>
+                </TR>
+                <TR>
+                  <TD><FONT size="-1">U+003300</FONT></TD>
+                  <TD><FONT size="-1">JIS X 0208-1978</FONT></TD>
+                  <TD><FONT size="-1">CJK Compatibility</FONT></TD>
+                </TR>
+                <TR>
+                  <TD><FONT size="-1">U+003400</FONT></TD>
+                  <TD><FONT size="-1">JIS X 0208-1978</FONT></TD>
+                  <TD><FONT size="-1">CJK Unified Ideographs Extension A</FONT></TD>
+                </TR>
+                <TR>
+                  <TD><FONT size="-1">U+004E00</FONT></TD>
+                  <TD><FONT size="-1">JIS X 0208-1978</FONT></TD>
+                  <TD><FONT size="-1">CJK Unified Ideographs</FONT></TD>
+                </TR>
+                <TR>
+                  <TD><FONT size="-1">U+00F900</FONT></TD>
+                  <TD><FONT size="-1">JIS X 0208-1978</FONT></TD>
+                  <TD><FONT size="-1">CJK Compatibility Ideographs</FONT></TD>
+                </TR>
+                <TR>
+                  <TD><FONT size="-1">U+00FE30</FONT></TD>
+                  <TD><FONT size="-1">JIS X 0208-1978</FONT></TD>
+                  <TD><FONT size="-1">CJK Compatibility Forms</FONT></TD>
+                </TR>
+                <TR>
+                  <TD><FONT size="-1">U+00FE50</FONT></TD>
+                  <TD><FONT size="-1">JIS X 0208-1978</FONT></TD>
+                  <TD><FONT size="-1">Small Form Variants</FONT></TD>
+                </TR>
+                <TR>
+                  <TD><FONT size="-1">U+00FF00</FONT></TD>
+                  <TD><FONT size="-1">JIS X 0208-1978</FONT></TD>
+                  <TD><FONT size="-1">Halfwidth and Fullwidth Forms</FONT></TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+            <TD valign="top"><IMG src="image030.jpg" width="427" height="526" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top" width="600">2.19.3から追加した<A href="./#ISO646">ISO646の文字設定</A>では、デフォルトフォントに日本語フォントを指定した場合にASCIIなどで「￥」が表示されるなどの問題を設定することができます。<BR>
+            <BR>
+            本来ならすべてのフォントセットで適切なフォントを指定すれば変更する必要がないのですが日本語フォントに残る「円記号問題」が表面に出るような設定を抑制することが出来ます。<BR>
+            <BR>
+            現在の使用環境で欧文などは、ISO8859などが設定されてこのISO646が使用される環境が少ないと思いますが日本語では円記号として色濃く問題が残っています。7/14「～」「￣」に関しては、最近では「～」になっているようです。ＭＳ
+            ゴシックなどでは、微妙な上チルダ「～」ですね。<BR>
+            <BR>
+            デフォルトフォントやASCII(ANSI X3.4-1968)/ISO646-USに日本語フォントを指定した場合には5/12、7/14を変更してやる必要があります。5/12の候補としては、U+FF3C,U+2216がバックスラッシュに見えますがU+FF3Cのフルワイド文字は、表示が崩れます。<BR>
+            <BR>
+            またJIS X 0201-Romanでは、7/14をU+203Eにすると古い環境で使用してたアッパーラインで表示するようになります。（古いキーボードは「￣」で、新しいキーボードは「～」ですよね・・・）<BR>
+            <BR>
+            JP/USで指定できそうなUNICODEを下記に示します。<BR>
+            <BR>
+            <TABLE class="BOX" cellpadding="3" cellspacing="1">
+              <TBODY>
+                <TR>
+                  <TD rowspan="2" align="center">5/12</TD>
+                  <TD align="center">JP</TD>
+                  <TD align="center" width="150" valign="top">&yen;<BR>
+                  U+00A5<BR>
+                  <FONT size="-1">YEN SIGN</FONT></TD>
+                  <TD align="center" width="150" valign="top">&#65509;<BR>
+                  U+FFE5<BR>
+                  <FONT size="-1">FULLWIDTH<BR>
+                  YEN SIGN</FONT></TD>
+                  <TD align="center" width="150" valign="top"></TD>
+                </TR>
+                <TR>
+                  <TD align="center">US</TD>
+                  <TD align="center" valign="top">&#8726;<BR>
+                  U+2216<BR>
+                  <FONT size="-1">SET MINUS</FONT></TD>
+                  <TD align="center" valign="top">&#65340;<BR>
+                  U+FF3C<BR>
+                  <FONT size="-1">FULLWIDTH <BR>
+                  REVERSE SOLIDUS</FONT></TD>
+                  <TD align="center" valign="top"><BR>
+                  U+FFFFF<BR>
+                  &quot;/&quot;を鏡面表示<BR>
+                  して代用</TD>
+                </TR>
+                <TR>
+                  <TD rowspan="2" align="center">7/14</TD>
+                  <TD align="center">JP</TD>
+                  <TD align="center" valign="top">&macr;<BR>
+                  U+00AF<BR>
+                  <FONT size="-1">MACRON</FONT></TD>
+                  <TD align="center" valign="top">&#8254;<BR>
+                  U+203E<BR>
+                  <FONT size="-1">OVERLINE</FONT></TD>
+                  <TD align="center" valign="top"></TD>
+                </TR>
+                <TR>
+                  <TD align="center">US</TD>
+                  <TD align="center" valign="top">&#732;<BR>
+                  U+02DC<BR>
+                  <FONT size="-1">SMALL TILDE</FONT></TD>
+                  <TD align="center" valign="top">&#8764;<BR>
+                  U+223C<BR>
+                  <FONT size="-1">TILDE OPERATOR</FONT></TD>
+                  <TD align="center" valign="top">&#65374;<BR>
+                  U+FF5E<BR>
+                  <FONT size="-1">FULLWIDTH TILDE</FONT></TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+            <TD valign="top"><IMG src="image046.jpg" width="399" height="463" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top" width="600"><A href="./#TERMOPT">ターミナルのオプション設定</A>でフォントの関係のオプション一覧です。<BR>
+            <BR>
+            <TABLE cellpadding="3" cellspacing="1" class="BOX">
+              <TBODY>
+                <TR>
+                  <TD colspan="4"><A href="ctrlcode.html#DECOPT">拡張オプション一覧</A>でのフォント関連の設定</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="50">8403</TD>
+                  <TD width="160" align="center">ボールド文字有効<BR>
+                  <IMG src="image224.jpg" width="108" height="20" border="0"></TD>
+                  <TD width="160" align="center">ボールド文字無効<BR>
+                  <IMG src="image225.jpg" width="108" height="20" border="0"></TD>
+                  <TD>SGRで設定する太文字・高輝度を選択します</TD>
+                </TR>
+                <TR>
+                  <TD align="center">8428</TD>
+                  <TD align="center">Aタイプを半角で表示<BR>
+                  <IMG src="image228.jpg" width="75" height="26" border="0"></TD>
+                  <TD align="center">Aタイプを全角で表示<BR>
+                  <IMG src="image226.jpg" width="106" height="25" border="0"></TD>
+                  <TD>UnicodeのAタイプ(Ambiguous)の文字幅を選択します</TD>
+                </TR>
+                <TR>
+                  <TD align="center">8437</TD>
+                  <TD align="center">漢字コードを自動追従</TD>
+                  <TD align="center">漢字コードを変更しない</TD>
+                  <TD>EUC/SJIS/UTF8を自動で追従して変更するようにします</TD>
+                </TR>
+                <TR>
+                  <TD align="center">8449</TD>
+                  <TD align="center">半角の調整をしない<BR>
+                  <IMG src="image227.jpg" width="75" height="26" border="0"></TD>
+                  <TD align="center">半角の調整を行う<BR>
+                  <IMG src="image228.jpg" width="75" height="26" border="0"></TD>
+                  <TD>Fixedフォントで半角に収まらない文字を自動で縮小します</TD>
+                </TR>
+                <TR>
+                  <TD align="center">8451</TD>
+                  <TD align="center">罫線を文字で表示する<BR>
+                  <IMG src="image229.jpg" width="117" height="44" border="0"></TD>
+                  <TD align="center">罫線を線で表示する<BR>
+                  <IMG src="image230.jpg" width="117" height="44" border="0"></TD>
+                  <TD>罫線文字を線描画で表示し正しくつながるようにします</TD>
+                </TR>
+                <TR>
+                  <TD colspan="4">各種オプションでのフォント関連の設定</TD>
+                </TR>
+                <TR>
+                  <TD align="center">462</TD>
+                  <TD align="center">ワード単位で調整<BR>
+                  <IMG src="image222.jpg" width="109" height="17" border="0"></TD>
+                  <TD align="center">文字単位で調整する<BR>
+                  <IMG src="image223.jpg" width="110" height="17" border="0"></TD>
+                  <TD>プロポーショナルフォントの表示方法を選択します</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+            <TD valign="top"><IMG src="image023.jpg" width="611" height="511" border="0"></TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR>
+      <P><B><A name="LOGFILE"></A>5.10 通信ログの設定</B></P>
+      <HR>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE width="1250" cellpadding="5">
+        <TBODY>
+          <TR>
+            <TD width="600" valign="top">通信ログの形式の補足説明です。<BR>
+            <BR>
+            基本的にRAW&lt;CTRL&lt;CHAR&lt;LINE&lt;PAGEの順位で通信ログが見やすくなりますが正しく記録されなくなります。<BR>
+            <BR>
+            2.19.4からLINEをPAGEに変更し、新たにLINEを追加しました。<BR>
+            <BR>
+            <TABLE cellpadding="3" class="BOX" cellspacing="1">
+              <TBODY>
+                <TR>
+                  <TD></TD>
+                  <TD align="center">長所</TD>
+                  <TD align="center">短所</TD>
+                </TR>
+                <TR>
+                  <TD rowspan="2">RAW</TD>
+                  <TD colspan="2">通信した内容をそのままの形で記録します</TD>
+                </TR>
+                <TR>
+                  <TD valign="top">通信ログとしては、最も正確です。受信したデータをそのままログファイルに書き出します。漢字コードも変換しません。</TD>
+                  <TD valign="top">行編集した時の制御コードなどもそのままですので通信ログを参照する時に注意が必要です。（00-1Fのコードが含まれます）</TD>
+                </TR>
+                <TR>
+                  <TD rowspan="2">CTRL</TD>
+                  <TD colspan="2">制御コードを&lt;XX&gt;の形で記録します</TD>
+                </TR>
+                <TR>
+                  <TD valign="top">制御コードを文字列に変換してログが参照しやすくなります。ESCシーケンスなども略号に変換されます。漢字は、指定文字コードに変換されます。</TD>
+                  <TD valign="top">行編集などで非常に長いログになり見づらくなります。</TD>
+                </TR>
+                <TR>
+                  <TD rowspan="2">CHAR</TD>
+                  <TD colspan="2">一部の制御コードと文字を記録します</TD>
+                </TR>
+                <TR>
+                  <TD valign="top">一部の制御コードを文字列に変換してログが参照しやすくなります。漢字は、指定文字コードに変換されます。</TD>
+                  <TD valign="top">行編集の過程が省略されて記録されます。編集した行の結果が正しく記録されません。</TD>
+                </TR>
+                <TR>
+                  <TD rowspan="2">LINE</TD>
+                  <TD colspan="2">行単位で記録します</TD>
+                </TR>
+                <TR>
+                  <TD valign="top">変更された行単位で通信ログに記録されます。制御コードを一切含みません。行編集した結果の文字列が記録されます。漢字は、指定文字コードに変換されます。</TD>
+                  <TD valign="top">行編集の過程が省略されて結果のみ記録されます。カーソル移動などした場合に正しい順位で行が記録されません。また記録されない行があります。</TD>
+                </TR>
+                <TR>
+                  <TD rowspan="2">PAGE</TD>
+                  <TD colspan="2">ヒストリー単位で記録します<BR>
+                  ※2.19.8で追加した<A href="./#TERMOPT">ターミナルのオプション設定</A>8455の「スクロールして消去」を有効すると画面クリアで記録されない問題が解消されます。</TD>
+                </TR>
+                <TR>
+                  <TD valign="top">ヒストリーに溢れた行を通信ログに記録します。結果、ヒストリーと同じ内容でログに書き出します。</TD>
+                  <TD valign="top">すべての編集過程が省略されます。画面クリアなどで記録されない内容が多くなります。</TD>
+                </TR>
+                <TR>
+                  <TD rowspan="2">DEBUG</TD>
+                  <TD colspan="2">送受信のデバッグログを記録します</TD>
+                </TR>
+                <TR>
+                  <TD valign="top">送信・受信を区別してログに記録します。すべての通信データを記録できます。制御コードや漢字コードは、[XX]に変換されます。</TD>
+                  <TD valign="top">非常に助長なログになります。また一部のデバッグ用のログも含みます。</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+            <TD valign="top"><IMG src="image027.jpg" width="611" height="511" border="0"></TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR>
+      <P><B><A name="SPLIT"></A>5.11 ウィンドウの分割</B></P>
+      <HR>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE width="1250" cellpadding="5">
+        <TBODY>
+          <TR>
+            <TD width="600" valign="top">[メニュー][ウィンドウ]で実行される[縦方向に分割][横方向に分割]などは、接続をする前に特定の形に分割して使用します。また次回から同じ分割で使用したいなら[現在の分割を保存]すればその形で起動するようになります。<BR>
+            <BR>
+            この[ウィンドウ][縦・横方向に分割]で作られるウィンドウは、接続を閉じても分割を維持します。またすでに接続中の重なったウィンドウで分割すると空のウィンドウでなく重なったウィンドウを分割します。<BR>
+            <BR>
+            <IMG src="image231.jpg" width="273" height="204" border="0"></TD>
+            <TD valign="top"><IMG src="image232.jpg" width="449" height="307" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top" width="600">例えば３分割された状態で３つを選択して接続するとそれぞれのウィンドウで接続していきます。接続後にタブのドラッグをすればその接続を任意のウィンドウに移動させることができます。また、常にこの状態で起動したいなら[ファイル][すべての状態を保存]し、次回から保存したファイルを選択すれば、その状態で接続して起動します。<BR>
+            <BR>
+            <IMG src="image233.jpg" width="524" height="208" border="0"></TD>
+            <TD valign="top"><IMG src="image234.jpg" width="449" height="307" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top" width="600">[ウィンドウ][スプリットコマンド]の[縦・横方向に分割して接続]などは、後から任意の形に分割してサーバーに接続することを想定しています。これは、[縦・横方向に分割][サーバーに接続]を行い、接続を閉じるとウィンドウの[分割を閉じる]と同じような動作を行います。<BR>
+            <BR>
+            任意の形でその時々に同じサーバーに別ウィンドウで接続しで作業などの用途に適しています。<BR>
+            また、これらの動作は、マウス操作ではなく、ショートカットキーで作業したほうが楽なのでスプリットコマンドには、すべてショートカットをデフォルトで割り当てています。<BR>
+            <BR>
+            <IMG src="image235.jpg" width="365" height="301" border="0"></TD>
+            <TD valign="top"><IMG src="image236.jpg" width="449" height="307" border="0"><BR>
+            スプリットコマンドで上記と見た目に同じ状態で分割した場合には、<BR>
+            ３つめの接続を閉じるとウィンドウも閉じます</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR>
+      <P><B><A name="SCRIPT"></A>5.12 スクリプトのサンプル</B></P>
+      <HR>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE width="1250" cellpadding="5" class="BOX" cellspacing="1">
+        <TBODY>
+          <TR>
+            <TD valign="top" width="600">接続後、特定のコマンドを実行します。<BR>
+            <BR>
+            ポイント：<BR>
+            スクリプトは、接続前から実行されます。接続後の処理を行うには最初の２行が必要です。<BR>
+            文字入力待ちを行うには、sleep(100)で待つより表示が落ち着くwhile ( sgets(100) != &quot;&quot; );で待つ方が無難かもしれません。意味的には文字入力が100msec空くまで待つになります。</TD>
+            <TD valign="top">
+            <PRE style="font-size : 9pt;">Document.Open();
+wait(CONNECT);
+
+sopen(OPEN_LOOK);
+
+while ( sgets(100) != &quot;&quot; );
+sputs(&quot;pwd\r&quot;);
+
+while ( sgets(100) != &quot;&quot; );
+sputs(&quot;ls -la\r&quot;);
+
+while ( sgets(100) != &quot;&quot; );
+sputs(&quot;ps ax\r&quot;);
+
+sclose();</PRE>
+            </TD>
+          </TR>
+          <TR>
+            <TD width="300" valign="top">メニュー「ウィンドウ」の「別ウィンドウを開く」の上に「新規に現在の接続を開く」メニューを追加します。<BR>
+            <BR>
+            別のRLoginを起動して現在の接続をコマンドライン指定で開きます。<BR>
+            <BR>
+            ポイント：<BR>
+            menu関数で任意の位置に新たにメニューを追加できます。<BR>
+            System変数やDocument変数に必要な情報があれば簡単です。<BR>
+            <BR>
+            </TD>
+            <TD valign="top">
+            <PRE style="font-size : 9pt;">menu(0, &quot;新規に現在の接続を開く&quot;, &quot;OtherOpen&quot;, &quot;$WINDOW_NEW&quot;);
+
+function OtherOpen() {
+    shellexec(System.FullPath, Document.CmdLine, System.WorkDir);
+}</PRE>
+            </TD>
+          </TR>
+          <TR>
+            <TD valign="top" width="600">メニュー「ウィンドウ」「スプリットコマンド」「画面分割無しで接続」の上に「画面分割無しで接続して移動」を追加しショートカットキーCtrl+Alt+LEFTを設定します。<BR>
+            <BR>
+            接続中のサーバーに「pwd」コマンドを送ってカレントディレクトリーを取得し「画面分割無しで接続」を実行し新しく開いた接続で「cd」コマンド先に取得したカレントディレクトリーに移動します。<BR>
+            <BR>
+            ポイント：<BR>
+            System変数のグローバル性でトリッキーな動作になります。<BR>
+            menucall関数で任意の動作をスクリプトから呼び出せます。</TD>
+            <TD valign="top">
+            <PRE style="font-size : 9pt;">if ( System.pwd != &quot;&quot; ) {
+    Document.Open();
+    wait(CONNECT);
+    sopen(OPEN_LOOK);
+    while ( sgets(100) != &quot;&quot; );
+    sputs(&quot;cd &quot; . escshell(System.pwd) . &quot;\r&quot;);
+    sclose();
+    System.pwd = &quot;&quot;;
+}
+
+menu(0, &quot;画面分割無しで接続して移動&quot;, &quot;SplitDups&quot;, &quot;$SPLIT_OVER&quot;);
+Document.KeyCode.Add(37, 6, &quot;$SCRIPT_MENU1&quot;);
+
+function SplitDups() {
+    sopen(OPEN_LOOK);
+    sputs(&quot;pwd\r&quot;);
+    sgets(300);
+    System.pwd = trim(sgets(300), &quot;\r\n&quot;);
+    sclose();
+    menucall(&quot;$SPLIT_OVER&quot;);
+}</PRE>
+            </TD>
+          </TR>
+          <TR>
+            <TD valign="top" width="600">メニュー・ファイル・アプリケーションの終了の上に「タスクバーにアイコンで格納」を追加します。<BR>
+            収納後は、アイコンをダブルクリックで元に戻どります。<BR>
+            <BR>
+            sshでポートフォワードのみ行うような接続を常駐させる場合などに使えるかもしれません。<BR>
+            <BR>
+            ポイント：<BR>
+            iconstyleの引数は、任意文字列です。タスクバー上のアイコンにマウスを乗せると表示される文字列になります。サンプルでは、接続のエントリー名を設定しています。<BR>
+            <BR>
+            </TD>
+            <TD valign="top">
+            <PRE style="font-size : 9pt;">function TaskIcon() { iconstyle(Document.Entry); }
+
+menu(0, &quot;タスクバーにアイコンで格納&quot;, &quot;TaskIcon&quot;, &quot;$EXIT&quot;);</PRE>
+            </TD>
+          </TR>
+          <TR>
+            <TD valign="top">接続前にホスト選択ダイアログを表示して接続先を変更する。<BR>
+            <BR>
+            <IMG src="image237.jpg" width="210" height="190" border="0"><BR>
+            <BR>
+            ポイント：<BR>
+            dialog関数のデザインは、面倒ですが上手に使えば美しい？ダイアログが作成できます。</TD>
+            <TD valign="top">
+            <PRE style="font-size : 9pt;">dlg = dialog(&quot;Host Select&quot;, [ 0,0,200,180 ],
+ [
+  [ &quot;radiotop&quot;, [ 30,10,100,20 ], &quot;192.168.1.1&quot; ],
+  [ &quot;radio&quot;, [ 30,30,100,20 ], &quot;192.168.1.2&quot; ],
+  [ &quot;radio&quot;, [ 30,50,100,20 ], &quot;192.168.1.3&quot; ],
+  [ &quot;radio&quot;, [ 30,70,100,20 ], &quot;192.168.1.4&quot; ],
+  [ &quot;button&quot;, [ 50,120,100,20 ], &quot;OK&quot;, 0, &quot;OnClickOk&quot; ],
+ ]
+);
+
+dlg.open();
+dlg.center();
+dlg.show(1);
+dlg.wait();
+
+function OnClickOk(id) {
+  if ( (n = dlg.getradio(0)) &gt;= 0 )
+    Document.Entry.Host = dlg.gettext(n);
+  dlg.close();
+}</PRE>
+            </TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR>
+      <P><B><A name="SSHALGO"></A>5.13 SSH2での各種選択</B></P>
+      <HR>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE width="1250" cellpadding="5">
+        <TBODY>
+          <TR>
+            <TD width="600" valign="top"><A href="./#PROTOPT">プロトコルのオプション設定</A>にある<A href="./#SSHPROTOCOL">暗号方式などの設定</A>にはSSHバージョン２で使用できる多くの設定がありその優先順位が指定できます。各種アルゴリズムについてセキュリティや速度について誠に勝手ながらその指標をつけてみました。<BR>
+            <BR>
+            ※指標が○ばっかりだとややこしさが同じなので◎を付けましたが、無難な選択の１つ程度とお考えください。またopensshのバージョンによってデフォルトで使用できなくなったり追加された物を明記するようにしてみました。<BR>
+            <BR>
+            <TABLE class="BOX" cellpadding="3" cellspacing="1" width="590">
+              <TBODY>
+                <TR>
+                  <TD colspan="3">鍵交換<BR>
+                  ホスト鍵の交換で使用するクライアント鍵の種類と計算桁数に相当するビットサイズおよびハッシュ関数を選択します。ビットサイズは大きければセキュリティが高くなりますが、計算速度が遅くなる傾向にあります。またハッシュ関数のデータサイズもビットサイズと同じように大きければ安心ですが速度が遅くなります。現在ではハッシュ関数のsha1は脆弱さを指摘され推奨されなくなっています。</TD>
+                </TR>
+                <TR>
+                  <TD width="30%">diffie-hellman-group1-sha1</TD>
+                  <TD width="60%">検証する為のビットサイズが小さくハッシュ関数がsha1で推奨されていません。<BR>
+                  ※openssh-6.7から使用不可です。</TD>
+                  <TD align="center" width="10%">×</TD>
+                </TR>
+                <TR>
+                  <TD width="30%">diffie-hellman-group14-sha1</TD>
+                  <TD width="60%">実用的な計算量だと思いますがハッシュ関数がsha1で推奨されていません。</TD>
+                  <TD align="center">△</TD>
+                </TR>
+                <TR>
+                  <TD width="30%">diffie-hellman-group14/16/18-<BR>
+                  sha256/512</TD>
+                  <TD width="60%">上記のsha2版になりビットサイズも選択種が増えた物です。<BR>
+                  ※openssh-7.3より使用可能です</TD>
+                  <TD align="center">○</TD>
+                </TR>
+                <TR>
+                  <TD width="30%">diffie-hellman-group-exchange-sha1</TD>
+                  <TD width="60%">ハッシュ関数のsha1が推奨されていません<BR>
+                  ※openssh-6.7から使用不可です。</TD>
+                  <TD align="center">×</TD>
+                </TR>
+                <TR>
+                  <TD width="30%">diffie-hellman-group-exchange-sha256</TD>
+                  <TD width="60%">暗号方式やパケット検証に使われる方式によりビットサイズが増減し比較的計算量が多いので速度的に不満があります。</TD>
+                  <TD align="center">△</TD>
+                </TR>
+                <TR>
+                  <TD width="30%">ecdh-sha2-nistp256/384/521</TD>
+                  <TD valign="top" width="60%">256/384/521でデータサイズが増えますが計算速度差が少ないように思います。<BR>
+                  ※openssh-5.7より使用可能です。</TD>
+                  <TD align="center">◎</TD>
+                </TR>
+                <TR>
+                  <TD width="30%">curve25519-sha256@libssh.org</TD>
+                  <TD width="60%">最近の方式なのでセキュリティが未知数の部分がありますが署名・検証の計算が非常に速いです。<BR>
+                  ※openssh-6.5より使用可能です。</TD>
+                  <TD align="center">○</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            <BR>
+            <TABLE class="BOX" width="590" cellpadding="5" cellspacing="1">
+              <TBODY>
+                <TR>
+                  <TD colspan="3">ホスト鍵<BR>
+                  サーバー側が持っている複数のホスト鍵からどれを使用するか選択します。<A href="faq.html#SSHPUBLIC">SSHでの公開鍵認証</A>で使用するユーザー鍵と同じだけ種類があります。これは、上記鍵交換にて検証する鍵になりますが、種類やビットサイズにより計算速度がかなり違います。接続からログインまでの時間がホスト鍵とクライアント鍵の署名・検証で決まり、ログイン認証がユーザー鍵の署名・検証の処理時間になります。</TD>
+                </TR>
+                <TR>
+                  <TD width="30%">ssh-dss</TD>
+                  <TD width="60%">現在では、ホスト鍵として使用するのは、まったく推奨されていません。<BR>
+                  ※openssh-7.0から使用不可です。</TD>
+                  <TD align="center" width="10%">×</TD>
+                </TR>
+                <TR>
+                  <TD width="30%">ssh-rsa</TD>
+                  <TD width="60%">ビットサイズが2048以上の物が推奨されているようです。4096以上では計算量が非常に多くなります。</TD>
+                  <TD width="10%" align="center">△</TD>
+                </TR>
+                <TR>
+                  <TD width="30%">rsa-sha2-256/512</TD>
+                  <TD width="60%">署名・検証にするハッシュ関数が拡張された物で鍵自身は、まったく同じです。<BR>
+                  ※openssh-7.3より使用可能です。</TD>
+                  <TD width="10%" align="center">○</TD>
+                </TR>
+                <TR>
+                  <TD width="30%">ecdsa-sha2-256/384/521</TD>
+                  <TD width="60%">比較的最近の方式ですが現在では、多くのサーバーで対応が進んでいると思います。<BR>
+                  ※openssh-5.7より使用可能です。</TD>
+                  <TD width="10%" align="center">◎</TD>
+                </TR>
+                <TR>
+                  <TD width="30%">ssh-ed25519</TD>
+                  <TD width="60%">最近の方式なのでセキュリティが未知数の部分がありますが署名・検証の計算が非常に速いです。<BR>
+                  ※openssh-6.5より使用可能です。</TD>
+                  <TD width="10%" align="center">○</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            <BR>
+            <TABLE class="BOX" width="590" cellpadding="3" cellspacing="1">
+              <TBODY>
+                <TR>
+                  <TD colspan="3">暗号方式<BR>
+                  暗号に用いる方式、計算する時のビットサイズ、符号化方法などさまざまな要因でセキュリティおよび速度が選択できます。速度については<A href="./#SSHPROTOCOL">暗号方式などの設定</A>で記載しています。</TD>
+                </TR>
+                <TR>
+                  <TD width="30%">arcfour/256/512</TD>
+                  <TD width="60%">速度的には、圧倒的に速いですが、脆弱性があるようで推奨されていません。安全性より速度の場合には、有効です。</TD>
+                  <TD align="center" width="10%">△</TD>
+                </TR>
+                <TR>
+                  <TD width="30%">aes128/192/256-ctr</TD>
+                  <TD width="60%">現在では、多くのサーバーで採用されいるようで比較的、速いと思います。とりあえずこれの１つです。</TD>
+                  <TD align="center" width="10%">◎</TD>
+                </TR>
+                <TR>
+                  <TD width="30%">aes128/256-gcm</TD>
+                  <TD width="60%">暗号と検証を１つにしたもので検証を含めると速度的に優位かもしれません。</TD>
+                  <TD align="center" width="10%">○</TD>
+                </TR>
+                <TR>
+                  <TD width="30%">chacha20-poly1305</TD>
+                  <TD width="60%">最近の方式なのでセキュリティが未知数の部分がありますが暗号・検証の計算が非常に速いです。</TD>
+                  <TD align="center" width="10%">○</TD>
+                </TR>
+                <TR>
+                  <TD width="30%">*-cbc</TD>
+                  <TD width="60%">脆弱性があるようで現在は非推奨になっています。</TD>
+                  <TD align="center" width="10%">×</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            <BR>
+            <TABLE class="BOX" width="590" cellpadding="3" cellspacing="1">
+              <TBODY>
+                <TR>
+                  <TD colspan="3">検証方式<BR>
+                  データパケットの検証を行う方式です。あまり計算量の多い物より速度的な優位性で選択するほうが良いように思います。セキュリティの意味合いよりデータの正当性を確かめる為の物だと思います。</TD>
+                </TR>
+                <TR>
+                  <TD width="30%">umac-32/64/96/128</TD>
+                  <TD width="60%">crcで検証する方式で速度的には、非常に優位です。さすがに32ビットは、小さすぎると思いますが・・・</TD>
+                  <TD align="center" width="10%">△</TD>
+                </TR>
+                <TR>
+                  <TD width="30%">hmac-md5</TD>
+                  <TD width="60%">無難な検証方式かもしれません。</TD>
+                  <TD align="center" width="10%">○</TD>
+                </TR>
+                <TR>
+                  <TD width="30%">hmac-sha1</TD>
+                  <TD width="60%">必要十分な速度、サイズと思います。</TD>
+                  <TD align="center" width="10%">◎</TD>
+                </TR>
+                <TR>
+                  <TD width="30%">hmac-sha2-256/512</TD>
+                  <TD width="60%">最も、安全性の高い検証方法だと思いますが、速度的には計算量が多いかもしれません。</TD>
+                  <TD align="center" width="10%">△</TD>
+                </TR>
+                <TR>
+                  <TD width="30%">*-etm@openssh.com</TD>
+                  <TD width="60%">パケットサイズの暗号と含めて検証する方式です。</TD>
+                  <TD align="center" width="10%">○</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+            <TD valign="top"><IMG src="image014.jpg" width="611" height="511" border="0"><BR>
+            <IMG src="image015.jpg" width="630" height="553" border="0"></TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR>
+      <P><B><A name="LCLICK"></A>5.14 マウスによる範囲指定</B></P>
+      <HR>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE width="1250" cellpadding="5">
+        <TBODY>
+          <TR>
+            <TD valign="top" width="600">マウスの左クリック（文字単位）／左ダブルクリック（文字列単位）による範囲指定は、左ボタンを放すまでキーボードのShift（行単位）やCtrl（矩形範囲）との併用などで随時変更するこが出来ます。<BR>
+            <BR>
+            一般的には、マウスのクリック時にShift/Ctrl/Altをチェックして範囲方法を決定することが多いようですが、RLoginではマウスボタンを放した時点で決定しています。</TD>
+            <TD valign="top"><IMG src="image238.jpg" width="586" height="352" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top" width="600">ドラッグ中にCtrlキーを押すと矩形範囲に変更します</TD>
+            <TD valign="top">ドラッグ中にShiftキーを押すと行選択に変更します</TD>
+          </TR>
+          <TR>
+            <TD valign="top" width="600"><IMG src="image239.jpg" width="586" height="352" border="0"></TD>
+            <TD valign="top"><IMG src="image240.jpg" width="586" height="352" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top" width="600"></TD>
+            <TD>マウスをウィンドウ外に移動すると行選択に変更します</TD>
+          </TR>
+          <TR>
+            <TD valign="top" width="600">また、通常のマウスカーソルの形状を変更することも可能です。<BR>
+            <TABLE class="BOX" width="590" cellpadding="3" cellspacing="1">
+              <TBODY>
+                <TR>
+                  <TD colspan="3"><A href="./#MOUSEOPT">マウス関連のオプション設定</A></TD>
+                </TR>
+                <TR>
+                  <TD>452</TD>
+                  <TD>カーソルをIで表示</TD>
+                  <TD>カーソルを通常表示</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+            <TD><IMG src="image241.jpg" width="620" height="353" border="0"></TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR>
+      <P><B><A name="WINVIEW"></A>5.15 外観の設定</B></P>
+      <HR>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE width="1250" cellpadding="5">
+        <TBODY>
+          <TR>
+            <TD width="330" align="left" valign="top">メニューバーやツールバー、タブバー、ステータスバー、スクロールバーなどは、表示・非表示を設定することが出来ます。<BR>
+            <BR>
+            端末のサイズをなるべく大きくしたい場合などは、必要性の低いものを非表示すると良いでしょう。</TD>
+            <TD align="right" valign="top" width="260"><IMG src="image242.jpg" width="224" height="358" border="0"></TD>
+            <TD align="left" valign="top"><IMG src="image243.jpg" width="560" height="293" border="0"></TD>
+          </TR>
+          <TR>
+            <TD width="330" align="left" valign="top">最小限メニューバーがあれば、すべてのコマンドを実行できますが、必要最小限の<A href="./#TOOLBAR">ツールバーをカスタマイズ</A>するのも良いかもしれません。</TD>
+            <TD align="right" valign="top" width="260"><IMG src="image244.jpg" width="224" height="358" border="0"></TD>
+            <TD align="left" valign="top"><IMG src="image245.jpg" width="560" height="293" border="0"><BR>
+            <IMG src="image246.jpg" width="560" height="293" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top" align="left" width="330">メニューバーを非表示にした場合は、タイトルバーのアイコンをクリックしてシステムメニューからメニューバーの表示・非表示を変更することができます。<BR>
+            <BR>
+            また、<A href="./#KEYOPT">キーボードのオプション設定</A>でショートカットでメニューバーの表示・非表示を切り替えたら便利かもしれません。<BR>
+            <BR>
+            以下の例では、Alt+Mでメニューバーを表示・非表示します。</TD>
+            <TD valign="top" align="right" width="260"><IMG src="image247.jpg" width="254" height="204" border="0"></TD>
+            <TD valign="top" align="left" rowspan="2"><IMG src="image248.jpg" width="560" height="293" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top" align="left" colspan="2" width="600"><IMG src="image249.jpg" width="382" height="256" border="0"></TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR>
+      <P><B><A name="SSHCASCADE"></A>5.16 SSHによる多段接続</B></P>
+      <HR>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE width="1250" cellpadding="5">
+        <TBODY>
+          <TR>
+            <TD width="600" valign="top">単純なコマンドラインによる多段接続（ログインしてからsshやtelnetコマンドで別のサーバーに接続）なら<A href="faq.html#LOGON">ログイン手順の自動化</A>で設定するのが簡単ですが<A href="./#PORTFORWARD">ポートフォワードの設定</A>で多段接続した場合は、ローカルネット上のsshサーバーに対してsftpなどが実行できるメリットがあります。（コマンドラインで接続した場合にsftpなどを実行すると踏み台サーバーにアクセスします）<BR>
+            <BR>
+            ※コマンドラインで接続する場合、すべてsshサーバーで公開鍵認証ならserverAの設定で<A href="./#PROTOPT">エージェント転送を有効にする</A>にしておけば認証を簡素化することも出来ます。（ssh -A localBですね）<BR>
+            <BR>
+            ※踏み台となるサーバーでシェルの実行が不用なら<A href="./#PROTOPT">ポートフォワードだけ行う</A>をチェックすればポートフォワードのログが表示されるようになります。</TD>
+            <TD valign="top" align="left"><IMG src="image250.jpg" width="574" height="184" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top" width="600">踏み台となるserverAの設定では、まず通常に接続できる事を確認した上で<A href="./#PORTFORWARD">ポートフォワードの設定</A>を行います。ここで注意するのはエントリー名で任意の名前ですが下記の<FONT color="#ff0000">前接続先で指定するエントリー名</FONT>になります。<BR>
+            <BR>
+            ローカルネット上の複数のサーバーに接続する場合は、下記のようにLocal Socksをlocalhost(RLoginを実行しているパソコン)に2022ポート（番号は任意）で開くのが便利かもしれません。<BR>
+            <BR>
+            ListenedでLocal Socksを指定した場合は、ConnectのHost Name/Portは、意味を持ちません。Socks　Client側で指定されるサーバーに置き換わります<BR>
+            <BR>
+            注意事項としては、ListenedのHost Nameにlocalhost以外のWindowsパソコンのグローバルIPを指定した場合は、RLoginを実行しているパソコンに外部からでもアクセス可能になってしまいます。通常は、ファイアーウォールで禁止されると思いますが注意が必要です。<BR>
+            <BR>
+            <IMG src="image251.jpg" width="375" height="289" border="0"><BR>
+            <BR>
+            ローカルネット上のサーバーが１つの場合(localB or LocalC）には、下記のようにしたほうが簡単ですが、自由度がかなり低くなりあまりお勧めできません。この場合下記のlocalB/Cの設定でProxry
+            Serverの指定が不用でServer Address/Portがlocalhost/2022になります。<BR>
+            <BR>
+            <IMG src="image252.jpg" width="375" height="289" border="0"></TD>
+            <TD valign="top"><IMG src="image253.jpg" width="611" height="511" border="0"><BR>
+            </TD>
+          </TR>
+          <TR>
+            <TD valign="top" width="600">ローカルネット上のlocalB/localCの設定では、Server Addressでローカルネット上の名前を指定します。DNSで名前を解決するのは、serverAが行います。ここで注意するのは、Proxy
+            Serverの設定でSOCKS5を選択することです。SOCK4では、192.168.xxx.xxxなど数値でIPv4の指定しか出来ませんのご注意ください。（SOCK4では、クライアント上のDNSで名前を検索します。これでは、今回のように接続先のローカルネット上の名前は、検索することが出来ません）<BR>
+            <BR>
+            また、タブ／前接続先の下段に<FONT color="#ff0000">先に設定した「serverA」のエントリー名</FONT>を指定すれば、localBに接続するだけで自動的にserverAに接続してからlocalBに接続します。この場合は、別のタブでserverAとlocalBが開きますが、事前にserverAに接続したRLoginを起動させておくと同じRLoginの別タブで開かずに済みます。<BR>
+            <BR>
+            <IMG src="image254.jpg" width="434" height="403" border="0"></TD>
+            <TD valign="top"><IMG src="image255.jpg" width="611" height="511" border="0"><BR>
+            </TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR>
+      <P><B><A name="LINECHAR"></A>5.17 罫線が表示されない</B></P>
+      <HR>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE width="1250" cellpadding="5">
+        <TBODY>
+          <TR>
+            <TD width="600" valign="top">最近、tmuxで水平線は、表示されるが垂直線が表示されないとの報告がありました。調べてみると興味深い状況だったのでまとめてみようと思います。<BR>
+            <BR>
+            まず、罫線文字ですが歴史的に文字をハードウェアで表示していた時代は、完全に機種依存する形でしか表示できませんでした。言い換えれば、標準規格化されなかった文字です。したがって各社が適当に空きコードに割り当てていた為、端末での互換性がありません。<BR>
+            <BR>
+            日本では、JIS X0208-1983で罫線素片として規格化されました、使用に関しては、機種依存が激しい（それまでに各社が勝手にJISの空きに割り当てていた）のと全角文字で定義してあったので使いにくかったと記憶しています。<BR>
+            <BR>
+            RLoginでは、半角文字の罫線としてPC-ATの名残の<A href="https://en.wikipedia.org/wiki/Code_page_437">IBM437-GR</A>とTera Termで付属されているTera Specialフォントを<A href="http://fileformats.archiveteam.org/wiki/DEC_Special_Graphics_Character_Set">VT100-GRAPHIC</A>として使用できるようにしています。<BR>
+            <BR>
+            TERM環境変数によるtermcap/terminfoのas/ae,smacs/rmacsにより文字バンクを切り替えて罫線を表示するの方法が多くなったと思っていました。<BR>
+            <BR>
+            しかしtmuxでは、LANG環境変数がEUCやSJISでは、termcap/infoに従った文字バンク切り替えで罫線を表示しているようですが、LANGがUTF-8の場合は、Unicodeの罫線を使用するようでこれが垂直罫線が表示されない問題になっていました。<BR>
+            <BR>
+            Unicodeの罫線U+2500(Box Drawing)ですが、これがかなりの曲者で先の機種依存の罫線文字を寄せ集めて再定義したようで、文字の横サイズがバラバラになっています。日本語フォントに依存する罫線は、全角でIBM437-GRに依存する文字は、半角です。<BR>
+            <BR>
+            実際にUnicodeのEastAsianWidth.txtで罫線文字は、Aタイプ(Ambiguous/曖昧・不明瞭<SPAN class="kana"></SPAN>な)で定義された文字の表示幅とされています。たしかに欧文のフォントでは、ほとんどが半角で日本語フォントは、全角で表現されています。日本語のSJISで書かれた罫線を含む文書をUTF-8に変換して表示した場合に正しくつながるようにするには、全角である必要があります。<BR>
+            <BR>
+            RLoginでは、そのUnicodeのAタイプの文字をどのサイズで表示するかを設定できるようにしています。<A href="./#TERMOPT">ターミナルのオプション設定</A>の8428（Aタイプを半角で表示/Aタイプを全角で表示）がその設定になります。<BR>
+            <BR>
+            たしかにアプリケーションでLANG=UTF-8の場合に文字バンク切り替えを使用するよりダイレクトにUnicodeで罫線を表示したほうが互換性などを考えると合理的に思えます。日本語のフォントを主体で考えると今回のように問題になりますが、世界的には、標準になりそうな気がしました。<BR>
+            <BR>
+            したがってRLoginの2.21.2から8428（Aタイプを半角で表示/Aタイプを全角で表示）をデフォルトONに変更し罫線などの文字を半角で表示するようにしました。SJISなどと互換性が必要な表示が必要な方は、ご注意ください。特に日本語フォントを使用した場合には、右上の例のように「αβγ・・・」の表示が崩れます。（時代の流れが変わったと思います・・・）<BR>
+            <BR>
+            ※漢字コードがUTF-8の環境でEUCやSJISの文書を正しい文字幅で表示したい場合はUTF-8に変換(nkf -W)するより<B>ISO-2022-JPに変換</B>(nkf -J)したほうが正しい文字幅になります。</TD>
+            <TD valign="top">SJISなどの罫線を含む日本語文書をUTF-8で正しく表示するには、<BR>
+            8428をOFF(Aタイプを全角で表示)にする必要があります。<BR>
+            <IMG src="image257.jpg" width="323" height="107" border="0"><BR>
+            <IMG src="image258.jpg" width="323" height="107" border="0"><BR>
+            <BR>
+            最近のUTF-8で罫線を表示するには、<BR>
+            8428をON(Aタイプを半角で表示)にする必要があります。<BR>
+            <IMG src="image259.jpg" width="528" height="124" border="0"><BR>
+            <IMG src="image260.jpg" width="531" height="212" border="0"></TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR>
+      </TD>
+    </TR>
+  </TBODY>
+</TABLE>
+</CENTER>
+</BODY>
+</HTML>

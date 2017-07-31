@@ -1,0 +1,1758 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+<HEAD>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<META http-equiv="Content-Style-Type" content="text/css">
+<TITLE>プログラム・ヒストリー</TITLE>
+<STYLE type="text/css">
+<!--
+TD {
+  background-color : #ffffff;
+  font-size : 90%;
+}
+.BOX{
+  background-color : silver;
+}
+-->
+</STYLE>
+</HEAD>
+<BODY bgcolor="#000000" background="/image/bla6b.gif">
+<CENTER>
+<TABLE cellpadding="10" cellspacing="0" bgcolor="#ffffff" width="1300">
+  <TBODY>
+    <TR>
+      <TD>
+      <HR>
+      <P><B>1.4 プログラム・ヒストリー</B></P>
+      <HR>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" cellspacing="1" class="BOX" width="900">
+        <TBODY>
+          <TR>
+            <TD align="center">2017/07/03</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.22.4/">2.22.4</A></TD>
+            <TD>スクリプトにメッセージウィンドウ関数を追加<BR>
+            拡張機能に再接続の確認を追加<BR>
+            拡張機能に末尾の改行を削除を追加<BR>
+            範囲指定を解除しない場合にSHIFT+クリックで範囲拡張に変更<BR>
+            スクリプトにpopen/pcloseを追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2017/05/29</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.22.3/">2.22.3</A></TD>
+            <TD>マウスイベント時のダブルクリック処理を修正<BR>
+            OSC52で送信するテキストの改行コードを選択に変更<BR>
+            タブバーに同時受信のチェックボックスを追加<BR>
+            拡張機能にタブにマウスで情報表示を追加<BR>
+            openssl-1.1.0fに更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2017/04/24</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.22.2/">2.22.2</A></TD>
+            <TD>RLCURCOL(CSI&lt;!q)で文字カーソル色の設定を追加<BR>
+            文字カーソルのオプション変更でデフォルト値を確認<BR>
+            ステータスのメッセージ表示で余分な文字列を修正<BR>
+            プロトコル無しでファイルダウンロードを追加<BR>
+            Zmodem/BPlusでLF/GSをエスケープするように変更<BR>
+            クリップボードの改行コードをチェックするように変更<BR>
+            非接続時にSFTPなどのメニューをグレーアウトに修正<BR>
+            非接続時に文字カーソルを非表示に変更<BR>
+            エラー時のみ再接続の確認を行うように変更<BR>
+            送信文字列の特殊文字に%sソケットステータスを追加<BR>
+            サーバーのオプション設定に「標準の設定を使用」を追加<BR>
+            ターミナルのオプションに「壊れたMBCを記号で表示」を追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2017/03/17</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.22.1/">2.22.1</A></TD>
+            <TD>通信ログの自動保存エラー時の為にオープンを接続前に変更<BR>
+            拡張機能のオプションを各種ページに移動して整理<BR>
+            端末画面のリサイズ処理を整理して変更<BR>
+            キー操作の記録で一定サイズ以上の場合に警告を表示<BR>
+            エントリー情報読み込み時の最大サイズを拡大<BR>
+            不用になったエントリー情報内のキー操作の記録を削除<BR>
+            ペースト確認ダイアログの「改行を確認」をペースト時に限定<BR>
+            リソースをファイルに保存する形式をJSONに変更<BR>
+            リソースのダイアログデータが言語依存するので英数に限定<BR>
+            リソースをファイルに保存で自動翻訳を追加<BR>
+            起動時のウィンドウサイズ復帰でモニターの範囲に調整を修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2017/02/20</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.22.0/">2.22.0</A></TD>
+            <TD>このバージョンから下位互換が無くなりますので注意してください<BR>
+            レジストリなどに保存する文字形式をUnicodeに変更<BR>
+            メニュー「表示」に「タイトルの変更」を追加<BR>
+            オプション「スクリーン」のウィンドウタイトルの初期値を任意に変更<BR>
+            文字カレットおよびブリンクなどの表示方法を変更<BR>
+            拡張機能に「微妙なカレット」を追加<BR>
+            ログ保存などのファイル書き込み処理をスレッドに変更<BR>
+            拡張機能に「通信ログをフラッシュする」を追加<BR>
+            クリップボードのアクセスが重ならないように変更<BR>
+            DECSTBM/DECOM後のカーソル位置を修正<BR>
+            zlib-1.2.11に更新<BR>
+            openssl-1.1.0eに更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2017/02/01</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.21.3/">2.21.3</A></TD>
+            <TD>複数エントリーの編集で拡張機能などのオフ処理の不都合を修正<BR>
+            openssl-1.1.0で内部構造体の直接編集をしないように変更<BR>
+            現在の分割の保存の読み込み処理をチェックするように変更<BR>
+            オプション設定の初期値として保存で確認内容をより詳細に変更<BR>
+            サーバーエントリーの読み込みエラーでエントリーの削除を追加<BR>
+            文字カーソルの色を指定できるように変更<BR>
+            U+2580 Block Elementsの文字を面描画で行うように変更<BR>
+            openssl-1.1.0dに更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2017/01/10</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.21.2/">2.21.2</A></TD>
+            <TD>オプションの8428「Aタイプを半角で表示」をデフォルトで有効<BR>
+            ペイン分割線のマウスカーソル処理と画像を修正<BR>
+            Win7/Vista以外でもそれなりにガラス効果が出るように変更<BR>
+            背景画像の配置方法の選択を追加<BR>
+            拡張機能にアクティブでない接続の文字輝度を下げるを追加<BR>
+            複数のエントリーの編集を差分で適用するように変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2016/12/19</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.21.1/">2.21.1</A></TD>
+            <TD>クリップボードチェインの有効・無効をメニューに追加<BR>
+            「ペインの移動」処理をタブの順位で移動に変更<BR>
+            拡張機能にペインの移動でタブの移動するオプションを追加<BR>
+            ペインの分割最小サイズと移動最小サイズを同じに修正<BR>
+            ダイアログなどのフォントサイズをHiDPIに追従するように変更<BR>
+            拡張機能に文字サイズをHiDPIに追従するを追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2016/11/11</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.21.0/">2.21.0</A></TD>
+            <TD>クリップボードチェインからの処理をスレッドに変更<BR>
+            openssl-1.1.0cに更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2016/10/03</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.20.9/">2.20.9</A></TD>
+            <TD>標準の設定のショートカットを非接続時メニューで適用<BR>
+            アイドル処理が無限ループする問題を修正<BR>
+            一部のUSBシリアル変換を使用した場合の不都合を修正<BR>
+            openssl-1.1.0bに更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2016/09/05</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.20.8/">2.20.8</A></TD>
+            <TD>/inuse指定時にアイコン状態ウィンドウを無視するように変更<BR>
+            ssh2にgssapi-with-micを試験的に追加<BR>
+            openssl-1.1.0に変更<BR>
+            aes128/192/256-ctrをopensslに変更<BR>
+            chacha/poly1305をopensslに変更<BR>
+            2048bit以上のdsa鍵の作成を非対応に変更<BR>
+            sshのポートフォワードエラー時の終了条件を修正<BR>
+            ProxyのOver SSL設定のサーバー選択を修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2016/08/01</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.20.7/">2.20.7</A></TD>
+            <TD>sftpでのEnterキーなどの動作を変更<BR>
+            ペースト確認でCtrl+Enterで送信を追加<BR>
+            sshのソケットステータスにKeepAliveの送受信状態を追加<BR>
+            dh-group*-sha256/512での対応を修正<BR>
+            HiDPIの変更でウィンドウサイズ変更だけするようにした<BR>
+            UTF-8の文字幅などをUnicode-9.0.0のデータに更新<BR>
+            ソケットエラー時のメッセージに詳細を追加<BR>
+            sshのソケットステータスでUserAuthを結果から過程に変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2016/07/01</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.20.6/">2.20.6</A></TD>
+            <TD>サーバー選択のタブを全削除した場合に表示が崩れるバグを修正<BR>
+            modifyOtherKeysのSPCAEをmodifyStringKeysに移動<BR>
+            右クリックのポップアップメニューに画像の処理を追加<BR>
+            アイドル処理の頻度を上げるように変更<BR>
+            scriptのdialogでシステムidの処理を修正<BR>
+            sftpのエラーパケット処理を修正<BR>
+            マウスによる画面分割位置移動での不都合を修正<BR>
+            スプリットコマンドによる接続の画面分割終了処理を変更<BR>
+            設定をファイルに保存出来ない問題を修正<BR>
+            ペースト確認で置換をUndo出来るように変更<BR>
+            デフォルトでCtrl+Vを設定しないように変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2016/06/06</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.20.5/">2.20.5a</A></TD>
+            <TD>サーバー選択のポップアップにショートカットを作成を追加<BR>
+            編集メニューに検索マークを追加<BR>
+            文字列を検索の結果表示を色付き反転表示に変更<BR>
+            タブバーのフォントをダイアログフォントの設定と合わせるように変更<BR>
+            X11転送でxauthのクッキーデータを変更できるよう修正<BR>
+            sftpウィンドウをESCで終了した場合に正常に終了できない問題を修正<BR>
+            プロトコル無しでファイルをアップロードを追加<BR>
+            WinSockイベントの受信処理中にソケットの送信をしないように変更<BR>
+            上記の変更に合わせてsftpの受信処理を簡素化<BR>
+            クリップボードチェインの処理をメッセージに変更<BR>
+            アイドル処理の不都合を修正して2.20.5aに更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2016/05/09</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.20.4/">2.20.4</A></TD>
+            <TD>サーバー選択のポップアップに標準に戻すを追加<BR>
+            proxy使用時にハングアップするバグを修正<BR>
+            openssl-1.0.2hに更新<BR>
+            blowfish-ctrの鍵サイズを修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2016/04/05</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.20.3/">2.20.3</A></TD>
+            <TD>ツールバーのカスタマイズを追加<BR>
+            クリップボードチェインが働かない場合の処理を追加<BR>
+            文字バッファの空きでフルカラー情報を保存<BR>
+            OSC 1337でのインライン未対応のファイルの処理を追加<BR>
+            OSC 1337でアニメーションgifでもそれなりに表示するように変更<BR>
+            RIS/DECSTRなどのリセット動作を修正<BR>
+            リストのコラムクリックソートが正しく並ばない不都合を修正<BR>
+            SFTPのウィンドウタイトルを変更<BR>
+            プライベートププロファイルの作成を追加<BR>
+            アイドル処理中に閉じた場合の不都合を修正<BR>
+            sshでshellを閉じた時にポートフォワードが開いていた場合、確認を追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2016/03/03</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.20.2/">2.20.2</A></TD>
+            <TD>OSC 1337の画像表示のサイズ指定などを修正<BR>
+            右クリックによるポップアップメニューでの不都合を修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2016/03/02</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.20.1/">2.20.1</A></TD>
+            <TD>バッグ画像テキストの色設定のバグを修正<BR>
+            sshに追加のバージョン情報設定を追加<BR>
+            バックグランド画像の設定を背景設定に分離<BR>
+            Ciscoルーターのdhgex制限に対応<BR>
+            dh-group14/16/18の仕様を更新<BR>
+            Metaキー設定に101キーボードを追加<BR>
+            OSC 1337のFile（画像ファイルの表示）に試験的に対応<BR>
+            リソースを編集可能なテキストで保存・読込を追加<BR>
+            画像のPNGなどを処理できるように処理関数を変更<BR>
+            クリップボードの取得処理を変更<BR>
+            openssl-1.0.2gに更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2016/02/01</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.20.0/">2.20.0</A></TD>
+            <TD>2.19.9でのソケット終了時の残骸処理を修正<BR>
+            Metaキー設定でCtrl+Alt+[A-Z]でコードを送信するように変更<BR>
+            バックグランド画像の描画処理変更と明るさ調整などを追加<BR>
+            Metaキー設定を行うとメニューキーの動作をしないように変更<BR>
+            キーコード設定でメニューでショートカットを選択できるように変更<BR>
+            openssl-1.0.2fに更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2016/01/12</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.19.9/">2.19.9</A></TD>
+            <TD>編集メニューに「別のRLoginにも同時送信」を追加<BR>
+            Shigt+Ctrl+WheelですべてのRLoginでスクロールに変更<BR>
+            スクロールで消去を空行を無視するように変更<BR>
+            画面更新の頻度を上げるように変更<BR>
+            範囲指定時のスクロール動作を変更<BR>
+            アイドル時の処理を細分化して行うように変更<BR>
+            接続を閉じないウィンドウのサーバー接続で再接続するように変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2015/12/22</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.19.8/">2.19.8</A></TD>
+            <TD>クリップボードチェインでの処理をスレッドに変更<BR>
+            /inuseなどで起動したときに/reqが添付される問題を修正<BR>
+            rsa鍵サイン拡張のrsa-sha2-256/512に暫定対応<BR>
+            dh-group14/15/16のsha256拡張に暫定対応<BR>
+            クリップボードチェインをvista以降はWM_CLIPBOARDUPDATEを使用<BR>
+            sftpのファイルをダブルクリックで開くように変更<BR>
+            sftpのローカルファイルをドラッグの処理をOLEに変更<BR>
+            sftpのポップアップメニューにコピーと貼り付けを追加<BR>
+            クリップボード経由のファイルの貼り付けを追加<BR>
+            ターミナルオプションにスクロールで消去を追加<BR>
+            拡張機能の接続を閉じない場合に再接続を確認するように変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2015/12/04</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.19.7/">2.19.7</A></TD>
+            <TD>起動時にパスワードでロックする機能を追加<BR>
+            10個以上接続を開くとウィンドウメニューが壊れるのを修正<BR>
+            行末での遅れた改行をコピー時に認識するように変更<BR>
+            ペーストの確認で制御コードなどの変換機能を追加<BR>
+            ステータスバーの表示を修正<BR>
+            タブの余白をダブルクリックで新規接続を追加<BR>
+            拡張機能に接続断で閉じないを追加<BR>
+            コマンドラインオプションに/titleなどを追加<BR>
+            openssl-1.0.2eに更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2015/11/20</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.19.6/">2.19.6</A></TD>
+            <TD>タブのドラッグで空のウィンドウでも入れ換えるように変更<BR>
+            同時送信にグループキャストを追加<BR>
+            編集メニューに見えてるだけに制限を追加<BR>
+            2.19.4以降HTで文字が消える問題を修正<BR>
+            サーバーのオプション設定にタブで表示するアイコンを追加<BR>
+            ヒストリ付きコンボのドロップダウンリスト表示中にDELキーで削除<BR>
+            タブのドラッグのウィンドウ外で別RLoginを起動などの動作を変更<BR>
+            スクリプトのshellexec関数の引数を変更およびSystem変数を追加<BR>
+            タブバーを常時表示のメニューを追加<BR>
+            拡張機能に同時送信・受信の拒否を追加<BR>
+            ソースコードを整理してSSE/W2Kバージョンを削除した<BR>
+            一部のデフォルトキー設定が削除できない問題を修正<BR>
+            ジャンプリストとShift+Wheelですべてスクロールを有効にした</TD>
+          </TR>
+          <TR>
+            <TD align="center">2015/11/06</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.19.5/">2.19.5</A></TD>
+            <TD>ペースト確認後にテキストが壊れるバグを修正<BR>
+            ペースト確認で遅延送信（改行を確認）と編集後コピーを追加<BR>
+            各種オプションに常にペーストを確認するを追加<BR>
+            メニューなどのアクセレーターキーを見直し<BR>
+            ショートカットキーワードのスペルミスを修正<BR>
+            右クリックでペーストでの不都合を修正<BR>
+            メニューがグレーアウトする問題を修正<BR>
+            ログのLINE/PAGEで常に改行するように変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2015/11/02</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.19.4/">2.19.4</A></TD>
+            <TD>iconvでの変換処理などのバグを修正<BR>
+            二分木処理を最適化するように変更<BR>
+            マウス右ボタンでスムーズスクロールをオプション追加<BR>
+            キー操作の記録でメニューが重なるバグを修正<BR>
+            オプション設定の変更を終了時に確認するように修正<BR>
+            キー操作の記録をすべてのRLoginで共有に変更<BR>
+            同時送信などをすべてのRLoginに送信するように変更<BR>
+            同時送信からの受信しないするオプションを追加<BR>
+            ログモードのLINEをPAGEに変更して新規にLINEを追加<BR>
+            ウィンドウの上下左右移動をウィンドウメニューに追加<BR>
+            クリップボードのヒストリーメニューを追加<BR>
+            ターミナルの各種オプションを拡張機能に分離</TD>
+          </TR>
+          <TR>
+            <TD align="center">2015/10/16</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.19.3/">2.19.3</A></TD>
+            <TD>プロポーショナルフォント回りのバグを修正<BR>
+            縦ライン文字属性の描画忘れを修正<BR>
+            sftp終了後にパケットを送信するバグを修正<BR>
+            平均的な横幅が大きめに設定されたフォントを補正するように変更<BR>
+            フォント設定にISO646に従った文字置換を追加<BR>
+            ＼の表示に／を鏡面表示して表現する拡張文字U+FFFFFを追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2015/10/02</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.19.2/">2.19.2</A></TD>
+            <TD>ウィンドウ分割時のリサイズの挙動を修正<BR>
+            ESCシーケンスによるリサイズ時の処理を変更<BR>
+            XTWOP(CSI t)によるWindow制御を追加<BR>
+            SSHのホストキー登録を簡略化<BR>
+            SSHのBanner表示などのLFをCR+LFに変換するように変更<BR>
+            SSH認証鍵作成時のパスフレーズ確認をクリアするように変更<BR>
+            UTF-8時のUnicode表示をブロック単位でフォント切換を追加<BR>
+            プロポーショナルフォントでもそれなりに表示するように変更<BR>
+            保存された各種IDが復元されないバグを修正<BR>
+            2.19.1で変更したアイドル処理でスクリプトの初期化前に実行されるバグを修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2015/09/07</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.19.1/">2.19.1</A></TD>
+            <TD>SFTPにuid/gidを名称に変換するオプションをポップアップに追加<BR>
+            リセットにすべてリセット（ヒストリも含める）を追加<BR>
+            telnetのNAWSをチェックするように変更<BR>
+            Scriptでメニュー追加が重なる不都合を修正<BR>
+            デフォルトフォント/フォントセットのサンプルを表示するように変更<BR>
+            ダイアログ表示中でもアイドリング処理を行うように変更<BR>
+            ポートフォワードの設定で空のリスティンアドレス/ポートをエラーに変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2015/08/17</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.19.0/">2.19.0</A></TD>
+            <TD>小さなSixel画像での不都合を修正<BR>
+            Sixelの表示サイズを修正<BR>
+            同バージョンチェックをスキップするように変更<BR>
+            ログ形式がインポート・エクスポートされないバグを修正<BR>
+            SSHでサポートされないDSA鍵をチェックするように修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2015/07/24</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.18.9/">2.18.9</A></TD>
+            <TD>DA2の応答を&quot;CSI&gt;65;277;0c&quot;に変更<BR>
+            DCSのTermcap&nbsp;Queryで&quot;Co&quot;を256固定、&quot;TN&quot;をTERM環境変数に変更<BR>
+            各種応答IDを設定可能に変更<BR>
+            名前付きパイプを扱えるように変更<BR>
+            COM（RS232Cシリアル通信）の処理を大幅に変更<BR>
+            空のパスフレーズの認証鍵を許容するように変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2015/07/10</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.18.8/">2.18.8</A></TD>
+            <TD>ログのモードにDEBUGを追加<BR>
+            ssh2のpublickeyでサインできない場合の処理を修正<BR>
+            オプションダイアログの初期化手順を変更<BR>
+            COMポートの検索方法を変更<BR>
+            OSCでの色表現を修正<BR>
+            openssl-1.0.2dに更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2015/06/22</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.18.7/">2.18.7</A></TD>
+            <TD>タブのドラッグの表示方法を変更<BR>
+            複数接続、スプリット時にパスワード入力などをスキップするように変更<BR>
+            openssl-1.0.2cに更新<BR>
+            文字カラーテーブルを数値編集できるように変更<BR>
+            UTF-8の文字幅などをUnicode-8.0.0のデータに更新<BR>
+            Chat Scriptの正規表現を最小一致に変更<BR>
+            文字列検索で単純検索と正規表現を区別するように変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2015/06/08</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.18.6/">2.18.6</A></TD>
+            <TD>「画面更新が無いとスリープ画面に移行する」を追加<BR>
+            ダイアログのドロップダウンリストが正しく動作しないバグを修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2015/06/01</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.18.5/">2.18.5</A></TD>
+            <TD>オプションダイアログをプロパティーシートからダイアログに変更<BR>
+            すべてのダイアログのフォントとサイズを設定できるように変更<BR>
+            「接続時にパスワード入力を求める」オプションを移動<BR>
+            ユーザー名、パスワードが空でも許容するように変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2015/05/22</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.18.4/">2.18.4</A></TD>
+            <TD>ssh2のkeyboard-interactiveで初回は保存されたパスワードで試すように変更<BR>
+            ログのLINEモードで終了時にダブって保存されるバグを修正<BR>
+            Scriptファイルの文字コードをチェックするように変更<BR>
+            メニューのヘルプに自動バージョンチェックを追加<BR>
+            デフォルトカーソル（カレット）形状の設定を追加<BR>
+            一部メニューがグレーアウトされているバグを修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2015/05/05</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.18.3/">2.18.3</A></TD>
+            <TD>おさかなを飼うでカレットブリンクが正しく動作しないを修正<BR>
+            スプリットメニューに分割してサーバー選択を追加<BR>
+            接続中のエントリーがある場合。閉じる操作で確認をするように変更<BR>
+            ログファイルを読込共有にしアイドル時にフラッシュするように変更<BR>
+            ログ形式のCTRLをすこし詳細な名前になるように変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2015/04/17</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.18.2/">2.18.2</A></TD>
+            <TD>Sixelのデコードをスレッドから随時デコードに変更<BR>
+            範囲指定をコピーしても維持するオプションを追加<BR>
+            おさかなを飼うを追加<BR>
+            sshで現バージョンを返すように変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2015/04/10</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.18.1/">2.18.1</A></TD>
+            <TD>Sixel表示時にデッドロックするバグを修正<BR>
+            デッドロック対策で文字列検索をタイマ処理に修正<BR>
+            別のエントリーを先に接続するオプションを追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2015/04/03</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.18.0/">2.18.0</A></TD>
+            <TD>openssl-1.0.2aに更新<BR>
+            文字バッファをメモリマップに変更<BR>
+            文字列検索をスレッド処理に変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2015/03/19</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.17.8/">2.17.8</A></TD>
+            <TD>マウスホイールの動作を変更<BR>
+            マウスの拡張ボタンにキーコードを割り当て<BR>
+            xtermのCSI?S(Sixelパレット数の読み込み)に対応<BR>
+            hostheys-00@openssh.comに修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2015/03/02</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.17.7/">2.17.7</A></TD>
+            <TD>openssh-6.8のhostkeys@openssh.comに対応<BR>
+            pageantに対応<BR>
+            Sixel処理中の多重割り込みバグ修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2015/02/02</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.17.6/">2.17.6</A></TD>
+            <TD>openssl-1.0.2に更新<BR>
+            画面更新をアイドルからメッセージに変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2015/01/06</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.17.5/">2.17.5</A></TD>
+            <TD>ReGIS/Sixelのパレットを保持する1070に対応<BR>
+            ホスト名の複数指定で&quot;-&quot;を&quot;[]&quot;内で有効に変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2014/12/05</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.17.4/">2.17.4</A></TD>
+            <TD>ウィンドウ識別の表示を追加<BR>
+            ファイル名などの特殊文字にグループ名(%G)を追加<BR>
+            メニューの更新を整理してウィンドウ名などをタブ順位に変更<BR>
+            オプション設定のキー移動操作などを見直し<BR>
+            フォント設定を簡素化してデフォルトフォントの導入<BR>
+            フォント名入力にフォントリストを選択できるように変更<BR>
+            トレースウィンドウのログファイル、最大値を指定できるように変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2014/11/21</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.17.3/">2.17.3</A></TD>
+            <TD>サーバーエントリー初期時にエントリーが表示されないバグを修正<BR>
+            ESCシーケンスのトレースログを表示するウィンドウを追加<BR>
+            Sixelに独自の拡張（インデックス指定、24ビットカラー）を追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2014/11/07</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.17.2/">2.17.2</A></TD>
+            <TD>ショートカットキーワードの設定忘れを修正<BR>
+            ホスト名を複数指定可能に変更<BR>
+            Sixel画像を範囲指定した場合に落ちるバグを修正<BR>
+            国際化ドメイン名をPunycodeに変換するように変更</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="150">2014/10/27</TD>
+            <TD align="center" width="100"><A href="http://nanno.dip.jp/softlib/rlogin/2.17.1/">2.17.1</A></TD>
+            <TD>openssl-1.0.1jに更新<BR>
+            ReGIS/SixelでのHLS指定時の色ずれを修正<BR>
+            スクリプトのsprintfの&quot;%*&quot;引数の修正<BR>
+            端末モードのインポートされないバグを修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2014/10/03</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.17.0/">2.17.0</A></TD>
+            <TD>2.16.9で修正したDEC Locatorの非同期取得を位置のみに変更<BR>
+            sshとloginプロトコルのウィンドウサイズ報告でピクセルサイズを返すように変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2014/09/03</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.16.9/">2.16.9</A></TD>
+            <TD>サーバーの選択のグループ切り替えを左右カーソルで可能に変更<BR>
+            ログの保存を独自にバッファリングするように変更<BR>
+            DEC Locatorの動作を修正（非同期にマウス情報を取得など）<BR>
+            文字カーソルの非ブリンク設定が解除されないバグを修正<BR>
+            Xterm互換のカーソルブリンク、マウスカーソル表示に対応<BR>
+            キーリピートの設定(DECARM)に対応</TD>
+          </TR>
+          <TR>
+            <TD align="center">2014/08/14</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.16.8/">2.16.8</A></TD>
+            <TD>openssl-1.0.1iに更新<BR>
+            sshの端末モードを設定できるように変更<BR>
+            画面の印刷およびプレビューなどを追加<BR>
+            規定のロケールを設定するように変更<BR>
+            sshのオーバーフロー処理の修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2014/08/06</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.16.7/">2.16.7</A></TD>
+            <TD>UTF-8の文字幅や正規化をUnicode-7.0.0のデータに更新<BR>
+            ログに追加する時間フォーマットを設定できるように変更<BR>
+            sixelの残骸処理などを変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2014/06/06</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.16.6/">2.16.6</A></TD>
+            <TD>openssl-1.0.1hに更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2014/05/15</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.16.5/">2.16.5</A></TD>
+            <TD>インポート処理のバグを修正<BR>
+            C1制御文字を無視するオプションを追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2014/04/25</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.16.4/">2.16.4</A></TD>
+            <TD>2.16.2以降でのssh2ポートフォワードのバグを修正<BR>
+            dnsでのSSHFPにed25519を追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2014/04/10</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.16.3/">2.16.3</A></TD>
+            <TD>スクロール解除を送信後に行うように変更<BR>
+            OSC/DCSなどのキャンセルチェックをシンプルに変更<BR>
+            ProxyにHTTP(Basic)を追加<BR>
+            openssl-1.0.1gに更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2014/03/27</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.16.2/">2.16.2</A></TD>
+            <TD>画面保存関連のオプションを整理<BR>
+            カレットの点滅しない設定を追加<BR>
+            ログの行頭に時刻を追加して記録<BR>
+            ssh2のタイマ割り込みバグを修正<BR>
+            OSCカラー設定でx11の140色カラー名に対応<BR>
+            アイコンデザインを変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2014/03/07</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.16.1/">2.16.1</A></TD>
+            <TD>リサイズ時のsixelの表示サイズを修正<BR>
+            sixelの上位デフォルトパレットを変更<BR>
+            全体的にconstテーブルの見直し<BR>
+            エントリーインポートのオプション設定のバグを修正<BR>
+            プライベートプロファイルを使用できるように変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2014/02/21</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.16.0/">2.16.0</A></TD>
+            <TD>Sixel表示後のカーソル位置をオプションに追加<BR>
+            スクリプト設定の編集ウィンドウを縦スクロールに変更<BR>
+            オプションに8800(DRCSMMv1)を追加<BR>
+            S8C1Tの時の応答を修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2014/02/01</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.15.9/">2.15.9</A></TD>
+            <TD>シリアルのイベント処理を変更<BR>
+            初期状態でカーソルが表示されない問題を修正<BR>
+            sftpの起動をユーザー認証後に限定</TD>
+          </TR>
+          <TR>
+            <TD align="center">2014/01/14</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.15.8/">2.15.8</A></TD>
+            <TD>sixelの表示サイズを修正<BR>
+            漢字コードチェックをより柔軟に変更<BR>
+            openssl-1.0.1fに更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2013/12/24</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.15.7/">2.15.7</A></TD>
+            <TD>16色カラーパレットにコントラストとブライトを追加<BR>
+            ssh2のagentの処理を修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2013/12/17</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.15.6/">2.15.6</A></TD>
+            <TD>Sixelの初期パレットを背景色と重ならないように変更<BR>
+            ssh2のetm処理のバグ修正<BR>
+            メニューの表示に「Nekoを飼う」を追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2013/12/13</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.15.5/">2.15.5</A></TD>
+            <TD>Sixelの初期カラーパレットをReGISと同じに変更<BR>
+            Sixelのアスペクト比設定の間違いなどを修正<BR>
+            opensshフォーマットのssh-ed25519鍵を追加<BR>
+            コンボボックスのヒストリー処理のバグを修正<BR>
+            認証鍵回りの処理を整理</TD>
+          </TR>
+          <TR>
+            <TD align="center">2013/12/06</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.15.4/">2.15.4</A></TD>
+            <TD>ssh2の暗号にchacha20-poly1305@openssh.comを追加<BR>
+            ssh2の鍵交換にcurve25519-sha256@libssh.orgを追加<BR>
+            opensshの署名された公開鍵の読み込みを追加<BR>
+            画面をイメージで保存（拡張CSI RLIMGCP)を追加<BR>
+            Sixel/Imageのウィンドウ表示方法を選択可能に変更<BR>
+            Sixel/Imageのウィンドウの編集にクリップボードにコピーを追加<BR>
+            DECDLDの再設定時（カラー&lt;-&gt;モノクロ）のバグ修正<BR>
+            認証キーの指紋表示のバグ修正<BR>
+            認証キーダイアログの削除を公開鍵に変更<BR>
+            暗号方式ダイアログの表示変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2013/11/25</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.15.3/">2.15.3</A></TD>
+            <TD>ウィンドウフレームの調整<BR>
+            リサイズ時に画面サイズを中央に表示<BR>
+            オプション設定のターミナルでツールヒントを表示<BR>
+            画面左右余白の設定を追加<BR>
+            フォントの左右オフセットを追加<BR>
+            ウィンドウ並べて表示に縦横均等割を追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2013/11/11</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.15.2/">2.15.2</A></TD>
+            <TD>メニュー非表示時に右クリックメニューが出ないのを修正<BR>
+            オプション設定のターミナルを変更し各種オプションを追加<BR>
+            各種オプションに右クリックだけでペースト、カーソル表示をIにするなどを追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2013/10/31</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.15.1/">2.15.1</A></TD>
+            <TD>オプション設定を初期値にする場合に確認を行うように変更。</TD>
+          </TR>
+          <TR>
+            <TD align="center">2013/10/16</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.15.0/">2.15.0</A></TD>
+            <TD>ウィンドウの縦横分割を一回に変更。<BR>
+            スプリットコマンド時の縦横分割を変更。<BR>
+            ウィンドウ分割時に大きさを制限。</TD>
+          </TR>
+          <TR>
+            <TD align="center">2013/10/03</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.14.9/">2.14.9</A></TD>
+            <TD>Ctrl+Iが効かないバグを修正<BR>
+            背景画像の表示方法を変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2013/08/23</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.14.8/">2.14.8</A></TD>
+            <TD>スクリプトwaitのバグ修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2013/07/17</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.14.7/">2.14.7</A></TD>
+            <TD>マージン処理を整理</TD>
+          </TR>
+          <TR>
+            <TD align="center">2013/06/11</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.14.6/">2.14.6</A></TD>
+            <TD>sshのパスワード認証失敗時にリトライするように変更<BR>
+            UTF8文字セット、ポートフォワードのインポート処理バグ修正<BR>
+            複数サーバーエントリーの削除に変更。<BR>
+            一部ダイアログにアクセレーターキーを割り当て<BR>
+            サーバー選択ダイアログの初期フォーカスを変更<BR>
+            各ウィンドウの移動をキーコード割り当てに変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2013/05/30</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.14.5/">2.14.5</A></TD>
+            <TD>Vista/Win7以外のガラス効果を無効に変更<BR>
+            複数起動時のウィンドウ位置を保存<BR>
+            空白部分コピーのバグを修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2013/05/02</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.14.4/">2.14.4</A></TD>
+            <TD>Vista/Win7のガラス効果を追加<BR>
+            メニューバーの表示・非表示を追加<BR>
+            zlib-1.2.8に更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2013/04/25</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.14.3/">2.14.3</A></TD>
+            <TD>ssh2のrekey時のバグを修正<BR>
+            クリップボードの多数貼り付け時の注意を変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2013/03/23</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.14.2/">2.14.2</A></TD>
+            <TD>ssh2にopensshのEtM/gcmを追加<BR>
+            ssh2の終了手順を変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2013/03/01</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.14.1/">2.14.1</A></TD>
+            <TD>キーコードを変更<BR>
+            タイトル設定でC0のコントロールコードを削除<BR>
+            ブラックカラーテーブルを少し柔らかい色に変更<BR>
+            罫線を線描画に置き換えを追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2013/02/15</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.14.0/">2.14.0</A></TD>
+            <TD>openssl-1.0.1eに更新<BR>
+            modifyKeysを追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2013/02/08</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.13.9/">2.13.9</A></TD>
+            <TD>ウィンドウメニューの並べて表示を縦横に変更<BR>
+            chatscriptの自動作成を修正<BR>
+            openssl-1.0.1dに更新<BR>
+            メモリ使用量を減らすように変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2013/01/30</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.13.8/">2.13.8</A></TD>
+            <TD>スプリットコマンドでパスワード入力などを省略するように変更<BR>
+            設定ファイル読み込み時のフォント設定が壊れるのを修正<BR>
+            設定の初期化の不都合を修正<BR>
+            全角フォントサイズの調整を削除<BR>
+            Unicodeの半角フォントサイズの調整<BR>
+            画面サイズ縮小時に初期化を減らすように変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2013/01/24</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.13.7/">2.13.7</A></TD>
+            <TD>ウィンドウメニューにスプリットコマンドを追加<BR>
+            CSIのREPバグを修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2013/01/18</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.13.6/">2.13.6</A></TD>
+            <TD>DECSLRM左右マージンを有効にしxtermとの互換性を向上<BR>
+            vttestのvt420/vt520、DECOM/DECLRMMテストを実施<BR>
+            対応していないESCシーケンスを無視するように変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2012/12/25</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.13.5/">2.13.5</A></TD>
+            <TD>メニューの表示に「Goziを飼う」を追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2012/12/21</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.13.4/">2.13.4</A></TD>
+            <TD>xtermのTitle Modeに対応<BR>
+            Unicode属性にRtoLを追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2012/12/01</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.13.3/">2.13.3</A></TD>
+            <TD>ファイルに保存する設定を編集可能な形式に変更<BR>
+            CSIパラメータを32ビット長に変更<BR>
+            DA1応答を修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2012/11/20</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.13.2/">2.13.2</A></TD>
+            <TD>接続するIPv6/IPv4の選択を追加<BR>
+            ソケットオープン手順を変更<BR>
+            オプション設定のページを追加変更<BR>
+            UTF-8の文字処理を整理<BR>
+            SGRの38/48に2を追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2012/11/08</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.13.1/">2.13.1</A></TD>
+            <TD>UTF-8の時に7/15が表示されないバグを修正<BR>
+            UTF-8のノーマライズテーブル修正<BR>
+            UTF-8の文字処理を変更（RtoL,結合,IVSなど)</TD>
+          </TR>
+          <TR>
+            <TD align="center">2012/10/13</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.13.0/">2.13.0</A></TD>
+            <TD>接続中の「接続を閉じる」の確認を追加<BR>
+            OSC/DCSなどのキャンセルを追加<BR>
+            タイマ再設定のバグ修正<BR>
+            DECDLDのSixel拡張</TD>
+          </TR>
+          <TR>
+            <TD align="center">2012/10/03</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.12.10/">2.12.10</A></TD>
+            <TD>UTF-8の文字幅をUnicode-6.2.0のデータに更新<BR>
+            DSA鍵作成時の注意書きを追加<BR>
+            DSA鍵の2048ビット以上をSHA1に固定<BR>
+            Sixelのスクロールモードを追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2012/08/21</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.12.9/">2.12.9</A></TD>
+            <TD>スクリプトの&amp;&amp;,||の優先順位修正<BR>
+            シリアルのオープンエラー処理修正<BR>
+            フォントサイズ固定時の範囲選択バグ修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2012/06/05</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.12.8/">2.12.8</A></TD>
+            <TD>IMEのカーソル位置の文書参照を修正<BR>
+            2.12.3移行、認証キーの作成でパスフレーズが保存されないバグを修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2012/05/11</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.12.7/">2.12.7</A></TD>
+            <TD>スクリプトにforeach構文を追加<BR>
+            スクリプト終了処理を修正<BR>
+            シリアル処理をアイドルからスレッドに変更<BR>
+            アイドル処理の修正<BR>
+            openssl-1.0.1cに更新<BR>
+            zlib-1.2.7に更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2012/04/20</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.12.6/">2.12.6</A></TD>
+            <TD>スクリプトにtek補間線関数を追加<BR>
+            openssl-1.0.1aに更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2012/03/27</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.12.5/">2.12.5</A></TD>
+            <TD>コマンドラインパラメータのバグ修正<BR>
+            マウスイベントのMotionフラグ修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2012/03/21</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.12.4/">2.12.4</A></TD>
+            <TD>openssl-1.0.1に更新<BR>
+            スクリプトにデータベース関数などを追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2012/03/12</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.12.3/">2.12.3</A></TD>
+            <TD>独自のスクリプト言語を追加<BR>
+            鍵作成のデフォルトをRSA2の2048に変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2012/02/28</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.12.2/">2.12.2</A></TD>
+            <TD>SSH2ポートフォワードのバグ修正および制限<BR>
+            UnicodeのAタイプの文字処理のバグ修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2012/02/15</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.12.1/">2.12.1</A></TD>
+            <TD>ダイアログフォントを整理<BR>
+            UTF-8の文字幅や正規化をUnicode-6.1.0のデータに更新<BR>
+            SSH2のRSA鍵ファイル保存のバグ修正<BR>
+            認証鍵の読み込みファイルフォーマットを追加<BR>
+            TERM環境変数のデフォルトを設定</TD>
+          </TR>
+          <TR>
+            <TD align="center">2012/02/06</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.12.0/">2.12.0</A></TD>
+            <TD>マウストラッキングの処理変更<BR>
+            UnicodeのIVS処理を追加<BR>
+            zlib-1.2.6に更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2012/02/02</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.11.9/">2.11.9</A></TD>
+            <TD>kermitのnak処理修正<BR>
+            サーバーエントリーのファイルからインポートのバグ修正<BR>
+            UTF8のサロゲート処理修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2012/01/30</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.11.8/">2.11.8</A></TD>
+            <TD>kermitのSパケット処理バグ修正<BR>
+            kermitのスライドウィンドウ有効化<BR>
+            保存スクリーン情報の復帰時に画面サイズが違う場合の処理を変更<BR>
+            ctr暗号の終了処理バグ修正<BR>
+            ZModemのアップロード処理変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2012/01/25</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.11.7/">2.11.7</A></TD>
+            <TD>openssl-1.0.0gに更新<BR>
+            ctr暗号をアイドル時に実行に変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2012/01/16</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.11.6/">2.11.6</A></TD>
+            <TD>openssl-1.0.0fに更新<BR>
+            ctr暗号を別スレッドで実行</TD>
+          </TR>
+          <TR>
+            <TD align="center">2011/12/16</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.11.5/">2.11.5</A></TD>
+            <TD>前を検索を追加<BR>
+            メニューの標準に設定をサーバー選択の右クリックメニューに移動<BR>
+            オプションの初期化を標準と初期値に変更<BR>
+            オプションダイアログを整理<BR>
+            メニューにツールバーアイコンを表示<BR>
+            OSC 52 のクリップボードへの書き込み修正<BR>
+            IMEのフォント指定方法を変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2011/12/12</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.11.4/">2.11.4</A></TD>
+            <TD>DECINVMの再帰呼び出し抑制を追加<BR>
+            Kermit送信時のリピート処理のバグ修正<BR>
+            文字コード変換まわりを整理<BR>
+            内部コードをUNICODEに変更<BR>
+            オプションダイアログを整理</TD>
+          </TR>
+          <TR>
+            <TD align="center">2011/12/01</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.11.3/">2.11.3</A></TD>
+            <TD>DECCRAのページ間コピーを追加<BR>
+            DECRQCRAのページ指定を有効化<BR>
+            IMEのカーソル位置の文書参照に対応<BR>
+            2.11.2での変更によるHTTPプロキシのバグ修正</TD>
+          </TR>
+          <TR>
+            <TD align="center" width="100">2011/11/21</TD>
+            <TD align="center" width="100"><A href="http://nanno.dip.jp/softlib/rlogin/2.11.2/">2.11.2</A></TD>
+            <TD width="600">フォント縦横比の設定を追加<BR>
+            CSIの一部動作を変更<BR>
+            画面初期時のカーソル位置を修正<BR>
+            一部ソースコードの整理</TD>
+          </TR>
+          <TR>
+            <TD align="center">2011/11/14</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.11.1/">2.11.1</A></TD>
+            <TD>スクロールバーの非表示追加<BR>
+            DCSの個別設定を追加<BR>
+            DECDLDフォント設定をを追加<BR>
+            OSC 52 処理の修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2011/11/04</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.11.0/">2.11.0</A></TD>
+            <TD>DCS処理の整理<BR>
+            DECDMACマクロ処理の追加<BR>
+            OSC 52 クリップボードの追加<BR>
+            X11 DISPLAY処理修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2011/10/26</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.10.13/">2.10.13</A></TD>
+            <TD>SSH2のホスト鍵確認を変更<BR>
+            SSHFPを修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2011/10/18</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.10.12/">2.10.12</A></TD>
+            <TD>SSHFPを追加<BR>
+            SSL認証の確認を追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2011/09/23</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.10.11/">2.10.11</A></TD>
+            <TD>openssl-1.0.0eに更新<BR>
+            ssh2ユーザー認証の優先順位</TD>
+          </TR>
+          <TR>
+            <TD align="center">2011/08/10</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.10.10/">2.10.10</A></TD>
+            <TD>libiconv-1.14に更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2011/06/29</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.10.9/">2.10.9</A></TD>
+            <TD>telnetのローカルエコーを削除<BR>
+            telnetにLINEMODEを追加<BR>
+            shift+Wheelで全スクロールを追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2011/06/03</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.10.8/">2.10.8</A></TD>
+            <TD>sftpのエラーメッセージ削除<BR>
+            クロース処理のバグを修正<BR>
+            ポートフォワードの制限を削除</TD>
+          </TR>
+          <TR>
+            <TD align="center">2011/05/17</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.10.7/">2.10.7</A></TD>
+            <TD>引数に/entryを追加<BR>
+            サーバー選択でプロトコルハンドラに登録を追加<BR>
+            UTF-8のデフォルトフォントをMSゴシックに変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2011/05/06</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.10.6/">2.10.6</A></TD>
+            <TD>引数にurl解釈を追加<BR>
+            サーバー選択タブを使用時のみ表示に変更<BR>
+            ecdsaファイル読み込みバグ修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2011/04/21</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.10.5/">2.10.5</A></TD>
+            <TD>サーバー選択ウィンドウのリサイズ<BR>
+            サーバー設定のグループ化</TD>
+          </TR>
+          <TR>
+            <TD align="center">2011/04/11</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.10.4/">2.10.4</A></TD>
+            <TD>Mouse Trackのmotionフラグ修正<BR>
+            TeraTerm互換のCSIを追加<BR>
+            文字列検索を追加<BR>
+            Proxy処理のバグを修正<BR>
+            hmsc-sha2-256/512を追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2011/04/05</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.10.3/">2.10.3</A></TD>
+            <TD>CSIオプションの表示変更<BR>
+            CSI独自拡張オプションの追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2011/03/25</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.10.2/">2.10.2</A></TD>
+            <TD>サーバー情報を開く時のバグ修正<BR>
+            ANSIオプション(SRM)のDEF変更<BR>
+            w2kのみvs2008でコンパイル</TD>
+          </TR>
+          <TR>
+            <TD align="center">2011/03/14</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.10.1/">2.10.1</A></TD>
+            <TD>ホスト鍵などを選択可能に<BR>
+            getaddrinfoを非同期に変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2011/02/28</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.10.0/">2.10.0</A></TD>
+            <TD>hostkey/agentのecdsa対応</TD>
+          </TR>
+          <TR>
+            <TD align="center">2011/02/22</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.9.9/">2.9.9</A></TD>
+            <TD>ecdsaの読み込みバグ修正<BR>
+            ssh2のホスト認証を変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2011/02/14</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.9.8/">2.9.8</A></TD>
+            <TD>openssl-1.0.0dに更新<BR>
+            kermitのバグを修正<BR>
+            ecdsaの種類を追加<BR>
+            ssh2のホスト認証を追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2011/02/07</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.9.7/">2.9.7</A></TD>
+            <TD>ssh2にecdh/ecdsaを追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2011/01/24</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.9.6/">2.9.6</A></TD>
+            <TD>openssl-1.0.0cに更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2010/12/01</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.9.5/">2.9.5</A></TD>
+            <TD>openssl-1.0.0bに更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2010/11/05</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.9.4/">2.9.4</A></TD>
+            <TD>sshのrekeyingバグを修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2010/10/26</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.9.3/">2.9.3</A></TD>
+            <TD>ISO2022の文字コードを追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2010/10/01</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.9.2/">2.9.2</A></TD>
+            <TD>ReGISのLコマンドなど追加<BR>
+            サロゲート処理のバグ修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2010/09/24</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.9.1/">2.9.1</A></TD>
+            <TD>起動オプションのバグ修正<BR>
+            ReGISの機能追加及びバグ修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2010/09/17</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.9.0/">2.9.0</A></TD>
+            <TD>ReGISに対応<BR>
+            Sixelに対応</TD>
+          </TR>
+          <TR>
+            <TD align="center">2010/09/10</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.8.9/">2.8.9</A></TD>
+            <TD>CSIシーケンス/オプション追加<BR>
+            DCS/OSC処理変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2010/09/03</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.8.8/">2.8.8</A></TD>
+            <TD>ESC/CSIシーケンスを追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2010/08/27</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.8.7/">2.8.7</A></TD>
+            <TD>DCSのリポートを修正<BR>
+            一部CSIリポートを追加<BR>
+            locatorの動作を一部変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2010/07/21</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.8.6/">2.8.6</A></TD>
+            <TD>VS2010の環境に移行<BR>
+            openssl-1.0.0aに更新<BR>
+            キーコード変換を変更<BR>
+            COM10以上に対応</TD>
+          </TR>
+          <TR>
+            <TD align="center">2010/05/24</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.8.5/">2.8.5</A></TD>
+            <TD>ホイールの動作オプション追加<BR>
+            Bracketed Paste Modeに対応<BR>
+            オプションダイアログを整理<BR>
+            sshのSeqNoバグ修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2010/04/26</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.8.4/">2.8.4</A></TD>
+            <TD>画面にゴミが残るバグ修正<BR>
+            zlib-1.2.5に更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2010/04/21</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.8.3/">2.8.3</A></TD>
+            <TD>タブ(HT)クリアのバグ修正<BR>
+            最大文字数変更<BR>
+            ソケットステータスの表示追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2010/04/16</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.8.2/">2.8.2</A></TD>
+            <TD>画面更新のバグ修正<BR>
+            エントリーのイン/エクスポート<BR>
+            エントリーにメモ欄を追加<BR>
+            ssh2にumacを追加<BR>
+            ワード選択のドラッグを追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2010/04/12</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.8.1/">2.8.1</A></TD>
+            <TD>マウス範囲指定の修正<BR>
+            ウィンドウタイトルの変更<BR>
+            タブ(HT)関連のバグ修正<BR>
+            その他CSIバグ修正<BR>
+            ssh2のpty-reqを修正<BR>
+            Scrolling modeに対応<BR>
+            ssh2のseed暗号名の変更<BR>
+            ssh2のX11ポートフォワードのサーバー起動チェックを削除</TD>
+          </TR>
+          <TR>
+            <TD align="center">2010/04/05</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.8.0/">2.8.0</A></TD>
+            <TD>キー定義のバグ修正<BR>
+            sftpの日時比較のバグ修正<BR>
+            sshソースコードの整理<BR>
+            ssh2暗号アルゴリズムを追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2010/03/30</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.7.9/">2.7.9</A></TD>
+            <TD>openssl-1.0.0に更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2010/03/24</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.7.8/">2.7.8</A></TD>
+            <TD>BPlusにテキスト転送を追加<BR>
+            最小時に通信が停止するのを修正<BR>
+            zlib-1.2.4に更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2010/03/15</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.7.7/">2.7.7</A></TD>
+            <TD>kermitに対応<BR>
+            裏画面の透過表示を追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2010/02/26</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.7.6/">2.7.6</A></TD>
+            <TD>CSIオプションの設定を追加<BR>
+            拡張スクリーンの仕様変更<BR>
+            openssl-0.9.8mに更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2010/01/03</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.7.5/">2.7.5</A></TD>
+            <TD>メニュー表示のバグ修正<BR>
+            openssl-0.9.8lに更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2009/12/24</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.7.4/">2.7.4</A></TD>
+            <TD>キー定義にメニュー操作を追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2009/10/01</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.7.3/">2.7.3</A></TD>
+            <TD>ソケットエラー時のバグ修正<BR>
+            Win7用のx64バイナリを追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2009/09/25</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.7.2/">2.7.2</A></TD>
+            <TD>ChatScriptのテキスト仕様を変更<BR>
+            自動終了の手順変更<BR>
+            History保存でも拡張文字適用</TD>
+          </TR>
+          <TR>
+            <TD align="center">2009/09/16</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.7.1/">2.7.1</A></TD>
+            <TD>複数エントリ選択のバグ修正<BR>
+            キーコード設定のバグ修正<BR>
+            すべてコピー・選択を追加<BR>
+            ChatScript設定に右メニューを追加<BR>
+            ChatScrpt拡張文字を追加<BR>
+            自動ログ作成に拡張文字追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2009/09/07</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.7.0/">2.7.0</A></TD>
+            <TD>ESC/CSIの設定を追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2009/07/10</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.6.9/">2.6.9</A></TD>
+            <TD>sftp終了時にカレントディレクトリを復帰するように変更<BR>
+            マウスホイールの動きを普通にするオプションを追加<BR>
+            オプション全般のコンボボックス入力をオートスクロールに変更<BR>
+            フォント品質のオプションを追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2009/05/12</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.6.8/">2.6.8</A></TD>
+            <TD>openssl-0.9.8kに更新<BR>
+            libiconv-1.13に更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2009/04/07</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.6.7/">2.6.7</A></TD>
+            <TD>文字表示をすこし最適化<BR>
+            カーソルのゴミ表示を修正<BR>
+            マウスホイールの動作変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2009/02/27</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.6.6/">2.6.6</A></TD>
+            <TD>プロキシーにSSLを追加<BR>
+            キー操作の同時送信を追加<BR>
+            w2k用のバイナリを修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2009/02/20</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.6.5/">2.6.5</A></TD>
+            <TD>環境変数の設定追加<BR>
+            termcap/infoの追加<BR>
+            ワード切り出しの修正<BR>
+            マウスイベントの追加<BR>
+            リセットメニューの追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2009/02/13</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.6.4/">2.6.4</A></TD>
+            <TD>フォントセットの追加<BR>
+            半・全角フォントの見直し<BR>
+            ssh認証ファイルの解除<BR>
+            ssh認証パスワードの訂正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2009/02/06</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.6.3/">2.6.3</A></TD>
+            <TD>256カラーに対応<BR>
+            Metaキーの設定追加<BR>
+            キー定義をより広範囲に変更<BR>
+            文字属性追加<BR>
+            Tek4105文字回転修正<BR>
+            漢字コード自動判別修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2009/01/30</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.6.2/">2.6.2</A></TD>
+            <TD>Tek4014/4105モード追加<BR>
+            漢字コードの自動判別を追加<BR>
+            SJIS「\~」入力のバグ修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2009/01/23</TD>
+            <TD align="center">2.6.1</TD>
+            <TD>文字処理を大幅に整理<BR>
+            ESCシーケンスの互換性を向上<BR>
+            OSCで漢字対応</TD>
+          </TR>
+          <TR>
+            <TD align="center">2009/01/16</TD>
+            <TD align="center">2.6.0</TD>
+            <TD>マウスイベントに対応<BR>
+            X11ポートフォワードに対応<BR>
+            接続時入力のデフォルトを変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2009/01/13</TD>
+            <TD align="center">2.5.6</TD>
+            <TD>パスワードの保存バグの修正<BR>
+            サーバーアドレスの接続時入力<BR>
+            ワード文字の設定と漢字の切り出し<BR>
+            ZModemのレジューム対応<BR>
+            openssl-0.9.8jに更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2009/01/05</TD>
+            <TD align="center">2.5.5</TD>
+            <TD>ZModemUploadの処理変更<BR>
+            BPlusのレジュームバグ修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2008/12/22</TD>
+            <TD align="center">2.5.4</TD>
+            <TD>B+XYZModemを修正<BR>
+            SSH2チャンネル処理変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2008/12/12</TD>
+            <TD align="center">2.5.3</TD>
+            <TD>ZModemのバグ修正<BR>
+            ファイルのドロップでアップロードを追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2008/12/05</TD>
+            <TD align="center">2.5.2</TD>
+            <TD>フォント周りのバグ修正およびフォント横ズーム設定を追加<BR>
+            漢字の表示のバグ修正<BR>
+            DCSのバグ修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2008/12/04</TD>
+            <TD align="center">2.5.1</TD>
+            <TD>一部のオプションの保存を変更<BR>
+            ESCシーケンスの互換性を向上<BR>
+            vttestのスナップショットを追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2008/12/01</TD>
+            <TD align="center">2.5.0</TD>
+            <TD>sftpのファイル名制限の処理を変更<BR>
+            ESCシーケンスの互換性を向上</TD>
+          </TR>
+          <TR>
+            <TD align="center">2008/11/25</TD>
+            <TD align="center">2.4.5</TD>
+            <TD>文字属性の設定を変更<BR>
+            ssh2暗号アルゴリズムを追加<BR>
+            sftpのファイ名制限を追加<BR>
+            /inuseのバグ修正<BR>
+            portfowrdの制限削除</TD>
+          </TR>
+          <TR>
+            <TD align="center">2008/10/24</TD>
+            <TD align="center">2.4.4</TD>
+            <TD>Brack信号の送信を追加<BR>
+            通信ログの形式を追加<BR>
+            多重起動のオプションを追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2008/10/17</TD>
+            <TD align="center">2.4.3</TD>
+            <TD>コマンドラインでのオプションを追加<BR>
+            openssl-0.9.8iに更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2008/10/10</TD>
+            <TD align="center">2.4.2</TD>
+            <TD>自動ログ保存機能<BR>
+            ChatScriptで文字入力を追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2008/07/08</TD>
+            <TD align="center">2.4.1</TD>
+            <TD>ホイールの動作を変更<BR>
+            正規表現のバグフィックス<BR>
+            オープン時に自動接続</TD>
+          </TR>
+          <TR>
+            <TD align="center">2008/06/20</TD>
+            <TD align="center">2.4.0</TD>
+            <TD>オプション設定を整理<BR>
+            UnicodeのAタイプの文字を半角として表示するオプションを追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2008/06/17</TD>
+            <TD align="center">2.3.7</TD>
+            <TD>UTF-8の時SFTPの不都合を修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2008/05/12</TD>
+            <TD align="center">2.3.6</TD>
+            <TD>矩形枠の範囲指定を追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2008/04/11</TD>
+            <TD align="center">2.3.5</TD>
+            <TD>openssl-0.9.8gに変更<BR>
+            libiconv-1.12に変更<BR>
+            実行プログラムにWin2k用を追加<BR>
+            ssh2暗号アルゴリムを追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2008/04/08</TD>
+            <TD align="center">2.3.4</TD>
+            <TD>ポートフォワード・プロキシの修正<BR>
+            SSE2対応の実行プログラムを追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2008/04/03</TD>
+            <TD align="center">2.3.3</TD>
+            <TD>Proxy接続の機能を追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2008/03/27</TD>
+            <TD align="center">2.3.2</TD>
+            <TD>VS2008の環境に移行<BR>
+            同期ソケットの処理を変更<BR>
+            telnetをBinaryモードに変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2008/03/11</TD>
+            <TD align="center">2.3.1</TD>
+            <TD>Unicodeの表示文字幅の修正<BR>
+            ソケット周りの処理を見直し</TD>
+          </TR>
+          <TR>
+            <TD align="center">2008/02/22</TD>
+            <TD align="center">2.3.0</TD>
+            <TD>ChatScriptの追加<BR>
+            文字記録をUnicodeに変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2008/01/30</TD>
+            <TD align="center">2.2.7</TD>
+            <TD>受信・送信の改行動作を変更可能<BR>
+            キーコードの割り当てにTAB,ESC,BS,RET等を追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2008/01/21</TD>
+            <TD align="center">2.2.6</TD>
+            <TD>文字アトリビュートをブリンクに変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2007/12/18</TD>
+            <TD align="center">2.2.5</TD>
+            <TD>最大ヒストリー行数を拡大<BR>
+            スクロール時のバグ修正<BR>
+            ソケットオーバーフローの処理変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2007/12/13</TD>
+            <TD align="center">2.2.4</TD>
+            <TD>ssh2オーバーフローの処理を修正<BR>
+            文字アトリビュートをイタリックに変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2007/11/05</TD>
+            <TD align="center">2.2.3</TD>
+            <TD>一定時間経過で透明化<BR>
+            iconvの処理を一部高速化</TD>
+          </TR>
+          <TR>
+            <TD align="center">2007/10/15</TD>
+            <TD align="center">2.2.2</TD>
+            <TD>ファイル名補間の修正<BR>
+            バッファサイズの見直し<BR>
+            その他、処理の最適化</TD>
+          </TR>
+          <TR>
+            <TD align="center">2007/10/05</TD>
+            <TD align="center">2.2.1</TD>
+            <TD>ローカルエディット編集機能追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2007/10/03</TD>
+            <TD align="center">2.2.0</TD>
+            <TD>openssl-0.9.8eに変更<BR>
+            ssh2暗号アルゴリズムを追加<BR>
+            ssh2のディレイドzlibに対応<BR>
+            ssh2暗号・検証のシャッフル追加<BR>
+            Windowsコンソール(pipe)を追加<BR>
+            ローカルエディットモード追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2007/09/26</TD>
+            <TD align="center">2.1.6</TD>
+            <TD>視覚ベルを追加、TABの動作を変更<BR>
+            libiconv-1.9.2に変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2007/05/08</TD>
+            <TD align="center">2.1.5</TD>
+            <TD>sftpファイル転送の不具合を修正。</TD>
+          </TR>
+          <TR>
+            <TD align="center">2007/05/01</TD>
+            <TD align="center">2.1.4</TD>
+            <TD>sftp周りの修正など</TD>
+          </TR>
+          <TR>
+            <TD align="center">2007/03/22</TD>
+            <TD align="center">2.1.3</TD>
+            <TD>文字属性のオプション追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2007/02/19</TD>
+            <TD align="center">2.1.2</TD>
+            <TD>VS2005の環境に移行<BR>
+            新規エントリー作成バグを修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2006/11/30</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.1.1/">2.1.1</A></TD>
+            <TD>unicode結合文字のノーマライズ<BR>
+            文字色のバリエーション追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2006/11/23</TD>
+            <TD align="center">2.1.0</TD>
+            <TD>エージェント転送に対応(SSH2のみ)<BR>
+            エントリーとオプションを統合</TD>
+          </TR>
+          <TR>
+            <TD align="center">2006/11/07</TD>
+            <TD align="center">2.0.10</TD>
+            <TD>認証キーの扱いを変更<BR>
+            その他バグ修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2006/10/31</TD>
+            <TD align="center">2.0.9</TD>
+            <TD>ヒストリーの保存・復元を追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2006/10/28</TD>
+            <TD align="center">2.0.8</TD>
+            <TD>ウインドウの分割状態やサーバー接続状態も含めてファイルに保存・復帰を追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2006/10/25</TD>
+            <TD align="center">2.0.7</TD>
+            <TD>unicodeからiconvでコード変換する部分を一部修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2006/09/25</TD>
+            <TD align="center">2.0.6</TD>
+            <TD>オプション復元に関するバグを修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2006/07/09</TD>
+            <TD align="center">2.0.5</TD>
+            <TD>実在するCOMポートを検索<BR>
+            SFTPバーの吹出ヘルプを修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2006/06/26</TD>
+            <TD align="center">2.0.4</TD>
+            <TD>タブバーのドラックで移動</TD>
+          </TR>
+          <TR>
+            <TD align="center">2006/06/23</TD>
+            <TD align="center">2.0.3</TD>
+            <TD>ウィンドウ分割の保存・復帰など</TD>
+          </TR>
+          <TR>
+            <TD align="center">2006/06/21</TD>
+            <TD align="center">2.0.2</TD>
+            <TD>ウィンドウの縦横分割に変更<BR>
+            受信の確認後に待ち時間を追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2006/06/15</TD>
+            <TD align="center">2.0.1</TD>
+            <TD>XYZModemに対応<BR>
+            受信を確認してから送信を追加<BR>
+            RSA1の鍵ファイル読み込み対応</TD>
+          </TR>
+          <TR>
+            <TD align="center">2006/06/12</TD>
+            <TD align="center">2.0.0</TD>
+            <TD>バージョン２リリース<BR>
+            マルチビュー＆ドキュメントに対応</TD>
+          </TR>
+          <TR>
+            <TD align="center">2006/05/25</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/1.3.0/">1.3.0</A></TD>
+            <TD>シリアルポートに対応<BR>
+            BPlusファイル転送に対応<BR>
+            SFTPにてアップロードする場合、パーミッションをコピーしないように変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2006/05/23</TD>
+            <TD align="center">1.2.9</TD>
+            <TD>フォントサイズから横文字数の計算を追加<BR>
+            接続時にパスワード入力ができるように</TD>
+          </TR>
+          <TR>
+            <TD align="center">2006/05/07</TD>
+            <TD align="center">1.2.8</TD>
+            <TD>iconvとWindowsのUnicodeの違いを修正</TD>
+          </TR>
+          <TR>
+            <TD align="center">2006/04/12</TD>
+            <TD align="center">1.2.7</TD>
+            <TD>認証鍵をファイルに保存、読込及びサーバーごとに読み込みできるように変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2006/04/10</TD>
+            <TD align="center">1.2.6</TD>
+            <TD>すべての文字をUnicodeに変換して表示<BR>
+            UTF-8の全コード(U+10000以上)に対応<BR>
+            文字色セットを３つ用意</TD>
+          </TR>
+          <TR>
+            <TD align="center">2006/04/03</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/1.2.5/">1.2.5</A></TD>
+            <TD>ESC(0のグラフィックセットに対応<BR>
+            Linuxコンソールの一部シーケンスに対応</TD>
+          </TR>
+          <TR>
+            <TD align="center">2006/02/01</TD>
+            <TD align="center">1.2.4</TD>
+            <TD>一部のVT520互換制御コードに対応</TD>
+          </TR>
+          <TR>
+            <TD align="center">2006/01/18</TD>
+            <TD align="center">1.2.3</TD>
+            <TD>テキストペーストが出来ない問題を修正<BR>
+            zlibのバージョンを1.2.3にアップデート</TD>
+          </TR>
+          <TR>
+            <TD align="center">2005/07/05</TD>
+            <TD align="center">1.2.2</TD>
+            <TD>SFTPのレジュームができるように変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2005/06/30</TD>
+            <TD align="center">1.2.1</TD>
+            <TD>SFTPの処理を最適化</TD>
+          </TR>
+          <TR>
+            <TD align="center">2005/06/28</TD>
+            <TD align="center">1.2.0</TD>
+            <TD>SSH2のSFTPに対応</TD>
+          </TR>
+          <TR>
+            <TD align="center">2005/06/20</TD>
+            <TD align="center">1.1.6</TD>
+            <TD>フォントの大きさを微調整できるように変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2005/06/17</TD>
+            <TD align="center">1.1.4</TD>
+            <TD>UNICODE表示のBUGFIX</TD>
+          </TR>
+          <TR>
+            <TD align="center">2005/06/15</TD>
+            <TD align="center">1.1.2</TD>
+            <TD>JIS X 0213-2000に暫定対応</TD>
+          </TR>
+          <TR>
+            <TD align="center">2005/06/07</TD>
+            <TD align="center">1.1.1</TD>
+            <TD>ターミナルの最適化など</TD>
+          </TR>
+          <TR>
+            <TD align="center">2005/05/30</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/1.1.0/">1.1.0</A></TD>
+            <TD>ssh2のポートフォワードに対応</TD>
+          </TR>
+          <TR>
+            <TD align="center">2005/05/16</TD>
+            <TD align="center">1.0.7</TD>
+            <TD>ssh2に対応</TD>
+          </TR>
+          <TR>
+            <TD align="center">2005/04/30</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/1.0.6/">1.0.6</A></TD>
+            <TD>ssh1プロトコルに対応</TD>
+          </TR>
+          <TR>
+            <TD align="center">2005/04/10</TD>
+            <TD align="center">1.0.5</TD>
+            <TD>telnet自動ログイン・暗号化に対応</TD>
+          </TR>
+          <TR>
+            <TD align="center">1998/06/23</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/1.0.1/">1.0.1</A></TD>
+            <TD>telnetに対応</TD>
+          </TR>
+          <TR>
+            <TD align="center">1998/05/10</TD>
+            <TD align="center">1.0.0</TD>
+            <TD>初版rloginプロトコルのみ</TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+  </TBODY>
+</TABLE>
+</CENTER>
+</BODY>
+</HTML>
