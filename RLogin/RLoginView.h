@@ -156,6 +156,9 @@ protected:
 	afx_msg void OnSearchNext();
 	afx_msg void OnGoziview();
 	afx_msg void OnUpdateGoziview(CCmdUI *pCmdUI);
+	afx_msg void OnSplitHeight();
+	afx_msg void OnSplitWidth();
+	afx_msg void OnSplitOver();
 	DECLARE_MESSAGE_MAP()
 };
 

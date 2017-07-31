@@ -6016,7 +6016,7 @@ void CTextRam::fc_DECRQCRA(int ch)
 		for ( y = m_AnsiPara[2] ; y <= m_AnsiPara[4] ; y++ ) {
 			vp = GETVRAM(m_AnsiPara[3], y);
 			for ( x = m_AnsiPara[3] ; x <= m_AnsiPara[5] ; x++, vp++ )
-				sum += vp->ch[0];
+				sum += (DWORD)(*vp);
 		}
 
 	} else {
@@ -6024,7 +6024,7 @@ void CTextRam::fc_DECRQCRA(int ch)
 		for ( y = m_AnsiPara[2] ; y <= m_AnsiPara[4] ; y++ ) {
 			vp = pSave->m_VRam + m_AnsiPara[3] + pSave->m_Cols * y;
 			for ( x = m_AnsiPara[3] ; x <= m_AnsiPara[5] ; x++, vp++ )
-				sum += vp->ch[0];
+				sum += (DWORD)(*vp);
 		}
 	}
 

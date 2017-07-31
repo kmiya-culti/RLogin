@@ -1388,7 +1388,7 @@ int CTextRam::HisRegNext()
 			if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].pr.cm) && IS_2BYTE(vp[x + 1].pr.cm) ) {
 				str += (LPCWSTR)vp[x];
 				n = 2;
-			} else if ( !IS_ASCII(vp[x].pr.cm) || vp[x].ch[0] == 0 ) {
+			} else if ( !IS_ASCII(vp[x].pr.cm) || (DWORD)(vp[x]) == 0 ) {
 				str += (DCHAR)' ';
 				n = 1;
 			} else {
@@ -2770,7 +2770,7 @@ void CTextRam::EditCopy(int sps, int eps, BOOL rectflag, BOOL lineflag)
 			ex /= 2;
 		}
 
-		while ( sx <= ex && vp[ex].ch[0] < ' ' )
+		while ( sx <= ex && (DWORD)(vp[ex]) < ' ' )
 			ex--;
 
 		if ( IS_2BYTE(vp[sx].pr.cm) )
@@ -3496,7 +3496,7 @@ void CTextRam::CallReciveChar(int ch)
 	};
 
 	if ( (ch & 0xFFFF0000) == 0 && ch < ' ' ) {
-		m_LastChar = 0;
+//		m_LastChar = 0;
 		m_LastFlag = 0;
 		m_bRtoL = FALSE;
 	}

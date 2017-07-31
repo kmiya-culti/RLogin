@@ -79,6 +79,7 @@ public:
 	CStringA m_WorkMbs;
 	CString m_WorkStr;
 	class CScript *m_pScript;
+	BOOL m_InPane;
 
 	void SetIndex(int mode, CStringIndex &index);
 

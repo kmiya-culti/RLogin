@@ -46,6 +46,7 @@ public:
 	int IsOverLap(CPaneFrame *pPane);
 
 	void MoveFrame();
+	void SwapWnd();
 	void MoveParOwn(CRect &rect, int Style);
 
 	void HitActive(CPoint &po);
@@ -208,8 +209,10 @@ protected:
 	afx_msg void OnPaneSave();
 	afx_msg void OnWindowCascade();
 	afx_msg void OnWindowTileHorz();
+	afx_msg void OnWindowRotation();
 	afx_msg void OnUpdateWindowCascade(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateWindowTileHorz(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateWindowRotation(CCmdUI *pCmdUI);
 	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);

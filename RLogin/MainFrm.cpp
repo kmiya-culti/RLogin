@@ -267,6 +267,30 @@ void CPaneFrame::MoveFrame()
 		}
 	}
 }
+
+static CPaneFrame *pPushPane = NULL;
+static HWND hPushWnd = NULL;
+
+void CPaneFrame::SwapWnd()
+{
+	if ( m_pLeft != NULL )
+		m_pLeft->SwapWnd();
+
+	if ( m_pRight != NULL )
+		m_pRight->SwapWnd();
+
+	if ( m_Style == PANEFRAME_WINDOW && m_hWnd != NULL ) {
+		if ( hPushWnd == NULL ) {
+			hPushWnd = m_hWnd;
+			pPushPane = this;
+		} else {
+			HWND hTemp = m_hWnd;
+			m_hWnd = hPushWnd;
+			hPushWnd = hTemp;
+			MoveFrame();
+		}
+	}
+}
 void CPaneFrame::MoveParOwn(CRect &rect, int Style)
 {
 	if ( m_Style == PANEFRAME_WINDOW ) {
@@ -560,6 +584,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_WM_ACTIVATE()
 	ON_COMMAND(ID_VIEW_SCROLLBAR, &CMainFrame::OnViewScrollbar)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_SCROLLBAR, &CMainFrame::OnUpdateViewScrollbar)
+	ON_COMMAND(ID_WINDOW_ROTATION, &CMainFrame::OnWindowRotation)
+	ON_UPDATE_COMMAND_UI(ID_WINDOW_ROTATION, &CMainFrame::OnUpdateWindowRotation)
 END_MESSAGE_MAP()
 
 static UINT indicators[] =
@@ -972,6 +998,7 @@ int CMainFrame::OpenServerEntry(CServerEntry &Entry)
 	CServerSelect dlg;
 	CWnd *pTemp = MDIGetActive(NULL);
 	CPaneFrame *pPane = NULL;
+	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
 
 	dlg.m_pData = &m_ServerEntryTab;
 	dlg.m_EntryNum = (-1);
@@ -998,7 +1025,12 @@ int CMainFrame::OpenServerEntry(CServerEntry &Entry)
 	}
 
 	if ( dlg.m_EntryNum < 0 ) {
-		CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
+		if ( pApp->m_pServerEntry != NULL ) {
+			Entry = *(pApp->m_pServerEntry);
+			Entry.m_SaveFlag = FALSE;
+			pApp->m_pServerEntry = NULL;
+			return TRUE;
+		}
 		if ( pApp->m_pCmdInfo != NULL && !pApp->m_pCmdInfo->m_Name.IsEmpty() ) {
 			for ( n = 0 ; n< m_ServerEntryTab.m_Data.GetSize() ; n++ ) {
 				if ( pApp->m_pCmdInfo->m_Name.Compare(m_ServerEntryTab.m_Data[n].m_EntryName) == 0 ) {
@@ -1535,11 +1567,28 @@ void CMainFrame::OnWindowTileHorz()
 	GetFrameRect(rect);
 	m_pTopPane->MoveParOwn(rect, PANEFRAME_HEIGHT);
 }
+void CMainFrame::OnWindowRotation()
+{
+	if ( m_pTopPane == NULL )
+		return;
+
+	pPushPane = NULL;
+	hPushWnd = NULL;
+	m_pTopPane->SwapWnd();
+	if ( pPushPane != NULL && pPushPane->m_hWnd != hPushWnd ) {
+		pPushPane->m_hWnd = hPushWnd;
+		pPushPane->MoveFrame();
+	}
+}
 void CMainFrame::OnUpdateWindowCascade(CCmdUI* pCmdUI) 
 {
 	pCmdUI->Enable(m_pTopPane != NULL && m_pTopPane->m_Style != PANEFRAME_WINDOW ? TRUE : FALSE);
 }
 void CMainFrame::OnUpdateWindowTileHorz(CCmdUI* pCmdUI) 
+{
+	pCmdUI->Enable(m_pTopPane != NULL && m_pTopPane->m_Style != PANEFRAME_WINDOW ? TRUE : FALSE);
+}
+void CMainFrame::OnUpdateWindowRotation(CCmdUI *pCmdUI)
 {
 	pCmdUI->Enable(m_pTopPane != NULL && m_pTopPane->m_Style != PANEFRAME_WINDOW ? TRUE : FALSE);
 }

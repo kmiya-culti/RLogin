@@ -79,6 +79,7 @@ CRLoginDoc::CRLoginDoc()
 	m_TitleString.Empty();
 	m_pStrScript = NULL;
 	m_pScript = NULL;
+	m_InPane = FALSE;
 }
 
 CRLoginDoc::~CRLoginDoc()
@@ -180,6 +181,9 @@ void CRLoginDoc::OnFileClose()
 {
 	if ( m_pSock != NULL && m_pSock->m_bConnect && AfxMessageBox(CStringLoad(IDS_FILECLOSEQES), MB_ICONQUESTION | MB_YESNO) != IDYES )
 		return;
+
+	if ( m_InPane )
+		::AfxGetMainWnd()->SendMessage(WM_COMMAND, ID_PANE_DELETE);
 
 	CDocument::OnFileClose();
 }
@@ -302,6 +306,8 @@ void CRLoginDoc::SetCmdInfo(CCommandLineInfoEx *pCmdInfo)
 
 	if ( !pCmdInfo->m_Term.IsEmpty() )
 		m_ServerEntry.m_TermName = pCmdInfo->m_Term;
+
+	m_InPane = pCmdInfo->m_InPane;
 }
 void CRLoginDoc::SetEntryProBuffer()
 {
@@ -331,6 +337,8 @@ void CRLoginDoc::DeleteContents()
 
 	m_ServerEntry.Init();
 	m_TextRam.m_bOpen = FALSE;
+	m_InPane = FALSE;
+
 	CDocument::DeleteContents();
 }
 

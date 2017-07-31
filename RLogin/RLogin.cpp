@@ -42,6 +42,7 @@ CCommandLineInfoEx::CCommandLineInfoEx()
 	m_Term.Empty();
 	m_Name.Empty();
 	m_InUse = FALSE;
+	m_InPane = FALSE;
 }
 void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLast)
 {
@@ -74,6 +75,8 @@ void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLas
 			m_Port  = _T("ssh");
 		} else if ( _tcsicmp(_T("inuse"), pszParam) == 0 )
 			m_InUse = TRUE;
+		else if ( _tcsicmp(_T("inpane"), pszParam) == 0 )
+			m_InPane = TRUE;
 		else
 			break;
 		ParseLast(bLast);
@@ -239,6 +242,7 @@ CRLoginApp::CRLoginApp()
 	// TODO: この位置に構築用コードを追加してください。
 	// ここに InitInstance 中の重要な初期化処理をすべて記述してください。
 	m_NextSock = 0;
+	m_pServerEntry = NULL;
 #ifdef	USE_DIRECTWRITE
 	m_pD2DFactory    = NULL;
 	m_pDWriteFactory = NULL;

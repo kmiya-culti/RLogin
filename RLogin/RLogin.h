@@ -27,6 +27,7 @@ public:
 	CString m_Term;
 	CString m_Name;
 	BOOL m_InUse;
+	BOOL m_InPane;
 
 	CCommandLineInfoEx();
 	virtual void ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLast);
@@ -48,6 +49,7 @@ public:
 	WSADATA wsaData;
 	CString m_BaseDir;
 	CCommandLineInfoEx *m_pCmdInfo;
+	CServerEntry *m_pServerEntry;
 
 #ifdef	USE_DIRECTWRITE
 	ID2D1Factory *m_pD2DFactory;

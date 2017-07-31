@@ -611,13 +611,22 @@
 #define IDM_SERV_EXCHNG                 5051
 #define ID_5052                         5052
 #define ID_GOZIVIEW                     5053
+#define ID_5054                         5054
+#define ID_5055                         5055
+#define ID_5056                         5056
+#define ID_SPLIT_WIDTH                  5057
+#define ID_SPLIT_HEIGHT                 5058
+#define ID_5059                         5059
+#define ID_SPLIT_OVER                   5060
+#define ID_5061                         5061
+#define ID_WINDOW_ROTATION              5062
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        168
-#define _APS_NEXT_COMMAND_VALUE         5054
+#define _APS_NEXT_COMMAND_VALUE         5063
 #define _APS_NEXT_CONTROL_VALUE         3067
 #define _APS_NEXT_SYMED_VALUE           200
 #endif

@@ -2670,6 +2670,11 @@ static const struct _InitKeyTab {
 		{ VK_OEM_3,		MASK_CTRL,				_T("\\000")			},	// $C0(@)
 		{ VK_SPACE,		MASK_CTRL,				_T("\\000")			},	// SPACE
 
+		{ VK_UP,		MASK_CTRL,				_T("$PANE_ROTATION")},
+		{ VK_DOWN,		MASK_CTRL,				_T("$SPLIT_HEIGHT")	},
+		{ VK_RIGHT,		MASK_CTRL,				_T("$SPLIT_WIDTH")	},
+		{ VK_LEFT,		MASK_CTRL,				_T("$SPLIT_OVER")	},
+
 		{ (-1),		(-1),		NULL },
 	};
 
@@ -2886,7 +2891,7 @@ void CKeyNodeTab::SetArray(CStringArrayExt &stra)
 
 	tmp.RemoveAll();
 	tmp.AddVal(-1);
-	tmp.AddVal(1);			// KeyCode Bug Fix
+	tmp.AddVal(2);			// KeyCode Bug Fix
 	stra.AddArray(tmp);
 }
 void CKeyNodeTab::GetArray(CStringArrayExt &stra)
@@ -2997,7 +3002,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	71
+#define	CMDSKEYTABMAX	75
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -3035,6 +3040,7 @@ static const struct _CmdsKeyTab {
 	{	ID_WINDOW_CASCADE,		L"$PANE_CASCADE"	},
 	{	ID_PANE_DELETE,			L"$PANE_DELETE"		},
 	{	ID_PANE_HSPLIT,			L"$PANE_HSPLIT"		},
+	{	ID_WINDOW_ROTATION,		L"$PANE_ROTATION"	},
 	{	ID_WINDOW_TILE_HORZ,	L"$PANE_TILEHORZ"	},
 	{	ID_PANE_WSPLIT,			L"$PANE_WSPLIT"		},
 	{	ID_PAGE_PRIOR,			L"$PRIOR"			},
@@ -3059,6 +3065,9 @@ static const struct _CmdsKeyTab {
 	{	IDM_SEARCH_BACK,		L"$SEARCH_BACK"		},
 	{	IDM_SEARCH_NEXT,		L"$SEARCH_NEXT"		},
 	{	IDM_SEARCH_REG,			L"$SEARCH_REG"		},
+	{	ID_SPLIT_HEIGHT,		L"$SPLIT_HEIGHT"	},
+	{	ID_SPLIT_OVER,			L"$SPLIT_OVER"		},
+	{	ID_SPLIT_WIDTH,			L"$SPLIT_WIDTH"		},
 	{	ID_VIEW_SCROLLBAR,		L"$VIEW_SCROLLBAR"	},
 	{	IDM_SFTP,				L"$VIEW_SFTP"		},
 	{	IDM_SOCKETSTATUS,		L"$VIEW_SOCKET"		},
@@ -3150,9 +3159,17 @@ void CKeyNodeTab::BugFix(int fix)
 		}
 	}
 
-	for ( i = 0 ; InitKeyTab[i].maps != NULL ; i++ ) {
-		if ( !Find(InitKeyTab[i].code, InitKeyTab[i].mask, &n) )
-			Add(InitKeyTab[i].code, InitKeyTab[i].mask, InitKeyTab[i].maps);
+	if ( fix < 2 ) {
+		for ( i = 0 ; InitKeyTab[i].maps != NULL ; i++ ) {
+			if ( !Find(InitKeyTab[i].code, InitKeyTab[i].mask, &n) ) {
+				for ( n = 0 ; n < m_Node.GetSize() ; n++ ) {
+					if ( _tcscmp(m_Node[n].GetMaps(), InitKeyTab[i].maps) == 0 )
+						break;
+				}
+				if ( n >= m_Node.GetSize() )
+					Add(InitKeyTab[i].code, InitKeyTab[i].mask, InitKeyTab[i].maps);
+			}
+		}
 	}
 }
 int CKeyNodeTab::GetDecKeyToCode(int code)

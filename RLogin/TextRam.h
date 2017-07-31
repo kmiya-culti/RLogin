@@ -256,18 +256,18 @@
 #define	UNICODE_MAX		0x0010FFFF		// U+000000 - U+10FFFF 21 bit (サロゲート可能範囲)
 #define	UNICODE_UNKOWN	0x000025A1		// □
 
-#define	UNI_NAR			0x00000000		// 1 width char
-#define	UNI_WID			0x00000001		// 2 width char
-#define	UNI_AMB			0x00000002		// A type char 1 or 2 width
-#define	UNI_NSM			0x00000004		// Non Spaceing Mark char
-#define	UNI_IVS			0x00000008		// IVS Mark
-#define	UNI_SGH			0x00000010		// サロゲート Hi
-#define	UNI_SGL			0x00000020		// サロゲート Low
-#define	UNI_CTL			0x00000040		// RtoL LtoR Control char
-#define	UNI_HNF			0x00000080		// Hangle Fast
-#define	UNI_HNM			0x00000100		// Hangle Mid
-#define	UNI_HNL			0x00000200		// Hangle Last
-#define	UNI_RTL			0x00000400		// Right to Left block
+#define	UNI_NAR			0x00000001		// 1 width char
+#define	UNI_WID			0x00000002		// 2 width char
+#define	UNI_AMB			0x00000004		// A type char 1 or 2 width
+#define	UNI_NSM			0x00000008		// Non Spaceing Mark char
+#define	UNI_IVS			0x00000010		// IVS Mark
+#define	UNI_SGH			0x00000020		// サロゲート Hi
+#define	UNI_SGL			0x00000040		// サロゲート Low
+#define	UNI_CTL			0x00000080		// RtoL LtoR Control char
+#define	UNI_HNF			0x00000100		// Hangle Fast
+#define	UNI_HNM			0x00000200		// Hangle Mid
+#define	UNI_HNL			0x00000400		// Hangle Last
+#define	UNI_RTL			0x00000800		// Right to Left block
 
 										// CSI > Ps T/t		xterm CASE_RM_TITLE/CASE_SM_TITLE option flag bits m_XtOptFlag
 #define	XTOP_SETHEX		0x0001			//    Ps = 0  -> Set window/icon labels using hexadecimal.
@@ -389,6 +389,7 @@ public:
 	inline void Empty() { ch[0] = 0; }
 	inline BOOL IsEmpty() { return (ch[0] == 0 ? TRUE : FALSE); }
 	inline operator LPCWSTR () { return ch; }
+	inline operator DWORD () { return ((ch[0] == 0 ? 0 : (ch[1] == 0 ? ch[0] : ((ch[0] << 16) | ch[1])))); }
 	inline const CVram & operator = (CVram &data);
 	inline void operator = (VRAM &ram);
 

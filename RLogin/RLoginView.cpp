@@ -75,6 +75,9 @@ BEGIN_MESSAGE_MAP(CRLoginView, CView)
 	ON_COMMAND(IDM_SEARCH_BACK, &CRLoginView::OnSearchBack)
 	ON_COMMAND(ID_GOZIVIEW, &CRLoginView::OnGoziview)
 	ON_UPDATE_COMMAND_UI(ID_GOZIVIEW, &CRLoginView::OnUpdateGoziview)
+	ON_COMMAND(ID_SPLIT_HEIGHT, &CRLoginView::OnSplitHeight)
+	ON_COMMAND(ID_SPLIT_WIDTH, &CRLoginView::OnSplitWidth)
+	ON_COMMAND(ID_SPLIT_OVER, &CRLoginView::OnSplitOver)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1982,4 +1985,56 @@ void CRLoginView::OnGoziview()
 void CRLoginView::OnUpdateGoziview(CCmdUI *pCmdUI)
 {
 	pCmdUI->SetCheck(m_GoziView);
+}
+
+void CRLoginView::OnSplitHeight()
+{
+	CCommandLineInfoEx cmds;
+	CRLoginDoc *pDoc = GetDocument();
+	CMainFrame *pMain = (CMainFrame *)::AfxGetMainWnd();
+	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
+
+	if ( pDoc == NULL || pMain == NULL || pApp == NULL )
+		return;
+
+	pMain->SendMessage(WM_COMMAND, ID_PANE_HSPLIT);
+
+	pDoc->m_InPane = TRUE;
+	pDoc->SetEntryProBuffer();
+	pApp->m_pServerEntry = &(pDoc->m_ServerEntry);
+	cmds.ParseParam(_T("inpane"), TRUE, FALSE);
+	((CRLoginApp *)::AfxGetApp())->OpenProcsCmd(&cmds);
+}
+void CRLoginView::OnSplitWidth()
+{
+	CCommandLineInfoEx cmds;
+	CRLoginDoc *pDoc = GetDocument();
+	CMainFrame *pMain = (CMainFrame *)::AfxGetMainWnd();
+	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
+
+	if ( pDoc == NULL || pMain == NULL || pApp == NULL )
+		return;
+
+	pMain->SendMessage(WM_COMMAND, ID_PANE_WSPLIT);
+
+	pDoc->m_InPane = TRUE;
+	pDoc->SetEntryProBuffer();
+	pApp->m_pServerEntry = &(pDoc->m_ServerEntry);
+	cmds.ParseParam(_T("inpane"), TRUE, FALSE);
+	((CRLoginApp *)::AfxGetApp())->OpenProcsCmd(&cmds);
+}
+void CRLoginView::OnSplitOver()
+{
+	CCommandLineInfoEx cmds;
+	CRLoginDoc *pDoc = GetDocument();
+	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
+
+	if ( pDoc == NULL || pApp == NULL )
+		return;
+
+	pDoc->m_InPane = TRUE;
+	pDoc->SetEntryProBuffer();
+	pApp->m_pServerEntry = &(pDoc->m_ServerEntry);
+	cmds.ParseParam(_T("inpane"), TRUE, FALSE);
+	((CRLoginApp *)::AfxGetApp())->OpenProcsCmd(&cmds);
 }
