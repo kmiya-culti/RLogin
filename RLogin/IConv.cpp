@@ -201,7 +201,7 @@ RETRY:
 		otp = tmp;
 		ots = 4096;
 		xns = tns = (ins < 2048 ? ins : 2048);
-        n = (int)iconv(cp->m_Cd, (const char **)&inp, &tns, &otp, &ots);
+        n = (int)iconv(cp->m_Cd, (char **)&inp, &tns, &otp, &ots);
 		if ( ots < 4096 )
 			out->Apend((LPBYTE)tmp, (int)(4096 - ots));
 		in->Consume(xns - tns);
@@ -232,7 +232,7 @@ int CIConv::IConvBuf(LPCSTR from, LPCSTR to, CBuffer *in, CBuffer *out)
 		otp = tmp;
 		ots = 4096;
 		xns = tns = (ins < 2048 ? ins : 2048);
-        n = (int)iconv(cp->m_Cd, (const char **)&inp, &tns, &otp, &ots);
+        n = (int)iconv(cp->m_Cd, (char **)&inp, &tns, &otp, &ots);
 		if ( ots < 4096 )
 			out->Apend((LPBYTE)tmp, (int)(4096 - ots));
 		ins -= (xns - tns);
@@ -265,7 +265,7 @@ int CIConv::IConvStr(LPCSTR from, LPCSTR to, LPCSTR in, CString &out)
     while ( ins > 0 && n != (-1) ) {
 		otp = tmp;
 		ots = 4096;
-        n = (int)iconv(cp->m_Cd, (const char **)&inp, &ins, &otp, &ots);
+        n = (int)iconv(cp->m_Cd, (char **)&inp, &ins, &otp, &ots);
 		for ( otp = tmp ; ots < 4096 ; ots++ )
 			out += *(otp++);
     }
@@ -390,7 +390,7 @@ int CIConv::IConvChar(LPCSTR from, LPCSTR to, int ch)
     ots = 32;
 
     while ( ins > 0 ) {
-        if ( iconv(cp->m_Cd, (const char **)&inp, &ins, &otp, &ots) == (size_t)(-1) )
+        if ( iconv(cp->m_Cd, (char **)&inp, &ins, &otp, &ots) == (size_t)(-1) )
 	        return 0x0000;
     }
 	iconv(cp->m_Cd, NULL, NULL, &otp, &ots);

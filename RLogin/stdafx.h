@@ -64,6 +64,7 @@
 #include <afx.h>
 #include <afxdlgs.h>
 #pragma comment(lib, "ws2_32.lib")
+#pragma comment(lib, "Dnsapi.lib")
 #endif
 
 #ifdef	USE_DIRECTWRITE

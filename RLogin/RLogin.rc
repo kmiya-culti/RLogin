@@ -423,7 +423,7 @@ CAPTION "RLoginÇÃÉoÅ[ÉWÉáÉìèÓïÒ"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.10.9 (2011/06/29)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.10.10 (2011/08/10)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2011 Culti",IDC_STATIC,47,15,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,148,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.0d Feb 8th, 2011",IDC_STATIC,47,29,176,8
@@ -432,8 +432,8 @@ BEGIN
     LTEXT           "All rights reserved.",IDC_STATIC,47,59,176,8
     LTEXT           "zlib 1.2.5",IDC_STATIC,47,74,176,8
     LTEXT           "(C) 1995-2010 Jean-loup Gailly and Mark Adler",IDC_STATIC,47,83,176,8
-    LTEXT           "iconv (GNU libiconv 1.13)",IDC_STATIC,47,99,176,8
-    LTEXT           "Copyright (C) 2000-2002 Free Software Foundation, Inc.",IDC_STATIC,47,108,176,8
+    LTEXT           "iconv (GNU libiconv 1.14)",IDC_STATIC,47,99,176,8
+    LTEXT           "Copyright (C) 2000-2011 Free Software Foundation, Inc.",IDC_STATIC,47,108,176,8
     LTEXT           "Nettle library (version 2.0)",IDC_STATIC,47,124,176,8
     LTEXT           "Originally written 2001 by Niels Moller, updated 2009.",IDC_STATIC,47,133,176,8
 END

@@ -171,6 +171,18 @@ public:
 #define	IDKEY_DSA2EX	0104
 #define	IDKEY_ECDSAEX	0140
 
+#define	SSHFP_KEY_RESERVED	0
+#define	SSHFP_KEY_RSA		1
+#define	SSHFP_KEY_DSA		2
+#define	SSHFP_KEY_ECDSA		3
+
+#define	SSHFP_HASH_RESERVED	0
+#define	SSHFP_HASH_SHA1		1
+#define	SSHFP_HASH_SHA256	2
+
+#define DNS_RDATACLASS_IN	1
+#define DNS_RDATATYPE_SSHFP	44
+
 class CIdKey: public CObject
 {
 public:
@@ -247,6 +259,7 @@ public:
 
 	int GetSize();
 	void FingerPrint(CString &str);
+	int DnsDigest(int hash, CBuffer &digest);
 
 	CIdKey();
 	~CIdKey();
