@@ -1259,8 +1259,11 @@ void CExtSocket::OnRecive(int nFlags)
 
 		if ( n > 0 )
 			sp->SetSize(n);
-		else if ( n < 0 && m_SSL_mode && SSL_get_error(m_SSL_pSock, n) != SSL_ERROR_WANT_READ )
+		else if ( n < 0 && m_SSL_mode && SSL_get_error(m_SSL_pSock, n) != SSL_ERROR_WANT_READ ) {
+			FreeBuffer(sp);
 			OnError(WSAENOTCONN);
+			return;
+		}
 
 		if ( sp->GetSize() <= 0 ) {
 			FreeBuffer(sp);
