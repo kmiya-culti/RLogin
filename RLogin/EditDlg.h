@@ -18,6 +18,7 @@ public:
 	CString	m_Edit;
 	CString	m_Title;
 
+	BOOL m_bPassword;
 	CString m_WinText;
 
 // オーバーライド

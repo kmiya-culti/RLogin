@@ -946,7 +946,7 @@ public:
 	BYTE m_Kan_Buf[KANBUFMAX];
 	
 	void fc_KANCHK();
-	inline void fc_KANJI(int ch) { if ( ch >= 128 || m_Kan_Buf[(m_Kan_Pos - 1) & (KANBUFMAX - 1)] >= 128 ) { m_Kan_Buf[m_Kan_Pos++] = ch; m_Kan_Pos &= (KANBUFMAX - 1); } }
+	void fc_KANJI(int ch);
 
 	// Print...
 	void fc_IGNORE(int ch);

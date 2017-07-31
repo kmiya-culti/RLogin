@@ -1459,12 +1459,61 @@ void CTextRam::fc_CESC(int ch)
 //////////////////////////////////////////////////////////////////////
 // fc KANJI
 
+static const WORD UnDefCp932[] = {	// 47
+	0x81AD, 0x81B8, 0x81C0, 0x81C8, 0x81CF, 0x81DA, 0x81E9, 0x81F0, 
+	0x81F8, 0x81FC, 0x8240, 0x824F, 0x8259, 0x8260, 0x827A, 0x8281, 
+	0x829B, 0x829F, 0x82F2, 0x8340, 0x8397, 0x839F, 0x83B7, 0x83BF, 
+	0x83D7, 0x8440, 0x8461, 0x8470, 0x8492, 0x849F, 0x84BF, 0x8740, 
+	0x875E, 0x875F, 0x8776, 0x877E, 0x879D, 0x889F, 0x9873, 0x989F, 
+	0xEAA5, 0xED40, 0xEEED, 0xEEEF, 0xEF40, 0xF040, 0xFC4C, 
+};
+static const WORD UnDefEuc1[] = {	// 42	EUCJP-MS-1
+	0xA2AF, 0xA2BA, 0xA2C2, 0xA2CA, 0xA2D1, 0xA2DC, 0xA2EB, 0xA2F2,
+	0xA2FA, 0xA2FE, 0xA3A1, 0xA3B0, 0xA3BA, 0xA3C1, 0xA3DB, 0xA3E1,
+	0xA3FB, 0xA4A1, 0xA4F4, 0xA5A1, 0xA5F7, 0xA6A1, 0xA6B9, 0xA6C1,
+	0xA6D9, 0xA7A1, 0xA7C2, 0xA7D1, 0xA7F2, 0xA8A1, 0xA8C1, 0xADA1,
+	0xADBF, 0xADC0, 0xADD7, 0xADDF, 0xADFD, 0xB0A1, 0xCFD4, 0xD0A1,
+	0xF4A7, 0xF5A1,
+};
+static const WORD UnDefEuc2[] = {	// 48	EUCJP-MS-2
+	0xA1A1, 0xA2AF, 0xA2BA, 0xA2C2, 0xA2C5, 0xA2EB, 0xA2F2, 0xA6E1, 
+	0xA6E6, 0xA6E7, 0xA6E8, 0xA6E9, 0xA6EB, 0xA6EC, 0xA6ED, 0xA6F1, 
+	0xA6FD, 0xA7C2, 0xA7CF, 0xA7F2, 0xA8A1, 0xA9A1, 0xA9A3, 0xA9A4, 
+	0xA9A5, 0xA9A6, 0xA9A7, 0xA9A8, 0xA9AA, 0xA9AB, 0xA9AE, 0xA9AF, 
+	0xA9B1, 0xA9C1, 0xA9D1, 0xAAA1, 0xAAB9, 0xAABA, 0xAAF8, 0xABA1, 
+	0xABBC, 0xABBD, 0xABC4, 0xABC5, 0xABF8, 0xB0A1, 0xEDE4, 0xF3F3, 
+};
+
+static int IsUnDefCode(WORD code, const WORD *tab, int len)
+{
+	int n, b, m;
+
+	b = 0;
+	m = len - 1;
+	while ( b <= m ) {
+		n = (b + m) / 2;
+		if ( code == tab[n] )
+			return (n & 1);
+		else if ( code > tab[n] )
+			b = n + 1;
+		else
+			m = n - 1;
+	}
+	return ((b - 1) & 1);
+}
+void CTextRam::fc_KANJI(int ch)
+{
+	if ( ch >= 128 || m_Kan_Buf[(m_Kan_Pos - 1) & (KANBUFMAX - 1)] >= 128 ) {
+		m_Kan_Buf[m_Kan_Pos++] = ch; 
+		m_Kan_Pos &= (KANBUFMAX - 1);
+	}
+}
 void CTextRam::fc_KANCHK()
 {
 	int n, ch;
 	BOOL skip = FALSE;
-	int sjis_st = 0, sjis_rs = 0;
-	int euc_st  = 0, euc_rs  = 0;
+	int sjis_st = 0, sjis_rs = 0, sjis_bk = 0;
+	int euc_st  = 0, euc_rs  = 0, euc_bk = 0;
 	int utf8_st = 0, utf8_rs = 0;
 
 	for ( n = m_Kan_Pos + 1; n != m_Kan_Pos ; n = (n + 1) & (KANBUFMAX - 1) ) {
@@ -1479,6 +1528,7 @@ void CTextRam::fc_KANCHK()
 		// 2 Byte	0x40 - 0x7E or 0x80 - 0xFC
 		switch(sjis_st) {
 		case 0:
+			sjis_bk = ch;
 			if ( issjis1(ch) )
 				sjis_st = 1;
 			else if ( iskana(ch) )
@@ -1490,7 +1540,7 @@ void CTextRam::fc_KANCHK()
 			break;
 		case 1:
 			sjis_st = 0;
-			if ( issjis2(ch) )
+			if ( issjis2(ch) && IsUnDefCode((sjis_bk << 8) | ch, UnDefCp932, 47) )
 				sjis_rs |= 001;
 			else
 				sjis_rs |= 002;
@@ -1498,16 +1548,17 @@ void CTextRam::fc_KANCHK()
 		}
 
 		// EUC
-		// 1 Byte	0xA0 - 0xFF or 0x8E		or 0x8F
-		// 2 Byte	0xA0 - 0xFF
-		// 3 Byte							0xA0 - 0xFF
+		// 1 Byte	0xA1 - 0xFE		or 0x8F			or 0x8E
+		// 2 Byte	0xA1 - 0xFE		0xA1 - 0xFE		0xA0 - 0xDF
+		// 3 Byte					0xA1 - 0xFE
 
 		switch(euc_st) {
 		case 0:
-			if ( ch >= 0xA0 )
+			euc_bk = ch;
+			if ( ch >= 0xA1 && ch <= 0xFE )
 				euc_st = 1;
 			else if ( ch == 0x8E )
-				euc_st = 1;
+				euc_st = 4;
 			else if ( ch == 0x8F )
 				euc_st = 2;
 			else if ( (ch & 0x80) != 0 )
@@ -1515,20 +1566,35 @@ void CTextRam::fc_KANCHK()
 			else
 				euc_rs |= 004;
 			break;
-		case 1:
+		case 1:		// EUCJP-MS-1	2 Byte
 			euc_st = 0;
-			if ( ch >= 0xA0 )
+			if ( ch >= 0xA1 && ch <= 0xFE && IsUnDefCode((euc_bk << 8) | ch, UnDefEuc1, 42) )
 				euc_rs |= 001;
 			else
 				euc_rs |= 002;
 			break;
-		case 2:
-			if ( ch >= 0xA0 )
-				euc_st = 1;
+		case 2:		// EUCJP-MS-2	1 Byte
+			euc_bk = ch;
+			if ( ch >= 0xA1 && ch <= 0xFE )
+				euc_st = 3;
 			else {
 				euc_st = 0;
 				euc_rs |= 002;
 			}
+			break;
+		case 3:		// EUCJP-MS-2	2 Byte
+			euc_st = 0;
+			if ( ch >= 0xA1 && ch <= 0xFE && IsUnDefCode((euc_bk << 8) | ch, UnDefEuc2, 48) )
+				euc_rs |= 001;
+			else
+				euc_rs |= 002;
+			break;
+		case 4:		// Kana
+			euc_st = 0;
+			if ( ch >= 0xA0 && ch <= 0xDF )
+				euc_rs |= 001;
+			else
+				euc_rs |= 002;
 			break;
 		}
 

@@ -16,6 +16,7 @@ CEditDlg::CEditDlg(CWnd* pParent /*=NULL*/)
 	m_Edit.Empty();
 	m_Title.Empty();
 	m_WinText.Empty();
+	m_bPassword = FALSE;
 }
 
 void CEditDlg::DoDataExchange(CDataExchange* pDX)
@@ -38,6 +39,14 @@ BOOL CEditDlg::OnInitDialog()
 
 	if ( !m_WinText.IsEmpty() )
 		SetWindowText(m_WinText);
+
+	if ( m_bPassword ) {
+		CEdit *pWnd = (CEdit *)GetDlgItem(IDC_EDIT1);
+		if ( pWnd != NULL ) {
+			pWnd->ModifyStyle(0, ES_PASSWORD);
+			pWnd->SetPasswordChar(_T('*'));
+		}
+	}
 
 	return TRUE;
 }

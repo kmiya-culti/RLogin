@@ -282,6 +282,7 @@ public:
 	void Digest(CString &out, LPCTSTR str);
 	inline void SetPass(LPCTSTR pass) { Digest(m_Hash, pass); }
 	int CompPass(LPCTSTR pass);
+	int InitPass(LPCTSTR pass);
 
 	LPCTSTR GetName(BOOL bCert = TRUE);
 	int GetTypeFromName(LPCTSTR name);
@@ -513,7 +514,7 @@ public:
 	CAgent();
 	void OnRecive(const void *lpBuf, int nBufLen);
 
-	CIdKey *GetIdKey(CIdKey *key);
+	CIdKey *GetIdKey(CIdKey *key, LPCTSTR pass);
 	void ReciveBuffer(CBuffer *bp);
 };
 
@@ -596,6 +597,7 @@ public:
 	CString m_HostName;
 	int m_StdChan;
 	CFilter *m_pListFilter;
+	CArray<CIdKey, CIdKey &> m_IdKeyTab;
 
 private:
 	CString m_ServerVerStr;
@@ -618,8 +620,7 @@ private:
 	int m_SessionIdLen;
 	BYTE m_SessionKey[64];
 	CIdKey m_HostKey;
-	CIdKey m_IdKey;
-	CArray<CIdKey, CIdKey &> m_IdKeyTab;
+	CIdKey *m_pIdKey;
 	int m_IdKeyPos;
 	int m_AuthReqTab[8];
 

@@ -1,4 +1,5 @@
 #pragma once
+#include "afxcmn.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CColParaDlg ダイアログ
@@ -26,11 +27,18 @@ public:
 	COLORREF m_ColTab[16];
 	BOOL m_Attrb[24];
 	BOOL m_GlassStyle;
+	CSliderCtrl m_SliderConstrast;
+	CSliderCtrl m_SliderBright;
 
 	CImageList m_ImageList[8];
+	int m_Contrast;
+	int m_Bright;
+	CRect m_InvRect;
 
 public:
 	void DoInit();
+	void SetDarkLight();
+	COLORREF EditColor(int num);
 
 // オーバーライド
 protected:
@@ -43,7 +51,6 @@ public:
 
 // インプリメンテーション
 protected:
-	afx_msg void OnPaint();
 	afx_msg void OnLButtonDblClk(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnReleasedcaptureTransparent(NMHDR* pNMHDR, LRESULT* pResult);
@@ -53,5 +60,8 @@ protected:
 	afx_msg void OnEnChangeColor();
 	afx_msg void OnBnClickedGlassStyle();
 	afx_msg void OnUpdateCheck(UINT nId);
+	afx_msg void OnNMReleasedcaptureContrast(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
+	afx_msg void OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct);
 	DECLARE_MESSAGE_MAP()
 };

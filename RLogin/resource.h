@@ -18,6 +18,7 @@
 #define IDS_STRING105                   105
 #define IDS_PUBLICKEYCOPYMSG            105
 #define IDB_BITMAP2                     106
+#define IDS_AGENT_DELKEY                106
 #define IDB_BITMAP3                     107
 #define IDB_BITMAP4                     108
 #define IDB_BITMAP5                     109
@@ -602,6 +603,8 @@
 #define IDC_DISIPV6                     3066
 #define IDC_TEXTBOX                     3069
 #define IDC_ICONBOX                     3070
+#define IDC_SLIDER_CONTRAST             3071
+#define IDC_SLIDER_BRIGHT               3072
 #define ID_FILE_ALL_LOAD                5000
 #define ID_EDIT_BOX                     5001
 #define ID_PAGE_PRIOR                   5002
@@ -661,7 +664,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        173
 #define _APS_NEXT_COMMAND_VALUE         5072
-#define _APS_NEXT_CONTROL_VALUE         3071
+#define _APS_NEXT_CONTROL_VALUE         3072
 #define _APS_NEXT_SYMED_VALUE           200
 #endif
 #endif

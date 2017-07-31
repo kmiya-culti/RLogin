@@ -58,6 +58,14 @@ BOOL CIdKeyFileDlg::OnInitDialog()
 		if ( (pWnd = GetDlgItem(IDC_IDKEYSEL)) != NULL )
 			pWnd->EnableWindow(FALSE);
 		break;
+	case 4:
+		if ( (pWnd = GetDlgItem(IDC_IDKEYFILE)) != NULL )
+			pWnd->EnableWindow(FALSE);
+		if ( (pWnd = GetDlgItem(IDC_IDKEYSEL)) != NULL )
+			pWnd->EnableWindow(FALSE);
+		if ( (pWnd = GetDlgItem(IDC_PASSNAME2)) != NULL )
+			pWnd->EnableWindow(FALSE);
+		break;
 	}
 	return TRUE;
 }

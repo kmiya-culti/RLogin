@@ -56,10 +56,11 @@ void CColParaDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_TEXTCOL, m_FontColName[0]);
 	DDX_Text(pDX, IDC_BACKCOL, m_FontColName[1]);
 	DDX_Check(pDX, IDC_CHECK1, m_GlassStyle);
+	DDX_Control(pDX, IDC_SLIDER_CONTRAST, m_SliderConstrast);
+	DDX_Control(pDX, IDC_SLIDER_BRIGHT, m_SliderBright);
 }
 
 BEGIN_MESSAGE_MAP(CColParaDlg, CPropertyPage)
-	ON_WM_PAINT()
 	ON_WM_LBUTTONDBLCLK()
 	ON_WM_LBUTTONDOWN()
 	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_TRANSPARENT, OnReleasedcaptureTransparent)
@@ -70,17 +71,16 @@ BEGIN_MESSAGE_MAP(CColParaDlg, CPropertyPage)
 	ON_EN_CHANGE(IDC_BACKCOL, &CColParaDlg::OnEnChangeColor)
 	ON_BN_CLICKED(IDC_CHECK1, &CColParaDlg::OnBnClickedGlassStyle)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_ATTR1, IDC_ATTR8, &CColParaDlg::OnUpdateCheck)
+	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_SLIDER_CONTRAST, &CColParaDlg::OnNMReleasedcaptureContrast)
+	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_SLIDER_BRIGHT, &CColParaDlg::OnNMReleasedcaptureContrast)
+	ON_WM_VSCROLL()
+	ON_WM_DRAWITEM()
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
 // CColParaDlg メッセージ ハンドラ
 
 static	const COLORREF	ColSetTab[][16] = {
-	//{	RGB(  0,   0,   0),	RGB(196,   0,   0),	RGB(  0, 196,   0),	RGB(196, 196,   0),
-	//	RGB(  0,   0, 196),	RGB(196,   0, 196),	RGB(  0, 196, 196),	RGB(196, 196, 196),
-	//	RGB(128, 128, 128),	RGB(255,   0,   0),	RGB(  0, 255,   0),	RGB(255, 255,   0),
-	//	RGB(  0,   0, 255),	RGB(255,   0, 255),	RGB(  0, 255, 255),	RGB(255, 255, 255)	},	// Black
-
 	{	RGB(  0,   0,   0),	RGB(196,  64,  64),	RGB( 64, 196,  64),	RGB(196, 196,  64),
 		RGB( 64,  64, 196),	RGB(196,  64, 196),	RGB( 64, 196, 196),	RGB(196, 196, 196),
 		RGB(128, 128, 128),	RGB(255,  64,  64),	RGB( 64, 255,  64),	RGB(255, 255,  64),
@@ -102,7 +102,7 @@ static	const COLORREF	ColSetTab[][16] = {
 		RGB(  0,   0, 255),	RGB(196,   0, 255),	RGB(  0, 255, 196),	RGB(  0, 196, 255)	},	// Sian
 
 	{	RGB(255, 255, 255),	RGB(196,  64,  64),	RGB( 32, 128,   0),	RGB(164, 128,  32),
-		RGB(  0,   64,128),	RGB(196,   0, 196),	RGB(  0, 128, 128),	RGB(  0,   0,   0),
+		RGB(  0,  64, 128),	RGB(196,   0, 196),	RGB(  0, 128, 128),	RGB(  0,   0,   0),
 		RGB(224, 224, 224),	RGB(255,  32,  32),	RGB( 32, 224,   0),	RGB(255, 224,   0),
 		RGB( 32,  32, 224),	RGB(255,   0, 255),	RGB( 32, 196, 224),	RGB( 96,  96,  96)	},	// White
 
@@ -110,11 +110,18 @@ static	const COLORREF	ColSetTab[][16] = {
 		RGB(131, 148, 150),	RGB(108, 113, 196),	RGB(147, 161, 161),	RGB(238, 232, 213),
 		RGB(  7,  54,  66),	RGB(220,  50,  47),	RGB(133, 153,   0),	RGB(181, 137,   0),
 		RGB( 38, 139, 210),	RGB(211,  54, 130),	RGB( 42, 161, 152),	RGB(253, 246, 227)	},	// Solarized
+
+	{	RGB( 38,  38,  38),	RGB(253, 115, 255),	RGB( 96, 255, 167),	RGB(253, 244, 198),
+		RGB( 96, 107, 255),	RGB(253, 202, 150),	RGB(182, 255, 255),	RGB(238, 238, 238),
+		RGB(123, 123, 123),	RGB(254, 156, 255),	RGB(171, 255, 206),	RGB(254, 223, 223),
+		RGB(176, 182, 255),	RGB(254, 220, 181),	RGB(203, 255, 255),	RGB(255, 255, 255)	}, 	// Pastel
 };
 
 void CColParaDlg::DoInit()
 {
 	int n;
+
+	SetDarkLight();
 
 	for ( n = 0 ; n < 16 ; n++ )
 		m_ColTab[n] = m_pSheet->m_pTextRam->m_ColTab[n];
@@ -148,6 +155,32 @@ void CColParaDlg::DoInit()
 
 	UpdateData(FALSE);
 }
+void CColParaDlg::SetDarkLight()
+{
+	double d = (double)(100 - m_SliderConstrast.GetPos()) / 10.0;
+	m_Contrast = (int)(d * d + 5.0 * d + 50.0);
+	m_Bright = m_SliderBright.GetPos() - 150;
+}
+COLORREF CColParaDlg::EditColor(int num)
+{
+	int r = GetRValue(m_ColTab[num]);
+	int g = GetGValue(m_ColTab[num]);
+	int b = GetBValue(m_ColTab[num]);
+
+	r = (r - 127) * m_Contrast / 100 + 127;
+	g = (g - 127) * m_Contrast / 100 + 127;
+	b = (b - 127) * m_Contrast / 100 + 127;
+
+	r = r - m_Bright;
+	g = g - m_Bright;
+	b = b - m_Bright;
+
+	if ( r < 0 ) r = 0; else if ( r > 255 ) r = 255;
+	if ( g < 0 ) g = 0; else if ( g > 255 ) g = 255;
+	if ( b < 0 ) b = 0; else if ( b > 255 ) b = 255;
+
+	return RGB(r, g, b);
+}
 BOOL CColParaDlg::OnInitDialog() 
 {
 	ASSERT(m_pSheet);
@@ -171,6 +204,23 @@ BOOL CColParaDlg::OnInitDialog()
 
 	m_TransSlider.SetRange(10, 255);
 
+	m_SliderConstrast.SetRange(0, 100);
+	m_SliderConstrast.SetPos(50);
+
+	m_SliderBright.SetRange(0, 300);
+	m_SliderBright.SetPos(150);
+
+	CRect rect;
+	m_ColBox[0].GetWindowRect(rect);
+	ScreenToClient(rect);
+	m_InvRect.left   = rect.left;
+	m_InvRect.top    = rect.top;
+
+	m_ColBox[15].GetWindowRect(rect);
+	ScreenToClient(rect);
+	m_InvRect.right  = rect.right;
+	m_InvRect.bottom = rect.bottom;
+
 	if ( (pWnd = (CButton *)GetDlgItem(IDC_CHECK1)) != NULL ) {
 #ifdef	USE_DWMAPI
 		pWnd->EnableWindow(ExDwmEnable);
@@ -192,8 +242,10 @@ BOOL CColParaDlg::OnApply()
 
 	UpdateData(TRUE);
 
+	SetDarkLight();
+
 	for ( n = 0 ; n < 16 ; n++ )
-		m_pSheet->m_pTextRam->m_ColTab[n] = m_ColTab[n];
+		m_pSheet->m_pTextRam->m_ColTab[n] = EditColor(n);
 
 	m_FontCol[0] = _tstoi(m_FontColName[0]);
 	m_FontCol[1] = _tstoi(m_FontColName[1]);
@@ -231,24 +283,6 @@ void CColParaDlg::OnReset()
 
 	DoInit();
 	SetModified(FALSE);
-}
-
-void CColParaDlg::OnPaint() 
-{
-	int n;
-	CRect rect;
-	CPaintDC dc(this); // 描画用のデバイス コンテキスト
-
-	for ( n = 0 ; n < 16 ; n++ ) {
-		m_ColBox[n].GetWindowRect(rect);
-		ScreenToClient(rect);
-		dc.FillSolidRect(rect, m_ColTab[n]);
-	}
-	for ( n = 0 ; n < 2 ; n++ ) {
-		m_ColBox[n + 16].GetWindowRect(rect);
-		ScreenToClient(rect);
-		dc.FillSolidRect(rect, m_FontCol[n] > 16 ? m_pSheet->m_pTextRam->m_ColTab[m_FontCol[n]] : m_ColTab[m_FontCol[n]]);
-	}
 }
 void CColParaDlg::OnLButtonDblClk(UINT nFlags, CPoint point) 
 {
@@ -359,6 +393,11 @@ void CColParaDlg::OnSelendokColset()
 
 	if ( m_ColSet >= 0 )
 		memcpy(m_ColTab, ColSetTab[m_ColSet], sizeof(m_ColTab));
+
+	m_SliderConstrast.SetPos(50);
+	m_SliderBright.SetPos(150);
+	SetDarkLight();
+
 	Invalidate(FALSE);
 
 	SetModified(TRUE);
@@ -393,4 +432,42 @@ void CColParaDlg::OnEnChangeColor()
 
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= (UMOD_TEXTRAM | UMOD_DEFATT);
+}
+void CColParaDlg::OnNMReleasedcaptureContrast(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	SetDarkLight();
+	Invalidate(FALSE);
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= UMOD_COLTAB;
+
+	*pResult = 0;
+}
+void CColParaDlg::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
+{
+	if ( nSBCode == SB_THUMBTRACK && pScrollBar != NULL ) {
+		SetDarkLight();
+		InvalidateRect(m_InvRect, FALSE);
+	}
+
+	CTreePropertyPage::OnVScroll(nSBCode, nPos, pScrollBar);
+}
+void CColParaDlg::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
+{
+	int n = nIDCtl - IDC_BOX0;
+	CDC dc;
+	CRect rect;
+
+	if ( nIDCtl >= IDC_BOX0 && nIDCtl <= IDC_BOX15 ) {
+		dc.Attach(lpDrawItemStruct->hDC);
+		m_ColBox[n].GetClientRect(rect);
+		dc.FillSolidRect(rect, EditColor(n));
+		dc.Detach();
+	} else if ( nIDCtl == IDC_BOXTEXT || nIDCtl == IDC_BOXBACK ) {
+		n = (nIDCtl == IDC_BOXTEXT ? 0 : 1);
+		dc.Attach(lpDrawItemStruct->hDC);
+		m_ColBox[n + 16].GetClientRect(rect);
+		dc.FillSolidRect(rect, m_FontCol[n] > 16 ? m_pSheet->m_pTextRam->m_ColTab[m_FontCol[n]] : EditColor(m_FontCol[n]));
+		dc.Detach();
+	} else
+		CTreePropertyPage::OnDrawItem(nIDCtl, lpDrawItemStruct);
 }

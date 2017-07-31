@@ -342,7 +342,7 @@ void CRLoginDoc::DeleteContents()
 	}
 
 	m_pScript = new CScript;
-	m_pScript->SetDocumet(this);
+	m_pScript->SetDocument(this);
 
 	m_ServerEntry.Init();
 	m_TextRam.m_bOpen = FALSE;
@@ -1303,7 +1303,7 @@ void CRLoginDoc::OnScript()
 		if ( m_pScript != NULL )
 			delete m_pScript;
 		m_pScript = new CScript;
-		m_pScript->SetDocumet(this);
+		m_pScript->SetDocument(this);
 	}
 
 	m_pScript->ExecFile(dlg.GetPathName());
