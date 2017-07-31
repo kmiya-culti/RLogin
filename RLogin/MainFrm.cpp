@@ -811,10 +811,34 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 	if( !CMDIFrameWnd::PreCreateWindow(cs) )
 		return FALSE;
 
-	cs.x  = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("x"), cs.x);
-	cs.y  = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("y"), cs.y);
-	cs.cx = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("cx"), cs.cx);
-	cs.cy = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("cy"), cs.cy);
+	int n = GetExecCount();
+	CString sect;
+
+	if ( n == 0 ) {
+		cs.x  = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("x"), cs.x);
+		cs.y  = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("y"), cs.y);
+		cs.cx = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("cx"), cs.cx);
+		cs.cy = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("cy"), cs.cy);
+
+	} else {
+		sect.Format(_T("SecondFrame%02d"), n);
+
+		if ( (n = AfxGetApp()->GetProfileInt(sect, _T("x"), (-1))) != (-1) )
+			cs.x = n;
+
+		if ( (n = AfxGetApp()->GetProfileInt(sect, _T("y"), (-1))) != (-1) )
+			cs.y = n;
+
+		if ( (n = AfxGetApp()->GetProfileInt(sect, _T("cx"), (-1))) != (-1) )
+			cs.cx = n;
+		else
+			cs.cx = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("cx"), cs.cx);
+
+		if ( (n = AfxGetApp()->GetProfileInt(sect, _T("cy"), (-1))) != (-1) )
+			cs.cy = n;
+		else
+			cs.cy = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("cy"), cs.cy);
+	}
 
 	return TRUE;
 }
@@ -1296,6 +1320,25 @@ void CMainFrame::AdjustRect(CRect &rect)
 	rect.bottom += m_Frame.top;
 }
 
+BOOL CALLBACK RLoginExecCountFunc(HWND hwnd, LPARAM lParam)
+{
+	CMainFrame *pMain = (CMainFrame *)lParam;
+	TCHAR title[1024];
+
+	::GetWindowText(hwnd, title, 1024);
+
+	if ( pMain->m_hWnd != hwnd && _tcsncmp(title, _T("RLogin"), 6) == 0 && ::GetWindowLongPtr(hwnd, GWLP_USERDATA) == 0x524c4f47 )
+		pMain->m_ExecCount++;
+
+	return TRUE;
+}
+int CMainFrame::GetExecCount()
+{
+	m_ExecCount = 0;
+	::EnumWindows(RLoginExecCountFunc, (LPARAM)this);
+	return m_ExecCount;
+}
+
 // CMainFrame f’f
 
 #ifdef _DEBUG
@@ -1433,12 +1476,21 @@ void CMainFrame::OnDestroy()
 	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("StatusBarStyle"), m_wndStatusBar.GetStyle());
 
 	if ( !IsIconic() && !IsZoomed() ) {
+		int n = GetExecCount();
+		CString sect;
 		CRect rect;
+
 		GetWindowRect(&rect);
-		AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("x"), rect.left);
-		AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("y"), rect.top);
-		AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("cx"), rect.Width());
-		AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("cy"), rect.Height());
+
+		if ( n == 0 )
+			sect = _T("MainFrame");
+		else
+			sect.Format(_T("SecondFrame%02d"), n);
+
+		AfxGetApp()->WriteProfileInt(sect, _T("x"), rect.left);
+		AfxGetApp()->WriteProfileInt(sect, _T("y"), rect.top);
+		AfxGetApp()->WriteProfileInt(sect, _T("cx"), rect.Width());
+		AfxGetApp()->WriteProfileInt(sect, _T("cy"), rect.Height());
 	}
 
 	CMDIFrameWnd::OnDestroy();

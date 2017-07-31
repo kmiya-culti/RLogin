@@ -2685,7 +2685,7 @@ int CTextRam::LineEdit(CBuffer &buf)
 }
 int CTextRam::IsWord(int ch)
 {
-	if ( ch == 0 )
+	if ( ch < 0x20 )
 		return 0;
 	else if ( ch >= 0x3040 && ch <= 0x309F )		// 3040 - 309F ひらがな
 		return 2;
@@ -2711,7 +2711,9 @@ int CTextRam::GetPos(int x, int y)
 		x -= m_Cols;
 	}
 	vp = GETVRAM(x, y);
-	if ( IS_2BYTE(vp->pr.cm) ) {
+	if ( vp->IsEmpty() )
+		return 0;
+	else if ( IS_2BYTE(vp->pr.cm) ) {
 		if ( x <= 0 )
 			return 0;
 		vp--;
@@ -2860,7 +2862,7 @@ void CTextRam::EditCopy(int sps, int eps, BOOL rectflag, BOOL lineflag)
 			ex /= 2;
 		}
 
-		while ( sx <= ex && (DWORD)(vp[ex]) < ' ' )
+		while ( sx <= ex && vp[ex].IsEmpty() )
 			ex--;
 
 		if ( IS_2BYTE(vp[sx].pr.cm) )
@@ -2874,7 +2876,7 @@ void CTextRam::EditCopy(int sps, int eps, BOOL rectflag, BOOL lineflag)
 				while ( *p != 0 )
 					str.PutWord(*(p++));
 				n = 2;
-			} else if ( !IS_ASCII(vp[x].pr.cm) ) { // || vp[x].ch == 0 ) {
+			} else if ( vp[x].IsEmpty() ) {
 				ch = ' ';
 				str.PutWord(ch);
 				n = 1;
@@ -2890,7 +2892,7 @@ void CTextRam::EditCopy(int sps, int eps, BOOL rectflag, BOOL lineflag)
 				if ( (x % m_DefTab) == (m_DefTab - 1) ) {
 //					if ( tc > (m_DefTab / 2) ) {
 					if ( tc > 1 ) {
-						str.ConsumeEnd(tc * 2);
+						str.ConsumeEnd(tc * sizeof(WORD));
 						str.PutWord('\t');
 					}
 					tc = 0;
@@ -2966,7 +2968,7 @@ void CTextRam::GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf)
 				for ( p = vp[x] ; *p != 0 ; p++ )
 					pBuf->PutWord(*p);
 				n = 2;
-			} else if ( !IS_ASCII(vp[x].pr.cm) ) {	// || vp[x].ch == 0 ) {
+			} else if ( vp[x].IsEmpty() ) {
 				pBuf->PutWord(' ');
 				n = 1;
 			} else {
@@ -3547,11 +3549,10 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 						work.edx = prop.edx;
 					}
 				} else {
-					if ( !IS_ASCII(vp->pr.cm) ) {
+					if ( !IS_ASCII(vp->pr.cm) || str.IsEmpty() || str[0] < _T(' ') ) {
 						str.Empty();
 						work.mod = (-1);
-					} else if ( str.IsEmpty() )
-						work.mod = (-1);
+					}
 				}
 
 			} else {

@@ -149,6 +149,7 @@ public:
 	BOOL m_ScrollBarFlag;
 	CPtrArray m_MenuMap;
 	int m_SplitType;
+	int m_ExecCount;
 
 	void SetTransPar(COLORREF rgb, int value, DWORD flag);
 	void SetIconStyle();
@@ -188,6 +189,7 @@ public:
 	void OffsetTrack(CPoint point);
 	void InvertTracker(CRect &rect);
 	int PreLButtonDown(UINT nFlags, CPoint point);
+	int GetExecCount();
 
 // コントロール バー用メンバ
 protected: 

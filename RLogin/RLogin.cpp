@@ -336,7 +336,15 @@ BOOL CRLoginApp::InitInstance()
 		ExDwmEnableBlurBehindWindow    = (HRESULT (__stdcall *)(HWND hWnd, const DWM_BLURBEHIND* pBlurBehind))GetProcAddress(ExDwmApi, "DwmEnableBlurBehindWindow");
 		ExDwmExtendFrameIntoClientArea = (HRESULT (__stdcall *)(HWND hWnd, const MARGINS* pMarInset))GetProcAddress(ExDwmApi, "DwmExtendFrameIntoClientArea");
 
-		if ( ExDwmIsCompositionEnabled != NULL )
+		OSVERSIONINFO VerInfo;
+		memset(&VerInfo, 0, sizeof(VerInfo));
+		VerInfo.dwOSVersionInfoSize = sizeof(VerInfo);
+		GetVersionEx(&VerInfo);
+
+		if ( VerInfo.dwPlatformId == VER_PLATFORM_WIN32_NT &&
+			 VerInfo.dwMajorVersion == 6 &&						// Vista/Win7/Win8 ?
+			 VerInfo.dwMinorVersion <= 1 &&						// Vista=0, Win7=1, Win8=2 ?
+			 ExDwmIsCompositionEnabled != NULL )
 			ExDwmIsCompositionEnabled(&ExDwmEnable);
 	}
 #endif
