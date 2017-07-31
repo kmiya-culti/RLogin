@@ -79,6 +79,11 @@ void CLogin::SendWindSize(int x, int y)
 		unsigned short ws_xpixel, ws_ypixel;
 	} *wp;
 	char obuf[4 + sizeof (struct winsize)];
+	int sx = 0;
+	int sy = 0;
+
+	if ( m_pDocument != NULL )
+		m_pDocument->m_TextRam.GetScreenSize(&sx, &sy);
 
 	if ( m_ConnectFlag < 2 )
 		return;
@@ -90,8 +95,8 @@ void CLogin::SendWindSize(int x, int y)
 	obuf[3] = 's';
 	wp->ws_row = htons(y);
 	wp->ws_col = htons(x);
-	wp->ws_xpixel = htons(0);
-	wp->ws_ypixel = htons(0);
+	wp->ws_xpixel = htons(sx);
+	wp->ws_ypixel = htons(sy);
 
 	CExtSocket::Send(obuf, sizeof(obuf));
 }

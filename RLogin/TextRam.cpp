@@ -6,6 +6,7 @@
 #include <stdarg.h>
 #include "RLogin.h"
 #include "MainFrm.h"
+#include "ChildFrm.h"
 #include "RLoginDoc.h"
 #include "RLoginView.h"
 #include "TextRam.h"
@@ -959,6 +960,8 @@ CTextRam::CTextRam()
 	m_MouseMode[1] = 1;
 	m_MouseMode[2] = 4;
 	m_MouseMode[3] = 16;
+
+	m_MousePos.x = m_MousePos.y = 0;
 
 	m_Tek_Top = m_Tek_Free = NULL;
 	m_pTekWnd = NULL;
@@ -3770,6 +3773,19 @@ void CTextRam::PostMessage(UINT message, WPARAM wParam, LPARAM lParam)
 	if ( pView != NULL )
 		pView->PostMessage(message, wParam, lParam);
 }
+void CTextRam::GetScreenSize(int *x, int *y)
+{
+	CRLoginView *pView;
+
+	if ( (pView = (CRLoginView *)GetAciveView()) != NULL ) {
+		*x = pView->m_CharWidth  * m_Cols;
+		*y = pView->m_CharHeight * m_Lines;
+	} else {
+		*x = 6 * m_Cols;
+		*y = (6 * m_DefFontHw / 10) * m_Lines;
+	}
+}
+
 BOOL CTextRam::IsOptEnable(int opt)
 {
 	if ( opt >= 1000 && opt <= 1511 ) {

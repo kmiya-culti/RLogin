@@ -811,6 +811,7 @@ public:
 	void LineOut(CDC *pDC, CRect &box, COLORREF fc, COLORREF bc, int rv, struct DrawWork &prop, int len, LPCWSTR str, int *spc, class CRLoginView *pView);
 	void StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop, int len, LPCWSTR str, int *spc, class CRLoginView *pView);
 	void DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginView *pView);
+	void GetScreenSize(int *x, int *y);
 
 	CWnd *GetAciveView();
 	void PostMessage(UINT message, WPARAM wParam = 0, LPARAM lParam = 0);

@@ -3139,18 +3139,14 @@ void CTextRam::fc_DECSIXEL(DWORD ch)
 		if ( m_pDocument != NULL && (pView = (CRLoginView *)m_pDocument->GetAciveView()) != NULL ) {
 			fw = pView->m_CharWidth;
 			fh = pView->m_CharHeight;
-			sw = pView->m_Width;
-			sh = pView->m_Height;
-			dw = pView->m_Cols;
-			dh = pView->m_Lines;
 		} else {
-			fw = 10;
+			fw = 6;
 			fh = fw * m_DefFontHw / 10;
-			sw = fw * m_Cols;
-			sh = fh * m_Lines;
-			dw = m_Cols;
-			dh = m_Lines;
 		}
+		sw = fw * m_Cols;
+		sh = fh * m_Lines;
+		dw = m_Cols;
+		dh = m_Lines;
 
 		dx = pGrapWnd->m_MaxX * pGrapWnd->m_AspX / 100;
 		dy = pGrapWnd->m_MaxY * pGrapWnd->m_AspY / 100;

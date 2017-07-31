@@ -71,6 +71,7 @@ public:
 	CPoint m_ClipSavePoint;
 	UINT m_ClipKeyFlags;
 	CToolTipCtrl m_ToolTip;
+	UINT m_LastMouseFlags;
 
 	inline BOOL IsClipRectMode() { return (m_ClipKeyFlags & MK_CONTROL); }
 	inline BOOL IsClipLineMode() { return (m_ClipKeyFlags & (MK_SHIFT | 0x1000)); }

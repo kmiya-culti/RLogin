@@ -465,15 +465,21 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 }
 void Cssh::SendWindSize(int x, int y)
 {
+	int sx = 0;
+	int sy = 0;
+
   try {
+	if ( m_pDocument != NULL )
+		m_pDocument->m_TextRam.GetScreenSize(&sx, &sy);
+
 	CBuffer tmp;
 	switch(m_SSHVer) {
 	case 1:
 		tmp.Put8Bit(SSH_CMSG_WINDOW_SIZE);
 		tmp.Put32Bit(y);
 		tmp.Put32Bit(x);
-		tmp.Put32Bit(0);
-		tmp.Put32Bit(0);
+		tmp.Put32Bit(sx);
+		tmp.Put32Bit(sy);
 		SendPacket(&tmp);
 		break;
 	case 2:
@@ -485,8 +491,8 @@ void Cssh::SendWindSize(int x, int y)
 		tmp.Put8Bit(0);
 		tmp.Put32Bit(x);
 		tmp.Put32Bit(y);
-		tmp.Put32Bit(0);
-		tmp.Put32Bit(0);
+		tmp.Put32Bit(sx);
+		tmp.Put32Bit(sy);
 		SendPacket2(&tmp);
 		break;
 	}
@@ -1768,6 +1774,7 @@ void Cssh::SendMsgChannelData(int id)
 void Cssh::SendMsgChannelRequesstShell(int id)
 {
 	int n;
+	int sx = 0, sy = 0;
 	LPCTSTR p;
 	CBuffer tmp, tmode;
 	CString str;
@@ -1840,6 +1847,9 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 		}
 	}
 
+	if ( m_pDocument != NULL )
+		m_pDocument->m_TextRam.GetScreenSize(&sx, &sy);
+
 	tmp.Clear();
 	tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
 	tmp.Put32Bit(cp->m_RemoteID);
@@ -1848,8 +1858,8 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 	tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_TermName));
 	tmp.Put32Bit(m_pDocument->m_TextRam.m_Cols);
 	tmp.Put32Bit(m_pDocument->m_TextRam.m_Lines);
-	tmp.Put32Bit(0);
-	tmp.Put32Bit(0);
+	tmp.Put32Bit(sx);
+	tmp.Put32Bit(sy);
 
 	//tmode.Clear();
 	//for ( n = 0 ; ttymode[n].opcode != 0 ; n++ ) {
@@ -3160,8 +3170,9 @@ void Cssh::RecivePacket2(CBuffer *bp)
 	default:
 		SendMsgUnimplemented();
 		break;
-	DISCONNECT:
-		SendDisconnect2(SSH2_DISCONNECT_HOST_NOT_ALLOWED_TO_CONNECT, "Packet Type Error");
+DISCONNECT:
+		str.Format("Packet Type %d Error", type);
+		SendDisconnect2(SSH2_DISCONNECT_HOST_NOT_ALLOWED_TO_CONNECT, str);
 		break;
 	}
 }

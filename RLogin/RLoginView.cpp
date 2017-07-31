@@ -121,6 +121,7 @@ CRLoginView::CRLoginView()
 	m_GoziPos.SetPoint(0, 0);
 	m_PastNoCheck = FALSE;
 	m_ScrollOut = FALSE;
+	m_LastMouseFlags = 0;
 
 #ifdef	USE_DIRECTWRITE
 	m_pRenderTarget = NULL;
@@ -1691,6 +1692,7 @@ void CRLoginView::GetMousePos(int *sw, int *x, int *y)
 	ScreenToClient(&po);
 	CalcGrapPoint(po, x, y);
 
+#if 0
 	*sw = 0;
 
 	if ( (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0 )
@@ -1701,6 +1703,9 @@ void CRLoginView::GetMousePos(int *sw, int *x, int *y)
 
 	if ( (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0 )
 		*sw |= MK_RBUTTON;
+#else
+	*sw = m_LastMouseFlags;
+#endif
 }
 
 BOOL CRLoginView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt) 
@@ -1760,6 +1765,12 @@ BOOL CRLoginView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 
 void CRLoginView::OnLButtonDblClk(UINT nFlags, CPoint point) 
 {
+	int x, y;
+	CRLoginDoc *pDoc = GetDocument();
+	ASSERT(pDoc);
+
+	m_LastMouseFlags = nFlags;
+
 	CView::OnLButtonDblClk(nFlags, point);
 
 	if ( m_ClipFlag == 6 ) {
@@ -1768,18 +1779,17 @@ void CRLoginView::OnLButtonDblClk(UINT nFlags, CPoint point)
 	} else if ( m_ClipFlag != 0 )
 		return;
 
-	int x, y;
-	CRLoginDoc *pDoc = GetDocument();
-	ASSERT(pDoc);
-
 	CalcGrapPoint(point, &x, &y);
+
 	m_ClipStaPos = m_ClipEndPos = pDoc->m_TextRam.GetCalcPos(x, y);
 	pDoc->m_TextRam.EditWordPos(&m_ClipStaPos, &m_ClipEndPos);
+
 	m_ClipStaOld = m_ClipStaPos;
 	m_ClipEndOld = m_ClipEndPos;
 	m_ClipFlag = 2;
 	m_ClipTimer = 0;
 	m_ClipKeyFlags = nFlags;
+
 	SetCapture();
 	OnUpdate(this, UPDATE_CLIPERA, NULL);
 }
@@ -1788,6 +1798,8 @@ void CRLoginView::OnLButtonDown(UINT nFlags, CPoint point)
 	int x, y;
 	CRLoginDoc *pDoc = GetDocument();
 	ASSERT(pDoc);
+
+	m_LastMouseFlags = nFlags;
 
 	CView::OnLButtonDown(nFlags, point);
 	SetCapture();
@@ -1825,6 +1837,8 @@ void CRLoginView::OnLButtonUp(UINT nFlags, CPoint point)
 	int x, y, pos;
 	CRLoginDoc *pDoc = GetDocument();
 	ASSERT(pDoc);
+
+	m_LastMouseFlags = nFlags;
 
 	CView::OnLButtonUp(nFlags, point);
 	ReleaseCapture();
@@ -1889,6 +1903,8 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 	int x, y, pos, tos;
 	CRLoginDoc *pDoc = GetDocument();
 	ASSERT(pDoc);
+
+	m_LastMouseFlags = nFlags;
 
 	CView::OnMouseMove(nFlags, point);
 
@@ -2007,6 +2023,8 @@ void CRLoginView::OnRButtonDblClk(UINT nFlags, CPoint point)
 	CRLoginDoc *pDoc = GetDocument();
 	ASSERT(pDoc);
 
+	m_LastMouseFlags = nFlags;
+
 	if ( !pDoc->m_TextRam.IsOptEnable(TO_RLRSPAST) && pDoc->m_TextRam.IsOptEnable(TO_RLRCLICK) )
 		OnEditPaste();
 
@@ -2020,6 +2038,8 @@ void CRLoginView::OnRButtonDown(UINT nFlags, CPoint point)
 	CRLoginDoc *pDoc = GetDocument();
 	CMainFrame *pFrame = GetMainWnd();
 	ASSERT(pDoc);
+
+	m_LastMouseFlags = nFlags;
 
 	CView::OnRButtonDown(nFlags, point);
 	SetCapture();
@@ -2061,6 +2081,8 @@ void CRLoginView::OnRButtonUp(UINT nFlags, CPoint point)
 	int x, y;
 	CRLoginDoc *pDoc = GetDocument();
 	ASSERT(pDoc);
+
+	m_LastMouseFlags = nFlags;
 
 	CView::OnRButtonUp(nFlags, point);
 	ReleaseCapture();
