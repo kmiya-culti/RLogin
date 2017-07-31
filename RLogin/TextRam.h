@@ -961,6 +961,7 @@ public:
 
 	void AddGrapWnd(void *pWnd);
 	void RemoveGrapWnd(void *pWnd);
+	void *LastGrapWnd(int type);
 };
 
 #endif // !defined(AFX_TEXTRAM_H__CBEA227A_D7D7_4213_88B1_4F4C0DF48089__INCLUDED_)

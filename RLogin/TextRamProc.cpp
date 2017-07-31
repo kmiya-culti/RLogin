@@ -2260,12 +2260,17 @@ void CTextRam::fc_OSC_ST(int ch)
 		break;
 
 	case ('P' << 24) | 'p':						// ReGIS graphics
-		tmp.Format("ReGIS - %s", m_pDocument->m_ServerEntry.m_EntryName);
-		pGrapWnd = new CGrapWnd(this);
-		pGrapWnd->Create(NULL, tmp);
-		pGrapWnd->SetReGIS(GetAnsiPara(0, 0, 0),m_OscPara);
-		pGrapWnd->ShowWindow(SW_SHOW);
-		AddGrapWnd((void *)pGrapWnd);
+		n = GetAnsiPara(0, 0, 0);
+		if ( (n & 1) == 0 && (pGrapWnd = (CGrapWnd *)LastGrapWnd(TYPE_REGIS)) != NULL )
+			pGrapWnd->SetReGIS(n, m_OscPara);
+		else {
+			tmp.Format("ReGIS - %s", m_pDocument->m_ServerEntry.m_EntryName);
+			pGrapWnd = new CGrapWnd(this);
+			pGrapWnd->Create(NULL, tmp);
+			pGrapWnd->SetReGIS(n, m_OscPara);
+			pGrapWnd->ShowWindow(SW_SHOW);
+			AddGrapWnd((void *)pGrapWnd);
+		}
 		break;
 
 	case ('P' << 24) | 'q':						// Sixel graphics
@@ -2952,7 +2957,7 @@ void CTextRam::fc_DA1(int ch)
 	//	46 ASCII terminal emulation				vt500
 
 	if ( m_TermId >= 10 )		// VT520
-		UNGETSTR("%s?65;1;2;4;6;8;9;18;21;22;29;39;42;44c", m_RetChar[RC_CSI]);
+		UNGETSTR("%s?65;1;2;3,4;6;8;9;18;21;22;29;39;42;44c", m_RetChar[RC_CSI]);
 	else if ( m_TermId >= 9 )	// VT420 ID (Intnl) CSI ? 64; 1; 2; 7; 8; 9; 15; 18; 21 c
 		UNGETSTR("%s?64;1;2;8;9;15;18;21c", m_RetChar[RC_CSI]);
 	else if ( m_TermId >= 7 )	// VT320 ID (Intnl) CSI ? 63; 1; 2; 7; 8; 9 c

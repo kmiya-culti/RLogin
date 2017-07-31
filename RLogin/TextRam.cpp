@@ -10,6 +10,7 @@
 #include "RLoginView.h"
 #include "TextRam.h"
 #include "PipeSock.h"
+#include "GrapWnd.h"
 
 #include <iconv.h>
 #include <imm.h>
@@ -2288,6 +2289,15 @@ void CTextRam::RemoveGrapWnd(void *pWnd)
 			break;
 		}
 	}
+}
+void *CTextRam::LastGrapWnd(int type)
+{
+	for ( int n = m_GrapWndTab.GetSize() - 1 ; n >= 0 ; n-- ) {
+		CGrapWnd *pWnd = (CGrapWnd *)(m_GrapWndTab[n]);
+		if ( pWnd->m_Type == type )
+			return (void *)pWnd;
+	}
+	return NULL;
 }
 
 //////////////////////////////////////////////////////////////////////

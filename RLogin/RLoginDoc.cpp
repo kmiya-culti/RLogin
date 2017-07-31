@@ -666,13 +666,13 @@ int CRLoginDoc::SocketOpen()
 		if ( pApp->m_pCmdInfo->m_Proto != (-1) )
 			m_ServerEntry.m_ProtoType = pApp->m_pCmdInfo->m_Proto;
 		if ( !pApp->m_pCmdInfo->m_Addr.IsEmpty() )
-			m_ServerEntry.m_HostName = pApp->m_pCmdInfo->m_Addr;
+			m_ServerEntry.m_HostReal = m_ServerEntry.m_HostName = pApp->m_pCmdInfo->m_Addr;
 		if ( !pApp->m_pCmdInfo->m_Port.IsEmpty() )
 			m_ServerEntry.m_PortName = pApp->m_pCmdInfo->m_Port;
 		if ( !pApp->m_pCmdInfo->m_User.IsEmpty() )
-			m_ServerEntry.m_UserName = pApp->m_pCmdInfo->m_User;
+			m_ServerEntry.m_UserReal = m_ServerEntry.m_UserName = pApp->m_pCmdInfo->m_User;
 		if ( !pApp->m_pCmdInfo->m_Pass.IsEmpty() )
-			m_ServerEntry.m_PassName = pApp->m_pCmdInfo->m_Pass;
+			m_ServerEntry.m_PassReal = m_ServerEntry.m_PassName = pApp->m_pCmdInfo->m_Pass;
 		if ( !pApp->m_pCmdInfo->m_Term.IsEmpty() )
 			m_ServerEntry.m_TermName = pApp->m_pCmdInfo->m_Term;
 	}
