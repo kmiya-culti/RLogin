@@ -252,6 +252,7 @@ CTextRam::CTextRam()
 	m_Cols = m_ColsMax = 80;
 	m_LineUpdate = 0;
 	m_Lines = 25;
+	m_Page = 0;
 	m_TopY = 0;
 	m_BtmY = m_Lines;
 	m_LeftX = 0;
@@ -283,7 +284,13 @@ CTextRam::CTextRam()
 	m_Loc_LastY = 0;
 	memset(m_MetaKeys, 0, sizeof(m_MetaKeys));
 	m_TitleMode = WTTL_ENTRY;
+	m_OscFlag = FALSE;
+	m_StsFlag = FALSE;
+	m_StsMode = 0;
+	m_StsLed  = 0;
 	m_VtLevel = 65;
+	m_LangMenu = 0;
+	SetRetChar(FALSE);
 
 	m_LineEditMode = FALSE;
 	m_LineEditPos  = 0;
@@ -484,19 +491,28 @@ void CTextRam::InitText(int Width, int Height)
 //	DISPUPDATE();
 //	FLUSH();
 }
-void CTextRam::InitCols()
+void CTextRam::InitScreen(int cols, int lines)
 {
-	if ( m_VRam == NULL || IS_ENABLE(m_AnsiOpt, TO_RLFONT) )
+	if ( m_VRam == NULL )
 		return;
 
-	int n, cx;
-	int cols = m_DefCols[IsOptValue(TO_DECCOLM, 1)];
+	int n, cx, cy;
 	int colsmax = (m_ColsMax > cols ? m_ColsMax : cols);
 	VRAM *tmp;
-	CRect rect;
+	CRect rect, box;
 	CWnd *pWnd = ::AfxGetMainWnd();
 
-	if ( pWnd->IsIconic() || pWnd->IsZoomed() || !IsOptEnable(TO_RLNORESZ) ) {
+	if ( IS_ENABLE(m_AnsiOpt, TO_RLFONT) ) {
+		if ( pWnd->IsIconic() || pWnd->IsZoomed() )
+			return;
+
+		pWnd->GetWindowRect(rect);
+		pWnd->GetClientRect(box);
+		cx = (rect.Width()  - box.Width())  + box.Width()  * cols  / m_Cols;
+		cy = (rect.Height() - box.Height()) + box.Height() * lines / m_Lines;
+		pWnd->SetWindowPos(NULL, rect.left, rect.top, cx, cy, SWP_SHOWWINDOW);
+
+	} else if ( pWnd->IsIconic() || pWnd->IsZoomed() || !IsOptEnable(TO_RLNORESZ) ) {
 		tmp = new VRAM[colsmax * m_HisMax];
 		for ( n = 0 ; n < (colsmax * m_HisMax) ; n++ )
 			tmp[n] = m_DefAtt;
@@ -507,19 +523,27 @@ void CTextRam::InitCols()
 
 		delete m_VRam;
 		m_VRam    = tmp;
-		m_HisPos  = m_HisMax - m_Lines;
+		m_HisPos  = m_HisMax - lines;
 		m_Cols    = cols;
 		m_ColsMax = colsmax;
+		m_Lines   = lines;
 		m_LineUpdate = 0;
 
 		if ( m_CurX >= m_Cols )
 			m_CurX = m_Cols - 1;
 
+		if ( m_CurY >= m_Lines )
+			m_CurY = m_Lines - 1;
+
 		m_pDocument->SocketSendWindSize(m_Cols, m_Lines);
 		m_pDocument->UpdateAllViews(NULL, UPDATE_INITSIZE, NULL);
+
 	} else {
 		pWnd->GetWindowRect(rect);
-		pWnd->SetWindowPos(NULL, rect.left, rect.top, rect.Width() * cols / m_Cols, rect.Height(), SWP_SHOWWINDOW);
+		pWnd->GetClientRect(box);
+		cx = (rect.Width()  - box.Width())  + box.Width()  * cols  / m_Cols;
+		cy = (rect.Height() - box.Height()) + box.Height() * lines / m_Lines;
+		pWnd->SetWindowPos(NULL, rect.left, rect.top, cx, cy, SWP_SHOWWINDOW);
 	}
 }
 
@@ -721,6 +745,7 @@ void CTextRam::Init()
 {
 	m_DefCols[0]	= 80;
 	m_DefCols[1]	= 132;
+	m_Page          = 0;
 	m_DefHisMax		= 2000;
 	m_DefFontSize	= 16;
 	m_KanjiMode		= EUC_SET;
@@ -760,6 +785,12 @@ void CTextRam::Init()
 	memset(m_MetaKeys, 0, sizeof(m_MetaKeys));
 	m_TitleMode = WTTL_ENTRY;
 	m_VtLevel = 65;
+	m_LangMenu = 0;
+	m_OscFlag = FALSE;
+	m_StsFlag = FALSE;
+	m_StsMode = 0;
+	m_StsLed  = 0;
+	SetRetChar(FALSE);
 
 	m_ProcTab.Init();
 
@@ -1042,7 +1073,7 @@ void CTextRam::LineEditEcho()
 	MsToIconvUnicode((WCHAR *)(right.GetPtr()), right.GetSize() / sizeof(WCHAR), m_SendCharSet[m_KanjiMode]);
 	m_IConv.IConvBuf("UCS-2LE", m_SendCharSet[m_KanjiMode], &right, &tmp);
 	PUTSTR(tmp.GetPtr(), tmp.GetSize());
-	ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1, 2);
+	ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1);
 
 	if ( m_LineEditIndex > 0 ) {
 		m_LineEditY -= m_LineEditIndex;
@@ -2217,6 +2248,26 @@ DWORD CTextRam::UnicodeNomal(DWORD code1, DWORD code2)
 	}
 	return 0;
 }
+void CTextRam::SetRetChar(BOOL f8)
+{
+	if ( f8 ) {
+		m_RetChar[RC_DCS] = "\x90";
+		m_RetChar[RC_SOS] = "\x98";
+		m_RetChar[RC_CSI] = "\x9b";
+		m_RetChar[RC_ST]  = "\x9c";
+		m_RetChar[RC_OSC] = "\x9d";
+		m_RetChar[RC_PM]  = "\x9e";
+		m_RetChar[RC_APC] = "\x9f";
+	} else {
+		m_RetChar[RC_DCS] = "\033P";
+		m_RetChar[RC_SOS] = "\033X";
+		m_RetChar[RC_CSI] = "\033[";
+		m_RetChar[RC_ST]  = "\033\\";
+		m_RetChar[RC_OSC] = "\033]";
+		m_RetChar[RC_PM]  = "\033^";
+		m_RetChar[RC_APC] = "\033_";
+	}
+}
 
 //////////////////////////////////////////////////////////////////////
 // Low Level
@@ -2225,6 +2276,11 @@ DWORD CTextRam::UnicodeNomal(DWORD code1, DWORD code2)
 void CTextRam::RESET(int mode)
 {
 	if ( mode & RESET_CURSOR ) {
+		if ( m_VRam != NULL )
+			SETPAGE(0);
+		else
+			m_Page = 0;
+
 		m_CurX = 0;
 		m_CurY = 0;
 		m_TopY = 0;
@@ -2282,10 +2338,12 @@ void CTextRam::RESET(int mode)
 	if ( mode & RESET_OPTION ) {
 		memcpy(m_AnsiOpt, m_DefAnsiOpt, sizeof(m_AnsiOpt));
 		m_VtLevel = 65;
+		m_LangMenu = 0;
+		SetRetChar(FALSE);
 	}
 
 	if ( mode & RESET_CLS )
-		ERABOX(0, 0, m_Cols, m_Lines, 2);
+		ERABOX(0, 0, m_Cols, m_Lines);
 
 	if ( mode & RESET_SAVE ) {
 		m_Save_CurX = m_CurX;
@@ -2315,6 +2373,10 @@ void CTextRam::RESET(int mode)
 
 	if ( mode & RESET_CHAR ) {
 		m_Exact = FALSE;
+		m_OscFlag = FALSE;
+		m_StsFlag = FALSE;
+		m_StsMode = 0;
+		m_StsLed  = 0;
 		fc_Init(m_KanjiMode);
 	}
 
@@ -2623,7 +2685,7 @@ void CTextRam::LocReport(int md, int sw, int x, int y)
 		y *= 12;
 	}
 
-	UNGETSTR("\033[%d;%d;%d;%d;%d&w", Pe, m_Loc_Pb, y + 1, x + 1, 0);
+	UNGETSTR("%s%d;%d;%d;%d;%d&w", m_RetChar[RC_CSI], Pe, m_Loc_Pb, y + 1, x + 1, 0);
 
 	if ( (m_Loc_Mode & LOC_MODE_ONESHOT) != 0 ) {
 		m_Loc_Mode &= ~(LOC_MODE_ENABLE | LOC_MODE_ONESHOT);
@@ -2651,54 +2713,49 @@ void CTextRam::ERABOX(int sx, int sy, int ex, int ey, int df)
 	int x, y, dm;
 	VRAM *vp, *tp;
 
+	m_DoWarp = FALSE;
+
 	if ( sx < 0 ) sx = 0; else if ( sx >= m_Cols  ) return;
 	if ( sy < 0 ) sy = 0; else if ( sy >= m_Lines ) return;
 	if ( ex < sx ) return; else if ( ex > m_Cols  ) ex = m_Cols;
 	if ( ey < sy ) return; else if ( ey > m_Lines ) ey = m_Lines;
 
-	m_DoWarp = FALSE;
-	switch(df) {
-	case 0:			// save dm
-		for ( y = sy ; y < ey ; y++ ) {
-			vp = tp = GETVRAM(sx, y);
-			if ( sx == 0 )
-				dm = tp->dm;
+	if ( (df & EM_ISOPROTECT) != 0 && IsOptEnable(TO_ANSIERM) )
+		df &= ~ERM_ISOPRO;
+
+	for ( y = sy ; y < ey ; y++ ) {
+		tp = GETVRAM(0, y);
+		dm = tp->dm;
+		vp = tp + sx;
+
+		switch(df & (ERM_ISOPRO | ERM_DECPRO)) {
+		case 0:		// clear em
+			for ( x = sx ; x < ex ; x++ )
+				*(vp++) = m_AttSpc;
+			break;
+		case ERM_ISOPRO:
 			for ( x = sx ; x < ex ; x++, vp++ ) {
-				if ( (vp->em & EM_PROTECT) == 0 )
+				if ( (vp->em & EM_ISOPROTECT) == 0 )
 					*vp = m_AttSpc;
 			}
-			if ( sx == 0 )
-				tp->dm = dm;
-			if ( GetDm(y) != 0 )
+			break;
+		case ERM_DECPRO:
+			for ( x = sx ; x < ex ; x++, vp++ ) {
+				if ( (vp->em & EM_DECPROTECT) == 0 )
+					*vp = m_AttSpc;
+			}
+			break;
+		}
+
+		if ( (df & ERM_SAVEDM) == 0 ) {
+			tp->dm = 0;
+			DISPVRAM(sx, y, ex - sx, 1);
+		} else {
+			if ( (tp->dm = dm) != 0 )
 				DISPVRAM(sx * 2, y, (ex - sx) * 2, 1);
 			else
 				DISPVRAM(sx, y, ex - sx, 1);
 		}
-		break;
-	case 1:			// reset dm
-		if ( !IsOptEnable(TO_ANSIERM) ) {
-			for ( y = sy ; y < ey ; y++ ) {
-				vp = GETVRAM(sx, y);
-				for ( x = sx ; x < ex ; x++, vp++ ) {
-					if ( (vp->em & EM_PROTECT) == 0 )
-						*vp = m_AttSpc;
-				}
-				SetDm(y, 0);
-			}
-			DISPVRAM(sx, sy, ex - sx, ey - sy);
-			break;
-		}
-		// no break;
-	case 2:			// reset dm & reset em
-		for ( y = sy ; y < ey ; y++ ) {
-			vp = GETVRAM(sx, y);
-			for ( x = sx ; x < ex ; x++ )
-				*(vp++) = m_AttSpc;
-			if ( sx > 0 )
-				SetDm(y, 0);
-		}
-		DISPVRAM(sx, sy, ex - sx, ey - sy);
-		break;
 	}
 }
 void CTextRam::FORSCROLL(int sy, int ey)
@@ -2720,7 +2777,7 @@ void CTextRam::FORSCROLL(int sy, int ey)
 		for ( int y = sy + 1; y < ey ; y++ )
 			memcpy(GETVRAM(0, y - 1), GETVRAM(0, y), sizeof(VRAM) * m_Cols);
 	}
-	ERABOX(0, ey - 1, m_Cols, ey, 2);
+	ERABOX(0, ey - 1, m_Cols, ey);
 	DISPVRAM(0, sy, m_Cols, ey - sy);
 }
 void CTextRam::BAKSCROLL(int sy, int ey)
@@ -2731,7 +2788,7 @@ void CTextRam::BAKSCROLL(int sy, int ey)
 	m_DoWarp = FALSE;
 	for ( int y = ey - 1; y > sy ; y-- )
 		memcpy(GETVRAM(0, y), GETVRAM(0, y - 1), sizeof(VRAM) * m_Cols);
-	ERABOX(0, sy, m_Cols, sy + 1, 2);
+	ERABOX(0, sy, m_Cols, sy + 1);
 	DISPVRAM(0, sy, m_Cols, ey - sy);
 }
 void CTextRam::LEFTSCROLL()
@@ -2832,7 +2889,7 @@ void CTextRam::REVINDEX()
 }
 void CTextRam::PUT1BYTE(int ch, int md)
 {
-	if ( m_OscFlag ) {
+	if ( m_OscFlag || m_StsFlag ) {
 		if ( m_OscPara.GetLength() > 1024 ) {
 			fc_OSC_POP(0);
 			return;
@@ -2843,9 +2900,16 @@ void CTextRam::PUT1BYTE(int ch, int md)
 		ch = IconvToMsUnicode(ch);
 		m_LastChar = ch;
 		m_LastPos  = 0;
-		if ( (ch & 0xFFFF0000) != 0 )
-			m_OscPara += (WCHAR)(ch >> 16);
-		m_OscPara += (WCHAR)ch;
+		if ( m_OscFlag ) {
+			if ( (ch & 0xFFFF0000) != 0 )
+				m_OscPara += (WCHAR)(ch >> 16);
+			m_OscPara += (WCHAR)ch;
+		} else {
+			if ( (ch & 0xFFFF0000) != 0 )
+				m_StsPara += (WCHAR)(ch >> 16);
+			m_StsPara += (WCHAR)ch;
+			((CMainFrame *)AfxGetMainWnd())->SetMessageText(CString(m_StsPara));
+		}
 		return;
 	}
 
@@ -2899,7 +2963,7 @@ void CTextRam::PUT1BYTE(int ch, int md)
 }
 void CTextRam::PUT2BYTE(int ch, int md)
 {
-	if ( m_OscFlag ) {
+	if ( m_OscFlag || m_StsFlag ) {
 		if ( m_OscPara.GetLength() > 1024 ) {
 			fc_OSC_POP(0);
 			return;
@@ -2910,9 +2974,16 @@ void CTextRam::PUT2BYTE(int ch, int md)
 		ch = IconvToMsUnicode(ch);
 		m_LastChar = ch;
 		m_LastPos  = 0;
-		if ( (ch & 0xFFFF0000) != 0 )
-			m_OscPara += (WCHAR)(ch >> 16);
-		m_OscPara += (WCHAR)ch;
+		if ( m_OscFlag ) {
+			if ( (ch & 0xFFFF0000) != 0 )
+				m_OscPara += (WCHAR)(ch >> 16);
+			m_OscPara += (WCHAR)ch;
+		} else {
+			if ( (ch & 0xFFFF0000) != 0 )
+				m_StsPara += (WCHAR)(ch >> 16);
+			m_StsPara += (WCHAR)ch;
+			((CMainFrame *)AfxGetMainWnd())->SetMessageText(CString(m_StsPara));
+		}
 		return;
 	}
 
@@ -3132,6 +3203,46 @@ void CTextRam::POPRAM()
 		ERABOX(0, 0, m_Cols, m_Lines);
 		LOCATE(0, 0);
 	}
+}
+void CTextRam::SETPAGE(int page)
+{
+	CTextSave *pSave;
+
+	if ( page < 0 )
+		page = 0;
+	else if ( page > 100 )
+		page = 100;
+
+	if ( m_PageTab.GetSize() <= m_Page )
+		m_PageTab.SetSize(m_Page + 1);
+
+	if ( m_PageTab.GetSize() <= page )
+		m_PageTab.SetSize(page + 1);
+
+	if ( (pSave = (CTextSave *)m_PageTab[m_Page]) != NULL ) {
+		delete pSave->m_VRam;
+		delete pSave;
+		m_PageTab[m_Page] = NULL;
+	}
+
+	SAVERAM();
+
+	if ( (pSave = m_pTextSave) != NULL ) {
+		m_pTextSave = pSave->m_Next;
+		m_PageTab[m_Page] = pSave;
+	}
+
+	if ( (pSave = (CTextSave *)m_PageTab[page]) != NULL ) {
+		m_PageTab[page] = NULL;
+		pSave->m_Next = m_pTextSave;
+		m_pTextSave = pSave;
+		LOADRAM();
+	} else {
+		ERABOX(0, 0, m_Cols, m_Lines);
+		LOCATE(0, 0);
+	}
+
+	m_Page = page;
 }
 void CTextRam::TABSET(int sw)
 {

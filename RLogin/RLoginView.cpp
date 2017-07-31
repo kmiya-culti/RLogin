@@ -999,9 +999,9 @@ void CRLoginView::OnLButtonDown(UINT nFlags, CPoint point)
 		if ( pDoc->m_TextRam.m_MouseTrack == 6 )
 			pDoc->m_TextRam.LocReport(1, nFlags, x, y);
 		else if ( pDoc->m_TextRam.m_MouseTrack == 1 )
-			pDoc->m_TextRam.UNGETSTR("\033[M%c%c%c", pDoc->m_TextRam.MCHAR(pDoc->m_TextRam.m_MouseMode[0] & 3), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
+			pDoc->m_TextRam.UNGETSTR("%sM%c%c%c", pDoc->m_TextRam.m_RetChar[RC_CSI], pDoc->m_TextRam.MCHAR(pDoc->m_TextRam.m_MouseMode[0] & 3), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
 		else
-			pDoc->m_TextRam.UNGETSTR("\033[M%c%c%c", pDoc->m_TextRam.MCHAR(pDoc->m_TextRam.m_MouseMode[0] + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0)), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
+			pDoc->m_TextRam.UNGETSTR("%sM%c%c%c", pDoc->m_TextRam.m_RetChar[RC_CSI], pDoc->m_TextRam.MCHAR(pDoc->m_TextRam.m_MouseMode[0] + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0)), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
 
 		if ( pDoc->m_TextRam.m_MouseTrack == 3 ) {
 			m_ClipStaPos = m_ClipEndPos = pDoc->m_TextRam.GetCalcPos(x, y);
@@ -1041,9 +1041,9 @@ void CRLoginView::OnLButtonUp(UINT nFlags, CPoint point)
 			else if ( pDoc->m_TextRam.m_MouseTrack == 3 ) {
 				m_ClipFlag = 0;
 				OnUpdate(this, UPDATE_CLIPERA, NULL);
-				pDoc->m_TextRam.UNGETSTR("\033[t%c%c", pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
+				pDoc->m_TextRam.UNGETSTR("%st%c%c", pDoc->m_TextRam.m_RetChar[RC_CSI], pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
 			} else
-				pDoc->m_TextRam.UNGETSTR("\033[M%c%c%c", pDoc->m_TextRam.MCHAR(3 + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0)), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
+				pDoc->m_TextRam.UNGETSTR("%sM%c%c%c", pDoc->m_TextRam.m_RetChar[RC_CSI], pDoc->m_TextRam.MCHAR(3 + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0)), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
 		}
 		return;
 	}
@@ -1120,7 +1120,7 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 				pos = pDoc->m_TextRam.m_MouseMode[1];
 				break;
 			}
-			pDoc->m_TextRam.UNGETSTR("\033[M%c%c%c", pDoc->m_TextRam.MCHAR(pos + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0)), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
+			pDoc->m_TextRam.UNGETSTR("%sM%c%c%c", pDoc->m_TextRam.m_RetChar[RC_CSI], pDoc->m_TextRam.MCHAR(pos + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0)), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
 
 		} else if ( pDoc->m_TextRam.m_MouseTrack == 3 ) {
 			OnUpdate(this, UPDATE_CLIPERA, NULL);
@@ -1256,9 +1256,9 @@ void CRLoginView::OnRButtonDown(UINT nFlags, CPoint point)
 		if ( pDoc->m_TextRam.m_MouseTrack == 6 )
 			pDoc->m_TextRam.LocReport(3, nFlags, x, y);
 		else if ( pDoc->m_TextRam.m_MouseTrack == 1 )
-			pDoc->m_TextRam.UNGETSTR("\033[M%c%c%c", pDoc->m_TextRam.MCHAR(pDoc->m_TextRam.m_MouseMode[1] & 3), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
+			pDoc->m_TextRam.UNGETSTR("%sM%c%c%c", pDoc->m_TextRam.m_RetChar[RC_CSI], pDoc->m_TextRam.MCHAR(pDoc->m_TextRam.m_MouseMode[1] & 3), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
 		else if ( pDoc->m_TextRam.m_MouseTrack != 3 )
-			pDoc->m_TextRam.UNGETSTR("\033[M%c%c%c", pDoc->m_TextRam.MCHAR(pDoc->m_TextRam.m_MouseMode[1] + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0)), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
+			pDoc->m_TextRam.UNGETSTR("%sM%c%c%c", pDoc->m_TextRam.m_RetChar[RC_CSI], pDoc->m_TextRam.MCHAR(pDoc->m_TextRam.m_MouseMode[1] + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0)), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
 		return;
 	}
 
@@ -1298,7 +1298,7 @@ void CRLoginView::OnRButtonUp(UINT nFlags, CPoint point)
 		if ( pDoc->m_TextRam.m_MouseTrack == 6 )
 			pDoc->m_TextRam.LocReport(4, nFlags, x, y);
 		else if ( pDoc->m_TextRam.m_MouseTrack != 3 )
-			pDoc->m_TextRam.UNGETSTR("\033[M%c%c%c", pDoc->m_TextRam.MCHAR(3 + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0)), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
+			pDoc->m_TextRam.UNGETSTR("%sM%c%c%c", pDoc->m_TextRam.m_RetChar[RC_CSI], pDoc->m_TextRam.MCHAR(3 + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0)), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
 	}
 }
 

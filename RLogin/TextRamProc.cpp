@@ -130,9 +130,9 @@ static const CTextRam::PROCTAB fc_Esc2Tab[] = {
 	{ '.',		0,			&CTextRam::fc_CSC2A		},	// CSC2A G2 charset
 	{ '/',		0,			&CTextRam::fc_CSC3A		},	// CSC3A G3 charset
 	{ '1',		0,			&CTextRam::fc_DECHTS	},	// DECHTS Horizontal tab set
-	{ '2',		0,			&CTextRam::fc_CCAHT		},	// DECCAHT Clear all horizontal tabs
+	{ '2',		0,			&CTextRam::fc_DECAHT	},	// DECCAHT Clear all horizontal tabs
 	{ '3',		0,			&CTextRam::fc_DECVTS	},	// DECVTS Vertical tab set
-	{ '4',		0,			&CTextRam::fc_CAVT		},	// DECCAVT Clear all vertical tabs
+	{ '4',		0,			&CTextRam::fc_DECAVT	},	// DECCAVT Clear all vertical tabs
 	{ '6',		0,			&CTextRam::fc_BI		},	// DECBI Back Index
 	{ '7',		0,			&CTextRam::fc_SC		},	// DECSC Save Cursor
 	{ '8',		0,			&CTextRam::fc_RC		},	// DECRC Restore Cursor
@@ -158,19 +158,19 @@ static const CTextRam::PROCTAB fc_Esc2Tab[] = {
 	{ 'P',		0,			&CTextRam::fc_DCS		},	// DCS Device Control String
 //	{ 'Q',		0,			&CTextRam::fc_POP		},	// PU1 Private use one
 //	{ 'R',		0,			&CTextRam::fc_POP		},	// PU2 Private use two
-	{ 'S',		0,			&CTextRam::fc_STS		},	// STS Set transmit state
+//	{ 'S',		0,			&CTextRam::fc_STS		},	// STS Set transmit state
 //	{ 'T',		0,			&CTextRam::fc_CCH		},	// CCH Cancel character
 //	{ 'U',		0,			&CTextRam::fc_MW		},	// MW Message waiting
 	{ 'V',		0,			&CTextRam::fc_SPA		},	// SPA Start of guarded area				VT52 Print the line with the cursor.
 	{ 'W',		0,			&CTextRam::fc_EPA		},	// EPA End of guarded area					VT52 Enter printer controller mode.
-//	{ 'X',		0,			&CTextRam::fc_SOS		},	// SOS Start of String
+	{ 'X',		0,			&CTextRam::fc_SOS		},	// SOS Start of String
 	{ 'Y',		0,			&CTextRam::fc_V5MCP		},	//											VT52 Move cursor to column Pn.
 	{ 'Z',		0,			&CTextRam::fc_SCI		},	// SCI Single character introducer			VT52 Identify (host to terminal).
 	{ '[',		0,			&CTextRam::fc_CSI		},	// CSI Control sequence introducer
 	{ '\\',		0,			&CTextRam::fc_POP		},	// ST String terminator
 	{ ']',		0,			&CTextRam::fc_OSC		},	// OSC Operating System Command
-//	{ '^',		0,			&CTextRam::fc_PM		},	// PM Privacy message
-//	{ '_',		0,			&CTextRam::fc_APC		},	// APC Application Program Command
+	{ '^',		0,			&CTextRam::fc_PM		},	// PM Privacy message
+	{ '_',		0,			&CTextRam::fc_APC		},	// APC Application Program Command
 	{ 'c',		0,			&CTextRam::fc_RIS		},	// RIS Reset to initial state
 	{ 'l',		0,			&CTextRam::fc_LMA		},	// HP LMA Lock memory above
 	{ 'm',		0,			&CTextRam::fc_USR		},	// HP USR Unlock scrolling region
@@ -216,7 +216,6 @@ static const CTextRam::PROCTAB fc_AnsiTab[] = {
 	{ 'O',		0,			&CTextRam::fc_EA		},	// EA Erase in area
 	{ 'P',		0,			&CTextRam::fc_DCH		},	// DCH Delete Character
 //	{ 'Q',		0,			&CTextRam::fc_SEE		},	// SEE SELECT EDITING EXTENT
-//	{ 'R',		0,			&CTextRam::fc_CPR		},	// CPR ACTIVE POSITION REPORT
 	{ 'S',		0,			&CTextRam::fc_SU		},	// SU Scroll Up
 	{ 'T',		0,			&CTextRam::fc_SD		},	// SD Scroll Down
 	{ 'U',		0,			&CTextRam::fc_NP		},	// NP Next Page
@@ -238,29 +237,31 @@ static const CTextRam::PROCTAB fc_AnsiTab[] = {
 	{ 'f',		0,			&CTextRam::fc_HVP		},	// HVP Horizontal and Vertical Position
 	{ 'g',		0,			&CTextRam::fc_TBC		},	// TBC Tab Clear
 	{ 'h',		0,			&CTextRam::fc_SM		},	// SM Mode Set
-//	{ 'i',		0,			&CTextRam::fc_MC		},	// MC Media copy
+	{ 'i',		0,			&CTextRam::fc_MC		},	// MC Media copy
 	{ 'j',		0,			&CTextRam::fc_HPB		},	// HPB Character position backward
 	{ 'k',		0,			&CTextRam::fc_VPB		},	// VPB Line position backward
 	{ 'l',		0,			&CTextRam::fc_RM		},	// RM Mode ReSet
 	{ 'm',		0,			&CTextRam::fc_SGR		},	// SGR Select Graphic Rendition
 	{ 'n',		0,			&CTextRam::fc_DSR		},	// DSR Device status report
-//	{ 'o',		0,			&CTextRam::fc_DAQ		},	// DAQ Define area qualification
-	{ 'p',		0,			&CTextRam::fc_DECBFAT	},	// DECBFAT Begin field attribute : DEC private
-//	{ 'q',		0,			&CTextRam::fc_DECLL		},	// DECLL Load LEDs
+	{ 'o',		0,			&CTextRam::fc_DAQ		},	// DAQ Define area qualification
+	{ 'p',		0,			&CTextRam::fc_ORGBFAT	},	// ORGBFAT Begin field attribute				DECSSL Select Set-Up Language
+	{ 'q',		0,			&CTextRam::fc_DECLL		},	// DECLL Load LEDs
 	{ 'r',		0,			&CTextRam::fc_DECSTBM	},	// DECSTBM Set Top and Bottom Margins
-	{ 's',		0,			&CTextRam::fc_DECSC		},	// DECSC Save Cursol Pos					DECSLRM Set left and right margins
-	{ 't',		0,			&CTextRam::fc_XTWOP		},	// XTWOP XTERM WINOPS						DECSLPP Set lines per physical page
-	{ 'u',		0,			&CTextRam::fc_DECRC		},	// DECRC Load Cursol Pos					DECSHTS Set horizontal tab stops
-	{ 'v',		0,			&CTextRam::fc_ORGSCD	},	// ORGSCD Set Cursol Display				DECSVTS Set vertical tab stops
+	{ 's',		0,			&CTextRam::fc_SCOSC		},	// SCOSC Save Cursol Pos						DECSLRM Set left and right margins
+	{ 't',		0,			&CTextRam::fc_XTWOP		},	// XTWOP XTERM WINOPS							DECSLPP Set lines per physical page
+	{ 'u',		0,			&CTextRam::fc_SCORC		},	// SCORC Load Cursol Pos						DECSHTS Set horizontal tab stops
+	{ 'v',		0,			&CTextRam::fc_ORGSCD	},	// ORGSCD Set Cursol Display					DECSVTS Set vertical tab stops
 	{ 'x',		0,			&CTextRam::fc_REQTPARM	},	// DECREQTPARM Request terminal parameters
 //	{ 'y',		0,			&CTextRam::fc_DECTST	},	// DECTST Invoke confidence test
 //	{ 'z',		0,			&CTextRam::fc_DECVERP	},	// DECVERP Set vertical pitch
+//	{ '~',		0,			&CTextRam::fc_DECFNK	},	// DECFNK Function Key
 	{ 0,		0,			NULL } };
 static const CTextRam::PROCTAB fc_Ext1Tab[] = {			// ('?' << 16) | sc
 	{ 'J',		0,			&CTextRam::fc_DECSED	},	// DECSED Selective Erase in Display
 	{ 'K',		0,			&CTextRam::fc_DECSEL	},	// DECSEL Selective Erase in Line
 	{ 'W',		0,			&CTextRam::fc_DECST8C	},	// DECST8C Set Tab at every 8 columns
 	{ 'h',		0,			&CTextRam::fc_DECSET	},	// DECSET
+	{ 'i',		0,			&CTextRam::fc_DECMC		},	// DECMC Media Copy (DEC)
 	{ 'l',		0,			&CTextRam::fc_DECRST	},	// DECRST
 	{ 'n',		0,			&CTextRam::fc_DECDSR	},	// DECDSR Device status report
 	{ 'r',		0,			&CTextRam::fc_XTREST	},	// XTREST
@@ -277,10 +278,17 @@ static const CTextRam::PROCTAB fc_Ext2Tab[] = {			// ('$' << 8) | sc
 	{ 'z',		0,			&CTextRam::fc_DECERA	},	// DECERA Erase Rectangular Area
 	{ '{',		0,			&CTextRam::fc_DECSERA	},	// DECSERA Selective Erase Rectangular Area
 	{ '|',		0,			&CTextRam::fc_DECSCPP	},	// DECSCPP Set Ps columns per page
+	{ '}',		0,			&CTextRam::fc_DECSASD	},	// DECSASD Select Active Status Display
+	{ '~',		0,			&CTextRam::fc_DECSSDT	},	// DECSSDT Set Status Display (Line) Type
+
 	{ 0,		0,			NULL } };
 static const CTextRam::PROCTAB fc_Ext3Tab[] = {			// (' ' << 8) | sc
 	{ '@',		0,			&CTextRam::fc_SL		},	// SL Scroll left
-	{ 'A',		0,			&CTextRam::fc_SR		},	// SRScroll Right
+	{ 'A',		0,			&CTextRam::fc_SR		},	// SR Scroll Right
+	{ 'D',		0,			&CTextRam::fc_FNT		},	// FNT Font selection
+	{ 'P',		0,			&CTextRam::fc_PPA		},	// PPA Page Position Absolute
+	{ 'Q',		0,			&CTextRam::fc_PPR		},	// PPR Page Position Relative
+	{ 'R',		0,			&CTextRam::fc_PPB		},	// PPB Page Position Backwards
 	{ 'q',		0,			&CTextRam::fc_DECSCUSR	},	// DECSCUSR Set Cursor Style
 	{ '~',		0,			&CTextRam::fc_DECTME	},	// DECTME Terminal Mode Emulation
 	{ 0,		0,			NULL } };
@@ -301,6 +309,7 @@ static const CTextRam::CSIEXTTAB fc_CsiExtTab[] = {
 	{ 				('\'' << 8) | '}',		&CTextRam::fc_DECIC		},	// DECIC Insert Column
 	{ 				('\'' << 8) | '~',		&CTextRam::fc_DECDC		},	// DECDC Delete Column(s)
 	{ 				('*'  << 8) | 'x',		&CTextRam::fc_DECSACE	},	// DECSACE Select Attribute and Change Extent
+	{ 				('*'  << 8) | 'y',		&CTextRam::fc_DECRQCRA	},	// DECRQCRA Request Checksum of Rectangle Area
 	{ 				(','  << 8) | '}',		&CTextRam::fc_DECATC	},	// DECATC Alternate Text Colors
 	{ ('>' << 16)				| 'c',		&CTextRam::fc_DA2		},	// DA2 Secondary Device Attributes
 	{ ('=' << 16)				| 'c',		&CTextRam::fc_DA3		},	// DA3 Tertiary Device Attributes
@@ -365,11 +374,12 @@ static const CTextRam::PROCTAB fc_StatTab[] = {
 	{ 0x00,		0xFF,		&CTextRam::fc_STAT		},
 	{ 0,		0,			NULL } };
 
-static int	fc_EscNameTabMax = 57;
+static int	fc_EscNameTabMax = 61;
 static CTextRam::ESCNAMEPROC fc_EscNameTab[] = {
 	{	"ACS",		&CTextRam::fc_ACS,		NULL,	NULL	},
+	{	"APC",		&CTextRam::fc_APC,		NULL,	NULL	},
 	{	"BPH",		&CTextRam::fc_BPH,		NULL,	NULL	},
-	{	"CCH",		&CTextRam::fc_CCH,		NULL,	NULL	},
+//	{	"CCH",		&CTextRam::fc_CCH,		NULL,	NULL	},
 	{	"CSC0",		&CTextRam::fc_CSC0,		NULL,	NULL	},
 	{	"CSC0A",	&CTextRam::fc_CSC0A,	NULL,	NULL	},
 	{	"CSC0W",	&CTextRam::fc_CSC0W,	NULL,	NULL	},
@@ -382,8 +392,8 @@ static CTextRam::ESCNAMEPROC fc_EscNameTab[] = {
 	{	"CSI",		&CTextRam::fc_CSI,		NULL,	NULL	},
 	{	"DCS",		&CTextRam::fc_DCS,		NULL,	NULL	},
 	{	"DECBI",	&CTextRam::fc_BI,		NULL,	NULL	},
-	{	"DECCAHT",	&CTextRam::fc_CCAHT,	NULL,	NULL	},
-	{	"DECCAVT",	&CTextRam::fc_CAVT,		NULL,	NULL	},
+	{	"DECCAHT",	&CTextRam::fc_DECAHT,	NULL,	NULL	},
+	{	"DECCAVT",	&CTextRam::fc_DECAVT,	NULL,	NULL	},
 	{	"DECFI",	&CTextRam::fc_FI,		NULL,	NULL	},
 	{	"DECHTS",	&CTextRam::fc_DECHTS,	NULL,	NULL	},
 	{	"DECPAM",	&CTextRam::fc_DECPAM,	NULL,	NULL	},
@@ -404,21 +414,23 @@ static CTextRam::ESCNAMEPROC fc_EscNameTab[] = {
 	{	"LS2R",		&CTextRam::fc_LS2R,		NULL,	NULL	},
 	{	"LS3",		&CTextRam::fc_LS3,		NULL,	NULL	},
 	{	"LS3R",		&CTextRam::fc_LS3R,		NULL,	NULL	},
-	{	"MW",		&CTextRam::fc_MW,		NULL,	NULL	},
+//	{	"MW",		&CTextRam::fc_MW,		NULL,	NULL	},
 	{	"NBH",		&CTextRam::fc_NBH,		NULL,	NULL	},
 	{	"NEL",		&CTextRam::fc_NEL,		NULL,	NULL	},
 	{	"NOP",		&CTextRam::fc_POP,		NULL,	NULL	},
 	{	"OSC",		&CTextRam::fc_OSC,		NULL,	NULL	},
 	{	"PLD",		&CTextRam::fc_PLD,		NULL,	NULL	},
 	{	"PLU",		&CTextRam::fc_PLU,		NULL,	NULL	},
+	{	"PM",		&CTextRam::fc_PM,		NULL,	NULL	},
 	{	"RI",		&CTextRam::fc_RI,		NULL,	NULL	},
 	{	"RIS",		&CTextRam::fc_RIS,		NULL,	NULL	},
 	{	"SCI",		&CTextRam::fc_SCI,		NULL,	NULL	},
+	{	"SOS",		&CTextRam::fc_SOS,		NULL,	NULL	},
 	{	"SPA",		&CTextRam::fc_SPA,		NULL,	NULL	},
 	{	"SS2",		&CTextRam::fc_SS2,		NULL,	NULL	},
 	{	"SS3",		&CTextRam::fc_SS3,		NULL,	NULL	},
 	{	"SSA",		&CTextRam::fc_SSA,		NULL,	NULL	},
-	{	"STS",		&CTextRam::fc_STS,		NULL,	NULL	},
+//	{	"STS",		&CTextRam::fc_STS,		NULL,	NULL	},
 	{	"USR",		&CTextRam::fc_USR,		NULL,	NULL	},
 	{	"V5CUP",	&CTextRam::fc_V5CUP,	NULL,	NULL	},
 	{	"V5EX",		&CTextRam::fc_V5EX,		NULL,	NULL	},
@@ -427,7 +439,7 @@ static CTextRam::ESCNAMEPROC fc_EscNameTab[] = {
 	{	NULL,		NULL,					NULL,	NULL	},
 };
 
-static int	fc_CsiNameTabMax = 96;
+static int	fc_CsiNameTabMax = 111;
 static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	"C25LCT",	&CTextRam::fc_C25LCT,	NULL,	NULL 	},
 	{	"CBT",		&CTextRam::fc_CBT,		NULL,	NULL	},
@@ -448,7 +460,6 @@ static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	"DAQ",		&CTextRam::fc_DAQ,		NULL,	NULL	},
 	{	"DCH",		&CTextRam::fc_DCH,		NULL,	NULL	},
 	{	"DECATC",	&CTextRam::fc_DECATC,	NULL,	NULL	},
-	{	"DECBFAT",	&CTextRam::fc_DECBFAT,	NULL,	NULL	},
 	{	"DECCARA",	&CTextRam::fc_DECCARA,	NULL,	NULL	},
 	{	"DECCRA",	&CTextRam::fc_DECCRA,	NULL,	NULL	},
 	{	"DECDC",	&CTextRam::fc_DECDC,	NULL,	NULL	},
@@ -456,11 +467,13 @@ static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	"DECEFR",	&CTextRam::fc_DECEFR,	NULL,	NULL	},
 	{	"DECELR",	&CTextRam::fc_DECELR,	NULL,	NULL	},
 	{	"DECERA",	&CTextRam::fc_DECERA,	NULL,	NULL	},
+//	{	"DECFNK",	&CTextRam::fc_DECFNK,	NULL,	NULL	},
 	{	"DECFRA",	&CTextRam::fc_DECFRA,	NULL,	NULL	},
 	{	"DECIC",	&CTextRam::fc_DECIC,	NULL,	NULL	},
 	{	"DECLL",	&CTextRam::fc_DECLL,	NULL,	NULL	},
+	{	"DECMC",	&CTextRam::fc_DECMC,	NULL,	NULL	},
 	{	"DECRARA",	&CTextRam::fc_DECRARA,	NULL,	NULL	},
-	{	"DECRC",	&CTextRam::fc_DECRC,	NULL,	NULL	},
+	{	"DECRQCRA",	&CTextRam::fc_DECRQCRA,	NULL,	NULL	},
 	{	"DECRQDE",	&CTextRam::fc_DECRQDE,	NULL,	NULL	},
 	{	"DECRQLP",	&CTextRam::fc_DECRQLP,	NULL,	NULL	},
 	{	"DECRQM",	&CTextRam::fc_DECRQM,	NULL,	NULL	},
@@ -470,7 +483,7 @@ static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	"DECRQUPSS",&CTextRam::fc_DECRQUPSS,NULL,	NULL	},
 	{	"DECRST",	&CTextRam::fc_DECRST,	NULL,	NULL	},
 	{	"DECSACE",	&CTextRam::fc_DECSACE,	NULL,	NULL	},
-	{	"DECSC",	&CTextRam::fc_DECSC,	NULL,	NULL	},
+	{	"DECSASD",	&CTextRam::fc_DECSASD,	NULL,	NULL	},
 	{	"DECSCA",	&CTextRam::fc_DECSCA,	NULL,	NULL	},
 	{	"DECSCL",	&CTextRam::fc_DECSCL,	NULL,	NULL	},
 	{	"DECSCPP",	&CTextRam::fc_DECSCPP,	NULL,	NULL	},
@@ -481,14 +494,17 @@ static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	"DECSET",	&CTextRam::fc_DECSET,	NULL,	NULL	},
 	{	"DECSHTS",	&CTextRam::fc_DECSHTS,	NULL,	NULL	},
 	{	"DECSLE",	&CTextRam::fc_DECSLE,	NULL,	NULL	},
+	{	"DECSLPP",	&CTextRam::fc_DECSLPP,	NULL,	NULL	},
 	{	"DECSLRM",	&CTextRam::fc_DECSLRM,	NULL,	NULL	},
+	{	"DECSSDT",	&CTextRam::fc_DECSSDT,	NULL,	NULL	},
+	{	"DECSSL",	&CTextRam::fc_DECSSL,	NULL,	NULL	},
 	{	"DECST8C",	&CTextRam::fc_DECST8C,	NULL,	NULL	},
 	{	"DECSTBM",	&CTextRam::fc_DECSTBM,	NULL,	NULL	},
 	{	"DECSTR",	&CTextRam::fc_DECSTR,	NULL,	NULL	},
 	{	"DECSVTS",	&CTextRam::fc_DECSVTS,	NULL,	NULL	},
 	{	"DECTME",	&CTextRam::fc_DECTME,	NULL,	NULL	},
-	{	"DECTST",	&CTextRam::fc_DECTST,	NULL,	NULL	},
-	{	"DECVERP",	&CTextRam::fc_DECVERP,	NULL,	NULL	},
+//	{	"DECTST",	&CTextRam::fc_DECTST,	NULL,	NULL	},
+//	{	"DECVERP",	&CTextRam::fc_DECVERP,	NULL,	NULL	},
 	{	"DL",		&CTextRam::fc_DL,		NULL,	NULL	},
 	{	"DSR",		&CTextRam::fc_DSR,		NULL,	NULL	},
 	{	"EA",		&CTextRam::fc_EA,		NULL,	NULL	},
@@ -496,6 +512,7 @@ static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	"ED",		&CTextRam::fc_ED,		NULL,	NULL	},
 	{	"EF",		&CTextRam::fc_EF,		NULL,	NULL	},
 	{	"EL",		&CTextRam::fc_EL,		NULL,	NULL	},
+	{	"FNT",		&CTextRam::fc_FNT,		NULL,	NULL	},
 	{	"HPA",		&CTextRam::fc_HPA,		NULL,	NULL	},
 	{	"HPB",		&CTextRam::fc_HPB,		NULL,	NULL	},
 	{	"HPR",		&CTextRam::fc_HPR,		NULL,	NULL	},
@@ -506,17 +523,27 @@ static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	"MC",		&CTextRam::fc_MC,		NULL,	NULL	},
 	{	"NOP",		&CTextRam::fc_POP,		NULL,	NULL	},
 	{	"NP",		&CTextRam::fc_NP,		NULL,	NULL	},
+	{	"ORGBFAT",	&CTextRam::fc_ORGBFAT,	NULL,	NULL	},
 	{	"ORGSCD",	&CTextRam::fc_ORGSCD,	NULL,	NULL	},
 	{	"PP",		&CTextRam::fc_PP,		NULL,	NULL	},
+	{	"PPA",		&CTextRam::fc_PPA,		NULL,	NULL	},
+	{	"PPB",		&CTextRam::fc_PPB,		NULL,	NULL	},
+	{	"PPR",		&CTextRam::fc_PPR,		NULL,	NULL	},
+//	{	"PTX",		&CTextRam::fc_PTX,		NULL,	NULL	},
 	{	"REP",		&CTextRam::fc_REP,		NULL,	NULL	},
 	{	"REQTPARM",	&CTextRam::fc_REQTPARM,	NULL,	NULL	},
 	{	"RM",		&CTextRam::fc_RM,		NULL,	NULL	},
+	{	"SCORC",	&CTextRam::fc_SCORC,	NULL,	NULL	},
+	{	"SCOSC",	&CTextRam::fc_SCOSC,	NULL,	NULL	},
 	{	"SD",		&CTextRam::fc_SD,		NULL,	NULL	},
+//	{	"SDS",		&CTextRam::fc_SDS,		NULL,	NULL	},
+//	{	"SEE",		&CTextRam::fc_SEE,		NULL,	NULL	},
 	{	"SGR",		&CTextRam::fc_SGR,		NULL,	NULL	},
-	{	"SIMD",		&CTextRam::fc_SIMD,		NULL,	NULL	},
+//	{	"SIMD",		&CTextRam::fc_SIMD,		NULL,	NULL	},
 	{	"SL",		&CTextRam::fc_SL,		NULL,	NULL	},
 	{	"SM",		&CTextRam::fc_SM,		NULL,	NULL	},
 	{	"SR",		&CTextRam::fc_SR,		NULL,	NULL	},
+//	{	"SRS",		&CTextRam::fc_SRS,		NULL,	NULL	},
 	{	"SU",		&CTextRam::fc_SU,		NULL,	NULL	},
 	{	"TBC",		&CTextRam::fc_TBC,		NULL,	NULL	},
 	{	"VPA",		&CTextRam::fc_VPA,		NULL,	NULL	},
@@ -1531,7 +1558,7 @@ void CTextRam::fc_DECHTS(int ch)
 	TABSET(TAB_COLSSET);
 	fc_POP(ch);
 }
-void CTextRam::fc_CCAHT(int ch)
+void CTextRam::fc_DECAHT(int ch)
 {
 	// ESC 2	DECCAHT Clear all horizontal tabs
 	TABSET(TAB_COLSALLCLR);
@@ -1543,7 +1570,7 @@ void CTextRam::fc_DECVTS(int ch)
 	TABSET(TAB_LINESET);
 	fc_POP(ch);
 }
-void CTextRam::fc_CAVT(int ch)
+void CTextRam::fc_DECAVT(int ch)
 {
 	// ESC 4	DECCAVT Clear all vertical tabs
 	TABSET(TAB_LINEALLCLR);
@@ -1641,8 +1668,10 @@ void CTextRam::fc_SSA(int ch)
 	if ( !IS_ENABLE(m_AnsiOpt, TO_DECANM) ) {
 		m_BankTab[m_KanjiMode][0] = SET_94 | '0';
 		m_BankTab[m_KanjiMode][1] = SET_94 | '0';
-	} else
-		m_AttNow.em |= EM_SELECTED;
+	}
+	// else
+	//	m_AttNow.em |= EM_SELECTED;
+
 	fc_POP(ch);
 }
 void CTextRam::fc_ESA(int ch)
@@ -1651,8 +1680,10 @@ void CTextRam::fc_ESA(int ch)
 	if ( !IS_ENABLE(m_AnsiOpt, TO_DECANM) ) {
 		m_BankTab[m_KanjiMode][0] = SET_94 | 'B';
 		m_BankTab[m_KanjiMode][1] = SET_94 | 'B';
-	} else
-		m_AttNow.em &= ~EM_SELECTED;
+	}
+	// else
+	//	m_AttNow.em &= ~EM_SELECTED;
+
 	fc_POP(ch);
 }
 void CTextRam::fc_HTS(int ch)
@@ -1677,8 +1708,8 @@ void CTextRam::fc_VTS(int ch)
 {
 	// ESC J	VT52 Erase from cursor to end of screen.		ANSI VTS Line tabulation set
 	if ( !IS_ENABLE(m_AnsiOpt, TO_DECANM) ) {
-		ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1, 1);
-		ERABOX(0, m_CurY + 1, m_Cols, m_Lines, 1);
+		ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1);
+		ERABOX(0, m_CurY + 1, m_Cols, m_Lines);
 	} else
 		TABSET(TAB_LINESET);
 	fc_POP(ch);
@@ -1687,7 +1718,7 @@ void CTextRam::fc_PLD(int ch)
 {
 	// ESC K	VT52 Erase from cursor to end of line.			ANSI PLD Partial line forward
 	if ( !IS_ENABLE(m_AnsiOpt, TO_DECANM) )
-		ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1);
+		ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1, ERM_SAVEDM);
 	else
 		LOCATE(m_CurX, m_CurY + 1);
 	fc_POP(ch);
@@ -1723,14 +1754,14 @@ void CTextRam::fc_SPA(int ch)
 {
 	// ESC V	VT52 Print the line with the cursor.			ANSI SPA Start of guarded area
 	if ( IS_ENABLE(m_AnsiOpt, TO_DECANM) )
-		m_AttNow.em |= EM_PROTECT;
+		m_AttNow.em |= EM_ISOPROTECT;
 	fc_POP(ch);
 }
 void CTextRam::fc_EPA(int ch)
 {
 	// ESC W	VT52 Enter printer controller mode.				ANSI EPA End of guarded area
 	if ( IS_ENABLE(m_AnsiOpt, TO_DECANM) )
-		m_AttNow.em &= ~EM_PROTECT;
+		m_AttNow.em &= ~EM_ISOPROTECT;
 	fc_POP(ch);
 }
 void CTextRam::fc_SCI(int ch)
@@ -1933,6 +1964,12 @@ void CTextRam::fc_STAT(int ch)
 	case ST_CONF_LEVEL:			// ESC 20...	ACS
 		m_Status = ST_NON;
 		switch(ch) {
+		case 'F':	// S7C1T Send 7-bit C1 Control character to host
+			SetRetChar(FALSE);
+			break;
+		case 'G':	// S8C1T Send 8-bit C1 Control character to host
+			SetRetChar(TRUE);
+			break;
 		case 'L':	// Level 1		G0=ASCII G1=Latan GL=G0 GR=G1
 		case 'M':	// Level 2		G0=ASCII G1=Latan GL=G0 GR=G1
 			m_BankTab[m_KanjiMode][0] = SET_94 | 'B';
@@ -2164,6 +2201,7 @@ void CTextRam::fc_OSC_CSI(int ch)
 void CTextRam::fc_OSC_ST(int ch)
 {
 	int n;
+	int r, g, b;
 	CStringW tmp;
 	WCHAR *p;
 	CString str, wrk;
@@ -2207,7 +2245,7 @@ void CTextRam::fc_OSC_ST(int ch)
 		case 'v':					// Load Answerback Message
 		case 'x':					// DECtalk commands
 		case 'y':					// DECLFF Load font file
-		case '{':					// DECDLD Down-line Load1
+		case '{':					// DECDLD Dynamically Redefinable Character Sets Extension
 		case '|':					// DECUDK User Defined Keys
 		case '}':					// DECATFF Assign to font file
 		case '~':					// DECDTFF Delete type family or font file
@@ -2218,7 +2256,8 @@ void CTextRam::fc_OSC_ST(int ch)
 
 			switch(n) {
 			case 'm':					// SGR
-				str = "\033P1$r0";
+				str = m_RetChar[RC_DCS];
+				str += "1$r0";
 				if ( (m_AttNow.at & ATT_BOLD)   != 0 ) str += ";1";
 				if ( (m_AttNow.at & ATT_HALF)   != 0 ) str += ";2";
 				if ( (m_AttNow.at & ATT_ITALIC) != 0 ) str += ";3";
@@ -2250,50 +2289,51 @@ void CTextRam::fc_OSC_ST(int ch)
 				else if ( m_AttNow.bc < 16 ) { wrk.Format(";%d", m_AttNow.bc - 8 + 100); str += wrk; }
 				else { wrk.Format(";48;%d", m_AttNow.bc); str += wrk; }
 
-				str += "m\033\\";
+				str += "m";
+				str += m_RetChar[RC_ST];
 				UNGETSTR(str);
 				break;
 
 			case 'r':					// DECSTBM
-				UNGETSTR("\033P1$r%d;%dr\033\\", m_TopY + 1, m_BtmY + 1 - 1);
+				UNGETSTR("%s1$r%d;%dr%s", m_RetChar[RC_DCS], m_TopY + 1, m_BtmY + 1 - 1, m_RetChar[RC_ST]);
 				break;
 
 			case 's':					// DECSLRM Set left and right margins
-				// UNGETSTR("\033P1$r%d;%ds\033\\", m_LeftX + 1, m_RightX + 1 - 1);
-				UNGETSTR("\033P0$r\033\\");
+				UNGETSTR("%s1$r%d;%ds%s", m_RetChar[RC_DCS], m_LeftX + 1, m_RightX + 1 - 1, m_RetChar[RC_ST]);
+				//UNGETSTR("%s0$r%s", m_RetChar[RC_DCS], m_RetChar[RC_ST]);
 				break;
 
 			case 't':					// DECSLPP Set lines per physical page
-				// UNGETSTR("\033P1$r%dt\033\\", m_Lines);
-				UNGETSTR("\033P0$r\033\\");
+				UNGETSTR("%s1$r%dt%s", m_RetChar[RC_DCS], m_Lines, m_RetChar[RC_ST]);
+				//UNGETSTR("%s0$r%s", m_RetChar[RC_DCS], m_RetChar[RC_ST]);
 				break;
 
 			case ('$' << 8) | '|':		// DECSCPP
-				UNGETSTR("\033P1$r%d$|\033\\", m_Cols);
+				UNGETSTR("%s1$r%d$|%s", m_RetChar[RC_DCS], m_Cols, m_RetChar[RC_ST]);
 				break;
 
 			case ('*' << 8) | 'x':		// DECSACE Select Attribute and Change Extent
-				UNGETSTR("\033P1$r%d*x\033\\", m_Exact ? 2 : 1);
+				UNGETSTR("%s1$r%d*x%s", m_RetChar[RC_DCS], m_Exact ? 2 : 1, m_RetChar[RC_ST]);
 				break;
 
 			case ('*' << 8) | '|':		// DECSNLS
-				UNGETSTR("\033P1$r%d*|\033\\", m_Lines);
+				UNGETSTR("%s1$r%d*|%s", m_RetChar[RC_DCS], m_Lines, m_RetChar[RC_ST]);
 				break;
 
 			case ('"' << 8) | 'p':		// DECSCL
-				UNGETSTR("\033P1$r%d\"p\033\\", m_VtLevel);
+				UNGETSTR("%s1$r%d\"p%s", m_RetChar[RC_DCS], m_VtLevel, m_RetChar[RC_ST]);
 				break;
 
 			case ('"' << 8) | 'q':		// DECSCA
-				UNGETSTR("\033P1$r%d\"q\033\\", (m_AttNow.em & EM_PROTECT) != 0 ? 1 : 0);
+				UNGETSTR("%s1$r%d\"q%s", m_RetChar[RC_DCS], (m_AttNow.em & EM_DECPROTECT) != 0 ? 1 : 0, m_RetChar[RC_ST]);
 				break;
 
 			case ('$' << 8) | '}':		// DECSASD Select active status display
-				UNGETSTR("\033P1$r%d$p\033\\", 0);	// none
+				UNGETSTR("%s1$r%d$}%s", m_RetChar[RC_DCS], m_StsFlag ? 1 : 0, m_RetChar[RC_ST]);
 				break;
 
 			case ('$' << 8) | '~':		// DECSSDT Select status display type
-				UNGETSTR("\033P1$r%d$~\033\\", 0);	// none
+				UNGETSTR("%s1$r%d$~%s", m_RetChar[RC_DCS], m_StsMode, m_RetChar[RC_ST]);
 				break;
 
 
@@ -2303,13 +2343,13 @@ void CTextRam::fc_OSC_ST(int ch)
 			//case ('+' << 8) | 'r':	// DECSMKR Select modifier key reporting
 			//case ('*' << 8) | '}':	// DECLFKC Local function key control
 			default:
-				UNGETSTR("\033P0$r\033\\");		// DECRPSS
+				UNGETSTR("%s0$r%s", m_RetChar[RC_DCS], m_RetChar[RC_ST]);		// DECRPSS
 				break;
 			}
 			break;
 
 		case ('!' << 8) | '|':		// DECRPTUI Report Terminal Unit ID
-			UNGETSTR("\033P0!|0\033\\");
+			UNGETSTR("%s0!|0%s", m_RetChar[RC_DCS], m_RetChar[RC_ST]);
 			break;
 #if 0
 		case ('$' << 8) | 't':		// DECRSPS Restore Presentation State
@@ -2363,11 +2403,30 @@ void CTextRam::fc_OSC_ST(int ch)
 					p++;
 				if ( tmp.Compare(L"?") == 0 ) {
 					COLORREF rgb = (n < 256 ? m_ColTab[n] : RGB(0, 0, 0));
-					UNGETSTR("\033]4;%d;rgb:%04x/%04x/%04x%s", n,
+					UNGETSTR("%s4;%d;rgb:%04x/%04x/%04x%s", m_RetChar[RC_OSC], n,
 						GetRValue(rgb), GetGValue(rgb), GetBValue(rgb),
-						(ch == 0x07 ? "\007":"\033\\"));
-				} else {
-					int r, g, b;
+						(ch == 0x07 ? "\007":m_RetChar[RC_ST]));
+				} else if ( tmp.Compare(L"#") == 0 && n < 256 ) {
+					switch(tmp.GetLength()) {
+					case 4:		// #rgb
+						if ( swscanf(tmp, L"#%01x%01x%01x", &r, &g, &b) == 3 )
+							m_ColTab[n] = RGB(r, g, b);
+						break;
+					case 7:		// #rrggbb
+						if ( swscanf(tmp, L"#%02x%02x%02x", &r, &g, &b) == 3 )
+							m_ColTab[n] = RGB(r, g, b);
+						break;
+					case 10:	// #rrrgggbbb
+						if ( swscanf(tmp, L"#%03x%03x%03x", &r, &g, &b) == 3 )
+							m_ColTab[n] = RGB(r, g, b);
+						break;
+					case 13:	// #rrrrggggbbbb
+						if ( swscanf(tmp, L"#%04x%04x%04x", &r, &g, &b) == 3 )
+							m_ColTab[n] = RGB(r, g, b);
+						break;
+					}
+					DISPUPDATE();
+				} else if ( n < 256 ) {
 					if ( n < 256 && swscanf(tmp, L"rgb:%x/%x/%x", &r, &g, &b) == 3 ) {
 						m_ColTab[n] = RGB(r, g, b);
 						DISPUPDATE();
@@ -2399,7 +2458,7 @@ void CTextRam::fc_OSC_ST(int ch)
 				if ( *p == L';' )
 					p++;
 				if ( md == L'?' )
-					UNGETSTR("\033]50%s", (ch == 0x07 ? "\007":"\033\\"));
+					UNGETSTR("%s50%s", m_RetChar[RC_OSC], (ch == 0x07 ? "\007":m_RetChar[RC_ST]));
 			}
 			break;
 		}
@@ -2552,16 +2611,16 @@ void CTextRam::fc_ED(int ch)
 	// CSI J	ED Erase in page
 	switch(GetAnsiPara(0, 0, 0)) {
 	case 0:
-		ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1, 1);
-		ERABOX(0, m_CurY + 1, m_Cols, m_Lines, 1);
+		ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1, ERM_ISOPRO);
+		ERABOX(0, m_CurY + 1, m_Cols, m_Lines, ERM_ISOPRO);
 		break;
 	case 1:
-		ERABOX(0, m_CurY, m_CurX + 1, m_CurY + 1, 1);
-		ERABOX(0, 0, m_Cols, m_CurY, 1);
+		ERABOX(0, m_CurY, m_CurX + 1, m_CurY + 1, ERM_ISOPRO);
+		ERABOX(0, 0, m_Cols, m_CurY, ERM_ISOPRO);
 		break;
 	case 2:
 		LOCATE(0, 0);
-		ERABOX(0, 0, m_Cols, m_Lines, 1);
+		ERABOX(0, 0, m_Cols, m_Lines, ERM_ISOPRO);
 		break;
 	}
 	fc_POP(ch);
@@ -2571,13 +2630,13 @@ void CTextRam::fc_EL(int ch)
 	// CSI K	EL Erase in line
 	switch(GetAnsiPara(0, 0, 0)) {
 	case 0:
-		ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1);
+		ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1, ERM_ISOPRO | ERM_SAVEDM);
 		break;
 	case 1:
-		ERABOX(0, m_CurY, m_CurX + 1, m_CurY + 1);
+		ERABOX(0, m_CurY, m_CurX + 1, m_CurY + 1, ERM_ISOPRO | ERM_SAVEDM);
 		break;
 	case 2:
-		ERABOX(0, m_CurY, m_Cols, m_CurY + 1);
+		ERABOX(0, m_CurY, m_Cols, m_CurY + 1, ERM_ISOPRO | ERM_SAVEDM);
 		break;
 	}
 	fc_POP(ch);
@@ -2609,16 +2668,16 @@ void CTextRam::fc_EF(int ch)
 	// CSI N	EF Erase in field
 	switch(GetAnsiPara(0, 0, 0)) {
 	case 0:
-		ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1);
-		ERABOX(0, m_CurY + 1, m_Cols, m_Lines);
+		ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1, ERM_ISOPRO);
+		ERABOX(0, m_CurY + 1, m_Cols, m_Lines, ERM_ISOPRO);
 		break;
 	case 1:
-		ERABOX(0, m_CurY, m_CurX + 1, m_CurY + 1);
-		ERABOX(0, 0, m_Cols, m_CurY);
+		ERABOX(0, m_CurY, m_CurX + 1, m_CurY + 1, ERM_ISOPRO);
+		ERABOX(0, 0, m_Cols, m_CurY, ERM_ISOPRO);
 		break;
 	case 2:
 		LOCATE(0, 0);
-		ERABOX(0, 0, m_Cols, m_Lines);
+		ERABOX(0, 0, m_Cols, m_Lines, ERM_ISOPRO);
 		break;
 	}
 	fc_POP(ch);
@@ -2628,16 +2687,16 @@ void CTextRam::fc_EA(int ch)
 	// CSI O	EA Erase in area
 	switch(GetAnsiPara(0, 0, 0)) {
 	case 0:
-		ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1);
-		ERABOX(0, m_CurY + 1, m_Cols, m_Lines);
+		ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1, ERM_ISOPRO);
+		ERABOX(0, m_CurY + 1, m_Cols, m_Lines, ERM_ISOPRO);
 		break;
 	case 1:
-		ERABOX(0, m_CurY, m_CurX + 1, m_CurY + 1);
-		ERABOX(0, 0, m_Cols, m_CurY);
+		ERABOX(0, m_CurY, m_CurX + 1, m_CurY + 1, ERM_ISOPRO);
+		ERABOX(0, 0, m_Cols, m_CurY, ERM_ISOPRO);
 		break;
 	case 2:
 		LOCATE(0, 0);
-		ERABOX(0, 0, m_Cols, m_Lines);
+		ERABOX(0, 0, m_Cols, m_Lines, ERM_ISOPRO);
 		break;
 	}
 	fc_POP(ch);
@@ -2647,6 +2706,11 @@ void CTextRam::fc_DCH(int ch)
 	// CSI P	DCH Delete Character
 	for ( int n = GetAnsiPara(0, 1, 1) ; n > 0 ; n-- )
 		DELCHAR();
+	fc_POP(ch);
+}
+void CTextRam::fc_SEE(int ch)
+{
+	// CSI Q	SEE SELECT EDITING EXTENT
 	fc_POP(ch);
 }
 void CTextRam::fc_SU(int ch)
@@ -2732,7 +2796,7 @@ void CTextRam::fc_CTC(int ch)
 void CTextRam::fc_ECH(int ch)
 {
 	// CSI X	ECH Erase character
-	ERABOX(m_CurX, m_CurY, m_CurX + GetAnsiPara(0, 1, 1), m_CurY + 1);
+	ERABOX(m_CurX, m_CurY, m_CurX + GetAnsiPara(0, 1, 1), m_CurY + 1, ERM_ISOPRO | ERM_SAVEDM);
 	fc_POP(ch);
 }
 void CTextRam::fc_CVT(int ch)
@@ -2755,10 +2819,21 @@ void CTextRam::fc_CBT(int ch)
 		TABSET(TAB_COLSBACK);
 	fc_POP(ch);
 }
-
-//////////////////////////////////////////////////////////////////////
-// fc CSI a-z
-
+void CTextRam::fc_SRS(int ch)
+{
+	// CSI [	SRS START REVERSED STRING
+	fc_POP(ch);
+}
+void CTextRam::fc_PTX(int ch)
+{
+	// CSI \	PTX PARALLEL TEXTS
+	fc_POP(ch);
+}
+void CTextRam::fc_SDS(int ch)
+{
+	// CSI ]	SDS START DIRECTED STRING
+	fc_POP(ch);
+}
 void CTextRam::fc_SIMD(int ch)
 {
 	// CSI ^	SIMD Select implicit movement direction
@@ -2766,6 +2841,10 @@ void CTextRam::fc_SIMD(int ch)
 	// 1 the direction of implicit movement is opposite to that of the character progression.
 	fc_POP(ch);
 }
+
+//////////////////////////////////////////////////////////////////////
+// fc CSI a-z
+
 void CTextRam::fc_HPA(int ch)
 {
 	// CSI `	HPA Horizontal Position Absolute
@@ -2804,7 +2883,7 @@ void CTextRam::fc_DA1(int ch)
 	//	15 Technical character set			46 ASCII terminal emulation
 	//	22 ANSI color, VT525				29 ANSI text locator
 
-	UNGETSTR("\033[?65;1;9;15;22;29;44c");
+	UNGETSTR("%s?65;1;6;9;15;22;29;44c", m_RetChar[RC_CSI]);
 	fc_POP(ch);
 }
 void CTextRam::fc_VPA(int ch)
@@ -2873,6 +2952,11 @@ void CTextRam::fc_RM(int ch)
 void CTextRam::fc_MC(int ch)
 {
 	// CSI i	MC Media copy
+	switch(GetAnsiPara(0, 0, 0)) {
+	case 0:
+		EditCopy(GetCalcPos(0, 0), GetCalcPos(m_Cols - 1, m_Lines - 1), FALSE, TRUE);
+		break;
+	}
 	fc_POP(ch);
 }
 void CTextRam::fc_HPB(int ch)
@@ -2996,10 +3080,10 @@ void CTextRam::fc_DSR(int ch)
 	case 4:	// some malfunction detected, another DSR will be sent later
 		break;
 	case 5:	// a DSR is requested
-		UNGETSTR("\033[0n");
+		UNGETSTR("%s0n", m_RetChar[RC_CSI]);
 		break;
 	case 6:	// a report of the active presentation position or of the active data position in the form of ACTIVE POSITION REPORT (CPR) is requested
-		UNGETSTR("\033[%d;%dR", m_CurY + 1, m_CurX + 1);
+		UNGETSTR("%s%d;%dR", m_RetChar[RC_CSI], m_CurY + 1, m_CurX + 1);
 		break;
 	}
 	fc_POP(ch);
@@ -3007,11 +3091,40 @@ void CTextRam::fc_DSR(int ch)
 void CTextRam::fc_DAQ(int ch)
 {
 	// CSI o	DAQ Define area qualification
+	/*
+		0 unprotected and unguarded
+		1 protected and guarded
+		2 graphic character input
+		3 numeric input
+		4 alphabetic input
+		5 input aligned on the last character position of the qualified area
+		6 fill with ZEROs
+		7 set a character tabulation stop at the active presentation position
+			(the first character position of the qualified area) to indicate the
+			beginning of a field
+		8 protected and unguarded
+		9 fill with SPACEs
+		10 input aligned on the first character position of the qualified area
+		11 the order of the character positions in the input field is
+			reversed, i.e. the last position in each line becomes the first and
+			vice versa; input begins at the new first position.
+	*/
+
+	switch(GetAnsiPara(0, 0, 0)) {
+	case 0:
+		m_AttNow.em &= ~EM_ISOPROTECT;
+		break;
+	case 1:
+	case 8:
+		m_AttNow.em |= EM_ISOPROTECT;
+		break;
+	}
+
 	fc_POP(ch);
 }
-void CTextRam::fc_DECBFAT(int ch)
+void CTextRam::fc_ORGBFAT(int ch)
 {
-	// CSI p	DECBFAT Begin field attribute : DEC private
+	// CSI p	ORGBFAT Begin field attribute : DEC private
 	int n = GetAnsiPara(0, 0, 0);
 	m_AttNow.at = 0;
 	if ( (n &  1) != 0 ) m_AttNow.at |= ATT_BOLD;
@@ -3023,9 +3136,50 @@ void CTextRam::fc_DECBFAT(int ch)
 		m_AttSpc.at = m_AttNow.at;
 	fc_POP(ch);
 }
+void CTextRam::fc_DECSSL(int ch)
+{
+	// CSI p	DECSSL Select Set-Up Language
+	// 0, 1 or none English
+	// 2 French
+	// 3 German
+	// 4 Spanish
+	// 5 Italian
+	m_LangMenu = GetAnsiPara(0, 1, 1);
+	fc_POP(ch);
+}
 void CTextRam::fc_DECLL(int ch)
 {
 	// CSI q	DECLL Load LEDs
+
+	int n;
+	CString str;
+
+	if ( m_AnsiPara.GetSize() <= 0 )
+		m_AnsiPara.Add(0);
+
+	for ( n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
+		switch(GetAnsiPara(n, 0, 0)) {
+		case 0:	// Clear All LEDs (default)
+			m_StsLed = 0;
+			break;
+		case 1:	// Light L1	Scroll Lock LED
+			m_StsLed |= 001;
+			break;
+		case 2:	// Light L2 Num Lock LED
+			m_StsLed |= 002;
+			break;
+		case 3:	// Light L3	Caps Lock LED
+			m_StsLed |= 004;
+			break;
+		case 4:	// Light L4
+			m_StsLed |= 010;
+			break;
+		}
+	}
+
+	str.Format("%s%s%s%s", (m_StsLed & 001) ? "1":"-", (m_StsLed & 002) ? "2":"-", (m_StsLed & 004) ? "3":"-", (m_StsLed & 010) ? "4":"-");
+	((CMainFrame *)AfxGetMainWnd())->SetMessageText(str);
+
 	fc_POP(ch);
 }
 void CTextRam::fc_DECSTBM(int ch)
@@ -3050,14 +3204,32 @@ void CTextRam::fc_DECSLRM(int ch)
 {
 	// CSI s	DECSLRM Set left and right margins
 	// Sets left margin to Pn1, right margin to Pn2
-	m_LeftX  = GetAnsiPara(0, 1, 1) - 1;
-	m_RightX = GetAnsiPara(1, 1, 1) - 1 + 1;
+
+	if ( (m_LeftX  = GetAnsiPara(0, 1, 1) - 1) < 0 )
+		m_LeftX = 0;
+	else if ( m_LeftX >= m_Cols )
+		m_LeftX = m_Cols - 1;
+
+	if ( (m_RightX = GetAnsiPara(1, 1, 1) - 1 + 1) < m_LeftX )
+		m_RightX = m_LeftX + 1;
+	else if ( m_RightX > m_Cols )
+		m_RightX = m_Cols;
+
+	fc_POP(ch);
+}
+void CTextRam::fc_DECSLPP(int ch)
+{
+	// CSI t	DECSLPP Set Lines Per Page
+
+	InitScreen(m_Cols, GetAnsiPara(0, m_Lines, 2));
+
 	fc_POP(ch);
 }
 void CTextRam::fc_DECSHTS(int ch)
 {
-	// CSI s	DECSHTS Set horizontal tab stops
+	// CSI u	DECSHTS Set horizontal tab stops
 	int n, s;
+	TABSET(TAB_COLSALLCLR);
 	s = m_CurX;
 	for ( n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
 		m_CurX = GetAnsiPara(n, 1, 1) - 1;
@@ -3069,8 +3241,9 @@ void CTextRam::fc_DECSHTS(int ch)
 }
 void CTextRam::fc_DECSVTS(int ch)
 {
-	// CSI s	DECSVTS Set vertical tab stops
+	// CSI v	DECSVTS Set vertical tab stops
 	int n, s;
+	TABSET(TAB_LINEALLCLR);
 	s = m_CurY;
 	for ( n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
 		m_CurY = GetAnsiPara(n, 1, 1) - 1;
@@ -3080,9 +3253,9 @@ void CTextRam::fc_DECSVTS(int ch)
 	m_CurY = s;
 	fc_POP(ch);
 }
-void CTextRam::fc_DECSC(int ch)
+void CTextRam::fc_SCOSC(int ch)
 {
-	// CSI s	DECSC Save Cursol Pos
+	// CSI s	SCOSC Save Cursol Pos
 	m_Save_CurX   = m_CurX;
 	m_Save_CurY   = m_CurY;
 	m_Save_DoWarp = m_DoWarp;
@@ -3103,46 +3276,46 @@ void CTextRam::fc_XTWOP(int ch)
     case 7:			/* Refresh the window */
 		break;
     case 8:			/* Resize the text-area, in characters h = p1, w = p2 */
-		if ( GetAnsiPara(2, 0, 0) > m_DefCols[0] ) {
-			if ( !IsOptEnable(TO_DECCOLM) ) {
+		if ( IsOptEnable(TO_RLFONT) ) {				// ReSize Cols, Lines
+			InitScreen(GetAnsiPara(2, m_Cols, 4), GetAnsiPara(1, m_Lines, 2));
+		} else {
+			if ( GetAnsiPara(2, 0, 0) > m_DefCols[0] )
 				EnableOption(TO_DECCOLM);
-				InitCols();
-			}
-		} else if ( IsOptEnable(TO_DECCOLM) ) {
-			DisableOption(TO_DECCOLM);
-			InitCols();
+			else
+				DisableOption(TO_DECCOLM);
+			InitScreen(m_DefCols[IsOptValue(TO_DECCOLM, 1)], GetAnsiPara(1, m_Lines, 2));
 		}
 		break;
     case 9:			/* Maximize or restore mx = p1 */
 		break;
     case 11:    	/* Report the window's state ESC[1/2t */
-		UNGETSTR("\033[1t");
+		UNGETSTR("%s1t", m_RetChar[RC_CSI]);
 		break;
     case 13:    	/* Report the window's position ESC[3;x;yt */
-		UNGETSTR("\033[3;%d;%dt", 0, 0);
+		UNGETSTR("%s3;%d;%dt", m_RetChar[RC_CSI], 0, 0);
 		break;
     case 14:    	/* Report the window's size in pixels ESC[4;h;wt */
-		UNGETSTR("\033[4;%d;%dt", m_Lines * 12, m_Cols * 6);
+		UNGETSTR("%s4;%d;%dt", m_RetChar[RC_CSI], m_Lines * 12, m_Cols * 6);
 		break;
     case 18:    	/* Report the text's size in characters ESC[8;l;ct */
-		UNGETSTR("\033[8;%d;%dt", m_Lines, m_Cols);
+		UNGETSTR("%s8;%d;%dt", m_RetChar[RC_CSI], m_Lines, m_Cols);
 		break;
     case 19:    	/* Report the screen's size, in characters ESC[9;h;wt */
-		UNGETSTR("\033[9;%d;%dt", 12, 6);
+		UNGETSTR("%s9;%d;%dt", m_RetChar[RC_CSI], 12, 6);
 		break;
     case 20:    	/* Report the icon's label ESC]LxxxxESC\ */
     case 21:   		/* Report the window's title ESC]lxxxxxxESC\ */
 		CString tmp;
 		if ( (m_TitleMode & WTTL_REPORT) == 0 )
 			m_IConv.IConvStr("CP932", m_SendCharSet[m_KanjiMode], m_pDocument->GetTitle(), tmp);
-		UNGETSTR("\033]%c%s\033\\", (n == 20 ? 'L':'l'), tmp);
+		UNGETSTR("%s%c%s%s", m_RetChar[RC_OSC], (n == 20 ? 'L':'l'), tmp, m_RetChar[RC_ST]);
 		break;
 	}
 	fc_POP(ch);
 }
-void CTextRam::fc_DECRC(int ch)
+void CTextRam::fc_SCORC(int ch)
 {
-	// CSI u	DECRC Load Cursol Pos
+	// CSI u	SCORC Load Cursol Pos
 	LOCATE(m_Save_CurX, m_Save_CurY);
 	m_DoWarp = m_Save_DoWarp;
 	fc_POP(ch);
@@ -3161,10 +3334,10 @@ void CTextRam::fc_REQTPARM(int ch)
 	// CSI x	DECREQTPARM Request terminal parameters 
 	switch(GetAnsiPara(0, 0, 0)) {
 	case 0:
-		UNGETSTR("\033[2;1;1;112;112;1;0x");
+		UNGETSTR("%s2;1;1;112;112;1;0x", m_RetChar[RC_CSI]);
 		break;
 	case 1:
-		UNGETSTR("\033[3;1;1;112;112;1;0x");
+		UNGETSTR("%s3;1;1;112;112;1;0x", m_RetChar[RC_CSI]);
 		break;
 	}
 	fc_POP(ch);
@@ -3177,6 +3350,11 @@ void CTextRam::fc_DECTST(int ch)
 void CTextRam::fc_DECVERP(int ch)
 {
 	// CSI z	DECVERP Set vertical pitch
+	fc_POP(ch);
+}
+void CTextRam::fc_DECFNK(int ch)
+{
+	// CSI Ps1 ; Ps2 ~	DECFNK Function Key
 	fc_POP(ch);
 }
 void CTextRam::fc_LINUX(int ch)
@@ -3211,15 +3389,15 @@ void CTextRam::fc_DECSED(int ch)
 	// CSI ? J	DECSED Selective Erase in Display
 	switch(GetAnsiPara(0, 0, 0)) {
 	case 0:
-		ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1);
-		ERABOX(0, m_CurY + 1, m_Cols, m_Lines);
+		ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1, ERM_DECPRO | ERM_SAVEDM);
+		ERABOX(0, m_CurY + 1, m_Cols, m_Lines, ERM_DECPRO | ERM_SAVEDM);
 		break;
 	case 1:
-		ERABOX(0, 0, m_Cols, m_CurY);
-		ERABOX(0, m_CurY, m_CurX + 1, m_CurY + 1);
+		ERABOX(0, 0, m_Cols, m_CurY, ERM_DECPRO | ERM_SAVEDM);
+		ERABOX(0, m_CurY, m_CurX + 1, m_CurY + 1, ERM_DECPRO | ERM_SAVEDM);
 		break;
 	case 2:
-		ERABOX(0, 0, m_Cols, m_Lines);
+		ERABOX(0, 0, m_Cols, m_Lines, ERM_DECPRO | ERM_SAVEDM);
 		break;
 	}
 	fc_POP(ch);
@@ -3229,13 +3407,13 @@ void CTextRam::fc_DECSEL(int ch)
 	// CSI ? K	DECSEL Selective Erase in Line
 	switch(GetAnsiPara(0, 0, 0)) {
 	case 0:
-		ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1);
+		ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1, ERM_DECPRO | ERM_SAVEDM);
 		break;
 	case 1:
-		ERABOX(0, m_CurY, m_CurX, m_CurY + 1);
+		ERABOX(0, m_CurY, m_CurX, m_CurY + 1, ERM_DECPRO | ERM_SAVEDM);
 		break;
 	case 2:
-		ERABOX(0, m_CurY, m_Cols, m_CurY + 1);
+		ERABOX(0, m_CurY, m_Cols, m_CurY + 1, ERM_DECPRO | ERM_SAVEDM);
 		break;
 	}
 	fc_POP(ch);
@@ -3244,6 +3422,16 @@ void CTextRam::fc_DECST8C(int ch)
 {
 	// CSI ? W	DECST8C Set Tab at every 8 columns
 	TABSET(TAB_RESET);
+	fc_POP(ch);
+}
+void CTextRam::fc_DECMC(int ch)
+{
+	// CSI ? i	DECMC	Media Copy (DEC)
+	switch(GetAnsiPara(0, 0, 0)) {
+	case 0:
+		EditCopy(GetCalcPos(0, m_CurY), GetCalcPos(m_Cols - 1, m_CurY), FALSE, TRUE);
+		break;
+	}
 	fc_POP(ch);
 }
 void CTextRam::fc_DECSET(int ch)
@@ -3290,9 +3478,9 @@ void CTextRam::fc_DECSRET(int ch)
 		case TO_DECCOLM:	// 3 DECCOLM Column mode
 		case TO_XTMCSC:		// 40 XTERM Column switch control
 			if ( IsOptEnable(TO_XTMCSC) ) {
-				InitCols();
+				InitScreen(m_DefCols[IsOptValue(TO_DECCOLM, 1)], m_Lines);
 				LOCATE(0, 0);
-				ERABOX(0, 0, m_Cols, m_Lines, 2);
+				ERABOX(0, 0, m_Cols, m_Lines);
 			}
 			break;
 		case TO_DECSCNM:	// 5 DECSCNM Screen Mode: Light or Dark Screen
@@ -3368,41 +3556,41 @@ void CTextRam::fc_DECDSR(int ch)
 	case 1:		// [LA50] disable all unsolicited status reports.
 	case 2:		// [LA50] enable unsolicited brief reports and send an extended one.
 	case 3:		// [LA50] enable unsolicited extended reports and send one.
-		UNGETSTR("\033[?20n");	// malfunction detected [also LCP01]
+		UNGETSTR("%s?20n", m_RetChar[RC_CSI]);	// malfunction detected [also LCP01]
 		break;
 	case 6:		// a report of the active presentation position or of the active data position in the form of ACTIVE POSITION REPORT (CPR) is requested
-		UNGETSTR("\033[?%d;%dR", m_CurY + 1, m_CurX + 1);
+		UNGETSTR("%s?%d;%d;%dR", m_RetChar[RC_CSI], m_CurY + 1, m_CurX + 1, m_Page + 1);
 		break;
 	case 15:	// printer status
-		UNGETSTR("\033[?13n");	// no printer
+		UNGETSTR("%s?13n", m_RetChar[RC_CSI]);		// no printer
 		break;
 	case 25:	// User Definable Key status
-		UNGETSTR("\033[?21n");	// UDKs are locked
+		UNGETSTR("%s?21n", m_RetChar[RC_CSI]);		// UDKs are locked
 		break;
 	case 26:	// keyboard dialect
-		UNGETSTR("\033[?27;1n");	// North American/ASCII
+		UNGETSTR("%s?27;1n", m_RetChar[RC_CSI]);	// North American/ASCII
 		break;
 	case 53:	// xterm locator status
-		UNGETSTR("\033[?50n");		// locator ready
+		UNGETSTR("%s?50n", m_RetChar[RC_CSI]);		// locator ready
 		break;
 	case 55:	// locator status
-		UNGETSTR("\033[?%dn", ((m_Loc_Mode & LOC_MODE_ENABLE) == 0 ? 50 : 58));	// locator ready/busy
+		UNGETSTR("%s?%dn", m_RetChar[RC_CSI], ((m_Loc_Mode & LOC_MODE_ENABLE) == 0 ? 50 : 58));	// locator ready/busy
 		break;
 	case 56:	// locator type
-		UNGETSTR("\033[?57;1n");	// Locator is a mouse
+		UNGETSTR("%s?57;1n", m_RetChar[RC_CSI]);	// Locator is a mouse
 		break;
 	case 62:	// Macro Space Report
-		UNGETSTR("\033[%d*{", 0);	// The terminal indicates the number of bytes available for macro
+		UNGETSTR("%s%d*{", m_RetChar[RC_CSI], 0);	// The terminal indicates the number of bytes available for macro
 		break;
 	case 63:	// Request checksum of macro definitions
 		// DCS Pn ! ~ Ps ST
-		UNGETSTR("\033P%d!~0\033\\", GetAnsiPara(1, 0, 0));	// 
+		UNGETSTR("%s%d!~%04x%s", m_RetChar[RC_DCS], GetAnsiPara(1, 0, 0), 0, m_RetChar[RC_ST]);	// 
 		break;
 	case 75:	// Data Integrity Report
-		UNGETSTR("\033[?70n");	// Ready, no power loss or comm errors
+		UNGETSTR("%s?70n", m_RetChar[RC_CSI]);		// Ready, no power loss or comm errors
 		break;
 	case 85:	// Multiple-Session Configuration Status Report
-		UNGETSTR("\033[?83n");	// The terminal is not configured for multiple-session operation.
+		UNGETSTR("%s?83n", m_RetChar[RC_CSI]);		// The terminal is not configured for multiple-session operation.
 		break;
 	}
 	fc_POP(ch);
@@ -3411,146 +3599,16 @@ void CTextRam::fc_DECDSR(int ch)
 //////////////////////////////////////////////////////////////////////
 // fc CSI $ ...
 //
-//	case ('$' << 8) | 'q':		// Select Disconnect Delay Time
-//	case ('$' << 8) | 's':		// Select Printer Type
-//	case ('$' << 8) | 'y':		// DECRPM Report mode settings
-//	case ('$' << 8) | '}':		// DECSASD Select Active Status Display
-//	case ('$' << 8) | '~':		// DECSSDT Set Status Display (Line) Type
+//	case ('$' << 8) | 'q':		// DECSDDT Select Disconnect Delay Time
+//	case ('$' << 8) | 's':		// DECSPRTT Select Printer Type
 
-void CTextRam::fc_DECRQTSR(int ch)
-{
-	// CSI $u	DECRQTSR Request Terminal State Report
-
-	switch(GetAnsiPara(0, 0, 0)) {
-	case 1:
-		/*
-		 * Request  CSI 1 $ u			Host request for a terminal state report
-		 * Response DCS 1 $ s Ps ST		DECTSR Terminal state report
-
-			This is sent in response to a DECRQTSR, and contains an opaque
-			representation of the terminal's state.
-
-			Ps = 2 => Host request for color table report.  In this case the
-					  second parameter signifies the colour space; 0 or 1
-					  indicates HLS (the default) and 2 indicates RGB.  The reply
-					  is DECCTR.  If the terminal doesn't understand, it responds
-					  with DCS 0 $ s ST.
-		*/
-		UNGETSTR("\033P0$s\033\\");
-		break;
-	case 2:
-		/*
-		 * Request  CSI 2 $ u			Host request for color table repor
-		 * Response DCS 2 $ s Ps ST		DECCTR Color table report
-			This is sent by the terminal in response to DECRQTSR.  Ps contains the
-			terminal's colour table.  The palette entries are separated by slashes, and
-			each one containe (semicolon-separated):
-
-			Color ???
-			Colour space (1 => HLS, 2 => RGB)
-			Components (H;L;S or R;G;B)
-		*/
-		UNGETSTR("\033P2$s2\033\\");
-		break;
-	}
-
-	fc_POP(ch);
-}
-void CTextRam::fc_DECRQPSR(int ch)
-{
-	// CSI $w	DECRQPSR Request Presentation State Report
-	int n, i;
-	CString str, wrk;
-
-	switch(GetAnsiPara(0, 0, 0)) {
-	case 1:
-		/*
-		 * From Kermit 3.13 & VT220 pocket guide
-		 *
-		 * Request  CSI 1 $ w		  cursor information report
-		 * Response DCS 1 $ u Pr; Pc; Pp; Srend; Satt; Sflag; Pgl; Pgr; Scss; Sdesig ST		DECCIR
-		 *	  where   Pr is cursor row (counted from origin as 1,1)
-		 *		  Pc is cursor column
-		 *		  Pp is 1, video page, a constant for VT320s
-		 *		  Srend = 40h + 8 (rev video on) + 4 (blinking on)
-		 *				   + 2 (underline on) + 1 (bold on)
-		 *		  Satt = 40h + 1  (selective erase on)
-		 *		  Sflag = 40h + 8 (autowrap pending) + 4 (SS3 pending)
-		 *				  + 2 (SS2 pending) + 1 (Origin mode on)
-		 *		  Pgl = char set in GL (0 = G0, 1 = G1, 2 = G2, 3 = G3)
-		 *		  Pgr = char set in GR (same as for Pgl)
-		 *		  Scss = 40h + 8 (G3 is 96 char) + 4 (G2 is 96 char)
-		 *				  + 2 (G1 is 96 char) + 1 (G0 is 96 char)
-		 *		  Sdesig is string of character idents for sets G0...G3, with
-		 *				  no separators between set idents.
-		 *		  If NRCs are active the set idents (all 94 byte types) are:
-		 *		  British	  A	  Italian	  Y
-		 *		  Dutch 	  4	  Norwegian/Danish ' (hex 60) or E or 6
-		 *		  Finnish	  5 or C  Portuguese	  %6 or g or L
-		 *		  French	  R or f  Spanish	  Z
-		 *		  French Canadian 9 or Q  Swedish	  7 or H
-		 *		  German	  K	  Swiss 	  =
-		 *		  Hebrew	  %=
-		 *		  (MS Kermit uses any choice when there are multiple)
-		 */
-		UNGETSTR("\033P1$u%d;%d;%d;%c;%c;%c;%d;%d;%c;%c%c%c%c\033\\",
-			m_CurX + 1, m_CurY + 1, 1,
-			0x40 + ((m_AttNow.at & ATT_REVS)  != 0 ? 8 : 0) + ((m_AttNow.at & (ATT_SBLINK | ATT_BLINK)) != 0 ? 4 : 0) + ((m_AttNow.at & ATT_UNDER) != 0 ? 2 : 0) + ((m_AttNow.at & ATT_BOLD)  != 0 ? 1 : 0),
-			0x40 + (IsOptEnable(TO_ANSIERM) ? 1 : 0),
-			0x40 + (IsOptEnable(TO_DECAWM) ? 8 : 0) + (m_BankSG == 3 ? 4 : 0) + (m_BankSG == 2 ? 2 : 0) + (IsOptEnable(TO_DECOM) ? 1 : 0),
-			m_BankGL, m_BankGR,
-			0x40 + ((m_BankTab[m_KanjiMode][3] & SET_96) != 0 ? 8 : 0) + ((m_BankTab[m_KanjiMode][2] & SET_96) != 0 ? 4 : 0) + ((m_BankTab[m_KanjiMode][1] & SET_96) != 0 ? 2 : 0) + ((m_BankTab[m_KanjiMode][0] & SET_96) != 0 ? 1 : 0),
-			m_BankTab[m_KanjiMode][0] & 0xFF, m_BankTab[m_KanjiMode][1] & 0xFF, m_BankTab[m_KanjiMode][2] & 0xFF, m_BankTab[m_KanjiMode][3] & 0xFF);
-		break;
-
-	case 2:
-		/*
-		 * Request  CSI 2 $ w		  tab stop report
-		 * Response DCS 2 $ u Pc/Pc/...Pc ST		DECTABSR
-		 *	  Pc are column numbers (from 1) where tab stops occur. Note the
-		 *	  separator "/" occurs in a real VT320 but should have been ";".
-		 */
-		str = "\033P2$u";
-		wrk.Empty();
-		i = (IsOptEnable(TO_ANSITSM) ? (m_CurY + 1) : 0);
-		for ( n = 0 ; n < m_Cols ; n++ ) {
-			if ( (m_TabMap[i][n / 8 + 1] & (0x80 >> (n % 8))) != 0 ) {
-				if ( !wrk.IsEmpty() )
-					str += "/";
-				wrk.Format("%d", n + 1);
-				str += wrk;
-			}
-		}
-		str += "\033\\";
-		UNGETSTR(str);
-		break;
-	}
-
-	fc_POP(ch);
-}
-void CTextRam::fc_DECSCPP(int ch)
-{
-	// CSI $|	DECSCPP Set Ps columns per page
-
-	if ( GetAnsiPara(0, 0, 0) > m_DefCols[0] ) {
-		if ( !IsOptEnable(TO_DECCOLM) ) {
-			EnableOption(TO_DECCOLM);
-			InitCols();
-		}
-	} else if ( IsOptEnable(TO_DECCOLM) ) {
-		DisableOption(TO_DECCOLM);
-		InitCols();
-	}
-
-	fc_POP(ch);
-}
 void CTextRam::fc_DECRQM(int ch)
 {
 	// CSI $p	DECRQM Request mode settings
 	int n;
 	if ( (n = GetAnsiPara(0, 1, 1)) > 199 )
 		n = 199;
-	UNGETSTR("\033[%d;%d$y", n, IsOptEnable(200 + n) ? 1 : 2);
+	UNGETSTR("%s%d;%d$y", m_RetChar[RC_CSI], n, IsOptEnable(200 + n) ? 1 : 2);
 	fc_POP(ch);
 }
 void CTextRam::fc_DECCARA(int ch)
@@ -3689,6 +3747,45 @@ void CTextRam::fc_DECRARA(int ch)
 	DISPVRAM(m_AnsiPara[1], m_AnsiPara[0], m_AnsiPara[3] - m_AnsiPara[1] + 1, m_AnsiPara[2] - m_AnsiPara[0] + 1);
 	fc_POP(ch);
 }
+void CTextRam::fc_DECRQTSR(int ch)
+{
+	// CSI $u	DECRQTSR Request Terminal State Report
+
+	switch(GetAnsiPara(0, 0, 0)) {
+	case 1:
+		/*
+		 * Request  CSI 1 $ u			Host request for a terminal state report
+		 * Response DCS 1 $ s Ps ST		DECTSR Terminal state report
+
+			This is sent in response to a DECRQTSR, and contains an opaque
+			representation of the terminal's state.
+
+			Ps = 2 => Host request for color table report.  In this case the
+					  second parameter signifies the colour space; 0 or 1
+					  indicates HLS (the default) and 2 indicates RGB.  The reply
+					  is DECCTR.  If the terminal doesn't understand, it responds
+					  with DCS 0 $ s ST.
+		*/
+		UNGETSTR("%s0$s%s", m_RetChar[RC_DCS], m_RetChar[RC_ST]);
+		break;
+	case 2:
+		/*
+		 * Request  CSI 2 $ u			Host request for color table repor
+		 * Response DCS 2 $ s Ps ST		DECCTR Color table report
+			This is sent by the terminal in response to DECRQTSR.  Ps contains the
+			terminal's colour table.  The palette entries are separated by slashes, and
+			each one containe (semicolon-separated):
+
+			Color ???
+			Colour space (1 => HLS, 2 => RGB)
+			Components (H;L;S or R;G;B)
+		*/
+		UNGETSTR("%s2$s2%s", m_RetChar[RC_DCS], m_RetChar[RC_ST]);
+		break;
+	}
+
+	fc_POP(ch);
+}
 void CTextRam::fc_DECCRA(int ch)
 {
 	// CSI $v	DECCRA Copy Rectangular Area
@@ -3743,6 +3840,80 @@ void CTextRam::fc_DECCRA(int ch)
 	DISPVRAM(cx, cy, m_AnsiPara[3] - m_AnsiPara[1] + 1, m_AnsiPara[2] - m_AnsiPara[0] + 1);
 	fc_POP(ch);
 }
+void CTextRam::fc_DECRQPSR(int ch)
+{
+	// CSI $w	DECRQPSR Request Presentation State Report
+	int n, i;
+	CString str, wrk;
+
+	switch(GetAnsiPara(0, 0, 0)) {
+	case 1:
+		/*
+		 * From Kermit 3.13 & VT220 pocket guide
+		 *
+		 * Request  CSI 1 $ w		  cursor information report
+		 * Response DCS 1 $ u Pr; Pc; Pp; Srend; Satt; Sflag; Pgl; Pgr; Scss; Sdesig ST		DECCIR
+		 *        Pr is cursor row (counted from origin as 1,1)
+		 *		  Pc is cursor column
+		 *		  Pp is 1, video page, a constant for VT320s
+		 *		  Srend = 40h + 8 (rev video on) + 4 (blinking on)
+		 *				   + 2 (underline on) + 1 (bold on)
+		 *		  Satt = 40h + 1  (selective erase on)
+		 *		  Sflag = 40h + 8 (autowrap pending) + 4 (SS3 pending)
+		 *				  + 2 (SS2 pending) + 1 (Origin mode on)
+		 *		  Pgl = char set in GL (0 = G0, 1 = G1, 2 = G2, 3 = G3)
+		 *		  Pgr = char set in GR (same as for Pgl)
+		 *		  Scss = 40h + 8 (G3 is 96 char) + 4 (G2 is 96 char)
+		 *				  + 2 (G1 is 96 char) + 1 (G0 is 96 char)
+		 *		  Sdesig is string of character idents for sets G0...G3, with
+		 *				  no separators between set idents.
+		 *		  If NRCs are active the set idents (all 94 byte types) are:
+		 *		  British	  A	  Italian	  Y
+		 *		  Dutch 	  4	  Norwegian/Danish ' (hex 60) or E or 6
+		 *		  Finnish	  5 or C  Portuguese	  %6 or g or L
+		 *		  French	  R or f  Spanish	  Z
+		 *		  French Canadian 9 or Q  Swedish	  7 or H
+		 *		  German	  K	  Swiss 	  =
+		 *		  Hebrew	  %=
+		 *		  (MS Kermit uses any choice when there are multiple)
+		 */
+		UNGETSTR("%s1$u%d;%d;%d;%c;%c;%c;%d;%d;%c;%c%c%c%c%s", m_RetChar[RC_DCS],
+			m_CurX + 1, m_CurY + 1, m_Page + 1,
+			0x40 + ((m_AttNow.at & ATT_REVS)  != 0 ? 8 : 0) + ((m_AttNow.at & (ATT_SBLINK | ATT_BLINK)) != 0 ? 4 : 0) + ((m_AttNow.at & ATT_UNDER) != 0 ? 2 : 0) + ((m_AttNow.at & ATT_BOLD)  != 0 ? 1 : 0),
+			0x40 + (IsOptEnable(TO_ANSIERM) ? 1 : 0),
+			0x40 + (IsOptEnable(TO_DECAWM) ? 8 : 0) + (m_BankSG == 3 ? 4 : 0) + (m_BankSG == 2 ? 2 : 0) + (IsOptEnable(TO_DECOM) ? 1 : 0),
+			m_BankGL, m_BankGR,
+			0x40 + ((m_BankTab[m_KanjiMode][3] & SET_96) != 0 ? 8 : 0) + ((m_BankTab[m_KanjiMode][2] & SET_96) != 0 ? 4 : 0) + ((m_BankTab[m_KanjiMode][1] & SET_96) != 0 ? 2 : 0) + ((m_BankTab[m_KanjiMode][0] & SET_96) != 0 ? 1 : 0),
+			m_BankTab[m_KanjiMode][0] & 0xFF, m_BankTab[m_KanjiMode][1] & 0xFF, m_BankTab[m_KanjiMode][2] & 0xFF, m_BankTab[m_KanjiMode][3] & 0xFF,
+			m_RetChar[RC_ST]);
+		break;
+
+	case 2:
+		/*
+		 * Request  CSI 2 $ w		  tab stop report
+		 * Response DCS 2 $ u Pc/Pc/...Pc ST		DECTABSR
+		 *	  Pc are column numbers (from 1) where tab stops occur. Note the
+		 *	  separator "/" occurs in a real VT320 but should have been ";".
+		 */
+		str = m_RetChar[RC_DCS];
+		str += "2$u";
+		wrk.Empty();
+		i = (IsOptEnable(TO_ANSITSM) ? (m_CurY + 1) : 0);
+		for ( n = 0 ; n < m_Cols ; n++ ) {
+			if ( (m_TabMap[i][n / 8 + 1] & (0x80 >> (n % 8))) != 0 ) {
+				if ( !wrk.IsEmpty() )
+					str += "/";
+				wrk.Format("%d", n + 1);
+				str += wrk;
+			}
+		}
+		str += m_RetChar[RC_ST];
+		UNGETSTR(str);
+		break;
+	}
+
+	fc_POP(ch);
+}
 void CTextRam::fc_DECFRA(int ch)
 {
 	// CSI $x	DECFRA Fill Rectangular Area
@@ -3757,7 +3928,9 @@ void CTextRam::fc_DECFRA(int ch)
 			vp->at = m_AttNow.at;
 			vp->fc = m_AttNow.fc;
 			vp->bc = m_AttNow.bc;
+			vp->em = m_AttNow.em;
 			vp->md = m_BankTab[m_KanjiMode][(n & 0x80) == 0 ? m_BankGL : m_BankGR];
+			vp->cm = CM_ASCII;
 		}
 	}
 	DISPVRAM(m_AnsiPara[2], m_AnsiPara[1], m_AnsiPara[4] - m_AnsiPara[2] + 1, m_AnsiPara[3] - m_AnsiPara[1] + 1);
@@ -3767,14 +3940,43 @@ void CTextRam::fc_DECERA(int ch)
 {
 	// CSI $z	DECERA Erase Rectangular Area
 	SetAnsiParaArea(0);
-	ERABOX(m_AnsiPara[1], m_AnsiPara[0], m_AnsiPara[3] + 1, m_AnsiPara[2] + 1, 2);
+	ERABOX(m_AnsiPara[1], m_AnsiPara[0], m_AnsiPara[3] + 1, m_AnsiPara[2] + 1, ERM_SAVEDM);
 	fc_POP(ch);
 }
 void CTextRam::fc_DECSERA(int ch)
 {
 	// CSI ${	DECSERA Selective Erase Rectangular Area
 	SetAnsiParaArea(0);
-	ERABOX(m_AnsiPara[1], m_AnsiPara[0], m_AnsiPara[3] + 1, m_AnsiPara[2] + 1);
+	ERABOX(m_AnsiPara[1], m_AnsiPara[0], m_AnsiPara[3] + 1, m_AnsiPara[2] + 1, ERM_DECPRO | ERM_SAVEDM);
+	fc_POP(ch);
+}
+void CTextRam::fc_DECSCPP(int ch)
+{
+	// CSI $|	DECSCPP Set Ps columns per page
+
+	if ( IsOptEnable(TO_RLFONT) ) {
+		InitScreen(GetAnsiPara(0, m_Cols, 4), m_Lines);
+	} else {
+		if ( GetAnsiPara(0, 0, 0) > m_DefCols[0] )
+			EnableOption(TO_DECCOLM);
+		else
+			DisableOption(TO_DECCOLM);
+		InitScreen(m_DefCols[IsOptValue(TO_DECCOLM, 1)], m_Lines);
+	}
+
+	fc_POP(ch);
+}
+void CTextRam::fc_DECSASD(int ch)
+{
+	// CSI $}	DECSASD Select Active Status Display
+	m_StsFlag = GetAnsiPara(0, 0, 0) == 1 ? TRUE : FALSE;
+	m_StsPara.Empty();
+	fc_POP(ch);
+}
+void CTextRam::fc_DECSSDT(int ch)
+{
+	//	CSI $~	DECSSDT Set Status Display (Line) Type
+	m_StsMode = GetAnsiPara(0, 0, 0);
 	fc_POP(ch);
 }
 
@@ -3803,7 +4005,17 @@ void CTextRam::fc_SR(int ch)
 #if 0
 	case (' ' << 8) | 'B':		// GSM Graphic size modification
 	case (' ' << 8) | 'C':		// GSS Graphic size selection
-	case (' ' << 8) | 'D':		// FNT Font selection
+#endif
+
+void CTextRam::fc_FNT(int ch)
+{
+	// CSI (' ' << 8) | 'D'		FNT Font selection
+	if ( (m_AttNow.ft = GetAnsiPara(0, 0, 0)) > 10 )
+		m_AttNow.ft = 10;
+	fc_POP(ch);
+}
+
+#if 0
 	case (' ' << 8) | 'E':		// TSS Thin space specification
 	case (' ' << 8) | 'F':		// JFY Justify
 	case (' ' << 8) | 'G':		// SPI Spacing increment
@@ -3815,9 +4027,28 @@ void CTextRam::fc_SR(int ch)
 	case (' ' << 8) | 'M':		// IGS Identify graphic subrepertoire
 	case (' ' << 8) | 'N':		// HTSA Character tabulation set absolute
 	case (' ' << 8) | 'O':		// IDCS Identify device control string
-	case (' ' << 8) | 'P':		// PPA Page Position Absolute
-	case (' ' << 8) | 'Q':		// PPR Page Position Relative
-	case (' ' << 8) | 'R':		// PPB Page Position Backwards
+#endif
+
+void CTextRam::fc_PPA(int ch)
+{
+	// CSI (' ' << 8) | 'P'		PPA Page Position Absolute
+	SETPAGE(GetAnsiPara(0, 1, 1) - 1);
+	fc_POP(ch);
+}
+void CTextRam::fc_PPR(int ch)
+{
+	// CSI (' ' << 8) | 'Q'		PPR Page Position Relative
+	SETPAGE(m_Page + GetAnsiPara(0, 1, 0));
+	fc_POP(ch);
+}
+void CTextRam::fc_PPB(int ch)
+{
+	// CSI (' ' << 8) | 'R'		PPB Page Position Backwards
+	SETPAGE(m_Page - GetAnsiPara(0, 1, 0));
+	fc_POP(ch);
+}
+
+#if 0
 	case (' ' << 8) | 'S':		// SPD Select presentation directions
 	case (' ' << 8) | 'T':		// DTA Dimension text area
 	case (' ' << 8) | 'U':		// SLH Set line home
@@ -3925,7 +4156,7 @@ void CTextRam::fc_DECRQMH(int ch)
 
 	if ( (n = GetAnsiPara(0, 1, 1)) > 199 )
 		n = 199;
-	UNGETSTR("\033[?%d;%d$y", n, IsOptEnable(n) ? 1 : 2);
+	UNGETSTR("%s?%d;%d$y", m_RetChar[RC_CSI], n, IsOptEnable(n) ? 1 : 2);
 	fc_POP(ch);
 }
 void CTextRam::fc_DECSTR(int ch)
@@ -3967,9 +4198,9 @@ void CTextRam::fc_DECSCA(int ch)
 	// CSI ('"' << 8) | 'q'		DECSCA Select character attributes
 
 	if ( GetAnsiPara(0, 0, 0) == 1 )
-		m_AttNow.em |= EM_PROTECT;
+		m_AttNow.em |= EM_DECPROTECT;
 	else
-		m_AttNow.em &= ~EM_PROTECT;
+		m_AttNow.em &= ~EM_DECPROTECT;
 
 	fc_POP(ch);
 }
@@ -3978,7 +4209,7 @@ void CTextRam::fc_DECRQDE(int ch)
 	// CSI ('"' << 8) | 'v'		DECRQDE Request device extent
 	// CSI Ph ; Pw ; Pml ; Pmt ; Pmp " w
 
-	UNGETSTR("\033[%d;%d;%d;%d;%d\"w", m_Lines, m_Cols, 1, 1, 1);
+	UNGETSTR("%s%d;%d;%d;%d;%d\"w", m_RetChar[RC_CSI], m_Lines, m_Cols, 1, 1, 1);
 	fc_POP(ch);
 }
 void CTextRam::fc_DECRQUPSS(int ch)
@@ -3986,7 +4217,7 @@ void CTextRam::fc_DECRQUPSS(int ch)
 	// CSI ('&' << 8) | 'u'		DECRQUPSS Request User-Preferred Supplemental Set
 	// DCS 1 ! u A ST			The user-preferred supplemental set is ISO Latin-1 supplemental.
 
-	UNGETSTR("\033P1!uA\033\\");
+	UNGETSTR("%s1!uA%s", m_RetChar[RC_DCS], m_RetChar[RC_ST]);
 	fc_POP(ch);
 }
 
@@ -3995,7 +4226,6 @@ void CTextRam::fc_DECRQUPSS(int ch)
 	case ('"' << 8) | 'u':		//        Set Transmit Rate Limit
 	case ('"' << 8) | 'z':		// DECDEN Select density
 	case ('&' << 8) | 'q':		// DECSNC Set number of copies
-	case ('&' << 8) | 'w':		// DECLRP Locator report
 	case ('&' << 8) | 'x':		// DECES Enable Session
 	case ('\'' << 8) | 'q':		// DECSBCA Select bar code attributes
 #endif
@@ -4126,9 +4356,44 @@ void CTextRam::fc_DECSACE(int ch)
 	m_Exact = (GetAnsiPara(0, 1, 1) == 2 ? TRUE : FALSE);
 	fc_POP(ch);
 }
+void CTextRam::fc_DECRQCRA(int ch)
+{
+	// CSI ('*' << 8) | 'y'		DECRQCRA Request Checksum of Rectangle Area
+
+	//CSI Pn1 ; Pn2 ; Pn3 ; Pn4 ; Pn5 ; Pn6 * y
+	//Pn1 A numeric label you give to identify the checksum request
+	//(DECCKSR returns this number).
+	//Pn2 The number of the page on which the rectangular area is
+	//located. If Pn2 is 0 or omitted, the terminal ignores the remaining
+	//parameters and reports a checksum for all pages in page memory. If
+	//<n2> is more than the number of pages, Reflection does a checksum on
+	//the last page.
+	//Pn3 to Pn6 define the area to be checksummed:
+	//Pn3 Top row
+	//Pn4 Right column	??? Pn4 Left
+	//Pn5 Bottom row
+	//Pn6 Left column	??? Pn6 Right
+	//If Pn3 .. Pn6 are omitted, the entire page is checksummed.  The
+	//co-ordinates are affected by DECOM.
+
+	int x, y, sum = 0;
+	VRAM *vp;
+
+	SetAnsiParaArea(2);
+
+	for ( y = m_AnsiPara[2] ; y <= m_AnsiPara[4] ; y++ ) {
+		vp = GETVRAM(m_AnsiPara[3], y);
+		for ( x = m_AnsiPara[3] ; x <= m_AnsiPara[5] ; x++, vp++ )
+			sum += vp->ch;
+	}
+
+	// DECCKSR DCS Pn ! ~ Ps ST
+	UNGETSTR("%s%d!~%04x%s", m_RetChar[RC_DCS], GetAnsiPara(0, 0, 0), sum & 0xFFFF, m_RetChar[RC_ST]);
+
+	fc_POP(ch);
+}
 
 #if 0
-	case ('*' << 8) | 'y':		// DECRQCRA Request Checksum of Rectangle Area
 	case ('*' << 8) | 'z':		// DECINVM Invoke Macro
 	case ('*' << 8) | '{':		// DECMSR Macro Space Report Response
 	case ('*' << 8) | '|':		// DECSNLS Select number of lines per screen
@@ -4141,7 +4406,7 @@ void CTextRam::fc_DECSACE(int ch)
 	case ('+' << 8) | 'x':		// DECPQPLFM Program Key Free Memory Inquiry
 	case ('+' << 8) | 'y':		// DECPKFMR Program Key Free Memory Report
 	case ('+' << 8) | 'z':		// DECPKA Program Key Action
-	case ('-' << 8) | 'p':		// DECARP Auto Repeat Rate
+	case ('-' << 8) | 'p':		// DECARR Auto Repeat Rate
 	case ('-' << 8) | 'q':		// DECCRTST CRT Saver Timing
 	case ('-' << 8) | 'r':		// DECSEST Energy Saver Timing
 	case (',' << 8) | 'p':		// Load Time of Day
@@ -4150,8 +4415,8 @@ void CTextRam::fc_DECSACE(int ch)
 	case (',' << 8) | 'w':		// Key Definition Inquiry
 	case (',' << 8) | 'x':		// Session Page Memory Allocation
 	case (',' << 8) | 'y':		// Update Session
-	case (',' << 8) | 'z':		// Down Line Load Allocation
-	case (',' << 8) | '|':		// Assign Color
+	case (',' << 8) | 'z':		// DECDLDA Down Line Load Allocation
+	case (',' << 8) | '|':		// DECAC Assign Color
 	case (',' << 8) | '{':		// Select Zero Symbol
 #endif
 
@@ -4200,14 +4465,14 @@ void CTextRam::fc_DA2(int ch)
 {
 	// CSI ('>' << 16) | 'c'	DA2 Secondary Device Attributes
 
-	UNGETSTR("\033[>65;10;1c");
+	UNGETSTR("%s>65;10;1c", m_RetChar[RC_CSI]);
 	fc_POP(ch);
 }
 void CTextRam::fc_DA3(int ch)
 {
 	// CSI ('=' << 16) | 'c'	DA3 Tertiary Device Attributes
 
-	UNGETSTR("\033P!|010205\033\\");
+	UNGETSTR("%s!|010205%s", m_RetChar[RC_DCS], m_RetChar[RC_ST]);
 	fc_POP(ch);
 }
 

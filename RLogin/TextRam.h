@@ -58,8 +58,8 @@
 #define SET_96x96		0x0300
 #define	SET_UNICODE		0x03FF
 
-#define	EM_PROTECT		1
-#define	EM_SELECTED		2
+#define	EM_ISOPROTECT	1
+#define	EM_DECPROTECT	2
 
 #define DM_SWSH			0
 #define DM_DWSH			1
@@ -83,18 +83,23 @@
 #define	TO_DECSCNM		5			// Light or Dark Screen
 #define TO_DECOM		6			// Origin mode
 #define TO_DECAWM		7			// Autowrap mode
+#define TO_DECARM		8			// Autorepeat mode								XXXX
 #define	TO_XTMOSREP		9			// X10 mouse reporting
 #define	TO_DECTCEM		25			// Text Cursor Enable Mode
+#define	TO_DECRLM		34			// Right-to-Left Mode							XXXX
 #define	TO_DECTEK		38			// Graphics (Tek)
 #define	TO_XTMCSC		40			// XTerm Column switch control
 #define	TO_XTMCUS		41			// XTerm tab bug fix
 #define TO_XTMRVW		45			// XTerm Reverse-wraparound mode
 #define	TO_XTMABUF		47			// XTerm alternate buffer
+#define	TO_DECBKM		67			// Backarrow key mode (BS)						XXXX
 #define	TO_DECECM		117			// SGR space color disable
 #define	TO_DECPAM		199			// 0:Normal Keypad (DECPNM) / 1:Application Keypad (DECPAM)
 // ANSI Screen Option	0-99(200-299)
+#define	TO_ANSIKAM		(2+200)		// KAM Set Keyboard Action Mode					XXXX
 #define	TO_ANSIIRM		(4+200)		// IRM Insertion replacement mode
 #define	TO_ANSIERM		(6+200)		// ERM Erasure mode
+#define	TO_ANSISRM		(12+200)	// SRM Set Send/Receive mode (Local echo off)	XXXX
 #define	TO_ANSITSM		(18+200)	// ISM Tabulation stop mode
 #define	TO_ANSILNM		(20+200)	// LNM Line feed/new line mode
 // XTerm Option			1000-1079(300-379)
@@ -102,6 +107,7 @@
 #define	TO_XTHILTRK		(1001-700)	// X11 hilite mouse tracking
 #define	TO_XTBEVTRK		(1002-700)	// X11 button-event mouse tracking
 #define	TO_XTAEVTRK		(1003-700)	// X11 any-event mouse tracking
+#define	TO_XTFOCEVT		(1004-700)	// Send Focus Event (CSI I / CSI O)				XXXX
 #define	TO_XTALTSCR		(1047-700)	// Alternate/Normal screen buffer
 #define	TO_XTSRCUR		(1048-700)	// Save/Restore cursor as in DECSC/DECRC
 #define	TO_XTALTCLR		(1049-700)	// Alternate screen with clearing
@@ -158,6 +164,10 @@
 #define	WTTL_ALGO		0010		// with status or algorithm
 #define	WTTL_CHENG		0020		// OSC Title cheng disable
 #define	WTTL_REPORT		0040		// XTWOP Title report disable
+
+#define	ERM_ISOPRO		0001		// SPA,EPA,ERM	ED, EL, EF, EA
+#define	ERM_DECPRO		0002		// DECSCA		DECSERA, DECSED, DECSEL
+#define	ERM_SAVEDM		0004		// DECDHL...
 
 enum ETextRamStat {
 		ST_NON,
@@ -429,7 +439,23 @@ public:
 	BYTE m_TabMap[LINE_MAX + 1][COLS_MAX / 8 + 1];
 	BOOL m_RetSync;
 	BOOL m_Exact;
+
 	int m_VtLevel;
+	BOOL m_StsFlag;
+	int m_StsMode;
+	int m_StsLed;
+	CStringW m_StsPara;
+	int m_LangMenu;
+
+#define	RC_DCS		0
+#define	RC_SOS		1
+#define	RC_CSI		2
+#define	RC_ST		3
+#define	RC_OSC		4
+#define	RC_PM		5
+#define	RC_APC		6
+
+	char *m_RetChar[7];
 
 	WORD m_BankTab[4][4];
 	int m_BankNow;
@@ -447,6 +473,9 @@ public:
 	BOOL m_Save_DoWarp;
 	WORD m_Save_BankTab[4][4];
 	BYTE m_Save_TabMap[LINE_MAX + 1][COLS_MAX / 8 + 1];
+
+	int m_Page;
+	CPtrArray m_PageTab;
 
 	CTextSave *m_pTextSave;
 	CTextSave *m_pTextStack;
@@ -475,7 +504,7 @@ public:
 	// Window Fonction
 	BOOL IsInitText() { return (m_VRam == NULL ? FALSE : TRUE); }
 	void InitText(int Width, int Height);
-	void InitCols();
+	void InitScreen(int cols, int lines);
 	int Write(LPBYTE lpBuf, int nBufLen, BOOL *sync);
 
 	int LineEdit(CBuffer &buf);
@@ -525,6 +554,7 @@ public:
 	void CallReciveLine(int y);
 	void CallReciveChar(int ch);
 	int UnicodeWidth(DWORD code);
+	void SetRetChar(BOOL f8);
 
 	// Static Lib
 	static void CTextRam::MsToIconvUnicode(WCHAR *str, int len, LPCSTR charset);
@@ -565,6 +595,7 @@ public:
 	void LOADRAM();
 	void PUSHRAM();
 	void POPRAM();
+	void SETPAGE(int page);
 	void TABSET(int sw);
 	void PUTSTR(LPBYTE lpBuf, int nBufLen);
 	int MCHAR(int val);
@@ -668,9 +699,9 @@ public:
 
 	// ESC...
 	void fc_DECHTS(int ch);
-	void fc_CCAHT(int ch);
+	void fc_DECAHT(int ch);
 	void fc_DECVTS(int ch);
-	void fc_CAVT(int ch);
+	void fc_DECAVT(int ch);
 	void fc_BI(int ch);
 	void fc_SC(int ch);
 	void fc_RC(int ch);
@@ -747,6 +778,7 @@ public:
 	void fc_EF(int ch);
 	void fc_EA(int ch);
 	void fc_DCH(int ch);
+	void fc_SEE(int ch);
 	void fc_SU(int ch);
 	void fc_SD(int ch);
 	void fc_NP(int ch);
@@ -771,47 +803,60 @@ public:
 	void fc_SGR(int ch);
 	void fc_DSR(int ch);
 	void fc_DAQ(int ch);
-	void fc_DECBFAT(int ch);
+	void fc_ORGBFAT(int ch);
+	void fc_DECSSL(int ch);	
 	void fc_DECLL(int ch);
 	void fc_DECSTBM(int ch);
 	void fc_DECSLRM(int ch);
+	void fc_DECSLPP(int ch);
 	void fc_DECSHTS(int ch);
 	void fc_DECSVTS(int ch);
-	void fc_DECSC(int ch);
+	void fc_SCOSC(int ch);
 	void fc_XTWOP(int ch);
-	void fc_DECRC(int ch);
+	void fc_SCORC(int ch);
 	void fc_ORGSCD(int ch);
 	void fc_REQTPARM(int ch);
 	void fc_DECTST(int ch);
 	void fc_DECVERP(int ch);
+	void fc_SRS(int ch);
+	void fc_PTX(int ch);
+	void fc_SDS(int ch);
 	void fc_SIMD(int ch);
 	void fc_HPA(int ch);
 	void fc_LINUX(int ch);
+	void fc_DECFNK(int ch);
 	// CSI ? ...
 	void fc_DECSED(int ch);
 	void fc_DECSEL(int ch);
 	void fc_DECST8C(int ch);
 	void fc_DECSET(int ch);
+	void fc_DECMC(int ch);
 	void fc_DECRST(int ch);
 	void fc_XTREST(int ch);
 	void fc_XTSAVE(int ch);
 	void fc_DECDSR(int ch);
 	void fc_DECSRET(int ch);
 	// CSI $ ...
-	void fc_DECRQTSR(int ch);
-	void fc_DECRQPSR(int ch);
-	void fc_DECSCPP(int ch);
 	void fc_DECRQM(int ch);
 	void fc_DECCARA(int ch);
 	void fc_DECRARA(int ch);
+	void fc_DECRQTSR(int ch);
 	void fc_DECCRA(int ch);
+	void fc_DECRQPSR(int ch);
 	void fc_DECFRA(int ch);
 	void fc_DECERA(int ch);
 	void fc_DECSERA(int ch);
+	void fc_DECSCPP(int ch);
+	void fc_DECSASD(int ch);
+	void fc_DECSSDT(int ch);
 	// CSI ...
 	void fc_DECRQMH(int ch);
 	void fc_SL(int ch);
 	void fc_SR(int ch);
+	void fc_FNT(int ch);
+	void fc_PPA(int ch);
+	void fc_PPR(int ch);
+	void fc_PPB(int ch);
 	void fc_DECSCUSR(int ch);
 	void fc_DECTME(int ch);
 	void fc_DECSTR(int ch);
@@ -826,6 +871,7 @@ public:
 	void fc_DECIC(int ch);
 	void fc_DECDC(int ch);
 	void fc_DECSACE(int ch);
+	void fc_DECRQCRA(int ch);
 	void fc_DECATC(int ch);
 	void fc_DA2(int ch);
 	void fc_DA3(int ch);
