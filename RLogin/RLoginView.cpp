@@ -66,6 +66,7 @@ BEGIN_MESSAGE_MAP(CRLoginView, CView)
 //	ON_UPDATE_COMMAND_UI(ID_EDIT_COPY_ALL, &CRLoginView::OnUpdateEditCopyAll)
 	ON_COMMAND(ID_PAGE_PRIOR, &CRLoginView::OnPagePrior)
 	ON_COMMAND(ID_PAGE_NEXT, &CRLoginView::OnPageNext)
+	ON_WM_KEYUP()
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -132,9 +133,9 @@ void CRLoginView::OnDraw(CDC* pDC)
 
 	if ( !pDC->IsPrinting() ) {
 		CRect rect(((CPaintDC *)(pDC))->m_ps.rcPaint);
-		sx = rect.left   * m_Cols  / m_Width;
-		ex = (rect.right + m_CharWidth - 1)  * m_Cols  / m_Width - 1;
-		sy = rect.top    * m_Lines / m_Height;
+		sx = rect.left * m_Cols / m_Width;
+		ex = (rect.right + m_CharWidth - 1) * m_Cols / m_Width - 1;
+		sy = rect.top * m_Lines / m_Height;
 		ey = (rect.bottom + m_CharHeight - 1) * m_Lines / m_Height - 1;
 
 		if ( m_pBitmap != NULL ) {
@@ -183,15 +184,54 @@ CRLoginDoc* CRLoginView::GetDocument() // ”ñƒfƒoƒbƒO ƒo[ƒWƒ‡ƒ“‚ÍƒCƒ“ƒ‰ƒCƒ“‚Å‚·
 /////////////////////////////////////////////////////////////////////////////
 // CRLoginView Lib
 
+void CRLoginView::CalcPosRect(CRect &rect)
+{
+	int x, y;
+	CRLoginDoc *pDoc = GetDocument();
+
+	pDoc->m_TextRam.SetCalcPos(m_ClipStaPos, &x, &y);
+	rect.left = x; rect.top = y;
+	pDoc->m_TextRam.SetCalcPos(m_ClipEndPos, &x, &y);
+	rect.right = x; rect.bottom = y;
+
+	rect.NormalizeRect();
+
+	rect.right  += 1;
+	rect.bottom += 1;
+}
+void CRLoginView::InvalidateTextRect(CRect rect)
+{
+	CalcTextRect(rect);
+
+	if ( rect.top >= m_Height || rect.bottom <= 0 )
+		return;
+
+	if ( rect.top < 0 )
+		rect.top = 0;
+
+	if ( rect.bottom > m_Height )
+		rect.bottom = m_Height;
+
+	InvalidateRect(rect, FALSE);
+
+	if ( m_pGhost != NULL )
+		m_pGhost->InvalidateRect(rect, FALSE);
+}
 void CRLoginView::CalcTextRect(CRect &rect)
 {
-	rect.left   = m_Width  * rect.left  / m_Cols;
-	rect.right  = m_Width  * rect.right / m_Cols;
+	rect.left   = m_Width * rect.left  / m_Cols;
+	rect.right  = m_Width * rect.right / m_Cols;
 	rect.top    = m_Height * (rect.top    + m_HisOfs - m_HisMin) / m_Lines;
 	rect.bottom = m_Height * (rect.bottom + m_HisOfs - m_HisMin) / m_Lines;
 }
 void CRLoginView::CalcGrapPoint(CPoint po, int *x, int *y)
 {
+	if      ( po.x < 0 )			po.x = 0;
+	else if ( po.x >= m_Width )		po.x = m_Width -1;
+
+	if      ( po.y < 0 )			po.y = 0;
+	else if ( po.y >= m_Height )	po.y = m_Height - 1;
+
 	*x = m_Cols  * po.x / m_Width;
 	*y = m_Lines * po.y / m_Height - m_HisOfs + m_HisMin;
 }
@@ -363,7 +403,7 @@ void CRLoginView::OnSize(UINT nType, int cx, int cy)
 	m_Height = cy;
 
 	pFrame->GetClientRect(rect);
-	pFrame->m_Width = cx;
+	pFrame->m_Width  = m_Width;
 	pFrame->m_Height = rect.Height() - 4;
 
 //	if ( m_ActiveFlag ) {
@@ -387,7 +427,7 @@ void CRLoginView::OnMove(int x, int y)
 void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint) 
 {
 	int x, y;
-	CRect rect;
+	CRect rect, box;
 	CRLoginDoc *pDoc = GetDocument();
 	CChildFrame *pFrame = GetFrameWnd();
 	ASSERT(pDoc);
@@ -430,7 +470,7 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		pFrame->m_Lines = pDoc->m_TextRam.m_Lines;
 		// no break;
 	case UPDATE_INITPARA:
-		if ( (m_Cols  = m_Width  * pFrame->m_Cols / pFrame->m_Width) <= 0 )
+		if ( (m_Cols  = m_Width  * pFrame->m_Cols  / pFrame->m_Width) <= 0 )
 			m_Cols = 1;
 		if ( (m_Lines = m_Height * pFrame->m_Lines / pFrame->m_Height) <= 0 )
 			m_Lines = 1;
@@ -439,8 +479,6 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 
 		m_CharWidth  = pFrame->m_Width  / pFrame->m_Cols;
 		m_CharHeight = pFrame->m_Height / pFrame->m_Lines;
-		//if ( (m_CharHeight = pFrame->m_Height / pFrame->m_Lines) > (m_CharWidth * 2) )
-		//	m_CharHeight = m_CharWidth * 2;
 		
 		if ( (m_DispCaret & 001) != 0 ) {
 			m_DispCaret &= ~001;
@@ -449,6 +487,7 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 
 		m_BmpFile.LoadFile(pDoc->m_TextRam.m_BitMapFile);
 		m_pBitmap = m_BmpFile.GetBitmap(GetDC(), m_Width, m_Height);
+		pDoc->SetStatus(NULL);
 
 		// No break
 	case UPDATE_INVALIDATE:
@@ -483,30 +522,35 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		break;
 
 	case UPDATE_CLIPERA:
-		if ( m_ClipStaPos <= m_ClipEndPos ) {
-			pDoc->m_TextRam.SetCalcPos(m_ClipStaPos, &x, &y);
-			rect.left = x; rect.top = y;
-			pDoc->m_TextRam.SetCalcPos(m_ClipEndPos, &x, &y);
-			rect.right = x + 1; rect.bottom = y + 1;
-		} else {
-			pDoc->m_TextRam.SetCalcPos(m_ClipEndPos, &x, &y);
-			rect.left = x; rect.top = y;
-			pDoc->m_TextRam.SetCalcPos(m_ClipStaPos, &x, &y);
-			rect.right = x + 1; rect.bottom = y + 1;
-		}
-		if ( rect.Height() > 1 ) {
-			rect.left = 0;
+		CalcPosRect(rect);
+		if ( IsClipRectMode() ) {
+			InvalidateTextRect(rect);
+		} else if ( IsClipLineMode() ) {
+			rect.left  = 0;
 			rect.right = pDoc->m_TextRam.m_Cols;
+			InvalidateTextRect(rect);
+		} else if ( rect.Height() == 1 ) {
+			InvalidateTextRect(rect);
 		} else {
-			if ( --rect.left < 0 )
-				rect.left = 0;
-			if ( ++rect.right > pDoc->m_TextRam.m_Cols )
-				rect.right = pDoc->m_TextRam.m_Cols;
+			box.left   = rect.left;
+			box.right  = pDoc->m_TextRam.m_Cols;
+			box.top    = rect.top;
+			box.bottom = rect.top + 1;
+			InvalidateTextRect(box);
+
+			box.left   = 0;
+			box.right  = pDoc->m_TextRam.m_Cols;
+			box.top    = rect.top + 1;
+			box.bottom = rect.bottom;
+			if ( box.top < box.bottom )
+				InvalidateTextRect(box);
+
+			box.left   = 0;
+			box.right  = rect.right;
+			box.top    = rect.bottom;
+			box.bottom = rect.bottom + 1;
+			InvalidateTextRect(box);
 		}
-		CalcTextRect(rect);
-		InvalidateRect(rect, FALSE);
-		if ( m_pGhost != NULL )
-			m_pGhost->InvalidateRect(rect, FALSE);
 		break;
 
 	case UPDATE_GOTOXY:
@@ -514,7 +558,7 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 	}
 
 	m_DispCaret &= ~002;
-	m_CaretX = m_Width  * pDoc->m_TextRam.m_CurX / m_Cols;
+	m_CaretX = m_Width * pDoc->m_TextRam.m_CurX / m_Cols;
 	m_CaretY = m_Height * (pDoc->m_TextRam.m_CurY + m_HisOfs - m_HisMin) / m_Lines;
 
 	if ( m_CaretX < 0 || m_CaretX >= m_Width || m_CaretY < 0 || m_CaretY >= m_Height )
@@ -552,8 +596,19 @@ int CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 
 //	TRACE("KeyDown %02X(%04X)\n", nChar, nFlags);
 
-	if ( nChar == VK_SHIFT || nChar == VK_CONTROL || nChar == VK_MENU )
+	if ( nChar == VK_MENU )
 		return TRUE;
+	else if ( nChar == VK_SHIFT || nChar == VK_CONTROL ) {
+		if ( m_ClipFlag > 0 && m_ClipFlag < 6 ) {
+			OnUpdate(this, UPDATE_CLIPERA, NULL);
+			switch(nChar) {
+			case VK_SHIFT:	 m_ClipKeyFlags |= MK_SHIFT; break;
+			case VK_CONTROL: m_ClipKeyFlags |= MK_CONTROL; break;
+			}
+			OnUpdate(this, UPDATE_CLIPERA, NULL);
+		}
+		return TRUE;
+	}
 
 	if ( pDoc->m_TextRam.IsOptEnable(TO_RLDSECHO) ) {
 		switch(nChar) {
@@ -792,11 +847,12 @@ BOOL CRLoginView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 
 	ofs = zDelta * pDoc->m_TextRam.m_WheelSize / (WHEEL_DELTA / 2);
 
-	if ( pDoc->m_TextRam.IsOptEnable(TO_DECCKM) || (pDoc->m_TextRam.m_MouseTrack > 0 && !m_MouseEventFlag) ) {
+	if ( pDoc->m_TextRam.IsOptEnable(TO_DECCKM) || (pDoc->m_TextRam.m_MouseTrack > 0 && !m_MouseEventFlag) || (nFlags & MK_CONTROL) != 0 ) {
 		if ( pDoc->m_KeyTab.FindMaps((ofs > 0 ? VK_UP : VK_DOWN), (pDoc->m_TextRam.IsOptEnable(TO_DECCKM) ? MASK_APPL : 0), &tmp) ) {
 			for ( pos = (ofs < 0 ? (0 - ofs) : ofs) ; pos > 0 ; pos-- )
 				SendBuffer(tmp);
 		}
+
 	} else {
 
 		if ( m_WheelTimer ) {
@@ -813,7 +869,7 @@ BOOL CRLoginView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 			} else
 				m_WheelDelta = ofs;
 		} else {
-			if ( !pDoc->m_TextRam.IsOptEnable(TO_RLMOSWHL) && (ofs > 3 || ofs < -3) ) {
+			if ( !pDoc->m_TextRam.IsOptEnable(TO_RLMOSWHL) && (ofs > 4 || ofs < -4) ) {
 				m_WheelDelta = ofs;
 				SetTimer(1027, 100, NULL);
 				m_WheelTimer = TRUE;
@@ -904,10 +960,13 @@ void CRLoginView::OnLButtonDown(UINT nFlags, CPoint point)
 		return;
 	}
 
-	m_ClipStaPos = m_ClipEndPos = pDoc->m_TextRam.GetCalcPos(x, y);
+	m_ClipStaPos   = m_ClipEndPos = pDoc->m_TextRam.GetCalcPos(x, y);
 	m_ClipFlag     = 1;
 	m_ClipTimer    = 0;
 	m_ClipKeyFlags = nFlags;
+
+	if ( IsClipLineMode() )
+		OnUpdate(this, UPDATE_CLIPERA, NULL);
 }
 void CRLoginView::OnLButtonUp(UINT nFlags, CPoint point) 
 {
@@ -939,7 +998,12 @@ void CRLoginView::OnLButtonUp(UINT nFlags, CPoint point)
 
 	OnUpdate(this, UPDATE_CLIPERA, NULL);
 
-//	m_ClipKeyFlags = nFlags;
+	m_ClipKeyFlags = nFlags;
+
+	if ( point.x < (0 - m_CharWidth * 3) || point.x > (m_Width + m_CharWidth * 3) )
+		m_ClipKeyFlags |= 0x1000;
+	else
+		m_ClipKeyFlags &= 0xEFFF;
 
 	pos = pDoc->m_TextRam.GetCalcPos(x, y);
 
@@ -963,7 +1027,7 @@ void CRLoginView::OnLButtonUp(UINT nFlags, CPoint point)
 	if ( m_ClipTimer != 0 )
 		KillTimer(m_ClipTimer);
 
-	if ( m_ClipStaPos == m_ClipEndPos ) {
+	if ( m_ClipFlag == 1 && m_ClipStaPos == m_ClipEndPos && !IsClipLineMode() ) {
 		m_ClipFlag = 0;
 		OnUpdate(this, UPDATE_CLIPERA, NULL);
 		return;
@@ -1013,7 +1077,12 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 
 	OnUpdate(this, UPDATE_CLIPERA, NULL);
 
-//	m_ClipKeyFlags = nFlags;
+	m_ClipKeyFlags = nFlags;
+
+	if ( point.x < (0 - m_CharWidth * 3) || point.x > (m_Width + m_CharWidth * 3) )
+		m_ClipKeyFlags |= 0x1000;
+	else
+		m_ClipKeyFlags &= 0xEFFF;
 
 	if ( point.y < 0 || point.y > m_Height ) {
 		m_ClipSavePoint = point;
@@ -1023,7 +1092,7 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 			OnVScroll(SB_PAGEUP, 0, NULL);
 		else if ( point.y < 0 )
 			OnVScroll(SB_LINEUP, 0, NULL);
-		else if ( point.y < (m_CharHeight * 3) )
+		else if ( point.y < (m_Height + m_CharHeight * 3) )
 			OnVScroll(SB_LINEDOWN, 0, NULL);
 		else
 			OnVScroll(SB_PAGEDOWN, 0, NULL);
@@ -1241,7 +1310,7 @@ void CRLoginView::OnEditCopy()
 	if ( m_ClipFlag == 6 ) {
 		CRLoginDoc *pDoc = GetDocument();
 		ASSERT(pDoc);
-		pDoc->m_TextRam.EditCopy(m_ClipStaPos, m_ClipEndPos, IsClipRectMode());
+		pDoc->m_TextRam.EditCopy(m_ClipStaPos, m_ClipEndPos, IsClipRectMode(), IsClipLineMode());
 		m_ClipFlag = 0;
 		OnUpdate(this, UPDATE_CLIPERA, NULL);
 	}
@@ -1263,7 +1332,7 @@ void CRLoginView::OnEditCopyAll()
 	m_ClipKeyFlags = 0;
 
 	if ( pDoc->m_TextRam.IsOptEnable(TO_RLCKCOPY) ) {
-		pDoc->m_TextRam.EditCopy(m_ClipStaPos, m_ClipEndPos, IsClipRectMode());
+		pDoc->m_TextRam.EditCopy(m_ClipStaPos, m_ClipEndPos);
 		m_ClipFlag = 0;
 	}
 
@@ -1379,4 +1448,19 @@ void CRLoginView::OnPagePrior()
 void CRLoginView::OnPageNext()
 {
 	OnVScroll(SB_PAGEDOWN, 0, NULL);
+}
+
+void CRLoginView::OnKeyUp(UINT nChar, UINT nRepCnt, UINT nFlags)
+{
+	if ( nChar == VK_SHIFT || nChar == VK_CONTROL ) {
+		if ( m_ClipFlag > 0 && m_ClipFlag < 6 ) {
+			OnUpdate(this, UPDATE_CLIPERA, NULL);
+			switch(nChar) {
+			case VK_SHIFT:	 m_ClipKeyFlags &= ~MK_SHIFT; break;
+			case VK_CONTROL: m_ClipKeyFlags &= ~MK_CONTROL; break;
+			}
+			OnUpdate(this, UPDATE_CLIPERA, NULL);
+		}
+	}
+	CView::OnKeyUp(nChar, nRepCnt, nFlags);
 }

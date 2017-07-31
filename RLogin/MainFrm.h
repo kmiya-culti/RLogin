@@ -123,6 +123,7 @@ public:
 	int m_SleepStatus;
 	int m_SleepCount;
 	int m_TransParValue;
+	COLORREF m_TransParColor;
 	HMENU m_MenuHand;
 	CKeyCmdsTab m_MenuTab;
 

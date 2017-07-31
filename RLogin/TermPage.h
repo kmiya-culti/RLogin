@@ -33,6 +33,9 @@ public:
 	int m_LogCode;
 	CProcTab m_ProcTab;
 	CListCtrlExt m_List;
+	int m_TtlMode;
+	BOOL m_TtlRep;
+	BOOL m_TtlCng;
 
 // オーバーライド
 	// ClassWizard は仮想関数のオーバーライドを生成します。
@@ -57,6 +60,7 @@ public:
 	afx_msg void OnBnClickedAutologSel();
 	afx_msg void OnBnClickedEscedit();
 	afx_msg void OnNMClickEsclist(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnCbnSelchangeCombo();
 };
 
 //{{AFX_INSERT_LOCATION}}

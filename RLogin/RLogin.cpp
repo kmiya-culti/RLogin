@@ -10,7 +10,10 @@
 #include "RLoginDoc.h"
 #include "RLoginView.h"
 #include "ExtSocket.h"
+
+#ifdef	_DEBUGXX
 #include "Script.h"
+#endif
 
 #include <direct.h>
 #include <openssl/ssl.h>
@@ -192,9 +195,10 @@ void ExDwmEnableWindow(HWND hWnd)
 		//Enable Blur Behind
 		ExDwmEnableBlurBehindWindow(hWnd, &bb);
 
-//		margin.cxLeftWidth = margin.cxRightWidth = 0;
-//		margin.cyTopHeight = margin.cyBottomHeight = 0;
-//		ExDwmExtendFrameIntoClientArea(hWnd, &margin);
+		//margin.cxLeftWidth = margin.cxRightWidth = 0;
+		//margin.cyTopHeight = 40;
+		//margin.cyBottomHeight = 0;
+		//ExDwmExtendFrameIntoClientArea(hWnd, &margin);
 	}
 #endif
 }

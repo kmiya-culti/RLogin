@@ -61,12 +61,15 @@ public:
 	CPoint m_ClipSavePoint;
 	UINT m_ClipKeyFlags;
 	inline BOOL IsClipRectMode() { return (m_ClipKeyFlags & MK_CONTROL); }
+	inline BOOL IsClipLineMode() { return (m_ClipKeyFlags & (MK_SHIFT | 0x1000)); }
 
 	BOOL m_KeyMacFlag;
 	CBuffer m_KeyMacBuf;
 
 	class CGhostWnd *m_pGhost;
 
+	void InvalidateTextRect(CRect rect);
+	void CalcPosRect(CRect &rect);
 	void CalcTextRect(CRect &rect);
 	void CalcGrapPoint(CPoint po, int *x, int *y);
 	void ImmSetPos(int x, int y);
@@ -135,6 +138,7 @@ public:
 	afx_msg void OnEditCopyAll();
 	afx_msg void OnPagePrior();
 	afx_msg void OnPageNext();
+	afx_msg void OnKeyUp(UINT nChar, UINT nRepCnt, UINT nFlags);
 };
 
 #ifndef _DEBUG  // RLoginView.cpp ファイルがデバッグ環境の時使用されます。

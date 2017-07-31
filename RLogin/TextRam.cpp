@@ -258,10 +258,8 @@ CTextRam::CTextRam()
 	m_HisUse = 0;
 	m_pTextSave = m_pTextStack = NULL;
 	m_DispCaret = 002;
-	m_UpdateRect.left   = m_Cols;
-	m_UpdateRect.top    = m_Lines;
-	m_UpdateRect.right  = 0;
-	m_UpdateRect.bottom = 0;
+	m_UpdateRect.SetRectEmpty();
+	m_UpdateFlag = FALSE;
 	m_DelayMSec = 0;
 	m_HisFile.Empty();
 	m_LogFile.Empty();
@@ -279,6 +277,7 @@ CTextRam::CTextRam()
 	m_Loc_LastX = 0;
 	m_Loc_LastY = 0;
 	memset(m_MetaKeys, 0, sizeof(m_MetaKeys));
+	m_TitleMode = WTTL_ENTRY;
 
 	m_LineEditMode = FALSE;
 	m_LineEditPos  = 0;
@@ -729,6 +728,7 @@ void CTextRam::Init()
 	EnableOption(TO_XTMRVW);
 	EnableOption(TO_DECANM);
 	EnableOption(TO_DECTCEM);
+	EnableOption(TO_XTMCUS);
 	memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
 	memcpy(m_DefBankTab, DefBankTab, sizeof(m_DefBankTab));
 	memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
@@ -751,6 +751,7 @@ void CTextRam::Init()
 	m_MouseMode[2]   = 4;
 	m_MouseMode[3]   = 16;
 	memset(m_MetaKeys, 0, sizeof(m_MetaKeys));
+	m_TitleMode = WTTL_ENTRY;
 
 	m_ProcTab.Init();
 
@@ -796,7 +797,8 @@ void CTextRam::SetArray(CStringArrayExt &array)
 	tmp.SetString(str, ';');
 	array.Add(str);
 
-	array.AddVal(1);	// AnsiOpt Bugfix
+	array.AddVal(2);	// AnsiOpt Bugfix
+	array.AddVal(m_TitleMode);
 }
 void CTextRam::GetArray(CStringArrayExt &array)
 {
@@ -862,11 +864,17 @@ void CTextRam::GetArray(CStringArrayExt &array)
 		m_ProcTab.GetArray(ext);
 	}
 
-	if ( (n = (array.GetSize() > 37 ? array.GetVal(37) : 0)) < 1 ) {
+	n = (array.GetSize() > 37 ? array.GetVal(37) : 0);
+	if ( n < 1 ) {
 		m_AnsiOpt[TO_DECANM / 32] ^= (1 << (TO_DECANM % 32));
 		EnableOption(TO_DECTCEM);
-		memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_DefAnsiOpt));
 	}
+	if ( n < 2 )
+		EnableOption(TO_XTMCUS);
+	memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_DefAnsiOpt));
+
+	if ( array.GetSize() > 38 )
+		m_TitleMode = array.GetVal(38);
 
 	RESET();
 }
@@ -926,19 +934,25 @@ void CTextRam::SetKanjiMode(int mode)
 	m_KanjiMode = mode;
 	fc_Init(mode);
 }
-int CTextRam::Write(LPBYTE lpBuf, int nBufLen)
+int CTextRam::Write(LPBYTE lpBuf, int nBufLen, BOOL *sync)
 {
 	int n;
 
 	if ( m_LineEditMode )
 		LOADRAM();
 
-	for ( n = 0 ; n < nBufLen ; n++ ) {
+	for ( n = 0 ; n < nBufLen && !m_UpdateFlag ; n++ ) {
 		fc_Call(lpBuf[n]);
 		if ( m_RetSync ) {
 			m_RetSync = FALSE;
+			*sync = TRUE;
 			break;
 		}
+	}
+
+	if ( m_UpdateFlag ) {
+		m_UpdateFlag = FALSE;
+		m_pDocument->SetActCount();
 	}
 
 	if ( m_LineEditMode || m_LineEditBuff.GetSize() > 0 ) {
@@ -1409,7 +1423,7 @@ SKIP:
 	*sps = GetCalcPos(sx, sy);
 	*eps = GetCalcPos(ex, ey);
 }
-void CTextRam::EditCopy(int sps, int eps, BOOL rectflag)
+void CTextRam::EditCopy(int sps, int eps, BOOL rectflag, BOOL lineflag)
 {
 	int n, x, y, ch, sx, ex, tc;
 	int x1, y1, x2, y2;
@@ -1422,12 +1436,19 @@ void CTextRam::EditCopy(int sps, int eps, BOOL rectflag)
 	SetCalcPos(sps, &x1, &y1);
 	SetCalcPos(eps, &x2, &y2);
 
+	if ( rectflag && x1 > x2 ) {
+		x = x1; x1 = x2; x2 = x;
+	}
+
 	for ( y = y1 ; y <= y2 ; y++ ) {
 		vp = GETVRAM(0, y);
 		
 		if ( rectflag ) {
 			sx = x1;
 			ex = x2;
+		} else if ( lineflag ) {
+			sx = 0;
+			ex = m_Cols - 1;
 		} else {
 			sx = (y == y1 ? x1 : 0);
 			ex = (y == y2 ? x2 : (m_Cols - 1));
@@ -1482,7 +1503,7 @@ void CTextRam::EditCopy(int sps, int eps, BOOL rectflag)
 				tc = 0;
 		}
 
-		if ( y < y2 && x < m_Cols ) {
+		if ( (y < y2 && x < m_Cols) || (y == y2 && lineflag) ) {
 			str.PutWord('\r');
 			str.PutWord('\n');
 		}
@@ -1721,7 +1742,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 	int ch, x, y;
 	struct DrawWork work, prop;
 	int pos, spos, epos;
-	int csx, cex, cwy;
+	int csx, cex, csy, cey;
 	VRAM *vp, *tp;
 	int len, sln;
 	char tmp[COLS_MAX * 8];
@@ -1738,8 +1759,18 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 			epos = pView->m_ClipStaPos;
 		}
 		if ( pView->IsClipRectMode() ) {
-			SetCalcPos(spos, &csx, &cwy);
-			SetCalcPos(epos, &cex, &cwy);
+			SetCalcPos(spos, &csx, &csy);
+			SetCalcPos(epos, &cex, &cey);
+			if ( csx > cex ) {
+				x = csx; csx = cex; cex = x;
+				spos = GetCalcPos(csx, csy);
+				epos = GetCalcPos(cex, cey);
+			}
+		} else if ( pView->IsClipLineMode() ) {
+			SetCalcPos(spos, &csx, &csy);
+			spos = GetCalcPos(0, csy);
+			SetCalcPos(epos, &cex, &cey);
+			epos = GetCalcPos(m_Cols - 1, cey);
 		}
 	}
 
@@ -2322,15 +2353,12 @@ void CTextRam::FLUSH()
 {
 	if ( m_UpdateRect == CRect(0, 0, m_Cols, m_Lines) )
 		m_pDocument->UpdateAllViews(NULL, UPDATE_INVALIDATE, NULL);
-	else if ( m_UpdateRect.left < m_UpdateRect.right && m_UpdateRect.top < m_UpdateRect.bottom )
+	else if ( !m_UpdateRect.IsRectEmpty() )
 		m_pDocument->UpdateAllViews(NULL, UPDATE_TEXTRECT, (CObject *)&m_UpdateRect);
 	else
 		m_pDocument->UpdateAllViews(NULL, UPDATE_GOTOXY, NULL);
 
-	m_UpdateRect.left   = m_Cols;
-	m_UpdateRect.top    = m_Lines;
-	m_UpdateRect.right  = 0;
-	m_UpdateRect.bottom = 0;
+	m_UpdateRect.SetRectEmpty();
 	m_HisUse = 0;
 }
 void CTextRam::CUROFF()
@@ -2347,7 +2375,11 @@ void CTextRam::DISPUPDATE()
 	m_UpdateRect.top    = 0;
 	m_UpdateRect.right  = m_Cols;
 	m_UpdateRect.bottom = m_Lines;
-	m_pDocument->IncActCount();
+
+	if ( IsOptEnable(TO_DECSCLM) )
+		m_UpdateFlag = TRUE;
+	else
+		m_pDocument->IncActCount();
 }
 void CTextRam::DISPVRAM(int sx, int sy, int w, int h)
 {
@@ -2362,7 +2394,11 @@ void CTextRam::DISPVRAM(int sx, int sy, int w, int h)
 		m_UpdateRect.top = sy;
 	if ( m_UpdateRect.bottom < ey )
 		m_UpdateRect.bottom = ey;
-	m_pDocument->IncActCount();
+
+	if ( IsOptEnable(TO_DECSCLM) )
+		m_UpdateFlag = TRUE;
+	else
+		m_pDocument->IncActCount();
 }
 int CTextRam::BLINKUPDATE(class CRLoginView *pView)
 {
@@ -2423,9 +2459,9 @@ int CTextRam::BLINKUPDATE(class CRLoginView *pView)
 // Mid Level
 //////////////////////////////////////////////////////////////////////
 
-int CTextRam::GetAnsiPara(int index, int defvalue)
+int CTextRam::GetAnsiPara(int index, int defvalue, int limit)
 {
-	if ( index >= m_AnsiPara.GetSize() || m_AnsiPara[index] == 0 )
+	if ( index >= m_AnsiPara.GetSize() || m_AnsiPara[index] == 0xFFFF || m_AnsiPara[index] < limit )
 		return defvalue;
 	return m_AnsiPara[index];
 }
@@ -2433,6 +2469,11 @@ void CTextRam::SetAnsiParaArea(int top)
 {
 	while ( m_AnsiPara.GetSize() < top )
 		m_AnsiPara.Add(0);
+
+	for ( int n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
+		if ( m_AnsiPara[n] == 0xFFFF )
+			m_AnsiPara[n] = 0;
+	}
 
 	// Start Line
 	if ( m_AnsiPara.GetSize() < (top + 1) )
@@ -3063,112 +3104,116 @@ void CTextRam::TABSET(int sw)
 
 	switch(sw) {
 	case TAB_COLSSET:		// Cols Set
-		if ( IsOptEnable(TO_ANSITSM) )	// SINGLE
-			m_TabMap[m_CurY][m_CurX / 8 + 1] |= (0x80 >> (m_CurX % 8));
-		else {							// MULTIPLE
-			for ( n = 0 ; n < m_Lines ; n++ ) {
-				if ( (m_TabMap[n][0] & 001) != 0 )
-					m_TabMap[n][m_CurX / 8 + 1] |= (0x80 >> (m_CurX % 8));
-			}
-		}
+		if ( IsOptEnable(TO_ANSITSM) )	// MULTIPLE
+			m_TabMap[m_CurY + 1][m_CurX / 8 + 1] |= (0x80 >> (m_CurX % 8));
+		else							// SINGLE
+			m_TabMap[0][m_CurX / 8 + 1] |= (0x80 >> (m_CurX % 8));
 		break;
 	case TAB_COLSCLR:		// Cols Clear
-		if ( IsOptEnable(TO_ANSITSM) )	// SINGLE
-			m_TabMap[m_CurY][m_CurX / 8 + 1] &= ~(0x80 >> (m_CurX % 8));
-		else {							// MULTIPLE
-			for ( n = 0 ; n < m_Lines ; n++ ) {
-				if ( (m_TabMap[n][0] & 001) != 0 )
-					m_TabMap[n][m_CurX / 8 + 1] &= ~(0x80 >> (m_CurX % 8));
-			}
-		}
+		if ( IsOptEnable(TO_ANSITSM) )	// MULTIPLE
+			m_TabMap[m_CurY + 1][m_CurX / 8 + 1] &= ~(0x80 >> (m_CurX % 8));
+		else							// SINGLE
+			m_TabMap[0][m_CurX / 8 + 1] &= ~(0x80 >> (m_CurX % 8));
 		break;
 	case TAB_COLSALLCLR:	// Cols All Claer
-		if ( IsOptEnable(TO_ANSITSM) )	// SINGLE
-			memset(&(m_TabMap[m_CurY][1]), 0, LINE_MAX / 8);
-		else {							// MULTIPLE
-			for ( n = 0 ; n < m_Lines ; n++ ) {
-				if ( (m_TabMap[n][0] & 001) != 0 )
-					memset(&(m_TabMap[n][1]), 0, LINE_MAX / 8);
-			}
-		}
+		if ( IsOptEnable(TO_ANSITSM) )	// MULTIPLE
+			memset(&(m_TabMap[m_CurY + 1][1]), 0, LINE_MAX / 8);
+		else							// SINGLE
+			memset(&(m_TabMap[0][1]), 0, LINE_MAX / 8);
 		break;
+
 	case TAB_COLSALLCLRACT:	// Cols All Clear if Active Line
-		if ( (m_TabMap[m_CurY][0] & 001) != 0 )
-			memset(&(m_TabMap[m_CurY][1]), 0, LINE_MAX / 8);
+		if ( (m_TabMap[m_CurY + 1][0] & 001) != 0 )
+			memset(&(m_TabMap[m_CurY + 1][1]), 0, LINE_MAX / 8);
 		break;
 
 	case TAB_LINESET:		// Line Set
-		m_TabMap[m_CurY][0] |= 001;
+		m_TabMap[m_CurY + 1][0] |= 001;
 		break;
 	case TAB_LINECLR:		// Line Clear
-		m_TabMap[m_CurY][0] &= ~001;
+		m_TabMap[m_CurY + 1][0] &= ~001;
 		break;
 	case TAB_LINEALLCLR:	// Line All Clear
 		for ( n = 0 ; n < m_Lines ; n++ )
-			m_TabMap[n][0] &= ~001;
+			m_TabMap[n + 1][0] &= ~001;
 		break;
 
 	case TAB_RESET:			// Reset
-		for ( n = 0 ; n < m_Lines ; n++ ) {
-			m_TabMap[n][0] = 001;
-			memset(&(m_TabMap[n][1]), 0, LINE_MAX / 8);
-			for ( i = 0 ; i < m_Cols ; i += m_DefTab )
-				m_TabMap[n][i / 8 + 1] |= (0x80 >> (i % 8));
-		}
+		m_TabMap[0][0] = 001;
+		memset(&(m_TabMap[0][1]), 0, LINE_MAX / 8);
+		for ( i = 0 ; i < LINE_MAX ; i += m_DefTab )
+			m_TabMap[0][i / 8 + 1] |= (0x80 >> (i % 8));
+		for ( n = 1 ; n <= m_Lines ; n++ )
+			memcpy(&(m_TabMap[n][0]), &(m_TabMap[0][0]), LINE_MAX / 8 + 1);
 		break;
 
 	case TAB_DELINE:		// Delete Line
-		if ( IsOptEnable(TO_ANSITSM) ) {	// SINGLE
+		if ( IsOptEnable(TO_ANSITSM) ) {	// MULTIPLE
 			for ( n = m_CurY + 1 ; n < m_Lines ; n++ )
-				memcpy(m_TabMap[n - 1], m_TabMap[n], COLS_MAX / 8 + 1);
+				memcpy(m_TabMap[n], m_TabMap[n + 1], COLS_MAX / 8 + 1);
 			m_TabMap[m_Lines][0] = 0;
-			memset(&(m_TabMap[m_Lines - 1][1]), 0, LINE_MAX / 8);
+			memset(&(m_TabMap[m_Lines][1]), 0, LINE_MAX / 8);
 		}
 		break;
 	case TAB_INSLINE:		// Insert Line
-		if ( IsOptEnable(TO_ANSITSM) ) {	// SINGLE
+		if ( IsOptEnable(TO_ANSITSM) ) {	// MULTIPLE
 			for ( n = m_Lines - 1 ; n > m_CurY ; n-- )
-				memcpy(m_TabMap[n], m_TabMap[n - 1], COLS_MAX / 8 + 1);
-			m_TabMap[m_CurY][0] = 0;
-			memset(&(m_TabMap[m_CurY][1]), 0, LINE_MAX / 8);
+				memcpy(m_TabMap[n + 1], m_TabMap[n], COLS_MAX / 8 + 1);
+			m_TabMap[m_CurY + 1][0] = 0;
+			memset(&(m_TabMap[m_CurY + 1][1]), 0, LINE_MAX / 8);
 		}
 		break;
 
 	case TAB_ALLCLR:		// Cols Line All Clear
-		for ( n = 0 ; n < m_Lines ; n++ ) {
-			m_TabMap[n][0] &= ~001;
+		for ( n = 0 ; n <= m_Lines ; n++ ) {
+			m_TabMap[n][0] = 0;
 			memset(&(m_TabMap[n][1]), 0, LINE_MAX / 8);
 		}
 		break;
 
 	case TAB_COLSNEXT:		// Cols Tab Stop
-		DOWARP();
+		if ( IsOptEnable(TO_XTMCUS) )
+			DOWARP();
+		i = (IsOptEnable(TO_ANSITSM) ? (m_CurY + 1) : 0);
 		for ( n = m_CurX + 1 ; n < m_Cols ; n++ ) {
-			if ( (m_TabMap[m_CurY][n / 8 + 1] & (0x80 >> (n % 8))) != 0 )
+			if ( (m_TabMap[i][n / 8 + 1] & (0x80 >> (n % 8))) != 0 )
 				break;
 		}
-		LOCATE(n, m_CurY);
+		if ( !IsOptEnable(TO_XTMCUS) ) {
+			if ( n >= m_Cols )
+				n = m_Cols - 1;
+			if ( n != m_CurX )
+				LOCATE(n, m_CurY);
+		} else
+			LOCATE(n, m_CurY);
 		break;
 	case TAB_COLSBACK:		// Cols Back Tab Stop
+		i = (IsOptEnable(TO_ANSITSM) ? (m_CurY + 1) : 0);
 		for ( n = m_CurX - 1 ; n > 0 ; n-- ) {
-			if ( (m_TabMap[m_CurY][n / 8 + 1] & (0x80 >> (n % 8))) != 0 )
+			if ( (m_TabMap[i][n / 8 + 1] & (0x80 >> (n % 8))) != 0 )
 				break;
 		}
 		LOCATE(n, m_CurY);
 		break;
 
 	case TAB_LINENEXT:		// Line Tab Stop
-		for ( n = m_CurY + 1 ; n < m_Lines ; n++ ) {
-			if ( (m_TabMap[n][0] & 001) != 0 )
-				break;
-		}
+		if ( IsOptEnable(TO_ANSITSM) ) {	// MULTIPLE
+			for ( n = m_CurY + 1 ; n < m_Lines ; n++ ) {
+				if ( (m_TabMap[n + 1][0] & 001) != 0 )
+					break;
+			}
+		} else
+			n = m_CurY + 1;
 		LOCATE(m_CurX, n);
 		break;
 	case TAB_LINEBACK:		// Line Back Tab Stop
-		for ( n = m_CurY - 1 ; n > 0 ; n-- ) {
-			if ( (m_TabMap[n][0] & 001) != 0 )
-				break;
-		}
+		if ( IsOptEnable(TO_ANSITSM) ) {	// MULTIPLE
+			for ( n = m_CurY - 1 ; n > 0 ; n-- ) {
+				if ( (m_TabMap[n + 1][0] & 001) != 0 )
+					break;
+			}
+		} else
+			n = m_CurY - 1;
 		LOCATE(m_CurX, n);
 		break;
 	}

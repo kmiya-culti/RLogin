@@ -577,6 +577,7 @@ CMainFrame::CMainFrame()
 	m_SleepStatus = 0;
 	m_SleepTimer = 0;
 	m_TransParValue = 255;
+	m_TransParColor = RGB(0, 0, 0);
 	m_SleepCount = 60;
 	m_MenuHand = NULL;
 }
@@ -695,7 +696,8 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	ShowControlBar(&m_wndTabBar, FALSE, 0);
 
 	m_TransParValue = AfxGetApp()->GetProfileInt("MainFrame", "LayeredWindow", 255);
-	SetTransPar(0, m_TransParValue, LWA_ALPHA);
+	m_TransParColor = AfxGetApp()->GetProfileInt("MainFrame", "LayeredColor", RGB(0, 0 ,0));
+	SetTransPar(m_TransParColor, m_TransParValue, LWA_ALPHA | LWA_COLORKEY);
 
 	CBuffer buf;
 	((CRLoginApp *)AfxGetApp())->GetProfileBuffer("MainFrame", "Pane", buf);
@@ -874,13 +876,22 @@ int CMainFrame::OpenServerEntry(CServerEntry &Entry)
 }
 void CMainFrame::SetTransPar(COLORREF rgb, int value, DWORD flag)
 {
+	if ( (flag & LWA_COLORKEY) != 0 && rgb == 0 )
+		flag &= ~LWA_COLORKEY;
+	else if ( m_TransParColor != 0 ) {
+		rgb = m_TransParColor;
+		flag |= LWA_COLORKEY;
+	}
+
+	if ( (flag & LWA_ALPHA) != 0 && value == 255 )
+		flag &= ~LWA_ALPHA;
+
 	if ( flag == 0 )
 		ModifyStyleEx(WS_EX_LAYERED, 0);
 	else
 		ModifyStyleEx(0, WS_EX_LAYERED);
 
 	SetLayeredWindowAttributes(rgb, value, flag);
-//	SetLayeredWindowAttributes(RGB(1, 1, 1), 0, LWA_COLORKEY);
 
 	Invalidate(TRUE);
 }

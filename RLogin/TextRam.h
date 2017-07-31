@@ -17,7 +17,7 @@
 #include "GhostWnd.h"
 
 #define	COLS_MAX		256
-#define	LINE_MAX		1024
+#define	LINE_MAX		512
 #define	HIS_MAX			400000			// HIS_MAX * COLS_MAX * sizeof(VRAM) = 1,228,800,000 byte
 #define	DEF_TAB			8
 
@@ -79,6 +79,7 @@
 #define	TO_DECCKM		1			// Cursor key mode
 #define	TO_DECANM		2			// ANSI/VT52 Mode
 #define	TO_DECCOLM		3			// 80/132 Column mode
+#define	TO_DECSCLM		4			// Scrolling mode
 #define	TO_DECSCNM		5			// Light or Dark Screen
 #define TO_DECOM		6			// Origin mode
 #define TO_DECAWM		7			// Autowrap mode
@@ -86,6 +87,7 @@
 #define	TO_DECTCEM		25			// Text Cursor Enable Mode
 #define	TO_DECTEK		38			// Graphics (Tek)
 #define	TO_XTMCSC		40			// XTerm Column switch control
+#define	TO_XTMCUS		41			// XTerm tab bug fix
 #define TO_XTMRVW		45			// XTerm Reverse-wraparound mode
 #define	TO_XTMABUF		47			// XTerm alternate buffer
 #define	TO_DECECM		117			// SGR space color disable
@@ -104,7 +106,7 @@
 #define	TO_XTALTCLR		(1049-700)	// Alternate screen with clearing
 // RLogin Option		400-511
 #define	TO_RLGCWA		400			// ESC[m space att enable
-#define	TO_RLGNDW		401			// 行末での自動改行を有効にする
+#define	TO_RLGNDW		401			// 行末での遅延改行を無効にする
 #define	TO_RLGAWL		402			// http;//で始まる文字列をコピーすると自動でブラウザを起動する
 #define	TO_RLBOLD		403			// ボールド文字を有効にする
 #define	TO_RLFONT		404			// フォントサイズから一行あたりの文字数を決定
@@ -144,6 +146,14 @@
 #define	TO_RLMOSWHL		438			// マウスホイールをヌルヌル動かす
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
+
+#define	WTTL_ENTRY		0000		// m_EntryName
+#define	WTTL_HOST		0001		// m_HostName
+#define	WTTL_PORT		0002		// m_HostName:m_PotrtName
+#define	WTTL_USER		0003		// m_UserName
+#define	WTTL_ALGO		0010		// with status or algorithm
+#define	WTTL_CHENG		0020		// OSC Title cheng disable
+#define	WTTL_REPORT		0040		// XTWOP Title report disable
 
 enum ETextRamStat {
 		ST_NON,
@@ -309,7 +319,7 @@ public:
 	int m_BankSG;
 	WORD m_BankTab[4][4];
 
-	BYTE m_TabMap[LINE_MAX][COLS_MAX / 8 + 1];
+	BYTE m_TabMap[LINE_MAX + 1][COLS_MAX / 8 + 1];
 
 	VRAM m_Save_AttNow;
 	VRAM m_Save_AttSpc;
@@ -325,7 +335,7 @@ public:
 	int m_Save_BankSG;
 	WORD m_Save_BankTab[4][4];
 
-	BYTE m_Save_TabMap[LINE_MAX][COLS_MAX / 8 + 1];
+	BYTE m_Save_TabMap[LINE_MAX + 1][COLS_MAX / 8 + 1];
 };
 
 class CTextRam : public COptObject
@@ -406,7 +416,7 @@ public:
 	BOOL m_OscFlag;
 	int m_OscMode;
 	CStringW m_OscPara;
-	BYTE m_TabMap[LINE_MAX][COLS_MAX / 8 + 1];
+	BYTE m_TabMap[LINE_MAX + 1][COLS_MAX / 8 + 1];
 	BOOL m_RetSync;
 	BOOL m_Exact;
 
@@ -425,12 +435,13 @@ public:
 	int m_Save_BankSG;
 	BOOL m_Save_DoWarp;
 	WORD m_Save_BankTab[4][4];
-	BYTE m_Save_TabMap[LINE_MAX][COLS_MAX / 8 + 1];
+	BYTE m_Save_TabMap[LINE_MAX + 1][COLS_MAX / 8 + 1];
 
 	CTextSave *m_pTextSave;
 	CTextSave *m_pTextStack;
 	CIConv m_IConv;
 	CRect m_UpdateRect;
+	BOOL m_UpdateFlag;
 
 	BOOL m_LineEditMode;
 	int m_LineEditIndex;
@@ -448,12 +459,14 @@ public:
 	int m_LineEditMapsIndex;
 	CStringMaps m_LineEditMapsTab[3];
 	int m_LogCharSet[4];
+	int m_TitleMode;
 	
 	// Window Fonction
 	BOOL IsInitText() { return (m_VRam == NULL ? FALSE : TRUE); }
 	void InitText(int Width, int Height);
 	void InitCols();
-	int Write(LPBYTE lpBuf, int nBufLen);
+	int Write(LPBYTE lpBuf, int nBufLen, BOOL *sync);
+
 	int LineEdit(CBuffer &buf);
 	void LineEditEcho();
 	void LineEditCwd(int sx, int sy, CStringW &cwd);
@@ -478,7 +491,7 @@ public:
 	BOOL IncPos(int &x, int &y);
 	BOOL DecPos(int &x, int &y);
 	void EditWordPos(int *sps, int *eps);
-	void EditCopy(int sps, int eps, BOOL rectflag = FALSE);
+	void EditCopy(int sps, int eps, BOOL rectflag = FALSE, BOOL lineflag = FALSE);
 	void StrOut(CDC* pDC, LPCRECT pRect, struct DrawWork &prop, int len, char *str, int sln, int *spc, class CRLoginView *pView);
 	void DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginView *pView);
 	
@@ -520,7 +533,7 @@ public:
 	int BLINKUPDATE(class CRLoginView *pView);
 
 	// Mid Level
-	int GetAnsiPara(int index, int defvalue);
+	int GetAnsiPara(int index, int defvalue, int limit);
 	void SetAnsiParaArea(int top);
 	void LOCATE(int x, int y);
 	void ERABOX(int sx, int sy, int ex, int ey, int df = 0);

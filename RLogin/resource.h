@@ -251,6 +251,7 @@
 #define IDC_ESCEDIT                     1138
 #define IDC_BUTTON4                     1139
 #define IDC_IDKEY_UP                    1139
+#define IDC_COMBO3                      1139
 #define IDC_BUTTON6                     1140
 #define IDC_IDKEY_DOWN                  1140
 #define IDC_IDKEY_DEL                   1141

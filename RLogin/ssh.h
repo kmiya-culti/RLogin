@@ -51,12 +51,11 @@
 #define	SSH2_CIPHER_CAST_OFB	43		// cast128-ofb
 #define	SSH2_CIPHER_CAST_CTR	44		// cast128-ctr
 
-#define	SSH2_CIPHER_SEED128		50		// seed128-cbc
-#define	SSH2_CIPHER_SEED192		51		// seed192-cbc
-#define	SSH2_CIPHER_SEED256		52		// seed256-cbc
-#define	SSH2_CIPHER_SEED128R	55		// seed128-otr
-#define	SSH2_CIPHER_SEED192R	56		// seed192-ctr
-#define	SSH2_CIPHER_SEED256R	57		// seed256-ctr
+#define	SSH2_CIPHER_SEED_CBC	50		// seed-cbc
+#define	SSH2_CIPHER_SEED_ECB	51		// seed-ecb
+#define	SSH2_CIPHER_SEED_CFB	52		// seed-cfb
+#define	SSH2_CIPHER_SEED_OFB	55		// seed-ofb
+#define	SSH2_CIPHER_SEED_CTR	56		// seed-ctr
 
 #define SSH2_CIPHER_ARCFOUR		60		// arcfour
 #define SSH2_CIPHER_ARC128		61		// arcfour128

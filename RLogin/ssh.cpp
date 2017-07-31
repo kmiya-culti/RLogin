@@ -1374,9 +1374,33 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 {
 	int n;
 	char *p;
-	CBuffer tmp;
+	CBuffer tmp, tmode;
 	CString str;
 	CStringEnv env;
+	static const struct _dummy_ttymode {
+		BYTE	opcode;
+		DWORD	param;
+	} ttymode[] = {
+	//	VINTR		VQUIT		VERASE		VKILL		VEOF		VEOL		VEOL2		VSTART
+		{ 1,3 },	{ 2,28 },	{ 3,8 },	{ 4,21 },	{ 5,4 }, 	{ 6,255 },	{ 7,255 },	{ 8,17 },
+	//	VSTOP		VSUSP		VDSUSP		VREPRINT	VWERASE		VLNEXT		VSTATUS		VDISCARD
+		{ 9,19 },	{ 10,26 },	{ 11,25 },	{ 12,18 },	{ 13,23 },	{ 14,22 },	{ 17,20 },	{ 18,15 },
+	//	IGNPAR		PARMRK		INPCK		ISTRIP		INLCR		IGNCR		ICRNL		IXON
+		{ 30,0 },	{ 31,0 },	{ 32,0 },	{ 33,0 },	{ 34,0 },	{ 35,0 },	{ 36,1 },	{ 38,1 },
+	//	IXANY		IXOFF		IMAXBEL
+		{ 39,1 },	{ 40,0 },	{ 41,1 },
+	//	ISIG		ICANON		ECHO		ECHOE		ECHOK		ECHONL		NOFLSH		TOSTOP
+		{ 50,1 },	{ 51,1 },	{ 53,1 },	{ 54,1 },	{ 55,0 },	{ 56,0 },	{ 57,0 },	{ 58,0 },
+	//	IEXTEN		ECHOCTL		ECHOKE		PENDIN
+		{ 59,1 },	{ 60,1 },	{ 61,1 },	{ 62,1 },
+	//	OPOST		OLCUC		OCRNL		ONOCR		ONLRET
+		{ 70,1 },	{ 72,1 },	{ 73,0 },	{ 74,0 },	{ 75,0 },
+	//	CS7			CS8			PARENB		PARODD
+		{ 90,1 },	{ 91,1 },	{ 92,0 },	{ 93,0 },
+	//	OSPEED			ISPEED
+		{ 129,9600 },	{ 128,9600 },
+		{ 0, 0 }
+	};
 
 	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHAGENT) ) {
 		tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
@@ -1400,7 +1424,7 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 		if ( str.IsEmpty() || str.CompareNoCase("unix") == 0 )
 			str = "127.0.0.1";
 
-		if ( *(p++) == ':' && CExtSocket::SokcetCheck(str, 6000 + atoi(p)) ) {
+		if ( *(p++) == ':' ) { // && CExtSocket::SokcetCheck(str, 6000 + atoi(p)) ) {
 			str.Format("%04x%04x%04x%04x", rand(), rand(), rand(), rand());
 			tmp.Clear();
 			tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
@@ -1425,7 +1449,15 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 	tmp.Put32Bit(m_pDocument->m_TextRam.m_Lines);
 	tmp.Put32Bit(0);
 	tmp.Put32Bit(0);
-	tmp.Put32Bit(0);
+
+	tmode.Clear();
+	for ( n = 0 ; ttymode[n].opcode != 0 ; n++ ) {
+		tmode.Put8Bit(ttymode[n].opcode);
+		tmode.Put32Bit(ttymode[n].param);
+	}
+	tmode.Put8Bit(0);
+	tmp.PutBuf(tmode.GetPtr(), tmode.GetSize());
+
 	SendPacket2(&tmp);
 	m_ChnReqMap.Add(0);
 
@@ -1515,9 +1547,11 @@ void Cssh::SendDisconnect2(int st, LPCSTR str)
 void Cssh::SendPacket2(CBuffer *bp)
 {
 	int n = bp->GetSize() + 128;
-	int pad;
+	int pad, i;
 	CBuffer tmp(n);
 	CBuffer enc(n);
+	static int padflag = FALSE;
+	static BYTE padimage[64];
 
 	tmp.PutSpc(4 + 1);		// Size + Pad Era
 	m_EncCmp.Compress(bp->GetPtr(), bp->GetSize(), &tmp);
@@ -1527,8 +1561,20 @@ void Cssh::SendPacket2(CBuffer *bp)
 
 	tmp.SET32BIT(tmp.GetPos(0), tmp.GetSize() - 4 + pad);
 	tmp.SET8BIT(tmp.GetPos(4), pad);
-	for ( n = 0 ; n < pad ; n += 16 )
-		tmp.Apend((LPBYTE)"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", ((pad - n) >= 16 ? 16 : (pad - n)));
+
+	if ( !padflag ) {
+		for ( n = 0 ; n < 64 ; n += 4 ) {
+			i = rand();
+			padimage[n + 3] = (BYTE)(i >> 24);
+			padimage[n + 2] = (BYTE)(i >> 16);
+			padimage[n + 1] = (BYTE)(i >>  8);
+			padimage[n + 0] = (BYTE)(i >>  0);
+		}
+		padflag = TRUE;
+	}
+
+	for ( n = 0 ; n < pad ; n += 64 )
+		tmp.Apend(padimage, ((pad - n) >= 64 ? 64 : (pad - n)));
 
 	m_EncCip.Cipher(tmp.GetPtr(), tmp.GetSize(), &enc);
 
@@ -1895,38 +1941,37 @@ int Cssh::SSH2MsgChannelOpen(CBuffer *bp)
 
 		return FALSE;
 
-	} else if ( type.CompareNoCase("forwarded-tcpip") != 0 )
-		goto FAILURE;
+	} else if ( type.CompareNoCase("forwarded-tcpip") == 0 ) {
+		bp->GetStr(host[0]);
+		port[0] = bp->Get32Bit();
+		bp->GetStr(host[1]);
+		port[1] = bp->Get32Bit();
 
-	bp->GetStr(host[0]);
-	port[0] = bp->Get32Bit();
-	bp->GetStr(host[1]);
-	port[1] = bp->Get32Bit();
+		for ( i = 0 ; i < m_Permit.GetSize() ; i++ ) {
+			if ( port[0] == m_Permit[i].m_rPort )
+				break;
+		}
 
-	for ( i = 0 ; i < m_Permit.GetSize() ; i++ ) {
-		if ( port[0] == m_Permit[i].m_rPort )
-			break;
+		if ( i >=  m_Permit.GetSize() ) {
+			str.Format("Channel Open Permit Failure %s:%d->%s:%d", host[0], port[0], host[1], port[1]);
+			AfxMessageBox(str);
+			goto FAILURE;
+		}
+
+		m_Chan[n].m_Status |= CHAN_OPEN_REMOTE;
+		m_Chan[n].m_lHost = host[1];
+		m_Chan[n].m_lPort = port[1];
+		m_Chan[n].m_rHost = host[0];
+		m_Chan[n].m_rPort = port[0];
+
+		if ( (i = m_Chan[n].Open(m_Permit[i].m_lHost, m_Permit[i].m_lPort)) < 0 ) {
+			str.Format("Channel Open Failure %s:%d->%s:%d", host[0], port[0], host[1], port[1]);
+			AfxMessageBox(str);
+			goto FAILURE;
+		}
+
+		return FALSE;
 	}
-
-	if ( i >=  m_Permit.GetSize() ) {
-		str.Format("Channel Open Permit Failure %s:%d->%s:%d", host[0], port[0], host[1], port[1]);
-		AfxMessageBox(str);
-		goto FAILURE;
-	}
-
-	m_Chan[n].m_Status |= CHAN_OPEN_REMOTE;
-	m_Chan[n].m_lHost = host[1];
-	m_Chan[n].m_lPort = port[1];
-	m_Chan[n].m_rHost = host[0];
-	m_Chan[n].m_rPort = port[0];
-
-	if ( (i = m_Chan[n].Open(m_Permit[i].m_lHost, m_Permit[i].m_lPort)) < 0 ) {
-		str.Format("Channel Open Failure %s:%d->%s:%d", host[0], port[0], host[1], port[1]);
-		AfxMessageBox(str);
-		goto FAILURE;
-	}
-
-	return FALSE;
 
 FAILURE:
 	ChannelClose(n);
@@ -2036,6 +2081,14 @@ int Cssh::SSH2MsgChannelRequesst(CBuffer *bp)
 
 	if ( str.Compare("exit-status") == 0 ) {
 		bp->Get32Bit();
+		if ( id == m_StdChan )
+			m_SSH2Status &= ~SSH2_STAT_HAVESHELL;
+	
+	} else if ( str.Compare("exit-signal") == 0 ) {
+		bp->GetStr(str);
+		bp->Get8Bit();
+		bp->GetStr(str);
+		bp->GetStr(str);
 		if ( id == m_StdChan )
 			m_SSH2Status &= ~SSH2_STAT_HAVESHELL;
 	}

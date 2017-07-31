@@ -400,7 +400,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.8.0 (2010/04/05)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.8.1 (2010/04/12)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2010 Culti",IDC_STATIC,47,15,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,148,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.0 Mar 29th, 2010",IDC_STATIC,47,29,176,8
@@ -617,35 +617,39 @@ STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "ターミナル"
 FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
 BEGIN
-    PUSHBUTTON      "ESC/CSI",IDC_ESCEDIT,187,18,40,14
-    CONTROL         "",IDC_ESCLIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,14,35,223,58
-    CONTROL         "ボールド文字を有効にする",IDC_TERMCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,122,158,10
-    CONTROL         "行末でのディレイ改行を無効にする",IDC_TERMCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,137,158,10
-    CONTROL         "ESC[mで消去文字の属性も適用する",IDC_TERMCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,152,158,10
-    CONTROL         "UnicodeのAタイプの文字を半角として表示する",IDC_TERMCHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,167,158,10
-    CONTROL         "漢字コードエラー時に自動で変更する",IDC_TERMCHECK6,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,182,158,10
+    PUSHBUTTON      "ESC/CSI",IDC_ESCEDIT,187,16,40,14
+    CONTROL         "",IDC_ESCLIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,14,33,223,53
+    CONTROL         "ボールド文字を有効にする",IDC_TERMCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,110,158,10
+    CONTROL         "行末でのディレイ改行を無効にする",IDC_TERMCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,125,158,10
+    CONTROL         "ESC[mで消去文字の属性も適用する",IDC_TERMCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,140,158,10
+    CONTROL         "UnicodeのAタイプの文字を半角として表示する",IDC_TERMCHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,155,158,10
+    CONTROL         "漢字コードエラー時に自動で変更する",IDC_TERMCHECK6,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,170,158,10
+    CONTROL         "リポート無効",IDC_TERMCHECK7,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,79,185,48,10
+    CONTROL         "変更を無効",IDC_TERMCHECK8,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,134,185,48,10
+    COMBOBOX        IDC_COMBO3,187,183,40,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     CONTROL         "通信ログを年月日を付けて自動作成する",IDC_TERMCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,216,159,10
     PUSHBUTTON      "...",IDC_AUTOLOG_SEL,187,213,40,14
     COMBOBOX        IDC_COMBO1,187,229,40,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_COMBO2,187,245,40,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    GROUPBOX        "エスケープシーケンス",IDC_STATIC,7,7,237,93
-    CTEXT           "kterm",IDC_STATIC,181,112,25,8
-    CTEXT           "cons25",IDC_STATIC,208,112,25,8
-    CTEXT           "■",IDC_STATIC,191,124,8,8,SS_CENTERIMAGE
-    CTEXT           "■",IDC_STATIC,216,139,8,8,SS_CENTERIMAGE
-    CTEXT           "■",IDC_STATIC,216,154,8,8,SS_CENTERIMAGE
-    GROUPBOX        "オプション",IDC_STATIC,7,105,237,93
-    CTEXT           "□",IDC_STATIC,216,169,8,8
-    CTEXT           "□",IDC_STATIC,191,169,8,8
-    CTEXT           "□",IDC_STATIC,191,154,8,8
-    CTEXT           "□",IDC_STATIC,191,139,8,8
-    CTEXT           "□",IDC_STATIC,216,124,8,8
+    GROUPBOX        "エスケープシーケンス",IDC_STATIC,7,7,237,86
+    GROUPBOX        "オプション",IDC_STATIC,7,96,237,105
     GROUPBOX        "通信ログ",IDC_STATIC,7,203,237,60
     LTEXT           "ファイルに保存する通信ログの形式を選択",IDC_STATIC,26,232,150,8
     LTEXT           "ログの文字コードを選択(RAWモード以外で有効）",IDC_STATIC,26,248,150,8
-    CTEXT           "□",IDC_STATIC,216,184,8,8
-    CTEXT           "□",IDC_STATIC,191,184,8,8
-    LTEXT           "ESC/CSIシーケンスを個別に設定します",IDC_STATIC,26,21,150,8
+    LTEXT           "ESC/CSIシーケンスを個別に設定します",IDC_STATIC,26,19,150,8
+    CTEXT           "kterm",IDC_STATIC,181,102,25,8
+    CTEXT           "■",IDC_STATIC,191,112,8,8,SS_CENTERIMAGE
+    CTEXT           "cons25",IDC_STATIC,208,102,25,8
+    CTEXT           "■",IDC_STATIC,216,127,8,8,SS_CENTERIMAGE
+    CTEXT           "■",IDC_STATIC,216,142,8,8,SS_CENTERIMAGE
+    CTEXT           "□",IDC_STATIC,216,157,8,8
+    CTEXT           "□",IDC_STATIC,191,157,8,8
+    CTEXT           "□",IDC_STATIC,191,142,8,8
+    CTEXT           "□",IDC_STATIC,191,127,8,8
+    CTEXT           "□",IDC_STATIC,216,112,8,8
+    CTEXT           "□",IDC_STATIC,216,172,8,8
+    CTEXT           "□",IDC_STATIC,191,172,8,8
+    LTEXT           "タイトルの設定",IDC_STATIC,26,185,48,8
 END
 
 IDD_PROTOPAGE DIALOGEX 0, 0, 251, 270
@@ -740,7 +744,7 @@ BEGIN
     GROUPBOX        "Character Set",IDC_STATIC,7,7,237,30
     GROUPBOX        "GL",IDC_STATIC,7,41,22,96
     GROUPBOX        "GR",IDC_STATIC,40,41,22,96
-    GROUPBOX        "Charactor Bank",IDC_STATIC,74,41,170,96
+    GROUPBOX        "Character Bank",IDC_STATIC,74,41,170,96
     GROUPBOX        "Fonts Set",IDC_STATIC,7,145,237,118
     COMBOBOX        IDC_FONTNUM,45,242,21,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP,WS_EX_RIGHT
     LTEXT           "Alt.Font",IDC_STATIC,15,244,24,8
@@ -1187,8 +1191,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,8,0,0
- PRODUCTVERSION 2,8,0,0
+ FILEVERSION 2,8,1,0
+ PRODUCTVERSION 2,8,1,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1205,12 +1209,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2, 8, 0, 0"
+            VALUE "FileVersion", "2, 8, 1, 0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2008 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2, 8, 0, 0"
+            VALUE "ProductVersion", "2, 8, 1, 0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2048,6 +2052,14 @@ END
 
 IDD_TERMPAGE DLGINIT
 BEGIN
+    IDC_COMBO3, 0x403, 6, 0
+0x6e45, 0x7274, 0x0079, 
+    IDC_COMBO3, 0x403, 5, 0
+0x6f48, 0x7473, "\000" 
+    IDC_COMBO3, 0x403, 5, 0
+0x6f50, 0x7472, "\000" 
+    IDC_COMBO3, 0x403, 5, 0
+0x7355, 0x7265, "\000" 
     IDC_COMBO1, 0x403, 4, 0
 0x4152, 0x0057, 
     IDC_COMBO1, 0x403, 5, 0

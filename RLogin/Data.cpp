@@ -2395,7 +2395,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-static const struct {
+static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
 } CmdsKeyTab[] = {
@@ -2736,14 +2736,14 @@ void CKeyMacTab::SetHisMenu(CWnd *pWnd)
 //////////////////////////////////////////////////////////////////////
 // CParamTab
 
-static const char *InitAlgo[9][44] = {
+static const char *InitAlgo[9][40] = {
 	{ "blowfish", "3des", "des", NULL },
 	{ "crc32", NULL },
 	{ "zlib", "none", NULL },
 
-	{ "arcfour",						"arcfour128",					"arcfour256",
-	  "aes128-ctr",						"aes192-ctr",					"aes256-ctr",
+	{ "aes128-ctr",						"aes192-ctr",					"aes256-ctr",
 	  "aes128-cbc",						"aes192-cbc",					"aes256-cbc",
+	  "arcfour",						"arcfour128",					"arcfour256",
 	  "blowfish-ctr",					"cast128-ctr",					"idea-ctr",
 	  "twofish-ctr",					"3des-ctr",
 	  "blowfish-cbc",					"cast128-cbc",					"idea-cbc",
@@ -2754,16 +2754,15 @@ static const char *InitAlgo[9][44] = {
 	  "serpent128-cbc",					"serpent192-cbc",				"serpent256-cbc",
 	  "camellia128-ctr@openssh.org",	"camellia192-ctr@openssh.org",	"camellia256-ctr@openssh.org",
 	  "camellia128-cbc@openssh.org",	"camellia192-cbc@openssh.org",	"camellia256-cbc@openssh.org",
-	  "seed128-ctr@ssh.com",			"seed192-ctr@ssh.com",			"seed256-ctr@ssh.com",
-	  "seed128-cbc@ssh.com",			"seed192-cbc@ssh.com",			"seed256-cbc@ssh.com",
+	  "seed-ctr@ssh.com",				"seed-cbc@ssh.com",
 	  NULL },
 	{ "hmac-sha1", "hmac-md5", "hmac-ripemd160", "hmac-sha256", "hmac-sha512", "hmac-whirlpool",
 	  "hmac-sha1-96", "hmac-md5-96", "hmac-sha256@ssh.com", NULL },
 	{ "zlib@openssh.com", "zlib", "none", NULL },
 
-	{ "arcfour",						"arcfour128",					"arcfour256",
-	  "aes128-ctr",						"aes192-ctr",					"aes256-ctr",
+	{ "aes128-ctr",						"aes192-ctr",					"aes256-ctr",
 	  "aes128-cbc",						"aes192-cbc",					"aes256-cbc",
+	  "arcfour",						"arcfour128",					"arcfour256",
 	  "blowfish-ctr",					"cast128-ctr",					"idea-ctr",
 	  "twofish-ctr",					"3des-ctr",
 	  "blowfish-cbc",					"cast128-cbc",					"idea-cbc",
@@ -2774,8 +2773,7 @@ static const char *InitAlgo[9][44] = {
 	  "serpent128-cbc",					"serpent192-cbc",				"serpent256-cbc",
 	  "camellia128-ctr@openssh.org",	"camellia192-ctr@openssh.org",	"camellia256-ctr@openssh.org",
 	  "camellia128-cbc@openssh.org",	"camellia192-cbc@openssh.org",	"camellia256-cbc@openssh.org",
-	  "seed128-ctr@ssh.com",			"seed192-ctr@ssh.com",			"seed256-ctr@ssh.com",
-	  "seed128-cbc@ssh.com",			"seed192-cbc@ssh.com",			"seed256-cbc@ssh.com",
+	  "seed-ctr@ssh.com",				"seed-cbc@ssh.com",
 	  NULL },
 	{ "hmac-sha1", "hmac-md5", "hmac-ripemd160", "hmac-sha256", "hmac-sha512", "hmac-whirlpool",
 	  "hmac-sha1-96", "hmac-md5-96", "hmac-sha256@ssh.com", NULL },
@@ -2836,6 +2834,7 @@ void CParamTab::GetArray(CStringArrayExt &array)
 	CIdKey key;
 	CRLoginApp *pApp  = (CRLoginApp *)AfxGetApp();
 	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
+	CStringBinary idx;
 
 	for ( n = 0 ; n < 9 ; n++ ) {
 		if ( (n % 3) == 2 )
@@ -2844,11 +2843,21 @@ void CParamTab::GetArray(CStringArrayExt &array)
 			m_IdKeyStr[n] = array.GetAt(i++);
 	}
 
+
 	for ( n = 0 ; n < 9 ; n++ ) {
 		array.GetArray(i++, m_AlgoTab[n]);
+
+		idx.RemoveAll();
 		for ( a = 0 ; InitAlgo[n][a] != NULL ; a++ ) {
 			if ( m_AlgoTab[n].Find(InitAlgo[n][a]) < 0 )
 				m_AlgoTab[n].Add(InitAlgo[n][a]);
+			idx[InitAlgo[n][a]] = a;
+		}
+		for ( a = 0 ; a < m_AlgoTab[n].GetSize() ; a++ ) {
+			if ( idx[m_AlgoTab[n][a]] < 0 ) {
+				m_AlgoTab[n].RemoveAt(a);
+				a--;
+			}
 		}
 	}
 

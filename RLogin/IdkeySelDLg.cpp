@@ -352,7 +352,7 @@ void CIdkeySelDLg::OnIdkeyExport()
 		return;
 
 	CIdKeyFileDlg dlg;
-	dlg.m_OpenMode = 2;
+	dlg.m_OpenMode = 1;
 	dlg.m_Title = "SSH鍵ファイルの保存";
 	dlg.m_Message = "作成時に設定したパスフレーズを入力してください。"\
 					"パスフレーズが一致しないと保存できません";

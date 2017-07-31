@@ -93,6 +93,8 @@ public:
 	void OnDelayRecive(int ch);
 	inline void ClearActCount() { m_ActCharCount = 0; }
 	inline void IncActCount() { m_ActCharCount++; }
+	inline void SetActCount() { m_ActCharCount = 2048; }
+	inline BOOL IsActCount() { return (m_ActCharCount >= 2048 ? TRUE : FALSE); }
 
 	int SocketOpen();
 	void SocketClose();

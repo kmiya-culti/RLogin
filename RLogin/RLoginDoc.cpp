@@ -220,12 +220,29 @@ void CRLoginDoc::SetStatus(LPCSTR str)
 {
 	int n;
 	CString tmp;
-	CString title = m_ServerEntry.m_EntryName;
+	CString title;
 
-	if ( str != NULL && *str != '\0' )
+	switch(m_TextRam.m_TitleMode & 0007) {
+	case WTTL_ENTRY:
+		title = m_ServerEntry.m_EntryName;
+		break;
+	case WTTL_HOST:
+		title = m_ServerEntry.m_HostName;
+		break;
+	case WTTL_PORT:
+		title.Format("%s:%d", m_ServerEntry.m_HostName, CExtSocket::GetPortNum(m_ServerEntry.m_PortName));
+		break;
+	case WTTL_USER:
+		title = m_ServerEntry.m_UserName;
+		break;
+	}
+
+	if ( str != NULL && *str != '\0' ) {
+		((CMainFrame *)AfxGetMainWnd())->SetMessageText(str);
 		m_TitleString = str;
+	}
 
-	if ( !m_TitleString.IsEmpty() ) {
+	if ( !m_TitleString.IsEmpty() && (m_TextRam.m_TitleMode & WTTL_ALGO) != 0 ) {
 		tmp.Format("(%s)", m_TitleString);
 		title += tmp;
 	}
@@ -587,22 +604,25 @@ void CRLoginDoc::OnSocketClose()
 int CRLoginDoc::OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags)
 {
 	int n;
+	BOOL sync = FALSE;
 
 //	TRACE("OnSocketRecive %d(%d)Byte\n", nBufLen, m_ActCharCount);
 
 	if ( nFlags != 0 )
 		return nBufLen;
 
-	if ( m_ActCharCount > 2048 ) {
+	if ( IsActCount() ) {
 		if ( !m_pMainWnd->IsIconic() )
 			return 0;
-		m_ActCharCount = 0;
+		ClearActCount();
 	}
 
 	if ( nBufLen > 4096 )
 		nBufLen = 4096;
 
-	if ( (n = m_TextRam.Write(lpBuf, nBufLen)) < nBufLen ) {
+	n = m_TextRam.Write(lpBuf, nBufLen, &sync);
+
+	if ( sync ) {
 		m_pSock->SetRecvSyncMode(TRUE);
 		if ( lpBuf[n] == 0x18 ) {	// CAN
 			if ( m_pZModem == NULL )
@@ -617,8 +637,8 @@ int CRLoginDoc::OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags)
 				m_pBPlus = new CBPlus(this, AfxGetMainWnd());
 			m_pBPlus->DoProc(lpBuf[n]);
 		}
-		nBufLen = n;
 	}
+	nBufLen = n;
 
 	if ( m_pLogFile != NULL && m_TextRam.IsOptValue(TO_RLLOGMODE, 2) == 0 )
 		m_pLogFile->Write(lpBuf, nBufLen);
