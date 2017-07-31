@@ -822,6 +822,8 @@ int ScriptIdle();
 
 BOOL CRLoginApp::OnIdle(LONG lCount) 
 {
+	BOOL rt = FALSE;
+
 	if ( CWinApp::OnIdle(lCount) )
 		return TRUE;
 
@@ -836,16 +838,16 @@ BOOL CRLoginApp::OnIdle(LONG lCount)
 		ASSERT(pSock->m_Type >= 0 && pSock->m_Type < 10 );
 
 		if ( pSock->OnIdle() )
-			return TRUE;
+			rt = TRUE;
 	}
 
 	if ( mt_idle() )
-		return TRUE;
+		rt = TRUE;
 
 	if ( ScriptIdle() )
-		return TRUE;
+		rt = TRUE;
 
-	return FALSE;
+	return rt;
 }
 
 int CRLoginApp::ExitInstance() 

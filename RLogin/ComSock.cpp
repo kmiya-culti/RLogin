@@ -31,12 +31,94 @@ CComSock::CComSock(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 	m_Type     = ESCT_COMDEV;
 
 	memset(&m_ComConf, 0, sizeof(COMMCONFIG));
+
+	m_ThreadEnd   = FALSE;
+	m_pReadEvent  = new CEvent(FALSE, TRUE);
+	m_pWriteEvent = new CEvent(FALSE, TRUE);
+	m_pEndEvent   = new CEvent(FALSE, TRUE);
+
+	memset(&m_ReadOverLap,  0, sizeof(OVERLAPPED));
+	memset(&m_WriteOverLap, 0, sizeof(OVERLAPPED));
+
+	m_ReadOverLap.hEvent  = CreateEvent(NULL, TRUE, FALSE, NULL);
+	m_WriteOverLap.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+
+	m_UseReadOverLap  = FALSE;
+	m_UseWriteOverLap = FALSE;
+
+	m_EventMask = 0;
+	m_EventCode = 0;
+
+	SetRecvBufSize(1024);
 }
 CComSock::~CComSock()
 {
 	Close();
+	delete m_pReadEvent;
+	delete m_pWriteEvent;
+	delete m_pEndEvent;
 }
 
+#define	DEBUGLOG(...)
+
+//void CComSock::DEBUGLOG(LPCSTR str, ...)
+//{
+//	CStringA tmp;
+//	va_list arg;
+//	va_start(arg, str);
+//	tmp.FormatV(str, arg);
+////	OnReciveCallBack((void *)(LPCSTR)tmp, tmp.GetLength(), 0);
+//	TRACE(tmp);
+//	va_end(arg);
+//}
+
+static UINT ComEventThread(LPVOID pParam)
+{
+	LPARAM fd;
+	DWORD Mask;
+	COMSTAT comstat;
+	CComSock *pSock = (CComSock *)pParam;
+
+	while ( !pSock->m_ThreadEnd ) {
+		if ( (pSock->m_EventMask & EV_RXCHAR) != 0 && ClearCommError(pSock->m_hCom, &Mask, &comstat) && comstat.cbInQue > 0 ) {
+			pSock->m_pReadEvent->ResetEvent();
+			pSock->m_EventCode = EV_RXCHAR;
+			AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)pSock->m_hCom, FD_READ);
+			WaitForSingleObject(pSock->m_pReadEvent->m_hObject, INFINITE);
+		}
+		if ( WaitCommEvent(pSock->m_hCom, &Mask, NULL) ) {
+			fd = 0;
+			if ( (Mask & (EV_RXCHAR | EV_RX80FULL | EV_DSR | EV_RLSD | EV_ERR)) != 0 ) {
+				fd |= FD_READ;
+				pSock->m_pReadEvent->ResetEvent();
+			}
+			if ( (Mask & (EV_TXEMPTY | EV_CTS | EV_RING | EV_RLSD | EV_ERR)) != 0 ) {
+				fd |= FD_WRITE;
+				pSock->m_pWriteEvent->ResetEvent();
+			}
+			if ( fd == 0 )
+				continue;
+			pSock->m_EventCode = Mask;
+			AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)pSock->m_hCom, fd);
+			if ( (fd & FD_READ) != 0 )
+				WaitForSingleObject(pSock->m_pReadEvent->m_hObject, INFINITE);
+			if ( (fd & FD_WRITE) != 0 )
+				WaitForSingleObject(pSock->m_pWriteEvent->m_hObject, INFINITE);
+		} else
+	      ClearCommError(pSock->m_hCom, &Mask, NULL);
+	}
+	pSock->m_pEndEvent->SetEvent();
+	return 0;
+}
+
+void CComSock::ModEventMask(DWORD add, DWORD del)
+{
+	m_EventMask |= add;
+	m_EventMask &= ~del;
+
+	if ( m_hCom != NULL )
+		SetCommMask(m_hCom, m_EventMask);
+}
 BOOL CComSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
 {
 	Close();
@@ -45,7 +127,7 @@ BOOL CComSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, i
 	CString tmp;
 	tmp.Format((m_ComPort >= 10 ? _T("\\\\.\\COM%d") : _T("COM%d")), m_ComPort);
 
-	if ( (m_hCom = CreateFile(tmp, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL)) == NULL ) {
+	if ( (m_hCom = CreateFile(tmp, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL)) == NULL ) {
 		CString errmsg;
 		errmsg.Format(_T("ComSocket Open Error '%s'"), lpszHostAddress);
 		AfxMessageBox(errmsg, MB_ICONSTOP);
@@ -58,6 +140,7 @@ BOOL CComSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, i
 
 	SetConfig();
 	SetCommState(m_hCom, &(m_ComConf.dcb));
+	PurgeComm(m_hCom, PURGE_TXABORT | PURGE_RXABORT);
 	m_SaveFlowCtrl = m_FlowCtrl;
 
 	m_ComTime.ReadIntervalTimeout         = 0;
@@ -65,10 +148,19 @@ BOOL CComSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, i
 	m_ComTime.ReadTotalTimeoutConstant    = 10;
 	m_ComTime.WriteTotalTimeoutMultiplier = 0;
 	m_ComTime.WriteTotalTimeoutConstant   = 10;
-
 	SetCommTimeouts(m_hCom, &m_ComTime);
 
-	GetApp()->SetSocketIdle(this);
+	ModEventMask(EV_RXCHAR | EV_RX80FULL | EV_DSR | EV_CTS | EV_RING | EV_RLSD | EV_ERR, 0);
+
+//	GetApp()->SetSocketIdle(this);
+	GetMainWnd()->SetAsyncSelect((SOCKET)m_hCom, this, 0);
+
+	m_UseReadOverLap  = FALSE;
+	m_UseWriteOverLap = FALSE;
+
+	m_ThreadEnd = FALSE;
+	m_pEndEvent->ResetEvent();
+	AfxBeginThread(ComEventThread, this, THREAD_PRIORITY_NORMAL);
 
 	if ( m_pDocument != NULL )
 		m_pDocument->OnSocketConnect();
@@ -83,9 +175,20 @@ void CComSock::Close()
 {
 	if ( m_hCom == NULL )
 		return;
+
+	//	GetApp()->DelSocketIdle(this);
+	GetMainWnd()->DelAsyncSelect((SOCKET)m_hCom, this, FALSE);
+
+	m_ThreadEnd = TRUE;
+	m_pReadEvent->SetEvent();
+	m_pWriteEvent->SetEvent();
+	m_EventMask = 0;
+	SetCommMask(m_hCom, 0);
+	WaitForSingleObject(m_pEndEvent->m_hObject, INFINITE);
+
+	PurgeComm(m_hCom, PURGE_TXABORT | PURGE_RXABORT | PURGE_TXCLEAR | PURGE_RXCLEAR);
 	CloseHandle(m_hCom);
 	m_hCom = NULL;
-	GetApp()->DelSocketIdle(this);
 }
 void CComSock::SendBreak(int opt)
 {
@@ -99,14 +202,33 @@ int CComSock::Send(const void* lpBuf, int nBufLen, int nFlags)
 {
 	DWORD n = 0;
 
-	if ( m_SendBuff.GetSize() > 0 )
-		m_SendBuff.Apend((LPBYTE)lpBuf, nBufLen);
-	else {
-		if ( m_hCom != NULL )
-			WriteFile(m_hCom, lpBuf, nBufLen, &n, NULL);
-		if ( (nBufLen -= n) > 0 )
-			m_SendBuff.Apend((LPBYTE)lpBuf + n, nBufLen);
-	}
+	m_SendBuff.Apend((LPBYTE)lpBuf, nBufLen);
+	if ( m_UseWriteOverLap == FALSE ) {
+		while ( (m_WriteOverLapByte = m_SendBuff.GetSize()) > 0 ) {
+			if ( (m_EventMask & EV_TXEMPTY) == 0 )
+				ModEventMask(EV_TXEMPTY, 0);
+			if ( m_WriteOverLapByte > 1024 ) 
+				m_WriteOverLapByte = 1024;
+			memcpy(m_WriteOverLapBuf, m_SendBuff.GetPtr(), m_WriteOverLapByte);
+			if ( WriteFile(m_hCom, m_WriteOverLapBuf, m_WriteOverLapByte, &n, &m_WriteOverLap) ) {
+				DEBUGLOG("Send Write %d(%d)\r\n", m_WriteOverLapByte, n);
+				m_SendBuff.Consume(n);
+				continue;
+			} else if ( ::GetLastError() != ERROR_IO_PENDING ) {
+				DEBUGLOG("Send Write Error %d\r\n", m_WriteOverLapByte);
+				ClearCommError(m_hCom, &n, NULL);
+				break;
+			}
+			DEBUGLOG("Send OverLap Wait %d\r\n", m_WriteOverLapByte);
+			m_UseWriteOverLap = TRUE;
+			break;
+		}
+		if ( !m_UseWriteOverLap && (m_EventMask & EV_TXEMPTY) != 0 )
+			ModEventMask(0, EV_TXEMPTY);
+
+	} else if ( (m_EventMask & EV_TXEMPTY) == 0 )
+			ModEventMask(EV_TXEMPTY, 0);
+
 	return nBufLen;
 }
 void CComSock::SetXonXoff(int sw)
@@ -118,26 +240,125 @@ void CComSock::SetXonXoff(int sw)
 	SetCommState(m_hCom, &(m_ComConf.dcb));
 }
 
-int CComSock::OnIdle()
+void CComSock::OnRecvEmpty()
+{
+	if ( (m_EventMask & EV_RXCHAR) == 0 )
+		ModEventMask(EV_RXCHAR | EV_RX80FULL, 0);
+}
+void CComSock::OnRecive(int nFlags)
 {
 	DWORD n = 0;
-	BYTE tmp[4096];
-
-	if ( CExtSocket::OnIdle() )
-		return TRUE;
+	DWORD comerr;
+	COMSTAT comstat;
 
 	if ( m_hCom == NULL )
-		return FALSE;
+		goto ENDRET;
 
-	if ( m_SendBuff.GetSize() > 0 ) {
-		if ( WriteFile(m_hCom, m_SendBuff.GetPtr(), m_SendBuff.GetSize(), &n, NULL) && n > 0 )
-			m_SendBuff.Consume(n);
+	if ( m_UseReadOverLap ) {
+		if ( GetOverlappedResult(m_hCom, &m_ReadOverLap, &n, FALSE) ) {
+			DEBUGLOG("OnRecive OverLap %d:%d\r\n", n, m_EventCode);
+			OnReciveCallBack(m_ReadOverLapBuf, n, 0);
+			m_UseReadOverLap = FALSE;
+		} else if ( (n = ::GetLastError()) != ERROR_IO_INCOMPLETE && n != ERROR_IO_PENDING ) {
+			DEBUGLOG("OnRecive OverLap Error %d\r\n", n);
+			m_UseReadOverLap = FALSE;
+			ClearCommError(m_hCom, &n, NULL);
+			goto ENDRET;
+		} else {
+			DEBUGLOG("OnRecive OverLap incomplete %d\r\n", m_EventCode);
+		}
 	}
 
-	for ( n = 0 ; ReadFile(m_hCom, tmp, 4096, &n, NULL) && n > 0 ; n = 0 )
-		OnReciveCallBack(tmp, n, 0);
+	if ( !m_UseReadOverLap && (m_EventMask & EV_RXCHAR) != 0 ) {
+		for ( ; ; ) {
+			if ( !ClearCommError(m_hCom, &comerr, &comstat) )
+				break;
+			DEBUGLOG("OnRecive InQue %d(%04x)\r\n", comstat.cbInQue, comerr);
+			if ( comstat.cbInQue <= 0 )
+				break;
+			if ( ReadFile(m_hCom, m_ReadOverLapBuf, (comstat.cbInQue < 1024 ? comstat.cbInQue : 1024), &n, &m_ReadOverLap) ) {
+				if ( n == 0 )
+					break;
+				DEBUGLOG("OnRecive Read %d\r\n", n);
+				OnReciveCallBack(m_ReadOverLapBuf, n, 0);
+			} else if ( ::GetLastError() == ERROR_IO_PENDING ) {
+				if ( GetOverlappedResult(m_hCom, &m_ReadOverLap, &n, TRUE) ) {
+					DEBUGLOG("OnRecive Read OverLap %d\r\n", n);
+					OnReciveCallBack(m_ReadOverLapBuf, n, 0);
+				} else {
+					DEBUGLOG("OnRecive OverLap Wait\r\n");
+					m_UseReadOverLap = TRUE;
+					break;
+				}
+			} else {
+				DEBUGLOG("OnRecive Read Error\r\n");
+				ClearCommError(m_hCom, &comerr, NULL);
+				break;
+			}
+			if ( IsOverFlow() ) {
+				DEBUGLOG("OnRecive OverFlow %d\r\n", GetRecvSize());
+				if ( (m_EventMask & EV_RXCHAR) != 0 )
+					ModEventMask(0, EV_RXCHAR | EV_RX80FULL);
+				break;
+			}
+		}
+	}
 
-	return TRUE;
+ENDRET:
+	m_pReadEvent->SetEvent();
+}
+void CComSock::OnSend()
+{
+	DWORD n = 0;
+
+	if ( m_hCom == NULL )
+		goto ENDRET;
+
+	if ( m_UseWriteOverLap ) {
+		if ( GetOverlappedResult(m_hCom, &m_WriteOverLap, &n, FALSE) ) {
+			DEBUGLOG("OnSend OverLap %d(%d):%d\r\n", m_WriteOverLapByte, n, m_EventCode);
+			m_SendBuff.Consume(n);
+			m_UseWriteOverLap = FALSE;
+		} else if ( (n = ::GetLastError()) != ERROR_IO_INCOMPLETE && n != ERROR_IO_PENDING ) {
+			DEBUGLOG("OnSend OverLap Error %d\r\n", n);
+			ModEventMask(0, EV_TXEMPTY);
+			m_UseWriteOverLap = FALSE;
+			ClearCommError(m_hCom, &n, NULL);
+			goto ENDRET;
+		} else {
+			DEBUGLOG("OnSend OverLap incomplete %d\r\n", m_EventCode);
+		}
+	}
+
+	if ( !m_UseWriteOverLap ) {
+		while ( (m_WriteOverLapByte = m_SendBuff.GetSize()) > 0 ) {
+			if ( (m_EventMask & EV_TXEMPTY) == 0 )
+				ModEventMask(EV_TXEMPTY, 0);
+			if ( m_WriteOverLapByte > 1024 )
+				m_WriteOverLapByte = 1024;
+			memcpy(m_WriteOverLapBuf, m_SendBuff.GetPtr(), m_WriteOverLapByte);
+			if ( WriteFile(m_hCom, m_WriteOverLapBuf, m_WriteOverLapByte, &n, &m_WriteOverLap) ) {
+				DEBUGLOG("OnSend Write %d(%d)\r\n", m_WriteOverLapByte, n);
+				m_SendBuff.Consume(n);
+				continue;
+			} else if ( ::GetLastError() != ERROR_IO_PENDING ) {
+				DEBUGLOG("OnSend Write Error %d\r\n", m_WriteOverLapByte);
+				ClearCommError(m_hCom, &n, NULL);
+				break;
+			}
+			DEBUGLOG("OnSend Write OverLap Wait %d\r\n", m_WriteOverLapByte);
+			m_UseWriteOverLap = TRUE;
+			break;
+		}
+		if ( !m_UseWriteOverLap ) {
+			DEBUGLOG("OnSend Write Disable\r\n");
+			if ( (m_EventMask & EV_TXEMPTY) != 0 )
+				ModEventMask(0, EV_TXEMPTY);
+		}
+	}
+
+ENDRET:
+	m_pWriteEvent->SetEvent();
 }
 
 static struct _ComTab {

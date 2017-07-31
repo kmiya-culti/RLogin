@@ -236,6 +236,7 @@ public:
 	void SyncAbort();
 
 	inline int IsOpen() { return (m_Fd == (-1) ? FALSE  : TRUE); }
+	inline BOOL IsOverFlow() { return (GetRecvSize() > RECVMAXSIZ ? TRUE : FALSE); }
 	inline int GetLastError() { return 0; }
 	inline class CRLoginDoc *GetDocument() { return m_pDocument; }
 	inline class CMainFrame *GetMainWnd() { return (class CMainFrame *)AfxGetMainWnd(); }

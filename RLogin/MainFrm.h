@@ -149,7 +149,7 @@ public:
 	void SetIconData(HICON hIcon, LPCTSTR str);
 
 	int SetAsyncSelect(SOCKET fd, CExtSocket *pSock, long lEvent = 0);
-	void DelAsyncSelect(SOCKET fd, CExtSocket *pSock);
+	void DelAsyncSelect(SOCKET fd, CExtSocket *pSock, BOOL useWsa = TRUE);
 	int SetAsyncHostAddr(int mode, LPCTSTR pHostName, CExtSocket *pSock);
 	int SetAsyncAddrInfo(int mode, LPCTSTR pHostName, int PortNum, void *pHint, CExtSocket *pSock);
 	int OpenServerEntry(CServerEntry &Entry);

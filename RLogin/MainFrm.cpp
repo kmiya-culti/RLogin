@@ -779,9 +779,10 @@ int CMainFrame::SetAsyncSelect(SOCKET fd, CExtSocket *pSock, long lEvent)
 	return TRUE;
 }
 
-void CMainFrame::DelAsyncSelect(SOCKET fd, CExtSocket *pSock)
+void CMainFrame::DelAsyncSelect(SOCKET fd, CExtSocket *pSock, BOOL useWsa)
 {
-	WSAAsyncSelect(fd, GetSafeHwnd(), 0, 0);
+	if ( useWsa )
+		WSAAsyncSelect(fd, GetSafeHwnd(), 0, 0);
 
 	((CRLoginApp *)AfxGetApp())->DelSocketIdle(pSock);
 
