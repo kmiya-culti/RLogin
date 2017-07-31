@@ -36,104 +36,106 @@ static const struct _OptListTab {
 	int		num;
 	LPCTSTR	ename;
 	LPCTSTR	dname;
+	LPCTSTR tip;
 } OptListTab[] = {
 	// ANSI Screen Option	0-99(200-299)
-	{	TO_ANSIKAM,		_T("キー入力を無視"),				_T("キー入力を有効")				},
-	{	TO_ANSIIRM,		_T("挿入モード"),					_T("上書きモード")					},
-	{	TO_ANSIERM,		_T("SPAの保護を無効"),				_T("SPAの保護を有効")				},
-	{	TO_ANSISRM,		_T("ローカルエコーを無効"),			_T("ローカルエコーを有効")			},
-	{	TO_ANSITSM,		_T("各行別のタブ設定"),				_T("全行で同じタブ設定")			},
-	{	TO_ANSILNM,		_T("LF/VT/FFで行頭に移動"),			_T("LF/VT/FFで通常動作")			},
+	{	TO_ANSIKAM,		_T("キー入力を無視"),				_T("キー入力を有効"),				NULL	},
+	{	TO_ANSIIRM,		_T("挿入モード"),					_T("上書きモード"),					NULL	},
+	{	TO_ANSIERM,		_T("SPAの保護を無効"),				_T("SPAの保護を有効"),				NULL	},
+	{	TO_ANSISRM,		_T("ローカルエコーを無効"),			_T("ローカルエコーを有効"),			NULL	},
+	{	TO_ANSITSM,		_T("各行別のタブ設定"),				_T("全行で同じタブ設定"),			NULL	},
+	{	TO_ANSILNM,		_T("LF/VT/FFで行頭に移動"),			_T("LF/VT/FFで通常動作"),			NULL	},
 
 	// DEC Terminal Option	0-199
-	{	TO_DECCKM,		_T("CKM有効のキーコードを送信"),	_T("CKM無効のキーコードを送信")		},
-	{	TO_DECANM,		_T("VT100(ANSI)モード"),			_T("VT52モード")					},
-	{	TO_DECCOLM,		_T("132文字表示モード"),			_T("80文字表示モード")				},
-	{	TO_DECSCLM,		_T("スムーズスクロールモード"),		_T("ジャンプスクロールモード")		},
-	{	TO_DECSCNM,		_T("反転表示モード"),				_T("通常表示モード")				},
-	{	TO_DECOM,		_T("CUPでSTBMの影響を受ける"),		_T("CUPで常に同じ原点")				},
-	{	TO_DECAWM,		_T("行末のオートワープを有効"),		_T("行末を超える移動を行わない")	},
-	{	TO_XTMOSREP,	_T("マウスリポートを有効"),			_T("マウスリポートを無効")			},
-	{	TO_DECPEX,		_T("MCでSTBMの影響を受けない"),		_T("MCでSTRMの影響を受ける")		},
-	{	TO_DECTCEM,		_T("カーソルの表示"),				_T("カーソルを非表示")				},
-//	{	TO_DECTEK,		_T("Tekモードに移行"),				_T("Tekモードから抜ける")			},
-	{	TO_XTMCSC,		_T("132文字モード有効"),			_T("132文字モード無効")				},
-	{	TO_XTMCUS,		_T("タブ(HT)のバグ修正モード"),		_T("xtermタブバグ互換モード")		},
-	{	TO_XTMRVW,		_T("行頭BSによる上行右端移動"),		_T("行頭のBSで移動しない")			},
-	{	TO_XTMABUF,		_T("全画面の保存"),					_T("保存した画面の復帰")			},
-	{	TO_DECBKM,		_T("BSキー変換を行わない"),			_T("BSキーをDELキーに変換")			},
-	{	TO_DECLRMM,		_T("左右マージン有効"),				_T("左右マージン無効")				},
-	{	TO_DECSDM,		_T("Sixelを別ウィンドウで表示"),	_T("Sixelスクロールモード表示")		},
-	{	TO_DECNCSM,		_T("画面サイズ変更でクリアしない"),	_T("画面サイズ変更でクリアする")	},
-	{	TO_DECECM,		_T("SGRで空白文字を設定しない"),	_T("SGRで空白文字カラーを設定")		},
+	{	TO_DECCKM,		_T("CKM有効のキーコードを送信"),	_T("CKM無効のキーコードを送信"),	NULL	},
+	{	TO_DECANM,		_T("VT100(ANSI)モード"),			_T("VT52モード"),					NULL	},
+	{	TO_DECCOLM,		_T("132文字表示モード"),			_T("80文字表示モード"),				NULL	},
+	{	TO_DECSCLM,		_T("スムーズスクロールモード"),		_T("ジャンプスクロールモード"),		NULL	},
+	{	TO_DECSCNM,		_T("反転表示モード"),				_T("通常表示モード"),				NULL	},
+	{	TO_DECOM,		_T("CUPでSTBMの影響を受ける"),		_T("CUPで常に同じ原点"),			NULL	},
+	{	TO_DECAWM,		_T("行末のオートワープを有効"),		_T("行末を超える移動を行わない"),	NULL	},
+	{	TO_XTMOSREP,	_T("マウスリポートを有効"),			_T("マウスリポートを無効"),			NULL	},
+	{	TO_DECPEX,		_T("MCでSTBMの影響を受けない"),		_T("MCでSTRMの影響を受ける"),		NULL	},
+	{	TO_DECTCEM,		_T("カーソルの表示"),				_T("カーソルを非表示"),				NULL	},
+//	{	TO_DECTEK,		_T("Tekモードに移行"),				_T("Tekモードから抜ける"),			NULL	},
+	{	TO_XTMCSC,		_T("132文字モード有効"),			_T("132文字モード無効"),			NULL	},
+	{	TO_XTMCUS,		_T("タブ(HT)のバグ修正モード"),		_T("xtermタブバグ互換モード"),		NULL	},
+	{	TO_XTMRVW,		_T("行頭BSによる上行右端移動"),		_T("行頭のBSで移動しない"),			NULL	},
+	{	TO_XTMABUF,		_T("全画面の保存"),					_T("保存した画面の復帰"),			NULL	},
+	{	TO_DECBKM,		_T("BSキー変換を行わない"),			_T("BSキーをDELキーに変換"),		NULL	},
+	{	TO_DECLRMM,		_T("左右マージン有効"),				_T("左右マージン無効"),				NULL	},
+	{	TO_DECSDM,		_T("Sixelを別ウィンドウで表示"),	_T("Sixelスクロールモード表示"),	NULL	},
+	{	TO_DECNCSM,		_T("画面サイズ変更でクリアしない"),	_T("画面サイズ変更でクリアする"),	NULL	},
+	{	TO_DECECM,		_T("SGRで空白文字を設定しない"),	_T("SGRで空白文字カラーを設定"),	NULL	},
 
 	// XTerm Option			1000-1099(300-379)
-	{	TO_XTNOMTRK,	_T("Normal mouse tracking"),		_T("Mouse tracking 無効")			},
-	{	TO_XTHILTRK,	_T("Hilite mouse tracking"),		_T("Mouse tracking 無効")			},
-	{	TO_XTBEVTRK,	_T("Button-event mouse tracking"),	_T("Mouse tracking 無効")			},
-	{	TO_XTAEVTRK,	_T("Any-event mouse tracking"),		_T("Mouse tracking 無効")			},
-	{	TO_XTFOCEVT,	_T("フォーカスイベントの有効"),		_T("フォーカスイベント無効")		},
-	{	TO_XTEXTMOS,	_T("Extended Mouse Mode"),			_T("Disable Extended Mode")			},
-	{	TO_XTSGRMOS,	_T("SGR Mouse Mode"),				_T("Disable SGR Mode")				},
-	{	TO_XTURXMOS,	_T("URXVT Mouse Mode"),				_T("Disable URXVT Mode")			},
-	{	TO_XTALTSCR,	_T("全画面の保存"),					_T("保存した画面の復帰")			},
-	{	TO_XTSRCUR,		_T("カーソル位置の保存"),			_T("保存したカーソル位置の復帰")	},
-	{	TO_XTALTCLR,	_T("拡張画面に切り換え"),			_T("標準画面に切り換え")			},
+	{	TO_XTNOMTRK,	_T("Normal mouse tracking"),		_T("Mouse tracking 無効"),			NULL	},
+	{	TO_XTHILTRK,	_T("Hilite mouse tracking"),		_T("Mouse tracking 無効"),			NULL	},
+	{	TO_XTBEVTRK,	_T("Button-event mouse tracking"),	_T("Mouse tracking 無効"),			NULL	},
+	{	TO_XTAEVTRK,	_T("Any-event mouse tracking"),		_T("Mouse tracking 無効"),			NULL	},
+	{	TO_XTFOCEVT,	_T("フォーカスイベントの有効"),		_T("フォーカスイベント無効"),		NULL	},
+	{	TO_XTEXTMOS,	_T("Extended Mouse Mode"),			_T("Disable Extended Mode"),		NULL	},
+	{	TO_XTSGRMOS,	_T("SGR Mouse Mode"),				_T("Disable SGR Mode"),				NULL	},
+	{	TO_XTURXMOS,	_T("URXVT Mouse Mode"),				_T("Disable URXVT Mode"),			NULL	},
+	{	TO_XTALTSCR,	_T("全画面の保存"),					_T("保存した画面の復帰"),			NULL	},
+	{	TO_XTSRCUR,		_T("カーソル位置の保存"),			_T("保存したカーソル位置の復帰"),	NULL	},
+	{	TO_XTALTCLR,	_T("拡張画面に切り換え"),			_T("標準画面に切り換え"),			NULL	},
 
 	// XTerm Option 2		2000-2019(380-399)
-	{	TO_XTBRPAMD,	_T("Bracketed Paste Mode 有効"),	_T("Bracketed Paste Mode 無効")		},
+	{	TO_XTBRPAMD,	_T("Bracketed Paste Mode 有効"),	_T("Bracketed Paste Mode 無効"),	NULL	},
 
 	// RLogin Option		8400-8511(400-511)
-	{	TO_RLGCWA,		_T("SGRで空白属性を設定しない"),	_T("SGRで空白文字属性を設定")		},
-	{	TO_RLGNDW,		_T("行末での遅延改行無効"),			_T("行末での遅延改行有効")			},
-//	{	TO_RLGAWL,		_T("自動ブラウザ起動をする"),		_T("自動ブラウザ起動無効")			},
-	{	TO_RLBOLD,		_T("重ね書きでボールドを表示"),		_T("高輝度でボールドを表示")		},
-//	{	TO_RLBPLUS,		_T("BPlus/ZModem/Kermit自動"),		_T("自動ファイル転送無効")			},
-	{	TO_RLALTBDIS,	_T("画面のスタックを禁止"),			_T("画面のスタックが有効")			},
-	{	TO_RLUNIAWH,	_T("Aタイプを半角で表示"),			_T("Aタイプを全角で表示")			},
-//	{	TO_RLNORESZ,	_T("DECCOLMでリサイズ"),			_T("ウィンドウをリサイズしない")	},
-	{	TO_RLKANAUTO,	_T("漢字コードを自動追従"),			_T("漢字コードを変更しない")		},
-	{	TO_RLPNAM,		_T("ノーマルモード(DECPNM)"),		_T("アプリモード(DECPAM)")			},
-	{	TO_IMECTRL,		_T("IMEオープン"),					_T("IMEクロース")					},
-	{	TO_RLCKMESC,	_T("7727 ESCキーのCKM有効"),		_T("ESCキーのCKM無効")				},
-//	{	TO_RLMSWAPE,	_T("7786 ホイールのキー変換"),		_T("ホイールの通常動作")			},
-	{	TO_RLTEKINWND,	_T("Tekをコンソールで表示"),		_T("Tekコンソールを無効")			},
-	{	TO_RLUNINOM,	_T("UTF-8ノーマライズを禁止"),		_T("UTF-8ノーマライズを行う")		},
-	{	TO_RLUNIAHF,	_T("Unicde半角の調整をしない"),		_T("Unicde半角の調整をする")		},
-//	{	TO_RLMODKEY,	_T("modifyKeysを優先する"),			_T("ショートカットを優先")			},
-	{	TO_RLDRWLINE,	_T("罫線を文字で表示する"),			_T("罫線を線で表示する")			},
+	{	TO_RLGCWA,		_T("SGRで空白属性を設定しない"),	_T("SGRで空白文字属性を設定"),		_T("SGR(ESC[m)により変更される文字属性を空白文字にも適用します。\nこの設定は、FreeBSDのcons25の仕様に合わせる物です")	},
+	{	TO_RLGNDW,		_T("行末での遅延改行無効"),			_T("行末での遅延改行有効"),			_T("行末で文字表示の自動改行を次の文字表示まで遅らせます\nこの設定は、FreeBSDのcons25の仕様に合わせる物です")	},
+//	{	TO_RLGAWL,		_T("自動ブラウザ起動をする"),		_T("自動ブラウザ起動無効"),			NULL	},
+	{	TO_RLBOLD,		_T("重ね書きでボールドを表示"),		_T("高輝度でボールドを表示"),		_T("重ね書きでボールド(太文字)を表示します。\nただし字体が崩れて表示されてしまいます")	},
+//	{	TO_RLBPLUS,		_T("BPlus/ZModem/Kermit自動"),		_T("自動ファイル転送無効"),			NULL	},
+	{	TO_RLALTBDIS,	_T("画面のスタックを禁止"),			_T("画面のスタックが有効"),			_T("DECSET/DECRST(CSI?47h/l)で現在の画面をスタックに積みます。\nオン時の動作(１つの拡張画面の切り替え)がxtermの動作です")	},
+	{	TO_RLUNIAWH,	_T("Aタイプを半角で表示"),			_T("Aタイプを全角で表示"),			_T("UNICODE仕様書のEastAsianWidth.txtでAタイプ(Ambiguous)で定義された文字の表示幅を設定します。フォントによりかなり違いがあります")	},
+//	{	TO_RLNORESZ,	_T("DECCOLMでリサイズ"),			_T("ウィンドウをリサイズしない"),	NULL	},
+	{	TO_RLKANAUTO,	_T("漢字コードを自動追従"),			_T("漢字コードを変更しない"),		_T("漢字コードがエラーを起こした場合に自動で変更します。\nエラーを起こすまで変更しないので文字化けは、起こります")	},
+	{	TO_RLPNAM,		_T("ノーマルモード(DECPNM)"),		_T("アプリモード(DECPAM)"),			NULL	},
+	{	TO_IMECTRL,		_T("IMEオープン"),					_T("IMEクロース"),					NULL	},
+	{	TO_RLCKMESC,	_T("7727 ESCキーのCKM有効"),		_T("ESCキーのCKM無効"),				_T("DECCKMによるキーコードの変更にESCキーを含めます。\n本来ESCのキーコードは'\\033'だけを返しますがCKM時に'\\0330['を返すようにします")	},
+//	{	TO_RLMSWAPE,	_T("7786 ホイールのキー変換"),		_T("ホイールの通常動作"),			NULL	},
+	{	TO_RLTEKINWND,	_T("Tekをコンソールで表示"),		_T("Tekコンソールを無効"),			NULL	},
+	{	TO_RLUNINOM,	_T("UTF-8ノーマライズを禁止"),		_T("UTF-8ノーマライズを行う"),		_T("UNICODEの文字変換処理をしないでそのままの形で表示するようにします。")	},
+	{	TO_RLUNIAHF,	_T("Unicde半角の調整をしない"),		_T("Unicde半角の調整をする"),		_T("一部のフォントで半角・全角になるように調整して表示ます")	},
+//	{	TO_RLMODKEY,	_T("modifyKeysを優先する"),			_T("ショートカットを優先"),			NULL	},
+	{	TO_RLDRWLINE,	_T("罫線を文字で表示する"),			_T("罫線を線で表示する"),			_T("罫線を線で描画せずにフォントの持つ本来の文字として表示します")	},
 
-	{	0,				NULL,								NULL								}
+	{	0,				NULL,								NULL,								NULL	}
 }, ExtListTab[] = {
 	// RLogin SockOpt		1000-1511(0-511)
-//	{	TO_RLTENAT,		_T("自動ユーザー認証を禁止"),		_T("")		},
-//	{	TO_RLTENEC,		_T("データの暗号化を禁止する"),		_T("")		},
-//	{	TO_RLPOFF,		_T("自動でプログラムを終了"),		_T("")		},
-//	{	TO_RLUSEPASS,	_T("パスワード入力を求める"),		_T("")		},
-//	{	TO_RLRCLICK,	_T("右ダブルクリックでペースト"),	_T("")		},
-//	{	TO_RLCKCOPY,	_T("左クリックだけでコピー"),		_T("")		},
-//	{	TO_RLDSECHO,	_T("ローカルエディットモード"),		_T("")		},
-//	{	TO_RLDELAY,		_T("指定時間待って次を送信"),		_T("")		},
-//	{	TO_RLHISFILE,	_T("ヒストリーを保存・復帰"),		_T("")		},
-//	{	TO_RLKEEPAL,	_T("KeepAliveを有効にする"),		_T("")		},
-//	{	TO_SSH1MODE,	_T("SSHバージョン１で接続"),		_T("")		},
-//	{	TO_SSHPFORY,	_T("ポートフォワードだけ行う"),		_T("")		},
-//	{	TO_SSHKEEPAL,	_T("KeepAliveパケットの送信"),		_T("")		},
-//	{	TO_SSHAGENT,	_T("エージェント転送を有効"),		_T("")		},
-//	{	TO_SSHSFENC,	_T("暗号シャッフル"),				_T("")		},
-//	{	TO_SSHSFMAC,	_T("検証シャッフル"),				_T("")		},
-//	{	TO_RLHISDATE,	_T("信ログを自動作成"),				_T("")		},
-//	{	TO_RLLOGMODE,	_T("通信ログの形式1"),				_T("")		},
-//	{	TO_RLLOGMOD2,	_T("通信ログの形式2"),				_T("")		},
-//	{	TO_RLLOGCODE,	_T("ログの文字コード1"),			_T("")		},
-//	{	TO_RLLOGCOD2,	_T("ログの文字コード2"),			_T("")		},
-//	{	TO_SSHX11PF,	_T("X11ポートフォワード有効"),		_T("")		},
-//	{	TO_RLTENLM,		_T("TELNET LINEMODE を禁止"),		_T("")		},
-//	{	TO_RLSCRDEBUG,	_T("スクリプトデバック有効"),		_T("")		},
-	{	TO_RLCURIMD,	_T("カーソルをIで表示"),			_T("カーソルを通常表示")			},
-	{	TO_RLRSPAST,	_T("右クリックでペースト"),			_T("右クリックでメニュー選択")		},
-	{	TO_RLGWDIS,		_T("ゴースト表示しない"),			_T("タブにマウスでゴースト表示")	},
-	{	0,				NULL,								NULL								}
+//	{	TO_RLTENAT,		_T("自動ユーザー認証を禁止"),		_T(""),								NULL	},
+//	{	TO_RLTENEC,		_T("データの暗号化を禁止する"),		_T(""),								NULL	},
+//	{	TO_RLPOFF,		_T("自動でプログラムを終了"),		_T(""),								NULL	},
+//	{	TO_RLUSEPASS,	_T("パスワード入力を求める"),		_T(""),								NULL	},
+//	{	TO_RLRCLICK,	_T("右ダブルクリックでペースト"),	_T(""),								NULL	},
+//	{	TO_RLCKCOPY,	_T("左クリックだけでコピー"),		_T(""),								NULL	},
+//	{	TO_RLDSECHO,	_T("ローカルエディットモード"),		_T(""),								NULL	},
+//	{	TO_RLDELAY,		_T("指定時間待って次を送信"),		_T(""),								NULL	},
+//	{	TO_RLHISFILE,	_T("ヒストリーを保存・復帰"),		_T(""),								NULL	},
+//	{	TO_RLKEEPAL,	_T("KeepAliveを有効にする"),		_T(""),								NULL	},
+//	{	TO_SSH1MODE,	_T("SSHバージョン１で接続"),		_T(""),								NULL	},
+//	{	TO_SSHPFORY,	_T("ポートフォワードだけ行う"),		_T(""),								NULL	},
+//	{	TO_SSHKEEPAL,	_T("KeepAliveパケットの送信"),		_T(""),								NULL	},
+//	{	TO_SSHAGENT,	_T("エージェント転送を有効"),		_T(""),								NULL	},
+//	{	TO_SSHSFENC,	_T("暗号シャッフル"),				_T(""),								NULL	},
+//	{	TO_SSHSFMAC,	_T("検証シャッフル"),				_T(""),								NULL	},
+//	{	TO_RLHISDATE,	_T("信ログを自動作成"),				_T(""),								NULL	},
+//	{	TO_RLLOGMODE,	_T("通信ログの形式1"),				_T(""),								NULL	},
+//	{	TO_RLLOGMOD2,	_T("通信ログの形式2"),				_T(""),								NULL	},
+//	{	TO_RLLOGCODE,	_T("ログの文字コード1"),			_T(""),								NULL	},
+//	{	TO_RLLOGCOD2,	_T("ログの文字コード2"),			_T(""),								NULL	},
+//	{	TO_SSHX11PF,	_T("X11ポートフォワード有効"),		_T(""),								NULL	},
+//	{	TO_RLTENLM,		_T("TELNET LINEMODE を禁止"),		_T(""),								NULL	},
+//	{	TO_RLSCRDEBUG,	_T("スクリプトデバック有効"),		_T(""),								NULL	},
+	{	TO_RLCURIMD,	_T("カーソルをIで表示"),			_T("カーソルを通常表示"),			_T("カーソルが画面内の場合にIで表示するようにします。\n制御コードによるマウスコントロール中には、矢印とIが入れ替わります")	},
+	{	TO_RLRSPAST,	_T("右クリックでペースト"),			_T("右クリックでメニュー選択"),		_T("画面内で右クリックした場合の動作を変更します。\nクリップボードオプションの右ダブルクリックの設定と重なりますので注意してください")	},
+	{	TO_RLGWDIS,		_T("ゴースト表示しない"),			_T("タブにマウスでゴースト表示"),	_T("この接続でのゴースト表示を禁止します。\nすべて表示しないようにするにはレジストリを直接操作する必要があります。\nHCU\\Software\\Culti\\RLogin\\TabBar\\GhostWnd")	},
+	{	TO_RLMWDIS,		_T("サイズを表示しない"),			_T("画面サイズを表示する"),			_T("画面サイズが変更されると画面中央に横ｘ縦サイズを自動で表示します。\n表示は、約３秒ほどで自動で消えます")	},
+	{	0,				NULL,								NULL,								NULL	}
 };
 
 CTermPage::CTermPage() : CTreePropertyPage(CTermPage::IDD)
@@ -161,6 +163,8 @@ BEGIN_MESSAGE_MAP(CTermPage, CPropertyPage)
 	ON_BN_CLICKED(IDC_ESCEDIT, &CTermPage::OnBnClickedEscedit)
 	ON_NOTIFY(NM_CLICK, IDC_ESCLIST, &CTermPage::OnNMClickOptlist)
 	ON_NOTIFY(NM_CLICK, IDC_EXTLIST, &CTermPage::OnNMClickExtlist)
+	ON_NOTIFY(LVN_GETINFOTIP, IDC_ESCLIST, &CTermPage::OnLvnGetInfoTipEsclist)
+	ON_NOTIFY(LVN_GETINFOTIP, IDC_EXTLIST, &CTermPage::OnLvnGetInfoTipExtlist)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -197,7 +201,7 @@ BOOL CTermPage::OnInitDialog()
 	int n;
 	CString str;
 
-	m_OptList.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_CHECKBOXES);
+	m_OptList.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_CHECKBOXES | LVS_EX_INFOTIP);
 	m_OptList.InitColumn(_T("TermPageOpt"), InitListTab, 3);
 
 	m_OptList.DeleteAllItems();
@@ -218,7 +222,7 @@ BOOL CTermPage::OnInitDialog()
 		m_OptList.SetItemText(n, 2, OptListTab[n].dname);
 	}
 
-	m_ExtList.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_CHECKBOXES);
+	m_ExtList.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_CHECKBOXES | LVS_EX_INFOTIP);
 	m_ExtList.InitColumn(_T("TermPageExt"), InitListTab, 3);
 
 	m_ExtList.DeleteAllItems();
@@ -365,6 +369,46 @@ void CTermPage::OnNMClickExtlist(NMHDR *pNMHDR, LRESULT *pResult)
 		SetModified(TRUE);
 		m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 	}
+
+	*pResult = 0;
+}
+
+
+void CTermPage::OnLvnGetInfoTipEsclist(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	LPNMLVGETINFOTIP pGetInfoTip = reinterpret_cast<LPNMLVGETINFOTIP>(pNMHDR);
+	int n = m_OptList.GetItemData(pGetInfoTip->iItem);
+	CString str;
+
+	if ( OptListTab[n].tip != NULL )
+		str = OptListTab[n].tip;
+	else
+		str.Format(_T("%s/%s"), OptListTab[n].ename, OptListTab[n].dname);
+
+	if ( (n = str.GetLength() + sizeof(TCHAR)) > pGetInfoTip->cchTextMax )
+		n = pGetInfoTip->cchTextMax;
+
+	lstrcpyn(pGetInfoTip->pszText, str, n);
+
+	*pResult = 0;
+}
+
+
+void CTermPage::OnLvnGetInfoTipExtlist(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	LPNMLVGETINFOTIP pGetInfoTip = reinterpret_cast<LPNMLVGETINFOTIP>(pNMHDR);
+	int n = m_ExtList.GetItemData(pGetInfoTip->iItem);
+	CString str;
+
+	if ( ExtListTab[n].tip != NULL )
+		str = ExtListTab[n].tip; 
+	else
+		str.Format(_T("%s/%s"), ExtListTab[n].ename, ExtListTab[n].dname);
+
+	if ( (n = str.GetLength() + sizeof(TCHAR)) > pGetInfoTip->cchTextMax )
+		n = pGetInfoTip->cchTextMax;
+
+	lstrcpyn(pGetInfoTip->pszText, str, n);
 
 	*pResult = 0;
 }

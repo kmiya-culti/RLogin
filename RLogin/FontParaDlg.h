@@ -21,7 +21,7 @@ public:
 	BOOL	m_ShiftTemp;
 	CString	m_CharSetTemp;
 	CString	m_ZoomTemp[2];
-	CString	m_OffsTemp;
+	CString	m_OffsTemp[2];
 	CString	m_BankTemp;
 	CString	m_CodeTemp;
 	CString m_IContName;

@@ -2618,96 +2618,99 @@ void CKeyCmdsTab::ResetMenuAll(CMenu *pMenu)
 // CKeyNodeTab
 
 static const struct _InitKeyTab {
+		int fix;
 		int	code;
 		int mask;
 		LPCTSTR maps;
 } InitKeyTab[] = {
-		{ VK_UP,		0,						_T("\\033[A")		},
-		{ VK_DOWN,		0,						_T("\\033[B")		},
-		{ VK_RIGHT,		0,						_T("\\033[C")		},
-		{ VK_LEFT,		0,						_T("\\033[D")		},
+		{ 0,	VK_UP,			0,						_T("\\033[A")		},
+		{ 0,	VK_DOWN,		0,						_T("\\033[B")		},
+		{ 0,	VK_RIGHT,		0,						_T("\\033[C")		},
+		{ 0,	VK_LEFT,		0,						_T("\\033[D")		},
 
-		{ VK_HOME,		0,						_T("\\033[H")		},	//	kh
-		{ VK_INSERT,	0,						_T("\\033[2~")		},	//	kI
-		{ VK_DELETE,	0,						_T("\\033[3~")		},	//	kD
-		{ VK_END,		0,						_T("\\033[F")		},	//	@7
-		{ VK_PRIOR,		0,						_T("\\033[5~")		},	//	kP
-		{ VK_NEXT,		0,						_T("\\033[6~")		},	//	kN
+		{ 0,	VK_HOME,		0,						_T("\\033[H")		},	//	kh
+		{ 0,	VK_INSERT,		0,						_T("\\033[2~")		},	//	kI
+		{ 0,	VK_DELETE,		0,						_T("\\033[3~")		},	//	kD
+		{ 0,	VK_END,			0,						_T("\\033[F")		},	//	@7
+		{ 0,	VK_PRIOR,		0,						_T("\\033[5~")		},	//	kP
+		{ 0,	VK_NEXT,		0,						_T("\\033[6~")		},	//	kN
 
-		{ VK_UP,		MASK_CKM,				_T("\\033OA")		},	//	ku
-		{ VK_DOWN,		MASK_CKM,				_T("\\033OB")		},	//	kd
-		{ VK_RIGHT,		MASK_CKM,				_T("\\033OC")		},	//	kr
-		{ VK_LEFT,		MASK_CKM,				_T("\\033OD")		},	//	kl
+		{ 0,	VK_UP,			MASK_CKM,				_T("\\033OA")		},	//	ku
+		{ 0,	VK_DOWN,		MASK_CKM,				_T("\\033OB")		},	//	kd
+		{ 0,	VK_RIGHT,		MASK_CKM,				_T("\\033OC")		},	//	kr
+		{ 0,	VK_LEFT,		MASK_CKM,				_T("\\033OD")		},	//	kl
 
-		{ VK_HOME,		MASK_CKM,				_T("\\033OH")		},
-		{ VK_END,		MASK_CKM,				_T("\\033OF")		},
-		{ VK_ESCAPE,	MASK_CKM,				_T("\\033O[")		},
+		{ 0,	VK_HOME,		MASK_CKM,				_T("\\033OH")		},
+		{ 0,	VK_END,			MASK_CKM,				_T("\\033OF")		},
+		{ 0,	VK_ESCAPE,		MASK_CKM,				_T("\\033O[")		},
 
-		{ VK_UP,		MASK_VT52,				_T("\\033A")		},
-		{ VK_DOWN,		MASK_VT52,				_T("\\033B")		},
-		{ VK_RIGHT,		MASK_VT52,				_T("\\033C")		},
-		{ VK_LEFT,		MASK_VT52,				_T("\\033D")		},
+		{ 0,	VK_UP,			MASK_VT52,				_T("\\033A")		},
+		{ 0,	VK_DOWN,		MASK_VT52,				_T("\\033B")		},
+		{ 0,	VK_RIGHT,		MASK_VT52,				_T("\\033C")		},
+		{ 0,	VK_LEFT,		MASK_VT52,				_T("\\033D")		},
 
-		{ VK_F1,		0,						_T("\\033OP")		},	//	k1
-		{ VK_F2,		0,						_T("\\033OQ")		},	//	k2
-		{ VK_F3,		0,						_T("\\033OR")		},	//	k3
-		{ VK_F4,		0,						_T("\\033OS")		},	//	k4
-		{ VK_F5,		0,						_T("\\033[15~")		},	//	k5
-		{ VK_F6,		0,						_T("\\033[17~")		},	//	k6
-		{ VK_F7,		0,						_T("\\033[18~")		},	//	k7
-		{ VK_F8,		0,						_T("\\033[19~")		},	//	k8
-		{ VK_F9,		0,						_T("\\033[20~")		},	//	k9
-		{ VK_F10,		0,						_T("\\033[21~")		},	//	k;
-		{ VK_F11,		0,						_T("\\033[23~")		},	//	F1
-		{ VK_F12,		0,						_T("\\033[24~")		},	//	F2
-		{ VK_F13,		0,						_T("\\033[25~")		},	//	F3
-		{ VK_F14,		0,						_T("\\033[26~")		},	//	F4
-		{ VK_F15,		0,						_T("\\033[28~")		},	//	F5
-		{ VK_F16,		0,						_T("\\033[29~")		},	//	F6
-		{ VK_F17,		0,						_T("\\033[31~")		},	//	F7
-		{ VK_F18,		0,						_T("\\033[32~")		},	//	F8
-		{ VK_F19,		0,						_T("\\033[33~")		},	//	F9
-		{ VK_F20,		0,						_T("\\033[34~")		},	//	FA
+		{ 0,	VK_F1,			0,						_T("\\033OP")		},	//	k1
+		{ 0,	VK_F2,			0,						_T("\\033OQ")		},	//	k2
+		{ 0,	VK_F3,			0,						_T("\\033OR")		},	//	k3
+		{ 0,	VK_F4,			0,						_T("\\033OS")		},	//	k4
+		{ 0,	VK_F5,			0,						_T("\\033[15~")		},	//	k5
+		{ 0,	VK_F6,			0,						_T("\\033[17~")		},	//	k6
+		{ 0,	VK_F7,			0,						_T("\\033[18~")		},	//	k7
+		{ 0,	VK_F8,			0,						_T("\\033[19~")		},	//	k8
+		{ 0,	VK_F9,			0,						_T("\\033[20~")		},	//	k9
+		{ 0,	VK_F10,			0,						_T("\\033[21~")		},	//	k;
+		{ 0,	VK_F11,			0,						_T("\\033[23~")		},	//	F1
+		{ 0,	VK_F12,			0,						_T("\\033[24~")		},	//	F2
+		{ 0,	VK_F13,			0,						_T("\\033[25~")		},	//	F3
+		{ 0,	VK_F14,			0,						_T("\\033[26~")		},	//	F4
+		{ 0,	VK_F15,			0,						_T("\\033[28~")		},	//	F5
+		{ 0,	VK_F16,			0,						_T("\\033[29~")		},	//	F6
+		{ 0,	VK_F17,			0,						_T("\\033[31~")		},	//	F7
+		{ 0,	VK_F18,			0,						_T("\\033[32~")		},	//	F8
+		{ 0,	VK_F19,			0,						_T("\\033[33~")		},	//	F9
+		{ 0,	VK_F20,			0,						_T("\\033[34~")		},	//	FA
 
-		{ VK_TAB,		MASK_SHIFT,				_T("\\033[Z")		},
+		{ 0,	VK_TAB,			MASK_SHIFT,				_T("\\033[Z")		},
 
-		{ VK_OEM_7,		MASK_CTRL,				_T("\\036")			},	// $DE(^)
-		{ VK_OEM_2,		MASK_CTRL,				_T("\\037")			},	// $BF(/)
-		{ VK_OEM_3,		MASK_CTRL,				_T("\\000")			},	// $C0(@)
-		{ VK_SPACE,		MASK_CTRL,				_T("\\000")			},	// SPACE
+		{ 0,	VK_OEM_7,		MASK_CTRL,				_T("\\036")			},	// $DE(^)
+		{ 0,	VK_OEM_2,		MASK_CTRL,				_T("\\037")			},	// $BF(/)
+		{ 0,	VK_OEM_3,		MASK_CTRL,				_T("\\000")			},	// $C0(@)
+		{ 0,	VK_SPACE,		MASK_CTRL,				_T("\\000")			},	// SPACE
 
-		{ VK_SEPARATOR,	MASK_APPL,				_T("\\033OX")		},	// = (equal)    | =	  | SS3 X
-		{ VK_MULTIPLY,	MASK_APPL,				_T("\\033Oj")		},	// * (multiply) | *	  | SS3 j
-		{ VK_ADD,		MASK_APPL,				_T("\\033On")		},	// + (add)      | +	  | SS3 k
-		{ VK_SUBTRACT,	MASK_APPL,				_T("\\033Om")		},	// - (minus)    | -	  | SS3 m
-		{ VK_DECIMAL,	MASK_APPL,				_T("\\033On")		},	// . (period)   | .	  | SS3 n
-		{ VK_DIVIDE,	MASK_APPL,				_T("\\033Oo")		},	// / (divide)   | /	  | SS3 o
-		{ VK_NUMPAD0,	MASK_APPL,				_T("\\033Op")		},	// 0	        | 0	  | SS3 p
-		{ VK_NUMPAD1,	MASK_APPL,				_T("\\033Oq")		},	// 1	        | 1	  | SS3 q
-		{ VK_NUMPAD2,	MASK_APPL,				_T("\\033Or")		},	// 2	        | 2	  | SS3 r
-		{ VK_NUMPAD3,	MASK_APPL,				_T("\\033Os")		},	// 3	        | 3	  | SS3 s
-		{ VK_NUMPAD4,	MASK_APPL,				_T("\\033Ot")		},	// 4	        | 4	  | SS3 t
-		{ VK_NUMPAD5,	MASK_APPL,				_T("\\033Ou")		},	// 5	        | 5	  | SS3 u
-		{ VK_NUMPAD6,	MASK_APPL,				_T("\\033Ov")		},	// 6	        | 6	  | SS3 v
-		{ VK_NUMPAD7,	MASK_APPL,				_T("\\033Ow")		},	// 7	        | 7	  | SS3 w
-		{ VK_NUMPAD8,	MASK_APPL,				_T("\\033Ox")		},	// 8	        | 8	  | SS3 x
-		{ VK_NUMPAD9,	MASK_APPL,				_T("\\033Oy")		},	// 9	        | 9	  | SS3 y
+		{ 0,	VK_SEPARATOR,	MASK_APPL,				_T("\\033OX")		},	// = (equal)    | =	  | SS3 X
+		{ 0,	VK_MULTIPLY,	MASK_APPL,				_T("\\033Oj")		},	// * (multiply) | *	  | SS3 j
+		{ 0,	VK_ADD,			MASK_APPL,				_T("\\033On")		},	// + (add)      | +	  | SS3 k
+		{ 0,	VK_SUBTRACT,	MASK_APPL,				_T("\\033Om")		},	// - (minus)    | -	  | SS3 m
+		{ 0,	VK_DECIMAL,		MASK_APPL,				_T("\\033On")		},	// . (period)   | .	  | SS3 n
+		{ 0,	VK_DIVIDE,		MASK_APPL,				_T("\\033Oo")		},	// / (divide)   | /	  | SS3 o
+		{ 0,	VK_NUMPAD0,		MASK_APPL,				_T("\\033Op")		},	// 0	        | 0	  | SS3 p
+		{ 0,	VK_NUMPAD1,		MASK_APPL,				_T("\\033Oq")		},	// 1	        | 1	  | SS3 q
+		{ 0,	VK_NUMPAD2,		MASK_APPL,				_T("\\033Or")		},	// 2	        | 2	  | SS3 r
+		{ 0,	VK_NUMPAD3,		MASK_APPL,				_T("\\033Os")		},	// 3	        | 3	  | SS3 s
+		{ 0,	VK_NUMPAD4,		MASK_APPL,				_T("\\033Ot")		},	// 4	        | 4	  | SS3 t
+		{ 0,	VK_NUMPAD5,		MASK_APPL,				_T("\\033Ou")		},	// 5	        | 5	  | SS3 u
+		{ 0,	VK_NUMPAD6,		MASK_APPL,				_T("\\033Ov")		},	// 6	        | 6	  | SS3 v
+		{ 0,	VK_NUMPAD7,		MASK_APPL,				_T("\\033Ow")		},	// 7	        | 7	  | SS3 w
+		{ 0,	VK_NUMPAD8,		MASK_APPL,				_T("\\033Ox")		},	// 8	        | 8	  | SS3 x
+		{ 0,	VK_NUMPAD9,		MASK_APPL,				_T("\\033Oy")		},	// 9	        | 9	  | SS3 y
 
-		{ VK_PRIOR,		MASK_SHIFT,				_T("$PRIOR")		},
-		{ VK_NEXT,		MASK_SHIFT,				_T("$NEXT")			},
-		{ VK_PRIOR,		MASK_CTRL,				_T("$SEARCH_BACK")	},
-		{ VK_NEXT,		MASK_CTRL,				_T("$SEARCH_NEXT")	},
-		{ VK_CANCEL,	0,						_T("$BREAK")		},
+		{ 0,	VK_PRIOR,		MASK_SHIFT,				_T("$PRIOR")		},
+		{ 0,	VK_NEXT,		MASK_SHIFT,				_T("$NEXT")			},
+		{ 0,	VK_PRIOR,		MASK_CTRL,				_T("$SEARCH_BACK")	},
+		{ 0,	VK_NEXT,		MASK_CTRL,				_T("$SEARCH_NEXT")	},
+		{ 0,	VK_CANCEL,		0,						_T("$BREAK")		},
 
-		{ VK_UP,		MASK_CTRL,				_T("$PANE_ROTATION")},
-		{ VK_DOWN,		MASK_CTRL,				_T("$SPLIT_HEIGHT")	},
-		{ VK_RIGHT,		MASK_CTRL,				_T("$SPLIT_WIDTH")	},
-		{ VK_LEFT,		MASK_CTRL,				_T("$SPLIT_OVER")	},
+		{ 6,	VK_UP,			MASK_CTRL| MASK_SHIFT,	_T("$PANE_TILEHORZ")},
+		{ 0,	VK_UP,			MASK_CTRL,				_T("$PANE_ROTATION")},
+		{ 0,	VK_DOWN,		MASK_CTRL,				_T("$SPLIT_HEIGHT")	},
+		{ 0,	VK_RIGHT,		MASK_CTRL,				_T("$SPLIT_WIDTH")	},
+		{ 6,	VK_LEFT,		MASK_CTRL | MASK_SHIFT,	_T("$PANE_CASCADE")	},
+		{ 0,	VK_LEFT,		MASK_CTRL,				_T("$SPLIT_OVER")	},
 
-		{ VK_TAB,		MASK_CTRL,				_T("$PANE_NEXT")	},
-		{ VK_TAB,		MASK_CTRL | MASK_SHIFT,	_T("$PANE_PREV")	},
+		{ 0,	VK_TAB,			MASK_CTRL,				_T("$PANE_NEXT")	},
+		{ 0,	VK_TAB,			MASK_CTRL | MASK_SHIFT,	_T("$PANE_PREV")	},
 
-		{ (-1),		(-1),		NULL },
+		{ 0,	(-1),			(-1),					NULL },
 	};
 
 CKeyNodeTab::CKeyNodeTab()
@@ -2923,7 +2926,7 @@ void CKeyNodeTab::SetArray(CStringArrayExt &stra)
 
 	tmp.RemoveAll();
 	tmp.AddVal(-1);
-	tmp.AddVal(5);			// KeyCode Bug Fix
+	tmp.AddVal(6);			// KeyCode Bug Fix
 	stra.AddArray(tmp);
 }
 void CKeyNodeTab::GetArray(CStringArrayExt &stra)
@@ -3239,6 +3242,14 @@ void CKeyNodeTab::BugFix(int fix)
 				continue;
 			Add(InitKeyTab[i].code, InitKeyTab[i].mask, InitKeyTab[i].maps);
 		}
+	}
+
+	for ( i = 0 ; InitKeyTab[i].maps != NULL ; i++ ) {
+		if ( InitKeyTab[i].fix < fix )
+			continue;
+		if ( Find(InitKeyTab[i].code, InitKeyTab[i].mask, &n) )
+			continue;
+		Add(InitKeyTab[i].code, InitKeyTab[i].mask, InitKeyTab[i].maps);
 	}
 }
 int CKeyNodeTab::GetDecKeyToCode(int code)

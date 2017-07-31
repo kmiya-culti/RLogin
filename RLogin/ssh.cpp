@@ -110,8 +110,8 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 		if ( !IdKey.LoadPrivateKey(m_pDocument->m_ServerEntry.m_IdkeyName, m_pDocument->m_ServerEntry.m_PassName) ) {
 			CIdKeyFileDlg dlg;
 			dlg.m_OpenMode  = 1;
-			dlg.m_Title   = _T("SSH鍵ファイルの読み込み");
-			dlg.m_Message = _T("作成時に設定したパスフレーズを入力してください");
+			dlg.m_Title.LoadString(IDS_SSH_PASS_TITLE);		//   = _T("SSH鍵ファイルの読み込み");
+			dlg.m_Message.LoadString(IDS_SSH_PASS_MSG);	// = _T("作成時に設定したパスフレーズを入力してください");
 			dlg.m_IdkeyFile = m_pDocument->m_ServerEntry.m_IdkeyName;
 			if ( dlg.DoModal() != IDOK ) {
 				m_pDocument->m_ServerEntry.m_IdkeyName.Empty();

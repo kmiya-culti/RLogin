@@ -186,6 +186,7 @@
 #define	TO_RLCURIMD		1452		// カーソルをIで表示
 #define TO_RLRSPAST		1453		// 右クリックだけでクリップボードからペーストする
 #define	TO_RLGWDIS		1454		// ゴーストウィンドウを表示しない
+#define	TO_RLMWDIS		1455		// リサイズメッセージを表示しない	
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -443,7 +444,8 @@ public:
 	BYTE m_Shift;
 	int m_ZoomW;
 	int m_ZoomH;
-	int m_Offset;
+	int m_OffsetW;
+	int m_OffsetH;
 	int m_CharSet;
 	CString m_FontName[16];
 	CString m_EntryName;
@@ -607,6 +609,7 @@ public:	// Options
 	int m_ClipFlag;
 	CStringArrayExt m_ShellExec;
 	int m_DefModKey[MODKEY_MAX];
+	CRect m_ScrnOffset;
 
 	void Init();
 	void SetIndex(int mode, CStringIndex &index);

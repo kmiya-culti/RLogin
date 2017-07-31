@@ -26,6 +26,8 @@ public:
 	int m_TtlMode;
 	BOOL m_TtlRep;
 	BOOL m_TtlCng;
+	CString m_ScrnOffsLeft;
+	CString m_ScrnOffsRight;
 
 public:
 	void InitDlgItem();

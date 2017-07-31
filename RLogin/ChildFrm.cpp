@@ -85,6 +85,16 @@ BOOL CChildFrame::PreCreateWindow(CREATESTRUCT& cs)
 	cs.cx = rect.Width();
 	cs.cy = rect.Height();
 
+	//TRACE("Child Style ");
+	//if ( (cs.style & WS_BORDER) != NULL ) TRACE("WS_BORDER ");
+	//if ( (cs.style & WS_DLGFRAME) != NULL ) TRACE("WS_DLGFRAME ");
+	//if ( (cs.style & WS_THICKFRAME) != NULL ) TRACE("WS_THICKFRAME ");
+	//if ( (cs.dwExStyle & WS_EX_WINDOWEDGE) != NULL ) TRACE("WS_EX_WINDOWEDGE ");
+	//if ( (cs.dwExStyle & WS_EX_CLIENTEDGE) != NULL ) TRACE("WS_EX_CLIENTEDGE ");
+	//if ( (cs.dwExStyle & WS_EX_DLGMODALFRAME) != NULL ) TRACE("WS_EX_DLGMODALFRAME ");
+	//if ( (cs.dwExStyle & WS_EX_TOOLWINDOW) != NULL ) TRACE("WS_EX_TOOLWINDOW ");
+	//TRACE("\n");
+
 	return TRUE;
 }
 

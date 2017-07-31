@@ -33,6 +33,7 @@
 #define	UPDATE_SETCURSOR	8
 #define	UPDATE_TYPECARET	9
 #define	UPDATE_TEKFLUSH		10
+#define	UPDATE_RESIZE		11
 
 #define	CARET_MOVE			0
 #define	CARET_CREATE		1

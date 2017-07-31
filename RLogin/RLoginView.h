@@ -11,6 +11,7 @@
 
 #include "Data.h"
 #include "TextRam.h"
+#include "MsgWnd.h"
 
 #define	FGCARET_CREATE	001
 #define	FGCARET_ONOFF	002
@@ -71,6 +72,7 @@ public:
 	CBuffer m_KeyMacBuf;
 
 	class CGhostWnd *m_pGhost;
+	class CMsgWnd m_MsgWnd;
 
 	BOOL m_GoziView;
 	int m_GoziStyle;
@@ -85,6 +87,7 @@ public:
 	void CalcPosRect(CRect &rect);
 	void CalcTextRect(CRect &rect);
 	void CalcGrapPoint(CPoint po, int *x, int *y);
+	void SetFrameRect(int cx, int cy);
 	void ImmSetPos(int x, int y);
 	int ImmOpenCtrl(int sw);
 	void SetCaret();
@@ -94,7 +97,7 @@ public:
 	void SetGhostWnd(BOOL sw);
 	BOOL ModifyKeys(UINT nChar, int nStat);
 
-	inline int CalcGrapX(int x) { return (m_Width  * x / m_Cols); }
+	inline int CalcGrapX(int x) { CRLoginDoc *pDoc = GetDocument(); return (m_Width  * x / m_Cols  + pDoc->m_TextRam.m_ScrnOffset.left); }
 	inline int CalcGrapY(int y) { return (m_Height * y / m_Lines); }
 
 	inline class CChildFrame *GetFrameWnd() { return (class CChildFrame *)GetParentFrame(); }

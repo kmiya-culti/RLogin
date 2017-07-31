@@ -14,6 +14,7 @@
 #include "SearchDlg.h"
 #include "Script.h"
 #include "AnyPastDlg.h"
+#include "MsgWnd.h"
 
 #include <imm.h>
 
@@ -133,13 +134,27 @@ CRLoginView::~CRLoginView()
 
 BOOL CRLoginView::PreCreateWindow(CREATESTRUCT& cs)
 {
+	BOOL st;
+
 	cs.style &= ~WS_BORDER;
 	cs.style |= WS_CLIPSIBLINGS;
 
 	cs.lpszName = _T("RLoginView");
 	cs.lpszClass = AfxRegisterWndClass(CS_DBLCLKS, AfxGetApp()->LoadStandardCursor(IDC_ARROW)); //, CreateSolidBrush(0xff000000));
 
-	return CView::PreCreateWindow(cs);
+	st = CView::PreCreateWindow(cs);
+
+	//TRACE("View Style ");
+	//if ( (cs.style & WS_BORDER) != NULL ) TRACE("WS_BORDER ");
+	//if ( (cs.style & WS_DLGFRAME) != NULL ) TRACE("WS_DLGFRAME ");
+	//if ( (cs.style & WS_THICKFRAME) != NULL ) TRACE("WS_THICKFRAME ");
+	//if ( (cs.dwExStyle & WS_EX_WINDOWEDGE) != NULL ) TRACE("WS_EX_WINDOWEDGE ");
+	//if ( (cs.dwExStyle & WS_EX_CLIENTEDGE) != NULL ) TRACE("WS_EX_CLIENTEDGE ");
+	//if ( (cs.dwExStyle & WS_EX_DLGMODALFRAME) != NULL ) TRACE("WS_EX_DLGMODALFRAME ");
+	//if ( (cs.dwExStyle & WS_EX_TOOLWINDOW) != NULL ) TRACE("WS_EX_TOOLWINDOW ");
+	//TRACE("\n");
+
+	return st;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -179,14 +194,15 @@ void CRLoginView::OnDraw(CDC* pDC)
 
 	if ( !pDC->IsPrinting() ) {
 		CRect rect(((CPaintDC *)(pDC))->m_ps.rcPaint);
-		sx = (rect.left + 1) * m_Cols / m_Width;
-		ex = (rect.right + m_CharWidth) * m_Cols / m_Width;
+
+		sx = (rect.left + 1 - pDoc->m_TextRam.m_ScrnOffset.left) * m_Cols / m_Width;
+		ex = (rect.right + m_CharWidth - pDoc->m_TextRam.m_ScrnOffset.left) * m_Cols / m_Width;
 		sy = (rect.top + 1) * m_Lines / m_Height;
 		ey = (rect.bottom + m_CharHeight) * m_Lines / m_Height;
 
-		if ( (sx * m_Width / m_Cols) > rect.left )
+		if ( (sx * m_Width / m_Cols + pDoc->m_TextRam.m_ScrnOffset.left) > rect.left )
 			sx--;
-		if ( (ex * m_Width / m_Cols) < rect.right )
+		if ( (ex * m_Width / m_Cols + pDoc->m_TextRam.m_ScrnOffset.left) < rect.right )
 			ex++;
 		if ( (sy * m_Height / m_Lines) > rect.top )
 			sy--;
@@ -316,14 +332,18 @@ void CRLoginView::InvalidateTextRect(CRect rect)
 }
 void CRLoginView::CalcTextRect(CRect &rect)
 {
-	rect.left   = m_Width * rect.left  / m_Cols;
-	rect.right  = m_Width * rect.right / m_Cols;
+	CRLoginDoc *pDoc = GetDocument();
+
+	rect.left   = m_Width  * rect.left  / m_Cols + (rect.left == 0 ? 0 : pDoc->m_TextRam.m_ScrnOffset.left);
+	rect.right  = m_Width  * rect.right / m_Cols + pDoc->m_TextRam.m_ScrnOffset.left + (rect.right >= (pDoc->m_TextRam.m_Cols - 1) ? pDoc->m_TextRam.m_ScrnOffset.right : 0);
 	rect.top    = m_Height * (rect.top    + m_HisOfs - m_HisMin) / m_Lines;
 	rect.bottom = m_Height * (rect.bottom + m_HisOfs - m_HisMin) / m_Lines;
 }
 void CRLoginView::CalcGrapPoint(CPoint po, int *x, int *y)
 {
-	if      ( po.x < 0 )			po.x = 0;
+	CRLoginDoc *pDoc = GetDocument();
+
+	if      ( (po.x -= pDoc->m_TextRam.m_ScrnOffset.left) < 0 )	po.x = 0;
 	else if ( po.x >= m_Width )		po.x = m_Width -1;
 
 	if      ( po.y < 0 )			po.y = 0;
@@ -648,7 +668,35 @@ int CRLoginView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	return 0;
 }
+void CRLoginView::SetFrameRect(int cx, int cy)
+{
+	CRect rect;
+	CRLoginDoc *pDoc = GetDocument();
+	CChildFrame *pFrame = GetFrameWnd();
 
+	if ( cx < 0 || cy < 0 ) {
+		GetClientRect(rect);
+		cx = rect.Width();
+		cy = rect.Height();
+	}
+
+	if ( (m_Width  = cx - pDoc->m_TextRam.m_ScrnOffset.left - pDoc->m_TextRam.m_ScrnOffset.right)  <= 0 )
+		m_Width  = 1;
+
+	if ( (m_Height = cy) <= 0 )
+		m_Height = 1;
+
+	pFrame->GetClientRect(rect);
+	pFrame->m_Width = m_Width;
+
+	if ( (pFrame->m_Height = rect.Height() - 4) <= 0 )
+		pFrame->m_Height = 1;
+
+	pDoc->m_TextRam.InitText(pFrame->m_Width, pFrame->m_Height);
+
+	pFrame->m_Cols  = pDoc->m_TextRam.m_Cols;
+	pFrame->m_Lines = pDoc->m_TextRam.m_Lines;
+}
 void CRLoginView::OnSize(UINT nType, int cx, int cy) 
 {
 	CView::OnSize(nType, cx, cy);
@@ -656,37 +704,24 @@ void CRLoginView::OnSize(UINT nType, int cx, int cy)
 	if ( nType == SIZE_MINIMIZED )
 		return;
 
-	CRect rect;
 	CString tmp;
 	CRLoginDoc *pDoc = GetDocument();
-	CChildFrame *pFrame = GetFrameWnd();
 	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
-	ASSERT(pDoc);
-	ASSERT(pFrame);
 
-	if ( (m_Width  = cx) <= 0 ) m_Width  = 1;
-	if ( (m_Height = cy) <= 0 ) m_Height = 1;
-
-	pFrame->GetClientRect(rect);
-	pFrame->m_Width  = m_Width;
-	if ( (pFrame->m_Height = rect.Height() - 4) <= 0 )
-		pFrame->m_Height = 1;
-
-//	if ( m_ActiveFlag ) {
-		pDoc->m_TextRam.InitText(pFrame->m_Width, pFrame->m_Height);
-		pFrame->m_Cols  = pDoc->m_TextRam.m_Cols;
-		pFrame->m_Lines = pDoc->m_TextRam.m_Lines;
-//	}
-
+	SetFrameRect(cx, cy);
 	pDoc->UpdateAllViews(NULL, UPDATE_INITPARA, NULL);
 
 	tmp.Format(_T("%d x %d"), pDoc->m_TextRam.m_Cols, pDoc->m_TextRam.m_Lines);
 	pMain->SetMessageText(tmp);
+
+	if ( pDoc->m_TextRam.IsInitText() && !pDoc->m_TextRam.IsOptEnable(TO_RLMWDIS) )
+		m_MsgWnd.Message(tmp, this);
 }
 
 void CRLoginView::OnMove(int x, int y) 
 {
 	CView::OnMove(x, y);
+
 	OnUpdate(this, UPDATE_INVALIDATE, NULL);
 }
 
@@ -699,7 +734,11 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 	ASSERT(pDoc);
 	ASSERT(pFrame);
 
-	if ( lHint == UPDATE_TEKFLUSH ) {
+	if ( lHint == UPDATE_RESIZE ) {
+		GetWindowRect(rect);
+		PostMessage(WM_SIZE, SIZE_MAXSHOW, MAKELPARAM(rect.Width(), rect.Height()));
+		return;
+	} else if ( lHint == UPDATE_TEKFLUSH ) {
 		if ( pDoc->m_TextRam.IsOptEnable(TO_RLTEKINWND) )
 			Invalidate(FALSE);
 		return;
@@ -832,10 +871,11 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 	}
 
 	m_DispCaret &= ~FGCARET_ONOFF;
-	m_CaretX = m_Width * pDoc->m_TextRam.m_CurX / m_Cols;
+
+	m_CaretX = m_Width * pDoc->m_TextRam.m_CurX / m_Cols + pDoc->m_TextRam.m_ScrnOffset.left;
 	m_CaretY = m_Height * (pDoc->m_TextRam.m_CurY + m_HisOfs - m_HisMin) / m_Lines;
 
-	if ( m_CaretX < 0 || m_CaretX >= m_Width || m_CaretY < 0 || m_CaretY >= m_Height )
+	if ( m_CaretX < 0 || m_CaretX >= (m_Width + pDoc->m_TextRam.m_ScrnOffset.left) || m_CaretY < 0 || m_CaretY >= m_Height )
 		m_CaretX = m_CaretY = 0;
 	else if ( pDoc->m_pSock != NULL )
 		m_DispCaret |= (pDoc->m_TextRam.m_DispCaret & FGCARET_ONOFF);
@@ -1097,9 +1137,7 @@ void CRLoginView::OnActivateView(BOOL bActivate, CView* pActivateView, CView* pD
 		pDoc->m_KeyMac.SetHisMenu(GetMainWnd());
 		if ( pDoc->m_pScript != NULL )
 			pDoc->m_pScript->SetMenu(GetMainWnd());
-		pDoc->m_TextRam.InitText(pFrame->m_Width, pFrame->m_Height);
-		pFrame->m_Cols  = pDoc->m_TextRam.m_Cols;
-		pFrame->m_Lines = pDoc->m_TextRam.m_Lines;
+		SetFrameRect(-1, -1);
 		pDoc->UpdateAllViews(NULL, UPDATE_INITPARA, NULL);
 	} else if ( !bActivate && pDeactiveView->m_hWnd == m_hWnd )
 		m_ActiveFlag = FALSE;

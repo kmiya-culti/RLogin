@@ -28,7 +28,7 @@ CPaneFrame::CPaneFrame(class CMainFrame *pMain, HWND hWnd, class CPaneFrame *pOw
 	m_pMain  = pMain;
 
 	m_Style = PANEFRAME_WINDOW;
-	m_BoderSize = 1;
+	m_BoderSize = 2;
 	m_bActive = FALSE;
 	m_pServerEntry = NULL;
 
@@ -271,6 +271,19 @@ int CPaneFrame::IsOverLap(CPaneFrame *pPane)
 
 	return 0;
 }
+int CPaneFrame::GetPaneCount(int count)
+{
+	if ( m_Style == PANEFRAME_WINDOW )
+		count++;
+
+	if ( m_pLeft != NULL )
+		count = m_pLeft->GetPaneCount(count);
+
+	if ( m_pRight != NULL )
+		count = m_pRight->GetPaneCount(count);
+
+	return count;
+}
 void CPaneFrame::MoveFrame()
 {
 	ASSERT(m_Style == PANEFRAME_WINDOW);
@@ -278,7 +291,7 @@ void CPaneFrame::MoveFrame()
 	if ( m_hWnd != NULL ) {
 		if ( m_NullWnd.m_hWnd != NULL )
 			m_NullWnd.DestroyWindow();
-		::SetWindowPos(m_hWnd, NULL, m_Frame.left - 1, m_Frame.top - 1, m_Frame.Width() - 1, m_Frame.Height() - 1,
+		::SetWindowPos(m_hWnd, NULL, m_Frame.left - 2, m_Frame.top - 2, m_Frame.Width(), m_Frame.Height(),
 			SWP_SHOWWINDOW | SWP_FRAMECHANGED | SWP_NOCOPYBITS | SWP_NOOWNERZORDER | SWP_NOZORDER | SWP_NOACTIVATE);
 	} else {
 		CRect rect = m_Frame;
@@ -318,6 +331,8 @@ void CPaneFrame::SwapWnd()
 }
 void CPaneFrame::MoveParOwn(CRect &rect, int Style)
 {
+	int l, r;
+
 	if ( m_Style == PANEFRAME_WINDOW ) {
 		m_pMain->InvalidateRect(m_Frame);
 		m_Frame = rect;
@@ -349,7 +364,7 @@ void CPaneFrame::MoveParOwn(CRect &rect, int Style)
 			if ( m_Style != PANEFRAME_MAXIM )
 				goto RECALC;
 			m_Style = Style;
-			left.right = left.left + (rect.Width() - m_BoderSize) / 2;
+			left.right = left.left  + (rect.Width() - m_BoderSize) / 2;
 			right.left = left.right + m_BoderSize;
 			Style = PANEFRAME_NOCHNG;
 			break;
@@ -358,23 +373,47 @@ void CPaneFrame::MoveParOwn(CRect &rect, int Style)
 			if ( m_Style != PANEFRAME_MAXIM )
 				goto RECALC;
 			m_Style = Style;
-			left.bottom = left.top + (rect.Height() - m_BoderSize) / 2;
+			left.bottom = left.top    + (rect.Height() - m_BoderSize) / 2;
 			right.top   = left.bottom + m_BoderSize;
 			Style = PANEFRAME_NOCHNG;
 			break;
 
 		case PANEFRAME_WSPLIT:
 			m_Style = PANEFRAME_WIDTH;
-			left.right = left.left + (rect.Width() - m_BoderSize) / 2;
+			left.right = left.left  + (rect.Width() - m_BoderSize) / 2;
 			right.left = left.right + m_BoderSize;
 			Style = PANEFRAME_HSPLIT;
 			break;
 
 		case PANEFRAME_HSPLIT:
 			m_Style = PANEFRAME_HEIGHT;
-			left.bottom = left.top + (rect.Height() - m_BoderSize) / 2;
+			left.bottom = left.top    + (rect.Height() - m_BoderSize) / 2;
 			right.top   = left.bottom + m_BoderSize;
 			Style = PANEFRAME_WSPLIT;
+			break;
+
+		case PANEFRAME_WEVEN:
+			l = m_pLeft->GetPaneCount(0);
+			r = m_pRight->GetPaneCount(0);
+			if ( (l + r) == 0 ) {
+				m_Style = PANEFRAME_MAXIM;
+				break;
+			}
+			m_Style = PANEFRAME_WIDTH;
+			left.right = left.left + rect.Width() * l / (l + r) - m_BoderSize / 2;
+			right.left = left.right + m_BoderSize;
+			break;
+
+		case PANEFRAME_HEVEN:
+			l = m_pLeft->GetPaneCount(0);
+			r = m_pRight->GetPaneCount(0);
+			if ( (l + r) == 0 ) {
+				m_Style = PANEFRAME_MAXIM;
+				break;
+			}
+			m_Style = PANEFRAME_HEIGHT;
+			left.bottom = left.top + rect.Height() * l / (l + r) - m_BoderSize / 2;
+			right.top   = left.bottom + m_BoderSize;
 			break;
 		}
 
@@ -899,6 +938,16 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 		if ( (cs.y -= (mi.rcMonitor.bottom - rc.bottom)) < 0 )
 			cs.y = 0;
 	}
+
+	//TRACE("Main Style ");
+	//if ( (cs.style & WS_BORDER) != NULL ) TRACE("WS_BORDER ");
+	//if ( (cs.style & WS_DLGFRAME) != NULL ) TRACE("WS_DLGFRAME ");
+	//if ( (cs.style & WS_THICKFRAME) != NULL ) TRACE("WS_THICKFRAME ");
+	//if ( (cs.dwExStyle & WS_EX_WINDOWEDGE) != NULL ) TRACE("WS_EX_WINDOWEDGE ");
+	//if ( (cs.dwExStyle & WS_EX_CLIENTEDGE) != NULL ) TRACE("WS_EX_CLIENTEDGE ");
+	//if ( (cs.dwExStyle & WS_EX_DLGMODALFRAME) != NULL ) TRACE("WS_EX_DLGMODALFRAME ");
+	//if ( (cs.dwExStyle & WS_EX_TOOLWINDOW) != NULL ) TRACE("WS_EX_TOOLWINDOW ");
+	//TRACE("\n");
 
 	return TRUE;
 }
@@ -1740,7 +1789,13 @@ void CMainFrame::OnWindowTileHorz()
 	CRect rect;
 	GetFrameRect(rect);
 	m_pTopPane->MoveParOwn(rect, m_SplitType);
-	m_SplitType = (m_SplitType == PANEFRAME_WSPLIT ? PANEFRAME_HSPLIT : PANEFRAME_WSPLIT);
+
+	switch(m_SplitType) {
+	case PANEFRAME_WSPLIT: m_SplitType = PANEFRAME_HSPLIT; break;
+	case PANEFRAME_HSPLIT: m_SplitType = PANEFRAME_WEVEN;  break;
+	case PANEFRAME_WEVEN:  m_SplitType = PANEFRAME_HEVEN;  break;
+	case PANEFRAME_HEVEN:  m_SplitType = PANEFRAME_WSPLIT; break;
+	}
 }
 void CMainFrame::OnWindowRotation()
 {

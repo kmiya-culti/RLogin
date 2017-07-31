@@ -25,7 +25,8 @@ CFontParaDlg::CFontParaDlg(CWnd* pParent /*=NULL*/)
 	m_CharSetTemp = _T("");
 	m_ZoomTemp[0] = _T("100");
 	m_ZoomTemp[1] = _T("100");
-	m_OffsTemp = _T("0");
+	m_OffsTemp[0] = _T("0");
+	m_OffsTemp[1] = _T("0");
 	m_BankTemp = _T("");
 	m_CodeTemp = _T("");
 	m_IContName = _T("");
@@ -44,9 +45,10 @@ void CFontParaDlg::DoDataExchange(CDataExchange* pDX)
 	//{{AFX_DATA_MAP(CFontParaDlg)
 	DDX_Check(pDX, IDC_SHIFT, m_ShiftTemp);
 	DDX_CBString(pDX, IDC_CHARSET, m_CharSetTemp);
-	DDX_CBString(pDX, IDC_DISPZOOM, m_ZoomTemp[0]);
-	DDX_CBString(pDX, IDC_DISPZOOM2, m_ZoomTemp[1]);
-	DDX_CBString(pDX, IDC_DISPOFFSET, m_OffsTemp);
+	DDX_CBString(pDX, IDC_DISPZOOMH, m_ZoomTemp[0]);
+	DDX_CBString(pDX, IDC_DISPZOOMW, m_ZoomTemp[1]);
+	DDX_CBString(pDX, IDC_DISPOFFSETH, m_OffsTemp[0]);
+	DDX_CBString(pDX, IDC_DISPOFFSETW, m_OffsTemp[1]);
 	DDX_CBString(pDX, IDC_CHARBANK, m_BankTemp);
 	DDX_CBString(pDX, IDC_FONTCODE, m_CodeTemp);
 	DDX_CBString(pDX, IDC_ICONVSET, m_IContName);
@@ -188,7 +190,8 @@ BOOL CFontParaDlg::OnInitDialog()
 	m_ShiftTemp = (m_pData->m_Shift != 0 ? TRUE : FALSE);
 	m_ZoomTemp[0].Format(_T("%d"), m_pData->m_ZoomH);
 	m_ZoomTemp[1].Format(_T("%d"), m_pData->m_ZoomW);
-	m_OffsTemp.Format(_T("%d"), m_pData->m_Offset);
+	m_OffsTemp[0].Format(_T("%d"), m_pData->m_OffsetH);
+	m_OffsTemp[1].Format(_T("%d"), m_pData->m_OffsetW);
 	m_IContName = m_pData->m_IContName;
 	m_EntryName = m_pData->m_EntryName;
 	m_FontQuality = m_pData->m_Quality;
@@ -211,7 +214,8 @@ void CFontParaDlg::OnOK()
 	m_pData->m_Shift     = (m_ShiftTemp ? 0x80 : 0x00);
 	m_pData->m_ZoomH     = _tstoi(m_ZoomTemp[0]);
 	m_pData->m_ZoomW     = _tstoi(m_ZoomTemp[1]);
-	m_pData->m_Offset    = _tstoi(m_OffsTemp);
+	m_pData->m_OffsetH   = _tstoi(m_OffsTemp[0]);
+	m_pData->m_OffsetW   = _tstoi(m_OffsTemp[1]);
 	m_pData->m_IContName = m_IContName;
 	m_pData->m_EntryName = m_EntryName;
 	m_pData->m_Quality   = m_FontQuality;

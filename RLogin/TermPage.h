@@ -43,4 +43,7 @@ protected:
 	afx_msg void OnNMClickOptlist(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnNMClickExtlist(NMHDR *pNMHDR, LRESULT *pResult);
 	DECLARE_MESSAGE_MAP()
+public:
+	afx_msg void OnLvnGetInfoTipEsclist(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnLvnGetInfoTipExtlist(NMHDR *pNMHDR, LRESULT *pResult);
 };

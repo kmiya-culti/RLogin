@@ -32,15 +32,16 @@ public:
 /////////////////////////////////////////////////////////////////////////////
 // COptDlg
 
-#define	UMOD_ENTRY		0001
-#define	UMOD_KEYTAB		0002
-#define	UMOD_PARAMTAB	0004
-#define	UMOD_TEXTRAM	0010
-#define	UMOD_ANSIOPT	0020
-#define	UMOD_MODKEY		0040
-#define	UMOD_COLTAB		0100
-#define	UMOD_BANKTAB	0200
-#define	UMOD_DEFATT		0400
+#define	UMOD_ENTRY		00001
+#define	UMOD_KEYTAB		00002
+#define	UMOD_PARAMTAB	00004
+#define	UMOD_TEXTRAM	00010
+#define	UMOD_ANSIOPT	00020
+#define	UMOD_MODKEY		00040
+#define	UMOD_COLTAB		00100
+#define	UMOD_BANKTAB	00200
+#define	UMOD_DEFATT		00400
+#define	UMOD_RESIZE		01000
 
 class COptDlg : public CPropertySheet
 {

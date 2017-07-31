@@ -132,11 +132,8 @@ BOOL CRLoginDoc::OnNewDocument()
 	m_TextRam.SetKanjiMode(m_ServerEntry.m_KanjiCode);
 
 	CRLoginView *pView;
-	CChildFrame *pFrame;
-	if ( (pView = (CRLoginView *)GetAciveView()) != NULL ) {
-		if ( (pFrame = pView->GetFrameWnd()) != NULL )
-			m_TextRam.InitText(pFrame->m_Width, pFrame->m_Height);
-	}
+	if ( (pView = (CRLoginView *)GetAciveView()) != NULL )
+		pView->SetFrameRect(-1, -1);
 	UpdateAllViews(NULL, UPDATE_INITSIZE, 0);
 	m_TextRam.InitHistory();
 
@@ -1048,7 +1045,7 @@ void CRLoginDoc::OnSetOption()
 	else if ( m_LoadMode == DOCTYPE_REGISTORY )
 		m_ServerEntry.m_SaveFlag = TRUE;
 
-	UpdateAllViews(NULL, UPDATE_INITPARA, NULL);
+	UpdateAllViews(NULL, (dlg.m_ModFlag & UMOD_RESIZE) != 0 ? UPDATE_RESIZE : UPDATE_INITPARA, NULL);
 }
 
 void CRLoginDoc::OnSftp()

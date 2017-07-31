@@ -56,6 +56,8 @@ void CScrnPage::DoDataExchange(CDataExchange* pDX)
 	DDX_CBIndex(pDX, IDC_COMBO3, m_TtlMode);
 	DDX_Check(pDX, IDC_TERMCHECK2, m_TtlRep);
 	DDX_Check(pDX, IDC_TERMCHECK3, m_TtlCng);
+	DDX_CBString(pDX, IDC_SCRNOFFSLEFT, m_ScrnOffsLeft);
+	DDX_CBString(pDX, IDC_SCRNOFFSRIGHT, m_ScrnOffsRight);
 }
 
 BEGIN_MESSAGE_MAP(CScrnPage, CPropertyPage)
@@ -71,6 +73,10 @@ BEGIN_MESSAGE_MAP(CScrnPage, CPropertyPage)
 	ON_CBN_SELCHANGE(IDC_SENDCRLF,   OnUpdateEdit)
 	ON_CBN_SELCHANGE(IDC_COMBO3, OnCbnSelchangeCombo)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_TERMCHECK2, IDC_TERMCHECK3, OnUpdateCheck)
+	ON_CBN_EDITCHANGE(IDC_SCRNOFFSLEFT,  OnUpdateEdit)
+	ON_CBN_SELCHANGE(IDC_SCRNOFFSLEFT,	 OnUpdateEdit)
+	ON_CBN_EDITCHANGE(IDC_SCRNOFFSRIGHT,  OnUpdateEdit)
+	ON_CBN_SELCHANGE(IDC_SCRNOFFSRIGHT,	 OnUpdateEdit)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -110,6 +116,9 @@ void CScrnPage::DoInit()
 	m_TtlMode = m_pSheet->m_pTextRam->m_TitleMode & 7;
 	m_TtlRep  = (m_pSheet->m_pTextRam->m_TitleMode & WTTL_REPORT) ? TRUE : FALSE;
 	m_TtlCng  = (m_pSheet->m_pTextRam->m_TitleMode & WTTL_CHENG)  ? TRUE : FALSE;
+
+	m_ScrnOffsLeft.Format(_T("%d"),   m_pSheet->m_pTextRam->m_ScrnOffset.left);
+	m_ScrnOffsRight.Format(_T("%d"),  m_pSheet->m_pTextRam->m_ScrnOffset.right);
 
 	InitDlgItem();
 	UpdateData(FALSE);
@@ -154,6 +163,15 @@ BOOL CScrnPage::OnApply()
 		m_pSheet->m_pTextRam->m_TitleMode |= WTTL_REPORT;
 	if ( m_TtlCng )
 		m_pSheet->m_pTextRam->m_TitleMode |= WTTL_CHENG;
+
+	if ( (n = _tstoi(m_ScrnOffsLeft)) != m_pSheet->m_pTextRam->m_ScrnOffset.left ) {
+		m_pSheet->m_pTextRam->m_ScrnOffset.left = n;
+		m_pSheet->m_ModFlag |= UMOD_RESIZE;
+	}
+	if ( (n = _tstoi(m_ScrnOffsRight)) != m_pSheet->m_pTextRam->m_ScrnOffset.right ) {
+		m_pSheet->m_pTextRam->m_ScrnOffset.right = n;
+		m_pSheet->m_ModFlag |= UMOD_RESIZE;
+	}
 
 	return TRUE;
 }

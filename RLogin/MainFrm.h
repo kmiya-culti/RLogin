@@ -19,6 +19,8 @@
 #define	PANEFRAME_WINDOW		4
 #define	PANEFRAME_WSPLIT		5
 #define	PANEFRAME_HSPLIT		6
+#define	PANEFRAME_WEVEN			7
+#define	PANEFRAME_HEVEN			8
 
 #define	PANEMINSIZE				50
 
@@ -49,6 +51,7 @@ public:
 	class CPaneFrame *GetEntry();
 	int SetActive(HWND hWnd);
 	int IsOverLap(CPaneFrame *pPane);
+	int GetPaneCount(int count);
 
 	void MoveFrame();
 	void SwapWnd();

@@ -1078,6 +1078,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\MsgWnd.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\OptDlg.cpp"
 				>
 			</File>
@@ -1493,6 +1497,10 @@
 			</File>
 			<File
 				RelativePath=".\MousePage.h"
+				>
+			</File>
+			<File
+				RelativePath=".\MsgWnd.h"
 				>
 			</File>
 			<File
