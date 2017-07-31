@@ -1893,9 +1893,9 @@ void *CMainFrame::CopyClipboardData(UINT type)
 		goto ERRRET2;
 
 	for ( int n = 0 ; !OpenClipboard() ; n++ ) {
-		if ( n >= 10 )
+		if ( n >= 5 )
 			goto ERRRET2;
-		Sleep(100 + (rand() % 200));
+		Sleep(100);
 	}
 
 	if ( (hData = GetClipboardData(type)) == NULL )
@@ -1935,6 +1935,16 @@ ERRRET:
 ERRRET2:
 	return pData;
 }
+static UINT CopyClipboardThead(LPVOID pParam)
+{
+	void *pBuf;
+	CMainFrame *pWnd = (CMainFrame *)pParam;
+
+	if ( (pBuf = pWnd->CopyClipboardData(CF_UNICODETEXT)) != NULL )
+		pWnd->PostMessage(WM_GETCLIPBOARD, NULL, (LPARAM)pBuf);
+
+	return 0;
+}
 BOOL CMainFrame::SetClipboardText(LPCTSTR str)
 {
 	HGLOBAL hData;
@@ -1960,7 +1970,7 @@ BOOL CMainFrame::SetClipboardText(LPCTSTR str)
 			MessageBox(_T("Clipboard Open Error"));
 			return FALSE;
 		}
-		Sleep(100 + (rand() % 200));
+		Sleep(100);
 	}
 
 	if ( !EmptyClipboard() ) {
@@ -2246,8 +2256,10 @@ LRESULT CMainFrame::OnGetClipboard(WPARAM wParam, LPARAM lParam)
 {
 	CStringW str;
 	WCHAR *pBuf;
-	
-	if ( (pBuf = (WCHAR *)CopyClipboardData(CF_UNICODETEXT)) == NULL )
+
+	if ( lParam != NULL )
+		pBuf = (WCHAR *)lParam;
+	else if ( (pBuf = (WCHAR *)CopyClipboardData(CF_UNICODETEXT)) == NULL )
 		return TRUE;
 
 	str = pBuf;
@@ -3230,7 +3242,8 @@ void CMainFrame::OnDrawClipboard()
 
 	m_bClipEnable = TRUE;	// クリップボードチェインが有効？
 
-	PostMessage(WM_GETCLIPBOARD);
+//	PostMessage(WM_GETCLIPBOARD, (WPARAM)TRUE);
+	AfxBeginThread(CopyClipboardThead, this, THREAD_PRIORITY_LOWEST);
 }
 void CMainFrame::OnChangeCbChain(HWND hWndRemove, HWND hWndAfter)
 {
@@ -3245,7 +3258,8 @@ void CMainFrame::OnClipboardUpdate()
 {
 	m_bClipEnable = TRUE;	// クリップボードチェインが有効？
 
-	PostMessage(WM_GETCLIPBOARD);
+//	PostMessage(WM_GETCLIPBOARD, (WPARAM)TRUE);
+	AfxBeginThread(CopyClipboardThead, this, THREAD_PRIORITY_LOWEST);
 }
 
 void CMainFrame::OnToolcust()
