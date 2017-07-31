@@ -167,17 +167,17 @@ BOOL CFontParaDlg::OnInitDialog()
 
 	int n;
 	CComboBox *pCombo;
-	CStringArray array;
+	CStringArray stra;
 
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_CHARSET)) != NULL ) {
 		for ( n = 0 ; CharSetTab[n].name != NULL ; n++ )
 			pCombo->AddString(CharSetTab[n].name);
 	}
 
-	CIConv::SetListArray(array);
+	CIConv::SetListArray(stra);
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_ICONVSET)) != NULL ) {
-		for ( n = 0 ; n < array.GetSize() ; n++ )
-			pCombo->AddString(array[n]);
+		for ( n = 0 ; n < stra.GetSize() ; n++ )
+			pCombo->AddString(stra[n]);
 	}
 
 	ASSERT(m_pData);

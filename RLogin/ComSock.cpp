@@ -272,19 +272,19 @@ void CComSock::GetMode(LPCTSTR str)
 {
 	int i, a, b;
 	CString work = str;
-	CStringArray array;
+	CStringArray stra;
 
-	array.RemoveAll();
+	stra.RemoveAll();
 	for ( i = 0 ; i < work.GetLength() ; i = a + 1 ) {
 		if ( (a = work.Find(_T(';'), i)) < 0 )
 			a = work.GetLength();
 		if ( (a - i) > 0 )
-			array.Add(work.Mid(i, a - i));
+			stra.Add(work.Mid(i, a - i));
 	}
 
-	for ( i = 0 ; i < array.GetSize() ; i++ ) {
+	for ( i = 0 ; i < stra.GetSize() ; i++ ) {
 		for ( a = 0 ; ComTab[a].name != NULL ; a++ ) {
-			if ( array[i].CompareNoCase(ComTab[a].name) == 0 ) {
+			if ( stra[i].CompareNoCase(ComTab[a].name) == 0 ) {
 				switch(ComTab[a].mode) {
 				case 0: m_ComPort  = ComTab[a].value; break;
 				case 1: m_BaudRate = ComTab[a].value; break;
@@ -297,9 +297,9 @@ void CComSock::GetMode(LPCTSTR str)
 			}
 		}
 		if ( ComTab[a].name == NULL ) {
-			if ( array[i].Left(3).CompareNoCase(_T("COM")) == 0 ) {
-				m_ComPort = _tstoi(array[i].Mid(3));
-			} else if ( (b = _tstoi(array[i])) >= 100 ) {
+			if ( stra[i].Left(3).CompareNoCase(_T("COM")) == 0 ) {
+				m_ComPort = _tstoi(stra[i].Mid(3));
+			} else if ( (b = _tstoi(stra[i])) >= 100 ) {
 				m_BaudRate = b;
 			}
 		}

@@ -12,6 +12,7 @@
 #include "Ssh.h"
 #include "Data.h"
 #include "IdKeyFileDlg.h"
+#include "Script.h"
 
 #include <ocidl.h>
 #include <olectl.h>
@@ -661,15 +662,15 @@ void CStringArrayExt::GetString(LPCTSTR str, int sep)
 			Add(work.Mid(i, a - i));
 	}
 }
-void CStringArrayExt::AddArray(CStringArrayExt &array)
+void CStringArrayExt::AddArray(CStringArrayExt &stra)
 {
 	CString tmp;
-	array.SetString(tmp);
+	stra.SetString(tmp);
 	Add(tmp);
 }
-void CStringArrayExt::GetArray(int index, CStringArrayExt &array)
+void CStringArrayExt::GetArray(int index, CStringArrayExt &stra)
 {
-	array.GetString(GetAt(index));
+	stra.GetString(GetAt(index));
 }
 void CStringArrayExt::SetBuffer(CBuffer &buf)
 {
@@ -1056,47 +1057,47 @@ void COptObject::Init()
 }
 void COptObject::Serialize(int mode)
 {
-	CStringArrayExt array;
+	CStringArrayExt stra;
 
 	if ( mode ) {	// Write
-		SetArray(array);
-		((CRLoginApp *)AfxGetApp())->WriteProfileArray(m_pSection, array);
+		SetArray(stra);
+		((CRLoginApp *)AfxGetApp())->WriteProfileArray(m_pSection, stra);
 	} else {		// Read
-		((CRLoginApp *)AfxGetApp())->GetProfileArray(m_pSection, array);
-		if ( array.GetSize() < m_MinSize )
+		((CRLoginApp *)AfxGetApp())->GetProfileArray(m_pSection, stra);
+		if ( stra.GetSize() < m_MinSize )
 			Init();
 		else
-			GetArray(array);
+			GetArray(stra);
 	}
 }
 void COptObject::Serialize(int mode, CBuffer &buf)
 {
-	CStringArrayExt array;
+	CStringArrayExt stra;
 
 	if ( mode ) {	// Write
-		SetArray(array);
-		array.SetBuffer(buf);
+		SetArray(stra);
+		stra.SetBuffer(buf);
 	} else {		// Read
-		array.GetBuffer(buf);
-		if ( array.GetSize() < m_MinSize )
+		stra.GetBuffer(buf);
+		if ( stra.GetSize() < m_MinSize )
 			Serialize(FALSE);
 		else
-			GetArray(array);
+			GetArray(stra);
 	}
 }
 void COptObject::Serialize(CArchive &ar)
 {
-	CStringArrayExt array;
+	CStringArrayExt stra;
 
 	if ( ar.IsStoring() ) {		// TODO: この位置に保存用のコードを追加してください。
-		SetArray(array);
-		array.Serialize(ar);
+		SetArray(stra);
+		stra.Serialize(ar);
 	} else {					// TODO: この位置に読み込み用のコードを追加してください。
-		array.Serialize(ar);
-		if ( array.GetSize() < m_MinSize )
+		stra.Serialize(ar);
+		if ( stra.GetSize() < m_MinSize )
 			Serialize(FALSE);
 		else
-			GetArray(array);
+			GetArray(stra);
 	}
 }
 
@@ -1626,7 +1627,7 @@ void CServerEntry::Init()
 	m_SaveFlag  = FALSE;
 	m_CheckFlag = FALSE;
 	m_Uid       = (-1);
-	m_Script.Init();
+	m_ChatScript.Init();
 	m_ProxyMode = 0;
 	m_ProxyHost.Empty();
 	m_ProxyPort.Empty();
@@ -1634,6 +1635,7 @@ void CServerEntry::Init()
 	m_ProxyPass.Empty();
 	m_Memo.Empty();
 	m_Group.Empty();
+	m_ScriptFile.Empty();
 }
 const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 {
@@ -1653,7 +1655,7 @@ const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 	m_SaveFlag   = data.m_SaveFlag;
 	m_CheckFlag  = data.m_CheckFlag;
 	m_Uid        = data.m_Uid;
-	m_Script     = data.m_Script;
+	m_ChatScript = data.m_ChatScript;
 	m_ProxyMode  = data.m_ProxyMode;
 	m_ProxyHost  = data.m_ProxyHost;
 	m_ProxyPort  = data.m_ProxyPort;
@@ -1661,50 +1663,52 @@ const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 	m_ProxyPass  = data.m_ProxyPass;
 	m_Memo       = data.m_Memo;
 	m_Group      = data.m_Group;
+	m_ScriptFile = data.m_ScriptFile;
 	return *this;
 }
-void CServerEntry::GetArray(CStringArrayExt &array)
+void CServerEntry::GetArray(CStringArrayExt &stra)
 {
 	CIdKey key;
 	CBuffer buf;
 	CString str;
 
-	m_EntryName = array.GetAt(0);
-	m_HostName  = array.GetAt(1);
-	m_PortName  = array.GetAt(2);
-	m_UserName  = array.GetAt(3);
-	key.DecryptStr(m_PassName, array.GetAt(4));
-	m_TermName  = array.GetAt(5);
-	m_IdkeyName = array.GetAt(6);
-	m_KanjiCode = array.GetVal(7);
-	m_ProtoType = array.GetVal(8);
+	m_EntryName = stra.GetAt(0);
+	m_HostName  = stra.GetAt(1);
+	m_PortName  = stra.GetAt(2);
+	m_UserName  = stra.GetAt(3);
+	key.DecryptStr(m_PassName, stra.GetAt(4));
+	m_TermName  = stra.GetAt(5);
+	m_IdkeyName = stra.GetAt(6);
+	m_KanjiCode = stra.GetVal(7);
+	m_ProtoType = stra.GetVal(8);
 
-	m_Uid = (array.GetSize() > 9 ? array.GetVal(9):(-1));
+	m_Uid = (stra.GetSize() > 9 ? stra.GetVal(9):(-1));
 
-	if ( array.GetSize() > 10 ) {
-		array.GetBuf(10, buf);
-		m_Script.GetBuffer(buf);
+	if ( stra.GetSize() > 10 ) {
+		stra.GetBuf(10, buf);
+		m_ChatScript.GetBuffer(buf);
 	} else
-		m_Script.Init();
+		m_ChatScript.Init();
 
-	if ( array.GetSize() > 15 ) {
-		m_ProxyMode = array.GetVal(11);
-		m_ProxyHost = array.GetAt(12);
-		m_ProxyPort = array.GetAt(13);
-		m_ProxyUser = array.GetAt(14);
-		key.DecryptStr(m_ProxyPass, array.GetAt(15));
+	if ( stra.GetSize() > 15 ) {
+		m_ProxyMode = stra.GetVal(11);
+		m_ProxyHost = stra.GetAt(12);
+		m_ProxyPort = stra.GetAt(13);
+		m_ProxyUser = stra.GetAt(14);
+		key.DecryptStr(m_ProxyPass, stra.GetAt(15));
 	}
 
-	if ( array.GetSize() > 16 ) {
-		key.DecryptStr(str, array.GetAt(16));
+	if ( stra.GetSize() > 16 ) {
+		key.DecryptStr(str, stra.GetAt(16));
 		if ( str.Compare(_T("12345678")) != 0 ) {
 			m_PassName.Empty();
 			m_ProxyPass.Empty();
 		}
 	}
 
-	m_Memo       = (array.GetSize() > 17 ?  array.GetAt(17) : _T(""));
-	m_Group      = (array.GetSize() > 18 ?  array.GetAt(18) : _T(""));
+	m_Memo       = (stra.GetSize() > 17 ?  stra.GetAt(17) : _T(""));
+	m_Group      = (stra.GetSize() > 18 ?  stra.GetAt(18) : _T(""));
+	m_ScriptFile = (stra.GetSize() > 19 ?  stra.GetAt(19) : _T(""));
 
 	m_ProBuffer.Clear();
 	m_HostReal = m_HostName;
@@ -1712,51 +1716,180 @@ void CServerEntry::GetArray(CStringArrayExt &array)
 	m_PassReal = m_PassName;
 	m_SaveFlag = FALSE;
 }
-void CServerEntry::SetArray(CStringArrayExt &array)
+void CServerEntry::SetArray(CStringArrayExt &stra)
 {
 	CIdKey key;
 	CString str;
 	CBuffer buf;
 
-	array.RemoveAll();
-	array.Add(m_EntryName);
-	array.Add(m_HostReal);
-	array.Add(m_PortName);
-	array.Add(m_UserReal);
+	stra.RemoveAll();
+	stra.Add(m_EntryName);
+	stra.Add(m_HostReal);
+	stra.Add(m_PortName);
+	stra.Add(m_UserReal);
 	key.EncryptStr(str, m_PassReal);
-	array.Add(str);
-	array.Add(m_TermName);
-	array.Add(m_IdkeyName);
-	array.AddVal(m_KanjiCode);
-	array.AddVal(m_ProtoType);
-	array.AddVal(m_Uid);
-	m_Script.SetBuffer(buf);
-	array.AddBin(buf.GetPtr(), buf.GetSize());
-	array.AddVal(m_ProxyMode);
-	array.Add(m_ProxyHost);
-	array.Add(m_ProxyPort);
-	array.Add(m_ProxyUser);
+	stra.Add(str);
+	stra.Add(m_TermName);
+	stra.Add(m_IdkeyName);
+	stra.AddVal(m_KanjiCode);
+	stra.AddVal(m_ProtoType);
+	stra.AddVal(m_Uid);
+	m_ChatScript.SetBuffer(buf);
+	stra.AddBin(buf.GetPtr(), buf.GetSize());
+	stra.AddVal(m_ProxyMode);
+	stra.Add(m_ProxyHost);
+	stra.Add(m_ProxyPort);
+	stra.Add(m_ProxyUser);
 	key.EncryptStr(str, m_ProxyPass);
-	array.Add(str);
+	stra.Add(str);
 	key.EncryptStr(str, _T("12345678"));
-	array.Add(str);
-	array.Add(m_Memo);
-	array.Add(m_Group);
+	stra.Add(str);
+	stra.Add(m_Memo);
+	stra.Add(m_Group);
+	stra.Add(m_ScriptFile);
+}
+
+static ScriptCmdsDefs DocEntry[] = {
+	{	"Host",			1	},
+	{	"Port",			2	},
+	{	"User",			3	},
+	{	"Pass",			4	},
+	{	"Term",			5	},
+	{	"KeyFile",		6	},
+	{	"Memo",			7	},
+	{	"Group",		8	},
+	{	"Script",		9	},
+	{	"CodeSet",		10	},
+	{	"Protocol",		12	},
+	{	"Chat",			13	},
+	{	"Proxy",		14	},
+	{	NULL,			0	},
+}, DocEntryProxy[] = {
+	{	"Mode",			20	},
+	{	"Host",			21	},
+	{	"Port",			22	},
+	{	"User",			23	},
+	{	"Pass",			24	},
+	{	NULL,			0	},
+};
+
+void CServerEntry::ScriptInit(int cmds, int shift, class CScriptValue &value)
+{
+	int n;
+
+	value.m_DocCmds = cmds;
+
+	for ( n = 0 ; DocEntry[n].name != NULL ; n++ )
+		value[DocEntry[n].name].m_DocCmds = (DocEntry[n].cmds << shift) | cmds;
+
+	for ( n = 0 ; DocEntryProxy[n].name != NULL ; n++ )
+		value["Proxy"][DocEntryProxy[n].name].m_DocCmds = (DocEntryProxy[n].cmds << shift) | cmds;
+}
+void CServerEntry::ScriptValue(int cmds, class CScriptValue &value, int mode)
+{
+	int n, i;
+	CString str;
+
+	switch(cmds & 0xFF) {
+	case 0:					// Document.Entry
+		if ( mode == DOC_MODE_SAVE ) {
+			for ( n = 0 ; DocEntry[n].name != NULL ; n++ ) {
+				if ( (i = value.Find(DocEntry[n].name)) >= 0 )
+					ScriptValue(DocEntry[n].cmds, value[i], mode);
+			}
+			m_EntryName = (LPCTSTR)value;
+		} else if ( mode == DOC_MODE_IDENT ) {
+			for ( n = 0 ; DocEntry[n].name != NULL ; n++ )
+				ScriptValue(DocEntry[n].cmds, value[DocEntry[n].name], mode);
+			 value = (LPCTSTR)m_EntryName;
+		}
+		break;
+
+	case 1:					// Document.Entry.Host
+		value.SetStr(m_HostName, mode);
+		break;
+	case 2:					// Document.Entry.Port
+		value.SetStr(m_PortName, mode);
+		break;
+	case 3:					// Document.Entry.User
+		value.SetStr(m_UserName, mode);
+		break;
+	case 4:					// Document.Entry.Pass
+		value.SetStr(m_PassName, mode);
+		break;
+	case 5:					// Document.Entry.Term
+		value.SetStr(m_TermName, mode);
+		break;
+	case 6:					// Document.Entry.KeyFile
+		value.SetStr(m_IdkeyName, mode);
+		break;
+	case 7:					// Document.Entry.Memo
+		value.SetStr(m_Memo, mode);
+		break;
+	case 8:					// Document.Entry.Group
+		value.SetStr(m_Group, mode);
+		break;
+	case 9:					// Document.Entry.Script
+		value.SetStr(m_ScriptFile, mode);
+		break;
+
+	case 10:				// Document.Entry.CodeSet
+		str = GetKanjiCode();
+		value.SetStr(str, mode);
+		SetKanjiCode(str);
+	case 11:				// Document.Entry.Protocol
+		str = GetProtoName();
+		value.SetStr(str, mode);
+		m_ProtoType = GetProtoType(str);
+	case 12:				// Document.Entry.Chat
+		m_ChatScript.SetString(str);
+		value.SetStr(str, mode);
+		m_ChatScript.GetString(str);
+		break;
+
+	case 13:				// Document.Entry.Proxy
+		if ( mode == DOC_MODE_SAVE ) {
+			for ( n = 0 ; DocEntryProxy[n].name != NULL ; n++ ) {
+				if ( (i = value.Find(DocEntryProxy[n].name)) >= 0 )
+					ScriptValue(DocEntryProxy[n].cmds, value[i], mode);
+			}
+		} else if ( mode == DOC_MODE_IDENT ) {
+			for ( n = 0 ; DocEntryProxy[n].name != NULL ; n++ )
+				ScriptValue(DocEntryProxy[n].cmds, value[DocEntryProxy[n].name], mode);
+		}
+		break;
+
+	case 20:				// Document.Entry.Proxy.Mode
+		value.SetInt(m_ProxyMode, mode);
+		break;
+	case 21:				// Document.Entry.Proxy.Host
+		value.SetStr(m_ProxyHost, mode);
+		break;
+	case 22:				// Document.Entry.Proxy.Port
+		value.SetStr(m_ProxyPort, mode);
+		break;
+	case 23:				// Document.Entry.Proxy.User
+		value.SetStr(m_ProxyUser, mode);
+		break;
+	case 24:				// Document.Entry.Proxy.Pass
+		value.SetStr(m_ProxyPass, mode);
+		break;
+	}
 }
 void CServerEntry::SetBuffer(CBuffer &buf)
 {
-	CStringArrayExt array;
-	SetArray(array);
-	array.SetBuffer(buf);
+	CStringArrayExt stra;
+	SetArray(stra);
+	stra.SetBuffer(buf);
 	buf.PutBuf(m_ProBuffer.GetPtr(), m_ProBuffer.GetSize());
 }
 int CServerEntry::GetBuffer(CBuffer &buf)
 {
-	CStringArrayExt array;
-	array.GetBuffer(buf);
-	if ( array.GetSize() < 9 )
+	CStringArrayExt stra;
+	stra.GetBuffer(buf);
+	if ( stra.GetSize() < 9 )
 		return FALSE; 
-	GetArray(array);
+	GetArray(stra);
 	buf.GetBuf(&m_ProBuffer);
 	return TRUE;
 }
@@ -1784,17 +1917,17 @@ void CServerEntry::DelProfile(LPCTSTR pSection)
 }
 void CServerEntry::Serialize(CArchive &ar)
 {
-	CStringArrayExt array;
+	CStringArrayExt stra;
 
 	if ( ar.IsStoring() ) {		// TODO: この位置に保存用のコードを追加してください。
-		SetArray(array);
-		array.Serialize(ar);
+		SetArray(stra);
+		stra.Serialize(ar);
 	} else {					// TODO: この位置に読み込み用のコードを追加してください。
-		array.Serialize(ar);
-		if ( array.GetSize() < 9 )
+		stra.Serialize(ar);
+		if ( stra.GetSize() < 9 )
 			Init();
 		else
-			GetArray(array);
+			GetArray(stra);
 	}
 }
 LPCTSTR CServerEntry::GetKanjiCode()
@@ -1815,6 +1948,16 @@ void CServerEntry::SetKanjiCode(LPCTSTR str)
 	else if ( _tcscmp(str, _T("BIG5")) == 0 )	m_KanjiCode = UTF8_SET;
 	else if ( _tcscmp(str, _T("UTF8")) == 0 )	m_KanjiCode = BIG5_SET;
 	else									    m_KanjiCode = EUC_SET;
+}
+LPCTSTR CServerEntry::GetProtoName()
+{
+	switch(m_ProtoType) {
+	case PROTO_COMPORT:	return _T("serial");
+	case PROTO_TELNET:	return _T("telnet");
+	case PROTO_LOGIN:	return _T("login");
+	case PROTO_SSH:		return _T("ssh");
+	default:			return _T("direct");
+	}
 }
 int CServerEntry::GetProtoType(LPCTSTR str)
 {
@@ -1843,23 +1986,23 @@ void CServerEntryTab::Init()
 {
 	m_Data.RemoveAll();
 }
-void CServerEntryTab::SetArray(CStringArrayExt &array)
+void CServerEntryTab::SetArray(CStringArrayExt &stra)
 {
 	CStringArrayExt tmp;
 
 	for ( int n = 0 ; n < m_Data.GetSize() ; n++ ) {
 		m_Data[n].SetArray(tmp);
-		array.AddArray(tmp);
+		stra.AddArray(tmp);
 	}
 }
-void CServerEntryTab::GetArray(CStringArrayExt &array)
+void CServerEntryTab::GetArray(CStringArrayExt &stra)
 {
 	CStringArrayExt tmp;
 	CServerEntry dum;
 
 	m_Data.RemoveAll();
-	for ( int n = 0 ; n < array.GetSize() ; n++ ) {
-		array.GetArray(n, tmp);
+	for ( int n = 0 ; n < stra.GetSize() ; n++ ) {
+		stra.GetArray(n, tmp);
 		dum.GetArray(tmp);
 		m_Data.Add(dum);
 	}
@@ -2582,12 +2725,12 @@ BOOL CKeyNodeTab::FindCapInfo(LPCTSTR name, CBuffer *pBuf)
 	}
 	return FALSE;
 }
-void CKeyNodeTab::SetArray(CStringArrayExt &array)
+void CKeyNodeTab::SetArray(CStringArrayExt &stra)
 {
 	int n;
 	CStringArrayExt tmp;
 
-	array.RemoveAll();
+	stra.RemoveAll();
 	for ( n = 0 ; n < m_Node.GetSize() ; n++ ) {
 		if ( m_Node[n].m_Code == (-1) )
 			continue;
@@ -2595,22 +2738,22 @@ void CKeyNodeTab::SetArray(CStringArrayExt &array)
 		tmp.AddVal(m_Node[n].m_Code);
 		tmp.AddVal(m_Node[n].m_Mask);
 		tmp.Add(m_Node[n].GetMaps());
-		array.AddArray(tmp);
+		stra.AddArray(tmp);
 	}
 
 	tmp.RemoveAll();
 	tmp.AddVal(-1);
 	tmp.AddVal(1);			// KeyCode Bug Fix
-	array.AddArray(tmp);
+	stra.AddArray(tmp);
 }
-void CKeyNodeTab::GetArray(CStringArrayExt &array)
+void CKeyNodeTab::GetArray(CStringArrayExt &stra)
 {
 	int n, fix = 0;
 	CStringArrayExt tmp;
 
 	m_Node.RemoveAll();
-	for ( n = 0 ; n < array.GetSize() ; n++ ) {
-		array.GetArray(n, tmp);
+	for ( n = 0 ; n < stra.GetSize() ; n++ ) {
+		stra.GetArray(n, tmp);
 		if ( tmp.GetSize() < 3 ) {
 			if ( tmp.GetVal(0) == (-1) )
 				fix = tmp.GetVal(1);
@@ -2619,6 +2762,53 @@ void CKeyNodeTab::GetArray(CStringArrayExt &array)
 		Add(tmp.GetVal(0), tmp.GetVal(1), tmp.GetAt(2));
 	}
 	BugFix(fix);
+}
+void CKeyNodeTab::ScriptInit(int cmds, int shift, class CScriptValue &value)
+{
+	value.m_DocCmds = cmds;
+
+	value["Add" ].m_DocCmds = (1 << shift) | cmds;
+	value["Find"].m_DocCmds = (2 << shift) | cmds;
+}
+void CKeyNodeTab::ScriptValue(int cmds, class CScriptValue &value, int mode)
+{
+	int n;
+
+	if ( mode == DOC_MODE_CALL ) {
+		switch(cmds) {
+		case 1:				// Document.KeyCode.Add(code, mask, maps)
+			if ( value.GetSize() >= 3 ) {
+				value = (int)0;
+				Add((int)value[0], (int)value[1], (LPCTSTR)value[2]);
+			} else if ( value[0].Find("Code") >= 0 && value[0].Find("Mask") >= 0 && value[0].Find("Maps") >= 0 ) {
+				value = (int)0;
+				Add((int)value[0]["Code"], (int)value[0]["Mask"], (LPCTSTR)value[0]["Maps"]);
+			} else
+				value = (int)1;
+			break;
+		case 2:				// Document.KeyCode.Find(code, mask)
+			if ( Find((int)value[0], (int)(value[1]), &n) ) {
+				value = (int)0;
+				value["Code"] = (int)(m_Node[n].m_Code);
+				value["Mask"] = (int)(m_Node[n].m_Mask);
+				value["Maps"] = (LPCTSTR)m_Node[n].GetMaps();
+			} else
+				value = (int)1;
+			break;
+		}
+
+	} else if ( mode == DOC_MODE_IDENT && cmds == 0 ) {			// Document.KeyCode
+		value.RemoveAll();
+		for ( n = 0 ; n < m_Node.GetSize() ; n++ ) {
+			value[n]["Code"] = (int)m_Node[n].m_Code;
+			value[n]["Mask"] = (int)m_Node[n].m_Mask;
+			value[n]["Maps"] = m_Node[n].GetMaps();
+		}
+
+	} else if ( mode == DOC_MODE_SAVE && cmds == 0 ) {			// Document.KeyCode
+		for ( n = 0 ; n < value.GetSize() ; n++ )
+			Add((int)value[n]["Code"], (int)value[n]["Mask"], (LPCTSTR)value[n]["Maps"]);
+	}
 }
 const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 {
@@ -3041,24 +3231,62 @@ void CKeyMacTab::Init()
 {
 	m_Data.RemoveAll();
 }
-void CKeyMacTab::SetArray(CStringArrayExt &array)
+void CKeyMacTab::SetArray(CStringArrayExt &stra)
 {
 	CString tmp;
 
-	array.RemoveAll();
+	stra.RemoveAll();
 	for ( int n = 0 ; n < m_Data.GetSize() ; n++ ) {
 		m_Data[n].GetStr(tmp);
-		array.Add(tmp);
+		stra.Add(tmp);
 	}
 }
-void CKeyMacTab::GetArray(CStringArrayExt &array)
+void CKeyMacTab::GetArray(CStringArrayExt &stra)
 {
 	CKeyMac tmp;
 
 	m_Data.RemoveAll();
-	for ( int n = 0 ; n < array.GetSize() ; n++ ) {
-		tmp.SetStr(array[n]);
+	for ( int n = 0 ; n < stra.GetSize() ; n++ ) {
+		tmp.SetStr(stra[n]);
 		m_Data.Add(tmp);
+	}
+}
+void CKeyMacTab::ScriptInit(int cmds, int shift, class CScriptValue &value)
+{
+	value.m_DocCmds = cmds;
+
+	value["Add" ].m_DocCmds = (1 << shift) | cmds;
+}
+void CKeyMacTab::ScriptValue(int cmds, class CScriptValue &value, int mode)
+{
+	int n;
+	CString str;
+	CKeyMac tmp;
+
+	if ( mode == DOC_MODE_CALL ) {
+		switch(cmds) {
+		case 1:					// Document.KeyMacro.Add(macro)
+			tmp.SetStr((LPCTSTR)value[0]);
+			if ( tmp.m_Len > 0 ) {
+				Add(tmp);
+				value = (int)0;
+			} else
+				value = (int)1;
+			break;
+		}
+
+	} else if ( mode == DOC_MODE_SAVE && cmds == 0 ) {	// Document.KeyMacro
+		for ( n = value.GetSize() - 1 ; n >= 0 ; n-- ) {
+			tmp.SetStr((LPCTSTR)value[n]);
+			Add(tmp);
+		}
+
+	} else if ( mode == DOC_MODE_IDENT && cmds == 0 ) {	// Document.KeyMacro
+		value.RemoveAll();
+		for ( n = 0 ; n < m_Data.GetSize() ; n++ ) {
+			m_Data[n].GetStr(str);
+			value[n] = (LPCTSTR)str;
+		}
 	}
 }
 const CKeyMacTab & CKeyMacTab::operator = (CKeyMacTab &data)
@@ -3121,82 +3349,102 @@ void CKeyMacTab::SetHisMenu(CWnd *pWnd)
 // CParamTab
 
 static LPCTSTR InitAlgo[12][45] = {
-	{ _T("blowfish"), _T("3des"), _T("des"), NULL },
-	{ _T("crc32"), NULL },
-	{ _T("zlib"), _T("none"), NULL },
+	{	_T("blowfish"),						_T("3des"),							_T("des"),
+		NULL },
+	{	_T("crc32"),
+		NULL },
+	{	_T("zlib"),							_T("none"),
+		NULL },
 
-	{ _T("aes128-ctr"),						_T("aes192-ctr"),					_T("aes256-ctr"),
-	  _T("aes128-cbc"),						_T("aes192-cbc"),					_T("aes256-cbc"),
-	  _T("arcfour"),						_T("arcfour128"),					_T("arcfour256"),
-	  _T("blowfish-ctr"),					_T("cast128-ctr"),					_T("idea-ctr"),
-	  _T("twofish-ctr"),					_T("3des-ctr"),
-	  _T("blowfish-cbc"),					_T("cast128-cbc"),					_T("idea-cbc"),
-	  _T("twofish-cbc"),					_T("3des-cbc"),
-	  _T("twofish128-ctr"),					_T("twofish192-ctr"),				_T("twofish256-ctr"),
-	  _T("twofish128-cbc"),					_T("twofish192-cbc"),				_T("twofish256-cbc"),
-	  _T("serpent128-ctr"),					_T("serpent192-ctr"),				_T("serpent256-ctr"),
-	  _T("serpent128-cbc"),					_T("serpent192-cbc"),				_T("serpent256-cbc"),
-	  _T("camellia128-ctr"),				_T("camellia192-ctr"),				_T("camellia256-ctr"),
-	  _T("camellia128-cbc"),				_T("camellia192-cbc"),				_T("camellia256-cbc"),
-	  _T("seed-ctr@ssh.com"),				_T("seed-cbc@ssh.com"),
+	{	_T("aes128-ctr"),					_T("aes192-ctr"),					_T("aes256-ctr"),
+		_T("aes128-cbc"),					_T("aes192-cbc"),					_T("aes256-cbc"),
+		_T("arcfour"),						_T("arcfour128"),					_T("arcfour256"),
+		_T("blowfish-ctr"),					_T("cast128-ctr"),					_T("idea-ctr"),
+		_T("twofish-ctr"),					_T("3des-ctr"),
+		_T("blowfish-cbc"),					_T("cast128-cbc"),					_T("idea-cbc"),
+		_T("twofish-cbc"),					_T("3des-cbc"),
+		_T("twofish128-ctr"),				_T("twofish192-ctr"),				_T("twofish256-ctr"),
+		_T("twofish128-cbc"),				_T("twofish192-cbc"),				_T("twofish256-cbc"),
+		_T("serpent128-ctr"),				_T("serpent192-ctr"),				_T("serpent256-ctr"),
+		_T("serpent128-cbc"),				_T("serpent192-cbc"),				_T("serpent256-cbc"),
+		_T("camellia128-ctr"),				_T("camellia192-ctr"),				_T("camellia256-ctr"),
+		_T("camellia128-cbc"),				_T("camellia192-cbc"),				_T("camellia256-cbc"),
+		_T("seed-ctr@ssh.com"),				_T("seed-cbc@ssh.com"),
 #if	OPENSSL_VERSION_NUMBER >= 0x10001000L
-	  _T("AEAD_AES_128_GCM"),				_T("AEAD_AES_192_GCM"),				_T("AEAD_AES_256_GCM"),
-	  _T("AEAD_AES_128_CCM"),				_T("AEAD_AES_192_CCM"),				_T("AEAD_AES_256_CCM"),
+		_T("AEAD_AES_128_GCM"),				_T("AEAD_AES_192_GCM"),				_T("AEAD_AES_256_GCM"),
+		_T("AEAD_AES_128_CCM"),				_T("AEAD_AES_192_CCM"),				_T("AEAD_AES_256_CCM"),
 #endif
 #ifdef	USE_CLEFIA
-	  _T("clefia128-ctr"),					_T("clefia192-ctr"),				_T("clefia256-ctr"),
-	  _T("clefia128-cbc"),					_T("clefia192-cbc"),				_T("clefia256-cbc"),
+		_T("clefia128-ctr"),				_T("clefia192-ctr"),				_T("clefia256-ctr"),
+		_T("clefia128-cbc"),				_T("clefia192-cbc"),				_T("clefia256-cbc"),
 #endif
-	  _T("none"),
-	  NULL },
+		_T("none"),
+		NULL },
 
-	{ _T("hmac-md5"),				_T("hmac-md5-96"),			_T("hmac-sha1"),			_T("hmac-sha1-96"),
-	  _T("hmac-sha2-256"),			_T("hmac-sha2-256-96"),		_T("hmac-sha2-512"),		_T("hmac-sha2-512-96"),
-	  _T("hmac-ripemd160"),			_T("hmac-whirlpool"),		_T("umac-64@openssh.com"),
-	  _T("umac-32"),				_T("umac-64"),				_T("umac-96"),				_T("umac-128"),
-	  NULL },
+	{	_T("hmac-md5"),						_T("hmac-md5-96"),
+		_T("hmac-sha1"),					_T("hmac-sha1-96"),
+		_T("hmac-sha2-256"),				_T("hmac-sha2-256-96"),
+		_T("hmac-sha2-512"),				_T("hmac-sha2-512-96"),
+		_T("hmac-ripemd160"),				_T("hmac-whirlpool"),
+		_T("umac-64@openssh.com"),
+		_T("umac-32"),						_T("umac-64"),
+		_T("umac-96"),						_T("umac-128"),
+		NULL },
 
-	{ _T("zlib@openssh.com"), _T("zlib"), _T("none"), NULL },
+	{	_T("zlib@openssh.com"),				_T("zlib"),							_T("none"),
+		NULL },
 
-	{ _T("aes128-ctr"),						_T("aes192-ctr"),					_T("aes256-ctr"),
-	  _T("aes128-cbc"),						_T("aes192-cbc"),					_T("aes256-cbc"),
-	  _T("arcfour"),						_T("arcfour128"),					_T("arcfour256"),
-	  _T("blowfish-ctr"),					_T("cast128-ctr"),					_T("idea-ctr"),
-	  _T("twofish-ctr"),					_T("3des-ctr"),
-	  _T("blowfish-cbc"),					_T("cast128-cbc"),					_T("idea-cbc"),
-	  _T("twofish-cbc"),					_T("3des-cbc"),
-	  _T("twofish128-ctr"),					_T("twofish192-ctr"),				_T("twofish256-ctr"),
-	  _T("twofish128-cbc"),					_T("twofish192-cbc"),				_T("twofish256-cbc"),
-	  _T("serpent128-ctr"),					_T("serpent192-ctr"),				_T("serpent256-ctr"),
-	  _T("serpent128-cbc"),					_T("serpent192-cbc"),				_T("serpent256-cbc"),
-	  _T("camellia128-ctr"),				_T("camellia192-ctr"),				_T("camellia256-ctr"),
-	  _T("camellia128-cbc"),				_T("camellia192-cbc"),				_T("camellia256-cbc"),
-	  _T("seed-ctr@ssh.com"),				_T("seed-cbc@ssh.com"),
+	{	_T("aes128-ctr"),					_T("aes192-ctr"),					_T("aes256-ctr"),
+		_T("aes128-cbc"),					_T("aes192-cbc"),					_T("aes256-cbc"),
+		_T("arcfour"),						_T("arcfour128"),					_T("arcfour256"),
+		_T("blowfish-ctr"),					_T("cast128-ctr"),					_T("idea-ctr"),
+		_T("twofish-ctr"),					_T("3des-ctr"),
+		_T("blowfish-cbc"),					_T("cast128-cbc"),					_T("idea-cbc"),
+		_T("twofish-cbc"),					_T("3des-cbc"),
+		_T("twofish128-ctr"),				_T("twofish192-ctr"),				_T("twofish256-ctr"),
+		_T("twofish128-cbc"),				_T("twofish192-cbc"),				_T("twofish256-cbc"),
+		_T("serpent128-ctr"),				_T("serpent192-ctr"),				_T("serpent256-ctr"),
+		_T("serpent128-cbc"),				_T("serpent192-cbc"),				_T("serpent256-cbc"),
+		_T("camellia128-ctr"),				_T("camellia192-ctr"),				_T("camellia256-ctr"),
+		_T("camellia128-cbc"),				_T("camellia192-cbc"),				_T("camellia256-cbc"),
+		_T("seed-ctr@ssh.com"),				_T("seed-cbc@ssh.com"),
 #if	OPENSSL_VERSION_NUMBER >= 0x10001000L
-	  _T("AEAD_AES_128_GCM"),				_T("AEAD_AES_256_GCM"),
-	  _T("AEAD_AES_128_CCM"),				_T("AEAD_AES_256_CCM"),
+		_T("AEAD_AES_128_GCM"),				_T("AEAD_AES_256_GCM"),
+		_T("AEAD_AES_128_CCM"),				_T("AEAD_AES_256_CCM"),
 #endif
-	  _T("none"),
-	  NULL },
+#ifdef	USE_CLEFIA
+		_T("clefia128-ctr"),				_T("clefia192-ctr"),				_T("clefia256-ctr"),
+		_T("clefia128-cbc"),				_T("clefia192-cbc"),				_T("clefia256-cbc"),
+#endif
+		_T("none"),
+		NULL },
 
-	{ _T("hmac-md5"),				_T("hmac-md5-96"),			_T("hmac-sha1"),			_T("hmac-sha1-96"),
-	  _T("hmac-sha2-256"),			_T("hmac-sha2-256-96"),		_T("hmac-sha2-512"),		_T("hmac-sha2-512-96"),
-	  _T("hmac-ripemd160"),			_T("hmac-whirlpool"),		_T("umac-64@openssh.com"),
-	  _T("umac-32"),				_T("umac-64"),				_T("umac-96"),				_T("umac-128"),
-	  NULL },
+	{	_T("hmac-md5"),						_T("hmac-md5-96"),
+		_T("hmac-sha1"),					_T("hmac-sha1-96"),
+		_T("hmac-sha2-256"),				_T("hmac-sha2-256-96"),
+		_T("hmac-sha2-512"),				_T("hmac-sha2-512-96"),
+		_T("hmac-ripemd160"),				_T("hmac-whirlpool"),
+		_T("umac-64@openssh.com"),
+		_T("umac-32"),						_T("umac-64"),
+		_T("umac-96"),						_T("umac-128"),
+		NULL },
 
-	{ _T("zlib@openssh.com"), _T("zlib"), _T("none"), NULL },
+	{	_T("zlib@openssh.com"),				_T("zlib"),							_T("none"), 
+		NULL },
 
-	{ _T("ecdh-sha2-nistp256"),		_T("ecdh-sha2-nistp384"),	_T("ecdh-sha2-nistp521"),
-	  _T("diffie-hellman-group-exchange-sha256"),	_T("diffie-hellman-group-exchange-sha1"),
-	  _T("diffie-hellman-group14-sha1"),			_T("diffie-hellman-group1-sha1"),
-	  NULL },
+	{	_T("ecdh-sha2-nistp256"),			_T("ecdh-sha2-nistp384"),			_T("ecdh-sha2-nistp521"),
+		_T("diffie-hellman-group-exchange-sha256"),
+		_T("diffie-hellman-group-exchange-sha1"),
+		_T("diffie-hellman-group14-sha1"),	_T("diffie-hellman-group1-sha1"),
+		NULL },
 
-	{ _T("ecdsa-sha2-nistp256"),	_T("ecdsa-sha2-nistp384"),	_T("ecdsa-sha2-nistp521"),
-	  _T("ssh-dss"),				_T("ssh-rsa"),
-	  NULL },
+	{	_T("ecdsa-sha2-nistp256"),			_T("ecdsa-sha2-nistp384"),			_T("ecdsa-sha2-nistp521"),
+		_T("ssh-dss"),						_T("ssh-rsa"),
+		NULL },
 
-	{ _T("publickey"),		_T("hostbased"),	_T("password"),		_T("keyboard-interactive"),		NULL },
+	{	_T("publickey"),					_T("hostbased"),
+		_T("password"),						_T("keyboard-interactive"),
+		NULL },
 };
 
 CParamTab::CParamTab()
@@ -3223,38 +3471,38 @@ void CParamTab::Init()
 	m_XDisplay  = _T(":0");
 	m_ExtEnvStr = _T("");
 	memset(m_OptTab, 0, sizeof(m_OptTab));
-	m_HostKeyFile.Empty();
+	m_Reserve.Empty();
 }
-void CParamTab::SetArray(CStringArrayExt &array)
+void CParamTab::SetArray(CStringArrayExt &stra)
 {
 	int n;
 	CIdKey key;
 	CString str;
 
-	array.RemoveAll();
+	stra.RemoveAll();
 
 	for ( n = 0 ; n < 9 ; n++ )
-		array.Add(_T(""));
+		stra.Add(_T(""));
 
-	array.SetAt(0, _T("IdKeyList Entry"));
-	m_IdKeyList.SetString(array[1]);
+	stra.SetAt(0, _T("IdKeyList Entry"));
+	m_IdKeyList.SetString(stra[1]);
 
 	for ( n = 0 ; n < 9 ; n++ )
-		array.AddArray(m_AlgoTab[n]);
+		stra.AddArray(m_AlgoTab[n]);
 
 	for ( n = 0 ; n < m_PortFwd.GetSize() ; n++ )
-		array.Add(m_PortFwd[n]);
-	array.Add(_T("EndOf"));
+		stra.Add(m_PortFwd[n]);
+	stra.Add(_T("EndOf"));
 
-	array.Add(m_XDisplay);
-	array.Add(m_ExtEnvStr);
-	array.AddBin(m_OptTab, sizeof(m_OptTab));
-	array.Add(m_HostKeyFile);										// Not use !!!!!!
+	stra.Add(m_XDisplay);
+	stra.Add(m_ExtEnvStr);
+	stra.AddBin(m_OptTab, sizeof(m_OptTab));
+	stra.Add(m_Reserve);
 
 	for ( n = 9 ; n < 12 ; n++ )
-		array.AddArray(m_AlgoTab[n]);
+		stra.AddArray(m_AlgoTab[n]);
 }
-void CParamTab::GetArray(CStringArrayExt &array)
+void CParamTab::GetArray(CStringArrayExt &stra)
 {
 	int n, a, i = 0;
 	CIdKey key;
@@ -3265,14 +3513,14 @@ void CParamTab::GetArray(CStringArrayExt &array)
 
 	for ( n = 0 ; n < 9 ; n++ ) {
 		if ( (n % 3) == 2 )
-			key.DecryptStr(m_IdKeyStr[n], array.GetAt(i++));
+			key.DecryptStr(m_IdKeyStr[n], stra.GetAt(i++));
 		else
-			m_IdKeyStr[n] = array.GetAt(i++);
+			m_IdKeyStr[n] = stra.GetAt(i++);
 	}
 
 
 	for ( n = 0 ; n < 9 ; n++ ) {
-		array.GetArray(i++, m_AlgoTab[n]);
+		stra.GetArray(i++, m_AlgoTab[n]);
 
 		idx.RemoveAll();
 		for ( a = 0 ; InitAlgo[n][a] != NULL ; a++ ) {
@@ -3289,12 +3537,12 @@ void CParamTab::GetArray(CStringArrayExt &array)
 	}
 
 	m_PortFwd.RemoveAll();
-	while ( i < array.GetSize() ) {
-		if ( array[i].Compare(_T("EndOf")) == 0 ) {
+	while ( i < stra.GetSize() ) {
+		if ( stra[i].Compare(_T("EndOf")) == 0 ) {
 			i++;
 			break;
 		}
-		list.GetString(array[i]);
+		list.GetString(stra[i]);
 		if ( list.GetSize() >= 4 ) {
 			if ( list.GetSize() == 4 ) {
 				if ( list[0].Compare(_T("localhost")) == 0 )
@@ -3304,25 +3552,25 @@ void CParamTab::GetArray(CStringArrayExt &array)
 				else
 					a = PFD_REMOTE;
 				list.AddVal(a);
-				list.SetString(array[i]);
+				list.SetString(stra[i]);
 			}
-			m_PortFwd.Add(array[i]);
+			m_PortFwd.Add(stra[i]);
 		}
 		i++;
 	}
 
-	m_XDisplay  = (array.GetSize() > i ? array.GetAt(i++) : _T(":0"));
-	m_ExtEnvStr = (array.GetSize() > i ? array.GetAt(i++) : _T(""));
+	m_XDisplay  = (stra.GetSize() > i ? stra.GetAt(i++) : _T(":0"));
+	m_ExtEnvStr = (stra.GetSize() > i ? stra.GetAt(i++) : _T(""));
 
-	if ( array.GetSize() > i )
-		array.GetBin(i++, m_OptTab, sizeof(m_OptTab));
+	if ( stra.GetSize() > i )
+		stra.GetBin(i++, m_OptTab, sizeof(m_OptTab));
 	else
 		memset(m_OptTab, 0, sizeof(m_OptTab));
 
-	m_HostKeyFile = (array.GetSize() > i ? array.GetAt(i++) : _T(""));		// Not use !!!!!!!
+	m_Reserve = (stra.GetSize() > i ? stra.GetAt(i++) : _T(""));
 
-	for ( n = 9 ; n < 12 && array.GetSize() > i ; n++ ) {
-		array.GetArray(i++, m_AlgoTab[n]);
+	for ( n = 9 ; n < 12 && stra.GetSize() > i ; n++ ) {
+		stra.GetArray(i++, m_AlgoTab[n]);
 
 		idx.RemoveAll();
 		for ( a = 0 ; InitAlgo[n][a] != NULL ; a++ ) {
@@ -3361,6 +3609,132 @@ void CParamTab::GetArray(CStringArrayExt &array)
 			pMain->m_IdKeyTab.AddEntry(key);
 			m_IdKeyList.AddVal(key.m_Uid);
 		}
+	}
+}
+
+static ScriptCmdsDefs DocSsh[] = {
+	{	"Protocol",		1	},
+	{	"PortForward",	2	},
+	{	"XDisplay",		3	},
+	{	"Environ",		4	},
+	{	NULL,			0	},
+}, DocSshProtocol[] = {
+	{	"ssh1Cip",		5	},
+	{	"ssh1Mac",		6	},
+	{	"ssh1Comp",		7	},
+	{	"InpCip",		8	},
+	{	"InpMac",		9	},
+	{	"InpComp",		10	},
+	{	"OutCip",		11	},
+	{	"OutMac",		12	},
+	{	"OutComp",		13	},
+	{	"Kexs",			14	},
+	{	"HostKey",		15	},
+	{	"UserAuth",		16	},
+	{	NULL,			0	},
+};
+
+void CParamTab::ScriptInit(int cmds, int shift, class CScriptValue &value)
+{
+	int n;
+
+	value.m_DocCmds = cmds;
+
+	for ( n = 0 ; DocSsh[n].name != NULL ; n++ )
+		value[DocSsh[n].name].m_DocCmds = (DocSsh[n].cmds << shift) | cmds;
+
+	for ( n = 0 ; DocSshProtocol[n].name != NULL ; n++ )
+		value["Protocol"][DocSshProtocol[n].name].m_DocCmds = (DocSshProtocol[n].cmds << shift) | cmds;
+}
+void CParamTab::ScriptValue(int cmds, class CScriptValue &value, int mode)
+{
+	int n, i;
+	CString str;
+	CStringArrayExt tmp;
+	CStringIndex env;
+
+	switch(cmds & 0xFF) {
+	case 0:					// Document.ssh
+		if ( mode == DOC_MODE_SAVE ) {
+			for ( n = 0 ; DocSsh[n].name != NULL ; n++ ) {
+				if ( (i = value.Find(DocSsh[n].name)) >= 0 )
+					ScriptValue(DocSsh[n].cmds, value[i], mode);
+			}
+		} else if ( mode == DOC_MODE_IDENT ) {
+			for ( n = 0 ; DocSsh[n].name != NULL ; n++ )
+				ScriptValue(DocSsh[n].cmds, value[DocSsh[n].name], mode);
+		}
+		break;
+
+	case 1:					// Document.ssh.Protocol
+		if ( mode == DOC_MODE_SAVE ) {
+			for ( n = 0 ; DocSshProtocol[n].name != NULL ; n++ ) {
+				if ( (i = value.Find(DocSshProtocol[n].name)) >= 0 )
+					ScriptValue(DocSshProtocol[n].cmds, value[i], mode);
+			}
+		} else if ( mode == DOC_MODE_IDENT ) {
+			for ( n = 0 ; DocSshProtocol[n].name != NULL ; n++ )
+				ScriptValue(DocSshProtocol[n].cmds, value[DocSshProtocol[n].name], mode);
+		}
+		break;
+
+	case 2:					// Document.ssh.PortForward
+		if ( mode == DOC_MODE_SAVE ) {
+			m_PortFwd.RemoveAll();
+			for ( n = 0 ; n < value.GetSize() ; n++ ) {
+				tmp.SetSize(5);
+				value[n].SetNodeStr("LocalHost", tmp[0], mode);
+				value[n].SetNodeStr("LocalPort", tmp[1], mode);
+				value[n].SetNodeStr("RemoteHost", tmp[2], mode);
+				value[n].SetNodeStr("RemotePort", tmp[3], mode);
+				tmp[4].Format(_T("%d"), (int)value[n]);
+				tmp.SetString(str);
+				if ( !tmp[0].IsEmpty() && !tmp[1].IsEmpty() && !tmp[2].IsEmpty() && !tmp[3].IsEmpty() )
+					m_PortFwd.Add(str);
+			}
+		} else if ( mode == DOC_MODE_IDENT ) {
+			value.RemoveAll();
+			for ( n = 0 ; n < m_PortFwd.GetSize() ; n++ ) {
+				tmp.GetString(m_PortFwd[n]);
+				if ( tmp.GetSize() < 5 )
+					continue;
+				value[n]["LocalHost"]  = (LPCTSTR)tmp[0];
+				value[n]["LocalPort"]  = (LPCTSTR)tmp[1];
+				value[n]["RemoteHost"] = (LPCTSTR)tmp[2];
+				value[n]["RemotePort"] = (LPCTSTR)tmp[3];
+				value[n]               = _tstoi(tmp[4]);
+			}
+		}
+		break;
+	case 3:					// Document.ssh.XDisplay
+		value.SetStr(m_XDisplay, mode);
+		break;
+	case 4:					// Document.ssh.Environ
+		if ( mode == DOC_MODE_SAVE ) {
+			env.RemoveAll();
+			for ( n = 0 ; n < value.GetSize() ; n++ )
+				env[MbsToTstr(value[n].m_Index)].m_String = (LPCTSTR)value[n];
+		} else if ( mode == DOC_MODE_IDENT ) {
+			value.RemoveAll();
+			for ( n = 0 ; n < env.GetSize() ; n++ )
+				value[TstrToMbs(env[n].m_nIndex)] = (LPCTSTR)env[n].m_String;
+		}
+		break;
+
+	case 5:					// Document.ssh.Protocol.ssh1Cip
+	case 6:					// Document.ssh.Protocol.ssh1Mac
+	case 7:					// Document.ssh.Protocol.ssh1Comp
+	case 8:					// Document.ssh.Protocol.InpCip
+	case 9:					// Document.ssh.Protocol.InpMac
+	case 10:				// Document.ssh.Protocol.InpComp
+	case 11:				// Document.ssh.Protocol.OutCip
+	case 12:				// Document.ssh.Protocol.OutMac
+	case 13:				// Document.ssh.Protocol.OutComp
+	case 14:				// Document.ssh.Protocol.Kexs
+	case 15:				// Document.ssh.Protocol.HostKey
+	case 16:				// Document.ssh.Protocol.UserAuth
+		value.SetArray(m_AlgoTab[cmds - 5], mode);
+		break;
 	}
 }
 BOOL CParamTab::IsOptEnable(int opt)
@@ -3455,7 +3829,7 @@ const CParamTab & CParamTab::operator = (CParamTab &data)
 	m_XDisplay  = data.m_XDisplay;
 	m_ExtEnvStr = data.m_ExtEnvStr;
 	memcpy(m_OptTab, data.m_OptTab, sizeof(m_OptTab));
-	m_HostKeyFile = data.m_HostKeyFile;
+	m_Reserve = data.m_Reserve;
 	return *this;
 }
 

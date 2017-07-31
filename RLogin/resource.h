@@ -108,6 +108,7 @@
 #define IDS_STRING154                   154
 #define IDS_RENAMEMSG                   154
 #define IDD_ENVDLG                      155
+#define IDE_MANYCHANNEL                 155
 #define IDD_ESCDLG                      156
 #define IDD_ESCPARADLG                  157
 #define IDD_CSIPARADLG                  158
@@ -119,6 +120,8 @@
 #define IDD_CLIPBOARDPAGE               164
 #define IDD_MOUSEPAGE                   165
 #define IDD_INITALLDLG                  167
+#define IDD_DIALOG1                     168
+#define IDD_SCRIPTDLG                   168
 #define IDM_KANJI_EUC                   200
 #define IDM_KANJI_SJIS                  201
 #define IDM_KANJI_ASCII                 202
@@ -369,6 +372,7 @@
 #define IDC_TIMEPROG                    1167
 #define IDC_STATUS                      1168
 #define IDC_EDIT2                       1170
+#define IDC_TEXT                        1170
 #define IDC_NAMEOK                      1174
 #define IDC_ALL_SET                     1175
 #define IDC_ALL_CLR                     1176
@@ -582,7 +586,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        168
+#define _APS_NEXT_RESOURCE_VALUE        169
 #define _APS_NEXT_COMMAND_VALUE         5052
 #define _APS_NEXT_CONTROL_VALUE         3061
 #define _APS_NEXT_SYMED_VALUE           249

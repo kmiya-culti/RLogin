@@ -86,6 +86,7 @@ public:
 	const CBuffer & operator = (CBuffer &data) { Clear(); Apend(data.GetPtr(), data.GetSize()); return *this; }
 	operator LPCSTR() { if ( m_Max <= m_Len) ReAlloc(1); m_Data[m_Len] = 0; return (LPCSTR)GetPtr(); }
 	operator LPCWSTR() { if ( m_Max <= (m_Len + 1) ) ReAlloc(2); m_Data[m_Len] = 0; m_Data[m_Len + 1] = 0; return (LPCWSTR)GetPtr(); }
+	operator const DWORD *() { if ( m_Max <= (m_Len + 1) ) ReAlloc(4); m_Data[m_Len] = 0; m_Data[m_Len + 1] = 0; m_Data[m_Len + 2] = 0; m_Data[m_Len + 3] = 0; return (const DWORD *)GetPtr(); }
 
 #ifdef	_DEBUGXXX
 	void RepSet();
@@ -129,8 +130,8 @@ public:
 	void AddBin(void *buf, int len);
 	int GetBin(int index, void *buf, int len);
 	void GetBuf(int index, CBuffer &buf);
-	void AddArray(CStringArrayExt &array);
-	void GetArray(int index, CStringArrayExt &array);
+	void AddArray(CStringArrayExt &stra);
+	void GetArray(int index, CStringArrayExt &stra);
 	void SetString(CString &str, int sep = '\t');
 	void GetString(LPCTSTR str, int sep = '\t');
 	void SetBuffer(CBuffer &buf);
@@ -275,8 +276,8 @@ public:
 	int m_MinSize;
 
 	virtual void Init();
-	virtual void SetArray(CStringArrayExt &array) = 0;
-	virtual void GetArray(CStringArrayExt &array) = 0;
+	virtual void SetArray(CStringArrayExt &stra) = 0;
+	virtual void GetArray(CStringArrayExt &stra) = 0;
 
 	virtual void Serialize(int mode);					// To Profile
 	virtual void Serialize(int mode, CBuffer &buf);		// To CBuffer
@@ -377,7 +378,7 @@ public:
 	BOOL m_SaveFlag;
 	BOOL m_CheckFlag;
 	int m_Uid;
-	CStrScript m_Script;
+	CStrScript m_ChatScript;
 	int m_ProxyMode;
 	CString m_ProxyHost;
 	CString m_ProxyPort;
@@ -385,10 +386,13 @@ public:
 	CString m_ProxyPass;
 	CString m_Memo;
 	CString m_Group;
+	CString m_ScriptFile;
 
 	void Init();
-	void SetArray(CStringArrayExt &array);
-	void GetArray(CStringArrayExt &array);
+	void SetArray(CStringArrayExt &stra);
+	void GetArray(CStringArrayExt &stra);
+	void ScriptInit(int cmds, int shift, class CScriptValue &value);
+	void ScriptValue(int cmds, class CScriptValue &value, int mode);
 	void SetBuffer(CBuffer &buf);
 	int GetBuffer(CBuffer &buf);
 	void SetProfile(LPCTSTR pSection);
@@ -398,6 +402,7 @@ public:
 
 	LPCTSTR GetKanjiCode();
 	void SetKanjiCode(LPCTSTR str);
+	LPCTSTR GetProtoName();
 	int GetProtoType(LPCTSTR str);
 
 	const CServerEntry & operator = (CServerEntry &data);
@@ -410,9 +415,10 @@ public:
 	CArray<CServerEntry, CServerEntry &> m_Data;
 
 	void Init();
-	void SetArray(CStringArrayExt &array);
-	void GetArray(CStringArrayExt &array);
+	void SetArray(CStringArrayExt &stra);
+	void GetArray(CStringArrayExt &stra);
 	void Serialize(int mode);
+
 	int AddEntry(CServerEntry &Entry);
 	void UpdateAt(int nIndex);
 	void RemoveAt(int nIndex);
@@ -492,8 +498,10 @@ public:
 	CArray<CKeyNode, CKeyNode &> m_Node;
 
 	void Init();
-	void SetArray(CStringArrayExt &array);
-	void GetArray(CStringArrayExt &array);
+	void SetArray(CStringArrayExt &stra);
+	void GetArray(CStringArrayExt &stra);
+	void ScriptInit(int cmds, int shift, class CScriptValue &value);
+	void ScriptValue(int cmds, class CScriptValue &value, int mode);
 
 	BOOL Find(int code, int mask, int *base);
 	int Add(CKeyNode &node);
@@ -545,8 +553,10 @@ public:
 	CArray<CKeyMac, CKeyMac &> m_Data;
 
 	void Init();
-	void GetArray(CStringArrayExt &array);
-	void SetArray(CStringArrayExt &array);
+	void GetArray(CStringArrayExt &stra);
+	void SetArray(CStringArrayExt &stra);
+	void ScriptInit(int cmds, int shift, class CScriptValue &value);
+	void ScriptValue(int cmds, class CScriptValue &value, int mode);
 
 	void Top(int nIndex);
 	void Add(CKeyMac &tmp);
@@ -572,12 +582,14 @@ public:
 	CString m_XDisplay;
 	CString m_ExtEnvStr;
 	DWORD m_OptTab[8];
-	CString m_HostKeyFile;
+	CString m_Reserve;
 
 	CParamTab();
 	void Init();
-	void GetArray(CStringArrayExt &array);
-	void SetArray(CStringArrayExt &array);
+	void GetArray(CStringArrayExt &stra);
+	void SetArray(CStringArrayExt &stra);
+	void ScriptInit(int cmds, int shift, class CScriptValue &value);
+	void ScriptValue(int cmds, class CScriptValue &value, int mode);
 
 	BOOL IsOptEnable(int opt);
 	void EnableOption(int opt);

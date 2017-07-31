@@ -11,6 +11,7 @@
 #include "TextRam.h"
 #include "PipeSock.h"
 #include "GrapWnd.h"
+#include "SCript.h"
 
 #include <iconv.h>
 #include <imm.h>
@@ -48,56 +49,56 @@ void CFontNode::Init()
 		m_Hash[n]     = 0;
 	}
 }
-void CFontNode::SetArray(CStringArrayExt &array)
+void CFontNode::SetArray(CStringArrayExt &stra)
 {
-	array.RemoveAll();
+	stra.RemoveAll();
 
-	array.AddVal(m_Shift);
-	array.AddVal(m_ZoomH);
-	array.AddVal(m_Offset);
-	array.AddVal(m_CharSet);
-	array.Add(m_FontName[0]);
-	array.Add(m_EntryName);
-	array.Add(m_IContName);
-	array.AddVal(m_ZoomW);
+	stra.AddVal(m_Shift);
+	stra.AddVal(m_ZoomH);
+	stra.AddVal(m_Offset);
+	stra.AddVal(m_CharSet);
+	stra.Add(m_FontName[0]);
+	stra.Add(m_EntryName);
+	stra.Add(m_IContName);
+	stra.AddVal(m_ZoomW);
 	for ( int n = 1 ; n < 16 ; n++ )
-		array.Add(m_FontName[n]);
-	array.AddVal(m_Quality);
-	array.Add(m_IndexName);
+		stra.Add(m_FontName[n]);
+	stra.AddVal(m_Quality);
+	stra.Add(m_IndexName);
 }
-void CFontNode::GetArray(CStringArrayExt &array)
+void CFontNode::GetArray(CStringArrayExt &stra)
 {
 	Init();
 
-	if ( array.GetSize() < 7 )
+	if ( stra.GetSize() < 7 )
 		return;
 
-	m_Shift		  = array.GetVal(0);
-	m_ZoomH		  = array.GetVal(1);
-	m_Offset	  = array.GetVal(2);
-	m_CharSet	  = array.GetVal(3);
-	m_FontName[0] = array.GetAt(4);
+	m_Shift		  = stra.GetVal(0);
+	m_ZoomH		  = stra.GetVal(1);
+	m_Offset	  = stra.GetVal(2);
+	m_CharSet	  = stra.GetVal(3);
+	m_FontName[0] = stra.GetAt(4);
 	SetHash(0);
 
-	m_EntryName   = array.GetAt(5);
-	m_IContName   = array.GetAt(6);
-	m_ZoomW		  = (array.GetSize() > 7 ? array.GetVal(7) : m_ZoomH);
+	m_EntryName   = stra.GetAt(5);
+	m_IContName   = stra.GetAt(6);
+	m_ZoomW		  = (stra.GetSize() > 7 ? stra.GetVal(7) : m_ZoomH);
 
 	if ( m_IContName.Compare(_T("GB2312-80")) == 0 )	// Debug!!
 		m_IContName = _T("GB_2312-80");
 
 	for ( int n = 1 ; n < 16 ; n++ ) {				// 8 - 23
-		if ( array.GetSize() > (7 + n) ) {
-			m_FontName[n] = array.GetAt(7 + n);
+		if ( stra.GetSize() > (7 + n) ) {
+			m_FontName[n] = stra.GetAt(7 + n);
 			SetHash(n);
 		}
 	}
 
-	if ( array.GetSize() > (7 + 16) )
-		m_Quality = array.GetVal(7 + 16);
+	if ( stra.GetSize() > (7 + 16) )
+		m_Quality = stra.GetVal(7 + 16);
 
-	if ( array.GetSize() > (8 + 16) )
-		m_IndexName = array.GetAt(8 + 16);
+	if ( stra.GetSize() > (8 + 16) )
+		m_IndexName = stra.GetAt(8 + 16);
 
 	m_Init = TRUE;
 }
@@ -310,14 +311,14 @@ void CFontTab::Init()
 		m_Data[i].SetHash(1);
 	}
 }
-void CFontTab::SetArray(CStringArrayExt &array)
+void CFontTab::SetArray(CStringArrayExt &stra)
 {
 	int n;
 	CString str;
 	CStringArrayExt tmp;
 
-	array.RemoveAll();
-	array.Add(_T("-1"));
+	stra.RemoveAll();
+	stra.Add(_T("-1"));
 	for ( n = 0 ; n < CODE_MAX ; n++ ) {
 		if ( m_Data[n].m_EntryName.IsEmpty() )
 			continue;
@@ -325,23 +326,23 @@ void CFontTab::SetArray(CStringArrayExt &array)
 		str.Format(_T("%d"), n);
 		tmp.InsertAt(0, str);
 		tmp.SetString(str);
-		array.Add(str);
+		stra.Add(str);
 	}
 }
-void CFontTab::GetArray(CStringArrayExt &array)
+void CFontTab::GetArray(CStringArrayExt &stra)
 {
 	int n, i;
 	CStringArrayExt tmp;
 
-	if ( array.GetSize() == 0 || _tstoi(array[0]) != (-1) )
+	if ( stra.GetSize() == 0 || _tstoi(stra[0]) != (-1) )
 		Init();
 	else {
 		for ( n = 0 ; n < CODE_MAX ; n++ )
 			m_Data[n].Init();
 	}
 
-	for ( n = 0 ; n < array.GetSize() ; n++ ) {
-		tmp.GetString(array[n]);
+	for ( n = 0 ; n < stra.GetSize() ; n++ ) {
+		tmp.GetString(stra[n]);
 		if ( tmp.GetSize() < 1 )
 			continue;
 		if ( (i = tmp.GetVal(0)) < 0 || i >= CODE_MAX )
@@ -491,6 +492,14 @@ CTextRam::CTextRam()
 	m_pSection = _T("TextRam");
 	m_MinSize = 16;
 	Serialize(FALSE);
+
+	ASSERT(UnicodeWidth(0x002328) == 1);
+	ASSERT(UnicodeWidth(0x002329) == 2);
+	ASSERT(UnicodeWidth(0x00232A) == 2);
+	ASSERT(UnicodeWidth(0x00232B) == 1);
+	ASSERT(UnicodeWidth(0x004DFF) == 1);
+	ASSERT(UnicodeWidth(0x004E00) == 2);
+	ASSERT(UnicodeWidth(0x004E01) == 2);
 }
 CTextRam::~CTextRam()
 {
@@ -1077,56 +1086,56 @@ void CTextRam::Init()
 
 	RESET();
 }
-void CTextRam::SetArray(CStringArrayExt &array)
+void CTextRam::SetArray(CStringArrayExt &stra)
 {
 	CString str;
 	CStringArrayExt tmp;
 
-	array.RemoveAll();
+	stra.RemoveAll();
 
-	array.AddVal(m_DefCols[0]);
-	array.AddVal(m_DefHisMax);
-	array.AddVal(m_DefFontSize);
-	array.AddVal(m_KanjiMode);
-	array.AddVal(m_BankGL);
-	array.AddVal(m_BankGR);
-	array.AddBin(&m_DefAtt, sizeof(VRAM));
-	array.AddBin(m_DefColTab,  sizeof(m_DefColTab));
-	array.AddBin(m_AnsiOpt, sizeof(m_AnsiOpt));
-	array.AddBin(m_DefBankTab, sizeof(m_DefBankTab));
-	array.Add(m_SendCharSet[0]);
-	array.Add(m_SendCharSet[1]);
-	array.Add(m_SendCharSet[2]);
-	array.Add(m_SendCharSet[3]);
-	array.AddVal(m_WheelSize);
-	array.Add(m_BitMapFile);
-	array.AddVal(m_DelayMSec);
-	array.Add(m_HisFile);
-	array.AddVal(m_KeepAliveSec);
-	array.Add(m_LogFile);
-	array.AddVal(m_DefCols[1]);
-	array.AddVal(m_DropFileMode);
+	stra.AddVal(m_DefCols[0]);
+	stra.AddVal(m_DefHisMax);
+	stra.AddVal(m_DefFontSize);
+	stra.AddVal(m_KanjiMode);
+	stra.AddVal(m_BankGL);
+	stra.AddVal(m_BankGR);
+	stra.AddBin(&m_DefAtt, sizeof(VRAM));
+	stra.AddBin(m_DefColTab,  sizeof(m_DefColTab));
+	stra.AddBin(m_AnsiOpt, sizeof(m_AnsiOpt));
+	stra.AddBin(m_DefBankTab, sizeof(m_DefBankTab));
+	stra.Add(m_SendCharSet[0]);
+	stra.Add(m_SendCharSet[1]);
+	stra.Add(m_SendCharSet[2]);
+	stra.Add(m_SendCharSet[3]);
+	stra.AddVal(m_WheelSize);
+	stra.Add(m_BitMapFile);
+	stra.AddVal(m_DelayMSec);
+	stra.Add(m_HisFile);
+	stra.AddVal(m_KeepAliveSec);
+	stra.Add(m_LogFile);
+	stra.AddVal(m_DefCols[1]);
+	stra.AddVal(m_DropFileMode);
 	for ( int n = 0 ; n < 8 ; n++ )
-		array.Add(m_DropFileCmd[n]);
-	array.Add(m_WordStr);
+		stra.Add(m_DropFileCmd[n]);
+	stra.Add(m_WordStr);
 	for ( int n = 0 ; n < 4 ; n++ )
-		array.AddVal(m_MouseMode[n]);
-	array.AddBin(m_MetaKeys,  sizeof(m_MetaKeys));
+		stra.AddVal(m_MouseMode[n]);
+	stra.AddBin(m_MetaKeys,  sizeof(m_MetaKeys));
 
 	m_ProcTab.SetArray(tmp);
 	tmp.SetString(str, _T(';'));
-	array.Add(str);
+	stra.Add(str);
 
-	array.AddVal(4);	// AnsiOpt Bugfix
-	array.AddVal(m_TitleMode);
-	array.Add(m_SendCharSet[4]);
-	array.AddVal(m_ClipFlag);
-	array.AddVal(m_DefFontHw);
+	stra.AddVal(4);	// AnsiOpt Bugfix
+	stra.AddVal(m_TitleMode);
+	stra.Add(m_SendCharSet[4]);
+	stra.AddVal(m_ClipFlag);
+	stra.AddVal(m_DefFontHw);
 
 	m_ShellExec.SetString(str, _T('|'));
-	array.Add(str);
+	stra.Add(str);
 }
-void CTextRam::GetArray(CStringArrayExt &array)
+void CTextRam::GetArray(CStringArrayExt &stra)
 {
 	int n;
 	BYTE tmp[16];
@@ -1134,14 +1143,14 @@ void CTextRam::GetArray(CStringArrayExt &array)
 
 	Init();
 
-	m_DefCols[0]  = array.GetVal(0);
-	m_DefHisMax   = array.GetVal(1);
-	m_DefFontSize = array.GetVal(2);
-	m_KanjiMode   = array.GetVal(3);
-	m_BankGL      = array.GetVal(4);
-	m_BankGR      = array.GetVal(5);
+	m_DefCols[0]  = stra.GetVal(0);
+	m_DefHisMax   = stra.GetVal(1);
+	m_DefFontSize = stra.GetVal(2);
+	m_KanjiMode   = stra.GetVal(3);
+	m_BankGL      = stra.GetVal(4);
+	m_BankGR      = stra.GetVal(5);
 
-	if ( (n = array.GetBin(6, tmp, 16)) == sizeof(VRAM) )
+	if ( (n = stra.GetBin(6, tmp, 16)) == sizeof(VRAM) )
 		memcpy(&m_DefAtt, tmp, sizeof(VRAM));
 	else if ( n == 8 ) {
 		memset(&m_DefAtt, 0, sizeof(VRAM));
@@ -1150,49 +1159,49 @@ void CTextRam::GetArray(CStringArrayExt &array)
 		m_DefAtt.bc = tmp[7] >> 4;
 	}
 
-	array.GetBin(7, m_DefColTab,  sizeof(m_DefColTab));
+	stra.GetBin(7, m_DefColTab,  sizeof(m_DefColTab));
 	memcpy(m_ColTab, m_DefColTab, sizeof(m_DefColTab));
-	array.GetBin(8, m_DefAnsiOpt, sizeof(m_DefAnsiOpt));
+	stra.GetBin(8, m_DefAnsiOpt, sizeof(m_DefAnsiOpt));
 	memcpy(m_AnsiOpt, m_DefAnsiOpt, sizeof(m_AnsiOpt));
 
 	memcpy(m_DefBankTab, DefBankTab, sizeof(m_DefBankTab));
-	array.GetBin(9, m_DefBankTab, sizeof(m_DefBankTab));
+	stra.GetBin(9, m_DefBankTab, sizeof(m_DefBankTab));
 	memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
 
-	m_SendCharSet[0] = array.GetAt(10);
-	m_SendCharSet[1] = array.GetAt(11);
-	m_SendCharSet[2] = array.GetAt(12);
-	m_SendCharSet[3] = array.GetAt(13);
+	m_SendCharSet[0] = stra.GetAt(10);
+	m_SendCharSet[1] = stra.GetAt(11);
+	m_SendCharSet[2] = stra.GetAt(12);
+	m_SendCharSet[3] = stra.GetAt(13);
 
-	m_WheelSize    = array.GetVal(14);
-	m_BitMapFile   = array.GetAt(15);
+	m_WheelSize    = stra.GetVal(14);
+	m_BitMapFile   = stra.GetAt(15);
 
-	m_DelayMSec    = (array.GetSize() > 16 ? array.GetVal(16) : 0);
-	m_HisFile      = (array.GetSize() > 17 ? array.GetAt(17) : _T(""));
-	m_KeepAliveSec = (array.GetSize() > 18 ? array.GetVal(18) : 0);
-	m_LogFile      = (array.GetSize() > 19 ? array.GetAt(19) : _T(""));
-	m_DefCols[1]   = (array.GetSize() > 20 ? array.GetVal(20) : 132);
+	m_DelayMSec    = (stra.GetSize() > 16 ? stra.GetVal(16) : 0);
+	m_HisFile      = (stra.GetSize() > 17 ? stra.GetAt(17) : _T(""));
+	m_KeepAliveSec = (stra.GetSize() > 18 ? stra.GetVal(18) : 0);
+	m_LogFile      = (stra.GetSize() > 19 ? stra.GetAt(19) : _T(""));
+	m_DefCols[1]   = (stra.GetSize() > 20 ? stra.GetVal(20) : 132);
 
-	m_DropFileMode = (array.GetSize() > 21 ? array.GetVal(21) : 0);
+	m_DropFileMode = (stra.GetSize() > 21 ? stra.GetVal(21) : 0);
 	for ( n = 0 ; n < 8 ; n++ )
-		m_DropFileCmd[n]  = (array.GetSize() > (22 + n) ? array.GetAt(22 + n) : DropCmdTab[n]);
+		m_DropFileCmd[n]  = (stra.GetSize() > (22 + n) ? stra.GetAt(22 + n) : DropCmdTab[n]);
 
-	m_WordStr      = (array.GetSize() > 30 ? array.GetAt(30) : _T("\\/._"));
+	m_WordStr      = (stra.GetSize() > 30 ? stra.GetAt(30) : _T("\\/._"));
 
-	m_MouseMode[0] = (array.GetSize() > 31 ? array.GetVal(31) : 0);
-	m_MouseMode[1] = (array.GetSize() > 32 ? array.GetVal(32) : 1);
-	m_MouseMode[2] = (array.GetSize() > 33 ? array.GetVal(33) : 4);
-	m_MouseMode[3] = (array.GetSize() > 34 ? array.GetVal(34) : 16);
+	m_MouseMode[0] = (stra.GetSize() > 31 ? stra.GetVal(31) : 0);
+	m_MouseMode[1] = (stra.GetSize() > 32 ? stra.GetVal(32) : 1);
+	m_MouseMode[2] = (stra.GetSize() > 33 ? stra.GetVal(33) : 4);
+	m_MouseMode[3] = (stra.GetSize() > 34 ? stra.GetVal(34) : 16);
 
-	if ( array.GetSize() > 35 )
-		array.GetBin(35, m_MetaKeys, sizeof(m_MetaKeys));
+	if ( stra.GetSize() > 35 )
+		stra.GetBin(35, m_MetaKeys, sizeof(m_MetaKeys));
 
-	if ( array.GetSize() > 36 ) {
-		ext.GetString(array.GetAt(36), _T(';'));
+	if ( stra.GetSize() > 36 ) {
+		ext.GetString(stra.GetAt(36), _T(';'));
 		m_ProcTab.GetArray(ext);
 	}
 
-	n = (array.GetSize() > 37 ? array.GetVal(37) : 0);
+	n = (stra.GetSize() > 37 ? stra.GetVal(37) : 0);
 	if ( n < 1 ) {
 		m_AnsiOpt[TO_DECANM / 32] ^= (1 << (TO_DECANM % 32));	//  ?2 ANSI/VT52 Mode
 		EnableOption(TO_DECTCEM);	// ?25 Text Cursor Enable Mode
@@ -1209,22 +1218,160 @@ void CTextRam::GetArray(CStringArrayExt &array)
 	DisableOption(TO_IMECTRL);
 	memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_DefAnsiOpt));
 
-	if ( array.GetSize() > 38 )
-		m_TitleMode = array.GetVal(38);
+	if ( stra.GetSize() > 38 )
+		m_TitleMode = stra.GetVal(38);
 
-	if ( array.GetSize() > 39 )
-		m_SendCharSet[4] = array.GetAt(39);
+	if ( stra.GetSize() > 39 )
+		m_SendCharSet[4] = stra.GetAt(39);
 
-	if ( array.GetSize() > 40 )
-		m_ClipFlag = array.GetVal(40);
+	if ( stra.GetSize() > 40 )
+		m_ClipFlag = stra.GetVal(40);
 
-	if ( array.GetSize() > 41 )
-		m_DefFontHw = array.GetVal(41);
+	if ( stra.GetSize() > 41 )
+		m_DefFontHw = stra.GetVal(41);
 
-	if ( array.GetSize() > 42 )
-		m_ShellExec.GetString(array.GetAt(42), _T('|'));
+	if ( stra.GetSize() > 42 )
+		m_ShellExec.GetString(stra.GetAt(42), _T('|'));
 
 	RESET();
+}
+
+static ScriptCmdsDefs DocScrn[] = {
+	{	"Cursol",		1	},
+	{	"Size",			2	},
+	{	"Style",		3	},
+	{	NULL,			0	},
+}, DocScrnCursol[] = {
+	{	"x",			20	},
+	{	"y",			21	},
+	{	"Display",		22	},
+	{	"Style",		23	},
+	{	NULL,			0	},
+}, DocScrnSize[] = {
+	{	"x",			24	},
+	{	"y",			25	},
+	{	NULL,			0	},
+}, DocScrnStyle[] = {
+	{	"Color",		26	},
+	{	"BackColor",	27	},
+	{	"Attribute",	28	},
+	{	"FontNumber",	29	},
+	{	NULL,			0	},
+};
+
+void CTextRam::ScriptInit(int cmds, int shift, class CScriptValue &value)
+{
+	int n;
+
+	value.m_DocCmds = cmds;
+
+	for ( n = 0 ; DocScrn[n].name != NULL ; n++ )
+		value[DocScrn[n].name].m_DocCmds = (DocScrn[n].cmds << shift) | cmds;
+
+	for ( n = 0 ; DocScrnCursol[n].name != NULL ; n++ )
+		value["Cursol"][DocScrnCursol[n].name].m_DocCmds = (DocScrnCursol[n].cmds << shift) | cmds;
+
+	for ( n = 0 ; DocScrnSize[n].name != NULL ; n++ )
+		value["Size"][DocScrnSize[n].name].m_DocCmds = (DocScrnSize[n].cmds << shift) | cmds;
+
+	for ( n = 0 ; DocScrnStyle[n].name != NULL ; n++ )
+		value["Style"][DocScrnStyle[n].name].m_DocCmds = (DocScrnStyle[n].cmds << shift) | cmds;
+}
+void CTextRam::ScriptTable(struct _ScriptCmdsDefs *defs, class CScriptValue &value, int mode)
+{
+	int n, i;
+
+	if ( mode == DOC_MODE_SAVE ) {
+		for ( n = 0 ; defs[n].name != NULL ; n++ ) {
+			if ( (i = value.Find(defs[n].name)) >= 0 )
+				ScriptValue(defs[n].cmds, value[i], mode);
+		}
+	} else if ( mode == DOC_MODE_IDENT ) {
+		for ( n = 0 ; defs[n].name != NULL ; n++ )
+			ScriptValue(defs[n].cmds, value[defs[n].name], mode);
+	}
+}
+void CTextRam::ScriptValue(int cmds, class CScriptValue &value, int mode)
+{
+	int n;
+//	CString str;
+
+	switch(cmds & 0xFF) {
+	case 0:					// Document.Screen
+		ScriptTable(DocScrn, value, mode);
+		break;
+
+	case 1:					// Document.Screen.Cursol
+		ScriptTable(DocScrnCursol, value, mode);
+		break;
+	case 2:					// Document.Screen.Size
+		ScriptTable(DocScrnSize, value, mode);
+		break;
+	case 3:					// Document.Screen.Style
+		ScriptTable(DocScrnStyle, value, mode);
+		break;
+
+	case 20:				// Document.Screen.Cursol.x
+		value.SetInt(m_CurX, mode);
+		if ( mode == DOC_MODE_SAVE ) {
+			LOCATE(m_CurX, m_CurY);
+			FLUSH();
+		}
+		break;
+	case 21:				// Document.Screen.Cursol.y
+		value.SetInt(m_CurY, mode);
+		if ( mode == DOC_MODE_SAVE ) {
+			LOCATE(m_CurX, m_CurY);
+			FLUSH();
+		}
+		break;
+	case 22:				// Document.Screen.Cursol.Display
+		n = (m_DispCaret & FGCARET_ONOFF) != 0 ? 1 : 0;
+		value.SetInt(n, mode);
+		if ( mode == DOC_MODE_SAVE ) {
+			if ( n != 0 )
+				CURON();
+			else
+				CUROFF();
+			FLUSH();
+		}
+		break;
+	case 23:				// Document.Screen.Cursol.Style
+		value.SetInt(m_TypeCaret, mode);
+		if ( mode == DOC_MODE_SAVE )
+			FLUSH();
+		break;
+
+	case 24:				// Document.Screen.Size.x
+		if ( mode == DOC_MODE_IDENT )
+			value.SetInt(m_Cols, mode);
+		break;
+	case 25:				// Document.Screen.Size.y
+		if ( mode == DOC_MODE_IDENT )
+			value.SetInt(m_Lines, mode);
+		break;
+
+	case 26:				// Document.Screen.Style.Color
+		n = m_AttNow.fc;
+		value.SetInt(n, mode);
+		m_AttNow.fc = (BYTE)n;
+		break;
+	case 27:				// Document.Screen.Style.BackColor
+		n = m_AttNow.bc;
+		value.SetInt(n, mode);
+		m_AttNow.bc = (BYTE)n;
+		break;
+	case 28:				// Document.Screen.Style.Attribute
+		n = m_AttNow.at;
+		value.SetInt(n, mode);
+		m_AttNow.at = (DWORD)n;
+		break;
+	case 29:				// Document.Screen.Style.FontNumber
+		n = m_AttNow.ft;
+		value.SetInt(n, mode);
+		m_AttNow.ft = (DWORD)n;
+		break;
+	}
 }
 void CTextRam::Serialize(int mode)
 {
@@ -2581,14 +2728,29 @@ int CTextRam::UnicodeWidth(DWORD code)
 		0xD82CDC00, 0xD82CDC02, 0xD83CDE00, 0xD83CDE03, 0xD83CDE10, 0xD83CDE3B, 0xD83CDE40, 0xD83CDE49,
 		0xD83CDE50, 0xD83CDE52, 0xD840DC00, 0xD87FDFFE, 0xD880DC00, 0xD8BFDFFE, };
 
-	int b;
+	int n, b, m;
 
-	if ( IsOptEnable(TO_RLUNIAWH) )
-		BinaryFind((void *)&code, (void *)(UnicodeWidthTabA), sizeof(DWORD), UNIWIDTABSIZEA, DwrodCmp, &b);
-	else
-		BinaryFind((void *)&code, (void *)(UnicodeWidthTab),  sizeof(DWORD), UNIWIDTABSIZE,  DwrodCmp, &b);
-
-	return ((b & 1) ? 2 : 1);
+	b = 0;
+	if ( IsOptEnable(TO_RLUNIAWH) ) {
+		m = UNIWIDTABSIZEA - 1;
+	    while ( b <= m ) {
+			n = (b + m) / 2;
+			if ( code >= UnicodeWidthTabA[n] )
+			    b = n + 1;
+			else
+			    m = n - 1;
+		}
+	} else {
+		m = UNIWIDTABSIZE - 1;
+	    while ( b <= m ) {
+			n = (b + m) / 2;
+			if ( code >= UnicodeWidthTab[n] )
+			    b = n + 1;
+			else
+			    m = n - 1;
+		}
+	}
+    return ((b & 1) ? 2 : 1);
 }
 
 

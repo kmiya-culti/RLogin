@@ -426,7 +426,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.12.1 (2012/02/15)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.12.2 (2012/02/28)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2012 Culti",IDC_STATIC,47,15,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,148,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.0g Jan 18th, 2012",IDC_STATIC,47,29,176,8
@@ -1300,6 +1300,16 @@ BEGIN
     ICON            "",IDC_MSGICON,21,20,18,21
 END
 
+IDD_SCRIPTDLG DIALOGEX 0, 0, 291, 232
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Dialog"
+FONT 8, "ＭＳ ゴシック", 400, 0, 0x80
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,105,211,82,14
+    EDITTEXT        IDC_FILENAME,7,7,277,14,ES_AUTOHSCROLL | ES_READONLY
+    EDITTEXT        IDC_TEXT,7,26,277,179,ES_MULTILINE | ES_AUTOVSCROLL | ES_NOHIDESEL | ES_READONLY | ES_WANTRETURN | WS_VSCROLL
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1307,8 +1317,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,12,1,0
- PRODUCTVERSION 2,12,1,0
+ FILEVERSION 2,12,2,0
+ PRODUCTVERSION 2,12,2,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1325,12 +1335,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.12.1.0"
+            VALUE "FileVersion", "2.12.2.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2008 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.12.1.0"
+            VALUE "ProductVersion", "2.12.2.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -1658,6 +1668,14 @@ BEGIN
         RIGHTMARGIN, 204
         TOPMARGIN, 7
         BOTTOMMARGIN, 92
+    END
+
+    IDD_SCRIPTDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 284
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 225
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -2615,6 +2633,7 @@ BEGIN
     IDE_KANJICONVERROR      "文字コード変換でエラーが発生しました。\n正しく変換されていない可能性があります"
     IDS_CREATEDIRMSG        "新しいフォルダの作成"
     IDS_RENAMEMSG           "ファイル名の変更"
+    IDE_MANYCHANNEL         "多くのチャンネルを開こうとしています\n続行しますか？"
 END
 
 #endif    // 日本語 (日本) resources

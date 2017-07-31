@@ -323,12 +323,12 @@ void CSerEntPage::OnChatEdit()
 {
 	CChatDlg dlg;
 
-	dlg.m_Script = m_pSheet->m_pEntry->m_Script;
+	dlg.m_Script = m_pSheet->m_pEntry->m_ChatScript;
 
 	if ( dlg.DoModal() != IDOK )
 		return;
 
-	m_pSheet->m_pEntry->m_Script = dlg.m_Script;
+	m_pSheet->m_pEntry->m_ChatScript = dlg.m_Script;
 
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_ENTRY;

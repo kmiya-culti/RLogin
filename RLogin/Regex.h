@@ -19,6 +19,7 @@ public:
 
 	CStringD();
 	CStringD(LPCWSTR str) { *this = str; }
+	CStringD(LPCDSTR str) { *this = str; }
 	CStringD(const CStringD &data) { *this = data; }
 	CStringD(const CStringD &data, int iFirst, int nCount);
 	~CStringD();
@@ -50,10 +51,12 @@ public:
 
 	CStringD & operator += (DCHAR ch);
 	CStringD & operator += (LPCWSTR str);
+	CStringD & operator += (LPCDSTR str);
 	CStringD & operator += (const CStringD &data);
 
 	inline CStringD & operator = (DCHAR ch) { Empty(); return (*this += ch); }
 	inline CStringD & operator = (LPCWSTR str) { Empty(); return (*this += str); }
+	inline CStringD & operator = (LPCDSTR str) { Empty(); return (*this += str); }
 	inline CStringD & operator = (const CStringD &data) { Empty(); return (*this += data); }
 
 	inline DCHAR operator [] (int idx) { return m_Data[idx]; }

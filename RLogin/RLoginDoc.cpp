@@ -20,6 +20,7 @@
 #include "Wininet.h"
 #include "EditDlg.h"
 #include "StatusDlg.h"
+#include "Script.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -73,6 +74,7 @@ CRLoginDoc::CRLoginDoc()
 	m_pMainWnd = (CMainFrame *)AfxGetMainWnd();
 	m_TitleString.Empty();
 	m_pStrScript = NULL;
+	m_pScript = NULL;
 }
 
 CRLoginDoc::~CRLoginDoc()
@@ -81,12 +83,17 @@ CRLoginDoc::~CRLoginDoc()
 		m_pLogFile->Close();
 		delete m_pLogFile;
 	}
+
 	if ( m_pBPlus != NULL )
 		delete m_pBPlus;
 	if ( m_pZModem != NULL )
 		delete m_pZModem;
 	if ( m_pKermit != NULL )
 		delete m_pKermit;
+
+	if ( m_pScript != NULL )
+		delete m_pScript;
+
 	if ( m_DelayFlag )
 		m_pMainWnd->DelTimerEvent(this);
 }
@@ -113,6 +120,7 @@ BOOL CRLoginDoc::OnNewDocument()
 	UpdateAllViews(NULL, UPDATE_INITPARA, 0);
 	m_TextRam.InitHistory();
 	SetTitle(m_ServerEntry.m_EntryName);
+	m_pScript->ExecFile(m_ServerEntry.m_ScriptFile);
 
 	return TRUE;
 }
@@ -125,12 +133,14 @@ BOOL CRLoginDoc::OnOpenDocument(LPCTSTR lpszPathName)
 		return FALSE;
 
 	if ( m_LoadMode == 1 ) {
+
 		if ( !SocketOpen() )
 			return FALSE;
 
 		UpdateAllViews(NULL, UPDATE_INITPARA, 0);
 		m_TextRam.InitHistory();
 		SetPathName(lpszPathName, TRUE);
+		m_pScript->ExecFile(m_ServerEntry.m_ScriptFile);
 	}
 	
 	return (m_LoadMode == 0 ? FALSE : TRUE);
@@ -217,6 +227,12 @@ void CRLoginDoc::DeleteContents()
 		m_pMainWnd->m_ServerEntryTab.AddEntry(m_ServerEntry);
 		m_ServerEntry.m_SaveFlag = FALSE;
 	}
+
+	if ( m_pScript != NULL )
+		delete m_pScript;
+
+	m_pScript = new CScript;
+	m_pScript->SetDocumet(this);
 
 	m_ServerEntry.Init();
 	CDocument::DeleteContents();
@@ -442,6 +458,12 @@ void CRLoginDoc::OnReciveChar(int ch)
 {
 	LPCWSTR str;
 
+	if ( m_pScript != NULL && m_pScript->m_SockMode == DATA_BUF_CHAR && ch != 0 ) {
+		if ( (ch & 0xFFFF0000) != 0 )
+			m_pScript->m_SockBuff.PutWord(ch >> 16);
+		m_pScript->m_SockBuff.PutWord(ch);
+	}
+
 	while ( m_pStrScript != NULL && (str = m_pStrScript->ExecChar(ch)) != NULL ) {
 		SendScript(str, m_pStrScript->m_Res.m_Str);
 		if ( m_pStrScript->m_Exec == NULL ) {
@@ -504,9 +526,12 @@ void CRLoginDoc::OnSocketConnect()
 	if ( m_pSock == NULL )
 		return;
 
-	m_ServerEntry.m_Script.ExecInit();
-	if ( m_ServerEntry.m_Script.Status() != SCPSTAT_NON ) {
-		m_pStrScript = &(m_ServerEntry.m_Script);
+	if ( m_pScript != NULL )
+		m_pScript->Call(_T("OnConnect"));
+
+	m_ServerEntry.m_ChatScript.ExecInit();
+	if ( m_ServerEntry.m_ChatScript.Status() != SCPSTAT_NON ) {
+		m_pStrScript = &(m_ServerEntry.m_ChatScript);
 		OnReciveChar(0);
 	}
 
@@ -577,6 +602,9 @@ void CRLoginDoc::OnSocketClose()
 	if ( m_pSock == NULL )
 		return;
 
+	if ( m_pScript != NULL )
+		m_pScript->Call(_T("OnClose"));
+
 	if ( m_pBPlus != NULL )
 		m_pBPlus->DoAbort();
 	if ( m_pZModem != NULL )
@@ -620,6 +648,15 @@ int CRLoginDoc::OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags)
 	if ( nFlags != 0 )
 		return nBufLen;
 
+	if ( m_pScript != NULL & m_pScript->m_SockMode != DATA_BUF_NONE ) {
+		if ( m_pScript->IsSockOver() )
+			return 0;
+		if ( m_pScript->m_SockMode == DATA_BUF_HAVE ) {
+			m_pScript->SetSockBuff(lpBuf, nBufLen);
+			return nBufLen;
+		}
+	}
+
 	if ( IsActCount() ) {
 		if ( !m_pMainWnd->IsIconic() )
 			return 0;
@@ -653,6 +690,9 @@ int CRLoginDoc::OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags)
 		m_pLogFile->Write(lpBuf, nBufLen);
 
 	m_pMainWnd->WakeUpSleep();
+
+	if ( m_pScript != NULL && m_pScript->m_SockMode == DATA_BUF_BOTH )
+		m_pScript->SetSockBuff(lpBuf, nBufLen);
 
 	return nBufLen;
 }
@@ -793,6 +833,19 @@ void CRLoginDoc::SocketSend(void *lpBuf, int nBufLen)
 {
 	if ( m_pSock == NULL )
 		return;
+
+	if ( m_pScript != NULL && m_pScript->m_ConsMode != DATA_BUF_NONE ) {
+		if ( m_pScript->m_ConsMode == DATA_BUF_CHAR ) {
+			CBuffer in, out;
+			in.Apend((LPBYTE)lpBuf, nBufLen);
+			m_TextRam.m_IConv.RemoteToStr(m_TextRam.m_SendCharSet[m_TextRam.m_KanjiMode], &in, &out);
+			m_pScript->SetConsBuff(out.GetPtr(), out.GetSize());
+		} else
+			m_pScript->SetConsBuff((LPBYTE)lpBuf, nBufLen);
+		if ( m_pScript->m_ConsMode == DATA_BUF_HAVE )
+			return;
+	}
+
 	if ( m_TextRam.IsOptEnable(TO_RLDELAY) ) {
 		m_DelayBuf.Apend((LPBYTE)lpBuf, nBufLen);
 		if ( !m_DelayFlag && DelaySend() )
@@ -1094,4 +1147,143 @@ void CRLoginDoc::OnSocketstatus()
 void CRLoginDoc::OnUpdateSocketstatus(CCmdUI *pCmdUI)
 {
 	pCmdUI->Enable(m_pSock != NULL ? TRUE : FALSE);
+}
+
+static ScriptCmdsDefs DocBase[] = {
+	{	"Entry",		1	},
+	{	"Screen",		2	},
+	{	"KeyCode",		3	},
+	{	"KeyMacro",		4	},
+	{	"ssh",			5	},
+	{	"Title",		6	},
+	{	"Command",		7	},
+	{	"Log",			8	},
+	{	NULL,			0	},
+}, DocLog[] = {
+	{	"File",			20	},
+	{	"Mode",			21	},
+	{	"Code",			22	},
+	{	"Open",			23	},
+	{	"Close",		24	},
+	{	NULL,			0	},
+};
+
+void CRLoginDoc::ScriptInit(int cmds, int shift, class CScriptValue &value)
+{
+	value.m_DocCmds = cmds;
+
+	m_ServerEntry.ScriptInit((DocBase[0].cmds << shift) | cmds, shift + 6, value[DocBase[0].name]);
+	m_TextRam.ScriptInit    ((DocBase[1].cmds << shift) | cmds, shift + 6, value[DocBase[1].name]);
+	m_KeyTab.ScriptInit     ((DocBase[2].cmds << shift) | cmds, shift + 6, value[DocBase[2].name]);
+	m_KeyMac.ScriptInit     ((DocBase[3].cmds << shift) | cmds, shift + 6, value[DocBase[3].name]);
+	m_ParamTab.ScriptInit   ((DocBase[4].cmds << shift) | cmds, shift + 6, value[DocBase[4].name]);
+
+	for ( int n = 0 ; DocLog[n].name != NULL ; n++ )
+		value["Log"][DocLog[n].name].m_DocCmds = (DocLog[n].cmds << shift) | cmds;
+}
+void CRLoginDoc::ScriptValue(int cmds, class CScriptValue &value, int mode)
+{
+	int n, i;
+	CString str;
+
+	switch(cmds & 0x3F) {
+	case 0:				// Document
+		if ( mode == DOC_MODE_SAVE ) {
+			for ( n = 0 ; DocBase[n].name != NULL ; n++ ) {
+				if ( (i = value.Find(DocBase[n].name)) >= 0 )
+					ScriptValue(DocBase[n].cmds, value[i], mode);
+			}
+		} else if ( mode == DOC_MODE_IDENT ) {
+			for ( n = 0 ; DocBase[n].name != NULL ; n++ )
+					ScriptValue(DocBase[n].cmds, value[DocBase[n].name], mode);
+		}
+		break;
+
+	case 1:				// Document.Entry
+		m_ServerEntry.ScriptValue(cmds >> 6, value, mode);
+		break;
+	case 2:				// Document.Screen
+		m_TextRam.ScriptValue(cmds >> 6, value, mode);
+		break;
+	case 3:				// Document.KeyCode
+		m_KeyTab.ScriptValue(cmds >> 6, value, mode);
+		break;
+	case 4:				// Document.KeyMacro
+		m_KeyMac.ScriptValue(cmds >> 6, value, mode);
+		break;
+	case 5:				// Document.ssh
+		m_ParamTab.ScriptValue(cmds >> 6, value, mode);
+		break;
+
+	case 6:				// Document.Title
+		str = GetTitle();
+		value.SetStr(str, mode);
+		if ( mode == DOC_MODE_SAVE )
+			SetTitle(str);
+		break;
+
+	case 7:				// Document.Commmand(n)
+		if ( mode == DOC_MODE_CALL ) {
+			CWnd *pWnd = GetAciveView();
+			if ( (n = (int)value[0]) <= 0 )
+				n = m_KeyTab.GetCmdsKey((LPCWSTR)value[0]);
+			if ( pWnd != NULL && n > 0 )
+				pWnd->PostMessage(WM_COMMAND, (WPARAM)n);
+		}
+		break;
+
+	case 8:				// Document.Log
+		if ( mode == DOC_MODE_SAVE ) {
+			for ( n = 0 ; DocLog[n].name != NULL ; n++ ) {
+				if ( (i = value.Find(DocLog[n].name)) >= 0 )
+					ScriptValue(DocLog[n].cmds, value[i], mode);
+			}
+		} else if ( mode == DOC_MODE_IDENT ) {
+			for ( n = 0 ; DocLog[n].name != NULL ; n++ )
+					ScriptValue(DocLog[n].cmds, value[DocLog[n].name], mode);
+			value = (int)(m_pLogFile == NULL ? 0 : 1);
+		}
+		break;
+
+	case 20:				// Document.Log.File
+		if ( mode == DOC_MODE_IDENT ) {
+			if ( m_pLogFile != NULL )
+				value = (LPCTSTR)m_pLogFile->GetFilePath();
+			else
+				value = (int)0;
+		}
+		break;
+	case 21:				// Document.Log.Mode
+		n = m_TextRam.IsOptValue(TO_RLLOGMODE, 2);
+		value.SetInt(n, mode);
+		if ( m_pLogFile == NULL )
+			m_TextRam.SetOptValue(TO_RLLOGMODE, 2, n);
+		break;
+	case 22:				// Document.Log.Code
+		n = m_TextRam.IsOptValue(TO_RLLOGCODE, 2);
+		value.SetInt(n, mode);
+		if ( m_pLogFile == NULL )
+			m_TextRam.SetOptValue(TO_RLLOGCODE, 2, n);
+		break;
+	case 23:				// Document.Log.Open(f)
+		if ( mode == DOC_MODE_CALL ) {
+			if ( m_pLogFile != NULL ) {
+				m_pLogFile->Close();
+				delete m_pLogFile;
+			}
+			if ( (m_pLogFile = new CFile) != NULL && m_pLogFile->Open((LPCTSTR)value[0], CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite | CFile::shareExclusive) ) {
+				m_pLogFile->SeekToEnd();
+				value = (int)0;
+			} else
+				value = (int)1;
+		}
+		break;
+	case 24:				// Document.Log.Close()
+		if ( mode == DOC_MODE_CALL && m_pLogFile != NULL ) {
+			m_pLogFile->Close();
+			delete m_pLogFile;
+			m_pLogFile = NULL;
+		}
+		break;
+	}
 }

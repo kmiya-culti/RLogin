@@ -52,19 +52,19 @@ BOOL CPfdParaDlg::OnInitDialog()
 	ASSERT(m_pData);
 
 	CDialog::OnInitDialog();
-	CStringArrayExt array;
+	CStringArrayExt stra;
 
 	if ( m_EntryNum >= 0 && m_EntryNum < m_pData->GetSize() )
-		array.GetString(m_pData->GetAt(m_EntryNum));
+		stra.GetString(m_pData->GetAt(m_EntryNum));
 	else
 		m_EntryNum = (-1);
 
-	if ( array.GetSize() >= 5 ) {
-		m_ListenHost  = array[0];
-		m_ListenPort  = array[1];
-		m_ConnectHost = array[2];
-		m_ConnectPort = array[3];
-		m_ListenType  = array.GetVal(4);
+	if ( stra.GetSize() >= 5 ) {
+		m_ListenHost  = stra[0];
+		m_ListenPort  = stra[1];
+		m_ConnectHost = stra[2];
+		m_ConnectPort = stra[3];
+		m_ListenType  = stra.GetVal(4);
 	}
 
 	CComboBox *pCombo;
@@ -89,15 +89,15 @@ void CPfdParaDlg::OnOK()
 	ASSERT(m_pData);
 
 	CString str;
-	CStringArrayExt array;
+	CStringArrayExt stra;
 
 	UpdateData(TRUE);
-	array.Add(m_ListenHost);
-	array.Add(m_ListenPort);
-	array.Add(m_ConnectHost);
-	array.Add(m_ConnectPort);
-	array.AddVal(m_ListenType);
-	array.SetString(str);
+	stra.Add(m_ListenHost);
+	stra.Add(m_ListenPort);
+	stra.Add(m_ConnectHost);
+	stra.Add(m_ConnectPort);
+	stra.AddVal(m_ListenType);
+	stra.SetString(str);
 
 	if ( m_EntryNum >= 0 )
 		(*m_pData)[m_EntryNum] = str;

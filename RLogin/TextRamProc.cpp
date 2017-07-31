@@ -740,26 +740,26 @@ void CProcTab::Init()
 {
 	m_Data.RemoveAll();
 }
-void CProcTab::SetArray(CStringArrayExt &array)
+void CProcTab::SetArray(CStringArrayExt &stra)
 {
 	int n;
 	CString tmp;
 
-	array.RemoveAll();
+	stra.RemoveAll();
 	for ( n = 0 ; n < m_Data.GetSize() ; n++ ) {
 		tmp.Format(_T("%d,%d,%s,"), m_Data[n].m_Type, m_Data[n].m_Code, m_Data[n].m_Name);
-		array.Add(tmp);
+		stra.Add(tmp);
 	}
 }
-void CProcTab::GetArray(CStringArrayExt &array)
+void CProcTab::GetArray(CStringArrayExt &stra)
 {
 	int n;
 	CProcNode node;
 	CStringArrayExt tmp;
 
 	m_Data.RemoveAll();
-	for ( n = 0 ; n < array.GetSize() ; n++ ) {
-		tmp.GetString(array[n], ',');
+	for ( n = 0 ; n < stra.GetSize() ; n++ ) {
+		tmp.GetString(stra[n], ',');
 		if ( tmp.GetSize() < 3  )
 			continue;
 		node.m_Type = _tstoi(tmp[0]);

@@ -430,10 +430,10 @@ static int GetCharSet(unsigned int namescount, const char * const * names, void*
 		pArray->Add(MbsToTstr(names[i]));
 	return 0;
 }
-void CIConv::SetListArray(CStringArray &array)
+void CIConv::SetListArray(CStringArray &stra)
 {
-	array.RemoveAll();
-	iconvlist(GetCharSet, &array);
-	array.Add(_T("JIS_X0213-2000.1"));
-	array.Add(_T("JIS_X0213-2000.2"));
+	stra.RemoveAll();
+	iconvlist(GetCharSet, &stra);
+	stra.Add(_T("JIS_X0213-2000.1"));
+	stra.Add(_T("JIS_X0213-2000.2"));
 }

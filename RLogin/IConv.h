@@ -38,7 +38,7 @@ public:
 	void RemoteToStr(LPCTSTR from, LPCSTR in, CString &out);
 	int IConvChar(LPCTSTR from, LPCTSTR to, int ch);
 
-	static void SetListArray(CStringArray &array);
+	static void SetListArray(CStringArray &stra);
 
 	CIConv();
 	virtual ~CIConv();

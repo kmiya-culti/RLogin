@@ -61,10 +61,10 @@ public:
 	void DelSocketIdle(class CExtSocket *pSock);
 	void GetProfileData(LPCTSTR lpszSection, LPCTSTR lpszEntry, void *lpBuf, int nBufLen, void *lpDef = NULL);
 	void GetProfileBuffer(LPCTSTR lpszSection, LPCTSTR lpszEntry, CBuffer &Buf);
-	void GetProfileArray(LPCTSTR lpszSection, CStringArrayExt &array);
-	void WriteProfileArray(LPCTSTR lpszSection, CStringArrayExt &array);
+	void GetProfileArray(LPCTSTR lpszSection, CStringArrayExt &stra);
+	void WriteProfileArray(LPCTSTR lpszSection, CStringArrayExt &stra);
 	int GetProfileSeqNum(LPCTSTR lpszSection, LPCTSTR lpszEntry);
-	void GetProfileKeys(LPCTSTR lpszSection, CStringArrayExt &array);
+	void GetProfileKeys(LPCTSTR lpszSection, CStringArrayExt &stra);
 	void DelProfileEntry(LPCTSTR lpszSection, LPCTSTR lpszEntry);
 	void RegisterShellProtocol(LPCTSTR pSection, LPCTSTR pOption);
 	void RegisterDelete(HKEY hKey, LPCTSTR pSection, LPCTSTR pKey);

@@ -334,8 +334,8 @@ public:
 
 	void SetHash(int num);
 	void Init();
-	void SetArray(CStringArrayExt &array);
-	void GetArray(CStringArrayExt &array);
+	void SetArray(CStringArrayExt &stra);
+	void GetArray(CStringArrayExt &stra);
 	CFontChacheNode *GetFont(int Width, int Height, int Style, int FontNum);
 	const CFontNode & operator = (CFontNode &data);
 	void SetUserFont(int code, int width, int height, LPBYTE map);
@@ -351,8 +351,8 @@ public:
 	CFontNode m_Data[CODE_MAX];
 
 	void Init();
-	void SetArray(CStringArrayExt &array);
-	void GetArray(CStringArrayExt &array);
+	void SetArray(CStringArrayExt &stra);
+	void GetArray(CStringArrayExt &stra);
 
 	int Find(LPCTSTR entry);
 	int IndexFind(int code, LPCTSTR name);
@@ -388,8 +388,8 @@ public:
 	inline CProcNode & operator[](int nIndex) { return m_Data[nIndex]; }
 
 	void Init();
-	void SetArray(CStringArrayExt &array);
-	void GetArray(CStringArrayExt &array);
+	void SetArray(CStringArrayExt &stra);
+	void GetArray(CStringArrayExt &stra);
 
 	const CProcTab & operator = (CProcTab &data);
 	CProcTab();
@@ -474,8 +474,11 @@ public:	// Options
 	CStringArrayExt m_ShellExec;
 
 	void Init();
-	void SetArray(CStringArrayExt &array);
-	void GetArray(CStringArrayExt &array);
+	void SetArray(CStringArrayExt &stra);
+	void GetArray(CStringArrayExt &stra);
+	void ScriptInit(int cmds, int shift, class CScriptValue &value);
+	void ScriptTable(struct _ScriptCmdsDefs *defs, class CScriptValue &value, int mode);
+	void ScriptValue(int cmds, class CScriptValue &value, int mode);
 	void Serialize(int mode);
 	void Serialize(int mode, CBuffer &buf);
 	void Serialize(CArchive& ar);

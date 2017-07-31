@@ -119,6 +119,12 @@ CStringD &CStringD::operator += (LPCWSTR str)
 	}
 	return *this;
 }
+CStringD &CStringD::operator += (LPCDSTR str)
+{
+	while ( *str != 0 )
+		*this += *str;
+	return *this;
+}
 LPCWSTR CStringD::WStr(CStringW &str)
 {
 	int n;

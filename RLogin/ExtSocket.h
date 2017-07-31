@@ -47,6 +47,11 @@
 
 #define	SEND_EMPTY			001
 
+#define FD_RECIVE_EMPTY_BIT		(FD_MAX_EVENTS + 1)
+#define FD_RECIVE_EMPTY			(1 << FD_RECIVE_EMPTY_BIT)
+#define FD_SEND_EMPTY_BIT		(FD_MAX_EVENTS + 2)
+#define FD_SEND_EMPTY			(1 << FD_SEND_EMPTY_BIT)
+
 enum EProxyStat {
 	PRST_NONE = 0,
 

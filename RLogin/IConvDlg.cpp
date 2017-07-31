@@ -35,14 +35,14 @@ BOOL CIConvDlg::OnInitDialog()
 	CDialog::OnInitDialog();
 
 	int n, i;
-	CStringArray array;
+	CStringArray stra;
 	CComboBox *pCombo;
 	
-	CIConv::SetListArray(array);
+	CIConv::SetListArray(stra);
 	for ( i = 0 ; i < 4 ; i++ ) {
 		if ( (pCombo = (CComboBox *)GetDlgItem(IDC_CHARSET1 + i)) != NULL ) {
-			for ( n = 0 ; n < array.GetSize() ; n++ )
-				pCombo->AddString(array[n]);
+			for ( n = 0 ; n < stra.GetSize() ; n++ )
+				pCombo->AddString(stra[n]);
 		}
 	}
 	

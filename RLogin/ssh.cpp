@@ -80,8 +80,10 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 	m_DhMode = DHMODE_GROUP_1;
 	m_GlbReqMap.RemoveAll();
 	m_ChnReqMap.RemoveAll();
-	m_Chan.RemoveAll();
-	m_ChanNext = m_ChanFree = m_ChanFree2 = (-1);
+	for ( n = 0 ; n < m_pChan.GetSize() ; n++ )
+		delete m_pChan[n];
+	m_pChan.RemoveAll();
+	m_pChanNext = m_pChanFree = m_pChanFree2 = NULL;
 	m_OpenChanCount = 0;
 	m_pListFilter = NULL;
 	m_Permit.RemoveAll();
@@ -175,7 +177,9 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 }
 void Cssh::Close()
 {
-	m_Chan.RemoveAll();
+	for ( int n = 0 ; n < m_pChan.GetSize() ; n++ ) 
+		delete (CChannel *)m_pChan[n];
+	m_pChan.RemoveAll();
 	CExtSocket::Close();
 }
 int Cssh::Send(const void* lpBuf, int nBufLen, int nFlags)
@@ -192,7 +196,7 @@ int Cssh::Send(const void* lpBuf, int nBufLen, int nFlags)
 		if ( m_StdChan == (-1) || m_StdInRes.GetSize() > 0 || !CHAN_OK(m_StdChan) )
 			m_StdInRes.Apend((LPBYTE)lpBuf, nBufLen);
 		else
-			m_Chan[m_StdChan].m_pFilter->Send((LPBYTE)lpBuf, nBufLen);
+			((CChannel *)m_pChan[m_StdChan])->m_pFilter->Send((LPBYTE)lpBuf, nBufLen);
 		break;
 	}
 	return nBufLen;
@@ -335,7 +339,7 @@ void Cssh::SendWindSize(int x, int y)
 		if ( m_StdChan == (-1) )
 			break;
 		tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
-		tmp.Put32Bit(m_Chan[m_StdChan].m_RemoteID);
+		tmp.Put32Bit(((CChannel *)m_pChan[m_StdChan])->m_RemoteID);
 		tmp.PutStr("window-change");
 		tmp.Put8Bit(0);
 		tmp.Put32Bit(x);
@@ -366,8 +370,8 @@ void Cssh::OnSendEmpty()
 }
 void Cssh::GetStatus(CString &str)
 {
-	int n;
 	CString tmp;
+	CChannel *cp;
 
 	CExtSocket::GetStatus(str);
 
@@ -426,9 +430,9 @@ void Cssh::GetStatus(CString &str)
 	tmp.Format(_T("Open Channel: %d\r\n"), m_OpenChanCount);
 	str += tmp;
 
-	for ( n = m_ChanNext ; n >= 0 ; n = m_Chan[n].m_Next ) {
+	for ( cp = m_pChanNext ; cp != NULL ; cp = cp->m_pNext ) {
 		tmp.Format(_T("Chanel: RemoteId=%d LocalId=%d Status=%x Type=%s Read=%lld Write=%lld\r\n"),
-			m_Chan[n].m_RemoteID, m_Chan[n].m_LocalID, m_Chan[n].m_Status, m_Chan[n].m_TypeName, m_Chan[n].m_WriteByte, m_Chan[n].m_ReadByte);
+			cp->m_RemoteID, cp->m_LocalID, cp->m_Status, cp->m_TypeName, cp->m_WriteByte, cp->m_ReadByte);
 		str += tmp;
 	}
 }
@@ -830,177 +834,192 @@ void Cssh::LogIt(LPCTSTR format, ...)
 }
 int Cssh::ChannelOpen()
 {
-	int n, mx, id;
+	int n, mx;
+	CChannel *cp;
 
-	if ( (id = m_ChanFree) == (-1) ) {
-		for ( mx = 0 ; (n = m_ChanFree2) != (-1) ; mx++ ) {
-			m_ChanFree2 = m_Chan[n].m_Next;
-			m_Chan[n].m_Next = m_ChanFree;
-			m_ChanFree = n;
+	while ( (cp = m_pChanFree) == NULL ) {
+		for ( mx = 0 ; (cp = m_pChanFree2) != NULL ; mx++ ) {
+			m_pChanFree2 = cp->m_pNext;
+			cp->m_pNext = m_pChanFree;
+			m_pChanFree = cp;
 		}
 		if ( mx < 5 ) {
-			n = (int)m_Chan.GetSize();
-			mx = n + (10 - mx);
-			m_Chan.SetSize(mx);
+			n = (int)m_pChan.GetSize();
+			if ( (mx = n + (10 - mx)) > CHAN_MAXSIZE ) {
+				if ( AfxMessageBox(IDE_MANYCHANNEL, MB_ICONQUESTION | MB_YESNO) != IDYES )
+					return (-1);
+			}
+			m_pChan.SetSize(mx);
 			for ( ; n < mx ; n++ ) {
-				m_Chan[n].m_Next = m_ChanFree;
-				m_ChanFree = n;
+				cp = new CChannel;
+				cp->m_pNext = m_pChanFree;
+				m_pChanFree = cp;
+				m_pChan[n] = cp;
+				cp->m_LocalID = n;
 			}
 		}
-		id = m_ChanFree;
 	}
+	m_pChanFree = cp->m_pNext;
 
-	m_ChanFree = m_Chan[id].m_Next;
-	m_Chan[id].m_Next = m_ChanNext;
-	m_ChanNext = id;
+	cp->m_pNext = m_pChanNext;
+	m_pChanNext = cp;
 
-	m_Chan[id].m_pDocument  = m_pDocument;
-	m_Chan[id].m_pSsh       = this;
+	cp->m_pDocument  = m_pDocument;
+	cp->m_pSsh       = this;
 
-	m_Chan[id].m_Status     = 0;
-	m_Chan[id].m_TypeName   = _T("");
-	m_Chan[id].m_RemoteID   = (-1);
-	m_Chan[id].m_LocalID    = id;
-	m_Chan[id].m_RemoteWind = 0;
-	m_Chan[id].m_RemoteMax  = 0;
-	m_Chan[id].m_LocalComs  = 0;
-	m_Chan[id].m_LocalWind  = CHAN_SES_WINDOW_DEFAULT;
-	m_Chan[id].m_LocalPacks = CHAN_SES_PACKET_DEFAULT;
-	m_Chan[id].m_Eof        = 0;
-	m_Chan[id].m_Input.Clear();
-	m_Chan[id].m_Output.Clear();
+	cp->m_Status     = 0;
+	cp->m_TypeName   = _T("");
+	cp->m_RemoteID   = (-1);
+	cp->m_RemoteWind = 0;
+	cp->m_RemoteMax  = 0;
+	cp->m_LocalComs  = 0;
+	cp->m_LocalWind  = CHAN_SES_WINDOW_DEFAULT;
+	cp->m_LocalPacks = CHAN_SES_PACKET_DEFAULT;
+	cp->m_Eof        = 0;
+	cp->m_Input.Clear();
+	cp->m_Output.Clear();
 
-	m_Chan[id].m_lHost      = _T("");
-	m_Chan[id].m_lPort      = 0;
-	m_Chan[id].m_rHost      = _T("");
-	m_Chan[id].m_rPort      = 0;
-	m_Chan[id].m_ReadByte   = 0;
-	m_Chan[id].m_WriteByte  = 0;
-	m_Chan[id].m_ConnectTime= 0;
+	cp->m_lHost      = _T("");
+	cp->m_lPort      = 0;
+	cp->m_rHost      = _T("");
+	cp->m_rPort      = 0;
+	cp->m_ReadByte   = 0;
+	cp->m_WriteByte  = 0;
+	cp->m_ConnectTime= 0;
 
-	((CRLoginApp *)AfxGetApp())->SetSocketIdle(&(m_Chan[id]));
+	((CRLoginApp *)AfxGetApp())->SetSocketIdle(cp);
 
-	return id;
+	return cp->m_LocalID;
 }
 void Cssh::ChannelClose(int id)
 {
-	int n, nx;
+	CChannel *cp, *tp;
 
-	for ( n = nx = m_ChanNext ; n != (-1) ; ) {
-		if ( n == id ) {
-			if ( n == nx )
-				m_ChanNext = m_Chan[n].m_Next;
-			else
-				m_Chan[nx].m_Next = m_Chan[n].m_Next;
-			m_Chan[n].m_Next = m_ChanFree2;
-			m_ChanFree2 = n;
-			m_Chan[id].Close();
-			break;
+	cp = (CChannel *)m_pChan[id];
+
+	if ( (tp = m_pChanNext) == cp )
+		m_pChanNext = cp->m_pNext;
+	else {
+		while ( tp->m_pNext != NULL ) {
+			if ( tp->m_pNext == cp ) {
+				tp->m_pNext = cp->m_pNext;
+				break;
+			}
+			tp = tp->m_pNext;
 		}
-		nx = n;
-		n = m_Chan[n].m_Next;
 	}
+
+	cp->m_pNext = m_pChanFree2;
+	m_pChanFree2 = cp;
+
+	cp->Close();
 
 	if ( id == m_StdChan ) {
 		m_StdChan = (-1);
 		m_SSH2Status &= ~SSH2_STAT_HAVESTDIO;
 	}
 
-	if ( m_ChanNext == (-1) )
+	if ( m_pChanNext == NULL )
 		SendDisconnect2(SSH2_DISCONNECT_CONNECTION_LOST, "End");
 }
 void Cssh::ChannelCheck(int n)
 {
+	CChannel *cp = (CChannel *)m_pChan[n];
 	CBuffer tmp;
 
 	if ( !CHAN_OK(n) ) {
-		if ( (m_Chan[n].m_Status & CHAN_LISTEN) && (m_Chan[n].m_Eof & CEOF_DEAD) ) {
+		if ( (cp->m_Status & CHAN_LISTEN) && (cp->m_Eof & CEOF_DEAD) ) {
 			ChannelClose(n);
-			LogIt(_T("Listen Closed #%d %s:%d -> %s:%d"), n, m_Chan[n].m_lHost, m_Chan[n].m_lPort, m_Chan[n].m_rHost, m_Chan[n].m_rPort);
+			LogIt(_T("Listen Closed #%d %s:%d -> %s:%d"), n, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
 		}
 		return;
 	}
 
-	m_Chan[n].m_Eof &= ~(CEOF_IEMPY | CEOF_OEMPY);
-	if ( m_Chan[n].GetSendSize() == 0 )
-		m_Chan[n].m_Eof |= CEOF_IEMPY;
-	if ( m_Chan[n].GetRecvSize() == 0 )
-		m_Chan[n].m_Eof |= CEOF_OEMPY;
+	cp->m_Eof &= ~(CEOF_IEMPY | CEOF_OEMPY);
+	if ( cp->GetSendSize() == 0 )
+		cp->m_Eof |= CEOF_IEMPY;
+	if ( cp->GetRecvSize() == 0 )
+		cp->m_Eof |= CEOF_OEMPY;
 
-	if ( !(m_Chan[n].m_Eof & CEOF_SEOF) && !(m_Chan[n].m_Eof & CEOF_SCLOSE) ) {
-		if ( (m_Chan[n].m_Eof & CEOF_ICLOSE) || ((m_Chan[n].m_Eof & CEOF_DEAD) && (m_Chan[n].m_Eof & CEOF_OEMPY)) ) {
-			m_Chan[n].m_Output.Clear();
-			m_Chan[n].m_Eof |= (CEOF_SEOF | CEOF_OEMPY);
+	if ( !(cp->m_Eof & CEOF_SEOF) && !(cp->m_Eof & CEOF_SCLOSE) ) {
+		if ( (cp->m_Eof & CEOF_ICLOSE) || ((cp->m_Eof & CEOF_DEAD) && (cp->m_Eof & CEOF_OEMPY)) ) {
+			cp->m_Output.Clear();
+			cp->m_Eof |= (CEOF_SEOF | CEOF_OEMPY);
 			tmp.Clear();
 			tmp.Put8Bit(SSH2_MSG_CHANNEL_EOF);
-			tmp.Put32Bit(m_Chan[n].m_RemoteID);
+			tmp.Put32Bit(cp->m_RemoteID);
 			SendPacket2(&tmp);
-			TRACE("Cannel #%d Send Eof\n", m_Chan[n].m_LocalID);
+			TRACE("Cannel #%d Send Eof\n", cp->m_LocalID);
 		}
 	}
 
-	if ( !(m_Chan[n].m_Eof & CEOF_SCLOSE) ) {
-		if ( (m_Chan[n].m_Eof & CEOF_DEAD) || ((m_Chan[n].m_Eof & CEOF_IEOF) && (m_Chan[n].m_Eof & CEOF_IEMPY)) ) {
-			m_Chan[n].m_Input.Clear();
-			m_Chan[n].m_Eof |= (CEOF_SCLOSE | CEOF_IEMPY);
+	if ( !(cp->m_Eof & CEOF_SCLOSE) ) {
+		if ( (cp->m_Eof & CEOF_DEAD) || ((cp->m_Eof & CEOF_IEOF) && (cp->m_Eof & CEOF_IEMPY)) ) {
+			cp->m_Input.Clear();
+			cp->m_Eof |= (CEOF_SCLOSE | CEOF_IEMPY);
 			tmp.Clear();
 			tmp.Put8Bit(SSH2_MSG_CHANNEL_CLOSE);
-			tmp.Put32Bit(m_Chan[n].m_RemoteID);
+			tmp.Put32Bit(cp->m_RemoteID);
 			SendPacket2(&tmp);
-			TRACE("Cannel #%d Send Close\n", m_Chan[n].m_LocalID);
+			TRACE("Cannel #%d Send Close\n", cp->m_LocalID);
 		}
 	}
 
-	if ( !(m_Chan[n].m_Eof & CEOF_ICLOSE) && !(m_Chan[n].m_Eof & CEOF_OEMPY) && m_Chan[n].m_Output.GetSize() > 0 )
+	if ( !(cp->m_Eof & CEOF_ICLOSE) && !(cp->m_Eof & CEOF_OEMPY) && cp->m_Output.GetSize() > 0 )
 		SendMsgChannelData(n);
 
-	if ( (m_Chan[n].m_Eof & CEOF_ICLOSE) && (m_Chan[n].m_Eof & CEOF_SCLOSE) ) {
-		if ( m_Chan[n].m_pFilter != NULL )
+	if ( (cp->m_Eof & CEOF_ICLOSE) && (cp->m_Eof & CEOF_SCLOSE) ) {
+		if ( cp->m_pFilter != NULL )
 			LogIt(_T("Closed #%d Filter"), n);
 		else
-			LogIt(_T("Closed #%d %s:%d -> %s:%d"), n, m_Chan[n].m_lHost, m_Chan[n].m_lPort, m_Chan[n].m_rHost, m_Chan[n].m_rPort);
+			LogIt(_T("Closed #%d %s:%d -> %s:%d"), n, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
 		m_OpenChanCount--;
 		ChannelClose(n);
-		TRACE("Cannel #%d Close\n", m_Chan[n].m_LocalID);
+		TRACE("Cannel #%d Close\n", cp->m_LocalID);
 	}
 }
 void Cssh::ChannelAccept(int id, SOCKET hand)
 {
-	int i = ChannelOpen();
+	int i;
 	CString host;
 	int port;
+	CChannel *cp = (CChannel *)m_pChan[id];
 
-	if ( !m_Chan[id].Accept(&(m_Chan[i]), hand) ) {
+	if ( (i = ChannelOpen()) < 0 )
+		return;
+
+	if ( !cp->Accept((CExtSocket *)m_pChan[i], hand) ) {
 		ChannelClose(i);
 		return;
 	}
 
-	CExtSocket::GetPeerName((int)m_Chan[i].m_Fd, host, &port);
+	CExtSocket::GetPeerName((int)((CChannel *)m_pChan[i])->m_Fd, host, &port);
 
-	if ( (m_Chan[id].m_Status & CHAN_PROXY_SOCKS) != 0 ) {
-		m_Chan[i].m_Status = CHAN_PROXY_SOCKS;
-		m_Chan[i].m_lHost = host;
-		m_Chan[i].m_lPort = port;
+	if ( (cp->m_Status & CHAN_PROXY_SOCKS) != 0 ) {
+		((CChannel *)m_pChan[i])->m_Status = CHAN_PROXY_SOCKS;
+		((CChannel *)m_pChan[i])->m_lHost = host;
+		((CChannel *)m_pChan[i])->m_lPort = port;
 	} else {
-		SendMsgChannelOpen(i, "direct-tcpip", m_Chan[id].m_rHost, m_Chan[id].m_rPort, host, port);
+		SendMsgChannelOpen(i, "direct-tcpip", cp->m_rHost, cp->m_rPort, host, port);
 	}
 }
 void Cssh::ChannelPolling(int id)
 {
 	int n;
 	CBuffer tmp;
+	CChannel *cp = (CChannel *)m_pChan[id];
 
-	if ( (n = m_Chan[id].m_LocalComs - m_Chan[id].GetSendSize()) >= (m_Chan[id].m_LocalWind / 2) ) {
+	if ( (n = cp->m_LocalComs - cp->GetSendSize()) >= (cp->m_LocalWind / 2) ) {
 		tmp.Clear();
 		tmp.Put8Bit(SSH2_MSG_CHANNEL_WINDOW_ADJUST);
-		tmp.Put32Bit(m_Chan[id].m_RemoteID);
+		tmp.Put32Bit(cp->m_RemoteID);
 		tmp.Put32Bit(n);
 		SendPacket2(&tmp);
-		m_Chan[id].m_LocalComs -= n;
+		cp->m_LocalComs -= n;
 		TRACE("Send Window Adjust %d\n", n);
 	}
 
-	if ( m_Chan[id].GetSendSize() <= 0 )
+	if ( cp->GetSendSize() <= 0 )
 		ChannelCheck(id);
 }
 void Cssh::DecodeProxySocks(int id)
@@ -1025,11 +1044,12 @@ void Cssh::DecodeProxySocks(int id)
 #ifndef	NOIPV6
     struct sockaddr_in6 in6;
 #endif
+	CChannel *cp = (CChannel *)m_pChan[id];
 
-	if ( (len = m_Chan[id].m_Output.GetSize()) < 2 )
+	if ( (len = cp->m_Output.GetSize()) < 2 )
 		return;
 
-	p = m_Chan[id].m_Output.GetPtr();
+	p = cp->m_Output.GetPtr();
 	switch(p[0]) {
 	case 4:
 		if ( len < sizeof(s4_req) )
@@ -1040,29 +1060,29 @@ void Cssh::DecodeProxySocks(int id)
 		}
 		if ( n++ >= len )
 			break;
-		s4_req.version   = m_Chan[id].m_Output.Get8Bit();
-		s4_req.command   = m_Chan[id].m_Output.Get8Bit();
-		s4_req.dest_port = *((WORD *)(m_Chan[id].m_Output.GetPtr())); m_Chan[id].m_Output.Consume(2);
-		s4_req.dest.dw_addr = *((DWORD *)(m_Chan[id].m_Output.GetPtr())); m_Chan[id].m_Output.Consume(4);
-		m_Chan[id].m_Output.Consume( n - sizeof(s4_req));
+		s4_req.version   = cp->m_Output.Get8Bit();
+		s4_req.command   = cp->m_Output.Get8Bit();
+		s4_req.dest_port = *((WORD *)(cp->m_Output.GetPtr())); cp->m_Output.Consume(2);
+		s4_req.dest.dw_addr = *((DWORD *)(cp->m_Output.GetPtr())); cp->m_Output.Consume(4);
+		cp->m_Output.Consume( n - sizeof(s4_req));
 
-		m_Chan[id].m_Input.Put8Bit(0);
-		m_Chan[id].m_Input.Put8Bit(90);
-		m_Chan[id].m_Input.Put16Bit(0);
-		m_Chan[id].m_Input.Put32Bit(INADDR_ANY);
-		m_Chan[id].Send(m_Chan[id].m_Input.GetPtr(), m_Chan[id].m_Input.GetSize());
-		m_Chan[id].m_Input.Clear();
+		cp->m_Input.Put8Bit(0);
+		cp->m_Input.Put8Bit(90);
+		cp->m_Input.Put16Bit(0);
+		cp->m_Input.Put32Bit(INADDR_ANY);
+		cp->Send(cp->m_Input.GetPtr(), cp->m_Input.GetSize());
+		cp->m_Input.Clear();
 
 		host[0] = inet_ntoa(s4_req.dest.in_addr);
 		port[0] = ntohs(s4_req.dest_port);
-		host[1] = m_Chan[id].m_lHost;
-		port[1] = m_Chan[id].m_lPort;
+		host[1] = cp->m_lHost;
+		port[1] = cp->m_lPort;
 
 		SendMsgChannelOpen(id, "direct-tcpip", host[0], port[0], host[1], port[1]);
 		break;
 
 	case 5:
-		if ( (m_Chan[id].m_Status & CHAN_SOCKS5_AUTH) == 0 ) {
+		if ( (cp->m_Status & CHAN_SOCKS5_AUTH) == 0 ) {
 			if ( len < (p[1] + 2) )
 				break;
 			for ( n = 2 ; n < (p[1] + 2) ; n++ ) {
@@ -1073,15 +1093,15 @@ void Cssh::DecodeProxySocks(int id)
 				ChannelClose(id);
 				break;
 			}
-			m_Chan[id].m_Output.Consume(p[1] + 2);
-			len = m_Chan[id].m_Output.GetSize();
+			cp->m_Output.Consume(p[1] + 2);
+			len = cp->m_Output.GetSize();
 
-			m_Chan[id].m_Input.Put8Bit(5);
-			m_Chan[id].m_Input.Put8Bit(0);
-			m_Chan[id].Send(m_Chan[id].m_Input.GetPtr(), m_Chan[id].m_Input.GetSize());
-			m_Chan[id].m_Input.Clear();
+			cp->m_Input.Put8Bit(5);
+			cp->m_Input.Put8Bit(0);
+			cp->Send(cp->m_Input.GetPtr(), cp->m_Input.GetSize());
+			cp->m_Input.Clear();
 
-			m_Chan[id].m_Status |= CHAN_SOCKS5_AUTH;
+			cp->m_Status |= CHAN_SOCKS5_AUTH;
 		}
 
 		if ( len < 4 )
@@ -1094,16 +1114,16 @@ void Cssh::DecodeProxySocks(int id)
 			if ( len < (4 + 4 + 2) )
 				break;
 			memcpy(tmp, p + 4, 4);
-			m_Chan[id].m_Output.Consume(4 + 4);
+			cp->m_Output.Consume(4 + 4);
 			memset(&in, 0, sizeof(in));
 			in.sin_family = AF_INET;
 			memcpy(&(in.sin_addr), tmp, 4);
-			m_Chan[id].GetHostName((struct sockaddr *)&in, sizeof(in), host[0]);
+			cp->GetHostName((struct sockaddr *)&in, sizeof(in), host[0]);
 		} else if ( p[3] == '\x03' ) {	// SOCKS5_DOMAIN
 			if ( len < (4 + p[4] + 2) )
 				break;
 			memcpy(tmp, p + 5, p[4]);
-			m_Chan[id].m_Output.Consume(5 + p[4]);
+			cp->m_Output.Consume(5 + p[4]);
 			tmp[p[4]] = '\0';
 			host[0] = tmp;
 #ifndef	NOIPV6
@@ -1111,32 +1131,32 @@ void Cssh::DecodeProxySocks(int id)
 			if ( len < (4 + 16 + 2) )
 				break;
 			memcpy(tmp, p + 4, 16);
-			m_Chan[id].m_Output.Consume(4 + 16);
+			cp->m_Output.Consume(4 + 16);
 			memset(&in6, 0, sizeof(in6));
 			in6.sin6_family = AF_INET6;
 			memcpy(&(in6.sin6_addr), tmp, 16);
-			m_Chan[id].GetHostName((struct sockaddr *)&in6, sizeof(in6), host[0]);
+			cp->GetHostName((struct sockaddr *)&in6, sizeof(in6), host[0]);
 #endif
 		} else {
 			ChannelClose(id);
 			break;
 		}
 
-		dw = *((WORD *)(m_Chan[id].m_Output.GetPtr()));
-		m_Chan[id].m_Output.Consume(2);
+		dw = *((WORD *)(cp->m_Output.GetPtr()));
+		cp->m_Output.Consume(2);
 
-		m_Chan[id].m_Input.Put8Bit(0x05);
-		m_Chan[id].m_Input.Put8Bit(0x00);	// SOCKS5_SUCCESS
-		m_Chan[id].m_Input.Put8Bit(0x00);
-		m_Chan[id].m_Input.Put8Bit(0x01);	// SOCKS5_IPV4
-		m_Chan[id].m_Input.Put32Bit(INADDR_ANY);
-		m_Chan[id].m_Input.Put16Bit(dw);
-		m_Chan[id].Send(m_Chan[id].m_Input.GetPtr(), m_Chan[id].m_Input.GetSize());
-		m_Chan[id].m_Input.Clear();
+		cp->m_Input.Put8Bit(0x05);
+		cp->m_Input.Put8Bit(0x00);	// SOCKS5_SUCCESS
+		cp->m_Input.Put8Bit(0x00);
+		cp->m_Input.Put8Bit(0x01);	// SOCKS5_IPV4
+		cp->m_Input.Put32Bit(INADDR_ANY);
+		cp->m_Input.Put16Bit(dw);
+		cp->Send(cp->m_Input.GetPtr(), cp->m_Input.GetSize());
+		cp->m_Input.Clear();
 
 		port[0] = ntohs((WORD)dw);
-		host[1] = m_Chan[id].m_lHost;
-		port[1] = m_Chan[id].m_lPort;
+		host[1] = cp->m_lHost;
+		port[1] = cp->m_lPort;
 
 		SendMsgChannelOpen(id, "direct-tcpip", host[0], port[0], host[1], port[1]);
 		break;
@@ -1189,10 +1209,11 @@ void Cssh::PortForward()
 
 		switch(tmp.GetVal(4)) {
 		case PFD_LOCAL:
-			n = ChannelOpen();
-			m_Chan[n].m_Status = CHAN_LISTEN;
-			m_Chan[n].m_TypeName = _T("tcpip-listen");
-			if ( !m_Chan[n].CreateListen(tmp[0], GetPortNum(tmp[1]), tmp[2], GetPortNum(tmp[3])) ) {
+			if ( (n = ChannelOpen()) < 0 )
+				break;
+			((CChannel *)m_pChan[n])->m_Status = CHAN_LISTEN;
+			((CChannel *)m_pChan[n])->m_TypeName = _T("tcpip-listen");
+			if ( !((CChannel *)m_pChan[n])->CreateListen(tmp[0], GetPortNum(tmp[1]), tmp[2], GetPortNum(tmp[3])) ) {
 				str.Format(_T("Port Forward Error %s:%s->%s:%s"), tmp[0], tmp[1], tmp[2], tmp[3]);
 				AfxMessageBox(str);
 				ChannelClose(n);
@@ -1203,10 +1224,11 @@ void Cssh::PortForward()
 			break;
 
 		case PFD_SOCKS:
-			n = ChannelOpen();
-			m_Chan[n].m_Status = CHAN_LISTEN | CHAN_PROXY_SOCKS;
-			m_Chan[n].m_TypeName = _T("socks-listen");
-			if ( !m_Chan[n].CreateListen(tmp[0], GetPortNum(tmp[1]), tmp[2], GetPortNum(tmp[3])) ) {
+			if ( (n = ChannelOpen()) < 0 )
+				break;
+			((CChannel *)m_pChan[n])->m_Status = CHAN_LISTEN | CHAN_PROXY_SOCKS;
+			((CChannel *)m_pChan[n])->m_TypeName = _T("socks-listen");
+			if ( !((CChannel *)m_pChan[n])->CreateListen(tmp[0], GetPortNum(tmp[1]), tmp[2], GetPortNum(tmp[3])) ) {
 				str.Format(_T("Socks Listen Error %s:%s->%s:%s"), tmp[0], tmp[1], tmp[2], tmp[3]);
 				AfxMessageBox(str);
 				ChannelClose(n);
@@ -1236,27 +1258,34 @@ void Cssh::PortForward()
 
 void Cssh::OpenSFtpChannel()
 {
-	int id = SendMsgChannelOpen((-1), "session");
+	int id;
+
+	if ( (id = SendMsgChannelOpen((-1), "session")) < 0 )
+		return;
+
 	CSFtpFilter *pFilter = new CSFtpFilter;
-	m_Chan[id].m_pFilter = pFilter;
+
+	((CChannel *)m_pChan[id])->m_pFilter = pFilter;
 	pFilter->m_pSFtp = new CSFtp(NULL);
 	pFilter->m_pSFtp->m_pSSh = this;
-	pFilter->m_pSFtp->m_pChan = &(m_Chan[id]);
+	pFilter->m_pSFtp->m_pChan = (CChannel *)m_pChan[id];
 	pFilter->m_pSFtp->m_HostKanjiSet = m_pDocument->m_TextRam.m_SendCharSet[m_pDocument->m_TextRam.m_KanjiMode];
 	pFilter->m_pSFtp->Create(IDD_SFTPDLG, CWnd::GetDesktopWindow());
 	pFilter->m_pSFtp->ShowWindow(SW_SHOW);
 }
 void Cssh::OpenRcpUpload(LPCTSTR file)
 {
+	int id;
+
+	m_RcpCmd.m_pSsh = this;
+
 	if ( file != NULL ) {
-		m_RcpCmd.m_pSsh = this;
 		m_RcpCmd.m_FileList.AddTail(file);
 		m_RcpCmd.Destroy();
-	} else {
-		m_RcpCmd.m_pSsh = this;
-		int id = SendMsgChannelOpen((-1), "session");
-		m_Chan[id].m_pFilter = &m_RcpCmd;
-		m_RcpCmd.m_pChan = &(m_Chan[id]);
+
+	} else if ( (id = SendMsgChannelOpen((-1), "session")) >= 0 ) {
+		((CChannel *)m_pChan[id])->m_pFilter = &m_RcpCmd;
+		m_RcpCmd.m_pChan = (CChannel *)m_pChan[id];
 		m_RcpCmd.m_pNext = m_pListFilter;
 		m_pListFilter = &m_RcpCmd;
 	}
@@ -1458,62 +1487,66 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 int Cssh::SendMsgChannelOpen(int n, LPCSTR type, LPCTSTR lhost, int lport, LPCTSTR rhost, int rport)
 {
 	CBuffer tmp;
+	CChannel *cp;
 
-	if ( n < 0 )
-		n = ChannelOpen();
+	if ( n < 0 && (n = ChannelOpen()) < 0 )
+		return (-1);
 
-	m_Chan[n].m_Status     = CHAN_OPEN_LOCAL;
-	m_Chan[n].m_TypeName   = type;
+	cp = (CChannel *)m_pChan[n];
+	cp->m_Status     = CHAN_OPEN_LOCAL;
+	cp->m_TypeName   = type;
 
 	tmp.Put8Bit(SSH2_MSG_CHANNEL_OPEN);
 	tmp.PutStr(type);
 	tmp.Put32Bit(n);
-	tmp.Put32Bit(m_Chan[n].m_LocalWind);
-	tmp.Put32Bit(m_Chan[n].m_LocalPacks);
+	tmp.Put32Bit(cp->m_LocalWind);
+	tmp.Put32Bit(cp->m_LocalPacks);
 	if ( lhost != NULL ) {
 		tmp.PutStr(m_pDocument->RemoteStr(lhost));
 		tmp.Put32Bit(lport);
 		tmp.PutStr(m_pDocument->RemoteStr(rhost));
 		tmp.Put32Bit(rport);
-		m_Chan[n].m_lHost = lhost;
-		m_Chan[n].m_lPort = lport;
-		m_Chan[n].m_rHost = rhost;
-		m_Chan[n].m_rPort = rport;
+		cp->m_lHost = lhost;
+		cp->m_lPort = lport;
+		cp->m_rHost = rhost;
+		cp->m_rPort = rport;
 	}
 	SendPacket2(&tmp);
 
-	TRACE("Channel Open %d(%d)\n", m_Chan[n].m_LocalWind, m_Chan[n].m_LocalPacks);
+	TRACE("Channel Open %d(%d)\n", cp->m_LocalWind, cp->m_LocalPacks);
 
 	return n;
 }
 void Cssh::SendMsgChannelOpenConfirmation(int id)
 {
 	CBuffer tmp;
+	CChannel *cp = (CChannel *)m_pChan[id];
 
-	m_Chan[id].m_Status |= CHAN_OPEN_LOCAL;
-	m_Chan[id].m_ConnectTime = CTime::GetCurrentTime();
+	cp->m_Status |= CHAN_OPEN_LOCAL;
+	cp->m_ConnectTime = CTime::GetCurrentTime();
 	m_OpenChanCount++;
 
 	tmp.Put8Bit(SSH2_MSG_CHANNEL_OPEN_CONFIRMATION);
-	tmp.Put32Bit(m_Chan[id].m_RemoteID);
-	tmp.Put32Bit(m_Chan[id].m_LocalID);
-	tmp.Put32Bit(m_Chan[id].m_LocalWind);
-	tmp.Put32Bit(m_Chan[id].m_LocalPacks);
+	tmp.Put32Bit(cp->m_RemoteID);
+	tmp.Put32Bit(cp->m_LocalID);
+	tmp.Put32Bit(cp->m_LocalWind);
+	tmp.Put32Bit(cp->m_LocalPacks);
 	SendPacket2(&tmp);
 
-	TRACE("Channel OpenConf %d(%d)\n", m_Chan[id].m_LocalWind, m_Chan[id].m_LocalPacks);
+	TRACE("Channel OpenConf %d(%d)\n", cp->m_LocalWind, cp->m_LocalPacks);
 
-	if ( m_Chan[id].m_pFilter != NULL )
+	if ( cp->m_pFilter != NULL )
 		LogIt(_T("Open Filter #%d"), id);
 	else
-		LogIt(_T("Open Connect #%d %s:%d -> %s:%d"), id, m_Chan[id].m_lHost, m_Chan[id].m_lPort, m_Chan[id].m_rHost, m_Chan[id].m_rPort);
+		LogIt(_T("Open Connect #%d %s:%d -> %s:%d"), id, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
 }
 void Cssh::SendMsgChannelOpenFailure(int id)
 {
 	CBuffer tmp;
+	CChannel *cp = (CChannel *)m_pChan[id];
 
 	tmp.Put8Bit(SSH2_MSG_CHANNEL_OPEN_FAILURE);
-	tmp.Put32Bit(m_Chan[id].m_RemoteID);
+	tmp.Put32Bit(cp->m_RemoteID);
 	tmp.Put32Bit(SSH2_OPEN_CONNECT_FAILED);
 	tmp.PutStr("open failed");
 	tmp.PutStr("");
@@ -1525,8 +1558,9 @@ void Cssh::SendMsgChannelData(int id)
 {
 	int len;
 	CBuffer tmp(CHAN_SES_PACKET_DEFAULT + 16);
+	CChannel *cp = (CChannel *)m_pChan[id];
 
-	if ( id < 0 || id >= m_Chan.GetSize() || !CHAN_OK(id) || (m_SSH2Status & SSH2_STAT_SENTKEXINIT) != 0 )
+	if ( id < 0 || id >= m_pChan.GetSize() || !CHAN_OK(id) || (m_SSH2Status & SSH2_STAT_SENTKEXINIT) != 0 )
 		return;
 
 	if ( m_SendPackLen >= MAX_PACKETLEN || m_RecvPackLen >= MAX_PACKETLEN ) {
@@ -1535,22 +1569,22 @@ void Cssh::SendMsgChannelData(int id)
 		return;
 	}
 
-	while ( (len = m_Chan[id].m_Output.GetSize()) > 0 ) {
-		if ( len > m_Chan[id].m_RemoteWind )
-			len = m_Chan[id].m_RemoteWind;
+	while ( (len = cp->m_Output.GetSize()) > 0 ) {
+		if ( len > cp->m_RemoteWind )
+			len = cp->m_RemoteWind;
 
-		if ( len > m_Chan[id].m_RemoteMax )
-			len = m_Chan[id].m_RemoteMax;
+		if ( len > cp->m_RemoteMax )
+			len = cp->m_RemoteMax;
 
 		if ( len <= 0 )
 			return;
 
 		tmp.Clear();
 		tmp.Put8Bit(SSH2_MSG_CHANNEL_DATA);
-		tmp.Put32Bit(m_Chan[id].m_RemoteID);
-		tmp.PutBuf(m_Chan[id].m_Output.GetPtr(), len);
-		m_Chan[id].m_Output.Consume(len);
-		m_Chan[id].m_RemoteWind -= len;
+		tmp.Put32Bit(cp->m_RemoteID);
+		tmp.PutBuf(cp->m_Output.GetPtr(), len);
+		cp->m_Output.Consume(len);
+		cp->m_RemoteWind -= len;
 		SendPacket2(&tmp);
 	}
 
@@ -1563,6 +1597,7 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 	CBuffer tmp, tmode;
 	CString str;
 	CStringIndex env;
+	CChannel *cp = (CChannel *)m_pChan[id];
 	static const struct _dummy_ttymode {
 		BYTE	opcode;
 		DWORD	param;
@@ -1590,7 +1625,7 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 
 	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHAGENT) ) {
 		tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
-		tmp.Put32Bit(m_Chan[id].m_RemoteID);
+		tmp.Put32Bit(cp->m_RemoteID);
 		tmp.PutStr("auth-agent-req@openssh.com");
 		tmp.Put8Bit(0);
 		SendPacket2(&tmp);
@@ -1619,7 +1654,7 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 			str.Format(_T("%04x%04x%04x%04x"), rand(), rand(), rand(), rand());
 			tmp.Clear();
 			tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
-			tmp.Put32Bit(m_Chan[id].m_RemoteID);
+			tmp.Put32Bit(cp->m_RemoteID);
 			tmp.PutStr("x11-req");
 			tmp.Put8Bit(0);
 			tmp.Put8Bit(0);		// XXX bool single connection
@@ -1632,7 +1667,7 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 
 	tmp.Clear();
 	tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
-	tmp.Put32Bit(m_Chan[id].m_RemoteID);
+	tmp.Put32Bit(cp->m_RemoteID);
 	tmp.PutStr("pty-req");
 	tmp.Put8Bit(1);
 	tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_TermName));
@@ -1658,7 +1693,7 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 			continue;
 		tmp.Clear();
 		tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
-		tmp.Put32Bit(m_Chan[id].m_RemoteID);
+		tmp.Put32Bit(cp->m_RemoteID);
 		tmp.PutStr("env");
 		tmp.Put8Bit(0);
 		tmp.PutStr(m_pDocument->RemoteStr(env[n].m_nIndex));
@@ -1668,7 +1703,7 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 
 	tmp.Clear();
 	tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
-	tmp.Put32Bit(m_Chan[id].m_RemoteID);
+	tmp.Put32Bit(cp->m_RemoteID);
 	tmp.PutStr("shell");
 	tmp.Put8Bit(1);
 	SendPacket2(&tmp);
@@ -1677,9 +1712,10 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 void Cssh::SendMsgChannelRequesstSubSystem(int id)
 {
 	CBuffer tmp;
+	CChannel *cp = (CChannel *)m_pChan[id];
 
 	tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
-	tmp.Put32Bit(m_Chan[id].m_RemoteID);
+	tmp.Put32Bit(cp->m_RemoteID);
 	tmp.PutStr("subsystem");
 	tmp.Put8Bit(1);
 	tmp.PutStr("sftp");
@@ -1689,12 +1725,13 @@ void Cssh::SendMsgChannelRequesstSubSystem(int id)
 void Cssh::SendMsgChannelRequesstExec(int id)
 {
 	CBuffer tmp;
+	CChannel *cp = (CChannel *)m_pChan[id];
 
 	tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
-	tmp.Put32Bit(m_Chan[id].m_RemoteID);
+	tmp.Put32Bit(cp->m_RemoteID);
 	tmp.PutStr("exec");
 	tmp.Put8Bit(1);
-	tmp.PutStr(m_Chan[id].m_pFilter->m_Cmd);
+	tmp.PutStr(cp->m_pFilter->m_Cmd);
 	SendPacket2(&tmp);
 	m_ChnReqMap.Add(CHAN_REQ_EXEC);
 }
@@ -2256,23 +2293,26 @@ int Cssh::SSH2MsgChannelOpen(CBuffer *bp)
 	int port[2];
 	CString str;
 	LPCTSTR p;
+	CChannel *cp;
 
 	bp->GetStr(type);
 	id = bp->Get32Bit();
 
-	n = ChannelOpen();
-	m_Chan[n].m_TypeName   = type;
-	m_Chan[n].m_RemoteID   = id;
-	m_Chan[n].m_RemoteWind = bp->Get32Bit();
-	m_Chan[n].m_RemoteMax  = bp->Get32Bit();
-	m_Chan[n].m_LocalComs  = 0;
+	if ( (n = ChannelOpen()) < 0 )
+		goto FAILURE;
+	cp = (CChannel *)m_pChan[n];
+	cp->m_TypeName   = type;
+	cp->m_RemoteID   = id;
+	cp->m_RemoteWind = bp->Get32Bit();
+	cp->m_RemoteMax  = bp->Get32Bit();
+	cp->m_LocalComs  = 0;
 
-	TRACE("Channel Open Recive %d(%d)\n", m_Chan[n].m_RemoteWind, m_Chan[n].m_RemoteMax);
+	TRACE("Channel Open Recive %s(%d)\n", type, n);
 
 	if ( type.CompareNoCase("auth-agent@openssh.com") == 0 ) {
-		m_Chan[n].m_pFilter = new CAgent;
-		m_Chan[n].m_pFilter->m_pChan = &(m_Chan[n]);
-		m_Chan[n].m_Status |= CHAN_OPEN_REMOTE;
+		cp->m_pFilter = new CAgent;
+		cp->m_pFilter->m_pChan = cp;
+		cp->m_Status |= CHAN_OPEN_REMOTE;
 		SendMsgChannelOpenConfirmation(n);
 		SendMsgChannelData(n);
 		return FALSE;
@@ -2302,13 +2342,13 @@ int Cssh::SSH2MsgChannelOpen(CBuffer *bp)
 		if ( host[1].IsEmpty() || host[1].CompareNoCase(_T("unix")) == 0 )
 			host[1] = _T("127.0.0.1");
 
-		m_Chan[n].m_Status |= CHAN_OPEN_REMOTE;
-		m_Chan[n].m_lHost = host[1];
-		m_Chan[n].m_lPort = 6000 + port[1];
-		m_Chan[n].m_rHost = host[0];
-		m_Chan[n].m_rPort = port[0];
+		cp->m_Status |= CHAN_OPEN_REMOTE;
+		cp->m_lHost = host[1];
+		cp->m_lPort = 6000 + port[1];
+		cp->m_rHost = host[0];
+		cp->m_rPort = port[0];
 
-		if ( (i = m_Chan[n].Open(host[1], 6000 + port[1])) < 0 ) {
+		if ( (i = cp->Open(host[1], 6000 + port[1])) < 0 ) {
 			str.Format(_T("Channel Open Failure %s:%d->%s:%d"), host[0], port[0], host[1], 6000 + port[1]);
 			AfxMessageBox(str);
 			goto FAILURE;
@@ -2324,6 +2364,8 @@ int Cssh::SSH2MsgChannelOpen(CBuffer *bp)
 		host[1] = m_pDocument->LocalStr(mbs);
 		port[1] = bp->Get32Bit();
 
+		TRACE("Channel Open req %s:%d->%s:%d", host[0], port[0], host[1], port[1]);
+
 		for ( i = 0 ; i < m_Permit.GetSize() ; i++ ) {
 			if ( port[0] == m_Permit[i].m_rPort )
 				break;
@@ -2335,13 +2377,13 @@ int Cssh::SSH2MsgChannelOpen(CBuffer *bp)
 			goto FAILURE;
 		}
 
-		m_Chan[n].m_Status |= CHAN_OPEN_REMOTE;
-		m_Chan[n].m_lHost = host[1];
-		m_Chan[n].m_lPort = port[1];
-		m_Chan[n].m_rHost = host[0];
-		m_Chan[n].m_rPort = port[0];
+		cp->m_Status |= CHAN_OPEN_REMOTE;
+		cp->m_lHost = host[1];
+		cp->m_lPort = port[1];
+		cp->m_rHost = host[0];
+		cp->m_rPort = port[0];
 
-		if ( (i = m_Chan[n].Open(m_Permit[i].m_lHost, m_Permit[i].m_lPort)) < 0 ) {
+		if ( (i = cp->Open(m_Permit[i].m_lHost, m_Permit[i].m_lPort)) < 0 ) {
 			str.Format(_T("Channel Open Failure %s:%d->%s:%d"), host[0], port[0], host[1], port[1]);
 			AfxMessageBox(str);
 			goto FAILURE;
@@ -2351,7 +2393,8 @@ int Cssh::SSH2MsgChannelOpen(CBuffer *bp)
 	}
 
 FAILURE:
-	ChannelClose(n);
+	if ( n >= 0 )
+		ChannelClose(n);
 	tmp.Clear();
 	tmp.Put8Bit(SSH2_MSG_CHANNEL_OPEN_FAILURE);
 	tmp.Put32Bit(id);
@@ -2364,30 +2407,32 @@ FAILURE:
 int Cssh::SSH2MsgChannelOpenReply(CBuffer *bp, int type)
 {
 	int id = bp->Get32Bit();
+	CChannel *cp;
 
-	if ( id < 0 || id >= m_Chan.GetSize() || m_Chan[id].m_Status != CHAN_OPEN_LOCAL )
+	if ( id < 0 || id >= m_pChan.GetSize() || ((CChannel *)m_pChan[id])->m_Status != CHAN_OPEN_LOCAL )
 		return TRUE;
+	cp = (CChannel *)m_pChan[id];
 
 	if ( type == SSH2_MSG_CHANNEL_OPEN_FAILURE ) {
-		if ( m_Chan[id].m_pFilter != NULL )
+		if ( cp->m_pFilter != NULL )
 			LogIt(_T("Open Failure #%d Filter"), id);
 		else
-			LogIt(_T("Open Failure #%d %s:%d -> %s:%d"), id, m_Chan[id].m_lHost, m_Chan[id].m_lPort, m_Chan[id].m_rHost, m_Chan[id].m_rPort);
+			LogIt(_T("Open Failure #%d %s:%d -> %s:%d"), id, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
 		ChannelClose(id);
 		return (id == m_StdChan ? TRUE : FALSE);
 	}
 
-	m_Chan[id].m_Status     |= CHAN_OPEN_REMOTE;
-	m_Chan[id].m_RemoteID    = bp->Get32Bit();
-	m_Chan[id].m_RemoteWind  = bp->Get32Bit();
-	m_Chan[id].m_RemoteMax   = bp->Get32Bit();
-	m_Chan[id].m_ConnectTime = CTime::GetCurrentTime();
+	cp->m_Status     |= CHAN_OPEN_REMOTE;
+	cp->m_RemoteID    = bp->Get32Bit();
+	cp->m_RemoteWind  = bp->Get32Bit();
+	cp->m_RemoteMax   = bp->Get32Bit();
+	cp->m_ConnectTime = CTime::GetCurrentTime();
 	m_OpenChanCount++;
 
-	TRACE("Channel OpenReply Recive %d(%d)\n", m_Chan[id].m_RemoteWind, m_Chan[id].m_RemoteMax);
+	TRACE("Channel OpenReply Recive %d(%d)\n", cp->m_RemoteWind, cp->m_RemoteMax);
 
-	if ( m_Chan[id].m_pFilter != NULL ) {
-		switch(m_Chan[id].m_pFilter->m_Type) {
+	if ( cp->m_pFilter != NULL ) {
+		switch(cp->m_pFilter->m_Type) {
 		case SSHFT_STDIO:
 			if ( (m_SSH2Status & SSH2_STAT_HAVESHELL) == 0 )
 				SendMsgChannelRequesstShell(id);
@@ -2400,7 +2445,7 @@ int Cssh::SSH2MsgChannelOpenReply(CBuffer *bp, int type)
 			break;
 		}
 	} else
-		LogIt(_T("Open Confirmation #%d %s:%d -> %s:%d"), id, m_Chan[id].m_lHost, m_Chan[id].m_lPort, m_Chan[id].m_rHost, m_Chan[id].m_rPort);
+		LogIt(_T("Open Confirmation #%d %s:%d -> %s:%d"), id, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
 
 	SendMsgChannelData(id);
 	return FALSE;
@@ -2409,10 +2454,10 @@ int Cssh::SSH2MsgChannelClose(CBuffer *bp)
 {
 	int id = bp->Get32Bit();
 
-	if ( id < 0 || id >= m_Chan.GetSize() )
+	if ( id < 0 || id >= m_pChan.GetSize() )
 		return TRUE;
 
-	m_Chan[id].m_Eof |= CEOF_ICLOSE;
+	((CChannel *)m_pChan[id])->m_Eof |= CEOF_ICLOSE;
 	ChannelCheck(id);
 
 	return FALSE;
@@ -2422,14 +2467,14 @@ int Cssh::SSH2MsgChannelData(CBuffer *bp, int type)
 	CBuffer tmp;
 	int id = bp->Get32Bit();
 
-	if ( id < 0 || id >= m_Chan.GetSize() || !CHAN_OK(id) )
+	if ( id < 0 || id >= m_pChan.GetSize() || !CHAN_OK(id) )
 		return TRUE;
 
 	bp->GetBuf(&tmp);
-	m_Chan[id].m_LocalComs += tmp.GetSize();
+	((CChannel *)m_pChan[id])->m_LocalComs += tmp.GetSize();
 
 	if ( type == SSH2_MSG_CHANNEL_DATA )
-		m_Chan[id].Send(tmp.GetPtr(), tmp.GetSize());
+		((CChannel *)m_pChan[id])->Send(tmp.GetPtr(), tmp.GetSize());
 
 	ChannelPolling(id);
 	return FALSE;
@@ -2437,9 +2482,11 @@ int Cssh::SSH2MsgChannelData(CBuffer *bp, int type)
 int Cssh::SSH2MsgChannelEof(CBuffer *bp)
 {
 	int id = bp->Get32Bit();
-	if ( id < 0 || id >= m_Chan.GetSize() || !CHAN_OK(id) )
+
+	if ( id < 0 || id >= m_pChan.GetSize() || !CHAN_OK(id) )
 		return TRUE;
-	m_Chan[id].m_Eof |= CEOF_IEOF;
+
+	((CChannel *)m_pChan[id])->m_Eof |= CEOF_IEOF;
 	ChannelCheck(id);
 	return FALSE;
 }
@@ -2450,7 +2497,7 @@ int Cssh::SSH2MsgChannelRequesst(CBuffer *bp)
 	CBuffer tmp;
 	int id = bp->Get32Bit();
 
-	if ( id < 0 || id >= m_Chan.GetSize() || !CHAN_OK(id) )
+	if ( id < 0 || id >= m_pChan.GetSize() || !CHAN_OK(id) )
 		return TRUE;
 
 	bp->GetStr(str);
@@ -2498,17 +2545,17 @@ int Cssh::SSH2MsgChannelRequestReply(CBuffer *bp, int type)
 			return TRUE;
 		m_SSH2Status |= SSH2_STAT_HAVESHELL;
 		if ( m_StdInRes.GetSize() > 0 && CHAN_OK(m_StdChan) ) {
-			m_Chan[m_StdChan].m_pFilter->Send(m_StdInRes.GetPtr(), m_StdInRes.GetSize());
+			((CChannel *)m_pChan[m_StdChan])->m_pFilter->Send(m_StdInRes.GetPtr(), m_StdInRes.GetSize());
 			m_StdInRes.Clear();
 		}
 		break;
 	case CHAN_REQ_SFTP:		// subsystem
 	case CHAN_REQ_EXEC:		// exec
 		if ( type == SSH2_MSG_CHANNEL_FAILURE ) {
-			m_Chan[id].m_Eof |= CEOF_DEAD;
+			((CChannel *)m_pChan[id])->m_Eof |= CEOF_DEAD;
 			ChannelCheck(id);
-		} else if ( m_Chan[id].m_pFilter != NULL )
-			m_Chan[id].m_pFilter->OnConnect();
+		} else if ( ((CChannel *)m_pChan[id])->m_pFilter != NULL )
+			((CChannel *)m_pChan[id])->m_pFilter->OnConnect();
 		break;
 	case CHAN_REQ_X11:		// x11-req
 		if ( type == SSH2_MSG_CHANNEL_FAILURE )
@@ -2526,17 +2573,17 @@ int Cssh::SSH2MsgChannelAdjust(CBuffer *bp)
 	int len;
 	int id = bp->Get32Bit();
 
-	if ( id < 0 || id >= m_Chan.GetSize() || !CHAN_OK(id) )
+	if ( id < 0 || id >= m_pChan.GetSize() || !CHAN_OK(id) )
 		return TRUE;
 
 	if ( (len = bp->Get32Bit()) < 0 )
 		return TRUE;
 
-	m_Chan[id].m_RemoteWind += len;
+	((CChannel *)m_pChan[id])->m_RemoteWind += len;
 
 	TRACE("Recive Window Adjust %d\n", len);
 
-	if ( m_Chan[id].m_Output.GetSize() > 0 )
+	if ( ((CChannel *)m_pChan[id])->m_Output.GetSize() > 0 )
 		SendMsgChannelData(id);
 
 	return FALSE;
@@ -2684,12 +2731,14 @@ void Cssh::RecivePacket2(CBuffer *bp)
 			m_DecCmp.Init(NULL, MODE_DEC, COMPLEVEL);
 		m_SSH2Status |= SSH2_STAT_HAVELOGIN;
 		if ( !m_pDocument->m_TextRam.IsOptEnable(TO_SSHPFORY) && (m_SSH2Status & SSH2_STAT_HAVESTDIO) == 0 ) {
-			m_StdChan = ChannelOpen();
-			m_Chan[m_StdChan].m_pFilter = new CStdIoFilter;
-			m_Chan[m_StdChan].m_pFilter->m_pChan = &(m_Chan[m_StdChan]);
-			m_Chan[m_StdChan].m_LocalPacks = 4 * 1024;
-			m_Chan[m_StdChan].m_LocalWind  = 32 * m_Chan[m_StdChan].m_LocalPacks;
-			SendMsgChannelOpen(m_StdChan, "session");
+			if ( (m_StdChan = ChannelOpen()) >= 0 ) {
+				CChannel *cp = (CChannel *)m_pChan[m_StdChan];
+				cp->m_pFilter = new CStdIoFilter;
+				cp->m_pFilter->m_pChan = cp;
+				cp->m_LocalPacks = 4 * 1024;
+				cp->m_LocalWind  = 32 * cp->m_LocalPacks;
+				SendMsgChannelOpen(m_StdChan, "session");
+			}
 		}
 		if ( (m_SSH2Status & SSH2_STAT_HAVEPFWD) == 0 ) {
 			m_SSH2Status |= SSH2_STAT_HAVEPFWD;

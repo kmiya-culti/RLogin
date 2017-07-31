@@ -77,6 +77,7 @@ public:
 	CString m_SearchStr;
 	CStringA m_WorkMbs;
 	CString m_WorkStr;
+	class CScript *m_pScript;
 
 	BOOL EntryText(CString &name);
 
@@ -110,6 +111,9 @@ public:
 
 	void DoDropFile();
 	CWnd *GetAciveView();
+
+	void ScriptInit(int cmds, int shift, class CScriptValue &value);
+	void ScriptValue(int cmds, class CScriptValue &value, int mode);
 
 //オーバーライド
 protected:

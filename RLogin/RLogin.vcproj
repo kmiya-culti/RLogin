@@ -1110,6 +1110,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Script.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\ScriptDlg.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\ScrnPage.cpp"
 				>
 			</File>
@@ -1493,6 +1501,14 @@
 			</File>
 			<File
 				RelativePath=".\RLoginView.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Script.h"
+				>
+			</File>
+			<File
+				RelativePath=".\ScriptDlg.h"
 				>
 			</File>
 			<File

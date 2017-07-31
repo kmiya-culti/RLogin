@@ -302,8 +302,8 @@ public:
 	void RemoveUid(int uid);
 
 	void Init();
-	void GetArray(CStringArrayExt &array);
-	void SetArray(CStringArrayExt &array);
+	void GetArray(CStringArrayExt &stra);
+	void SetArray(CStringArrayExt &stra);
 	void Serialize(int mode);
 	const CIdKeyTab & operator = (CIdKeyTab &data);
 };
@@ -332,7 +332,8 @@ public:
 #define	CHAN_LISTEN			004
 #define	CHAN_PROXY_SOCKS	010
 #define	CHAN_SOCKS5_AUTH	020
-#define	CHAN_OK(n)			(m_Chan[n].m_Status == (CHAN_OPEN_LOCAL | CHAN_OPEN_REMOTE))
+#define	CHAN_OK(n)			(((CChannel *)m_pChan[n])->m_Status == (CHAN_OPEN_LOCAL | CHAN_OPEN_REMOTE))
+#define	CHAN_MAXSIZE		100
 
 #define	CEOF_IEOF		0001
 #define	CEOF_ICLOSE		0002
@@ -391,7 +392,7 @@ public:
 	int m_RemoteMax;
 	CString m_TypeName;
 	int m_Eof;
-	int m_Next;
+	CChannel *m_pNext;
 	CString m_lHost, m_rHost;
 	int m_lPort, m_rPort;
 
@@ -608,11 +609,11 @@ private:
 	CWordArray m_GlbReqMap;
 	CWordArray m_OpnReqMap;
 	CWordArray m_ChnReqMap;
-	int m_ChanNext;
-	int m_ChanFree;
-	int m_ChanFree2;
+	CChannel *m_pChanNext;
+	CChannel *m_pChanFree;
+	CChannel *m_pChanFree2;
 	int m_OpenChanCount;
-	CArray<CChannel, CChannel &> m_Chan;
+	CPtrArray m_pChan;
 	CArray<CPermit, CPermit &> m_Permit;
 	CBuffer m_StdInRes;
 	CRcpUpload m_RcpCmd;

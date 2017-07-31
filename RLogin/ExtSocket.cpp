@@ -436,7 +436,7 @@ BOOL CExtSocket::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort,
 		if ( WSAGetLastError() != WSAEWOULDBLOCK )
 			goto ERRRET1;
 	} else
-		OnPreConnect();
+		GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, FD_CONNECT);
 
 	return TRUE;
 
@@ -522,7 +522,7 @@ ERRRET2:
 				continue;
 			}
 		} else
-			OnPreConnect();
+			GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, FD_CONNECT);
 
 		break;
 	}

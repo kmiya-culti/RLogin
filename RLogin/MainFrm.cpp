@@ -435,7 +435,7 @@ class CPaneFrame *CPaneFrame::GetBuffer(class CMainFrame *pMain, class CPaneFram
 {
 	int Size;
 	CStringA tmp;
-	CStringArrayExt array;
+	CStringArrayExt stra;
 
 	if ( pPane == NULL )
 		pPane = new CPaneFrame(pMain, NULL, pOwn);
@@ -445,14 +445,14 @@ class CPaneFrame *CPaneFrame::GetBuffer(class CMainFrame *pMain, class CPaneFram
 	buf->GetStr(tmp);
 	if ( tmp.IsEmpty() )
 		return pPane;
-	array.GetString(MbsToTstr(tmp));
-	if ( array.GetSize() < 2 )
+	stra.GetString(MbsToTstr(tmp));
+	if ( stra.GetSize() < 2 )
 		return pPane;
-	pPane->m_Style = array.GetVal(0);
-	Size = array.GetVal(1);
+	pPane->m_Style = stra.GetVal(0);
+	Size = stra.GetVal(1);
 
 	if ( pPane->m_Style == PANEFRAME_WINDOW ) {
-		if ( array.GetSize() > 2 && array.GetVal(2) == 1 ) {
+		if ( stra.GetSize() > 2 && stra.GetVal(2) == 1 ) {
 			pPane->m_pServerEntry = new CServerEntry;
 			pPane->m_pServerEntry->GetBuffer(*buf);
 		}
@@ -756,6 +756,8 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 
 int CMainFrame::SetAsyncSelect(SOCKET fd, CExtSocket *pSock, long lEvent)
 {
+	ASSERT(pSock->m_Type >= 0 && pSock->m_Type < 10);
+
 	if ( lEvent != 0 && WSAAsyncSelect(fd, GetSafeHwnd(), WM_SOCKSEL, lEvent) != 0 )
 		return FALSE;
 
@@ -1217,6 +1219,8 @@ LRESULT CMainFrame::OnWinSockSelect(WPARAM wParam, LPARAM lParam)
 	if ( pSock == NULL )
 		return TRUE;
 
+	ASSERT(pSock->m_Type >= 0 && pSock->m_Type < 10 );
+
 	if( WSAGETSELECTERROR(lParam) != 0 ) {
 		pSock->OnError(WSAGETSELECTERROR(lParam));
 		return TRUE;
@@ -1234,6 +1238,11 @@ LRESULT CMainFrame::OnWinSockSelect(WPARAM wParam, LPARAM lParam)
 		pSock->OnSend();
 	if ( (fs & FD_CLOSE) != 0 )
 		pSock->OnPreClose();
+
+	//if ( (fs & FD_RECIVE_EMPTY) != 0 )
+	//	pSock->OnRecvEmpty();
+	//if ( (fs & FD_SEND_EMPTY) != 0 )
+	//	pSock->OnSendEmpty();
 
 	return TRUE;
 }

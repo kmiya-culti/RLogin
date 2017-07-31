@@ -525,6 +525,8 @@ BOOL CRLoginApp::InUseCheck()
 }
 void CRLoginApp::SetSocketIdle(class CExtSocket *pSock)
 {
+	ASSERT(pSock->m_Type >= 0 && pSock->m_Type < 10);
+
 	for ( int n = 0 ; n < m_SocketIdle.GetSize() ; n++ ) {
 		if ( m_SocketIdle[n] == (void *)pSock )
 			return;
@@ -565,26 +567,26 @@ void CRLoginApp::GetProfileBuffer(LPCTSTR lpszSection, LPCTSTR lpszEntry, CBuffe
 		delete pData;
 	}
 }
-void CRLoginApp::GetProfileArray(LPCTSTR lpszSection, CStringArrayExt &array)
+void CRLoginApp::GetProfileArray(LPCTSTR lpszSection, CStringArrayExt &stra)
 {
 	int n, mx;
 	CString entry;
 	
-	array.RemoveAll();
+	stra.RemoveAll();
 	mx = GetProfileInt(lpszSection, _T("ListMax"), 0);
 	for ( n = 0 ; n < mx ; n++ ) {
 		entry.Format(_T("List%02d"), n);
-		array.Add(GetProfileString(lpszSection, entry, _T("")));
+		stra.Add(GetProfileString(lpszSection, entry, _T("")));
 	}
 }
-void CRLoginApp::WriteProfileArray(LPCTSTR lpszSection, CStringArrayExt &array)
+void CRLoginApp::WriteProfileArray(LPCTSTR lpszSection, CStringArrayExt &stra)
 {
 	int n;
 	CString entry;
 
-	for ( n = 0 ; n < array.GetSize() ; n++ ) {
+	for ( n = 0 ; n < stra.GetSize() ; n++ ) {
 		entry.Format(_T("List%02d"), n);
-		WriteProfileString(lpszSection, entry, array.GetAt(n));
+		WriteProfileString(lpszSection, entry, stra.GetAt(n));
 	}
 	WriteProfileInt(lpszSection, _T("ListMax"), n);
 }
@@ -595,9 +597,9 @@ int CRLoginApp::GetProfileSeqNum(LPCTSTR lpszSection, LPCTSTR lpszEntry)
 	WriteProfileInt(lpszSection, lpszEntry, num + 1);
 	return num;
 }
-void CRLoginApp::GetProfileKeys(LPCTSTR lpszSection, CStringArrayExt &array)
+void CRLoginApp::GetProfileKeys(LPCTSTR lpszSection, CStringArrayExt &stra)
 {
-	array.RemoveAll();
+	stra.RemoveAll();
 	HKEY hAppKey;
 	if ( (hAppKey = GetAppRegistryKey()) == NULL )
 		return;
@@ -606,7 +608,7 @@ void CRLoginApp::GetProfileKeys(LPCTSTR lpszSection, CStringArrayExt &array)
 		TCHAR name[1024];
 		DWORD len = 1024;
 		for ( int n = 0 ; RegEnumValue(hSecKey, n, name, &len, NULL, NULL, NULL, NULL) != ERROR_NO_MORE_ITEMS ; n++, len = 1024 )
-			array.Add(name);
+			stra.Add(name);
 		RegCloseKey(hSecKey);
 	}
 	RegCloseKey(hAppKey);
@@ -816,7 +818,7 @@ void CRLoginApp::OnAppAbout()
 // CRLoginApp メッセージ ハンドラ
 
 int mt_idle();
-//int ScriptIdle();
+int ScriptIdle();
 
 BOOL CRLoginApp::OnIdle(LONG lCount) 
 {
@@ -827,16 +829,20 @@ BOOL CRLoginApp::OnIdle(LONG lCount)
 		if ( m_NextSock >= m_SocketIdle.GetSize() )
 			m_NextSock = 0;
 		CExtSocket *pSock = (CExtSocket *)(m_SocketIdle[m_NextSock]);
+
 		if ( ++m_NextSock >= m_SocketIdle.GetSize() )
 			m_NextSock = 0;
+
+		ASSERT(pSock->m_Type >= 0 && pSock->m_Type < 10 );
+
 		if ( pSock->OnIdle() )
 			return TRUE;
 	}
 
-	//if ( ScriptIdle() )
-	//	return TRUE;
-
 	if ( mt_idle() )
+		return TRUE;
+
+	if ( ScriptIdle() )
 		return TRUE;
 
 	return FALSE;
