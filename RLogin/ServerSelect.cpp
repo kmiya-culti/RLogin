@@ -530,6 +530,7 @@ void CServerSelect::OnServInport()
 			for ( ; ; ) {
 				CStringIndex index;
 
+				index.RemoveAll();
 				index.SetNoCase(TRUE);
 				index.SetNoSort(TRUE);
 				index.Serialize(Archive, NULL);
@@ -558,6 +559,13 @@ void CServerSelect::OnServInport()
 				}
 				if ( strncmp((LPSTR)tmp, "RLG31", 5) != 0 )
 					break;
+
+				Entry.Init();
+				ParamTab.Init();
+				TextRam.Init();
+				TextRam.m_FontTab.Init();
+				KeyTab.Init();
+				KeyMac.Init();
 			}
 
 		} else if ( strncmp((LPSTR)tmp, "RLG2", 4) == 0 ) {
@@ -585,6 +593,13 @@ void CServerSelect::OnServInport()
 				}
 				if ( strncmp((LPSTR)tmp, "RLG21", 5) != 0 )
 					break;
+
+				Entry.Init();
+				ParamTab.Init();
+				TextRam.Init();
+				TextRam.m_FontTab.Init();
+				KeyTab.Init();
+				KeyMac.Init();
 			}
 		} else
 			AfxThrowArchiveException(CArchiveException::badIndex, Archive.GetFile()->GetFileTitle());

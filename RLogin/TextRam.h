@@ -160,6 +160,7 @@
 #define	TO_RLDRWLINE	451			// 罫線を線描画に置き換えない
 #define	TO_RLSIXPOS		452			// Sixel表示後のカーソル位置設定
 #define	TO_DRCSMMv1		453			// 8800 h=マッピング有効 l=マッピング無効
+#define	TO_RLC1DIS		454			// C1制御を行わない
 
 // RLogin SockOpt		1000-1511(0-511)
 #define	TO_RLTENAT		1406		// 自動ユーザー認証を行わない

@@ -105,6 +105,7 @@ static const struct _OptListTab {
 	{	TO_RLDRWLINE,	_T("罫線を文字で表示する"),			_T("罫線を線で表示する"),			_T("罫線を線で描画せずにフォントの持つ本来の文字として表示します")	},
 	{	TO_RLSIXPOS,	_T("Sixel画像の右にカーソル"),		_T("Sixel画像の下にカーソル"),		_T("スクロールモード時のSixel画像表示後のカーソル位置を設定します")	},
 	{	TO_DRCSMMv1,	_T("8800 Unicodeマッピング有効"),	_T("Unicodeマッピング無効"),		_T("ISO-2022コードセットをUnicode16面にマッピングを有効・無効にします")	},
+	{	TO_RLC1DIS,		_T("C1制御文字を無視する"),			_T("C1制御文字を処理する"),			_T("C1制御文字(80-9F)を無視する・しない")	},
 
 	{	0,				NULL,								NULL,								NULL	}
 }, ExtListTab[] = {

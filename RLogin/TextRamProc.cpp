@@ -1464,20 +1464,31 @@ void CTextRam::fc_RETRY(DWORD ch)
 void CTextRam::fc_SESC(DWORD ch)
 {
 	fc_KANJI(ch);
-	CallReciveChar(0x1B);
-	ch &= 0x1F;
-	ch += '@';
-	fc_Push(STAGE_ESC);
-	fc_Call(ch);
+	CallReciveChar(ch);
+
+	if ( IsOptEnable(TO_RLC1DIS) ) {
+		ch &= 0x7F;
+	} else {
+		ch &= 0x1F;
+		ch += '@';
+		fc_Push(STAGE_ESC);
+		fc_Call(ch);
+	}
 }
 void CTextRam::fc_CESC(DWORD ch)
 {
 	fc_KANJI(ch);
 	CallReciveChar(ch);
-	ch &= 0x1F;
-	ch += '@';
-	fc_Case(STAGE_ESC);
-	fc_Call(ch);
+
+	if ( IsOptEnable(TO_RLC1DIS) ) {
+		ch &= 0x7F;
+		fc_POP(ch);
+	} else {
+		ch &= 0x1F;
+		ch += '@';
+		fc_Case(STAGE_ESC);
+		fc_Call(ch);
+	}
 }
 
 //////////////////////////////////////////////////////////////////////
