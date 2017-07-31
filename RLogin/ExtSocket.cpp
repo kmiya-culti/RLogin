@@ -111,6 +111,31 @@ CExtSocket::~CExtSocket()
 		delete sp;
 	}
 }
+
+#ifndef DEBUGLOG
+void CExtSocket::DEBUGLOG(LPCSTR str, ...)
+{
+	LPCSTR p;
+	CStringA tmp, hex, work;
+	va_list arg;
+
+	va_start(arg, str);
+	tmp.FormatV(str, arg);
+	va_end(arg);
+
+	for ( p = tmp ; *p != '\0' ; p++ ) {
+		if ( *p != '\r' && *p != '\n' && (*p < ' ' || *p > '\x7E') ) {
+			hex.Format("?%02x", *p & 255);
+			work += hex;
+		} else
+			work += *p;
+	}
+
+	OnReciveProcBack((void *)(LPCSTR)work, work.GetLength(), 0);
+	TRACE("%s", work);
+}
+#endif
+
 void CExtSocket::Destroy()
 {
 	Close();
@@ -265,10 +290,11 @@ BOOL CExtSocket::ProxyOpen(int mode, LPCTSTR ProxyHost, UINT ProxyPort, LPCTSTR 
 	m_RealSocketType = SOCK_STREAM;
 
 	switch(mode & 7) {
-	case 0: m_ProxyStatus = PRST_NONE;			break;	// Non
-	case 1: m_ProxyStatus = PRST_HTTP_START;	break;	// HTTP
-	case 2: m_ProxyStatus = PRST_SOCKS4_START;	break;	// SOCKS4
-	case 3: m_ProxyStatus = PRST_SOCKS5_START;	break;	// SOCKS5
+	case 0: m_ProxyStatus = PRST_NONE;				break;	// Non
+	case 1: m_ProxyStatus = PRST_HTTP_START;		break;	// HTTP
+	case 2: m_ProxyStatus = PRST_SOCKS4_START;		break;	// SOCKS4
+	case 3: m_ProxyStatus = PRST_SOCKS5_START;		break;	// SOCKS5
+	case 4: m_ProxyStatus = PRST_HTTP_BASIC_START;	break;	// HTTP(Basic)
 	}
 
 	switch(mode >> 3) {
@@ -807,6 +833,15 @@ void CExtSocket::SetRecvSyncMode(BOOL mode)
 		m_pRecvEvent = new CEvent(FALSE, TRUE);
 	m_RecvSyncMode = (mode ? SYNC_ACTIVE : SYNC_NONE); 
 }
+void CExtSocket::SendFlash(int sec)
+{
+	clock_t st;
+
+	for ( st = clock() + sec * CLOCKS_PER_SEC ; m_SendHead != NULL && st < clock() ; ) {
+		OnSend();
+		Sleep(100);
+	}
+}
 int CExtSocket::Send(const void* lpBuf, int nBufLen, int nFlags)
 {
 	int n;
@@ -956,12 +991,13 @@ int CExtSocket::ProxyFunc()
 	while ( m_ProxyStatus != PRST_NONE ) {
 		switch(m_ProxyStatus) {
 		case PRST_HTTP_START:		// HTTP
-			tmp.Format(_T("CONNECT %s:%d HTTP/1.0\r\n")\
+			tmp.Format(_T("CONNECT %s:%d HTTP/1.1\r\n")\
 					   _T("Host: %s\r\n")\
 					   _T("Connection: keep-alive\r\n")\
 					   _T("\r\n"),
 					   m_ProxyHost, m_ProxyPort, m_RealHostAddr);
 			mbs = tmp; CExtSocket::Send((void *)(LPCSTR)mbs, mbs.GetLength(), 0);
+			DEBUGLOG("%s", mbs);
 			m_ProxyStatus = PRST_HTTP_READLINE;
 			m_ProxyStr.Empty();
 			m_ProxyResult.RemoveAll();
@@ -969,6 +1005,7 @@ int CExtSocket::ProxyFunc()
 		case PRST_HTTP_READLINE:
 			if ( !ProxyReadLine() )
 				return TRUE;
+			DEBUGLOG("%s\r\n", TstrToMbs(m_ProxyStr));
 			if ( m_ProxyStr.IsEmpty() ) {
 				m_ProxyStatus = PRST_HTTP_HEADCHECK;
 				break;
@@ -1007,11 +1044,13 @@ int CExtSocket::ProxyFunc()
 		case PRST_HTTP_BODYREAD:
 			if ( !ProxyReadBuff(m_ProxyLength) )
 				return TRUE;
+			//DEBUGLOG("%s", (LPCSTR)m_ProxyBuff);
 			m_ProxyStatus = PRST_HTTP_CODECHECK;
 			break;
 		case PRST_HTTP_CODECHECK:
 			switch(m_ProxyCode) {
 			case 200:
+				SSLClose();
 				m_ProxyStatus = PRST_NONE;
 				OnPreConnect();
 				break;
@@ -1027,16 +1066,26 @@ int CExtSocket::ProxyFunc()
 					}
 				}
 			default:
-				m_pDocument->m_ErrorPrompt = (m_ProxyResult.GetSize() > 0 ? m_ProxyResult[0]: _T(""));
+				SSLClose();
+				m_pDocument->m_ErrorPrompt = (m_ProxyResult.GetSize() > 0 ? m_ProxyResult[0]: _T("HTTP Proxy Error"));
 				GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, WSAMAKESELECTREPLY(0, WSAECONNREFUSED));
 				m_ProxyStatus = PRST_NONE;
 				return TRUE;
 			}
 			break;
+		case PRST_HTTP_BASIC_START:
+			m_ProxyStatus = PRST_HTTP_BASIC;
+			m_ProxyStr.Empty();
+			m_ProxyResult.RemoveAll();
+			m_ProxyCode = 407;
+			m_ProxyLength = 0;
+			m_ProxyConnect = FALSE;
+			m_ProxyAuth.RemoveAll();
+			break;
 		case PRST_HTTP_BASIC:
 			tmp.Format(_T("%s:%s"), m_ProxyUser, m_ProxyPass);
 			mbs = tmp; buf.Base64Encode((LPBYTE)(LPCSTR)mbs, mbs.GetLength());
-			tmp.Format(_T("CONNECT %s:%d HTTP/1.0\r\n")\
+			tmp.Format(_T("CONNECT %s:%d HTTP/1.1\r\n")\
 					   _T("Host: %s\r\n")\
 					   _T("%sAuthorization: Basic %s\r\n")\
 					   _T("\r\n"),
@@ -1044,9 +1093,12 @@ int CExtSocket::ProxyFunc()
 					   (m_ProxyCode == 407 ? _T("Proxy-") : _T("")),
 					   (LPCTSTR)buf);
 			mbs = tmp; CExtSocket::Send((void *)(LPCSTR)mbs, mbs.GetLength(), 0);
+			DEBUGLOG("%s", mbs);
 			m_ProxyStatus = PRST_HTTP_READLINE;
 			m_ProxyStr.Empty();
 			m_ProxyResult.RemoveAll();
+
+			SendFlash(3);
 			SSLClose();					// XXXXXXXX BUG???
 			break;
 		case PRST_HTTP_DIGEST:
@@ -1077,7 +1129,7 @@ int CExtSocket::ProxyFunc()
 				(LPCTSTR)m_ProxyAuth[_T("cnonce")], (LPCTSTR)m_ProxyAuth[_T("qop")], (LPCTSTR)A2);
 			buf.md5(tmp);
 
-			tmp.Format(_T("CONNECT %s:%d HTTP/1.0\r\n")\
+			tmp.Format(_T("CONNECT %s:%d HTTP/1.1\r\n")\
 					   _T("Host: %s\r\n")\
 					   _T("%sAuthorization: Digest username=\"%s\", realm=\"%s\", nonce=\"%s\",")\
 					   _T(" algorithm=%s, response=\"%s\",")\
@@ -1092,9 +1144,12 @@ int CExtSocket::ProxyFunc()
 					   (LPCTSTR)m_ProxyAuth[_T("qop")], (LPCTSTR)m_ProxyAuth[_T("uri")],
 					   (LPCTSTR)m_ProxyAuth[_T("nc")], (LPCTSTR)m_ProxyAuth[_T("cnonce")]);
 			mbs = tmp; CExtSocket::Send((void *)(LPCSTR)mbs, mbs.GetLength(), 0);
+			DEBUGLOG("%s", mbs);
 			m_ProxyStatus = PRST_HTTP_READLINE;
 			m_ProxyStr.Empty();
 			m_ProxyResult.RemoveAll();
+
+			SendFlash(3);
 			SSLClose();					// XXXXXXXX BUG???
 			break;
 
@@ -1425,6 +1480,9 @@ void CExtSocket::OnSend()
 	while ( m_SendHead != NULL ) {
 		n = (m_SSL_mode ? SSL_write(m_SSL_pSock, m_SendHead->GetPtr(), m_SendHead->GetSize()):
 						  ::send(m_Fd, (char *)m_SendHead->GetPtr(), m_SendHead->GetSize(), m_SendHead->m_Type));
+
+		//DEBUGLOG("OnSend %s %d\r\n", m_SSL_mode ? "SSL" : "", n);
+
 		if ( n <= 0 ) {
 			m_SocketEvent |= FD_WRITE;
 			WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), WM_SOCKSEL, m_SocketEvent);
@@ -1458,6 +1516,8 @@ void CExtSocket::OnRecive(int nFlags)
 
 		n = (m_SSL_mode ? SSL_read(m_SSL_pSock, (void *)sp->GetLast(), RECVBUFSIZ):
 						  ::recv(m_Fd, (char *)sp->GetLast(), RECVBUFSIZ, nFlags));
+
+		//DEBUGLOG("OnRecive %s %d\r\n", m_SSL_mode ? "SSL" : "", n);
 
 		if ( n > 0 )
 			sp->AddSize(n);

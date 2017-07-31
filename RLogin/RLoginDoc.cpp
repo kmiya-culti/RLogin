@@ -62,6 +62,7 @@ BEGIN_MESSAGE_MAP(CRLoginDoc, CDocument)
 	ON_COMMAND(ID_FILE_CLOSE, &CRLoginDoc::OnFileClose)
 	ON_COMMAND(IDM_IMAGEDISP, &CRLoginDoc::OnImagedisp)
 	ON_UPDATE_COMMAND_UI(IDM_IMAGEDISP, &CRLoginDoc::OnUpdateImagedisp)
+	ON_COMMAND(IDC_CANCELBTN, OnCancelBtn)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -840,6 +841,7 @@ int CRLoginDoc::SocketOpen()
 	rt = FALSE;
 	switch(m_ServerEntry.m_ProxyMode & 7) {
 	case 1:	// HTTP
+	case 4:	// HTTP(Basic)
 	case 3:	// SOCKS5
 		if ( m_ServerEntry.m_ProxyPass.IsEmpty() )
 			rt = TRUE;
@@ -1261,6 +1263,16 @@ CWnd *CRLoginDoc::GetAciveView()
 	}
 	return pView;
 }
+int CRLoginDoc::GetViewCount()
+{
+	int count;
+	POSITION pos = GetFirstViewPosition();
+
+	for ( count = 0 ; pos != NULL ; count++ )
+		GetNextView(pos);
+
+	return count;
+}
 void CRLoginDoc::OnScreenReset(UINT nID)
 {
 	int mode = 0;
@@ -1316,6 +1328,10 @@ void CRLoginDoc::OnScript()
 void CRLoginDoc::OnUpdateScript(CCmdUI *pCmdUI)
 {
 	pCmdUI->Enable(m_pScript != NULL && m_pScript->IsExec() ? FALSE : TRUE);
+}
+void CRLoginDoc::OnCancelBtn()
+{
+	m_TextRam.fc_TimerAbort(FALSE);
 }
 
 static const ScriptCmdsDefs DocBase[] = {

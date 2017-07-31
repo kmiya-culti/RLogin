@@ -2806,16 +2806,22 @@ void CTextRam::fc_TimerSet(LPCTSTR name)
 		((CMainFrame *)AfxGetMainWnd())->SetTimerEvent(1000, TIMEREVENT_INTERVAL | TIMEREVENT_TEXTRAM, this);
 	}
 
-	if ( m_pCanDlg != NULL )
-		m_pCanDlg->DestroyWindow();
+	if ( m_pDocument != NULL )
+		m_pDocument->UpdateAllViews(NULL, UPDATE_CANCELBTN, NULL);
+
+	//if ( m_pCanDlg != NULL )
+	//	m_pCanDlg->DestroyWindow();
 }
 void CTextRam::fc_TimerReset()
 {
 	m_bOscActive = FALSE;
 	m_IntCounter = 0;
 
-	if ( m_pCanDlg != NULL )
-		m_pCanDlg->DestroyWindow();
+	if ( m_pDocument != NULL )
+		m_pDocument->UpdateAllViews(NULL, UPDATE_CANCELBTN, NULL);
+
+	//if ( m_pCanDlg != NULL )
+	//	m_pCanDlg->DestroyWindow();
 }
 void CTextRam::fc_TimerAbort(BOOL bOut)
 {
@@ -2823,6 +2829,9 @@ void CTextRam::fc_TimerAbort(BOOL bOut)
 	m_IntCounter = 0;
 
 	fc_POP('?');
+
+	if ( m_pDocument != NULL )
+		m_pDocument->UpdateAllViews(NULL, UPDATE_CANCELBTN, NULL);
 
 	if ( bOut && m_OscPara.GetSize() > 0 )
 		PUTSTR(m_OscPara.GetPtr(), m_OscPara.GetSize());
@@ -4738,7 +4747,9 @@ void CTextRam::fc_SGR(int ch)
 		m_AnsiPara.Add(0);
 
 	for ( n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
-		TRACE("Para %s\n", CStringA(m_AnsiPara[n].m_Str));
+
+		//TRACE("Para %s\n", CStringA(m_AnsiPara[n].m_Str));
+
 		if ( m_AnsiPara[n].IsOpt() )
 			continue;
 		switch(GetAnsiPara(n, 0, 0)) {

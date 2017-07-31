@@ -116,6 +116,7 @@ CRLoginView::CRLoginView()
 	m_GoziCount = 4 + rand() % 28;
 	m_GoziPos.SetPoint(0, 0);
 	m_PastNoCheck = FALSE;
+	m_ScrollOut = FALSE;
 
 #ifdef	USE_DIRECTWRITE
 	m_pRenderTarget = NULL;
@@ -454,6 +455,8 @@ void CRLoginView::SendBuffer(CBuffer &buf, BOOL macflag)
 	CRLoginDoc *pDoc = GetDocument();
 	ASSERT(pDoc);
 
+	m_ScrollOut = FALSE;
+
 	if ( macflag == FALSE ) {
 		if ( pDoc->m_TextRam.IsOptEnable(TO_RLDSECHO) && !pDoc->m_TextRam.LineEdit(buf) )
 			return;
@@ -722,6 +725,10 @@ int CRLoginView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	DragAcceptFiles();
 
+	m_ToolTip.Create(this, TTS_ALWAYSTIP | TTS_BALLOON);
+	m_ToolTip.SetMaxTipWidth(512);
+	m_ToolTip.Activate(TRUE);
+
 	return 0;
 }
 void CRLoginView::SetFrameRect(int cx, int cy)
@@ -772,6 +779,9 @@ void CRLoginView::OnSize(UINT nType, int cx, int cy)
 
 	if ( pDoc->m_TextRam.IsInitText() && !pDoc->m_TextRam.IsOptEnable(TO_RLMWDIS) )
 		m_MsgWnd.Message(tmp, this);
+
+	if ( m_BtnWnd.m_hWnd != NULL )
+		m_BtnWnd.DoButton(this, NULL);
 }
 
 void CRLoginView::OnMove(int x, int y) 
@@ -784,21 +794,26 @@ void CRLoginView::OnMove(int x, int y)
 void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint) 
 {
 	int x, y;
+	CPoint point;
 	CRect rect, box;
 	CRLoginDoc *pDoc = GetDocument();
 	CChildFrame *pFrame = GetFrameWnd();
+
 	ASSERT(pDoc);
 	ASSERT(pFrame);
 
-	if ( lHint == UPDATE_RESIZE ) {
+	switch(lHint) {
+	case UPDATE_RESIZE:
 		GetWindowRect(rect);
 		PostMessage(WM_SIZE, SIZE_MAXSHOW, MAKELPARAM(rect.Width(), rect.Height()));
 		return;
-	} else if ( lHint == UPDATE_TEKFLUSH ) {
+
+	case UPDATE_TEKFLUSH:
 		if ( pDoc->m_TextRam.IsOptEnable(TO_RLTEKINWND) )
 			Invalidate(FALSE);
 		return;
-	} else if ( lHint == UPDATE_VISUALBELL ) {
+
+	case UPDATE_VISUALBELL:
 		if ( !m_VisualBellFlag ) {
 			SetTimer(VTMID_VISUALBELL, 50, NULL);
 			m_VisualBellFlag = TRUE;
@@ -807,21 +822,36 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 				m_pGhost->Invalidate(FALSE);
 		}
 		return;
-	} else if ( lHint == UPDATE_SETCURSOR ) {
-		CPoint point;
+
+	case UPDATE_SETCURSOR:
 		GetClientRect(rect);
 		ClientToScreen(rect);
 		GetCursorPos(&point);
 		if ( rect.PtInRect(point) )
 			::SetCursor(::LoadCursor(NULL, (pDoc->m_TextRam.m_MouseTrack != MOS_EVENT_NONE && !m_MouseEventFlag ? IDC_IBEAM : IDC_ARROW)));
 		return;
-	} else if ( lHint == UPDATE_TYPECARET ) {
+
+	case UPDATE_TYPECARET:
 		m_DispCaret |= FGCARET_REDRAW;
 		SetCaret();
 		return;
+
+	case UPDATE_CANCELBTN:
+		if ( pHint == NULL ) {
+			if ( m_BtnWnd.m_hWnd != NULL ) {
+				m_ToolTip.DelTool(&m_BtnWnd);
+				m_BtnWnd.DoButton(NULL, NULL);
+			}
+		} else {
+			m_BtnWnd.DoButton(this, &(pDoc->m_TextRam));
+			m_ToolTip.AddTool(&m_BtnWnd, (LPCTSTR)pHint);
+//			if ( (m_DispCaret & FGCARET_FOCUS) != 0 || pDoc->GetViewCount() <= 1 )
+				m_BtnWnd.ShowWindow(SW_SHOW);
+		}
+		return;
 	}
 
-	if ( (m_DispCaret & FGCARET_FOCUS) != 0 && pSender != this &&
+	if ( (m_DispCaret & FGCARET_FOCUS) != 0 && pSender != this && m_ScrollOut == FALSE &&
 			(lHint == UPDATE_INVALIDATE || lHint == UPDATE_TEXTRECT || lHint == UPDATE_GOTOXY) ) {
 		y = pDoc->m_TextRam.m_CurY - m_HisMin + m_HisOfs;
 		if ( y >= m_Lines ) {
@@ -858,6 +888,12 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		for ( int n = 0 ; n < pDoc->m_TextRam.m_GrapWndTab.GetSize() ; n++ ) {
 			if ( ((CWnd *)(pDoc->m_TextRam.m_GrapWndTab[n]))->GetSafeHwnd() != NULL )
 				((CWnd *)(pDoc->m_TextRam.m_GrapWndTab[n]))->Invalidate(FALSE);
+		}
+
+		if ( m_BtnWnd.m_hWnd == NULL && pDoc->m_TextRam.m_bOscActive && pDoc->m_TextRam.m_IntCounter >= 10 ) {
+			m_BtnWnd.DoButton(this, &(pDoc->m_TextRam));
+			m_ToolTip.AddTool(&m_BtnWnd, pDoc->m_TextRam.m_SeqMsg);
+			m_BtnWnd.ShowWindow(SW_SHOW);
 		}
 
 		// No break
@@ -933,9 +969,10 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 	m_CaretX = m_Width * pDoc->m_TextRam.m_CurX / m_Cols + pDoc->m_TextRam.m_ScrnOffset.left;
 	m_CaretY = m_Height * (pDoc->m_TextRam.m_CurY + m_HisOfs - m_HisMin) / m_Lines;
 
-	if ( m_CaretX < 0 || m_CaretX >= (m_Width + pDoc->m_TextRam.m_ScrnOffset.left) || m_CaretY < 0 || m_CaretY >= m_Height )
+	if ( m_CaretX < 0 || m_CaretX >= (m_Width + pDoc->m_TextRam.m_ScrnOffset.left) || m_CaretY < 0 || m_CaretY >= m_Height ) {
 		m_CaretX = m_CaretY = 0;
-	else if ( pDoc->m_pSock != NULL )
+		m_ScrollOut = TRUE;
+	} else if ( pDoc->m_pSock != NULL )
 		m_DispCaret |= (pDoc->m_TextRam.m_DispCaret & FGCARET_ONOFF);
 
 	SetCaret();
@@ -1168,6 +1205,9 @@ void CRLoginView::OnSetFocus(CWnd* pOldWnd)
 
 	if ( pDoc->m_TextRam.IsOptEnable(TO_XTFOCEVT) )
 		pDoc->m_TextRam.UNGETSTR(_T("%sI"), pDoc->m_TextRam.m_RetChar[RC_CSI]);
+
+	//if ( m_BtnWnd.m_hWnd != NULL )
+	//	m_BtnWnd.ShowWindow(SW_SHOW);
 }
 void CRLoginView::OnKillFocus(CWnd* pNewWnd) 
 {
@@ -1180,6 +1220,9 @@ void CRLoginView::OnKillFocus(CWnd* pNewWnd)
 
 	if ( pDoc->m_TextRam.IsOptEnable(TO_XTFOCEVT) )
 		pDoc->m_TextRam.UNGETSTR(_T("%sO"), pDoc->m_TextRam.m_RetChar[RC_CSI]);
+
+	//if ( m_BtnWnd.m_hWnd != NULL )
+	//	m_BtnWnd.ShowWindow(SW_HIDE);
 }
 void CRLoginView::OnActivateView(BOOL bActivate, CView* pActivateView, CView* pDeactiveView) 
 {
@@ -2129,7 +2172,9 @@ BOOL CRLoginView::PreTranslateMessage(MSG* pMsg)
 			if ( (UINT)pMsg->wParam < 256 && (pDoc->m_TextRam.m_MetaKeys[(UINT)pMsg->wParam / 32] & (1 << ((UINT)pMsg->wParam % 32))) != 0 )
 				pMsg->message = WM_KEYDOWN;
 		}
-	}
+	} else
+		m_ToolTip.RelayEvent(pMsg);
+
 	return CView::PreTranslateMessage(pMsg);
 }
 
@@ -2331,4 +2376,3 @@ void CRLoginView::OnSplitOver()
 	cmds.ParseParam(_T("inpane"), TRUE, FALSE);
 	((CRLoginApp *)::AfxGetApp())->OpenProcsCmd(&cmds);
 }
-

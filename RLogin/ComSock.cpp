@@ -64,25 +64,18 @@ CComSock::~CComSock()
 	delete m_pPauseEvent;
 }
 
-#define	DEBUGLOG	TRACE
-
-//void CComSock::DEBUGLOG(LPCSTR str, ...)
-//{
-//	CStringA tmp;
-//	va_list arg;
-//	va_start(arg, str);
-//	tmp.FormatV(str, arg);
-////	OnReciveCallBack((void *)(LPCSTR)tmp, tmp.GetLength(), 0);
-//	TRACE(tmp);
-//	va_end(arg);
-//}
-
 static UINT ComEventThread(LPVOID pParam)
 {
 	LPARAM fd;
 	DWORD Mask, Temp;
 	COMSTAT comstat;
 	CComSock *pSock = (CComSock *)pParam;
+
+#ifdef DEBUGLOG
+#define	COMDEBUGLOG
+#else
+#define	COMDEBUGLOG		pSock->DEBUGLOG
+#endif
 
 	while ( !pSock->m_ThreadEnd ) {
 
@@ -92,7 +85,7 @@ static UINT ComEventThread(LPVOID pParam)
 		}
 
 		if ( !pSock->m_ThreadEnd && (pSock->m_EventMask & EV_RXCHAR) != 0 && ClearCommError(pSock->m_hCom, &Mask, &comstat) && comstat.cbInQue > 0 ) {
-			DEBUGLOG("Thread Poll InQue\n");
+			COMDEBUGLOG("Thread Poll InQue\n");
 			pSock->m_pReadEvent->ResetEvent();
 			pSock->m_EventCode = EV_RXCHAR;
 			AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)pSock->m_hCom, FD_READ);
@@ -102,18 +95,18 @@ static UINT ComEventThread(LPVOID pParam)
 		if ( !pSock->m_ThreadEnd && (pSock->m_EventMask & EV_TXEMPTY) != 0 &&
 				ClearCommError(pSock->m_hCom, &Mask, &comstat) && comstat.cbOutQue == 0 &&
 				comstat.fDsrHold == FALSE && comstat.fCtsHold == FALSE && comstat.fXoffHold == FALSE && comstat.fRlsdHold == FALSE ) {
-			DEBUGLOG("Thread Poll OutQue\n");
+			COMDEBUGLOG("Thread Poll OutQue\n");
 			pSock->m_pWriteEvent->ResetEvent();
 			pSock->m_EventCode = EV_TXEMPTY;
 			AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)pSock->m_hCom, FD_WRITE);
 			WaitForSingleObject(pSock->m_pWriteEvent->m_hObject, INFINITE);
 		}
 
-		DEBUGLOG("Thread Event Wait\n");
+		COMDEBUGLOG("Thread Event Wait\n");
 
 		if ( !WaitCommEvent(pSock->m_hCom, &Mask, &(pSock->m_CommOverLap)) ) {
 			if ( (Temp = GetLastError()) != ERROR_IO_INCOMPLETE && Temp != ERROR_IO_PENDING ) {
-				DEBUGLOG("Thread WaitComm Error %d\n", GetLastError());
+				COMDEBUGLOG("Thread WaitComm Error %d\n", GetLastError());
 				break;
 			}
 		}
@@ -133,7 +126,7 @@ static UINT ComEventThread(LPVOID pParam)
 			if ( pSock->m_ThreadEnd || fd == 0 )
 				continue;
 
-			DEBUGLOG("Thread Event %02x(%02x)\n", Mask, fd);
+			COMDEBUGLOG("Thread Event %02x(%02x)\n", Mask, fd);
 			pSock->m_EventCode = Mask;
 			AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)pSock->m_hCom, fd);
 
@@ -144,7 +137,7 @@ static UINT ComEventThread(LPVOID pParam)
 		}
 	}
 	pSock->m_pEndEvent->SetEvent();
-	DEBUGLOG("Thread Endof\n");
+	COMDEBUGLOG("Thread Endof\n");
 	return 0;
 }
 

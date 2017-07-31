@@ -60,6 +60,7 @@ enum EProxyStat {
 	PRST_HTTP_HEADCHECK,
 	PRST_HTTP_BODYREAD,
 	PRST_HTTP_CODECHECK,
+	PRST_HTTP_BASIC_START,
 	PRST_HTTP_BASIC,
 	PRST_HTTP_DIGEST,
 
@@ -111,6 +112,8 @@ public:
 };
 
 #define	LISTENSOCKS		8
+
+#define	DEBUGLOG(s, ...)
 
 class CExtSocket : public CObject  
 {
@@ -198,6 +201,7 @@ public:
 	virtual int Send(const void *lpBuf, int nBufLen, int nFlags = 0);
 	virtual void SendWindSize(int x, int y);
 	virtual void SendBreak(int opt = 0);
+	void SendFlash(int sec);
 
 	virtual int GetRecvSize();
 	virtual int GetSendSize();
@@ -253,8 +257,13 @@ public:
 	inline void SetRecvBufSize(int size) { m_RecvBufSize = size; }
 
 	void Destroy();
+
 	CExtSocket(class CRLoginDoc *pDoc);
 	virtual ~CExtSocket();
+
+#ifndef DEBUGLOG
+	void DEBUGLOG(LPCSTR str, ...);
+#endif
 };
 
 #endif // !defined(AFX_EXTSOCKET_H__60F33E1D_5DAA_46A5_975E_01CB4B853E45__INCLUDED_)

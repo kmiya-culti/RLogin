@@ -31,4 +31,5 @@ protected:
 protected:
 	afx_msg void OnProtoType(UINT nID);
 	DECLARE_MESSAGE_MAP()
+	virtual void OnOK();
 };

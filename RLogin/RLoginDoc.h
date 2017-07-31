@@ -34,6 +34,7 @@
 #define	UPDATE_TYPECARET	9
 #define	UPDATE_TEKFLUSH		10
 #define	UPDATE_RESIZE		11
+#define	UPDATE_CANCELBTN	12
 
 #define	CARET_MOVE			0
 #define	CARET_CREATE		1
@@ -123,6 +124,7 @@ public:
 
 	void DoDropFile();
 	CWnd *GetAciveView();
+	int GetViewCount();
 
 	void ScriptInit(int cmds, int shift, class CScriptValue &value);
 	void ScriptValue(int cmds, class CScriptValue &value, int mode);
@@ -160,10 +162,10 @@ protected:
 	afx_msg void OnUpdateScript(CCmdUI *pCmdUI);
 	afx_msg void OnScriptMenu(UINT nID);
 	afx_msg void OnFileClose();
-	DECLARE_MESSAGE_MAP()
-public:
 	afx_msg void OnImagedisp();
 	afx_msg void OnUpdateImagedisp(CCmdUI *pCmdUI);
+	afx_msg void OnCancelBtn();
+	DECLARE_MESSAGE_MAP()
 };
 
 /////////////////////////////////////////////////////////////////////////////

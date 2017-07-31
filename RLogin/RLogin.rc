@@ -87,6 +87,7 @@ IDB_ATTR5               BITMAP                  "res\\attr5.bmp"
 IDB_ATTR6               BITMAP                  "res\\attr6.bmp"
 IDB_ATTR7               BITMAP                  "res\\attr7.bmp"
 IDB_ATTR8               BITMAP                  "res\\attr8.bmp"
+IDB_BITMAP9             BITMAP                  "res\\bitmap9.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -449,10 +450,10 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.16.2 (2014/03/27)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.16.3 (2014/04/10)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2014 Culti",IDC_STATIC,47,15,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,151,50,14,WS_GROUP
-    LTEXT           "OpenSSL 1.0.1f 6 Jan 2014",IDC_STATIC,47,29,176,8
+    LTEXT           "OpenSSL 1.0.1g 7 Apr 2014",IDC_STATIC,47,29,176,8
     LTEXT           "Copyright (c) 1998-2014 The OpenSSL Project",IDC_STATIC,47,39,176,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,47,49,176,8
     LTEXT           "All rights reserved.",IDC_STATIC,47,59,176,8
@@ -1039,34 +1040,35 @@ BEGIN
     EDITTEXT        IDC_STATUS,15,20,200,14,ES_AUTOHSCROLL | ES_READONLY
 END
 
-IDD_PROXYDLG DIALOGEX 0, 0, 238, 195
+IDD_PROXYDLG DIALOGEX 0, 0, 239, 213
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Proxy Server"
 FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
 BEGIN
-    CONTROL         "使用しない",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,16,19,51,10
-    CONTROL         "HTTP",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,78,19,33,10
-    CONTROL         "SOCKS4",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON,128,19,42,10
-    CONTROL         "SOCKS5",IDC_RADIO4,"Button",BS_AUTORADIOBUTTON,180,19,42,10
-    CONTROL         "使用しない",IDC_SSL_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,16,53,51,10
-    CONTROL         "SSLv2",IDC_SSL_RADIO2,"Button",BS_AUTORADIOBUTTON,106,53,35,10
-    CONTROL         "SSLv3",IDC_SSL_RADIO3,"Button",BS_AUTORADIOBUTTON,180,53,35,10
-    CONTROL         "TLSv1",IDC_SSL_RADIO4,"Button",BS_AUTORADIOBUTTON,16,69,35,10
-    CONTROL         "TLSv1.1",IDC_SSL_RADIO5,"Button",BS_AUTORADIOBUTTON,106,69,35,10
-    CONTROL         "TLSv1.2",IDC_SSL_RADIO6,"Button",BS_AUTORADIOBUTTON,180,70,35,10
-    EDITTEXT        IDC_SERVERNAME,19,115,136,13,ES_AUTOHSCROLL
-    COMBOBOX        IDC_SOCKNO,166,115,54,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
-    EDITTEXT        IDC_USERNAME,19,144,88,13,ES_AUTOHSCROLL
-    EDITTEXT        IDC_PASSWORD,132,144,88,13,ES_PASSWORD | ES_AUTOHSCROLL
-    DEFPUSHBUTTON   "OK",IDOK,48,174,62,14
-    PUSHBUTTON      "キャンセル",IDCANCEL,128,174,62,14
-    GROUPBOX        "Select Proxy Protocol",IDC_STATIC,7,7,224,30
-    CTEXT           "Proxy Server Address",IDC_STATIC,19,104,136,8
-    CTEXT           "User Name",IDC_STATIC,19,133,88,8
-    CTEXT           "Password",IDC_STATIC,132,133,88,8
-    CTEXT           "Socket Port",IDC_STATIC,166,104,54,8
-    GROUPBOX        "Server Option",IDC_STATIC,7,91,224,76
-    GROUPBOX        "Over SSL",IDC_STATIC,7,40,224,47
+    CONTROL         "使用しない",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,16,21,55,10
+    CONTROL         "HTTP",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,91,21,55,10
+    CONTROL         "HTTP(Basic)",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON,166,21,55,10
+    CONTROL         "SOCKS4",IDC_RADIO4,"Button",BS_AUTORADIOBUTTON,91,36,55,10
+    CONTROL         "SOCKS5",IDC_RADIO5,"Button",BS_AUTORADIOBUTTON,166,36,55,10
+    CONTROL         "使用しない",IDC_SSL_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,16,70,55,10
+    CONTROL         "SSLv2",IDC_SSL_RADIO2,"Button",BS_AUTORADIOBUTTON,91,70,55,10
+    CONTROL         "SSLv3",IDC_SSL_RADIO3,"Button",BS_AUTORADIOBUTTON,166,70,55,10
+    CONTROL         "TLSv1",IDC_SSL_RADIO4,"Button",BS_AUTORADIOBUTTON,16,86,55,10
+    CONTROL         "TLSv1.1",IDC_SSL_RADIO5,"Button",BS_AUTORADIOBUTTON,91,86,55,10
+    CONTROL         "TLSv1.2",IDC_SSL_RADIO6,"Button",BS_AUTORADIOBUTTON,166,87,55,10
+    EDITTEXT        IDC_SERVERNAME,19,132,136,13,ES_AUTOHSCROLL
+    COMBOBOX        IDC_SOCKNO,166,132,54,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_USERNAME,19,161,88,13,ES_AUTOHSCROLL
+    EDITTEXT        IDC_PASSWORD,132,161,88,13,ES_PASSWORD | ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "OK",IDOK,48,192,62,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,128,192,62,14
+    GROUPBOX        "Select Proxy Protocol",IDC_STATIC,7,7,225,48
+    CTEXT           "Proxy Server Address",IDC_STATIC,19,121,136,8
+    CTEXT           "User Name",IDC_STATIC,19,150,88,8
+    CTEXT           "Password",IDC_STATIC,132,150,88,8
+    CTEXT           "Socket Port",IDC_STATIC,166,121,54,8
+    GROUPBOX        "Server Option",IDC_STATIC,7,108,225,76
+    GROUPBOX        "Over SSL",IDC_STATIC,7,57,225,47
 END
 
 IDD_SCRNPAGE DIALOGEX 0, 0, 251, 270
@@ -1429,8 +1431,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,16,2,0
- PRODUCTVERSION 2,16,2,0
+ FILEVERSION 2,16,3,0
+ PRODUCTVERSION 2,16,3,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1447,12 +1449,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.16.2.0"
+            VALUE "FileVersion", "2.16.3.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2013 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.16.2.0"
+            VALUE "ProductVersion", "2.16.3.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -1665,9 +1667,9 @@ BEGIN
     IDD_PROXYDLG, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 231
+        RIGHTMARGIN, 232
         TOPMARGIN, 7
-        BOTTOMMARGIN, 188
+        BOTTOMMARGIN, 206
     END
 
     IDD_SCRNPAGE, DIALOG
@@ -2671,6 +2673,7 @@ BEGIN
     IDS_SSH_PASS_MSG        "作成時に設定したパスフレーズを入力してください"
     IDS_PUBLICKEYCOPYMSG    "クリップボードにコピーされる公開鍵"
     IDS_AGENT_DELKEY        "指定された認証鍵を削除しますか？"
+    IDM_SEQCANCELSTR        "%sシーケンスを実行中です\r\nキャンセルするには、ここをクリック"
 END
 
 STRINGTABLE

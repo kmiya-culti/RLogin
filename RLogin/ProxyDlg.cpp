@@ -38,7 +38,7 @@ void CProxyDlg::DoDataExchange(CDataExchange* pDX)
 
 
 BEGIN_MESSAGE_MAP(CProxyDlg, CDialog)
-	ON_CONTROL_RANGE(BN_CLICKED, IDC_RADIO1, IDC_RADIO4, OnProtoType)
+	ON_CONTROL_RANGE(BN_CLICKED, IDC_RADIO1, IDC_RADIO5, OnProtoType)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_SSL_RADIO1, IDC_SSL_RADIO6, OnProtoType)
 END_MESSAGE_MAP()
 
@@ -51,12 +51,12 @@ void CProxyDlg::OnProtoType(UINT nID)
 	CWnd *pWnd;
 	static const struct {
 		int		nId;
-		BOOL	mode[5];
-	} ItemTab[] = {			/*	none	http	socks4	socks5	ssl		*/
-		{ IDC_SERVERNAME,	{	FALSE,	TRUE,	TRUE,	TRUE,	TRUE	} },
-		{ IDC_SOCKNO,		{	FALSE,	TRUE,	TRUE,	TRUE,	TRUE	} },
-		{ IDC_USERNAME,		{	FALSE,	TRUE,	TRUE,	TRUE,	FALSE	} },
-		{ IDC_PASSWORD,		{	FALSE,	TRUE,	FALSE,	TRUE,	FALSE	} },
+		BOOL	mode[6];
+	} ItemTab[] = {			/*	none	http	http(b)	socks4	socks5	ssl		*/
+		{ IDC_SERVERNAME,	{	FALSE,	TRUE,	TRUE,	TRUE,	TRUE,	TRUE	} },
+		{ IDC_SOCKNO,		{	FALSE,	TRUE,	TRUE,	TRUE,	TRUE,	TRUE	} },
+		{ IDC_USERNAME,		{	FALSE,	TRUE,	TRUE,	TRUE,	TRUE,	FALSE	} },
+		{ IDC_PASSWORD,		{	FALSE,	TRUE,	TRUE,	FALSE,	TRUE,	FALSE	} },
 		{ 0 }
 	};
 
@@ -66,7 +66,7 @@ void CProxyDlg::OnProtoType(UINT nID)
 		nID = IDC_RADIO1 + m_ProxyMode;
 
 	if ( m_ProxyMode == 0 && m_SSLMode != 0 )
-		nID = IDC_RADIO1 + 4;
+		nID = IDC_RADIO1 + 5;
 
 	for ( n = 0 ; ItemTab[n].nId != 0 ; n++ ) {
 		if ( (pWnd = GetDlgItem(ItemTab[n].nId)) != NULL )
@@ -78,7 +78,30 @@ BOOL CProxyDlg::OnInitDialog()
 {
 	CDialog::OnInitDialog();
 
+	// 0=0, 1=1, 2=3, 3=4, 4=2
+	if ( m_ProxyMode == 4  )
+		m_ProxyMode = 2;
+	else if ( m_ProxyMode >= 2  )
+		m_ProxyMode += 1;
+
+	UpdateData(FALSE);
+
 	OnProtoType(IDC_RADIO1 + m_ProxyMode);
 
 	return TRUE;
+}
+
+void CProxyDlg::OnOK()
+{
+	UpdateData(TRUE);
+
+	// 0=0, 1=1, 2=4, 3=2, 4=3
+	if ( m_ProxyMode == 2  )
+		m_ProxyMode = 4;
+	else if ( m_ProxyMode > 2  )
+		m_ProxyMode -= 1;
+
+	UpdateData(FALSE);
+
+	CDialog::OnOK();
 }

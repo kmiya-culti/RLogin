@@ -938,7 +938,7 @@ CTextRam::CTextRam()
 	m_FileSaveFlag = TRUE;
 	m_ImageIndex = 0;
 	m_bOscActive = FALSE;
-	m_pCanDlg = NULL;
+//	m_pCanDlg = NULL;
 	m_bIntTimer = FALSE;
 	m_bRtoL = FALSE;
 	m_XtOptFlag = 0;
@@ -1014,8 +1014,8 @@ CTextRam::~CTextRam()
 	if ( m_pImageWnd != NULL )
 		m_pImageWnd->DestroyWindow();
 
-	if ( m_pCanDlg != NULL )
-		m_pCanDlg->DestroyWindow();
+	//if ( m_pCanDlg != NULL )
+	//	m_pCanDlg->DestroyWindow();
 
 	while ( m_GrapWndTab.GetSize() > 0 )
 		((CWnd *)(m_GrapWndTab[0]))->DestroyWindow();
@@ -1152,7 +1152,7 @@ void CTextRam::InitText(int Width, int Height)
 	else if ( m_HisLen >= m_HisMax )
 		m_HisLen = m_HisMax - 1;
 
-	RESET();
+	RESET(RESET_CURSOR | RESET_MARGIN);
 
 	if ( (m_CurX = oldCurX) >= m_Cols )
 		m_CurX = m_Cols - 1;
@@ -1580,6 +1580,7 @@ void CTextRam::Init()
 	EnableOption(TO_XTMCUS);	// ?41 XTerm tab bug fix
 	EnableOption(TO_XTMRVW);	// ?45 XTerm Reverse-wraparound mod
 	EnableOption(TO_DECBKM);	// ?67 Backarrow key mode (BS)
+	EnableOption(TO_RLFONT);	// ?8404 フォントサイズから一行あたりの文字数を決定
 	EnableOption(TO_DRCSMMv1);	// ?8800 Unicode 16 Maping
 	memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
 	memcpy(m_DefBankTab, DefBankTab, sizeof(m_DefBankTab));
@@ -3884,16 +3885,20 @@ void CTextRam::OnTimer(int id)
 	m_IntCounter++;
 
 	if ( m_bOscActive ) {
-		if ( m_pCanDlg == NULL && m_IntCounter > 3 ) {
-			m_pCanDlg = new CCancelDlg;
-			m_pCanDlg->m_pTextRam = this;
-			m_pCanDlg->m_PauseSec = 0;
-			m_pCanDlg->m_WaitSec  = 180;
-			m_pCanDlg->m_Name     = m_OscName;
-			m_pCanDlg->Create(IDD_CANCELDLG, ::AfxGetMainWnd());
-			m_pCanDlg->ShowWindow(SW_SHOW);
+		if ( m_pDocument != NULL && m_IntCounter == 10 ) {
+			m_SeqMsg.Format(CStringLoad(IDM_SEQCANCELSTR), m_OscName);
+			m_pDocument->UpdateAllViews(NULL, UPDATE_CANCELBTN, (CObject *)(LPCTSTR)m_SeqMsg);
 		}
-	} else if ( m_IntCounter > 60 ) {
+		//if ( m_pCanDlg == NULL && m_IntCounter > 3 ) {
+		//	m_pCanDlg = new CCancelDlg;
+		//	m_pCanDlg->m_pTextRam = this;
+		//	m_pCanDlg->m_PauseSec = 0;
+		//	m_pCanDlg->m_WaitSec  = 180;
+		//	m_pCanDlg->m_Name     = m_OscName;
+		//	m_pCanDlg->Create(IDD_CANCELDLG, ::AfxGetMainWnd());
+		//	m_pCanDlg->ShowWindow(SW_SHOW);
+		//}
+	} else if ( m_IntCounter > 180 ) {
 		m_bIntTimer = FALSE;
 		((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this);
 	}
@@ -6073,8 +6078,14 @@ void CTextRam::TABSET(int sw)
 }
 void CTextRam::PUTSTR(LPBYTE lpBuf, int nBufLen)
 {
+	CBuffer tmp(nBufLen);
+
+	tmp.Apend(lpBuf, nBufLen);
+	lpBuf = tmp.GetPtr();
+
 	while ( nBufLen-- > 0 )
 		fc_Call(*(lpBuf++));
+
 	m_RetSync = FALSE;
 }
 int CTextRam::GETCOLIDX(int red, int green, int blue)

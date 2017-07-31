@@ -20,6 +20,7 @@
 #define IDB_BITMAP2                     106
 #define IDS_AGENT_DELKEY                106
 #define IDB_BITMAP3                     107
+#define IDM_SEQCANCELSTR                107
 #define IDB_BITMAP4                     108
 #define IDB_BITMAP5                     109
 #define IDB_BITMAP6                     110
@@ -81,6 +82,8 @@
 #define IDD_MODKEYPAGE                  165
 #define IDD_ANYPASTDIG                  170
 #define IDD_DEFPARAMDLG                 171
+#define IDB_BITMAP9                     174
+#define IDC_CANCELBTN                   201
 #define IDP_SOCKETS_INIT_FAILED         300
 #define IDS_INDICATOR_STAT              301
 #define IDS_IDKEYFILELOAD               302
@@ -604,6 +607,7 @@
 #define IDC_ICONBOX                     3070
 #define IDC_SLIDER_CONTRAST             3071
 #define IDC_SLIDER_BRIGHT               3072
+#define IDC_RADIO6                      3073
 #define ID_FILE_ALL_LOAD                5000
 #define ID_EDIT_BOX                     5001
 #define ID_PAGE_PRIOR                   5002
@@ -671,9 +675,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        173
+#define _APS_NEXT_RESOURCE_VALUE        175
 #define _APS_NEXT_COMMAND_VALUE         5061
-#define _APS_NEXT_CONTROL_VALUE         3072
-#define _APS_NEXT_SYMED_VALUE           200
+#define _APS_NEXT_CONTROL_VALUE         3074
+#define _APS_NEXT_SYMED_VALUE           202
 #endif
 #endif

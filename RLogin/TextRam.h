@@ -704,7 +704,8 @@ public:
 	int m_ImageIndex;
 	int m_bOscActive;
 	LPCTSTR m_OscName;
-	class CCancelDlg *m_pCanDlg;
+	CString m_SeqMsg;
+//	class CCancelDlg *m_pCanDlg;
 	BOOL m_bIntTimer;
 	int m_IntCounter;
 
