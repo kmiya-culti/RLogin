@@ -27,8 +27,8 @@ void CPassDlg::DoDataExchange(CDataExchange* pDX)
 	CDialog::DoDataExchange(pDX);
 
 	DDX_Control(pDX, IDC_TIMELIMIT, m_TimeLimit);
-	DDX_Text(pDX, IDC_HOSTADDR, m_HostAddr);
-	DDX_Text(pDX, IDC_USERNAME, m_UserName);
+	DDX_Control(pDX, IDC_HOSTADDR, m_HostWnd);
+	DDX_Control(pDX, IDC_USERNAME, m_UserWnd);
 	DDX_Text(pDX, IDC_PASSNAME, m_PassName);
 	DDX_Text(pDX, IDC_PROMPT, m_Prompt);
 }
@@ -44,16 +44,20 @@ BOOL CPassDlg::OnInitDialog()
 {
 	CDialog::OnInitDialog();
 	
-	CWnd *pWnd;
-
 	if ( !m_Title.IsEmpty() )
 		SetWindowText(m_Title);
 
-	if ( !m_HostAddr.IsEmpty() && (pWnd = GetDlgItem(IDC_HOSTADDR)) != NULL )
-		pWnd->EnableWindow(FALSE);
+	m_HostWnd.LoadHis(_T("PassDlgHostAddr"));
+	m_HostWnd.SetWindowText(m_HostAddr);
 
-	if ( !m_UserName.IsEmpty() && (pWnd = GetDlgItem(IDC_USERNAME)) != NULL )
-		pWnd->EnableWindow(FALSE);
+	if ( !m_HostAddr.IsEmpty() )
+		m_HostWnd.EnableWindow(FALSE);
+
+	m_UserWnd.LoadHis(_T("PassDlgUserName"));
+	m_UserWnd.SetWindowText(m_UserName);
+
+	if ( !m_UserName.IsEmpty() )
+		m_UserWnd.EnableWindow(FALSE);
 
 	m_TimeLimit.SetRange(0, m_MaxTime);
 	SetTimer(1028, 1000, NULL);
@@ -71,4 +75,19 @@ void CPassDlg::OnTimer(UINT_PTR nIDEvent)
 	}
 
 	CDialog::OnTimer(nIDEvent);
+}
+
+void CPassDlg::OnOK()
+{
+	UpdateData(TRUE);
+
+	m_HostWnd.GetWindowText(m_HostAddr);
+	m_HostWnd.AddHis(m_HostAddr);
+	m_HostWnd.SaveHis(_T("PassDlgHostAddr"));
+
+	m_UserWnd.GetWindowText(m_UserName);
+	m_UserWnd.AddHis(m_UserName);
+	m_UserWnd.SaveHis(_T("PassDlgUserName"));
+
+	CDialog::OnOK();
 }

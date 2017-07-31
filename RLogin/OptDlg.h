@@ -62,6 +62,7 @@ public:
 	CServerEntry *m_pEntry;
 	CTextRam *m_pTextRam;
 	CKeyNodeTab *m_pKeyTab;
+	CKeyMacTab *m_pKeyMac;
 	CParamTab *m_pParamTab;
 	class CRLoginDoc *m_pDocument;
 	int m_ModFlag;

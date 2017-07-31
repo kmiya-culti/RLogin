@@ -847,6 +847,9 @@ void CRLoginDoc::OnUpdateLogOpen(CCmdUI* pCmdUI)
 
 void CRLoginDoc::OnLoadDefault() 
 {
+	if ( AfxMessageBox(IDS_ALLINITREQ, MB_ICONQUESTION | MB_YESNO) != IDYES )
+		return;
+
 	m_TextRam.Serialize(FALSE);
 	m_KeyTab.Serialize(FALSE);
 	m_KeyMac.Serialize(FALSE);

@@ -617,6 +617,14 @@ CMainFrame::~CMainFrame()
 		midiOutClose(m_hMidiOut);
 	}
 
+	CMenuBitMap *pMap;
+	for ( int n = 0 ; n < m_MenuMap.GetSize() ; n++ ) {
+		if ( (pMap = (CMenuBitMap *)m_MenuMap[n]) == NULL )
+			continue;
+		pMap->m_Bitmap.DeleteObject();
+		delete pMap;
+	}
+
 #ifndef	NOIPV6
 	for ( int n = 0 ; m_InfoThreadCount > 0 && n < 10 ; n++ )
 		Sleep(300);
@@ -625,33 +633,6 @@ CMainFrame::~CMainFrame()
 
 int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 {
-#if	0
-	if (CMDIFrameWnd::OnCreate(lpCreateStruct) == -1)
-		return -1;
-	
-	if (!m_wndToolBar.CreateEx(this, TBSTYLE_FLAT, WS_CHILD | WS_VISIBLE | CBRS_TOP
-		| CBRS_GRIPPER | CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC) ||
-		!m_wndToolBar.LoadToolBar(IDR_MAINFRAME))
-	{
-		TRACE0("ツール バーの作成に失敗しました。\n");
-		return -1;      // 作成できませんでした。
-	}
-
-	if (!m_wndStatusBar.Create(this) ||
-		!m_wndStatusBar.SetIndicators(indicators,
-		  sizeof(indicators)/sizeof(UINT)))
-	{
-		TRACE0("ステータス バーの作成に失敗しました。\n");
-		return -1;      // 作成できませんでした。
-	}
-
-	// TODO: ツール バーをドッキング可能にしない場合は、これらの 3 行を削除してください。
-	m_wndToolBar.EnableDocking(CBRS_ALIGN_ANY);
-	EnableDocking(CBRS_ALIGN_ANY);
-	DockControlBar(&m_wndToolBar);
-
-	return 0;
-#else
 	if (CMDIFrameWnd::OnCreate(lpCreateStruct) == -1)
 		return -1;
 
@@ -685,10 +666,42 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_wndToolBar.SendMessage(TB_SETHOTIMAGELIST,		0, (LPARAM)(m_ImageList[1].m_hImageList));
 	m_wndToolBar.SendMessage(TB_SETDISABLEDIMAGELIST,	0, (LPARAM)(m_ImageList[2].m_hImageList));
 
-	//m_wndToolBar.GetToolBarCtrl().SetExtendedStyle(TBSTYLE_EX_DRAWDDARROWS);
-	//DWORD dwStyle = m_wndToolBar.GetButtonStyle(m_wndToolBar.CommandToIndex(IDM_KANJI_EUC));
-	//dwStyle |= TBSTYLE_DROPDOWN;
-	//m_wndToolBar.SetButtonStyle(m_wndToolBar.CommandToIndex(IDM_KANJI_EUC), dwStyle);
+	int n, i, id, x, y;
+	CMenuBitMap *pMap;
+	CDC dc[2];
+	CBitmap tmpMap;
+	CBitmap *pOld[2];
+
+	x = GetSystemMetrics(SM_CXMENUCHECK);
+	y = GetSystemMetrics(SM_CYMENUCHECK);
+
+	dc[0].CreateCompatibleDC(NULL);
+	tmpMap.CreateBitmap(16, 16, dc[0].GetDeviceCaps(PLANES), dc[0].GetDeviceCaps(BITSPIXEL), NULL);
+	pOld[0] = dc[0].SelectObject(&tmpMap);
+
+	dc[1].CreateCompatibleDC(NULL);
+	dc[1].SetStretchBltMode(HALFTONE);
+
+	for ( n = i = 0 ; n < m_wndToolBar.GetCount() ; n++ ) {
+		if ( (id = m_wndToolBar.GetItemID(n)) == ID_SEPARATOR )
+			continue;
+
+		if ( (pMap = new CMenuBitMap) == NULL )
+			continue;
+		m_MenuMap.Add(pMap);
+
+		pMap->m_Id = id;
+		pMap->m_Bitmap.CreateBitmap(x, y, dc[1].GetDeviceCaps(PLANES), dc[1].GetDeviceCaps(BITSPIXEL), NULL);
+		pOld[1] = dc[1].SelectObject(&(pMap->m_Bitmap));
+
+		m_ImageList[0].DrawEx(&(dc[0]), i++, CPoint(0, 0), CSize(16, 16), GetSysColor(COLOR_MENU), CLR_DEFAULT, ILD_NORMAL);
+		dc[1].StretchBlt(0, 0, x, y, &(dc[0]), 0, 0, 16, 16, SRCCOPY);
+		dc[1].SelectObject(pOld[1]);
+	}
+
+	dc[0].SelectObject(pOld[0]);
+	dc[0].DeleteDC();
+	dc[1].DeleteDC();
 
 	if ( !m_wndStatusBar.Create(this) || !m_wndStatusBar.SetIndicators(indicators, sizeof(indicators)/sizeof(UINT)) ) {
 		TRACE0("Failed to create status bar\n");
@@ -726,7 +739,6 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_ScrollBarFlag = AfxGetApp()->GetProfileInt(_T("ChildFrame"), _T("VScroll"), TRUE);
 
 	return 0;
-#endif
 }
 
 BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
@@ -1044,7 +1056,7 @@ void CMainFrame::SetIconData(HICON hIcon, LPCTSTR str)
 	if ( m_IconShow == FALSE )
 		return;
 	m_IconData.hIcon  = hIcon;
-	_tcsncpy(m_IconData.szTip, str, sizeof(m_IconData.szTip) - 1);
+	_tcsncpy(m_IconData.szTip, str, sizeof(m_IconData.szTip) / sizeof(TCHAR));
 	Shell_NotifyIcon(NIM_MODIFY, &m_IconData);
 }
 
@@ -1703,6 +1715,7 @@ void CMainFrame::OnEnterMenuLoop(BOOL bIsTrackPopupMenu)
 	CRLoginDoc *pDoc;
 	CString str, tmp;
 	CKeyCmds *pCmds;
+	CMenuBitMap *pMap;
 
 	if ( (pMenu = GetMenu()) == NULL )
 		return;
@@ -1760,6 +1773,11 @@ void CMainFrame::OnEnterMenuLoop(BOOL bIsTrackPopupMenu)
 		m_MenuTab[n].ResetMenu(pMenu);
 		m_MenuTab.RemoveAt(n);
 		n--;
+	}
+
+	for ( n = 0 ; n < m_MenuMap.GetSize() ; n++ ) {
+		if ( (pMap = (CMenuBitMap *)m_MenuMap[n]) != NULL )
+			pMenu->SetMenuItemBitmaps(pMap->m_Id, MF_BYCOMMAND, &(pMap->m_Bitmap), NULL);
 	}
 }
 

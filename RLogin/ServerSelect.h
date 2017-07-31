@@ -61,4 +61,6 @@ protected:
 	afx_msg void OnTcnSelchangeServertab(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnServProto();
 	DECLARE_MESSAGE_MAP()
+public:
+	afx_msg void OnSavedefault();
 };

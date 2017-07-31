@@ -89,6 +89,13 @@ public:
 	DWORD m_Msg;
 };
 
+class CMenuBitMap : public CObject
+{
+public:
+	int m_Id;
+	CBitmap m_Bitmap;
+};
+
 class CMainFrame : public CMDIFrameWnd
 {
 	DECLARE_DYNAMIC(CMainFrame)
@@ -134,6 +141,7 @@ public:
 	CList<class CMidiQue *, class CMidiQue *> m_MidiQue;
 	volatile int m_InfoThreadCount;
 	BOOL m_ScrollBarFlag;
+	CPtrArray m_MenuMap;
 
 	void SetTransPar(COLORREF rgb, int value, DWORD flag);
 	void SetIconStyle();

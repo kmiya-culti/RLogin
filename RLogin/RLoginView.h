@@ -9,8 +9,13 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include "TextRam.h"
 #include "Data.h"
+#include "TextRam.h"
+
+#define	FGCARET_CREATE	001
+#define	FGCARET_ONOFF	002
+#define	FGCARET_FOCUS	004
+#define	FGCARET_REDRAW	010
 
 class CRLoginView : public CView
 {
@@ -143,6 +148,7 @@ protected:
 	afx_msg void OnPageNext();
 	afx_msg void OnKeyUp(UINT nChar, UINT nRepCnt, UINT nFlags);
 	afx_msg void OnSearchReg();
+	afx_msg void OnSearchBack();
 	afx_msg void OnSearchNext();
 	DECLARE_MESSAGE_MAP()
 };

@@ -60,6 +60,7 @@ BEGIN_MESSAGE_MAP(CServerSelect, CDialog)
 	ON_WM_SIZING()
 	ON_NOTIFY(TCN_SELCHANGE, IDC_SERVERTAB, &CServerSelect::OnTcnSelchangeServertab)
 	ON_COMMAND(IDM_SERV_PROTO, &CServerSelect::OnServProto)
+	ON_COMMAND(IDC_SAVEDEFAULT, &CServerSelect::OnSavedefault)
 END_MESSAGE_MAP()
 
 void CServerSelect::InitList()
@@ -316,6 +317,7 @@ void CServerSelect::OnNewentry()
 	dlg.m_pEntry    = &Entry;
 	dlg.m_pTextRam  = &TextRam;
 	dlg.m_pKeyTab   = &KeyTab;
+	dlg.m_pKeyMac   = &KeyMac;
 	dlg.m_pParamTab = &ParamTab;
 	dlg.m_psh.dwFlags |= PSH_NOAPPLYNOW;
 
@@ -354,6 +356,7 @@ void CServerSelect::OnEditentry()
 	dlg.m_pEntry    = &Entry;
 	dlg.m_pTextRam  = &TextRam;
 	dlg.m_pKeyTab   = &KeyTab;
+	dlg.m_pKeyMac   = &KeyMac;
 	dlg.m_pParamTab = &ParamTab;
 	dlg.m_psh.dwFlags |= PSH_NOAPPLYNOW;
 
@@ -674,4 +677,29 @@ void CServerSelect::OnTcnSelchangeServertab(NMHDR *pNMHDR, LRESULT *pResult)
 		InitList();
 	}
 	*pResult = 0;
+}
+
+
+void CServerSelect::OnSavedefault()
+{
+	if ( (m_EntryNum = m_List.GetSelectMarkData()) < 0 )
+		return;
+
+	CServerEntry *pEntry;
+	CTextRam TextRam;
+	CKeyNodeTab KeyTab;
+	CKeyMacTab KeyMac;
+	CParamTab ParamTab;
+
+	pEntry = &(m_pData->GetAt(m_EntryNum));
+
+	TextRam.Serialize(FALSE,  pEntry->m_ProBuffer);
+	KeyTab.Serialize(FALSE,   pEntry->m_ProBuffer);
+	KeyMac.Serialize(FALSE,   pEntry->m_ProBuffer);
+	ParamTab.Serialize(FALSE, pEntry->m_ProBuffer);
+
+	TextRam.Serialize(TRUE);
+	KeyTab.Serialize(TRUE);
+	KeyMac.Serialize(TRUE);
+	ParamTab.Serialize(TRUE);
 }

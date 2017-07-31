@@ -1026,6 +1026,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\InitAllDlg.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Kermit.cpp"
 				>
 			</File>
@@ -1397,6 +1401,10 @@
 			</File>
 			<File
 				RelativePath=".\InfoCapDlg.h"
+				>
+			</File>
+			<File
+				RelativePath=".\InitAllDlg.h"
 				>
 			</File>
 			<File

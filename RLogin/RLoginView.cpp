@@ -71,6 +71,7 @@ BEGIN_MESSAGE_MAP(CRLoginView, CView)
 	ON_WM_KEYUP()
 	ON_COMMAND(IDM_SEARCH_REG, &CRLoginView::OnSearchReg)
 	ON_COMMAND(IDM_SEARCH_NEXT, &CRLoginView::OnSearchNext)
+	ON_COMMAND(IDM_SEARCH_BACK, &CRLoginView::OnSearchBack)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -137,7 +138,7 @@ void CRLoginView::OnDraw(CDC* pDC)
 	CRLoginDoc* pDoc = GetDocument();
 	ASSERT_VALID(pDoc);
 
-	if ( (m_DispCaret & 001) != 0 )
+	if ( (m_DispCaret & FGCARET_CREATE) != 0 )
 		HideCaret();
 
 	int sx = 0;
@@ -208,7 +209,7 @@ void CRLoginView::OnDraw(CDC* pDC)
 	}
 #endif
 
-	if ( (m_DispCaret & 001) != 0 )
+	if ( (m_DispCaret & FGCARET_CREATE) != 0 )
 		ShowCaret();
 
 	pDoc->ClearActCount();
@@ -408,16 +409,16 @@ void CRLoginView::SetCaret()
 
 	// 001 = CreateCaret Flag, 002 = CurSol ON/OFF, 004 = Focus Flag, 010 = Redraw Caret
 
-	if ( (m_DispCaret & 010) != 0 ) {
-		m_DispCaret &= ~010;
-		if ( (m_DispCaret & 001) != 0 ) {
+	if ( (m_DispCaret & FGCARET_REDRAW) != 0 ) {
+		m_DispCaret &= ~FGCARET_REDRAW;
+		if ( (m_DispCaret & FGCARET_CREATE) != 0 ) {
 			DestroyCaret();
-			m_DispCaret &= ~001;
+			m_DispCaret &= ~FGCARET_CREATE;
 		}
 	}
 
 	switch(m_DispCaret) {
-	case 006:
+	case FGCARET_FOCUS | FGCARET_ONOFF:					// 006
 		switch(pDoc->m_TextRam.m_TypeCaret) {
 		case 0: case 1: case 2:
 			CreateSolidCaret(m_CharWidth, m_CharHeight);
@@ -434,22 +435,24 @@ void CRLoginView::SetCaret()
 		SetCaretPos(po);
 		ImmSetPos(m_CaretX, m_CaretY);
 		ShowCaret();
-		m_DispCaret |= 001;
+		m_DispCaret |= FGCARET_CREATE;
 		break;
-	case 007:
+	case FGCARET_FOCUS | FGCARET_ONOFF | FGCARET_CREATE:	//	007:
 		if ( pDoc->m_TextRam.m_TypeCaret == 3 || pDoc->m_TextRam.m_TypeCaret == 4 )
 			po.y += m_CharHeight;
 		SetCaretPos(po);
 		ImmSetPos(m_CaretX, m_CaretY);
 		break;
-	case 004:
+	case FGCARET_FOCUS:									// 004:
 		ImmSetPos(m_CaretX, m_CaretY);
 		break;
-	case 001:
-	case 003:
-	case 005:
+	case FGCARET_FOCUS | FGCARET_CREATE:					// 005:
+		ImmSetPos(m_CaretX, m_CaretY);
+		// no break
+	case FGCARET_CREATE:									// 001:
+	case FGCARET_ONOFF | FGCARET_CREATE:					// 003:
 		DestroyCaret();
-		m_DispCaret &= ~001;
+		m_DispCaret &= ~FGCARET_CREATE;
 		break;
 	}
 }
@@ -457,14 +460,26 @@ void CRLoginView::ImmSetPos(int x, int y)
 {
 	HIMC hIMC;
 	COMPOSITIONFORM cpf;
+	LOGFONT LogFont;
 
-	if ( (hIMC = ImmGetContext(m_hWnd)) != NULL ) {
-	    cpf.dwStyle = CFS_POINT;
-		cpf.ptCurrentPos.x = x;
-		cpf.ptCurrentPos.y = y;
-		ImmSetCompositionWindow(hIMC, &cpf);
-		ImmReleaseContext(m_hWnd, hIMC);
+	if ( (hIMC = ImmGetContext(m_hWnd)) == NULL )
+		return;
+
+	CRLoginDoc *pDoc = GetDocument();
+	LPCTSTR fontName = pDoc->m_TextRam.m_FontTab[SET_94x94 | '@'].m_FontName[0];
+
+	if ( ImmGetCompositionFont(hIMC, &LogFont) && (LogFont.lfWidth != m_CharWidth || LogFont.lfHeight != m_CharHeight || _tcscmp(LogFont.lfFaceName, fontName) != 0) ) {
+		LogFont.lfWidth  = m_CharWidth;
+		LogFont.lfHeight = m_CharHeight;
+		_tcsncpy(LogFont.lfFaceName, fontName, sizeof(LogFont.lfFaceName) / sizeof(TCHAR));
+		ImmSetCompositionFont(hIMC, &LogFont);
 	}
+
+	cpf.dwStyle = CFS_POINT;
+	cpf.ptCurrentPos.x = x;
+	cpf.ptCurrentPos.y = y;
+	ImmSetCompositionWindow(hIMC, &cpf);
+	ImmReleaseContext(m_hWnd, hIMC);
 }
 int CRLoginView::ImmOpenCtrl(int sw)
 {
@@ -542,7 +557,7 @@ int CRLoginView::SetClipboad(CBuffer *bp)
 	CString buf;
 	CRLoginDoc *pDoc = GetDocument();
 
-	pDoc->m_TextRam.m_IConv.RemoteToStr(pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode], (LPCSTR)bp, buf);
+	pDoc->m_TextRam.m_IConv.RemoteToStr(pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode], (LPCSTR)*bp, buf);
 
 	if ( (hClipData = GlobalAlloc(GMEM_MOVEABLE, (buf.GetLength() + 1) * sizeof(TCHAR))) == NULL )
 		return FALSE;
@@ -656,12 +671,12 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 			::SetCursor(::LoadCursor(NULL, (pDoc->m_TextRam.m_MouseTrack != MOS_EVENT_NONE && !m_MouseEventFlag ? IDC_IBEAM : IDC_ARROW)));
 		return;
 	} else if ( lHint == UPDATE_TYPECARET ) {
-		m_DispCaret |= 010;
+		m_DispCaret |= FGCARET_REDRAW;
 		SetCaret();
 		return;
 	}
 
-	if ( (m_DispCaret & 004) != 0 && pSender != this &&
+	if ( (m_DispCaret & FGCARET_FOCUS) != 0 && pSender != this &&
 			(lHint == UPDATE_INVALIDATE || lHint == UPDATE_TEXTRECT || lHint == UPDATE_GOTOXY) ) {
 		y = pDoc->m_TextRam.m_CurY - m_HisMin + m_HisOfs;
 		if ( y >= m_Lines ) {
@@ -689,8 +704,8 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		m_CharWidth  = pFrame->m_Width  / pFrame->m_Cols;
 		m_CharHeight = pFrame->m_Height / pFrame->m_Lines;
 		
-		if ( (m_DispCaret & 001) != 0 ) {
-			m_DispCaret &= ~001;
+		if ( (m_DispCaret & FGCARET_CREATE) != 0 ) {
+			m_DispCaret &= ~FGCARET_CREATE;
 			DestroyCaret();
 		}
 
@@ -766,14 +781,14 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		break;
 	}
 
-	m_DispCaret &= ~002;
+	m_DispCaret &= ~FGCARET_ONOFF;
 	m_CaretX = m_Width * pDoc->m_TextRam.m_CurX / m_Cols;
 	m_CaretY = m_Height * (pDoc->m_TextRam.m_CurY + m_HisOfs - m_HisMin) / m_Lines;
 
 	if ( m_CaretX < 0 || m_CaretX >= m_Width || m_CaretY < 0 || m_CaretY >= m_Height )
 		m_CaretX = m_CaretY = 0;
 	else if ( pDoc->m_pSock != NULL )
-		m_DispCaret |= (pDoc->m_TextRam.m_DispCaret & 002);
+		m_DispCaret |= (pDoc->m_TextRam.m_DispCaret & FGCARET_ONOFF);
 
 	SetCaret();
 }
@@ -915,7 +930,7 @@ void CRLoginView::OnSetFocus(CWnd* pOldWnd)
 
 	CView::OnSetFocus(pOldWnd);
 
-	m_DispCaret |= 004;
+	m_DispCaret |= FGCARET_FOCUS;
 	SetCaret();
 
 	if ( pDoc->m_TextRam.IsOptEnable(TO_XTFOCEVT) )
@@ -927,7 +942,7 @@ void CRLoginView::OnKillFocus(CWnd* pNewWnd)
 
 	CView::OnKillFocus(pNewWnd);
 
-	m_DispCaret &= ~004;
+	m_DispCaret &= ~FGCARET_FOCUS;
 	SetCaret();
 
 	if ( pDoc->m_TextRam.IsOptEnable(TO_XTFOCEVT) )
@@ -955,8 +970,10 @@ void CRLoginView::OnActivateView(BOOL bActivate, CView* pActivateView, CView* pD
 
 LRESULT CRLoginView::OnImeNotify(WPARAM wParam, LPARAM lParam)
 {
-    switch(wParam) {
-#if 0
+	CRLoginDoc *pDoc = GetDocument();
+
+	switch(wParam) {
+		/********
 	case IMN_SETCOMPOSITIONWINDOW:
 		HIMC hIMC;
 		LOGFONT LogFont;
@@ -964,12 +981,13 @@ LRESULT CRLoginView::OnImeNotify(WPARAM wParam, LPARAM lParam)
 			if ( ImmGetCompositionFont(hIMC, &LogFont) ) {
 				LogFont.lfWidth  = m_CharWidth;
 				LogFont.lfHeight = m_CharHeight;
+				_tcsncpy(LogFont.lfFaceName, pDoc->m_TextRam.m_FontTab[SET_94x94 | '@'].m_FontName[0], sizeof(LogFont.lfFaceName) / sizeof(TCHAR));
 				ImmSetCompositionFont(hIMC, &LogFont);
 			}
 			ImmReleaseContext(m_hWnd, hIMC);
 	    }
 		return TRUE;
-#endif
+		*********/
     case IMN_SETSTATUSWINDOWPOS:
 		ImmSetPos(m_CaretX, m_CaretY);
 		return TRUE;
@@ -1846,31 +1864,33 @@ void CRLoginView::OnSearchReg()
 	pDoc->m_SearchStr = dlg.m_SearchStr;
 
 	if ( !pDoc->m_TextRam.HisMarkCheck(0 - m_HisOfs + m_HisMin, m_Lines, this) )
-		OnSearchNext();
+		OnSearchBack();
 
 	Invalidate(FALSE);
 }
-void CRLoginView::OnSearchNext()
+void CRLoginView::OnSearchBack()
 {
+	int pos;
 	CRLoginDoc *pDoc = GetDocument();
-	int pos = m_HisOfs;
-	BOOL eof = FALSE;
 
-	for ( ; ; ) {
-		if ( (pos -= m_Lines) < 0 )
-			pos = 0;
-		if ( pDoc->m_TextRam.HisMarkCheck(0 - pos + m_HisMin, m_Lines, this) )
+	for ( pos = m_HisOfs + 1 ; pos <= (pDoc->m_TextRam.m_HisLen - m_Lines) ; pos++ ) {
+		if ( pDoc->m_TextRam.HisMarkCheck(0 - pos + m_HisMin, 1, this) ) {
+			m_HisOfs = pos;
+			OnUpdate(this, UPDATE_INVALIDATE, NULL);
 			break;
-		if ( pos == 0 ) {
-			if ( eof )
-				return;
-			pos = pDoc->m_TextRam.m_HisLen;
-			eof = TRUE;
 		}
 	}
+}
+void CRLoginView::OnSearchNext()
+{
+	int pos;
+	CRLoginDoc *pDoc = GetDocument();
 
-	if ( pos != m_HisOfs ) {
-		m_HisOfs = pos;
-		OnUpdate(this, UPDATE_INVALIDATE, NULL);
+	for ( pos = m_HisOfs - 1 ; pos >= 0 ; pos-- ) {
+		if ( pDoc->m_TextRam.HisMarkCheck(0 - pos + m_HisMin + m_Lines - 1, 1, this) ) {
+			m_HisOfs = pos;
+			OnUpdate(this, UPDATE_INVALIDATE, NULL);
+			break;
+		}
 	}
 }

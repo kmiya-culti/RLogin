@@ -118,6 +118,7 @@
 #define IDD_CERTKEYDLG                  163
 #define IDD_CLIPBOARDPAGE               164
 #define IDD_MOUSEPAGE                   165
+#define IDD_INITALLDLG                  167
 #define IDM_KANJI_EUC                   200
 #define IDM_KANJI_SJIS                  201
 #define IDM_KANJI_ASCII                 202
@@ -526,6 +527,10 @@
 #define IDC_DIGEST                      3054
 #define IDC_SAVEKEY                     3055
 #define IDC_HOSTNAME                    3056
+#define IDC_BACK                        3058
+#define IDC_AUTOLOG_PATH                3058
+#define IDC_HISFILE_PATH                3059
+#define IDC_MSGICON                     3060
 #define ID_FILE_ALL_LOAD                5000
 #define ID_EDIT_BOX                     5001
 #define ID_PAGE_PRIOR                   5002
@@ -569,14 +574,17 @@
 #define ID_SERV_PROTO                   5045
 #define IDM_SERV_PROTO                  5046
 #define ID_VIEW_SCROLLBAR               5048
+#define ID_SE                           5049
+#define ID_SEARCH_BACK                  5050
+#define IDM_SEARCH_BACK                 5051
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        167
-#define _APS_NEXT_COMMAND_VALUE         5049
-#define _APS_NEXT_CONTROL_VALUE         3057
+#define _APS_NEXT_RESOURCE_VALUE        168
+#define _APS_NEXT_COMMAND_VALUE         5052
+#define _APS_NEXT_CONTROL_VALUE         3061
 #define _APS_NEXT_SYMED_VALUE           249
 #endif
 #endif

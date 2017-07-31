@@ -10,6 +10,7 @@
 #include "TextRam.h"
 #include "Data.h"
 #include "OptDlg.h"
+#include "InitAllDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -50,6 +51,7 @@ COptDlg::COptDlg(LPCTSTR pszCaption, CWnd* pParentWnd, UINT iSelectPage)
 	m_pEntry    = NULL;
 	m_pTextRam  = NULL;
 	m_pKeyTab   = NULL;
+	m_pKeyMac   = NULL;
 	m_pParamTab = NULL;
 	m_pDocument = NULL;
 
@@ -197,12 +199,25 @@ BOOL COptDlg::OnInitDialog()
 }
 void COptDlg::OnDoInit()
 {
-	if ( MessageBox(CStringLoad(IDS_ALLINITREQ), _T("Question"), MB_ICONQUESTION | MB_YESNO) != IDYES )
+	CInitAllDlg dlg;
+
+	if ( dlg.DoModal() != IDOK )
 		return;
 
-	m_pTextRam->Serialize(FALSE);
-	m_pKeyTab->Serialize(FALSE);
-	m_pParamTab->Serialize(FALSE);
+	//if ( MessageBox(CStringLoad(IDS_ALLINITREQ), _T("Question"), MB_ICONQUESTION | MB_YESNO) != IDYES )
+	//	return;
+
+	if ( dlg.m_InitFlag ) {
+		m_pTextRam->Init();
+		m_pKeyTab->Init();
+		m_pKeyMac->Init();
+		m_pParamTab->Init();
+	} else {
+		m_pTextRam->Serialize(FALSE);
+		m_pKeyTab->Serialize(FALSE);
+		m_pKeyMac->Serialize(FALSE);
+		m_pParamTab->Serialize(FALSE);
+	}
 
 	int n;
 	CTreePropertyPage *pPage;

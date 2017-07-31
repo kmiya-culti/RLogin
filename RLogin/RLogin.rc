@@ -207,7 +207,7 @@ BEGIN
             MENUITEM "Kermitダウンロード",                IDM_KERMIT_DOWNLOAD
         END
         MENUITEM SEPARATOR
-        MENUITEM "最近使ったﾌｧｲﾙ",                   ID_FILE_MRU_FILE1, GRAYED
+        MENUITEM "最近使ったﾌｧｲﾙ",                   ID_FILE_MRU_FILE1
         MENUITEM SEPARATOR
         MENUITEM "アプリケーションの終了(&X)",             ID_APP_EXIT
     END
@@ -218,6 +218,7 @@ BEGIN
         MENUITEM "すべて選択/コピー",                   ID_EDIT_COPY_ALL
         MENUITEM SEPARATOR
         MENUITEM "正規表現で検索(&F)",                 IDM_SEARCH_REG
+        MENUITEM "前を検索(&D)",                    IDM_SEARCH_BACK
         MENUITEM "次を検索(&N)",                    IDM_SEARCH_NEXT
         MENUITEM SEPARATOR
         MENUITEM "ChatScriptの完了(&S)",           ID_CHARSCRIPT_END
@@ -246,7 +247,6 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "オプション設定(&P)",                 ID_SETOPTION
         MENUITEM "標準の設定に戻す",                    IDC_LOADDEFAULT
-        MENUITEM "標準に設定する",                     IDC_SAVEDEFAULT
         MENUITEM SEPARATOR
         POPUP "漢字コードの変更"
         BEGIN
@@ -320,8 +320,9 @@ BEGIN
         MENUITEM "接続先を新規作成",                    ID_EDIT_NEW
         MENUITEM "接続先を編集する",                    ID_EDIT_UPDATE
         MENUITEM "接続先を削除する",                    ID_EDIT_DELETE
-        MENUITEM SEPARATOR
         MENUITEM "接続先を複写する",                    ID_EDIT_DUPS
+        MENUITEM SEPARATOR
+        MENUITEM "標準の設定にする",                    IDC_SAVEDEFAULT
         MENUITEM "プロトコルハンドラに登録",                IDM_SERV_PROTO
         MENUITEM SEPARATOR
         MENUITEM "ファイルからインポート",                 IDM_SERV_INPORT
@@ -425,7 +426,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.11.4 (2011/12/12)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.11.5 (2011/12/16)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2011 Culti",IDC_STATIC,47,15,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,148,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.0e Sep 6th, 2011",IDC_STATIC,47,29,176,8
@@ -477,21 +478,21 @@ BEGIN
     LTEXT           "ログイン",IDC_STATIC,234,97,24,8
 END
 
-IDD_PASSDLG DIALOGEX 0, 0, 171, 128
+IDD_PASSDLG DIALOGEX 0, 0, 203, 129
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "パスワード入力"
 FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
 BEGIN
-    EDITTEXT        IDC_HOSTADDR,79,17,76,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_USERNAME,79,37,76,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_PASSNAME,79,57,76,14,ES_PASSWORD | ES_AUTOHSCROLL
-    DEFPUSHBUTTON   "OK",IDOK,31,107,50,14
-    PUSHBUTTON      "キャンセル",IDCANCEL,91,107,50,14
+    COMBOBOX        IDC_HOSTADDR,78,17,109,105,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_USERNAME,78,37,109,30,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_PASSNAME,78,57,109,14,ES_PASSWORD | ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "OK",IDOK,46,108,50,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,106,108,50,14
     LTEXT           "Password",IDC_PROMPT,18,57,53,14,SS_CENTERIMAGE
     LTEXT           "User Name",IDC_STATIC,18,37,53,14,SS_CENTERIMAGE
-    CONTROL         "Progress1",IDC_TIMELIMIT,"msctls_progress32",0x0,16,77,139,14
+    CONTROL         "Progress1",IDC_TIMELIMIT,"msctls_progress32",0x0,16,77,171,14
     LTEXT           "Server Address",IDC_STATIC,18,17,53,14,SS_CENTERIMAGE
-    GROUPBOX        "",IDC_STATIC,7,7,157,93
+    GROUPBOX        "",IDC_STATIC,7,7,189,93
 END
 
 IDD_IDKEYFILEDLG DIALOGEX 0, 0, 243, 195
@@ -1196,32 +1197,30 @@ CAPTION "ヒストリー"
 FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
 BEGIN
     CONTROL         "通信ログを年月日を付けて自動作成する",IDC_TERMCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,20,159,10
-    PUSHBUTTON      "...",IDC_AUTOLOG_SEL,187,18,40,14
-    COMBOBOX        IDC_COMBO1,187,34,40,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_COMBO2,187,50,40,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "ヒストリーを保存し次接続時に復元する",IDC_TERMCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,89,159,10
-    PUSHBUTTON      "...",IDC_HISFILE_SEL,187,87,40,14
-    EDITTEXT        IDC_HISMAX,187,104,40,14,ES_AUTOHSCROLL | ES_NUMBER
-    COMBOBOX        IDC_WHEELSIZE,187,121,40,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "アプリモード時のカーソルキーのような動作を禁止",IDC_TERMCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,140,159,10
-    CONTROL         "マウスホイールのヌルヌル動作を無効にする",IDC_TERMCHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,157,159,10
-    LTEXT           "スクロールバックできるヒストリー行数",IDC_STATIC,26,106,150,10
-    GROUPBOX        "ヒストリー",IDC_STATIC,7,75,237,99
-    LTEXT           "マウスホイールのスクロール量の設定",IDC_STATIC,26,123,150,10
-    GROUPBOX        "通信ログ",IDC_STATIC,7,7,237,65
-    LTEXT           "ファイルに保存する通信ログの形式を選択",IDC_STATIC,26,36,150,8
-    LTEXT           "ログの文字コードを選択(RAWモード以外で有効）",IDC_STATIC,26,52,150,8
+    EDITTEXT        IDC_AUTOLOG_PATH,17,39,167,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDC_AUTOLOG_SEL,190,39,40,14
+    COMBOBOX        IDC_COMBO1,190,58,40,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COMBO2,190,76,40,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "ヒストリーを保存し次接続時に復元する",IDC_TERMCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,119,159,10
+    EDITTEXT        IDC_HISFILE_PATH,17,136,167,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDC_HISFILE_SEL,190,136,40,14
+    EDITTEXT        IDC_HISMAX,190,155,40,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "スクロールバックできるヒストリー行数",IDC_STATIC,26,157,150,10
+    GROUPBOX        "ヒストリー",IDC_STATIC,7,106,237,72
+    GROUPBOX        "通信ログ",IDC_STATIC,7,7,237,94
+    LTEXT           "ファイルに保存する通信ログの形式を選択",IDC_STATIC,26,62,150,8
+    LTEXT           "ログの文字コードを選択(RAWモード以外で有効）",IDC_STATIC,26,80,150,8
 END
 
-IDD_SEARCHDLG DIALOGEX 0, 0, 233, 74
+IDD_SEARCHDLG DIALOGEX 0, 0, 233, 68
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "文字列検索"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     COMBOBOX        IDC_COMBO1,7,7,219,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
-    DEFPUSHBUTTON   "検索",IDOK,58,53,50,14
-    PUSHBUTTON      "キャンセル",IDCANCEL,125,53,50,14
-    CONTROL         "",IDC_PROGRESS1,"msctls_progress32",WS_BORDER,7,28,219,14
+    DEFPUSHBUTTON   "検索",IDOK,60,47,50,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,123,47,50,14
+    CONTROL         "",IDC_PROGRESS1,"msctls_progress32",WS_BORDER,7,27,219,12
 END
 
 IDD_CERTKEYDLG DIALOGEX 0, 0, 175, 207
@@ -1265,20 +1264,40 @@ STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "マウス関連"
 FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
 BEGIN
-    COMBOBOX        IDC_MOUSE_BTN1,79,22,40,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_MOUSE_BTN2,187,22,40,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_MOUSE_KEY1,79,41,40,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_MOUSE_KEY2,187,41,40,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    GROUPBOX        "マウスイベント",IDC_STATIC,7,7,237,58
-    LTEXT           "マウス左ボタン",IDC_STATIC,17,26,44,8
-    LTEXT           "Shiftキー",IDC_STATIC,17,45,28,8
-    LTEXT           "マウス右ボタン",IDC_STATIC,133,26,44,8
-    LTEXT           "Ctrlキー",IDC_STATIC,133,45,26,8
-    COMBOBOX        IDC_COMBO1,147,86,90,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    EDITTEXT        IDC_EDIT1,147,106,90,14,ES_AUTOHSCROLL
-    LTEXT           "ファイルをドロップした時の動作",IDC_STATIC,19,88,119,8
-    GROUPBOX        "ファイルのドラッグ＆ドロップ",IDC_STATIC,7,72,237,58
-    LTEXT           "実行時に送信するコマンド文字列",IDC_STATIC,19,109,119,8
+    COMBOBOX        IDC_WHEELSIZE,190,37,40,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "アプリモード時のカーソルキーのような動作を禁止",IDC_TERMCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,55,159,10
+    CONTROL         "マウスホイールのヌルヌル動作を無効にする",IDC_TERMCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,73,159,10
+    COMBOBOX        IDC_MOUSE_BTN1,79,133,40,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_MOUSE_BTN2,187,133,40,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_MOUSE_KEY1,79,151,40,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_MOUSE_KEY2,187,151,40,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COMBO1,148,221,82,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_EDIT1,148,239,82,14,ES_AUTOHSCROLL
+    GROUPBOX        "マウスイベント",IDC_STATIC,7,102,237,74
+    LTEXT           "マウス左ボタン",IDC_STATIC,17,137,44,8
+    LTEXT           "Shiftキー",IDC_STATIC,17,154,28,8
+    LTEXT           "マウス右ボタン",IDC_STATIC,133,137,44,8
+    LTEXT           "Ctrlキー",IDC_STATIC,133,155,26,8
+    LTEXT           "ファイルをドロップした時の動作",IDC_STATIC,17,223,119,8
+    GROUPBOX        "ファイルのドラッグ＆ドロップ",IDC_STATIC,7,182,237,81
+    LTEXT           "実行時に送信するコマンド文字列",IDC_STATIC,17,242,119,8
+    LTEXT           "マウス・ロケーター(DECLRP)で送信するボタン番号などを設定します",IDC_STATIC,17,117,217,8
+    LTEXT           "BPlusとKermitの場合は、通信関連のオプション「BPlus/ZModem/Kermitファイル転送を有効にする」のチェックをしてください",IDC_STATIC,17,198,217,19
+    GROUPBOX        "マウスホイール",IDC_STATIC,7,7,237,89
+    LTEXT           "マウスホイールのスクロール量の設定",IDC_STATIC,17,39,150,10
+    LTEXT           "ホイールを動かして感覚と方向が違う場合は、±を逆にしてください",IDC_STATIC,17,23,217,8
+END
+
+IDD_INITALLDLG DIALOGEX 0, 0, 211, 99
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "初期化の確認"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "はい",IDOK,39,78,60,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,112,78,60,14
+    LTEXT           "すべての設定を標準に戻しますか？",IDC_STATIC,53,25,127,8
+    CONTROL         "プログラムの初期値まで設定を戻す",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,40,56,138,10
+    ICON            "",IDC_MSGICON,21,20,20,20
 END
 
 
@@ -1288,8 +1307,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,11,4,0
- PRODUCTVERSION 2,11,4,0
+ FILEVERSION 2,11,5,0
+ PRODUCTVERSION 2,11,5,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1306,12 +1325,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.11.4.0"
+            VALUE "FileVersion", "2.11.5.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2008 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.11.4.0"
+            VALUE "ProductVersion", "2.11.5.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -1348,9 +1367,9 @@ BEGIN
     IDD_PASSDLG, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 164
+        RIGHTMARGIN, 196
         TOPMARGIN, 7
-        BOTTOMMARGIN, 121
+        BOTTOMMARGIN, 122
     END
 
     IDD_IDKEYFILEDLG, DIALOG
@@ -1606,7 +1625,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 226
         TOPMARGIN, 7
-        BOTTOMMARGIN, 67
+        BOTTOMMARGIN, 61
     END
 
     IDD_CERTKEYDLG, DIALOG
@@ -1631,6 +1650,14 @@ BEGIN
         RIGHTMARGIN, 244
         TOPMARGIN, 7
         BOTTOMMARGIN, 263
+    END
+
+    IDD_INITALLDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 204
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 92
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -2220,6 +2247,11 @@ BEGIN
 0x5455, 0x2d46, 0x0038, 
     IDC_COMBO2, 0x403, 6, 0
 0x5341, 0x4943, 0x0049, 
+    0
+END
+
+IDD_MOUSEPAGE DLGINIT
+BEGIN
     IDC_WHEELSIZE, 0x403, 2, 0
 0x0035, 
     IDC_WHEELSIZE, 0x403, 2, 0
@@ -2242,11 +2274,6 @@ BEGIN
 0x342d, "\000" 
     IDC_WHEELSIZE, 0x403, 3, 0
 0x352d, "\000" 
-    0
-END
-
-IDD_MOUSEPAGE DLGINIT
-BEGIN
     IDC_MOUSE_BTN1, 0x403, 2, 0
 0x0031, 
     IDC_MOUSE_BTN1, 0x403, 2, 0
@@ -2329,7 +2356,7 @@ END
 
 STRINGTABLE
 BEGIN
-    IDC_SAVEDEFAULT         "現在のオプション設定を標準に設定します\n標準に設定"
+    IDC_SAVEDEFAULT         "現在のオプション設定を標準に設定します\n標準設定にする"
 END
 
 STRINGTABLE
@@ -2532,6 +2559,7 @@ BEGIN
     IDM_SEARCH_NEXT         "次を検索します\n次を検索"
     IDM_SERV_PROTO          "プロトコルハンドラに登録\nハンドラに登録"
     ID_VIEW_SCROLLBAR       "スクロールバーの表示/非表示\nスクロールバーの表示切り替え"
+    IDM_SEARCH_BACK         "前を検索します\n前を検索"
 END
 
 STRINGTABLE

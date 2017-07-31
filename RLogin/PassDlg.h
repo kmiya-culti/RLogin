@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ComboBoxHis.h"
+
 /////////////////////////////////////////////////////////////////////////////
 // CPassDlg ダイアログ
 
@@ -16,6 +18,8 @@ public:
 
 public:
 	CProgressCtrl m_TimeLimit;
+	CComboBoxHis m_HostWnd;
+	CComboBoxHis m_UserWnd;
 	CString m_HostAddr;
 	CString	m_UserName;
 	CString	m_PassName;
@@ -29,6 +33,7 @@ public:
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート
 	virtual BOOL OnInitDialog();
+	virtual void OnOK();
 
 // インプリメンテーション
 protected:

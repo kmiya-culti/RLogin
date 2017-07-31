@@ -434,7 +434,7 @@ CTextRam::CTextRam()
 	m_HisLen = 0;
 	m_HisUse = 0;
 	m_pTextSave = m_pTextStack = NULL;
-	m_DispCaret = 002;
+	m_DispCaret = FGCARET_ONOFF;
 	m_TypeCaret = 0; 
 	m_UpdateRect.SetRectEmpty();
 	m_UpdateFlag = FALSE;
@@ -961,7 +961,7 @@ int CTextRam::HisMarkCheck(int top, int line, class CRLoginView *pView)
 
 	for ( y = 0 ; y < line ; y++ ) {
 		vp = GETVRAM(0, top + y);
-		for ( x = 0 ; x < m_Cols ; x++ ) {
+		for ( x = 0 ; x < m_Cols ; x++, vp++ ) {
 			if ( (vp->at & ATT_MARK) != 0 )
 				return TRUE;
 		}
@@ -2912,11 +2912,11 @@ void CTextRam::FLUSH()
 }
 void CTextRam::CUROFF()
 {
-	m_DispCaret &= ~002;
+	m_DispCaret &= ~FGCARET_ONOFF;
 }	
 void CTextRam::CURON()
 {
-	m_DispCaret |= 002;
+	m_DispCaret |= FGCARET_ONOFF;
 }
 void CTextRam::DISPUPDATE()
 {
