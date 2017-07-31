@@ -1834,10 +1834,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 		}
 	}
 
-//	TRACE("Draw Text %d\n", m_pDocument->m_ActCharCount);
-
 	pDC->SelectObject(pFontOld);
-	m_pDocument->ClearActCount();
 }
 
 CWnd *CTextRam::GetAciveView()

@@ -118,6 +118,7 @@ const unsigned short CRCTable[] = {
 CBPlus::CBPlus(class CRLoginDoc *pDoc, CWnd *pWnd) : CSyncSock(pDoc, pWnd)
 {
 	BP_Special_Quoting = 0;
+	F_FileType = FALSE;
 }
 
 CBPlus::~CBPlus()
@@ -185,6 +186,7 @@ void CBPlus::BP_Term_ENQ()
     Use_CRC     = FALSE;             /* Not CRC_16      */
     SA_Max      = 1;                 /* Single Packet send */
     SA_Error_Count = 0;              /* No Upload errors yet */
+	F_FileType  = FALSE;
 
     for( i = 0 ; i < sizeof(DQ_Minimal) ; i++ )
 		Our_QS[i] = DQ_Minimal[i];
@@ -934,9 +936,9 @@ int	CBPlus::Receive_File(LPCSTR Name)
 
     Dow_Type = 'D';         /* Assume normal downloading */
 
-    Data_File = fopen( Name, UPDATE_OP );	/* open for r/w first */
+    Data_File = FileOpen( Name, UPDATE_OP, F_FileType );	/* open for r/w first */
 
-    if ( Data_File != NULL ) {
+    if ( Data_File != NULL && F_FileType == FALSE ) {
 		if ( Our_DR > 1 )
 		    Dow_Type = 'R';  /* Remote supports `Tf', let's try */
 		else if ( Our_DR > 0 ) {
@@ -949,8 +951,8 @@ int	CBPlus::Receive_File(LPCSTR Name)
     switch( Dow_Type ) {
 	case 'D':
 		if( Data_File != NULL )
-			fclose( Data_File );    /* close the read/write file */
-		Data_File = fopen( Name, WRITE_OP );	    /* open for write */
+			FileClose( Data_File );    /* close the read/write file */
+		Data_File = FileOpen ( Name, WRITE_OP, F_FileType );	    /* open for write */
 		if (Data_File == NULL) {
 			Send_Failure ("CCannot create file");
 			return(FALSE);
@@ -980,11 +982,11 @@ int	CBPlus::Receive_File(LPCSTR Name)
 			Packet_Len++;
 
 		if ( !Send_Packet(Packet_Len) ) {
-			fclose (Data_File);
+			FileClose (Data_File);
 			return(FALSE);
 		}
 		if ( !SA_Flush() ) {
-			fclose (Data_File);
+			FileClose (Data_File);
 			return(FALSE);
 		}
 
@@ -1006,7 +1008,7 @@ int	CBPlus::Receive_File(LPCSTR Name)
 				if ( Resume_Flag )
 					Resume_Flag = FALSE;
 
-				status = (int)fwrite( &R_buffer[1], 1, R_Size - 1, Data_File );
+				status = (int)WriteFileFromHost( &R_buffer[1], R_Size - 1, Data_File );
 
 				if ( (status != (R_Size - 1)) ) {
 					Send_Failure ("EWrite failure");
@@ -1022,7 +1024,7 @@ int	CBPlus::Receive_File(LPCSTR Name)
 
 			case 'T' :
 				if (R_buffer[1] == 'C') {
-					fclose (Data_File);
+					FileClose (Data_File);
 					Send_ACK();
 					if ( F_Ctime != 0 ) {
 						struct _utimbuf utm;
@@ -1040,8 +1042,8 @@ int	CBPlus::Receive_File(LPCSTR Name)
 					Send_ACK();
 					Process_File_Information();
 				} else if ( R_buffer [1] == 'f' ) {
-					fclose (Data_File);       /* So...replace the file */
-					Data_File = fopen(Name, WRITE_OP);
+					FileClose (Data_File);       /* So...replace the file */
+					Data_File = FileOpen ( Name, WRITE_OP, F_FileType );
 					if ( Data_File == NULL ) {
 						Send_Failure ("CCannot create file");
 						return(FALSE);
@@ -1085,7 +1087,7 @@ int	CBPlus::Send_File(LPCSTR name)
 		return(FALSE);
 	}
 
-    if ( (data_File = fopen (name, READ_OP)) == NULL ) {
+    if ( (data_File = FileOpen (name, READ_OP, F_FileType)) == NULL ) {
 		Send_Failure ("MFile open error");
 		return(FALSE);
     }
@@ -1127,7 +1129,7 @@ int	CBPlus::Send_File(LPCSTR name)
     do {
 		p = &SA_Buf [SA_Next_to_Fill];
 		p->buf [0] = 'N';
-		n = (int)fread (&p->buf[1], 1, Buffer_Size, data_File);
+		n = (int)ReadFileToHost (&p->buf[1], Buffer_Size, data_File);
 
 		if ( n > 0 ) {
 			if (Send_Packet (n) == FALSE) {
@@ -1142,7 +1144,7 @@ int	CBPlus::Send_File(LPCSTR name)
 
     if ( n < 0 ) {
 		Send_Failure ("EFile read failure");
-		fclose(data_File);
+		FileClose(data_File);
 		return(FALSE);
     }
 
@@ -1151,10 +1153,10 @@ int	CBPlus::Send_File(LPCSTR name)
     p->buf [1] = 'C';
 
     if ( Send_Packet (2) == FALSE ) {
-		fclose (data_File);
+		FileClose (data_File);
 		return(FALSE);
     } else {
-		fclose (data_File);
+		FileClose (data_File);
 		if (!SA_Flush())
 		    return(FALSE);
 		return(TRUE);
@@ -1202,8 +1204,10 @@ int	CBPlus::BP_DLE_Seen()
 
 			switch (R_buffer[2]) {
 			case 'A':
+				F_FileType = TRUE;
 				break;
 			case 'B':
+				F_FileType = FALSE;
 				break;
 			default:
 				Send_Failure ("NUnimplemented file type");

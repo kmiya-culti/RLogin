@@ -69,6 +69,7 @@ public:
 	time_t		F_Ctime;
 	time_t		F_Mtime;
 	CString		F_TrueName;
+	BOOL		F_FileType;
 
 	void Clear_Quote_Table();
 	void Update_Quote_Table (char *Quote_Set);

@@ -23,11 +23,14 @@ public:
 	class CIConv *m_Left;
 	class CIConv *m_Right;
 	int m_Table[256];
+	int m_ErrCount;
 
 	int JisToSJis(int cd);
 	int SJisToJis(int cd);
 
+	void IConvClose();
 	class CIConv *GetIConv(LPCSTR from, LPCSTR to);
+	void IConvSub(LPCSTR from, LPCSTR to, CBuffer *in, CBuffer *out);
 	int IConvBuf(LPCSTR from, LPCSTR to, CBuffer *in, CBuffer *out);
 	int IConvStr(LPCSTR from, LPCSTR to, LPCSTR in, CString &out);
 	int IConvChar(LPCSTR from, LPCSTR to, int ch);

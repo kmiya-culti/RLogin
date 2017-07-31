@@ -154,6 +154,8 @@ void CRLoginView::OnDraw(CDC* pDC)
 	if ( (m_DispCaret & 001) != 0 )
 		ShowCaret();
 
+	pDoc->ClearActCount();
+
 //	TRACE("Draw %x(%d,%d,%d,%d)\n", m_hWnd, sx, sy, ex, ey);
 }
 

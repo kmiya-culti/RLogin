@@ -11,6 +11,7 @@
 
 #include <afxmt.h>
 #include "ProgDlg.h"
+#include "IConv.h"
 
 #define	THCMD_START			0
 #define	THCMD_ENDOF			1
@@ -27,6 +28,7 @@
 #define	THCMD_SENDSTR		12
 #define	THCMD_SENDSCRIPT	13
 #define	THCMD_SENDSYNC		14
+#define	TGCMD_MESSAGE		15
 
 extern const unsigned short CRCTable[];
 
@@ -72,6 +74,20 @@ public:
 	void SendEcho(int ch);
 	void SendString(LPCWSTR str);
 	void SendScript(LPCWSTR str);
+	void Message(LPCSTR msg);
+
+	BOOL m_IsAscii;
+	CString m_HostCode;
+	CIConv m_IConv;
+	CBuffer m_InBuf;
+	CBuffer m_OutBuf;
+
+	inline void SetFileType(BOOL ascii) { m_IsAscii = ascii; }
+	FILE *FileOpen(LPCSTR filename, LPCSTR mode, BOOL ascii);
+	void FileClose(FILE *fp);
+	int ReadCharToHost(FILE *fp);
+	int ReadFileToHost(char *buf, int len, FILE *fp);
+	int WriteFileFromHost(char *buf, int len, FILE *fp);
 
 	void UpDownOpen(LPCSTR msg);
 	void UpDownClose();

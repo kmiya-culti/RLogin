@@ -33,6 +33,7 @@ CSyncSock::CSyncSock(class CRLoginDoc *pDoc, CWnd *pWnd)
 	m_pThreadEvent = new CEvent(FALSE, TRUE);
 	m_pParamEvent  = new CEvent(FALSE, TRUE);
 	m_ResvDoit = FALSE;
+	m_IsAscii = FALSE;
 }
 
 CSyncSock::~CSyncSock()
@@ -203,6 +204,10 @@ void CSyncSock::ThreadCommand(int cmd)
 		m_SendSema.Unlock();
 		while ( m_pDoc->m_pSock->GetSendSize() > (256 * 1024) )
 			Sleep(100);
+		m_pParamEvent->SetEvent();
+		break;
+	case TGCMD_MESSAGE:
+		m_pWnd->MessageBox(m_Message);
 		m_pParamEvent->SetEvent();
 		break;
 	}
@@ -423,4 +428,87 @@ void CSyncSock::SendScript(LPCWSTR str)
 	m_SendSema.Unlock();
 	m_pWnd->PostMessage(WM_THREADCMD, THCMD_SENDSCRIPT, (LPARAM)this);
 	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
+}
+void CSyncSock::Message(LPCSTR msg)
+{
+	m_Message = msg;
+	m_pParamEvent->ResetEvent();
+	m_pWnd->PostMessage(WM_THREADCMD, TGCMD_MESSAGE, (LPARAM)this);
+	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
+}
+
+//////////////////////////////////////////////////////////////////////
+
+FILE *CSyncSock::FileOpen(LPCSTR filename, LPCSTR mode, BOOL ascii)
+{
+	m_IsAscii = ascii;
+	m_InBuf.Clear();
+	m_OutBuf.Clear();
+	m_IConv.IConvClose();
+	m_HostCode = m_pDoc->m_TextRam.m_SendCharSet[m_pDoc->m_TextRam.m_KanjiMode];
+	return fopen(filename, mode);
+}
+void CSyncSock::FileClose(FILE *fp)
+{
+	if ( m_IConv.m_ErrCount > 0 || m_InBuf.GetSize() > 0 )
+		Message("文字コード変換でエラーが発生しました。\n正しく変換されていない可能性があります");
+	fclose(fp);
+}
+int CSyncSock::ReadCharToHost(FILE *fp)
+{
+	BYTE tmp[4];
+
+	if ( !m_IsAscii )
+		return fgetc(fp);
+
+	if ( ReadFileToHost((char *)tmp, 1, fp) != 1 )
+		return EOF;
+
+	return tmp[0];
+}
+int CSyncSock::ReadFileToHost(char *buf, int len, FILE *fp)
+{
+	int n, i;
+	char tmp[4096];
+
+	if ( !m_IsAscii )
+		return fread(buf, 1, len, fp);
+
+	while ( m_OutBuf.GetSize() < len && !feof(fp) ) {
+		if ( (n = fread(tmp, 1, 4096, fp)) <= 0 )
+			break;
+		for ( i = 0 ; i < n ; i++ ) {
+			if ( tmp[i] != '\r' )
+				m_InBuf.Put8Bit(tmp[i]);
+		}
+		m_IConv.IConvSub("CP932", m_HostCode, &m_InBuf, &m_OutBuf);
+	}
+
+	if ( (n = (m_OutBuf.GetSize() < len ? m_OutBuf.GetSize() : len)) > 0 ) {
+		memcpy(buf, m_OutBuf.GetPtr(), n);
+		m_OutBuf.Consume(n);
+	}
+
+	return n;
+}
+int CSyncSock::WriteFileFromHost(char *buf, int len, FILE *fp)
+{
+	int n;
+
+	if ( !m_IsAscii )
+		return fwrite(buf, 1, len, fp);
+
+	for ( n = 0 ; n < len ; n++ ) {
+		if ( buf[n] == '\n' ) {
+			m_InBuf.Put8Bit('\r');
+			m_InBuf.Put8Bit('\n');
+		} else if ( buf[n] != '\r' )
+			m_InBuf.Put8Bit(buf[n]);
+	}
+	m_IConv.IConvSub(m_HostCode, "CP932", &m_InBuf, &m_OutBuf);
+
+	if ( (n = fwrite(m_OutBuf.GetPtr(), 1, m_OutBuf.GetSize(), fp)) > 0 )
+		m_OutBuf.Consume(n);
+
+	return len;
 }

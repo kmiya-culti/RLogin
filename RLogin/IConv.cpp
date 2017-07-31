@@ -24,6 +24,7 @@ CIConv::CIConv()
 	m_Left = NULL;
 	m_Right = NULL;
 	memset(m_Table, 0, sizeof(int) * 256);
+	m_ErrCount = 0;
 }
 
 CIConv::~CIConv()
@@ -36,6 +37,22 @@ CIConv::~CIConv()
 
 	if ( m_Cd != NULL && m_Cd != (iconv_t)(-1) )
 	    iconv_close(m_Cd);
+}
+void CIConv::IConvClose()
+{
+	if ( m_Left != NULL )
+		delete m_Left;
+	m_Left = NULL;
+
+	if ( m_Right != NULL )
+		delete m_Right;
+	m_Right = NULL;
+
+	if ( m_Cd != NULL && m_Cd != (iconv_t)(-1) )
+	    iconv_close(m_Cd);
+
+	m_Cd = NULL;
+	m_ErrCount = 0;
 }
 
 /******************
@@ -163,6 +180,39 @@ class CIConv *CIConv::GetIConv(LPCSTR from, LPCSTR to)
 	}
 }
 
+void CIConv::IConvSub(LPCSTR from, LPCSTR to, CBuffer *in, CBuffer *out)
+{
+	int n = 0;
+	CIConv *cp;
+    char *inp, *otp;
+    size_t ins, tns, xns, ots, len;
+	char tmp[4096];
+
+	cp = GetIConv(from, to);
+	if ( cp->m_Cd == (iconv_t)(-1) )
+		return;
+
+RETRY:
+	len = in->GetSize();
+
+    while ( in->GetSize() > 0 && n != (-1) ) {
+		inp = (char *)(in->GetPtr());
+		ins = in->GetSize();
+		otp = tmp;
+		ots = 4096;
+		xns = tns = (ins < 2048 ? ins : 2048);
+        n = (int)iconv(cp->m_Cd, (const char **)&inp, &tns, &otp, &ots);
+		if ( ots < 4096 )
+			out->Apend((LPBYTE)tmp, (int)(4096 - ots));
+		in->Consume(xns - tns);
+	}
+
+	if ( len > 4 && len == in->GetSize() && n == (-1) ) {
+		in->Consume(1);
+		m_ErrCount++;
+		goto RETRY;
+	}
+}
 int CIConv::IConvBuf(LPCSTR from, LPCSTR to, CBuffer *in, CBuffer *out)
 {
 	int n = 0;

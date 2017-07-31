@@ -588,15 +588,19 @@ int CRLoginDoc::OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags)
 {
 	int n;
 
+//	TRACE("OnSocketRecive %d(%d)Byte\n", nBufLen, m_ActCharCount);
+
 	if ( nFlags != 0 )
 		return nBufLen;
 
-	if ( m_ActCharCount > 2048 )
-		return 0;
-	else if ( nBufLen > 4096 )
-		nBufLen = 4096;
+	if ( m_ActCharCount > 2048 ) {
+		if ( !m_pMainWnd->IsIconic() )
+			return 0;
+		m_ActCharCount = 0;
+	}
 
-//	TRACE("OnSocketRecive %dByte\n", nBufLen);
+	if ( nBufLen > 4096 )
+		nBufLen = 4096;
 
 	if ( (n = m_TextRam.Write(lpBuf, nBufLen)) < nBufLen ) {
 		m_pSock->SetRecvSyncMode(TRUE);
