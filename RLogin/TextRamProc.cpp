@@ -2006,7 +2006,7 @@ void CTextRam::fc_UTF85(DWORD ch)
 {
 	// 10xx xxxx
 	int n, cf;
-	CVram *vp;
+	CCharCell *vp;
 
 	fc_KANJI(ch);
 
@@ -3278,7 +3278,7 @@ void CTextRam::fc_DECSIXEL(DWORD ch)
 		m_UpdateFlag = TRUE;	// •\Ž¦‚Ì‹@‰ï‚ð—^‚¦‚é
 
 		for ( int y = 0 ; y < pGrapWnd->m_BlockY ; y++ ) {
-			CVram *vp = GETVRAM(m_CurX, m_CurY);
+			CCharCell *vp = GETVRAM(m_CurX, m_CurY);
 			for ( int x = 0 ; x < pGrapWnd->m_BlockX && (m_CurX + x) < m_Margin.right ; x++ ) {
 				vp->m_Vram.pack.image.id = pGrapWnd->m_ImageIndex;
 				vp->m_Vram.pack.image.ix = x;
@@ -5896,7 +5896,7 @@ void CTextRam::fc_DECCARA(DWORD ch)
 {
 	// CSI $r	DECCARA Change Attribute in Rectangle
 	int n, i, x, y;
-	CVram *vp;
+	CCharCell *vp;
 
 	SetAnsiParaArea(0);
 
@@ -6012,7 +6012,7 @@ void CTextRam::fc_DECRARA(DWORD ch)
 {
 	// CSI $t	DECRARA Reverse Attribute in Rectangle
 	int n, x, y;
-	CVram *vp;
+	CCharCell *vp;
 
 	SetAnsiParaArea(0);
 
@@ -6214,7 +6214,7 @@ void CTextRam::fc_DECFRA(DWORD ch)
 {
 	// CSI $x	DECFRA Fill Rectangular Area
 	int n, x, y;
-	CVram *vp;
+	CCharCell *vp;
 	SetAnsiParaArea(1);
 	n = GetAnsiPara(0, 0, 0);
 	for ( y = m_AnsiPara[1] ; y <= m_AnsiPara[3] ; y++ ) {
@@ -6659,7 +6659,7 @@ void CTextRam::fc_DECRQCRA(DWORD ch)
 
 	int x, y, page, sum = 0;
 	CTextSave *pSave;
-	CVram *vp;
+	CCharCell *vp;
 
 	SetAnsiParaArea(2);
 
@@ -6678,7 +6678,7 @@ void CTextRam::fc_DECRQCRA(DWORD ch)
 	} else {
 		pSave = GETPAGE(page);
 		for ( y = m_AnsiPara[2] ; y <= m_AnsiPara[4] ; y++ ) {
-			vp = pSave->m_VRam + m_AnsiPara[3] + pSave->m_Cols * y;
+			vp = pSave->m_pCharCell + m_AnsiPara[3] + pSave->m_Cols * y;
 			for ( x = m_AnsiPara[3] ; x <= m_AnsiPara[5] ; x++, vp++ )
 				sum += (DWORD)(*vp);
 		}

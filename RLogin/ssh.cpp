@@ -485,7 +485,7 @@ void Cssh::SendWindSize(int x, int y)
 		SendPacket(&tmp);
 		break;
 	case 2:
-		if ( m_StdChan == (-1) )
+		if ( m_StdChan == (-1) || !CHAN_OK(m_StdChan) )	// ((CChannel *)m_pChan[m_StdChan])->m_RemoteID == (-1) )
 			break;
 		tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
 		tmp.Put32Bit(((CChannel *)m_pChan[m_StdChan])->m_RemoteID);
@@ -496,6 +496,7 @@ void Cssh::SendWindSize(int x, int y)
 		tmp.Put32Bit(sx);
 		tmp.Put32Bit(sy);
 		SendPacket2(&tmp);
+		TRACE("SendWindSize %d,%d (%d,%d)\n", x, y, sx, sy);
 		break;
 	}
  } catch(...) {
@@ -2938,9 +2939,11 @@ int Cssh::SSH2MsgGlobalRequest(CBuffer *bp)
 	} else if ( str.Compare("hostkeys-00@openssh.com") == 0 ) {
 		success = SSH2MsgGlobalHostKeys(bp);
 
-	//} else if ( !str.IsEmpty() ) {
-	//	msg.Format(_T("Get Msg Global Request '%s'"), m_pDocument->LocalStr(str));
-	//	AfxMessageBox(msg);
+#ifdef	DEBUG
+	} else if ( !str.IsEmpty() ) {
+		msg.Format(_T("Get Msg Global Request '%s'"), m_pDocument->LocalStr(str));
+		AfxMessageBox(msg);
+#endif
 	}
 
 	if ( reply > 0 ) {

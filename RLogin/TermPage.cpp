@@ -259,7 +259,7 @@ BOOL CTermPage::OnApply()
 		if ( m_OptList.GetLVCheck(i) ) {
 			if ( m_pSheet->m_pTextRam->IsOptEnable(OptListTab[n].num) )
 				continue;
-			if ( m_pSheet->m_pTextRam->m_VRam == NULL || m_pSheet->m_pTextRam->m_pDocument == NULL ) {
+			if ( !m_pSheet->m_pTextRam->IsInitText() || m_pSheet->m_pTextRam->m_pDocument == NULL ) {
 				m_pSheet->m_pTextRam->EnableOption(OptListTab[n].num);
 				continue;
 			}
@@ -286,7 +286,7 @@ BOOL CTermPage::OnApply()
 		} else {
 			if ( !m_pSheet->m_pTextRam->IsOptEnable(OptListTab[n].num) )
 				continue;
-			if ( m_pSheet->m_pTextRam->m_VRam == NULL || m_pSheet->m_pTextRam->m_pDocument == NULL ) {
+			if ( !m_pSheet->m_pTextRam->IsInitText() || m_pSheet->m_pTextRam->m_pDocument == NULL ) {
 				m_pSheet->m_pTextRam->DisableOption(OptListTab[n].num);
 				continue;
 			}

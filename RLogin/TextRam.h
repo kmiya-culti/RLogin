@@ -17,9 +17,12 @@
 #include "GrapWnd.h"
 #include "GhostWnd.h"
 
+#define	USE_FIXWCHAR		1				// MemMap Base Fixed WCHAR Buffer
+#define	USE_TEXTFRAME	1				// Enabled ATT_FRAME RS/RD/LS/LDLINE 
+
 #define	COLS_MAX		512
 #define	LINE_MAX		512
-#define	HIS_MAX			200000			// HIS_MAX * COLS_MAX * sizeof(CVram) = 1,638,400,000 byte
+#define	HIS_MAX			200000			// HIS_MAX * COLS_MAX * sizeof(CCharCell) = 1,638,400,000 byte
 #define	DEF_TAB			8
 #define	FKEY_MAX		24
 #define	KANBUFMAX		128
@@ -402,35 +405,60 @@ typedef struct _Vram {
 	BYTE	bcol;			// ”wŒiF”Ô†
 } VRAM;
 
-//#define	FIXWCHAR	1
+#ifdef	USE_FIXWCHAR
 
-#ifdef	FIXWCHAR
-#define	MAXCHARSIZE	8
-#else
-#define	MAXCHARSIZE	31
-WCHAR *WCharAlloc(int len);
-void WCharFree(WCHAR *ptr);
-int WCharSize(WCHAR *ptr);
-void AllWCharAllocFree();
-#endif
+#define	MAXCHARSIZE	12
+#define	MEMMAPSIZE	(sizeof(CCharCell) * COLS_MAX * 128)		// 32 * 512 * 128 = 2M
+#define	MEMMAPCACHE	4
 
-/////////////////////////////////////////////////
-//				   FIXW       x64        x32
-// sizeof(Cram) == 24 Byte or 20 Byte or 16 Byte
-//
-class CVram
+typedef struct _MemMapNode {
+	struct _MemMapNode *pNext;
+	HANDLE hFile;
+	ULONGLONG Offset;
+	void *pAddress;
+} MEMMAPNODE;
+
+class CMemMap : public CObject
 {
 public:
-#ifdef	FIXWCHAR
-	WCHAR		m_Data[MAXCHARSIZE - 2];	// WCHAR * (8 - m_Vram.pack.wcbuf[2]) = 12 Byte
+	MEMMAPNODE *m_pMapTop;
+	MEMMAPNODE m_MapData[MEMMAPCACHE];
+	ULONGLONG m_MapSize;
+	CSemaphore m_MapSema;
+
+	CMemMap();
+	~CMemMap();
+
+	HANDLE Create(ULONGLONG size);
+	void Close(HANDLE hFile);
+	void *MemMap(HANDLE hFile, ULONGLONG pos);
+};
+
+#else	// !USE_FIXWCHAR
+	#define	MAXCHARSIZE	31
+	WCHAR *WCharAlloc(int len);
+	void WCharFree(WCHAR *ptr);
+	int WCharSize(WCHAR *ptr);
+	void AllWCharAllocFree();
+#endif	// USE_FIXWCHAR
+
+///////////////////////////////////////////////////////
+//				        FIXW       x64        x32
+// sizeof(CCharCell) == 32 Byte or 20 Byte or 16 Byte
+//
+class CCharCell
+{
+public:
+#ifdef	USE_FIXWCHAR
+	WCHAR		m_Data[MAXCHARSIZE - 2];	// WCHAR * (12 - m_Vram.pack.wcbuf[2]) = 20 Byte
 	VRAM		m_Vram;						// DWORD * 3 = 12 Byte
 #else
 	WCHAR		*m_Data;					// (WCHAR *) = 4 / 8 Byte
 	VRAM		m_Vram;						// DWORD * 3 = 12 Byte
-#endif
 
-	CVram();
-	~CVram();
+	CCharCell();
+	~CCharCell();
+#endif
 
 	inline void Empty() { if ( !IS_IMAGE(m_Vram.mode) ) m_Data[0] = 0; }
 	inline BOOL IsEmpty() { return (IS_IMAGE(m_Vram.mode) || m_Data[0] == 0 ? TRUE : FALSE); }
@@ -445,11 +473,11 @@ public:
 	void operator += (DWORD ch);
 	void SetVRAM(VRAM &ram);
 
-#ifdef	FIXWCHAR
-	inline const CVram & operator = (CVram &data) { memcpy(this, &data, sizeof(CVram)); return *this; }
+#ifdef	USE_FIXWCHAR
+	inline const CCharCell & operator = (CCharCell &data) { memcpy(this, &data, sizeof(CCharCell)); return *this; }
 #else
-	void GetCVram(CVram &data);
-	inline const CVram & operator = (CVram &data) { if ( data.m_Data == data.m_Vram.pack.wcbuf && m_Data == m_Vram.pack.wcbuf ) m_Vram = data.m_Vram; else GetCVram(data); return *this; }
+	void GetCCharCell(CCharCell &data);
+	inline const CCharCell & operator = (CCharCell &data) { if ( data.m_Data == data.m_Vram.pack.wcbuf && m_Data == m_Vram.pack.wcbuf ) m_Vram = data.m_Vram; else GetCCharCell(data); return *this; }
 #endif
 	inline void operator = (VRAM &ram) { m_Vram = ram; *this = ram.pack.dchar; }
 
@@ -461,8 +489,8 @@ public:
 	void Read(CFile &file, int ver = 3);
 	void Write(CFile &file);
 
-	static void Copy(CVram *dis, CVram *src, int size);
-	static void Fill(CVram *dis, VRAM &vram, int size);
+	static void Copy(CCharCell *dis, CCharCell *src, int size);
+	static void Fill(CCharCell *dis, VRAM &vram, int size);
 };
 
 class CFontNode : public CObject
@@ -587,12 +615,12 @@ public:
 class CTextSave : public CObject
 {
 public:
-	class CTextSave *m_Next;
+	class CTextSave *m_pNext;
 	class CTextRam *m_pTextRam;
 
 	BOOL m_bAll;
 
-	CVram *m_VRam;
+	CCharCell *m_pCharCell;
 	VRAM m_AttNow;
 	VRAM m_AttSpc;
 
@@ -704,8 +732,14 @@ public:
 	class CRLoginDoc *m_pDocument;
 	class CFontTab m_FontTab;
 
+#ifdef	USE_FIXWCHAR
+	CMemMap m_MemMap;
+	HANDLE m_hMap;
+#else
+	CCharCell *m_VRam;
+#endif
+
 	BOOL m_bOpen;
-	CVram *m_VRam;
 	VRAM m_AttSpc;
 	VRAM m_AttNow;
 
@@ -836,7 +870,17 @@ public:
 	virtual ~CTextRam();
 	
 	// Window Fonction
+#ifdef	USE_FIXWCHAR
+	BOOL IsInitText() { return (m_bOpen && m_hMap != NULL ? TRUE : FALSE); }
+	inline ULONGLONG CalcOffset(int x, int y) { return sizeof(CCharCell) * ((ULONGLONG)y * COLS_MAX + x); }
+	inline CCharCell *GETMAPRAM(HANDLE hFile, int x, int y) { return (CCharCell *)m_MemMap.MemMap(hFile, CalcOffset(x, y)); }
+	inline void MemMapLock() { m_MemMap.m_MapSema.Lock(); }
+	inline void MemMapUnlock() { m_MemMap.m_MapSema.Unlock(); }
+#else
 	BOOL IsInitText() { return (m_bOpen && m_VRam != NULL ? TRUE : FALSE); }
+	inline void MemMapLock() { }
+	inline void MemMapUnlock() { }
+#endif
 	void InitText(int Width, int Height);
 	void InitScreen(int cols, int lines);
 	int Write(LPBYTE lpBuf, int nBufLen, BOOL *sync);
@@ -898,8 +942,8 @@ public:
 
 	inline int GetCalcPos(int x, int y) { return (m_ColsMax * (y + m_HisPos + m_HisMax) + x); }
 	inline void SetCalcPos(int pos, int *x, int *y) { *x = pos % m_ColsMax; *y = (pos / m_ColsMax - m_HisPos - m_HisMax); }
-	inline int GetDm(int y) { CVram *vp = GETVRAM(0, y); return vp->m_Vram.zoom; }
-	inline void SetDm(int y, int dm) { CVram *vp = GETVRAM(0, y); vp->m_Vram.zoom = dm; }
+	inline int GetDm(int y) { CCharCell *vp = GETVRAM(0, y); return vp->m_Vram.zoom; }
+	inline void SetDm(int y, int dm) { CCharCell *vp = GETVRAM(0, y); vp->m_Vram.zoom = dm; }
 
 	inline int GetLeftMargin() { return (IsOptEnable(TO_DECLRMM) ? m_LeftX : 0); }
 	inline int GetRightMargin() { return (IsOptEnable(TO_DECLRMM) ? m_RightX : m_Cols); }
@@ -929,7 +973,7 @@ public:
 
 	// Low Level
 	void RESET(int mode = RESET_PAGE | RESET_CURSOR | RESET_MARGIN | RESET_TABS | RESET_BANK | RESET_ATTR | RESET_COLOR | RESET_TEK | RESET_SAVE | RESET_MOUSE | RESET_CHAR);
-	CVram *GETVRAM(int cols, int lines);
+	CCharCell *GETVRAM(int cols, int lines);
 	void UNGETSTR(LPCTSTR str, ...);
 	void BEEP();
 	void FLUSH();
@@ -1391,6 +1435,9 @@ public:
 	CPtrArray m_GrapWndTab;
 	class CGrapWnd *m_pActGrapWnd;
 	clock_t m_GrapWndChkCLock;
+	int m_GrapWndChkStat;
+	int m_GrapWndChkPos;
+	BYTE m_GrapWndUseMap[4096];
 
 	class CGrapWnd *GetGrapWnd(int index);
 	class CGrapWnd *CmpGrapWnd(class CGrapWnd *pWnd);

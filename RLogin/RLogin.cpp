@@ -990,7 +990,7 @@ int CRLoginApp::ExitInstance()
 		m_pD2DFactory->Release();
 #endif
 
-#ifndef	FIXWCHAR
+#ifndef	USE_FIXWCHAR
 	AllWCharAllocFree();
 #endif
 

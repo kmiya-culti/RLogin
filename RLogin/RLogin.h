@@ -13,7 +13,6 @@
 #define WM_GETHOSTADDR	(WM_USER + 1)
 #define	WM_ICONMSG		(WM_USER + 2)
 #define WM_THREADCMD	(WM_USER + 3)
-#define WM_SEARCHNEXT	(WM_USER + 4)
 
 class CCommandLineInfoEx : public CCommandLineInfo
 {

@@ -1500,20 +1500,20 @@ void CExtSocket::OnConnect()
 	}
 #endif
 
-	m_SocketEvent &= ~FD_CONNECT;
-	WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), WM_SOCKSEL, m_SocketEvent);
+	if ( m_Fd != (-1) ) {
+		m_SocketEvent &= ~FD_CONNECT;
+		WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), WM_SOCKSEL, m_SocketEvent);
+
+		if ( m_pDocument->m_TextRam.IsOptEnable(TO_RLKEEPAL) ) {
+			BOOL opval = TRUE;
+			::setsockopt(m_Fd, SOL_SOCKET, SO_KEEPALIVE, (const char *)(&opval), sizeof(opval));
+		}
+	}
 
 	m_bConnect = TRUE;
 
-	if ( m_pDocument == NULL )
-		return;
-
-	if ( m_pDocument->m_TextRam.IsOptEnable(TO_RLKEEPAL) && m_Fd != (-1) ) {
-		BOOL opval = TRUE;
-		::setsockopt(m_Fd, SOL_SOCKET, SO_KEEPALIVE, (const char *)(&opval), sizeof(opval));
-	}
-
-	m_pDocument->OnSocketConnect();
+	if ( m_pDocument != NULL )
+		m_pDocument->OnSocketConnect();
 }
 void CExtSocket::OnAccept(SOCKET hand)
 {

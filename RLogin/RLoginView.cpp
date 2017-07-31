@@ -1143,7 +1143,7 @@ int CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 
 	//CView::OnKeyDown(nChar, nRepCnt, nFlags);
 
-	//TRACE("KeyDown %02X[%d](%04X)\n", nChar, nRepCnt, nFlags);
+	TRACE("KeyDown %02X[%d](%04X)\n", nChar, nRepCnt, nFlags);
 
 	if ( nChar == VK_MENU )
 		return TRUE;
@@ -1592,7 +1592,7 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 
 		if ( style == 24 && pDoc != NULL && pDoc->m_TextRam.IsInitText() ) {
 			int x, y;
-			CVram *vp;
+			CCharCell *vp;
 			CalcGrapPoint(m_GoziPos, &x, &y);
 			x -= (rand() % 6);
 			y += (rand() % 4);
