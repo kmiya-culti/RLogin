@@ -333,7 +333,8 @@ void CSerEntPage::OnProxySet()
 {
 	CProxyDlg dlg;
 
-	dlg.m_ProxyMode  = m_ProxyMode;
+	dlg.m_ProxyMode  = m_ProxyMode & 7;
+	dlg.m_SSLMode    = m_ProxyMode >> 3;
 	dlg.m_ServerName = m_ProxyHost;
 	dlg.m_PortName   = m_ProxyPort;
 	dlg.m_UserName   = m_ProxyUser;
@@ -342,7 +343,7 @@ void CSerEntPage::OnProxySet()
 	if ( dlg.DoModal() != IDOK )
 		return;
 
-	m_ProxyMode = dlg.m_ProxyMode;
+	m_ProxyMode = dlg.m_ProxyMode | (dlg.m_SSLMode << 3);
 	m_ProxyHost = dlg.m_ServerName;
 	m_ProxyPort = dlg.m_PortName;
 	m_ProxyUser = dlg.m_UserName;

@@ -119,7 +119,7 @@ public:
 	int m_SleepCount;
 	int m_TransParValue;
 
-	void SetTransPar(int value);
+	void SetTransPar(COLORREF rgb, int value, DWORD flag);
 	void SetIconStyle();
 	void SetIconData(HICON hIcon, LPCSTR str);
 
@@ -161,10 +161,6 @@ protected:  // コントロール バー用メンバ
 	CStatusBar  m_wndStatusBar;
 	CToolBar    m_wndToolBar;
 	CTabBar		m_wndTabBar;
-
-	HINSTANCE   hDllInst;
-	SETLAYER    *SetLayeredWindowAttributes; 
-
 
 // 生成された、メッセージ割り当て関数
 protected:

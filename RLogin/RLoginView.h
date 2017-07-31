@@ -51,6 +51,7 @@ public:
 	BOOL m_VisualBellFlag;
 	int m_BlinkFlag;
 	BOOL m_MouseEventFlag;
+	BOOL m_BroadCast;
 
 	int m_ClipFlag;
 	int m_ClipStaPos, m_ClipEndPos;
@@ -66,7 +67,7 @@ public:
 	void CalcGrapPoint(CPoint po, int *x, int *y);
 	void ImmSetPos(int x, int y);
 	void SetCaret();
-
+	void SendBroadCast(CBuffer &buf);
 	void SendBuffer(CBuffer &buf, BOOL macflag = FALSE);
 
 	inline int CalcGrapX(int x) { return (m_Width  * x / m_Cols); }
@@ -124,6 +125,8 @@ public:
 	afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnMouseEvent();
 	afx_msg void OnUpdateMouseEvent(CCmdUI *pCmdUI);
+	afx_msg void OnBroadcast();
+	afx_msg void OnUpdateBroadcast(CCmdUI *pCmdUI);
 };
 
 #ifndef _DEBUG  // RLoginView.cpp ファイルがデバッグ環境の時使用されます。

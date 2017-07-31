@@ -12,6 +12,13 @@
 #include <afxmt.h>
 #include "Data.h"
 
+#include <openssl/crypto.h>
+#include <openssl/x509.h>
+#include <openssl/pem.h>
+#include <openssl/rsa.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+
 #define	RECVMINSIZ	(2 * 1024)
 #define	RECVBUFSIZ	(32 * 1024)
 #define	RECVMAXSIZ	(128 * 1024)
@@ -44,8 +51,7 @@ class CExtSocket : public CObject
 {
 public:
 	int m_Type;
-	SOCKET m_Fd;
-	SOCKET m_Fdv6;
+	SOCKET m_Fd, m_Fdv6;
 	class CRLoginDoc *m_pDocument;
 
 	CBuffer m_RecvBuff;
@@ -90,6 +96,10 @@ private:
 	BOOL m_ProxyConnect;
 	CBuffer m_ProxyBuff;
 
+	int m_SSL_mode;
+	SSL_CTX *m_SSL_pCtx;
+	SSL *m_SSL_pSock;
+
 	CSockBuffer *AllocBuffer();
 	void FreeBuffer(CSockBuffer *sp);
 	CSockBuffer *AddTail(CSockBuffer *sp, CSockBuffer *head);
@@ -101,6 +111,8 @@ private:
 	BOOL ProxyReadLine();
 	BOOL ProxyReadBuff(int len);
 	int ProxyFunc();
+	int SSLConnect();
+	void SSLClose();
 
 public:
 	virtual BOOL Create(LPCTSTR lpszHostAddress, UINT nHostPort, LPCSTR lpszRemoteAddress = NULL, int nSocketType = SOCK_STREAM);
@@ -149,6 +161,7 @@ public:
 	static void GetPeerName(int fd, CString &host, int *port);
 	static void GetHostName(int af, void *addr, CString &host);
 	static int GetPortNum(LPCSTR str);
+	static BOOL SokcetCheck(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM);
 
 	void SetRecvSyncMode(BOOL mode);
 	int SyncRecive(void* lpBuf, int nBufLen, int nSec, BOOL *pAbort);

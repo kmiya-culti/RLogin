@@ -1990,6 +1990,91 @@ int CIdKey::SavePrivateKey(int type, LPCSTR file, LPCSTR pass)
 	fclose(fp);
 	return rt;
 }
+int CIdKey::GetSize()
+{
+	switch (m_Type) {
+	case IDKEY_RSA1:
+	case IDKEY_RSA2:
+		return BN_num_bits(m_Rsa->n);
+	case IDKEY_DSA2:
+		return BN_num_bits(m_Dsa->p);
+	}
+	return 0;
+}
+void CIdKey::FingerPrint(CString &str)
+{
+#define	FLDSIZE_X		16
+#define	FLDSIZE_Y		8
+
+	int n, b, c;
+	int x, y;
+	const EVP_MD *md = EVP_md5();
+	EVP_MD_CTX ctx;
+	CBuffer blob;
+	unsigned int len;
+	u_char tmp[EVP_MAX_MD_SIZE];
+	u_char map[FLDSIZE_X][FLDSIZE_Y];
+	static const char *augmentation_string = " .o+=*BOX@%&#/^SE";
+
+	str.Empty();
+	if ( !SetBlob(&blob) ) {
+		if ( m_Type != IDKEY_RSA1 )
+			return;
+		blob.PutBIGNUM2(m_Rsa->n);
+		blob.PutBIGNUM2(m_Rsa->e);
+	}
+
+	EVP_DigestInit(&ctx, md);
+	EVP_DigestUpdate(&ctx, blob.GetPtr(), blob.GetSize());
+	EVP_DigestFinal(&ctx, tmp, &len);
+
+	memset(map, 0, sizeof(map));
+	x = FLDSIZE_X / 2;
+	y = FLDSIZE_Y / 2;
+
+	for ( n = 0 ; n < len ; n++ ) {
+		c = tmp[n];
+		for ( b = 0 ; b < 4 ; b++ ) {
+			if ( (x += (c & 1) ? 1 : -1) < 0 )
+				x = 0;
+			else if ( x >= FLDSIZE_X )
+				x = FLDSIZE_X - 1;
+
+			if ( (y += (c & 2) ? 1 : -1) < 0 )
+				y = 0;
+			else if ( y >= FLDSIZE_Y )
+				y = FLDSIZE_X - 1;
+
+			map[x][y]++;
+			c >>= 2;
+		}
+	}
+
+	n = strlen(augmentation_string) - 1;
+	map[FLDSIZE_X / 2][FLDSIZE_Y / 2] = n - 1;
+	map[x][y] = n;
+
+	switch (m_Type) {
+	case IDKEY_RSA1:
+		str.Format("+--[RSA1 %4d]--+\r\n", GetSize());
+		break;
+	case IDKEY_RSA2:
+		str.Format("+--[RSA2 %4d]--+\r\n", GetSize());
+		break;
+	case IDKEY_DSA2:
+		str.Format("+--[DSA2 %4d]--+\r\n", GetSize());
+		break;
+	}
+
+	for ( y = 0 ; y < FLDSIZE_Y ; y++ ) {
+		str += "|";
+		for ( x = 0 ; x < FLDSIZE_X ; x++ )
+			str += (map[x][y] >= n ? 'E' : augmentation_string[map[x][y]]);
+		str += "|\n";
+	}
+
+	str += "+--------------+\r\n";
+}
 
 //////////////////////////////////////////////////////////////////////
 // CIdKeyTab
@@ -2125,6 +2210,7 @@ CFilter::CFilter()
 {
 	m_Type = 0;
 	m_pChan = NULL;
+	m_pNext = NULL;
 }
 CFilter::~CFilter()
 {
@@ -2585,6 +2671,15 @@ void CRcpUpload::Close()
 		_close(m_Fd);
 	m_Fd = (-1);
 
+	CFilter *fp;
+	if ( (fp = m_pSsh->m_pListFilter) == this )
+		m_pSsh->m_pListFilter = m_pNext;
+	else {
+		if ( fp->m_pNext == this )
+			fp->m_pNext = m_pNext;
+	}
+	m_pNext = NULL;
+
 	CFilter::Close();
 }
 void CRcpUpload::HostKanjiStr(LPCSTR str, CString &tmp)
@@ -2705,6 +2800,7 @@ Cssh::Cssh(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 	m_SaveDh = NULL;
 	m_SSHVer = 0;
 	m_InPackStat = 0;
+	m_pListFilter = NULL;
 
 	for ( int n = 0 ; n < 6 ; n++ )
 		m_VKey[n] = NULL;
@@ -2759,6 +2855,7 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 	m_Chan.RemoveAll();
 	m_ChanNext = m_ChanFree = m_ChanFree2 = (-1);
 	m_OpenChanCount = 0;
+	m_pListFilter = NULL;
 	m_Permit.RemoveAll();
 	m_MyPeer.Clear();
 	m_HisPeer.Clear();
@@ -3006,10 +3103,8 @@ void Cssh::OnRecvEmpty()
 }
 void Cssh::OnSendEmpty()
 {
-	for ( int n = m_ChanNext ; n != (-1) ; n = m_Chan[n].m_Next ) {
-		if ( m_Chan[n].m_pFilter != NULL )
-			m_Chan[n].m_pFilter->OnSendEmpty();
-	}
+	for ( CFilter *fp = m_pListFilter ; fp != NULL ; fp = fp->m_pNext )
+		fp->OnSendEmpty();
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -3822,6 +3917,8 @@ void Cssh::OpenRcpUpload(LPCSTR file)
 		int id = SendMsgChannelOpen((-1), "session");
 		m_Chan[id].m_pFilter = &m_RcpCmd;
 		m_RcpCmd.m_pChan = &(m_Chan[id]);
+		m_RcpCmd.m_pNext = m_pListFilter;
+		m_pListFilter = &m_RcpCmd;
 	}
 }
 
@@ -4063,7 +4160,10 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 		while ( *p != '\0' && *p != ':' )
 			str += *(p++);
 
-		if ( *(p++) == ':' ) {
+		if ( str.IsEmpty() || str.CompareNoCase("unix") == 0 )
+			str = "127.0.0.1";
+
+		if ( *(p++) == ':' && CExtSocket::SokcetCheck(str, 6000 + atoi(p)) ) {
 			str.Format("%04x%04x%04x%04x", rand(), rand(), rand(), rand());
 			tmp.Clear();
 			tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);

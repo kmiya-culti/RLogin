@@ -5,7 +5,9 @@
 #include "RLogin.h"
 #include "MainFrm.h"
 #include "TekWnd.h"
+#ifndef	WINSOCK11
 #include "atlimage.h"
+#endif
 
 // CTekWnd
 
@@ -81,11 +83,18 @@ void CTekWnd::OnTekClose()
 void CTekWnd::OnTekSave()
 {
 	CDC dc;
+#ifndef	WINSOCK11
 	CImage image;
+#endif
 	CRect rect(0, 0, TEK_WIN_WIDTH / 4, TEK_WIN_HEIGHT / 4);
 	CFileDialog dlg(FALSE, _T("gif"), _T(""), OFN_OVERWRITEPROMPT,
+#ifndef	WINSOCK11
 		_T("GIF ファイル (*.gif)|*.gif|JPEG ファイル (*.jpg)|*.jpg|PNG ファイル (*.png)|*.png|BMP ファイル (*.bmp)|*.bmp|"\
-		   "DXF ファイル (*.dxf)|*.dxf|TEK ファイル (*.tek)|*.tek||"), this);
+		   "DXF ファイル (*.dxf)|*.dxf|TEK ファイル (*.tek)|*.tek||"),
+#else
+		_T("DXF ファイル (*.dxf)|*.dxf|TEK ファイル (*.tek)|*.tek||"),
+#endif
+		   this);
 
 	if ( dlg.DoModal() != IDOK )
 		return;
@@ -97,7 +106,7 @@ void CTekWnd::OnTekSave()
 		SaveTek(dlg.GetPathName());
 		return;
 	}
-
+#ifndef	WINSOCK11
 	if ( !image.Create(rect.Width(), rect.Height(), 24) )
 		return;
 
@@ -106,6 +115,7 @@ void CTekWnd::OnTekSave()
 	dc.Detach();
 	image.ReleaseDC();
 	image.Save(dlg.GetPathName());
+#endif
 }
 
 BOOL CTekWnd::SaveDxf(LPCSTR file)

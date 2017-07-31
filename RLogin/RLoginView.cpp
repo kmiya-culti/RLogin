@@ -60,6 +60,8 @@ BEGIN_MESSAGE_MAP(CRLoginView, CView)
 	ON_WM_RBUTTONUP()
 	ON_COMMAND(ID_MOUSE_EVENT, &CRLoginView::OnMouseEvent)
 	ON_UPDATE_COMMAND_UI(ID_MOUSE_EVENT, &CRLoginView::OnUpdateMouseEvent)
+	ON_COMMAND(IDM_BROADCAST, &CRLoginView::OnBroadcast)
+	ON_UPDATE_COMMAND_UI(IDM_BROADCAST, &CRLoginView::OnUpdateBroadcast)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -86,6 +88,7 @@ CRLoginView::CRLoginView()
 	m_VisualBellFlag = FALSE;
 	m_BlinkFlag = 0;
 	m_MouseEventFlag = FALSE;
+	m_BroadCast = FALSE;
 }
 
 CRLoginView::~CRLoginView()
@@ -173,6 +176,28 @@ void CRLoginView::CalcGrapPoint(CPoint po, int *x, int *y)
 	*x = m_Cols  * po.x / m_Width;
 	*y = m_Lines * po.y / m_Height - m_HisOfs + m_HisMin;
 }
+void CRLoginView::SendBroadCast(CBuffer &buf)
+{
+	CBuffer tmp;
+	CWinApp *pApp;
+	CRLoginDoc *pThisDoc = GetDocument();
+
+	if ( (pApp = AfxGetApp()) == NULL )
+		return;
+
+	POSITION pos = pApp->GetFirstDocTemplatePosition();
+	while ( pos != NULL ) {
+		CDocTemplate *pDocTemp = pApp->GetNextDocTemplate(pos);
+		POSITION dpos = pDocTemp->GetFirstDocPosition();
+		while ( dpos != NULL ) {
+			CRLoginDoc *pDoc = (CRLoginDoc *)pDocTemp->GetNextDoc(dpos);
+			if ( pDoc == pThisDoc )
+				continue;
+			tmp = buf;
+			pDoc->SendBuffer(tmp);
+		}
+	}
+}
 void CRLoginView::SendBuffer(CBuffer &buf, BOOL macflag)
 {
 	int n;
@@ -185,6 +210,8 @@ void CRLoginView::SendBuffer(CBuffer &buf, BOOL macflag)
 		if ( pDoc->m_TextRam.IsOptEnable(TO_RLDSECHO) && !pDoc->m_TextRam.LineEdit(buf) )
 			return;
 		pDoc->OnSendBuffer(buf);
+		if ( m_BroadCast )
+			SendBroadCast(buf);
 	}
 
 	if ( m_KeyMacFlag )
@@ -272,7 +299,9 @@ int CRLoginView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 {
 	if (CView::OnCreate(lpCreateStruct) == -1)
 		return -1;
+
 	DragAcceptFiles();
+
 	return 0;
 }
 
@@ -1223,7 +1252,7 @@ BOOL CRLoginView::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 {
 	if ( pWnd == this && nHitTest == HTCLIENT ) {
 		CRLoginDoc *pDoc = GetDocument();
-		::SetCursor(::LoadCursor(NULL, (pDoc->m_TextRam.m_MouseTrack > 0 && !m_MouseEventFlag ? IDC_IBEAM : IDC_ARROW)));
+		::SetCursor(::LoadCursor(NULL, (pDoc->m_TextRam.m_MouseTrack > 0 && !m_MouseEventFlag ? IDC_IBEAM : (m_BroadCast ? IDC_SIZEALL : IDC_ARROW))));
 		return TRUE;
 	}
 	return CView::OnSetCursor(pWnd, nHitTest, message);
@@ -1234,10 +1263,18 @@ void CRLoginView::OnMouseEvent()
 	m_MouseEventFlag = (m_MouseEventFlag ? FALSE : TRUE);
 	OnUpdate(NULL, UPDATE_SETCURSOR, NULL);
 }
-
 void CRLoginView::OnUpdateMouseEvent(CCmdUI *pCmdUI)
 {
 	CRLoginDoc *pDoc = GetDocument();
 	pCmdUI->Enable(pDoc->m_TextRam.m_MouseTrack > 0 ? TRUE : FALSE);
 	pCmdUI->SetCheck(m_MouseEventFlag ? TRUE : FALSE);
+}
+
+void CRLoginView::OnBroadcast()
+{
+	m_BroadCast = (m_BroadCast ? FALSE : TRUE);
+}
+void CRLoginView::OnUpdateBroadcast(CCmdUI *pCmdUI)
+{
+	pCmdUI->SetCheck(m_BroadCast);
 }

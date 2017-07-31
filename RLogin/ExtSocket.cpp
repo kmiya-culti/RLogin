@@ -74,6 +74,9 @@ CExtSocket::CExtSocket(class CRLoginDoc *pDoc)
 	m_RecvSize[0] = m_RecvSize[1] = 0;
 	m_SendSize[0] = m_SendSize[1] = 0;
 	m_ProxyStatus = 0;
+	m_SSL_mode  = 0;
+	m_SSL_pCtx  = NULL;
+	m_SSL_pSock = NULL;
 }
 
 CExtSocket::~CExtSocket()
@@ -208,21 +211,35 @@ BOOL CExtSocket::AsyncOpen(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocket
 }
 BOOL CExtSocket::ProxyOpen(int mode, LPCSTR ProxyHost, UINT ProxyPort, LPCSTR ProxyUser, LPCSTR ProxyPass, LPCSTR RealHost, UINT RealPort)
 {
-	m_AsyncMode  = 2;
+	m_AsyncMode      = 2;
 	m_RealHostAddr   = ProxyHost;
 	m_RealHostPort   = ProxyPort;
 	m_RealRemotePort = 0;
 	m_RealSocketType = SOCK_STREAM;
 
-	switch(mode) {
+	switch(mode & 7) {
+	case 0: m_ProxyStatus =  0; break;	// Non
 	case 1: m_ProxyStatus =  1; break;	// HTTP
 	case 2: m_ProxyStatus = 10; break;	// SOCKS4
 	case 3: m_ProxyStatus = 20; break;	// SOCKS5
 	}
+
+	switch(mode >> 3) {
+	case 0: m_SSL_mode = 0; break;	// Non
+	case 1: m_SSL_mode = 1; break;	// SSLv2
+	case 2: m_SSL_mode = 2; break;	// SSLv3
+	case 3: m_SSL_mode = 3; break;	// TLSv1
+	}
+
 	m_ProxyHost = RealHost;
 	m_ProxyPort = RealPort;
 	m_ProxyUser = ProxyUser;
 	m_ProxyPass = ProxyPass;
+
+	if ( m_ProxyStatus == 0 ) {
+		m_RealHostAddr   = RealHost;
+		m_RealHostPort   = RealPort;
+	}
 
 	return GetMainWnd()->SetAsyncHostAddr(m_RealHostAddr, this);
 }
@@ -341,6 +358,9 @@ BOOL CExtSocket::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort,
 	m_SocketEvent = FD_READ | FD_OOB | FD_CONNECT | FD_CLOSE;
 	m_RecvOverSize = RECVBUFSIZ;
 
+	if ( m_SSL_mode != 0 )
+		m_SocketEvent &= ~FD_READ;
+
 #ifdef	NOIPV6
 	DWORD val;
     struct hostent *hp;
@@ -376,7 +396,7 @@ BOOL CExtSocket::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort,
 		if ( WSAGetLastError() != WSAEWOULDBLOCK )
 			goto ERRRET1;
 	} else
-		OnConnect();
+		OnPreConnect();
 
 	return TRUE;
 
@@ -458,7 +478,7 @@ ERRRET2:
 				continue;
 			}
 		} else
-			OnConnect();
+			OnPreConnect();
 
 		break;
 	}
@@ -474,6 +494,8 @@ ERRRET2:
 }
 void CExtSocket::Close()
 {
+	SSLClose();
+
 	if ( m_Fd != (-1) ) {
 		GetMainWnd()->DelAsyncSelect(m_Fd, this);
 		::shutdown(m_Fd, 2);
@@ -645,12 +667,15 @@ int CExtSocket::Send(const void* lpBuf, int nBufLen, int nFlags)
 	if ( nBufLen <= 0 )
 		return 0;
 
-	if ( m_SendHead == NULL && (n = ::send(m_Fd, (char *)lpBuf, nBufLen, nFlags)) > 0 ) {
-		m_OnSendFlag |= 001;
-//		TRACE("Send %d\n", n);
-		lpBuf = (LPBYTE)lpBuf + n;
-		if ( (nBufLen -= n) <= 0 )
-			return len;
+	if ( m_SendHead == NULL ) {
+		n = (m_SSL_mode ? SSL_write(m_SSL_pSock, lpBuf, nBufLen):
+						  ::send(m_Fd, (char *)lpBuf, nBufLen, nFlags));
+		if ( n > 0 ) {
+			m_OnSendFlag |= 001;
+			lpBuf = (LPBYTE)lpBuf + n;
+			if ( (nBufLen -= n) <= 0 )
+				return len;
+		}
 	}
 
 	if ( m_SendHead == NULL || (sp = m_SendHead->m_Left)->m_Type != nFlags || sp->GetSize() > RECVBUFSIZ )
@@ -815,8 +840,8 @@ int CExtSocket::ProxyFunc()
 		case 5:
 			switch(m_ProxyCode) {
 			case 200:
-				OnConnect();
 				m_ProxyStatus = 0;
+				OnPreConnect();
 				break;
 			case 401:	// Authorization Required
 			case 407:	// Proxy-Authorization Required
@@ -850,6 +875,7 @@ int CExtSocket::ProxyFunc()
 			m_ProxyStatus = 2;
 			m_ProxyStr.Empty();
 			m_ProxyResult.RemoveAll();
+			SSLClose();					// XXXXXXXX BUG???
 			break;
 		case 7:
 			if (m_ProxyAuth.Find("qop") < 0 || m_ProxyAuth["algorithm"].m_String.CompareNoCase("md5") != 0 || m_ProxyAuth.Find("realm") < 0 || m_ProxyAuth.Find("nonce") < 0 ) {
@@ -885,7 +911,8 @@ int CExtSocket::ProxyFunc()
 					   " algorithm=%s, response=\"%s\","\
 					   " qop=%s, uri=\"%s\","\
 					   " nc=%s, cnonce=\"%s\""\
-					   "\r\n\r\n",
+					   "\r\n"\
+					   "\r\n",
 					   m_ProxyHost, m_ProxyPort, m_RealHostAddr,
 					   (m_ProxyCode == 407 ? "Proxy-" : ""),
 					   m_ProxyUser, (LPCSTR)m_ProxyAuth["realm"], (LPCSTR)m_ProxyAuth["nonce"],
@@ -896,6 +923,7 @@ int CExtSocket::ProxyFunc()
 			m_ProxyStatus = 2;
 			m_ProxyStr.Empty();
 			m_ProxyResult.RemoveAll();
+			SSLClose();					// XXXXXXXX BUG???
 			break;
 
 		case 10:	// SOCKS4
@@ -927,8 +955,8 @@ int CExtSocket::ProxyFunc()
 			break;
 		case 12:
 			if ( *(m_ProxyBuff.GetPos(1)) == 90 ) {
-				OnConnect();
 				m_ProxyStatus = 0;
+				OnPreConnect();
 			} else
 				m_ProxyStatus = 19;
 			break;
@@ -1025,8 +1053,8 @@ int CExtSocket::ProxyFunc()
 		case 27:
 			if ( !ProxyReadBuff(m_ProxyLength) )
 				return TRUE;
-			OnConnect();
 			m_ProxyStatus = 0;
+			OnPreConnect();
 			break;
 		case 29:	// SOCKS5_ERROR
 			m_pDocument->m_ErrorPrompt = "SOCKS5 Proxy Conection Error";
@@ -1116,10 +1144,19 @@ int CExtSocket::ProxyFunc()
 }
 void CExtSocket::OnPreConnect()
 {
-	if ( m_ProxyStatus )
+	if ( m_SSL_mode != 0 ) {
+		if ( !SSLConnect() ) {
+			OnError(WSAECONNREFUSED);
+			return;
+		}
+	}
+
+	if ( m_ProxyStatus ) {
 		ProxyFunc();
-	else
-		OnConnect();
+		return;
+	}
+
+	OnConnect();
 }
 void CExtSocket::OnPreClose()
 {
@@ -1181,7 +1218,9 @@ void CExtSocket::OnSend()
 {
 	int n;
 	while ( m_SendHead != NULL ) {
-		if ( (n = ::send(m_Fd, (char *)m_SendHead->GetPtr(), m_SendHead->GetSize(), m_SendHead->m_Type)) <= 0 ) {
+		n = (m_SSL_mode ? SSL_write(m_SSL_pSock, m_SendHead->GetPtr(), m_SendHead->GetSize()):
+						  ::send(m_Fd, (char *)m_SendHead->GetPtr(), m_SendHead->GetSize(), m_SendHead->m_Type));
+		if ( n <= 0 ) {
 			m_SocketEvent |= FD_WRITE;
 			WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), WM_SOCKSEL, m_SocketEvent);
 			return;
@@ -1213,18 +1252,21 @@ void CExtSocket::OnRecive(int nFlags)
 	for ( i = 0 ; i < 2 ; i++ ) {
 		sp = AllocBuffer();
 		sp->m_Type = nFlags;
+		sp->Alloc(m_RecvOverSize);
 
-		while ( sp->GetSize() < m_RecvOverSize ) {
-			sp->Alloc(m_RecvOverSize);
-			if ( (n = ::recv(m_Fd, (char *)sp->GetLast(), m_RecvOverSize, nFlags)) <= 0 )
-				break;
+		n = (m_SSL_mode ? SSL_read(m_SSL_pSock, (void *)sp->GetLast(), m_RecvOverSize):
+						  ::recv(m_Fd, (char *)sp->GetLast(), m_RecvOverSize, nFlags));
+
+		if ( n > 0 )
 			sp->SetSize(n);
-		}
+		else if ( n < 0 && m_SSL_mode && SSL_get_error(m_SSL_pSock, n) != SSL_ERROR_WANT_READ )
+			OnError(WSAENOTCONN);
 
 		if ( sp->GetSize() <= 0 ) {
 			FreeBuffer(sp);
 			break;
 		}
+
 		m_RecvHead = AddTail(sp, m_RecvHead);
 		m_RecvSize[nFlags] += sp->GetSize();
 
@@ -1244,7 +1286,7 @@ void CExtSocket::OnRecive(int nFlags)
 }
 int CExtSocket::ReciveCall()
 {
-	if ( m_ProxyStatus && ProxyFunc() )
+	if ( m_RecvHead != NULL && m_ProxyStatus && ProxyFunc() )
 		return m_RecvSize[0] + m_RecvSize[1];
 
 	if ( m_RecvHead == NULL )
@@ -1453,6 +1495,166 @@ int CExtSocket::GetPortNum(LPCSTR str)
 		return 22;
 	else if ( strcmp(str, "socks") == 0 )
 		return 1080;
+	else if ( strcmp(str, "http") == 0 )
+		return 80;
+	else if ( strcmp(str, "https") == 0 )
+		return 443;
 	return 0;
 }
+BOOL CExtSocket::SokcetCheck(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType)
+{
+#ifdef	NOIPV6
+	SOCKET Fd;
+    struct hostent *hp;
+    struct sockaddr_in in;
 
+	if ( (Fd = ::socket(AF_INET, nSocketType, 0)) == (-1) )
+		return FALSE;
+
+	if ( nSocketPort != 0 ) {
+	    memset(&in, 0, sizeof(in));
+	    in.sin_family = AF_INET;
+	    in.sin_addr.s_addr = INADDR_ANY;
+	    in.sin_port = htons(nSocketPort);
+		if ( ::bind(Fd, (struct sockaddr *)&in, sizeof(in)) == SOCKET_ERROR )
+			goto ERRRET;
+	}
+
+	if ( (hp = ::gethostbyname(lpszHostAddress)) == NULL )
+		goto ERRRET;
+
+	in.sin_family = AF_INET;
+	in.sin_addr.s_addr = ((struct in_addr *)(hp->h_addr))->s_addr;
+	in.sin_port = htons(nHostPort);
+
+    if ( ::connect(Fd, (struct sockaddr *)&in, sizeof(in)) == SOCKET_ERROR )
+		goto ERRRET;
+
+	::closesocket(Fd);
+	return TRUE;
+
+ERRRET:
+	::closesocket(Fd);
+	return FALSE;
+
+#else
+	SOCKET Fd;
+	struct addrinfo hints, *ai, *aitop;
+    struct sockaddr_in in;
+    struct sockaddr_in6 in6;
+	CString str;
+	struct in6_addr in6addr_any = IN6ADDR_ANY_INIT;
+
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = nSocketType;
+	str.Format("%d", nHostPort);
+
+	if ( getaddrinfo(lpszHostAddress, str, &hints, &aitop) != 0)
+		return FALSE;
+
+	for ( ai = aitop ; ai != NULL ; ai = ai->ai_next ) {
+		if ( ai->ai_family != AF_INET && ai->ai_family != AF_INET6 )
+			continue;
+
+		if ( (Fd = ::socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) == (-1) )
+			continue;
+
+		if ( nSocketPort != 0 ) {
+			if ( ai->ai_family == AF_INET ) {
+			    memset(&in, 0, sizeof(in));
+			    in.sin_family = AF_INET;
+			    in.sin_addr.s_addr = INADDR_ANY;
+			    in.sin_port = htons(nSocketPort);
+				if ( ::bind(Fd, (struct sockaddr *)&in, sizeof(in)) == SOCKET_ERROR ) {
+					::closesocket(Fd);
+					continue;
+				}
+			} else {	// AF_INET6
+			    memset(&in6, 0, sizeof(in6));
+			    in6.sin6_family = AF_INET6;
+			    in6.sin6_addr = in6addr_any;
+			    in6.sin6_port = htons(nSocketPort);
+				if ( ::bind(Fd, (struct sockaddr *)&in6, sizeof(in6)) == SOCKET_ERROR ) {
+					::closesocket(Fd);
+					continue;
+				}
+			}
+		}
+
+	    if ( ::connect(Fd, ai->ai_addr, (int)ai->ai_addrlen) == SOCKET_ERROR ) {
+			::closesocket(Fd);
+			continue;
+		}
+
+		break;
+	}
+	freeaddrinfo(aitop);
+	::closesocket(Fd);
+	return (ai == NULL ? FALSE : TRUE);
+#endif
+}
+
+//////////////////////////////////////////////////////////////////////
+
+int CExtSocket::SSLConnect()
+{
+	DWORD val;
+	SSL_METHOD *method;
+
+	WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), 0, 0);
+
+	val = 0;
+	::ioctlsocket(m_Fd, FIONBIO, &val);
+
+	GetApp()->SSL_Init();
+
+	switch(m_SSL_mode) {
+	case 1:
+		method = SSLv2_client_method();
+		break;
+	case 2:
+		method = SSLv3_client_method();
+		break;
+	case 3:
+		method = TLSv1_client_method();
+		break;
+	}
+
+	if ( (m_SSL_pCtx = SSL_CTX_new(method)) == NULL )
+		return FALSE;
+
+	if ( (m_SSL_pSock = SSL_new(m_SSL_pCtx)) == NULL ) {
+		SSL_CTX_free(m_SSL_pCtx);
+		return FALSE;
+	}
+
+	SSL_CTX_set_mode(m_SSL_pCtx, SSL_MODE_AUTO_RETRY);
+	SSL_set_fd(m_SSL_pSock, m_Fd);
+
+	if ( SSL_connect(m_SSL_pSock) < 0 ) {
+		SSL_free(m_SSL_pSock);
+		SSL_CTX_free(m_SSL_pCtx);
+		return FALSE;
+	}
+
+	val = 1;
+	::ioctlsocket(m_Fd, FIONBIO, &val);
+
+	m_SocketEvent |= FD_READ;
+	WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), WM_SOCKSEL, m_SocketEvent);
+
+	return TRUE;
+}
+void CExtSocket::SSLClose()
+{
+	if ( m_SSL_pSock != NULL )
+		SSL_free(m_SSL_pSock);
+
+	if ( m_SSL_pCtx != NULL )
+		SSL_CTX_free(m_SSL_pCtx);
+
+	m_SSL_mode  = 0;
+	m_SSL_pCtx  = NULL;
+	m_SSL_pSock = NULL;
+}

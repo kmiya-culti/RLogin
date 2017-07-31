@@ -107,7 +107,9 @@ BEGIN
     SEPARATOR
     BUTTON      ID_EDIT_COPY
     BUTTON      ID_EDIT_PASTE
+    SEPARATOR
     BUTTON      ID_MOUSE_EVENT
+    BUTTON      IDM_BROADCAST
     SEPARATOR
     BUTTON      ID_MACRO_REC
     BUTTON      ID_MACRO_PLAY
@@ -217,6 +219,8 @@ BEGIN
         MENUITEM "ChatScriptの完了(&S)",           ID_CHARSCRIPT_END
         MENUITEM "Brark信号を送る(&B)",              ID_SEND_BREAK
         MENUITEM "マウスイベントを無効(&M)",              ID_MOUSE_EVENT
+        MENUITEM SEPARATOR
+        MENUITEM "ブロードキャスト(&A)",                IDM_BROADCAST
         MENUITEM SEPARATOR
         MENUITEM "キー操作の記録(&R)",                 ID_MACRO_REC
         MENUITEM "キー操作の再現(&Q)",                 ID_MACRO_PLAY
@@ -387,7 +391,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.6.5 (2009/02/20)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.6.6 (2009/02/27)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2009 Culti",IDC_STATIC,47,18,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,145,50,14,WS_GROUP
     LTEXT           "OpenSSL 0.9.8j Jan 7th, 2009",IDC_STATIC,47,35,176,8
@@ -956,27 +960,32 @@ BEGIN
     EDITTEXT        IDC_TEXT,7,27,277,179,ES_MULTILINE | ES_AUTOVSCROLL | ES_NOHIDESEL | ES_READONLY | ES_WANTRETURN | WS_VSCROLL
 END
 
-IDD_PROXYDLG DIALOGEX 0, 0, 268, 156
+IDD_PROXYDLG DIALOGEX 0, 0, 237, 177
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Proxy Server"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    CONTROL         "使用しない",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,21,22,51,10
-    CONTROL         "HTTP",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,91,22,33,10
-    CONTROL         "SOCKS4",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON,143,22,42,10
-    CONTROL         "SOCKS5",IDC_RADIO4,"Button",BS_AUTORADIOBUTTON,204,22,42,10
-    EDITTEXT        IDC_SERVERNAME,19,72,167,13,ES_AUTOHSCROLL
-    COMBOBOX        IDC_SOCKNO,193,72,54,100,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
-    EDITTEXT        IDC_USERNAME,19,101,76,13,ES_AUTOHSCROLL
-    EDITTEXT        IDC_PASSWORD,109,101,76,13,ES_PASSWORD | ES_AUTOHSCROLL
-    DEFPUSHBUTTON   "OK",IDOK,52,135,71,14
-    PUSHBUTTON      "キャンセル",IDCANCEL,145,135,71,14
-    GROUPBOX        "Select Proxy Protocol",IDC_STATIC,7,7,254,35
-    CTEXT           "Proxy Server Address",IDC_STATIC,19,61,165,8
-    CTEXT           "User Name",IDC_STATIC,19,90,76,8
-    CTEXT           "Password",IDC_STATIC,109,90,76,8
-    CTEXT           "Socket Port",IDC_STATIC,193,61,54,8
-    GROUPBOX        "Server Option",IDC_STATIC,7,49,254,76
+    CONTROL         "使用しない",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,16,19,51,10
+    CONTROL         "HTTP",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,78,19,33,10
+    CONTROL         "SOCKS4",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON,128,19,42,10
+    CONTROL         "SOCKS5",IDC_RADIO4,"Button",BS_AUTORADIOBUTTON,180,19,42,10
+    CONTROL         "使用しない",IDC_SSL_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,17,53,51,10
+    CONTROL         "SSLv2",IDC_SSL_RADIO2,"Button",BS_AUTORADIOBUTTON,78,53,35,10
+    CONTROL         "SSLv3",IDC_SSL_RADIO3,"Button",BS_AUTORADIOBUTTON,128,53,35,10
+    CONTROL         "TLSv1",IDC_SSL_RADIO4,"Button",BS_AUTORADIOBUTTON,180,53,35,10
+    EDITTEXT        IDC_SERVERNAME,19,98,136,13,ES_AUTOHSCROLL
+    COMBOBOX        IDC_SOCKNO,166,98,54,100,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_USERNAME,19,127,88,13,ES_AUTOHSCROLL
+    EDITTEXT        IDC_PASSWORD,132,127,88,13,ES_PASSWORD | ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "OK",IDOK,48,156,62,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,128,156,62,14
+    GROUPBOX        "Select Proxy Protocol",IDC_STATIC,7,7,223,30
+    CTEXT           "Proxy Server Address",IDC_STATIC,19,87,136,8
+    CTEXT           "User Name",IDC_STATIC,19,116,88,8
+    CTEXT           "Password",IDC_STATIC,132,116,88,8
+    CTEXT           "Socket Port",IDC_STATIC,166,87,54,8
+    GROUPBOX        "Server Option",IDC_STATIC,7,74,223,76
+    GROUPBOX        "Over SSL",IDC_STATIC,7,40,223,30
 END
 
 IDD_SCRNPAGE DIALOGEX 0, 0, 251, 270
@@ -1100,7 +1109,7 @@ END
 
 IDD_INFOCAPDLG DIALOGEX 0, 0, 335, 236
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Dialog"
+CAPTION "TermCap/Info"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     PUSHBUTTON      "キャンセル",IDCANCEL,178,215,60,14
@@ -1130,8 +1139,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,6,5,0
- PRODUCTVERSION 2,6,5,0
+ FILEVERSION 2,6,6,0
+ PRODUCTVERSION 2,6,6,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1148,12 +1157,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2, 6, 5, 0"
+            VALUE "FileVersion", "2, 6, 6, 0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2008 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2, 6, 5, 0"
+            VALUE "ProductVersion", "2, 6, 6, 0"
         END
     END
     BLOCK "VarFileInfo"
@@ -1374,9 +1383,9 @@ BEGIN
     IDD_PROXYDLG, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 261
+        RIGHTMARGIN, 230
         TOPMARGIN, 7
-        BOTTOMMARGIN, 149
+        BOTTOMMARGIN, 170
     END
 
     IDD_SCRNPAGE, DIALOG
@@ -1820,6 +1829,8 @@ BEGIN
     IDC_SOCKNO, 0x403, 5, 0
 0x7468, 0x7074, "\000" 
     IDC_SOCKNO, 0x403, 6, 0
+0x7468, 0x7074, 0x0073, 
+    IDC_SOCKNO, 0x403, 6, 0
 0x6f73, 0x6b63, 0x0073, 
     0
 END
@@ -2219,6 +2230,11 @@ BEGIN
     IDM_RESET_ESC           "ESCシーケンスを初期化します\nESC初期化"
     IDM_RESET_MOUSE         "マウスイベントを初期化します\nイベント初期化"
     IDM_RESET_ALL           "すべてを初期化し画面を消去します\n全初期化"
+END
+
+STRINGTABLE 
+BEGIN
+    IDM_BROADCAST           "キー入力を他のウィンドウにも同時送信する\n同時送信"
 END
 
 #endif    // 日本語 resources

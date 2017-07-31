@@ -351,6 +351,7 @@ public:
 	CStringW m_OscPara;
 	BYTE m_TabMap[LINE_MAX][COLS_MAX / 8 + 1];
 	BOOL m_RetSync;
+	BOOL m_Exact;
 
 	WORD m_BankTab[4][4];
 	int m_BankNow;

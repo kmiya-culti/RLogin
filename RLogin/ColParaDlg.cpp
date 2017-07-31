@@ -339,7 +339,7 @@ void CColParaDlg::OnReleasedcaptureTransparent(NMHDR* pNMHDR, LRESULT* pResult)
 	CMainFrame *pWnd = (CMainFrame *)AfxGetMainWnd();
 
 	if ( pWnd != NULL )
-		pWnd->SetTransPar(n);
+		pWnd->SetTransPar(0, n, LWA_ALPHA);
 	((CMainFrame *)AfxGetMainWnd())->m_TransParValue = n;
 	AfxGetApp()->WriteProfileInt("MainFrame", "LayeredWindow", n);
 	*pResult = 0;

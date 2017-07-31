@@ -11,6 +11,7 @@
 #include "ExtSocket.h"
 
 #include <direct.h>
+#include <openssl/ssl.h>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -509,4 +510,5 @@ void CRLoginApp::SSL_Init()
 	bLoadAlgo = TRUE;
 
 	SSLeay_add_all_algorithms();
+	SSLeay_add_ssl_algorithms();
 }

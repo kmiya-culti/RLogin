@@ -176,6 +176,9 @@ public:
 	void DelProfile(LPCSTR pSection);
 	const CIdKey & operator = (CIdKey &data);
 
+	int GetSize();
+	void FingerPrint(CString &str);
+
 	CIdKey();
 	~CIdKey();
 };
@@ -240,6 +243,7 @@ class CFilter : public CObject
 public:
 	int m_Type;
 	class CChannel *m_pChan;
+	class CFilter *m_pNext;
 	CString m_Cmd;
 
 	CFilter();
@@ -376,6 +380,7 @@ public:
 	int m_SSHVer;
 	CString m_HostName;
 	int m_StdChan;
+	CFilter *m_pListFilter;
 
 private:
 	CString m_ServerVerStr;

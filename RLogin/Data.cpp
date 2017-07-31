@@ -1864,38 +1864,38 @@ void CKeyNodeTab::Init()
 		{ VK_F12,	0,			"\\033[X" },
 		{ VK_DELETE,0,			"\\177" },
 
-		{ VK_HOME,	MASK_APPL,	"\\033[1~" },
-		{ VK_INSERT,MASK_APPL,	"\\033[2~" },
-		{ VK_DELETE,MASK_APPL,	"\\033[3~" },
-		{ VK_END,	MASK_APPL,	"\\033[4~" },
-		{ VK_PRIOR,	MASK_APPL,	"\\033[5~" },
-		{ VK_NEXT,	MASK_APPL,	"\\033[6~" },
+		{ VK_HOME,	MASK_APPL,	"\\033[1~" },	//	kh	@0
+		{ VK_INSERT,MASK_APPL,	"\\033[2~" },	//	kI
+		{ VK_DELETE,MASK_APPL,	"\\033[3~" },	//	kD
+		{ VK_END,	MASK_APPL,	"\\033[4~" },	//	@7	*6
+		{ VK_PRIOR,	MASK_APPL,	"\\033[5~" },	//	kP
+		{ VK_NEXT,	MASK_APPL,	"\\033[6~" },	//	kN
 
-		{ VK_F1,	MASK_APPL,	"\\033[11~" },
-		{ VK_F2,	MASK_APPL,	"\\033[12~" },
-		{ VK_F3,	MASK_APPL,	"\\033[13~" },
-		{ VK_F4,	MASK_APPL,	"\\033[14~" },
-		{ VK_F5,	MASK_APPL,	"\\033[15~" },
-		{ VK_F6,	MASK_APPL,	"\\033[17~" },
-		{ VK_F7,	MASK_APPL,	"\\033[18~" },
-		{ VK_F8,	MASK_APPL,	"\\033[19~" },
-		{ VK_F9,	MASK_APPL,	"\\033[20~" },
-		{ VK_F10,	MASK_APPL,	"\\033[21~" },
-		{ VK_F11,	MASK_APPL,	"\\033[23~" },
-		{ VK_F12,	MASK_APPL,	"\\033[24~" },
-		{ VK_F13,	MASK_APPL,	"\\033[25~" },
-		{ VK_F14,	MASK_APPL,	"\\033[26~" },
-		{ VK_F15,	MASK_APPL,	"\\033[28~" },
-		{ VK_F16,	MASK_APPL,	"\\033[29~" },
-		{ VK_F17,	MASK_APPL,	"\\033[31~" },
-		{ VK_F18,	MASK_APPL,	"\\033[32~" },
-		{ VK_F19,	MASK_APPL,	"\\033[33~" },
-		{ VK_F20,	MASK_APPL,	"\\033[34~" },
+		{ VK_F1,	MASK_APPL,	"\\033[11~" },	//	k1
+		{ VK_F2,	MASK_APPL,	"\\033[12~" },	//	k2
+		{ VK_F3,	MASK_APPL,	"\\033[13~" },	//	k3
+		{ VK_F4,	MASK_APPL,	"\\033[14~" },	//	k4
+		{ VK_F5,	MASK_APPL,	"\\033[15~" },	//	k5
+		{ VK_F6,	MASK_APPL,	"\\033[17~" },	//	k6
+		{ VK_F7,	MASK_APPL,	"\\033[18~" },	//	k7
+		{ VK_F8,	MASK_APPL,	"\\033[19~" },	//	k8
+		{ VK_F9,	MASK_APPL,	"\\033[20~" },	//	k9
+		{ VK_F10,	MASK_APPL,	"\\033[21~" },	//	k;
+		{ VK_F11,	MASK_APPL,	"\\033[23~" },	//	F1
+		{ VK_F12,	MASK_APPL,	"\\033[24~" },	//	F2
+		{ VK_F13,	MASK_APPL,	"\\033[25~" },	//	F3
+		{ VK_F14,	MASK_APPL,	"\\033[26~" },	//	F4
+		{ VK_F15,	MASK_APPL,	"\\033[28~" },	//	F5
+		{ VK_F16,	MASK_APPL,	"\\033[29~" },	//	F6
+		{ VK_F17,	MASK_APPL,	"\\033[31~" },	//	F7
+		{ VK_F18,	MASK_APPL,	"\\033[32~" },	//	F8
+		{ VK_F19,	MASK_APPL,	"\\033[33~" },	//	F9
+		{ VK_F20,	MASK_APPL,	"\\033[34~" },	//	FA
 
-		{ VK_UP,	MASK_APPL,	"\\033OA" },
-		{ VK_DOWN,	MASK_APPL,	"\\033OB" },
-		{ VK_RIGHT,	MASK_APPL,	"\\033OC" },
-		{ VK_LEFT,	MASK_APPL,	"\\033OD" },
+		{ VK_UP,	MASK_APPL,	"\\033OA" },	//	ku
+		{ VK_DOWN,	MASK_APPL,	"\\033OB" },	//	kd
+		{ VK_RIGHT,	MASK_APPL,	"\\033OC" },	//	kr
+		{ VK_LEFT,	MASK_APPL,	"\\033OD" },	//	kl
 
 		{ VK_PRIOR,	MASK_SHIFT,	"$PRIOR" },
 		{ VK_NEXT,	MASK_SHIFT,	"$NEXT" },

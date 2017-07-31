@@ -68,7 +68,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="imm32.lib ComCtl32.lib libeay32.lib iconv.lib zlib.lib Wininet.lib"
+				AdditionalDependencies="imm32.lib ComCtl32.lib libeay32.lib ssleay32.lib iconv.lib zlib.lib Wininet.lib"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="openssl-0.9.8j\out32,libiconv-1.12\lib\rel,zlib-1.2.3\rel"
 				IgnoreDefaultLibraryNames="libcmt.lib"
@@ -154,7 +154,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="imm32.lib ComCtl32.lib libeay32.lib iconv.lib zlib.lib Wininet.lib"
+				AdditionalDependencies="imm32.lib ComCtl32.lib libeay32.lib ssleay32.lib iconv.lib zlib.lib Wininet.lib"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="openssl-0.9.8j\out32,libiconv-1.12\lib\rel,zlib-1.2.3\rel"
 				GenerateDebugInformation="true"
@@ -245,7 +245,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="imm32.lib ComCtl32.lib libeay32.lib iconv.lib zlib.lib Wininet.lib"
+				AdditionalDependencies="imm32.lib ComCtl32.lib libeay32.lib ssleay32.lib iconv.lib zlib.lib Wininet.lib"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="openssl-0.9.8j\out32sse,libiconv-1.12\lib\sse,zlib-1.2.3\sse"
 				GenerateDebugInformation="true"
@@ -333,7 +333,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="imm32.lib ComCtl32.lib libeay32.lib iconv.lib zlib.lib Wininet.lib"
+				AdditionalDependencies="imm32.lib ComCtl32.lib libeay32.lib ssleay32.lib iconv.lib zlib.lib Wininet.lib"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="openssl-0.9.8j\out32,libiconv-1.12\lib\rel,zlib-1.2.3\rel"
 				GenerateDebugInformation="true"

@@ -523,11 +523,6 @@ void CTimerObject::CallObject()
 
 CMainFrame::CMainFrame()
 {
-	if ( (hDllInst = LoadLibrary("user32.dll")) != NULL )
-		SetLayeredWindowAttributes = (SETLAYER *)GetProcAddress( hDllInst, "SetLayeredWindowAttributes" ); 
-	else
-		SetLayeredWindowAttributes = NULL;
-
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 	m_hIconActive = AfxGetApp()->LoadIcon(IDI_ACTIVE);
 	m_IconShow = FALSE;
@@ -548,9 +543,6 @@ CMainFrame::CMainFrame()
 
 CMainFrame::~CMainFrame()
 {
-	if ( hDllInst != NULL )
-		FreeLibrary(hDllInst);
-
 	if ( m_pTopPane != NULL )
 		delete m_pTopPane;
 
@@ -655,7 +647,7 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	ShowControlBar(&m_wndTabBar, FALSE, 0);
 
 	m_TransParValue = AfxGetApp()->GetProfileInt("MainFrame", "LayeredWindow", 255);
-	SetTransPar(m_TransParValue);
+	SetTransPar(0, m_TransParValue, LWA_ALPHA);
 
 	CBuffer buf;
 	((CRLoginApp *)AfxGetApp())->GetProfileBuffer("MainFrame", "Pane", buf);
@@ -683,7 +675,7 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 
 int CMainFrame::SetAsyncSelect(SOCKET fd, CExtSocket *pSock, long lEvent)
 {
-	if ( WSAAsyncSelect(fd, GetSafeHwnd(), WM_SOCKSEL, lEvent) != 0 )
+	if ( lEvent != 0 && WSAAsyncSelect(fd, GetSafeHwnd(), WM_SOCKSEL, lEvent) != 0 )
 		return FALSE;
 
 	((CRLoginApp *)AfxGetApp())->SetSocketIdle(pSock);
@@ -830,17 +822,16 @@ int CMainFrame::OpenServerEntry(CServerEntry &Entry)
 	}
 	return TRUE;
 }
-void CMainFrame::SetTransPar(int value)
+void CMainFrame::SetTransPar(COLORREF rgb, int value, DWORD flag)
 {
-	if ( SetLayeredWindowAttributes == NULL )
-		return;
-
-	if ( value < 0 || value >= 255 )
-		ModifyStyleEx(0x00080000, 0);		// WS_EX_LAYERED
+	if ( flag == 0 )
+		ModifyStyleEx(WS_EX_LAYERED, 0);
 	else
-		ModifyStyleEx(0, 0x00080000);
+		ModifyStyleEx(0, WS_EX_LAYERED);
 
-	SetLayeredWindowAttributes(m_hWnd, 0, value, 2);
+	SetLayeredWindowAttributes(rgb, value, flag);
+//	SetLayeredWindowAttributes(RGB(1, 1, 1), 0, LWA_COLORKEY);
+
 	Invalidate(TRUE);
 }
 void CMainFrame::SetWakeUpSleep(int sec)
@@ -852,7 +843,7 @@ void CMainFrame::SetWakeUpSleep(int sec)
 	else if ( sec == 0 && m_SleepTimer != 0 ) {
 		KillTimer(m_SleepTimer);
 		if ( m_SleepStatus >= sec )
-			SetTransPar(m_TransParValue);
+			SetTransPar(0, m_TransParValue, LWA_ALPHA);
 		m_SleepTimer = 0;
 	}
 	m_SleepStatus = 0;
@@ -863,7 +854,7 @@ void CMainFrame::WakeUpSleep()
 	if ( m_SleepStatus == 0 )
 		return;
 	else if ( m_SleepStatus >= m_SleepCount ) {
-		SetTransPar(m_TransParValue);
+		SetTransPar(0, m_TransParValue, LWA_ALPHA);
 		m_SleepTimer = SetTimer(TIMERID_SLEEPMODE, 5000, NULL);
 	}
 	m_SleepStatus = 0;
@@ -1108,7 +1099,7 @@ void CMainFrame::OnTimer(UINT_PTR nIDEvent)
 			m_SleepTimer = SetTimer(TIMERID_SLEEPMODE, 100, NULL);
 		} else if ( m_SleepStatus < (m_SleepCount + 18) ) {
 			m_SleepStatus++;
-			SetTransPar(m_TransParValue * (m_SleepCount + 20 - m_SleepStatus) / 20);
+			SetTransPar(0, m_TransParValue * (m_SleepCount + 20 - m_SleepStatus) / 20, LWA_ALPHA);
 		} else if ( m_SleepStatus == (m_SleepCount + 18) ) {
 			m_SleepStatus++;
 			KillTimer(nIDEvent);
