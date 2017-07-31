@@ -90,14 +90,14 @@ CBuffer::CBuffer()
 CBuffer::~CBuffer()
 {
 	if ( m_bZero )
-		ZeroMemory(m_Data, m_Max);
+		SecureZeroMemory(m_Data, m_Max);
 
 	delete [] m_Data;
 }
 void CBuffer::RemoveAll()
 {
 	if ( m_bZero )
-		ZeroMemory(m_Data, m_Max);
+		SecureZeroMemory(m_Data, m_Max);
 
 	delete [] m_Data;
 
@@ -108,7 +108,8 @@ void CBuffer::RemoveAll()
 void CBuffer::Move(CBuffer &data)
 {
 	if ( m_bZero )
-		ZeroMemory(m_Data, m_Max);
+		SecureZeroMemory(m_Data, m_Max);
+
 	delete [] m_Data;
 
 	m_Len  = data.m_Len;
@@ -148,7 +149,7 @@ void CBuffer::ReAlloc(int len)
 	m_Ofs = 0;
 
 	if ( m_bZero )
-		ZeroMemory(m_Data, oldMax);
+		SecureZeroMemory(m_Data, oldMax);
 
 	delete [] m_Data;
 	m_Data = tmp;
@@ -874,7 +875,7 @@ BOOL CBuffer::LoadFile(LPCTSTR filename)
 		return FALSE;
 
 	if ( m_bZero )
-		ZeroMemory(m_Data, m_Max);
+		SecureZeroMemory(m_Data, m_Max);
 
 	delete [] m_Data;
 
@@ -3948,7 +3949,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	121
+#define	CMDSKEYTABMAX	122
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -3996,6 +3997,7 @@ static const struct _CmdsKeyTab {
 	{	ID_PAGE_NEXT,				L"$NEXT"			},
 	{	IDC_LOADDEFAULT,			L"$OPTION_LOAD"		},
 	{	ID_SETOPTION,				L"$OPTION_SET"		},
+	{	IDM_OTHERCAST,				L"$OTHERCAST"		},
 	{	ID_WINDOW_CASCADE,			L"$PANE_CASCADE"	},
 	{	ID_PANE_DELETE,				L"$PANE_DELETE"		},
 	{	IDM_MOVEPANE_DOWN,			L"$PANE_DOWN"		},

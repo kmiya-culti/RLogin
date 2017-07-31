@@ -112,7 +112,6 @@ BOOL CComSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, i
 
 	SetCommMask(m_hCom, EV_RXCHAR | EV_RX80FULL | EV_DSR | EV_TXEMPTY | EV_CTS | EV_RING | EV_RLSD | EV_ERR);
 
-//	GetApp()->SetSocketIdle(this);
 	GetMainWnd()->SetAsyncSelect((SOCKET)m_hCom, this, 0);
 
 	m_ThreadMode = 1;

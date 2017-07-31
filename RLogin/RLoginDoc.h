@@ -40,6 +40,7 @@
 #define	UPDATE_DISPINDEX	13
 #define	UPDATE_WAKEUP		14
 #define	UPDATE_SCROLLOUT	15
+#define	UPDATE_UPDATEWINDOW	16
 
 #define	CARET_MOVE			0
 #define	CARET_CREATE		1
@@ -89,7 +90,6 @@ public:
 	int m_DelayFlag;
 	CBuffer m_DelayBuf;
 	BOOL m_bDelayPast;
-	int m_ActCharCount;
 	CMainFrame *m_pMainWnd;
 	CString m_SockStatus;
 	CStrScript *m_pStrScript;
@@ -99,7 +99,7 @@ public:
 	CString m_WorkStr;
 	class CScript *m_pScript;
 	BOOL m_InPane;
-	BOOL m_bUseIdle;
+	int m_PostIdleCount;
 	int m_AfterId;
 	int m_LogSendRecv;
 	CString m_ScriptFile;
@@ -119,10 +119,6 @@ public:
 
 	int DelaySend();
 	void OnDelayRecive(int ch);
-	inline void ClearActCount() { m_ActCharCount = 0; }
-	inline void IncActCount() { m_ActCharCount++; }
-	inline void SetActCount() { m_ActCharCount = 2048; }
-	inline BOOL IsActCount() { return (m_ActCharCount >= 2048 ? TRUE : FALSE); }
 
 	int SocketOpen();
 	void SocketClose();
@@ -144,6 +140,7 @@ public:
 	void DoDropFile();
 	CWnd *GetAciveView();
 	int GetViewCount();
+	void PostIdleMessage();
 
 	BOOL LogOpen(LPCTSTR filename);
 	BOOL LogClose();

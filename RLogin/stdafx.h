@@ -15,8 +15,6 @@
 #define	USE_OLE
 
 #define	USE_KEYMACGLOBAL
-#define	USE_BCASTGLOBAL
-#define	USE_BCMWGLOBAL
 
 // Windows バージョン
 
@@ -99,6 +97,7 @@
 #define _AFX_ALL_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
 #define _CRT_NON_CONFORMING_SWPRINTFS
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
 
 #include <afxwin.h>         // MFC のコアおよび標準コンポーネント
 #include <afxext.h>         // MFC の拡張部分

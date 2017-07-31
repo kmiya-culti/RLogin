@@ -9,11 +9,18 @@
 #include "resource.h"       // メイン シンボル
 #include "Data.h"
 
-#define	WM_SOCKSEL		(WM_USER + 0)
-#define WM_GETHOSTADDR	(WM_USER + 1)
-#define	WM_ICONMSG		(WM_USER + 2)
-#define WM_THREADCMD	(WM_USER + 3)
-#define WM_AFTEROPEN	(WM_USER + 4)
+#define	WM_SOCKSEL			(WM_USER + 0)
+#define WM_GETHOSTADDR		(WM_USER + 1)
+#define	WM_ICONMSG			(WM_USER + 2)
+#define WM_THREADCMD		(WM_USER + 3)
+#define WM_AFTEROPEN		(WM_USER + 4)
+
+#define	IDLEPROC_SOCKET		0
+#define	IDLEPROC_ENCRYPT	1
+#define	IDLEPROC_SCRIPT		2
+
+//////////////////////////////////////////////////////////////////////
+// CCommandLineInfoEx
 
 class CCommandLineInfoEx : public CCommandLineInfo
 {
@@ -47,14 +54,26 @@ public:
 	static LPCTSTR ShellEscape(LPCTSTR str);
 };
 
-// CRLoginApp:
-// このクラスの実装については、RLogin.cpp を参照してください。
-//
+//////////////////////////////////////////////////////////////////////
+// CIdleProc
+
+class CIdleProc : public CObject
+{
+public:
+	class CIdleProc *m_pBack;
+	class CIdleProc *m_pNext;
+	int m_Type;
+	void *m_pParam;
+	int m_Priority;
+};
+
+//////////////////////////////////////////////////////////////////////
+// CRLoginApp
 
 class CRLoginApp : public CWinApp
 {
 public:
-	int m_NextSock;
+	CIdleProc *m_pIdleTop;
 	CPtrArray m_SocketIdle;
 	class CFontChache m_FontData;
 	WSADATA wsaData;
@@ -63,6 +82,7 @@ public:
 	CCommandLineInfoEx *m_pCmdInfo;
 	CServerEntry *m_pServerEntry;
 	BOOL m_bLookCast;
+	BOOL m_bOtherCast;
 	CString m_LocalPass;
 
 #ifdef	USE_KEYMACGLOBAL
@@ -87,8 +107,9 @@ public:
 	void Speek(LPCTSTR str);
 #endif
 
-	void SetSocketIdle(class CExtSocket *pSock);
-	void DelSocketIdle(class CExtSocket *pSock);
+	void AddIdleProc(int Type, void *pParam);
+	void DelIdleProc(int Type, void *pParam);
+
 	virtual CString GetProfileString(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPCTSTR lpszDefault = NULL);
 	void GetProfileData(LPCTSTR lpszSection, LPCTSTR lpszEntry, void *lpBuf, int nBufLen, void *lpDef = NULL);
 	void GetProfileBuffer(LPCTSTR lpszSection, LPCTSTR lpszEntry, CBuffer &Buf);
@@ -99,10 +120,12 @@ public:
 	int GetProfileSeqNum(LPCTSTR lpszSection, LPCTSTR lpszEntry);
 	void GetProfileKeys(LPCTSTR lpszSection, CStringArrayExt &stra);
 	void DelProfileEntry(LPCTSTR lpszSection, LPCTSTR lpszEntry);
+
 	void RegisterShellProtocol(LPCTSTR pSection, LPCTSTR pOption);
 	void RegisterDelete(HKEY hKey, LPCTSTR pSection, LPCTSTR pKey);
 	void RegisterSave(HKEY hKey, LPCTSTR pSection, CBuffer &buf);
 	void RegisterLoad(HKEY hKey, LPCTSTR pSection, CBuffer &buf);
+
 	void GetVersion(CString &str);
 	void SetDefaultPrinter();
 	void SSL_Init();
@@ -150,7 +173,9 @@ public:
 	virtual BOOL OnIdle(LONG lCount);
 
 // 実装
+public:
 	DECLARE_MESSAGE_MAP()
+	afx_msg void OnNewConnect();
 	afx_msg void OnFileNew();
 	afx_msg void OnFileOpen();
 	afx_msg void OnAppAbout();
@@ -159,6 +184,8 @@ public:
 	afx_msg void OnDialogfont();
 	afx_msg void OnLookcast();
 	afx_msg void OnUpdateLookcast(CCmdUI *pCmdUI);
+	afx_msg void OnOthercast();
+	afx_msg void OnUpdateOthercast(CCmdUI *pCmdUI);
 	afx_msg void OnPassLock();
 	afx_msg void OnUpdatePassLock(CCmdUI *pCmdUI);
 };

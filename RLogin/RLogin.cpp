@@ -460,12 +460,15 @@ BEGIN_MESSAGE_MAP(CRLoginApp, CWinApp)
 	ON_COMMAND(ID_APP_ABOUT, &CRLoginApp::OnAppAbout)
 	ON_COMMAND(ID_FILE_PRINT_SETUP, OnFilePrintSetup)
 	// 標準のファイル基本ドキュメント コマンド
+	ON_COMMAND(IDM_NEWCONNECT, &CRLoginApp::OnNewConnect)
 	ON_COMMAND(ID_FILE_NEW, &CRLoginApp::OnFileNew)
 	ON_COMMAND(ID_FILE_OPEN, &CRLoginApp::OnFileOpen)
 	ON_COMMAND(IDM_DISPWINIDX, &CRLoginApp::OnDispwinidx)
 	ON_COMMAND(IDM_DIALOGFONT, &CRLoginApp::OnDialogfont)
 	ON_COMMAND(IDM_LOOKCAST, &CRLoginApp::OnLookcast)
 	ON_UPDATE_COMMAND_UI(IDM_LOOKCAST, &CRLoginApp::OnUpdateLookcast)
+	ON_COMMAND(IDM_OTHERCAST, &CRLoginApp::OnOthercast)
+	ON_UPDATE_COMMAND_UI(IDM_OTHERCAST, &CRLoginApp::OnUpdateOthercast)
 	ON_COMMAND(IDM_PASSWORDLOCK, &CRLoginApp::OnPassLock)
 	ON_UPDATE_COMMAND_UI(IDM_PASSWORDLOCK, &CRLoginApp::OnUpdatePassLock)
 
@@ -476,11 +479,9 @@ END_MESSAGE_MAP()
 
 CRLoginApp::CRLoginApp()
 {
-	// TODO: この位置に構築用コードを追加してください。
-	// ここに InitInstance 中の重要な初期化処理をすべて記述してください。
-	m_NextSock = 0;
 	m_pServerEntry = NULL;
 	m_bLookCast = FALSE;
+	m_bOtherCast = FALSE;
 	m_LocalPass.Empty();
 
 #ifdef	USE_DIRECTWRITE
@@ -491,6 +492,8 @@ CRLoginApp::CRLoginApp()
 #ifdef	USE_SAPI
 	m_pVoice = NULL;
 #endif
+
+	m_pIdleTop = NULL;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -924,7 +927,8 @@ BOOL CRLoginApp::InitInstance()
 #endif
 
 	// レジストリからオプション復帰
-	m_bLookCast = GetProfileInt(_T("RLoginApp"), _T("LookCast"), FALSE);
+	m_bLookCast  = GetProfileInt(_T("RLoginApp"), _T("LookCast"),  FALSE);
+	m_bOtherCast = GetProfileInt(_T("RLoginApp"), _T("OtherCast"), FALSE);
 
 #ifdef	USE_KEYMACGLOBAL
 	m_KeyMacGlobal.Serialize(FALSE);	// init
@@ -1468,11 +1472,10 @@ void CRLoginApp::SendBroadCast(CBuffer &buf, LPCTSTR pGroup)
 		copyData.lpData = tmp.GetPtr();
 	}
 
-#ifdef	USE_BCASTGLOBAL
-	::EnumWindows(RLoginEnumFunc, (LPARAM)&copyData);
-#else
-	OnSendBroadCast(&copyData);
-#endif
+	if ( m_bOtherCast )
+		::EnumWindows(RLoginEnumFunc, (LPARAM)&copyData);
+	else
+		OnSendBroadCast(&copyData);
 }
 
 void CRLoginApp::OnSendBroadCastMouseWheel(COPYDATASTRUCT *pCopyData)
@@ -1519,33 +1522,10 @@ void CRLoginApp::SendBroadCastMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 	copyData.cbData = sizeof(WheelData);
 	copyData.lpData = &WheelData;
 
-#ifdef	USE_BCMWGLOBAL
-	::EnumWindows(RLoginEnumFunc, (LPARAM)&copyData);
-#else
-	OnSendBroadCastMouseWheel(&copyData);
-#endif
-}
-
-//////////////////////////////////////////////////////////////////////
-
-void CRLoginApp::SetSocketIdle(class CExtSocket *pSock)
-{
-	ASSERT(pSock->m_Type >= 0 && pSock->m_Type < 10);
-
-	for ( int n = 0 ; n < m_SocketIdle.GetSize() ; n++ ) {
-		if ( m_SocketIdle[n] == (void *)pSock )
-			return;
-	}
-	m_SocketIdle.Add((void *)pSock);
-}
-void CRLoginApp::DelSocketIdle(class CExtSocket *pSock)
-{
-	for ( int n = 0 ; n < m_SocketIdle.GetSize() ; n++ ) {
-		if ( m_SocketIdle[n] == (void *)pSock ) {
-			m_SocketIdle.RemoveAt(n);
-			break;
-		}
-	}
+	if ( (nFlags & MK_CONTROL) != 0 )
+		::EnumWindows(RLoginEnumFunc, (LPARAM)&copyData);
+	else
+		OnSendBroadCastMouseWheel(&copyData);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1977,34 +1957,108 @@ ERRRET:
 }
 
 //////////////////////////////////////////////////////////////////////
-// CRLoginApp メッセージ ハンドラ
 
-int mt_idle();
-int ScriptIdle();
+BOOL mt_proc(LPVOID pParam);
 
 BOOL CRLoginApp::OnIdle(LONG lCount) 
 {
+	CIdleProc *pProc = m_pIdleTop;
 	BOOL rt = FALSE;
 
 	if ( lCount >= 0 && CWinApp::OnIdle(lCount) )
 		return TRUE;
 
-	for ( int n = 0 ; n < m_SocketIdle.GetSize() ; n++ ) {
-		CExtSocket *pSock = (CExtSocket *)(m_SocketIdle[n]);
+	while ( pProc != NULL ) {
+		switch(pProc->m_Type) {
+		case IDLEPROC_SOCKET:
+			rt = ((CExtSocket *)(pProc->m_pParam))->OnIdle();
+			break;
+		case IDLEPROC_ENCRYPT:
+			rt = mt_proc(pProc->m_pParam);
+			break;
+		case IDLEPROC_SCRIPT:
+			rt = ((CScript *)(pProc->m_pParam))->OnIdle();
+			break;
+		}
 
-		ASSERT(pSock->m_Type >= 0 && pSock->m_Type < 10 );
+		if ( rt ) {
+			//TRACE("OnIdle %d %d(%04x)\n", lCount, pProc->m_Type, pProc->m_pParam);
+			m_pIdleTop = pProc->m_pNext;
+			break;
+		}
 
-		if ( pSock->OnIdle() )
-			rt = TRUE;
+		if ( (pProc = pProc->m_pNext) == m_pIdleTop )
+			break;
 	}
 
-	if ( mt_idle() )
-		rt = TRUE;
-
-	if ( ScriptIdle() )
-		rt = TRUE;
-
 	return rt;
+}
+
+void CRLoginApp::AddIdleProc(int Type, void *pParam)
+{
+	CIdleProc *pProc = m_pIdleTop;
+	
+	while ( pProc != NULL ) {
+		if ( pProc->m_Type == Type && pProc->m_pParam == pParam )
+			return;
+		if ( (pProc = pProc->m_pNext) == m_pIdleTop )
+			break;
+	}
+
+	pProc = new CIdleProc;
+	pProc->m_Type = Type;
+	pProc->m_pParam = pParam;
+	pProc->m_Priority = 0;
+
+	if ( m_pIdleTop == NULL ) {
+		pProc->m_pBack = pProc->m_pNext = pProc;
+		m_pIdleTop = pProc;
+	} else {
+		pProc->m_pBack = m_pIdleTop->m_pBack;
+		m_pIdleTop->m_pBack->m_pNext = pProc;
+		pProc->m_pNext = m_pIdleTop;
+		m_pIdleTop->m_pBack = pProc;
+		m_pIdleTop = pProc;
+	}
+}
+void CRLoginApp::DelIdleProc(int Type, void *pParam)
+{
+	CIdleProc *pProc = m_pIdleTop;
+
+	while ( pProc != NULL ) {
+		if ( pProc->m_Type == Type && pProc->m_pParam == pParam ) {
+			if ( pProc->m_pNext == pProc )
+				m_pIdleTop = NULL;
+			else {
+				pProc->m_pBack->m_pNext = pProc->m_pNext;
+				pProc->m_pNext->m_pBack = pProc->m_pBack;
+				if ( pProc == m_pIdleTop )
+					m_pIdleTop = pProc->m_pNext;
+			}
+			delete pProc;
+			break;
+		}
+		if ( (pProc = pProc->m_pNext) == m_pIdleTop )
+			break;
+	}
+}
+
+//////////////////////////////////////////////////////////////////////
+// CRLoginApp メッセージ ハンドラ
+
+void CRLoginApp::OnNewConnect()
+{
+	CRLoginDoc *pDoc;
+	CChildFrame *pChild;
+	CMainFrame *pMain = (CMainFrame *)::AfxGetMainWnd();
+
+	if ( pMain != NULL && pMain->GetTabCount() >= DOCUMENT_MAX )
+		return;
+
+	if ( pMain != NULL && (pChild = (CChildFrame *)(pMain->MDIGetActive())) != NULL && (pDoc = (CRLoginDoc *)(pChild->GetActiveDocument())) != NULL && pDoc->m_pSock != NULL && !pDoc->m_pSock->m_bConnect )
+		pChild->PostMessage(WM_COMMAND, IDM_REOPENSOCK, (LPARAM)0);
+	else
+		CWinApp::OnFileNew();
 }
 void CRLoginApp::OnFileNew()
 {
@@ -2105,6 +2159,15 @@ void CRLoginApp::OnLookcast()
 void CRLoginApp::OnUpdateLookcast(CCmdUI *pCmdUI)
 {
 	pCmdUI->SetCheck(m_bLookCast);
+}
+void CRLoginApp::OnOthercast()
+{
+	m_bOtherCast = m_bOtherCast ? FALSE : TRUE;
+	WriteProfileInt(_T("RLoginApp"), _T("OtherCast"), m_bOtherCast);
+}
+void CRLoginApp::OnUpdateOthercast(CCmdUI *pCmdUI)
+{
+	pCmdUI->SetCheck(m_bOtherCast);
 }
 
 void CRLoginApp::OnPassLock()

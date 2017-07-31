@@ -1123,11 +1123,11 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 	mi.cbSize = sizeof(MONITORINFO);
 	GetMonitorInfo(hMonitor, &mi);
 
-	if ( rc.left > mi.rcMonitor.right ) {
+	if ( rc.left >= mi.rcMonitor.right ) {
 		if ( (cs.x -= (mi.rcMonitor.right - rc.right)) < 0 )
 			cs.x = 0;
 	}
-	if ( rc.top > mi.rcMonitor.bottom ) {
+	if ( rc.top >= mi.rcMonitor.bottom ) {
 		if ( (cs.y -= (mi.rcMonitor.bottom - rc.bottom)) < 0 )
 			cs.y = 0;
 	}
@@ -1253,7 +1253,7 @@ int CMainFrame::SetAsyncSelect(SOCKET fd, CExtSocket *pSock, long lEvent)
 	if ( lEvent != 0 && WSAAsyncSelect(fd, GetSafeHwnd(), WM_SOCKSEL, lEvent) != 0 )
 		return FALSE;
 
-	((CRLoginApp *)AfxGetApp())->SetSocketIdle(pSock);
+	((CRLoginApp *)AfxGetApp())->AddIdleProc(IDLEPROC_SOCKET, pSock);
 
 	for ( int n = 0 ; n < m_SocketParam.GetSize() ; n += 2 ) {
 		if ( m_SocketParam[n] == (void *)fd ) {
@@ -1272,7 +1272,7 @@ void CMainFrame::DelAsyncSelect(SOCKET fd, CExtSocket *pSock, BOOL useWsa)
 	if ( useWsa )
 		WSAAsyncSelect(fd, GetSafeHwnd(), 0, 0);
 
-	((CRLoginApp *)AfxGetApp())->DelSocketIdle(pSock);
+	((CRLoginApp *)AfxGetApp())->DelIdleProc(IDLEPROC_SOCKET, pSock);
 
 	for ( int n = 0 ; n < m_SocketParam.GetSize() ; n += 2 ) {
 		if ( m_SocketParam[n] == (void *)fd ) {

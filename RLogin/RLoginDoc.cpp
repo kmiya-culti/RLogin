@@ -86,17 +86,16 @@ CRLoginDoc::CRLoginDoc()
 	m_pKermit = NULL;
 	m_bDelayPast = FALSE;
 	m_DelayFlag = DELAY_NON;
-	m_ActCharCount = 0;
 	m_pMainWnd = (CMainFrame *)AfxGetMainWnd();
 	m_SockStatus.Empty();
 	m_pStrScript = NULL;
 	m_pScript = NULL;
 	m_InPane = FALSE;
 	m_AfterId = (-1);
-	m_bUseIdle = FALSE;
 	m_LogSendRecv = LOGDEBUG_NONE;
 	m_ScriptFile.Empty();
 	m_bReqDlg = FALSE;
+	m_PostIdleCount = 0;
 }
 
 CRLoginDoc::~CRLoginDoc()
@@ -1082,6 +1081,18 @@ int CRLoginDoc::GetViewCount()
 
 	return count;
 }
+void CRLoginDoc::PostIdleMessage()
+{
+	if ( m_PostIdleCount > 0 )
+		return;
+
+	CWnd *pWnd = GetAciveView();
+
+	if ( pWnd != NULL )
+		pWnd->PostMessage(WM_COMMAND, IDM_SOCK_IDLE);
+
+	m_PostIdleCount++;
+}
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -1233,12 +1244,10 @@ int CRLoginDoc::OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags)
 	int n;
 	BOOL sync = FALSE;
 
-//	TRACE("OnSocketRecive %d(%d)Byte\n", nBufLen, m_ActCharCount);
+//	TRACE("OnSocketRecive %dByte\n", nBufLen);
 
-	if ( !m_TextRam.IsInitText() ) {
-		m_bUseIdle = TRUE;
+	if ( !m_TextRam.IsInitText() )
 		return 0;
-	}
 
 	if ( nFlags != 0 )
 		return nBufLen;
@@ -1258,20 +1267,7 @@ int CRLoginDoc::OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags)
 		}
 	}
 
-	if ( IsActCount() ) {
-		if ( !m_pMainWnd->IsIconic() ) {
-			m_bUseIdle = TRUE;
-			return 0;
-		}
-		ClearActCount();
-	}
-
-	if ( nBufLen > 4096 ) {
-		m_bUseIdle = TRUE;
-		nBufLen = 4096;
-	}
-
-	n = m_TextRam.Write(lpBuf, nBufLen, &sync);
+	n = m_TextRam.Write(lpBuf, (nBufLen < 4096 ? nBufLen : 4096), &sync);
 
 	if ( sync ) {
 		m_pSock->SetRecvSyncMode(TRUE);
@@ -1290,10 +1286,13 @@ int CRLoginDoc::OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags)
 		}
 	}
 
-	if ( n < nBufLen )
-		m_bUseIdle = TRUE;
+	if ( (nBufLen - n + m_pSock->GetRecvProcSize()) > 0 )
+		PostIdleMessage();
 
 	nBufLen = n;
+
+	// 即時画面更新
+	UpdateAllViews(NULL, UPDATE_UPDATEWINDOW, NULL);
 
 	if ( m_pLogFile != NULL ) {
 		if ( m_TextRam.m_LogMode == LOGMOD_RAW )
@@ -1312,19 +1311,11 @@ int CRLoginDoc::OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags)
 }
 void CRLoginDoc::OnSockIdle()
 {
-	int n;
+	if ( m_pSock != NULL )
+		m_pSock->OnIdle();
 
-	if ( m_pSock == NULL )
-		return;
-
-	for ( n = 0 ; n < 5 ; n++ ) {
-		if ( !m_pSock->OnIdle() )
-			break;
-		if ( IsActCount() || m_bUseIdle )
-			break;
-	}
-
-//	TRACE("SockIdle %d\n", n);
+	// 後でデクリメントにより重複しないように・・・
+	m_PostIdleCount--;
 }
 void CRLoginDoc::OnSockReOpen()
 {

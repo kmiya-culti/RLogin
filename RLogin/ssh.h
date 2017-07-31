@@ -523,6 +523,7 @@ class CStdIoFilter : public CFilter
 public:
 	CStdIoFilter();
 	void OnRecive(const void *lpBuf, int nBufLen);
+	void OnSendEmpty();
 	int GetSendSize();
 };
 

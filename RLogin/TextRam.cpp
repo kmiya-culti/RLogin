@@ -2893,6 +2893,8 @@ int CTextRam::Write(LPBYTE lpBuf, int nBufLen, BOOL *sync)
 	if ( m_LineEditMode )
 		LOADRAM();
 
+	m_UpdateFlag = FALSE;
+
 	for ( n = 0 ; n < nBufLen && !m_UpdateFlag ; n++ ) {
 		fc_Call(lpBuf[n]);
 		if ( m_RetSync ) {
@@ -2900,11 +2902,6 @@ int CTextRam::Write(LPBYTE lpBuf, int nBufLen, BOOL *sync)
 			*sync = TRUE;
 			break;
 		}
-	}
-
-	if ( m_UpdateFlag ) {
-		m_UpdateFlag = FALSE;
-		m_pDocument->SetActCount();
 	}
 
 	if ( m_LineEditMode || m_LineEditBuff.GetSize() > 0 ) {
@@ -3532,6 +3529,19 @@ void CTextRam::GetLine(int sy, CString &str)
 
 //	if ( ex < mx || IsOptEnable(TO_RLLOGTIME) )
 		str += _T("\r\n");
+}
+BOOL CTextRam::IsEmptyLine(int sy)
+{
+	int ex, mx;
+	CCharCell *vp;
+
+	vp = GETVRAM(0, sy);
+	mx = (vp->m_Vram.zoom != 0 ? (m_Cols / 2) : m_Cols);
+
+	for ( ex = mx ; ex > 0 && vp[ex - 1].IsEmpty() ; )
+		ex--;
+
+	return (ex <= 0 ? TRUE : FALSE);
 }
 void CTextRam::GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf)
 {
@@ -5522,8 +5532,6 @@ void CTextRam::DISPUPDATE()
 
 	if ( IsOptEnable(TO_DECSCLM) )
 		m_UpdateFlag = TRUE;
-	else
-		m_pDocument->IncActCount();
 }
 void CTextRam::DISPVRAM(int sx, int sy, int w, int h)
 {
@@ -5550,8 +5558,6 @@ void CTextRam::DISPVRAM(int sx, int sy, int w, int h)
 
 	if ( IsOptEnable(TO_DECSCLM) )
 		m_UpdateFlag = TRUE;
-	else
-		m_pDocument->IncActCount();
 }
 void CTextRam::DISPRECT(int sx, int sy, int ex, int ey)
 {
@@ -6076,7 +6082,11 @@ void CTextRam::ERABOX(int sx, int sy, int ex, int ey, int df)
 	if ( ey < sy ) return; else if ( ey > m_Lines ) ey = m_Lines;
 
 	if ( sx == 0 && ex == m_Cols && sy == 0 && ey == m_Lines && m_Lines > 1 && IsOptEnable(TO_RLCLSBACK) ) {
-		for ( y = 0 ; y < m_Lines ; y++)
+		for ( x = m_Lines ; x > 0 ; x-- ) {
+			if ( !IsEmptyLine(x - 1) )
+				break;
+		}
+		for ( y = 0 ; y < x ; y++)
 			FORSCROLL(0, 0, m_Cols, m_Lines);
 		m_pDocument->UpdateAllViews(NULL, UPDATE_SCROLLOUT, NULL);
 		return;

@@ -137,7 +137,7 @@ BOOL CPipeSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, 
 		m_OutThread = AfxBeginThread(PipeOutThread, this, THREAD_PRIORITY_BELOW_NORMAL);
 	}
 
-	GetApp()->SetSocketIdle(this);
+	GetApp()->AddIdleProc(IDLEPROC_SOCKET, this);
 	GetMainWnd()->SetAsyncSelect((SOCKET)m_hIn[0], this, 0);
 
 //	CExtSocket::OnConnect();
@@ -193,7 +193,7 @@ void CPipeSock::Close()
 	m_hIn[0] =  m_hIn[1]  = NULL;
 	m_hOut[0] = m_hOut[1] = NULL;
 
-	GetApp()->DelSocketIdle(this);
+	GetApp()->DelIdleProc(IDLEPROC_SOCKET, this);
 
 	m_SendBuff.Clear();
 	m_pSendEvent->ResetEvent();

@@ -756,13 +756,15 @@
 #define IDM_LOOKCAST                    5098
 #define IDM_PASSWORDLOCK                5099
 #define IDM_REOPENSOCK                  5100
+#define IDM_OTHERCAST                   5101
+#define IDM_NEWCONNECT                  5102
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        157
-#define _APS_NEXT_COMMAND_VALUE         5101
+#define _APS_NEXT_COMMAND_VALUE         5103
 #define _APS_NEXT_CONTROL_VALUE         2436
 #define _APS_NEXT_SYMED_VALUE           553
 #endif

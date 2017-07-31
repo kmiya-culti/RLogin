@@ -296,7 +296,7 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 
 			case 1:		// SSH1 Packet Length
 				if ( m_Incom.GetSize() < 4 )
-					return;
+					goto ENDLOOP;
 				m_InPackLen = m_Incom.Get32Bit();
 				m_InPackPad = 8 - (m_InPackLen % 8);
 				if ( m_InPackLen < 4 || m_InPackLen > (256 * 1024) ) {	// Error Packet Length
@@ -308,7 +308,7 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				// break; Not use
 			case 2:		// SSH1 Packet
 				if ( m_Incom.GetSize() < (m_InPackLen + m_InPackPad) )
-					return;
+					goto ENDLOOP;
 				tmp.Clear();
 				tmp.Apend(m_Incom.GetPtr(), m_InPackLen + m_InPackPad);
 				m_Incom.Consume(m_InPackLen + m_InPackPad);
@@ -342,7 +342,7 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 					break;
 				}
 				if ( m_Incom.GetSize() < m_DecCip.GetBlockSize() )
-					return;
+					goto ENDLOOP;
 				m_InPackBuf.Clear();
 				m_DecCip.Cipher(m_Incom.GetPtr(), m_DecCip.GetBlockSize(), &m_InPackBuf);
 				m_Incom.Consume(m_DecCip.GetBlockSize());
@@ -356,7 +356,7 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				// break; Not use
 			case 4:		// SSH2 Packet
 				if ( m_Incom.GetSize() < (m_InPackLen - m_DecCip.GetBlockSize() + 4 + m_DecMac.GetBlockSize()) )
-					return;
+					goto ENDLOOP;
 				m_InPackStat = 3;
 				m_DecCip.Cipher(m_Incom.GetPtr(), m_InPackLen - m_DecCip.GetBlockSize() + 4, &m_InPackBuf);
 				m_Incom.Consume(m_InPackLen - m_DecCip.GetBlockSize() + 4);
@@ -387,7 +387,7 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 					break;
 				}
 				if ( m_Incom.GetSize() < 4 )
-					return;
+					goto ENDLOOP;
 				m_InPackLen = m_Incom.PTR32BIT(m_Incom.GetPtr());
 				if ( m_InPackLen < 5 || m_InPackLen > (256 * 1024) ) {
 					m_Incom.Clear();
@@ -398,7 +398,7 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				// break; Not use
 			case 6:		// SSH2 AEAD Packet
 				if ( m_Incom.GetSize() < (4 + m_InPackLen + SSH2_GCM_TAGSIZE) )
-					return;
+					goto ENDLOOP;
 				m_InPackStat = 5;
 				tmp.Clear();
 				if ( !m_DecCip.Cipher(m_Incom.GetPtr(), 4 + m_InPackLen + SSH2_GCM_TAGSIZE, &tmp) ) {
@@ -423,7 +423,7 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 					break;
 				}
 				if ( m_Incom.GetSize() < 4 )
-					return;
+					goto ENDLOOP;
 				m_InPackLen = m_Incom.PTR32BIT(m_Incom.GetPtr());
 				if ( m_InPackLen < 5 || m_InPackLen > (256 * 1024) ) {
 					m_Incom.Clear();
@@ -434,7 +434,7 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				// break; Not use
 			case 8:		// SSH2 etm Packet
 				if ( m_Incom.GetSize() < (4 + m_InPackLen + m_DecMac.GetBlockSize()) )
-					return;
+					goto ENDLOOP;
 				m_InPackStat = 7;
 				dec.Clear();
 				dec.Apend(m_Incom.GetPtr(), 4);
@@ -465,7 +465,7 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 					break;
 				}
 				if ( m_Incom.GetSize() < 4 )
-					return;
+					goto ENDLOOP;
 				m_DecCip.PolyIvGen(m_RecvPackSeq);
 				m_InPackLen = m_DecCip.PolyGetLen(m_Incom.GetPtr());
 				if ( m_InPackLen < 5 || m_InPackLen > (256 * 1024) ) {
@@ -477,7 +477,7 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				// break; Not use
 			case 10:		// SSH2 Poly1305 Packet
 				if ( m_Incom.GetSize() < (4 + m_InPackLen + SSH2_POLY1305_TAGSIZE) )
-					return;
+					goto ENDLOOP;
 				m_InPackStat = 9;
 				tmp.Clear();
 				if ( !m_DecCip.Cipher(m_Incom.GetPtr(), 4 + m_InPackLen + SSH2_POLY1305_TAGSIZE, &tmp) ) {
@@ -497,6 +497,11 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				break;
 			}
 		}
+
+	ENDLOOP:
+		if ( m_StdChan != (-1) )
+			((CChannel *)m_pChan[m_StdChan])->m_pFilter->OnSendEmpty();
+
 	} catch(LPCTSTR pMsg) {
 		CString tmp;
 		tmp.Format(_T("ssh Recive Packet Error '%s'"), pMsg);
@@ -558,6 +563,7 @@ void Cssh::OnSendEmpty()
 	for ( CFilter *fp = m_pListFilter ; fp != NULL ; fp = fp->m_pNext )
 		fp->OnSendEmpty();
 }
+
 void Cssh::GetStatus(CString &str)
 {
 	CString tmp;
@@ -1067,7 +1073,7 @@ int Cssh::ChannelOpen()
 		}
 		if ( mx < 5 ) {
 			n = (int)m_pChan.GetSize();
-			if ( (mx = n + (10 - mx)) > CHAN_MAXSIZE ) {
+			if ( (mx = n + 10) == CHAN_MAXSIZE ) {
 				if ( AfxMessageBox(IDE_MANYCHANNEL, MB_ICONQUESTION | MB_YESNO) != IDYES )
 					return (-1);
 			}
@@ -1109,7 +1115,7 @@ int Cssh::ChannelOpen()
 	cp->m_WriteByte  = 0;
 	cp->m_ConnectTime= 0;
 
-	((CRLoginApp *)AfxGetApp())->SetSocketIdle(cp);
+	((CRLoginApp *)AfxGetApp())->AddIdleProc(IDLEPROC_SOCKET, cp);
 
 	return cp->m_LocalID;
 }
@@ -2639,12 +2645,12 @@ int Cssh::SSH2MsgKexCurveReply(CBuffer *bp)
 		m_VKey[n] = derive_key('A' + n, m_NeedKeyLen, hash, hashlen, shared_secret, m_SessionId, m_SessionIdLen, evp_md);
 	}
 
-	ZeroMemory(shared_key, sizeof(shared_key));
+	SecureZeroMemory(shared_key, sizeof(shared_key));
 	BN_clear_free(shared_secret);
 	return FALSE;
 
 ENDRET:
-	ZeroMemory(shared_key, sizeof(shared_key));
+	SecureZeroMemory(shared_key, sizeof(shared_key));
 	BN_clear_free(shared_secret);
 	return TRUE;
 }

@@ -1446,12 +1446,18 @@ void CSFtp::DownLoadFile(CFileNode *pNode, LPCTSTR file, BOOL bShellExec)
 		case UDO_OVERWRITE:
 			break;
 		case UDO_MTIMECHECK:
-			if ( st.st_mtime >= pNode->m_mtime )
+			if ( st.st_mtime >= pNode->m_mtime ) {
+				if ( bShellExec )
+					ShellExecute(GetSafeHwnd(), NULL, file, NULL, NULL, SW_NORMAL);
 				return;
+			}
 			break;
 		case UDO_UPDCHECK:
-			if ( st.st_mtime == pNode->m_mtime && st.st_size == pNode->m_size )
+			if ( st.st_mtime == pNode->m_mtime && st.st_size == pNode->m_size ) {
+				if ( bShellExec )
+					ShellExecute(GetSafeHwnd(), NULL, file, NULL, NULL, SW_NORMAL);
 				return;
+			}
 			break;
 		case UDO_RESUME:
 			if ( st.st_size < pNode->m_size )

@@ -319,14 +319,7 @@ void CRLoginView::OnDraw(CDC* pDC)
 		ShowCaret();
 	}
 
-	if ( pDoc->m_bUseIdle ) {
-		pDoc->m_bUseIdle = FALSE;
-		PostMessage(WM_COMMAND, IDM_SOCK_IDLE);
-	}
-
-	pDoc->ClearActCount();
-
-//	TRACE("Draw %x(%d,%d,%d,%d)\n", m_hWnd, sx, sy, ex, ey);
+	//TRACE("Draw %x(%d,%d,%d,%d)\n", m_hWnd, sx, sy, ex, ey);
 }
 void CRLoginView::CreateGrapImage(int type)
 {
@@ -940,6 +933,10 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		m_HisOfs = 0;
 		lHint = UPDATE_INVALIDATE;
 		break;
+
+	case UPDATE_UPDATEWINDOW:
+		UpdateWindow();
+		return;
 	}
 
 	if ( (m_DispCaret & FGCARET_FOCUS) != 0 && pSender != this && m_ScrollOut == FALSE &&
@@ -1014,12 +1011,16 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		break;
 
 	case UPDATE_TEXTRECT:
-	case UPDATE_BLINKRECT:
 		rect = *((CRect *)pHint);
 		if ( m_ClipUpdateLine ) {
 			rect.left  = 0;
 			rect.right = pDoc->m_TextRam.m_Cols;
 		}
+		InvalidateTextRect(rect);
+		break;
+
+	case UPDATE_BLINKRECT:
+		rect = *((CRect *)pHint);
 		InvalidateTextRect(rect);
 		break;
 
@@ -2200,17 +2201,24 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 		m_ClipKeyFlags &= 0xEFFF;
 
 	if ( point.y < 0 || point.y > m_Height ) {
+		pos = m_HisOfs;
+		
+		if ( point.y < 0 && point.y <= m_ClipSavePoint.y )
+			pos -= (point.y / m_CharHeight);
+		else if ( point.y > m_Height && point.y >= m_ClipSavePoint.y )
+			pos -= ((point.y - m_Height) / m_CharHeight);
+
 		m_ClipSavePoint = point;
-		if ( m_ClipTimer == 0 )
-			m_ClipTimer = (UINT)SetTimer(VTMID_MOUSEMOVE, 100, NULL);
-		if ( point.y < (0 - m_CharHeight * 3) )
-			OnVScroll(SB_PAGEUP, 0, NULL);
-		else if ( point.y < 0 )
-			OnVScroll(SB_LINEUP, 0, NULL);
-		else if ( point.y < (m_Height + m_CharHeight * 3) )
-			OnVScroll(SB_LINEDOWN, 0, NULL);
-		else
-			OnVScroll(SB_PAGEDOWN, 0, NULL);
+
+		if ( pos < 0 )
+			pos = 0;
+		else if ( pos > (pDoc->m_TextRam.m_HisLen - m_Lines) )
+			pos = pDoc->m_TextRam.m_HisLen - m_Lines;
+
+		if ( pos != m_HisOfs ) {
+			m_HisOfs = pos;
+			OnUpdate(this, UPDATE_INVALIDATE, NULL);
+		}
 	} else {
 		if ( m_ClipTimer != 0 )
 			KillTimer(m_ClipTimer);
