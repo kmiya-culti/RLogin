@@ -86,16 +86,15 @@ END_MESSAGE_MAP()
 void CCharSetPage::InitList()
 {
 	int n, i;
-	CString code, bank;
+	static LPCSTR bankTab[] = { "94", "96", "94x94", "96x96" };
 
 	m_List.DeleteAllItems();
 	for ( n = i = 0 ; n < CODE_MAX ; n++ ) {
 		if ( m_FontTab[n].m_EntryName.IsEmpty() )
 			continue;
 		m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, i, m_FontTab[n].m_EntryName, 0, 0, 0, n);
-		CFontParaDlg::CodeSetName(n, bank, code);
-		m_List.SetItemText(i, 1, bank);
-		m_List.SetItemText(i, 2, code);
+		m_List.SetItemText(i, 1, (n == SET_UNICODE ? "" : bankTab[n >> 8]));
+		m_List.SetItemText(i, 2, m_FontTab[n].m_IndexName);
 		m_List.SetItemText(i, 3, m_FontTab[n].m_FontName[m_AltFont]);
 		m_List.SetItemData(i, n);
 		i++;
@@ -212,9 +211,10 @@ void CCharSetPage::OnFontListNew()
 {
 	CFontParaDlg dlg;
 	CFontNode tmp;
-	dlg.m_CodeSet = 0;
+	dlg.m_CodeSet = 255;
 	dlg.m_pData   = &tmp;
 	dlg.m_FontNum = m_AltFont;
+	dlg.m_pFontTab = &m_FontTab;
 	if ( dlg.DoModal() != IDOK )
 		return;
 	m_FontTab[dlg.m_CodeSet] = tmp;
@@ -233,6 +233,7 @@ void CCharSetPage::OnFontListEdit()
 	dlg.m_CodeSet = n;
 	dlg.m_pData   = &tmp;
 	dlg.m_FontNum = m_AltFont;
+	dlg.m_pFontTab = &m_FontTab;
 	if ( dlg.DoModal() != IDOK )
 		return;
 	m_FontTab[dlg.m_CodeSet] = tmp;
@@ -249,7 +250,7 @@ void CCharSetPage::OnFontListDel()
 	int n;
 	if ( (n = m_List.GetSelectMarkData()) < 0 )
 		return;
-	m_FontTab[n].Init();
+	m_FontTab.IndexRemove(n);
 	InitList();
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
@@ -265,6 +266,7 @@ void CCharSetPage::OnEditDups()
 	dlg.m_CodeSet = n;
 	dlg.m_pData   = &tmp;
 	dlg.m_FontNum = m_AltFont;
+	dlg.m_pFontTab = &m_FontTab;
 	if ( dlg.DoModal() != IDOK )
 		return;
 	m_FontTab[dlg.m_CodeSet] = tmp;

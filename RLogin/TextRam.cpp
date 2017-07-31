@@ -37,7 +37,9 @@ void CFontNode::Init()
 	m_CharSet     = 0;
 	m_EntryName   = "";
 	m_IContName   = "";
+	m_IndexName   = "";
 	m_Quality     = DEFAULT_QUALITY;
+	m_Init        = FALSE;
 	for ( int n = 0 ; n < 16 ; n++ ) {
 		m_FontName[n] = "";
 		m_Hash[n]     = 0;
@@ -58,13 +60,15 @@ void CFontNode::SetArray(CStringArrayExt &array)
 	for ( int n = 1 ; n < 16 ; n++ )
 		array.Add(m_FontName[n]);
 	array.AddVal(m_Quality);
+	array.Add(m_IndexName);
 }
 void CFontNode::GetArray(CStringArrayExt &array)
 {
-	if ( array.GetSize() < 7 ) {
-		Init();
+	Init();
+
+	if ( array.GetSize() < 7 )
 		return;
-	}
+
 	m_Shift		  = array.GetVal(0);
 	m_ZoomH		  = array.GetVal(1);
 	m_Offset	  = array.GetVal(2);
@@ -88,6 +92,11 @@ void CFontNode::GetArray(CStringArrayExt &array)
 
 	if ( array.GetSize() > (7 + 16) )
 		m_Quality = array.GetVal(7 + 16);
+
+	if ( array.GetSize() > (8 + 16) )
+		m_IndexName = array.GetAt(8 + 16);
+
+	m_Init = TRUE;
 }
 void CFontNode::SetHash(int num)
 {
@@ -113,7 +122,9 @@ const CFontNode & CFontNode::operator = (CFontNode &data)
 	m_CharSet   = data.m_CharSet;
 	m_EntryName = data.m_EntryName;
 	m_IContName = data.m_IContName;
+	m_IndexName = data.m_IndexName;
 	m_Quality   = data.m_Quality;
+	m_Init      = data.m_Init;
 	for ( int n = 0 ; n < 16 ; n++ ) {
 		m_FontName[n] = data.m_FontName[n];
 		m_Hash[n]     = data.m_Hash[n];
@@ -134,42 +145,61 @@ void CFontTab::Init()
 	int n, i;
 	static const struct _FontInitTab	{
 		char	*name;
-		int		mode;
+		WORD	mode;
+		char	*scs;
 		char	bank;
 		char	*iset;
-		int		cset;
-		int		zoomw;
-		int		zoomh;
-		int		offset;
+		WORD	cset;
+		WORD	zoomw;
+		WORD	zoomh;
+		WORD	offset;
 		char	*font[2];
 	} FontInitTab[] = {
-		{ "VT100-GRAPHIC",			SET_94    | '0',	'\x00', "",					SYMBOL_CHARSET,		100,	100,	0,	{ "Tera Special", "" } },
-		{ "IBM437-GR",				SET_94    | '1',	'\x80', "IBM437",			DEFAULT_CHARSET,	100,	100,	0,	{ "Arial Unicode MS", "" } },
+		{ "VT100-GRAPHIC",			SET_94,		"0",	'\x00', "",					SYMBOL_CHARSET,		100,	100,	0,	{ "Tera Special", "" } },
+		{ "IBM437-GR",				SET_94,		"1",	'\x80', "IBM437",			DEFAULT_CHARSET,	100,	100,	0,	{ "Arial Unicode MS", "" } },
 
-		{ "ASCII(ANSI X3.4-1968)",	SET_94    | 'B',	'\x00', "ANSI_X3.4-1986",	ANSI_CHARSET,		100,	100,	0,	{ "Lucida Console", "" } },
-		{ "JIS X 0201-Kana",		SET_94    | 'I',	'\x80', "JISX0201-1976",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "‚l‚r ƒSƒVƒbƒN", "‚l‚r –¾’©" } },
-		{ "JIS X 0201-Roman",		SET_94    | 'J',	'\x00', "JISX0201-1976",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "‚l‚r ƒSƒVƒbƒN", "‚l‚r –¾’©" } },
+		{ "ISO646-US",				SET_94,		"@",	'\x00', "ISO646-US",		ANSI_CHARSET,		100,	100,	0,	{ "Lucida Console", "" } },
+		{ "ASCII(ANSI X3.4-1968)",	SET_94,		"B",	'\x00', "ANSI_X3.4-1968",	ANSI_CHARSET,		100,	100,	0,	{ "Lucida Console", "" } },
+		{ "JIS X 0201-Kana",		SET_94,		"I",	'\x80', "JISX0201-1976",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "‚l‚r ƒSƒVƒbƒN", "‚l‚r –¾’©" } },
+		{ "JIS X 0201-Roman",		SET_94,		"J",	'\x00', "JISX0201-1976",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "‚l‚r ƒSƒVƒbƒN", "‚l‚r –¾’©" } },
+		{ "GB 1988-80",				SET_94,		"T",	'\x00', "GB_1988-80",		DEFAULT_CHARSET,	100,	100,	0,	{ "", "" } },
 
-		{ "LATIN1 (ISO8859-1)",		SET_96    | 'A',	'\x80', "LATIN1",			ANSI_CHARSET,		100,	100,	0,	{ "", "" } },
-		{ "LATIN2 (ISO8859-2)",		SET_96    | 'B',	'\x80', "LATIN2",			EASTEUROPE_CHARSET,	100,	100,	0,	{ "", "" } },
-		{ "LATIN3 (ISO8859-3)",		SET_96    | 'C',	'\x80', "LATIN3",			DEFAULT_CHARSET,	100,	100,	0,	{ "Arial Unicode MS", "" } },
-		{ "LATIN4 (ISO8859-4)",		SET_96    | 'D',	'\x80', "LATIN4",			DEFAULT_CHARSET,	100,	100,	0,	{ "Arial Unicode MS", "" } },
-		{ "CYRILLIC (ISO8859-5)",	SET_96    | 'L',	'\x80', "ISO8859-5",		DEFAULT_CHARSET,	100,	100,	0,	{ "Arial Unicode MS", "" } },
-		{ "ARABIC (ISO8859-6)",		SET_96    | 'G',	'\x80', "ISO8859-6",		ARABIC_CHARSET,		100,	100,	0,	{ "", "" } },
-		{ "GREEK (ISO8859-7)",		SET_96    | 'F',	'\x80', "ISO8859-7",		GREEK_CHARSET,		100,	100,	0,	{ "", "" } },
-		{ "HEBREW (ISO8859-8)",		SET_96    | 'H',	'\x80', "ISO8859-8",		HEBREW_CHARSET,		100,	100,	0,	{ "", "" } },
-		{ "LATIN5 (ISO8859-9)",		SET_96    | 'M',	'\x80', "LATIN5",			DEFAULT_CHARSET,	100,	100,	0,	{ "Arial Unicode MS", "" } },
-		{ "LATIN6 (ISO8859-10)",	SET_96    | 'V',	'\x80', "LATIN6",			DEFAULT_CHARSET,	100,	100,	0,	{ "Arial Unicode MS", "" } },
+		{ "Russian",				SET_94,		"&5",	'\x00',	"CP866",			RUSSIAN_CHARSET,	100,	100,	0,	{ "", "" } },
+		{ "Turkish",				SET_94,		"%2",	'\x00',	"CP1254",			TURKISH_CHARSET,	100,	100,	0,	{ "", "" } },
 
-		{ "JIS X 0208-1978",		SET_94x94 | '@',	'\x00', "JIS_X0208-1983",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "‚l‚r ƒSƒVƒbƒN", "‚l‚r –¾’©" } },
-		{ "GB2312-1980",			SET_94x94 | 'A',	'\x00', "GB_2312-80",		GB2312_CHARSET,		100,	100,	0,	{ "", "" } },
-		{ "JIS X 0208-1983",		SET_94x94 | 'B',	'\x00', "JIS_X0208-1983",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "‚l‚r ƒSƒVƒbƒN", "‚l‚r –¾’©" } },
-		{ "KSC5601-1987",			SET_94x94 | 'C',	'\x00', "KS_C_5601-1987",	HANGEUL_CHARSET,	100,	100,	0,	{ "", "" } },
-		{ "JIS X 0212-1990",		SET_94x94 | 'D',	'\x00', "JIS_X0212-1990",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "‚l‚r ƒSƒVƒbƒN", "‚l‚r –¾’©" } },
-		{ "JIS X 0213-2000.1",		SET_94x94 | 'Q',	'\x00', "JIS_X0213-2000.1",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "‚l‚r ƒSƒVƒbƒN", "‚l‚r –¾’©" } },
-		{ "JIS X 0213-2000.2",		SET_94x94 | 'P',	'\x00', "JIS_X0213-2000.2",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "‚l‚r ƒSƒVƒbƒN", "‚l‚r –¾’©" } },
+		/*
+		{ "ChineseBig5",			SET_94x94,	"?",	'\x00',	"CP950",			CHINESEBIG5_CHARSET,100,	100,	0,	{ "", "" } },
+		{ "Johab",					SET_94x94,	"?",	'\x00',	"CP1361",			JOHAB_CHARSET,		100,	100,	0,	{ "", "" } },
+		*/
 
-		{ "UNICODE",				SET_UNICODE,		'\x00', "UCS-4BE",			DEFAULT_CHARSET,	100,	100,	0,	{ "Arial Unicode MS", "" } },
+		{ "LATIN1 (ISO8859-1)",		SET_96,		"A",	'\x80', "LATIN1",			EASTEUROPE_CHARSET,	100,	100,	0,	{ "", "" } },
+		{ "LATIN2 (ISO8859-2)",		SET_96,		"B",	'\x80', "LATIN2",			DEFAULT_CHARSET,	100,	100,	0,	{ "Arial Unicode MS", "" } },
+		{ "LATIN3 (ISO8859-3)",		SET_96,		"C",	'\x80', "LATIN3",			DEFAULT_CHARSET,	100,	100,	0,	{ "Arial Unicode MS", "" } },
+		{ "LATIN4 (ISO8859-4)",		SET_96,		"D",	'\x80', "LATIN4",			DEFAULT_CHARSET,	100,	100,	0,	{ "Arial Unicode MS", "" } },
+		{ "CYRILLIC (ISO8859-5)",	SET_96,		"L",	'\x80', "ISO8859-5",		DEFAULT_CHARSET,	100,	100,	0,	{ "Arial Unicode MS", "" } },
+		{ "ARABIC (ISO8859-6)",		SET_96,		"G",	'\x80', "ISO8859-6",		ARABIC_CHARSET,		100,	100,	0,	{ "", "" } },
+		{ "GREEK (ISO8859-7)",		SET_96,		"F",	'\x80', "ISO8859-7",		GREEK_CHARSET,		100,	100,	0,	{ "", "" } },
+		{ "HEBREW (ISO8859-8)",		SET_96,		"H",	'\x80', "ISO8859-8",		HEBREW_CHARSET,		100,	100,	0,	{ "", "" } },
+		{ "LATIN5 (ISO8859-9)",		SET_96,		"M",	'\x80', "LATIN5",			DEFAULT_CHARSET,	100,	100,	0,	{ "", "" } },
+		{ "LATIN6 (ISO8859-10)",	SET_96,		"V",	'\x80', "LATIN6",			DEFAULT_CHARSET,	100,	100,	0,	{ "", "" } },
+		{ "THAI (ISO8859-11)",		SET_96,		"T",	'\x80', "ISO-8859-11",		THAI_CHARSET,		100,	100,	0,	{ "", "" } },
+		{ "VIETNAMESE (ISO8859-12)",SET_96,		"Z",	'\x80', "CP1258",			VIETNAMESE_CHARSET,	100,	100,	0,	{ "", "" } },
+		{ "BALTIC (ISO8859-13)",	SET_96,		"Y",	'\x80', "ISO-8859-13",		BALTIC_CHARSET,		100,	100,	0,	{ "", "" } },
+		{ "CELTIC (ISO8859-14)",	SET_96,		"_",	'\x80', "ISO-8859-14",		DEFAULT_CHARSET,	100,	100,	0,	{ "", "" } },
+		{ "LATIN9 (ISO8859-15)",	SET_96,		"b",	'\x80', "ISO-8859-15",		DEFAULT_CHARSET,	100,	100,	0,	{ "", "" } },
+		{ "ROMANIAN (ISO8859-16)",	SET_96,		"f",	'\x80', "ISO-8859-16",		DEFAULT_CHARSET,	100,	100,	0,	{ "", "" } },
+
+		{ "JIS X 0208-1978",		SET_94x94,	"@",	'\x00', "JIS_X0208-1983",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "‚l‚r ƒSƒVƒbƒN", "‚l‚r –¾’©" } },
+		{ "GB2312-1980",			SET_94x94,	"A",	'\x00', "GB_2312-80",		GB2312_CHARSET,		100,	100,	0,	{ "", "" } },
+		{ "JIS X 0208-1983",		SET_94x94,	"B",	'\x00', "JIS_X0208-1983",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "‚l‚r ƒSƒVƒbƒN", "‚l‚r –¾’©" } },
+		{ "KSC5601-1987",			SET_94x94,	"C",	'\x00', "KS_C_5601-1987",	HANGEUL_CHARSET,	100,	100,	0,	{ "", "" } },
+		{ "JIS X 0212-1990",		SET_94x94,	"D",	'\x00', "JIS_X0212-1990",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "‚l‚r ƒSƒVƒbƒN", "‚l‚r –¾’©" } },
+		{ "ISO-IR-165",				SET_94x94,	"E",	'\x00', "ISO-IR-165",		DEFAULT_CHARSET,	100,	100,	0,	{ "", "" } },
+		{ "JIS X 0213-2000.1",		SET_94x94,	"O",	'\x00', "JIS_X0213-2000.1",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "‚l‚r ƒSƒVƒbƒN", "‚l‚r –¾’©" } },
+		{ "JIS X 0213-2000.2",		SET_94x94,	"P",	'\x00', "JIS_X0213-2000.2",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "‚l‚r ƒSƒVƒbƒN", "‚l‚r –¾’©" } },
+		{ "JIS X 0213-2004.1",		SET_94x94,	"Q",	'\x00', "JIS_X0213-2000.1",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "‚l‚r ƒSƒVƒbƒN", "‚l‚r –¾’©" } },
+
+		{ "UNICODE",				SET_UNICODE,"",		'\x00', "UCS-4BE",			DEFAULT_CHARSET,	100,	100,	0,	{ "Arial Unicode MS", "" } },
 
 		{ NULL, 0, 0x00, NULL },
 	};
@@ -178,7 +208,7 @@ void CFontTab::Init()
 		m_Data[n].Init();
 
 	for ( n = 0 ; FontInitTab[n].name != NULL ; n++ ) {
-		i = FontInitTab[n].mode;
+		i = IndexFind(FontInitTab[n].mode, FontInitTab[n].scs);
 		m_Data[i].m_Shift       = FontInitTab[n].bank;
 		m_Data[i].m_ZoomW       = FontInitTab[n].zoomw;
 		m_Data[i].m_ZoomH       = FontInitTab[n].zoomh;
@@ -188,6 +218,8 @@ void CFontTab::Init()
 		m_Data[i].m_FontName[1] = FontInitTab[n].font[1];
 		m_Data[i].m_EntryName   = FontInitTab[n].name;
 		m_Data[i].m_IContName   = FontInitTab[n].iset;
+		m_Data[i].m_IndexName   = FontInitTab[n].scs;
+		m_Data[i].m_Init        = FALSE;
 		m_Data[i].SetHash(0);
 		m_Data[i].SetHash(1);
 	}
@@ -199,6 +231,7 @@ void CFontTab::SetArray(CStringArrayExt &array)
 	CStringArrayExt tmp;
 
 	array.RemoveAll();
+	array.Add("-1");
 	for ( n = 0 ; n < CODE_MAX ; n++ ) {
 		if ( m_Data[n].m_EntryName.IsEmpty() )
 			continue;
@@ -214,8 +247,12 @@ void CFontTab::GetArray(CStringArrayExt &array)
 	int n, i;
 	CStringArrayExt tmp;
 
-	for ( n = 0 ; n < CODE_MAX ; n++ )
-		m_Data[n].Init();
+	if ( array.GetSize() == 0 || atoi(array[0]) != (-1) )
+		Init();
+	else {
+		for ( n = 0 ; n < CODE_MAX ; n++ )
+			m_Data[n].Init();
+	}
 
 	for ( n = 0 ; n < array.GetSize() ; n++ ) {
 		tmp.GetString(array[n]);
@@ -225,6 +262,12 @@ void CFontTab::GetArray(CStringArrayExt &array)
 			continue;
 		tmp.RemoveAt(0);
 		m_Data[i].GetArray(tmp);
+		if ( m_Data[i].m_IndexName.IsEmpty() ) {
+			if ( i == SET_UNICODE )
+				m_Data[i].m_IndexName = "Unicode";
+			else
+				m_Data[i].m_IndexName = (CHAR)(i & 0xFF);
+		}
 	}
 }
 const CFontTab & CFontTab::operator = (CFontTab &data)
@@ -240,6 +283,47 @@ int CFontTab::Find(LPCSTR entry)
 			return n;
 	}
 	return 0;
+}
+int CFontTab::IndexFind(int code, LPCSTR name)
+{
+	int n, i;
+
+	if ( name[1] == '\0' && name[0] >= '\x30' && name[0] <= '\x7E' )
+		return (code | name[0]);
+	else if ( strcmp(name, "Unicode") == 0 )
+		return SET_UNICODE;
+
+	for ( n = i = 0 ;  n < (255 - 0x4F) ; n++ ) {
+		i = code | (n + (n < 0x30 ? 0 : 0x4F));			// 0x00-0x2F or 0x7F-0xFF
+		if ( m_Data[i].m_IndexName.IsEmpty() )
+			break;
+		else if ( m_Data[i].m_IndexName.Compare(name) == 0 )
+			return i;
+	}
+	return i;
+}
+void CFontTab::IndexRemove(int idx)
+{
+	int n, i;
+	int bank = idx & SET_MASK;
+	int code = idx & 0xFF;
+
+	m_Data[idx].Init();
+
+	if ( code >= 0x30 && code <= 0x7E )
+		return;
+
+	while ( code < 255 ) {
+		i = bank | code;
+		if ( ++code == 0x30 )
+			code = 0x7F;
+		n = bank | code;
+		if ( n == 255 || m_Data[n].m_IndexName.IsEmpty() ) {
+			m_Data[i].Init();
+			break;
+		}
+		m_Data[i] = m_Data[n];
+	}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -720,7 +804,7 @@ static const COLORREF DefColTab[16] = {
 		RGB(  0,   0, 255),	RGB(255,   0, 255),
 		RGB(  0, 255, 255),	RGB(255, 255, 255),
 	};
-static const WORD DefBankTab[4][4] = {
+static const WORD DefBankTab[5][4] = {
 	/* EUC */
 	{ { SET_94    | 'J' }, 	{ SET_94x94 | 'Q' },
 	  { SET_94    | 'I' }, 	{ SET_94x94 | 'P' } },
@@ -733,6 +817,9 @@ static const WORD DefBankTab[4][4] = {
 	/* UTF-8 */
 	{ { SET_94    | 'B' }, 	{ SET_96    | 'A' },
 	  { SET_94    | 'J' }, 	{ SET_94    | 'I' } },
+	/* BIG5 */
+	{ { SET_94    | 'T' }, 	{ SET_94    | '1' },
+	  { SET_94x94 | 'A' }, 	{ SET_94x94 | 'E' } },
 	};
 static const VRAM TempAtt = {
 	//  ch  at  ft  md  dm  cm  em  fc  bc
@@ -772,6 +859,7 @@ void CTextRam::Init()
 	m_SendCharSet[1] = "SHIFT-JIS";
 	m_SendCharSet[2] = "ISO-2022-JP";
 	m_SendCharSet[3] = "UTF-8";
+	m_SendCharSet[4] = "BIG-5";
 	m_WheelSize      = 2;
 	m_BitMapFile     = "";
 	m_DelayMSec      = 0;
@@ -843,6 +931,7 @@ void CTextRam::SetArray(CStringArrayExt &array)
 
 	array.AddVal(3);	// AnsiOpt Bugfix
 	array.AddVal(m_TitleMode);
+	array.Add(m_SendCharSet[4]);
 }
 void CTextRam::GetArray(CStringArrayExt &array)
 {
@@ -872,6 +961,8 @@ void CTextRam::GetArray(CStringArrayExt &array)
 	memcpy(m_ColTab, m_DefColTab, sizeof(m_DefColTab));
 	array.GetBin(8, m_DefAnsiOpt, sizeof(m_DefAnsiOpt));
 	memcpy(m_AnsiOpt, m_DefAnsiOpt, sizeof(m_AnsiOpt));
+
+	memcpy(m_DefBankTab, DefBankTab, sizeof(m_DefBankTab));
 	array.GetBin(9, m_DefBankTab, sizeof(m_DefBankTab));
 	memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
 
@@ -924,6 +1015,9 @@ void CTextRam::GetArray(CStringArrayExt &array)
 	if ( array.GetSize() > 38 )
 		m_TitleMode = array.GetVal(38);
 
+	if ( array.GetSize() > 39 )
+		m_SendCharSet[4] = array.GetAt(39);
+
 	RESET();
 }
 void CTextRam::Serialize(int mode)
@@ -961,6 +1055,7 @@ const CTextRam & CTextRam::operator = (CTextRam &data)
 	m_SendCharSet[1] = data.m_SendCharSet[1];
 	m_SendCharSet[2] = data.m_SendCharSet[2];
 	m_SendCharSet[3] = data.m_SendCharSet[3];
+	m_SendCharSet[4] = data.m_SendCharSet[4];
 	m_WheelSize    = data.m_WheelSize;
 	m_HisFile      = data.m_HisFile;
 	m_DropFileMode = data.m_DropFileMode;

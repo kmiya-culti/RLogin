@@ -20,12 +20,13 @@ public:
 	int m_CodeSet;
 	class CFontNode *m_pData;
 	CString m_FontNameTab[16];
+	class CFontTab *m_pFontTab;
 
-	static int CharSetNo(LPCSTR name);
-	static LPCSTR CharSetName(int code);
-	static LPCSTR IConvName(int code);
-	static int CodeSetNo(LPCSTR bank, LPCSTR code);
-	static void CodeSetName(int num, CString &bank, CString &code);
+	int CharSetNo(LPCSTR name);
+	LPCSTR CharSetName(int code);
+	LPCSTR IConvName(int code);
+	int CodeSetNo(LPCSTR bank, LPCSTR code);
+	void CodeSetName(int num, CString &bank, CString &code);
 
 	CFontParaDlg(CWnd* pParent = NULL);   // 標準のコンストラクタ
 

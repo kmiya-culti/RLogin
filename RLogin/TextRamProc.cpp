@@ -90,6 +90,20 @@ static const CTextRam::PROCTAB fc_Sjis2Tab[] = {
 	{ 0xFD,		0xFF,		&CTextRam::fc_SJIS3		},
 	{ 0,		0,			NULL } };
 
+static const CTextRam::PROCTAB fc_Big51Tab[] = {
+	{ 0x20,		0x7E,		&CTextRam::fc_TEXT		},
+	{ 0xA1,		0xC6,		&CTextRam::fc_BIG51		},
+	{ 0xC7,		0xC8,		&CTextRam::fc_TEXT		},
+	{ 0xC9,		0xF9,		&CTextRam::fc_BIG51		},
+	{ 0,		0,			NULL } };
+static const CTextRam::PROCTAB fc_Big52Tab[] = {
+	{ 0x00,		0x3F,		&CTextRam::fc_BIG53		},
+	{ 0x40,		0x7E,		&CTextRam::fc_BIG52		},
+	{ 0x7F,		0xA0,		&CTextRam::fc_BIG53		},
+	{ 0xA1,		0xFE,		&CTextRam::fc_BIG52		},
+	{ 0xFF,		0,			&CTextRam::fc_BIG53		},
+	{ 0,		0,			NULL } };
+	
 static const CTextRam::PROCTAB fc_Utf8Tab[] = {
 	{ 0x20,		0x7E,		&CTextRam::fc_TEXT		},
 	{ 0xA0,		0xBF,		&CTextRam::fc_UTF87		},
@@ -710,6 +724,10 @@ void CTextRam::fc_Init(int mode)
 		fc_Init_Proc(STAGE_SJIS,  fc_Sjis1Tab);
 		fc_Init_Proc(STAGE_SJIS2, fc_Sjis2Tab);
 
+		fc_Init_Proc(STAGE_BIG5,  fc_CtrlTab);
+		fc_Init_Proc(STAGE_BIG5,  fc_Big51Tab);
+		fc_Init_Proc(STAGE_BIG52, fc_Big52Tab);
+
 		fc_Init_Proc(STAGE_UTF8,  fc_CtrlTab);
 		fc_Init_Proc(STAGE_UTF8,  fc_Utf8Tab);
 		fc_Init_Proc(STAGE_UTF8,  fc_SEscTab);
@@ -798,6 +816,9 @@ void CTextRam::fc_Init(int mode)
 		break;
 	case UTF8_SET:
 		fc_Case(STAGE_UTF8);
+		break;
+	case BIG5_SET:
+		fc_Case(STAGE_BIG5);
 		break;
 	}
 }
@@ -1265,6 +1286,30 @@ void CTextRam::fc_SJIS3(int ch)
 
 	if ( IsOptEnable(TO_RLKANAUTO) )
 		fc_KANCHK();
+}
+void CTextRam::fc_BIG51(int ch)
+{
+	m_BackChar = ch;
+	m_BankNow  = SET_UNICODE;
+	fc_Push(STAGE_BIG52);
+}
+void CTextRam::fc_BIG52(int ch)
+{
+	int n;
+
+	m_BackChar = (m_BackChar << 8) | ch;
+	if ( (n = m_IConv.IConvChar(m_SendCharSet[BIG5_SET], "UTF-16BE", m_BackChar)) == 0 )
+		n = 0x25A1;
+	INSMDCK(2);
+	PUT2BYTE(n, m_BankNow);
+	fc_POP(ch);
+}
+void CTextRam::fc_BIG53(int ch)
+{
+	fc_POP(ch);
+
+	if ( ch < 0x20 )
+		fc_Call(ch);
 }
 void CTextRam::fc_UTF81(int ch)
 {
@@ -1835,6 +1880,7 @@ void CTextRam::fc_CSC0W(int ch)
 	m_BackChar = 0;
 	m_BackMode = SET_94x94;
 	m_Status = ST_CHARSET_2;
+	m_StrPara.Empty();
 	fc_Case(STAGE_STAT);
 }
 void CTextRam::fc_CSC0(int ch)
@@ -1843,6 +1889,7 @@ void CTextRam::fc_CSC0(int ch)
 	m_BackChar = 0;
 	m_BackMode = SET_94;
 	m_Status = ST_CHARSET_1;
+	m_StrPara.Empty();
 	fc_Case(STAGE_STAT);
 }
 void CTextRam::fc_CSC1(int ch)
@@ -1851,6 +1898,7 @@ void CTextRam::fc_CSC1(int ch)
 	m_BackChar = 1;
 	m_BackMode = SET_94;
 	m_Status = ST_CHARSET_1;
+	m_StrPara.Empty();
 	fc_Case(STAGE_STAT);
 }
 void CTextRam::fc_CSC2(int ch)
@@ -1859,6 +1907,7 @@ void CTextRam::fc_CSC2(int ch)
 	m_BackChar = 2;
 	m_BackMode = SET_94;
 	m_Status = ST_CHARSET_1;
+	m_StrPara.Empty();
 	fc_Case(STAGE_STAT);
 }
 void CTextRam::fc_CSC3(int ch)
@@ -1867,6 +1916,7 @@ void CTextRam::fc_CSC3(int ch)
 	m_BackChar = 3;
 	m_BackMode = SET_94;
 	m_Status = ST_CHARSET_1;
+	m_StrPara.Empty();
 	fc_Case(STAGE_STAT);
 }
 void CTextRam::fc_CSC0A(int ch)
@@ -1875,6 +1925,7 @@ void CTextRam::fc_CSC0A(int ch)
 	m_BackChar = 0;
 	m_BackMode = SET_96;
 	m_Status = ST_CHARSET_1;
+	m_StrPara.Empty();
 	fc_Case(STAGE_STAT);
 }
 void CTextRam::fc_CSC1A(int ch)
@@ -1883,6 +1934,7 @@ void CTextRam::fc_CSC1A(int ch)
 	m_BackChar = 1;
 	m_BackMode = SET_96;
 	m_Status = ST_CHARSET_1;
+	m_StrPara.Empty();
 	fc_Case(STAGE_STAT);
 }
 void CTextRam::fc_CSC2A(int ch)
@@ -1891,6 +1943,7 @@ void CTextRam::fc_CSC2A(int ch)
 	m_BackChar = 2;
 	m_BackMode = SET_96;
 	m_Status = ST_CHARSET_1;
+	m_StrPara.Empty();
 	fc_Case(STAGE_STAT);
 }
 void CTextRam::fc_CSC3A(int ch)
@@ -1899,6 +1952,7 @@ void CTextRam::fc_CSC3A(int ch)
 	m_BackChar = 3;
 	m_BackMode = SET_96;
 	m_Status = ST_CHARSET_1;
+	m_StrPara.Empty();
 	fc_Case(STAGE_STAT);
 }
 void CTextRam::fc_V5MCP(int ch)
@@ -2073,25 +2127,21 @@ void CTextRam::fc_STAT(int ch)
 			m_Status = ST_NON;
 		break;
 
-	case ST_CHARSET_1:
-		m_Status = ST_NON;
-		m_BankTab[m_KanjiMode][m_BackChar] = m_BackMode | ch;
-		break;
-
 	case ST_CHARSET_2:
-		switch(ch) {
-		case '(': m_BackChar = 0; m_BackMode = SET_94x94; break;
-		case ')': m_BackChar = 1; m_BackMode = SET_94x94; break;
-		case '+': m_BackChar = 2; m_BackMode = SET_94x94; break;
-		case '*': m_BackChar = 3; m_BackMode = SET_94x94; break;
-		case ',': m_BackChar = 0; m_BackMode = SET_96x96; break;
-		case '-': m_BackChar = 1; m_BackMode = SET_96x96; break;
-		case '.': m_BackChar = 2; m_BackMode = SET_96x96; break;
-		case '/': m_BackChar = 3; m_BackMode = SET_96x96; break;
-		default:
+		     if ( ch == '(' ) { m_BackChar = 0; m_BackMode = SET_94x94; m_Status = ST_CHARSET_1; break; }
+		else if ( ch == ')' ) { m_BackChar = 1; m_BackMode = SET_94x94; m_Status = ST_CHARSET_1; break; }
+		else if ( ch == '+' ) { m_BackChar = 2; m_BackMode = SET_94x94; m_Status = ST_CHARSET_1; break; }
+		else if ( ch == '*' ) { m_BackChar = 3; m_BackMode = SET_94x94; m_Status = ST_CHARSET_1; break; }
+		else if ( ch == ',' ) { m_BackChar = 0; m_BackMode = SET_96x96; m_Status = ST_CHARSET_1; break; }
+		else if ( ch == '-' ) { m_BackChar = 1; m_BackMode = SET_96x96; m_Status = ST_CHARSET_1; break; }
+		else if ( ch == '.' ) { m_BackChar = 2; m_BackMode = SET_96x96; m_Status = ST_CHARSET_1; break; }
+		else if ( ch == '/' ) { m_BackChar = 3; m_BackMode = SET_96x96; m_Status = ST_CHARSET_1; break; }
+		// no break;
+	case ST_CHARSET_1:
+		m_StrPara += (CHAR)ch;
+		if ( ch >= '\x30' && ch <= '\x7E' ) {
 			m_Status = ST_NON;
-			m_BankTab[m_KanjiMode][m_BackChar] = m_BackMode | ch;
-			break;
+			m_BankTab[m_KanjiMode][m_BackChar] = m_FontTab.IndexFind(m_BackMode, m_StrPara);
 		}
 		break;
 	}

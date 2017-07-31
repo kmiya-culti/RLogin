@@ -33,6 +33,7 @@ CFontParaDlg::CFontParaDlg(CWnd* pParent /*=NULL*/)
 	m_FontQuality = DEFAULT_QUALITY;
 	//}}AFX_DATA_INIT
 	m_pData = NULL;
+	m_pFontTab = NULL;
 }
 
 void CFontParaDlg::DoDataExchange(CDataExchange* pDX)
@@ -127,8 +128,12 @@ int CFontParaDlg::CodeSetNo(LPCSTR bank, LPCSTR code)
 	else if ( strcmp(bank, "94x94") == 0 )	num |= SET_94x94;
 	else if ( strcmp(bank, "96x96") == 0 )	num |= SET_96x96;
 
-	if ( strcmp(code, "Unicode") == 0 )		num = SET_UNICODE;
-	else									num |= (code[0] & 0xFF);
+	if ( strcmp(code, "Unicode") == 0 )
+		num = SET_UNICODE;
+	else if ( code[1] == '\0' && code[0] >= '\x30' && code[0] <= '\x7E' )
+		num |= (code[0] & 0xFF);
+	else
+		num = m_pFontTab->IndexFind(num, code);
 
 	return num;
 }
@@ -140,11 +145,14 @@ void CFontParaDlg::CodeSetName(int num, CString &bank, CString &code)
 	} else {
 		switch(num & SET_MASK) {
 		case SET_94:	bank = "94"; break;
-		case SET_96:	bank = "94"; break;
+		case SET_96:	bank = "96"; break;
 		case SET_94x94:	bank = "94x94"; break;
 		case SET_96x96:	bank = "96x96"; break;
 		}
-		code.Format("%c", num & 0xFF);
+		if ( (num & 0xFF) >= '\x30' && (num & 0xFF) <= '\x7E' )
+			code.Format("%c", num & 0xFF);
+		else
+			code = m_pFontTab->m_Data[num].m_IndexName;
 	}
 }
 
@@ -171,6 +179,8 @@ BOOL CFontParaDlg::OnInitDialog()
 	}
 
 	ASSERT(m_pData);
+	ASSERT(m_pFontTab);
+
 	CodeSetName(m_CodeSet, m_BankTemp, m_CodeTemp);
 	m_CharSetTemp = CharSetName(m_pData->m_CharSet);
 	m_ShiftTemp = (m_pData->m_Shift != 0 ? TRUE : FALSE);
@@ -203,6 +213,7 @@ void CFontParaDlg::OnOK()
 	m_pData->m_IContName = m_IContName;
 	m_pData->m_EntryName = m_EntryName;
 	m_pData->m_Quality   = m_FontQuality;
+	m_pData->m_IndexName = m_CodeTemp;
 
 	m_FontNameTab[m_FontNum] = m_FontName;
 	for ( int n = 0 ; n < 16 ; n++ ) {

@@ -29,6 +29,7 @@
 #define	SJIS_SET		1
 #define	ASCII_SET		2
 #define	UTF8_SET		3
+#define	BIG5_SET		4
 
 #define ATT_BOLD		0x000001		// [1m bold or increased intensity
 #define	ATT_HALF		0x000002		// [2m faint, decreased intensity or second colour
@@ -194,6 +195,7 @@ enum EStageNum {
 		STAGE_EXT4,		STAGE_EUC,
 		STAGE_94X94,	STAGE_96X96,
 		STAGE_SJIS,		STAGE_SJIS2,
+		STAGE_BIG5,		STAGE_BIG52,
 		STAGE_UTF8,		STAGE_UTF82,
 		STAGE_OSC1,		STAGE_OSC2,
 		STAGE_TEK,
@@ -229,6 +231,16 @@ enum EStageNum {
 #define iskana(c)		((unsigned char)(c) >= 0xA0 && \
 						 (unsigned char)(c) <= 0xDF)
 
+#define isbig51(c)		(((unsigned char)(c) >= 0xA1 && \
+						  (unsigned char)(c) <= 0xC6) || \
+						 ((unsigned char)(c) >= 0xC9 && \
+						  (unsigned char)(c) <= 0xF9) )
+
+#define isbig52(c)		(((unsigned char)(c) >= 0x40 && \
+						  (unsigned char)(c) <= 0x7E) || \
+						 ((unsigned char)(c) >= 0xA1 && \
+						  (unsigned char)(c) <= 0xFE) )
+
 typedef	struct _Vram {
 	DWORD	ch;
 	DWORD	at:28;
@@ -252,8 +264,10 @@ public:
 	CString m_FontName[16];
 	CString m_EntryName;
 	CString m_IContName;
+	CString m_IndexName;
 	int m_Hash[16];
 	int m_Quality;
+	BOOL m_Init;
 
 	void SetHash(int num);
 	void Init();
@@ -274,6 +288,8 @@ public:
 	void GetArray(CStringArrayExt &array);
 
 	int Find(LPCSTR entry);
+	int IndexFind(int code, LPCSTR name);
+	void IndexRemove(int idx);
 	inline CFontNode & operator[](int nIndex) { return m_Data[nIndex]; }
 	const CFontTab & operator = (CFontTab &data);
 	CFontTab();
@@ -357,7 +373,7 @@ class CTextRam : public COptObject
 {
 public:	// Options
 	COLORREF m_DefColTab[16];
-	CString m_SendCharSet[4];
+	CString m_SendCharSet[5];
 	DWORD m_DefAnsiOpt[16];
 	int m_DefCols[2];
 	int m_DefHisMax;
@@ -366,7 +382,7 @@ public:	// Options
 	int m_KanjiMode;
 	int m_BankGL;
 	int m_BankGR;
-	WORD m_DefBankTab[4][4];
+	WORD m_DefBankTab[5][4];
 	int m_WheelSize;
 	CString m_BitMapFile;
 	int m_DelayMSec;
@@ -438,6 +454,7 @@ public:
 	BYTE m_TabMap[LINE_MAX + 1][COLS_MAX / 8 + 1];
 	BOOL m_RetSync;
 	BOOL m_Exact;
+	CString m_StrPara;
 
 	int m_VtLevel;
 	int m_TermId;
@@ -457,7 +474,7 @@ public:
 
 	char *m_RetChar[7];
 
-	WORD m_BankTab[4][4];
+	WORD m_BankTab[5][4];
 	int m_BankNow;
 	int m_BankSG;
 	int m_CodeLen;
@@ -667,6 +684,9 @@ public:
 	void fc_SJIS1(int ch);
 	void fc_SJIS2(int ch);
 	void fc_SJIS3(int ch);
+	void fc_BIG51(int ch);
+	void fc_BIG52(int ch);
+	void fc_BIG53(int ch);
 	void fc_UTF81(int ch);
 	void fc_UTF82(int ch);
 	void fc_UTF83(int ch);
