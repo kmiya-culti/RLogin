@@ -34,6 +34,8 @@ public:
 	void Consume(int len);
 	inline void ConsumeEnd(int len) { m_Len -= len; }
 	void Apend(LPBYTE buff, int len);
+	void RemoveAll();
+	void Move(CBuffer &data);
 	inline void Clear() { m_Len = m_Ofs = 0; }
 	inline LPBYTE GetPtr() { return (m_Data + m_Ofs); }
 	inline LPBYTE GetPos(int pos) { return (m_Data + m_Ofs + pos); }

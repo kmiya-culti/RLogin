@@ -73,7 +73,11 @@
 #define	TELOPT_AUTHENTICATION 37/* Authenticate */
 #define	TELOPT_ENCRYPT	38	/* Encryption option */
 #define TELOPT_NEW_ENVIRON 39	/* New - Environment variables */
-#define TELOPT_NON		40
+#define TELOPT_TN3270E	40	/* RFC2355 - TN3270 Enhancements */
+#define TELOPT_CHARSET	42	/* RFC2066 - Charset */
+#define TELOPT_COMPORT	44	/* RFC2217 - Com Port Control (CPC) */
+#define TELOPT_KERMIT	47	/* RFC2840 - Kermit */
+#define TELOPT_NON		48
 #define	TELOPT_EXOPL	255	/* extended-options-list */
 
 /* sub-option qualifiers */
@@ -89,7 +93,7 @@
 #define	ENV_USERVAR		3
 
 #define	SUBOPTLEN	255
-#define	TELOPT_MAX	(TELOPT_NEW_ENVIRON + 1)
+#define	TELOPT_MAX	TELOPT_NON
 
 /* option status */
 #define	TELSTS_OFF	0
@@ -235,6 +239,36 @@
 #define MODE_SOFT_TAB	0x08
 #define MODE_LIT_ECHO	0x10
 
+/* CPC Client to Access Server */
+#define CPC_CTS_SIGNATURE			0
+#define CPC_CTS_SET_BAUDRATE		1
+#define CPC_CTS_SET_DATASIZE		2
+#define CPC_CTS_SET_PARITY			3
+#define CPC_CTS_SET_STOPSIZE		4
+#define CPC_CTS_SET_CONTROL			5
+#define CPC_CTS_NOTIFY_LINESTATE	6
+#define CPC_CTS_NOTIFY_MODEMSTATE	7
+#define CPC_CTS_FLOWCONTROL_SUSPEND	8
+#define CPC_CTS_FLOWCONTROL_RESUME	9
+#define CPC_CTS_SET_LINESTATE_MASK	10
+#define CPC_CTS_SET_MODEMSTATE_MASK	11
+#define CPC_CTS_PURGE_DATA			12
+
+/* CPC Access Server to Client */
+#define CPC_STC_SIGNATURE			100
+#define CPC_STC_SET_BAUDRATE		101
+#define CPC_STC_SET_DATASIZE		102
+#define CPC_STC_SET_PARITY			103
+#define CPC_STC_SET_STOPSIZE		104
+#define CPC_STC_SET_CONTROL			105
+#define CPC_STC_NOTIFY_LINESTATE	106
+#define CPC_STC_NOTIFY_MODEMSTATE	107
+#define CPC_STC_FLOWCONTROL_SUSPEND	108
+#define CPC_STC_FLOWCONTROL_RESUME	109
+#define CPC_STC_SET_LINESTATE_MASK	110
+#define CPC_STC_SET_MODEMSTATE_MASK	111
+#define CPC_STC_PURGE_DATA			112
+
 #include "openssl/des.h"
 #include "openssl/bn.h"
 #include "openssl/crypto.h"
@@ -298,12 +332,26 @@ private:
 	void SubOptFunc(char *buf, int len);
 	void PrintOpt(int st, int ch, int opt);
 
+	struct CpcOptTab {
+		CString	signature;
+		int baudrate;
+		BYTE datasize;
+		BYTE parity;
+		BYTE stopsize;
+		BYTE control;
+		BYTE linemask;
+		BYTE modemmask;
+	} CpcOpt;
+
+	void SendCpcValue(int cmd, int value);
+	void SendCpcStr(int cmd, LPCTSTR str);
+
 	char pka[128], ska[128], pkb[128];
 	DesData ddk;
 	IdeaData idk;
 	int PassSendFlag;
 
-	void SendOptData(int n1, int n2, int n3, void *buf, int len);
+	void SendAuthOpt(int n1, int n2, int n3, void *buf, int len);
 	void AuthSend(char *buf, int len);
 	void AuthReply(char *buf, int len);
 

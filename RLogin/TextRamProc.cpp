@@ -1484,7 +1484,7 @@ static const WORD UnDefEuc2[] = {	// 48	EUCJP-MS-2
 	0xABBC, 0xABBD, 0xABC4, 0xABC5, 0xABF8, 0xB0A1, 0xEDE4, 0xF3F3, 
 };
 
-static int IsUnDefCode(WORD code, const WORD *tab, int len)
+static int IsKanjiCode(WORD code, const WORD *tab, int len)
 {
 	int n, b, m;
 
@@ -1506,22 +1506,29 @@ void CTextRam::fc_KANJI(int ch)
 	if ( ch >= 128 || m_Kan_Buf[(m_Kan_Pos - 1) & (KANBUFMAX - 1)] >= 128 ) {
 		m_Kan_Buf[m_Kan_Pos++] = ch; 
 		m_Kan_Pos &= (KANBUFMAX - 1);
+//		if ( m_Kan_Pos == 0 ) fc_KANCHK();
 	}
 }
 void CTextRam::fc_KANCHK()
 {
-	int n, ch;
-	BOOL skip = FALSE;
-	int sjis_st = 0, sjis_rs = 0, sjis_bk = 0;
-	int euc_st  = 0, euc_rs  = 0, euc_bk = 0;
-	int utf8_st = 0, utf8_rs = 0;
+	int n, ch, skip = 1;
+	int sjis_st = 0, sjis_bk = 0;
+	int euc_st = 0, euc_bk = 0;
+	int utf8_st = 0;
+	double sjis_rs = 0.5;
+	double euc_rs = 0.5;
+	double utf8_rs = 0.5;
+
+#define	POSITIVE(r)		(1.0 - (1.0 - (r)) * 0.9)
+#define	HPOSITIVE(r)	(1.0 - (1.0 - (r)) * 0.99)
+#define	NEGATIVE(r)		((r) * 0.7)
 
 	for ( n = m_Kan_Pos + 1; n != m_Kan_Pos ; n = (n + 1) & (KANBUFMAX - 1) ) {
 		ch = m_Kan_Buf[n];
 
-		if ( !skip && (ch & 0x80) != 0 )
+		if ( skip && ch >= 128 )
 			continue;
-		skip = TRUE;
+		skip = 0;
 
 		// SJIS
 		// 1 Byte	0x81 - 0x9F or 0xE0 - 0xFC or 0xA0-0xDF
@@ -1532,18 +1539,16 @@ void CTextRam::fc_KANCHK()
 			if ( issjis1(ch) )
 				sjis_st = 1;
 			else if ( iskana(ch) )
-				sjis_rs |= 004;
+				sjis_rs = HPOSITIVE(sjis_rs);
 			else if ( (ch & 0x80) != 0 )
-				sjis_rs |= (sjis_rs != 0 ? 002 : 000);
-			else
-				sjis_rs |= 004;
+				sjis_rs = NEGATIVE(sjis_rs);
 			break;
 		case 1:
 			sjis_st = 0;
-			if ( issjis2(ch) && IsUnDefCode((sjis_bk << 8) | ch, UnDefCp932, 47) )
-				sjis_rs |= 001;
+			if ( issjis2(ch) && IsKanjiCode((sjis_bk << 8) | ch, UnDefCp932, 47) )
+				sjis_rs = POSITIVE(sjis_rs);
 			else
-				sjis_rs |= 002;
+				sjis_rs = NEGATIVE(sjis_rs);
 			break;
 		}
 
@@ -1562,16 +1567,14 @@ void CTextRam::fc_KANCHK()
 			else if ( ch == 0x8F )
 				euc_st = 2;
 			else if ( (ch & 0x80) != 0 )
-				euc_rs |=  (euc_rs != 0 ? 002 : 000);
-			else
-				euc_rs |= 004;
+				euc_rs = NEGATIVE(euc_rs);
 			break;
 		case 1:		// EUCJP-MS-1	2 Byte
 			euc_st = 0;
-			if ( ch >= 0xA1 && ch <= 0xFE && IsUnDefCode((euc_bk << 8) | ch, UnDefEuc1, 42) )
-				euc_rs |= 001;
+			if ( ch >= 0xA1 && ch <= 0xFE && IsKanjiCode((euc_bk << 8) | ch, UnDefEuc1, 42) )
+				euc_rs = POSITIVE(euc_rs);
 			else
-				euc_rs |= 002;
+				euc_rs = NEGATIVE(euc_rs);
 			break;
 		case 2:		// EUCJP-MS-2	1 Byte
 			euc_bk = ch;
@@ -1579,22 +1582,22 @@ void CTextRam::fc_KANCHK()
 				euc_st = 3;
 			else {
 				euc_st = 0;
-				euc_rs |= 002;
+				euc_rs = NEGATIVE(euc_rs);
 			}
 			break;
 		case 3:		// EUCJP-MS-2	2 Byte
 			euc_st = 0;
-			if ( ch >= 0xA1 && ch <= 0xFE && IsUnDefCode((euc_bk << 8) | ch, UnDefEuc2, 48) )
-				euc_rs |= 001;
+			if ( ch >= 0xA1 && ch <= 0xFE && IsKanjiCode((euc_bk << 8) | ch, UnDefEuc2, 48) )
+				euc_rs = POSITIVE(euc_rs);
 			else
-				euc_rs |= 002;
+				euc_rs = NEGATIVE(euc_rs);
 			break;
 		case 4:		// Kana
 			euc_st = 0;
 			if ( ch >= 0xA0 && ch <= 0xDF )
-				euc_rs |= 001;
+				euc_rs = POSITIVE(euc_rs);
 			else
-				euc_rs |= 002;
+				euc_rs = NEGATIVE(euc_rs);
 			break;
 		}
 
@@ -1613,16 +1616,14 @@ void CTextRam::fc_KANCHK()
 			else if ( ch >= 0xFE && ch <= 0xFF )
 				utf8_st = 4;
 			else if ( (ch & 0x80) != 0 )
-				utf8_rs |= (utf8_rs != 0 ? 002 : 000);
-			else
-				utf8_rs |= 004;
+				utf8_rs = NEGATIVE(utf8_rs);
 			break;
 		case 1:
 			if ( ch >= 0x80 && ch <= 0xBF )
 				utf8_st = 2;
 			else {
 				utf8_st = 0;
-				utf8_rs |= 002;
+				utf8_rs = NEGATIVE(utf8_rs);
 			}
 			break;
 		case 2:
@@ -1630,36 +1631,35 @@ void CTextRam::fc_KANCHK()
 				utf8_st = 3;
 			else {
 				utf8_st = 0;
-				utf8_rs |= 002;
+				utf8_rs = NEGATIVE(utf8_rs);
 			}
 			break;
 		case 3:
 			utf8_st = 0;
 			if ( ch >= 0x80 && ch <= 0xBF )
-				utf8_rs |= 001;
+				utf8_rs = POSITIVE(utf8_rs);
 			else
-				utf8_rs |= 002;
+				utf8_rs = NEGATIVE(utf8_rs);
 			break;
 		case 4:
 			utf8_st = 0;
 			if ( ch >= 0xFE && ch <= 0xFF )
-				utf8_rs |= 001;
+				utf8_rs = POSITIVE(utf8_rs);
 			else
-				utf8_rs |= 002;
+				utf8_rs = NEGATIVE(utf8_rs);
 			break;
 		}
 	}
 
 	n = m_KanjiMode;
-	sjis_rs &= 3;
-	euc_rs  &= 3;
-	utf8_rs &= 3;
 
-	if ( sjis_rs == 1 && euc_rs != 1 && utf8_rs != 1 )
+	TRACE("SJIS %f, EUC %f, UTF8 %f\n", sjis_rs, euc_rs, utf8_rs);
+
+	if ( sjis_rs > 0.7 && sjis_rs > euc_rs && sjis_rs > utf8_rs )
 		n = SJIS_SET;
-	else if ( sjis_rs != 1 && euc_rs == 1 && utf8_rs != 1 )
+	else if ( euc_rs > 0.7 && euc_rs > sjis_rs && euc_rs > utf8_rs )
 		n = EUC_SET;
-	if ( sjis_rs != 1 && euc_rs != 1 && utf8_rs == 1 )
+	else if ( utf8_rs > 0.7 && utf8_rs > sjis_rs && utf8_rs > euc_rs )
 		n = UTF8_SET;
 
 	if ( m_KanjiMode != n )
@@ -3060,7 +3060,8 @@ void CTextRam::fc_DECSIXEL(int ch)
 	} else {								// Sixel Scroll Mode Enable (DECSDM = reset)
 		pGrapWnd = new CGrapWnd(this);
 		pGrapWnd->Create(NULL, _T(""));
-		pGrapWnd->SetSixel(GetAnsiPara(0, 0, 0), GetAnsiPara(1, 0, 0), GetAnsiPara(2, 0, 0), m_OscPara, m_ColTab[m_AttNow.bc]);
+		pGrapWnd->SetSixelProc(GetAnsiPara(0, 0, 0), GetAnsiPara(1, 0, 0), GetAnsiPara(2, 0, 0), m_OscPara, m_ColTab[m_AttNow.bc]);
+		pGrapWnd->WaitForSixel();
 
 		if ( pGrapWnd->m_pActMap == NULL ) {
 			pGrapWnd->DestroyWindow();
@@ -3072,28 +3073,34 @@ void CTextRam::fc_DECSIXEL(int ch)
 		CVram *vp;
 		CRLoginView *pView;
 
-		if ( m_pDocument != NULL && (pView = (CRLoginView *)m_pDocument->GetAciveView()) != NULL ) {
-			w = pView->m_CharWidth;
-			h = pView->m_CharHeight;
-		} else {
-			w = 6;
-			h = w * m_DefFontHw / 10;
-		}
-
-		dx = pGrapWnd->m_MaxX * pGrapWnd->m_AspX / 100;
-		dy = pGrapWnd->m_MaxY * pGrapWnd->m_AspY / 100;
-
 		GetMargin(MARCHK_NONE);
 		if ( (cx = m_Margin.right - m_CurX) <= 0 )
 			cx = m_Cols - m_CurX;
 
-		if ( (cx * w) > dx )
-			cx = (dx + w - 1) / w;
-		cy = (dy * (cx * w) / dx + h - 1) / h;
+		if ( m_pDocument != NULL && (pView = (CRLoginView *)m_pDocument->GetAciveView()) != NULL ) {
+			w = pView->m_CharWidth;
+			h = pView->m_CharHeight;
+		} else {
+			w = 6 + cx;
+			h = w * m_DefFontHw / 10;
+		}
+
+		dx = (pGrapWnd->m_MaxX * pGrapWnd->m_AspX + 99) / 100;
+		dy = (pGrapWnd->m_MaxY * pGrapWnd->m_AspY + 99) / 100;
+
+		if ( (cx * w) < dx ) {
+			pGrapWnd->m_AspX = pGrapWnd->m_AspX * (cx * w) / dx;
+			pGrapWnd->m_AspY = pGrapWnd->m_AspY * (cx * w) / dx;
+			dx = (pGrapWnd->m_MaxX * pGrapWnd->m_AspX + 99) / 100;
+			dy = (pGrapWnd->m_MaxY * pGrapWnd->m_AspY + 99) / 100;
+		}
+
+		cx = (dx + w - 1) / w;
+		cy = (dy + h - 1) / h;
 
 		for ( y = 0 ; y < cy ; y++ ) {
 			vp = GETVRAM(m_CurX, m_CurY);
-			for ( x = 0 ; x < cx ; x++ ) {
+			for ( x = 0 ; x < cx && (m_CurX + x) < m_Margin.right ; x++ ) {
 				vp->pr.pk.im.id = m_ImageIndex;
 				vp->pr.pk.im.ix = x;
 				vp->pr.pk.im.iy = y;

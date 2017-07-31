@@ -187,7 +187,9 @@ static const char *telopts[] = {
         "TACACS UID", "OUTPUT MARKING", "TTYLOC",
         "3270 REGIME", "X.3 PAD", "NAWS", "TSPEED", "LFLOW",
         "LINEMODE", "XDISPLOC", "OLD-ENVIRON", "AUTHENTICATION",
-        "ENCRYPT", "NEW-ENVIRON", "", 0
+        "ENCRYPT", "NEW-ENVIRON", "TN3270", "41",
+		"CHARSET", "43", "COMPORT", "45", "46", "KERMIT",
+		"Unknow", 0
 	};
 static const char *slc_list[] = { 
 		"0", "SYNCH", "BRK", "IP", "AO", "AYT", "EOR",
@@ -252,6 +254,7 @@ BOOL CTelnet::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, in
 	HisOpt[TELOPT_ECHO].flags		|= TELFLAG_ACCEPT;
 	HisOpt[TELOPT_SGA].flags		|= TELFLAG_ACCEPT;
 //	HisOpt[TELOPT_LFLOW].flags		|= TELFLAG_ACCEPT;
+//	HisOpt[TELOPT_COMPORT].flags	|= TELFLAG_ACCEPT;
 
 	MyOpt[TELOPT_BINARY].flags		|= TELFLAG_ACCEPT;
 	MyOpt[TELOPT_ECHO].flags		|= TELFLAG_ACCEPT;
@@ -260,6 +263,7 @@ BOOL CTelnet::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, in
 	MyOpt[TELOPT_NAWS].flags		|= TELFLAG_ACCEPT;
 	MyOpt[TELOPT_NEW_ENVIRON].flags	|= TELFLAG_ACCEPT;
 //	MyOpt[TELOPT_LFLOW].flags		|= TELFLAG_ACCEPT;
+//	MyOpt[TELOPT_COMPORT].flags		|= TELFLAG_ACCEPT;
 
     SubOptLen = 0;
     ReciveStatus = RVST_NON;
@@ -284,6 +288,15 @@ BOOL CTelnet::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, in
 
 	slc_mode = 0;
 	m_SendBuff.Clear();
+
+	CpcOpt.signature = _T("RLogin Telnet");
+	CpcOpt.baudrate  = 9600;
+	CpcOpt.datasize  = 8;	// 8 Bits
+	CpcOpt.parity    = 1;	// Parity NONE
+	CpcOpt.stopsize  = 1;	// 1 Stop Bits
+	CpcOpt.control   = 3;	// HARDWARE Flow
+	CpcOpt.linemask  = 0xFF;
+	CpcOpt.modemmask = 0xFF;
 
 	if ( !CExtSocket::Open(lpszHostAddress, nHostPort, nSocketPort, nSocketType, pAddrInfo) )
 		return FALSE;
@@ -860,6 +873,131 @@ void CTelnet::SubOptFunc(char *buf, int len)
 			break;
 		}
 		break;
+
+	case TELOPT_COMPORT:
+		switch(SB_GETC()) {
+		case CPC_STC_SIGNATURE:			// IAC SB COM-PORT-OPTION SIGNATURE <text> IAC SE
+			// This command may be sent by either the client or the access
+			// server to exchange signature information.
+			CpcOpt.signature.Empty();
+			while ( (n = SB_GETC()) != EOF )
+				CpcOpt.signature += (CHAR)n;
+			break;
+
+		case CPC_STC_SET_BAUDRATE:		// IAC SB COM-PORT-OPTION SET-BAUD <value(4)> IAC SE
+			// 4 Byte (network standard format) 0=current baudrate
+			if ( (ptr + sizeof(unsigned long)) < len )
+				CpcOpt.baudrate = ntohl(*((unsigned long *)buf + ptr));
+			break;
+
+		case CPC_STC_SET_DATASIZE:		// IAC SB COM-PORT-OPTION SET-DATASIZE <value> IAC SE
+			// Value	Data Bit Size
+			// 0		Request Current Data Bit Size
+			// 5		5
+			// 6		6
+			// 7		7
+			// 8		8
+			if ( (n = SB_GETC()) != EOF )
+				CpcOpt.datasize = (BYTE)n;
+			 break;
+
+		case CPC_STC_SET_PARITY:		// IAC SB COM-PORT-OPTION SET-PARITY <value> IAC SE
+			// Value	Parity
+			// 0		Request Current Data Size
+			// 1		NONE
+			// 2		ODD
+			// 3		EVEN
+			// 4		MARK
+			if ( (n = SB_GETC()) != EOF )
+				CpcOpt.parity = (BYTE)n;
+			break;
+
+		case CPC_STC_SET_STOPSIZE:		// IAC SB COM-PORT-OPTION SET-STOPSIZE <value> IAC SE
+			// Value	Stop Bit Size
+			// 0		Request Current Data Size
+			// 1		1
+			// 2		2
+			// 3		1.5
+			if ( (n = SB_GETC()) != EOF )
+				CpcOpt.stopsize = (BYTE)n;
+			 break;
+
+		case CPC_STC_SET_CONTROL:		// IAC SB COM-PORT-OPTION SET-CONTROL <value> IAC SE
+            //  1 Use No Flow Control (outbound/both)
+            //  2 Use XON/XOFF Flow Control (outbound/both)
+            //  3 Use HARDWARE Flow Control (outbound/both)
+            //  4 Request BREAK State
+            //  5 Set BREAK State ON
+            //  6 Set BREAK State OFF
+            //  7 Request DTR Signal State
+            //  8 Set DTR Signal State ON
+            //  9 Set DTR Signal State OFF
+            // 10 Request RTS Signal State
+            // 11 Set RTS Signal State ON
+            // 12 Set RTS Signal State OFF
+            // 13 Request Com Port Flow Control Setting (inbound)
+            // 14 Use No Flow Control (inbound)
+            // 15 Use XON/XOFF Flow Control (inbound)
+            // 16 Use HARDWARE Flow Control (inbound)
+            // 17 Use DCD Flow Control (outbound/both)
+            // 18 Use DTR Flow Control (inbound)
+            // 19 Use DSR Flow Control (outbound/both)
+			if ( (n = SB_GETC()) != EOF )
+				CpcOpt.control = (BYTE)n;
+			break;
+
+		case CPC_STC_NOTIFY_LINESTATE:		// IAC SB COM-PORT-OPTION NOTIFY-LINESTATE <value> IAC SE
+			// Bit Position
+            // 7 Time-out Error
+            // 6 Transfer Shift Register Empty
+            // 5 Transfer Holding Register Empty
+            // 4 Break-detect Error
+            // 3 Framing Error
+            // 2 Parity Error
+            // 1 Overrun Error
+            // 0 Data Ready
+			break;
+
+		case CPC_STC_NOTIFY_MODEMSTATE:		// IAC SB COM-PORT-OPTION NOTIFY-MODEMSTATE <value> IAC SE
+			// Bit Position
+			// 7 Receive Line Signal Detect (also known as Carrier Detect)
+			// 6 Ring Indicator
+			// 5 Data-Set-Ready Signal State
+			// 4 Clear-To-Send Signal State
+			// 3 Delta Receive Line Signal Detect
+			// 2 Trailing-edge Ring Detector
+			// 1 Delta Data-Set-Ready
+			// 0 Delta Clear-To-Send
+			break;
+
+		case CPC_STC_FLOWCONTROL_SUSPEND:	// IAC SB COM-PORT-OPTION FLOWCONTROL-SUSPEND IAC SE 
+			// The sender of this command is requesting that the receiver
+			// suspend transmission of both data and commands until the
+			// FLOWCONTROL-RESUME is transmitted by the sender.
+			break;
+
+		case CPC_STC_FLOWCONTROL_RESUME:	// IAC SB COM-PORT-OPTION FLOWCONTROL-RESUME IAC SE
+			// The sender of this command is requesting that the receiver resume
+			// transmission of both data and commands.
+			break;
+
+		case CPC_STC_SET_LINESTATE_MASK:	// IAC SB COM-PORT-OPTION SET-LINESTATE-MASK <value> IAC SE
+			if ( (n = SB_GETC()) != EOF )
+				CpcOpt.linemask = (BYTE)n;
+			break;
+
+		case CPC_STC_SET_MODEMSTATE_MASK:	// IAC SB COM-PORT-OPTION SET-MODEMSTATE-MASK <value> IAC SE
+			if ( (n = SB_GETC()) != EOF )
+				CpcOpt.modemmask = (BYTE)n;
+			break;
+
+		case CPC_STC_PURGE_DATA:			// IAC SB COM-PORT-OPTION PURGE-DATA <value> IAC SE
+			// 1 Purge access server receive data buffer
+			// 2 Purge access server transmit data buffer
+			// 3 Purge both the access server receive data buffer and the access server transmit data buffer
+			break;
+		}
+		break;
 	}
 }
 void CTelnet::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
@@ -984,7 +1122,62 @@ void CTelnet::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 
 	CExtSocket::OnReciveCallBack(tmp, n, 0);
 }
-void CTelnet::SendOptData(int n1, int n2, int n3, void *buf, int len)
+
+void CTelnet::SendCpcValue(int cmd, int value)
+{
+	int n = 0;
+	char tmp[16], *p;
+
+	if ( (MyOpt[TELOPT_COMPORT].flags & TELFLAG_ON) == 0 )
+		return;
+
+	tmp[n++] = (char)TELC_IAC;
+	tmp[n++] = (char)TELC_SB;
+	tmp[n++] = (char)TELOPT_COMPORT;
+	tmp[n++] = (char)cmd;
+
+	if ( cmd == CPC_CTS_SET_BAUDRATE ) {
+		value = htonl(value);
+		p = (char *)(&value);
+		tmp[n++] = *(p++);
+		tmp[n++] = *(p++);
+		tmp[n++] = *(p++);
+		tmp[n++] = *(p++);
+	} else
+		tmp[n++] = (char)value;
+
+	tmp[n++] = (char)TELC_IAC;
+	tmp[n++] = (char)TELC_SE;
+
+	SockSend(tmp, n);
+	PrintOpt(0, TELC_SB, TELOPT_COMPORT);
+}
+void CTelnet::SendCpcStr(int cmd, LPCTSTR str)
+{
+	int n = 0;
+	char tmp[1024];
+
+	if ( (MyOpt[TELOPT_COMPORT].flags & TELFLAG_ON) == 0 )
+		return;
+
+	tmp[n++] = (char)TELC_IAC;
+	tmp[n++] = (char)TELC_SB;
+	tmp[n++] = (char)TELOPT_COMPORT;
+	tmp[n++] = (char)cmd;
+
+	while ( *str != '\0' && n < 1020 ) {
+		if ( *str == (char)TELC_IAC )
+			tmp[n++] = (char)TELC_IAC;
+		tmp[n++] = *(str++);
+	}
+
+	tmp[n++] = (char)TELC_IAC;
+	tmp[n++] = (char)TELC_SE;
+
+	SockSend(tmp, n);
+	PrintOpt(0, TELC_SB, TELOPT_COMPORT);
+}
+void CTelnet::SendAuthOpt(int n1, int n2, int n3, void *buf, int len)
 {
 	int n;
 	unsigned char *s = (unsigned char *)buf;
@@ -1045,12 +1238,12 @@ void CTelnet::AuthSend(char *buf, int len)
 		switch(buf[0]) {
 		case AUTHTYPE_SRA:
 			SraGenkey(pka, ska);
-			SendOptData(AUTHTYPE_SRA, AUTH_WHO_CLIENT | AUTH_HOW_ONE_WAY, SRA_KEY, pka, HEXKEYBYTES);
+			SendAuthOpt(AUTHTYPE_SRA, AUTH_WHO_CLIENT | AUTH_HOW_ONE_WAY, SRA_KEY, pka, HEXKEYBYTES);
 			return;
 /********************
 		case AUTHTYPE_NSA:
 			NsaGenkey(pka);
-			SendOptData(AUTHTYPE_NSA, AUTH_WHO_CLIENT | AUTH_HOW_ONE_WAY, NSA_KEY, pka, NSAKEYBYTES);
+			SendAuthOpt(AUTHTYPE_NSA, AUTH_WHO_CLIENT | AUTH_HOW_ONE_WAY, NSA_KEY, pka, NSAKEYBYTES);
 			return;
 *********************/
 		}
@@ -1093,13 +1286,13 @@ void CTelnet::AuthReply(char *buf, int len)
 			tmp[n] = '\0';
 
 			n = SraEncode(tmp, n, &ddk);
-			SendOptData(AUTHTYPE_SRA, AUTH_WHO_CLIENT | AUTH_HOW_ONE_WAY, SRA_USER, tmp, n);
+			SendAuthOpt(AUTHTYPE_SRA, AUTH_WHO_CLIENT | AUTH_HOW_ONE_WAY, SRA_USER, tmp, n);
 			PassSendFlag = FALSE;
 			break;
 
 		case SRA_CONTINUE:
 			if ( PassSendFlag ) {
-				SendOptData(AUTHTYPE_SRA, AUTH_WHO_CLIENT | AUTH_HOW_ONE_WAY, SRA_REJECT, NULL, 0);
+				SendAuthOpt(AUTHTYPE_SRA, AUTH_WHO_CLIENT | AUTH_HOW_ONE_WAY, SRA_REJECT, NULL, 0);
 				break;
 			}
 
@@ -1110,7 +1303,7 @@ void CTelnet::AuthReply(char *buf, int len)
 			tmp[n] = '\0';
 
 			n = SraEncode(tmp, n, &ddk);
-			SendOptData(AUTHTYPE_SRA, AUTH_WHO_CLIENT | AUTH_HOW_ONE_WAY, SRA_PASS, tmp, n);
+			SendAuthOpt(AUTHTYPE_SRA, AUTH_WHO_CLIENT | AUTH_HOW_ONE_WAY, SRA_PASS, tmp, n);
 			PassSendFlag = TRUE;
 			break;
 
@@ -1134,13 +1327,13 @@ void CTelnet::AuthReply(char *buf, int len)
 			tmp[n] = '\0';
 
 			NsaEncode(tmp, n, pkb);
-			SendOptData(AUTHTYPE_NSA, AUTH_WHO_CLIENT | AUTH_HOW_ONE_WAY, NSA_USER, tmp, n);
+			SendAuthOpt(AUTHTYPE_NSA, AUTH_WHO_CLIENT | AUTH_HOW_ONE_WAY, NSA_USER, tmp, n);
 			PassSendFlag = FALSE;
 			break;
 
 		case NSA_CONTINUE:
 			if ( PassSendFlag ) {
-				SendOptData(AUTHTYPE_NSA, AUTH_WHO_CLIENT | AUTH_HOW_ONE_WAY, NSA_REJECT, NULL, 0);
+				SendAuthOpt(AUTHTYPE_NSA, AUTH_WHO_CLIENT | AUTH_HOW_ONE_WAY, NSA_REJECT, NULL, 0);
 				break;
 			}
 			if ( (n = pView->PassName.GetLength()) > 250 )
@@ -1149,7 +1342,7 @@ void CTelnet::AuthReply(char *buf, int len)
 			tmp[n] = '\0';
 
 			NsaEncode(tmp, n, pkb);
-			SendOptData(AUTHTYPE_NSA, AUTH_WHO_CLIENT | AUTH_HOW_ONE_WAY, NSA_PASS, tmp, n);
+			SendAuthOpt(AUTHTYPE_NSA, AUTH_WHO_CLIENT | AUTH_HOW_ONE_WAY, NSA_PASS, tmp, n);
 			PassSendFlag = TRUE;
 			break;
 		}

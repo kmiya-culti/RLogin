@@ -1436,10 +1436,8 @@ void CExtSocket::OnRecive(int nFlags)
 	int n, i;
 	CSockBuffer *sp;
 
-	if ( (m_SocketEvent & EventMask[nFlags]) == 0 ) {
-		if ( m_RecvSize >= RECVMINSIZ )
-			return;
-		m_SocketEvent |= EventMask[nFlags];
+	if ( (m_SocketEvent & EventMask[nFlags]) == 0 && m_RecvSize < RECVMINSIZ ) {
+		m_SocketEvent |= (FD_READ | FD_OOB);
 		WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), WM_SOCKSEL, m_SocketEvent);
 		TRACE("OnRecive SocketEvent On %04x (%d)\n", m_SocketEvent, m_RecvSize);
 	}
@@ -1474,7 +1472,7 @@ void CExtSocket::OnRecive(int nFlags)
 			break;
 	}
 
-	if ( (m_SocketEvent & EventMask[nFlags]) != 0 && m_RecvSize >= RECVMAXSIZ ) {
+	if ( nFlags == 0 && (m_SocketEvent & EventMask[nFlags]) != 0 && m_RecvSize >= RECVMAXSIZ ) {
 		m_SocketEvent &= ~EventMask[nFlags];
 		WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), WM_SOCKSEL, m_SocketEvent);
 		TRACE("OnRecive SocketEvent Off %04x (%d)\n", m_SocketEvent, m_RecvSize);
@@ -1541,7 +1539,7 @@ void CExtSocket::OnReciveCallBack(void *lpBuf, int nBufLen, int nFlags)
 	m_RecvSyncMode &= ~(SYNC_EMPTY | SYNC_EVENT);
 	m_RecvSema.Unlock();
 
-	if ( m_Fd != (-1) && (m_SocketEvent & EventMask[nFlags]) != 0 && m_RecvSize >= RECVMAXSIZ ) {
+	if ( m_Fd != (-1) && nFlags == 0 && (m_SocketEvent & EventMask[nFlags]) != 0 && m_RecvSize >= RECVMAXSIZ ) {
 		m_SocketEvent &= ~EventMask[nFlags];
 		WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), WM_SOCKSEL, m_SocketEvent);
 		TRACE("OnReciveCallBack SocketEvent Off %04x (%d)\n", m_SocketEvent, m_RecvSize);

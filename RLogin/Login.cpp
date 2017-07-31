@@ -106,9 +106,19 @@ void CLogin::OnReciveCallBack(void *lpBuf, int nBufLen, int nFlags)
 	char *buf = (char *)lpBuf;
 	CRLoginDoc *pDoc = GetDocument();
 
+#define TIOCPKT_FLUSHREAD	0x01	/* flush packet */
+#define TIOCPKT_FLUSHWRITE	0x02	/* flush packet */
+#define TIOCPKT_STOP		0x04	/* stop output */
+#define TIOCPKT_START		0x08	/* start output */
+#define TIOCPKT_NOSTOP		0x10	/* no more ^S, ^Q */
+#define TIOCPKT_DOSTOP		0x20	/* now do ^S ^Q */
+#define TIOCPKT_IOCTL		0x40	/* state change of pty driver */
+#define TIOCPKT_WINDOW		0x80
+
 	for ( int n = 0 ; n < nBufLen ; n++ ) {
 		if ( (buf[n] & 0x80) != 0 )
 			SendWindSize(pDoc->m_TextRam.m_Cols, pDoc->m_TextRam.m_Lines);
+		TRACE("Resv OOB %02x\n", buf[n]);
 	}
 	m_ConnectFlag = 3;
 }

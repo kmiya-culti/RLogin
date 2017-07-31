@@ -451,11 +451,11 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.15.7 (2013/12/24)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
-    LTEXT           "Copyright (C) 1998-2013 Culti",IDC_STATIC,47,15,176,8
+    LTEXT           "RLogin Version 2.15.8 (2014/01/14)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "Copyright (C) 1998-2014 Culti",IDC_STATIC,47,15,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,172,50,14,WS_GROUP
-    LTEXT           "OpenSSL 1.0.1e Feb 11th, 2013",IDC_STATIC,47,29,176,8
-    LTEXT           "Copyright (c) 1998-2013 The OpenSSL Project",IDC_STATIC,47,39,176,8
+    LTEXT           "OpenSSL 1.0.1f 6 Jan 2014",IDC_STATIC,47,29,176,8
+    LTEXT           "Copyright (c) 1998-2014 The OpenSSL Project",IDC_STATIC,47,39,176,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,47,49,176,8
     LTEXT           "All rights reserved.",IDC_STATIC,47,59,176,8
     LTEXT           "zlib 1.2.8",IDC_STATIC,47,74,176,8
@@ -465,7 +465,7 @@ BEGIN
     LTEXT           "Nettle library (version 2.0)",IDC_STATIC,47,124,176,8
     LTEXT           "Originally written 2001 by Niels Moller, updated 2009.",IDC_STATIC,47,133,176,8
     LTEXT           "Cursol Neko (1987-8)",IDC_STATIC,47,148,176,8
-    LTEXT           "Original by idea tantan/naoshi (PC98/MS-DOS)",IDC_STATIC,47,157,176,8
+    LTEXT           "Original by tantan/naoshi (PC98/MS-DOS)",IDC_STATIC,47,157,176,8
 END
 
 IDD_ALGOPARADLG DIALOGEX 0, 0, 351, 343
@@ -1431,8 +1431,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,15,7,0
- PRODUCTVERSION 2,15,7,0
+ FILEVERSION 2,15,8,0
+ PRODUCTVERSION 2,15,8,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1449,12 +1449,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.15.7.0"
+            VALUE "FileVersion", "2.15.8.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2013 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.15.7.0"
+            VALUE "ProductVersion", "2.15.8.0"
         END
     END
     BLOCK "VarFileInfo"

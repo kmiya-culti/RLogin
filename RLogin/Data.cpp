@@ -78,6 +78,32 @@ CBuffer::~CBuffer()
 
 	delete m_Data;
 }
+void CBuffer::RemoveAll()
+{
+	if ( m_bZero )
+		ZeroMemory(m_Data, m_Max);
+
+	delete m_Data;
+
+	m_Len = m_Ofs = 0;
+	m_Max = 32;
+	m_Data = new BYTE[m_Max];
+}
+void CBuffer::Move(CBuffer &data)
+{
+	if ( m_bZero )
+		ZeroMemory(m_Data, m_Max);
+	delete m_Data;
+
+	m_Len  = data.m_Len;
+	m_Ofs  = data.m_Ofs;
+	m_Max  = data.m_Max;
+	m_Data = data.m_Data;
+
+	data.m_Len = data.m_Ofs = 0;
+	data.m_Max = 32;
+	data.m_Data = new BYTE[data.m_Max];
+}
 void CBuffer::Consume(int len)
 {
 	m_Ofs += len;
