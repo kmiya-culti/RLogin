@@ -25,6 +25,7 @@
 #define	VTMID_CARETUPDATE	1028
 #define	VTMID_GOZIUPDATE	1029
 #define	VTMID_SLEEPTIMER	1030
+#define	VTMID_IMAGEUPDATE	1031
 
 #define	VIEW_SLEEP_MSEC		10000	// x 1msec = 10sec
 #define	VIEW_SLEEP_MAX		60		// x 10sec = 600sec = 10min
@@ -61,6 +62,7 @@ public:
 	BOOL m_ActiveFlag;
 	BOOL m_VisualBellFlag;
 	int m_BlinkFlag;
+	int m_ImageFlag;
 	BOOL m_MouseEventFlag;
 	int m_WheelDelta;
 	BOOL m_WheelTimer;
@@ -83,9 +85,12 @@ public:
 	UINT m_ClipKeyFlags;
 	CToolTipCtrl m_ToolTip;
 	UINT m_LastMouseFlags;
+	clock_t m_LastMouseClock;
+	CPoint m_FirstMousePoint;
+	BOOL m_bLButtonTrClk;
 
 	inline BOOL IsClipRectMode() { return (m_ClipKeyFlags & MK_CONTROL); }
-	inline BOOL IsClipLineMode() { return (m_ClipKeyFlags & (MK_SHIFT | 0x1000)); }
+	inline BOOL IsClipLineMode() { return (m_bLButtonTrClk || m_ClipKeyFlags & (MK_SHIFT | 0x1000)); }
 	int GetClipboard(CBuffer *bp);
 	int SetClipboard(CBuffer *bp);
 

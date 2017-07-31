@@ -133,7 +133,7 @@ static const LV_COLUMN InitListTab[6] = {
 
 void CCharSetPage::DoInit()
 {
-	m_AltFont    = m_pSheet->m_pTextRam->m_AttNow.font;
+	m_AltFont    = m_pSheet->m_pTextRam->m_AttNow.std.font;
 	m_FontTab    = m_pSheet->m_pTextRam->m_FontTab;
 	m_KanjiCode  = m_pSheet->m_pTextRam->m_KanjiMode;
 	m_CharBankGL = m_pSheet->m_pTextRam->m_BankGL;
@@ -198,7 +198,7 @@ BOOL CCharSetPage::OnApply()
 
 	UpdateData(TRUE);
 
-	m_pSheet->m_pTextRam->m_AttNow.font = m_AltFont;
+	m_pSheet->m_pTextRam->m_AttNow.std.font = m_AltFont;
 	m_pSheet->m_pTextRam->SetKanjiMode(m_KanjiCode);
 	m_pSheet->m_pTextRam->m_BankGL    = m_CharBankGL;
 	m_pSheet->m_pTextRam->m_BankGR    = m_CharBankGR;
@@ -473,8 +473,8 @@ void CCharSetPage::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
 			else
 				bc = m_pSheet->m_pTextRam->m_ColTab[m_pSheet->m_pColorPage->m_FontCol[1]];
 		} else {
-			fc = m_pSheet->m_pTextRam->m_ColTab[m_pSheet->m_pTextRam->m_DefAtt.fcol];
-			bc = m_pSheet->m_pTextRam->m_ColTab[m_pSheet->m_pTextRam->m_DefAtt.bcol];
+			fc = m_pSheet->m_pTextRam->m_ColTab[m_pSheet->m_pTextRam->m_DefAtt.std.fcol];
+			bc = m_pSheet->m_pTextRam->m_ColTab[m_pSheet->m_pTextRam->m_DefAtt.std.bcol];
 		}
 
 		pDC = CDC::FromHandle(lpDrawItemStruct->hDC);

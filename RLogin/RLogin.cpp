@@ -472,6 +472,8 @@ BEGIN_MESSAGE_MAP(CRLoginApp, CWinApp)
 	ON_COMMAND(IDM_PASSWORDLOCK, &CRLoginApp::OnPassLock)
 	ON_UPDATE_COMMAND_UI(IDM_PASSWORDLOCK, &CRLoginApp::OnUpdatePassLock)
 	ON_COMMAND(IDM_SAVERESFILE, &CRLoginApp::OnSaveresfile)
+	ON_COMMAND(IDM_CREATEPROFILE, &CRLoginApp::OnCreateprofile)
+	ON_UPDATE_COMMAND_UI(IDM_CREATEPROFILE, &CRLoginApp::OnUpdateCreateprofile)
 END_MESSAGE_MAP()
 
 
@@ -494,6 +496,7 @@ CRLoginApp::CRLoginApp()
 #endif
 
 	m_pIdleTop = NULL;
+	m_pIdleNext = NULL;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -823,6 +826,12 @@ BOOL CRLoginApp::InitInstance()
 	// デフォルトツールバーイメージからBitmapリソースを作成
 	InitToolBarBitmap(MAKEINTRESOURCE(IDR_MAINFRAME), IDB_BITMAP1);
 	InitToolBarBitmap(MAKEINTRESOURCE(IDR_SFTPTOOL),  IDB_BITMAP5);
+
+	// レジストリ保存のリソースデータベース読み込み
+	CBuffer buf;
+	GetProfileBuffer(_T("RLoginApp"), _T("ResDataBase"), buf);
+	if ( buf.GetSize() > (sizeof(DWORD) * 5) )
+		m_ResDataBase.Serialize(FALSE, buf);
 
 #ifdef	USE_DWMAPI
 	// ガラス効果のDLLを設定
@@ -1857,6 +1866,107 @@ void CRLoginApp::RegisterLoad(HKEY hKey, LPCTSTR pSection, CBuffer &buf)
 	reg.Close();
 }
 
+BOOL CRLoginApp::SavePrivateKey(HKEY hKey, CFile *file)
+{
+	int n;
+	TCHAR name[1024];
+	DWORD len;
+	DWORD type;
+	BYTE *pData;
+	DWORD size;
+	FILETIME last;
+	HKEY hSubKey;
+	CStringA mbs;
+
+	for ( n = 0 ; ; n++ ) {
+		len = 1024;
+		if ( RegEnumKeyEx(hKey, n, name, &len, NULL, NULL, NULL, &last) != ERROR_SUCCESS )
+			break;
+
+		if ( RegOpenKeyEx(hKey, name, 0, KEY_READ, &hSubKey) != ERROR_SUCCESS )
+			return FALSE;
+
+		mbs.Format("[%s]\r\n", TstrToMbs(name));
+		file->Write((LPCSTR)mbs, mbs.GetLength() * sizeof(CHAR));
+
+		if ( !SavePrivateKey(hSubKey, file) ) {
+			RegCloseKey(hSubKey);
+			return FALSE;
+		}
+
+		RegCloseKey(hSubKey);
+	}
+
+	for ( n = 0 ; ; n++ ) {
+		len = 1024;
+		if ( RegEnumValue(hKey, n, name, &len, NULL, &type, NULL, &size) != ERROR_SUCCESS )
+			break;
+
+		if ( type != REG_DWORD && type != REG_BINARY && type != REG_SZ )
+			return FALSE;
+
+		if ( size == 0 )
+			continue;
+
+		pData = new BYTE[size + 2];
+
+		if ( RegQueryValueEx(hKey, name, NULL, &type, pData, &size) != ERROR_SUCCESS ) {
+			delete [] pData;
+			return FALSE;
+		}
+
+		switch(type) {
+		case REG_DWORD:
+			mbs.Format("%s=%d\r\n", TstrToMbs(name), *((DWORD *)pData));
+			break;
+		case REG_SZ:
+			*((LPTSTR)(pData + size)) = L'\0';
+			mbs.Format("%s=%s\r\n", TstrToMbs(name), TstrToMbs((LPCTSTR)pData));
+			break;
+		case REG_BINARY:
+			mbs.Format("%s=", TstrToMbs(name));
+			for ( len = 0 ; len < size ; len++ ) {
+				mbs += (CHAR)('A' + (pData[len] & 0x0F));
+				mbs += (CHAR)('A' + ((pData[len] >> 4) & 0x0F));
+			}
+			mbs += "\r\n";
+			break;
+		}
+
+		file->Write((LPCSTR)mbs, mbs.GetLength() * sizeof(CHAR));
+		delete [] pData;
+	}
+
+	return TRUE;
+}
+BOOL CRLoginApp::SavePrivateProfile()
+{
+	CFile file;
+	CString filename;
+	HKEY hAppKey;
+	BOOL ret = FALSE;
+
+	filename.Format(_T("%s\\RLogin.ini"), m_BaseDir);
+	CFileDialog dlg(FALSE, _T("ini"), filename, OFN_OVERWRITEPROMPT, _T("Private Profile (*.ini)|*.ini|All Files (*.*)|*.*||"), AfxGetMainWnd());
+
+	if ( dlg.DoModal() != IDOK )
+		return FALSE;
+
+	if ( !file.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite | CFile::shareDenyWrite) ) {
+		::AfxMessageBox(_T("Cann't Create Private Profile"));
+		return FALSE;
+	}
+
+	if ( (hAppKey = GetAppRegistryKey()) != NULL ) {
+		if ( SavePrivateKey(hAppKey, &file) )
+			ret = TRUE;
+		RegCloseKey(hAppKey);
+	}
+
+	file.Close();
+	return ret;
+}
+
 //////////////////////////////////////////////////////////////////////
 
 void CRLoginApp::GetVersion(CString &str)
@@ -1973,13 +2083,17 @@ BOOL mt_proc(LPVOID pParam);
 
 BOOL CRLoginApp::OnIdle(LONG lCount) 
 {
-	CIdleProc *pProc = m_pIdleTop;
+	CIdleProc *pProc;
 	BOOL rt = FALSE;
+
+//	TRACE("OnIdle %d\n", lCount);
 
 	if ( lCount >= 0 && CWinApp::OnIdle(lCount) )
 		return TRUE;
 
-	while ( pProc != NULL ) {
+	for ( pProc = m_pIdleTop ; pProc != NULL ; ) {
+		m_pIdleNext = pProc->m_pNext;
+
 		switch(pProc->m_Type) {
 		case IDLEPROC_SOCKET:
 			rt = ((CExtSocket *)(pProc->m_pParam))->OnIdle();
@@ -1993,15 +2107,15 @@ BOOL CRLoginApp::OnIdle(LONG lCount)
 		}
 
 		if ( rt ) {
-			//TRACE("OnIdle %d %d(%04x)\n", lCount, pProc->m_Type, pProc->m_pParam);
-			m_pIdleTop = pProc->m_pNext;
+			m_pIdleTop = m_pIdleNext;
 			break;
 		}
 
-		if ( (pProc = pProc->m_pNext) == m_pIdleTop )
+		if ( (pProc = m_pIdleNext) == m_pIdleTop )
 			break;
 	}
 
+	m_pIdleNext = NULL;
 	return rt;
 }
 
@@ -2039,12 +2153,14 @@ void CRLoginApp::DelIdleProc(int Type, void *pParam)
 	while ( pProc != NULL ) {
 		if ( pProc->m_Type == Type && pProc->m_pParam == pParam ) {
 			if ( pProc->m_pNext == pProc )
-				m_pIdleTop = NULL;
+				m_pIdleTop = m_pIdleNext = NULL;
 			else {
 				pProc->m_pBack->m_pNext = pProc->m_pNext;
 				pProc->m_pNext->m_pBack = pProc->m_pBack;
 				if ( pProc == m_pIdleTop )
 					m_pIdleTop = pProc->m_pNext;
+				if ( pProc == m_pIdleNext )
+					m_pIdleNext = pProc->m_pNext;
 			}
 			delete pProc;
 			break;
@@ -2241,4 +2357,14 @@ void CRLoginApp::OnSaveresfile()
 	work = m_ResDataBase;
 	work.InitRessource();
 	work.SaveFile(dlg.GetPathName());
+}
+
+void CRLoginApp::OnCreateprofile()
+{
+	if ( SavePrivateProfile() )
+		::AfxMessageBox(IDS_CREATEPROFILE);
+}
+void CRLoginApp::OnUpdateCreateprofile(CCmdUI *pCmdUI)
+{
+	pCmdUI->Enable(m_pszRegistryKey != NULL ? TRUE : FALSE);
 }

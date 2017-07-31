@@ -69,10 +69,10 @@
 #define ATT_LSLINE		0x0008000		// [62m left side line
 #define ATT_LDLINE		0x0010000		// [63m double line on the left side
 #define ATT_STRESS		0x0020000		// [64m stress marking
-#define ATT_DOVER		0x0040000		// double over line
+#define ATT_DOVER		0x0040000		//      double over line
 #define	ATT_SUNDER		0x0080000		// [50m signle under line
 //						0x0100000
-//						0x0200000
+#define	ATT_EXTVRAM		0x0200000		// extend vram
 #define	ATT_MARK		0x0400000		// Search Mark
 #define	ATT_CLIP		0x0800000		// Mouse Clip
 #define	ATT_RTOL		0x1000000		// RtoL Char
@@ -271,22 +271,25 @@
 #define	UTF16BE			0
 #define	UTF16LE			1
 
-#define	RESET_CURSOR	0x0001
-#define	RESET_TABS		0x0002
-#define	RESET_BANK		0x0004
-#define	RESET_ATTR		0x0008
-#define	RESET_COLOR		0x0010
-#define	RESET_TEK		0x0020
-#define	RESET_SAVE		0x0040
-#define	RESET_MOUSE		0x0080
-#define	RESET_CHAR		0x0100
-#define	RESET_OPTION	0x0200
-#define	RESET_CLS		0x0400
-#define	RESET_HISTORY	0x0800
-#define	RESET_PAGE		0x1000
-#define	RESET_MARGIN	0x2000
-#define	RESET_SIZE		0x4000
-#define	RESET_ALL		0xFFFF
+#define	RESET_CURSOR	0x000001
+#define	RESET_TABS		0x000002
+#define	RESET_BANK		0x000004
+#define	RESET_ATTR		0x000008
+#define	RESET_COLOR		0x000010
+#define	RESET_TEK		0x000020
+#define	RESET_SAVE		0x000040
+#define	RESET_MOUSE		0x000080
+#define	RESET_CHAR		0x000100
+#define	RESET_OPTION	0x000200
+#define	RESET_CLS		0x000400
+#define	RESET_HISTORY	0x000800
+#define	RESET_PAGE		0x001000
+#define	RESET_MARGIN	0x002000
+#define	RESET_SIZE		0x004000
+#define	RESET_IDS		0x008000
+#define	RESET_MODKEY	0x010000
+#define	RESET_XTOPT		0x020000
+#define	RESET_ALL		0x0FFFFF
 
 #define	RC_DCS			0
 #define	RC_SOS			1
@@ -450,29 +453,8 @@ enum EStageNum {
 		STAGE_MAX,
 };
 
-typedef struct _Vram {
-	union {
-		DWORD	dchar;
-		struct {
-			DWORD	id:12;		// イメージ番号
-			  DWORD	iy:10;		// イメージ横位置
-			  DWORD	ix:10;		// イメージ縦位置
-		} image;
-		WCHAR	wcbuf[2];
-	} pack;
+///////////////////////////////////////////////////////
 
-	DWORD	attr:28;		// アトリビュート
-	  DWORD	font:4;			// フォント番号
-
-	WORD	bank:10;		// フォントバンク
-	  WORD	eram:2;			// 消去属性
-	  WORD	zoom:2;			// 拡大属性
-	  WORD	mode:2;			// 文字種
-	BYTE	fcol;			// 文字色番号
-	BYTE	bcol;			// 背景色番号
-} VRAM;
-
-#define	MAXCHARSIZE		12
 #define	MEMMAPSIZE		(sizeof(CCharCell) * COLS_MAX * 128)		// 32 * 512 * 128 = 2M
 #define	MEMMAPCACHE		4
 
@@ -499,13 +481,50 @@ public:
 };
 
 ///////////////////////////////////////////////////////
+
+#define	EATT_FRGBCOL	0x0001
+#define	EATT_BRGBCOL	0x0002
+
+#define	MAXCHARSIZE		12
+#define	MAXEXTSIZE		(MAXCHARSIZE - 5)	// WORD eatt + COLORREF frgb + COLORREF brgb = 10 / WCHAR = 5
+
+typedef struct _Vram {
+	union {
+		DWORD	dchar;
+		struct {
+			DWORD	id:12;		// イメージ番号
+			  DWORD	iy:10;		// イメージ横位置
+			  DWORD	ix:10;		// イメージ縦位置
+		} image;
+		WCHAR	wcbuf[2];
+	} pack;
+
+	DWORD	attr:28;		// アトリビュート
+	  DWORD	font:4;			// フォント番号
+
+	WORD	bank:10;		// フォントバンク
+	  WORD	eram:2;			// 消去属性
+	  WORD	zoom:2;			// 拡大属性
+	  WORD	mode:2;			// 文字種
+	BYTE	fcol;			// 文字色番号
+	BYTE	bcol;			// 背景色番号
+} STDVRAM;
+
+typedef struct _ExtVram {
+	WORD		eatt;		// 拡張属性
+	COLORREF	brgb;		// 背景色 RGB
+	COLORREF	frgb;		// 文字色 RGB	CCharCellではstd.packと共有されるので注意
+	STDVRAM		std;
+} EXTVRAM;
+
+///////////////////////////////////////////////////////
 // sizeof(CCharCell) == 20 + 12 = 32 Byte
-//
+
 class CCharCell
 {
 public:
 	WCHAR		m_Data[MAXCHARSIZE - 2];	// WCHAR * (12 - m_Vram.pack.wcbuf[2]) = 20 Byte
-	VRAM		m_Vram;						// DWORD * 3 = 12 Byte
+	STDVRAM		m_Vram;						// DWORD * 3 = 12 Byte
 
 	inline void Empty() { if ( !IS_IMAGE(m_Vram.mode) ) m_Data[0] = 0; }
 	inline BOOL IsEmpty() { return (IS_IMAGE(m_Vram.mode) || m_Data[0] == 0 ? TRUE : FALSE); }
@@ -515,13 +534,23 @@ public:
 //	inline int Compare(LPCWSTR str) { return wcscmp(str, (LPCWSTR)*this); }
 	inline int Compare(LPCWSTR str) { return 0; }
 
+	inline WORD GetEatt() { return *((WORD *)(m_Data + MAXEXTSIZE + 0)); }
+	inline COLORREF GetBrgb() { return *((COLORREF *)(m_Data + MAXEXTSIZE + 1)); }
+	inline COLORREF GetFrgb() { return *((COLORREF *)(m_Data + MAXEXTSIZE + 3)); }
+
+	inline void SetEatt(WORD eatt) { *((WORD *)(m_Data + MAXEXTSIZE + 0)) = eatt; }
+	inline void SetBrgb(COLORREF brgb) { *((COLORREF *)(m_Data + MAXEXTSIZE + 1)) = brgb; }
+	inline void SetFrgb(COLORREF frgb) { *((COLORREF *)(m_Data + MAXEXTSIZE + 3)) = frgb; }
+
 	void operator = (DWORD ch);
 	void operator = (LPCWSTR str);
 	void operator += (DWORD ch);
-	void SetVRAM(VRAM &ram);
+
+	void GetEXTVRAM(EXTVRAM &evram);
 
 	inline const CCharCell & operator = (CCharCell &data) { memcpy(this, &data, sizeof(CCharCell)); return *this; }
-	inline void operator = (VRAM &ram) { m_Vram = ram; *this = ram.pack.dchar; }
+	inline void operator = (STDVRAM &ram) { m_Vram = ram; m_Vram.attr &= ~ATT_EXTVRAM; *this = ram.pack.dchar; }
+	inline void operator = (EXTVRAM &evram) { *this = evram.std; GetEXTVRAM(evram); }
 
 	void SetBuffer(CBuffer &buf);
 	void GetBuffer(CBuffer &buf);
@@ -532,7 +561,7 @@ public:
 	void Write(CFile &file);
 
 	static void Copy(CCharCell *dis, CCharCell *src, int size);
-	static void Fill(CCharCell *dis, VRAM &vram, int size);
+	static void Fill(CCharCell *dis, EXTVRAM &vram, int size);
 };
 
 class CFontNode : public CObject
@@ -705,8 +734,8 @@ public:
 	BOOL m_bAll;
 
 	CCharCell *m_pCharCell;
-	VRAM m_AttNow;
-	VRAM m_AttSpc;
+	EXTVRAM m_AttNow;
+	EXTVRAM m_AttSpc;
 
 	int m_Cols;
 	int m_Lines;
@@ -732,8 +761,8 @@ public:
 
 	BYTE m_TabMap[LINE_MAX + 1][COLS_MAX / 8 + 1];
 
-	VRAM m_Save_AttNow;
-	VRAM m_Save_AttSpc;
+	EXTVRAM m_Save_AttNow;
+	EXTVRAM m_Save_AttSpc;
 
 	int m_Save_CurX;
 	int m_Save_CurY;
@@ -769,7 +798,7 @@ public:	// Options
 	int m_DefHisMax;
 	int m_DefFontSize;
 	int m_DefFontHw;
-	VRAM m_DefAtt;
+	EXTVRAM m_DefAtt;
 	int m_KanjiMode;
 	int m_BankGL;
 	int m_BankGR;
@@ -807,6 +836,7 @@ public:	// Options
 	int m_LogMode;
 	int m_DefTermPara[5];
 	CString m_GroupCast;
+	CStringArrayExt m_InlineExt;
 
 	void Init();
 	void SetIndex(int mode, CStringIndex &index);
@@ -830,8 +860,8 @@ public:
 	HANDLE m_hMap;
 
 	BOOL m_bOpen;
-	VRAM m_AttSpc;
-	VRAM m_AttNow;
+	EXTVRAM m_AttSpc;
+	EXTVRAM m_AttNow;
 
 	int m_Cols;
 	int m_Lines;
@@ -914,8 +944,8 @@ public:
 	int m_BankSG;
 	int m_CodeLen;
 
-	VRAM m_Save_AttNow;
-	VRAM m_Save_AttSpc;
+	EXTVRAM m_Save_AttNow;
+	EXTVRAM m_Save_AttSpc;
 	int m_Save_CurX;
 	int m_Save_CurY;
 	DWORD m_Save_AnsiOpt[16];
@@ -1014,6 +1044,9 @@ public:
 		int		cols, line;
 		WCHAR	*pText;
 		INT		*pSpace;
+		WORD	eatt;
+		COLORREF frgb;
+		COLORREF brgb;
 	};
 
 	int IsWord(DWORD ch);
@@ -1053,6 +1086,9 @@ public:
 	inline int GetDm(int y) { CCharCell *vp = GETVRAM(0, y); return vp->m_Vram.zoom; }
 	inline void SetDm(int y, int dm) { CCharCell *vp = GETVRAM(0, y); vp->m_Vram.zoom = dm; }
 
+	inline COLORREF GetCharColor(EXTVRAM &evram) { return ((evram.eatt & EATT_FRGBCOL) != 0 ? evram.frgb : m_ColTab[evram.std.fcol]); }
+	inline COLORREF GetBackColor(EXTVRAM &evram) { return ((evram.eatt & EATT_BRGBCOL) != 0 ? evram.brgb : m_ColTab[evram.std.bcol]); }
+
 	inline int GetLeftMargin() { return (IsOptEnable(TO_DECLRMM) ? m_LeftX : 0); }
 	inline int GetRightMargin() { return (IsOptEnable(TO_DECLRMM) ? m_RightX : m_Cols); }
 	inline int GetTopMargin() { return m_TopY; }
@@ -1079,7 +1115,7 @@ public:
 	static void IconvToMsUniStr(LPCTSTR charset, LPCWSTR p, int len, CBuffer &out);
 
 	// Low Level
-	void RESET(int mode = RESET_PAGE | RESET_CURSOR | RESET_MARGIN | RESET_TABS | RESET_BANK | RESET_ATTR | RESET_COLOR | RESET_TEK | RESET_SAVE | RESET_MOUSE | RESET_CHAR);
+	void RESET(int mode = RESET_PAGE | RESET_CURSOR | RESET_MARGIN | RESET_TABS | RESET_BANK | RESET_ATTR | RESET_COLOR | RESET_TEK | RESET_SAVE | RESET_MOUSE | RESET_CHAR | RESET_OPTION | RESET_XTOPT | RESET_MODKEY);
 	CCharCell *GETVRAM(int cols, int lines);
 	void UNGETSTR(LPCTSTR str, ...);
 	void BEEP();
@@ -1090,6 +1126,7 @@ public:
 	void DISPUPDATE();
 	void DISPRECT(int sx, int sy, int ex, int ey);
 	int BLINKUPDATE(class CRLoginView *pView);
+	int IMAGEUPDATE(class CRLoginView *pView);
 	int GETCOLIDX(int red, int green, int blue);
 
 	// Mid Level

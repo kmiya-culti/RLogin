@@ -956,6 +956,24 @@ BOOL CBuffer::LoadFile(LPCTSTR filename)
 
 	return TRUE;
 }
+BOOL CBuffer::SaveFile(LPCTSTR filename)
+{
+	CFile file;
+	BOOL rt = TRUE;
+
+	if( !file.Open(filename, CFile::modeCreate | CFile::modeWrite) )
+		return FALSE;
+
+	try {
+		file.Write(GetPtr(), GetSize());
+		file.Close();
+
+	} catch(...) {
+		rt = FALSE;
+	}
+
+	return rt;
+}
 int CBuffer::KanjiCheck(int type)
 {
 	int n;
@@ -1241,7 +1259,7 @@ int CStringArrayExt::FindNoCase(LPCTSTR str)
 int CStringArrayExt::Match(LPCTSTR str)
 {
 	for ( int n = 0 ; n < GetSize() ; n++ ) {
-		if ( _tcsncmp(str, GetAt(n), GetAt(n).GetLength()) == 0 )
+		if ( _tcsnicmp(str, GetAt(n), GetAt(n).GetLength()) == 0 )
 			return n;
 	}
 	return (-1);
@@ -1658,7 +1676,7 @@ int CStringLoad::CompareDigit(LPCTSTR dis)
 		} else
 			return (*src > *dis ? 1 : (-1));
 	}
-	return (*dis == _T('\0') ? 0 : 1);
+	return (*dis == _T('\0') ? 0 : (-1));
 }
 #ifdef	DEBUG
 int CStringLoad::Compare(LPCTSTR dis)
@@ -2133,6 +2151,7 @@ int CBmpFile::GifTrnsIndex(LPBYTE lpBuf, int len)
 		BYTE	bkindex;
 		BYTE	Aspect;
 	} *pGifHead;
+
 	struct _GifCtrl {
 		BYTE	id;		// 0x21
 		BYTE	label;	// 0xf9
@@ -2147,13 +2166,14 @@ int CBmpFile::GifTrnsIndex(LPBYTE lpBuf, int len)
 	} *pGifCtrl;
 #pragma pack(pop)
 
+	int n;
 	int pos = 0;
 
 	pGifHead = (struct _GifHead *)(lpBuf + pos);
 	if ( (pos += sizeof(struct _GifHead)) > len )
 		return (-1);
 
-	if ( memcmp(pGifHead->tag, "GIF89a", 6) != 0 )
+	if ( memcmp(pGifHead->tag, "GIF89a", 6) != 0 && memcmp(pGifHead->tag, "GIF87a", 6) != 0 )
 		return (-1);
 
 	if ( pGifHead->GCTF != 0 ) {
@@ -2178,11 +2198,9 @@ int CBmpFile::GifTrnsIndex(LPBYTE lpBuf, int len)
 		pos += 3;	// id + label + size
 		pos += pGifCtrl->size;
 
-		// 0x01=Plain Text Extension or 0xFF=Application Extension
-		if ( pGifCtrl->label == 0x01 || pGifCtrl->label == 0xFF )
-			pos += lpBuf[pos - 1];
-
-		pos += 1;	// term
+		// term != 0
+		while ( pos < len && (n = lpBuf[pos++]) > 0 )
+			pos += n;
 	}
 
 	return (-1);
@@ -4414,7 +4432,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	123
+#define	CMDSKEYTABMAX	125
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -4433,6 +4451,7 @@ static const struct _CmdsKeyTab {
 	{	IDM_CLIPBOARD_HIS7,			L"$CLIPBOARD_HIS7"	},
 	{	IDM_CLIPBOARD_HIS8,			L"$CLIPBOARD_HIS8"	},
 	{	IDM_CLIPBOARD_HIS9,			L"$CLIPBOARD_HIS9"	},
+	{	IDM_TOOLCUST,				L"$CUSTOM_TOOLBAR"	},
 	{	IDM_DIALOGFONT,				L"$DIALOG_FONT"		},
 	{	ID_EDIT_COPY,				L"$EDIT_COPY"		},
 	{	ID_EDIT_COPY_ALL,			L"$EDIT_COPYALL"	},
@@ -4491,6 +4510,7 @@ static const struct _CmdsKeyTab {
 	{	ID_FILE_PRINT_PREVIEW,		L"$PRINT_PREVIEW"	},
 	{	ID_FILE_PRINT_SETUP,		L"$PRINT_SETUP"		},
 	{	ID_PAGE_PRIOR,				L"$PRIOR"			},
+	{	IDM_CREATEPROFILE,			L"$PROFILE_SAVE"	},
 	{	IDM_RESET_ALL,				L"$RESET_ALL"		},
 	{	IDM_RESET_ATTR,				L"$RESET_ATTR"		},
 	{	IDM_RESET_BANK,				L"$RESET_BANK"		},
@@ -6011,7 +6031,11 @@ void CStringIndex::SetValue(LPCSTR &str)
 	while ( *str != '\0' && *str != ';' && *str != ':' ) {
 		if ( *str < '0' || *str > '9' )
 			m_bString = TRUE;
-		m_String += *(str++);
+		if ( *str >= ' ' )
+			m_String += *(str++);
+		else
+			str++;
+
 	}
 
 	if ( !m_bString ) {
@@ -6040,8 +6064,10 @@ void CStringIndex::SetParam(LPCSTR &str)
 					value += *(str++);
 				break;
 			}
-		} else
+		} else if ( *str >= ' ' )
 			value += *(str++);
+		else
+			str++;
 	}
 
 	if ( !value.IsEmpty() )
@@ -6055,8 +6081,10 @@ void CStringIndex::SetKey(LPCSTR &str)
 		if ( *str == '=' ) {
 			(*this)[value].SetParam(++str);
 			value.Empty();
-		} else
+		} else if ( *str >= ' ' )
 			value += *(str++);
+		else
+			str++;
 	}
 }
 void CStringIndex::GetBuffer(CBuffer *bp)

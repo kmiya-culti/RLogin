@@ -185,12 +185,12 @@ private:
 	CSockBuffer *AddHead(CSockBuffer *sp, CSockBuffer *head);
 	CSockBuffer *DetachHead(CSockBuffer *head);
 	CSockBuffer *RemoveHead(CSockBuffer *head);
-	int ReciveCall();
-	int ReciveProc();
+	BOOL ReciveCall();
+	BOOL ReciveProc();
 
 	BOOL ProxyReadLine();
 	BOOL ProxyReadBuff(int len);
-	int ProxyFunc();
+	BOOL ProxyFunc();
 	int SSLConnect();
 	void SSLClose();
 

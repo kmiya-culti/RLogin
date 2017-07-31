@@ -2269,11 +2269,17 @@ void CSFtp::ListSort(int num, int item)
 void CSFtp::SetUpDownCount(int count)
 {
 	CString tmp;
+
 	m_UpDownCount += count;
 	tmp.Format(_T("%d"), m_UpDownCount);
 	m_UpDownStat[0].SetWindowText(tmp);
 	m_UpDownStat[0].EnableWindow(m_UpDownCount > 0);
-	tmp.Format((m_UpDownCount > 0 ? _T("SFtp(%d)") : _T("SFtp")), m_UpDownCount);
+
+	if ( m_UpDownCount > 0 )
+		tmp.Format(_T("SFtp(%d) - %s"), m_UpDownCount, m_pSSh->m_pDocument->GetTitle());
+	else
+		tmp.Format(_T("SFtp - %s"), m_pSSh->m_pDocument->GetTitle());
+
 	SetWindowText(tmp);
 }
 void CSFtp::SetRangeProg(LPCTSTR file, LONGLONG size, LONGLONG ofs)

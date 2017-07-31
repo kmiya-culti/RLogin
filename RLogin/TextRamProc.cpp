@@ -1187,9 +1187,9 @@ void CTextRam::fc_TraceLogFlush(ESCNAMEPROC *pProc, BOOL bParam)
 	if ( m_pTraceNow != NULL ) {
 		m_pTraceNow->m_CurX = m_CurX;
 		m_pTraceNow->m_CurY = m_CurY;
-		m_pTraceNow->m_Attr = m_AttNow.attr;
-		m_pTraceNow->m_ForCol = m_AttNow.fcol;
-		m_pTraceNow->m_BakCol = m_AttNow.bcol;
+		m_pTraceNow->m_Attr = m_AttNow.std.attr;
+		m_pTraceNow->m_ForCol = m_AttNow.std.fcol;
+		m_pTraceNow->m_BakCol = m_AttNow.std.bcol;
 
 		if ( m_TraceSaveCount <= 0 ) {
 			m_pTraceNow->m_pSave = GETSAVERAM(TRUE);
@@ -1571,9 +1571,9 @@ void CTextRam::ParseColor(int cmd, int idx, LPCTSTR para, DWORD ch)
 			b = (idx - 232) * 11;
 			m_ColTab[idx] = RGB(r, g, b);
 		} else if ( idx == EXTCOL_VT_TEXT_FORE ) {
-			m_ColTab[idx] = m_DefColTab[m_DefAtt.fcol];
+			m_ColTab[idx] = m_DefColTab[m_DefAtt.std.fcol];
 		} else if ( idx == EXTCOL_VT_TEXT_BACK ) {
-			m_ColTab[idx] = m_DefColTab[m_DefAtt.bcol];
+			m_ColTab[idx] = m_DefColTab[m_DefAtt.std.bcol];
 		}
 		DISPUPDATE();
 
@@ -2564,14 +2564,14 @@ void CTextRam::fc_SPA(DWORD ch)
 {
 	// ESC V	VT52 Print the line with the cursor.			ANSI SPA Start of guarded area
 	if ( IsOptEnable(TO_DECANM) )
-		m_AttNow.eram |= EM_ISOPROTECT;
+		m_AttNow.std.eram |= EM_ISOPROTECT;
 	fc_POP(ch);
 }
 void CTextRam::fc_EPA(DWORD ch)
 {
 	// ESC W	VT52 Enter printer controller mode.				ANSI EPA End of guarded area
 	if ( IsOptEnable(TO_DECANM) )
-		m_AttNow.eram &= ~EM_ISOPROTECT;
+		m_AttNow.std.eram &= ~EM_ISOPROTECT;
 	fc_POP(ch);
 }
 void CTextRam::fc_V5MCP(DWORD ch)
@@ -2595,7 +2595,10 @@ void CTextRam::fc_SCI(DWORD ch)
 void CTextRam::fc_RIS(DWORD ch)
 {
 	// ESC c													ANSI RIS Reset to initial state
-	RESET();
+
+	RESET(RESET_PAGE | RESET_CURSOR | RESET_MARGIN | RESET_TABS | RESET_BANK | 
+		  RESET_ATTR | RESET_COLOR | RESET_OPTION | RESET_XTOPT | RESET_MODKEY | RESET_SAVE | RESET_MOUSE | RESET_CHAR);
+
 	fc_POP(ch);
 }
 void CTextRam::fc_LMA(DWORD ch)
@@ -3082,7 +3085,7 @@ void CTextRam::fc_OSC_CMD(DWORD ch)
 					m_pWorkGrapWnd->DestroyWindow();
 				m_pWorkGrapWnd = new CGrapWnd(this);
 				m_pWorkGrapWnd->Create(NULL, tmp);
-				m_pWorkGrapWnd->SixelStart(GetAnsiPara(0, 0, 0), GetAnsiPara(1, 0, 0), GetAnsiPara(2, 0, 0), m_ColTab[m_AttNow.bcol]);
+				m_pWorkGrapWnd->SixelStart(GetAnsiPara(0, 0, 0), GetAnsiPara(1, 0, 0), GetAnsiPara(2, 0, 0), GetBackColor(m_AttNow));
 			}
 		}
 	}
@@ -3474,7 +3477,7 @@ void CTextRam::fc_DECDLD(DWORD ch)
 	if ( Pt == 3 ) {				// Sixel
 		pGrapWnd = new CGrapWnd(this);
 		pGrapWnd->Create(NULL, _T("DCS"));
-		pGrapWnd->SetSixel(9, 0, 0, p, m_ColTab[m_AttNow.bcol]);
+		pGrapWnd->SetSixel(9, 0, 0, p, GetBackColor(m_AttNow));
 		for ( n = i = 0 ; ((i + 1) * Pcmh) <= pGrapWnd->m_MaxY && (Pcn + n) < 0x80 ; i++ ) {
 			for ( x = 0 ; ((x + 1) * Pcmw) <= pGrapWnd->m_MaxX && (Pcn + n) < 0x80 ; x++, n++ )
 				m_FontTab[idx].SetUserBitmap(Pcn + n, Pcmw, Pcmh, pGrapWnd->m_pActMap, x * Pcmw, i * Pcmh);
@@ -3553,37 +3556,37 @@ void CTextRam::fc_DECRQSS(DWORD ch)
 	case 'm':					// SGR
 		str = m_RetChar[RC_DCS];
 		str += _T("1$r0");
-		if ( (m_AttNow.attr & ATT_BOLD)   != 0 ) str += _T(";1");
-		if ( (m_AttNow.attr & ATT_HALF)   != 0 ) str += _T(";2");
-		if ( (m_AttNow.attr & ATT_ITALIC) != 0 ) str += _T(";3");
-		if ( (m_AttNow.attr & ATT_UNDER)  != 0 ) str += _T(";4");
-		if ( (m_AttNow.attr & ATT_SBLINK) != 0 ) str += _T(";5");
-		if ( (m_AttNow.attr & ATT_BLINK)  != 0 ) str += _T(";6");
-		if ( (m_AttNow.attr & ATT_REVS)   != 0 ) str += _T(";7");
-		if ( (m_AttNow.attr & ATT_SECRET) != 0 ) str += _T(";8");
-		if ( (m_AttNow.attr & ATT_LINE)   != 0 ) str += _T(";9");
-		if ( (m_AttNow.attr & ATT_DUNDER) != 0 ) str += _T(";21");
-		if ( (m_AttNow.attr & ATT_SUNDER) != 0 ) str += _T(";50");
-		if ( (m_AttNow.attr & ATT_FRAME)  != 0 ) str += _T(";51");
-		if ( (m_AttNow.attr & ATT_CIRCLE) != 0 ) str += _T(";52");
-		if ( (m_AttNow.attr & ATT_OVER)   != 0 ) str += _T(";53");
-		if ( (m_AttNow.attr & ATT_RSLINE) != 0 ) str += _T(";60");
-		if ( (m_AttNow.attr & ATT_RDLINE) != 0 ) str += _T(";61");
-		if ( (m_AttNow.attr & ATT_LSLINE) != 0 ) str += _T(";62");
-		if ( (m_AttNow.attr & ATT_LDLINE) != 0 ) str += _T(";63");
-		if ( (m_AttNow.attr & ATT_STRESS) != 0 ) str += _T(";64");
+		if ( (m_AttNow.std.attr & ATT_BOLD)   != 0 ) str += _T(";1");
+		if ( (m_AttNow.std.attr & ATT_HALF)   != 0 ) str += _T(";2");
+		if ( (m_AttNow.std.attr & ATT_ITALIC) != 0 ) str += _T(";3");
+		if ( (m_AttNow.std.attr & ATT_UNDER)  != 0 ) str += _T(";4");
+		if ( (m_AttNow.std.attr & ATT_SBLINK) != 0 ) str += _T(";5");
+		if ( (m_AttNow.std.attr & ATT_BLINK)  != 0 ) str += _T(";6");
+		if ( (m_AttNow.std.attr & ATT_REVS)   != 0 ) str += _T(";7");
+		if ( (m_AttNow.std.attr & ATT_SECRET) != 0 ) str += _T(";8");
+		if ( (m_AttNow.std.attr & ATT_LINE)   != 0 ) str += _T(";9");
+		if ( (m_AttNow.std.attr & ATT_DUNDER) != 0 ) str += _T(";21");
+		if ( (m_AttNow.std.attr & ATT_SUNDER) != 0 ) str += _T(";50");
+		if ( (m_AttNow.std.attr & ATT_FRAME)  != 0 ) str += _T(";51");
+		if ( (m_AttNow.std.attr & ATT_CIRCLE) != 0 ) str += _T(";52");
+		if ( (m_AttNow.std.attr & ATT_OVER)   != 0 ) str += _T(";53");
+		if ( (m_AttNow.std.attr & ATT_RSLINE) != 0 ) str += _T(";60");
+		if ( (m_AttNow.std.attr & ATT_RDLINE) != 0 ) str += _T(";61");
+		if ( (m_AttNow.std.attr & ATT_LSLINE) != 0 ) str += _T(";62");
+		if ( (m_AttNow.std.attr & ATT_LDLINE) != 0 ) str += _T(";63");
+		if ( (m_AttNow.std.attr & ATT_STRESS) != 0 ) str += _T(";64");
 
-		if ( m_AttNow.font > 0 ) { wrk.Format(_T(";%d"), m_AttNow.font + 10); str += wrk; }
+		if ( m_AttNow.std.font > 0 ) { wrk.Format(_T(";%d"), m_AttNow.std.font + 10); str += wrk; }
 
-		if ( m_AttNow.fcol == m_DefAtt.fcol ) str += _T("");
-		else if ( m_AttNow.fcol < 8 ) { wrk.Format(_T(";%d"), m_AttNow.fcol + 30); str += wrk; }
-		else if ( m_AttNow.fcol < 16 ) { wrk.Format(_T(";%d"), m_AttNow.fcol - 8 + 90); str += wrk; }
-		else { wrk.Format(_T(";38;5;%d"), m_AttNow.fcol); str += wrk; }
+		if ( m_AttNow.std.fcol == m_DefAtt.std.fcol ) str += _T("");
+		else if ( m_AttNow.std.fcol < 8 ) { wrk.Format(_T(";%d"), m_AttNow.std.fcol + 30); str += wrk; }
+		else if ( m_AttNow.std.fcol < 16 ) { wrk.Format(_T(";%d"), m_AttNow.std.fcol - 8 + 90); str += wrk; }
+		else { wrk.Format(_T(";38;5;%d"), m_AttNow.std.fcol); str += wrk; }
 
-		if ( m_AttNow.bcol == m_DefAtt.bcol ) str += _T("");
-		else if ( m_AttNow.bcol < 8 ) { wrk.Format(_T(";%d"), m_AttNow.fcol + 40); str += wrk; }
-		else if ( m_AttNow.bcol < 16 ) { wrk.Format(_T(";%d"), m_AttNow.bcol - 8 + 100); str += wrk; }
-		else { wrk.Format(_T(";48;5;%d"), m_AttNow.bcol); str += wrk; }
+		if ( m_AttNow.std.bcol == m_DefAtt.std.bcol ) str += _T("");
+		else if ( m_AttNow.std.bcol < 8 ) { wrk.Format(_T(";%d"), m_AttNow.std.fcol + 40); str += wrk; }
+		else if ( m_AttNow.std.bcol < 16 ) { wrk.Format(_T(";%d"), m_AttNow.std.bcol - 8 + 100); str += wrk; }
+		else { wrk.Format(_T(";48;5;%d"), m_AttNow.std.bcol); str += wrk; }
 
 		str += _T("m");
 		str += m_RetChar[RC_ST];
@@ -3624,7 +3627,7 @@ void CTextRam::fc_DECRQSS(DWORD ch)
 		break;
 
 	case ('"' << 8) | 'q':		// DECSCA
-		UNGETSTR(_T("%s1$r%d\"q%s"), m_RetChar[RC_DCS], (m_AttNow.eram & EM_DECPROTECT) != 0 ? 1 : 0, m_RetChar[RC_ST]);
+		UNGETSTR(_T("%s1$r%d\"q%s"), m_RetChar[RC_DCS], (m_AttNow.std.eram & EM_DECPROTECT) != 0 ? 1 : 0, m_RetChar[RC_ST]);
 		break;
 
 	case ('$' << 8) | '}':		// DECSASD Select active status display
@@ -3679,11 +3682,11 @@ void CTextRam::fc_DECRSPS(DWORD ch)
 		}
 		if ( node.GetSize() > 3 ) {					// Srend
 			n = node[3][0];
-			m_AttNow.attr &= ~(ATT_REVS | ATT_SBLINK | ATT_BLINK | ATT_UNDER | ATT_BOLD);
-			if ( (n & 8) != 0 ) m_AttNow.attr |= ATT_REVS;
-			if ( (n & 4) != 0 ) m_AttNow.attr |= ATT_BLINK;
-			if ( (n & 2) != 0 ) m_AttNow.attr |= ATT_UNDER;
-			if ( (n & 1) != 0 ) m_AttNow.attr |= ATT_BOLD;
+			m_AttNow.std.attr &= ~(ATT_REVS | ATT_SBLINK | ATT_BLINK | ATT_UNDER | ATT_BOLD);
+			if ( (n & 8) != 0 ) m_AttNow.std.attr |= ATT_REVS;
+			if ( (n & 4) != 0 ) m_AttNow.std.attr |= ATT_BLINK;
+			if ( (n & 2) != 0 ) m_AttNow.std.attr |= ATT_UNDER;
+			if ( (n & 1) != 0 ) m_AttNow.std.attr |= ATT_BOLD;
 		}
 		if ( node.GetSize() > 4 ) {					// Satt
 			if ( (node[4][0] & 1) != 0 )
@@ -3991,7 +3994,7 @@ void CTextRam::fc_OSCEXE(DWORD ch)
 				tmp += *(p++);
 			if ( *p == ';' )
 				p++;
-			m_ColTab[n] = m_ColTab[m_AttNow.fcol];
+			m_ColTab[n] = GetCharColor(m_AttNow);
 			ParseColor(cmd, n, tmp, ch);
 		}
 		break;
@@ -4015,16 +4018,21 @@ void CTextRam::fc_OSCEXE(DWORD ch)
 
 			n = EXTCOL_BEGIN + (cmd - 10);
 			if ( cmd == 11 || cmd == 14 || cmd == 16 || cmd == 17 )
-				m_ColTab[n] = m_ColTab[m_AttNow.bcol];
+				m_ColTab[n] = GetBackColor(m_AttNow);
 			else
-				m_ColTab[n] = m_ColTab[m_AttNow.fcol];
+				m_ColTab[n] = GetCharColor(m_AttNow);
 
 			ParseColor(cmd, n, tmp, ch);
 
-			if ( cmd == 10 )
-				m_AttNow.fcol = GETCOLIDX(GetRValue(m_ColTab[n]), GetGValue(m_ColTab[n]), GetBValue(m_ColTab[n]));
-			else if ( cmd == 11 )
-				m_AttNow.bcol = GETCOLIDX(GetRValue(m_ColTab[n]), GetGValue(m_ColTab[n]), GetBValue(m_ColTab[n]));
+			if ( cmd == 10 ) {
+				m_AttNow.eatt |= EATT_FRGBCOL;
+				m_AttNow.frgb = m_ColTab[n];
+				m_AttNow.std.fcol = GETCOLIDX(GetRValue(m_ColTab[n]), GetGValue(m_ColTab[n]), GetBValue(m_ColTab[n]));
+			} else  if ( cmd == 11 ) {
+				m_AttNow.eatt |= EATT_BRGBCOL;
+				m_AttNow.brgb = m_ColTab[n];
+				m_AttNow.std.bcol = GETCOLIDX(GetRValue(m_ColTab[n]), GetGValue(m_ColTab[n]), GetBValue(m_ColTab[n]));
+			}
 
 			if ( ++cmd > 19 )
 				break;
@@ -4114,7 +4122,7 @@ void CTextRam::fc_OSCEXE(DWORD ch)
 				//	n = 1  <- resource colorUL (UNDERLINE).
 				//	n = 2  <- resource colorBL (BLINK).
 				//	n = 3  <- resource colorRV (REVERSE).
-			m_ColTab[n] = m_ColTab[m_AttNow.fcol];
+			m_ColTab[n] = GetCharColor(m_AttNow);
 			ParseColor(cmd, n, _T("reset"), ch);
 		}
 		break;
@@ -4126,20 +4134,26 @@ void CTextRam::fc_OSCEXE(DWORD ch)
 	case 118:	// 118  -> Reset Tektronix cursor color.
 	case 119:	// 119  -> Reset highlight foreground color to Pt.
 		n = EXTCOL_BEGIN + (cmd - 110);
-		m_ColTab[n] = m_ColTab[m_AttNow.fcol];
+		m_ColTab[n] = GetCharColor(m_AttNow);
 		ParseColor(cmd, n, _T("reset"), ch);
-		if ( cmd == 110 )
-			m_AttNow.fcol = GETCOLIDX(GetRValue(m_ColTab[n]), GetGValue(m_ColTab[n]), GetBValue(m_ColTab[n]));
+		if ( cmd == 110 ) {
+			m_AttNow.eatt |= EATT_FRGBCOL;
+			m_AttNow.frgb = m_ColTab[n];
+			m_AttNow.std.fcol = GETCOLIDX(GetRValue(m_ColTab[n]), GetGValue(m_ColTab[n]), GetBValue(m_ColTab[n]));
+		}
 		break;
 	case 111:	// 111  -> Reset VT100 text background color.
 	case 114:	// 114  -> Reset mouse background color.
 	case 116:	// 116  -> Reset Tektronix background color.
 	case 117:	// 117  -> Reset highlight background color.
 		n = EXTCOL_BEGIN + (cmd - 110);
-		m_ColTab[n] = m_ColTab[m_AttNow.bcol];
+		m_ColTab[n] = GetBackColor(m_AttNow);
 		ParseColor(cmd, n, _T("reset"), ch);
-		if ( cmd == 111 )
-			m_AttNow.bcol = GETCOLIDX(GetRValue(m_ColTab[n]), GetGValue(m_ColTab[n]), GetBValue(m_ColTab[n]));
+		if ( cmd == 111 ) {
+			m_AttNow.eatt |= EATT_BRGBCOL;
+			m_AttNow.brgb = m_ColTab[n];
+			m_AttNow.std.bcol = GETCOLIDX(GetRValue(m_ColTab[n]), GetGValue(m_ColTab[n]), GetBValue(m_ColTab[n]));
+		}
 		break;
 
 	case 1337:	// iTerm2
@@ -4945,36 +4959,37 @@ void CTextRam::fc_SGR(DWORD ch)
 		if ( m_AnsiPara[n].IsOpt() )
 			continue;
 		switch(GetAnsiPara(n, 0, 0)) {
-		case 0: m_AttNow.fcol = m_DefAtt.fcol; m_AttNow.bcol = m_DefAtt.bcol; m_AttNow.attr = m_DefAtt.attr; break;
-		case 1: m_AttNow.attr |= ATT_BOLD;   break;	// 1 bold or increased intensity
-		case 2: m_AttNow.attr |= ATT_HALF;   break;	// 2 faint, decreased intensity or second colour
-		case 3: m_AttNow.attr |= ATT_ITALIC; break;	// 3 italicized
-		case 4: m_AttNow.attr |= ATT_UNDER;  break;	// 4 singly underlined
-		case 5: m_AttNow.attr |= ATT_SBLINK; break;	// 5 slowly blinking
-		case 6: m_AttNow.attr |= ATT_BLINK;  break;	// 6 rapidly blinking
-		case 7: m_AttNow.attr |= ATT_REVS;   break;	// 7 negative image
-		case 8: m_AttNow.attr |= ATT_SECRET; break;	// 8 concealed characters
-		case 9: m_AttNow.attr |= ATT_LINE;   break;	// 9 crossed-out
+		case 0: m_AttNow.std.fcol = m_DefAtt.std.fcol; m_AttNow.std.bcol = m_DefAtt.std.bcol; m_AttNow.std.attr = m_DefAtt.std.attr; m_AttNow.eatt = 0; break;
+		case 1: m_AttNow.std.attr |= ATT_BOLD;   break;	// 1 bold or increased intensity
+		case 2: m_AttNow.std.attr |= ATT_HALF;   break;	// 2 faint, decreased intensity or second colour
+		case 3: m_AttNow.std.attr |= ATT_ITALIC; break;	// 3 italicized
+		case 4: m_AttNow.std.attr |= ATT_UNDER;  break;	// 4 singly underlined
+		case 5: m_AttNow.std.attr |= ATT_SBLINK; break;	// 5 slowly blinking
+		case 6: m_AttNow.std.attr |= ATT_BLINK;  break;	// 6 rapidly blinking
+		case 7: m_AttNow.std.attr |= ATT_REVS;   break;	// 7 negative image
+		case 8: m_AttNow.std.attr |= ATT_SECRET; break;	// 8 concealed characters
+		case 9: m_AttNow.std.attr |= ATT_LINE;   break;	// 9 crossed-out
 
 		case 10: case 11: case 12:					// 10-20 alternative font
 		case 13: case 14: case 15:
 		case 16: case 17: case 18:
 		case 19: case 20:
-			m_AttNow.font = GetAnsiPara(n, 0, 0) - 10;
+			m_AttNow.std.font = GetAnsiPara(n, 0, 0) - 10;
 			break;
 
-		case 21: m_AttNow.attr |= ATT_DUNDER; break;					// 21 doubly underlined
-		case 22: m_AttNow.attr &= ~(ATT_BOLD | ATT_HALF); break;		// 22 normal colour or normal intensity (neither bold nor faint)
-		case 23: m_AttNow.attr &= ~ATT_ITALIC; break;					// 23 not italicized, not fraktur
-		case 24: m_AttNow.attr &= ~(ATT_UNDER | ATT_DUNDER); break;	// 24 not underlined (neither singly nor doubly)
-		case 25: m_AttNow.attr &= ~(ATT_SBLINK | ATT_BLINK); break;	// 25 steady (not blinking)
-		case 27: m_AttNow.attr &= ~ATT_REVS; break;					// 27 positive image
-		case 28: m_AttNow.attr &= ~ATT_SECRET; break;					// 28 revealed characters
-		case 29: m_AttNow.attr &= ~ATT_LINE; break;					// 29 not crossed out
+		case 21: m_AttNow.std.attr |= ATT_DUNDER; break;					// 21 doubly underlined
+		case 22: m_AttNow.std.attr &= ~(ATT_BOLD | ATT_HALF); break;		// 22 normal colour or normal intensity (neither bold nor faint)
+		case 23: m_AttNow.std.attr &= ~ATT_ITALIC; break;					// 23 not italicized, not fraktur
+		case 24: m_AttNow.std.attr &= ~(ATT_UNDER | ATT_DUNDER); break;	// 24 not underlined (neither singly nor doubly)
+		case 25: m_AttNow.std.attr &= ~(ATT_SBLINK | ATT_BLINK); break;	// 25 steady (not blinking)
+		case 27: m_AttNow.std.attr &= ~ATT_REVS; break;					// 27 positive image
+		case 28: m_AttNow.std.attr &= ~ATT_SECRET; break;					// 28 revealed characters
+		case 29: m_AttNow.std.attr &= ~ATT_LINE; break;					// 29 not crossed out
 
 		case 30: case 31: case 32: case 33:
 		case 34: case 35: case 36: case 37:
-			m_AttNow.fcol = (GetAnsiPara(n, 0, 0) - 30);
+			m_AttNow.std.fcol = (GetAnsiPara(n, 0, 0) - 30);
+			m_AttNow.eatt &= ~EATT_FRGBCOL;
 			break;
 
 		case 38:
@@ -5028,65 +5043,81 @@ void CTextRam::fc_SGR(DWORD ch)
 			case 2:				// RGB color
 				if ( m_AnsiPara[a].GetSize() < 4 )
 					break;
-				if ( m_AnsiPara[a] == 38 )
-					m_AttNow.fcol = GETCOLIDX(m_AnsiPara[a][1], m_AnsiPara[a][2], m_AnsiPara[a][3]);
-				else
-					m_AttNow.bcol = GETCOLIDX(m_AnsiPara[a][1], m_AnsiPara[a][2], m_AnsiPara[a][3]);
+				if ( m_AnsiPara[a] == 38 ) {
+					m_AttNow.eatt |= EATT_FRGBCOL;
+					m_AttNow.frgb = RGB(m_AnsiPara[a][1], m_AnsiPara[a][2], m_AnsiPara[a][3]);
+					m_AttNow.std.fcol = GETCOLIDX(m_AnsiPara[a][1], m_AnsiPara[a][2], m_AnsiPara[a][3]);
+				} else {
+					m_AttNow.eatt |= EATT_BRGBCOL;
+					m_AttNow.brgb = RGB(m_AnsiPara[a][1], m_AnsiPara[a][2], m_AnsiPara[a][3]);
+					m_AttNow.std.bcol = GETCOLIDX(m_AnsiPara[a][1], m_AnsiPara[a][2], m_AnsiPara[a][3]);
+				}
 				break;
 			case 5:				// 256 index color
 				if ( m_AnsiPara[a].GetSize() < 2 || m_AnsiPara[a][1] > 255 )
 					break;
-				if ( m_AnsiPara[a] == 38 )
-					m_AttNow.fcol = (BYTE)m_AnsiPara[a][1];
-				else
-					m_AttNow.bcol = (BYTE)m_AnsiPara[a][1];
+				if ( m_AnsiPara[a] == 38 ) {
+					m_AttNow.std.fcol = (BYTE)m_AnsiPara[a][1];
+					m_AttNow.eatt &= ~EATT_FRGBCOL;
+				} else {
+					m_AttNow.std.bcol = (BYTE)m_AnsiPara[a][1];
+					m_AttNow.eatt &= ~EATT_BRGBCOL;
+				}
 				break;
 			}
 			break;
 
 		case 39:
-			m_AttNow.fcol = m_DefAtt.fcol;
+			m_AttNow.std.fcol = m_DefAtt.std.fcol;
+			m_AttNow.eatt &= ~EATT_FRGBCOL;
 			break;
 		case 40: case 41: case 42: case 43:
 		case 44: case 45: case 46: case 47:
-			m_AttNow.bcol = (GetAnsiPara(n, 0, 0) - 40);
+			m_AttNow.std.bcol = (GetAnsiPara(n, 0, 0) - 40);
+			m_AttNow.eatt &= ~EATT_BRGBCOL;
 			break;
 		case 49:
-			m_AttNow.bcol = m_DefAtt.bcol;
+			m_AttNow.std.bcol = m_DefAtt.std.bcol;
+			m_AttNow.eatt &= ~EATT_BRGBCOL;
 			break;
 
-		case 50: m_AttNow.attr |= ATT_SUNDER; break;						// 50  sigle underlined
-		case 51: m_AttNow.attr |= ATT_FRAME;  m_FrameCheck = TRUE; break;	// 51  framed
-		case 52: m_AttNow.attr |= ATT_CIRCLE; m_FrameCheck = TRUE; break;	// 52  encircled
-		case 53: m_AttNow.attr |= ATT_OVER;   break;						// 53  overlined
-		case 54: m_AttNow.attr &= ~(ATT_FRAME | ATT_CIRCLE); break;			// 54  not framed, not encircled
-		case 55: m_AttNow.attr &= ~(ATT_OVER  | ATT_SUNDER); break;			// 55  not overlined, not single underlined
+		case 50: m_AttNow.std.attr |= ATT_SUNDER; break;						// 50  sigle underlined
+		case 51: m_AttNow.std.attr |= ATT_FRAME;  m_FrameCheck = TRUE; break;	// 51  framed
+		case 52: m_AttNow.std.attr |= ATT_CIRCLE; m_FrameCheck = TRUE; break;	// 52  encircled
+		case 53: m_AttNow.std.attr |= ATT_OVER;   break;						// 53  overlined
+		case 54: m_AttNow.std.attr &= ~(ATT_FRAME | ATT_CIRCLE); break;			// 54  not framed, not encircled
+		case 55: m_AttNow.std.attr &= ~(ATT_OVER  | ATT_SUNDER); break;			// 55  not overlined, not single underlined
 
-		case 60: m_AttNow.attr |= ATT_RSLINE; break;					// 60  ideogram underline or right side line
-		case 61: m_AttNow.attr |= ATT_RDLINE; break;					// 61  ideogram double underline or double line on the right side
-		case 62: m_AttNow.attr |= ATT_LSLINE; break;					// 62  ideogram overline or left side line
-		case 63: m_AttNow.attr |= ATT_LDLINE; break;					// 63  ideogram double overline or double line on the left side
-		case 64: m_AttNow.attr |= ATT_STRESS; break;					// 64  ideogram stress marking
-		case 65: m_AttNow.attr &= ~(ATT_RSLINE | ATT_RDLINE |
+		case 60: m_AttNow.std.attr |= ATT_RSLINE; break;					// 60  ideogram underline or right side line
+		case 61: m_AttNow.std.attr |= ATT_RDLINE; break;					// 61  ideogram double underline or double line on the right side
+		case 62: m_AttNow.std.attr |= ATT_LSLINE; break;					// 62  ideogram overline or left side line
+		case 63: m_AttNow.std.attr |= ATT_LDLINE; break;					// 63  ideogram double overline or double line on the left side
+		case 64: m_AttNow.std.attr |= ATT_STRESS; break;					// 64  ideogram stress marking
+		case 65: m_AttNow.std.attr &= ~(ATT_RSLINE | ATT_RDLINE |
 					ATT_LSLINE | ATT_LDLINE | ATT_STRESS); break;	// 65  cancels the effect of the rendition aspects established by parameter values 60 to 64
 
 		case 90: case 91: case 92: case 93:
 		case 94: case 95: case 96: case 97:
-			m_AttNow.fcol = (GetAnsiPara(n, 0, 0) - 90 + 8);
+			m_AttNow.std.fcol = (GetAnsiPara(n, 0, 0) - 90 + 8);
+			m_AttNow.eatt &= ~EATT_FRGBCOL;
 			break;
 		case 100: case 101:  case 102: case 103:
 		case 104: case 105:  case 106: case 107:
-			m_AttNow.bcol = (GetAnsiPara(n, 0, 0) - 100 + 8);
+			m_AttNow.std.bcol = (GetAnsiPara(n, 0, 0) - 100 + 8);
+			m_AttNow.eatt &= ~EATT_BRGBCOL;
 			break;
 		}
 	}
-	if ( IsOptEnable(TO_DECECM) == 0 ) {
-		m_AttSpc.fcol = m_AttNow.fcol;
-		m_AttSpc.bcol = m_AttNow.bcol;
+	if ( !IsOptEnable(TO_DECECM) ) {
+		m_AttSpc.std.fcol = m_AttNow.std.fcol;
+		m_AttSpc.std.bcol = m_AttNow.std.bcol;
+		m_AttSpc.eatt = m_AttNow.eatt;
+		m_AttSpc.frgb = m_AttNow.frgb;
+		m_AttSpc.brgb = m_AttNow.brgb;
 	}
-	if ( IsOptEnable(TO_RLGCWA) != 0 ) {
-		m_AttSpc.attr = m_AttNow.attr;
-		m_AttSpc.font = m_AttNow.font;
+	if ( IsOptEnable(TO_RLGCWA) ) {
+		m_AttSpc.std.attr = m_AttNow.std.attr;
+		m_AttSpc.std.font = m_AttNow.std.font;
 	}
 	fc_POP(ch);
 }
@@ -5151,11 +5182,11 @@ void CTextRam::fc_DAQ(DWORD ch)
 
 	switch(GetAnsiPara(0, 0, 0)) {
 	case 0:
-		m_AttNow.eram &= ~EM_ISOPROTECT;
+		m_AttNow.std.eram &= ~EM_ISOPROTECT;
 		break;
 	case 1:
 	case 8:
-		m_AttNow.eram |= EM_ISOPROTECT;
+		m_AttNow.std.eram |= EM_ISOPROTECT;
 		break;
 	}
 
@@ -5165,14 +5196,14 @@ void CTextRam::fc_ORGBFAT(DWORD ch)
 {
 	// CSI p	ORGBFAT Begin field attribute : DEC private
 	int n = GetAnsiPara(0, 0, 0);
-	m_AttNow.attr = 0;
-	if ( (n &  1) != 0 ) m_AttNow.attr |= ATT_BOLD;
-	if ( (n &  2) != 0 ) m_AttNow.attr |= ATT_BLINK;
-	if ( (n &  4) != 0 ) m_AttNow.attr |= ATT_SECRET;
-	if ( (n &  8) != 0 ) m_AttNow.attr |= ATT_UNDER;
-	if ( (n & 16) != 0 ) m_AttNow.attr |= ATT_REVS;
-	if ( IsOptEnable(TO_RLGCWA) != 0 )
-		m_AttSpc.attr = m_AttNow.attr;
+	m_AttNow.std.attr = 0;
+	if ( (n &  1) != 0 ) m_AttNow.std.attr |= ATT_BOLD;
+	if ( (n &  2) != 0 ) m_AttNow.std.attr |= ATT_BLINK;
+	if ( (n &  4) != 0 ) m_AttNow.std.attr |= ATT_SECRET;
+	if ( (n &  8) != 0 ) m_AttNow.std.attr |= ATT_UNDER;
+	if ( (n & 16) != 0 ) m_AttNow.std.attr |= ATT_REVS;
+	if ( IsOptEnable(TO_RLGCWA) )
+		m_AttSpc.std.attr = m_AttNow.std.attr;
 	fc_POP(ch);
 }
 void CTextRam::fc_DECSSL(DWORD ch)
@@ -6028,30 +6059,38 @@ void CTextRam::fc_DECCARA(DWORD ch)
 				case 30: case 31: case 32: case 33:
 				case 34: case 35: case 36: case 37:
 					vp->m_Vram.fcol = (GetAnsiPara(n, 0, 0) - 30);
+					vp->m_Vram.attr &= ~ATT_EXTVRAM;
 					break;
 				case 38:
 					if ( GetAnsiPara(n + 1, 0, 0) == 5 ) {	// 256 color
-						if ( (i = GetAnsiPara(n + 2, 0, 0)) < 256 )
+						if ( (i = GetAnsiPara(n + 2, 0, 0)) < 256 ) {
 							vp->m_Vram.fcol = i;
+							vp->m_Vram.attr &= ~ATT_EXTVRAM;
+						}
 						n += 2;
 					}
 					break;
 				case 39:
-					vp->m_Vram.fcol = m_DefAtt.fcol;
+					vp->m_Vram.fcol = m_DefAtt.std.fcol;
+					vp->m_Vram.attr &= ~ATT_EXTVRAM;
 					break;
 				case 40: case 41: case 42: case 43:
 				case 44: case 45: case 46: case 47:
 					vp->m_Vram.bcol = (GetAnsiPara(n, 0, 0) - 40);
+					vp->m_Vram.attr &= ~ATT_EXTVRAM;
 					break;
 				case 48:
 					if ( GetAnsiPara(n + 1, 0, 0) == 5 ) {	// 256 color
-						if ( (i = GetAnsiPara(n + 2, 0, 0)) < 256 )
+						if ( (i = GetAnsiPara(n + 2, 0, 0)) < 256 ) {
 							vp->m_Vram.bcol = i;
+							vp->m_Vram.attr &= ~ATT_EXTVRAM;
+						}
 						n += 2;
 					}
 					break;
 				case 49:
-					vp->m_Vram.bcol = m_DefAtt.bcol;
+					vp->m_Vram.bcol = m_DefAtt.std.bcol;
+					vp->m_Vram.attr &= ~ATT_EXTVRAM;
 					break;
 
 				case 51: vp->m_Vram.attr |= ATT_FRAME; break;					// 51  framed
@@ -6071,10 +6110,12 @@ void CTextRam::fc_DECCARA(DWORD ch)
 				case 90: case 91: case 92: case 93:
 				case 94: case 95: case 96: case 97:
 					vp->m_Vram.fcol = (GetAnsiPara(n, 0, 0) - 90 + 8);
+					vp->m_Vram.attr &= ~ATT_EXTVRAM;
 					break;
 				case 100: case 101:  case 102: case 103:
 				case 104: case 105:  case 106: case 107:
 					vp->m_Vram.bcol = (GetAnsiPara(n, 0, 0) - 100 + 8);
+					vp->m_Vram.attr &= ~ATT_EXTVRAM;
 					break;
 				}
 			}
@@ -6249,7 +6290,7 @@ void CTextRam::fc_DECRQPSR(DWORD ch)
 		 */
 		UNGETSTR(_T("%s1$u%d;%d;%d;%c;%c;%c;%d;%d;%c;%s%s%s%s%s%s%s%s%s"), m_RetChar[RC_DCS],
 			m_CurY + 1, m_CurX + 1, m_Page + 1,
-			0x40 + ((m_AttNow.attr & ATT_REVS)  != 0 ? 8 : 0) + ((m_AttNow.attr & (ATT_SBLINK | ATT_BLINK)) != 0 ? 4 : 0) + ((m_AttNow.attr & ATT_UNDER) != 0 ? 2 : 0) + ((m_AttNow.attr & ATT_BOLD)  != 0 ? 1 : 0),
+			0x40 + ((m_AttNow.std.attr & ATT_REVS)  != 0 ? 8 : 0) + ((m_AttNow.std.attr & (ATT_SBLINK | ATT_BLINK)) != 0 ? 4 : 0) + ((m_AttNow.std.attr & ATT_UNDER) != 0 ? 2 : 0) + ((m_AttNow.std.attr & ATT_BOLD)  != 0 ? 1 : 0),
 			0x40 + (IsOptEnable(TO_ANSIERM) ? 1 : 0),
 			0x40 + (IsOptEnable(TO_DECAWM) ? 8 : 0) + (m_BankSG == 3 ? 4 : 0) + (m_BankSG == 2 ? 2 : 0) + (IsOptEnable(TO_DECOM) ? 1 : 0),
 			m_BankGL, m_BankGR,
@@ -6298,12 +6339,13 @@ void CTextRam::fc_DECFRA(DWORD ch)
 		for ( x = m_AnsiPara[2] ; x <= (int)m_AnsiPara[4] ; x++ ) {
 			vp = GETVRAM(x, y);
 			*vp = (DWORD)n;
-			vp->m_Vram.attr = m_AttNow.attr;
-			vp->m_Vram.fcol = m_AttNow.fcol;
-			vp->m_Vram.bcol = m_AttNow.bcol;
-			vp->m_Vram.eram = m_AttNow.eram;
+			vp->m_Vram.attr = m_AttNow.std.attr;
+			vp->m_Vram.fcol = m_AttNow.std.fcol;
+			vp->m_Vram.bcol = m_AttNow.std.bcol;
+			vp->m_Vram.eram = m_AttNow.std.eram;
 			vp->m_Vram.bank = m_BankTab[m_KanjiMode][(n & 0x80) == 0 ? m_BankGL : m_BankGR];
 			vp->m_Vram.mode = CM_ASCII;
+			vp->GetEXTVRAM(m_AttNow);
 		}
 	}
 	DISPVRAM(m_AnsiPara[2], m_AnsiPara[1], m_AnsiPara[4] - m_AnsiPara[2] + 1, m_AnsiPara[3] - m_AnsiPara[1] + 1);
@@ -6379,8 +6421,8 @@ void CTextRam::fc_SR(DWORD ch)
 void CTextRam::fc_FNT(DWORD ch)
 {
 	// CSI (' ' << 8) | 'D'		FNT Font selection
-	if ( (m_AttNow.font = GetAnsiPara(0, 0, 0)) > 10 )
-		m_AttNow.font = 10;
+	if ( (m_AttNow.std.font = GetAnsiPara(0, 0, 0)) > 10 )
+		m_AttNow.std.font = 10;
 	fc_POP(ch);
 }
 void CTextRam::fc_PPA(DWORD ch)
@@ -6513,7 +6555,8 @@ void CTextRam::fc_DECSTR(DWORD ch)
 {
 	// CSI ('!' << 8) | 'p'		DECSTR Soft terminal reset
 
-	RESET();
+	RESET(RESET_PAGE | RESET_CURSOR | RESET_MARGIN | RESET_BANK | RESET_ATTR | RESET_OPTION | RESET_MODKEY);
+
 	fc_POP(ch);
 }
 
@@ -6547,9 +6590,9 @@ void CTextRam::fc_DECSCA(DWORD ch)
 	// CSI ('"' << 8) | 'q'		DECSCA Select character attributes
 
 	if ( GetAnsiPara(0, 0, 0) == 1 )
-		m_AttNow.eram |= EM_DECPROTECT;
+		m_AttNow.std.eram |= EM_DECPROTECT;
 	else
-		m_AttNow.eram &= ~EM_DECPROTECT;
+		m_AttNow.std.eram &= ~EM_DECPROTECT;
 
 	fc_POP(ch);
 }
@@ -6815,11 +6858,13 @@ void CTextRam::fc_DECAC(DWORD ch)
 	//	0-15 color index
 
 	if ( GetAnsiPara(0, 0, 0) == 1 ) {
-		m_AttNow.fcol = GetAnsiPara(1, m_AttNow.fcol, 0, 255);
-		m_AttNow.bcol = GetAnsiPara(2, m_AttNow.bcol, 0, 255);
-		if ( IsOptEnable(TO_DECECM) == 0 ) {
-			m_AttSpc.fcol = m_AttNow.fcol;
-			m_AttSpc.bcol = m_AttNow.bcol;
+		m_AttNow.std.fcol = GetAnsiPara(1, m_AttNow.std.fcol, 0, 255);
+		m_AttNow.std.bcol = GetAnsiPara(2, m_AttNow.std.bcol, 0, 255);
+		m_AttNow.eatt = 0;
+		if ( !IsOptEnable(TO_DECECM) ) {
+			m_AttSpc.std.fcol = m_AttNow.std.fcol;
+			m_AttSpc.std.bcol = m_AttNow.std.bcol;
+			m_AttSpc.eatt = 0;
 		}
 	}
 
@@ -6836,32 +6881,36 @@ void CTextRam::fc_DECATC(DWORD ch)
 	// CSI (',' << 8) | '}'		DECATC Alternate Text Colors
 
 	switch(GetAnsiPara(0, 0, 0)) {
-	case 0: m_AttNow.attr = 0; break;
-	case 1: m_AttNow.attr = ATT_BOLD; break;
-	case 2: m_AttNow.attr = ATT_REVS; break;
-	case 3: m_AttNow.attr = ATT_UNDER; break;
-	case 4: m_AttNow.attr = ATT_SBLINK; break;
-	case 5: m_AttNow.attr = ATT_BOLD | ATT_REVS; break;
-	case 6: m_AttNow.attr = ATT_BOLD | ATT_UNDER; break;
-	case 7: m_AttNow.attr = ATT_BOLD | ATT_SBLINK; break;
-	case 8: m_AttNow.attr = ATT_REVS | ATT_UNDER; break;
-	case 9: m_AttNow.attr = ATT_REVS | ATT_SBLINK; break;
-	case 10: m_AttNow.attr = ATT_UNDER | ATT_SBLINK; break;
-	case 11: m_AttNow.attr = ATT_BOLD | ATT_REVS | ATT_UNDER; break;
-	case 12: m_AttNow.attr = ATT_BOLD | ATT_REVS | ATT_SBLINK; break;
-	case 13: m_AttNow.attr = ATT_BOLD | ATT_UNDER | ATT_SBLINK; break;
-	case 14: m_AttNow.attr = ATT_REVS | ATT_UNDER | ATT_SBLINK; break;
-	case 15: m_AttNow.attr = ATT_BOLD | ATT_REVS | ATT_UNDER | ATT_SBLINK; break;
+	case 0: m_AttNow.std.attr = 0; break;
+	case 1: m_AttNow.std.attr = ATT_BOLD; break;
+	case 2: m_AttNow.std.attr = ATT_REVS; break;
+	case 3: m_AttNow.std.attr = ATT_UNDER; break;
+	case 4: m_AttNow.std.attr = ATT_SBLINK; break;
+	case 5: m_AttNow.std.attr = ATT_BOLD | ATT_REVS; break;
+	case 6: m_AttNow.std.attr = ATT_BOLD | ATT_UNDER; break;
+	case 7: m_AttNow.std.attr = ATT_BOLD | ATT_SBLINK; break;
+	case 8: m_AttNow.std.attr = ATT_REVS | ATT_UNDER; break;
+	case 9: m_AttNow.std.attr = ATT_REVS | ATT_SBLINK; break;
+	case 10: m_AttNow.std.attr = ATT_UNDER | ATT_SBLINK; break;
+	case 11: m_AttNow.std.attr = ATT_BOLD | ATT_REVS | ATT_UNDER; break;
+	case 12: m_AttNow.std.attr = ATT_BOLD | ATT_REVS | ATT_SBLINK; break;
+	case 13: m_AttNow.std.attr = ATT_BOLD | ATT_UNDER | ATT_SBLINK; break;
+	case 14: m_AttNow.std.attr = ATT_REVS | ATT_UNDER | ATT_SBLINK; break;
+	case 15: m_AttNow.std.attr = ATT_BOLD | ATT_REVS | ATT_UNDER | ATT_SBLINK; break;
 	}
 
-	m_AttNow.fcol = GetAnsiPara(1, m_AttNow.fcol, 0, 255);
-	m_AttNow.bcol = GetAnsiPara(2, m_AttNow.bcol, 0, 255);
-	if ( IsOptEnable(TO_DECECM) == 0 ) {
-		m_AttSpc.fcol = m_AttNow.fcol;
-		m_AttSpc.bcol = m_AttNow.bcol;
+	m_AttNow.std.fcol = GetAnsiPara(1, m_AttNow.std.fcol, 0, 255);
+	m_AttNow.std.bcol = GetAnsiPara(2, m_AttNow.std.bcol, 0, 255);
+	m_AttNow.eatt = 0;
+
+	if ( !IsOptEnable(TO_DECECM) ) {
+		m_AttSpc.std.fcol = m_AttNow.std.fcol;
+		m_AttSpc.std.bcol = m_AttNow.std.bcol;
+		m_AttSpc.eatt = 0;
 	}
-	if ( IsOptEnable(TO_RLGCWA) != 0 )
-		m_AttSpc.attr = m_AttNow.attr;
+
+	if ( IsOptEnable(TO_RLGCWA) )
+		m_AttSpc.std.attr = m_AttNow.std.attr;
 
 	fc_POP(ch);
 }
@@ -7125,12 +7174,16 @@ void CTextRam::fc_SCOSNF(DWORD ch)
 	// CSI ('=' << 16) | 'F',		SNF Select foreground color
 
 	if ( m_AnsiPara.GetSize() <= 0 )
-		m_AttNow.fcol = m_DefAtt.fcol;
+		m_AttNow.std.fcol = m_DefAtt.std.fcol;
 	else
-		m_AttNow.fcol = scocolortab[GetAnsiPara(0, 0, 0, 15)];
+		m_AttNow.std.fcol = scocolortab[GetAnsiPara(0, 0, 0, 15)];
 
-	if ( IsOptEnable(TO_DECECM) == 0 )
-		m_AttSpc.fcol = m_AttNow.fcol;
+	m_AttNow.eatt &= ~EATT_FRGBCOL;
+
+	if ( !IsOptEnable(TO_DECECM) ) {
+		m_AttSpc.std.fcol = m_AttNow.std.fcol;
+		m_AttSpc.eatt = m_AttNow.eatt;
+	}
 
 	fc_POP(ch);
 }
@@ -7139,12 +7192,16 @@ void CTextRam::fc_SCOSNB(DWORD ch)
 	// CSI ('=' << 16) | 'G',		SNB Select background color
 
 	if ( m_AnsiPara.GetSize() <= 0 )
-		m_AttNow.bcol = m_DefAtt.bcol;
+		m_AttNow.std.bcol = m_DefAtt.std.bcol;
 	else
-		m_AttNow.bcol = scocolortab[GetAnsiPara(0, 0, 0, 15)];
+		m_AttNow.std.bcol = scocolortab[GetAnsiPara(0, 0, 0, 15)];
 
-	if ( IsOptEnable(TO_DECECM) == 0 )
-		m_AttSpc.bcol = m_AttNow.bcol;
+	m_AttNow.eatt &= ~EATT_BRGBCOL;
+
+	if ( !IsOptEnable(TO_DECECM) ) {
+		m_AttSpc.std.bcol = m_AttNow.std.bcol;
+		m_AttSpc.eatt = m_AttNow.eatt;
+	}
 
 	fc_POP(ch);
 }
@@ -7162,7 +7219,7 @@ void CTextRam::iTerm2Ext(LPCSTR param)
 	CGrapWnd *pGrapWnd, *pTempWnd;
 	int bInLine;
 	LPCTSTR p;
-	BOOL bAspect = TRUE; 
+	BOOL bAspect = TRUE;
 
 	index.SetNoCase(TRUE);
 	index.SetKey(param);
@@ -7184,6 +7241,14 @@ void CTextRam::iTerm2Ext(LPCSTR param)
 
 		tmp.Base64Decode(index[i][_T("name")]);
 		name = m_pDocument->LocalStr(tmp);
+
+		// ファイル名のみ・・・
+		if ( (n = name.ReverseFind(_T('/'))) >= 0 )
+			name.Delete(0, n + 1);
+		if ( (n = name.ReverseFind(_T('\\'))) >= 0 )
+			name.Delete(0, n + 1);
+		if ( (n = name.ReverseFind(_T(':'))) >= 0 )
+			name.Delete(0, n + 1);
 
 		tmp.Base64Decode(index[i]);
 		bInLine = index[i][_T("inline")];
@@ -7258,19 +7323,30 @@ void CTextRam::iTerm2Ext(LPCSTR param)
 
 			} else {
 				pGrapWnd->DestroyWindow();
-				bInLine = 0;
+
+				if ( (p = _tcsrchr(name, _T('.'))) != NULL && m_InlineExt.Match(p + 1) >= 0 ) {
+					CString path;
+					TCHAR dir[MAX_PATH];
+
+					GetTempPath(MAX_PATH, dir);
+					path.Format(_T("%s%s"), dir, name);
+
+					if ( tmp.SaveFile(path) ) {
+						ShellExecute(AfxGetMainWnd()->GetSafeHwnd(), NULL, path, NULL, NULL, SW_NORMAL);
+						((CMainFrame *)AfxGetMainWnd())->AddTempPath(path);
+					} else
+						bInLine = 0;
+
+				} else
+					bInLine = 0;
 			}
 		}
 
 		if ( bInLine == 0 ) {
 			CFileDialog dlg(FALSE, _T(""), name, OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGALLFILE), ::AfxGetMainWnd());
-			if ( dlg.DoModal() == IDOK ) {
-				CFile file;
-				if ( file.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeWrite) ) {
-					file.Write(tmp.GetPtr(), tmp.GetSize());
-					file.Close();
-				}
-			}
+
+			if ( dlg.DoModal() == IDOK && !tmp.SaveFile(dlg.GetPathName()) )
+				::AfxMessageBox(_T("Can't File Save"));
 		}
 	}
 }

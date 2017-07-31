@@ -76,6 +76,7 @@ class CRLoginApp : public CWinApp
 {
 public:
 	CIdleProc *m_pIdleTop;
+	CIdleProc *m_pIdleNext;
 	CPtrArray m_SocketIdle;
 	class CFontChache m_FontData;
 	WSADATA wsaData;
@@ -130,6 +131,9 @@ public:
 	void RegisterDelete(HKEY hKey, LPCTSTR pSection, LPCTSTR pKey);
 	void RegisterSave(HKEY hKey, LPCTSTR pSection, CBuffer &buf);
 	void RegisterLoad(HKEY hKey, LPCTSTR pSection, CBuffer &buf);
+
+	BOOL SavePrivateKey(HKEY hKey, CFile *file);
+	BOOL SavePrivateProfile();
 
 	void GetVersion(CString &str);
 	void SetDefaultPrinter();
@@ -203,6 +207,8 @@ public:
 	afx_msg void OnPassLock();
 	afx_msg void OnUpdatePassLock(CCmdUI *pCmdUI);
 	afx_msg void OnSaveresfile();
+	afx_msg void OnCreateprofile();
+	afx_msg void OnUpdateCreateprofile(CCmdUI *pCmdUI);
 };
 
 extern CRLoginApp theApp;

@@ -101,6 +101,7 @@ public:
 	LPCTSTR BubBabDecode(LPCTSTR str);
 	void md5(LPCTSTR str);
 	BOOL LoadFile(LPCTSTR filename);
+	BOOL SaveFile(LPCTSTR filename);
 	int KanjiCheck(int type = KANJI_NON);
 	void KanjiConvert(int type);
 

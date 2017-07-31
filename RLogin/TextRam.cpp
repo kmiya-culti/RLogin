@@ -159,7 +159,10 @@ void CCharCell::operator += (DWORD ch)
 	if ( (ch & 0x0000FFFF) != 0 )
 		m_Data[n++] = (WCHAR)ch;
 
-	m_Data[n] = L'\0';
+	m_Data[n++] = L'\0';
+
+	if ( n > MAXEXTSIZE && (m_Vram.attr & ATT_EXTVRAM) != 0 )
+		m_Vram.attr &= ~ATT_EXTVRAM;
 }
 void CCharCell::operator = (LPCWSTR str)
 {
@@ -177,19 +180,21 @@ void CCharCell::operator = (LPCWSTR str)
 		}
 		m_Data[n] = *(str++);
 	}
-}
-void CCharCell::SetVRAM(VRAM &ram)
-{
-	ram = m_Vram;
 
-	if ( !IS_IMAGE(m_Vram.mode) ) {
-		if ( m_Data[0] != 0 && m_Data[1] != 0 )
-			ram.pack.dchar = (m_Data[0] << 16) | m_Data[1];
-		else
-			ram.pack.dchar = m_Data[0];
+	if ( n > MAXEXTSIZE && (m_Vram.attr & ATT_EXTVRAM) != 0 )
+		m_Vram.attr &= ~ATT_EXTVRAM;
+}
+void CCharCell::GetEXTVRAM(EXTVRAM &evram)
+{
+	if ( evram.eatt != 0 ) {
+		m_Vram.attr |= ATT_EXTVRAM;
+		SetEatt(evram.eatt);
+		if ( (evram.eatt & EATT_BRGBCOL) != 0 )
+			SetBrgb(evram.brgb);
+		if ( (evram.eatt & EATT_FRGBCOL) != 0 )
+			SetFrgb(evram.frgb);
 	}
 }
-
 void CCharCell::SetBuffer(CBuffer &buf)
 {
 	buf.Apend((LPBYTE)&m_Vram, sizeof(m_Vram));
@@ -213,6 +218,8 @@ void CCharCell::GetBuffer(CBuffer &buf)
 	Empty();
 	while ( (c = buf.GetWord()) != 0 )
 		*this += (DWORD)c;
+
+	m_Vram.attr &= ~ATT_EXTVRAM;
 }
 
 void CCharCell::SetString(CString &str)
@@ -236,7 +243,7 @@ void CCharCell::GetString(LPCTSTR str)
 void CCharCell::Read(CFile &file, int ver)
 {
 	WCHAR c;
-	VRAM ram;
+	STDVRAM ram;
 	BYTE tmp[8];
 
 	switch(ver) {
@@ -278,6 +285,8 @@ void CCharCell::Read(CFile &file, int ver)
 		m_Vram.mode = CM_ASCII;
 		Empty();
 	}
+
+	m_Vram.attr &= ~ATT_EXTVRAM;
 }
 void CCharCell::Write(CFile &file)
 {
@@ -290,14 +299,21 @@ void CCharCell::Copy(CCharCell *dis, CCharCell *src, int size)
 {
 	memcpy(dis, src, sizeof(CCharCell) * size);
 }
-void CCharCell::Fill(CCharCell *dis, VRAM &vram, int size)
+void CCharCell::Fill(CCharCell *dis, EXTVRAM &vram, int size)
 {
-	register CCharCell *ptr;
-	CCharCell *end;
+	if ( size <= 0 )
+		return;
 
-	for ( ptr = dis, end = ptr + size ; ptr < end ; ptr++ ) {
-		ptr->m_Vram = vram;
-		ptr->m_Data[0] = L'\0';
+	int a = 1;
+	int b = 1;
+
+	*dis = vram;
+
+	while ( size > a ) {
+		b *= 2;
+		// a = 1,2,4,8,16... 二倍しながらコピーしてコピー回数を減らす
+		memcpy(dis + a, dis, sizeof(CCharCell) * (size < b ? (size - a) : a));
+		a = b;
 	}
 }
 
@@ -1980,9 +1996,9 @@ static const WORD DefBankTab[5][4] = {
 	{ { SET_94    | 'T' }, 	{ SET_94    | '1' },
 	  { SET_94x94 | 'A' }, 	{ SET_94x94 | 'E' } },
 	};
-static const VRAM TempAtt = {
-	//  ch  at  ft  md  dm  cm  em  fc  bc
-		0,  0,  0,  0,  0,  0,  0,  7,  0
+static const EXTVRAM TempAtt = {
+//  et  bc  fc   ch  at  ft  md  dm  cm  em  fc  bc
+	0,  0,  0, { 0,  0,  0,  0,  0,  0,  0,  7,  0 }
 };
 static const LPCTSTR DropCmdTab[] = {
 	//	Non					BPlus				XModem					YModem
@@ -2080,6 +2096,7 @@ void CTextRam::Init()
 	m_ClipFlag = 0;
 	memset(m_MacroExecFlag, 0, sizeof(m_MacroExecFlag));
 	m_ShellExec.GetString(_T("http://|https://|ftp://|mailto://"), _T('|'));
+	m_InlineExt.GetString(_T("doc|txt|pdf|mp3|avi|mpg"), _T('|'));
 	m_ScrnOffset.SetRect(0, 0, 0, 0);
 	m_TimeFormat = _T("%H:%M:%S ");
 	m_DefFontName[0] = _T("ＭＳ ゴシック");
@@ -2121,9 +2138,9 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		index[_T("GL")] = m_BankGL;
 		index[_T("GR")] = m_BankGR;
 
-		index[_T("Attribute")] = m_DefAtt.attr;
-		index[_T("TextColor")] = m_DefAtt.fcol;
-		index[_T("BackColor")] = m_DefAtt.bcol;
+		index[_T("Attribute")] = m_DefAtt.std.attr;
+		index[_T("TextColor")] = m_DefAtt.std.fcol;
+		index[_T("BackColor")] = m_DefAtt.std.bcol;
 
 		index[_T("ColorTable")].SetSize(16);
 		for ( n = 0 ; n < 16 ; n++ ) {
@@ -2229,6 +2246,9 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 
 		index[_T("GroupCast")] = m_GroupCast;
 
+		for ( n = 0 ; n < m_InlineExt.GetSize() ; n++ )
+			index[_T("InlineExt")].Add(m_InlineExt[n]);
+
 	} else {		// Read
 		if ( (n = index.Find(_T("Cols"))) >= 0 ) {
 			if ( (i = index[n].Find(_T("Nomal"))) >= 0 )
@@ -2250,11 +2270,15 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 			m_BankGR = index[n];
 
 		if ( (n = index.Find(_T("Attribute"))) >= 0 )
-			m_DefAtt.attr = index[n];
-		if ( (n = index.Find(_T("TextColor"))) >= 0 )
-			m_DefAtt.fcol = index[n];
-		if ( (n = index.Find(_T("BackColor"))) >= 0 )
-			m_DefAtt.bcol = index[n];
+			m_DefAtt.std.attr = index[n];
+		if ( (n = index.Find(_T("TextColor"))) >= 0 ) {
+			m_DefAtt.std.fcol = index[n];
+			m_DefAtt.eatt &= ~EATT_FRGBCOL;
+		}
+		if ( (n = index.Find(_T("BackColor"))) >= 0 ) {
+			m_DefAtt.std.bcol = index[n];
+			m_DefAtt.eatt &= ~EATT_BRGBCOL;
+		}
 
 		if ( (n = index.Find(_T("ColorTable"))) >= 0 ) {
 			for ( i = 0 ; i < 16 && i < index[n].GetSize() ; i++ ) {
@@ -2436,6 +2460,12 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		if ( (n = index.Find(_T("GroupCast"))) >= 0 )
 			m_GroupCast = index[n];
 
+		if ( (n = index.Find(_T("InlineExt"))) >= 0 ) {
+			m_InlineExt.RemoveAll();
+			for ( i = 0 ; i < index[n].GetSize() ; i++ )
+				m_InlineExt.Add(index[n][i]);
+		}
+
 		memcpy(m_ColTab, m_DefColTab, sizeof(m_DefColTab));
 		memcpy(m_AnsiOpt, m_DefAnsiOpt, sizeof(m_AnsiOpt));
 		memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
@@ -2456,7 +2486,7 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 	stra.AddVal(m_KanjiMode);
 	stra.AddVal(m_BankGL);
 	stra.AddVal(m_BankGR);
-	stra.AddBin(&m_DefAtt, sizeof(VRAM));
+	stra.AddBin(&m_DefAtt.std, sizeof(STDVRAM));
 	stra.AddBin(m_DefColTab,  sizeof(m_DefColTab));
 	stra.AddBin(m_DefAnsiOpt, sizeof(m_DefAnsiOpt));
 	stra.AddBin(m_DefBankTab, sizeof(m_DefBankTab));
@@ -2538,6 +2568,9 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 	stra.Add(str);
 
 	stra.AddVal(m_BitMapBlend);
+
+	m_InlineExt.SetString(str, _T('|'));
+	stra.Add(str);
 }
 void CTextRam::GetArray(CStringArrayExt &stra)
 {
@@ -2554,14 +2587,15 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 	m_BankGL      = stra.GetVal(4);
 	m_BankGR      = stra.GetVal(5);
 
-	if ( (n = stra.GetBin(6, tmp, 16)) == sizeof(VRAM) )
-		memcpy(&m_DefAtt, tmp, sizeof(VRAM));
+	if ( (n = stra.GetBin(6, tmp, 16)) == sizeof(STDVRAM) )
+		memcpy(&m_DefAtt.std, tmp, sizeof(STDVRAM));
 	else if ( n == 8 ) {
-		memset(&m_DefAtt, 0, sizeof(VRAM));
-		m_DefAtt.attr = tmp[6];
-		m_DefAtt.fcol = tmp[7] & 0x0F;
-		m_DefAtt.bcol = tmp[7] >> 4;
+		memset(&m_DefAtt.std, 0, sizeof(STDVRAM));
+		m_DefAtt.std.attr = tmp[6];
+		m_DefAtt.std.fcol = tmp[7] & 0x0F;
+		m_DefAtt.std.bcol = tmp[7] >> 4;
 	}
+	m_DefAtt.eatt = 0;
 
 	stra.GetBin(7, m_DefColTab,  sizeof(m_DefColTab));
 	memcpy(m_ColTab, m_DefColTab, sizeof(m_DefColTab));
@@ -2741,6 +2775,9 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 	}
 	if ( stra.GetSize() > 67 )
 		m_BitMapBlend = stra.GetVal(67);
+
+	if ( stra.GetSize() > 68 )
+		m_InlineExt.GetString(stra.GetAt(68), _T('|'));
 
 	if ( m_FixVersion < 9 ) {
 		if ( m_pDocument != NULL ) {
@@ -2952,24 +2989,26 @@ void CTextRam::ScriptValue(int cmds, class CScriptValue &value, int mode)
 		break;
 
 	case 26:				// Document.Screen.Style.Color
-		n = m_AttNow.fcol;
+		n = m_AttNow.std.fcol;
 		value.SetInt(n, mode);
-		m_AttNow.fcol = (BYTE)n;
+		m_AttNow.std.fcol = (BYTE)n;
+		m_AttNow.eatt &= ~EATT_FRGBCOL;
 		break;
 	case 27:				// Document.Screen.Style.BackColor
-		n = m_AttNow.bcol;
+		n = m_AttNow.std.bcol;
 		value.SetInt(n, mode);
-		m_AttNow.bcol = (BYTE)n;
+		m_AttNow.std.bcol = (BYTE)n;
+		m_AttNow.eatt &= ~EATT_BRGBCOL;
 		break;
 	case 28:				// Document.Screen.Style.Attribute
-		n = m_AttNow.attr;
+		n = m_AttNow.std.attr;
 		value.SetInt(n, mode);
-		m_AttNow.attr = (DWORD)n;
+		m_AttNow.std.attr = (DWORD)n;
 		break;
 	case 29:				// Document.Screen.Style.FontNumber
-		n = m_AttNow.font;
+		n = m_AttNow.std.font;
 		value.SetInt(n, mode);
-		m_AttNow.font = (DWORD)n;
+		m_AttNow.std.font = (DWORD)n;
 		break;
 	}
 }
@@ -3046,6 +3085,7 @@ const CTextRam & CTextRam::operator = (CTextRam &data)
 	m_BitMapAlpha = data.m_BitMapAlpha;
 	m_BitMapBlend = data.m_BitMapBlend;
 	m_TextBitMap = data.m_TextBitMap;
+	m_InlineExt = data.m_InlineExt;
 
 	return *this;
 }
@@ -4380,12 +4420,17 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, struct DrawWork &prop, class CR
 	CGrapWnd *pWnd;
 
 	// Text Color & Back Color
-	if ( (prop.attr & ATT_BOLD) != 0 && !IsOptEnable(TO_RLBOLD) && prop.fcol < 16 )
+	if ( (prop.eatt & EATT_FRGBCOL) != 0 )
+		fcol = prop.frgb;
+	else if ( (prop.attr & ATT_BOLD) != 0 && !IsOptEnable(TO_RLBOLD) && prop.fcol < 16 )
 		fcol = m_ColTab[prop.fcol ^ 0x08];
 	else
 		fcol = m_ColTab[prop.fcol];
 
-	bcol = m_ColTab[prop.bcol];
+	if ( (prop.eatt & EATT_BRGBCOL) != 0 )
+		bcol = prop.brgb;
+	else
+		bcol = m_ColTab[prop.bcol];
 
 	if ( (prop.attr & ATT_REVS) != 0 ) {
 		tcol = fcol;
@@ -4396,7 +4441,7 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, struct DrawWork &prop, class CR
 
 	if ( (prop.attr & (ATT_SBLINK | ATT_BLINK)) != 0 ) {
 		if ( (pView->m_BlinkFlag & 4) == 0 ) {
-			pView->SetTimer(1026, 250, NULL);
+			pView->SetTimer(VTMID_BLINKUPDATE, 250, NULL);
 			pView->m_BlinkFlag = 4;
 		} else if ( ((prop.attr & ATT_BLINK) != 0 && (pView->m_BlinkFlag & 1) != 0) ||
 				    ((prop.attr & ATT_BLINK) == 0 && (pView->m_BlinkFlag & 2) != 0) ) {
@@ -4422,7 +4467,7 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, struct DrawWork &prop, class CR
 		bRevs = TRUE;
 	}
 
-	if ( bRevs || prop.bcol != m_DefAtt.bcol )
+	if ( bRevs || prop.bcol != m_DefAtt.std.bcol )
 		bEraBack = TRUE;
 
 	if ( pView->m_pBitmap != NULL ) {
@@ -4449,9 +4494,13 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, struct DrawWork &prop, class CR
 
 	if ( prop.idx != (-1) ) {
 		// Image Draw
-		if ( (pWnd = GetGrapWnd(prop.idx)) != NULL )
+		if ( (pWnd = GetGrapWnd(prop.idx)) != NULL ) {
 			pWnd->DrawBlock(pDC, rect, bcol, bEraBack, prop.stx, prop.sty, prop.edx, prop.sty + 1, pView);
-		else if ( bEraBack )
+			if ( pView->m_ImageFlag == 0 && pWnd->IsGifAnime() ) {
+				pView->SetTimer(VTMID_IMAGEUPDATE, 100, NULL);
+				pView->m_ImageFlag = 1;
+			}
+		} else if ( bEraBack )
 			pDC->FillSolidRect(rect, bcol);
 
 		if ( bRevs )
@@ -4539,6 +4588,9 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 		prop.font = 0;
 		prop.csz  = 0;		// XXXXX
 
+		prop.eatt = 0;
+		prop.frgb = prop.brgb = 0;
+
 		rect.top    = pView->CalcGrapY(y);
 		rect.bottom = pView->CalcGrapY(y + 1);
 
@@ -4585,11 +4637,14 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 			str.Empty();
 			vp = NULL;
 
+			work.eatt = 0;
+			work.frgb = work.brgb = 0;
+
 			if ( top == NULL ) {
-				work.attr = m_DefAtt.attr;
-				work.font = m_DefAtt.font;
-				work.fcol = m_DefAtt.fcol;
-				work.bcol = m_DefAtt.bcol;
+				work.attr = m_DefAtt.std.attr & ~ATT_EXTVRAM;
+				work.font = m_DefAtt.std.font;
+				work.fcol = m_DefAtt.std.fcol;
+				work.bcol = m_DefAtt.std.bcol;
 
 			} else if ( x < 0 ) {
 				work.attr = top->m_Vram.attr & (ATT_REVS | ATT_CLIP | ATT_MARK | ATT_SBLINK | ATT_BLINK);
@@ -4681,6 +4736,13 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 					else
 						work.fcol = EXTCOL_MAX + 24 - n;
 				}
+
+			} else if ( vp != NULL && (work.attr & ATT_EXTVRAM) != 0 ) {
+				work.eatt = vp->GetEatt();
+				if ( (work.eatt & EATT_BRGBCOL) != 0 )
+					work.brgb = vp->GetBrgb();
+				if ( (work.eatt & EATT_FRGBCOL) != 0 )
+					work.frgb = vp->GetFrgb();
 			}
 
 			// Frame View
@@ -5415,8 +5477,8 @@ void CTextRam::SizeGrapWnd(class CGrapWnd *pWnd, int cx, int cy, BOOL bAspect)
 	GetCellSize(&fw, &fh);
 
 	// disp image size
-	if ( (dx = pWnd->m_MaxX * pWnd->m_AspX / 100) <= 0 ) dx = 1;
-	if ( (dy = pWnd->m_MaxY * pWnd->m_AspY / 100) <= 0 ) dy = 1;
+	if ( (dx = pWnd->m_MaxX * pWnd->m_AspX / ASP_DIV) <= 0 ) dx = 1;
+	if ( (dy = pWnd->m_MaxY * pWnd->m_AspY / ASP_DIV) <= 0 ) dy = 1;
 
 	// width zoom calc
 	if ( cx <= 0 ) {	// auto width
@@ -5467,9 +5529,14 @@ void CTextRam::SizeGrapWnd(class CGrapWnd *pWnd, int cx, int cy, BOOL bAspect)
 		pWnd->m_AspY = hay;
 	}
 
+	if ( pWnd->m_AspX <= 0 )
+		pWnd->m_AspX = 1;
+	if ( pWnd->m_AspY <= 0 )
+		pWnd->m_AspY = 1;
+
 	// disp image size recalc
-	if ( (dx = pWnd->m_MaxX * pWnd->m_AspX / 100) <= 0 ) dx = 1;
-	if ( (dy = pWnd->m_MaxY * pWnd->m_AspY / 100) <= 0 ) dy = 1;
+	if ( (dx = pWnd->m_MaxX * pWnd->m_AspX / ASP_DIV) <= 0 ) dx = 1;
+	if ( (dy = pWnd->m_MaxY * pWnd->m_AspY / ASP_DIV) <= 0 ) dy = 1;
 
 	// auto cell size calc
 	if ( cx <= 0 )		// auto
@@ -5495,12 +5562,20 @@ void CTextRam::DispGrapWnd(class CGrapWnd *pGrapWnd, BOOL bNextCols)
 			vp->m_Vram.pack.image.ix = x;
 			vp->m_Vram.pack.image.iy = y;
 			vp->m_Vram.bank = SET_96 | 'A';
-			vp->m_Vram.eram = m_AttNow.eram;
+			vp->m_Vram.eram = m_AttNow.std.eram;
 			vp->m_Vram.mode = CM_IMAGE;
-			vp->m_Vram.attr = m_AttNow.attr;
-			vp->m_Vram.font = m_AttNow.font;
-			vp->m_Vram.fcol = m_AttNow.fcol;
-			vp->m_Vram.bcol = m_AttNow.bcol;
+			vp->m_Vram.attr = m_AttNow.std.attr;
+			vp->m_Vram.font = m_AttNow.std.font;
+			vp->m_Vram.fcol = m_AttNow.std.fcol;
+			vp->m_Vram.bcol = m_AttNow.std.bcol;
+
+			// 拡張frgbはpack.imageと重なるので注意！！
+			if ( (m_AttNow.eatt & EATT_BRGBCOL) != 0 ) {
+				vp->m_Vram.attr |= ATT_EXTVRAM;
+				vp->SetEatt(EATT_BRGBCOL);
+				vp->SetBrgb(m_AttNow.brgb);
+			}
+
 			vp++;
 		}
 		if ( bNextCols ) {
@@ -5578,15 +5653,18 @@ void CTextRam::RESET(int mode)
 		m_BankGR = 1;
 		m_BankSG = (-1);
 		memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
+		fc_Init(m_KanjiMode);
 	}
 
 	if ( mode & RESET_ATTR ) {
-		m_DefAtt.pack.dchar = 0;
-		m_DefAtt.bank = m_BankTab[m_KanjiMode][m_BankGL];
-		m_DefAtt.eram = 0;
-		m_DefAtt.zoom = 0;
-		m_DefAtt.mode = 0;
-//		m_DefAtt.attr = 0;
+		m_DefAtt.std.pack.dchar = 0;
+		m_DefAtt.std.bank = m_BankTab[m_KanjiMode][m_BankGL];
+		m_DefAtt.std.eram = 0;
+		m_DefAtt.std.zoom = 0;
+		m_DefAtt.std.mode = 0;
+		m_DefAtt.eatt = 0;
+		m_DefAtt.frgb = 0;
+		m_DefAtt.brgb = 0;
 		m_AttSpc = m_DefAtt;
 		m_AttNow = m_DefAtt;
 	}
@@ -5636,21 +5714,28 @@ void CTextRam::RESET(int mode)
 
 	if ( mode & RESET_OPTION ) {
 		memcpy(m_AnsiOpt, m_DefAnsiOpt, sizeof(m_AnsiOpt));
+		SetRetChar(FALSE);
+		m_FileSaveFlag = TRUE;
+	}
 
+	if ( mode & RESET_XTOPT ) {
+		m_XtOptFlag = 0;
+		m_XtMosPointMode = 0;
+		m_TitleStack.RemoveAll();
+	}
+
+	if ( mode & RESET_MODKEY ) {
+		memcpy(m_ModKey, m_DefModKey, sizeof(m_ModKey));
+		InitModKeyTab();
+	}
+
+	if ( mode & RESET_IDS ) {
 		m_VtLevel = m_DefTermPara[TERMPARA_VTLEVEL];
 		m_FirmVer = m_DefTermPara[TERMPARA_FIRMVER];
 		m_TermId  = m_DefTermPara[TERMPARA_TERMID];
 		m_UnitId  = m_DefTermPara[TERMPARA_UNITID];
 		m_KeybId  = m_DefTermPara[TERMPARA_KEYBID];
-
 		m_LangMenu = 0;
-		SetRetChar(FALSE);
-		m_FileSaveFlag = TRUE;
-		m_XtOptFlag = 0;
-		m_XtMosPointMode = 0;
-		m_TitleStack.RemoveAll();
-		memcpy(m_ModKey, m_DefModKey, sizeof(m_ModKey));
-		InitModKeyTab();
 	}
 
 	if ( mode & RESET_CLS )
@@ -5688,7 +5773,6 @@ void CTextRam::RESET(int mode)
 		m_StsFlag = FALSE;
 		m_StsMode = 0;
 		m_StsLed  = 0;
-		fc_Init(m_KanjiMode);
 	}
 
 	if ( mode & RESET_TEK ) {
@@ -5783,9 +5867,9 @@ void CTextRam::FLUSH()
 		if ( m_pTraceNow != NULL && m_bTraceUpdate ) {
 			m_pTraceNow->m_CurX = m_CurX;
 			m_pTraceNow->m_CurY = m_CurY;
-			m_pTraceNow->m_Attr = m_AttNow.attr;
-			m_pTraceNow->m_ForCol = m_AttNow.fcol;
-			m_pTraceNow->m_BakCol = m_AttNow.bcol;
+			m_pTraceNow->m_Attr = m_AttNow.std.attr;
+			m_pTraceNow->m_ForCol = m_AttNow.std.fcol;
+			m_pTraceNow->m_BakCol = m_AttNow.std.bcol;
 			m_pTraceWnd->AddTraceNode(m_pTraceNow);
 			m_bTraceUpdate = FALSE;
 		}
@@ -5902,6 +5986,62 @@ int CTextRam::BLINKUPDATE(class CRLoginView *pView)
 				}
 			} else if ( (vp->m_Vram.attr & ATT_SBLINK) != 0 )
 				rt |= 2;
+			vp++;
+		}
+		if ( (rt & 1) != 0 ) {
+			if ( dm ) {
+				rect.left  *= 2;
+				rect.right *= 2;
+			}
+			m_pDocument->UpdateAllViews(NULL, UPDATE_BLINKRECT, (CObject *)&rect);
+			rt &= 0xFE;
+		}
+	}
+	return rt;
+}
+int CTextRam::IMAGEUPDATE(class CRLoginView *pView)
+{
+	int x, y, dm;
+	CCharCell *vp;
+	int rt = 0;
+	CRect rect;
+	CGrapWnd *pGrap;
+	clock_t now = clock();
+	int id = (-1);
+
+	for ( y = 0 ; y < m_Lines ; y++ ) {
+		vp = GETVRAM(0, y - pView->m_HisOfs + pView->m_HisMin);
+		dm = vp->m_Vram.zoom;
+		rect.left   = m_Cols;
+		rect.right  = 0;
+		rect.top    = y - pView->m_HisOfs + pView->m_HisMin;
+		rect.bottom = rect.top + 1;
+		for ( x = 0 ; x < m_Cols ; x++ ) {
+			if ( IS_IMAGE(vp->m_Vram.mode) && (id == vp->m_Vram.pack.image.id || ((pGrap = GetGrapWnd(vp->m_Vram.pack.image.id)) != NULL && pGrap->IsGifAnime())) ) {
+				if ( pGrap->m_GifAnimeClock > now )
+					rt |= 2;
+				else if ( rect.left > x ) {
+					rect.left  = x;
+					rect.right = x + 1;
+					rt |= 3;
+				} else if ( rect.right == x ) {
+					rect.right = x + 1;
+					rt |= 3;
+				} else {
+					if ( rect.left < rect.right ) {
+						if ( dm ) {
+							rect.left  *= 2;
+							rect.right *= 2;
+						}
+						m_pDocument->UpdateAllViews(NULL, UPDATE_BLINKRECT, (CObject *)&rect);
+					}
+					rect.left  = x;
+					rect.right = x + 1;
+					rt |= 3;
+				}
+				id = vp->m_Vram.pack.image.id;
+			} else
+				id = (-1);
 			vp++;
 		}
 		if ( (rt & 1) != 0 ) {
@@ -6369,7 +6509,6 @@ void CTextRam::ERABOX(int sx, int sy, int ex, int ey, int df)
 		for ( y = 0 ; y < x ; y++)
 			FORSCROLL(0, 0, m_Cols, m_Lines);
 		m_pDocument->UpdateAllViews(NULL, UPDATE_SCROLLOUT, NULL);
-		return;
 	}
 
 	if ( (df & ERM_ISOPRO) != 0 && IsOptEnable(TO_ANSIERM) )
@@ -6653,13 +6792,14 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at)
 	vp = GETVRAM(m_CurX, m_CurY);
 
 	vp->m_Vram.bank = (WORD)md;
-	vp->m_Vram.eram = m_AttNow.eram;
+	vp->m_Vram.eram = m_AttNow.std.eram;
 //	vp->m_Vram.zoom = m_AttNow.dm;	no Init
 	vp->m_Vram.mode = CM_ASCII;
-	vp->m_Vram.attr = m_AttNow.attr | at;
-	vp->m_Vram.font = m_AttNow.font;
-	vp->m_Vram.fcol = m_AttNow.fcol;
-	vp->m_Vram.bcol = m_AttNow.bcol;
+	vp->m_Vram.attr = m_AttNow.std.attr | at;
+	vp->m_Vram.font = m_AttNow.std.font;
+	vp->m_Vram.fcol = m_AttNow.std.fcol;
+	vp->m_Vram.bcol = m_AttNow.std.bcol;
+	vp->GetEXTVRAM(m_AttNow);
 
 	md &= CODE_MASK;
 	ch |= m_FontTab[md].m_Shift;
@@ -6758,14 +6898,15 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at)
 	vp = GETVRAM(m_CurX, m_CurY);
 
 	vp[0].m_Vram.bank = vp[1].m_Vram.bank = (WORD)md;
-	vp[0].m_Vram.eram = vp[1].m_Vram.eram = m_AttNow.eram;
+	vp[0].m_Vram.eram = vp[1].m_Vram.eram = m_AttNow.std.eram;
 //	vp[0].dm = vp[1].dm = m_AttNow.dm;	no Init
 	vp[0].m_Vram.mode = CM_1BYTE;
 	vp[1].m_Vram.mode = CM_2BYTE;
-	vp[0].m_Vram.attr = vp[1].m_Vram.attr = m_AttNow.attr | at;
-	vp[0].m_Vram.font = vp[1].m_Vram.font = m_AttNow.font;
-	vp[0].m_Vram.fcol = vp[1].m_Vram.fcol = m_AttNow.fcol;
-	vp[0].m_Vram.bcol = vp[1].m_Vram.bcol = m_AttNow.bcol;
+	vp[0].m_Vram.attr = vp[1].m_Vram.attr = m_AttNow.std.attr | at;
+	vp[0].m_Vram.font = vp[1].m_Vram.font = m_AttNow.std.font;
+	vp[0].m_Vram.fcol = vp[1].m_Vram.fcol = m_AttNow.std.fcol;
+	vp[0].m_Vram.bcol = vp[1].m_Vram.bcol = m_AttNow.std.bcol;
+	vp[0].GetEXTVRAM(m_AttNow); vp[1].GetEXTVRAM(m_AttNow);
 
 	md &= CODE_MASK;
 	ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// Char変換ではUTF-16BEを使用！
@@ -7463,12 +7604,13 @@ void CTextRam::TABSET(int sw)
 			if ( !IS_IMAGE(vp->m_Vram.mode) && (DWORD)(*vp) <= L' ' ) {
 				*vp = (DWORD)'\t';
 				vp->m_Vram.bank = (WORD)m_BankTab[m_KanjiMode][0];
-				vp->m_Vram.eram = m_AttNow.eram;
+				vp->m_Vram.eram = m_AttNow.std.eram;
 				vp->m_Vram.mode = CM_ASCII;
-				vp->m_Vram.attr = m_AttNow.attr;
-				vp->m_Vram.font = m_AttNow.font;
-				vp->m_Vram.fcol = m_AttNow.fcol;
-				vp->m_Vram.bcol = m_AttNow.bcol;
+				vp->m_Vram.attr = m_AttNow.std.attr;
+				vp->m_Vram.font = m_AttNow.std.font;
+				vp->m_Vram.fcol = m_AttNow.std.fcol;
+				vp->m_Vram.bcol = m_AttNow.std.bcol;
+				vp->GetEXTVRAM(m_AttNow);
 			}
 		}
 		LOCATE(n, m_CurY);
@@ -7529,7 +7671,7 @@ int CTextRam::GETCOLIDX(int red, int green, int blue)
 {
 	int i;
 	int idx = 0;
-	DWORD min = 0xFFFFFF;	// 255 * 255 * 3 + 255 * 255 * 9 + 255 * 255 = 845325 = 0x000CE60D
+	DWORD min = 0xFFFFFF;	// 255 * 255 * 2 + 255 * 255 * 6 + 255 * 255 = 585225 = 0x0008EE09
 
 	if ( red   > 255 ) red   = 255;
 	if ( green > 255 ) green = 255;
@@ -7539,7 +7681,7 @@ int CTextRam::GETCOLIDX(int red, int green, int blue)
 		int r = GetRValue(m_ColTab[i]) - red;
 		int g = GetGValue(m_ColTab[i]) - green;
 		int b = GetBValue(m_ColTab[i]) - blue;
-		DWORD d = r * r * 3 + g * g * 9 + b * b;
+		DWORD d = r * r * 2 + g * g * 6 + b * b;
 		if ( min > d ) {
 			idx = i;
 			min = d;

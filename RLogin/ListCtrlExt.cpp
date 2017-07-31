@@ -355,9 +355,12 @@ void CListCtrlExt::SwapItemText(int src, int dis)
 {
 	int n;
 	CString text[2];
-	DWORD_PTR data[2];
 	BOOL bchk[2];
 	LVCOLUMN lvc;
+	LVITEM item[2];
+
+	ZeroMemory(&lvc, sizeof(lvc));
+	ZeroMemory(item, sizeof(LVITEM) * 2);
 
 	lvc.mask = LVCF_WIDTH;
 	for ( n = 0 ; GetColumn(n, &lvc) ; n++ ) {
@@ -368,14 +371,22 @@ void CListCtrlExt::SwapItemText(int src, int dis)
 		SetItemText(dis, n, text[0]);
 	}
 
-	data[0] = GetItemData(src);
-	data[1] = GetItemData(dis);
+	item[0].mask = LVIF_IMAGE | LVIF_PARAM | LVIF_STATE;
+	item[0].iItem = src;
+	GetItem(&(item[0]));
 
-	SetItemData(src, data[1]);
-	SetItemData(dis, data[0]);
+	item[1].mask = LVIF_IMAGE | LVIF_PARAM | LVIF_STATE;
+	item[1].iItem = dis;
+	GetItem(&(item[1]));
 
 	bchk[0] = GetLVCheck(src);
 	bchk[1] = GetLVCheck(dis);
+
+	item[0].iItem = dis;
+	SetItem(&(item[0]));
+
+	item[1].iItem = src;
+	SetItem(&(item[1]));
 
 	SetLVCheck(src, bchk[1]);
 	SetLVCheck(dis, bchk[0]);
@@ -384,14 +395,21 @@ void CListCtrlExt::MoveItemText(int src, int dis)
 {
 	int n;
 	CStringArray text;
-	DWORD_PTR data;
 	BOOL bchk;
 	LVCOLUMN lvc;
+	LVITEM item;
+
+	ZeroMemory(&lvc, sizeof(lvc));
+	ZeroMemory(&item, sizeof(item));
 
 	lvc.mask = LVCF_WIDTH;
 	for ( n = 0 ; GetColumn(n, &lvc) ; n++ )
 		text.Add(GetItemText(src, n));
-	data = GetItemData(src);
+
+	item.mask = LVIF_IMAGE | LVIF_PARAM | LVIF_STATE;
+	item.iItem = src;
+	GetItem(&item);
+
 	bchk = GetLVCheck(src);
 
 	DeleteItem(src);
@@ -399,7 +417,11 @@ void CListCtrlExt::MoveItemText(int src, int dis)
 
 	for ( n = 1 ; GetColumn(n, &lvc) ; n++ )
 		SetItemText(dis, n, text[n]);
-	SetItemData(dis, data);
+
+	item.mask = LVIF_IMAGE | LVIF_PARAM | LVIF_STATE;
+	item.iItem = dis;
+	SetItem(&item);
+
 	SetLVCheck(dis, bchk);
 }
 

@@ -10,6 +10,7 @@
 #include "ServerSelect.h"
 #include "Script.h"
 #include "ssh2.h"
+#include "ToolDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -828,6 +829,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_UPDATE_COMMAND_UI(IDM_BROADCAST, &CMainFrame::OnUpdateBroadcast)
 	
 	ON_WM_CLIPBOARDUPDATE()
+	ON_COMMAND(IDM_TOOLCUST, &CMainFrame::OnToolcust)
 END_MESSAGE_MAP()
 
 static const UINT indicators[] =
@@ -841,6 +843,9 @@ static const UINT indicators[] =
 //	ID_INDICATOR_SCRL,
 //	ID_INDICATOR_KANA,
 };
+
+static UINT SetClipboardThread(LPVOID pParam);
+static UINT GetClipboardThread(LPVOID pParam);
 
 /////////////////////////////////////////////////////////////////////////////
 // CMainFrame コンストラクション/デストラクション
@@ -872,6 +877,7 @@ CMainFrame::CMainFrame()
 	m_bBroadCast = FALSE;
 	m_bTabBarShow = FALSE;
 	m_StatusTimer = 0;
+	m_bClipEnable = FALSE;
 	m_bClipChain = FALSE;
 }
 
@@ -915,10 +921,8 @@ CMainFrame::~CMainFrame()
 
 int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 {
-	int n, cx, cy;
-	CDC dc[2];
+	int n;
 	CBitmap BitMap;
-	CBitmap *pOld[2];
 	CBuffer buf;
 	CMenu *pMenu;
 	UINT nID, nSt;
@@ -946,48 +950,8 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	}
 #endif	// USE_GOZI
 
-	// リソースデータベースからメニューイメージを作成
-	cx = GetSystemMetrics(SM_CXMENUCHECK);
-	cy = GetSystemMetrics(SM_CYMENUCHECK);
-
-	dc[0].CreateCompatibleDC(NULL);
-	dc[1].CreateCompatibleDC(NULL);
-
-	CResDataBase *pResData = &(((CRLoginApp *)::AfxGetApp())->m_ResDataBase);
-
-	for ( n = 0 ; n < pResData->m_Bitmap.GetSize() ; n++ ) {
-		if ( pResData->m_Bitmap[n].m_hBitmap == NULL )
-			continue;
-
-		if ( GetMenuBitmap(pResData->m_Bitmap[n].m_ResId) != NULL )
-			continue;
-
-		CBitmap *pBitmap = CBitmap::FromHandle(pResData->m_Bitmap[n].m_hBitmap);
-		BITMAP mapinfo;
-		CMenuBitMap *pMap;
-
-		if ( pBitmap == NULL || !pBitmap->GetBitmap(&mapinfo) )
-			continue;
-
-		if ( (pMap = new CMenuBitMap) == NULL )
-			continue;
-
-		pMap->m_Id = pResData->m_Bitmap[n].m_ResId;
-		pMap->m_Bitmap.CreateBitmap(cx, cy, dc[1].GetDeviceCaps(PLANES), dc[1].GetDeviceCaps(BITSPIXEL), NULL);
-		m_MenuMap.Add(pMap);
-
-		pOld[0] = dc[0].SelectObject(pBitmap);
-		pOld[1] = dc[1].SelectObject(&(pMap->m_Bitmap));
-
-		dc[1].FillSolidRect(0, 0, cx, cy, GetSysColor(COLOR_MENU));
-		dc[1].TransparentBlt(0, 0, cx, cy, &(dc[0]), 0, 0, (mapinfo.bmWidth <= mapinfo.bmHeight ? mapinfo.bmWidth : mapinfo.bmHeight), mapinfo.bmHeight, RGB(192, 192, 192));
-
-		dc[0].SelectObject(pOld[0]);
-		dc[1].SelectObject(pOld[1]);
-	}
-
-	dc[0].DeleteDC();
-	dc[1].DeleteDC();
+	// メニュー画像を作成
+	InitMenuBitmap();
 
 	// ツール・ステータス・タブ　バーの作成
 	if ( !m_wndToolBar.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT,
@@ -1055,8 +1019,8 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	// クリップボードチェインの設定
 	if ( ExAddClipboardFormatListener != NULL && ExRemoveClipboardFormatListener != NULL ) {
-		ExAddClipboardFormatListener(m_hWnd);
-		PostMessage(WM_CLIPBOARDUPDATE);
+		if ( ExAddClipboardFormatListener(m_hWnd) )
+			AfxBeginThread(GetClipboardThread, this, THREAD_PRIORITY_NORMAL);
 	} else {
 		m_bClipChain = TRUE;
 		m_hNextClipWnd = SetClipboardViewer();
@@ -1858,44 +1822,118 @@ void CMainFrame::SetStatusText(LPCTSTR message)
 
 /////////////////////////////////////////////////////////////////////////////
 
-void CMainFrame::SetClipBoardMenu(UINT nId, CMenu *pMenu)
+void CMainFrame::ClipBoradStr(LPCWSTR str, CString &tmp)
 {
 	int n, i;
+
+	tmp.Empty();
+
+	for ( n = 0 ; n < 50 && *str != L'\0' ; n++, str++ ) {
+		if ( *str == L'\n' )
+			n--;
+		else if ( *str == L'\r' )
+			tmp += _T("↓");
+		else if ( *str == L'\x7F' || *str < L' ' || *str == L'&' || *str == L'\\' )
+			tmp += _T('.');
+		else if ( *str >= 256 ) {
+			n++;
+			tmp += *str;
+		} else
+			tmp += *str;
+		if ( n >= 40 && (i = (int)wcslen(str)) > 10 ) {
+			tmp += _T(" ... ");
+			str += (i - 11);
+		}
+	}
+}
+void CMainFrame::SetClipBoardComboBox(CComboBox *pCombo)
+{
 	int index = 1;
 	POSITION pos;
-	LPCWSTR str;
-	CString tmp;
+	CString str, tmp;
+
+	for ( pos = m_ClipBoard.GetHeadPosition() ; pos != NULL ; ) {
+		ClipBoradStr((LPCWSTR)m_ClipBoard.GetNext(pos), str);
+
+		tmp.Format(_T("%d %s"), (index++) % 10, str);
+		pCombo->AddString(tmp);
+	}
+}
+void CMainFrame::SetClipBoardMenu(UINT nId, CMenu *pMenu)
+{
+	int n;
+	int index = 1;
+	POSITION pos;
+	CString str, tmp;
 
 	for ( n = 0 ; n < 10 ; n++ )
 		pMenu->DeleteMenu(nId + n, MF_BYCOMMAND);
 	
 	for ( pos = m_ClipBoard.GetHeadPosition() ; pos != NULL ; ) {
-		str = (LPCWSTR)m_ClipBoard.GetNext(pos);
+		ClipBoradStr((LPCWSTR)m_ClipBoard.GetNext(pos), str);
 
-		tmp.Format(_T("&%d "), (index++) % 10);
-		for ( n = 0 ; n < 50 && *str != L'\0' ; n++, str++ ) {
-			if ( *str == L'\n' )
-				n--;
-			else if ( *str == L'\r' )
-				tmp += _T("↓");
-			else if ( *str == L'\x7F' || *str < L' ' || *str == L'&' || *str == L'\\' )
-				tmp += _T('.');
-			else if ( *str >= 256 ) {
-				n++;
-				tmp += *str;
-			} else
-				tmp += *str;
-			if ( n >= 40 && (i = (int)wcslen(str)) > 10 ) {
-				tmp += _T(" ... ");
-				str += (i - 11);
-			}
-		}
+		tmp.Format(_T("&%d %s"), (index++) % 10, str);
 		pMenu->AppendMenu(MF_STRING, nId++, tmp);
 	}
 }
+void *CMainFrame::CopyClipboardData(UINT type)
+{
+	int len;
+	HGLOBAL hData;
+	void *pData;
+
+	if ( !IsClipboardFormatAvailable(type) )
+		return NULL;
+
+	for ( int n = 0 ; !OpenClipboard() ; n++ ) {
+		if ( n >= 10 )
+			return NULL;
+		Sleep(100 + (rand() % 200));
+	}
+
+	if ( (hData = GetClipboardData(type)) == NULL ) {
+		CloseClipboard();
+		return NULL;
+	}
+
+	if ( (pData = (void *)GlobalLock(hData)) == NULL ) {
+        CloseClipboard();
+        return NULL;
+    }
+
+	// タイプ別でpDataをローカルメモリにコピー
+	if ( type == CF_UNICODETEXT ) {
+		LPWSTR pBuf;
+		len = (int)(GlobalSize(hData) / sizeof(WCHAR)) + 1;
+		pBuf = new WCHAR[len];
+		memcpy((void *)pBuf, pData, len * sizeof(WCHAR));
+		pBuf[len - 1] = _T('\0');
+		pData = (void *)pBuf;
+
+	} else if ( type == CF_TEXT ) {
+		LPSTR pBuf;
+		len = (int)(GlobalSize(hData) / sizeof(CHAR)) + 1;
+		pBuf = new CHAR[len];
+		memcpy((void *)pBuf, pData, len * sizeof(CHAR));
+		pBuf[len - 1] = _T('\0');
+		pData = (void *)pBuf;
+
+	} else {
+		LPBYTE pBuf;
+		len = (int)GlobalSize(hData);
+		pBuf = new BYTE[len];
+		memcpy((void *)pBuf, pData, len);
+		pData = (void *)pBuf;
+	}
+
+	GlobalUnlock(hData);
+	CloseClipboard();
+
+	return pData;
+}
 static UINT SetClipboardThread(LPVOID pParam)
 {
-	CWnd *pWnd = ::AfxGetMainWnd();
+	CMainFrame *pWnd = (CMainFrame *)::AfxGetMainWnd();
 	HGLOBAL hClipData = (HGLOBAL)pParam;
 
 	for ( int n = 0 ; !pWnd->OpenClipboard() ; n++ ) {
@@ -1923,45 +1961,6 @@ static UINT SetClipboardThread(LPVOID pParam)
 	CloseClipboard();
 	return 0;
 }
-static UINT GetClipboardThread(LPVOID pParam)
-{
-	HGLOBAL hData;
-	LPCWSTR pData;
-	LPWSTR pBuf;
-	int len;
-	CMainFrame *pWnd = (CMainFrame *)pParam;
-
-	//if ( !IsClipboardFormatAvailable(CF_UNICODETEXT) )
-	//	return 1;
-
-	for ( int n = 0 ; !pWnd->OpenClipboard() ; n++ ) {
-		if ( n >= 10 )
-			return 1;
-		Sleep(100 + (rand() % 200));
-	}
-
-	if ( (hData = GetClipboardData(CF_UNICODETEXT)) == NULL ) {
-		CloseClipboard();
-		return 1;
-	}
-
-	if ( (pData = (WCHAR *)GlobalLock(hData)) == NULL ) {
-        CloseClipboard();
-        return 1;
-    }
-
-	len = (int)(GlobalSize(hData) / sizeof(WCHAR)) + 1;
-	pBuf = new WCHAR[len];
-	memcpy((void *)pBuf, pData, len * sizeof(WCHAR));
-	pBuf[len - 1] = _T('\0');
-
-	GlobalUnlock(hData);
-	CloseClipboard();
-
-	pWnd->PostMessage(WM_GETCLIPBOARD, (WPARAM)CF_UNICODETEXT, (LPARAM)pBuf);
-
-	return 0;
-}
 BOOL CMainFrame::SetClipboardText(LPCTSTR str)
 {
 	HGLOBAL hData;
@@ -1978,12 +1977,31 @@ BOOL CMainFrame::SetClipboardText(LPCTSTR str)
 	_tcscpy(pData, str);
 	GlobalUnlock(pData);
 
+	// クリップボードチェインのチェックの為の処理
+	m_bClipEnable = FALSE;
+
 	AfxBeginThread(SetClipboardThread, hData, THREAD_PRIORITY_NORMAL);
 
 	return TRUE;
 }
+static UINT GetClipboardThread(LPVOID pParam)
+{
+	void *pBuf;
+	CMainFrame *pWnd = (CMainFrame *)pParam;
+
+	if ( (pBuf = pWnd->CopyClipboardData(CF_UNICODETEXT)) != NULL )
+		pWnd->PostMessage(WM_GETCLIPBOARD, (WPARAM)CF_UNICODETEXT, (LPARAM)pBuf);
+
+	return 0;
+}
 BOOL CMainFrame::GetClipboardText(CString &str)
 {
+	void *pBuf;
+
+	// クリップボードチェインが動かない場合
+	if ( !m_bClipEnable && (pBuf = CopyClipboardData(CF_UNICODETEXT)) != NULL )
+		OnGetClipboard((WPARAM)CF_UNICODETEXT, (LPARAM)pBuf);
+
 	if ( m_ClipBoard.IsEmpty() )
 		return FALSE;
 
@@ -2240,8 +2258,8 @@ LRESULT CMainFrame::OnAfterOpen(WPARAM wParam, LPARAM lParam)
 }
 LRESULT CMainFrame::OnGetClipboard(WPARAM wParam, LPARAM lParam)
 {
-	CStringW str = (LPCWSTR)lParam;
-	delete [] (LPWSTR)lParam;
+	CStringW str = (WCHAR *)lParam;
+	delete [] (WCHAR *)lParam;
 
 	POSITION pos = m_ClipBoard.GetHeadPosition();
 
@@ -2280,14 +2298,6 @@ void CMainFrame::OnClose()
 	if ( count > 0 && AfxMessageBox(CStringLoad(IDS_FILECLOSEQES), MB_ICONQUESTION | MB_YESNO) != IDYES )
 		return;
 
-
-	if ( m_bClipChain ) {
-		m_bClipChain = FALSE;
-		ChangeClipboardChain(m_hNextClipWnd);
-
-	} else if ( ExRemoveClipboardFormatListener != NULL )
-		ExRemoveClipboardFormatListener(m_hWnd);
-
 	CMDIFrameWnd::OnClose();
 }
 
@@ -2318,6 +2328,30 @@ void CMainFrame::OnDestroy()
 		AfxGetApp()->WriteProfileInt(sect, _T("y"), rect.top);
 		AfxGetApp()->WriteProfileInt(sect, _T("cx"), rect.Width());
 		AfxGetApp()->WriteProfileInt(sect, _T("cy"), rect.Height());
+	}
+
+	if ( m_bClipChain ) {
+		m_bClipChain = FALSE;
+		ChangeClipboardChain(m_hNextClipWnd);
+
+	} else if ( ExRemoveClipboardFormatListener != NULL )
+		ExRemoveClipboardFormatListener(m_hWnd);
+
+	if ( m_TempPath.GetSize() > 0 ) {
+		int n, er;
+		CString msg;
+		do {
+			msg.Format(CStringLoad(IDS_TEMPFILEDELETEMSG), m_TempPath.GetSize());
+			for ( er = n = 0 ; n < m_TempPath.GetSize() ; n++ ) {
+				if ( DeleteFile(m_TempPath[n]) ) {
+					m_TempPath.RemoveAt(n);
+					n--;
+				} else if ( ++er < 3 ) {
+					msg += _T("\n");
+					msg += m_TempPath[n];
+				}
+			}
+		} while ( er > 0 && MessageBox(msg, _T("Question"), MB_ICONQUESTION | MB_YESNO) == IDYES );
 	}
 
 	CMDIFrameWnd::OnDestroy();
@@ -2834,6 +2868,67 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCopyDataStruct)
 	return CMDIFrameWnd::OnCopyData(pWnd, pCopyDataStruct);
 }
 
+void CMainFrame::InitMenuBitmap()
+{
+	int n, cx, cy;
+	CDC dc[2];
+	CBitmap BitMap;
+	CBitmap *pOld[2];
+	CBitmap *pBitmap;
+	BITMAP mapinfo;
+	CMenuBitMap *pMap;
+
+	// リソースデータベースからメニューイメージを作成
+	cx = GetSystemMetrics(SM_CXMENUCHECK);
+	cy = GetSystemMetrics(SM_CYMENUCHECK);
+
+	dc[0].CreateCompatibleDC(NULL);
+	dc[1].CreateCompatibleDC(NULL);
+
+	CResDataBase *pResData = &(((CRLoginApp *)::AfxGetApp())->m_ResDataBase);
+
+	// Add Menu Image From Bitmap Resource
+	for ( n = 0 ; n < 3 ; n++ )
+		pResData->AddBitmap(MAKEINTRESOURCE(IDB_MENUMAP1 + n));
+
+	// MenuMap RemoveAll
+	for ( int n = 0 ; n < m_MenuMap.GetSize() ; n++ ) {
+		if ( (pMap = (CMenuBitMap *)m_MenuMap[n]) == NULL )
+			continue;
+		pMap->m_Bitmap.DeleteObject();
+		delete pMap;
+	}
+	m_MenuMap.RemoveAll();
+
+	for ( n = 0 ; n < pResData->m_Bitmap.GetSize() ; n++ ) {
+		if ( pResData->m_Bitmap[n].m_hBitmap == NULL )
+			continue;
+
+		pBitmap = CBitmap::FromHandle(pResData->m_Bitmap[n].m_hBitmap);
+
+		if ( pBitmap == NULL || !pBitmap->GetBitmap(&mapinfo) )
+			continue;
+
+		if ( (pMap = new CMenuBitMap) == NULL )
+			continue;
+
+		pMap->m_Id = pResData->m_Bitmap[n].m_ResId;
+		pMap->m_Bitmap.CreateBitmap(cx, cy, dc[1].GetDeviceCaps(PLANES), dc[1].GetDeviceCaps(BITSPIXEL), NULL);
+		m_MenuMap.Add(pMap);
+
+		pOld[0] = dc[0].SelectObject(pBitmap);
+		pOld[1] = dc[1].SelectObject(&(pMap->m_Bitmap));
+
+		dc[1].FillSolidRect(0, 0, cx, cy, GetSysColor(COLOR_MENU));
+		dc[1].TransparentBlt(0, 0, cx, cy, &(dc[0]), 0, 0, (mapinfo.bmWidth <= mapinfo.bmHeight ? mapinfo.bmWidth : mapinfo.bmHeight), mapinfo.bmHeight, RGB(192, 192, 192));
+
+		dc[0].SelectObject(pOld[0]);
+		dc[1].SelectObject(pOld[1]);
+	}
+
+	dc[0].DeleteDC();
+	dc[1].DeleteDC();
+}
 void CMainFrame::SetMenuBitmap(CMenu *pMenu)
 {
 	int n;
@@ -3056,6 +3151,8 @@ void CMainFrame::OnDrawClipboard()
 	if ( m_hNextClipWnd && m_hNextClipWnd != m_hWnd )
 		::SendMessage(m_hNextClipWnd, WM_DRAWCLIPBOARD, NULL, NULL);
 
+	m_bClipEnable = TRUE;	// クリップボードチェインが有効？
+
 	AfxBeginThread(GetClipboardThread, this, THREAD_PRIORITY_NORMAL);
 }
 void CMainFrame::OnChangeCbChain(HWND hWndRemove, HWND hWndAfter)
@@ -3069,5 +3166,20 @@ void CMainFrame::OnChangeCbChain(HWND hWndRemove, HWND hWndAfter)
 }
 void CMainFrame::OnClipboardUpdate()
 {
+	m_bClipEnable = TRUE;	// クリップボードチェインが有効？
+
 	AfxBeginThread(GetClipboardThread, this, THREAD_PRIORITY_NORMAL);
+}
+
+void CMainFrame::OnToolcust()
+{
+	CToolDlg dlg;
+
+	if ( dlg.DoModal() != IDOK )
+		return;
+
+	((CRLoginApp *)::AfxGetApp())->LoadResToolBar(MAKEINTRESOURCE(IDR_MAINFRAME), m_wndToolBar);
+
+	// ツールバーの再表示
+	RecalcLayout(FALSE);
 }

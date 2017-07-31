@@ -51,7 +51,6 @@ public:
 	void OnKeyGenEndof();
 
 	void InitList();
-	void CopyToClipBoard(LPCTSTR str);
 
 // オーバーライド
 protected:

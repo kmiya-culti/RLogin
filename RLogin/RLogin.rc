@@ -90,6 +90,9 @@ IDB_BITMAP6             BITMAP                  "res\\bitmap6.bmp"
 IDB_BITMAP7             BITMAP                  "res\\bitmap7.bmp"
 IDB_BITMAP8             BITMAP                  "res\\bitmap8.bmp"
 IDB_BITMAP9             BITMAP                  "res\\bitmap9.bmp"
+IDB_MENUMAP1            BITMAP                  "res\\menumap1.bmp"
+IDB_MENUMAP2            BITMAP                  "res\\menumap2.bmp"
+IDB_MENUMAP3            BITMAP                  "res\\menumap3.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -101,7 +104,7 @@ BEGIN
     BUTTON      IDM_NEWCONNECT
     BUTTON      ID_FILE_CLOSE
     BUTTON      ID_FILE_OPEN
-    BUTTON      ID_FILE_SAVE
+    BUTTON      ID_FILE_SAVE_AS
     SEPARATOR
     BUTTON      ID_LOG_OPEN
     BUTTON      IDM_SFTP
@@ -188,6 +191,9 @@ BEGIN
         MENUITEM "自動バージョンチェック(&V)",             IDM_VERSIONCHECK
         MENUITEM SEPARATOR
         MENUITEM "ダイアログフォントの設定(&D)",            IDM_DIALOGFONT
+        MENUITEM "ツールバーのカスタマイズ(&T)",            IDM_TOOLCUST
+        MENUITEM SEPARATOR
+        MENUITEM "プライベートプロファイル作成(&P)",          5106
         MENUITEM "リソースをファイルに保存(&R)",            IDM_SAVERESFILE
         MENUITEM "パスワードロック(&K)",                IDM_PASSWORDLOCK
     END
@@ -336,6 +342,9 @@ BEGIN
         MENUITEM "自動バージョンチェック(&V)",             IDM_VERSIONCHECK
         MENUITEM SEPARATOR
         MENUITEM "ダイアログフォントの設定(&D)",            IDM_DIALOGFONT
+        MENUITEM "ツールバーのカスタマイズ(&T)",            IDM_TOOLCUST
+        MENUITEM SEPARATOR
+        MENUITEM "プライベートプロファイル作成(&P)",          IDM_CREATEPROFILE
         MENUITEM "リソースをファイルに保存(&R)",            IDM_SAVERESFILE
         MENUITEM "パスワードロック(&K)",                IDM_PASSWORDLOCK
     END
@@ -451,6 +460,15 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "初期化する(&U)",                   ID_EDIT_DELALL
     END
+    POPUP "TOOLDLG"
+    BEGIN
+        MENUITEM "項目挿入(&N)",                    ID_EDIT_NEW
+        MENUITEM "項目削除(&D)",                    ID_EDIT_DELETE
+        MENUITEM SEPARATOR
+        MENUITEM "アイコン設定(&I)",                  IDM_ICONLOAD
+        MENUITEM SEPARATOR
+        MENUITEM "初期化する(&U)",                   ID_EDIT_DELALL
+    END
 END
 
 IDR_TEKWND MENU
@@ -503,7 +521,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.20.2 (2016/03/03)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.20.3 (2016/04/05)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2016 Culti",IDC_STATIC,44,16,189,8
     DEFPUSHBUTTON   "OK",IDOK,96,171,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.2g 1 Mar 2016",IDC_STATIC,44,29,189,8
@@ -1476,22 +1494,22 @@ BEGIN
     LTEXT           "Shift/Alt/Ctrl＋各種キーの変更するキーコードの形式を設定します\n０以上でキーコードのパラメータにShift/Alt/Ctrlの状態を追加します",IDC_STATIC,16,7,236,23
 END
 
-IDD_ANYPASTDIG DIALOGEX 0, 0, 270, 220
+IDD_ANYPASTDIG DIALOGEX 0, 0, 270, 221
 STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "ペーストするテキストの編集・確認"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    DEFPUSHBUTTON   "送信",IDOK,105,199,60,14
-    EDITTEXT        IDC_TEXTBOX,7,56,256,138,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_NOHIDESEL | ES_WANTRETURN | WS_VSCROLL | WS_HSCROLL
-    PUSHBUTTON      "Shell Escape",IDC_SHELLESC,32,199,60,14
-    PUSHBUTTON      "キャンセル",IDCANCEL,178,199,60,14
+    DEFPUSHBUTTON   "送信",IDOK,105,200,60,14
+    EDITTEXT        IDC_TEXTBOX,7,55,256,138,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_NOHIDESEL | ES_WANTRETURN | WS_VSCROLL | WS_HSCROLL
+    PUSHBUTTON      "Shell Escape",IDC_SHELLESC,32,200,60,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,178,200,60,14
     PUSHBUTTON      "HT",IDC_CTRLCONV1,109,7,32,14
     PUSHBUTTON      "CR",IDC_CTRLCONV2,109,22,32,14
     PUSHBUTTON      "ETC",IDC_CTRLCONV3,109,37,32,14
     CONTROL         "改行を確認しながら送信する",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,163,9,100,10
     CONTROL         "編集後クリップボードに送る",IDC_CHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,163,24,100,10
     CONTROL         "次回から確認しない",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,163,39,100,10
-    ICON            "",IDC_ICONBOX,7,7,20,20
+    ICON            "",IDC_ICONBOX,7,7,18,21
     LTEXT           "タブコード",IDC_STATIC,34,9,40,8
     LTEXT           "改行コード",IDC_STATIC,34,24,40,8
     LTEXT           "その他コード",IDC_STATIC,34,39,40,8
@@ -1629,9 +1647,12 @@ STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "拡張機能"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    CONTROL         "",IDC_EXTLIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,15,40,240,224
-    GROUPBOX        "各種オプション",IDC_STATIC,7,7,256,266
-    LTEXT           "要望のあったオプションや試験的な実装を試すことができます",IDC_STATIC,15,23,240,8
+    CONTROL         "",IDC_EXTLIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,15,32,240,183
+    GROUPBOX        "各種オプション",IDC_STATIC,7,7,256,215
+    LTEXT           "要望のあったオプションや試験的な実装を試すことができます",IDC_STATIC,15,19,240,8
+    EDITTEXT        IDC_EDIT1,15,253,240,14,ES_AUTOHSCROLL
+    GROUPBOX        "OSC 1337 インライン拡張",IDC_STATIC,7,227,256,46
+    LTEXT           "インライン表示できない時に下記の拡張子ならShellで実行します",IDC_STATIC,15,240,240,8
 END
 
 IDD_MSGDLG DIALOGEX 0, 0, 315, 114
@@ -1674,6 +1695,22 @@ BEGIN
     LTEXT           "バックグランド画像の明るさ調整（黒～白）",IDC_STATIC,17,227,125,9
 END
 
+IDD_TOOLDLG DIALOGEX 0, 0, 319, 275
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "ツールバーのカスタマイズ"
+FONT 9, "MS UI Gothic", 400, 0, 0x80
+BEGIN
+    CONTROL         "",IDC_TREE1,"SysTreeView32",TVS_HASLINES | TVS_SHOWSELALWAYS | TVS_NOTOOLTIPS | WS_BORDER | WS_HSCROLL | WS_TABSTOP,15,40,135,198
+    CONTROL         "",IDC_LIST1,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,170,40,135,198
+    COMBOBOX        IDC_COMBO1,257,19,48,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    DEFPUSHBUTTON   "OK",IDOK,92,254,60,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,166,254,60,14
+    GROUPBOX        "ツールバー",IDC_STATIC,163,7,150,240
+    GROUPBOX        "メニューリスト",IDC_STATIC,7,7,150,240
+    LTEXT           "ツールバーで使用するメニューを右にドラッグ",IDC_STATIC,15,23,135,8
+    LTEXT           "画像サイズを右から選択",IDC_STATIC,170,21,82,8
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1681,8 +1718,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,20,2,0
- PRODUCTVERSION 2,20,2,0
+ FILEVERSION 2,20,3,0
+ PRODUCTVERSION 2,20,3,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1699,12 +1736,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.20.2.0"
+            VALUE "FileVersion", "2.20.3.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2015 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.20.2.0"
+            VALUE "ProductVersion", "2.20.3.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2071,7 +2108,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 263
         TOPMARGIN, 7
-        BOTTOMMARGIN, 213
+        BOTTOMMARGIN, 214
     END
 
     IDD_DEFPARAMDLG, DIALOG
@@ -2142,6 +2179,14 @@ BEGIN
         RIGHTMARGIN, 263
         TOPMARGIN, 7
         BOTTOMMARGIN, 273
+    END
+
+    IDD_TOOLDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 312
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 268
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -3021,6 +3066,35 @@ BEGIN
     0
 END
 
+IDD_TOOLDLG DLGINIT
+BEGIN
+    IDC_COMBO1, 0x403, 6, 0
+0x3031, 0x3178, 0x0030, 
+    IDC_COMBO1, 0x403, 6, 0
+0x3231, 0x3178, 0x0032, 
+    IDC_COMBO1, 0x403, 6, 0
+0x3431, 0x3178, 0x0034, 
+    IDC_COMBO1, 0x403, 6, 0
+0x3631, 0x3178, 0x0036, 
+    IDC_COMBO1, 0x403, 6, 0
+0x3831, 0x3178, 0x0038, 
+    IDC_COMBO1, 0x403, 6, 0
+0x3032, 0x3278, 0x0030, 
+    IDC_COMBO1, 0x403, 6, 0
+0x3232, 0x3278, 0x0032, 
+    IDC_COMBO1, 0x403, 6, 0
+0x3432, 0x3278, 0x0034, 
+    IDC_COMBO1, 0x403, 6, 0
+0x3632, 0x3278, 0x0036, 
+    IDC_COMBO1, 0x403, 6, 0
+0x3832, 0x3278, 0x0038, 
+    IDC_COMBO1, 0x403, 6, 0
+0x3033, 0x3378, 0x0030, 
+    IDC_COMBO1, 0x403, 6, 0
+0x3233, 0x3378, 0x0032, 
+    0
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -3071,7 +3145,7 @@ END
 
 STRINGTABLE
 BEGIN
-    IDE_ALLCLOSEREQ         "すべての接続を閉じてよろしいでしょうか？"
+    IDE_ALLCLOSEREQ         "すべての接続を閉じますか？"
     IDE_DELETEKEYQES        "他に使用しているエントリーがあるかもしれません\nほんとうに削除してよいですか？"
     IDE_DSABITSIZEERR       "DSAは、ビットサイズを768/1024から選択してください。2048以上は、将来的に使えない可能性があります"
     IDE_DUPIDKEYENTRY       "同じ鍵ファイルがすでに登録済みです"
@@ -3207,6 +3281,9 @@ BEGIN
     IDS_TTYMODE_LIST53      "設定されると奇数パリティ"
     IDS_TTYMODE_LIST54      "入力バンドレートを指定する"
     IDS_TTYMODE_LIST55      "出力バンドレートを指定する"
+    IDS_TEMPFILEDELETEMSG   "%d個の作業用ファイルが削除出来ませんでした。再試行しますか？"
+    IDS_CREATEPROFILE       "作成したプロファイルは、次回起動時から使用します"
+    IDS_SSHCLOSEALL         "ポートフォワードが開いています。閉じますか？"
 END
 
 STRINGTABLE
@@ -3573,7 +3650,7 @@ BEGIN
     IDT_TERM_LIST39         "現在の画面の保存後にクリア\t保存した画面の復帰\t"
     IDT_TERM_LIST40         "ReGIS/Sixel個別カラーマップ\t共通カラーマップ\t"
     IDT_TERM_LIST41         "Bracketed Paste Mode 有効\tBracketed Paste Mode 無効\t"
-    IDT_TERM_LIST42         "SGRで空白属性を設定しない\tSGRで空白文字属性を設定\tSGR(ESC[m)により変更される文字属性を空白文字にも適用します。\nこの設定は、FreeBSDのcons25の仕様に合わせる物です"
+    IDT_TERM_LIST42         "SGRで空白文字属性を設定\tSGRで空白属性を設定しない\tSGR(ESC[m)により変更される文字属性を空白文字にも適用します。\nこの設定は、FreeBSDのcons25の仕様に合わせる物です"
     IDT_TERM_LIST43         "行末での遅延改行無効\t行末での遅延改行有効\t行末で文字表示の自動改行を次の文字表示まで遅らせます\nこの設定は、FreeBSDのcons25の仕様に合わせる物です"
     IDT_TERM_LIST44         "自動ブラウザ起動をする\t自動ブラウザ起動無効\t"
 END
@@ -3608,6 +3685,13 @@ END
 STRINGTABLE
 BEGIN
     IDM_FIRST_MDICHILD      "アクティブウィンドウを選択\nウィンドウ選択"
+END
+
+STRINGTABLE
+BEGIN
+    IDM_ICONLOAD            "アイコンとして画像ファイルを読み込む\nアイコン設定"
+    IDM_TOOLCUST            "ツールバーを設定しす\nツールバー設定"
+    IDM_CREATEPROFILE       "プライベートプロファイルを新規作成します\nプロファイル作成"
 END
 
 #endif    // 日本語 (日本) resources

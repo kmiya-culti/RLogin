@@ -123,6 +123,7 @@ CRLoginView::CRLoginView()
 	m_ActiveFlag = TRUE;
 	m_VisualBellFlag = FALSE;
 	m_BlinkFlag = 0;
+	m_ImageFlag = 0;
 	m_MouseEventFlag = FALSE;
 	m_WheelDelta = 0;
 	m_WheelTimer = FALSE;
@@ -151,7 +152,10 @@ CRLoginView::CRLoginView()
 	m_PastNoCheck = FALSE;
 	m_ScrollOut = FALSE;
 	m_LastMouseFlags = 0;
+	m_LastMouseClock = 0;
+	m_bLButtonTrClk = FALSE;
 	m_ClipUpdateLine = FALSE;
+	m_ClipSavePoint.x = m_ClipSavePoint.y = 0;
 
 	m_pCellSize = NULL;
 
@@ -851,7 +855,7 @@ void CRLoginView::OnSize(UINT nType, int cx, int cy)
 	tmp.Format(_T("%d x %d"), pDoc->m_TextRam.m_Cols, pDoc->m_TextRam.m_Lines);
 
 	if ( pDoc->m_TextRam.IsInitText() && !pDoc->m_TextRam.IsOptEnable(TO_RLMWDIS) )
-		m_MsgWnd.Message(tmp, this, pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.bcol]);
+		m_MsgWnd.Message(tmp, this, pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.std.bcol]);
 
 	if ( m_BtnWnd.m_hWnd != NULL )
 		m_BtnWnd.DoButton(this, NULL);
@@ -935,7 +939,7 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 
 	case UPDATE_DISPINDEX:
 		pMain->GetTabTitle(pFrame, str);
-		m_MsgWnd.Message(str, this, pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.bcol]);
+		m_MsgWnd.Message(str, this, pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.std.bcol]);
 		return;
 
 	case UPDATE_WAKEUP:
@@ -989,11 +993,11 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 			str = pDoc->m_TextRam.m_BitMapFile;
 			pDoc->EntryText(str);
 			m_BmpFile.LoadFile(str);
-			m_pBitmap = m_BmpFile.GetBitmap(GetDC(), rect.Width(), rect.Height(), pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.bcol], pDoc->m_TextRam.m_BitMapAlpha);
+			m_pBitmap = m_BmpFile.GetBitmap(GetDC(), rect.Width(), rect.Height(), pDoc->m_TextRam.GetBackColor(pDoc->m_TextRam.m_DefAtt), pDoc->m_TextRam.m_BitMapAlpha);
 			if ( pDoc->m_TextRam.m_TextBitMap.m_bEnable && !pDoc->m_TextRam.m_TextBitMap.m_Text.IsEmpty() ) {
 				str.Empty();
 				pDoc->ScriptText(pDoc->m_TextRam.m_TextBitMap.m_Text, NULL, str);
-				m_pBitmap = m_BmpFile.GetTextBitmap(GetDC(), rect.Width(), rect.Height(), pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.bcol], &(pDoc->m_TextRam.m_TextBitMap), str, pDoc->m_TextRam.m_BitMapAlpha);
+				m_pBitmap = m_BmpFile.GetTextBitmap(GetDC(), rect.Width(), rect.Height(), pDoc->m_TextRam.GetBackColor(pDoc->m_TextRam.m_DefAtt), &(pDoc->m_TextRam.m_TextBitMap), str, pDoc->m_TextRam.m_BitMapAlpha);
 			}
 		} else
 			m_pBitmap = NULL;
@@ -1853,6 +1857,13 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 			Invalidate(FALSE);
 		}
 		break;
+
+	case VTMID_IMAGEUPDATE:
+		if ( pDoc->m_TextRam.IMAGEUPDATE(this) == 0 ) {
+			KillTimer(nIDEvent);
+			m_ImageFlag = 0;
+		}
+		break;
 	}
 }
 
@@ -1904,8 +1915,9 @@ void CRLoginView::PopUpMenu(CPoint point)
 	}
 
 	pDoc->SetMenu(pMenu);
-	((CMainFrame *)::AfxGetMainWnd())->SetMenuBitmap(pMenu);
-	if ( (pMenu = pMenu->GetSubMenu(1)) == NULL )
+	GetMainWnd()->SetMenuBitmap(pMenu);
+
+	if ( (pMenu = CMenuLoad::GetItemSubMenu(ID_EDIT_COPY, pMenu)) == NULL )
 		return;
 
 	state.m_pMenu = pMenu;
@@ -2008,8 +2020,10 @@ void CRLoginView::OnLButtonDown(UINT nFlags, CPoint point)
 	CRLoginDoc *pDoc = GetDocument();
 
 	m_LastMouseFlags = nFlags;
+	m_FirstMousePoint = point;
 
 	CView::OnLButtonDown(nFlags, point);
+
 	SetCapture();
 
 	if ( m_ClipFlag == 6 ) {
@@ -2017,6 +2031,13 @@ void CRLoginView::OnLButtonDown(UINT nFlags, CPoint point)
 		OnUpdate(this, UPDATE_CLIPERA, NULL);
 	} else if ( m_ClipFlag != 0 )
 		return;
+
+	if ( m_LastMouseClock != 0 && !pDoc->m_TextRam.IsOptEnable(TO_RLCKCOPY) && (UINT)((clock() - m_LastMouseClock) * 1000 / CLOCKS_PER_SEC) <= GetDoubleClickTime() )
+		m_bLButtonTrClk = TRUE;
+	else
+		m_bLButtonTrClk = FALSE;
+
+	m_LastMouseClock = 0;
 
 	CalcGrapPoint(point, &x, &y);
 
@@ -2133,6 +2154,8 @@ void CRLoginView::OnLButtonDblClk(UINT nFlags, CPoint point)
 	m_ClipKeyFlags = nFlags;
 
 	SetCapture();
+	m_LastMouseClock = clock();
+
 	OnUpdate(this, UPDATE_CLIPERA, NULL);
 }
 
@@ -2234,9 +2257,9 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 			m_HisOfs = pos;
 			OnUpdate(this, UPDATE_INVALIDATE, NULL);
 		}
-	} else {
-		if ( m_ClipTimer != 0 )
-			KillTimer(m_ClipTimer);
+
+	} else if ( m_ClipTimer != 0 ) {
+		KillTimer(m_ClipTimer);
 		m_ClipTimer = 0;
 	}
 
@@ -2245,6 +2268,9 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 
 	switch(m_ClipFlag) {
 	case 1:		// clip start
+		if ( abs(m_FirstMousePoint.x - x) < 2 && abs(m_FirstMousePoint.y - y) < 2 )
+			break;
+
 		if ( pos < m_ClipStaPos ) {
 			m_ClipFlag = 4;
 			m_ClipStaPos = pos;
@@ -3066,8 +3092,8 @@ void CRLoginView::OnPrint(CDC* pDC, CPrintInfo* pInfo)
 	save_param[2] = m_CharWidth;
 	save_param[3] = m_CharHeight;
 
-	save_param[4] = pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.fcol];
-	save_param[5] = pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.bcol];
+	save_param[4] = pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.std.fcol];
+	save_param[5] = pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.std.bcol];
 
 	save_param[6] = pDoc->m_TextRam.m_ScrnOffset.left;
 	save_param[7] = pDoc->m_TextRam.m_ScrnOffset.right;
@@ -3096,8 +3122,8 @@ void CRLoginView::OnPrint(CDC* pDC, CPrintInfo* pInfo)
 	m_CharWidth  = m_Width  / m_Cols;
 	m_CharHeight = m_Height / m_Lines;
 
-	pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.fcol] = RGB(0, 0, 0);
-	pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.bcol] = RGB(255, 255, 255);
+	pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.std.fcol] = RGB(0, 0, 0);
+	pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.std.bcol] = RGB(255, 255, 255);
 
 	pDoc->m_TextRam.m_ScrnOffset.SetRect(box.left, box.top, 0, 0);
 
@@ -3125,8 +3151,8 @@ void CRLoginView::OnPrint(CDC* pDC, CPrintInfo* pInfo)
 	m_CharWidth  = save_param[2];
 	m_CharHeight = save_param[3];
 
-	pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.fcol] = save_param[4];
-	pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.bcol] = save_param[5];
+	pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.std.fcol] = save_param[4];
+	pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.std.bcol] = save_param[5];
 
 	pDoc->m_TextRam.m_ScrnOffset.left   = save_param[6];
 	pDoc->m_TextRam.m_ScrnOffset.right  = save_param[7];

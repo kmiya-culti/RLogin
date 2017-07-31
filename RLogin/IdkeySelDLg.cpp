@@ -82,6 +82,7 @@ void CIdkeySelDLg::InitList()
 	for ( n = 0 ; n < m_Data.GetSize() ; n++ ) {
 		if ( (pKey = m_pIdKeyTab->GetUid(m_Data[n])) == NULL )
 			continue;
+
 		switch(pKey->m_Type) {
 		case IDKEY_NONE:    str = _T(""); break;
 		case IDKEY_RSA1:    str = _T("RSA1"); break;
@@ -91,56 +92,25 @@ void CIdkeySelDLg::InitList()
 		case IDKEY_ED25519: str = _T("ED25519"); break;
 		}
 		m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, n, str, 0, 0, 0, n);
-		m_List.SetItemText(n, 1, pKey->m_Name);
+
+		str.Format(_T("%d"), pKey->GetSize());
+		m_List.SetItemText(n, 1, str);
+
+		m_List.SetItemText(n, 2, pKey->m_Name);
+
 		switch(pKey->m_Cert) {
 		case IDKEY_CERTV00:  str = _T("V00"); break;
 		case IDKEY_CERTV01:  str = _T("V01"); break;
 		case IDKEY_CERTX509: str = _T("x509"); break;
 		default:             str = _T(""); break;
 		}
-		m_List.SetItemText(n, 2, str);
+		m_List.SetItemText(n, 3, str);
+
 		m_List.SetItemData(n, n);
 		m_List.SetLVCheck(n, pKey->m_Flag);
 	}
 	m_List.SetItemState(m_EntryNum, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
 	m_ListInit = FALSE;
-}
-void CIdkeySelDLg::CopyToClipBoard(LPCTSTR str)
-{
-	LPTSTR pData;
-	HGLOBAL hClipData;
-	int size = (int)(_tcslen(str) + 1) * sizeof(TCHAR);
-
-	if ( (hClipData = GlobalAlloc(GMEM_MOVEABLE, size)) == NULL )
-		return;
-
-	if ( (pData = (LPTSTR)GlobalLock(hClipData)) == NULL ) {
-		GlobalFree(hClipData);
-		return;
-	}
-
-	_tcscpy(pData, str);
-
-	GlobalUnlock(hClipData);
-	
-	if ( !OpenClipboard() ) {
-		GlobalFree(hClipData);
-		return;
-	}
-
-	if ( !EmptyClipboard() ) {
-		GlobalFree(hClipData);
-		CloseClipboard();
-		return;
-	}
-
-#ifdef	_UNICODE
-	SetClipboardData(CF_UNICODETEXT, hClipData);
-#else
-	SetClipboardData(CF_TEXT, hClipData);
-#endif
-
-	CloseClipboard();
 }
 static UINT KeyGenThread(LPVOID pParam)
 {
@@ -176,9 +146,10 @@ void CIdkeySelDLg::EndofKeyGenThead()
 /////////////////////////////////////////////////////////////////////////////
 // CIdkeySelDLg メッセージ ハンドラ
 
-static const LV_COLUMN InitListTab[3] = {
+static const LV_COLUMN InitListTab[4] = {
 		{ LVCF_TEXT | LVCF_WIDTH, 0,   80, _T("Type"), 0, 0 }, 
-		{ LVCF_TEXT | LVCF_WIDTH, 0,  140, _T("Name"), 0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0,   40, _T("Bits"), 0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0,  100, _T("Name"), 0, 0 }, 
 		{ LVCF_TEXT | LVCF_WIDTH, 0,   40, _T("Cert"), 0, 0 }, 
 	};
 
@@ -213,7 +184,7 @@ BOOL CIdkeySelDLg::OnInitDialog()
 	}
 
 	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_CHECKBOXES);
-	m_List.InitColumn(_T("IdkeySelDLg"), InitListTab, 3);
+	m_List.InitColumn(_T("IdkeySelDLg"), InitListTab, 4);
 	m_List.SetPopUpMenu(IDR_POPUPMENU, 2);
 	m_List.m_bMove = TRUE;
 	InitList();
@@ -344,7 +315,7 @@ void CIdkeySelDLg::OnIdkeyCopy()
 	dlg.m_Title.LoadString(IDS_PUBLICKEYCOPYMSG);
 
 	if ( dlg.DoModal() == IDOK )
-		CopyToClipBoard(dlg.m_Edit);
+		((CMainFrame *)::AfxGetMainWnd())->SetClipboardText(dlg.m_Edit);
 }
 void CIdkeySelDLg::OnIdkeyInport() 
 {

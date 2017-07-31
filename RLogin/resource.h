@@ -58,6 +58,7 @@
 #define IDD_DIALOG2                     156
 #define IDD_MSGDLG                      156
 #define IDD_BACKPAGE                    159
+#define IDD_TOOLDLG                     160
 #define IDR_GRAPWND                     300
 #define IDR_MAINFRAME                   301
 #define IDR_POPUPMENU                   302
@@ -82,6 +83,9 @@
 #define IDB_BITMAP7                     414
 #define IDB_BITMAP8                     415
 #define IDB_BITMAP9                     416
+#define IDB_MENUMAP1                    417
+#define IDB_MENUMAP2                    418
+#define IDB_MENUMAP3                    419
 #define IDI_ACTIVE                      430
 #define IDS_AGENT_DELKEY                500
 #define IDS_ALLINITREQ                  501
@@ -199,6 +203,9 @@
 #define IDS_TTYMODE_LIST53              613
 #define IDS_TTYMODE_LIST54              614
 #define IDS_TTYMODE_LIST55              615
+#define IDS_TEMPFILEDELETEMSG           616
+#define IDS_CREATEPROFILE               617
+#define IDS_SSHCLOSEALL                 618
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -912,16 +919,18 @@
 #define IDM_OTHERCAST                   5101
 #define IDM_NEWCONNECT                  5102
 #define IDM_SAVERESFILE                 5103
+#define IDM_ICONLOAD                    5104
+#define IDM_TOOLCUST                    5105
+#define IDM_CREATEPROFILE               5106
+#define IDM_FIRST_MDICHILD              0xFF00
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        161
-#define _APS_NEXT_COMMAND_VALUE         5104
+#define _APS_NEXT_COMMAND_VALUE         5107
 #define _APS_NEXT_CONTROL_VALUE         2444
 #define _APS_NEXT_SYMED_VALUE           616
 #endif
 #endif
-
-#define IDM_FIRST_MDICHILD              0xFF00

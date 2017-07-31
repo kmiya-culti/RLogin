@@ -127,14 +127,14 @@ void CColParaDlg::DoInit()
 	for ( n = 0 ; n < 16 ; n++ )
 		m_ColTab[n] = m_pSheet->m_pTextRam->m_ColTab[n];
 
-	m_FontCol[0] = m_pSheet->m_pTextRam->m_AttNow.fcol;
-	m_FontCol[1] = m_pSheet->m_pTextRam->m_AttNow.bcol;
+	m_FontCol[0] = m_pSheet->m_pTextRam->m_AttNow.std.fcol;
+	m_FontCol[1] = m_pSheet->m_pTextRam->m_AttNow.std.bcol;
 
 	m_FontColName[0].Format(_T("%d"), m_FontCol[0]);
 	m_FontColName[1].Format(_T("%d"), m_FontCol[1]);
 
 	for ( n = 0 ; n < 24 ; n++ )
-		m_Attrb[n] = (m_pSheet->m_pTextRam->m_AttNow.attr & (1 << n) ? TRUE : FALSE);
+		m_Attrb[n] = (m_pSheet->m_pTextRam->m_AttNow.std.attr & (1 << n) ? TRUE : FALSE);
 
 	n = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("LayeredWindow"), 255);
 	m_TransSlider.SetPos(n);
@@ -281,11 +281,11 @@ BOOL CColParaDlg::OnApply()
 	m_FontCol[0] = _tstoi(m_FontColName[0]);
 	m_FontCol[1] = _tstoi(m_FontColName[1]);
 
-	m_pSheet->m_pTextRam->m_AttNow.fcol = m_FontCol[0];
-	m_pSheet->m_pTextRam->m_AttNow.bcol = m_FontCol[1];
-	m_pSheet->m_pTextRam->m_AttNow.attr = 0;
+	m_pSheet->m_pTextRam->m_AttNow.std.fcol = m_FontCol[0];
+	m_pSheet->m_pTextRam->m_AttNow.std.bcol = m_FontCol[1];
+	m_pSheet->m_pTextRam->m_AttNow.std.attr = 0;
 	for ( n = 0 ; n < 24 ; n++ )
-		m_pSheet->m_pTextRam->m_AttNow.attr |= (m_Attrb[n] ? (1 << n) : 0);
+		m_pSheet->m_pTextRam->m_AttNow.std.attr |= (m_Attrb[n] ? (1 << n) : 0);
 
 	m_pSheet->m_pTextRam->m_AttSpc = m_pSheet->m_pTextRam->m_AttNow;
 

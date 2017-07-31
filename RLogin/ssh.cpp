@@ -1160,11 +1160,13 @@ void Cssh::ChannelClose(int id)
 	if ( id == m_StdChan ) {
 		m_StdChan = (-1);
 		m_SSH2Status &= ~SSH2_STAT_HAVESTDIO;
+
+		if ( m_pChanNext != NULL && AfxMessageBox(IDS_SSHCLOSEALL, MB_ICONQUESTION | MB_YESNO) == IDYES )
+			GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, FD_CLOSE);
 	}
 
 	if ( m_pChanNext == NULL )
 		GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, FD_CLOSE);
-//		SendDisconnect2(SSH2_DISCONNECT_CONNECTION_LOST, "End");
 }
 void Cssh::ChannelCheck(int n)
 {

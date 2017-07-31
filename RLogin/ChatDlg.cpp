@@ -3,6 +3,7 @@
 
 #include "stdafx.h"
 #include "RLogin.h"
+#include "MainFrm.h"
 #include "ChatDlg.h"
 
 
@@ -203,70 +204,24 @@ void CChatDlg::OnNMRClickNodetree(NMHDR *pNMHDR, LRESULT *pResult)
 void CChatDlg::OnEditCopyAll()
 {
 	CString tmp;
-	HGLOBAL hClipData;
-	TCHAR *pData;
 
 	m_Script.GetTreeCtrl(m_NodeTree);
 	m_Script.SetString(tmp);
 	m_Script.SetTreeCtrl(m_NodeTree);
 
-	if ( (hClipData = GlobalAlloc(GMEM_MOVEABLE, (tmp.GetLength() + 1) * sizeof(TCHAR))) == NULL )
-		return;
-
-	if ( (pData = (TCHAR *)GlobalLock(hClipData)) == NULL ) {
-		GlobalFree(hClipData);
-		return;
-	}
-
-	_tcscpy(pData, tmp);
-	GlobalUnlock(hClipData);
-
-	if ( !AfxGetMainWnd()->OpenClipboard() ) {
-		GlobalFree(hClipData);
-		return;
-	}
-
-	if ( !EmptyClipboard() ) {
-		CloseClipboard();
-		GlobalFree(hClipData);
-		return;
-	}
-
-#ifdef	_UNICODE
-	SetClipboardData(CF_UNICODETEXT, hClipData);
-#else
-	SetClipboardData(CF_TEXT, hClipData);
-#endif
-
-	CloseClipboard();
+	((CMainFrame *)::AfxGetMainWnd())->SetClipboardText(tmp);
 }
 
 void CChatDlg::OnEditPasteAll()
 {
-	HGLOBAL hData;
-	TCHAR *pData;
+	WCHAR *pData;
 
-	if ( !OpenClipboard() )
+	if ( (pData = (WCHAR *)((CMainFrame *)::AfxGetMainWnd())->CopyClipboardData(CF_UNICODETEXT)) == NULL )
 		return;
-
-#ifdef	_UNICODE
-	if ( (hData = GetClipboardData(CF_UNICODETEXT)) == NULL ) {
-#else
-	if ( (hData = GetClipboardData(CF_TEXT)) == NULL ) {
-#endif
-		CloseClipboard();
-		return;
-	}
-
-	if ( (pData = (TCHAR *)GlobalLock(hData)) == NULL ) {
-        CloseClipboard();
-        return;
-    }
 
 	m_Script.GetTreeCtrl(m_NodeTree);
-	m_Script.GetString((LPCTSTR)pData);
+	m_Script.GetString(UniToTstr((LPCWSTR)pData));
 	m_Script.SetTreeCtrl(m_NodeTree);
 
-	GlobalUnlock(hData);
-	CloseClipboard();
+	delete [] pData;
 }

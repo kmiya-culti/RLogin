@@ -161,6 +161,7 @@ public:
 	int m_SplitType;
 	int m_ExecCount;
 	HMENU m_StartMenuHand;
+	BOOL m_bClipEnable;
 	BOOL m_bClipChain;
 	HWND m_hNextClipWnd;
 	BOOL m_bBroadCast;
@@ -170,6 +171,7 @@ public:
 	int m_ScreenW;
 	int m_ScreenH;
 	UINT_PTR m_StatusTimer;
+	CStringArray m_TempPath;
 
 	BOOL PagentQuery(CBuffer *pInBuf, CBuffer *pOutBuf);
 	void PagentInit(CArray<CIdKey, CIdKey &> *pKeyTab);
@@ -226,13 +228,17 @@ public:
 	int GetExecCount();
 	void SetActivePoint(CPoint point);
 
+	void ClipBoradStr(LPCWSTR str, CString &tmp);
+	void SetClipBoardComboBox(CComboBox *pCombo);
+	void SetClipBoardMenu(UINT nId, CMenu *pMenu);
+	void *CopyClipboardData(UINT type);
 	BOOL GetClipboardText(CString &str);
 	BOOL SetClipboardText(LPCTSTR str);
 
 	CMenu *GetSaveMenu(HMENU hDocMenu);
-	void SetClipBoardMenu(UINT nId, CMenu *pMenu);
 	void SetMenuBitmap(CMenu *pMenu);
 	CBitmap *GetMenuBitmap(UINT nId);
+	void InitMenuBitmap();
 	void SetStatusText(LPCTSTR message);
 
 	CString m_VersionMessage;
@@ -243,6 +249,7 @@ public:
 
 	inline CImageList *GetTabImageList() { return &(m_wndTabBar.m_ImageList); }
 	inline int GetTabImageIndex(LPCTSTR filename) { return m_wndTabBar.GetImageIndex(filename); }
+	inline void AddTempPath(LPCTSTR path) { m_TempPath.Add(path); }
 
 // コントロール バー用メンバ
 protected: 
@@ -321,6 +328,8 @@ protected:
 	afx_msg LRESULT OnThreadMsg(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnAfterOpen(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnGetClipboard(WPARAM wParam, LPARAM lParam);
+public:
+	afx_msg void OnToolcust();
 };
 
 
