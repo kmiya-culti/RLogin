@@ -35,6 +35,7 @@ Cssh::Cssh(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 {
 	m_Type = 3;
 	m_SaveDh = NULL;
+	m_EcdhClientKey = NULL;
 	m_SSHVer = 0;
 	m_InPackStat = 0;
 	m_pListFilter = NULL;
@@ -93,7 +94,7 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 	m_CipherMode = SSH_CIPHER_NONE;
 	m_SessionIdLen = 0;
 	m_StdChan = (-1);
-	m_AuthStat = 0;
+	m_AuthStat = m_AuthMode = 0;
 	m_HostName = m_pDocument->m_ServerEntry.m_HostName;
 	m_DhMode = DHMODE_GROUP_1;
 	m_GlbReqMap.RemoveAll();
@@ -514,7 +515,7 @@ int Cssh::SMsgPublicKey(CBuffer *bp)
 	memcpy(m_SessionId, obuf, 16);
 
 	for ( n = 0 ; n < 32 ; n++ ) {
-		if ( (n % 4) == 0 )
+		if ( (n % 2) == 0 )
 			i = rand();
 		m_SessionKey[n] = (BYTE)(i);
 		i >>= 8;
@@ -1269,6 +1270,39 @@ void Cssh::SendMsgKexDhGexRequest()
 	tmp.Put32Bit(8192);
 	SendPacket2(&tmp);
 }
+int Cssh::SendMsgKexEcdhInit()
+{
+	CBuffer tmp;
+
+	switch(m_DhMode) {
+	default:
+	case DHMODE_ECDH_S2_N256:
+		m_EcdhCurveNid = NID_X9_62_prime256v1;
+		break;
+	case DHMODE_ECDH_S2_N384:
+		m_EcdhCurveNid = NID_secp384r1;
+		break;
+	case DHMODE_ECDH_S2_N521:
+		m_EcdhCurveNid = NID_secp521r1;
+		break;
+	}
+
+	if ( m_EcdhClientKey != NULL )
+		EC_KEY_free(m_EcdhClientKey);
+
+	if ( (m_EcdhClientKey = EC_KEY_new_by_curve_name(m_EcdhCurveNid)) == NULL )
+		return FALSE;
+	if ( EC_KEY_generate_key(m_EcdhClientKey) != 1 )
+		return FALSE;
+	if ( (m_EcdhGroup = EC_KEY_get0_group(m_EcdhClientKey)) == NULL )
+		return FALSE;
+
+	tmp.Put8Bit(SSH2_MSG_KEX_ECDH_INIT);
+	tmp.PutEcPoint(m_EcdhGroup, EC_KEY_get0_public_key(m_EcdhClientKey));
+	SendPacket2(&tmp);
+
+	return TRUE;
+}
 void Cssh::SendMsgNewKeys()
 {
 	CBuffer tmp;
@@ -1308,6 +1342,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 		tmp.Consume(skip);
 		SendPacket2(&tmp);
 		m_AuthStat = 2;
+		m_AuthMode = 0;
 		return TRUE;
 	case 1:
 	RETRY:
@@ -1321,6 +1356,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 				m_IdKey.m_Type = IDKEY_RSA2;
 			m_IdKey.SetBlob(&blob);
 			m_AuthStat = 1;
+			m_AuthMode = 1;
 			break;
 		}
 	case 3:
@@ -1331,6 +1367,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 			tmp.Consume(skip);
 			SendPacket2(&tmp);
 			m_AuthStat = 4;
+			m_AuthMode = 2;
 			return TRUE;
 		}
 	case 4:
@@ -1341,10 +1378,12 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 			tmp.Consume(skip);
 			SendPacket2(&tmp);
 			m_AuthStat = 5;
+			m_AuthMode = 3;
 			return TRUE;
 		}
 	default:
 		m_AuthStat = 6;
+		m_AuthMode = 0;
 		return FALSE;
 	}
 
@@ -1685,6 +1724,9 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 		int	mode;
 		char *name;
 	} kextab[] = {
+		{ DHMODE_ECDH_S2_N256,	"ecdh-sha2-nistp256",	},
+		{ DHMODE_ECDH_S2_N384,	"ecdh-sha2-nistp384"	},
+		{ DHMODE_ECDH_S2_N521,	"ecdh-sha2-nistp521"	},
 		{ DHMODE_GROUP_GEX256,	"diffie-hellman-group-exchange-sha256",	},
 		{ DHMODE_GROUP_GEX,		"diffie-hellman-group-exchange-sha1",	},
 		{ DHMODE_GROUP_14,		"diffie-hellman-group14-sha1",			},
@@ -1889,6 +1931,7 @@ int Cssh::SSH2MsgKexDhGexReply(CBuffer *bp)
 		m_DhMode == DHMODE_GROUP_GEX ? EVP_sha1() : EVP_sha256());
 
 	if ( m_SessionIdLen == 0 ) {
+		ASSERT(hashlen < 64);
 		m_SessionIdLen = hashlen;
 		memcpy(m_SessionId, hash, hashlen);
 	}
@@ -1906,6 +1949,95 @@ int Cssh::SSH2MsgKexDhGexReply(CBuffer *bp)
 
 	BN_clear_free(spub);
 	BN_clear_free(ssec);
+
+	return FALSE;
+}
+int Cssh::SSH2MsgKexEcdhReply(CBuffer *bp)
+{
+	int n;
+	CBuffer tmp, blob, sig;
+	CIdKey key;
+	EC_POINT *server_public;
+	int klen;
+	LPBYTE kbuf;
+	BIGNUM *shared_secret;
+	const EVP_MD *evp_md;
+	LPBYTE hash;
+	int hashlen;
+
+	bp->GetBuf(&tmp);
+	blob = tmp;
+
+	if ( !key.GetBlob(&tmp) )
+		return TRUE;
+
+	if ( !key.HostVerify(m_HostName) )
+		return TRUE;
+	m_HostKey = key;
+
+	if ( (server_public = EC_POINT_new(m_EcdhGroup)) == NULL )
+		return TRUE;
+
+	bp->GetEcPoint(m_EcdhGroup, server_public);
+	bp->GetBuf(&sig);
+
+	if ( key_ec_validate_public(m_EcdhGroup, server_public) != 0 )
+		return TRUE;
+
+	klen = (EC_GROUP_get_degree(m_EcdhGroup) + 7) / 8;
+	kbuf = new BYTE[klen];
+	if ( ECDH_compute_key(kbuf, klen, server_public, m_EcdhClientKey, NULL) != (int)klen )
+		return TRUE;
+	if ( (shared_secret = BN_new()) == NULL )
+		return TRUE;
+	if ( BN_bin2bn(kbuf, klen, shared_secret) == NULL )
+		return TRUE;
+	delete kbuf;
+
+	switch(m_DhMode) {
+	default:
+	case DHMODE_ECDH_S2_N256:
+		evp_md = EVP_sha256();
+		break;
+	case DHMODE_ECDH_S2_N384:
+		evp_md = EVP_sha384();
+		break;
+	case DHMODE_ECDH_S2_N521:
+		evp_md = EVP_sha512();
+		break;
+	}
+
+	hash = kex_ecdh_hash(
+		evp_md,
+	    m_EcdhGroup,
+	    m_ClientVerStr, m_ServerVerStr,
+		m_MyPeer.GetPtr(), m_MyPeer.GetSize(),
+		m_HisPeer.GetPtr(), m_HisPeer.GetSize(),
+		blob.GetPtr(), blob.GetSize(),
+	    EC_KEY_get0_public_key(m_EcdhClientKey),
+	    server_public,
+	    shared_secret,
+	    &hashlen);
+
+	if ( m_SessionIdLen == 0 ) {
+		ASSERT(hashlen < 64);
+		m_SessionIdLen = hashlen;
+		memcpy(m_SessionId, hash, hashlen);
+	}
+
+	if ( !key.Verify(&sig, hash, hashlen) )
+		return TRUE;
+
+	for ( n = 0 ; n < 6 ; n++ ) {
+		if ( m_VKey[n] != NULL )
+			free(m_VKey[n]);
+		m_VKey[n] = derive_key('A' + n, m_NeedKeyLen, hash, hashlen, shared_secret, m_SessionId, m_SessionIdLen, evp_md);
+	}
+
+	BN_clear_free(shared_secret);
+	EC_POINT_clear_free(server_public);
+	EC_KEY_free(m_EcdhClientKey);
+	m_EcdhClientKey = NULL;
 
 	return FALSE;
 }
@@ -1937,6 +2069,59 @@ int Cssh::SSH2MsgNewKeys(CBuffer *bp)
 	m_pDocument->SetStatus(str);
 
 	return FALSE;
+}
+int Cssh::SSH2MsgUserAuthPkOk(CBuffer *bp)
+{
+	return SendMsgUserAuthRequest("publickey");
+}
+int Cssh::SSH2MsgUserAuthPasswdChangeReq(CBuffer *bp)
+{
+	CBuffer tmp;
+	CString info, lang, pass;
+	CPassDlg dlg;
+
+	bp->GetStr(info);
+	bp->GetStr(lang);
+
+	tmp.Put8Bit(SSH2_MSG_USERAUTH_REQUEST);
+	tmp.PutStr(m_pDocument->m_ServerEntry.m_UserName);
+	tmp.PutStr("ssh-connection");
+	tmp.PutStr("password");
+	tmp.Put8Bit(1);
+
+	dlg.m_HostAddr = m_pDocument->m_ServerEntry.m_HostName;
+	dlg.m_UserName = m_pDocument->m_ServerEntry.m_UserName;
+	dlg.m_Prompt   = "Enter Old Password";
+	dlg.m_PassName = "";
+	if ( dlg.DoModal() != IDOK )
+		return FALSE;
+	tmp.PutStr(dlg.m_PassName);
+
+	info = "Enter New Password";
+	while ( pass.IsEmpty() ) {
+		dlg.m_HostAddr = m_pDocument->m_ServerEntry.m_HostName;
+		dlg.m_UserName = m_pDocument->m_ServerEntry.m_UserName;
+		dlg.m_Prompt   = info;
+		dlg.m_PassName = "";
+		if ( dlg.DoModal() != IDOK )
+			return FALSE;
+		pass = dlg.m_PassName;
+
+		dlg.m_HostAddr = m_pDocument->m_ServerEntry.m_HostName;
+		dlg.m_UserName = m_pDocument->m_ServerEntry.m_UserName;
+		dlg.m_Prompt   = "Retype New Password";
+		dlg.m_PassName = "";
+		if ( dlg.DoModal() != IDOK )
+			return FALSE;
+		if ( pass.Compare(dlg.m_PassName) != 0 ) {
+			info = "Mismatch ReEntry New Password";
+			pass.Empty();
+		}
+	}
+	tmp.PutStr(pass);
+
+	SendPacket2(&tmp);
+	return TRUE;
 }
 int Cssh::SSH2MsgUserAuthInfoRequest(CBuffer *bp)
 {
@@ -2321,9 +2506,17 @@ void Cssh::RecivePacket2(CBuffer *bp)
 		case DHMODE_GROUP_GEX256:
 			SendMsgKexDhGexRequest();
 			break;
+		case DHMODE_ECDH_S2_N256:
+		case DHMODE_ECDH_S2_N384:
+		case DHMODE_ECDH_S2_N521:
+			if ( !SendMsgKexEcdhInit() )
+				goto DISCONNECT;
+			break;
 		}
 		break;
-	case SSH2_MSG_KEXDH_REPLY:	// SSH2_MSG_KEX_DH_GEX_GROUP:
+	case SSH2_MSG_KEXDH_REPLY:
+//	case SSH2_MSG_KEX_DH_GEX_GROUP:
+//	case SSH2_MSG_KEX_ECDH_REPLY:
 		if ( (m_SSH2Status & SSH2_STAT_HAVEPROP) == 0 )
 			goto DISCONNECT;
 		switch(m_DhMode) {
@@ -2339,6 +2532,15 @@ void Cssh::RecivePacket2(CBuffer *bp)
 		case DHMODE_GROUP_GEX256:
 			if ( SSH2MsgKexDhGexGroup(bp) )
 				goto DISCONNECT;
+			break;
+		case DHMODE_ECDH_S2_N256:
+		case DHMODE_ECDH_S2_N384:
+		case DHMODE_ECDH_S2_N521:
+			if ( SSH2MsgKexEcdhReply(bp) )
+				goto DISCONNECT;
+			m_SSH2Status &= ~SSH2_STAT_HAVEPROP;
+			m_SSH2Status |= SSH2_STAT_HAVEKEYS;
+			SendMsgNewKeys();
 			break;
 		}
 		break;
@@ -2399,6 +2601,8 @@ void Cssh::RecivePacket2(CBuffer *bp)
 			((CMainFrame *)AfxGetMainWnd())->SetTimerEvent(m_pDocument->m_TextRam.m_KeepAliveSec * 1000, TIMEREVENT_SOCK | TIMEREVENT_INTERVAL, this);
 		break;
 	case SSH2_MSG_USERAUTH_FAILURE:
+		if ( (m_SSH2Status & SSH2_STAT_HAVESESS) == 0 )
+			goto DISCONNECT;
 		bp->GetStr(str);
 		if ( !SendMsgUserAuthRequest(str) )
 			goto DISCONNECT;
@@ -2407,9 +2611,28 @@ void Cssh::RecivePacket2(CBuffer *bp)
 		bp->GetStr(str);
 		CExtSocket::OnReciveCallBack((void *)(LPCSTR)str, str.GetLength(), 0);
 		break;
-	case SSH2_MSG_USERAUTH_INFO_REQUEST:
-		if ( !SSH2MsgUserAuthInfoRequest(bp) )
+
+//	case SSH2_MSG_USERAUTH_PK_OK:				// 60	publickey
+//	case SSH2_MSG_USERAUTH_PASSWD_CHANGEREQ:	// 60	password
+	case SSH2_MSG_USERAUTH_INFO_REQUEST:		// 60	keyboard-interactive
+		if ( (m_SSH2Status & SSH2_STAT_HAVESESS) == 0 )
 			goto DISCONNECT;
+		switch(m_AuthMode) {
+		case 0:		// none
+			goto DISCONNECT;
+		case 1:		// publickey
+			if ( !SSH2MsgUserAuthPkOk(bp) )
+				goto DISCONNECT;
+			break;
+		case 2:		// password
+			if ( !SSH2MsgUserAuthPasswdChangeReq(bp) )
+				goto DISCONNECT;
+			break;
+		case 3:		// interactive
+			if ( !SSH2MsgUserAuthInfoRequest(bp) )
+				goto DISCONNECT;
+			break;
+		}
 		break;
 
 	case SSH2_MSG_CHANNEL_OPEN:

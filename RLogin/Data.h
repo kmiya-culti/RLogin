@@ -12,6 +12,7 @@
 #include <afxtempl.h>
 #include <afxmt.h>
 #include "openssl/bn.h"
+#include "openssl/ec.h"
 #include "Regex.h"
 #include "ChatStatDlg.h"
 
@@ -45,6 +46,7 @@ public:
 	void PutStr(LPCSTR str);
 	void PutBIGNUM(BIGNUM *val);
 	void PutBIGNUM2(BIGNUM *val);
+	void PutEcPoint(const EC_GROUP *curve, const EC_POINT *point);
 	void PutWord(int val);
 
 	int Get8Bit();
@@ -55,6 +57,7 @@ public:
 	int GetBuf(CBuffer *buf);
 	int GetBIGNUM(BIGNUM *val);
 	int GetBIGNUM2(BIGNUM *val);
+	int GetEcPoint(const EC_GROUP *curve, EC_POINT *point);
 	int GetWord();
 	int GetChar();
 
@@ -474,11 +477,19 @@ public:
 	CStringArrayExt m_IdKeyList;
 	CString m_XDisplay;
 	CString m_ExtEnvStr;
+	DWORD m_OptTab[8];
 
 	CParamTab();
 	void Init();
 	void GetArray(CStringArrayExt &array);
 	void SetArray(CStringArrayExt &array);
+
+	BOOL IsOptEnable(int opt);
+	void EnableOption(int opt);
+	void DisableOption(int opt);
+	void ReversOption(int opt);
+	int IsOptValue(int opt, int len);
+	void SetOptValue(int opt, int len, int value);
 
 	void GetProp(int num, CString &str, int shuffle = FALSE);
 	int GetPropNode(int num, int node, CString &str);

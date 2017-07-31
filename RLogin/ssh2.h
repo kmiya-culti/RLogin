@@ -92,11 +92,17 @@
 #define SSH2_MSG_KEXDH_REPLY				31
 
 /* dh-group-exchange */
+
 #define SSH2_MSG_KEX_DH_GEX_REQUEST_OLD			30
 #define SSH2_MSG_KEX_DH_GEX_GROUP			31
 #define SSH2_MSG_KEX_DH_GEX_INIT			32
 #define SSH2_MSG_KEX_DH_GEX_REPLY			33
 #define SSH2_MSG_KEX_DH_GEX_REQUEST			34
+
+/* ecdh */
+
+#define SSH2_MSG_KEX_ECDH_INIT				30
+#define SSH2_MSG_KEX_ECDH_REPLY 			31
 
 /* user authentication: generic */
 

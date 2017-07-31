@@ -102,6 +102,9 @@
 #define	DHMODE_GROUP_14		1
 #define	DHMODE_GROUP_GEX	2
 #define	DHMODE_GROUP_GEX256	3
+#define	DHMODE_ECDH_S2_N256	4
+#define	DHMODE_ECDH_S2_N384	5
+#define	DHMODE_ECDH_S2_N521	6
 
 class CCipher: public CObject
 {
@@ -172,8 +175,7 @@ public:
 #define	IDKEY_RSA1		001
 #define	IDKEY_RSA2		002
 #define	IDKEY_DSA2		004
-#define	IDKEY_RSA_CERT	012
-#define	IDKEY_DSA_CERT	014
+#define	IDKEY_ECDSA		040
 
 class CIdKey: public CObject
 {
@@ -185,6 +187,8 @@ public:
 	RSA *m_Rsa;
 	DSA *m_Dsa;
 	BOOL m_Flag;
+	int	 m_EcNid;
+	EC_KEY *m_EcDsa;
 
 	int Create(int type);
 	int Generate(int type, int bits);
@@ -204,10 +208,12 @@ public:
 
 	int RsaSign(CBuffer *bp, LPBYTE buf, int len);
 	int DssSign(CBuffer *bp, LPBYTE buf, int len);
+	int EcDsaSign(CBuffer *bp, LPBYTE buf, int len);
 	int Sign(CBuffer *bp, LPBYTE buf, int len);
 
 	int RsaVerify(CBuffer *bp, LPBYTE data, int datalen);
 	int DssVerify(CBuffer *bp, LPBYTE data, int datalen);
+	int EcDsaVerify(CBuffer *bp, LPBYTE data, int datalen);
 	int Verify(CBuffer *bp, LPBYTE data, int datalen);
 
 	int GetBlob(CBuffer *bp);
@@ -503,7 +509,11 @@ private:
 	int m_NeedKeyLen;
 	int m_DhMode;
 	DH *m_SaveDh;
+	int m_EcdhCurveNid;
+	EC_KEY *m_EcdhClientKey;
+	const EC_GROUP *m_EcdhGroup;
 	int m_AuthStat;
+	int m_AuthMode;
 	CWordArray m_GlbReqMap;
 	CWordArray m_OpnReqMap;
 	CWordArray m_ChnReqMap;
@@ -527,6 +537,7 @@ private:
 	void SendMsgNewKeys();
 	void SendMsgKexDhInit();
 	void SendMsgKexDhGexRequest();
+	int SendMsgKexEcdhInit();
 
 	void SendMsgServiceRequest(LPCSTR str);
 	int SendMsgUserAuthRequest(LPCSTR str);
@@ -545,8 +556,11 @@ private:
 	int SSH2MsgKexDhReply(CBuffer *bp);
 	int SSH2MsgKexDhGexGroup(CBuffer *bp);
 	int SSH2MsgKexDhGexReply(CBuffer *bp);
+	int SSH2MsgKexEcdhReply(CBuffer *bp);
 	int SSH2MsgNewKeys(CBuffer *bp);
 
+	int SSH2MsgUserAuthPkOk(CBuffer *bp);
+	int SSH2MsgUserAuthPasswdChangeReq(CBuffer *bp);
 	int SSH2MsgUserAuthInfoRequest(CBuffer *bp);
 
 	int SSH2MsgChannelOpen(CBuffer *bp);
@@ -605,6 +619,8 @@ extern DH *dh_new_group14(void);
 extern u_char *kex_dh_hash(LPCSTR client_version_string, LPCSTR server_version_string, LPBYTE ckexinit, int ckexinitlen, LPBYTE skexinit, int skexinitlen, LPBYTE serverhostkeyblob, int sbloblen, BIGNUM *client_dh_pub, BIGNUM *server_dh_pub, BIGNUM *shared_secret);
 extern int	dh_estimate(int bits);
 extern u_char *kex_gex_hash(LPCSTR client_version_string, LPCSTR server_version_string, LPBYTE ckexinit, int ckexinitlen, LPBYTE skexinit, int skexinitlen, LPBYTE serverhostkeyblob, int sbloblen, int min, int wantbits, int max, BIGNUM *prime, BIGNUM *gen, BIGNUM *client_dh_pub, BIGNUM *server_dh_pub, BIGNUM *shared_secret, int *hashlen, const EVP_MD *evp_md);
+extern int key_ec_validate_public(const EC_GROUP *group, const EC_POINT *pub);
+extern u_char *kex_ecdh_hash(const EVP_MD *evp_md, const EC_GROUP *ec_group, LPCSTR client_version_string, LPCSTR server_version_string, LPBYTE ckexinit, int ckexinitlen, LPBYTE skexinit, int skexinitlen, LPBYTE serverhostkeyblob, int sbloblen, const EC_POINT *client_dh_pub, const EC_POINT *server_dh_pub, BIGNUM *shared_secret, int *hashlen);
 extern u_char *derive_key(int id, int need, u_char *hash, int hashlen, BIGNUM *shared_secret, u_char *session_id, int sesslen, const EVP_MD *evp_md);
 
 extern void *mm_zalloc(void *mm, unsigned int ncount, unsigned int size);

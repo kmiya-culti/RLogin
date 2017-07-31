@@ -88,10 +88,11 @@ void CIdkeySelDLg::InitList()
 		if ( (pKey = m_pIdKeyTab->GetUid(m_Data[n])) == NULL )
 			continue;
 		switch(pKey->m_Type) {
-		case IDKEY_NONE: str = ""; break;
-		case IDKEY_RSA1: str = "RSA1"; break;
-		case IDKEY_RSA2: str = "RSA2"; break;
-		case IDKEY_DSA2: str = "DSA2"; break;
+		case IDKEY_NONE:  str = ""; break;
+		case IDKEY_RSA1:  str = "RSA1"; break;
+		case IDKEY_RSA2:  str = "RSA2"; break;
+		case IDKEY_DSA2:  str = "DSA2"; break;
+		case IDKEY_ECDSA: str = "ECDSA"; break;
 		}
 		m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, n, str, 0, 0, 0, n);
 		m_List.SetItemText(n, 1, pKey->m_Name);
@@ -377,6 +378,7 @@ void CIdkeySelDLg::OnIdkeyCreate()
 {
 	CWnd *pWnd;
 	CIdKeyFileDlg dlg;
+	CString tmp;
 
 	UpdateData(TRUE);
 
@@ -406,6 +408,8 @@ void CIdkeySelDLg::OnIdkeyCreate()
 		m_GenIdKeyType = IDKEY_RSA1;
 	else if ( m_Type.Compare("RSA2") == 0 )
 		m_GenIdKeyType = IDKEY_RSA2;
+	else if ( m_Type.Compare("ECDSA") == 0 )
+		m_GenIdKeyType = IDKEY_ECDSA;
 
 	if ( (pWnd = GetDlgItem(IDC_IDKEY_TYPE)) != NULL )
 		pWnd->EnableWindow(FALSE);

@@ -166,6 +166,28 @@ void CBuffer::PutBIGNUM2(BIGNUM *val)
 	Apend(tmp + hnoh, bytes - hnoh);
 	delete tmp;
 }
+void CBuffer::PutEcPoint(const EC_GROUP *curve, const EC_POINT *point)
+{
+	int len;
+	LPBYTE tmp;
+	BN_CTX *bnctx;
+
+	if ( (bnctx = BN_CTX_new()) == NULL )
+		throw this;
+
+	len = EC_POINT_point2oct(curve, point, POINT_CONVERSION_UNCOMPRESSED, NULL, 0, bnctx);
+
+	if ( (tmp = new BYTE[len]) == NULL )
+		throw this;
+
+	if ( EC_POINT_point2oct(curve, point, POINT_CONVERSION_UNCOMPRESSED, tmp, len, bnctx) != len )
+		throw this;
+
+	PutBuf(tmp, len);
+
+	BN_CTX_free(bnctx);
+	delete tmp;
+}
 void CBuffer::PutWord(int val)
 {
 	WORD wd = (WORD)val;
@@ -241,6 +263,29 @@ int CBuffer::GetBIGNUM2(BIGNUM *val)
     BN_bin2bn(m_Data + m_Ofs, bytes, val);
 	Consume(bytes);
 	return TRUE;
+}
+int CBuffer::GetEcPoint(const EC_GROUP *curve, EC_POINT *point)
+{
+	int ret;
+	int len = Get32Bit();
+	LPBYTE buf = GetPtr();
+	BN_CTX *bnctx;
+
+	if ( (m_Len - m_Ofs) < len || len <= 0 )
+		return FALSE;
+
+	if ( buf[0] != POINT_CONVERSION_UNCOMPRESSED )
+		return FALSE;
+
+	if ( (bnctx = BN_CTX_new()) == NULL )
+		throw this;
+
+	ret = EC_POINT_oct2point(curve, point, buf, len, bnctx);
+
+	BN_CTX_free(bnctx);
+	Consume(len);
+
+	return (ret == 1 ? TRUE : FALSE);
 }
 int CBuffer::GetWord()
 {
@@ -2824,6 +2869,7 @@ void CParamTab::Init()
 
 	m_XDisplay  = ":0";
 	m_ExtEnvStr = "";
+	memset(m_OptTab, 0, sizeof(m_OptTab));
 }
 void CParamTab::SetArray(CStringArrayExt &array)
 {
@@ -2848,6 +2894,7 @@ void CParamTab::SetArray(CStringArrayExt &array)
 
 	array.Add(m_XDisplay);
 	array.Add(m_ExtEnvStr);
+	array.AddBin(m_OptTab, sizeof(m_OptTab));
 }
 void CParamTab::GetArray(CStringArrayExt &array)
 {
@@ -2894,6 +2941,11 @@ void CParamTab::GetArray(CStringArrayExt &array)
 	m_XDisplay  = (array.GetSize() > i ? array.GetAt(i++) : ":0");
 	m_ExtEnvStr = (array.GetSize() > i ? array.GetAt(i++) : "");
 
+	if ( array.GetSize() > i )
+		array.GetBin(i++, m_OptTab, sizeof(m_OptTab));
+	else
+		memset(m_OptTab, 0, sizeof(m_OptTab));
+
 	if ( m_IdKeyStr[0].Compare("IdKeyList Entry") == 0 ) {
 		m_IdKeyList.GetString(m_IdKeyStr[1]);
 		for ( n = 0 ; n < 9 ; n++ )
@@ -2917,6 +2969,47 @@ void CParamTab::GetArray(CStringArrayExt &array)
 			pMain->m_IdKeyTab.AddEntry(key);
 			m_IdKeyList.AddVal(key.m_Uid);
 		}
+	}
+}
+BOOL CParamTab::IsOptEnable(int opt)
+{
+	return (m_OptTab[opt / 32] & (1 << (opt % 32)) ? TRUE : FALSE);
+}
+void CParamTab::EnableOption(int opt)
+{
+	m_OptTab[opt / 32] |= (1 << (opt % 32));
+}
+void CParamTab::DisableOption(int opt)
+{
+	m_OptTab[opt / 32] &= ~(1 << (opt % 32));
+}
+void CParamTab::ReversOption(int opt)
+{
+	m_OptTab[opt / 32] ^= (1 << (opt % 32));
+}
+int CParamTab::IsOptValue(int opt, int len)
+{
+	int n;
+	int v = 0;
+	int b = 1;
+	for ( n = 0 ; n < len ; n++ ) {
+		if ( IsOptEnable(opt) )
+			v |= b;
+		opt++;
+		b <<= 1;
+	}
+	return v;
+}
+void CParamTab::SetOptValue(int opt, int len, int value)
+{
+	int n;
+	for ( n = 0 ; n < len ; n++ ) {
+		if ( (value & 1) != 0 )
+			EnableOption(opt);
+		else
+			DisableOption(opt);
+		opt++;
+		value >>= 1;
 	}
 }
 void CParamTab::GetProp(int num, CString &str, int shuffle)
@@ -2967,6 +3060,7 @@ const CParamTab & CParamTab::operator = (CParamTab &data)
 	m_IdKeyList = data.m_IdKeyList;
 	m_XDisplay  = data.m_XDisplay;
 	m_ExtEnvStr = data.m_ExtEnvStr;
+	memcpy(m_OptTab, data.m_OptTab, sizeof(m_OptTab));
 	return *this;
 }
 
