@@ -118,7 +118,8 @@ public:
 	int m_SleepStatus;
 	int m_SleepCount;
 	int m_TransParValue;
-	CArray<CKeyCmds, CKeyCmds &> m_MenuTab;
+	HMENU m_MenuHand;
+	CKeyCmdsTab m_MenuTab;
 
 	void SetTransPar(COLORREF rgb, int value, DWORD flag);
 	void SetIconStyle();

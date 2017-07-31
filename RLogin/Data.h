@@ -372,16 +372,37 @@ class CKeyCmds : public CObject
 {
 public:
 	int m_Id;
+	BOOL m_Flag;
 	CString m_Menu;
+	CString m_Text;
 
+	void ResetMenu(CMenu *pMenu);
 	const CKeyCmds & operator = (CKeyCmds &data);
+};
+
+class CKeyCmdsTab : public CObject
+{
+public:
+	CArray<CKeyCmds, CKeyCmds &> m_Data;
+
+	int Add(CKeyCmds &cmds);
+	int Find(int id);
+	void ResetMenuAll(CMenu *pMenu);
+
+	inline CKeyCmds & operator [] (int nIndex) { return m_Data[nIndex]; }
+	inline int GetSize() { return (int)m_Data.GetSize(); }
+	inline void SetSize(int sz) { 	m_Data.SetSize(sz); }
+	inline void RemoveAt(int pos) { m_Data.RemoveAt(pos); }
+	inline void RemoveAll() { m_Data.RemoveAll(); }
+
+	const CKeyCmdsTab & operator = (CKeyCmdsTab &data);
 };
 
 class CKeyNodeTab : public COptObject
 {
 public:
 	BOOL m_CmdsInit;
-	CArray<CKeyCmds, CKeyCmds &> m_Cmds;
+	CKeyCmdsTab m_Cmds;
 	CArray<CKeyNode, CKeyNode &> m_Node;
 
 	void Init();

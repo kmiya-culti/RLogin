@@ -2024,8 +2024,8 @@ void CKeyNode::SetCode(LPCSTR name)
 LPCSTR CKeyNode::GetMask()
 {
 	m_Temp = "";
-	if ( (m_Mask & MASK_SHIFT) ) m_Temp += "Shift+";
 	if ( (m_Mask & MASK_CTRL) )  m_Temp += "Ctrl+";
+	if ( (m_Mask & MASK_SHIFT) ) m_Temp += "Shift+";
 	if ( (m_Mask & MASK_ALT) )   m_Temp += "Alt+";
 	if ( (m_Mask & MASK_APPL) )  m_Temp += "Appl+";
 
@@ -2077,14 +2077,84 @@ void CKeyNode::SetComboList(CComboBox *pCombo)
 }
 
 //////////////////////////////////////////////////////////////////////
-// CKeyCmds
+// CKeyCmds & CKeyCmdsTab
 
 const CKeyCmds & CKeyCmds::operator = (CKeyCmds &data)
 {
 	m_Id = data.m_Id;
+	m_Flag = data.m_Flag;
 	m_Menu = data.m_Menu;
+	m_Text = data.m_Text;
 
 	return *this;
+}
+void CKeyCmds::ResetMenu(CMenu *pMenu)
+{
+	int i;
+	CString str;
+
+	if ( pMenu->GetMenuString(m_Id, str, MF_BYCOMMAND) <= 0 )
+		return;
+
+	if ( (i = str.Find('\t')) < 0 )
+		return;
+
+	str.Truncate(i);
+	pMenu->ModifyMenu(m_Id, MF_BYCOMMAND | MF_STRING, m_Id, str);
+}
+const CKeyCmdsTab & CKeyCmdsTab::operator = (CKeyCmdsTab &data)
+{
+	int n;
+
+	SetSize(data.GetSize());
+	for ( n = 0 ; n < data.GetSize() ; n++ )
+		m_Data[n] = data[n];
+
+	return *this;
+}
+int CKeyCmdsTab::Add(CKeyCmds &cmds)
+{
+	int c;
+	int n;
+	int b = 0;
+	int m = GetSize() - 1;
+
+	while ( b <= m ) {
+		n = (b + m) / 2;
+		if ( (c = m_Data[n].m_Id - cmds.m_Id) == 0 )
+			return n;
+		else if ( c > 0 )
+			b = n + 1;
+		else
+			m = n - 1;
+	}
+	m_Data.InsertAt(b, cmds);
+	return b;
+}
+int CKeyCmdsTab::Find(int id)
+{
+	int c;
+	int n;
+	int b = 0;
+	int m = GetSize() - 1;
+
+	while ( b <= m ) {
+		n = (b + m) / 2;
+		if ( (c = m_Data[n].m_Id - id) == 0 )
+			return n;
+		else if ( c > 0 )
+			b = n + 1;
+		else
+			m = n - 1;
+	}
+	return (-1);
+}
+void CKeyCmdsTab::ResetMenuAll(CMenu *pMenu)
+{
+	int n;
+
+	for ( n = 0 ; n < GetSize() ; n++ )
+		m_Data[n].ResetMenu(pMenu);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -2354,17 +2424,13 @@ void CKeyNodeTab::CmdsInit()
 	for ( n = 0 ; n < GetSize() ; n++ ) {
 		if ( (id = GetCmdsKey(GetAt(n).m_Maps)) <= 0 || id == ID_PAGE_NEXT || id == ID_PAGE_PRIOR )
 			continue;
-		for ( i = 0 ; i < m_Cmds.GetSize() ; i++ ) {
-			if ( id == m_Cmds[i].m_Id )
-				break;
-		}
 		str = GetAt(n).GetMask();
 		if ( !str.IsEmpty() )
 			str += "+";
 		str += GetAt(n).GetCode();
-		if ( i < m_Cmds.GetSize() ) {
-			tmp.m_Menu += ",";
-			tmp.m_Menu += str;
+		if ( (i = m_Cmds.Find(id)) >= 0 ) {
+			m_Cmds[i].m_Menu += ",";
+			m_Cmds[i].m_Menu += str;
 		} else {
 			tmp.m_Id = id;
 			tmp.m_Menu = str;

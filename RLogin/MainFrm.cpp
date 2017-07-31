@@ -540,6 +540,7 @@ CMainFrame::CMainFrame()
 	m_SleepTimer = 0;
 	m_TransParValue = 255;
 	m_SleepCount = 60;
+	m_MenuHand = NULL;
 }
 
 CMainFrame::~CMainFrame()
@@ -1465,33 +1466,68 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCopyDataStruct)
 }
 void CMainFrame::OnEnterMenuLoop(BOOL bIsTrackPopupMenu)
 {
-	int n;
-	CMenu *pMenu;
+	int n, i;
+	CMenu *pMenu, Save;
 	CChildFrame *pWnd;
 	CRLoginDoc *pDoc;
-	CString str;
-	CKeyCmds cmds;
+	CString str, tmp;
+	CKeyCmds *pCmds;
 
 	if ( (pMenu = GetMenu()) == NULL )
 		return;
 
+	if ( m_MenuHand != pMenu->GetSafeHmenu() ) {
+		if ( m_MenuHand != NULL ) {
+			Save.Attach(m_MenuHand);
+			m_MenuTab.ResetMenuAll(&Save);
+			Save.Detach();
+		}
+		m_MenuTab.RemoveAll();
+		m_MenuHand = pMenu->GetSafeHmenu();
+	}
+
+	if ( (pWnd = (CChildFrame *)(MDIGetActive())) == NULL || (pDoc = (CRLoginDoc *)(pWnd->GetActiveDocument())) == NULL ) {
+		m_MenuTab.ResetMenuAll(pMenu);
+		m_MenuTab.RemoveAll();
+		return;
+	}
+
 	for ( n = 0 ; n < m_MenuTab.GetSize() ; n++ )
-		pMenu->ModifyMenu(m_MenuTab[n].m_Id, MF_BYCOMMAND | MF_STRING, m_MenuTab[n].m_Id, m_MenuTab[n].m_Menu);
-	m_MenuTab.RemoveAll();
-
-	if ( (pWnd = (CChildFrame *)(MDIGetActive())) == NULL )
-		return;
-
-	if ( (pDoc = (CRLoginDoc *)(pWnd->GetActiveDocument())) == NULL )
-		return;
+		m_MenuTab[n].m_Flag = FALSE;
 
 	pDoc->m_KeyTab.CmdsInit();
 	for ( n = 0 ; n < pDoc->m_KeyTab.m_Cmds.GetSize() ; n++ ) {
-		cmds.m_Id = pDoc->m_KeyTab.m_Cmds[n].m_Id;
-		if ( pMenu->GetMenuString(cmds.m_Id, cmds.m_Menu, MF_BYCOMMAND) <= 0 )
+		pCmds = &(pDoc->m_KeyTab.m_Cmds[n]);
+		if ( (i = m_MenuTab.Find(pCmds->m_Id)) >= 0 ) {
+			m_MenuTab[i].m_Flag = TRUE;
+			if ( pCmds->m_Id >= ID_MACRO_HIS1 && pCmds->m_Id <= ID_MACRO_HIS5 ) {
+				if ( pMenu->GetMenuString(pCmds->m_Id, tmp, MF_BYCOMMAND) <= 0 )
+					continue;
+				str.Format("%s\t%s", m_MenuTab[i].m_Text, pCmds->m_Menu);
+				if ( str.Compare(tmp) == 0 )
+					continue;
+				m_MenuTab[i].m_Text = tmp;
+			} else if ( m_MenuTab[i].m_Menu.Compare(pCmds->m_Menu) == 0 )
+				continue;
+			m_MenuTab[i].m_Menu = pCmds->m_Menu;
+		} else {
+			if ( pMenu->GetMenuString(pCmds->m_Id, str, MF_BYCOMMAND) <= 0 )
+				continue;
+			if ( (i = str.Find('\t')) >= 0 )
+				str.Truncate(i);
+			pCmds->m_Flag = TRUE;
+			pCmds->m_Text = str;
+			i = m_MenuTab.Add(*pCmds);
+		}
+		str.Format("%s\t%s", m_MenuTab[i].m_Text, m_MenuTab[i].m_Menu);
+		pMenu->ModifyMenu(pCmds->m_Id, MF_BYCOMMAND | MF_STRING, pCmds->m_Id, str);
+	}
+
+	for ( n = 0 ; n < m_MenuTab.GetSize() ; n++ ) {
+		if ( m_MenuTab[n].m_Flag )
 			continue;
-		m_MenuTab.Add(cmds);
-		str.Format("%s\t%s", cmds.m_Menu, pDoc->m_KeyTab.m_Cmds[n].m_Menu);
-		pMenu->ModifyMenu(cmds.m_Id, MF_BYCOMMAND | MF_STRING, cmds.m_Id, str);
+		m_MenuTab[n].ResetMenu(pMenu);
+		m_MenuTab.RemoveAt(n);
+		n--;
 	}
 }
