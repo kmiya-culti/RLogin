@@ -1548,8 +1548,8 @@ void CServerEntry::GetArray(CStringArrayExt &array)
 		}
 	}
 
-	m_Memo  = (array.GetSize() > 17 ?  array.GetAt(17) : "");
-	m_Group = (array.GetSize() > 18 ?  array.GetAt(18) : "");
+	m_Memo       = (array.GetSize() > 17 ?  array.GetAt(17) : "");
+	m_Group      = (array.GetSize() > 18 ?  array.GetAt(18) : "");
 
 	m_ProBuffer.Clear();
 	m_HostReal = m_HostName;

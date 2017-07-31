@@ -1751,7 +1751,7 @@ int CExtSocket::SSLConnect()
 		}
 		if ( rf == FALSE ) {
 			errstr = X509_verify_cert_error_string(result);
-			tmp.Format("%s\n%s\nÚ‘±‚µ‚Ü‚·‚©H", (cert != NULL && cert->name != NULL ? cert->name : "unknown"),  errstr);
+			tmp.Format("%s\n%s\n‚±‚ÌØ–¾‘‚ðM—Š‚µ‚Ü‚·‚©H", (cert != NULL && cert->name != NULL ? cert->name : "unknown"),  errstr);
 			if ( AfxMessageBox(tmp, MB_ICONQUESTION | MB_YESNO) != IDYES )
 				goto ERRENDOF;
 			if ( cert != NULL && cert->name != NULL && !dig.IsEmpty() )

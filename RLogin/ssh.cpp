@@ -478,7 +478,6 @@ int Cssh::SMsgPublicKey(CBuffer *bp)
 	RSA *host_key;
 	RSA *server_key;
 	CBuffer tmp;
-	CIdKey skey;
 
 	for ( n = 0 ; n < 8 ; n++ )
 		m_Cookie[n] = bp->Get8Bit();
@@ -497,12 +496,11 @@ int Cssh::SMsgPublicKey(CBuffer *bp)
 	bp->GetBIGNUM(host_key->e);
 	bp->GetBIGNUM(host_key->n);
 
-	skey.Create(IDKEY_RSA1);
-	BN_copy(skey.m_Rsa->e, host_key->e);
-	BN_copy(skey.m_Rsa->n, host_key->n);
-	if ( !skey.HostVerify(m_HostName) )
+	m_HostKey.Create(IDKEY_RSA1);
+	BN_copy(m_HostKey.m_Rsa->e, host_key->e);
+	BN_copy(m_HostKey.m_Rsa->n, host_key->n);
+	if ( !m_HostKey.HostVerify(m_HostName) )
 		return FALSE;
-	m_HostKey = skey;
 
 	m_ServerFlag  = bp->Get32Bit();
 	m_SupportCipher = bp->Get32Bit();
@@ -1854,7 +1852,6 @@ int Cssh::SSH2MsgKexDhReply(CBuffer *bp)
 	int n;
 	int ret = TRUE;
 	CBuffer tmp, blob, sig;
-	CIdKey key;
 	BIGNUM *spub = NULL, *ssec = NULL;
 	LPBYTE p;
 	int hashlen;
@@ -1863,13 +1860,11 @@ int Cssh::SSH2MsgKexDhReply(CBuffer *bp)
 	bp->GetBuf(&tmp);
 	blob = tmp;
 
-	if ( !key.GetBlob(&tmp) )
+	if ( !m_HostKey.GetBlob(&tmp) )
 		return TRUE;
 
-	if ( !key.HostVerify(m_HostName) )
+	if ( !m_HostKey.HostVerify(m_HostName) )
 		return TRUE;
-
-	m_HostKey = key;
 
 	if ( (spub = BN_new()) == NULL || (ssec = BN_new()) == NULL )
 		goto ENDRET;
@@ -1899,7 +1894,7 @@ int Cssh::SSH2MsgKexDhReply(CBuffer *bp)
 		memcpy(m_SessionId, hash, hashlen);
 	}
 
-	if ( !key.Verify(&sig, hash, hashlen) )
+	if ( !m_HostKey.Verify(&sig, hash, hashlen) )
 		goto ENDRET;
 
 	for ( n = 0 ; n < 6 ; n++ ) {
@@ -1950,7 +1945,6 @@ int Cssh::SSH2MsgKexDhGexReply(CBuffer *bp)
 	int n;
 	int ret = TRUE;
 	CBuffer tmp, blob, sig;
-	CIdKey key;
 	BIGNUM *spub = NULL, *ssec = NULL;
 	LPBYTE p;
 	const EVP_MD *evp_md;
@@ -1960,13 +1954,11 @@ int Cssh::SSH2MsgKexDhGexReply(CBuffer *bp)
 	bp->GetBuf(&tmp);
 	blob = tmp;
 
-	if ( !key.GetBlob(&tmp) )
+	if ( !m_HostKey.GetBlob(&tmp) )
 		return TRUE;
 
-	if ( !key.HostVerify(m_HostName) )
+	if ( !m_HostKey.HostVerify(m_HostName) )
 		return TRUE;
-
-	m_HostKey = key;
 
 	if ( (spub = BN_new()) == NULL || (ssec = BN_new()) == NULL )
 		goto ENDRET;
@@ -1999,7 +1991,7 @@ int Cssh::SSH2MsgKexDhGexReply(CBuffer *bp)
 		memcpy(m_SessionId, hash, hashlen);
 	}
 
-	if ( !key.Verify(&sig, hash, hashlen) )
+	if ( !m_HostKey.Verify(&sig, hash, hashlen) )
 		goto ENDRET;
 
 	for ( n = 0 ; n < 6 ; n++ ) {
@@ -2023,7 +2015,6 @@ int Cssh::SSH2MsgKexEcdhReply(CBuffer *bp)
 	int n;
 	int ret = TRUE;
 	CBuffer tmp, blob, sig;
-	CIdKey key;
 	EC_POINT *server_public = NULL;
 	BIGNUM *shared_secret = NULL;
 	int klen;
@@ -2035,13 +2026,11 @@ int Cssh::SSH2MsgKexEcdhReply(CBuffer *bp)
 	bp->GetBuf(&tmp);
 	blob = tmp;
 
-	if ( !key.GetBlob(&tmp) )
+	if ( !m_HostKey.GetBlob(&tmp) )
 		return TRUE;
 
-	if ( !key.HostVerify(m_HostName) )
+	if ( !m_HostKey.HostVerify(m_HostName) )
 		return TRUE;
-
-	m_HostKey = key;
 
 	if ( (server_public = EC_POINT_new(m_EcdhGroup)) == NULL )
 		goto ENDRET;
@@ -2090,7 +2079,7 @@ int Cssh::SSH2MsgKexEcdhReply(CBuffer *bp)
 		memcpy(m_SessionId, hash, hashlen);
 	}
 
-	if ( !key.Verify(&sig, hash, hashlen) )
+	if ( !m_HostKey.Verify(&sig, hash, hashlen) )
 		goto ENDRET;
 
 	for ( n = 0 ; n < 6 ; n++ ) {

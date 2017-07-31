@@ -922,6 +922,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\CertKeyDlg.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\CharSetPage.cpp"
 				>
 			</File>
@@ -1289,6 +1293,10 @@
 			</File>
 			<File
 				RelativePath=".\BPlus.h"
+				>
+			</File>
+			<File
+				RelativePath=".\CertKeyDlg.h"
 				>
 			</File>
 			<File

@@ -62,6 +62,7 @@
 #define IDD_GHOSTWND                    161
 #define IDD_HISPAGE                     161
 #define IDD_SEARCHDLG                   162
+#define IDD_CERTKEYDLG                  163
 #define IDM_KANJI_EUC                   200
 #define IDM_KANJI_SJIS                  201
 #define IDM_KANJI_ASCII                 202
@@ -464,6 +465,9 @@
 #define IDC_METAKEY52                   3052
 #define IDC_TAB1                        3053
 #define IDC_SERVERTAB                   3053
+#define IDC_DIGEST                      3054
+#define IDC_SAVEKEY                     3055
+#define IDC_HOSTNAME                    3056
 #define ID_FILE_ALL_LOAD                5000
 #define ID_EDIT_BOX                     5001
 #define ID_PAGE_PRIOR                   5002
@@ -513,9 +517,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        163
+#define _APS_NEXT_RESOURCE_VALUE        164
 #define _APS_NEXT_COMMAND_VALUE         5047
-#define _APS_NEXT_CONTROL_VALUE         3054
+#define _APS_NEXT_CONTROL_VALUE         3057
 #define _APS_NEXT_SYMED_VALUE           249
 #endif
 #endif
