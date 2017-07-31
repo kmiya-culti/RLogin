@@ -398,7 +398,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.7.3 (2009/10/01)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.7.4 (2009/12/24)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2009 Culti",IDC_STATIC,47,18,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,145,50,14,WS_GROUP
     LTEXT           "OpenSSL 0.9.8k 25 Mar 2009",IDC_STATIC,47,35,176,8
@@ -599,13 +599,13 @@ BEGIN
     CONTROL         "Ctrl",IDC_KEYSTAT2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,109,22,26,10
     CONTROL         "Alt",IDC_KEYSTAT3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,143,22,26,10
     CONTROL         "Appli",IDC_KEYSTAT4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,177,22,26,10
-    EDITTEXT        IDC_KEYMAPS,7,60,200,14,ES_AUTOHSCROLL
     DEFPUSHBUTTON   "OK",IDOK,50,87,50,14
     PUSHBUTTON      "キャンセル",IDCANCEL,113,87,50,14
     LTEXT           "KeyCode",IDC_STATIC,7,7,30,8
     GROUPBOX        "",IDC_STATIC,69,7,138,36
     CTEXT           "+",IDC_STATIC,59,22,8,8
     LTEXT           "Assign String",IDC_STATIC,7,45,43,8
+    COMBOBOX        IDC_KEYMAPS,7,60,200,110,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
 END
 
 IDD_TERMPAGE DIALOGEX 0, 0, 251, 270
@@ -1194,8 +1194,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,7,3,0
- PRODUCTVERSION 2,7,3,0
+ FILEVERSION 2,7,4,0
+ PRODUCTVERSION 2,7,4,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1212,12 +1212,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2, 7, 3, 0"
+            VALUE "FileVersion", "2, 7, 4, 0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2008 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2, 7, 3, 0"
+            VALUE "ProductVersion", "2, 7, 4, 0"
         END
     END
     BLOCK "VarFileInfo"

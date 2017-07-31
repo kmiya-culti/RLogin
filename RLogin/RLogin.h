@@ -75,3 +75,4 @@ public:
 };
 
 extern CRLoginApp theApp;
+extern void ExDwmEnableWindow(HWND hWnd);

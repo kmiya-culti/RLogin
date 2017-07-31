@@ -37,7 +37,7 @@ void CKeyParaDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_KEYSTAT3, m_WithAlt);
 	DDX_Check(pDX, IDC_KEYSTAT4, m_WithAppli);
 	DDX_CBString(pDX, IDC_KEYCODE, m_KeyCode);
-	DDX_Text(pDX, IDC_KEYMAPS, m_Maps);
+	DDX_CBString(pDX, IDC_KEYMAPS, m_Maps);
 	//}}AFX_DATA_MAP
 }
 
@@ -62,6 +62,7 @@ BOOL CKeyParaDlg::OnInitDialog()
 	m_Maps = m_pData->GetMaps();
 	
 	m_pData->SetComboList((CComboBox *)GetDlgItem(IDC_KEYCODE));
+	CKeyNodeTab::SetComboList((CComboBox *)GetDlgItem(IDC_KEYMAPS));
 
 	UpdateData(FALSE);
 

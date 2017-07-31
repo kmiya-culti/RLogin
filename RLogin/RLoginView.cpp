@@ -64,6 +64,8 @@ BEGIN_MESSAGE_MAP(CRLoginView, CView)
 	ON_UPDATE_COMMAND_UI(IDM_BROADCAST, &CRLoginView::OnUpdateBroadcast)
 	ON_COMMAND(ID_EDIT_COPY_ALL, &CRLoginView::OnEditCopyAll)
 //	ON_UPDATE_COMMAND_UI(ID_EDIT_COPY_ALL, &CRLoginView::OnUpdateEditCopyAll)
+	ON_COMMAND(ID_PAGE_PRIOR, &CRLoginView::OnPagePrior)
+	ON_COMMAND(ID_PAGE_NEXT, &CRLoginView::OnPageNext)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -104,7 +106,7 @@ BOOL CRLoginView::PreCreateWindow(CREATESTRUCT& cs)
 	cs.style |= WS_CLIPSIBLINGS;
 
 	cs.lpszName = "RLoginView";
-	cs.lpszClass = AfxRegisterWndClass(CS_DBLCLKS, AfxGetApp()->LoadStandardCursor(IDC_ARROW));
+	cs.lpszClass = AfxRegisterWndClass(CS_DBLCLKS, AfxGetApp()->LoadStandardCursor(IDC_ARROW)); //, CreateSolidBrush(0xff000000));
 
 	return CView::PreCreateWindow(cs);
 }
@@ -494,10 +496,10 @@ void CRLoginView::OnChar(UINT nChar, UINT nRepCnt, UINT nFlags)
 
 //	TRACE("OnChar %02x(%04x)\n", nChar, nFlags);
 
-	CView::OnChar(nChar, nRepCnt, nFlags);
-
 	if ( (nFlags & 0x2000) != 0 )	// with Alt key
 		tmp.PutWord(0x1B);
+
+	CView::OnChar(nChar, nRepCnt, nFlags);
 
 	tmp.PutWord(nChar);
 	SendBuffer(tmp);
@@ -505,6 +507,7 @@ void CRLoginView::OnChar(UINT nChar, UINT nRepCnt, UINT nFlags)
 //void CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 int CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags) 
 {
+	int n;
 	int st = 0;
 	CBuffer tmp;
 	CRLoginDoc *pDoc = GetDocument();
@@ -542,18 +545,15 @@ int CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 
 	//TRACE("OnKey %02x(%02x)\n", nChar, st);
 
-	if ( pDoc->m_KeyTab.FindMaps(nChar, st, &tmp) != NULL ) {
-		if ( wcscmp((LPCWSTR)tmp, L"$PRIOR") == 0 )
-			OnVScroll(SB_PAGEUP, 0, NULL);
-		else if ( wcscmp((LPCWSTR)tmp, L"$NEXT") == 0 )
-			OnVScroll(SB_PAGEDOWN, 0, NULL);
-		else if ( wcscmp((LPCWSTR)tmp, L"$BREAK") == 0 )
-			pDoc->m_pSock->SendBreak(0);
+	if ( pDoc->m_KeyTab.FindMaps(nChar, st, &tmp) ) {
+		if ( (n = CKeyNodeTab::GetCmdsKey((LPCWSTR)tmp)) > 0 )
+			AfxGetMainWnd()->PostMessage(WM_COMMAND, (WPARAM)n);
 		else
 			SendBuffer(tmp);
 		return FALSE;
+	}
 
-	} else if ( (st & MASK_CTRL) != 0 ) {
+	if ( (st & MASK_CTRL) != 0 ) {
 		switch(nChar) {
 		case VK_OEM_7:	// CTRL+^
 			tmp.PutWord(0x1E);
@@ -567,8 +567,6 @@ int CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 			break;
 		}
 		if ( tmp.GetSize() > 0 ) {
-			if ( (nFlags & 0x2000) != 0 && (pDoc->m_TextRam.m_MetaKeys[nChar / 32] & (1 << (nChar % 32))) != 0 )
-				tmp.PutWord(0x1B);
 			SendBuffer(tmp);
 			return FALSE;
 		}
@@ -907,6 +905,7 @@ void CRLoginView::OnLButtonUp(UINT nFlags, CPoint point)
 	OnUpdate(this, UPDATE_CLIPERA, NULL);
 
 //	m_ClipKeyFlags = nFlags;
+
 	pos = pDoc->m_TextRam.GetCalcPos(x, y);
 
 	switch(m_ClipFlag) {
@@ -1241,14 +1240,6 @@ BOOL CRLoginView::PreTranslateMessage(MSG* pMsg)
 	CRLoginDoc *pDoc = GetDocument();
 	
 	if ( pMsg->hwnd == m_hWnd ) {
-		//if ( pMsg->message == WM_SYSKEYDOWN )
-		//	pMsg->message = WM_KEYDOWN;
-		//if ( pMsg->message == WM_KEYDOWN ) {
-		//	if ( !OnKeyDown((UINT)pMsg->wParam, 0, (UINT)pMsg->lParam) )
-		//		return TRUE;
-		//	if ( (UINT)pMsg->wParam < 256 && (UINT)pMsg->wParam != VK_MENU && (GetKeyState(VK_MENU) & 0x80) != 0 && (pDoc->m_TextRam.m_MetaKeys[(UINT)pMsg->wParam / 32] & (1 << ((UINT)pMsg->wParam % 32))) == 0 )
-		//		pMsg->message = WM_SYSKEYDOWN;
-		//}
 		if ( pMsg->message == WM_KEYDOWN ) {
 			if ( !OnKeyDown((UINT)pMsg->wParam, LOWORD(pMsg->lParam), HIWORD(pMsg->lParam)) )
 				return TRUE;
@@ -1338,4 +1329,13 @@ void CRLoginView::OnBroadcast()
 void CRLoginView::OnUpdateBroadcast(CCmdUI *pCmdUI)
 {
 	pCmdUI->SetCheck(m_BroadCast);
+}
+
+void CRLoginView::OnPagePrior()
+{
+	OnVScroll(SB_PAGEUP, 0, NULL);
+}
+void CRLoginView::OnPageNext()
+{
+	OnVScroll(SB_PAGEDOWN, 0, NULL);
 }

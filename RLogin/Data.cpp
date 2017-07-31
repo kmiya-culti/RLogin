@@ -2077,10 +2077,22 @@ void CKeyNode::SetComboList(CComboBox *pCombo)
 }
 
 //////////////////////////////////////////////////////////////////////
+// CKeyCmds
+
+const CKeyCmds & CKeyCmds::operator = (CKeyCmds &data)
+{
+	m_Id = data.m_Id;
+	m_Menu = data.m_Menu;
+
+	return *this;
+}
+
+//////////////////////////////////////////////////////////////////////
 // CKeyNodeTab
 
 CKeyNodeTab::CKeyNodeTab()
 {
+	m_CmdsInit = FALSE;
 	m_pSection = "KeyTab";
 	Init();
 }
@@ -2154,7 +2166,7 @@ void CKeyNodeTab::Init()
 		{ VK_NEXT,	MASK_SHIFT | MASK_APPL,	"$NEXT" },
 
 		{ VK_CANCEL,0,			"$BREAK" },
-		{ VK_CANCEL,MASK_CTRL,	"$BREAK" },
+//		{ VK_CANCEL,MASK_CTRL,	"$BREAK" },
 
 		{ VK_OEM_7,	MASK_CTRL,	"\\036"	},
 		{ VK_OEM_2,	MASK_CTRL,	"\\037"	},
@@ -2167,18 +2179,6 @@ void CKeyNodeTab::Init()
 	m_Node.RemoveAll();
 	for ( n = 0 ; InitKeyTab[n].maps != NULL ; n++ )
 		Add(InitKeyTab[n].code, InitKeyTab[n].mask, InitKeyTab[n].maps);
-}
-CKeyNode & CKeyNodeTab::GetAt(int pos)
-{
-	return m_Node[pos];
-}
-void CKeyNodeTab::SetSize(int sz)
-{
-	m_Node.SetSize(sz, 16);
-}
-int CKeyNodeTab::GetSize()
-{
-	return (int)m_Node.GetSize();
 }
 int CKeyNodeTab::Add(CKeyNode &node)
 {
@@ -2198,6 +2198,7 @@ int CKeyNodeTab::Add(CKeyNode &node)
 			m = n - 1;
 	}
 	m_Node.InsertAt(b, node);
+	m_CmdsInit = FALSE;
 	return b;
 }
 int CKeyNodeTab::Add(LPCSTR code, int mask, LPCSTR maps)
@@ -2275,7 +2276,140 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	m_Node.RemoveAll();
 	for ( int n = 0 ; n < data.m_Node.GetSize() ; n++ )
 		m_Node.Add(data.m_Node[n]);
+	m_CmdsInit = FALSE;
 	return *this;
+}
+
+static const struct {
+	int	code;
+	LPCWSTR name;
+} CmdsKeyTab[] = {
+#define	CMDSKEYTABMAX	54
+	{	ID_APP_ABOUT,			L"$ABOUT"			},
+	{	ID_SEND_BREAK,			L"$BREAK"			},
+	{	IDM_BROADCAST,			L"$BROADCAST"		},
+	{	ID_EDIT_COPY,			L"$EDIT_COPY"		},
+	{	ID_EDIT_COPY_ALL,		L"$EDIT_COPYALL"	},
+	{	ID_EDIT_PASTE,			L"$EDIT_PASTE"		},
+	{	ID_APP_EXIT,			L"$EXIT"			},
+	{	ID_FILE_ALL_SAVE,		L"$FILE_ALLSAVE"	},
+	{	ID_FILE_CLOSE,			L"$FILE_CLOSE"		},
+	{	ID_FILE_NEW,			L"$FILE_NEW"		},
+	{	ID_FILE_OPEN,			L"$FILE_OPEN"		},
+	{	ID_FILE_SAVE_AS,		L"$FILE_SAVE"		},
+	{	IDM_KANJI_ASCII,		L"$KANJI_ASCII"		},
+	{	IDM_KANJI_EUC,			L"$KANJI_EUC"		},
+	{	IDM_KANJI_SJIS,			L"$KANJI_SJIS"		},
+	{	IDM_KANJI_UTF8,			L"$KANJI_UTF8"		},
+	{	ID_MACRO_HIS1,			L"$KEY_HIS1"		},
+	{	ID_MACRO_HIS2,			L"$KEY_HIS2"		},
+	{	ID_MACRO_HIS3,			L"$KEY_HIS3"		},
+	{	ID_MACRO_HIS4,			L"$KEY_HIS4"		},
+	{	ID_MACRO_HIS5,			L"$KEY_HIS5"		},
+	{	ID_MACRO_PLAY,			L"$KEY_PLAY"		},
+	{	ID_MACRO_REC,			L"$KEY_REC"			},
+	{	ID_LOG_OPEN,			L"$LOG_OPEN"		},
+	{	ID_MOUSE_EVENT,			L"$MOUSE_EVENT"		},
+	{	ID_PAGE_NEXT,			L"$NEXT"			},
+	{	IDC_LOADDEFAULT,		L"$OPTION_LOAD"		},
+	{	ID_SETOPTION,			L"$OPTION_SET"		},
+	{	ID_WINDOW_CASCADE,		L"$PANE_CASCADE"	},
+	{	ID_PANE_DELETE,			L"$PANE_DELETE"		},
+	{	ID_PANE_HSPLIT,			L"$PANE_HSPLIT"		},
+	{	ID_WINDOW_TILE_HORZ,	L"$PANE_TILEHORZ"	},
+	{	ID_PANE_WSPLIT,			L"$PANE_WSPLIT"		},
+	{	ID_PAGE_PRIOR,			L"$PRIOR"			},
+	{	IDM_RESET_ALL,			L"$RESET_ALL"		},
+	{	IDM_RESET_ATTR,			L"$RESET_ATTR"		},
+	{	IDM_RESET_BANK,			L"$RESET_BANK"		},
+	{	IDM_RESET_ESC,			L"$RESET_ESC"		},
+	{	IDM_RESET_MOUSE,		L"$RESET_MOUSE"		},
+	{	IDM_RESET_TAB,			L"$RESET_TAB"		},
+	{	IDM_RESET_TEK,			L"$RESET_TEK"		},
+	{	ID_CHARSCRIPT_END,		L"$SCRIPT_END"		},
+	{	IDM_SFTP,				L"$VIEW_SFTP"		},
+	{	ID_VIEW_STATUS_BAR,		L"$VIEW_STATUSBAR"	},
+	{	IDM_TEKDISP,			L"$VIEW_TEKDISP"	},
+	{	ID_VIEW_TOOLBAR,		L"$VIEW_TOOLBAR"	},
+	{	ID_WINDOW_CLOSE,		L"$WINDOW_CLOSE"	},
+	{	ID_WINDOW_NEW,			L"$WINDOW_NEW"		},
+	{	IDM_XMODEM_DOWNLOAD,	L"$XMODEM_DOWNLOAD"	},
+	{	IDM_XMODEM_UPLOAD,		L"$XMODEM_UPLOAD"	},
+	{	IDM_YMODEM_DOWNLOAD,	L"$YMODEM_DOWNLOAD"	},
+	{	IDM_YMODEM_UPLOAD,		L"$YMODEM_UPLOAD"	},
+	{	IDM_ZMODEM_DOWNLOAD,	L"$ZMODEM_DOWNLOAD"	},
+	{	IDM_ZMODEM_UPLOAD,		L"$ZMODEM_UPLOAD"	},
+};
+
+void CKeyNodeTab::CmdsInit()
+{
+	int n, i, id;
+	CKeyCmds tmp;
+	CString str;
+
+	if ( m_CmdsInit )
+		return;
+
+	m_Cmds.RemoveAll();
+	for ( n = 0 ; n < GetSize() ; n++ ) {
+		if ( (id = GetCmdsKey(GetAt(n).m_Maps)) <= 0 || id == ID_PAGE_NEXT || id == ID_PAGE_PRIOR )
+			continue;
+		for ( i = 0 ; i < m_Cmds.GetSize() ; i++ ) {
+			if ( id == m_Cmds[i].m_Id )
+				break;
+		}
+		str = GetAt(n).GetMask();
+		if ( !str.IsEmpty() )
+			str += "+";
+		str += GetAt(n).GetCode();
+		if ( i < m_Cmds.GetSize() ) {
+			tmp.m_Menu += ",";
+			tmp.m_Menu += str;
+		} else {
+			tmp.m_Id = id;
+			tmp.m_Menu = str;
+			m_Cmds.Add(tmp);
+		}
+	}
+
+	m_CmdsInit = TRUE;
+}
+int CKeyNodeTab::GetCmdsKey(LPCWSTR str)
+{
+	if ( str[0] != L'$' )
+		return (-1);
+
+	int c;
+	int n;
+	int b = 0;
+	int m = CMDSKEYTABMAX - 1;
+
+	while ( b <= m ) {
+		n = (b + m) / 2;
+		if ( (c = wcscmp(str, CmdsKeyTab[n].name)) == 0 )
+			return CmdsKeyTab[n].code;
+		else if ( c > 0 )
+			b = n + 1;
+		else
+			m = n - 1;
+	}
+	return (-1);
+}
+void CKeyNodeTab::SetComboList(CComboBox *pCombo)
+{
+	int n;
+	CString str;
+
+	if ( pCombo == NULL )
+		return;
+
+	for ( n = pCombo->GetCount() - 1 ; n >= 0; n-- )
+		pCombo->DeleteString(n);
+
+	for ( n = 0 ; n < CMDSKEYTABMAX ; n++ ) {
+		str = CmdsKeyTab[n].name;
+		pCombo->AddString(str);
+	}
 }
 
 //////////////////////////////////////////////////////////////////////

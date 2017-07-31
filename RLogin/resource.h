@@ -83,6 +83,8 @@
 #define ID_FILE_ALL_LOAD                240
 #define IDC_DOINIT                      241
 #define ID_EDIT_BOX                     243
+#define ID_PAGE_PRIOR                   244
+#define ID_PAGE_NEXT                    245
 #define IDC_BACKFILE                    1000
 #define IDC_BACKSEL                     1001
 #define IDC_BANKGL1                     1002
@@ -489,6 +491,6 @@
 #define _APS_NEXT_RESOURCE_VALUE        160
 #define _APS_NEXT_COMMAND_VALUE         32841
 #define _APS_NEXT_CONTROL_VALUE         1189
-#define _APS_NEXT_SYMED_VALUE           244
+#define _APS_NEXT_SYMED_VALUE           246
 #endif
 #endif

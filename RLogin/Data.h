@@ -368,9 +368,20 @@ public:
 	CKeyNode();
 };
 
+class CKeyCmds : public CObject
+{
+public:
+	int m_Id;
+	CString m_Menu;
+
+	const CKeyCmds & operator = (CKeyCmds &data);
+};
+
 class CKeyNodeTab : public COptObject
 {
 public:
+	BOOL m_CmdsInit;
+	CArray<CKeyCmds, CKeyCmds &> m_Cmds;
 	CArray<CKeyNode, CKeyNode &> m_Node;
 
 	void Init();
@@ -381,13 +392,19 @@ public:
 	int Add(CKeyNode &node);
 	int Add(int code, int mask, LPCSTR str);
 	int Add(LPCSTR code, int mask, LPCSTR maps);
-	CKeyNode &GetAt(int pos);
-	int GetSize();
-	void SetSize(int sz);
 
+	inline CKeyNode &GetAt(int pos) { return m_Node[pos]; }
+	inline int GetSize() { return (int)m_Node.GetSize(); }
+	inline void SetSize(int sz) { 	m_Node.SetSize(sz, 16); }
+	inline void RemoveAt(int pos) { m_Node.RemoveAt(pos); }
 	inline CKeyNode & operator[](int nIndex) { return m_Node[nIndex]; }
+
 	const CKeyNodeTab & operator = (CKeyNodeTab &data);
 	CKeyNodeTab();
+
+	void CmdsInit();
+	static int GetCmdsKey(LPCWSTR str);
+	static void SetComboList(CComboBox *pCombo);
 };
 
 class CKeyMac : public CObject

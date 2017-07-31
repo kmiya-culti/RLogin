@@ -2,7 +2,7 @@
 //
 //////////////////////////////////////////////////////////////////////
 
-#include <errno.h>
+//#include <errno.h>
 #include "stdafx.h"
 #include "RLogin.h"
 #include "IConv.h"

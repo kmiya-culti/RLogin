@@ -754,6 +754,7 @@ CScript::CScript(void):CSyncSock(NULL, NULL)
 	m_Loops = NULL;
 
 	m_SyncMode = FALSE;
+	m_ConsOpen = FALSE;
 
 	m_Data.RemoveAll();
 	m_Code.RemoveAll();
@@ -2244,7 +2245,7 @@ int CScript::ExecSub(int pos, BOOL sub, CScriptValue *local)
 			TRACE("['%s':%d:'%s']", sp->m_Index, sp->m_Type, (LPCSTR)sp->m_Buf);
 		TRACE("\n");
 #else
-	while ( pos < (int)m_Code.GetSize() ) {
+	while ( pos < (int)m_Code.GetSize() && m_DoAbortFlag == FALSE ) {
 #endif
 
 		sp = m_Stack->m_Next;
@@ -2697,10 +2698,15 @@ int CScript::Func07(int cmd, class CScript *owner, CScriptValue &local)
 
 	switch(cmd) {
 	case 0:		// cgetc(s)
-		(*acc) = (int)owner->m_SockFifo.GetWChar((int)local[0]);
+		if ( !owner->m_ConsOpen )
+			(*acc) = (int)EOF;
+		else
+			(*acc) = (int)owner->m_SockFifo.GetWChar((int)local[0]);
 		break;
 	case 1:		// cgets(s)
-		{
+		if ( !owner->m_ConsOpen )
+			(*acc) = L"";
+		else {
 			CStringW tmp;
 			owner->m_SockFifo.WReadLine(tmp, (int)local[0]);
 			(*acc) = (LPCWSTR)tmp;
@@ -3266,14 +3272,16 @@ int CScript::Func02(int cmd, class CScript *owner, CScriptValue &local)
 	case 5:	// sprintf(fmt, expr, ... )
 		{
 			int n = 0;
-			BOOL ll = FALSE;
+			BOOL ll;
 			CString tmp[3];
 			LPCSTR str;
 			str = (LPCSTR)local[n++];
 			while ( *str != '\0' ) {
 				if ( *str == '%' ) {
 					tmp[1].Empty();
+					tmp[2].Empty();
 					tmp[1] += *(str++);
+					ll = FALSE;
 
 					if ( *str == '-' || *str == '+' || *str == '0' || *str == ' ' || *str == '#' )
 						tmp[1] += *(str++);
@@ -3327,10 +3335,10 @@ int CScript::Func02(int cmd, class CScript *owner, CScriptValue &local)
 						break;
 
 					case '%':
-						tmp[0] += '%';
+						tmp[2] += '%';
 						break;
 					default:
-						tmp[0] += tmp[1];
+						tmp[2] += tmp[1];
 						break;
 					}
 					tmp[0] += tmp[2];
@@ -3373,6 +3381,9 @@ int CScript::Func02(int cmd, class CScript *owner, CScriptValue &local)
 			(*acc)["mon"]     = (int)tm->tm_mon  + 1;
 			(*acc)["year"]    = (int)tm->tm_year + 1900;
 			(*acc)["yday"]    = (int)tm->tm_yday;
+			(*acc)["sec"]     = (int)tm->tm_sec;
+			(*acc)["min"]     = (int)tm->tm_min;
+			(*acc)["hour"]    = (int)tm->tm_hour;
 		}
 		break;
 	case 9:	// mktime(hour, minute, second, month, day, year, is_dst)

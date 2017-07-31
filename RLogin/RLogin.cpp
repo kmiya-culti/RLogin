@@ -3,12 +3,14 @@
 
 #include "stdafx.h"
 #include "RLogin.h"
+//#include "DWMApi.h"
 
 #include "MainFrm.h"
 #include "ChildFrm.h"
 #include "RLoginDoc.h"
 #include "RLoginView.h"
 #include "ExtSocket.h"
+#include "Script.h"
 
 #include <direct.h>
 #include <openssl/ssl.h>
@@ -166,6 +168,37 @@ CRLoginApp::CRLoginApp()
 
 CRLoginApp theApp;
 
+#ifdef	DWMAPI
+	HMODULE ExDwmApi = NULL;
+	BOOL ExDwmEnable = FALSE;
+	HRESULT (__stdcall *ExDwmIsCompositionEnabled)(BOOL * pfEnabled) = NULL;
+	HRESULT (__stdcall *ExDwmEnableBlurBehindWindow)(HWND hWnd, const DWM_BLURBEHIND* pBlurBehind) = NULL;
+	HRESULT (__stdcall *ExDwmExtendFrameIntoClientArea)(HWND hWnd, const MARGINS* pMarInset) = NULL;
+#endif
+
+void ExDwmEnableWindow(HWND hWnd)
+{
+#ifdef	DWMAPI
+	if ( ExDwmEnable && ExDwmApi != NULL && ExDwmEnableBlurBehindWindow != NULL && hWnd != NULL ) {
+		//Create and populate the BlurBehind structre
+		DWM_BLURBEHIND bb = {0};
+		MARGINS margin = { -1 };
+
+		//Enable Blur Behind and Blur Region;
+		bb.dwFlags = DWM_BB_ENABLE;
+		bb.fEnable = true;
+		bb.hRgnBlur = NULL;
+		bb.fTransitionOnMaximized = false;
+		//Enable Blur Behind
+		ExDwmEnableBlurBehindWindow(hWnd, &bb);
+
+//		margin.cxLeftWidth = margin.cxRightWidth = 0;
+//		margin.cyTopHeight = margin.cyBottomHeight = 0;
+//		ExDwmExtendFrameIntoClientArea(hWnd, &margin);
+	}
+#endif
+}
+
 // CRLoginApp 初期化
 
 BOOL CRLoginApp::InitInstance()
@@ -207,6 +240,17 @@ BOOL CRLoginApp::InitInstance()
 	// この文字列を変更してください。
 	SetRegistryKey(_T("Culti"));
 	LoadStdProfileSettings(4);  // 標準の INI ファイルのオプションをロードします (MRU を含む)
+
+#ifdef	DWMAPI
+	if ( (ExDwmApi = LoadLibrary("dwmapi.dll")) != NULL ) {
+		ExDwmIsCompositionEnabled      = (HRESULT (__stdcall *)(BOOL* pfEnabled))GetProcAddress(ExDwmApi, "DwmIsCompositionEnabled");
+		ExDwmEnableBlurBehindWindow    = (HRESULT (__stdcall *)(HWND hWnd, const DWM_BLURBEHIND* pBlurBehind))GetProcAddress(ExDwmApi, "DwmEnableBlurBehindWindow");
+		ExDwmExtendFrameIntoClientArea = (HRESULT (__stdcall *)(HWND hWnd, const MARGINS* pMarInset))GetProcAddress(ExDwmApi, "DwmExtendFrameIntoClientArea");
+
+		if ( ExDwmIsCompositionEnabled != NULL )
+			ExDwmIsCompositionEnabled(&ExDwmEnable);
+	}
+#endif
 
 	// アプリケーション用のドキュメント テンプレートを登録します。ドキュメント テンプレート
 	//  はドキュメント、フレーム ウィンドウとビューを結合するために機能します。
@@ -261,6 +305,11 @@ BOOL CRLoginApp::InitInstance()
 		if ( (n = m_BaseDir.ReverseFind('\\')) >= 0 )
 			m_BaseDir = m_BaseDir.Left(n);
 	}
+
+#ifdef	_DEBUGXX
+	CScript script;
+	script.ExecFile("script.txt");
+#endif
 
 	// メイン ウィンドウが初期化されたので、表示と更新を行います。
 	pMainFrame->ShowWindow(m_nCmdShow);
@@ -493,6 +542,11 @@ int CRLoginApp::ExitInstance()
 
 	extern void FreeBufPtr();
 	FreeBufPtr();
+
+#ifdef	DWMAPI
+	if ( ExDwmApi != NULL )
+		FreeLibrary(ExDwmApi);
+#endif
 
 	return CWinApp::ExitInstance();
 }

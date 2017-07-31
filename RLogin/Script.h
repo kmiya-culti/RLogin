@@ -206,6 +206,7 @@ public:
 	CScriptValue *m_Free;
 	CScriptValue *m_Stack;
 
+	BOOL m_ConsOpen;
 	BOOL m_SyncMode;
 	CFifoBuffer m_SockFifo;
 

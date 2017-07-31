@@ -9,7 +9,7 @@
 #include "IConv.h"
 #include "Ssh.h"
 
-typedef BOOL __stdcall SETLAYER( HWND hwnd, COLORREF crKey, BYTE bAlpha, DWORD dwFlags );
+//typedef BOOL __stdcall SETLAYER( HWND hwnd, COLORREF crKey, BYTE bAlpha, DWORD dwFlags );
 
 #define	PANEFRAME_NOCHNG		0
 #define	PANEFRAME_MAXIM			1
@@ -118,6 +118,7 @@ public:
 	int m_SleepStatus;
 	int m_SleepCount;
 	int m_TransParValue;
+	CArray<CKeyCmds, CKeyCmds &> m_MenuTab;
 
 	void SetTransPar(COLORREF rgb, int value, DWORD flag);
 	void SetIconStyle();
@@ -189,6 +190,7 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	afx_msg BOOL OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCopyDataStruct);
+	afx_msg void OnEnterMenuLoop(BOOL bIsTrackPopupMenu);
 };
 
 

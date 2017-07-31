@@ -209,7 +209,7 @@ void CKeyPage::OnKeyAsnDel()
 	int n;
 	if ( (n = m_List.GetSelectMarkData()) < 0 )
 		return;
-	m_KeyTab.m_Node.RemoveAt(n);
+	m_KeyTab.RemoveAt(n);
 	InitList();
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_KEYTAB;

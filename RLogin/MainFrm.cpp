@@ -484,6 +484,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_UPDATE_COMMAND_UI(ID_INDICATOR_SOCK, OnUpdateIndicatorSock)
 	ON_COMMAND(ID_FILE_ALL_LOAD, OnFileAllLoad)
 	ON_WM_COPYDATA()
+	ON_WM_ENTERMENULOOP()
 END_MESSAGE_MAP()
 
 static UINT indicators[] =
@@ -589,6 +590,8 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	if (CMDIFrameWnd::OnCreate(lpCreateStruct) == -1)
 		return -1;
 
+//	ExDwmEnableWindow(m_hWnd);
+
 	if (!m_wndToolBar.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT,
 			WS_CHILD | WS_VISIBLE | CBRS_TOP | /*CBRS_GRIPPER | */CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC) ||
 		!m_wndToolBar.LoadToolBar(IDR_MAINFRAME))
@@ -618,6 +621,12 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_wndToolBar.SendMessage(TB_SETIMAGELIST,			0, (LPARAM)(m_ImageList[0].m_hImageList));
 	m_wndToolBar.SendMessage(TB_SETHOTIMAGELIST,		0, (LPARAM)(m_ImageList[1].m_hImageList));
 	m_wndToolBar.SendMessage(TB_SETDISABLEDIMAGELIST,	0, (LPARAM)(m_ImageList[2].m_hImageList));
+
+	//m_wndToolBar.GetToolBarCtrl().SetExtendedStyle(TBSTYLE_EX_DRAWDDARROWS);
+	//DWORD dwStyle = m_wndToolBar.GetButtonStyle(m_wndToolBar.CommandToIndex(IDM_KANJI_EUC));
+	//dwStyle |= TBSTYLE_DROPDOWN;
+	//m_wndToolBar.SetButtonStyle(m_wndToolBar.CommandToIndex(IDM_KANJI_EUC), dwStyle);
+
 #endif
 
 	if (!m_wndStatusBar.Create(this) ||
@@ -1453,4 +1462,36 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCopyDataStruct)
 		return TRUE;
 	}
 	return CMDIFrameWnd::OnCopyData(pWnd, pCopyDataStruct);
+}
+void CMainFrame::OnEnterMenuLoop(BOOL bIsTrackPopupMenu)
+{
+	int n;
+	CMenu *pMenu;
+	CChildFrame *pWnd;
+	CRLoginDoc *pDoc;
+	CString str;
+	CKeyCmds cmds;
+
+	if ( (pMenu = GetMenu()) == NULL )
+		return;
+
+	for ( n = 0 ; n < m_MenuTab.GetSize() ; n++ )
+		pMenu->ModifyMenu(m_MenuTab[n].m_Id, MF_BYCOMMAND | MF_STRING, m_MenuTab[n].m_Id, m_MenuTab[n].m_Menu);
+	m_MenuTab.RemoveAll();
+
+	if ( (pWnd = (CChildFrame *)(MDIGetActive())) == NULL )
+		return;
+
+	if ( (pDoc = (CRLoginDoc *)(pWnd->GetActiveDocument())) == NULL )
+		return;
+
+	pDoc->m_KeyTab.CmdsInit();
+	for ( n = 0 ; n < pDoc->m_KeyTab.m_Cmds.GetSize() ; n++ ) {
+		cmds.m_Id = pDoc->m_KeyTab.m_Cmds[n].m_Id;
+		if ( pMenu->GetMenuString(cmds.m_Id, cmds.m_Menu, MF_BYCOMMAND) <= 0 )
+			continue;
+		m_MenuTab.Add(cmds);
+		str.Format("%s\t%s", cmds.m_Menu, pDoc->m_KeyTab.m_Cmds[n].m_Menu);
+		pMenu->ModifyMenu(cmds.m_Id, MF_BYCOMMAND | MF_STRING, cmds.m_Id, str);
+	}
 }
