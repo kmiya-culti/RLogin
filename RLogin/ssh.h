@@ -260,15 +260,16 @@ class CIdKey: public CObject
 {
 public:
 	int m_Uid;
+	BOOL m_Flag;
 	CString m_Name;
 	CString m_Hash;
 	int m_Type;
 	int m_Cert;
 	RSA *m_Rsa;
+	int m_RsaNid;
 	DSA *m_Dsa;
-	BOOL m_Flag;
-	int	 m_EcNid;
 	EC_KEY *m_EcDsa;
+	int	 m_EcNid;
 	ED25519_KEY *m_Ed25519;
 	CString m_Work;
 	CBuffer m_CertBlob;
@@ -311,13 +312,11 @@ public:
 	int HostVerify(LPCTSTR host);
 	int ChkOldCertHosts(LPCTSTR host);
 
-	int RsaSign(CBuffer *bp, LPBYTE buf, int len);
+	int RsaSign(CBuffer *bp, LPBYTE buf, int len, LPCTSTR alg);
 	int DssSign(CBuffer *bp, LPBYTE buf, int len);
-	int RsaSignSha2(CBuffer *bp, LPBYTE buf, int len, int type = NID_sha256);
-	int DsaSignSha2(CBuffer *bp, LPBYTE buf, int len, int type = NID_sha256);
 	int EcDsaSign(CBuffer *bp, LPBYTE buf, int len);
 	int Ed25519Sign(CBuffer *bp, LPBYTE buf, int len);
-	int Sign(CBuffer *bp, LPBYTE buf, int len);
+	int Sign(CBuffer *bp, LPBYTE buf, int len, LPCTSTR alg = NULL);
 
 	int RsaVerify(CBuffer *bp, LPBYTE data, int datalen);
 	int DssVerify(CBuffer *bp, LPBYTE data, int datalen);
@@ -581,6 +580,9 @@ public:
 #define	DHMODE_ECDH_S2_N384	5
 #define	DHMODE_ECDH_S2_N521	6
 #define DHMODE_CURVE25519	7
+#define	DHMODE_GROUP_14_256	8
+#define	DHMODE_GROUP_15_256	9
+#define	DHMODE_GROUP_16_256	10
 
 #define	AUTH_MODE_NONE		0
 #define	AUTH_MODE_PUBLICKEY	1
@@ -598,6 +600,9 @@ public:
 #define	PROP_COMP_ALGS_STOC	7		// 5
 #define	PROP_LANG_CTOS		8
 #define	PROP_LANG_STOC		9
+
+#define	DHGEX_MIN_BITS		1024
+#define	DHGEX_MAX_BITS		8192
 
 enum EAuthStat {
 	AST_START = 0,
@@ -715,6 +720,8 @@ private:
 	CBuffer m_StdInRes;
 	CRcpUpload m_RcpCmd;
 	int m_bPfdConnect;
+	BOOL m_bExtInfo;
+	CStringIndex m_ExtInfo;
 
 	void LogIt(LPCTSTR format, ...);
 	void SendTextMsg(LPCSTR str, int len);
@@ -722,6 +729,8 @@ private:
 	int MatchList(LPCTSTR client, LPCTSTR server, CString &str);
 	int ChannelOpen();
 	void ChannelClose(int id);
+	LPCTSTR GetSigAlgs();
+	BOOL IsServerVersion(LPCTSTR pattan);
 
 	void SendMsgKexInit();
 	void SendMsgNewKeys();
@@ -750,6 +759,7 @@ private:
 	int SSH2MsgKexEcdhReply(CBuffer *bp);
 	int SSH2MsgKexCurveReply(CBuffer *bp);
 	int SSH2MsgNewKeys(CBuffer *bp);
+	int SSH2MsgExtInfo(CBuffer *bp);
 
 	int SSH2MsgUserAuthPkOk(CBuffer *bp);
 	int SSH2MsgUserAuthPasswdChangeReq(CBuffer *bp);
@@ -812,6 +822,7 @@ extern int dh_gen_key(DH *dh, int need);
 extern DH *dh_new_group_asc(const char *gen, const char *modulus);
 extern DH *dh_new_group1(void);
 extern DH *dh_new_group14(void);
+extern DH *dh_new_group15(void);
 extern DH *dh_new_group16(void);
 extern int kex_dh_hash(BYTE *digest, LPCSTR client_version_string, LPCSTR server_version_string, LPBYTE ckexinit, int ckexinitlen, LPBYTE skexinit, int skexinitlen, LPBYTE serverhostkeyblob, int sbloblen, BIGNUM *client_dh_pub, BIGNUM *server_dh_pub, BIGNUM *shared_secret, const EVP_MD *evp_md);
 extern int dh_estimate(int bits);
@@ -824,6 +835,9 @@ extern u_char *derive_key(int id, int need, u_char *hash, int hashlen, BIGNUM *s
 extern void *mm_zalloc(void *mm, unsigned int ncount, unsigned int size);
 extern void mm_zfree(void *mm, void *address);
 extern void rand_buf(void *buf, int len);
+extern int rand_int(int n);
+extern long rand_long(long n);
+extern double rand_double();
 
 extern struct umac_ctx *UMAC_open(int len);
 extern void UMAC_init(struct umac_ctx *ctx, u_char *key, int len);

@@ -63,7 +63,6 @@ public:
 	CCommandLineInfoEx *m_pCmdInfo;
 	CServerEntry *m_pServerEntry;
 	BOOL m_bLookCast;
-	int m_WinVersion;
 	CString m_LocalPass;
 
 #ifdef	USE_KEYMACGLOBAL
@@ -140,6 +139,7 @@ public:
 
 	static BOOL IsRLoginWnd(HWND hWnd);
 	static HWND GetRLoginFromPoint(CPoint point);
+	static BOOL IsWinVerCheck(int ver, int op = VER_EQUAL);	// VER_GREATER_EQUAL
 
 	CRLoginApp();
 
@@ -166,3 +166,6 @@ public:
 extern CRLoginApp theApp;
 extern BOOL ExDwmEnable;
 extern void ExDwmEnableWindow(HWND hWnd, BOOL bEnable);
+
+extern BOOL (__stdcall *ExAddClipboardFormatListener)(HWND hwnd);
+extern BOOL (__stdcall *ExRemoveClipboardFormatListener)(HWND hwnd);

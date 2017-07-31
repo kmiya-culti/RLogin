@@ -88,7 +88,6 @@ public:
 	inline BOOL IsClipLineMode() { return (m_ClipKeyFlags & (MK_SHIFT | 0x1000)); }
 	int GetClipboard(CBuffer *bp);
 	int SetClipboard(CBuffer *bp);
-	int SetClipboardText(LPCTSTR str);
 
 	BOOL m_KeyMacFlag;
 	CBuffer m_KeyMacBuf;

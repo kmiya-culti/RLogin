@@ -22,6 +22,7 @@ public:
 	CStringArrayExt m_IdKeyList;
 	CStringArrayExt m_PortFwd;
 	CString m_XDisplay;
+	int m_RsaExt;
 
 public:
 	void DoInit();
@@ -37,11 +38,11 @@ public:
 
 // インプリメンテーション
 protected:
+	DECLARE_MESSAGE_MAP()
 	afx_msg void OnSshAlgo();
 	afx_msg void OnSshIdkey();
 	afx_msg void OnSshPfd();
 	afx_msg void OnSshTtyMode();
 	afx_msg void OnUpdateCheck(UINT nId);
 	afx_msg void OnUpdateEdit();
-	DECLARE_MESSAGE_MAP()
 };

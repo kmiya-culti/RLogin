@@ -12,6 +12,7 @@
 //#define	USE_CLEFIA
 //#define	USE_DIRECTWRITE
 //#define	USE_DEBUGLOG
+#define	USE_OLE
 
 #define	USE_KEYMACGLOBAL
 #define	USE_BCASTGLOBAL

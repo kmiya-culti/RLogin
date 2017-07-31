@@ -128,6 +128,68 @@ public:
 	~CFileNode();
 };
 
+class CCmdQue : public CObject
+{
+public:
+	DWORD m_ExtId;
+	CTime m_SendTime;
+	CBuffer m_Msg;
+	int (CSFtp::*m_Func)(int type, CBuffer *bp, class CCmdQue *pQue);
+	int (CSFtp::*m_EndFunc)(int st, CCmdQue *pQue);
+	CBuffer m_Handle;
+	LONGLONG m_Offset;
+	LONGLONG m_Size;
+	LONGLONG m_NextOfs;
+	int m_Len;
+	int m_Max;
+	int m_Fd;
+	CString m_Path;
+	CString m_CopyPath;
+	CArray<CFileNode, CFileNode &> m_FileNode;
+	CArray<CFileNode, CFileNode &> m_SaveNode;
+	class CCmdQue *m_pOwner;
+	CBuffer m_MemData;
+
+	CCmdQue();
+};
+
+#ifdef	USE_OLE
+class CSFtpDataSource : public COleDataSource
+{
+public:
+	CWnd *m_pWnd;
+
+	CSFtpDataSource(CWnd *pWnd);
+	~CSFtpDataSource();
+
+	virtual BOOL OnRenderGlobalData(LPFORMATETC lpFormatEtc, HGLOBAL *phGlobal);
+};
+
+class CSFtpDropSource : public COleDropSource 
+{
+public:
+	CSFtpDropSource();
+	~CSFtpDropSource();
+
+	virtual SCODE QueryContinueDrag(BOOL bEscapePressed, DWORD dwKeyState);
+	virtual SCODE GiveFeedback(DROPEFFECT dropEffect);
+};
+
+class CSFtpDropTarget : public COleDropTarget
+{
+public:
+	CSFtpDropTarget();
+	~CSFtpDropTarget();
+
+	virtual DROPEFFECT OnDragEnter(CWnd* pWnd, COleDataObject* pDataObject, DWORD dwKeyState, CPoint point);
+	virtual DROPEFFECT OnDragOver(CWnd* pWnd, COleDataObject* pDataObject, DWORD dwKeyState, CPoint point);
+	virtual BOOL OnDrop(CWnd* pWnd, COleDataObject* pDataObject, DROPEFFECT dropEffect, CPoint point);
+	//virtual DROPEFFECT OnDropEx(CWnd* pWnd, COleDataObject* pDataObject, DROPEFFECT dropDefault, DROPEFFECT dropList, CPoint point);
+	//virtual void OnDragLeave(CWnd* pWnd);
+	//virtual DROPEFFECT OnDragScroll(CWnd* pWnd, DWORD dwKeyState, CPoint point);
+};
+#endif	// USE_OLE
+
 #define	SENDCMD_NOWAIT	0
 #define	SENDCMD_HEAD	1
 #define	SENDCMD_TAIL	2
@@ -177,12 +239,19 @@ public:
 
 	BOOL m_bDragList;
 	HWND m_hDragWnd;
+	int m_DragImage;
+	int m_DragAcvite;
 	int m_DoUpdate;
 	BOOL m_DoAbort;
 	int m_DoExec;
 	CBuffer m_RecvBuf;
 	int m_AutoRenMode;
 	HICON m_hIcon;
+	int m_bShellExec[2];
+
+#ifdef	USE_OLE
+	CSFtpDropTarget m_DropTarget;
+#endif
 
 	void OnConnect();
 	int OnRecive(const void *lpBuf, int nBufLen);
@@ -234,10 +303,11 @@ public:
 	void RemoteDeleteDir(LPCTSTR path);
 	void RemoteCacheDir(LPCTSTR path);
 
+	int RemoteEndofExec(int st, class CCmdQue *pQue);
 	int RemoteCloseReadRes(int type, CBuffer *bp, class CCmdQue *pQue);
 	int RemoteDataReadRes(int type, CBuffer *bp, class CCmdQue *pQue);
 	int RemoteOpenReadRes(int type, CBuffer *bp, class CCmdQue *pQue);
-	void DownLoadFile(CFileNode *pNode, LPCTSTR file);
+	void DownLoadFile(CFileNode *pNode, LPCTSTR file, BOOL bShellExec = FALSE);
 
 	int RemoteCloseMemReadRes(int type, CBuffer *bp, class CCmdQue *pQue);
 	int RemoteDataMemReadRes(int type, CBuffer *bp, class CCmdQue *pQue);
@@ -252,11 +322,14 @@ public:
 	int RemoteStatWriteRes(int type, CBuffer *bp, class CCmdQue *pQue);
 	void UpLoadFile(CFileNode *pNode, LPCTSTR file);
 
+	int LocalCopy(LPCTSTR src, LPCTSTR dis, BOOL bMove);
 	int LocalDelete(LPCTSTR path);
 	int LocalSetCwd(LPCTSTR path);
 	void LocalUpdateCwd(LPCTSTR path);
+	HDROP LocalDropInfo();
+	int LocalSelectCount();
 
-	int DropFiles(HWND hWnd, HDROP hDropInfo);
+	int DropFiles(HWND hWnd, HDROP hDropInfo, DROPEFFECT dropEffect);
 
 	CStringList m_LocalCwdHis;
 	CStringList m_RemoteCwdHis;
@@ -297,32 +370,18 @@ protected:
 
 // インプリメンテーション
 protected:
-	afx_msg HCURSOR OnQueryDragIcon();
-	afx_msg BOOL OnToolTipText(UINT, NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg LRESULT OnReciveBuffer(WPARAM wParam, LPARAM lParam);
+	DECLARE_MESSAGE_MAP()
 	afx_msg void OnClose();
 	afx_msg void OnDestroy();
 	afx_msg void OnPaint();
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
+	afx_msg HCURSOR OnQueryDragIcon();
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
-
+	afx_msg LRESULT OnReciveBuffer(WPARAM wParam, LPARAM lParam);
 	afx_msg void OnLocalUp();
 	afx_msg void OnRemoteUp();
-	afx_msg void OnSelendokLocalCwd();
-	afx_msg void OnSelendokRemoteCwd();
-	afx_msg void OnKillfocusLocalCwd();
-	afx_msg void OnKillfocusRemoteCwd();
-	afx_msg void OnDblclkLocalList(NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnDblclkRemoteList(NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnColumnclickLocalList(NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnColumnclickRemoteList(NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnBegindragLocalList(NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnBegindragRemoteList(NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnSftpClose();
-	afx_msg void OnRclickLocalList(NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnRclickRemoteList(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnSftpDelete();
 	afx_msg void OnSftpMkdir();
 	afx_msg void OnSftpChmod();
@@ -333,31 +392,22 @@ protected:
 	afx_msg void OnSftpAbort();
 	afx_msg void OnSftpRename();
 	afx_msg void OnSftpReflesh();
+	afx_msg void OnSftpClose();
 	afx_msg void OnSftpUidgid();
-	DECLARE_MESSAGE_MAP()
+	afx_msg void OnSelendokLocalCwd();
+	afx_msg void OnSelendokRemoteCwd();
+	afx_msg void OnKillfocusLocalCwd();
+	afx_msg void OnKillfocusRemoteCwd();
+	afx_msg void OnEditCopy();
+	afx_msg void OnEditPaste();
+	afx_msg void OnDblclkLocalList(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnDblclkRemoteList(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnColumnclickLocalList(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnColumnclickRemoteList(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnBegindragLocalList(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnBegindragRemoteList(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnRclickLocalList(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnRclickRemoteList(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg BOOL OnToolTipText(UINT, NMHDR* pNMHDR, LRESULT* pResult);
 };
 
-class CCmdQue : public CObject
-{
-public:
-	DWORD m_ExtId;
-	CTime m_SendTime;
-	CBuffer m_Msg;
-	int (CSFtp::*m_Func)(int type, CBuffer *bp, class CCmdQue *pQue);
-	int (CSFtp::*m_EndFunc)(int st, CCmdQue *pQue);
-	CBuffer m_Handle;
-	LONGLONG m_Offset;
-	LONGLONG m_Size;
-	LONGLONG m_NextOfs;
-	int m_Len;
-	int m_Max;
-	int m_Fd;
-	CString m_Path;
-	CString m_CopyPath;
-	CArray<CFileNode, CFileNode &> m_FileNode;
-	CArray<CFileNode, CFileNode &> m_SaveNode;
-	class CCmdQue *m_pOwner;
-	CBuffer m_MemData;
-
-	CCmdQue();
-};

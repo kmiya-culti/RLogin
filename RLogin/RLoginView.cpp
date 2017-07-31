@@ -754,70 +754,17 @@ void CRLoginView::SetGhostWnd(BOOL sw)
 }
 int CRLoginView::GetClipboard(CBuffer *bp)
 {
-	HGLOBAL hData;
-	TCHAR *pData;
 	CStringA buf;
+	CString text;
 	CRLoginDoc *pDoc = GetDocument();
 
-	if ( !OpenClipboard() )
+	if ( !((CMainFrame *)AfxGetMainWnd())->GetClipboardText(text) )
 		return FALSE;
 
-#ifdef	_UNICODE
-	if ( (hData = GetClipboardData(CF_UNICODETEXT)) == NULL ) {
-#else
-	if ( (hData = GetClipboardData(CF_TEXT)) == NULL ) {
-#endif
-		CloseClipboard();
-		return FALSE;
-	}
-
-	if ( (pData = (TCHAR *)GlobalLock(hData)) == NULL ) {
-        CloseClipboard();
-        return FALSE;
-    }
-
-	pDoc->m_TextRam.m_IConv.StrToRemote(pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode], pData, buf);
+	pDoc->m_TextRam.m_IConv.StrToRemote(pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode], text, buf);
 	bp->Apend((LPBYTE)(LPCSTR)buf, buf.GetLength());
 
-	GlobalUnlock(hData);
-	CloseClipboard();
-
 	return TRUE;
-}
-int CRLoginView::SetClipboardText(LPCTSTR str)
-{
-	HGLOBAL hClipData;
-	TCHAR *pData;
-
-	if ( (hClipData = GlobalAlloc(GMEM_MOVEABLE, (_tcslen(str) + 1) * sizeof(TCHAR))) == NULL )
-		return FALSE;
-
-	if ( (pData = (TCHAR *)GlobalLock(hClipData)) == NULL )
-		goto ENDOF;
-
-	_tcscpy(pData, str);
-	GlobalUnlock(hClipData);
-
-	if ( !OpenClipboard() )
-		goto ENDOF;
-
-	if ( !EmptyClipboard() ) {
-		CloseClipboard();
-		goto ENDOF;
-	}
-
-#ifdef	_UNICODE
-	SetClipboardData(CF_UNICODETEXT, hClipData);
-#else
-	SetClipboardData(CF_TEXT, hClipData);
-#endif
-
-	CloseClipboard();
-	return TRUE;
-
-ENDOF:
-	GlobalFree(hClipData);
-	return FALSE;
 }
 int CRLoginView::SetClipboard(CBuffer *bp)
 {
@@ -825,7 +772,9 @@ int CRLoginView::SetClipboard(CBuffer *bp)
 	CRLoginDoc *pDoc = GetDocument();
 
 	pDoc->m_TextRam.m_IConv.RemoteToStr(pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode], (LPCSTR)*bp, buf);
-	return SetClipboardText(buf);
+	((CMainFrame *)AfxGetMainWnd())->SetClipboardText(buf);
+
+	return TRUE;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -986,6 +935,11 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 	case UPDATE_WAKEUP:
 		m_SleepCount = 0;
 		return;
+
+	case UPDATE_SCROLLOUT:
+		m_HisOfs = 0;
+		lHint = UPDATE_INVALIDATE;
+		break;
 	}
 
 	if ( (m_DispCaret & FGCARET_FOCUS) != 0 && pSender != this && m_ScrollOut == FALSE &&
@@ -2461,8 +2415,10 @@ BOOL CRLoginView::SendPasteText(LPCWSTR wstr)
 			pDoc->SetModifiedFlag(TRUE);
 		}
 
-		if ( dlg.m_bUpdateText )
-			rt = SetClipboardText(dlg.m_EditText);
+		if ( dlg.m_bUpdateText ) {
+			((CMainFrame *)::AfxGetMainWnd())->SetClipboardText(dlg.m_EditText);
+			rt = TRUE;
+		}
 	}
 
 	if ( pDoc->m_TextRam.IsOptEnable(TO_XTBRPAMD) )
@@ -2482,33 +2438,27 @@ BOOL CRLoginView::SendPasteText(LPCWSTR wstr)
 }
 void CRLoginView::OnEditPaste() 
 {
-	HGLOBAL hData;
-	LPCWSTR pData;
-	CStringW wstr;
+	CString text;
+	HDROP hData;
+	CRLoginDoc *pDoc = GetDocument();
 
-	if ( !OpenClipboard() )
-		return;
-
-	if ( (hData = GetClipboardData(CF_UNICODETEXT)) == NULL ) {
+	if ( IsClipboardFormatAvailable(CF_HDROP) ) {
+		if ( pDoc->m_TextRam.m_DropFileMode == 0 || pDoc->m_TextRam.m_DropFileCmd[pDoc->m_TextRam.m_DropFileMode].IsEmpty() )
+			return;
+		if ( MessageBox(CStringLoad(IDS_CLIPBOARDDROP), _T("Question"), MB_ICONQUESTION | MB_YESNO) != IDYES )
+			return;
+		if ( !OpenClipboard() )
+			return;
+		if ( (hData = (HDROP)GetClipboardData(CF_HDROP)) != NULL )
+			OnDropFiles(hData);
 		CloseClipboard();
-		return;
-	}
 
-	if ( (pData = (WCHAR *)GlobalLock(hData)) == NULL ) {
-        CloseClipboard();
-        return;
-    }
-
-	wstr = pData;
-
-	GlobalUnlock(hData);
-	CloseClipboard();
-
-	SendPasteText(wstr);
+	} else if ( ((CMainFrame *)AfxGetMainWnd())->GetClipboardText(text) )
+		SendPasteText(TstrToUni(text));
 }
 void CRLoginView::OnUpdateEditPaste(CCmdUI* pCmdUI) 
 {
-	pCmdUI->Enable(IsClipboardFormatAvailable(CF_UNICODETEXT) ? TRUE : FALSE);
+	pCmdUI->Enable(IsClipboardFormatAvailable(CF_UNICODETEXT) || IsClipboardFormatAvailable(CF_HDROP) ? TRUE : FALSE);
 }
 void CRLoginView::ClipboardPaste(UINT nID)
 {
@@ -2528,7 +2478,7 @@ void CRLoginView::ClipboardPaste(UINT nID)
 		// Global Clipboard Update
 		if ( pos != NULL ) {
 			if ( !SendPasteText(pMain->m_ClipBoard.GetAt(pos)) )
-				SetClipboardText(pMain->m_ClipBoard.GetAt(pos));
+				((CMainFrame *)::AfxGetMainWnd())->SetClipboardText(pMain->m_ClipBoard.GetAt(pos));
 		}
 
 		// Local Clipboard Update

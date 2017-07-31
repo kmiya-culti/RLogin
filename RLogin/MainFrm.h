@@ -85,6 +85,7 @@ public:
 #define	TIMERID_SLEEPMODE	1024
 #define	TIMERID_MIDIEVENT	1025
 #define	TIMERID_STATUSCLR	1026
+#define	TIMERID_CLIPUPDATE	1027
 #define	TIMERID_TIMEREVENT	1100
 
 class CTimerObject : public CObject
@@ -163,7 +164,9 @@ public:
 	int m_SplitType;
 	int m_ExecCount;
 	HMENU m_StartMenuHand;
+	BOOL m_bClipChain;
 	HWND m_hNextClipWnd;
+	CString m_ClipText;
 	BOOL m_bBroadCast;
 	CList<CStringW, CStringW &> m_ClipBoard;
 	int m_ScreenX;
@@ -227,6 +230,9 @@ public:
 	int GetExecCount();
 	void SetActivePoint(CPoint point);
 
+	BOOL GetClipboardText(CString &str);
+	BOOL SetClipboardText(LPCTSTR str);
+
 	CMenu *GetSaveMenu(HMENU hDocMenu);
 	void SetClipBoardMenu(UINT nId, CMenu *pMenu);
 	void SetMenuBitmap(CMenu *pMenu);
@@ -269,6 +275,7 @@ protected:
 
 	afx_msg void OnDrawClipboard();
 	afx_msg void OnChangeCbChain(HWND hWndRemove, HWND hWndAfter);
+	afx_msg void OnClipboardUpdate();
 
 	afx_msg void OnUpdateIndicatorSock(CCmdUI* pCmdUI);
 	afx_msg void OnUpdateIndicatorStat(CCmdUI* pCmdUI);
@@ -307,6 +314,7 @@ protected:
 	afx_msg void OnFileAllSave();
 	afx_msg void OnBroadcast();
 	afx_msg void OnUpdateBroadcast(CCmdUI *pCmdUI);
+	afx_msg void OnGetClipText();
 
 	afx_msg LRESULT OnWinSockSelect(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnGetHostAddr(WPARAM wParam, LPARAM lParam);

@@ -6,6 +6,10 @@
 /////////////////////////////////////////////////////////////////////////////
 // CPassDlg ダイアログ
 
+#define	PASSDLG_HOST	001
+#define	PASSDLG_USER	002
+#define	PASSDLG_PASS	004
+
 class CPassDlg : public CDialogExt
 {
 	DECLARE_DYNAMIC(CPassDlg)
@@ -21,6 +25,7 @@ public:
 	CProgressCtrl m_TimeLimit;
 	CComboBoxHis m_HostWnd;
 	CComboBoxHis m_UserWnd;
+	CEdit m_PassWnd;
 	CString m_HostAddr;
 	CString	m_UserName;
 	CString	m_PassName;
@@ -30,6 +35,7 @@ public:
 	CString m_Title;
 	int m_Counter;
 	int m_MaxTime;
+	int m_Enable;
 
 // オーバーライド
 protected:

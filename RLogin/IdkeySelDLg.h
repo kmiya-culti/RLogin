@@ -22,7 +22,7 @@ public:
 	enum { IDD = IDD_IDKEYSELDLG };
 
 public:
-	CProgressCtrl	m_KeyGenProg;
+	CProgressCtrl m_KeyGenProg;
 	CListCtrlExt m_List;
 	CString	m_Type;
 	CString	m_Bits;
@@ -61,6 +61,7 @@ protected:
 
 // インプリメンテーション
 protected:
+	DECLARE_MESSAGE_MAP()
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnIdkeyUp();
 	afx_msg void OnIdkeyDown();
@@ -75,7 +76,5 @@ protected:
 	afx_msg void OnEditCheck();
 	afx_msg void OnUpdateEditEntry(CCmdUI* pCmdUI);
 	afx_msg void OnLvnItemchangedIdkeyList(NMHDR *pNMHDR, LRESULT *pResult);
-	DECLARE_MESSAGE_MAP()
-public:
 	afx_msg void OnIdkeyCakey();
 };

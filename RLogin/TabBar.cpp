@@ -458,6 +458,7 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 				pMain->PostMessage(WM_COMMAND, IDM_DISPWINIDX);
 
 			} else if ( hit == (-2) && bOtherMove ) {	// Other RLogin Exec
+				capos.y = capos.y - GetSystemMetrics(SM_CYCAPTION) / 2;
 				pApp->OpenRLogin(pDoc, &capos);
 			}
 

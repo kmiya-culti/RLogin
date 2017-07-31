@@ -55,6 +55,8 @@
 #define IDD_BLOCKDLG                    150
 #define IDD_ISO646DLG                   151
 #define IDD_EXTOPTPAGE                  152
+#define IDD_DIALOG2                     156
+#define IDD_MSGDLG                      156
 #define IDR_GRAPWND                     300
 #define IDR_MAINFRAME                   301
 #define IDR_POPUPMENU                   302
@@ -130,6 +132,10 @@
 #define IDS_PASSLOCKINITMSG             547
 #define IDS_PASSLOCKOPENMSG             548
 #define IDS_PASSLOCKRETRYMSG            549
+#define IDS_SFTPREMOTEEXEC              550
+#define IDS_SFTPLOCALEXEC               551
+#define IDS_CLIPBOARDDROP               552
+#define IDS_SOCKREOPEN                  553
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -206,6 +212,7 @@
 #define ID_VIEW_TABBAR                  1042
 #define ID_WINDOW_CLOSE                 1043
 #define ID_WINDOW_ROTATION              1044
+#define ID_GETCLIPBOARD                 1045
 #define IDC_ALGO_LIST1                  2000
 #define IDC_ALGO_LIST2                  2001
 #define IDC_ALGO_LIST3                  2002
@@ -646,6 +653,10 @@
 #define IDC_CTRLCONV2                   2428
 #define IDC_CTRLCONV3                   2429
 #define IDC_SHELLESC                    2430
+#define IDC_RSAEXTSEL                   2431
+#define IDC_MSGTEXT                     2433
+#define IDC_NOCHECK                     2434
+#define IDC_MSGFRAME                    2435
 #define IDM_BROADCAST                   5000
 #define IDM_CAP_CLIPBORD                5001
 #define IDM_CAP_EXPORT                  5002
@@ -744,14 +755,15 @@
 #define IDM_CLIPBOARD_MENU              5097
 #define IDM_LOOKCAST                    5098
 #define IDM_PASSWORDLOCK                5099
+#define IDM_REOPENSOCK                  5100
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        154
-#define _APS_NEXT_COMMAND_VALUE         5100
-#define _APS_NEXT_CONTROL_VALUE         2431
-#define _APS_NEXT_SYMED_VALUE           550
+#define _APS_NEXT_RESOURCE_VALUE        157
+#define _APS_NEXT_COMMAND_VALUE         5101
+#define _APS_NEXT_CONTROL_VALUE         2436
+#define _APS_NEXT_SYMED_VALUE           553
 #endif
 #endif

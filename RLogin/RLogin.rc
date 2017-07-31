@@ -346,11 +346,14 @@ BEGIN
     END
     POPUP "操作"
     BEGIN
+        MENUITEM "コピー(&C)\tCtrl+C",             ID_EDIT_COPY
+        MENUITEM "貼り付け(&P)\tCtrl+V",            ID_EDIT_PASTE
+        MENUITEM SEPARATOR
         MENUITEM "ファイルのアップロード(&U)",             IDM_SFTP_UPLOAD
         MENUITEM "ファイルのダウンロード(&D)",             IDM_SFTP_DOWNLOAD
         MENUITEM SEPARATOR
         MENUITEM "フォルダの作成(&M)",                 IDM_SFTP_MKDIR
-        MENUITEM "ファイルの削除(&X)",                 IDM_SFTP_DELETE
+        MENUITEM "ファイルの削除(&X)\tDel",            IDM_SFTP_DELETE
         MENUITEM "ファイル名の変更(&N)",                IDM_SFTP_RENAME
         MENUITEM "ファイル属性の変更(&A)",               IDM_SFTP_CHMOD
         MENUITEM SEPARATOR
@@ -495,7 +498,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.19.7 (2015/12/04)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.19.8 (2015/12/22)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2015 Culti",IDC_STATIC,44,16,189,8
     DEFPUSHBUTTON   "OK",IDOK,96,171,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.2e 3 Dec 2015",IDC_STATIC,44,29,189,8
@@ -592,10 +595,10 @@ FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     PUSHBUTTON      "..",IDC_LOCAL_UP,7,7,16,14
     COMBOBOX        IDC_LOCAL_CWD,27,7,200,150,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "List1",IDC_LOCAL_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | WS_TABSTOP,7,25,220,175,WS_EX_ACCEPTFILES | WS_EX_CLIENTEDGE
+    CONTROL         "List1",IDC_LOCAL_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | WS_TABSTOP,7,25,220,175,WS_EX_CLIENTEDGE
     PUSHBUTTON      "..",IDC_REMOTE_UP,232,7,16,14
     COMBOBOX        IDC_REMOTE_CWD,251,7,200,150,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "List1",IDC_REMOTE_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | WS_TABSTOP,231,25,220,175,WS_EX_ACCEPTFILES | WS_EX_CLIENTEDGE
+    CONTROL         "List1",IDC_REMOTE_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | WS_TABSTOP,231,25,220,175,WS_EX_CLIENTEDGE
     CONTROL         "Progress1",IDC_PROGRESS1,"msctls_progress32",0x0,231,206,137,14
     RTEXT           "",IDC_STATUS3,372,206,45,14,SS_CENTERIMAGE | SS_SUNKEN
     RTEXT           "",IDC_STATUS4,421,206,30,14,SS_CENTERIMAGE | SS_SUNKEN
@@ -752,13 +755,15 @@ BEGIN
     CONTROL         "ポートフォワードだけ行う （SSH2のみ）",IDC_PROTOCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,114,180,10
     CONTROL         "エージェント転送を有効にする(SSH2のみ)",IDC_PROTOCHECK6,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,132,180,10
     CONTROL         "KeepAliveパケットの送信間隔(sec)",IDC_PROTOCHECK7,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,150,180,10
-    EDITTEXT        IDC_KEEPALIVE,204,150,50,14,ES_AUTOHSCROLL
-    PUSHBUTTON      "暗号方式(&C)",IDC_SSHALGO,35,172,90,14
-    PUSHBUTTON      "認証キー(&K)",IDC_SSHIDKEY,144,172,90,14
-    PUSHBUTTON      "ポートフォワード(&P)",IDC_SSHPFD,35,192,90,14
-    PUSHBUTTON      "端末モード(&T)",IDC_SSHTTYMODE,144,192,90,14
+    EDITTEXT        IDC_KEEPALIVE,204,148,50,14,ES_AUTOHSCROLL
+    COMBOBOX        IDC_RSAEXTSEL,204,166,48,80,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "暗号方式(&C)",IDC_SSHALGO,35,190,90,14
+    PUSHBUTTON      "認証キー(&K)",IDC_SSHIDKEY,144,190,90,14
+    PUSHBUTTON      "ポートフォワード(&P)",IDC_SSHPFD,35,210,90,14
+    PUSHBUTTON      "端末モード(&T)",IDC_SSHTTYMODE,144,210,90,14
     GROUPBOX        "TELNET",IDC_STATIC,7,7,256,67
-    GROUPBOX        "SSH",IDC_STATIC,7,81,256,135
+    GROUPBOX        "SSH",IDC_STATIC,7,81,256,152
+    LTEXT           "RSA2認証鍵の署名方式を拡張(サーバーの対応が必要)",IDC_STATIC,17,169,180,10
 END
 
 IDD_PFDPARADLG DIALOGEX 0, 0, 205, 167
@@ -999,7 +1004,7 @@ BEGIN
     EDITTEXT        IDC_MESSAGE,16,38,235,14,ES_AUTOHSCROLL | ES_READONLY
 END
 
-IDD_IDKEYSELDLG DIALOGEX 0, 0, 253, 271
+IDD_IDKEYSELDLG DIALOGEX 0, 0, 255, 275
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "認証キー"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
@@ -1014,17 +1019,17 @@ BEGIN
     COMBOBOX        IDC_IDKEY_BITS,188,178,50,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     EDITTEXT        IDC_IDKEY_NAME,188,194,50,14,ES_AUTOHSCROLL
     PUSHBUTTON      "作成",IDC_IDKEY_CREATE,188,212,50,14
-    DEFPUSHBUTTON   "閉じる",IDOK,101,250,50,14
-    GROUPBOX        "ファイル",IDC_STATIC,7,102,239,47
-    GROUPBOX        "新規",IDC_STATIC,7,152,239,95
+    DEFPUSHBUTTON   "閉じる",IDOK,101,253,50,14
+    GROUPBOX        "ファイル",IDC_STATIC,7,102,241,47
+    GROUPBOX        "新規",IDC_STATIC,7,152,241,95
     LTEXT           "SSH1はRSA1のみ、SSH2はRSA2/DSA2を選択",IDC_STATIC,17,164,161,8
     LTEXT           "任意の名前が指定できます",IDC_STATIC,17,196,161,8
     LTEXT           "上記の条件で認証キーを作成します",IDC_STATIC,17,214,161,8
     LTEXT           "認証キーのビットサイズを指定します",IDC_STATIC,17,180,161,8
-    LTEXT           "ファイルから認証キーを読み込みます",IDC_STATIC,17,115,161,8
-    LTEXT           "ファイルに認証キーを保存します",IDC_STATIC,17,131,161,8
-    GROUPBOX        "認証キーリスト",IDC_STATIC,7,7,239,92
-    CONTROL         "Progress1",IDC_IDKEY_PROG,"msctls_progress32",0x0,15,231,222,10
+    LTEXT           "ファイルから認証キーを読み込みます",IDC_STATIC,17,116,161,8
+    LTEXT           "ファイルに認証キーを保存します",IDC_STATIC,17,132,161,8
+    GROUPBOX        "認証キーリスト",IDC_STATIC,7,7,241,91
+    CONTROL         "Progress1",IDC_IDKEY_PROG,"msctls_progress32",0x0,15,232,222,10
 END
 
 IDD_SERENTPAGE DIALOGEX 0, 0, 270, 280
@@ -1619,6 +1624,19 @@ BEGIN
     LTEXT           "要望のあったオプションや試験的な実装を試すことができます",IDC_STATIC,15,23,240,8
 END
 
+IDD_MSGDLG DIALOGEX 0, 0, 315, 114
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Dialog"
+FONT 9, "MS UI Gothic", 400, 0, 0x80
+BEGIN
+    CONTROL         "",IDC_STATIC,"Static",SS_WHITERECT,0,0,314,83
+    DEFPUSHBUTTON   "はい(&Y)",IDOK,199,91,50,16
+    PUSHBUTTON      "いいえ(&N)",IDCANCEL,258,91,50,16
+    CONTROL         "次回から、この確認を行わない",IDC_NOCHECK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,47,93,98,10
+    ICON            "",IDC_ICONBOX,20,20,20,20,0,WS_EX_TRANSPARENT
+    LTEXT           "",IDC_MSGTEXT,46,20,240,40,0,WS_EX_TRANSPARENT
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1626,8 +1644,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,19,7,0
- PRODUCTVERSION 2,19,7,0
+ FILEVERSION 2,19,8,0
+ PRODUCTVERSION 2,19,8,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1644,12 +1662,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.19.7.0"
+            VALUE "FileVersion", "2.19.8.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2015 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.19.7.0"
+            VALUE "ProductVersion", "2.19.8.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -1830,9 +1848,9 @@ BEGIN
     IDD_IDKEYSELDLG, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 246
+        RIGHTMARGIN, 248
         TOPMARGIN, 7
-        BOTTOMMARGIN, 264
+        BOTTOMMARGIN, 268
     END
 
     IDD_SERENTPAGE, DIALOG
@@ -2071,6 +2089,14 @@ BEGIN
         RIGHTMARGIN, 263
         TOPMARGIN, 7
         BOTTOMMARGIN, 273
+    END
+
+    IDD_MSGDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 308
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 107
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -2922,6 +2948,17 @@ BEGIN
     0
 END
 
+IDD_PROTOPAGE DLGINIT
+BEGIN
+    IDC_RSAEXTSEL, 0x403, 5, 0
+0x5795, 0x808f, "\000" 
+    IDC_RSAEXTSEL, 0x403, 9, 0
+0x4853, 0x3241, 0x322d, 0x3635, "\000" 
+    IDC_RSAEXTSEL, 0x403, 9, 0
+0x4853, 0x3241, 0x352d, 0x3231, "\000" 
+    0
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -3026,6 +3063,10 @@ BEGIN
     IDS_PASSLOCKINITMSG     "パスワードロックを設定しますか？\n接続時にパスワードを要求する場合があります\nロックで使用するパスワードを入力してください"
     IDS_PASSLOCKOPENMSG     "パスワードロックが設定されています\n起動・接続するには正しいパスワードを入力してください"
     IDS_PASSLOCKRETRYMSG    "\n正しいパスワードを入力してください"
+    IDS_SFTPREMOTEEXEC      "この'%s'ファイルを左のローカルフォルダにダウンロードして実行しますか？ファイルの種類によっては、セキュリティ的に問題になるかもしれません。十分に注意してください"
+    IDS_SFTPLOCALEXEC       "この'%s'ファイルを実行しますか？ファイルの種類によっては、セキュリティ的に問題になるかもしれません。十分に注意してください"
+    IDS_CLIPBOARDDROP       "クリップボード経由でファイルを転送しますか？"
+	IDS_SOCKREOPEN          "接続が切れました。再接続しますか？"
 END
 
 STRINGTABLE

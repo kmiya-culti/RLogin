@@ -4677,16 +4677,14 @@ static LPCTSTR InitAlgo[12]= {
 	META_CLEFIA_STRING \
 	_T("none"),
 
-	_T("hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,") \
-	_T("hmac-md5-etm@openssh.com,hmac-sha1-etm@openssh.com,") \
-	_T("hmac-sha2-512,hmac-sha2-512-96,hmac-sha2-256,hmac-sha2-256-96,") \
-	_T("hmac-md5,hmac-md5-96,hmac-sha1,hmac-sha1-96,") \
-	_T("hmac-ripemd160,hmac-whirlpool,") \
+	_T("hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com,") \
+	_T("hmac-sha1-etm@openssh.com,hmac-md5-etm@openssh.com,") \
 	_T("umac-64-etm@openssh.com,umac-128-etm@openssh.com,") \
+	_T("hmac-sha2-256,hmac-sha2-256-96,hmac-sha2-512,hmac-sha2-512-96,") \
+	_T("hmac-sha1,hmac-sha1-96,hmac-md5,hmac-md5-96,") \
+	_T("hmac-ripemd160,hmac-whirlpool,") \
 	_T("umac-64@openssh.com,umac-128@openssh.com,") \
-	_T("umac-128,umac-96,umac-64,umac-32,") \
-	META_AEAD_STRING \
-	_T("chacha20-poly1305@openssh.com"),
+	_T("umac-128,umac-96,umac-64,umac-32"),
 
 	_T("zlib@openssh.com,zlib,none"),
 
@@ -4705,30 +4703,27 @@ static LPCTSTR InitAlgo[12]= {
 	META_CLEFIA_STRING \
 	_T("none"),
 
-	_T("hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,") \
-	_T("hmac-md5-etm@openssh.com,hmac-sha1-etm@openssh.com,") \
-	_T("hmac-sha2-512,hmac-sha2-512-96,hmac-sha2-256,hmac-sha2-256-96,") \
-	_T("hmac-md5,hmac-md5-96,hmac-sha1,hmac-sha1-96,") \
-	_T("hmac-ripemd160,hmac-whirlpool,") \
+	_T("hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com,") \
+	_T("hmac-sha1-etm@openssh.com,hmac-md5-etm@openssh.com,") \
 	_T("umac-64-etm@openssh.com,umac-128-etm@openssh.com,") \
+	_T("hmac-sha2-256,hmac-sha2-256-96,hmac-sha2-512,hmac-sha2-512-96,") \
+	_T("hmac-sha1,hmac-sha1-96,hmac-md5,hmac-md5-96,") \
+	_T("hmac-ripemd160,hmac-whirlpool,") \
 	_T("umac-64@openssh.com,umac-128@openssh.com,") \
-	_T("umac-128,umac-96,umac-64,umac-32,") \
-	META_AEAD_STRING \
-	_T("chacha20-poly1305@openssh.com"),
+	_T("umac-128,umac-96,umac-64,umac-32"),
 
 	_T("zlib@openssh.com,zlib,none"),
 
 	_T("curve25519-sha256,curve25519-sha256@libssh.org,") \
 	_T("ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256,") \
 	_T("diffie-hellman-group-exchange-sha256,diffie-hellman-group-exchange-sha1,") \
+	_T("diffie-hellman-group14-sha256,diffie-hellman-group15-sha256,diffie-hellman-group16-sha256,") \
 	_T("diffie-hellman-group14-sha1,diffie-hellman-group1-sha1"),
 
 	_T("ecdsa-sha2-nistp256-cert-v01@openssh.com,ecdsa-sha2-nistp384-cert-v01@openssh.com,ecdsa-sha2-nistp521-cert-v01@openssh.com,") \
 	_T("ssh-ed25519-cert-v01@openssh.com,ssh-rsa-cert-v01@openssh.com,ssh-dss-cert-v01@openssh.com,") \
-	_T("ecdsa-sha2-nistp256-cert-v00@openssh.com,ecdsa-sha2-nistp384-cert-v00@openssh.com,ecdsa-sha2-nistp521-cert-v00@openssh.com,") \
-	_T("ssh-ed25519-cert-v00@openssh.com,ssh-rsa-cert-v00@openssh.com,ssh-dss-cert-v00@openssh.com,") \
 	_T("ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,") \
-	_T("ssh-ed25519,ssh-rsa,ssh-dss"),
+	_T("ssh-ed25519,rsa-sha2-512,rsa-sha2-256,ssh-rsa,ssh-dss"),
 
 	_T("publickey,hostbased,password,keyboard-interactive"),
 };
@@ -4782,6 +4777,8 @@ void CParamTab::Init()
 	m_TtyMode.RemoveAll();
 	for ( n = 0 ; def_ttymode[n].opcode != 0 ; n++ )
 		m_TtyMode.Add(def_ttymode[n]);
+
+	m_RsaExt = 0;
 }
 void CParamTab::SetArray(CStringArrayExt &stra)
 {
@@ -4819,8 +4816,9 @@ void CParamTab::SetArray(CStringArrayExt &stra)
 		fmt.Format(_T("%d=%d,"), m_TtyMode[n].opcode, m_TtyMode[n].param);
 		str += fmt;
 	}
-
 	stra.Add(str);
+
+	stra.AddVal(m_RsaExt);
 }
 void CParamTab::GetArray(CStringArrayExt &stra)
 {
@@ -4929,6 +4927,10 @@ void CParamTab::GetArray(CStringArrayExt &stra)
 		}
 	}
 
+	if ( stra.GetSize() > i )
+		m_RsaExt = stra.GetVal(i++);
+
+	// Fix IdKeyList
 	if ( m_IdKeyStr[0].Compare(_T("IdKeyList Entry")) == 0 ) {
 		m_IdKeyList.GetString(m_IdKeyStr[1]);
 		for ( n = 0 ; n < 9 ; n++ )
@@ -4996,6 +4998,8 @@ void CParamTab::SetIndex(int mode, CStringIndex &index)
 			index[_T("TtyMode")][n].Add(m_TtyMode[n].param);
 		}
 
+		index[_T("RsaExt")] = m_RsaExt;
+
 	} else {			// Read
 		if ( (n = index.Find(_T("Algo"))) >= 0 ) {
 			for ( int a = 0 ; a < 12 ; a++ ) {
@@ -5054,6 +5058,9 @@ void CParamTab::SetIndex(int mode, CStringIndex &index)
 					m_TtyMode.Add(node);
 			}
 		}
+
+		if ( (n = index.Find(_T("RsaExt"))) >= 0 )
+			m_RsaExt = index[n];
 	}
 }
 
@@ -5063,6 +5070,7 @@ static const ScriptCmdsDefs DocSsh[] = {
 	{	"XDisplay",		3	},
 	{	"Environ",		4	},
 	{	"TtyMode",		17	},
+	{	"RsaExt",		18	},
 	{	NULL,			0	},
 }, DocSshProtocol[] = {
 	{	"ssh1Cip",		5	},
@@ -5199,20 +5207,33 @@ void CParamTab::ScriptValue(int cmds, class CScriptValue &value, int mode)
 			}
 		}
 		break;
+
+	case 18:				// Document.ssh.RsaExt
+		value.SetInt(m_RsaExt, mode);
+		break;
 	}
 }
 void CParamTab::GetProp(int num, CString &str, int shuffle)
 {
+	int n, a, b, c, mx = 0;
+	int *tab;
+
 	str = _T("");
 	if ( num < 0 || num >= 12 )
 		return;
 
 	if ( shuffle ) {
-		int n, a, b, c, mx = (int)m_AlgoTab[num].GetSize();
-		int *tab = new int[mx];
+		for ( mx = 0 ; mx < (int)m_AlgoTab[num].GetSize() ; mx++ ) {
+			if ( m_AlgoTab[num][mx].Compare(_T("none")) == 0 )
+				break;
+		}
+	}
+
+	if ( mx > 1 ) {
+		tab = new int[mx];
 		for ( n = 0 ; n < mx ; n++ )
 			tab[n] = n;
-		for ( n = 0 ; n < (mx * 32) ; n++ ) {
+		for ( n = 0 ; n < (mx * 8) ; n++ ) {
 			a = rand() % mx;
 			b = rand() % mx;
 			c = tab[a]; tab[a] = tab[b]; tab[b] = c;
@@ -5223,6 +5244,7 @@ void CParamTab::GetProp(int num, CString &str, int shuffle)
 			str += m_AlgoTab[num][tab[n]];
 		}
 		delete [] tab;
+
 	} else {
 		for ( int i = 0 ; i < m_AlgoTab[num].GetSize() ; i++ ) {
 			if ( i > 0 )
@@ -5257,6 +5279,7 @@ const CParamTab & CParamTab::operator = (CParamTab &data)
 	m_TtyMode.SetSize(data.m_TtyMode.GetSize());
 	for ( n = 0 ; n < data.m_TtyMode.GetSize() ; n++ )
 		m_TtyMode[n] = data.m_TtyMode[n];
+	m_RsaExt = data.m_RsaExt;
 	return *this;
 }
 

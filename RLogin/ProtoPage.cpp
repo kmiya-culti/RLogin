@@ -38,6 +38,7 @@ CProtoPage::CProtoPage() : CTreePage(CProtoPage::IDD)
 	m_KeepAlive = 0;
 	for ( int n = 0 ; n < CHECKOPTMAX + CHECKOPTEXT ; n++ )
 		m_Check[n] = FALSE;
+	m_RsaExt = 0;
 }
 
 CProtoPage::~CProtoPage()
@@ -51,6 +52,7 @@ void CProtoPage::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_KEEPALIVE, m_KeepAlive);
 	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
 		DDX_Check(pDX, IDC_PROTOCHECK1 + n, m_Check[n]);
+	DDX_CBIndex(pDX, IDC_RSAEXTSEL, m_RsaExt);
 }
 
 BEGIN_MESSAGE_MAP(CProtoPage, CTreePage)
@@ -60,6 +62,7 @@ BEGIN_MESSAGE_MAP(CProtoPage, CTreePage)
 	ON_BN_CLICKED(IDC_SSHTTYMODE, OnSshTtyMode)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_CHECKFAST, IDC_CHECKFAST + CHECKOPTMAX - 1, OnUpdateCheck)
 	ON_EN_CHANGE(IDC_DELAYMSEC, OnUpdateEdit)
+	ON_CBN_SELCHANGE(IDC_RSAEXTSEL, OnUpdateEdit)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -78,6 +81,7 @@ void CProtoPage::DoInit()
 	m_IdKeyList = m_pSheet->m_pParamTab->m_IdKeyList;
 	m_PortFwd   = m_pSheet->m_pParamTab->m_PortFwd;
 	m_XDisplay  = m_pSheet->m_pParamTab->m_XDisplay;
+	m_RsaExt    = m_pSheet->m_pParamTab->m_RsaExt;
 
 	UpdateData(FALSE);
 }
@@ -109,6 +113,7 @@ BOOL CProtoPage::OnApply()
 	m_pSheet->m_pParamTab->m_IdKeyList = m_IdKeyList;
 	m_pSheet->m_pParamTab->m_PortFwd   = m_PortFwd;
 	m_pSheet->m_pParamTab->m_XDisplay  = m_XDisplay;
+	m_pSheet->m_pParamTab->m_RsaExt    = m_RsaExt;
 
 	return TRUE;
 }
@@ -156,7 +161,7 @@ void CProtoPage::OnSshIdkey()
 	m_IdKeyList = dlg.m_IdKeyList;
 
 	SetModified(TRUE);
-	m_pSheet->m_ModFlag |= (UMOD_TEXTRAM | UMOD_PARAMTAB);
+	m_pSheet->m_ModFlag |= UMOD_PARAMTAB;
 }
 void CProtoPage::OnSshPfd() 
 {

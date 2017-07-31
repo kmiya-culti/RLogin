@@ -369,7 +369,7 @@ void CCommandLineInfoEx::GetString(CString &str)
 		str += tmp;
 	}
 
-	if ( !m_ReqDlg )
+	if ( m_ReqDlg )
 		str += _T(" /req");
 
 	//if ( m_InUse )
@@ -481,7 +481,6 @@ CRLoginApp::CRLoginApp()
 	m_NextSock = 0;
 	m_pServerEntry = NULL;
 	m_bLookCast = FALSE;
-	m_WinVersion = WINVER;
 	m_LocalPass.Empty();
 
 #ifdef	USE_DIRECTWRITE
@@ -506,6 +505,10 @@ CRLoginApp theApp;
 	HRESULT (__stdcall *ExDwmEnableBlurBehindWindow)(HWND hWnd, const DWM_BLURBEHIND* pBlurBehind) = NULL;
 	HRESULT (__stdcall *ExDwmExtendFrameIntoClientArea)(HWND hWnd, const MARGINS* pMarInset) = NULL;
 #endif
+	
+	HMODULE ExClipApi = NULL;
+	BOOL (__stdcall *ExAddClipboardFormatListener)(HWND hwnd) = NULL;
+	BOOL (__stdcall *ExRemoveClipboardFormatListener)(HWND hwnd) = NULL;
 
 void ExDwmEnableWindow(HWND hWnd, BOOL bEnable)
 {
@@ -596,7 +599,7 @@ void CRLoginApp::CreateJumpList(CServerEntryTab *pEntry)
 		pJumpList->Release();
 		return;
 	}
-	
+
 	if ( FAILED(pRemovedList->GetCount(&uMaxSlots)) )
 		uMaxSlots = 0;
 
@@ -698,7 +701,21 @@ BOOL CRLoginApp::InitLocalPass()
 
 	return FALSE;
 }
+BOOL CRLoginApp::IsWinVerCheck(int ver, int op)
+{
+    OSVERSIONINFOEX osvi;
+    DWORDLONG dwlConditionMask = 0;
 
+    ZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));
+    osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
+    osvi.dwMajorVersion = (BYTE)(ver >> 8);
+	osvi.dwMinorVersion = (BYTE)(ver);
+
+    VER_SET_CONDITION(dwlConditionMask, VER_MAJORVERSION, op);
+    VER_SET_CONDITION(dwlConditionMask, VER_MINORVERSION, op);
+
+    return VerifyVersionInfo(&osvi, VER_MAJORVERSION | VER_MINORVERSION, dwlConditionMask);
+}
 BOOL CRLoginApp::InitInstance()
 {
 	// デフォルトのロケールを設定 strftimeなどで必要
@@ -715,16 +732,24 @@ BOOL CRLoginApp::InitInstance()
 	InitCtrls.dwICC = ICC_WIN95_CLASSES;
 	InitCommonControlsEx(&InitCtrls);
 
+#ifdef	USE_OLE
+	//  OLEの初期化
+	if ( !AfxOleInit() )
+		return FALSE;
+#endif
+
+#if 0
 	// Windows Version取得	
 	OSVERSIONINFO VerInfo;
 	memset(&VerInfo, 0, sizeof(VerInfo));
 	VerInfo.dwOSVersionInfoSize = sizeof(VerInfo);
 	GetVersionEx(&VerInfo);
 
-	if ( VerInfo.dwPlatformId == VER_PLATFORM_WIN32_NT )
+	if ( VerInfo.dwPlatformId >= VER_PLATFORM_WIN32_NT )
 		m_WinVersion = (VerInfo.dwMajorVersion << 8) | VerInfo.dwMinorVersion;
 	else
 		m_WinVersion = _WIN32_WINDOWS_W98;	// XXXX
+#endif
 
 #ifdef	USE_COMINIT
 	// COMライブラリ初期化
@@ -801,10 +826,15 @@ BOOL CRLoginApp::InitInstance()
 		ExDwmEnableBlurBehindWindow    = (HRESULT (__stdcall *)(HWND hWnd, const DWM_BLURBEHIND* pBlurBehind))GetProcAddress(ExDwmApi, "DwmEnableBlurBehindWindow");
 		ExDwmExtendFrameIntoClientArea = (HRESULT (__stdcall *)(HWND hWnd, const MARGINS* pMarInset))GetProcAddress(ExDwmApi, "DwmExtendFrameIntoClientArea");
 
-		if ( (m_WinVersion == _WIN32_WINNT_VISTA || m_WinVersion == _WIN32_WINNT_WIN7) && ExDwmIsCompositionEnabled != NULL )
+		if ( (IsWinVerCheck(_WIN32_WINNT_VISTA) || IsWinVerCheck(_WIN32_WINNT_WIN7)) && ExDwmIsCompositionEnabled != NULL )
 			ExDwmIsCompositionEnabled(&ExDwmEnable);
 	}
 #endif
+
+	if ( (ExClipApi = LoadLibrary(_T("User32.dll"))) != NULL ) {
+		ExAddClipboardFormatListener    = (BOOL (__stdcall *)(HWND hwnd))GetProcAddress(ExClipApi, "AddClipboardFormatListener");
+		ExRemoveClipboardFormatListener = (BOOL (__stdcall *)(HWND hwnd))GetProcAddress(ExClipApi, "RemoveClipboardFormatListener");
+	}
 
 #ifdef	USE_DIRECTWRITE
 	// DirectWriteを試す
@@ -889,7 +919,7 @@ BOOL CRLoginApp::InitInstance()
 
 #ifdef	USE_JUMPLIST
 	// ジャンプリスト初期化
-	if ( m_WinVersion >= _WIN32_WINNT_WIN7 )
+	if ( IsWinVerCheck(_WIN32_WINNT_WIN7, VER_GREATER_EQUAL) )
 		CreateJumpList(&(pMainFrame->m_ServerEntryTab));
 #endif
 
@@ -944,6 +974,9 @@ int CRLoginApp::ExitInstance()
 	if ( ExDwmApi != NULL )
 		FreeLibrary(ExDwmApi);
 #endif
+
+	if ( ExClipApi != NULL )
+		FreeLibrary(ExClipApi);
 
 #ifdef	USE_DIRECTWRITE
 	if ( m_pDWriteFactory != NULL )

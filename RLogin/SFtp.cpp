@@ -12,6 +12,7 @@
 #include "EditDlg.h"
 #include "ChModDlg.h"
 #include "AutoRenDlg.h"
+#include "MsgChkDlg.h"
 #include "Data.h"
 
 #include <io.h>
@@ -440,7 +441,6 @@ class CFileNode *CFileNode::Find(LPCTSTR path)
 
 /////////////////////////////////////////////////////////////////////////////
 // CCmdQue
-/////////////////////////////////////////////////////////////////////////////
 
 CCmdQue::CCmdQue()
 {
@@ -448,9 +448,105 @@ CCmdQue::CCmdQue()
 	m_EndFunc = NULL;
 }
 
+#ifdef	USE_OLE
+/////////////////////////////////////////////////////////////////////////////
+// CSFtpDataSource
+
+CSFtpDataSource::CSFtpDataSource(CWnd *pWnd)
+{
+	m_pWnd = pWnd;
+}
+CSFtpDataSource::~CSFtpDataSource()
+{
+}
+BOOL CSFtpDataSource::OnRenderGlobalData(LPFORMATETC lpFormatEtc, HGLOBAL *phGlobal)
+{
+	return COleDataSource::OnRenderGlobalData(lpFormatEtc, phGlobal);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// CSFtpDropSource
+
+CSFtpDropSource::CSFtpDropSource()
+{
+}
+CSFtpDropSource::~CSFtpDropSource()
+{
+}
+SCODE CSFtpDropSource::QueryContinueDrag(BOOL bEscapePressed, DWORD dwKeyState)
+{
+	return COleDropSource::QueryContinueDrag(bEscapePressed, dwKeyState);
+}
+SCODE CSFtpDropSource::GiveFeedback(DROPEFFECT dropEffect)
+{
+	return COleDropSource::GiveFeedback(dropEffect);;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// CSFtpDropTarget
+
+CSFtpDropTarget::CSFtpDropTarget()
+{
+}
+CSFtpDropTarget::~CSFtpDropTarget()
+{
+}
+DROPEFFECT CSFtpDropTarget::OnDragEnter(CWnd* pWnd, COleDataObject* pDataObject, DWORD dwKeyState, CPoint point)
+{
+	return OnDragOver(pWnd, pDataObject, dwKeyState, point);
+}
+DROPEFFECT CSFtpDropTarget::OnDragOver(CWnd* pWnd, COleDataObject* pDataObject, DWORD dwKeyState, CPoint point)
+{
+	CRect rect;
+	CSFtp *pSFtp = (CSFtp *)pWnd;
+
+	if ( !pDataObject->IsDataAvailable(CF_HDROP) )
+		return DROPEFFECT_NONE;
+
+	pSFtp->ClientToScreen(&point);
+
+	pSFtp->m_LocalList.GetWindowRect(rect);
+	if ( rect.PtInRect(point) )
+		return ((dwKeyState & MK_SHIFT) != 0 ? DROPEFFECT_MOVE : DROPEFFECT_COPY);
+
+	pSFtp->m_RemoteList.GetWindowRect(rect);
+	if ( rect.PtInRect(point) )
+		return DROPEFFECT_COPY;
+
+	return DROPEFFECT_NONE;
+}
+BOOL CSFtpDropTarget::OnDrop(CWnd* pWnd, COleDataObject* pDataObject, DROPEFFECT dropEffect, CPoint point)
+{
+	CRect rect;
+	CSFtp *pSFtp = (CSFtp *)pWnd;
+	HWND hWnd = NULL;
+	HGLOBAL hData = NULL;
+
+	if ( !pDataObject->IsDataAvailable(CF_HDROP) )
+		return FALSE;
+
+	if ( (hData = pDataObject->GetGlobalData(CF_HDROP)) == NULL )
+		return FALSE;
+
+	pSFtp->ClientToScreen(&point);
+	pSFtp->m_LocalList.GetWindowRect(rect);
+	if ( rect.PtInRect(point) )
+		hWnd = pSFtp->m_LocalList.GetSafeHwnd();
+	else {
+		pSFtp->m_RemoteList.GetWindowRect(rect);
+		if ( rect.PtInRect(point) )
+			hWnd = pSFtp->m_RemoteList.GetSafeHwnd();
+	}
+
+	if ( hWnd == NULL )
+		return FALSE;
+
+	return pSFtp->DropFiles(hWnd, (HDROP)hData, dropEffect);
+}
+#endif	// USE_OLE
+
 /////////////////////////////////////////////////////////////////////////////
 // CSFtp
-/////////////////////////////////////////////////////////////////////////////
 
 IMPLEMENT_DYNAMIC(CSFtp, CDialogExt)
 
@@ -468,6 +564,7 @@ CSFtp::CSFtp(CWnd* pParent /*=NULL*/)
 	m_HostKanjiSet   = _T("SJIS");
 	m_UpDownCount = 0;
 	m_bDragList = FALSE;
+	m_DoUpdate = 0;
 	m_DoAbort = FALSE;
 	m_DoExec = 0;
 	m_hIcon = AfxGetApp()->LoadIcon(IDI_ACTIVE);
@@ -476,6 +573,7 @@ CSFtp::CSFtp(CWnd* pParent /*=NULL*/)
 	m_UpdateCheckMode = 0;
 	m_AutoRenMode = 0;
 	m_bUidGid = FALSE;
+	m_bShellExec[0] = m_bShellExec[1] = 0;
 }
 CSFtp::~CSFtp()
 {
@@ -952,6 +1050,7 @@ int CSFtp::RemoteCopyDirRes(int st, class CCmdQue *pQue)
 int CSFtp::RemoteSetListRes(int st, class CCmdQue *pQue)
 {
 	int n, i;
+	CStringBinary actpath;
 
 	if ( st != SSH2_FX_OK ) {
 		DispErrMsg(_T("Set Remote Cwd Error"), pQue->m_Path);
@@ -963,6 +1062,13 @@ int CSFtp::RemoteSetListRes(int st, class CCmdQue *pQue)
 	if ( m_RemoteCwd.FindStringExact(0, m_RemoteCurDir) == CB_ERR )
 		m_RemoteCwd.AddString(m_RemoteCurDir);
 	SetRemoteCwdHis(m_RemoteCurDir);
+
+	for ( n = 0 ; n < m_RemoteList.GetItemCount() ; n++ ) {
+		if ( m_RemoteList.GetItemState(n, LVIS_SELECTED) == 0 )
+			continue;
+		i = (int)m_RemoteList.GetItemData(n);
+		actpath[m_RemoteNode[i].m_path] = 1;
+	}
 
 	m_RemoteNode.RemoveAll();
 	for ( n = 0 ; n < pQue->m_FileNode.GetSize() ; n++ ) {
@@ -980,6 +1086,8 @@ int CSFtp::RemoteSetListRes(int st, class CCmdQue *pQue)
 		m_RemoteList.SetItemText(i, 3, m_RemoteNode[n].GetAttr());
 		m_RemoteList.SetItemText(i, 4, m_RemoteNode[n].GetUserID(&m_UserUid));
 		m_RemoteList.SetItemText(i, 5, m_RemoteNode[n].GetGroupID(&m_GroupGid));
+		if ( actpath.Find(m_RemoteNode[i].m_path) != NULL )
+			m_RemoteList.SetItemState(i, LVIS_SELECTED, LVIS_SELECTED);
 	}
 	ListSort(1, (-1));
 
@@ -1158,8 +1266,17 @@ void CSFtp::RemoteCacheDir(LPCTSTR path)
 
 /////////////////////////////////////////////////////////////////////////////
 
+int CSFtp::RemoteEndofExec(int st, class CCmdQue *pQue)
+{
+	if ( st == SSH2_FX_OK )
+		ShellExecute(GetSafeHwnd(), NULL, pQue->m_CopyPath, NULL, NULL, SW_NORMAL);
+
+	return TRUE;
+}
 int CSFtp::RemoteCloseReadRes(int type, CBuffer *bp, class CCmdQue *pQue)
 {
+	int st = SSH2_FX_FAILURE;
+
 	if ( pQue->m_Fd != (-1) ) {
 		_close(pQue->m_Fd);
 		if ( !m_DoAbort )
@@ -1175,8 +1292,12 @@ int CSFtp::RemoteCloseReadRes(int type, CBuffer *bp, class CCmdQue *pQue)
 			DispErrMsg(_T("Local File Create Error"), pQue->m_FileNode[0].m_path);
 		else if ( pQue->m_Len == (-3) )
 			DispErrMsg(_T("Local File Write Error"), pQue->m_FileNode[0].m_path);
+		else
+			st = SSH2_FX_OK;
 	} else if ( type == (-1) )
 		DispErrMsg(_T("Open Read Error"), pQue->m_Path);
+	else
+		st = SSH2_FX_OK;
 
 	if ( pQue->m_Len != (-10) )
 		LocalUpdateCwd(pQue->m_CopyPath);
@@ -1192,8 +1313,8 @@ int CSFtp::RemoteCloseReadRes(int type, CBuffer *bp, class CCmdQue *pQue)
 		SetUpDownCount(-1);
 		SetRangeProg(NULL, 0, 0);
 
-		//if ( pQue->m_EndFunc != NULL )
-		//	return (this->*(pQue->m_EndFunc))(SSH2_FX_OK, pQue);
+		if ( pQue->m_EndFunc != NULL )
+			return (this->*(pQue->m_EndFunc))(st, pQue);
 	}
 
 	return TRUE;
@@ -1246,7 +1367,6 @@ int CSFtp::RemoteDataReadRes(int type, CBuffer *bp, class CCmdQue *pQue)
 		SendCommand(pDmy, &CSFtp::RemoteDataReadRes, SENDCMD_NOWAIT);
 		pOwner->m_NextOfs += pDmy->m_Len;
 		pOwner->m_Max++;
-//		TRACE("RemoteDataReadRes %d(%d)\n", pOwner->m_Max, n);
 	}
 	return FALSE;
 
@@ -1291,7 +1411,7 @@ int CSFtp::RemoteOpenReadRes(int type, CBuffer *bp, class CCmdQue *pQue)
 
 	return FALSE;
 }
-void CSFtp::DownLoadFile(CFileNode *pNode, LPCTSTR file)
+void CSFtp::DownLoadFile(CFileNode *pNode, LPCTSTR file, BOOL bShellExec)
 {
 	CCmdQue *pQue;
 	LONGLONG resume = 0;
@@ -1351,6 +1471,8 @@ void CSFtp::DownLoadFile(CFileNode *pNode, LPCTSTR file)
 	pQue->m_FileNode.Add(*pNode);
 	pQue->m_NextOfs = resume;
 	pQue->m_Fd = (-1);
+	if ( bShellExec )
+		pQue->m_EndFunc = &CSFtp::RemoteEndofExec;
 
 	RemoteMakePacket(pQue, SSH2_FXP_OPEN);
 	pQue->m_Msg.Put32Bit(SSH2_FXF_READ);
@@ -1590,7 +1712,6 @@ int CSFtp::RemoteDataWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 		SendCommand(pDmy, &CSFtp::RemoteDataWriteRes, SENDCMD_NOWAIT);
 		pOwner->m_NextOfs += pDmy->m_Len;
 		pOwner->m_Max++;
-//		TRACE("RemoteDataWriteRes %d(%d)\n", pOwner->m_Max, n);
 	}
 
 	return FALSE;
@@ -1755,15 +1876,12 @@ void CSFtp::UpLoadFile(CFileNode *pNode, LPCTSTR file)
 {
 	CFileNode *np;
 
-	TRACE("%s:%s", pNode->m_path, file);
-
 	if ( pNode->IsDir() ) {
 		RemoteCacheDir(file);
 
 	} else if ( (m_DoUpdate & 0x80) != 0 && (np = RemoteCacheFind(file)) != NULL ) {
 		if ( ((m_DoUpdate & 0x0F) == UDO_MTIMECHECK && pNode->m_mtime <= np->m_mtime) ||
 			((m_DoUpdate & 0x0F) == UDO_UPDCHECK   && pNode->m_mtime == np->m_mtime && pNode->m_size == np->m_size) ) {
-			TRACE(" Cache\n");
 			return;
 		}
 	}
@@ -1776,11 +1894,100 @@ void CSFtp::UpLoadFile(CFileNode *pNode, LPCTSTR file)
 	RemoteMakePacket(pQue, SSH2_FXP_STAT);
 	SendCommand(pQue, &CSFtp::RemoteStatWriteRes, SENDCMD_TAIL);
 	SetUpDownCount(1);
-TRACE(" Stat\n");
 }
 
 /////////////////////////////////////////////////////////////////////////////
 
+static DWORD CALLBACK CopyProgressRoutine(
+	LARGE_INTEGER TotalFileSize,  LARGE_INTEGER TotalBytesTransferred,
+	LARGE_INTEGER StreamSize, LARGE_INTEGER StreamBytesTransferred, DWORD dwStreamNumber,
+	DWORD dwCallbackReason, HANDLE hSourceFile, HANDLE hDestinationFile,  LPVOID lpData)
+{
+	((CSFtp *)lpData)->SetPosProg(TotalBytesTransferred.QuadPart);
+	return (((CSFtp *)lpData)->m_DoAbort ? PROGRESS_CANCEL : PROGRESS_CONTINUE);
+}
+int CSFtp::LocalCopy(LPCTSTR src, LPCTSTR dis, BOOL bMove)
+{
+	struct _stati64 stsrc, stdis;
+    CFileFind Finder;
+	BOOL DoLoop;
+	CString tmp;
+	int rt = FALSE;
+
+	if ( _tcscmp(src, dis) == 0 )
+		return TRUE;
+
+	if ( _tstati64(src, &stsrc) )
+		return FALSE;
+
+	if ( (stsrc.st_mode & _S_IFMT) == _S_IFDIR ) {
+		if ( !_tstati64(dis, &stdis) ) {
+			if ( (stdis.st_mode & _S_IFMT) != _S_IFDIR )
+				return FALSE;
+		} else {
+			if ( !CreateDirectory(dis, NULL) )
+				return FALSE;
+		}
+
+		tmp.Format(_T("%s\\*.*"), src);
+		DoLoop = Finder.FindFile(tmp);
+		while ( DoLoop != FALSE ) {
+			DoLoop = Finder.FindNextFile();
+			if ( Finder.IsDots() )
+				continue;
+			tmp.Format(_T("%s\\%s"), dis, Finder.GetFileName());
+
+			if ( !LocalCopy(Finder.GetFilePath(), tmp, bMove) )
+				return FALSE;
+		}
+		Finder.Close();
+
+		if ( bMove && !RemoveDirectory(src) )
+			return FALSE;
+
+		return TRUE;
+
+	} else if ( (stsrc.st_mode & _S_IFMT) ==_S_IFREG ) {
+		if ( !_tstati64(dis, &stdis) ) {
+			if ( (m_DoUpdate & 0x80) == 0 ) {
+				CUpdateDlg dlg(this);
+				dlg.m_FileName = dis;
+				dlg.m_DoResume = FALSE;
+				dlg.DoModal();
+				m_DoUpdate = dlg.m_DoExec;
+			}
+			switch(m_DoUpdate & 0x0F) {
+			case UDO_OVERWRITE:
+				break;
+			case UDO_MTIMECHECK:
+				if ( stdis.st_mtime >= stsrc.st_mtime )
+					return TRUE;
+				break;
+			case UDO_UPDCHECK:
+				if ( stdis.st_mtime == stsrc.st_mtime && stdis.st_size == stsrc.st_size )
+					return TRUE;
+				break;
+			case UDO_NOUPDATE:
+				return TRUE;
+			case UDO_RESUME:
+			case UDO_ABORT:
+				m_DoAbort = TRUE;
+				return FALSE;
+			}
+		}
+
+		SetRangeProg(dis, stsrc.st_size, 0);
+
+		if ( bMove )
+			rt = MoveFileWithProgress(src, dis, CopyProgressRoutine, this, MOVEFILE_COPY_ALLOWED | MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH);
+		else
+			rt = CopyFileEx(src, dis, CopyProgressRoutine, this, &m_DoAbort, 0);
+
+		SetRangeProg(NULL, 0, 0);
+	}
+
+	return rt;
+}
 int CSFtp::LocalDelete(LPCTSTR path)
 {
 	CString str;
@@ -1826,6 +2033,7 @@ int CSFtp::LocalSetCwd(LPCTSTR path)
 	TCHAR buf[_MAX_DIR];
 	CFileNode node;
 	struct _stati64 st;
+	CStringBinary actpath;
 
 	if ( _tchdir(path) )
 		return FALSE;
@@ -1842,6 +2050,13 @@ int CSFtp::LocalSetCwd(LPCTSTR path)
 
 	m_LocalCurDir = buf;
 	SetLocalCwdHis(buf);
+
+	for ( n = 0 ; n < m_LocalList.GetItemCount() ; n++ ) {
+		if ( m_LocalList.GetItemState(n, LVIS_SELECTED) == 0 )
+			continue;
+		i = (int)m_LocalList.GetItemData(n);
+		actpath[m_LocalNode[i].m_path] = 1;
+	}
 
 	m_LocalNode.RemoveAll();
 	tmp.Format(_T("%s\\*.*"), buf);
@@ -1864,6 +2079,8 @@ int CSFtp::LocalSetCwd(LPCTSTR path)
 		m_LocalList.SetItemText(i, 1, m_LocalNode[n].GetModTime());
 		m_LocalList.SetItemText(i, 2, m_LocalNode[n].GetFileSize());
 		m_LocalList.SetItemText(i, 3, m_LocalNode[n].GetAttr());
+		if ( actpath.Find(m_LocalNode[n].m_path) != NULL )
+			m_LocalList.SetItemState(i, LVIS_SELECTED, LVIS_SELECTED);
 	}
 	ListSort(0, (-1));
 
@@ -1879,6 +2096,50 @@ void CSFtp::LocalUpdateCwd(LPCTSTR path)
 
 	if ( tmp.Compare(m_LocalCurDir) == 0 )
 		LocalSetCwd(m_LocalCurDir);
+}
+HDROP CSFtp::LocalDropInfo()
+{
+	int n, i = (-1);
+	DROPFILES drop;
+	CSharedFile sf(GMEM_MOVEABLE | GMEM_ZEROINIT);
+
+	ZeroMemory(&drop, sizeof(drop));
+	drop.pFiles = sizeof(DROPFILES);
+	drop.pt.x   = 0;
+	drop.pt.y   = 0;
+	drop.fNC    = FALSE;
+
+#ifdef	_UNICODE
+	drop.fWide  = TRUE;
+#else
+	drop.fWide  = FALSE;
+#endif
+
+	sf.Write(&drop, sizeof(DROPFILES));
+
+	for ( n = 0 ; n < m_LocalList.GetItemCount() ; n++ ) {
+		if ( m_LocalList.GetItemState(n, LVIS_SELECTED) != 0 ) {
+			i = (int)m_LocalList.GetItemData(n);
+			sf.Write((LPCTSTR)(m_LocalNode[i].m_path), (m_LocalNode[i].m_path.GetLength() + 1) * sizeof(TCHAR));
+		}
+	}
+
+	sf.Write(_T("\0"), sizeof(TCHAR));
+
+	if ( i == (-1) )
+		return NULL;
+
+	return (HDROP)sf.Detach();
+}
+int CSFtp::LocalSelectCount()
+{
+	int n, i = 0;
+
+	for ( n = 0 ; n < m_LocalList.GetItemCount() ; n++ ) {
+		if ( m_LocalList.GetItemState(n, LVIS_SELECTED) != 0 )
+			i++;
+	}
+	return i;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -2092,26 +2353,18 @@ void CSFtp::DispErrMsg(LPCTSTR msg, LPCTSTR file)
 }
 
 BEGIN_MESSAGE_MAP(CSFtp, CDialogExt)
-	//{{AFX_MSG_MAP(CSFtp)
+	ON_WM_CLOSE()
 	ON_WM_DESTROY()
-	ON_BN_CLICKED(IDC_LOCAL_UP, OnLocalUp)
-	ON_BN_CLICKED(IDC_REMOTE_UP, OnRemoteUp)
-	ON_CBN_SELENDOK(IDC_LOCAL_CWD, OnSelendokLocalCwd)
-	ON_CBN_SELENDOK(IDC_REMOTE_CWD, OnSelendokRemoteCwd)
-	ON_CBN_KILLFOCUS(IDC_LOCAL_CWD, OnKillfocusLocalCwd)
-	ON_CBN_KILLFOCUS(IDC_REMOTE_CWD, OnKillfocusRemoteCwd)
-	ON_NOTIFY(NM_DBLCLK, IDC_LOCAL_LIST, OnDblclkLocalList)
-	ON_NOTIFY(NM_DBLCLK, IDC_REMOTE_LIST, OnDblclkRemoteList)
-	ON_NOTIFY(LVN_COLUMNCLICK, IDC_LOCAL_LIST, OnColumnclickLocalList)
-	ON_NOTIFY(LVN_COLUMNCLICK, IDC_REMOTE_LIST, OnColumnclickRemoteList)
 	ON_WM_SIZE()
-	ON_NOTIFY(LVN_BEGINDRAG, IDC_LOCAL_LIST, OnBegindragLocalList)
+	ON_WM_PAINT()
+	ON_WM_TIMER()
+	ON_WM_QUERYDRAGICON()
 	ON_WM_MOUSEMOVE()
 	ON_WM_LBUTTONUP()
-	ON_NOTIFY(LVN_BEGINDRAG, IDC_REMOTE_LIST, OnBegindragRemoteList)
+
+	ON_MESSAGE(WM_RECIVEBUFFER, OnReciveBuffer)
+
 	ON_COMMAND(IDM_SFTP_CLOSE, OnSftpClose)
-	ON_NOTIFY(NM_RCLICK, IDC_LOCAL_LIST, OnRclickLocalList)
-	ON_NOTIFY(NM_RCLICK, IDC_REMOTE_LIST, OnRclickRemoteList)
 	ON_COMMAND(IDM_SFTP_DELETE, OnSftpDelete)
 	ON_COMMAND(IDM_SFTP_MKDIR, OnSftpMkdir)
 	ON_COMMAND(IDM_SFTP_CHMOD, OnSftpChmod)
@@ -2122,15 +2375,29 @@ BEGIN_MESSAGE_MAP(CSFtp, CDialogExt)
 	ON_COMMAND(IDM_SFTP_ABORT, OnSftpAbort)
 	ON_COMMAND(IDM_SFTP_RENAME, OnSftpRename)
 	ON_COMMAND(IDM_SFTP_REFLESH, OnSftpReflesh)
-	ON_WM_PAINT()
-	ON_WM_QUERYDRAGICON()
-	ON_WM_CLOSE()
-	ON_WM_TIMER()
-	//}}AFX_MSG_MAP
+	ON_COMMAND(IDM_SFTP_UIDGID, &CSFtp::OnSftpUidgid)
+	ON_COMMAND(ID_EDIT_PASTE, &CSFtp::OnEditPaste)
+	ON_COMMAND(ID_EDIT_COPY, &CSFtp::OnEditCopy)
+
+	ON_BN_CLICKED(IDC_LOCAL_UP, OnLocalUp)
+	ON_BN_CLICKED(IDC_REMOTE_UP, OnRemoteUp)
+	ON_CBN_SELENDOK(IDC_LOCAL_CWD, OnSelendokLocalCwd)
+	ON_CBN_SELENDOK(IDC_REMOTE_CWD, OnSelendokRemoteCwd)
+	ON_CBN_KILLFOCUS(IDC_LOCAL_CWD, OnKillfocusLocalCwd)
+	ON_CBN_KILLFOCUS(IDC_REMOTE_CWD, OnKillfocusRemoteCwd)
+
+	ON_NOTIFY(NM_DBLCLK, IDC_LOCAL_LIST, OnDblclkLocalList)
+	ON_NOTIFY(NM_DBLCLK, IDC_REMOTE_LIST, OnDblclkRemoteList)
+	ON_NOTIFY(LVN_COLUMNCLICK, IDC_LOCAL_LIST, OnColumnclickLocalList)
+	ON_NOTIFY(LVN_COLUMNCLICK, IDC_REMOTE_LIST, OnColumnclickRemoteList)
+	ON_NOTIFY(LVN_BEGINDRAG, IDC_LOCAL_LIST, OnBegindragLocalList)
+	ON_NOTIFY(LVN_BEGINDRAG, IDC_REMOTE_LIST, OnBegindragRemoteList)
+	ON_NOTIFY(NM_RCLICK, IDC_LOCAL_LIST, OnRclickLocalList)
+	ON_NOTIFY(NM_RCLICK, IDC_REMOTE_LIST, OnRclickRemoteList)
+
 	ON_NOTIFY_EX_RANGE(TTN_NEEDTEXTW, 0, 0xFFFF, OnToolTipText)
 	ON_NOTIFY_EX_RANGE(TTN_NEEDTEXTA, 0, 0xFFFF, OnToolTipText)
-	ON_MESSAGE(WM_RECIVEBUFFER, OnReciveBuffer)
-	ON_COMMAND(IDM_SFTP_UIDGID, &CSFtp::OnSftpUidgid)
+
 END_MESSAGE_MAP()
 
 #define	ITM_LEFT_HALF	0001
@@ -2288,10 +2555,8 @@ BOOL CSFtp::OnInitDialog()
 
 	CDialogExt::OnInitDialog();
 
-	if ( !m_wndToolBar.CToolBar::CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT, WS_CHILD | WS_VISIBLE | CBRS_TOP | CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC) ||
-			!m_wndToolBar.LoadToolBar(IDR_SFTPTOOL) ) {
-		TRACE0("Failed to create toolbar\n");
-	}
+	if ( !m_wndToolBar.CToolBar::CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT, WS_CHILD | WS_VISIBLE | CBRS_TOP | CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC) || !m_wndToolBar.LoadToolBar(IDR_SFTPTOOL) )
+		MessageBox(_T("Failed to create toolbar"));
 
 	BitMap.LoadBitmap(IDB_BITMAP5);
 	m_ImageList[0].Create(16, 16, ILC_COLOR24 | ILC_MASK, 0, 10);
@@ -2383,8 +2648,13 @@ BOOL CSFtp::OnInitDialog()
 	SendWaitQue();
 
 	InitItemOffset();
+
+#ifdef	USE_OLE
+	m_DropTarget.Register(this);
+#else
 	m_LocalList.DragAcceptFiles(TRUE);
 	m_RemoteList.DragAcceptFiles(TRUE);
+#endif
 
 	SetIcon(m_hIcon, TRUE);
 	SetIcon(m_hIcon, FALSE);
@@ -2519,8 +2789,26 @@ void CSFtp::OnDblclkLocalList(NMHDR* pNMHDR, LRESULT* pResult)
 	int n;
 	if ( (n = m_LocalList.GetSelectionMark()) >= 0 ) {
 		n = (int)m_LocalList.GetItemData(n);
-		if ( n >= 0 && n < m_LocalNode.GetSize() && m_LocalNode[n].IsDir() )
-			LocalSetCwd(m_LocalNode[n].m_path);
+		if ( n >= 0 && n < m_LocalNode.GetSize() ) {
+			if ( m_LocalNode[n].IsDir() )
+				LocalSetCwd(m_LocalNode[n].m_path);
+			else {
+				if ( m_bShellExec[0] == 0 ) {
+					CMsgChkDlg dlg(this);
+					dlg.m_MsgText.Format(IDS_SFTPLOCALEXEC, m_LocalNode[n].m_file);
+					dlg.m_Title = _T("Local File Execute");
+					dlg.m_bNoCheck = FALSE;
+					if ( dlg.DoModal() == IDOK ) {
+						if ( dlg.m_bNoCheck )
+							m_bShellExec[0] = 1;
+						ShellExecute(GetSafeHwnd(), NULL, m_LocalNode[n].m_path, NULL, NULL, SW_NORMAL);
+					}
+					//else if ( dlg.m_bNoCheck )
+					//	m_bShellExec[0] = 2;
+				} else if ( m_bShellExec[0] == 1 )
+					ShellExecute(GetSafeHwnd(), NULL, m_LocalNode[n].m_path, NULL, NULL, SW_NORMAL);
+			}
+		}
 	}
 	*pResult = 0;
 }
@@ -2530,9 +2818,32 @@ void CSFtp::OnDblclkRemoteList(NMHDR* pNMHDR, LRESULT* pResult)
 	int n;
 	if ( (n = m_RemoteList.GetSelectionMark()) >= 0 ) {
 		n = (int)m_RemoteList.GetItemData(n);
-		if ( n >= 0 && n < m_RemoteNode.GetSize()&& m_RemoteNode[n].IsDir() )
-			RemoteSetCwd(m_RemoteNode[n].m_path);
-		SendWaitQue();
+		if ( n >= 0 && n < m_RemoteNode.GetSize() ) {
+			if ( m_RemoteNode[n].IsDir() )
+				RemoteSetCwd(m_RemoteNode[n].m_path);
+			else {
+				if ( m_bShellExec[1] == 0 ) {
+					CMsgChkDlg dlg(this);
+					dlg.m_MsgText.Format(IDS_SFTPREMOTEEXEC, m_RemoteNode[n].m_file);
+					dlg.m_Title = _T("Remote File Execute");
+					dlg.m_bNoCheck = FALSE;
+					if ( dlg.DoModal() == IDOK ) {
+						if ( dlg.m_bNoCheck )
+							m_bShellExec[1] = 1;
+						m_DoUpdate = 0;
+						m_DoAbort  = FALSE;
+						DownLoadFile(&(m_RemoteNode[n]), m_RemoteNode[n].GetLocalPath(m_LocalCurDir, this), TRUE);
+					}
+					//else if ( dlg.m_bNoCheck )
+					//	m_bShellExec[1] = 2;
+				} else if ( m_bShellExec[1] == 1 ) {
+					m_DoUpdate = 0;
+					m_DoAbort  = FALSE;
+					DownLoadFile(&(m_RemoteNode[n]), m_RemoteNode[n].GetLocalPath(m_LocalCurDir, this), TRUE);
+				}
+			}
+			SendWaitQue();
+		}
 	}
 	*pResult = 0;
 }
@@ -2561,48 +2872,136 @@ void CSFtp::OnSize(UINT nType, int cx, int cy)
 
 BOOL CSFtp::PreTranslateMessage(MSG* pMsg) 
 {
-	if ( pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_RETURN )
-		pMsg->wParam = VK_TAB;
-	else if ( pMsg->message == WM_DROPFILES )
-		return DropFiles(pMsg->hwnd, (HDROP)(pMsg->wParam));
+	if ( pMsg->message == WM_KEYDOWN ) {
+		if ( pMsg->wParam == VK_RETURN ) {
+			pMsg->wParam = VK_TAB;
+
+		} else if ( pMsg->hwnd == m_LocalList.GetSafeHwnd() ) {
+			switch(pMsg->wParam) {
+			case 'C':
+				if ( (GetKeyState(VK_CONTROL) & 0x80) != 0 ) {
+					OnEditCopy();
+					return TRUE;
+				}
+				break;
+			case 'V':
+				if ( (GetKeyState(VK_CONTROL) & 0x80) != 0 ) {
+					OnEditPaste();
+					return TRUE;
+				}
+				break;
+			case VK_DELETE:
+				OnSftpDelete();
+				return TRUE;
+			}
+
+		} else if ( pMsg->hwnd == m_RemoteList.GetSafeHwnd() ) {
+			switch(pMsg->wParam) {
+			case 'V':
+				if ( (GetKeyState(VK_CONTROL) & 0x80) != 0 ) {
+					OnEditPaste();
+					return TRUE;
+				}
+				break;
+			case VK_DELETE:
+				OnSftpDelete();
+				return TRUE;
+			}
+		}
+
+	}else if ( pMsg->message == WM_DROPFILES )
+		return DropFiles(pMsg->hwnd, (HDROP)(pMsg->wParam), DROPEFFECT_COPY);
+
 	return CDialogExt::PreTranslateMessage(pMsg);
 }
 
-int CSFtp::DropFiles(HWND hWnd, HDROP hDropInfo) 
+int CSFtp::DropFiles(HWND hWnd, HDROP hDropInfo, DROPEFFECT dropEffect) 
 {
 	int n, i;
 	int max = DragQueryFile(hDropInfo, 0xFFFFFFFF, NULL, 0);
 	TCHAR path[_MAX_PATH + 4];
 	CString tmp, file;
+	BOOL bUpdateLocal = FALSE;
+	CWaitCursor wait;
 
-	for ( n = 0 ; n < max ; n++ ) {
+	m_DoUpdate = 0;
+	m_DoAbort  = FALSE;
+
+	if ( hWnd == m_LocalList.m_hWnd )
+		SetUpDownCount(max);
+
+	for ( n = 0 ; n < max && !m_DoAbort ; n++ ) {
 		DragQueryFile(hDropInfo, n, path, _MAX_PATH);
 		tmp = path;
 		if ( (i = tmp.ReverseFind(_T('\\'))) > 0 )
 			file = tmp.Mid(i + 1);
 		else
 			file = tmp;
+
 		if ( hWnd == m_RemoteList.m_hWnd ) {
 			CFileNode node;
 			if ( node.GetFileStat(path, file) )
 				UpLoadFile(&node, node.GetRemotePath(m_RemoteCurDir, this));
 			SendWaitQue();
+
 		} else if ( hWnd == m_LocalList.m_hWnd ) {
 			tmp = m_LocalCurDir;
 			if ( tmp.Right(1).Compare(_T("\\")) != 0 )
 				tmp += _T("\\");
 			tmp += file;
-			CopyFile(path, tmp, TRUE);
-			LocalSetCwd(m_LocalCurDir);
+
+			if ( !LocalCopy(path, tmp, dropEffect == DROPEFFECT_MOVE ? TRUE : FALSE) ) {
+				m_DoAbort = TRUE;
+				file.Format(_T("File %s Error '%s'"), dropEffect == DROPEFFECT_MOVE ? _T("Move") : _T("Copy"), tmp);
+				MessageBox(file);
+				break;
+			}
+
+			bUpdateLocal = TRUE;
+			SetUpDownCount(-1);
 		}
 	}
 	DragFinish(hDropInfo);
 
-	return TRUE;
+	if ( bUpdateLocal )
+		LocalSetCwd(m_LocalCurDir);
+
+	return (m_DoAbort ? FALSE : TRUE);
 }
 
 void CSFtp::OnBegindragLocalList(NMHDR* pNMHDR, LRESULT* pResult) 
 {
+#ifdef	USE_OLE
+	HDROP hData;
+	DROPEFFECT de;
+	COleDataSource *pDataSource = new COleDataSource;
+
+	*pResult = 0;
+
+	if ( (hData = LocalDropInfo()) == NULL )
+		return;
+
+	pDataSource->CacheGlobalData(CF_HDROP, hData);
+	de = pDataSource->DoDragDrop(DROPEFFECT_COPY | DROPEFFECT_MOVE);
+
+	if ( pDataSource->m_dwRef <= 1 )
+		pDataSource->InternalRelease();
+	else
+		pDataSource->ExternalRelease();
+
+	//if ( de == DROPEFFECT_MOVE ) {
+	//	int n, i;
+	//	for ( n = 0 ; n < m_LocalList.GetItemCount() ; n++ ) {
+	//		if ( m_LocalList.GetItemState(n, LVIS_SELECTED) != 0 ) {
+	//			i = (int)m_LocalList.GetItemData(n);
+	//			LocalDelete(m_LocalNode[i].m_path);
+	//		}
+	//	}
+	//}
+
+	LocalSetCwd(m_LocalCurDir);
+
+#else	// !USE_OLE
 	int n;
 	CPoint po(12, 8);
 	NM_LISTVIEW* pNMListView = (NM_LISTVIEW*)pNMHDR;
@@ -2610,17 +3009,17 @@ void CSFtp::OnBegindragLocalList(NMHDR* pNMHDR, LRESULT* pResult)
 	if ( (n = m_LocalList.GetSelectedCount()) < 0 )
 		goto ENDRET;
 	else if ( n > 1 )
-		n = 7;
+		m_DragImage = 7;
 	else {
 		if ( (n = m_LocalList.GetSelectionMark()) < 0 )
 			goto ENDRET;
 		if ( (n = (int)m_LocalList.GetItemData(n)) < 0 || n >= m_LocalNode.GetSize() )
 			goto ENDRET;
-		n = m_LocalNode[n].GetIcon();
+		m_DragImage = m_LocalNode[n].GetIcon();
 	}
 
 	m_hDragWnd = pNMHDR->hwndFrom;
-	m_ImageList[3].BeginDrag(n, po);
+	m_ImageList[3].BeginDrag(m_DragImage, po);
 	m_ImageList[3].DragEnter(GetDesktopWindow(), pNMListView->ptAction);
 
 	m_bDragList = TRUE;
@@ -2628,6 +3027,7 @@ void CSFtp::OnBegindragLocalList(NMHDR* pNMHDR, LRESULT* pResult)
 
 ENDRET:
 	*pResult = 0;
+#endif	// USE_OLE
 }
 
 void CSFtp::OnBegindragRemoteList(NMHDR* pNMHDR, LRESULT* pResult) 
@@ -2639,19 +3039,20 @@ void CSFtp::OnBegindragRemoteList(NMHDR* pNMHDR, LRESULT* pResult)
 	if ( (n = m_RemoteList.GetSelectedCount()) < 0 )
 		goto ENDRET;
 	else if ( n > 1 )
-		n = 7;
+		m_DragImage = 7;
 	else {
 		if ( (n = m_RemoteList.GetSelectionMark()) < 0 )
 			goto ENDRET;
 		if ( (n = (int)m_RemoteList.GetItemData(n)) < 0 || n >= m_RemoteNode.GetSize() )
 			goto ENDRET;
-		n = m_RemoteNode[n].GetIcon();
+		m_DragImage = m_RemoteNode[n].GetIcon();
 	}
 
 	m_hDragWnd = pNMHDR->hwndFrom;
-	m_ImageList[3].BeginDrag(n, po);
+	m_ImageList[3].BeginDrag(m_DragImage, po);
 	m_ImageList[3].DragEnter(GetDesktopWindow(), pNMListView->ptAction);
 
+	m_DragAcvite = m_DragImage;
 	m_bDragList = TRUE;
 	SetCapture();
 
@@ -2661,13 +3062,27 @@ ENDRET:
 
 void CSFtp::OnMouseMove(UINT nFlags, CPoint point) 
 {
+	CWnd *pWnd;
+	int image = 8;
 	CPoint po(point);
 
 	if ( m_bDragList ) {
 		ClientToScreen(&po);
-		m_ImageList[3].DragMove(po);
-		m_ImageList[3].DragShowNolock(FALSE);
-		m_ImageList[3].DragShowNolock(TRUE);
+		if ( m_hDragWnd == m_RemoteList.m_hWnd && (pWnd = WindowFromPoint(po)) != NULL && pWnd->m_hWnd == m_LocalList.m_hWnd )
+			image = m_DragImage;
+		else if ( m_hDragWnd == m_LocalList.m_hWnd )
+			image = m_DragImage;
+		if ( image == m_DragAcvite ) {
+			m_ImageList[3].DragMove(po);
+			//m_ImageList[3].DragShowNolock(FALSE);
+			//m_ImageList[3].DragShowNolock(TRUE);
+		} else {
+			m_ImageList[3].DragLeave(GetDesktopWindow());
+			m_ImageList[3].EndDrag();
+			m_ImageList[3].BeginDrag(image, CPoint(12, 8));
+			m_ImageList[3].DragEnter(GetDesktopWindow(), po);
+			m_DragAcvite = image;
+		}
 	}
 	CDialogExt::OnMouseMove(nFlags, point);
 }
@@ -2746,6 +3161,10 @@ void CSFtp::OnRclickLocalList(NMHDR* pNMHDR, LRESULT* pResult)
 	menu.LoadMenu(IDR_SFTPMENU);
 	m_LocalList.ClientToScreen(&point);
 	if ( (submenu = menu.GetSubMenu(1)) != NULL ) {
+		if ( LocalSelectCount() <= 0 )
+			submenu->EnableMenuItem(ID_EDIT_COPY, MF_BYCOMMAND | MF_GRAYED);
+		if ( !IsClipboardFormatAvailable(CF_HDROP) )
+			submenu->EnableMenuItem(ID_EDIT_PASTE, MF_BYCOMMAND | MF_GRAYED);
 		submenu->EnableMenuItem(IDM_SFTP_UIDGID, MF_BYCOMMAND | MF_GRAYED);
 		submenu->TrackPopupMenu(TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, this);
 	}
@@ -2761,6 +3180,9 @@ void CSFtp::OnRclickRemoteList(NMHDR* pNMHDR, LRESULT* pResult)
 	menu.LoadMenu(IDR_SFTPMENU);
 	m_RemoteList.ClientToScreen(&point);
 	if ( (submenu = menu.GetSubMenu(1)) != NULL ) {
+		submenu->EnableMenuItem(ID_EDIT_COPY, MF_BYCOMMAND | MF_GRAYED);
+		if ( !IsClipboardFormatAvailable(CF_HDROP) )
+			submenu->EnableMenuItem(ID_EDIT_PASTE, MF_BYCOMMAND | MF_GRAYED);
 		submenu->CheckMenuItem(IDM_SFTP_UIDGID, MF_BYCOMMAND | (m_bUidGid ? MF_CHECKED : MF_UNCHECKED));
 		submenu->TrackPopupMenu(TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, this);
 	}
@@ -3091,4 +3513,50 @@ LRESULT CSFtp::OnReciveBuffer(WPARAM wParam, LPARAM lParam)
 
 	delete [] buf;
 	return TRUE;
+}
+
+void CSFtp::OnEditCopy()
+{
+	HDROP hData;
+	CWnd *pWnd = GetFocus();
+
+	if ( pWnd == NULL || pWnd->GetSafeHwnd() != m_LocalList.GetSafeHwnd() )
+		return;
+
+	if ( (hData = LocalDropInfo()) == NULL )
+		return;
+
+	if ( !OpenClipboard() ) {
+		GlobalFree(hData);
+		return;
+	}
+
+	if ( !EmptyClipboard() ) {
+		CloseClipboard();
+		GlobalFree(hData);
+		return;
+	}
+
+	SetClipboardData(CF_HDROP, hData);
+	CloseClipboard();
+}
+void CSFtp::OnEditPaste()
+{
+	HDROP hData;
+	CWnd *pWnd = GetFocus();
+
+	if ( pWnd == NULL || (pWnd->GetSafeHwnd() != m_LocalList.GetSafeHwnd() && pWnd->GetSafeHwnd() != m_RemoteList.GetSafeHwnd()) )
+		return;
+
+	if ( !OpenClipboard() )
+		return;
+
+	if ( (hData = (HDROP)GetClipboardData(CF_HDROP)) == NULL ) {
+		CloseClipboard();
+		return;
+	}
+
+	DropFiles(pWnd->GetSafeHwnd(), hData, DROPEFFECT_COPY);
+
+	CloseClipboard();
 }

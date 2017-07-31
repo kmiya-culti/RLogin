@@ -241,8 +241,8 @@ void CIdkeySelDLg::OnOK()
 	m_List.SaveColumn(_T("IdkeySelDLg"));
 
 	CString str;
-
 	m_IdKeyList.SetString(str);
+
 	if ( str.Compare(m_OldIdKeyList) != 0 )
 		CDialogExt::OnOK();
 	else

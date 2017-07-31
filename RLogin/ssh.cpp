@@ -99,6 +99,8 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 		SetRecvBufSize(CHAN_SES_PACKET_DEFAULT * 4);
 		srand((UINT)time(NULL));
 		m_bPfdConnect = 0;
+		m_bExtInfo = FALSE;
+		m_ExtInfo.RemoveAll();
 
 		//CStringA tmp;
 		//CCipher::BenchMark(tmp);
@@ -145,6 +147,21 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 
 		for ( n = 0 ; n < list[1].GetSize() ; n++ )
 			m_IdKeyTab.Add(*(pMain->m_IdKeyTab.GetUid(list[1][n])));
+
+		if ( m_pDocument->m_ParamTab.m_RsaExt != 0 ) {
+			for ( n = 0 ; n < m_IdKeyTab.GetSize() ; n++ ) {
+				if ( (m_IdKeyTab[n].m_Type & IDKEY_TYPE_MASK) != IDKEY_RSA2 || m_IdKeyTab[n].m_RsaNid != NID_sha1 )
+					continue;
+
+				IdKey = m_IdKeyTab[n];
+				IdKey.m_Type &= IDKEY_TYPE_MASK;	// unsupported cert
+				IdKey.m_Cert = 0;
+
+				IdKey.m_RsaNid = (m_pDocument->m_ParamTab.m_RsaExt == 1 ? NID_sha256 : NID_sha512);
+				m_IdKeyTab.InsertAt(n, IdKey);
+				n++;
+			}
+		}
 
 		for ( n = 0 ; n <= AST_DONE ; n++ )
 			m_AuthReqTab[n] = AST_DONE;
@@ -576,6 +593,17 @@ void Cssh::GetStatus(CString &str)
 	str += tmp;
 	tmp.Format(_T("Language StoC: %s\r\n"), m_SProp[PROP_LANG_STOC]);
 	str += tmp;
+
+	if ( m_ExtInfo.GetSize() > 0 ) {
+		str += _T("ext-info: ");
+		for ( int n = 0 ; n < m_ExtInfo.GetSize() ; n++ ) {
+			if ( n > 0 )
+				str += _T(",");
+			tmp.Format(_T("%s=\"%s\""), m_ExtInfo[n].m_nIndex, m_ExtInfo[n].m_String);
+			str += tmp;
+		}
+		str += _T("\r\n");
+	}
 
 	str += _T("\r\n");
 	tmp.Format(_T("Kexs: %s\r\n"), m_VProp[PROP_KEX_ALGS]);
@@ -1536,8 +1564,14 @@ void Cssh::SendMsgKexDhInit()
 
 	if ( m_DhMode == DHMODE_GROUP_1 )
 		m_SaveDh = dh_new_group1();
-	else// m_DhMode == DHMODE_GROUP_14
+	else if ( m_DhMode == DHMODE_GROUP_14 )
 		m_SaveDh = dh_new_group14();
+	else if ( m_DhMode == DHMODE_GROUP_14_256 )
+		m_SaveDh = dh_new_group14();
+	else if ( m_DhMode == DHMODE_GROUP_15_256 )
+		m_SaveDh = dh_new_group15();
+	else if ( m_DhMode == DHMODE_GROUP_16_256 )
+		m_SaveDh = dh_new_group16();
 
 	dh_gen_key(m_SaveDh, m_NeedKeyLen * 8);
 
@@ -1548,11 +1582,20 @@ void Cssh::SendMsgKexDhInit()
 void Cssh::SendMsgKexDhGexRequest()
 {
 	CBuffer tmp(-1);
+	int bits = dh_estimate(m_NeedKeyLen * 8);
+
+	if ( bits < DHGEX_MIN_BITS )
+		bits = DHGEX_MIN_BITS;
+	else if ( bits > DHGEX_MAX_BITS )
+		bits = DHGEX_MAX_BITS;
+
+	if ( IsServerVersion(_T("Cisco-1")) && bits > 4096 )
+		bits = 4096;
 
 	tmp.Put8Bit(SSH2_MSG_KEX_DH_GEX_REQUEST);
-	tmp.Put32Bit(1024);
-	tmp.Put32Bit(dh_estimate(m_NeedKeyLen * 8));
-	tmp.Put32Bit(8192);
+	tmp.Put32Bit(DHGEX_MIN_BITS);
+	tmp.Put32Bit(bits);
+	tmp.Put32Bit(DHGEX_MAX_BITS);
 	SendPacket2(&tmp);
 }
 int Cssh::SendMsgKexEcdhInit()
@@ -1616,6 +1659,17 @@ void Cssh::SendMsgNewKeys()
 		 m_EncMac.Init(m_VProp[PROP_MAC_ALGS_CTOS], m_VKey[4], (-1)) ||
 		 m_EncCmp.Init(m_VProp[PROP_COMP_ALGS_CTOS], MODE_ENC, COMPLEVEL) )
 		Close();
+
+	if ( m_bExtInfo ) {
+		tmp.Clear();
+		tmp.Put8Bit(SSH2_MSG_EXT_INFO);
+		tmp.Put32Bit(1);
+		tmp.PutStr("server-sig-algs");
+		tmp.PutStr("rsa-sha2-256,rsa-sha2-512");
+		SendPacket2(&tmp);
+		// 最初だけ送れば良い？
+		m_bExtInfo = FALSE;
+	}
 }
 void Cssh::SendMsgServiceRequest(LPCSTR str)
 {
@@ -1623,6 +1677,44 @@ void Cssh::SendMsgServiceRequest(LPCSTR str)
 	tmp.Put8Bit(SSH2_MSG_SERVICE_REQUEST);
 	tmp.PutStr(str);
 	SendPacket2(&tmp);
+}
+LPCTSTR Cssh::GetSigAlgs()
+{
+	int n;
+
+	if ( (n = m_ExtInfo.Find(_T("server-sig-algs"))) < 0 )
+		return NULL;
+
+	return m_ExtInfo[n].m_String;
+}
+BOOL Cssh::IsServerVersion(LPCTSTR pattan)
+{
+	//	if (sscanf(server_version_string, "SSH-%d.%d-%[^\n]\n", &remote_major, &remote_minor, remote_version) != 3)
+	LPCTSTR str = m_ServerVerStr;
+
+	// SSH-
+	if ( _tcsncmp(str, _T("SSH-"), 4) != 0 )
+		return FALSE;
+	str += 4;
+
+	// major version
+	while ( *str >= _T('0') && *str <= _T('9') )
+		str++;
+	if ( *str != _T('.') )
+		return FALSE;
+	str++;
+
+	// minor version
+	while ( *str >= _T('0') && *str <= _T('9') )
+		str++;
+	if ( *str != _T('-') )
+		return FALSE;
+	str++;
+
+	if ( _tcsncmp(str, pattan, _tcslen(pattan)) == 0 )
+		return TRUE;
+
+	return FALSE;
 }
 int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 {
@@ -1668,7 +1760,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 				tmp.Put8Bit(1);
 				tmp.PutStr(TstrToMbs(m_pIdKey->GetName()));
 				tmp.PutBuf(blob.GetPtr(), blob.GetSize());
-				if ( m_pIdKey->Sign(&sig, tmp.GetPtr(), tmp.GetSize()) ) {
+				if ( m_pIdKey->Sign(&sig, tmp.GetPtr(), tmp.GetSize(), GetSigAlgs()) ) {
 					tmp.PutBuf(sig.GetPtr(), sig.GetSize());
 					m_AuthMode = AUTH_MODE_PUBLICKEY;
 					break;
@@ -1697,7 +1789,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 				tmp.PutStr(m_pDocument->RemoteStr(wrk));		// client ip address
 				m_pIdKey->GetUserHostName(wrk);
 				tmp.PutStr(m_pDocument->RemoteStr(wrk));		// client user name;
-				if ( m_pIdKey->Sign(&sig, tmp.GetPtr(), tmp.GetSize()) ) {
+				if ( m_pIdKey->Sign(&sig, tmp.GetPtr(), tmp.GetSize(), GetSigAlgs()) ) {
 					tmp.PutBuf(sig.GetPtr(), sig.GetSize());
 					m_AuthMode = AUTH_MODE_HOSTBASED;
 					break;
@@ -1711,23 +1803,29 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 			}
 
 		} else if ( m_AuthStat == AST_PASS_TRY ) {
-			m_IdKeyPos = 0;
-			m_AuthStat = m_AuthReqTab[AST_PASS_TRY];
+			if ( m_AuthMode == AUTH_MODE_PASSWORD ) {
+				m_IdKeyPos = 0;
+				m_AuthStat = m_AuthReqTab[AST_PASS_TRY];
+			}
+			m_AuthMode = AUTH_MODE_PASSWORD;
 			if ( strstr(str, "password") == NULL )
 				continue;
-			dlg.m_PassName = m_pDocument->m_ServerEntry.m_PassName;
-			if ( m_pDocument->m_ServerEntry.m_PassName.IsEmpty() || m_AuthMode == AUTH_MODE_PASSWORD ) {
+			// ２度目のパスワードなら
+			if ( m_AuthStat != AST_PASS_TRY ) {
 				dlg.m_HostAddr = m_pDocument->m_ServerEntry.m_HostName;
 				dlg.m_UserName = m_pDocument->m_ServerEntry.m_UserName;
-				dlg.m_Prompt   = _T("ssh Password");
 				dlg.m_PassName = m_pDocument->m_ServerEntry.m_PassName;
+				dlg.m_Prompt   = _T("ssh Password");
+				dlg.m_Enable   = PASSDLG_PASS;
+
 				if ( dlg.DoModal() != IDOK )
 					continue;
+
+				m_pDocument->m_ServerEntry.m_PassName = dlg.m_PassName;
 			}
 			tmp.PutStr("password");
 			tmp.Put8Bit(0);
-			tmp.PutStr(m_pDocument->RemoteStr(dlg.m_PassName));
-			m_AuthMode = AUTH_MODE_PASSWORD;
+			tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_PassName));
 
 		} else if ( m_AuthStat == AST_KEYB_TRY ) {
 			if ( m_AuthMode == AUTH_MODE_KEYBOARD ) {
@@ -2122,6 +2220,9 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 		{ DHMODE_GROUP_1,		_T("diffie-hellman-group1-sha1")			},
 		{ DHMODE_CURVE25519,	_T("curve25519-sha256@libssh.org")			},
 		{ DHMODE_CURVE25519,	_T("curve25519-sha256")						},
+		{ DHMODE_GROUP_14_256,	_T("diffie-hellman-group14-sha256")			},
+		{ DHMODE_GROUP_15_256,	_T("diffie-hellman-group15-sha256")			},
+		{ DHMODE_GROUP_16_256,	_T("diffie-hellman-group16-sha256")			},
 		{ 0,					NULL										},
 	};
 
@@ -2156,13 +2257,9 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 
 	if ( m_EncCip.IsAEAD(m_VProp[PROP_ENC_ALGS_CTOS]) || m_EncCip.IsPOLY(m_VProp[PROP_ENC_ALGS_CTOS]) )
 		m_VProp[PROP_MAC_ALGS_CTOS] = m_VProp[PROP_ENC_ALGS_CTOS];
-	else if ( m_EncMac.IsAEAD(m_VProp[PROP_MAC_ALGS_CTOS]) )
-		m_VProp[PROP_ENC_ALGS_CTOS] = m_VProp[PROP_MAC_ALGS_CTOS];
 
 	if ( m_DecCip.IsAEAD(m_VProp[PROP_ENC_ALGS_STOC]) || m_DecCip.IsPOLY(m_VProp[PROP_ENC_ALGS_STOC]) )
 		m_VProp[PROP_MAC_ALGS_STOC] = m_VProp[PROP_ENC_ALGS_STOC];
-	else if ( m_DecMac.IsAEAD(m_VProp[PROP_MAC_ALGS_STOC]) )
-		m_VProp[PROP_ENC_ALGS_STOC] = m_VProp[PROP_MAC_ALGS_STOC];
 
 	// PROPOSAL_KEX_ALGS
 	for ( n = 0 ; kextab[n].name != NULL ; n++ ) {
@@ -2173,6 +2270,17 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 	}
 	if ( kextab[n].name == NULL )
 		return TRUE;
+
+	if ( _tcsstr(m_SProp[PROP_KEX_ALGS], _T("ext-info-s")) != NULL ) {
+		// ext-info-sによりSSH2_MSG_NEWKEYSの後にSSH2_MSG_EXT_INFOを送る必要があるのか？
+		// ホストキーのベリファイ時に必要だがSSH2_MSG_NEWKEYSの前なのでSSH2_MSG_EXT_INFOを送る前だし
+		// PROP_HOST_KEY_ALGSで"rsa-sha2-256/512"を指定するのだから不用なような気がする
+		m_bExtInfo = TRUE;
+
+		// ext-info-cは、常に送るのが正解？
+		// これもrsa-sha2-256/512でサインを試せば良いだけのように思う
+		m_VProp[PROP_KEX_ALGS] += _T(",ext-info-c");
+	}
 
 	if ( (m_SSH2Status & SSH2_STAT_SENTKEXINIT) == 0 ) {
 		m_MyPeer.Clear();
@@ -2203,6 +2311,7 @@ int Cssh::SSH2MsgKexDhReply(CBuffer *bp)
 	CBuffer tmp(-1), blob(-1), sig(-1);
 	BIGNUM *spub = NULL, *ssec = NULL;
 	LPBYTE p;
+	const EVP_MD *evp_mod;
 	int hashlen;
 	BYTE hash[EVP_MAX_MD_SIZE];
 
@@ -2224,6 +2333,18 @@ int Cssh::SSH2MsgKexDhReply(CBuffer *bp)
 	if ( !dh_pub_is_valid(m_SaveDh, spub) )
 		goto ENDRET;
 
+	switch(m_DhMode) {
+	case DHMODE_GROUP_1:
+	case DHMODE_GROUP_14:
+		evp_mod = EVP_sha1();
+		break;
+	case DHMODE_GROUP_14_256:
+	case DHMODE_GROUP_15_256:
+	case DHMODE_GROUP_16_256:
+		evp_mod = EVP_sha256();
+		break;
+	}
+
 	tmp.Clear();
 	p = tmp.PutSpc(DH_size(m_SaveDh));
 	n = DH_compute_key(p, spub, m_SaveDh);
@@ -2235,7 +2356,7 @@ int Cssh::SSH2MsgKexDhReply(CBuffer *bp)
 		m_HisPeer.GetPtr(), m_HisPeer.GetSize(),
 		blob.GetPtr(), blob.GetSize(), m_SaveDh->pub_key,
 		spub, ssec,
-		EVP_sha1());
+		evp_mod);
 
 	if ( m_SessionIdLen == 0 ) {
 		ASSERT(hashlen <= 64);
@@ -2281,9 +2402,10 @@ int Cssh::SSH2MsgKexDhGexGroup(CBuffer *bp)
 	if ( !bp->GetBIGNUM2(m_SaveDh->g) )
 		return TRUE;
 
-	//int grp_bits = BN_num_bits(m_SaveDh->p);
-	//int req_bits = dh_estimate(m_NeedKeyLen * 8);
-	// 1024 <= grp_bits && grp_bits <= 8192
+	int grp_bits = BN_num_bits(m_SaveDh->p);
+
+	if ( DHGEX_MIN_BITS > grp_bits || grp_bits > DHGEX_MAX_BITS )
+		return TRUE;
 
 	if ( dh_gen_key(m_SaveDh, m_NeedKeyLen * 8) )
 		return TRUE;
@@ -2535,6 +2657,29 @@ int Cssh::SSH2MsgNewKeys(CBuffer *bp)
 
 	return FALSE;
 }
+int Cssh::SSH2MsgExtInfo(CBuffer *bp)
+{
+	//	string      "server-sig-algs"
+	//	name-list   signature-algorithms-accepted
+	//
+	//	string      "no-flow-control"
+	//	string      (empty)
+	//
+	//	string      "accept-channels"
+	//	name-list   channel-types-accepted
+
+	int n, count;
+	CStringA name, value;
+
+	count = bp->Get32Bit();
+	for ( n = 0 ; n < count ; n++ ) {
+		bp->GetStr(name);
+		bp->GetStr(value);
+		m_ExtInfo[MbsToTstr(name)] = MbsToTstr(value);
+	}
+
+	return FALSE;
+}
 int Cssh::SSH2MsgUserAuthPkOk(CBuffer *bp)
 {
 	int n;
@@ -2579,6 +2724,7 @@ int Cssh::SSH2MsgUserAuthPasswdChangeReq(CBuffer *bp)
 
 	dlg.m_HostAddr = m_pDocument->m_ServerEntry.m_HostName;
 	dlg.m_UserName = m_pDocument->m_ServerEntry.m_UserName;
+	dlg.m_Enable   = PASSDLG_PASS;
 	dlg.m_Prompt   = "Enter Old Password";
 	dlg.m_PassName = "";
 	if ( dlg.DoModal() != IDOK )
@@ -2589,6 +2735,7 @@ int Cssh::SSH2MsgUserAuthPasswdChangeReq(CBuffer *bp)
 	while ( pass.IsEmpty() ) {
 		dlg.m_HostAddr = m_pDocument->m_ServerEntry.m_HostName;
 		dlg.m_UserName = m_pDocument->m_ServerEntry.m_UserName;
+		dlg.m_Enable   = PASSDLG_PASS;
 		dlg.m_Prompt   = info;
 		dlg.m_PassName = "";
 		if ( dlg.DoModal() != IDOK )
@@ -2597,6 +2744,7 @@ int Cssh::SSH2MsgUserAuthPasswdChangeReq(CBuffer *bp)
 
 		dlg.m_HostAddr = m_pDocument->m_ServerEntry.m_HostName;
 		dlg.m_UserName = m_pDocument->m_ServerEntry.m_UserName;
+		dlg.m_Enable   = PASSDLG_PASS;
 		dlg.m_Prompt   = "Retype New Password";
 		dlg.m_PassName = "";
 		if ( dlg.DoModal() != IDOK )
@@ -2637,6 +2785,7 @@ int Cssh::SSH2MsgUserAuthInfoRequest(CBuffer *bp)
 		} else {
 			dlg.m_HostAddr = m_pDocument->m_ServerEntry.m_HostName;
 			dlg.m_UserName = m_pDocument->m_ServerEntry.m_UserName;
+			dlg.m_Enable   = PASSDLG_PASS;
 			dlg.m_Prompt   = prom;
 			dlg.m_PassEcho = echo != 0 ? TRUE : FALSE;
 			dlg.m_PassName = _T("");
@@ -3118,6 +3267,9 @@ void Cssh::RecivePacket2(CBuffer *bp)
 		switch(m_DhMode) {
 		case DHMODE_GROUP_1:
 		case DHMODE_GROUP_14:
+		case DHMODE_GROUP_14_256:
+		case DHMODE_GROUP_15_256:
+		case DHMODE_GROUP_16_256:
 			SendMsgKexDhInit();
 			break;
 		case DHMODE_GROUP_GEX:
@@ -3143,6 +3295,9 @@ void Cssh::RecivePacket2(CBuffer *bp)
 		switch(m_DhMode) {
 		case DHMODE_GROUP_1:
 		case DHMODE_GROUP_14:
+		case DHMODE_GROUP_14_256:
+		case DHMODE_GROUP_15_256:
+		case DHMODE_GROUP_16_256:
 			if ( SSH2MsgKexDhReply(bp) )
 				goto DISCONNECT;
 			m_SSH2Status &= ~SSH2_STAT_HAVEPROP;
@@ -3208,6 +3363,11 @@ void Cssh::RecivePacket2(CBuffer *bp)
 			if ( !SendMsgUserAuthRequest(NULL) )
 				goto DISCONNECT;
 		} else
+			goto DISCONNECT;
+		break;
+
+	case SSH2_MSG_EXT_INFO:
+		if ( SSH2MsgExtInfo(bp) )
 			goto DISCONNECT;
 		break;
 

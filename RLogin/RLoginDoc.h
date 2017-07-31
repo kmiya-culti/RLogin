@@ -39,6 +39,7 @@
 #define	UPDATE_CANCELBTN	12
 #define	UPDATE_DISPINDEX	13
 #define	UPDATE_WAKEUP		14
+#define	UPDATE_SCROLLOUT	15
 
 #define	CARET_MOVE			0
 #define	CARET_CREATE		1
@@ -194,6 +195,7 @@ protected:
 	afx_msg void OnUpdateScript(CCmdUI *pCmdUI);
 	afx_msg void OnImagedisp();
 	afx_msg void OnUpdateImagedisp(CCmdUI *pCmdUI);
+	afx_msg void OnSockReOpen();
 
 	afx_msg void OnTracedisp();
 	afx_msg void OnLoadDefault();

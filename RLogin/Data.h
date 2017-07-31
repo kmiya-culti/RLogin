@@ -731,6 +731,7 @@ public:
 	CString m_Reserve;
 	int m_SelIPver;
 	CArray<ttymode_node, ttymode_node> m_TtyMode;
+	int m_RsaExt;
 
 	CParamTab();
 	void Init();

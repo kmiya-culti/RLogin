@@ -3393,8 +3393,6 @@ void CTextRam::EditCopy(int sps, int eps, BOOL rectflag, BOOL lineflag)
 {
 	int n, x, y, sx, ex, tc;
 	int x1, y1, x2, y2;
-	HGLOBAL hClipData;
-	WCHAR *pData;
 	CCharCell *vp;
 	CBuffer tmp, str;
 	LPCWSTR p;
@@ -3482,31 +3480,7 @@ void CTextRam::EditCopy(int sps, int eps, BOOL rectflag, BOOL lineflag)
 			ShellExecuteW(AfxGetMainWnd()->GetSafeHwnd(), NULL, (LPCWSTR)tmp, NULL, NULL, SW_NORMAL);
 	}
 
-	if ( (hClipData = GlobalAlloc(GMEM_MOVEABLE, tmp.GetSize())) == NULL )
-		return;
-
-	if ( (pData = (WCHAR *)GlobalLock(hClipData)) == NULL )
-		goto ENDOF;
-
-	memcpy(pData, tmp.GetPtr(), tmp.GetSize());
-	GlobalUnlock(hClipData);
-
-	if ( !AfxGetMainWnd()->OpenClipboard() )
-		goto ENDOF;
-
-	if ( !EmptyClipboard() ) {
-		CloseClipboard();
-		goto ENDOF;
-	}
-
-	SetClipboardData(CF_UNICODETEXT, hClipData);
-	CloseClipboard();
-	goto ENDOF2;
-
-ENDOF:
-	GlobalFree(hClipData);
-ENDOF2:
-	return;
+	((CMainFrame *)::AfxGetMainWnd())->SetClipboardText((LPCWSTR)tmp);
 }
 void CTextRam::GetLine(int sy, CString &str)
 {
@@ -6101,8 +6075,12 @@ void CTextRam::ERABOX(int sx, int sy, int ex, int ey, int df)
 	if ( ex < sx ) return; else if ( ex > m_Cols  ) ex = m_Cols;
 	if ( ey < sy ) return; else if ( ey > m_Lines ) ey = m_Lines;
 
-	//if ( sx == 0 && ex == m_Cols && sy == 0 && ey == m_Lines )
-	//	SaveLogFile();
+	if ( sx == 0 && ex == m_Cols && sy == 0 && ey == m_Lines && m_Lines > 1 && IsOptEnable(TO_RLCLSBACK) ) {
+		for ( y = 0 ; y < m_Lines ; y++)
+			FORSCROLL(0, 0, m_Cols, m_Lines);
+		m_pDocument->UpdateAllViews(NULL, UPDATE_SCROLLOUT, NULL);
+		return;
+	}
 
 	if ( (df & ERM_ISOPRO) != 0 && IsOptEnable(TO_ANSIERM) )
 		df &= ~ERM_ISOPRO;

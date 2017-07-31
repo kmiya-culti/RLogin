@@ -62,6 +62,7 @@ BEGIN_MESSAGE_MAP(CRLoginDoc, CDocument)
 	ON_UPDATE_COMMAND_UI(IDM_SCRIPT, &CRLoginDoc::OnUpdateScript)
 	ON_COMMAND(IDM_IMAGEDISP, &CRLoginDoc::OnImagedisp)
 	ON_UPDATE_COMMAND_UI(IDM_IMAGEDISP, &CRLoginDoc::OnUpdateImagedisp)
+	ON_COMMAND(IDM_REOPENSOCK, &CRLoginDoc::OnSockReOpen)
 
 	ON_COMMAND(IDM_TRACEDISP, &CRLoginDoc::OnTracedisp)
 	ON_COMMAND(IDC_LOADDEFAULT, OnLoadDefault)
@@ -1154,6 +1155,7 @@ void CRLoginDoc::OnSocketConnect()
 }
 void CRLoginDoc::OnSocketError(int err)
 {
+	CWnd *pWnd;
 	CString tmp;
 
 	SetStatus(_T("Error"));
@@ -1170,8 +1172,11 @@ void CRLoginDoc::OnSocketError(int err)
 	AfxMessageBox(tmp);
 	m_ErrorPrompt.Empty();
 
-	if ( m_TextRam.IsOptEnable(TO_RLNOTCLOSE) )
+	if ( m_TextRam.IsOptEnable(TO_RLNOTCLOSE) ) {
+		if ( (pWnd = GetAciveView()) != NULL && ::AfxMessageBox(IDS_SOCKREOPEN, MB_ICONQUESTION | MB_YESNO) == IDYES )
+			pWnd->PostMessage(WM_COMMAND, IDM_REOPENSOCK, (LPARAM)0);
 		return;
+	}
 
 	OnFileClose();
 }
@@ -1190,6 +1195,7 @@ void CRLoginDoc::OnSocketClose()
 	if ( m_pKermit != NULL )
 		m_pKermit->DoAbort();
 
+	CWnd *pWnd;
 	BOOL bCanExit = FALSE;
 
 	if ( m_TextRam.IsOptEnable(TO_RLPOFF) ) {
@@ -1211,8 +1217,11 @@ void CRLoginDoc::OnSocketClose()
 	UpdateAllViews(NULL, UPDATE_GOTOXY, NULL);
 	SetStatus(_T("Close"));
 
-	if ( m_TextRam.IsOptEnable(TO_RLNOTCLOSE) )
+	if ( m_TextRam.IsOptEnable(TO_RLNOTCLOSE) ) {
+		if ( (pWnd = GetAciveView()) != NULL && ::AfxMessageBox(IDS_SOCKREOPEN, MB_ICONQUESTION | MB_YESNO) == IDYES )
+			pWnd->PostMessage(WM_COMMAND, IDM_REOPENSOCK, (LPARAM)0);
 		return;
+	}
 
 	if ( bCanExit )
 		m_pMainWnd->PostMessage(WM_COMMAND, ID_APP_EXIT, 0 );
@@ -1316,6 +1325,11 @@ void CRLoginDoc::OnSockIdle()
 	}
 
 //	TRACE("SockIdle %d\n", n);
+}
+void CRLoginDoc::OnSockReOpen()
+{
+	SocketClose();
+	SocketOpen();
 }
 
 /////////////////////////////////////////////////////////////////////////////

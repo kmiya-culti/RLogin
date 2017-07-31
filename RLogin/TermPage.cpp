@@ -105,6 +105,7 @@ static const struct _OptListTab {
 	{	TO_RLSIXPOS,	_T("Sixel画像の右にカーソル"),		_T("Sixel画像の下にカーソル"),		_T("スクロールモード時のSixel画像表示後のカーソル位置を設定します")	},
 	{	TO_DRCSMMv1,	_T("8800 Unicodeマッピング有効"),	_T("Unicodeマッピング無効"),		_T("ISO-2022コードセットをUnicode16面にマッピングを有効・無効にします")	},
 	{	TO_RLC1DIS,		_T("C1制御文字を無視する"),			_T("C1制御文字を処理する"),			_T("C1制御文字(80-9F)を無視する・しない")	},
+	{	TO_RLCLSBACK,	_T("スクロールして消去"),			_T("通常の全画面消去"),				_T("全画面消去をスクロールで行う")	},
 	{	0,				NULL,								NULL,								NULL	}
 };
 
