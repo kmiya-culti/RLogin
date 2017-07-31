@@ -537,7 +537,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.22.3 (2017/05/29)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.22.4 (2017/07/03)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2017 Culti",IDC_STATIC,44,16,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,171,60,14,WS_GROUP
     LTEXT           "OpenSSL 1.1.0f 25 May 2017",IDC_STATIC,44,29,189,8
@@ -1118,7 +1118,7 @@ BEGIN
     CTEXT           "Server Address",IDC_STATIC,15,100,150,8
     CTEXT           "User Name",IDC_STATIC,15,136,70,8
     GROUPBOX        "デフォルト文字セット",IDC_STATIC,7,243,256,30
-    CTEXT           "Password",IDC_STATIC,100,136,70,8
+    CTEXT           "Password/phrase",IDC_STATIC,100,136,70,8
     CTEXT           "SSH Identity Key",IDC_STATIC,185,191,70,8
     CTEXT           "Socket Port",IDC_STATIC,209,100,46,8
     GROUPBOX        "エントリー/コメント",IDC_STATIC,7,7,166,51
@@ -1782,8 +1782,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,22,3,0
- PRODUCTVERSION 2,22,3,0
+ FILEVERSION 2,22,4,0
+ PRODUCTVERSION 2,22,4,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1800,12 +1800,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.22.3.0"
+            VALUE "FileVersion", "2.22.4.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2017 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.22.3.0"
+            VALUE "ProductVersion", "2.22.4.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -4013,6 +4013,8 @@ BEGIN
     IDT_EXTOPT_LIST17       "通信ログをフラッシュする\t通信ログをフラッシュしない\t通信ログファイルを定期的に書き出し更新する"
     IDT_EXTOPT_LIST18       "微妙なカレット\t通常のカレット\t文字カレットを動画で点滅させます"
     IDT_EXTOPT_LIST19       "タブにマウスで情報表示\t情報表示を行わない\tタブにマウスで接続先の情報をツールチップで表示する"
+    IDT_EXTOPT_LIST20       "再接続を確認\t接続断で終了処理\t接続が切れた場合に再接続を確認する"
+    IDT_EXTOPT_LIST21       "末尾の改行を削除\t改行を確認\tペースト時に末尾の改行コードを削除します"
 END
 
 STRINGTABLE

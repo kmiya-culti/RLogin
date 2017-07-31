@@ -240,6 +240,8 @@
 #define	TO_RLLOGFLUSH	1474		// ログの書き出しを定期的に行う
 #define	TO_RLCARETANI	1475		// カレットアニメーション
 #define	TO_RLTABINFO	1476		// タブにツールチップを表示する
+#define	TO_RLREOPEN		1477		// 再接続を確認
+#define	TO_RLDELCRLF	1478		// ペースト時に末尾のCRLFを削除
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 

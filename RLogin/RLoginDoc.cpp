@@ -1384,12 +1384,15 @@ void CRLoginDoc::OnSocketClose()
 	UpdateAllViews(NULL, UPDATE_GOTOXY, NULL);
 	SetStatus(_T("Close"));
 	time(&m_CloseTime);
+	pWnd = GetAciveView();
 
-	if ( m_TextRam.IsOptEnable(TO_RLNOTCLOSE) )
+	if (m_TextRam.IsOptEnable(TO_RLREOPEN) && pWnd != NULL && AfxMessageBox(IDS_SOCKREOPEN, MB_ICONQUESTION | MB_YESNO) == IDYES )
+		pWnd->PostMessage(WM_COMMAND, IDM_REOPENSOCK, (LPARAM)0);
+	else if ( m_TextRam.IsOptEnable(TO_RLNOTCLOSE) )
 		UpdateAllViews(NULL, UPDATE_DISPMSG, (CObject *)_T("Closed"));
 	else if ( bCanExit )
 		m_pMainWnd->PostMessage(WM_COMMAND, ID_APP_EXIT, 0 );
-	else if ( (pWnd = GetAciveView()) != NULL )
+	else if ( pWnd != NULL )
 		pWnd->PostMessage(WM_COMMAND, ID_FILE_CLOSE, (LPARAM)0);
 	else
 		OnFileClose();

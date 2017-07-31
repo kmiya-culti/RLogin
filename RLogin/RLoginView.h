@@ -88,6 +88,7 @@ public:
 	INT_PTR m_RclickTimer;
 
 	int m_ClipFlag;
+	int m_ClipStaPosSave;
 	int m_ClipStaPos, m_ClipEndPos;
 	int m_ClipStaOld, m_ClipEndOld;
 	UINT m_ClipTimer;

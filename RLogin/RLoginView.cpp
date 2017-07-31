@@ -126,6 +126,7 @@ CRLoginView::CRLoginView()
 	m_HisOfs = 0;
 	m_pBitmap = NULL;
 	m_ClipFlag = 0;
+	m_ClipStaPosSave = (-1);
 	m_ClipTimer = 0;
 	m_KeyMacFlag = FALSE;
 	m_KeyMacSizeCheck = FALSE;
@@ -2664,27 +2665,47 @@ void CRLoginView::OnLButtonUp(UINT nFlags, CPoint point)
 	if ( m_ClipTimer != 0 )
 		KillTimer(m_ClipTimer);
 
-	if ( m_ClipFlag == 1 && m_ClipStaPos == m_ClipEndPos && !IsClipLineMode() ) {
-		m_ClipFlag = 0;
-		OnUpdate(this, UPDATE_CLIPERA, NULL);
+	if ( m_ClipFlag == 1 && m_ClipStaPos == m_ClipEndPos ) { // && !IsClipLineMode() ) {
+		if ( pDoc->m_TextRam.IsOptEnable(TO_RLSTAYCLIP) || !pDoc->m_TextRam.IsOptEnable(TO_RLCKCOPY) ) {
+			if ( (m_ClipKeyFlags & MK_SHIFT) == 0 ) {
+				m_ClipStaPosSave = m_ClipStaPos;
+				m_ClipFlag = 0;
+
+			} else if ( m_ClipStaPosSave != (-1) ) {
+				if ( m_ClipStaPosSave > m_ClipStaPos )
+					m_ClipEndPos = m_ClipStaPosSave;
+				else
+					m_ClipStaPos = m_ClipStaPosSave;
+
+				m_ClipKeyFlags &= ~MK_SHIFT;
+				m_ClipFlag = 6;
+			}
+			OnUpdate(this, UPDATE_CLIPERA, NULL);
+
+		} else {
+			m_ClipFlag = 0;
+			OnUpdate(this, UPDATE_CLIPERA, NULL);
 
 #ifdef	USE_CLIENTKEY
-		switch(HitTest(point)) {
-		case 011: OnKeyDown(VK_LMOUSE_LEFT_TOP,      0, nFlags); break;
-		case 012: OnKeyDown(VK_LMOUSE_LEFT_CENTER,   0, nFlags); break;
-		case 013: OnKeyDown(VK_LMOUSE_LEFT_BOTTOM,   0, nFlags); break;
-		case 021: OnKeyDown(VK_LMOUSE_CENTER_TOP,    0, nFlags); break;
-		case 022: OnKeyDown(VK_LMOUSE_CENTER_CENTER, 0, nFlags); break;
-		case 023: OnKeyDown(VK_LMOUSE_CENTER_BOTTOM, 0, nFlags); break;
-		case 031: OnKeyDown(VK_LMOUSE_RIGHT_TOP,     0, nFlags); break;
-		case 032: OnKeyDown(VK_LMOUSE_RIGHT_CENTER,  0, nFlags); break;
-		case 033: OnKeyDown(VK_LMOUSE_RIGHT_BOTTOM,  0, nFlags); break;
-		}
+			switch(HitTest(point)) {
+			case 011: OnKeyDown(VK_LMOUSE_LEFT_TOP,      0, nFlags); break;
+			case 012: OnKeyDown(VK_LMOUSE_LEFT_CENTER,   0, nFlags); break;
+			case 013: OnKeyDown(VK_LMOUSE_LEFT_BOTTOM,   0, nFlags); break;
+			case 021: OnKeyDown(VK_LMOUSE_CENTER_TOP,    0, nFlags); break;
+			case 022: OnKeyDown(VK_LMOUSE_CENTER_CENTER, 0, nFlags); break;
+			case 023: OnKeyDown(VK_LMOUSE_CENTER_BOTTOM, 0, nFlags); break;
+			case 031: OnKeyDown(VK_LMOUSE_RIGHT_TOP,     0, nFlags); break;
+			case 032: OnKeyDown(VK_LMOUSE_RIGHT_CENTER,  0, nFlags); break;
+			case 033: OnKeyDown(VK_LMOUSE_RIGHT_BOTTOM,  0, nFlags); break;
+			}
 #endif
-		return;
-	}
+			return;
+		}
 
-	m_ClipFlag = 6;
+	} else {
+		m_ClipStaPosSave = m_ClipStaPos;
+		m_ClipFlag = 6;
+	}
 
 	if ( pDoc->m_TextRam.IsOptEnable(TO_RLCKCOPY) )
 		OnEditCopy();
@@ -3107,6 +3128,12 @@ BOOL CRLoginView::SendPasteText(LPCWSTR wstr)
 			len++;
 		}
 	}
+
+	if ( ct > 0 && pDoc->m_TextRam.IsOptEnable(TO_RLDELCRLF) && wrk.GetLength() >= 2 && wrk.Right(2).Compare(L"\x0D\x0A") == 0 ) {
+		wrk.Delete(wrk.GetLength() - 2, 2);
+		ct--;
+	}
+
 	wstr = wrk;
 
 	if ( pDoc->m_TextRam.IsOptEnable(TO_RLEDITPAST) || (m_PastNoCheck == FALSE && (len > 500 || ct > 0)) ) {
