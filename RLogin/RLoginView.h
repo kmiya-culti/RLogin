@@ -63,6 +63,8 @@ public:
 	UINT m_ClipKeyFlags;
 	inline BOOL IsClipRectMode() { return (m_ClipKeyFlags & MK_CONTROL); }
 	inline BOOL IsClipLineMode() { return (m_ClipKeyFlags & (MK_SHIFT | 0x1000)); }
+	int GetClipboad(CBuffer *bp);
+	int SetClipboad(CBuffer *bp);
 
 	BOOL m_KeyMacFlag;
 	CBuffer m_KeyMacBuf;

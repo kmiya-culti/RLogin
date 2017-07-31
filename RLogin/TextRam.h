@@ -499,6 +499,7 @@ public:
 	BOOL m_RetSync;
 	BOOL m_Exact;
 	CString m_StrPara;
+	CBuffer m_Macro[64];
 
 	int m_VtLevel;
 	int m_TermId;
@@ -637,6 +638,7 @@ public:
 	// Mid Level
 	int GetAnsiPara(int index, int defvalue, int limit);
 	void SetAnsiParaArea(int top);
+	LPCSTR GetHexPara(LPCSTR str, CBuffer &buf);
 	void LOCATE(int x, int y);
 	void ERABOX(int sx, int sy, int ex, int ey, int df = 0);
 	void FORSCROLL(int sy, int ey);
@@ -937,6 +939,7 @@ public:
 	void fc_DECSTGLT(int ch);
 	void fc_DECSACE(int ch);
 	void fc_DECRQCRA(int ch);
+	void fc_DECINVM(int ch);
 	void fc_DECTID(int ch);
 	void fc_DECATC(int ch);
 	void fc_DA2(int ch);
@@ -955,6 +958,15 @@ public:
 	void fc_OSC_CMD(int ch);
 	void fc_OSC_PAM(int ch);
 	void fc_OSC_ST(int ch);
+	void fc_DECUDK(int ch);
+	void fc_DECREGIS(int ch);
+	void fc_DECSIXEL(int ch);
+	void fc_DECRQSS(int ch);
+	void fc_DECRPTUI(int ch);
+	void fc_DECDMAC(int ch);
+	void fc_XTRQCAP(int ch);
+	void fc_OSCEXE(int ch);
+	void fc_OSCNULL(int ch);
 
 	// TEK
 	typedef struct _TEKNODE {

@@ -961,6 +961,8 @@ void CTextRam::Init()
 	m_StsMode = 0;
 	m_StsLed  = 0;
 	SetRetChar(FALSE);
+	for ( int n = 0 ; n < 64 ; n++ )
+		m_Macro[n].Clear();
 
 	m_ProcTab.Init();
 
@@ -2601,6 +2603,8 @@ void CTextRam::RESET(int mode)
 		memcpy(m_Save_BankTab, m_BankTab, sizeof(m_BankTab));
 		memcpy(m_Save_AnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
 		memcpy(m_Save_TabMap, m_TabMap, sizeof(m_TabMap));
+		for ( int n = 0 ; n < 64 ; n++ )
+			m_Macro[n].Clear();
 	}
 
 	m_RecvCrLf = IsOptValue(TO_RLRECVCR, 2);
@@ -2936,6 +2940,38 @@ void CTextRam::LocReport(int md, int sw, int x, int y)
 		m_MouseTrack = MOS_EVENT_NONE;
 		m_pDocument->UpdateAllViews(NULL, UPDATE_SETCURSOR, NULL);
 	}
+}
+LPCSTR CTextRam::GetHexPara(LPCSTR str, CBuffer &buf)
+{
+	// ! Pn ; D...D ;		! is the repeat sequence introducer.
+
+	int n;
+	CBuffer tmp;
+
+	buf.Clear();
+	while ( *str != '\0' ) {
+		if ( *str == ';' ) {
+			str++;
+			break;
+
+		} else if ( *str == '!' ) {
+			str++;
+			for ( n = 0 ; isdigit(*str) ; )
+				n = n * 10 + (*(str++) - '0');
+			if ( *str != ';' )
+				break;
+			str++;
+			str = GetHexPara(str, tmp);
+			while ( n-- > 0 )
+				buf.Apend(tmp.GetPtr(), tmp.GetSize());
+
+		} else if ( isxdigit(str[0]) && isxdigit(str[1]) ) {
+			str = tmp.Base16Decode(str);
+			buf.Apend(tmp.GetPtr(), tmp.GetSize());
+		} else
+			break;
+	}
+	return str;
 }
 
 void CTextRam::LOCATE(int x, int y)

@@ -1610,6 +1610,11 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 			str = "127.0.0.1";
 
 		if ( *(p++) == ':' ) { // && CExtSocket::SokcetCheck(str, 6000 + atoi(p)) ) {
+			n = 0;	// screen number
+			while ( *p != '\0' && *p != '.' )
+				p++;
+			if ( *p == '.' )
+				n = atoi(++p);
 			str.Format("%04x%04x%04x%04x", rand(), rand(), rand(), rand());
 			tmp.Clear();
 			tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
@@ -1619,7 +1624,7 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 			tmp.Put8Bit(0);		// XXX bool single connection
 			tmp.PutStr("MIT-MAGIC-COOKIE-1");
 			tmp.PutStr(str);
-			tmp.Put32Bit(atoi(p));
+			tmp.Put32Bit(n);	// screen number
 			SendPacket2(&tmp);
 		}
 	}

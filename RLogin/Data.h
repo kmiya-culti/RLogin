@@ -71,11 +71,11 @@ public:
 	int PTR32BIT(LPBYTE pos);
 	LONGLONG PTR64BIT(LPBYTE pos);
 
-	void Base64Decode(LPCSTR str);
+	LPCSTR Base64Decode(LPCSTR str);
 	void Base64Encode(LPBYTE buf, int len);
-	void Base16Decode(LPCSTR str);
+	LPCSTR Base16Decode(LPCSTR str);
 	void Base16Encode(LPBYTE buf, int len);
-	void QuotedDecode(LPCSTR str);
+	LPCSTR QuotedDecode(LPCSTR str);
 	void QuotedEncode(LPBYTE buf, int len);
 	void md5(LPCSTR str);
 
@@ -129,6 +129,82 @@ public:
 	void Serialize(CArchive& ar);
 	int Find(LPCSTR str);
 	int FindNoCase(LPCSTR str);
+};
+
+class CStringMaps : public CObject
+{
+public:
+	CArray<CStringW, CStringW &> m_Data;
+
+	int Add(LPCWSTR wstr);
+	int Find(LPCWSTR wstr);
+	int Next(LPCWSTR wstr, int pos);
+	LPCWSTR GetAt(int n) { return m_Data[n]; }
+	void RemoveAll() { m_Data.RemoveAll(); }
+	int GetSize() { return (int)m_Data.GetSize(); }
+	void AddWStrBuf(LPBYTE lpBuf, int nLen);
+
+	CStringMaps();
+	~CStringMaps();
+};
+
+class CStringIndex : public CObject
+{
+public:
+	BOOL m_bNoCase;
+	BOOL m_bNoSort;
+	int m_Value;
+	CString m_nIndex;
+	CString m_String;
+	CArray<CStringIndex, CStringIndex &> m_Array;
+
+	const CStringIndex & operator = (CStringIndex &data);
+	CStringIndex & operator [] (LPCSTR str);
+	CStringIndex & operator [] (int nIndex) { return m_Array[nIndex]; }
+	const LPCSTR operator = (LPCSTR str) { return (m_String = str); }
+	operator LPCTSTR () const { return m_String; }
+
+	int GetSize() { return m_Array.GetSize(); }
+	void SetSize(int nIndex) { m_Array.SetSize(nIndex); }
+	LPCSTR GetIndex() { return m_nIndex; }
+	void RemoveAll() { m_Array.RemoveAll(); }
+	void SetNoCase(BOOL b) { m_bNoCase = b; }
+	void SetNoSort(BOOL b) { m_bNoSort = b; }
+
+	int Find(LPCSTR str);
+	void SetArray(LPCSTR str);
+
+	void GetBuffer(CBuffer *bp);
+	void SetBuffer(CBuffer *bp);
+	void GetString(LPCSTR str);
+	void SetString(CString &str);
+
+	CStringIndex();
+	~CStringIndex();
+};
+
+class CStringBinary : public CObject
+{
+public:
+	CStringBinary *m_pLeft;
+	CStringBinary *m_pRight;
+	CString m_Index;
+	CString m_String;
+	int m_Value;
+
+	CStringBinary();
+	CStringBinary(LPCSTR str);
+	~CStringBinary();
+
+	void RemoveAll();
+	CStringBinary * Find(LPCSTR str);
+	CStringBinary * FindValue(int value);
+	CStringBinary & operator [] (LPCSTR str);
+	CStringBinary & Add(LPCSTR str) { return (*this)[str]; };
+	const LPCSTR operator = (LPCSTR str) { m_Value = 0; return (m_String = str); }
+	operator LPCTSTR () const { return m_String; }
+	const int operator = (int val) { return (m_Value = val); }
+	operator int () const { return m_Value; }
 };
 
 class CBmpFile : public CObject
@@ -414,6 +490,7 @@ public:
 	int Add(LPCSTR code, int mask, LPCSTR maps);
 	BOOL FindKeys(int code, int mask, CBuffer *pBuf, int base, int bits);
 	BOOL FindMaps(int code, int mask, CBuffer *pBuf);
+	BOOL FindCapInfo(LPCSTR name, CBuffer *pBuf);
 
 	inline CKeyNode &GetAt(int pos) { return m_Node[pos]; }
 	inline int GetSize() { return (int)m_Node.GetSize(); }
@@ -501,82 +578,6 @@ public:
 	int GetPropNode(int num, int node, CString &str);
 
 	const CParamTab & operator = (CParamTab &data);
-};
-
-class CStringMaps : public CObject
-{
-public:
-	CArray<CStringW, CStringW &> m_Data;
-
-	int Add(LPCWSTR wstr);
-	int Find(LPCWSTR wstr);
-	int Next(LPCWSTR wstr, int pos);
-	LPCWSTR GetAt(int n) { return m_Data[n]; }
-	void RemoveAll() { m_Data.RemoveAll(); }
-	int GetSize() { return (int)m_Data.GetSize(); }
-	void AddWStrBuf(LPBYTE lpBuf, int nLen);
-
-	CStringMaps();
-	~CStringMaps();
-};
-
-class CStringIndex : public CObject
-{
-public:
-	BOOL m_bNoCase;
-	BOOL m_bNoSort;
-	int m_Value;
-	CString m_nIndex;
-	CString m_String;
-	CArray<CStringIndex, CStringIndex &> m_Array;
-
-	const CStringIndex & operator = (CStringIndex &data);
-	CStringIndex & operator [] (LPCSTR str);
-	CStringIndex & operator [] (int nIndex) { return m_Array[nIndex]; }
-	const LPCSTR operator = (LPCSTR str) { return (m_String = str); }
-	operator LPCTSTR () const { return m_String; }
-
-	int GetSize() { return m_Array.GetSize(); }
-	void SetSize(int nIndex) { m_Array.SetSize(nIndex); }
-	LPCSTR GetIndex() { return m_nIndex; }
-	void RemoveAll() { m_Array.RemoveAll(); }
-	void SetNoCase(BOOL b) { m_bNoCase = b; }
-	void SetNoSort(BOOL b) { m_bNoSort = b; }
-
-	int Find(LPCSTR str);
-	void SetArray(LPCSTR str);
-
-	void GetBuffer(CBuffer *bp);
-	void SetBuffer(CBuffer *bp);
-	void GetString(LPCSTR str);
-	void SetString(CString &str);
-
-	CStringIndex();
-	~CStringIndex();
-};
-
-class CStringBinary : public CObject
-{
-public:
-	CStringBinary *m_pLeft;
-	CStringBinary *m_pRight;
-	CString m_Index;
-	CString m_String;
-	int m_Value;
-
-	CStringBinary();
-	CStringBinary(LPCSTR str);
-	~CStringBinary();
-
-	void RemoveAll();
-	CStringBinary * Find(LPCSTR str);
-	CStringBinary * FindValue(int value);
-	CStringBinary & operator [] (LPCSTR str);
-	CStringBinary & Add(LPCSTR str) { return (*this)[str]; };
-	const LPCSTR operator = (LPCSTR str) { m_Value = 0; return (m_String = str); }
-	operator LPCTSTR () const { return m_String; }
-	const int operator = (int val) { return (m_Value = val); }
-	operator int () const { return m_Value; }
 };
 
 #endif // !defined(AFX_DATA_H__6A23DC3E_3DDC_47BD_A6FC_E0127564AE6E__INCLUDED_)

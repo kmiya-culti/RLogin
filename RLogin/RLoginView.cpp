@@ -503,6 +503,75 @@ void CRLoginView::SetGhostWnd(BOOL sw)
 		m_pGhost = NULL;
 	}
 }
+int CRLoginView::GetClipboad(CBuffer *bp)
+{
+	HGLOBAL hData;
+	WCHAR *pData;
+	CBuffer buf;
+	CRLoginDoc *pDoc = GetDocument();
+
+	if ( !OpenClipboard() )
+		return FALSE;
+
+	if ( (hData = GetClipboardData(CF_UNICODETEXT)) == NULL ) {
+		CloseClipboard();
+		return FALSE;
+	}
+
+	if ( (pData = (WCHAR *)GlobalLock(hData)) == NULL ) {
+        CloseClipboard();
+        return FALSE;
+    }
+
+	for ( ; *pData != 0 ; pData++ ) {
+		if ( *pData != L'\x0A' && *pData != L'\x1A' )
+			buf.Apend((LPBYTE)pData, sizeof(WCHAR));
+	}
+
+	GlobalUnlock(hData);
+	CloseClipboard();
+
+	CTextRam::MsToIconvUnicode((WCHAR *)(buf.GetPtr()), buf.GetSize() / sizeof(WCHAR), pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode]);
+	pDoc->m_TextRam.m_IConv.IConvBuf("UCS-2LE", pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode], &buf, bp);
+
+	return TRUE;
+}
+int CRLoginView::SetClipboad(CBuffer *bp)
+{
+	HGLOBAL hClipData;
+	WCHAR *pData;
+	CBuffer buf;
+	CRLoginDoc *pDoc = GetDocument();
+
+	pDoc->m_TextRam.m_IConv.IConvBuf(pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode], "UCS-2LE", bp, &buf);
+	for ( pData = (WCHAR *)(LPCWSTR)buf ; *pData != L'\0' ; pData++ )
+		*pData = CTextRam::IconvToMsUnicode(*pData);
+
+	if ( (hClipData = GlobalAlloc(GMEM_MOVEABLE, buf.GetSize())) == NULL )
+		return FALSE;
+
+	if ( (pData = (WCHAR *)GlobalLock(hClipData)) == NULL )
+		goto ENDOF;
+
+	memcpy(pData, buf.GetPtr(), buf.GetSize());
+	GlobalUnlock(hClipData);
+
+	if ( !OpenClipboard() )
+		goto ENDOF;
+
+	if ( !EmptyClipboard() ) {
+		CloseClipboard();
+		goto ENDOF;
+	}
+
+	SetClipboardData(CF_UNICODETEXT, hClipData);
+	CloseClipboard();
+	return TRUE;
+
+ENDOF:
+	GlobalFree(hClipData);
+	return FALSE;
+}
 
 /////////////////////////////////////////////////////////////////////////////
 // CRLoginView クラスのメッセージ ハンドラ
@@ -1444,7 +1513,6 @@ void CRLoginView::OnRButtonUp(UINT nFlags, CPoint point)
 			pDoc->m_TextRam.UNGETSTR("%sM%c%c%c", pDoc->m_TextRam.m_RetChar[RC_CSI], pDoc->m_TextRam.MCHAR(3 + (nFlags & MK_SHIFT ? pDoc->m_TextRam.m_MouseMode[2] : 0) + (nFlags & MK_CONTROL ? pDoc->m_TextRam.m_MouseMode[3] : 0)), pDoc->m_TextRam.MCHAR(x + 1), pDoc->m_TextRam.MCHAR(y + 1));
 	}
 }
-
 void CRLoginView::OnEditPaste() 
 {
 	HGLOBAL hData;
