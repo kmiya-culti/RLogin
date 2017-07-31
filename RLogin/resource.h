@@ -45,6 +45,7 @@
 #define IDD_ENTRYPAGE                   141
 #define IDD_SERENTPAGE                  141
 #define IDR_TEKWND                      141
+#define IDR_GRAPWND                     142
 #define IDD_CHATDLG                     146
 #define IDD_CHATSTAT                    147
 #define IDD_SCRIPTDLG                   148
@@ -489,13 +490,15 @@
 #define ID_CAPLIST_TERMINFO             5034
 #define ID_EDIT_COPY_ALL                5035
 #define ID_EDIT_PASTE_ALL               5037
+#define ID_5038                         5038
+#define IDM_GRAPDISP                    5039
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        162
-#define _APS_NEXT_COMMAND_VALUE         5038
+#define _APS_NEXT_COMMAND_VALUE         5040
 #define _APS_NEXT_CONTROL_VALUE         3053
 #define _APS_NEXT_SYMED_VALUE           249
 #endif

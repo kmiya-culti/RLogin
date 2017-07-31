@@ -284,11 +284,11 @@ CTextRam::CTextRam()
 	m_Loc_LastY = 0;
 	memset(m_MetaKeys, 0, sizeof(m_MetaKeys));
 	m_TitleMode = WTTL_ENTRY;
-	m_OscFlag = FALSE;
 	m_StsFlag = FALSE;
 	m_StsMode = 0;
 	m_StsLed  = 0;
 	m_VtLevel = 65;
+	m_TermId  = 10;
 	m_LangMenu = 0;
 	SetRetChar(FALSE);
 
@@ -760,6 +760,7 @@ void CTextRam::Init()
 	EnableOption(TO_DECANM);
 	EnableOption(TO_DECTCEM);
 	EnableOption(TO_XTMCUS);
+	EnableOption(TO_DECBKM);
 	memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
 	memcpy(m_DefBankTab, DefBankTab, sizeof(m_DefBankTab));
 	memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
@@ -785,8 +786,8 @@ void CTextRam::Init()
 	memset(m_MetaKeys, 0, sizeof(m_MetaKeys));
 	m_TitleMode = WTTL_ENTRY;
 	m_VtLevel = 65;
+	m_TermId  = 10;
 	m_LangMenu = 0;
-	m_OscFlag = FALSE;
 	m_StsFlag = FALSE;
 	m_StsMode = 0;
 	m_StsLed  = 0;
@@ -836,7 +837,7 @@ void CTextRam::SetArray(CStringArrayExt &array)
 	tmp.SetString(str, ';');
 	array.Add(str);
 
-	array.AddVal(2);	// AnsiOpt Bugfix
+	array.AddVal(3);	// AnsiOpt Bugfix
 	array.AddVal(m_TitleMode);
 }
 void CTextRam::GetArray(CStringArrayExt &array)
@@ -910,6 +911,10 @@ void CTextRam::GetArray(CStringArrayExt &array)
 	}
 	if ( n < 2 )
 		EnableOption(TO_XTMCUS);
+	if ( n < 3 ) {
+		EnableOption(TO_DECBKM);
+		EnableOption(TO_ANSISRM);
+	}
 	memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_DefAnsiOpt));
 
 	if ( array.GetSize() > 38 )
@@ -2015,7 +2020,7 @@ void CTextRam::CallReciveChar(int ch)
 	static const WCHAR *CtrlName[] = {
 		L"NUL",	L"SOH",	L"STX",	L"ETX",	L"EOT",	L"ACK",	L"ENQ",	L"BEL",
 		L"BS",	L"HT",	L"LF",	L"VT",	L"FF",	L"CR",	L"SO",	L"SI",
-		L"DC0",	L"DC1",	L"DC2",	L"DC3",	L"DC4",	L"NAK",	L"SYN",	L"ETB",
+		L"DLE",	L"DC1",	L"DC2",	L"DC3",	L"DC4",	L"NAK",	L"SYN",	L"ETB",
 		L"CAN",	L"EM",	L"SUB",	L"ESC",	L"FS",	L"GS",	L"RS",	L"US",
 	};
 
@@ -2338,6 +2343,7 @@ void CTextRam::RESET(int mode)
 	if ( mode & RESET_OPTION ) {
 		memcpy(m_AnsiOpt, m_DefAnsiOpt, sizeof(m_AnsiOpt));
 		m_VtLevel = 65;
+		m_TermId  = 10;
 		m_LangMenu = 0;
 		SetRetChar(FALSE);
 	}
@@ -2373,7 +2379,6 @@ void CTextRam::RESET(int mode)
 
 	if ( mode & RESET_CHAR ) {
 		m_Exact = FALSE;
-		m_OscFlag = FALSE;
 		m_StsFlag = FALSE;
 		m_StsMode = 0;
 		m_StsLed  = 0;
@@ -2414,7 +2419,8 @@ void CTextRam::UNGETSTR(LPCSTR str, ...)
 	va_list arg;
 	va_start(arg, str);
 	tmp.FormatV(str, arg);
-	m_pDocument->SocketSend((void *)(LPCSTR)tmp, tmp.GetLength());
+	if ( m_pDocument != NULL )
+		m_pDocument->SocketSend((void *)(LPCSTR)tmp, tmp.GetLength());
 	va_end(arg);
 }
 void CTextRam::BEEP()
@@ -2889,27 +2895,17 @@ void CTextRam::REVINDEX()
 }
 void CTextRam::PUT1BYTE(int ch, int md)
 {
-	if ( m_OscFlag || m_StsFlag ) {
-		if ( m_OscPara.GetLength() > 1024 ) {
-			fc_OSC_POP(0);
-			return;
-		}
+	if ( m_StsFlag ) {
 		md &= CODE_MASK;
 		ch |= m_FontTab[md].m_Shift;
 		ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, "UTF-16BE", ch);			// Char変換ではUTF-16BEを使用！
 		ch = IconvToMsUnicode(ch);
 		m_LastChar = ch;
 		m_LastPos  = 0;
-		if ( m_OscFlag ) {
-			if ( (ch & 0xFFFF0000) != 0 )
-				m_OscPara += (WCHAR)(ch >> 16);
-			m_OscPara += (WCHAR)ch;
-		} else {
-			if ( (ch & 0xFFFF0000) != 0 )
-				m_StsPara += (WCHAR)(ch >> 16);
-			m_StsPara += (WCHAR)ch;
-			((CMainFrame *)AfxGetMainWnd())->SetMessageText(CString(m_StsPara));
-		}
+		if ( (ch & 0xFFFF0000) != 0 )
+			m_StsPara += (WCHAR)(ch >> 16);
+		m_StsPara += (WCHAR)ch;
+		((CMainFrame *)AfxGetMainWnd())->SetMessageText(CString(m_StsPara));
 		return;
 	}
 
@@ -2963,27 +2959,17 @@ void CTextRam::PUT1BYTE(int ch, int md)
 }
 void CTextRam::PUT2BYTE(int ch, int md)
 {
-	if ( m_OscFlag || m_StsFlag ) {
-		if ( m_OscPara.GetLength() > 1024 ) {
-			fc_OSC_POP(0);
-			return;
-		}
+	if ( m_StsFlag ) {
 		md &= CODE_MASK;
 		ch |= m_FontTab[md].m_Shift;
 		ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, "UTF-16BE", ch);			// Char変換ではUTF-16BEを使用！
 		ch = IconvToMsUnicode(ch);
 		m_LastChar = ch;
 		m_LastPos  = 0;
-		if ( m_OscFlag ) {
-			if ( (ch & 0xFFFF0000) != 0 )
-				m_OscPara += (WCHAR)(ch >> 16);
-			m_OscPara += (WCHAR)ch;
-		} else {
-			if ( (ch & 0xFFFF0000) != 0 )
-				m_StsPara += (WCHAR)(ch >> 16);
-			m_StsPara += (WCHAR)ch;
-			((CMainFrame *)AfxGetMainWnd())->SetMessageText(CString(m_StsPara));
-		}
+		if ( (ch & 0xFFFF0000) != 0 )
+			m_StsPara += (WCHAR)(ch >> 16);
+		m_StsPara += (WCHAR)ch;
+		((CMainFrame *)AfxGetMainWnd())->SetMessageText(CString(m_StsPara));
 		return;
 	}
 
@@ -3059,7 +3045,7 @@ void CTextRam::ANSIOPT(int opt, int bit)
 }
 void CTextRam::INSMDCK(int len)
 {
-	if ( IS_ENABLE(m_AnsiOpt, TO_ANSIIRM) == 0 || m_OscFlag )
+	if ( IS_ENABLE(m_AnsiOpt, TO_ANSIIRM) == 0 )
 		return;
 	while ( len-- > 0 )
 		INSCHAR();

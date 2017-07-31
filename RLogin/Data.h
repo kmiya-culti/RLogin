@@ -56,6 +56,7 @@ public:
 	int GetBIGNUM(BIGNUM *val);
 	int GetBIGNUM2(BIGNUM *val);
 	int GetWord();
+	int GetChar();
 
 	inline void SET8BIT(LPBYTE pos, int val) { *pos = (BYTE)(val); }
 	void SET16BIT(LPBYTE pos, int val);

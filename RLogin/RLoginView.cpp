@@ -285,6 +285,9 @@ void CRLoginView::SendBuffer(CBuffer &buf, BOOL macflag)
 	if ( m_KeyMacFlag )
 		m_KeyMacBuf.Apend(buf.GetPtr(), buf.GetSize());
 
+	if ( pDoc->m_TextRam.IsOptEnable(TO_ANSIKAM) )
+		return;
+
 	// TO_RLECHOCR, TO_RLECHOLF  = 00(CR), 01(LF), 10(CR+LF)
 	switch(pDoc->m_TextRam.IsOptEnable(TO_ANSILNM) ? 2 : pDoc->m_TextRam.m_SendCrLf) {
 	case 0:	// CR
@@ -317,6 +320,11 @@ void CRLoginView::SendBuffer(CBuffer &buf, BOOL macflag)
 	CTextRam::MsToIconvUnicode((WCHAR *)(buf.GetPtr()), buf.GetSize() / sizeof(WCHAR), pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode]);
 	pDoc->m_TextRam.m_IConv.IConvBuf("UCS-2LE", pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode], &buf, &tmp);
 	pDoc->SocketSend(tmp.GetPtr(), tmp.GetSize());
+
+	if ( !pDoc->m_TextRam.IsOptEnable(TO_ANSISRM) ) {
+		pDoc->m_TextRam.PUTSTR(tmp.GetPtr(), tmp.GetSize());
+		pDoc->m_TextRam.FLUSH();
+	}
 }
 void CRLoginView::SetCaret()
 {
@@ -610,13 +618,14 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 void CRLoginView::OnChar(UINT nChar, UINT nRepCnt, UINT nFlags) 
 {
 	CBuffer tmp;
+	CRLoginDoc *pDoc = GetDocument();
 
 //	TRACE("OnChar %02x(%04x)\n", nChar, nFlags);
 
-	if ( (nFlags & 0x2000) != 0 )	// with Alt key
-		tmp.PutWord(0x1B);
-
 	CView::OnChar(nChar, nRepCnt, nFlags);
+
+	if ( (nFlags & 0x2000) != 0 && pDoc->m_TextRam.IsOptEnable(TO_ANSISRM) )	// with Alt key
+		tmp.PutWord(0x1B);
 
 	tmp.PutWord(nChar);
 	SendBuffer(tmp);
@@ -668,7 +677,7 @@ int CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 		st |= MASK_CTRL;
 	if ( (GetKeyState(VK_MENU) & 0x80) != 0 )
 		st |= MASK_ALT;
-	if ( pDoc->m_TextRam.IsOptEnable(TO_DECPAM) )
+	if ( pDoc->m_TextRam.IsOptEnable(TO_RLPNAM) )
 		st |= MASK_APPL;
 
 	if ( !pDoc->m_TextRam.IsOptEnable(TO_DECANM) )
@@ -684,6 +693,11 @@ int CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 	//	st |= MASK_CAPLCK;
 
 	//TRACE("OnKey %02x(%02x)\n", nChar, st);
+
+	if ( nChar >= VK_F1 && nChar <= VK_F24 && pDoc->m_TextRam.m_FuncKey[nChar - VK_F1].GetSize() > 0 ) {
+		pDoc->SocketSend(pDoc->m_TextRam.m_FuncKey[nChar - VK_F1].GetPtr(), pDoc->m_TextRam.m_FuncKey[nChar - VK_F1].GetSize());
+		return FALSE;
+	}
 
 	if ( pDoc->m_KeyTab.FindMaps(nChar, st, &tmp) ) {
 		if ( (n = CKeyNodeTab::GetCmdsKey((LPCWSTR)tmp)) > 0 )
@@ -716,15 +730,27 @@ int CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 }
 void CRLoginView::OnSetFocus(CWnd* pOldWnd) 
 {
+	CRLoginDoc *pDoc = GetDocument();
+
 	CView::OnSetFocus(pOldWnd);
+
 	m_DispCaret |= 004;
 	SetCaret();
+
+	if ( pDoc->m_TextRam.IsOptEnable(TO_XTFOCEVT) )
+		pDoc->m_TextRam.UNGETSTR("%sI", pDoc->m_TextRam.m_RetChar[RC_CSI]);
 }
 void CRLoginView::OnKillFocus(CWnd* pNewWnd) 
 {
+	CRLoginDoc *pDoc = GetDocument();
+
 	CView::OnKillFocus(pNewWnd);
+
 	m_DispCaret &= ~004;
 	SetCaret();
+
+	if ( pDoc->m_TextRam.IsOptEnable(TO_XTFOCEVT) )
+		pDoc->m_TextRam.UNGETSTR("%sO", pDoc->m_TextRam.m_RetChar[RC_CSI]);
 }
 void CRLoginView::OnActivateView(BOOL bActivate, CView* pActivateView, CView* pDeactiveView) 
 {
@@ -774,6 +800,7 @@ LRESULT CRLoginView::OnImeComposition(WPARAM wParam, LPARAM lParam)
 		HIMC hImc;
 		LONG len;
 		CBuffer tmp;
+		CRLoginDoc *pDoc = GetDocument();
 
 		hImc = ImmGetContext(m_hWnd);
 		len = ImmGetCompositionStringW(hImc, GCS_RESULTSTR, NULL, 0);
@@ -782,6 +809,7 @@ LRESULT CRLoginView::OnImeComposition(WPARAM wParam, LPARAM lParam)
 
 		SendBuffer(tmp);
 		return TRUE;
+
 	} else
 		return DefWindowProc(WM_IME_COMPOSITION, wParam, lParam);
 }
@@ -1344,7 +1372,7 @@ void CRLoginView::OnEditPaste()
 		if ( MessageBox("多くの文字をペーストしようとしています\n送信しますか？", "Question", MB_ICONQUESTION | MB_YESNO) != IDYES )
 			return;
 	}
-
+	
 	SendBuffer(tmp);
 }
 void CRLoginView::OnUpdateEditPaste(CCmdUI* pCmdUI) 
@@ -1443,6 +1471,8 @@ BOOL CRLoginView::PreTranslateMessage(MSG* pMsg)
 	
 	if ( pMsg->hwnd == m_hWnd ) {
 		if ( pMsg->message == WM_KEYDOWN ) {
+			if ( pMsg->wParam == VK_BACK && !pDoc->m_TextRam.IsOptEnable(TO_DECBKM) )
+				pMsg->wParam = VK_DELETE;
 			if ( !OnKeyDown((UINT)pMsg->wParam, LOWORD(pMsg->lParam), HIWORD(pMsg->lParam)) )
 				return TRUE;
 		} else if ( pMsg->message == WM_SYSKEYDOWN ) {

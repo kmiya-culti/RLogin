@@ -250,6 +250,14 @@ int CBuffer::GetWord()
 	Consume(sizeof(WORD));
 	return (int)wd;
 }
+int CBuffer::GetChar()
+{
+	if ( GetSize() < 1 )
+		return (-1);
+	int val = PTR8BIT(GetPtr());
+	Consume(1);
+	return val;
+}
 void CBuffer::SET16BIT(LPBYTE pos, int val)
 {
 	pos[0] = (BYTE)(val >> 8);

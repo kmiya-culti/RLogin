@@ -21,12 +21,13 @@ public:
 
 protected:
 	DECLARE_MESSAGE_MAP()
-public:
-	afx_msg void OnPaint();
+
 protected:
 	virtual void PostNcDestroy();
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
+
 public:
+	afx_msg void OnPaint();
 	afx_msg void OnDestroy();
 	afx_msg void OnTekClose();
 	afx_msg void OnTekSave();

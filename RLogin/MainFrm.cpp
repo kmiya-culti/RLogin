@@ -13,6 +13,8 @@
 #define new DEBUG_NEW
 #endif
 
+#pragma comment(lib,"winmm")
+
 /////////////////////////////////////////////////////////////////////////////
 // CPaneFrame
 
@@ -580,6 +582,8 @@ CMainFrame::CMainFrame()
 	m_TransParColor = RGB(0, 0, 0);
 	m_SleepCount = 60;
 	m_MenuHand = NULL;
+	m_hMidiOut = NULL;
+	m_MidiTimer = 0;
 }
 
 CMainFrame::~CMainFrame()
@@ -595,8 +599,19 @@ CMainFrame::~CMainFrame()
 		m_pTimerFreeId = tp->m_pList;
 		delete tp;
 	}
-}
 
+	if ( m_MidiTimer != 0 )
+		KillTimer(m_MidiTimer);
+
+	CMidiQue *mp;
+	while ( !m_MidiQue.IsEmpty() && (mp = m_MidiQue.RemoveHead()) != NULL )
+		delete mp;
+
+	if ( m_hMidiOut != NULL ) {
+		midiOutReset(m_hMidiOut);
+		midiOutClose(m_hMidiOut);
+	}
+}
 
 int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 {
@@ -816,6 +831,28 @@ void CMainFrame::DelTimerEvent(void *pParam)
 		}
 	}
 	m_pTimerUsedId = top.m_pList;
+}
+void CMainFrame::SetMidiEvent(int msec, DWORD msg)
+{
+	CMidiQue *qp;
+
+	if ( m_hMidiOut == NULL && midiOutOpen(&m_hMidiOut, MIDIMAPPER, NULL, 0, CALLBACK_NULL) != MMSYSERR_NOERROR )
+		return;
+
+	if ( m_MidiQue.IsEmpty() && msec == 0 ) {
+		midiOutShortMsg(m_hMidiOut, msg);
+		return;
+	}
+
+	qp = new CMidiQue;
+	qp->m_mSec = msec;
+	qp->m_Msg  = msg;
+
+	m_MidiQue.AddTail(qp);
+	qp = m_MidiQue.GetHead();
+
+	if ( m_MidiTimer == 0 )
+		m_MidiTimer = SetTimer(TIMERID_MIDIEVENT, qp->m_mSec, NULL);
 }
 int CMainFrame::OpenServerEntry(CServerEntry &Entry)
 {
@@ -1166,6 +1203,7 @@ void CMainFrame::OnDestroy()
 void CMainFrame::OnTimer(UINT_PTR nIDEvent) 
 {
 	CTimerObject *tp;
+	CMidiQue *mp;
 
 	if ( nIDEvent == m_SleepTimer ) {
 		if ( m_SleepStatus < m_SleepCount ) {
@@ -1181,6 +1219,23 @@ void CMainFrame::OnTimer(UINT_PTR nIDEvent)
 			KillTimer(nIDEvent);
 			m_SleepTimer = 0;
 		}
+	} else if ( nIDEvent == m_MidiTimer ) {
+		KillTimer(nIDEvent);
+		m_MidiTimer = 0;
+		if ( !m_MidiQue.IsEmpty() && (mp = m_MidiQue.RemoveHead()) != NULL ) {
+			if ( m_hMidiOut != NULL )
+				midiOutShortMsg(m_hMidiOut, mp->m_Msg);
+			delete mp;
+		}
+		while ( !m_MidiQue.IsEmpty() && (mp = m_MidiQue.GetHead()) != NULL && mp->m_mSec == 0 ) {
+			if ( m_hMidiOut != NULL )
+				midiOutShortMsg(m_hMidiOut, mp->m_Msg);
+			m_MidiQue.RemoveHead();
+			delete mp;
+		}
+		if ( !m_MidiQue.IsEmpty() && (mp = m_MidiQue.GetHead()) != NULL )
+			m_MidiTimer = SetTimer(TIMERID_MIDIEVENT, mp->m_mSec, NULL);
+
 	} else {
 		for ( tp = m_pTimerUsedId ; tp != NULL ; tp = tp->m_pList ) {
 			if ( tp->m_Id == (int)nIDEvent ) {

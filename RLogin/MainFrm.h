@@ -8,6 +8,7 @@
 #include "TabBar.h"
 #include "IConv.h"
 #include "Ssh.h"
+#include <mmsystem.h>
 
 //typedef BOOL __stdcall SETLAYER( HWND hwnd, COLORREF crKey, BYTE bAlpha, DWORD dwFlags );
 
@@ -68,6 +69,7 @@ public:
 
 #define	TIMERID_SLEEPMODE	1024
 #define	TIMERID_TIMEREVENT	1100
+#define	TIMERID_MIDIEVENT	1101
 
 class CTimerObject : public CObject
 {
@@ -78,6 +80,13 @@ public:
 	class CTimerObject *m_pList;
 	CTimerObject();
 	void CallObject();
+};
+
+class CMidiQue : public CObject
+{
+public:
+	int m_mSec;
+	DWORD m_Msg;
 };
 
 class CMainFrame : public CMDIFrameWnd
@@ -126,6 +135,9 @@ public:
 	COLORREF m_TransParColor;
 	HMENU m_MenuHand;
 	CKeyCmdsTab m_MenuTab;
+	HMIDIOUT m_hMidiOut;
+	UINT_PTR m_MidiTimer;
+	CList<class CMidiQue *, class CMidiQue *> m_MidiQue;
 
 	void SetTransPar(COLORREF rgb, int value, DWORD flag);
 	void SetIconStyle();
@@ -139,6 +151,8 @@ public:
 
 	int SetTimerEvent(int msec, int mode, void *pParam);
 	void DelTimerEvent(void *pParam);
+
+	void SetMidiEvent(int msec, DWORD msg);
 
 	void SetWakeUpSleep(int sec);
 	void WakeUpSleep();

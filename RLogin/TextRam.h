@@ -14,12 +14,14 @@
 #include "Data.h"
 #include "IConv.h"
 #include "TekWnd.h"
+#include "GrapWnd.h"
 #include "GhostWnd.h"
 
 #define	COLS_MAX		512
 #define	LINE_MAX		512
 #define	HIS_MAX			200000			// HIS_MAX * COLS_MAX * sizeof(VRAM) = 1,228,800,000 byte
 #define	DEF_TAB			8
+#define	FKEY_MAX		24
 
 #define	TEK_WIN_WIDTH	4096
 #define	TEK_WIN_HEIGHT	3072
@@ -83,23 +85,21 @@
 #define	TO_DECSCNM		5			// Light or Dark Screen
 #define TO_DECOM		6			// Origin mode
 #define TO_DECAWM		7			// Autowrap mode
-#define TO_DECARM		8			// Autorepeat mode								XXXX
 #define	TO_XTMOSREP		9			// X10 mouse reporting
+#define	TO_DECPEX		19			// Print Extent Mode
 #define	TO_DECTCEM		25			// Text Cursor Enable Mode
-#define	TO_DECRLM		34			// Right-to-Left Mode							XXXX
 #define	TO_DECTEK		38			// Graphics (Tek)
 #define	TO_XTMCSC		40			// XTerm Column switch control
 #define	TO_XTMCUS		41			// XTerm tab bug fix
 #define TO_XTMRVW		45			// XTerm Reverse-wraparound mode
 #define	TO_XTMABUF		47			// XTerm alternate buffer
-#define	TO_DECBKM		67			// Backarrow key mode (BS)						XXXX
+#define	TO_DECBKM		67			// Backarrow key mode (BS)
 #define	TO_DECECM		117			// SGR space color disable
-#define	TO_DECPAM		199			// 0:Normal Keypad (DECPNM) / 1:Application Keypad (DECPAM)
 // ANSI Screen Option	0-99(200-299)
-#define	TO_ANSIKAM		(2+200)		// KAM Set Keyboard Action Mode					XXXX
+#define	TO_ANSIKAM		(2+200)		// KAM Set Keyboard Action Mode
 #define	TO_ANSIIRM		(4+200)		// IRM Insertion replacement mode
 #define	TO_ANSIERM		(6+200)		// ERM Erasure mode
-#define	TO_ANSISRM		(12+200)	// SRM Set Send/Receive mode (Local echo off)	XXXX
+#define	TO_ANSISRM		(12+200)	// SRM Set Send/Receive mode (Local echo off)
 #define	TO_ANSITSM		(18+200)	// ISM Tabulation stop mode
 #define	TO_ANSILNM		(20+200)	// LNM Line feed/new line mode
 // XTerm Option			1000-1079(300-379)
@@ -107,7 +107,7 @@
 #define	TO_XTHILTRK		(1001-700)	// X11 hilite mouse tracking
 #define	TO_XTBEVTRK		(1002-700)	// X11 button-event mouse tracking
 #define	TO_XTAEVTRK		(1003-700)	// X11 any-event mouse tracking
-#define	TO_XTFOCEVT		(1004-700)	// Send Focus Event (CSI I / CSI O)				XXXX
+#define	TO_XTFOCEVT		(1004-700)	// Send Focus Event (CSI I / CSI O)
 #define	TO_XTALTSCR		(1047-700)	// Alternate/Normal screen buffer
 #define	TO_XTSRCUR		(1048-700)	// Save/Restore cursor as in DECSC/DECRC
 #define	TO_XTALTCLR		(1049-700)	// Alternate screen with clearing
@@ -154,6 +154,7 @@
 #define	TO_RLKANAUTO	437			// 漢字コードを自動で追従する
 #define	TO_RLMOSWHL		438			// マウスホイールをヌルヌル禁止
 #define	TO_RLMSWAPP		439			// マウスホイールのアプリモード動作を禁止
+#define	TO_RLPNAM		440			// 0:Normal Keypad (DECPNM) / 1:Application Keypad (DECPAM)
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -176,8 +177,7 @@ enum ETextRamStat {
 		ST_DEC_OPT,
 		ST_DOCS_OPT,	ST_DOCS_OPT_2,
 		ST_TEK_OPT,
-		ST_CHARSET_1,	ST_CHARSET_2,
-		ST_CSI_SKIP,
+		ST_CHARSET_1,	ST_CHARSET_2
 };
 
 enum ETabSetNum {
@@ -196,7 +196,7 @@ enum EStageNum {
 		STAGE_94X94,	STAGE_96X96,
 		STAGE_SJIS,		STAGE_SJIS2,
 		STAGE_UTF8,		STAGE_UTF82,
-		STAGE_OSC1,		STAGE_OSC2,		STAGE_OSC3,		STAGE_OSC4,
+		STAGE_OSC1,		STAGE_OSC2,
 		STAGE_TEK,
 		STAGE_STAT,
 		STAGE_MAX,
@@ -382,6 +382,7 @@ public:	// Options
 	CRect m_MouseRect;
 	DWORD m_MetaKeys[256 / 32];
 	CProcTab m_ProcTab;
+	CBuffer m_FuncKey[FKEY_MAX];
 
 	void Init();
 	void SetArray(CStringArrayExt &array);
@@ -433,14 +434,14 @@ public:
 	int m_LastPos;
 
 	CWordArray m_AnsiPara;
-	BOOL m_OscFlag;
 	int m_OscMode;
-	CStringW m_OscPara;
+	CBuffer m_OscPara;
 	BYTE m_TabMap[LINE_MAX + 1][COLS_MAX / 8 + 1];
 	BOOL m_RetSync;
 	BOOL m_Exact;
 
 	int m_VtLevel;
+	int m_TermId;
 	BOOL m_StsFlag;
 	int m_StsMode;
 	int m_StsLed;
@@ -870,8 +871,11 @@ public:
 	void fc_DECRQLP(int ch);
 	void fc_DECIC(int ch);
 	void fc_DECDC(int ch);
+	void fc_DECPS(int ch);
+	void fc_DECSTGLT(int ch);
 	void fc_DECSACE(int ch);
 	void fc_DECRQCRA(int ch);
+	void fc_DECTID(int ch);
 	void fc_DECATC(int ch);
 	void fc_DA2(int ch);
 	void fc_DA3(int ch);
@@ -884,11 +888,8 @@ public:
 	void fc_APC(int ch);
 	void fc_SOS(int ch);
 	void fc_OSC(int ch);
-	void fc_OSC_CH(int ch);
-	void fc_OSC_POP(int ch);
-	void fc_OSC_ESC(int ch);
-	void fc_OSC_CSI(int ch);
-	void fc_OSC_EST(int ch);
+	void fc_OSC_CMD(int ch);
+	void fc_OSC_PAM(int ch);
 	void fc_OSC_ST(int ch);
 
 	// TEK

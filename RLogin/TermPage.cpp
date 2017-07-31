@@ -36,8 +36,10 @@ static const struct _OptListTab {
 	LPCSTR	name;
 } OptListTab[] = {
 	// ANSI Screen Option	0-99(200-299)
+	{	TO_ANSIKAM,		"Keyboard action mode"				},
 	{	TO_ANSIIRM,		"Insertion replacement mode"		},
 	{	TO_ANSIERM,		"Erasure mode"						},
+	{	TO_ANSISRM,		"Local echo mode"					},
 	{	TO_ANSITSM,		"Tabulation stop mode"				},
 	{	TO_ANSILNM,		"Line feed/New line mode"			},
 
@@ -50,12 +52,14 @@ static const struct _OptListTab {
 	{	TO_DECOM,		"Origin mode"						},
 	{	TO_DECAWM,		"Autowrap mode"						},
 	{	TO_XTMOSREP,	"X10 mouse reporting"				},
+	{	TO_DECPEX,		"Print extent mode"					},
 	{	TO_DECTCEM,		"Text Cursor enable mode"			},
 //	{	TO_DECTEK,		"Graphics (Tek)"					},
 	{	TO_XTMCSC,		"Column switch control"				},
 	{	TO_XTMCUS,		"XTerm tab wrap bugfix"				},
 	{	TO_XTMRVW,		"Reverse-wraparound mode"			},
 	{	TO_XTMABUF,		"Alternate Screen mode"				},
+	{	TO_DECBKM,		"Backarrow key mode"				},
 	{	TO_DECECM,		"SGR space color disable"			},
 
 	// XTerm Option			1000-1099(300-379)
@@ -63,6 +67,7 @@ static const struct _OptListTab {
 	{	TO_XTHILTRK,	"X11 hilite mouse tracking"			},
 	{	TO_XTBEVTRK,	"X11 button-event mouse tracking"	},
 	{	TO_XTAEVTRK,	"X11 any-event mouse tracking"		},
+	{	TO_XTFOCEVT,	"Send Focus Event"					},
 	{	TO_XTALTSCR,	"Alternate/Normal screen buffer"	},
 	{	TO_XTSRCUR,		"Save/Restore cursor"				},
 	{	TO_XTALTCLR,	"Alternate screen with clearing"	},
