@@ -77,7 +77,7 @@
 #define ESCCTL 0100	/* Receiver expects ctl chars to be escaped */
 #define ESC8   0200	/* Receiver expects 8th bit to be escaped */
 
-/* Bit Masks for ZRINIT flags byte ZF0 */
+/* Bit Masks for ZRINIT flags byte ZF1 */
 #define CANVHDR	01	/* Variable headers OK */
 
 /* Parameters for ZSINIT frame */
@@ -113,24 +113,5 @@
 
 /* Parameters for ZCOMMAND frame ZF0 (otherwise 0) */
 #define ZCACK1	1	/* Acknowledge, then do command */
-
-#if	0
-long rclhdr();
-
-/* Globals used by ZMODEM functions */
-extern Rxframeind;	/* ZBIN ZBIN32, or ZHEX type of frame */
-extern Rxtype;		/* Type of header received */
-extern Rxcount;		/* Count of data bytes received */
-extern Rxtimeout;	/* Tenths of seconds to wait for something */
-extern long Rxpos;	/* Received file position */
-extern long Txpos;	/* Transmitted file position */
-extern Txfcs32;		/* TURE means send binary frames with 32 bit FCS */
-extern Crc32t;		/* Display flag indicating 32 bit CRC being sent */
-extern Crc32;		/* Display flag indicating 32 bit CRC being received */
-extern Znulls;		/* Number of nulls to send at beginning of ZDATA hdr */
-extern char Attn[ZATTNLEN+1];	/* Attention string rx sends to tx on err */
-extern char *Altcan;	/* Alternate canit string */
-
-#endif
 
 /* End of ZMODEM.H */

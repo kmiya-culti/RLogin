@@ -121,9 +121,6 @@ void CKeyParaDlg::OnBnClickedMenubtn()
 	if ( id == 0 )
 		return;
 
-	if ( id == IDM_NEWCONNECT )
-		id = ID_FILE_NEW;
-
 	if ( (p = CKeyNodeTab::GetCmdsStr(id)) == NULL )
 		return;
 

@@ -292,13 +292,13 @@ static const CTextRam::PROCTAB fc_AnsiTab[] = {
 	{ 'm',		0,			&CTextRam::fc_SGR		},	// SGR Select Graphic Rendition
 	{ 'n',		0,			&CTextRam::fc_DSR		},	// DSR Device status report
 	{ 'o',		0,			&CTextRam::fc_DAQ		},	// DAQ Define area qualification
-	{ 'p',		0,			&CTextRam::fc_ORGBFAT	},	// ORGBFAT Begin field attribute				DECSSL Select Set-Up Language
+	{ 'p',		0,			&CTextRam::fc_RLBFAT	},	// RLBFAT Begin field attribute					DECSSL Select Set-Up Language
 	{ 'q',		0,			&CTextRam::fc_DECLL		},	// DECLL Load LEDs
 	{ 'r',		0,			&CTextRam::fc_DECSTBM	},	// DECSTBM Set Top and Bottom Margins
 	{ 's',		0,			&CTextRam::fc_SCOSC		},	// SCOSC Save Cursol Pos						DECSLRM Set left and right margins
 	{ 't',		0,			&CTextRam::fc_XTWOP		},	// XTWOP XTERM WINOPS							DECSLPP Set lines per physical page
 	{ 'u',		0,			&CTextRam::fc_SCORC		},	// SCORC Load Cursol Pos						DECSHTS Set horizontal tab stops
-	{ 'v',		0,			&CTextRam::fc_ORGSCD	},	// ORGSCD Set Cursol Display					DECSVTS Set vertical tab stops
+	{ 'v',		0,			&CTextRam::fc_RLSCD		},	// RLSCD Set Cursol Display						DECSVTS Set vertical tab stops
 	{ 'x',		0,			&CTextRam::fc_REQTPARM	},	// DECREQTPARM Request terminal parameters
 	{ 'y',		0,			&CTextRam::fc_DECTST	},	// DECTST Invoke confidence test
 //	{ 'z',		0,			&CTextRam::fc_DECVERP	},	// DECVERP Set vertical pitch
@@ -721,16 +721,16 @@ static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	_T("MC"),		&CTextRam::fc_MC,		NULL,	PROCTYPE_CSI,	TRACE_NON	},
 	{	_T("NOP"),		&CTextRam::fc_POP,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
 	{	_T("NP"),		&CTextRam::fc_NP,		NULL,	PROCTYPE_CSI,	TRACE_NON	},
-	{	_T("ORGBFAT"),	&CTextRam::fc_ORGBFAT,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("ORGSCD"),	&CTextRam::fc_ORGSCD,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
 	{	_T("PP"),		&CTextRam::fc_PP,		NULL,	PROCTYPE_CSI,	TRACE_NON	},
 	{	_T("PPA"),		&CTextRam::fc_PPA,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
 	{	_T("PPB"),		&CTextRam::fc_PPB,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
 	{	_T("PPR"),		&CTextRam::fc_PPR,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
 	{	_T("REP"),		&CTextRam::fc_REP,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
 	{	_T("REQTPARM"),	&CTextRam::fc_REQTPARM,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("RLBFAT"),	&CTextRam::fc_RLBFAT,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
 	{	_T("RLCURCOL"),	&CTextRam::fc_RLCURCOL,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
 	{	_T("RLIMGCP"),	&CTextRam::fc_RLIMGCP,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("RLSCD"),	&CTextRam::fc_RLSCD,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
 	{	_T("RM"),		&CTextRam::fc_RM,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
 	{	_T("SCORC"),	&CTextRam::fc_SCORC,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
 	{	_T("SCOSC"),	&CTextRam::fc_SCOSC,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
@@ -1227,7 +1227,7 @@ void CTextRam::fc_TraceCall(DWORD ch)
 	ESCNAMEPROC *tp;
 
 	m_TraceFunc = m_Func[ch];
-	(this->*m_Func[ch])(ch);
+	(this->*m_TraceFunc)(ch);
 	tp = FindProcName(m_TraceFunc);
 
 	if ( (m_TraceLogMode & 002) != 0 && tp != NULL && m_pDocument->m_pLogFile != NULL && m_LogMode == LOGMOD_CTRL &&
@@ -1616,9 +1616,7 @@ void CTextRam::fc_SESC(DWORD ch)
 		ch &= 0x1F;
 		ch += '@';
 		fc_Push(STAGE_ESC);
-//		fc_Call(ch);
-		m_TraceFunc = m_Func[ch];
-		(this->*m_TraceFunc)(ch);
+		fc_RenameCall(ch);
 	}
 }
 void CTextRam::fc_CESC(DWORD ch)
@@ -1632,9 +1630,7 @@ void CTextRam::fc_CESC(DWORD ch)
 		ch &= 0x1F;
 		ch += '@';
 		fc_Case(STAGE_ESC);	// SESC !!!
-//		fc_Call(ch);
-		m_TraceFunc = m_Func[ch];
-		(this->*m_TraceFunc)(ch);
+		fc_RenameCall(ch);
 	}
 }
 
@@ -1824,6 +1820,10 @@ void CTextRam::fc_KANJI(DWORD ch)
 		m_Kan_Pos &= (KANBUFMAX - 1);
 	}
 }
+void CTextRam::fc_KANBRK()
+{
+	PUT1BYTE(BRKMBCS, SET_UNICODE, ATT_REVS);
+}
 void CTextRam::fc_KANCHK()
 {
 	int n, ch, skip = 1;
@@ -1914,16 +1914,15 @@ void CTextRam::fc_TEXT2(DWORD ch)
 void CTextRam::fc_TEXT3(DWORD ch)
 {
 	fc_POP(ch);
+	fc_KANJI(ch);
 
-	if ( ch < 0x20 ) {
-//		fc_Call(ch);
-		m_TraceFunc = m_Func[ch];
-		(this->*m_TraceFunc)(ch);
-	} else
-		fc_KANJI(ch);
+	if ( IsOptEnable(TO_RLBRKMBCS) )
+		fc_KANBRK();
 
 	if ( IsOptEnable(TO_RLKANAUTO) )
 		fc_KANCHK();
+
+	fc_RenameCall(ch);
 }
 void CTextRam::fc_SJIS1(DWORD ch)
 {
@@ -1954,16 +1953,15 @@ void CTextRam::fc_SJIS2(DWORD ch)
 void CTextRam::fc_SJIS3(DWORD ch)
 {
 	fc_POP(ch);
+	fc_KANJI(ch);
 
-	if ( ch < 0x20 ) {
-//		fc_Call(ch);
-		m_TraceFunc = m_Func[ch];
-		(this->*m_TraceFunc)(ch);
-	} else
-		fc_KANJI(ch);
+	if ( IsOptEnable(TO_RLBRKMBCS) )
+		fc_KANBRK();
 
 	if ( IsOptEnable(TO_RLKANAUTO) )
 		fc_KANCHK();
+
+	fc_RenameCall(ch);
 }
 void CTextRam::fc_BIG51(DWORD ch)
 {
@@ -1986,11 +1984,8 @@ void CTextRam::fc_BIG53(DWORD ch)
 {
 	fc_POP(ch);
 
-	if ( ch < 0x20 ) {
-//		fc_Call(ch);
-		m_TraceFunc = m_Func[ch];
-		(this->*m_TraceFunc)(ch);
-	}
+	if ( ch < 0x20 )
+		fc_RenameCall(ch);
 }
 void CTextRam::fc_UTF81(DWORD ch)
 {
@@ -2195,16 +2190,15 @@ void CTextRam::fc_UTF85(DWORD ch)
 void CTextRam::fc_UTF86(DWORD ch)
 {
 	fc_POP(ch);
+	fc_KANJI(ch);
 
-	if ( ch < 0x20 ) {
-//		fc_Call(ch);
-		m_TraceFunc = m_Func[ch];
-		(this->*m_TraceFunc)(ch);
-	} else
-		fc_KANJI(ch);
+	if ( IsOptEnable(TO_RLBRKMBCS) )
+		fc_KANBRK();
 
 	if ( IsOptEnable(TO_RLKANAUTO) )
 		fc_KANCHK();
+
+	fc_RenameCall(ch);
 }
 void CTextRam::fc_UTF87(DWORD ch)
 {
@@ -5203,9 +5197,9 @@ void CTextRam::fc_DAQ(DWORD ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_ORGBFAT(DWORD ch)
+void CTextRam::fc_RLBFAT(DWORD ch)
 {
-	// CSI p	ORGBFAT Begin field attribute : DEC private
+	// CSI p	RLBFAT Begin field attribute : DEC private
 	int n = GetAnsiPara(0, 0, 0);
 	m_AttNow.std.attr = 0;
 	if ( (n &  1) != 0 ) m_AttNow.std.attr |= ATT_BOLD;
@@ -5510,9 +5504,9 @@ void CTextRam::fc_SCORC(DWORD ch)
 	m_DoWarp = m_Save_DoWarp;
 	fc_POP(ch);
 }
-void CTextRam::fc_ORGSCD(DWORD ch)
+void CTextRam::fc_RLSCD(DWORD ch)
 {
-	// CSI v	ORGSCD Set Cursol Display
+	// CSI v	RLSCD Set Cursol Display
 	switch(GetAnsiPara(0, 0, 0)) {
 	case 0:  CURON(); break;
 	default: CUROFF(); break;

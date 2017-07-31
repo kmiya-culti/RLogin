@@ -1221,11 +1221,30 @@ int CRLoginView::GetClipboard(CBuffer *bp)
 }
 int CRLoginView::SetClipboard(CBuffer *bp)
 {
-	CString buf;
+	CString buf, tmp;
 	CRLoginDoc *pDoc = GetDocument();
 
 	pDoc->m_TextRam.m_IConv.RemoteToStr(pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode], (LPCSTR)*bp, buf);
-	((CMainFrame *)AfxGetMainWnd())->SetClipboardText(buf);
+	
+	for ( LPCTSTR p = buf ; *p != _T('\0') ; ) {
+		if ( p[0] == _T('\x0D') && p[1] == _T('\x0A') ) {
+			tmp += *(p++);
+			tmp += *(p++);
+		} else if ( p[0] == _T('\x0A') && p[1] == _T('\x0D') ) {
+			tmp += _T('\x0D');
+			tmp += _T('\x0A');
+			p += 2;
+		} else if ( p[0] == _T('\x0D') ) {
+			tmp += *(p++);
+			tmp += _T('\x0A');
+		} else if ( p[0] == _T('\x0A') ) {
+			tmp += _T('\x0D');
+			tmp += *(p++);
+		} else
+			tmp += *(p++);
+	}
+
+	((CMainFrame *)AfxGetMainWnd())->SetClipboardText(tmp);
 
 	return TRUE;
 }
@@ -1422,6 +1441,10 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 	case UPDATE_UPDATEWINDOW:
 		UpdateWindow();
 		return;
+
+	case UPDATE_DISPMSG:
+		m_MsgWnd.Message((LPCTSTR)pHint, this, pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.std.bcol]);
+		return;
 	}
 
 	if ( (m_CaretFlag & FGCARET_FOCUS) != 0 && pSender != this && m_ScrollOut == FALSE &&
@@ -1565,7 +1588,7 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		 m_CaretY < 0 || m_CaretY >= (m_Height + pDoc->m_TextRam.m_ScrnOffset.top) ) {
 		m_CaretX = m_CaretY = 0;
 		m_ScrollOut = TRUE;
-	} else if ( pDoc->m_pSock != NULL && pDoc->m_TextRam.m_DispCaret )
+	} else if ( pDoc->m_pSock != NULL && pDoc->m_pSock->m_bConnect && pDoc->m_TextRam.m_DispCaret )
 		m_CaretFlag |= FGCARET_ONOFF;
 
 	SetCaret();
@@ -3016,15 +3039,37 @@ BOOL CRLoginView::SendPasteText(LPCWSTR wstr)
 	BOOL rt = FALSE;
 	CAnyPastDlg dlg;
 	CRLoginDoc *pDoc = GetDocument();
+	CStringW wrk;
 
-	for ( p = wstr ; *p != 0 ; p++ ) {
-		if ( *p == L'\x0A' || *p == L'\x1A' )
-			continue;
-		if ( *p < L' ' )
+	for ( p = wstr ; *p != 0 ; ) {
+		if ( p[0] == L'\x0D' && p[1] == L'\x0A' ) {
+			wrk += *(p++);
+			wrk += *(p++);
 			ct++;
-		else
+		} else if ( p[0] == L'\x0A' && p[1] == L'\x0D' ) {
+			wrk += L'\x0D';
+			wrk += L'\x0A';
+			p += 2;
+			ct++;
+		} else if ( p[0] == L'\x0D' ) {
+			wrk += *(p++);
+			wrk += L'\x0A';
+			ct++;
+		} else if ( p[0] == L'\x0A' ) {
+			wrk += L'\x0D';
+			wrk += *(p++);
+			ct++;
+		} else if ( p[0] == L'\x1A' && p[1] == L'\0' ) {
+			p++;
+		} else if ( p[0] < L' ' ) {
+			wrk += *(p++);
+			ct++;
+		} else {
+			wrk += *(p++);
 			len++;
+		}
 	}
+	wstr = wrk;
 
 	if ( pDoc->m_TextRam.IsOptEnable(TO_RLEDITPAST) || (m_PastNoCheck == FALSE && (len > 500 || ct > 0)) ) {
 		dlg.m_NoCheck     = m_PastNoCheck;
@@ -3054,7 +3099,7 @@ BOOL CRLoginView::SendPasteText(LPCWSTR wstr)
 		tmp.Apend((LPBYTE)(L"\033[200~"), 6 * sizeof(WCHAR));
 
 	for ( p = wstr ; *p != 0 ; p++ ) {
-		if ( *p != L'\x0A' && *p != L'\x1A' )
+		if ( *p != L'\x0A' )
 			tmp.Apend((LPBYTE)p, sizeof(WCHAR));
 	}
 

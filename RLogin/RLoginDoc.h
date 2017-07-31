@@ -41,6 +41,7 @@
 #define	UPDATE_SCROLLOUT	14
 #define	UPDATE_UPDATEWINDOW	15
 #define	UPDATE_CLIPCLAER	16
+#define	UPDATE_DISPMSG		17
 
 #define	CARET_MOVE			0
 #define	CARET_CREATE		1
@@ -112,6 +113,8 @@ public:
 	static void LoadIndex(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab, CStringIndex &index);
 	static void SaveIndex(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab, CStringIndex &index);
 	static void DiffIndex(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab, CServerEntry &OrigEntry, CStringIndex &index);
+	static void LoadDefOption(CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab);
+	static void SaveDefOption(CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab);
 
 	inline void SetIndex(int mode, CStringIndex &index) { 	if ( mode ) SaveIndex(m_ServerEntry, m_TextRam, m_KeyTab, m_KeyMac, m_ParamTab, index); else LoadIndex(m_ServerEntry, m_TextRam, m_KeyTab, m_KeyMac, m_ParamTab, index); }
 	void SetMenu(CMenu *pMenu);
@@ -143,7 +146,7 @@ public:
 	int OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags);
 
 	void SetDocTitle();
-	inline void SetStatus(LPCTSTR str) { m_SockStatus = str; }
+	inline void SetStatus(LPCTSTR str) { m_SockStatus = str; SetDocTitle(); }
 	inline void SetEntryProBuffer() { SaveOption(m_ServerEntry, m_TextRam, m_KeyTab, m_KeyMac, m_ParamTab); }
 	void SetCmdInfo(CCommandLineInfoEx *pCmdInfo);
 

@@ -593,6 +593,7 @@ public:
 	CString m_IconName;
 	BOOL m_bPassOk;
 	BOOL m_bSelFlag;
+	BOOL m_bOptFixed;
 
 	void Init();
 	void SetArray(CStringArrayExt &stra);

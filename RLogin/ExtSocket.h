@@ -23,6 +23,9 @@
 #define	RECVBUFSIZ		(m_RecvBufSize    )
 #define	RECVMAXSIZ		(m_RecvBufSize * 4)
 
+#define	RECVBGNSIZ		(4 * 1024)
+#define	RECVBIGSIZ		(128 * 1024)
+
 #define	ESCT_DIRECT			0
 #define	ESCT_RLOGIN			1
 #define	ESCT_TELNET			2

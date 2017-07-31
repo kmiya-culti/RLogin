@@ -1241,16 +1241,23 @@ void CMainFrame::PagentInit(CArray<CIdKey, CIdKey &> *pKeyTab)
 	if ( out.GetSize() < 5 || out.Get8Bit() != SSH_AGENT_IDENTITIES_ANSWER )
 		return;
 
-	for ( count = out.Get32Bit() ; count > 0 ; count-- ) {
-		out.GetBuf(&blob);
-		out.GetStr(name);
-		key.m_Name = name;
-		key.m_bPagent = TRUE;
-		if ( key.GetBlob(&blob) )
-			pKeyTab->Add(key);
+	try {
+		for ( count = out.Get32Bit() ; count > 0 ; count-- ) {
+			out.GetBuf(&blob);
+			out.GetStr(name);
+			key.m_Name = name;
+			key.m_bPagent = TRUE;
+			if ( key.GetBlob(&blob) )
+				pKeyTab->Add(key);
+		}
+#ifdef	DEBUG
+	} catch(LPCTSTR msg) {
+		TRACE(_T("PagentInit Error %s '%s'\n"), MbsToTstr(name), msg);
+#endif
+	} catch(...) {
 	}
 }
-int CMainFrame::PagentSign(CBuffer *blob, CBuffer *sign, LPBYTE buf, int len)
+BOOL CMainFrame::PagentSign(CBuffer *blob, CBuffer *sign, LPBYTE buf, int len)
 {
 	CBuffer in, out, work;
 
@@ -3149,10 +3156,8 @@ void CMainFrame::SetMenuBitmap(CMenu *pMenu)
 	CMenuBitMap *pMap;
 
 	for ( n = 0 ; n < m_MenuMap.GetSize() ; n++ ) {
-		if ( (pMap = (CMenuBitMap *)m_MenuMap[n]) != NULL ) {
-			if ( !pMenu->SetMenuItemBitmaps(pMap->m_Id, MF_BYCOMMAND, &(pMap->m_Bitmap), NULL) && pMap->m_Id == IDM_NEWCONNECT )
-				pMenu->SetMenuItemBitmaps(ID_FILE_NEW, MF_BYCOMMAND, &(pMap->m_Bitmap), NULL);
-		}
+		if ( (pMap = (CMenuBitMap *)m_MenuMap[n]) != NULL )
+			pMenu->SetMenuItemBitmaps(pMap->m_Id, MF_BYCOMMAND, &(pMap->m_Bitmap), NULL);
 	}
 }
 CBitmap *CMainFrame::GetMenuBitmap(UINT nId)
@@ -3537,7 +3542,12 @@ LRESULT CMainFrame::OnSetMessageString(WPARAM wParam, LPARAM lParam)
 	if ( wParam == 0 )
 		return CMDIFrameWnd::OnSetMessageString(wParam, lParam);
 
+	int n;
 	CStringLoad msg((UINT)wParam);
+
+	if ( (n = msg.Find(_T("\n"))) >= 0 )
+		msg.Truncate(n);
+
 	return CMDIFrameWnd::OnSetMessageString(0, (LPARAM)(LPCTSTR)msg);
 }
 

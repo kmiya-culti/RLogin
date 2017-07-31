@@ -199,7 +199,6 @@ public:
 // ŽÀ‘•
 public:
 	DECLARE_MESSAGE_MAP()
-	afx_msg void OnNewConnect();
 	afx_msg void OnFileNew();
 	afx_msg void OnFileOpen();
 	afx_msg void OnAppAbout();

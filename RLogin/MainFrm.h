@@ -182,7 +182,7 @@ public:
 
 	BOOL PagentQuery(CBuffer *pInBuf, CBuffer *pOutBuf);
 	void PagentInit(CArray<CIdKey, CIdKey &> *pKeyTab);
-	int PagentSign(CBuffer *blob, CBuffer *sign, LPBYTE buf, int len);
+	BOOL PagentSign(CBuffer *blob, CBuffer *sign, LPBYTE buf, int len);
 
 	void SetTransPar(COLORREF rgb, int value, DWORD flag);
 	void SetIconStyle();

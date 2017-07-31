@@ -63,7 +63,8 @@ protected:
 	afx_msg void OnSizing(UINT fwSide, LPRECT pRect);
 	afx_msg void OnTcnSelchangeServertab(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnServProto();
-	afx_msg void OnSavedefault();
+	afx_msg void OnSaveDefault();
+	afx_msg void OnUpdateSaveDefault(CCmdUI *pCmdUI);
 	afx_msg void OnServExchng();
 	afx_msg void OnUpdateServExchng(CCmdUI *pCmdUI);
 	afx_msg void OnLoaddefault();

@@ -104,7 +104,7 @@ IDB_HATCH3              BITMAP                  "res\\hatch3.bmp"
 
 IDR_MAINFRAME TOOLBAR 16, 16
 BEGIN
-    BUTTON      IDM_NEWCONNECT
+    BUTTON      ID_FILE_NEW
     BUTTON      ID_FILE_CLOSE
     BUTTON      ID_FILE_OPEN
     BUTTON      ID_FILE_SAVE_AS
@@ -206,7 +206,7 @@ IDR_RLOGINTYPE MENU
 BEGIN
     POPUP "ファイル(&F)"
     BEGIN
-        MENUITEM "サーバーに接続(&N)",                 IDM_NEWCONNECT
+        MENUITEM "サーバーに接続(&N)",                 ID_FILE_NEW
         MENUITEM "接続を閉じる(&C)",                  ID_FILE_CLOSE
         MENUITEM SEPARATOR
         MENUITEM "サーバー情報を開く(&O)",               ID_FILE_OPEN
@@ -231,6 +231,7 @@ BEGIN
             MENUITEM "&7 YModemダウンロード",             IDM_YMODEM_DOWNLOAD
             MENUITEM "&8 ZModemダウンロード",             IDM_ZMODEM_DOWNLOAD
             MENUITEM "&9 Kermitダウンロード",             IDM_KERMIT_DOWNLOAD
+            MENUITEM "&0 ファイルダウンロード",               IDM_SIMPLE_DOWNLOAD
         END
         MENUITEM "スクリプトの実行(&E)",                IDM_SCRIPT
         MENUITEM SEPARATOR
@@ -533,7 +534,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.22.1 (2017/03/17)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.22.2 (2017/04/24)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2017 Culti",IDC_STATIC,44,16,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,171,60,14,WS_GROUP
     LTEXT           "OpenSSL 1.1.0e 16 Feb 2017",IDC_STATIC,44,29,189,8
@@ -612,12 +613,12 @@ FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     EDITTEXT        IDC_IDKEYFILE,19,25,173,14,ES_AUTOHSCROLL
     PUSHBUTTON      "...",IDC_IDKEYSEL,196,25,26,14
-    EDITTEXT        IDC_PASSNAME,74,100,94,14,ES_PASSWORD | ES_AUTOHSCROLL
-    EDITTEXT        IDC_PASSNAME2,74,122,94,14,ES_PASSWORD | ES_AUTOHSCROLL
+    EDITTEXT        IDC_PASSNAME,89,104,130,14,ES_PASSWORD | ES_AUTOHSCROLL
+    EDITTEXT        IDC_PASSNAME2,89,126,130,14,ES_PASSWORD | ES_AUTOHSCROLL
     DEFPUSHBUTTON   "OK",IDOK,50,174,60,14
     PUSHBUTTON      "キャンセル",IDCANCEL,133,174,60,14
-    LTEXT           "パスフレーズ",IDC_STATIC,29,103,39,8
-    LTEXT           "パス再入力",IDC_STATIC,29,125,35,8
+    LTEXT           "パスフレーズ",IDC_STATIC,21,107,61,8
+    LTEXT           "パス再入力",IDC_STATIC,21,129,61,8
     GROUPBOX        "ファイル",IDC_STATIC,7,7,229,154
     GROUPBOX        "",IDC_STATIC,15,49,212,103
     LTEXT           "",IDC_MESSAGE,25,61,192,33
@@ -1089,40 +1090,41 @@ BEGIN
     COMBOBOX        IDC_GROUP,185,19,70,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
     EDITTEXT        IDC_ENTRYMEMO,15,37,152,14,ES_AUTOHSCROLL
     COMBOBOX        IDC_BEFORE,185,37,70,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "direct",IDC_PROTO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,15,76,29,10
-    CONTROL         "login",IDC_PROTO2,"Button",BS_AUTORADIOBUTTON,57,76,29,10
-    CONTROL         "telnet",IDC_PROTO3,"Button",BS_AUTORADIOBUTTON,99,76,29,10
-    CONTROL         "ssh",IDC_PROTO4,"Button",BS_AUTORADIOBUTTON,141,76,29,10
-    CONTROL         "com",IDC_PROTO5,"Button",BS_AUTORADIOBUTTON,183,76,29,10
-    CONTROL         "pipe",IDC_PROTO6,"Button",BS_AUTORADIOBUTTON,225,76,29,10
-    COMBOBOX        IDC_SERVERNAME,15,122,150,60,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_GROUP | WS_TABSTOP
-    PUSHBUTTON      "com",IDC_COMCONFIG,173,122,30,14
-    COMBOBOX        IDC_SOCKNO,209,122,46,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_LOGINNAME,15,161,70,62,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    EDITTEXT        IDC_PASSWORD,100,161,70,14,ES_PASSWORD | ES_AUTOHSCROLL
-    PUSHBUTTON      "Terminal(&T)",IDC_TERMCAP,185,143,70,14
-    COMBOBOX        IDC_TERMNAME,185,161,70,59,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "接続時にサーバー・ユーザー・パスワードの入力を求める",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,183,166,10
-    PUSHBUTTON      "アイコン(&I)",IDC_ICONFILE,185,181,70,14
-    PUSHBUTTON      "編集(&C)",IDC_CHATEDIT,15,213,70,14
-    PUSHBUTTON      "設定(&P)",IDC_PROXYSET,100,213,70,14
-    PUSHBUTTON      "参照(&K)",IDC_KEYFILESELECT,185,212,70,14
-    CONTROL         "EUC",IDC_KANJICODE1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,22,254,40,10
-    CONTROL         "SJIS",IDC_KANJICODE2,"Button",BS_AUTORADIOBUTTON,84,254,40,10
-    CONTROL         "ASCII",IDC_KANJICODE3,"Button",BS_AUTORADIOBUTTON,146,254,40,10
-    CONTROL         "UTF-8",IDC_KANJICODE4,"Button",BS_AUTORADIOBUTTON,208,254,40,10
-    CTEXT           "Server Address",IDC_STATIC,15,110,150,8
-    CTEXT           "User Name",IDC_STATIC,15,146,70,8
-    GROUPBOX        "デフォルト文字セット",IDC_STATIC,7,239,256,34
-    CTEXT           "Password",IDC_STATIC,100,146,70,8
-    CTEXT           "SSH Identity Key",IDC_STATIC,185,201,70,8
-    CTEXT           "Socket Port",IDC_STATIC,209,110,46,8
+    CONTROL         "direct",IDC_PROTO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,15,72,29,10
+    CONTROL         "login",IDC_PROTO2,"Button",BS_AUTORADIOBUTTON,57,72,29,10
+    CONTROL         "telnet",IDC_PROTO3,"Button",BS_AUTORADIOBUTTON,99,72,29,10
+    CONTROL         "ssh",IDC_PROTO4,"Button",BS_AUTORADIOBUTTON,141,72,29,10
+    CONTROL         "com",IDC_PROTO5,"Button",BS_AUTORADIOBUTTON,183,72,29,10
+    CONTROL         "pipe",IDC_PROTO6,"Button",BS_AUTORADIOBUTTON,225,72,29,10
+    COMBOBOX        IDC_SERVERNAME,15,112,150,60,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_GROUP | WS_TABSTOP
+    PUSHBUTTON      "com",IDC_COMCONFIG,173,112,30,14
+    COMBOBOX        IDC_SOCKNO,209,112,46,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_LOGINNAME,15,151,70,62,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_PASSWORD,100,151,70,14,ES_PASSWORD | ES_AUTOHSCROLL
+    PUSHBUTTON      "Terminal(&T)",IDC_TERMCAP,185,133,70,14
+    COMBOBOX        IDC_TERMNAME,185,151,70,59,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "接続時にサーバー・ユーザー・パスワードの入力",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,173,166,10
+    PUSHBUTTON      "アイコン(&I)",IDC_ICONFILE,185,171,70,14
+    PUSHBUTTON      "編集(&C)",IDC_CHATEDIT,15,203,70,14
+    PUSHBUTTON      "設定(&P)",IDC_PROXYSET,100,203,70,14
+    PUSHBUTTON      "参照(&K)",IDC_KEYFILESELECT,185,202,70,14
+    CONTROL         "EUC",IDC_KANJICODE1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,22,255,40,10
+    CONTROL         "SJIS",IDC_KANJICODE2,"Button",BS_AUTORADIOBUTTON,84,255,40,10
+    CONTROL         "ASCII",IDC_KANJICODE3,"Button",BS_AUTORADIOBUTTON,146,255,40,10
+    CONTROL         "UTF-8",IDC_KANJICODE4,"Button",BS_AUTORADIOBUTTON,208,255,40,10
+    CTEXT           "Server Address",IDC_STATIC,15,100,150,8
+    CTEXT           "User Name",IDC_STATIC,15,136,70,8
+    GROUPBOX        "デフォルト文字セット",IDC_STATIC,7,243,256,30
+    CTEXT           "Password",IDC_STATIC,100,136,70,8
+    CTEXT           "SSH Identity Key",IDC_STATIC,185,191,70,8
+    CTEXT           "Socket Port",IDC_STATIC,209,100,46,8
     GROUPBOX        "エントリー/コメント",IDC_STATIC,7,7,166,51
-    GROUPBOX        "プロトコル",IDC_STATIC,7,62,256,34
-    GROUPBOX        "オプション",IDC_STATIC,7,100,256,135
-    CTEXT           "Chat Script",IDC_STATIC,15,201,70,8
-    CTEXT           "Proxy Server",IDC_STATIC,100,201,70,8
+    GROUPBOX        "プロトコル",IDC_STATIC,7,60,256,30
+    GROUPBOX        "オプション",IDC_STATIC,7,92,256,148
+    CTEXT           "Chat Script",IDC_STATIC,15,191,70,8
+    CTEXT           "Proxy Server",IDC_STATIC,100,191,70,8
     GROUPBOX        "タブ/前接続先",IDC_STATIC,178,7,85,51
+    CONTROL         "このページ以外のオプションは標準の設定を使用します",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,223,240,10
 END
 
 IDD_CHATDLG DIALOGEX 0, 0, 299, 247
@@ -1487,7 +1489,7 @@ BEGIN
     CONTROL         "BPlus/ZModem/Kermitファイル転送を有効にする",IDC_OPTCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,38,240,10
     CONTROL         "キーボード入力をローカルエディットモードにする",IDC_OPTCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,55,240,10
     CONTROL         "接続が切れると自動でプログラムを終了する",IDC_OPTCHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,72,240,10
-    CONTROL         "接続が切れてもクロースしない（再接続を確認する）",IDC_OPTCHECK10,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,89,240,10
+    CONTROL         "接続が切れてもウィンドウを閉じない",IDC_OPTCHECK10,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,89,240,10
     CONTROL         "画面更新がないとスリープ画面に移行する(分単位）",IDC_OPTCHECK6,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,106,180,10
     EDITTEXT        IDC_SLEEPTIME,205,104,50,14,ES_AUTOHSCROLL
     CONTROL         "右のグループキャスト以外からの同時送信を受け取りません",IDC_OPTCHECK7,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,146,180,10
@@ -1553,7 +1555,7 @@ BEGIN
     RTEXT           "",IDC_CTRLCODE1,80,7,24,14,SS_CENTERIMAGE,WS_EX_CLIENTEDGE
 END
 
-IDD_DEFPARAMDLG DIALOGEX 0, 0, 255, 179
+IDD_DEFPARAMDLG DIALOGEX 0, 0, 255, 191
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "初期値として保存"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
@@ -1563,8 +1565,9 @@ BEGIN
     CONTROL         "カラーパレットの設定(OSC4)",IDC_DEFPAMCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,36,98,190,10
     CONTROL         "文字バンクの設定(ISO-2022による設定)",IDC_DEFPAMCHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,36,114,190,10
     CONTROL         "文字色・属性の設定(SGR)",IDC_DEFPAMCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,36,130,190,10
-    PUSHBUTTON      "はい",IDOK,60,158,60,14
-    DEFPUSHBUTTON   "いいえ",IDCANCEL,133,158,60,14
+    CONTROL         "文字カーソルの設定(CSI<!q)",IDC_DEFPAMCHECK6,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,36,146,190,10
+    PUSHBUTTON      "はい",IDOK,60,170,60,14
+    DEFPUSHBUTTON   "いいえ",IDCANCEL,133,170,60,14
     LTEXT           "ESCシーケンスなどにより変化する設定が変更されました。\n意図しない設定がされている可能性があります。\n現在の設定をこの接続の初期値として保存しますか？",IDC_DEFPARAMSG,53,14,188,44
     ICON            "",IDC_MSGICON,21,20,20,20
 END
@@ -1775,8 +1778,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,22,1,0
- PRODUCTVERSION 2,22,1,0
+ FILEVERSION 2,22,2,0
+ PRODUCTVERSION 2,22,2,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1793,12 +1796,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.22.1.0"
+            VALUE "FileVersion", "2.22.2.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2017 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.22.1.0"
+            VALUE "ProductVersion", "2.22.2.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2173,7 +2176,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 248
         TOPMARGIN, 7
-        BOTTOMMARGIN, 172
+        BOTTOMMARGIN, 184
     END
 
     IDD_TTYMODEDLG, DIALOG
@@ -2609,6 +2612,8 @@ BEGIN
 0x6f53, 0x6172, 0x7369, 0x0065, 
     IDC_COLSET, 0x403, 7, 0
 0x6150, 0x7473, 0x6c65, "\000" 
+    IDC_COLSET, 0x403, 8, 0
+0x6f4d, 0x6f6e, 0x616b, 0x0069, 
     IDC_COMBO2, 0x403, 5, 0
 0x6f4e, 0x656e, "\000" 
     IDC_COMBO2, 0x403, 5, 0
@@ -3592,6 +3597,9 @@ BEGIN
     IDS_TITLEDITMSG         "ウィンドウやタブに表示されるタイトルを編集することができます\nOSC 0/1/2による変更を禁止したい場合は、オプション・スクリーンで禁止できます\nここで変更した内容は、この接続のみに有効です"
     IDS_TRANSLATEABORT      "翻訳プロセスを実行中です。中断しますか？"
     IDS_SEPARATESTRING      "区切り記号"
+    IDS_REOPENSOCK          "サーバーに再接続(&A)"
+    IDS_OPTFIXEDMSG         "変更できません。\n標準の設定を使用します\nサーバーのオプションを確認してください"
+	IDS_OPTFIXEDSAVEMSG     "標準の設定を使用しているエントリーです。\n前設定を上書きして使用を解除しますか？"
 END
 
 STRINGTABLE
@@ -3656,6 +3664,7 @@ BEGIN
     IDM_KERMIT_UPLOAD       "Kermitでファイルをアップロードする\nKermitアップ"
     IDM_KERMIT_DOWNLOAD     "Kermitでファイルをダウンロードする\nKermitダウン"
     IDM_SIMPLE_UPLOAD       "プロトコル無しでファイルをアップロードする\nファイルアップ"
+    IDM_SIMPLE_DOWNLOAD     "プロトコル無しでファイルをダウンロードする\nファイルダウン"
 END
 
 STRINGTABLE
@@ -3685,8 +3694,8 @@ BEGIN
     IDM_CLIPBOARD_MENU      "保存されたクリップボード\nクリップボード"
     IDM_LOOKCAST            "重なった見えないウィンドウには同時送信をしない\n見えてるだけに制限"
     IDM_PASSWORDLOCK        "パスワードで起動と接続を制限します\nパスワードロック"
+    IDM_REOPENSOCK          "サーバーに再接続する\nサーバー再接続"
     IDM_OTHERCAST           "別のRLoginにも同時送信を行う\n別のRLoginにも同時送信"
-    IDM_NEWCONNECT          "サーバーに接続する\nサーバー接続"
     IDM_SAVERESFILE         "リソースをファイルに保存\nリソースの保存"
 END
 
@@ -4018,6 +4027,7 @@ BEGIN
     IDT_TERM_LIST61         "8800 Unicodeマッピング有効\tUnicodeマッピング無効\tISO-2022コードセットをUnicode16面にマッピングを有効・無効にします"
     IDT_TERM_LIST62         "C1制御文字を無視する\tC1制御文字を処理する\tC1制御文字(80-9F)を無視する・しない"
     IDT_TERM_LIST63         "スクロールして消去\t通常の全画面消去\t全画面消去をスクロールで行う"
+    IDT_TERM_LIST64         "記号を表示する\t壊れたMBCを無視\t壊れた漢字などのマルチバイト文字を無視せずに代わりに記号を表示する"
 END
 
 STRINGTABLE

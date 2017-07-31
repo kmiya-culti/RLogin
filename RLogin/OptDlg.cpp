@@ -66,6 +66,7 @@ COptDlg::COptDlg(LPCTSTR pszCaption, CWnd* pParentWnd)
 
 	m_ModFlag   = 0;
 	m_bModified = FALSE;
+	m_bOptFixed = FALSE;
 
 	m_pEntry    = NULL;
 	m_pTextRam  = NULL;
@@ -193,6 +194,16 @@ void COptDlg::SetActivePage(int nPage)
 		pPage->ShowWindow(SW_SHOW);
 		m_Tree.SetItemState(pPage->m_hTreeItem, TVIS_SELECTED, TVIS_SELECTED);
 		m_ActivePage = nPage;
+	}
+
+	if ( nPage > 0 && m_bOptFixed && (m_psh.dwFlags & PSH_NOAPPLYNOW) != 0 ) {
+		pPage->EnableWindow(FALSE);
+		m_MsgWnd.m_bTimerEnable = FALSE;
+		m_MsgWnd.Message(CStringLoad(IDS_OPTFIXEDMSG), this, GetSysColor(COLOR_WINDOW));
+	} else {
+		pPage->EnableWindow(TRUE);
+		if ( m_MsgWnd.m_hWnd != NULL )
+			m_MsgWnd.DestroyWindow();
 	}
 }
 void COptDlg::SetModified(BOOL bModified)
@@ -407,6 +418,8 @@ BOOL COptDlg::OnInitDialog()
 		SetWindowText(m_Title);
 
 	m_Button[3].EnableWindow(FALSE);
+
+	m_bOptFixed = m_pEntry->m_bOptFixed;
 
 	SetActivePage(0);
 	m_Tree.SetFocus();

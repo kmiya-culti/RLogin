@@ -5627,7 +5627,7 @@ int CTextRam::InitDefParam(BOOL bCheck, int modFlag)
 		dlg.m_InitFlag = modFlag;
 		dlg.m_pTextRam = this;
 		if ( dlg.DoModal() != IDOK )
-			return (modFlag & ~(UMOD_ANSIOPT | UMOD_MODKEY | UMOD_COLTAB | UMOD_BANKTAB | UMOD_DEFATT));
+			return (modFlag & ~(UMOD_ANSIOPT | UMOD_MODKEY | UMOD_COLTAB | UMOD_BANKTAB | UMOD_DEFATT | UMOD_CARET));
 		modFlag = dlg.m_InitFlag;
 	}
 
@@ -5645,6 +5645,11 @@ int CTextRam::InitDefParam(BOOL bCheck, int modFlag)
 
 	if ( (modFlag & UMOD_DEFATT) != 0 )
 		m_DefAtt = m_AttNow;
+
+	if ( (modFlag & UMOD_CARET) != 0 ) {
+		m_DefTypeCaret  = m_TypeCaret;
+		m_DefCaretColor = m_CaretColor;
+	}
 	
 	return modFlag;
 }
@@ -6319,7 +6324,9 @@ void CTextRam::RESET(int mode)
 		m_LastPos  = 0;
 		m_Kan_Pos = 0;
 		memset(m_Kan_Buf, 0, sizeof(m_Kan_Buf));
-
+	}
+	
+	if ( mode & RESET_CARET ) {
 		m_TypeCaret = m_DefTypeCaret;
 		m_CaretColor = m_DefCaretColor;
 	}

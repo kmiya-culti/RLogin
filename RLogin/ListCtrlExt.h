@@ -29,6 +29,7 @@ public:
 
 	int GetParamItem(int para);
 	int GetSelectMarkData();
+	int GetSelectMarkCount();
 	void DoSortItem();
 	void InitColumn(LPCTSTR lpszSection, const LV_COLUMN *lpColumn, int nMax);
 	void SaveColumn(LPCTSTR lpszSection);

@@ -105,6 +105,7 @@ static const struct _OptListTab {
 	{	TO_DRCSMMv1,	IDT_TERM_LIST61	},
 	{	TO_RLC1DIS,		IDT_TERM_LIST62	},
 	{	TO_RLCLSBACK,	IDT_TERM_LIST63	},
+	{	TO_RLBRKMBCS,	IDT_TERM_LIST64	},
 	{	0,				0				}
 };
 

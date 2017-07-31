@@ -62,13 +62,22 @@ public:
 	CEvent *m_pParamEvent;
 	clock_t m_LastUpdate;
 
+#ifdef	DEBUG_DUMP
+	int m_DebugMode;
+	int m_DebugCount;
+	void DebugDump(LPBYTE buf, int len, int DebugMode);
+	void DebugMsg(LPCSTR fmt, ...);
+#else
+	#define	DebugMsg(...)
+#endif
+
 	void Bufferd_Send(int c);
 	void Bufferd_SendBuf(char *buf, int len);
 	void Bufferd_Flush();
 	void Bufferd_Clear();
 	void Bufferd_Sync();
 	int Bufferd_Recive(int sec);
-	int Bufferd_ReciveBuf(char *buf, int len, int sec);
+	BOOL Bufferd_ReciveBuf(char *buf, int len, int sec);
 	int Bufferd_ReciveSize();
 	void SetXonXoff(int sw);
 

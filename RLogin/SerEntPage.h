@@ -39,6 +39,7 @@ public:
 	BOOL m_UsePassDlg;
 	BOOL m_UseProxyDlg;
 	CString m_IconName;
+	BOOL m_bOptFixed;
 
 public:
 	void DoInit();
@@ -66,4 +67,5 @@ protected:
 	afx_msg void OnProxySet();
 	afx_msg void OnTermcap();
 	afx_msg void OnIconfile();
+	afx_msg void OnUpdateOptFixed();
 };

@@ -1687,6 +1687,9 @@ BOOL CMenuLoad::GetPopUpMenu(UINT nId, CMenu &PopUpMenu)
 		}
 	}
 
+	// Add ReOpen Menu
+	PopUpMenu.InsertMenu(ID_FILE_CLOSE, MF_BYCOMMAND, IDM_REOPENSOCK, CStringLoad(IDS_REOPENSOCK));
+
 	// Create Key History Menu
 	if ( (pMenu = GetItemSubMenu(ID_MACRO_HIS1, &PopUpMenu)) != NULL ) {
 		if ( pMenu->GetMenuString(ID_MACRO_HIS1, tmp, MF_BYCOMMAND) <= 0 )
@@ -3254,6 +3257,7 @@ void CServerEntry::Init()
 	m_IconName.Empty();
 	m_bPassOk = TRUE;
 	m_bSelFlag = FALSE;
+	m_bOptFixed = FALSE;
 }
 const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 {
@@ -3292,6 +3296,7 @@ const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 	m_IconName       = data.m_IconName;
 	m_bPassOk        = data.m_bPassOk;
 	m_bSelFlag       = data.m_bSelFlag;
+	m_bOptFixed      = data.m_bOptFixed;
 	return *this;
 }
 void CServerEntry::GetArray(CStringArrayExt &stra)
@@ -3344,6 +3349,7 @@ void CServerEntry::GetArray(CStringArrayExt &stra)
 	m_BeforeEntry  = (stra.GetSize() > 21 ?  stra.GetAt(21) : _T(""));
 	m_ProxySSLKeep = (stra.GetSize() > 22 ?  stra.GetVal(22) : FALSE);;
 	m_IconName     = (stra.GetSize() > 23 ?  stra.GetAt(23) : _T(""));
+	m_bOptFixed    = (stra.GetSize() > 24 ?  stra.GetVal(24) : FALSE);;
 
 	m_ProBuffer.Clear();
 
@@ -3389,6 +3395,7 @@ void CServerEntry::SetArray(CStringArrayExt &stra)
 	stra.Add(m_BeforeEntry);
 	stra.AddVal(m_ProxySSLKeep);
 	stra.Add(m_IconName);
+	stra.AddVal(m_bOptFixed);
 }
 
 static const ScriptCmdsDefs DocEntry[] = {
@@ -3646,6 +3653,8 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 		index[_T("Before")] = m_BeforeEntry;
 		index[_T("Icon")] = m_IconName;
 
+		index[_T("OptFixed")] = m_bOptFixed;
+
 	} else {			// Read
 		if ( (n = index.Find(_T("Name"))) >= 0 )
 			m_EntryName = index[n];
@@ -3713,6 +3722,9 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 
 		if ( (n = index.Find(_T("Icon"))) >= 0 )
 			m_IconName = index[n];
+
+		if ( (n = index.Find(_T("OptFixed"))) >= 0 )
+			m_bOptFixed = index[n];
 
 		m_ProBuffer.Clear();
 
@@ -3799,6 +3811,9 @@ void CServerEntry::DiffIndex(CServerEntry &orig, CStringIndex &index)
 
 	if ( m_IconName.Compare(orig.m_IconName) != 0 )
 		index[_T("Icon")] = m_IconName;
+
+	if ( m_bOptFixed != orig.m_bOptFixed )
+		index[_T("OptFixed")] = m_bOptFixed;
 }
 
 LPCTSTR CServerEntry::GetKanjiCode()
@@ -4943,7 +4958,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	129
+#define	CMDSKEYTABMAX	131
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -4972,8 +4987,10 @@ static const struct _CmdsKeyTab {
 	{	ID_APP_EXIT,				L"$EXIT"			},
 	{	ID_FILE_ALL_SAVE,			L"$FILE_ALLSAVE"	},
 	{	ID_FILE_CLOSE,				L"$FILE_CLOSE"		},
+	{	IDM_SIMPLE_DOWNLOAD,		L"$FILE_DOWNLOAD"	},
 	{	ID_FILE_NEW,				L"$FILE_NEW"		},
 	{	ID_FILE_OPEN,				L"$FILE_OPEN"		},
+	{	IDM_REOPENSOCK,				L"$FILE_RECONNECT"	},
 	{	ID_FILE_SAVE_AS,			L"$FILE_SAVE"		},
 	{	IDM_SIMPLE_UPLOAD,			L"$FILE_UPLOAD"		},
 	{	IDM_KANJI_ASCII,			L"$KANJI_ASCII"		},

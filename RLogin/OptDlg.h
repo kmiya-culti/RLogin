@@ -4,6 +4,7 @@
 #include "afxwin.h"
 #include <afxtempl.h>
 #include "DialogExt.h"
+#include "MsgWnd.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CTreePage
@@ -63,6 +64,7 @@ protected:
 #define	UMOD_BANKTAB	00200
 #define	UMOD_DEFATT		00400
 #define	UMOD_RESIZE		01000
+#define	UMOD_CARET		02000
 
 class COptDlg : public CDialogExt
 {
@@ -107,6 +109,8 @@ public:
 	int m_ModFlag;
 	BOOL m_bModified;
 	CString m_Title;
+	CMsgWnd m_MsgWnd;
+	BOOL m_bOptFixed;
 
 	struct _OptTab {
 		DWORD	dwFlags;

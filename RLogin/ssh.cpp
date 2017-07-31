@@ -106,7 +106,7 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 		m_pIdKey = NULL;
 		m_IdKeyTab.RemoveAll();
 		m_IdKeyPos = 0;
-		SetRecvBufSize(CHAN_SES_PACKET_DEFAULT * 4);
+		SetRecvBufSize(CHAN_SES_PACKET_DEFAULT);
 		srand((UINT)time(NULL));
 		m_bPfdConnect = 0;
 		m_bExtInfo = FALSE;

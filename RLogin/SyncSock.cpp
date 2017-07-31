@@ -26,6 +26,11 @@ static char THIS_FILE[]=__FILE__;
 
 CSyncSock::CSyncSock(class CRLoginDoc *pDoc, CWnd *pWnd)
 {
+#ifdef	DEBUG_DUMP
+	m_DebugMode = (-1);
+	m_DebugCount = 0;
+#endif
+
 	m_pWnd = pWnd;
 	m_pDoc = pDoc;
 	m_SendBuf.Clear();
@@ -245,11 +250,60 @@ void CSyncSock::DoAbort()
 	if ( m_pDoc != NULL && m_pDoc->m_pSock != NULL )
 		m_pDoc->m_pSock->SyncAbort();
 	WaitForSingleObject(m_pThreadEvent->m_hObject, INFINITE);
-	if ( m_pDoc->m_pSock != NULL )
+	if ( m_pDoc != NULL && m_pDoc->m_pSock != NULL )
 		m_pDoc->m_pSock->SetRecvSyncMode(FALSE);
 }
 
 //////////////////////////////////////////////////////////////////////
+
+#ifdef	DEBUG_DUMP
+void CSyncSock::DebugDump(LPBYTE buf, int len, int DebugMode)
+{
+	if ( m_DebugMode != DebugMode ) {
+		if ( m_DebugCount >= 32 )
+			TRACE(" %d\r\n", m_DebugCount);
+		else if ( m_DebugCount > 0 )
+			TRACE("\r\n");
+		m_DebugCount = 0;
+		m_DebugMode = DebugMode;
+	}
+
+	while ( m_DebugCount < 32 && len > 0 ) {
+		if ( (m_DebugCount % 16) == 0 ) {
+			if ( m_DebugCount > 0 )
+				TRACE("\r\n");
+			TRACE(DebugMode == 0 ? "Recv:" : "Send:");
+		}
+
+		TRACE(" %02x", *buf);
+
+		len--;
+		buf++;
+
+		if ( ++m_DebugCount >= 32 )
+			TRACE(" ...");
+	}
+
+	m_DebugCount += len;
+}
+void CSyncSock::DebugMsg(LPCSTR fmt, ...)
+{
+	CStringA tmp;
+	va_list arg;
+	va_start(arg, fmt);
+	tmp.FormatV(fmt, arg);
+	va_end(arg);
+
+	if ( m_DebugCount >= 32 )
+		TRACE(" %d\r\n", m_DebugCount);
+	else if ( m_DebugCount > 0 )
+		TRACE("\r\n");
+	m_DebugCount = 0;
+	m_DebugMode = (-1);
+
+	TRACE(tmp);
+}
+#endif
 
 void CSyncSock::Bufferd_Send(int c)
 {
@@ -267,6 +321,11 @@ void CSyncSock::Bufferd_Flush()
 {
 	if ( m_pWnd == NULL )
 		return;
+
+#ifdef	DEBUG_DUMP
+	DebugDump(m_SendBuf.GetPtr(), m_SendBuf.GetSize(), 1);
+#endif
+
 	m_pWnd->PostMessage(WM_THREADCMD, THCMD_SENDBUF, (LPARAM)this);
 }
 void CSyncSock::Bufferd_Clear()
@@ -297,28 +356,34 @@ int CSyncSock::Bufferd_Recive(int sec)
 	if ( m_pDoc->m_pSock == NULL || m_DoAbortFlag )
 		return (-1);	// ERROR
 
-	if ( m_RecvBuf.GetSize() > 0 )
-		return m_RecvBuf.Get8Bit();
+	if ( m_RecvBuf.GetSize() <= 0 ) {
+		if ( (n = m_pDoc->m_pSock->SyncRecive(tmp, 1024, sec, &m_ProgDlg.m_AbortFlag)) <= 0 )
+			return (-2);	// TIME OUT
+		m_RecvBuf.Apend(tmp, n);
+	}
 
-	if ( (n = m_pDoc->m_pSock->SyncRecive(tmp, 1024, sec, &m_ProgDlg.m_AbortFlag)) <= 0 )
-		return (-2);	// TIME OUT
+#ifdef	DEBUG_DUMP
+	DebugDump(m_RecvBuf.GetPtr(), 1, 0);
+#endif
 
-//	TRACE("SyncRecv %d\n", n);
-
-	m_RecvBuf.Apend(tmp, n);
 	return m_RecvBuf.Get8Bit();
 }
-int CSyncSock::Bufferd_ReciveBuf(char *buf, int len, int sec)
+BOOL CSyncSock::Bufferd_ReciveBuf(char *buf, int len, int sec)
 {
 	int n;
 
 	if ( m_pDoc->m_pSock == NULL || m_DoAbortFlag )
-		return TRUE;
+		return FALSE;
 
 	if ( (n = m_RecvBuf.GetSize()) > 0 ) {
 		if ( n > len )
 			n = len;
 		memcpy(buf, m_RecvBuf.GetPtr(), n);
+
+#ifdef	DEBUG_DUMP
+		DebugDump(m_RecvBuf.GetPtr(), n, 0);
+#endif
+
 		m_RecvBuf.Consume(n);
 		buf += n;
 		len -= n;
@@ -326,16 +391,23 @@ int CSyncSock::Bufferd_ReciveBuf(char *buf, int len, int sec)
 
 	while ( len > 0 ) {
 		if ( (n = m_pDoc->m_pSock->SyncRecive(buf, len, sec, &m_ProgDlg.m_AbortFlag)) <= 0 )
-			return TRUE;
+			return FALSE;
+
+#ifdef	DEBUG_DUMP
+		DebugDump((LPBYTE)buf, n, 0);
+#endif
+
 		buf += n;
 		len -= n;
 	}
-	return FALSE;
+
+	return TRUE;
 }
 int CSyncSock::Bufferd_ReciveSize()
 {
 	if ( m_pDoc->m_pSock == NULL || m_DoAbortFlag )
 		return 0;
+
 	return m_pDoc->m_pSock->GetRecvSize() + m_RecvBuf.GetSize();
 }
 void CSyncSock::SetXonXoff(int sw)

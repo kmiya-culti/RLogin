@@ -30,67 +30,44 @@ public:
 	int YUpLoad();
 	int YDownLoad();
 
-	int Zmodem;
-	int Zrwindow;
-	int Zctlesc;
-	int Effbaud;
-	int Rxtimeout;
-	int Rxbuflen;
-	int Rxcanfdx;
-
-	void zperr(LPCSTR s);
-	void zperr(LPCSTR s, int u) { CStringA str; str.Format(s, u); zperr(str); }
-	void zperr(LPCSTR s, LPCSTR p) { CStringA str; str.Format(s, p); zperr(str); }
-
 	int ZUpFile();
 	int ZDownFile();
 	int ZUpDown(int mode);
 
-							/* Globals used by ZMODEM functions */
-	int Rxframeind;			/* ZBIN ZBIN32, or ZHEX type of frame */
-	int Rxtype;				/* Type of header received */
-	int Rxhlen;				/* Length of header received */
-	int Rxcount;			/* Count of data bytes received */
+	int Zctlesc;
+	int Rxbuflen;
+	int Rxcanfdx;
+
 	char Rxhdr[ZMAXHLEN];	/* Received header */
 	char Txhdr[ZMAXHLEN];	/* Transmitted header */
-	LONGLONG Rxpos;				/* Received file position */
-	LONGLONG Txpos;				/* Transmitted file position */
+	LONGLONG Rxpos;			/* Received file position */
+	LONGLONG Txpos;			/* Transmitted file position */
+
 	int Txfcs32;			/* TURE means send binary frames with 32 bit FCS */
+
 	int Crc32t;				/* Controls 32 bit CRC being sent */
 							/* 1 == CRC32,  2 == CRC32 + RLE */
 	int Crc32r;				/* Indicates/controls 32 bit CRC being received */
 							/* 0 == CRC16,  1 == CRC32,  2 == CRC32 + RLE */
-	int Usevhdrs;			/* Use variable length headers */
-	int Znulls;				/* Number of nulls to send at beginning of ZDATA hdr */
-	char Attn[ZATTNLEN+1];	/* Attention string rx sends to tx on err */
-	char *Altcan;			/* Alternate canit string */
 
-	int lastsent;			/* Last char we sent */
+	int Usevhdrs;			/* Use variable length headers */
+	char Attn[ZATTNLEN+1];	/* Attention string rx sends to tx on err */
+	int Znulls;				/* Number of nulls to send at beginning of ZDATA hdr */
 	int Not8bit;			/* Seven bits seen on header */
 
-	void zsbhdr(int len, int type, char *hdr);
-	void zsbh32(int len, char *hdr, int type, int flavour);
-	void zshhdr(int len, int type, char *hdr);
-	void zsdata(char *buf, int length, int frameend);
-	void zsda32(char *buf, int length, int frameend);
-	int zrdata(char *buf, int length);
-	int zrdat32(char *buf, int length);
-	void garbitch();
-	int zgethdr(char *hdr, int eflag);
-	int zrbhdr(char *hdr);
-	int zrbhd32(char *hdr);
-	int zrhhdr(char *hdr);
-	void zputhex(int c);
-	void zsendline(int c);
-	int zgethex();
-	int zgeth1();
-	int zdlread();
-	int noxrd7();
-	void stohdr(LONGLONG pos);
-	LONGLONG rclhdr(register char *hdr);
-
-	void zsdar32(char *buf, int length, int frameend);
-	int zrdatr32(char *buf, int length);
+	void ZDispError(LPCSTR str, ...);
+	void ZSendBinHeader(int len, int type, char *hdr);
+	void ZSendHexHeader(int len, int type, char *hdr);
+	void ZSendData(char *buf, int length, int frameend);
+	int ZReciveData(char *buf, int length, int &Rxcount);
+	int ZReciveHeader(char *hdr, int eflag);
+	void ZSendHexByte(int c);
+	void ZSendEscByte(int c);
+	int ZReciveHexByte();
+	int ZReciveEscByte();
+	int ZRecive7Bit();
+	void ZSetLongHeader(LONGLONG pos);
+	LONGLONG ZGetLongHeader(register char *hdr);
 
 	CZModem(class CRLoginDoc *pDoc, CWnd *pWnd);
 	virtual ~CZModem();

@@ -44,6 +44,7 @@ CSerEntPage::CSerEntPage() : CTreePage(CSerEntPage::IDD)
 	m_BeforeEntry = _T("");
 	m_UsePassDlg = FALSE;
 	m_UseProxyDlg = FALSE;
+	m_bOptFixed = FALSE;
 }
 CSerEntPage::~CSerEntPage()
 {
@@ -65,6 +66,7 @@ void CSerEntPage::DoDataExchange(CDataExchange* pDX)
 	DDX_CBString(pDX, IDC_GROUP, m_Group);
 	DDX_CBString(pDX, IDC_BEFORE, m_BeforeEntry);
 	DDX_Check(pDX, IDC_CHECK1, m_UsePassDlg);
+	DDX_Check(pDX, IDC_CHECK2, m_bOptFixed);
 }
 
 BEGIN_MESSAGE_MAP(CSerEntPage, CTreePage)
@@ -86,6 +88,7 @@ BEGIN_MESSAGE_MAP(CSerEntPage, CTreePage)
 	ON_CBN_EDITCHANGE(IDC_BEFORE, OnUpdateEdit)
 	ON_BN_CLICKED(IDC_CHECK1, OnUpdateOption)
 	ON_BN_CLICKED(IDC_ICONFILE, &CSerEntPage::OnIconfile)
+	ON_BN_CLICKED(IDC_CHECK2, OnUpdateOptFixed)
 END_MESSAGE_MAP()
 
 void CSerEntPage::SetEnableWind()
@@ -161,6 +164,7 @@ void CSerEntPage::DoInit()
 	m_Group       = m_pSheet->m_pEntry->m_Group;
 	m_BeforeEntry = m_pSheet->m_pEntry->m_BeforeEntry;
 	m_IconName    = m_pSheet->m_pEntry->m_IconName;
+	m_bOptFixed   = m_pSheet->m_pEntry->m_bOptFixed;
 
 	m_ExtEnvStr   = m_pSheet->m_pParamTab->m_ExtEnvStr;
 
@@ -180,6 +184,7 @@ BOOL CSerEntPage::OnInitDialog()
 	int n, i;
 	CString str;
 	CComboBox *pCombo;
+	CButton *pCheck;
 	DWORD pb = CComSock::AliveComPort();
 
 	ASSERT(m_pSheet != NULL && m_pSheet->m_pEntry != NULL);
@@ -245,6 +250,9 @@ BOOL CSerEntPage::OnInitDialog()
 		}
 	}
 
+	if ( (m_pSheet->m_psh.dwFlags & PSH_NOAPPLYNOW) == 0 && (pCheck = (CButton *)GetDlgItem(IDC_CHECK2)) != NULL )
+		pCheck->EnableWindow(FALSE);
+
 	DoInit();
 
 	SetEnableWind();
@@ -284,8 +292,9 @@ BOOL CSerEntPage::OnApply()
 	m_pSheet->m_pParamTab->m_ExtEnvStr = m_ExtEnvStr;
 	m_pSheet->m_pTextRam->SetOption(TO_RLUSEPASS, m_UsePassDlg);
 	m_pSheet->m_pTextRam->SetOption(TO_PROXPASS, m_UseProxyDlg);
-	m_pSheet->m_pEntry->m_IconName = m_IconName;
-	m_pSheet->m_pEntry->m_bPassOk  = TRUE;
+	m_pSheet->m_pEntry->m_IconName  = m_IconName;
+	m_pSheet->m_pEntry->m_bPassOk   = TRUE;
+	m_pSheet->m_pEntry->m_bOptFixed = m_bOptFixed;
 
 	return TRUE;
 }
@@ -450,4 +459,12 @@ void CSerEntPage::OnIconfile()
 	UpdateData(FALSE);
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_ENTRY;
+}
+void CSerEntPage::OnUpdateOptFixed()
+{
+	UpdateData(TRUE);
+
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= UMOD_ENTRY;
+	m_pSheet->m_bOptFixed = m_bOptFixed;
 }

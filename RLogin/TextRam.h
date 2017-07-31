@@ -111,6 +111,8 @@
 #define IS_2BYTE(a) 	((a) == CM_2BYTE)
 #define IS_IMAGE(a)	 	((a) == CM_IMAGE)
 
+#define	BRKMBCS			'?'
+
 // DEC Terminal Option	0-199
 #define	TO_DECCKM		1			// Cursor key mode
 #define	TO_DECANM		2			// ANSI/VT52 Mode
@@ -186,6 +188,7 @@
 #define	TO_DRCSMMv1		453			// 8800 h=マッピング有効 l=マッピング無効
 #define	TO_RLC1DIS		454			// C1制御を行わない
 #define TO_RLCLSBACK	455			// 全画面消去でスクロールする
+#define	TO_RLBRKMBCS	456			// 壊れたMBCSの代替え表示
 
 // RLogin SockOpt		1000-1511(0-511)
 #define	TO_RLTENAT		1406		// 自動ユーザー認証を行わない
@@ -295,6 +298,7 @@
 #define	RESET_IDS		0x008000
 #define	RESET_MODKEY	0x010000
 #define	RESET_XTOPT		0x020000
+#define	RESET_CARET		0x040000
 #define	RESET_ALL		0x0FFFFF
 
 #define	RC_DCS			0
@@ -1139,7 +1143,7 @@ public:
 	static void OptionString(int value, CString &str);
 
 	// Low Level
-	void RESET(int mode = RESET_PAGE | RESET_CURSOR | RESET_MARGIN | RESET_TABS | RESET_BANK | RESET_ATTR | RESET_COLOR | RESET_TEK | RESET_SAVE | RESET_MOUSE | RESET_CHAR | RESET_OPTION | RESET_XTOPT | RESET_MODKEY);
+	void RESET(int mode = RESET_PAGE | RESET_CURSOR | RESET_CARET | RESET_MARGIN | RESET_TABS | RESET_BANK | RESET_ATTR | RESET_COLOR | RESET_TEK | RESET_SAVE | RESET_MOUSE | RESET_CHAR | RESET_OPTION | RESET_XTOPT | RESET_MODKEY);
 	CCharCell *GETVRAM(int cols, int lines);
 	void UNGETSTR(LPCTSTR str, ...);
 	void BEEP();
@@ -1238,6 +1242,7 @@ public:
 	void fc_TraceLogFlush(ESCNAMEPROC *pProc, BOOL bParam);
 	void fc_TraceCall(DWORD ch);
 	void fc_FuncCall(DWORD ch) { (this->*m_Func[ch])(ch); }
+	inline void fc_RenameCall(DWORD ch) { m_TraceFunc = m_Func[ch]; (this->*m_TraceFunc)(ch); }
 
 	// Proc
 	inline void fc_Call(DWORD ch) { (this->*m_pCallPoint)(ch); }
@@ -1275,8 +1280,10 @@ public:
 	static int IsKanjiCode(WORD code, const WORD *tab, int len);
 	static void KanjiCodeInit(KANCODEWORK *work);
 	static void KanjiCodeCheck(int ch, KANCODEWORK *work);
-	void fc_KANCHK();
+
 	void fc_KANJI(DWORD ch);
+	void fc_KANBRK();
+	void fc_KANCHK();
 
 	// Print...
 	void fc_IGNORE(DWORD ch);
@@ -1435,7 +1442,7 @@ public:
 	void fc_SGR(DWORD ch);
 	void fc_DSR(DWORD ch);
 	void fc_DAQ(DWORD ch);
-	void fc_ORGBFAT(DWORD ch);
+	void fc_RLBFAT(DWORD ch);
 	void fc_DECSSL(DWORD ch);	
 	void fc_DECLL(DWORD ch);
 	void fc_DECSTBM(DWORD ch);
@@ -1446,7 +1453,7 @@ public:
 	void fc_SCOSC(DWORD ch);
 	void fc_XTWOP(DWORD ch);
 	void fc_SCORC(DWORD ch);
-	void fc_ORGSCD(DWORD ch);
+	void fc_RLSCD(DWORD ch);
 	void fc_REQTPARM(DWORD ch);
 	void fc_DECTST(DWORD ch);
 	void fc_DECVERP(DWORD ch);

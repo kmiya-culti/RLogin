@@ -67,8 +67,8 @@ static char THIS_FILE[]=__FILE__;
 #define	ERR		(-1)
 
 static const char BP_Special_Quote_Set[]={
-			(char)0x14, (char)0x00, (char)0xd4, (char)0x00,
-			(char)0x00, (char)0x00, (char)0x00, (char)0x00 };
+			(char)0x14, (char)0x24, (char)0xd4, (char)0x14,		// 00-1F	03,05,0A,0D,10,11,13,15,1B,1D
+			(char)0x00, (char)0x00, (char)0x00, (char)0x00 };	// 80-9F
 static const char DQ_Full[]={
 			(char)0xff, (char)0xff, (char)0xff, (char)0xff,
 	   		(char)0xff, (char)0xff, (char)0xff, (char)0xff };
@@ -117,7 +117,7 @@ const unsigned short crc16tab[] = {
 
 CBPlus::CBPlus(class CRLoginDoc *pDoc, CWnd *pWnd) : CSyncSock(pDoc, pWnd)
 {
-	BP_Special_Quoting = 0;
+	BP_Special_Quoting = 1;
 	F_FileType = FALSE;
 }
 
@@ -1114,8 +1114,6 @@ int	CBPlus::Send_File(LPCTSTR filePath, LPCSTR fileName)
 		tm = gmtime(&F_Mtime);
 		sprintf(s, "%04d%02d%02d %d ", tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday, tm->tm_hour * (60 * 60) + tm->tm_min * 60 + tm->tm_sec);
 		while ( *s != '\0' ) s++;
-
-		TRACE("TI %s\n", p->buf + 4); 
 
 		*(s++) = (char)strlen(fileName);
 		strcpy(s, fileName);

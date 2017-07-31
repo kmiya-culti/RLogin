@@ -50,8 +50,8 @@ BEGIN_MESSAGE_MAP(CRLoginDoc, CDocument)
 	ON_COMMAND(ID_SETOPTION, OnSetOption)
 	ON_COMMAND_RANGE(IDM_KANJI_EUC, IDM_KANJI_UTF8, OnKanjiCodeSet)
 	ON_UPDATE_COMMAND_UI_RANGE(IDM_KANJI_EUC, IDM_KANJI_UTF8, OnUpdateKanjiCodeSet)
-	ON_COMMAND_RANGE(IDM_XMODEM_UPLOAD, IDM_SIMPLE_UPLOAD, OnXYZModem)
-	ON_UPDATE_COMMAND_UI_RANGE(IDM_XMODEM_UPLOAD, IDM_SIMPLE_UPLOAD, OnUpdateXYZModem)
+	ON_COMMAND_RANGE(IDM_XMODEM_UPLOAD, IDM_SIMPLE_DOWNLOAD, OnXYZModem)
+	ON_UPDATE_COMMAND_UI_RANGE(IDM_XMODEM_UPLOAD, IDM_SIMPLE_DOWNLOAD, OnUpdateXYZModem)
 	ON_COMMAND(ID_SEND_BREAK, &CRLoginDoc::OnSendBreak)
 	ON_UPDATE_COMMAND_UI(ID_SEND_BREAK, &CRLoginDoc::OnUpdateSendBreak)
 	ON_COMMAND(IDM_TEKDISP, &CRLoginDoc::OnTekdisp)
@@ -165,6 +165,18 @@ BOOL CRLoginDoc::OnNewDocument()
 
 	LoadOption(m_ServerEntry, m_TextRam, m_KeyTab, m_KeyMac, m_ParamTab);
 
+	if ( m_ServerEntry.m_bOptFixed ) {
+		CString ExtEnvStr = m_ParamTab.m_ExtEnvStr;
+		BOOL UsePass = m_TextRam.IsOptEnable(TO_RLUSEPASS);
+		BOOL ProxyPass = m_TextRam.IsOptEnable(TO_PROXPASS);
+
+		LoadDefOption(m_TextRam, m_KeyTab, m_KeyMac, m_ParamTab);
+
+		m_ParamTab.m_ExtEnvStr = ExtEnvStr;
+		m_TextRam.SetOption(TO_RLUSEPASS, UsePass);
+		m_TextRam.SetOption(TO_PROXPASS, ProxyPass);
+	}
+
 	m_TextRam.m_bOpen = TRUE;
 	m_TextRam.m_pServerEntry = &m_ServerEntry;
 	m_TextRam.SetKanjiMode(m_ServerEntry.m_KanjiCode);
@@ -206,6 +218,11 @@ BOOL CRLoginDoc::DoFileSave()
 		return TRUE;
 
 	} else if ( m_ServerEntry.m_DocType == DOCTYPE_REGISTORY ) {
+		if ( m_ServerEntry.m_bOptFixed ) {
+			if ( ::AfxMessageBox(IDS_OPTFIXEDSAVEMSG, MB_ICONQUESTION | MB_YESNO) != IDYES )
+				return FALSE;
+			m_ServerEntry.m_bOptFixed = FALSE;
+		}
 		SetEntryProBuffer();
 		m_pMainWnd->m_ServerEntryTab.AddEntry(m_ServerEntry);
 		return TRUE;
@@ -312,6 +329,27 @@ void CRLoginDoc::DiffIndex(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNod
 	TextRam.m_FontTab.DiffIndex(OrigTextRam.m_FontTab, index[_T("Fontset")]);
 	TextRam.m_TextBitMap.DiffIndex(OrigTextRam.m_TextBitMap, index[_T("TextBitMap")]);
 	KeyTab.DiffIndex(OrigKeyTab, index[_T("Keycode")]);
+}
+void CRLoginDoc::LoadDefOption(CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab)
+{
+	TextRam.Serialize(FALSE);
+	KeyTab.Serialize(FALSE);
+#ifndef	USE_KEYMACGLOBAL
+	KeyMac.Serialize(FALSE);
+#endif
+	ParamTab.Serialize(FALSE);
+}
+void CRLoginDoc::SaveDefOption(CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab)
+{
+	TextRam.Serialize(TRUE);
+	KeyTab.Serialize(TRUE);
+#ifndef	USE_KEYMACGLOBAL
+	KeyMac.Serialize(TRUE);
+#endif
+	ParamTab.Serialize(TRUE);
+
+	((CMainFrame *)::AfxGetMainWnd())->m_DefKeyTab.Serialize(FALSE);
+	((CMainFrame *)::AfxGetMainWnd())->m_DefKeyTab.CmdsInit();
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -584,6 +622,10 @@ void CRLoginDoc::SetMenu(CMenu *pMenu)
 			n--;
 		}
 	}
+
+	// Add ReOpen Menu
+	if ( m_pSock != NULL && !m_pSock->m_bConnect )
+		pMenu->InsertMenu(ID_FILE_CLOSE, MF_BYCOMMAND, IDM_REOPENSOCK, CStringLoad(IDS_REOPENSOCK));
 	
 	// Key History Menu
 	if ( (pSubMenu = CMenuLoad::GetItemSubMenu(ID_MACRO_HIS1, pMenu)) != NULL ) {
@@ -651,6 +693,8 @@ BOOL CRLoginDoc::EntryText(CString &name)
 	CString tmp;
 	LPCTSTR str = name;
 	BOOL st = FALSE;
+	DWORD size;
+	TCHAR buf[MAX_COMPUTERNAME_LENGTH + 2];
 
 	while ( *str != _T('\0') ) {
 		if ( *str == _T('%') ) {
@@ -700,6 +744,22 @@ BOOL CRLoginDoc::EntryText(CString &name)
 					tmp = dlg.m_Edit;
 				st = TRUE;
 				break;
+			case _T('s'):
+				tmp += m_SockStatus;
+				st = TRUE;
+				break;
+			case 'u':
+				size = MAX_COMPUTERNAME_LENGTH;
+				if ( GetUserName(buf, &size) )
+					tmp += buf;
+				st = TRUE;
+				break;
+			case 'h':
+				size = MAX_COMPUTERNAME_LENGTH;
+				if ( GetComputerName(buf, &size) )
+					tmp += buf;
+				st = TRUE;
+				break;
 			case _T('%'):
 				tmp += _T('%');
 				st = TRUE;
@@ -725,6 +785,8 @@ void CRLoginDoc::ScriptText(LPCWSTR str, LPCWSTR match, CStringW &tmp)
 	WCHAR c;
 	CEditDlg dlg;
 	CTime tm = CTime::GetCurrentTime();
+	DWORD size;
+	TCHAR buf[MAX_COMPUTERNAME_LENGTH + 2];
 
 	while ( *str != L'\0' ) {
 		if ( *str == L'%' ) {
@@ -764,8 +826,25 @@ void CRLoginDoc::ScriptText(LPCWSTR str, LPCWSTR match, CStringW &tmp)
 				if ( dlg.DoModal() == IDOK )
 					tmp = dlg.m_Edit;
 				break;
+			case _T('s'):
+				tmp += m_SockStatus;
+				break;
+			case 'u':
+				size = MAX_COMPUTERNAME_LENGTH;
+				if ( GetUserName(buf, &size) )
+					tmp += buf;
+				break;
+			case 'h':
+				size = MAX_COMPUTERNAME_LENGTH;
+				if ( GetComputerName(buf, &size) )
+					tmp += buf;
+				break;
 			case L'%':
 				tmp += L'%';
+				break;
+			default:
+				tmp += str[0];
+				tmp += str[1];
 				break;
 			}
 			str += 2;
@@ -806,7 +885,9 @@ void CRLoginDoc::ScriptText(LPCWSTR str, LPCWSTR match, CStringW &tmp)
 				tmp += c;
 				break;
 
-			default: str += 1; break;
+			default:
+				str += 1;
+				break;
 			}
 		} else
 			tmp += *(str++);
@@ -1237,19 +1318,21 @@ void CRLoginDoc::OnSocketError(int err)
 	}
 
 	tmp.Format(_T("%s Server Entry Socket Error\n%s:%s Connection\n%s"), m_ServerEntry.m_EntryName, m_ServerEntry.m_HostName, m_ServerEntry.m_PortName, m_ErrorPrompt);
-	AfxMessageBox(tmp);
 	m_ErrorPrompt.Empty();
 
-	if ( m_TextRam.IsOptEnable(TO_RLNOTCLOSE) ) {
-		if ( (pWnd = GetAciveView()) != NULL && ::AfxMessageBox(IDS_SOCKREOPEN, MB_ICONQUESTION | MB_YESNO) == IDYES )
+	if ( (pWnd = GetAciveView()) != NULL ) {
+		tmp += _T("\n");
+		tmp += CStringLoad(IDS_SOCKREOPEN);
+		if ( AfxMessageBox(tmp, MB_ICONERROR | MB_YESNO) == IDYES )
 			pWnd->PostMessage(WM_COMMAND, IDM_REOPENSOCK, (LPARAM)0);
-		return;
-	}
-
-	if ( (pWnd = GetAciveView()) != NULL )
-		pWnd->PostMessage(WM_COMMAND, ID_FILE_CLOSE, (LPARAM)0);
-	else
+		else if ( m_TextRam.IsOptEnable(TO_RLNOTCLOSE) )
+			UpdateAllViews(NULL, UPDATE_DISPMSG, (CObject *)_T("Error"));
+		else
+			pWnd->PostMessage(WM_COMMAND, ID_FILE_CLOSE, (LPARAM)0);
+	} else {
+		AfxMessageBox(tmp);
 		OnFileClose();
+	}
 }
 void CRLoginDoc::OnSocketClose()
 {
@@ -1293,13 +1376,9 @@ void CRLoginDoc::OnSocketClose()
 	UpdateAllViews(NULL, UPDATE_GOTOXY, NULL);
 	SetStatus(_T("Close"));
 
-	if ( m_TextRam.IsOptEnable(TO_RLNOTCLOSE) ) {
-		if ( (pWnd = GetAciveView()) != NULL && ::AfxMessageBox(IDS_SOCKREOPEN, MB_ICONQUESTION | MB_YESNO) == IDYES )
-			pWnd->PostMessage(WM_COMMAND, IDM_REOPENSOCK, (LPARAM)0);
-		return;
-	}
-
-	if ( bCanExit )
+	if ( m_TextRam.IsOptEnable(TO_RLNOTCLOSE) )
+		UpdateAllViews(NULL, UPDATE_DISPMSG, (CObject *)_T("Closed"));
+	else if ( bCanExit )
 		m_pMainWnd->PostMessage(WM_COMMAND, ID_APP_EXIT, 0 );
 	else if ( (pWnd = GetAciveView()) != NULL )
 		pWnd->PostMessage(WM_COMMAND, ID_FILE_CLOSE, (LPARAM)0);
@@ -1630,22 +1709,14 @@ void CRLoginDoc::OnLoadDefault()
 	if ( AfxMessageBox(IDS_ALLINITREQ, MB_ICONQUESTION | MB_YESNO) != IDYES )
 		return;
 
-	m_TextRam.Serialize(FALSE);
-	m_KeyTab.Serialize(FALSE);
-#ifndef	USE_KEYMACGLOBAL
-	m_KeyMac.Serialize(FALSE);
-#endif
-	m_ParamTab.Serialize(FALSE);
+	LoadDefOption(m_TextRam, m_KeyTab, m_KeyMac, m_ParamTab);
 
 	SetModifiedFlag(TRUE);
 	UpdateAllViews(NULL, UPDATE_INITPARA, NULL);
 }
 void CRLoginDoc::OnSaveDefault() 
 {
-	m_TextRam.Serialize(TRUE);
-	m_KeyTab.Serialize(TRUE);
-	m_KeyMac.Serialize(TRUE);
-	m_ParamTab.Serialize(TRUE);
+	SaveDefOption(m_TextRam, m_KeyTab, m_KeyMac, m_ParamTab);
 }
 void CRLoginDoc::OnSetOption() 
 {
@@ -1662,7 +1733,7 @@ void CRLoginDoc::OnSetOption()
 	if ( dlg.DoModal() != IDOK )
 		return;
 
-	if ( (dlg.m_ModFlag & (UMOD_ANSIOPT | UMOD_MODKEY | UMOD_COLTAB | UMOD_BANKTAB | UMOD_DEFATT)) != 0 )
+	if ( (dlg.m_ModFlag & (UMOD_ANSIOPT | UMOD_MODKEY | UMOD_COLTAB | UMOD_BANKTAB | UMOD_DEFATT | UMOD_CARET)) != 0 )
 		dlg.m_ModFlag = m_TextRam.InitDefParam(TRUE, dlg.m_ModFlag);
 
 	if ( dlg.m_ModFlag != 0 || dlg.m_bModified )
@@ -1683,12 +1754,12 @@ void CRLoginDoc::OnSetOption()
 
 void CRLoginDoc::OnSftp()
 {
-	if ( m_pSock != NULL && m_pSock->m_Type == ESCT_SSH_MAIN && ((Cssh *)(m_pSock))->m_SSHVer == 2 )
+	if ( m_pSock != NULL && m_pSock->m_bConnect && m_pSock->m_Type == ESCT_SSH_MAIN && ((Cssh *)(m_pSock))->m_SSHVer == 2 )
 		((Cssh *)(m_pSock))->OpenSFtpChannel();
 }
 void CRLoginDoc::OnUpdateSftp(CCmdUI* pCmdUI) 
 {
-	pCmdUI->Enable(m_pSock != NULL && m_pSock->m_Type == ESCT_SSH_MAIN && ((Cssh *)(m_pSock))->m_SSHVer == 2);
+	pCmdUI->Enable(m_pSock != NULL && m_pSock->m_bConnect && m_pSock->m_Type == ESCT_SSH_MAIN && ((Cssh *)(m_pSock))->m_SSHVer == 2);
 }
 
 void CRLoginDoc::OnKanjiCodeSet(UINT nID)
@@ -1702,10 +1773,10 @@ void CRLoginDoc::OnUpdateKanjiCodeSet(CCmdUI* pCmdUI)
 
 void CRLoginDoc::OnXYZModem(UINT nID)
 {
-	if ( m_pSock == NULL )
+	if ( m_pSock == NULL || !m_pSock->m_bConnect )
 		return;
 
-	if ( nID == IDM_KERMIT_UPLOAD || nID == IDM_KERMIT_DOWNLOAD || nID == IDM_SIMPLE_UPLOAD ) {
+	if ( nID == IDM_KERMIT_UPLOAD || nID == IDM_KERMIT_DOWNLOAD || nID == IDM_SIMPLE_UPLOAD || nID == IDM_SIMPLE_DOWNLOAD ) {
 		if ( m_pKermit == NULL )
 			m_pKermit = new CKermit(this, AfxGetMainWnd());
 	} else {
@@ -1723,11 +1794,12 @@ void CRLoginDoc::OnXYZModem(UINT nID)
 	case IDM_KERMIT_UPLOAD:   m_pKermit->DoProc(1); break;
 	case IDM_KERMIT_DOWNLOAD: m_pKermit->DoProc(0); break;
 	case IDM_SIMPLE_UPLOAD:	  m_pKermit->DoProc(3); break;
+	case IDM_SIMPLE_DOWNLOAD: m_pKermit->DoProc(4); break;
 	}
 }
 void CRLoginDoc::OnUpdateXYZModem(CCmdUI* pCmdUI)
 {
-	pCmdUI->Enable(m_pSock != NULL ? TRUE : FALSE);
+	pCmdUI->Enable(m_pSock != NULL && m_pSock->m_bConnect ? TRUE : FALSE);
 }
 
 void CRLoginDoc::OnChatStop()
@@ -1753,7 +1825,7 @@ void CRLoginDoc::OnSendBreak()
 }
 void CRLoginDoc::OnUpdateSendBreak(CCmdUI *pCmdUI)
 {
-	pCmdUI->Enable(m_pSock != NULL && m_pSock->m_Type == ESCT_COMDEV ? TRUE : FALSE);
+	pCmdUI->Enable(m_pSock != NULL && m_pSock->m_bConnect && m_pSock->m_Type == ESCT_COMDEV ? TRUE : FALSE);
 }
 void CRLoginDoc::OnScriptMenu(UINT nID)
 {
@@ -1795,6 +1867,7 @@ void CRLoginDoc::OnUpdateImagedisp(CCmdUI *pCmdUI)
 void CRLoginDoc::OnScreenReset(UINT nID)
 {
 	int mode = 0;
+
 	switch(nID) {
 	case IDM_RESET_TAB:   mode = RESET_TABS; break;
 	case IDM_RESET_BANK:  mode = RESET_BANK; break;
@@ -1802,12 +1875,22 @@ void CRLoginDoc::OnScreenReset(UINT nID)
 	case IDM_RESET_TEK:   mode = RESET_TEK; break;
 	case IDM_RESET_ESC:   mode = RESET_SAVE | RESET_CHAR; RESET_OPTION; RESET_XTOPT | RESET_MODKEY; break;
 	case IDM_RESET_MOUSE: mode = RESET_MOUSE; break;
-	case IDM_RESET_SCREEN:mode = RESET_PAGE | RESET_CURSOR | RESET_MARGIN | RESET_BANK | RESET_ATTR | RESET_COLOR | RESET_CHAR | RESET_CLS | RESET_XTOPT; RESET_OPTION; break;
+	case IDM_RESET_SCREEN:mode = RESET_PAGE | RESET_CURSOR | RESET_CARET | RESET_MARGIN | RESET_BANK | RESET_ATTR | RESET_COLOR | RESET_CHAR | RESET_CLS | RESET_XTOPT; RESET_OPTION; break;
 	case IDM_RESET_SIZE:  mode = RESET_SIZE; break;
 	case IDM_RESET_ALL:   mode = RESET_ALL; break;
 	}
+
 	m_TextRam.RESET(mode);
 	m_TextRam.FLUSH();
+
+	if ( mode == RESET_ALL ) {
+		if ( m_pBPlus != NULL )
+			m_pBPlus->DoAbort();
+		if ( m_pZModem != NULL )
+			m_pZModem->DoAbort();
+		if ( m_pKermit != NULL )
+			m_pKermit->DoAbort();
+	}
 }
 
 void CRLoginDoc::OnSocketstatus()

@@ -62,16 +62,17 @@ BEGIN_MESSAGE_MAP(CServerSelect, CDialogExt)
 	ON_COMMAND(IDM_SERV_INPORT, &CServerSelect::OnServInport)
 	ON_COMMAND(IDM_SERV_EXPORT, &CServerSelect::OnServExport)
 	ON_COMMAND(IDM_SERV_PROTO, &CServerSelect::OnServProto)
-	ON_COMMAND(IDC_SAVEDEFAULT, &CServerSelect::OnSavedefault)
+	ON_COMMAND(IDC_SAVEDEFAULT, &CServerSelect::OnSaveDefault)
 	ON_COMMAND(IDM_SERV_EXCHNG, &CServerSelect::OnServExchng)
+	ON_COMMAND(IDC_LOADDEFAULT, &CServerSelect::OnLoaddefault)
+	ON_COMMAND(IDM_SHORTCUT, &CServerSelect::OnShortcut)
 
 	ON_UPDATE_COMMAND_UI(ID_EDIT_UPDATE, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_DELETE, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_DUPS, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(IDM_SERV_EXPORT, OnUpdateEditEntry)
-	ON_UPDATE_COMMAND_UI(IDM_SERV_EXCHNG, &CServerSelect::OnUpdateServExchng)
-	ON_COMMAND(IDC_LOADDEFAULT, &CServerSelect::OnLoaddefault)
-	ON_COMMAND(IDM_SHORTCUT, &CServerSelect::OnShortcut)
+	ON_UPDATE_COMMAND_UI(IDM_SERV_EXCHNG, OnUpdateServExchng)
+	ON_UPDATE_COMMAND_UI(IDC_SAVEDEFAULT, OnUpdateSaveDefault)
 END_MESSAGE_MAP()
 
 void CServerSelect::InitList()
@@ -288,7 +289,6 @@ BOOL CServerSelect::OnInitDialog()
 		m_Group = m_pData->GetAt(0).m_Group;
 
 	InitList();
-
 	InitItemOffset();
 
 	GetWindowRect(rect);
@@ -884,8 +884,7 @@ void CServerSelect::OnTcnSelchangeServertab(NMHDR *pNMHDR, LRESULT *pResult)
 	*pResult = 0;
 }
 
-
-void CServerSelect::OnSavedefault()
+void CServerSelect::OnSaveDefault()
 {
 	if ( (m_EntryNum = m_List.GetSelectMarkData()) < 0 )
 		return;
@@ -898,14 +897,16 @@ void CServerSelect::OnSavedefault()
 
 	pEntry = &(m_pData->GetAt(m_EntryNum));
 	CRLoginDoc::LoadOption(*pEntry, TextRam, KeyTab, KeyMac, ParamTab);
+	CRLoginDoc::SaveDefOption(TextRam, KeyTab, KeyMac, ParamTab);
+}
+void CServerSelect::OnUpdateSaveDefault(CCmdUI *pCmdUI)
+{
+	int n = m_List.GetSelectMarkData();
 
-	TextRam.Serialize(TRUE);
-	KeyTab.Serialize(TRUE);
-	KeyMac.Serialize(TRUE);
-	ParamTab.Serialize(TRUE);
-
-	((CMainFrame *)::AfxGetMainWnd())->m_DefKeyTab.Serialize(FALSE);
-	((CMainFrame *)::AfxGetMainWnd())->m_DefKeyTab.CmdsInit();
+	if ( n >= 0 && m_List.GetSelectMarkCount() == 1 && !m_pData->GetAt(n).m_bOptFixed )
+		pCmdUI->Enable(TRUE);
+	else
+		pCmdUI->Enable(FALSE);
 }
 void CServerSelect::OnLoaddefault()
 {

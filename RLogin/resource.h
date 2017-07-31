@@ -218,6 +218,9 @@
 #define IDS_TITLEDITMSG                 624
 #define IDS_TRANSLATEABORT              625
 #define IDS_SEPARATESTRING              626
+#define IDS_REOPENSOCK                  627
+#define IDS_OPTFIXEDMSG                 628
+#define IDS_OPTFIXEDSAVEMSG             629
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -334,6 +337,7 @@
 #define IDT_TERM_LIST61                 960
 #define IDT_TERM_LIST62                 961
 #define IDT_TERM_LIST63                 962
+#define IDT_TERM_LIST64                 963
 #define ID_CHARSCRIPT_END               1000
 #define ID_DISCONNECT                   1001
 #define ID_EDIT_BOX                     1002
@@ -485,8 +489,8 @@
 #define IDC_DEFPAMCHECK3                2100
 #define IDC_DEFPAMCHECK4                2101
 #define IDC_DEFPAMCHECK5                2102
-#define IDC_DELAYMSEC                   2103
-#define IDC_DEFPAMCHECK6                2104
+#define IDC_DEFPAMCHECK6                2103
+#define IDC_DELAYMSEC                   2104
 #define IDC_DELENTRY                    2105
 #define IDC_DELAYMSEC2                  2106
 #define IDC_SLEEPTIME                   2107
@@ -956,7 +960,6 @@
 #define IDM_PASSWORDLOCK                5099
 #define IDM_REOPENSOCK                  5100
 #define IDM_OTHERCAST                   5101
-#define IDM_NEWCONNECT                  5102
 #define IDM_SAVERESFILE                 5103
 #define IDM_ICONLOAD                    5104
 #define IDM_TOOLCUST                    5105
@@ -972,14 +975,13 @@
 #define IDM_KERMIT_UPLOAD               5116
 #define IDM_KERMIT_DOWNLOAD             5117
 #define IDM_SIMPLE_UPLOAD               5118
-#define IDM_SAVEPUBLICKEY               5119
-#define IDM_IMAGEGRAPCOPY               5120
-#define IDM_IMAGEGRAPSAVE               5121
-#define IDM_CLIPCHAIN                   5122
-#define IDM_DELOLDENTRYTAB              5123
-#define IDM_TITLEEDIT                   5124
-#define ID_5125                         5125
-#define ID_5126                         5126
+#define IDM_SIMPLE_DOWNLOAD             5119
+#define IDM_SAVEPUBLICKEY               5120
+#define IDM_IMAGEGRAPCOPY               5121
+#define IDM_IMAGEGRAPSAVE               5122
+#define IDM_CLIPCHAIN                   5123
+#define IDM_DELOLDENTRYTAB              5124
+#define IDM_TITLEEDIT                   5125
 #define IDM_FIRST_MDICHILD              0xFF00
 
 // Next default values for new objects
@@ -987,8 +989,8 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        163
-#define _APS_NEXT_COMMAND_VALUE         5127
+#define _APS_NEXT_COMMAND_VALUE         5126
 #define _APS_NEXT_CONTROL_VALUE         2470
-#define _APS_NEXT_SYMED_VALUE           627
+#define _APS_NEXT_SYMED_VALUE           630
 #endif
 #endif

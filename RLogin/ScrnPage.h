@@ -19,7 +19,7 @@ public:
 	CString	m_FontSize;
 	CString	m_ColsMax[2];
 	int m_VisualBell;
-	int m_DefTypeCaret;
+	int m_TypeCaret;
 	int m_RecvCrLf;
 	int m_SendCrLf;
 	BOOL m_Check[10];
@@ -53,7 +53,7 @@ protected:
 	afx_msg void OnUpdateCheck(UINT nId);
 	afx_msg void OnUpdateEdit();
 	afx_msg void OnUpdateEditOpt();
-	afx_msg void OnCbnSelchangeCombo();
+	afx_msg void OnUpdateEditCaret();
 	afx_msg void OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct);
 	afx_msg void OnStnClickedCaretCol();
 };

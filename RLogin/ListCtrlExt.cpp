@@ -85,6 +85,17 @@ int CListCtrlExt::GetSelectMarkData()
 		return (int)GetItemData(n);
 	return (-1);
 }
+int CListCtrlExt::GetSelectMarkCount()
+{
+	int n, i;
+
+	for ( n = i = 0 ; n < GetItemCount() ; n++ ) {
+		if ( GetItemState(n, LVIS_SELECTED) != 0 )
+			i++;
+	}
+
+	return i;
+}
 void CListCtrlExt::DoSortItem()
 {
 	SortItems(CompareFunc, (DWORD_PTR)this);

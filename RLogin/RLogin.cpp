@@ -466,7 +466,6 @@ BEGIN_MESSAGE_MAP(CRLoginApp, CWinApp)
 	ON_COMMAND(ID_APP_ABOUT, &CRLoginApp::OnAppAbout)
 	ON_COMMAND(ID_FILE_PRINT_SETUP, OnFilePrintSetup)
 	// 標準のファイル基本ドキュメント コマンド
-	ON_COMMAND(IDM_NEWCONNECT, &CRLoginApp::OnNewConnect)
 	ON_COMMAND(ID_FILE_NEW, &CRLoginApp::OnFileNew)
 	ON_COMMAND(ID_FILE_OPEN, &CRLoginApp::OnFileOpen)
 	ON_COMMAND(IDM_DISPWINIDX, &CRLoginApp::OnDispwinidx)
@@ -1059,6 +1058,9 @@ BOOL CRLoginApp::InitInstance()
 
 int CRLoginApp::ExitInstance() 
 {
+	// Free Handle or Library
+	rand_buf(NULL, 0);
+
 #if	OPENSSL_VERSION_NUMBER >= 0x10100000L
 	CONF_modules_finish();
 	CONF_modules_unload(1);
@@ -2316,20 +2318,6 @@ void CRLoginApp::DelIdleProc(int Type, void *pParam)
 //////////////////////////////////////////////////////////////////////
 // CRLoginApp メッセージ ハンドラ
 
-void CRLoginApp::OnNewConnect()
-{
-	CRLoginDoc *pDoc;
-	CChildFrame *pChild;
-	CMainFrame *pMain = (CMainFrame *)::AfxGetMainWnd();
-
-	if ( pMain != NULL && pMain->GetTabCount() >= DOCUMENT_MAX )
-		return;
-
-	if ( pMain != NULL && (pChild = (CChildFrame *)(pMain->MDIGetActive())) != NULL && (pDoc = (CRLoginDoc *)(pChild->GetActiveDocument())) != NULL && pDoc->m_pSock != NULL && !pDoc->m_pSock->m_bConnect )
-		pChild->PostMessage(WM_COMMAND, IDM_REOPENSOCK, (LPARAM)0);
-	else
-		CWinApp::OnFileNew();
-}
 void CRLoginApp::OnFileNew()
 {
 	if ( ((CMainFrame *)::AfxGetMainWnd())->GetTabCount() < DOCUMENT_MAX )
