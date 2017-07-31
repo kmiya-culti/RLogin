@@ -28,6 +28,9 @@ CFontNode::CFontNode()
 {
 	Init();
 }
+CFontNode::~CFontNode()
+{
+}
 void CFontNode::Init()
 {
 	m_Shift       = 0;
@@ -110,8 +113,7 @@ CFontChacheNode *CFontNode::GetFont(int Width, int Height, int Style, int FontNu
 	if ( m_FontName[FontNum].IsEmpty() )
 		FontNum = 0;
 	
-	return ((CRLoginApp *)AfxGetApp())->m_FontData.GetFont(m_FontName[FontNum],
-				Width * m_ZoomW / 100, Height * m_ZoomH / 100, m_CharSet, Style, m_Quality, m_Hash[FontNum]);
+	return ((CRLoginApp *)AfxGetApp())->m_FontData.GetFont(m_FontName[FontNum], Width * m_ZoomW / 100, Height * m_ZoomH / 100, m_CharSet, Style, m_Quality, m_Hash[FontNum]);
 }
 const CFontNode & CFontNode::operator = (CFontNode &data)
 {
@@ -130,6 +132,90 @@ const CFontNode & CFontNode::operator = (CFontNode &data)
 		m_Hash[n]     = data.m_Hash[n];
 	}
 	return *this;
+}
+void CFontNode::SetUserFont(int code, int width, int height, LPBYTE map)
+{
+	CDC dc;
+	int n, x, y;
+	CBitmap *pOld;
+
+	if ( (code -= 0x20) < 0 )
+		code = 0;
+	else if ( code > 95 )
+		code = 95;
+
+	if ( !dc.CreateCompatibleDC(NULL) )
+		return;
+
+	if ( m_UserFontMap.GetSafeHandle() == NULL ) {
+		if ( !m_UserFontMap.CreateBitmap(USFTWMAX * 96, USFTHMAX, 1, 1, NULL) ) {
+			dc.DeleteDC();
+			return;
+		}
+		pOld = dc.SelectObject(&m_UserFontMap);
+		dc.FillSolidRect(0, 0, USFTWMAX * 96, USFTHMAX, RGB(255, 255, 255));
+		memset(m_UserFontDef, 0, 96 / 8);
+		m_UserFontDef[0] |= 0x01;	// ' '
+	} else
+		pOld = dc.SelectObject(&m_UserFontMap);
+
+	for ( y = 0 ; y < USFTHMAX && y < height ; y++ ) {
+		for ( x = 0 ; x < USFTWMAX && x < width ; x++ ) {
+			if ( (map[x + USFTWMAX * (y / 6)] & (1 << (y % 6))) != 0 )
+				dc.SetPixelV(code * USFTWMAX + x, y, RGB(0, 0, 0));
+			else
+				dc.SetPixelV(code * USFTWMAX + x, y, RGB(255, 255, 255));
+		}
+	}
+
+	m_UserFontWidth  = width;
+	m_UserFontHeight = height;
+	m_UserFontDef[code / 8] |= (1 << (code % 8));
+
+	if (  m_FontMap.GetSafeHandle() != NULL )
+		m_FontMap.DeleteObject();
+
+	dc.SelectObject(pOld);
+	dc.DeleteDC();
+}
+BOOL CFontNode::SetFontImage(int width, int height)
+{
+	CDC oDc, nDc;
+	CBitmap *pOld[2];
+
+	if ( m_UserFontMap.GetSafeHandle() == NULL )
+		return FALSE;
+
+	width  = width  * USFTWMAX / m_UserFontWidth;
+	height = height * USFTHMAX / m_UserFontHeight;
+
+	if ( m_FontMap.GetSafeHandle() == NULL || m_FontWidth != width || m_FontHeight != height ) {
+		if ( m_FontMap.GetSafeHandle() != NULL )
+			m_FontMap.DeleteObject();
+
+		if ( !oDc.CreateCompatibleDC(NULL) || !nDc.CreateCompatibleDC(NULL) )
+			return FALSE;
+
+		if ( !m_FontMap.CreateBitmap(width * 96, height, 1, 1, NULL) )
+			return FALSE;
+
+		pOld[0] = oDc.SelectObject(&m_UserFontMap);
+		pOld[1] = nDc.SelectObject(&m_FontMap);
+
+		//nDc.SetStretchBltMode(HALFTONE);
+		nDc.StretchBlt(0, 0, width * 96, height, &oDc, 0, 0, USFTWMAX * 96, USFTHMAX, SRCCOPY);
+
+		oDc.SelectObject(pOld[0]);
+		nDc.SelectObject(pOld[1]);
+
+		oDc.DeleteDC();
+		nDc.DeleteDC();
+
+		m_FontWidth = width;
+		m_FontHeight = height;
+	}
+
+	return TRUE;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -199,7 +285,7 @@ void CFontTab::Init()
 		{ "JIS X 0213-2000.2",		SET_94x94,	"P",	'\x00', "JIS_X0213-2000.2",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "‚l‚r ƒSƒVƒbƒN", "‚l‚r –¾’©" } },
 		{ "JIS X 0213-2004.1",		SET_94x94,	"Q",	'\x00', "JIS_X0213-2000.1",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "‚l‚r ƒSƒVƒbƒN", "‚l‚r –¾’©" } },
 
-		{ "UNICODE",				SET_UNICODE,"",		'\x00', "UCS-4BE",			DEFAULT_CHARSET,	100,	100,	0,	{ "‚l‚r ƒSƒVƒbƒN", "‚l‚r –¾’©" } },
+		{ "UNICODE",				SET_UNICODE,"*U",	'\x00', "UCS-4BE",			DEFAULT_CHARSET,	100,	100,	0,	{ "‚l‚r ƒSƒVƒbƒN", "‚l‚r –¾’©" } },
 
 		{ NULL, 0, 0x00, NULL },
 	};
@@ -264,10 +350,11 @@ void CFontTab::GetArray(CStringArrayExt &array)
 		m_Data[i].GetArray(tmp);
 		if ( m_Data[i].m_IndexName.IsEmpty() ) {
 			if ( i == SET_UNICODE )
-				m_Data[i].m_IndexName = "Unicode";
+				m_Data[i].m_IndexName = "*U";
 			else
 				m_Data[i].m_IndexName = (CHAR)(i & 0xFF);
-		}
+		} else if ( m_Data[i].m_IndexName.Compare("Unicode") == 0 )
+			m_Data[i].m_IndexName = "*U";
 	}
 }
 const CFontTab & CFontTab::operator = (CFontTab &data)
@@ -290,7 +377,7 @@ int CFontTab::IndexFind(int code, LPCSTR name)
 
 	if ( name[1] == '\0' && name[0] >= '\x30' && name[0] <= '\x7E' )
 		return (code | name[0]);
-	else if ( strcmp(name, "Unicode") == 0 )
+	else if ( strcmp(name, "*U") == 0 )
 		return SET_UNICODE;
 
 	for ( n = i = 0 ;  n < (255 - 0x4F) ; n++ ) {
@@ -376,6 +463,7 @@ CTextRam::CTextRam()
 	m_TermId  = 10;
 	m_LangMenu = 0;
 	SetRetChar(FALSE);
+	m_ClipFlag = 0;
 
 	m_LineEditMode = FALSE;
 	m_LineEditPos  = 0;
@@ -963,6 +1051,8 @@ void CTextRam::Init()
 	SetRetChar(FALSE);
 	for ( int n = 0 ; n < 64 ; n++ )
 		m_Macro[n].Clear();
+	m_UnitId = 0;
+	m_ClipFlag = 0;
 
 	m_ProcTab.Init();
 
@@ -1011,6 +1101,7 @@ void CTextRam::SetArray(CStringArrayExt &array)
 	array.AddVal(4);	// AnsiOpt Bugfix
 	array.AddVal(m_TitleMode);
 	array.Add(m_SendCharSet[4]);
+	array.AddVal(m_ClipFlag);
 }
 void CTextRam::GetArray(CStringArrayExt &array)
 {
@@ -1101,6 +1192,9 @@ void CTextRam::GetArray(CStringArrayExt &array)
 	if ( array.GetSize() > 39 )
 		m_SendCharSet[4] = array.GetAt(39);
 
+	if ( array.GetSize() > 40 )
+		m_ClipFlag = array.GetVal(40);
+
 	RESET();
 }
 void CTextRam::Serialize(int mode)
@@ -1149,6 +1243,12 @@ const CTextRam & CTextRam::operator = (CTextRam &data)
 	fc_Init(m_KanjiMode);
 	memcpy(m_MetaKeys,  data.m_MetaKeys,  sizeof(m_MetaKeys));
 	m_ProcTab = data.m_ProcTab;
+	m_TitleMode = data.m_TitleMode;
+	m_VtLevel = data.m_VtLevel;
+	m_TermId  = data.m_TermId;
+	m_LangMenu = data.m_LangMenu;
+	m_UnitId = data.m_UnitId;
+	m_ClipFlag  = data.m_ClipFlag;
 
 	return *this;
 }
@@ -1783,24 +1883,22 @@ ENDOF2:
 	return;
 }
 
-void CTextRam::StrOut(CDC* pDC, LPCRECT pRect, struct DrawWork &prop, int len, char *str, int sln, int *spc, class CRLoginView *pView)
+void CTextRam::StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop, int len, char *str, int sln, int *spc, class CRLoginView *pView)
 {
-	int n, x, y;
+	int n, c, x, y, o;
 	int at = prop.att;
-	int md = ETO_CLIPPED;
-	int st = 0;
+	int rv = FALSE;
 	int wd = (prop.dmf == 0 ? 1 : 2);
 	int hd = (prop.dmf <= 1 ? 1 : 2);
-	int rv = FALSE;
 	COLORREF fc, bc, tc;
+	LPCWSTR p = (LPCWSTR)str;
 	CFontChacheNode *pFontCache;
-	CFont *pFont;
+	CFontNode *pFontNode = (prop.mod < 0 ? NULL : &(m_FontTab[prop.mod]));
+	CBitmap *pOld;
+	CRect box(*pRect);
 
 	if ( (at & ATT_BOLD) != 0 && !IS_ENABLE(m_AnsiOpt, TO_RLBOLD) && prop.fcn < 16 )
 		prop.fcn ^= 0x08;
-
-	if ( (at & ATT_ITALIC) != 0 )
-		st |= 2;
 
 	fc = m_ColTab[prop.fcn];
 	bc = m_ColTab[prop.bcn];
@@ -1838,35 +1936,62 @@ void CTextRam::StrOut(CDC* pDC, LPCRECT pRect, struct DrawWork &prop, int len, c
 			bc = RGB((GetRValue(fc) + GetRValue(bc)) / 2, (GetGValue(fc) + GetGValue(bc)) / 2, (GetBValue(fc) + GetBValue(bc)) / 2);
 	}
 
+	if ( (at & ATT_HALF) != 0 )
+		fc = RGB((GetRValue(fc) + GetRValue(bc)) / 2, (GetGValue(fc) + GetGValue(bc)) / 2, (GetBValue(fc) + GetBValue(bc)) / 2);
 
-	if ( prop.mod < 0 ) {
+	if ( pFontNode == NULL ) {
 		if ( pView->m_pBitmap == NULL )
 			pDC->FillSolidRect(pRect, bc);
+
 	} else {
-		if ( pView->m_pBitmap == NULL || rv )
-			md = ETO_OPAQUE | ETO_CLIPPED;
+		x = pView->m_CharWidth  * wd;
+		y = pView->m_CharHeight * hd;
+		n = (at & ATT_ITALIC) != 0 ? 2 : 0;
 
-		if ( (at & ATT_HALF) != 0 )
-			fc = RGB((GetRValue(fc) + GetRValue(bc)) / 2, (GetGValue(fc) + GetGValue(bc)) / 2, (GetBValue(fc) + GetBValue(bc)) / 2);
+		pFontCache = pFontNode->GetFont(x, y, n, prop.fnm);
 
-		if ( (pFontCache = m_FontTab[prop.mod].GetFont(pView->m_CharWidth * wd, pView->m_CharHeight * hd, st, prop.fnm)) != NULL && prop.csz > 1 && pFontCache->m_KanWidMul > 100 )
-			pFontCache = m_FontTab[prop.mod].GetFont(pView->m_CharWidth * wd * pFontCache->m_KanWidMul / 100, pView->m_CharHeight * hd, st, prop.fnm);
-
-		pFont = (pFontCache != NULL ? pFontCache->m_pFont : CFont::FromHandle((HFONT)GetStockObject(SYSTEM_FONT)));
-		pDC->SelectObject(pFont);
-
-		x = pRect->left;
-		y = pRect->top - pView->m_CharHeight * m_FontTab[prop.mod].m_Offset / 100 - (prop.dmf == 3 ? pView->m_CharHeight : 0);
+		if ( prop.csz > 1 && pFontCache != NULL && pFontCache->m_KanWidMul > 100 )
+			pFontCache = pFontNode->GetFont(x * pFontCache->m_KanWidMul / 100, y, n, prop.fnm);
 
 		pDC->SetTextColor(fc);
 		pDC->SetBkColor(bc);
 
-		::ExtTextOutW(pDC->m_hDC, x, y, md, pRect, (LPCWSTR)str, len / 2, spc);
+		pDC->SelectObject(pFontCache != NULL ? pFontCache->m_pFont : CFont::FromHandle((HFONT)GetStockObject(SYSTEM_FONT)));
 
-		if ( (at & ATT_BOLD) != 0 && (IS_ENABLE(m_AnsiOpt, TO_RLBOLD) || prop.fcn >= 16) ) {
-			int oldMode = pDC->SetBkMode(TRANSPARENT);
-			::ExtTextOutW(pDC->m_hDC, x + 1, y, ETO_CLIPPED, pRect, (LPCWSTR)str, len / 2, spc);
-			pDC->SetBkMode(oldMode);
+		if ( pFontNode->SetFontImage(pView->m_CharWidth  * wd, pView->m_CharHeight * hd) ) {
+			if ( pWdc->GetSafeHdc() == NULL )
+				pWdc->CreateCompatibleDC(pDC);
+
+			pOld = pWdc->SelectObject(&(pFontNode->m_FontMap));
+
+			x = pRect->left;
+			y = pRect->bottom - pRect->top;
+			o = (prop.dmf == 3 ? pView->m_CharHeight : 0);
+
+			for ( n = 0 ; n < (len / 2) ; n++, p++ ) {
+				if ( (c = *p - 0x20) >= 0 && c < 96 && (pFontNode->m_UserFontDef[c / 8] & (1 << (c % 8))) != 0 )
+					pDC->BitBlt(x, pRect->top, spc[n], y, pWdc, pFontNode->m_FontWidth * c, o, ((pView->m_pBitmap == NULL || rv != FALSE) ? SRCCOPY: SRCPAINT));
+				else {
+					box.left = x;
+					box.right = x + spc[n];
+					::ExtTextOutW(pDC->m_hDC, x, pRect->top - o, ((pView->m_pBitmap == NULL || rv != FALSE) ? (ETO_OPAQUE | ETO_CLIPPED) : ETO_CLIPPED), box, p, 1, &(spc[n]));
+				}
+				x += spc[n];
+			}
+
+			pWdc->SelectObject(pOld);
+
+		} else {
+			x = pRect->left;
+			y = pRect->top - pView->m_CharHeight * pFontNode->m_Offset / 100 - (prop.dmf == 3 ? pView->m_CharHeight : 0);
+
+			::ExtTextOutW(pDC->m_hDC, x, y, ((pView->m_pBitmap == NULL || rv != FALSE) ? (ETO_OPAQUE | ETO_CLIPPED) : ETO_CLIPPED), pRect, (LPCWSTR)str, len / 2, spc);
+
+			if ( (at & ATT_BOLD) != 0 && (IS_ENABLE(m_AnsiOpt, TO_RLBOLD) || prop.fcn >= 16) ) {
+				n = pDC->SetBkMode(TRANSPARENT);
+				::ExtTextOutW(pDC->m_hDC, x + 1, y, ETO_CLIPPED, pRect, (LPCWSTR)str, len / 2, spc);
+				pDC->SetBkMode(n);
+			}
 		}
 	}
 
@@ -1990,6 +2115,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 	int spc[COLS_MAX];
 	CFont *pFontOld = pDC->SelectObject(CFont::FromHandle((HFONT)GetStockObject(SYSTEM_FONT)));
 	RECT rect;
+	CDC wDc;
 
 	if ( pView->m_ClipFlag ) {
 		if ( pView->m_ClipStaPos <= pView->m_ClipEndPos ) {
@@ -2080,7 +2206,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 			if ( memcmp(&prop, &work, sizeof(work)) != 0 ) {
 				if ( len > 0 ) {
 					rect.right = pView->CalcGrapX(x) * (work.dmf ? 2 : 1);
-					StrOut(pDC, &rect, prop, len, tmp, sln, spc, pView);
+					StrOut(pDC, &wDc, &rect, prop, len, tmp, sln, spc, pView);
 				}
 				memcpy(&prop, &work, sizeof(work));
 				len = sln = 0;
@@ -2102,11 +2228,14 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 		}
 		if ( len > 0 ) {
 			rect.right = pView->CalcGrapX(x) * (work.dmf ? 2 : 1);
-			StrOut(pDC, &rect, prop, len, tmp, sln, spc, pView);
+			StrOut(pDC, &wDc, &rect, prop, len, tmp, sln, spc, pView);
 		}
 	}
 
 	pDC->SelectObject(pFontOld);
+
+	if ( wDc.GetSafeHdc() != NULL )
+		wDc.DeleteDC();
 }
 
 CWnd *CTextRam::GetAciveView()

@@ -34,6 +34,7 @@ CChildFrame::CChildFrame()
 	m_Height = 10;
 	m_Cols   = 80;
 	m_Lines  = 25;
+	m_VScrollFlag = FALSE;
 }
 
 CChildFrame::~CChildFrame()
@@ -46,8 +47,16 @@ BOOL CChildFrame::OnCreateClient(LPCREATESTRUCT /*lpcs*/, CCreateContext* pConte
 //		2, 2,			// TODO: 行と列の数を調整してください。
 //		CSize(10, 10),	// TODO: 最小ペインのサイズを変更します。
 //		pContext);
-	return m_wndSplitter.Create(this, 2, 1, CSize(40, 20), pContext,
-				WS_CHILD | WS_VISIBLE | WS_VSCROLL | SPLS_DYNAMIC_SPLIT);
+	BOOL result;
+
+	result = m_wndSplitter.Create(this, 2, 1, CSize(40, 20), pContext, WS_CHILD | WS_VISIBLE | WS_VSCROLL | SPLS_DYNAMIC_SPLIT);
+
+	if ( (m_VScrollFlag = ((CMainFrame *)AfxGetMainWnd())->m_ScrollBarFlag) == FALSE && result ) {
+		m_wndSplitter.SetScrollStyle(0);
+		m_wndSplitter.RecalcLayout();
+	}
+
+	return result;
 }
 
 BOOL CChildFrame::PreCreateWindow(CREATESTRUCT& cs)
@@ -61,8 +70,8 @@ BOOL CChildFrame::PreCreateWindow(CREATESTRUCT& cs)
 //	cs.style |= WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
 	cs.style |= WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
 
-	//cs.style &= ~(WS_BORDER | WS_DLGFRAME);
-	//cs.dwExStyle &= ~WS_EX_CLIENTEDGE;
+//	cs.style &= ~(WS_BORDER | WS_DLGFRAME);
+//	cs.dwExStyle &= ~WS_EX_CLIENTEDGE;
 
 //	if ( AfxGetApp()->GetProfileInt("ChildFrame", "Style", 1) == 1 )
 //		cs.style |= WS_MAXIMIZE;
@@ -88,6 +97,15 @@ void CChildFrame::ActivateFrame(int nCmdShow)
 	CMDIChildWnd::ActivateFrame(nCmdShow);
 }
 
+void CChildFrame::SetScrollBar(BOOL flag)
+{
+	if ( m_VScrollFlag != flag ) {
+		m_VScrollFlag = flag;
+		m_wndSplitter.SetScrollStyle(flag ? WS_VSCROLL : 0);
+		m_wndSplitter.RecalcLayout();
+	}
+}
+
 // CChildFrame 診断
 
 #ifdef _DEBUG
@@ -110,8 +128,8 @@ void CChildFrame::OnSize(UINT nType, int cx, int cy)
 {
 	CMDIChildWnd::OnSize(nType, cx, cy);
 
-	if ( nType != SIZE_MINIMIZED )
-		AfxGetApp()->WriteProfileInt("ChildFrame", "Style", (nType == SIZE_MAXIMIZED ? 1 : 0));
+//	if ( nType != SIZE_MINIMIZED )
+//		AfxGetApp()->WriteProfileInt("ChildFrame", "Style", (nType == SIZE_MAXIMIZED ? 1 : 0));
 }
 
 int CChildFrame::OnCreate(LPCREATESTRUCT lpCreateStruct) 
@@ -126,14 +144,14 @@ int CChildFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 void CChildFrame::OnDestroy() 
 {
-	if ( !IsIconic() && !IsZoomed() ) {
-		CRect rect;
-		GetWindowRect(&rect);
-		AfxGetApp()->WriteProfileInt("ChildFrame", "x", rect.left);
-		AfxGetApp()->WriteProfileInt("ChildFrame", "y", rect.top);
-		AfxGetApp()->WriteProfileInt("ChildFrame", "cx", rect.Width());
-		AfxGetApp()->WriteProfileInt("ChildFrame", "cy", rect.Height());
-	}
+//	if ( !IsIconic() && !IsZoomed() ) {
+//		CRect rect;
+//		GetWindowRect(&rect);
+//		AfxGetApp()->WriteProfileInt("ChildFrame", "x", rect.left);
+//		AfxGetApp()->WriteProfileInt("ChildFrame", "y", rect.top);
+//		AfxGetApp()->WriteProfileInt("ChildFrame", "cx", rect.Width());
+//		AfxGetApp()->WriteProfileInt("ChildFrame", "cy", rect.Height());
+//	}
 	((CMainFrame *)AfxGetMainWnd())->RemoveChild(this);
 	CMDIChildWnd::OnDestroy();
 }

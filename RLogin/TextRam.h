@@ -221,13 +221,21 @@
 #define	RESET_OPTION	0x0200
 #define	RESET_CLS		0x0400
 
-#define	RC_DCS		0
-#define	RC_SOS		1
-#define	RC_CSI		2
-#define	RC_ST		3
-#define	RC_OSC		4
-#define	RC_PM		5
-#define	RC_APC		6
+#define	RC_DCS			0
+#define	RC_SOS			1
+#define	RC_CSI			2
+#define	RC_ST			3
+#define	RC_OSC			4
+#define	RC_PM			5
+#define	RC_APC			6
+
+#define	OSC52_READ		001
+#define	OSC52_WRITE		002
+
+#define	USFTWMAX		20
+#define	USFTHMAX		18
+#define	USFTLNSZ		((USFTHMAX + 5) / 6)
+#define	USFTCHSZ		(USFTWMAX * USFTLNSZ)
 
 #define issjis1(c)		(((unsigned char)(c) >= 0x81 && \
 						  (unsigned char)(c) <= 0x9F) || \
@@ -312,6 +320,13 @@ public:
 	int m_Hash[16];
 	int m_Quality;
 	BOOL m_Init;
+	int m_UserFontWidth;
+	int m_UserFontHeight;
+	CBitmap m_UserFontMap;
+	BYTE m_UserFontDef[96 / 8];
+	int m_FontWidth;
+	int m_FontHeight;
+	CBitmap m_FontMap;
 
 	void SetHash(int num);
 	void Init();
@@ -319,7 +334,11 @@ public:
 	void GetArray(CStringArrayExt &array);
 	CFontChacheNode *GetFont(int Width, int Height, int Style, int FontNum);
 	const CFontNode & operator = (CFontNode &data);
+	void SetUserFont(int code, int width, int height, LPBYTE map);
+	BOOL SetFontImage(int width, int height);
+
 	CFontNode();
+	~CFontNode();
 };
 
 class CFontTab : public COptObject
@@ -338,6 +357,10 @@ public:
 	const CFontTab & operator = (CFontTab &data);
 	CFontTab();
 };
+
+#define	PROCTYPE_ESC	0
+#define	PROCTYPE_CSI	1
+#define	PROCTYPE_DCS	2
 
 class CProcNode : public CObject
 {
@@ -442,6 +465,7 @@ public:	// Options
 	DWORD m_MetaKeys[256 / 32];
 	CProcTab m_ProcTab;
 	CBuffer m_FuncKey[FKEY_MAX];
+	int m_ClipFlag;
 
 	void Init();
 	void SetArray(CStringArrayExt &array);
@@ -500,6 +524,7 @@ public:
 	BOOL m_Exact;
 	CString m_StrPara;
 	CBuffer m_Macro[64];
+	DWORD m_UnitId;
 
 	int m_VtLevel;
 	int m_TermId;
@@ -592,7 +617,7 @@ public:
 	BOOL DecPos(int &x, int &y);
 	void EditWordPos(int *sps, int *eps);
 	void EditCopy(int sps, int eps, BOOL rectflag = FALSE, BOOL lineflag = FALSE);
-	void StrOut(CDC* pDC, LPCRECT pRect, struct DrawWork &prop, int len, char *str, int sln, int *spc, class CRLoginView *pView);
+	void StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop, int len, char *str, int sln, int *spc, class CRLoginView *pView);
 	void DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginView *pView);
 
 	CWnd *GetAciveView();
@@ -692,6 +717,7 @@ public:
 	int m_Stack[16];
 	void (CTextRam::*m_LocalProc[5][256])(int ch);
 	CArray<CTextRam::CSIEXTTAB, CTextRam::CSIEXTTAB &> m_CsiExt;
+	CArray<CTextRam::CSIEXTTAB, CTextRam::CSIEXTTAB &> m_DcsExt;
 
 	void fc_Init_Proc(int stage, const PROCTAB *tp, int b = 0);
 	ESCNAMEPROC *fc_InitProcName(CTextRam::ESCNAMEPROC *tab, int *max);
@@ -708,7 +734,11 @@ public:
 	LPCSTR CsiProcName(void (CTextRam::*proc)(int ch));
 	void SetCsiNameCombo(CComboBox *pCombo);
 
-	void EscCsiDefName(LPCSTR *esc, LPCSTR *csi);
+	void DcsNameProc(int code, LPCSTR name);
+	LPCSTR DcsProcName(void (CTextRam::*proc)(int ch));
+	void SetDcsNameCombo(CComboBox *pCombo);
+
+	void EscCsiDefName(LPCSTR *esc, LPCSTR *csi, LPCSTR *dcs);
 	void ParseColor(int cmd, int idx, LPCSTR para, int ch);
 
 	int m_Kan_Pos;
@@ -961,9 +991,12 @@ public:
 	void fc_DECUDK(int ch);
 	void fc_DECREGIS(int ch);
 	void fc_DECSIXEL(int ch);
+	void fc_DECDLD(int ch);
+	void fc_DECRSTS(int ch);
 	void fc_DECRQSS(int ch);
-	void fc_DECRPTUI(int ch);
+	void fc_DECRSPS(int ch);
 	void fc_DECDMAC(int ch);
+	void fc_DECSTUI(int ch);
 	void fc_XTRQCAP(int ch);
 	void fc_OSCEXE(int ch);
 	void fc_OSCNULL(int ch);

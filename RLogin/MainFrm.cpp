@@ -525,6 +525,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_WM_COPYDATA()
 	ON_WM_ENTERMENULOOP()
 	ON_WM_ACTIVATE()
+	ON_COMMAND(ID_VIEW_SCROLLBAR, &CMainFrame::OnViewScrollbar)
+	ON_UPDATE_COMMAND_UI(ID_VIEW_SCROLLBAR, &CMainFrame::OnUpdateViewScrollbar)
 END_MESSAGE_MAP()
 
 static UINT indicators[] =
@@ -653,15 +655,13 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 //	ExDwmEnableWindow(m_hWnd);
 
-	if (!m_wndToolBar.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT,
+	if ( !m_wndToolBar.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT,
 			WS_CHILD | WS_VISIBLE | CBRS_TOP | /*CBRS_GRIPPER | */CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC) ||
-		!m_wndToolBar.LoadToolBar(IDR_MAINFRAME))
-	{
+		!m_wndToolBar.LoadToolBar(IDR_MAINFRAME) ) {
 		TRACE0("Failed to create toolbar\n");
 		return -1;      // ì¬‚ÉŽ¸”s
 	}
 
-#if 1
 	CBitmap BitMap;
 	BitMap.LoadBitmap(IDB_BITMAP1);
 	m_ImageList[0].Create(16, 16, ILC_COLOR24 | ILC_MASK, 0, 10);
@@ -688,18 +688,12 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	//dwStyle |= TBSTYLE_DROPDOWN;
 	//m_wndToolBar.SetButtonStyle(m_wndToolBar.CommandToIndex(IDM_KANJI_EUC), dwStyle);
 
-#endif
-
-	if (!m_wndStatusBar.Create(this) ||
-		!m_wndStatusBar.SetIndicators(indicators,
-		  sizeof(indicators)/sizeof(UINT)))
-	{
+	if ( !m_wndStatusBar.Create(this) || !m_wndStatusBar.SetIndicators(indicators, sizeof(indicators)/sizeof(UINT)) ) {
 		TRACE0("Failed to create status bar\n");
 		return -1;      // ì¬‚ÉŽ¸”s
 	}
 
-	if (!m_wndTabBar.Create(this, WS_VISIBLE| WS_CHILD|CBRS_TOP|WS_EX_WINDOWEDGE, IDC_MDI_TAB_CTRL_BAR) )
-	{
+	if ( !m_wndTabBar.Create(this, WS_VISIBLE| WS_CHILD|CBRS_TOP|WS_EX_WINDOWEDGE, IDC_MDI_TAB_CTRL_BAR) ) {
 		TRACE("Failed to create tabbar\n");
 		return -1;      // fail to create
 	}
@@ -726,6 +720,8 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	if ( (m_SleepCount = AfxGetApp()->GetProfileInt("MainFrame", "WakeUpSleep", 0)) > 0 )
 		m_SleepTimer = SetTimer(TIMERID_SLEEPMODE, 5000, NULL);
+
+	m_ScrollBarFlag = AfxGetApp()->GetProfileInt("ChildFrame", "VScroll", TRUE);
 
 	return 0;
 #endif
@@ -1303,7 +1299,7 @@ void CMainFrame::OnDestroy()
 	AfxGetApp()->WriteProfileInt("MainFrame", "ToolBarStyle",	m_wndToolBar.GetStyle());
 	AfxGetApp()->WriteProfileInt("MainFrame", "StatusBarStyle", m_wndStatusBar.GetStyle());
 
-	if ( !IsIconic() ) {
+	if ( !IsIconic() && !IsZoomed() ) {
 		CRect rect;
 		GetWindowRect(&rect);
 		AfxGetApp()->WriteProfileInt("MainFrame", "x", rect.left);
@@ -1772,4 +1768,39 @@ void CMainFrame::OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized)
 
 	if ( nState == WA_INACTIVE )
 		m_wndTabBar.SetGhostWnd(FALSE);
+}
+
+void CMainFrame::OnViewScrollbar()
+{
+	CWinApp *pApp;
+
+	if ( (pApp = AfxGetApp()) == NULL )
+		return;
+	
+	m_ScrollBarFlag = (pApp->GetProfileInt("ChildFrame", "VScroll", TRUE) ? FALSE : TRUE);
+
+	POSITION pos = pApp->GetFirstDocTemplatePosition();
+	while ( pos != NULL ) {
+		CDocTemplate *pDocTemp = pApp->GetNextDocTemplate(pos);
+		POSITION dpos = pDocTemp->GetFirstDocPosition();
+		while ( dpos != NULL ) {
+			CRLoginDoc *pDoc = (CRLoginDoc *)pDocTemp->GetNextDoc(dpos);
+			POSITION vpos = pDoc->GetFirstViewPosition();
+			while ( vpos != NULL ) {
+				CRLoginView *pView = (CRLoginView *)pDoc->GetNextView(vpos);
+				if ( pView != NULL ) {
+					CChildFrame *pChild = pView->GetFrameWnd();
+					if ( pChild != NULL )
+						pChild->SetScrollBar(m_ScrollBarFlag);
+				}
+			}
+		}
+	}
+
+	pApp->WriteProfileInt("ChildFrame", "VScroll", m_ScrollBarFlag);
+}
+
+void CMainFrame::OnUpdateViewScrollbar(CCmdUI *pCmdUI)
+{
+	pCmdUI->SetCheck(m_ScrollBarFlag);
 }

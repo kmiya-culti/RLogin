@@ -239,6 +239,8 @@ BEGIN
     BEGIN
         MENUITEM "ツールバー(&T)",                   ID_VIEW_TOOLBAR
         MENUITEM "ステータスバー(&S)",                 ID_VIEW_STATUS_BAR
+        MENUITEM "スクロールバー(&V)",                 ID_VIEW_SCROLLBAR
+        MENUITEM SEPARATOR
         MENUITEM "Tekウィンドウ(&K)",                IDM_TEKDISP
         MENUITEM "ソケットステータス",                   IDM_SOCKETSTATUS
         MENUITEM SEPARATOR
@@ -423,7 +425,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.11.0 (2011/11/04)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.11.1 (2011/11/14)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2011 Culti",IDC_STATIC,47,15,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,148,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.0e Sep 6th, 2011",IDC_STATIC,47,29,176,8
@@ -653,7 +655,7 @@ STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "ターミナル"
 FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
 BEGIN
-    PUSHBUTTON      "ESC/CSI",IDC_ESCEDIT,187,16,40,14
+    PUSHBUTTON      "ESC/CSI/DCS",IDC_ESCEDIT,167,15,70,14
     CONTROL         "",IDC_ESCLIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,14,33,223,58
     CONTROL         "ボールド文字を有効にする",IDC_TERMCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,120,158,10
     CONTROL         "行末でのディレイ改行を無効にする",IDC_TERMCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,135,158,10
@@ -665,7 +667,7 @@ BEGIN
     CONTROL         "OSCシーケンスでのタイトル変更を禁止する",IDC_TERMCHECK7,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,245,158,10
     GROUPBOX        "エスケープシーケンス",IDC_STATIC,7,7,237,91
     GROUPBOX        "オプション",IDC_STATIC,7,104,237,93
-    LTEXT           "ESC/CSIシーケンスを個別に設定します",IDC_STATIC,26,19,150,8
+    LTEXT           "ESC/CSI/DCSシーケンスを個別に設定します",IDC_STATIC,17,19,144,8
     CTEXT           "kterm",IDC_STATIC,181,112,25,8
     CTEXT           "■",IDC_STATIC,191,121,8,8,SS_CENTERIMAGE
     CTEXT           "cons25",IDC_STATIC,208,112,25,8
@@ -859,23 +861,25 @@ STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "その他"
 FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
 BEGIN
-    CONTROL         "左クリックの範囲指定だけでクリップボードにコピーする",IDC_PROTOCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,20,208,10
-    CONTROL         "右ダブルクリックだけでクリップボードからペーストする",IDC_PROTOCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,37,208,10
+    CONTROL         "左クリックの範囲指定だけでクリップボードにコピーする",IDC_PROTOCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,19,208,10
+    CONTROL         "右ダブルクリックだけでクリップボードからペーストする",IDC_PROTOCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,33,208,10
     CONTROL         "http;//で始まる文字列をコピーすると自動でブラウザを起動する",IDC_PROTOCHECK2,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,54,208,10
-    CONTROL         "選択した文字列から連続したスペースをタブに変換する",IDC_PROTOCHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,71,208,10
-    EDITTEXT        IDC_EDIT3,123,85,114,14,ES_AUTOHSCROLL
-    COMBOBOX        IDC_COMBO1,123,104,40,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    EDITTEXT        IDC_EDIT1,170,104,67,14,ES_AUTOHSCROLL
-    CONTROL         "List1",IDC_KEYLIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,12,142,226,95
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,47,208,10
+    CONTROL         "選択した文字列から連続したスペースをタブに変換する",IDC_PROTOCHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,61,208,10
+    COMBOBOX        IDC_COMBO2,170,77,67,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_EDIT3,123,95,114,14,ES_AUTOHSCROLL
+    COMBOBOX        IDC_COMBO1,123,115,40,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_EDIT1,170,115,67,14,ES_AUTOHSCROLL
+    CONTROL         "List1",IDC_KEYLIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,12,151,226,86
     PUSHBUTTON      "Metaキー",IDC_KEYASNMETA,21,244,45,14
     PUSHBUTTON      "新規",IDC_KEYASNNEW,75,244,45,14
     PUSHBUTTON      "編集",IDC_KEYASNEDIT,129,244,45,14
     PUSHBUTTON      "削除",IDC_KEYASNDEL,183,244,45,14
-    GROUPBOX        "クリップボード",IDC_STATIC,7,7,237,118
-    GROUPBOX        "キーコード",IDC_STATIC,7,129,237,134
-    LTEXT           "ファイルをドロップした時の動作",IDC_STATIC,19,106,91,8
-    LTEXT           "英数字以外のワード文字列",IDC_STATIC,19,89,80,8
+    GROUPBOX        "クリップボード",IDC_STATIC,7,7,237,126
+    GROUPBOX        "キーコード",IDC_STATIC,7,138,237,125
+    LTEXT           "ファイルをドロップした時の動作",IDC_STATIC,19,117,91,8
+    LTEXT           "英数字以外のワード文字列",IDC_STATIC,19,98,80,8
+    LTEXT           "OSC 52 によるクリップボードの操作設定",IDC_STATIC,19,80,145,8
 END
 
 IDD_PROGDLG DIALOGEX 0, 0, 267, 128
@@ -1171,17 +1175,20 @@ BEGIN
     PUSHBUTTON      "TERMCAP",IDC_INFOCAP,43,162,64,14
 END
 
-IDD_ESCDLG DIALOGEX 0, 0, 251, 229
+IDD_ESCDLG DIALOGEX 0, 0, 251, 265
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "ESC/CSI"
+CAPTION "ESC/CSI/DCS"
 FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
 BEGIN
-    GROUPBOX        "ESCシーケンス",IDC_STATIC,7,7,114,196
-    CONTROL         "",IDC_ESCLIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,16,20,96,172
-    GROUPBOX        "CSIシーケンス",IDC_STATIC,130,7,114,196
-    CONTROL         "",IDC_CSILIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,139,19,96,172
-    DEFPUSHBUTTON   "OK",IDOK,55,207,55,15
-    PUSHBUTTON      "キャンセル",IDCANCEL,139,207,55,15
+    CONTROL         "",IDC_ESCLIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,16,20,96,111
+    CONTROL         "",IDC_DCSLIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,16,159,96,67
+    CONTROL         "",IDC_CSILIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,139,19,96,207
+    PUSHBUTTON      "初期化",IDC_RESET,29,243,55,15
+    DEFPUSHBUTTON   "OK",IDOK,97,243,55,15
+    PUSHBUTTON      "キャンセル",IDCANCEL,165,243,55,15
+    GROUPBOX        "ESCシーケンス",IDC_STATIC,7,7,114,133
+    GROUPBOX        "CSIシーケンス",IDC_STATIC,130,7,114,229
+    GROUPBOX        "DCSシーケンス",IDC_STATIC,7,146,114,90
 END
 
 IDD_ESCPARADLG DIALOGEX 0, 0, 184, 63
@@ -1277,8 +1284,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,11,0,0
- PRODUCTVERSION 2,11,0,0
+ FILEVERSION 2,11,1,0
+ PRODUCTVERSION 2,11,1,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1295,12 +1302,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.11.0.0"
+            VALUE "FileVersion", "2.11.1.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2008 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.11.0.0"
+            VALUE "ProductVersion", "2.11.1.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -1571,7 +1578,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 244
         TOPMARGIN, 7
-        BOTTOMMARGIN, 222
+        BOTTOMMARGIN, 258
     END
 
     IDD_ESCPARADLG, DIALOG
@@ -2165,6 +2172,14 @@ END
 
 IDD_KEYLISTPAGE DLGINIT
 BEGIN
+    IDC_COMBO2, 0x403, 13, 0
+0xc793, 0xdd82, 0x918f, 0xab82, 0xb396, 0xf88c, "\000" 
+    IDC_COMBO2, 0x403, 13, 0
+0xc793, 0xdd82, 0x9e8d, 0xdd82, 0x968b, 0xc289, "\000" 
+    IDC_COMBO2, 0x403, 13, 0
+0x918f, 0xab82, 0x9e8d, 0xdd82, 0x968b, 0xc289, "\000" 
+    IDC_COMBO2, 0x403, 13, 0
+0xc793, 0xdd82, 0x918f, 0xab82, 0x968b, 0xc289, "\000" 
     IDC_COMBO1, 0x403, 4, 0
 0x6f4e, 0x006e, 
     IDC_COMBO1, 0x403, 6, 0
@@ -2474,6 +2489,7 @@ BEGIN
     IDM_SEARCH_REG          "正規表現で文字列を検索します\n文字検索"
     IDM_SEARCH_NEXT         "次を検索します\n次を検索"
     IDM_SERV_PROTO          "プロトコルハンドラに登録\nハンドラに登録"
+    ID_VIEW_SCROLLBAR       "スクロールバーの表示/非表示\nスクロールバーの表示切り替え"
 END
 
 #endif    // 日本語 (日本) resources

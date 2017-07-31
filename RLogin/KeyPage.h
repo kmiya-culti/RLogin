@@ -34,6 +34,7 @@ public:
 	CString m_DropCmd[8];
 	CString m_CmdWork;
 	CString m_WordStr;
+	int m_ClipFlag;
 
 // オーバーライド
 	// ClassWizard は仮想関数のオーバーライドを生成します。
@@ -65,6 +66,7 @@ public:
 	afx_msg void OnUpdateChangeDropMode();
 	afx_msg void OnCbnSelchangeDropMode();
 	afx_msg void OnEnChangeEdit3();
+	afx_msg void OnCbnSelchangeCombo2();
 };
 
 //{{AFX_INSERT_LOCATION}}

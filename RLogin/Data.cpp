@@ -2493,11 +2493,11 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
+#define	CMDSKEYTABMAX	60
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
 } CmdsKeyTab[] = {
-#define	CMDSKEYTABMAX	58
 	{	ID_APP_ABOUT,			L"$ABOUT"			},
 	{	ID_SEND_BREAK,			L"$BREAK"			},
 	{	IDM_BROADCAST,			L"$BROADCAST"		},
@@ -2544,7 +2544,9 @@ static const struct _CmdsKeyTab {
 	{	ID_CHARSCRIPT_END,		L"$SCRIPT_END"		},
 	{	IDM_SEARCH_NEXT,		L"$SEARCH_NEXT"		},
 	{	IDM_SEARCH_REG,			L"$SEARCH_REG"		},
+	{	ID_VIEW_SCROLLBAR,		L"$VIEW_SCROLLBAR"	},
 	{	IDM_SFTP,				L"$VIEW_SFTP"		},
+	{	IDM_SOCKETSTATUS,		L"$VIEW_SOCKET"		},
 	{	ID_VIEW_STATUS_BAR,		L"$VIEW_STATUSBAR"	},
 	{	IDM_TEKDISP,			L"$VIEW_TEKDISP"	},
 	{	ID_VIEW_TOOLBAR,		L"$VIEW_TOOLBAR"	},

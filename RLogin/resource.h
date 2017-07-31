@@ -2,6 +2,8 @@
 // Microsoft Visual C++ generated include file.
 // Used by RLogin.rc
 //
+#define ID_RESET                        3
+#define IDC_RESET                       3
 #define IDR_MAINFRAME                   100
 #define IDR_RLOGINTYPE                  101
 #define IDR_SFTPMENU                    102
@@ -324,6 +326,7 @@
 #define IDC_LOADCAP                     1180
 #define IDC_CSILIST                     1180
 #define IDC_ENTRY                       1181
+#define IDC_DCSLIST                     1181
 #define IDC_LOADINFO                    1182
 #define IDC_TERMCAP                     1182
 #define IDC_INFOCAP                     1183
@@ -503,22 +506,21 @@
 #define ID_CAPLIST_TERMINFO             5034
 #define ID_EDIT_COPY_ALL                5035
 #define ID_EDIT_PASTE_ALL               5037
-#define ID_5038                         5038
 #define IDM_GRAPDISP                    5039
 #define IDM_SEARCH_REG                  5040
-#define ID_5041                         5041
 #define ID_SEARCH_NEXT                  5042
 #define IDM_SEARCH_NEXT                 5043
 #define ID_SERVERLIST_5044              5044
 #define ID_SERV_PROTO                   5045
 #define IDM_SERV_PROTO                  5046
+#define ID_VIEW_SCROLLBAR               5048
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        164
-#define _APS_NEXT_COMMAND_VALUE         5047
+#define _APS_NEXT_COMMAND_VALUE         5049
 #define _APS_NEXT_CONTROL_VALUE         3057
 #define _APS_NEXT_SYMED_VALUE           249
 #endif

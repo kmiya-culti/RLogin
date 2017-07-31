@@ -30,7 +30,9 @@ public:
 public:
 	int m_Width, m_Height;
 	int m_Cols, m_Lines;
+	BOOL m_VScrollFlag;
 
+	void SetScrollBar(BOOL flag);
 	virtual ~CChildFrame();
 #ifdef _DEBUG
 	virtual void AssertValid() const;

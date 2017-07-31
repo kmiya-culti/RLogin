@@ -139,6 +139,7 @@ public:
 	UINT_PTR m_MidiTimer;
 	CList<class CMidiQue *, class CMidiQue *> m_MidiQue;
 	volatile int m_InfoThreadCount;
+	BOOL m_ScrollBarFlag;
 
 	void SetTransPar(COLORREF rgb, int value, DWORD flag);
 	void SetIconStyle();
@@ -213,10 +214,13 @@ protected:
 	afx_msg void OnUpdateIndicatorSock(CCmdUI* pCmdUI);
 	afx_msg void OnFileAllLoad();
 	DECLARE_MESSAGE_MAP()
+
 public:
 	afx_msg BOOL OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCopyDataStruct);
 	afx_msg void OnEnterMenuLoop(BOOL bIsTrackPopupMenu);
 	afx_msg void OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized);
+	afx_msg void OnViewScrollbar();
+	afx_msg void OnUpdateViewScrollbar(CCmdUI *pCmdUI);
 };
 
 

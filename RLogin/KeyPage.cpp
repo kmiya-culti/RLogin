@@ -39,6 +39,7 @@ CKeyPage::CKeyPage() : CPropertyPage(CKeyPage::IDD)
 	m_DropMode = 0;
 	m_CmdWork = _T("");
 	m_WordStr = _T("");
+	m_ClipFlag = 0;
 }
 
 CKeyPage::~CKeyPage()
@@ -56,6 +57,7 @@ void CKeyPage::DoDataExchange(CDataExchange* pDX)
 	DDX_CBIndex(pDX, IDC_COMBO1, m_DropMode);
 	DDX_Text(pDX, IDC_EDIT1, m_CmdWork);
 	DDX_Text(pDX, IDC_EDIT3, m_WordStr);
+	DDX_CBIndex(pDX, IDC_COMBO2, m_ClipFlag);
 }
 
 BEGIN_MESSAGE_MAP(CKeyPage, CPropertyPage)
@@ -77,6 +79,7 @@ BEGIN_MESSAGE_MAP(CKeyPage, CPropertyPage)
 	ON_CBN_SELCHANGE(IDC_COMBO1, &CKeyPage::OnCbnSelchangeDropMode)
 	ON_EN_CHANGE(IDC_EDIT3, &CKeyPage::OnEnChangeEdit3)
 	ON_BN_CLICKED(IDC_KEYASNMETA, &CKeyPage::OnKeyAsnMeta)
+	ON_CBN_SELCHANGE(IDC_COMBO2, &CKeyPage::OnCbnSelchangeCombo2)
 END_MESSAGE_MAP()
 
 void CKeyPage::InitList()
@@ -123,6 +126,7 @@ BOOL CKeyPage::OnInitDialog()
 	m_CmdWork  = m_DropCmd[m_DropMode];
 
 	m_WordStr = m_pSheet->m_pTextRam->m_WordStr;
+	m_ClipFlag = m_pSheet->m_pTextRam->m_ClipFlag;
 
 	UpdateData(FALSE);
 
@@ -148,6 +152,7 @@ BOOL CKeyPage::OnApply()
 		m_pSheet->m_pTextRam->m_DropFileCmd[n] = m_DropCmd[n];
 
 	m_pSheet->m_pTextRam->m_WordStr = m_WordStr;
+	m_pSheet->m_pTextRam->m_ClipFlag = m_ClipFlag;
 
 	m_List.SaveColumn("CKeyPage");
 	return TRUE;
@@ -169,6 +174,7 @@ void CKeyPage::OnReset()
 	m_CmdWork  = m_DropCmd[m_DropMode];
 
 	m_WordStr = m_pSheet->m_pTextRam->m_WordStr;
+	m_ClipFlag = m_pSheet->m_pTextRam->m_ClipFlag;
 
 	UpdateData(FALSE);
 	SetModified(FALSE);
@@ -285,6 +291,12 @@ void CKeyPage::OnKeyAsnMeta()
 	if ( dlg.DoModal() != IDOK )
 		return;
 
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+}
+
+void CKeyPage::OnCbnSelchangeCombo2()
+{
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 }

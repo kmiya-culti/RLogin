@@ -544,6 +544,7 @@ int CRLoginView::SetClipboad(CBuffer *bp)
 	CRLoginDoc *pDoc = GetDocument();
 
 	pDoc->m_TextRam.m_IConv.IConvBuf(pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode], "UCS-2LE", bp, &buf);
+	buf.PutWord(0);
 	for ( pData = (WCHAR *)(LPCWSTR)buf ; *pData != L'\0' ; pData++ )
 		*pData = CTextRam::IconvToMsUnicode(*pData);
 
