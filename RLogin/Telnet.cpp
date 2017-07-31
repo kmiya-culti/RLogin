@@ -46,83 +46,83 @@ CMint::~CMint()
 }
 void CMint::madd(CMint &rm)
 {
-	BIGNUM b;
+	BIGNUM *b;
 
-	BN_init(&b);
-	BN_add(&b, bn, rm.bn);
-	BN_copy(bn, &b);
-	BN_free(&b);
+	b = BN_new();
+	BN_add(b, bn, rm.bn);
+	BN_copy(bn, b);
+	BN_free(b);
 }
 void CMint::mult(CMint &rm)
 {
-	BIGNUM b;
+	BIGNUM *b;
 	BN_CTX *c;
 
 	c = BN_CTX_new();
-	BN_init(&b);
-    BN_mul(&b, bn, rm.bn, c);
-	BN_copy(bn, &b);
-    BN_free(&b);
+	b = BN_new();
+    BN_mul(b, bn, rm.bn, c);
+	BN_copy(bn, b);
+    BN_free(b);
     BN_CTX_free(c);
 }
 void CMint::mdiv(CMint &rm)
 {
-	BIGNUM q, r;
+	BIGNUM *q, *r;
 	BN_CTX *c;
 
 	c = BN_CTX_new();
-	BN_init(&r);
-	BN_init(&q);
-	BN_div(&q, &r, bn, rm.bn, c);
-	BN_copy(bn, &q);
-	BN_free(&q);
-	BN_free(&r);
+	r = BN_new();
+	q = BN_new();
+	BN_div(q, r, bn, rm.bn, c);
+	BN_copy(bn, q);
+	BN_free(q);
+	BN_free(r);
 	BN_CTX_free(c);
 }
 void CMint::msup(CMint &rm)
 {
-	BIGNUM q, r;
+	BIGNUM *q, *r;
 	BN_CTX *c;
 
 	c = BN_CTX_new();
-	BN_init(&r);
-	BN_init(&q);
-	BN_div(&q, &r, bn, rm.bn, c);
-	BN_copy(bn, &r);
-	BN_free(&q);
-	BN_free(&r);
+	r = BN_new();
+	q = BN_new();
+	BN_div(q, r, bn, rm.bn, c);
+	BN_copy(bn, r);
+	BN_free(q);
+	BN_free(r);
 	BN_CTX_free(c);
 }
 void CMint::pow(CMint &bm, CMint &em, CMint &mm)
 {
-	BIGNUM b;
+	BIGNUM *b;
 	BN_CTX *c;
 
 	c = BN_CTX_new();
-	BN_init(&b);
-	BN_mod_exp(&b, bm.bn, em.bn, mm.bn, c);
- 	BN_copy(bn, &b);
-	BN_free(&b);
+	b = BN_new();
+	BN_mod_exp(b, bm.bn, em.bn, mm.bn, c);
+ 	BN_copy(bn, b);
+	BN_free(b);
 	BN_CTX_free(c);
 }
 void CMint::sdiv(short d, short *ro)
 {
 	CMint dm(d);
-	BIGNUM q, r;
+	BIGNUM *q, *r;
 	BN_CTX *c;
 
 	c = BN_CTX_new();
-	BN_init(&q);
-	BN_init(&r);
-	BN_div(&q, &r, bn, dm.bn, c);
- 	BN_copy(bn, &q);
+	q = BN_new();
+	r = BN_new();
+	BN_div(q, r, bn, dm.bn, c);
+ 	BN_copy(bn, q);
 
-	char *s = BN_bn2hex(&r);
+	char *s = BN_bn2hex(r);
 	*ro = (short)strtol(s, NULL, 16);
 	OPENSSL_free(s);
 
-	BN_free(&r);
-	BN_free(&q);
+	BN_free(r);
+	BN_free(q);
 	BN_CTX_free(c);
 }
 void CMint::mtox(CStringA &tmp)

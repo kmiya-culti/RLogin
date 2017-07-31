@@ -316,7 +316,7 @@ void CBuffer::PutBIGNUM2(BIGNUM *val)
 		Put32Bit(0);
 		return;
 	}
-	if (val->neg)
+	if ( BN_is_negative(val) )	// val->neg )
 		throw _T("CBuffer PutBIGNUM2 neg");
 
 	bytes = BN_num_bytes(val) + 1; /* extra padding byte */
@@ -445,26 +445,36 @@ int CBuffer::GetBuf(CBuffer *buf)
 	Consume(len);
 	return TRUE;
 }
-int CBuffer::GetBIGNUM(BIGNUM *val)
+BIGNUM *CBuffer::GetBIGNUM(BIGNUM *val)
 {
 	int bytes;
 	int bits = Get16Bit();
-	if ( (bytes = (bits + 7) / 8) > (8 * 1024) || bytes < 0 )
+
+	if ( (bytes = (bits + 7) / 8) > (8 * 1024) || bytes < 0 || (m_Len - m_Ofs) < bytes )
 		throw _T("CBuffer GetBIGNUM size");
-	if ( (m_Len - m_Ofs) < bytes )
-		throw _T("CBuffer GetBIGNUM len");
-    BN_bin2bn(m_Data + m_Ofs, bytes, val);
+
+	if ( val == NULL && (val = BN_new()) == NULL )
+		throw _T("CBuffer GetBIGNUM BN_new");
+
+	BN_bin2bn(m_Data + m_Ofs, bytes, val);
 	Consume(bytes);
-	return TRUE;
+
+	return val;
 }
-int CBuffer::GetBIGNUM2(BIGNUM *val)
+BIGNUM *CBuffer::GetBIGNUM2(BIGNUM *val)
 {
 	int bytes = Get32Bit();
+
 	if ( bytes < 0 || bytes > (32 * 1024) || (m_Len - m_Ofs) < bytes )
 		throw _T("CBuffer GetBIGNUM2 size");
+
+	if ( val == NULL && (val = BN_new()) == NULL )
+		throw _T("CBuffer GetBIGNUM2 BN_new");
+
     BN_bin2bn(m_Data + m_Ofs, bytes, val);
 	Consume(bytes);
-	return TRUE;
+
+	return val;
 }
 int CBuffer::GetBIGNUM_SecSh(BIGNUM *val)
 {
@@ -917,13 +927,15 @@ void CBuffer::md5(LPCTSTR str)
 	unsigned int dlen;
 	const EVP_MD *evp_md;
 	u_char digest[EVP_MAX_MD_SIZE];
-	EVP_MD_CTX md;
+	EVP_MD_CTX *md_ctx;
 	CStringA tmp(str);
 
 	evp_md = EVP_md5();
-	EVP_DigestInit(&md, evp_md);
-	EVP_DigestUpdate(&md, (const void *)(LPCSTR)tmp, tmp.GetLength());
-	EVP_DigestFinal(&md, digest, &dlen);
+	md_ctx = EVP_MD_CTX_new();
+	EVP_DigestInit(md_ctx, evp_md);
+	EVP_DigestUpdate(md_ctx, (const void *)(LPCSTR)tmp, tmp.GetLength());
+	EVP_DigestFinal(md_ctx, digest, &dlen);
+	EVP_MD_CTX_free(md_ctx);
 
 	Base16Encode(digest, dlen);
 }
@@ -5222,7 +5234,7 @@ static LPCTSTR InitAlgo[12]= {
 	_T("ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,") \
 	_T("ssh-ed25519,rsa-sha2-512,rsa-sha2-256,ssh-rsa,ssh-dss"),
 
-	_T("publickey,hostbased,password,keyboard-interactive"),
+	_T("publickey,hostbased,gssapi-with-mic,password,keyboard-interactive"),
 };
 
 static const ttymode_node def_ttymode[] = {

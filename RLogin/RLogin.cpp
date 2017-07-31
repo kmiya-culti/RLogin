@@ -29,6 +29,11 @@
 #include <openssl/ssl.h>
 #include <openssl/engine.h>
 #include <openssl/conf.h>
+
+#if	OPENSSL_VERSION_NUMBER >= 0x10100000L
+#include <internal/cryptlib.h>
+#endif
+
 #include "afxcmn.h"
 
 #ifdef	USE_SAPI
@@ -671,7 +676,9 @@ void CRLoginApp::SSL_Init()
 		return;
 	bLoadAlgo = TRUE;
 
+#if	OPENSSL_VERSION_NUMBER < 0x10100000L
 	SSLeay_add_all_algorithms();
+#endif
 	SSLeay_add_ssl_algorithms();
 }
 
@@ -1051,6 +1058,9 @@ int CRLoginApp::ExitInstance()
 	EVP_cleanup();
 	ENGINE_cleanup();
 	CRYPTO_cleanup_all_ex_data();
+#if	OPENSSL_VERSION_NUMBER >= 0x10100000L
+	crypto_cleanup_all_ex_data_int();
+#endif
 	ERR_remove_state(0);
 	ERR_free_strings();
 
@@ -1338,6 +1348,9 @@ BOOL CRLoginApp::OnInUseCheck(COPYDATASTRUCT *pCopyData)
 	CCommandLineInfoEx cmdInfo;
 	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
 
+	if ( pMain->IsIconic() || pMain->m_IconShow )
+		return TRUE;	// continue
+
 	cmdInfo.SetString((LPCTSTR)(pCopyData->lpData));
 
 	if ( cmdInfo.m_ScreenX != (-1) && cmdInfo.m_ScreenY != (-1) )
@@ -1346,7 +1359,7 @@ BOOL CRLoginApp::OnInUseCheck(COPYDATASTRUCT *pCopyData)
 	OpenProcsCmd(&cmdInfo);
 	pMain->SetForegroundWindow();
 
-	return FALSE;	// not contine
+	return FALSE;	// not continue
 }
 BOOL CRLoginApp::InUseCheck()
 {

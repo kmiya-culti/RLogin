@@ -57,8 +57,8 @@ void CProxyDlg::OnProtoType(UINT nID)
 		int		nId;
 		BOOL	mode[6];
 	} ItemTab[] = {			/*	none	http	http(b)	socks4	socks5	ssl		*/
-		{ IDC_SERVERNAME,	{	FALSE,	TRUE,	TRUE,	TRUE,	TRUE,	TRUE	} },
-		{ IDC_SOCKNO,		{	FALSE,	TRUE,	TRUE,	TRUE,	TRUE,	TRUE	} },
+		{ IDC_SERVERNAME,	{	FALSE,	TRUE,	TRUE,	TRUE,	TRUE,	FALSE	} },
+		{ IDC_SOCKNO,		{	FALSE,	TRUE,	TRUE,	TRUE,	TRUE,	FALSE	} },
 		{ IDC_USERNAME,		{	FALSE,	TRUE,	TRUE,	TRUE,	TRUE,	FALSE	} },
 		{ IDC_PASSWORD,		{	FALSE,	TRUE,	TRUE,	FALSE,	TRUE,	FALSE	} },
 		{ 0 }

@@ -27,6 +27,13 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
+#define	SSH2_GSS_OIDTYPE	0x06
+
+static const struct {
+	BYTE	len;
+	BYTE	*data;
+} gssapi_kerberos_mech = { 9, (BYTE *)"\x2a\x86\x48\x86\xf7\x12\x01\x02\x02" };	// Kerberos : iso(1) member-body(2) United States(840) mit(113554) infosys(1) gssapi(2) krb5(2)
+
 //////////////////////////////////////////////////////////////////////
 // Cssh 構築/消滅
 //////////////////////////////////////////////////////////////////////
@@ -110,11 +117,16 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 		m_KeepAliveSendCount = m_KeepAliveReplyCount = 0;
 		m_KeepAliveRecvGlobalCount = m_KeepAliveRecvChannelCount = 0;
 
+		m_SSPI_phContext = NULL;
+		ZeroMemory(&m_SSPI_hCredential, sizeof(m_SSPI_hCredential));
+		ZeroMemory(&m_SSPI_hNewContext, sizeof(m_SSPI_hNewContext));
+		ZeroMemory(&m_SSPI_tsExpiry, sizeof(m_SSPI_tsExpiry));
+
 		//CStringA tmp;
 		//CCipher::BenchMark(tmp);
 		//CExtSocket::OnReciveCallBack((void *)(LPCSTR)tmp, tmp.GetLength(), 0);
 
-		//CString tmp;
+		//CStringA tmp;
 		//CMacomp::BenchMark(tmp);
 		//CExtSocket::OnReciveCallBack((void *)(LPCSTR)tmp, tmp.GetLength(), 0);
 
@@ -188,6 +200,9 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 			} else if ( str.CompareNoCase(_T("keyboard-interactive")) == 0 ) {
 				m_AuthReqTab[i] = AST_KEYB_TRY;
 				i = AST_KEYB_TRY;
+			} else if ( str.CompareNoCase(_T("gssapi-with-mic")) == 0 ) {
+				m_AuthReqTab[i] = AST_GSSAPI_TRY;
+				i = AST_GSSAPI_TRY;
 			}
 		}
 
@@ -404,7 +419,8 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				}
 				if ( m_Incom.GetSize() < 4 )
 					goto ENDLOOP;
-				m_InPackLen = m_Incom.PTR32BIT(m_Incom.GetPtr());
+				m_DecCip.SetIvCounter(m_RecvPackSeq);
+				m_InPackLen = m_DecCip.GeHeadData(m_Incom.GetPtr());
 				if ( m_InPackLen < 5 || m_InPackLen > (256 * 1024) ) {
 					m_Incom.Clear();
 					SendDisconnect2(1, "Packet Len Error");
@@ -440,7 +456,8 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				}
 				if ( m_Incom.GetSize() < 4 )
 					goto ENDLOOP;
-				m_InPackLen = m_Incom.PTR32BIT(m_Incom.GetPtr());
+				m_DecCip.SetIvCounter(m_RecvPackSeq);
+				m_InPackLen = m_DecCip.GeHeadData(m_Incom.GetPtr());
 				if ( m_InPackLen < 5 || m_InPackLen > (256 * 1024) ) {
 					m_Incom.Clear();
 					SendDisconnect2(1, "Packet Len Error");
@@ -482,8 +499,8 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				}
 				if ( m_Incom.GetSize() < 4 )
 					goto ENDLOOP;
-				m_DecCip.PolyIvGen(m_RecvPackSeq);
-				m_InPackLen = m_DecCip.PolyGetLen(m_Incom.GetPtr());
+				m_DecCip.SetIvCounter(m_RecvPackSeq);
+				m_InPackLen = m_DecCip.GeHeadData(m_Incom.GetPtr());
 				if ( m_InPackLen < 5 || m_InPackLen > (256 * 1024) ) {
 					m_Incom.Clear();
 					SendDisconnect2(1, "Packet Len Error");
@@ -782,23 +799,25 @@ int Cssh::SMsgPublicKey(CBuffer *bp)
 	m_SupportAuth = bp->Get32Bit();
 
 	EVP_MD *evp_md = (EVP_MD *)EVP_md5();
-	EVP_MD_CTX md;
+	EVP_MD_CTX *md_ctx;
     BYTE nbuf[2048];
 	BYTE obuf[EVP_MAX_MD_SIZE];
 	int len;
 	BIGNUM *key;
 
-    EVP_DigestInit(&md, evp_md);
+	md_ctx = EVP_MD_CTX_new();
+	EVP_DigestInit(md_ctx, evp_md);
 
 	len = BN_num_bytes(host_key->n);
     BN_bn2bin(host_key->n, nbuf);
-    EVP_DigestUpdate(&md, nbuf, len);
+    EVP_DigestUpdate(md_ctx, nbuf, len);
 
 	len = BN_num_bytes(server_key->n);
     BN_bn2bin(server_key->n, nbuf);
-    EVP_DigestUpdate(&md, nbuf, len);
-    EVP_DigestUpdate(&md, m_Cookie, 8);
-    EVP_DigestFinal(&md, obuf, NULL);
+    EVP_DigestUpdate(md_ctx, nbuf, len);
+    EVP_DigestUpdate(md_ctx, m_Cookie, 8);
+    EVP_DigestFinal(md_ctx, obuf, NULL);
+	EVP_MD_CTX_free(md_ctx);
 	memcpy(m_SessionId, obuf, 16);
 
 	rand_buf(m_SessionKey, sizeof(m_SessionKey));
@@ -1183,7 +1202,7 @@ int Cssh::ChannelOpen()
 
 	return cp->m_LocalID;
 }
-void Cssh::ChannelClose(int id)
+void Cssh::ChannelClose(int id, BOOL bClose)
 {
 	CChannel *cp, *tp;
 
@@ -1214,7 +1233,7 @@ void Cssh::ChannelClose(int id)
 			GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, FD_CLOSE);
 	}
 
-	if ( m_pChanNext == NULL )
+	if ( bClose && m_pChanNext == NULL )
 		GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, FD_CLOSE);
 }
 void Cssh::ChannelCheck(int n)
@@ -1224,7 +1243,7 @@ void Cssh::ChannelCheck(int n)
 
 	if ( !CHAN_OK(n) ) {
 		if ( (cp->m_Status & CHAN_LISTEN) && (cp->m_Eof & CEOF_DEAD) ) {
-			ChannelClose(n);
+			ChannelClose(n, TRUE);
 			LogIt(_T("Listen Closed #%d %s:%d -> %s:%d"), n, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
 		}
 		return;
@@ -1283,7 +1302,7 @@ void Cssh::ChannelCheck(int n)
 		} else
 			LogIt(_T("Closed #%d %s:%d -> %s:%d"), n, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
 		m_OpenChanCount--;
-		ChannelClose(n);
+		ChannelClose(n, TRUE);
 	}
 }
 void Cssh::ChannelAccept(int id, SOCKET hand)
@@ -1566,8 +1585,10 @@ void Cssh::PortForward()
 	}
 
 	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHPFORY) ) {
-		if ( a == 0 )
+		if ( a == 0 ) {
 			AfxMessageBox(IDE_PORTFWORDERROR);
+			GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, FD_CLOSE);
+		}
 
 		if ( m_bPfdConnect == 0 ) {
 			m_bConnect = TRUE;
@@ -1809,7 +1830,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 	}
 	m_AuthMeta = str;
 
-	for ( atry = 0 ; atry < 6 ; atry++ ) {
+	for ( atry = 0 ; atry < 7 ; atry++ ) {
 		if ( m_AuthStat == AST_DONE )
 			m_AuthStat = m_AuthReqTab[AST_START];
 
@@ -1922,8 +1943,10 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 				m_AuthStat = m_AuthReqTab[AST_PASS_TRY];
 			}
 			m_AuthMode = AUTH_MODE_PASSWORD;
+
 			if ( strstr(str, "password") == NULL )
 				continue;
+
 			// ２度目のパスワードなら
 			if ( m_AuthStat != AST_PASS_TRY ) {
 				dlg.m_HostAddr = m_pDocument->m_ServerEntry.m_HostName;
@@ -1937,6 +1960,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 
 				m_pDocument->m_ServerEntry.m_PassName = dlg.m_PassName;
 			}
+
 			tmp.PutStr("password");
 			tmp.Put8Bit(0);
 			tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_PassName));
@@ -1953,8 +1977,10 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 				m_AuthStat = m_AuthReqTab[AST_KEYB_TRY];
 			}
 			m_AuthMode = AUTH_MODE_KEYBOARD;
+
 			if ( strstr(str, "keyboard-interactive") == NULL )
 				continue;
+
 			tmp.PutStr("keyboard-interactive");
 			tmp.PutStr("");		// LANG
 			tmp.PutStr("");		// DEV
@@ -1964,6 +1990,35 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 			m_AuthLog += _T("keyboard-interactive(");
 			m_AuthLog += m_pDocument->m_ServerEntry.m_UserName;
 			m_AuthLog += _T(")");
+
+		} else if ( m_AuthStat == AST_GSSAPI_TRY ) {
+			m_IdKeyPos = 0;
+			m_AuthStat = m_AuthReqTab[AST_GSSAPI_TRY];
+			m_AuthMode = AUTH_MODE_GSSAPI;
+
+			if ( strstr(str, "gssapi-with-mic") == NULL )
+				continue;
+			
+			if ( (m_SSH2Status & SSH2_STAT_AUTHGSSAPI) != 0 )
+				continue;
+
+			if ( AcquireCredentialsHandle(NULL, _T("Kerberos"), SECPKG_CRED_OUTBOUND, NULL, NULL, NULL, NULL, &m_SSPI_hCredential, &m_SSPI_tsExpiry) != SEC_E_OK )
+				continue;
+
+			m_SSPI_phContext = NULL;
+			m_SSPI_TargetName.Format(_T("host/%s"), m_HostName);
+			m_SSH2Status |= SSH2_STAT_AUTHGSSAPI;
+
+			tmp.PutStr("gssapi-with-mic");
+			tmp.Put32Bit(1);
+			tmp.Put32Bit(gssapi_kerberos_mech.len + 2);
+			tmp.Put8Bit(SSH2_GSS_OIDTYPE);
+			tmp.Put8Bit(gssapi_kerberos_mech.len);
+			tmp.Apend(gssapi_kerberos_mech.data, gssapi_kerberos_mech.len);
+
+			if ( !m_AuthLog.IsEmpty() )
+				m_AuthLog += _T(", ");
+			m_AuthLog += _T("gssapi-with-mic");
 		}
 
 		tmp.Consume(skip);
@@ -2319,7 +2374,7 @@ void Cssh::SendPacket2(CBuffer *bp)
 		tmp.Apend(padimage, ((pad - n) >= 64 ? 64 : (pad - n)));
 
 	if ( m_EncCip.IsPOLY() )
-		m_EncCip.PolyIvGen(m_SendPackSeq);
+		m_EncCip.SetIvCounter(m_SendPackSeq);
 
 	if ( m_EncMac.IsEtm() ) {
 		enc.Apend(tmp.GetPtr(), 4);
@@ -2547,14 +2602,10 @@ int Cssh::SSH2MsgKexDhGexGroup(CBuffer *bp)
 
 	if ( (m_SaveDh = DH_new()) == NULL )
 		return TRUE;
-	if ( (m_SaveDh->p = BN_new()) == NULL )
-		return TRUE;
-	if ( (m_SaveDh->g = BN_new()) == NULL )
-		return TRUE;
 
-	if ( !bp->GetBIGNUM2(m_SaveDh->p) )
+	if ( (m_SaveDh->p = bp->GetBIGNUM2(m_SaveDh->p)) == NULL )
 		return TRUE;
-	if ( !bp->GetBIGNUM2(m_SaveDh->g) )
+	if ( (m_SaveDh->g = bp->GetBIGNUM2(m_SaveDh->g)) == NULL )
 		return TRUE;
 
 	int grp_bits = BN_num_bits(m_SaveDh->p);
@@ -2955,6 +3006,151 @@ int Cssh::SSH2MsgUserAuthInfoRequest(CBuffer *bp)
 	SendPacket2(&tmp);
 	return TRUE;
 }
+int Cssh::SSH2MsgUserAuthGssapiProcess(CBuffer *bp, int type)
+{
+	CBuffer tmp, sig;
+	CString str;
+	CStringA msg, lang;
+	SecBuffer recv_token = { 0, SECBUFFER_TOKEN, NULL };
+	SecBuffer send_token = { 0, SECBUFFER_TOKEN, NULL };
+    SecBufferDesc input_desc  ={ SECBUFFER_VERSION, 1, &recv_token };
+    SecBufferDesc output_desc ={ SECBUFFER_VERSION, 1, &send_token };
+    unsigned long flags = ISC_REQ_MUTUAL_AUTH | ISC_REQ_REPLAY_DETECT | ISC_REQ_CONFIDENTIALITY | ISC_REQ_ALLOCATE_MEMORY | ISC_REQ_DELEGATE;
+    unsigned long ret_flags = 0;
+	SecBuffer sec_token[2];
+	SecPkgContext_Sizes cont_size;
+	long status;
+
+	if ( (m_SSH2Status & SSH2_STAT_AUTHGSSAPI) == 0 )
+		return FALSE;
+
+	switch(type) {
+	case SSH2_MSG_USERAUTH_GSSAPI_RESPONSE:
+		bp->GetBuf(&tmp);
+		if ( tmp.GetSize() < (gssapi_kerberos_mech.len + 2) || *(tmp.GetPos(0)) != SSH2_GSS_OIDTYPE || *(tmp.GetPos(1)) != gssapi_kerberos_mech.len )
+			goto RETRYAUTH;
+		if ( memcmp(tmp.GetPos(2), gssapi_kerberos_mech.data, gssapi_kerberos_mech.len) != 0 )
+			goto RETRYAUTH;
+		tmp.Clear();
+		break;
+
+	case SSH2_MSG_USERAUTH_GSSAPI_TOKEN:
+		bp->GetBuf(&tmp);
+		break;
+
+	case SSH2_MSG_USERAUTH_GSSAPI_ERRTOK:
+		bp->GetBuf(&tmp);
+		str.Format(_T("SSH2 Gssapi Recive ErrToken(%dbyte)"), tmp.GetSize());
+		AfxMessageBox(str);
+		goto RETRYAUTH;
+
+	case SSH2_MSG_USERAUTH_GSSAPI_ERROR:
+		bp->GetStr(msg);
+		bp->GetStr(lang);
+		str.Format(_T("SSH2 Gssapi Recive Error\n%s"), MbsToTstr(msg));
+		AfxMessageBox(str);
+		goto RETRYAUTH;
+	}
+
+	if ( tmp.GetSize() > 0 ) {
+		recv_token.cbBuffer = tmp.GetSize();
+		recv_token.pvBuffer = tmp.GetPtr();
+	}
+
+	status = InitializeSecurityContext(&m_SSPI_hCredential, m_SSPI_phContext, (LPTSTR)(LPCTSTR)m_SSPI_TargetName,
+			flags, 0, SECURITY_NATIVE_DREP, &input_desc, 0, &m_SSPI_hNewContext, &output_desc, &ret_flags, &m_SSPI_tsExpiry);
+
+	m_SSPI_phContext = &m_SSPI_hNewContext;
+
+	if ( status == SEC_I_COMPLETE_AND_CONTINUE || status == SEC_I_COMPLETE_NEEDED ) {
+		if ( status == SEC_I_COMPLETE_AND_CONTINUE )
+			status = SEC_I_CONTINUE_NEEDED;
+		else if ( status == SEC_I_COMPLETE_NEEDED )
+			status = SEC_E_OK;
+
+		if ( send_token.cbBuffer > 0 && send_token.pvBuffer != NULL && send_token.BufferType == SECBUFFER_TOKEN ) {
+			tmp.Clear();
+			tmp.Put8Bit((status == SEC_E_OK || status == SEC_I_CONTINUE_NEEDED) ? SSH2_MSG_USERAUTH_GSSAPI_TOKEN : SSH2_MSG_USERAUTH_GSSAPI_ERRTOK);
+			tmp.PutBuf((LPBYTE)send_token.pvBuffer, send_token.cbBuffer);
+			SendPacket2(&tmp);
+
+			FreeContextBuffer(send_token.pvBuffer);
+			send_token.cbBuffer = 0;
+			send_token.pvBuffer = NULL;
+		}
+
+		if ( CompleteAuthToken(&m_SSPI_hCredential, &output_desc) != SEC_E_OK )
+			goto RETRYAUTH;
+	}
+
+	if ( send_token.cbBuffer > 0 && send_token.pvBuffer != NULL && send_token.BufferType == SECBUFFER_TOKEN ) {
+		tmp.Clear();
+		tmp.Put8Bit((status == SEC_E_OK || status == SEC_I_CONTINUE_NEEDED) ? SSH2_MSG_USERAUTH_GSSAPI_TOKEN : SSH2_MSG_USERAUTH_GSSAPI_ERRTOK);
+		tmp.PutBuf((LPBYTE)send_token.pvBuffer, send_token.cbBuffer);
+		SendPacket2(&tmp);
+
+		FreeContextBuffer(send_token.pvBuffer);
+	}
+
+	if ( status == SEC_I_CONTINUE_NEEDED )
+		return TRUE;
+	else if ( status != SEC_E_OK )
+		goto RETRYAUTH;
+
+	tmp.Clear();
+	tmp.PutBuf(m_SessionId, m_SessionIdLen);
+	tmp.Put8Bit(SSH2_MSG_USERAUTH_REQUEST);
+	tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_UserName));
+	tmp.PutStr("ssh-connection");
+	tmp.PutStr("gssapi-with-mic");
+
+	ZeroMemory(&cont_size, sizeof(cont_size));
+	if ( QueryContextAttributes(m_SSPI_phContext, SECPKG_ATTR_SIZES, &cont_size) != SEC_E_OK )
+		goto RETRYAUTH;
+
+	input_desc.cBuffers     = 2;
+    input_desc.pBuffers     = sec_token;
+    input_desc.ulVersion    = SECBUFFER_VERSION;
+
+    sec_token[0].BufferType = SECBUFFER_DATA;
+	sec_token[0].cbBuffer   = tmp.GetSize();
+    sec_token[0].pvBuffer   = tmp.GetPtr();
+
+    sec_token[1].BufferType = SECBUFFER_TOKEN;
+	sec_token[1].cbBuffer   = cont_size.cbMaxSignature;
+    sec_token[1].pvBuffer   = sig.PutSpc(cont_size.cbMaxSignature);
+
+	if ( MakeSignature(m_SSPI_phContext, 0, &input_desc, 0) != SEC_E_OK )
+		goto RETRYAUTH;
+
+	tmp.Clear();
+	tmp.Put8Bit(SSH2_MSG_USERAUTH_GSSAPI_MIC);
+	tmp.PutBuf((LPBYTE)sec_token[1].pvBuffer, sec_token[1].cbBuffer);
+	SendPacket2(&tmp);
+
+	if ( m_SSPI_phContext != NULL ) {
+		DeleteSecurityContext(m_SSPI_phContext);
+		m_SSPI_phContext = NULL;
+	}
+
+	FreeCredentialsHandle(&m_SSPI_hCredential);
+	m_SSH2Status &= ~SSH2_STAT_AUTHGSSAPI;
+
+	return TRUE;
+
+RETRYAUTH:
+	if ( m_SSPI_phContext != NULL ) {
+		DeleteSecurityContext(m_SSPI_phContext);
+		m_SSPI_phContext = NULL;
+	}
+
+	FreeCredentialsHandle(&m_SSPI_hCredential);
+	m_SSH2Status &= ~SSH2_STAT_AUTHGSSAPI;
+
+	msg = m_AuthMeta;
+	return SendMsgUserAuthRequest(msg);
+}
+
 int Cssh::SSH2MsgChannelOpen(CBuffer *bp)
 {
 	int n, i, id;
@@ -3578,6 +3774,7 @@ void Cssh::RecivePacket2(CBuffer *bp)
 
 //	case SSH2_MSG_USERAUTH_PK_OK:				// 60	publickey
 //	case SSH2_MSG_USERAUTH_PASSWD_CHANGEREQ:	// 60	password
+//	case SSH2_MSG_USERAUTH_GSSAPI_RESPONSE:		// 60	gssapi
 	case SSH2_MSG_USERAUTH_INFO_REQUEST:		// 60	keyboard-interactive
 		if ( (m_SSH2Status & SSH2_STAT_HAVESESS) == 0 )
 			goto DISCONNECT;
@@ -3594,9 +3791,20 @@ void Cssh::RecivePacket2(CBuffer *bp)
 			if ( !SSH2MsgUserAuthInfoRequest(bp) )
 				goto DISCONNECT;
 			break;
+		case AUTH_MODE_GSSAPI:
+			if ( !SSH2MsgUserAuthGssapiProcess(bp, type) )
+				goto DISCONNECT;
+			break;
 		default:
 			goto DISCONNECT;
 		}
+		break;
+
+	case SSH2_MSG_USERAUTH_GSSAPI_TOKEN:
+	case SSH2_MSG_USERAUTH_GSSAPI_ERROR:
+	case SSH2_MSG_USERAUTH_GSSAPI_ERRTOK:
+		if ( !SSH2MsgUserAuthGssapiProcess(bp, type) )
+			goto DISCONNECT;
 		break;
 
 	case SSH2_MSG_CHANNEL_OPEN:
@@ -3648,7 +3856,8 @@ void Cssh::RecivePacket2(CBuffer *bp)
 	case SSH2_MSG_DISCONNECT:
 		bp->Get32Bit();
 		bp->GetStr(str);
-		AfxMessageBox(m_pDocument->LocalStr(str));
+		str.Format("SSH2 Recive Disconnect Message\n%s", m_pDocument->LocalStr(str));
+		AfxMessageBox(MbsToTstr(str));
 		break;
 	case SSH2_MSG_IGNORE:
 	case SSH2_MSG_DEBUG:

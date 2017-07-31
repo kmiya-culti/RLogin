@@ -273,6 +273,15 @@
 #include "openssl/bn.h"
 #include "openssl/crypto.h"
 
+#if	OPENSSL_VERSION_NUMBER >= 0x10100000L
+	#define	des_key_schedule				DES_key_schedule
+	#define	des_key_sched(k,s)				DES_key_sched(k,&s)
+	#define	des_random_key					DES_random_key
+	#define	des_ecb_encrypt(a,b,s,f)		DES_ecb_encrypt(a,b,&s,f)
+	#define	des_set_odd_parity				DES_set_odd_parity
+	#define	des_cbc_encrypt(a,b,m,s,d,f)	DES_cbc_encrypt(a,b,m,&s,d,f)
+#endif
+
 typedef unsigned char DesData[8], IdeaData[16];
 
 class CMint : public CObject

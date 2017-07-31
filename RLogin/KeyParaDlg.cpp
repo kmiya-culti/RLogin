@@ -127,6 +127,7 @@ void CKeyParaDlg::OnBnClickedMenubtn()
 	if ( (p = CKeyNodeTab::GetCmdsStr(id)) == NULL )
 		return;
 
+	UpdateData(TRUE);
 	m_Maps = p;
 	UpdateData(FALSE);
 }

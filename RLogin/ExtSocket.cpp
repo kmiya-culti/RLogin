@@ -770,7 +770,7 @@ int CExtSocket::Send(const void* lpBuf, int nBufLen, int nFlags)
 		return 0;
 
 	if ( m_SendHead == NULL ) {
-		n = (m_SSL_mode ? SSL_write(m_SSL_pSock, lpBuf, nBufLen):
+		n = (m_SSL_mode && m_SSL_pSock != NULL ? SSL_write(m_SSL_pSock, lpBuf, nBufLen):
 						  ::send(m_Fd, (char *)lpBuf, nBufLen, nFlags));
 		if ( n > 0 ) {
 			lpBuf = (LPBYTE)lpBuf + n;
@@ -1270,14 +1270,15 @@ BOOL CExtSocket::ProxyFunc()
 				break;
 			case 0x03:
 				{
-					HMAC_CTX c;
+					HMAC_CTX *pHmac;
 					u_char hmac[EVP_MAX_MD_SIZE];
 
 					mbs = m_ProxyPass;
-					HMAC_Init(&c, (LPCSTR)mbs, mbs.GetLength(), EVP_md5());
-					HMAC_Update(&c, m_ProxyBuff.GetPtr(), m_ProxyBuff.GetSize());
-					HMAC_Final(&c, hmac, NULL);
-					HMAC_cleanup(&c);
+					pHmac = HMAC_CTX_new();
+					HMAC_Init(pHmac, (LPCSTR)mbs, mbs.GetLength(), EVP_md5());
+					HMAC_Update(pHmac, m_ProxyBuff.GetPtr(), m_ProxyBuff.GetSize());
+					HMAC_Final(pHmac, hmac, NULL);
+					HMAC_CTX_free(pHmac);
 
 					buf.Clear();
 					buf.Put8Bit(0x01);
@@ -1409,7 +1410,7 @@ void CExtSocket::OnSend()
 	int n;
 
 	while ( m_SendHead != NULL ) {
-		n = (m_SSL_mode ? SSL_write(m_SSL_pSock, m_SendHead->GetPtr(), m_SendHead->GetSize()):
+		n = (m_SSL_mode && m_SSL_pSock != NULL ? SSL_write(m_SSL_pSock, m_SendHead->GetPtr(), m_SendHead->GetSize()):
 						  ::send(m_Fd, (char *)m_SendHead->GetPtr(), m_SendHead->GetSize(), m_SendHead->m_Type));
 
 		//TRACE("OnSend %s %d\r\n", m_SSL_mode ? "SSL" : "", n);
@@ -1445,14 +1446,14 @@ void CExtSocket::OnRecive(int nFlags)
 		sp->m_Type = nFlags;
 		sp->AddAlloc(RECVBUFSIZ);
 
-		n = (m_SSL_mode ? SSL_read(m_SSL_pSock, (void *)sp->GetLast(), RECVBUFSIZ):
+		n = (m_SSL_mode && m_SSL_pSock != NULL ? SSL_read(m_SSL_pSock, (void *)sp->GetLast(), RECVBUFSIZ):
 						  ::recv(m_Fd, (char *)sp->GetLast(), RECVBUFSIZ, nFlags));
 
 //		TRACE("OnRecive (%d) %s %d\r\n", i, m_SSL_mode ? "SSL" : "", n);
 
 		if ( n > 0 )
 			sp->AddSize(n);
-		else if ( n < 0 && m_SSL_mode && SSL_get_error(m_SSL_pSock, n) != SSL_ERROR_WANT_READ ) {
+		else if ( n < 0 && m_SSL_mode && m_SSL_pSock != NULL && SSL_get_error(m_SSL_pSock, n) != SSL_ERROR_WANT_READ ) {
 			FreeBuffer(sp);
 			OnError(WSAENOTCONN);
 			return;
@@ -1944,12 +1945,19 @@ int CExtSocket::SSLConnect()
 	GetApp()->SSL_Init();
 
 	switch(m_SSL_mode) {
+#if	OPENSSL_VERSION_NUMBER < 0x10100000L
 	case 1:
 		method = SSLv23_client_method();
 		break;
 	case 2:
 		method = SSLv3_client_method();
 		break;
+#else
+	case 1:
+	case 2:
+		method = SSLv23_client_method();
+		break;
+#endif
 	case 3:
 		method = TLSv1_client_method();
 		break;
@@ -1961,6 +1969,8 @@ int CExtSocket::SSLConnect()
 		method = TLSv1_2_client_method();
 		break;
 #endif
+	default:
+		goto ERRENDOF;
 	}
 
 	if ( (m_SSL_pCtx = SSL_CTX_new((SSL_METHOD *)method)) == NULL )
@@ -1979,20 +1989,37 @@ int CExtSocket::SSLConnect()
 	result = SSL_get_verify_result(m_SSL_pSock);
 
 	if ( cert == NULL || result != 0 ) {
-		if ( cert != NULL && cert->name != NULL && cert->cert_info != NULL && cert->cert_info->key != NULL && cert->cert_info->key->pkey != NULL ) {
-			key.SetEvpPkey(cert->cert_info->key->pkey);
+		// X509_NAME *X509_get_subject_name(const X509 *x);
+		// X509_NAME *X509_get_issuer_name(const X509 *x);
+		// char * X509_NAME_oneline(X509_NAME *a,char *buf,int size);
+		//
+		// EVP_PKEY *X509_get_pubkey(X509 *x);
+		// EVP_PKEY *X509_get0_pubkey(const X509 *x);
+
+		X509_NAME *name;
+		char name_buf[1024];
+		EVP_PKEY *pkey = NULL;
+
+		if ( (name = X509_get_subject_name(cert)) == NULL || X509_NAME_oneline(name, name_buf, 1024) == NULL )
+			strcpy(name_buf, "unknown");
+
+		pkey = X509_get_pubkey(cert);
+
+		if ( cert != NULL && pkey != NULL ) {
+			key.SetEvpPkey(pkey);
 			key.WritePublicKey(dig);
-			tmp = AfxGetApp()->GetProfileString(_T("Certificate"), MbsToTstr(cert->name), _T(""));
+			tmp = AfxGetApp()->GetProfileString(_T("Certificate"), MbsToTstr(name_buf), _T(""));
 			if ( !tmp.IsEmpty() && tmp.Compare(dig) == 0 )
 				rf = TRUE;
 		}
+
 		if ( rf == FALSE ) {
 			errstr = X509_verify_cert_error_string(result);
-			tmp.Format(CStringLoad(IDS_CERTTRASTREQ), (cert != NULL && cert->name != NULL ? MbsToTstr(cert->name) : _T("unknown")),  MbsToTstr(errstr));
+			tmp.Format(CStringLoad(IDS_CERTTRASTREQ), MbsToTstr(name_buf),  MbsToTstr(errstr));
 			if ( AfxMessageBox(tmp, MB_ICONQUESTION | MB_YESNO) != IDYES )
 				goto ERRENDOF;
-			if ( cert != NULL && cert->name != NULL && !dig.IsEmpty() )
-				AfxGetApp()->WriteProfileString(_T("Certificate"), MbsToTstr(cert->name), dig);
+			if ( cert != NULL && pkey != NULL && !dig.IsEmpty() )
+				AfxGetApp()->WriteProfileString(_T("Certificate"), MbsToTstr(name_buf), dig);
 		}
 	}
 

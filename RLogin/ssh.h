@@ -13,6 +13,9 @@
 #include "Data.h"
 #include "SFtp.h"
 #include "ProgDlg.h"
+
+#include "zlib.h"
+
 #include "openssl/des.h"
 #include "openssl/bn.h"
 #include "openssl/evp.h"
@@ -20,7 +23,15 @@
 #include "openssl/hmac.h"
 #include "openssl/md5.h"
 #include "openssl/pem.h"
-#include "zlib.h"
+
+#if	OPENSSL_VERSION_NUMBER >= 0x10100000L
+#include "crypto/dsa/dsa_locl.h"
+#include "crypto/rsa/rsa_locl.h"
+#include "crypto/ec/ec_lcl.h"
+#include "crypto/dh/dh_locl.h"
+#include "crypto/evp/evp_locl.h"
+#include "internal/evp_int.h"
+#endif
 
 #define SSH_CIPHER_NONE         0       // none
 #define SSH_CIPHER_DES          2       // des
@@ -127,7 +138,6 @@
 #define	EVP_CTRL_POLY_IV_GEN	0x30
 #define	EVP_CTRL_POLY_SET_TAG	0x31
 #define	EVP_CTRL_POLY_GET_TAG	0x32
-#define	EVP_CTRL_POLY_GET_LEN	0x33
 
 class CCipher: public CObject
 {
@@ -135,12 +145,13 @@ public:
 	int m_Index;
 	LPBYTE m_IvBuf;
 	LPBYTE m_KeyBuf;
-	EVP_CIPHER_CTX m_Evp;
+	EVP_CIPHER_CTX *m_pEvp;
+	int m_Mode;
 
 	int Init(LPCTSTR name, int mode, LPBYTE key = NULL, int len = (-1), LPBYTE iv = NULL);
 	void Close();
-	int PolyIvGen(int seq);
-	int PolyGetLen(LPBYTE inbuf);
+	int SetIvCounter(DWORD seq);
+	int GeHeadData(LPBYTE inbuf);
 	int Cipher(LPBYTE inbuf, int len, CBuffer *out);
 	int GetIndex(LPCTSTR name);
 	int GetKeyLen(LPCTSTR name = NULL);
@@ -163,7 +174,7 @@ class CMacomp: public CObject
 public:
 	int m_Index;
 	const EVP_MD *m_Md;
-	HMAC_CTX m_Ctx;
+	HMAC_CTX *m_pHmac;
 	int m_KeyLen;
 	LPBYTE m_KeyBuf;
 	int m_BlockSize;
@@ -607,6 +618,7 @@ public:
 #define	AUTH_MODE_PASSWORD	2
 #define	AUTH_MODE_KEYBOARD	3
 #define	AUTH_MODE_HOSTBASED	4
+#define	AUTH_MODE_GSSAPI	5
 
 #define	PROP_KEX_ALGS		0
 #define	PROP_HOST_KEY_ALGS	1
@@ -628,6 +640,7 @@ enum EAuthStat {
 	AST_HOST_TRY,
 	AST_PASS_TRY,
 	AST_KEYB_TRY,
+	AST_GSSAPI_TRY,
 	AST_DONE
 };
 
@@ -681,7 +694,7 @@ private:
 	CIdKey m_HostKey;
 	CIdKey *m_pIdKey;
 	int m_IdKeyPos;
-	int m_AuthReqTab[8];
+	int m_AuthReqTab[10];
 
 	int m_ServerFlag;
 	int m_SupportCipher;
@@ -699,15 +712,16 @@ private:
 
 	int m_SSH2Status;
 
-#define	SSH2_STAT_HAVEPROP		0001
-#define	SSH2_STAT_HAVEKEYS		0002
-#define	SSH2_STAT_HAVESESS		0004
-#define	SSH2_STAT_HAVELOGIN		0010
-#define	SSH2_STAT_HAVESTDIO		0020
-#define	SSH2_STAT_HAVESHELL		0040
-#define	SSH2_STAT_HAVEPFWD		0100
-#define	SSH2_STAT_HAVEAGENT		0200
-#define	SSH2_STAT_SENTKEXINIT	0400
+#define	SSH2_STAT_HAVEPROP		00001
+#define	SSH2_STAT_HAVEKEYS		00002
+#define	SSH2_STAT_HAVESESS		00004
+#define	SSH2_STAT_HAVELOGIN		00010
+#define	SSH2_STAT_HAVESTDIO		00020
+#define	SSH2_STAT_HAVESHELL		00040
+#define	SSH2_STAT_HAVEPFWD		00100
+#define	SSH2_STAT_HAVEAGENT		00200
+#define	SSH2_STAT_SENTKEXINIT	00400
+#define	SSH2_STAT_AUTHGSSAPI	01000
 
 	DWORD m_SendPackSeq;
 	DWORD m_RecvPackSeq;
@@ -752,11 +766,17 @@ private:
 	int m_KeepAliveRecvGlobalCount;
 	int m_KeepAliveRecvChannelCount;
 
+	CredHandle m_SSPI_hCredential;
+	CtxtHandle *m_SSPI_phContext;
+	CString m_SSPI_TargetName;
+	CtxtHandle m_SSPI_hNewContext;
+	TimeStamp m_SSPI_tsExpiry;
+
 	void SendTextMsg(LPCSTR str, int len);
 	void PortForward();
 	int MatchList(LPCTSTR client, LPCTSTR server, CString &str);
 	int ChannelOpen();
-	void ChannelClose(int id);
+	void ChannelClose(int id, BOOL bClose = FALSE);
 	LPCTSTR GetSigAlgs();
 	BOOL IsServerVersion(LPCTSTR pattan);
 
@@ -792,6 +812,7 @@ private:
 	int SSH2MsgUserAuthPkOk(CBuffer *bp);
 	int SSH2MsgUserAuthPasswdChangeReq(CBuffer *bp);
 	int SSH2MsgUserAuthInfoRequest(CBuffer *bp);
+	int SSH2MsgUserAuthGssapiProcess(CBuffer *bp, int type);
 
 	int SSH2MsgChannelOpen(CBuffer *bp);
 	int SSH2MsgChannelOpenReply(CBuffer *bp, int type);
@@ -826,6 +847,13 @@ public:
 //////////////////////////////////////////////////////////////////////
 // OpenSSH C lib
 //////////////////////////////////////////////////////////////////////
+
+#if	OPENSSL_VERSION_NUMBER < 0x10100000L
+extern EVP_MD_CTX *EVP_MD_CTX_new(void);
+extern void EVP_MD_CTX_free(EVP_MD_CTX *pCtx);
+extern HMAC_CTX *HMAC_CTX_new(void);
+extern void HMAC_CTX_free(HMAC_CTX *pHmac);
+#endif
 
 extern const EVP_CIPHER *evp_aes_128_ctr(void);
 extern const EVP_CIPHER *evp_camellia_128_ctr(void);

@@ -71,8 +71,8 @@ public:
 	LONGLONG Get64Bit();
 	int GetStr(CStringA &str);
 	int GetBuf(CBuffer *buf);
-	int GetBIGNUM(BIGNUM *val);
-	int GetBIGNUM2(BIGNUM *val);
+	BIGNUM *GetBIGNUM(BIGNUM *val);
+	BIGNUM *GetBIGNUM2(BIGNUM *val);
 	int GetBIGNUM_SecSh(BIGNUM *val);
 	int GetEcPoint(const EC_GROUP *curve, EC_POINT *point);
 	int GetDword();

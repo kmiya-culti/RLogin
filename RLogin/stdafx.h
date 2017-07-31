@@ -108,8 +108,15 @@
 #include "ws2tcpip.h"
 #include <afx.h>
 #include <afxdlgs.h>
+
+#define	SECURITY_WIN32
+#include <Security.h>
+
+#pragma comment(lib,"winmm")
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "Dnsapi.lib")
+#pragma comment(lib, "secur32.lib")
+#pragma comment(lib, "crypt32.lib")
 
 #ifdef	USE_DIRECTWRITE
   #include <d2d1.h>
