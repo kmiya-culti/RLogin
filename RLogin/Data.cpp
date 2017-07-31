@@ -24,6 +24,31 @@ static char THIS_FILE[]=__FILE__;
 #endif
 
 //////////////////////////////////////////////////////////////////////
+// lib
+
+int	BinaryFind(void *ptr, void *tab, int size, int max, int (* func)(const void *, const void *), int *base)
+{
+	int n, c;
+	int b = 0;
+	int m = max - 1;
+
+	while ( b <= m ) {
+		n = (b + m) / 2;
+		if ( (c = (*func)(ptr, (BYTE *)tab + size * n)) == 0 ) {
+			if ( base != NULL )
+				*base = n;
+			return TRUE;
+		} else if ( c > 0 )
+			b = n + 1;
+		else
+			m = n - 1;
+	}
+	if ( base != NULL )
+		*base = b;
+	return FALSE;
+}
+
+//////////////////////////////////////////////////////////////////////
 // CBuffer
 
 CBuffer::CBuffer(int size)
@@ -2076,41 +2101,27 @@ const CKeyCmdsTab & CKeyCmdsTab::operator = (CKeyCmdsTab &data)
 
 	return *this;
 }
+static int KeyCmdsComp(const void *src, const void *dis)
+{
+	return (*((int *)src) - ((CKeyCmds *)dis)->m_Id);
+}
 int CKeyCmdsTab::Add(CKeyCmds &cmds)
 {
-	int c;
 	int n;
-	int b = 0;
-	int m = GetSize() - 1;
 
-	while ( b <= m ) {
-		n = (b + m) / 2;
-		if ( (c = m_Data[n].m_Id - cmds.m_Id) == 0 )
-			return n;
-		else if ( c > 0 )
-			b = n + 1;
-		else
-			m = n - 1;
-	}
-	m_Data.InsertAt(b, cmds);
-	return b;
+	if ( BinaryFind(&(cmds.m_Id), m_Data.GetData(), sizeof(CKeyCmds), m_Data.GetSize(), KeyCmdsComp, &n) )
+		return n;
+
+	m_Data.InsertAt(n, cmds);
+	return n;
 }
 int CKeyCmdsTab::Find(int id)
 {
-	int c;
 	int n;
-	int b = 0;
-	int m = GetSize() - 1;
 
-	while ( b <= m ) {
-		n = (b + m) / 2;
-		if ( (c = m_Data[n].m_Id - id) == 0 )
-			return n;
-		else if ( c > 0 )
-			b = n + 1;
-		else
-			m = n - 1;
-	}
+	if ( BinaryFind(&id, m_Data.GetData(), sizeof(CKeyCmds), m_Data.GetSize(), KeyCmdsComp, &n) )
+		return n;
+
 	return (-1);
 }
 void CKeyCmdsTab::ResetMenuAll(CMenu *pMenu)
@@ -2261,25 +2272,24 @@ void CKeyNodeTab::Init()
 	for ( n = 0 ; InitKeyTab[n].maps != NULL ; n++ )
 		Add(InitKeyTab[n].code, InitKeyTab[n].mask, InitKeyTab[n].maps);
 }
-BOOL CKeyNodeTab::Find(int code, int mask, int *base)
+static int KeyNodeComp(const void *src, const void *dis)
 {
 	int c;
-	int n;
-	int b = 0;
-	int m = (int)m_Node.GetSize() - 1;
 
-	while ( b <= m ) {
-		n = (b + m) / 2;
-		if ( (c = m_Node[n].m_Code - code) == 0 && (c = m_Node[n].m_Mask - mask) == 0 ) {
-			*base = n;
-			return TRUE;
-		} else if ( c < 0 )
-			b = n + 1;
-		else
-			m = n - 1;
-	}
-	*base = b;
-	return FALSE;
+	if ( (c = (((CKeyNode *)src)->m_Code - ((CKeyNode *)dis)->m_Code)) == 0 )
+		  c = (((CKeyNode *)src)->m_Mask - ((CKeyNode *)dis)->m_Mask);
+
+	return c;
+}
+BOOL CKeyNodeTab::Find(int code, int mask, int *base)
+{
+	int n;
+	CKeyNode tmp;
+
+	tmp.m_Code = code;
+	tmp.m_Mask = mask;
+
+	return BinaryFind(&tmp, m_Node.GetData(), sizeof(CKeyNode), m_Node.GetSize(), KeyNodeComp, base);
 }
 int CKeyNodeTab::Add(CKeyNode &node)
 {
@@ -2358,10 +2368,9 @@ BOOL CKeyNodeTab::FindMaps(int code, int mask, CBuffer *pBuf)
 
 	return FindKeys(code, mask, pBuf, n, MASK_VT52 | MASK_CKM | MASK_APPL | MASK_SHIFT);
 }
-BOOL CKeyNodeTab::FindCapInfo(LPCSTR name, CBuffer *pBuf)
-{
-	int n, b, m, c;
-	static const struct {
+
+#define	CAPINFOKEYMAX	60
+static const struct _CapInfoKeyTab {
 		LPCSTR name;
 		int	code;
 		int mask;
@@ -2427,23 +2436,21 @@ BOOL CKeyNodeTab::FindCapInfo(LPCSTR name, CBuffer *pBuf)
 		{	"kr",		VK_RIGHT,	MASK_CKM,	},
 		{	"ku",		VK_UP,		MASK_CKM,	},
 	};
-#define	CAPINFOKEYMAX	60
 
-	b = 0;
-	m = CAPINFOKEYMAX - 1;
-	while ( b <= m ) {
-		n = (b + m) / 2;
-		if ( (c = strcmp(CapInfoKeyTab[n].name, name)) == 0 ) {
-			if ( !Find(CapInfoKeyTab[n].code, CapInfoKeyTab[n].mask, &b) )
-				return FALSE;
-			*pBuf = m_Node[b].m_Maps;
-			return TRUE;
-		} else if ( c < 0 )
-			b = n + 1;
-		else
-			m = n - 1;
+static int CapKeyCmp(const void *src, const void *dis)
+{
+	return strcmp((const char *)src, ((struct _CapInfoKeyTab *)dis)->name);
+}
+BOOL CKeyNodeTab::FindCapInfo(LPCSTR name, CBuffer *pBuf)
+{
+	int n, b;
+
+	if ( BinaryFind((void *)name, (void *)CapInfoKeyTab, sizeof(struct _CapInfoKeyTab), CAPINFOKEYMAX, CapKeyCmp, &n) ) {
+		if ( !Find(CapInfoKeyTab[n].code, CapInfoKeyTab[n].mask, &b) )
+			return FALSE;
+		*pBuf = m_Node[b].m_Maps;
+		return TRUE;
 	}
-
 	return FALSE;
 }
 void CKeyNodeTab::SetArray(CStringArrayExt &array)
@@ -2589,25 +2596,20 @@ void CKeyNodeTab::CmdsInit()
 
 	m_CmdsInit = TRUE;
 }
+static int CmdsKeyCmp(const void *src, const void *dis)
+{
+	return wcscmp((const wchar_t *)src, ((struct _CmdsKeyTab *)dis)->name);
+}
 int CKeyNodeTab::GetCmdsKey(LPCWSTR str)
 {
+	int n;
+
 	if ( str[0] != L'$' )
 		return (-1);
 
-	int c;
-	int n;
-	int b = 0;
-	int m = CMDSKEYTABMAX - 1;
+	if ( BinaryFind((void *)str, (void *)CmdsKeyTab, sizeof(struct _CmdsKeyTab), CMDSKEYTABMAX, CmdsKeyCmp, &n) )
+		return CmdsKeyTab[n].code;
 
-	while ( b <= m ) {
-		n = (b + m) / 2;
-		if ( (c = wcscmp(str, CmdsKeyTab[n].name)) == 0 )
-			return CmdsKeyTab[n].code;
-		else if ( c > 0 )
-			b = n + 1;
-		else
-			m = n - 1;
-	}
 	return (-1);
 }
 void CKeyNodeTab::SetComboList(CComboBox *pCombo)
@@ -2644,6 +2646,143 @@ void CKeyNodeTab::BugFix(int fix)
 		if ( !Find(InitKeyTab[i].code, InitKeyTab[i].mask, &n) )
 			Add(InitKeyTab[i].code, InitKeyTab[i].mask, InitKeyTab[i].maps);
 	}
+}
+int CKeyNodeTab::GetDecKeyToCode(int code)
+{
+	static	BYTE	DecKeyCode[] = {
+		0,					// 0	
+		VK_KANJI,			// 1	半角/全角
+		'1',				// 2	1
+		'2',				// 3	2
+		'3',				// 4	3
+		'4',				// 5	4
+		'5',				// 6	5
+		'6',				// 7	6
+		'7',				// 8	7
+		'8',				// 9	8
+		'9',				// 10	9
+		'0',				// 11	0
+		VK_OEM_MINUS,		// 12	-
+		VK_OEM_7,			// 13	^
+		VK_OEM_5,			// 14	|
+		VK_BACK,			// 15	BS
+		VK_TAB,				// 16	TAB
+		'Q',				// 17	Q
+		'W',				// 18	W
+		'E',				// 19	E
+		'R',				// 20	R
+		'T',				// 21	T
+		'Y',				// 22	Y
+		'U',				// 23	U
+		'I',				// 24	I
+		'O',				// 25	O
+		'P',				// 26	P
+		VK_OEM_3,			// 27	@
+		VK_OEM_4,			// 28	[
+		0,					// 29	
+		0,					// 30	CAPSLOCK
+		'A',				// 31	A
+		'S',				// 32	S
+		'D',				// 33	D
+		'F',				// 34	F
+		'G',				// 35	G
+		'H',				// 36	H
+		'J',				// 37	J
+		'K',				// 38	K
+		'L',				// 39	L
+		VK_OEM_PLUS,		// 40	+
+		VK_OEM_1,			// 41	*
+		VK_OEM_6,			// 42	]
+		VK_RETURN,			// 43	ENTER
+		0,					// 44	SHIFT-L
+		0,					// 45	
+		'Z',				// 46	Z
+		'X',				// 47	X
+		'C',				// 48	C
+		'V',				// 49	V
+		'B',				// 50	B
+		'N',				// 51	N
+		'M',				// 52	M
+		VK_OEM_COMMA,		// 53	,
+		VK_OEM_PERIOD,		// 54	.
+		VK_OEM_2,			// 55	/
+		VK_OEM_102,			// 56	_
+		0,					// 57	SHIFT-R
+		0,					// 58	CTRL-L
+		0,					// 59	
+		0,					// 60	ALT-L
+		VK_SPACE,			// 61	SPC
+		0,					// 62	ALT-R
+		0,					// 63	
+		0,					// 64	CTRL-R
+		VK_NONCONVERT,		// 65	無変換
+		VK_CONVERT,			// 66	変換
+		0,					// 67	カタカナ
+		0,					// 68	
+		0,					// 69	
+		0,					// 70	
+		0,					// 71	
+		0,					// 72	
+		0,					// 73	
+		0,					// 74	
+		VK_INSERT,			// 75	INS
+		VK_DELETE,			// 76	DEL
+		0,					// 77	
+		0,					// 78	
+		VK_LEFT,			// 79	LEFT
+		VK_HOME,			// 80	HOME
+		VK_END,				// 81	END
+		0,					// 82	
+		VK_UP,				// 83	UP
+		VK_DOWN,			// 84	DOWN
+		VK_PRIOR,			// 85	PAGEUP
+		VK_NEXT,			// 86	PAGEDOWN
+		0,					// 87	
+		0,					// 88	
+		VK_RIGHT,			// 89	RIGHT
+		VK_NUMLOCK,			// 90	PAD NUMLOCK
+		VK_NUMPAD7,			// 91	PAD 7
+		VK_NUMPAD4,			// 92	PAD 4
+		VK_NUMPAD1,			// 93	PAD 1
+		VK_NUMPAD0,			// 94	PAD 0
+		VK_DIVIDE,			// 95	PAD /
+		VK_NUMPAD8,			// 96	PAD 8
+		VK_NUMPAD5,			// 97	PAD 5
+		VK_NUMPAD2,			// 98	PAD 2
+		0,					// 99	
+		VK_MULTIPLY,		// 100	PAD *
+		VK_NUMPAD9,			// 101	PAD 9
+		VK_NUMPAD6,			// 102	PAD 6
+		VK_NUMPAD3,			// 103	PAD 3
+		VK_DECIMAL,			// 104	PAD .
+		VK_SUBTRACT,		// 105	PAD -
+		VK_ADD,				// 106	PAD +
+		0,					// 107	
+		0,					// 108	PAD ENTER
+		0,					// 109	
+		VK_ESCAPE,			// 110	ESC
+		0,					// 111	
+		VK_F1,				// 112	F1
+		VK_F2,				// 113	F2
+		VK_F3,				// 114	F3
+		VK_F4,				// 115	F4
+		VK_F5,				// 116	F5
+		VK_F6,				// 117	F6
+		VK_F7,				// 118	F7
+		VK_F8,				// 119	F8
+		VK_F9,				// 120	F9
+		VK_F10,				// 121	F10
+		VK_F11,				// 122	F11
+		VK_F12,				// 123	F12
+		VK_PRINT,			// 124	PRINT
+		VK_SCROLL,			// 125	SCROLL
+		VK_PAUSE,			// 126	PAUSE
+		0,					// 127	
+		0,					// 128	
+		0,					// 129	
+	};
+
+	return (code < 130 ? DecKeyCode[code] : 0);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -3192,50 +3331,38 @@ CStringMaps::~CStringMaps()
 {
 	m_Data.RemoveAll();
 }
+static int StrMapsCmp(const void *src, const void *dis)
+{
+	return (0 - ((CStringW *)dis)->CompareNoCase((LPCWSTR)src));
+}
 int CStringMaps::Add(LPCWSTR wstr)
 {
-	int c;
 	int n;
-	int b = 0;
-	int m = (int)m_Data.GetSize() - 1;
-	CStringW tmp = wstr;
+	CStringW tmp(wstr);
 
-	while ( b <= m ) {
-		n = (b + m) / 2;
-		if ( (c = m_Data[n].CompareNoCase(wstr)) == 0 )
-			return n;
-		else if ( c < 0 )
-			b = n + 1;
-		else
-			m = n - 1;
-	}
-	m_Data.InsertAt(b, tmp);
-	return b;
+	if ( BinaryFind((void *)wstr, m_Data.GetData(), sizeof(CStringW), m_Data.GetSize(), StrMapsCmp, &n) )
+		return n;
+
+	m_Data.InsertAt(n, tmp);
+	return n;
 }
 int CStringMaps::Find(LPCWSTR wstr)
 {
-	int c;
 	int n;
-	int b = 0;
-	int m = (int)m_Data.GetSize() - 1;
 
-	while ( b <= m ) {
-		n = (b + m) / 2;
-		if ( (c = m_Data[n].CompareNoCase(wstr)) == 0 )
-			return n;
-		else if ( c < 0 )
-			b = n + 1;
-		else
-			m = n - 1;
-	}
-	if ( b >= (int)m_Data.GetSize() )
+	if ( BinaryFind((void *)wstr, m_Data.GetData(), sizeof(CStringW), m_Data.GetSize(), StrMapsCmp, &n) )
+		return n;
+
+	if ( n >= (int)m_Data.GetSize() )
 		return (-1);
-	return (m_Data[b].Left((int)wcslen(wstr)).CompareNoCase(wstr) == 0 ? b : (-1));
+
+	return (m_Data[n].Left((int)wcslen(wstr)).CompareNoCase(wstr) == 0 ? n : (-1));
 }
 int CStringMaps::Next(LPCWSTR wstr, int pos)
 {
 	if ( pos >= GetSize() )
 		return (-1);
+
 	return (m_Data[pos].Left((int)wcslen(wstr)).CompareNoCase(wstr) == 0 ? pos : (-1));
 }
 void CStringMaps::AddWStrBuf(LPBYTE lpBuf, int nLen)
@@ -3305,65 +3432,49 @@ const CStringIndex & CStringIndex::operator = (CStringIndex &data)
 
 	return *this;
 }
+static int StrIdxCmp(const void *src, const void *dis)
+{
+	return (0 - ((CStringIndex *)dis)->m_nIndex.Compare((LPCSTR)src));
+}
+static int StrIdxCmpNoCase(const void *src, const void *dis)
+{
+	return (0 - ((CStringIndex *)dis)->m_nIndex.CompareNoCase((LPCSTR)src));
+}
 CStringIndex & CStringIndex::operator [] (LPCSTR str)
 {
-	int n, b, m, c;
+	int n;
 	CStringIndex tmpData;
-
-	tmpData.SetNoCase(m_bNoCase);
-	tmpData.SetNoSort(m_bNoSort);
 
 	if ( m_bNoSort ) {
 		for ( n = 0 ; n < m_Array.GetSize() ; n++ ) {
-			c = (m_bNoCase ? m_Array[n].m_nIndex.CompareNoCase(str) : m_Array[n].m_nIndex.Compare(str));
-			if ( c == 0 )
+			if ( (m_bNoCase ? m_Array[n].m_nIndex.CompareNoCase(str) : m_Array[n].m_nIndex.Compare(str)) == 0 )
 				return m_Array[n];
 		}
-		tmpData.m_nIndex = str;
-		n = m_Array.Add(tmpData);
-		return m_Array[n];
 	} else {
-		b = 0;
-		m = m_Array.GetSize() - 1;
-		while ( b <= m ) {
-			n = (b + m) / 2;
-			c = (m_bNoCase ? m_Array[n].m_nIndex.CompareNoCase(str) : m_Array[n].m_nIndex.Compare(str));
-			if ( c == 0 )
-				return m_Array[n];
-			else if ( c < 0 )
-				b = n + 1;
-			else
-				m = n - 1;
-		}
-		tmpData.m_nIndex = str;
-		m_Array.InsertAt(b, tmpData);
-		return m_Array[b];
+		if ( BinaryFind((void *)str, m_Array.GetData(), sizeof(CStringIndex), m_Array.GetSize(), m_bNoCase ? StrIdxCmp : StrIdxCmpNoCase, &n) )
+			return m_Array[n];
 	}
+
+	tmpData.m_nIndex = str;
+	tmpData.SetNoCase(m_bNoCase);
+	tmpData.SetNoSort(m_bNoSort);
+	m_Array.InsertAt(n, tmpData);
+	return m_Array[n];
 }
 int CStringIndex::Find(LPCSTR str)
 {
-	int n, b, m, c;
+	int n;
 
 	if ( m_bNoSort ) {
 		for ( n = 0 ; n < m_Array.GetSize() ; n++ ) {
-			c = (m_bNoCase ? m_Array[n].m_nIndex.CompareNoCase(str) : m_Array[n].m_nIndex.Compare(str));
-			if ( c == 0 )
+			if ( (m_bNoCase ? m_Array[n].m_nIndex.CompareNoCase(str) : m_Array[n].m_nIndex.Compare(str)) == 0 )
 				return n;
 		}
 	} else {
-		b = 0;
-		m = m_Array.GetSize() - 1;
-		while ( b <= m ) {
-			n = (b + m) / 2;
-			c = (m_bNoCase ? m_Array[n].m_nIndex.CompareNoCase(str) : m_Array[n].m_nIndex.Compare(str));
-			if ( c == 0 )
-				return n;
-			else if ( c < 0 )
-				b = n + 1;
-			else
-				m = n - 1;
-		}
+		if ( BinaryFind((void *)str, m_Array.GetData(), sizeof(CStringIndex), m_Array.GetSize(), m_bNoCase ? StrIdxCmp : StrIdxCmpNoCase, &n) )
+			return n;
 	}
+
 	return (-1);
 }
 void CStringIndex::SetArray(LPCSTR str)

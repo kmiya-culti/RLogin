@@ -2,7 +2,6 @@
 // Microsoft Visual C++ generated include file.
 // Used by RLogin.rc
 //
-#define ID_RESET                        3
 #define IDC_RESET                       3
 #define IDR_MAINFRAME                   100
 #define IDR_RLOGINTYPE                  101
@@ -244,6 +243,8 @@
 #define IDC_SERVERLIST                  1115
 #define IDC_SCSZCOLS2                   1115
 #define IDC_SERVERNAME                  1116
+#define IDC_SCSZFONT2                   1116
+#define IDC_FONTHW                      1116
 #define IDC_SHIFT                       1117
 #define IDC_SIZEPROG                    1118
 #define IDC_SOCKNO                      1119

@@ -273,8 +273,13 @@ static const CTextRam::PROCTAB fc_AnsiTab[] = {
 //	{ '~',		0,			&CTextRam::fc_DECFNK	},	// DECFNK Function Key
 	{ 0,		0,			NULL } };
 static const CTextRam::PROCTAB fc_Ext1Tab[] = {			// ('?' << 16) | sc
+//	{ 'E',		0,			&CTextRam::fc_POP		},	//		ERASE_STATUS
+//	{ 'F',		0,			&CTextRam::fc_POP		},	//		FROM_STATUS
+//	{ 'H',		0,			&CTextRam::fc_POP		},	//		HIDE_STATUS
 	{ 'J',		0,			&CTextRam::fc_DECSED	},	// DECSED Selective Erase in Display
 	{ 'K',		0,			&CTextRam::fc_DECSEL	},	// DECSEL Selective Erase in Line
+//	{ 'S',		0,			&CTextRam::fc_POP		},	//		SHOW_STATUS
+//	{ 'T',		0,			&CTextRam::fc_POP		},	//		TO_STATUS
 	{ 'W',		0,			&CTextRam::fc_DECST8C	},	// DECST8C Set Tab at every 8 columns
 	{ 'h',		0,			&CTextRam::fc_DECSET	},	// DECSET
 	{ 'i',		0,			&CTextRam::fc_DECMC		},	// DECMC Media Copy (DEC)
@@ -285,7 +290,9 @@ static const CTextRam::PROCTAB fc_Ext1Tab[] = {			// ('?' << 16) | sc
 	{ 0,		0,			NULL } };
 static const CTextRam::PROCTAB fc_Ext2Tab[] = {			// ('$' << 8) | sc
 	{ 'p',		0,			&CTextRam::fc_DECRQM	},	// DECRQM Request mode settings
+//	{ 'q',		0,			&CTextRam::fc_POP		},	// DECSDDT Select Disconnect Delay Time
 	{ 'r',		0,			&CTextRam::fc_DECCARA	},	// DECCARA Change Attribute in Rectangle
+//	{ 's',		0,			&CTextRam::fc_POP		},	// DECSPRTT Select Printer Type
 	{ 't',		0,			&CTextRam::fc_DECRARA	},	// DECRARA Reverse Attribute in Rectangle
 	{ 'u',		0,			&CTextRam::fc_DECRQTSR	},	// DECRQTSR Request Terminal State Report
 	{ 'v',		0,			&CTextRam::fc_DECCRA	},	// DECCRA Copy Rectangular Area
@@ -300,11 +307,61 @@ static const CTextRam::PROCTAB fc_Ext2Tab[] = {			// ('$' << 8) | sc
 static const CTextRam::PROCTAB fc_Ext3Tab[] = {			// (' ' << 8) | sc
 	{ '@',		0,			&CTextRam::fc_SL		},	// SL Scroll left
 	{ 'A',		0,			&CTextRam::fc_SR		},	// SR Scroll Right
+//	{ 'B',		0,			&CTextRam::fc_POP		},	// GSM Graphic size modification
+//	{ 'C',		0,			&CTextRam::fc_POP		},	// GSS Graphic size selection
 	{ 'D',		0,			&CTextRam::fc_FNT		},	// FNT Font selection
+//	{ 'E',		0,			&CTextRam::fc_POP		},	// TSS Thin space specification
+//	{ 'F',		0,			&CTextRam::fc_POP		},	// JFY Justify
+//	{ 'G',		0,			&CTextRam::fc_POP		},	// SPI Spacing increment
+//	{ 'H',		0,			&CTextRam::fc_POP		},	// QUAD Quad
+//	{ 'I',		0,			&CTextRam::fc_POP		},	// SSU Select size unit
+//	{ 'J',		0,			&CTextRam::fc_POP		},	// PFS Page format selection
+//	{ 'K',		0,			&CTextRam::fc_POP		},	// SHS Select character spacing
+//	{ 'L',		0,			&CTextRam::fc_POP		},	// SVS Select line spacing
+//	{ 'M',		0,			&CTextRam::fc_POP		},	// IGS Identify graphic subrepertoire
+//	{ 'N',		0,			&CTextRam::fc_POP		},	// HTSA Character tabulation set absolute
+//	{ 'O',		0,			&CTextRam::fc_POP		},	// IDCS Identify device control string
 	{ 'P',		0,			&CTextRam::fc_PPA		},	// PPA Page Position Absolute
 	{ 'Q',		0,			&CTextRam::fc_PPR		},	// PPR Page Position Relative
 	{ 'R',		0,			&CTextRam::fc_PPB		},	// PPB Page Position Backwards
+//	{ 'S',		0,			&CTextRam::fc_POP		},	// SPD Select presentation directions
+//	{ 'T',		0,			&CTextRam::fc_POP		},	// DTA Dimension text area
+//	{ 'U',		0,			&CTextRam::fc_POP		},	// SLH Set line home
+//	{ 'V',		0,			&CTextRam::fc_POP		},	// SLL Set line limit
+//	{ 'W',		0,			&CTextRam::fc_POP		},	// FNK Function key
+//	{ 'X',		0,			&CTextRam::fc_POP		},	// SPQR Select print quality and rapidity
+//	{ 'Y',		0,			&CTextRam::fc_POP		},	// SEF Sheet eject and feed
+//	{ 'Z',		0,			&CTextRam::fc_POP		},	// PEC Presentation expand or contract
+//	{ '[',		0,			&CTextRam::fc_POP		},	// SSW Set space width
+//	{ '\'',		0,			&CTextRam::fc_POP		},	// SACS Set additional character separation
+//	{ ']',		0,			&CTextRam::fc_POP		},	// SAPV Select alternative presentation variants
+//	{ '^',		0,			&CTextRam::fc_POP		},	// STAB Description: Selective tabulation
+//	{ '_',		0,			&CTextRam::fc_POP		},	// GCC Graphic character combination
+//	{ '`',		0,			&CTextRam::fc_POP		},	// TATE Tabulation aligned trailing edge
+//	{ 'a',		0,			&CTextRam::fc_POP		},	// TALE Tabulation aligned leading edge
+//	{ 'b',		0,			&CTextRam::fc_POP		},	// TAC Tabulation aligned centred
+//	{ 'c',		0,			&CTextRam::fc_POP		},	// TCC Tabulation centred on character
+//	{ 'd',		0,			&CTextRam::fc_POP		},	// TSR Tabulation stop remove
+//	{ 'e',		0,			&CTextRam::fc_POP		},	// SCO Select character orientation
+//	{ 'f',		0,			&CTextRam::fc_POP		},	// SRCS Set reduced character separation
+//	{ 'g',		0,			&CTextRam::fc_POP		},	// SCS Set character spacing
+//	{ 'h',		0,			&CTextRam::fc_POP		},	// SLS Set line spacing
+//	{ 'i',		0,			&CTextRam::fc_POP		},	// SPH Set page home
+//	{ 'j',		0,			&CTextRam::fc_POP		},	// SPL Set page limit
+//	{ 'k',		0,			&CTextRam::fc_POP		},	// SCP Select character path
+//	{ 'p',		0,			&CTextRam::fc_POP		},	// DECSSCLS Set Scroll Speed
 	{ 'q',		0,			&CTextRam::fc_DECSCUSR	},	// DECSCUSR Set Cursor Style
+//	{ 'r',		0,			&CTextRam::fc_POP		},	// DECKCV Set Key Click Volume
+//	{ 's',		0,			&CTextRam::fc_POP		},	// DECNS New sheet
+//	{ 't',		0,			&CTextRam::fc_POP		},	// DECSWBV Set Warning Bell Volume
+//	{ 'u',		0,			&CTextRam::fc_POP		},	// DECSMBV Set Margin Bell Volume
+//	{ 'v',		0,			&CTextRam::fc_POP		},	// DECSLCK Set Lock Key Style
+//	{ 'w',		0,			&CTextRam::fc_POP		},	// DECSITF Select input tray failover
+//	{ 'x',		0,			&CTextRam::fc_POP		},	// DECSDPM Set Duplex Print Mode
+//	{ 'z',		0,			&CTextRam::fc_POP		},	// DECVPFS Variable page format select
+//	{ '{',		0,			&CTextRam::fc_POP		},	// DECSSS Set sheet size
+//	{ '|',		0,			&CTextRam::fc_POP		},	// DECRVEC Draw relative vector
+//	{ '}',		0,			&CTextRam::fc_POP		},	// DECKBD Keyboard Language Selection
 	{ '~',		0,			&CTextRam::fc_DECTME	},	// DECTME Terminal Mode Emulation
 	{ 0,		0,			NULL } };
 
@@ -313,29 +370,81 @@ static const CTextRam::PROCTAB fc_Ext4Tab[] = {
 	{ 0,		0,			NULL } };
 static const CTextRam::CSIEXTTAB fc_CsiExtTab[] = {
 	{ 				('!'  << 8) | 'p',		&CTextRam::fc_DECSTR	},	// DECSTR Soft terminal reset
+//	{ 				('!'  << 8) | 's',		&CTextRam::fc_POP		},	// DECFIL Right justification
+//	{ 				('!'  << 8) | 'v',		&CTextRam::fc_POP		},	// DECASFC Automatic sheet feeder control
+//	{ 				('!'  << 8) | 'w',		&CTextRam::fc_POP		},	// DECUND Select undeline character
+//	{ 				('!'  << 8) | 'x',		&CTextRam::fc_POP		},	// DECPTS Printwheel table select
+//	{ 				('!'  << 8) | 'y',		&CTextRam::fc_POP		},	// DECSS Select spacing
+//	{ 				('!'  << 8) | '|',		&CTextRam::fc_POP		},	// DECVEC Draw vector
+//	{ 				('!'  << 8) | '}',		&CTextRam::fc_POP		},	// DECFIN Document finishing
 	{ 				('"'  << 8) | 'p',		&CTextRam::fc_DECSCL	},	// DECSCL Set compatibility level
 	{ 				('"'  << 8) | 'q',		&CTextRam::fc_DECSCA	},	// DECSCA Select character attributes
+//	{ 				('"'  << 8) | 's',		&CTextRam::fc_POP		},	// DECPWA Page width alignment
+//	{ 				('"'  << 8) | 'u',		&CTextRam::fc_POP		},	// DECSTRL Set Transmit Rate Limit
 	{ 				('"'  << 8) | 'v',		&CTextRam::fc_DECRQDE	},	// DECRQDE Request device extent
+//	{ 				('"'  << 8) | 'z',		&CTextRam::fc_POP		},	// DECDEN Select density
+//	{ 				('&'  << 8) | 'q',		&CTextRam::fc_POP		},	// DECSNC Set number of copies
 	{ 				('&'  << 8) | 'u',		&CTextRam::fc_DECRQUPSS	},	// DECRQUPSS Request User-Preferred Supplemental Set
+//	{ 				('&'  << 8) | 'x',		&CTextRam::fc_POP		},	// DECES Enable Session
+//	{ 				('\'' << 8) | 'q',		&CTextRam::fc_POP		},	// DECSBCA Select bar code attributes
 	{ 				('\'' << 8) | 'w',		&CTextRam::fc_DECEFR	},	// DECEFR Enable filter rectangle
 	{ 				('\'' << 8) | 'z',		&CTextRam::fc_DECELR	},	// DECELR Enable locator reports
 	{ 				('\'' << 8) | '{',		&CTextRam::fc_DECSLE	},	// DECSLE Select locator events
 	{ 				('\'' << 8) | '|',		&CTextRam::fc_DECRQLP	},	// DECRQLP Request locator position
 	{ 				('\'' << 8) | '}',		&CTextRam::fc_DECIC		},	// DECIC Insert Column
 	{ 				('\'' << 8) | '~',		&CTextRam::fc_DECDC		},	// DECDC Delete Column(s)
+//	{ 				(')'  << 8) | 'p',		&CTextRam::fc_DECSTGLT	},	// DECSDPT Select Digital Printed Data Type
 	{ 				(')'  << 8) | '{',		&CTextRam::fc_DECSTGLT	},	// DECSTGLT Select Color Look-Up Table
+//	{ 				('*'  << 8) | 'p',		&CTextRam::fc_POP		},	// DECSPPCS Select ProPrinter Character Set
+//	{ 				('*'  << 8) | 'q',		&CTextRam::fc_POP		},	// DECSRC Secure Reset Confirmation
+//	{ 				('*'  << 8) | 'r',		&CTextRam::fc_POP		},	// DECSCS Select Communication Speed
+//	{ 				('*'  << 8) | 's',		&CTextRam::fc_POP		},	// DECSFC Select Flow Control Type
+//	{ 				('*'  << 8) | 'u',		&CTextRam::fc_POP		},	// DECSCP Select Communication Port
 	{ 				('*'  << 8) | 'x',		&CTextRam::fc_DECSACE	},	// DECSACE Select Attribute and Change Extent
 	{ 				('*'  << 8) | 'y',		&CTextRam::fc_DECRQCRA	},	// DECRQCRA Request Checksum of Rectangle Area
 	{ 				('*'  << 8) | 'z',		&CTextRam::fc_DECINVM	},	// DECINVM Invoke Macro
+//	{ 				('*'  << 8) | '|',		&CTextRam::fc_POP		},	// DECSNLS Select number of lines per screen
+//	{ 				('*'  << 8) | '}',		&CTextRam::fc_POP		},	// DECLFKC Local Function Key Control
+//	{ 				('+'  << 8) | 'p',		&CTextRam::fc_POP		},	// DECSR Secure Reset
+//	{ 				('+'  << 8) | 'q',		&CTextRam::fc_POP		},	// DECELF Enable Local Functions
+//	{ 				('+'  << 8) | 'r',		&CTextRam::fc_POP		},	// DECSMKR Select Modifier Key Reporting
+//	{ 				('+'  << 8) | 'v',		&CTextRam::fc_POP		},	// DECMM Memory management
+//	{ 				('+'  << 8) | 'w',		&CTextRam::fc_POP		},	// DECSPP Set Port Parameter
+//	{ 				('+'  << 8) | 'x',		&CTextRam::fc_POP		},	// DECPQPLFM Program Key Free Memory Inquiry
+//	{ 				('+'  << 8) | 'y',		&CTextRam::fc_POP		},	// DECPKFMR Program Key Free Memory Report
+//	{ 				('+'  << 8) | 'z',		&CTextRam::fc_POP		},	// DECPKA Program Key Action
+//	{ 				('-'  << 8) | 'p',		&CTextRam::fc_POP		},	// DECARR Auto Repeat Rate
+//	{ 				('-'  << 8) | 'q',		&CTextRam::fc_POP		},	// DECCRTST CRT Saver Timing
+//	{ 				('-'  << 8) | 'r',		&CTextRam::fc_POP		},	// DECSEST Energy Saver Timing
+//	{ 				(','  << 8) | 'p',		&CTextRam::fc_POP		},	// DECLTOD Load Time of Day
+//	{ 				(','  << 8) | 'v',		&CTextRam::fc_POP		},	// DECRPKT Report Key Type
+//	{ 				(','  << 8) | 'w',		&CTextRam::fc_POP		},	// DECRQKD Request Key Definition
+//	{ 				(','  << 8) | 'x',		&CTextRam::fc_POP		},	// DECSPMA Session Page Memory Allocation
+//	{ 				(','  << 8) | 'y',		&CTextRam::fc_POP		},	// DECUS Update Session
+//	{ 				(','  << 8) | 'z',		&CTextRam::fc_POP		},	// DECDLDA Down Line Load Allocation
+//	{ 				(','  << 8) | '|',		&CTextRam::fc_POP		},	// DECAC Assign Color
+//	{ 				(','  << 8) | '{',		&CTextRam::fc_POP		},	// DECSZS Select Zero Symbol
 	{ 				(','  << 8) | 'q',		&CTextRam::fc_DECTID	},	// DECTID Select Terminal ID
 	{ 				(','  << 8) | '}',		&CTextRam::fc_DECATC	},	// DECATC Alternate Text Colors
 	{ 				(','  << 8) | '~',		&CTextRam::fc_DECPS		},	// DECPS Play Sound
 	{ ('<' << 16)				| 's',		&CTextRam::fc_TTIMESV	},	// TTIMESV IME の開閉状態を保存する。
 	{ ('<' << 16)				| 't',		&CTextRam::fc_TTIMEST	},	// TTIMEST IME の開閉状態を設定する。
 	{ ('<' << 16)				| 'r',		&CTextRam::fc_TTIMERS	},	// TTIMERS IME の開閉状態を復元する。
+//	{ ('=' << 16)				| 'A',		&CTextRam::fc_POP		},	// cons25 Set the border color to n
+//	{ ('=' << 16)				| 'B',		&CTextRam::fc_POP		},	// cons25 Set bell pitch (p) and duration (d)
+//	{ ('=' << 16)				| 'C',		&CTextRam::fc_POP		},	// cons25 Set global cursor type
+//	{ ('=' << 16)				| 'F',		&CTextRam::fc_POP		},	// cons25 Set normal foreground color to n
+//	{ ('=' << 16)				| 'G',		&CTextRam::fc_POP		},	// cons25 Set normal background color to n
+//	{ ('=' << 16)				| 'H',		&CTextRam::fc_POP		},	// cons25 Set normal reverse foreground color to n
+//	{ ('=' << 16)				| 'I',		&CTextRam::fc_POP		},	// cons25 Set normal reverse background color to n
 	{ ('=' << 16)				| 'S',		&CTextRam::fc_C25LCT	},	// C25LCT cons25 Set local cursor type
 	{ ('=' << 16)				| 'c',		&CTextRam::fc_DA3		},	// DA3 Tertiary Device Attributes
+//	{ ('>' << 16)				| 'T',		&CTextRam::fc_POP		},	// xterm CASE_RM_TITLE
+//	{ ('>' << 16)				| 'm',		&CTextRam::fc_POP		},	// xterm CASE_SET_MOD_FKEYS
+//	{ ('>' << 16)				| 'n',		&CTextRam::fc_POP		},	// xterm CASE_SET_MOD_FKEYS0
+//	{ ('>' << 16)				| 'p',		&CTextRam::fc_POP		},	// xterm CASE_HIDE_POINTER
 	{ ('>' << 16)				| 'c',		&CTextRam::fc_DA2		},	// DA2 Secondary Device Attributes
+//	{ ('>' << 16)				| 't',		&CTextRam::fc_POP		},	// xterm CASE_SM_TITLE
 	{ ('?' << 16) | ('$'  << 8) | 'p',		&CTextRam::fc_DECRQMH	},	// DECRQMH Request Mode (DEC) Host to Terminal
 	{							    0,		NULL } };
 
@@ -361,25 +470,25 @@ static const CTextRam::CSIEXTTAB fc_DcsExtTab[] = {
 	{							 '|',		&CTextRam::fc_DECUDK	},	// DECUDK User Defined Keys
 	{							 'p',		&CTextRam::fc_DECREGIS	},	// DECREGIS ReGIS graphics
 	{							 'q',		&CTextRam::fc_DECSIXEL	},	// DECSIXEL Sixel graphics
-//	{							 'r',		&CTextRam::fc_OSCNULL	},	// DECLBAN Load Banner Message
-//	{							 'v',		&CTextRam::fc_OSCNULL	},	// DECLANS Load Answerback Message
-//	{							 'x',		&CTextRam::fc_OSCNULL	},	// DECtalk commands
-//	{							 'y',		&CTextRam::fc_OSCNULL	},	// DECLFF Load font file
+//	{							 'r',		&CTextRam::fc_POP		},	// DECLBAN Load Banner Message
+//	{							 'v',		&CTextRam::fc_POP		},	// DECLANS Load Answerback Message
+//	{							 'x',		&CTextRam::fc_POP		},	// DECtalk commands
+//	{							 'y',		&CTextRam::fc_POP		},	// DECLFF Load font file
 	{							 '{',		&CTextRam::fc_DECDLD	},	// DECDLD Dynamically Redefinable Character Sets Extension
-//	{							 '}',		&CTextRam::fc_OSCNULL	},	// DECATFF Assign to font file
-//	{							 '~',		&CTextRam::fc_OSCNULL	},	// DECDTFF Delete type family or font file
-//	{				('!' << 8) | 'q',		&CTextRam::fc_OSCNULL	},	// DECGIDIS Enter GIDIS mode
-//	{				('!' << 8) | 'u',		&CTextRam::fc_OSCNULL	},	// DECAUPSS Assign User-Preferred Supp Set
+//	{							 '}',		&CTextRam::fc_POP		},	// DECATFF Assign to font file
+//	{							 '~',		&CTextRam::fc_POP		},	// DECDTFF Delete type family or font file
+//	{				('!' << 8) | 'q',		&CTextRam::fc_POP		},	// DECGIDIS Enter GIDIS mode
+//	{				('!' << 8) | 'u',		&CTextRam::fc_POP		},	// DECAUPSS Assign User-Preferred Supp Set
 	{				('!' << 8) | 'z',		&CTextRam::fc_DECDMAC	},	// DECDMAC Define Macro
 	{				('!' << 8) | '{',		&CTextRam::fc_DECSTUI	},	// DECSTUI Set Terminal Unit ID
-//	{				('"' << 8) | 'x',		&CTextRam::fc_OSCNULL	},	// DECPFK Program Function Key
-//	{				('"' << 8) | 'y',		&CTextRam::fc_OSCNULL	},	// DECPAK Program Alphanumeric Key
-//	{				('"' << 8) | 'z',		&CTextRam::fc_OSCNULL	},	// DECCKD Copy Key Default
+//	{				('"' << 8) | 'x',		&CTextRam::fc_POP		},	// DECPFK Program Function Key
+//	{				('"' << 8) | 'y',		&CTextRam::fc_POP		},	// DECPAK Program Alphanumeric Key
+//	{				('"' << 8) | 'z',		&CTextRam::fc_POP		},	// DECCKD Copy Key Default
 	{				('$' << 8) | 'p',		&CTextRam::fc_DECRSTS	},	// DECRSTS Restore Terminal State
 	{				('$' << 8) | 'q',		&CTextRam::fc_DECRQSS	},	// DECRQSS Request Selection or Setting
 	{				('$' << 8) | 't',		&CTextRam::fc_DECRSPS	},	// DECRSPS Restore Presentation State
-//	{				('$' << 8) | 'w',		&CTextRam::fc_OSCNULL	},	// DECLKD Locator key definition
-//	{				('+' << 8) | 'p',		&CTextRam::fc_OSCNULL	},	// XTSTCAP Set Termcap/Terminfo Data (xterm, experimental)
+//	{				('$' << 8) | 'w',		&CTextRam::fc_POP		},	// DECLKD Locator key definition
+//	{				('+' << 8) | 'p',		&CTextRam::fc_POP		},	// XTSTCAP Set Termcap/Terminfo Data (xterm, experimental)
 	{				('+' << 8) | 'q',		&CTextRam::fc_XTRQCAP	},	// XTRQCAP Request Termcap/Terminfo String (xterm, experimental)
 	{							   0,		NULL } };
 
@@ -406,7 +515,6 @@ static CTextRam::ESCNAMEPROC fc_EscNameTab[] = {
 	{	"ACS",		&CTextRam::fc_ACS,		NULL,	NULL	},
 	{	"APC",		&CTextRam::fc_APC,		NULL,	NULL	},
 	{	"BPH",		&CTextRam::fc_BPH,		NULL,	NULL	},
-//	{	"CCH",		&CTextRam::fc_CCH,		NULL,	NULL	},
 	{	"CSC0",		&CTextRam::fc_CSC0,		NULL,	NULL	},
 	{	"CSC0A",	&CTextRam::fc_CSC0A,	NULL,	NULL	},
 	{	"CSC0W",	&CTextRam::fc_CSC0W,	NULL,	NULL	},
@@ -441,7 +549,6 @@ static CTextRam::ESCNAMEPROC fc_EscNameTab[] = {
 	{	"LS2R",		&CTextRam::fc_LS2R,		NULL,	NULL	},
 	{	"LS3",		&CTextRam::fc_LS3,		NULL,	NULL	},
 	{	"LS3R",		&CTextRam::fc_LS3R,		NULL,	NULL	},
-//	{	"MW",		&CTextRam::fc_MW,		NULL,	NULL	},
 	{	"NBH",		&CTextRam::fc_NBH,		NULL,	NULL	},
 	{	"NEL",		&CTextRam::fc_NEL,		NULL,	NULL	},
 	{	"NOP",		&CTextRam::fc_POP,		NULL,	NULL	},
@@ -457,7 +564,6 @@ static CTextRam::ESCNAMEPROC fc_EscNameTab[] = {
 	{	"SS2",		&CTextRam::fc_SS2,		NULL,	NULL	},
 	{	"SS3",		&CTextRam::fc_SS3,		NULL,	NULL	},
 	{	"SSA",		&CTextRam::fc_SSA,		NULL,	NULL	},
-//	{	"STS",		&CTextRam::fc_STS,		NULL,	NULL	},
 	{	"USR",		&CTextRam::fc_USR,		NULL,	NULL	},
 	{	"V5CUP",	&CTextRam::fc_V5CUP,	NULL,	NULL	},
 	{	"V5EX",		&CTextRam::fc_V5EX,		NULL,	NULL	},
@@ -494,7 +600,6 @@ static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	"DECEFR",	&CTextRam::fc_DECEFR,	NULL,	NULL	},
 	{	"DECELR",	&CTextRam::fc_DECELR,	NULL,	NULL	},
 	{	"DECERA",	&CTextRam::fc_DECERA,	NULL,	NULL	},
-//	{	"DECFNK",	&CTextRam::fc_DECFNK,	NULL,	NULL	},
 	{	"DECFRA",	&CTextRam::fc_DECFRA,	NULL,	NULL	},
 	{	"DECIC",	&CTextRam::fc_DECIC,	NULL,	NULL	},
 	{	"DECINVM",	&CTextRam::fc_DECINVM,	NULL,	NULL	},
@@ -535,7 +640,6 @@ static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	"DECTID",	&CTextRam::fc_DECTID,	NULL,	NULL	},
 	{	"DECTME",	&CTextRam::fc_DECTME,	NULL,	NULL	},
 	{	"DECTST",	&CTextRam::fc_DECTST,	NULL,	NULL	},
-//	{	"DECVERP",	&CTextRam::fc_DECVERP,	NULL,	NULL	},
 	{	"DL",		&CTextRam::fc_DL,		NULL,	NULL	},
 	{	"DSR",		&CTextRam::fc_DSR,		NULL,	NULL	},
 	{	"EA",		&CTextRam::fc_EA,		NULL,	NULL	},
@@ -560,21 +664,16 @@ static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	"PPA",		&CTextRam::fc_PPA,		NULL,	NULL	},
 	{	"PPB",		&CTextRam::fc_PPB,		NULL,	NULL	},
 	{	"PPR",		&CTextRam::fc_PPR,		NULL,	NULL	},
-//	{	"PTX",		&CTextRam::fc_PTX,		NULL,	NULL	},
 	{	"REP",		&CTextRam::fc_REP,		NULL,	NULL	},
 	{	"REQTPARM",	&CTextRam::fc_REQTPARM,	NULL,	NULL	},
 	{	"RM",		&CTextRam::fc_RM,		NULL,	NULL	},
 	{	"SCORC",	&CTextRam::fc_SCORC,	NULL,	NULL	},
 	{	"SCOSC",	&CTextRam::fc_SCOSC,	NULL,	NULL	},
 	{	"SD",		&CTextRam::fc_SD,		NULL,	NULL	},
-//	{	"SDS",		&CTextRam::fc_SDS,		NULL,	NULL	},
-//	{	"SEE",		&CTextRam::fc_SEE,		NULL,	NULL	},
 	{	"SGR",		&CTextRam::fc_SGR,		NULL,	NULL	},
-//	{	"SIMD",		&CTextRam::fc_SIMD,		NULL,	NULL	},
 	{	"SL",		&CTextRam::fc_SL,		NULL,	NULL	},
 	{	"SM",		&CTextRam::fc_SM,		NULL,	NULL	},
 	{	"SR",		&CTextRam::fc_SR,		NULL,	NULL	},
-//	{	"SRS",		&CTextRam::fc_SRS,		NULL,	NULL	},
 	{	"SU",		&CTextRam::fc_SU,		NULL,	NULL	},
 	{	"TBC",		&CTextRam::fc_TBC,		NULL,	NULL	},
 	{	"TTIMERS",	&CTextRam::fc_TTIMERS,	NULL,	NULL	},
@@ -713,6 +812,10 @@ static int fc_ProcNameCmp(const void *src, const void *dis)
 {
 	return strcmp(((CTextRam::ESCNAMEPROC *)src)->name, ((CTextRam::ESCNAMEPROC *)dis)->name);
 }
+static int	ExtTabCodeCmp(const void *src, const void *dis)
+{
+	return (*((int *)src) - ((CTextRam::CSIEXTTAB *)dis)->code);
+}
 CTextRam::ESCNAMEPROC *CTextRam::fc_InitProcName(CTextRam::ESCNAMEPROC *tab, int *max)
 {
 	int n, c;
@@ -751,14 +854,14 @@ CTextRam::ESCNAMEPROC *CTextRam::fc_InitProcName(CTextRam::ESCNAMEPROC *tab, int
 }
 void CTextRam::fc_Init(int mode)
 {
-	int i, n, c, b, m;
+	int i, n;
 	ESCNAMEPROC *tp;
 
 	if ( !fc_Init_Flag ) {
 		fc_Init_Flag = TRUE;
 
-		for ( c = 0; c < 256 ; c++ )
-			fc_Proc[0][c] = &CTextRam::fc_IGNORE;
+		for ( i = 0; i < 256 ; i++ )
+			fc_Proc[0][i] = &CTextRam::fc_IGNORE;
 
 		for ( i = 1 ; i < STAGE_MAX ; i++ )
 			memcpy(fc_Proc[i], fc_Proc[0], sizeof(fc_Proc[0]));
@@ -826,36 +929,14 @@ void CTextRam::fc_Init(int mode)
 
 	m_CsiExt.RemoveAll();
 	for ( i = 0 ; fc_CsiExtTab[i].proc != NULL ; i++ ) {
-		b = 0;
-		m = m_CsiExt.GetSize() - 1;
-		while ( b <= m ) {
-			n = (b + m) / 2;
-			if ( (c = fc_CsiExtTab[i].code - m_CsiExt[n].code) == 0 )
-				break;
-			else if ( c < 0 )
-				b = n + 1;
-			else
-				m = n - 1;
-		}
-		if ( b > m )
-			m_CsiExt.InsertAt(b, (CTextRam::CSIEXTTAB)(fc_CsiExtTab[i]));
+		if ( !BinaryFind((void *)&(fc_CsiExtTab[i].code), m_CsiExt.GetData(), sizeof(CSIEXTTAB), m_CsiExt.GetSize(), ExtTabCodeCmp, &n) )
+			m_CsiExt.InsertAt(n, (CTextRam::CSIEXTTAB)(fc_CsiExtTab[i]));
 	}
 
 	m_DcsExt.RemoveAll();
 	for ( i = 0 ; fc_DcsExtTab[i].proc != NULL ; i++ ) {
-		b = 0;
-		m = m_DcsExt.GetSize() - 1;
-		while ( b <= m ) {
-			n = (b + m) / 2;
-			if ( (c = fc_DcsExtTab[i].code - m_DcsExt[n].code) == 0 )
-				break;
-			else if ( c < 0 )
-				b = n + 1;
-			else
-				m = n - 1;
-		}
-		if ( b > m )
-			m_DcsExt.InsertAt(b, (CTextRam::CSIEXTTAB)(fc_DcsExtTab[i]));
+		if ( !BinaryFind((void *)&(fc_DcsExtTab[i].code), m_DcsExt.GetData(), sizeof(CSIEXTTAB), m_DcsExt.GetSize(), ExtTabCodeCmp, &n) )
+			m_DcsExt.InsertAt(n, (CTextRam::CSIEXTTAB)(fc_DcsExtTab[i]));
 	}
 
 	for ( n = 0 ; n < m_ProcTab.GetSize() ; n++ ) {
@@ -910,23 +991,17 @@ inline void CTextRam::fc_Push(int stage)
 //////////////////////////////////////////////////////////////////////
 // ESC/CSI Proc Name Func...
 
+static int NameProcCmp(const void *src, const void *dis)
+{
+	return strcmp((const char *)src, ((CTextRam::ESCNAMEPROC *)dis)->name);
+}
 void CTextRam::EscNameProc(int ch, LPCSTR name)
 {
-	int n, c;
-	int b = 0;
-	int m = fc_EscNameTabMax - 1;
+	int n;
 	void (CTextRam::*proc)(int) = &CTextRam::fc_POP;
 
-	while ( b <= m ) {
-		n = (b + m) / 2;
-		if ( (c = strcmp(fc_EscNameTab[n].name, name)) == 0 ) {
-			proc = fc_EscNameTab[n].data.proc;
-			break;
-		} else if ( c < 0 )
-			b = n + 1;
-		else
-			m = n - 1;
-	}
+	if ( BinaryFind((void *)name, (void *)fc_EscNameTab, sizeof(ESCNAMEPROC), fc_EscNameTabMax, NameProcCmp, &n) )
+		proc = fc_EscNameTab[n].data.proc;
 
 	m_LocalProc[0][ch] = proc;
 	m_LocalProc[0][ch | 0x80] = proc;
@@ -956,22 +1031,12 @@ void CTextRam::SetEscNameCombo(CComboBox *pCombo)
 
 void CTextRam::CsiNameProc(int code, LPCSTR name)
 {
-	int n, c;
-	int b = 0;
-	int m = fc_CsiNameTabMax - 1;
+	int n;
 	void (CTextRam::*proc)(int) = &CTextRam::fc_POP;
 	CSIEXTTAB tmp;
 
-	while ( b <= m ) {
-		n = (b + m) / 2;
-		if ( (c = strcmp(fc_CsiNameTab[n].name, name)) == 0 ) {
-			proc = fc_CsiNameTab[n].data.proc;
-			break;
-		} else if ( c < 0 )
-			b = n + 1;
-		else
-			m = n - 1;
-	}
+	if ( BinaryFind((void *)name, (void *)fc_CsiNameTab, sizeof(ESCNAMEPROC), fc_CsiNameTabMax, NameProcCmp, &n) )
+		proc = fc_CsiNameTab[n].data.proc;
 
 	switch(code & 0x7F7F00) {
 	case 0:
@@ -991,22 +1056,12 @@ void CTextRam::CsiNameProc(int code, LPCSTR name)
 		m_LocalProc[4][code & 0x7F | 0x80] = proc;
 		break;
 	default:
-		b = 0;
-		m = m_CsiExt.GetSize() - 1;
-		while ( b <= m ) {
-			n = (b + m) / 2;
-			if ( (c = code - m_CsiExt[n].code) == 0 ) {
-				m_CsiExt[n].proc = proc;
-				break;
-			} else if ( c < 0 )
-				b = n + 1;
-			else
-				m = n - 1;
-		}
-		if ( b > m ) {
+		if ( BinaryFind((void *)&code, m_CsiExt.GetData(), sizeof(CSIEXTTAB), m_CsiExt.GetSize(), ExtTabCodeCmp, &n) )
+			m_CsiExt[n].proc = proc;
+		else {
 			tmp.code = code;
 			tmp.proc = proc;
-			m_CsiExt.InsertAt(b, tmp);
+			m_CsiExt.InsertAt(n, tmp);
 		}
 		break;
 	}
@@ -1036,39 +1091,19 @@ void CTextRam::SetCsiNameCombo(CComboBox *pCombo)
 
 void CTextRam::DcsNameProc(int code, LPCSTR name)
 {
-	int n, c;
-	int b = 0;
-	int m = fc_DcsNameTabMax - 1;
+	int n;
 	void (CTextRam::*proc)(int) = &CTextRam::fc_POP;
 	CSIEXTTAB tmp;
 
-	while ( b <= m ) {
-		n = (b + m) / 2;
-		if ( (c = strcmp(fc_DcsNameTab[n].name, name)) == 0 ) {
-			proc = fc_DcsNameTab[n].data.proc;
-			break;
-		} else if ( c < 0 )
-			b = n + 1;
-		else
-			m = n - 1;
-	}
+	if ( BinaryFind((void *)name, (void *)fc_DcsNameTab, sizeof(ESCNAMEPROC), fc_DcsNameTabMax, NameProcCmp, &n) )
+		proc = fc_DcsNameTab[n].data.proc;
 
-	b = 0;
-	m = m_DcsExt.GetSize() - 1;
-	while ( b <= m ) {
-		n = (b + m) / 2;
-		if ( (c = code - m_DcsExt[n].code) == 0 ) {
-			m_DcsExt[n].proc = proc;
-			break;
-		} else if ( c < 0 )
-			b = n + 1;
-		else
-			m = n - 1;
-	}
-	if ( b > m ) {
+	if ( BinaryFind((void *)&code, m_DcsExt.GetData(), sizeof(CSIEXTTAB), m_DcsExt.GetSize(), ExtTabCodeCmp, &n) )
+		m_DcsExt[n].proc = proc;
+	else {
 		tmp.code = code;
 		tmp.proc = proc;
-		m_DcsExt.InsertAt(b, tmp);
+		m_DcsExt.InsertAt(n, tmp);
 	}
 }
 LPCSTR	CTextRam::DcsProcName(void (CTextRam::*proc)(int ch))
@@ -2433,23 +2468,13 @@ void CTextRam::fc_OSC_PAM(int ch)
 }
 void CTextRam::fc_OSC_ST(int ch)
 {
-	int n, c, b, m;
+	int n;
 
 	switch(m_OscMode) {
 	case 'P':	// DCS
-		b = 0;
-		m = m_DcsExt.GetSize() - 1;
-		while ( b <= m ) {
-			n = (b + m) / 2;
-			if ( (c = m_BackChar - m_DcsExt[n].code) == 0 ) {
-				(this->*m_DcsExt[n].proc)(ch);
-				break;
-			} else if ( c < 0 )
-				b = n + 1;
-			else
-				m = n - 1;
-		}
-		if ( b > m )
+		if ( BinaryFind((void *)&m_BackChar, m_DcsExt.GetData(), sizeof(CSIEXTTAB), m_DcsExt.GetSize(), ExtTabCodeCmp, &n) ) 
+			(this->*m_DcsExt[n].proc)(ch);
+		else
 			fc_POP(ch);
 		break;
 
@@ -2474,7 +2499,7 @@ void CTextRam::fc_DECUDK(int ch)
 {
 	// DCS ('P' << 24) | '|':						DECUDK User Defined Keys
 	/*
-		DCS Ps1 ; Ps2 ; Ps2 | D...D ST
+		DCS Ps1 ; Ps2 ; Ps3 | D...D ST
 
 		Ps1
 		0 (default) or none Clear all keys before loading new values.
@@ -2489,55 +2514,41 @@ void CTextRam::fc_DECUDK(int ch)
 		1 Defines the unshifted function key.
 		3 Defines the alternate unshifted function key.
 		4 Defines the alternate shifted function key.
+
+		D...D
+		Keyn/Stn/Dir;...
 	*/
 
-	int n, i, r;
-	LPCSTR p;
+	int n, key;
+	CStringArrayExt node, data;
 
-	p = (LPCSTR)m_OscPara;
 	if ( GetAnsiPara(0, 0, 0) == 0 ) {
 		for ( n = 0 ; n < FKEY_MAX ; n++ )
 			m_FuncKey[n].Clear();
 	}
-	while ( *p != '\0' ) {
-		while ( *p != '\0' && !isdigit(*p) )
-			p++;
-		if ( isdigit(*p) ) {
-			for ( n = 0 ; *p >= '0' && *p <= '9' ; )
-				n = n * 10 + (*(p++) - '0');
 
-			if ( n >= 11 && n <= 15 )		// F1 - F5
-				n = n - 11 + 0;
-			else if ( n >= 17 && n <= 21 )	// F6 - F10
-				n = n - 17 + 5;
-			else if ( n >= 23 && n <= 26 )	// F11 - F14
-				n = n - 23 + 10;
-			else if ( n >= 28 && n <= 29 )	// F15 - F16
-				n = n - 28 + 14;
-			else if ( n >= 31 && n <= 34 )	// F17 - F20
-				n = n - 31 + 16;
-			else
-				n = FKEY_MAX;
+	node.GetString((LPCSTR)m_OscPara, ';');
 
-			if ( n < FKEY_MAX )
-				m_FuncKey[n].Clear();
-			if ( *p == '/' ) {
-				p++;
-				for ( i = r = 0 ; isxdigit(*p) ; i++, p++ ) {
-					if ( isdigit(*p) )
-						r = r * 16 + (*p - '0');
-					else
-						r = r * 16 + (toupper(*p) - 'A' + 10);
-					if ( (i & 1) == 1 ) {
-						if ( n < FKEY_MAX )
-							m_FuncKey[n].Put8Bit(r);
-						r = 0;
-					}
-				}
-				if ( (i & 1) == 1 && n < FKEY_MAX )
-					m_FuncKey[n].Put8Bit(r);
-			}
-		}
+	for ( n = 0 ; n < node.GetSize() ; n++ ) {
+		data.GetString(node[n], '/');
+		if ( data.GetSize() < 2 )
+			continue;
+
+		key = data.GetVal(0);
+		if ( key >= 11 && key <= 15 )		// F1 - F5
+			key = key - 11 + 0;
+		else if ( key >= 17 && key <= 21 )	// F6 - F10
+			key = key - 17 + 5;
+		else if ( key >= 23 && key <= 26 )	// F11 - F14
+			key = key - 23 + 10;
+		else if ( key >= 28 && key <= 29 )	// F15 - F16
+			key = key - 28 + 14;
+		else if ( key >= 31 && key <= 34 )	// F17 - F20
+			key = key - 31 + 16;
+		else
+			continue;
+
+		m_FuncKey[key].Base16Decode(data[1]);
 	}
 
 	fc_POP(ch);
@@ -2733,16 +2744,6 @@ void CTextRam::fc_DECDLD(int ch)
 ENDRET:
 	fc_POP(ch);
 }
-
-#if 0
-	case ('P' << 24) | 'r':						// Load Banner Message
-	case ('P' << 24) | 'v':						// Load Answerback Message
-	case ('P' << 24) | 'x':						// DECtalk commands
-	case ('P' << 24) | 'y':						// DECLFF Load font file
-	case ('P' << 24) | '}':						// DECATFF Assign to font file
-	case ('P' << 24) | '~':						// DECDTFF Delete type family or font file
-#endif
-
 void CTextRam::fc_DECRSTS(int ch)
 {
 	// DCS ('P' << 24) | ('$' << 8) | 'p'		DECRSTS Restore Terminal State
@@ -3071,18 +3072,6 @@ void CTextRam::fc_DECSTUI(int ch)
 
 	fc_POP(ch);
 }
-
-#if 0
-	case ('P' << 24) | ('$' << 8) | 'w':		// DECLKD Locator key definition
-	case ('P' << 24) | ('!' << 8) | 'q':		// DECGIDIS Enter GIDIS mode
-	case ('P' << 24) | ('!' << 8) | 'u':		// DECAUPSS Assign User-Preferred Supp Set
-	case ('P' << 24) | ('"' << 8) | 'x':		// DECPFK Program Function Key
-	case ('P' << 24) | ('"' << 8) | 'y':		// DECPAK Program Alphanumeric Key
-	case ('P' << 24) | ('"' << 8) | 'z':		// DECCKD Copy Key Default
-
-	case ('P' << 24) | ('+' << 8) | 'p':		// Set Termcap/Terminfo Data (xterm, experimental)
-#endif
-
 void CTextRam::fc_XTRQCAP(int ch)
 {
 	//DCS ('P' << 24) | ('+' << 8) | 'q'		XTRQCAP Request Termcap/Terminfo String (xterm, experimental)
@@ -3490,7 +3479,7 @@ void CTextRam::fc_ED(int ch)
 		ERABOX(0, 0, m_Cols, m_CurY, ERM_ISOPRO);
 		break;
 	case 2:
-		LOCATE(0, 0);
+//		LOCATE(0, 0);
 		ERABOX(0, 0, m_Cols, m_Lines, ERM_ISOPRO);
 		break;
 	}
@@ -3547,7 +3536,7 @@ void CTextRam::fc_EF(int ch)
 		ERABOX(0, 0, m_Cols, m_CurY, ERM_ISOPRO);
 		break;
 	case 2:
-		LOCATE(0, 0);
+//		LOCATE(0, 0);
 		ERABOX(0, 0, m_Cols, m_Lines, ERM_ISOPRO);
 		break;
 	}
@@ -3566,7 +3555,7 @@ void CTextRam::fc_EA(int ch)
 		ERABOX(0, 0, m_Cols, m_CurY, ERM_ISOPRO);
 		break;
 	case 2:
-		LOCATE(0, 0);
+//		LOCATE(0, 0);
 		ERABOX(0, 0, m_Cols, m_Lines, ERM_ISOPRO);
 		break;
 	}
@@ -4304,12 +4293,6 @@ void CTextRam::fc_LINUX(int ch)
 //////////////////////////////////////////////////////////////////////
 // fc CSI ? ...
 //
-//	case ('?' << 16) | 'E':		/* ERASE_STATUS */
-//	case ('?' << 16) | 'F':		/* FROM_STATUS */
-//	case ('?' << 16) | 'H':		/* HIDE_STATUS */
-//	case ('?' << 16) | 'S':		/* SHOW_STATUS */
-//	case ('?' << 16) | 'T':		/* TO_STATUS */
-
 void CTextRam::fc_DECSED(int ch)
 {
 	// CSI ? J	DECSED Selective Erase in Display
@@ -4585,9 +4568,6 @@ void CTextRam::fc_DECDSR(int ch)
 //////////////////////////////////////////////////////////////////////
 // fc CSI $ ...
 //
-//	case ('$' << 8) | 'q':		// DECSDDT Select Disconnect Delay Time
-//	case ('$' << 8) | 's':		// DECSPRTT Select Printer Type
-
 void CTextRam::fc_DECRQM(int ch)
 {
 	// CSI $p	DECRQM Request mode settings
@@ -5014,12 +4994,6 @@ void CTextRam::fc_SR(int ch)
 		RIGHTSCROLL();
 	fc_POP(ch);
 }
-
-#if 0
-	case (' ' << 8) | 'B':		// GSM Graphic size modification
-	case (' ' << 8) | 'C':		// GSS Graphic size selection
-#endif
-
 void CTextRam::fc_FNT(int ch)
 {
 	// CSI (' ' << 8) | 'D'		FNT Font selection
@@ -5027,21 +5001,6 @@ void CTextRam::fc_FNT(int ch)
 		m_AttNow.ft = 10;
 	fc_POP(ch);
 }
-
-#if 0
-	case (' ' << 8) | 'E':		// TSS Thin space specification
-	case (' ' << 8) | 'F':		// JFY Justify
-	case (' ' << 8) | 'G':		// SPI Spacing increment
-	case (' ' << 8) | 'H':		// QUAD Quad
-	case (' ' << 8) | 'I':		// SSU Select size unit
-	case (' ' << 8) | 'J':		// PFS Page format selection
-	case (' ' << 8) | 'K':		// SHS Select character spacing
-	case (' ' << 8) | 'L':		// SVS Select line spacing
-	case (' ' << 8) | 'M':		// IGS Identify graphic subrepertoire
-	case (' ' << 8) | 'N':		// HTSA Character tabulation set absolute
-	case (' ' << 8) | 'O':		// IDCS Identify device control string
-#endif
-
 void CTextRam::fc_PPA(int ch)
 {
 	// CSI (' ' << 8) | 'P'		PPA Page Position Absolute
@@ -5060,40 +5019,6 @@ void CTextRam::fc_PPB(int ch)
 	SETPAGE(m_Page - GetAnsiPara(0, 1, 0));
 	fc_POP(ch);
 }
-
-#if 0
-	case (' ' << 8) | 'S':		// SPD Select presentation directions
-	case (' ' << 8) | 'T':		// DTA Dimension text area
-	case (' ' << 8) | 'U':		// SLH Set line home
-	case (' ' << 8) | 'V':		// SLL Set line limit
-	case (' ' << 8) | 'W':		// FNK Function key
-	case (' ' << 8) | 'X':		// SPQR Select print quality and rapidity
-	case (' ' << 8) | 'Y':		// SEF Sheet eject and feed
-	case (' ' << 8) | 'Z':		// PEC Presentation expand or contract
-	case (' ' << 8) | '[':		// SSW Set space width
-	case (' ' << 8) | '\\':		// SACS Set additional character separation
-	case (' ' << 8) | ']':		// SAPV Select alternative presentation variants
-	case (' ' << 8) | '^':		// STAB Description: Selective tabulation
-	case (' ' << 8) | '_':		// GCC Graphic character combination
-	case (' ' << 8) | '`':		// TATE Tabulation aligned trailing edge
-	case (' ' << 8) | 'a':		// TALE Tabulation aligned leading edge
-	case (' ' << 8) | 'b':		// TAC Tabulation aligned centred
-	case (' ' << 8) | 'c':		// TCC Tabulation centred on character
-	case (' ' << 8) | 'd':		// TSR Tabulation stop remove
-	case (' ' << 8) | 'e':		// SCO Select character orientation
-	case (' ' << 8) | 'f':		// SRCS Set reduced character separation
-	case (' ' << 8) | 'g':		// SCS Set character spacing
-	case (' ' << 8) | 'h':		// SLS Set line spacing
-	case (' ' << 8) | 'i':		// SPH Set page home
-	case (' ' << 8) | 'j':		// SPL Set page limit
-	case (' ' << 8) | 'k':		// SCP Select character path
-	case (' ' << 8) | 'l':		//
-	case (' ' << 8) | 'm':		//
-	case (' ' << 8) | 'n':		//
-	case (' ' << 8) | 'o':		//
-	case (' ' << 8) | 'p':		// DECSSCLS Set Scroll Speed
-#endif
-
 void CTextRam::fc_DECSCUSR(int ch)
 {
 	// CSI (' ' << 8) | 'q'		DECSCUSR Set Cursor Style
@@ -5111,22 +5036,6 @@ void CTextRam::fc_DECSCUSR(int ch)
 
 	fc_POP(ch);
 }
-
-#if 0
-	case (' ' << 8) | 'r':		// DECKCV Set Key Click Volume
-	case (' ' << 8) | 's':		// DECNS New sheet
-	case (' ' << 8) | 't':		// DECWBV Set Warning Bell Volume
-	case (' ' << 8) | 'u':		// DECMBV Set Margin Bell Volume
-	case (' ' << 8) | 'v':		// DECSLCK Set Lock Key Style
-	case (' ' << 8) | 'w':		// DECSITF Select input tray failover
-	case (' ' << 8) | 'x':		// DECSDPM Set Duplex Print Mode
-	case (' ' << 8) | 'y':		//
-	case (' ' << 8) | 'z':		// DECVPFS Variable page format select
-	case (' ' << 8) | '{':		// DECSSS Set sheet size
-	case (' ' << 8) | '|':		// DECRVEC Draw relative vector
-	case (' ' << 8) | '}':		// DECKBD Keyboard Language Selection
-#endif
-
 void CTextRam::fc_DECTME(int ch)
 {
 	// CSI (' ' << 8) | '~'		DECTME Terminal Mode Emulation
@@ -5144,23 +5053,13 @@ void CTextRam::fc_DECTME(int ch)
 
 void CTextRam::fc_CSI_ETC(int ch)
 {
-	int n, c, d, b, m;
+	int n;
+	int d = (m_BackChar | ch) & 0x7F7F7F;
 
-	d = (m_BackChar | ch) & 0x7F7F7F;
-	b = 0;
-	m = m_CsiExt.GetSize() - 1;
-
-	while ( b <= m ) {
-		n = (b + m) / 2;
-		if ( (c = d - m_CsiExt[n].code) == 0 ) {
-			(this->*m_CsiExt[n].proc)(ch);
-			return;
-		} else if ( c < 0 )
-			b = n + 1;
-		else
-			m = n - 1;
-	}
-	fc_POP(ch);
+	if ( BinaryFind((void *)&d, m_CsiExt.GetData(), sizeof(CSIEXTTAB), m_CsiExt.GetSize(), ExtTabCodeCmp, &n) ) 
+		(this->*m_CsiExt[n].proc)(ch);
+	else
+		fc_POP(ch);
 }
 void CTextRam::fc_DECRQMH(int ch)
 {
@@ -5172,6 +5071,7 @@ void CTextRam::fc_DECRQMH(int ch)
 	UNGETSTR("%s?%d;%d$y", m_RetChar[RC_CSI], n, IsOptEnable(n) ? 1 : 2);
 	fc_POP(ch);
 }
+
 void CTextRam::fc_DECSTR(int ch)
 {
 	// CSI ('!' << 8) | 'p'		DECSTR Soft terminal reset
@@ -5179,16 +5079,6 @@ void CTextRam::fc_DECSTR(int ch)
 	RESET();
 	fc_POP(ch);
 }
-
-#if 0
-	case ('!' << 8) | 's':		// DECFIL Right justification
-	case ('!' << 8) | 'v':		// DECASFC Automatic sheet feeder control
-	case ('!' << 8) | 'w':		// DECUND Select undeline character
-	case ('!' << 8) | 'x':		// DECPTS Printwheel table select
-	case ('!' << 8) | 'y':		// DECSS Select spacing
-	case ('!' << 8) | '|':		// DECVEC Draw vector
-	case ('!' << 8) | '}':		// DECFIN Document finishing
-#endif
 
 void CTextRam::fc_DECSCL(int ch)
 {
@@ -5242,15 +5132,6 @@ void CTextRam::fc_DECRQUPSS(int ch)
 	UNGETSTR("%s1!uA%s", m_RetChar[RC_DCS], m_RetChar[RC_ST]);
 	fc_POP(ch);
 }
-
-#if 0
-	case ('"' << 8) | 's':		// DECPWA Page width alignment
-	case ('"' << 8) | 'u':		//        Set Transmit Rate Limit
-	case ('"' << 8) | 'z':		// DECDEN Select density
-	case ('&' << 8) | 'q':		// DECSNC Set number of copies
-	case ('&' << 8) | 'x':		// DECES Enable Session
-	case ('\'' << 8) | 'q':		// DECSBCA Select bar code attributes
-#endif
 
 void CTextRam::fc_DECEFR(int ch)
 {
@@ -5364,14 +5245,6 @@ void CTextRam::fc_DECDC(int ch)
 	fc_POP(ch);
 }
 
-#if 0
-	case ('*' << 8) | 'p':		// Select ProPrinter Character Set
-	case ('*' << 8) | 'q':		// DECSRC Secure Reset Confirmation
-	case ('*' << 8) | 'r':		// Select Communication Speed
-	case ('*' << 8) | 's':		// Select Flow Control Type
-	case ('*' << 8) | 'u':		// Select Communication Port
-#endif
-
 void CTextRam::fc_DECSACE(int ch)
 {
 	// CSI ('*' << 8) | 'x'		DECSACE Select Attribute and Change Extent
@@ -5414,7 +5287,6 @@ void CTextRam::fc_DECRQCRA(int ch)
 
 	fc_POP(ch);
 }
-
 void CTextRam::fc_DECINVM(int ch)
 {
 	// CSI ('*' << 8) | 'z'		DECINVM Invoke Macro
@@ -5431,31 +5303,6 @@ void CTextRam::fc_DECINVM(int ch)
 			fc_Call(*(p++));
 	}
 }
-
-#if 0
-	case ('*' << 8) | '|':		// DECSNLS Select number of lines per screen
-	case ('*' << 8) | '}':		// DECLFKC Local Function Key Control
-	case ('+' << 8) | 'p':		// DECSR Secure Reset
-	case ('+' << 8) | 'q':		// DECELF Enable Local Functions
-	case ('+' << 8) | 'r':		// DECSMKR Select Modifier Key Reporting
-	case ('+' << 8) | 'v':		// DECMM Memory management
-	case ('+' << 8) | 'w':		// DECSPP Set Port Parameter
-	case ('+' << 8) | 'x':		// DECPQPLFM Program Key Free Memory Inquiry
-	case ('+' << 8) | 'y':		// DECPKFMR Program Key Free Memory Report
-	case ('+' << 8) | 'z':		// DECPKA Program Key Action
-	case ('-' << 8) | 'p':		// DECARR Auto Repeat Rate
-	case ('-' << 8) | 'q':		// DECCRTST CRT Saver Timing
-	case ('-' << 8) | 'r':		// DECSEST Energy Saver Timing
-	case (',' << 8) | 'p':		// Load Time of Day
-	case (',' << 8) | 'u':		// Key Type Inquiry
-	case (',' << 8) | 'v':		// Report Key Type
-	case (',' << 8) | 'w':		// Key Definition Inquiry
-	case (',' << 8) | 'x':		// Session Page Memory Allocation
-	case (',' << 8) | 'y':		// Update Session
-	case (',' << 8) | 'z':		// DECDLDA Down Line Load Allocation
-	case (',' << 8) | '|':		// DECAC Assign Color
-	case (',' << 8) | '{':		// Select Zero Symbol
-#endif
 
 void CTextRam::fc_DECTID(int ch)
 {
@@ -5542,8 +5389,6 @@ void CTextRam::fc_DECPS(int ch)
 	fc_POP(ch);
 }
 
-//	case (')' << 8) | 'p':		// DECSDPT Select Digital Printed Data Type
-
 void CTextRam::fc_DECSTGLT(int ch)
 {
 	// CSI (')' << 8 | '{'		DECSTGLT Select Color Look-Up Table
@@ -5564,6 +5409,7 @@ void CTextRam::fc_DECSTGLT(int ch)
 	DISPVRAM(0, 0, m_Cols, m_Lines);
 	fc_POP(ch);
 }
+
 void CTextRam::fc_DA2(int ch)
 {
 	// CSI ('>' << 16) | 'c'	DA2 Secondary Device Attributes
@@ -5571,6 +5417,7 @@ void CTextRam::fc_DA2(int ch)
 	UNGETSTR("%s>65;100;1c", m_RetChar[RC_CSI]);
 	fc_POP(ch);
 }
+
 void CTextRam::fc_DA3(int ch)
 {
 	// CSI ('=' << 16) | 'c'	DA3 Tertiary Device Attributes
@@ -5578,17 +5425,6 @@ void CTextRam::fc_DA3(int ch)
 	UNGETSTR("%s!|%04x%s", m_RetChar[RC_DCS], m_UnitId, m_RetChar[RC_ST]);
 	fc_POP(ch);
 }
-
-#if 0
-	case ('=' << 16) | 'A':		// cons25 Set the border color to n
-	case ('=' << 16) | 'B':		// cons25 Set bell pitch (p) and duration (d)
-	case ('=' << 16) | 'C':		// cons25 Set global cursor type
-	case ('=' << 16) | 'F':		// cons25 Set normal foreground color to n
-	case ('=' << 16) | 'G':		// cons25 Set normal background color to n
-	case ('=' << 16) | 'H':		// cons25 Set normal reverse foreground color to n
-	case ('=' << 16) | 'I':		// cons25 Set normal reverse background color to n
-#endif
-
 void CTextRam::fc_C25LCT(int ch)
 {
 	// CSI ('=' << 16) | 'S'	C25LCT cons25 Set local cursor type

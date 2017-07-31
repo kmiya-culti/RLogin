@@ -539,7 +539,7 @@ void CTextRam::InitText(int Width, int Height)
 	if ( IS_ENABLE(m_AnsiOpt, TO_RLFONT) ) {
 		ch = m_DefFontSize;
 
-		if ( (cw = ch / 2) <= 0 )
+		if ( (cw = ch * 10 / m_DefFontHw) <= 0 )
 			cw = 1;
 
 		if ( (cols = Width / cw) < 10 )
@@ -559,7 +559,7 @@ void CTextRam::InitText(int Width, int Height)
 		if ( (cw  = Width / cols) <= 0 )
 			cw = 1;
 
-		if ( (lines = Height / (cw * 2)) <= 0 )
+		if ( (lines = Height / (cw * m_DefFontHw / 10)) <= 0 )
 			lines = 1;
 
 		if ( IsOptValue(TO_DECCOLM, 1) == 1 ) {
@@ -656,6 +656,18 @@ void CTextRam::InitText(int Width, int Height)
 		else
 			m_HisLen += m_CurY;
 		m_CurY = 0;
+	} else if ( m_CurY > cy ) {
+		for ( n = m_Lines - 1 ; n > cy ; n-- ) {
+			tmp = GETVRAM(0, n);
+			for ( x = 0 ; x < m_Cols ; x++ ) {
+				if ( tmp[x].ch != 0 )
+					break;
+			}
+			if ( x < m_Cols )
+				break;
+		}
+		if ( m_CurY > n )
+			m_CurY = n;
 	}
 
 	if ( m_Cols != ox || m_Lines != oy )
@@ -1003,6 +1015,7 @@ void CTextRam::Init()
 	m_Page          = 0;
 	m_DefHisMax		= 2000;
 	m_DefFontSize	= 16;
+	m_DefFontHw     = 20;
 	m_KanjiMode		= EUC_SET;
 	m_BankGL		= 0;
 	m_BankGR		= 1;
@@ -1102,6 +1115,7 @@ void CTextRam::SetArray(CStringArrayExt &array)
 	array.AddVal(m_TitleMode);
 	array.Add(m_SendCharSet[4]);
 	array.AddVal(m_ClipFlag);
+	array.AddVal(m_DefFontHw);
 }
 void CTextRam::GetArray(CStringArrayExt &array)
 {
@@ -1195,6 +1209,9 @@ void CTextRam::GetArray(CStringArrayExt &array)
 	if ( array.GetSize() > 40 )
 		m_ClipFlag = array.GetVal(40);
 
+	if ( array.GetSize() > 41 )
+		m_DefFontHw = array.GetVal(41);
+
 	RESET();
 }
 void CTextRam::Serialize(int mode)
@@ -1218,6 +1235,7 @@ const CTextRam & CTextRam::operator = (CTextRam &data)
 	m_DefCols[1]  = data.m_DefCols[1];
 	m_DefHisMax   = data.m_DefHisMax;
 	m_DefFontSize = data.m_DefFontSize;
+	m_DefFontHw   = data.m_DefFontHw;
 	m_KanjiMode   = data.m_KanjiMode;
 	m_BankGL      = data.m_BankGL;
 	m_BankGR      = data.m_BankGR;
@@ -2392,9 +2410,12 @@ void CTextRam::CallReciveChar(int ch)
 	m_pDocument->m_pLogFile->Write(out.GetPtr(), out.GetSize());
 }
 
+static int DwrodCmp(const void *src, const void *dis)
+{
+	return (*((DWORD *)src) - *((DWORD *)dis));
+}
 int CTextRam::UnicodeWidth(DWORD code)
 {
-    int n, b, m;
 #define UNIWIDTABSIZE   379
 	static const DWORD UnicodeWidthTab[] = {
 		0x0000A1, 0x0000A2, 0x0000A4, 0x0000A5, 0x0000A7, 0x0000A9, 0x0000AA, 0x0000AB,
@@ -2458,28 +2479,14 @@ int CTextRam::UnicodeWidth(DWORD code)
 		0x00FE68, 0x00FE6C, 0x00FF01, 0x00FF61, 0x00FFE0, 0x00FFE7, 0x020000, 0x02FFFE,
 		0x030000, 0x03FFFE };
 
+    int b;
 
-    b = 0;
-	if ( IsOptEnable(TO_RLUNIAWH) ) {
-		m = UNIWIDTABSIZEA - 1;
-	    while ( b <= m ) {
-			n = (b + m) / 2;
-			if ( code >= UnicodeWidthTabA[n] )
-			    b = n + 1;
-			else
-			    m = n - 1;
-		}
-	} else {
-		m = UNIWIDTABSIZE - 1;
-	    while ( b <= m ) {
-			n = (b + m) / 2;
-			if ( code >= UnicodeWidthTab[n] )
-			    b = n + 1;
-			else
-			    m = n - 1;
-		}
-	}
-    return ((b & 1) ? 2 : 1);
+	if ( IsOptEnable(TO_RLUNIAWH) )
+		BinaryFind((void *)&code, (void *)(UnicodeWidthTabA), sizeof(DWORD), UNIWIDTABSIZEA, DwrodCmp, &b);
+	else
+		BinaryFind((void *)&code, (void *)(UnicodeWidthTab),  sizeof(DWORD), UNIWIDTABSIZE,  DwrodCmp, &b);
+
+	return ((b & 1) ? 2 : 1);
 }
 
 

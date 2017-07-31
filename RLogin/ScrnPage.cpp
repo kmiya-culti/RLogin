@@ -35,6 +35,7 @@ CScrnPage::CScrnPage() : CPropertyPage(CScrnPage::IDD)
 	m_MouseMode[1] = 1;
 	m_MouseMode[2] = 0;
 	m_MouseMode[3] = 2;
+	m_FontHw = 10;
 }
 
 CScrnPage::~CScrnPage()
@@ -59,8 +60,8 @@ void CScrnPage::DoDataExchange(CDataExchange* pDX)
 	DDX_CBIndex(pDX, IDC_MOUSE_BTN2, m_MouseMode[1]);
 	DDX_CBIndex(pDX, IDC_MOUSE_KEY1, m_MouseMode[2]);
 	DDX_CBIndex(pDX, IDC_MOUSE_KEY2, m_MouseMode[3]);
+	DDX_CBIndex(pDX, IDC_FONTHW, m_FontHw);
 }
-
 
 BEGIN_MESSAGE_MAP(CScrnPage, CPropertyPage)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_CHECKFAST, IDC_CHECKFAST + CHECKOPTMAX - 1, OnUpdateCheck)
@@ -69,6 +70,7 @@ BEGIN_MESSAGE_MAP(CScrnPage, CPropertyPage)
 	ON_EN_CHANGE(IDC_SCSZCOLS2, OnUpdateEdit)
 	ON_CBN_EDITCHANGE(IDC_SCSZFONT,  OnUpdateEdit)
 	ON_CBN_SELCHANGE(IDC_SCSZFONT,	 OnUpdateEdit)
+	ON_CBN_SELCHANGE(IDC_FONTHW,     OnUpdateEdit)
 	ON_CBN_SELCHANGE(IDC_VISUALBELL, OnUpdateEdit)
 	ON_CBN_SELCHANGE(IDC_RECVCRLF,   OnUpdateEdit)
 	ON_CBN_SELCHANGE(IDC_SENDCRLF,   OnUpdateEdit)
@@ -108,6 +110,7 @@ BOOL CScrnPage::OnInitDialog()
 	m_ColsMax[0].Format("%d",   m_pSheet->m_pTextRam->m_DefCols[0]);
 	m_ColsMax[1].Format("%d",   m_pSheet->m_pTextRam->m_DefCols[1]);
 	m_FontSize.Format("%d",  m_pSheet->m_pTextRam->m_DefFontSize);
+	m_FontHw = m_pSheet->m_pTextRam->m_DefFontHw - 10;
 
 	m_VisualBell = m_pSheet->m_pTextRam->IsOptValue(TO_RLADBELL, 2);
 	m_RecvCrLf   = m_pSheet->m_pTextRam->IsOptValue(TO_RLRECVCR, 2);
@@ -152,6 +155,7 @@ BOOL CScrnPage::OnApply()
 	m_pSheet->m_pTextRam->m_DefCols[0]  = atoi(m_ColsMax[0]);
 	m_pSheet->m_pTextRam->m_DefCols[1]  = atoi(m_ColsMax[1]);
 	m_pSheet->m_pTextRam->m_DefFontSize = atoi(m_FontSize);
+	m_pSheet->m_pTextRam->m_DefFontHw   = m_FontHw + 10;
 
 	m_pSheet->m_pTextRam->SetOptValue(TO_RLADBELL, 2, m_VisualBell);
 	m_pSheet->m_pTextRam->SetOptValue(TO_RLRECVCR, 2, m_RecvCrLf);
@@ -181,6 +185,7 @@ void CScrnPage::OnReset()
 	m_ColsMax[0].Format("%d",   m_pSheet->m_pTextRam->m_DefCols[0]);
 	m_ColsMax[1].Format("%d",   m_pSheet->m_pTextRam->m_DefCols[1]);
 	m_FontSize.Format("%d",  m_pSheet->m_pTextRam->m_DefFontSize);
+	m_FontHw = m_pSheet->m_pTextRam->m_DefFontHw - 10;
 
 	m_VisualBell = m_pSheet->m_pTextRam->IsOptValue(TO_RLADBELL, 2);
 	m_RecvCrLf   = m_pSheet->m_pTextRam->IsOptValue(TO_RLRECVCR, 2);

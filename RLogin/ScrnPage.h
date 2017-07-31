@@ -25,6 +25,7 @@ public:
 	int m_SendCrLf;
 	BOOL m_Check[10];
 	int m_MouseMode[4];
+	int m_FontHw;
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート

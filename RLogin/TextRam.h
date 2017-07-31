@@ -445,6 +445,7 @@ public:	// Options
 	int m_DefCols[2];
 	int m_DefHisMax;
 	int m_DefFontSize;
+	int m_DefFontHw;
 	VRAM m_DefAtt;
 	int m_KanjiMode;
 	int m_BankGL;

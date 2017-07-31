@@ -225,7 +225,7 @@ LPCSTR CFileNode::GetModTime()
 }
 void CFileNode::AutoRename(LPCSTR p, CString &tmp, int mode)
 {
-	int n, b, m, c;
+	int n;
 	CString work;
 	LPCSTR s;
 	LPCSTR ext = (mode == 0 ? "%00%" : "!");
@@ -255,24 +255,11 @@ void CFileNode::AutoRename(LPCSTR p, CString &tmp, int mode)
 			tmp += *p;
 	}
 
-	if ( (n = tmp.GetLength()) > 0 ) {
-		if ( tmp[n - 1] == ' ' || tmp[n - 1] == '.' )
-			tmp += ext;
-		else {
-			b = 0;
-			m = 24 - 1;
-			while ( b <= m ) {
-				n = (b + m) / 2;
-				if ( (c = tmp.CompareNoCase(badTab[n])) == 0 ) {
-					tmp += ext;
-					break;
-				} else if ( c > 0 )
-					b = n + 1;
-				else
-					m = n - 1;
-			}
-		}
-	}
+	if ( (n = tmp.GetLength()) == 0 )
+		return;
+
+	if ( tmp[n - 1] == ' ' || tmp[n - 1] == '.' || BinaryFind((void *)(LPCSTR)tmp, badTab, sizeof(char *), 24, (int (*)(const void *, const void *))stricmp, NULL) )
+		tmp += ext;
 }
 LPCSTR CFileNode::GetLocalPath(LPCSTR dir, class CSFtp *pWnd)
 {
@@ -361,10 +348,8 @@ LPCSTR CFileNode::GetRemotePath(LPCSTR dir, class CSFtp *pWnd)
 
 	return m_name;
 }
-void CFileNode::SetSubName()
-{
-	int n, b, m, c;
-	static const struct _SubTab {
+
+static const struct _SubTab {
 		char	*name;
 		int		icon;
 	} tab[] = {
@@ -376,26 +361,23 @@ void CFileNode::SetSubName()
 		{ "wma",	5 },{ "wmv",	5 },{ "xml",	3 }										// 28
 	};
 
+static int SubNameCmp(const void *src, const void *dis)
+{
+	return ((CString *)src)->CompareNoCase(((struct _SubTab *)dis)->name);
+}
+void CFileNode::SetSubName()
+{
+	int n;
+
 	if ( (n = m_file.ReverseFind('.')) >= 0 )
 		m_sub = m_file.Mid(n + 1);
 
 	if ( IsDir() )
 		m_icon = 0;
-	else {
+	else if ( BinaryFind((void *)&m_sub, (void *)tab, sizeof(struct _SubTab), 28, SubNameCmp, &n) )
+		m_icon = tab[n].icon;
+	else
 		m_icon = 1;
-		b = 0;
-		m = 28 - 1;
-		while ( b <= m ) {
-			n = (b + m) / 2;
-			if ( (c = m_sub.CompareNoCase(tab[n].name)) == 0 ) {
-				m_icon = tab[n].icon;
-				break;
-			} else if ( c > 0 )
-				b = n + 1;
-			else
-				m = n - 1;
-		}
-	}
 }
 int CFileNode::IsDir()
 {
