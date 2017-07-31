@@ -141,7 +141,7 @@ void CIdkeySelDLg::CopyToClipBorad(LPCTSTR str)
 
 	CloseClipboard();
 }
-UINT KeyGenThread(LPVOID pParam)
+static UINT KeyGenThread(LPVOID pParam)
 {
 	CIdkeySelDLg *pWnd = (CIdkeySelDLg *)pParam;
 	pWnd->ProcKeyGenThead();

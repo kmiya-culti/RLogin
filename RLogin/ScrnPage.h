@@ -19,6 +19,7 @@ public:
 	CString	m_FontSize;
 	CString	m_ColsMax[2];
 	int m_VisualBell;
+	int m_DefTypeCaret;
 	int m_RecvCrLf;
 	int m_SendCrLf;
 	BOOL m_Check[10];

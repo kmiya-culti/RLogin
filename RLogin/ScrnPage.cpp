@@ -26,6 +26,7 @@ CScrnPage::CScrnPage() : CTreePropertyPage(CScrnPage::IDD)
 	m_ColsMax[0] = _T("");
 	m_ColsMax[1] = _T("");
 	m_VisualBell = 0;
+	m_DefTypeCaret = 0;
 	m_RecvCrLf = 0;
 	m_SendCrLf = 0;
 	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
@@ -48,6 +49,7 @@ void CScrnPage::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_SCSZCOLS, m_ColsMax[0]);
 	DDX_Text(pDX, IDC_SCSZCOLS2, m_ColsMax[1]);
 	DDX_CBIndex(pDX, IDC_VISUALBELL, m_VisualBell);
+	DDX_CBIndex(pDX, IDC_DEFCARET, m_DefTypeCaret);
 	DDX_CBIndex(pDX, IDC_RECVCRLF, m_RecvCrLf);
 	DDX_CBIndex(pDX, IDC_SENDCRLF, m_SendCrLf);
 	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
@@ -69,6 +71,7 @@ BEGIN_MESSAGE_MAP(CScrnPage, CPropertyPage)
 	ON_CBN_SELCHANGE(IDC_SCSZFONT,	 OnUpdateEdit)
 	ON_CBN_SELCHANGE(IDC_FONTHW,     OnUpdateEdit)
 	ON_CBN_SELCHANGE(IDC_VISUALBELL, OnUpdateEditOpt)
+	ON_CBN_SELCHANGE(IDC_DEFCARET, OnUpdateEdit)
 	ON_CBN_SELCHANGE(IDC_RECVCRLF,   OnUpdateEdit)
 	ON_CBN_SELCHANGE(IDC_SENDCRLF,   OnUpdateEdit)
 	ON_CBN_SELCHANGE(IDC_COMBO3, OnCbnSelchangeCombo)
@@ -109,6 +112,8 @@ void CScrnPage::DoInit()
 	m_FontHw = m_pSheet->m_pTextRam->m_DefFontHw - 10;
 
 	m_VisualBell = m_pSheet->m_pTextRam->IsOptValue(TO_RLADBELL, 2);
+	if ( (m_DefTypeCaret = m_pSheet->m_pTextRam->m_DefTypeCaret) > 0 )
+		m_DefTypeCaret--;
 
 	m_RecvCrLf   = m_pSheet->m_pTextRam->m_RecvCrLf;
 	m_SendCrLf   = m_pSheet->m_pTextRam->m_SendCrLf;
@@ -152,6 +157,9 @@ BOOL CScrnPage::OnApply()
 	m_pSheet->m_pTextRam->m_DefFontHw   = m_FontHw + 10;
 
 	m_pSheet->m_pTextRam->SetOptValue(TO_RLADBELL, 2, m_VisualBell);
+
+	m_pSheet->m_pTextRam->m_DefTypeCaret = m_DefTypeCaret + 1;
+	m_pSheet->m_pTextRam->m_TypeCaret    = m_DefTypeCaret + 1;
 
 	m_pSheet->m_pTextRam->m_RecvCrLf = m_RecvCrLf;
 	m_pSheet->m_pTextRam->m_SendCrLf = m_SendCrLf;

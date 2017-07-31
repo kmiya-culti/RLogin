@@ -20,6 +20,7 @@ CPassDlg::CPassDlg(CWnd* pParent /*=NULL*/)
 	m_Counter = 0;
 	m_MaxTime = 60;
 	m_Title = _T("");
+	m_PassEcho = FALSE;
 }
 
 void CPassDlg::DoDataExchange(CDataExchange* pDX)
@@ -68,6 +69,9 @@ BOOL CPassDlg::OnInitDialog()
 		else
 			m_UserWnd.SetFocus();
 	}
+
+	if ( m_PassEcho )
+		pPassWnd->ModifyStyle(ES_PASSWORD, 0);
 
 	m_TimeLimit.SetRange(0, m_MaxTime);
 	SetTimer(1028, 1000, NULL);

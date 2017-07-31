@@ -528,6 +528,8 @@ BOOL CRLoginApp::InitInstance()
 	pMainFrame->ShowWindow(m_nCmdShow);
 	pMainFrame->UpdateWindow();
 
+	pMainFrame->VersionCheck();
+
 	switch(cmdInfo.m_nShellCommand) {
 	case CCommandLineInfo::FileNew:
 		OnFileNew();

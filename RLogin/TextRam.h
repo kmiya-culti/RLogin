@@ -556,6 +556,8 @@ public:
 #define	PROCTYPE_ESC	0
 #define	PROCTYPE_CSI	1
 #define	PROCTYPE_DCS	2
+#define	PROCTYPE_CTRL	3
+#define	PROCTYPE_TEK	4
 
 class CProcNode : public CObject
 {
@@ -716,6 +718,7 @@ public:	// Options
 	CString m_DefFontName[16];
 	CString m_TraceLogFile;
 	int m_TraceMaxCount;
+	int m_DefTypeCaret;
 
 	void Init();
 	void SetIndex(int mode, CStringIndex &index);
@@ -962,7 +965,7 @@ public:
 	void SetRetChar(BOOL f8);
 
 	// Static Lib
-	static void CTextRam::MsToIconvUniStr(LPCTSTR charset, LPWSTR str, int len);
+	static void MsToIconvUniStr(LPCTSTR charset, LPWSTR str, int len);
 	static DWORD CTextRam::IconvToMsUnicode(DWORD code);
 	static DWORD UCS2toUCS4(DWORD code);
 	static DWORD UCS4toUCS2(DWORD code);
@@ -1023,7 +1026,7 @@ public:
 	} PROCTAB;
 
 	typedef struct _CSIEXTTAB {
-		int		code;
+		DWORD	code;
 		void (CTextRam::*proc)(DWORD ch);
 	} CSIEXTTAB;
 
@@ -1033,9 +1036,9 @@ public:
 			void (CTextRam::*proc)(DWORD ch);
 			BYTE byte[sizeof(void (CTextRam::*)(DWORD))];
 		} data;
-		struct _ESCNAMEPROC	*left;
-		struct _ESCNAMEPROC	*right;
-		int		flag;
+		struct _ESCNAMEPROC	*next;
+		BYTE	type;
+		BYTE	flag;
 	} ESCNAMEPROC;
 
 	void (CTextRam::**m_Func)(DWORD ch);
@@ -1047,7 +1050,8 @@ public:
 	CArray<CTextRam::CSIEXTTAB, CTextRam::CSIEXTTAB &> m_DcsExt;
 
 	void fc_Init_Proc(int stage, const PROCTAB *tp, int b = 0);
-	ESCNAMEPROC *fc_InitProcName(CTextRam::ESCNAMEPROC *tab, int *max);
+	int fc_ProcHash(void (CTextRam::*proc)(DWORD ch));
+	void fc_InitProcName(CTextRam::ESCNAMEPROC *tab, int max);
 	void fc_Init(int mode);
 
 	// Trace Func
@@ -1075,7 +1079,7 @@ public:
 	inline void fc_Case(int stage);
 	inline void fc_Push(int stage);
 
-	ESCNAMEPROC *FindProcName(ESCNAMEPROC *top, void (CTextRam::*proc)(DWORD ch));
+	ESCNAMEPROC *FindProcName(void (CTextRam::*proc)(DWORD ch));
 
 	void EscNameProc(DWORD ch, LPCTSTR name);
 	LPCTSTR EscProcName(void (CTextRam::*proc)(DWORD ch));
@@ -1096,7 +1100,16 @@ public:
 	// Kanji Check
 	int m_Kan_Pos;
 	BYTE m_Kan_Buf[KANBUFMAX];
+
+	typedef struct _KANCODEWORK {
+		int		sjis_st, euc_st, utf8_st;
+		int		sjis_bk, euc_bk;
+		double	sjis_rs, euc_rs, utf8_rs;
+	} KANCODEWORK;
 	
+	static int IsKanjiCode(WORD code, const WORD *tab, int len);
+	static void KanjiCodeInit(KANCODEWORK *work);
+	static void KanjiCodeCheck(int ch, KANCODEWORK *work);
 	void fc_KANCHK();
 	void fc_KANJI(DWORD ch);
 

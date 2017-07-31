@@ -1676,8 +1676,10 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 			m_AuthMode = AUTH_MODE_PASSWORD;
 
 		} else if ( m_AuthStat == AST_KEYB_TRY ) {
-			m_IdKeyPos = 0;
-			m_AuthStat = m_AuthReqTab[AST_KEYB_TRY];
+			if ( m_AuthMode == AUTH_MODE_KEYBOARD ) {
+				m_IdKeyPos = 0;
+				m_AuthStat = m_AuthReqTab[AST_KEYB_TRY];
+			}
 			if ( strstr(str, "keyboard-interactive") == NULL )
 				continue;
 			tmp.PutStr("keyboard-interactive");
@@ -2126,8 +2128,7 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 
 	if ( (m_SSH2Status & SSH2_STAT_SENTKEXINIT) == 0 ) {
 		m_MyPeer.Clear();
-		for ( n = 0 ; n < 16 ; n += 2 )
-			m_MyPeer.Put16Bit(rand());
+		rand_buf(m_MyPeer.PutSpc(16), 16);
 		for ( n = 0 ; n < 10 ; n++ )
 			m_MyPeer.PutStr(TstrToMbs(m_VProp[n]));
 		m_MyPeer.Put8Bit(0);
@@ -2579,7 +2580,7 @@ int Cssh::SSH2MsgUserAuthPasswdChangeReq(CBuffer *bp)
 }
 int Cssh::SSH2MsgUserAuthInfoRequest(CBuffer *bp)
 {
-	int n, e, max;
+	int n, echo, max;
 	CBuffer tmp;
 	CStringA name, inst, lang, prom;
 	CPassDlg dlg;
@@ -2594,14 +2595,22 @@ int Cssh::SSH2MsgUserAuthInfoRequest(CBuffer *bp)
 
 	for ( n = 0 ; n < max ; n++ ) {
 		bp->GetStr(prom);
-		e = bp->Get8Bit();
-		dlg.m_HostAddr = m_pDocument->m_ServerEntry.m_HostName;
-		dlg.m_UserName = m_pDocument->m_ServerEntry.m_UserName;
-		dlg.m_Prompt   = prom;
-		dlg.m_PassName = _T("");
-		if ( dlg.DoModal() != IDOK )
-			return FALSE;
-		tmp.PutStr(m_pDocument->RemoteStr(dlg.m_PassName));
+		echo = bp->Get8Bit();
+
+		// 最初のトライでは、保存されたパスワードを送ってみる
+		if ( m_AuthStat == AST_KEYB_TRY && n == 0 && max == 1 && !m_pDocument->m_ServerEntry.m_PassName.IsEmpty() ) {
+			tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_PassName));
+
+		} else {
+			dlg.m_HostAddr = m_pDocument->m_ServerEntry.m_HostName;
+			dlg.m_UserName = m_pDocument->m_ServerEntry.m_UserName;
+			dlg.m_Prompt   = prom;
+			dlg.m_PassEcho = echo != 0 ? TRUE : FALSE;
+			dlg.m_PassName = _T("");
+			if ( dlg.DoModal() != IDOK )
+				return FALSE;
+			tmp.PutStr(m_pDocument->RemoteStr(dlg.m_PassName));
+		}
 	}
 
 	SendPacket2(&tmp);

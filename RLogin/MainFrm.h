@@ -154,6 +154,7 @@ public:
 	CList<class CMidiQue *, class CMidiQue *> m_MidiQue;
 	volatile int m_InfoThreadCount;
 	BOOL m_ScrollBarFlag;
+	BOOL m_bVersionCheck;
 	CPtrArray m_MenuMap;
 	int m_SplitType;
 	int m_ExecCount;
@@ -211,6 +212,12 @@ public:
 	int GetExecCount();
 	CMenu *GetSaveMenu(HMENU hDocMenu);
 
+	CString m_VersionMessage;
+	CString m_VersionPageUrl;
+
+	void VersionCheckProc();
+	void VersionCheck();
+
 // コントロール バー用メンバ
 protected: 
 	CStatusBar  m_wndStatusBar;
@@ -238,6 +245,7 @@ protected:
 	afx_msg void OnEnterMenuLoop(BOOL bIsTrackPopupMenu);
 	afx_msg void OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized);
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
+	afx_msg void OnClose();
 
 	afx_msg void OnPaneWsplit();
 	afx_msg void OnPaneHsplit();
@@ -260,6 +268,9 @@ protected:
 	afx_msg void OnUpdateViewMenubar(CCmdUI *pCmdUI);
 	afx_msg void OnViewScrollbar();
 	afx_msg void OnUpdateViewScrollbar(CCmdUI *pCmdUI);
+	afx_msg void OnVersioncheck();
+	afx_msg void OnUpdateVersioncheck(CCmdUI *pCmdUI);
+	afx_msg void OnNewVersionFound();
 
 	afx_msg void OnFileAllLoad();
 	afx_msg void OnFileAllSave();
@@ -269,8 +280,6 @@ protected:
 	afx_msg LRESULT OnIConMsg(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnThreadMsg(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnAfterOpen(WPARAM wParam, LPARAM lParam);
-public:
-	afx_msg void OnClose();
 };
 
 

@@ -1076,7 +1076,8 @@ CTextRam::CTextRam()
 	m_HisUse = 0;
 	m_pTextSave = m_pTextStack = NULL;
 	m_DispCaret = FGCARET_ONOFF;
-	m_TypeCaret = 0; 
+	m_DefTypeCaret = 0;
+	m_TypeCaret = m_DefTypeCaret;
 	m_UpdateRect.SetRectEmpty();
 	m_UpdateFlag = FALSE;
 	m_DelayMSec = 0;
@@ -1916,6 +1917,8 @@ void CTextRam::Init()
 	m_HisFile        = _T("");
 	m_KeepAliveSec   = 0;
 	m_DropFileMode   = 0;
+	m_DispCaret      = FGCARET_ONOFF;
+	m_TypeCaret      = m_DefTypeCaret; 
 
 	for ( int n = 0 ; n < 8 ; n++ )
 		m_DropFileCmd[n] = DropCmdTab[n];
@@ -2076,6 +2079,8 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 
 		index[_T("TraceLogFile")]  = m_TraceLogFile;
 		index[_T("TraceMaxCount")] = m_TraceMaxCount;
+		
+		index[_T("Caret")] = m_DefTypeCaret;
 
 	} else {		// Read
 		if ( (n = index.Find(_T("Cols"))) >= 0 ) {
@@ -2224,6 +2229,9 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		if ( (n = index.Find(_T("TraceMaxCount"))) >= 0 )
 			m_TraceMaxCount = index[n];
 
+		if ( (n = index.Find(_T("Caret"))) >= 0 )
+			m_TypeCaret = m_DefTypeCaret = index[n];
+
 		if ( (n = index.Find(_T("Option"))) >= 0 ) {
 			memset(m_DefAnsiOpt, 0, sizeof(m_DefAnsiOpt));
 			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
@@ -2337,6 +2345,8 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 
 	stra.Add(m_TraceLogFile);
 	stra.AddVal(m_TraceMaxCount);
+
+	stra.AddVal(m_DefTypeCaret);
 }
 void CTextRam::GetArray(CStringArrayExt &stra)
 {
@@ -2505,6 +2515,9 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 		m_TraceLogFile = stra.GetAt(58);
 	if ( stra.GetSize() > 59 )
 		m_TraceMaxCount = stra.GetVal(59);
+
+	if ( stra.GetSize() > 60 )
+		m_TypeCaret = m_DefTypeCaret = stra.GetVal(60);
 
 	RESET();
 }
@@ -4260,7 +4273,9 @@ void CTextRam::OnClose()
 		return;
 
 	SaveHistory();
-	SaveLogFile();
+
+	if ( m_pDocument != NULL )
+		m_pDocument->LogClose();
 }
 void CTextRam::OnTimer(int id)
 {
@@ -4740,6 +4755,8 @@ void CTextRam::RESET(int mode)
 		m_LastPos  = 0;
 		m_Kan_Pos = 0;
 		memset(m_Kan_Buf, 0, sizeof(m_Kan_Buf));
+
+		m_TypeCaret = m_DefTypeCaret;
 	}
 
 	if ( mode & RESET_MARGIN ) {

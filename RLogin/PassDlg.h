@@ -24,6 +24,7 @@ public:
 	CString	m_UserName;
 	CString	m_PassName;
 	CString	m_Prompt;
+	BOOL m_PassEcho;
 
 	CString m_Title;
 	int m_Counter;

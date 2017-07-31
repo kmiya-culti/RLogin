@@ -17,6 +17,7 @@
 #include <ocidl.h>
 #include <olectl.h>
 #include <ole2.h>
+#include <afxinet.h>
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -745,6 +746,152 @@ void CBuffer::md5(LPCTSTR str)
 
 	Base16Encode(digest, dlen);
 }
+BOOL CBuffer::LoadFile(LPCTSTR filename)
+{
+	CFile file;
+	ULONGLONG FileSize;
+
+	if( !file.Open(filename, CFile::modeRead) )
+		return FALSE;
+
+	if ( (FileSize = file.GetLength()) > (512 * 1024 * 1024) )
+		return FALSE;
+
+	if ( m_bZero )
+		ZeroMemory(m_Data, m_Max);
+
+	delete m_Data;
+
+	m_Len = m_Ofs = 0;
+	m_Max = (int)FileSize;
+	m_Data = new BYTE[m_Max];
+
+	if ( file.Read(m_Data, m_Max) != m_Max )
+		return FALSE;
+
+	file.Close();
+
+	m_Len = m_Max;
+
+	return TRUE;
+}
+int CBuffer::KanjiCheck(int type)
+{
+	int n;
+	CTextRam::KANCODEWORK work;
+
+	if ( GetSize() >= 2 && m_Data[m_Ofs] == 0xFF && m_Data[m_Ofs + 1] == 0xFE ) {
+		type = KANJI_UTF16LE;
+
+	} else if ( GetSize() >= 2 && m_Data[m_Ofs] == 0xFE && m_Data[m_Ofs + 1] == 0xFF ) {
+		type = KANJI_UTF16BE;
+
+	} else {
+		CTextRam::KanjiCodeInit(&work);
+
+		for ( n = m_Ofs ; n < m_Len ; n++ )
+			CTextRam::KanjiCodeCheck(m_Data[n], &work);
+
+		if ( work.euc_rs > work.sjis_rs && work.euc_rs > work.utf8_rs )
+			type = KANJI_EUC;
+		else if ( work.sjis_rs > work.euc_rs && work.sjis_rs > work.utf8_rs )
+			type = KANJI_SJIS;
+		else if ( work.utf8_rs > work.euc_rs && work.utf8_rs > work.sjis_rs )
+			type = KANJI_UTF8;
+	}
+
+	return type;
+}
+void CBuffer::KanjiConvert(int type)
+{
+	int n;
+	TCHAR ch;
+	CStringA mbs;
+	CString str;
+	CBuffer work;
+	CIConv iconv;
+
+	switch(type) {
+	case KANJI_EUC:
+		for ( n = m_Ofs ; n < m_Len ; n++ ) {
+			mbs += (CHAR)m_Data[n];
+			if ( m_Data[n] == '\n' ) {
+				iconv.RemoteToStr(_T("EUCJP-MS"), mbs, str);
+				work.Apend((LPBYTE)(LPCTSTR)str, str.GetLength() * sizeof(TCHAR));
+				mbs.Empty();
+			}
+		}
+		if ( !mbs.IsEmpty() ) {
+			iconv.RemoteToStr(_T("EUCJP-MS"), mbs, str);
+			work.Apend((LPBYTE)(LPCTSTR)str, str.GetLength() * sizeof(TCHAR));
+		}
+		Move(work);
+		break;
+
+	case KANJI_SJIS:
+		for ( n = m_Ofs ; n < m_Len ; n++ ) {
+			mbs += (CHAR)m_Data[n];
+			if ( m_Data[n] == '\n' ) {
+				str = mbs;
+				work.Apend((LPBYTE)(LPCTSTR)str, str.GetLength() * sizeof(TCHAR));
+				mbs.Empty();
+			}
+		}
+		if ( !mbs.IsEmpty() ) {
+			str = mbs;
+			work.Apend((LPBYTE)(LPCTSTR)str, str.GetLength() * sizeof(TCHAR));
+		}
+		Move(work);
+		break;
+
+	case KANJI_UTF8:
+		for ( n = m_Ofs ; n < m_Len ; n++ ) {
+			mbs += (CHAR)m_Data[n];
+			if ( m_Data[n] == '\n' ) {
+				iconv.RemoteToStr(_T("UTF-8"), mbs, str);
+				work.Apend((LPBYTE)(LPCTSTR)str, str.GetLength() * sizeof(TCHAR));
+				mbs.Empty();
+			}
+		}
+		if ( !mbs.IsEmpty() ) {
+			iconv.RemoteToStr(_T("UTF-8"), mbs, str);
+			work.Apend((LPBYTE)(LPCTSTR)str, str.GetLength() * sizeof(TCHAR));
+		}
+		Move(work);
+		break;
+
+	case KANJI_UTF16LE:
+		for ( n = m_Ofs ; (n + 1) < m_Len ; n += 2 ) {
+			ch = m_Data[n] | (m_Data[n + 1] << 8);
+			str += ch;
+			if ( ch == _T('\n') ) {
+				work.Apend((LPBYTE)(LPCTSTR)str, str.GetLength() * sizeof(TCHAR));
+				str.Empty();
+			}
+		}
+		if ( !str.IsEmpty() )
+			work.Apend((LPBYTE)(LPCTSTR)str, str.GetLength() * sizeof(TCHAR));
+		Move(work);
+		break;
+
+	case KANJI_UTF16BE:
+		for ( n = m_Ofs ; (n + 1) < m_Len ; n += 2 ) {
+			ch = (m_Data[n] << 8) | m_Data[n + 1];
+			str += ch;
+			if ( ch == _T('\n') ) {
+				work.Apend((LPBYTE)(LPCTSTR)str, str.GetLength() * sizeof(TCHAR));
+				str.Empty();
+			}
+		}
+		if ( !str.IsEmpty() )
+			work.Apend((LPBYTE)(LPCTSTR)str, str.GetLength() * sizeof(TCHAR));
+		Move(work);
+		break;
+	}
+
+	if ( GetSize() >= 2 && m_Data[m_Ofs] == 0xFF && m_Data[m_Ofs + 1] == 0xFE )
+		Consume(2);
+}
 
 //////////////////////////////////////////////////////////////////////
 // CStringArrayExt
@@ -1246,7 +1393,7 @@ int CBmpFile::LoadFile(LPCTSTR filename)
 	if( !file.Open(filename, CFile::modeRead) )
 		return FALSE;
 
-	if ( (FileSize = file.GetLength()) > (256 * 1024 * 1024) )
+	if ( (FileSize = file.GetLength()) > (512 * 1024 * 1024) )
 		return FALSE;
 
 	if ( (hGLB = ::GlobalAlloc(GMEM_MOVEABLE, (DWORD)FileSize)) == NULL )
@@ -3478,7 +3625,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	99
+#define	CMDSKEYTABMAX	100
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -3563,8 +3710,9 @@ static const struct _CmdsKeyTab {
 	{	ID_SPLIT_OVER,			L"$SPLIT_OVER"		},
 	{	ID_SPLIT_WIDTH,			L"$SPLIT_WIDTH"		},
 	{	IDM_SPLIT_WIDTH_NEW,	L"$SPLIT_WIDTHNEW"	},
+	{	IDM_VERSIONCHECK,		L"$VERSION_CHECK"	},
 	{	IDM_IMAGEDISP,			L"$VIEW_IMAGEDISP"	},
-	{	ID_GOZIVIEW,			L"$VIEW_JOKE"	},
+	{	ID_GOZIVIEW,			L"$VIEW_JOKE"		},
 	{	ID_VIEW_MENUBAR,		L"$VIEW_MENUBAR"	},
 	{	ID_VIEW_SCROLLBAR,		L"$VIEW_SCROLLBAR"	},
 	{	IDM_SFTP,				L"$VIEW_SFTP"		},
@@ -5434,4 +5582,120 @@ void CFileExt::Close()
 {
 	Flush();
 	CFile::Close();
+}
+
+//////////////////////////////////////////////////////////////////////
+// CHttpSession
+
+CHttpSession::CHttpSession()
+{
+	m_Protocl    = _T("http");
+	m_UserName   = _T("");
+	m_Password   = _T("");
+	m_HostName   = _T("");
+	m_PortNumber = _T("");
+	m_Param      = _T("");
+}
+CHttpSession::~CHttpSession()
+{
+}
+void CHttpSession::ParseUrl(LPCTSTR url)
+{
+	// ssh://username:password@hostname:port/path?arg=value#anchor
+
+	int n;
+	LPCTSTR p;
+	CString tmp;
+
+	tmp.Empty();
+	for ( p = url ; *p != _T('\0') ; p++ ) {
+		if ( _tcsncmp(p, _T("://"), 3) == 0 ) {
+			m_Protocl = tmp;
+			url = p + 3;
+			break;
+		} else
+			tmp += *p;
+	}
+
+	tmp.Empty();
+	for ( p = url ; *p != _T('\0') ; p++ ) {
+		if ( *p == _T('@') ) {
+			if ( (n = tmp.Find(_T(':'))) >= 0 ) {
+				m_UserName = tmp.Left(n);
+				m_Password = tmp.Mid(n + 1);
+			} else
+				m_UserName = tmp;
+			url = p + 1;
+			break;
+		} else
+			tmp += *p;
+	}
+
+	tmp.Empty();
+	for ( p = url ; *p != _T('\0') ; p++ ) {
+		if ( *p == _T('/') || *p == _T('?') || *p == _T('#') ) {
+			url = p;
+			break;
+		} else
+			tmp += *p;
+	}
+
+	if ( (n = tmp.Find(_T(':'))) >= 0 ) {
+		m_HostName  = tmp.Left(n);
+		m_PortNumber = tmp.Mid(n + 1);
+	} else
+		m_HostName = tmp;
+
+	m_Param = url;
+}
+BOOL CHttpSession::GetRequest(LPCTSTR url, CBuffer &buf)
+{
+	int n;
+	DWORD dwStatus;
+	CInternetSession InetSess;
+	CHttpConnection *pHttpConn;
+	CHttpFile *pHttpFile;
+	BYTE tmp[BUFSIZ];
+
+	ParseUrl(url);
+
+	if ( m_Protocl.Compare(_T("http")) != 0 )
+		return FALSE;
+
+	try {
+		 if ( (pHttpConn = InetSess.GetHttpConnection(m_HostName,
+							(m_PortNumber.IsEmpty() ? INTERNET_INVALID_PORT_NUMBER : _tstoi(m_PortNumber)), 
+							(m_UserName.IsEmpty()   ? NULL : m_UserName), 
+							(m_Password.IsEmpty()   ? NULL : m_Password))) == NULL )
+			return FALSE;
+
+		if ( (pHttpFile	= pHttpConn->OpenRequest(CHttpConnection::HTTP_VERB_GET, m_Param, NULL, 1, NULL, NULL, INTERNET_FLAG_RELOAD | INTERNET_FLAG_DONT_CACHE)) == NULL )
+			return FALSE;
+
+		if ( !pHttpFile->SendRequest() )
+			return FALSE;
+
+		if ( !pHttpFile->QueryInfoStatusCode(dwStatus) )
+			return FALSE;
+
+		if ( dwStatus != HTTP_STATUS_OK )
+			return FALSE;
+
+		while ( (n = pHttpFile->Read(tmp, BUFSIZ)) > 0 )
+			buf.Apend(tmp, n);
+
+		// buf.KanjiConvert(buf.KanjiCheck());
+
+		pHttpFile->Close();
+		pHttpConn->Close();
+		InetSess.Close();
+
+		delete pHttpFile;
+		delete pHttpConn;
+
+		return TRUE;
+
+	} catch (...) {
+		return FALSE;
+	}
 }

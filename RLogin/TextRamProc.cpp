@@ -28,13 +28,13 @@ static char THIS_FILE[]=__FILE__;
 //////////////////////////////////////////////////////////////////////
 // fc Init
 
+#define	PROCNAMEHASH	64
+
 static int fc_Init_Flag = FALSE;
 static void (CTextRam::*fc_Proc[STAGE_MAX][256])(DWORD ch);
-static CTextRam::ESCNAMEPROC	*fc_pCtrlProc = NULL;
-static CTextRam::ESCNAMEPROC	*fc_pEscProc  = NULL;
-static CTextRam::ESCNAMEPROC	*fc_pCsiProc  = NULL;
-static CTextRam::ESCNAMEPROC	*fc_pDcsProc  = NULL;
-static CTextRam::ESCNAMEPROC	*fc_pTekProc  = NULL;
+static CTextRam::ESCNAMEPROC	*fc_pProcNameTab[PROCNAMEHASH];
+
+#include "x11coltab.h"
 
 static const CTextRam::PROCTAB fc_CtrlTab[] = {
 	{ 0x01,		0,			&CTextRam::fc_SOH		},
@@ -548,241 +548,239 @@ static const CTextRam::PROCTAB fc_TekTab[] = {
 
 //////////////////////////////////////////////////////////////////////
 
-static int	fc_CtrlNameTabMax = 18;
+#define	CTRLNAMETABMAX	18
 static CTextRam::ESCNAMEPROC fc_CtrlNameTab[] = {
-	{ _T("A3CDW"),		&CTextRam::fc_A3CDW,	NULL,	NULL,	TRACE_OUT	},
-	{ _T("A3CLT"),		&CTextRam::fc_A3CLT,	NULL,	NULL,	TRACE_OUT	},
-	{ _T("A3CRT"),		&CTextRam::fc_A3CRT,	NULL,	NULL,	TRACE_OUT	},
-	{ _T("A3CUP"),		&CTextRam::fc_A3CUP,	NULL,	NULL,	TRACE_OUT	},
-	{ _T("BEL"),		&CTextRam::fc_BEL,		NULL,	NULL,	TRACE_OUT	},
-	{ _T("BS"),			&CTextRam::fc_BS,		NULL,	NULL,	TRACE_OUT	},
-	{ _T("CAN"),		&CTextRam::fc_CAN,		NULL,	NULL,	TRACE_OUT	},
-	{ _T("CR"),			&CTextRam::fc_CR,		NULL,	NULL,	TRACE_OUT	},
-	{ _T("DLE"),		&CTextRam::fc_DLE,		NULL,	NULL,	TRACE_OUT	},
-	{ _T("ENQ"),		&CTextRam::fc_ENQ,		NULL,	NULL,	TRACE_OUT	},
-	{ _T("ESC"),		&CTextRam::fc_ESC,		NULL,	NULL,	TRACE_OUT	},
-	{ _T("FF"),			&CTextRam::fc_FF,		NULL,	NULL,	TRACE_OUT	},
-	{ _T("HT"),			&CTextRam::fc_HT,		NULL,	NULL,	TRACE_OUT	},
-	{ _T("LF"),			&CTextRam::fc_LF,		NULL,	NULL,	TRACE_OUT	},
-	{ _T("SI"),			&CTextRam::fc_SI,		NULL,	NULL,	TRACE_OUT	},
-	{ _T("SO"),			&CTextRam::fc_SO,		NULL,	NULL,	TRACE_OUT	},
-	{ _T("SOH"),		&CTextRam::fc_SOH,		NULL,	NULL,	TRACE_OUT	},
-	{ _T("VT"),			&CTextRam::fc_VT,		NULL,	NULL,	TRACE_OUT	},
-	{ NULL,				NULL,					NULL,	NULL,	TRACE_OUT	},
+	{ _T("A3CDW"),		&CTextRam::fc_A3CDW,	NULL,	PROCTYPE_CTRL,	TRACE_OUT	},
+	{ _T("A3CLT"),		&CTextRam::fc_A3CLT,	NULL,	PROCTYPE_CTRL,	TRACE_OUT	},
+	{ _T("A3CRT"),		&CTextRam::fc_A3CRT,	NULL,	PROCTYPE_CTRL,	TRACE_OUT	},
+	{ _T("A3CUP"),		&CTextRam::fc_A3CUP,	NULL,	PROCTYPE_CTRL,	TRACE_OUT	},
+	{ _T("BEL"),		&CTextRam::fc_BEL,		NULL,	PROCTYPE_CTRL,	TRACE_OUT	},
+	{ _T("BS"),			&CTextRam::fc_BS,		NULL,	PROCTYPE_CTRL,	TRACE_OUT	},
+	{ _T("CAN"),		&CTextRam::fc_CAN,		NULL,	PROCTYPE_CTRL,	TRACE_OUT	},
+	{ _T("CR"),			&CTextRam::fc_CR,		NULL,	PROCTYPE_CTRL,	TRACE_OUT	},
+	{ _T("DLE"),		&CTextRam::fc_DLE,		NULL,	PROCTYPE_CTRL,	TRACE_OUT	},
+	{ _T("ENQ"),		&CTextRam::fc_ENQ,		NULL,	PROCTYPE_CTRL,	TRACE_OUT	},
+	{ _T("ESC"),		&CTextRam::fc_ESC,		NULL,	PROCTYPE_CTRL,	TRACE_OUT	},
+	{ _T("FF"),			&CTextRam::fc_FF,		NULL,	PROCTYPE_CTRL,	TRACE_OUT	},
+	{ _T("HT"),			&CTextRam::fc_HT,		NULL,	PROCTYPE_CTRL,	TRACE_OUT	},
+	{ _T("LF"),			&CTextRam::fc_LF,		NULL,	PROCTYPE_CTRL,	TRACE_OUT	},
+	{ _T("SI"),			&CTextRam::fc_SI,		NULL,	PROCTYPE_CTRL,	TRACE_OUT	},
+	{ _T("SO"),			&CTextRam::fc_SO,		NULL,	PROCTYPE_CTRL,	TRACE_OUT	},
+	{ _T("SOH"),		&CTextRam::fc_SOH,		NULL,	PROCTYPE_CTRL,	TRACE_OUT	},
+	{ _T("VT"),			&CTextRam::fc_VT,		NULL,	PROCTYPE_CTRL,	TRACE_OUT	},
 };
 
-static int	fc_EscNameTabMax = 62;
+#define	ESCNAMETABMAX	58
 static CTextRam::ESCNAMEPROC fc_EscNameTab[] = {
-	{	_T("ACS"),		&CTextRam::fc_ACS,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("APC"),		&CTextRam::fc_APC,		NULL,	NULL,	TRACE_NON	},
-	{	_T("BPH"),		&CTextRam::fc_BPH,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("CSC0"),		&CTextRam::fc_CSC0,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("CSC0A"),	&CTextRam::fc_CSC0A,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("CSC0W"),	&CTextRam::fc_CSC0W,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("CSC1"),		&CTextRam::fc_CSC1,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("CSC1A"),	&CTextRam::fc_CSC1A,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("CSC2"),		&CTextRam::fc_CSC2,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("CSC2A"),	&CTextRam::fc_CSC2A,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("CSC3"),		&CTextRam::fc_CSC3,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("CSC3A"),	&CTextRam::fc_CSC3A,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("CSI"),		&CTextRam::fc_CSI,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("DCS"),		&CTextRam::fc_DCS,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECBI"),	&CTextRam::fc_BI,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECCAHT"),	&CTextRam::fc_DECAHT,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECCAVT"),	&CTextRam::fc_DECAVT,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECFI"),	&CTextRam::fc_FI,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECHTS"),	&CTextRam::fc_DECHTS,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECPAM"),	&CTextRam::fc_DECPAM,	NULL,	NULL,	TRACE_NON	},
-	{	_T("DECPNM"),	&CTextRam::fc_DECPNM,	NULL,	NULL,	TRACE_NON	},
-	{	_T("DECRC"),	&CTextRam::fc_RC,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECSC"),	&CTextRam::fc_SC,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECSOP"),	&CTextRam::fc_DECSOP,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECVTS"),	&CTextRam::fc_DECVTS,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DOCS"),		&CTextRam::fc_DOCS,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("EPA"),		&CTextRam::fc_EPA,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("ESA"),		&CTextRam::fc_ESA,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("ESCI"),		&CTextRam::fc_ESCI,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("HTJ"),		&CTextRam::fc_HTJ,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("HTS"),		&CTextRam::fc_HTS,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("IND"),		&CTextRam::fc_IND,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("LMA"),		&CTextRam::fc_LMA,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("LS1R"),		&CTextRam::fc_LS1R,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("LS2"),		&CTextRam::fc_LS2,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("LS2R"),		&CTextRam::fc_LS2R,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("LS3"),		&CTextRam::fc_LS3,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("LS3R"),		&CTextRam::fc_LS3R,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("NBH"),		&CTextRam::fc_NBH,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("NEL"),		&CTextRam::fc_NEL,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("NOP"),		&CTextRam::fc_POP,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("OSC"),		&CTextRam::fc_OSC,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("PLD"),		&CTextRam::fc_PLD,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("PLU"),		&CTextRam::fc_PLU,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("PM"),		&CTextRam::fc_PM,		NULL,	NULL,	TRACE_NON	},
-	{	_T("RI"),		&CTextRam::fc_RI,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("RIS"),		&CTextRam::fc_RIS,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("SCI"),		&CTextRam::fc_SCI,		NULL,	NULL,	TRACE_NON	},
-	{	_T("SOS"),		&CTextRam::fc_SOS,		NULL,	NULL,	TRACE_NON	},
-	{	_T("SPA"),		&CTextRam::fc_SPA,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("SS2"),		&CTextRam::fc_SS2,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("SS3"),		&CTextRam::fc_SS3,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("SSA"),		&CTextRam::fc_SSA,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("USR"),		&CTextRam::fc_USR,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("V5CUP"),	&CTextRam::fc_V5CUP,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("V5EX"),		&CTextRam::fc_V5EX,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("V5MCP"),	&CTextRam::fc_V5MCP,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("VTS"),		&CTextRam::fc_VTS,		NULL,	NULL,	TRACE_OUT	},
-	{	NULL,			NULL,					NULL,	NULL,	TRACE_OUT	} };
+	{	_T("ACS"),		&CTextRam::fc_ACS,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("APC"),		&CTextRam::fc_APC,		NULL,	PROCTYPE_ESC,	TRACE_NON	},
+	{	_T("BPH"),		&CTextRam::fc_BPH,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("CSC0"),		&CTextRam::fc_CSC0,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("CSC0A"),	&CTextRam::fc_CSC0A,	NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("CSC0W"),	&CTextRam::fc_CSC0W,	NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("CSC1"),		&CTextRam::fc_CSC1,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("CSC1A"),	&CTextRam::fc_CSC1A,	NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("CSC2"),		&CTextRam::fc_CSC2,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("CSC2A"),	&CTextRam::fc_CSC2A,	NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("CSC3"),		&CTextRam::fc_CSC3,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("CSC3A"),	&CTextRam::fc_CSC3A,	NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("CSI"),		&CTextRam::fc_CSI,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("DCS"),		&CTextRam::fc_DCS,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("DECBI"),	&CTextRam::fc_BI,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("DECCAHT"),	&CTextRam::fc_DECAHT,	NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("DECCAVT"),	&CTextRam::fc_DECAVT,	NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("DECFI"),	&CTextRam::fc_FI,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("DECHTS"),	&CTextRam::fc_DECHTS,	NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("DECPAM"),	&CTextRam::fc_DECPAM,	NULL,	PROCTYPE_ESC,	TRACE_NON	},
+	{	_T("DECPNM"),	&CTextRam::fc_DECPNM,	NULL,	PROCTYPE_ESC,	TRACE_NON	},
+	{	_T("DECRC"),	&CTextRam::fc_RC,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("DECSC"),	&CTextRam::fc_SC,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("DECSOP"),	&CTextRam::fc_DECSOP,	NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("DECVTS"),	&CTextRam::fc_DECVTS,	NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("DOCS"),		&CTextRam::fc_DOCS,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("EPA"),		&CTextRam::fc_EPA,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("ESA"),		&CTextRam::fc_ESA,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("ESCI"),		&CTextRam::fc_ESCI,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("HTJ"),		&CTextRam::fc_HTJ,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("HTS"),		&CTextRam::fc_HTS,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("IND"),		&CTextRam::fc_IND,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("LMA"),		&CTextRam::fc_LMA,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("LS1R"),		&CTextRam::fc_LS1R,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("LS2"),		&CTextRam::fc_LS2,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("LS2R"),		&CTextRam::fc_LS2R,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("LS3"),		&CTextRam::fc_LS3,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("LS3R"),		&CTextRam::fc_LS3R,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("NBH"),		&CTextRam::fc_NBH,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("NEL"),		&CTextRam::fc_NEL,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("NOP"),		&CTextRam::fc_POP,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("OSC"),		&CTextRam::fc_OSC,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("PLD"),		&CTextRam::fc_PLD,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("PLU"),		&CTextRam::fc_PLU,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("PM"),		&CTextRam::fc_PM,		NULL,	PROCTYPE_ESC,	TRACE_NON	},
+	{	_T("RI"),		&CTextRam::fc_RI,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("RIS"),		&CTextRam::fc_RIS,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("SCI"),		&CTextRam::fc_SCI,		NULL,	PROCTYPE_ESC,	TRACE_NON	},
+	{	_T("SOS"),		&CTextRam::fc_SOS,		NULL,	PROCTYPE_ESC,	TRACE_NON	},
+	{	_T("SPA"),		&CTextRam::fc_SPA,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("SS2"),		&CTextRam::fc_SS2,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("SS3"),		&CTextRam::fc_SS3,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("SSA"),		&CTextRam::fc_SSA,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("USR"),		&CTextRam::fc_USR,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("V5CUP"),	&CTextRam::fc_V5CUP,	NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("V5EX"),		&CTextRam::fc_V5EX,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("V5MCP"),	&CTextRam::fc_V5MCP,	NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("VTS"),		&CTextRam::fc_VTS,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+};
 
-static int	fc_CsiNameTabMax = 128;
+#define	CSINAMETABMAX	121
 static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
-	{	_T("C25LCT"),	&CTextRam::fc_C25LCT,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("CBT"),		&CTextRam::fc_CBT,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("CHA"),		&CTextRam::fc_CHA,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("CHT"),		&CTextRam::fc_CHT,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("CNL"),		&CTextRam::fc_CNL,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("CPL"),		&CTextRam::fc_CPL,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("CTC"),		&CTextRam::fc_CTC,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("CUB"),		&CTextRam::fc_CUB,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("CUD"),		&CTextRam::fc_CUD,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("CUF"),		&CTextRam::fc_CUF,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("CUP"),		&CTextRam::fc_CUP,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("CUU"),		&CTextRam::fc_CUU,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("CVT"),		&CTextRam::fc_CVT,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("DA1"),		&CTextRam::fc_DA1,		NULL,	NULL,	TRACE_NON	},
-	{	_T("DA2"),		&CTextRam::fc_DA2,		NULL,	NULL,	TRACE_NON	},
-	{	_T("DA3"),		&CTextRam::fc_DA3,		NULL,	NULL,	TRACE_NON	},
-	{	_T("DAQ"),		&CTextRam::fc_DAQ,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("DCH"),		&CTextRam::fc_DCH,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECAC"),	&CTextRam::fc_DECAC,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECATC"),	&CTextRam::fc_DECATC,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECCARA"),	&CTextRam::fc_DECCARA,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECCRA"),	&CTextRam::fc_DECCRA,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECDC"),	&CTextRam::fc_DECDC,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECDSR"),	&CTextRam::fc_DECDSR,	NULL,	NULL,	TRACE_NON	},
-	{	_T("DECEFR"),	&CTextRam::fc_DECEFR,	NULL,	NULL,	TRACE_NON	},
-	{	_T("DECELR"),	&CTextRam::fc_DECELR,	NULL,	NULL,	TRACE_NON	},
-	{	_T("DECERA"),	&CTextRam::fc_DECERA,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECFRA"),	&CTextRam::fc_DECFRA,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECIC"),	&CTextRam::fc_DECIC,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECINVM"),	&CTextRam::fc_DECINVM,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECLL"),	&CTextRam::fc_DECLL,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECMC"),	&CTextRam::fc_DECMC,	NULL,	NULL,	TRACE_NON	},
-	{	_T("DECPQPLFM"),&CTextRam::fc_DECPQPLFM,NULL,	NULL,	TRACE_NON	},
-	{	_T("DECPS"),	&CTextRam::fc_DECPS,	NULL,	NULL,	TRACE_NON	},
-	{	_T("DECRARA"),	&CTextRam::fc_DECRARA,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECRQCRA"),	&CTextRam::fc_DECRQCRA,	NULL,	NULL,	TRACE_NON	},
-	{	_T("DECRQDE"),	&CTextRam::fc_DECRQDE,	NULL,	NULL,	TRACE_NON	},
-	{	_T("DECRQLP"),	&CTextRam::fc_DECRQLP,	NULL,	NULL,	TRACE_NON	},
-	{	_T("DECRQM"),	&CTextRam::fc_DECRQM,	NULL,	NULL,	TRACE_NON	},
-	{	_T("DECRQMH"),	&CTextRam::fc_DECRQMH,	NULL,	NULL,	TRACE_NON	},
-	{	_T("DECRQPSR"),	&CTextRam::fc_DECRQPSR,	NULL,	NULL,	TRACE_NON	},
-	{	_T("DECRQTSR"),	&CTextRam::fc_DECRQTSR,	NULL,	NULL,	TRACE_NON	},
-	{	_T("DECRQUPSS"),&CTextRam::fc_DECRQUPSS,NULL,	NULL,	TRACE_NON	},
-	{	_T("DECRST"),	&CTextRam::fc_DECRST,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECSACE"),	&CTextRam::fc_DECSACE,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECSASD"),	&CTextRam::fc_DECSASD,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECSCA"),	&CTextRam::fc_DECSCA,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECSCL"),	&CTextRam::fc_DECSCL,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECSCPP"),	&CTextRam::fc_DECSCPP,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECSCUSR"),	&CTextRam::fc_DECSCUSR,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECSED"),	&CTextRam::fc_DECSED,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECSEL"),	&CTextRam::fc_DECSEL,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECSERA"),	&CTextRam::fc_DECSERA,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECSET"),	&CTextRam::fc_DECSET,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECSHTS"),	&CTextRam::fc_DECSHTS,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECSLE"),	&CTextRam::fc_DECSLE,	NULL,	NULL,	TRACE_NON	},
-	{	_T("DECSLPP"),	&CTextRam::fc_DECSLPP,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECSLRM"),	&CTextRam::fc_DECSLRM,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECSR"),	&CTextRam::fc_DECSR,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECSSDT"),	&CTextRam::fc_DECSSDT,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECSSL"),	&CTextRam::fc_DECSSL,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECST8C"),	&CTextRam::fc_DECST8C,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECSTBM"),	&CTextRam::fc_DECSTBM,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECSTGLT"),	&CTextRam::fc_DECSTGLT,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECSTR"),	&CTextRam::fc_DECSTR,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECSVTS"),	&CTextRam::fc_DECSVTS,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECTID"),	&CTextRam::fc_DECTID,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECTME"),	&CTextRam::fc_DECTME,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECTST"),	&CTextRam::fc_DECTST,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DL"),		&CTextRam::fc_DL,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("DSR"),		&CTextRam::fc_DSR,		NULL,	NULL,	TRACE_NON	},
-	{	_T("EA"),		&CTextRam::fc_EA,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("ECH"),		&CTextRam::fc_ECH,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("ED"),		&CTextRam::fc_ED,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("EF"),		&CTextRam::fc_EF,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("EL"),		&CTextRam::fc_EL,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("FNT"),		&CTextRam::fc_FNT,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("HPA"),		&CTextRam::fc_HPA,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("HPB"),		&CTextRam::fc_HPB,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("HPR"),		&CTextRam::fc_HPR,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("HVP"),		&CTextRam::fc_HVP,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("ICH"),		&CTextRam::fc_ICH,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("IL"),		&CTextRam::fc_IL,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("LINUX"),	&CTextRam::fc_LINUX,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("MC"),		&CTextRam::fc_MC,		NULL,	NULL,	TRACE_NON	},
-	{	_T("NOP"),		&CTextRam::fc_POP,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("NP"),		&CTextRam::fc_NP,		NULL,	NULL,	TRACE_NON	},
-	{	_T("ORGBFAT"),	&CTextRam::fc_ORGBFAT,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("ORGSCD"),	&CTextRam::fc_ORGSCD,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("PP"),		&CTextRam::fc_PP,		NULL,	NULL,	TRACE_NON	},
-	{	_T("PPA"),		&CTextRam::fc_PPA,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("PPB"),		&CTextRam::fc_PPB,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("PPR"),		&CTextRam::fc_PPR,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("REP"),		&CTextRam::fc_REP,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("REQTPARM"),	&CTextRam::fc_REQTPARM,	NULL,	NULL,	TRACE_NON	},
-	{	_T("RLIMGCP"),	&CTextRam::fc_RLIMGCP,	NULL,	NULL,	TRACE_NON	},
-	{	_T("RM"),		&CTextRam::fc_RM,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("SCORC"),	&CTextRam::fc_SCORC,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("SCOSC"),	&CTextRam::fc_SCOSC,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("SD"),		&CTextRam::fc_SD,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("SGR"),		&CTextRam::fc_SGR,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("SL"),		&CTextRam::fc_SL,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("SM"),		&CTextRam::fc_SM,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("SR"),		&CTextRam::fc_SR,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("SU"),		&CTextRam::fc_SU,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("TBC"),		&CTextRam::fc_TBC,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("TTIMERS"),	&CTextRam::fc_TTIMERS,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("TTIMEST"),	&CTextRam::fc_TTIMEST,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("TTIMESV"),	&CTextRam::fc_TTIMESV,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("VPA"),		&CTextRam::fc_VPA,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("VPB"),		&CTextRam::fc_VPB,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("VPR"),		&CTextRam::fc_VPR,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("XTCOLREG"),	&CTextRam::fc_XTCOLREG,	NULL,	NULL,	TRACE_NON	},
-	{	_T("XTHDPT"),	&CTextRam::fc_XTHDPT,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("XTMDKEY"),	&CTextRam::fc_XTMDKEY,	NULL,	NULL,	TRACE_NON	},
-	{	_T("XTMDKYD"),	&CTextRam::fc_XTMDKYD,	NULL,	NULL,	TRACE_NON	},
-	{	_T("XTREST"),	&CTextRam::fc_XTREST,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("XTRMTT"),	&CTextRam::fc_XTRMTT,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("XTSAVE"),	&CTextRam::fc_XTSAVE,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("XTSMTT"),	&CTextRam::fc_XTSMTT,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("XTWOP"),	&CTextRam::fc_XTWOP,	NULL,	NULL,	TRACE_NON	},
-	{	NULL,			NULL,					NULL,	NULL,	TRACE_OUT	} };
+	{	_T("C25LCT"),	&CTextRam::fc_C25LCT,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("CBT"),		&CTextRam::fc_CBT,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("CHA"),		&CTextRam::fc_CHA,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("CHT"),		&CTextRam::fc_CHT,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("CNL"),		&CTextRam::fc_CNL,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("CPL"),		&CTextRam::fc_CPL,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("CTC"),		&CTextRam::fc_CTC,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("CUB"),		&CTextRam::fc_CUB,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("CUD"),		&CTextRam::fc_CUD,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("CUF"),		&CTextRam::fc_CUF,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("CUP"),		&CTextRam::fc_CUP,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("CUU"),		&CTextRam::fc_CUU,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("CVT"),		&CTextRam::fc_CVT,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DA1"),		&CTextRam::fc_DA1,		NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DA2"),		&CTextRam::fc_DA2,		NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DA3"),		&CTextRam::fc_DA3,		NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DAQ"),		&CTextRam::fc_DAQ,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DCH"),		&CTextRam::fc_DCH,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECAC"),	&CTextRam::fc_DECAC,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECATC"),	&CTextRam::fc_DECATC,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECCARA"),	&CTextRam::fc_DECCARA,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECCRA"),	&CTextRam::fc_DECCRA,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECDC"),	&CTextRam::fc_DECDC,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECDSR"),	&CTextRam::fc_DECDSR,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DECEFR"),	&CTextRam::fc_DECEFR,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DECELR"),	&CTextRam::fc_DECELR,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DECERA"),	&CTextRam::fc_DECERA,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECFRA"),	&CTextRam::fc_DECFRA,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECIC"),	&CTextRam::fc_DECIC,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECINVM"),	&CTextRam::fc_DECINVM,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECLL"),	&CTextRam::fc_DECLL,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECMC"),	&CTextRam::fc_DECMC,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DECPQPLFM"),&CTextRam::fc_DECPQPLFM,NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DECPS"),	&CTextRam::fc_DECPS,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DECRARA"),	&CTextRam::fc_DECRARA,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECRQCRA"),	&CTextRam::fc_DECRQCRA,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DECRQDE"),	&CTextRam::fc_DECRQDE,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DECRQLP"),	&CTextRam::fc_DECRQLP,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DECRQM"),	&CTextRam::fc_DECRQM,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DECRQMH"),	&CTextRam::fc_DECRQMH,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DECRQPSR"),	&CTextRam::fc_DECRQPSR,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DECRQTSR"),	&CTextRam::fc_DECRQTSR,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DECRQUPSS"),&CTextRam::fc_DECRQUPSS,NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DECRST"),	&CTextRam::fc_DECRST,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSACE"),	&CTextRam::fc_DECSACE,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSASD"),	&CTextRam::fc_DECSASD,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSCA"),	&CTextRam::fc_DECSCA,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSCL"),	&CTextRam::fc_DECSCL,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSCPP"),	&CTextRam::fc_DECSCPP,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSCUSR"),	&CTextRam::fc_DECSCUSR,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSED"),	&CTextRam::fc_DECSED,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSEL"),	&CTextRam::fc_DECSEL,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSERA"),	&CTextRam::fc_DECSERA,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSET"),	&CTextRam::fc_DECSET,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSHTS"),	&CTextRam::fc_DECSHTS,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSLE"),	&CTextRam::fc_DECSLE,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DECSLPP"),	&CTextRam::fc_DECSLPP,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSLRM"),	&CTextRam::fc_DECSLRM,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSR"),	&CTextRam::fc_DECSR,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSSDT"),	&CTextRam::fc_DECSSDT,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSSL"),	&CTextRam::fc_DECSSL,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECST8C"),	&CTextRam::fc_DECST8C,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSTBM"),	&CTextRam::fc_DECSTBM,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSTGLT"),	&CTextRam::fc_DECSTGLT,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSTR"),	&CTextRam::fc_DECSTR,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSVTS"),	&CTextRam::fc_DECSVTS,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECTID"),	&CTextRam::fc_DECTID,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECTME"),	&CTextRam::fc_DECTME,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECTST"),	&CTextRam::fc_DECTST,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DL"),		&CTextRam::fc_DL,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DSR"),		&CTextRam::fc_DSR,		NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("EA"),		&CTextRam::fc_EA,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("ECH"),		&CTextRam::fc_ECH,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("ED"),		&CTextRam::fc_ED,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("EF"),		&CTextRam::fc_EF,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("EL"),		&CTextRam::fc_EL,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("FNT"),		&CTextRam::fc_FNT,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("HPA"),		&CTextRam::fc_HPA,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("HPB"),		&CTextRam::fc_HPB,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("HPR"),		&CTextRam::fc_HPR,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("HVP"),		&CTextRam::fc_HVP,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("ICH"),		&CTextRam::fc_ICH,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("IL"),		&CTextRam::fc_IL,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("LINUX"),	&CTextRam::fc_LINUX,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("MC"),		&CTextRam::fc_MC,		NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("NOP"),		&CTextRam::fc_POP,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("NP"),		&CTextRam::fc_NP,		NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("ORGBFAT"),	&CTextRam::fc_ORGBFAT,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("ORGSCD"),	&CTextRam::fc_ORGSCD,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("PP"),		&CTextRam::fc_PP,		NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("PPA"),		&CTextRam::fc_PPA,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("PPB"),		&CTextRam::fc_PPB,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("PPR"),		&CTextRam::fc_PPR,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("REP"),		&CTextRam::fc_REP,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("REQTPARM"),	&CTextRam::fc_REQTPARM,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("RLIMGCP"),	&CTextRam::fc_RLIMGCP,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("RM"),		&CTextRam::fc_RM,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("SCORC"),	&CTextRam::fc_SCORC,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("SCOSC"),	&CTextRam::fc_SCOSC,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("SD"),		&CTextRam::fc_SD,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("SGR"),		&CTextRam::fc_SGR,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("SL"),		&CTextRam::fc_SL,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("SM"),		&CTextRam::fc_SM,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("SR"),		&CTextRam::fc_SR,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("SU"),		&CTextRam::fc_SU,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("TBC"),		&CTextRam::fc_TBC,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("TTIMERS"),	&CTextRam::fc_TTIMERS,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("TTIMEST"),	&CTextRam::fc_TTIMEST,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("TTIMESV"),	&CTextRam::fc_TTIMESV,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("VPA"),		&CTextRam::fc_VPA,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("VPB"),		&CTextRam::fc_VPB,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("VPR"),		&CTextRam::fc_VPR,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("XTCOLREG"),	&CTextRam::fc_XTCOLREG,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("XTHDPT"),	&CTextRam::fc_XTHDPT,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("XTMDKEY"),	&CTextRam::fc_XTMDKEY,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("XTMDKYD"),	&CTextRam::fc_XTMDKYD,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("XTREST"),	&CTextRam::fc_XTREST,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("XTRMTT"),	&CTextRam::fc_XTRMTT,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("XTSAVE"),	&CTextRam::fc_XTSAVE,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("XTSMTT"),	&CTextRam::fc_XTSMTT,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("XTWOP"),	&CTextRam::fc_XTWOP,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
+};
 
-static int	fc_DcsNameTabMax = 11;
+#define	DCSNAMETABMAX	11
 static CTextRam::ESCNAMEPROC fc_DcsNameTab[] = {
-	{	_T("DECDLD"),	&CTextRam::fc_DECDLD,	NULL,	NULL,	TRACE_NON	},
-	{	_T("DECDMAC"),	&CTextRam::fc_DECDMAC,	NULL,	NULL,	TRACE_NON	},
-	{	_T("DECREGIS"),	&CTextRam::fc_DECREGIS, NULL,	NULL,	TRACE_NON	},
-	{	_T("DECRQSS"),	&CTextRam::fc_DECRQSS,	NULL,	NULL,	TRACE_NON	},
-	{	_T("DECRSPS"),	&CTextRam::fc_DECRSPS,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECRSTS"),	&CTextRam::fc_DECRSTS,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECSIXEL"),	&CTextRam::fc_DECSIXEL, NULL,	NULL,	TRACE_SIXEL	},
-	{	_T("DECSTUI"),	&CTextRam::fc_DECSTUI,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("DECUDK"),	&CTextRam::fc_DECUDK,	NULL,	NULL,	TRACE_NON	},
-	{	_T("NOP"),		&CTextRam::fc_POP,		NULL,	NULL,	TRACE_OUT	},
-	{	_T("XTRQCAP"),	&CTextRam::fc_XTRQCAP,	NULL,	NULL,	TRACE_NON	},
-	{	NULL,			NULL,					NULL,	NULL,	TRACE_OUT	} };
+	{	_T("DECDLD"),	&CTextRam::fc_DECDLD,	NULL,	PROCTYPE_DCS,	TRACE_NON	},
+	{	_T("DECDMAC"),	&CTextRam::fc_DECDMAC,	NULL,	PROCTYPE_DCS,	TRACE_NON	},
+	{	_T("DECREGIS"),	&CTextRam::fc_DECREGIS, NULL,	PROCTYPE_DCS,	TRACE_NON	},
+	{	_T("DECRQSS"),	&CTextRam::fc_DECRQSS,	NULL,	PROCTYPE_DCS,	TRACE_NON	},
+	{	_T("DECRSPS"),	&CTextRam::fc_DECRSPS,	NULL,	PROCTYPE_DCS,	TRACE_OUT	},
+	{	_T("DECRSTS"),	&CTextRam::fc_DECRSTS,	NULL,	PROCTYPE_DCS,	TRACE_OUT	},
+	{	_T("DECSIXEL"),	&CTextRam::fc_DECSIXEL, NULL,	PROCTYPE_DCS,	TRACE_SIXEL	},
+	{	_T("DECSTUI"),	&CTextRam::fc_DECSTUI,	NULL,	PROCTYPE_DCS,	TRACE_OUT	},
+	{	_T("DECUDK"),	&CTextRam::fc_DECUDK,	NULL,	PROCTYPE_DCS,	TRACE_NON	},
+	{	_T("NOP"),		&CTextRam::fc_POP,		NULL,	PROCTYPE_DCS,	TRACE_OUT	},
+	{	_T("XTRQCAP"),	&CTextRam::fc_XTRQCAP,	NULL,	PROCTYPE_DCS,	TRACE_NON	},
+};
 
-static int	fc_TekNameTabMax = 6;
+#define	TEKNAMETABMAX	6
 static CTextRam::ESCNAMEPROC fc_TekNameTab[] = {
-	{	_T("TEKDOWN"),	&CTextRam::fc_TEK_DOWN,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("TEKLEFT"),	&CTextRam::fc_TEK_LEFT,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("TEKMODE"),	&CTextRam::fc_TEK_MODE,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("TEKRIGHT"),	&CTextRam::fc_TEK_RIGHT,NULL,	NULL,	TRACE_OUT	},
-	{	_T("TEKSTAT"),	&CTextRam::fc_TEK_STAT,	NULL,	NULL,	TRACE_OUT	},
-	{	_T("TEKUP"),	&CTextRam::fc_TEK_UP,	NULL,	NULL,	TRACE_OUT	},
-	{	NULL,			NULL,					NULL,	NULL,	TRACE_OUT	} };
-
+	{	_T("TEKDOWN"),	&CTextRam::fc_TEK_DOWN,	NULL,	PROCTYPE_TEK,	TRACE_OUT	},
+	{	_T("TEKLEFT"),	&CTextRam::fc_TEK_LEFT,	NULL,	PROCTYPE_TEK,	TRACE_OUT	},
+	{	_T("TEKMODE"),	&CTextRam::fc_TEK_MODE,	NULL,	PROCTYPE_TEK,	TRACE_OUT	},
+	{	_T("TEKRIGHT"),	&CTextRam::fc_TEK_RIGHT,NULL,	PROCTYPE_TEK,	TRACE_OUT	},
+	{	_T("TEKSTAT"),	&CTextRam::fc_TEK_STAT,	NULL,	PROCTYPE_TEK,	TRACE_OUT	},
+	{	_T("TEKUP"),	&CTextRam::fc_TEK_UP,	NULL,	PROCTYPE_TEK,	TRACE_OUT	},
+};
 
 //////////////////////////////////////////////////////////////////////
 // CProcNode
@@ -903,6 +901,22 @@ CTraceNode::~CTraceNode()
 }
 
 //////////////////////////////////////////////////////////////////////
+// static function
+
+static int	ProcCodeCmp(const void *src, const void *dis)
+{
+	return (*((int *)src) - ((CTextRam::CSIEXTTAB *)dis)->code);
+}
+static int ProcNameCmp(const void *src, const void *dis)
+{
+	return _tcscmp((LPCTSTR)src, ((CTextRam::ESCNAMEPROC *)dis)->name);
+}
+static int x11ColCmp(const void *src, const void *dis)
+{
+	return _tcsicmp((LPCTSTR)src, ((struct _x11coltab *)dis)->name);
+}
+
+//////////////////////////////////////////////////////////////////////
 // CTextRam::fc_xxx
 
 void CTextRam::fc_Init_Proc(int stage, const PROCTAB *tp, int b)
@@ -932,49 +946,30 @@ void CTextRam::fc_Init_Proc(int stage, const PROCTAB *tp, int b)
 		}
 	}
 }
-static int fc_ProcNameCmp(const void *src, const void *dis)
+int CTextRam::fc_ProcHash(void (CTextRam::*proc)(DWORD ch))
 {
-	return _tcscmp(((CTextRam::ESCNAMEPROC *)src)->name, ((CTextRam::ESCNAMEPROC *)dis)->name);
-}
-static int	ExtTabCodeCmp(const void *src, const void *dis)
-{
-	return (*((int *)src) - ((CTextRam::CSIEXTTAB *)dis)->code);
-}
-CTextRam::ESCNAMEPROC *CTextRam::fc_InitProcName(CTextRam::ESCNAMEPROC *tab, int *max)
-{
-	int n, c;
-	ESCNAMEPROC *tp, *np, *bp = NULL;
+	int n, hash = 0;
+	union {
+		void (CTextRam::*proc)(DWORD ch);
+		BYTE byte[sizeof(void (CTextRam::*)(DWORD))];
+	} data;
 
-	//for ( n = 0 ; tab[n].name != NULL ; n++ );
-	//qsort(tab, n, sizeof(CTextRam::ESCNAMEPROC), fc_ProcNameCmp);
+	data.proc = proc;
+	for ( n = 0 ; n < sizeof(void (CTextRam::*)(int)) ; n++ )
+		hash += data.byte[n];
 
-	for ( n = 0 ; tab[n].name != NULL ; n++ ) {
-		np = &(tab[n]);
-		np->left = np->right = NULL;
-		if ( n == 0 ) {
-			bp = np;
-			continue;
-		}
-		for ( tp = bp ; ; ) {
-			if ( (c = memcmp(tp->data.byte, np->data.byte, sizeof(void (CTextRam::*)(int)))) == 0 )
-				break;
-			else if ( c < 0 ) {
-				if ( tp->left == NULL ) {
-					tp->left = np;
-					break;
-				} else
-					tp = tp->left;
-			} else {
-				if ( tp->right == NULL ) {
-					tp->right = np;
-					break;
-				} else
-					tp = tp->right;
-			}
-		}
+	return (hash & (PROCNAMEHASH - 1));
+}
+void CTextRam::fc_InitProcName(CTextRam::ESCNAMEPROC *tab, int max)
+{
+	int n, hash;
+
+	for ( n = 0 ; n < max ; n++ ) {
+		hash = fc_ProcHash(tab->data.proc);
+		tab->next = fc_pProcNameTab[hash];
+		fc_pProcNameTab[hash] = tab;
+		tab++;
 	}
-	*max = n;
-	return bp;
 }
 void CTextRam::fc_Init(int mode)
 {
@@ -1045,11 +1040,22 @@ void CTextRam::fc_Init(int mode)
 
 		fc_Init_Proc(STAGE_TEK, fc_TekTab);			// TEK
 
-		fc_pCtrlProc = fc_InitProcName(fc_CtrlNameTab, &fc_CtrlNameTabMax);
-		fc_pEscProc  = fc_InitProcName(fc_EscNameTab,  &fc_EscNameTabMax);
-		fc_pCsiProc  = fc_InitProcName(fc_CsiNameTab,  &fc_CsiNameTabMax);
-		fc_pDcsProc  = fc_InitProcName(fc_DcsNameTab,  &fc_DcsNameTabMax);
-		fc_pTekProc  = fc_InitProcName(fc_TekNameTab,  &fc_TekNameTabMax);
+		for ( i = 0 ; i < PROCNAMEHASH ; i++ )
+			fc_pProcNameTab[i] = NULL;
+
+		fc_InitProcName(fc_CtrlNameTab, CTRLNAMETABMAX);
+		fc_InitProcName(fc_EscNameTab,  ESCNAMETABMAX);
+		fc_InitProcName(fc_CsiNameTab,  CSINAMETABMAX);
+		fc_InitProcName(fc_DcsNameTab,  DCSNAMETABMAX);
+		fc_InitProcName(fc_TekNameTab,  TEKNAMETABMAX);
+
+		//for ( i = 0 ; i < PROCNAMEHASH ; i++ ) {
+		//	CTextRam::ESCNAMEPROC *tp;
+		//	tp = fc_pProcNameTab[i];
+		//	for ( n = 0 ; tp != NULL ; n++ )
+		//		tp = tp->next;
+		//	TRACE("%d = %d\n", i, n);
+		//}
 	}
 
 	memcpy(m_LocalProc[0], fc_Proc[STAGE_ESC], sizeof(m_LocalProc[0]));
@@ -1060,13 +1066,13 @@ void CTextRam::fc_Init(int mode)
 
 	m_CsiExt.RemoveAll();
 	for ( i = 0 ; fc_CsiExtTab[i].proc != NULL ; i++ ) {
-		if ( !BinaryFind((void *)&(fc_CsiExtTab[i].code), m_CsiExt.GetData(), sizeof(CSIEXTTAB), m_CsiExt.GetSize(), ExtTabCodeCmp, &n) )
+		if ( !BinaryFind((void *)&(fc_CsiExtTab[i].code), m_CsiExt.GetData(), sizeof(CSIEXTTAB), m_CsiExt.GetSize(), ProcCodeCmp, &n) )
 			m_CsiExt.InsertAt(n, (CTextRam::CSIEXTTAB)(fc_CsiExtTab[i]));
 	}
 
 	m_DcsExt.RemoveAll();
 	for ( i = 0 ; fc_DcsExtTab[i].proc != NULL ; i++ ) {
-		if ( !BinaryFind((void *)&(fc_DcsExtTab[i].code), m_DcsExt.GetData(), sizeof(CSIEXTTAB), m_DcsExt.GetSize(), ExtTabCodeCmp, &n) )
+		if ( !BinaryFind((void *)&(fc_DcsExtTab[i].code), m_DcsExt.GetData(), sizeof(CSIEXTTAB), m_DcsExt.GetSize(), ProcCodeCmp, &n) )
 			m_DcsExt.InsertAt(n, (CTextRam::CSIEXTTAB)(fc_DcsExtTab[i]));
 	}
 
@@ -1215,65 +1221,23 @@ void CTextRam::fc_TraceLogFlush(ESCNAMEPROC *pProc, BOOL bParam)
 }
 void CTextRam::fc_TraceCall(DWORD ch)
 {
-	int flag, mode;
 	CString tmp;
-	ESCNAMEPROC *tp = NULL;
-	static const BYTE stage_flag[] = {
-	//	flag					mode
-	//	001		fc_pCtrlProc	1
-	//	002		fc_pEscProc		2
-	//	004		fc_pCsiProc		3
-	//	010		fc_pDcsProc		4
+	ESCNAMEPROC *tp;
 
-		003,	// STAGE_ESC
-		007,	// STAGE_CSI
-		007,	// STAGE_EXT1
-		007,	// STAGE_EXT2
-		007,	// STAGE_EXT3
-		007,	// STAGE_EXT4
-		003,	// STAGE_EUC
-		000,	// STAGE_94X94
-		000,	// STAGE_96X96
-		001,	// STAGE_SJIS
-		000,	// STAGE_SJIS2
-		001,	// STAGE_BIG5
-		001,	// STAGE_BIG52
-		003,	// STAGE_UTF8
-		000,	// STAGE_UTF82
-		010,	// STAGE_OSC1
-		010,	// STAGE_OSC2
-		000,	// STAGE_TEK
-		003,	// STAGE_STAT
-		001,	// STAGE_GOTOXY
-	};
-
-	flag = stage_flag[m_Stage];
 	m_TraceFunc = m_Func[ch];
 	(this->*m_Func[ch])(ch);
+	tp = FindProcName(m_TraceFunc);
 
-	if      ( (flag & 001) != 0 && (tp = FindProcName(fc_pCtrlProc, m_TraceFunc)) != NULL )
-		mode = 1;
-	else if ( (flag & 002) != 0 && (tp = FindProcName(fc_pEscProc,  m_TraceFunc)) != NULL )
-		mode = 2;
-	else if ( (flag & 004) != 0 && (tp = FindProcName(fc_pCsiProc,  m_TraceFunc)) != NULL )
-		mode = 3;
-	else if ( (flag & 010) != 0 && (tp = FindProcName(fc_pDcsProc,  m_TraceFunc)) != NULL )
-		mode = 4;
-	else
-		mode = 0;
-
-	if ( (m_TraceLogMode & 002) != 0 ) {
-		if ( tp != NULL && m_pDocument->m_pLogFile != NULL && IsOptValue(TO_RLLOGMODE, 2) == LOGMOD_CTRL &&
+	if ( (m_TraceLogMode & 002) != 0 && tp != NULL && m_pDocument->m_pLogFile != NULL && IsOptValue(TO_RLLOGMODE, 2) == LOGMOD_CTRL &&
 				m_TraceFunc != &CTextRam::fc_BS  && m_TraceFunc != &CTextRam::fc_HT  && m_TraceFunc != &CTextRam::fc_LF  &&
 				m_TraceFunc != &CTextRam::fc_VT  && m_TraceFunc != &CTextRam::fc_FF  && m_TraceFunc != &CTextRam::fc_CR  &&
 				m_TraceFunc != &CTextRam::fc_ESC && m_TraceFunc != &CTextRam::fc_DCS && m_TraceFunc != &CTextRam::fc_CSI ) {
-			if ( mode == 3 || mode == 4 ) {
-				tmp = tp->name;
-				fc_TraceLogParam(tmp);
-				CallReciveChar(0x1B, tmp);
-			} else
-				CallReciveChar(0x1B, tp->name);
-		}
+		if ( tp->type == PROCTYPE_CSI || tp->type == PROCTYPE_DCS ) {
+			tmp = tp->name;
+			fc_TraceLogParam(tmp);
+			CallReciveChar(0x1B, tmp);
+		} else
+			CallReciveChar(0x1B, tp->name);
 	}
 
 	if ( (m_TraceLogMode & 001) == 0 )
@@ -1284,32 +1248,43 @@ void CTextRam::fc_TraceCall(DWORD ch)
 		fc_TraceLogFlush(m_pTraceProc, FALSE);
 		m_pTraceProc = NULL;
 
-	} else if ( mode == 1 ) {				// CTRL
-		if ( m_TraceFunc == &CTextRam::fc_ESC ) {
-			fc_TraceLogFlush(NULL, FALSE);
-			fc_TraceLogChar(ch);
-		} else {
-			fc_TraceLogChar(ch);
-			fc_TraceLogFlush(tp, FALSE);
-		}
-
-	} else if ( mode == 2 ) {				// ESC
-		if ( m_Stage == STAGE_STAT || m_Stage == STAGE_GOTOXY ) {
-			fc_TraceLogChar(ch);
-			m_pTraceProc = tp;
-		} else if ( m_TraceFunc != &CTextRam::fc_DCS && m_TraceFunc != &CTextRam::fc_CSI && 
-				    m_TraceFunc != &CTextRam::fc_OSC && m_TraceFunc != &CTextRam::fc_PM  && m_TraceFunc != &CTextRam::fc_APC ) {
-			fc_TraceLogChar(ch);
-			fc_TraceLogFlush(tp, FALSE);
-		} else
-			fc_TraceLogChar(ch);
-
-	} else if ( mode == 3 || mode == 4 ) {	// CSI or DCS
+	} else if ( tp == NULL ) {
 		fc_TraceLogChar(ch);
-		fc_TraceLogFlush(tp, TRUE);
 
 	} else {
-		fc_TraceLogChar(ch);
+		switch(tp->type) {
+		case PROCTYPE_ESC:
+			if ( m_Stage == STAGE_STAT || m_Stage == STAGE_GOTOXY ) {
+				fc_TraceLogChar(ch);
+				m_pTraceProc = tp;
+			} else if ( m_TraceFunc != &CTextRam::fc_DCS && m_TraceFunc != &CTextRam::fc_CSI && 
+						m_TraceFunc != &CTextRam::fc_OSC && m_TraceFunc != &CTextRam::fc_PM  && m_TraceFunc != &CTextRam::fc_APC ) {
+				fc_TraceLogChar(ch);
+				fc_TraceLogFlush(tp, FALSE);
+			} else
+				fc_TraceLogChar(ch);
+			break;
+
+		case PROCTYPE_CSI:
+		case PROCTYPE_DCS:
+			fc_TraceLogChar(ch);
+			fc_TraceLogFlush(tp, TRUE);
+			break;
+
+		case PROCTYPE_CTRL:
+			if ( m_TraceFunc == &CTextRam::fc_ESC ) {
+				fc_TraceLogFlush(NULL, FALSE);
+				fc_TraceLogChar(ch);
+			} else {
+				fc_TraceLogChar(ch);
+				fc_TraceLogFlush(tp, FALSE);
+			}
+			break;
+
+		case PROCTYPE_TEK:
+			fc_TraceLogChar(ch);
+			break;
+		}
 	}
 }
 
@@ -1330,32 +1305,28 @@ inline void CTextRam::fc_Push(int stage)
 //////////////////////////////////////////////////////////////////////
 // ESC/CSI Proc Name Func...
 
-CTextRam::ESCNAMEPROC *CTextRam::FindProcName(ESCNAMEPROC *top, void (CTextRam::*proc)(DWORD ch))
+CTextRam::ESCNAMEPROC *CTextRam::FindProcName(void (CTextRam::*proc)(DWORD ch))
 {
-	int c;
-	ESCNAMEPROC tmp;
+	int hash = fc_ProcHash(proc);
+	ESCNAMEPROC *tp;
+	union {
+		void (CTextRam::*proc)(DWORD ch);
+		BYTE byte[sizeof(void (CTextRam::*)(DWORD))];
+	} data;
 
-	tmp.data.proc = proc;
-	while ( top != NULL ) {
-		if ( (c = memcmp(top->data.byte, tmp.data.byte, sizeof(void (CTextRam::*)(int)))) == 0 )
-			return top;
-		else if ( c < 0 )
-			top = top->left;
-		else
-			top = top->right;
+	data.proc = proc;
+	for ( tp = fc_pProcNameTab[hash] ;  tp != NULL ; tp = tp->next ) {
+		if ( memcmp(tp->data.byte, data.byte, sizeof(void (CTextRam::*)(int))) == 0 )
+			return tp;
 	}
 	return NULL;
-}
-static int NameProcCmp(const void *src, const void *dis)
-{
-	return _tcscmp((LPCTSTR)src, ((CTextRam::ESCNAMEPROC *)dis)->name);
 }
 void CTextRam::EscNameProc(DWORD ch, LPCTSTR name)
 {
 	int n;
 	void (CTextRam::*proc)(DWORD) = &CTextRam::fc_POP;
 
-	if ( BinaryFind((void *)name, (void *)fc_EscNameTab, sizeof(ESCNAMEPROC), fc_EscNameTabMax, NameProcCmp, &n) )
+	if ( BinaryFind((void *)name, (void *)fc_EscNameTab, sizeof(ESCNAMEPROC), ESCNAMETABMAX, ProcNameCmp, &n) )
 		proc = fc_EscNameTab[n].data.proc;
 
 	m_LocalProc[0][ch] = proc;
@@ -1365,14 +1336,14 @@ LPCTSTR	CTextRam::EscProcName(void (CTextRam::*proc)(DWORD ch))
 {
 	ESCNAMEPROC *tp;
 
-	if ( (tp = FindProcName(fc_pEscProc, proc)) == NULL )
+	if ( (tp = FindProcName(proc)) == NULL || tp->type != PROCTYPE_ESC )
 		return _T("NOP");
 
 	return tp->name;
 }
 void CTextRam::SetEscNameCombo(CComboBox *pCombo)
 {
-	for ( int n = 0 ; n < fc_EscNameTabMax ; n++ )
+	for ( int n = 0 ; n < ESCNAMETABMAX ; n++ )
 		pCombo->AddString(fc_EscNameTab[n].name);
 }
 
@@ -1382,7 +1353,7 @@ void CTextRam::CsiNameProc(int code, LPCTSTR name)
 	void (CTextRam::*proc)(DWORD) = &CTextRam::fc_POP;
 	CSIEXTTAB tmp;
 
-	if ( BinaryFind((void *)name, (void *)fc_CsiNameTab, sizeof(ESCNAMEPROC), fc_CsiNameTabMax, NameProcCmp, &n) )
+	if ( BinaryFind((void *)name, (void *)fc_CsiNameTab, sizeof(ESCNAMEPROC), CSINAMETABMAX, ProcNameCmp, &n) )
 		proc = fc_CsiNameTab[n].data.proc;
 
 	switch(code & 0x7F7F00) {
@@ -1403,7 +1374,7 @@ void CTextRam::CsiNameProc(int code, LPCTSTR name)
 		m_LocalProc[4][code & 0x7F | 0x80] = proc;
 		break;
 	default:
-		if ( BinaryFind((void *)&code, m_CsiExt.GetData(), sizeof(CSIEXTTAB), m_CsiExt.GetSize(), ExtTabCodeCmp, &n) )
+		if ( BinaryFind((void *)&code, m_CsiExt.GetData(), sizeof(CSIEXTTAB), m_CsiExt.GetSize(), ProcCodeCmp, &n) )
 			m_CsiExt[n].proc = proc;
 		else {
 			tmp.code = code;
@@ -1417,14 +1388,14 @@ LPCTSTR	CTextRam::CsiProcName(void (CTextRam::*proc)(DWORD ch))
 {
 	ESCNAMEPROC *tp;
 
-	if ( (tp = FindProcName(fc_pCsiProc, proc)) == NULL )
+	if ( (tp = FindProcName(proc)) == NULL || tp->type != PROCTYPE_CSI )
 		return _T("NOP");
 
 	return tp->name;
 }
 void CTextRam::SetCsiNameCombo(CComboBox *pCombo)
 {
-	for ( int n = 0 ; n < fc_CsiNameTabMax ; n++ )
+	for ( int n = 0 ; n < CSINAMETABMAX ; n++ )
 		pCombo->AddString(fc_CsiNameTab[n].name);
 }
 
@@ -1434,10 +1405,10 @@ void CTextRam::DcsNameProc(int code, LPCTSTR name)
 	void (CTextRam::*proc)(DWORD) = &CTextRam::fc_POP;
 	CSIEXTTAB tmp;
 
-	if ( BinaryFind((void *)name, (void *)fc_DcsNameTab, sizeof(ESCNAMEPROC), fc_DcsNameTabMax, NameProcCmp, &n) )
+	if ( BinaryFind((void *)name, (void *)fc_DcsNameTab, sizeof(ESCNAMEPROC), DCSNAMETABMAX, ProcNameCmp, &n) )
 		proc = fc_DcsNameTab[n].data.proc;
 
-	if ( BinaryFind((void *)&code, m_DcsExt.GetData(), sizeof(CSIEXTTAB), m_DcsExt.GetSize(), ExtTabCodeCmp, &n) )
+	if ( BinaryFind((void *)&code, m_DcsExt.GetData(), sizeof(CSIEXTTAB), m_DcsExt.GetSize(), ProcCodeCmp, &n) )
 		m_DcsExt[n].proc = proc;
 	else {
 		tmp.code = code;
@@ -1449,14 +1420,14 @@ LPCTSTR	CTextRam::DcsProcName(void (CTextRam::*proc)(DWORD ch))
 {
 	ESCNAMEPROC *tp;
 
-	if ( (tp = FindProcName(fc_pDcsProc, proc)) == NULL )
+	if ( (tp = FindProcName(proc)) == NULL || tp->type != PROCTYPE_DCS )
 		return _T("NOP");
 
 	return tp->name;
 }
 void CTextRam::SetDcsNameCombo(CComboBox *pCombo)
 {
-	for ( int n = 0 ; n < fc_DcsNameTabMax ; n++ )
+	for ( int n = 0 ; n < DCSNAMETABMAX ; n++ )
 		pCombo->AddString(fc_DcsNameTab[n].name);
 }
 
@@ -1507,12 +1478,8 @@ void CTextRam::EscCsiDefName(LPCTSTR *esc, LPCTSTR *csi,  LPCTSTR *dcs)
 	}
 }
 
-#include "x11coltab.h"
+//////////////////////////////////////////////////////////////////////
 
-static int x11ColCmp(const void *src, const void *dis)
-{
-	return _tcsicmp((LPCTSTR)src, ((struct _x11coltab *)dis)->name);
-}
 void CTextRam::ParseColor(int cmd, int idx, LPCTSTR para, DWORD ch)
 {
 	int n, r, g, b;
@@ -1667,7 +1634,7 @@ static const WORD UnDefEuc2[] = {	// 48	EUCJP-MS-2
 	0xABBC, 0xABBD, 0xABC4, 0xABC5, 0xABF8, 0xB0A1, 0xEDE4, 0xF3F3, 
 };
 
-static int IsKanjiCode(WORD code, const WORD *tab, int len)
+int CTextRam::IsKanjiCode(WORD code, const WORD *tab, int len)
 {
 	int n, b, m;
 
@@ -1684,27 +1651,153 @@ static int IsKanjiCode(WORD code, const WORD *tab, int len)
 	}
 	return ((b - 1) & 1);
 }
+void CTextRam::KanjiCodeInit(KANCODEWORK *work)
+{
+	work->sjis_st = work->euc_st = work->utf8_st = 0;
+	work->sjis_bk = work->euc_bk = 0;
+	work->sjis_rs = work->euc_rs = work->utf8_rs = 0.5;
+}
+void CTextRam::KanjiCodeCheck(int ch, KANCODEWORK *work)
+{
+
+#define	POSITIVE(r)		(1.0 - (1.0 - (r)) * 0.9)
+#define	HPOSITIVE(r)	(1.0 - (1.0 - (r)) * 0.99)
+#define	NEGATIVE(r)		((r) * 0.7)
+
+	// SJIS
+	// 1 Byte	0x81 - 0x9F or 0xE0 - 0xFC or 0xA0-0xDF
+	// 2 Byte	0x40 - 0x7E or 0x80 - 0xFC
+	switch(work->sjis_st) {
+	case 0:
+		work->sjis_bk = ch;
+		if ( issjis1(ch) )
+			work->sjis_st = 1;
+		else if ( iskana(ch) )
+			work->sjis_rs = HPOSITIVE(work->sjis_rs);
+		else if ( (ch & 0x80) != 0 )
+			work->sjis_rs = NEGATIVE(work->sjis_rs);
+		break;
+	case 1:
+		work->sjis_st = 0;
+		if ( issjis2(ch) && IsKanjiCode((work->sjis_bk << 8) | ch, UnDefCp932, 47) )
+			work->sjis_rs = POSITIVE(work->sjis_rs);
+		else
+			work->sjis_rs = NEGATIVE(work->sjis_rs);
+		break;
+	}
+
+	// EUC
+	// 1 Byte	0xA1 - 0xFE		or 0x8F			or 0x8E
+	// 2 Byte	0xA1 - 0xFE		0xA1 - 0xFE		0xA0 - 0xDF
+	// 3 Byte					0xA1 - 0xFE
+
+	switch(work->euc_st) {
+	case 0:
+		work->euc_bk = ch;
+		if ( ch >= 0xA1 && ch <= 0xFE )
+			work->euc_st = 1;
+		else if ( ch == 0x8E )
+			work->euc_st = 4;
+		else if ( ch == 0x8F )
+			work->euc_st = 2;
+		else if ( (ch & 0x80) != 0 )
+			work->euc_rs = NEGATIVE(work->euc_rs);
+		break;
+	case 1:		// EUCJP-MS-1	2 Byte
+		work->euc_st = 0;
+		if ( ch >= 0xA1 && ch <= 0xFE && IsKanjiCode((work->euc_bk << 8) | ch, UnDefEuc1, 42) )
+			work->euc_rs = POSITIVE(work->euc_rs);
+		else
+			work->euc_rs = NEGATIVE(work->euc_rs);
+		break;
+	case 2:		// EUCJP-MS-2	1 Byte
+		work->euc_bk = ch;
+		if ( ch >= 0xA1 && ch <= 0xFE )
+			work->euc_st = 3;
+		else {
+			work->euc_st = 0;
+			work->euc_rs = NEGATIVE(work->euc_rs);
+		}
+		break;
+	case 3:		// EUCJP-MS-2	2 Byte
+		work->euc_st = 0;
+		if ( ch >= 0xA1 && ch <= 0xFE && IsKanjiCode((work->euc_bk << 8) | ch, UnDefEuc2, 48) )
+			work->euc_rs = POSITIVE(work->euc_rs);
+		else
+			work->euc_rs = NEGATIVE(work->euc_rs);
+		break;
+	case 4:		// Kana
+		work->euc_st = 0;
+		if ( ch >= 0xA0 && ch <= 0xDF )
+			work->euc_rs = POSITIVE(work->euc_rs);
+		else
+			work->euc_rs = NEGATIVE(work->euc_rs);
+		break;
+	}
+
+	// UTF-8
+	// 1 Byte	0xC0 - 0xDF(2 Byte) or	0xE0 - 0xEF(3 Byte) or	0xF0 - 0xF7(4 Byte)	or	0xFE - 0xFF(2 Byte)
+	// 2 Byte	0x80 - 0xBF
+
+	switch(work->utf8_st) {
+	case 0:
+		if ( ch >= 0xC0 && ch <= 0xDF )
+			work->utf8_st = 3;
+		else if ( ch >= 0xE0 && ch <= 0xEF )
+			work->utf8_st = 2;
+		else if ( ch >= 0xF0 && ch <= 0xF7 )
+			work->utf8_st = 1;
+		else if ( ch >= 0xFE && ch <= 0xFF )
+			work->utf8_st = 4;
+		else if ( (ch & 0x80) != 0 )
+			work->utf8_rs = NEGATIVE(work->utf8_rs);
+		break;
+	case 1:
+		if ( ch >= 0x80 && ch <= 0xBF )
+			work->utf8_st = 2;
+		else {
+			work->utf8_st = 0;
+			work->utf8_rs = NEGATIVE(work->utf8_rs);
+		}
+		break;
+	case 2:
+		if ( ch >= 0x80 && ch <= 0xBF )
+			work->utf8_st = 3;
+		else {
+			work->utf8_st = 0;
+			work->utf8_rs = NEGATIVE(work->utf8_rs);
+		}
+		break;
+	case 3:
+		work->utf8_st = 0;
+		if ( ch >= 0x80 && ch <= 0xBF )
+			work->utf8_rs = POSITIVE(work->utf8_rs);
+		else
+			work->utf8_rs = NEGATIVE(work->utf8_rs);
+		break;
+	case 4:
+		work->utf8_st = 0;
+		if ( ch >= 0xFE && ch <= 0xFF )
+			work->utf8_rs = POSITIVE(work->utf8_rs);
+		else
+			work->utf8_rs = NEGATIVE(work->utf8_rs);
+		break;
+	}
+}
+
 void CTextRam::fc_KANJI(DWORD ch)
 {
 	if ( ch >= 128 || m_Kan_Buf[(m_Kan_Pos - 1) & (KANBUFMAX - 1)] >= 128 ) {
 		m_Kan_Buf[m_Kan_Pos++] = ch; 
 		m_Kan_Pos &= (KANBUFMAX - 1);
-//		if ( m_Kan_Pos == 0 ) fc_KANCHK();
 	}
 }
 void CTextRam::fc_KANCHK()
 {
 	int n, ch, skip = 1;
-	int sjis_st = 0, sjis_bk = 0;
-	int euc_st = 0, euc_bk = 0;
-	int utf8_st = 0;
-	double sjis_rs = 0.5;
-	double euc_rs = 0.5;
-	double utf8_rs = 0.5;
+	KANCODEWORK work;
 
-#define	POSITIVE(r)		(1.0 - (1.0 - (r)) * 0.9)
-#define	HPOSITIVE(r)	(1.0 - (1.0 - (r)) * 0.99)
-#define	NEGATIVE(r)		((r) * 0.7)
+	KanjiCodeInit(&work);
 
 	for ( n = m_Kan_Pos + 1; n != m_Kan_Pos ; n = (n + 1) & (KANBUFMAX - 1) ) {
 		ch = m_Kan_Buf[n];
@@ -1713,134 +1806,16 @@ void CTextRam::fc_KANCHK()
 			continue;
 		skip = 0;
 
-		// SJIS
-		// 1 Byte	0x81 - 0x9F or 0xE0 - 0xFC or 0xA0-0xDF
-		// 2 Byte	0x40 - 0x7E or 0x80 - 0xFC
-		switch(sjis_st) {
-		case 0:
-			sjis_bk = ch;
-			if ( issjis1(ch) )
-				sjis_st = 1;
-			else if ( iskana(ch) )
-				sjis_rs = HPOSITIVE(sjis_rs);
-			else if ( (ch & 0x80) != 0 )
-				sjis_rs = NEGATIVE(sjis_rs);
-			break;
-		case 1:
-			sjis_st = 0;
-			if ( issjis2(ch) && IsKanjiCode((sjis_bk << 8) | ch, UnDefCp932, 47) )
-				sjis_rs = POSITIVE(sjis_rs);
-			else
-				sjis_rs = NEGATIVE(sjis_rs);
-			break;
-		}
-
-		// EUC
-		// 1 Byte	0xA1 - 0xFE		or 0x8F			or 0x8E
-		// 2 Byte	0xA1 - 0xFE		0xA1 - 0xFE		0xA0 - 0xDF
-		// 3 Byte					0xA1 - 0xFE
-
-		switch(euc_st) {
-		case 0:
-			euc_bk = ch;
-			if ( ch >= 0xA1 && ch <= 0xFE )
-				euc_st = 1;
-			else if ( ch == 0x8E )
-				euc_st = 4;
-			else if ( ch == 0x8F )
-				euc_st = 2;
-			else if ( (ch & 0x80) != 0 )
-				euc_rs = NEGATIVE(euc_rs);
-			break;
-		case 1:		// EUCJP-MS-1	2 Byte
-			euc_st = 0;
-			if ( ch >= 0xA1 && ch <= 0xFE && IsKanjiCode((euc_bk << 8) | ch, UnDefEuc1, 42) )
-				euc_rs = POSITIVE(euc_rs);
-			else
-				euc_rs = NEGATIVE(euc_rs);
-			break;
-		case 2:		// EUCJP-MS-2	1 Byte
-			euc_bk = ch;
-			if ( ch >= 0xA1 && ch <= 0xFE )
-				euc_st = 3;
-			else {
-				euc_st = 0;
-				euc_rs = NEGATIVE(euc_rs);
-			}
-			break;
-		case 3:		// EUCJP-MS-2	2 Byte
-			euc_st = 0;
-			if ( ch >= 0xA1 && ch <= 0xFE && IsKanjiCode((euc_bk << 8) | ch, UnDefEuc2, 48) )
-				euc_rs = POSITIVE(euc_rs);
-			else
-				euc_rs = NEGATIVE(euc_rs);
-			break;
-		case 4:		// Kana
-			euc_st = 0;
-			if ( ch >= 0xA0 && ch <= 0xDF )
-				euc_rs = POSITIVE(euc_rs);
-			else
-				euc_rs = NEGATIVE(euc_rs);
-			break;
-		}
-
-		// UTF-8
-		// 1 Byte	0xC0 - 0xDF(2 Byte) or	0xE0 - 0xEF(3 Byte) or	0xF0 - 0xF7(4 Byte)	or	0xFE - 0xFF(2 Byte)
-		// 2 Byte	0x80 - 0xBF
-
-		switch(utf8_st) {
-		case 0:
-			if ( ch >= 0xC0 && ch <= 0xDF )
-				utf8_st = 3;
-			else if ( ch >= 0xE0 && ch <= 0xEF )
-				utf8_st = 2;
-			else if ( ch >= 0xF0 && ch <= 0xF7 )
-				utf8_st = 1;
-			else if ( ch >= 0xFE && ch <= 0xFF )
-				utf8_st = 4;
-			else if ( (ch & 0x80) != 0 )
-				utf8_rs = NEGATIVE(utf8_rs);
-			break;
-		case 1:
-			if ( ch >= 0x80 && ch <= 0xBF )
-				utf8_st = 2;
-			else {
-				utf8_st = 0;
-				utf8_rs = NEGATIVE(utf8_rs);
-			}
-			break;
-		case 2:
-			if ( ch >= 0x80 && ch <= 0xBF )
-				utf8_st = 3;
-			else {
-				utf8_st = 0;
-				utf8_rs = NEGATIVE(utf8_rs);
-			}
-			break;
-		case 3:
-			utf8_st = 0;
-			if ( ch >= 0x80 && ch <= 0xBF )
-				utf8_rs = POSITIVE(utf8_rs);
-			else
-				utf8_rs = NEGATIVE(utf8_rs);
-			break;
-		case 4:
-			utf8_st = 0;
-			if ( ch >= 0xFE && ch <= 0xFF )
-				utf8_rs = POSITIVE(utf8_rs);
-			else
-				utf8_rs = NEGATIVE(utf8_rs);
-			break;
-		}
+		KanjiCodeCheck(ch, &work);
 	}
 
-	TRACE("SJIS %f, EUC %f, UTF8 %f\n", sjis_rs, euc_rs, utf8_rs);
+	TRACE("SJIS %f, EUC %f, UTF8 %f\n", work.sjis_rs, work.euc_rs, work.utf8_rs);
 
-	if ( sjis_rs > 0.7 && sjis_rs > euc_rs && sjis_rs > utf8_rs )
+	if ( work.sjis_rs > 0.7 && work.sjis_rs > work.euc_rs && work.sjis_rs > work.utf8_rs )
 		n = SJIS_SET;
-	else if ( euc_rs > 0.7 && euc_rs > sjis_rs && euc_rs > utf8_rs )
+	else if ( work.euc_rs > 0.7 && work.euc_rs > work.sjis_rs && work.euc_rs > work.utf8_rs )
 		n = EUC_SET;
-	else if ( utf8_rs > 0.7 && utf8_rs > sjis_rs && utf8_rs > euc_rs )
+	else if ( work.utf8_rs > 0.7 && work.utf8_rs > work.sjis_rs && work.utf8_rs > work.euc_rs )
 		n = UTF8_SET;
 	else
 		n = m_KanjiMode;
@@ -3076,7 +3051,7 @@ void CTextRam::fc_OSC_CMD(DWORD ch)
 
 			int n;
 			CString tmp;
-			if ( m_OscMode == 'P' && BinaryFind((void *)&m_BackChar, m_DcsExt.GetData(), sizeof(CSIEXTTAB), m_DcsExt.GetSize(), ExtTabCodeCmp, &n) && m_DcsExt[n].proc == &CTextRam::fc_DECSIXEL ) {
+			if ( m_OscMode == 'P' && BinaryFind((void *)&m_BackChar, m_DcsExt.GetData(), sizeof(CSIEXTTAB), m_DcsExt.GetSize(), ProcCodeCmp, &n) && m_DcsExt[n].proc == &CTextRam::fc_DECSIXEL ) {
 				tmp.Format(_T("Sixel - %s"), m_pDocument->m_ServerEntry.m_EntryName);
 				if ( m_pWorkGrapWnd != NULL )
 					m_pWorkGrapWnd->DestroyWindow();
@@ -3144,7 +3119,7 @@ void CTextRam::fc_OSC_ST(DWORD ch)
 
 	switch(m_OscMode) {
 	case 'P':	// DCS
-		if ( BinaryFind((void *)&m_BackChar, m_DcsExt.GetData(), sizeof(CSIEXTTAB), m_DcsExt.GetSize(), ExtTabCodeCmp, &n) ) {
+		if ( BinaryFind((void *)&m_BackChar, m_DcsExt.GetData(), sizeof(CSIEXTTAB), m_DcsExt.GetSize(), ProcCodeCmp, &n) ) {
 			m_TraceFunc = m_DcsExt[n].proc;
 			(this->*m_DcsExt[n].proc)(ch);
 		} else
@@ -6387,8 +6362,8 @@ void CTextRam::fc_DECSCUSR(DWORD ch)
 	// case 5:		// Blink Vertical
 	// case 6:		// Steady Vertical
 
-	if ( (m_TypeCaret = GetAnsiPara(0, 0, 0, 7)) > 6 )
-		m_TypeCaret = 0;
+	if ( (m_TypeCaret = GetAnsiPara(0, 0, 0, 7)) > 6 || m_TypeCaret == 0 )
+		m_TypeCaret = m_DefTypeCaret;
 
 	switch(m_TypeCaret) {
 	case 0:
@@ -6448,7 +6423,7 @@ void CTextRam::fc_CSI_ETC(DWORD ch)
 	int n;
 	int d = (m_BackChar | ch) & 0x7F7F7F7F;
 
-	if ( BinaryFind((void *)&d, m_CsiExt.GetData(), sizeof(CSIEXTTAB), m_CsiExt.GetSize(), ExtTabCodeCmp, &n) ) {
+	if ( BinaryFind((void *)&d, m_CsiExt.GetData(), sizeof(CSIEXTTAB), m_CsiExt.GetSize(), ProcCodeCmp, &n) ) {
 		m_TraceFunc = m_CsiExt[n].proc;
 		(this->*m_CsiExt[n].proc)(ch);
 	} else

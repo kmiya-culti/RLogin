@@ -653,6 +653,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_WM_COPYDATA()
 	ON_WM_ENTERMENULOOP()
 	ON_WM_ACTIVATE()
+	ON_WM_CLOSE()
 
 	ON_MESSAGE(WM_SOCKSEL, OnWinSockSelect)
 	ON_MESSAGE(WM_GETHOSTADDR, OnGetHostAddr)
@@ -689,7 +690,11 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_COMMAND_RANGE(IDM_WINDOW_SEL0, IDM_WINDOW_SEL9, &CMainFrame::OnWinodwSelect)
 
 	ON_UPDATE_COMMAND_UI(ID_INDICATOR_SOCK, OnUpdateIndicatorSock)
-	ON_WM_CLOSE()
+
+	ON_COMMAND(IDM_VERSIONCHECK, &CMainFrame::OnVersioncheck)
+	ON_UPDATE_COMMAND_UI(IDM_VERSIONCHECK, &CMainFrame::OnUpdateVersioncheck)
+	ON_COMMAND(IDM_NEWVERSIONFOUND, &CMainFrame::OnNewVersionFound)
+
 END_MESSAGE_MAP()
 
 static const UINT indicators[] =
@@ -728,6 +733,7 @@ CMainFrame::CMainFrame()
 	m_InfoThreadCount = 0;
 	m_SplitType = PANEFRAME_WSPLIT;
 	m_StartMenuHand = NULL;
+	m_bVersionCheck = FALSE;
 }
 
 CMainFrame::~CMainFrame()
@@ -893,6 +899,7 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		m_SleepTimer = SetTimer(TIMERID_SLEEPMODE, 5000, NULL);
 
 	m_ScrollBarFlag = AfxGetApp()->GetProfileInt(_T("ChildFrame"), _T("VScroll"), TRUE);
+	m_bVersionCheck = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("VersionCheckFlag"), FALSE);
 
 	ExDwmEnableWindow(m_hWnd, AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("GlassStyle"), FALSE));
 
@@ -1597,7 +1604,7 @@ void CMainFrame::AdjustRect(CRect &rect)
 	rect.bottom += m_Frame.top;
 }
 
-BOOL CALLBACK RLoginExecCountFunc(HWND hwnd, LPARAM lParam)
+static BOOL CALLBACK RLoginExecCountFunc(HWND hwnd, LPARAM lParam)
 {
 	CMainFrame *pMain = (CMainFrame *)lParam;
 	TCHAR title[1024];
@@ -1614,6 +1621,89 @@ int CMainFrame::GetExecCount()
 	m_ExecCount = 0;
 	::EnumWindows(RLoginExecCountFunc, (LPARAM)this);
 	return m_ExecCount;
+}
+
+static UINT VersionCheckThead(LPVOID pParam)
+{
+	CMainFrame *pWnd = (CMainFrame *)pParam;
+	pWnd->VersionCheckProc();
+	return 0;
+}
+void CMainFrame::VersionCheckProc()
+{
+	CBuffer buf;
+	CHttpSession http;
+	CHAR *p, *e;
+	CString str;
+	CStringArray pam;
+	CString version;
+
+	((CRLoginApp *)AfxGetApp())->GetVersion(version);
+
+	if ( !http.GetRequest(CStringLoad(IDS_VERSIONCHECKURL), buf) )
+		return;
+
+	p = (CHAR *)buf.GetPtr();
+	e = p + buf.GetSize();
+
+	while ( p < e ) {
+		str.Empty();
+		pam.RemoveAll();
+
+		for ( ; ; ) {
+			if ( p >= e ) {
+				pam.Add(str);
+				break;
+			} else if ( *p == '\n' ) {
+				pam.Add(str);
+				p++;
+				break;
+			} else if ( *p == '\r' ) {
+				p++;
+			} else if ( *p == '\t' || *p == ' ' ) {
+				while ( *p == '\t' || *p == ' ' )
+					p++;
+				pam.Add(str);
+				str.Empty();
+			} else {
+				str += *(p++);
+			}
+		}
+
+		// 0      1      2          3
+		// RLogin 2.18.4 2015/05/20 http://nanno.dip.jp/softlib/
+
+		if ( pam.GetSize() >= 4 && pam[0].CompareNoCase(_T("RLogin")) == 0 && version.Compare(pam[1]) != 0 ) {
+			m_VersionMessage.Format(CStringLoad(IDS_NEWVERSIONCHECK), pam[1]);
+			m_VersionPageUrl = pam[3];
+			PostMessage(WM_COMMAND, IDM_NEWVERSIONFOUND);
+			break;
+		}
+	}
+}
+void CMainFrame::OnNewVersionFound()
+{
+	if ( MessageBox(m_VersionMessage, _T("New Version"), MB_ICONQUESTION | MB_YESNO) == IDYES )
+		ShellExecute(m_hWnd, NULL, m_VersionPageUrl, NULL, NULL, SW_NORMAL);
+}
+void CMainFrame::VersionCheck()
+{
+	time_t now;
+	int today, last;
+
+	if ( !m_bVersionCheck )
+		return;
+
+	time(&now);
+	today = (int)(now / (24 * 60 * 60));
+	last = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("VersionCheck"), 0);
+
+	if ( (last + 7) > today )
+		return;
+
+	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("VersionCheck"), today);
+
+	AfxBeginThread(VersionCheckThead, this, THREAD_PRIORITY_LOWEST);
 }
 
 // CMainFrame f’f
@@ -2374,6 +2464,18 @@ void CMainFrame::OnSysCommand(UINT nID, LPARAM lParam)
 		break;
 	}
 }
+void CMainFrame::OnVersioncheck()
+{
+	m_bVersionCheck = (AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("VersionCheckFlag"), m_bVersionCheck) ? FALSE : TRUE);
+	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("VersionCheckFlag"), m_bVersionCheck);
+
+	if ( m_bVersionCheck )
+		VersionCheckProc();
+}
+void CMainFrame::OnUpdateVersioncheck(CCmdUI *pCmdUI)
+{
+	pCmdUI->SetCheck(m_bVersionCheck);
+}
 
 void CMainFrame::OnWinodwNext()
 {
@@ -2422,3 +2524,5 @@ void CMainFrame::OnClose()
 
 	CMDIFrameWnd::OnClose();
 }
+
+

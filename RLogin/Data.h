@@ -20,6 +20,13 @@ int	BinaryFind(void *ptr, void *tab, int size, int max, int (* func)(const void 
 
 #define	NIMALLOC	256
 
+#define	KANJI_NON		0
+#define	KANJI_EUC		1
+#define	KANJI_SJIS		2
+#define	KANJI_UTF8		3
+#define	KANJI_UTF16LE	4
+#define	KANJI_UTF16BE	5
+
 class CBuffer : public CObject
 {
 public:
@@ -88,6 +95,9 @@ public:
 	LPCTSTR QuotedDecode(LPCTSTR str);
 	void QuotedEncode(LPBYTE buf, int len);
 	void md5(LPCTSTR str);
+	BOOL LoadFile(LPCTSTR filename);
+	int KanjiCheck(int type = KANJI_NON);
+	void KanjiConvert(int type);
 
 	void SetMbsStr(LPCTSTR str);
 	LPCSTR operator += (LPCSTR str);
@@ -720,6 +730,23 @@ public:
 
 	virtual void Flush();
 	virtual void Close();
+};
+
+class CHttpSession : public CObject
+{
+public:
+	CString m_Protocl;
+	CString m_UserName;
+	CString m_Password;
+	CString m_HostName;
+	CString m_PortNumber;
+	CString m_Param;
+
+	void ParseUrl(LPCTSTR url);
+	BOOL GetRequest(LPCTSTR url, CBuffer &buf);
+
+	CHttpSession();
+	~CHttpSession();
 };
 
 #endif // !defined(AFX_DATA_H__6A23DC3E_3DDC_47BD_A6FC_E0127564AE6E__INCLUDED_)
