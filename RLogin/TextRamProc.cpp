@@ -745,6 +745,28 @@ void CProcTab::Init()
 {
 	m_Data.RemoveAll();
 }
+void CProcTab::SetIndex(int mode, CStringIndex &index)
+{
+	int n;
+	CProcNode node;
+
+	if ( mode ) {
+		index.SetSize(m_Data.GetSize());
+		for ( n = 0 ; n < m_Data.GetSize() ; n++ ) {
+			index[n][_T("Type")] = m_Data[n].m_Type;
+			index[n][_T("Code")] = m_Data[n].m_Code;
+			index[n][_T("Name")] = m_Data[n].m_Name;
+		}
+	} else {
+		m_Data.RemoveAll();
+		for ( n = 0 ; n < index.GetSize() ; n++ ) {
+			node.m_Type = index[n][_T("Type")];
+			node.m_Code = index[n][_T("Code")];
+			node.m_Name = index[n][_T("Name")];
+			m_Data.Add(node);
+		}
+	}
+}
 void CProcTab::SetArray(CStringArrayExt &stra)
 {
 	int n;
@@ -1881,7 +1903,7 @@ void CTextRam::fc_BS(int ch)
 	fc_KANJI(ch);
 	CallReciveChar(ch);
 	if ( --m_CurX < 0 ) {
-		if ( IS_ENABLE(m_AnsiOpt, TO_XTMRVW) != 0 ) {
+		if ( IsOptEnable(TO_XTMRVW) != 0 ) {
 			m_CurX = m_Cols - 1;
 			if ( --m_CurY < 0 )
 				m_CurY = 0;
@@ -2084,21 +2106,21 @@ void CTextRam::fc_V5CUP(int ch)
 void CTextRam::fc_BPH(int ch)
 {
 	// ESC B	VT52 Cursor down								ANSI BPH Break permitted here
-	if ( !IS_ENABLE(m_AnsiOpt, TO_DECANM) )
+	if ( !IsOptEnable(TO_DECANM) )
 		LOCATE(m_CurX, m_CurY + 1);
 	fc_POP(ch);
 }
 void CTextRam::fc_NBH(int ch)
 {
 	// ESC C	VT52 Cursor right								ANSI NBH No break here
-	if ( !IS_ENABLE(m_AnsiOpt, TO_DECANM) )
+	if ( !IsOptEnable(TO_DECANM) )
 		LOCATE(m_CurX + 1, m_CurY);
 	fc_POP(ch);
 }
 void CTextRam::fc_IND(int ch)
 {
 	// ESC D	VT52 Cursor left								ANSI IND Index
-	if ( !IS_ENABLE(m_AnsiOpt, TO_DECANM) )
+	if ( !IsOptEnable(TO_DECANM) )
 		LOCATE(m_CurX - 1, m_CurY);
 	else
 		ONEINDEX();
@@ -2114,7 +2136,7 @@ void CTextRam::fc_NEL(int ch)
 void CTextRam::fc_SSA(int ch)
 {
 	// ESC F	VT52 Enter graphics mode.						ANSI SSA Start selected area
-	if ( !IS_ENABLE(m_AnsiOpt, TO_DECANM) ) {
+	if ( !IsOptEnable(TO_DECANM) ) {
 		m_BankTab[m_KanjiMode][0] = SET_94 | '0';
 		m_BankTab[m_KanjiMode][1] = SET_94 | '0';
 	}
@@ -2126,7 +2148,7 @@ void CTextRam::fc_SSA(int ch)
 void CTextRam::fc_ESA(int ch)
 {
 	// ESC F	VT52 Exit graphics mode.						ANSI ESA End selected area
-	if ( !IS_ENABLE(m_AnsiOpt, TO_DECANM) ) {
+	if ( !IsOptEnable(TO_DECANM) ) {
 		m_BankTab[m_KanjiMode][0] = SET_94 | 'B';
 		m_BankTab[m_KanjiMode][1] = SET_94 | 'B';
 	}
@@ -2138,7 +2160,7 @@ void CTextRam::fc_ESA(int ch)
 void CTextRam::fc_HTS(int ch)
 {
 	// ESC H	VT52 Cursor to home position.					ANSI HTS Character tabulation set
-	if ( !IS_ENABLE(m_AnsiOpt, TO_DECANM) )
+	if ( !IsOptEnable(TO_DECANM) )
 		LOCATE(0, 0);
 	else
 		TABSET(TAB_COLSSET);
@@ -2147,7 +2169,7 @@ void CTextRam::fc_HTS(int ch)
 void CTextRam::fc_HTJ(int ch)
 {
 	// ESC I	VT52 Reverse line feed.							ANSI HTJ Character tabulation with justification
-	if ( !IS_ENABLE(m_AnsiOpt, TO_DECANM) )
+	if ( !IsOptEnable(TO_DECANM) )
 		REVINDEX();
 	else
 		TABSET(TAB_COLSNEXT);
@@ -2156,7 +2178,7 @@ void CTextRam::fc_HTJ(int ch)
 void CTextRam::fc_VTS(int ch)
 {
 	// ESC J	VT52 Erase from cursor to end of screen.		ANSI VTS Line tabulation set
-	if ( !IS_ENABLE(m_AnsiOpt, TO_DECANM) ) {
+	if ( !IsOptEnable(TO_DECANM) ) {
 		ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1);
 		ERABOX(0, m_CurY + 1, m_Cols, m_Lines);
 	} else
@@ -2166,7 +2188,7 @@ void CTextRam::fc_VTS(int ch)
 void CTextRam::fc_PLD(int ch)
 {
 	// ESC K	VT52 Erase from cursor to end of line.			ANSI PLD Partial line forward
-	if ( !IS_ENABLE(m_AnsiOpt, TO_DECANM) )
+	if ( !IsOptEnable(TO_DECANM) )
 		ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1, ERM_SAVEDM);
 	else
 		LOCATE(m_CurX, m_CurY + 1);
@@ -2202,26 +2224,26 @@ void CTextRam::fc_MW(int ch)
 void CTextRam::fc_SPA(int ch)
 {
 	// ESC V	VT52 Print the line with the cursor.			ANSI SPA Start of guarded area
-	if ( IS_ENABLE(m_AnsiOpt, TO_DECANM) )
+	if ( IsOptEnable(TO_DECANM) )
 		m_AttNow.em |= EM_ISOPROTECT;
 	fc_POP(ch);
 }
 void CTextRam::fc_EPA(int ch)
 {
 	// ESC W	VT52 Enter printer controller mode.				ANSI EPA End of guarded area
-	if ( IS_ENABLE(m_AnsiOpt, TO_DECANM) )
+	if ( IsOptEnable(TO_DECANM) )
 		m_AttNow.em &= ~EM_ISOPROTECT;
 	fc_POP(ch);
 }
 void CTextRam::fc_SCI(int ch)
 {
 	// ESC Z	VT52 Identify (host to terminal).				DECID(DA1) Primary Device Attributes		// ANSI SCI Single character introducer
-	if ( !IS_ENABLE(m_AnsiOpt, TO_DECANM) ) {
+	if ( !IsOptEnable(TO_DECANM) ) {
 		UNGETSTR(_T("\033/Z"));
 		fc_POP(ch);
 	} else {
 		m_AnsiPara.RemoveAll();
-		m_AnsiPara.Add(0xFFFF);
+		m_AnsiPara.Add(PARA_NOT);
 		fc_DA1(ch);
 	}
 }
@@ -2246,19 +2268,19 @@ void CTextRam::fc_USR(int ch)
 void CTextRam::fc_V5EX(int ch)
 {
 	// ESC <	VT52 Exit VT52 mode. Enter VT100 mode.
-	m_AnsiOpt[TO_DECANM / 32] |= (1 << (TO_DECANM % 32));
+	EnableOption(TO_DECANM);
 	fc_POP(ch);
 }
 void CTextRam::fc_DECPAM(int ch)
 {
 	// ESC =	DECPAM Application Keypad				VT52 Enter alternate keypad mode.
-	m_AnsiOpt[TO_RLPNAM / 32] |= (1 << (TO_RLPNAM % 32));
+	EnableOption(TO_RLPNAM);
 	fc_POP(ch);
 }
 void CTextRam::fc_DECPNM(int ch)
 {
 	// ESC >	DECPNM Normal Keypad						VT52 Exit alternate keypad mode.
-	m_AnsiOpt[TO_RLPNAM / 32] &= ~(1 << (TO_RLPNAM % 32));
+	DisableOption(TO_RLPNAM);
 	fc_POP(ch);
 }
 void CTextRam::fc_SS2(int ch)
@@ -2621,7 +2643,7 @@ void CTextRam::fc_DCS(int ch)
 	m_BackChar = 0;
 	m_OscPara.Clear();
 	m_AnsiPara.RemoveAll();
-	m_AnsiPara.Add(0xFFFF);
+	m_AnsiPara.Add(PARA_NOT);
 	fc_Case(STAGE_OSC1);
 	fc_TimerSet(_T("DCS"));
 }
@@ -3141,12 +3163,12 @@ void CTextRam::fc_DECRQSS(int ch)
 		if ( m_AttNow.fc == m_DefAtt.fc ) str += _T("");
 		else if ( m_AttNow.fc < 8 ) { wrk.Format(_T(";%d"), m_AttNow.fc + 30); str += wrk; }
 		else if ( m_AttNow.fc < 16 ) { wrk.Format(_T(";%d"), m_AttNow.fc - 8 + 90); str += wrk; }
-		else { wrk.Format(_T(";38;%d"), m_AttNow.fc); str += wrk; }
+		else { wrk.Format(_T(";38;5;%d"), m_AttNow.fc); str += wrk; }
 
 		if ( m_AttNow.bc == m_DefAtt.bc ) str += _T("");
 		else if ( m_AttNow.bc < 8 ) { wrk.Format(_T(";%d"), m_AttNow.fc + 40); str += wrk; }
 		else if ( m_AttNow.bc < 16 ) { wrk.Format(_T(";%d"), m_AttNow.bc - 8 + 100); str += wrk; }
-		else { wrk.Format(_T(";48;%d"), m_AttNow.bc); str += wrk; }
+		else { wrk.Format(_T(";48;5;%d"), m_AttNow.bc); str += wrk; }
 
 		str += _T("m");
 		str += m_RetChar[RC_ST];
@@ -3674,7 +3696,7 @@ void CTextRam::fc_CSI(int ch)
 {
 	m_BackChar = 0;
 	m_AnsiPara.RemoveAll();
-	m_AnsiPara.Add(0xFFFF);
+	m_AnsiPara.Add(PARA_NOT);
 	fc_Case(STAGE_CSI);
 }
 void CTextRam::fc_CSI_ESC(int ch)
@@ -3687,13 +3709,13 @@ void CTextRam::fc_CSI_DIGIT(int ch)
 
 	ch = ((ch & 0x7F) - '0');
 
-	if ( m_AnsiPara[n] == 0xFFFF )			// Not Init Value
+	if ( m_AnsiPara[n] == PARA_NOT )		// Not Init Value
 		m_AnsiPara[n] = 0;
-	else if ( m_AnsiPara[n] == 0xFFFE )		// Max Value
+	else if ( m_AnsiPara[n] == PARA_MAX )		// Max Value
 		return;
 
-	if ( ((DWORD)m_AnsiPara[n] * 10 + ch) >= 0xFFFEL )
-		m_AnsiPara[n] = 0xFFFE;
+	if ( m_AnsiPara[n] >= ((PARA_MAX - ch) / 10) )
+		m_AnsiPara[n] = PARA_MAX;
 	else
 		m_AnsiPara[n] = m_AnsiPara[n] * 10 + ch;
 }
@@ -3701,11 +3723,11 @@ void CTextRam::fc_CSI_PUSH(int ch)
 {
 	int n = (int)m_AnsiPara.GetSize() - 1;
 	m_AnsiPara[n].Add(m_AnsiPara[n]);
-	m_AnsiPara[n] = 0xFFFF;
+	m_AnsiPara[n] = PARA_NOT;
 }
 void CTextRam::fc_CSI_SEPA(int ch)
 {
-	m_AnsiPara.Add(0xFFFF);
+	m_AnsiPara.Add(PARA_NOT);
 }
 void CTextRam::fc_CSI_EXT(int ch)
 {
@@ -4112,7 +4134,7 @@ void CTextRam::fc_DA1(int ch)
 	//	46 ASCII terminal emulation				vt500
 
 	if ( m_TermId >= 10 )		// VT520
-		UNGETSTR(_T("%s?65;1;2;3,4;6;7;8;9;15;18;21;22;29;39;42;44c"), m_RetChar[RC_CSI]);
+		UNGETSTR(_T("%s?65;1;2;3;4;6;7;8;9;15;18;21;22;29;39;42;44c"), m_RetChar[RC_CSI]);
 	else if ( m_TermId >= 9 )	// VT420 ID (Intnl) CSI ? 64; 1; 2; 7; 8; 9; 15; 18; 21 c
 		UNGETSTR(_T("%s?64;1;2;7;8;9;15;18;21c"), m_RetChar[RC_CSI]);
 	else if ( m_TermId >= 7 )	// VT320 ID (Intnl) CSI ? 63; 1; 2; 7; 8; 9 c
@@ -4271,31 +4293,45 @@ void CTextRam::fc_SGR(int ch)
 		case 38:
 		case 48:
 			a = n;	// base index
-
 			// :(Colon) Style		38:5:n or 38:2:r:g:b
 			if ( m_AnsiPara[a].GetSize() > 0 ) {
-				if ( m_AnsiPara[a] != 0xFFFF )
-					m_AnsiPara[a].Add(m_AnsiPara[a]);
+				m_AnsiPara[a].Add(m_AnsiPara[a]);	// Last Parameter !!!
 
 			// ;(Semicolon) Style	38;5;n or 38;2;r;g;b
 			} else if ( m_AnsiPara.GetSize() > (n + 1) ) {
 				m_AnsiPara[a].Add(GetAnsiPara(n, 0, 0));		// 38
 				m_AnsiPara[a].Add(GetAnsiPara(++n, 0, 0));		// 5/2
 
-				i = (m_AnsiPara[a][1] < 8 ? Sgr38ParamLen[m_AnsiPara[a][1]] : 0);
-				for ( ; i > 0 && (n + 1) < m_AnsiPara.GetSize() ; i-- )
-					m_AnsiPara[a].Add(GetAnsiPara(++n, 0, 0));
+				// 38;5:n or 38;2:r:g:b
+				if ( m_AnsiPara[n].GetSize() > 0 ) {
+					m_AnsiPara[n].Add(m_AnsiPara[n]);
+					for ( i = 1 ; i < m_AnsiPara[n].GetSize() ; i++ )
+						m_AnsiPara[a].Add(m_AnsiPara[n][i]);
 
-			} else
-				break;
+				// 38;5;n or 38;2;r;g;b or 38;2;r:g:b
+				} else {
+					i = (m_AnsiPara[a][1] < 8 ? Sgr38ParamLen[m_AnsiPara[a][1]] : 0);
+					for ( ; i > 0 && (n + 1) < m_AnsiPara.GetSize() ; i-- ) {
+						m_AnsiPara[a].Add(GetAnsiPara(++n, 0, 0));
 
-			for ( i = 0 ; i < m_AnsiPara[a].GetSize() ; i++ ) {
-				if ( m_AnsiPara[a][i] == 0xFFFF )
-					m_AnsiPara[a][i] = 0;
+						// 38;2;r:g:b
+						if ( m_AnsiPara[n].GetSize() > 0 ) {
+							m_AnsiPara[n].Add(m_AnsiPara[n]);
+							for ( int b = 1 ; b < m_AnsiPara[n].GetSize() ; b++ )
+								m_AnsiPara[a].Add(m_AnsiPara[n][b]);
+							break;
+						}
+					}
+				}
 			}
 
 			if ( m_AnsiPara[a].GetSize() <= 1 )
 				break;
+
+			for ( i = 0 ; i < m_AnsiPara[a].GetSize() ; i++ ) {
+				if ( m_AnsiPara[a][i] == PARA_NOT )
+					m_AnsiPara[a][i] = 0;
+			}
 
 			switch(m_AnsiPara[a][1]) {
 			case 2:				// RGB color
@@ -4352,11 +4388,11 @@ void CTextRam::fc_SGR(int ch)
 			break;
 		}
 	}
-	if ( IS_ENABLE(m_AnsiOpt, TO_DECECM) == 0 ) {
+	if ( IsOptEnable(TO_DECECM) == 0 ) {
 		m_AttSpc.fc = m_AttNow.fc;
 		m_AttSpc.bc = m_AttNow.bc;
 	}
-	if ( IS_ENABLE(m_AnsiOpt, TO_RLGCWA) != 0 ) {
+	if ( IsOptEnable(TO_RLGCWA) != 0 ) {
 		m_AttSpc.at = m_AttNow.at;
 		m_AttSpc.ft = m_AttNow.ft;
 	}
@@ -4425,7 +4461,7 @@ void CTextRam::fc_ORGBFAT(int ch)
 	if ( (n &  4) != 0 ) m_AttNow.at |= ATT_SECRET;
 	if ( (n &  8) != 0 ) m_AttNow.at |= ATT_UNDER;
 	if ( (n & 16) != 0 ) m_AttNow.at |= ATT_REVS;
-	if ( IS_ENABLE(m_AnsiOpt, TO_RLGCWA) != 0 )
+	if ( IsOptEnable(TO_RLGCWA) != 0 )
 		m_AttSpc.at = m_AttNow.at;
 	fc_POP(ch);
 }
@@ -5438,7 +5474,7 @@ void CTextRam::fc_DECTME(int ch)
 
 	switch(GetAnsiPara(0, 0, 0)) {
 	case 3:		// VT52
-		m_AnsiOpt[TO_DECANM / 32] &= ~(1 << (TO_DECANM % 32));
+		DisableOption(TO_DECANM);
 		break;
 
 	case 0:
@@ -5456,7 +5492,7 @@ void CTextRam::fc_DECTME(int ch)
 	case 13:	// SCO Console
 	case 14:	// WYSE 325
 	default:
-		m_AnsiOpt[TO_DECANM / 32] |= (1 << (TO_DECANM % 32));
+		EnableOption(TO_DECANM);
 		break;
 	}
 
@@ -5784,11 +5820,11 @@ void CTextRam::fc_DECATC(int ch)
 	}
 	m_AttNow.fc = GetAnsiPara(1, 7, 0);
 	m_AttNow.bc = GetAnsiPara(2, 0, 0);
-	if ( IS_ENABLE(m_AnsiOpt, TO_DECECM) == 0 ) {
+	if ( IsOptEnable(TO_DECECM) == 0 ) {
 		m_AttSpc.fc = m_AttNow.fc;
 		m_AttSpc.bc = m_AttNow.bc;
 	}
-	if ( IS_ENABLE(m_AnsiOpt, TO_RLGCWA) != 0 )
+	if ( IsOptEnable(TO_RLGCWA) != 0 )
 		m_AttSpc.at = m_AttNow.at;
 
 	fc_POP(ch);
@@ -5864,7 +5900,7 @@ void CTextRam::fc_DA2(int ch)
 {
 	// CSI ('>' << 16) | 'c'	DA2 Secondary Device Attributes
 
-	if ( m_AnsiPara.GetSize() == 0 || m_AnsiPara[0] == 0xFFFF || m_AnsiPara[0] == 0 )
+	if ( m_AnsiPara.GetSize() == 0 || m_AnsiPara[0] == PARA_NOT || m_AnsiPara[0] == 0 )
 		UNGETSTR(_T("%s>65;100;1c"), m_RetChar[RC_CSI]);
 	fc_POP(ch);
 }
@@ -5873,7 +5909,7 @@ void CTextRam::fc_DA3(int ch)
 {
 	// CSI ('=' << 16) | 'c'	DA3 Tertiary Device Attributes
 
-	if ( m_AnsiPara.GetSize() == 0 || m_AnsiPara[0] == 0xFFFF || m_AnsiPara[0] == 0 )
+	if ( m_AnsiPara.GetSize() == 0 || m_AnsiPara[0] == PARA_NOT || m_AnsiPara[0] == 0 )
 		UNGETSTR(_T("%s!|%04x%s"), m_RetChar[RC_DCS], m_UnitId, m_RetChar[RC_ST]);
 	fc_POP(ch);
 }

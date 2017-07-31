@@ -61,6 +61,8 @@ BEGIN_MESSAGE_MAP(CServerSelect, CDialog)
 	ON_NOTIFY(TCN_SELCHANGE, IDC_SERVERTAB, &CServerSelect::OnTcnSelchangeServertab)
 	ON_COMMAND(IDM_SERV_PROTO, &CServerSelect::OnServProto)
 	ON_COMMAND(IDC_SAVEDEFAULT, &CServerSelect::OnSavedefault)
+	ON_COMMAND(IDM_SERV_EXCHNG, &CServerSelect::OnServExchng)
+	ON_UPDATE_COMMAND_UI(IDM_SERV_EXCHNG, &CServerSelect::OnUpdateServExchng)
 END_MESSAGE_MAP()
 
 void CServerSelect::InitList()
@@ -487,34 +489,69 @@ void CServerSelect::OnServInport()
 			if ( tmp[n] == '\n' )
 				break;
 		}
-		if ( strncmp((LPSTR)tmp, "RLG2", 4) != 0 )
-			AfxThrowArchiveException(CArchiveException::badIndex, Archive.GetFile()->GetFileTitle());
+		if ( strncmp((LPSTR)tmp, "RLG3", 4) == 0 ) {
+			for ( ; ; ) {
+				CStringIndex index;
 
-		for ( ; ; ) {
-			Entry.Serialize(Archive);
-			TextRam.Serialize(Archive);
-			KeyTab.Serialize(Archive);
-			KeyMac.Serialize(Archive);
-			ParamTab.Serialize(Archive);
+				index.SetNoCase(TRUE);
+				index.SetNoSort(TRUE);
+				index.Serialize(Archive, NULL);
 
-			Entry.m_Uid = (-1);
-			Entry.m_ProBuffer.Clear();
-			ParamTab.m_IdKeyList.RemoveAll();
-			TextRam.Serialize(TRUE,  Entry.m_ProBuffer);
-			KeyTab.Serialize(TRUE,   Entry.m_ProBuffer);
-			KeyMac.Serialize(TRUE,   Entry.m_ProBuffer);
-			ParamTab.Serialize(TRUE, Entry.m_ProBuffer);
+				Entry.SetIndex(FALSE, index[_T("Entry")]);
+				ParamTab.SetIndex(FALSE, index[_T("Protocol")]);
+				TextRam.SetIndex(FALSE, index[_T("Screen")]);
+				TextRam.m_FontTab.SetIndex(FALSE, index[_T("Fontset")]);
+				KeyTab.SetIndex(FALSE, index[_T("Keycode")]);
+				KeyMac.SetIndex(FALSE, index[_T("Keymacro")]);
 
-			m_EntryNum = m_pData->AddEntry(Entry);
+				Entry.m_Uid = (-1);
+				Entry.m_ProBuffer.Clear();
+				ParamTab.m_IdKeyList.RemoveAll();
+				TextRam.Serialize(TRUE,  Entry.m_ProBuffer);
+				KeyTab.Serialize(TRUE,   Entry.m_ProBuffer);
+				KeyMac.Serialize(TRUE,   Entry.m_ProBuffer);
+				ParamTab.Serialize(TRUE, Entry.m_ProBuffer);
 
-			memset(tmp, 0, 16);
-			for ( n = 0 ; n < 16 && Archive.Read(&(tmp[n]), 1) == 1 ; n++ ) {
-				if ( tmp[n] == '\n' )
+				m_EntryNum = m_pData->AddEntry(Entry);
+
+				memset(tmp, 0, 16);
+				for ( n = 0 ; n < 16 && Archive.Read(&(tmp[n]), 1) == 1 ; n++ ) {
+					if ( tmp[n] == '\n' )
+						break;
+				}
+				if ( strncmp((LPSTR)tmp, "RLG31", 5) != 0 )
 					break;
 			}
-			if ( strncmp((LPSTR)tmp, "RLG21", 5) != 0 )
-				break;
-		}
+
+		} else if ( strncmp((LPSTR)tmp, "RLG2", 4) == 0 ) {
+			for ( ; ; ) {
+				Entry.Serialize(Archive);
+				TextRam.Serialize(Archive);
+				KeyTab.Serialize(Archive);
+				KeyMac.Serialize(Archive);
+				ParamTab.Serialize(Archive);
+
+				Entry.m_Uid = (-1);
+				Entry.m_ProBuffer.Clear();
+				ParamTab.m_IdKeyList.RemoveAll();
+				TextRam.Serialize(TRUE,  Entry.m_ProBuffer);
+				KeyTab.Serialize(TRUE,   Entry.m_ProBuffer);
+				KeyMac.Serialize(TRUE,   Entry.m_ProBuffer);
+				ParamTab.Serialize(TRUE, Entry.m_ProBuffer);
+
+				m_EntryNum = m_pData->AddEntry(Entry);
+
+				memset(tmp, 0, 16);
+				for ( n = 0 ; n < 16 && Archive.Read(&(tmp[n]), 1) == 1 ; n++ ) {
+					if ( tmp[n] == '\n' )
+						break;
+				}
+				if ( strncmp((LPSTR)tmp, "RLG21", 5) != 0 )
+					break;
+			}
+		} else
+			AfxThrowArchiveException(CArchiveException::badIndex, Archive.GetFile()->GetFileTitle());
+
 	} CATCH_ALL(e) {
 		MessageBox(_T("File Read Error"));
 	} END_CATCH_ALL
@@ -564,12 +601,30 @@ void CServerSelect::OnServExport()
 			KeyMac.Serialize(FALSE,   Entry.m_ProBuffer);
 			ParamTab.Serialize(FALSE, Entry.m_ProBuffer);
 
+#if 1
+			CStringIndex index;
+
+			index.SetNoCase(TRUE);
+			index.SetNoSort(TRUE);
+
+			Entry.SetIndex(TRUE, index[_T("Entry")]);
+			ParamTab.SetIndex(TRUE, index[_T("Protocol")]);
+			TextRam.SetIndex(TRUE, index[_T("Screen")]);
+			TextRam.m_FontTab.SetIndex(TRUE, index[_T("Fontset")]);
+			KeyTab.SetIndex(TRUE, index[_T("Keycode")]);
+			KeyMac.SetIndex(TRUE, index[_T("Keymacro")]);
+
+			Archive.Write("RLG310\r\n", 8);
+			index.Serialize(Archive, NULL);
+			Archive.Write("ENDOF\r\n", 7);
+#else
 			Archive.Write("RLG210\n", 7);
 			Entry.Serialize(Archive);
 			TextRam.Serialize(Archive);
 			KeyTab.Serialize(Archive);
 			KeyMac.Serialize(Archive);
 			ParamTab.Serialize(Archive);
+#endif
 		}
 	} CATCH_ALL(e) {
 		MessageBox(_T("File Write Error"));
@@ -578,6 +633,83 @@ void CServerSelect::OnServExport()
 	Archive.Close();
 	File.Close();
 }
+void CServerSelect::OnServExchng()
+{
+	CFileDialog dlg(TRUE, _T("rlg"), _T(""), OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGRLOGIN), this);
+
+	if ( dlg.DoModal() != IDOK )
+		return;
+
+	CFile File;
+
+	if ( !File.Open(dlg.GetPathName(), CFile::modeRead | CFile::shareExclusive) ) {
+		MessageBox(_T("File Open Error"));
+		return;
+	}
+
+	CWaitCursor wait;
+	CArchive Archive(&File, CArchive::load);
+
+	int n;
+	CServerEntry Entry;
+	CTextRam TextRam;
+	CKeyNodeTab KeyTab;
+	CKeyMacTab KeyMac;
+	CParamTab ParamTab;
+	CStringIndex index;
+
+	index.SetNoCase(TRUE);
+	index.SetNoSort(TRUE);
+
+	TRY {
+		index.Serialize(Archive, NULL);
+	} CATCH_ALL(e) {
+		MessageBox(_T("File Read Error"));
+	} END_CATCH_ALL
+
+	Archive.Close();
+	File.Close();
+
+	if ( index.GetSize() == 0 )
+		return;
+
+	for ( n = 0 ; n < m_List.GetItemCount() ; n++ ) {
+		if ( m_List.GetItemState(n, LVIS_SELECTED) == 0 )
+			continue;
+
+		m_EntryNum = (int)m_List.GetItemData(n);
+		Entry = m_pData->GetAt(m_EntryNum);
+
+		TextRam.Serialize(FALSE,  Entry.m_ProBuffer);
+		KeyTab.Serialize(FALSE,   Entry.m_ProBuffer);
+		KeyMac.Serialize(FALSE,   Entry.m_ProBuffer);
+		ParamTab.Serialize(FALSE, Entry.m_ProBuffer);
+
+		Entry.SetIndex(FALSE, index[_T("Entry")]);
+		ParamTab.SetIndex(FALSE, index[_T("Protocol")]);
+		TextRam.SetIndex(FALSE, index[_T("Screen")]);
+		TextRam.m_FontTab.SetIndex(FALSE, index[_T("Fontset")]);
+		KeyTab.SetIndex(FALSE, index[_T("Keycode")]);
+		KeyMac.SetIndex(FALSE, index[_T("Keymacro")]);
+
+		Entry.m_ProBuffer.Clear();
+		TextRam.Serialize(TRUE,  Entry.m_ProBuffer);
+		KeyTab.Serialize(TRUE,   Entry.m_ProBuffer);
+		KeyMac.Serialize(TRUE,   Entry.m_ProBuffer);
+		ParamTab.Serialize(TRUE, Entry.m_ProBuffer);
+
+		m_pData->m_Data[m_EntryNum] = Entry;
+		m_pData->UpdateAt(m_EntryNum);
+	}
+
+	InitList();
+	UpdateTabWnd();
+}
+void CServerSelect::OnUpdateServExchng(CCmdUI *pCmdUI)
+{
+	pCmdUI->Enable(m_List.GetSelectMarkData() >= 0);
+}
+
 void CServerSelect::OnServProto()
 {
 	CString proto, option;
@@ -703,3 +835,4 @@ void CServerSelect::OnSavedefault()
 	KeyMac.Serialize(TRUE);
 	ParamTab.Serialize(TRUE);
 }
+

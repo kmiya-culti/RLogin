@@ -133,37 +133,11 @@
 #define	TO_RLBOLD		403			// ボールド文字を有効にする
 #define	TO_RLFONT		404			// フォントサイズから一行あたりの文字数を決定
 #define	TO_RLBPLUS		405			// BPlus/ZModemファイル転送を有効にする
-#define	TO_RLTENAT		406			// 自動ユーザー認証を行わない
-#define	TO_RLTENEC		407			// データの暗号化を禁止する
-#define	TO_RLPOFF		408			// 接続が切れると自動でプログラムを終了する
-#define	TO_RLUSEPASS	409			// 接続時にパスワード入力を求める
-#define	TO_RLRCLICK		410			// 右ダブルクリックだけでクリップボードからペーストする
-#define	TO_RLCKCOPY		411			// 左クリックの範囲指定だけでクリップボードにコピーする
-#define	TO_RLDSECHO		412			// キーボード入力をローカルエディットモードにする
-#define	TO_RLDELAY		413			// 改行(CR)を確認し指定時間待って次を送信する(ms)
-#define	TO_RLHISFILE	414			// ヒストリーを保存し次接続時に復元する
-#define	TO_RLKEEPAL		415			// TCPオプションのKeepAliveを有効にする
 #define	TO_RLADBELL		416			// ベルコード(07)による動作を選択 x1
 #define	TO_RLVSBELL		417			// ベルコード(07)による動作を選択 1x
-#define	TO_RLECHOCR		418			// 送信する改行コードの設定 x1
-#define	TO_RLECHOLF		419			// 送信する改行コードの設定 1x
-#define	TO_SSH1MODE		420			// SSHバージョン１で接続する
-#define	TO_SSHPFORY		421			// ポートフォワードだけ行う （SSH2のみ）
-#define	TO_SSHKEEPAL	422			// KeepAliveパケットの送信間隔(sec)
-#define	TO_SSHAGENT		423			// エージェント転送を有効にする(SSH2のみ)
-#define	TO_SSHSFENC		424			// 暗号シャッフル
-#define	TO_SSHSFMAC		425			// 検証シャッフル
-#define	TO_RLRECVCR		426			// 受信した改行コードの動作を設定 x1
-#define	TO_RLRECVLF		427			// 受信した改行コードの動作を設定 1x
 #define	TO_RLUNIAWH		428			// UnicodeのAタイプの文字を半角として表示する
 #define	TO_RLSPCTAB		429			// 選択した文字列から連続したスペースをタブに変換する
-#define	TO_RLHISDATE	430			// 通信ログを年月日を付けて自動作成する
-#define	TO_RLLOGMODE	431			// ファイルに保存する通信ログの形式を選択 x1
-#define	TO_RLLOGMOD2	432			// ファイルに保存する通信ログの形式を選択 1x
-#define	TO_RLLOGCODE	433			// ログの文字コードを選択(RAWモード以外で有効) x1
-#define	TO_RLLOGCOD2	434			// ログの文字コードを選択(RAWモード以外で有効) 1x
 #define	TO_RLNORESZ		435			// DECCOLMの文字数切換でウィンドウをリサイズする
-#define	TO_SSHX11PF		436			// X11ポートフォワードを使用する
 #define	TO_RLKANAUTO	437			// 漢字コードを自動で追従する
 #define	TO_RLMOSWHL		438			// マウスホイールをヌルヌル禁止
 #define	TO_RLMSWAPP		439			// マウスホイールのCKMモード時カーソルキー動作を禁止
@@ -171,11 +145,35 @@
 #define	TO_IMECTRL		441			// IME Open/Close
 #define	TO_RLCKMESC		442			// ESCキーをDECCKMに含める		7727  -  Application Escape mode を有効にする。 
 #define	TO_RLMSWAPE		443			// ホイールのキー変換強制		7786  -  マウスホイール - カーソルキー変換を有効にする。
-#define	TO_RLTENLM		444			// TELNET LINEMODE を禁止する
-#define	TO_RLSCRDEBUG	445			// スクリプトデバックを行う
 #define	TO_RLTEKINWND	446			// Tekウィンドウをビューで描く
 #define	TO_RLOSCPAM		447			// OSC/DCS...キャンセル時にバッファを書き戻す
 #define	TO_RLUNINOM		448			// Unicode ノーマライズを禁止する
+
+// RLogin SockOpt		1000-1511(0-511)
+#define	TO_RLTENAT		1406		// 自動ユーザー認証を行わない
+#define	TO_RLTENEC		1407		// データの暗号化を禁止する
+#define	TO_RLPOFF		1408		// 接続が切れると自動でプログラムを終了する
+#define	TO_RLUSEPASS	1409		// 接続時にパスワード入力を求める
+#define	TO_RLRCLICK		1410		// 右ダブルクリックだけでクリップボードからペーストする
+#define	TO_RLCKCOPY		1411		// 左クリックの範囲指定だけでクリップボードにコピーする
+#define	TO_RLDSECHO		1412		// キーボード入力をローカルエディットモードにする
+#define	TO_RLDELAY		1413		// 改行(CR)を確認し指定時間待って次を送信する(ms)
+#define	TO_RLHISFILE	1414		// ヒストリーを保存し次接続時に復元する
+#define	TO_RLKEEPAL		1415		// TCPオプションのKeepAliveを有効にする
+#define	TO_SSH1MODE		1420		// SSHバージョン１で接続する
+#define	TO_SSHPFORY		1421		// ポートフォワードだけ行う （SSH2のみ）
+#define	TO_SSHKEEPAL	1422		// KeepAliveパケットの送信間隔(sec)
+#define	TO_SSHAGENT		1423		// エージェント転送を有効にする(SSH2のみ)
+#define	TO_SSHSFENC		1424		// 暗号シャッフル
+#define	TO_SSHSFMAC		1425		// 検証シャッフル
+#define	TO_RLHISDATE	1430		// 通信ログを年月日を付けて自動作成する
+#define	TO_RLLOGMODE	1431		// ファイルに保存する通信ログの形式を選択 x1
+#define	TO_RLLOGMOD2	1432		// ファイルに保存する通信ログの形式を選択 1x
+#define	TO_RLLOGCODE	1433		// ログの文字コードを選択(RAWモード以外で有効) x1
+#define	TO_RLLOGCOD2	1434		// ログの文字コードを選択(RAWモード以外で有効) 1x
+#define	TO_SSHX11PF		1436		// X11ポートフォワードを使用する
+#define	TO_RLTENLM		1444		// TELNET LINEMODE を禁止する
+#define	TO_RLSCRDEBUG	1445		// スクリプトデバックを行う
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -440,6 +438,7 @@ public:
 	void Init();
 	void SetArray(CStringArrayExt &stra);
 	void GetArray(CStringArrayExt &stra);
+	void SetIndex(int mode, CStringIndex &index);
 
 	int Find(LPCTSTR entry);
 	int IndexFind(int code, LPCTSTR name);
@@ -475,6 +474,7 @@ public:
 	inline CProcNode & operator[](int nIndex) { return m_Data[nIndex]; }
 
 	void Init();
+	void SetIndex(int mode, CStringIndex &index);
 	void SetArray(CStringArrayExt &stra);
 	void GetArray(CStringArrayExt &stra);
 
@@ -561,10 +561,11 @@ public:	// Options
 	CStringArrayExt m_ShellExec;
 
 	void Init();
+	void SetIndex(int mode, CStringIndex &index);
 	void SetArray(CStringArrayExt &stra);
 	void GetArray(CStringArrayExt &stra);
 	void ScriptInit(int cmds, int shift, class CScriptValue &value);
-	void ScriptTable(struct _ScriptCmdsDefs *defs, class CScriptValue &value, int mode);
+	void ScriptTable(const struct _ScriptCmdsDefs *defs, class CScriptValue &value, int mode);
 	void ScriptValue(int cmds, class CScriptValue &value, int mode);
 	void Serialize(int mode);
 	void Serialize(int mode, CBuffer &buf);
@@ -591,6 +592,7 @@ public:
 	int m_DefTab;
 	COLORREF m_ColTab[256];
 	DWORD m_AnsiOpt[16];
+	DWORD m_OptTab[16];
 
 	int m_ColsMax;
 	int m_LineUpdate;
@@ -615,7 +617,7 @@ public:
 	int m_LastPos;
 	BOOL m_bRtoL;
 
-	CWordIndex m_AnsiPara;
+	CParaIndex m_AnsiPara;
 	int m_OscMode;
 	CBuffer m_OscPara;
 	BYTE m_TabMap[LINE_MAX + 1][COLS_MAX / 8 + 1];

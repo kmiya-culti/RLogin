@@ -790,20 +790,20 @@ int CStringArrayExt::Match(LPCTSTR str)
 }
 
 //////////////////////////////////////////////////////////////////////
-// CWordIndex
+// CParaIndex
 
-CWordIndex::CWordIndex()
+CParaIndex::CParaIndex()
 {
 	m_Data = 0;
 }
-CWordIndex::CWordIndex(WORD data)
+CParaIndex::CParaIndex(DWORD data)
 {
 	m_Data = data;
 }
-CWordIndex::~CWordIndex()
+CParaIndex::~CParaIndex()
 {
 }
-const CWordIndex & CWordIndex::operator = (CWordIndex &data)
+const CParaIndex & CParaIndex::operator = (CParaIndex &data)
 {
 	m_Data = data.m_Data;
 	m_Array.SetSize(data.m_Array.GetSize());
@@ -1971,6 +1971,108 @@ void CServerEntry::Serialize(CArchive &ar)
 			GetArray(stra);
 	}
 }
+void CServerEntry::SetIndex(int mode, CStringIndex &index)
+{
+	int n, i;
+	CIdKey key;
+	CString str, pass;
+
+	if ( mode ) {		// Write
+		index[_T("Name")]  = m_EntryName;
+		index[_T("Host")]  = m_HostReal;
+		index[_T("Port")]  = m_PortName;
+		index[_T("User")]  = m_UserReal;
+		index[_T("Term")]  = m_TermName;
+		index[_T("IdKey")] = m_IdkeyName;
+
+		pass.Format(_T("TEST%s"), m_PassReal);
+		key.EncryptStr(str, pass);
+		index[_T("Pass")]  = str;
+
+		index[_T("CharSet")]  = GetKanjiCode();
+		index[_T("Protocol")] = GetProtoName();
+		
+		index[_T("Memo")]  = m_Memo;
+		index[_T("Group")] = m_Group;
+
+		index[_T("Proxy")][_T("Mode")] = m_ProxyMode;
+		index[_T("Proxy")][_T("Host")] = m_ProxyHost;
+		index[_T("Proxy")][_T("Port")] = m_ProxyPort;
+		index[_T("Proxy")][_T("User")] = m_ProxyUser;
+
+		pass.Format(_T("TEST%s"), m_ProxyPass);
+		key.EncryptStr(str, pass);
+		index[_T("Proxy")][_T("Pass")] = str;
+
+		index[_T("Script")][_T("File")] = m_ScriptFile;
+		index[_T("Script")][_T("Text")] = m_ScriptStr;
+
+		m_ChatScript.SetString(str);
+		index[_T("Chat")]  = str;
+
+	} else {			// Read
+		if ( (n = index.Find(_T("Name"))) >= 0 )
+			m_EntryName = index[n];
+		if ( (n = index.Find(_T("Host"))) >= 0 )
+			m_HostName = index[n];
+		if ( (n = index.Find(_T("Port"))) >= 0 )
+			m_PortName = index[n];
+		if ( (n = index.Find(_T("User"))) >= 0 )
+			m_UserName = index[n];
+		if ( (n = index.Find(_T("Term"))) >= 0 )
+			m_TermName = index[n];
+		if ( (n = index.Find(_T("IdKey"))) >= 0 )
+			m_IdkeyName = index[n];
+
+		if ( (n = index.Find(_T("Pass"))) >= 0 ) {
+			key.DecryptStr(str, index[n]);
+			if ( str.Left(4).Compare(_T("TEST")) == 0 )
+				m_PassName = str.Mid(4);
+		}
+
+		if ( (n = index.Find(_T("CharSet"))) >= 0 )
+			SetKanjiCode(index[n]);
+		if ( (n = index.Find(_T("Protocol"))) >= 0 )
+			m_ProtoType = GetProtoType(index[n]);
+
+		if ( (n = index.Find(_T("Memo"))) >= 0 )
+			m_Memo = index[n];
+		if ( (n = index.Find(_T("Group"))) >= 0 )
+			m_Group = index[n];
+		
+		if ( (n = index.Find(_T("Proxy"))) >= 0 ) {
+			if ( (i = index[n].Find(_T("Mode"))) >= 0 )
+				m_ProxyMode = index[n][i];
+			if ( (i = index[n].Find(_T("Host"))) >= 0 )
+				m_ProxyHost = index[n][i];
+			if ( (i = index[n].Find(_T("Port"))) >= 0 )
+				m_ProxyPort = index[n][i];
+			if ( (i = index[n].Find(_T("User"))) >= 0 )
+				m_ProxyUser = index[n][i];
+			if ( (i = index[n].Find(_T("Pass"))) >= 0 ) {
+				key.DecryptStr(str, index[n][i]);
+				if ( str.Left(4).Compare(_T("TEST")) == 0 )
+					m_ProxyPass = str.Mid(4);
+			}
+		}
+
+		if ( (n = index.Find(_T("Script"))) >= 0 ) {
+			if ( (i = index[n].Find(_T("File"))) >= 0 )
+				m_ScriptFile = index[n][i];
+			if ( (i = index[n].Find(_T("Text"))) >= 0 )
+				m_ScriptStr = index[n][i];
+		}
+
+		if ( (n = index.Find(_T("Chat"))) >= 0 )
+			m_ChatScript.GetString(index[n]);
+
+		m_ProBuffer.Clear();
+		m_HostReal = m_HostName;
+		m_UserReal = m_UserName;
+		m_PassReal = m_PassName;
+		m_SaveFlag = FALSE;
+	}
+}
 LPCTSTR CServerEntry::GetKanjiCode()
 {
 	switch(m_KanjiCode) {
@@ -2804,6 +2906,41 @@ void CKeyNodeTab::GetArray(CStringArrayExt &stra)
 	}
 	BugFix(fix);
 }
+void CKeyNodeTab::SetIndex(int mode, CStringIndex &index)
+{
+	int n, i, m;
+	CString str;
+	CStringIndex *ip;
+	static const LPCTSTR menbaName[] = { _T("Table"), _T("Add"), NULL };
+
+	if ( mode ) {		// Write
+		for ( n = 0 ; n < m_Node.GetSize() ; n++ ) {
+			if ( m_Node[n].m_Code == (-1) )
+				continue;
+			str.Format(_T("%d"), n);
+			ip = &(index[menbaName[0]][str]);
+
+			ip->Add(m_Node[n].m_Code);
+			ip->Add(m_Node[n].m_Mask);
+			ip->Add(m_Node[n].GetMaps());
+		}
+
+	} else {			// Read
+		for ( m = 0 ; menbaName[m] != NULL ; m++ ) {
+			if ( (n = index.Find(menbaName[m])) < 0 )
+				continue;
+
+			if ( m == 0 )
+				m_Node.RemoveAll();
+
+			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
+				if ( index[n][i].GetSize() < 3 )
+					continue;
+				Add((int)index[n][i][0], (int)index[n][i][1], (LPCTSTR)index[n][i][2]);
+			}
+		}
+	}
+}
 void CKeyNodeTab::ScriptInit(int cmds, int shift, class CScriptValue &value)
 {
 	value.m_DocCmds = cmds;
@@ -3302,6 +3439,27 @@ void CKeyMacTab::GetArray(CStringArrayExt &stra)
 		m_Data.Add(tmp);
 	}
 }
+void CKeyMacTab::SetIndex(int mode, CStringIndex &index)
+{
+	int n, i;
+	CString str;
+	CKeyMac tmp;
+
+	if ( mode ) {		// Write
+		for ( n = 0 ; n < m_Data.GetSize() ; n++ ) {
+			m_Data[n].GetStr(str);
+			index.Add(str);
+		}
+
+	} else {			// Read
+		if ( index.GetSize() > 0 )
+			m_Data.RemoveAll();
+		for ( n = 0 ; n < index.GetSize() ; n++ ) {
+			tmp.SetStr(index[n]);
+			m_Data.Add(tmp);
+		}
+	}
+}
 void CKeyMacTab::ScriptInit(int cmds, int shift, class CScriptValue &value)
 {
 	value.m_DocCmds = cmds;
@@ -3680,6 +3838,90 @@ void CParamTab::GetArray(CStringArrayExt &stra)
 		}
 	}
 }
+void CParamTab::SetIndex(int mode, CStringIndex &index)
+{
+	int n, i, a;
+	CString str;
+	CStringIndex tmp, env;
+
+	if ( mode ) {		// Write
+		for ( n = 0 ; n < 12 ; n++ ) {
+			str.Format(_T("%d"), n);
+			for ( i = 0 ; i < m_AlgoTab[n].GetSize() ; i++ )
+				index[_T("Algo")][str].Add(m_AlgoTab[n][i]);
+		}
+
+		for ( n = 0 ; n < m_PortFwd.GetSize() ; n++ )
+			index[_T("PortFwd")].Add(m_PortFwd[n]);
+
+		index[_T("X11")] = m_XDisplay;
+		index[_T("IPv")] = m_SelIPver;
+
+		for ( n = 0 ; n < m_IdKeyList.GetSize() ; n++ )
+			index[_T("IdKeyList")].Add(m_IdKeyList.GetVal(n));
+
+		//for ( n = 0 ; n < (32 * 8) ; n++ ) {
+		//	if ( IS_ENABLE(m_OptTab, n) )
+		//		index[_T("Option")].Add(n);
+		//}
+
+		env.GetString(m_ExtEnvStr);
+		for ( n = 0 ; n < env.GetSize() ; n++ ) {
+			if ( env[n].m_nIndex.IsEmpty() || env[n].m_String.IsEmpty() )
+				continue;
+			index[_T("Env")][env[n].m_nIndex].Add(env[n].m_Value);
+			index[_T("Env")][env[n].m_nIndex].Add(env[n].m_String);
+		}
+
+	} else {			// Read
+		if ( (n = index.Find(_T("Algo"))) >= 0 ) {
+			for ( int a = 0 ; a < 12 ; a++ ) {
+				str.Format(_T("%d"), a);
+				if ( (i = index.Find(str)) >= 0 ) {
+					m_AlgoTab[a].RemoveAll();
+					for ( int b = 0 ; b < index[n][i].GetSize() ; b++ )
+						m_AlgoTab[a].Add(index[n][i][b]);
+				}
+			}
+		}
+
+		if ( (n = index.Find(_T("PortFwd"))) >= 0 ) {
+			for ( i = 0 ; i < index[n].GetSize() ; i++ )
+				m_PortFwd.Add(index[n][i]);
+		}
+
+		if ( (n = index.Find(_T("X11"))) >= 0 )
+			m_XDisplay = index[n];
+		if ( (n = index.Find(_T("IPv"))) >= 0 )
+			m_SelIPver = index[n];
+
+		if ( (n = index.Find(_T("IdKeyList"))) >= 0 ) {
+			m_IdKeyList.RemoveAll();
+			for ( i = 0 ; i < index[n].GetSize() ; i++ )
+				m_IdKeyList.AddVal(index[n][i]);
+		}
+
+		//if ( (n = index.Find(_T("Option"))) >= 0 ) {
+		//	memset(m_OptTab, 0, sizeof(m_OptTab));
+		//	for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
+		//		int b = index[n][i];
+		//		m_OptTab[b / 32] |= (1 << (b % 32));
+		//	}
+		//}
+
+		if ( (n = index.Find(_T("Env"))) >= 0 ) {
+			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
+				if ( index[n][i].GetSize() < 2 )
+					continue;
+				tmp.m_Value  = index[n][i][0];
+				tmp.m_String = index[n][i][1];
+				tmp.m_nIndex = index[n][i].m_nIndex;
+				env.m_Array.Add(tmp);
+			}
+			env.SetString(m_ExtEnvStr);
+		}
+	}
+}
 
 static ScriptCmdsDefs DocSsh[] = {
 	{	"Protocol",		1	},
@@ -3806,47 +4048,6 @@ void CParamTab::ScriptValue(int cmds, class CScriptValue &value, int mode)
 		break;
 	}
 }
-BOOL CParamTab::IsOptEnable(int opt)
-{
-	return (m_OptTab[opt / 32] & (1 << (opt % 32)) ? TRUE : FALSE);
-}
-void CParamTab::EnableOption(int opt)
-{
-	m_OptTab[opt / 32] |= (1 << (opt % 32));
-}
-void CParamTab::DisableOption(int opt)
-{
-	m_OptTab[opt / 32] &= ~(1 << (opt % 32));
-}
-void CParamTab::ReversOption(int opt)
-{
-	m_OptTab[opt / 32] ^= (1 << (opt % 32));
-}
-int CParamTab::IsOptValue(int opt, int len)
-{
-	int n;
-	int v = 0;
-	int b = 1;
-	for ( n = 0 ; n < len ; n++ ) {
-		if ( IsOptEnable(opt) )
-			v |= b;
-		opt++;
-		b <<= 1;
-	}
-	return v;
-}
-void CParamTab::SetOptValue(int opt, int len, int value)
-{
-	int n;
-	for ( n = 0 ; n < len ; n++ ) {
-		if ( (value & 1) != 0 )
-			EnableOption(opt);
-		else
-			DisableOption(opt);
-		opt++;
-		value >>= 1;
-	}
-}
 void CParamTab::GetProp(int num, CString &str, int shuffle)
 {
 	str = _T("");
@@ -3898,7 +4099,8 @@ const CParamTab & CParamTab::operator = (CParamTab &data)
 	m_XDisplay  = data.m_XDisplay;
 	m_ExtEnvStr = data.m_ExtEnvStr;
 	memcpy(m_OptTab, data.m_OptTab, sizeof(m_OptTab));
-	m_Reserve = data.m_Reserve;
+	m_Reserve   = data.m_Reserve;
+	m_SelIPver  = data.m_SelIPver;
 	return *this;
 }
 
@@ -3991,6 +4193,8 @@ CStringIndex::CStringIndex()
 {
 	m_bNoCase = TRUE;
 	m_bNoSort = FALSE;
+	m_bString = TRUE;
+	m_bEmpty  = TRUE;
 	m_Value = 0;
 	m_nIndex.Empty();
 	m_String.Empty();
@@ -4003,9 +4207,11 @@ const CStringIndex & CStringIndex::operator = (CStringIndex &data)
 {
 	m_bNoCase = data.m_bNoCase;
 	m_bNoSort = data.m_bNoSort;
+	m_bString = data.m_bString;
 	m_Value   = data.m_Value;
 	m_nIndex  = data.m_nIndex;
 	m_String  = data.m_String;
+	m_bEmpty  = data.m_bEmpty;
 
 	m_Array.RemoveAll();
 	for ( int n = 0 ; n < data.m_Array.GetSize() ; n++ )
@@ -4168,6 +4374,271 @@ void CStringIndex::SetString(CString &str)
 	SetBuffer(&tmp);
 	work.Base64Encode(tmp.GetPtr(), tmp.GetSize());
 	str = (LPCTSTR)work;
+}
+
+void CStringIndex::SetPackStr(CStringA &mbs)
+{
+	if ( m_bEmpty ) {
+		if ( GetSize() > 0 && m_Array[0].m_nIndex.IsEmpty() ) {
+			mbs = '[';
+			for ( int n = 0 ; n < GetSize() ; n++ ) {
+				CStringA tmp;
+				m_Array[n].SetPackStr(tmp);
+				if ( n > 0 )
+					mbs += ',';
+				mbs += tmp;
+			}
+			mbs += ']';
+		}
+
+	} else if ( m_bString ) {
+		CStringA tmp;
+		LPCTSTR p = m_String;
+
+		mbs = '"';
+		while ( *p != _T('\0') ) {
+			if ( *p == _T('\\') || *p == _T('"') ) {
+				mbs += '\\';
+				mbs += *(p++);
+			} else if ( (*p & 0xFF00) != 0 ) {
+				tmp = *p;
+				if ( tmp.IsEmpty() || tmp.Compare("?") == 0 )
+					tmp.Format("\\u%04X", *p);
+				mbs += tmp;
+				p++;
+			} else if ( *p < _T('\x20') || *p > _T('\x7E') ) {
+				switch(*p) {
+				case _T('\b'): mbs += "\\b"; break;
+				case _T('\t'): mbs += "\\t"; break;
+				case _T('\n'): mbs += "\\n"; break;
+				case _T('\a'): mbs += "\\a"; break;
+				case _T('\f'): mbs += "\\f"; break;
+				case _T('\r'): mbs += "\\r"; break;
+				default:
+					tmp.Format("\\x%02X", *p);
+					mbs += tmp;
+					break;
+				}
+				p++;
+			} else
+				mbs += *(p++);
+		}
+		mbs += '"';
+
+	} else {
+		mbs.Format("%d", m_Value);
+	}
+}
+LPCTSTR CStringIndex::GetPackStr(LPCTSTR str)
+{
+	int n, m;
+	DWORD c;
+
+	m_bString = TRUE;
+	m_bEmpty  = TRUE;
+	m_String.Empty();
+	m_Value = 0;
+	RemoveAll();
+
+	while ( *str != _T('\0') ) {
+
+		while ( *str <= _T(' ') )
+			str++;
+
+		if ( *str == _T('[') ) {
+			for ( str++ ; *str != _T('\0') ; ) {
+				n = GetSize();
+				SetSize(n + 1);
+				str = m_Array[n].GetPackStr(str);
+
+				while ( *str <= _T(' ') )
+					str++;
+
+				if ( *str == _T(']') ) {
+					str++;
+					break;
+				} else if ( *str != _T(',') )
+					break;
+				str++;
+			}
+
+		} else if ( *str == _T('"') ) {
+			str++;
+			m_String.Empty();
+			while ( *str != _T('\0') && *str != _T('"') ) {
+				if ( *str == _T('\\') ) {
+					switch(*(++str)) {
+					case _T('\0'):
+						break;
+
+					case _T('x'): case _T('X'):
+					case _T('u'): case _T('U'):
+						m = (*str == _T('x') || *str == _T('X') ? 2 : 4);
+						str++;
+						c = 0;
+						for ( n = 0 ; n < m ; n++ ) {
+							if ( *str >= _T('0') && *str <= _T('9') )
+								c = c * 16 + (*(str++) - _T('0'));
+							else if ( *str >= _T('A') && *str <= _T('F') )
+								c = c * 16 + (*(str++) - _T('A') + 10);
+							else if ( *str >= _T('a') && *str <= _T('f') )
+								c = c * 16 + (*(str++) - _T('a') + 10);
+							else
+								break;
+						}
+						if ( c >= 0x10000 ) {
+							c = CTextRam::UCS4toUCS2(c);
+							m_String += (WCHAR)(c >> 16);
+							m_String += (WCHAR)c;
+						} else
+							m_String += (WCHAR)c;
+						break;
+
+					case _T('\b'): m_String += _T("\b"); str++; break;
+					case _T('\t'): m_String += _T("\t"); str++; break;
+					case _T('\n'): m_String += _T("\n"); str++; break;
+					case _T('\a'): m_String += _T("\a"); str++; break;
+					case _T('\f'): m_String += _T("\f"); str++; break;
+					case _T('\r'): m_String += _T("\r"); str++; break;
+
+					default:
+						m_String += *(str++);
+						break;
+					}
+				} else
+					m_String += *(str++);
+			}
+			if ( *str != _T('"') )
+				break;
+			str++;
+
+			m_bString = TRUE;
+			m_bEmpty  = FALSE;
+			break;
+
+		} else if ( *str >= _T('0') && *str <= _T('9') ) {
+			if ( *str == _T('0') ) {
+				str++;
+				if ( *str == _T('x') || *str == _T('X') || *str == _T('u') || *str == _T('U') ) {
+					str++;
+					for ( c = 0 ; ; str++ ) {
+						if ( *str >= _T('0') && *str <= _T('9') )
+							c = c * 16 + (*str - _T('0'));
+						else if ( *str >= _T('A') && *str <= _T('F') )
+							c = c * 16 + (*str - _T('A') + 10);
+						else if ( *str >= _T('a') && *str <= _T('f') )
+							c = c * 16 + (*str - _T('a') + 10);
+						else
+							break;
+					}
+				} else {
+					for ( c = 0 ; *str >= _T('0') && *str <= _T('7') ; str++ )
+							c = c * 8 + (*str - _T('0'));
+				}
+			} else {
+				for ( c = 0 ; *str >= _T('0') && *str <= _T('9') ; str++ )
+					c = c * 10 + (*str - _T('0'));
+			}
+
+			m_Value   = c;
+			m_bString = FALSE;
+			m_bEmpty  = FALSE;
+			break;
+
+		} else
+			break;
+	}
+
+	return str;
+}
+BOOL CStringIndex::ReadString(CArchive& ar, CString &str)
+{
+	CHAR c;
+	CStringA mbs;
+
+	while ( ar.Read(&c, 1) == 1 ) {
+		mbs += c;
+		if ( c == '\n' )
+			break;
+	}
+
+	if ( mbs.IsEmpty() )
+		return FALSE;
+
+	str = mbs.Trim(" \t\r\n");
+
+	return TRUE;
+}
+void CStringIndex::Serialize(CArchive& ar, LPCSTR base)
+{
+	if ( ar.IsStoring() ) {		// Write
+		CStringA mbs, tmp;
+
+		if ( base != NULL )
+			mbs = base;
+		if ( !mbs.IsEmpty() )
+			mbs += '.';
+		mbs += m_nIndex;
+
+		if ( GetSize() > 0 && !m_Array[0].m_nIndex.IsEmpty() ) {
+			for ( int n = 0 ; n < GetSize() ; n++ )
+				m_Array[n].Serialize(ar, mbs);
+		} else {
+			SetPackStr(tmp);
+			mbs += '=';
+			mbs += tmp;
+			mbs += ";\r\n";
+			ar.Write((LPCSTR)mbs, sizeof(CHAR) * mbs.GetLength());
+		}
+
+	} else {					// Read
+		CString str;
+		CString base, data, index;
+		LPCTSTR p;
+		CStringIndex *ip;
+
+		while ( ReadString(ar, str) ) {
+			if ( str.Compare(_T("ENDOF")) == 0 )
+				break;
+
+			p = str;
+			base.Empty();
+			data.Empty();
+
+			while ( *p != _T('\0') ) {
+				if ( *p == _T('#') )
+					break;
+				else if ( *p == _T('=') )
+					break;
+				base += *(p++);
+			}
+			base.Trim(_T(" \t\r\n"));
+
+			if ( *p == _T('=') ) {
+				data = ++p;
+				data.Trim(_T(" \t\r\n"));
+			}
+
+			if ( base.IsEmpty() )
+				continue;
+
+			ip = this;
+			p = base;
+			index.Empty();
+			while ( *p != _T('\0') ) {
+				if ( *p == _T('.') ) {
+					ip = &((*ip)[index]);
+					index.Empty();
+					p++;
+				} else
+					index += *(p++);
+			}
+			if ( !index.IsEmpty() )
+				ip = &((*ip)[index]);
+
+			ip->GetPackStr(data);
+		}
+	}
 }
 
 //////////////////////////////////////////////////////////////////////

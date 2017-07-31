@@ -103,8 +103,9 @@ void CScrnPage::DoInit()
 	m_FontHw = m_pSheet->m_pTextRam->m_DefFontHw - 10;
 
 	m_VisualBell = m_pSheet->m_pTextRam->IsOptValue(TO_RLADBELL, 2);
-	m_RecvCrLf   = m_pSheet->m_pTextRam->IsOptValue(TO_RLRECVCR, 2);
-	m_SendCrLf   = m_pSheet->m_pTextRam->IsOptValue(TO_RLECHOCR, 2);
+
+	m_RecvCrLf   = m_pSheet->m_pTextRam->m_RecvCrLf;
+	m_SendCrLf   = m_pSheet->m_pTextRam->m_SendCrLf;
 
 	m_TtlMode = m_pSheet->m_pTextRam->m_TitleMode & 7;
 	m_TtlRep  = (m_pSheet->m_pTextRam->m_TitleMode & WTTL_REPORT) ? TRUE : FALSE;
@@ -151,8 +152,6 @@ BOOL CScrnPage::OnApply()
 	m_pSheet->m_pTextRam->m_DefFontHw   = m_FontHw + 10;
 
 	m_pSheet->m_pTextRam->SetOptValue(TO_RLADBELL, 2, m_VisualBell);
-	m_pSheet->m_pTextRam->SetOptValue(TO_RLRECVCR, 2, m_RecvCrLf);
-	m_pSheet->m_pTextRam->SetOptValue(TO_RLECHOCR, 2, m_SendCrLf);
 
 	m_pSheet->m_pTextRam->m_RecvCrLf = m_RecvCrLf;
 	m_pSheet->m_pTextRam->m_SendCrLf = m_SendCrLf;

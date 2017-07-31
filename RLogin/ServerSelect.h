@@ -60,7 +60,8 @@ protected:
 	afx_msg void OnSizing(UINT fwSide, LPRECT pRect);
 	afx_msg void OnTcnSelchangeServertab(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnServProto();
-	DECLARE_MESSAGE_MAP()
-public:
 	afx_msg void OnSavedefault();
+	afx_msg void OnServExchng();
+	afx_msg void OnUpdateServExchng(CCmdUI *pCmdUI);
+	DECLARE_MESSAGE_MAP()
 };

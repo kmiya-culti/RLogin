@@ -80,6 +80,8 @@ public:
 	CString m_WorkStr;
 	class CScript *m_pScript;
 
+	void SetIndex(int mode, CStringIndex &index);
+
 	BOOL EntryText(CString &name);
 
 	void SendBuffer(CBuffer &buf);

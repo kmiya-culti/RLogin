@@ -608,13 +608,14 @@
 #define ID_SERV_PROTO                   5045
 #define ID_VIEW_SCROLLBAR               5048
 #define ID_SEARCH_BACK                  5050
+#define IDM_SERV_EXCHNG                 5051
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        165
-#define _APS_NEXT_COMMAND_VALUE         5051
+#define _APS_NEXT_RESOURCE_VALUE        166
+#define _APS_NEXT_COMMAND_VALUE         5052
 #define _APS_NEXT_CONTROL_VALUE         3067
 #define _APS_NEXT_SYMED_VALUE           200
 #endif

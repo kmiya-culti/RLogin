@@ -89,7 +89,7 @@ void WCharFree(WCHAR *ptr)
 }
 inline int WCharSize(WCHAR *ptr)
 {
-	static int sizeTab[] = { 3, 7, 15, 31 };
+	static const int sizeTab[] = { 3, 7, 15, 31 };
 	return sizeTab[*(ptr - 1)];
 }
 void AllWCharAllocFree()
@@ -697,6 +697,69 @@ void CFontTab::GetArray(CStringArrayExt &stra)
 			m_Data[i].m_IContName = _T("UTF-16BE");
 	}
 }
+void CFontTab::SetIndex(int mode, CStringIndex &index)
+{
+	int n, i, a, m;
+	int code;
+	CString str;
+	CStringIndex *ip;
+	static const LPCTSTR menbaName[] = { _T("Table"), _T("Add"), NULL };
+
+	if ( mode ) {		// Write
+		for ( n = 0 ; n < CODE_MAX ; n++ ) {
+			if ( m_Data[n].m_EntryName.IsEmpty() )
+				continue;
+
+			str.Format(_T("%d"), n);
+			ip = &(index[menbaName[0]][str]);
+
+			ip->Add(m_Data[n].m_EntryName);
+			ip->Add(n >> 8);
+			ip->Add(m_Data[n].m_IndexName);
+			ip->Add(m_Data[n].m_Shift);
+			ip->Add(m_Data[n].m_ZoomW);
+			ip->Add(m_Data[n].m_ZoomH);
+			ip->Add(m_Data[n].m_Offset);
+			ip->Add(m_Data[n].m_Quality);
+			ip->Add(m_Data[n].m_CharSet);
+			ip->Add(m_Data[n].m_IContName);
+
+			a = ip->GetSize();
+			ip->SetSize(a + 1);
+			for ( i = 0 ; i < 16 ; i++ )
+				(*ip)[a].Add(m_Data[n].m_FontName[i]);
+		}
+
+	} else {			// Read
+		for ( m = 0 ; menbaName[m] != NULL ; m++ ) {
+			if ( (n = index.Find(menbaName[m])) < 0 )
+				continue;
+
+			if ( m == 0 ) {	// Table
+				for ( i = 0 ; i < CODE_MAX ; i++ )
+					m_Data[i].Init();
+			}
+
+			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
+				if ( index[n][i].GetSize() < 11 )
+					continue;
+				code = IndexFind(index[n][i][1] << 8, index[n][i][2]);
+
+				m_Data[code].m_EntryName = index[n][i][0];
+				m_Data[code].m_Shift     = index[n][i][3];
+				m_Data[code].m_ZoomW     = index[n][i][4];
+				m_Data[code].m_ZoomH     = index[n][i][5];
+				m_Data[code].m_Offset    = index[n][i][6];
+				m_Data[code].m_Quality   = index[n][i][7];
+				m_Data[code].m_CharSet   = index[n][i][8];
+				m_Data[code].m_IContName = index[n][i][9];
+
+				for ( a = 0 ; a < 16 && a < index[n][i][10].GetSize() ; a++ )
+					m_Data[code].m_FontName[a] = index[n][i][10][a];
+			}
+		}
+	}
+}
 const CFontTab & CFontTab::operator = (CFontTab &data)
 {
 	for ( int n = 0 ; n < CODE_MAX ; n++ )
@@ -894,7 +957,7 @@ void CTextRam::InitText(int Width, int Height)
 	if ( !m_bOpen )
 		return;
 
-	if ( IS_ENABLE(m_AnsiOpt, TO_RLFONT) ) {
+	if ( IsOptEnable(TO_RLFONT) ) {
 		ch = m_DefFontSize;
 
 		if ( (cw = ch * 10 / m_DefFontHw) <= 0 )
@@ -1036,9 +1099,6 @@ void CTextRam::InitText(int Width, int Height)
 	if ( m_Cols != ox || m_Lines != oy )
 		m_pDocument->SocketSendWindSize(m_Cols, m_Lines);
 
-	m_RecvCrLf = IsOptValue(TO_RLRECVCR, 2);
-	m_SendCrLf = IsOptValue(TO_RLECHOCR, 2);
-
 //	DISPUPDATE();
 //	FLUSH();
 }
@@ -1053,7 +1113,7 @@ void CTextRam::InitScreen(int cols, int lines)
 	CRect rect, box;
 	CWnd *pWnd = ::AfxGetMainWnd();
 
-	if ( IS_ENABLE(m_AnsiOpt, TO_RLFONT) ) {
+	if ( IsOptEnable(TO_RLFONT) ) {
 		if ( pWnd->IsIconic() || pWnd->IsZoomed() )
 			return;
 
@@ -1391,7 +1451,7 @@ static const VRAM TempAtt = {
 	//  ch  at  ft  md  dm  cm  em  fc  bc
 		0,  0,  0,  0,  0,  0,  0,  7,  0
 };
-static LPCTSTR	DropCmdTab[] = {
+static const LPCTSTR DropCmdTab[] = {
 	//	Non					BPlus				XModem					YModem
 		_T(""),				_T("bp -d %s\\r"),	_T("rx %s\\r"),			_T("rb\\r"),
 	//	ZModem				SCP					Kermit
@@ -1411,8 +1471,9 @@ void CTextRam::Init()
 	m_BankGR		= 1;
 	m_DefAtt		= TempAtt;
 	memcpy(m_DefColTab, DefColTab, sizeof(m_DefColTab));
-	memcpy(m_ColTab, m_DefColTab, sizeof(m_ColTab));
+	memcpy(m_ColTab, m_DefColTab, sizeof(m_DefColTab));
 	memset(m_AnsiOpt, 0, sizeof(DWORD) * 16);
+	memset(m_OptTab,  0, sizeof(DWORD) * 16);
 	EnableOption(TO_ANSISRM);	//  12 SRM Set Send/Receive mode (Local echo off)
 	EnableOption(TO_DECANM);	//  ?2 ANSI/VT52 Mode
 	EnableOption(TO_DECAWM);	//  ?7 Autowrap mode
@@ -1463,6 +1524,248 @@ void CTextRam::Init()
 
 	RESET();
 }
+void CTextRam::SetIndex(int mode, CStringIndex &index)
+{
+	int n, i;
+	CString str, wrk;
+	static const LPCTSTR setname[] = { _T("EUC"), _T("SJIS"), _T("ASCII"), _T("UTF8"), _T("BIG5") };
+
+	if ( mode ) {	// Write
+		index[_T("Cols")][_T("Nomal")] = m_DefCols[0];
+		index[_T("Cols")][_T("Wide")]  = m_DefCols[1];
+
+		index[_T("History")]  = m_DefHisMax;
+		index[_T("FontSize")] = m_DefFontSize;
+		index[_T("CharSet")]  = m_KanjiMode;
+
+		index[_T("GL")] = m_BankGL;
+		index[_T("GR")] = m_BankGR;
+
+		index[_T("Attribute")] = m_DefAtt.at;
+		index[_T("TextColor")] = m_DefAtt.fc;
+		index[_T("BackColor")] = m_DefAtt.bc;
+
+		index[_T("ColorTable")].SetSize(16);
+		for ( n = 0 ; n < 16 ; n++ ) {
+			index[_T("ColorTable")][n].Add(GetRValue(m_DefColTab[n]));
+			index[_T("ColorTable")][n].Add(GetGValue(m_DefColTab[n]));
+			index[_T("ColorTable")][n].Add(GetBValue(m_DefColTab[n]));
+		}
+
+		for ( n = 0 ; n < 5 ; n++ ) {
+			index[_T("BankTable")][setname[n]].SetSize(4);
+			for ( i = 0 ; i < 4 ; i++ ) {
+				index[_T("BankTable")][setname[n]][i].Add(m_DefBankTab[n][i] >> 8);
+				index[_T("BankTable")][setname[n]][i].Add(m_FontTab[m_DefBankTab[n][i]].m_IndexName);
+			}
+		}
+
+		for ( n = 0 ; n < 4 ; n++ )
+			index[_T("SendCharSet")].Add(m_SendCharSet[n]);
+
+		index[_T("BitMapFile")]   = m_BitMapFile;
+		index[_T("HisFile")]      = m_HisFile;
+		index[_T("LogFile")]      = m_LogFile;
+
+		index[_T("WheelSize")]    = m_WheelSize;
+		index[_T("DelayMSec")]    = m_DelayMSec;
+		index[_T("KeepAliveSec")] = m_KeepAliveSec;
+
+		index[_T("WordStr")]      = m_WordStr;
+		index[_T("DropFileMode")] = m_DropFileMode;
+
+		for ( n = 0 ; n < 8 ; n++ )
+			index[_T("DropFileCmd")].Add(m_DropFileCmd[n]);
+
+		for ( n = 0 ; n < 4 ; n++ )
+			index[_T("MouseMode")].Add(m_MouseMode[n]);
+
+		index[_T("TitleMode")] = m_TitleMode;
+		index[_T("ClipFlag")]  = m_ClipFlag;
+		index[_T("FontHw")]    = m_DefFontHw;
+
+		index[_T("RecvCrLf")]  = m_RecvCrLf;
+		index[_T("SendCrLf")]  = m_SendCrLf;
+
+		for ( n = 0 ; n < m_ShellExec.GetSize() ; n++ )
+			index[_T("ShellExec")].Add(m_ShellExec[n]);
+
+		for ( n = 0 ; n < (32 * 8) ; n++ ) {
+			if ( IS_ENABLE(m_MetaKeys, n) )
+				index[_T("MetaKeys")].Add(n);
+		}
+
+		for ( n = 0 ; n < (32 * 16) ; n++ ) {
+			if ( n >= 400 )				// RLogin Option		8400-8511(400-511)
+				i = n + (8400 - 400);
+			else if ( n >= 380 )		// XTerm Option 2		2000-2019(380-399)
+				i = n + (2000 - 380);
+			else if ( n >= 300 )		// XTerm Option			1000-1079(300-379)
+				i = n + (1000 - 300);
+			else if ( n >= 200 )		// ANSI Screen Option	200-299(200-299)
+				i = n + (200 - 200);
+			else						// DEC Terminal Option	0-199
+				i = n;
+
+			if ( IS_ENABLE(m_DefAnsiOpt, n) )
+				index[_T("Option")].Add(i);
+		}
+
+		for ( n = 0 ; n < (32 * 16) ; n++ ) {
+			if ( IS_ENABLE(m_OptTab, n) )
+				index[_T("SocketOpt")].Add(n);
+		}
+
+		m_ProcTab.SetIndex(mode, index[_T("ProcTable")]);
+
+	} else {		// Read
+		if ( (n = index.Find(_T("Cols"))) >= 0 ) {
+			if ( (i = index[n].Find(_T("Nomal"))) >= 0 )
+				m_DefCols[0] = index[n][i];
+			if ( (i = index[n].Find(_T("Wide"))) >= 0 )
+				m_DefCols[1] = index[n][i];
+		}
+
+		if ( (n = index.Find(_T("History"))) >= 0 )
+			m_DefHisMax = index[n];
+		if ( (n = index.Find(_T("FontSize"))) >= 0 )
+			m_DefFontSize = index[n];
+		if ( (n = index.Find(_T("CharSet"))) >= 0 )
+			m_KanjiMode = index[n];
+
+		if ( (n = index.Find(_T("GL"))) >= 0 )
+			m_BankGL = index[n];
+		if ( (n = index.Find(_T("GR"))) >= 0 )
+			m_BankGR = index[n];
+
+		if ( (n = index.Find(_T("Attribute"))) >= 0 )
+			m_DefAtt.at = index[n];
+		if ( (n = index.Find(_T("TextColor"))) >= 0 )
+			m_DefAtt.fc = index[n];
+		if ( (n = index.Find(_T("BackColor"))) >= 0 )
+			m_DefAtt.bc = index[n];
+
+		if ( (n = index.Find(_T("ColorTable"))) >= 0 ) {
+			for ( i = 0 ; i < 16 && i < index[n].GetSize() ; i++ ) {
+				if ( index[n][i].GetSize() < 3 )
+					continue;
+				m_DefColTab[i] = RGB(index[n][i][0], index[n][i][1], index[n][i][2]);
+			}
+		}
+
+		if ( (n = index.Find(_T("BankTable"))) >= 0 ) {
+			for ( i = 0 ; i < 5 ; i++ ) {
+				int a, b;
+				if ( (a = index[n].Find(setname[i])) >= 0 ) {
+					for ( b = 0 ; b < 4 && b < index[n][a].GetSize() ; b++ ) {
+						if ( index[n][a].GetSize() < 2 )
+							continue;
+						m_DefBankTab[i][b] = m_FontTab.IndexFind(index[n][a][b][0] << 8, index[n][a][b][1]);
+					}
+				}
+			}
+		}
+
+		if ( (n = index.Find(_T("SendCharSet"))) >= 0 ) {
+			for ( i = 0 ; i < 4 && i < index[n].GetSize() ; i++ )
+				m_SendCharSet[i] = index[n][i];
+		}
+
+		if ( (n = index.Find(_T("BitMapFile"))) >= 0 )
+			m_BitMapFile = index[n];
+		if ( (n = index.Find(_T("HisFile"))) >= 0 )
+			m_HisFile = index[n];
+		if ( (n = index.Find(_T("LogFile"))) >= 0 )
+			m_LogFile = index[n];
+
+		if ( (n = index.Find(_T("WheelSize"))) >= 0 )
+			m_WheelSize = index[n];
+		if ( (n = index.Find(_T("DelayMSec"))) >= 0 )
+			m_DelayMSec = index[n];
+		if ( (n = index.Find(_T("KeepAliveSec"))) >= 0 )
+			m_KeepAliveSec = index[n];
+
+		if ( (n = index.Find(_T("WordStr"))) >= 0 )
+			m_WordStr = index[n];
+		if ( (n = index.Find(_T("DropFileMode"))) >= 0 )
+			m_DropFileMode = index[n];
+
+		if ( (n = index.Find(_T("DropFileCmd"))) >= 0 ) {
+			for ( i = 0 ; i < 8 && i < index[n].GetSize() ; i++ )
+				m_DropFileCmd[i] = index[n][i];
+		}
+
+		if ( (n = index.Find(_T("MouseMode"))) >= 0 ) {
+			for ( i = 0 ; i < 4 && i < index[n].GetSize() ; i++ )
+				m_MouseMode[i] = index[n][i];
+		}
+
+		if ( (n = index.Find(_T("TitleMode"))) >= 0 )
+			m_TitleMode = index[n];
+		if ( (n = index.Find(_T("ClipFlag"))) >= 0 )
+			m_ClipFlag = index[n];
+		if ( (n = index.Find(_T("FontHw"))) >= 0 )
+			m_DefFontHw = index[n];
+
+		if ( (n = index.Find(_T("RecvCrLf"))) >= 0 )
+			m_RecvCrLf = index[n];
+		if ( (n = index.Find(_T("SendCrLf"))) >= 0 )
+			m_SendCrLf = index[n];
+
+		if ( (n = index.Find(_T("ShellExec"))) >= 0 ) {
+			m_ShellExec.RemoveAll();
+			for ( i = 0 ; i < index[n].GetSize() ; i++ )
+				m_ShellExec.Add(index[n][i]);
+		}
+
+		m_ProcTab.SetIndex(mode, index[_T("ProcTable")]);
+
+		if ( (n = index.Find(_T("MetaKeys"))) >= 0 ) {
+			memset(m_MetaKeys, 0, sizeof(m_MetaKeys));
+			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
+				int b = index[n][i];
+				if ( b >= 0 && b <= 255 )
+					m_MetaKeys[b / 32] |= (1 << (b % 32));
+			}
+		}
+
+		if ( (n = index.Find(_T("Option"))) >= 0 ) {
+			memset(m_AnsiOpt, 0, sizeof(m_AnsiOpt));
+			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
+				int a, b = index[n][i];
+
+				if ( b >= 8400 )			// RLogin Option		8400-8511(400-511)
+					a = b - (8400 - 400);
+				else if ( b >= 2000 )		// XTerm Option 2		2000-2019(380-399)
+					a = b - (2000 - 380);
+				else if ( b >= 1000 )		// XTerm Option			1000-1079(300-379)
+					a = b - (1000 - 300);
+				else if ( b >= 200 )		// ANSI Screen Option	200-299(200-299)
+					a = b - (200 - 200);
+				else						// DEC Terminal Option	0-199
+					a = b;
+
+				if ( a >= 0 && a <= 511 )
+					m_DefAnsiOpt[a / 32] |= (1 << (a % 32));
+			}
+		}
+
+		if ( (n = index.Find(_T("SocketOpt"))) >= 0 ) {
+			memset(m_OptTab, 0, sizeof(m_OptTab));
+			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
+				int b = index[n][i];
+				if ( b >= 0 && b <= 511 )
+					m_OptTab[b / 32] |= (1 << (b % 32));
+			}
+		}
+
+		memcpy(m_ColTab, m_DefColTab, sizeof(m_DefColTab));
+		memcpy(m_AnsiOpt, m_DefAnsiOpt, sizeof(m_AnsiOpt));
+		memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
+
+		RESET();
+	}
+}
 void CTextRam::SetArray(CStringArrayExt &stra)
 {
 	CString str;
@@ -1503,7 +1806,8 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 	tmp.SetString(str, _T(';'));
 	stra.Add(str);
 
-	stra.AddVal(4);	// AnsiOpt Bugfix
+	stra.AddVal(5);	// AnsiOpt Bugfix
+
 	stra.AddVal(m_TitleMode);
 	stra.Add(m_SendCharSet[4]);
 	stra.AddVal(m_ClipFlag);
@@ -1511,6 +1815,10 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 
 	m_ShellExec.SetString(str, _T('|'));
 	stra.Add(str);
+
+	stra.AddVal(m_RecvCrLf);
+	stra.AddVal(m_SendCrLf);
+	stra.AddBin(m_OptTab, sizeof(m_OptTab));
 }
 void CTextRam::GetArray(CStringArrayExt &stra)
 {
@@ -1580,7 +1888,7 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 
 	n = (stra.GetSize() > 37 ? stra.GetVal(37) : 0);
 	if ( n < 1 ) {
-		m_AnsiOpt[TO_DECANM / 32] ^= (1 << (TO_DECANM % 32));	//  ?2 ANSI/VT52 Mode
+		ReversOption(TO_DECANM);
 		EnableOption(TO_DECTCEM);	// ?25 Text Cursor Enable Mode
 	}
 	if ( n < 2 )
@@ -1591,6 +1899,22 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 	}
 	if ( n < 4 )
 		EnableOption(TO_ANSISRM);	//  12 SRM Set Send/Receive mode (Local echo off)
+	if ( n < 5 ) {					
+		m_RecvCrLf = IsOptValue(426, 2);	// TO_RLRECVCR(426) to m_RecvCrLf
+		m_SendCrLf = IsOptValue(418, 2);	// TO_RLECHOCR(418) to m_SendCrLf
+		memcpy(m_OptTab, m_AnsiOpt, sizeof(m_AnsiOpt));
+		for ( n = 0 ; n < 406 ; n++ ) DisableOption(1000 + n);
+		for ( ; n < 416 ; n++ ) DisableOption(n);
+		for ( ; n < 418 ; n++ ) DisableOption(1000 + n);
+		for ( ; n < 428 ; n++ ) DisableOption(n);
+		for ( ; n < 430 ; n++ ) DisableOption(1000 + n);
+		for ( ; n < 435 ; n++ ) DisableOption(n);
+		for ( ; n < 436 ; n++ ) DisableOption(1000 + n);
+		for ( ; n < 437 ; n++ ) DisableOption(n);
+		for ( ; n < 444 ; n++ ) DisableOption(1000 + n);
+		for ( ; n < 445 ; n++ ) DisableOption(n);
+		for ( ; n < 449 ; n++ ) DisableOption(1000 + n);
+	}
 
 	DisableOption(TO_IMECTRL);
 	memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_DefAnsiOpt));
@@ -1610,10 +1934,19 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 	if ( stra.GetSize() > 42 )
 		m_ShellExec.GetString(stra.GetAt(42), _T('|'));
 
+	if ( stra.GetSize() > 43 )
+		m_RecvCrLf = stra.GetVal(43);
+
+	if ( stra.GetSize() > 44 )
+		m_SendCrLf = stra.GetVal(44);
+
+	if ( stra.GetSize() > 45 )
+		stra.GetBin(45, m_OptTab, sizeof(m_OptTab));
+
 	RESET();
 }
 
-static ScriptCmdsDefs DocScrn[] = {
+static const ScriptCmdsDefs DocScrn[] = {
 	{	"Cursol",		1	},
 	{	"Size",			2	},
 	{	"Style",		3	},
@@ -1657,7 +1990,7 @@ void CTextRam::ScriptInit(int cmds, int shift, class CScriptValue &value)
 	for ( n = 0 ; DocScrnStyle[n].name != NULL ; n++ )
 		value["Style"][DocScrnStyle[n].name].m_DocCmds = (DocScrnStyle[n].cmds << shift) | cmds;
 }
-void CTextRam::ScriptTable(struct _ScriptCmdsDefs *defs, class CScriptValue &value, int mode)
+void CTextRam::ScriptTable(const struct _ScriptCmdsDefs *defs, class CScriptValue &value, int mode)
 {
 	int n, i;
 
@@ -1754,16 +2087,13 @@ void CTextRam::ScriptValue(int cmds, class CScriptValue &value, int mode)
 				value = (int)(IsOptEnable(opt) ? 1 : 0);
 			} else {
 				int n;
-				CWordArray save;
-				for ( n = 0 ; n < m_AnsiPara.GetSize() ; n++ )
-					save.Add(m_AnsiPara[n]);
+				CParaIndex save;
+				save = m_AnsiPara;
 				m_AnsiPara.RemoveAll();
 				m_AnsiPara.Add(opt);
 				fc_Push(STAGE_CSI);
 				fc_DECSRET((int)value[1] != 0 ? 'h' : 'l');
-				m_AnsiPara.RemoveAll();
-				for ( n = 0 ; n < save.GetSize() ; n++ )
-					m_AnsiPara.Add(save[n]);
+				m_AnsiPara = save;
 			}
 		}
 		break;
@@ -1861,6 +2191,7 @@ const CTextRam & CTextRam::operator = (CTextRam &data)
 	memcpy(m_DefAnsiOpt, data.m_DefAnsiOpt, sizeof(m_DefAnsiOpt));
 	memcpy(m_AnsiOpt, data.m_AnsiOpt, sizeof(m_AnsiOpt));
 	memcpy(m_DefBankTab, data.m_DefBankTab, sizeof(m_DefBankTab));
+	memcpy(m_OptTab, data.m_OptTab, sizeof(m_OptTab));
 	memcpy(m_BankTab, data.m_BankTab, sizeof(m_BankTab));
 	m_SendCharSet[0] = data.m_SendCharSet[0];
 	m_SendCharSet[1] = data.m_SendCharSet[1];
@@ -2326,7 +2657,7 @@ void CTextRam::EditWordPos(int *sps, int *eps)
 	if ( sx > 0 && IS_2BYTE(GETVRAM(sx, sy)->pr.cm) )
 		sx--;
 
-	if ( IS_ENABLE(m_AnsiOpt, TO_RLGAWL) != 0 ) {
+	if ( IsOptEnable(TO_RLGAWL) != 0 ) {
 		for ( tx = 0, ty = sy ; tx <= sx ; tx++ ) {
 			tmp.Empty();
 			for ( n = 0 ; n < 10 ; n++ )
@@ -2456,7 +2787,7 @@ void CTextRam::EditCopy(int sps, int eps, BOOL rectflag, BOOL lineflag)
 				n = 1;
 			}
 
-			if ( n == 1 && ch == ' ' && IS_ENABLE(m_AnsiOpt, TO_RLSPCTAB) != 0 ) {
+			if ( n == 1 && ch == ' ' && IsOptEnable(TO_RLSPCTAB) != 0 ) {
 				tc++;
 				if ( (x % m_DefTab) == (m_DefTab - 1) ) {
 //					if ( tc > (m_DefTab / 2) ) {
@@ -2480,7 +2811,7 @@ void CTextRam::EditCopy(int sps, int eps, BOOL rectflag, BOOL lineflag)
 
 	tmp.PutWord(0);
 
-	if ( IS_ENABLE(m_AnsiOpt, TO_RLGAWL) != 0 ) {
+	if ( IsOptEnable(TO_RLGAWL) != 0 ) {
 		if ( m_ShellExec.Match(UniToTstr((LPCWSTR)tmp)) >= 0 )
 			ShellExecuteW(AfxGetMainWnd()->GetSafeHwnd(), NULL, (LPCWSTR)tmp, NULL, NULL, SW_NORMAL);
 	}
@@ -2568,7 +2899,7 @@ void CTextRam::StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop,
 	CBitmap *pOld;
 	CRect box(*pRect);
 
-	if ( (at & ATT_BOLD) != 0 && !IS_ENABLE(m_AnsiOpt, TO_RLBOLD) && prop.fcn < 16 )
+	if ( (at & ATT_BOLD) != 0 && !IsOptEnable(TO_RLBOLD) && prop.fcn < 16 )
 		prop.fcn ^= 0x08;
 
 	fc = m_ColTab[prop.fcn];
@@ -2673,7 +3004,7 @@ void CTextRam::StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop,
 
 			::ExtTextOutW(pDC->m_hDC, x, y, ((pView->m_pBitmap == NULL || rv != FALSE) ? (ETO_OPAQUE | ETO_CLIPPED) : ETO_CLIPPED), pRect, str, len, spc);
 
-			if ( (at & ATT_BOLD) != 0 && (IS_ENABLE(m_AnsiOpt, TO_RLBOLD) || prop.fcn >= 16) ) {
+			if ( (at & ATT_BOLD) != 0 && (IsOptEnable(TO_RLBOLD) || prop.fcn >= 16) ) {
 				n = pDC->SetBkMode(TRANSPARENT);
 				::ExtTextOutW(pDC->m_hDC, x + 1, y, ETO_CLIPPED, pRect, str, len, spc);
 				pDC->SetBkMode(n);
@@ -2785,7 +3116,7 @@ void CTextRam::StrOut(CDC *pDC, CDC *pWdc, LPCRECT pRect, struct DrawWork &prop,
 		pDC->SelectObject(oPen);
 	}
 
-	if ( IS_ENABLE(m_AnsiOpt, TO_DECSCNM) )
+	if ( IsOptEnable(TO_DECSCNM) )
 		pDC->InvertRect(pRect);
 
 	if ( pView->m_VisualBellFlag )
@@ -2959,19 +3290,37 @@ void CTextRam::PostMessage(UINT message, WPARAM wParam, LPARAM lParam)
 }
 BOOL CTextRam::IsOptEnable(int opt)
 {
-	return IS_ENABLE(m_AnsiOpt, opt);
+	if ( opt >= 1000 && opt <= 1511 ) {
+		opt -= 1000;
+		return (IS_ENABLE(m_OptTab, opt) ? TRUE : FALSE);
+	} else if ( opt >= 0 && opt <= 511 )
+		return (IS_ENABLE(m_AnsiOpt, opt) ? TRUE : FALSE);
+	else
+		return FALSE;
 }
 void CTextRam::EnableOption(int opt)
 {
-	m_AnsiOpt[opt / 32] |= (1 << (opt % 32));
+	if ( opt >= 1000 && opt <= 1511 ) {
+		opt -= 1000;
+		m_OptTab[opt / 32]  |= (1 << (opt % 32));
+	} else if ( opt >= 0 && opt <= 511 )
+		m_AnsiOpt[opt / 32] |= (1 << (opt % 32));
 }
 void CTextRam::DisableOption(int opt)
 {
-	m_AnsiOpt[opt / 32] &= ~(1 << (opt % 32));
+	if ( opt >= 1000 && opt <= 1511 ) {
+		opt -= 1000;
+		m_OptTab[opt / 32]  &= ~(1 << (opt % 32));
+	} else if ( opt >= 0 && opt <= 511 )
+		m_AnsiOpt[opt / 32] &= ~(1 << (opt % 32));
 }
 void CTextRam::ReversOption(int opt)
 {
-	m_AnsiOpt[opt / 32] ^= (1 << (opt % 32));
+	if ( opt >= 1000 && opt <= 1511 ) {
+		opt -= 1000;
+		m_OptTab[opt / 32]  ^= (1 << (opt % 32));
+	} else if ( opt >= 0 && opt <= 511 )
+		m_AnsiOpt[opt / 32] ^= (1 << (opt % 32));
 }
 int CTextRam::IsOptValue(int opt, int len)
 {
@@ -3462,9 +3811,6 @@ void CTextRam::RESET(int mode)
 		memset(m_MacroExecFlag, 0, sizeof(m_MacroExecFlag));
 	}
 
-	m_RecvCrLf = IsOptValue(TO_RLRECVCR, 2);
-	m_SendCrLf = IsOptValue(TO_RLECHOCR, 2);
-
 	if ( mode & RESET_MOUSE ) {
 		m_MouseTrack = MOS_EVENT_NONE;
 		m_MouseRect.SetRectEmpty();
@@ -3525,9 +3871,9 @@ void CTextRam::UNGETSTR(LPCTSTR str, ...)
 }
 void CTextRam::BEEP()
 {
-	if ( !IS_ENABLE(m_AnsiOpt, TO_RLADBELL) )
+	if ( !IsOptEnable(TO_RLADBELL) )
 		MessageBeep(MB_OK);
-	if ( IS_ENABLE(m_AnsiOpt, TO_RLVSBELL) )
+	if ( IsOptEnable(TO_RLVSBELL) )
 		m_pDocument->UpdateAllViews(NULL, UPDATE_VISUALBELL, NULL);
 }
 void CTextRam::FLUSH()
@@ -3656,7 +4002,7 @@ int CTextRam::GetAnsiPara(int index, int defvalue, int limit, int maxvalue)
 	else
 		val = m_AnsiPara[index];
 
-	if ( val == 0xFFFF || val < limit )
+	if ( val == PARA_NOT || val < limit )
 		return defvalue;
 
 	if ( maxvalue >= 0 && val > maxvalue )
@@ -3667,12 +4013,12 @@ int CTextRam::GetAnsiPara(int index, int defvalue, int limit, int maxvalue)
 void CTextRam::SetAnsiParaArea(int top)
 {
 	while ( m_AnsiPara.GetSize() < top )
-		m_AnsiPara.Add(0xFFFF);
+		m_AnsiPara.Add(PARA_NOT);
 
 	// Start Line
 	if ( m_AnsiPara.GetSize() < (top + 1) )
 		m_AnsiPara.Add(1);
-	else if ( m_AnsiPara[top] == 0xFFFF )
+	else if ( m_AnsiPara[top] == PARA_NOT )
 		m_AnsiPara[top] = 1;
 	if ( (m_AnsiPara[top] = m_AnsiPara[top] - 1) < 0 )
 		m_AnsiPara[top] = 0;
@@ -3683,7 +4029,7 @@ void CTextRam::SetAnsiParaArea(int top)
 	// Start Cols
 	if ( m_AnsiPara.GetSize() < (top + 1) )
 		m_AnsiPara.Add(1);
-	else if ( m_AnsiPara[top] == 0xFFFF )
+	else if ( m_AnsiPara[top] == PARA_NOT )
 		m_AnsiPara[top] = 1;
 	if ( (m_AnsiPara[top] = m_AnsiPara[top] - 1) < 0 )
 		m_AnsiPara[top] = 0;
@@ -3694,7 +4040,7 @@ void CTextRam::SetAnsiParaArea(int top)
 	// End Line
 	if ( m_AnsiPara.GetSize() < (top + 1) )
 		m_AnsiPara.Add(m_Lines);
-	else if ( m_AnsiPara[top] == 0xFFFF )
+	else if ( m_AnsiPara[top] == PARA_NOT )
 		m_AnsiPara[top] = m_Lines;
 	if ( (m_AnsiPara[top] = m_AnsiPara[top] - 1) < 0 )
 		m_AnsiPara[top] = 0;
@@ -3705,7 +4051,7 @@ void CTextRam::SetAnsiParaArea(int top)
 	// End Cols
 	if ( m_AnsiPara.GetSize() < (top + 1) )
 		m_AnsiPara.Add(m_Cols);
-	else if ( m_AnsiPara[top] == 0xFFFF )
+	else if ( m_AnsiPara[top] == PARA_NOT )
 		m_AnsiPara[top] = m_Cols;
 	if ( (m_AnsiPara[top] = m_AnsiPara[top] - 1) < 0 )
 		m_AnsiPara[top] = 0;
@@ -4277,8 +4623,8 @@ void CTextRam::PUT1BYTE(int ch, int md)
 	m_LastPos  = m_CurX + m_CurY * COLS_MAX;
 
 	if ( ++m_CurX >= mx ) {
-		if ( IS_ENABLE(m_AnsiOpt, TO_DECAWM) != 0 ) {
-			if ( IS_ENABLE(m_AnsiOpt, TO_RLGNDW) != 0 ) {
+		if ( IsOptEnable(TO_DECAWM) != 0 ) {
+			if ( IsOptEnable(TO_RLGNDW) != 0 ) {
 				ONEINDEX();
 				m_CurX = 0;
 				m_LastPos -= COLS_MAX;
@@ -4349,8 +4695,8 @@ void CTextRam::PUT2BYTE(int ch, int md)
 	m_LastPos  = m_CurX + m_CurY * COLS_MAX;
 
 	if ( (m_CurX += 2) >= mx ) {
-		if ( IS_ENABLE(m_AnsiOpt, TO_DECAWM) != 0 ) {
-			if ( IS_ENABLE(m_AnsiOpt, TO_RLGNDW) != 0 ) {
+		if ( IsOptEnable(TO_DECAWM) != 0 ) {
+			if ( IsOptEnable(TO_RLGNDW) != 0 ) {
 				ONEINDEX();
 				m_CurX = 0;
 				m_LastPos -= COLS_MAX;
@@ -4402,28 +4748,31 @@ void CTextRam::PUTADD(int x, int y, int ch, int cf)
 }
 void CTextRam::ANSIOPT(int opt, int bit)
 {
-	ASSERT(opt >= 0 && opt < 512 );
+	if ( bit < 0 || bit > 511 )
+		return;
 
 	switch(opt) {
 	case 'h':
-		m_AnsiOpt[bit / 32] |= (1 << (bit % 32));
+		EnableOption(bit);
 		break;
 	case 'l':
-		m_AnsiOpt[bit / 32] &= ~(1 << (bit % 32));
+		DisableOption(bit);
 		break;
 	case 'r':
-		m_AnsiOpt[bit / 32] &= ~(1 << (bit % 32));
-		m_AnsiOpt[bit / 32] |= (m_Save_AnsiOpt[bit / 32] & (1 << (bit % 32)));
+		DisableOption(bit);
+		if ( IS_ENABLE(m_Save_AnsiOpt, bit) )
+			EnableOption(bit);
 		break;
 	case 's':
 		m_Save_AnsiOpt[bit / 32] &= ~(1 << (bit % 32));
-		m_Save_AnsiOpt[bit / 32] |= (m_AnsiOpt[bit / 32] & (1 << (bit % 32)));
+		if ( IsOptEnable(bit) )
+			m_Save_AnsiOpt[bit / 32] |= (1 << (bit % 32));
 		break;
 	}
 }
 void CTextRam::INSMDCK(int len)
 {
-	if ( IS_ENABLE(m_AnsiOpt, TO_ANSIIRM) == 0 )
+	if ( IsOptEnable(TO_ANSIIRM) == 0 )
 		return;
 	while ( len-- > 0 )
 		INSCHAR();
@@ -4526,9 +4875,6 @@ void CTextRam::LOADRAM()
 	memcpy(m_Save_BankTab, pSave->m_Save_BankTab, sizeof(m_BankTab));
 	memcpy(m_Save_AnsiOpt, pSave->m_Save_AnsiOpt, sizeof(m_AnsiOpt));
 	memcpy(m_Save_TabMap, pSave->m_Save_TabMap, sizeof(m_TabMap));
-
-	m_RecvCrLf = IsOptValue(TO_RLRECVCR, 2);
-	m_SendCrLf = IsOptValue(TO_RLECHOCR, 2);
 
 	cx = (pSave->m_Cols < m_Cols ? pSave->m_Cols : m_Cols);
 	for ( n = 0 ; n < pSave->m_Lines && n < m_Lines ; n++ ) {

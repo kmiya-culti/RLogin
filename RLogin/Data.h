@@ -168,21 +168,31 @@ class CStringIndex : public CObject
 public:
 	BOOL m_bNoCase;
 	BOOL m_bNoSort;
+	BOOL m_bString;
+	BOOL m_bEmpty;
 	int m_Value;
 	CString m_nIndex;
 	CString m_String;
 	CArray<CStringIndex, CStringIndex &> m_Array;
 
+	CStringIndex();
+	~CStringIndex();
+
 	const CStringIndex & operator = (CStringIndex &data);
 	CStringIndex & operator [] (LPCTSTR str);
 	CStringIndex & operator [] (int nIndex) { return m_Array[nIndex]; }
-	const LPCTSTR operator = (LPCTSTR str) { return (m_String = str); }
+	const LPCTSTR operator = (LPCTSTR str) { m_bString = TRUE; m_bEmpty = FALSE; return (m_String = str); }
 	operator LPCTSTR () const { return m_String; }
+	const int operator = (int val) { m_bString = FALSE; m_bEmpty = FALSE; return (m_Value = val); }
+	operator int () const { return (m_bString ? _tstoi(m_String) : m_Value); }
 
+	BOOL IsEmpty() { return m_bEmpty; }
 	int GetSize() { return m_Array.GetSize(); }
 	void SetSize(int nIndex) { m_Array.SetSize(nIndex); }
 	LPCTSTR GetIndex() { return m_nIndex; }
 	void RemoveAll() { m_Array.RemoveAll(); }
+	int Add(LPCTSTR str) { CStringIndex tmp; tmp = str; return m_Array.Add(tmp); }
+	int Add(int value) { CStringIndex tmp; tmp = value; return m_Array.Add(tmp); }
 	void SetNoCase(BOOL b) { m_bNoCase = b; }
 	void SetNoSort(BOOL b) { m_bNoSort = b; }
 
@@ -194,8 +204,10 @@ public:
 	void GetString(LPCTSTR str);
 	void SetString(CString &str);
 
-	CStringIndex();
-	~CStringIndex();
+	void SetPackStr(CStringA &mbs);
+	LPCTSTR GetPackStr(LPCTSTR str);
+	BOOL ReadString(CArchive& ar, CString &str);
+	void Serialize(CArchive& ar, LPCSTR base = NULL);
 };
 
 class CStringBinary : public CObject
@@ -222,21 +234,24 @@ public:
 	operator int () const { return m_Value; }
 };
 
-class CWordIndex : CObject
+#define	PARA_NOT	0xFFFFFFFF
+#define	PARA_MAX	0x7FFFFFFF
+
+class CParaIndex : CObject
 {
 public:
-	WORD m_Data;
-	CArray<CWordIndex, CWordIndex &> m_Array;
+	DWORD m_Data;
+	CArray<CParaIndex, CParaIndex &> m_Array;
 
-	CWordIndex();
-	CWordIndex(WORD data);
-	~CWordIndex();
+	CParaIndex();
+	CParaIndex(DWORD data);
+	~CParaIndex();
 
-	const CWordIndex & operator = (CWordIndex &data);
-	const WORD operator = (WORD data) { m_Data = data; return m_Data; }
-	CWordIndex & operator [] (int nIndex) { return m_Array[nIndex]; }
-	operator WORD () const { return m_Data; }
-	INT_PTR Add(WORD data) { CWordIndex tmp(data); return m_Array.Add(tmp); }
+	const CParaIndex & operator = (CParaIndex &data);
+	const DWORD operator = (DWORD data) { m_Data = data; return m_Data; }
+	CParaIndex & operator [] (int nIndex) { return m_Array[nIndex]; }
+	operator DWORD () const { return m_Data; }
+	INT_PTR Add(DWORD data) { CParaIndex tmp(data); return m_Array.Add(tmp); }
 	INT_PTR GetSize() { return m_Array.GetSize(); }
 	void SetSize(INT_PTR nNewSize, INT_PTR nGrowBy = -1) { m_Array.SetSize(nNewSize, nGrowBy); }
 	void RemoveAll() { m_Array.RemoveAll(); }
@@ -423,6 +438,7 @@ public:
 	int GetProfile(LPCTSTR pSection, int Uid);
 	void DelProfile(LPCTSTR pSection);
 	void Serialize(CArchive &ar);
+	void SetIndex(int mode, CStringIndex &index);
 
 	LPCTSTR GetKanjiCode();
 	void SetKanjiCode(LPCTSTR str);
@@ -524,6 +540,7 @@ public:
 	void Init();
 	void SetArray(CStringArrayExt &stra);
 	void GetArray(CStringArrayExt &stra);
+	void SetIndex(int mode, CStringIndex &index);
 	void ScriptInit(int cmds, int shift, class CScriptValue &value);
 	void ScriptValue(int cmds, class CScriptValue &value, int mode);
 
@@ -579,6 +596,7 @@ public:
 	void Init();
 	void GetArray(CStringArrayExt &stra);
 	void SetArray(CStringArrayExt &stra);
+	void SetIndex(int mode, CStringIndex &index);
 	void ScriptInit(int cmds, int shift, class CScriptValue &value);
 	void ScriptValue(int cmds, class CScriptValue &value, int mode);
 
@@ -617,15 +635,9 @@ public:
 	void Init();
 	void GetArray(CStringArrayExt &stra);
 	void SetArray(CStringArrayExt &stra);
+	void SetIndex(int mode, CStringIndex &index);
 	void ScriptInit(int cmds, int shift, class CScriptValue &value);
 	void ScriptValue(int cmds, class CScriptValue &value, int mode);
-
-	BOOL IsOptEnable(int opt);
-	void EnableOption(int opt);
-	void DisableOption(int opt);
-	void ReversOption(int opt);
-	int IsOptValue(int opt, int len);
-	void SetOptValue(int opt, int len, int value);
 
 	void GetProp(int num, CString &str, int shuffle = FALSE);
 	int GetPropNode(int num, int node, CString &str);

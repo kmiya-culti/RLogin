@@ -187,15 +187,37 @@ void CRLoginDoc::OnFileClose()
 /////////////////////////////////////////////////////////////////////////////
 // CRLoginDoc シリアライゼーション
 
+void CRLoginDoc::SetIndex(int mode, CStringIndex &index)
+{
+	// mode == TRUE		CRLoginDoc -> CStringIndex
+	//         FALSE	CRLoginDoc <- CStringIndex
+
+	m_ServerEntry.SetIndex(mode, index[_T("Entry")]);
+	m_ParamTab.SetIndex(mode, index[_T("Protocol")]);
+	m_TextRam.SetIndex(mode, index[_T("Screen")]);
+	m_TextRam.m_FontTab.SetIndex(mode, index[_T("Fontset")]);
+	m_KeyTab.SetIndex(mode, index[_T("Keycode")]);
+	m_KeyMac.SetIndex(mode, index[_T("Keymacro")]);
+}
+
 void CRLoginDoc::Serialize(CArchive& ar)
 {
 	if ( ar.IsStoring() ) {			// TODO: この位置に保存用のコードを追加してください。
+#if	1
+		CStringIndex index;
+		index.SetNoCase(TRUE);
+		index.SetNoSort(TRUE);
+		SetIndex(TRUE, index);
+		ar.Write("RLG300\r\n", 8);
+		index.Serialize(ar, NULL);
+#else
 		ar.Write("RLG200\n", 7);
 		m_ServerEntry.Serialize(ar);
 		m_TextRam.Serialize(ar);
 		m_KeyTab.Serialize(ar);
 		m_KeyMac.Serialize(ar);
 		m_ParamTab.Serialize(ar);
+#endif
 		m_LoadMode = 1;
 
 	} else {						// TODO: この位置に読み込み用のコードを追加してください。
@@ -207,12 +229,22 @@ void CRLoginDoc::Serialize(CArchive& ar)
 			if ( tmp[n] == '\n' )
 				break;
 		}
-		if ( strncmp(tmp, "RLG2", 4) == 0 ) {
+		if ( strncmp(tmp, "RLG3", 4) == 0 ) {
+			CStringIndex index;
+			index.SetNoCase(TRUE);
+			index.SetNoSort(TRUE);
+			index.Serialize(ar, NULL);
+			SetIndex(FALSE, index);
+			m_TextRam.SetKanjiMode(m_ServerEntry.m_KanjiCode);
+			m_LoadMode = 1;
+
+		} else if ( strncmp(tmp, "RLG2", 4) == 0 ) {
 			m_ServerEntry.Serialize(ar);
 			m_TextRam.Serialize(ar);
 			m_KeyTab.Serialize(ar);
 			m_KeyMac.Serialize(ar);
 			m_ParamTab.Serialize(ar);
+
 			m_TextRam.SetKanjiMode(m_ServerEntry.m_KanjiCode);
 			m_LoadMode = 1;
 
