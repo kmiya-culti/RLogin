@@ -180,7 +180,7 @@ BOOL CCharSetPage::OnInitDialog()
 
 	ZeroMemory(&logfont, sizeof(LOGFONT)); 
 	logfont.lfCharSet = DEFAULT_CHARSET;
-	::EnumFontFamiliesEx(dc.m_hDC, &logfont, (FONTENUMPROC)EnumFontFamExComboAddStr, (long)GetDlgItem(IDC_FONTNAME), 0);
+	::EnumFontFamiliesEx(dc.m_hDC, &logfont, (FONTENUMPROC)EnumFontFamExComboAddStr, (LPARAM)GetDlgItem(IDC_FONTNAME), 0);
 
 	return TRUE;
 }

@@ -1128,7 +1128,7 @@ int CMainFrame::SetAsyncHostAddr(int mode, LPCTSTR pHostName, CExtSocket *pSock)
 	m_HostAddrParam.Add(pSock);
 	m_HostAddrParam.Add(pStr);
 	m_HostAddrParam.Add(pData);
-	m_HostAddrParam.Add((void *)mode);
+	m_HostAddrParam.Add(reinterpret_cast<void *>(mode));
 
 	return TRUE;
 }
@@ -1177,7 +1177,7 @@ int CMainFrame::SetAsyncAddrInfo(int mode, LPCTSTR pHostName, int PortNum, void 
 	m_HostAddrParam.Add(pSock);
 	m_HostAddrParam.Add(NULL);
 	m_HostAddrParam.Add(NULL);
-	m_HostAddrParam.Add((void *)mode);
+	m_HostAddrParam.Add(reinterpret_cast<void *>(mode));
 #endif
 	return TRUE;
 }
@@ -1186,7 +1186,7 @@ int CMainFrame::SetAfterId(void *param)
 {
 	static int SeqId = 0;
 
-	m_AfterIdParam.Add((void *)++SeqId);
+	m_AfterIdParam.Add(reinterpret_cast<void *>(++SeqId));
 	m_AfterIdParam.Add(param);
 
 	return SeqId;
@@ -1645,6 +1645,9 @@ void CMainFrame::VersionCheckProc()
 	CStringLoad version;
 
 	((CRLoginApp *)AfxGetApp())->GetVersion(version);
+	str = AfxGetApp()->GetProfileString(_T("MainFrame"), _T("VersionNumber"), _T(""));
+	if ( version.Compare(str) < 0 )
+		version = str;
 
 	if ( !http.GetRequest(CStringLoad(IDS_VERSIONCHECKURL), buf) )
 		return;
@@ -1680,6 +1683,7 @@ void CMainFrame::VersionCheckProc()
 		// RLogin 2.18.4 2015/05/20 http://nanno.dip.jp/softlib/
 
 		if ( pam.GetSize() >= 4 && pam[0].CompareNoCase(_T("RLogin")) == 0 && version.Compare(pam[1]) < 0 ) {
+			AfxGetApp()->WriteProfileString(_T("MainFrame"), _T("VersionNumber"), pam[1]);
 			m_VersionMessage.Format(CStringLoad(IDS_NEWVERSIONCHECK), pam[1]);
 			m_VersionPageUrl = pam[3];
 			PostMessage(WM_COMMAND, IDM_NEWVERSIONFOUND);
@@ -1786,7 +1790,7 @@ LRESULT CMainFrame::OnGetHostAddr(WPARAM wParam, LPARAM lParam)
 	int buflen  = WSAGETASYNCBUFLEN(lParam);
 
 	for ( n = 0 ; n < m_HostAddrParam.GetSize() ; n += 5 ) {
-		mode = (int)m_HostAddrParam[n + 4];
+		mode = reinterpret_cast<int>(m_HostAddrParam[n + 4]);
 		if ( (mode & 030) == 0 && m_HostAddrParam[n] == (void *)wParam ) {
 			pSock = (CExtSocket *)m_HostAddrParam[n + 1];
 			pStr = (CString *)m_HostAddrParam[n + 2];
@@ -1849,7 +1853,7 @@ LRESULT CMainFrame::OnAfterOpen(WPARAM wParam, LPARAM lParam)
 	int n;
 
 	for ( n = 0 ; n < m_AfterIdParam.GetSize() ; n += 2 ) {
-		if ( (int)(m_AfterIdParam[n]) == (int)wParam ) {
+		if (reinterpret_cast<int>(m_AfterIdParam[n]) == (int)(wParam) ) {
 			CRLoginDoc *pDoc = (CRLoginDoc *)m_AfterIdParam[n + 1];
 
 			m_AfterIdParam.RemoveAt(n, 2);
@@ -2496,6 +2500,7 @@ void CMainFrame::OnVersioncheck()
 {
 	m_bVersionCheck = (AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("VersionCheckFlag"), m_bVersionCheck) ? FALSE : TRUE);
 	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("VersionCheckFlag"), m_bVersionCheck);
+	AfxGetApp()->WriteProfileString(_T("MainFrame"), _T("VersionNumber"), _T(""));
 
 	if ( m_bVersionCheck )
 		VersionCheckProc();

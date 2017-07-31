@@ -335,6 +335,8 @@ public:
 	int LoadSecShKey(FILE *fp, LPCTSTR pass);
 	int LoadPuttyKey(FILE *fp, LPCTSTR pass);
 
+	inline BOOL IsNotSupport() { return (m_Type == IDKEY_DSA2 && m_Dsa != NULL && BN_num_bits(m_Dsa->q) > 160 ? TRUE : FALSE); }
+
 	int LoadPrivateKey(LPCTSTR file, LPCTSTR pass);
 	int SavePrivateKey(int type, LPCTSTR file, LPCTSTR pass);
 
@@ -696,7 +698,7 @@ private:
 	CArray<CPermit, CPermit &> m_Permit;
 	CBuffer m_StdInRes;
 	CRcpUpload m_RcpCmd;
-	BOOL m_bPfdConnect;
+	int m_bPfdConnect;
 
 	void LogIt(LPCTSTR format, ...);
 	void PortForward();

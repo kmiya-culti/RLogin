@@ -366,6 +366,9 @@ void CIdkeySelDLg::OnIdkeyInport()
 	if ( !key.LoadPrivateKey(dlg.m_IdkeyFile, dlg.m_PassName) ) {
 		MessageBox(CStringLoad(IDE_IDKEYLOADERROR));
 		return;
+	} else if ( key.IsNotSupport() ) {
+		MessageBox(CStringLoad(IDE_IDKEYNOTSUPPORT));
+		return;
 	}
 
 	key.m_Flag = TRUE;

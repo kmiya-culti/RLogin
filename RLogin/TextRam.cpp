@@ -2136,6 +2136,8 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		for ( n = 0 ; n < 5 ; n++ )
 			index[_T("TermParaId")].Add(m_DefTermPara[n]);
 
+		index[_T("LogMode")] = m_LogMode;
+
 	} else {		// Read
 		if ( (n = index.Find(_T("Cols"))) >= 0 ) {
 			if ( (i = index[n].Find(_T("Nomal"))) >= 0 )
@@ -2331,6 +2333,9 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 			m_UnitId  = m_DefTermPara[TERMPARA_UNITID];
 			m_KeybId  = m_DefTermPara[TERMPARA_KEYBID];
 		}
+
+		if ( (n = index.Find(_T("LogMode"))) >= 0 )
+			m_LogMode = index[n];
 
 		memcpy(m_ColTab, m_DefColTab, sizeof(m_DefColTab));
 		memcpy(m_AnsiOpt, m_DefAnsiOpt, sizeof(m_AnsiOpt));
@@ -4848,8 +4853,10 @@ void CTextRam::SizeGrapWnd(class CGrapWnd *pWnd)
 	dw = m_Cols;
 	dh = m_Lines;
 
-	dx = pWnd->m_MaxX * pWnd->m_AspX / 100;
-	dy = pWnd->m_MaxY * pWnd->m_AspY / 100;
+	if ( (dx = pWnd->m_MaxX * pWnd->m_AspX / 100) <= 0 )
+		dx = 1;
+	if ( (dy = pWnd->m_MaxY * pWnd->m_AspY / 100) <= 0 )
+		dy = 1;
 
 	if ( (x = sw * cx / dw) < dx ) {
 		pWnd->m_AspX = pWnd->m_AspX * x / dx;
@@ -4864,6 +4871,9 @@ void CTextRam::SizeGrapWnd(class CGrapWnd *pWnd)
 
 	pWnd->m_BlockX = cx;
 	pWnd->m_BlockY = cy;
+
+	pWnd->m_CellX = fw;
+	pWnd->m_CellY = fh;
 }
 
 //////////////////////////////////////////////////////////////////////

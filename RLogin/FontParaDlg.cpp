@@ -179,7 +179,7 @@ void CFontParaDlg::SetFontFace(int nID)
 
 	ZeroMemory(&logfont, sizeof(LOGFONT)); 
 	logfont.lfCharSet = CharSetNo(m_CharSetTemp);
-	::EnumFontFamiliesEx(dc.m_hDC, &logfont, (FONTENUMPROC)EnumFontFamExComboAddStr, (long)GetDlgItem(nID), 0);
+	::EnumFontFamiliesEx(dc.m_hDC, &logfont, (FONTENUMPROC)EnumFontFamExComboAddStr, (LPARAM)GetDlgItem(nID), 0);
 }
 
 /////////////////////////////////////////////////////////////////////////////

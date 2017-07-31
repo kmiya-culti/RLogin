@@ -98,7 +98,7 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 	m_IdKeyPos = 0;
 	SetRecvBufSize(CHAN_SES_PACKET_DEFAULT * 4);
 	srand((UINT)time(NULL));
-	m_bPfdConnect = FALSE;
+	m_bPfdConnect = 0;
 
 	//CStringA tmp;
 	//CCipher::BenchMark(tmp);
@@ -112,8 +112,8 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 		if ( !IdKey.LoadPrivateKey(m_pDocument->m_ServerEntry.m_IdkeyName, m_pDocument->m_ServerEntry.m_PassName) ) {
 			CIdKeyFileDlg dlg;
 			dlg.m_OpenMode  = 1;
-			dlg.m_Title.LoadString(IDS_SSH_PASS_TITLE);		//   = _T("SSH鍵ファイルの読み込み");
-			dlg.m_Message.LoadString(IDS_SSH_PASS_MSG);	// = _T("作成時に設定したパスフレーズを入力してください");
+			dlg.m_Title.LoadString(IDS_SSH_PASS_TITLE);		// = _T("SSH鍵ファイルの読み込み");
+			dlg.m_Message.LoadString(IDS_SSH_PASS_MSG);		// = _T("作成時に設定したパスフレーズを入力してください");
 			dlg.m_IdkeyFile = m_pDocument->m_ServerEntry.m_IdkeyName;
 			if ( dlg.DoModal() != IDOK ) {
 				m_pDocument->m_ServerEntry.m_IdkeyName.Empty();
@@ -123,6 +123,10 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 				AfxMessageBox(IDE_IDKEYLOADERROR);
 				return FALSE;
 			}
+		}
+		if ( IdKey.IsNotSupport() ) {
+			AfxMessageBox(IDE_IDKEYNOTSUPPORT);
+			return FALSE;
 		}
 		IdKey.SetPass(m_pDocument->m_ServerEntry.m_PassName);
 		m_IdKeyTab.Add(IdKey);
@@ -1365,7 +1369,10 @@ void Cssh::PortForward()
 	CString str;
 	CStringArrayExt tmp;
 
-	m_bPfdConnect = FALSE;
+	m_bPfdConnect = 0;
+
+	if ( m_pDocument->m_ServerEntry.m_ReEntryFlag && !m_pDocument->m_TextRam.IsOptEnable(TO_SSHPFORY) )
+		return;
 
 	for ( i = 0 ; i < m_pDocument->m_ParamTab.m_PortFwd.GetSize() ; i++ ) {
 		m_pDocument->m_ParamTab.m_PortFwd.GetArray(i, tmp);
@@ -1412,7 +1419,7 @@ void Cssh::PortForward()
 			m_Permit[n].m_rPort = GetPortNum(tmp[1]);
 			SendMsgGlobalRequest(n, "tcpip-forward", tmp[0], GetPortNum(tmp[1]));
 			LogIt(_T("Remote Listen %s:%s"), tmp[0], tmp[1]);
-			m_bPfdConnect = TRUE;
+			m_bPfdConnect++;
 			a++;
 			break;
 		}
@@ -1422,12 +1429,12 @@ void Cssh::PortForward()
 		if ( a == 0 )
 			AfxMessageBox(IDE_PORTFWORDERROR);
 
-		if ( m_bPfdConnect == FALSE ) {
+		if ( m_bPfdConnect == 0 ) {
 			m_bConnect = TRUE;
 			m_pDocument->OnSocketConnect();
 		}
 	} else
-		m_bPfdConnect = FALSE;
+		m_bPfdConnect = 0;
 }
 
 void Cssh::OpenSFtpChannel()
@@ -2232,7 +2239,12 @@ int Cssh::SSH2MsgKexDhGexGroup(CBuffer *bp)
 	if ( !bp->GetBIGNUM2(m_SaveDh->g) )
 		return TRUE;
 
-	dh_gen_key(m_SaveDh, m_NeedKeyLen * 8);
+	//int grp_bits = BN_num_bits(m_SaveDh->p);
+	//int req_bits = dh_estimate(m_NeedKeyLen * 8);
+	// 1024 <= grp_bits && grp_bits <= 8192
+
+	if ( dh_gen_key(m_SaveDh, m_NeedKeyLen * 8) )
+		return TRUE;
 
 	tmp.Put8Bit(SSH2_MSG_KEX_DH_GEX_INIT);
 	tmp.PutBIGNUM2(m_SaveDh->pub_key);
@@ -2982,8 +2994,7 @@ int Cssh::SSH2MsgGlobalRequestReply(CBuffer *bp, int type)
 	if ( (WORD)num == 0xFFFF )	// KeepAlive Reply
 		return FALSE;
 
-	if ( m_bPfdConnect ) {
-		m_bPfdConnect = FALSE;
+	if ( m_bPfdConnect > 0 && --m_bPfdConnect <= 0 ) {
 		m_bConnect = TRUE;
 		m_pDocument->OnSocketConnect();
 	}

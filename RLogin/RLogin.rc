@@ -491,7 +491,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.18.9 (2015/07/24)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.19.0 (2015/08/17)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2015 Culti",IDC_STATIC,44,16,189,8
     DEFPUSHBUTTON   "OK",IDOK,96,171,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.2d 9 Jul 2015",IDC_STATIC,44,29,189,8
@@ -1532,8 +1532,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,18,9,0
- PRODUCTVERSION 2,18,9,0
+ FILEVERSION 2,19,0,0
+ PRODUCTVERSION 2,19,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1550,12 +1550,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.18.9.0"
+            VALUE "FileVersion", "2.19.0.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2015 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.18.9.0"
+            VALUE "ProductVersion", "2.19.0.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2896,6 +2896,7 @@ BEGIN
     IDS_NEWVERSIONCHECK     "新しいバージョンのRLogin(%s)があります。\n今すぐダウンロードページを表示しますか？"
     IDS_VERSIONCHECKURL     "http://nanno.dip.jp/softlib/version.txt"
     IDE_USEIDKEYFILENAME    "認証鍵ファイルを指定してください"
+    IDE_IDKEYNOTSUPPORT     "SSHでサポートされていないサイズの認証鍵です"
 END
 
 STRINGTABLE

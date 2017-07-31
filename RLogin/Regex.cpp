@@ -1050,7 +1050,7 @@ BOOL CRegEx::MatchStrSub(CStringD &str, int start, int end, CRegExRes *res)
 	int n, i;
 	CRegExNode *np, *ip;
 	CRegExQue *qp;
-	CRegExWork *wp;
+	CRegExWork *wp = NULL;
 
 	m_QueSw = 0;
 	while ( HeadQue(0) != NULL );
@@ -1130,7 +1130,7 @@ BOOL CRegEx::MatchStrSub(CStringD &str, int start, int end, CRegExRes *res)
 		return FALSE;
 	}
 
-	if ( res != NULL ) {
+	if ( res != NULL && wp != NULL ) {
 		*res = wp->m_Done;
 		res->m_Status = (m_QueHead[m_QueSw] != NULL ? REG_MATCHMORE : REG_MATCH);
 		for ( n = 0 ; n < m_Arg ; n++ )

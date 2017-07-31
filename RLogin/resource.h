@@ -159,6 +159,8 @@
 #define IDS_NEWVERSIONCHECK             566
 #define IDS_VERSIONCHECKURL             567
 #define IDE_USEIDKEYFILENAME            568
+#define IDS_STRING569                   569
+#define IDE_IDKEYNOTSUPPORT             569
 #define ID_CHARSCRIPT_END               1000
 #define ID_DISCONNECT                   1001
 #define ID_EDIT_BOX                     1002

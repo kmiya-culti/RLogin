@@ -1079,14 +1079,15 @@ void CRLoginDoc::OnSocketClose()
 		bCanExit = TRUE;
 		CRLoginDoc *pDoc;
 		CDocTemplate *pDocTemp = GetDocTemplate();
-		ASSERT(pDocTemp != NULL);
-		POSITION pos = pDocTemp->GetFirstDocPosition();
 
-		while ( pos != NULL ) {
-			pDoc = (CRLoginDoc *)(pDocTemp->GetNextDoc(pos));
-			ASSERT(pDoc != NULL);
-			if ( pDoc != this && pDoc->m_pSock != NULL )
-				bCanExit = FALSE;
+		if ( pDocTemp != NULL ) {
+			POSITION pos = pDocTemp->GetFirstDocPosition();
+
+			while (pos != NULL) {
+				pDoc = (CRLoginDoc *)(pDocTemp->GetNextDoc(pos));
+				if ( pDoc != NULL && pDoc != this && pDoc->m_pSock != NULL)
+					bCanExit = FALSE;
+			}
 		}
 	}
 
