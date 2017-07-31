@@ -416,7 +416,7 @@ void CTextRam::fc_Init(int mode)
 
 	m_RetSync = FALSE;
 	m_OscFlag = FALSE;
-	fc_StPos = 0;
+	m_StPos = 0;
 
 	switch(mode) {
 	case EUC_SET:
@@ -435,13 +435,13 @@ void CTextRam::fc_Init(int mode)
 }
 inline void CTextRam::fc_Case(int stage)
 {
-	fc_Stage = stage;
-	fc_Func = fc_Proc[stage];
+	m_Stage = stage;
+	m_Func = fc_Proc[stage];
 }
 inline void CTextRam::fc_Push(int stage)
 {
-	ASSERT(fc_StPos < 16);
-	fc_Stack[fc_StPos++] = fc_Stage;
+	ASSERT(m_StPos < 16);
+	m_Stack[m_StPos++] = m_Stage;
 	fc_Case(stage);
 }
 
@@ -462,13 +462,13 @@ void CTextRam::fc_POP(int ch)
 		CallReciveChar(ch);
 		m_LastChar = ch;
 	}
-	if ( fc_StPos > 0 )
-		fc_Case(fc_Stack[--fc_StPos]);
+	if ( m_StPos > 0 )
+		fc_Case(m_Stack[--m_StPos]);
 }
 void CTextRam::fc_RETRY(int ch)
 {
-	if ( fc_StPos > 0 ) {
-		fc_Case(fc_Stack[--fc_StPos]);
+	if ( m_StPos > 0 ) {
+		fc_Case(m_Stack[--m_StPos]);
 		fc_Call(ch);
 	}
 }
@@ -1010,31 +1010,31 @@ void CTextRam::fc_A3CDW(int ch)
 
 void CTextRam::fc_DECHTS(int ch)
 {
-	// DECHTS Horizontal tab set
+	// ESC 1	DECHTS Horizontal tab set
 	TABSET(TAB_COLSSET);
 	fc_POP(ch);
 }
 void CTextRam::fc_CCAHT(int ch)
 {
-	// DECCAHT Clear all horizontal tabs
+	// ESC 2	DECCAHT Clear all horizontal tabs
 	TABSET(TAB_COLSALLCLR);
 	fc_POP(ch);
 }
 void CTextRam::fc_DECVTS(int ch)
 {
-	// DECVTS Vertical tab set
+	// ESC 3	DECVTS Vertical tab set
 	TABSET(TAB_LINESET);
 	fc_POP(ch);
 }
 void CTextRam::fc_CAVT(int ch)
 {
-	// DECCAVT Clear all vertical tabs
+	// ESC 4	DECCAVT Clear all vertical tabs
 	TABSET(TAB_LINEALLCLR);
 	fc_POP(ch);
 }
 void CTextRam::fc_BI(int ch)
 {
-	// DECBI Back Index
+	// ESC 6	DECBI Back Index
 	if ( m_CurX == 0 )
 		RIGHTSCROLL();
 	else
@@ -1043,7 +1043,7 @@ void CTextRam::fc_BI(int ch)
 }
 void CTextRam::fc_SC(int ch)
 {
-	// DECSC Save Cursor
+	// ESC 7	DECSC Save Cursor
 	m_Save_CurX   = m_CurX;
 	m_Save_CurY   = m_CurY;
 	m_Save_AttNow = m_AttNow;
@@ -1059,7 +1059,7 @@ void CTextRam::fc_SC(int ch)
 }
 void CTextRam::fc_RC(int ch)
 {
-	// DECRC Restore Cursor
+	// ESC 8	DECRC Restore Cursor
 	m_CurX   = m_Save_CurX;
 	m_CurY   = m_Save_CurY;
 	m_AttNow = m_Save_AttNow;
@@ -1075,7 +1075,7 @@ void CTextRam::fc_RC(int ch)
 }
 void CTextRam::fc_FI(int ch)
 {
-	// DECFI Forward Index
+	// ESC 9	DECFI Forward Index
 	if ( (m_CurX + 1) >= m_Cols )
 		LEFTSCROLL();
 	else
@@ -1084,27 +1084,27 @@ void CTextRam::fc_FI(int ch)
 }
 void CTextRam::fc_V5CUP(int ch)
 {
-	// VT52 Cursor up.
+	// ESC A	VT52 Cursor up.
 	LOCATE(m_CurX, m_CurY - 1);
 	fc_POP(ch);
 }
 void CTextRam::fc_BPH(int ch)
 {
-	// VT52 Cursor down								ANSI BPH Break permitted here
+	// ESC B	VT52 Cursor down								ANSI BPH Break permitted here
 	if ( IS_ENABLE(m_AnsiOpt, TO_DECANM) )
 		LOCATE(m_CurX, m_CurY + 1);
 	fc_POP(ch);
 }
 void CTextRam::fc_NBH(int ch)
 {
-	// VT52 Cursor right							ANSI NBH No break here
+	// ESC C	VT52 Cursor right								ANSI NBH No break here
 	if ( IS_ENABLE(m_AnsiOpt, TO_DECANM) )
 		LOCATE(m_CurX + 1, m_CurY);
 	fc_POP(ch);
 }
 void CTextRam::fc_IND(int ch)
 {
-	// VT52 Cursor left								ANSI IND Index
+	// ESC D	VT52 Cursor left								ANSI IND Index
 	if ( IS_ENABLE(m_AnsiOpt, TO_DECANM) )
 		LOCATE(m_CurX - 1, m_CurY);
 	else
@@ -1113,14 +1113,14 @@ void CTextRam::fc_IND(int ch)
 }
 void CTextRam::fc_NEL(int ch)
 {
-	//												ANSI NEL Next Line
+	// ESC E													ANSI NEL Next Line
 	ONEINDEX();
 	LOCATE(0, m_CurY);
 	fc_POP(ch);
 }
 void CTextRam::fc_SSA(int ch)
 {
-	// VT52 Enter graphics mode.					ANSI SSA Start selected area
+	// ESC F	VT52 Enter graphics mode.						ANSI SSA Start selected area
 	if ( IS_ENABLE(m_AnsiOpt, TO_DECANM) ) {
 		m_BankTab[m_KanjiMode][0] = SET_94 | '0';
 		m_BankTab[m_KanjiMode][1] = SET_94 | '0';
@@ -1130,7 +1130,7 @@ void CTextRam::fc_SSA(int ch)
 }
 void CTextRam::fc_ESA(int ch)
 {
-	// VT52 Exit graphics mode.						ANSI ESA End selected area
+	// ESC F	VT52 Exit graphics mode.						ANSI ESA End selected area
 	if ( IS_ENABLE(m_AnsiOpt, TO_DECANM) ) {
 		m_BankTab[m_KanjiMode][0] = SET_94 | 'B';
 		m_BankTab[m_KanjiMode][1] = SET_94 | 'B';
@@ -1140,7 +1140,7 @@ void CTextRam::fc_ESA(int ch)
 }
 void CTextRam::fc_HTS(int ch)
 {
-	// VT52 Cursor to home position.				ANSI HTS Character tabulation set
+	// ESC H	VT52 Cursor to home position.					ANSI HTS Character tabulation set
 	if ( IS_ENABLE(m_AnsiOpt, TO_DECANM) )
 		LOCATE(0, 0);
 	else
@@ -1149,7 +1149,7 @@ void CTextRam::fc_HTS(int ch)
 }
 void CTextRam::fc_HTJ(int ch)
 {
-	// VT52 Reverse line feed.						ANSI HTJ Character tabulation with justification
+	// ESC I	VT52 Reverse line feed.							ANSI HTJ Character tabulation with justification
 	if ( IS_ENABLE(m_AnsiOpt, TO_DECANM) )
 		REVINDEX();
 	else
@@ -1158,7 +1158,7 @@ void CTextRam::fc_HTJ(int ch)
 }
 void CTextRam::fc_VTS(int ch)
 {
-	// VT52 Erase from cursor to end of screen.		ANSI VTS Line tabulation set
+	// ESC J	VT52 Erase from cursor to end of screen.		ANSI VTS Line tabulation set
 	if ( IS_ENABLE(m_AnsiOpt, TO_DECANM) ) {
 		ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1, 1);
 		ERABOX(0, m_CurY + 1, m_Cols, m_Lines, 1);
@@ -1168,7 +1168,7 @@ void CTextRam::fc_VTS(int ch)
 }
 void CTextRam::fc_PLD(int ch)
 {
-	// VT52 Erase from cursor to end of line.		ANSI PLD Partial line forward
+	// ESC K	VT52 Erase from cursor to end of line.			ANSI PLD Partial line forward
 	if ( IS_ENABLE(m_AnsiOpt, TO_DECANM) )
 		ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1);
 	else
@@ -1177,121 +1177,121 @@ void CTextRam::fc_PLD(int ch)
 }
 void CTextRam::fc_PLU(int ch)
 {
-	//												ANSI PLU Partial line backward
+	// ESC L													ANSI PLU Partial line backward
 	LOCATE(m_CurX, m_CurY - 1);
 	fc_POP(ch);
 }
 void CTextRam::fc_RI(int ch)
 {
-	//												ANSI RI Reverse index
+	// ESC M													ANSI RI Reverse index
 	REVINDEX();
 	fc_POP(ch);
 }
 void CTextRam::fc_STS(int ch)
 {
-	//												ANSI STS Set transmit state
+	// ESC S													ANSI STS Set transmit state
 	fc_POP(ch);
 }
 void CTextRam::fc_CCH(int ch)
 {
-	//												ANSI CCH Cancel character
+	// ESC T													ANSI CCH Cancel character
 	fc_POP(ch);
 }
 void CTextRam::fc_MW(int ch)
 {
-	//												ANSI MW Message waiting
+	// ESC U													ANSI MW Message waiting
 	fc_POP(ch);
 }
 void CTextRam::fc_SPA(int ch)
 {
-	// VT52 Print the line with the cursor.			ANSI SPA Start of guarded area
+	// ESC V	VT52 Print the line with the cursor.			ANSI SPA Start of guarded area
 	if ( !IS_ENABLE(m_AnsiOpt, TO_DECANM) )
 		m_AttNow.em |= EM_PROTECT;
 	fc_POP(ch);
 }
 void CTextRam::fc_EPA(int ch)
 {
-	// VT52 Enter printer controller mode.			ANSI EPA End of guarded area
+	// ESC W	VT52 Enter printer controller mode.				ANSI EPA End of guarded area
 	if ( !IS_ENABLE(m_AnsiOpt, TO_DECANM) )
 		m_AttNow.em &= ~EM_PROTECT;
 	fc_POP(ch);
 }
 void CTextRam::fc_SCI(int ch)
 {
-	// VT52 Identify (host to terminal).			ANSI SCI Single character introducer
+	// ESC Z	VT52 Identify (host to terminal).				ANSI SCI Single character introducer
 	if ( IS_ENABLE(m_AnsiOpt, TO_DECANM) )
 		UNGETSTR("\033/Z");
 	fc_POP(ch);
 }
 void CTextRam::fc_RIS(int ch)
 {
-	//												ANSI RIS Reset to initial state
+	// ESC c													ANSI RIS Reset to initial state
 	RESET();
 	fc_POP(ch);
 }
 void CTextRam::fc_LMA(int ch)
 {
-	// HP fc_LMA LOCK
+	// ESC l	HP fc_LMA LOCK
 	m_TopY = m_CurY;
 	fc_POP(ch);
 }
 void CTextRam::fc_USR(int ch)
 {
-	// HP USR UNLOCK */
+	// ESC m	HP USR UNLOCK
 	m_TopY = 0;
 	fc_POP(ch);
 }
 void CTextRam::fc_V5EX(int ch)
 {
-	// VT52 Exit VT52 mode. Enter VT100 mode.
+	// ESC <	VT52 Exit VT52 mode. Enter VT100 mode.
 	m_AnsiOpt[TO_DECANM / 32] &= ~(1 << (TO_DECANM % 32));
 	fc_POP(ch);
 }
 void CTextRam::fc_SS2(int ch)
 {
-	// SS2 Single shift 2
+	// ESC O	SS2 Single shift 2
 	m_BankSG = 2;
 	fc_POP(ch);
 }
 void CTextRam::fc_SS3(int ch)
 {
-	// SS3 Single shift 3
+	// ESC P	SS3 Single shift 3
 	m_BankSG = 3;
 	fc_POP(ch);
 }
 void CTextRam::fc_LS2(int ch)
 {
-	// LS2 Locking-shift two
+	// ESC n	LS2 Locking-shift two
 	m_BankGL = 2;
 	fc_POP(ch);
 }
 void CTextRam::fc_LS3(int ch)
 {
-	// LS3 Locking-shift three
+	// ESC o	LS3 Locking-shift three
 	m_BankGL = 3;
 	fc_POP(ch);
 }
 void CTextRam::fc_LS1R(int ch)
 {
-	// LS1R
+	// ESC ~	LS1R
 	m_BankGR = 1;
 	fc_POP(ch);
 }
 void CTextRam::fc_LS2R(int ch)
 {
-	// LS2R
+	// ESC }	LS2R
 	m_BankGR = 2;
 	fc_POP(ch);
 }
 void CTextRam::fc_LS3R(int ch)
 {
-	// LS3R
+	// ESC |	LS3R
 	m_BankGR = 3;
 	fc_POP(ch);
 }
 void CTextRam::fc_CSC0W(int ch)
 {
-	// CSC0W Char Set
+	// ESC $	CSC0W Char Set
 	m_BackChar = 0;
 	m_BackMode = SET_94x94;
 	m_Status = ST_CHARSET_2;
@@ -1299,7 +1299,7 @@ void CTextRam::fc_CSC0W(int ch)
 }
 void CTextRam::fc_CSC0(int ch)
 {
-	// CSC0 G0 charset
+	// ESC (	CSC0 G0 charset
 	m_BackChar = 0;
 	m_BackMode = SET_94;
 	m_Status = ST_CHARSET_1;
@@ -1307,7 +1307,7 @@ void CTextRam::fc_CSC0(int ch)
 }
 void CTextRam::fc_CSC1(int ch)
 {
-	// CSC1 G1 charset
+	// ESC )	CSC1 G1 charset
 	m_BackChar = 1;
 	m_BackMode = SET_94;
 	m_Status = ST_CHARSET_1;
@@ -1315,7 +1315,7 @@ void CTextRam::fc_CSC1(int ch)
 }
 void CTextRam::fc_CSC2(int ch)
 {
-	// CSC2 G2 charset
+	// ESC *	CSC2 G2 charset
 	m_BackChar = 2;
 	m_BackMode = SET_94;
 	m_Status = ST_CHARSET_1;
@@ -1323,7 +1323,7 @@ void CTextRam::fc_CSC2(int ch)
 }
 void CTextRam::fc_CSC3(int ch)
 {
-	// CSC3 G3 charset
+	// ESC +	CSC3 G3 charset
 	m_BackChar = 3;
 	m_BackMode = SET_94;
 	m_Status = ST_CHARSET_1;
@@ -1331,7 +1331,7 @@ void CTextRam::fc_CSC3(int ch)
 }
 void CTextRam::fc_CSC0A(int ch)
 {
-	// CSC0A G0 charset
+	// ESC ,	CSC0A G0 charset
 	m_BackChar = 0;
 	m_BackMode = SET_96;
 	m_Status = ST_CHARSET_1;
@@ -1339,7 +1339,7 @@ void CTextRam::fc_CSC0A(int ch)
 }
 void CTextRam::fc_CSC1A(int ch)
 {
-	// CSC1A G1 charset
+	// ESC -	CSC1A G1 charset
 	m_BackChar = 1;
 	m_BackMode = SET_96;
 	m_Status = ST_CHARSET_1;
@@ -1347,7 +1347,7 @@ void CTextRam::fc_CSC1A(int ch)
 }
 void CTextRam::fc_CSC2A(int ch)
 {
-	// CSC2A G2 charset
+	// ESC .	CSC2A G2 charset
 	m_BackChar = 2;
 	m_BackMode = SET_96;
 	m_Status = ST_CHARSET_1;
@@ -1355,7 +1355,7 @@ void CTextRam::fc_CSC2A(int ch)
 }
 void CTextRam::fc_CSC3A(int ch)
 {
-	// CSC3A G3 charset
+	// ESC /	CSC3A G3 charset
 	m_BackChar = 3;
 	m_BackMode = SET_96;
 	m_Status = ST_CHARSET_1;
@@ -1363,25 +1363,25 @@ void CTextRam::fc_CSC3A(int ch)
 }
 void CTextRam::fc_V5MCP(int ch)
 {
-	// VT52 Move cursor to column Pn.
+	// ESC A	VT52 Move cursor to column Pn.
 	m_Status = ST_COLM_SET;
 	fc_Case(STAGE_STAT);
 }
 void CTextRam::fc_DECSOP(int ch)
 {
-	// DEC Screen Opt
+	// ESC #	DEC Screen Opt
 	m_Status = ST_DEC_OPT;
 	fc_Case(STAGE_STAT);
 }
 void CTextRam::fc_ACS(int ch)
 {
-	// ACS
+	// ESC 20	ACS
 	m_Status = ST_CONF_LEVEL;
 	fc_Case(STAGE_STAT);
 }
 void CTextRam::fc_DOCS(int ch)
 {
-	// DOCS Designate other coding system
+	// ESC %	DOCS Designate other coding system
 	m_Status = ST_DOCS_OPT;
 	fc_Case(STAGE_STAT);
 }
@@ -1396,7 +1396,7 @@ void CTextRam::fc_STAT(int ch)
 
 	switch(m_Status) {
 
-	case ST_CONF_LEVEL:
+	case ST_CONF_LEVEL:			// ESC 20...	ACS
 		m_Status = ST_NON;
 		switch(ch) {
 		case 'L':	// Level 1		G0=ASCII G1=Latan GL=G0 GR=G1
@@ -1413,7 +1413,7 @@ void CTextRam::fc_STAT(int ch)
 		}
 		break;
 
-	case ST_COLM_SET:
+	case ST_COLM_SET:			// ESC Y...		V5MCP
 		m_Status = ST_COLM_SET_2;
 		m_BackChar = ch;
 		break;
@@ -1422,7 +1422,7 @@ void CTextRam::fc_STAT(int ch)
 		LOCATE(ch - ' ', m_BackChar - ' ');
 		break;
 
-	case ST_DEC_OPT:
+	case ST_DEC_OPT:			// ESC #...
 		m_Status = ST_NON;
 		switch(ch) {
 		case '3':		// DECDHL Double-width, double-height line (top half)
@@ -1464,7 +1464,7 @@ void CTextRam::fc_STAT(int ch)
 		break;
 
 
-	case ST_DOCS_OPT:
+	case ST_DOCS_OPT:			// ESC %...		DOCS
 		m_Status = ST_NON;
 		switch(ch) {
 		case '%':
@@ -1510,7 +1510,7 @@ void CTextRam::fc_STAT(int ch)
 		}
 		break;
 
-	case ST_TEK_OPT:
+	case ST_TEK_OPT:			// ESC %!...
 		if ( ch >= 0x40 && ch <= 0x7F )
 			m_Tek_Int = (m_Tek_Int << 6) | (ch & 0x3F);
 		else if ( ch >= 0x20 && ch <= 0x3F ) {
@@ -1795,18 +1795,18 @@ void CTextRam::fc_CSI_EXT(int ch)
 }
 
 //////////////////////////////////////////////////////////////////////
-// fc CSI A-Z
+// fc CSI @-Z
 
 void CTextRam::fc_ICH(int ch)
 {
-	// ICH	Insert Character
+	// CSI @	ICH	Insert Character
 	for ( int n = GetAnsiPara(0, 1) ; n > 0 ; n-- )
 		INSCHAR();
 	fc_POP(ch);
 }
 void CTextRam::fc_CUU(int ch)
 {
-	// CUU Cursor Up
+	// CSI A	CUU Cursor Up
 	int n = GetAnsiPara(0, 1);
 	if ( m_CurY >= m_TopY ) {
 		if ( (m_CurY -= n) < m_TopY )
@@ -1820,7 +1820,7 @@ void CTextRam::fc_CUU(int ch)
 }
 void CTextRam::fc_CUD(int ch)
 {
-	// CUD Cursor Down
+	// CSI B	CUD Cursor Down
 	int n = GetAnsiPara(0, 1);
 	if ( m_CurY < m_BtmY ) {
 		if ( (m_CurY += n) >= m_BtmY )
@@ -1834,37 +1834,37 @@ void CTextRam::fc_CUD(int ch)
 }
 void CTextRam::fc_CUF(int ch)
 {
-	// CUF Cursor Forward
+	// CSI C	CUF Cursor Forward
 	LOCATE(m_CurX + GetAnsiPara(0, 1), m_CurY);
 	fc_POP(ch);
 }
 void CTextRam::fc_CUB(int ch)
 {
-	// CUB Cursor Backward
+	// CSI D	CUB Cursor Backward
 	LOCATE(m_CurX - GetAnsiPara(0, 1), m_CurY);
 	fc_POP(ch);
 }
 void CTextRam::fc_CNL(int ch)
 {
-	// CNL Move the cursor to the next line.
+	// CSI E	CNL Move the cursor to the next line.
 	LOCATE(0, m_CurY + GetAnsiPara(0, 1));
 	fc_POP(ch);
 }
 void CTextRam::fc_CPL(int ch)
 {
-	// CPL Move the cursor to the preceding line.
+	// CSI F	CPL Move the cursor to the preceding line.
 	LOCATE(0, m_CurY - GetAnsiPara(0, 1));
 	fc_POP(ch);
 }
 void CTextRam::fc_CHA(int ch)
 {
-	// CHA Move the active position to the n-th character of the active line.
+	// CSI G	CHA Move the active position to the n-th character of the active line.
 	LOCATE(GetAnsiPara(0, 1) - 1, m_CurY);
 	fc_POP(ch);
 }
 void CTextRam::fc_CUP(int ch)
 {
-	// CUP.Cursor Position
+	// CSI H	CUP Cursor Position
 	if ( IsOptEnable(TO_DECOM) )
 		LOCATE(GetAnsiPara(1, 1) - 1, GetAnsiPara(0, 1) - 1 + m_TopY);
 	else
@@ -1873,14 +1873,14 @@ void CTextRam::fc_CUP(int ch)
 }
 void CTextRam::fc_CHT(int ch)
 {
-	// CHT Move the active position n tabs forward.
+	// CSI I	CHT Move the active position n tabs forward.
 	for ( int i = GetAnsiPara(0, 1) ; i > 0 ; i-- )
 		TABSET(TAB_COLSNEXT);
 	fc_POP(ch);
 }
 void CTextRam::fc_ED(int ch)
 {
-	// ED Erase in page
+	// CSI J	ED Erase in page
 	switch(GetAnsiPara(0, 0)) {
 	case 0:
 		ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1, 1);
@@ -1899,7 +1899,7 @@ void CTextRam::fc_ED(int ch)
 }
 void CTextRam::fc_EL(int ch)
 {
-	// EL Erase in line
+	// CSI K	EL Erase in line
 	switch(GetAnsiPara(0, 0)) {
 	case 0:
 		ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1);
@@ -1915,7 +1915,7 @@ void CTextRam::fc_EL(int ch)
 }
 void CTextRam::fc_IL(int ch)
 {
-	// IL Insert Line
+	// CSI L	IL Insert Line
 	if ( m_CurY >= m_TopY && m_CurY < m_BtmY ) {
 		for ( int n = GetAnsiPara(0, 1) ; n > 0 ; n-- ) {
 			BAKSCROLL(m_CurY, m_BtmY);
@@ -1926,7 +1926,7 @@ void CTextRam::fc_IL(int ch)
 }
 void CTextRam::fc_DL(int ch)
 {
-	// DL Delete Line
+	// CSI M	DL Delete Line
 	if ( m_CurY >= m_TopY && m_CurY < m_BtmY ) {
 		for ( int n = GetAnsiPara(0, 1) ; n > 0 ; n-- ) {
 			FORSCROLL(m_CurY, m_BtmY);
@@ -1937,7 +1937,7 @@ void CTextRam::fc_DL(int ch)
 }
 void CTextRam::fc_EF(int ch)
 {
-	// EF Erase in field
+	// CSI N	EF Erase in field
 	switch(GetAnsiPara(0, 0)) {
 	case 0:
 		ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1);
@@ -1956,7 +1956,7 @@ void CTextRam::fc_EF(int ch)
 }
 void CTextRam::fc_EA(int ch)
 {
-	// EA Erase in area
+	// CSI O	EA Erase in area
 	switch(GetAnsiPara(0, 0)) {
 	case 0:
 		ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1);
@@ -1975,21 +1975,21 @@ void CTextRam::fc_EA(int ch)
 }
 void CTextRam::fc_DCH(int ch)
 {
-	// DCH Delete Character
+	// CSI P	DCH Delete Character
 	for ( int n = GetAnsiPara(0, 1) ; n > 0 ; n-- )
 		DELCHAR();
 	fc_POP(ch);
 }
 void CTextRam::fc_SU(int ch)
 {
-	// SU Scroll Up
+	// CSI S	SU Scroll Up
 	for ( int n = GetAnsiPara(0, 1) ; n > 0 ; n-- )
 		FORSCROLL(m_TopY, m_BtmY);
 	fc_POP(ch);
 }
 void CTextRam::fc_SD(int ch)
 {
-	// SD Scroll Down
+	// CSI T	SD Scroll Down
 	if ( m_AnsiPara.GetSize() != 5 || GetAnsiPara(0, 0) != 1 ) {
 		for ( int n = GetAnsiPara(0, 1) ; n > 0 ; n-- )
 			BAKSCROLL(m_TopY, m_BtmY);
@@ -1998,21 +1998,21 @@ void CTextRam::fc_SD(int ch)
 }
 void CTextRam::fc_NP(int ch)
 {
-	// NP Next Page
+	// CSI U	NP Next Page
 	for ( int n = GetAnsiPara(0, 1) ; n > 0 ; n-- )
 		PostMessage(WM_VSCROLL, SB_PAGEDOWN, 0);
 	fc_POP(ch);
 }
 void CTextRam::fc_PP(int ch)
 {
-	// PP Preceding Page
+	// CSI V	PP Preceding Page
 	for ( int n = GetAnsiPara(0, 1) ; n > 0 ; n-- )
 		PostMessage(WM_VSCROLL, SB_PAGEUP, 0);
 	fc_POP(ch);
 }
 void CTextRam::fc_CTC(int ch)
 {
-	// CTC Cursor tabulation control
+	// CSI W	CTC Cursor tabulation control
 	switch(GetAnsiPara(0, 0)) {
 	case 0:	// a character tabulation stop is set at the active presentation position
 		TABSET(TAB_COLSSET);
@@ -2040,20 +2040,20 @@ void CTextRam::fc_CTC(int ch)
 }
 void CTextRam::fc_ECH(int ch)
 {
-	// ECH Erase character
+	// CSI X	ECH Erase character
 	ERABOX(m_CurX, m_CurY, m_CurX + GetAnsiPara(0, 1), m_CurY + 1);
 	fc_POP(ch);
 }
 void CTextRam::fc_CVT(int ch)
 {
-	// CVT Cursor line tabulation
+	// CSI Y	CVT Cursor line tabulation
 	for ( int i = GetAnsiPara(0, 1) ; i > 0 ; i-- )
 		TABSET(TAB_LINENEXT);
 	fc_POP(ch);
 }
 void CTextRam::fc_CBT(int ch)
 {
-	// CBT Move the active position n tabs backward.
+	// CSI Z	CBT Move the active position n tabs backward.
 	for ( int i = GetAnsiPara(0, 1) ; i > 0 ; i-- )
 		TABSET(TAB_COLSBACK);
 	fc_POP(ch);
@@ -2064,26 +2064,26 @@ void CTextRam::fc_CBT(int ch)
 
 void CTextRam::fc_SIMD(int ch)
 {
-	// SIMD Select implicit movement direction
+	// CSI ^	SIMD Select implicit movement direction
 	// 0 the direction of implicit movement is the same as that of the character progression
 	// 1 the direction of implicit movement is opposite to that of the character progression.
 	fc_POP(ch);
 }
 void CTextRam::fc_HPA(int ch)
 {
-	// HPA Horizontal Position Absolute
+	// CSI `	HPA Horizontal Position Absolute
 	LOCATE(GetAnsiPara(0, 1) - 1, m_CurY);
 	fc_POP(ch);
 }
 void CTextRam::fc_HPR(int ch)
 {
-	// HPR Horizontal Position Relative
+	// CSI a	HPR Horizontal Position Relative
 	LOCATE(m_CurX + GetAnsiPara(0, 1), m_CurY);
 	fc_POP(ch);
 }
 void CTextRam::fc_REP(int ch)
 {
-	// REP Repeat
+	// CSI b	REP Repeat
 	if ( m_LastChar != 0 ) {
 		if ( (m_LastChar & 0xFFFFFF00) != 0 )
 			m_LastChar = ' ';
@@ -2095,32 +2095,32 @@ void CTextRam::fc_REP(int ch)
 }
 void CTextRam::fc_DA1(int ch)
 {
-	// DA1 Primary Device Attributes
+	// CSI c	DA1 Primary Device Attributes
 	// UNGETSTR("\033[?1;0c");
 	UNGETSTR("\033[?65;22;44c");
 	fc_POP(ch);
 }
 void CTextRam::fc_VPA(int ch)
 {
-	// VPA Vertical Line Position Absolute
+	// CSI d	VPA Vertical Line Position Absolute
 	LOCATE(m_CurX, GetAnsiPara(0, 1) - 1);
 	fc_POP(ch);
 }
 void CTextRam::fc_VPR(int ch)
 {
-	// VPR Vertical Position Relative
+	// CSI e	VPR Vertical Position Relative
 	LOCATE(m_CurX, m_CurY + GetAnsiPara(0, 1));
 	fc_POP(ch);
 }
 void CTextRam::fc_HVP(int ch)
 {
-	// HVP Horizontal and Vertical Position
+	// CSI f	HVP Horizontal and Vertical Position
 	LOCATE(GetAnsiPara(1, 1) - 1, GetAnsiPara(0, 1) - 1);
 	fc_POP(ch);
 }
 void CTextRam::fc_TBC(int ch)
 {
-	// TBC Tab Clear
+	// CSI g	TBC Tab Clear
 	switch(GetAnsiPara(0, 0)) {
 	case 0:	// the character tabulation stop at the active presentation position is cleared
 		TABSET(TAB_COLSCLR);
@@ -2145,8 +2145,8 @@ void CTextRam::fc_TBC(int ch)
 }
 void CTextRam::fc_SRM(int ch)
 {
-	// SM Mode Set
-	// RM Mode ReSet
+	// CSI h	SM Mode Set
+	// CSI l	RM Mode ReSet
 	int n, i;
 	for ( n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
 		if ( (i = GetAnsiPara(n, 0)) >= 1 && i < 100 )
@@ -2156,24 +2156,24 @@ void CTextRam::fc_SRM(int ch)
 }
 void CTextRam::fc_MC(int ch)
 {
-	// MC Media copy
+	// CSI i	MC Media copy
 	fc_POP(ch);
 }
 void CTextRam::fc_HPB(int ch)
 {
-	// HPB Character position backward
+	// CSI j	HPB Character position backward
 	LOCATE(m_CurX - GetAnsiPara(0, 1), m_CurY);
 	fc_POP(ch);
 }
 void CTextRam::fc_VPB(int ch)
 {
-	// VPB Line position backward
+	// CSI k	VPB Line position backward
 	LOCATE(m_CurX, m_CurY - GetAnsiPara(0, 1));
 	fc_POP(ch);
 }
 void CTextRam::fc_SGR(int ch)
 {
-	// SGR Select Graphic Rendition
+	// CSI m	SGR Select Graphic Rendition
 	int n, i;
 	if ( m_AnsiPara.GetSize() <= 0 )
 		m_AnsiPara.Add(0);
@@ -2189,8 +2189,15 @@ void CTextRam::fc_SGR(int ch)
 		case 7: m_AttNow.at |= ATT_REVS;   break;	// 7 negative image
 		case 8: m_AttNow.at |= ATT_SECRET; break;	// 8 concealed characters
 		case 9: m_AttNow.at |= ATT_LINE;   break;	// 9 crossed-out
-		case 21: m_AttNow.at |= ATT_DUNDER; break;	// 21 doubly underlined
 
+		case 10: case 11: case 12:					// 10-20 alternative font
+		case 13: case 14: case 15:
+		case 16: case 17: case 18:
+		case 19: case 20:
+			m_AttNow.ft = m_AnsiPara[n] - 10;
+			break;
+
+		case 21: m_AttNow.at |= ATT_DUNDER; break;	// 21 doubly underlined
 		case 22: m_AttNow.at &= ~(ATT_BOLD | ATT_HALF); break;		// 22 normal colour or normal intensity (neither bold nor faint)
 		case 23: m_AttNow.at &= ~ATT_ITALIC; break;					// 23 not italicized, not fraktur
 		case 24: m_AttNow.at &= ~(ATT_UNDER | ATT_DUNDER); break;	// 24 not underlined (neither singly nor doubly)
@@ -2256,13 +2263,15 @@ void CTextRam::fc_SGR(int ch)
 		m_AttSpc.fc = m_AttNow.fc;
 		m_AttSpc.bc = m_AttNow.bc;
 	}
-	if ( IS_ENABLE(m_AnsiOpt, TO_RLGCWA) != 0 )
+	if ( IS_ENABLE(m_AnsiOpt, TO_RLGCWA) != 0 ) {
 		m_AttSpc.at = m_AttNow.at;
+		m_AttSpc.ft = m_AttNow.ft;
+	}
 	fc_POP(ch);
 }
 void CTextRam::fc_DSR(int ch)
 {
-	// DSR Device status report
+	// CSI n	DSR Device status report
 	switch(GetAnsiPara(0, 0)) {
 	case 0:	// ready, no malfunction detected
 	case 1:	// busy, another DSR must be requested later
@@ -2281,12 +2290,12 @@ void CTextRam::fc_DSR(int ch)
 }
 void CTextRam::fc_DAQ(int ch)
 {
-	// DAQ Define area qualification
+	// CSI o	DAQ Define area qualification
 	fc_POP(ch);
 }
 void CTextRam::fc_DECBFAT(int ch)
 {
-	// fDECBFAT Begin field attribute : DEC private
+	// CSI p	DECBFAT Begin field attribute : DEC private
 	int n = GetAnsiPara(0, 0);
 	m_AttNow.at = 0;
 	if ( (n &  1) != 0 ) m_AttNow.at |= ATT_BOLD;
@@ -2300,12 +2309,12 @@ void CTextRam::fc_DECBFAT(int ch)
 }
 void CTextRam::fc_DECLL(int ch)
 {
-	// DECLL Load LEDs
+	// CSI q	DECLL Load LEDs
 	fc_POP(ch);
 }
 void CTextRam::fc_DECSTBM(int ch)
 {
-	// DECSTBM Set Top and Bottom Margins
+	// CSI r	DECSTBM Set Top and Bottom Margins
 	int n, i;
 	if ( (n = GetAnsiPara(0, 1) - 1) < 0 )
 		n = 0;
@@ -2323,13 +2332,14 @@ void CTextRam::fc_DECSTBM(int ch)
 }
 void CTextRam::fc_DECSC(int ch)
 {
-	// DECSC Save Cursol Pos
+	// CSI s	DECSC Save Cursol Pos
 	m_Save_CurX = m_CurX;
 	m_Save_CurY = m_CurY;
 	fc_POP(ch);
 }
 void CTextRam::fc_XTWOP(int ch)
 {
+	// CSI t	XTWOP XTERM WINOPS
 	int n = GetAnsiPara(0, 0);
     switch (n) {
     case 1:			/* Restore (de-iconify) window */
@@ -2379,13 +2389,13 @@ void CTextRam::fc_XTWOP(int ch)
 }
 void CTextRam::fc_DECRC(int ch)
 {
-	// DECRC Load Cursol Pos
+	// CSI u	DECRC Load Cursol Pos
 	LOCATE(m_Save_CurX, m_Save_CurY);
 	fc_POP(ch);
 }
 void CTextRam::fc_ORGSCD(int ch)
 {
-	/* Set Cursol Display */
+	// CSI v	ORGSCD Set Cursol Display
 	switch(GetAnsiPara(0, 0)) {
 	case 0:  CURON(); break;
 	default: CUROFF(); break;
@@ -2394,7 +2404,7 @@ void CTextRam::fc_ORGSCD(int ch)
 }
 void CTextRam::fc_REQTPARM(int ch)
 {
-	// DECREQTPARM Request terminal parameters 
+	// CSI x	DECREQTPARM Request terminal parameters 
 	switch(GetAnsiPara(0, 0)) {
 	case 0:
 		UNGETSTR("\033[2;1;1;112;112;1;0x");
@@ -2407,17 +2417,17 @@ void CTextRam::fc_REQTPARM(int ch)
 }
 void CTextRam::fc_DECTST(int ch)
 {
-	// DECTST Invoke confidence test
+	// CSI y	DECTST Invoke confidence test
 	fc_POP(ch);
 }
 void CTextRam::fc_DECVERP(int ch)
 {
-	// DECVERP Set vertical pitch
+	// CSI z	DECVERP Set vertical pitch
 	fc_POP(ch);
 }
 void CTextRam::fc_LINUX(int ch)
 {
-	// LINUX Linux Console */
+	// CSI ]	LINUX Linux Console
 	switch(GetAnsiPara(0, 0)) {
 	case 1:		// Under Line Color
 	case 2:		// Dim Color
@@ -2444,7 +2454,7 @@ void CTextRam::fc_LINUX(int ch)
 
 void CTextRam::fc_DECSED(int ch)
 {
-	// DECSED Selective Erase in Display
+	// CSI ? J	DECSED Selective Erase in Display
 	switch(GetAnsiPara(0, 0)) {
 	case 0:
 		ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1);
@@ -2462,7 +2472,7 @@ void CTextRam::fc_DECSED(int ch)
 }
 void CTextRam::fc_DECSEL(int ch)
 {
-	// DECSEL Selective Erase in Line
+	// CSI ? K	DECSEL Selective Erase in Line
 	switch(GetAnsiPara(0, 0)) {
 	case 0:
 		ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1);
@@ -2478,15 +2488,16 @@ void CTextRam::fc_DECSEL(int ch)
 }
 void CTextRam::fc_DECST8C(int ch)
 {
-	//  DECST8C Set Tab at every 8 columns
+	// CSI ? W	DECST8C Set Tab at every 8 columns
 	TABSET(TAB_RESET);
 	fc_POP(ch);
 }
 void CTextRam::fc_DECSRET(int ch)
 {
-	/* DECSET			DECRST */
-	/* XTERM_RESTORE	XTERM_SAVE */
-
+	// CSI ? h	DECSET
+	// CSI ? l	DECRST
+	// CSI ? r	XTERM_RESTORE
+	// CSI ? s	XTERM_SAVE
 	int n, i;
 	ch &= 0x7F;
 	for ( n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
@@ -2552,7 +2563,7 @@ void CTextRam::fc_DECSRET(int ch)
 }
 void CTextRam::fc_DECDSR(int ch)
 {
-	// DECDSR Device status report
+	// CSI ? n	DECDSR Device status report
 	switch(GetAnsiPara(0, 0)) {
 	case 1:		// [LA50] disable all unsolicited status reports.
 	case 2:		// [LA50] enable unsolicited brief reports and send an extended one.
@@ -2599,7 +2610,7 @@ void CTextRam::fc_DECDSR(int ch)
 
 void CTextRam::fc_DECRQM(int ch)
 {
-	// DECRQM Request mode settings
+	// CSI $p	DECRQM Request mode settings
 	int n;
 	if ( (n = GetAnsiPara(0, 1)) > 199 )
 		n = 199;
@@ -2608,7 +2619,7 @@ void CTextRam::fc_DECRQM(int ch)
 }
 void CTextRam::fc_DECCARA(int ch)
 {
-	// DECCARA Change Attribute in Rectangle
+	// CSI $r	DECCARA Change Attribute in Rectangle
 	int n, i, x, y;
 	VRAM *vp;
 	SetAnsiParaArea(0);
@@ -2629,6 +2640,14 @@ void CTextRam::fc_DECCARA(int ch)
 				case 7: vp->at |= ATT_REVS;   break;
 				case 8: vp->at |= ATT_SECRET; break;
 				case 9: vp->at |= ATT_LINE;   break;
+				case 21: vp->at |= ATT_DUNDER; break;
+
+				case 10: case 11: case 12:
+				case 13: case 14: case 15:
+				case 16: case 17: case 18:
+				case 19: case 20:
+					vp->ft = m_AnsiPara[n] - 10;
+					break;
 
 				case 22: vp->at &= ~(ATT_BOLD | ATT_HALF); break;
 				case 23: vp->at &= ~ATT_ITALIC; break;
@@ -2667,6 +2686,20 @@ void CTextRam::fc_DECCARA(int ch)
 					vp->bc = m_DefAtt.bc;
 					break;
 
+				case 51: vp->at |= ATT_FRAME; break;					// 51  framed
+				case 52: vp->at |= ATT_CIRCLE; break;					// 52  encircled
+				case 53: vp->at |= ATT_OVER;   break;					// 53  overlined
+				case 54: vp->at &= ~(ATT_FRAME | ATT_CIRCLE); break;	// 54  not framed, not encircled
+				case 55: vp->at &= ~ATT_OVER; break;					// 55  not overlined
+
+				case 60: vp->at |= ATT_RSLINE; break;					// 60  ideogram underline or right side line
+				case 61: vp->at |= ATT_RDLINE; break;					// 61  ideogram double underline or double line on the right side
+				case 62: vp->at |= ATT_LSLINE; break;					// 62  ideogram overline or left side line
+				case 63: vp->at |= ATT_LDLINE; break;					// 63  ideogram double overline or double line on the left side
+				case 64: vp->at |= ATT_STRESS; break;					// 64  ideogram stress marking
+				case 65: vp->at &= ~(ATT_RSLINE | ATT_RDLINE |
+							ATT_LSLINE | ATT_LDLINE | ATT_STRESS); break;	// 65  cancels the effect of the rendition aspects established by parameter values 60 to 64
+
 				case 90: case 91: case 92: case 93:
 				case 94: case 95: case 96: case 97:
 					vp->fc = (m_AnsiPara[n] - 90 + 8);
@@ -2684,7 +2717,7 @@ void CTextRam::fc_DECCARA(int ch)
 }
 void CTextRam::fc_DECRARA(int ch)
 {
-	// DECRARA Reverse Attribute in Rectangle
+	// CSI $t	DECRARA Reverse Attribute in Rectangle
 	int n, x, y;
 	VRAM *vp;	SetAnsiParaArea(0);
 	while ( m_AnsiPara.GetSize() < 5 )
@@ -2713,7 +2746,7 @@ void CTextRam::fc_DECRARA(int ch)
 }
 void CTextRam::fc_DECCRA(int ch)
 {
-	// DECCRA Copy Rectangular Area
+	// CSI $v	DECCRA Copy Rectangular Area
 	int n, i, x, y, cx, cy;
 	VRAM *vp, *cp;
 	SetAnsiParaArea(0);
@@ -2733,7 +2766,7 @@ void CTextRam::fc_DECCRA(int ch)
 }
 void CTextRam::fc_DECFRA(int ch)
 {
-	// DECFRA Fill Rectangular Area
+	// CSI $x	DECFRA Fill Rectangular Area
 	int n, x, y;
 	VRAM *vp;
 	SetAnsiParaArea(1);
@@ -2753,14 +2786,14 @@ void CTextRam::fc_DECFRA(int ch)
 }
 void CTextRam::fc_DECERA(int ch)
 {
-	// DECERA Erase Rectangular Area
+	// CSI $z	DECERA Erase Rectangular Area
 	SetAnsiParaArea(0);
 	ERABOX(m_AnsiPara[1], m_AnsiPara[0], m_AnsiPara[3] + 1, m_AnsiPara[2] + 1);
 	fc_POP(ch);
 }
 void CTextRam::fc_DECSERA(int ch)
 {
-	// DECSERA Selective Erase Rectangular Area
+	// CSI ${	DECSERA Selective Erase Rectangular Area
 	SetAnsiParaArea(0);
 	ERABOX(m_AnsiPara[1], m_AnsiPara[0], m_AnsiPara[3] + 1, m_AnsiPara[2] + 1);
 	fc_POP(ch);
@@ -2953,18 +2986,18 @@ void CTextRam::fc_CSI_ETC(int ch)
 		case 1: m_AttNow.at = ATT_BOLD; break;
 		case 2: m_AttNow.at = ATT_REVS; break;
 		case 3: m_AttNow.at = ATT_UNDER; break;
-		case 4: m_AttNow.at = ATT_BLINK; break;
+		case 4: m_AttNow.at = ATT_SBLINK; break;
 		case 5: m_AttNow.at = ATT_BOLD | ATT_REVS; break;
 		case 6: m_AttNow.at = ATT_BOLD | ATT_UNDER; break;
-		case 7: m_AttNow.at = ATT_BOLD | ATT_BLINK; break;
+		case 7: m_AttNow.at = ATT_BOLD | ATT_SBLINK; break;
 		case 8: m_AttNow.at = ATT_REVS | ATT_UNDER; break;
-		case 9: m_AttNow.at = ATT_REVS | ATT_BLINK; break;
-		case 10: m_AttNow.at = ATT_UNDER | ATT_BLINK; break;
+		case 9: m_AttNow.at = ATT_REVS | ATT_SBLINK; break;
+		case 10: m_AttNow.at = ATT_UNDER | ATT_SBLINK; break;
 		case 11: m_AttNow.at = ATT_BOLD | ATT_REVS | ATT_UNDER; break;
-		case 12: m_AttNow.at = ATT_BOLD | ATT_REVS | ATT_BLINK; break;
-		case 13: m_AttNow.at = ATT_BOLD | ATT_UNDER | ATT_BLINK; break;
-		case 14: m_AttNow.at = ATT_REVS | ATT_UNDER | ATT_BLINK; break;
-		case 15: m_AttNow.at = ATT_BOLD | ATT_REVS | ATT_UNDER | ATT_BLINK; break;
+		case 12: m_AttNow.at = ATT_BOLD | ATT_REVS | ATT_SBLINK; break;
+		case 13: m_AttNow.at = ATT_BOLD | ATT_UNDER | ATT_SBLINK; break;
+		case 14: m_AttNow.at = ATT_REVS | ATT_UNDER | ATT_SBLINK; break;
+		case 15: m_AttNow.at = ATT_BOLD | ATT_REVS | ATT_UNDER | ATT_SBLINK; break;
 		}
 		m_AttNow.fc = GetAnsiPara(1, 7);
 		m_AttNow.bc = (GetAnsiPara(2, 0) << 4);

@@ -63,7 +63,14 @@ static int CALLBACK CompareFunc(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSor
 	s2 = pCompList->GetItemText(i2, pCompList->m_SortDupItem);
 	return s1.Compare(s2);
 }
+int CListCtrlExt::GetParamItem(int para)
+{
+	LV_FINDINFO lvinfo;
 
+	lvinfo.flags  = LVFI_PARAM;
+	lvinfo.lParam = para;
+	return FindItem(&lvinfo);
+}
 int CListCtrlExt::GetSelectMarkData()
 {
 	int n;

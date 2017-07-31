@@ -19,6 +19,7 @@ class CFontParaDlg : public CDialog
 public:
 	int m_CodeSet;
 	class CFontNode *m_pData;
+	CString m_FontNameTab[16];
 
 	static int CharSetNo(LPCSTR name);
 	static LPCSTR CharSetName(int code);
@@ -40,6 +41,7 @@ public:
 	CString m_IContName;
 	CString m_EntryName;
 	CString m_FontName;
+	int m_FontNum;
 	//}}AFX_DATA
 
 
@@ -60,6 +62,8 @@ protected:
 	virtual void OnOK();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
+public:
+	afx_msg void OnCbnSelchangeFontnum();
 };
 
 //{{AFX_INSERT_LOCATION}}

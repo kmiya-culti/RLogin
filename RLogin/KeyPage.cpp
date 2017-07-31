@@ -191,13 +191,16 @@ void CKeyPage::OnKeyAsnEdit()
 {
 	int n;
 	CKeyParaDlg dlg;
-
 	if ( (n = m_List.GetSelectMarkData()) < 0 )
 		return;
 	dlg.m_pData = &(m_KeyTab[n]);
 	if ( dlg.DoModal() != IDOK )
 		return;
 	InitList();
+	if ( (n = m_List.GetParamItem(n)) >= 0 ) {
+		m_List.SetItemState(n, LVIS_SELECTED, LVIS_SELECTED);
+		m_List.EnsureVisible(n, FALSE);
+	}
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_KEYTAB;
 }
@@ -216,7 +219,6 @@ void CKeyPage::OnEditDups()
 	int n;
 	CKeyParaDlg dlg;
 	CKeyNode tmp;
-
 	if ( (n = m_List.GetSelectMarkData()) < 0 )
 		return;
 	tmp = m_KeyTab[n];
@@ -225,6 +227,10 @@ void CKeyPage::OnEditDups()
 		return;
 	m_KeyTab.Add(tmp);
 	InitList();
+	if ( (n = m_List.GetParamItem(n)) >= 0 ) {
+		m_List.SetItemState(n, LVIS_SELECTED, LVIS_SELECTED);
+		m_List.EnsureVisible(n, FALSE);
+	}
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_KEYTAB;
 }

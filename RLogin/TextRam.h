@@ -27,27 +27,25 @@
 #define	ASCII_SET		2
 #define	UTF8_SET		3
 
-#define ATT_BOLD		0x00000001		// [1m bold or increased intensity
-#define	ATT_HALF		0x00000002		// [2m faint, decreased intensity or second colour
-#define ATT_ITALIC		0x00000004		// [3m italicized
-#define ATT_UNDER		0x00000008		// [4m singly underlined
-#define ATT_SBLINK		0x00000010		// [5m slowly blinking
-#define ATT_REVS		0x00000020		// [7m negative image
-#define ATT_SECRET		0x00000040		// [8m concealed characters
-#define ATT_LINE		0x00000080		// [9m crossed-out
-#define ATT_BLINK		0x00000100		// [6m rapidly blinking 
-#define ATT_DUNDER		0x00000200		// [21m doubly underlined
-
-#define ATT_FRAME		0x00000400		// [51m framed
-#define ATT_CIRCLE		0x00000800		// [52m encircled
-#define ATT_OVER		0x00001000		// [53m overlined
-#define ATT_RSLINE		0x00002000		// [60m right side line
-#define ATT_RDLINE		0x00004000		// [61m double line on the right side
-#define ATT_LSLINE		0x00008000		// [62m left side line
-#define ATT_LDLINE		0x00010000		// [63m double line on the left side
-#define ATT_STRESS		0x00020000		// [64m stress marking
-
-#define	ATT_CLIP		0x10000000		// Mouse Clip
+#define ATT_BOLD		0x000001		// [1m bold or increased intensity
+#define	ATT_HALF		0x000002		// [2m faint, decreased intensity or second colour
+#define ATT_ITALIC		0x000004		// [3m italicized
+#define ATT_UNDER		0x000008		// [4m singly underlined
+#define ATT_SBLINK		0x000010		// [5m slowly blinking
+#define ATT_REVS		0x000020		// [7m negative image
+#define ATT_SECRET		0x000040		// [8m concealed characters
+#define ATT_LINE		0x000080		// [9m crossed-out
+#define ATT_BLINK		0x000100		// [6m rapidly blinking 
+#define ATT_DUNDER		0x000200		// [21m doubly underlined
+#define ATT_FRAME		0x000400		// [51m framed
+#define ATT_CIRCLE		0x000800		// [52m encircled
+#define ATT_OVER		0x001000		// [53m overlined
+#define ATT_RSLINE		0x002000		// [60m right side line
+#define ATT_RDLINE		0x004000		// [61m double line on the right side
+#define ATT_LSLINE		0x008000		// [62m left side line
+#define ATT_LDLINE		0x010000		// [63m double line on the left side
+#define ATT_STRESS		0x020000		// [64m stress marking
+#define	ATT_CLIP		0x800000		// Mouse Clip
 
 #define CODE_MAX		0x0400
 #define CODE_MASK		0x03FF
@@ -193,7 +191,8 @@ enum CStageNum {
 
 typedef	struct _Vram {
 	DWORD	ch;
-	DWORD	at;
+	DWORD	at:28;
+	  DWORD	ft:4;
 	WORD	md:10;
 	  WORD	em:2;
 	  WORD	dm:2;
@@ -210,16 +209,16 @@ public:
 	int m_ZoomH;
 	int m_Offset;
 	int m_CharSet;
-	CString m_FontName;
+	CString m_FontName[16];
 	CString m_EntryName;
 	CString m_IContName;
-	int m_Hash;
+	int m_Hash[16];
 
-	void SetHash();
+	void SetHash(int num);
 	void Init();
 	void SetArray(CStringArrayExt &array);
 	void GetArray(CStringArrayExt &array);
-	CFont *GetFont(int Width, int Height, int Style);
+	CFontChacheNode *GetFont(int Width, int Height, int Style, int FontNum);
 	const CFontNode & operator = (CFontNode &data);
 	CFontNode();
 };
@@ -399,7 +398,7 @@ public:
 	int IsWord(WCHAR ch);
 	void EditWordPos(int *sps, int *eps);
 	void EditCopy(int sps, int eps, BOOL rectflag = FALSE);
-	void StrOut(CDC* pDC, LPCRECT pRect, int att, int fcn, int bcn, int mode, int len, int dm, int ct, char *str, int ss, int *spc, class CRLoginView *pView);
+	void StrOut(CDC* pDC, LPCRECT pRect, int att, int fcn, int bcn, int mode, int fnum, int len, int dm, int ct, char *str, int ss, int *spc, class CRLoginView *pView);
 	void DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginView *pView);
 	
 	CWnd *GetAciveView();
@@ -470,14 +469,14 @@ public:
 		void (CTextRam::*proc)(int ch);
 	} PROCTAB;
 
-	void ((CTextRam::**fc_Func)(int ch));
-	int fc_Stage;
-	int fc_StPos;
-	int fc_Stack[16];
+	void ((CTextRam::**m_Func)(int ch));
+	int m_Stage;
+	int m_StPos;
+	int m_Stack[16];
 
 	void fc_Init_Proc(int stage, const PROCTAB *tp, int b = 0);
 	void fc_Init(int mode);
-	inline void fc_Call(int ch) { (this->*fc_Func[ch])(ch); }
+	inline void fc_Call(int ch) { (this->*m_Func[ch])(ch); }
 	inline void fc_Case(int stage);
 	inline void fc_Push(int stage);
 
@@ -694,7 +693,7 @@ public:
 	TEKNODE *m_Tek_Free;
 	class CTekWnd *m_pTekWnd;
 
-	inline BOOL IsTekMode() { return (fc_Stage == STAGE_TEK ? TRUE : FALSE); }
+	inline BOOL IsTekMode() { return (m_Stage == STAGE_TEK ? TRUE : FALSE); }
 	void TekInit(int ver);
 	void TekClose();
 	void TekForcus(BOOL fg);

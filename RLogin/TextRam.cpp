@@ -29,15 +29,17 @@ CFontNode::CFontNode()
 }
 void CFontNode::Init()
 {
-	m_Shift     = 0;
-	m_ZoomW     = 100;
-	m_ZoomH     = 100;
-	m_Offset    = 0;
-	m_CharSet   = 0;
-	m_FontName  = "";
-	m_EntryName = "";
-	m_IContName = "";
-	m_Hash      = 0;
+	m_Shift       = 0;
+	m_ZoomW       = 100;
+	m_ZoomH       = 100;
+	m_Offset      = 0;
+	m_CharSet     = 0;
+	m_EntryName   = "";
+	m_IContName   = "";
+	for ( int n = 0 ; n < 16 ; n++ ) {
+		m_FontName[n] = "";
+		m_Hash[n]     = 0;
+	}
 }
 void CFontNode::SetArray(CStringArrayExt &array)
 {
@@ -47,10 +49,12 @@ void CFontNode::SetArray(CStringArrayExt &array)
 	array.AddVal(m_ZoomH);
 	array.AddVal(m_Offset);
 	array.AddVal(m_CharSet);
-	array.Add(m_FontName);
+	array.Add(m_FontName[0]);
 	array.Add(m_EntryName);
 	array.Add(m_IContName);
 	array.AddVal(m_ZoomW);
+	for ( int n = 1 ; n < 16 ; n++ )
+		array.Add(m_FontName[n]);
 }
 void CFontNode::GetArray(CStringArrayExt &array)
 {
@@ -58,31 +62,41 @@ void CFontNode::GetArray(CStringArrayExt &array)
 		Init();
 		return;
 	}
-	m_Shift		= array.GetVal(0);
-	m_ZoomH		= array.GetVal(1);
-	m_Offset	= array.GetVal(2);
-	m_CharSet	= array.GetVal(3);
-	m_FontName	= array.GetAt(4);
-	m_EntryName = array.GetAt(5);
-	m_IContName = array.GetAt(6);
-	m_ZoomW		= (array.GetSize() > 7 ? array.GetVal(7) : m_ZoomH);
+	m_Shift		  = array.GetVal(0);
+	m_ZoomH		  = array.GetVal(1);
+	m_Offset	  = array.GetVal(2);
+	m_CharSet	  = array.GetVal(3);
+	m_FontName[0] = array.GetAt(4);
+	SetHash(0);
+
+	m_EntryName   = array.GetAt(5);
+	m_IContName   = array.GetAt(6);
+	m_ZoomW		  = (array.GetSize() > 7 ? array.GetVal(7) : m_ZoomH);
 
 	if ( m_IContName.Compare("GB2312-80") == 0 )	// Debug!!
 		m_IContName = "GB_2312-80";
 
-	SetHash();
+	for ( int n = 1 ; n < 16 ; n++ ) {				// 8 - 23
+		if ( array.GetSize() > (7 + n) ) {
+			m_FontName[n] = array.GetAt(7 + n);
+			SetHash(n);
+		}
+	}
 }
-void CFontNode::SetHash()
+void CFontNode::SetHash(int num)
 {
-	m_Hash = 0;
-	LPCSTR p = m_FontName;
+	m_Hash[num] = 0;
+	LPCSTR p = m_FontName[num];
 	while ( *p != '\0' )
-		m_Hash = m_Hash * 31 + *(p++);
-	m_Hash &= 3;
+		m_Hash[num] = m_Hash[num] * 31 + *(p++);
 }
-CFont *CFontNode::GetFont(int Width, int Height, int Style)
+CFontChacheNode *CFontNode::GetFont(int Width, int Height, int Style, int FontNum)
 {
-	return ((CRLoginApp *)AfxGetApp())->m_FontData.GetFont(m_FontName, Width * m_ZoomW / 100, Height * m_ZoomH / 100, m_CharSet, Style, m_Hash);
+	if ( m_FontName[FontNum].IsEmpty() )
+		FontNum = 0;
+	
+	return ((CRLoginApp *)AfxGetApp())->m_FontData.GetFont(m_FontName[FontNum],
+				Width * m_ZoomW / 100, Height * m_ZoomH / 100, m_CharSet, Style, m_Hash[FontNum]);
 }
 const CFontNode & CFontNode::operator = (CFontNode &data)
 {
@@ -91,10 +105,12 @@ const CFontNode & CFontNode::operator = (CFontNode &data)
 	m_ZoomH     = data.m_ZoomH;
 	m_Offset    = data.m_Offset;
 	m_CharSet   = data.m_CharSet;
-	m_FontName  = data.m_FontName;
 	m_EntryName = data.m_EntryName;
 	m_IContName = data.m_IContName;
-	m_Hash      = data.m_Hash;
+	for ( int n = 0 ; n < 16 ; n++ ) {
+		m_FontName[n] = data.m_FontName[n];
+		m_Hash[n]     = data.m_Hash[n];
+	}
 	return *this;
 }
 
@@ -118,35 +134,35 @@ void CFontTab::Init()
 		int		zoomw;
 		int		zoomh;
 		int		offset;
-		char	*font;
+		char	*font[2];
 	} FontInitTab[] = {
-		{ "VT100-GRAPHIC",			SET_94    | '0',	'\x00', "",					SYMBOL_CHARSET,		100,	100,	0,	"Tera Special" },
-		{ "IBM437-GR",				SET_94    | '1',	'\x80', "IBM437",			DEFAULT_CHARSET,	100,	100,	0,	"Arial Unicode MS" },
+		{ "VT100-GRAPHIC",			SET_94    | '0',	'\x00', "",					SYMBOL_CHARSET,		100,	100,	0,	{ "Tera Special", "" } },
+		{ "IBM437-GR",				SET_94    | '1',	'\x80', "IBM437",			DEFAULT_CHARSET,	100,	100,	0,	{ "Arial Unicode MS", "" } },
 
-		{ "ASCII(ANSI X3.4-1968)",	SET_94    | 'B',	'\x00', "ANSI_X3.4-1986",	ANSI_CHARSET,		100,	100,	0,	"Lucida Console" },
-		{ "JIS X 0201-Kana",		SET_94    | 'I',	'\x80', "JISX0201-1976",	SHIFTJIS_CHARSET,	100,	100,	0,	"‚l‚r ƒSƒVƒbƒN" },
-		{ "JIS X 0201-Roman",		SET_94    | 'J',	'\x00', "JISX0201-1976",	SHIFTJIS_CHARSET,	100,	100,	0,	"‚l‚r ƒSƒVƒbƒN" },
+		{ "ASCII(ANSI X3.4-1968)",	SET_94    | 'B',	'\x00', "ANSI_X3.4-1986",	ANSI_CHARSET,		100,	100,	0,	{ "Lucida Console", "" } },
+		{ "JIS X 0201-Kana",		SET_94    | 'I',	'\x80', "JISX0201-1976",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "‚l‚r ƒSƒVƒbƒN", "‚l‚r –¾’©" } },
+		{ "JIS X 0201-Roman",		SET_94    | 'J',	'\x00', "JISX0201-1976",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "‚l‚r ƒSƒVƒbƒN", "‚l‚r –¾’©" } },
 
-		{ "LATIN1 (ISO8859-1)",		SET_96    | 'A',	'\x80', "LATIN1",			ANSI_CHARSET,		100,	100,	0,	"" },
-		{ "LATIN2 (ISO8859-2)",		SET_96    | 'B',	'\x80', "LATIN2",			EASTEUROPE_CHARSET,	100,	100,	0,	"" },
-		{ "LATIN3 (ISO8859-3)",		SET_96    | 'C',	'\x80', "LATIN3",			DEFAULT_CHARSET,	100,	100,	0,	"Arial Unicode MS" },
-		{ "LATIN4 (ISO8859-4)",		SET_96    | 'D',	'\x80', "LATIN4",			DEFAULT_CHARSET,	100,	100,	0,	"Arial Unicode MS" },
-		{ "CYRILLIC (ISO8859-5)",	SET_96    | 'L',	'\x80', "ISO8859-5",		DEFAULT_CHARSET,	100,	100,	0,	"Arial Unicode MS" },
-		{ "ARABIC (ISO8859-6)",		SET_96    | 'G',	'\x80', "ISO8859-6",		ARABIC_CHARSET,		100,	100,	0,	"" },
-		{ "GREEK (ISO8859-7)",		SET_96    | 'F',	'\x80', "ISO8859-7",		GREEK_CHARSET,		100,	100,	0,	"" },
-		{ "HEBREW (ISO8859-8)",		SET_96    | 'H',	'\x80', "ISO8859-8",		HEBREW_CHARSET,		100,	100,	0,	"" },
-		{ "LATIN5 (ISO8859-9)",		SET_96    | 'M',	'\x80', "LATIN5",			DEFAULT_CHARSET,	100,	100,	0,	"Arial Unicode MS" },
-		{ "LATIN6 (ISO8859-10)",	SET_96    | 'V',	'\x80', "LATIN6",			DEFAULT_CHARSET,	100,	100,	0,	"Arial Unicode MS" },
+		{ "LATIN1 (ISO8859-1)",		SET_96    | 'A',	'\x80', "LATIN1",			ANSI_CHARSET,		100,	100,	0,	{ "", "" } },
+		{ "LATIN2 (ISO8859-2)",		SET_96    | 'B',	'\x80', "LATIN2",			EASTEUROPE_CHARSET,	100,	100,	0,	{ "", "" } },
+		{ "LATIN3 (ISO8859-3)",		SET_96    | 'C',	'\x80', "LATIN3",			DEFAULT_CHARSET,	100,	100,	0,	{ "Arial Unicode MS", "" } },
+		{ "LATIN4 (ISO8859-4)",		SET_96    | 'D',	'\x80', "LATIN4",			DEFAULT_CHARSET,	100,	100,	0,	{ "Arial Unicode MS", "" } },
+		{ "CYRILLIC (ISO8859-5)",	SET_96    | 'L',	'\x80', "ISO8859-5",		DEFAULT_CHARSET,	100,	100,	0,	{ "Arial Unicode MS", "" } },
+		{ "ARABIC (ISO8859-6)",		SET_96    | 'G',	'\x80', "ISO8859-6",		ARABIC_CHARSET,		100,	100,	0,	{ "", "" } },
+		{ "GREEK (ISO8859-7)",		SET_96    | 'F',	'\x80', "ISO8859-7",		GREEK_CHARSET,		100,	100,	0,	{ "", "" } },
+		{ "HEBREW (ISO8859-8)",		SET_96    | 'H',	'\x80', "ISO8859-8",		HEBREW_CHARSET,		100,	100,	0,	{ "", "" } },
+		{ "LATIN5 (ISO8859-9)",		SET_96    | 'M',	'\x80', "LATIN5",			DEFAULT_CHARSET,	100,	100,	0,	{ "Arial Unicode MS", "" } },
+		{ "LATIN6 (ISO8859-10)",	SET_96    | 'V',	'\x80', "LATIN6",			DEFAULT_CHARSET,	100,	100,	0,	{ "Arial Unicode MS", "" } },
 
-		{ "JIS X 0208-1978",		SET_94x94 | '@',	'\x00', "JIS_X0208-1983",	SHIFTJIS_CHARSET,	100,	100,	0,	"‚l‚r ƒSƒVƒbƒN" },
-		{ "GB2312-1980",			SET_94x94 | 'A',	'\x00', "GB_2312-80",		GB2312_CHARSET,		100,	100,	0,	"" },
-		{ "JIS X 0208-1983",		SET_94x94 | 'B',	'\x00', "JIS_X0208-1983",	SHIFTJIS_CHARSET,	100,	100,	0,	"‚l‚r ƒSƒVƒbƒN" },
-		{ "KSC5601-1987",			SET_94x94 | 'C',	'\x00', "KS_C_5601-1987",	HANGEUL_CHARSET,	100,	100,	0,	"" },
-		{ "JIS X 0212-1990",		SET_94x94 | 'D',	'\x00', "JIS_X0212-1990",	SHIFTJIS_CHARSET,	100,	100,	0,	"‚l‚r ƒSƒVƒbƒN" },
-		{ "JIS X 0213-2000.1",		SET_94x94 | 'Q',	'\x00', "JIS_X0213-2000.1",	SHIFTJIS_CHARSET,	100,	100,	0,	"‚l‚r ƒSƒVƒbƒN" },
-		{ "JIS X 0213-2000.2",		SET_94x94 | 'P',	'\x00', "JIS_X0213-2000.2",	SHIFTJIS_CHARSET,	100,	100,	0,	"‚l‚r ƒSƒVƒbƒN" },
+		{ "JIS X 0208-1978",		SET_94x94 | '@',	'\x00', "JIS_X0208-1983",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "‚l‚r ƒSƒVƒbƒN", "‚l‚r –¾’©" } },
+		{ "GB2312-1980",			SET_94x94 | 'A',	'\x00', "GB_2312-80",		GB2312_CHARSET,		100,	100,	0,	{ "", "" } },
+		{ "JIS X 0208-1983",		SET_94x94 | 'B',	'\x00', "JIS_X0208-1983",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "‚l‚r ƒSƒVƒbƒN", "‚l‚r –¾’©" } },
+		{ "KSC5601-1987",			SET_94x94 | 'C',	'\x00', "KS_C_5601-1987",	HANGEUL_CHARSET,	100,	100,	0,	{ "", "" } },
+		{ "JIS X 0212-1990",		SET_94x94 | 'D',	'\x00', "JIS_X0212-1990",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "‚l‚r ƒSƒVƒbƒN", "‚l‚r –¾’©" } },
+		{ "JIS X 0213-2000.1",		SET_94x94 | 'Q',	'\x00', "JIS_X0213-2000.1",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "‚l‚r ƒSƒVƒbƒN", "‚l‚r –¾’©" } },
+		{ "JIS X 0213-2000.2",		SET_94x94 | 'P',	'\x00', "JIS_X0213-2000.2",	SHIFTJIS_CHARSET,	100,	100,	0,	{ "‚l‚r ƒSƒVƒbƒN", "‚l‚r –¾’©" } },
 
-		{ "UNICODE",				SET_UNICODE,		 '\x00', "UCS-4BE",			DEFAULT_CHARSET,	100,	100,	0,	"Arial Unicode MS" },
+		{ "UNICODE",				SET_UNICODE,		'\x00', "UCS-4BE",			DEFAULT_CHARSET,	100,	100,	0,	{ "Arial Unicode MS", "" } },
 
 		{ NULL, 0, 0x00, NULL },
 	};
@@ -156,15 +172,17 @@ void CFontTab::Init()
 
 	for ( n = 0 ; FontInitTab[n].name != NULL ; n++ ) {
 		i = FontInitTab[n].mode;
-		m_Data[i].m_Shift     = FontInitTab[n].bank;
-		m_Data[i].m_ZoomW     = FontInitTab[n].zoomw;
-		m_Data[i].m_ZoomH     = FontInitTab[n].zoomh;
-		m_Data[i].m_Offset    = FontInitTab[n].offset;
-		m_Data[i].m_CharSet   = FontInitTab[n].cset;
-		m_Data[i].m_FontName  = FontInitTab[n].font;
-		m_Data[i].m_EntryName = FontInitTab[n].name;
-		m_Data[i].m_IContName = FontInitTab[n].iset;
-		m_Data[i].SetHash();
+		m_Data[i].m_Shift       = FontInitTab[n].bank;
+		m_Data[i].m_ZoomW       = FontInitTab[n].zoomw;
+		m_Data[i].m_ZoomH       = FontInitTab[n].zoomh;
+		m_Data[i].m_Offset      = FontInitTab[n].offset;
+		m_Data[i].m_CharSet     = FontInitTab[n].cset;
+		m_Data[i].m_FontName[0] = FontInitTab[n].font[0];
+		m_Data[i].m_FontName[1] = FontInitTab[n].font[1];
+		m_Data[i].m_EntryName   = FontInitTab[n].name;
+		m_Data[i].m_IContName   = FontInitTab[n].iset;
+		m_Data[i].SetHash(0);
+		m_Data[i].SetHash(1);
 	}
 }
 void CFontTab::SetArray(CStringArrayExt &array)
@@ -640,20 +658,22 @@ static const COLORREF DefColTab[16] = {
 	};
 static const WORD DefBankTab[4][4] = {
 	/* EUC */
-	{ { SET_94 | 'J' }, 	{ SET_94x94 | 'Q' },
-	  { SET_94 | 'I' }, 	{ SET_94x94 | 'P' } },
+	{ { SET_94    | 'J' }, 	{ SET_94x94 | 'Q' },
+	  { SET_94    | 'I' }, 	{ SET_94x94 | 'P' } },
 	/* SJIS */
-	{ { SET_94 | 'J' }, 	{ SET_94    | 'I' },
+	{ { SET_94    | 'J' }, 	{ SET_94    | 'I' },
 	  { SET_94x94 | 'Q' }, 	{ SET_94x94 | 'P' } },
 	/* ASCII */
-	{ { SET_94 | 'B' }, 	{ SET_94    | '1' },
-	  { SET_94 | 'J' }, 	{ SET_94    | 'I' } },
+	{ { SET_94    | 'B' }, 	{ SET_94    | '1' },
+	  { SET_94    | 'J' }, 	{ SET_94    | 'I' } },
 	/* UTF-8 */
-	{ { SET_94 | 'B' }, 	{ SET_96    | 'A' },
-	  { SET_94 | 'J' }, 	{ SET_94    | 'I' } },
+	{ { SET_94    | 'B' }, 	{ SET_96    | 'A' },
+	  { SET_94    | 'J' }, 	{ SET_94    | 'I' } },
 	};
-						//    ch  at  md  dm  cm  em  fc  bc
-static const VRAM TempAtt = { 0,  0,  0,  0,  0,  0,  7,  0 };
+static const VRAM TempAtt = {
+	//  ch  at  ft  md  dm  cm  em  fc  bc
+		0,  0,  0,  0,  0,  0,  0,  7,  0
+};
 static const char *DropCmdTab[] = {
 	//	Non				BPlus			XModem			YModem
 		"",				"bp -d %s\\r",	"rx %s\\r",		"rb\\r",
@@ -1383,8 +1403,8 @@ ENDOF:
 ENDOF2:
 	return;
 }
-void CTextRam::StrOut(CDC* pDC, LPCRECT pRect, int att, int fcn, int bcn,
-					  int mode, int len, int dm, int ct, char *str, int ss, int *spc, class CRLoginView *pView)
+void CTextRam::StrOut(CDC* pDC, LPCRECT pRect, int att, int fcn, int bcn, int mode, int fnum,
+					  int len, int dm, int ct, char *str, int ss, int *spc, class CRLoginView *pView)
 {
 	int n, x, y;
 	int md = ETO_CLIPPED;
@@ -1393,6 +1413,8 @@ void CTextRam::StrOut(CDC* pDC, LPCRECT pRect, int att, int fcn, int bcn,
 	int hd = (dm <= 1 ? 1 : 2);
 	int rv = FALSE;
 	COLORREF fc, bc, tc;
+	CFontChacheNode *pFontCache;
+	CFont *pFont;
 
 	if ( (att & ATT_BOLD) != 0 && !IS_ENABLE(m_AnsiOpt, TO_RLBOLD) && fcn < 16 )
 		fcn ^= 0x08;
@@ -1453,10 +1475,11 @@ void CTextRam::StrOut(CDC* pDC, LPCRECT pRect, int att, int fcn, int bcn,
 		pDC->SetTextColor(fc);
 		pDC->SetBkColor(bc);
 
-		if ( mode == SET_UNICODE && ct == 1 )
-			pDC->SelectObject(m_FontTab[mode].GetFont(pView->m_CharWidth * wd / 2, pView->m_CharHeight * hd, st));
-		else
-			pDC->SelectObject(m_FontTab[mode].GetFont(pView->m_CharWidth * wd, pView->m_CharHeight * hd, st));
+		if ( (pFontCache = m_FontTab[mode].GetFont(pView->m_CharWidth * wd, pView->m_CharHeight * hd, st, fnum)) != NULL && ct > 1 && pFontCache->m_KanWidMul > 100 )
+			pFontCache = m_FontTab[mode].GetFont(pView->m_CharWidth * wd * pFontCache->m_KanWidMul / 100, pView->m_CharHeight * hd, st, fnum);
+
+		pFont = (pFontCache != NULL ? pFontCache->m_pFont : CFont::FromHandle((HFONT)GetStockObject(SYSTEM_FONT)));
+		pDC->SelectObject(pFont);
 
 		x = pRect->left;
 		y = pRect->top - pView->m_CharHeight * m_FontTab[mode].m_Offset / 100 - (dm == 3 ? pView->m_CharHeight : 0);
@@ -1581,14 +1604,14 @@ void CTextRam::StrOut(CDC* pDC, LPCRECT pRect, int att, int fcn, int bcn,
 void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginView *pView)
 {
 	int x, y;
-	int ca, cf, cb, cm, ch, cn, dm;
-	int sa, sf, sb, sm, sn, ss, st;
+	int ca, cf, cb, cm, cv, ch, cn, dm;
+	int sa, sf, sb, sm, sv, sn, ss, st;
 	int pos, spos, epos;
 	int csx, cex, cwy;
 	VRAM *vp, *tp;
 	int spc[COLS_MAX];
 	char tmp[COLS_MAX * 8];
-	CFont *pFontOld = m_FontTab[SET_UNICODE].GetFont(pView->m_CharWidth, pView->m_CharHeight, 0);
+	CFont *pFontOld = pDC->SelectObject(CFont::FromHandle((HFONT)GetStockObject(SYSTEM_FONT)));
 	RECT rect;
 
 	if ( pView->m_ClipFlag ) {
@@ -1607,7 +1630,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 
 	for ( y = y1 ; y <= y2 ; y++ ) {
 		sa = sf = sb = sm = (-1);
-		sn = ss = st = 0;
+		sn = ss = st = sv = 0;
 		rect.top    = pView->CalcGrapY(y);
 		rect.bottom = pView->CalcGrapY(y + 1);
 		tp = GETVRAM(0, y - pView->m_HisOfs + pView->m_HisMin);
@@ -1624,6 +1647,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 					vp--;
 				}
 				ca = vp->at;
+				cv = vp->ft;
 				cf = vp->fc;
 				cb = vp->bc;
 				cm = vp->md & CODE_MASK;
@@ -1645,6 +1669,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 					cm = (-1);
 			} else {
 				ca = m_DefAtt.at;
+				cv = m_DefAtt.ft;
 				cf = m_DefAtt.fc;
 				cb = m_DefAtt.bc;
 				ch = 0;
@@ -1666,12 +1691,13 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 				}
 			}
 
-			if ( sa != ca || sf != cf || sb != cb || sm != cm || st != cn ) {
+			if ( sa != ca || sf != cf || sb != cb || sm != cm || st != cn || sv != cv) {
 				if ( sn > 0 ) {
 					rect.right = pView->CalcGrapX(x) * (dm ? 2 : 1);
-					StrOut(pDC, &rect, sa, sf, sb, sm, sn, dm, st, tmp, ss, spc, pView);
+					StrOut(pDC, &rect, sa, sf, sb, sm, sv, sn, dm, st, tmp, ss, spc, pView);
 				}
 				sa = ca;
+				sv = cv;
 				sf = cf;
 				sb = cb;
 				sn = ss = 0;
@@ -1695,7 +1721,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 		}
 		if ( sn > 0 ) {
 			rect.right = pView->CalcGrapX(x) * (dm ? 2 : 1);
-			StrOut(pDC, &rect, sa, sf, sb, sm, sn, dm, st, tmp, ss, spc, pView);
+			StrOut(pDC, &rect, sa, sf, sb, sm, sv, sn, dm, st, tmp, ss, spc, pView);
 		}
 	}
 
@@ -2533,6 +2559,7 @@ void CTextRam::PUT1BYTE(int ch, int md)
 //	vp->dm = m_AttNow.dm;	no Init
 	vp->cm = CM_ASCII;
 	vp->at = m_AttNow.at;
+	vp->ft = m_AttNow.ft;
 	vp->fc = m_AttNow.fc;
 	vp->bc = m_AttNow.bc;
 
@@ -2603,6 +2630,7 @@ void CTextRam::PUT2BYTE(int ch, int md)
 	vp[0].cm = CM_1BYTE;
 	vp[1].cm = CM_2BYTE;
 	vp[0].at = vp[1].at = m_AttNow.at;
+	vp[0].ft = vp[1].ft = m_AttNow.ft;
 	vp[0].fc = vp[1].fc = m_AttNow.fc;
 	vp[0].bc = vp[1].bc = m_AttNow.bc;
 

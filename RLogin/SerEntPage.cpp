@@ -283,9 +283,12 @@ void CSerEntPage::OnKeyfileselect()
 {
 	UpdateData(TRUE);
 	CFileDialog dlg(TRUE, "", m_IdkeyName, OFN_HIDEREADONLY, "All Files (*.*)|*.*||", this);
-	if ( dlg.DoModal() != IDOK )
-		return;
-	m_IdkeyName = dlg.GetPathName();
+	if ( dlg.DoModal() != IDOK ) {
+		if ( m_IdkeyName.IsEmpty() || MessageBox("認証キーファイルの設定を解除しますか？", "Question", MB_ICONQUESTION | MB_YESNO) != IDYES )
+			return;
+		m_IdkeyName.Empty();
+	} else
+		m_IdkeyName = dlg.GetPathName();
 	UpdateData(FALSE);
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_ENTRY;

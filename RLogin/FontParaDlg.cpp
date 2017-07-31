@@ -29,6 +29,7 @@ CFontParaDlg::CFontParaDlg(CWnd* pParent /*=NULL*/)
 	m_IContName = _T("");
 	m_EntryName = _T("");
 	m_FontName = _T("");
+	m_FontNum  = 0;
 	//}}AFX_DATA_INIT
 	m_pData = NULL;
 }
@@ -48,12 +49,14 @@ void CFontParaDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_ENTRYNAME, m_EntryName);
 	DDX_Text(pDX, IDC_FACENAME, m_FontName);
 	//}}AFX_DATA_MAP
+	DDX_CBIndex(pDX, IDC_FONTNUM, m_FontNum);
 }
 
 BEGIN_MESSAGE_MAP(CFontParaDlg, CDialog)
 	//{{AFX_MSG_MAP(CFontParaDlg)
 	ON_BN_CLICKED(IDC_FONTSEL, OnFontsel)
 	//}}AFX_MSG_MAP
+	ON_CBN_SELCHANGE(IDC_FONTNUM, &CFontParaDlg::OnCbnSelchangeFontnum)
 END_MESSAGE_MAP()
 
 static const struct _CharSetTab {
@@ -174,7 +177,10 @@ BOOL CFontParaDlg::OnInitDialog()
 	m_OffsTemp.Format("%d", m_pData->m_Offset);
 	m_IContName = m_pData->m_IContName;
 	m_EntryName = m_pData->m_EntryName;
-	m_FontName  = m_pData->m_FontName;
+
+	for ( n = 0 ; n < 16 ; n++ )
+		m_FontNameTab[n] = m_pData->m_FontName[n];
+	m_FontName  = m_FontNameTab[m_FontNum];
 
 	UpdateData(FALSE);
 
@@ -193,8 +199,12 @@ void CFontParaDlg::OnOK()
 	m_pData->m_Offset    = atoi(m_OffsTemp);
 	m_pData->m_IContName = m_IContName;
 	m_pData->m_EntryName = m_EntryName;
-	m_pData->m_FontName  = m_FontName;
-	m_pData->SetHash();
+
+	m_FontNameTab[m_FontNum] = m_FontName;
+	for ( int n = 0 ; n < 16 ; n++ ) {
+		m_pData->m_FontName[n] = m_FontNameTab[n];
+		m_pData->SetHash(n);
+	}
 
 	CDialog::OnOK();
 }
@@ -213,7 +223,11 @@ void CFontParaDlg::OnFontsel()
 	LogFont.lfClipPrecision  = CLIP_DEFAULT_PRECIS;
 	LogFont.lfQuality        = DEFAULT_QUALITY;
 	LogFont.lfPitchAndFamily = DEFAULT_PITCH | FF_DONTCARE;
-    strcpy(LogFont.lfFaceName, m_FontName);
+
+	if ( m_FontName.IsEmpty() && m_FontNum > 0 )
+	    strcpy(LogFont.lfFaceName, m_FontNameTab[0]);
+	else
+	    strcpy(LogFont.lfFaceName, m_FontName);
 
 	CFontDialog font(&LogFont,
 		CF_NOVERTFONTS | CF_SCREENFONTS | CF_SELECTSCRIPT,
@@ -222,6 +236,14 @@ void CFontParaDlg::OnFontsel()
 	if ( font.DoModal() != IDOK )
 		return;
 
-    m_FontName = LogFont.lfFaceName;
+    m_FontNameTab[m_FontNum] = m_FontName = LogFont.lfFaceName;
+	UpdateData(FALSE);
+}
+
+void CFontParaDlg::OnCbnSelchangeFontnum()
+{
+	m_FontNameTab[m_FontNum] = m_FontName;
+	UpdateData(TRUE);
+	m_FontName  = m_FontNameTab[m_FontNum];
 	UpdateData(FALSE);
 }

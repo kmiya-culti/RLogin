@@ -35,6 +35,7 @@ public:
 	CMenu m_PopUpMenu;
 	CMenu *m_pSubMenu;
 
+	int GetParamItem(int para);
 	int GetSelectMarkData();
 	void DoSortItem();
 	void InitColumn(LPCSTR lpszSection, const LV_COLUMN *lpColumn, int nMax);

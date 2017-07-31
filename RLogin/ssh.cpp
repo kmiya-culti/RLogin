@@ -33,8 +33,8 @@ static char THIS_FILE[]=__FILE__;
 
 #include <openssl/aes.h>
 
-const EVP_CIPHER *evp_aes_128_ctr(void);
-void ssh_aes_ctr_iv(EVP_CIPHER_CTX *, int, u_char *, u_int);
+static const EVP_CIPHER *evp_aes_128_ctr(void);
+static void ssh_aes_ctr_iv(EVP_CIPHER_CTX *, int, u_char *, u_int);
 
 struct ssh_aes_ctr_ctx
 {
@@ -106,7 +106,7 @@ static int ssh_aes_ctr_cleanup(EVP_CIPHER_CTX *ctx)
 	return (1);
 }
 
-void ssh_aes_ctr_iv(EVP_CIPHER_CTX *evp, int doset, u_char * iv, u_int len)
+static void ssh_aes_ctr_iv(EVP_CIPHER_CTX *evp, int doset, u_char * iv, u_int len)
 {
 	struct ssh_aes_ctr_ctx *c;
 
@@ -118,7 +118,7 @@ void ssh_aes_ctr_iv(EVP_CIPHER_CTX *evp, int doset, u_char * iv, u_int len)
 		memcpy(iv, c->aes_counter, len);
 }
 
-const EVP_CIPHER *evp_aes_128_ctr(void)
+static const EVP_CIPHER *evp_aes_128_ctr(void)
 {
 	static EVP_CIPHER aes_ctr;
 
@@ -144,8 +144,8 @@ struct ssh1_3des_ctx
 	EVP_CIPHER_CTX	k1, k2, k3;
 };
 
-const EVP_CIPHER * evp_ssh1_3des(void);
-void ssh1_3des_iv(EVP_CIPHER_CTX *, int, u_char *, int);
+static const EVP_CIPHER * evp_ssh1_3des(void);
+static void ssh1_3des_iv(EVP_CIPHER_CTX *, int, u_char *, int);
 
 static int ssh1_3des_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char *iv, int enc)
 {
@@ -211,7 +211,7 @@ static int ssh1_3des_cleanup(EVP_CIPHER_CTX *ctx)
 	return (1);
 }
 
-void ssh1_3des_iv(EVP_CIPHER_CTX *evp, int doset, u_char *iv, int len)
+static void ssh1_3des_iv(EVP_CIPHER_CTX *evp, int doset, u_char *iv, int len)
 {
 	struct ssh1_3des_ctx *c;
 
@@ -230,7 +230,7 @@ void ssh1_3des_iv(EVP_CIPHER_CTX *evp, int doset, u_char *iv, int len)
 	}
 }
 
-const EVP_CIPHER *evp_ssh1_3des(void)
+static const EVP_CIPHER *evp_ssh1_3des(void)
 {
 	static EVP_CIPHER ssh1_3des;
 
@@ -280,7 +280,7 @@ static int bf_ssh1_cipher(EVP_CIPHER_CTX *ctx, u_char *out, const u_char *in, u_
 	return (ret);
 }
 
-const EVP_CIPHER *evp_ssh1_bf(void)
+static const EVP_CIPHER *evp_ssh1_bf(void)
 {
 	static EVP_CIPHER ssh1_bf;
 
@@ -292,7 +292,7 @@ const EVP_CIPHER *evp_ssh1_bf(void)
 	return (&ssh1_bf);
 }
 
-void rsa_public_encrypt(BIGNUM *out, BIGNUM *in, RSA *key)
+static void rsa_public_encrypt(BIGNUM *out, BIGNUM *in, RSA *key)
 {
     BYTE *inbuf, *outbuf;
     int len, ilen, olen;
@@ -323,7 +323,7 @@ void mm_zfree(void *mm, void *address)
 	free(address);
 }
 
-int	ssh_crc32(LPBYTE buf, int len)
+static int	ssh_crc32(LPBYTE buf, int len)
 {
 static const unsigned long crc32tab[] = {
 	0x00000000L, 0x77073096L, 0xee0e612cL, 0x990951baL,
@@ -400,7 +400,7 @@ static const unsigned long crc32tab[] = {
 	return (int)crc;
 }
 
-int dh_pub_is_valid(DH *dh, BIGNUM *dh_pub)
+static int dh_pub_is_valid(DH *dh, BIGNUM *dh_pub)
 {
 	int i;
 	int n = BN_num_bits(dh_pub);
@@ -416,7 +416,7 @@ int dh_pub_is_valid(DH *dh, BIGNUM *dh_pub)
 		return 1;
 	return 0;
 }
-int dh_gen_key(DH *dh, int need)
+static int dh_gen_key(DH *dh, int need)
 {
 	int i, bits_set, tries = 0;
 
@@ -442,7 +442,7 @@ int dh_gen_key(DH *dh, int need)
 	} while (!dh_pub_is_valid(dh, dh->pub_key));
 	return 0;
 }
-DH *dh_new_group_asc(const char *gen, const char *modulus)
+static DH *dh_new_group_asc(const char *gen, const char *modulus)
 {
 	DH *dh;
 
@@ -454,7 +454,7 @@ DH *dh_new_group_asc(const char *gen, const char *modulus)
 		return NULL;
     return (dh);
 }
-DH *dh_new_group1(void)
+static DH *dh_new_group1(void)
 {
     static const char *gen = "2", *group1 =
             "FFFFFFFF" "FFFFFFFF" "C90FDAA2" "2168C234" "C4C6628B" "80DC1CD1"
@@ -466,7 +466,7 @@ DH *dh_new_group1(void)
 
     return (dh_new_group_asc(gen, group1));
 }
-DH *dh_new_group14(void)
+static DH *dh_new_group14(void)
 {
 	static const char *gen = "2", *group14 =
 	    "FFFFFFFF" "FFFFFFFF" "C90FDAA2" "2168C234" "C4C6628B" "80DC1CD1"
@@ -483,7 +483,7 @@ DH *dh_new_group14(void)
 
 	return (dh_new_group_asc(gen, group14));
 }
-u_char *kex_dh_hash(
+static u_char *kex_dh_hash(
     LPCSTR client_version_string, LPCSTR server_version_string,
     LPBYTE ckexinit, int ckexinitlen,
     LPBYTE skexinit, int skexinitlen,
@@ -521,7 +521,7 @@ u_char *kex_dh_hash(
 
 	return digest;
 }
-int	dh_estimate(int bits)
+static int	dh_estimate(int bits)
 {
 	if ( bits <= 128 )
 		return (1024);		/* O(2**86) */
@@ -582,7 +582,7 @@ u_char *kex_gex_hash(
 	return digest;
 }
 #ifdef	_DEBUG
-void dump_digest(u_char *digest, int len)
+static void dump_digest(u_char *digest, int len)
 {
         int i;
         for (i = 0; i< len; i++) {
@@ -595,7 +595,7 @@ void dump_digest(u_char *digest, int len)
         TRACE("\n");
 }
 #endif
-u_char *derive_key(int id, int need, u_char *hash, int hashlen, BIGNUM *shared_secret, u_char *session_id, int sesslen, const EVP_MD *evp_md)
+static u_char *derive_key(int id, int need, u_char *hash, int hashlen, BIGNUM *shared_secret, u_char *session_id, int sesslen, const EVP_MD *evp_md)
 {
 	CBuffer b;
 //	const EVP_MD *evp_md = EVP_sha1();
@@ -1931,12 +1931,8 @@ int	CIdKey::LoadPrivateKey(LPCSTR file, LPCSTR pass)
 {
 	FILE *fp;
 	EVP_PKEY *pk;
-	static int LoadAlgo = 0;
 
-	if ( LoadAlgo == 0 ) {
-		SSLeay_add_all_algorithms();
-		LoadAlgo = 1;
-	}
+	((CRLoginApp *)AfxGetApp())->SSL_Init();
 
 	if ( (fp = fopen(file, "r")) == NULL )
 		return FALSE;
@@ -2780,8 +2776,10 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 			dlg.m_Title = "SSH鍵ファイルの読み込み";
 			dlg.m_Message = "作成時に設定したパスフレーズを入力してください";
 			dlg.m_IdkeyFile = m_pDocument->m_ServerEntry.m_IdkeyName;
-			if ( dlg.DoModal() != IDOK )
+			if ( dlg.DoModal() != IDOK ) {
+				m_pDocument->m_ServerEntry.m_IdkeyName.Empty();
 				return FALSE;
+			}
 			if ( !m_IdKey.LoadPrivateKey(dlg.m_IdkeyFile, dlg.m_PassName) ) {
 				AfxMessageBox("鍵ファイルを読み込めませんでした");
 				return FALSE;
@@ -3175,7 +3173,7 @@ int Cssh::SMsgAuthRsaChallenge(CBuffer *bp)
 			return FALSE;
 	}
 
-	if ( m_pDocument->m_TextRam.IsOptEnable(TO_RLUSEPASS) && m_IdKey.m_Pass.Compare(m_pDocument->m_ServerEntry.m_PassName) != 0 )
+	if ( m_IdKey.m_Pass.Compare(m_pDocument->m_ServerEntry.m_PassName) != 0 )
 		return FALSE;
 
 	if ( (challenge = BN_new()) == NULL )
@@ -3888,23 +3886,20 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 		tmp.PutStr("none");
 		tmp.Consume(skip);
 		SendPacket2(&tmp);
-		m_AuthStat = 1;
+		m_AuthStat = 2;
 		return TRUE;
 	case 1:
-		if ( m_IdKey.m_Type != IDKEY_NONE && str != NULL && strstr(str, "publickey") != NULL &&
-				(!m_pDocument->m_TextRam.IsOptEnable(TO_RLUSEPASS) || m_IdKey.m_Pass.Compare(m_pDocument->m_ServerEntry.m_PassName) == 0) ) {
-			if ( m_IdKey.m_Type == IDKEY_RSA1 )
-				m_IdKey.m_Type = IDKEY_RSA2;
-			m_IdKey.SetBlob(&blob);
-			m_AuthStat = 2;
-			break;
-		}
+	RETRY:
+		if ( !SetIdKeyList() )
+			m_AuthStat = 3;
 	case 2:
-		if ( SetIdKeyList() && str != NULL && strstr(str, "publickey") != NULL &&
-				(!m_pDocument->m_TextRam.IsOptEnable(TO_RLUSEPASS) || m_IdKey.m_Pass.Compare(m_pDocument->m_ServerEntry.m_PassName) == 0) ) {
+		if ( m_IdKey.m_Type != IDKEY_NONE && str != NULL && strstr(str, "publickey") != NULL ) {
+			if ( m_IdKey.m_Pass.Compare(m_pDocument->m_ServerEntry.m_PassName) != 0 )
+				goto RETRY;
 			if ( m_IdKey.m_Type == IDKEY_RSA1 )
 				m_IdKey.m_Type = IDKEY_RSA2;
 			m_IdKey.SetBlob(&blob);
+			m_AuthStat = 1;
 			break;
 		}
 	case 3:
@@ -4043,9 +4038,11 @@ void Cssh::SendMsgChannelData(int id)
 }
 void Cssh::SendMsgChannelRequesstShell(int id)
 {
+	int n;
 	char *p;
 	CBuffer tmp;
 	CString str;
+	CStringIndex env;
 
 	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHAGENT) ) {
 		tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
@@ -4094,6 +4091,18 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 	tmp.Put32Bit(0);
 	SendPacket2(&tmp);
 	m_ChnReqMap.Add(0);
+
+	env.SetArray(m_pDocument->m_ParamTab.m_ExtEnvStr);
+	for ( n = 0 ; n < env.GetSize() ; n++ ) {
+		tmp.Clear();
+		tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
+		tmp.Put32Bit(m_Chan[id].m_RemoteID);
+		tmp.PutStr("env");
+		tmp.Put8Bit(0);
+		tmp.PutStr(env[n].m_nIndex);
+		tmp.PutStr(env[n].m_String);
+		SendPacket2(&tmp);
+	}
 
 	tmp.Clear();
 	tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
@@ -4729,6 +4738,10 @@ int Cssh::SSH2MsgChannelRequestReply(CBuffer *bp, int type)
 	case 4:		// x11-req
 		if ( type == SSH2_MSG_CHANNEL_FAILURE )
 			AfxMessageBox("X11-req Failure");
+		break;
+	case 5:		// env
+		if ( type == SSH2_MSG_CHANNEL_FAILURE )
+			AfxMessageBox("env Failure");
 		break;
 	}
 	return FALSE;

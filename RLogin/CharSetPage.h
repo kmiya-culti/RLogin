@@ -36,6 +36,7 @@ public:
 	CString	m_CharBank2;
 	CString	m_CharBank3;
 	CString	m_CharBank4;
+	int		m_AltFont;
 	//}}AFX_DATA
 
 
@@ -66,7 +67,8 @@ protected:
 	afx_msg void OnEditDups();
 	afx_msg void OnUpdateEditEntry(CCmdUI* pCmdUI);
 	DECLARE_MESSAGE_MAP()
-
+public:
+	afx_msg void OnCbnSelchangeFontnum();
 };
 
 //{{AFX_INSERT_LOCATION}}

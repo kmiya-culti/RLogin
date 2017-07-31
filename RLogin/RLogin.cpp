@@ -9,7 +9,6 @@
 #include "RLoginDoc.h"
 #include "RLoginView.h"
 #include "ExtSocket.h"
-#include "Script.h"
 
 #include <direct.h>
 
@@ -266,11 +265,6 @@ BOOL CRLoginApp::InitInstance()
 	pMainFrame->ShowWindow(m_nCmdShow);
 	pMainFrame->UpdateWindow();
 
-#ifdef	_DEBUGXXX
-	CScript script;
-	script.ExecFile("script.txt");
-#endif
-
 	switch(cmdInfo.m_nShellCommand) {
 	case CCommandLineInfo::FileNew:
 		OnFileNew();
@@ -505,4 +499,14 @@ BOOL CRLoginApp::SaveAllModified()
 		return FALSE;
 
 	return CWinApp::SaveAllModified();
+}
+void CRLoginApp::SSL_Init()
+{
+	static BOOL bLoadAlgo = FALSE;
+
+	if ( bLoadAlgo )
+		return;
+	bLoadAlgo = TRUE;
+
+	SSLeay_add_all_algorithms();
 }

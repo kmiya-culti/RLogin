@@ -34,6 +34,7 @@ public:
 	//}}AFX_DATA
 	CStatic	m_ColBox[18];
 	int m_FontCol[2];
+	CString m_FontColName[2];
 
 // オーバーライド
 	// ClassWizard は仮想関数のオーバーライドを生成します。
@@ -60,6 +61,8 @@ protected:
 	//}}AFX_MSG
 	afx_msg void OnUpdateEdit();
 	DECLARE_MESSAGE_MAP()
+public:
+	afx_msg void OnEnChangeColor();
 };
 
 //{{AFX_INSERT_LOCATION}}

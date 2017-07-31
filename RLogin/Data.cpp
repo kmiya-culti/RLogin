@@ -776,6 +776,7 @@ CFontChacheNode::CFontChacheNode()
 	m_LogFont.lfQuality        = DEFAULT_QUALITY;
 	m_LogFont.lfPitchAndFamily = FIXED_PITCH | FF_MODERN;
 	m_Style = 0;
+	m_KanWidMul = 100;
 }
 CFontChacheNode::~CFontChacheNode()
 {
@@ -797,12 +798,24 @@ CFont *CFontChacheNode::Open(LPCSTR pFontName, int Width, int Height, int CharSe
 		delete m_pFont;
 	m_pFont = new CFont;
 
-	if ( m_pFont->CreateFontIndirect(&m_LogFont) )
-		return m_pFont;
+	if ( !m_pFont->CreateFontIndirect(&m_LogFont) ) {
+		delete m_pFont;
+		m_pFont = NULL;
+		return NULL;
+	}
 
-	delete m_pFont;
-	m_pFont = NULL;
-	return NULL;
+	CDC dc;
+	CSize sz;
+	CFont *pOld;
+
+	dc.CreateCompatibleDC(NULL);
+	pOld = dc.SelectObject(m_pFont);
+	sz = dc.GetTextExtent("ˆŸ", 2);
+	dc.SelectObject(pOld);
+
+	m_KanWidMul = Width * 200 / sz.cx;
+
+	return m_pFont;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -820,24 +833,25 @@ CFontChache::CFontChache()
 		m_pTop[hs] = &(m_Data[n]);
 	}
 }
-CFont *CFontChache::GetFont(LPCSTR pFontName, int Width, int Height, int CharSet, int Style, int Hash)
+CFontChacheNode *CFontChache::GetFont(LPCSTR pFontName, int Width, int Height, int CharSet, int Style, int Hash)
 {
 	CFontChacheNode *pNext, *pBack;
 
+	Hash = (Hash + Width + Height + Style) & 3;
 	pNext = pBack = m_pTop[Hash];
 	for ( ; ; ) {
 		if ( pNext->m_pFont != NULL &&
 			 pNext->m_LogFont.lfCharSet == CharSet &&
-			 pNext->m_LogFont.lfWidth  == Width &&
-			 pNext->m_LogFont.lfHeight == Height &&
-			 pNext->m_Style == Style &&
+			 pNext->m_LogFont.lfWidth   == Width   &&
+			 pNext->m_LogFont.lfHeight  == Height  &&
+			 pNext->m_Style             == Style   &&
 			 strcmp(pNext->m_LogFont.lfFaceName, pFontName) == 0 ) {
 			if ( pNext != pBack ) {
 				pBack->m_pNext = pNext->m_pNext;
 				pNext->m_pNext = m_pTop[Hash];
 				m_pTop[Hash] = pNext;
 			}
-			return pNext->m_pFont;
+			return pNext;
 		}
 		if ( pNext->m_pNext == NULL )
 			break;
@@ -845,15 +859,15 @@ CFont *CFontChache::GetFont(LPCSTR pFontName, int Width, int Height, int CharSet
 		pNext = pNext->m_pNext;
 	}
 
-//	TRACE("CacheMiss %s(%d,%d,%d,%d)\n", pFontName, CharSet, Height, Hash, Style);
+	TRACE("CacheMiss %s(%d,%d,%d,%d)\n", pFontName, CharSet, Height, Hash, Style);
 
 	if ( pNext->Open(pFontName, Width, Height, CharSet, Style) == NULL )
-		return CFont::FromHandle((HFONT)GetStockObject(SYSTEM_FONT));
+		return NULL;
 
 	pBack->m_pNext = pNext->m_pNext;
 	pNext->m_pNext = m_pTop[Hash];
 	m_pTop[Hash] = pNext;
-	return pNext->m_pFont;
+	return pNext;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -868,8 +882,8 @@ CMutexLock::CMutexLock(LPCSTR lpszName)
 CMutexLock::~CMutexLock()
 {
 	m_pLock->Unlock();
-	delete m_pMutex;
 	delete m_pLock;
+	delete m_pMutex;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -2237,6 +2251,20 @@ static const char *InitAlgo[9][13] = {
 	{ "hmac-sha1", "hmac-md5", "hmac-ripemd160", "hmac-md5-96", "hmac-sha1-96", NULL },
 	{ "zlib@openssh.com", "zlib", "none", NULL },
 };
+static const char *TermCap = "TERMCAP='kterm-color|kterm-co|kterm + ANSI colors"\
+	":ti@:te@:k1=\\EOP:k2=\\EOQ:k3=\\EOR:k4=\\EOS:k5=\\E[15~:k6=\\E[17~:k7=\\E[18~"\
+	":k8=\\E[19~:k9=\\E[20~:k;=\\E[21~:F1=\\E[23~:F2=\\E[24~:kH=\\EOF:@7=\\EOF:kI=\\E[2~"\
+	":kh=\\EOH:*6=\\EOF:kP=\\E[5~:kN=\\E[6~:ku=\\EOA:kd=\\EOB:kr=\\EOC:kl=\\EOD:Km=\\E[M"\
+	":li#24:co#80:am:kn#12:km:mi:ms:xn:bl=^G:is=\\E[!p\\E[?3;4l\\E[4l\\E>"\
+	":rs=\\E[!p\\E[?3;4l\\E[4l\\E>:le=^H:AL=\\E[%dL:DL=\\E[%dM:DC=\\E[%dP:al=\\E[L:dc=\\E[P"\
+	":dl=\\E[M:UP=\\E[%dA:DO=\\E[%dB:LE=\\E[%dD:RI=\\E[%dC:ho=\\E[H:cd=\\E[J:ce=\\E[K"\
+	":cl=\\E[H\\E[2J:cm=\\E[%i%d;%dH:cs=\\E[%i%d;%dr:im=\\E[4h:ei=\\E[4l:ks=\\E[?1h\\E="\
+	":ke=\\E[?1l\\E>:kD=\\E[3~:sf=\\n:sr=\\EM:st=\\EH:ct=\\E[3g:sc=\\E7:rc=\\E8:eA=\\E(B\\E)0"\
+	":as=^N:ae=^O:ml=\\El:mu=\\Em:up=\\E[A:nd=\\E[C:md=\\E[1m:me=\\E[m^O:mr=\\E[7m:so=\\E[7m"\
+	":se=\\E[27m:us=\\E[4m:ue=\\E[24m:vi=\\E[?25l:ve=\\E[?25h:ut:pa#64:Co#8:op=\\E[39;49m"\
+	":AB=\\E[4%dm:AF=\\E[3%dm:kb=\\010:AF=\\E[3%dm:AB=\\E[4%dm:op=\\E[39;49m:hs:es"\
+	":ts=\\E[?E\\E[?%i%dT:fs=\\E[?F:ds=\\E[?H:KJ:sc=\\E7:rc=\\E8:cs=\\E[%i%d;%dr"\
+	":TY=ascii:eA@:as=\\E(0:ae=\\E(B:'";
 
 CParamTab::CParamTab()
 {
@@ -2259,7 +2287,8 @@ void CParamTab::Init()
 
 	m_PortFwd.RemoveAll();
 
-	m_XDisplay = ":0";
+	m_XDisplay  = ":0";
+//	m_ExtEnvStr = TermCap;
 }
 void CParamTab::SetArray(CStringArrayExt &array)
 {
@@ -2283,6 +2312,7 @@ void CParamTab::SetArray(CStringArrayExt &array)
 	array.Add("EndOf");
 
 	array.Add(m_XDisplay);
+//	array.Add(m_ExtEnvStr);
 }
 void CParamTab::GetArray(CStringArrayExt &array)
 {
@@ -2315,7 +2345,8 @@ void CParamTab::GetArray(CStringArrayExt &array)
 		m_PortFwd.Add(array[i++]);
 	}
 
-	m_XDisplay = (array.GetSize() > i ? array.GetAt(i++) : ":0");
+	m_XDisplay  = (array.GetSize() > i ? array.GetAt(i++) : ":0");
+//	m_ExtEnvStr = (array.GetSize() > i ? array.GetAt(i++) : TermCap);
 
 	if ( m_IdKeyStr[0].Compare("IdKeyList Entry") == 0 ) {
 		m_IdKeyList.GetString(m_IdKeyStr[1]);
@@ -2389,6 +2420,7 @@ const CParamTab & CParamTab::operator = (CParamTab &data)
 	m_PortFwd   = data.m_PortFwd;
 	m_IdKeyList = data.m_IdKeyList;
 	m_XDisplay  = data.m_XDisplay;
+	m_ExtEnvStr = data.m_ExtEnvStr;
 	return *this;
 }
 

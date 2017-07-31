@@ -34,6 +34,8 @@ CColParaDlg::CColParaDlg() : CPropertyPage(CColParaDlg::IDD)
 	m_WakeUpSleep = 0;
 	m_FontCol[0] = 0;
 	m_FontCol[1] = 0;
+	m_FontColName[0] = "0";
+	m_FontColName[1] = "0";
 }
 
 CColParaDlg::~CColParaDlg()
@@ -55,10 +57,8 @@ void CColParaDlg::DoDataExchange(CDataExchange* pDX)
 	for ( int n = 0 ; n < 8 ; n++ )
 		DDX_Check(pDX, IDC_ATTR1 + n, m_Attrb[n]);
 	DDX_CBIndex(pDX, IDC_COMBO2, m_WakeUpSleep);
-	DDX_Text(pDX, IDC_TEXTCOL, m_FontCol[0]);
-	DDV_MinMaxUInt(pDX, m_FontCol[0], 0, 255);
-	DDX_Text(pDX, IDC_BACKCOL, m_FontCol[1]);
-	DDV_MinMaxUInt(pDX, m_FontCol[1], 0, 255);
+	DDX_Text(pDX, IDC_TEXTCOL, m_FontColName[0]);
+	DDX_Text(pDX, IDC_BACKCOL, m_FontColName[1]);
 }
 
 BEGIN_MESSAGE_MAP(CColParaDlg, CPropertyPage)
@@ -71,6 +71,8 @@ BEGIN_MESSAGE_MAP(CColParaDlg, CPropertyPage)
 	ON_BN_CLICKED(IDC_BACKSEL, OnBitMapFileSel)
 	//}}AFX_MSG_MAP
 	ON_EN_CHANGE(IDC_BACKFILE, OnUpdateEdit)
+	ON_EN_CHANGE(IDC_TEXTCOL, &CColParaDlg::OnEnChangeColor)
+	ON_EN_CHANGE(IDC_BACKCOL, &CColParaDlg::OnEnChangeColor)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -119,6 +121,9 @@ BOOL CColParaDlg::OnInitDialog()
 	m_FontCol[0] = m_pSheet->m_pTextRam->m_AttNow.fc;
 	m_FontCol[1] = m_pSheet->m_pTextRam->m_AttNow.bc;
 
+	m_FontColName[0].Format("%d", m_FontCol[0]);
+	m_FontColName[1].Format("%d", m_FontCol[1]);
+
 	CButton *pWnd;
 	BUTTON_IMAGELIST list;
 	memset(&list, 0, sizeof(list));
@@ -166,6 +171,9 @@ BOOL CColParaDlg::OnApply()
 		m_pSheet->m_pTextRam->m_DefColTab[n] = m_ColTab[n];
 		m_pSheet->m_pTextRam->m_ColTab[n] = m_ColTab[n];
 	}
+
+	m_FontCol[0] = atoi(m_FontColName[0]);
+	m_FontCol[1] = atoi(m_FontColName[1]);
 
 	m_pSheet->m_pTextRam->m_DefAtt.fc = m_FontCol[0];
 	m_pSheet->m_pTextRam->m_DefAtt.bc = m_FontCol[1];
@@ -252,15 +260,21 @@ void CColParaDlg::OnLButtonDblClk(UINT nFlags, CPoint point)
 	int n;
 	CRect rect;
 
-	for ( n = 0 ; n < 16 ; n++ ) {
+	for ( n = 0 ; n < 18 ; n++ ) {
 		m_ColBox[n].GetWindowRect(rect);
 		ScreenToClient(rect);
 		if ( rect.PtInRect(point) ) {
-			CColorDialog cdl(m_ColTab[n], CC_ANYCOLOR, this);
+			CColorDialog cdl((n < 16 ? m_ColTab[n] : (m_FontCol[n - 16] < 16 ? m_ColTab[m_FontCol[n - 16]] : m_pSheet->m_pTextRam->m_ColTab[m_FontCol[n - 16]])), CC_ANYCOLOR, this);
 			if ( cdl.DoModal() != IDOK )
 				break;
-			m_ColTab[n] = cdl.GetColor();
-			m_ColSet = (-1);
+			if ( n < 16 ) {
+				m_ColTab[n] = cdl.GetColor();
+				m_ColSet = (-1);
+			} else if ( m_FontCol[n - 16] < 16 ) {
+				m_ColTab[m_FontCol[n - 16]] = cdl.GetColor();
+				m_ColSet = (-1);
+			} else
+				m_pSheet->m_pTextRam->m_ColTab[m_FontCol[n - 16]] = cdl.GetColor();
 			Invalidate(FALSE);
 			UpdateData(FALSE);
 			SetModified(TRUE);
@@ -293,6 +307,7 @@ void CColParaDlg::OnLButtonDown(UINT nFlags, CPoint point)
 						   tracker.m_rect.top    > rect.bottom ||
 						   tracker.m_rect.bottom < rect.top) ) {
 						m_FontCol[i] = n;
+						m_FontColName[i].Format("%d", n);
 						UpdateData(FALSE);
 						Invalidate(FALSE);
 						SetModified(TRUE);
@@ -340,6 +355,23 @@ void CColParaDlg::OnSelendokColset()
 }
 void CColParaDlg::OnUpdateEdit() 
 {
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+}
+
+void CColParaDlg::OnEnChangeColor()
+{
+	UpdateData(TRUE);
+	if ( (m_FontCol[0] = atoi(m_FontColName[0])) < 0 )
+		m_FontCol[0] = 0;
+	else if ( m_FontCol[0] > 255 )
+		m_FontCol[0] = 255;
+	if ( (m_FontCol[1] = atoi(m_FontColName[1])) < 0 )
+		m_FontCol[1] = 0;
+	else if ( m_FontCol[1] > 255 )
+		m_FontCol[1] = 255;
+	Invalidate(FALSE);
+	UpdateData(FALSE);
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 }

@@ -161,6 +161,7 @@ public:
 	LOGFONT m_LogFont;
 	CFontChacheNode *m_pNext;
 	int m_Style;
+	int m_KanWidMul;
 
 	CFont *Open(LPCSTR pFontName, int Width, int Height, int CharSet, int Style);
 	CFontChacheNode();
@@ -175,7 +176,7 @@ public:
 	CFontChacheNode *m_pTop[4];
 	CFontChacheNode m_Data[FONTCACHEMAX];
 
-	CFont *GetFont(LPCSTR pFontName, int Width, int Height, int CharSet, int Style, int Hash);
+	CFontChacheNode *GetFont(LPCSTR pFontName, int Width, int Height, int CharSet, int Style, int Hash);
 	CFontChache();
 };
 
@@ -426,6 +427,7 @@ public:
 	CStringArrayExt m_PortFwd;
 	CStringArrayExt m_IdKeyList;
 	CString m_XDisplay;
+	CString m_ExtEnvStr;
 
 	CParamTab();
 	void Init();

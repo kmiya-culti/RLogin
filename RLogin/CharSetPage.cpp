@@ -37,6 +37,7 @@ CCharSetPage::CCharSetPage() : CPropertyPage(CCharSetPage::IDD)
 	//}}AFX_DATA_INIT
 	m_pSheet = NULL;
 	m_pData = NULL;
+	m_AltFont = 0;
 }
 
 CCharSetPage::~CCharSetPage()
@@ -56,6 +57,7 @@ void CCharSetPage::DoDataExchange(CDataExchange* pDX)
 	DDX_CBString(pDX, IDC_CHARBANK3, m_CharBank3);
 	DDX_CBString(pDX, IDC_CHARBANK4, m_CharBank4);
 	//}}AFX_DATA_MAP
+	DDX_CBIndex(pDX, IDC_FONTNUM, m_AltFont);
 }
 
 BEGIN_MESSAGE_MAP(CCharSetPage, CPropertyPage)
@@ -78,6 +80,7 @@ BEGIN_MESSAGE_MAP(CCharSetPage, CPropertyPage)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_UPDATE, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_DELETE, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_DUPS, OnUpdateEditEntry)
+	ON_CBN_SELCHANGE(IDC_FONTNUM, &CCharSetPage::OnCbnSelchangeFontnum)
 END_MESSAGE_MAP()
 
 void CCharSetPage::InitList()
@@ -93,7 +96,7 @@ void CCharSetPage::InitList()
 		CFontParaDlg::CodeSetName(n, bank, code);
 		m_List.SetItemText(i, 1, bank);
 		m_List.SetItemText(i, 2, code);
-		m_List.SetItemText(i, 3, m_FontTab[n].m_FontName);
+		m_List.SetItemText(i, 3, m_FontTab[n].m_FontName[m_AltFont]);
 		m_List.SetItemData(i, n);
 		i++;
 	}
@@ -118,6 +121,7 @@ BOOL CCharSetPage::OnInitDialog()
 
 	CPropertyPage::OnInitDialog();
 
+	m_AltFont    = m_pData->m_DefAtt.ft;
 	m_FontTab    = m_pData->m_FontTab;
 	m_KanjiCode  = m_pData->m_KanjiMode;
 	m_CharBankGL = m_pData->m_BankGL;
@@ -156,6 +160,7 @@ BOOL CCharSetPage::OnApply()
 	ASSERT(m_pData);
 	UpdateData(TRUE);
 
+	m_pData->m_DefAtt.ft = m_AltFont;
 	m_pData->SetKanjiMode(m_KanjiCode);
 	m_pData->m_BankGL    = m_CharBankGL;
 	m_pData->m_BankGR    = m_CharBankGR;
@@ -166,6 +171,9 @@ BOOL CCharSetPage::OnApply()
 	memcpy(m_pData->m_DefBankTab, m_pData->m_BankTab, sizeof(m_pData->m_BankTab));
 	m_pData->m_FontTab = m_FontTab;
 
+	m_pData->m_AttNow = m_pData->m_DefAtt;
+	m_pData->m_AttSpc = m_pData->m_AttNow;
+
 	m_List.SaveColumn("CharSetPage");
 	return TRUE;
 }
@@ -174,6 +182,7 @@ void CCharSetPage::OnReset()
 	if ( m_hWnd == NULL )
 		return;
 
+	m_AltFont    = m_pData->m_DefAtt.ft;
 	m_FontTab    = m_pData->m_FontTab;
 	m_KanjiCode  = m_pData->m_KanjiMode;
 	m_CharBankGL = m_pData->m_BankGL;
@@ -205,6 +214,7 @@ void CCharSetPage::OnFontListNew()
 	CFontNode tmp;
 	dlg.m_CodeSet = 0;
 	dlg.m_pData   = &tmp;
+	dlg.m_FontNum = m_AltFont;
 	if ( dlg.DoModal() != IDOK )
 		return;
 	m_FontTab[dlg.m_CodeSet] = tmp;
@@ -222,10 +232,15 @@ void CCharSetPage::OnFontListEdit()
 	tmp = m_FontTab[n];
 	dlg.m_CodeSet = n;
 	dlg.m_pData   = &tmp;
+	dlg.m_FontNum = m_AltFont;
 	if ( dlg.DoModal() != IDOK )
 		return;
 	m_FontTab[dlg.m_CodeSet] = tmp;
 	InitList();
+	if ( (n = m_List.GetParamItem(dlg.m_CodeSet)) >= 0 ) {
+		m_List.SetItemState(n, LVIS_SELECTED, LVIS_SELECTED);
+		m_List.EnsureVisible(n, FALSE);
+	}
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 }
@@ -249,10 +264,15 @@ void CCharSetPage::OnEditDups()
 	tmp = m_FontTab[n];
 	dlg.m_CodeSet = n;
 	dlg.m_pData   = &tmp;
+	dlg.m_FontNum = m_AltFont;
 	if ( dlg.DoModal() != IDOK )
 		return;
 	m_FontTab[dlg.m_CodeSet] = tmp;
 	InitList();
+	if ( (n = m_List.GetParamItem(dlg.m_CodeSet)) >= 0 ) {
+		m_List.SetItemState(n, LVIS_SELECTED, LVIS_SELECTED);
+		m_List.EnsureVisible(n, FALSE);
+	}
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 }
@@ -286,4 +306,13 @@ void CCharSetPage::OnUpdateCheck(UINT nID)
 void CCharSetPage::OnUpdateEditEntry(CCmdUI* pCmdUI) 
 {
 	pCmdUI->Enable(m_List.GetSelectMarkData() >= 0);
+}
+
+void CCharSetPage::OnCbnSelchangeFontnum()
+{
+	UpdateData(TRUE);
+	InitList();
+	UpdateData(FALSE);
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 }

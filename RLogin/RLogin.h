@@ -13,6 +13,7 @@
 #define WM_GETHOSTADDR	(WM_USER + 1)
 #define	WM_ICONMSG		(WM_USER + 2)
 #define WM_THREADCMD	(WM_USER + 3)
+#define	WM_FIFOMSG		(WM_USER + 4)
 
 class CCommandLineInfoEx : public CCommandLineInfo
 {
@@ -55,6 +56,7 @@ public:
 	int GetProfileSeqNum(LPCTSTR lpszSection, LPCTSTR lpszEntry);
 	void GetProfileKeys(LPCTSTR lpszSection, CStringArrayExt &array);
 	void DelProfileEntry(LPCTSTR lpszSection, LPCTSTR lpszEntry);
+	void SSL_Init();
 
 	void OpenProcsCmd(CCommandLineInfoEx *pCmdInfo);
 	BOOL InUseCheck();
