@@ -1119,6 +1119,7 @@ CTextRam::CTextRam()
 	m_ScrnOffset.SetRect(0, 0, 0, 0);
 	m_LogTimeFlag = TRUE;
 	m_pCallPoint = &CTextRam::fc_FuncCall;
+	m_TraceLogMode = 0;
 	m_pTraceWnd = NULL;
 	m_pTraceTop = NULL;
 	m_pTraceNow = NULL;
@@ -1697,6 +1698,29 @@ void CTextRam::SaveHistory()
 		AfxMessageBox(IDE_HISTORYBACKUPERROR);
 	}
 }
+void CTextRam::SaveLogFile()
+{
+	int x, y;
+	int my = m_Lines;
+	CCharCell *vp;
+
+	if ( m_pDocument == NULL || m_pDocument->m_pLogFile == NULL || IsOptValue(TO_RLLOGMODE, 2) != LOGMOD_LINE )
+		return;
+
+	while ( my > 0 ) {
+		vp = GETVRAM(0, my - 1);
+		for ( x = 0 ; x < m_Cols ; x++ ) {
+			if ( !vp[x].IsEmpty() )
+				break;
+		}
+		if ( x < m_Cols )
+			break;
+		my--;
+	}
+
+	for ( y = 0 ; y < my ; y++ )
+		CallReciveLine(y);
+}
 void CTextRam::HisRegCheck(DWORD ch, DWORD pos)
 {
 	int i, a;
@@ -1807,15 +1831,10 @@ int CTextRam::HisMarkCheck(int top, int line, class CRLoginView *pView)
 }
 
 static const COLORREF DefColTab[16] = {
-		RGB(  0,   0,   0),	RGB(196,   0,   0),
-		RGB(  0, 196,   0),	RGB(196, 196,   0),
-		RGB(  0,   0, 196),	RGB(196,   0, 196),
-		RGB(  0, 196, 196),	RGB(196, 196, 196),
-
-		RGB(128, 128, 128),	RGB(255,   0,   0),
-		RGB(  0, 255,   0),	RGB(255, 255,   0),
-		RGB(  0,   0, 255),	RGB(255,   0, 255),
-		RGB(  0, 255, 255),	RGB(255, 255, 255),
+		RGB(  0,   0,   0),	RGB(196,  96,  96),	RGB( 64, 196,  64),	RGB(196, 196,  64),
+		RGB( 96,  96, 196),	RGB(196,  64, 196),	RGB( 64, 196, 196),	RGB(196, 196, 196),
+		RGB(128, 128, 128),	RGB(255,  64,  64),	RGB( 64, 255,  64),	RGB(255, 255,  64),
+		RGB( 64,  64, 255),	RGB(255,  64, 255),	RGB( 64, 255, 255),	RGB(255, 255, 255),
 	};
 static const WORD DefBankTab[5][4] = {
 	/* EUC */
@@ -4237,31 +4256,11 @@ void CTextRam::InitModKeyTab()
 
 void CTextRam::OnClose()
 {
-	int x, y;
-	int my = m_Lines;
-	CCharCell *vp;
-
 	if ( !IsInitText() )
 		return;
 
 	SaveHistory();
-
-	if ( m_pDocument == NULL || m_pDocument->m_pLogFile == NULL || IsOptValue(TO_RLLOGMODE, 2) != LOGMOD_LINE )
-		return;
-
-	while ( my > 0 ) {
-		vp = GETVRAM(0, my - 1);
-		for ( x = 0 ; x < m_Cols ; x++ ) {
-			if ( !vp[x].IsEmpty() )
-				break;
-		}
-		if ( x < m_Cols )
-			break;
-		my--;
-	}
-
-	for ( y = 0 ; y < my ; y++ )
-		CallReciveLine(y);
+	SaveLogFile();
 }
 void CTextRam::OnTimer(int id)
 {
@@ -4315,14 +4314,12 @@ void CTextRam::CallReciveLine(int y)
 	m_IConv.StrToRemote(m_SendCharSet[m_LogCharSet[IsOptValue(TO_RLLOGCODE, 2)]], &in, &out);
 	m_pDocument->m_pLogFile->Write(out.GetPtr(), out.GetSize());
 }
-void CTextRam::CallReciveChar(DWORD ch)
+void CTextRam::CallReciveChar(DWORD ch, LPCTSTR name)
 {
-	static const WCHAR *CtrlName[] = {
-		L"NUL",	L"SOH",	L"STX",	L"ETX",	L"EOT",	L"ACK",	L"ENQ",	L"BEL",
-		L"BS",	L"HT",	L"LF",	L"VT",	L"FF",	L"CR",	L"SO",	L"SI",
-		L"DLE",	L"DC1",	L"DC2",	L"DC3",	L"DC4",	L"NAK",	L"SYN",	L"ETB",
-		L"CAN",	L"EM",	L"SUB",	L"ESC",	L"FS",	L"GS",	L"RS",	L"US",
-	};
+	// UTF-16LE x 2 or BS(08) HT(09) LF(0A) VT(0B) FF(0C) CR(0D) ESC(1B)
+	//
+	// ch = 0x0000 0000
+	//		  UCS2 UCS2
 
 	if ( (ch & 0xFFFF0000) == 0 && ch < ' ' ) {
 //		m_LastChar = 0;
@@ -4347,32 +4344,35 @@ void CTextRam::CallReciveChar(DWORD ch)
 
 	int md = IsOptValue(TO_RLLOGMODE, 2);
 
-#if 0
-	BOOL ct = ((ch & 0xFFFFFF00) != 0 || ch >= 0x20 || ch == 0x09 ? FALSE : TRUE);
-	if ( m_LogStat == FALSE ) {
-		if ( ct == FALSE )
-			m_LogStat = TRUE;
-		return;
-	} else {
-		if ( ct == FALSE )
-			return;
-		m_LogStat = FALSE;
-	}
-#endif
-
 	if ( md == LOGMOD_RAW || md == LOGMOD_LINE )
 		return;
 
 	CStringW tmp, str;
 
-	if ( ch >= 0 && ch < 0x20 && ch != 0x09 && ch != 0x0A && ch != 0x0D ) {
-		if ( md == LOGMOD_CHAR && ch != 0x08 )
-			return;
-		tmp.Format(L"<%s>", CtrlName[ch]);
-	} else {
+	switch(ch) {
+	case 0x08:
+		tmp = L"<BS>";
+		break;
+	case 0x0B:
+		tmp = L"<VT>";
+		break;
+	case 0x0C:
+		tmp = L"<FF>";
+		break;
+	case 0x1B:
+		ASSERT(name != NULL);
+		tmp.Format(L"<%s>", TstrToUni(name));
+		break;
+	case 0x09:	// TAB
+	case 0x0A:	// LF
+	case 0x0D:	// CR
+		tmp = (WCHAR)ch;
+		break;
+	default:
 		if ( (ch & 0xFFFF0000) != 0 )
 			tmp = (WCHAR)(ch >> 16);
 		tmp += (WCHAR)(ch & 0xFFFF);
+		break;
 	}
 
 	CBuffer in, out;
@@ -4892,7 +4892,7 @@ void CTextRam::UNGETSTR(LPCTSTR str, ...)
 		}
 		m_pDocument->SocketSend((void *)(LPCSTR)mbs, mbs.GetLength());
 
-		if ( m_pCallPoint == &CTextRam::fc_TraceCall )
+		if ( m_pCallPoint == &CTextRam::fc_TraceCall && (m_TraceLogMode & 001) != 0 )
 			m_TraceSendBuf.Apend((LPBYTE)(LPCSTR)mbs, mbs.GetLength());
 	}
 	va_end(arg);

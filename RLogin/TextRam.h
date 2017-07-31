@@ -591,6 +591,7 @@ public:
 #define	TRACE_NON		1
 #define	TRACE_SIXEL		2
 #define	TRACE_UNGET		3
+#define	TRACE_IGNORE	4
 
 class CTraceNode : public CObject
 {
@@ -890,6 +891,7 @@ public:
 	BOOL OpenHisFile();
 	void InitHistory();
 	void SaveHistory();
+	void SaveLogFile();
 
 	// Serch Word
 	CRegEx m_MarkReg;
@@ -954,7 +956,7 @@ public:
 
 	void OnClose();
 	void CallReciveLine(int y);
-	void CallReciveChar(DWORD ch);
+	void CallReciveChar(DWORD ch, LPCTSTR name = NULL);
 	int UnicodeCharFlag(DWORD code);
 	int UnicodeWidth(DWORD code);
 	void SetRetChar(BOOL f8);
@@ -1055,6 +1057,7 @@ public:
 	void (CTextRam::*m_TraceFunc)(DWORD ch);
 	void (CTextRam::*m_pCallPoint)(DWORD ch);
 	ESCNAMEPROC *m_pTraceProc;
+	int m_TraceLogMode;
 	int m_TraceSaveCount;
 	BOOL m_bTraceUpdate;
 	BOOL m_bTraceActive;
@@ -1062,6 +1065,7 @@ public:
 
 	void SetTraceLog(BOOL bSw);
 	void fc_TraceLogChar(DWORD ch);
+	void fc_TraceLogParam(CString &name);
 	void fc_TraceLogFlush(ESCNAMEPROC *pProc, BOOL bParam);
 	void fc_TraceCall(DWORD ch);
 	void fc_FuncCall(DWORD ch) { (this->*m_Func[ch])(ch); }

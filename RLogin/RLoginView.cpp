@@ -53,6 +53,8 @@ BEGIN_MESSAGE_MAP(CRLoginView, CView)
 	ON_WM_LBUTTONUP()
 	ON_WM_MOUSEMOVE()
 	ON_WM_MOUSEWHEEL()
+	ON_WM_XBUTTONDOWN()
+	ON_WM_MBUTTONDOWN()
 
 	ON_MESSAGE(WM_IME_NOTIFY, OnImeNotify)
 	ON_MESSAGE(WM_IME_COMPOSITION, OnImeComposition)
@@ -89,12 +91,12 @@ BEGIN_MESSAGE_MAP(CRLoginView, CView)
 	ON_COMMAND(ID_SPLIT_HEIGHT, &CRLoginView::OnSplitHeight)
 	ON_COMMAND(ID_SPLIT_WIDTH, &CRLoginView::OnSplitWidth)
 	ON_COMMAND(ID_SPLIT_OVER, &CRLoginView::OnSplitOver)
+	ON_COMMAND(IDM_SPLIT_HEIGHT_NEW, &CRLoginView::OnSplitHeightNew)
+	ON_COMMAND(IDM_SPLIT_WIDTH_NEW, &CRLoginView::OnSplitWidthNew)
 
 	ON_COMMAND(ID_FILE_PRINT, &CView::OnFilePrint)
 	ON_COMMAND(ID_FILE_PRINT_DIRECT, &CView::OnFilePrint)
 	ON_COMMAND(ID_FILE_PRINT_PREVIEW, &CView::OnFilePrintPreview)
-	ON_WM_XBUTTONDOWN()
-	ON_WM_MBUTTONDOWN()
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -128,10 +130,10 @@ CRLoginView::CRLoginView()
 	m_WheelzDelta = 0;
 	m_pGhost = NULL;
 	m_GoziView  = FALSE;
-#if USE_GOZI == 3
+#if USE_GOZI == 3 || USE_GOZI == 4
 	m_GoziMax = 3;
 	for ( int n = 0 ; n < 8 ; n++ ) {
-		m_GoziData[n].m_GoziStyle = (8 << 4) | 9;
+		m_GoziData[n].m_GoziStyle = 5;
 		m_GoziData[n].m_GoziCount = 4 + rand() % 28;
 		m_GoziData[n].m_GoziPos.SetPoint(0, 0);
 	}
@@ -282,7 +284,7 @@ void CRLoginView::OnDraw(CDC* pDC)
 	}
 #endif
 
-#if		USE_GOZI == 3
+#if		USE_GOZI == 3 || USE_GOZI == 4
 	if ( m_GoziView ) {
 		CMainFrame *pMain = GetMainWnd();
 		for ( int n = 0 ; n < m_GoziMax ; n++ ) {
@@ -1557,7 +1559,7 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 		InvalidateRect(rect, FALSE);
 
 		if ( !m_GoziView ) {
-			KillTimer(1028);
+			KillTimer(nIDEvent);
 			break;
 		}
 
@@ -1627,7 +1629,7 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 		InvalidateRect(rect, FALSE);
 
 		if ( !m_GoziView || pDoc == NULL || !pDoc->m_TextRam.IsInitText() ) {
-			KillTimer(1028);
+			KillTimer(nIDEvent);
 			break;
 		}
 
@@ -1705,7 +1707,7 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 		rect.SetRect(m_GoziPos.x, m_GoziPos.y, m_GoziPos.x + 32, m_GoziPos.y + 32);
 		InvalidateRect(rect, FALSE);
 
-#elif USE_GOZI == 3
+#elif USE_GOZI == 3 || USE_GOZI == 4
 
 		for ( n = 0 ; n < m_GoziMax ; n++ ) {
 			rect.SetRect(m_GoziData[n].m_GoziPos.x, m_GoziData[n].m_GoziPos.y, m_GoziData[n].m_GoziPos.x + 16, m_GoziData[n].m_GoziPos.y + 16);
@@ -1713,7 +1715,7 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 		}
 
 		if ( !m_GoziView || pDoc == NULL || !pDoc->m_TextRam.IsInitText() ) {
-			KillTimer(1028);
+			KillTimer(nIDEvent);
 			break;
 		}
 
@@ -1724,7 +1726,7 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 			move  = m_GoziData[n].m_GoziStyle & 0x0F;
 			style = m_GoziData[n].m_GoziStyle >> 4;
 			anime = style % 6;
-			style = (style >= 6 ? 6 : 0);
+			style = (style / 12) * 12;
 
 			if ( --m_GoziData[n].m_GoziCount < 0 ) {
 				m_GoziData[n].m_GoziCount = 24 + rand() % 32;
@@ -1766,7 +1768,7 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 			if ( (m_GoziData[n].m_GoziPos.x + 16) > frame.right  ) { m_GoziData[n].m_GoziPos.x = frame.right  - 16; move = (move & 12) | 2; }
 			if ( (m_GoziData[n].m_GoziPos.y + 16) > frame.bottom ) { m_GoziData[n].m_GoziPos.y = frame.bottom - 16; move = (move &  3) | 8; }
 
-			style = ((move & 1) != 0 ? 0 : 6);
+			style += ((move & 1) != 0 ? 0 : 6);
 
 			if ( ++anime >= 6 ) anime = 0;
 			m_GoziData[n].m_GoziStyle = ((style + anime) << 4) | move;
@@ -2585,6 +2587,13 @@ void CRLoginView::OnGoziview()
 #if USE_GOZI == 3
 		m_GoziMax = 3 + (rand() % 6);
 		SetTimer(VTMID_GOZIUPDATE, 200, NULL);
+#elif USE_GOZI == 4
+		m_GoziMax = 3 + (rand() % 6);
+		for ( int n = 0 ; n < m_GoziMax ; n++ ) {
+			m_GoziData[n].m_GoziStyle = (((rand() % 13) * 12) << 4) | 5;
+			m_GoziData[n].m_GoziPos.SetPoint(0, 0);
+		}
+		SetTimer(VTMID_GOZIUPDATE, 200, NULL);
 #else
 		SetTimer(VTMID_GOZIUPDATE, 400, NULL);
 #endif
@@ -2627,7 +2636,33 @@ void CRLoginView::OnSplitOver()
 	pDoc->m_InPane = TRUE;
 	pDoc->SetEntryProBuffer();
 	pApp->m_pServerEntry = &(pDoc->m_ServerEntry);
-	cmds.ParseParam(_T("inpane"), TRUE, FALSE);
+	cmds.ParseParam(_T("inpane"), TRUE, TRUE);
+	pApp->OpenProcsCmd(&cmds);
+}
+void CRLoginView::OnSplitHeightNew()
+{
+	CCommandLineInfoEx cmds;
+	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
+	CMainFrame *pMain = (CMainFrame *)::AfxGetMainWnd();
+
+	if ( pMain == NULL )
+		return;
+
+	pMain->SplitHeightPane();
+	cmds.ParseParam(_T("inpane"), TRUE, TRUE);
+	pApp->OpenProcsCmd(&cmds);
+}
+void CRLoginView::OnSplitWidthNew()
+{
+	CCommandLineInfoEx cmds;
+	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
+	CMainFrame *pMain = (CMainFrame *)::AfxGetMainWnd();
+
+	if ( pMain == NULL )
+		return;
+
+	pMain->SplitWidthPane();
+	cmds.ParseParam(_T("inpane"), TRUE, TRUE);
 	pApp->OpenProcsCmd(&cmds);
 }
 
@@ -2735,3 +2770,4 @@ void CRLoginView::OnPrint(CDC* pDC, CPrintInfo* pInfo)
 	pDoc->m_TextRam.m_ScrnOffset.top    = save_param[8];
 	pDoc->m_TextRam.m_ScrnOffset.bottom = save_param[9];
 }
+

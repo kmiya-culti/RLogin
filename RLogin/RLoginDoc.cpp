@@ -36,16 +36,18 @@ IMPLEMENT_DYNCREATE(CRLoginDoc, CDocument)
 
 BEGIN_MESSAGE_MAP(CRLoginDoc, CDocument)
 	//{{AFX_MSG_MAP(CRLoginDoc)
+
 	ON_COMMAND(ID_FILE_CLOSE, &CRLoginDoc::OnFileClose)
+	ON_COMMAND(IDC_CANCELBTN, OnCancelBtn)
+	ON_COMMAND(IDM_SOCK_IDLE, &CRLoginDoc::OnSockIdle)
+
 	ON_COMMAND(ID_LOG_OPEN, OnLogOpen)
 	ON_UPDATE_COMMAND_UI(ID_LOG_OPEN, OnUpdateLogOpen)
-	ON_COMMAND(IDC_LOADDEFAULT, OnLoadDefault)
-	ON_COMMAND(IDC_SAVEDEFAULT, OnSaveDefault)
-	ON_COMMAND(ID_SETOPTION, OnSetOption)
-	ON_COMMAND(IDM_SFTP, OnSftp)
-	ON_UPDATE_COMMAND_UI(IDM_SFTP, OnUpdateSftp)
 	ON_COMMAND(ID_CHARSCRIPT_END, &CRLoginDoc::OnChatStop)
 	ON_UPDATE_COMMAND_UI(ID_CHARSCRIPT_END, &CRLoginDoc::OnUpdateChatStop)
+	ON_COMMAND(IDM_SFTP, OnSftp)
+	ON_UPDATE_COMMAND_UI(IDM_SFTP, OnUpdateSftp)
+	ON_COMMAND(ID_SETOPTION, OnSetOption)
 	ON_COMMAND_RANGE(IDM_KANJI_EUC, IDM_KANJI_UTF8, OnKanjiCodeSet)
 	ON_UPDATE_COMMAND_UI_RANGE(IDM_KANJI_EUC, IDM_KANJI_UTF8, OnUpdateKanjiCodeSet)
 	ON_COMMAND_RANGE(IDM_XMODEM_UPLOAD, IDM_KERMIT_DOWNLOAD, OnXYZModem)
@@ -54,17 +56,19 @@ BEGIN_MESSAGE_MAP(CRLoginDoc, CDocument)
 	ON_UPDATE_COMMAND_UI(ID_SEND_BREAK, &CRLoginDoc::OnUpdateSendBreak)
 	ON_COMMAND(IDM_TEKDISP, &CRLoginDoc::OnTekdisp)
 	ON_UPDATE_COMMAND_UI(IDM_TEKDISP, &CRLoginDoc::OnUpdateTekdisp)
-	ON_COMMAND_RANGE(IDM_RESET_TAB, IDM_RESET_ALL, &CRLoginDoc::OnScreenReset)
 	ON_COMMAND(IDM_SOCKETSTATUS, &CRLoginDoc::OnSocketstatus)
 	ON_UPDATE_COMMAND_UI(IDM_SOCKETSTATUS, &CRLoginDoc::OnUpdateSocketstatus)
 	ON_COMMAND(IDM_SCRIPT, &CRLoginDoc::OnScript)
 	ON_UPDATE_COMMAND_UI(IDM_SCRIPT, &CRLoginDoc::OnUpdateScript)
-	ON_COMMAND_RANGE(IDM_SCRIPT_MENU1, IDM_SCRIPT_MENU10, OnScriptMenu)
 	ON_COMMAND(IDM_IMAGEDISP, &CRLoginDoc::OnImagedisp)
 	ON_UPDATE_COMMAND_UI(IDM_IMAGEDISP, &CRLoginDoc::OnUpdateImagedisp)
-	ON_COMMAND(IDC_CANCELBTN, OnCancelBtn)
+
 	ON_COMMAND(IDM_TRACEDISP, &CRLoginDoc::OnTracedisp)
-	ON_COMMAND(IDM_SOCK_IDLE, &CRLoginDoc::OnSockIdle)
+	ON_COMMAND(IDC_LOADDEFAULT, OnLoadDefault)
+	ON_COMMAND(IDC_SAVEDEFAULT, OnSaveDefault)
+	ON_COMMAND_RANGE(IDM_RESET_TAB, IDM_RESET_ALL, &CRLoginDoc::OnScreenReset)
+	ON_COMMAND_RANGE(IDM_SCRIPT_MENU1, IDM_SCRIPT_MENU10, OnScriptMenu)
+
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -91,10 +95,7 @@ CRLoginDoc::CRLoginDoc()
 
 CRLoginDoc::~CRLoginDoc()
 {
-	if ( m_pLogFile != NULL ) {
-		m_pLogFile->Close();
-		delete m_pLogFile;
-	}
+	LogClose();
 
 	if ( m_pBPlus != NULL )
 		delete m_pBPlus;
@@ -203,6 +204,9 @@ void CRLoginDoc::OnFileClose()
 }
 void CRLoginDoc::OnIdle()
 {
+	if ( m_pLogFile != NULL )
+		m_pLogFile->Flush();
+
 	m_TextRam.ChkGrapWnd(60);
 }
 
@@ -677,6 +681,131 @@ void CRLoginDoc::SendScript(LPCWSTR str, LPCWSTR match)
 	buf.Apend((LPBYTE)((LPCWSTR)tmp), tmp.GetLength() * sizeof(WCHAR));
 	SendBuffer(buf);
 }
+int CRLoginDoc::DelaySend()
+{
+	int n = 0;
+
+	if ( m_pSock == NULL ) {
+		m_DelayBuf.Clear();
+		return FALSE;
+	}
+
+	while ( n < m_DelayBuf.GetSize() ) {
+		if ( m_DelayBuf.GetAt(n++) == '\r' ) {
+			m_pSock->Send(m_DelayBuf.GetPtr(), n, 0);
+			m_DelayBuf.Consume(n);
+			m_DelayFlag = DELAY_WAIT;
+			m_pMainWnd->SetTimerEvent(DELAY_ECHO_MSEC, TIMEREVENT_DOC, this);
+			return TRUE;
+		}
+	}
+	if ( n > 0 ) {
+		m_pSock->Send(m_DelayBuf.GetPtr(), m_DelayBuf.GetSize(), 0);
+		m_DelayBuf.Clear();
+	}
+
+	return FALSE;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+BOOL CRLoginDoc::LogOpen(LPCTSTR filename)
+{
+	if ( !m_pLogFile->Open(filename, CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite | CFile::shareDenyWrite) )
+		return FALSE;
+
+	if ( m_TextRam.IsOptValue(TO_RLLOGMODE, 2) == LOGMOD_CTRL ) {
+		m_TextRam.m_TraceLogMode |= 002;
+		m_TextRam.m_pCallPoint = &CTextRam::fc_TraceCall;
+	}
+
+	return TRUE;
+}
+BOOL CRLoginDoc::LogClose()
+{
+	if ( (m_TextRam.m_TraceLogMode & 002) != 0 ) {
+		m_TextRam.m_TraceLogMode &= ~002;
+		m_TextRam.m_pCallPoint = (m_TextRam.m_TraceLogMode != 0 ? &CTextRam::fc_TraceCall : &CTextRam::fc_FuncCall);
+	}
+
+	if ( m_pLogFile == NULL )
+		return FALSE;
+
+	m_TextRam.SaveLogFile();
+	m_pLogFile->Close();
+
+	delete m_pLogFile;
+	m_pLogFile = NULL;
+
+	return TRUE;
+}
+void CRLoginDoc::DoDropFile()
+{
+	TCHAR *p;
+	CString path;
+	CStringW cmd, file;
+	CKeyNode fmt;
+	CBuffer tmp;
+
+	if ( m_pBPlus != NULL && !m_pBPlus->m_ResvPath.IsEmpty() )
+		path = m_pBPlus->m_ResvPath.GetHead();
+	else if ( m_pZModem != NULL && !m_pZModem->m_ResvPath.IsEmpty() )
+		path = m_pZModem->m_ResvPath.GetHead();
+	else if ( m_pKermit != NULL && !m_pKermit->m_ResvPath.IsEmpty() )
+		path = m_pKermit->m_ResvPath.GetHead();
+	else
+		return;
+
+	if ( (p = _tcsrchr((TCHAR *)(LPCTSTR)path, _T('\\'))) != NULL || (p = _tcsrchr((TCHAR *)(LPCTSTR)path, _T(':'))) != NULL )
+		file = p + 1;
+	else
+		file = path;
+
+	fmt.SetMaps(m_TextRam.m_DropFileCmd[m_TextRam.m_DropFileMode]);
+	fmt.CommandLine(file, cmd);
+	tmp.Apend((LPBYTE)(LPCWSTR)cmd, cmd.GetLength() * sizeof(WCHAR));
+	SendBuffer(tmp);
+
+	switch(m_TextRam.m_DropFileMode) {
+	case 2: m_pZModem->DoProc(1); break;
+	case 3: m_pZModem->DoProc(2); break;
+	case 4: m_pZModem->DoProc(7); break;
+	case 6: m_pKermit->DoProc(1); break;
+	}
+}
+
+CWnd *CRLoginDoc::GetAciveView()
+{
+	POSITION pos;
+	CWnd *pView = NULL;
+	CWnd *pWnd;
+	CWnd *pAct = ::AfxGetMainWnd()->GetActiveWindow();
+
+	pos = GetFirstViewPosition();
+	while ( pos != NULL ) {
+		pWnd = GetNextView(pos);
+		if ( pView == NULL )
+			pView = pWnd;
+		if ( pAct != NULL && pAct->GetSafeHwnd() == pWnd->GetSafeHwnd() )
+			return pWnd;
+		if ( pWnd->GetSafeHwnd() == ::GetFocus() )
+			return pWnd;
+	}
+	return pView;
+}
+int CRLoginDoc::GetViewCount()
+{
+	int count;
+	POSITION pos = GetFirstViewPosition();
+
+	for ( count = 0 ; pos != NULL ; count++ )
+		GetNextView(pos);
+
+	return count;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
 void CRLoginDoc::OnReciveChar(DWORD ch, int pos)
 {
 	LPCWSTR str;
@@ -707,32 +836,6 @@ void CRLoginDoc::OnSendBuffer(CBuffer &buf)
 {
 	if ( m_pStrScript != NULL && m_pStrScript->m_MakeFlag )
 		m_pStrScript->SendStr((LPCWSTR)(buf.GetPtr()), buf.GetSize() / sizeof(WCHAR), &m_ServerEntry);
-}
-
-int CRLoginDoc::DelaySend()
-{
-	int n = 0;
-
-	if ( m_pSock == NULL ) {
-		m_DelayBuf.Clear();
-		return FALSE;
-	}
-
-	while ( n < m_DelayBuf.GetSize() ) {
-		if ( m_DelayBuf.GetAt(n++) == '\r' ) {
-			m_pSock->Send(m_DelayBuf.GetPtr(), n, 0);
-			m_DelayBuf.Consume(n);
-			m_DelayFlag = DELAY_WAIT;
-			m_pMainWnd->SetTimerEvent(DELAY_ECHO_MSEC, TIMEREVENT_DOC, this);
-			return TRUE;
-		}
-	}
-	if ( n > 0 ) {
-		m_pSock->Send(m_DelayBuf.GetPtr(), m_DelayBuf.GetSize(), 0);
-		m_DelayBuf.Clear();
-	}
-
-	return FALSE;
 }
 void CRLoginDoc::OnDelayRecive(int ch)
 {
@@ -786,11 +889,7 @@ void CRLoginDoc::OnSocketConnect()
 			EntryText(name);
 		}
 
-		if ( m_pLogFile != NULL ) {
-			m_pLogFile->Close();
-			delete m_pLogFile;
-			m_pLogFile = NULL;
-		}
+		LogClose();
 
 		if ( (m_pLogFile = new CFileExt) == NULL )
 			return;
@@ -798,7 +897,7 @@ void CRLoginDoc::OnSocketConnect()
 		file.Format(_T("%s%s%s"), dirs, name, exts);
 
 		for ( num = 1 ; num < 20 ; num++ ) {
-			if ( m_pLogFile->Open(file, CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite | CFile::shareExclusive) ) {
+			if ( LogOpen(file) ) {
 				m_pLogFile->SeekToEnd();
 				break;
 			}
@@ -969,6 +1068,9 @@ void CRLoginDoc::OnSockIdle()
 
 //	TRACE("SockIdle %d\n", n);
 }
+
+/////////////////////////////////////////////////////////////////////////////
+
 int CRLoginDoc::SocketOpen()
 {
 	BOOL rt;
@@ -1145,14 +1247,12 @@ LPCTSTR CRLoginDoc::LocalStr(LPCSTR str)
 	return m_WorkStr;
 }
 
+/////////////////////////////////////////////////////////////////////////////
+
 void CRLoginDoc::OnLogOpen() 
 {
-	if ( m_pLogFile != NULL ) {
-		m_pLogFile->Close();
-		delete m_pLogFile;
-		m_pLogFile = NULL;
+	if ( LogClose() )
 		return;
-	}
 
 	CFileDialog dlg(FALSE, _T("log"), _T("RLOGIN"), OFN_HIDEREADONLY, CStringLoad(IDS_FILEDLGLOGFILE), AfxGetMainWnd());
 
@@ -1162,7 +1262,7 @@ void CRLoginDoc::OnLogOpen()
 	if ( (m_pLogFile = new CFileExt) == NULL )
 		return;
 
-	if ( !m_pLogFile->Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite | CFile::shareExclusive) ) {
+	if ( !LogOpen(dlg.GetPathName()) ) {
 		AfxMessageBox(IDE_LOGOPENERROR);
 		delete m_pLogFile;
 		m_pLogFile = NULL;
@@ -1251,7 +1351,6 @@ void CRLoginDoc::OnUpdateKanjiCodeSet(CCmdUI* pCmdUI)
 
 void CRLoginDoc::OnXYZModem(UINT nID)
 {
-#if 1
 	if ( m_pSock == NULL )
 		return;
 
@@ -1273,42 +1372,6 @@ void CRLoginDoc::OnXYZModem(UINT nID)
 	case IDM_KERMIT_UPLOAD:   m_pKermit->DoProc(1); break;
 	case IDM_KERMIT_DOWNLOAD: m_pKermit->DoProc(0); break;
 	}
-#else
-	CFileDialog dlg(TRUE, _T(""), _T(""), OFN_HIDEREADONLY | OFN_ALLOWMULTISELECT, CStringLoad(IDS_FILEDLGALLFILE), NULL);
-	POSITION pos;
-	CString fileName;
-	CImage image;
-	int c, x, y;
-	COLORREF rgb;
-	BYTE map[12][4];
-	CString str;
-
-	if ( dlg.DoModal() != IDOK )
-		return;
-
-	pos = dlg.GetStartPosition();
-	while ( pos != NULL ) {
-		fileName = dlg.GetNextPathName(pos);
-		if ( image.Load(fileName) )
-			continue;
-		memset(map, 0, 12 * 4);
-		for ( y = 0 ; y < image.GetHeight() && y < 24 ; y++ ) {
-			for ( x = 0 ;  x < image.GetWidth() && x < 12 ; x++ ) {
-				rgb = image.GetPixel(x, y);
-				if ( rgb == 0 )
-					map[x][y / 6] |= (1 << (y % 6));
-			}
-		}
-		str.Empty();
-		for ( y = 0 ; y < 4 ; y++ ) {
-			for ( x = 0 ; x < 12 ; x++ )
-				str += (char)(map[x][y] + 0x3F);
-			str += (y < 3 ? '/' : ';');
-		}
-		TRACE("%s %s\n", fileName, str);
-		image.Destroy();
-	}
-#endif
 }
 void CRLoginDoc::OnUpdateXYZModem(CCmdUI* pCmdUI)
 {
@@ -1350,41 +1413,6 @@ void CRLoginDoc::OnScriptMenu(UINT nID)
 		m_pScript->Call(m_pScript->m_MenuTab[nID - IDM_SCRIPT_MENU1].func);
 }
 
-void CRLoginDoc::DoDropFile()
-{
-	TCHAR *p;
-	CString path;
-	CStringW cmd, file;
-	CKeyNode fmt;
-	CBuffer tmp;
-
-	if ( m_pBPlus != NULL && !m_pBPlus->m_ResvPath.IsEmpty() )
-		path = m_pBPlus->m_ResvPath.GetHead();
-	else if ( m_pZModem != NULL && !m_pZModem->m_ResvPath.IsEmpty() )
-		path = m_pZModem->m_ResvPath.GetHead();
-	else if ( m_pKermit != NULL && !m_pKermit->m_ResvPath.IsEmpty() )
-		path = m_pKermit->m_ResvPath.GetHead();
-	else
-		return;
-
-	if ( (p = _tcsrchr((TCHAR *)(LPCTSTR)path, _T('\\'))) != NULL || (p = _tcsrchr((TCHAR *)(LPCTSTR)path, _T(':'))) != NULL )
-		file = p + 1;
-	else
-		file = path;
-
-	fmt.SetMaps(m_TextRam.m_DropFileCmd[m_TextRam.m_DropFileMode]);
-	fmt.CommandLine(file, cmd);
-	tmp.Apend((LPBYTE)(LPCWSTR)cmd, cmd.GetLength() * sizeof(WCHAR));
-	SendBuffer(tmp);
-
-	switch(m_TextRam.m_DropFileMode) {
-	case 2: m_pZModem->DoProc(1); break;
-	case 3: m_pZModem->DoProc(2); break;
-	case 4: m_pZModem->DoProc(7); break;
-	case 6: m_pKermit->DoProc(1); break;
-	}
-}
-
 void CRLoginDoc::OnTekdisp()
 {
 	if ( m_TextRam.m_pTekWnd == NULL )
@@ -1415,36 +1443,6 @@ void CRLoginDoc::OnImagedisp()
 void CRLoginDoc::OnUpdateImagedisp(CCmdUI *pCmdUI)
 {
 	pCmdUI->SetCheck(m_TextRam.m_pImageWnd != NULL ? TRUE : FALSE);
-}
-
-CWnd *CRLoginDoc::GetAciveView()
-{
-	POSITION pos;
-	CWnd *pView = NULL;
-	CWnd *pWnd;
-	CWnd *pAct = ::AfxGetMainWnd()->GetActiveWindow();
-
-	pos = GetFirstViewPosition();
-	while ( pos != NULL ) {
-		pWnd = GetNextView(pos);
-		if ( pView == NULL )
-			pView = pWnd;
-		if ( pAct != NULL && pAct->GetSafeHwnd() == pWnd->GetSafeHwnd() )
-			return pWnd;
-		if ( pWnd->GetSafeHwnd() == ::GetFocus() )
-			return pWnd;
-	}
-	return pView;
-}
-int CRLoginDoc::GetViewCount()
-{
-	int count;
-	POSITION pos = GetFirstViewPosition();
-
-	for ( count = 0 ; pos != NULL ; count++ )
-		GetNextView(pos);
-
-	return count;
 }
 void CRLoginDoc::OnScreenReset(UINT nID)
 {
@@ -1505,6 +1503,24 @@ void CRLoginDoc::OnCancelBtn()
 {
 	m_TextRam.fc_TimerAbort(FALSE);
 }
+void CRLoginDoc::OnTracedisp()
+{
+	if ( m_TextRam.m_pTraceWnd == NULL ) {
+		m_TextRam.SetTraceLog(TRUE);
+		m_TextRam.m_pTraceWnd = new CTraceDlg(NULL);
+		m_TextRam.m_pTraceWnd->m_pDocument = this;
+		m_TextRam.m_pTraceWnd->m_Title = GetTitle();
+		m_TextRam.m_pTraceWnd->m_TraceLogFile  = m_TextRam.m_TraceLogFile;
+		EntryText(m_TextRam.m_pTraceWnd->m_TraceLogFile);
+		m_TextRam.m_pTraceWnd->m_TraceMaxCount = m_TextRam.m_TraceMaxCount;
+		m_TextRam.m_pTraceWnd->Create(IDD_TRACEDLG, CWnd::GetDesktopWindow());
+		m_TextRam.m_pTraceWnd->ShowWindow(SW_SHOW);
+//		::AfxGetMainWnd()->SetFocus();
+	} else
+		m_TextRam.m_pTraceWnd->SendMessage(WM_CLOSE);
+}
+
+/////////////////////////////////////////////////////////////////////////////
 
 static const ScriptCmdsDefs DocBase[] = {
 	{	"Entry",		1	},
@@ -1659,11 +1675,8 @@ void CRLoginDoc::ScriptValue(int cmds, class CScriptValue &value, int mode)
 		break;
 	case 23:				// Document.Log.Open(f)
 		if ( mode == DOC_MODE_CALL ) {
-			if ( m_pLogFile != NULL ) {
-				m_pLogFile->Close();
-				delete m_pLogFile;
-			}
-			if ( (m_pLogFile = new CFileExt) != NULL && m_pLogFile->Open((LPCTSTR)value[0], CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite | CFile::shareExclusive) ) {
+			LogClose();
+			if ( (m_pLogFile = new CFileExt) != NULL && LogOpen((LPCTSTR)value[0]) ) {
 				m_pLogFile->SeekToEnd();
 				m_TextRam.m_LogTimeFlag = TRUE;
 				value = (int)0;
@@ -1672,27 +1685,8 @@ void CRLoginDoc::ScriptValue(int cmds, class CScriptValue &value, int mode)
 		}
 		break;
 	case 24:				// Document.Log.Close()
-		if ( mode == DOC_MODE_CALL && m_pLogFile != NULL ) {
-			m_pLogFile->Close();
-			delete m_pLogFile;
-			m_pLogFile = NULL;
-		}
+		if ( mode == DOC_MODE_CALL )
+			LogClose();
 		break;
 	}
-}
-void CRLoginDoc::OnTracedisp()
-{
-	if ( m_TextRam.m_pTraceWnd == NULL ) {
-		m_TextRam.SetTraceLog(TRUE);
-		m_TextRam.m_pTraceWnd = new CTraceDlg(NULL);
-		m_TextRam.m_pTraceWnd->m_pDocument = this;
-		m_TextRam.m_pTraceWnd->m_Title = GetTitle();
-		m_TextRam.m_pTraceWnd->m_TraceLogFile  = m_TextRam.m_TraceLogFile;
-		EntryText(m_TextRam.m_pTraceWnd->m_TraceLogFile);
-		m_TextRam.m_pTraceWnd->m_TraceMaxCount = m_TextRam.m_TraceMaxCount;
-		m_TextRam.m_pTraceWnd->Create(IDD_TRACEDLG, CWnd::GetDesktopWindow());
-		m_TextRam.m_pTraceWnd->ShowWindow(SW_SHOW);
-//		::AfxGetMainWnd()->SetFocus();
-	} else
-		m_TextRam.m_pTraceWnd->SendMessage(WM_CLOSE);
 }

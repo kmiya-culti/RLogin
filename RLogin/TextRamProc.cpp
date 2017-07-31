@@ -1128,7 +1128,12 @@ void CTextRam::SetTraceLog(BOOL bSw)
 	m_pTraceProc = NULL;
 	m_TraceSendBuf.Clear();
 
-	m_pCallPoint = (bSw ? &CTextRam::fc_TraceCall : &CTextRam::fc_FuncCall);
+	if ( bSw )
+		m_TraceLogMode |= 001;
+	else
+		m_TraceLogMode &= ~001;
+
+	m_pCallPoint = (m_TraceLogMode != 0 ? &CTextRam::fc_TraceCall : &CTextRam::fc_FuncCall);
 }
 void CTextRam::fc_TraceLogChar(DWORD ch)
 {
@@ -1138,11 +1143,27 @@ void CTextRam::fc_TraceLogChar(DWORD ch)
 	m_pTraceNow->m_Buffer.Put8Bit(ch);
 	m_bTraceUpdate = TRUE;
 }
+void CTextRam::fc_TraceLogParam(CString &name)
+{
+	int n;
+	CString tmp, param;
+
+	for ( n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
+		if ( n > 0 )
+			param += _T(';');
+		if ( m_AnsiPara[n] != PARA_NOT && m_AnsiPara[n] != PARA_OPT ) {
+			tmp.Format(_T("%d"), (int)m_AnsiPara[n]);
+			param += tmp;
+		}
+	}
+
+	if ( !param.IsEmpty() ) {
+		name += _T(' ');
+		name += param;
+	}
+}
 void CTextRam::fc_TraceLogFlush(ESCNAMEPROC *pProc, BOOL bParam)
 {
-	int n, i;
-	CString tmp;
-
 	if ( pProc != NULL ) {
 		if ( m_pTraceNow == NULL )
 			m_pTraceNow = new CTraceNode;
@@ -1153,17 +1174,8 @@ void CTextRam::fc_TraceLogFlush(ESCNAMEPROC *pProc, BOOL bParam)
 			m_pTraceNow->m_Index = m_pActGrapWnd->m_ImageIndex;
 		m_bTraceUpdate = TRUE;
 
-		if ( bParam && m_AnsiPara.GetSize() > 0 ) {
-			m_pTraceNow->m_Name += _T(' ');
-			for ( n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
-				if ( n > 0 )
-					m_pTraceNow->m_Name += _T(',');
-				if ( m_AnsiPara[n] != PARA_NOT && m_AnsiPara[n] != PARA_OPT ) {
-					tmp.Format(_T("%d"), (int)m_AnsiPara[n]);
-					m_pTraceNow->m_Name += tmp;
-				}
-			}
-		}
+		if ( bParam )
+			fc_TraceLogParam(m_pTraceNow->m_Name);
 	}
 
 	if ( m_pTraceNow != NULL ) {
@@ -1203,28 +1215,35 @@ void CTextRam::fc_TraceLogFlush(ESCNAMEPROC *pProc, BOOL bParam)
 }
 void CTextRam::fc_TraceCall(DWORD ch)
 {
-	int flag;
-	ESCNAMEPROC *tp;
+	int flag, mode;
+	CString tmp;
+	ESCNAMEPROC *tp = NULL;
 	static const BYTE stage_flag[] = {
+	//	flag					mode
+	//	001		fc_pCtrlProc	1
+	//	002		fc_pEscProc		2
+	//	004		fc_pCsiProc		3
+	//	010		fc_pDcsProc		4
+
 		003,	// STAGE_ESC
-		005,	// STAGE_CSI
-		005,	// STAGE_EXT1
-		005,	// STAGE_EXT2
-		005,	// STAGE_EXT3
-		005,	// STAGE_EXT4
-		001,	// STAGE_EUC
+		007,	// STAGE_CSI
+		007,	// STAGE_EXT1
+		007,	// STAGE_EXT2
+		007,	// STAGE_EXT3
+		007,	// STAGE_EXT4
+		003,	// STAGE_EUC
 		000,	// STAGE_94X94
 		000,	// STAGE_96X96
 		001,	// STAGE_SJIS
 		000,	// STAGE_SJIS2
 		001,	// STAGE_BIG5
-		000,	// STAGE_BIG52
-		001,	// STAGE_UTF8
+		001,	// STAGE_BIG52
+		003,	// STAGE_UTF8
 		000,	// STAGE_UTF82
 		010,	// STAGE_OSC1
 		010,	// STAGE_OSC2
-		020,	// STAGE_TEK
-		001,	// STAGE_STAT
+		000,	// STAGE_TEK
+		003,	// STAGE_STAT
 		001,	// STAGE_GOTOXY
 	};
 
@@ -1232,7 +1251,40 @@ void CTextRam::fc_TraceCall(DWORD ch)
 	m_TraceFunc = m_Func[ch];
 	(this->*m_Func[ch])(ch);
 
-	if ( (flag & 001) != 0 && (tp = FindProcName(fc_pCtrlProc, m_TraceFunc)) != NULL ) {
+	if      ( (flag & 001) != 0 && (tp = FindProcName(fc_pCtrlProc, m_TraceFunc)) != NULL )
+		mode = 1;
+	else if ( (flag & 002) != 0 && (tp = FindProcName(fc_pEscProc,  m_TraceFunc)) != NULL )
+		mode = 2;
+	else if ( (flag & 004) != 0 && (tp = FindProcName(fc_pCsiProc,  m_TraceFunc)) != NULL )
+		mode = 3;
+	else if ( (flag & 010) != 0 && (tp = FindProcName(fc_pDcsProc,  m_TraceFunc)) != NULL )
+		mode = 4;
+	else
+		mode = 0;
+
+	if ( (m_TraceLogMode & 002) != 0 ) {
+		if ( tp != NULL && m_pDocument->m_pLogFile != NULL && IsOptValue(TO_RLLOGMODE, 2) == LOGMOD_CTRL &&
+				m_TraceFunc != &CTextRam::fc_BS  && m_TraceFunc != &CTextRam::fc_HT  && m_TraceFunc != &CTextRam::fc_LF  &&
+				m_TraceFunc != &CTextRam::fc_VT  && m_TraceFunc != &CTextRam::fc_FF  && m_TraceFunc != &CTextRam::fc_CR  &&
+				m_TraceFunc != &CTextRam::fc_ESC && m_TraceFunc != &CTextRam::fc_DCS && m_TraceFunc != &CTextRam::fc_CSI ) {
+			if ( mode == 3 || mode == 4 ) {
+				tmp = tp->name;
+				fc_TraceLogParam(tmp);
+				CallReciveChar(0x1B, tmp);
+			} else
+				CallReciveChar(0x1B, tp->name);
+		}
+	}
+
+	if ( (m_TraceLogMode & 001) == 0 )
+		return;
+
+	if ( m_pTraceProc != NULL && m_Stage != STAGE_STAT && m_Stage != STAGE_GOTOXY ) {
+		fc_TraceLogChar(ch);
+		fc_TraceLogFlush(m_pTraceProc, FALSE);
+		m_pTraceProc = NULL;
+
+	} else if ( mode == 1 ) {				// CTRL
 		if ( m_TraceFunc == &CTextRam::fc_ESC ) {
 			fc_TraceLogFlush(NULL, FALSE);
 			fc_TraceLogChar(ch);
@@ -1241,36 +1293,20 @@ void CTextRam::fc_TraceCall(DWORD ch)
 			fc_TraceLogFlush(tp, FALSE);
 		}
 
-	} else if ( (flag & 002) != 0 && (tp = FindProcName(fc_pEscProc,  m_TraceFunc)) != NULL ) {
-
-		fc_TraceLogChar(ch);
-
-		if ( m_Stage == STAGE_STAT || m_Stage == STAGE_GOTOXY )
+	} else if ( mode == 2 ) {				// ESC
+		if ( m_Stage == STAGE_STAT || m_Stage == STAGE_GOTOXY ) {
+			fc_TraceLogChar(ch);
 			m_pTraceProc = tp;
-		else if ( m_TraceFunc != &CTextRam::fc_CSI && m_Stage != STAGE_OSC1 && m_Stage != STAGE_OSC2 )
+		} else if ( m_TraceFunc != &CTextRam::fc_DCS && m_TraceFunc != &CTextRam::fc_CSI && 
+				    m_TraceFunc != &CTextRam::fc_OSC && m_TraceFunc != &CTextRam::fc_PM  && m_TraceFunc != &CTextRam::fc_APC ) {
+			fc_TraceLogChar(ch);
 			fc_TraceLogFlush(tp, FALSE);
+		} else
+			fc_TraceLogChar(ch);
 
-	} else if ( m_pTraceProc != NULL && m_Stage != STAGE_STAT && m_Stage != STAGE_GOTOXY ) {
-		fc_TraceLogChar(ch);
-		fc_TraceLogFlush(m_pTraceProc, FALSE);
-		m_pTraceProc = NULL;
-
-	} else if ( (flag & 004) != 0 && (tp = FindProcName(fc_pCsiProc,  m_TraceFunc)) != NULL ) {
+	} else if ( mode == 3 || mode == 4 ) {	// CSI or DCS
 		fc_TraceLogChar(ch);
 		fc_TraceLogFlush(tp, TRUE);
-
-	} else if ( (flag & 010) != 0 && (tp = FindProcName(fc_pEscProc,  m_TraceFunc)) != NULL ) {
-		fc_TraceLogChar(ch);
-		fc_TraceLogFlush(tp, FALSE);
-
-	} else if ( (flag & 010) != 0 && (tp = FindProcName(fc_pDcsProc,  m_TraceFunc)) != NULL ) {
-		fc_TraceLogChar(ch);
-		fc_TraceLogFlush(tp, TRUE);
-
-	} else if ( (flag & 020) != 0 && m_Stage != STAGE_TEK ) {
-		fc_TraceLogChar(ch);
-		m_pTraceNow->m_Flag = 1;	// No Trace Back
-		fc_TraceLogFlush(NULL, FALSE);
 
 	} else {
 		fc_TraceLogChar(ch);
@@ -1564,13 +1600,9 @@ void CTextRam::ToHexStr(CBuffer &buf, CString &out)
 void CTextRam::fc_IGNORE(DWORD ch)
 {
 	fc_KANJI(ch);
-	if ( ch < 0x20 )
-		CallReciveChar(ch);
 }
 void CTextRam::fc_POP(DWORD ch)
 {
-	if ( ch < 0x20 )
-		CallReciveChar(ch);
 	if ( m_StPos > 0 )
 		fc_Case(m_Stack[--m_StPos]);
 }
@@ -1593,7 +1625,6 @@ void CTextRam::fc_SESC(DWORD ch)
 void CTextRam::fc_CESC(DWORD ch)
 {
 	fc_KANJI(ch);
-	CallReciveChar(ch);
 
 	if ( IsOptEnable(TO_RLC1DIS) ) {
 		ch &= 0x7F;
@@ -2184,19 +2215,16 @@ void CTextRam::fc_SOH(DWORD ch)
 {
 	if ( IsOptEnable(TO_RLBPLUS) )
 		m_RetSync = TRUE;
-	CallReciveChar(ch);
 }
 void CTextRam::fc_ENQ(DWORD ch)
 {
 	if ( IsOptEnable(TO_RLBPLUS) )
 		m_RetSync = TRUE;
-	CallReciveChar(ch);
 }
 void CTextRam::fc_BEL(DWORD ch)
 {
 	if ( !m_bTraceActive )
 		BEEP();
-	CallReciveChar(ch);
 }
 void CTextRam::fc_BS(DWORD ch)
 {
@@ -2240,6 +2268,7 @@ void CTextRam::fc_LF(DWORD ch)
 }
 void CTextRam::fc_VT(DWORD ch)
 {
+	fc_KANJI(ch);
 	CallReciveChar(ch);
 
 	TABSET(TAB_LINENEXT);
@@ -2249,6 +2278,7 @@ void CTextRam::fc_VT(DWORD ch)
 }
 void CTextRam::fc_FF(DWORD ch)
 {
+	fc_KANJI(ch);
 	CallReciveChar(ch);
 
 	ONEINDEX();
@@ -2276,53 +2306,45 @@ void CTextRam::fc_CR(DWORD ch)
 void CTextRam::fc_SO(DWORD ch)
 {
 	m_BankGL = 1;
-	CallReciveChar(ch);
 }
 void CTextRam::fc_SI(DWORD ch)
 {
 	m_BankGL = 0;
-	CallReciveChar(ch);
 }
 void CTextRam::fc_DLE(DWORD ch)
 {
 	if ( IsOptEnable(TO_RLBPLUS) )
 		m_RetSync = TRUE;
-	CallReciveChar(ch);
 }
 void CTextRam::fc_CAN(DWORD ch)
 {
 	if ( m_LastChar == '*' && IsOptEnable(TO_RLBPLUS) )
 		m_RetSync = TRUE;
-	CallReciveChar(ch);
 }
 void CTextRam::fc_ESC(DWORD ch)
 {
 	fc_KANJI(ch);
-	CallReciveChar(ch);
+
 	fc_Push(STAGE_ESC);
 }
 void CTextRam::fc_A3CRT(DWORD ch)
 {
 	// ADM-3 Cursole Right
-	CallReciveChar(ch);
 	LOCATE(m_CurX + 1, m_CurY);
 }
 void CTextRam::fc_A3CLT(DWORD ch)
 {
 	// ADM-3 Cursole Left
-	CallReciveChar(ch);
 	LOCATE(m_CurX - 1, m_CurY);
 }
 void CTextRam::fc_A3CUP(DWORD ch)
 {
 	// ADM-3 Cursole Up
-	CallReciveChar(ch);
 	LOCATE(m_CurX, m_CurY - 1);
 }
 void CTextRam::fc_A3CDW(DWORD ch)
 {
 	// ADM-3 Cursole Down
-	CallReciveChar(ch);
 	LOCATE(m_CurX, m_CurY + 1);
 }
 

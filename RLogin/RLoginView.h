@@ -88,13 +88,13 @@ public:
 	class CBtnWnd m_BtnWnd;
 
 	BOOL m_GoziView;
-#if USE_GOZI == 3
+#if USE_GOZI == 3 || USE_GOZI == 4
 	struct _GoziData {
 #endif
 	int m_GoziStyle;
 	int m_GoziCount;
 	CPoint m_GoziPos;
-#if USE_GOZI == 3
+#if USE_GOZI == 3 || USE_GOZI == 4
 	} m_GoziData[8];
 	int m_GoziMax;
 #endif
@@ -144,56 +144,63 @@ protected:
 
 // インプリメンテーション
 protected:
+	DECLARE_MESSAGE_MAP()
+
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnMove(int x, int y);
 	afx_msg void OnSetFocus(CWnd* pOldWnd);
 	afx_msg void OnKillFocus(CWnd* pNewWnd);
 //	afx_msg void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags);
+	afx_msg void OnKeyUp(UINT nChar, UINT nRepCnt, UINT nFlags);
 	afx_msg void OnChar(UINT nChar, UINT nRepCnt, UINT nFlags);
+	afx_msg void OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
+	afx_msg void OnTimer(UINT_PTR nIDEvent);
+	afx_msg void OnDropFiles(HDROP hDropInfo);
+
 	afx_msg LRESULT OnImeNotify(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnImeComposition(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnImeRequest(WPARAM wParam, LPARAM lParam);
-	afx_msg void OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
-	afx_msg void OnTimer(UINT_PTR nIDEvent);
+
+	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
 	afx_msg BOOL OnMouseWheel(UINT nFlags, short zDelta, CPoint pt);
-	afx_msg void OnRButtonDblClk(UINT nFlags, CPoint point);
-	afx_msg void OnLButtonDblClk(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
+	afx_msg void OnLButtonDblClk(UINT nFlags, CPoint point);
+	afx_msg void OnRButtonDown(UINT nFlags, CPoint point);
+	afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
+	afx_msg void OnRButtonDblClk(UINT nFlags, CPoint point);
 	afx_msg void OnMButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnXButtonDown(UINT nFlags, UINT nButton, CPoint point);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+
 	afx_msg void OnEditPaste();
 	afx_msg void OnUpdateEditPaste(CCmdUI* pCmdUI);
 	afx_msg void OnMacroRec();
 	afx_msg void OnUpdateMacroRec(CCmdUI* pCmdUI);
 	afx_msg void OnMacroPlay();
 	afx_msg void OnUpdateMacroPlay(CCmdUI* pCmdUI);
-	afx_msg void OnRButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnEditCopy();
 	afx_msg void OnUpdateEditCopy(CCmdUI* pCmdUI);
-	afx_msg void OnMacroHis(UINT nID);
-	afx_msg void OnDropFiles(HDROP hDropInfo);
-	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
-	afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnMouseEvent();
 	afx_msg void OnUpdateMouseEvent(CCmdUI *pCmdUI);
 	afx_msg void OnBroadcast();
 	afx_msg void OnUpdateBroadcast(CCmdUI *pCmdUI);
+	afx_msg void OnGoziview();
+	afx_msg void OnUpdateGoziview(CCmdUI *pCmdUI);
+
 	afx_msg void OnEditCopyAll();
+	afx_msg void OnMacroHis(UINT nID);
 	afx_msg void OnPagePrior();
 	afx_msg void OnPageNext();
-	afx_msg void OnKeyUp(UINT nChar, UINT nRepCnt, UINT nFlags);
 	afx_msg void OnSearchReg();
 	afx_msg void OnSearchBack();
 	afx_msg void OnSearchNext();
-	afx_msg void OnGoziview();
-	afx_msg void OnUpdateGoziview(CCmdUI *pCmdUI);
 	afx_msg void OnSplitHeight();
 	afx_msg void OnSplitWidth();
 	afx_msg void OnSplitOver();
-	DECLARE_MESSAGE_MAP()
+	afx_msg void OnSplitHeightNew();
+	afx_msg void OnSplitWidthNew();
 };
 
 #ifndef _DEBUG  // RLoginView.cpp ファイルがデバッグ環境の時使用されます。

@@ -73,13 +73,6 @@ IDI_ACTIVE              ICON                    "res\\Active.ico"
 
 IDR_MAINFRAME           BITMAP                  "res\\Toolbar.bmp"
 IDR_SFTPTOOL            BITMAP                  "res\\toolbar1.bmp"
-IDB_BITMAP7             BITMAP                  "res\\bitmap7.bmp"
-IDB_BITMAP6             BITMAP                  "res\\bitmap6.bmp"
-IDB_BITMAP5             BITMAP                  "res\\bitmap5.bmp"
-IDB_BITMAP4             BITMAP                  "res\\bitmap4.bmp"
-IDB_BITMAP3             BITMAP                  "res\\bitmap3.bmp"
-IDB_BITMAP2             BITMAP                  "res\\bitmap2.bmp"
-IDB_BITMAP1             BITMAP                  "res\\bitmap1.bmp"
 IDB_ATTR1               BITMAP                  "res\\attr1.bmp"
 IDB_ATTR2               BITMAP                  "res\\attr2.bmp"
 IDB_ATTR3               BITMAP                  "res\\attr3.bmp"
@@ -88,8 +81,28 @@ IDB_ATTR5               BITMAP                  "res\\attr5.bmp"
 IDB_ATTR6               BITMAP                  "res\\attr6.bmp"
 IDB_ATTR7               BITMAP                  "res\\attr7.bmp"
 IDB_ATTR8               BITMAP                  "res\\attr8.bmp"
-IDB_BITMAP9             BITMAP                  "res\\bitmap9.bmp"
+IDB_BITMAP1             BITMAP                  "res\\bitmap1.bmp"
+IDB_BITMAP2             BITMAP                  "res\\bitmap2.bmp"
+IDB_BITMAP3             BITMAP                  "res\\bitmap3.bmp"
+IDB_BITMAP4             BITMAP                  "res\\bitmap4.bmp"
+IDB_BITMAP5             BITMAP                  "res\\bitmap5.bmp"
+IDB_BITMAP6             BITMAP                  "res\\bitmap6.bmp"
+IDB_BITMAP7             BITMAP                  "res\\bitmap7.bmp"
 IDB_BITMAP8             BITMAP                  "res\\bitmap8.bmp"
+IDB_BITMAP9             BITMAP                  "res\\bitmap9.bmp"
+IDB_BITMAP10            BITMAP                  "res\\bitmap10.bmp"
+IDB_BITMAP11            BITMAP                  "res\\bitmap11.bmp"
+IDB_BITMAP12            BITMAP                  "res\\bitmap12.bmp"
+IDB_BITMAP13            BITMAP                  "res\\bitmap13.bmp"
+IDB_BITMAP14            BITMAP                  "res\\bitmap14.bmp"
+IDB_BITMAP15            BITMAP                  "res\\bitmap15.bmp"
+IDB_BITMAP16            BITMAP                  "res\\bitmap16.bmp"
+IDB_BITMAP17            BITMAP                  "res\\bitmap17.bmp"
+IDB_BITMAP18            BITMAP                  "res\\bitmap18.bmp"
+IDB_BITMAP19            BITMAP                  "res\\bitmap19.bmp"
+IDB_BITMAP20            BITMAP                  "res\\bitmap20.bmp"
+IDB_BITMAP21            BITMAP                  "res\\bitmap21.bmp"
+IDB_BITMAP22            BITMAP                  "res\\bitmap22.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -293,6 +306,9 @@ BEGIN
             MENUITEM "横方向に分割して接続",                  ID_SPLIT_WIDTH
             MENUITEM "画面分割無しで接続",                   ID_SPLIT_OVER
             MENUITEM SEPARATOR
+            MENUITEM "縦方向に分割して新規接続",                IDM_SPLIT_HEIGHT_NEW
+            MENUITEM "横方向に分割して新規接続",                IDM_SPLIT_WIDTH_NEW
+            MENUITEM SEPARATOR
             MENUITEM "ペインの移動(&R)",                  ID_WINDOW_ROTATION
             MENUITEM "次のウィンドウに移動(&N)",              IDM_WINODW_NEXT
             MENUITEM "前のウィンドウに移動(&P)",              IDM_WINDOW_PREV
@@ -471,7 +487,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.18.2 (2015/04/17)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.18.3 (2015/05/05)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2015 Culti",IDC_STATIC,47,15,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,155,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.2a 19 Mar 2015",IDC_STATIC,47,27,176,8
@@ -526,21 +542,21 @@ BEGIN
     LTEXT           "ログイン",IDC_STATIC,275,78,24,8
 END
 
-IDD_PASSDLG DIALOGEX 0, 0, 203, 129
+IDD_PASSDLG DIALOGEX 0, 0, 210, 129
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "パスワード入力"
 FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
 BEGIN
-    COMBOBOX        IDC_HOSTADDR,78,17,109,105,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_USERNAME,78,37,109,30,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
-    EDITTEXT        IDC_PASSNAME,78,57,109,14,ES_PASSWORD | ES_AUTOHSCROLL
-    DEFPUSHBUTTON   "OK",IDOK,46,108,50,14
-    PUSHBUTTON      "キャンセル",IDCANCEL,106,108,50,14
-    LTEXT           "Password",IDC_PROMPT,18,57,53,14,SS_CENTERIMAGE
-    LTEXT           "User Name",IDC_STATIC,18,37,53,14,SS_CENTERIMAGE
-    CONTROL         "Progress1",IDC_TIMELIMIT,"msctls_progress32",0x0,16,77,171,14
-    LTEXT           "Server Address",IDC_STATIC,18,17,53,14,SS_CENTERIMAGE
-    GROUPBOX        "",IDC_STATIC,7,7,189,93
+    COMBOBOX        IDC_HOSTADDR,91,17,105,105,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_USERNAME,91,37,105,30,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_PASSNAME,91,57,105,14,ES_PASSWORD | ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "OK",IDOK,48,108,50,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,111,108,50,14
+    LTEXT           "Password",IDC_PROMPT,18,57,69,14,SS_CENTERIMAGE
+    LTEXT           "User Name",IDC_STATIC,18,37,69,14,SS_CENTERIMAGE
+    CONTROL         "Progress1",IDC_TIMELIMIT,"msctls_progress32",0x0,13,77,183,14
+    LTEXT           "Server Address",IDC_STATIC,18,17,69,14,SS_CENTERIMAGE
+    GROUPBOX        "",IDC_STATIC,7,7,196,93
 END
 
 IDD_IDKEYFILEDLG DIALOGEX 0, 0, 243, 195
@@ -1490,8 +1506,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,18,2,0
- PRODUCTVERSION 2,18,2,0
+ FILEVERSION 2,18,3,0
+ PRODUCTVERSION 2,18,3,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1508,12 +1524,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.18.2.0"
+            VALUE "FileVersion", "2.18.3.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2015 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.18.2.0"
+            VALUE "ProductVersion", "2.18.3.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -1550,7 +1566,7 @@ BEGIN
     IDD_PASSDLG, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 196
+        RIGHTMARGIN, 203
         TOPMARGIN, 7
         BOTTOMMARGIN, 122
     END
@@ -2754,40 +2770,101 @@ STRINGTABLE
 BEGIN
     IDR_MAINFRAME           "RLogin"
     IDR_RLOGINTYPE          "\nRLogin\nRLogin\nRLogin ファイル (*.rlg)\n.rlg\nRLogin.Document\nRLogin Document"
-    IDS_VIEW_MENUBAR        "メニューバーの表示"
-    IDS_SSH_PASS_TITLE      "SSH鍵ファイルの読み込み"
-    IDS_SSH_PASS_MSG        "作成時に設定したパスフレーズを入力してください"
-    IDS_PUBLICKEYCOPYMSG    "クリップボードにコピーされる公開鍵"
-    IDS_AGENT_DELKEY        "指定された認証鍵を削除しますか？"
-    IDM_SEQCANCELSTR        "%sシーケンスを実行中です\r\nキャンセルするには、ここをクリック"
-    IDS_TOOMANYHOSTNAME     "多くのホスト名に展開します。接続しますか？"
 END
 
 STRINGTABLE
 BEGIN
-    IDE_MESSAGE_ANYPASTE    "多くの文字をペーストしようとしています\n送信しますか？"
-    IDE_PASSWORDNOMATCH     "再入力されたパスフレーズが一致しません"
-    IDE_MAKEIDKEY           "認証キーを作成中です"
+    IDS_PROTODLGTITLE       "プロトコルハンドラの登録"
+    IDS_PUBLICKEYCOPYMSG    "クリップボードにコピーされる公開鍵"
+    IDS_REMOTEFILEDELETE    "リモートに無いファイルを削除しますか？"
+    IDS_RENAMEMSG           "ファイル名の変更"
+    IDS_SCRIPTNEW           "すでに読み込んでいるスクリプトを放棄しますか？"
+    IDS_SERVERENTRYDELETE   "'%s'サーバーエントリーを削除してもよいですか？"
+    IDS_SOCKETS_INIT_FAILED "Windows ソケットの初期化に失敗しました。"
+    IDS_SSH_PASS_MSG        "作成時に設定したパスフレーズを入力してください"
+    IDS_SSH_PASS_TITLE      "SSH鍵ファイルの読み込み"
+    IDS_TOOMANYHOSTNAME     "多くのホスト名に展開します。接続しますか？"
+    IDS_VIEW_MENUBAR        "メニューバーの表示"
+    IDE_ALLCLOSEREQ         "すべての接続を閉じてよろしいでしょうか？"
     IDE_DELETEKEYQES        "他に使用しているエントリーがあるかもしれません\nほんとうに削除してよいですか？"
-    IDE_USEPASSWORDIDKEY    "パスフレーズと鍵ファイルを指定してください"
-    IDE_IDKEYLOADERROR      "鍵ファイルを読み込めませんでした"
+    IDE_DSABITSIZEERR       "DSAは、ビットサイズを768/1024から選択してください。2048以上は、将来的に使えない可能性があります"
     IDE_DUPIDKEYENTRY       "同じ鍵ファイルがすでに登録済みです"
+    IDE_ECDSABITSIZEERR     "ECDSAは、ビットサイズを256/384/521から選択してください"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_AGENT_DELKEY        "指定された認証鍵を削除しますか？"
+    IDS_ALLINITREQ          "すべての設定を標準に戻しますか？"
+    IDS_CERTTRASTREQ        "%s\n%s\nこの証明書を信頼しますか？"
+    IDS_CREATEDIRMSG        "新しいフォルダの作成"
+    IDS_FILECLOSEQES        "現在、接続中です。接続を閉じますか？"
+    IDS_FILECOUNTMSG        "%d個のファイル"
+    IDS_FILEDELETEREQ       "を削除しますか？"
+    IDS_FILEDLGALLFILE      "All Files (*.*)|*.*||"
+    IDS_FILEDLGGRAPHICS     "GIF ファイル (*.gif)|*.gif|JPEG ファイル (*.jpg)|*.jpg|PNG ファイル (*.png)|*.png|BMP ファイル (*.bmp)|*.bmp||"
+    IDS_FILEDLGHISTORY      "History ファイル (*.rlh)|*.rlh|All Files (*.*)|*.*||"
+    IDS_FILEDLGIMAGE        "Image FIle (*.bmp;*.jpg)|*.bmp;*.jpg|All Files (*.*)|*.*||"
+    IDS_FILEDLGLOGFILE      "ログ ファイル (*.txt)|*.txt|All Files (*.*)|*.*||"
+END
+
+STRINGTABLE
+BEGIN
+    IDM_SCRIPT              "スクリプトファイルを実行します\nスクリプト実行"
+    IDM_SEARCH_BACK         "前を検索します\n前を検索"
+    IDM_SEARCH_NEXT         "次を検索します\n次を検索"
+    IDM_SEARCH_REG          "正規表現で文字列を検索します\n文字検索"
+    IDM_SEQCANCELSTR        "%sシーケンスを実行中です\r\nキャンセルするには、ここをクリック"
+END
+
+STRINGTABLE
+BEGIN
+    IDE_FILENAMEERROR       "ファイル名変換規則に該当する名前です。変換しますか？"
+    IDE_HISTORYBACKUPERROR  "ヒストリーバックアップに失敗しました"
+    IDE_IDKEYCREATEERROR    "鍵ファイルが作成できませんでした"
+    IDE_IDKEYLOADERROR      "鍵ファイルを読み込めませんでした"
     IDE_IDKEYPASSERROR      "作成時に指定したパスフレーズと一致しません"
     IDE_IDKEYSAVEERROR      "鍵ファイルに保存できませんでした"
-    IDE_IDKEYCREATEERROR    "鍵ファイルが作成できませんでした"
-    IDE_HISTORYBACKUPERROR  "ヒストリーバックアップに失敗しました"
-    IDE_LOGOPENERROR        "ログファイルを開けませんでした"
-    IDE_PORTFWORDERROR      "ポートフォワードの設定が無効です"
-    IDE_SSHGLOBALREQERROR   "SSH2グローバルリクエストエラー"
-    IDE_ALLCLOSEREQ         "すべての接続を閉じてよろしいでしょうか？"
     IDE_INFOCAPCONVERROR    "TERMCAPからTERMINFOに変換できない文法を含んでいます\n\n"
+    IDE_INFOCAPINFOCONVERROR "TERMINFOからTERMCAPに変換できない文法を含んでいます\n\n"
+    IDE_INFOCAPOVER1024     "TERMCAPのトータル文字数が1024文字の制限を超えました\n"
+    IDE_KANJICONVERROR      "文字コード変換でエラーが発生しました。\n正しく変換されていない可能性があります"
+    IDE_LOGOPENERROR        "ログファイルを開けませんでした"
+    IDE_MAKEIDKEY           "認証キーを作成中です"
+    IDE_MANYCHANNEL         "多くのチャンネルを開こうとしています\n続行しますか？"
+    IDE_MESSAGE_ANYPASTE    "多くの文字をペーストしようとしています\n送信しますか？"
+    IDE_PASSWORDNOMATCH     "再入力されたパスフレーズが一致しません"
+    IDE_PORTFWORDERROR      "ポートフォワードの設定が無効です"
 END
 
 STRINGTABLE
 BEGIN
-    IDP_SOCKETS_INIT_FAILED "Windows ソケットの初期化に失敗しました。"
+    IDE_PROTOCOLENTRY       "login/telnet/sshプロトコルのみ登録できます"
+    IDE_RSABITSIZEERR       "RSAは、ビットサイズを768/1024/2048/4096から選択してください。推奨は、2048以上です。"
+    IDE_SSHGLOBALREQERROR   "SSH2グローバルリクエストエラー"
+    IDE_UPDATERESUMEERROR   "再開できません上書きになります"
+    IDE_USEPASSWORDIDKEY    "パスフレーズと鍵ファイルを指定してください"
+    IDE_USESERVERENTRY      "Server Entry を入力してください"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_FILEDLGRLOGIN       "RLogin ファイル (*.rlg)|*.rlg|All Files (*.*)|*.*||"
+    IDS_FILEDLGSCRIPT       "スクリプト ファイル (*.txt)|*.txt|All Files (*.*)|*.*||"
+    IDS_FILEDLGTEKIMAGE     "GIF ファイル (*.gif)|*.gif|JPEG ファイル (*.jpg)|*.jpg|PNG ファイル (*.png)|*.png|BMP ファイル (*.bmp)|*.bmp|DXF ファイル (*.dxf)|*.dxf|TEK ファイル (*.tek)|*.tek||"
+    IDS_FILEDLGTEKIMAGE2    "DXF ファイル (*.dxf)|*.dxf|TEK ファイル (*.tek)|*.tek||"
+    IDS_IDKEYCREATE         "SSH鍵の作成"
+    IDS_IDKEYCREATECOM      "パスフレーズは、非常に重要です。作成時に設定するパスフレーズは、ファイルに保存する場合やサーバー接続で使用する場合にも入力が必要になります。"
+    IDS_IDKEYDUPHOSTNAME    "(別の登録あり)"
+    IDS_IDKEYFILEDELREQ     "認証キーファイルの設定を解除しますか？"
     IDS_IDKEYFILELOAD       "SSH鍵ファイルの読み込み"
+    IDS_IDKEYFILELOADCOM    "作成時に設定したパスフレーズを入力してください。"
     IDS_IDKEYFILESAVE       "SSH鍵ファイルの保存"
+    IDS_IDKEYFILESAVECOM    "作成時に設定したパスフレーズを入力してください。パスフレーズが一致しないと保存できません"
+    IDS_IDKEYRENAME         "認証キーの名前が変更できます"
+    IDS_INITBUTTON          "初期化"
+    IDS_LOCALFILEDELETE     "ローカルに無いファイルを削除しますか？"
+    IDS_PRORODLGCOMM        "ハンドラ起動時のオプションを指定してください"
 END
 
 STRINGTABLE
@@ -2819,23 +2896,40 @@ END
 
 STRINGTABLE
 BEGIN
+    ID_CHARSCRIPT_END       "実行中のChatScriptを中断します\nChatScript完了"
     ID_DISCONNECT           "サーバーとの接続を閉じます\n接続を閉じる"
-    ID_INDICATOR_SOCK       "        "
-    ID_LOG_OPEN             "通信ログをファイルに保存する\n通信ログ"
+    ID_EDIT_CHECK           "他の変更を確認して最新の情報に更新します\n更新"
+    ID_EDIT_COPY_ALL        "すべてクリップボードにコピー\nすべてコピー"
 END
 
 STRINGTABLE
 BEGIN
+    ID_EDIT_PASTE_ALL       "クリップボードから貼り付け\nすべて貼り付け"
+    ID_FILE_ALL_SAVE        "サーバー情報とウインドウ状態も含めてファイルに保存\nすべて保存"
+    ID_GOZIVIEW             "おさかなを飼う\nおさかな"
+    ID_IDKEY_CAKEY          "署名された公開鍵を追加で設定します"
+    ID_INDICATOR_SOCK       "        "
+    ID_LOG_OPEN             "通信ログをファイルに保存する\n通信ログ"
     ID_MACRO_PLAY           "記録されたキー操作を再現します\n記録したキー操作を再現"
     ID_MACRO_REC            "キー入力を記録もしくは停止します\nキー操作の記録"
+END
+
+STRINGTABLE
+BEGIN
+    ID_MOUSE_EVENT          "マウスイベントを無効にします\nマウスイベント無効"
     ID_PANE_DELETE          "分割を閉じて上位ウインドと同じサイズにします\n閉分割"
     ID_PANE_HSPLIT          "縦方向に分割する\n縦分割"
     ID_PANE_SAVE            "現在の分割状態を保存し次回起動時に戻します\n分割保存"
     ID_PANE_WSPLIT          "横方向に分割する\n横分割"
     ID_PROP_SET             "オプション設定を行います\nオプション設定"
+    ID_SEND_BREAK           "シリアル通信の場合Break信号をおくります\nBreak送信"
     ID_SETOPTION            "オプション設定を行います\nオプション設定"
+    ID_SPLIT_HEIGHT         "縦方向に画面を分割してサーバーに接続する\n縦分割接続"
+    ID_SPLIT_OVER           "画面分割しないでサーバーに接続\n重ねて接続"
+    ID_SPLIT_WIDTH          "横方向に画面を分割してサーバーに接続する\n横分割接続"
+    ID_VIEW_MENUBAR         "メニューバーの 表示/非表示\nメニューバーの表示切り替え"
+    ID_VIEW_SCROLLBAR       "スクロールバーの表示/非表示\nスクロールバーの表示切り替え"
     ID_WINDOW_CLOSE         "作業中のウィンドウを閉じます\n閉じる"
-    ID_FILE_ALL_SAVE        "サーバー情報とウインドウ状態も含めてファイルに保存\nすべて保存"
 END
 
 STRINGTABLE
@@ -2938,10 +3032,24 @@ END
 
 STRINGTABLE
 BEGIN
+    IDM_KANJI_ASCII         "漢字コードをASCII(英字セット)で処理する\nASCII"
     IDM_KANJI_EUC           "漢字コードをEUCで処理する\nEUC"
     IDM_KANJI_SJIS          "漢字コードをSHIFTJISで処理する\nSJIS"
-    IDM_KANJI_ASCII         "漢字コードをASCII(英字セット)で処理する\nASCII"
     IDM_KANJI_UTF8          "漢字コードをUTF8で処理する\nUTF8"
+    IDM_KERMIT_DOWNLOAD     "Kermitでファイルをダウンロードする\nKermitダウン"
+    IDM_KERMIT_UPLOAD       "Kermitでファイルをアップロードする\nKermitアップ"
+    IDM_RESET_ALL           "すべてを初期化し画面を消去します\n全初期化"
+    IDM_RESET_ATTR          "文字属性を初期化します\n文字初期k"
+    IDM_RESET_BANK          "文字バンク設定を初期化します\nバンク初期化"
+    IDM_RESET_ESC           "ESCシーケンスを初期化します\nESC初期化"
+    IDM_RESET_MOUSE         "マウスイベントを初期化します\nイベント初期化"
+    IDM_RESET_TAB           "タブ設定を初期化します\nタブ初期化"
+    IDM_RESET_TEK           "tek40xx/41xxを初期化します\ntek初期化"
+END
+
+STRINGTABLE
+BEGIN
+    IDM_SERV_PROTO          "プロトコルハンドラに登録\nハンドラに登録"
     IDM_SFTP                "ファイル転送を行う\nファイル転送"
     IDM_SFTP_ABORT          "ファイル転送の中止する\n中止"
     IDM_SFTP_ALLDOWNLOAD    "ファイルの更新日時を比較してダウンロードする\nミラーダウンロード"
@@ -2950,139 +3058,49 @@ BEGIN
     IDM_SFTP_CLOSE          "このファイル転送ウィンドウを閉じる\n閉じる"
     IDM_SFTP_DELETE         "選択されたファイルを削除する\nファイル削除"
     IDM_SFTP_DOWNLOAD       "ファイルのダウンロード\nダウンロード"
-END
-
-STRINGTABLE
-BEGIN
-    ID_EDIT_CHECK           "他の変更を確認して最新の情報に更新します\n更新"
-    ID_CHARSCRIPT_END       "実行中のChatScriptを中断します\nChatScript完了"
-    ID_SEND_BREAK           "シリアル通信の場合Break信号をおくります\nBreak送信"
-    ID_MOUSE_EVENT          "マウスイベントを無効にします\nマウスイベント無効"
-    ID_EDIT_COPY_ALL        "すべてクリップボードにコピー\nすべてコピー"
-    ID_EDIT_PASTE_ALL       "クリップボードから貼り付け\nすべて貼り付け"
-    ID_VIEW_SCROLLBAR       "スクロールバーの表示/非表示\nスクロールバーの表示切り替え"
+    IDM_SFTP_MKDIR          "新規にフォルダを作成する\nフォルダ作成"
+    IDM_SFTP_REFLESH        "ファイル情報を最新に更新する\n更新"
+    IDM_SFTP_RENAME         "ファイル名を変更する\nファイル名変更"
+    IDM_SFTP_UPLOAD         "ファイルのアップロード\nアップロード"
 END
 
 STRINGTABLE
 BEGIN
     IDM_BROADCAST           "キー入力を他のウィンドウにも同時送信する\n同時送信"
-    IDM_SOCKETSTATUS        "ソケットの現在の状態を表示\nソケットステータス"
-    IDM_GRAPDISP            "Grapウィンドウを表示・非表示にします\nGrap表示"
-END
-
-STRINGTABLE
-BEGIN
-    IDM_SFTP_MKDIR          "新規にフォルダを作成する\nフォルダ作成"
-    IDM_SFTP_REFLESH        "ファイル情報を最新に更新する\n更新"
-    IDM_SFTP_RENAME         "ファイル名を変更する\nファイル名変更"
-    IDM_SFTP_UPLOAD         "ファイルのアップロード\nアップロード"
-    IDM_XMODEM_UPLOAD       "XModemでファイルをアップロードする\nXModemアップ"
-    IDM_YMODEM_UPLOAD       "YModemでファイルをアップロードする\nYModemアップ"
-    IDM_ZMODEM_UPLOAD       "ZModemでファイルをアップロードする\nZModemアップ"
-    IDM_XMODEM_DOWNLOAD     "XModemでファイルをダウンロードする\nXModemダウン"
-    IDM_YMODEM_DOWNLOAD     "YModemでファイルをダウンロードする\nYModemダウン"
-    IDM_ZMODEM_DOWNLOAD     "ZModemでファイルをダウンロードする\nZModemダウン"
-    IDM_KERMIT_UPLOAD       "Kermitでファイルをアップロードする\nKermitアップ"
-    IDM_KERMIT_DOWNLOAD     "Kermitでファイルをダウンロードする\nKermitダウン"
-    IDM_RESET_TAB           "タブ設定を初期化します\nタブ初期化"
-    IDM_RESET_BANK          "文字バンク設定を初期化します\nバンク初期化"
-    IDM_RESET_ATTR          "文字属性を初期化します\n文字初期k"
-    IDM_RESET_TEK           "tek40xx/41xxを初期化します\ntek初期化"
-END
-
-STRINGTABLE
-BEGIN
-    IDM_RESET_ESC           "ESCシーケンスを初期化します\nESC初期化"
-    IDM_RESET_MOUSE         "マウスイベントを初期化します\nイベント初期化"
-    IDM_RESET_ALL           "すべてを初期化し画面を消去します\n全初期化"
     IDM_CHATSTOP            "自動作成中のChatScriptを完了する\nCharScriptの完了"
-    IDM_TEKDISP             "Tekウィンドウを表示・非表示します\nTek表示"
-    IDM_TEK_CLOSE           "Tekウィンドウを閉じる\n閉じる"
-    IDM_TEK_SAVE            "ファイルに保存する\n保存"
-    IDM_TEK_CLEAR           "Tekウインドウをクリアする\nクリア"
-    IDM_TEK_MODE            "Tek/VTモードの切換を行います\nモード切替"
-END
-
-STRINGTABLE
-BEGIN
-    IDM_SEARCH_REG          "正規表現で文字列を検索します\n文字検索"
-    IDM_SEARCH_NEXT         "次を検索します\n次を検索"
-    IDM_SERV_PROTO          "プロトコルハンドラに登録\nハンドラに登録"
-    IDM_SEARCH_BACK         "前を検索します\n前を検索"
-    IDM_SCRIPT              "スクリプトファイルを実行します\nスクリプト実行"
-END
-
-STRINGTABLE
-BEGIN
-    ID_GOZIVIEW             "おさかなを飼う\nおさかな"
-    ID_SPLIT_WIDTH          "横方向に画面を分割してサーバーに接続する\n横分割接続"
-    ID_SPLIT_HEIGHT         "縦方向に画面を分割してサーバーに接続する\n縦分割接続"
-    ID_SPLIT_OVER           "画面分割しないでサーバーに接続\n重ねて接続"
-    ID_WINDOW_ROTATION      "表示しているペインを移動します\nペインの移動"
-    ID_VIEW_MENUBAR         "メニューバーの 表示/非表示\nメニューバーの表示切り替え"
-    IDM_WINODW_NEXT         "次のウィンドウに移動します\n次に移動"
-    IDM_WINDOW_PREV         "前のウィンドウに移動します\n前に移動"
-    ID_IDKEY_CAKEY          "署名された公開鍵を追加で設定します"
+    IDM_DISPWINIDX          "各ウィンドウに番号とタイトルを表示\nウィンドウ識別"
+    IDM_GRAPDISP            "Grapウィンドウを表示・非表示にします\nGrap表示"
     IDM_IMAGEDISP           "Imageウィンドウを表示・非表示します\nImage表示"
 END
 
 STRINGTABLE
 BEGIN
-    IDS_IDKEYCREATE         "SSH鍵の作成"
-    IDS_IDKEYRENAME         "認証キーの名前が変更できます"
-    IDS_IDKEYFILELOADCOM    "作成時に設定したパスフレーズを入力してください。"
-    IDS_IDKEYFILESAVECOM    "作成時に設定したパスフレーズを入力してください。パスフレーズが一致しないと保存できません"
-    IDS_IDKEYCREATECOM      "パスフレーズは、非常に重要です。作成時に設定するパスフレーズは、ファイルに保存する場合やサーバー接続で使用する場合にも入力が必要になります。"
-    IDS_INITBUTTON          "初期化"
-    IDS_ALLINITREQ          "すべての設定を標準に戻しますか？"
-    IDS_FILEDLGIMAGE        "Image FIle (*.bmp;*.jpg)|*.bmp;*.jpg|All Files (*.*)|*.*||"
-    IDS_FILEDLGGRAPHICS     "GIF ファイル (*.gif)|*.gif|JPEG ファイル (*.jpg)|*.jpg|PNG ファイル (*.png)|*.png|BMP ファイル (*.bmp)|*.bmp||"
-    IDS_FILEDLGHISTORY      "History ファイル (*.rlh)|*.rlh|All Files (*.*)|*.*||"
-    IDS_FILEDLGLOGFILE      "ログ ファイル (*.txt)|*.txt|All Files (*.*)|*.*||"
-    IDS_FILEDLGALLFILE      "All Files (*.*)|*.*||"
-    IDS_FILEDLGRLOGIN       "RLogin ファイル (*.rlg)|*.rlg|All Files (*.*)|*.*||"
-    IDS_FILEDLGTEKIMAGE     "GIF ファイル (*.gif)|*.gif|JPEG ファイル (*.jpg)|*.jpg|PNG ファイル (*.png)|*.png|BMP ファイル (*.bmp)|*.bmp|DXF ファイル (*.dxf)|*.dxf|TEK ファイル (*.tek)|*.tek||"
-    IDS_FILEDLGTEKIMAGE2    "DXF ファイル (*.dxf)|*.dxf|TEK ファイル (*.tek)|*.tek||"
-    IDS_IDKEYFILEDELREQ     "認証キーファイルの設定を解除しますか？"
-END
-
-STRINGTABLE
-BEGIN
-    IDE_INFOCAPOVER1024     "TERMCAPのトータル文字数が1024文字の制限を超えました\n"
-    IDE_INFOCAPINFOCONVERROR "TERMINFOからTERMCAPに変換できない文法を含んでいます\n\n"
-    IDE_UPDATERESUMEERROR   "再開できません上書きになります"
-    IDE_PROTOCOLENTRY       "login/telnet/sshプロトコルのみ登録できます"
-    IDE_USESERVERENTRY      "Server Entry を入力してください"
-    IDE_FILENAMEERROR       "ファイル名変換規則に該当する名前です。変換しますか？"
-    IDE_KANJICONVERROR      "文字コード変換でエラーが発生しました。\n正しく変換されていない可能性があります"
-    IDE_MANYCHANNEL         "多くのチャンネルを開こうとしています\n続行しますか？"
-    IDE_ECDSABITSIZEERR     "ECDSAは、ビットサイズを256/384/521から選択してください"
-    IDE_DSABITSIZEERR       "DSAは、ビットサイズを768/1024から選択してください。2048以上は、将来的に使えない可能性があります"
-    IDE_RSABITSIZEERR       "RSAは、ビットサイズを768/1024/2048/4096から選択してください。推奨は、2048以上です。"
-END
-
-STRINGTABLE
-BEGIN
-    IDS_SERVERENTRYDELETE   "'%s'サーバーエントリーを削除してもよいですか？"
-    IDS_PROTODLGTITLE       "プロトコルハンドラの登録"
-    IDS_PRORODLGCOMM        "ハンドラ起動時のオプションを指定してください"
-    IDS_CERTTRASTREQ        "%s\n%s\nこの証明書を信頼しますか？"
-    IDS_IDKEYDUPHOSTNAME    "(別の登録あり)"
-    IDS_LOCALFILEDELETE     "ローカルに無いファイルを削除しますか？"
-    IDS_REMOTEFILEDELETE    "リモートに無いファイルを削除しますか？"
-    IDS_FILEDELETEREQ       "を削除しますか？"
-    IDS_FILECOUNTMSG        "%d個のファイル"
-    IDS_CREATEDIRMSG        "新しいフォルダの作成"
-    IDS_RENAMEMSG           "ファイル名の変更"
-    IDS_FILEDLGSCRIPT       "スクリプト ファイル (*.txt)|*.txt|All Files (*.*)|*.*||"
-    IDS_SCRIPTNEW           "すでに読み込んでいるスクリプトを放棄しますか？"
-    IDS_FILECLOSEQES        "現在、接続中です。接続を閉じますか？"
-END
-
-STRINGTABLE
-BEGIN
+    IDM_SOCKETSTATUS        "ソケットの現在の状態を表示\nソケットステータス"
+    IDM_SPLIT_HEIGHT_NEW    "縦方向に分割して新規に接続します\n縦新規接続"
+    IDM_SPLIT_WIDTH_NEW     "横方向に分割して新規に接続します\\横新規接続"
+    IDM_TEK_CLEAR           "Tekウインドウをクリアする\nクリア"
+    IDM_TEK_CLOSE           "Tekウィンドウを閉じる\n閉じる"
+    IDM_TEK_MODE            "Tek/VTモードの切換を行います\nモード切替"
+    IDM_TEK_SAVE            "ファイルに保存する\n保存"
+    IDM_TEKDISP             "Tekウィンドウを表示・非表示します\nTek表示"
     IDM_TRACEDISP           "トレースウィンドウを表示・非表示\nトレースウィンドウ"
-    IDM_DISPWINIDX          "各ウィンドウに番号とタイトルを表示\nウィンドウ識別"
+    IDM_WINDOW_PREV         "前のウィンドウに移動します\n前に移動"
+END
+
+STRINGTABLE
+BEGIN
+    IDM_WINODW_NEXT         "次のウィンドウに移動します\n次に移動"
+    IDM_XMODEM_DOWNLOAD     "XModemでファイルをダウンロードする\nXModemダウン"
+    IDM_XMODEM_UPLOAD       "XModemでファイルをアップロードする\nXModemアップ"
+    IDM_YMODEM_DOWNLOAD     "YModemでファイルをダウンロードする\nYModemダウン"
+    IDM_YMODEM_UPLOAD       "YModemでファイルをアップロードする\nYModemアップ"
+    IDM_ZMODEM_DOWNLOAD     "ZModemでファイルをダウンロードする\nZModemダウン"
+    IDM_ZMODEM_UPLOAD       "ZModemでファイルをアップロードする\nZModemアップ"
+END
+
+STRINGTABLE
+BEGIN
+    ID_WINDOW_ROTATION      "表示しているペインを移動します\nペインの移動"
 END
 
 #endif    // 日本語 (日本) resources

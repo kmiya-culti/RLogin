@@ -3139,10 +3139,12 @@ static const struct _InitKeyTab {
 		{ 0,	VK_NEXT,		MASK_CTRL,				_T("$SEARCH_NEXT")	},
 		{ 0,	VK_CANCEL,		0,						_T("$BREAK")		},
 
-		{ 6,	VK_UP,			MASK_CTRL| MASK_SHIFT,	_T("$PANE_TILEHORZ")},
+		{ 6,	VK_UP,			MASK_CTRL | MASK_SHIFT,	_T("$PANE_TILEHORZ")},
 		{ 0,	VK_UP,			MASK_CTRL,				_T("$PANE_ROTATION")},
 		{ 0,	VK_DOWN,		MASK_CTRL,				_T("$SPLIT_HEIGHT")	},
+		{ 7,	VK_DOWN,		MASK_CTRL | MASK_SHIFT,	_T("$SPLIT_HEIGHTNEW")},
 		{ 0,	VK_RIGHT,		MASK_CTRL,				_T("$SPLIT_WIDTH")	},
+		{ 7,	VK_RIGHT,		MASK_CTRL | MASK_SHIFT,	_T("$SPLIT_WIDTHNEW")},
 		{ 6,	VK_LEFT,		MASK_CTRL | MASK_SHIFT,	_T("$PANE_CASCADE")	},
 		{ 0,	VK_LEFT,		MASK_CTRL,				_T("$SPLIT_OVER")	},
 
@@ -3365,7 +3367,7 @@ void CKeyNodeTab::SetArray(CStringArrayExt &stra)
 
 	tmp.RemoveAll();
 	tmp.AddVal(-1);
-	tmp.AddVal(6);			// KeyCode Bug Fix
+	tmp.AddVal(7);			// KeyCode Bug Fix
 	stra.AddArray(tmp);
 }
 void CKeyNodeTab::GetArray(CStringArrayExt &stra)
@@ -3476,7 +3478,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	97
+#define	CMDSKEYTABMAX	99
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -3557,8 +3559,10 @@ static const struct _CmdsKeyTab {
 	{	IDM_SEARCH_NEXT,		L"$SEARCH_NEXT"		},
 	{	IDM_SEARCH_REG,			L"$SEARCH_REG"		},
 	{	ID_SPLIT_HEIGHT,		L"$SPLIT_HEIGHT"	},
+	{	IDM_SPLIT_HEIGHT_NEW,	L"$SPLIT_HEIGHTNEW"	},
 	{	ID_SPLIT_OVER,			L"$SPLIT_OVER"		},
 	{	ID_SPLIT_WIDTH,			L"$SPLIT_WIDTH"		},
+	{	IDM_SPLIT_WIDTH_NEW,	L"$SPLIT_WIDTHNEW"	},
 	{	IDM_IMAGEDISP,			L"$VIEW_IMAGEDISP"	},
 	{	ID_GOZIVIEW,			L"$VIEW_JOKE"	},
 	{	ID_VIEW_MENUBAR,		L"$VIEW_MENUBAR"	},

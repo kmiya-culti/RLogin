@@ -130,6 +130,9 @@ public:
 	CWnd *GetAciveView();
 	int GetViewCount();
 
+	BOOL LogOpen(LPCTSTR filename);
+	BOOL LogClose();
+
 	void ScriptInit(int cmds, int shift, class CScriptValue &value);
 	void ScriptValue(int cmds, class CScriptValue &value, int mode);
 
@@ -144,15 +147,18 @@ protected:
 
 // インプリメンテーション
 protected:
+	DECLARE_MESSAGE_MAP()
+
+	afx_msg void OnFileClose();
+	afx_msg void OnCancelBtn();
+	afx_msg void OnSockIdle();
+
 	afx_msg void OnLogOpen();
 	afx_msg void OnUpdateLogOpen(CCmdUI* pCmdUI);
-	afx_msg void OnLoadDefault();
-	afx_msg void OnSaveDefault();
-	afx_msg void OnSetOption();
-	afx_msg void OnSftp();
-	afx_msg void OnUpdateSftp(CCmdUI* pCmdUI);
 	afx_msg void OnChatStop();
 	afx_msg void OnUpdateChatStop(CCmdUI *pCmdUI);
+	afx_msg void OnSftp();
+	afx_msg void OnUpdateSftp(CCmdUI* pCmdUI);
 	afx_msg void OnKanjiCodeSet(UINT nID);
 	afx_msg void OnUpdateKanjiCodeSet(CCmdUI* pCmdUI);
 	afx_msg void OnXYZModem(UINT nID);
@@ -161,19 +167,19 @@ protected:
 	afx_msg void OnUpdateSendBreak(CCmdUI *pCmdUI);
 	afx_msg void OnTekdisp();
 	afx_msg void OnUpdateTekdisp(CCmdUI *pCmdUI);
-	afx_msg void OnScreenReset(UINT nID);
 	afx_msg void OnSocketstatus();
 	afx_msg void OnUpdateSocketstatus(CCmdUI *pCmdUI);
 	afx_msg void OnScript();
 	afx_msg void OnUpdateScript(CCmdUI *pCmdUI);
-	afx_msg void OnScriptMenu(UINT nID);
-	afx_msg void OnFileClose();
 	afx_msg void OnImagedisp();
 	afx_msg void OnUpdateImagedisp(CCmdUI *pCmdUI);
-	afx_msg void OnCancelBtn();
+
 	afx_msg void OnTracedisp();
-	afx_msg void OnSockIdle();
-	DECLARE_MESSAGE_MAP()
+	afx_msg void OnLoadDefault();
+	afx_msg void OnSaveDefault();
+	afx_msg void OnSetOption();
+	afx_msg void OnScreenReset(UINT nID);
+	afx_msg void OnScriptMenu(UINT nID);
 };
 
 /////////////////////////////////////////////////////////////////////////////

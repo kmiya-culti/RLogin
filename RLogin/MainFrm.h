@@ -226,43 +226,51 @@ public:
 // 生成された、メッセージ割り当て関数
 protected:
 	DECLARE_MESSAGE_MAP()
+
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnDestroy();
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
+	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
+	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
+	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+	afx_msg BOOL OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCopyDataStruct);
+	afx_msg void OnUpdateIndicatorSock(CCmdUI* pCmdUI);
+	afx_msg void OnEnterMenuLoop(BOOL bIsTrackPopupMenu);
+	afx_msg void OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized);
+	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
+
 	afx_msg void OnPaneWsplit();
 	afx_msg void OnPaneHsplit();
 	afx_msg void OnPaneDelete();
 	afx_msg void OnPaneSave();
+	afx_msg void OnWinodwSelect(UINT nID);
+
 	afx_msg void OnWindowCascade();
-	afx_msg void OnWindowTileHorz();
-	afx_msg void OnWindowRotation();
 	afx_msg void OnUpdateWindowCascade(CCmdUI* pCmdUI);
+	afx_msg void OnWindowTileHorz();
 	afx_msg void OnUpdateWindowTileHorz(CCmdUI* pCmdUI);
+	afx_msg void OnWindowRotation();
 	afx_msg void OnUpdateWindowRotation(CCmdUI *pCmdUI);
-	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
-	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
-	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+	afx_msg void OnWindowPrev();
+	afx_msg void OnUpdateWindowPrev(CCmdUI *pCmdUI);
+	afx_msg void OnWinodwNext();
+	afx_msg void OnUpdateWinodwNext(CCmdUI *pCmdUI);
+
+	afx_msg void OnViewMenubar();
+	afx_msg void OnUpdateViewMenubar(CCmdUI *pCmdUI);
+	afx_msg void OnViewScrollbar();
+	afx_msg void OnUpdateViewScrollbar(CCmdUI *pCmdUI);
+
+	afx_msg void OnFileAllLoad();
 	afx_msg void OnFileAllSave();
+
 	afx_msg LRESULT OnWinSockSelect(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnGetHostAddr(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnIConMsg(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnThreadMsg(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnAfterOpen(WPARAM wParam, LPARAM lParam);
-	afx_msg void OnUpdateIndicatorSock(CCmdUI* pCmdUI);
-	afx_msg void OnFileAllLoad();
-	afx_msg BOOL OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCopyDataStruct);
-	afx_msg void OnEnterMenuLoop(BOOL bIsTrackPopupMenu);
-	afx_msg void OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized);
-	afx_msg void OnViewScrollbar();
-	afx_msg void OnUpdateViewScrollbar(CCmdUI *pCmdUI);
-	afx_msg void OnViewMenubar();
-	afx_msg void OnUpdateViewMenubar(CCmdUI *pCmdUI);
-	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
-	afx_msg void OnWindowPrev();
-	afx_msg void OnUpdateWindowPrev(CCmdUI *pCmdUI);
-	afx_msg void OnWinodwNext();
-	afx_msg void OnUpdateWinodwNext(CCmdUI *pCmdUI);
-	afx_msg void OnWinodwSelect(UINT nID);
+public:
+	afx_msg void OnClose();
 };
 
 

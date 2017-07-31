@@ -324,14 +324,14 @@ BOOL CRLoginApp::InitInstance()
 
 #ifdef	WINSOCK11
 	if ( !AfxSocketInit() ) {
-		AfxMessageBox(IDP_SOCKETS_INIT_FAILED);
+		AfxMessageBox(IDS_SOCKETS_INIT_FAILED);
 		return FALSE;
 	}
 #else
 	WORD wVersionRequested;
 	wVersionRequested = MAKEWORD( 2, 2 );
 	if ( WSAStartup( wVersionRequested, &wsaData ) != 0 ) {
-		AfxMessageBox(IDP_SOCKETS_INIT_FAILED);
+		AfxMessageBox(IDS_SOCKETS_INIT_FAILED);
 		return FALSE;
 	}
 #endif
@@ -1259,3 +1259,5 @@ void CRLoginApp::OnDispwinidx()
 		}
 	}
 }
+
+

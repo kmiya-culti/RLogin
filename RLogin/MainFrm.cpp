@@ -689,6 +689,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_COMMAND_RANGE(IDM_WINDOW_SEL0, IDM_WINDOW_SEL9, &CMainFrame::OnWinodwSelect)
 
 	ON_UPDATE_COMMAND_UI(ID_INDICATOR_SOCK, OnUpdateIndicatorSock)
+	ON_WM_CLOSE()
 END_MESSAGE_MAP()
 
 static const UINT indicators[] =
@@ -771,6 +772,14 @@ CMainFrame::~CMainFrame()
 
 int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 {
+	int n, i, id, x, y;
+	CDC dc[2];
+	CBitmap BitMap;
+	CBitmap *pOld[2];
+	CBuffer buf;
+	CMenuBitMap *pMap;
+	CMenu *pMenu;
+
 	if (CMDIFrameWnd::OnCreate(lpCreateStruct) == -1)
 		return -1;
 
@@ -781,7 +790,6 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		return -1;      // çÏê¨Ç…é∏îs
 	}
 
-	CBitmap BitMap;
 	BitMap.LoadBitmap(IDB_BITMAP1);
 	m_ImageList[0].Create(16, 16, ILC_COLOR24 | ILC_MASK, 0, 10);
 	m_ImageList[0].Add(&BitMap, RGB(192, 192, 192));
@@ -812,20 +820,21 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_ImageGozi.Create(16, 16, ILC_COLOR24 | ILC_MASK, 12, 10);
 	m_ImageGozi.Add(&BitMap, RGB(255, 255, 255));
 	BitMap.DeleteObject();
+#elif	USE_GOZI == 4
+	m_ImageGozi.Create(16, 16, ILC_COLOR24 | ILC_MASK, 12 * 13, 12);
+	for ( n = 0 ; n < 13 ; n++ ) {
+		BitMap.LoadBitmap(IDB_BITMAP10 + n);
+		m_ImageGozi.Add(&BitMap, RGB(255, 255, 255));
+		BitMap.DeleteObject();
+	}
 #endif	// USE_GOZI
-
-	int n, i, id, x, y;
-	CMenuBitMap *pMap;
-	CDC dc[2];
-	CBitmap tmpMap;
-	CBitmap *pOld[2];
 
 	x = GetSystemMetrics(SM_CXMENUCHECK);
 	y = GetSystemMetrics(SM_CYMENUCHECK);
 
 	dc[0].CreateCompatibleDC(NULL);
-	tmpMap.CreateBitmap(16, 16, dc[0].GetDeviceCaps(PLANES), dc[0].GetDeviceCaps(BITSPIXEL), NULL);
-	pOld[0] = dc[0].SelectObject(&tmpMap);
+	BitMap.CreateBitmap(16, 16, dc[0].GetDeviceCaps(PLANES), dc[0].GetDeviceCaps(BITSPIXEL), NULL);
+	pOld[0] = dc[0].SelectObject(&BitMap);
 
 	dc[1].CreateCompatibleDC(NULL);
 	dc[1].SetStretchBltMode(HALFTONE);
@@ -877,7 +886,6 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_TransParColor = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("LayeredColor"), RGB(0, 0 ,0));
 	SetTransPar(m_TransParColor, m_TransParValue, LWA_ALPHA | LWA_COLORKEY);
 
-	CBuffer buf;
 	((CRLoginApp *)AfxGetApp())->GetProfileBuffer(_T("MainFrame"), _T("Pane"), buf);
 	m_pTopPane = CPaneFrame::GetBuffer(this, NULL, NULL, &buf);
 
@@ -888,15 +896,12 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	ExDwmEnableWindow(m_hWnd, AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("GlassStyle"), FALSE));
 
-	CMenu* pSysMenu = GetSystemMenu(FALSE);
-
-	if (pSysMenu != NULL) {
-		pSysMenu->InsertMenu(0, MF_BYPOSITION | MF_SEPARATOR);
-		pSysMenu->InsertMenu(0, MF_BYPOSITION | MF_STRING, ID_VIEW_MENUBAR, CStringLoad(IDS_VIEW_MENUBAR));
+	if ( (pMenu = GetSystemMenu(FALSE)) != NULL ) {
+		pMenu->InsertMenu(0, MF_BYPOSITION | MF_SEPARATOR);
+		pMenu->InsertMenu(0, MF_BYPOSITION | MF_STRING, ID_VIEW_MENUBAR, CStringLoad(IDS_VIEW_MENUBAR));
 	}
 
-	CMenu *pMenu = GetMenu();
-	if ( pMenu != NULL )
+	if ( (pMenu = GetMenu()) != NULL )
 		m_StartMenuHand = pMenu->GetSafeHmenu();
 
 	return 0;
@@ -2394,4 +2399,26 @@ void CMainFrame::OnUpdateWinodwNext(CCmdUI *pCmdUI)
 void CMainFrame::OnUpdateWindowPrev(CCmdUI *pCmdUI)
 {
 	pCmdUI->Enable(m_wndTabBar.GetSize() > 1 ? TRUE : FALSE);
+}
+
+void CMainFrame::OnClose()
+{
+	int count = 0;
+	CWinApp *pApp = AfxGetApp();
+
+	POSITION pos = pApp->GetFirstDocTemplatePosition();
+	while ( pos != NULL ) {
+		CDocTemplate *pDocTemp = pApp->GetNextDocTemplate(pos);
+		POSITION dpos = pDocTemp->GetFirstDocPosition();
+		while ( dpos != NULL ) {
+			CRLoginDoc *pDoc = (CRLoginDoc *)pDocTemp->GetNextDoc(dpos);
+			if ( pDoc != NULL && pDoc->m_pSock != NULL && pDoc->m_pSock->m_bConnect )
+				count++;
+		}
+	}
+
+	if ( count > 0 && AfxMessageBox(CStringLoad(IDS_FILECLOSEQES), MB_ICONQUESTION | MB_YESNO) != IDYES )
+		return;
+
+	CMDIFrameWnd::OnClose();
 }
