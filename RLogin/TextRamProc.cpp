@@ -312,6 +312,7 @@ static const CTextRam::PROCTAB fc_Ext1Tab[] = {			// ('?' << 16) | sc
 	{ 'J',		0,			&CTextRam::fc_DECSED	},	// DECSED Selective Erase in Display
 	{ 'K',		0,			&CTextRam::fc_DECSEL	},	// DECSEL Selective Erase in Line
 //	{ 'S',		0,			&CTextRam::fc_POP		},	//		SHOW_STATUS
+	{ 'S',		0,			&CTextRam::fc_XTCOLREG	},	// XTCOLREG
 //	{ 'T',		0,			&CTextRam::fc_POP		},	//		TO_STATUS
 	{ 'W',		0,			&CTextRam::fc_DECST8C	},	// DECST8C Set Tab at every 8 columns
 	{ 'h',		0,			&CTextRam::fc_DECSET	},	// DECSET
@@ -632,7 +633,7 @@ static CTextRam::ESCNAMEPROC fc_EscNameTab[] = {
 	{	_T("VTS"),		&CTextRam::fc_VTS,		NULL,	NULL,	TRACE_OUT	},
 	{	NULL,			NULL,					NULL,	NULL,	TRACE_OUT	} };
 
-static int	fc_CsiNameTabMax = 127;
+static int	fc_CsiNameTabMax = 128;
 static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	_T("C25LCT"),	&CTextRam::fc_C25LCT,	NULL,	NULL,	TRACE_OUT	},
 	{	_T("CBT"),		&CTextRam::fc_CBT,		NULL,	NULL,	TRACE_OUT	},
@@ -746,6 +747,7 @@ static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	_T("VPA"),		&CTextRam::fc_VPA,		NULL,	NULL,	TRACE_OUT	},
 	{	_T("VPB"),		&CTextRam::fc_VPB,		NULL,	NULL,	TRACE_OUT	},
 	{	_T("VPR"),		&CTextRam::fc_VPR,		NULL,	NULL,	TRACE_OUT	},
+	{	_T("XTCOLREG"),	&CTextRam::fc_XTCOLREG,	NULL,	NULL,	TRACE_NON	},
 	{	_T("XTHDPT"),	&CTextRam::fc_XTHDPT,	NULL,	NULL,	TRACE_OUT	},
 	{	_T("XTMDKEY"),	&CTextRam::fc_XTMDKEY,	NULL,	NULL,	TRACE_NON	},
 	{	_T("XTMDKYD"),	&CTextRam::fc_XTMDKYD,	NULL,	NULL,	TRACE_NON	},
@@ -1124,6 +1126,7 @@ void CTextRam::SetTraceLog(BOOL bSw)
 	m_TraceSaveCount = 0;
 	m_bTraceUpdate = FALSE;
 	m_pTraceProc = NULL;
+	m_TraceSendBuf.Clear();
 
 	m_pCallPoint = (bSw ? &CTextRam::fc_TraceCall : &CTextRam::fc_FuncCall);
 }
@@ -1188,6 +1191,14 @@ void CTextRam::fc_TraceLogFlush(ESCNAMEPROC *pProc, BOOL bParam)
 
 		m_pTraceTop = m_pTraceNow;
 		m_pTraceNow = NULL;
+	}
+
+	if ( m_TraceSendBuf.GetSize() > 0 ) {
+		m_pTraceNow = new CTraceNode;
+		m_pTraceNow->m_Buffer = m_TraceSendBuf;
+		m_TraceSendBuf.Clear();
+		m_pTraceNow->m_Flag = TRACE_UNGET;
+		fc_TraceLogFlush(NULL, FALSE);
 	}
 }
 void CTextRam::fc_TraceCall(DWORD ch)
@@ -5482,6 +5493,59 @@ void CTextRam::fc_DECSEL(DWORD ch)
 		break;
 	}
 	fc_POP(ch);
+}
+void CTextRam::fc_XTCOLREG(DWORD ch)
+{
+	// CSI ? Pi; Pa; Pv S
+
+	// If configured to support either Sixel Graphics or ReGIS Graph-
+	// ics, xterm accepts a three-parameter control sequence, where
+	// Pi, Pa and Pv are the item, action and value.
+	//  Pi = 1  -> item (color registers)
+	//  Pa = 1  -> read the number of color registers
+	//  Pa = 2  -> reset the number of color registers
+	//  Pa = 3  -> set the number of color registers to the value Pv
+	// The control sequence returns a response using the same form:
+	//   CSI ? Pi; Ps; Pv S
+	// where Ps is the status:
+	//  Ps = 0  -> success
+	//  Ps = 1  -> Pi != 1
+	//  Ps = 2  -> Pa != 1,2,3
+	//  Ps = 3  -> failure
+
+	int status = 3;
+	int result = 0;
+
+	fc_POP(ch);
+
+	if ( m_AnsiPara.GetSize() != 3 )
+		return;
+
+	switch(GetAnsiPara(0, 0, 0)) {
+	case 1:	// color registers
+		switch(GetAnsiPara(1, 0, 0)) {
+		case 1:	// read
+		case 2:	// reset
+		case 3:	// set
+			status = 0;
+			result = SIXEL_PALET;
+			break;
+		default:
+			status = 2;
+			break;
+		}
+		break;
+	default:
+		status = 1;
+		break;
+	}
+
+	// 応答がエコーされた場合に無限ループする可能性がある為にstatus!=0の場合にパラメータを２つにした
+
+	if ( status == 0 )
+		UNGETSTR(_T("%s?%d;%d;%dS"), m_RetChar[RC_CSI], GetAnsiPara(0, 0, 0), status, result);
+	else
+		UNGETSTR(_T("%s?%d;%dS"), m_RetChar[RC_CSI], GetAnsiPara(0, 0, 0), status);
 }
 void CTextRam::fc_DECST8C(DWORD ch)
 {

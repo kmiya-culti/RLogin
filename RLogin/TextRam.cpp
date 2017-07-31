@@ -4666,6 +4666,9 @@ void CTextRam::UNGETSTR(LPCTSTR str, ...)
 				mbs += *str;
 		}
 		m_pDocument->SocketSend((void *)(LPCSTR)mbs, mbs.GetLength());
+
+		if ( m_pCallPoint == &CTextRam::fc_TraceCall )
+			m_TraceSendBuf.Apend((LPBYTE)(LPCSTR)mbs, mbs.GetLength());
 	}
 	va_end(arg);
 }

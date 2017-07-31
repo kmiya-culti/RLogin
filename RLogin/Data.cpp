@@ -2782,6 +2782,10 @@ static const struct _KeyNameTab	{
 	{ VK_OEM_7,		_T("$DE(^)")	},
 	{ VK_OEM_102,	_T("$E2(_)")	},
 
+	{ VK_MBUTTON,	_T("MBTN")		},
+	{ VK_XBUTTON1,	_T("XBTN1")		},
+	{ VK_XBUTTON2,	_T("XBTN2")		},
+
 	{ (-1),			NULL			},
 };
 

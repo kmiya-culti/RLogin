@@ -562,6 +562,7 @@ public:
 #define	TRACE_OUT		0
 #define	TRACE_NON		1
 #define	TRACE_SIXEL		2
+#define	TRACE_UNGET		3
 
 class CTraceNode : public CObject
 {
@@ -1017,6 +1018,7 @@ public:
 	int m_TraceSaveCount;
 	BOOL m_bTraceUpdate;
 	BOOL m_bTraceActive;
+	CBuffer m_TraceSendBuf;
 
 	void SetTraceLog(BOOL bSw);
 	void fc_TraceLogChar(DWORD ch);
@@ -1240,6 +1242,7 @@ public:
 	void fc_DECSET(DWORD ch);
 	void fc_DECMC(DWORD ch);
 	void fc_DECRST(DWORD ch);
+	void fc_XTCOLREG(DWORD ch);
 	void fc_XTREST(DWORD ch);
 	void fc_XTSAVE(DWORD ch);
 	void fc_DECDSR(DWORD ch);

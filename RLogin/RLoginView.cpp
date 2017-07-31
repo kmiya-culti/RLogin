@@ -93,6 +93,8 @@ BEGIN_MESSAGE_MAP(CRLoginView, CView)
 	ON_COMMAND(ID_FILE_PRINT, &CView::OnFilePrint)
 	ON_COMMAND(ID_FILE_PRINT_DIRECT, &CView::OnFilePrint)
 	ON_COMMAND(ID_FILE_PRINT_PREVIEW, &CView::OnFilePrintPreview)
+	ON_WM_XBUTTONDOWN()
+	ON_WM_MBUTTONDOWN()
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -122,6 +124,8 @@ CRLoginView::CRLoginView()
 	m_BroadCast = FALSE;
 	m_WheelDelta = 0;
 	m_WheelTimer = FALSE;
+	m_WheelClock = 0;
+	m_WheelzDelta = 0;
 	m_pGhost = NULL;
 	m_GoziView  = FALSE;
 	m_GoziStyle = (8 << 4) | 9;
@@ -1720,14 +1724,39 @@ void CRLoginView::GetMousePos(int *sw, int *x, int *y)
 
 BOOL CRLoginView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt) 
 {
+	int n;
 	int pos, ofs;
 	CBuffer tmp;
 	CRLoginDoc *pDoc = GetDocument();
+	clock_t now, msec;
 
 	if ( (nFlags & MK_SHIFT) != 0 )
 		SendBroadCastMouseWheel(nFlags, zDelta, pt);
 
+	now = clock();
+	msec = (now - m_WheelClock) * 1000 / CLOCKS_PER_SEC;	// msec
+
+	if ( m_WheelClock == 0 || msec > 1000 ) {				// > 1sec
+		m_WheelClock = now;
+		m_WheelzDelta = 0;
+
+	} else if ( msec < 10 ) {								// < 10ms
+		m_WheelzDelta += zDelta;
+
+	} else {
+		m_WheelzDelta += zDelta;
+		n = m_WheelzDelta * 30 / msec;						// 30ms
+		if ( abs(n) > abs(zDelta) )
+			zDelta = n;
+		if ( msec > 200 ) {									// > 200ms
+			m_WheelClock = now;
+			m_WheelzDelta = 0;
+		}
+	}
+
 	ofs = zDelta * pDoc->m_TextRam.m_WheelSize / (WHEEL_DELTA / 2);
+
+	TRACE("OnMouseWheel %x, %d(%d), (%d,%d)\n", nFlags, zDelta, ofs, pt.x, pt.y);
 
 	if ( (!pDoc->m_TextRam.IsOptEnable(TO_RLMSWAPP) && pDoc->m_TextRam.IsOptEnable(TO_DECCKM)) ||
 					(pDoc->m_TextRam.m_MouseTrack != MOS_EVENT_NONE && !m_MouseEventFlag) || (nFlags & MK_CONTROL) != 0 || pDoc->m_TextRam.IsOptEnable(TO_RLMSWAPE) ) {
@@ -1739,22 +1768,22 @@ BOOL CRLoginView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 	} else {
 
 		if ( m_WheelTimer ) {
-			if ( m_WheelDelta > 0 ) {
-				if ( ofs < 0 )
-					m_WheelDelta = ofs;
-				else
-					m_WheelDelta += ofs;
-			} else if ( m_WheelDelta < 0 ) {
-				if ( ofs > 0 )
-					m_WheelDelta = ofs;
-				else
-					m_WheelDelta += ofs;
-			} else
+			//if ( m_WheelDelta > 0 ) {
+			//	if ( ofs < 0 )
+			//		m_WheelDelta = ofs;
+			//	else
+			//		m_WheelDelta += ofs;
+			//} else if ( m_WheelDelta < 0 ) {
+			//	if ( ofs > 0 )
+			//		m_WheelDelta = ofs;
+			//	else
+			//		m_WheelDelta += ofs;
+			//} else
 				m_WheelDelta = ofs;
 		} else {
-			if ( !pDoc->m_TextRam.IsOptEnable(TO_RLMOSWHL) && (ofs > 4 || ofs < -4) ) {
+			if ( !pDoc->m_TextRam.IsOptEnable(TO_RLMOSWHL) && abs(ofs) > 5 ) {
 				m_WheelDelta = ofs;
-				SetTimer(VTMID_WHEELMOVE, 100, NULL);
+				SetTimer(VTMID_WHEELMOVE, 100, NULL);			// 100ms
 				m_WheelTimer = TRUE;
 			} else {
 				if ( (pos = m_HisOfs + ofs) < 0 )
@@ -1903,6 +1932,25 @@ void CRLoginView::OnLButtonUp(UINT nFlags, CPoint point)
 	m_ClipFlag = 6;
 	if ( pDoc->m_TextRam.IsOptEnable(TO_RLCKCOPY) )
 		OnEditCopy();
+}
+void CRLoginView::OnMButtonDown(UINT nFlags, CPoint point)
+{
+	CView::OnMButtonDown(nFlags, point);
+
+	OnKeyDown(VK_MBUTTON, 0, nFlags);
+}
+void CRLoginView::OnXButtonDown(UINT nFlags, UINT nButton, CPoint point)
+{
+	CView::OnXButtonDown(nFlags, nButton, point);
+
+	switch(nButton) {
+	case XBUTTON1:
+		OnKeyDown(VK_XBUTTON1, 0, nFlags);
+		break;
+	case XBUTTON2:
+		OnKeyDown(VK_XBUTTON2, 0, nFlags);
+		break;
+	}
 }
 void CRLoginView::OnMouseMove(UINT nFlags, CPoint point) 
 {

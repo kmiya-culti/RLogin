@@ -2935,12 +2935,12 @@ int Cssh::SSH2MsgGlobalRequest(CBuffer *bp)
 	if ( str.Compare("keepalive@openssh.com") == 0 ) {
 		success = TRUE;
 
-	} else if ( str.Compare("hostkeys@openssh.com") == 0 ) {
+	} else if ( str.Compare("hostkeys-00@openssh.com") == 0 ) {
 		success = SSH2MsgGlobalHostKeys(bp);
 
-	} else if ( !str.IsEmpty() ) {
-		msg.Format(_T("Get Msg Global Request '%s'"), m_pDocument->LocalStr(str));
-		AfxMessageBox(msg);
+	//} else if ( !str.IsEmpty() ) {
+	//	msg.Format(_T("Get Msg Global Request '%s'"), m_pDocument->LocalStr(str));
+	//	AfxMessageBox(msg);
 	}
 
 	if ( reply > 0 ) {

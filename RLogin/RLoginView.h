@@ -61,6 +61,8 @@ public:
 	volatile BOOL m_BroadCast;
 	int m_WheelDelta;
 	BOOL m_WheelTimer;
+	clock_t m_WheelClock;
+	int m_WheelzDelta;
 	BOOL m_PastNoCheck;
 	BOOL m_ScrollOut;
 
@@ -152,6 +154,8 @@ protected:
 	afx_msg void OnLButtonDblClk(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
+	afx_msg void OnMButtonDown(UINT nFlags, CPoint point);
+	afx_msg void OnXButtonDown(UINT nFlags, UINT nButton, CPoint point);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void OnEditPaste();
 	afx_msg void OnUpdateEditPaste(CCmdUI* pCmdUI);
