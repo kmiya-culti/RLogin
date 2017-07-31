@@ -26,6 +26,7 @@ public:
 	CString	m_ListenPort;
 	CString	m_ConnectHost;
 	CString	m_ConnectPort;
+	int m_ListenType;
 	//}}AFX_DATA
 
 

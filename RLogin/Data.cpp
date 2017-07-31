@@ -2895,6 +2895,7 @@ void CParamTab::GetArray(CStringArrayExt &array)
 	CRLoginApp *pApp  = (CRLoginApp *)AfxGetApp();
 	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
 	CStringBinary idx;
+	CStringArrayExt list;
 
 	for ( n = 0 ; n < 9 ; n++ ) {
 		if ( (n % 3) == 2 )
@@ -2927,7 +2928,21 @@ void CParamTab::GetArray(CStringArrayExt &array)
 			i++;
 			break;
 		}
-		m_PortFwd.Add(array[i++]);
+		list.GetString(array[i]);
+		if ( list.GetSize() >= 4 ) {
+			if ( list.GetSize() == 4 ) {
+				if ( list[0].Compare("localhost") == 0 )
+					a = PFD_LOCAL;
+				else if ( list[0].Compare("socks") == 0 )
+					a = PFD_SOCKS;
+				else
+					a = PFD_REMOTE;
+				list.AddVal(a);
+				list.SetString(array[i]);
+			}
+			m_PortFwd.Add(array[i]);
+		}
+		i++;
 	}
 
 	m_XDisplay  = (array.GetSize() > i ? array.GetAt(i++) : ":0");

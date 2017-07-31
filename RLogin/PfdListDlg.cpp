@@ -16,6 +16,8 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // CPfdListDlg ダイアログ
 
+static const char *ListenTypeName[] = { "local", "socks", "remote" };
+
 CPfdListDlg::CPfdListDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CPfdListDlg::IDD, pParent)
 {
@@ -59,22 +61,24 @@ END_MESSAGE_MAP()
 
 void CPfdListDlg::InitList()
 {
-	int n;
+	int n, i;
 	CStringArrayExt array;
 
 	m_List.DeleteAllItems();
 
 	for ( n = 0 ; n < m_pData->m_PortFwd.GetSize() ; n++ ) {
 		array.GetString(m_pData->m_PortFwd[n]);
-		if ( array.GetSize() < 4 ) {
+		if ( array.GetSize() < 5 ) {
 			m_pData->m_PortFwd.RemoveAt(n);
 			n--;
 			continue;
 		}
-		m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, n, array[0], 0, 0, 0, n);
-		m_List.SetItemText(n, 1, array[1]);
-		m_List.SetItemText(n, 2, array[2]);
-		m_List.SetItemText(n, 3, array[3]);
+		i = array.GetVal(4);
+		m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, n, ListenTypeName[i], 0, 0, 0, n);
+		m_List.SetItemText(n, 1, array[0]);
+		m_List.SetItemText(n, 2, array[1]);
+		m_List.SetItemText(n, 3, array[2]);
+		m_List.SetItemText(n, 4, array[3]);
 	}
 	m_List.DoSortItem();
 }
@@ -82,7 +86,8 @@ void CPfdListDlg::InitList()
 /////////////////////////////////////////////////////////////////////////////
 // CPfdListDlg メッセージ ハンドラ
 
-static const LV_COLUMN InitListTab[4] = {
+static const LV_COLUMN InitListTab[5] = {
+		{ LVCF_TEXT | LVCF_WIDTH, 0,  60, "Type",  0, 0 }, 
 		{ LVCF_TEXT | LVCF_WIDTH, 0, 120, "Listened Host",  0, 0 }, 
 		{ LVCF_TEXT | LVCF_WIDTH, 0,  60, "Port", 0, 0 }, 
 		{ LVCF_TEXT | LVCF_WIDTH, 0, 120, "Connect Host",   0, 0 }, 
@@ -95,7 +100,7 @@ BOOL CPfdListDlg::OnInitDialog()
 	CDialog::OnInitDialog();
 
 	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_SUBITEMIMAGES);
-	m_List.InitColumn("PfdList", InitListTab, 4);
+	m_List.InitColumn("PfdList", InitListTab, 5);
 	m_List.SetPopUpMenu(IDR_POPUPMENU, 1);
 	InitList();
 
@@ -162,11 +167,12 @@ void CPfdListDlg::OnEditDups()
 	dlg.m_pData = m_pData;
 	dlg.m_pEntry = m_pEntry;
 	array.GetString(m_pData->m_PortFwd[n]);
-	if ( array.GetSize() >= 4 ) {
+	if ( array.GetSize() >= 5 ) {
 		dlg.m_ListenHost  = array[0];
 		dlg.m_ListenPort  = array[1];
 		dlg.m_ConnectHost = array[2];
 		dlg.m_ConnectPort = array[3];
+		dlg.m_ListenType  = array.GetVal(4);
 	}
 	if ( dlg.DoModal() == IDOK )
 		m_ModifiedFlag = TRUE;

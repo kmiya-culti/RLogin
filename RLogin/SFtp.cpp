@@ -198,7 +198,7 @@ LPCSTR CFileNode::GetAttr()
 	if ( (m_flags & SSH2_FILEXFER_ATTR_PERMISSIONS) == 0 )
 		return "";
 
-	m_name = (m_link ? "l" : ((m_attr & _S_IFMT) == _S_IFDIR ? "d" : "-"));
+	m_name = ((m_link || (m_attr & _S_IFMT) == _S_IFLNK) ? "l" : ((m_attr & _S_IFMT) == _S_IFDIR ? "d" : "-"));
 	for ( int b = 0400 ; b != 0 ; ) {
 		m_name += ((m_attr & b) != 0 ? 'r' : '-'); b >>= 1;
 		m_name += ((m_attr & b) != 0 ? 'w' : '-'); b >>= 1;
@@ -704,7 +704,7 @@ int CSFtp::RemoteLinkStatRes(int type, CBuffer *bp, class CCmdQue *pQue)
 	CFileNode node;
 
 	if ( type != SSH2_FXP_ATTRS ) {
-		DispErrMsg("Get Stat Attr Error", pQue->m_Path);
+//		DispErrMsg("Get Stat Attr Error", pQue->m_Path);
 		return TRUE;
 	}
 	node.DecodeAttr(bp);
@@ -1091,7 +1091,7 @@ int CSFtp::RemoteMtimeCwdRes(int type, CBuffer *bp, class CCmdQue *pQue)
 	CFileNode node;
 
 	if ( type != SSH2_FXP_ATTRS ) {
-		DispErrMsg("Get Stat Attr Error", pQue->m_Path);
+//		DispErrMsg("Get Stat Attr Error", pQue->m_Path);
 		return TRUE;
 	}
 	node.DecodeAttr(bp);

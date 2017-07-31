@@ -469,6 +469,10 @@ public:
 	CKeyMacTab();
 };
 
+#define	PFD_LOCAL		0
+#define	PFD_SOCKS		1
+#define	PFD_REMOTE		2
+
 class CParamTab : public COptObject
 {
 public:

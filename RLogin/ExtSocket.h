@@ -105,11 +105,14 @@ public:
 	~CSockBuffer();
 };
 
+#define	LISTENSOCKS		8
+
 class CExtSocket : public CObject  
 {
 public:
 	int m_Type;
-	SOCKET m_Fd, m_Fdv6;
+	int m_ListenMax;
+	SOCKET m_Fd, m_FdTab[LISTENSOCKS];
 	class CRLoginDoc *m_pDocument;
 
 	CBuffer m_RecvBuff;

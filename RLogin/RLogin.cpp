@@ -826,10 +826,9 @@ BOOL CRLoginApp::OnIdle(LONG lCount)
 	if ( CWinApp::OnIdle(lCount) )
 		return TRUE;
 
-	if ( m_NextSock >= m_SocketIdle.GetSize() )
-		m_NextSock = 0;
-
 	for ( int n = 0 ; n < m_SocketIdle.GetSize() ; n++ ) {
+		if ( m_NextSock >= m_SocketIdle.GetSize() )
+			m_NextSock = 0;
 		CExtSocket *pSock = (CExtSocket *)(m_SocketIdle[m_NextSock]);
 		if ( ++m_NextSock >= m_SocketIdle.GetSize() )
 			m_NextSock = 0;

@@ -27,6 +27,7 @@ CPfdParaDlg::CPfdParaDlg(CWnd* pParent /*=NULL*/)
 	m_pData = NULL;
 	m_pEntry = NULL;
 	m_EntryNum = (-1);
+	m_ListenType = 0;
 }
 
 void CPfdParaDlg::DoDataExchange(CDataExchange* pDX)
@@ -37,6 +38,7 @@ void CPfdParaDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_CBString(pDX, IDC_LISTENPORT, m_ListenPort);
 	DDX_CBString(pDX, IDC_CONNECTHOST, m_ConnectHost);
 	DDX_CBString(pDX, IDC_CONNECTPORT, m_ConnectPort);
+	DDX_Radio(pDX, IDC_RADIO1, m_ListenType);
 	//}}AFX_DATA_MAP
 }
 
@@ -60,16 +62,16 @@ BOOL CPfdParaDlg::OnInitDialog()
 	else
 		m_EntryNum = (-1);
 
-	if ( array.GetSize() >= 4 ) {
+	if ( array.GetSize() >= 5 ) {
 		m_ListenHost  = array[0];
 		m_ListenPort  = array[1];
 		m_ConnectHost = array[2];
 		m_ConnectPort = array[3];
+		m_ListenType  = array.GetVal(4);
 	}
 
 	CComboBox *pCombo;
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_LISTENHOST)) != NULL ) {
-		pCombo->AddString("socks");
 		pCombo->AddString("localhost");
 		if ( m_pEntry != NULL && !m_pEntry->m_HostName.IsEmpty() )
 			pCombo->AddString(m_pEntry->m_HostName);
@@ -97,6 +99,7 @@ void CPfdParaDlg::OnOK()
 	array.Add(m_ListenPort);
 	array.Add(m_ConnectHost);
 	array.Add(m_ConnectPort);
+	array.AddVal(m_ListenType);
 	array.SetString(str);
 
 	if ( m_EntryNum >= 0 )

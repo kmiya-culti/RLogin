@@ -1176,10 +1176,11 @@ void Cssh::PortForward()
 
 	for ( i = 0 ; i < m_pDocument->m_ParamTab.m_PortFwd.GetSize() ; i++ ) {
 		m_pDocument->m_ParamTab.m_PortFwd.GetArray(i, tmp);
-		if ( tmp.GetSize() < 4 )
+		if ( tmp.GetSize() < 5 )
 			continue;
 
-		if ( tmp[0].Compare("localhost") == 0 ) { // && tmp[2].Compare(m_HostName) == 0 ) {
+		switch(tmp.GetVal(4)) {
+		case PFD_LOCAL:
 			n = ChannelOpen();
 			m_Chan[n].m_Status = CHAN_LISTEN;
 			m_Chan[n].m_TypeName = "tcpip-listen";
@@ -1191,7 +1192,9 @@ void Cssh::PortForward()
 				LogIt("Local Listen %s:%s", tmp[0], tmp[1]);
 				a++;
 			}
-		} else if ( tmp[0].Compare("socks") == 0 ) { // && tmp[2].Compare(m_HostName) == 0 ) {
+			break;
+
+		case PFD_SOCKS:
 			n = ChannelOpen();
 			m_Chan[n].m_Status = CHAN_LISTEN | CHAN_PROXY_SOCKS;
 			m_Chan[n].m_TypeName = "socks-listen";
@@ -1204,16 +1207,19 @@ void Cssh::PortForward()
 				LogIt("Local Socks %s:%s", tmp[0], tmp[1]);
 				a++;
 			}
-		} else if ( tmp[0].Compare(m_HostName) == 0 ) { // && tmp[2].Compare("localhost") == 0 ) {
+			break;
+
+		case PFD_REMOTE:
 			n = (int)m_Permit.GetSize();
 			m_Permit.SetSize(n + 1);
 			m_Permit[n].m_lHost = tmp[2];
 			m_Permit[n].m_lPort = GetPortNum(tmp[3]);
 			m_Permit[n].m_rHost = tmp[0];
 			m_Permit[n].m_rPort = GetPortNum(tmp[1]);
-			SendMsgGlobalRequest(n, "tcpip-forward", "localhost", GetPortNum(tmp[1]));
+			SendMsgGlobalRequest(n, "tcpip-forward", tmp[0], GetPortNum(tmp[1]));
 			LogIt("Remote Listen %s:%s", tmp[0], tmp[1]);
 			a++;
+			break;
 		}
 	}
 

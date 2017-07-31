@@ -369,7 +369,8 @@ void CTabBar::OnTimer(UINT_PTR nIDEvent)
 	switch(nIDEvent) {
 	case 1024:
 		KillTimer(1024);
-		SetGhostWnd(TRUE);
+		if ( m_GhostReq >= 0 && (GetStyle() & WS_VISIBLE) != 0 )
+			SetGhostWnd(TRUE);
 		break;
 
 	case 1025:

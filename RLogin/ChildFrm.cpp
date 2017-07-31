@@ -61,6 +61,8 @@ BOOL CChildFrame::PreCreateWindow(CREATESTRUCT& cs)
 //	cs.style |= WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX;
 	cs.style |= WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
 
+//	cs.dwExStyle &= ~WS_EX_CLIENTEDGE;
+
 //	if ( AfxGetApp()->GetProfileInt("ChildFrame", "Style", 1) == 1 )
 //		cs.style |= WS_MAXIMIZE;
 //	else {

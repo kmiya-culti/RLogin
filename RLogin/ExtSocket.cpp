@@ -70,7 +70,8 @@ CExtSocket::CExtSocket(class CRLoginDoc *pDoc)
 {
 	m_pDocument = pDoc;
 	m_Type = ESCT_DIRECT;
-	m_Fd = m_Fdv6 = (-1);
+	m_Fd = (-1);
+	m_ListenMax = 0;
 	m_SocketEvent = FD_READ | FD_OOB | FD_CONNECT | FD_CLOSE;
 	m_RecvSyncMode = SYNC_NONE;
 	m_RecvBufSize = (4 * 1024);
@@ -338,7 +339,8 @@ ERRRET2:
 			return FALSE;
 	}
 
-	m_Fd = m_Fdv6 = (-1);
+	m_Fd = (-1);
+	m_ListenMax = 0;
 
 	for ( ai = aitop ; ai != NULL ; ai = ai->ai_next ) {
 		if ( ai->ai_family != AF_INET && ai->ai_family != AF_INET6 )
@@ -365,17 +367,15 @@ ERRRET2:
 			continue;
 		}
 
-		if ( ai->ai_family == AF_INET && m_Fd == (-1) )
-			m_Fd = fd;
-		else if ( ai->ai_family == AF_INET6 && m_Fdv6 == (-1) )
-			m_Fdv6 = fd;
+		if ( m_ListenMax < LISTENSOCKS )
+			m_FdTab[m_ListenMax++] = fd;
 		else {
 			GetMainWnd()->DelAsyncSelect(fd, this);
 			::closesocket(fd);
 		}
 	}
 	freeaddrinfo(aitop);
-	return (m_Fd == (-1) && m_Fdv6 == (-1) ? FALSE : TRUE);
+	return (m_ListenMax == 0 ? FALSE : TRUE);
 #endif
 }
 BOOL CExtSocket::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
@@ -542,12 +542,12 @@ void CExtSocket::Close()
 		::closesocket(m_Fd);
 		m_Fd = (-1);
 	}
-	if ( m_Fdv6 != (-1) ) {
-		GetMainWnd()->DelAsyncSelect(m_Fdv6, this);
-		::shutdown(m_Fdv6, SD_BOTH);
-		::closesocket(m_Fdv6);
-		m_Fdv6 = (-1);
+	for ( int n = 0 ; n < m_ListenMax ; n++ ) {
+		GetMainWnd()->DelAsyncSelect(m_FdTab[n], this);
+		::shutdown(m_FdTab[n], SD_BOTH);
+		::closesocket(m_FdTab[n]);
 	}
+	m_ListenMax = 0;
 }
 int CExtSocket::Accept(class CExtSocket *pSock, SOCKET hand)
 {
@@ -781,14 +781,6 @@ void CExtSocket::GetStatus(CString &str)
 		tmp.Format("Connect %s#%d", name, port);
 		str += tmp;
 		GetPeerName(m_Fd, name, &port);
-		tmp.Format(" - %s#%d\r\n", name, port);
-		str += tmp;
-	}
-	if ( m_Fdv6 != (-1) ) {
-		GetSockName(m_Fdv6, name, &port);
-		tmp.Format("Connect %s#%d", name, port);
-		str += tmp;
-		GetPeerName(m_Fdv6, name, &port);
 		tmp.Format(" - %s#%d\r\n", name, port);
 		str += tmp;
 	}
