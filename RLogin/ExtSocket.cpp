@@ -1605,7 +1605,7 @@ int CExtSocket::ReciveCall()
 		return 0;
 
 	if ( (m_OnRecvFlag & RECV_ACTIVE) != 0 )
-		return m_RecvSize;
+		return 0;
 
 	m_OnRecvFlag |= RECV_ACTIVE;
 
@@ -1671,7 +1671,7 @@ int CExtSocket::ReciveProc()
 //	TRACE("ReciveProc %08x (%d)\n", this, m_RecvSize);
 
 	if ( (m_OnRecvFlag & RECV_INPROC) != 0 )
-		return TRUE;
+		return FALSE;
 
 	m_OnRecvFlag |= RECV_INPROC;
 
@@ -1721,10 +1721,17 @@ int CExtSocket::ReciveProc()
 }
 int CExtSocket::OnReciveProcBack(void *lpBuf, int nBufLen, int nFlags)
 {
+//	TRACE("OnReciveProcBack %d/%d\n", nBufLen, m_RecvSize);
+	
+	if ( (m_OnRecvFlag & RECV_PROCBACK) != 0 )
+		return 0;
+
+	m_OnRecvFlag |= RECV_PROCBACK;
+
 	if ( m_pDocument != NULL )
 		nBufLen = m_pDocument->OnSocketRecive((LPBYTE)lpBuf, nBufLen, nFlags);
 
-//	TRACE("OnReciveProcBack %d/%d\n", nBufLen, m_RecvSize);
+	m_OnRecvFlag &= ~RECV_PROCBACK;
 
 	return nBufLen;
 }

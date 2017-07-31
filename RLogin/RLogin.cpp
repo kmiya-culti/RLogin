@@ -569,7 +569,7 @@ BOOL CALLBACK RLoginEnumFunc(HWND hwnd, LPARAM lParam)
 		pApp->m_pCmdInfo->GetString(cmdLine);
 		COPYDATASTRUCT copyData;
 		copyData.dwData = 0x524c4f31;
-		copyData.cbData = cmdLine.GetLength() * sizeof(TCHAR);
+		copyData.cbData = (cmdLine.GetLength() + 1) * sizeof(TCHAR);
 		copyData.lpData = cmdLine.GetBuffer();
 		::SendMessage(hwnd, WM_COPYDATA, (WPARAM)(pApp->m_pMainWnd->GetSafeHwnd()), (LPARAM)&copyData);
 		return FALSE;

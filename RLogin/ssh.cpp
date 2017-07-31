@@ -136,6 +136,8 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 	for ( n = 0 ; n < list[0].GetSize() ; n++ )
 		m_IdKeyTab.Add(*(pMain->m_IdKeyTab.GetUid(list[0][n])));
 
+	pMain->PagentInit(&m_IdKeyTab);
+
 	for ( n = 0 ; n < list[1].GetSize() ; n++ )
 		m_IdKeyTab.Add(*(pMain->m_IdKeyTab.GetUid(list[1][n])));
 
@@ -2903,24 +2905,45 @@ int Cssh::SSH2MsgChannelAdjust(CBuffer *bp)
 
 	return FALSE;
 }
+int Cssh::SSH2MsgGlobalHostKeys(CBuffer *bp)
+{
+	CIdKey key;
+	CBuffer tmp;
+
+	while ( bp->GetSize() > 4 ) {
+		bp->GetBuf(&tmp);
+	
+		if ( !key.GetBlob(&tmp) )
+			return FALSE;
+
+		key.AddCertHosts(m_HostName);
+	}
+
+	return TRUE;
+}
 int Cssh::SSH2MsgGlobalRequest(CBuffer *bp)
 {
+	int reply;
 	CBuffer tmp;
 	CStringA str;
 	CString msg;
 	BOOL success = FALSE;
 
 	bp->GetStr(str);
+	reply = bp->Get8Bit();
 
 	if ( str.Compare("keepalive@openssh.com") == 0 ) {
 		success = TRUE;
+
+	} else if ( str.Compare("hostkeys@openssh.com") == 0 ) {
+		success = SSH2MsgGlobalHostKeys(bp);
 
 	} else if ( !str.IsEmpty() ) {
 		msg.Format(_T("Get Msg Global Request '%s'"), m_pDocument->LocalStr(str));
 		AfxMessageBox(msg);
 	}
 
-	if ( bp->Get8Bit() > 0 ) {
+	if ( reply > 0 ) {
 		tmp.Put8Bit(success ? SSH2_MSG_REQUEST_SUCCESS : SSH2_MSG_REQUEST_FAILURE);
 		SendPacket2(&tmp);
 	}

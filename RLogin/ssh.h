@@ -263,6 +263,7 @@ public:
 	BOOL m_bSecInit;
 	CString m_SecBlob;
 	BOOL m_bHostPass;
+	BOOL m_bPagent;
 
 	int GetIndexNid(int nid);
 	int GetIndexName(LPCTSTR name);
@@ -296,6 +297,7 @@ public:
 	LPCTSTR GetName(BOOL bCert = TRUE);
 	int GetTypeFromName(LPCTSTR name);
 	int HostVerify(LPCTSTR host);
+	int AddCertHosts(LPCTSTR host);
 
 	int RsaSign(CBuffer *bp, LPBYTE buf, int len);
 	int DssSign(CBuffer *bp, LPBYTE buf, int len);
@@ -367,6 +369,7 @@ public:
 	inline CIdKey & GetAt(int nIndex) { return m_Data[nIndex]; }
 	inline CIdKey & operator [](int nIndex) { return m_Data[nIndex]; }
 	int AddEntry(CIdKey &key);
+	int Add(CIdKey &key);
 	CIdKey *GetUid(int uid);
 	void UpdateUid(int uid);
 	void RemoveUid(int uid);
@@ -739,6 +742,7 @@ private:
 	int SSH2MsgChannelAdjust(CBuffer *bp);
 	int SSH2MsgChannelRequestReply(CBuffer *bp, int type);
 
+	int SSH2MsgGlobalHostKeys(CBuffer *bp);
 	int SSH2MsgGlobalRequest(CBuffer *bp);
 	int SSH2MsgGlobalRequestReply(CBuffer *bp, int type);
 

@@ -45,6 +45,7 @@
 #define	RECV_ACTIVE			001
 #define	RECV_DOCLOSE		002
 #define	RECV_INPROC			004
+#define	RECV_PROCBACK		010
 
 #define	SEND_EMPTY			001
 

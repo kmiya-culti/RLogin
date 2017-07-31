@@ -942,8 +942,18 @@ int CRLoginDoc::OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags)
 }
 void CRLoginDoc::OnSockIdle()
 {
-	if ( m_pSock != NULL )
-		m_pSock->OnIdle();
+	int n;
+
+	if ( m_pSock == NULL )
+		return;
+
+	for ( n = 0 ; n < 5 ; n++ ) {
+		if ( !m_pSock->OnIdle() )
+			break;
+		if ( IsActCount() || m_bUseIdle )
+			break;
+	}
+//	TRACE("SockIdle %d\n", n);
 }
 int CRLoginDoc::SocketOpen()
 {

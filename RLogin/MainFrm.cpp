@@ -9,6 +9,7 @@
 #include "RLoginView.h"
 #include "ServerSelect.h"
 #include "Script.h"
+#include "ssh2.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -955,6 +956,103 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 	//if ( (cs.dwExStyle & WS_EX_DLGMODALFRAME) != NULL ) TRACE("WS_EX_DLGMODALFRAME ");
 	//if ( (cs.dwExStyle & WS_EX_TOOLWINDOW) != NULL ) TRACE("WS_EX_TOOLWINDOW ");
 	//TRACE("\n");
+
+	return TRUE;
+}
+
+#define AGENT_COPYDATA_ID 0x804e50ba   /* random goop */
+#define AGENT_MAX_MSGLEN  8192
+
+BOOL CMainFrame::PagentQuery(CBuffer *pInBuf, CBuffer *pOutBuf)
+{
+	int len;
+	CWnd *pWnd;
+	CString mapname;
+	HANDLE filemap;
+	BYTE *p;
+	COPYDATASTRUCT cds;
+	CStringA mbs;
+
+	if ( (pWnd = FindWindow(_T("Pageant"), _T("Pageant"))) == NULL )
+		return FALSE;
+
+	mapname.Format(_T("PageantRequest%08x"), (unsigned)GetCurrentThreadId());
+	filemap = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE,	0, AGENT_MAX_MSGLEN, mapname);
+
+	if ( filemap == NULL || filemap == INVALID_HANDLE_VALUE )
+		return FALSE;
+
+	if ( (p = (BYTE *)MapViewOfFile(filemap, FILE_MAP_WRITE, 0, 0, 0)) == NULL ) {
+		CloseHandle(filemap);
+		return FALSE;
+	}
+
+	ASSERT(pInBuf->GetSize() < AGENT_MAX_MSGLEN);
+	memcpy(p, pInBuf->GetPtr(), pInBuf->GetSize());
+
+	mbs = mapname;
+	cds.dwData = AGENT_COPYDATA_ID;
+	cds.cbData = mbs.GetLength() + 1;
+	cds.lpData = mbs.GetBuffer();
+
+	pOutBuf->Clear();
+
+	if ( pWnd->SendMessage(WM_COPYDATA, NULL, (LPARAM)&cds) > 0 ) {
+		len = (p[0] << 24) | (p[1] << 16) | (p[2] << 8) | (p[3]);
+		if ( len > 0 && (len + 4) < AGENT_MAX_MSGLEN )
+			pOutBuf->Apend(p + 4, len);
+	}
+
+    UnmapViewOfFile(p);
+    CloseHandle(filemap);
+
+	return TRUE;
+}
+void CMainFrame::PagentInit(CArray<CIdKey, CIdKey &> *pKeyTab)
+{
+	int count;
+	CBuffer in, out;
+	CIdKey key;
+	CBuffer blob;
+	CStringA name;
+
+	in.Put32Bit(1);
+	in.Put8Bit(SSH2_AGENTC_REQUEST_IDENTITIES);
+
+	if ( !PagentQuery(&in, &out) )
+		return;
+
+	if ( out.GetSize() < 5 || out.Get8Bit() != SSH2_AGENT_IDENTITIES_ANSWER )
+		return;
+
+	for ( count = out.Get32Bit() ; count > 0 ; count-- ) {
+		out.GetBuf(&blob);
+		out.GetStr(name);
+		key.m_Name = name;
+		key.m_bPagent = TRUE;
+		if ( key.GetBlob(&blob) )
+			pKeyTab->Add(key);
+	}
+}
+int CMainFrame::PagentSign(CBuffer *blob, CBuffer *sign, LPBYTE buf, int len)
+{
+	CBuffer in, out, work;
+
+	work.Put8Bit(SSH2_AGENTC_SIGN_REQUEST);
+	work.PutBuf(blob->GetPtr(), blob->GetSize());
+	work.PutBuf(buf, len);
+	work.Put32Bit(0);
+	
+	in.PutBuf(work.GetPtr(), work.GetSize());
+
+	if ( !PagentQuery(&in, &out) )
+		return FALSE;
+
+	if ( out.GetSize() < 5 || out.Get8Bit() != SSH2_AGENT_SIGN_RESPONSE )
+		return FALSE;
+
+	sign->Clear();
+	out.GetBuf(sign);
 
 	return TRUE;
 }
