@@ -3,7 +3,10 @@
 
 #include "stdafx.h"
 #include "RLogin.h"
-//#include "DWMApi.h"
+
+#ifdef	USE_DWMAPI
+	#include "DWMApi.h"
+#endif
 
 #include "MainFrm.h"
 #include "ChildFrm.h"
@@ -164,6 +167,10 @@ CRLoginApp::CRLoginApp()
 	// TODO: この位置に構築用コードを追加してください。
 	// ここに InitInstance 中の重要な初期化処理をすべて記述してください。
 	m_NextSock = 0;
+#ifdef	USE_DIRECTWRITE
+	m_pD2DFactory    = NULL;
+	m_pDWriteFactory = NULL;
+#endif
 }
 
 
@@ -171,7 +178,7 @@ CRLoginApp::CRLoginApp()
 
 CRLoginApp theApp;
 
-#ifdef	DWMAPI
+#ifdef	USE_DWMAPI
 	HMODULE ExDwmApi = NULL;
 	BOOL ExDwmEnable = FALSE;
 	HRESULT (__stdcall *ExDwmIsCompositionEnabled)(BOOL * pfEnabled) = NULL;
@@ -181,7 +188,7 @@ CRLoginApp theApp;
 
 void ExDwmEnableWindow(HWND hWnd)
 {
-#ifdef	DWMAPI
+#ifdef	USE_DWMAPI
 	if ( ExDwmEnable && ExDwmApi != NULL && ExDwmEnableBlurBehindWindow != NULL && hWnd != NULL ) {
 		//Create and populate the BlurBehind structre
 		DWM_BLURBEHIND bb = {0};
@@ -245,7 +252,7 @@ BOOL CRLoginApp::InitInstance()
 	SetRegistryKey(_T("Culti"));
 	LoadStdProfileSettings(4);  // 標準の INI ファイルのオプションをロードします (MRU を含む)
 
-#ifdef	DWMAPI
+#ifdef	USE_DWMAPI
 	if ( (ExDwmApi = LoadLibrary("dwmapi.dll")) != NULL ) {
 		ExDwmIsCompositionEnabled      = (HRESULT (__stdcall *)(BOOL* pfEnabled))GetProcAddress(ExDwmApi, "DwmIsCompositionEnabled");
 		ExDwmEnableBlurBehindWindow    = (HRESULT (__stdcall *)(HWND hWnd, const DWM_BLURBEHIND* pBlurBehind))GetProcAddress(ExDwmApi, "DwmEnableBlurBehindWindow");
@@ -254,6 +261,11 @@ BOOL CRLoginApp::InitInstance()
 		if ( ExDwmIsCompositionEnabled != NULL )
 			ExDwmIsCompositionEnabled(&ExDwmEnable);
 	}
+#endif
+
+#ifdef	USE_DIRECTWRITE
+	if ( SUCCEEDED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &m_pD2DFactory)) )
+		DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(m_pDWriteFactory), reinterpret_cast<IUnknown **>(&m_pDWriteFactory));
 #endif
 
 	// アプリケーション用のドキュメント テンプレートを登録します。ドキュメント テンプレート
@@ -539,9 +551,16 @@ int CRLoginApp::ExitInstance()
 	WSACleanup();
 #endif
 
-#ifdef	DWMAPI
+#ifdef	USE_DWMAPI
 	if ( ExDwmApi != NULL )
 		FreeLibrary(ExDwmApi);
+#endif
+
+#ifdef	USE_DIRECTWRITE
+	if ( m_pDWriteFactory != NULL )
+		m_pDWriteFactory->Release();
+	if ( m_pD2DFactory != NULL )
+		m_pD2DFactory->Release();
 #endif
 
 	return CWinApp::ExitInstance();

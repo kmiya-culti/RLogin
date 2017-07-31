@@ -1757,6 +1757,14 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 		{ DHMODE_GROUP_1,		"diffie-hellman-group1-sha1",			},
 		{ 0,					NULL									},
 	};
+	static const char *hostkeytab[] = {
+		"ecdsa-sha2-nistp256",
+		"ecdsa-sha2-nistp384",
+		"ecdsa-sha2-nistp521",
+		"ssh-dss",
+		"ssh-rsa",
+		NULL
+	};
 
 	m_HisPeer = *bp;
 	for ( n = 0 ; n < 16 ; n++ )
@@ -1766,34 +1774,42 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 	bp->Get8Bit();
 	bp->Get32Bit();
 
+	// PROPOSAL_KEX_ALGS
 	for ( n = 0 ; kextab[n].name != NULL ; n++ ) {
-		m_DhMode   = kextab[n].mode;
-		m_CProp[0] = kextab[n].name;	// PROPOSAL_KEX_ALGS
-		if ( m_SProp[0].Find(m_CProp[0]) >= 0 )
+		if ( m_SProp[0].Find(kextab[n].name) >= 0 ) {
+			m_DhMode   = kextab[n].mode;
+			m_CProp[0] = kextab[n].name;
 			break;
+		}
 	}
 	if ( kextab[n].name == NULL )
 		return TRUE;
 
-	m_CProp[1] = "ssh-dss";						// PROPOSAL_SERVER_HOST_KEY_ALGS
-	if ( m_SProp[1].Find(m_CProp[1]) < 0 ) {
-		m_CProp[1] = "ssh-rsa";
-		if ( m_SProp[1].Find(m_CProp[1]) < 0 )
-			return TRUE;
+	// PROPOSAL_SERVER_HOST_KEY_ALGS
+	for ( n = 0 ; hostkeytab[n] != NULL ; n++ ) {
+		if ( m_SProp[1].Find(hostkeytab[n]) >= 0 ) {
+			m_CProp[1] = hostkeytab[n];
+			break;
+		}
 	}
-	m_pDocument->m_ParamTab.GetProp(6, m_CProp[2], m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFENC));			// PROPOSAL_ENC_ALGS_CTOS,
-	m_pDocument->m_ParamTab.GetProp(3, m_CProp[3], m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFENC));			// PROPOSAL_ENC_ALGS_STOC,
-	m_pDocument->m_ParamTab.GetProp(7, m_CProp[4], m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFMAC));			// PROPOSAL_MAC_ALGS_CTOS,
-	m_pDocument->m_ParamTab.GetProp(4, m_CProp[5], m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFMAC));			// PROPOSAL_MAC_ALGS_STOC,
-	m_pDocument->m_ParamTab.GetProp(8, m_CProp[6]);				// PROPOSAL_COMP_ALGS_CTOS,
-	m_pDocument->m_ParamTab.GetProp(5, m_CProp[7]);				// PROPOSAL_COMP_ALGS_STOC,
-	m_CProp[8] = "";											// PROPOSAL_LANG_CTOS,
-	m_CProp[9] = "";											// PROPOSAL_LANG_STOC,
+	if ( hostkeytab[n] == NULL )
+		return TRUE;
+
+	m_pDocument->m_ParamTab.GetProp(6, m_CProp[2], m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFENC));	// PROPOSAL_ENC_ALGS_CTOS,
+	m_pDocument->m_ParamTab.GetProp(3, m_CProp[3], m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFENC));	// PROPOSAL_ENC_ALGS_STOC,
+	m_pDocument->m_ParamTab.GetProp(7, m_CProp[4], m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFMAC));	// PROPOSAL_MAC_ALGS_CTOS,
+	m_pDocument->m_ParamTab.GetProp(4, m_CProp[5], m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFMAC));	// PROPOSAL_MAC_ALGS_STOC,
+
+	m_pDocument->m_ParamTab.GetProp(8, m_CProp[6]);			// PROPOSAL_COMP_ALGS_CTOS,
+	m_pDocument->m_ParamTab.GetProp(5, m_CProp[7]);			// PROPOSAL_COMP_ALGS_STOC,
 
 	for ( n = 0 ; n < 6 ; n++ ) {
 		if ( !MatchList(m_CProp[n + 2], m_SProp[n + 2], m_VProp[n]) )
 			return TRUE;
 	}
+
+	m_CProp[8] = "";		// PROPOSAL_LANG_CTOS,
+	m_CProp[9] = "";		// PROPOSAL_LANG_STOC,
 
 	if ( (m_SSH2Status & SSH2_STAT_SENTKEXINIT) == 0 ) {
 		m_MyPeer.Clear();

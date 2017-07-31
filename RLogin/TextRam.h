@@ -552,7 +552,7 @@ public:
 	void EditCopy(int sps, int eps, BOOL rectflag = FALSE, BOOL lineflag = FALSE);
 	void StrOut(CDC* pDC, LPCRECT pRect, struct DrawWork &prop, int len, char *str, int sln, int *spc, class CRLoginView *pView);
 	void DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginView *pView);
-	
+
 	CWnd *GetAciveView();
 	void PostMessage(UINT message, WPARAM wParam = 0, LPARAM lParam = 0);
 

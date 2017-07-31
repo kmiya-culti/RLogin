@@ -220,6 +220,9 @@ public:
 	int GetBlob(CBuffer *bp);
 	int SetBlob(CBuffer *bp);
 
+	int GetPrivateBlob(CBuffer *bp);
+	int SetPrivateBlob(CBuffer *bp);
+
 	int ReadPublicKey(LPCSTR str);
 	int WritePublicKey(CString &str);
 

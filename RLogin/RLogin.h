@@ -46,6 +46,14 @@ public:
 	CString m_BaseDir;
 	CCommandLineInfoEx *m_pCmdInfo;
 
+#ifdef	USE_DIRECTWRITE
+	ID2D1Factory *m_pD2DFactory;
+	IDWriteFactory *m_pDWriteFactory;
+
+	inline ID2D1Factory *GetD2D1Factory() { return m_pD2DFactory; }
+	inline IDWriteFactory *GetDWriteFactory() { return m_pDWriteFactory; }
+#endif
+
 	void SetSocketIdle(class CExtSocket *pSock);
 	void DelSocketIdle(class CExtSocket *pSock);
 	void GetProfileData(LPCTSTR lpszSection, LPCTSTR lpszEntry, void *lpBuf, int nBufLen, void *lpDef = NULL);

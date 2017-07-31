@@ -1742,6 +1742,45 @@ void CTextRam::StrOut(CDC* pDC, LPCRECT pRect, struct DrawWork &prop, int len, c
 			bc = RGB((GetRValue(fc) + GetRValue(bc)) / 2, (GetGValue(fc) + GetGValue(bc)) / 2, (GetBValue(fc) + GetBValue(bc)) / 2);
 	}
 
+#ifdef	USE_DIRECTWRITE
+	D2D1_RECT_F rect;
+	IDWriteTextFormat *m_pTextFormat;
+	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
+	LPCWSTR wp;
+
+	rect.left   = (float)pRect->left;
+	rect.top    = (float)pRect->top;
+	rect.right  = (float)pRect->right;
+	rect.bottom = (float)pRect->bottom;
+
+	pView->m_pSolidColorBrush->SetColor(D2D1::ColorF((float)GetRValue(bc) / 255.0f, (float)GetGValue(bc) / 255.0f, (float)GetBValue(bc) / 255.0f, 1.0f));
+	pView->m_pRenderTarget->FillRoundedRectangle(D2D1::RoundedRect(rect, 0.0f, 0.0f), pView->m_pSolidColorBrush);
+
+	if ( prop.mod >= 0 ) {
+		if ( (pFontCache = m_FontTab[prop.mod].GetFont(pView->m_CharWidth * wd, pView->m_CharHeight * hd, st, prop.fnm)) != NULL && prop.csz > 1 && pFontCache->m_KanWidMul > 100 )
+			pFontCache = m_FontTab[prop.mod].GetFont(pView->m_CharWidth * wd * pFontCache->m_KanWidMul / 100, pView->m_CharHeight * hd, st, prop.fnm);
+
+		pFont = (pFontCache != NULL ? pFontCache->m_pFont : CFont::FromHandle((HFONT)GetStockObject(SYSTEM_FONT)));
+
+		pApp->m_pDWriteFactory->CreateTextFormat(CStringW(pFontCache->m_LogFont.lfFaceName), NULL, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_EXPANDED, static_cast<FLOAT>(pFontCache->m_LogFont.lfHeight), L"", &m_pTextFormat);
+
+		rect.top    = (float)(pRect->top - pView->m_CharHeight * m_FontTab[prop.mod].m_Offset / 100 - (prop.dmf == 3 ? pView->m_CharHeight : 0));
+
+		if ( (at & ATT_HALF) != 0 )
+			fc = RGB((GetRValue(fc) + GetRValue(bc)) / 2, (GetGValue(fc) + GetGValue(bc)) / 2, (GetBValue(fc) + GetBValue(bc)) / 2);
+
+		pView->m_pSolidColorBrush->SetColor(D2D1::ColorF((float)GetRValue(fc) / 255.0f, (float)GetGValue(fc) / 255.0f, (float)GetBValue(fc) / 255.0f, 1.0f));
+
+		wp = (LPCWSTR)str;
+		for ( n = 0 ; n < len ; n += 2 ) {
+			pView->m_pRenderTarget->DrawText(wp, 1, m_pTextFormat, rect, pView->m_pSolidColorBrush, D2D1_DRAW_TEXT_OPTIONS_CLIP);
+			rect.left += (float)spc[n / 2];
+			wp++;
+		}
+
+		m_pTextFormat->Release();
+	}
+#else
 	if ( prop.mod < 0 ) {
 		if ( pView->m_pBitmap == NULL )
 			pDC->FillSolidRect(pRect, bc);
@@ -1772,6 +1811,7 @@ void CTextRam::StrOut(CDC* pDC, LPCRECT pRect, struct DrawWork &prop, int len, c
 			pDC->SetBkMode(oldMode);
 		}
 	}
+#endif
 
 	if ( (at & (ATT_OVER | ATT_LINE | ATT_UNDER | ATT_DUNDER | ATT_STRESS)) != 0 ) {
 		CPen cPen(PS_SOLID, 1, fc);

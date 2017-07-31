@@ -97,12 +97,22 @@ CRLoginView::CRLoginView()
 	m_WheelDelta = 0;
 	m_WheelTimer = FALSE;
 	m_pGhost = NULL;
+#ifdef	USE_DIRECTWRITE
+	m_pRenderTarget = NULL;
+	m_pSolidColorBrush = NULL;
+#endif
 }
 
 CRLoginView::~CRLoginView()
 {
 	if ( m_pGhost != NULL )
 		m_pGhost->DestroyWindow();
+#ifdef	USE_DIRECTWRITE
+	if ( m_pSolidColorBrush != NULL )
+		m_pSolidColorBrush->Release();
+	if ( m_pRenderTarget != NULL )
+		m_pRenderTarget->Release();
+#endif
 }
 
 BOOL CRLoginView::PreCreateWindow(CREATESTRUCT& cs)
@@ -131,6 +141,55 @@ void CRLoginView::OnDraw(CDC* pDC)
 	int ex = m_Cols  - 1;
 	int ey = m_Lines - 1;
 
+#ifdef	USE_DIRECTWRITE
+	if ( m_pRenderTarget == NULL ) {
+		CRect rect;
+		D2D1_SIZE_U size;
+		CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
+
+		GetClientRect(rect);
+		size = D2D1::SizeU(rect.Width(), rect.Height());
+
+		if ( pApp->m_pD2DFactory != NULL && pApp->m_pDWriteFactory != NULL ) {
+			pApp->GetD2D1Factory()->CreateHwndRenderTarget(D2D1::RenderTargetProperties(), D2D1::HwndRenderTargetProperties(m_hWnd, size), &m_pRenderTarget);
+			m_pRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White), &m_pSolidColorBrush);
+		}
+	}
+
+	if ( !pDC->IsPrinting() ) {
+		CRect rect(((CPaintDC *)(pDC))->m_ps.rcPaint);
+		sx = (rect.left + 1) * m_Cols / m_Width;
+		ex = (rect.right + m_CharWidth) * m_Cols / m_Width;
+		sy = (rect.top + 1) * m_Lines / m_Height;
+		ey = (rect.bottom + m_CharHeight) * m_Lines / m_Height;
+
+		if ( (sx * m_Width / m_Cols) > rect.left )
+			sx--;
+		if ( (ex * m_Width / m_Cols) < rect.right )
+			ex++;
+		if ( (sy * m_Height / m_Lines) > rect.top )
+			sy--;
+		if ( (ey * m_Height / m_Lines) < rect.bottom )
+			ey++;
+	}
+
+	if ( m_pRenderTarget != NULL && m_pSolidColorBrush != NULL ) {
+		m_pRenderTarget->BeginDraw();
+
+		if ( pDoc->m_TextRam.IsInitText() )
+			pDoc->m_TextRam.DrawVram(pDC, sx, sy, ex, ey, this);
+
+		HRESULT hr = m_pRenderTarget->EndDraw();
+
+		if ( SUCCEEDED(hr) && hr == D2DERR_RECREATE_TARGET ) {
+			m_pSolidColorBrush->Release();
+			m_pRenderTarget->Release();
+			m_pSolidColorBrush = NULL;
+			m_pRenderTarget = NULL;
+		}
+	}
+
+#else
 	if ( !pDC->IsPrinting() ) {
 		CRect rect(((CPaintDC *)(pDC))->m_ps.rcPaint);
 		sx = (rect.left + 1) * m_Cols / m_Width;
@@ -160,6 +219,7 @@ void CRLoginView::OnDraw(CDC* pDC)
 
 	if ( pDoc->m_TextRam.IsInitText() )
 		pDoc->m_TextRam.DrawVram(pDC, sx, sy, ex, ey, this);
+#endif
 
 	if ( (m_DispCaret & 001) != 0 )
 		ShowCaret();

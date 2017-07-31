@@ -69,6 +69,11 @@ public:
 
 	class CGhostWnd *m_pGhost;
 
+#ifdef	USE_DIRECTWRITE
+	ID2D1HwndRenderTarget *m_pRenderTarget;
+	ID2D1SolidColorBrush *m_pSolidColorBrush;
+#endif
+
 	void InvalidateTextRect(CRect rect);
 	void CalcPosRect(CRect &rect);
 	void CalcTextRect(CRect &rect);
