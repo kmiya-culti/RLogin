@@ -1,13 +1,14 @@
 #pragma once
 
-#include "ListCtrlExt.h"
-#include "Data.h"
 #include "afxcmn.h"
+#include "Data.h"
+#include "ListCtrlExt.h"
+#include "DialogExt.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CServerSelect ダイアログ
 
-class CServerSelect : public CDialog
+class CServerSelect : public CDialogExt
 {
 	DECLARE_DYNAMIC(CServerSelect)
 

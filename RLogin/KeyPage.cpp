@@ -23,9 +23,9 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // CKeyPage プロパティ ページ
 
-IMPLEMENT_DYNCREATE(CKeyPage, CPropertyPage)
+IMPLEMENT_DYNCREATE(CKeyPage, CTreePage)
 
-CKeyPage::CKeyPage() : CTreePropertyPage(CKeyPage::IDD)
+CKeyPage::CKeyPage() : CTreePage(CKeyPage::IDD)
 {
 	for ( int n = 0 ; n < KEYTABMAX ; n++ )
 		m_KeyMap[n] = FALSE;
@@ -37,7 +37,7 @@ CKeyPage::~CKeyPage()
 
 void CKeyPage::DoDataExchange(CDataExchange* pDX)
 {
-	CPropertyPage::DoDataExchange(pDX);
+	CTreePage::DoDataExchange(pDX);
 
 	DDX_Control(pDX, IDC_KEYLIST, m_List);
 
@@ -45,7 +45,7 @@ void CKeyPage::DoDataExchange(CDataExchange* pDX)
 		DDX_Check(pDX, IDC_METAKEY1 + n, m_KeyMap[n]);
 }
 
-BEGIN_MESSAGE_MAP(CKeyPage, CPropertyPage)
+BEGIN_MESSAGE_MAP(CKeyPage, CTreePage)
 	ON_BN_CLICKED(IDC_KEYASNNEW, OnKeyAsnNew)
 	ON_BN_CLICKED(IDC_KEYASNEDIT, OnKeyAsnEdit)
 	ON_BN_CLICKED(IDC_KEYASNDEL, OnKeyAsnDel)
@@ -114,7 +114,7 @@ BOOL CKeyPage::OnInitDialog()
 {
 	ASSERT(m_pSheet != NULL && m_pSheet->m_pKeyTab != NULL);
 
-	CPropertyPage::OnInitDialog();
+	CTreePage::OnInitDialog();
 
 	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_SUBITEMIMAGES);
 	m_List.InitColumn(_T("CKeyPage"), InitListTab, 3);

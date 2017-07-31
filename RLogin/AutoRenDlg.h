@@ -1,8 +1,10 @@
 #pragma once
 
+#include "DialogExt.h"
+
 // CAutoRenDlg ダイアログ
 
-class CAutoRenDlg : public CDialog
+class CAutoRenDlg : public CDialogExt
 {
 	DECLARE_DYNAMIC(CAutoRenDlg)
 

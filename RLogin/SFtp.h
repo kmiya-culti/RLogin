@@ -1,5 +1,7 @@
 #pragma once
 
+#include "DialogExt.h"
+
 /* version */
 #define SSH2_FILEXFER_VERSION           3
 
@@ -130,7 +132,7 @@ public:
 #define	SENDCMD_HEAD	1
 #define	SENDCMD_TAIL	2
 
-class CSFtp : public CDialog
+class CSFtp : public CDialogExt
 {
 	DECLARE_DYNAMIC(CSFtp)
 

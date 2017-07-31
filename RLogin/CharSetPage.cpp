@@ -22,9 +22,9 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // CCharSetPage プロパティ ページ
 
-IMPLEMENT_DYNCREATE(CCharSetPage, CPropertyPage)
+IMPLEMENT_DYNCREATE(CCharSetPage, CTreePage)
 
-CCharSetPage::CCharSetPage() : CTreePropertyPage(CCharSetPage::IDD)
+CCharSetPage::CCharSetPage() : CTreePage(CCharSetPage::IDD)
 {
 	m_KanjiCode = -1;
 	m_CharBankGL = -1;
@@ -42,7 +42,7 @@ CCharSetPage::~CCharSetPage()
 
 void CCharSetPage::DoDataExchange(CDataExchange* pDX)
 {
-	CPropertyPage::DoDataExchange(pDX);
+	CTreePage::DoDataExchange(pDX);
 
 	DDX_Control(pDX, IDC_FONTLIST, m_List);
 	DDX_Radio(pDX, IDC_CHARSET1, m_KanjiCode);
@@ -56,7 +56,7 @@ void CCharSetPage::DoDataExchange(CDataExchange* pDX)
 	DDX_CBString(pDX, IDC_FONTNAME, m_DefFontName);
 }
 
-BEGIN_MESSAGE_MAP(CCharSetPage, CPropertyPage)
+BEGIN_MESSAGE_MAP(CCharSetPage, CTreePage)
 	ON_BN_CLICKED(IDC_FONTLISTNEW, OnFontListNew)
 	ON_BN_CLICKED(IDC_FONTLISTEDIT, OnFontListEdit)
 	ON_BN_CLICKED(IDC_FONTLISTDEL, OnFontListDel)
@@ -149,7 +149,7 @@ BOOL CCharSetPage::OnInitDialog()
 {
 	ASSERT(m_pSheet != NULL && m_pSheet->m_pTextRam != NULL);
 
-	CPropertyPage::OnInitDialog();
+	CTreePage::OnInitDialog();
 
 	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_SUBITEMIMAGES);
 	m_List.InitColumn(_T("CharSetPage"), InitListTab, 4);

@@ -2,7 +2,7 @@
 
 // CScrnPage ダイアログ
 
-class CScrnPage : public CTreePropertyPage
+class CScrnPage : public CTreePage
 {
 	DECLARE_DYNAMIC(CScrnPage)
 

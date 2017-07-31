@@ -1,8 +1,10 @@
 #pragma once
 
+#include "DialogExt.h"
+
 // CProxyDlg ダイアログ
 
-class CProxyDlg : public CDialog
+class CProxyDlg : public CDialogExt
 {
 	DECLARE_DYNAMIC(CProxyDlg)
 
@@ -22,6 +24,7 @@ public:
 	int m_ProxyMode;
 	int m_SSLMode;
 	BOOL m_SSL_Keep;
+	BOOL m_UsePassDlg;
 
 // オーバーライド
 protected:

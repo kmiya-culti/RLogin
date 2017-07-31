@@ -1,9 +1,11 @@
 #pragma once
 
+#include "DialogExt.h"
+
 /////////////////////////////////////////////////////////////////////////////
 // CIdKeyFileDlg ダイアログ
 
-class CIdKeyFileDlg : public CDialog
+class CIdKeyFileDlg : public CDialogExt
 {
 	DECLARE_DYNAMIC(CIdKeyFileDlg)
 

@@ -1,11 +1,12 @@
 #pragma once
 
 #include "Data.h"
+#include "DialogExt.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CKeyParaDlg ダイアログ
 
-class CKeyParaDlg : public CDialog
+class CKeyParaDlg : public CDialogExt
 {
 	DECLARE_DYNAMIC(CKeyParaDlg)
 

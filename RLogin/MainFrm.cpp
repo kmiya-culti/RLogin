@@ -694,7 +694,6 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_COMMAND(IDM_VERSIONCHECK, &CMainFrame::OnVersioncheck)
 	ON_UPDATE_COMMAND_UI(IDM_VERSIONCHECK, &CMainFrame::OnUpdateVersioncheck)
 	ON_COMMAND(IDM_NEWVERSIONFOUND, &CMainFrame::OnNewVersionFound)
-
 END_MESSAGE_MAP()
 
 static const UINT indicators[] =
@@ -1869,6 +1868,28 @@ LRESULT CMainFrame::OnAfterOpen(WPARAM wParam, LPARAM lParam)
 	return TRUE;
 }
 
+void CMainFrame::OnClose()
+{
+	int count = 0;
+	CWinApp *pApp = AfxGetApp();
+
+	POSITION pos = pApp->GetFirstDocTemplatePosition();
+	while ( pos != NULL ) {
+		CDocTemplate *pDocTemp = pApp->GetNextDocTemplate(pos);
+		POSITION dpos = pDocTemp->GetFirstDocPosition();
+		while ( dpos != NULL ) {
+			CRLoginDoc *pDoc = (CRLoginDoc *)pDocTemp->GetNextDoc(dpos);
+			if ( pDoc != NULL && pDoc->m_pSock != NULL && pDoc->m_pSock->m_bConnect )
+				count++;
+		}
+	}
+
+	if ( count > 0 && AfxMessageBox(CStringLoad(IDS_FILECLOSEQES), MB_ICONQUESTION | MB_YESNO) != IDYES )
+		return;
+
+	CMDIFrameWnd::OnClose();
+}
+
 void CMainFrame::OnDestroy() 
 {
 	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("ToolBarStyle"),	m_wndToolBar.GetStyle());
@@ -2502,27 +2523,3 @@ void CMainFrame::OnUpdateWindowPrev(CCmdUI *pCmdUI)
 {
 	pCmdUI->Enable(m_wndTabBar.GetSize() > 1 ? TRUE : FALSE);
 }
-
-void CMainFrame::OnClose()
-{
-	int count = 0;
-	CWinApp *pApp = AfxGetApp();
-
-	POSITION pos = pApp->GetFirstDocTemplatePosition();
-	while ( pos != NULL ) {
-		CDocTemplate *pDocTemp = pApp->GetNextDocTemplate(pos);
-		POSITION dpos = pDocTemp->GetFirstDocPosition();
-		while ( dpos != NULL ) {
-			CRLoginDoc *pDoc = (CRLoginDoc *)pDocTemp->GetNextDoc(dpos);
-			if ( pDoc != NULL && pDoc->m_pSock != NULL && pDoc->m_pSock->m_bConnect )
-				count++;
-		}
-	}
-
-	if ( count > 0 && AfxMessageBox(CStringLoad(IDS_FILECLOSEQES), MB_ICONQUESTION | MB_YESNO) != IDYES )
-		return;
-
-	CMDIFrameWnd::OnClose();
-}
-
-

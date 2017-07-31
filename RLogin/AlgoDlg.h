@@ -7,12 +7,13 @@
 // AlgoDlg.h : ヘッダー ファイル
 //
 #include "ListCtrlMove.h"
+#include "DialogExt.h"
 #include "Data.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CAlgoDlg ダイアログ
 
-class CAlgoDlg : public CDialog
+class CAlgoDlg : public CDialogExt
 {
 // コンストラクション
 public:

@@ -1,9 +1,11 @@
 #pragma once
 
+#include "DialogExt.h"
+
 /////////////////////////////////////////////////////////////////////////////
 // CPfdParaDlg ダイアログ
 
-class CPfdParaDlg : public CDialog
+class CPfdParaDlg : public CDialogExt
 {
 	DECLARE_DYNAMIC(CPfdParaDlg)
 

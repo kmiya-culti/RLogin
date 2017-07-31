@@ -24,7 +24,7 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // CProtoPage プロパティ ページ
 
-IMPLEMENT_DYNCREATE(CProtoPage, CPropertyPage)
+IMPLEMENT_DYNCREATE(CProtoPage, CTreePage)
 
 #define	CHECKOPTMAX		7
 #define	CHECKOPTEXT		3
@@ -33,7 +33,7 @@ static const int CheckOptTab[] = { TO_RLTENAT,  TO_RLTENEC,  TO_RLTENLM,
 								   TO_SSH1MODE, TO_SSHPFORY, TO_SSHAGENT, TO_SSHKEEPAL,
 								   TO_SSHSFENC, TO_SSHSFMAC, TO_SSHX11PF	};		// Extend
 
-CProtoPage::CProtoPage() : CTreePropertyPage(CProtoPage::IDD)
+CProtoPage::CProtoPage() : CTreePage(CProtoPage::IDD)
 {
 	m_KeepAlive = 0;
 	for ( int n = 0 ; n < CHECKOPTMAX + CHECKOPTEXT ; n++ )
@@ -46,14 +46,14 @@ CProtoPage::~CProtoPage()
 
 void CProtoPage::DoDataExchange(CDataExchange* pDX)
 {
-	CPropertyPage::DoDataExchange(pDX);
+	CTreePage::DoDataExchange(pDX);
 
 	DDX_Text(pDX, IDC_KEEPALIVE, m_KeepAlive);
 	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
 		DDX_Check(pDX, IDC_PROTOCHECK1 + n, m_Check[n]);
 }
 
-BEGIN_MESSAGE_MAP(CProtoPage, CPropertyPage)
+BEGIN_MESSAGE_MAP(CProtoPage, CTreePage)
 	ON_BN_CLICKED(IDC_SSHALGO, OnSshAlgo)
 	ON_BN_CLICKED(IDC_SSHIDKEY, OnSshIdkey)
 	ON_BN_CLICKED(IDC_SSHPFD, OnSshPfd)
@@ -86,7 +86,7 @@ BOOL CProtoPage::OnInitDialog()
 {
 	ASSERT(m_pSheet != NULL && m_pSheet->m_pTextRam != NULL && m_pSheet->m_pParamTab != NULL);
 
-	CPropertyPage::OnInitDialog();
+	CTreePage::OnInitDialog();
 
 	DoInit();
 

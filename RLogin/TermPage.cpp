@@ -20,7 +20,7 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // CTermPage プロパティ ページ
 
-IMPLEMENT_DYNCREATE(CTermPage, CPropertyPage)
+IMPLEMENT_DYNCREATE(CTermPage, CTreePage)
 
 //#define	CHECKOPTMAX		5
 //#define	IDC_CHECKFAST	IDC_TERMCHECK1
@@ -146,7 +146,7 @@ static const struct _OptListTab {
 	{	0,				NULL,								NULL,								NULL	}
 };
 
-CTermPage::CTermPage() : CTreePropertyPage(CTermPage::IDD)
+CTermPage::CTermPage() : CTreePage(CTermPage::IDD)
 {
 	//for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
 	//	m_Check[n] = FALSE;
@@ -158,7 +158,7 @@ CTermPage::~CTermPage()
 
 void CTermPage::DoDataExchange(CDataExchange* pDX)
 {
-	CPropertyPage::DoDataExchange(pDX);
+	CTreePage::DoDataExchange(pDX);
 
 	//for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
 	//	DDX_Check(pDX, IDC_TERMCHECK1 + n, m_Check[n]);
@@ -166,7 +166,7 @@ void CTermPage::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_EXTLIST, m_ExtList);
 }
 
-BEGIN_MESSAGE_MAP(CTermPage, CPropertyPage)
+BEGIN_MESSAGE_MAP(CTermPage, CTreePage)
 //	ON_CONTROL_RANGE(BN_CLICKED, IDC_CHECKFAST, IDC_CHECKFAST + CHECKOPTMAX - 1, OnUpdateCheck)
 	ON_BN_CLICKED(IDC_ESCEDIT, &CTermPage::OnBnClickedEscedit)
 	ON_NOTIFY(NM_CLICK, IDC_ESCLIST, &CTermPage::OnNMClickOptlist)
@@ -206,7 +206,7 @@ BOOL CTermPage::OnInitDialog()
 
 	ASSERT(m_pSheet != NULL && m_pSheet->m_pTextRam != NULL);
 
-	CPropertyPage::OnInitDialog();
+	CTreePage::OnInitDialog();
 
 	m_OptList.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_CHECKBOXES | LVS_EX_INFOTIP);
 	m_OptList.InitColumn(_T("TermPageOpt"), InitListTab, 3);

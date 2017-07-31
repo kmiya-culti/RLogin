@@ -8,10 +8,10 @@
 /////////////////////////////////////////////////////////////////////////////
 // CEditDlg ダイアログ
 
-IMPLEMENT_DYNAMIC(CEditDlg, CDialog)
+IMPLEMENT_DYNAMIC(CEditDlg, CDialogExt)
 
 CEditDlg::CEditDlg(CWnd* pParent /*=NULL*/)
-	: CDialog(CEditDlg::IDD, pParent)
+	: CDialogExt(CEditDlg::IDD, pParent)
 {
 	m_Edit.Empty();
 	m_Title.Empty();
@@ -21,13 +21,13 @@ CEditDlg::CEditDlg(CWnd* pParent /*=NULL*/)
 
 void CEditDlg::DoDataExchange(CDataExchange* pDX)
 {
-	CDialog::DoDataExchange(pDX);
+	CDialogExt::DoDataExchange(pDX);
 
 	DDX_Text(pDX, IDC_EDIT1, m_Edit);
 	DDX_Text(pDX, IDC_TITLE, m_Title);
 }
 
-BEGIN_MESSAGE_MAP(CEditDlg, CDialog)
+BEGIN_MESSAGE_MAP(CEditDlg, CDialogExt)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -35,7 +35,7 @@ END_MESSAGE_MAP()
 
 BOOL CEditDlg::OnInitDialog()
 {
-	CDialog::OnInitDialog();
+	CDialogExt::OnInitDialog();
 
 	if ( !m_WinText.IsEmpty() )
 		SetWindowText(m_WinText);

@@ -14,10 +14,10 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // CUpdateDlg ダイアログ
 
-IMPLEMENT_DYNAMIC(CUpdateDlg, CDialog)
+IMPLEMENT_DYNAMIC(CUpdateDlg, CDialogExt)
 
 CUpdateDlg::CUpdateDlg(CWnd* pParent /*=NULL*/)
-	: CDialog(CUpdateDlg::IDD, pParent)
+	: CDialogExt(CUpdateDlg::IDD, pParent)
 {
 	m_DoExec = ::AfxGetApp()->GetProfileInt(_T("CUpdateDlg"), _T("Jobs"), 1);
 
@@ -27,13 +27,13 @@ CUpdateDlg::CUpdateDlg(CWnd* pParent /*=NULL*/)
 
 void CUpdateDlg::DoDataExchange(CDataExchange* pDX)
 {
-	CDialog::DoDataExchange(pDX);
+	CDialogExt::DoDataExchange(pDX);
 
 	DDX_Text(pDX, IDC_FILENAME, m_FileName);
 	DDX_Radio(pDX, IDC_RADIO1, m_Jobs);
 }
 
-BEGIN_MESSAGE_MAP(CUpdateDlg, CDialog)
+BEGIN_MESSAGE_MAP(CUpdateDlg, CDialogExt)
 	ON_BN_CLICKED(IDC_BUTTON1, OnExec)
 	ON_BN_CLICKED(IDC_BUTTON2, OnAllExec)
 	ON_BN_CLICKED(IDC_BUTTON3, OnAbort)
@@ -47,7 +47,7 @@ void CUpdateDlg::OnExec()
 	UpdateData(TRUE);
 	::AfxGetApp()->WriteProfileInt(_T("CUpdateDlg"), _T("Jobs"), m_Jobs);
 	m_DoExec = m_Jobs;
-	CDialog::OnOK();
+	CDialogExt::OnOK();
 }
 
 void CUpdateDlg::OnAllExec() 
@@ -55,18 +55,18 @@ void CUpdateDlg::OnAllExec()
 	UpdateData(TRUE);
 	::AfxGetApp()->WriteProfileInt(_T("CUpdateDlg"), _T("Jobs"), m_Jobs);
 	m_DoExec = m_Jobs | 0x80;
-	CDialog::OnOK();
+	CDialogExt::OnOK();
 }
 
 void CUpdateDlg::OnAbort() 
 {
 	m_DoExec = UDO_ABORT | 0x80;
-	CDialog::OnCancel();
+	CDialogExt::OnCancel();
 }
 
 BOOL CUpdateDlg::OnInitDialog() 
 {
-	CDialog::OnInitDialog();
+	CDialogExt::OnInitDialog();
 
 	CWnd *pWnd = GetDlgItem(IDC_RADIO4);
 

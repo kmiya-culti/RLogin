@@ -12,6 +12,9 @@
 #ifdef	USE_JUMPLIST
 #include <Shobjidl.h>
 #include <Shlobj.h>
+#include <propvarutil.h>
+#include <propsys.h>
+#include <propkey.h>
 #endif
 
 #include "MainFrm.h"
@@ -248,6 +251,7 @@ BEGIN_MESSAGE_MAP(CRLoginApp, CWinApp)
 	ON_COMMAND(ID_FILE_NEW, &CWinApp::OnFileNew)
 	ON_COMMAND(ID_FILE_OPEN, &CWinApp::OnFileOpen)
 	ON_COMMAND(IDM_DISPWINIDX, &CRLoginApp::OnDispwinidx)
+	ON_COMMAND(IDM_DIALOGFONT, &CRLoginApp::OnDialogfont)
 END_MESSAGE_MAP()
 
 
@@ -264,7 +268,6 @@ CRLoginApp::CRLoginApp()
 	m_pDWriteFactory = NULL;
 #endif
 }
-
 
 // 唯一の CRLoginApp オブジェクトです。
 
@@ -303,6 +306,99 @@ void ExDwmEnableWindow(HWND hWnd, BOOL bEnable)
 }
 
 // CRLoginApp 初期化
+
+#ifdef	USE_JUMPLIST
+void CRLoginApp::AddShellLink(LPCTSTR pEntryName, IObjectCollection *pObjCol)
+{
+	IShellLink *pSheLink;
+	TCHAR szExePath[MAX_PATH];
+	CString param;
+ 
+	GetModuleFileName(NULL, szExePath, _countof(szExePath));
+
+	if ( SUCCEEDED(CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pSheLink))) ) {
+
+		param.Format(_T("/entry \"%s\" /inuse"), pEntryName);
+
+		pSheLink->SetPath(szExePath);
+		pSheLink->SetArguments(param);
+		pSheLink->SetIconLocation(szExePath, 1);
+		// pSheLink->SetDescription(_T("inuse"));
+
+		IPropertyStore *pProStore;
+
+		if ( SUCCEEDED(pSheLink->QueryInterface(IID_PPV_ARGS(&pProStore))) ) {
+
+			PROPVARIANT pv;
+			IShellLink *pSheLink2;
+
+			InitPropVariantFromString(pEntryName, &pv);
+			pProStore->SetValue(PKEY_Title, pv);
+			pProStore->Commit();
+
+			if ( SUCCEEDED(pProStore->QueryInterface(IID_PPV_ARGS(&pSheLink2))) ) {
+				pObjCol->AddObject(pSheLink2);
+				pSheLink2->Release();
+			}
+
+			PropVariantClear(&pv);
+			pProStore->Release();
+		}
+
+		pSheLink->Release();
+	}
+}
+void CRLoginApp::CreateJumpList(CServerEntryTab *pEntry)
+{
+	ICustomDestinationList *pJumpList;
+
+	if ( SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED)) ) {
+
+		if ( SUCCEEDED(CoCreateInstance(CLSID_DestinationList, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pJumpList))) ) {
+
+			UINT uMaxSlots;
+			IObjectArray *pRemovedList;
+
+			//CString appId(_T("Culti.RLogin.2"));
+			//SetCurrentProcessExplicitAppUserModelID(appId);
+			//pJumpList->SetAppID(appId);
+
+			pJumpList->DeleteList(NULL);
+
+			if ( SUCCEEDED(pJumpList->BeginList(&uMaxSlots, IID_PPV_ARGS(&pRemovedList))) ) {
+
+	 			//pJumpList->AppendKnownCategory(KDC_FREQUENT);
+	 			//pJumpList->AppendKnownCategory(KDC_RECENT);
+
+				IObjectCollection *pObjCol;
+			
+				if ( SUCCEEDED(CoCreateInstance(CLSID_EnumerableObjectCollection, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pObjCol))) ) {
+
+					IObjectArray *pObjArray;
+
+					for ( int n = 0 ; n < pEntry->GetSize() ; n++ )
+						AddShellLink(pEntry->GetAt(n).m_EntryName, pObjCol);
+
+					if ( SUCCEEDED(pObjCol->QueryInterface(IID_PPV_ARGS(&pObjArray))) ) {
+						pJumpList->AddUserTasks(pObjArray);
+						//pJumpList->AppendCategory(_T("Custom category"), pObjArray);
+						pObjArray->Release();
+					}
+
+					pObjCol->Release();
+				}
+
+				pJumpList->CommitList();
+				pRemovedList->Release();
+			}
+
+			pJumpList->Release();
+		}
+
+		CoUninitialize();
+	}
+}
+#endif
 
 BOOL CRLoginApp::InitInstance()
 {
@@ -382,7 +478,6 @@ BOOL CRLoginApp::InitInstance()
 
 	LoadStdProfileSettings(4);  // 標準の INI ファイルのオプションをロードします (MRU を含む)
 
-
 #ifdef	USE_DWMAPI
 	if ( (ExDwmApi = LoadLibrary(_T("dwmapi.dll"))) != NULL ) {
 		ExDwmIsCompositionEnabled      = (HRESULT (__stdcall *)(BOOL* pfEnabled))GetProcAddress(ExDwmApi, "DwmIsCompositionEnabled");
@@ -405,76 +500,6 @@ BOOL CRLoginApp::InitInstance()
 #ifdef	USE_DIRECTWRITE
 	if ( SUCCEEDED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &m_pD2DFactory)) )
 		DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(m_pDWriteFactory), reinterpret_cast<IUnknown **>(&m_pDWriteFactory));
-#endif
-
-#ifdef	USE_JUMPLIST
-	ICustomDestinationList *pJumpList = NULL;
-
-	// COM の初期化
-	if ( SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED)) ) {
-		// インスタンスの作成
-		if ( SUCCEEDED(CoCreateInstance(CLSID_DestinationList, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pJumpList))) ) {
-			// カテゴリの追加
-			UINT uMaxSlots;
-			IObjectCollection *pObjCol;
-	        IShellLink *pSheLink;
-			IObjectArray *pObjSlots, *pObjArray;
-
-			if ( SUCCEEDED(pJumpList->BeginList(&uMaxSlots, IID_PPV_ARGS(&pObjSlots))) ) {
-
-				//pJumpList->AppendKnownCategory(KDC_FREQUENT);		// よく使うファイルリスト
-				//pJumpList->AppendKnownCategory(KDC_RECENT);		// 最近使ったファイル (Default)
-			
-				if ( SUCCEEDED(CoCreateInstance(CLSID_EnumerableObjectCollection, NULL, CLSCTX_INPROC, IID_PPV_ARGS(&pObjCol))) ) {
-
-					if ( SUCCEEDED(CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pSheLink))) ) {
-						pSheLink->SetArguments(_T("/inuse"));
-						pSheLink->SetDescription(_T("inuse"));
-						pSheLink->SetIconLocation(_T("Path"), 0);
-
-						//IPropertyStore *pProStore;
-						//if ( SUCCEEDED(pSheLink->QueryInterface(IID_IPropertyStore, (void **)&pProStore)) ) {
-						//	pProStore->SetValue(&PKEY_Title, &pv);
-						//	pProStore->Release();
-						//}
-
-						pObjCol->AddObject(pSheLink);
-						pSheLink->Release();
-					}
-
-					if ( SUCCEEDED(pObjCol->QueryInterface(IID_PPV_ARGS(&pObjArray))) ) {
-						pJumpList->AppendCategory(L"Category", pObjArray);
-						pObjArray->Release();
-					}
-					pObjCol->Release();
-				}
-
-				if ( SUCCEEDED(CoCreateInstance(CLSID_EnumerableObjectCollection, NULL, CLSCTX_INPROC, IID_PPV_ARGS(&pObjCol))) ) {
-					if ( SUCCEEDED(pObjCol->QueryInterface(IID_PPV_ARGS(&pObjArray))) ) {
-						pJumpList->AddUserTasks(pObjArray);
-						pObjArray->Release();
-					}
-					pObjCol->Release();
-				}
-
-				if ( SUCCEEDED(CoCreateInstance(CLSID_EnumerableObjectCollection, NULL, CLSCTX_INPROC, IID_PPV_ARGS(&pObjCol))) ) {
-					if ( SUCCEEDED(pObjCol->QueryInterface(IID_PPV_ARGS(&pObjArray))) ) {
-						pJumpList->AddUserTasks(pObjArray);
-						pObjArray->Release();
-					}
-					pObjCol->Release();
-				}
-
-				// クリーンアップ
-				pJumpList->CommitList();
-				pObjSlots->Release();
-			}
-
-			pJumpList->Release();
-		}
-
-		CoUninitialize();
-	}
 #endif
 
 	// アプリケーション用のドキュメント テンプレートを登録します。ドキュメント テンプレート
@@ -540,6 +565,10 @@ BOOL CRLoginApp::InitInstance()
 		break;
 	}
 	m_pCmdInfo = NULL;
+
+#ifdef	USE_JUMPLIST
+	CreateJumpList(&(pMainFrame->m_ServerEntryTab));
+#endif
 
 	return TRUE;
 }
@@ -1006,7 +1035,7 @@ void CRLoginApp::GetVersion(CString &str)
 
 // アプリケーションのバージョン情報に使われる CAboutDlg ダイアログ
 
-class CAboutDlg : public CDialog
+class CAboutDlg : public CDialogExt
 {
 public:
 	CAboutDlg();
@@ -1023,13 +1052,13 @@ protected:
 	afx_msg void OnNMClickSyslink1(NMHDR *pNMHDR, LRESULT *pResult);
 };
 
-CAboutDlg::CAboutDlg() : CDialog(CAboutDlg::IDD)
+CAboutDlg::CAboutDlg() : CDialogExt(CAboutDlg::IDD)
 {
 }
 
 void CAboutDlg::DoDataExchange(CDataExchange* pDX)
 {
-	CDialog::DoDataExchange(pDX);
+	CDialogExt::DoDataExchange(pDX);
 }
 
 void CAboutDlg::OnNMClickSyslink1(NMHDR *pNMHDR, LRESULT *pResult)
@@ -1039,7 +1068,7 @@ void CAboutDlg::OnNMClickSyslink1(NMHDR *pNMHDR, LRESULT *pResult)
 	*pResult = 0;
 }
 
-BEGIN_MESSAGE_MAP(CAboutDlg, CDialog)
+BEGIN_MESSAGE_MAP(CAboutDlg, CDialogExt)
 	ON_NOTIFY(NM_CLICK, IDC_SYSLINK1, &CAboutDlg::OnNMClickSyslink1)
 END_MESSAGE_MAP()
 
@@ -1262,4 +1291,37 @@ void CRLoginApp::OnDispwinidx()
 	}
 }
 
+void CRLoginApp::OnDialogfont()
+{
+	CString FontName;
+	int FontSize;
+	LOGFONT LogFont;
+	CDC dc;
 
+	dc.CreateCompatibleDC(NULL);
+
+	FontName = GetProfileString(_T("Dialog"), _T("FontName"), _T("MS UI Gothic"));
+	FontSize = GetProfileInt(_T("Dialog"), _T("FontSize"), 9);
+
+	memset(&(LogFont), 0, sizeof(LOGFONT));
+	LogFont.lfWidth          = 0;
+	LogFont.lfHeight         = 0 - MulDiv(FontSize, dc.GetDeviceCaps(LOGPIXELSY), 72);
+	LogFont.lfWeight         = FW_DONTCARE;
+	LogFont.lfCharSet        = DEFAULT_CHARSET;
+	LogFont.lfOutPrecision   = OUT_DEFAULT_PRECIS;
+	LogFont.lfClipPrecision  = CLIP_DEFAULT_PRECIS;
+	LogFont.lfQuality        = DEFAULT_QUALITY;
+	LogFont.lfPitchAndFamily = DEFAULT_PITCH | FF_DONTCARE;
+    _tcsncpy(LogFont.lfFaceName, FontName, 32);
+
+	CFontDialog font(&LogFont, CF_NOVERTFONTS | CF_SCREENFONTS | CF_SELECTSCRIPT, NULL, ::AfxGetMainWnd());
+
+	if ( font.DoModal() != IDOK )
+		return;
+
+    FontName = LogFont.lfFaceName;
+	FontSize = 0 - MulDiv(LogFont.lfHeight, 72, dc.GetDeviceCaps(LOGPIXELSY));
+
+	WriteProfileString(_T("Dialog"), _T("FontName"), FontName);
+	WriteProfileInt(_T("Dialog"), _T("FontSize"), FontSize);
+}

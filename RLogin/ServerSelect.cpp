@@ -20,10 +20,10 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // CServerSelect ダイアログ
 
-IMPLEMENT_DYNAMIC(CServerSelect, CDialog)
+IMPLEMENT_DYNAMIC(CServerSelect, CDialogExt)
 
 CServerSelect::CServerSelect(CWnd* pParent /*=NULL*/)
-	: CDialog(CServerSelect::IDD, pParent)
+	: CDialogExt(CServerSelect::IDD, pParent)
 {
 	m_EntryNum = (-1);
 	m_pData = NULL;
@@ -33,13 +33,13 @@ CServerSelect::CServerSelect(CWnd* pParent /*=NULL*/)
 
 void CServerSelect::DoDataExchange(CDataExchange* pDX)
 {
-	CDialog::DoDataExchange(pDX);
+	CDialogExt::DoDataExchange(pDX);
 
 	DDX_Control(pDX, IDC_SERVERLIST, m_List);
 	DDX_Control(pDX, IDC_SERVERTAB, m_Tab);
 }
 
-BEGIN_MESSAGE_MAP(CServerSelect, CDialog)
+BEGIN_MESSAGE_MAP(CServerSelect, CDialogExt)
 	ON_WM_CLOSE()
 	ON_WM_SIZE()
 	ON_WM_SIZING()
@@ -144,8 +144,8 @@ void CServerSelect::InitItemOffset()
 	WINDOWPLACEMENT place;
 	CWnd *pWnd;
 
-	if ( ItemTabInit )
-		return;
+	//if ( ItemTabInit )
+	//	return;
 	ItemTabInit = TRUE;
 
 	GetClientRect(rect);
@@ -252,7 +252,7 @@ BOOL CServerSelect::OnInitDialog()
 
 	ASSERT(m_pData != NULL);
 
-	CDialog::OnInitDialog();
+	CDialogExt::OnInitDialog();
 
 	m_TabEntry.SetNoCase(FALSE);
 	m_TabEntry.SetNoSort(FALSE);
@@ -279,6 +279,10 @@ BOOL CServerSelect::OnInitDialog()
 	m_MinHeight = rect.Height();
 	cx = AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("cx"), rect.Width());
 	cy = AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("cy"), rect.Height());
+	if ( cx < rect.Width() )
+		cx = rect.Width();
+	if ( cy < rect.Height() )
+		cy = rect.Height();
 	MoveWindow(rect.left, rect.top, cx, cy, FALSE);
 	UpdateTabWnd();
 
@@ -307,7 +311,7 @@ void CServerSelect::OnOK()
 		}
 	}
 
-	CDialog::OnOK();
+	CDialogExt::OnOK();
 }
 
 void CServerSelect::OnDblclkServerlist(NMHDR* pNMHDR, LRESULT* pResult) 
@@ -366,6 +370,7 @@ void CServerSelect::OnEditentry()
 	CParamTab ParamTab;
 
 	Entry = m_pData->GetAt(m_EntryNum);
+	TextRam.m_pServerEntry = &Entry;
 	TextRam.Serialize(FALSE,  Entry.m_ProBuffer);
 	KeyTab.Serialize(FALSE,   Entry.m_ProBuffer);
 	KeyMac.Serialize(FALSE,   Entry.m_ProBuffer);
@@ -659,6 +664,7 @@ void CServerSelect::OnServExport()
 			m_EntryNum = (int)m_List.GetItemData(n);
 			Entry = m_pData->GetAt(m_EntryNum);
 
+			TextRam.m_pServerEntry = &Entry;
 			TextRam.Serialize(FALSE,  Entry.m_ProBuffer);
 			KeyTab.Serialize(FALSE,   Entry.m_ProBuffer);
 			KeyMac.Serialize(FALSE,   Entry.m_ProBuffer);
@@ -743,6 +749,7 @@ void CServerSelect::OnServExchng()
 		m_EntryNum = (int)m_List.GetItemData(n);
 		Entry = m_pData->GetAt(m_EntryNum);
 
+		TextRam.m_pServerEntry = &Entry;
 		TextRam.Serialize(FALSE,  Entry.m_ProBuffer);
 		KeyTab.Serialize(FALSE,   Entry.m_ProBuffer);
 		KeyMac.Serialize(FALSE,   Entry.m_ProBuffer);
@@ -826,12 +833,12 @@ void CServerSelect::OnClose()
 	AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("cx"), rect.Width());
 	AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("cy"), rect.Height());
 
-	CDialog::OnClose();
+	CDialogExt::OnClose();
 }
 void CServerSelect::OnSize(UINT nType, int cx, int cy)
 {
 	SetItemOffset(cx, cy);
-	CDialog::OnSize(nType, cx, cy);
+	CDialogExt::OnSize(nType, cx, cy);
 	Invalidate(TRUE);
 }
 void CServerSelect::OnSizing(UINT fwSide, LPRECT pRect)
@@ -859,7 +866,7 @@ void CServerSelect::OnSizing(UINT fwSide, LPRECT pRect)
 			pRect->bottom = pRect->top + m_MinHeight;
 	}
 
-	CDialog::OnSizing(fwSide, pRect);
+	CDialogExt::OnSizing(fwSide, pRect);
 }
 
 void CServerSelect::OnTcnSelchangeServertab(NMHDR *pNMHDR, LRESULT *pResult)
@@ -921,5 +928,5 @@ BOOL CServerSelect::PreTranslateMessage(MSG* pMsg)
 		}
 	}
 
-	return CDialog::PreTranslateMessage(pMsg);
+	return CDialogExt::PreTranslateMessage(pMsg);
 }

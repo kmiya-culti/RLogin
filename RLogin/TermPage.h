@@ -6,7 +6,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // CTermPage ダイアログ
 
-class CTermPage : public CTreePropertyPage
+class CTermPage : public CTreePage
 {
 	DECLARE_DYNCREATE(CTermPage)
 

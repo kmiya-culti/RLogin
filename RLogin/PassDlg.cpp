@@ -8,10 +8,10 @@
 /////////////////////////////////////////////////////////////////////////////
 // CPassDlg ダイアログ
 
-IMPLEMENT_DYNAMIC(CPassDlg, CDialog)
+IMPLEMENT_DYNAMIC(CPassDlg, CDialogExt)
 
 CPassDlg::CPassDlg(CWnd* pParent /*=NULL*/)
-	: CDialog(CPassDlg::IDD, pParent)
+	: CDialogExt(CPassDlg::IDD, pParent)
 {
 	m_HostAddr = _T("");
 	m_UserName = _T("");
@@ -25,7 +25,7 @@ CPassDlg::CPassDlg(CWnd* pParent /*=NULL*/)
 
 void CPassDlg::DoDataExchange(CDataExchange* pDX)
 {
-	CDialog::DoDataExchange(pDX);
+	CDialogExt::DoDataExchange(pDX);
 
 	DDX_Control(pDX, IDC_TIMELIMIT, m_TimeLimit);
 	DDX_Control(pDX, IDC_HOSTADDR, m_HostWnd);
@@ -34,7 +34,7 @@ void CPassDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_PROMPT, m_Prompt);
 }
 
-BEGIN_MESSAGE_MAP(CPassDlg, CDialog)
+BEGIN_MESSAGE_MAP(CPassDlg, CDialogExt)
 	ON_WM_TIMER()
 END_MESSAGE_MAP()
 
@@ -46,7 +46,7 @@ BOOL CPassDlg::OnInitDialog()
 	CWnd *pPassWnd = GetDlgItem(IDC_PASSNAME);
 	ASSERT(pPassWnd != NULL);
 
-	CDialog::OnInitDialog();
+	CDialogExt::OnInitDialog();
 	
 	if ( !m_Title.IsEmpty() )
 		SetWindowText(m_Title);
@@ -88,7 +88,7 @@ void CPassDlg::OnTimer(UINT_PTR nIDEvent)
 			OnCancel();
 	}
 
-	CDialog::OnTimer(nIDEvent);
+	CDialogExt::OnTimer(nIDEvent);
 }
 
 void CPassDlg::OnOK()
@@ -103,5 +103,5 @@ void CPassDlg::OnOK()
 	m_UserWnd.AddHis(m_UserName);
 	m_UserWnd.SaveHis(_T("PassDlgUserName"));
 
-	CDialog::OnOK();
+	CDialogExt::OnOK();
 }

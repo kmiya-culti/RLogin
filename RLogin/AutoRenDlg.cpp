@@ -11,10 +11,10 @@
 
 // CAutoRenDlg ダイアログ
 
-IMPLEMENT_DYNAMIC(CAutoRenDlg, CDialog)
+IMPLEMENT_DYNAMIC(CAutoRenDlg, CDialogExt)
 
 CAutoRenDlg::CAutoRenDlg(CWnd* pParent /*=NULL*/)
-	: CDialog(CAutoRenDlg::IDD, pParent)
+	: CDialogExt(CAutoRenDlg::IDD, pParent)
 {
 	m_Exec = 0;
 }
@@ -25,7 +25,7 @@ CAutoRenDlg::~CAutoRenDlg()
 
 void CAutoRenDlg::DoDataExchange(CDataExchange* pDX)
 {
-	CDialog::DoDataExchange(pDX);
+	CDialogExt::DoDataExchange(pDX);
 	DDX_Text(pDX, IDC_EDIT1, m_Name[0]);
 	DDX_Text(pDX, IDC_EDIT2, m_Name[1]);
 	DDX_Text(pDX, IDC_EDIT3, m_Name[2]);
@@ -34,7 +34,7 @@ void CAutoRenDlg::DoDataExchange(CDataExchange* pDX)
 }
 
 
-BEGIN_MESSAGE_MAP(CAutoRenDlg, CDialog)
+BEGIN_MESSAGE_MAP(CAutoRenDlg, CDialogExt)
 	ON_BN_CLICKED(IDC_BUTTON1, &CAutoRenDlg::OnBnClickedButton1)
 	ON_BN_CLICKED(IDC_BUTTON2, &CAutoRenDlg::OnBnClickedButton2)
 	ON_EN_UPDATE(IDC_EDIT3, &CAutoRenDlg::OnEnUpdateEdit3)
@@ -69,6 +69,6 @@ void CAutoRenDlg::OnEnUpdateEdit3()
 
 BOOL CAutoRenDlg::OnInitDialog()
 {
-	CDialog::OnInitDialog();
+	CDialogExt::OnInitDialog();
 	return TRUE;
 }

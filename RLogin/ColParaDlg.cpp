@@ -20,9 +20,9 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // CColParaDlg プロパティ ページ
 
-IMPLEMENT_DYNCREATE(CColParaDlg, CPropertyPage)
+IMPLEMENT_DYNCREATE(CColParaDlg, CTreePage)
 
-CColParaDlg::CColParaDlg() : CTreePropertyPage(CColParaDlg::IDD)
+CColParaDlg::CColParaDlg() : CTreePage(CColParaDlg::IDD)
 {
 	m_ColSet = -1;
 	m_BitMapFile = _T("");
@@ -41,7 +41,7 @@ CColParaDlg::~CColParaDlg()
 
 void CColParaDlg::DoDataExchange(CDataExchange* pDX)
 {
-	CPropertyPage::DoDataExchange(pDX);
+	CTreePage::DoDataExchange(pDX);
 
 	DDX_Control(pDX, IDC_TRANSPARENT, m_TransSlider);
 	DDX_CBIndex(pDX, IDC_COLSET, m_ColSet);
@@ -61,7 +61,7 @@ void CColParaDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_SLIDER_HUECOL, m_SliderHuecol);
 }
 
-BEGIN_MESSAGE_MAP(CColParaDlg, CPropertyPage)
+BEGIN_MESSAGE_MAP(CColParaDlg, CTreePage)
 	ON_WM_LBUTTONDBLCLK()
 	ON_WM_LBUTTONDOWN()
 	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_TRANSPARENT, OnReleasedcaptureTransparent)
@@ -218,7 +218,7 @@ BOOL CColParaDlg::OnInitDialog()
 {
 	ASSERT(m_pSheet != NULL && m_pSheet->m_pTextRam != NULL);
 
-	CPropertyPage::OnInitDialog();
+	CTreePage::OnInitDialog();
 
 	int n;
 	CButton *pWnd;
@@ -345,7 +345,7 @@ void CColParaDlg::OnLButtonDblClk(UINT nFlags, CPoint point)
 		}
 	}
 
-	CPropertyPage::OnLButtonDblClk(nFlags, point);
+	CTreePage::OnLButtonDblClk(nFlags, point);
 }
 void CColParaDlg::OnLButtonDown(UINT nFlags, CPoint point) 
 {
@@ -381,7 +381,7 @@ void CColParaDlg::OnLButtonDown(UINT nFlags, CPoint point)
 			break;
 		}
 	}
-	CPropertyPage::OnLButtonDown(nFlags, point);
+	CTreePage::OnLButtonDown(nFlags, point);
 }
 
 void CColParaDlg::OnBitMapFileSel() 
@@ -482,7 +482,7 @@ void CColParaDlg::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 		SetDarkLight();
 		InvalidateRect(m_InvRect, FALSE);
 	}
-	CTreePropertyPage::OnVScroll(nSBCode, nPos, pScrollBar);
+	CTreePage::OnVScroll(nSBCode, nPos, pScrollBar);
 }
 void CColParaDlg::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
 {
@@ -502,5 +502,5 @@ void CColParaDlg::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
 		dc.FillSolidRect(rect, m_FontCol[n] > 16 ? m_pSheet->m_pTextRam->m_ColTab[m_FontCol[n]] : EditColor(m_FontCol[n]));
 		dc.Detach();
 	} else
-		CTreePropertyPage::OnDrawItem(nIDCtl, lpDrawItemStruct);
+		CTreePage::OnDrawItem(nIDCtl, lpDrawItemStruct);
 }

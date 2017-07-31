@@ -8,10 +8,10 @@
 /////////////////////////////////////////////////////////////////////////////
 // CChModDlg ダイアログ
 
-IMPLEMENT_DYNAMIC(CChModDlg, CDialog)
+IMPLEMENT_DYNAMIC(CChModDlg, CDialogExt)
 
 CChModDlg::CChModDlg(CWnd* pParent /*=NULL*/)
-	: CDialog(CChModDlg::IDD, pParent)
+	: CDialogExt(CChModDlg::IDD, pParent)
 {
 	for ( int n = 0 ; n < 9 ; n++ )
 		m_Mode[n] = FALSE;
@@ -20,13 +20,13 @@ CChModDlg::CChModDlg(CWnd* pParent /*=NULL*/)
 
 void CChModDlg::DoDataExchange(CDataExchange* pDX)
 {
-	CDialog::DoDataExchange(pDX);
+	CDialogExt::DoDataExchange(pDX);
 
 	for ( int n = 0 ; n < 9 ; n++ )
 		DDX_Check(pDX, IDC_CHMOD1 + n, m_Mode[n]);
 }
 
-BEGIN_MESSAGE_MAP(CChModDlg, CDialog)
+BEGIN_MESSAGE_MAP(CChModDlg, CDialogExt)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -34,7 +34,7 @@ END_MESSAGE_MAP()
 
 BOOL CChModDlg::OnInitDialog() 
 {
-	CDialog::OnInitDialog();
+	CDialogExt::OnInitDialog();
 	
 	int n, b = 0400;
 
@@ -57,5 +57,5 @@ void CChModDlg::OnOK()
 			m_Attr |= b;
 	}
 	
-	CDialog::OnOK();
+	CDialogExt::OnOK();
 }

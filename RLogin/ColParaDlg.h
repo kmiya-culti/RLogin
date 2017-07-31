@@ -4,7 +4,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // CColParaDlg ダイアログ
 
-class CColParaDlg : public CTreePropertyPage
+class CColParaDlg : public CTreePage
 {
 	DECLARE_DYNCREATE(CColParaDlg)
 

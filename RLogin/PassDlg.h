@@ -1,11 +1,12 @@
 #pragma once
 
 #include "ComboBoxHis.h"
+#include "DialogExt.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CPassDlg ダイアログ
 
-class CPassDlg : public CDialog
+class CPassDlg : public CDialogExt
 {
 	DECLARE_DYNAMIC(CPassDlg)
 

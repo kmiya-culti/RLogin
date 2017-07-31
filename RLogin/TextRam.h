@@ -17,7 +17,9 @@
 #include "GrapWnd.h"
 #include "GhostWnd.h"
 
-#define	USE_FIXWCHAR		1				// MemMap Base Fixed WCHAR Buffer
+#define	FIX_VERSION		9
+
+#define	USE_FIXWCHAR	1				// MemMap Base Fixed WCHAR Buffer
 #define	USE_TEXTFRAME	1				// Enabled ATT_FRAME RS/RD/LS/LDLINE 
 
 #define	COLS_MAX		512
@@ -201,6 +203,7 @@
 #define	TO_RLGRPIND		1456		// イメージをウィンドウ内で表示
 #define	TO_RLLOGTIME	1457		// ログにタイムスタンプを追加
 #define	TO_RLSTAYCLIP	1458		// 範囲選択をそのままにする
+#define	TO_PROXPASS		1459		// プロキシーの入力を求める
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -719,6 +722,7 @@ public:	// Options
 	CString m_TraceLogFile;
 	int m_TraceMaxCount;
 	int m_DefTypeCaret;
+	int m_FixVersion;
 
 	void Init();
 	void SetIndex(int mode, CStringIndex &index);
@@ -734,6 +738,7 @@ public:	// Options
 
 public:
 	class CRLoginDoc *m_pDocument;
+	class CServerEntry *m_pServerEntry;
 	class CFontTab m_FontTab;
 
 #ifdef	USE_FIXWCHAR

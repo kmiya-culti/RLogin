@@ -1,9 +1,11 @@
 #pragma once
 
+#include "DialogExt.h"
+
 /////////////////////////////////////////////////////////////////////////////
 // CEditDlg ダイアログ
 
-class CEditDlg : public CDialog
+class CEditDlg : public CDialogExt
 {
 	DECLARE_DYNAMIC(CEditDlg)
 

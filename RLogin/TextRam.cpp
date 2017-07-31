@@ -1056,6 +1056,8 @@ CTextSave::~CTextSave()
 CTextRam::CTextRam()
 {
 	m_pDocument = NULL;
+	m_pServerEntry = NULL;
+
 	m_bOpen = FALSE;
 #ifdef	USE_FIXWCHAR
 	m_hMap = NULL;
@@ -1159,6 +1161,7 @@ CTextRam::CTextRam()
 	m_pTekWnd = NULL;
 	m_pImageWnd = NULL;
 	m_bSixelColInit = FALSE;
+	m_FixVersion = 0;
 
 	for ( int n = 0 ; n < MODKEY_MAX ; n++ )
 		m_DefModKey[n] = (-1);
@@ -1169,6 +1172,7 @@ CTextRam::CTextRam()
 
 	m_pSection = _T("TextRam");
 	m_MinSize = 16;
+
 	Init();
 }
 CTextRam::~CTextRam()
@@ -1955,6 +1959,7 @@ void CTextRam::Init()
 
 	m_TraceLogFile.Empty();
 	m_TraceMaxCount = 1000;
+	m_FixVersion = 0;
 
 	for ( int n = 0 ; n < MODKEY_MAX ; n++ ) {
 		m_DefModKey[n] = (-1);
@@ -2081,6 +2086,7 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		index[_T("TraceMaxCount")] = m_TraceMaxCount;
 		
 		index[_T("Caret")] = m_DefTypeCaret;
+		index[_T("BugFix")] = FIX_VERSION;
 
 	} else {		// Read
 		if ( (n = index.Find(_T("Cols"))) >= 0 ) {
@@ -2232,6 +2238,9 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		if ( (n = index.Find(_T("Caret"))) >= 0 )
 			m_TypeCaret = m_DefTypeCaret = index[n];
 
+		if ( (n = index.Find(_T("BugFix"))) >= 0 )
+			m_FixVersion = index[n];
+
 		if ( (n = index.Find(_T("Option"))) >= 0 ) {
 			memset(m_DefAnsiOpt, 0, sizeof(m_DefAnsiOpt));
 			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
@@ -2309,7 +2318,7 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 	tmp.SetString(str, _T(';'));
 	stra.Add(str);
 
-	stra.AddVal(8);	// AnsiOpt Bugfix
+	stra.AddVal(FIX_VERSION);	// AnsiOpt Bugfix
 
 	stra.AddVal(m_TitleMode);
 	stra.Add(m_SendCharSet[4]);
@@ -2350,7 +2359,7 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 }
 void CTextRam::GetArray(CStringArrayExt &stra)
 {
-	int n, v;
+	int n;
 	BYTE tmp[16];
 	CStringArrayExt ext;
 
@@ -2414,20 +2423,20 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 		m_ProcTab.GetArray(ext);
 	}
 
-	v = (stra.GetSize() > 37 ? stra.GetVal(37) : 0);
-	if ( v < 1 ) {
+	m_FixVersion = (stra.GetSize() > 37 ? stra.GetVal(37) : 0);
+	if ( m_FixVersion < 1 ) {
 		ReversOption(TO_DECANM);
 		EnableOption(TO_DECTCEM);	// ?25 Text Cursor Enable Mode
 	}
-	if ( v < 2 )
+	if ( m_FixVersion < 2 )
 		EnableOption(TO_XTMCUS);	// ?41 XTerm tab bug fix
-	if ( v < 3 ) {
+	if ( m_FixVersion < 3 ) {
 		EnableOption(TO_DECBKM);	// ?67 Backarrow key mode (BS
 		EnableOption(TO_ANSISRM);	//  12 SRM Set Send/Receive mode (Local echo off)
 	}
-	if ( v < 4 )
+	if ( m_FixVersion < 4 )
 		EnableOption(TO_ANSISRM);	//  12 SRM Set Send/Receive mode (Local echo off)
-	if ( v < 5 ) {					
+	if ( m_FixVersion < 5 ) {					
 		m_RecvCrLf = IsOptValue(426, 2);	// TO_RLRECVCR(426) to m_RecvCrLf
 		m_SendCrLf = IsOptValue(418, 2);	// TO_RLECHOCR(418) to m_SendCrLf
 		memcpy(m_OptTab, m_AnsiOpt, sizeof(m_AnsiOpt));
@@ -2443,13 +2452,13 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 		for ( ; n < 445 ; n++ ) DisableOption(n);
 		for ( ; n < 449 ; n++ ) DisableOption(1000 + n);
 	}
-	if ( v < 6 )
+	if ( m_FixVersion < 6 )
 		EnableOption(TO_DRCSMMv1);	// ?8800 Unicode 16 Maping
-	if ( v < 7 )
+	if ( m_FixVersion < 7 )
 		EnableOption(TO_DECARM);	// ? 8 Autorepeat mode
-	if ( v < 8 )
+	if ( m_FixVersion < 8 )
 		EnableOption(TO_XTPRICOL);	// ?1070 Regis/Sixel Private Color Map
-	
+
 	DisableOption(TO_IMECTRL);
 	memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_DefAnsiOpt));
 
@@ -2519,6 +2528,20 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 	if ( stra.GetSize() > 60 )
 		m_TypeCaret = m_DefTypeCaret = stra.GetVal(60);
 
+	if ( m_FixVersion < 9 ) {
+		if ( m_pDocument != NULL ) {
+			if ( m_pDocument->m_ServerEntry.m_UserNameProvs.IsEmpty() || m_pDocument->m_ServerEntry.m_PassNameProvs.IsEmpty() )
+				EnableOption(TO_RLUSEPASS);
+			if ( (m_pDocument->m_ServerEntry.m_ProxyMode & 7) > 0 && (m_pDocument->m_ServerEntry.m_ProxyUserProvs.IsEmpty() || m_pDocument->m_ServerEntry.m_ProxyPassProvs.IsEmpty()) )
+				EnableOption(TO_PROXPASS);
+		} else if ( m_pServerEntry != NULL ) {
+			if ( m_pServerEntry->m_UserNameProvs.IsEmpty() || m_pServerEntry->m_PassNameProvs.IsEmpty() )
+				EnableOption(TO_RLUSEPASS);
+			if ( (m_pServerEntry->m_ProxyMode & 7) > 0 && (m_pServerEntry->m_ProxyUserProvs.IsEmpty() || m_pServerEntry->m_ProxyPassProvs.IsEmpty()) )
+				EnableOption(TO_PROXPASS);
+		}
+	}
+	
 	RESET();
 }
 
@@ -2794,6 +2817,7 @@ const CTextRam & CTextRam::operator = (CTextRam &data)
 		m_ModKeyList[n] = data.m_ModKeyList[n];
 	InitModKeyTab();
 	m_ScrnOffset = data.m_ScrnOffset;
+	m_FixVersion = data.m_FixVersion;
 
 	return *this;
 }

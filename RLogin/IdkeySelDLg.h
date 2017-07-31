@@ -4,11 +4,12 @@
 #include <afxtempl.h>
 #include "Data.h"
 #include "ListCtrlExt.h"
+#include "DialogExt.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CIdkeySelDLg ダイアログ
 
-class CIdkeySelDLg : public CDialog
+class CIdkeySelDLg : public CDialogExt
 {
 	DECLARE_DYNAMIC(CIdkeySelDLg)
 	

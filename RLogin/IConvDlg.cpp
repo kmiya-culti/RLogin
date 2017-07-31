@@ -9,22 +9,22 @@
 /////////////////////////////////////////////////////////////////////////////
 // CIConvDlg ダイアログ
 
-IMPLEMENT_DYNAMIC(CIConvDlg, CDialog)
+IMPLEMENT_DYNAMIC(CIConvDlg, CDialogExt)
 
 CIConvDlg::CIConvDlg(CWnd* pParent /*=NULL*/)
-	: CDialog(CIConvDlg::IDD, pParent)
+	: CDialogExt(CIConvDlg::IDD, pParent)
 {
 }
 
 void CIConvDlg::DoDataExchange(CDataExchange* pDX)
 {
-	CDialog::DoDataExchange(pDX);
+	CDialogExt::DoDataExchange(pDX);
 
 	for ( int n = 0 ; n < 4 ; n++ )
 		DDX_CBString(pDX, IDC_CHARSET1 + n, m_CharSet[n]);
 }
 
-BEGIN_MESSAGE_MAP(CIConvDlg, CDialog)
+BEGIN_MESSAGE_MAP(CIConvDlg, CDialogExt)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -32,7 +32,7 @@ END_MESSAGE_MAP()
 
 BOOL CIConvDlg::OnInitDialog() 
 {
-	CDialog::OnInitDialog();
+	CDialogExt::OnInitDialog();
 
 	int n, i;
 	CStringArray stra;

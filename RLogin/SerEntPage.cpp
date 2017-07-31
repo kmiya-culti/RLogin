@@ -24,9 +24,10 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // CSerEntPage プロパティ ページ
 
-IMPLEMENT_DYNCREATE(CSerEntPage, CPropertyPage)
+IMPLEMENT_DYNCREATE(CSerEntPage, CTreePage)
 
-CSerEntPage::CSerEntPage() : CTreePropertyPage(CSerEntPage::IDD)
+CSerEntPage::CSerEntPage() : CTreePage(CSerEntPage::IDD)
+, m_UsePassDlg(FALSE)
 {
 	m_EntryName = _T("");
 	m_HostName = _T("");
@@ -41,6 +42,8 @@ CSerEntPage::CSerEntPage() : CTreePropertyPage(CSerEntPage::IDD)
 	m_Memo = _T("");
 	m_Group = _T("");
 	m_BeforeEntry = _T("");
+	m_UsePassDlg = FALSE;
+	m_UseProxyDlg = FALSE;
 }
 CSerEntPage::~CSerEntPage()
 {
@@ -48,7 +51,7 @@ CSerEntPage::~CSerEntPage()
 
 void CSerEntPage::DoDataExchange(CDataExchange* pDX)
 {
-	CPropertyPage::DoDataExchange(pDX);
+	CTreePage::DoDataExchange(pDX);
 
 	DDX_Text(pDX, IDC_ENTRYNAME, m_EntryName);
 	DDX_CBString(pDX, IDC_SERVERNAME, m_HostName);
@@ -61,9 +64,10 @@ void CSerEntPage::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_ENTRYMEMO, m_Memo);
 	DDX_CBString(pDX, IDC_GROUP, m_Group);
 	DDX_CBString(pDX, IDC_BEFORE, m_BeforeEntry);
+	DDX_Check(pDX, IDC_PROTOCHECK1, m_UsePassDlg);
 }
 
-BEGIN_MESSAGE_MAP(CSerEntPage, CPropertyPage)
+BEGIN_MESSAGE_MAP(CSerEntPage, CTreePage)
 	ON_BN_CLICKED(IDC_COMCONFIG, OnComconfig)
 	ON_BN_CLICKED(IDC_KEYFILESELECT, OnKeyfileselect)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_PROTO1, IDC_PROTO6, OnProtoType)
@@ -80,6 +84,7 @@ BEGIN_MESSAGE_MAP(CSerEntPage, CPropertyPage)
 	ON_EN_CHANGE(IDC_ENTRYMEMO, OnUpdateEdit)
 	ON_CBN_EDITCHANGE(IDC_GROUP, OnUpdateEdit)
 	ON_CBN_EDITCHANGE(IDC_BEFORE, OnUpdateEdit)
+	ON_BN_CLICKED(IDC_PROTOCHECK1, OnUpdateOption)
 END_MESSAGE_MAP()
 
 void CSerEntPage::SetEnableWind()
@@ -99,6 +104,7 @@ void CSerEntPage::SetEnableWind()
 		{ IDC_TERMNAME,		  {	FALSE,	TRUE,	TRUE,	TRUE,	TRUE,	FALSE } },
 		{ IDC_PROXYSET,		  {	TRUE,	TRUE,	TRUE,	TRUE,	FALSE,	FALSE } },
 		{ IDC_TERMCAP,		  {	FALSE,	FALSE,	TRUE,	TRUE,	FALSE,	FALSE } },
+		{ IDC_PROTOCHECK1,	  {	FALSE,	TRUE,	TRUE,	TRUE,	TRUE,	FALSE } },
 		{ 0 }
 	};
 
@@ -156,6 +162,9 @@ void CSerEntPage::DoInit()
 
 	m_ExtEnvStr   = m_pSheet->m_pParamTab->m_ExtEnvStr;
 
+	m_UsePassDlg  = (m_pSheet->m_pTextRam->IsOptEnable(TO_RLUSEPASS) ? TRUE : FALSE);
+	m_UseProxyDlg = (m_pSheet->m_pTextRam->IsOptEnable(TO_PROXPASS)  ? TRUE : FALSE);
+
 	if ( m_PortName.Compare(_T("serial")) == 0 ) {
 		com.GetMode(m_HostName);
 		m_PortName = com.m_ComName;
@@ -173,7 +182,7 @@ BOOL CSerEntPage::OnInitDialog()
 
 	ASSERT(m_pSheet != NULL && m_pSheet->m_pEntry != NULL);
 
-	CPropertyPage::OnInitDialog();
+	CTreePage::OnInitDialog();
 
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_SOCKNO)) != NULL ) {
 		for ( n = 1 ; n <= 31 ; n++ ) {
@@ -271,6 +280,8 @@ BOOL CSerEntPage::OnApply()
 	m_pSheet->m_pEntry->m_ProxySSLKeep   = m_SSL_Keep;
 	m_pSheet->m_pEntry->m_BeforeEntry    = m_BeforeEntry;
 	m_pSheet->m_pParamTab->m_ExtEnvStr = m_ExtEnvStr;
+	m_pSheet->m_pTextRam->SetOption(TO_RLUSEPASS, m_UsePassDlg);
+	m_pSheet->m_pTextRam->SetOption(TO_PROXPASS, m_UseProxyDlg);
 
 	return TRUE;
 }
@@ -335,6 +346,11 @@ void CSerEntPage::OnUpdateEdit()
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_ENTRY;
 }
+void CSerEntPage::OnUpdateOption() 
+{
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= (UMOD_TEXTRAM | UMOD_PARAMTAB);
+}
 void CSerEntPage::OnChatEdit()
 {
 	CChatDlg dlg;
@@ -361,19 +377,21 @@ void CSerEntPage::OnProxySet()
 	dlg.m_UserName   = m_ProxyUser;
 	dlg.m_PassWord   = m_ProxyPass;
 	dlg.m_SSL_Keep   = m_SSL_Keep;
+	dlg.m_UsePassDlg = m_UseProxyDlg;
 
 	if ( dlg.DoModal() != IDOK )
 		return;
 
-	m_ProxyMode = dlg.m_ProxyMode | (dlg.m_SSLMode << 3);
-	m_ProxyHost = dlg.m_ServerName;
-	m_ProxyPort = dlg.m_PortName;
-	m_ProxyUser = dlg.m_UserName;
-	m_ProxyPass = dlg.m_PassWord;
-	m_SSL_Keep  = dlg.m_SSL_Keep;
+	m_ProxyMode   = dlg.m_ProxyMode | (dlg.m_SSLMode << 3);
+	m_ProxyHost   = dlg.m_ServerName;
+	m_ProxyPort   = dlg.m_PortName;
+	m_ProxyUser   = dlg.m_UserName;
+	m_ProxyPass   = dlg.m_PassWord;
+	m_SSL_Keep    = dlg.m_SSL_Keep;
+	m_UseProxyDlg = dlg.m_UsePassDlg;
 
 	SetModified(TRUE);
-	m_pSheet->m_ModFlag |= UMOD_ENTRY;
+	m_pSheet->m_ModFlag |= (UMOD_ENTRY | UMOD_PARAMTAB);
 }
 
 void CSerEntPage::OnBnClickedTermcap()

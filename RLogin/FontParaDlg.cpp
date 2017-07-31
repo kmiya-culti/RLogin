@@ -15,10 +15,10 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // CFontParaDlg ダイアログ
 
-IMPLEMENT_DYNAMIC(CFontParaDlg, CDialog)
+IMPLEMENT_DYNAMIC(CFontParaDlg, CDialogExt)
 
 CFontParaDlg::CFontParaDlg(CWnd* pParent /*=NULL*/)
-	: CDialog(CFontParaDlg::IDD, pParent)
+	: CDialogExt(CFontParaDlg::IDD, pParent)
 {
 	//{{AFX_DATA_INIT(CFontParaDlg)
 	m_ShiftTemp = FALSE;
@@ -41,7 +41,7 @@ CFontParaDlg::CFontParaDlg(CWnd* pParent /*=NULL*/)
 
 void CFontParaDlg::DoDataExchange(CDataExchange* pDX)
 {
-	CDialog::DoDataExchange(pDX);
+	CDialogExt::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CFontParaDlg)
 	DDX_Check(pDX, IDC_SHIFT, m_ShiftTemp);
 	DDX_CBString(pDX, IDC_CHARSET, m_CharSetTemp);
@@ -59,7 +59,7 @@ void CFontParaDlg::DoDataExchange(CDataExchange* pDX)
 	//}}AFX_DATA_MAP
 }
 
-BEGIN_MESSAGE_MAP(CFontParaDlg, CDialog)
+BEGIN_MESSAGE_MAP(CFontParaDlg, CDialogExt)
 	//{{AFX_MSG_MAP(CFontParaDlg)
 	ON_BN_CLICKED(IDC_FONTSEL, OnFontsel)
 	ON_CBN_SELCHANGE(IDC_FONTNUM, &CFontParaDlg::OnCbnSelchangeFontnum)
@@ -192,7 +192,7 @@ BOOL CFontParaDlg::OnInitDialog()
 
 	ASSERT(m_pData != NULL && m_pFontTab != NULL);
 
-	CDialog::OnInitDialog();
+	CDialogExt::OnInitDialog();
 
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_CHARSET)) != NULL ) {
 		for ( n = 0 ; CharSetTab[n].name != NULL ; n++ )
@@ -250,7 +250,7 @@ void CFontParaDlg::OnOK()
 		m_pData->SetHash(n);
 	}
 
-	CDialog::OnOK();
+	CDialogExt::OnOK();
 }
 
 void CFontParaDlg::OnFontsel() 

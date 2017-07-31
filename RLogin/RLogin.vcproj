@@ -827,6 +827,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\DialogExt.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\EditDlg.cpp"
 				>
 			</File>
@@ -1202,6 +1206,10 @@
 			</File>
 			<File
 				RelativePath=".\DefParamDlg.h"
+				>
+			</File>
+			<File
+				RelativePath=".\DialogExt.h"
 				>
 			</File>
 			<File

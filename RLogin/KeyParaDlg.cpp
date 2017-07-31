@@ -8,10 +8,10 @@
 /////////////////////////////////////////////////////////////////////////////
 // CKeyParaDlg ダイアログ
 
-IMPLEMENT_DYNAMIC(CKeyParaDlg, CDialog)
+IMPLEMENT_DYNAMIC(CKeyParaDlg, CDialogExt)
 
 CKeyParaDlg::CKeyParaDlg(CWnd* pParent /*=NULL*/)
-	: CDialog(CKeyParaDlg::IDD, pParent)
+	: CDialogExt(CKeyParaDlg::IDD, pParent)
 {
 	m_WithShift = FALSE;
 	m_WithCtrl  = FALSE;
@@ -30,7 +30,7 @@ CKeyParaDlg::CKeyParaDlg(CWnd* pParent /*=NULL*/)
 
 void CKeyParaDlg::DoDataExchange(CDataExchange* pDX)
 {
-	CDialog::DoDataExchange(pDX);
+	CDialogExt::DoDataExchange(pDX);
 
 	DDX_Check(pDX, IDC_KEYSTAT1, m_WithShift);
 	DDX_Check(pDX, IDC_KEYSTAT2, m_WithCtrl);
@@ -45,7 +45,7 @@ void CKeyParaDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_CBString(pDX, IDC_KEYMAPS, m_Maps);
 }
 
-BEGIN_MESSAGE_MAP(CKeyParaDlg, CDialog)
+BEGIN_MESSAGE_MAP(CKeyParaDlg, CDialogExt)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -55,7 +55,7 @@ BOOL CKeyParaDlg::OnInitDialog()
 {
 	ASSERT(m_pData != NULL);
 
-	CDialog::OnInitDialog();
+	CDialogExt::OnInitDialog();
 	
 	m_KeyCode   = m_pData->GetCode();
 	m_WithShift = (m_pData->m_Mask & MASK_SHIFT)  ? TRUE : FALSE;
@@ -95,5 +95,5 @@ void CKeyParaDlg::OnOK()
 	//if ( m_WithScr )   m_pData->m_Mask |= MASK_SCRLCK;
 	//if ( m_WithCap )   m_pData->m_Mask |= MASK_CAPLCK;
 	m_pData->SetMaps(m_Maps);
-	CDialog::OnOK();
+	CDialogExt::OnOK();
 }

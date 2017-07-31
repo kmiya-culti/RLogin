@@ -16,10 +16,10 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // CProgDlg ダイアログ
 
-IMPLEMENT_DYNAMIC(CProgDlg, CDialog)
+IMPLEMENT_DYNAMIC(CProgDlg, CDialogExt)
 
 CProgDlg::CProgDlg(CWnd* pParent /*=NULL*/)
-	: CDialog(CProgDlg::IDD, pParent)
+	: CDialogExt(CProgDlg::IDD, pParent)
 {
 	//{{AFX_DATA_INIT(CProgDlg)
 	m_EndTime = _T("");
@@ -36,7 +36,7 @@ CProgDlg::CProgDlg(CWnd* pParent /*=NULL*/)
 
 void CProgDlg::DoDataExchange(CDataExchange* pDX)
 {
-	CDialog::DoDataExchange(pDX);
+	CDialogExt::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CProgDlg)
 	DDX_Control(pDX, IDC_SIZEPROG, m_FileSize);
 	DDX_Text(pDX, IDC_ENDTIME, m_EndTime);
@@ -48,7 +48,7 @@ void CProgDlg::DoDataExchange(CDataExchange* pDX)
 }
 
 
-BEGIN_MESSAGE_MAP(CProgDlg, CDialog)
+BEGIN_MESSAGE_MAP(CProgDlg, CDialogExt)
 	//{{AFX_MSG_MAP(CProgDlg)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
@@ -61,12 +61,12 @@ void CProgDlg::OnCancel()
 	m_AbortFlag = TRUE;
 	if ( m_pSock != NULL )
 		m_pSock->SyncAbort();
-//	CDialog::OnCancel();
+//	CDialogExt::OnCancel();
 }
 
 BOOL CProgDlg::OnInitDialog() 
 {
-	CDialog::OnInitDialog();
+	CDialogExt::OnInitDialog();
 
 	m_FileSize.SetRange(0, 0);
 	m_FileSize.SetPos(0);

@@ -8,10 +8,10 @@
 
 // CChatDlg ダイアログ
 
-IMPLEMENT_DYNAMIC(CChatDlg, CDialog)
+IMPLEMENT_DYNAMIC(CChatDlg, CDialogExt)
 
 CChatDlg::CChatDlg(CWnd* pParent /*=NULL*/)
-	: CDialog(CChatDlg::IDD, pParent)
+	: CDialogExt(CChatDlg::IDD, pParent)
 {
 	m_RecvStr.Empty();
 	m_SendStr.Empty();
@@ -24,7 +24,7 @@ CChatDlg::~CChatDlg()
 
 void CChatDlg::DoDataExchange(CDataExchange* pDX)
 {
-	CDialog::DoDataExchange(pDX);
+	CDialogExt::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_NODETREE, m_NodeTree);
 	DDX_Text(pDX, IDC_RECVSTR, m_RecvStr);
 	DDX_Text(pDX, IDC_SENDSTR, m_SendStr);
@@ -34,7 +34,7 @@ void CChatDlg::DoDataExchange(CDataExchange* pDX)
 }
 
 
-BEGIN_MESSAGE_MAP(CChatDlg, CDialog)
+BEGIN_MESSAGE_MAP(CChatDlg, CDialogExt)
 	ON_BN_CLICKED(IDC_NEWNODE, &CChatDlg::OnBnClickedNewnode)
 	ON_BN_CLICKED(IDC_NEXTNODE, &CChatDlg::OnBnClickedNextnode)
 	ON_BN_CLICKED(IDC_UPDATENODE, &CChatDlg::OnBnClickedUpdatenode)
@@ -51,7 +51,7 @@ END_MESSAGE_MAP()
 
 BOOL CChatDlg::OnInitDialog()
 {
-	CDialog::OnInitDialog();
+	CDialogExt::OnInitDialog();
 
 	m_Script.SetTreeCtrl(m_NodeTree);
 
@@ -69,7 +69,7 @@ void CChatDlg::OnOK()
 	UpdateData(TRUE);
 	m_Script.GetTreeCtrl(m_NodeTree);
 	m_Script.m_MakeChat = m_MakeChat;
-	CDialog::OnOK();
+	CDialogExt::OnOK();
 }
 
 void CChatDlg::OnBnClickedNewnode()

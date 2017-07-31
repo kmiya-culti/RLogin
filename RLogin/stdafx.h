@@ -4,6 +4,17 @@
 
 #pragma once
 
+#define	USE_DWMAPI	1
+#define	USE_GOZI	3
+#define	USE_NETTLE	1
+//#define	USE_CLEFIA	1
+//#define	USE_JUMPLIST	1
+//#define	USE_DIRECTWRITE	1
+
+//#define	WINSOCK11	1
+//#define	NOIPV6		1
+//#define	NOGDIPLUS	1
+
 #ifndef _SECURE_ATL
 #define _SECURE_ATL 1
 #endif
@@ -18,6 +29,7 @@
 #ifdef	USE_JUMPLIST
 #define WINVER			0x0601		// Windows 7
 #define _WIN32_WINNT	0x0601		// Windows 7
+#define	_WIN32_WINDOWS	0x0601
 #endif
 
 #ifndef WINVER				// Windows XP 以降のバージョンに固有の機能の使用を許可します。
@@ -53,9 +65,6 @@
 #include <afxcmn.h>			// MFC の Windows コモン コントロール サポート
 #endif // _AFX_NO_AFXCMN_SUPPORT
 
-//#define	WINSOCK11	1
-//#define	NOIPV6		1
-
 #ifdef	WINSOCK11
 #include <afxsock.h>		// MFC のソケット拡張機能
 #else
@@ -68,10 +77,10 @@
 #endif
 
 #ifdef	USE_DIRECTWRITE
-	#include <d2d1.h>
-	#include <d2d1helper.h>
-	#include <dwrite.h>
-	#include <wincodec.h>
+#include <d2d1.h>
+#include <d2d1helper.h>
+#include <dwrite.h>
+#include <wincodec.h>
 #endif
 
 #ifndef	NOGDIPLUS
@@ -96,11 +105,6 @@
 #define	MbsToTstr(s)		(s)
 #define	UniToTstr(s)		(CStringA(s))
 #endif
-
-#define	USE_DWMAPI	1
-#define	USE_GOZI	3
-#define	USE_NETTLE	1
-//#define	USE_CLEFIA	1
 
 #if defined _UNICODE || defined _WIN64
 #if defined _M_IX86

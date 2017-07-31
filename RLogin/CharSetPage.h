@@ -5,7 +5,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // CCharSetPage ダイアログ
 
-class CCharSetPage : public CTreePropertyPage
+class CCharSetPage : public CTreePage
 {
 	DECLARE_DYNCREATE(CCharSetPage)
 

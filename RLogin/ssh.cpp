@@ -237,19 +237,21 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 			while ( m_Incom.GetSize() > 0 ) {
 				ch = m_Incom.Get8Bit();
 				if ( ch == '\n' ) {
-					CString version;
+					CString product, version;
+					product = AfxGetApp()->GetProfileString(_T("MainFrame"), _T("ProductName"), _T("RLogin"));
 					((CRLoginApp *)AfxGetApp())->GetVersion(version);
 					if ( !m_pDocument->m_TextRam.IsOptEnable(TO_SSH1MODE) &&
 						   (m_ServerVerStr.Mid(0, 5).Compare(_T("SSH-2")) == 0 ||
 							m_ServerVerStr.Mid(0, 8).Compare(_T("SSH-1.99")) == 0) ) {
-								m_ClientVerStr.Format(_T("SSH-2.0-OpenSSH-4.0 RLogin-%s"), version);
+								m_ClientVerStr.Format(_T("SSH-2.0-%s-%s"), product, version);
 						m_InPackStat = 3;
 						m_SSHVer = 2;
 					} else {
-						m_ClientVerStr.Format(_T("SSH-1.5-OpenSSH-4.0 RLogin-%s"), version);
+						m_ClientVerStr.Format(_T("SSH-1.5-%s-%s"), product, version);
 						m_InPackStat = 1;
 						m_SSHVer = 1;
 					}
+					TRACE(_T("SSH Version %s\n"), m_ClientVerStr);
 					str.Format("%s\r\n", TstrToMbs(m_ClientVerStr));
 					CExtSocket::Send((LPCSTR)str, str.GetLength());
 					break;
@@ -1487,7 +1489,12 @@ void Cssh::SendMsgKexDhInit()
 
 	if ( m_SaveDh != NULL )
 		DH_free(m_SaveDh);
-	m_SaveDh = (m_DhMode == DHMODE_GROUP_1 ? dh_new_group1() : dh_new_group14());
+
+	if ( m_DhMode == DHMODE_GROUP_1 )
+		m_SaveDh = dh_new_group1();
+	else// m_DhMode == DHMODE_GROUP_14
+		m_SaveDh = dh_new_group14();
+
 	dh_gen_key(m_SaveDh, m_NeedKeyLen * 8);
 
 	tmp.Put8Bit(SSH2_MSG_KEXDH_INIT);

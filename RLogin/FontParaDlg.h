@@ -2,11 +2,12 @@
 
 #include "TextRam.h"
 #include "Data.h"
+#include "DialogExt.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CFontParaDlg ダイアログ
 
-class CFontParaDlg : public CDialog
+class CFontParaDlg : public CDialogExt
 {
 	DECLARE_DYNAMIC(CFontParaDlg)
 	

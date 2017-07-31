@@ -60,6 +60,11 @@ public:
 	inline IDWriteFactory *GetDWriteFactory() { return m_pDWriteFactory; }
 #endif
 
+#ifdef	USE_JUMPLIST
+	void AddShellLink(LPCTSTR pEntryName, IObjectCollection *pObjCol);
+	void CreateJumpList(CServerEntryTab *pEntry);
+#endif
+
 	void SetSocketIdle(class CExtSocket *pSock);
 	void DelSocketIdle(class CExtSocket *pSock);
 	virtual CString GetProfileString(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPCTSTR lpszDefault = NULL);
@@ -101,6 +106,7 @@ public:
 	afx_msg void OnAppAbout();
 	afx_msg void OnFilePrintSetup();
 	afx_msg void OnDispwinidx();
+	afx_msg void OnDialogfont();
 };
 
 extern CRLoginApp theApp;

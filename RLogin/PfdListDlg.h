@@ -1,11 +1,12 @@
 #pragma once
 
 #include "ListCtrlExt.h"
+#include "DialogExt.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CPfdListDlg ダイアログ
 
-class CPfdListDlg : public CDialog
+class CPfdListDlg : public CDialogExt
 {
 	DECLARE_DYNAMIC(CPfdListDlg)
 

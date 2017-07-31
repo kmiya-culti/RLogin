@@ -8,10 +8,10 @@
 
 // CChatStatDlg ダイアログ
 
-IMPLEMENT_DYNAMIC(CChatStatDlg, CDialog)
+IMPLEMENT_DYNAMIC(CChatStatDlg, CDialogExt)
 
 CChatStatDlg::CChatStatDlg(CWnd* pParent /*=NULL*/)
-	: CDialog(CChatStatDlg::IDD, pParent)
+	: CDialogExt(CChatStatDlg::IDD, pParent)
 {
 	m_Counter = 0;
 }
@@ -22,14 +22,14 @@ CChatStatDlg::~CChatStatDlg()
 
 void CChatStatDlg::DoDataExchange(CDataExchange* pDX)
 {
-	CDialog::DoDataExchange(pDX);
+	CDialogExt::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_STATUS, m_Status);
 	DDX_Control(pDX, IDC_TIMEPROG, m_TimeProg);
 	DDX_Control(pDX, IDC_TITLE, m_Title);
 }
 
 
-BEGIN_MESSAGE_MAP(CChatStatDlg, CDialog)
+BEGIN_MESSAGE_MAP(CChatStatDlg, CDialogExt)
 	ON_WM_TIMER()
 END_MESSAGE_MAP()
 
@@ -51,7 +51,7 @@ BOOL CChatStatDlg::OnInitDialog()
 	rect.bottom += y;
 	MoveWindow(rect);
 
-	CDialog::OnInitDialog();
+	CDialogExt::OnInitDialog();
 
 	m_TimeProg.SetRange(0, 180);
 	SetTimer(1028, 1000, NULL);
@@ -68,7 +68,7 @@ void CChatStatDlg::OnTimer(UINT_PTR nIDEvent)
 		if ( m_Counter >= 180 )
 			OnOK();
 	}
-	CDialog::OnTimer(nIDEvent);
+	CDialogExt::OnTimer(nIDEvent);
 }
 
 void CChatStatDlg::OnOK()
@@ -76,7 +76,7 @@ void CChatStatDlg::OnOK()
 	CWnd *pWnd = GetParent();
 	if ( pWnd != NULL )
 		pWnd->PostMessage(WM_COMMAND, ID_CHARSCRIPT_END);
-	CDialog::OnOK();
+	CDialogExt::OnOK();
 }
 
 void CChatStatDlg::SetStaus(LPCTSTR str)

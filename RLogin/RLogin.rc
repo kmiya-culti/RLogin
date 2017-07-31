@@ -197,6 +197,7 @@ BEGIN
     BEGIN
         MENUITEM "RLogin のバージョン情報(&A)...",      ID_APP_ABOUT
         MENUITEM "自動バージョンチェックを行う",              IDM_VERSIONCHECK
+        MENUITEM "ダイアログフォントの設定",                IDM_DIALOGFONT
     END
 END
 
@@ -328,6 +329,7 @@ BEGIN
     BEGIN
         MENUITEM "RLogin のバージョン情報(&A)...",      ID_APP_ABOUT
         MENUITEM "自動バージョンチェックを行う",              IDM_VERSIONCHECK
+        MENUITEM "ダイアログフォントの設定",                IDM_DIALOGFONT
     END
 END
 
@@ -483,29 +485,29 @@ END
 // Dialog
 //
 
-IDD_ABOUTBOX DIALOGEX 0, 0, 243, 199
+IDD_ABOUTBOX DIALOGEX 0, 0, 243, 192
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "RLoginのバージョン情報"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    ICON            IDR_MAINFRAME,IDC_STATIC,7,7,18,21
-    LTEXT           "RLogin Version 2.18.4 (2015/05/22)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
-    LTEXT           "Copyright (C) 1998-2015 Culti",IDC_STATIC,47,16,176,8
-    DEFPUSHBUTTON   "OK",IDOK,96,178,50,14,WS_GROUP
-    LTEXT           "OpenSSL 1.0.2a 19 Mar 2015",IDC_STATIC,47,29,176,8
-    LTEXT           "Copyright (c) 1998-2015 The OpenSSL Project",IDC_STATIC,47,38,176,8
-    LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,47,47,176,8
-    LTEXT           "All rights reserved.",IDC_STATIC,47,56,176,8
-    LTEXT           "zlib 1.2.8",IDC_STATIC,47,69,176,8
-    LTEXT           "(C) 1995-2013 Jean-loup Gailly and Mark Adler",IDC_STATIC,47,78,176,8
-    LTEXT           "iconv (GNU libiconv 1.14)",IDC_STATIC,47,91,176,8
-    LTEXT           "Copyright (C) 2000-2011 Free Software Foundation, Inc.",IDC_STATIC,47,100,176,8
-    LTEXT           "Nettle library (version 2.0)",IDC_STATIC,47,115,176,8
-    LTEXT           "Originally written 2001 by Niels Moller, updated 2009.",IDC_STATIC,47,124,176,8
-    LTEXT           "kumaGIF",IDC_STATIC,47,137,176,8
-    LTEXT           "Copyright c 1.023world All Rights Reserved.",IDC_STATIC,47,146,176,8
+    ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
+    LTEXT           "RLogin Version 2.18.5 (2015/06/01)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    LTEXT           "Copyright (C) 1998-2015 Culti",IDC_STATIC,44,16,189,8
+    DEFPUSHBUTTON   "OK",IDOK,96,171,50,14,WS_GROUP
+    LTEXT           "OpenSSL 1.0.2a 19 Mar 2015",IDC_STATIC,44,29,189,8
+    LTEXT           "Copyright (c) 1998-2015 The OpenSSL Project",IDC_STATIC,44,38,189,8
+    LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,47,189,8
+    LTEXT           "All rights reserved.",IDC_STATIC,44,56,189,8
+    LTEXT           "zlib 1.2.8",IDC_STATIC,44,69,189,8
+    LTEXT           "(C) 1995-2013 Jean-loup Gailly and Mark Adler",IDC_STATIC,44,78,189,8
+    LTEXT           "iconv (GNU libiconv 1.14)",IDC_STATIC,44,91,189,8
+    LTEXT           "Copyright (C) 2000-2011 Free Software Foundation, Inc.",IDC_STATIC,44,100,189,8
+    LTEXT           "Nettle library (version 2.0)",IDC_STATIC,44,115,189,8
+    LTEXT           "Originally written 2001 by Niels Moller, updated 2009.",IDC_STATIC,44,124,189,8
+    LTEXT           "kumaGIF",IDC_STATIC,44,137,189,8
+    LTEXT           "Copyright c 1.023world All Rights Reserved.",IDC_STATIC,44,146,189,8
     CONTROL         "<a href=""http://www.1023world.net/material/gif/"">http://www.1023world.net/material/gif/</a>",IDC_SYSLINK1,
-                    "SysLink",WS_TABSTOP,47,155,176,12
+                    "SysLink",WS_TABSTOP,44,155,189,12
 END
 
 IDD_ALGOPARADLG DIALOGEX 0, 0, 351, 343
@@ -781,13 +783,13 @@ CAPTION "SSH2 ポートフォワード"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     CONTROL         "List2",IDC_PFDLIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | WS_BORDER | WS_TABSTOP,7,7,243,109
-    CONTROL         "X11ポートフォワードを使用する",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,125,106,10
+    CONTROL         "X11ポートフォワードを使用する",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,125,115,10
     EDITTEXT        IDC_EDIT1,183,123,60,14,ES_AUTOHSCROLL
     PUSHBUTTON      "新規(&N)",IDC_PFDNEW,13,146,50,14
     PUSHBUTTON      "編集(&E)",IDC_PFDEDIT,73,146,50,14
     PUSHBUTTON      "削除(&D)",IDC_PFDDEL,133,146,50,14
     DEFPUSHBUTTON   "閉じる",IDOK,193,146,50,14
-    LTEXT           "DISPLAY",IDC_STATIC,151,126,27,8
+    RTEXT           "DISPLAY",IDC_STATIC,138,126,40,8
 END
 
 IDD_CHARSETPAGE DIALOGEX 0, 0, 270, 280
@@ -1032,32 +1034,33 @@ BEGIN
     CONTROL         "ssh",IDC_PROTO4,"Button",BS_AUTORADIOBUTTON,140,76,29,10
     CONTROL         "com",IDC_PROTO5,"Button",BS_AUTORADIOBUTTON,180,76,29,10
     CONTROL         "pipe",IDC_PROTO6,"Button",BS_AUTORADIOBUTTON,220,76,29,10
-    COMBOBOX        IDC_SERVERNAME,14,124,152,60,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "com",IDC_COMCONFIG,170,124,30,14
-    COMBOBOX        IDC_SOCKNO,210,124,46,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_LOGINNAME,14,167,70,62,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    EDITTEXT        IDC_PASSWORD,100,167,70,14,ES_PASSWORD | ES_AUTOHSCROLL
-    COMBOBOX        IDC_TERMNAME,186,167,70,59,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "Terminal(&T)",IDC_TERMCAP,186,149,70,14
-    PUSHBUTTON      "編集(&C)",IDC_CHATEDIT,14,205,70,14
-    PUSHBUTTON      "設定(&P)",IDC_PROXYSET,100,205,70,14
-    PUSHBUTTON      "参照(&K)",IDC_KEYFILESELECT,186,204,70,14
-    CONTROL         "EUC",IDC_KANJICODE1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,24,253,30,10
-    CONTROL         "SJIS",IDC_KANJICODE2,"Button",BS_AUTORADIOBUTTON,85,253,31,10
-    CONTROL         "ASCII",IDC_KANJICODE3,"Button",BS_AUTORADIOBUTTON,147,253,34,10
-    CONTROL         "UTF-8",IDC_KANJICODE4,"Button",BS_AUTORADIOBUTTON,212,253,34,10
-    CTEXT           "Server Address",IDC_STATIC,13,112,141,8
-    CTEXT           "User Name",IDC_STATIC,14,152,70,8
-    GROUPBOX        "デフォルト文字セット",IDC_STATIC,7,237,256,36
-    CTEXT           "Password",IDC_STATIC,100,152,70,8
-    CTEXT           "SSH Identity Key",IDC_STATIC,186,193,70,8
-    CTEXT           "Socket Port",IDC_STATIC,208,112,46,8
+    COMBOBOX        IDC_SERVERNAME,14,122,152,60,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "com",IDC_COMCONFIG,170,122,30,14
+    COMBOBOX        IDC_SOCKNO,210,122,46,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_LOGINNAME,14,165,70,62,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_PASSWORD,100,165,70,14,ES_PASSWORD | ES_AUTOHSCROLL
+    COMBOBOX        IDC_TERMNAME,186,165,70,59,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Terminal(&T)",IDC_TERMCAP,186,147,70,14
+    PUSHBUTTON      "編集(&C)",IDC_CHATEDIT,14,213,70,14
+    PUSHBUTTON      "設定(&P)",IDC_PROXYSET,100,213,70,14
+    PUSHBUTTON      "参照(&K)",IDC_KEYFILESELECT,186,212,70,14
+    CONTROL         "EUC",IDC_KANJICODE1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,24,254,30,10
+    CONTROL         "SJIS",IDC_KANJICODE2,"Button",BS_AUTORADIOBUTTON,85,254,31,10
+    CONTROL         "ASCII",IDC_KANJICODE3,"Button",BS_AUTORADIOBUTTON,147,254,34,10
+    CONTROL         "UTF-8",IDC_KANJICODE4,"Button",BS_AUTORADIOBUTTON,212,254,34,10
+    CTEXT           "Server Address",IDC_STATIC,13,110,141,8
+    CTEXT           "User Name",IDC_STATIC,14,150,70,8
+    GROUPBOX        "デフォルト文字セット",IDC_STATIC,7,239,256,34
+    CTEXT           "Password",IDC_STATIC,100,150,70,8
+    CTEXT           "SSH Identity Key",IDC_STATIC,186,201,70,8
+    CTEXT           "Socket Port",IDC_STATIC,208,110,46,8
     GROUPBOX        "エントリー/コメント",IDC_STATIC,7,7,166,51
-    GROUPBOX        "プロトコル",IDC_STATIC,7,61,256,36
-    GROUPBOX        "オプション",IDC_STATIC,7,101,256,132
-    CTEXT           "Chat Script",IDC_STATIC,14,193,70,8
-    CTEXT           "Proxy Server",IDC_STATIC,100,193,70,8
+    GROUPBOX        "プロトコル",IDC_STATIC,7,62,256,34
+    GROUPBOX        "オプション",IDC_STATIC,7,100,256,135
+    CTEXT           "Chat Script",IDC_STATIC,14,201,70,8
+    CTEXT           "Proxy Server",IDC_STATIC,100,201,70,8
     GROUPBOX        "タブ/前接続先",IDC_STATIC,178,7,85,51
+    CONTROL         "接続時にユーザー名・パスワードの入力を求める",IDC_PROTOCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,183,166,10
 END
 
 IDD_CHATDLG DIALOGEX 0, 0, 299, 247
@@ -1091,7 +1094,7 @@ BEGIN
     EDITTEXT        IDC_STATUS,15,20,200,14,ES_AUTOHSCROLL | ES_READONLY
 END
 
-IDD_PROXYDLG DIALOGEX 0, 0, 239, 225
+IDD_PROXYDLG DIALOGEX 0, 0, 239, 243
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Proxy Server"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
@@ -1111,16 +1114,17 @@ BEGIN
     COMBOBOX        IDC_SOCKNO,166,146,54,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
     EDITTEXT        IDC_USERNAME,19,175,88,13,ES_AUTOHSCROLL
     EDITTEXT        IDC_PASSWORD,132,175,88,13,ES_PASSWORD | ES_AUTOHSCROLL
-    DEFPUSHBUTTON   "OK",IDOK,48,204,62,14
-    PUSHBUTTON      "キャンセル",IDCANCEL,128,204,62,14
+    DEFPUSHBUTTON   "OK",IDOK,48,222,62,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,128,222,62,14
     GROUPBOX        "Select Proxy Protocol",IDC_STATIC,7,7,225,48
     CTEXT           "Proxy Server Address",IDC_STATIC,19,135,136,8
     CTEXT           "User Name",IDC_STATIC,19,164,88,8
     CTEXT           "Password",IDC_STATIC,132,164,88,8
     CTEXT           "Socket Port",IDC_STATIC,166,135,54,8
-    GROUPBOX        "Server Option",IDC_STATIC,7,122,225,76
+    GROUPBOX        "Server Option",IDC_STATIC,7,122,225,92
     GROUPBOX        "Over SSL",IDC_STATIC,7,57,225,61
     CONTROL         "コネクション確立後もSSLを維持する",IDC_SSL_KEEP,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,91,102,130,10
+    CONTROL         "接続時にユーザー名・パスワードの入力を求める",IDC_PROTOCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,195,201,10
 END
 
 IDD_SCRNPAGE DIALOGEX 0, 0, 270, 280
@@ -1416,18 +1420,17 @@ FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     CONTROL         "改行(CR)を確認し指定時間待って次を送信する(ms)",IDC_PROTOCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,27,180,10
     EDITTEXT        IDC_DELAYMSEC,204,25,50,14,ES_RIGHT | ES_AUTOHSCROLL
-    CONTROL         "BPlus/ZModem/Kermitファイル転送を有効にする",IDC_PROTOCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,47,180,10
-    CONTROL         "キーボード入力をローカルエディットモードにする",IDC_PROTOCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,67,180,10
-    CONTROL         "接続時にパスワード入力を求める",IDC_PROTOCHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,87,180,10
-    CONTROL         "接続が切れると自動でプログラムを終了する",IDC_PROTOCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,107,180,10
-    CONTROL         "TCPオプションのKeepAliveを有効にする",IDC_PROTOCHECK6,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,159,180,10
-    CONTROL         "IPv6/IPv4",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,36,200,45,10
-    CONTROL         "IPv6のみ",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,115,200,42,10
-    CONTROL         "IPv4のみ",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,191,200,42,10
-    GROUPBOX        "オプション",IDC_STATIC,7,7,256,124
-    GROUPBOX        "TCP/IP",IDC_STATIC,7,144,256,129
-    GROUPBOX        "接続するIPバージョンの選択",IDC_STATIC,14,180,240,75
-    LTEXT           "IPv6/IPv4の場合、DNSの応答でIPv6アドレスが返されればIPv6で接続しIPv4だけならIPv4で接続します.",IDC_STATIC,26,221,218,16
+    CONTROL         "BPlus/ZModem/Kermitファイル転送を有効にする",IDC_PROTOCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,45,180,10
+    CONTROL         "キーボード入力をローカルエディットモードにする",IDC_PROTOCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,63,180,10
+    CONTROL         "接続が切れると自動でプログラムを終了する",IDC_PROTOCHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,81,180,10
+    CONTROL         "TCPオプションのKeepAliveを有効にする",IDC_PROTOCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,126,180,10
+    CONTROL         "IPv6/IPv4",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,36,166,45,10
+    CONTROL         "IPv6のみ",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,115,166,42,10
+    CONTROL         "IPv4のみ",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,191,166,42,10
+    GROUPBOX        "オプション",IDC_STATIC,7,7,256,96
+    GROUPBOX        "TCP/IP",IDC_STATIC,7,110,256,111
+    GROUPBOX        "接続するIPバージョンの選択",IDC_STATIC,14,146,240,66
+    LTEXT           "IPv6/IPv4の場合、DNSの応答でIPv6アドレスが返されればIPv6で接続しIPv4だけならIPv4で接続します.",IDC_STATIC,26,188,218,16
 END
 
 IDD_MODKEYPAGE DIALOGEX 0, 0, 270, 280
@@ -1503,6 +1506,28 @@ BEGIN
     CONTROL         "",IDC_LIST2,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,0,0,318,169
 END
 
+IDD_OPTDLG DIALOGEX 0, 0, 316, 185
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "オプション設定"
+FONT 9, "MS UI Gothic", 400, 0, 0x80
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,103,164,50,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,163,164,50,14
+    PUSHBUTTON      "適用",ID_APPLY_NOW,223,164,50,14
+    PUSHBUTTON      "初期化",IDC_DOINIT,43,164,50,14
+    CONTROL         "",IDC_TABTREE,"SysTreeView32",TVS_HASLINES | TVS_DISABLEDRAGDROP | TVS_SHOWSELALWAYS | WS_BORDER | WS_HSCROLL | WS_TABSTOP,7,7,55,150
+    CONTROL         "",IDC_FRAME,"Static",SS_BLACKFRAME,63,7,246,150
+END
+
+IDD_DIALOGEXT DIALOG 0, 0, 320, 200
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "ダイアログ"
+FONT 9, "MS UI Gothic"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,209,179,50,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,263,179,50,14
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1510,8 +1535,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,18,4,0
- PRODUCTVERSION 2,18,4,0
+ FILEVERSION 2,18,5,0
+ PRODUCTVERSION 2,18,5,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1528,12 +1553,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.18.4.0"
+            VALUE "FileVersion", "2.18.5.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2015 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.18.4.0"
+            VALUE "ProductVersion", "2.18.5.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -1556,7 +1581,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 236
         TOPMARGIN, 7
-        BOTTOMMARGIN, 192
+        BOTTOMMARGIN, 185
     END
 
     IDD_ALGOPARADLG, DIALOG
@@ -1748,7 +1773,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 232
         TOPMARGIN, 7
-        BOTTOMMARGIN, 218
+        BOTTOMMARGIN, 236
     END
 
     IDD_SCRNPAGE, DIALOG
@@ -1931,6 +1956,22 @@ BEGIN
     BEGIN
         LEFTMARGIN, 7
         TOPMARGIN, 7
+    END
+
+    IDD_OPTDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 309
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 178
+    END
+
+    IDD_DIALOGEXT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 313
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 193
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -3073,6 +3114,7 @@ BEGIN
     IDM_KERMIT_UPLOAD       "Kermitでファイルをアップロードする\nKermitアップ"
     IDM_KERMIT_DOWNLOAD     "Kermitでファイルをダウンロードする\nKermitダウン"
     IDM_VERSIONCHECK        "定期的に新バージョンをチェックする\n新バージョンチェック"
+    IDM_DIALOGFONT          "ダイアログフォントを設定します\nダイアログフォント"
 END
 
 STRINGTABLE

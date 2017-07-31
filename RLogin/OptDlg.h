@@ -1,18 +1,37 @@
 #pragma once
 
-/////////////////////////////////////////////////////////////////////////////
-// CTreePropertyPage
+#include "afxcmn.h"
+#include "afxwin.h"
+#include <afxtempl.h>
+#include "DialogExt.h"
 
-class CTreePropertyPage : public CPropertyPage
+/////////////////////////////////////////////////////////////////////////////
+// CTreePage
+
+class CTreePage : public CDialogExt
 {
+	DECLARE_DYNAMIC(CTreePage)
+
 public:
+	UINT m_nIDTemplate;
 	class COptDlg *m_pSheet;
 	HTREEITEM m_hTreeItem;
-	class CTreePropertyPage *m_pOwn;
+	class CTreePage *m_pOwn;
+	int m_nPage;
 
-	CTreePropertyPage();
-	explicit CTreePropertyPage(UINT nIDTemplate, UINT nIDCaption = 0, DWORD dwSize = sizeof(PROPSHEETPAGE));
+	CTreePage(UINT nIDTemplate);
+	virtual ~CTreePage();
+
+	void SetModified(BOOL bModified);
+
+// オーバーライド
+public:
 	virtual void OnReset();
+	virtual BOOL OnApply();
+
+// インプリメンテーション
+protected:
+	DECLARE_MESSAGE_MAP()
 };
 
 #include "SerEntPage.h"
@@ -43,19 +62,23 @@ public:
 #define	UMOD_DEFATT		00400
 #define	UMOD_RESIZE		01000
 
-class COptDlg : public CPropertySheet
+class COptDlg : public CDialogExt
 {
 	DECLARE_DYNAMIC(COptDlg)
 
 // コンストラクション
 public:
-	COptDlg(LPCTSTR pszCaption, CWnd* pParentWnd = NULL, UINT iSelectPage = 0);
+	COptDlg(LPCTSTR pszCaption, CWnd* pParentWnd = NULL);
+	virtual ~COptDlg();
+
+// ダイアログ データ
+	enum { IDD = IDD_OPTDLG };
 
 // クラスデータ
 public:
-	CButton m_DoInit;
-	CStatic m_wndFrame;
-	CTreeCtrl m_wndTree;
+	CTreeCtrl m_Tree;
+	CStatic m_Frame;
+	CButton m_Button[4];
 
 	CSerEntPage m_SerEntPage;
 	CKeyPage m_KeyPage;
@@ -78,19 +101,33 @@ public:
 	CParamTab *m_pParamTab;
 	class CRLoginDoc *m_pDocument;
 	int m_ModFlag;
+	BOOL m_bModified;
+	CString m_Title;
+
+	struct _OptTab {
+		DWORD	dwFlags;
+	} m_psh;
+	CPtrArray m_Tab;
+	int m_ActivePage;
 
 // クラスファンクション
 public:
-	void AddPage(CTreePropertyPage *pPage, CTreePropertyPage *pOwn = NULL);
+	void AddPage(CTreePage *pPage, CTreePage *pOwn = NULL);
+	inline CTreePage *GetPage(int nPage) { return (CTreePage *)m_Tab[nPage]; }
+	inline int GetPageCount() { return m_Tab.GetSize(); }
+	void SetActivePage(int nPage);
+	void SetModified(BOOL bModified);
 
 // オーバーライド
 protected:
-	virtual BOOL OnCommand(WPARAM wParam, LPARAM lParam);
+	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート
 	virtual BOOL OnInitDialog();
+	virtual void OnOK();
 
 // インプリメンテーション
 protected:
-	afx_msg void OnDoInit();
-	afx_msg void OnSelchangedTree(NMHDR *pNMHDR, LRESULT *pResult);
 	DECLARE_MESSAGE_MAP()
+	afx_msg void OnSelchangedTree(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnDoInit();
+	afx_msg void OnApplyNow();
 };

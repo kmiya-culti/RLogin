@@ -8,10 +8,10 @@
 
 // CProxyDlg ダイアログ
 
-IMPLEMENT_DYNAMIC(CProxyDlg, CDialog)
+IMPLEMENT_DYNAMIC(CProxyDlg, CDialogExt)
 
 CProxyDlg::CProxyDlg(CWnd* pParent /*=NULL*/)
-	: CDialog(CProxyDlg::IDD, pParent)
+	: CDialogExt(CProxyDlg::IDD, pParent)
 {
 	m_ServerName = _T("");
 	m_PortName   = _T("");
@@ -20,6 +20,7 @@ CProxyDlg::CProxyDlg(CWnd* pParent /*=NULL*/)
 	m_ProxyMode  = 0;
 	m_SSLMode    = 0;
 	m_SSL_Keep   = FALSE;
+	m_UsePassDlg = FALSE;
 }
 
 CProxyDlg::~CProxyDlg()
@@ -28,7 +29,7 @@ CProxyDlg::~CProxyDlg()
 
 void CProxyDlg::DoDataExchange(CDataExchange* pDX)
 {
-	CDialog::DoDataExchange(pDX);
+	CDialogExt::DoDataExchange(pDX);
 	DDX_Text(pDX, IDC_SERVERNAME, m_ServerName);
 	DDX_CBString(pDX, IDC_SOCKNO, m_PortName);
 	DDX_Text(pDX, IDC_USERNAME, m_UserName);
@@ -36,10 +37,11 @@ void CProxyDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Radio(pDX, IDC_RADIO1, m_ProxyMode);
 	DDX_Radio(pDX, IDC_SSL_RADIO1, m_SSLMode);
 	DDX_Check(pDX, IDC_SSL_KEEP, m_SSL_Keep);
+	DDX_Check(pDX, IDC_PROTOCHECK1, m_UsePassDlg);
 }
 
 
-BEGIN_MESSAGE_MAP(CProxyDlg, CDialog)
+BEGIN_MESSAGE_MAP(CProxyDlg, CDialogExt)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_RADIO1, IDC_RADIO5, OnProtoType)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_SSL_RADIO1, IDC_SSL_RADIO6, OnProtoType)
 END_MESSAGE_MAP()
@@ -81,7 +83,7 @@ void CProxyDlg::OnProtoType(UINT nID)
 
 BOOL CProxyDlg::OnInitDialog()
 {
-	CDialog::OnInitDialog();
+	CDialogExt::OnInitDialog();
 
 	// 0=0, 1=1, 2=3, 3=4, 4=2
 	if ( m_ProxyMode == 4  )
@@ -108,5 +110,5 @@ void CProxyDlg::OnOK()
 
 	UpdateData(FALSE);
 
-	CDialog::OnOK();
+	CDialogExt::OnOK();
 }

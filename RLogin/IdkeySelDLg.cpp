@@ -15,10 +15,10 @@
 /////////////////////////////////////////////////////////////////////////////
 // CIdkeySelDLg ダイアログ
 
-IMPLEMENT_DYNAMIC(CIdkeySelDLg, CDialog)
+IMPLEMENT_DYNAMIC(CIdkeySelDLg, CDialogExt)
 
 CIdkeySelDLg::CIdkeySelDLg(CWnd* pParent /*=NULL*/)
-	: CDialog(CIdkeySelDLg::IDD, pParent)
+	: CDialogExt(CIdkeySelDLg::IDD, pParent)
 {
 	m_Type = _T("RSA2");
 	m_Bits = _T("2048");
@@ -38,7 +38,7 @@ CIdkeySelDLg::~CIdkeySelDLg()
 
 void CIdkeySelDLg::DoDataExchange(CDataExchange* pDX)
 {
-	CDialog::DoDataExchange(pDX);
+	CDialogExt::DoDataExchange(pDX);
 
 	DDX_Control(pDX, IDC_IDKEY_PROG, m_KeyGenProg);
 	DDX_Control(pDX, IDC_IDKEY_LIST, m_List);
@@ -47,7 +47,7 @@ void CIdkeySelDLg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_IDKEY_NAME, m_Name);
 }
 
-BEGIN_MESSAGE_MAP(CIdkeySelDLg, CDialog)
+BEGIN_MESSAGE_MAP(CIdkeySelDLg, CDialogExt)
 	ON_WM_TIMER()
 	ON_BN_CLICKED(IDC_IDKEY_UP, OnIdkeyUp)
 	ON_BN_CLICKED(IDC_IDKEY_DOWN, OnIdkeyDown)
@@ -188,7 +188,7 @@ BOOL CIdkeySelDLg::OnInitDialog()
 
 	ASSERT(m_pIdKeyTab != NULL);
 
-	CDialog::OnInitDialog();
+	CDialogExt::OnInitDialog();
 
 	m_Data.RemoveAll();
 	for ( n = 0 ; n < m_pIdKeyTab->GetSize() ; n++ ) {
@@ -240,9 +240,9 @@ void CIdkeySelDLg::OnOK()
 
 	m_IdKeyList.SetString(str);
 	if ( str.Compare(m_OldIdKeyList) != 0 )
-		CDialog::OnOK();
+		CDialogExt::OnOK();
 	else
-		CDialog::OnCancel();
+		CDialogExt::OnCancel();
 }
 
 void CIdkeySelDLg::OnClose()
@@ -251,7 +251,7 @@ void CIdkeySelDLg::OnClose()
 		MessageBox(CStringLoad(IDE_MAKEIDKEY));
 		return;
 	}
-	CDialog::OnClose();
+	CDialogExt::OnClose();
 }
 void CIdkeySelDLg::OnTimer(UINT_PTR nIDEvent) 
 {
@@ -267,7 +267,7 @@ void CIdkeySelDLg::OnTimer(UINT_PTR nIDEvent)
 		}
 		break;
 	}
-	CDialog::OnTimer(nIDEvent);
+	CDialogExt::OnTimer(nIDEvent);
 }
 
 void CIdkeySelDLg::OnIdkeyUp() 

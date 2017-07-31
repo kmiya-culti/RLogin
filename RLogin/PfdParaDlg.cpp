@@ -15,10 +15,10 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // CPfdParaDlg ダイアログ
 
-IMPLEMENT_DYNAMIC(CPfdParaDlg, CDialog)
+IMPLEMENT_DYNAMIC(CPfdParaDlg, CDialogExt)
 
 CPfdParaDlg::CPfdParaDlg(CWnd* pParent /*=NULL*/)
-	: CDialog(CPfdParaDlg::IDD, pParent)
+	: CDialogExt(CPfdParaDlg::IDD, pParent)
 {
 	m_ListenHost = _T("");
 	m_ListenPort = _T("");
@@ -32,7 +32,7 @@ CPfdParaDlg::CPfdParaDlg(CWnd* pParent /*=NULL*/)
 
 void CPfdParaDlg::DoDataExchange(CDataExchange* pDX)
 {
-	CDialog::DoDataExchange(pDX);
+	CDialogExt::DoDataExchange(pDX);
 
 	DDX_CBString(pDX, IDC_LISTENHOST, m_ListenHost);
 	DDX_CBString(pDX, IDC_LISTENPORT, m_ListenPort);
@@ -41,7 +41,7 @@ void CPfdParaDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Radio(pDX, IDC_RADIO1, m_ListenType);
 }
 
-BEGIN_MESSAGE_MAP(CPfdParaDlg, CDialog)
+BEGIN_MESSAGE_MAP(CPfdParaDlg, CDialogExt)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -51,7 +51,7 @@ BOOL CPfdParaDlg::OnInitDialog()
 {
 	ASSERT(m_pData != NULL);
 
-	CDialog::OnInitDialog();
+	CDialogExt::OnInitDialog();
 	CStringArrayExt stra;
 
 	if ( m_EntryNum >= 0 && m_EntryNum < m_pData->GetSize() )
@@ -104,5 +104,5 @@ void CPfdParaDlg::OnOK()
 	else
 		m_pData->Add(str);
 
-	CDialog::OnOK();
+	CDialogExt::OnOK();
 }

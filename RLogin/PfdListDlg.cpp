@@ -16,12 +16,12 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // CPfdListDlg ダイアログ
 
-IMPLEMENT_DYNAMIC(CPfdListDlg, CDialog)
+IMPLEMENT_DYNAMIC(CPfdListDlg, CDialogExt)
 
 static LPCTSTR	ListenTypeName[] = { _T("local"), _T("socks"), _T("remote") };
 
 CPfdListDlg::CPfdListDlg(CWnd* pParent /*=NULL*/)
-	: CDialog(CPfdListDlg::IDD, pParent)
+	: CDialogExt(CPfdListDlg::IDD, pParent)
 {
 	m_pEntry = NULL;
 	m_X11PortFlag = FALSE;
@@ -30,14 +30,14 @@ CPfdListDlg::CPfdListDlg(CWnd* pParent /*=NULL*/)
 
 void CPfdListDlg::DoDataExchange(CDataExchange* pDX)
 {
-	CDialog::DoDataExchange(pDX);
+	CDialogExt::DoDataExchange(pDX);
 
 	DDX_Control(pDX, IDC_PFDLIST, m_List);
 	DDX_Text(pDX, IDC_EDIT1, m_XDisplay);
 	DDX_Check(pDX, IDC_CHECK1, m_X11PortFlag);
 }
 
-BEGIN_MESSAGE_MAP(CPfdListDlg, CDialog)
+BEGIN_MESSAGE_MAP(CPfdListDlg, CDialogExt)
 	ON_BN_CLICKED(IDC_PFDNEW, OnPfdNew)
 	ON_BN_CLICKED(IDC_PFDEDIT, OnPfdEdit)
 	ON_BN_CLICKED(IDC_PFDDEL, OnPfdDel)
@@ -88,7 +88,7 @@ static const LV_COLUMN InitListTab[5] = {
 
 BOOL CPfdListDlg::OnInitDialog() 
 {
-	CDialog::OnInitDialog();
+	CDialogExt::OnInitDialog();
 
 	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_SUBITEMIMAGES);
 	m_List.InitColumn(_T("PfdList"), InitListTab, 5);
@@ -102,7 +102,7 @@ void CPfdListDlg::OnOK()
 {
 	m_List.SaveColumn(_T("PfdList"));
 
-	CDialog::OnOK();
+	CDialogExt::OnOK();
 }
 
 void CPfdListDlg::OnPfdNew() 

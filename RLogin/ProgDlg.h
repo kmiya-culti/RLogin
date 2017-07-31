@@ -1,9 +1,11 @@
 #pragma once
 
+#include "DialogExt.h"
+
 /////////////////////////////////////////////////////////////////////////////
 // CProgDlg ダイアログ
 
-class CProgDlg : public CDialog
+class CProgDlg : public CDialogExt
 {
 	DECLARE_DYNAMIC(CProgDlg)
 

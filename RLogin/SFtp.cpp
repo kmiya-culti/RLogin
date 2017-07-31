@@ -447,10 +447,10 @@ CCmdQue::CCmdQue()
 // CSFtp
 /////////////////////////////////////////////////////////////////////////////
 
-IMPLEMENT_DYNAMIC(CSFtp, CDialog)
+IMPLEMENT_DYNAMIC(CSFtp, CDialogExt)
 
 CSFtp::CSFtp(CWnd* pParent /*=NULL*/)
-	: CDialog(CSFtp::IDD, pParent)
+	: CDialogExt(CSFtp::IDD, pParent)
 {
 	//{{AFX_DATA_INIT(CSFtp)
 	//}}AFX_DATA_INIT
@@ -491,7 +491,7 @@ CSFtp::~CSFtp()
 }
 void CSFtp::DoDataExchange(CDataExchange* pDX)
 {
-	CDialog::DoDataExchange(pDX);
+	CDialogExt::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_REMOTE_LIST, m_RemoteList);
 	DDX_Control(pDX, IDC_REMOTE_CWD, m_RemoteCwd);
 	DDX_Control(pDX, IDC_LOCAL_LIST, m_LocalList);
@@ -1964,7 +1964,7 @@ void CSFtp::DispErrMsg(LPCTSTR msg, LPCTSTR file)
 	MessageBox(tmp);
 }
 
-BEGIN_MESSAGE_MAP(CSFtp, CDialog)
+BEGIN_MESSAGE_MAP(CSFtp, CDialogExt)
 	//{{AFX_MSG_MAP(CSFtp)
 	ON_WM_DESTROY()
 	ON_BN_CLICKED(IDC_LOCAL_UP, OnLocalUp)
@@ -2127,20 +2127,20 @@ void CSFtp::OnClose()
 		AfxGetApp()->WriteProfileInt(_T("SFtpWnd"), _T("cy"), rect.bottom);
 	}
 	Close();
-	CDialog::OnClose();
+	CDialogExt::OnClose();
 }
 
 void CSFtp::OnDestroy() 
 {
 	m_pChan->m_pFilter = NULL;
 	Close();
-	CDialog::OnDestroy();	
+	CDialogExt::OnDestroy();	
 }
 
 void CSFtp::PostNcDestroy() 
 {
 	_tchdir(((CRLoginApp *)AfxGetApp())->m_BaseDir);
-	CDialog::PostNcDestroy();
+	CDialogExt::PostNcDestroy();
 	delete this;
 }
 
@@ -2158,7 +2158,7 @@ BOOL CSFtp::OnInitDialog()
 		{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,   40, _T("gid"),		0, 0 },
 	};
 
-	CDialog::OnInitDialog();
+	CDialogExt::OnInitDialog();
 
 	if ( !m_wndToolBar.CToolBar::CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT, WS_CHILD | WS_VISIBLE | CBRS_TOP | CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC) ||
 			!m_wndToolBar.LoadToolBar(IDR_SFTPTOOL) ) {
@@ -2418,7 +2418,7 @@ void CSFtp::OnSize(UINT nType, int cx, int cy)
 {
 	if ( nType != SIZE_MINIMIZED )
 		SetItemOffset(cx, cy);
-	CDialog::OnSize(nType, cx, cy);
+	CDialogExt::OnSize(nType, cx, cy);
 	Invalidate(TRUE);
 }
 
@@ -2428,7 +2428,7 @@ BOOL CSFtp::PreTranslateMessage(MSG* pMsg)
 		pMsg->wParam = VK_TAB;
 	else if ( pMsg->message == WM_DROPFILES )
 		return DropFiles(pMsg->hwnd, (HDROP)(pMsg->wParam));
-	return CDialog::PreTranslateMessage(pMsg);
+	return CDialogExt::PreTranslateMessage(pMsg);
 }
 
 int CSFtp::DropFiles(HWND hWnd, HDROP hDropInfo) 
@@ -2532,7 +2532,7 @@ void CSFtp::OnMouseMove(UINT nFlags, CPoint point)
 		m_ImageList[3].DragShowNolock(FALSE);
 		m_ImageList[3].DragShowNolock(TRUE);
 	}
-	CDialog::OnMouseMove(nFlags, point);
+	CDialogExt::OnMouseMove(nFlags, point);
 }
 
 void CSFtp::OnLButtonUp(UINT nFlags, CPoint point) 
@@ -2592,7 +2592,7 @@ void CSFtp::OnLButtonUp(UINT nFlags, CPoint point)
 	SendWaitQue();
 
 ENDRET:
-	CDialog::OnLButtonUp(nFlags, point);
+	CDialogExt::OnLButtonUp(nFlags, point);
 }
 
 void CSFtp::OnSftpClose() 
@@ -2891,7 +2891,7 @@ void CSFtp::OnPaint()
 
 		dc.DrawIcon(x, y, m_hIcon);
 	} else
-		CDialog::OnPaint();
+		CDialogExt::OnPaint();
 }
 
 HCURSOR CSFtp::OnQueryDragIcon()
@@ -2915,7 +2915,7 @@ void CSFtp::OnTimer(UINT_PTR nIDEvent)
 			RemoteMtimeCwd(m_RemoteCurDir);
 	}
 	m_UpdateCheckMode ^= 1;
-	CDialog::OnTimer(nIDEvent);
+	CDialogExt::OnTimer(nIDEvent);
 }
 
 LRESULT CSFtp::OnReciveBuffer(WPARAM wParam, LPARAM lParam)

@@ -9,10 +9,10 @@
 /////////////////////////////////////////////////////////////////////////////
 // CIdKeyFileDlg ダイアログ
 
-IMPLEMENT_DYNAMIC(CIdKeyFileDlg, CDialog)
+IMPLEMENT_DYNAMIC(CIdKeyFileDlg, CDialogExt)
 
 CIdKeyFileDlg::CIdKeyFileDlg(CWnd* pParent /*=NULL*/)
-	: CDialog(CIdKeyFileDlg::IDD, pParent)
+	: CDialogExt(CIdKeyFileDlg::IDD, pParent)
 {
 	m_IdkeyFile = _T("");
 	m_PassName = _T("");
@@ -25,7 +25,7 @@ CIdKeyFileDlg::CIdKeyFileDlg(CWnd* pParent /*=NULL*/)
 
 void CIdKeyFileDlg::DoDataExchange(CDataExchange* pDX)
 {
-	CDialog::DoDataExchange(pDX);
+	CDialogExt::DoDataExchange(pDX);
 
 	DDX_Text(pDX, IDC_IDKEYFILE, m_IdkeyFile);
 	DDX_Text(pDX, IDC_PASSNAME, m_PassName);
@@ -33,7 +33,7 @@ void CIdKeyFileDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_MESSAGE, m_Message);
 }
 
-BEGIN_MESSAGE_MAP(CIdKeyFileDlg, CDialog)
+BEGIN_MESSAGE_MAP(CIdKeyFileDlg, CDialogExt)
 	ON_BN_CLICKED(IDC_IDKEYSEL, OnIdkeysel)
 END_MESSAGE_MAP()
 
@@ -43,7 +43,7 @@ END_MESSAGE_MAP()
 BOOL CIdKeyFileDlg::OnInitDialog() 
 {
 	CWnd *pWnd;
-	CDialog::OnInitDialog();
+	CDialogExt::OnInitDialog();
 	
 	SetWindowText(m_Title);
 	switch(m_OpenMode) {
@@ -90,5 +90,5 @@ void CIdKeyFileDlg::OnOK()
 		MessageBox(CStringLoad(IDE_PASSWORDNOMATCH));
 		return;
 	}
-	CDialog::OnOK();
+	CDialogExt::OnOK();
 }

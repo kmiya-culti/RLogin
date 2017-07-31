@@ -5,7 +5,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // CKeyPage ダイアログ
 
-class CKeyPage : public CTreePropertyPage
+class CKeyPage : public CTreePage
 {
 	DECLARE_DYNCREATE(CKeyPage)
 

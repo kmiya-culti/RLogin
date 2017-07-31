@@ -1,5 +1,7 @@
 #pragma once
 
+#include "DialogExt.h"
+
 #define	UDO_OVERWRITE		0
 #define	UDO_MTIMECHECK		1
 #define	UDO_UPDCHECK		2
@@ -10,7 +12,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // CUpdateDlg ダイアログ
 
-class CUpdateDlg : public CDialog
+class CUpdateDlg : public CDialogExt
 {
 	DECLARE_DYNAMIC(CUpdateDlg)
 

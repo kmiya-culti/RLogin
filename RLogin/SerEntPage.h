@@ -3,7 +3,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // CSerEntPage ダイアログ
 
-class CSerEntPage : public CTreePropertyPage
+class CSerEntPage : public CTreePage
 {
 	DECLARE_DYNCREATE(CSerEntPage)
 
@@ -36,6 +36,8 @@ public:
 	CString m_ProxyPass;
 	CString m_ExtEnvStr;
 	CString m_BeforeEntry;
+	BOOL m_UsePassDlg;
+	BOOL m_UseProxyDlg;
 
 public:
 	void DoInit();
@@ -58,6 +60,7 @@ protected:
 	afx_msg void OnUpdateCheck(UINT nId);
 	afx_msg void OnUpdateEdit();
 	afx_msg void OnChatEdit();
+	afx_msg void OnUpdateOption();
 	afx_msg void OnProxySet();
 	afx_msg void OnBnClickedTermcap();
 	DECLARE_MESSAGE_MAP()

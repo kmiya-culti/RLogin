@@ -2,10 +2,11 @@
 
 #include "afxwin.h"
 #include "afxcmn.h"
+#include "DialogExt.h"
 
 // CChatStatDlg ダイアログ
 
-class CChatStatDlg : public CDialog
+class CChatStatDlg : public CDialogExt
 {
 	DECLARE_DYNAMIC(CChatStatDlg)
 

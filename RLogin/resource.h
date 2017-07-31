@@ -89,6 +89,7 @@
 #define IDB_BITMAP21                    184
 #define IDB_BITMAP22                    185
 #define IDI_ACTIVE                      186
+#define IDD_OPTDLG                      187
 #define IDS_AGENT_DELKEY                500
 #define IDS_ALLINITREQ                  501
 #define IDS_CERTTRASTREQ                502
@@ -157,6 +158,7 @@
 #define IDE_USESERVERENTRY              565
 #define IDS_NEWVERSIONCHECK             566
 #define IDS_VERSIONCHECKURL             567
+#define IDD_DIALOGEXT                   568
 #define ID_CHARSCRIPT_END               1000
 #define ID_DISCONNECT                   1001
 #define ID_EDIT_BOX                     1002
@@ -572,6 +574,9 @@
 #define IDC_WHEELSIZE                   1412
 #define IDC_VISUALBELL2                 1412
 #define IDC_DEFCARET                    1412
+#define IDC_TREE1                       1413
+#define IDC_TABTREE                     1413
+#define IDC_FRAME                       1414
 #define IDM_BROADCAST                   5000
 #define IDM_CAP_CLIPBORD                5001
 #define IDM_CAP_EXPORT                  5002
@@ -657,14 +662,15 @@
 #define IDM_KERMIT_DOWNLOAD             5084
 #define IDM_VERSIONCHECK                5085
 #define IDM_NEWVERSIONFOUND             5086
+#define IDM_DIALOGFONT                  5087
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        187
-#define _APS_NEXT_COMMAND_VALUE         5087
-#define _APS_NEXT_CONTROL_VALUE         1413
-#define _APS_NEXT_SYMED_VALUE           567
+#define _APS_NEXT_RESOURCE_VALUE        188
+#define _APS_NEXT_COMMAND_VALUE         5088
+#define _APS_NEXT_CONTROL_VALUE         1415
+#define _APS_NEXT_SYMED_VALUE           569
 #endif
 #endif

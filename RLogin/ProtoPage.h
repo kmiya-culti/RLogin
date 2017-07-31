@@ -3,7 +3,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // CProtoPage ダイアログ
 
-class CProtoPage : public CTreePropertyPage
+class CProtoPage : public CTreePage
 {
 	DECLARE_DYNCREATE(CProtoPage)
 

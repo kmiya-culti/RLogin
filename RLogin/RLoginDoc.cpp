@@ -285,7 +285,6 @@ void CRLoginDoc::Serialize(CArchive& ar)
 		} else
 			AfxThrowArchiveException(CArchiveException::badIndex, ar.GetFile()->GetFileTitle());
 	}
-
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1092,22 +1091,11 @@ int CRLoginDoc::SocketOpen()
 
 	num = CExtSocket::GetPortNum(m_ServerEntry.m_PortName);
 
-	rt = FALSE;
-	switch(m_ServerEntry.m_ProxyMode & 7) {
-	case 1:	// HTTP
-	case 4:	// HTTP(Basic)
-	case 3:	// SOCKS5
-		if ( m_ServerEntry.m_ProxyPass.IsEmpty() )
-			rt = TRUE;
-		// no break;
-	case 2:	// SOCKS4
-		if ( m_ServerEntry.m_ProxyHost.IsEmpty() || m_ServerEntry.m_ProxyUser.IsEmpty() )
-			rt = TRUE;
-		break;
-	}
+	// 0=NONE, 1=HTTP, 2=SOCKS4, 3=SOCKS5, 4=HTTP(Basic)
+	if ( (m_ServerEntry.m_ProxyMode & 7) > 0 && m_TextRam.IsOptEnable(TO_PROXPASS) ) {
 
-	if ( rt ) {
 		dlg.m_Title    = m_ServerEntry.m_EntryName;
+		dlg.m_Title   += _T("(Proxy Server)");
 		dlg.m_HostAddr = m_ServerEntry.m_ProxyHostProvs;
 		dlg.m_UserName = m_ServerEntry.m_ProxyUserProvs;
 		dlg.m_PassName = m_ServerEntry.m_ProxyPassProvs;
@@ -1122,9 +1110,9 @@ int CRLoginDoc::SocketOpen()
 		m_ServerEntry.m_ProxyPass = dlg.m_PassName;
 	}
 
+	// 0=PROTO_DIRECT, 1=PROTO_LOGIN, 2=PROTO_TELNET, 3=PROTO_SSH, 4=PROTO_COMPORT 5=PROTO_PIPE
 	if ( m_ServerEntry.m_HostName.IsEmpty() ||
-		((m_ServerEntry.m_ProtoType == PROTO_TELNET || m_ServerEntry.m_ProtoType == PROTO_SSH || m_ServerEntry.m_ProtoType == PROTO_LOGIN) && 
-			(m_TextRam.IsOptEnable(TO_RLUSEPASS) || m_ServerEntry.m_UserName.IsEmpty() || m_ServerEntry.m_PassName.IsEmpty())) ) {
+		(m_TextRam.IsOptEnable(TO_RLUSEPASS) && m_ServerEntry.m_ProtoType >= PROTO_LOGIN && m_ServerEntry.m_ProtoType <= PROTO_COMPORT) ) {
 
 		dlg.m_Title    = m_ServerEntry.m_EntryName;
 		dlg.m_HostAddr = m_ServerEntry.m_HostNameProvs;

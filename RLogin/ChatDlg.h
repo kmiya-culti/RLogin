@@ -4,10 +4,11 @@
 #include "RegEx.h"
 #include "Data.h"
 #include "afxwin.h"
+#include "DialogExt.h"
 
 // CChatDlg ダイアログ
 
-class CChatDlg : public CDialog
+class CChatDlg : public CDialogExt
 {
 	DECLARE_DYNAMIC(CChatDlg)
 

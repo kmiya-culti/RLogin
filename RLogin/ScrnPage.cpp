@@ -13,13 +13,13 @@
 /////////////////////////////////////////////////////////////////////////////
 // CScrnPage ダイアログ
 
-IMPLEMENT_DYNAMIC(CScrnPage, CPropertyPage)
+IMPLEMENT_DYNAMIC(CScrnPage, CTreePage)
 
 #define	CHECKOPTMAX		1
 #define	IDC_CHECKFAST	IDC_TERMCHECK1
 static const int CheckOptTab[] = { TO_RLNORESZ };
 
-CScrnPage::CScrnPage() : CTreePropertyPage(CScrnPage::IDD)
+CScrnPage::CScrnPage() : CTreePage(CScrnPage::IDD)
 {
 	m_ScrnFont = -1;
 	m_FontSize = _T("");
@@ -42,7 +42,7 @@ CScrnPage::~CScrnPage()
 
 void CScrnPage::DoDataExchange(CDataExchange* pDX)
 {
-	CPropertyPage::DoDataExchange(pDX);
+	CTreePage::DoDataExchange(pDX);
 
 	DDX_Radio(pDX, IDC_SCRNSIZE1, m_ScrnFont);
 	DDX_CBString(pDX, IDC_SCSZFONT, m_FontSize);
@@ -62,7 +62,7 @@ void CScrnPage::DoDataExchange(CDataExchange* pDX)
 	DDX_CBString(pDX, IDC_SCRNOFFSRIGHT, m_ScrnOffsRight);
 }
 
-BEGIN_MESSAGE_MAP(CScrnPage, CPropertyPage)
+BEGIN_MESSAGE_MAP(CScrnPage, CTreePage)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_CHECKFAST, IDC_CHECKFAST + CHECKOPTMAX - 1, OnUpdateCheck)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_SCRNSIZE1, IDC_SCRNSIZE2, OnUpdateCheck)
 	ON_EN_CHANGE(IDC_SCSZCOLS, OnUpdateEdit)
@@ -132,7 +132,7 @@ BOOL CScrnPage::OnInitDialog()
 {
 	ASSERT(m_pSheet != NULL && m_pSheet->m_pTextRam != NULL);
 
-	CPropertyPage::OnInitDialog();
+	CTreePage::OnInitDialog();
 
 	DoInit();
 

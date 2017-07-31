@@ -17,7 +17,7 @@ static char THIS_FILE[] = __FILE__;
 
 
 CAlgoDlg::CAlgoDlg(CWnd* pParent /*=NULL*/)
-	: CDialog(CAlgoDlg::IDD, pParent)
+	: CDialogExt(CAlgoDlg::IDD, pParent)
 {
 	m_EncShuffle = FALSE;
 	m_MacShuffle = FALSE;
@@ -25,7 +25,7 @@ CAlgoDlg::CAlgoDlg(CWnd* pParent /*=NULL*/)
 
 void CAlgoDlg::DoDataExchange(CDataExchange* pDX)
 {
-	CDialog::DoDataExchange(pDX);
+	CDialogExt::DoDataExchange(pDX);
 
 	for ( int n = 0 ; n < 12 ; n++ )
 		DDX_Control(pDX, IDC_ALGO_LIST1 + n, m_List[n]);
@@ -34,7 +34,7 @@ void CAlgoDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CHECK2, m_MacShuffle);
 }
 
-BEGIN_MESSAGE_MAP(CAlgoDlg, CDialog)
+BEGIN_MESSAGE_MAP(CAlgoDlg, CDialogExt)
 	//{{AFX_MSG_MAP(CAlgoDlg)
 	//}}AFX_MSG_MAP
 	ON_BN_CLICKED(IDC_RESET, &CAlgoDlg::OnBnClickedReset)
@@ -45,7 +45,7 @@ END_MESSAGE_MAP()
 
 BOOL CAlgoDlg::OnInitDialog() 
 {
-	CDialog::OnInitDialog();
+	CDialogExt::OnInitDialog();
 
 	int n, i;
 
@@ -67,7 +67,7 @@ void CAlgoDlg::OnOK()
 		for ( i = 0 ; i < m_List[n].GetItemCount() ; i++ )
 			m_AlgoTab[n].Add(m_List[n].GetItemText(i, 0));
 	}
-	CDialog::OnOK();
+	CDialogExt::OnOK();
 }
 void CAlgoDlg::OnBnClickedReset()
 {
