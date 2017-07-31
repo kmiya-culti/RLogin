@@ -636,6 +636,11 @@ public:
 #define	SEL_IPV6		1
 #define	SEL_IPV4		2
 
+typedef struct _ttymode_node {
+	BYTE	opcode;
+	DWORD	param;
+} ttymode_node;
+
 class CParamTab : public COptObject
 {
 public:
@@ -648,6 +653,7 @@ public:
 	DWORD m_OptTab[8];
 	CString m_Reserve;
 	int m_SelIPver;
+	CArray<ttymode_node, ttymode_node> m_TtyMode;
 
 	CParamTab();
 	void Init();

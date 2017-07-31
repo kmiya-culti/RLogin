@@ -351,20 +351,6 @@ void CRLoginDoc::DeleteContents()
 
 	CDocument::DeleteContents();
 }
-void CRLoginDoc::OpenEntryCmds(LPCTSTR entry)
-{
-	CCommandLineInfoEx cmds;
-	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
-
-	ASSERT(pApp != NULL);
-
-	if ( entry != NULL && *entry != _T('\0') ) {
-		cmds.ParseParam(_T("entry"), TRUE, FALSE);
-		cmds.ParseParam(entry, FALSE, FALSE);
-	}
-	cmds.ParseParam(_T("inpane"), TRUE, FALSE);
-	pApp->OpenProcsCmd(&cmds);
-}
 void CRLoginDoc::SetStatus(LPCTSTR str)
 {
 	int n;

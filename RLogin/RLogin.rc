@@ -46,7 +46,8 @@ BEGIN
     "LANGUAGE 17, 1\r\n"
     "#pragma code_page(932)\r\n"
     "#include ""res\\RLogin.rc2""  // Microsoft Visual C++ 以外で編集されたリソース\r\n"
-    "#include ""afxres.rc""         // 標準コンポーネント\r\n"
+    "#include ""l.jpn\\afxres.rc""         // 標準コンポーネント\r\n"
+    "#include ""l.jpn\\afxprint.rc""        // 印刷/印刷プレビュー リソース\r\n"
     "#endif\r\n"
     "\0"
 END
@@ -156,6 +157,8 @@ BEGIN
         MENUITEM "サーバーに接続(&N)",                 ID_FILE_NEW
         MENUITEM "サーバー情報を開く(&O)...\t",          ID_FILE_OPEN
         MENUITEM SEPARATOR
+        MENUITEM "プリンタの設定(&R)",                 ID_FILE_PRINT_SETUP
+        MENUITEM SEPARATOR
         MENUITEM "最近使ったﾌｧｲﾙ",                   ID_FILE_MRU_FILE1, GRAYED
         MENUITEM SEPARATOR
         MENUITEM "アプリケーションの終了(&X)",             ID_APP_EXIT
@@ -193,6 +196,10 @@ BEGIN
         MENUITEM "サーバー情報を保存(&S)",               ID_FILE_SAVE_AS
         MENUITEM "すべての状態を保存(&W)",               ID_FILE_ALL_SAVE
         MENUITEM SEPARATOR
+        MENUITEM "印刷(&P)",                      ID_FILE_PRINT
+        MENUITEM "印刷プレビュー(&V)",                 ID_FILE_PRINT_PREVIEW
+        MENUITEM "プリンタの設定(&R)",                 ID_FILE_PRINT_SETUP
+        MENUITEM SEPARATOR
         MENUITEM "ログファイルに保存(&L)",               ID_LOG_OPEN
         MENUITEM "SFTPファイルの転送(&T)",             IDM_SFTP
         POPUP "XYZModemファイル転送"
@@ -207,7 +214,7 @@ BEGIN
             MENUITEM "ZModemダウンロード",                IDM_ZMODEM_DOWNLOAD
             MENUITEM "Kermitダウンロード",                IDM_KERMIT_DOWNLOAD
         END
-        MENUITEM "スクリプトの実行(&P)",                IDM_SCRIPT
+        MENUITEM "スクリプトの実行(&E)",                IDM_SCRIPT
         MENUITEM SEPARATOR
         MENUITEM "最近使ったﾌｧｲﾙ",                   ID_FILE_MRU_FILE1
         MENUITEM SEPARATOR
@@ -450,10 +457,10 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.16.7 (2014/08/06)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.16.8 (2014/08/14)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2014 Culti",IDC_STATIC,47,15,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,151,50,14,WS_GROUP
-    LTEXT           "OpenSSL 1.0.1h 5 Jun 2014",IDC_STATIC,47,29,176,8
+    LTEXT           "OpenSSL 1.0.1i 6 Aug 2014",IDC_STATIC,47,29,176,8
     LTEXT           "Copyright (c) 1998-2014 The OpenSSL Project",IDC_STATIC,47,39,176,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,47,49,176,8
     LTEXT           "All rights reserved.",IDC_STATIC,47,59,176,8
@@ -703,11 +710,12 @@ BEGIN
     CONTROL         "エージェント転送を有効にする(SSH2のみ)",IDC_PROTOCHECK6,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,132,148,10
     CONTROL         "KeepAliveパケットの送信間隔(sec)",IDC_PROTOCHECK7,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,150,148,10
     EDITTEXT        IDC_KEEPALIVE,194,150,40,14,ES_RIGHT | ES_AUTOHSCROLL
-    PUSHBUTTON      "暗号方式(&C)",IDC_SSHALGO,10,174,70,14
-    PUSHBUTTON      "認証キー(&K)",IDC_SSHIDKEY,90,174,70,14
-    PUSHBUTTON      "ポートフォワード(&P)",IDC_SSHPFD,170,174,70,14
+    PUSHBUTTON      "暗号方式(&C)",IDC_SSHALGO,25,172,90,14
+    PUSHBUTTON      "認証キー(&K)",IDC_SSHIDKEY,134,172,90,14
+    PUSHBUTTON      "ポートフォワード(&P)",IDC_SSHPFD,25,192,90,14
     GROUPBOX        "TELNET",IDC_STATIC,7,7,237,67
-    GROUPBOX        "SSH",IDC_STATIC,7,81,237,116
+    GROUPBOX        "SSH",IDC_STATIC,7,81,237,135
+    PUSHBUTTON      "端末モード(&T)",IDC_SSHTTYMODE,134,192,90,14
 END
 
 IDD_PFDPARADLG DIALOGEX 0, 0, 205, 167
@@ -1425,6 +1433,16 @@ BEGIN
     PUSHBUTTON      "いいえ",IDCANCEL,133,144,60,14
 END
 
+IDD_TTYMODEDLG DIALOGEX 0, 0, 291, 241
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Terminal Modes"
+FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,72,220,64,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,154,220,64,14
+    CONTROL         "",IDC_MODE_LIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,8,7,276,202
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1432,8 +1450,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,16,7,0
- PRODUCTVERSION 2,16,7,0
+ FILEVERSION 2,16,8,0
+ PRODUCTVERSION 2,16,8,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1450,12 +1468,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.16.7.0"
+            VALUE "FileVersion", "2.16.8.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2014 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.16.7.0"
+            VALUE "ProductVersion", "2.16.8.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -1839,6 +1857,14 @@ BEGIN
         RIGHTMARGIN, 248
         TOPMARGIN, 7
         BOTTOMMARGIN, 158
+    END
+
+    IDD_TTYMODEDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 284
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 234
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -2770,6 +2796,9 @@ BEGIN
     ID_FILE_CLOSE           "サーバーとの接続を閉じます\n接続を閉じる"
     ID_FILE_SAVE            "接続中のサーバー情報を上書きして保存\n保存"
     ID_FILE_SAVE_AS         "接続中のサーバー情報を新しい名前で保存\n名前をつけて保存"
+    ID_FILE_PRINT_SETUP     "プリンタ印刷オプションの変更\n印刷設定"
+    ID_FILE_PRINT           "現在の画面を印刷\n印刷"
+    ID_FILE_PRINT_PREVIEW   "印刷イメージを表示\n印刷プレビュー"
 END
 
 STRINGTABLE
@@ -2851,6 +2880,11 @@ BEGIN
     AFX_IDS_SCRESTORE       "ウィンドウを通常のサイズに戻す"
     AFX_IDS_SCTASKLIST      "アプリケーションの切り替え"
     AFX_IDS_MDICHILD        "指定のウィンドウを表示"
+END
+
+STRINGTABLE
+BEGIN
+    AFX_IDS_PREVIEW_CLOSE   "印刷プレビューモードの終わり\nプレビューのキャンセル"
 END
 
 STRINGTABLE
@@ -3014,7 +3048,8 @@ END
 LANGUAGE 17, 1
 #pragma code_page(932)
 #include "res\RLogin.rc2"  // Microsoft Visual C++ 以外で編集されたリソース
-#include "afxres.rc"         // 標準コンポーネント
+#include "l.jpn\afxres.rc"         // 標準コンポーネント
+#include "l.jpn\afxprint.rc"        // 印刷/印刷プレビュー リソース
 #endif
 
 /////////////////////////////////////////////////////////////////////////////

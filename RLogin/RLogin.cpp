@@ -3,6 +3,7 @@
 
 #include "stdafx.h"
 #include "RLogin.h"
+#include <locale.h>
 
 #ifdef	USE_DWMAPI
 #include "DWMApi.h"
@@ -231,6 +232,7 @@ void CCommandLineInfoEx::SetString(LPCTSTR str)
 
 BEGIN_MESSAGE_MAP(CRLoginApp, CWinApp)
 	ON_COMMAND(ID_APP_ABOUT, &CRLoginApp::OnAppAbout)
+	ON_COMMAND(ID_FILE_PRINT_SETUP, OnFilePrintSetup)
 	// 標準のファイル基本ドキュメント コマンド
 	ON_COMMAND(ID_FILE_NEW, &CWinApp::OnFileNew)
 	ON_COMMAND(ID_FILE_OPEN, &CWinApp::OnFileOpen)
@@ -292,6 +294,8 @@ void ExDwmEnableWindow(HWND hWnd, BOOL bEnable)
 
 BOOL CRLoginApp::InitInstance()
 {
+	setlocale(LC_ALL, "");
+
 	//TODO: call AfxInitRichEdit2() to initialize richedit2 library.
 	// アプリケーション マニフェストが visual スタイルを有効にするために、
 	// ComCtl32.dll Version 6 以降の使用を指定する場合は、
@@ -490,6 +494,9 @@ BOOL CRLoginApp::InitInstance()
 	EnableShellOpen();
 	RegisterShellFileTypes(TRUE);
 
+	// デフォルトプリンタの設定
+	SetDefaultPrinter();
+
 	// DDE、file open など標準のシェル コマンドのコマンド ラインを解析します。
 	CCommandLineInfoEx cmdInfo;
 	ParseCommandLine(cmdInfo);
@@ -536,6 +543,17 @@ void CRLoginApp::OpenProcsCmd(CCommandLineInfoEx *pCmdInfo)
 		break;
 	}
 	m_pCmdInfo = NULL;
+}
+void CRLoginApp::OpenProcsEntry(LPCTSTR entry)
+{
+	CCommandLineInfoEx cmds;
+
+	if ( entry != NULL && *entry != _T('\0') ) {
+		cmds.ParseParam(_T("entry"), TRUE, FALSE);
+		cmds.ParseParam(entry, FALSE, FALSE);
+	}
+	cmds.ParseParam(_T("inpane"), TRUE, FALSE);
+	OpenProcsCmd(&cmds);
 }
 BOOL CALLBACK RLoginEnumFunc(HWND hwnd, LPARAM lParam)
 {
@@ -920,12 +938,14 @@ BOOL CRLoginApp::OnIdle(LONG lCount)
 		return TRUE;
 
 	for ( int n = 0 ; n < m_SocketIdle.GetSize() ; n++ ) {
-		if ( m_NextSock >= m_SocketIdle.GetSize() )
-			m_NextSock = 0;
-		CExtSocket *pSock = (CExtSocket *)(m_SocketIdle[m_NextSock]);
+		//if ( m_NextSock >= m_SocketIdle.GetSize() )
+		//	m_NextSock = 0;
+		//CExtSocket *pSock = (CExtSocket *)(m_SocketIdle[m_NextSock]);
 
-		if ( ++m_NextSock >= m_SocketIdle.GetSize() )
-			m_NextSock = 0;
+		//if ( ++m_NextSock >= m_SocketIdle.GetSize() )
+		//	m_NextSock = 0;
+
+		CExtSocket *pSock = (CExtSocket *)(m_SocketIdle[n]);
 
 		ASSERT(pSock->m_Type >= 0 && pSock->m_Type < 10 );
 
@@ -994,4 +1014,111 @@ void CRLoginApp::SSL_Init()
 
 	SSLeay_add_all_algorithms();
 	SSLeay_add_ssl_algorithms();
+}
+
+void CRLoginApp::SetDefaultPrinter()
+{
+	int n;
+	int wDefault;
+	CString Driver, Device, Output;
+	LPDEVNAMES lpDevNames;
+	LPDEVMODE lpDevMode;
+	HANDLE hDevNames;
+	HANDLE hDevMode;
+	LPTSTR ptr;
+	UINT sz;
+	LPBYTE pByte;
+
+	if ( !GetProfileBinary(_T("PrintSetup"), _T("DevMode"), &pByte, &sz) )
+		return;
+
+	if ( sz < sizeof(DEVMODE) )
+		goto ERRRET;
+
+	lpDevMode = (LPDEVMODE)pByte;
+
+	if ( sz < (UINT)(lpDevMode->dmSize + lpDevMode->dmDriverExtra) )
+		goto ERRRET;
+
+	Driver = GetProfileString(_T("PrintSetup"), _T("Driver"), _T(""));
+	Device = GetProfileString(_T("PrintSetup"), _T("Device"), _T(""));
+	Output = GetProfileString(_T("PrintSetup"), _T("Output"), _T(""));
+	wDefault = GetProfileInt(_T("PrintSetup"),  _T("Default"), 0);
+
+	if ( Driver.IsEmpty() || Device.IsEmpty() || Output.IsEmpty() )
+		goto ERRRET;
+
+	if ( (hDevNames = ::GlobalAlloc(GHND, sizeof(DEVNAMES) + (Driver.GetLength() + Device.GetLength() + Output.GetLength() + 3) * sizeof(TCHAR))) == NULL )
+		goto ERRRET;
+
+	if ( (hDevMode = ::GlobalAlloc(GHND, sz)) == NULL ) {
+		::GlobalFree(hDevNames);
+		goto ERRRET;
+	}
+
+	if ( (lpDevNames = (LPDEVNAMES)::GlobalLock(hDevNames)) == NULL ) {
+		::GlobalFree(hDevNames);
+		::GlobalFree(hDevMode);
+		goto ERRRET;
+	}
+
+	if ( (lpDevMode = (LPDEVMODE)::GlobalLock(hDevMode)) == NULL ) {
+		::GlobalUnlock(hDevNames);
+		::GlobalFree(hDevNames);
+		::GlobalFree(hDevMode);
+		goto ERRRET;
+	}
+
+	lpDevNames->wDefault = wDefault;
+	n   = sizeof(DEVNAMES) / sizeof(TCHAR);
+	ptr = (LPTSTR)lpDevNames;
+
+	lpDevNames->wDriverOffset = n;
+	_tcscpy(ptr + n, Driver);
+	n += (Driver.GetLength() + 1);
+
+	lpDevNames->wDeviceOffset = n;
+	_tcscpy(ptr + n, Device);
+	n += (Device.GetLength() + 1);
+
+	lpDevNames->wOutputOffset = n;
+	_tcscpy(ptr + n, Output);
+
+	memcpy(lpDevMode, pByte, sz);
+
+	::GlobalUnlock(hDevMode);
+	::GlobalUnlock(hDevNames);
+
+	SelectPrinter(hDevNames, hDevMode);
+
+ERRRET:
+	delete pByte;
+}
+
+void CRLoginApp::OnFilePrintSetup()
+{
+	CPrintDialog pd(TRUE);
+
+	if ( DoPrintDialog(&pd) != IDOK )
+		return;
+
+	LPDEVNAMES lpDevNames;
+	LPDEVMODE lpDevMode;
+
+	if ( m_hDevNames == NULL || (lpDevNames = (LPDEVNAMES)::GlobalLock(m_hDevNames)) == NULL )
+		return;
+
+	if ( m_hDevMode == NULL || (lpDevMode = (LPDEVMODE)::GlobalLock(m_hDevMode)) == NULL ) {
+		::GlobalUnlock(m_hDevNames);
+		return;
+	}
+
+	WriteProfileString(_T("PrintSetup"), _T("Driver"), (LPCTSTR)lpDevNames + lpDevNames->wDriverOffset);
+	WriteProfileString(_T("PrintSetup"), _T("Device"), (LPCTSTR)lpDevNames + lpDevNames->wDeviceOffset);
+	WriteProfileString(_T("PrintSetup"), _T("Output"), (LPCTSTR)lpDevNames + lpDevNames->wOutputOffset);
+	WriteProfileInt(_T("PrintSetup"), _T("Default"), lpDevNames->wDefault);
+	WriteProfileBinary(_T("PrintSetup"), _T("DevMode"), (LPBYTE)lpDevMode, lpDevMode->dmSize + lpDevMode->dmDriverExtra);
+
+	::GlobalUnlock(m_hDevMode);
+	::GlobalUnlock(m_hDevNames);
 }

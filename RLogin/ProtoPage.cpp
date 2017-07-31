@@ -13,6 +13,7 @@
 #include "AlgoDlg.h"
 #include "IdkeySelDLg.h"
 #include "PfdListDlg.h"
+#include "TtyModeDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -56,6 +57,7 @@ BEGIN_MESSAGE_MAP(CProtoPage, CPropertyPage)
 	ON_BN_CLICKED(IDC_SSHALGO, OnSshAlgo)
 	ON_BN_CLICKED(IDC_SSHIDKEY, OnSshIdkey)
 	ON_BN_CLICKED(IDC_SSHPFD, OnSshPfd)
+	ON_BN_CLICKED(IDC_SSHTTYMODE, OnSshTtyMode)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_CHECKFAST, IDC_CHECKFAST + CHECKOPTMAX - 1, OnUpdateCheck)
 	ON_EN_CHANGE(IDC_DELAYMSEC, OnUpdateEdit)
 END_MESSAGE_MAP()
@@ -181,6 +183,18 @@ void CProtoPage::OnSshPfd()
 
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= (UMOD_TEXTRAM | UMOD_PARAMTAB);
+}
+void CProtoPage::OnSshTtyMode()
+{
+	CTtyModeDlg dlg;
+
+	dlg.m_pParamTab = m_pSheet->m_pParamTab;
+
+	if ( dlg.DoModal() != IDOK )
+		return;
+
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= (UMOD_PARAMTAB);
 }
 void CProtoPage::OnUpdateEdit() 
 {

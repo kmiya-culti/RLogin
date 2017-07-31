@@ -81,6 +81,10 @@ BEGIN_MESSAGE_MAP(CRLoginView, CView)
 	ON_COMMAND(ID_SPLIT_HEIGHT, &CRLoginView::OnSplitHeight)
 	ON_COMMAND(ID_SPLIT_WIDTH, &CRLoginView::OnSplitWidth)
 	ON_COMMAND(ID_SPLIT_OVER, &CRLoginView::OnSplitOver)
+	// 標準印刷コマンド
+	ON_COMMAND(ID_FILE_PRINT, &CView::OnFilePrint)
+	ON_COMMAND(ID_FILE_PRINT_DIRECT, &CView::OnFilePrint)
+	ON_COMMAND(ID_FILE_PRINT_PREVIEW, &CView::OnFilePrintPreview)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -199,16 +203,16 @@ void CRLoginView::OnDraw(CDC* pDC)
 
 		sx = (rect.left + 1 - pDoc->m_TextRam.m_ScrnOffset.left) * m_Cols / m_Width;
 		ex = (rect.right + m_CharWidth - pDoc->m_TextRam.m_ScrnOffset.left) * m_Cols / m_Width;
-		sy = (rect.top + 1) * m_Lines / m_Height;
-		ey = (rect.bottom + m_CharHeight) * m_Lines / m_Height;
+		sy = (rect.top + 1 - pDoc->m_TextRam.m_ScrnOffset.top) * m_Lines / m_Height;
+		ey = (rect.bottom + m_CharHeight - pDoc->m_TextRam.m_ScrnOffset.top) * m_Lines / m_Height;
 
 		if ( (sx * m_Width / m_Cols + pDoc->m_TextRam.m_ScrnOffset.left) > rect.left )
 			sx--;
 		if ( (ex * m_Width / m_Cols + pDoc->m_TextRam.m_ScrnOffset.left) < rect.right )
 			ex++;
-		if ( (sy * m_Height / m_Lines) > rect.top )
+		if ( (sy * m_Height / m_Lines + pDoc->m_TextRam.m_ScrnOffset.top) > rect.top )
 			sy--;
-		if ( (ey * m_Height / m_Lines) < rect.bottom )
+		if ( (ey * m_Height / m_Lines + pDoc->m_TextRam.m_ScrnOffset.top) < rect.bottom )
 			ey++;
 
 		if ( m_pBitmap != NULL ) {
@@ -357,7 +361,7 @@ void CRLoginView::CalcPosRect(CRect &rect)
 	rect.right  += 2;
 	rect.bottom += 1;
 }
-void CRLoginView::InvalidateTextRect(CRect rect)
+void CRLoginView::InvalidateTextRect(CRect &rect)
 {
 	CalcTextRect(rect);
 
@@ -381,8 +385,9 @@ void CRLoginView::CalcTextRect(CRect &rect)
 
 	rect.left   = m_Width  * rect.left  / m_Cols + (rect.left == 0 ? 0 : pDoc->m_TextRam.m_ScrnOffset.left);
 	rect.right  = m_Width  * rect.right / m_Cols + pDoc->m_TextRam.m_ScrnOffset.left + (rect.right >= (pDoc->m_TextRam.m_Cols - 1) ? pDoc->m_TextRam.m_ScrnOffset.right : 0);
-	rect.top    = m_Height * (rect.top    + m_HisOfs - m_HisMin) / m_Lines;
-	rect.bottom = m_Height * (rect.bottom + m_HisOfs - m_HisMin) / m_Lines;
+
+	rect.top    = m_Height * (rect.top    + m_HisOfs - m_HisMin) / m_Lines + (rect.top == 0 ? 0 : pDoc->m_TextRam.m_ScrnOffset.top);
+	rect.bottom = m_Height * (rect.bottom + m_HisOfs - m_HisMin) / m_Lines + pDoc->m_TextRam.m_ScrnOffset.top + (rect.bottom >= (pDoc->m_TextRam.m_Lines - 1) ? pDoc->m_TextRam.m_ScrnOffset.bottom	: 0);
 }
 void CRLoginView::CalcGrapPoint(CPoint po, int *x, int *y)
 {
@@ -391,7 +396,7 @@ void CRLoginView::CalcGrapPoint(CPoint po, int *x, int *y)
 	if      ( (po.x -= pDoc->m_TextRam.m_ScrnOffset.left) < 0 )	po.x = 0;
 	else if ( po.x >= m_Width )		po.x = m_Width -1;
 
-	if      ( po.y < 0 )			po.y = 0;
+	if      ( (po.y -= pDoc->m_TextRam.m_ScrnOffset.top) < 0 ) po.y = 0;
 	else if ( po.y >= m_Height )	po.y = m_Height - 1;
 
 	pDoc->m_TextRam.m_MousePos = po;
@@ -399,6 +404,9 @@ void CRLoginView::CalcGrapPoint(CPoint po, int *x, int *y)
 	*x = m_Cols  * po.x / m_Width;
 	*y = m_Lines * po.y / m_Height - m_HisOfs + m_HisMin;
 }
+
+/////////////////////////////////////////////////////////////////////////////
+
 void CRLoginView::SendBroadCastMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 {
 	CWinApp *pApp;
@@ -746,7 +754,7 @@ void CRLoginView::SetFrameRect(int cx, int cy)
 	if ( (m_Width  = cx - pDoc->m_TextRam.m_ScrnOffset.left - pDoc->m_TextRam.m_ScrnOffset.right)  <= 0 )
 		m_Width  = 1;
 
-	if ( (m_Height = cy) <= 0 )
+	if ( (m_Height = cy - pDoc->m_TextRam.m_ScrnOffset.top - pDoc->m_TextRam.m_ScrnOffset.bottom) <= 0 )
 		m_Height = 1;
 
 	pFrame->GetClientRect(rect);
@@ -922,10 +930,11 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 	case UPDATE_TEXTRECT:
 	case UPDATE_BLINKRECT:
 		rect = *((CRect *)pHint);
-		CalcTextRect(rect);
-		InvalidateRect(rect, FALSE);
-		if ( m_pGhost != NULL )
-			m_pGhost->InvalidateRect(rect, FALSE);
+		InvalidateTextRect(rect);
+		//CalcTextRect(rect);
+		//InvalidateRect(rect, FALSE);
+		//if ( m_pGhost != NULL )
+		//	m_pGhost->InvalidateRect(rect, FALSE);
 		break;
 
 	case UPDATE_CLIPERA:
@@ -967,9 +976,10 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 	m_DispCaret &= ~FGCARET_ONOFF;
 
 	m_CaretX = m_Width * pDoc->m_TextRam.m_CurX / m_Cols + pDoc->m_TextRam.m_ScrnOffset.left;
-	m_CaretY = m_Height * (pDoc->m_TextRam.m_CurY + m_HisOfs - m_HisMin) / m_Lines;
+	m_CaretY = m_Height * (pDoc->m_TextRam.m_CurY + m_HisOfs - m_HisMin) / m_Lines + pDoc->m_TextRam.m_ScrnOffset.top;
 
-	if ( m_CaretX < 0 || m_CaretX >= (m_Width + pDoc->m_TextRam.m_ScrnOffset.left) || m_CaretY < 0 || m_CaretY >= m_Height ) {
+	if ( m_CaretX < 0 || m_CaretX >= (m_Width  + pDoc->m_TextRam.m_ScrnOffset.left) ||
+		 m_CaretY < 0 || m_CaretY >= (m_Height + pDoc->m_TextRam.m_ScrnOffset.top) ) {
 		m_CaretX = m_CaretY = 0;
 		m_ScrollOut = TRUE;
 	} else if ( pDoc->m_pSock != NULL )
@@ -2375,4 +2385,109 @@ void CRLoginView::OnSplitOver()
 	pApp->m_pServerEntry = &(pDoc->m_ServerEntry);
 	cmds.ParseParam(_T("inpane"), TRUE, FALSE);
 	pApp->OpenProcsCmd(&cmds);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// CRLoginView クラスの印刷
+
+BOOL CRLoginView::OnPreparePrinting(CPrintInfo* pInfo)
+{
+	// デフォルトの印刷準備
+	pInfo->SetMaxPage(1);
+	return DoPreparePrinting(pInfo);
+}
+void CRLoginView::OnBeginPrinting(CDC* pDC, CPrintInfo* pInfo)
+{
+	CView::OnBeginPrinting(pDC, pInfo);
+}
+void CRLoginView::OnEndPrinting(CDC* pDC, CPrintInfo* pInfo)
+{
+	CView::OnEndPrinting(pDC, pInfo);
+}
+void CRLoginView::OnPrint(CDC* pDC, CPrintInfo* pInfo)
+{
+	int n;
+	CRect rect, box;
+	CRLoginDoc* pDoc = GetDocument();
+	CFont font, *pOldFont;
+	CTime tm = CTime::GetCurrentTime();
+	CString str;
+	CSize sz;
+	int save_param[10];
+
+	if ( !pDoc->m_TextRam.IsInitText() )
+		return;
+
+	save_param[0] = m_Width;
+	save_param[1] = m_Height;
+
+	save_param[2] = m_CharWidth;
+	save_param[3] = m_CharHeight;
+
+	save_param[4] = pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.fc];
+	save_param[5] = pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.bc];
+
+	save_param[6] = pDoc->m_TextRam.m_ScrnOffset.left;
+	save_param[7] = pDoc->m_TextRam.m_ScrnOffset.right;
+	save_param[8] = pDoc->m_TextRam.m_ScrnOffset.top;
+	save_param[9] = pDoc->m_TextRam.m_ScrnOffset.bottom;
+
+	rect.left   = 100 * pDC->GetDeviceCaps(LOGPIXELSX) / 254;		// 左右印刷マージン 10mm
+	rect.top    = 100 * pDC->GetDeviceCaps(LOGPIXELSY) / 254;		// 上下印刷マージン 10mm
+	rect.right  = pDC->GetDeviceCaps(HORZRES) - rect.left;
+	rect.bottom = pDC->GetDeviceCaps(VERTRES) - rect.top;
+
+	box = rect;
+
+	if ( box.Height() > (n = m_Height * box.Width() / m_Width) ) {
+		box.top += (box.Height() - n) / 2;
+		box.bottom = box.top + n;
+	} else {
+		n = m_Width * box.Height() / m_Height;
+		box.left += (box.Width() - n) / 2;
+		box.right = box.left + n;
+	}
+
+	m_Width  = box.Width();
+	m_Height = box.Height();
+
+	m_CharWidth  = m_Width  / m_Cols;
+	m_CharHeight = m_Height / m_Lines;
+
+	pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.fc] = RGB(0, 0, 0);
+	pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.bc] = RGB(255, 255, 255);
+
+	pDoc->m_TextRam.m_ScrnOffset.SetRect(box.left, box.top, 0, 0);
+
+	pDoc->m_TextRam.DrawVram(pDC, 0, 0, m_Cols, m_Lines, this);
+
+	font.CreateFont(72, 0, 0, 0, 0, FALSE, 0, 0, ANSI_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY, FIXED_PITCH | FF_MODERN, _T(""));
+	pOldFont = pDC->SelectObject(&font);
+
+	pDC->SetTextColor(RGB(0, 0, 0));
+	pDC->SetBkColor(RGB(255, 255, 255));
+
+	str = tm.Format(_T("%c"));
+	sz = pDC->GetTextExtent(str);
+	pDC->TextOut(rect.right - sz.cx, rect.bottom + sz.cy, str);
+
+	str = pDoc->m_ServerEntry.m_EntryName;
+	sz = pDC->GetTextExtent(str);
+	pDC->TextOut(rect.left, rect.bottom + sz.cy, str);
+
+	pDC->SelectObject(pOldFont);
+
+	m_Width      = save_param[0];
+	m_Height     = save_param[1];
+
+	m_CharWidth  = save_param[2];
+	m_CharHeight = save_param[3];
+
+	pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.fc] = save_param[4];
+	pDoc->m_TextRam.m_ColTab[pDoc->m_TextRam.m_DefAtt.bc] = save_param[5];
+
+	pDoc->m_TextRam.m_ScrnOffset.left   = save_param[6];
+	pDoc->m_TextRam.m_ScrnOffset.right  = save_param[7];
+	pDoc->m_TextRam.m_ScrnOffset.top    = save_param[8];
+	pDoc->m_TextRam.m_ScrnOffset.bottom = save_param[9];
 }

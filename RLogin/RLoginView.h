@@ -93,7 +93,7 @@ public:
 	ID2D1HwndRenderTarget *m_pRenderTarget;
 #endif
 
-	void InvalidateTextRect(CRect rect);
+	void InvalidateTextRect(CRect &rect);
 	void CalcPosRect(CRect &rect);
 	void CalcTextRect(CRect &rect);
 	void CalcGrapPoint(CPoint po, int *x, int *y);
@@ -109,8 +109,8 @@ public:
 	BOOL ModifyKeys(UINT nChar, int nStat);
 	void CreateGrapImage(int type);
 
-	inline int CalcGrapX(int x) { CRLoginDoc *pDoc = GetDocument(); return (m_Width  * x / m_Cols  + pDoc->m_TextRam.m_ScrnOffset.left); }
-	inline int CalcGrapY(int y) { return (m_Height * y / m_Lines); }
+	inline int CalcGrapX(int x)	{ CRLoginDoc *pDoc = GetDocument(); return (m_Width  * x / m_Cols  + pDoc->m_TextRam.m_ScrnOffset.left); }
+	inline int CalcGrapY(int y) { CRLoginDoc *pDoc = GetDocument(); return (m_Height * y / m_Lines + pDoc->m_TextRam.m_ScrnOffset.top); }
 
 	inline class CChildFrame *GetFrameWnd() { return (class CChildFrame *)GetParentFrame(); }
 	inline class CMainFrame *GetMainWnd() { return (class CMainFrame *)AfxGetMainWnd(); }
@@ -126,6 +126,10 @@ protected:
 	virtual void OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint);
 	virtual void OnActivateView(BOOL bActivate, CView* pActivateView, CView* pDeactiveView);
 	virtual void OnDraw(CDC* pDC);
+	virtual BOOL OnPreparePrinting(CPrintInfo* pInfo);
+	virtual void OnBeginPrinting(CDC* pDC, CPrintInfo* pInfo);
+	virtual void OnEndPrinting(CDC* pDC, CPrintInfo* pInfo);
+	virtual void OnPrint(CDC* pDC, CPrintInfo* pInfo);
 
 // インプリメンテーション
 protected:

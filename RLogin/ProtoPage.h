@@ -40,6 +40,7 @@ protected:
 	afx_msg void OnSshAlgo();
 	afx_msg void OnSshIdkey();
 	afx_msg void OnSshPfd();
+	afx_msg void OnSshTtyMode();
 	afx_msg void OnUpdateCheck(UINT nId);
 	afx_msg void OnUpdateEdit();
 	DECLARE_MESSAGE_MAP()

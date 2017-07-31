@@ -3123,7 +3123,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	89
+#define	CMDSKEYTABMAX	92
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -3176,6 +3176,9 @@ static const struct _CmdsKeyTab {
 	{	IDM_WINDOW_SEL9,		L"$PANE_SEL9"		},
 	{	ID_WINDOW_TILE_HORZ,	L"$PANE_TILEHORZ"	},
 	{	ID_PANE_WSPLIT,			L"$PANE_WSPLIT"		},
+	{	ID_FILE_PRINT_DIRECT,	L"$PRINT_DIRECT"	},
+	{	ID_FILE_PRINT_PREVIEW,	L"$PRINT_PREVIEW"	},
+	{	ID_FILE_PRINT_SETUP,	L"$PRINT_SETUP"		},
 	{	ID_PAGE_PRIOR,			L"$PRIOR"			},
 	{	IDM_RESET_ALL,			L"$RESET_ALL"		},
 	{	IDM_RESET_ATTR,			L"$RESET_ATTR"		},
@@ -3848,6 +3851,28 @@ static LPCTSTR InitAlgo[12]= {
 	_T("publickey,hostbased,password,keyboard-interactive"),
 };
 
+static const ttymode_node def_ttymode[] = {
+	//	VINTR		VQUIT		VERASE		VKILL		VEOF		VEOL		VEOL2		VSTART
+		{ 1,3 },	{ 2,28 },	{ 3,8 },	{ 4,21 },	{ 5,4 }, 	{ 6,255 },	{ 7,255 },	{ 8,17 },
+	//	VSTOP		VSUSP		VDSUSP		VREPRINT	VWERASE		VLNEXT		VSTATUS		VDISCARD
+		{ 9,19 },	{ 10,26 },	{ 11,25 },	{ 12,18 },	{ 13,23 },	{ 14,22 },	{ 17,20 },	{ 18,15 },
+	//	IGNPAR		PARMRK		INPCK		ISTRIP		INLCR		IGNCR		ICRNL		IXON
+		{ 30,0 },	{ 31,0 },	{ 32,0 },	{ 33,0 },	{ 34,0 },	{ 35,0 },	{ 36,1 },	{ 38,1 },
+	//	IXANY		IXOFF		IMAXBEL
+		{ 39,1 },	{ 40,0 },	{ 41,1 },
+	//	ISIG		ICANON		ECHO		ECHOE		ECHOK		ECHONL		NOFLSH		TOSTOP
+		{ 50,1 },	{ 51,1 },	{ 53,1 },	{ 54,1 },	{ 55,0 },	{ 56,0 },	{ 57,0 },	{ 58,0 },
+	//	IEXTEN		ECHOCTL		ECHOKE		PENDIN
+		{ 59,1 },	{ 60,1 },	{ 61,1 },	{ 62,1 },
+	//	OPOST		ONLCR		OCRNL		ONOCR		ONLRET
+		{ 70,1 },	{ 72,1 },	{ 73,0 },	{ 74,0 },	{ 75,0 },
+	//	CS7			CS8			PARENB		PARODD
+		{ 90,1 },	{ 91,1 },	{ 92,0 },	{ 93,0 },
+	//	OSPEED			ISPEED
+		{ 129,9600 },	{ 128,9600 },
+		{ 0, 0 }
+	};
+
 CParamTab::CParamTab()
 {
 	m_pSection = _T("ParamTab");
@@ -3871,12 +3896,16 @@ void CParamTab::Init()
 	memset(m_OptTab, 0, sizeof(m_OptTab));
 	m_Reserve.Empty();
 	m_SelIPver = SEL_IPV6V4;
+
+	m_TtyMode.RemoveAll();
+	for ( n = 0 ; def_ttymode[n].opcode != 0 ; n++ )
+		m_TtyMode.Add(def_ttymode[n]);
 }
 void CParamTab::SetArray(CStringArrayExt &stra)
 {
 	int n;
 	CIdKey key;
-	CString str;
+	CString str, fmt;
 
 	stra.RemoveAll();
 
@@ -3902,6 +3931,14 @@ void CParamTab::SetArray(CStringArrayExt &stra)
 		stra.AddArray(m_AlgoTab[n]);
 
 	stra.AddVal(m_SelIPver);
+
+	str.Empty();
+	for ( n = 0 ; n < m_TtyMode.GetSize() ; n++ ) {
+		fmt.Format(_T("%d=%d,"), m_TtyMode[n].opcode, m_TtyMode[n].param);
+		str += fmt;
+	}
+
+	stra.Add(str);
 }
 void CParamTab::GetArray(CStringArrayExt &stra)
 {
@@ -3910,7 +3947,8 @@ void CParamTab::GetArray(CStringArrayExt &stra)
 	CRLoginApp *pApp  = (CRLoginApp *)AfxGetApp();
 	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
 	CStringBinary idx;
-	CStringArrayExt list;
+	CStringArrayExt list, node;
+	ttymode_node ttymode;
 
 	for ( n = 0 ; n < 9 ; n++ ) {
 		if ( (n % 3) == 2 )
@@ -3994,6 +4032,19 @@ void CParamTab::GetArray(CStringArrayExt &stra)
 	else
 		m_SelIPver = SEL_IPV6V4;
 
+	if ( stra.GetSize() > i ) {
+		list.GetString(stra.GetAt(i++), _T(','));
+		m_TtyMode.RemoveAll();
+		for ( n = 0 ; n < list.GetSize() ; n++ ) {
+			node.GetString(list[n], _T('='));
+			if ( node.GetSize() >= 2 ) {
+				ttymode.opcode = node.GetVal(0);
+				ttymode.param  = node.GetVal(1);
+				m_TtyMode.Add(ttymode);
+			}
+		}
+	}
+
 	if ( m_IdKeyStr[0].Compare(_T("IdKeyList Entry")) == 0 ) {
 		m_IdKeyList.GetString(m_IdKeyStr[1]);
 		for ( n = 0 ; n < 9 ; n++ )
@@ -4024,6 +4075,7 @@ void CParamTab::SetIndex(int mode, CStringIndex &index)
 	int n, i, a;
 	CString str;
 	CStringIndex tmp, env;
+	ttymode_node node;
 
 	if ( mode ) {		// Write
 		for ( n = 0 ; n < 12 ; n++ ) {
@@ -4052,6 +4104,12 @@ void CParamTab::SetIndex(int mode, CStringIndex &index)
 				continue;
 			index[_T("Env")][env[n].m_nIndex].Add(env[n].m_Value);
 			index[_T("Env")][env[n].m_nIndex].Add(env[n].m_String);
+		}
+
+		index[_T("TtyMode")].SetSize(m_TtyMode.GetSize());
+		for ( n = 0 ; n < m_TtyMode.GetSize() ; n++ ) {
+			index[_T("TtyMode")][n].Add(m_TtyMode[n].opcode);
+			index[_T("TtyMode")][n].Add(m_TtyMode[n].param);
 		}
 
 	} else {			// Read
@@ -4102,6 +4160,14 @@ void CParamTab::SetIndex(int mode, CStringIndex &index)
 			}
 			env.SetString(m_ExtEnvStr);
 		}
+
+		if ( (n = index.Find(_T("TtyMode"))) >= 0 && index[n].GetSize() > 0 ) {
+			m_TtyMode.RemoveAll();
+			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
+				node.opcode = index[n][i][0];
+				node.param  = index[n][i][1];
+			}
+		}
 	}
 }
 
@@ -4110,6 +4176,7 @@ static const ScriptCmdsDefs DocSsh[] = {
 	{	"PortForward",	2	},
 	{	"XDisplay",		3	},
 	{	"Environ",		4	},
+	{	"TtyMode",		17	},
 	{	NULL,			0	},
 }, DocSshProtocol[] = {
 	{	"ssh1Cip",		5	},
@@ -4207,7 +4274,9 @@ void CParamTab::ScriptValue(int cmds, class CScriptValue &value, int mode)
 			env.RemoveAll();
 			for ( n = 0 ; n < value.GetSize() ; n++ )
 				env[MbsToTstr(value[n].m_Index)].m_String = (LPCTSTR)value[n];
+			env.SetString(m_ExtEnvStr);
 		} else if ( mode == DOC_MODE_IDENT ) {
+			env.GetString(m_ExtEnvStr);
 			value.RemoveAll();
 			for ( n = 0 ; n < env.GetSize() ; n++ )
 				value[TstrToMbs(env[n].m_nIndex)] = (LPCTSTR)env[n].m_String;
@@ -4227,6 +4296,22 @@ void CParamTab::ScriptValue(int cmds, class CScriptValue &value, int mode)
 	case 15:				// Document.ssh.Protocol.HostKey
 	case 16:				// Document.ssh.Protocol.UserAuth
 		value.SetArray(m_AlgoTab[cmds - 5], mode);
+		break;
+
+	case 17:				// Document.ssh.TtyMode
+		if ( mode == DOC_MODE_SAVE ) {
+			m_TtyMode.SetSize(value.GetSize());
+			for ( n = 0 ; n < value.GetSize() ; n++ ) {
+				m_TtyMode[n].opcode = (int)value[n][0];
+				m_TtyMode[n].param  = (int)value[n][1];
+			}
+		} else if ( mode == DOC_MODE_IDENT ) {
+			value.RemoveAll();
+			for ( n = 0 ; n < m_TtyMode.GetSize() ; n++ ) {
+				value[n][0] = (int)m_TtyMode[n].opcode;
+				value[n][1] = (int)m_TtyMode[n].param;
+			}
+		}
 		break;
 	}
 }
@@ -4283,6 +4368,9 @@ const CParamTab & CParamTab::operator = (CParamTab &data)
 	memcpy(m_OptTab, data.m_OptTab, sizeof(m_OptTab));
 	m_Reserve   = data.m_Reserve;
 	m_SelIPver  = data.m_SelIPver;
+	m_TtyMode.SetSize(data.m_TtyMode.GetSize());
+	for ( n = 0 ; n < data.m_TtyMode.GetSize() ; n++ )
+		m_TtyMode[n] = data.m_TtyMode[n];
 	return *this;
 }
 

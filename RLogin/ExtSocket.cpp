@@ -896,6 +896,18 @@ int CExtSocket::GetRecvSize()
 {
 	return m_RecvSize;
 }
+int CExtSocket::GetRecvProcSize()
+{
+	int n = 0;
+	CSockBuffer *sp;
+	
+	for ( sp = m_ProcHead ; sp != NULL ; ) {
+		n += sp->GetSize();
+		if ( (sp = sp->m_Left) == m_ProcHead )
+			break;
+	}
+	return n;
+}
 int CExtSocket::GetSendSize()
 {
 	return m_SendSize;
@@ -1551,6 +1563,8 @@ void CExtSocket::OnRecive(int nFlags)
 }
 int CExtSocket::ReciveCall()
 {
+//	TRACE("ReciveCall %08x (%d)\n", this, m_RecvSize);
+
 	if ( m_RecvHead != NULL && m_ProxyStatus != PRST_NONE && ProxyFunc() )
 		return m_RecvSize;
 
@@ -1571,6 +1585,9 @@ int CExtSocket::ReciveCall()
 	m_RecvHead = RemoveHead(m_RecvHead);
 	m_RecvSema.Unlock();
 
+	if ( m_RecvSize < RECVMINSIZ )
+		OnRecvEmpty();
+
 	if ( (m_SocketEvent & EventMask[n]) == 0 && m_RecvSize < RECVMINSIZ )
 		OnRecive(n);
 
@@ -1582,6 +1599,8 @@ void CExtSocket::OnReciveCallBack(void *lpBuf, int nBufLen, int nFlags)
 {
 	int n;
 	CSockBuffer *sp;
+
+//	TRACE("OnReciveCallBack %08x %d (%d)\n", this, nBufLen, m_RecvSize);
 
 	if ( nBufLen <= 0 )
 		return;
@@ -1617,6 +1636,9 @@ void CExtSocket::OnReciveCallBack(void *lpBuf, int nBufLen, int nFlags)
 int CExtSocket::ReciveProc()
 {
 	int n;
+
+//	TRACE("ReciveProc %08x (%d)\n", this, m_RecvSize);
+
 	if ( (m_RecvSyncMode & SYNC_ACTIVE) == 0 ) {
 		if ( m_ProcHead != NULL && (n = OnReciveProcBack(m_ProcHead->GetPtr(), m_ProcHead->GetSize(), m_ProcHead->m_Type)) > 0 ) {
 			int i = m_ProcHead->m_Type;
@@ -1645,7 +1667,9 @@ int CExtSocket::ReciveProc()
 int CExtSocket::OnReciveProcBack(void *lpBuf, int nBufLen, int nFlags)
 {
 	if ( m_pDocument != NULL )
-		return m_pDocument->OnSocketRecive((LPBYTE)lpBuf, nBufLen, nFlags);
+		nBufLen = m_pDocument->OnSocketRecive((LPBYTE)lpBuf, nBufLen, nFlags);
+
+//	TRACE("OnReciveProcBack %d/%d\n", nBufLen, m_RecvSize);
 
 	return nBufLen;
 }

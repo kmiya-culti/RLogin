@@ -205,6 +205,7 @@ public:
 
 	virtual int GetRecvSize();
 	virtual int GetSendSize();
+	int GetRecvProcSize();
 	virtual void OnRecvEmpty();
 	virtual void OnSendEmpty();
 	virtual void GetStatus(CString &str);

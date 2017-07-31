@@ -83,6 +83,7 @@
 #define IDD_ANYPASTDIG                  170
 #define IDD_DEFPARAMDLG                 171
 #define IDB_BITMAP9                     174
+#define IDD_TTYMODEDLG                  175
 #define IDC_CANCELBTN                   201
 #define IDP_SOCKETS_INIT_FAILED         300
 #define IDS_INDICATOR_STAT              301
@@ -369,6 +370,7 @@
 #define IDC_SSHIDKEY                    1121
 #define IDC_SSHPFD                      1122
 #define IDC_TERMNAME                    1123
+#define IDC_SSHTTYMODE                  1123
 #define IDC_TIMELIMIT                   1124
 #define IDC_TITLE                       1125
 #define IDC_TOTALSIZE                   1126
@@ -607,7 +609,7 @@
 #define IDC_ICONBOX                     3070
 #define IDC_SLIDER_CONTRAST             3071
 #define IDC_SLIDER_BRIGHT               3072
-#define IDC_RADIO6                      3073
+#define IDC_MODE_LIST                   3074
 #define ID_FILE_ALL_LOAD                5000
 #define ID_EDIT_BOX                     5001
 #define ID_PAGE_PRIOR                   5002
@@ -670,14 +672,16 @@
 #define IDM_WINDOW_SEL7                 5059
 #define IDM_WINDOW_SEL8                 5060
 #define IDM_WINDOW_SEL9                 5061
+#define ID_Menu                         5062
+#define ID_Menu5063                     5063
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        175
-#define _APS_NEXT_COMMAND_VALUE         5061
-#define _APS_NEXT_CONTROL_VALUE         3074
+#define _APS_NEXT_RESOURCE_VALUE        176
+#define _APS_NEXT_COMMAND_VALUE         5064
+#define _APS_NEXT_CONTROL_VALUE         3075
 #define _APS_NEXT_SYMED_VALUE           202
 #endif
 #endif

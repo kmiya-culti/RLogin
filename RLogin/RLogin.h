@@ -76,7 +76,10 @@ public:
 	void SSL_Init();
 
 	void OpenProcsCmd(CCommandLineInfoEx *pCmdInfo);
+	void OpenProcsEntry(LPCTSTR entry);
 	BOOL InUseCheck();
+
+	void SetDefaultPrinter();
 
 	CRLoginApp();
 
@@ -89,6 +92,7 @@ public:
 
 // ŽÀ‘•
 	afx_msg void OnAppAbout();
+	afx_msg void OnFilePrintSetup();
 	DECLARE_MESSAGE_MAP()
 };
 

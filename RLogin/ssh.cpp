@@ -1151,6 +1151,8 @@ void Cssh::ChannelPolling(int id)
 	if ( (m_SSH2Status & SSH2_STAT_SENTKEXINIT) != 0 )
 		return;
 
+	TRACE("ChannelPolling %d(%d/%d)\n", cp->GetSendSize(), cp->m_LocalComs, cp->m_LocalWind);
+
 	if ( (n = cp->m_LocalComs - cp->GetSendSize()) >= (cp->m_LocalWind / 2) ) {
 		tmp.Clear();
 		tmp.Put8Bit(SSH2_MSG_CHANNEL_WINDOW_ADJUST);
@@ -1158,7 +1160,7 @@ void Cssh::ChannelPolling(int id)
 		tmp.Put32Bit(n);
 		SendPacket2(&tmp);
 		cp->m_LocalComs -= n;
-		TRACE("Send Window Adjust %d\n", n);
+		TRACE("Send Window Adjust %d SendSize=%d, RecvSize=%d (%d/%d)\n", n, cp->GetSendSize(), cp->GetRecvSize(), cp->m_LocalComs, cp->m_LocalWind);
 	}
 
 	if ( cp->GetSendSize() <= 0 )
@@ -1771,30 +1773,30 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 	CString str;
 	CStringIndex env;
 	CChannel *cp = (CChannel *)m_pChan[id];
-	static const struct _dummy_ttymode {
-		BYTE	opcode;
-		DWORD	param;
-	} ttymode[] = {
-	//	VINTR		VQUIT		VERASE		VKILL		VEOF		VEOL		VEOL2		VSTART
-		{ 1,3 },	{ 2,28 },	{ 3,8 },	{ 4,21 },	{ 5,4 }, 	{ 6,255 },	{ 7,255 },	{ 8,17 },
-	//	VSTOP		VSUSP		VDSUSP		VREPRINT	VWERASE		VLNEXT		VSTATUS		VDISCARD
-		{ 9,19 },	{ 10,26 },	{ 11,25 },	{ 12,18 },	{ 13,23 },	{ 14,22 },	{ 17,20 },	{ 18,15 },
-	//	IGNPAR		PARMRK		INPCK		ISTRIP		INLCR		IGNCR		ICRNL		IXON
-		{ 30,0 },	{ 31,0 },	{ 32,0 },	{ 33,0 },	{ 34,0 },	{ 35,0 },	{ 36,1 },	{ 38,1 },
-	//	IXANY		IXOFF		IMAXBEL
-		{ 39,1 },	{ 40,0 },	{ 41,1 },
-	//	ISIG		ICANON		ECHO		ECHOE		ECHOK		ECHONL		NOFLSH		TOSTOP
-		{ 50,1 },	{ 51,1 },	{ 53,1 },	{ 54,1 },	{ 55,0 },	{ 56,0 },	{ 57,0 },	{ 58,0 },
-	//	IEXTEN		ECHOCTL		ECHOKE		PENDIN
-		{ 59,1 },	{ 60,1 },	{ 61,1 },	{ 62,1 },
-	//	OPOST		ONLCR		OCRNL		ONOCR		ONLRET
-		{ 70,1 },	{ 72,1 },	{ 73,0 },	{ 74,0 },	{ 75,0 },
-	//	CS7			CS8			PARENB		PARODD
-		{ 90,1 },	{ 91,1 },	{ 92,0 },	{ 93,0 },
-	//	OSPEED			ISPEED
-		{ 129,9600 },	{ 128,9600 },
-		{ 0, 0 }
-	};
+	//static const struct _dummy_ttymode {
+	//	BYTE	opcode;
+	//	DWORD	param;
+	//} ttymode[] = {
+	////	VINTR		VQUIT		VERASE		VKILL		VEOF		VEOL		VEOL2		VSTART
+	//	{ 1,3 },	{ 2,28 },	{ 3,8 },	{ 4,21 },	{ 5,4 }, 	{ 6,255 },	{ 7,255 },	{ 8,17 },
+	////	VSTOP		VSUSP		VDSUSP		VREPRINT	VWERASE		VLNEXT		VSTATUS		VDISCARD
+	//	{ 9,19 },	{ 10,26 },	{ 11,25 },	{ 12,18 },	{ 13,23 },	{ 14,22 },	{ 17,20 },	{ 18,15 },
+	////	IGNPAR		PARMRK		INPCK		ISTRIP		INLCR		IGNCR		ICRNL		IXON
+	//	{ 30,0 },	{ 31,0 },	{ 32,0 },	{ 33,0 },	{ 34,0 },	{ 35,0 },	{ 36,1 },	{ 38,1 },
+	////	IXANY		IXOFF		IMAXBEL
+	//	{ 39,1 },	{ 40,0 },	{ 41,1 },
+	////	ISIG		ICANON		ECHO		ECHOE		ECHOK		ECHONL		NOFLSH		TOSTOP
+	//	{ 50,1 },	{ 51,1 },	{ 53,1 },	{ 54,1 },	{ 55,0 },	{ 56,0 },	{ 57,0 },	{ 58,0 },
+	////	IEXTEN		ECHOCTL		ECHOKE		PENDIN
+	//	{ 59,1 },	{ 60,1 },	{ 61,1 },	{ 62,1 },
+	////	OPOST		ONLCR		OCRNL		ONOCR		ONLRET
+	//	{ 70,1 },	{ 72,1 },	{ 73,0 },	{ 74,0 },	{ 75,0 },
+	////	CS7			CS8			PARENB		PARODD
+	//	{ 90,1 },	{ 91,1 },	{ 92,0 },	{ 93,0 },
+	////	OSPEED			ISPEED
+	//	{ 129,9600 },	{ 128,9600 },
+	//	{ 0, 0 }
+	//};
 
 	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHAGENT) ) {
 		tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
@@ -1849,10 +1851,17 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 	tmp.Put32Bit(0);
 	tmp.Put32Bit(0);
 
+	//tmode.Clear();
+	//for ( n = 0 ; ttymode[n].opcode != 0 ; n++ ) {
+	//	tmode.Put8Bit(ttymode[n].opcode);
+	//	tmode.Put32Bit(ttymode[n].param);
+	//}
+	//tmode.Put8Bit(0);
+
 	tmode.Clear();
-	for ( n = 0 ; ttymode[n].opcode != 0 ; n++ ) {
-		tmode.Put8Bit(ttymode[n].opcode);
-		tmode.Put32Bit(ttymode[n].param);
+	for ( n = 0 ; n < m_pDocument->m_ParamTab.m_TtyMode.GetSize() ; n++ ) {
+		tmode.Put8Bit(m_pDocument->m_ParamTab.m_TtyMode[n].opcode);
+		tmode.Put32Bit(m_pDocument->m_ParamTab.m_TtyMode[n].param);
 	}
 	tmode.Put8Bit(0);
 	tmp.PutBuf(tmode.GetPtr(), tmode.GetSize());
@@ -2755,6 +2764,8 @@ int Cssh::SSH2MsgChannelData(CBuffer *bp, int type)
 
 	if ( type == SSH2_MSG_CHANNEL_DATA )
 		((CChannel *)m_pChan[id])->Send(tmp.GetPtr(), tmp.GetSize());
+
+//	TRACE("ChannelData %d %d (%d/%d)\n", type, tmp.GetSize(), ((CChannel *)m_pChan[id])->m_LocalComs, ((CChannel *)m_pChan[id])->m_LocalWind);
 
 	ChannelPolling(id);
 	return FALSE;
