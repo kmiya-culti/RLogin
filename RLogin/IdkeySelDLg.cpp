@@ -34,6 +34,7 @@ CIdkeySelDLg::CIdkeySelDLg(CWnd* pParent /*=NULL*/)
 	m_pKeyGenEvent = new CEvent(FALSE, TRUE);
 	m_KeyGenFlag = 0;
 	m_GenIdKeyTimer = NULL;
+	m_ListInit = FALSE;
 }
 CIdkeySelDLg::~CIdkeySelDLg()
 {
@@ -75,6 +76,7 @@ BEGIN_MESSAGE_MAP(CIdkeySelDLg, CDialog)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_DELETE, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_COPY, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(IDC_IDKEY_EXPORT, OnUpdateEditEntry)
+	ON_NOTIFY(LVN_ITEMCHANGED, IDC_IDKEY_LIST, &CIdkeySelDLg::OnLvnItemchangedIdkeyList)
 END_MESSAGE_MAP()
 
 void CIdkeySelDLg::InitList()
@@ -83,6 +85,7 @@ void CIdkeySelDLg::InitList()
 	CString str;
 	CIdKey *pKey;
 
+	m_ListInit = TRUE;
 	m_List.DeleteAllItems();
 	for ( n = 0 ; n < m_Data.GetSize() ; n++ ) {
 		if ( (pKey = m_pIdKeyTab->GetUid(m_Data[n])) == NULL )
@@ -99,6 +102,7 @@ void CIdkeySelDLg::InitList()
 		m_List.SetLVCheck(n, pKey->m_Flag);
 	}
 	m_List.SetItemState(m_EntryNum, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+	m_ListInit = FALSE;
 }
 void CIdkeySelDLg::CopyToClipBorad(LPCSTR str)
 {
@@ -530,4 +534,16 @@ void CIdkeySelDLg::OnDblclkIdkeyList(NMHDR* pNMHDR, LRESULT* pResult)
 void CIdkeySelDLg::OnUpdateEditEntry(CCmdUI* pCmdUI) 
 {
 	pCmdUI->Enable(m_List.GetSelectMarkData() >= 0);
+}
+void CIdkeySelDLg::OnLvnItemchangedIdkeyList(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	LPNMLISTVIEW pNMLV = reinterpret_cast<LPNMLISTVIEW>(pNMHDR);
+
+	if ( m_ListInit == FALSE && (pNMLV->uNewState & LVIS_STATEIMAGEMASK) != (pNMLV->uOldState & LVIS_STATEIMAGEMASK) ) {
+		int n = (int)m_List.GetItemData(pNMLV->iItem);
+		CIdKey *pKey = m_pIdKeyTab->GetUid(m_Data[n]);
+		if ( pKey != NULL )
+			pKey->m_Flag = (m_List.GetLVCheck(pNMLV->iItem) ? TRUE : FALSE);
+	}
+	*pResult = 0;
 }

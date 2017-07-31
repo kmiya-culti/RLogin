@@ -422,7 +422,7 @@ CAPTION "RLoginのバージョン情報"
 FONT 8, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.10.5 (2011/04/21)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.10.6 (2011/05/06)",IDC_STATIC,47,7,176,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2011 Culti",IDC_STATIC,47,15,176,8
     DEFPUSHBUTTON   "OK",IDOK,96,148,50,14,WS_GROUP
     LTEXT           "OpenSSL 1.0.0d Feb 8th, 2011",IDC_STATIC,47,29,176,8
@@ -581,8 +581,8 @@ FONT 9, "ＭＳ Ｐゴシック", 400, 0, 0x80
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,233,7,50,14
     PUSHBUTTON      "キャンセル",IDCANCEL,233,24,50,14
-    CONTROL         "",IDC_SERVERTAB,"SysTabControl32",0x0,7,4,221,17
-    CONTROL         "List1",IDC_SERVERLIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,7,19,220,87
+    CONTROL         "",IDC_SERVERTAB,"SysTabControl32",0x0,7,7,221,17
+    CONTROL         "List1",IDC_SERVERLIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,7,22,220,84
     PUSHBUTTON      "新規",IDC_NEWENTRY,233,53,50,14
     PUSHBUTTON      "編集",IDC_EDITENTRY,233,72,50,14
     PUSHBUTTON      "削除",IDC_DELENTRY,233,92,50,14
@@ -1254,8 +1254,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,10,5,0
- PRODUCTVERSION 2,10,5,0
+ FILEVERSION 2,10,6,0
+ PRODUCTVERSION 2,10,6,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1272,12 +1272,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.10.5.0"
+            VALUE "FileVersion", "2.10.6.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2008 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.10.5.0"
+            VALUE "ProductVersion", "2.10.6.0"
         END
     END
     BLOCK "VarFileInfo"

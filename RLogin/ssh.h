@@ -192,6 +192,7 @@ public:
 	static int GetEcNidFromName(LPCSTR name);
 	static LPCSTR GetEcNameFromNid(int nid);
 	static const EVP_MD *GetEcEvpMdFromNid(int nid);
+	int GetEcNidFromKey(EC_KEY *k);
 
 	int Create(int type);
 	int Generate(int type, int bits);

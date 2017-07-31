@@ -33,6 +33,7 @@ public:
 	int m_GenIdKeyCount;
 	CIdKey m_GenIdKey;
 	CString m_OldIdKeyList;
+	BOOL m_ListInit;
 
 	void StartKeyGenThead();
 	void ProcKeyGenThead();
@@ -84,6 +85,8 @@ protected:
 	afx_msg void OnEditCheck();
 	afx_msg void OnUpdateEditEntry(CCmdUI* pCmdUI);
 	DECLARE_MESSAGE_MAP()
+public:
+	afx_msg void OnLvnItemchangedIdkeyList(NMHDR *pNMHDR, LRESULT *pResult);
 };
 
 //{{AFX_INSERT_LOCATION}}

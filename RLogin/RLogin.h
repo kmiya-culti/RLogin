@@ -29,6 +29,7 @@ public:
 
 	CCommandLineInfoEx();
 	virtual void ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLast);
+	BOOL ParseUrl(const TCHAR* pszParam);
 	void GetString(CString &str);
 	void SetString(LPCSTR str);
 };

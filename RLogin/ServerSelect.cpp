@@ -28,6 +28,7 @@ CServerSelect::CServerSelect(CWnd* pParent /*=NULL*/)
 	m_EntryNum = (-1);
 	m_pData = NULL;
 	m_Group.Empty();
+	m_ShowTabWnd = TRUE;
 }
 
 void CServerSelect::DoDataExchange(CDataExchange* pDX)
@@ -110,6 +111,8 @@ void CServerSelect::InitList()
 #define	ITM_RIGHT_RIGHT	0010
 #define	ITM_TOP_BTM		0020
 #define	ITM_BTM_BTM		0040
+#define	ITM_TOP_SAVE	0100
+#define	ITM_TOP_LOAD	0200
 
 static	int		ItemTabInit = FALSE;
 static	struct	_SftpDlgItem	{
@@ -122,8 +125,8 @@ static	struct	_SftpDlgItem	{
 	{ IDC_NEWENTRY,		ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT | ITM_TOP_BTM | ITM_BTM_BTM },
 	{ IDC_EDITENTRY,	ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT | ITM_TOP_BTM | ITM_BTM_BTM },
 	{ IDC_DELENTRY,		ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT | ITM_TOP_BTM | ITM_BTM_BTM },
-	{ IDC_SERVERTAB,	ITM_RIGHT_RIGHT },
-	{ IDC_SERVERLIST,	ITM_RIGHT_RIGHT | ITM_BTM_BTM },
+	{ IDC_SERVERTAB,	ITM_RIGHT_RIGHT | ITM_TOP_SAVE },
+	{ IDC_SERVERLIST,	ITM_RIGHT_RIGHT | ITM_BTM_BTM | ITM_TOP_LOAD },
 	{ 0,	0 },
 };
 
@@ -161,11 +164,16 @@ void CServerSelect::InitItemOffset()
 			ItemTab[n].rect.top = cy - place.rcNormalPosition.top;
 		if ( ItemTab[n].mode & ITM_BTM_BTM )
 			ItemTab[n].rect.bottom = cy - place.rcNormalPosition.bottom;
+
+		if ( ItemTab[n].mode & ITM_TOP_SAVE )
+			ItemTab[n].rect.top = place.rcNormalPosition.top;
+		if ( ItemTab[n].mode & ITM_TOP_LOAD )
+			ItemTab[n].rect.top = place.rcNormalPosition.top;
 	}
 }
 void CServerSelect::SetItemOffset(int cx, int cy)
 {
-	int n;
+	int n, sy;
 	int mx = cx / 2;
 	WINDOWPLACEMENT place;
 	CWnd *pWnd;
@@ -191,7 +199,31 @@ void CServerSelect::SetItemOffset(int cx, int cy)
 		if ( ItemTab[n].mode & ITM_BTM_BTM )
 			place.rcNormalPosition.bottom = cy - ItemTab[n].rect.bottom;
 
+		if ( ItemTab[n].mode & ITM_TOP_SAVE )
+			sy = ItemTab[n].rect.top;
+		if ( ItemTab[n].mode & ITM_TOP_LOAD ) {
+			if ( m_Tab.GetItemCount() <= 1 ) {
+				place.rcNormalPosition.top = sy;
+				m_Tab.ShowWindow(SW_HIDE);
+				m_ShowTabWnd = FALSE;
+			} else {
+				place.rcNormalPosition.top = ItemTab[n].rect.top;
+				m_Tab.ShowWindow(SW_NORMAL);
+				m_ShowTabWnd = TRUE;
+			}
+		}
+
 		pWnd->SetWindowPlacement(&place);
+	}
+}
+void CServerSelect::UpdateTabWnd()
+{
+	CRect rect;
+	BOOL req = (m_Tab.GetItemCount() <= 1 ? FALSE : TRUE);
+
+	if ( req != m_ShowTabWnd ) {
+		GetClientRect(rect);
+		SetItemOffset(rect.Width(), rect.Height());
 	}
 }
 
@@ -236,6 +268,7 @@ BOOL CServerSelect::OnInitDialog()
 	cx = AfxGetApp()->GetProfileInt("ServerSelect", "cx", rect.Width());
 	cy = AfxGetApp()->GetProfileInt("ServerSelect", "cy", rect.Height());
 	MoveWindow(rect.left, rect.top, cx, cy, FALSE);
+	UpdateTabWnd();
 
 	return TRUE;
 }
@@ -299,6 +332,7 @@ void CServerSelect::OnNewentry()
 
 	m_EntryNum = m_pData->AddEntry(Entry);
 	InitList();
+	UpdateTabWnd();
 }
 void CServerSelect::OnEditentry() 
 {
@@ -337,6 +371,7 @@ void CServerSelect::OnEditentry()
 	m_pData->m_Data[m_EntryNum] = Entry;
 	m_pData->UpdateAt(m_EntryNum);
 	InitList();
+	UpdateTabWnd();
 }
 void CServerSelect::OnDelentry() 
 {
@@ -348,6 +383,7 @@ void CServerSelect::OnDelentry()
 		return;
 	m_pData->RemoveAt(m_EntryNum);
 	InitList();
+	UpdateTabWnd();
 }
 void CServerSelect::OnEditCopy() 
 {
@@ -368,6 +404,7 @@ void CServerSelect::OnEditCopy()
 	tmp.m_Uid = (-1);
 	m_EntryNum = m_pData->AddEntry(tmp);
 	InitList();
+	UpdateTabWnd();
 }
 void CServerSelect::OnEditCheck()
 {
@@ -410,6 +447,7 @@ void CServerSelect::OnEditCheck()
 		m_pData->m_Data.RemoveAt(remove[n]);
 
 	InitList();
+	UpdateTabWnd();
 }
 
 void CServerSelect::OnUpdateEditEntry(CCmdUI* pCmdUI) 
@@ -476,6 +514,7 @@ void CServerSelect::OnServInport()
 	File.Close();
 
 	InitList();
+	UpdateTabWnd();
 }
 void CServerSelect::OnServExport()
 {

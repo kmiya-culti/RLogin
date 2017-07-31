@@ -24,10 +24,12 @@ public:
 	CString m_Group;
 	CStringIndex m_TabEntry;
 	class CServerEntryTab *m_pData;
+	BOOL m_ShowTabWnd;
 
 	void InitList();
 	void InitItemOffset();
 	void SetItemOffset(int cx, int cy);
+	void UpdateTabWnd();
 	CServerSelect(CWnd* pParent = NULL);   // 標準のコンストラクタ
 
 // ダイアログ データ

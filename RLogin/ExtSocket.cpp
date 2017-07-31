@@ -619,6 +619,8 @@ int CExtSocket::Recive(void* lpBuf, int nBufLen, int nFlags)
 		nBufLen -= n;
 	}
 	m_RecvSema.Unlock();
+	if ( m_Fd != (-1) && (m_SocketEvent & FD_READ) == 0 && (m_RecvSyncMode & SYNC_EMPTY) != 0 )
+		GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, FD_READ);
 	return len;
 }
 int CExtSocket::SyncRecive(void* lpBuf, int nBufLen, int nSec, BOOL *pAbort)
@@ -669,6 +671,8 @@ int CExtSocket::SyncRecive(void* lpBuf, int nBufLen, int nSec, BOOL *pAbort)
 			Sleep(100);
 		}
 	}
+	if ( m_Fd != (-1) && (m_SocketEvent & FD_READ) == 0 && (m_RecvSyncMode & SYNC_EMPTY) != 0 )
+		GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, FD_READ);
 	return len;
 }
 void CExtSocket::SyncReciveBack(void *lpBuf, int nBufLen)

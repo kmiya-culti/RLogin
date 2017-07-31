@@ -113,7 +113,64 @@ void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLas
 		ParseLast(bLast);
 		return;
 	}
+	if ( !bFlag && ParseUrl(pszParam) ) {
+		ParseLast(bLast);
+		return;
+	}
 	CCommandLineInfo::ParseParam(pszParam, bFlag, bLast);
+}
+BOOL CCommandLineInfoEx::ParseUrl(const TCHAR* pszParam)
+{
+	// ssh://username:password@hostname:port/path?arg=value#anchor
+	int n;
+	CString tmp, str;
+	static const struct {
+		int		type;
+		LPCTSTR	name;
+		int		len;
+	} proto[] = {
+		{ PROTO_LOGIN,		_T("login"),	5	},
+		{ PROTO_TELNET,		_T("telnet"),	6	},
+		{ PROTO_SSH,		_T("ssh"),		3	},
+		{ 0,				NULL,			0	},
+	};
+
+	for ( n = 0 ; proto[n].name != NULL ; n++ ) {
+		if ( _tcsnicmp(proto[n].name, pszParam, proto[n].len) == 0 )
+			break;
+	}
+	if ( proto[n].name == NULL )
+		return FALSE;
+	pszParam += proto[n].len;
+	if ( _tcsnicmp(_T("://"), pszParam, 3) != 0 )
+		return FALSE;
+	pszParam += 3;
+
+	m_Proto = proto[n].type;
+	m_Port  = proto[n].name;
+
+	tmp = pszParam;
+
+	if ( (n = tmp.Find(_T('@'))) >= 0 ) {
+		str = tmp.Left(n);
+		tmp.Delete(0, n + 1);
+
+		if ( (n = str.Find(_T(':'))) >= 0 ) {
+			m_User = str.Left(n);
+			m_Pass = str.Mid(n + 1);
+		} else
+			m_User = str;
+	}
+
+	str = tmp.SpanExcluding(_T("/?#"));
+
+	if ( (n = str.Find(_T(':'))) >= 0 ) {
+		m_Addr = str.Left(n);
+		m_Port = str.Mid(n + 1);
+	} else
+		m_Addr = str;
+
+	return TRUE;
 }
 void CCommandLineInfoEx::GetString(CString &str)
 {
