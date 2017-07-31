@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "rlogin.h"
 #include "AlgoDlg.h"
+#include "InitAllDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -36,6 +37,7 @@ void CAlgoDlg::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(CAlgoDlg, CDialog)
 	//{{AFX_MSG_MAP(CAlgoDlg)
 	//}}AFX_MSG_MAP
+	ON_BN_CLICKED(IDC_RESET, &CAlgoDlg::OnBnClickedReset)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -66,4 +68,23 @@ void CAlgoDlg::OnOK()
 			m_AlgoTab[n].Add(m_List[n].GetItemText(i, 0));
 	}
 	CDialog::OnOK();
+}
+void CAlgoDlg::OnBnClickedReset()
+{
+	int n, i;
+	CParamTab tmp;
+	CInitAllDlg dlg;
+
+	if ( dlg.DoModal() != IDOK )
+		return;
+
+	if ( !dlg.m_InitFlag )
+		tmp.Serialize(FALSE);
+
+	for ( n = 0 ; n < 12 ; n++ ) {
+		m_AlgoTab[n] = tmp.m_AlgoTab[n];
+		m_List[n].DeleteAllItems();
+		for ( i = 0 ; i < m_AlgoTab[n].GetSize() ; i++ )
+			m_List[n].InsertItem(i, m_AlgoTab[n][i]);
+	}
 }

@@ -122,13 +122,13 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 				return FALSE;
 			}
 		}
-		IdKey.m_Pass = m_pDocument->m_ServerEntry.m_PassName;
+		IdKey.SetPass(m_pDocument->m_ServerEntry.m_PassName);
 		m_IdKeyTab.Add(IdKey);
 	}
 
 	for ( n = 0 ; n < m_pDocument->m_ParamTab.m_IdKeyList.GetSize() ; n++ ) {
 		if ( (pKey = pMain->m_IdKeyTab.GetUid(m_pDocument->m_ParamTab.m_IdKeyList.GetVal(n))) != NULL ) {
-			if ( pKey->m_Type != IDKEY_NONE && pKey->m_Pass.Compare(m_pDocument->m_ServerEntry.m_PassName) == 0 )
+			if ( pKey->m_Type != IDKEY_NONE && pKey->CompPass(m_pDocument->m_ServerEntry.m_PassName) == 0 )
 				m_IdKeyTab.Add(*pKey);
 		}
 	}
@@ -1558,6 +1558,8 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 				m_AuthMode = AUTH_MODE_NONE;
 			while ( strstr(str, "publickey") != NULL && m_IdKeyPos < m_IdKeyTab.GetSize() ) {
 				m_IdKey = m_IdKeyTab[m_IdKeyPos++];
+				if ( !m_IdKey.Init(m_pDocument->m_ServerEntry.m_PassName) )
+					continue;
 				if ( m_IdKey.m_Type == IDKEY_RSA1 )
 					m_IdKey.m_Type = IDKEY_RSA2;
 				m_IdKey.SetBlob(&blob);
@@ -1572,7 +1574,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 					m_AuthMode = AUTH_MODE_PUBLICKEY;
 					break;
 				}
-				tmp.ConsumeEnd(len);
+				tmp.ConsumeEnd(tmp.GetSize() - len);
 			}
 			if ( m_AuthMode != AUTH_MODE_PUBLICKEY ) {
 				m_IdKeyPos = 0;
@@ -1585,6 +1587,8 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 				m_AuthMode = AUTH_MODE_NONE;
 			while ( strstr(str, "hostbased") != NULL && m_IdKeyPos < m_IdKeyTab.GetSize() ) {
 				m_IdKey = m_IdKeyTab[m_IdKeyPos++];
+				if ( !m_IdKey.Init(m_pDocument->m_ServerEntry.m_PassName) )
+					continue;
 				m_IdKey.SetBlob(&blob);
 				len = tmp.GetSize();
 				tmp.PutStr("hostbased");
@@ -1599,7 +1603,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 					m_AuthMode = AUTH_MODE_HOSTBASED;
 					break;
 				}
-				tmp.ConsumeEnd(len);
+				tmp.ConsumeEnd(tmp.GetSize() - len);
 			}
 			if ( m_AuthMode != AUTH_MODE_HOSTBASED ) {
 				m_IdKeyPos = 0;

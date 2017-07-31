@@ -457,7 +457,7 @@ static const CTextRam::CSIEXTTAB fc_CsiExtTab[] = {
 	{ ('<' << 16)				| 's',		&CTextRam::fc_TTIMESV	},	// TTIMESV IME の開閉状態を保存する。
 	{ ('<' << 16)				| 't',		&CTextRam::fc_TTIMEST	},	// TTIMEST IME の開閉状態を設定する。
 	{ ('<' << 16)				| 'r',		&CTextRam::fc_TTIMERS	},	// TTIMERS IME の開閉状態を復元する。
-	{ ('<' << 16) |	('!'  << 8)	| 'i',		&CTextRam::fc_RLIMGCP	},	// 現画面をImageにコピーする
+	{ ('<' << 16) |	('!'  << 8)	| 'i',		&CTextRam::fc_RLIMGCP	},	// RLIMGCP 現画面をImageにコピーする
 //	{ ('=' << 16)				| 'A',		&CTextRam::fc_POP		},	// cons25 Set the border color to n
 //	{ ('=' << 16)				| 'B',		&CTextRam::fc_POP		},	// cons25 Set bell pitch (p) and duration (d)
 //	{ ('=' << 16)				| 'C',		&CTextRam::fc_POP		},	// cons25 Set global cursor type
@@ -2987,14 +2987,14 @@ void CTextRam::fc_DECSIXEL(int ch)
 		tmp.Format(_T("Sixel - %s"), m_pDocument->m_ServerEntry.m_EntryName);
 		pGrapWnd = new CGrapWnd(this);
 		pGrapWnd->Create(NULL, tmp);
-		pGrapWnd->SetSixelProc(GetAnsiPara(0, 0, 0), GetAnsiPara(1, 0, 0), m_OscPara);
+		pGrapWnd->SetSixelProc(GetAnsiPara(0, 0, 0), GetAnsiPara(1, 0, 0), GetAnsiPara(2, 0, 0), m_OscPara);
 		pGrapWnd->ShowWindow(SW_SHOW);
 		AddGrapWnd((void *)pGrapWnd);
 
 	} else {								// Sixel Scroll Mode Enable (DECSDM = reset)
 		pGrapWnd = new CGrapWnd(this);
 		pGrapWnd->Create(NULL, _T(""));
-		pGrapWnd->SetSixel(GetAnsiPara(0, 0, 0), GetAnsiPara(1, 0, 0), m_OscPara, m_ColTab[m_AttNow.bc]);
+		pGrapWnd->SetSixel(GetAnsiPara(0, 0, 0), GetAnsiPara(1, 0, 0), GetAnsiPara(2, 0, 0), m_OscPara, m_ColTab[m_AttNow.bc]);
 
 		if ( pGrapWnd->m_pActMap == NULL ) {
 			pGrapWnd->DestroyWindow();
@@ -3014,8 +3014,8 @@ void CTextRam::fc_DECSIXEL(int ch)
 			h = w * m_DefFontHw / 10;
 		}
 
-		dx = pGrapWnd->m_MaxX * pGrapWnd->m_AspX;
-		dy = pGrapWnd->m_MaxY * pGrapWnd->m_AspY;
+		dx = pGrapWnd->m_MaxX * pGrapWnd->m_AspX / 100;
+		dy = pGrapWnd->m_MaxY * pGrapWnd->m_AspY / 100;
 
 		GetMargin(MARCHK_NONE);
 		if ( (cx = m_Margin.right - m_CurX) <= 0 )
@@ -3205,7 +3205,7 @@ void CTextRam::fc_DECDLD(int ch)
 	if ( Pt == 3 ) {				// Sixel
 		pGrapWnd = new CGrapWnd(this);
 		pGrapWnd->Create(NULL, _T("DCS"));
-		pGrapWnd->SetSixel(7, 0, p, m_ColTab[m_AttNow.bc]);
+		pGrapWnd->SetSixel(9, 0, 0, p, m_ColTab[m_AttNow.bc]);
 		for ( n = i = 0 ; ((i + 1) * Pcmh) <= pGrapWnd->m_MaxY && (Pcn + n) < 0x80 ; i++ ) {
 			for ( x = 0 ; ((x + 1) * Pcmw) <= pGrapWnd->m_MaxX && (Pcn + n) < 0x80 ; x++, n++ )
 				m_FontTab[idx].SetUserBitmap(Pcn + n, Pcmw, Pcmh, pGrapWnd->m_pActMap, x * Pcmw, i * Pcmh);

@@ -863,7 +863,7 @@ int CRLoginDoc::SocketOpen()
 	}
 
 	if ( m_ServerEntry.m_HostName.IsEmpty() ||
-		((m_ServerEntry.m_ProtoType == PROTO_TELNET || m_ServerEntry.m_ProtoType == PROTO_SSH) && 
+		((m_ServerEntry.m_ProtoType == PROTO_TELNET || m_ServerEntry.m_ProtoType == PROTO_SSH || m_ServerEntry.m_ProtoType == PROTO_LOGIN) && 
 			(m_TextRam.IsOptEnable(TO_RLUSEPASS) || m_ServerEntry.m_UserName.IsEmpty() || m_ServerEntry.m_PassName.IsEmpty())) ) {
 
 		dlg.m_Title    = m_ServerEntry.m_EntryName;

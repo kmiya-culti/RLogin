@@ -39,6 +39,7 @@ public:
 	BOOL m_GenIdKeyStat;
 	int m_GenIdKeyMax;
 	int m_GenIdKeyCount;
+	CString m_GenIdKeyPass;
 	CIdKey m_GenIdKey;
 	CString m_OldIdKeyList;
 	BOOL m_ListInit;

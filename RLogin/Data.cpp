@@ -3555,6 +3555,7 @@ BOOL CKeyMac::operator == (CKeyMac &data)
 CKeyMacTab::CKeyMacTab()
 {
 	m_pSection = _T("KeyMac");
+	Init();
 }
 void CKeyMacTab::Init()
 {
@@ -3784,9 +3785,12 @@ static LPCTSTR InitAlgo[12]= {
 	_T("diffie-hellman-group-exchange-sha256,diffie-hellman-group-exchange-sha1,") \
 	_T("diffie-hellman-group14-sha1,diffie-hellman-group1-sha1"),
 
-	_T("ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,ssh-dss,ssh-rsa,") \
-	_T("ecdsa-sha2-nistp256-cert-v01@openssh.com,ecdsa-sha2-nistp384-cert-v01@openssh.com,ecdsa-sha2-nistp521-cert-v01@openssh.com,ssh-dss-cert-v01@openssh.com,ssh-rsa-cert-v01@openssh.com,") \
-	_T("ecdsa-sha2-nistp256-cert-v00@openssh.com,ecdsa-sha2-nistp384-cert-v00@openssh.com,ecdsa-sha2-nistp521-cert-v00@openssh.com,ssh-dss-cert-v00@openssh.com,ssh-rsa-cert-v00@openssh.com"),
+	_T("ecdsa-sha2-nistp256-cert-v01@openssh.com,ecdsa-sha2-nistp384-cert-v01@openssh.com,ecdsa-sha2-nistp521-cert-v01@openssh.com,") \
+	_T("ssh-ed25519-cert-v01@openssh.com,ssh-rsa-cert-v01@openssh.com,ssh-dss-cert-v01@openssh.com,") \
+	_T("ecdsa-sha2-nistp256-cert-v00@openssh.com,ecdsa-sha2-nistp384-cert-v00@openssh.com,ecdsa-sha2-nistp521-cert-v00@openssh.com,") \
+	_T("ssh-ed25519-cert-v00@openssh.com,ssh-rsa-cert-v00@openssh.com,ssh-dss-cert-v00@openssh.com,") \
+	_T("ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,") \
+	_T("ssh-ed25519,ssh-rsa,ssh-dss"),
 
 	_T("publickey,hostbased,password,keyboard-interactive"),
 };
@@ -3956,7 +3960,7 @@ void CParamTab::GetArray(CStringArrayExt &stra)
 				continue;
 			}
 			key.m_Name = "";
-			key.m_Pass = m_IdKeyStr[n + 2];
+			key.SetPass(m_IdKeyStr[n + 2]);
 			pMain->m_IdKeyTab.AddEntry(key);
 			m_IdKeyList.AddVal(key.m_Uid);
 		}
@@ -4001,7 +4005,7 @@ void CParamTab::SetIndex(int mode, CStringIndex &index)
 		if ( (n = index.Find(_T("Algo"))) >= 0 ) {
 			for ( int a = 0 ; a < 12 ; a++ ) {
 				str.Format(_T("%d"), a);
-				if ( (i = index.Find(str)) >= 0 ) {
+				if ( (i = index[n].Find(str)) >= 0 ) {
 					m_AlgoTab[a].RemoveAll();
 					for ( int b = 0 ; b < index[n][i].GetSize() ; b++ )
 						m_AlgoTab[a].Add(index[n][i][b]);

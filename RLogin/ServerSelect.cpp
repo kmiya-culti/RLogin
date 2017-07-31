@@ -316,6 +316,11 @@ void CServerSelect::OnNewentry()
 
 	Entry.m_Group = m_Group;
 
+	TextRam.Serialize(FALSE);
+	KeyTab.Serialize(FALSE);
+	KeyMac.Serialize(FALSE);
+	ParamTab.Serialize(FALSE);
+
 	dlg.m_pEntry    = &Entry;
 	dlg.m_pTextRam  = &TextRam;
 	dlg.m_pKeyTab   = &KeyTab;
@@ -382,7 +387,9 @@ void CServerSelect::OnEditentry()
 }
 void CServerSelect::OnDelentry() 
 {
+	int n, i;
 	CString tmp;
+	CDWordArray tab;
 
 	/**********
 	if ( (m_EntryNum = m_List.GetSelectMarkData()) < 0 )
@@ -395,19 +402,28 @@ void CServerSelect::OnDelentry()
 	UpdateTabWnd();
 	***********/
 
-	for ( int n = 0 ; n < m_List.GetItemCount() ; ) {
-		if ( m_List.GetItemState(n, LVIS_SELECTED) == 0 ) {
-			n++;
+	for ( n = 0 ; n < m_List.GetItemCount() ; n++ ) {
+		if ( m_List.GetItemState(n, LVIS_SELECTED) == 0 )
 			continue;
-		}
-		m_EntryNum = (int)m_List.GetItemData(n);
-		tmp.Format(CStringLoad(IDS_SERVERENTRYDELETE), m_pData->m_Data[m_EntryNum].m_EntryName);
+		i = (int)m_List.GetItemData(n);
+		tmp.Format(CStringLoad(IDS_SERVERENTRYDELETE), m_pData->m_Data[i].m_EntryName);
 		if ( MessageBox(tmp, _T("Question"), MB_YESNO | MB_ICONQUESTION ) != IDYES )
 			break;
-		m_pData->RemoveAt(m_EntryNum);
-		InitList();
-		UpdateTabWnd();
+		if ( m_pData->m_Data[i].m_Uid >= 0 )
+			tab.Add(m_pData->m_Data[i].m_Uid);
 	}
+
+	for ( n = 0 ; n < tab.GetSize() ; n++ ) {
+		for ( i = 0 ; i < m_pData->GetSize() ; i++ ) {
+			if ( tab[n] == m_pData->m_Data[i].m_Uid ) {
+				m_pData->RemoveAt(i);
+				break;
+			}
+		}
+	}
+
+	InitList();
+	UpdateTabWnd();
 }
 void CServerSelect::OnEditCopy() 
 {

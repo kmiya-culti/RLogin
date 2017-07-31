@@ -846,6 +846,11 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		m_pBitmap = m_BmpFile.GetBitmap(GetDC(), m_Width, m_Height, 1);
 		//pDoc->SetStatus(NULL);
 
+		for ( int n = 0 ; n < pDoc->m_TextRam.m_GrapWndTab.GetSize() ; n++ ) {
+			if ( ((CWnd *)(pDoc->m_TextRam.m_GrapWndTab[n]))->GetSafeHwnd() != NULL )
+				((CWnd *)(pDoc->m_TextRam.m_GrapWndTab[n]))->Invalidate(FALSE);
+		}
+
 		// No break
 	case UPDATE_INVALIDATE:
 		if ( m_HisOfs > 0 )

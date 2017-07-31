@@ -83,15 +83,22 @@ void CIdkeySelDLg::InitList()
 		if ( (pKey = m_pIdKeyTab->GetUid(m_Data[n])) == NULL )
 			continue;
 		switch(pKey->m_Type) {
-		case IDKEY_NONE:  str = _T(""); break;
-		case IDKEY_RSA1:  str = _T("RSA1"); break;
-		case IDKEY_RSA2:  str = _T("RSA2"); break;
-		case IDKEY_DSA2:  str = _T("DSA2"); break;
-		case IDKEY_ECDSA: str = _T("ECDSA"); break;
+		case IDKEY_NONE:    str = _T(""); break;
+		case IDKEY_RSA1:    str = _T("RSA1"); break;
+		case IDKEY_RSA2:    str = _T("RSA2"); break;
+		case IDKEY_DSA2:    str = _T("DSA2"); break;
+		case IDKEY_ECDSA:   str = _T("ECDSA"); break;
+		case IDKEY_ED25519: str = _T("ED25519"); break;
 		}
 		m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, n, str, 0, 0, 0, n);
 		m_List.SetItemText(n, 1, pKey->m_Name);
-		m_List.SetItemText(n, 2, ((pKey->m_Cert & IDKEY_CERTV01) != 0 ? _T("V01") : ((pKey->m_Cert & IDKEY_CERTV00) != 0 ? _T("V00") : _T(""))));
+		switch(pKey->m_Cert) {
+		case IDKEY_CERTV00:  str = _T("V00"); break;
+		case IDKEY_CERTV01:  str = _T("V01"); break;
+		case IDKEY_CERTX509: str = _T("x509"); break;
+		default:             str = _T(""); break;
+		}
+		m_List.SetItemText(n, 2, str);
 		m_List.SetLVCheck(n, pKey->m_Flag);
 	}
 	m_List.SetItemState(m_EntryNum, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
@@ -153,7 +160,7 @@ void CIdkeySelDLg::StartKeyGenThead()
 }
 void CIdkeySelDLg::ProcKeyGenThead()
 {
-	m_GenIdKeyStat = m_GenIdKey.Generate(m_GenIdKeyType, m_GenIdKeyBits);
+	m_GenIdKeyStat = m_GenIdKey.Generate(m_GenIdKeyType, m_GenIdKeyBits, m_GenIdKeyPass);
 }
 void CIdkeySelDLg::EndofKeyGenThead()
 {
@@ -357,7 +364,6 @@ void CIdkeySelDLg::OnIdkeyInport()
 		return;
 	}
 
-	key.m_Pass = dlg.m_PassName;
 	key.m_Flag = TRUE;
 
 	if ( !m_pIdKeyTab->AddEntry(key) ) {
@@ -393,7 +399,7 @@ void CIdkeySelDLg::OnIdkeyExport()
 		return;
 	}
 
-	if ( dlg.m_PassName.Compare(pKey->m_Pass) != 0 ) {
+	if ( pKey->CompPass(dlg.m_PassName) != 0 ) {
 		MessageBox(CStringLoad(IDE_IDKEYPASSERROR));
 		return;
 	}
@@ -422,6 +428,8 @@ void CIdkeySelDLg::OnIdkeyCreate()
 		m_GenIdKeyType = IDKEY_RSA2;
 	else if ( m_Type.Compare(_T("ECDSA")) == 0 )
 		m_GenIdKeyType = IDKEY_ECDSA;
+	else if ( m_Type.Compare(_T("ED25519")) == 0 )
+		m_GenIdKeyType = IDKEY_ED25519;
 
 	if ( m_GenIdKeyType == IDKEY_ECDSA && m_GenIdKeyBits > 521 ) {
 		if ( MessageBox(CStringLoad(IDE_ECDSABITSIZEERR), _T("Warning"), MB_ICONWARNING | MB_OKCANCEL) != IDOK )
@@ -446,8 +454,6 @@ void CIdkeySelDLg::OnIdkeyCreate()
 		return;
 	}
 
-	m_GenIdKey.m_Pass = dlg.m_PassName;
-
 	if ( (pWnd = GetDlgItem(IDC_IDKEY_TYPE)) != NULL )
 		pWnd->EnableWindow(FALSE);
 	if ( (pWnd = GetDlgItem(IDC_IDKEY_BITS)) != NULL )
@@ -457,7 +463,8 @@ void CIdkeySelDLg::OnIdkeyCreate()
 	if ( (pWnd = GetDlgItem(IDC_IDKEY_CREATE)) != NULL )
 		pWnd->EnableWindow(FALSE);
 
-	m_GenIdKeyMax = (int)(pow(1.5, (double)m_GenIdKeyBits / 256.0) * 2.56);
+	m_GenIdKeyPass  = dlg.m_PassName;
+	m_GenIdKeyMax   = (int)(pow(1.5, (double)m_GenIdKeyBits / 256.0) * 2.56);
 	m_GenIdKeyCount = 0;
 
 	m_KeyGenProg.EnableWindow(TRUE);

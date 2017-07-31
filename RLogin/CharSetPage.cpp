@@ -151,7 +151,7 @@ BOOL CCharSetPage::OnInitDialog()
 		if ( *pStr == _T('\0') )
 			continue;
 		for ( i = 0 ; i < 4 ; i++ ) {
-			if ( pCombo[i] != NULL && pCombo[i]->FindString((-1), pStr) == CB_ERR )
+			if ( pCombo[i] != NULL && pCombo[i]->FindStringExact((-1), pStr) == CB_ERR )
 				pCombo[i]->AddString(pStr);
 		}
 	}

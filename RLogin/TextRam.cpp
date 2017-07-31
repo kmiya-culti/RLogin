@@ -974,7 +974,7 @@ CTextRam::CTextRam()
 
 	m_pSection = _T("TextRam");
 	m_MinSize = 16;
-	Serialize(FALSE);
+	Init();
 }
 CTextRam::~CTextRam()
 {

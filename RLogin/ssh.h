@@ -195,17 +195,23 @@ public:
 	~CCompress();
 };
 
-#define	IDKEY_NONE		0000
-#define	IDKEY_RSA1		0001
-#define	IDKEY_RSA2		0002
-#define	IDKEY_DSA2		0004
-#define	IDKEY_ECDSA		0040
-#define	IDKEY_DSA2EX	0104
-#define	IDKEY_ECDSAEX	0140
+#define	IDKEY_NONE		00000
+#define	IDKEY_RSA1		00001
+#define	IDKEY_RSA2		00002
+#define	IDKEY_DSA2		00004
+#define	IDKEY_ED25519	00010
+#define	IDKEY_RESV		00020		// not use
+#define	IDKEY_ECDSA		00040
 
-#define	IDKEY_CERTV00	0010
-#define	IDKEY_CERTV01	0020
-#define	IDKEY_CERT_MASK	0747
+#define	IDKEY_DSA2EX	00104		// BIGNUM2 fix
+#define	IDKEY_ECDSAEX	00140		// BIGNUM2 fix
+
+#define	IDKEY_CERTV00	00200
+#define	IDKEY_CERTV01	00400
+#define	IDKEY_CERTX509	01000
+
+#define	IDKEY_TYPE_MASK	00077
+#define	IDKEY_CERT_MASK	01600
 
 #define	SSHFP_KEY_RESERVED	0
 #define	SSHFP_KEY_RSA		1
@@ -219,12 +225,23 @@ public:
 #define DNS_RDATACLASS_IN	1
 #define DNS_RDATATYPE_SSHFP	44
 
+#define ED25519_SECBYTES	64
+#define ED25519_PUBBYTES	32
+#define	ED25519_SIGBYTES	64
+
+typedef struct _ed25519_key {
+	BYTE pub[ED25519_PUBBYTES];
+	BYTE sec[ED25519_SECBYTES];
+} ED25519_KEY;
+
+//#define	USE_X509
+
 class CIdKey: public CObject
 {
 public:
 	int m_Uid;
 	CString m_Name;
-	CString m_Pass;
+	CString m_Hash;
 	int m_Type;
 	int m_Cert;
 	RSA *m_Rsa;
@@ -232,8 +249,11 @@ public:
 	BOOL m_Flag;
 	int	 m_EcNid;
 	EC_KEY *m_EcDsa;
+	ED25519_KEY *m_Ed25519;
 	CString m_Work;
 	CBuffer m_CertBlob;
+	BOOL m_bSecInit;
+	CString m_SecBlob;
 
 	int GetIndexNid(int nid);
 	int GetIndexName(LPCTSTR name);
@@ -245,8 +265,9 @@ public:
 	int GetEcNidFromKey(EC_KEY *k);
 	void RsaGenAddPara();
 
+	int Init(LPCTSTR pass);
 	int Create(int type);
-	int Generate(int type, int bits);
+	int Generate(int type, int bits, LPCTSTR pass);
 	int Close();
 	int ComperePublic(CIdKey *pKey);
 	int Compere(CIdKey *pKey);
@@ -258,6 +279,10 @@ public:
 	void DecryptStr(CString &out, LPCTSTR str);
 	void EncryptStr(CString &out, LPCTSTR str);
 
+	void Digest(CString &out, LPCTSTR str);
+	inline void SetPass(LPCTSTR pass) { Digest(m_Hash, pass); }
+	int CompPass(LPCTSTR pass);
+
 	LPCTSTR GetName(BOOL bCert = TRUE);
 	int GetTypeFromName(LPCTSTR name);
 	int HostVerify(LPCTSTR host);
@@ -265,15 +290,21 @@ public:
 	int RsaSign(CBuffer *bp, LPBYTE buf, int len);
 	int DssSign(CBuffer *bp, LPBYTE buf, int len);
 	int EcDsaSign(CBuffer *bp, LPBYTE buf, int len);
+	int Ed25519Sign(CBuffer *bp, LPBYTE buf, int len);
 	int Sign(CBuffer *bp, LPBYTE buf, int len);
 
 	int RsaVerify(CBuffer *bp, LPBYTE data, int datalen);
 	int DssVerify(CBuffer *bp, LPBYTE data, int datalen);
 	int EcDsaVerify(CBuffer *bp, LPBYTE data, int datalen);
+	int Ed25519Verify(CBuffer *bp, LPBYTE data, int datalen);
 	int Verify(CBuffer *bp, LPBYTE data, int datalen);
 
+#ifdef	USE_X509
+	int GetBlob_x509(CBuffer *bp, LPCSTR name);
+#endif
+
 	int GetBlob(CBuffer *bp);
-	int SetBlob(CBuffer *bp);
+	int SetBlob(CBuffer *bp, BOOL bCert = TRUE);
 
 	int GetPrivateBlob(CBuffer *bp);
 	int SetPrivateBlob(CBuffer *bp);
@@ -287,6 +318,8 @@ public:
 	int SetEvpPkey(EVP_PKEY *pk);
 	int LoadRsa1Key(FILE *fp, LPCTSTR pass);
 	int SaveRsa1Key(FILE *fp, LPCTSTR pass);
+	int LoadOpenSshKey(FILE *fp, LPCTSTR pass);
+	int SaveOpenSshKey(FILE *fp, LPCTSTR pass);
 	int LoadSecShKey(FILE *fp, LPCTSTR pass);
 	int LoadPuttyKey(FILE *fp, LPCTSTR pass);
 
@@ -763,5 +796,16 @@ extern void UMAC_close(struct umac_ctx *ctx);
 
 // curve25519.c
 extern int crypto_scalarmult_curve25519(unsigned char *, const unsigned char *, const unsigned char *);
+
+// openbsd-compat
+extern int crypto_hash_sha512(unsigned char *out,const unsigned char *in,unsigned long long inlen);
+extern int crypto_verify_32(const unsigned char *x,const unsigned char *y);
+extern int bcrypt_pbkdf(const char *pass, size_t passlen, const unsigned char *salt, size_t saltlen, unsigned char *key, size_t keylen, unsigned int rounds);
+
+// ssh-ed2519
+extern int crypto_sign_ed25519_keypair(unsigned char *pk, unsigned char *sk);
+extern int crypto_sign_ed25519(unsigned char *sm, unsigned long long *smlen, const unsigned char *m, unsigned long long mlen, const unsigned char *sk);
+extern int crypto_sign_ed25519_open(unsigned char *m,unsigned long long *mlen, const unsigned char *sm,unsigned long long smlen, const unsigned char *pk);
+
 
 #endif // !defined(AFX_SSH_H__2A682FAC_4F24_4168_9082_C9CDF2DD19D7__INCLUDED_)

@@ -169,17 +169,15 @@ BOOL CSerEntPage::OnInitDialog()
 	CComboBox *pCombo;
 	DWORD pb = CComSock::AliveComPort();
 
-	DoInit();
-
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_SOCKNO)) != NULL ) {
 		for ( n = 1 ; n <= 31 ; n++ ) {
 			str.Format(_T("COM%d"), n);
 			if ( (pb & (1 << n)) != 0 ) {
-				if ( (i = pCombo->FindString((-1), str)) == CB_ERR )
+				if ( (i = pCombo->FindStringExact((-1), str)) == CB_ERR )
 					pCombo->AddString(str);
 				if ( m_DefComPort.IsEmpty() )
 					m_DefComPort = str;
-			} else if ( (i = pCombo->FindString((-1), str)) != CB_ERR ) {
+			} else if ( (i = pCombo->FindStringExact((-1), str)) != CB_ERR ) {
 				pCombo->DeleteString(i);
 			}
 		}
@@ -190,38 +188,40 @@ BOOL CSerEntPage::OnInitDialog()
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_SERVERNAME)) != NULL ) {
 		for ( n = 0 ; n < pTab->m_Data.GetSize() ; n++ ) {
 			str = pTab->m_Data[n].m_HostName;
-			if ( !str.IsEmpty() && pCombo->FindString((-1), str) == CB_ERR )
+			if ( !str.IsEmpty() && pCombo->FindStringExact((-1), str) == CB_ERR )
 				pCombo->AddString(str);
 		}
 	}
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_LOGINNAME)) != NULL ) {
 		for ( n = 0 ; n < pTab->m_Data.GetSize() ; n++ ) {
 			str = pTab->m_Data[n].m_UserName;
-			if ( !str.IsEmpty() && pCombo->FindString((-1), str) == CB_ERR )
+			if ( !str.IsEmpty() && pCombo->FindStringExact((-1), str) == CB_ERR )
 				pCombo->AddString(str);
 		}
 	}
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_TERMNAME)) != NULL ) {
 		for ( n = 0 ; n < pTab->m_Data.GetSize() ; n++ ) {
 			str = pTab->m_Data[n].m_TermName;
-			if ( !str.IsEmpty() && pCombo->FindString((-1), str) == CB_ERR )
+			if ( !str.IsEmpty() && pCombo->FindStringExact((-1), str) == CB_ERR )
 				pCombo->AddString(str);
 		}
 	}
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_SOCKNO)) != NULL ) {
 		for ( n = 0 ; n < pTab->m_Data.GetSize() ; n++ ) {
 			str = pTab->m_Data[n].m_PortName;
-			if ( !str.IsEmpty() && pCombo->FindString((-1), str) == CB_ERR )
+			if ( !str.IsEmpty() && pCombo->FindStringExact((-1), str) == CB_ERR )
 				pCombo->AddString(str);
 		}
 	}
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_GROUP)) != NULL ) {
 		for ( n = 0 ; n < pTab->m_Data.GetSize() ; n++ ) {
 			str = pTab->m_Data[n].m_Group;
-			if ( !str.IsEmpty() && pCombo->FindString((-1), str) == CB_ERR )
+			if ( !str.IsEmpty() && pCombo->FindStringExact((-1), str) == CB_ERR )
 				pCombo->AddString(str);
 		}
 	}
+
+	DoInit();
 
 	SetEnableWind();
 	

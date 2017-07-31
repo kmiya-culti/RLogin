@@ -2,6 +2,8 @@
 // Microsoft Visual C++ generated include file.
 // Used by RLogin.rc
 //
+#define IDCANCEL2                       3
+#define IDCANCEL3                       4
 #define IDR_MAINFRAME                   100
 #define IDR_RLOGINTYPE                  101
 #define IDR_SFTPMENU                    102

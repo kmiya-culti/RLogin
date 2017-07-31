@@ -42,6 +42,9 @@ END_MESSAGE_MAP()
 
 BOOL CPassDlg::OnInitDialog() 
 {
+	CWnd *pPassWnd = GetDlgItem(IDC_PASSNAME);
+	ASSERT(pPassWnd);
+
 	CDialog::OnInitDialog();
 	
 	if ( !m_Title.IsEmpty() )
@@ -50,20 +53,27 @@ BOOL CPassDlg::OnInitDialog()
 	m_HostWnd.LoadHis(_T("PassDlgHostAddr"));
 	m_HostWnd.SetWindowText(m_HostAddr);
 
-	if ( !m_HostAddr.IsEmpty() )
-		m_HostWnd.EnableWindow(FALSE);
+//	if ( !m_HostAddr.IsEmpty() )
+//		m_HostWnd.EnableWindow(FALSE);
 
 	m_UserWnd.LoadHis(_T("PassDlgUserName"));
 	m_UserWnd.SetWindowText(m_UserName);
 
-	if ( !m_UserName.IsEmpty() )
-		m_UserWnd.EnableWindow(FALSE);
+//	if ( !m_UserName.IsEmpty() )
+//		m_UserWnd.EnableWindow(FALSE);
+
+	if ( !m_HostAddr.IsEmpty() ) {
+		if ( !m_UserName.IsEmpty() )
+			pPassWnd->SetFocus();
+		else
+			m_UserWnd.SetFocus();
+	}
 
 	m_TimeLimit.SetRange(0, m_MaxTime);
 	SetTimer(1028, 1000, NULL);
 	m_Counter = 0;
 	
-	return TRUE;
+	return FALSE;
 }
 
 void CPassDlg::OnTimer(UINT_PTR nIDEvent) 
