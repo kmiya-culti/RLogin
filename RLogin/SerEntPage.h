@@ -43,6 +43,7 @@ public:
 	int		m_KanjiCode;
 	int		m_ProtoType;
 	CString m_Memo;
+	CString m_Group;
 	//}}AFX_DATA
 
 // オーバーライド

@@ -27,6 +27,7 @@ CServerSelect::CServerSelect(CWnd* pParent /*=NULL*/)
 	//}}AFX_DATA_INIT
 	m_EntryNum = (-1);
 	m_pData = NULL;
+	m_Group.Empty();
 }
 
 void CServerSelect::DoDataExchange(CDataExchange* pDX)
@@ -34,6 +35,7 @@ void CServerSelect::DoDataExchange(CDataExchange* pDX)
 	CDialog::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CServerSelect)
 	DDX_Control(pDX, IDC_SERVERLIST, m_List);
+	DDX_Control(pDX, IDC_SERVERTAB, m_Tab);
 	//}}AFX_DATA_MAP
 }
 
@@ -55,25 +57,142 @@ BEGIN_MESSAGE_MAP(CServerSelect, CDialog)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_DELETE, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_DUPS, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(IDM_SERV_EXPORT, OnUpdateEditEntry)
+	ON_WM_CLOSE()
+	ON_WM_SIZE()
+	ON_WM_SIZING()
+	ON_NOTIFY(TCN_SELCHANGE, IDC_SERVERTAB, &CServerSelect::OnTcnSelchangeServertab)
 END_MESSAGE_MAP()
 
 void CServerSelect::InitList()
 {
-	int n;
+	int n, i;
+	int idx = (-1);
 
+	m_TabEntry.RemoveAll();
+	m_Tab.DeleteAllItems();
 	m_List.DeleteAllItems();
 
-	for ( n = 0 ; n < m_pData->GetSize() ; n++ ) {
-		m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, n, m_pData->GetAt(n).m_EntryName, 0, 0, 0, n);
-		m_List.SetItemText(n, 1, m_pData->GetAt(n).m_HostName);
-		m_List.SetItemText(n, 2, m_pData->GetAt(n).m_UserName);
-		m_List.SetItemText(n, 3, m_pData->GetAt(n).m_TermName);
-		m_List.SetItemText(n, 4, m_pData->GetAt(n).GetKanjiCode());
-		m_List.SetItemText(n, 5, m_pData->GetAt(n).m_PortName);
+	if ( m_EntryNum >= 0 && m_EntryNum < m_pData->GetSize() )
+		m_Group = m_pData->GetAt(m_EntryNum).m_Group;
+
+	for ( n = i = 0 ; n < m_pData->GetSize() ; n++ ) {
+		if ( m_Group.Compare(m_pData->GetAt(n).m_Group) == 0 ) {
+			m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, i, m_pData->GetAt(n).m_EntryName, 0, 0, 0, n);
+			m_List.SetItemText(i, 1, m_pData->GetAt(n).m_HostName);
+			m_List.SetItemText(i, 2, m_pData->GetAt(n).m_UserName);
+			m_List.SetItemText(i, 3, m_pData->GetAt(n).m_TermName);
+			m_List.SetItemText(i, 4, m_pData->GetAt(n).GetKanjiCode());
+			m_List.SetItemText(i, 5, m_pData->GetAt(n).m_PortName);
+			if ( n == m_EntryNum )
+				idx = i;
+			i++;
+		}
+		m_TabEntry[m_pData->GetAt(n).m_Group].m_Value = 1;
 	}
 
-	m_List.SetItemState(m_EntryNum, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+	if ( m_TabEntry.GetSize() == 0 )
+		m_TabEntry[""].m_Value = 1;
+
+	for ( n = 0 ; n < m_TabEntry.GetSize() ; n++ )
+		m_Tab.InsertItem(n, m_TabEntry[n].m_nIndex);
+
+	if ( (n = m_TabEntry.Find(m_Group)) != (-1) )
+		m_Tab.SetCurSel(n);
+
+	if ( idx != (-1) )
+		m_List.SetItemState(idx, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
 	m_List.DoSortItem();
+}
+
+#define	ITM_LEFT_HALF	0001
+#define	ITM_LEFT_RIGHT	0002
+#define	ITM_RIGHT_HALF	0004
+#define	ITM_RIGHT_RIGHT	0010
+#define	ITM_TOP_BTM		0020
+#define	ITM_BTM_BTM		0040
+
+static	int		ItemTabInit = FALSE;
+static	struct	_SftpDlgItem	{
+	UINT	id;
+	int		mode;
+	RECT	rect;
+} ItemTab[] = {
+	{ IDOK,				ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT },
+	{ IDCANCEL,			ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT },
+	{ IDC_NEWENTRY,		ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ IDC_EDITENTRY,	ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ IDC_DELENTRY,		ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ IDC_SERVERTAB,	ITM_RIGHT_RIGHT },
+	{ IDC_SERVERLIST,	ITM_RIGHT_RIGHT | ITM_BTM_BTM },
+	{ 0,	0 },
+};
+
+void CServerSelect::InitItemOffset()
+{
+	int n;
+	int cx, mx, cy;
+	CRect rect;
+	WINDOWPLACEMENT place;
+	CWnd *pWnd;
+
+	if ( ItemTabInit )
+		return;
+	ItemTabInit = TRUE;
+
+	GetClientRect(rect);
+	cx = rect.Width();
+	mx = cx / 2;
+	cy = rect.Height();
+
+	for ( n = 0 ; ItemTab[n].id != 0 ; n++ ) {
+		if ( (pWnd = GetDlgItem(ItemTab[n].id)) == NULL )
+			continue;
+		pWnd->GetWindowPlacement(&place);
+		if ( ItemTab[n].mode & ITM_LEFT_HALF )
+			ItemTab[n].rect.left = place.rcNormalPosition.left - mx;
+		if ( ItemTab[n].mode & ITM_LEFT_RIGHT )
+			ItemTab[n].rect.left = cx - place.rcNormalPosition.left;
+		if ( ItemTab[n].mode & ITM_RIGHT_HALF )
+			ItemTab[n].rect.right = place.rcNormalPosition.right - mx;
+		if ( ItemTab[n].mode & ITM_RIGHT_RIGHT )
+			ItemTab[n].rect.right = cx - place.rcNormalPosition.right;
+
+		if ( ItemTab[n].mode & ITM_TOP_BTM )
+			ItemTab[n].rect.top = cy - place.rcNormalPosition.top;
+		if ( ItemTab[n].mode & ITM_BTM_BTM )
+			ItemTab[n].rect.bottom = cy - place.rcNormalPosition.bottom;
+	}
+}
+void CServerSelect::SetItemOffset(int cx, int cy)
+{
+	int n;
+	int mx = cx / 2;
+	WINDOWPLACEMENT place;
+	CWnd *pWnd;
+
+	if ( !ItemTabInit )
+		return;
+
+	for ( n = 0 ; ItemTab[n].id != 0 ; n++ ) {
+		if ( (pWnd = GetDlgItem(ItemTab[n].id)) == NULL )
+			continue;
+		pWnd->GetWindowPlacement(&place);
+		if ( ItemTab[n].mode & ITM_LEFT_HALF )
+			place.rcNormalPosition.left = mx + ItemTab[n].rect.left;
+		if ( ItemTab[n].mode & ITM_LEFT_RIGHT )
+			place.rcNormalPosition.left = cx - ItemTab[n].rect.left;
+		if ( ItemTab[n].mode & ITM_RIGHT_HALF )
+			place.rcNormalPosition.right = mx + ItemTab[n].rect.right;
+		if ( ItemTab[n].mode & ITM_RIGHT_RIGHT )
+			place.rcNormalPosition.right = cx - ItemTab[n].rect.right;
+
+		if ( ItemTab[n].mode & ITM_TOP_BTM )
+			place.rcNormalPosition.top = cy - ItemTab[n].rect.top;
+		if ( ItemTab[n].mode & ITM_BTM_BTM )
+			place.rcNormalPosition.bottom = cy - ItemTab[n].rect.bottom;
+
+		pWnd->SetWindowPlacement(&place);
+	}
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -90,21 +209,43 @@ static const LV_COLUMN InitListTab[6] = {
 
 BOOL CServerSelect::OnInitDialog() 
 {
+	int cx, cy;
+	CRect rect;
 	CDialog::OnInitDialog();
 	ASSERT(m_pData);
+
+	m_TabEntry.SetNoCase(FALSE);
+	m_TabEntry.SetNoSort(FALSE);
 
 	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT);
 	m_List.InitColumn("ServerSelect", InitListTab, 6);
 	m_List.SetPopUpMenu(IDR_POPUPMENU, 0);
 
-	if ( m_EntryNum == (-1) )
+	if ( m_EntryNum == (-1) ) {
 		m_EntryNum = AfxGetApp()->GetProfileInt("ServerSelect", "LastAccess", (-1));
+		if ( m_EntryNum >= m_pData->GetSize() )
+			m_EntryNum = (-1);
+	}
 	InitList();
+
+	InitItemOffset();
+
+	GetWindowRect(rect);
+	m_MinWidth = rect.Width();
+	m_MinHeight = rect.Height();
+	cx = AfxGetApp()->GetProfileInt("ServerSelect", "cx", rect.Width());
+	cy = AfxGetApp()->GetProfileInt("ServerSelect", "cy", rect.Height());
+	MoveWindow(rect.left, rect.top, cx, cy, FALSE);
 
 	return TRUE;
 }
 void CServerSelect::OnOK()
 {
+	CRect rect;
+	GetWindowRect(rect);
+	AfxGetApp()->WriteProfileInt("ServerSelect", "cx", rect.Width());
+	AfxGetApp()->WriteProfileInt("ServerSelect", "cy", rect.Height());
+
 	m_EntryNum = m_List.GetSelectMarkData();
 	AfxGetApp()->WriteProfileInt("ServerSelect", "LastAccess", m_EntryNum);
 	m_List.SaveColumn("ServerSelect");
@@ -138,6 +279,8 @@ void CServerSelect::OnNewentry()
 	CKeyMacTab KeyMac;
 	CParamTab ParamTab;
 	COptDlg dlg("Server New Entry", this);
+
+	Entry.m_Group = m_Group;
 
 	dlg.m_pEntry    = &Entry;
 	dlg.m_pTextRam  = &TextRam;
@@ -386,4 +529,60 @@ void CServerSelect::OnServExport()
 
 	Archive.Close();
 	File.Close();
+}
+
+void CServerSelect::OnClose()
+{
+	CRect rect;
+
+	GetWindowRect(rect);
+	AfxGetApp()->WriteProfileInt("ServerSelect", "cx", rect.Width());
+	AfxGetApp()->WriteProfileInt("ServerSelect", "cy", rect.Height());
+
+	CDialog::OnClose();
+}
+void CServerSelect::OnSize(UINT nType, int cx, int cy)
+{
+	SetItemOffset(cx, cy);
+	CDialog::OnSize(nType, cx, cy);
+	Invalidate(TRUE);
+}
+void CServerSelect::OnSizing(UINT fwSide, LPRECT pRect)
+{
+	//case WMSZ_LEFT:			// 1 Left edge
+	//case WMSZ_RIGHT:			// 2 Right edge
+	//case WMSZ_TOP:			// 3 Top edge
+	//case WMSZ_TOPLEFT:		// 4 Top-left corner
+	//case WMSZ_TOPRIGHT:		// 5 Top-right corner
+	//case WMSZ_BOTTOM:			// 6 Bottom edge
+	//case WMSZ_BOTTOMLEFT:		// 7 Bottom-left corner
+	//case WMSZ_BOTTOMRIGHT:	// 8 Bottom-right corner
+
+	if ( (pRect->right - pRect->left) < m_MinWidth ) {
+		if ( fwSide == WMSZ_LEFT || fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_BOTTOMLEFT )
+			pRect->left = pRect->right - m_MinWidth;
+		else
+			pRect->right = pRect->left + m_MinWidth;
+	}
+
+	if ( (pRect->bottom - pRect->top) < m_MinHeight ) {
+		if ( fwSide == WMSZ_TOP || fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_TOPRIGHT )
+			pRect->top = pRect->bottom - m_MinHeight;
+		else
+			pRect->bottom = pRect->top + m_MinHeight;
+	}
+
+	CDialog::OnSizing(fwSide, pRect);
+}
+
+void CServerSelect::OnTcnSelchangeServertab(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	int n = m_Tab.GetCurSel();
+
+	if ( n >= 0 && n < m_TabEntry.GetSize() ) {
+		m_Group = m_TabEntry[n].m_nIndex;
+		m_EntryNum = (-1);
+		InitList();
+	}
+	*pResult = 0;
 }

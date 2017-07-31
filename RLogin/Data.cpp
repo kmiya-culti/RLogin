@@ -1478,6 +1478,7 @@ void CServerEntry::Init()
 	m_ProxyUser.Empty();
 	m_ProxyPass.Empty();
 	m_Memo.Empty();
+	m_Group.Empty();
 }
 const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 {
@@ -1504,6 +1505,7 @@ const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 	m_ProxyUser  = data.m_ProxyUser;
 	m_ProxyPass  = data.m_ProxyPass;
 	m_Memo       = data.m_Memo;
+	m_Group      = data.m_Group;
 	return *this;
 }
 void CServerEntry::GetArray(CStringArrayExt &array)
@@ -1546,7 +1548,8 @@ void CServerEntry::GetArray(CStringArrayExt &array)
 		}
 	}
 
-	m_Memo = (array.GetSize() > 17 ?  array.GetAt(17) : "");
+	m_Memo  = (array.GetSize() > 17 ?  array.GetAt(17) : "");
+	m_Group = (array.GetSize() > 18 ?  array.GetAt(18) : "");
 
 	m_ProBuffer.Clear();
 	m_HostReal = m_HostName;
@@ -1583,6 +1586,7 @@ void CServerEntry::SetArray(CStringArrayExt &array)
 	key.EncryptStr(str, "12345678");
 	array.Add(str);
 	array.Add(m_Memo);
+	array.Add(m_Group);
 }
 void CServerEntry::SetBuffer(CBuffer &buf)
 {

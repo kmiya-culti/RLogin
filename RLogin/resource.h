@@ -245,6 +245,8 @@
 #define IDC_SIZEPROG                    1118
 #define IDC_SOCKNO                      1119
 #define IDC_SSHALGO                     1120
+#define IDC_SOCKNO2                     1120
+#define IDC_GROUP                       1120
 #define IDC_SSHIDKEY                    1121
 #define IDC_SSHPFD                      1122
 #define IDC_TERMNAME                    1123
@@ -458,6 +460,8 @@
 #define IDC_METAKEY50                   3050
 #define IDC_METAKEY51                   3051
 #define IDC_METAKEY52                   3052
+#define IDC_TAB1                        3053
+#define IDC_SERVERTAB                   3053
 #define ID_FILE_ALL_LOAD                5000
 #define ID_EDIT_BOX                     5001
 #define ID_PAGE_PRIOR                   5002
@@ -506,7 +510,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        163
 #define _APS_NEXT_COMMAND_VALUE         5044
-#define _APS_NEXT_CONTROL_VALUE         3053
+#define _APS_NEXT_CONTROL_VALUE         3054
 #define _APS_NEXT_SYMED_VALUE           249
 #endif
 #endif

@@ -2460,6 +2460,7 @@ void CSFtp::OnSize(UINT nType, int cx, int cy)
 	if ( nType != SIZE_MINIMIZED )
 		SetItemOffset(cx, cy);
 	CDialog::OnSize(nType, cx, cy);
+	Invalidate(TRUE);
 }
 
 BOOL CSFtp::PreTranslateMessage(MSG* pMsg) 

@@ -1344,8 +1344,10 @@ void CExtSocket::OnRecive(int nFlags)
 			break;
 		}
 
+		m_RecvSema.Lock();
 		m_RecvHead = AddTail(sp, m_RecvHead);
 		m_RecvSize += sp->GetSize();
+		m_RecvSema.Unlock();
 
 		if ( sp->GetSize() < RECVBUFSIZ )
 			break;
@@ -1376,8 +1378,10 @@ int CExtSocket::ReciveCall()
 
 	int n = m_RecvHead->m_Type;
 
+	m_RecvSema.Lock();
 	m_RecvSize -= m_RecvHead->GetSize();
 	m_RecvHead = RemoveHead(m_RecvHead);
+	m_RecvSema.Unlock();
 
 	if ( (m_SocketEvent & EventMask[n]) == 0 && m_RecvSize < RECVMINSIZ )
 		OnRecive(n);

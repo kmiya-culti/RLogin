@@ -9,6 +9,7 @@
 
 #include "ListCtrlExt.h"
 #include "Data.h"
+#include "afxcmn.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CServerSelect ダイアログ
@@ -18,14 +19,22 @@ class CServerSelect : public CDialog
 // コンストラクション
 public:
 	int m_EntryNum;
+	int m_MinWidth;
+	int m_MinHeight;
+	CString m_Group;
+	CStringIndex m_TabEntry;
 	class CServerEntryTab *m_pData;
+
 	void InitList();
+	void InitItemOffset();
+	void SetItemOffset(int cx, int cy);
 	CServerSelect(CWnd* pParent = NULL);   // 標準のコンストラクタ
 
 // ダイアログ データ
 	//{{AFX_DATA(CServerSelect)
 	enum { IDD = IDD_SERVERLIST };
 	CListCtrlExt m_List;
+	CTabCtrl m_Tab;
 	//}}AFX_DATA
 
 
@@ -54,6 +63,12 @@ protected:
 	afx_msg void OnServExport();
 	afx_msg void OnUpdateEditEntry(CCmdUI* pCmdUI);
 	DECLARE_MESSAGE_MAP()
+
+public:
+	afx_msg void OnClose();
+	afx_msg void OnSize(UINT nType, int cx, int cy);
+	afx_msg void OnSizing(UINT fwSide, LPRECT pRect);
+	afx_msg void OnTcnSelchangeServertab(NMHDR *pNMHDR, LRESULT *pResult);
 };
 
 //{{AFX_INSERT_LOCATION}}

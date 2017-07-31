@@ -297,6 +297,7 @@ public:
 	CString m_ProxyUser;
 	CString m_ProxyPass;
 	CString m_Memo;
+	CString m_Group;
 
 	void Init();
 	void SetArray(CStringArrayExt &array);

@@ -112,7 +112,7 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 	m_IdKey.Close();
 	m_IdKeyPos = 0;
 	m_HostKey.Close();
-	SetRecvBufSize(32 * 1024);
+	SetRecvBufSize(256 * 1024);
 
 	srand((UINT)time(NULL));
 
