@@ -3326,6 +3326,18 @@ void CTextRam::fc_OSCEXE(int ch)
 	case 117:	// 117  -> Reset highlight background color.
 		ParseColor(cmd, m_AttNow.bc, _T("reset"), ch);
 		break;
+
+	case 800:	// Original Kanji Code Set
+		tmp.Empty();
+		while ( *p != '\0' && *p != ';' )
+			tmp += *(p++);
+		if ( tmp.Compare(_T("?")) == 0 )
+			UNGETSTR(_T("%s800;%d%s"), m_RetChar[RC_OSC], m_KanjiMode, (ch == 0x07 ? _T("\007") : m_RetChar[RC_ST]));
+		else if ( tmp.GetLength() > 0 && (n = _tstoi(tmp)) >= 0 && n <= BIG5_SET ) {
+			SetKanjiMode(n);
+			return;
+		}
+		break;
 	}
 
 ENDRET:
@@ -3340,10 +3352,13 @@ void CTextRam::fc_OSCNULL(int ch)
 	CFile file;
 	CFileDialog dlg(FALSE, _T("txt"), (m_OscMode == 'X' ? _T("SOS") : (m_OscMode == '^' ? _T("PM") : _T("APC"))), OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGALLFILE), AfxGetMainWnd());
 
-	if ( dlg.DoModal() == IDOK && file.Open(dlg.GetPathName(), CFile::modeWrite) ) {
-		file.Write(m_OscPara.GetPtr(), m_OscPara.GetSize());
-		file.Close();
-	}
+	if ( m_FileSaveFlag && dlg.DoModal() == IDOK ) {
+		if ( file.Open(dlg.GetPathName(), CFile::modeWrite) ) {
+			file.Write(m_OscPara.GetPtr(), m_OscPara.GetSize());
+			file.Close();
+		}
+	} else
+		m_FileSaveFlag = FALSE;
 
 	fc_POP(ch);
 }
@@ -4486,6 +4501,17 @@ void CTextRam::fc_DECSRET(int ch)
 			m_MouseTrack = (IsOptEnable(i) ? (i - TO_XTNOMTRK + MOS_EVENT_NORM) : MOS_EVENT_NONE);
 			m_MouseRect.SetRectEmpty();
 			m_pDocument->UpdateAllViews(NULL, UPDATE_SETCURSOR, NULL);
+			break;
+
+		case TO_XTEXTMOS:	// 1005 X11 Enable Extended Mouse Mode
+		case TO_XTSGRMOS:	// 1006 X11 SGR Extended Mouse Mode
+		case TO_XTURXMOS:	// 1015 X11 URXVT Extended Mouse Mode
+			if ( ch == 'h' ) {
+				DisableOption(TO_XTEXTMOS);
+				DisableOption(TO_XTSGRMOS);
+				DisableOption(TO_XTURXMOS);
+				EnableOption(i);	// Last select Enable
+			}
 			break;
 
 		case TO_IMECTRL:	// IME Open/Close

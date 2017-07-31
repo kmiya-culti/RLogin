@@ -1494,7 +1494,7 @@ LPCWSTR CStrScript::ExecChar(int ch)
 			if ( !tmp.IsEmpty() )
 				tmp += _T(" or ");
 			tmp += np->m_RecvStr;
-			if ( np->m_Reg.MatchChar(ch, 0, &m_Res) && (m_Res.m_Status == REG_MATCH || m_Res.m_Status == REG_MATCHOVER) ) {
+			if ( np->m_Reg.MatchChar(CTextRam::UCS2toUCS4(ch), 0, &m_Res) && (m_Res.m_Status == REG_MATCH || m_Res.m_Status == REG_MATCHOVER) ) {
 				ExecNode(np->m_Right);
 				np->m_Reg.ConvertRes((CStringW)np->m_SendStr, m_Str, &m_Res);
 				if ( m_StatDlg.m_hWnd != NULL )

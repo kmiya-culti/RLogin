@@ -466,6 +466,7 @@ CTextRam::CTextRam()
 	m_LangMenu = 0;
 	SetRetChar(FALSE);
 	m_ClipFlag = 0;
+	m_FileSaveFlag = TRUE;
 
 	m_LineEditMode = FALSE;
 	m_LineEditPos  = 0;
@@ -942,9 +943,7 @@ int CTextRam::HisRegNext()
 				n = 1;
 			}
 
-			if ( (ch & 0xFFFF0000) != 0 )
-				HisRegCheck(ch >> 16, m_ColsMax * m_MarkPos + x);
-			HisRegCheck(ch & 0xFFFF, m_ColsMax * m_MarkPos + x);
+			HisRegCheck(UCS2toUCS4(ch), m_ColsMax * m_MarkPos + x);
 		}
 
 		if ( x < m_Cols ) {
@@ -2653,14 +2652,20 @@ DWORD CTextRam::IconvToMsUnicode(DWORD code)
 }
 DWORD CTextRam::UCS2toUCS4(DWORD code)
 {
-	//  1101 10xx	U+D800 - U+DBFF	上位サロゲート
-	//	1101 11xx	U+DC00 - U+DFFF	下位サロゲート
+	// 上位サロゲート      下位サロゲート
+	// U+D800 - U+DBFF     U+DC00 - U+DFFF
+	// 1101 10** **** **** 1101 11xx xxxx xxxx
+	// 0000 0000 000? **** **** **xx xxxx xxxx	U+010000 - U+10FFFF 21 bit
 	if ( (code & 0xFC00FC00L) == 0xD800DC00L )
 		code = (((code & 0x03FF0000L) >> 6) | (code & 0x3FF)) + 0x10000L;
 	return code;
 }
 DWORD CTextRam::UCS4toUCS2(DWORD code)
 {
+	// 上位サロゲート      下位サロゲート
+	// U+D800 - U+DBFF     U+DC00 - U+DFFF
+	// 1101 10** **** **** 1101 11xx xxxx xxxx
+	// 0000 0000 000? **** **** **xx xxxx xxxx	U+010000 - U+10FFFF 21 bit
 	if ( (code & 0xFFFF0000L) >= 0x00010000L && (code & 0xFFFF0000L) < 0x00100000L ) {
 		code -= 0x10000L;
 		code = (((code & 0xFFC00L) << 6) | (code & 0x3FF)) | 0xD800DC00L;
@@ -2691,10 +2696,8 @@ DWORD CTextRam::UnicodeNomal(DWORD code1, DWORD code2)
 
 	hs = (code1 * 31 + code2) & 255;
 	for ( tp = HashTab[hs] ; tp != NULL ; tp = tp->next ) {
-		if ( (c = (int)(tp->code[0] - code1)) == 0 && (c = (int)(tp->code[1] - code2)) == 0 )
+		if ( tp->code[0] == code1 && tp->code[1] == code2 )
 			return tp->code[2];
-		else if ( c < 0 )
-			break;
 	}
 	return 0;
 }
@@ -2847,6 +2850,7 @@ void CTextRam::RESET(int mode)
 		m_TermId  = 10;
 		m_LangMenu = 0;
 		SetRetChar(FALSE);
+		m_FileSaveFlag = TRUE;
 	}
 
 	if ( mode & RESET_CLS )
@@ -3208,6 +3212,169 @@ void CTextRam::LocReport(int md, int sw, int x, int y)
 		m_MouseTrack = MOS_EVENT_NONE;
 		m_pDocument->UpdateAllViews(NULL, UPDATE_SETCURSOR, NULL);
 	}
+}
+void CTextRam::MouseReport(int md, int sw, int x, int y)
+{
+	if ( x < 0 )
+		x = 0;
+	else if ( x >= m_Cols  )
+		x = m_Cols - 1;
+
+	if ( y < 0 )
+		y = 0;
+	else if ( y >= m_Lines )
+		y = m_Lines - 1;
+
+	if ( m_MouseTrack == MOS_EVENT_LOCA ) {
+		LocReport(md, sw, x, y);
+		return;
+	}
+
+	// Button Code
+	// Left			xxxx xx00	00
+	// Right		xxxx xx01	01
+	// Middle		xxxx xx10	02
+	// Button 1		x1xx xx00	40
+	// Button 2		x1xx xx01	41
+	// Button 3		x1xx xx10	42
+	// Release		xxxx xx11	03
+	// shift		xxxx x1xx	04
+	// meta			xxxx 1xxx	08
+	// ctrl			xxx1 xxxx	10
+	// motion		xx1x xxxx	20
+
+	CStringA tmp, str;
+	int stat = 0;
+	int code = 'M';
+
+	switch(md) {
+	case MOS_LOCA_LEDN:
+		stat = m_MouseMode[0];
+		break;
+
+	case MOS_LOCA_LEUP:
+		if ( m_MouseTrack < MOS_EVENT_NORM )
+			return;
+		else if ( m_MouseTrack == MOS_EVENT_HILT ) {
+			stat = 0x03;	// Release
+			code = 't';
+		} else if ( IsOptEnable(TO_XTSGRMOS) ) {
+			stat = m_MouseMode[0];
+			code = 'm';
+		} else
+			stat = 0x03;	// Release
+		break;
+
+	case MOS_LOCA_RTDN:
+		if ( m_MouseTrack == MOS_EVENT_HILT )
+			return;
+		stat = m_MouseMode[1];
+		break;
+
+	case MOS_LOCA_RTUP:
+		if ( m_MouseTrack < MOS_EVENT_NORM || m_MouseTrack == MOS_EVENT_HILT )
+			return;
+		if ( IsOptEnable(TO_XTSGRMOS) ) {
+			stat = m_MouseMode[1];
+			code = 'm';
+		} else
+			stat = 0x03;	// Release
+		break;
+
+	case MOS_LOCA_MOVE:
+		if ( m_MouseTrack == MOS_EVENT_BTNE ) {
+			if ( (sw & (MK_LBUTTON | MK_RBUTTON)) == 0 )
+				return;
+		} else if ( m_MouseTrack != MOS_EVENT_ANYE )
+			return;
+		if ( (sw & MK_LBUTTON) != 0 )
+			stat = m_MouseMode[0];
+		else if ( (sw & MK_RBUTTON) != 0 )
+			stat = m_MouseMode[1];
+		else
+			stat = 0x03;	// Release
+		break;
+
+	default:
+		return;
+	}
+
+	if ( m_MouseTrack == MOS_EVENT_X10 ) {
+		stat &= 0x03;
+	} else {
+		if ( (sw & MK_SHIFT) != 0 )
+			stat |= m_MouseMode[2];
+		if ( (sw & MK_CONTROL) != 0 )
+			stat |= m_MouseMode[3];
+	}
+
+	tmp = m_RetChar[RC_CSI];
+
+	if ( IsOptEnable(TO_XTSGRMOS) )
+		tmp += '<';
+	else if ( !IsOptEnable(TO_XTURXMOS) )
+		tmp += (CHAR)code;
+
+	if ( code != 't' ) {
+		if ( IsOptEnable(TO_XTSGRMOS) ) {
+			str.Format("%d;", stat);
+			tmp += str;
+		} else if ( IsOptEnable(TO_XTURXMOS) ) {
+			str.Format("%d;", stat + ' ');
+			tmp += str;
+		} else if ( IsOptEnable(TO_XTEXTMOS) ) {
+			stat += (' ');
+			if ( stat < 128 )
+				tmp += (CHAR)(stat);
+			else {
+				tmp += (CHAR)(0xC0 + (stat >> 6));
+				tmp += (CHAR)(0x80 + (stat & 0x3F));
+			}
+		} else {
+			tmp += (CHAR)(stat + ' ');
+		}
+	}
+
+	if ( IsOptEnable(TO_XTSGRMOS) || IsOptEnable(TO_XTURXMOS) ) {
+		str.Format("%d;%d", x + 1, y + 1);
+		tmp += str;
+
+	} else if ( IsOptEnable(TO_XTEXTMOS) ) {
+		x += (' ' + 1);
+		if ( x < 128 )
+			tmp += (CHAR)(x);
+		else {							// x < COLS_MAX !!!
+		    tmp += (CHAR)(0xC0 + (x >> 6));
+		    tmp += (CHAR)(0x80 + (x & 0x3F));
+		}
+
+		y += (' ' + 1);
+		if ( y < 128 )
+			tmp += (CHAR)(y);
+		else {							// y < LINE_MAX !!!
+		    tmp += (CHAR)(0xC0 + (y >> 6));
+		    tmp += (CHAR)(0x80 + (y & 0x3F));
+		}
+
+	} else {
+		x += (' ' + 1);
+		if ( x < 256 )
+			tmp += (CHAR)(x);
+		else
+			tmp += (CHAR)(255);
+
+		y += (' ' + 1);
+		if ( y < 256 )
+			tmp += (CHAR)(y);
+		else
+			tmp += (CHAR)(255);
+	}
+
+	if ( IsOptEnable(TO_XTSGRMOS) || IsOptEnable(TO_XTURXMOS) )
+		tmp += (CHAR)code;
+
+	if ( m_pDocument != NULL )
+		m_pDocument->SocketSend((void *)(LPCSTR)tmp, tmp.GetLength());
 }
 LPCTSTR CTextRam::GetHexPara(LPCTSTR str, CBuffer &buf)
 {
@@ -4155,12 +4322,4 @@ void CTextRam::PUTSTR(LPBYTE lpBuf, int nBufLen)
 	while ( nBufLen-- > 0 )
 		fc_Call(*(lpBuf++));
 	m_RetSync = FALSE;
-}
-int CTextRam::MCHAR(int val)
-{
-	if ( (val += ' ') > 255 )
-		val = 255;
-	else if ( val < ' ' )
-		val = ' ';
-	return val;
 }

@@ -1,4 +1,10 @@
 #include "StdAfx.h"
+#include <stdarg.h>
+#include "RLogin.h"
+#include "MainFrm.h"
+#include "RLoginDoc.h"
+#include "RLoginView.h"
+#include "TextRam.h"
 #include "Regex.h"
 
 /*******************************************************
@@ -47,6 +53,259 @@
 		}
 	}
 ********************************************************/
+
+//////////////////////////////////////////////////////////////////////
+// CStringD
+
+CStringD::CStringD()
+{
+	Empty();
+}
+CStringD::CStringD(const CStringD &data, int iFirst, int nCount)
+{
+	int n;
+	int len = data.m_Data.GetSize() - 1;
+
+	Empty();
+
+	if ( iFirst < 0 )
+		iFirst = 0;
+
+	if ( nCount < 0 )
+		nCount = len - iFirst;
+
+	for ( n = 0 ; n < nCount && iFirst < len ; n++, iFirst++ ) {
+		m_Data.InsertAt(n, data.m_Data[iFirst]);
+		m_Vs.InsertAt(n, data.m_Vs[iFirst]);
+	}
+}
+CStringD::~CStringD()
+{
+	m_Data.RemoveAll();
+	m_Vs.RemoveAll();
+}
+CStringD & CStringD::operator += (DCHAR ch)
+{
+	Insert(GetLength(), ch);
+	return *this;
+}
+CStringD & CStringD::operator += (const CStringD &data)
+{
+	int n;
+	int len = data.m_Data.GetSize() - 1;
+	int idx = GetLength();
+
+	for ( n = 0 ; n < len ; n++, idx++ ) {
+		m_Data.InsertAt(idx, data.m_Data[n]);
+		m_Vs.InsertAt(idx, data.m_Vs[n]);
+	}
+	return *this;
+}
+CStringD &CStringD::operator += (LPCWSTR str)
+{
+	DCHAR ch;
+
+	while ( *str != L'\0' ) {
+		//           1101 10** **** ****	U+D800 - U+DBFF	上位サロゲート
+		//	         1101 11xx xxxx xxxx	U+DC00 - U+DFFF	下位サロゲート
+		// 000? **** **** **xx xxxx xxxx	U+010000 - U+10FFFF 21 bit
+		if ( (str[0] & 0xFC00) == 0xD800 && (str[1] & 0xFC00) == 0xDC00 ) {
+			ch = (((str[0] & 0x03FF) << 10) | (str[1] & 0x3FF)) + 0x10000L;
+			str += 2;
+		} else
+			ch = *(str++);
+
+		*this += ch;
+	}
+	return *this;
+}
+LPCWSTR CStringD::WStr(CStringW &str)
+{
+	int n;
+	int len = GetLength();
+	DCHAR ch;
+
+	str.Empty();
+	for ( n = 0 ; n < len ; n++ ) {
+		ch = m_Data[n];
+		if ( (ch & 0xFFFF0000) != 0 ) {
+			// 000? **** **** **xx xxxx xxxx	U+010000 - U+10FFFF 21 bit
+			//           1101 10** **** ****	U+D800 - U+DBFF	上位サロゲート
+			//	         1101 11xx xxxx xxxx	U+DC00 - U+DFFF	下位サロゲート
+			ch -= 0x10000;
+			str += (WCHAR)((ch >> 10)    | 0xD800);
+			str += (WCHAR)((ch & 0x03FF) | 0xDC00);
+		} else
+			str += (WCHAR)(ch);
+
+		ch = m_Vs[n];
+		if ( (ch & 0xFFFF0000) != 0 ) {
+			ch -= 0x10000;
+			str += (WCHAR)((ch >> 10)    | 0xD800);
+			str += (WCHAR)((ch & 0x03FF) | 0xDC00);
+		} else if ( ch != 0 )
+			str += (WCHAR)(ch);
+	}
+	return str;
+}
+LPCWSTR CStringD::GetAt(int idx)
+{
+	DCHAR ch;
+
+	m_Work.Empty();
+
+	if ( idx >= GetLength() )
+		return m_Work;
+
+	ch = m_Data[idx];
+	if ( (ch & 0xFFFF0000) != 0 ) {
+		// 000? **** **** **xx xxxx xxxx	U+010000 - U+10FFFF 21 bit
+		//           1101 10** **** ****	U+D800 - U+DBFF	上位サロゲート
+		//	         1101 11xx xxxx xxxx	U+DC00 - U+DFFF	下位サロゲート
+		ch -= 0x10000;
+		m_Work += (WCHAR)((ch >> 10)    | 0xD800);
+		m_Work += (WCHAR)((ch & 0x03FF) | 0xDC00);
+	} else
+		m_Work += (WCHAR)(ch);
+
+	ch = m_Vs[idx];
+	if ( (ch & 0xFFFF0000) != 0 ) {
+		ch -= 0x10000;
+		m_Work += (WCHAR)((ch >> 10)    | 0xD800);
+		m_Work += (WCHAR)((ch & 0x03FF) | 0xDC00);
+	} else if ( ch != 0 )
+		m_Work += (WCHAR)(ch);
+
+	return m_Work;
+}
+int CStringD::ReverseFind(DCHAR ch)
+{
+	int len = GetLength();
+
+	while ( --len >= 0 ) {
+		if ( m_Data[len] == ch )
+			return len;
+	}
+	return (-1);
+}
+int CStringD::Find(DCHAR ch, int iStart)
+{
+	int len = GetLength();
+
+	while ( iStart < len ) {
+		if ( m_Data[iStart] == ch )
+			return iStart;
+		iStart++;
+	}
+	return (-1);
+}
+int CStringD::Find(LPCDSTR str, int iStart)
+{
+	int n;
+	LPCDSTR p, s;
+
+	while ( (n = Find(*str, iStart)) >= 0 ) {
+		p = m_Data.GetData() + n;
+		for ( s = str ; *s != 0 ; ) {
+			if ( *(s++) != *(p++) )
+				break;
+		}
+		if ( *s == 0 )
+			return n;
+		iStart = n + 1;
+	}
+	return (-1);
+}
+int CStringD::Compare(LPCDSTR str)
+{
+	LPCDSTR p = m_Data.GetData();
+
+	for ( ; ; ) {
+		if ( *p != *str )
+			return (*p > *str ? (1) : (-1));
+		if ( *p == 0 )
+			break;
+		p++;
+		str++;
+	}
+	return 0;
+}
+int CStringD::Insert(int iIndex, DCHAR ch)
+{
+	int len = GetLength();
+
+	if ( iIndex < 0 )
+		iIndex = 0;
+	else if ( iIndex > len )
+		iIndex = len;
+
+	// VARIATION SELECTOR
+	// U+180B - U+180D or U+FE00 - U+FE0F or U+E0100 - U+E01EF
+	if ( (ch >= 0x180B && ch <= 0x180D) || (ch >= 0xFE00 && ch <= 0xFE0F) || (ch >= 0xE0100 && ch <= 0xE01EF) ) {
+		if ( iIndex > 0 )
+			m_Vs[iIndex - 1] = ch;
+		return len;
+	}
+
+	m_Data.InsertAt(iIndex, ch);
+	m_Vs.InsertAt(iIndex, (DWORD)0);
+
+	return GetLength();
+}
+int CStringD::Insert(int iIndex, const CStringD &data)
+{
+	int n;
+	int len = GetLength();
+
+	if ( iIndex > len )
+		iIndex = len;
+
+	len = data.m_Data.GetSize() - 1;
+	for ( n = 0 ; n < len ; n++, iIndex++ ) {
+		m_Data.InsertAt(iIndex, data.m_Data[n]);
+		m_Vs.InsertAt(iIndex, data.m_Vs[n]);
+	}
+
+	return GetLength();
+}
+int CStringD::Delete(int iIndex, int nCount)
+{
+	int len = GetLength();
+
+	if ( iIndex >= len )
+		return len;
+	if ( (iIndex + nCount) > len )
+		nCount = len - iIndex;
+
+	m_Data.RemoveAt(iIndex, nCount);
+	m_Vs.RemoveAt(iIndex, nCount);
+
+	return GetLength();
+}
+void CStringD::Format(LPCWSTR str, ...)
+{
+	CStringW tmp;
+	va_list arg;
+	va_start(arg, str);
+	tmp.FormatV(str, arg);
+	*this = tmp;
+	va_end(arg);
+}
+void CStringD::Nomalize()
+{
+	int n;
+	int len = GetLength();
+	DWORD ch;
+
+	for ( n = 0 ; n < (len - 1) ; ) {
+		if ( (ch = CTextRam::UCS2toUCS4(CTextRam::UnicodeNomal(CTextRam::UCS4toUCS2(m_Data[n]), CTextRam::UCS4toUCS2(m_Data[n + 1])))) != 0 ) {
+			m_Data[n] = ch;
+			Delete(n + 1);
+			len--;
+		} else
+			n++;
+	}
+}
 
 //////////////////////////////////////////////////////////////////////
 // CRegExIdx
@@ -182,25 +441,26 @@ CRegEx::~CRegEx(void)
 
 void CRegEx::InitChar(LPCTSTR str)
 {
-	m_Patan = str;
+	m_Patan = TstrToUni(str);
+	m_SaveCh = 0;
 	m_Pos = 0;
 }
-int CRegEx::GetChar()
+DCHAR CRegEx::GetChar()
 {
+	if ( m_SaveCh != 0 ) {
+		DCHAR ch = m_SaveCh;
+		m_SaveCh = 0;
+		return ch;
+	}
+
 	if ( m_Pos >= m_Patan.GetLength() )
 		return EOF;
+
 	return m_Patan[m_Pos++];
 }
-int CRegEx::GetNextChar()
+void CRegEx::UnGetChar(DCHAR ch)
 {
-	if ( m_Pos >= m_Patan.GetLength() )
-		return EOF;
-	return m_Patan[m_Pos];
-}
-void CRegEx::UnGetChar()
-{
-	if ( m_Pos > 0 )
-		m_Pos -= 1;
+	m_SaveCh = ch;
 }
 
 CRegExNode *CRegEx::AllocNode(int type)
@@ -253,41 +513,43 @@ CRegExNode *CRegEx::CopyNode(CRegExNode *np)
 	return CopyNodeSub(np, dups);
 }
 
-int CRegEx::CompileEscape(int ch)
+DCHAR CRegEx::CompileEscape(DCHAR ch)
 {
 	int n;
-	int val = 0;
+	DCHAR val = 0;
 
-	if ( ch == 'x' || ch == 'X' ) {
-		for ( n = 0 ; (ch = GetNextChar()) != EOF && n < 2 ; n++ ) {
-			if ( ch >= '0' && ch <= '9' )
-				val = val * 16 + (ch - '0');
-			else if ( ch >= 'a' && ch <= 'f' )
-				val = val * 16 + (ch - 'a' + 10);
-			else if ( ch >= 'A' && ch <= 'F' )
-				val = val * 16 + (ch - 'A' + 10);
+	if ( ch == EOF )
+		return ch;
+	else if ( ch == L'x' || ch == L'X' ) {
+		for ( n = 0 ; (ch = GetChar()) != EOF && n < 2 ; n++ ) {
+			if ( ch >= L'0' && ch <= L'9' )
+				val = val * 16 + (ch - L'0');
+			else if ( ch >= L'a' && ch <= L'f' )
+				val = val * 16 + (ch - L'a' + 10);
+			else if ( ch >= L'A' && ch <= L'F' )
+				val = val * 16 + (ch - L'A' + 10);
 			else
 				break;
-			GetChar();	// Skip xdigit
 		}
-	} else if ( ch >= '0' && ch <= '7' ) {
-		val = val - '0';
-		for ( n = 0 ; (ch = GetNextChar()) != EOF && n < 2 ; n++ ) {
-			if ( ch >= '0' && ch <= '7' )
-				val = val * 8 + (ch - '0');
+		UnGetChar(ch);
+	} else if ( ch >= L'0' && ch <= L'7' ) {
+		val = val - L'0';
+		for ( n = 0 ; (ch = GetChar()) != EOF && n < 2 ; n++ ) {
+			if ( ch >= L'0' && ch <= L'7' )
+				val = val * 8 + (ch - L'0');
 			else
 				break;
-			GetChar();	// Skip digit
 		}
+		UnGetChar(ch);
 	} else {
 		switch(ch) {
-		case 'a': val = '\x07'; break;
-		case 'b': val = '\x08'; break;
-		case 't': val = '\x09'; break;
-		case 'n': val = '\x0A'; break;
-		case 'v': val = '\x0B'; break;
-		case 'f': val = '\x0C'; break;
-		case 'r': val = '\x0D'; break;
+		case L'a': val = L'\x07'; break;
+		case L'b': val = L'\x08'; break;
+		case L't': val = L'\x09'; break;
+		case L'n': val = L'\x0A'; break;
+		case L'v': val = L'\x0B'; break;
+		case L'f': val = L'\x0C'; break;
+		case L'r': val = L'\x0D'; break;
 		default: val = ch; break;
 		}
 	}
@@ -295,24 +557,24 @@ int CRegEx::CompileEscape(int ch)
 }
 CRegExNode *CRegEx::CompileRange()
 {
+	DCHAR ch;
 	int type = 'c';
 	int count = 0;
-	int ch;
 	CRegExNode tmp;
 	CRegExNode *tp;
-	int nch = 0xFFFF;
-	int mch = 0x0000;
+	DCHAR nch = 0xFFFF;
+	DCHAR mch = 0x0000;
 
 	tp = &tmp;
 	tp->m_Right = NULL;
 
-	if ( GetNextChar() == '^' ) {
-		GetChar();	// skip
+	if ( (ch = GetChar()) == '^' )
 		type = 'C';
-	}
+	else
+		UnGetChar(ch);
 
-	while ( (ch = GetChar()) != EOF && ch != ']' ) {
-		if ( ch == '\\' && (ch = CompileEscape(GetChar())) == EOF )
+	while ( (ch = GetChar()) != EOF && ch != L']' ) {
+		if ( ch == L'\\' && (ch = CompileEscape(GetChar())) == EOF )
 			break;
 		count++;
 		tp->m_Right = AllocNode(type);
@@ -322,20 +584,22 @@ CRegExNode *CRegEx::CompileRange()
 			nch = ch;
 		if ( ch > mch )
 			mch = ch;
-		if ( GetNextChar() == '-' ) {
-			GetChar();	// skip
-			if ( (ch = GetNextChar()) != EOF && ch != ']' ) {
-				GetChar();	// skip
-				if ( ch == '\\' && (ch = CompileEscape(GetChar())) == EOF )
+		if ( (ch = GetChar()) == L'-' ) {
+			if ( (ch = GetChar()) != EOF && ch != L']' ) {
+				if ( ch == L'\\' && (ch = CompileEscape(GetChar())) == EOF )
 					break;
-				tp->m_EChar = ch;
+				if ( tp->m_SChar > ch )
+					tp->m_SChar = ch;
+				else
+					tp->m_EChar = ch;
 				if ( ch < nch )
 					nch = ch;
 				if ( ch > mch )
 					mch = ch;
 			} else
-				UnGetChar();
-		}
+				UnGetChar(ch);
+		} else
+			UnGetChar(ch);
 	}
 
 	if ( (mch - nch) < MAPSIZE && count > 2 ) {
@@ -361,11 +625,11 @@ CRegExNode *CRegEx::CompileRange()
 
 	return tmp.m_Right;
 }
-CRegExNode *CRegEx::CompileSub(int endc)
+CRegExNode *CRegEx::CompileSub(DCHAR endc)
 {
 	int n;
 	int min, max;
-	int ch, nx;
+	DCHAR ch, nx;
 	CRegExNode tmp;
 	CRegExNode *lp, *rp, *ep, *tp, *np;
 
@@ -375,7 +639,7 @@ CRegExNode *CRegEx::CompileSub(int endc)
 
 	while ( (ch = GetChar()) != EOF && ch != endc ) {
 		switch(ch) {
-		case '[':
+		case L'[':
 			lp = rp;
 			if ( (rp->m_Left = CompileRange()) == NULL )
 				break;
@@ -383,76 +647,76 @@ CRegExNode *CRegEx::CompileSub(int endc)
 				rp = rp->m_Left;
 			break;
 
-		case '\\':
+		case L'\\':
 			if ( (ch = GetChar()) == EOF )
 				break;
 			switch(ch) {
-			case 'd':
+			case L'd':
 			    lp = rp;
 				rp->m_Left = AllocNode('c');
 				rp = rp->m_Left;
-				rp->m_SChar = '0';
-				rp->m_EChar = '9';
+				rp->m_SChar = L'0';
+				rp->m_EChar = L'9';
 				break;
-			case 'D':
+			case L'D':
 			    lp = rp;
 				rp->m_Left = AllocNode('C');
 				rp = rp->m_Left;
-				rp->m_SChar = '0';
-				rp->m_EChar = '9';
+				rp->m_SChar = L'0';
+				rp->m_EChar = L'9';
 				break;
 
-			case 's':
+			case L's':
 			    lp = rp;
 				rp->m_Left = AllocNode('c');
 				rp = rp->m_Left;
-				rp->m_SChar = 0x00;
-				rp->m_EChar = 0x20;
+				rp->m_SChar = L'\0';
+				rp->m_EChar = L' ';
 				break;
-			case 'S':
+			case L'S':
 			    lp = rp;
 				rp->m_Left = AllocNode('C');
 				rp = rp->m_Left;
-				rp->m_SChar = 0x00;
-				rp->m_EChar = 0x20;
+				rp->m_SChar = L'\0';
+				rp->m_EChar = L' ';
 				break;
 
-			case 'w':
+			case L'w':
 				// [A-Za-z0-9_]
 			    lp = rp;
 				rp->m_Left = AllocNode('c');
 				rp = rp->m_Left;
-				rp->m_SChar = 'A';
-				rp->m_EChar = 'Z';
+				rp->m_SChar = L'A';
+				rp->m_EChar = L'Z';
 				rp->m_Right = AllocNode('c');
-				rp->m_Right->m_SChar = 'a';
-				rp->m_Right->m_EChar = 'z';
+				rp->m_Right->m_SChar = L'a';
+				rp->m_Right->m_EChar = L'z';
 				rp->m_Right->m_Right = AllocNode('c');
-				rp->m_Right->m_Right->m_SChar = '0';
-				rp->m_Right->m_Right->m_EChar = '9';
+				rp->m_Right->m_Right->m_SChar = L'0';
+				rp->m_Right->m_Right->m_EChar = L'9';
 				rp->m_Right->m_Right->m_Right = AllocNode('c');
-				rp->m_Right->m_Right->m_Right->m_SChar = '_';
-				rp->m_Right->m_Right->m_Right->m_EChar = '_';
+				rp->m_Right->m_Right->m_Right->m_SChar = L'_';
+				rp->m_Right->m_Right->m_Right->m_EChar = L'_';
 				break;
-			case 'W':
+			case L'W':
 				// [^A-Za-z0-9_]
 			    lp = rp;
 				rp->m_Left = AllocNode('C');
 				rp = rp->m_Left;
-				rp->m_SChar = 'A';
-				rp->m_EChar = 'Z';
+				rp->m_SChar = L'A';
+				rp->m_EChar = L'Z';
 				rp->m_Right = AllocNode('C');
-				rp->m_Right->m_SChar = 'a';
-				rp->m_Right->m_EChar = 'z';
+				rp->m_Right->m_SChar = L'a';
+				rp->m_Right->m_EChar = L'z';
 				rp->m_Right->m_Right = AllocNode('C');
-				rp->m_Right->m_Right->m_SChar = '0';
-				rp->m_Right->m_Right->m_EChar = '9';
+				rp->m_Right->m_Right->m_SChar = L'0';
+				rp->m_Right->m_Right->m_EChar = L'9';
 				rp->m_Right->m_Right->m_Right = AllocNode('C');
-				rp->m_Right->m_Right->m_Right->m_SChar = '_';
-				rp->m_Right->m_Right->m_Right->m_EChar = '_';
+				rp->m_Right->m_Right->m_Right->m_SChar = L'_';
+				rp->m_Right->m_Right->m_Right->m_EChar = L'_';
 				break;
 
-			case 'y':
+			case L'y':
 				// "^|\s+"
 				//   +--(^)----->+
 				// -(b)-(c)-(b)-(b)-
@@ -461,8 +725,8 @@ CRegExNode *CRegEx::CompileSub(int endc)
 				rp->m_Left = AllocNode('b');
 				rp = rp->m_Left;
 				rp->m_Left  = AllocNode('c');
-				rp->m_Left->m_SChar = 0x00;
-				rp->m_Left->m_EChar = 0x20;
+				rp->m_Left->m_SChar = L'\0';
+				rp->m_Left->m_EChar = L' ';
 				rp->m_Left->m_Left = AllocNode('b');
 				rp->m_Left->m_Left->m_Left = AllocNode('b');
 				rp->m_Left->m_Left->m_Right = rp->m_Left;
@@ -470,7 +734,7 @@ CRegExNode *CRegEx::CompileSub(int endc)
 				rp->m_Right->m_Left = rp->m_Left->m_Left->m_Left;
 				rp = rp->m_Left->m_Left->m_Left;
 				break;
-			case 'Y':
+			case L'Y':
 				// "$|\s+"
 				//   +--($)----->+
 				// -(b)-(c)-(b)-(b)-
@@ -479,8 +743,8 @@ CRegExNode *CRegEx::CompileSub(int endc)
 				rp->m_Left = AllocNode('b');
 				rp = rp->m_Left;
 				rp->m_Left  = AllocNode('c');
-				rp->m_Left->m_SChar = 0x00;
-				rp->m_Left->m_EChar = 0x20;
+				rp->m_Left->m_SChar = L'\0';
+				rp->m_Left->m_EChar = L' ';
 				rp->m_Left->m_Left = AllocNode('b');
 				rp->m_Left->m_Left->m_Left = AllocNode('b');
 				rp->m_Left->m_Left->m_Right = rp->m_Left;
@@ -495,15 +759,15 @@ CRegExNode *CRegEx::CompileSub(int endc)
 			}
 			break;
 
-		case '.':
+		case L'.':
 		    lp = rp;
 			rp->m_Left = AllocNode('C');
 			rp = rp->m_Left;
-			rp->m_SChar = 0;
+			rp->m_SChar = 0x00;
 			rp->m_EChar = 0x19;
 			break;
 
-		case '^':
+		case L'^':
 			if ( tmp.m_Left != NULL )
 				goto CHARMATCH;
 		    lp = NULL;
@@ -511,10 +775,10 @@ CRegExNode *CRegEx::CompileSub(int endc)
 			rp = rp->m_Left;
 			break;
 
-		case '$':
+		case L'$':
 			if ( tmp.m_Left == NULL )
 				goto CHARMATCH;
-			nx = GetNextChar();
+			nx = GetChar(); UnGetChar(nx);
 			if ( nx != EOF && nx != '|' && nx != endc )
 				goto CHARMATCH;
 		    lp = NULL;
@@ -522,43 +786,43 @@ CRegExNode *CRegEx::CompileSub(int endc)
 			rp = rp->m_Left;
 			break;
 
-		case '*':
+		case L'*':
 			if ( lp == NULL )
 				goto CHARMATCH;
 			min = 0;
 			max = 0;
 			goto REPENT;
-		case '+':
+		case L'+':
 			if ( lp == NULL )
 				goto CHARMATCH;
 			min = 1;
 			max = 0;
 			goto REPENT;
-		case '?':
+		case L'?':
 			if ( lp == NULL )
 				goto CHARMATCH;
 			min = 0;
 			max = 1;
 			goto REPENT;
 
-		case '{':
+		case L'{':
 			if ( lp == NULL )
 				goto CHARMATCH;
 			min = 0;
-			while ( (ch = GetChar()) >= '0' && ch <= '9' )
-				min = min * 10 + (ch - '0');
+			while ( (ch = GetChar()) >= L'0' && ch <= L'9' )
+				min = min * 10 + (ch - L'0');
 			if ( min > 256 )
 				min = 256;
 			max = min;
-			if ( ch == ',' ) {
+			if ( ch == L',' ) {
 				max = 0;
-				while ( (ch = GetChar()) >= '0' && ch <= '9' )
-					max = max * 10 + (ch - '0');
+				while ( (ch = GetChar()) >= L'0' && ch <= L'9' )
+					max = max * 10 + (ch - L'0');
 				if ( max > 256 )
 					max = 256;
 			}
-			if ( ch != '}' )
-				UnGetChar();
+			if ( ch != L'}' )
+				UnGetChar(ch);
 		REPENT:
 			if ( min == 0 ) {
 				tp = AllocNode('b');
@@ -631,7 +895,7 @@ CRegExNode *CRegEx::CompileSub(int endc)
 			lp = NULL;
 			break;
 
-		case '(':
+		case L'(':
 			//   +<----->+
 			// -(s)-[a]-(e)-
 			lp = rp;
@@ -646,10 +910,11 @@ CRegExNode *CRegEx::CompileSub(int endc)
 			lp->m_Left->m_Right = rp;
 			break;
 
-		case '|':
+		case L'|':
 			//   +--[a]--+
 			// -(b)-[a]-(b)-
-			if ( lp == NULL || GetNextChar() == EOF || GetNextChar() == endc )
+			nx = GetChar(); UnGetChar(nx);
+			if ( lp == NULL || nx == EOF || nx == endc )
 				goto CHARMATCH;
 			tp = AllocNode('b');
 			np = AllocNode('b');
@@ -752,7 +1017,7 @@ CRegExQue *CRegEx::HeadQue(int sw)
 	}
 	return qp;
 }
-BOOL CRegEx::MatchStrSub(CStringW &str, int start, int end, CRegExRes *res)
+BOOL CRegEx::MatchStrSub(CStringD &str, int start, int end, CRegExRes *res)
 {
 	int n, i;
 	CRegExNode *np, *ip;
@@ -849,9 +1114,9 @@ BOOL CRegEx::MatchStrSub(CStringW &str, int start, int end, CRegExRes *res)
 BOOL CRegEx::MatchStr(LPCTSTR str, CRegExRes *res)
 {
 	int n, len;
-	CStringW tmp;
+	CStringD tmp;
 
-	tmp = str;
+	tmp = TstrToUni(str);
 	len = tmp.GetLength();
 
 	for ( n = 0 ; n < len ; n++ ) {
@@ -880,21 +1145,22 @@ BOOL CRegEx::ConvertStr(LPCTSTR str, LPCTSTR pat, CString &buf)
 {
 	int n, len;
 	BOOL rt = FALSE;
+	CStringD wrk;
 	CStringW tmp[4];
 	CRegExRes res;
 
-	tmp[0] = str;
+	wrk = TstrToUni(str);
 	tmp[1] = pat;
-	len = tmp[0].GetLength();
+	len = wrk.GetLength();
 
 	for ( n = 0 ; n < len ; ) {
-		if ( MatchStrSub(tmp[0], n, len, &res) ) {
+		if ( MatchStrSub(wrk, n, len, &res) ) {
 			ConvertRes(tmp[1], tmp[3], &res);
 			tmp[2] += tmp[3];
 			n = res[0].m_EPos;
 			rt = TRUE;
 		} else {
-			tmp[2] += tmp[0][n++];
+			tmp[2] += wrk.GetAt(n++);
 		}
 	}
 	buf = tmp[2];
@@ -903,22 +1169,22 @@ BOOL CRegEx::ConvertStr(LPCTSTR str, LPCTSTR pat, CString &buf)
 int CRegEx::SplitStr(LPCTSTR str, CStringArray &data)
 {
 	int n, a, len;
-	CStringW tmp[4];
+	CStringD tmp;
 	CRegExRes res;
 
-	tmp[0] = str;
-	len = tmp[0].GetLength();
+	tmp = TstrToUni(str);
+	len = tmp.GetLength();
 
 	data.RemoveAll();
 	for ( n = a = 0 ; n < len ; ) {
-		if ( MatchStrSub(tmp[0], n, len, &res) ) {
-			data.Add((CString)tmp[0].Mid(a, res[0].m_SPos - a));
+		if ( MatchStrSub(tmp, n, len, &res) ) {
+			data.Add(UniToTstr(tmp.Mid(a, res[0].m_SPos - a)));
 			n = a = res[0].m_EPos;
 		} else
 			n++;
 	}
 	if ( a < n )
-		data.Add((CString)tmp[0].Mid(a, n - a));
+		data.Add(UniToTstr(tmp.Mid(a, n - a)));
 	return (int)data.GetSize();
 }
 
@@ -938,7 +1204,7 @@ void CRegEx::MatchCharInit()
 		m_WorkFree = wp;
 	}
 }
-BOOL CRegEx::MatchChar(WCHAR ch, int idx, CRegExRes *res)
+BOOL CRegEx::MatchChar(DCHAR ch, int idx, CRegExRes *res)
 {
 	int i;
 	int nc = FALSE;
@@ -954,7 +1220,7 @@ BOOL CRegEx::MatchChar(WCHAR ch, int idx, CRegExRes *res)
 			res->m_Status = REG_MATCH;
 		}
 		return TRUE;
-	} else if ( ch == 0 )
+	} else if ( ch == 0 || (ch >= 0x180B && ch <= 0x180D) || (ch >= 0xFE00 && ch <= 0xFE0F) || (ch >= 0xE0100 && ch <= 0xE01EF) )
 		return FALSE;
 
 	if ( m_WorkFree == NULL ) {

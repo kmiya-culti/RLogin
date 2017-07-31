@@ -117,6 +117,9 @@
 #define	TO_XTBEVTRK		(1002-700)	// X11 button-event mouse tracking
 #define	TO_XTAEVTRK		(1003-700)	// X11 any-event mouse tracking
 #define	TO_XTFOCEVT		(1004-700)	// Send Focus Event (CSI I / CSI O)
+#define	TO_XTEXTMOS		(1005-700)	// Enable Extended Mouse Mode
+#define	TO_XTSGRMOS		(1006-700)	// SGR Extended Mouse Mode
+#define	TO_XTURXMOS		(1015-700)	// URXVT Extended Mouse Mode
 #define	TO_XTALTSCR		(1047-700)	// Alternate/Normal screen buffer
 #define	TO_XTSRCUR		(1048-700)	// Save/Restore cursor as in DECSC/DECRC
 #define	TO_XTALTCLR		(1049-700)	// Alternate screen with clearing
@@ -582,6 +585,7 @@ public:
 	CStringMaps m_LineEditMapsTab[3];
 	int m_LogCharSet[4];
 	int m_TitleMode;
+	BOOL m_FileSaveFlag;
 	
 	// Window Fonction
 	BOOL IsInitText() { return (m_VRam == NULL ? FALSE : TRUE); }
@@ -695,7 +699,6 @@ public:
 	void COPY(int sp, int sx, int sy, int ex, int ey, int dp, int dx, int dy);
 	void TABSET(int sw);
 	void PUTSTR(LPBYTE lpBuf, int nBufLen);
-	int MCHAR(int val);
 
 	CTextRam();
 	virtual ~CTextRam();
@@ -1069,6 +1072,7 @@ public:
 	int m_Loc_LastY;
 
 	void LocReport(int md, int sw, int x, int y);
+	void MouseReport(int md, int sw, int x, int y);
 
 	CPtrArray m_GrapWndTab;
 

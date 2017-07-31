@@ -6,6 +6,61 @@
 #define	MAPARRAY	(MAPBYTE / sizeof(DWORD))
 #define	MAPBITS		(8 * sizeof(DWORD))
 
+typedef DWORD DCHAR;
+typedef DWORD * LPDSTR;
+typedef const DWORD * LPCDSTR;
+
+class CStringD : public CObject
+{
+public:
+	CStringW m_Work;
+	CDWordArray m_Data;
+	CDWordArray m_Vs;
+
+	CStringD();
+	CStringD(LPCWSTR str) { *this = str; }
+	CStringD(const CStringD &data) { *this = data; }
+	CStringD(const CStringD &data, int iFirst, int nCount);
+	~CStringD();
+
+	inline int GetLength() { return (m_Data.GetSize() - 1); }
+	inline void Empty() { m_Data.RemoveAll(); m_Data.Add(0); }
+	void Format(LPCWSTR str, ...);
+	void Nomalize();
+
+	int ReverseFind(DCHAR ch);
+	int Find(DCHAR ch, int iStart = 0);
+	int Find(LPCDSTR str, int iStart = 0);
+	inline int Find(LPCWSTR str, int iStart = 0) { return Find((LPCDSTR)CStringD(str), iStart); }
+
+	int Compare(LPCDSTR str);
+	inline int Compare(LPCWSTR str) { return Compare((LPCDSTR)CStringD(str)); }
+
+	int Insert(int iIndex, DCHAR ch);
+	int Insert(int iIndex, const CStringD &data);
+	inline int Insert(int iIndex, LPCWSTR str) { return Insert(iIndex, CStringD(str)); }
+	int Delete(int iIndex, int nCount = 1);
+
+	inline CStringD Mid(int iFirst, int nCount = (-1)) { return CStringD(*this, iFirst, nCount); }
+	inline CStringD Left(int nCount) { return Mid(0, nCount); }
+	inline CStringD Right(int nCount) { return Mid(GetLength() - nCount); }
+
+	LPCWSTR WStr(CStringW &str);
+	LPCWSTR GetAt(int idx);
+
+	CStringD & operator += (DCHAR ch);
+	CStringD & operator += (LPCWSTR str);
+	CStringD & operator += (const CStringD &data);
+
+	inline CStringD & operator = (DCHAR ch) { Empty(); return (*this += ch); }
+	inline CStringD & operator = (LPCWSTR str) { Empty(); return (*this += str); }
+	inline CStringD & operator = (const CStringD &data) { Empty(); return (*this += data); }
+
+	inline DCHAR operator [] (int idx) { return m_Data[idx]; }
+	inline operator LPCDSTR() { return m_Data.GetData(); }
+	inline operator LPCWSTR() { return WStr(m_Work); }
+};
+
 class CRegExIdx : public CDWordArray
 {
 public:
@@ -19,9 +74,9 @@ public:
 	class CRegExNode *m_Right;
 	class CRegExNode *m_List;
 
-	int		m_Type;
-	int		m_SChar;
-	int		m_EChar;
+	int 	m_Type;
+	DCHAR	m_SChar;
+	DCHAR	m_EChar;
 	DWORD	*m_Map;
 
 	const CRegExNode & operator = (CRegExNode &data);
@@ -48,7 +103,7 @@ class CRegExArg : public CObject
 public:
 	int			m_SPos;
 	int			m_EPos;
-	CString		m_Str;
+	CStringD	m_Str;
 
 	const CRegExArg & operator = (CRegExArg &data);
 	CRegExArg(void);
@@ -64,7 +119,7 @@ class CRegExRes : public CObject
 {
 public:
 	int			m_Status;
-	CStringW	m_Str;
+	CStringD	m_Str;
 	CRegExIdx	m_Idx;
 	CArray<CRegExArg, CRegExArg &> m_Data;
 
@@ -84,7 +139,7 @@ public:
 
 	CRegExRes			m_Work;
 	CRegExRes			m_Done;
-	CStringW			m_Str;
+	CStringD			m_Str;
 	int					m_Pos;
 	int					m_Seq;
 	BOOL				m_Die;
@@ -114,16 +169,16 @@ public:
 	int			m_WorkSeq;
 	CRegExWork	m_WorkTmp;
 
+	DCHAR		m_SaveCh;
 	int			m_Pos;
-	CStringW	m_Patan;
+	CStringD	m_Patan;
 
 	CRegEx(void);
 	~CRegEx(void);
 
 	void InitChar(LPCTSTR str);
-	int GetChar();
-	int GetNextChar();
-	void UnGetChar();
+	DCHAR GetChar();
+	void UnGetChar(DCHAR ch);
 
 	CRegExNode *AllocNode(int type);
 	void FreeNode(CRegExNode *np);
@@ -131,20 +186,20 @@ public:
 	CRegExNode *CopyNode(CRegExNode *np);
 	void AddNode(CRegExNode *hp, int na, CPtrArray &ptr);
 
-	int CompileEscape(int ch);
+	DCHAR CompileEscape(DCHAR ch);
 	CRegExNode *CompileRange();
-	CRegExNode *CompileSub(int endc);
+	CRegExNode *CompileSub(DCHAR endc);
 	BOOL Compile(LPCTSTR str);
 
 	void AddQue(int sw, CRegExNode *np, CRegExWork *wp);
 	CRegExQue *HeadQue(int sw);
 
-	BOOL MatchStrSub(CStringW &str, int start, int end, CRegExRes *res);
+	BOOL MatchStrSub(CStringD &str, int start, int end, CRegExRes *res);
 	BOOL MatchStr(LPCTSTR str, CRegExRes *res);
 	void ConvertRes(LPCWSTR pat, CStringW &buf, CRegExRes *res);
 	BOOL ConvertStr(LPCTSTR str, LPCTSTR pat, CString &buf);
 	int SplitStr(LPCTSTR str, CStringArray &data);
 
 	void MatchCharInit();
-	BOOL MatchChar(WCHAR ch, int idx, CRegExRes *res);
+	BOOL MatchChar(DCHAR ch, int idx, CRegExRes *res);
 };
