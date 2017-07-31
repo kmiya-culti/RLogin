@@ -1478,11 +1478,11 @@ BOOL CExtSocket::ReciveCall()
 {
 //	TRACE("ReciveCall %08x (%d)\n", this, m_RecvSize);
 
-	if ( m_RecvHead == NULL )
-		return FALSE;
-
 	if ( m_ProxyStatus != PRST_NONE && ProxyFunc() )
 		return TRUE;
+
+	if ( m_RecvHead == NULL )
+		return FALSE;
 
 	if ( (m_OnRecvFlag & RECV_ACTIVE) != 0 )
 		return TRUE;

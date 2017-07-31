@@ -2092,6 +2092,18 @@ BOOL CRLoginApp::OnIdle(LONG lCount)
 		return TRUE;
 
 	for ( pProc = m_pIdleTop ; pProc != NULL ; ) {
+
+#ifdef	DEBUG
+		CIdleProc *pTemp = m_pIdleTop;
+		while ( pTemp != NULL ) {
+			if ( pTemp == pProc )
+				break;
+			if ( (pTemp = pTemp->m_pNext) == m_pIdleTop )
+				break;
+		}
+		ASSERT(pTemp == pProc);
+#endif
+
 		m_pIdleNext = pProc->m_pNext;
 
 		switch(pProc->m_Type) {

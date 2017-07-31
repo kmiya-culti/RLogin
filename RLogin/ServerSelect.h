@@ -42,11 +42,13 @@ public:
 // オーバーライド
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	virtual BOOL OnInitDialog();
 	virtual void OnOK();
 
 // インプリメンテーション
 protected:
+	DECLARE_MESSAGE_MAP()
 	afx_msg void OnNewentry();
 	afx_msg void OnEditentry();
 	afx_msg void OnDelentry();
@@ -64,7 +66,5 @@ protected:
 	afx_msg void OnSavedefault();
 	afx_msg void OnServExchng();
 	afx_msg void OnUpdateServExchng(CCmdUI *pCmdUI);
-	DECLARE_MESSAGE_MAP()
-public:
-	virtual BOOL PreTranslateMessage(MSG* pMsg);
+	afx_msg void OnLoaddefault();
 };

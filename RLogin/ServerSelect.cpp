@@ -10,6 +10,7 @@
 #include "OptDlg.h"
 #include "Data.h"
 #include "EditDlg.h"
+#include "InitAllDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -68,6 +69,7 @@ BEGIN_MESSAGE_MAP(CServerSelect, CDialogExt)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_DUPS, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(IDM_SERV_EXPORT, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(IDM_SERV_EXCHNG, &CServerSelect::OnUpdateServExchng)
+	ON_COMMAND(IDC_LOADDEFAULT, &CServerSelect::OnLoaddefault)
 END_MESSAGE_MAP()
 
 void CServerSelect::InitList()
@@ -900,6 +902,46 @@ void CServerSelect::OnSavedefault()
 	KeyTab.Serialize(TRUE);
 	KeyMac.Serialize(TRUE);
 	ParamTab.Serialize(TRUE);
+}
+void CServerSelect::OnLoaddefault()
+{
+	int n;
+	CTextRam TextRam;
+	CKeyNodeTab KeyTab;
+	CKeyMacTab KeyMac;
+	CParamTab ParamTab;
+	CBuffer ProBuffer;
+	CInitAllDlg dlg;
+
+	if ( dlg.DoModal() != IDOK )
+		return;
+
+	if ( dlg.m_InitFlag ) {
+		TextRam.Init();
+		TextRam.m_FontTab.Init();
+		KeyTab.Init();
+		KeyMac.Init();
+		ParamTab.Init();
+	} else {
+		TextRam.Serialize(FALSE);
+		KeyTab.Serialize(FALSE);
+		KeyMac.Serialize(FALSE);
+		ParamTab.Serialize(FALSE);
+	}
+
+	TextRam.Serialize(TRUE,  ProBuffer);
+	KeyTab.Serialize(TRUE,   ProBuffer);
+	KeyMac.Serialize(TRUE,   ProBuffer);
+	ParamTab.Serialize(TRUE, ProBuffer);
+
+	for ( n = 0 ; n < m_List.GetItemCount() ; n++ ) {
+		if ( m_List.GetItemState(n, LVIS_SELECTED) == 0 )
+			continue;
+
+		m_EntryNum = (int)m_List.GetItemData(n);
+		m_pData->GetAt(m_EntryNum).m_ProBuffer = ProBuffer;
+		m_pData->UpdateAt(m_EntryNum);
+	}
 }
 
 BOOL CServerSelect::PreTranslateMessage(MSG* pMsg)

@@ -654,8 +654,8 @@ void Cssh::GetStatus(CString &str)
 	str += tmp;
 
 	for ( cp = m_pChanNext ; cp != NULL ; cp = cp->m_pNext ) {
-		tmp.Format(_T("Chanel: RemoteId=%d LocalId=%d Status=%x Type=%s Read=%lld Write=%lld\r\n"),
-			cp->m_RemoteID, cp->m_LocalID, cp->m_Status, cp->m_TypeName, cp->m_WriteByte, cp->m_ReadByte);
+		tmp.Format(_T("Chanel: RemoteId=%d LocalId=%d Status=%o(%o) Type=%s Read=%lld Write=%lld\r\n"),
+			cp->m_RemoteID, cp->m_LocalID, cp->m_Status, cp->m_Eof, cp->m_TypeName, cp->m_WriteByte, cp->m_ReadByte);
 		str += tmp;
 	}
 }

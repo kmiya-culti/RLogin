@@ -356,8 +356,10 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 	track.SetWindowPos(&wndTopMost, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
 
 	for ( ; ; ) {
-		if ( CWnd::GetCapture() != this )
-			break;
+		if ( CWnd::GetCapture() != this ) {
+			track.DestroyWindow();
+			return;
+		}
 
 		::GetMessage(&msg, NULL, 0, 0);
 
@@ -444,7 +446,7 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 			if ( msg.message != WM_LBUTTONUP )
 				break;
 
-			track.CloseWindow();
+			track.DestroyWindow();
 			ReleaseCapture();
 
 			if ( m_bNumber )
