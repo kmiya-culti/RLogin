@@ -2895,6 +2895,7 @@ void CParamTab::SetArray(CStringArrayExt &array)
 	array.Add(m_XDisplay);
 	array.Add(m_ExtEnvStr);
 	array.AddBin(m_OptTab, sizeof(m_OptTab));
+	array.Add(m_HostKeyFile);
 }
 void CParamTab::GetArray(CStringArrayExt &array)
 {
@@ -2945,6 +2946,8 @@ void CParamTab::GetArray(CStringArrayExt &array)
 		array.GetBin(i++, m_OptTab, sizeof(m_OptTab));
 	else
 		memset(m_OptTab, 0, sizeof(m_OptTab));
+
+	m_HostKeyFile = (array.GetSize() > i ? array.GetAt(i++) : "");
 
 	if ( m_IdKeyStr[0].Compare("IdKeyList Entry") == 0 ) {
 		m_IdKeyList.GetString(m_IdKeyStr[1]);

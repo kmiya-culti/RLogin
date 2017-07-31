@@ -23,6 +23,38 @@
 #define	RECVBUFSIZ	(32 * 1024)
 #define	RECVMAXSIZ	(128 * 1024)
 
+enum EProxyStat {
+	PRST_NONE = 0,
+
+	PRST_HTTP_START,
+	PRST_HTTP_READLINE,
+	PRST_HTTP_HEADCHECK,
+	PRST_HTTP_BODYREAD,
+	PRST_HTTP_CODECHECK,
+	PRST_HTTP_BASIC,
+	PRST_HTTP_DIGEST,
+
+	PRST_SOCKS4_START,
+	PRST_SOCKS4_READMSG,
+	PRST_SOCKS4_CHECKMSG,
+	PRST_SOCKS4_ENDOF,
+
+	PRST_SOCKS5_START,
+	PRST_SOCKS5_READMSG,
+	PRST_SOCKS5_SENDAUTH,
+	PRST_SOCKS5_READAUTH,
+	PRST_SOCKS5_SENDCONNECT,
+	PRST_SOCKS5_READCONNECT,
+	PRST_SOCKS5_READSTAT,
+	PRST_SOCKS5_CONNECT,
+	PRST_SOCKS5_ERROR,
+	PRST_SOCKS5_CHAPSTART,
+	PRST_SOCKS5_CHAPMSG,
+	PRST_SOCKS5_CHAPCODE,
+	PRST_SOCKS5_CHAPSTAT,
+	PRST_SOCKS5_CHAPCHECK
+};
+
 class CSockBuffer : public CObject
 {
 public:
@@ -160,6 +192,7 @@ public:
 	BOOL GetSockOpt(int nOptionName, void* lpOptionValue, int* lpOptionLen, int nLevel = SOL_SOCKET );
 
 	static void GetPeerName(int fd, CString &host, int *port);
+	static void GetSockName(int fd, CString &host, int *port);
 	static void GetHostName(int af, void *addr, CString &host);
 	static int GetPortNum(LPCSTR str);
 	static BOOL SokcetCheck(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM);

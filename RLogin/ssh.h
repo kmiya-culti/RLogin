@@ -189,6 +189,15 @@ public:
 	BOOL m_Flag;
 	int	 m_EcNid;
 	EC_KEY *m_EcDsa;
+	CString m_Work;
+
+	int GetIndexNid(int nid);
+	int GetIndexName(LPCSTR name);
+	const EVP_MD *GetEvpMdIdx(int idx);
+
+	static int GetEcNidFromName(LPCSTR name);
+	static LPCSTR GetEcNameFromNid(int nid);
+	static const EVP_MD *GetEcEvpMdFromNid(int nid);
 
 	int Create(int type);
 	int Generate(int type, int bits);
@@ -292,7 +301,7 @@ public:
 #define	CHAN_LISTEN			004
 #define	CHAN_PROXY_SOCKS	010
 #define	CHAN_SOCKS5_AUTH	020
-#define	CHAN_OK(n)		(m_Chan[n].m_Status == (CHAN_OPEN_LOCAL | CHAN_OPEN_REMOTE))
+#define	CHAN_OK(n)			(m_Chan[n].m_Status == (CHAN_OPEN_LOCAL | CHAN_OPEN_REMOTE))
 
 #define	CEOF_IEOF		0001
 #define	CEOF_ICLOSE		0002
@@ -301,6 +310,15 @@ public:
 #define	CEOF_DEAD		0020
 #define	CEOF_IEMPY		0040
 #define	CEOF_OEMPY		0100
+
+#define	CHAN_REQ_PTY	0
+#define	CHAN_REQ_SHELL	1
+#define	CHAN_REQ_SFTP	2
+#define	CHAN_REQ_EXEC	3
+#define	CHAN_REQ_X11	4
+#define	CHAN_REQ_ENV	5
+#define	CHAN_REQ_AGENT	6
+#define	CHAN_REQ_WSIZE	7
 
 class CFilter : public CObject
 {
@@ -514,6 +532,7 @@ private:
 	const EC_GROUP *m_EcdhGroup;
 	int m_AuthStat;
 	int m_AuthMode;
+	CString m_AuthMeta;
 	CWordArray m_GlbReqMap;
 	CWordArray m_OpnReqMap;
 	CWordArray m_ChnReqMap;

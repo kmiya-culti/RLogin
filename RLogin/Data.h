@@ -478,6 +478,7 @@ public:
 	CString m_XDisplay;
 	CString m_ExtEnvStr;
 	DWORD m_OptTab[8];
+	CString m_HostKeyFile;
 
 	CParamTab();
 	void Init();
