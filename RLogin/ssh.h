@@ -91,9 +91,19 @@
 #define SSH2_CIPHER_SEP192R		106		// serpent191-ctr 
 #define SSH2_CIPHER_SEP256R		107		// serpent256-ctr 
 
-#define SSH2_CIPHER_GCM128		110		// aes128-gcm
-#define SSH2_CIPHER_GCM192		111		// aes192-gcm
-#define SSH2_CIPHER_GCM256		112		// aes256-gcm
+#define SSH2_CIPHER_CLE128		110		// clefia128-cbc 
+#define SSH2_CIPHER_CLE192		111		// clefia191-cbc 
+#define SSH2_CIPHER_CLE256		112		// clefia256-cbc 
+#define SSH2_CIPHER_CLE128R		115		// clefia128-ctr 
+#define SSH2_CIPHER_CLE192R		116		// clefia191-ctr 
+#define SSH2_CIPHER_CLE256R		117		// clefia256-ctr 
+
+#define SSH2_CIPHER_AES128G		120		// aes128-gcm
+#define SSH2_CIPHER_AES192G		121		// aes192-gcm
+#define SSH2_CIPHER_AES256G		122		// aes256-gcm
+#define SSH2_CIPHER_AES128C		125		// aes128-ccm
+#define SSH2_CIPHER_AES192C		126		// aes192-ccm
+#define SSH2_CIPHER_AES256C		127		// aes256-ccm
 
 #define	COMPLEVEL		6
 
@@ -679,6 +689,8 @@ extern const EVP_CIPHER *evp_twofish_ctr(void);
 extern const EVP_CIPHER *evp_twofish_cbc(void);
 extern const EVP_CIPHER *evp_serpent_ctr(void);
 extern const EVP_CIPHER *evp_serpent_cbc(void);
+extern const EVP_CIPHER *evp_clefia_ctr(void);
+extern const EVP_CIPHER *evp_clefia_cbc(void);
 extern const EVP_CIPHER *evp_bf_ctr(void);
 extern const EVP_CIPHER *evp_cast5_ctr(void);
 extern const EVP_CIPHER *evp_idea_ctr(void);

@@ -739,7 +739,8 @@ int CZModem::ZUpFile()
 	int sendStat = 1;
 	int recvStat = 0;
 	int ackCount = 0;
-	int winCount = 0;
+	int winCount = 1;
+	int nakCount = 0;
 	int toutFlag = FALSE;
 	struct _stati64 st;
 	CStringA opt;
@@ -824,20 +825,13 @@ NEXTFILE:
 				e = ZCRCE;
 				sendStat = 5;
 				recvStat = 1;
-				winCount++;
-			} else if ( Rxcanfdx == 0 || winCount >= 3 ) {
-				e = ZCRCQ;
-				sendStat = 4;
-				//e = ZCRCW;
-				//sendStat = 3;
-				recvStat = (ackCount < 2 ? 1 : 0);
-				winCount = 0;
-				ackCount++;
 			} else {
-				e = ZCRCG;
+				//e = ZCRCW;	// req ZRPOS
+				e = ZCRCQ;		// req ACK
+				//e = ZCRCG;	// not ACK
 				sendStat = 4;
-				recvStat = 1;
-				winCount++;
+				ackCount++;
+				recvStat = (Rxcanfdx == 0 || ackCount >= winCount ? 0 : 1);
 			}
 
 			zsdata(txbuf, n, e);
@@ -892,6 +886,10 @@ NEXTFILE:
 				recvStat = 0;
 				goto NEXTFILE;
 			}
+
+			winCount = 1;
+			ackCount = 0;
+			nakCount = 0;
 			sendStat = 1;
 			break;
 
@@ -905,7 +903,10 @@ NEXTFILE:
 		case ZACK:
 			if ( --ackCount < 0 )
 				ackCount = 0;
+			if ( winCount < 8 )
+				winCount++;
 			toutFlag = FALSE;
+			nakCount = 0;
 			UpDownStat(Rxpos);
 			break;
 
@@ -914,6 +915,8 @@ NEXTFILE:
 			break;
 
 		case ZRPOS:
+			if ( ++nakCount > 4 )
+				goto ERRRET;
 			if ( _fseeki64(fp, Rxpos, 0) )
 				goto ERRRET;
 			Txpos = Rxpos;
@@ -921,7 +924,7 @@ NEXTFILE:
 			sendStat  = 3;
 			if ( toutFlag && c == TIMEOUT )
 				goto ERRRET;
-			winCount = 0;
+			winCount = 1;
 			ackCount = 0;
 			toutFlag = TRUE;
 			TRACE("ZRPOS %d\n", Txpos);
@@ -933,6 +936,8 @@ NEXTFILE:
 	}
 
 ERRRET:
+	stohdr(0);
+	zshhdr(4, ZABORT, Txhdr);
 	fclose(fp);
 	UpDownClose();
 	return ERR;

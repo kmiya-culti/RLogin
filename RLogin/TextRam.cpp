@@ -3617,10 +3617,12 @@ void CTextRam::LOADRAM()
 	m_AttSpc = pSave->m_AttSpc;
 	if ( (m_CurX = pSave->m_CurX) >= m_Cols )  m_CurX = m_Cols - 1;
 	if ( (m_CurY = pSave->m_CurY) >= m_Lines ) m_CurY = m_Lines - 1;
-	if ( (m_TopY = pSave->m_TopY) >= m_Lines ) m_TopY = m_Lines - 1;
-	if ( (m_BtmY = pSave->m_BtmY) > m_Lines )  m_BtmY = m_Lines;
-	if ( (m_LeftX  = pSave->m_LeftX) >= m_Cols ) m_LeftX  = m_Lines - 1;
-	if ( (m_RightX = pSave->m_RightX) > m_Cols ) m_RightX = m_Cols;
+	if ( m_Cols == pSave->m_Cols && m_Lines == pSave->m_Lines ) {
+		if ( (m_TopY = pSave->m_TopY) >= m_Lines ) m_TopY = m_Lines - 1;
+		if ( (m_BtmY = pSave->m_BtmY) > m_Lines )  m_BtmY = m_Lines;
+		if ( (m_LeftX  = pSave->m_LeftX) >= m_Cols ) m_LeftX  = m_Lines - 1;
+		if ( (m_RightX = pSave->m_RightX) > m_Cols ) m_RightX = m_Cols;
+	}
 	m_DoWarp = pSave->m_DoWarp;
 	memcpy(m_AnsiOpt, pSave->m_AnsiOpt, sizeof(DWORD) * 12);	// 0 - 384
 	m_BankGL = pSave->m_BankGL;
@@ -3644,12 +3646,8 @@ void CTextRam::LOADRAM()
 	m_RecvCrLf = IsOptValue(TO_RLRECVCR, 2);
 	m_SendCrLf = IsOptValue(TO_RLECHOCR, 2);
 
-	for ( n = 0 ; n < pSave->m_Lines && n < m_Lines ; n++ ) {
-		if ( pSave->m_Cols >= m_Cols )
-			memcpy(GETVRAM(0, n), pSave->m_VRam + n * pSave->m_Cols, sizeof(VRAM) * m_Cols);
-		else
-			memcpy(GETVRAM(0, n), pSave->m_VRam + n * pSave->m_Cols, sizeof(VRAM) * pSave->m_Cols);
-	}
+	for ( n = 0 ; n < pSave->m_Lines && n < m_Lines ; n++ )
+		memcpy(GETVRAM(0, n), pSave->m_VRam + n * pSave->m_Cols, sizeof(VRAM) * (pSave->m_Cols < m_Cols ? pSave->m_Cols : m_Cols));
 
 	DISPVRAM(0, 0, m_Cols, m_Lines);
 

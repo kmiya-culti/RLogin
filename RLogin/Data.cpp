@@ -3118,9 +3118,13 @@ static LPCTSTR InitAlgo[12][45] = {
 	  _T("camellia128-ctr"),				_T("camellia192-ctr"),				_T("camellia256-ctr"),
 	  _T("camellia128-cbc"),				_T("camellia192-cbc"),				_T("camellia256-cbc"),
 	  _T("seed-ctr@ssh.com"),				_T("seed-cbc@ssh.com"),
-#if	SSLEAY_VERSION_NUMBER >= 0x10001000L
-	  _T("AEAD_AES_128_GCM"),				_T("AEAD_AES_256_GCM"),
-	  _T("AEAD_AES_128_CCM"),				_T("AEAD_AES_256_CCM"),
+#if	OPENSSL_VERSION_NUMBER >= 0x10001000L
+	  _T("AEAD_AES_128_GCM"),				_T("AEAD_AES_192_GCM"),				_T("AEAD_AES_256_GCM"),
+	  _T("AEAD_AES_128_CCM"),				_T("AEAD_AES_192_CCM"),				_T("AEAD_AES_256_CCM"),
+#endif
+#ifdef	USE_CLEFIA
+	  _T("clefia128-ctr"),					_T("clefia192-ctr"),				_T("clefia256-ctr"),
+	  _T("clefia128-cbc"),					_T("clefia192-cbc"),				_T("clefia256-cbc"),
 #endif
 	  _T("none"),
 	  NULL },
@@ -3147,7 +3151,7 @@ static LPCTSTR InitAlgo[12][45] = {
 	  _T("camellia128-ctr"),				_T("camellia192-ctr"),				_T("camellia256-ctr"),
 	  _T("camellia128-cbc"),				_T("camellia192-cbc"),				_T("camellia256-cbc"),
 	  _T("seed-ctr@ssh.com"),				_T("seed-cbc@ssh.com"),
-#if	SSLEAY_VERSION_NUMBER >= 0x10001000L
+#if	OPENSSL_VERSION_NUMBER >= 0x10001000L
 	  _T("AEAD_AES_128_GCM"),				_T("AEAD_AES_256_GCM"),
 	  _T("AEAD_AES_128_CCM"),				_T("AEAD_AES_256_CCM"),
 #endif
