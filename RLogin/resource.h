@@ -52,6 +52,7 @@
 #define IDD_PROXYDLG                    149
 #define IDD_SCRNPAGE                    150
 #define IDD_AUTORENDLG                  152
+#define IDD_METADLG                     153
 #define IDM_KANJI_EUC                   200
 #define IDM_KANJI_SJIS                  201
 #define IDM_KANJI_ASCII                 202
@@ -152,6 +153,7 @@
 #define IDC_KEYASNEDIT                  1069
 #define IDC_KEYASNNEW                   1070
 #define IDC_KEYCODE                     1071
+#define IDC_KEYASNMETA                  1071
 #define IDC_KEYFILENAME                 1072
 #define IDC_KEYFILESELECT               1073
 #define IDC_KEYLIST                     1074
@@ -160,6 +162,7 @@
 #define IDC_KEYSTAT2                    1077
 #define IDC_KEYSTAT3                    1078
 #define IDC_LISTENHOST                  1079
+#define IDC_KEYSTAT4                    1079
 #define IDC_LISTENPORT                  1080
 #define IDC_LOADDEFAULT                 1081
 #define IDC_LOCAL_CWD                   1082
@@ -267,6 +270,11 @@
 #define IDC_EDIT2                       1170
 #define IDC_TEXT                        1170
 #define IDC_NAMEOK                      1174
+#define IDC_ALL_SET                     1175
+#define IDC_ALL_CLR                     1176
+#define IDC_TEXTCOL                     1177
+#define IDC_TEXTCOL2                    1178
+#define IDC_BACKCOL                     1178
 #define IDC_ATTR1                       1201
 #define IDC_ATTR2                       1202
 #define IDC_ATTR3                       1203
@@ -339,6 +347,58 @@
 #define IDC_TERMCHECK7                  2507
 #define IDC_TERMCHECK8                  2508
 #define IDC_TERMCHECK9                  2509
+#define IDC_METAKEY1                    8001
+#define IDC_METAKEY2                    8002
+#define IDC_METAKEY3                    8003
+#define IDC_METAKEY4                    8004
+#define IDC_METAKEY5                    8005
+#define IDC_METAKEY6                    8006
+#define IDC_METAKEY7                    8007
+#define IDC_METAKEY8                    8008
+#define IDC_METAKEY9                    8009
+#define IDC_METAKEY10                   8010
+#define IDC_METAKEY11                   8011
+#define IDC_METAKEY12                   8012
+#define IDC_METAKEY13                   8013
+#define IDC_METAKEY14                   8014
+#define IDC_METAKEY15                   8015
+#define IDC_METAKEY16                   8016
+#define IDC_METAKEY17                   8017
+#define IDC_METAKEY18                   8018
+#define IDC_METAKEY19                   8019
+#define IDC_METAKEY20                   8020
+#define IDC_METAKEY21                   8021
+#define IDC_METAKEY22                   8022
+#define IDC_METAKEY23                   8023
+#define IDC_METAKEY24                   8024
+#define IDC_METAKEY25                   8025
+#define IDC_METAKEY26                   8026
+#define IDC_METAKEY27                   8027
+#define IDC_METAKEY28                   8028
+#define IDC_METAKEY29                   8029
+#define IDC_METAKEY30                   8030
+#define IDC_METAKEY31                   8031
+#define IDC_METAKEY32                   8032
+#define IDC_METAKEY33                   8033
+#define IDC_METAKEY34                   8034
+#define IDC_METAKEY35                   8035
+#define IDC_METAKEY36                   8036
+#define IDC_METAKEY37                   8037
+#define IDC_METAKEY38                   8038
+#define IDC_METAKEY39                   8039
+#define IDC_METAKEY40                   8040
+#define IDC_METAKEY41                   8041
+#define IDC_METAKEY42                   8042
+#define IDC_METAKEY43                   8043
+#define IDC_METAKEY44                   8044
+#define IDC_METAKEY45                   8045
+#define IDC_METAKEY46                   8046
+#define IDC_METAKEY47                   8047
+#define IDC_METAKEY48                   8048
+#define IDC_METAKEY49                   8049
+#define IDC_METAKEY50                   8050
+#define IDC_METAKEY51                   8051
+#define IDC_METAKEY52                   8052
 #define ID_APP_QUIT                     32768
 #define ID_DISCONNECT                   32769
 #define ID_INDICATOR_SOCK               32770
@@ -371,16 +431,15 @@
 #define IDM_TEK_CLOSE                   32802
 #define IDM_TEK_SAVE                    32803
 #define IDM_TEK_CLEAR                   32805
-#define ID_32806                        32806
 #define IDM_TEK_MODE                    32807
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        153
+#define _APS_NEXT_RESOURCE_VALUE        154
 #define _APS_NEXT_COMMAND_VALUE         32808
-#define _APS_NEXT_CONTROL_VALUE         1175
+#define _APS_NEXT_CONTROL_VALUE         1178
 #define _APS_NEXT_SYMED_VALUE           243
 #endif
 #endif

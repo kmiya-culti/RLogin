@@ -27,21 +27,27 @@
 #define	ASCII_SET		2
 #define	UTF8_SET		3
 
-#define ATT_BOLD		0x01		// [1m bold or increased intensity
-#define	ATT_HALF		0x02		// [2m faint, decreased intensity or second colour
-#define ATT_ITALIC		0x04		// [3m italicized
-#define ATT_UNDER		0x08		// [4m singly underlined
-#define ATT_SBLINK		0x10		// [5m slowly blinking
-#define ATT_BLINK		0x10		// [6m rapidly blinking 
-#define ATT_REVS		0x20		// [7m negative image
-#define ATT_SECRET		0x40		// [8m concealed characters
-#define ATT_LINE		0x80		// [9m crossed-out
+#define ATT_BOLD		0x00000001		// [1m bold or increased intensity
+#define	ATT_HALF		0x00000002		// [2m faint, decreased intensity or second colour
+#define ATT_ITALIC		0x00000004		// [3m italicized
+#define ATT_UNDER		0x00000008		// [4m singly underlined
+#define ATT_SBLINK		0x00000010		// [5m slowly blinking
+#define ATT_REVS		0x00000020		// [7m negative image
+#define ATT_SECRET		0x00000040		// [8m concealed characters
+#define ATT_LINE		0x00000080		// [9m crossed-out
+#define ATT_BLINK		0x00000100		// [6m rapidly blinking 
+#define ATT_DUNDER		0x00000200		// [21m doubly underlined
 
-#define	ATT_CLIP		0x0100
-#define	ATT_SRCB1		0x0400
-#define	ATT_SRCB2		0x0800
-#define	ATT_DBFT1		0x1000
-#define	ATT_DBFT2		0x2000
+#define ATT_FRAME		0x00000400		// [51m framed
+#define ATT_CIRCLE		0x00000800		// [52m encircled
+#define ATT_OVER		0x00001000		// [53m overlined
+#define ATT_RSLINE		0x00002000		// [60m right side line
+#define ATT_RDLINE		0x00004000		// [61m double line on the right side
+#define ATT_LSLINE		0x00008000		// [62m left side line
+#define ATT_LDLINE		0x00010000		// [63m double line on the left side
+#define ATT_STRESS		0x00020000		// [64m stress marking
+
+#define	ATT_CLIP		0x10000000		// Mouse Clip
 
 #define CODE_MAX		0x0400
 #define CODE_MASK		0x03FF
@@ -52,8 +58,8 @@
 #define SET_96x96		0x0300
 #define	SET_UNICODE		0x03FF
 
-#define	EM_ERM			001
-#define	EM_EDM			002
+#define	EM_PROTECT		1
+#define	EM_SELECTED		2
 
 #define DM_SWSH			0
 #define DM_DWSH			1
@@ -187,12 +193,13 @@ enum CStageNum {
 
 typedef	struct _Vram {
 	DWORD	ch;
+	DWORD	at;
 	WORD	md:10;
-	WORD	em:2;
-	WORD	dm:2;
-	WORD	cm:2;
-	BYTE	at;
-	BYTE	cl;
+	  WORD	em:2;
+	  WORD	dm:2;
+	  WORD	cm:2;
+	BYTE	fc;
+	BYTE	bc;
 } VRAM;
 
 class CFontNode : public CObject
@@ -283,6 +290,7 @@ public:	// Options
 	CString m_WordStr;
 	int m_MouseTrack;
 	BYTE m_MouseMode[4];
+	DWORD m_MetaKeys[256 / 32];
 
 	void Init();
 	void SetArray(CStringArrayExt &array);
@@ -307,7 +315,7 @@ public:
 	int m_TopY;
 	int m_BtmY;
 	int m_DefTab;
-	COLORREF m_ColTab[16];
+	COLORREF m_ColTab[256];
 
 	int m_HisMax;
 	int m_HisPos;
@@ -321,7 +329,6 @@ public:
 	int m_RecvCrLf;
 	int m_SendCrLf;
 
-	int m_SaveChar;
 	int m_BackChar;
 	int m_BackMode;
 	int m_LastChar;
@@ -386,13 +393,13 @@ public:
 	void InitHistory();
 	void SaveHistory();
 
-	CRegEx	m_RegWord[4];
-	void HisKeyWord();
+//	CRegEx	m_RegWord[4];
+//	void HisKeyWord();
 
 	int IsWord(WCHAR ch);
 	void EditWordPos(int *sps, int *eps);
 	void EditCopy(int sps, int eps, BOOL rectflag = FALSE);
-	void StrOut(CDC* pDC, LPCRECT pRect, int att, int col, int mode, int len, int dm, int ct, char *str, int *spc, class CRLoginView *pView);
+	void StrOut(CDC* pDC, LPCRECT pRect, int att, int fcn, int bcn, int mode, int len, int dm, int ct, char *str, int ss, int *spc, class CRLoginView *pView);
 	void DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginView *pView);
 	
 	CWnd *GetAciveView();
@@ -401,6 +408,7 @@ public:
 	BOOL IsOptEnable(int opt);
 	void EnableOption(int opt);
 	void DisableOption(int opt);
+	void ReversOption(int opt);
 	int IsOptValue(int opt, int len);
 	void SetOptValue(int opt, int len, int value);
 
@@ -472,6 +480,14 @@ public:
 	inline void fc_Call(int ch) { (this->*fc_Func[ch])(ch); }
 	inline void fc_Case(int stage);
 	inline void fc_Push(int stage);
+
+#define	KANBUFMAX		128
+
+	int m_Kan_Pos;
+	BYTE m_Kan_Buf[KANBUFMAX];
+	
+	void fc_KANCHK();
+	inline void fc_KANJI(int ch) { if ( ch >= 128 || m_Kan_Buf[(m_Kan_Pos - 1) & (KANBUFMAX - 1)] >= 128 ) { m_Kan_Buf[m_Kan_Pos++] = ch; m_Kan_Pos &= (KANBUFMAX - 1); } }
 
 	// Print...
 	void fc_IGNORE(int ch);
@@ -687,9 +703,14 @@ public:
 	void TekClear();
 	void TekLine(int st, int sx, int sy, int ex, int ey);
 	void TekText(int st, int sx, int sy, int ch);
+	void TekMark(int st, int no, int sx, int sy);
+	void TekEdge(int ag);
 
 	void fc_TEK_IN(int ch);
-	void fc_TEK_CUR(int ch);
+	void fc_TEK_LEFT(int ch);
+	void fc_TEK_RIGHT(int ch);
+	void fc_TEK_DOWN(int ch);
+	void fc_TEK_UP(int ch);
 	void fc_TEK_FLUSH(int ch);
 	void fc_TEK_MODE(int ch);
 	void fc_TEK_STAT(int ch);

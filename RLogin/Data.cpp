@@ -503,13 +503,10 @@ void CBuffer::md5(LPCSTR str)
 
 void CStringArrayExt::AddBin(void *buf, int len)
 {
-	CString str;
 	CBuffer tmp;
 
 	tmp.Base64Encode((LPBYTE)buf, len);
-	tmp.Put8Bit(0);
-	str = tmp.GetPtr();
-	Add(str);
+	Add((LPCSTR)tmp);
 }
 void CStringArrayExt::GetBuf(int index, CBuffer &buf)
 {
@@ -1701,14 +1698,19 @@ static const struct _KeyNameTab	{
 	{ VK_BACK,		"BACK" },
 	{ VK_TAB,		"TAB" },
 	{ VK_SPACE,		"SPACE" },
-	{ VK_OEM_1,		"OEM1" },
-	{ VK_OEM_2,		"OEM2" },
-	{ VK_OEM_3,		"OEM3" },
-	{ VK_OEM_4,		"OEM4" },
-	{ VK_OEM_5,		"OEM5" },
-	{ VK_OEM_6,		"OEM6" },
-	{ VK_OEM_7,		"OEM7" },
-	{ VK_OEM_8,		"OEM8" },
+	{ VK_OEM_1,		"$BA(:)" },
+	{ VK_OEM_PLUS,	"$BB(;)" },
+	{ VK_OEM_COMMA,	"$BC(,)" },
+	{ VK_OEM_MINUS,	"$BD(-)" },
+	{ VK_OEM_PERIOD,"$BE(.)" },
+	{ VK_OEM_2,		"$BF(/)" },
+	{ VK_OEM_3,		"$C0(@)" },
+	{ VK_OEM_4,		"$DB([)" },
+	{ VK_OEM_5,		"$DC(\\)" },
+	{ VK_OEM_6,		"$DD(])" },
+	{ VK_OEM_7,		"$DE(^)" },
+	{ VK_OEM_102,	"$E2(_)" },
+
 	{ (-1),			NULL },
 };
 
@@ -1721,7 +1723,13 @@ LPCSTR CKeyNode::GetCode()
 		if ( KeyNameTab[n].code == m_Code )
 			return KeyNameTab[n].name;
 	}
-	m_Temp.Format("%d", m_Code);
+	// * VK_0 - VK_9 are the same as ASCII '0' - '9' (0x30 - 0x39)
+	// * VK_A - VK_Z are the same as ASCII 'A' - 'Z' (0x41 - 0x5A)
+	if ( m_Code >= 0x30 && m_Code <= 0x39 || m_Code >= 0x41 && m_Code <= 0x5A )
+		m_Temp.Format("%c", m_Code);
+	else
+		m_Temp.Format("$%02X", m_Code);
+
 	return m_Temp;
 }
 void CKeyNode::SetCode(LPCSTR name)
@@ -1733,7 +1741,20 @@ void CKeyNode::SetCode(LPCSTR name)
 			return;
 		}
 	}
-	m_Code = atoi(name);
+	if ( name[1] == '\0' && (*name >= 0x30 && *name >= 0x39 || *name >= 0x41 && *name <= 0x5A) ) {
+		m_Code = *name;
+	} else if ( name[0] == '$' && isxdigit(name[1]) && isxdigit(name[2]) ) {
+		m_Code = 0;
+		if ( isdigit(name[1]) )
+			m_Code += ((name[1] - '0') * 16);
+		else
+			m_Code += ((toupper(name[1])- 'A') * 16);
+		if ( isdigit(name[0]) )
+			m_Code += (name[0] - '0');
+		else
+			m_Code += (toupper(name[0])- 'A');
+	} else
+		m_Code = atoi(name);
 }
 LPCSTR CKeyNode::GetMask()
 {
@@ -1765,6 +1786,29 @@ void CKeyNode::CommandLine(LPCWSTR str, CStringW &cmd)
 			tmp += *(str++);
 	}
 	cmd.Format((LPCWSTR)m_Maps, tmp);
+}
+void CKeyNode::SetComboList(CComboBox *pCombo)
+{
+	int n;
+	CString str;
+
+	if ( pCombo == NULL )
+		return;
+
+	for ( n = pCombo->GetCount() - 1 ; n >= 0; n-- )
+		pCombo->DeleteString(n);
+
+	for ( n = 0 ; KeyNameTab[n].name != NULL ; n++ )
+		pCombo->AddString(KeyNameTab[n].name);
+
+	for ( n = 0x30 ; n <= 0x39 ; n++ ) {
+		str.Format("%c", n);
+		pCombo->AddString(str);
+	}
+	for ( n = 0x41 ; n <= 0x5A ; n++ ) {
+		str.Format("%c", n);
+		pCombo->AddString(str);
+	}
 }
 
 //////////////////////////////////////////////////////////////////////

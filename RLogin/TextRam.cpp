@@ -247,6 +247,7 @@ CTextRam::CTextRam()
 	m_DropFileMode = 0;
 	m_WordStr.Empty();
 	m_MouseTrack = 0;
+	memset(m_MetaKeys, 0, sizeof(m_MetaKeys));
 
 	m_pSection = "TextRam";
 	m_MinSize = 16;
@@ -354,8 +355,8 @@ void CTextRam::InitText(int Width, int Height)
 
 	if ( (max = m_DefHisMax)  < (lines * 5) )
 		max = lines * 5;
-	else if ( max > 0x7FFFFF )
-		max = 0x7FFFFF;
+	else if ( max > 400000 )
+		max = 400000;
 
 	if ( cols == m_Cols && max == m_HisMax && m_VRam != NULL ) {
 		if ( lines == m_Lines )
@@ -502,6 +503,7 @@ void CTextRam::InitHistory()
 		CSpace spc;
 		DWORD mx, my, nx;
 		char head[5];
+		BYTE tmp[8];
 
 		m_HisFhd.SeekToBegin();
 		if ( m_HisFhd.Read(head, 4) != 4 )
@@ -515,12 +517,34 @@ void CTextRam::InitHistory()
 
 		vp = new VRAM[mx];
 		nx = ((int)mx < m_Cols ? mx : m_Cols);
-		for ( DWORD n = 0 ; n < my && m_HisLen < (m_HisMax - 1) ; n++ ) {
-			if ( m_HisFhd.Read(vp, sizeof(VRAM) * mx) != (sizeof(VRAM) * mx) )
-				AfxThrowFileException(CFileException::endOfFile);
-			memcpy(GETVRAM(0, (-1) - n), vp, sizeof(VRAM) * nx);
-			m_HisLen++;
-		}
+
+		if ( head[3] == '2' ) {
+			for ( DWORD n = 0 ; n < my && m_HisLen < (m_HisMax - 1) ; n++ ) {
+				if ( m_HisFhd.Read(vp, sizeof(VRAM) * mx) != (sizeof(VRAM) * mx) )
+					AfxThrowFileException(CFileException::endOfFile);
+				memcpy(GETVRAM(0, (-1) - n), vp, sizeof(VRAM) * nx);
+				m_HisLen++;
+			}
+		} else if ( head[3] == '1' ) {
+			for ( DWORD n = 0 ; n < my && m_HisLen < (m_HisMax - 1) ; n++ ) {
+				for ( int x = 0 ; x < mx ; x++ ) {
+					if ( m_HisFhd.Read(tmp, 8) != 8 )
+						AfxThrowFileException(CFileException::endOfFile);
+					vp[x].ch = tmp[0] | (tmp[1] << 8) | (tmp[2] << 16) | (tmp[3] << 24);
+					vp[x].md = tmp[4] | (tmp[5] << 8);
+					vp[x].em = tmp[5] >> 2;
+					vp[x].dm = tmp[5] >> 4;
+					vp[x].cm = tmp[5] >> 6;
+					vp[x].at = tmp[6];
+					vp[x].fc = tmp[7] & 0x0F;
+					vp[x].bc = tmp[7] >> 4;
+				}
+				memcpy(GETVRAM(0, (-1) - n), vp, sizeof(VRAM) * nx);
+				m_HisLen++;
+			}
+		} else
+			AfxThrowFileException(CFileException::fileNotFound);
+
 		delete vp;
 
 		m_LineEditMapsTab[2].RemoveAll();
@@ -554,7 +578,7 @@ void CTextRam::SaveHistory()
 		DWORD n, i;
 
 		m_HisFhd.SeekToBegin();
-		m_HisFhd.Write("RLH1", 4);
+		m_HisFhd.Write("RLH2", 4);
 		n = m_Cols; m_HisFhd.Write(&n, sizeof(DWORD));
 		n = m_HisLen; m_HisFhd.Write(&n, sizeof(DWORD));
 		for ( n = 0 ; (int)n < m_HisLen ; n++ ) {
@@ -572,36 +596,36 @@ void CTextRam::SaveHistory()
 		AfxMessageBox("ヒストリーバックアップに失敗しました");
 	} END_CATCH
 }
-void CTextRam::HisKeyWord()
-{
-	int x, n, i, a, ch;
-	VRAM *vp = GETVRAM(0, -1);
-	CRegEx reg;
-	CRegExRes res;
-
-	reg.Compile("[eE][rR][rR][oO][rR]");
-	reg.MatchCharInit();
-
-	for ( x = 0 ; x < m_Cols ; x += n ) {
-		vp[x].em = 0;
-		if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].cm) && IS_2BYTE(vp[x + 1].cm) ) {
-			ch = vp[x].ch;
-			n = 2;
-		} else if ( !IS_ASCII(vp[x].cm) || vp[x].ch == 0 ) {
-			ch = ' ';
-			n = 1;
-		} else {
-			ch = vp[x].ch;
-			n = 1;
-		}
-		if ( reg.MatchChar(ch, x, &res) && (res.m_Status == REG_MATCH || res.m_Status == REG_MATCHOVER) ) {
-			for ( i = 0 ; i < res.GetSize() ; i++ ) {
-				for ( a = res[i].m_SPos ; a < res[i].m_EPos ; a++ )
-					vp[res.m_Idx[a]].em |= EM_EDM;
-			}
-		}
-	}
-}
+//void CTextRam::HisKeyWord()
+//{
+//	int x, n, i, a, ch;
+//	VRAM *vp = GETVRAM(0, -1);
+//	CRegEx reg;
+//	CRegExRes res;
+//
+//	reg.Compile("[eE][rR][rR][oO][rR]");
+//	reg.MatchCharInit();
+//
+//	for ( x = 0 ; x < m_Cols ; x += n ) {
+//		vp[x].em = 0;
+//		if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].cm) && IS_2BYTE(vp[x + 1].cm) ) {
+//			ch = vp[x].ch;
+//			n = 2;
+//		} else if ( !IS_ASCII(vp[x].cm) || vp[x].ch == 0 ) {
+//			ch = ' ';
+//			n = 1;
+//		} else {
+//			ch = vp[x].ch;
+//			n = 1;
+//		}
+//		if ( reg.MatchChar(ch, x, &res) && (res.m_Status == REG_MATCH || res.m_Status == REG_MATCHOVER) ) {
+//			for ( i = 0 ; i < res.GetSize() ; i++ ) {
+//				for ( a = res[i].m_SPos ; a < res[i].m_EPos ; a++ )
+//					vp[res.m_Idx[a]].ex |= 001;
+//			}
+//		}
+//	}
+//}
 
 static const COLORREF DefColTab[16] = {
 		RGB(  0,   0,   0),	RGB(196,   0,   0),
@@ -628,7 +652,8 @@ static const WORD DefBankTab[4][4] = {
 	{ { SET_94 | 'B' }, 	{ SET_96    | 'A' },
 	  { SET_94 | 'J' }, 	{ SET_94    | 'I' } },
 	};
-static const VRAM TempAtt = { 0, 0, 0, 0, 0, 0, 0x07 };
+						//    ch  at  md  dm  cm  em  fc  bc
+static const VRAM TempAtt = { 0,  0,  0,  0,  0,  0,  7,  0 };
 static const char *DropCmdTab[] = {
 	//	Non				BPlus			XModem			YModem
 		"",				"bp -d %s\\r",	"rx %s\\r",		"rb\\r",
@@ -646,7 +671,7 @@ void CTextRam::Init()
 	m_BankGL		= 0;
 	m_BankGR		= 1;
 	m_DefAtt		= TempAtt;
-	memcpy(m_DefColTab, DefColTab, sizeof(m_ColTab));
+	memcpy(m_DefColTab, DefColTab, sizeof(m_DefColTab));
 	memcpy(m_ColTab, m_DefColTab, sizeof(m_ColTab));
 	memset(m_AnsiOpt, 0, sizeof(DWORD) * 16);
 	EnableOption(TO_DECAWM);
@@ -671,6 +696,7 @@ void CTextRam::Init()
 	m_MouseMode[1]   = 1;
 	m_MouseMode[2]   = 4;
 	m_MouseMode[3]   = 16;
+	memset(m_MetaKeys, 0, sizeof(m_MetaKeys));
 
 	RESET();
 }
@@ -705,18 +731,31 @@ void CTextRam::SetArray(CStringArrayExt &array)
 	array.Add(m_WordStr);
 	for ( int n = 0 ; n < 4 ; n++ )
 		array.AddVal(m_MouseMode[n]);
+	array.AddBin(m_MetaKeys,  sizeof(m_MetaKeys));
 }
 void CTextRam::GetArray(CStringArrayExt &array)
 {
+	int n;
+	BYTE tmp[16];
+
 	m_DefCols[0]  = array.GetVal(0);
 	m_DefHisMax   = array.GetVal(1);
 	m_DefFontSize = array.GetVal(2);
 	m_KanjiMode   = array.GetVal(3);
 	m_BankGL      = array.GetVal(4);
 	m_BankGR      = array.GetVal(5);
-	array.GetBin(6, &m_DefAtt, sizeof(VRAM));
+
+	if ( (n = array.GetBin(6, tmp, 16)) == sizeof(VRAM) )
+		memcpy(&m_DefAtt, tmp, sizeof(VRAM));
+	else if ( n == 8 ) {
+		memset(&m_DefAtt, 0, sizeof(VRAM));
+		m_DefAtt.at = tmp[6];
+		m_DefAtt.fc = tmp[7] & 0x0F;
+		m_DefAtt.bc = tmp[7] >> 4;
+	}
+
 	array.GetBin(7, m_DefColTab,  sizeof(m_DefColTab));
-	memcpy(m_ColTab, m_DefColTab, sizeof(m_ColTab));
+	memcpy(m_ColTab, m_DefColTab, sizeof(m_DefColTab));
 	array.GetBin(8, m_AnsiOpt, sizeof(m_AnsiOpt));
 	array.GetBin(9, m_DefBankTab, sizeof(m_DefBankTab));
 	memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
@@ -732,13 +771,15 @@ void CTextRam::GetArray(CStringArrayExt &array)
 	m_LogFile      = (array.GetSize() > 19 ? array.GetAt(19) : "");
 	m_DefCols[1]   = (array.GetSize() > 20 ? array.GetVal(20) : 132);
 	m_DropFileMode = (array.GetSize() > 21 ? array.GetVal(21) : 0);
-	for ( int n = 0 ; n < 8 ; n++ )
+	for ( n = 0 ; n < 8 ; n++ )
 		m_DropFileCmd[n]  = (array.GetSize() > (22 + n) ? array.GetAt(22 + n) : DropCmdTab[n]);
 	m_WordStr      = (array.GetSize() > 30 ? array.GetAt(30) : "\\/._");
 	m_MouseMode[0] = (array.GetSize() > 31 ? array.GetVal(31) : 0);
 	m_MouseMode[1] = (array.GetSize() > 32 ? array.GetVal(32) : 1);
 	m_MouseMode[2] = (array.GetSize() > 33 ? array.GetVal(33) : 4);
 	m_MouseMode[3] = (array.GetSize() > 34 ? array.GetVal(34) : 16);
+	if ( array.GetSize() > 35 )
+		array.GetBin(35, m_MetaKeys, sizeof(m_MetaKeys));
 
 	RESET();
 }
@@ -784,6 +825,8 @@ const CTextRam & CTextRam::operator = (CTextRam &data)
 	m_WordStr      = data.m_WordStr;
 	memcpy(m_MouseMode, data.m_MouseMode, sizeof(m_MouseMode));
 	fc_Init(m_KanjiMode);
+	memcpy(m_MetaKeys,  data.m_MetaKeys,  sizeof(m_MetaKeys));
+
 	return *this;
 }
 
@@ -1340,10 +1383,10 @@ ENDOF:
 ENDOF2:
 	return;
 }
-void CTextRam::StrOut(CDC* pDC, LPCRECT pRect, int att, int col, 
-					  int mode, int len, int dm, int ct, char *str, int *spc, class CRLoginView *pView)
+void CTextRam::StrOut(CDC* pDC, LPCRECT pRect, int att, int fcn, int bcn,
+					  int mode, int len, int dm, int ct, char *str, int ss, int *spc, class CRLoginView *pView)
 {
-	int x, y;
+	int n, x, y;
 	int md = ETO_CLIPPED;
 	int st = 0;
 	int wd = (dm == 0 ? 1 : 2);
@@ -1351,14 +1394,14 @@ void CTextRam::StrOut(CDC* pDC, LPCRECT pRect, int att, int col,
 	int rv = FALSE;
 	COLORREF fc, bc, tc;
 
-	if ( (att & ATT_BOLD) != 0 && !IS_ENABLE(m_AnsiOpt, TO_RLBOLD) )
-		col ^= 0x08;
+	if ( (att & ATT_BOLD) != 0 && !IS_ENABLE(m_AnsiOpt, TO_RLBOLD) && fcn < 16 )
+		fcn ^= 0x08;
 
 	if ( (att & ATT_ITALIC) != 0 )
 		st |= 2;
 
-	fc = m_ColTab[col & 15];
-	bc = m_ColTab[(col >> 4) & 15];
+	fc = m_ColTab[fcn];
+	bc = m_ColTab[bcn];
 
 	if ( (att & ATT_REVS) != 0 ) {
 		tc = fc;
@@ -1369,11 +1412,12 @@ void CTextRam::StrOut(CDC* pDC, LPCRECT pRect, int att, int col,
 		rv = TRUE;
 	}
 
-	if ( (att & ATT_BLINK) != 0 ) {
-		if ( (pView->m_BlinkFlag & 2) == 0 ) {
-			pView->SetTimer(1026, 500, NULL);
-			pView->m_BlinkFlag = 2;
-		} else if ( (pView->m_BlinkFlag & 1) != 0 ) {
+	if ( (att & (ATT_SBLINK | ATT_BLINK)) != 0 ) {
+		if ( (pView->m_BlinkFlag & 4) == 0 ) {
+			pView->SetTimer(1026, 250, NULL);
+			pView->m_BlinkFlag = 4;
+		} else if ( ((att & ATT_BLINK) != 0 && (pView->m_BlinkFlag & 1) != 0) ||
+				    ((att & ATT_BLINK) == 0 && (pView->m_BlinkFlag & 2) != 0) ) {
 			tc = fc;
 			fc = bc;
 			bc = tc;
@@ -1419,34 +1463,112 @@ void CTextRam::StrOut(CDC* pDC, LPCRECT pRect, int att, int col,
 
 		::ExtTextOutW(pDC->m_hDC, x, y, md, pRect, (LPCWSTR)str, len / 2, spc);
 
-		if ( (att & ATT_BOLD) != 0 && IS_ENABLE(m_AnsiOpt, TO_RLBOLD) ) {
+		if ( (att & ATT_BOLD) != 0 && (IS_ENABLE(m_AnsiOpt, TO_RLBOLD) || fcn >= 16) ) {
 			int oldMode = pDC->SetBkMode(TRANSPARENT);
 			::ExtTextOutW(pDC->m_hDC, x + 1, y, ETO_CLIPPED, pRect, (LPCWSTR)str, len / 2, spc);
 			pDC->SetBkMode(oldMode);
 		}
 	}
 
-	if ( (att & (ATT_LINE | ATT_UNDER)) != 0 ) {
+	if ( (att & (ATT_OVER | ATT_LINE | ATT_UNDER | ATT_DUNDER | ATT_STRESS)) != 0 ) {
 		CPen cPen(PS_SOLID, 1, fc);
 		CPen *oPen = pDC->SelectObject(&cPen);
 		POINT point[2];
 		point[0].x = pRect->left;
 		point[1].x = pRect->right;
-		//if ( (att & ATT_OVER) != 0 ) {
-		//	point[0].y = pRect->top;
-		//	point[1].y = pRect->top;
-		//	pDC->Polyline(point, 2);
-		//}
+
+		if ( (att & ATT_OVER) != 0 ) {
+			point[0].y = pRect->top;
+			point[1].y = pRect->top;
+			pDC->Polyline(point, 2);
+		}
+
 		if ( (att & ATT_LINE) != 0 ) {
 			point[0].y = (pRect->top + pRect->bottom) / 2;
 			point[1].y = (pRect->top + pRect->bottom) / 2;
 			pDC->Polyline(point, 2);
+		} else if ( (att & ATT_STRESS) != 0 ) {
+			point[0].y = (pRect->top + pRect->bottom) / 2 - 1;
+			point[1].y = (pRect->top + pRect->bottom) / 2 - 1;
+			pDC->Polyline(point, 2);
+			point[0].y = (pRect->top + pRect->bottom) / 2 + 1;
+			point[1].y = (pRect->top + pRect->bottom) / 2 + 1;
+			pDC->Polyline(point, 2);
 		}
+
 		if ( (att & ATT_UNDER) != 0 ) {
 			point[0].y = pRect->bottom - 2;
 			point[1].y = pRect->bottom - 2;
 			pDC->Polyline(point, 2);
+		} else if ( (att & ATT_DUNDER) != 0 ) {
+			point[0].y = pRect->bottom - 1;
+			point[1].y = pRect->bottom - 1;
+			pDC->Polyline(point, 2);
+			point[0].y = pRect->bottom - 3;
+			point[1].y = pRect->bottom - 3;
+			pDC->Polyline(point, 2);
 		}
+
+		pDC->SelectObject(oPen);
+	}
+
+	if ( (att & (ATT_FRAME | ATT_CIRCLE | ATT_RSLINE | ATT_RDLINE | ATT_LSLINE | ATT_LDLINE)) != 0 ) {
+		CPen cPen(PS_SOLID, 1, fc);
+		CPen *oPen = pDC->SelectObject(&cPen);
+		POINT point[9];
+
+		y = pRect->left;
+		for ( x = 0 ; x < ss ; x++ ) {
+			if ( (att & ATT_FRAME) != 0 ) {
+				point[0].x = y; point[0].y = pRect->top + 1;
+				point[1].x = y + spc[x] - 2; point[1].y = pRect->top + 1;
+				point[2].x = y + spc[x] - 2; point[2].y = pRect->bottom - 1;
+				point[3].x = y; point[3].y = pRect->bottom - 1;
+				point[4].x = y; point[4].y = pRect->top + 1;
+				pDC->Polyline(point, 5);
+			} else if ( (att & ATT_CIRCLE) != 0 ) {
+				n = spc[x] / 3;
+				point[0].x = y + n; point[0].y = pRect->top + 1;
+				point[1].x = y + spc[x] - 2 - n; point[1].y = pRect->top + 1;
+				point[2].x = y + spc[x] - 2; point[2].y = pRect->top + 1 + n;
+				point[3].x = y + spc[x] - 2; point[3].y = pRect->bottom - 1 - n;
+				point[4].x = y + spc[x] - 2 - n; point[4].y = pRect->bottom - 1;
+				point[5].x = y + n; point[5].y = pRect->bottom - 1;
+				point[6].x = y; point[6].y = pRect->bottom - 1 - n;
+				point[7].x = y; point[7].y = pRect->top + 1 + n;
+				point[8].x = y + n; point[8].y = pRect->top + 1;
+				pDC->Polyline(point, 9);
+			}
+
+			if ( (att & ATT_RSLINE) != 0 ) {
+				point[0].x = y + spc[x] - 1; point[0].y = pRect->top;
+				point[1].x = y + spc[x] - 1; point[1].y = pRect->bottom - 1;
+				pDC->Polyline(point, 2);
+			} else if ( (att & ATT_RDLINE) != 0 ) {
+				point[0].x = y + spc[x] - 1; point[0].y = pRect->top;
+				point[1].x = y + spc[x] - 1; point[1].y = pRect->bottom - 1;
+				pDC->Polyline(point, 2);
+				point[0].x = y + spc[x] - 3; point[0].y = pRect->top;
+				point[1].x = y + spc[x] - 3; point[1].y = pRect->bottom - 1;
+				pDC->Polyline(point, 2);
+			}
+
+			if ( (att & ATT_LSLINE) != 0 ) {
+				point[0].x = y; point[0].y = pRect->top;
+				point[1].x = y; point[1].y = pRect->bottom - 1;
+				pDC->Polyline(point, 2);
+			} else if ( (att & ATT_LDLINE) != 0 ) {
+				point[0].x = y; point[0].y = pRect->top;
+				point[1].x = y; point[1].y = pRect->bottom - 1;
+				pDC->Polyline(point, 2);
+				point[0].x = y + 2; point[0].y = pRect->top;
+				point[1].x = y + 2; point[1].y = pRect->bottom - 1;
+				pDC->Polyline(point, 2);
+			}
+
+			y += spc[x];
+		}
+
 		pDC->SelectObject(oPen);
 	}
 
@@ -1459,8 +1581,8 @@ void CTextRam::StrOut(CDC* pDC, LPCRECT pRect, int att, int col,
 void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginView *pView)
 {
 	int x, y;
-	int ca, cc, cm, ch, cn, dm;
-	int sa, sc, sm, sn, ss, st;
+	int ca, cf, cb, cm, ch, cn, dm;
+	int sa, sf, sb, sm, sn, ss, st;
 	int pos, spos, epos;
 	int csx, cex, cwy;
 	VRAM *vp, *tp;
@@ -1484,7 +1606,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 	}
 
 	for ( y = y1 ; y <= y2 ; y++ ) {
-		sa = sc = sm = (-1);
+		sa = sf = sb = sm = (-1);
 		sn = ss = st = 0;
 		rect.top    = pView->CalcGrapY(y);
 		rect.bottom = pView->CalcGrapY(y + 1);
@@ -1502,7 +1624,8 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 					vp--;
 				}
 				ca = vp->at;
-				cc = vp->cl;
+				cf = vp->fc;
+				cb = vp->bc;
 				cm = vp->md & CODE_MASK;
 				ch = vp->ch;
 				cn = 1;
@@ -1522,7 +1645,8 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 					cm = (-1);
 			} else {
 				ca = m_DefAtt.at;
-				cc = m_DefAtt.cl;
+				cf = m_DefAtt.fc;
+				cb = m_DefAtt.bc;
 				ch = 0;
 				cm = (-1);
 				cn = 1;
@@ -1542,13 +1666,14 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 				}
 			}
 
-			if ( sa != ca || sc != cc || sm != cm || st != cn ) {
+			if ( sa != ca || sf != cf || sb != cb || sm != cm || st != cn ) {
 				if ( sn > 0 ) {
 					rect.right = pView->CalcGrapX(x) * (dm ? 2 : 1);
-					StrOut(pDC, &rect, sa, sc, sm, sn, dm, st, tmp, spc, pView);
+					StrOut(pDC, &rect, sa, sf, sb, sm, sn, dm, st, tmp, ss, spc, pView);
 				}
 				sa = ca;
-				sc = cc;
+				sf = cf;
+				sb = cb;
 				sn = ss = 0;
 				sm = cm;
 				st = cn;
@@ -1562,15 +1687,15 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 				}
 				tmp[sn++] = (char)(ch);
 				tmp[sn++] = (char)(ch >> 8);
-				spc[ss++] = (pView->CalcGrapX(x + cn) - pView->CalcGrapX(x)) * (dm ? 2 : 1);
 			} else
 				sn += cn;
 
+			spc[ss++] = (pView->CalcGrapX(x + cn) - pView->CalcGrapX(x)) * (dm ? 2 : 1);
 			x += cn;
 		}
 		if ( sn > 0 ) {
 			rect.right = pView->CalcGrapX(x) * (dm ? 2 : 1);
-			StrOut(pDC, &rect, sa, sc, sm, sn, dm, st, tmp, spc, pView);
+			StrOut(pDC, &rect, sa, sf, sb, sm, sn, dm, st, tmp, ss, spc, pView);
 		}
 	}
 
@@ -1601,6 +1726,10 @@ void CTextRam::EnableOption(int opt)
 void CTextRam::DisableOption(int opt)
 {
 	m_AnsiOpt[opt / 32] &= ~(1 << (opt % 32));
+}
+void CTextRam::ReversOption(int opt)
+{
+	m_AnsiOpt[opt / 32] ^= (1 << (opt % 32));
 }
 int CTextRam::IsOptValue(int opt, int len)
 {
@@ -1948,6 +2077,20 @@ void CTextRam::RESET()
 	m_AttSpc = m_DefAtt;
 	m_AttNow = m_DefAtt;
 
+	int n = 16;
+	memcpy(m_ColTab, m_DefColTab, sizeof(m_DefColTab));
+
+	// colors 16-231 are a 6x6x6 color cube
+	for ( int r = 0 ; r < 6 ; r++ ) {
+		for ( int g = 0 ; g < 6 ; g++ ) {
+			for ( int b = 0 ; b < 6 ; b++ )
+				m_ColTab[n++] = RGB(r * 51, g * 51, b * 51);
+		}
+	}
+	// colors 232-255 are a grayscale ramp, intentionally leaving out
+	for ( int g = 0 ; g < 24 ; g++ )
+		m_ColTab[n++] = RGB(g * 11, g * 11, g * 11);
+
 	m_LastChar = 0;
 	m_LastPos  = 0;
 
@@ -1968,8 +2111,8 @@ void CTextRam::RESET()
 	m_Tek_Mode = 0x1F;
 	m_Tek_Pen  = 0;
 	m_Tek_Stat = 0;
-	m_Tek_Line = 0;
-	m_Tek_Font = 0;
+	m_Tek_Line = 0x08;
+	m_Tek_Font = 0x08;
 	m_Tek_Angle = 0;
 	m_Tek_Base  = 0;
 	m_Tek_Point = 0;
@@ -1980,7 +2123,11 @@ void CTextRam::RESET()
 	m_Tek_lX = 0; m_Tek_lY = m_Tek_cY;
 	m_Tek_wX = 0; m_Tek_wY = m_Tek_cY;
 
+	m_Kan_Pos = 0;
+	memset(m_Kan_Buf, 0, sizeof(m_Kan_Buf));
+
 	m_MouseTrack = 0;
+
 	fc_Init(m_KanjiMode);
 }
 VRAM *CTextRam::GETVRAM(int cols, int lines)
@@ -2037,6 +2184,7 @@ void CTextRam::DISPUPDATE()
 	m_UpdateRect.top    = 0;
 	m_UpdateRect.right  = m_Cols;
 	m_UpdateRect.bottom = m_Lines;
+	m_pDocument->IncActCount();
 }
 void CTextRam::DISPVRAM(int sx, int sy, int w, int h)
 {
@@ -2051,13 +2199,18 @@ void CTextRam::DISPVRAM(int sx, int sy, int w, int h)
 		m_UpdateRect.top = sy;
 	if ( m_UpdateRect.bottom < ey )
 		m_UpdateRect.bottom = ey;
+	m_pDocument->IncActCount();
 }
 int CTextRam::BLINKUPDATE(class CRLoginView *pView)
 {
 	int x, y, dm;
 	VRAM *vp;
 	int rt = 0;
+	int mk = ATT_BLINK;
 	CRect rect;
+
+	if ( (pView->m_BlinkFlag & 1) == 0 )
+		mk |= ATT_SBLINK;
 
 	for ( y = 0 ; y < m_Lines ; y++ ) {
 		vp = GETVRAM(0, y - pView->m_HisOfs + pView->m_HisMin);
@@ -2067,7 +2220,7 @@ int CTextRam::BLINKUPDATE(class CRLoginView *pView)
 		rect.top    = y - pView->m_HisOfs + pView->m_HisMin;
 		rect.bottom = rect.top + 1;
 		for ( x = 0 ; x < m_Cols ; x++ ) {
-			if ( (vp->at & ATT_BLINK) != 0 ) {
+			if ( (vp->at & mk) != 0 ) {
 				if ( rect.left > x ) {
 					rect.left  = x;
 					rect.right = x + 1;
@@ -2087,7 +2240,8 @@ int CTextRam::BLINKUPDATE(class CRLoginView *pView)
 					rect.right = x + 1;
 					rt |= 3;
 				}
-			}
+			} else if ( (vp->at & ATT_SBLINK) != 0 )
+				rt |= 2;
 			vp++;
 		}
 		if ( (rt & 1) != 0 ) {
@@ -2184,7 +2338,7 @@ void CTextRam::ERABOX(int sx, int sy, int ex, int ey, int df)
 			if ( sx == 0 )
 				dm = tp->dm;
 			for ( x = sx ; x < ex ; x++, vp++ ) {
-				if ( (vp->em & EM_ERM) == 0 )
+				if ( (vp->em & EM_PROTECT) == 0 )
 					*vp = m_AttSpc;
 			}
 			if ( sx == 0 )
@@ -2200,7 +2354,7 @@ void CTextRam::ERABOX(int sx, int sy, int ex, int ey, int df)
 			for ( y = sy ; y < ey ; y++ ) {
 				vp = GETVRAM(sx, y);
 				for ( x = sx ; x < ex ; x++, vp++ ) {
-					if ( (vp->em & EM_ERM) == 0 )
+					if ( (vp->em & EM_PROTECT) == 0 )
 						*vp = m_AttSpc;
 				}
 				SetDm(y, 0);
@@ -2379,7 +2533,8 @@ void CTextRam::PUT1BYTE(int ch, int md)
 //	vp->dm = m_AttNow.dm;	no Init
 	vp->cm = CM_ASCII;
 	vp->at = m_AttNow.at;
-	vp->cl = m_AttNow.cl;
+	vp->fc = m_AttNow.fc;
+	vp->bc = m_AttNow.bc;
 
 	md &= CODE_MASK;
 	ch |= m_FontTab[md].m_Shift;
@@ -2448,7 +2603,8 @@ void CTextRam::PUT2BYTE(int ch, int md)
 	vp[0].cm = CM_1BYTE;
 	vp[1].cm = CM_2BYTE;
 	vp[0].at = vp[1].at = m_AttNow.at;
-	vp[0].cl = vp[1].cl = m_AttNow.cl;
+	vp[0].fc = vp[1].fc = m_AttNow.fc;
+	vp[0].bc = vp[1].bc = m_AttNow.bc;
 
 	md &= CODE_MASK;
 	ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, "UTF-16BE", ch);			// Char変換ではUTF-16BEを使用！

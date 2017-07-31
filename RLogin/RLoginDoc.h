@@ -88,6 +88,7 @@ public:
 	int DelaySend();
 	void OnDelayRecive(int ch);
 	inline void ClearActCount() { m_ActCharCount = 0; }
+	inline void IncActCount() { m_ActCharCount++; }
 
 	int SocketOpen();
 	void SocketClose();

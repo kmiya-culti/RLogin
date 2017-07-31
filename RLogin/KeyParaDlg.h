@@ -25,6 +25,7 @@ public:
 	enum { IDD = IDD_KEYPARADLG };
 	BOOL	m_WithShift;
 	BOOL	m_WithCtrl;
+	BOOL	m_WithAlt;
 	BOOL	m_WithAppli;
 	CString	m_KeyCode;
 	CString	m_Maps;

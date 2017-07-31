@@ -11,6 +11,7 @@
 #include "Data.h"
 #include "KeyPage.h"
 #include "KeyParaDlg.h"
+#include "MetaDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -75,6 +76,7 @@ BEGIN_MESSAGE_MAP(CKeyPage, CPropertyPage)
 	ON_EN_CHANGE(IDC_EDIT1, &CKeyPage::OnUpdateChangeDropMode)
 	ON_CBN_SELCHANGE(IDC_COMBO1, &CKeyPage::OnCbnSelchangeDropMode)
 	ON_EN_CHANGE(IDC_EDIT3, &CKeyPage::OnEnChangeEdit3)
+	ON_BN_CLICKED(IDC_KEYASNMETA, &CKeyPage::OnKeyAsnMeta)
 END_MESSAGE_MAP()
 
 void CKeyPage::InitList()
@@ -266,4 +268,17 @@ void CKeyPage::OnEnChangeEdit3()
 {
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_KEYTAB;
+}
+
+void CKeyPage::OnKeyAsnMeta()
+{
+	CMetaDlg dlg;
+
+	dlg.m_pMetaMap = m_pSheet->m_pTextRam->m_MetaKeys;
+
+	if ( dlg.DoModal() != IDOK )
+		return;
+
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 }

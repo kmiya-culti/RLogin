@@ -484,13 +484,10 @@ int CRLoginDoc::OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags)
 	if ( nFlags != 0 )
 		return nBufLen;
 
-	if ( m_TextRam.fc_StPos > 0 )
-		m_ActCharCount = 0;
-
-	if ( (n = 4096 - m_ActCharCount) <= 0 )
+	if ( m_ActCharCount > 2048 )
 		return 0;
-	else if ( nBufLen > n )
-		nBufLen = n;
+	else if ( nBufLen > 4096 )
+		nBufLen = 4096;
 
 //	TRACE("OnSocketRecive %dByte\n", nBufLen);
 
@@ -512,7 +509,6 @@ int CRLoginDoc::OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags)
 		m_pLogFile->Write(lpBuf, nBufLen);
 
 	m_pMainWnd->WakeUpSleep();
-	m_ActCharCount += nBufLen;
 
 	return nBufLen;
 }

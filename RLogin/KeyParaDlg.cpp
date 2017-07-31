@@ -19,7 +19,8 @@ CKeyParaDlg::CKeyParaDlg(CWnd* pParent /*=NULL*/)
 {
 	//{{AFX_DATA_INIT(CKeyParaDlg)
 	m_WithShift = FALSE;
-	m_WithCtrl = FALSE;
+	m_WithCtrl  = FALSE;
+	m_WithAlt   = FALSE;
 	m_WithAppli = FALSE;
 	m_KeyCode = _T("");
 	m_Maps = _T("");
@@ -33,7 +34,8 @@ void CKeyParaDlg::DoDataExchange(CDataExchange* pDX)
 	//{{AFX_DATA_MAP(CKeyParaDlg)
 	DDX_Check(pDX, IDC_KEYSTAT1, m_WithShift);
 	DDX_Check(pDX, IDC_KEYSTAT2, m_WithCtrl);
-	DDX_Check(pDX, IDC_KEYSTAT3, m_WithAppli);
+	DDX_Check(pDX, IDC_KEYSTAT3, m_WithAlt);
+	DDX_Check(pDX, IDC_KEYSTAT4, m_WithAppli);
 	DDX_CBString(pDX, IDC_KEYCODE, m_KeyCode);
 	DDX_Text(pDX, IDC_KEYMAPS, m_Maps);
 	//}}AFX_DATA_MAP
@@ -55,10 +57,13 @@ BOOL CKeyParaDlg::OnInitDialog()
 	m_KeyCode   = m_pData->GetCode();
 	m_WithShift = (m_pData->m_Mask & MASK_SHIFT) ? TRUE : FALSE;
 	m_WithCtrl  = (m_pData->m_Mask & MASK_CTRL)  ? TRUE : FALSE;
-	m_WithAppli = (m_pData->m_Mask & MASK_APPL)   ? TRUE : FALSE;
+	m_WithAlt   = (m_pData->m_Mask & MASK_ALT)   ? TRUE : FALSE;
+	m_WithAppli = (m_pData->m_Mask & MASK_APPL)  ? TRUE : FALSE;
 	m_Maps = m_pData->GetMaps();
 	UpdateData(FALSE);
 	
+	m_pData->SetComboList((CComboBox *)GetDlgItem(IDC_KEYCODE));
+
 	return TRUE;
 }
 
@@ -70,6 +75,7 @@ void CKeyParaDlg::OnOK()
 	m_pData->m_Mask = 0;
 	if ( m_WithShift ) m_pData->m_Mask |= MASK_SHIFT;
 	if ( m_WithCtrl )  m_pData->m_Mask |= MASK_CTRL;
+	if ( m_WithAlt  )  m_pData->m_Mask |= MASK_ALT;
 	if ( m_WithAppli ) m_pData->m_Mask |= MASK_APPL;
 	m_pData->SetMaps(m_Maps);
 	CDialog::OnOK();

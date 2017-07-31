@@ -350,6 +350,7 @@ public:
 	void SetCode(LPCSTR name);
 	LPCSTR GetMask();
 	void CommandLine(LPCWSTR str, CStringW &cmd);
+	void SetComboList(CComboBox *pCombo);
 
 	const CKeyNode & operator = (CKeyNode &data);
 

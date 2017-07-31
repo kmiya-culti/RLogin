@@ -29,9 +29,11 @@ CColParaDlg::CColParaDlg() : CPropertyPage(CColParaDlg::IDD)
 	m_BitMapFile = _T("");
 	//}}AFX_DATA_INIT
 	m_pSheet = NULL;
-	for ( int n = 0 ; n < 8 ; n++ )
+	for ( int n = 0 ; n < 24 ; n++ )
 		m_Attrb[n] = 0;
 	m_WakeUpSleep = 0;
+	m_FontCol[0] = 0;
+	m_FontCol[1] = 0;
 }
 
 CColParaDlg::~CColParaDlg()
@@ -53,6 +55,10 @@ void CColParaDlg::DoDataExchange(CDataExchange* pDX)
 	for ( int n = 0 ; n < 8 ; n++ )
 		DDX_Check(pDX, IDC_ATTR1 + n, m_Attrb[n]);
 	DDX_CBIndex(pDX, IDC_COMBO2, m_WakeUpSleep);
+	DDX_Text(pDX, IDC_TEXTCOL, m_FontCol[0]);
+	DDV_MinMaxUInt(pDX, m_FontCol[0], 0, 255);
+	DDX_Text(pDX, IDC_BACKCOL, m_FontCol[1]);
+	DDV_MinMaxUInt(pDX, m_FontCol[1], 0, 255);
 }
 
 BEGIN_MESSAGE_MAP(CColParaDlg, CPropertyPage)
@@ -110,8 +116,8 @@ BOOL CColParaDlg::OnInitDialog()
 	for ( n = 0 ; n < 16 ; n++ )
 		m_ColTab[n] = m_pSheet->m_pTextRam->m_DefColTab[n];
 
-	m_FontCol[0] = m_pSheet->m_pTextRam->m_AttNow.cl & 0x0F;
-	m_FontCol[1] = m_pSheet->m_pTextRam->m_AttNow.cl >> 4;
+	m_FontCol[0] = m_pSheet->m_pTextRam->m_AttNow.fc;
+	m_FontCol[1] = m_pSheet->m_pTextRam->m_AttNow.bc;
 
 	CButton *pWnd;
 	BUTTON_IMAGELIST list;
@@ -125,6 +131,8 @@ BOOL CColParaDlg::OnInitDialog()
 			pWnd->SetImageList(&list);
 		m_Attrb[n] = (m_pSheet->m_pTextRam->m_AttNow.at & (1 << n) ? TRUE : FALSE);
 	}
+	for ( n = 8 ; n < 24 ; n++ )
+		m_Attrb[n] = (m_pSheet->m_pTextRam->m_AttNow.at & (1 << n) ? TRUE : FALSE);
 
 	m_BitMapFile = m_pSheet->m_pTextRam->m_BitMapFile;
 
@@ -143,6 +151,7 @@ BOOL CColParaDlg::OnInitDialog()
 	else m_WakeUpSleep = 8;
 
 	UpdateData(FALSE);
+
 	return TRUE;
 }
 BOOL CColParaDlg::OnApply() 
@@ -158,9 +167,10 @@ BOOL CColParaDlg::OnApply()
 		m_pSheet->m_pTextRam->m_ColTab[n] = m_ColTab[n];
 	}
 
-	m_pSheet->m_pTextRam->m_DefAtt.cl = (m_FontCol[1] << 4) | m_FontCol[0];
+	m_pSheet->m_pTextRam->m_DefAtt.fc = m_FontCol[0];
+	m_pSheet->m_pTextRam->m_DefAtt.bc = m_FontCol[1];
 	m_pSheet->m_pTextRam->m_DefAtt.at = 0;
-	for ( n = 0 ; n < 8 ; n++ )
+	for ( n = 0 ; n < 24 ; n++ )
 		m_pSheet->m_pTextRam->m_DefAtt.at |= (m_Attrb[n] ? (1 << n) : 0);
 
 	m_pSheet->m_pTextRam->m_AttNow = m_pSheet->m_pTextRam->m_DefAtt;
@@ -194,10 +204,10 @@ void CColParaDlg::OnReset()
 	for ( n = 0 ; n < 16 ; n++ )
 		m_ColTab[n] = m_pSheet->m_pTextRam->m_DefColTab[n];
 
-	m_FontCol[0] = m_pSheet->m_pTextRam->m_DefAtt.cl & 0x0F;
-	m_FontCol[1] = m_pSheet->m_pTextRam->m_DefAtt.cl >> 4;
+	m_FontCol[0] = m_pSheet->m_pTextRam->m_DefAtt.fc;
+	m_FontCol[1] = m_pSheet->m_pTextRam->m_DefAtt.bc;
 
-	for ( n = 0 ; n < 8 ; n++ )
+	for ( n = 0 ; n < 24 ; n++ )
 		m_Attrb[n] = (m_pSheet->m_pTextRam->m_DefAtt.at & (1 << n) ? TRUE : FALSE);
 
 	m_BitMapFile = m_pSheet->m_pTextRam->m_BitMapFile;
@@ -226,10 +236,15 @@ void CColParaDlg::OnPaint()
 	CRect rect;
 	CPaintDC dc(this); // 描画用のデバイス コンテキスト
 
-	for ( n = 0 ; n < 18 ; n++ ) {
+	for ( n = 0 ; n < 16 ; n++ ) {
 		m_ColBox[n].GetWindowRect(rect);
 		ScreenToClient(rect);
-		dc.FillSolidRect(rect, m_ColTab[(n < 16 ? n : m_FontCol[n - 16])]);
+		dc.FillSolidRect(rect, m_ColTab[n]);
+	}
+	for ( n = 0 ; n < 2 ; n++ ) {
+		m_ColBox[n + 16].GetWindowRect(rect);
+		ScreenToClient(rect);
+		dc.FillSolidRect(rect, m_FontCol[n] > 16 ? m_pSheet->m_pTextRam->m_ColTab[m_FontCol[n]] : m_ColTab[m_FontCol[n]]);
 	}
 }
 void CColParaDlg::OnLButtonDblClk(UINT nFlags, CPoint point) 
@@ -278,6 +293,7 @@ void CColParaDlg::OnLButtonDown(UINT nFlags, CPoint point)
 						   tracker.m_rect.top    > rect.bottom ||
 						   tracker.m_rect.bottom < rect.top) ) {
 						m_FontCol[i] = n;
+						UpdateData(FALSE);
 						Invalidate(FALSE);
 						SetModified(TRUE);
 						m_pSheet->m_ModFlag |= UMOD_TEXTRAM;

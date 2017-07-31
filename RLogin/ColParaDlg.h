@@ -17,9 +17,8 @@ class CColParaDlg : public CPropertyPage
 // コンストラクション
 public:
 	class COptDlg *m_pSheet;
-	int m_FontCol[2];
 	COLORREF m_ColTab[16];
-	BOOL m_Attrb[8];
+	BOOL m_Attrb[24];
 	CImageList m_ImageList[8];
 
 	CColParaDlg();
@@ -34,6 +33,7 @@ public:
 	int		m_WakeUpSleep;
 	//}}AFX_DATA
 	CStatic	m_ColBox[18];
+	int m_FontCol[2];
 
 // オーバーライド
 	// ClassWizard は仮想関数のオーバーライドを生成します。

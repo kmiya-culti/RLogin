@@ -58,15 +58,15 @@ static const CTextRam::PROCTAB fc_EucTab[] = {
 	{ 0,		0,			NULL } };
 
 static const CTextRam::PROCTAB fc_94x94Tab[] = {
-	{ 0x00,		0x20,		&CTextRam::fc_RETRY		},
+	{ 0x00,		0x20,		&CTextRam::fc_TEXT3		},
 	{ 0x21,		0x7E,		&CTextRam::fc_TEXT2		},
-	{ 0x7F,		0,			&CTextRam::fc_RETRY		},
+	{ 0x7F,		0,			&CTextRam::fc_TEXT3		},
 	{ 0x80,		0xA0,		&CTextRam::fc_TEXT3		},
 	{ 0xA1,		0xFE,		&CTextRam::fc_TEXT2		},
 	{ 0xFF,		0,			&CTextRam::fc_TEXT3		},
 	{ 0,		0,			NULL } };
 static const CTextRam::PROCTAB fc_96x96Tab[] = {
-	{ 0x00,		0x1F,		&CTextRam::fc_RETRY		},
+	{ 0x00,		0x1F,		&CTextRam::fc_TEXT3		},
 	{ 0x20,		0x7F,		&CTextRam::fc_TEXT2		},
 	{ 0x80,		0x9F,		&CTextRam::fc_TEXT3		},
 	{ 0xA0,		0xFF,		&CTextRam::fc_TEXT2		},
@@ -79,9 +79,9 @@ static const CTextRam::PROCTAB fc_Sjis1Tab[] = {
 	{ 0xE0,		0xFC,		&CTextRam::fc_SJIS1		},
 	{ 0,		0,			NULL } };
 static const CTextRam::PROCTAB fc_Sjis2Tab[] = {
-	{ 0x00,		0x3F,		&CTextRam::fc_RETRY		},
+	{ 0x00,		0x3F,		&CTextRam::fc_SJIS3		},
 	{ 0x40,		0x7E,		&CTextRam::fc_SJIS2		},
-	{ 0x7F,		0,			&CTextRam::fc_RETRY		},
+	{ 0x7F,		0,			&CTextRam::fc_SJIS3		},
 	{ 0x80,		0xFC,		&CTextRam::fc_SJIS2		},
 	{ 0xFD,		0xFF,		&CTextRam::fc_SJIS3		},
 	{ 0,		0,			NULL } };
@@ -92,10 +92,11 @@ static const CTextRam::PROCTAB fc_Utf8Tab[] = {
 	{ 0xC0,		0xDF,		&CTextRam::fc_UTF81		},
 	{ 0xE0,		0xEF,		&CTextRam::fc_UTF82		},
 	{ 0xF0,		0xF7,		&CTextRam::fc_UTF83		},
+	{ 0xF8,		0xFD,		&CTextRam::fc_UTF87		},
 	{ 0xFE,		0xFF,		&CTextRam::fc_UTF84		},
 	{ 0,		0,			NULL } };
 static const CTextRam::PROCTAB fc_Utf82Tab[] = {
-	{ 0x00,		0x7F,		&CTextRam::fc_RETRY		},
+	{ 0x00,		0x7F,		&CTextRam::fc_UTF86		},
 	{ 0x80,		0xBF,		&CTextRam::fc_UTF85		},
 	{ 0xC0,		0xFD,		&CTextRam::fc_UTF86		},
 	{ 0xFE,		0xFF,		&CTextRam::fc_POP		},
@@ -311,10 +312,10 @@ static const CTextRam::PROCTAB fc_Osc3Tab[] = {
 
 static const CTextRam::PROCTAB fc_TekTab[] = {
 	{ 0x00,		0xFF,		&CTextRam::fc_TEK_STAT	},	// STAT
-	{ 0x08,		0,			&CTextRam::fc_TEK_CUR	},	// LEFT
-	{ 0x09,		0,			&CTextRam::fc_TEK_CUR	},	// RIGHT
-	{ 0x0A,		0,			&CTextRam::fc_TEK_CUR	},	// DOWN
-	{ 0x0B,		0,			&CTextRam::fc_TEK_CUR	},	// UP
+	{ 0x08,		0,			&CTextRam::fc_TEK_LEFT	},	// LEFT
+	{ 0x09,		0,			&CTextRam::fc_TEK_RIGHT	},	// RIGHT
+	{ 0x0A,		0,			&CTextRam::fc_TEK_DOWN	},	// DOWN
+	{ 0x0B,		0,			&CTextRam::fc_TEK_UP	},	// UP
 	{ 0x0D,		0,			&CTextRam::fc_TEK_FLUSH	},	// FLUSH
 	{ 0x1B,		0,			&CTextRam::fc_TEK_MODE	},	// ESC
 	{ 0x1C,		0,			&CTextRam::fc_TEK_MODE	},	// PT
@@ -449,6 +450,7 @@ inline void CTextRam::fc_Push(int stage)
 
 void CTextRam::fc_IGNORE(int ch)
 {
+	fc_KANJI(ch);
 	if ( ch < 0x20 ) {
 		CallReciveChar(ch);
 		m_LastChar = ch;
@@ -472,6 +474,7 @@ void CTextRam::fc_RETRY(int ch)
 }
 void CTextRam::fc_SESC(int ch)
 {
+	fc_KANJI(ch);
 	CallReciveChar(0x1B);
 	m_LastChar = 0x1B;
 	ch &= 0x1F;
@@ -481,17 +484,163 @@ void CTextRam::fc_SESC(int ch)
 }
 
 //////////////////////////////////////////////////////////////////////
+// fc KANJI
+
+void CTextRam::fc_KANCHK()
+{
+	int n, ch;
+	BOOL skip = FALSE;
+	int sjis_st = 0, sjis_rs = 0;
+	int euc_st  = 0, euc_rs  = 0;
+	int utf8_st = 0, utf8_rs = 0;
+
+	for ( n = m_Kan_Pos + 1; n != m_Kan_Pos ; n = (n + 1) & (KANBUFMAX - 1) ) {
+		ch = m_Kan_Buf[n];
+
+		if ( !skip && (ch & 0x80) != 0 )
+			continue;
+		skip = TRUE;
+
+		// SJIS
+		// 1 Byte	0x81 - 0x9F or 0xE0 - 0xFC or 0xA0-0xDF
+		// 2 Byte	0x40 - 0x7E or 0x80 - 0xFC
+		switch(sjis_st) {
+		case 0:
+			if ( issjis1(ch) )
+				sjis_st = 1;
+			else if ( iskana(ch) )
+				sjis_rs |= 004;
+			else if ( (ch & 0x80) != 0 )
+				sjis_rs |= (sjis_rs != 0 ? 002 : 000);
+			else
+				sjis_rs |= 004;
+			break;
+		case 1:
+			sjis_st = 0;
+			if ( issjis2(ch) )
+				sjis_rs |= 001;
+			else
+				sjis_rs |= 002;
+			break;
+		}
+
+		// EUC
+		// 1 Byte	0xA0 - 0xFF or 0x8E		or 0x8F
+		// 2 Byte	0xA0 - 0xFF
+		// 3 Byte							0xA0 - 0xFF
+
+		switch(euc_st) {
+		case 0:
+			if ( ch >= 0xA0 )
+				euc_st = 1;
+			else if ( ch == 0x8E )
+				euc_st = 1;
+			else if ( ch == 0x8F )
+				euc_st = 2;
+			else if ( (ch & 0x80) != 0 )
+				euc_rs |=  (euc_rs != 0 ? 002 : 000);
+			else
+				euc_rs |= 004;
+			break;
+		case 1:
+			euc_st = 0;
+			if ( ch >= 0xA0 )
+				euc_rs |= 001;
+			else
+				euc_rs |= 002;
+			break;
+		case 2:
+			if ( ch >= 0xA0 )
+				euc_st = 1;
+			else {
+				euc_st = 0;
+				euc_rs |= 002;
+			}
+			break;
+		}
+
+		// UTF-8
+		// 1 Byte	0xC0 - 0xDF(2 Byte) or	0xE0 - 0xEF(3 Byte) or	0xF0 - 0xF7(4 Byte)	or	0xFE - 0xFF(2 Byte)
+		// 2 Byte	0x80 - 0xBF
+
+		switch(utf8_st) {
+		case 0:
+			if ( ch >= 0xC0 && ch <= 0xDF )
+				utf8_st = 3;
+			else if ( ch >= 0xE0 && ch <= 0xEF )
+				utf8_st = 2;
+			else if ( ch >= 0xF0 && ch <= 0xF7 )
+				utf8_st = 1;
+			else if ( ch >= 0xFE && ch <= 0xFF )
+				utf8_st = 4;
+			else if ( (ch & 0x80) != 0 )
+				utf8_rs |= (utf8_rs != 0 ? 002 : 000);
+			else
+				utf8_rs |= 004;
+			break;
+		case 1:
+			if ( ch >= 0x80 && ch <= 0xBF )
+				utf8_st = 2;
+			else {
+				utf8_st = 0;
+				utf8_rs |= 002;
+			}
+			break;
+		case 2:
+			if ( ch >= 0x80 && ch <= 0xBF )
+				utf8_st = 3;
+			else {
+				utf8_st = 0;
+				utf8_rs |= 002;
+			}
+			break;
+		case 3:
+			utf8_st = 0;
+			if ( ch >= 0x80 && ch <= 0xBF )
+				utf8_rs |= 001;
+			else
+				utf8_rs |= 002;
+			break;
+		case 4:
+			utf8_st = 0;
+			if ( ch >= 0xFE && ch <= 0xFF )
+				utf8_rs |= 001;
+			else
+				utf8_rs |= 002;
+			break;
+		}
+	}
+
+	n = m_KanjiMode;
+	sjis_rs &= 3;
+	euc_rs  &= 3;
+	utf8_rs &= 3;
+
+	if ( sjis_rs == 1 && euc_rs != 1 && utf8_rs != 1 )
+		n = SJIS_SET;
+	else if ( sjis_rs != 1 && euc_rs == 1 && utf8_rs != 1 )
+		n = EUC_SET;
+	if ( sjis_rs != 1 && euc_rs != 1 && utf8_rs == 1 )
+		n = UTF8_SET;
+
+	if ( m_KanjiMode != n )
+		SetKanjiMode(n);
+}
+
+//////////////////////////////////////////////////////////////////////
 // fc Print
 
 void CTextRam::fc_TEXT(int ch)
 {
+	fc_KANJI(ch);
+
 	if ( m_BankSG >= 0 ) {
 		m_BankNow = m_BankTab[m_KanjiMode][m_BankSG];
 		m_BankSG = (-1);
 	} else
 		m_BankNow = m_BankTab[m_KanjiMode][(ch & 0x80) == 0 ? m_BankGL : m_BankGR];
 
-	m_SaveChar = m_BackChar = ch;
+	m_BackChar = ch;
 
 	switch(m_BankNow & SET_MASK) {
 	case SET_94:
@@ -532,6 +681,8 @@ void CTextRam::fc_TEXT(int ch)
 }
 void CTextRam::fc_TEXT2(int ch)
 {
+	fc_KANJI(ch);
+
 	m_BackChar = (m_BackChar << 8) | ch;
 	if ( --m_CodeLen <= 0 ) {
 		INSMDCK(2);
@@ -542,15 +693,19 @@ void CTextRam::fc_TEXT2(int ch)
 void CTextRam::fc_TEXT3(int ch)
 {
 	fc_POP(ch);
-	if ( IsOptEnable(TO_RLKANAUTO) && !m_OscFlag ) {
-		if ( m_BackChar >= 0xC0 && m_BackChar <= 0xF7 && ch >= 0x80 && ch <= 0xBF )
-			SetKanjiMode(UTF8_SET);
-		else if ( issjis1(m_BackChar) && issjis2(ch) )
-			SetKanjiMode(SJIS_SET);
-	}
+
+	if ( ch < 0x20 )
+		fc_Call(ch);
+	else
+		fc_KANJI(ch);
+
+	if ( IsOptEnable(TO_RLKANAUTO) )
+		fc_KANCHK();
 }
 void CTextRam::fc_SJIS1(int ch)
 {
+	fc_KANJI(ch);
+
 	m_BackChar = ch;
 	m_BankNow  = m_BankTab[m_KanjiMode][2];
 	fc_Push(STAGE_SJIS2);
@@ -558,6 +713,9 @@ void CTextRam::fc_SJIS1(int ch)
 void CTextRam::fc_SJIS2(int ch)
 {
 	int n;
+
+	fc_KANJI(ch);
+
 	m_BackChar = (m_BackChar << 8) | ch;
 	if ( (n = m_IConv.IConvChar(m_SendCharSet[SJIS_SET], m_FontTab[m_BankNow].m_IContName, m_BackChar)) == 0 ) {
 		m_BankNow = m_BankTab[m_KanjiMode][3];
@@ -573,17 +731,19 @@ void CTextRam::fc_SJIS2(int ch)
 void CTextRam::fc_SJIS3(int ch)
 {
 	fc_POP(ch);
-	if ( IsOptEnable(TO_RLKANAUTO) && !m_OscFlag ) {
-		if ( m_BackChar >= 0xC0 && m_BackChar <= 0xF7 && ch >= 0x80 && ch <= 0xBF )
-			SetKanjiMode(UTF8_SET);
-		else if ( m_BackChar >= 0xA0 && m_BackChar <= 0xFF && ch >= 0xA0 && ch <= 0xFF )
-			SetKanjiMode(EUC_SET);
-	}
+
+	if ( ch < 0x20 )
+		fc_Call(ch);
+	else
+		fc_KANJI(ch);
+
+	if ( IsOptEnable(TO_RLKANAUTO) )
+		fc_KANCHK();
 }
 void CTextRam::fc_UTF81(int ch)
 {
 	// 110x xxxx
-	m_SaveChar = ch;
+	fc_KANJI(ch);
 	m_BackChar = (ch & 0x1F) << 6;
 	m_CodeLen = 1;
 	fc_Push(STAGE_UTF82);
@@ -591,7 +751,7 @@ void CTextRam::fc_UTF81(int ch)
 void CTextRam::fc_UTF82(int ch)
 {
 	// 1110 xxxx
-	m_SaveChar = ch;
+	fc_KANJI(ch);
 	m_BackChar = (ch & 0x0F) << 12;
 	m_CodeLen = 2;
 	fc_Push(STAGE_UTF82);
@@ -599,7 +759,7 @@ void CTextRam::fc_UTF82(int ch)
 void CTextRam::fc_UTF83(int ch)
 {
 	// 1111 0xxx
-	m_SaveChar = ch;
+	fc_KANJI(ch);
 	m_BackChar = (ch & 0x07) << 18;
 	m_CodeLen = 3;
 	fc_Push(STAGE_UTF82);
@@ -607,7 +767,7 @@ void CTextRam::fc_UTF83(int ch)
 void CTextRam::fc_UTF84(int ch)
 {
 	// 1111 111x BOM
-	m_SaveChar = ch;
+	fc_KANJI(ch);
 	m_BackChar = ch;
 	m_CodeLen = 0;
 	fc_Push(STAGE_UTF82);
@@ -616,14 +776,15 @@ void CTextRam::fc_UTF85(int ch)
 {
 	// 10xx xxxx
 	int n;
+
+	fc_KANJI(ch);
+
 	switch(m_CodeLen) {
 	case 3:
-		m_SaveChar = ch;
 		m_BackChar |= (ch & 0x3F) << 12;
 		m_CodeLen--;
 		break;
 	case 2:
-		m_SaveChar = ch;
 		m_BackChar |= (ch & 0x3F) << 6;
 		m_CodeLen--;
 		break;
@@ -658,22 +819,21 @@ void CTextRam::fc_UTF85(int ch)
 void CTextRam::fc_UTF86(int ch)
 {
 	fc_POP(ch);
-	if ( IsOptEnable(TO_RLKANAUTO) && !m_OscFlag ) {
-		if ( issjis1(m_SaveChar) && issjis2(ch) )
-			SetKanjiMode(SJIS_SET);
-		else if ( m_SaveChar >= 0xA0 && m_SaveChar <= 0xFF && ch >= 0xA0 && ch <= 0xFF )
-			SetKanjiMode(EUC_SET);
-	}
+
+	if ( ch < 0x20 )
+		fc_Call(ch);
+	else
+		fc_KANJI(ch);
+
+	if ( IsOptEnable(TO_RLKANAUTO) )
+		fc_KANCHK();
 }
 void CTextRam::fc_UTF87(int ch)
 {
-	if ( IsOptEnable(TO_RLKANAUTO) && !m_OscFlag ) {
-		if ( issjis1(m_SaveChar) && issjis2(ch) )
-			SetKanjiMode(SJIS_SET);
-		else if ( m_SaveChar >= 0xA0 && m_SaveChar <= 0xFF && ch >= 0xA0 && ch <= 0xFF )
-			SetKanjiMode(EUC_SET);
-	}
-	m_SaveChar = ch;
+	fc_KANJI(ch);
+
+	if ( IsOptEnable(TO_RLKANAUTO) )
+		fc_KANCHK();
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -694,6 +854,7 @@ void CTextRam::fc_BELL(int ch)
 }
 void CTextRam::fc_BS(int ch)
 {
+	fc_KANJI(ch);
 	if ( --m_CurX < 0 ) {
 		if ( IS_ENABLE(m_AnsiOpt, TO_XTMRVW) != 0 ) {
 			m_CurX = m_Cols - 1;
@@ -708,12 +869,15 @@ void CTextRam::fc_BS(int ch)
 }
 void CTextRam::fc_HT(int ch)
 {
+	fc_KANJI(ch);
 	TABSET(TAB_COLSNEXT);
 	CallReciveChar(ch);
 	m_LastChar = ch;
 }
 void CTextRam::fc_LF(int ch)
 {
+	fc_KANJI(ch);
+
 	switch(m_RecvCrLf) {
 	case 0:		// CR+LF
 		ONEINDEX();
@@ -751,6 +915,8 @@ void CTextRam::fc_FF(int ch)
 }
 void CTextRam::fc_CR(int ch)
 {
+	fc_KANJI(ch);
+
 	switch(m_RecvCrLf) {
 	case 0:		// CR+LF
 		LOCATE(0, m_CurY);
@@ -805,6 +971,7 @@ void CTextRam::fc_CAN(int ch)
 }
 void CTextRam::fc_ESC(int ch)
 {
+	fc_KANJI(ch);
 	fc_Push(STAGE_ESC);
 	CallReciveChar(ch);
 	m_LastChar = ch;
@@ -957,7 +1124,8 @@ void CTextRam::fc_SSA(int ch)
 	if ( IS_ENABLE(m_AnsiOpt, TO_DECANM) ) {
 		m_BankTab[m_KanjiMode][0] = SET_94 | '0';
 		m_BankTab[m_KanjiMode][1] = SET_94 | '0';
-	}
+	} else
+		m_AttNow.em |= EM_SELECTED;
 	fc_POP(ch);
 }
 void CTextRam::fc_ESA(int ch)
@@ -966,7 +1134,8 @@ void CTextRam::fc_ESA(int ch)
 	if ( IS_ENABLE(m_AnsiOpt, TO_DECANM) ) {
 		m_BankTab[m_KanjiMode][0] = SET_94 | 'B';
 		m_BankTab[m_KanjiMode][1] = SET_94 | 'B';
-	}
+	} else
+		m_AttNow.em &= ~EM_SELECTED;
 	fc_POP(ch);
 }
 void CTextRam::fc_HTS(int ch)
@@ -1037,14 +1206,14 @@ void CTextRam::fc_SPA(int ch)
 {
 	// VT52 Print the line with the cursor.			ANSI SPA Start of guarded area
 	if ( !IS_ENABLE(m_AnsiOpt, TO_DECANM) )
-		m_AttNow.em |= EM_ERM;
+		m_AttNow.em |= EM_PROTECT;
 	fc_POP(ch);
 }
 void CTextRam::fc_EPA(int ch)
 {
 	// VT52 Enter printer controller mode.			ANSI EPA End of guarded area
 	if ( !IS_ENABLE(m_AnsiOpt, TO_DECANM) )
-		m_AttNow.em &= ~EM_ERM;
+		m_AttNow.em &= ~EM_PROTECT;
 	fc_POP(ch);
 }
 void CTextRam::fc_SCI(int ch)
@@ -1555,13 +1724,13 @@ void CTextRam::fc_OSC_ST(int ch)
 				if ( *p == L';' )
 					p++;
 				if ( tmp.Compare(L"?") == 0 ) {
-					COLORREF rgb = (n < 16 ? m_ColTab[n] : RGB(0, 0, 0));
+					COLORREF rgb = (n < 256 ? m_ColTab[n] : RGB(0, 0, 0));
 					UNGETSTR("\033]4;%d;rgb:%04x/%04x/%04x%s", n,
 						GetRValue(rgb), GetGValue(rgb), GetBValue(rgb),
 						(ch == 0x07 ? "\007":"\033\\"));
 				} else {
 					int r, g, b;
-					if ( n < 16 && swscanf(tmp, L"rgb:%x/%x/%x", &r, &g, &b) == 3 ) {
+					if ( n < 256 && swscanf(tmp, L"rgb:%x/%x/%x", &r, &g, &b) == 3 ) {
 						m_ColTab[n] = RGB(r, g, b);
 						DISPUPDATE();
 					}
@@ -2010,7 +2179,7 @@ void CTextRam::fc_SGR(int ch)
 		m_AnsiPara.Add(0);
 	for ( n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
 		switch(m_AnsiPara[n]) {
-		case 0: m_AttNow.cl = m_DefAtt.cl; m_AttNow.at = m_DefAtt.at; break;
+		case 0: m_AttNow.fc = m_DefAtt.fc; m_AttNow.bc = m_DefAtt.bc; m_AttNow.at = m_DefAtt.at; break;
 		case 1: m_AttNow.at |= ATT_BOLD;   break;	// 1 bold or increased intensity
 		case 2: m_AttNow.at |= ATT_HALF;   break;	// 2 faint, decreased intensity or second colour
 		case 3: m_AttNow.at |= ATT_ITALIC; break;	// 3 italicized
@@ -2020,11 +2189,11 @@ void CTextRam::fc_SGR(int ch)
 		case 7: m_AttNow.at |= ATT_REVS;   break;	// 7 negative image
 		case 8: m_AttNow.at |= ATT_SECRET; break;	// 8 concealed characters
 		case 9: m_AttNow.at |= ATT_LINE;   break;	// 9 crossed-out
+		case 21: m_AttNow.at |= ATT_DUNDER; break;	// 21 doubly underlined
 
-		//case 21: m_AttNow.at |= ATT_UNDER;  break;					// 21 doubly underlined
 		case 22: m_AttNow.at &= ~(ATT_BOLD | ATT_HALF); break;		// 22 normal colour or normal intensity (neither bold nor faint)
 		case 23: m_AttNow.at &= ~ATT_ITALIC; break;					// 23 not italicized, not fraktur
-		case 24: m_AttNow.at &= ~ATT_UNDER; break;					// 24 not underlined (neither singly nor doubly)
+		case 24: m_AttNow.at &= ~(ATT_UNDER | ATT_DUNDER); break;	// 24 not underlined (neither singly nor doubly)
 		case 25: m_AttNow.at &= ~(ATT_SBLINK | ATT_BLINK); break;	// 25 steady (not blinking)
 		case 27: m_AttNow.at &= ~ATT_REVS; break;					// 27 positive image
 		case 28: m_AttNow.at &= ~ATT_SECRET; break;					// 28 revealed characters
@@ -2032,55 +2201,61 @@ void CTextRam::fc_SGR(int ch)
 
 		case 30: case 31: case 32: case 33:
 		case 34: case 35: case 36: case 37:
-			m_AttNow.cl &= 0xF0;
-			m_AttNow.cl |= (m_AnsiPara[n] - 30);
+			m_AttNow.fc = (m_AnsiPara[n] - 30);
 			break;
 		case 38:
 			if ( GetAnsiPara(n + 1, 0) == 5 ) {	// 256 color
-				if ( (i = GetAnsiPara(n + 2, 0)) < 16 ) {
-					m_AttNow.cl &= 0xF0;
-					m_AttNow.cl |= i;
-				}
+				if ( (i = GetAnsiPara(n + 2, 0)) < 256 )
+					m_AttNow.fc = i;
 				n += 2;
 			}
 			break;
 		case 39:
-			m_AttNow.cl &= 0xF0;
-			m_AttNow.cl |= (m_DefAtt.cl & 0x0F);
+			m_AttNow.fc = m_DefAtt.fc;
 			break;
 		case 40: case 41: case 42: case 43:
 		case 44: case 45: case 46: case 47:
-			m_AttNow.cl &= 0x0F;
-			m_AttNow.cl |= ((m_AnsiPara[n] - 40) << 4);
+			m_AttNow.bc = (m_AnsiPara[n] - 40);
 			break;
 		case 48:
 			if ( GetAnsiPara(n + 1, 0) == 5 ) {	// 256 color
-				if ( (i = GetAnsiPara(n + 2, 0)) < 16 ) {
-					m_AttNow.cl &= 0x0F;
-					m_AttNow.cl |= (i << 4);
-				}
+				if ( (i = GetAnsiPara(n + 2, 0)) < 256 )
+					m_AttNow.bc = i;
 				n += 2;
 			}
 			break;
 		case 49:
-			m_AttNow.cl &= 0x0F;
-			m_AttNow.cl |= (m_DefAtt.cl & 0xF0);
+			m_AttNow.bc = m_DefAtt.bc;
 			break;
+
+		case 51: m_AttNow.at |= ATT_FRAME; break;					// 51  framed
+		case 52: m_AttNow.at |= ATT_CIRCLE; break;					// 52  encircled
+		case 53: m_AttNow.at |= ATT_OVER;   break;					// 53  overlined
+		case 54: m_AttNow.at &= ~(ATT_FRAME | ATT_CIRCLE); break;	// 54  not framed, not encircled
+		case 55: m_AttNow.at &= ~ATT_OVER; break;					// 55  not overlined
+
+		case 60: m_AttNow.at |= ATT_RSLINE; break;					// 60  ideogram underline or right side line
+		case 61: m_AttNow.at |= ATT_RDLINE; break;					// 61  ideogram double underline or double line on the right side
+		case 62: m_AttNow.at |= ATT_LSLINE; break;					// 62  ideogram overline or left side line
+		case 63: m_AttNow.at |= ATT_LDLINE; break;					// 63  ideogram double overline or double line on the left side
+		case 64: m_AttNow.at |= ATT_STRESS; break;					// 64  ideogram stress marking
+		case 65: m_AttNow.at &= ~(ATT_RSLINE | ATT_RDLINE |
+					ATT_LSLINE | ATT_LDLINE | ATT_STRESS); break;	// 65  cancels the effect of the rendition aspects established by parameter values 60 to 64
 
 		case 90: case 91: case 92: case 93:
 		case 94: case 95: case 96: case 97:
-			m_AttNow.cl &= 0xF0;
-			m_AttNow.cl |= (m_AnsiPara[n] - 90 + 8);
+			m_AttNow.fc = (m_AnsiPara[n] - 90 + 8);
 			break;
 		case 100: case 101:  case 102: case 103:
 		case 104: case 105:  case 106: case 107:
-			m_AttNow.cl &= 0x0F;
-			m_AttNow.cl |= ((m_AnsiPara[n] - 100 + 8) << 4);
+			m_AttNow.bc = (m_AnsiPara[n] - 100 + 8);
 			break;
 		}
 	}
-	if ( IS_ENABLE(m_AnsiOpt, TO_DECECM) == 0 )
-		m_AttSpc.cl = m_AttNow.cl;
+	if ( IS_ENABLE(m_AnsiOpt, TO_DECECM) == 0 ) {
+		m_AttSpc.fc = m_AttNow.fc;
+		m_AttSpc.bc = m_AttNow.bc;
+	}
 	if ( IS_ENABLE(m_AnsiOpt, TO_RLGCWA) != 0 )
 		m_AttSpc.at = m_AttNow.at;
 	fc_POP(ch);
@@ -2465,50 +2640,40 @@ void CTextRam::fc_DECCARA(int ch)
 
 				case 30: case 31: case 32: case 33:
 				case 34: case 35: case 36: case 37:
-					vp->cl &= 0xF0;
-					vp->cl |= (m_AnsiPara[n] - 30);
+					vp->fc = (m_AnsiPara[n] - 30);
 					break;
 				case 38:
 					if ( GetAnsiPara(n + 1, 0) == 5 ) {	// 256 color
-						if ( (i = GetAnsiPara(n + 2, 0)) < 16 ) {
-							vp->cl &= 0xF0;
-							vp->cl |= i;
-						}
+						if ( (i = GetAnsiPara(n + 2, 0)) < 256 )
+							vp->fc = i;
 						n += 2;
 					}
 					break;
 				case 39:
-					vp->cl &= 0xF0;
-					vp->cl |= (m_DefAtt.cl & 0x0F);
+					vp->fc = m_DefAtt.fc;
 					break;
 				case 40: case 41: case 42: case 43:
 				case 44: case 45: case 46: case 47:
-					vp->cl &= 0x0F;
-					vp->cl |= ((m_AnsiPara[n] - 40) << 4);
+					vp->bc = (m_AnsiPara[n] - 40);
 					break;
 				case 48:
 					if ( GetAnsiPara(n + 1, 0) == 5 ) {	// 256 color
-						if ( (i = GetAnsiPara(n + 2, 0)) < 16 ) {
-							vp->cl &= 0x0F;
-							vp->cl |= (i << 4);
-						}
+						if ( (i = GetAnsiPara(n + 2, 0)) < 256 )
+							vp->bc = i;
 						n += 2;
 					}
 					break;
 				case 49:
-					vp->cl &= 0x0F;
-					vp->cl |= (m_DefAtt.cl & 0xF0);
+					vp->bc = m_DefAtt.bc;
 					break;
 
 				case 90: case 91: case 92: case 93:
 				case 94: case 95: case 96: case 97:
-					vp->cl &= 0xF0;
-					vp->cl |= (m_AnsiPara[n] - 90 + 8);
+					vp->fc = (m_AnsiPara[n] - 90 + 8);
 					break;
 				case 100: case 101:  case 102: case 103:
 				case 104: case 105:  case 106: case 107:
-					vp->cl &= 0x0F;
-					vp->cl |= ((m_AnsiPara[n] - 100 + 8) << 4);
+					vp->bc = (m_AnsiPara[n] - 100 + 8);
 					break;
 				}
 			}
@@ -2578,7 +2743,8 @@ void CTextRam::fc_DECFRA(int ch)
 			vp = GETVRAM(x, y);
 			vp->ch = (BYTE)n;
 			vp->at = m_AttNow.at;
-			vp->cl = m_AttNow.cl;
+			vp->fc = m_AttNow.fc;
+			vp->bc = m_AttNow.bc;
 			vp->md = m_BankTab[m_KanjiMode][(n & 0x80) == 0 ? m_BankGL : m_BankGR];
 		}
 	}
@@ -2709,9 +2875,9 @@ void CTextRam::fc_CSI_ETC(int ch)
 		break;
 	case ('"' << 8) | 'q':		// DECSCA Select character attributes
 		if ( GetAnsiPara(0, 0) == 1 )
-			m_AttNow.em |= EM_ERM;
+			m_AttNow.em |= EM_PROTECT;
 		else
-			m_AttNow.em &= ~EM_ERM;
+			m_AttNow.em &= ~EM_PROTECT;
 		break;
 #if 0
 	case ('"' << 8) | 's':		// DECPWA Page width alignment
@@ -2800,9 +2966,12 @@ void CTextRam::fc_CSI_ETC(int ch)
 		case 14: m_AttNow.at = ATT_REVS | ATT_UNDER | ATT_BLINK; break;
 		case 15: m_AttNow.at = ATT_BOLD | ATT_REVS | ATT_UNDER | ATT_BLINK; break;
 		}
-		m_AttNow.cl = (GetAnsiPara(2, 0) << 4) | GetAnsiPara(1, 7);
-		if ( IS_ENABLE(m_AnsiOpt, TO_DECECM) == 0 )
-			m_AttSpc.cl = m_AttNow.cl;
+		m_AttNow.fc = GetAnsiPara(1, 7);
+		m_AttNow.bc = (GetAnsiPara(2, 0) << 4);
+		if ( IS_ENABLE(m_AnsiOpt, TO_DECECM) == 0 ) {
+			m_AttSpc.fc = m_AttNow.fc;
+			m_AttSpc.bc = m_AttNow.bc;
+		}
 		if ( IS_ENABLE(m_AnsiOpt, TO_RLGCWA) != 0 )
 			m_AttSpc.at = m_AttNow.at;
 		break;
@@ -2838,736 +3007,4 @@ void CTextRam::fc_CSI_ETC(int ch)
 		break;
 	}
 	fc_POP(ch);
-}
-
-//////////////////////////////////////////////////////////////////////
-// Tek Func
-
-#define	TEK_FONT_WIDTH		TekFonts[m_Tek_Font][0]
-#define	TEK_FONT_HEIGHT		TekFonts[m_Tek_Font][1]
-
-static const WCHAR *TekPoint = L"E¢{–›~ ž¤™¦”“";
-static const int TekFonts[4][2] = {
-//		Width	Height
-	{	55,		88,		},   	// 74 cols 35 lines
-	{	51,		81,		},   	// 81 cols 38 lines
-    {	34,		53,		},  	// 121 cols 58 lines
-	{	31,		48,		},  	// 133 cols 64 lines
-};
-static const int SinTab[] = {	// sin(x)*1000 x=0 360+90..5
-	1000,	 996,	 985,	 966,	 940,	 906,	 866,	 819,	 766,	 707,
-	 643,	 574,	 500,	 423,	 342,	 259,	 174,	  87,	   0,	 -87,
-	-174,	-259,	-342,	-423,	-500,	-574,	-643,	-707,	-766,	-819,
-	-866,	-906,	-940,	-966,	-985,	-996,	-1000,	-996,	-985,	-966,
-	-940,	-906,	-866,	-819,	-766,	-707,	-643,	-574,	-500,	-423,
-	-342,	-259,	-174,	 -87,	   0,	  87,	 174,	 259,	 342,	 423,
-	 500,	 574,	 643,	 707,	 766,	 819,	 866,	 906,	 940,	 966,
-	 985,	 996,	1000,	 996,	 985,	 966,	 940,	 906,	 866,	 819,
-	 766,	 707,	 643,	 574,	 500,	 423,	 342,	 259,	 174,	  87,
-};
-
-void CTextRam::TekInit(int ver)
-{
-	CString tmp;
-
-	if ( m_pTekWnd != NULL ) {
-		if ( m_Tek_Ver == ver || ver == 0 ) {
-			if ( !m_pTekWnd->IsWindowVisible() )
-				m_pTekWnd->ShowWindow(SW_SHOW);
-			return;
-		}
-		m_Tek_Ver = ver;
-		tmp.Format("Tek%dxx - %s", m_Tek_Ver / 100, m_pDocument->m_ServerEntry.m_EntryName);
-		m_pTekWnd->SetWindowText(tmp);
-	} else {
-		if ( ver != 0 )
-			m_Tek_Ver = ver;
-		tmp.Format("Tek%dxx - %s", m_Tek_Ver / 100, m_pDocument->m_ServerEntry.m_EntryName);
-		m_pTekWnd = new CTekWnd(this, ::AfxGetMainWnd());
-		m_pTekWnd->Create(NULL, tmp);
-	}
-
-	if ( m_Tek_Ver == 4014 || ver == 0 ) {
-		if ( !m_pTekWnd->IsWindowVisible() )
-			m_pTekWnd->ShowWindow(SW_SHOW);
-	}
-
-	if ( m_Tek_Ver == 4014 ) {
-		m_Tek_Line &= 0x1F;
-		m_Tek_Base = 0;
-		m_Tek_Angle = 0;
-	}
-}
-void CTextRam::TekClose()
-{
-	if ( m_pTekWnd == NULL )
-		return;
-	m_pTekWnd->DestroyWindow();
-}
-void CTextRam::TekForcus(BOOL fg)
-{
-	if ( fg ) {		// to Tek Mode
-		if ( fc_Stage != STAGE_TEK )
-			fc_Push(STAGE_TEK);
-	} else {		// to VT Mode
-		if ( fc_Stage == STAGE_TEK )
-			fc_POP(' ');
-	}
-	TekFlush();
-}
-void CTextRam::TekDraw(CDC *pDC, CRect &frame)
-{
-	int mv, dv;
-	TEKNODE *tp;
-	POINT po[2];
-	CStringW tmp;
-	int np = 0;
-	int nf = 0;
-	int na = 0;
-	int OldMode;
-	LOGBRUSH LogBrush;
-	CFont font, *pOldFont;
-	CPen pen, *pOldPen;
-	static const DWORD PenExtTab[8][4]  = {	{ 8, 0, 8, 0 },	{ 1, 1, 1, 1 },	{ 1, 1, 3, 1 },	{ 2, 1, 2, 1 }, { 2, 2, 2, 2 },	{ 3, 1, 2, 1 },	{ 4, 2, 1, 2 },	{ 3, 2, 3, 2 }	};
-	static const int PenTypeTab[]       = { PS_SOLID,		PS_DOT,			PS_USERSTYLE,	PS_USERSTYLE,	PS_DASH,		PS_DASHDOTDOT,	PS_DASHDOT,		PS_USERSTYLE };
-	static const int PenWidthTab[]      = { 1, 2  };
-	static const COLORREF PenColorTab[] = {	RGB(  0,   0,   0), RGB(192, 192, 192), RGB(192, 0, 0), RGB(0, 192, 0), RGB(0, 0, 192), RGB(0, 192, 192), RGB(192, 0, 192), RGB(192, 192, 0),
-											RGB( 64,  64,  64), RGB( 96,  96,  96), RGB( 96, 0, 0), RGB(0,  96, 0), RGB(0, 0,  96), RGB(0,  96,  96), RGB( 96, 0,  96), RGB( 96,  96, 0) };
-
-	memset(&LogBrush, 0, sizeof(LOGBRUSH));
-
-	mv = frame.Width();
-	dv = TEK_WIN_WIDTH;
-
-	pen.CreatePen(PenTypeTab[np], PenWidthTab[np], RGB(0, 0, 0));
-	font.CreateFont(0 - TekFonts[nf][1] * mv / dv, 0, 0, 0, FW_DONTCARE, 0, 0, 0, ANSI_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY, FIXED_PITCH | FF_MODERN, "");
-
-	pOldPen  = pDC->SelectObject(&pen);
-	pOldFont = pDC->SelectObject(&font);
-	OldMode  = pDC->SetBkMode(TRANSPARENT);
-
-	pDC->SetTextColor(RGB(0, 0, 0));
-	pDC->FillSolidRect(frame, RGB(255, 255, 255));
-
-	for ( tp = m_Tek_Top ; tp != NULL ; tp = tp->next ) {
-		switch(tp->md) {
-		case 0:	// Line
-			if ( np != tp->st ) {
-				np = tp->st;
-				pen.DeleteObject();
-				if ( PenTypeTab[np % 8] == PS_USERSTYLE ) {
-					LogBrush.lbColor = PenColorTab[(np / 8) % 16];
-					LogBrush.lbStyle = BS_SOLID;
-					pen.CreatePen(PS_USERSTYLE, PenWidthTab[np / 128], &LogBrush, 4, PenExtTab[np % 8]);
-				} else
-					pen.CreatePen(PenTypeTab[np % 8], PenWidthTab[np / 128], PenColorTab[(np / 8) % 16]);
-				pDC->SelectObject(&pen);
-			}
-			po[0].x = frame.left   + tp->sx * mv / dv;
-			po[0].y = frame.bottom - tp->sy * mv / dv;
-			po[1].x = frame.left   + tp->ex * mv / dv;
-			po[1].y = frame.bottom - tp->ey * mv / dv;
-			pDC->Polyline(po, 2);
-			break;
-		case 1:	// Text
-			if ( nf != tp->st || na != tp->ex ) {
-				nf = tp->st;
-				na = tp->ex;
-				font.DeleteObject();
-				font.CreateFont(0 - TekFonts[nf][1] * mv / dv, 0, na * 10, 0, FW_DONTCARE, 0, 0, 0, DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY, FIXED_PITCH | FF_MODERN, "");
-				pDC->SelectObject(&font);
-			}
-			if ( (tp->ch & 0xFFFF0000) != 0 )
-				tmp = (WCHAR)(tp->ch >> 16);
-			tmp = (WCHAR)(tp->ch & 0xFFFF);
-			::ExtTextOutW(pDC->m_hDC,
-				frame.left   + tp->sx * mv / dv,
-				frame.bottom - (tp->sy + TekFonts[nf][1]) * mv / dv,
-				0, NULL, tmp, 1, NULL);
-			break;
-		}
-	}
-
-	pDC->SelectObject(pOldPen);
-	pDC->SelectObject(pOldFont);
-	pDC->SetBkMode(OldMode);
-}
-void CTextRam::TekFlush()
-{
-	if ( m_pTekWnd != NULL )
-		m_pTekWnd->Invalidate(0);
-
-	m_Tek_Flush = FALSE;
-
-//	TRACE("Tek Flush\n");
-}
-void CTextRam::TekClear()
-{
-	TEKNODE *tp;
-
-	while ( (tp = m_Tek_Top) != NULL ) {
-		m_Tek_Top = tp->next;
-		tp->next = m_Tek_Free;
-		m_Tek_Free = tp;
-	}
-
-	if ( m_Tek_Ver == 4014 ) {
-		m_Tek_Font = 0;
-		m_Tek_Line = 0;
-		m_Tek_Base = 0;
-		m_Tek_Angle = 0;
-		m_Tek_cX = 0; m_Tek_cY = TEK_WIN_HEIGHT - 88;
-		m_Tek_lX = 0; m_Tek_lY = m_Tek_cY;
-		m_Tek_wX = 0; m_Tek_wY = m_Tek_cY;
-	}
-
-	TekFlush();
-}
-void CTextRam::TekLine(int st, int sx, int sy, int ex, int ey)
-{
-	TEKNODE *tp;
-
-	if ( (tp = m_Tek_Free) != NULL )
-		m_Tek_Free = tp->next;
-	else
-		tp = new TEKNODE;
-
-	tp->md = 0;
-	tp->st = st;
-	tp->sx = sx;
-	tp->sy = sy;
-	tp->ex = ex;
-	tp->ey = ey;
-
-	tp->next = m_Tek_Top;
-	m_Tek_Top = tp;
-
-	if ( m_Tek_Flush )
-		TekFlush();
-
-//	TRACE("Tek Line #%d %d,%d - %d,%d\n", st, sx, sy, ex, ey);
-}
-void CTextRam::TekText(int st, int sx, int sy, int ch)
-{
-	TEKNODE *tp;
-
-	if ( (tp = m_Tek_Free) != NULL )
-		m_Tek_Free = tp->next;
-	else
-		tp = new TEKNODE;
-
-	tp->md = 1;
-	tp->st = st;
-	if ( m_Tek_Ver == 4105 ) {
-		tp->sx = sx;
-		tp->sy = sy;
-		tp->ex = m_Tek_Angle;
-
-		switch(m_Tek_Angle / 90) {		// m_Tek_Base == 0 ?
-		case 0:		// Right
-			tp->sy -= TekFonts[st][1] / 8;
-			break;
-		case 1:		// Up
-			tp->sx -= TekFonts[st][1] / 8;
-			tp->sy -= TekFonts[st][0];
-			break;
-		case 2:		// Left
-			tp->sy += TekFonts[st][1] / 8;
-			break;
-		default:	// Down
-			tp->sx += TekFonts[st][1] / 8;
-			tp->sy += TekFonts[st][0];
-			break;
-		}
-	} else {
-		tp->sx = sx;
-		tp->sy = sy;
-		tp->ex = 0;
-	}
-	tp->ey = 0;
-	tp->ch = ch;
-
-	tp->next = m_Tek_Top;
-	m_Tek_Top = tp;
-
-	if ( m_Tek_Flush )
-		TekFlush();
-
-//	TRACE("Tek Text #%d %d,%d (%c)\n", st, sx, sy, ch);
-}
-void CTextRam::fc_TEK_IN(int ch)
-{
-	TekInit(4014);
-	TekClear();
-	fc_Case(STAGE_TEK);
-}
-void CTextRam::fc_TEK_CUR(int ch)
-{
-	switch(ch) {
-	case 0x08:	// LEFT
-		if ( (m_Tek_cX -= TEK_FONT_WIDTH) > 0 )
-			break;
-		m_Tek_cX = TEK_WIN_WIDTH - TEK_FONT_WIDTH;
-	case 0x0B:	// UP
-		if ( (m_Tek_cY += TEK_FONT_HEIGHT) >= TEK_WIN_HEIGHT )
-			m_Tek_cY = TEK_WIN_HEIGHT - TEK_FONT_HEIGHT;
-		break;
-
-	case 0x09:	// RIGHT
-		if ( (m_Tek_cX += TEK_FONT_WIDTH) < TEK_WIN_WIDTH )
-			break;
-		m_Tek_cX = 0;
-	case 0x0A:	// DOWN
-		if ( (m_Tek_cY -= TEK_FONT_HEIGHT) < 0 )
-			m_Tek_cY = TEK_WIN_HEIGHT - TekFonts[m_Tek_Font][1];
-		break;
-	}
-}
-void CTextRam::fc_TEK_FLUSH(int ch)
-{
-	m_Tek_cX = 0;
-	TekFlush();
-}
-void CTextRam::fc_TEK_MODE(int ch)
-{
-	// 0x1B ESC
-	// 0x1C PT
-	// 0x1D PLT
-	// 0x1E IPL
-	// 0x1F ALP
-	m_Tek_Mode = m_BackChar = ch;
-	m_Tek_Stat = 0;
-	m_Tek_Pen = 0;
-}
-void CTextRam::fc_TEK_STAT(int ch)
-{
-	int n, x, y;
-
-	switch(m_Tek_Mode) {
-	case 0x1B:	// ESC
-		m_Tek_Gin = FALSE;
-		switch(ch) {
-		case 0x03:				// VT_MODE
-			fc_POP(' ');
-			TekFlush();
-			break;
-		case 0x05:				// REPORT
-			UNGETSTR("4%c%c%c%c\r", ' ' + ((m_Tek_cX >> 7) & 0x1F), ' ' + ((m_Tek_cX >> 2) & 0x1F), ' ' + ((m_Tek_cY >> 7) & 0x1F), ' ' + ((m_Tek_cY >> 2) & 0x1F));
-			break;
-		case 0x0C:				// PAGE
-			TekClear();
-			break;
-		case 0x0E:				// APL Font Set
-		case 0x0F:				// ASCII Font Set
-			break;
-		case 0x17:				// COPY
-		case 0x18:				// BYP
-			break;
-		case 0x1A:				// GIN
-			m_Tek_Gin = TRUE;
-			break;
-		case 0x38: case 0x39:
-		case 0x3A: case 0x3B:	// CHAR_SIZE	Font Size 0-3
-			m_Tek_Font = ch & 0x03;
-			break;
-		case '[':				// CSI
-			m_Tek_Mode = '[';
-			m_BackChar = 0;
-			m_AnsiPara.RemoveAll();
-			return;
-		case ']':				// OSC
-			m_Tek_Mode = ']';
-			return;
-		default:
-			if ( ch == '%' || (ch >= 0x40 && ch <= 0x5F) ) {
-				m_Tek_Mode = '%';
-				m_BackChar = (ch << 8);
-				return;
-			} else if ( ch >= 0x60 && ch <= 0x7F )	// beam and vector selector 0-7 * 4
-				m_Tek_Line = ch - 0x60;
-			break;
-		}
-		m_Tek_Mode = 0x1F;	// ALP
-		break;
-
-	case 0x1E:	// IPL
-		m_Tek_Gin = FALSE;
-		switch(ch) {
-		case ' ': m_Tek_Pen = 0; return;
-		case 'A':             m_Tek_cX++; break;
-		case 'B':             m_Tek_cX--; break;
-		case 'D': m_Tek_cY++;             break;
-		case 'E': m_Tek_cY++; m_Tek_cX++; break;
-		case 'F': m_Tek_cY++; m_Tek_cX--; break;
-		case 'H': m_Tek_cY--;             break;
-		case 'I': m_Tek_cY--; m_Tek_cX++; break;
-		case 'J': m_Tek_cY--; m_Tek_cX--; break;
-		case 'P': m_Tek_Pen = 1; return;
-		}
-		if ( m_Tek_Pen )
-			TekLine(m_Tek_Line, m_Tek_lX, m_Tek_lY, m_Tek_cX, m_Tek_cY);
-		m_Tek_lX = m_Tek_cX; m_Tek_lY = m_Tek_cY;
-		break;
-
-	case 0x1F:	// ALP
-		m_Tek_Gin = FALSE;
-		n = 0;
-		switch(m_KanjiMode) {
-		case EUC_SET:
-		case ASCII_SET:
-			switch(m_Tek_Stat) {
-			case 0:
-				if ( ch >= ' ' && ch <= 0x7F || ch >= 0x80 && ch <= 0x8D || ch >= 0x90 && ch <= 0x9F ) {
-					TekText(m_Tek_Font, m_Tek_cX, m_Tek_cY, ch);
-					n = 1;
-				} else if ( ch == 0x8E ) {
-					m_Tek_Stat = 2;
-				} else if ( ch == 0x8F ) {
-					m_Tek_Stat = 3;
-				} else if ( ch >= 0xA0 && ch <= 0xFF ) {
-					m_BackChar = ch << 8;
-					m_Tek_Stat = 1;
-				}
-				break;
-			case 1:
-				ch |= m_BackChar;
-				ch = m_IConv.IConvChar(m_SendCharSet[m_KanjiMode], "UTF-16BE", ch);
-				TekText(m_Tek_Font, m_Tek_cX, m_Tek_cY, ch);
-				n = 2;
-				m_Tek_Stat = 0;
-				break;
-			case 2:
-				ch = m_IConv.IConvChar(m_SendCharSet[m_KanjiMode], "UTF-16BE", ch | 0x80);
-				TekText(m_Tek_Font, m_Tek_cX, m_Tek_cY, ch);
-				n = 1;
-				m_Tek_Stat = 0;
-				break;
-			case 3:
-				m_BackChar = ch << 8;
-				m_Tek_Stat = 1;
-				break;
-			}
-			break;
-		case SJIS_SET:
-			switch(m_Tek_Stat) {
-			case 0:
-				if ( ch >= ' ' && ch <= 0x7F ) {
-					TekText(m_Tek_Font, m_Tek_cX, m_Tek_cY, ch);
-					n = 1;
-				} else if ( issjis1(ch) ) {
-					m_BackChar = ch << 8;
-					m_Tek_Stat = 1;
-				} else if ( iskana(ch) ) {
-					ch = m_IConv.IConvChar(m_SendCharSet[m_KanjiMode], "UTF-16BE", ch);
-					TekText(m_Tek_Font, m_Tek_cX, m_Tek_cY, ch);
-					n = 1;
-				}
-				break;
-			case 1:
-				if ( issjis2(ch) ) {
-					ch |= m_BackChar;
-					ch = m_IConv.IConvChar(m_SendCharSet[m_KanjiMode], "UTF-16BE", ch);
-					TekText(m_Tek_Font, m_Tek_cX, m_Tek_cY, ch);
-					n = 2;
-				}
-				m_Tek_Stat = 0;
-				break;
-			}
-			break;
-		case UTF8_SET:
-			switch(m_Tek_Stat) {
-			case 0:
-				if ( ch >= ' ' && ch <= 0x7F ) {
-					TekText(m_Tek_Font, m_Tek_cX, m_Tek_cY, ch);
-					n = 1;
-				} else if ( ch >= 0xC0 && ch <= 0xDF ) {
-					m_BackChar = (ch & 0x1F) << 6;
-					m_Tek_Stat = 3;
-				} else if ( ch >= 0xE0 && ch <= 0xEF ) {
-					m_BackChar = (ch & 0x0F) << 12;
-					m_Tek_Stat = 2;
-				} else if ( ch >= 0xF0 && ch <= 0xF7 ) {
-					m_BackChar = (ch & 0x07) << 18;
-					m_Tek_Stat = 1;
-				}
-				break;
-			case 1:
-				if ( ch >= 0x80 && ch <= 0xBF ) {
-					m_BackChar |= (ch & 0x3F) << 12;
-					m_Tek_Stat = 2;
-				} else
-					m_Tek_Stat = 0;
-				break;
-			case 2:
-				if ( ch >= 0x80 && ch <= 0xBF ) {
-					m_BackChar |= (ch & 0x3F) << 6;
-					m_Tek_Stat = 3;
-				} else
-					m_Tek_Stat = 0;
-				break;
-			case 3:
-				if ( ch >= 0x80 && ch <= 0xBF ) {
-					ch = m_BackChar | (ch & 0x3F);
-					ch = m_IConv.IConvChar("UCS-4BE", "UTF-16BE", ch);
-					TekText(m_Tek_Font, m_Tek_cX, m_Tek_cY, ch);
-					n = 2;
-				}
-				m_Tek_Stat = 0;
-				break;
-			}
-			break;
-		}
-		if ( n > 0 ) {
-			x = (TEK_FONT_WIDTH * n * SinTab[m_Tek_Angle / 5] / 1000);
-			y = 0 - (TEK_FONT_WIDTH * n * SinTab[(m_Tek_Angle + 90) / 5] / 1000);
-
-			m_Tek_cX += x;
-			m_Tek_cY += y;
-
-			if ( m_Tek_cX < 0 ) {
-				m_Tek_cX += TEK_WIN_WIDTH;
-				if ( (m_Tek_cY += y) >= TEK_WIN_HEIGHT )
-					m_Tek_cY -= TEK_WIN_HEIGHT;
-			} else if ( m_Tek_cX >= TEK_WIN_WIDTH ) {
-				m_Tek_cX -= TEK_WIN_WIDTH;
-				if ( (m_Tek_cY -= y) < 0 )
-					m_Tek_cY += TEK_WIN_HEIGHT;
-			}
-
-			if ( m_Tek_cY < 0 ) {
-				m_Tek_cY += TEK_WIN_HEIGHT;
-				if ( (m_Tek_cX -= x) < 0 )
-					m_Tek_cX += TEK_WIN_WIDTH;
-			} else if ( m_Tek_cY >= TEK_WIN_HEIGHT ) {
-				m_Tek_cY -= TEK_WIN_HEIGHT;
-				if ( (m_Tek_cX += x) >= TEK_WIN_HEIGHT )
-					m_Tek_cX -= TEK_WIN_WIDTH;
-			}
-		}
-		break;
-
-	case '[':	// CSI
-		if ( ch >= 0x20 && ch <= 0x2F ) {
-			m_BackChar &= 0xFF0000;
-			m_BackChar |= (ch << 8);
-		} else if ( ch >= 0x30 && ch <= 0x39 ) {
-			if ( m_AnsiPara.GetSize() <= 0 )
-				m_AnsiPara.Add(0);
-			n = (int)m_AnsiPara.GetSize() - 1;
-			m_AnsiPara[n] = m_AnsiPara[n] * 10 + ((ch & 0x7F) - '0');
-		} else if ( ch == 0x3B ) {
-			m_AnsiPara.Add(0);
-		} else if ( ch >= 0x3C && ch <= 0x3F ) {
-			m_BackChar = (ch << 16);
-		} else if ( ch >= 0x40 ) {
-			switch(m_BackChar | (ch & 0x7F)) {
-			case ('?' << 16) | 'l':
-				for ( n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
-					switch(GetAnsiPara(n, 0)) {
-					case 38:	
-						fc_POP(' ');
-						TekFlush();
-						break;
-					}
-				}
-				break;
-			case 'm':		// special color linetypes for MS-DOS Kermit v2.31 tektronix emulator
-				for ( n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
-					switch(GetAnsiPara(n, 0)) {
-					case 0:
-						m_Tek_Line &= 0xBF;
-						break;
-					case 1:
-						m_Tek_Line |= 0x40;
-						break;
-					case 30: case 31: case 32: case 33:
-					case 34: case 35: case 36: case 37:
-						m_Tek_Line = (m_Tek_Line & 0xC7) | ((GetAnsiPara(n, 0) & 0x07) << 3);
-						break;
-					}
-				}
-				break;
-			}
-			m_Tek_Mode = 0x1F;	// ALP
-		}
-		break;
-
-	case ']':	// OSC
-		if ( ch == 0x07 )
-			m_Tek_Mode = 0x1F;	// ALP
-		break;
-
-	case '%':
-		if ( ch == '%' )
-			break;
-		if ( ch == '!' || (ch >= 'A' && ch <= 'Z') )
-			m_BackChar |= ch;
-
-		m_Tek_Mode = 'A';
-		m_Tek_Int = m_Tek_Pos = 0;
-		m_Tek_Gin = FALSE;
-		goto DOESC;
-
-	case 'A':
-		if ( ch >= 0x20 && ch <= 0x3F ) {
-			m_Tek_Int = (m_Tek_Int << 4) | (ch & 0x0F);
-			if ( (ch & 0x10) == 0 )
-				m_Tek_Int = 0 - m_Tek_Int;
-			m_Tek_Pos++;
-		} else if ( ch >= 0x40 && ch <= 0x7F ) {
-			m_Tek_Int = (m_Tek_Int << 6) | (ch & 0x3F);
-			break;
-		} else {
-			m_Tek_Mode = 0x1F;	// ALP
-			break;
-		}
-
-	DOESC:
-		switch(m_BackChar) {
-		case ('%' << 8) | '!':	// set mode 0=tek 1=ansi
-			if ( m_Tek_Pos == 1 && m_Tek_Int == 1 ) {
-				if ( m_pTekWnd != NULL && !m_pTekWnd->IsWindowVisible() )
-					TekClose();
-				fc_POP(' ');
-				TekFlush();
-			}
-			break;
-
-		case ('L' << 8) | 'Z':	// clear the dialog buffer
-			TekFlush();
-			break;
-
-		case ('L' << 8) | 'G':	// vector
-		case ('L' << 8) | 'F':	// move
-		case ('L' << 8) | 'H':	// point
-			m_Tek_Mode = 0x1D;
-			break;
-		case ('L' << 8) | 'T':	// string
-			if ( m_Tek_Pos == 1 )
-				m_Tek_Mode = 0x1F;	// ALP
-			break;
-
-		case ('L' << 8) | 'V':	// set dialog area 0=invisible 1=visible
-			if ( m_Tek_Pos != 1 )
-				break;
-			if ( m_pTekWnd == NULL )
-				TekInit(4105);
-			if ( !m_pTekWnd->IsWindowVisible() && m_Tek_Int != 0 )
-				m_pTekWnd->ShowWindow(SW_SHOW);
-			break;
-
-		case ('M' << 8) | 'C':	// set character size to 59 point height
-			if ( m_Tek_Pos == 2 ) {		// Height
-				n = m_Tek_Int * 14 / 10;
-				if ( n >= TekFonts[0][1] )
-					m_Tek_Font = 0;
-				else if ( n >= TekFonts[1][1] )
-					m_Tek_Font = 1;
-				else if ( n >= TekFonts[2][1] )
-					m_Tek_Font = 2;
-				else
-					m_Tek_Font = 3;
-			}
-			break;
-
-		case ('M' << 8) | 'G':	// set character write mode to overstrike
-			break;
-		case ('M' << 8) | 'L':	// set line index (color)
-			if ( m_Tek_Pos == 1 )
-				m_Tek_Line = (m_Tek_Line & 0x87) | ((m_Tek_Int & 0x0F) << 3);
-			break;
-		case ('M' << 8) | 'M':	// set point size
-			if ( m_Tek_Pos == 1 )
-				m_Tek_Point = m_Tek_Int % 11;
-			break;
-		case ('M' << 8) | 'N':	// set character path to 0 (characters placed equal to rotation)
-			if ( m_Tek_Pos == 1 )
-				m_Tek_Base = m_Tek_Int;
-			break;
-		case ('M' << 8) | 'Q':	// set character precision to string
-			break;
-
-		case ('M' << 8) | 'R':	// set string angle
-			if ( m_Tek_Pos == 1 ) {
-				m_Tek_Angle = m_Tek_Int % 360;
-				if ( m_Tek_Angle < 0 )
-					m_Tek_Angle += 360;
-			}
-			break;
-
-		case ('M' << 8) | 'T':	// set character text index to 1
-			break;
-		case ('M' << 8) | 'V':	// set line style
-			if ( m_Tek_Pos == 1 )
-				m_Tek_Line = (m_Tek_Line & 0xF8) | m_Tek_Int & 0x07;
-			break;
-		case ('R' << 8) | 'K':	// clear the view
-		case ('S' << 8) | 'K':	// clear the segments
-			TekClear();
-			break;
-
-		default:
-			TRACE("Tek410x %c%c(%d:%d)\n", m_BackChar >> 8, m_BackChar & 0xFF, m_Tek_Int, m_Tek_Pos); 
-			break;
-		}
-
-		m_Tek_Int = 0;
-		break;
-
-	case 0x1C:	// PT
-	case 0x1D:	// PLT
-		m_Tek_Gin = FALSE;
-		if ( ch >= 0x40 && ch <= 0x5F ) {
-			m_Tek_wX = (m_Tek_wX & 0xF83) | ((ch & 0x1F) << 2);
-			m_Tek_cX = m_Tek_wX; m_Tek_cY = m_Tek_wY;
-		} else if ( ch >= 0x20 && ch <= 0x3F ) {
-			if ( m_Tek_Stat )
-				m_Tek_wX = (m_Tek_wX & 0x7F) | ((ch & 0x1F) << 7);
-			else
-				m_Tek_wY = (m_Tek_wY & 0x7F) | ((ch & 0x1F) << 7);
-			break;
-		} else if ( ch >= 0x60 && ch <= 0x7F ) {
-			if ( m_Tek_Stat ) {
-				m_Tek_wX = (m_Tek_wX & 0xFFC) | ((m_Tek_wY >> 2) & 0x03);
-				m_Tek_wY = (m_Tek_wY & 0xFFC) | ((m_Tek_wY >> 4) & 0x03);
-			}
-			m_Tek_wY = (m_Tek_wY & 0xF83) | ((ch & 0x1F) << 2);
-			m_Tek_Stat = 1;
-			break;
-		} else if ( ch == 0x07 ) {
-			m_Tek_Pen = 1;
-			break;
-		} else {
-			break;
-		}
-
-		switch(m_BackChar) {
-		case 0x1C:
-			TekLine(m_Tek_Line, m_Tek_cX, m_Tek_cY, m_Tek_cX, m_Tek_cY);
-			m_Tek_lX = m_Tek_cX; m_Tek_lY = m_Tek_cY;
-			m_Tek_Stat = 0;
-			m_Tek_Pen = 1;
-			break;
-		case 0x1D:
-			if ( m_Tek_Pen )
-				TekLine(m_Tek_Line, m_Tek_lX, m_Tek_lY, m_Tek_cX, m_Tek_cY);
-			m_Tek_lX = m_Tek_cX; m_Tek_lY = m_Tek_cY;
-			m_Tek_Stat = 0;
-			m_Tek_Pen = 1;
-			break;
-
-		case ('L' << 8) | 'F':	// move
-			break;
-		case ('L' << 8) | 'G':	// vector
-			TekLine(m_Tek_Line, m_Tek_lX, m_Tek_lY, m_Tek_cX, m_Tek_cY);
-			break;
-		case ('L' << 8) | 'H':	// point
-			TekText(2, m_Tek_cX - TekFonts[2][0] / 4, m_Tek_cY - TekFonts[2][1] / 2, TekPoint[m_Tek_Point]);
-			break;
-		}
-
-		m_Tek_lX = m_Tek_cX; m_Tek_lY = m_Tek_cY;
-		m_Tek_Stat = 0;
-		break;
-	}
 }

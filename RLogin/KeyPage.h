@@ -29,7 +29,7 @@ public:
 	enum { IDD = IDD_KEYLISTPAGE };
 	CListCtrlExt	m_List;
 	//}}AFX_DATA
-	BOOL m_Check[4];
+	BOOL m_Check[5];
 	int m_DropMode;
 	CString m_DropCmd[8];
 	CString m_CmdWork;
@@ -54,6 +54,7 @@ protected:
 	afx_msg void OnKeyAsnNew();
 	afx_msg void OnKeyAsnEdit();
 	afx_msg void OnKeyAsnDel();
+	afx_msg void OnKeyAsnMeta();
 	afx_msg void OnDblclkKeyList(NMHDR* pNMHDR, LRESULT* pResult);
 	//}}AFX_MSG
 	afx_msg void OnUpdateCheck(UINT nId);

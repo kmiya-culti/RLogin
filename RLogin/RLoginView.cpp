@@ -453,9 +453,12 @@ void CRLoginView::OnChar(UINT nChar, UINT nRepCnt, UINT nFlags)
 {
 	CBuffer tmp;
 
-//	TRACE("OnChar %02x\n", nChar);
+//	TRACE("OnChar %02x(%04x)\n", nChar, nFlags);
 
 	CView::OnChar(nChar, nRepCnt, nFlags);
+
+	if ( (nFlags & 0x2000) != 0 )	// with Alt key
+		tmp.PutWord(0x1B);
 
 	tmp.PutWord(nChar);
 	SendBuffer(tmp);
@@ -470,9 +473,9 @@ int CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 
 	//CView::OnKeyDown(nChar, nRepCnt, nFlags);
 
-	// VK_0 - VK_9 are the same as ASCII '0' - '9' (0x30 - 0x39)
-	// VK_A - VK_Z are the same as ASCII 'A' - 'Z' (0x41 - 0x5A)
-	if ( (nChar >= 0x30 && nChar <= 0x39) || (nChar >= 0x41 && nChar <= 0x5A) || nChar == VK_SHIFT || nChar == VK_CONTROL || nChar == VK_MENU )
+//	TRACE("KeyDown %02X(%04X)\n", nChar, nFlags);
+
+	if ( nChar == VK_SHIFT || nChar == VK_CONTROL || nChar == VK_MENU )
 		return TRUE;
 
 	if ( pDoc->m_TextRam.IsOptEnable(TO_RLDSECHO) ) {
@@ -525,6 +528,8 @@ int CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 			break;
 		}
 		if ( tmp.GetSize() > 0 ) {
+			if ( (nFlags & 0x2000) != 0 && (pDoc->m_TextRam.m_MetaKeys[nChar / 32] & (1 << (nChar % 32))) != 0 )
+				tmp.PutWord(0x1B);
 			SendBuffer(tmp);
 			return FALSE;
 		}
@@ -677,10 +682,10 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 		break;
 	case 1026:		// Blink Timer
 		CRLoginDoc *pDoc = GetDocument();
-		m_BlinkFlag ^= 1;
+		m_BlinkFlag = (++m_BlinkFlag & 3) | 4;
 		if ( pDoc->m_TextRam.BLINKUPDATE(this) == 0 ) {
 			KillTimer(nIDEvent);
-			m_BlinkFlag &= ~2;
+			m_BlinkFlag = 0;
 		}
 		break;
 	}
@@ -1132,8 +1137,27 @@ void CRLoginView::OnUpdateEditCopy(CCmdUI* pCmdUI)
 
 BOOL CRLoginView::PreTranslateMessage(MSG* pMsg)
 {
-	if ( pMsg->hwnd == m_hWnd && pMsg->message == WM_KEYDOWN && !OnKeyDown((UINT)pMsg->wParam, 0, 0) )
-		return TRUE;
+	CRLoginDoc *pDoc = GetDocument();
+	
+	if ( pMsg->hwnd == m_hWnd ) {
+		//if ( pMsg->message == WM_SYSKEYDOWN )
+		//	pMsg->message = WM_KEYDOWN;
+		//if ( pMsg->message == WM_KEYDOWN ) {
+		//	if ( !OnKeyDown((UINT)pMsg->wParam, 0, (UINT)pMsg->lParam) )
+		//		return TRUE;
+		//	if ( (UINT)pMsg->wParam < 256 && (UINT)pMsg->wParam != VK_MENU && (GetKeyState(VK_MENU) & 0x80) != 0 && (pDoc->m_TextRam.m_MetaKeys[(UINT)pMsg->wParam / 32] & (1 << ((UINT)pMsg->wParam % 32))) == 0 )
+		//		pMsg->message = WM_SYSKEYDOWN;
+		//}
+		if ( pMsg->message == WM_KEYDOWN ) {
+			if ( !OnKeyDown((UINT)pMsg->wParam, LOWORD(pMsg->lParam), HIWORD(pMsg->lParam)) )
+				return TRUE;
+		} else if ( pMsg->message == WM_SYSKEYDOWN ) {
+			if ( !OnKeyDown((UINT)pMsg->wParam, LOWORD(pMsg->lParam), HIWORD(pMsg->lParam)) )
+				return TRUE;
+			if ( (UINT)pMsg->wParam < 256 && (pDoc->m_TextRam.m_MetaKeys[(UINT)pMsg->wParam / 32] & (1 << ((UINT)pMsg->wParam % 32))) != 0 )
+				pMsg->message = WM_KEYDOWN;
+		}
+	}
 	return CView::PreTranslateMessage(pMsg);
 }
 
