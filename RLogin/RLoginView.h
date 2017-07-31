@@ -74,6 +74,7 @@ public:
 	void CalcTextRect(CRect &rect);
 	void CalcGrapPoint(CPoint po, int *x, int *y);
 	void ImmSetPos(int x, int y);
+	int ImmOpenCtrl(int sw);
 	void SetCaret();
 	void SendBroadCast(CBuffer &buf);
 	void SendBuffer(CBuffer &buf, BOOL macflag = FALSE);

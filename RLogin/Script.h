@@ -208,7 +208,6 @@ public:
 
 	BOOL m_ConsOpen;
 	BOOL m_SyncMode;
-	CFifoBuffer m_SockFifo;
 
 	int	InChar(int ch, TCHAR *ptn);
 	int	StrBin(int mx, TCHAR *ptn[], LPCTSTR str);
@@ -274,11 +273,7 @@ public:
 	int ExecSub(int pos, BOOL sub, CScriptValue *local);
 
 	void OnProc(int cmd);
-	void ExecProc(class CRLoginDoc *pDoc, CWnd *pWnd);
 
-	void ExecFile(LPCSTR file);
-	void ExecStr(LPCSTR str);
-
-	CScript(void);
-	~CScript(void);
+	CScript(class CRLoginDoc *pDoc, CWnd *pWnd);
+	virtual ~CScript(void);
 };

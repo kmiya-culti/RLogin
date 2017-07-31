@@ -2194,7 +2194,7 @@ void CTextRam::fc_OSC_CMD(int ch)
 	if ( m_LastChar == '\033' && ch == '\\' ) {
 		fc_OSC_ST(ch);
 
-	} else if ( (m_OscMode == ']' && ch == 0x07) || ch == 0x9C ) {
+	} else if ( (m_OscMode == ']' && ch == 0x07) || ((m_KanjiMode == EUC_SET || m_KanjiMode == ASCII_SET || m_KanjiMode == UTF8_SET) && ch == 0x9C) ) {
 		fc_OSC_ST(ch);
 
 	} else {
@@ -2223,7 +2223,7 @@ void CTextRam::fc_OSC_PAM(int ch)
 			m_OscPara.ConsumeEnd(1);
 		fc_OSC_ST(ch);
 
-	} else if ( (m_OscMode == ']' && ch == 0x07) || ch == 0x9C ) {
+	} else if ( (m_OscMode == ']' && ch == 0x07) || ((m_KanjiMode == EUC_SET || m_KanjiMode == ASCII_SET || m_KanjiMode == UTF8_SET) && ch == 0x9C) ) {
 		fc_OSC_ST(ch);
 
 	} else {
@@ -2239,7 +2239,6 @@ void CTextRam::fc_OSC_ST(int ch)
 	CString tmp, str, wrk;
 	CGrapWnd *pGrapWnd;
 
-	m_BackChar |= m_OscMode << 24;
 	switch((m_OscMode << 24) | m_BackChar) {
 
 	// DCS
@@ -3639,6 +3638,8 @@ void CTextRam::fc_DECSRET(int ch)
 			i -= 700;		// 300-379
 		else if ( i >= 2000 && i < 2020 )
 			i -= 1620;		// 380-399
+		else if ( i >= 8400 && i < 8512 )
+			i -= 8000;		// 400-511
 		else if ( i >= 200 )
 			continue;
 
@@ -3714,6 +3715,39 @@ void CTextRam::fc_DECSRET(int ch)
 			m_MouseTrack = (IsOptEnable(i) ? (i - TO_XTNOMTRK + 2) : 0);
 			m_MouseRect.SetRectEmpty();
 			m_pDocument->UpdateAllViews(NULL, UPDATE_SETCURSOR, NULL);
+			break;
+
+		case TO_IMECTRL:	// IME Open/Close
+			{
+				int rt = (-1);
+				CRLoginView *pView;
+				if ( (pView = (CRLoginView *)GetAciveView()) != NULL ) {
+					switch(ch) {
+					case 'h':	// CSI ? h	DECSET
+						rt = pView->ImmOpenCtrl(1);	// open
+						break;
+					case 'l':	// CSI ? l	DECRST
+						rt = pView->ImmOpenCtrl(0);	// close
+						break;
+					case 'r':	// CSI ? r	XTERM_RESTORE
+						if ( IsOptEnable(i) )
+							rt = pView->ImmOpenCtrl(1);	// open
+						else
+							rt = pView->ImmOpenCtrl(0);	// close
+						break;
+					case 's':	// CSI ? s	XTERM_SAVE
+						rt = pView->ImmOpenCtrl(2);	// stat
+						break;
+					}
+					if ( rt == 1 )
+						EnableOption(i);
+					else if ( rt == 0 )
+						DisableOption(i);
+
+					if ( ch == 's' )
+						ANSIOPT(ch, i);
+				}
+			}
 			break;
 		}
 	}

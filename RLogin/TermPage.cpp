@@ -75,6 +75,8 @@ static const struct _OptListTab {
 	// XTerm Option 2		2000-2019(380-399)
 	{	TO_XTBRPAMD,	"Bracketed Paste Mode"				},
 
+	// RLogin Option		8400-8511(400-511)
+
 	{	0,				NULL	}
 };
 
@@ -150,8 +152,8 @@ BOOL CTermPage::OnInitDialog()
 			str.Format("?%d", OptListTab[n].num + 700);
 		} else if ( OptListTab[n].num < 400 ) {		// XTerm Option 2		2000-2019(380-399)
 			str.Format("?%d", OptListTab[n].num + 1620);
-		} else if ( OptListTab[n].num < 512 ) {		// RLogin Option		400-511
-			str.Format("?%d", OptListTab[n].num + 1600);
+		} else if ( OptListTab[n].num < 512 ) {		// RLogin Option		8400-8511(400-511)
+			str.Format("?%d", OptListTab[n].num + 8000);
 		}
 		m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, n, str, 0, 0, 0, n);
 		m_List.SetItemText(n, 1, OptListTab[n].name);
@@ -205,8 +207,10 @@ BOOL CTermPage::OnApply()
 				m_pSheet->m_pTextRam->m_AnsiPara.Add(OptListTab[n].num + 1620);
 				m_pSheet->m_pTextRam->fc_Push(STAGE_CSI);
 				m_pSheet->m_pTextRam->fc_DECSRET('h');
-			} else if ( OptListTab[n].num < 512 ) {		// RLogin Option		400-511
-				m_pSheet->m_pTextRam->EnableOption(OptListTab[n].num);
+			} else if ( OptListTab[n].num < 512 ) {		// RLogin Option		8400-8511(400-511)
+				m_pSheet->m_pTextRam->m_AnsiPara.Add(OptListTab[n].num + 8000);
+				m_pSheet->m_pTextRam->fc_Push(STAGE_CSI);
+				m_pSheet->m_pTextRam->fc_DECSRET('h');
 			}
 		} else {
 			if ( !m_pSheet->m_pTextRam->IsOptEnable(OptListTab[n].num) )
@@ -230,8 +234,10 @@ BOOL CTermPage::OnApply()
 				m_pSheet->m_pTextRam->m_AnsiPara.Add(OptListTab[n].num + 1620);
 				m_pSheet->m_pTextRam->fc_Push(STAGE_CSI);
 				m_pSheet->m_pTextRam->fc_DECSRET('l');
-			} else if ( OptListTab[n].num < 512 ) {		// RLogin Option		400-511
-				m_pSheet->m_pTextRam->DisableOption(OptListTab[n].num);
+			} else if ( OptListTab[n].num < 512 ) {		// RLogin Option		8400-8511(400-511)
+				m_pSheet->m_pTextRam->m_AnsiPara.Add(OptListTab[n].num + 8000);
+				m_pSheet->m_pTextRam->fc_Push(STAGE_CSI);
+				m_pSheet->m_pTextRam->fc_DECSRET('l');
 			}
 		}
 	}

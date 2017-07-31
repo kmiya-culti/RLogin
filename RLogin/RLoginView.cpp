@@ -391,6 +391,23 @@ void CRLoginView::ImmSetPos(int x, int y)
 		ImmReleaseContext(m_hWnd, hIMC);
 	}
 }
+int CRLoginView::ImmOpenCtrl(int sw)
+{
+	HIMC hIMC;
+	int rt = (-1);
+
+	if ( (hIMC = ImmGetContext(m_hWnd)) != NULL ) {
+		rt = (ImmGetOpenStatus(hIMC) ? 1 : 0);
+		if ( sw == 0 && rt == 1 ) {
+			if ( ImmSetOpenStatus(hIMC, FALSE) )	// close
+				rt = 0;
+		} else if ( sw == 1 && rt == 0 ) {
+			if ( ImmSetOpenStatus(hIMC, TRUE) )		// open
+				rt = 1;
+		}
+	}
+	return rt;
+}
 void CRLoginView::SetGhostWnd(BOOL sw)
 {
 	if ( sw ) {		// Create

@@ -1278,7 +1278,7 @@ void Cssh::SendMsgNewKeys()
 
 	if ( m_EncCip.Init(m_VProp[0], MODE_ENC, m_VKey[2], (-1), m_VKey[0]) ||
 		 m_EncMac.Init(m_VProp[2], m_VKey[4], (-1)) ||
-		 m_EncCmp.Init(m_VProp[4], MODE_ENC, 6) )
+		 m_EncCmp.Init(m_VProp[4], MODE_ENC, COMPLEVEL) )
 		Close();
 }
 void Cssh::SendMsgServiceRequest(LPCSTR str)
@@ -1913,7 +1913,7 @@ int Cssh::SSH2MsgNewKeys(CBuffer *bp)
 {
 	if ( m_DecCip.Init(m_VProp[1], MODE_DEC, m_VKey[3], (-1), m_VKey[1]) ||
 		 m_DecMac.Init(m_VProp[3], m_VKey[5], (-1)) ||
-		 m_DecCmp.Init(m_VProp[5], MODE_DEC, 6) )
+		 m_DecCmp.Init(m_VProp[5], MODE_DEC, COMPLEVEL) )
 		return TRUE;
 
 	CString str, ats[3];
@@ -2379,9 +2379,9 @@ void Cssh::RecivePacket2(CBuffer *bp)
 		if ( (m_SSH2Status & SSH2_STAT_HAVESESS) == 0 )
 			goto DISCONNECT;
 		if ( m_EncCmp.m_Mode == 4 )
-			m_EncCmp.Init(NULL, MODE_ENC, 6);
+			m_EncCmp.Init(NULL, MODE_ENC, COMPLEVEL);
 		if ( m_DecCmp.m_Mode == 4 )
-			m_DecCmp.Init(NULL, MODE_DEC, 6);
+			m_DecCmp.Init(NULL, MODE_DEC, COMPLEVEL);
 		m_SSH2Status |= SSH2_STAT_HAVELOGIN;
 		if ( !m_pDocument->m_TextRam.IsOptEnable(TO_SSHPFORY) && (m_SSH2Status & SSH2_STAT_HAVESTDIO) == 0 ) {
 			m_StdChan = ChannelOpen();

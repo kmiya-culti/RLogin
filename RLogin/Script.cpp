@@ -742,7 +742,7 @@ int CScriptLex::Compare(CScriptLex &data)
 //////////////////////////////////////////////////////////////////////
 // CScript
 
-CScript::CScript(void):CSyncSock(NULL, NULL)
+CScript::CScript(class CRLoginDoc *pDoc, CWnd *pWnd) : CSyncSock(pDoc, pWnd)
 {
 	m_BufPos = m_BufMax = 0;
 	m_BufPtr = NULL;
@@ -2700,15 +2700,15 @@ int CScript::Func07(int cmd, class CScript *owner, CScriptValue &local)
 	case 0:		// cgetc(s)
 		if ( !owner->m_ConsOpen )
 			(*acc) = (int)EOF;
-		else
-			(*acc) = (int)owner->m_SockFifo.GetWChar((int)local[0]);
+		//else
+		//	(*acc) = (int)owner->m_SockFifo.GetWChar((int)local[0]);
 		break;
 	case 1:		// cgets(s)
 		if ( !owner->m_ConsOpen )
 			(*acc) = L"";
 		else {
 			CStringW tmp;
-			owner->m_SockFifo.WReadLine(tmp, (int)local[0]);
+			//owner->m_SockFifo.WReadLine(tmp, (int)local[0]);
 			(*acc) = (LPCWSTR)tmp;
 		}
 		break;
@@ -3611,14 +3611,7 @@ void CScript::FuncInit()
 
 void CScript::OnProc(int cmd)
 {
-	ExecSub(0, FALSE, NULL);
-}
-void CScript::ExecProc(class CRLoginDoc *pDoc, CWnd *pWnd)
-{
 	CScriptValue *sp;
-
-	m_pWnd = pWnd;
-	m_pDoc = pDoc;
 
 	if ( m_pDoc != NULL ) {
 		sp = &(m_Data["SERVER"]);
@@ -3632,28 +3625,5 @@ void CScript::ExecProc(class CRLoginDoc *pDoc, CWnd *pWnd)
 		(*sp)["CODE"] = (int)m_pDoc->m_ServerEntry.m_KanjiCode;
 	}
 
-	if ( m_pWnd != NULL )
-		m_pWnd->PostMessage(WM_THREADCMD, THCMD_START, (LPARAM)this);
-}
-void CScript::ExecFile(LPCSTR file)
-{
-	int n;
-
-	if ( (n = LoadFile(file)) < 0 || (int)m_IncFile[n] != 0 )
-		return;
-
-	m_IncFile[n] = (int)(-1);
-	ExecSub(m_IncFile[n].m_FuncPos, FALSE, NULL);
-	m_IncFile[n] = (int)0;
-}
-void CScript::ExecStr(LPCSTR str)
-{
-	int n;
-
-	if ( (n = LoadStr(str)) < 0 || (int)m_IncFile[n] != 0 )
-		return;
-
-	m_IncFile[n] = (int)(-1);
-	ExecSub(m_IncFile[n].m_FuncPos, FALSE, NULL);
-	m_IncFile[n] = (int)0;
+	ExecSub(m_IncFile[cmd].m_FuncPos, FALSE, NULL);
 }

@@ -3181,9 +3181,11 @@ void CTextRam::ANSIOPT(int opt, int bit)
 	case 'r':
 		m_AnsiOpt[bit / 32] &= ~(1 << (bit % 32));
 		m_AnsiOpt[bit / 32] |= (m_Save_AnsiOpt[bit / 32] & (1 << (bit % 32)));
+		break;
 	case 's':
 		m_Save_AnsiOpt[bit / 32] &= ~(1 << (bit % 32));
 		m_Save_AnsiOpt[bit / 32] |= (m_AnsiOpt[bit / 32] & (1 << (bit % 32)));
+		break;
 	}
 }
 void CTextRam::INSMDCK(int len)

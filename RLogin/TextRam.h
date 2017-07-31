@@ -113,7 +113,7 @@
 #define	TO_XTALTCLR		(1049-700)	// Alternate screen with clearing
 // XTerm Option 2		2000-2019(380-399)
 #define	TO_XTBRPAMD		(2004-1620)	// Bracketed Paste Mode
-// RLogin Option		400-511
+// RLogin Option		8400-8511(400-511)
 #define	TO_RLGCWA		400			// ESC[m space att enable
 #define	TO_RLGNDW		401			// 行末での遅延改行を無効にする
 #define	TO_RLGAWL		402			// http;//で始まる文字列をコピーすると自動でブラウザを起動する
@@ -155,6 +155,7 @@
 #define	TO_RLMOSWHL		438			// マウスホイールをヌルヌル禁止
 #define	TO_RLMSWAPP		439			// マウスホイールのアプリモード動作を禁止
 #define	TO_RLPNAM		440			// 0:Normal Keypad (DECPNM) / 1:Application Keypad (DECPAM)
+#define	TO_IMECTRL		441			// IME Open/Close
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
