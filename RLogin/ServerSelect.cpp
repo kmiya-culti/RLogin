@@ -921,19 +921,23 @@ void CServerSelect::OnLoaddefault()
 	if ( dlg.DoModal() != IDOK )
 		return;
 
-	if ( dlg.m_InitFlag ) {
+	switch(dlg.m_InitType) {
+	case 0:		// Init Default Entry
+		CRLoginDoc::LoadDefOption(TextRam, KeyTab, KeyMac, ParamTab);
+		break;
+
+	case 1:		// Init Program Default
 		TextRam.Init();
 		TextRam.m_FontTab.Init();
 		KeyTab.Init();
 		KeyMac.Init();
 		ParamTab.Init();
-	} else {
-		TextRam.Serialize(FALSE);
-		KeyTab.Serialize(FALSE);
-#ifndef	USE_KEYMACGLOBAL
-		KeyMac.Serialize(FALSE);
-#endif
-		ParamTab.Serialize(FALSE);
+		break;
+
+	case 2:		// Copy Entry option
+		ASSERT(dlg.m_pInitEntry != NULL);
+		CRLoginDoc::LoadOption(*(dlg.m_pInitEntry), TextRam, KeyTab, KeyMac, ParamTab);
+		break;
 	}
 
 	TextRam.Serialize(TRUE,  ProBuffer);

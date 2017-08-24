@@ -755,7 +755,9 @@
 #define IDC_STATUS4                     2347
 #define IDC_SYSLINK1                    2348
 #define IDC_TAB1                        2349
+#define IDC_SYSLINK2                    2349
 #define IDC_TERMCAP                     2350
+#define IDC_SYSLINK3                    2350
 #define IDC_TERMCHECK1                  2351
 #define IDC_TERMCHECK2                  2352
 #define IDC_TERMCHECK3                  2353

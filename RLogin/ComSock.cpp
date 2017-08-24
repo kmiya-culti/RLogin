@@ -87,9 +87,7 @@ BOOL CComSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, i
 	tmp.Format((m_ComPort >= 10 ? _T("\\\\.\\COM%d") : _T("COM%d")), m_ComPort);
 
 	if ( (m_hCom = CreateFile(tmp, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL)) == INVALID_HANDLE_VALUE ) {
-		CString errmsg;
-		errmsg.Format(_T("ComSocket Open Error '%s'"), lpszHostAddress);
-		AfxMessageBox(errmsg, MB_ICONSTOP);
+		::AfxMessageBox(GetFormatErrorMessage(m_pDocument->m_ServerEntry.m_EntryName, lpszHostAddress, nHostPort, _T("OpenComm"), ::GetLastError()), MB_ICONSTOP);
 		m_hCom = NULL;
 		return FALSE;
 	}

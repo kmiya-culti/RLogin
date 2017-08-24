@@ -982,7 +982,7 @@ int CSFtp::RemoteCopyDirRes(int st, class CCmdQue *pQue)
 	}
 
 	if ( !CreateDirectory(pQue->m_CopyPath, NULL) ) {
-		if ( GetLastError() != ERROR_ALREADY_EXISTS ) {
+		if ( ::GetLastError() != ERROR_ALREADY_EXISTS ) {
 			DispErrMsg(_T("Create Directory Error"), pQue->m_CopyPath);
 			return TRUE;
 		}

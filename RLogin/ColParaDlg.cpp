@@ -81,7 +81,7 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // CColParaDlg メッセージ ハンドラ
 
-const COLORREF	ColSetTab[8][16] = {
+const COLORREF	ColSetTab[10][16] = {
 	{	RGB(  0,   0,   0),	RGB(196,  64,  64),	RGB( 64, 196,  64),	RGB(196, 196,  64),
 		RGB( 64,  64, 196),	RGB(196,  64, 196),	RGB( 64, 196, 196),	RGB(196, 196, 196),
 		RGB(128, 128, 128),	RGB(255,  96,  96),	RGB( 96, 255,  96),	RGB(255, 255,  96),
@@ -121,13 +121,29 @@ const COLORREF	ColSetTab[8][16] = {
 		RGB(102, 217, 239),	RGB(174, 129, 255),	RGB(161, 239, 228),	RGB(248, 248, 242),
 		RGB(117, 113,  94),	RGB(204,   6,  78),	RGB(122, 172,  24),	RGB(240, 169,  69),
 		RGB( 33, 199, 233),	RGB(126,  51, 255),	RGB( 95, 227, 210),	RGB(249, 248, 245) },	// Monokai
+
+	{	RGB(  0,   0,	0),	RGB(204,   0,	0),	RGB( 78, 154,	6),	RGB(196, 160,	0),
+		RGB( 52, 101, 164),	RGB(117,  80, 123),	RGB(  6, 152, 154),	RGB(211, 215, 207),
+		RGB( 85,  87,  83),	RGB(239,  41,  41),	RGB(138, 226,  52),	RGB(252, 233,  79),
+		RGB(114, 159, 207),	RGB(173, 127, 168),	RGB( 52, 226, 226),	RGB(238, 238, 236)	},	// Tango
+
+	{	RGB( 12,  12,  12),	RGB(197,  15,  31),	RGB( 19, 161,  14),	RGB(193, 156,	0),
+		RGB(  0,  55, 218),	RGB(136,  23, 152),	RGB( 58, 150, 221),	RGB(204, 204, 204),
+		RGB(118, 118, 118),	RGB(231,  72,  86),	RGB( 22, 198,  12),	RGB(249, 241, 165),
+		RGB( 59, 120, 255),	RGB(180,   0, 158),	RGB( 97, 214, 214),	RGB(242, 242, 242)	},	// Windows
 };
 
 void CColParaDlg::DoInit()
 {
 	int n;
 
+	m_SliderConstrast.SetPos(50);
+	m_SliderBright.SetPos(50);
+	m_SliderHuecol.SetPos(150);
+	m_ColSet = -1;
+
 	SetDarkLight();
+	Invalidate(FALSE);
 
 	for ( n = 0 ; n < 16 ; n++ )
 		m_ColTab[n] = m_pSheet->m_pTextRam->m_ColTab[n];

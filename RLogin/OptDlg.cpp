@@ -465,17 +465,23 @@ void COptDlg::OnDoInit()
 	if ( dlg.DoModal() != IDOK )
 		return;
 
-	if ( dlg.m_InitFlag ) {
+	switch(dlg.m_InitType) {
+	case 0:		// Init Default Entry
+		CRLoginDoc::LoadDefOption(*m_pTextRam, *m_pKeyTab, *m_pKeyMac, *m_pParamTab);
+		break;
+
+	case 1:		// Init Program Default
 		m_pTextRam->Init();
 		m_pTextRam->m_FontTab.Init();
 		m_pKeyTab->Init();
 		m_pKeyMac->Init();
 		m_pParamTab->Init();
-	} else {
-		m_pTextRam->Serialize(FALSE);
-		m_pKeyTab->Serialize(FALSE);
-		m_pKeyMac->Serialize(FALSE);
-		m_pParamTab->Serialize(FALSE);
+		break;
+
+	case 2:		// Copy Entry option
+		ASSERT(dlg.m_pInitEntry != NULL);
+		CRLoginDoc::LoadOption(*(dlg.m_pInitEntry), *m_pTextRam, *m_pKeyTab, *m_pKeyMac, *m_pParamTab);
+		break;
 	}
 
 	int n;

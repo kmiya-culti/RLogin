@@ -473,6 +473,7 @@ int CZModem::YUpLoad()
 	int block_len = 1024;
     LONGLONG file_size;
     LONGLONG now_pos = 0L;
+	BOOL sh = FALSE;
 
     SetXonXoff(FALSE);
 
@@ -494,11 +495,20 @@ int CZModem::YUpLoad()
 	while ( !AbortCheck() ) {
 		ch = Bufferd_Recive(60);
 
-		if ( ch == WANTCRC )
+		if ( ch == WANTCRC ) {
+			if ( sh == FALSE ) {
+				sh = TRUE;
+				Send_blk(fp, 0, block_len, TRUE, 1);
+			}
+		} else if ( ch == NAK ) {
+            if ( ++nk >= 10 )
+				goto CANRET;
+			sh = FALSE;
 			Send_blk(fp, 0, block_len, TRUE, 1);
-		else if ( ch == ACK )
+		} else if ( ch == ACK ) {
+            nk = 0;
 			break;
-		else if ( ch == CAN && Bufferd_Recive(1) == CAN ) {
+		} else if ( ch == CAN && Bufferd_Recive(1) == CAN ) {
 			Bufferd_Clear();
 			goto ENDRET;
 		} else if ( ch < 0 )

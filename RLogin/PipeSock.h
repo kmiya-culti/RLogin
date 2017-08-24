@@ -39,6 +39,7 @@ public:
 
 	void GetPathMaps(CStringMaps &maps);
 	void GetDirMaps(CStringMaps &maps, LPCTSTR dir, BOOL pf = FALSE);
+	BOOL IsPipeName(LPCTSTR path);
 
 	void OnReadProc();
 	void OnWriteProc();

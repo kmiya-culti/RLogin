@@ -255,6 +255,7 @@ public:
 	static BOOL SokcetCheck(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM);
 	static void PunyCodeEncode(LPCWSTR str, CString &out);
 	static void PunyCodeAdress(LPCTSTR str, CString &out);
+	static LPCTSTR GetFormatErrorMessage(LPCTSTR entry, LPCTSTR host, int port, LPCTSTR type, int err);
 
 	void SetRecvSyncMode(BOOL mode);
 	int SyncRecive(void* lpBuf, int nBufLen, int nSec, BOOL *pAbort);
@@ -263,7 +264,6 @@ public:
 
 	inline int IsOpen() { return (m_Fd == (-1) ? FALSE  : TRUE); }
 	inline BOOL IsOverFlow() { return (GetRecvSize() > RECVMAXSIZ ? TRUE : FALSE); }
-	inline int GetLastError() { return 0; }
 	inline class CRLoginDoc *GetDocument() { return m_pDocument; }
 	inline class CMainFrame *GetMainWnd() { return (class CMainFrame *)AfxGetMainWnd(); }
 	inline class CRLoginApp *GetApp() { return (class CRLoginApp *)AfxGetApp(); }

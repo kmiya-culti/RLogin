@@ -1162,7 +1162,7 @@ public:
 	static void UCS4ToWStr(DWORD code, CStringW &str);
 	static DWORD UnicodeNomal(DWORD code1, DWORD code2);
 	static void IconvToMsUniStr(LPCTSTR charset, LPCWSTR p, int len, CBuffer &out);
-	static int OptionToIndex(int value);
+	static int OptionToIndex(int value, BOOL bAnsi = FALSE);
 	static int IndexToOption(int value);
 	static void OptionString(int value, CString &str);
 

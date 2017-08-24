@@ -511,7 +511,8 @@ int CFontNode::Compare(CFontNode &data)
 		 m_IContName.Compare(data.m_IContName) != 0 ||
 		 m_IndexName.Compare(data.m_IndexName) != 0 ||
 		 m_Quality != data.m_Quality ||
-		 m_UniBlock.Compare(data.m_UniBlock) != 0 )
+		 m_UniBlock.Compare(data.m_UniBlock) != 0 ||
+		 m_OverZero.Compare(data.m_OverZero) != 0 )
 		return 1;
 
 	for ( int n = 0 ; n < 16 ; n++ ) {
@@ -1011,6 +1012,8 @@ void CFontTab::DiffIndex(CFontTab &orig, CStringIndex &index)
 			ip->SetSize(a + 1);
 			for ( i = 0 ; i < 12 ; i++ )
 				(*ip)[a].Add(m_Data[n].m_Iso646Tab[i]);
+
+			ip->Add(m_Data[n].m_OverZero);
 		}
 	}
 }
@@ -1056,6 +1059,8 @@ void CFontTab::SetIndex(int mode, CStringIndex &index)
 			ip->SetSize(a + 1);
 			for ( i = 0 ; i < 12 ; i++ )
 				(*ip)[a].Add(m_Data[n].m_Iso646Tab[i]);
+
+			ip->Add(m_Data[n].m_OverZero);
 		}
 
 	} else {			// Read
@@ -1106,6 +1111,9 @@ void CFontTab::SetIndex(int mode, CStringIndex &index)
 						for ( a = 0 ; a < 12 && a < index[n][i][15].GetSize() ; a++ )
 							m_Data[code].m_Iso646Tab[a] = index[n][i][15][a];
 					}
+
+					if ( index[n][i].GetSize() > 16 )
+						m_Data[code].m_OverZero = index[n][i][16];
 				}
 			}
 		}
@@ -2633,21 +2641,21 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		if ( (n = index.Find(_T("Option"))) >= 0 ) {
 			memset(m_DefAnsiOpt, 0, sizeof(m_DefAnsiOpt));
 			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
-				int a = OptionToIndex(index[n][i]);
+				int a = OptionToIndex(index[n][i], TRUE);
 				if ( a >= 0 && a <= 511 )
 					m_DefAnsiOpt[a / 32] |= (1 << (a % 32));
 			}
 		}
 		if ( (n = index.Find(_T("OptionAdd"))) >= 0 ) {
 			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
-				int a = OptionToIndex(index[n][i]);
+				int a = OptionToIndex(index[n][i], TRUE);
 				if ( a >= 0 && a <= 511 )
 					m_DefAnsiOpt[a / 32] |= (1 << (a % 32));
 			}
 		}
 		if ( (n = index.Find(_T("OptionDel"))) >= 0 ) {
 			for ( i = 0 ; i < index[n].GetSize() ; i++ ) {
-				int a = OptionToIndex(index[n][i]);
+				int a = OptionToIndex(index[n][i], TRUE);
 				if ( a >= 0 && a <= 511 )
 					m_DefAnsiOpt[a / 32] &= ~(1 << (a % 32));
 			}
@@ -5601,27 +5609,29 @@ void CTextRam::GetScreenSize(int *x, int *y)
 	*y = *y * m_Lines;
 }
 
-int CTextRam::OptionToIndex(int value)
+int CTextRam::OptionToIndex(int value, BOOL bAnsi)
 {
 	if ( value > 0 && value <= 199 )
-		value += 0;								// DEC Terminal Option	0-199
+		value += 0;					// DEC Terminal Option	0-199 -> 0-199
+	else if ( bAnsi && value >= 200 && value <= 299 )
+		value += 0;					// ANSI Screen Option	200-299 -> 200-299(ANSI 0-199を割り当て)
 	else if ( value >= 1000 && value <= 1079 )
-		value -= 700;							// XTerm Option			1000-1079(300-379)
+		value -= 700;				// XTerm Option			1000-1079 -> 300-379
 	else if ( value >= 2000 && value <= 2019 )
-		value -= 1620;							// XTerm Option 2		2000-2019(380-399)
+		value -= 1620;				// XTerm Option 2		2000-2019 -> 380-399
 	else if ( value >= 8400 && value <= 8512 )
-		value -= 8000;							// RLogin Option		8400-8511(400-511)
+		value -= 8000;				// RLogin Option		8400-8511 -> 400-511
 
 	else if ( value == 7727 )
-		value = TO_RLCKMESC;					// 7727 - Application Escape mode を有効にする。				Application Escape mode を無効にする。  
+		value = TO_RLCKMESC;		// 7727 - Application Escape mode を有効にする。				Application Escape mode を無効にする。  
 	else if ( value == 7786 )
-		value = TO_RLMSWAPE;					// 7786 - マウスホイール - カーソルキー変換を有効にする。		マウスホイール - カーソルキー変換を無効にする。 
+		value = TO_RLMSWAPE;		// 7786 - マウスホイール - カーソルキー変換を有効にする。		マウスホイール - カーソルキー変換を無効にする。 
 	else if ( value == 8200 )
-		value = TO_TTCTH;						// 8200 - 画面クリア(ED 2)時にカーソルを左上に移動する。		移動しない
+		value = TO_TTCTH;			// 8200 - 画面クリア(ED 2)時にカーソルを左上に移動する。		移動しない
 	else if ( value == 8800 )
-		value = TO_DRCSMMv1;					// 8800 - Unicodeマッピング有効									Unicodeマッピング無効 
+		value = TO_DRCSMMv1;		// 8800 - Unicodeマッピング有効									Unicodeマッピング無効 
 	else if ( value == 8840 )
-		value = TO_RLUNIAWH;					// 8840 - TNAMB Aタイプをダブル幅の文字にする					シングル幅にする
+		value = TO_RLUNIAWH;		// 8840 - TNAMB Aタイプをダブル幅の文字にする					シングル幅にする
 	else
 		value = (-1);
 
@@ -5629,28 +5639,28 @@ int CTextRam::OptionToIndex(int value)
 }
 int CTextRam::IndexToOption(int value)
 {
-	if ( value >= 400 )				// RLogin Option		8400-8511(400-511)
+	if ( value >= 400 )				// RLogin Option		400-511 -> 8400-8511
 		value += (8400 - 400);
-	else if ( value >= 380 )		// XTerm Option 2		2000-2019(380-399)
+	else if ( value >= 380 )		// XTerm Option 2		380-399 -> 2000-2019
 		value += (2000 - 380);
-	else if ( value >= 300 )		// XTerm Option			1000-1079(300-379)
+	else if ( value >= 300 )		// XTerm Option			300-379 -> 1000-1079
 		value += (1000 - 300);
-	else if ( value >= 200 )		// ANSI Screen Option	200-299(200-299)
+	else if ( value >= 200 )		// ANSI Screen Option	200-299 -> 200-299(ANSI 0-199を割り当て)
 		value += (200 - 200);
-									// DEC Terminal Option	0-199
+									// DEC Terminal Option	0-199 -> 0-199
 	return value;
 }
 void CTextRam::OptionString(int value, CString &str)
 {
-	if ( value >= 400 )					// RLogin Option		8400-8511(400-511)
+	if ( value >= 400 )				// RLogin Option		400-511 -> ?8400-8511
 		str.Format(_T("?%d"), value + (8400 - 400));
-	else if ( value >= 380 )			// XTerm Option 2		2000-2019(380-399)
+	else if ( value >= 380 )		// XTerm Option 2		380-399 -> ?2000-2019
 		str.Format(_T("?%d"), value + (2000 - 380));
-	else if ( value >= 300 )			// XTerm Option			1000-1079(300-379)
+	else if ( value >= 300 )		// XTerm Option			300-379 -> ?1000-1079
 		str.Format(_T("?%d"), value	+ (1000 - 300));
-	else if ( value >= 200 )			// ANSI Screen Option	0-99(200-299)
+	else if ( value >= 200 )		// ANSI Screen Option	200-299 -> 0-99
 		str.Format(_T("%d"), value + (0 - 200));
-	else							// DEC Terminal Option	0-199
+	else							// DEC Terminal Option	0-199 -> ?0-199
 		str.Format(_T("?%d"), value);
 }
 BOOL CTextRam::IsOptEnable(int opt)

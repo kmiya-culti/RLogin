@@ -436,7 +436,7 @@ protected:
 // ŽÀ‘•
 protected:
 	DECLARE_MESSAGE_MAP()
-	afx_msg void OnNMClickSyslink1(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnNMClickSyslink(NMHDR *pNMHDR, LRESULT *pResult);
 };
 
 CAboutDlg::CAboutDlg() : CDialogExt(CAboutDlg::IDD)
@@ -448,7 +448,7 @@ void CAboutDlg::DoDataExchange(CDataExchange* pDX)
 	CDialogExt::DoDataExchange(pDX);
 }
 
-void CAboutDlg::OnNMClickSyslink1(NMHDR *pNMHDR, LRESULT *pResult)
+void CAboutDlg::OnNMClickSyslink(NMHDR *pNMHDR, LRESULT *pResult)
 {
 	PNMLINK pNMLink = (PNMLINK)pNMHDR;
 	ShellExecute(m_hWnd, NULL, pNMLink->item.szUrl, NULL, NULL, SW_NORMAL);
@@ -456,7 +456,9 @@ void CAboutDlg::OnNMClickSyslink1(NMHDR *pNMHDR, LRESULT *pResult)
 }
 
 BEGIN_MESSAGE_MAP(CAboutDlg, CDialogExt)
-	ON_NOTIFY(NM_CLICK, IDC_SYSLINK1, &CAboutDlg::OnNMClickSyslink1)
+	ON_NOTIFY(NM_CLICK, IDC_SYSLINK1, &CAboutDlg::OnNMClickSyslink)
+	ON_NOTIFY(NM_CLICK, IDC_SYSLINK2, &CAboutDlg::OnNMClickSyslink)
+	ON_NOTIFY(NM_CLICK, IDC_SYSLINK3, &CAboutDlg::OnNMClickSyslink)
 END_MESSAGE_MAP()
 
 //////////////////////////////////////////////////////////////////////

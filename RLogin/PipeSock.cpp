@@ -69,16 +69,42 @@ static UINT PipeInOutThread(LPVOID pParam)
 	pThis->m_OutThreadMode = 3;
 	return 0;
 }
+BOOL CPipeSock::IsPipeName(LPCTSTR path)
+{
+	// \\.\pipe\NAME
+	// \\server\pipe\NAME
+
+	if ( *(path++) != _T('\\') )
+		return FALSE;
+
+	if ( *(path++) != _T('\\') )
+		return FALSE;
+
+	if ( *path == _T('\\') )
+		return FALSE;
+
+	while ( *path != _T('\0') ) {
+		if ( *(path++) == _T('\\') )
+			break;
+	}
+	
+	if ( _tcsncmp(path, _T("pipe\\"), 5) != 0 )
+		return FALSE;
+	path += 5;
+
+	if ( *path == _T('\\') || *path == _T('\0') )
+		return FALSE;
+
+	return TRUE;
+}
 BOOL CPipeSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
 {
 	Close();
 
-	if ( _tcsncmp(lpszHostAddress, _T("\\\\.\\pipe\\"), 9) == 0 ) {
+	if ( IsPipeName(lpszHostAddress) ) {
 
 		if ( (m_hIn[0] = CreateFile(lpszHostAddress, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL)) == INVALID_HANDLE_VALUE ) {
-			CString errmsg;
-			errmsg.Format(_T("NamedPipe Open Error '%s'"), lpszHostAddress);
-			AfxMessageBox(errmsg, MB_ICONSTOP);
+			::AfxMessageBox(GetFormatErrorMessage(m_pDocument->m_ServerEntry.m_EntryName, lpszHostAddress, 0, _T("OpenPipe"), ::GetLastError()), MB_ICONSTOP);
 			return FALSE;
 		}
 
@@ -96,9 +122,7 @@ BOOL CPipeSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, 
 		secAtt.bInheritHandle = TRUE;
 
 		if ( !CreatePipe(&(m_hIn[0]), &(m_hIn[1]), &secAtt, 0) ) {
-			CString errmsg;
-			errmsg.Format(_T("PipeSocket StdIn CreatePipe Error '%s'"), lpszHostAddress);
-			AfxMessageBox(errmsg, MB_ICONSTOP);
+			::AfxMessageBox(GetFormatErrorMessage(m_pDocument->m_ServerEntry.m_EntryName, NULL, 0, _T("CreatePipe"), ::GetLastError()), MB_ICONSTOP);
 			return FALSE;
 		}
 
@@ -107,9 +131,7 @@ BOOL CPipeSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, 
 		secAtt.bInheritHandle = TRUE;
 
 		if ( !CreatePipe(&(m_hOut[0]), &(m_hOut[1]), &secAtt, 0) ) {
-			CString errmsg;
-			errmsg.Format(_T("PipeSocket StdOut CreatePipe Error '%s'"), lpszHostAddress);
-			AfxMessageBox(errmsg, MB_ICONSTOP);
+			::AfxMessageBox(GetFormatErrorMessage(m_pDocument->m_ServerEntry.m_EntryName, NULL, 0, _T("CreatePipe"), ::GetLastError()), MB_ICONSTOP);
 			return FALSE;
 		}
 
@@ -122,9 +144,7 @@ BOOL CPipeSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, 
 		startInfo.hStdError  = m_hIn[1];
 
 		if ( !CreateProcess(NULL, (LPTSTR)(LPCTSTR)lpszHostAddress, NULL, NULL, TRUE, CREATE_NEW_PROCESS_GROUP, NULL, NULL, &startInfo, &m_proInfo) ) {
-			CString errmsg;
-			errmsg.Format(_T("PipeSocket CreateProcess Error '%s'"), lpszHostAddress);
-			AfxMessageBox(errmsg, MB_ICONSTOP);
+			::AfxMessageBox(GetFormatErrorMessage(m_pDocument->m_ServerEntry.m_EntryName, lpszHostAddress, 0, _T("CreateProcess"), ::GetLastError()), MB_ICONSTOP);
 			return FALSE;
 		}
 
@@ -141,7 +161,7 @@ BOOL CPipeSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, 
 	GetMainWnd()->SetAsyncSelect((SOCKET)m_hIn[0], this, 0);
 
 //	CExtSocket::OnConnect();
-	AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hIn[0], FD_CONNECT);
+	GetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hIn[0], FD_CONNECT);
 
 	return TRUE;
 }

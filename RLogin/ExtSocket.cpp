@@ -1348,19 +1348,19 @@ void CExtSocket::OnAsyncHostByName(int mode, LPCTSTR pHostName)
 		break;
 	case ASYNC_CREATE:
 		if ( !Create(pHostName, m_RealHostPort, m_RealRemoteAddr, m_RealSocketType) )
-			OnError(WSAENOTCONN);
+			OnError(WSAGetLastError());
 		break;
 	case ASYNC_OPEN:
 		if ( !Open(pHostName, m_RealHostPort, m_RealRemotePort, m_RealSocketType) )
-			OnError(WSAENOTCONN);
+			OnError(WSAGetLastError());
 		break;
 	case ASYNC_CREATEINFO:
 		if ( !Create(m_RealHostAddr, m_RealHostPort, m_RealRemoteAddr, m_RealSocketType, (void *)pHostName) )
-			OnError(WSAENOTCONN);
+			OnError(WSAGetLastError());
 		break;
 	case ASYNC_OPENINFO:
 		if ( !Open(m_RealHostAddr, m_RealHostPort, m_RealRemotePort, m_RealSocketType, (void *)pHostName) )
-			OnError(WSAENOTCONN);
+			OnError(WSAGetLastError());
 		break;
 	}
 }
@@ -1933,6 +1933,40 @@ void CExtSocket::PunyCodeAdress(LPCTSTR str, CString &out)
 			out += _T('.');
 		out += tmp;
 	}
+}
+
+LPCTSTR CExtSocket::GetFormatErrorMessage(LPCTSTR entry, LPCTSTR host, int port, LPCTSTR type, int err)
+{
+	LPVOID lpMessageBuffer;
+	CString tmp;
+	static CString msg;
+
+	msg.Format(_T("Server Entry '%s'\n"), entry == NULL ? _T("Unknown") : entry);
+
+	if ( host != NULL ) {
+		if ( port > 0 )
+			tmp.Format(_T("Connecttion '%s:%d'\n"), host, port);
+		else
+			tmp.Format(_T("Connecttion '%s'\n"), host);
+		msg += tmp;
+	}
+
+	if ( type != NULL ) {
+		msg += type;
+		msg += _T(" ");
+	}
+
+	tmp.Format(_T("Have Error #%d\n"), err);
+	msg += tmp;
+
+	if ( err > 0 ) {
+		FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&lpMessageBuffer, 0, NULL);
+		msg += _T("\n");
+		msg += (LPTSTR)lpMessageBuffer;
+		LocalFree(lpMessageBuffer);
+	}
+
+	return msg;
 }
 
 //////////////////////////////////////////////////////////////////////

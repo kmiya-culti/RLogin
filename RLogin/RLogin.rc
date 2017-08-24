@@ -531,29 +531,33 @@ END
 // Dialog
 //
 
-IDD_ABOUTBOX DIALOGEX 0, 0, 243, 192
+IDD_ABOUTBOX DIALOGEX 0, 0, 243, 214
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "RLoginのバージョン情報"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.22.5 (2017/08/01)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
-    LTEXT           "Copyright (C) 1998-2017 Culti",IDC_STATIC,44,16,189,8
-    DEFPUSHBUTTON   "OK",IDOK,91,171,60,14,WS_GROUP
-    LTEXT           "OpenSSL 1.1.0f 25 May 2017",IDC_STATIC,44,29,189,8
-    LTEXT           "Copyright (c) 1998-2017 The OpenSSL Project",IDC_STATIC,44,38,189,8
-    LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,47,189,8
-    LTEXT           "All rights reserved.",IDC_STATIC,44,56,189,8
-    LTEXT           "zlib 1.2.11 (15 Jan 2017)",IDC_STATIC,44,69,189,8
-    LTEXT           "(C) 1995-2017 Jean-loup Gailly and Mark Adler",IDC_STATIC,44,78,189,8
-    LTEXT           "iconv (GNU libiconv 1.14)",IDC_STATIC,44,91,189,8
-    LTEXT           "Copyright (C) 2000-2011 Free Software Foundation, Inc.",IDC_STATIC,44,100,189,8
-    LTEXT           "Nettle library (version 2.0)",IDC_STATIC,44,115,189,8
-    LTEXT           "Originally written 2001 by Niels Moller, updated 2009.",IDC_STATIC,44,124,189,8
-    LTEXT           "kumaGIF",IDC_STATIC,44,137,189,8
-    LTEXT           "Copyright (c) 1.023world All Rights Reserved.",IDC_STATIC,44,146,189,8
+    CONTROL         "<a href=""http://nanno.dip.jp/softlib/man/rlogin/"">http://nanno.dip.jp/softlib/man/rlogin/</a>",IDC_SYSLINK2,
+                    "SysLink",WS_TABSTOP,44,26,189,8
+    CONTROL         "<a href=""https://kmiya-culti.github.io/RLogin/"">https://kmiya-culti.github.io/RLogin/</a>",IDC_SYSLINK3,
+                    "SysLink",WS_TABSTOP,44,37,189,8
     CONTROL         "<a href=""http://www.1023world.net/material/gif/"">http://www.1023world.net/material/gif/</a>",IDC_SYSLINK1,
-                    "SysLink",WS_TABSTOP,44,155,189,12
+                    "SysLink",WS_TABSTOP,44,178,189,8
+    DEFPUSHBUTTON   "OK",IDOK,91,193,60,14,WS_GROUP
+    ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
+    LTEXT           "RLogin Version 2.22.6 (2017/09/05)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    LTEXT           "Copyright (C) 1998-2017 Culti",IDC_STATIC,44,16,189,8
+    LTEXT           "OpenSSL 1.1.0f 25 May 2017",IDC_STATIC,44,52,189,8
+    LTEXT           "Copyright (c) 1998-2017 The OpenSSL Project",IDC_STATIC,44,61,189,8
+    LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,70,189,8
+    LTEXT           "All rights reserved.",IDC_STATIC,44,79,189,8
+    LTEXT           "zlib 1.2.11 (15 Jan 2017)",IDC_STATIC,44,92,189,8
+    LTEXT           "(C) 1995-2017 Jean-loup Gailly and Mark Adler",IDC_STATIC,44,101,189,8
+    LTEXT           "iconv (GNU libiconv 1.15)",IDC_STATIC,44,114,189,8
+    LTEXT           "Copyright (C) 2000-2017 Free Software Foundation, Inc.",IDC_STATIC,44,123,189,8
+    LTEXT           "Nettle library (version 2.0)",IDC_STATIC,44,138,189,8
+    LTEXT           "Originally written 2001 by Niels Moller, updated 2009.",IDC_STATIC,44,147,189,8
+    LTEXT           "kumaGIF",IDC_STATIC,44,160,189,8
+    LTEXT           "Copyright (c) 1.023world All Rights Reserved.",IDC_STATIC,44,169,189,8
 END
 
 IDD_ALGOPARADLG DIALOGEX 0, 0, 351, 343
@@ -902,7 +906,7 @@ STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "カラー"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    COMBOBOX        IDC_COLSET,78,22,60,50,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COLSET,78,22,60,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "編集(&E)",IDC_COLEDIT,153,21,50,14
     CONTROL         "",IDC_SLIDER_CONTRAST,"msctls_trackbar32",TBS_VERT | TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,212,41,12,61
     CONTROL         "",IDC_SLIDER_BRIGHT,"msctls_trackbar32",TBS_VERT | TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,228,41,12,61
@@ -1445,15 +1449,18 @@ BEGIN
     GROUPBOX        "マウス",IDC_STATIC,7,7,256,50
 END
 
-IDD_INITALLDLG DIALOGEX 0, 0, 211, 99
+IDD_INITALLDLG DIALOGEX 0, 0, 211, 135
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "初期化の確認"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    DEFPUSHBUTTON   "はい",IDOK,39,78,60,14
-    PUSHBUTTON      "キャンセル",IDCANCEL,112,78,60,14
-    CONTROL         "プログラムの初期値まで設定を戻す",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,40,56,138,10
-    LTEXT           "すべての設定を標準に戻しますか？",IDC_STATIC,53,25,127,8
+    CONTROL         "標準の設定(Server Selectの右クリックメニューで設定)",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,20,54,176,10
+    CONTROL         "プログラムの初期値まで戻す",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,20,71,176,10
+    CONTROL         "右記の設定に合わせる",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON,20,88,108,10
+    COMBOBOX        IDC_COMBO1,134,86,60,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    DEFPUSHBUTTON   "はい",IDOK,39,114,60,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,112,114,60,14
+    LTEXT           "すべての設定を下記に従って変更しますか？",IDC_STATIC,53,25,127,8
     ICON            "",IDC_MSGICON,21,20,20,20
 END
 
@@ -1783,8 +1790,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,22,5,0
- PRODUCTVERSION 2,22,5,0
+ FILEVERSION 2,22,6,0
+ PRODUCTVERSION 2,22,6,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1801,12 +1808,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.22.5.0"
+            VALUE "FileVersion", "2.22.6.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2017 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.22.5.0"
+            VALUE "ProductVersion", "2.22.6.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -1829,7 +1836,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 236
         TOPMARGIN, 7
-        BOTTOMMARGIN, 185
+        BOTTOMMARGIN, 207
     END
 
     IDD_ALGOPARADLG, DIALOG
@@ -2133,7 +2140,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 204
         TOPMARGIN, 7
-        BOTTOMMARGIN, 92
+        BOTTOMMARGIN, 128
     END
 
     IDD_SCRIPTDLG, DIALOG
@@ -2627,6 +2634,10 @@ BEGIN
 0x6150, 0x7473, 0x6c65, "\000" 
     IDC_COLSET, 0x403, 8, 0
 0x6f4d, 0x6f6e, 0x616b, 0x0069, 
+    IDC_COLSET, 0x403, 6, 0
+0x6154, 0x676e, 0x006f, 
+    IDC_COLSET, 0x403, 8, 0
+0x6957, 0x646e, 0x776f, 0x0073, 
     IDC_COMBO2, 0x403, 5, 0
 0x6f4e, 0x656e, "\000" 
     IDC_COMBO2, 0x403, 5, 0

@@ -5,6 +5,11 @@
 #include "rlogin.h"
 #include "AlgoDlg.h"
 #include "InitAllDlg.h"
+#include "MainFrm.h"
+#include "RLoginDoc.h"
+#include "RLoginView.h"
+#include "TextRam.h"
+#include "Data.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -73,17 +78,32 @@ void CAlgoDlg::OnOK()
 void CAlgoDlg::OnBnClickedReset()
 {
 	int n, i;
-	CParamTab tmp;
+	CTextRam TextRam;
+	CKeyNodeTab KeyTab;
+	CKeyMacTab KeyMac;
+	CParamTab ParamTab;
 	CInitAllDlg dlg;
 
 	if ( dlg.DoModal() != IDOK )
 		return;
 
-	if ( !dlg.m_InitFlag )
-		tmp.Serialize(FALSE);
+	switch(dlg.m_InitType) {
+	case 0:		// Init Default Entry
+		ParamTab.Serialize(FALSE);
+		break;
+
+	case 1:		// Init Program Default
+		ParamTab.Init();
+		break;
+
+	case 2:		// Copy Entry option
+		ASSERT(dlg.m_pInitEntry != NULL);
+		CRLoginDoc::LoadOption(*(dlg.m_pInitEntry), TextRam, KeyTab, KeyMac, ParamTab);
+		break;
+	}
 
 	for ( n = 0 ; n < 12 ; n++ ) {
-		m_AlgoTab[n] = tmp.m_AlgoTab[n];
+		m_AlgoTab[n] = ParamTab.m_AlgoTab[n];
 		m_List[n].DeleteAllItems();
 		for ( i = 0 ; i < m_AlgoTab[n].GetSize() ; i++ )
 			m_List[n].InsertItem(i, m_AlgoTab[n][i]);

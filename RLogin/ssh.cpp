@@ -226,14 +226,11 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 		return TRUE;
 
 	} catch(LPCTSTR pMsg) {
-		CString tmp;
-		tmp.Format(_T("ssh Open Error '%s'"), pMsg);
-		::AfxMessageBox(tmp);
+		m_pDocument->m_ErrorPrompt.Format(_T("ssh Open Error '%s'"), pMsg);
 		return FALSE;
+
 	} catch(...) {
-		CString tmp;
-		tmp.Format(_T("ssh Open Error '%s:%d'"), lpszHostAddress == NULL ? _T("null") : lpszHostAddress, nHostPort);
-		::AfxMessageBox(tmp);
+		m_pDocument->m_ErrorPrompt = _T("ssh Open Error 'Unknown'");
 		return FALSE;
 	}
 }

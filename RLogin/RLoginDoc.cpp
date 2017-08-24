@@ -1333,14 +1333,11 @@ void CRLoginDoc::OnSocketError(int err)
 		m_AfterId = (-1);
 	}
 
-	if ( m_ErrorPrompt.IsEmpty() ) {
-		LPVOID lpMessageBuffer;
-		FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&lpMessageBuffer, 0, NULL);
-		m_ErrorPrompt.Format(_T("WinSock Have Error #%d\n\n%s"), err, (LPTSTR)lpMessageBuffer);
-		LocalFree(lpMessageBuffer);
-	}
+	if ( m_ErrorPrompt.IsEmpty() )
+		tmp = CExtSocket::GetFormatErrorMessage(m_ServerEntry.m_EntryName, m_ServerEntry.m_HostName, CExtSocket::GetPortNum(m_ServerEntry.m_PortName), _T("WinSock"), err);
+	else
+		tmp.Format(_T("%s Server Entry Socket Error\n%s:%s Connection\n%s\n"), m_ServerEntry.m_EntryName, m_ServerEntry.m_HostName, m_ServerEntry.m_PortName, m_ErrorPrompt);
 
-	tmp.Format(_T("%s Server Entry Socket Error\n%s:%s Connection\n%s"), m_ServerEntry.m_EntryName, m_ServerEntry.m_HostName, m_ServerEntry.m_PortName, m_ErrorPrompt);
 	m_ErrorPrompt.Empty();
 
 	if ( (pWnd = GetAciveView()) != NULL ) {

@@ -8,11 +8,11 @@
 <TITLE>rlogin/telnet/ssh(クライアント)ターミナルソフト</TITLE>
 <STYLE type="text/css">
 <!--
-TD {  
+TD {
   background-color : #ffffff;
   font-size : 90%;
 }
-.BOX{  
+.BOX{
   background-color : silver;
 }
 -->
@@ -434,6 +434,16 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">次期試作版<BR>
+            RC1</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.22.6/">2.22.6</A></TD>
+            <TD><FONT color="#c0c0c0">libiconv-1.15に更新<BR>
+            オープン時のエラーメッセージを修正<BR>
+            オプションの初期化に他エントリー設定に合わすを追加<BR>
+            Zeroに重ねるオプションがファイル保存されないのを修正<BR>
+            ファイルに保存したANSIオプションが読み込まれないのを修正</FONT></TD>
+          </TR>
+          <TR>
             <TD align="center">2017/08/01</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.22.5/">2.22.5</A></TD>
             <TD>背景画像画像の配置方法を追加<BR>
@@ -479,21 +489,6 @@ TD {
             送信文字列の特殊文字に%sソケットステータスを追加<BR>
             サーバーのオプション設定に「標準の設定を使用」を追加<BR>
             ターミナルのオプションに「壊れたMBCを記号で表示」を追加</TD>
-          </TR>
-          <TR>
-            <TD align="center">2017/03/17</TD>
-            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.22.1/">2.22.1</A></TD>
-            <TD>通信ログの自動保存エラー時の為にオープンを接続前に変更<BR>
-            拡張機能のオプションを各種ページに移動して整理<BR>
-            端末画面のリサイズ処理を整理して変更<BR>
-            キー操作の記録で一定サイズ以上の場合に警告を表示<BR>
-            エントリー情報読み込み時の最大サイズを拡大<BR>
-            不用になったエントリー情報内のキー操作の記録を削除<BR>
-            ペースト確認ダイアログの「改行を確認」をペースト時に限定<BR>
-            リソースをファイルに保存する形式をJSONに変更<BR>
-            リソースのダイアログデータが言語依存するので英数に限定<BR>
-            リソースをファイルに保存で自動翻訳を追加<BR>
-            起動時のウィンドウサイズ復帰でモニターの範囲に調整を修正</TD>
           </TR>
           <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
@@ -678,76 +673,76 @@ TD {
         <TBODY>
           <TR>
             <TD>
-            <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1036">
+            <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1066">
               <TBODY>
                 <TR>
                   <TD align="left" colspan="5">ファイル(F)</TD>
                 </TR>
                 <TR>
                   <TD align="center" width="10" rowspan="14"></TD>
-                  <TD width="250" valign="top">サーバーに接続(N)</TD>
-                  <TD width="450" valign="top"><A href="#SERVERSEL">サーバーの選択・設定</A>ダイアログを表示し選択したサーバーに接続します</TD>
-                  <TD valign="top" width="120" align="right"></TD>
-                  <TD valign="top" width="150">$FILE_NEW</TD>
+                  <TD valign="top" width="250">サーバーに接続(N)</TD>
+                  <TD valign="top" width="450"><A href="#SERVERSEL">サーバーの選択・設定</A>ダイアログを表示し選択したサーバーに接続します</TD>
+                  <TD valign="top" align="right" width="120"></TD>
+                  <TD valign="top" width="180">$FILE_NEW</TD>
                 </TR>
                 <TR>
                   <TD valign="top">サーバーに再接続(A)</TD>
                   <TD valign="top"><A href="#TRSOPT">通信関連のオプション設定</A>の「接続が切れても閉じない」が有効の接続が切れたウィンドウの場合に追加されるメニューです。</TD>
-                  <TD valign="top" align="right"></TD>
+                  <TD valign="top" align="right" width="120"></TD>
                   <TD valign="top">$FILE_RECONNECT</TD>
                 </TR>
                 <TR>
                   <TD valign="top">接続を閉じる(C)</TD>
                   <TD valign="top">接続中のサーバーとの通信を閉じます</TD>
-                  <TD valign="top" align="right"></TD>
+                  <TD valign="top" align="right" width="120"></TD>
                   <TD valign="top">$FILE_CLOSE</TD>
                 </TR>
                 <TR>
                   <TD valign="top">サーバー情報を開く(O)</TD>
                   <TD valign="top">保存されたサーバー情報を元にサーバーに接続します</TD>
-                  <TD valign="top" align="right"></TD>
+                  <TD valign="top" align="right" width="120"></TD>
                   <TD valign="top">$FILE_OPEN</TD>
                 </TR>
                 <TR>
                   <TD valign="top">サーバー情報を保存(S)</TD>
                   <TD valign="top">接続中のサーバー設定などをファイルに保存します</TD>
-                  <TD valign="top" align="right"></TD>
+                  <TD valign="top" align="right" width="120"></TD>
                   <TD valign="top">$FILE_SAVE</TD>
                 </TR>
                 <TR>
                   <TD valign="top">すべての状態を保存(W)</TD>
                   <TD valign="top">ウインドウの分割状態、サーバーへの接続情報を含めてファイルに保存します</TD>
-                  <TD valign="top" align="right"></TD>
+                  <TD valign="top" align="right" width="120"></TD>
                   <TD valign="top">$FILE_ALLSAVE</TD>
                 </TR>
                 <TR>
                   <TD valign="top">印刷(P)</TD>
                   <TD valign="top">現在の画面を印刷します</TD>
-                  <TD valign="top" align="right"></TD>
+                  <TD valign="top" align="right" width="120"></TD>
                   <TD valign="top">$PRINT_DIRECT</TD>
                 </TR>
                 <TR>
                   <TD valign="top">印刷プレビュー(V)</TD>
                   <TD valign="top">印刷をプレビューで表示します</TD>
-                  <TD valign="top" align="right"></TD>
+                  <TD valign="top" align="right" width="120"></TD>
                   <TD valign="top">$PRINT_PREVIEW</TD>
                 </TR>
                 <TR>
                   <TD valign="top">プリンタの設定(R)</TD>
                   <TD valign="top">使用するプリンタを設定します</TD>
-                  <TD valign="top" align="right"></TD>
+                  <TD valign="top" align="right" width="120"></TD>
                   <TD valign="top">$PRINT_SETUP</TD>
                 </TR>
                 <TR>
                   <TD valign="top">ログファイルに保存(L)</TD>
                   <TD valign="top">指定するファイルに通信記録を残します</TD>
-                  <TD valign="top" align="right"></TD>
+                  <TD valign="top" align="right" width="120"></TD>
                   <TD valign="top">$LOG_OPEN</TD>
                 </TR>
                 <TR>
                   <TD valign="top">SFTPファイルの転送(T)</TD>
                   <TD valign="top"><A href="#SFTPWIND">SFTPによるファイル転送</A>ダイアログを開きます</TD>
-                  <TD valign="top" align="right"></TD>
+                  <TD valign="top" align="right" width="120"></TD>
                   <TD valign="top">$VIEW_SFTP</TD>
                 </TR>
                 <TR>
@@ -755,7 +750,7 @@ TD {
                   <TD valign="top">XYZModem/Kermitプロトコルによるファイル転送を実行します<BR>
                   ※2.20.5で追加した「ファイルアップロード」は、ファイルをそのまま送信します。データの取りこぼしや意図しないエコーバックなどにご注意ください。<BR>
                   ※2.22.2で追加した「ファイルダウンロード」は、画面表示無しで送られてきた文字をそのままファイルに記録します。</TD>
-                  <TD valign="top" align="right"></TD>
+                  <TD valign="top" align="right" width="120"></TD>
                   <TD valign="top">$XMODEM_DOWNLOAD<BR>
                   $XMODEM_UPLOAD<BR>
                   $YMODEM_DOWNLOAD<BR>
@@ -765,18 +760,18 @@ TD {
                   $KERMIT_DOWNLOAD<BR>
                   $KERMIT_UPLOAD<BR>
                   $FILE_UPLOAD<BR>
-                  <FONT color="#c0c0c0">$FILE_DOWNLOAD</FONT></TD>
+                  $FILE_DOWNLOAD</TD>
                 </TR>
                 <TR>
                   <TD valign="top">スクリプトの実行(E)</TD>
                   <TD valign="top">スクリプトファイルを読み込んで実行します。</TD>
-                  <TD valign="top" align="right"></TD>
+                  <TD valign="top" align="right" width="120"></TD>
                   <TD valign="top">$SCRIPT_EXEC</TD>
                 </TR>
                 <TR>
                   <TD valign="top">アプリケーションの終了(X)</TD>
                   <TD valign="top">プログラムを終了します</TD>
-                  <TD valign="top" align="right"></TD>
+                  <TD valign="top" align="right" width="120"></TD>
                   <TD valign="top">$EXIT</TD>
                 </TR>
               </TBODY>
@@ -788,17 +783,17 @@ TD {
           </TR>
           <TR>
             <TD>
-            <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1036">
+            <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1066">
               <TBODY>
                 <TR>
                   <TD align="left" colspan="5">編集(E)</TD>
                 </TR>
                 <TR>
                   <TD align="center" width="10" rowspan="17"></TD>
-                  <TD width="250" valign="top">コピー(C)</TD>
-                  <TD width="450" valign="top">クリップボードにコピーします</TD>
-                  <TD valign="top" width="120" align="right"></TD>
-                  <TD valign="top" width="150">$EDIT_COPY</TD>
+                  <TD valign="top" width="250">コピー(C)</TD>
+                  <TD valign="top" width="450">クリップボードにコピーします</TD>
+                  <TD valign="top" align="right" width="120"></TD>
+                  <TD valign="top" width="180">$EDIT_COPY</TD>
                 </TR>
                 <TR>
                   <TD valign="top">貼り付け(P)</TD>
@@ -913,7 +908,7 @@ TD {
           </TR>
           <TR>
             <TD>
-            <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1036">
+            <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1066">
               <TBODY>
                 <TR>
                   <TD align="left" colspan="6">表示(V)</TD>
@@ -924,7 +919,7 @@ TD {
                   <TD width="450" valign="top">メニューバーを表示・非表示にします<BR>
                   ※非表示の時は、システムメニューでメニューバーを表示できます</TD>
                   <TD valign="top" width="120" align="right"></TD>
-                  <TD valign="top" width="150">$VIEW_MENUBAR</TD>
+                  <TD valign="top" width="180">$VIEW_MENUBAR</TD>
                 </TR>
                 <TR>
                   <TD colspan="2" valign="top">ツールバー(T)</TD>
@@ -1076,7 +1071,7 @@ TD {
           </TR>
           <TR>
             <TD>
-            <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1036">
+            <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1066">
               <TBODY>
                 <TR>
                   <TD colspan="6">ウィンドウ(W)</TD>
@@ -1086,7 +1081,7 @@ TD {
                   <TD valign="top" colspan="2" width="250">ウィンドウ識別を表示(I)</TD>
                   <TD valign="top" width="450">タブ位置とウィンドウタイトルを画面中央に３秒間表示します</TD>
                   <TD valign="top" width="120" align="right"></TD>
-                  <TD valign="top" width="150">$WINDOW_INDEX</TD>
+                  <TD valign="top" width="180">$WINDOW_INDEX</TD>
                 </TR>
                 <TR>
                   <TD colspan="2" valign="top">別ウィンドウを開く(N)&nbsp;</TD>
@@ -1221,7 +1216,7 @@ TD {
           </TR>
           <TR>
             <TD>
-            <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1036">
+            <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1066">
               <TBODY>
                 <TR>
                   <TD colspan="6">ヘルプ(H)</TD>
@@ -1231,7 +1226,7 @@ TD {
                   <TD valign="top" colspan="2" width="250">Rloginのバージョン情報(A)</TD>
                   <TD valign="top" width="450">プログラムやライブラリなどのバージョン情報を表示します</TD>
                   <TD valign="top" width="120" align="right"></TD>
-                  <TD valign="top" width="150">$ABOUT</TD>
+                  <TD valign="top" width="180">$ABOUT</TD>
                 </TR>
                 <TR>
                   <TD colspan="2" valign="top" width="250">自動バージョンチェック(V)&nbsp;</TD>
@@ -1297,7 +1292,7 @@ TD {
       <BR>
       ※右端の＄から始まるキーワードは、<A href="#KEYOPT">キーボードのオプション設定</A>などで使用するショートカットキーワードです。<BR>
       <BR>
-      <TABLE class="BOX" width="1036" cellpadding="5" cellspacing="1">
+      <TABLE class="BOX" width="1066" cellpadding="5" cellspacing="1">
         <TBODY>
           <TR>
             <TD colspan="5">その他ショートカットメニュー</TD>
@@ -1307,7 +1302,7 @@ TD {
             <TD width="250" valign="top">スクリプトメニュー</TD>
             <TD width="450" valign="top">スクリプトで設定するメニューです</TD>
             <TD valign="top" width="120" align="right"></TD>
-            <TD width="150" valign="top">$SCRIPT_MENU1-10</TD>
+            <TD width="180" valign="top">$SCRIPT_MENU1-10</TD>
           </TR>
           <TR>
             <TD valign="top">アクティブウィンドウの選択</TD>
