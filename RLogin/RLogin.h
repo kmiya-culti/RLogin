@@ -89,7 +89,7 @@ public:
 	BOOL m_bLookCast;
 	BOOL m_bOtherCast;
 	CString m_LocalPass;
-	clock_t m_LastIdleClock;
+	BOOL m_bUseIdle;
 
 #ifdef	USE_KEYMACGLOBAL
 	CKeyMacTab m_KeyMacGlobal;

@@ -1648,9 +1648,9 @@ int CExtSocket::OnIdle()
 	}
 
 	if ( m_bUseProc ) {
-		m_bUseProc = FALSE;
 		if ( ReciveProc() )
 			return TRUE;
+		m_bUseProc = FALSE;
 	}
 
 	if ( ReciveCall() ) {
@@ -1658,8 +1658,10 @@ int CExtSocket::OnIdle()
 		return TRUE;
 	}
 
-	if ( ReciveProc() )
+	if ( ReciveProc() ) {
+		m_bUseProc = TRUE;
 		return TRUE;
+	}
 
 	if ( (m_OnRecvFlag & RECV_DOCLOSE) != 0 && GetRecvSize() == 0 ) {
 		m_OnRecvFlag &= ~RECV_DOCLOSE;

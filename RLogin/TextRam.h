@@ -197,6 +197,7 @@
 #define TO_RLCLSBACK	455			// 全画面消去でスクロールする
 #define	TO_RLBRKMBCS	456			// 壊れたMBCSの代替え表示
 #define	TO_TTCTH		457			// 8200 画面クリア(ED 2)時にカーソルを左上に移動する。
+#define	TO_RLBOLDHC		458			// ボールド文字で高輝度を無効にする
 
 // RLogin SockOpt		1000-1511(0-511)
 #define	TO_RLTENAT		1406		// 自動ユーザー認証を行わない
@@ -250,6 +251,7 @@
 #define	TO_RLTABINFO	1476		// タブにツールチップを表示する
 #define	TO_RLREOPEN		1477		// 再接続を確認
 #define	TO_RLDELCRLF	1478		// ペースト時に末尾のCRLFを削除
+#define	TO_RLPSUPWIN	1479		// 積極的なウィンドウの描画更新
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 

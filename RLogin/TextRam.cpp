@@ -3297,7 +3297,7 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 			m_ModKeyList[5] = InitKeyList[5];
 		}
 	}
-	
+
 	RESET();
 }
 
@@ -5125,10 +5125,15 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, struct DrawWork &prop, class CR
 	CGrapWnd *pWnd;
 
 	// Text Color & Back Color
-	if ( (prop.eatt & EATT_FRGBCOL) != 0 )
+	if ( (prop.attr & ATT_BOLD) != 0 && (!IsOptEnable(TO_RLBOLD) || IsOptEnable(TO_RLBOLDHC)) ) {
+		if ( (prop.eatt & EATT_FRGBCOL) != 0 )
+			fcol = RGB((GetRValue(prop.frgb) + 255) / 2, (GetGValue(prop.frgb) + 255) / 2, (GetBValue(prop.frgb) + 255) / 2);
+		else if ( prop.fcol < 16 )
+			fcol = m_ColTab[prop.fcol ^ 0x08];
+		else
+			fcol = RGB((GetRValue(m_ColTab[prop.fcol]) + 255) / 2, (GetGValue(m_ColTab[prop.fcol]) + 255) / 2, (GetBValue(m_ColTab[prop.fcol]) + 255) / 2);
+	} else if ( (prop.eatt & EATT_FRGBCOL) != 0 )
 		fcol = prop.frgb;
-	else if ( (prop.attr & ATT_BOLD) != 0 && !IsOptEnable(TO_RLBOLD) && prop.fcol < 16 )
-		fcol = m_ColTab[prop.fcol ^ 0x08];
 	else
 		fcol = m_ColTab[prop.fcol];
 

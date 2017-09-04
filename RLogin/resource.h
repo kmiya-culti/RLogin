@@ -281,6 +281,7 @@
 #define IDT_EXTOPT_LIST19               818
 #define IDT_EXTOPT_LIST20               819
 #define IDT_EXTOPT_LIST21               820
+#define IDT_EXTOPT_LIST22               821
 #define IDT_TERM_LIST01                 900
 #define IDT_TERM_LIST02                 901
 #define IDT_TERM_LIST03                 902
@@ -346,6 +347,7 @@
 #define IDT_TERM_LIST63                 962
 #define IDT_TERM_LIST64                 963
 #define IDT_TERM_LIST65                 964
+#define IDT_TERM_LIST66                 965
 #define ID_CHARSCRIPT_END               1000
 #define ID_DISCONNECT                   1001
 #define ID_EDIT_BOX                     1002

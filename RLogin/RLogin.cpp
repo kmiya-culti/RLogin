@@ -504,7 +504,7 @@ CRLoginApp::CRLoginApp()
 
 	m_IdleProcCount = 0;
 	m_pIdleTop = NULL;
-	m_LastIdleClock = clock();
+	m_bUseIdle = FALSE;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -2260,23 +2260,24 @@ BOOL CRLoginApp::OnIdle(LONG lCount)
 		// m_IdleProcCountも変化する場合有り
 	}
 
-	// 必要性が微妙・・・
-	m_LastIdleClock = clock() + (300 * CLOCKS_PER_SEC / 1000);	// 300ms
+	// メッセージ処理後に必ずOnIdleを呼ぶように・・・
+	if ( rt )
+		m_bUseIdle = TRUE;
 
 	return rt;
 }
 BOOL CRLoginApp::IsIdleMessage(MSG* pMsg)
 {
-	if ( pMsg->message == WM_SOCKSEL )
+	if ( m_bUseIdle ) {
+		m_bUseIdle = FALSE;
+		return TRUE;
+	}
+
+	if ( pMsg->message == WM_SOCKSEL || pMsg->message == WM_NULL || pMsg->message == WM_PAINT )
 		return TRUE;
 
 	if ( CWinApp::IsIdleMessage(pMsg) )
 		return TRUE;
-
-	if ( clock() > m_LastIdleClock ) {
-		m_LastIdleClock += CLOCKS_PER_SEC;
-		return TRUE;
-	}
 
 	return FALSE;
 }

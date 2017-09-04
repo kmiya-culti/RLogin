@@ -28,8 +28,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.22.5)</TD>
-            <TD width="20%" align="right">2017/08/01</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.22.6)</TD>
+            <TD width="20%" align="right">2017/09/05</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -434,14 +434,16 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
-            <TD align="center">次期試作版<BR>
-            RC1</TD>
+            <TD align="center">2017/09/05</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.22.6/">2.22.6</A></TD>
-            <TD><FONT color="#c0c0c0">libiconv-1.15に更新<BR>
+            <TD>libiconv-1.15に更新<BR>
             オープン時のエラーメッセージを修正<BR>
             オプションの初期化に他エントリー設定に合わすを追加<BR>
             Zeroに重ねるオプションがファイル保存されないのを修正<BR>
-            ファイルに保存したANSIオプションが読み込まれないのを修正</FONT></TD>
+            ファイルに保存したANSIオプションが読み込まれないのを修正<BR>
+            メッセージ処理後に必ずアイドル処理を実行するように変更<BR>
+            拡張機能にウィンドウ画面を積極的に更新を追加<BR>
+            ターミナルのオプション設定に太字と高輝度を併用を追加</TD>
           </TR>
           <TR>
             <TD align="center">2017/08/01</TD>
@@ -552,20 +554,22 @@ TD {
                   mv *.obj *.lib x64</TD>
                 </TR>
                 <TR>
-                  <TD rowspan="2" valign="top"><A href="http://www.gnu.org/software/libiconv/">libiconv-1.14.tar.gz</A><BR>
+                  <TD rowspan="2" valign="top"><A href="http://www.gnu.org/software/libiconv/">libiconv-1.15.tar.gz</A><BR>
                   <BR>
-                  追加ファイル<BR>
-                  <A href="libiconv-1.14-add.zip">libiconv-1.14-add.zip</A></TD>
+                  <A href="http://apolloron.org/software/libiconv-1.14-ja/">日本語パッチ</A>の一部を1.15に当て直した物です<BR>
+                  <A href="libiconv-1.15.patch">libiconv-1.15.patch</A></TD>
                   <TD valign="top">x86用 lib\x32<BR>
                   Visual Studio コマンド <BR>
                   プロンプト (2010)</TD>
-                  <TD valign="top">nmake -f lib/Makefile.ms x32</TD>
+                  <TD valign="top">cd libiconv-1.15/lib<BR>
+                  nmake -f Makefile.ms x32</TD>
                 </TR>
                 <TR>
                   <TD valign="top">x64用 lib\x64<BR>
                   Visual Studio x64 Win64 <BR>
                   コマンド プロンプト (2010)</TD>
-                  <TD valign="top">nmake -f lib/Makefile.ms x64</TD>
+                  <TD valign="top">cd libiconv-1.15/lib<BR>
+                  nmake -f Makefile.ms x64</TD>
                 </TR>
                 <TR>
                   <TD valign="top"><A href="http://www.lysator.liu.se/~nisse/nettle/">nettle-2.0.tar.gz</A><BR>
@@ -612,8 +616,8 @@ TD {
             zlib 1.2.11<BR>
             (C) 1995-2017 Jean-loup Gailly and Mark Adler<BR>
             <BR>
-            libiconv-1.14<BR>
-            Copyright (C) 2000-2011 Free Software Foundation, Inc.<BR>
+            libiconv-1.15<BR>
+            Copyright (C) 2000-2017 Free Software Foundation, Inc.<BR>
             <BR>
             Nettle library (version 2.0)<BR>
             Originally written 2001 by Niels Moller, updated 2009.<BR>
@@ -1823,7 +1827,10 @@ TD {
                 </TR>
                 <TR>
                   <TD align="center">接続時に・・・</TD>
-                  <TD>接続時にサーバー、ユーザー、パスワードの入力を要求します</TD>
+                  <TD>接続時にサーバー、ユーザー、パスワードの入力を要求します<BR>
+                  <BR>
+                  ※Server Adress/User Nameは、履歴を残します。履歴を削除するには、プルダウンメニューで選択しDELキーで削除することができます。<BR>
+                  <IMG src="image053.jpg" width="384" height="232" border="0"></TD>
                 </TR>
                 <TR>
                   <TD align="center">アイコン</TD>
@@ -1895,7 +1902,8 @@ TD {
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top" align="left"><IMG src="image008.jpg" width="611" height="511" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image008.jpg" width="611" height="511" border="0"><BR>
+            </TD>
           </TR>
           <TR>
             <TD valign="top" colspan="2" height="10">
@@ -3280,12 +3288,13 @@ function TekClock2() {
                 </TR>
                 <TR>
                   <TD align="center" width="10%" rowspan="2">8403</TD>
-                  <TD width="40%">ボールド文字有効</TD>
-                  <TD width="40%">ボールド文字無効</TD>
+                  <TD width="40%">太字でボールドを表示</TD>
+                  <TD width="40%">高輝度でボールドを表示</TD>
                 </TR>
                 <TR>
-                  <TD colspan="2">重ね書きでボールド(太文字)を表示します。<BR>
-                  ただし字体が崩れて表示されてしまいます</TD>
+                  <TD colspan="2">SGRの1で太字を使用してボールドを表示します<BR>
+                  ただし字体が崩れて表示される場合があります<BR>
+                  下記8458で太字と高輝度を併用することもできます</TD>
                 </TR>
                 <TR>
                   <TD align="center" width="10%" rowspan="2">8406</TD>
@@ -3399,6 +3408,23 @@ function TekClock2() {
                 </TR>
                 <TR>
                   <TD colspan="2">壊れた漢字などのマルチバイト文字を無視せずに代わりに記号(?)を表示する</TD>
+                </TR>
+                <TR>
+                  <TD align="center" rowspan="2">8457<BR>
+                  (8200)</TD>
+                  <TD>画面クリアで移動</TD>
+                  <TD>画面クリアのみ</TD>
+                </TR>
+                <TR>
+                  <TD colspan="2">画面クリア(ED2)と同時にカーソルをホーム（左上)に移動する</TD>
+                </TR>
+                <TR>
+                  <TD align="center" rowspan="2">8458</TD>
+                  <TD>太字と高輝度を併用</TD>
+                  <TD>太字か高輝度を選択</TD>
+                </TR>
+                <TR>
+                  <TD colspan="2">上記8403で太字を選択した場合に高輝度と併用することができます</TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -3569,6 +3595,15 @@ function TekClock2() {
                       </TR>
                       <TR>
                         <TD colspan="2">接続が切れた場合に再接続を確認する</TD>
+                      </TR>
+                      <TR>
+                        <TD align="center" rowspan="2">479</TD>
+                        <TD>積極的に更新</TD>
+                        <TD>通常の画面更新</TD>
+                      </TR>
+                      <TR>
+                        <TD colspan="2">ウィンドウの画面更新を積極的に行うようにします。<BR>
+                        ※画面の変更があった場合に即時に更新するようにします。通常は、OSのペイント処理でまとめて更新されますが、Windows 10では、遅延があるようなのでメッセージ処理後のアイドル時に更新するようにしています。それでも表示が遅延される場合には、このオプションを有効かもしれませんが、逆に表示更新が多くなって遅く感じる可能性があります。</TD>
                       </TR>
                     </TBODY>
                   </TABLE>

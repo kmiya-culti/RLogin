@@ -1223,6 +1223,9 @@ int CRLoginDoc::GetViewCount()
 }
 void CRLoginDoc::PostIdleMessage()
 {
+	// OnIdleの誘発
+	::AfxGetMainWnd()->PostMessage(WM_NULL);
+
 	if ( m_PostIdleCount > 0 )
 		return;
 
@@ -1462,8 +1465,8 @@ int CRLoginDoc::OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags)
 	nBufLen = n;
 
 	// 即時画面更新
-	// 2.22.1 ViewのOnIdleでUpdateWindowと同等の効果？
-	//UpdateAllViews(NULL, UPDATE_UPDATEWINDOW, NULL);
+	if ( m_TextRam.IsOptEnable(TO_RLPSUPWIN) )
+		UpdateAllViews(NULL, UPDATE_UPDATEWINDOW, NULL);
 
 	if ( m_pLogFile != NULL ) {
 		if ( m_TextRam.m_LogMode == LOGMOD_RAW )
@@ -1485,6 +1488,10 @@ int CRLoginDoc::OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags)
 }
 void CRLoginDoc::OnSockIdle()
 {
+	// CRLoginApp::OnIdleが忙しい場合、ここで更新
+	if ( !m_TextRam.IsOptEnable(TO_RLPSUPWIN) )
+		UpdateAllViews(NULL, UPDATE_UPDATEWINDOW, NULL);
+
 	if ( m_pSock != NULL )
 		m_pSock->OnIdle();
 

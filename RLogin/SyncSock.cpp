@@ -72,6 +72,7 @@ static UINT ProcThread(LPVOID pParam)
 }
 void CSyncSock::ThreadCommand(int cmd)
 {
+	int n;
 	LPCTSTR p;
 	CString work;
 
@@ -218,8 +219,8 @@ void CSyncSock::ThreadCommand(int cmd)
 		break;
 	case THCMD_ECHOBUFFER:
 		m_SendSema.Lock();
-		m_pDoc->OnSocketRecive(m_SendBuf.GetPtr(), m_SendBuf.GetSize(), 0);
-		m_SendBuf.Clear();
+		n = m_pDoc->OnSocketRecive(m_SendBuf.GetPtr(), m_SendBuf.GetSize(), 0);
+		m_SendBuf.Consume(n);
 		m_SendSema.Unlock();
 		m_pParamEvent->SetEvent();
 		break;
