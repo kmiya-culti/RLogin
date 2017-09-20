@@ -21,8 +21,8 @@ public:
 
 	int CalCRC(char *ptr, int len);
 	int Send_blk(FILE *fp, int bk, int len, int crcopt, int head);
-	int Recive_blk(char *tmp, int block, int crcopt);
-	void Recive_flush();
+	int Receive_blk(char *tmp, int block, int crcopt);
+	void Receive_flush();
 
 	int XUpLoad();
 	int XDownLoad();
@@ -59,13 +59,13 @@ public:
 	void ZSendBinHeader(int len, int type, char *hdr);
 	void ZSendHexHeader(int len, int type, char *hdr);
 	void ZSendData(char *buf, int length, int frameend);
-	int ZReciveData(char *buf, int length, int &Rxcount);
-	int ZReciveHeader(char *hdr, int eflag);
+	int ZReceiveData(char *buf, int length, int &Rxcount);
+	int ZReceiveHeader(char *hdr, int eflag);
 	void ZSendHexByte(int c);
 	void ZSendEscByte(int c);
-	int ZReciveHexByte();
-	int ZReciveEscByte();
-	int ZRecive7Bit();
+	int ZReceiveHexByte();
+	int ZReceiveEscByte();
+	int ZReceive7Bit();
 	void ZSetLongHeader(LONGLONG pos);
 	LONGLONG ZGetLongHeader(register char *hdr);
 

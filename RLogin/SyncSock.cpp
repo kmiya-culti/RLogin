@@ -61,7 +61,7 @@ static UINT ProcThread(LPVOID pParam)
 	pThis->m_ThreadFlag = TRUE;
 	pThis->OnProc(pThis->m_ThreadMode);
 	if ( pThis->m_RecvBuf.GetSize() > 0 ) {
-		pThis->m_pDoc->m_pSock->SyncReciveBack(pThis->m_RecvBuf.GetPtr(), pThis->m_RecvBuf.GetSize());
+		pThis->m_pDoc->m_pSock->SyncReceiveBack(pThis->m_RecvBuf.GetPtr(), pThis->m_RecvBuf.GetSize());
 		pThis->m_RecvBuf.Clear();
 	}
 	pThis->m_ThreadFlag = FALSE;
@@ -183,7 +183,7 @@ void CSyncSock::ThreadCommand(int cmd)
 	case THCMD_ECHO:
 		BYTE tmp[4];
 		tmp[0] = (BYTE)m_Param;
-		m_pDoc->OnSocketRecive(tmp, 1, 0);
+		m_pDoc->OnSocketReceive(tmp, 1, 0);
 		m_pParamEvent->SetEvent();
 		break;
 	case THCMD_SENDSTR:
@@ -219,7 +219,7 @@ void CSyncSock::ThreadCommand(int cmd)
 		break;
 	case THCMD_ECHOBUFFER:
 		m_SendSema.Lock();
-		n = m_pDoc->OnSocketRecive(m_SendBuf.GetPtr(), m_SendBuf.GetSize(), 0);
+		n = m_pDoc->OnSocketReceive(m_SendBuf.GetPtr(), m_SendBuf.GetSize(), 0);
 		m_SendBuf.Consume(n);
 		m_SendSema.Unlock();
 		m_pParamEvent->SetEvent();
@@ -341,7 +341,7 @@ void CSyncSock::Bufferd_Clear()
 
 	BOOL f = FALSE;
 	BYTE tmp[256];
-	while ( m_pDoc->m_pSock->SyncRecive(tmp, 256, 1, &f) > 0 );
+	while ( m_pDoc->m_pSock->SyncReceive(tmp, 256, 1, &f) > 0 );
 }
 void CSyncSock::Bufferd_Sync()
 {
@@ -349,7 +349,7 @@ void CSyncSock::Bufferd_Sync()
 	m_pWnd->PostMessage(WM_THREADCMD, THCMD_SENDSYNC, (LPARAM)this);
 	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
 }
-int CSyncSock::Bufferd_Recive(int sec)
+int CSyncSock::Bufferd_Receive(int sec)
 {
 	int n;
 	BYTE tmp[1024];
@@ -358,7 +358,7 @@ int CSyncSock::Bufferd_Recive(int sec)
 		return (-1);	// ERROR
 
 	if ( m_RecvBuf.GetSize() <= 0 ) {
-		if ( (n = m_pDoc->m_pSock->SyncRecive(tmp, 1024, sec, &m_ProgDlg.m_AbortFlag)) <= 0 )
+		if ( (n = m_pDoc->m_pSock->SyncReceive(tmp, 1024, sec, &m_ProgDlg.m_AbortFlag)) <= 0 )
 			return (-2);	// TIME OUT
 		m_RecvBuf.Apend(tmp, n);
 	}
@@ -369,7 +369,7 @@ int CSyncSock::Bufferd_Recive(int sec)
 
 	return m_RecvBuf.Get8Bit();
 }
-BOOL CSyncSock::Bufferd_ReciveBuf(char *buf, int len, int sec)
+BOOL CSyncSock::Bufferd_ReceiveBuf(char *buf, int len, int sec)
 {
 	int n;
 
@@ -391,7 +391,7 @@ BOOL CSyncSock::Bufferd_ReciveBuf(char *buf, int len, int sec)
 	}
 
 	while ( len > 0 ) {
-		if ( (n = m_pDoc->m_pSock->SyncRecive(buf, len, sec, &m_ProgDlg.m_AbortFlag)) <= 0 )
+		if ( (n = m_pDoc->m_pSock->SyncReceive(buf, len, sec, &m_ProgDlg.m_AbortFlag)) <= 0 )
 			return FALSE;
 
 #ifdef	DEBUG_DUMP
@@ -404,7 +404,7 @@ BOOL CSyncSock::Bufferd_ReciveBuf(char *buf, int len, int sec)
 
 	return TRUE;
 }
-int CSyncSock::Bufferd_ReciveSize()
+int CSyncSock::Bufferd_ReceiveSize()
 {
 	if ( m_pDoc->m_pSock == NULL || m_DoAbortFlag )
 		return 0;

@@ -1819,6 +1819,15 @@ int CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 			SendBuffer(tmp);
 
 		return FALSE;
+
+	} else if ( nChar == VK_BACK ) {
+		// If DECBKM is set, <x works as a backspace key. 
+		// When you press <x , the terminal sends a BS(0x08) character to the host.
+		// If DECBKM is reset, <x works as a delete key. 
+		// When you press <x , the terminal sends a DEL(0x7F) character to the host.
+		tmp = (pDoc->m_TextRam.IsOptEnable(TO_DECBKM) ? L"\x08" : L"\x7F");
+		SendBuffer(tmp);
+		return FALSE;
 	}
 
 	return TRUE;
@@ -3464,8 +3473,6 @@ BOOL CRLoginView::PreTranslateMessage(MSG* pMsg)
 	
 	if ( pMsg->hwnd == m_hWnd ) {
 		if ( pMsg->message == WM_KEYDOWN ) {
-			if ( pMsg->wParam == VK_BACK && !pDoc->m_TextRam.IsOptEnable(TO_DECBKM) )
-				pMsg->wParam = VK_DELETE;
 			if ( !OnKeyDown((UINT)pMsg->wParam, LOWORD(pMsg->lParam), HIWORD(pMsg->lParam)) )
 				return TRUE;
 		} else if ( pMsg->message == WM_SYSKEYDOWN ) {

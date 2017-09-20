@@ -255,7 +255,7 @@ public:
 #endif
 
 	void OnConnect();
-	int OnRecive(const void *lpBuf, int nBufLen);
+	int OnReceive(const void *lpBuf, int nBufLen);
 
 	void Close();
 	void Send(LPBYTE buf, int len);
@@ -264,7 +264,7 @@ public:
 	CList<class CCmdQue *, class CCmdQue *> m_WaitQue;
 
 	void SendBuffer(CBuffer *bp);
-	int ReciveBuffer(CBuffer *bp);
+	int ReceiveBuffer(CBuffer *bp);
 	void SendCommand(class CCmdQue *pQue, int (CSFtp::*pFunc)(int type, CBuffer *bp, class CCmdQue *pQue), int mode);
 	void RemoveWaitQue();
 	void SendWaitQue();
@@ -382,7 +382,7 @@ protected:
 	afx_msg HCURSOR OnQueryDragIcon();
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
-	afx_msg LRESULT OnReciveBuffer(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnReceiveBuffer(WPARAM wParam, LPARAM lParam);
 	afx_msg void OnLocalUp();
 	afx_msg void OnRemoteUp();
 	afx_msg void OnSftpDelete();

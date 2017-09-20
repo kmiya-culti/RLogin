@@ -234,17 +234,17 @@ int CZModem::Send_blk(FILE *fp, int bk, int len, int crcopt, int hd)
     Bufferd_Flush();
     return len;
 }
-int CZModem::Recive_blk(char *tmp, int block, int crcopt)
+int CZModem::Receive_blk(char *tmp, int block, int crcopt)
 {
 	int ch, bk, sum;
 	int len = 128;
 
 RECHK:
-	if ( (ch = Bufferd_Recive(10)) < 0 )
+	if ( (ch = Bufferd_Receive(10)) < 0 )
 		return ch;
 	else if ( ch == EOT )
 		return EOT;
-	else if ( ch == CAN && Bufferd_Recive(1) == CAN )
+	else if ( ch == CAN && Bufferd_Receive(1) == CAN )
 		return CAN;
 	else if ( ch == SOH )
 		len = 128;
@@ -253,28 +253,28 @@ RECHK:
 	else
 		goto RECHK;
 
-	if ( (bk = Bufferd_Recive(10)) < 0 )
+	if ( (bk = Bufferd_Receive(10)) < 0 )
 		return bk;
-	if ( (ch = Bufferd_Recive(10)) < 0 )
+	if ( (ch = Bufferd_Receive(10)) < 0 )
 		return ch;
 	if ( bk != (255 - ch) || bk != block )
 		goto RECHK;
 
-	if ( !Bufferd_ReciveBuf(tmp, len, 10) )
+	if ( !Bufferd_ReceiveBuf(tmp, len, 10) )
 		goto RECHK;
 
 	if ( crcopt ) {
 		sum = CalCRC(tmp, len);
-		if ( (bk = Bufferd_Recive(10)) < 0 )
+		if ( (bk = Bufferd_Receive(10)) < 0 )
 			return bk;
-		if ( (ch = Bufferd_Recive(10)) < 0 )
+		if ( (ch = Bufferd_Receive(10)) < 0 )
 			return ch;
 		if ( sum != ((bk << 8) | ch) )
 			goto RECHK;
 	} else {
 		for ( sum = ch = 0 ; ch < len ; ch++ )
 			sum += tmp[ch];
-		if ( (ch = Bufferd_Recive(10)) < 0 )
+		if ( (ch = Bufferd_Receive(10)) < 0 )
 			return ch;
 		if ( ch != (sum & 0xFF) )
 			goto RECHK;
@@ -312,12 +312,12 @@ int CZModem::XUpLoad()
     UpDownOpen("XModem File Upload");
     UpDownInit(file_size);
 
-	while ( Bufferd_ReciveSize() > 1 )
-		Bufferd_Recive(0);
+	while ( Bufferd_ReceiveSize() > 1 )
+		Bufferd_Receive(0);
 
 	while ( !AbortCheck() ) {
 
-        ch = Bufferd_Recive(60);
+        ch = Bufferd_Receive(60);
 
         if ( ch == ACK ) {
 			if ( ef != FALSE )
@@ -334,10 +334,10 @@ int CZModem::XUpLoad()
 
             _fseeki64(fp, now_pos, SEEK_SET);
 
-        } else if ( ch == WANTCRC && Bufferd_ReciveSize() == 0 ) {
+        } else if ( ch == WANTCRC && Bufferd_ReceiveSize() == 0 ) {
             crcopt = TRUE;
 
-		} else if ( ch == CAN && Bufferd_Recive(1) == CAN ) {
+		} else if ( ch == CAN && Bufferd_Receive(1) == CAN ) {
 			Bufferd_Clear();
 			goto ENDRET;
 
@@ -412,7 +412,7 @@ int CZModem::XDownLoad()
 			st = 1;
 		}
 
-		ch = Recive_blk(tmp, bk, crcopt);
+		ch = Receive_blk(tmp, bk, crcopt);
 
         if ( ch == EOT ) {
             Bufferd_Send(ACK);
@@ -493,7 +493,7 @@ int CZModem::YUpLoad()
     UpDownInit(file_size);
 
 	while ( !AbortCheck() ) {
-		ch = Bufferd_Recive(60);
+		ch = Bufferd_Receive(60);
 
 		if ( ch == WANTCRC ) {
 			if ( sh == FALSE ) {
@@ -508,7 +508,7 @@ int CZModem::YUpLoad()
 		} else if ( ch == ACK ) {
             nk = 0;
 			break;
-		} else if ( ch == CAN && Bufferd_Recive(1) == CAN ) {
+		} else if ( ch == CAN && Bufferd_Receive(1) == CAN ) {
 			Bufferd_Clear();
 			goto ENDRET;
 		} else if ( ch < 0 )
@@ -518,7 +518,7 @@ int CZModem::YUpLoad()
 	}
 
 	while ( !AbortCheck() ) {
-        ch = Bufferd_Recive(60);
+        ch = Bufferd_Receive(60);
 
         if ( ch == ACK ) {
 			if ( ef != FALSE )
@@ -535,10 +535,10 @@ int CZModem::YUpLoad()
 
             _fseeki64(fp, now_pos, SEEK_SET);
 
-        } else if ( ch == WANTCRC && Bufferd_ReciveSize() == 0 ) {
+        } else if ( ch == WANTCRC && Bufferd_ReceiveSize() == 0 ) {
             crcopt = TRUE;
 
-		} else if ( ch == CAN && Bufferd_Recive(1) == CAN ) {
+		} else if ( ch == CAN && Bufferd_Receive(1) == CAN ) {
 			Bufferd_Clear();
 			goto ENDRET;
 
@@ -557,13 +557,13 @@ int CZModem::YUpLoad()
     }
 
 	while ( !AbortCheck() ) {
-		ch = Bufferd_Recive(60);
+		ch = Bufferd_Receive(60);
 
 		if ( ch == WANTCRC )
 			Send_blk(fp, 0, block_len, TRUE, 2);
 		else if ( ch == ACK )
 			goto ENDRET;
-		else if ( ch == CAN && Bufferd_Recive(1) == CAN ) {
+		else if ( ch == CAN && Bufferd_Receive(1) == CAN ) {
 			Bufferd_Clear();
 			goto ENDRET;
 		} else if ( ch < 0 )
@@ -615,7 +615,7 @@ RELOAD:
 		Bufferd_Send(WANTCRC);
 		Bufferd_Flush();
 
-		ch = Recive_blk(tmp, 0, TRUE);
+		ch = Receive_blk(tmp, 0, TRUE);
 
 		if ( ch == CAN ) {
 			Bufferd_Clear();
@@ -678,7 +678,7 @@ RELOAD:
 			st = 1;
 		}
 
-		ch = Recive_blk(tmp, bk, TRUE);
+		ch = Receive_blk(tmp, bk, TRUE);
 
         if ( ch == EOT ) {
             Bufferd_Send(ACK);
@@ -853,11 +853,11 @@ NEXTFILE:
 		}
 
 		if ( recvStat == 1 ) {
-			while ( Bufferd_ReciveSize() > 0 ) {
-				if ( (c = Bufferd_Recive(1)) == CAN || c == ZPAD )
+			while ( Bufferd_ReceiveSize() > 0 ) {
+				if ( (c = Bufferd_Receive(1)) == CAN || c == ZPAD )
 					goto HDRCHECK;
 				else if ( c == XOFF || c == (XOFF|0200) )
-					Bufferd_Recive(100);		// want XON
+					Bufferd_Receive(100);		// want XON
 				
 			}
 			continue;
@@ -865,7 +865,7 @@ NEXTFILE:
 
 		HDRCHECK:
 
-		c = ZReciveHeader(Rxhdr, 0x80);
+		c = ZReceiveHeader(Rxhdr, 0x80);
 
 		switch(c) {
 		case ZRINIT:
@@ -959,7 +959,7 @@ int CZModem::ZDownFile()
 	long crc;
 	int Rxcount;
 
-	if ( ZReciveData(buf, ZBUFSIZE, Rxcount) != GOTCRCW ) {
+	if ( ZReceiveData(buf, ZBUFSIZE, Rxcount) != GOTCRCW ) {
 		ZSetLongHeader(0L);
 		ZSendHexHeader(4, ZSKIP, Txhdr);
 		return FALSE;
@@ -987,7 +987,7 @@ int CZModem::ZDownFile()
 		ZSetLongHeader(Txpos);
 		ZSendHexHeader(4, ZCRC, Txhdr);
 
-		if ( ZReciveHeader(Rxhdr, 0) != ZCRC || crc != Rxpos ) {
+		if ( ZReceiveHeader(Rxhdr, 0) != ZCRC || crc != Rxpos ) {
 			fclose(fp);
 			fp = NULL;
 			Txpos = 0;
@@ -1013,16 +1013,16 @@ int CZModem::ZDownFile()
 		if ( AbortCheck() )
 			goto ERRRET;
 
-		c = ZReciveHeader(Rxhdr, 0);
+		c = ZReceiveHeader(Rxhdr, 0);
 
 		switch(c) {
 		case ZDATA:
 			UpDownStat(Txpos);
 			if ( (Txpos & 0xFFFFFFFFL) != ZGetLongHeader(Rxhdr) ) {
-				ZReciveData(buf, ZBUFSIZE, Rxcount);
+				ZReceiveData(buf, ZBUFSIZE, Rxcount);
 				break;
 			}
-			for ( n = 0 ; (c = ZReciveData(buf, ZBUFSIZE, Rxcount)) >= 0 ; n++ ) {
+			for ( n = 0 ; (c = ZReceiveData(buf, ZBUFSIZE, Rxcount)) >= 0 ; n++ ) {
 				haveData = TRUE;
 				Txpos += Rxcount;
 				if ( fwrite(buf, 1, Rxcount, fp) != (UINT)Rxcount )
@@ -1126,7 +1126,7 @@ int CZModem::ZUpDown(int mode)
 		if ( AbortCheck() )
 			goto CANRET;
 
-		c = ZReciveHeader(Rxhdr, (mode == 0 ? 0x82 : 2));
+		c = ZReceiveHeader(Rxhdr, (mode == 0 ? 0x82 : 2));
 		mode = (-1);
 
 		switch(c) {
@@ -1156,7 +1156,7 @@ int CZModem::ZUpDown(int mode)
 			else if ( Rxbuflen > ZBUFSIZE )
 				Rxbuflen = ZBUFSIZE;
 
-			if ( Bufferd_ReciveSize() > 2 )
+			if ( Bufferd_ReceiveSize() > 2 )
 				break;
 
 			if ( !sendSinit && Zctlesc == 0 ) {
@@ -1179,7 +1179,7 @@ int CZModem::ZUpDown(int mode)
 		case ZSINIT:
 			Zctlesc  = (Rxhdr[ZF0] & TESCCTL) ? 1 : 0;
 
-			if ( ZReciveData(Attn, ZATTNLEN, Rxcount) == GOTCRCW ) {
+			if ( ZReceiveData(Attn, ZATTNLEN, Rxcount) == GOTCRCW ) {
 				ZSetLongHeader(1L);
 				ZSendHexHeader(4, ZACK, Txhdr);
 			} else
@@ -1219,8 +1219,8 @@ int CZModem::ZUpDown(int mode)
 			} else {
 				ZSetLongHeader(0);
 				ZSendBinHeader(4, ZFIN, Txhdr);
-				if ( Bufferd_Recive(10) == 'O' )
-					Bufferd_Recive(10);
+				if ( Bufferd_Receive(10) == 'O' )
+					Bufferd_Receive(10);
 			}
 			goto ENDRET;
 
@@ -1515,7 +1515,7 @@ void CZModem::ZSendData(char *buf, int length, int frameend)
 
 	DebugMsg("SendData %d\r\n", send_len);
 }
-int CZModem::ZReciveData(char *buf, int length, int &Rxcount)
+int CZModem::ZReceiveData(char *buf, int length, int &Rxcount)
 {
 	int c, d, n;
 	unsigned short crc16 = 0;
@@ -1524,7 +1524,7 @@ int CZModem::ZReciveData(char *buf, int length, int &Rxcount)
 			
 	Rxcount = 0;
 
-	while ( (c = ZReciveEscByte()) >= 0 ) {
+	while ( (c = ZReceiveEscByte()) >= 0 ) {
 		if ( c > 0377 ) {
 			switch(c) {
 			case GOTCRCE:
@@ -1534,7 +1534,7 @@ int CZModem::ZReciveData(char *buf, int length, int &Rxcount)
 				if ( Crc32r == 1 || Crc32r == 2 ) {
 					crc32 = UPDC32(c & 0377, crc32);
 					for ( n = 0 ; n < 4 ; n++ ) {
-						if ( (d = ZReciveEscByte()) < 0 )
+						if ( (d = ZReceiveEscByte()) < 0 )
 							break;
 						crc32 = UPDC32(d & 0377, crc32);
 					}
@@ -1545,7 +1545,7 @@ int CZModem::ZReciveData(char *buf, int length, int &Rxcount)
 				} else {
 					crc16 = UPDC16(c & 0377, crc16);
 					for ( n = 0 ; n < 2 ; n++ ) {
-						if ( (d = ZReciveEscByte()) < 0 )
+						if ( (d = ZReceiveEscByte()) < 0 )
 							break;
 						crc16 = UPDC16(d & 0377, crc16);
 					}
@@ -1630,7 +1630,7 @@ enum ZStatus {
 	GET_PACKET,
 };
 
-int CZModem::ZReciveHeader(char *hdr, int eflag)
+int CZModem::ZReceiveHeader(char *hdr, int eflag)
 {
 	int c, n;
 	int can = 0;
@@ -1650,7 +1650,7 @@ int CZModem::ZReciveHeader(char *hdr, int eflag)
 	for ( ; ; ) {
 		switch(st) {
 		case WANT_PAD:
-			if ( (c = Bufferd_Recive(RXTIMEOUT)) < 0 )
+			if ( (c = Bufferd_Receive(RXTIMEOUT)) < 0 )
 				return c;
 
 			if ( c == CAN ) {			// CAN == ZDLE !!
@@ -1664,7 +1664,7 @@ int CZModem::ZReciveHeader(char *hdr, int eflag)
 			break;
 
 		case WANT_ZDLE:
-			if ( (c = ZRecive7Bit()) < 0 )
+			if ( (c = ZReceive7Bit()) < 0 )
 				return c;
 
 			st = CHECK_ZDLE;
@@ -1688,7 +1688,7 @@ int CZModem::ZReciveHeader(char *hdr, int eflag)
 			break;
 
 		case WANT_FRAMEID:
-			if ( (c = ZRecive7Bit()) < 0 )
+			if ( (c = ZReceive7Bit()) < 0 )
 				return c;
 
 			Rxframeind = c;
@@ -1721,7 +1721,7 @@ int CZModem::ZReciveHeader(char *hdr, int eflag)
 			break;
 
 		case SIZE_BIN:
-			if ( (c = Bufferd_Recive(RXTIMEOUT)) < 0 )
+			if ( (c = Bufferd_Receive(RXTIMEOUT)) < 0 )
 				return c;
 			else if ( (Rxhlen = c) > ZMAXHLEN )
 				st = CHECK_ZDLE;
@@ -1730,7 +1730,7 @@ int CZModem::ZReciveHeader(char *hdr, int eflag)
 			break;
 
 		case SIZE_HEX:
-			if ( (c = ZReciveHexByte()) < 0 )
+			if ( (c = ZReceiveHexByte()) < 0 )
 				return c;
 			else if ( (Rxhlen = c) > ZMAXHLEN )
 				st = CHECK_ZDLE;
@@ -1746,21 +1746,21 @@ int CZModem::ZReciveHeader(char *hdr, int eflag)
 			case ZBINR32:
 				Crc32r = (Rxframeind == ZVBIN32 || Rxframeind == ZBIN32 ? 1 : 2);
 
-				if ( (c = ZReciveEscByte()) < 0 || (c & ~0377) != 0 )
+				if ( (c = ZReceiveEscByte()) < 0 || (c & ~0377) != 0 )
 					return c;
 
 				Rxtype = c;
 				crc32 = UPDC32(c, crc32);
 
 				for ( n = 0 ; n < Rxhlen ; n++ ) {
-					if ( (c = ZReciveEscByte()) < 0 || (c & ~0377) != 0 )
+					if ( (c = ZReceiveEscByte()) < 0 || (c & ~0377) != 0 )
 						return c;
 					hdr[n] = (char)c;
 					crc32 = UPDC32(c, crc32);
 				}
 
 				for ( n = 0 ; n < 4 ; n++ ) {
-					if ( (c = ZReciveEscByte()) < 0 || (c & ~0377) != 0 )
+					if ( (c = ZReceiveEscByte()) < 0 || (c & ~0377) != 0 )
 						return c;
 					crc32 = UPDC32(c, crc32);
 				}
@@ -1776,21 +1776,21 @@ int CZModem::ZReciveHeader(char *hdr, int eflag)
 			case ZBIN:
 				Crc32r = 0;
 
-				if ( (c = ZReciveEscByte()) < 0 || (c & ~0377) != 0 )
+				if ( (c = ZReceiveEscByte()) < 0 || (c & ~0377) != 0 )
 					return c;
 
 				Rxtype = c;
 				crc16 = UPDC16(c, crc16);
 
 				for ( n = 0 ; n < Rxhlen ; n++ ) {
-					if ( (c = ZReciveEscByte()) < 0 || (c & ~0377) != 0 )
+					if ( (c = ZReceiveEscByte()) < 0 || (c & ~0377) != 0 )
 						return c;
 					hdr[n] = (char)c;
 					crc16 = UPDC16(c, crc16);
 				}
 
 				for ( n = 0 ; n < 2 ; n++ ) {
-					if ( (c = ZReciveEscByte()) < 0 || (c & ~0377) != 0 )
+					if ( (c = ZReceiveEscByte()) < 0 || (c & ~0377) != 0 )
 						return c;
 					crc16 = UPDC16(c, crc16);
 				}
@@ -1806,21 +1806,21 @@ int CZModem::ZReciveHeader(char *hdr, int eflag)
 			case ZHEX:
 				Crc32r = 0;
 
-				if ( (c = ZReciveHexByte()) < 0 )
+				if ( (c = ZReceiveHexByte()) < 0 )
 					return c;
 
 				Rxtype = c;
 				crc16 = UPDC16(c, crc16);
 
 				for ( n = 0 ; n < Rxhlen ; n++ ) {
-					if ( (c = ZReciveHexByte() ) < 0 )
+					if ( (c = ZReceiveHexByte() ) < 0 )
 						return c;
 					hdr[n] = (char)c;
 					crc16 = UPDC16(c, crc16);
 				}
 
 				for ( n = 0 ; n < 2 ; n++ ) {
-					if ( (c = ZReciveHexByte()) < 0 )
+					if ( (c = ZReceiveHexByte()) < 0 )
 						return c;
 					crc16 = UPDC16(c, crc16);
 				}
@@ -1830,7 +1830,7 @@ int CZModem::ZReciveHeader(char *hdr, int eflag)
 					return ERR;
 				}
 
-				for ( n = 0 ; n < 2 && (c = Bufferd_Recive(1)) >= 0 ; n++ ) {
+				for ( n = 0 ; n < 2 && (c = Bufferd_Receive(1)) >= 0 ; n++ ) {
 					if ( c == CR )
 						continue;
 					else if ( c == LF )
@@ -1897,11 +1897,11 @@ void CZModem::ZSendEscByte(int c)
 
 	Bufferd_Send(c);
 }
-int CZModem::ZReciveHexByte()
+int CZModem::ZReceiveHexByte()
 {
 	int c, h, l;
 
-	if ( (c = ZRecive7Bit()) < 0 )
+	if ( (c = ZReceive7Bit()) < 0 )
 		return c;
 	else if ( c >= '0' && c <= '9' )
 		h = c - '0';
@@ -1912,7 +1912,7 @@ int CZModem::ZReciveHexByte()
 	else
 		return ERR;
 
-	if ( (c = ZRecive7Bit()) < 0 )
+	if ( (c = ZReceive7Bit()) < 0 )
 		return c;
 	else if ( c >= '0' && c <= '9' )
 		l = c - '0';
@@ -1925,12 +1925,12 @@ int CZModem::ZReciveHexByte()
 
 	return ((h << 4) | l);
 }
-int CZModem::ZReciveEscByte()
+int CZModem::ZReceiveEscByte()
 {
 	int c;
 	int cancel = 0;
 
-	while ( (c = Bufferd_Recive(RXTIMEOUT)) >= 0 ) {
+	while ( (c = Bufferd_Receive(RXTIMEOUT)) >= 0 ) {
 		if ( (c & 0140) != 0 )		// 0x20-0x7F
 			return c;
 
@@ -1946,7 +1946,7 @@ int CZModem::ZReciveEscByte()
 	}
 
 	// ZDLE ...
-	while ( (c = Bufferd_Recive(RXTIMEOUT)) >= 0 ) {
+	while ( (c = Bufferd_Receive(RXTIMEOUT)) >= 0 ) {
 		if ( (c & 0140) == 0100 )	// 0x40-0x5F
 			return (c ^ 0100);		// 0x00-0x1F
 
@@ -1973,11 +1973,11 @@ int CZModem::ZReciveEscByte()
 
 	return c;
 }
-int CZModem::ZRecive7Bit()
+int CZModem::ZReceive7Bit()
 {
 	int c;
 
-	while ( (c = Bufferd_Recive(RXTIMEOUT)) >= 0 ) {
+	while ( (c = Bufferd_Receive(RXTIMEOUT)) >= 0 ) {
 		c &= 0177;					// 0xxx xxxx 7Bit mask
 
 		if ( (c & 0140) != 0 )		// 0x20-0x7F 

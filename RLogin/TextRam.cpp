@@ -1417,7 +1417,8 @@ CTextRam::CTextRam()
 	m_DelayMSec = 0;
 	m_HisFile.Empty();
 	m_LogFile.Empty();
-	m_KeepAliveSec = 0;
+	m_SshKeepAlive = 300;
+	m_TelKeepAlive = 300;
 	m_RecvCrLf = m_SendCrLf = 0;
 	m_LastChar = 0;
 	m_LastFlag = 0;
@@ -2015,7 +2016,7 @@ void CTextRam::SaveLogFile()
 	}
 
 	for ( y = 0 ; y < my ; y++ )
-		CallReciveLine(y);
+		CallReceiveLine(y);
 }
 void CTextRam::HisRegCheck(DWORD ch, DWORD pos)
 {
@@ -2254,7 +2255,8 @@ void CTextRam::Init()
 	m_BitMapStyle    = MAPING_FILL;
 	m_DelayMSec      = 0;
 	m_HisFile        = _T("");
-	m_KeepAliveSec   = 0;
+	m_SshKeepAlive   = 300;
+	m_TelKeepAlive   = 300;
 	m_DropFileMode   = 0;
 	m_DispCaret      = TRUE;
 	m_TypeCaret      = m_DefTypeCaret;
@@ -2371,7 +2373,8 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 
 		index[_T("WheelSize")]    = m_WheelSize;
 		index[_T("DelayMSec")]    = m_DelayMSec;
-		index[_T("KeepAliveSec")] = m_KeepAliveSec;
+		index[_T("KeepAliveSec")] = m_SshKeepAlive;
+		index[_T("TelKeepAlive")] = m_TelKeepAlive;
 
 		index[_T("WordStr")]      = m_WordStr;
 		index[_T("DropFileMode")] = m_DropFileMode;
@@ -2528,7 +2531,9 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		if ( (n = index.Find(_T("DelayMSec"))) >= 0 )
 			m_DelayMSec = index[n];
 		if ( (n = index.Find(_T("KeepAliveSec"))) >= 0 )
-			m_KeepAliveSec = index[n];
+			m_SshKeepAlive = index[n];
+		if ( (n = index.Find(_T("TelKeepAlive"))) >= 0 )
+			m_TelKeepAlive = index[n];
 
 		if ( (n = index.Find(_T("WordStr"))) >= 0 )
 			m_WordStr = index[n];
@@ -2796,8 +2801,10 @@ void CTextRam::DiffIndex(CTextRam &orig, CStringIndex &index)
 		index[_T("WheelSize")]    = m_WheelSize;
 	if ( m_DelayMSec != orig.m_DelayMSec )
 		index[_T("DelayMSec")]    = m_DelayMSec;
-	if ( m_KeepAliveSec != orig.m_KeepAliveSec )
-		index[_T("KeepAliveSec")] = m_KeepAliveSec;
+	if ( m_SshKeepAlive != orig.m_SshKeepAlive )
+		index[_T("KeepAliveSec")] = m_SshKeepAlive;
+	if ( m_TelKeepAlive != orig.m_TelKeepAlive )
+		index[_T("TelKeepAlive")] = m_TelKeepAlive;
 
 	if ( m_WordStr.Compare(orig.m_WordStr) != 0 )
 		index[_T("WordStr")]      = m_WordStr;
@@ -2973,7 +2980,7 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 	stra.Add(m_BitMapFile);
 	stra.AddVal(m_DelayMSec);
 	stra.Add(m_HisFile);
-	stra.AddVal(m_KeepAliveSec);
+	stra.AddVal(m_SshKeepAlive);
 	stra.Add(m_LogFile);
 	stra.AddVal(m_DefCols[1]);
 	stra.AddVal(m_DropFileMode);
@@ -3053,6 +3060,7 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 
 	stra.Add(m_TitleName);
 	stra.AddVal(m_ClipCrLf);
+	stra.AddVal(m_TelKeepAlive);
 }
 void CTextRam::GetArray(CStringArrayExt &stra)
 {
@@ -3098,7 +3106,7 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 
 	m_DelayMSec    = (stra.GetSize() > 16 ? stra.GetVal(16) : 0);
 	m_HisFile      = (stra.GetSize() > 17 ? stra.GetAt(17) : _T(""));
-	m_KeepAliveSec = (stra.GetSize() > 18 ? stra.GetVal(18) : 0);
+	m_SshKeepAlive = (stra.GetSize() > 18 ? stra.GetVal(18) : 0);
 	m_LogFile      = (stra.GetSize() > 19 ? stra.GetAt(19) : _T(""));
 	m_DefCols[1]   = (stra.GetSize() > 20 ? stra.GetVal(20) : 132);
 
@@ -3276,6 +3284,8 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 		m_TitleName = stra.GetAt(72);
 	if ( stra.GetSize() > 73 )
 		m_ClipCrLf = stra.GetVal(73);
+	if ( stra.GetSize() > 74 )
+		m_TelKeepAlive = stra.GetVal(74);
 
 	if ( m_FixVersion < 9 ) {
 		if ( m_pDocument != NULL ) {
@@ -3586,8 +3596,9 @@ const CTextRam & CTextRam::operator = (CTextRam &data)
 	m_TypeCaret = data.m_TypeCaret;
 	m_CaretColor = data.m_CaretColor;
 	m_DefCaretColor = data.m_DefCaretColor;
-	m_KeepAliveSec = data.m_KeepAliveSec;
+	m_SshKeepAlive = data.m_SshKeepAlive;
 	m_MarkColor = data.m_MarkColor;
+	m_TelKeepAlive = data.m_TelKeepAlive;
 
 	return *this;
 }
@@ -5795,7 +5806,7 @@ void CTextRam::OnTimer(int id)
 	}
 }
 
-void CTextRam::CallReciveLine(int y)
+void CTextRam::CallReceiveLine(int y)
 {
 	if ( m_pDocument == NULL || m_pDocument->m_pLogFile == NULL )
 		return;
@@ -5815,7 +5826,7 @@ void CTextRam::CallReciveLine(int y)
 	m_IConv.StrToRemote(m_SendCharSet[m_LogCharSet[IsOptValue(TO_RLLOGCODE, 2)]], &in, &out);
 	m_pDocument->m_pLogFile->Write(out.GetPtr(), out.GetSize());
 }
-void CTextRam::CallReciveChar(DWORD ch, LPCTSTR name)
+void CTextRam::CallReceiveChar(DWORD ch, LPCTSTR name)
 {
 	// UTF-16LE x 2 or BS(08) HT(09) LF(0A) VT(0B) FF(0C) CR(0D) ESC(1B)
 	//
@@ -5838,7 +5849,7 @@ void CTextRam::CallReciveChar(DWORD ch, LPCTSTR name)
 	while ( pos >= m_HisMax )
 		pos -= m_HisMax;
 
-	m_pDocument->OnReciveChar(ch, m_CurX + pos * m_ColsMax);
+	m_pDocument->OnReceiveChar(ch, m_CurX + pos * m_ColsMax);
 
 	if ( m_pDocument->m_pLogFile == NULL )
 		return;
@@ -5846,7 +5857,7 @@ void CTextRam::CallReciveChar(DWORD ch, LPCTSTR name)
 	if ( m_LogMode == LOGMOD_LINE ) {
 		if ( pos != m_LogCurY ) { // && ch >= 0x20 ) {
 			if ( m_LogCurY != (-1) )
-				CallReciveLine(m_LogCurY - m_HisPos);
+				CallReceiveLine(m_LogCurY - m_HisPos);
 			m_LogCurY = pos;
 		}
 		return;
@@ -5934,10 +5945,13 @@ int CTextRam::UnicodeWidth(DWORD code)
 // Static Lib
 //////////////////////////////////////////////////////////////////////
 
-#define	JPSET_X0213		0
-#define	JPSET_EUC		1
-#define	JPSET_SJIS		2
-#define	JPSET_JIS		3
+#define	JPSET_EUC_X		0
+#define	JPSET_EUC_MS	1
+#define	JPSET_EUC		2
+#define	JPSET_SJIS_X	3
+#define	JPSET_SJIS		4
+#define	JPSET_CP932		5
+#define	JPSET_JIS		6
 
 typedef struct _JpSetList {
 	LPCTSTR name;
@@ -5950,34 +5964,48 @@ static int JpsetNameComp(const void *src, const void *dis)
 }
 int CTextRam::JapanCharSet(LPCTSTR name)
 {
-	static const JpSetList jpsettab[27] = {
-		{ _T("CSEUCPKDFMTJAPANESE"),	JPSET_EUC	},
-		{ _T("CSISO159JISX02121990"),	JPSET_JIS	},
-		{ _T("CSISO87JISX0208"),		JPSET_JIS	},
-		{ _T("CSSHIFTJIS"),				JPSET_SJIS	},
-		{ _T("EUC-JIS-2004"),			JPSET_X0213 },
-		{ _T("EUC-JISX0213"),			JPSET_X0213 },
-		{ _T("EUC-JP"), 				JPSET_EUC	},
-		{ _T("EUCJP"),					JPSET_EUC	},
+	static const JpSetList jpsettab[41] = {
+		{ _T("CP932"),					JPSET_CP932 },
+		{ _T("CSEUCPKDFMTJAPANESE"),	JPSET_EUC },
+		{ _T("CSISO159JISX02121990"),	JPSET_JIS },
+		{ _T("CSISO87JISX0208"),		JPSET_SJIS },
+		{ _T("CSSHIFTJIS"),				JPSET_SJIS },
+		{ _T("CSWINDOWS31J"),			JPSET_CP932 },
+		{ _T("EUC-JIS-2004"),			JPSET_EUC_X },
+		{ _T("EUC-JISX0213"),			JPSET_EUC_X },
+		{ _T("EUC-JP"),					JPSET_EUC },
+		{ _T("EUC-JP-MS"),				JPSET_EUC_MS },
+		{ _T("EUCJP"),					JPSET_EUC },
+		{ _T("EUCJP-MS"),				JPSET_EUC_MS },
+		{ _T("EUCJP-OPEN"),				JPSET_EUC_MS },
+		{ _T("EUCJP-WIN"),				JPSET_EUC_MS },
+		{ _T("EUCJPMS"),				JPSET_EUC_MS },
 		{ _T("EXTENDED_UNIX_CODE_PACKED_FORMAT_FOR_JAPANESE"),	JPSET_EUC },
-		{ _T("ISO-IR-159"),				JPSET_JIS	},
-		{ _T("ISO-IR-87"),				JPSET_JIS	},
-		{ _T("JIS0208"),				JPSET_JIS	},
-		{ _T("JIS_C6226-1983"),			JPSET_JIS	},
-		{ _T("JIS_X0208"),				JPSET_JIS	},
-		{ _T("JIS_X0208-1983"),			JPSET_JIS	},
-		{ _T("JIS_X0208-1990"),			JPSET_JIS	},
-		{ _T("JIS_X0212"),				JPSET_JIS	},
-		{ _T("JIS_X0212-1990"),			JPSET_JIS	},
-		{ _T("JIS_X0212.1990-0"),		JPSET_JIS	},
-		{ _T("MS_KANJI"),				JPSET_SJIS	},
-		{ _T("SHIFT-JIS"),				JPSET_SJIS	},
-		{ _T("SHIFT_JIS"),				JPSET_SJIS	},
-		{ _T("SHIFT_JIS-2004"),		 	JPSET_X0213 },
-		{ _T("SHIFT_JISX0213"),			JPSET_X0213 },
-		{ _T("SJIS"),					JPSET_SJIS	},
-		{ _T("X0208"),					JPSET_JIS	},
-		{ _T("X0212"),					JPSET_JIS	},
+		{ _T("ISO-IR-159"),				JPSET_JIS },
+		{ _T("ISO-IR-87"),				JPSET_SJIS },
+		{ _T("JIS0208"),				JPSET_SJIS },
+		{ _T("JIS_C6226-1983"),			JPSET_SJIS },
+		{ _T("JIS_X0208"),				JPSET_SJIS },
+		{ _T("JIS_X0208-1983"),			JPSET_SJIS },
+		{ _T("JIS_X0208-1990"),			JPSET_SJIS },
+		{ _T("JIS_X0212"),				JPSET_JIS },
+		{ _T("JIS_X0212-1990"),			JPSET_JIS },
+		{ _T("JIS_X0212.1990-0"),		JPSET_JIS },
+		{ _T("MS932"),					JPSET_CP932 },
+		{ _T("MS_KANJI"),				JPSET_SJIS },
+		{ _T("SHIFT-JIS"),				JPSET_SJIS },
+		{ _T("SHIFT_JIS"),				JPSET_SJIS },
+		{ _T("SHIFT_JIS-2004"),		 	JPSET_SJIS_X },
+		{ _T("SHIFT_JIS-MS"),			JPSET_CP932 },
+		{ _T("SHIFT_JISX0213"),			JPSET_SJIS_X },
+		{ _T("SJIS"),					JPSET_SJIS },
+		{ _T("SJIS-MS"),				JPSET_CP932 },
+		{ _T("SJIS-OPEN"),				JPSET_CP932 },
+		{ _T("SJIS-WIN"),				JPSET_CP932 },
+		{ _T("WINDOWS-31J"),			JPSET_CP932 },
+		{ _T("WINDOWS-932"),			JPSET_CP932 },
+		{ _T("X0208"),					JPSET_SJIS },
+		{ _T("X0212"),					JPSET_JIS },
 	};
 	int n;
 
@@ -5986,74 +6014,158 @@ int CTextRam::JapanCharSet(LPCTSTR name)
 
 	return (-1);
 }
+/***********************************
 
-void CTextRam::MsToIconvUniStr(LPCTSTR charset, LPWSTR str, int len)
+	libiconv-1.15
+
+	EUC-JIS-2004	2015 -> 0000
+	EUC-JIS-2004	ffe0 -> 0000
+	EUC-JIS-2004	ffe1 -> 0000
+	EUC-JIS-2004	ffe2 -> 0000
+
+	EUC-JISX0213	2015 -> 0000
+	EUC-JISX0213	ffe0 -> 0000
+	EUC-JISX0213	ffe1 -> 0000
+	EUC-JISX0213	ffe2 -> 0000
+
+	EUC-JP	2015 -> 0000
+	EUC-JP	2225 -> 0000
+	EUC-JP	ff0d -> 0000
+	EUC-JP	ffe0 -> 0000
+	EUC-JP	ffe1 -> 0000
+	EUC-JP	ffe2 -> 0000
+
+	SHIFT_JIS-2004	2015 -> 0000
+	SHIFT_JIS-2004	ffe0 -> 0000
+	SHIFT_JIS-2004	ffe1 -> 0000
+	SHIFT_JIS-2004	ffe2 -> 0000
+
+	SHIFT_JISX0213	2015 -> 0000
+	SHIFT_JISX0213	ffe0 -> 0000
+	SHIFT_JISX0213	ffe1 -> 0000
+	SHIFT_JISX0213	ffe2 -> 0000
+
+	SHIFT_JIS	2015 -> 0000
+	SHIFT_JIS	2225 -> 0000
+	SHIFT_JIS	ff0d -> 0000
+	SHIFT_JIS	ff5e -> 0000
+	SHIFT_JIS	ffe0 -> 0000
+	SHIFT_JIS	ffe1 -> 0000
+	SHIFT_JIS	ffe2 -> 0000
+
+	JIS_X0208	005c -> 0000
+	JIS_X0208	007e -> 0000
+	JIS_X0208	2015 -> 0000
+	JIS_X0208	2225 -> 0000
+	JIS_X0208	ff0d -> 0000
+	JIS_X0208	ff5e -> 0000
+	JIS_X0208	ffe0 -> 0000
+	JIS_X0208	ffe1 -> 0000
+	JIS_X0208	ffe2 -> 0000
+
+	JIS_X0212	005c -> 0000
+	JIS_X0212	007e -> 0000
+	JIS_X0212	2015 -> 0000
+	JIS_X0212	2225 -> 0000
+	JIS_X0212	ff0d -> 0000
+	JIS_X0212	ffe0 -> 0000
+	JIS_X0212	ffe1 -> 0000
+	JIS_X0212	ffe2 -> 0000
+
+***************************/
+
+DWORD CTextRam::MsToIconvUnicode(int jpset, DWORD code)
 {
-	//	ISO646-JP
-	//	case 0x005C: *str = 0x00A5; break;		/* \  0x5C          U+00A5 U+005C */
-	//	case 0x007E: *str = 0x203E; break;		/* ~  0x7E          U+203E U+007E */
-
-	switch(JapanCharSet(charset)) {
-	case JPSET_X0213:	// _T("EUC-JISX0213") or _T("SHIFT_JISX0213")
-		for ( ; len-- > 0 ; str++ ) {
-			switch(*str) {							/*                  iconv  MS     */
-			case 0xFFE0: *str = 0x00A2; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
-			case 0xFFE1: *str = 0x00A3; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
-			case 0xFFE2: *str = 0x00AC; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
-			}
+	switch(jpset) {
+	case JPSET_EUC_X:
+		switch(code) {							/*                  iconv  MS     */
+		case 0x2015: code = 0x2014; break;		/* ― 0x815C(01-29) U+2014 U+2015 */
+		case 0xFFE0: code = 0x00A2; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
+		case 0xFFE1: code = 0x00A3; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
+		case 0xFFE2: code = 0x00AC; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
 		}
 		break;
+	case JPSET_EUC_MS:
+		break;
 	case JPSET_EUC:
-		for ( ; len-- > 0 ; str++ ) {
-			switch(*str) {							/*                  iconv  MS     */
-			case 0x2225: *str = 0x2016; break;		/* ∥ 0x8161(01-34) U+2016 U+2225 */
-			case 0xFF0D: *str = 0x2212; break;		/* － 0x817C(01-61) U+2212 U+FF0D */
-			case 0xFFE0: *str = 0x00A2; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
-			case 0xFFE1: *str = 0x00A3; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
-			case 0xFFE2: *str = 0x00AC; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
-			}
+		switch(code) {							/*                  iconv  MS     */
+		case 0x2015: code = 0x2014; break;		/* ― 0x815C(01-29) U+2014 U+2015 */
+		case 0x2225: code = 0x2016; break;		/* ∥ 0x8161(01-34) U+2016 U+2225 */
+		case 0xFF0D: code = 0x2212; break;		/* － 0x817C(01-61) U+2212 U+FF0D */
+		case 0xFFE0: code = 0x00A2; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
+		case 0xFFE1: code = 0x00A3; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
+		case 0xFFE2: code = 0x00AC; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
+		}
+		break;
+	case JPSET_SJIS_X:
+		switch(code) {							/*                  iconv  MS     */
+		case 0x2015: code = 0x2014; break;		/* ― 0x815C(01-29) U+2014 U+2015 */
+		case 0xFFE0: code = 0x00A2; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
+		case 0xFFE1: code = 0x00A3; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
+		case 0xFFE2: code = 0x00AC; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
 		}
 		break;
 	case JPSET_SJIS:
+		switch(code) {							/*                  iconv  MS     */
+		case 0x2015: code = 0x2014; break;		/* ― 0x815C(01-29) U+2014 U+2015 */
+		case 0x2225: code = 0x2016; break;		/* ∥ 0x8161(01-34) U+2016 U+2225 */
+		case 0xFF0D: code = 0x2212; break;		/* － 0x817C(01-61) U+2212 U+FF0D */
+		case 0xFF5E: code = 0x301C; break;		/* ～ 0x8160(01-33) U+301C U+FF5E */
+		case 0xFFE0: code = 0x00A2; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
+		case 0xFFE1: code = 0x00A3; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
+		case 0xFFE2: code = 0x00AC; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
+		}
+		break;
+	case JPSET_CP932:
+		break;
 	case JPSET_JIS:
-		for ( ; len-- > 0 ; str++ ) {
-			switch(*str) {							/*                  iconv  MS     */
-			case 0x2225: *str = 0x2016; break;		/* ∥ 0x8161(01-34) U+2016 U+2225 */
-			case 0xFF0D: *str = 0x2212; break;		/* － 0x817C(01-61) U+2212 U+FF0D */
-			case 0xFF5E: *str = 0x301C; break;		/* ～ 0x8160(01-33) U+301C U+FF5E */
-			case 0xFFE0: *str = 0x00A2; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
-			case 0xFFE1: *str = 0x00A3; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
-			case 0xFFE2: *str = 0x00AC; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
-			}
+		switch(code) {							/*                  iconv  MS     */
+		case 0x005C: code = 0x00A5; break;		/* \  0x5C          U+00A5 U+005C */
+		case 0x007E: code = 0x203E; break;		/* ~  0x7E          U+203E U+007E */
+		case 0x2015: code = 0x2014; break;		/* ― 0x815C(01-29) U+2014 U+2015 */
+		case 0x2225: code = 0x2016; break;		/* ∥ 0x8161(01-34) U+2016 U+2225 */
+		case 0xFF0D: code = 0x2212; break;		/* － 0x817C(01-61) U+2212 U+FF0D */
+		case 0xFFE0: code = 0x00A2; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
+		case 0xFFE1: code = 0x00A3; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
+		case 0xFFE2: code = 0x00AC; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
 		}
 		break;
 	}
+
+	return code;
 }
 DWORD CTextRam::IconvToMsUnicode(int jpset, DWORD code)
 {
-	// ISO646-JP
-	//	case 0x00A5: code = 0x005C; break;		/* \  0x5C          U+00A5 U+005C */
-	//	case 0x203E: code = 0x007E; break;		/* ~  0x7E          U+203E U+007E */
-
 	switch(jpset) {
-	case JPSET_X0213:
+	case JPSET_EUC_X:
 		switch(code) {							/*                  iconv  MS     */
 		case 0x00A2: code = 0xFFE0; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
 		case 0x00A3: code = 0xFFE1; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
 		case 0x00AC: code = 0xFFE2; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
+		case 0x2014: code = 0x2015; break;		/* ― 0x815C(01-29) U+2014 U+2015 */
 		}
+		break;
+	case JPSET_EUC_MS:
 		break;
 	case JPSET_EUC:
 		switch(code) {							/*                  iconv  MS     */
 		case 0x00A2: code = 0xFFE0; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
 		case 0x00A3: code = 0xFFE1; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
 		case 0x00AC: code = 0xFFE2; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
+		case 0x2014: code = 0x2015; break;		/* ― 0x815C(01-29) U+2014 U+2015 */
 		case 0x2016: code = 0x2225; break;		/* ∥ 0x8161(01-34) U+2016 U+2225 */
 		case 0x2212: code = 0xFF0D; break;		/* － 0x817C(01-61) U+2212 U+FF0D */
 		}
 		break;
+	case JPSET_SJIS_X:
+		switch(code) {							/*                  iconv  MS     */
+		case 0x00A2: code = 0xFFE0; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
+		case 0x00A3: code = 0xFFE1; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
+		case 0x00AC: code = 0xFFE2; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
+		case 0x2014: code = 0x2015; break;		/* ― 0x815C(01-29) U+2014 U+2015 */
+		}
+		break;
 	case JPSET_SJIS:
-	case JPSET_JIS:
 		switch(code) {							/*                  iconv  MS     */
 		case 0x00A2: code = 0xFFE0; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
 		case 0x00A3: code = 0xFFE1; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
@@ -6064,9 +6176,40 @@ DWORD CTextRam::IconvToMsUnicode(int jpset, DWORD code)
 		case 0x301C: code = 0xFF5E; break;		/* ～ 0x8160(01-33) U+301C U+FF5E */
 		}
 		break;
+	case JPSET_CP932:
+		break;
+	case JPSET_JIS:
+		switch(code) {							/*                  iconv  MS     */
+		case 0x00A2: code = 0xFFE0; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
+		case 0x00A3: code = 0xFFE1; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
+		case 0x00A5: code = 0x005C; break;		/* \  0x5C          U+00A5 U+005C */
+		case 0x00AC: code = 0xFFE2; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
+		case 0x2014: code = 0x2015; break;		/* ― 0x815C(01-29) U+2014 U+2015 */
+		case 0x2016: code = 0x2225; break;		/* ∥ 0x8161(01-34) U+2016 U+2225 */
+		case 0x203E: code = 0x007E; break;		/* ~  0x7E          U+203E U+007E */
+		case 0x2212: code = 0xFF0D; break;		/* － 0x817C(01-61) U+2212 U+FF0D */
+		case 0x301C: code = 0xFF5E; break;		/* ～ 0x8160(01-33) U+301C U+FF5E */
+		}
+		break;
 	}
+
 	return code;
 }
+void CTextRam::MsToIconvUniStr(LPCTSTR charset, LPWSTR str, int len)
+{
+	int jpset = JapanCharSet(charset);
+
+	for ( ; len-- > 0 ; str++ )
+		*str = (WCHAR)MsToIconvUnicode(jpset, *str);
+}
+void CTextRam::IconvToMsUniStr(LPCTSTR charset, LPWSTR str, int len)
+{
+	int jpset = JapanCharSet(charset);
+
+	for ( ; len-- > 0 ; str++ )
+		*str = (WCHAR)IconvToMsUnicode(jpset, *str);
+}
+
 DWORD CTextRam::UCS2toUCS4(DWORD code)
 {
 	// 上位サロゲート      下位サロゲート
@@ -6127,10 +6270,9 @@ DWORD CTextRam::UnicodeNomal(DWORD code1, DWORD code2)
 	}
 	return 0;
 }
-void CTextRam::IconvToMsUniStr(LPCTSTR charset, LPCWSTR p, int len, CBuffer &out)
+void CTextRam::UnicodeNomalStr(LPCWSTR p, int len, CBuffer &out)
 {
 	DWORD d1 = 0, d2, d3;
-	int jpset = JapanCharSet(charset);
 
 	while ( len-- > 0 ) {
 		//  1101 10xx	U+D800 - U+DBFF	上位サロゲート	1101 11xx	U+DC00 - U+DFFF	下位サロゲート
@@ -6145,7 +6287,6 @@ void CTextRam::IconvToMsUniStr(LPCTSTR charset, LPCWSTR p, int len, CBuffer &out
 			if ( (d3 = UnicodeNomal(d1, d2)) != 0 )
 				d2 = d3;
 			else {
-				d1 = IconvToMsUnicode(jpset, d1);
 				if ( (d1 & 0xFFFF0000L) != 0 )
 					out.PutWord((WORD)(d1 >> 16));
 				out.PutWord((WORD)d1);
@@ -6154,7 +6295,6 @@ void CTextRam::IconvToMsUniStr(LPCTSTR charset, LPCWSTR p, int len, CBuffer &out
 		d1 = d2;
 	}
 	if ( d1 != 0 && !(d1 == 0xFFFE || d1 == 0xFEFF) ) {
-		d1 = IconvToMsUnicode(jpset, d1);
 		if ( (d1 & 0xFFFF0000L) != 0 )
 			out.PutWord((WORD)(d1 >> 16));
 		out.PutWord((WORD)d1);
@@ -7268,7 +7408,7 @@ void CTextRam::FORSCROLL(int sx, int sy, int ex, int ey)
 
 	if ( sy == 0 && ey == m_Lines && sx == 0 && ex == m_Cols && !m_LineEditMode && !m_bTraceActive ) {
 		if ( m_LogMode == LOGMOD_PAGE )
-			CallReciveLine(0);
+			CallReceiveLine(0);
 		m_HisUse++;
 
 		if ( (m_HisPos += 1) >= m_HisMax )
@@ -7549,7 +7689,7 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at)
 	}
 
 	if ( ch != 0 )
-		CallReciveChar(ch);
+		CallReceiveChar(ch);
 }
 void CTextRam::PUT2BYTE(DWORD ch, int md, int at)
 {
@@ -7651,7 +7791,7 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at)
 	}
 
 	if ( ch != 0 )
-		CallReciveChar(ch);
+		CallReceiveChar(ch);
 }
 void CTextRam::PUTADD(int x, int y, DWORD ch, int cf)
 {

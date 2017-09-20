@@ -31,7 +31,7 @@ public:
 	void IConvClose();
 	class CIConv *GetIConv(LPCTSTR from, LPCTSTR to);
 	void IConvSub(LPCTSTR from, LPCTSTR to, CBuffer *in, CBuffer *out);
-	int IConvBuf(LPCTSTR from, LPCTSTR to, CBuffer *in, CBuffer *out);
+	BOOL IConvBuf(LPCTSTR from, LPCTSTR to, CBuffer *in, CBuffer *out);
 	void StrToRemote(LPCTSTR to, CBuffer *in, CBuffer *out);
 	void StrToRemote(LPCTSTR to, LPCTSTR in, CStringA &out);
 	void RemoteToStr(LPCTSTR from, CBuffer *in, CBuffer *out);

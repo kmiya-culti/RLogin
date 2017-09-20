@@ -31,6 +31,7 @@ public:
 	CStringIndex m_TabEntry;
 	class CServerEntryTab *m_pData;
 	BOOL m_ShowTabWnd;
+	int m_DefaultEntryUid;
 
 // クラスファンクション
 public:
@@ -38,6 +39,7 @@ public:
 	void InitItemOffset();
 	void SetItemOffset(int cx, int cy);
 	void UpdateTabWnd();
+	void UpdateDefaultEntry(int num);
 
 // オーバーライド
 protected:
@@ -69,4 +71,8 @@ protected:
 	afx_msg void OnUpdateServExchng(CCmdUI *pCmdUI);
 	afx_msg void OnLoaddefault();
 	afx_msg void OnShortcut();
+#ifdef	USE_DEFENTRYMARK
+	afx_msg void OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct);
+	afx_msg void OnMeasureItem(int nIDCtl, LPMEASUREITEMSTRUCT lpMeasureItemStruct);
+#endif
 };

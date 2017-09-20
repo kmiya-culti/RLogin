@@ -17,6 +17,7 @@ public:
 
 public:
 	UINT m_KeepAlive;
+	UINT m_TelKeepAlive;
 	BOOL m_Check[18];
 	CStringArrayExt m_AlgoTab[12];
 	CStringArrayExt m_IdKeyList;

@@ -31,6 +31,7 @@ CServerSelect::CServerSelect(CWnd* pParent /*=NULL*/)
 	m_pData = NULL;
 	m_Group.Empty();
 	m_ShowTabWnd = TRUE;
+	m_DefaultEntryUid = (-1);
 }
 
 void CServerSelect::DoDataExchange(CDataExchange* pDX)
@@ -73,12 +74,15 @@ BEGIN_MESSAGE_MAP(CServerSelect, CDialogExt)
 	ON_UPDATE_COMMAND_UI(IDM_SERV_EXPORT, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(IDM_SERV_EXCHNG, OnUpdateServExchng)
 	ON_UPDATE_COMMAND_UI(IDC_SAVEDEFAULT, OnUpdateSaveDefault)
+	ON_WM_DRAWITEM()
+	ON_WM_MEASUREITEM()
 END_MESSAGE_MAP()
 
 void CServerSelect::InitList()
 {
 	int n, i;
 	int idx;
+	CString str;
 
 RETRY:
 	idx = (-1);
@@ -91,7 +95,14 @@ RETRY:
 
 	for ( n = i = 0 ; n < m_pData->GetSize() ; n++ ) {
 		if ( m_Group.Compare(m_pData->GetAt(n).m_Group) == 0 ) {
-			m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, i, m_pData->GetAt(n).m_EntryName, 0, 0, 0, n);
+#ifdef	USE_DEFENTRYMARK
+			if ( m_DefaultEntryUid == m_pData->GetAt(n).m_Uid ) {
+				str.Format(_T("%s (*)"), m_pData->GetAt(n).m_EntryName);
+				m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, i, str, 0, 0, 0, n);
+			} else
+#endif
+				m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, i, m_pData->GetAt(n).m_EntryName, 0, 0, 0, n);
+
 			m_List.SetItemText(i, 1, m_pData->GetAt(n).m_HostName);
 			m_List.SetItemText(i, 2, m_pData->GetAt(n).m_UserName);
 			m_List.SetItemText(i, 3, m_pData->GetAt(n).m_TermName);
@@ -250,6 +261,28 @@ void CServerSelect::UpdateTabWnd()
 		SetItemOffset(rect.Width(), rect.Height());
 	}
 }
+void CServerSelect::UpdateDefaultEntry(int num)
+{
+	CServerEntry *pEntry;
+	CTextRam TextRam;
+	CKeyNodeTab KeyTab;
+	CKeyMacTab KeyMac;
+	CParamTab ParamTab;
+
+	if ( m_DefaultEntryUid == (-1) )
+		return;
+
+	pEntry = &(m_pData->GetAt(num));
+
+	if ( pEntry->m_Uid != m_DefaultEntryUid )
+		return;
+
+	if ( MessageBox(CStringLoad(IDS_DEFENTRYEDITMSG), _T("Question"), MB_ICONQUESTION | MB_YESNO) != IDYES )
+		return;
+
+	CRLoginDoc::LoadOption(*pEntry, TextRam, KeyTab, KeyMac, ParamTab);
+	CRLoginDoc::SaveDefOption(TextRam, KeyTab, KeyMac, ParamTab);
+}
 
 /////////////////////////////////////////////////////////////////////////////
 // CServerSelect メッセージ ハンドラ
@@ -287,6 +320,8 @@ BOOL CServerSelect::OnInitDialog()
 
 	if ( m_EntryNum < 0 && m_pData->GetSize() > 0 )
 		m_Group = m_pData->GetAt(0).m_Group;
+
+	m_DefaultEntryUid = ::AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("DefaultEntry"), (-1));
 
 	InitList();
 	InitItemOffset();
@@ -440,11 +475,13 @@ void CServerSelect::OnEditEntry()
 			Entry.m_bSelFlag = TRUE;
 			m_pData->m_Data[num] = Entry;
 			m_pData->UpdateAt(num);
+			UpdateDefaultEntry(num);
 		}
 
 	} else {
 		m_pData->m_Data[m_EntryNum] = Entry;
 		m_pData->UpdateAt(m_EntryNum);
+		UpdateDefaultEntry(m_EntryNum);
 	}
 
 	InitList();
@@ -541,6 +578,8 @@ void CServerSelect::OnEditCheck()
 		m_pData->m_Data[update[n]] = tab.GetAt(update[n + 1]);
 	for ( n = 0 ; n < remove.GetSize() ; n++ )
 		m_pData->m_Data.RemoveAt(remove[n]);
+
+	m_DefaultEntryUid = ::AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("DefaultEntry"), (-1));
 
 	InitList();
 	UpdateTabWnd();
@@ -773,6 +812,7 @@ void CServerSelect::OnServExchng()
 
 		m_pData->m_Data[m_EntryNum] = Entry;
 		m_pData->UpdateAt(m_EntryNum);
+		UpdateDefaultEntry(m_EntryNum);
 	}
 
 	InitList();
@@ -898,6 +938,14 @@ void CServerSelect::OnSaveDefault()
 	pEntry = &(m_pData->GetAt(m_EntryNum));
 	CRLoginDoc::LoadOption(*pEntry, TextRam, KeyTab, KeyMac, ParamTab);
 	CRLoginDoc::SaveDefOption(TextRam, KeyTab, KeyMac, ParamTab);
+
+	if ( pEntry->m_Uid != (-1) )
+		::AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("DefaultEntry"), pEntry->m_Uid);
+
+	m_DefaultEntryUid = pEntry->m_Uid;
+
+	InitList();
+	UpdateTabWnd();
 }
 void CServerSelect::OnUpdateSaveDefault(CCmdUI *pCmdUI)
 {
@@ -997,3 +1045,74 @@ BOOL CServerSelect::PreTranslateMessage(MSG* pMsg)
 
 	return CDialogExt::PreTranslateMessage(pMsg);
 }
+
+#ifdef	USE_DEFENTRYMARK
+void CServerSelect::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
+{
+	if ( nIDCtl != IDC_SERVERLIST ) {
+		CDialogExt::OnDrawItem(nIDCtl, lpDrawItemStruct);
+		return;
+	}
+
+	LV_ITEM lvi;
+	ZeroMemory(&lvi, sizeof(lvi));
+    lvi.mask = LVIF_STATE | LVIF_PARAM;
+	lvi.iItem = lpDrawItemStruct->itemID;
+	lvi.stateMask = 0xFFFF;
+
+	if ( !m_List.GetItem(&lvi) ) {
+		CDialogExt::OnDrawItem(nIDCtl, lpDrawItemStruct);
+		return;
+	}
+
+	CDC *pDC = CDC::FromHandle(lpDrawItemStruct->hDC);
+	COLORREF bkc, txc;
+
+	if ( (lvi.state & LVIS_SELECTED) != 0 ) {
+		pDC->FillSolidRect(&lpDrawItemStruct->rcItem, GetSysColor(COLOR_HIGHLIGHT));
+		bkc = pDC->SetBkColor(GetSysColor(COLOR_HIGHLIGHT));
+		txc = pDC->SetTextColor(GetSysColor(COLOR_HIGHLIGHTTEXT));
+	} else {
+		pDC->FillSolidRect(&lpDrawItemStruct->rcItem, GetSysColor(COLOR_WINDOW));
+		bkc = pDC->SetBkColor(GetSysColor(COLOR_WINDOW));
+		if ( m_DefaultEntryUid == m_pData->GetAt((int)lvi.lParam).m_Uid )
+			txc = pDC->SetTextColor(GetSysColor(COLOR_GRAYTEXT));
+		else
+			txc = pDC->SetTextColor(GetSysColor(COLOR_WINDOWTEXT));
+	}
+
+	CString str;
+	CRect rect(lpDrawItemStruct->rcItem);
+	LVCOLUMN lvc;
+	ZeroMemory(&lvc, sizeof(lvc));
+	lvc.mask = LVCF_WIDTH | LVCF_FMT;
+
+	m_List.GetItemRect(lpDrawItemStruct->itemID, rect, LVIR_LABEL);
+
+	rect.left -= m_List.GetScrollPos(SB_HORZ);
+	for ( int i = 0 ; m_List.GetColumn(i, &lvc) ; i++ ) {
+		str = m_List.GetItemText(lpDrawItemStruct->itemID, i);
+
+		rect.right = rect.left + lvc.cx - 4;
+		pDC->DrawText(str, rect,
+			(lvc.fmt == LVCFMT_LEFT   ? DT_LEFT : 0) |
+			(lvc.fmt == LVCFMT_RIGHT  ? DT_RIGHT : 0) |
+			(lvc.fmt == LVCFMT_CENTER ? DT_CENTER : 0) | DT_SINGLELINE | DT_NOPREFIX | DT_WORD_ELLIPSIS | DT_VCENTER);
+
+		rect.left = rect.right + 4;
+	}
+
+	if ( (lvi.state & LVIS_FOCUSED) != 0 && GetFocus()->GetSafeHwnd() == m_List.GetSafeHwnd() )
+		pDC->DrawFocusRect(&lpDrawItemStruct->rcItem);
+
+	pDC->SetBkColor(bkc);
+	pDC->SetTextColor(txc);
+}
+void CServerSelect::OnMeasureItem(int nIDCtl, LPMEASUREITEMSTRUCT lpMeasureItemStruct)
+{
+	if ( nIDCtl == IDC_SERVERLIST )
+		lpMeasureItemStruct->itemHeight = m_FontSize * 96 / 72 + 4;
+
+	CDialogExt::OnMeasureItem(nIDCtl, lpMeasureItemStruct);
+}
+#endif	// USE_DEFENTRYMARK

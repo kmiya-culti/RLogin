@@ -95,10 +95,10 @@ void CLogin::SendWindSize(int x, int y)
 	CExtSocket::Send(obuf, sizeof(obuf));
 }
 
-void CLogin::OnReciveCallBack(void *lpBuf, int nBufLen, int nFlags)
+void CLogin::OnReceiveCallBack(void *lpBuf, int nBufLen, int nFlags)
 {
 	if ( m_ConnectFlag == 3 && nFlags == 0 ) {
-		CExtSocket::OnReciveCallBack(lpBuf, nBufLen, 0);
+		CExtSocket::OnReceiveCallBack(lpBuf, nBufLen, 0);
 		return;
 	}
 

@@ -312,12 +312,13 @@ class CTelnet : public CExtSocket
 public:
 	BOOL Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM, void *pAddrInfo = NULL);
 	void OnConnect();
-	void OnReciveCallBack(void *lpBuf, int nBufLen, int nFlags);
+	void OnReceiveCallBack(void *lpBuf, int nBufLen, int nFlags);
 	int Send(const void *lpBuf, int nBufLen, int nFlags = 0);
 	void SendBreak(int opt = 0);
 	void SendWindSize(int x, int y);
 	void SetXonXoff(int sw);
 	void GetStatus(CString &str);
+	void OnTimer(UINT_PTR nIDEvent);
 
 	CTelnet(class CRLoginDoc *pDoc);
 	virtual ~CTelnet();
@@ -329,7 +330,7 @@ private:
 	} HisOpt[TELOPT_MAX], MyOpt[TELOPT_MAX];
 	int SubOptLen;
 	char SubOptBuf[SUBOPTLEN + 1];
-	int ReciveStatus;
+	int ReceiveStatus;
 
 	void SockSend(char *buf, int len);
 	void SendFlush();

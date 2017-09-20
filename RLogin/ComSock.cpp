@@ -221,7 +221,7 @@ void CComSock::GetStatus(CString &str)
 	m_SendSema.Lock();
 	n = m_RecvBuff.GetSize();
 	m_SendSema.Unlock();
-	tmp.Format(_T("Recive Buffer: %d Bytes\r\n"), n);
+	tmp.Format(_T("Receive Buffer: %d Bytes\r\n"), n);
 	str += tmp;
 
 	m_RecvSema.Lock();
@@ -259,18 +259,18 @@ void CComSock::GetStatus(CString &str)
 	str += _T("Error Status:");
 	if ( m_CommError == 0 ) str += _T(" No Error");
 	else {
-		if ( (m_CommError & CE_BREAK)    != 0 ) str += _T(" Recived Break,");
+		if ( (m_CommError & CE_BREAK)    != 0 ) str += _T(" Received Break,");
 		if ( (m_CommError & CE_FRAME)    != 0 ) str += _T(" Frame Error,");
 		if ( (m_CommError & CE_IOE)      != 0 ) str += _T(" I/O Error,");
 		if ( (m_CommError & CE_OVERRUN)  != 0 ) str += _T(" Overrun Error,");
-		if ( (m_CommError & CE_RXOVER)   != 0 ) str += _T(" Recive Overflow,");
+		if ( (m_CommError & CE_RXOVER)   != 0 ) str += _T(" Receive Overflow,");
 		if ( (m_CommError & CE_RXPARITY) != 0 ) str += _T(" Parity Error,");
 		if ( (m_CommError & CE_TXFULL)   != 0 ) str += _T(" Send Buffer Full,");
 	}
 	str += _T("\r\n");
 }
 
-void CComSock::OnRecive(int nFlags)
+void CComSock::OnReceive(int nFlags)
 {
 	int n;
 	BYTE buff[1024];
@@ -284,7 +284,7 @@ void CComSock::OnRecive(int nFlags)
 		m_RecvBuff.Consume(n);
 		m_RecvSema.Unlock();
 
-		OnReciveCallBack(buff, n, nFlags);
+		OnReceiveCallBack(buff, n, nFlags);
 		m_RecvSema.Lock();
 	}
 
@@ -446,7 +446,7 @@ void CComSock::OnReadWriteProc()
 			}
 		}
 
-		// PostMsg Call OnRecive
+		// PostMsg Call OnReceive
 		if ( ReadByte > 0 ) {
 			ReadByte = 0;
 			AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hCom, FD_READ);

@@ -225,6 +225,7 @@
 #define IDS_OPTFIXEDMSG                 628
 #define IDS_OPTFIXEDSAVEMSG             629
 #define IDS_TTYMODE_LIST56              630
+#define IDS_DEFENTRYEDITMSG             631
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -572,6 +573,7 @@
 #define IDC_KANJICODE4                  2167
 #define IDC_KEEPALIVE                   2168
 #define IDC_KEYASNDEL                   2169
+#define IDC_KEEPALIVE2                  2169
 #define IDC_KEYASNEDIT                  2170
 #define IDC_KEYASNNEW                   2171
 #define IDC_KEYCODE                     2172
@@ -704,6 +706,7 @@
 #define IDC_PROTOCHECK5                 2294
 #define IDC_PROTOCHECK6                 2295
 #define IDC_PROTOCHECK7                 2296
+#define IDC_PROTOCHECK8                 2297
 #define IDC_PROXYSET                    2297
 #define IDC_RADIO1                      2298
 #define IDC_RADIO2                      2299
@@ -1004,6 +1007,6 @@
 #define _APS_NEXT_RESOURCE_VALUE        163
 #define _APS_NEXT_COMMAND_VALUE         5126
 #define _APS_NEXT_CONTROL_VALUE         2470
-#define _APS_NEXT_SYMED_VALUE           631
+#define _APS_NEXT_SYMED_VALUE           632
 #endif
 #endif

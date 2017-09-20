@@ -185,6 +185,13 @@ class CIConv *CIConv::GetIConv(LPCTSTR from, LPCTSTR to)
 			to   = _T("EUC-JISX0213");
 
 	    m_Cd = iconv_open(TstrToMbs(to), TstrToMbs(from));
+
+		if ( m_Cd == (iconv_t)(-1) ) {
+			CString msg;
+			msg.Format(_T("iconv not supported '%s' to '%s'"), from, to); 
+			::AfxMessageBox(msg);
+		}
+
 		return this;
 	}
 
@@ -257,7 +264,7 @@ void CIConv::IConvSub(LPCTSTR from, LPCTSTR to, CBuffer *in, CBuffer *out)
 
 	delete [] pOutBuf;
 }
-int CIConv::IConvBuf(LPCTSTR from, LPCTSTR to, CBuffer *in, CBuffer *out)
+BOOL CIConv::IConvBuf(LPCTSTR from, LPCTSTR to, CBuffer *in, CBuffer *out)
 {
 	int res = 0;
 	CIConv *pIconv;
@@ -267,7 +274,7 @@ int CIConv::IConvBuf(LPCTSTR from, LPCTSTR to, CBuffer *in, CBuffer *out)
 	char *pOutBuf;
 
 	if ( (pIconv = GetIConv(from, to)) == NULL || pIconv->m_Cd == (iconv_t)(-1) )
-		return 0;
+		return FALSE;
 
 	pInStr = (char *)(in->GetPtr());
 	nInLen = in->GetSize();
@@ -297,38 +304,63 @@ int CIConv::IConvBuf(LPCTSTR from, LPCTSTR to, CBuffer *in, CBuffer *out)
 
 	delete [] pOutBuf;
 
-	return out->GetSize();
+	return (res == (-1) ? FALSE : TRUE);
 }
 void CIConv::StrToRemote(LPCTSTR to, CBuffer *in, CBuffer *out)
 {
-	CTextRam::MsToIconvUniStr(to, (LPWSTR)(LPCWSTR)(*in), in->GetSize() / sizeof(WCHAR));
-	IConvBuf(_T("UTF-16LE"), to, in, out);
+	CBuffer bIn;
+
+	bIn.Apend(in->GetPtr(), in->GetSize());
+	CTextRam::MsToIconvUniStr(to, (LPWSTR)bIn.GetPtr(), bIn.GetSize() / sizeof(WCHAR));
+
+	if ( IConvBuf(_T("UTF-16LE"), to, &bIn, out) )
+		return;
+
+	// iconv error recovery
+	LPCWSTR p = (LPCWSTR)in->GetPtr();
+	int len = in->GetSize() / sizeof(WCHAR);
+
+	out->Clear();
+	for ( int n = 0 ; n < len ; n++, p++ )
+		out->PutByte((*p & 0x80) == 0 ? (BYTE)*p : '?');
 }
 void CIConv::StrToRemote(LPCTSTR to, LPCTSTR in, CStringA &out)
 {
-	CBuffer bIn, bOut;
 #ifdef	_UNICODE
-	bIn.Apend((LPBYTE)in, (int)_tcslen(in) * sizeof(WCHAR));
-	CTextRam::MsToIconvUniStr(to, (LPWSTR)(LPCWSTR)bIn, bIn.GetSize() / sizeof(WCHAR));
-	IConvBuf(_T("UTF-16LE"), to, &bIn, &bOut);
+	CBuffer bIn((LPBYTE)in, (int)_tcslen(in) * sizeof(TCHAR));
 #else
-	bIn.Apend((LPBYTE)in, (int)strlen(in));
-	IConvBuf(_T("CP932"), to, &bIn, &bOut);
+	CStringW str(in);
+	CBuffer bIn((LPBYTE)(LPCWSTR)str, str.GetLength() * sizeof(WCHAR));
 #endif
+	CBuffer bOut;
+
+	StrToRemote(to, &bIn, &bOut);
 	out = (LPCSTR)bOut;
 }
 void CIConv::RemoteToStr(LPCTSTR from, CBuffer *in, CBuffer *out)
 {
 	CBuffer mid;
-	IConvBuf(from, _T("UTF-16LE"), in, &mid);
-	CTextRam::IconvToMsUniStr(from, (LPCWSTR)mid, mid.GetSize() / sizeof(WCHAR), *out);
+
+	if ( IConvBuf(from, _T("UTF-16LE"), in, &mid) ) {
+		CTextRam::UnicodeNomalStr((LPWSTR)mid.GetPtr(), mid.GetSize() / sizeof(WCHAR), *out);
+		CTextRam::IconvToMsUniStr(from, (LPWSTR)out->GetPtr(), out->GetSize() / sizeof(WCHAR));
+		return;
+	}
+
+	// iconv error recovery
+	LPCSTR p = (LPCSTR)in->GetPtr();
+	int len = in->GetSize() / sizeof(CHAR);
+
+	out->Clear();
+	for ( int n = 0 ; n < len ; n++, p++ )
+		out->PutWord((*p & 0x80) == 0 ? (WCHAR)*p : L'?');
 }
 void CIConv::RemoteToStr(LPCTSTR from, LPCSTR in, CString &out)
 {
-	CBuffer bIn, bMid, bOut;
-	bIn.Apend((LPBYTE)in, (int)strlen(in));
-	IConvBuf(from, _T("UTF-16LE"), &bIn, &bMid);
-	CTextRam::IconvToMsUniStr(from, (LPCWSTR)bMid, bMid.GetSize() / sizeof(WCHAR), bOut);
+	CBuffer bIn((LPBYTE)in, (int)strlen(in));
+	CBuffer bOut;
+
+	RemoteToStr(from, &bIn, &bOut);
 	out = (LPCWSTR)bOut;
 }
 

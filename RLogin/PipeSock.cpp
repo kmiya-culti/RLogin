@@ -257,7 +257,7 @@ int CPipeSock::GetSendSize()
 	return len;
 }
 
-void CPipeSock::OnRecive(int nFlags)
+void CPipeSock::OnReceive(int nFlags)
 {
 	int n;
 	BYTE buff[1024];
@@ -269,7 +269,7 @@ void CPipeSock::OnRecive(int nFlags)
 		memcpy(buff, m_RecvBuff.GetPtr(), n);
 		m_RecvBuff.Consume(n);
 		m_RecvSema.Unlock();
-		OnReciveCallBack(buff, n, nFlags);
+		OnReceiveCallBack(buff, n, nFlags);
 		m_RecvSema.Lock();
 	}
 	m_RecvSema.Unlock();
@@ -398,7 +398,7 @@ void CPipeSock::OnReadWriteProc()
 			}
 		}
 
-		// PostMsg Call OnRecive
+		// PostMsg Call OnReceive
 		if ( ReadByte > 0 ) {
 			ReadByte = 0;
 			AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hIn[0], FD_READ);

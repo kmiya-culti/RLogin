@@ -76,9 +76,9 @@ public:
 	void Bufferd_Flush();
 	void Bufferd_Clear();
 	void Bufferd_Sync();
-	int Bufferd_Recive(int sec);
-	BOOL Bufferd_ReciveBuf(char *buf, int len, int sec);
-	int Bufferd_ReciveSize();
+	int Bufferd_Receive(int sec);
+	BOOL Bufferd_ReceiveBuf(char *buf, int len, int sec);
+	int Bufferd_ReceiveSize();
 	void SetXonXoff(int sw);
 
 	char *CheckFileName(int mode, LPCSTR file);

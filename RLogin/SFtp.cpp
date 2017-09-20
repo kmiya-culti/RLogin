@@ -615,7 +615,7 @@ void CSFtp::Send(LPBYTE buf, int len)
 	m_pChan->m_Output.Apend(buf, len);
 	m_pChan->m_pSsh->SendMsgChannelData(m_pChan->m_LocalID);
 }
-int CSFtp::OnRecive(const void *lpBuf, int nBufLen)
+int CSFtp::OnReceive(const void *lpBuf, int nBufLen)
 {
 	m_RecvBuf.Apend((LPBYTE)lpBuf, nBufLen);
 
@@ -652,7 +652,7 @@ void CSFtp::SendBuffer(CBuffer *bp)
 	bp->SET32BIT(bp->GetPtr(), bp->GetSize() - 4);
 	Send(bp->GetPtr(), bp->GetSize());
 }
-int CSFtp::ReciveBuffer(CBuffer *bp)
+int CSFtp::ReceiveBuffer(CBuffer *bp)
 {
 	CCmdQue *pQue;
 	int type = bp->Get8Bit();
@@ -677,7 +677,7 @@ int CSFtp::ReciveBuffer(CBuffer *bp)
 			m_CmdQue.GetNext(pos);
 		}
 		if ( pos == NULL )
-			MessageBox(_T("Unkown sftp Message Recived"));
+			MessageBox(_T("Unkown sftp Message Received"));
 	}
 
 	SendWaitQue();
@@ -2354,7 +2354,7 @@ BEGIN_MESSAGE_MAP(CSFtp, CDialogExt)
 	ON_WM_MOUSEMOVE()
 	ON_WM_LBUTTONUP()
 
-	ON_MESSAGE(WM_RECIVEBUFFER, OnReciveBuffer)
+	ON_MESSAGE(WM_RECIVEBUFFER, OnReceiveBuffer)
 
 	ON_COMMAND(IDM_SFTP_CLOSE, OnSftpClose)
 	ON_COMMAND(IDM_SFTP_DELETE, OnSftpDelete)
@@ -3458,7 +3458,7 @@ void CSFtp::OnTimer(UINT_PTR nIDEvent)
 {
 	if ( (m_DoExec & 003) == 002 ) {
 		m_DoExec &= ~002;
-		OnRecive("", 0);
+		OnReceive("", 0);
 	}
 
 	if ( m_UpdateCheckMode ) {	// Local
@@ -3473,12 +3473,12 @@ void CSFtp::OnTimer(UINT_PTR nIDEvent)
 	CDialogExt::OnTimer(nIDEvent);
 }
 
-LRESULT CSFtp::OnReciveBuffer(WPARAM wParam, LPARAM lParam)
+LRESULT CSFtp::OnReceiveBuffer(WPARAM wParam, LPARAM lParam)
 {
 	int n;
 	CBuffer buf;
 
-//	TRACE("OnReciveBuffer %d\n", m_RecvBuf.GetSize());
+//	TRACE("OnReceiveBuffer %d\n", m_RecvBuf.GetSize());
 
 	try {
 		while ( m_RecvBuf.GetSize() >= 4 ) {
@@ -3494,7 +3494,7 @@ LRESULT CSFtp::OnReciveBuffer(WPARAM wParam, LPARAM lParam)
 			buf.Apend(m_RecvBuf.GetPtr() + 4, n);
 			m_RecvBuf.Consume(n + 4);
 
-			ReciveBuffer(&buf);
+			ReceiveBuffer(&buf);
 		}
 
 	} catch(LPCTSTR msg) {

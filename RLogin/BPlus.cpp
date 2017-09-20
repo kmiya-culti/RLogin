@@ -253,7 +253,7 @@ void CBPlus::Send_ENQ()
 }
 int CBPlus::Read_Byte()
 {
-    if ( (e_ch = Bufferd_Recive(Aborting ? 5 : 10)) < 0 ) {
+    if ( (e_ch = Bufferd_Receive(Aborting ? 5 : 10)) < 0 ) {
 		Timed_Out = TRUE;
 		return( FALSE );
     } else {

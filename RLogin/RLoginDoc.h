@@ -128,15 +128,15 @@ public:
 	BOOL ScriptInit();
 	void SendBuffer(CBuffer &buf);
 	void SendScript(LPCWSTR str, LPCWSTR match);
-	void OnReciveChar(DWORD ch, int pos);
+	void OnReceiveChar(DWORD ch, int pos);
 	void OnSendBuffer(CBuffer &buf);
 
 	int DelaySend();
-	void OnDelayRecive(int ch);
+	void OnDelayReceive(int ch);
 
 	int SocketOpen();
 	void SocketClose();
-	int SocketRecive(void *lpBuf, int nBufLen);
+	int SocketReceive(void *lpBuf, int nBufLen);
 	void SocketSend(void *lpBuf, int nBufLen, BOOL delaySend = FALSE);
 	void SocketSendWindSize(int x, int y);
 	LPCSTR Utf8Str(LPCTSTR str);
@@ -146,7 +146,7 @@ public:
 	void OnSocketConnect();
 	void OnSocketError(int err);
 	void OnSocketClose();
-	int OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags);
+	int OnSocketReceive(LPBYTE lpBuf, int nBufLen, int nFlags);
 
 	void SetDocTitle();
 	inline void SetStatus(LPCTSTR str) { m_SockStatus = str; SetDocTitle(); }

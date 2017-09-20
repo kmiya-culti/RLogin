@@ -185,8 +185,8 @@ private:
 	CSockBuffer *AddHead(CSockBuffer *sp, CSockBuffer *head);
 	CSockBuffer *DetachHead(CSockBuffer *head);
 	CSockBuffer *RemoveHead(CSockBuffer *head);
-	BOOL ReciveCall();
-	BOOL ReciveProc();
+	BOOL ReceiveCall();
+	BOOL ReceiveProc();
 
 	BOOL ProxyReadLine();
 	BOOL ProxyReadBuff(int len);
@@ -207,7 +207,7 @@ public:
 	virtual void Close();
 	virtual void SetXonXoff(int sw);
 
-	virtual int Recive(void *lpBuf, int nBufLen, int nFlags = 0);
+	virtual int Receive(void *lpBuf, int nBufLen, int nFlags = 0);
 	virtual int Send(const void *lpBuf, int nBufLen, int nFlags = 0);
 	virtual void SendWindSize(int x, int y);
 	virtual void SendBreak(int opt = 0);
@@ -222,8 +222,8 @@ public:
 
 	virtual void OnAsyncHostByName(int mode, LPCTSTR pHostName);
 	virtual void OnGetHostByName(LPCTSTR pHostName);
-	virtual void OnReciveCallBack(void *lpBuf, int nBufLen, int nFlags);
-	virtual int OnReciveProcBack(void *lpBuf, int nBufLen, int nFlags);
+	virtual void OnReceiveCallBack(void *lpBuf, int nBufLen, int nFlags);
+	virtual int OnReceiveProcBack(void *lpBuf, int nBufLen, int nFlags);
 
 	void OnPreConnect();
 	void OnPreClose();
@@ -231,7 +231,7 @@ public:
 	virtual void OnConnect();
 	virtual void OnAccept(SOCKET hand);
 	virtual void OnClose();
-	virtual void OnRecive(int nFlags);
+	virtual void OnReceive(int nFlags);
 	virtual void OnSend();
 	virtual int OnIdle();
 	virtual void OnTimer(UINT_PTR nIDEvent);
@@ -258,8 +258,8 @@ public:
 	static LPCTSTR GetFormatErrorMessage(LPCTSTR entry, LPCTSTR host, int port, LPCTSTR type, int err);
 
 	void SetRecvSyncMode(BOOL mode);
-	int SyncRecive(void* lpBuf, int nBufLen, int nSec, BOOL *pAbort);
-	void SyncReciveBack(void *lpBuf, int nBufLen);
+	int SyncReceive(void* lpBuf, int nBufLen, int nSec, BOOL *pAbort);
+	void SyncReceiveBack(void *lpBuf, int nBufLen);
 	void SyncAbort();
 
 	inline int IsOpen() { return (m_Fd == (-1) ? FALSE  : TRUE); }

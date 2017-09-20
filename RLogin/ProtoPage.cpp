@@ -26,11 +26,11 @@ static char THIS_FILE[] = __FILE__;
 
 IMPLEMENT_DYNCREATE(CProtoPage, CTreePage)
 
-#define	CHECKOPTMAX		7
+#define	CHECKOPTMAX		8
 #define	CHECKOPTEXT		3
 #define	IDC_CHECKFAST	IDC_PROTOCHECK1
 static const int CheckOptTab[] = { TO_RLTENAT,  TO_RLTENEC,  TO_RLTENLM,
-								   TO_SSH1MODE, TO_SSHPFORY, TO_SSHAGENT, TO_SSHKEEPAL,
+								   TO_SSH1MODE, TO_SSHPFORY, TO_SSHAGENT, TO_SSHKEEPAL, TO_TELKEEPAL,
 								   TO_SSHSFENC, TO_SSHSFMAC, TO_SSHX11PF	};		// Extend
 
 CProtoPage::CProtoPage() : CTreePage(CProtoPage::IDD)
@@ -51,6 +51,7 @@ void CProtoPage::DoDataExchange(CDataExchange* pDX)
 	CTreePage::DoDataExchange(pDX);
 
 	DDX_Text(pDX, IDC_KEEPALIVE, m_KeepAlive);
+	DDX_Text(pDX, IDC_KEEPALIVE2, m_TelKeepAlive);
 	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
 		DDX_Check(pDX, IDC_CHECKFAST + n, m_Check[n]);
 	DDX_CBIndex(pDX, IDC_RSAEXTSEL, m_RsaExt);
@@ -66,6 +67,8 @@ BEGIN_MESSAGE_MAP(CProtoPage, CTreePage)
 	ON_EN_CHANGE(IDC_DELAYMSEC, OnUpdateEdit)
 	ON_CBN_SELCHANGE(IDC_RSAEXTSEL, OnUpdateEdit)
 	ON_EN_CHANGE(IDC_VERINDENT, OnUpdateEdit)
+	ON_EN_CHANGE(IDC_KEEPALIVE, OnUpdateEdit)
+	ON_EN_CHANGE(IDC_KEEPALIVE2, OnUpdateEdit)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -76,7 +79,8 @@ void CProtoPage::DoInit()
 	for ( int n = 0 ; n < CHECKOPTMAX + CHECKOPTEXT ; n++ )
 		m_Check[n] = (m_pSheet->m_pTextRam->IsOptEnable(CheckOptTab[n]) ? TRUE : FALSE);
 
-	m_KeepAlive = m_pSheet->m_pTextRam->m_KeepAliveSec;
+	m_KeepAlive = m_pSheet->m_pTextRam->m_SshKeepAlive;
+	m_TelKeepAlive = m_pSheet->m_pTextRam->m_TelKeepAlive;
 	
 	for ( int n = 0 ; n < 12 ; n++ )
 		m_AlgoTab[n] = m_pSheet->m_pParamTab->m_AlgoTab[n];
@@ -113,7 +117,8 @@ BOOL CProtoPage::OnApply()
 	for ( int n = 0 ; n < CHECKOPTMAX + CHECKOPTEXT ; n++ )
 		m_pSheet->m_pTextRam->SetOption(CheckOptTab[n], m_Check[n]);
 
-	m_pSheet->m_pTextRam->m_KeepAliveSec = m_KeepAlive;
+	m_pSheet->m_pTextRam->m_SshKeepAlive = m_KeepAlive;
+	m_pSheet->m_pTextRam->m_TelKeepAlive = m_TelKeepAlive;
 
 	for ( int n = 0 ; n < 12 ; n++ )
 		m_pSheet->m_pParamTab->m_AlgoTab[n] = m_AlgoTab[n];

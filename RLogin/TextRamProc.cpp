@@ -1239,9 +1239,9 @@ void CTextRam::fc_TraceCall(DWORD ch)
 		if ( tp->type == PROCTYPE_CSI || tp->type == PROCTYPE_DCS ) {
 			tmp = tp->name;
 			fc_TraceLogParam(tmp);
-			CallReciveChar(0x1B, tmp);
+			CallReceiveChar(0x1B, tmp);
 		} else
-			CallReciveChar(0x1B, tp->name);
+			CallReceiveChar(0x1B, tp->name);
 	}
 
 	if ( (m_TraceLogMode & 001) == 0 )
@@ -1610,7 +1610,7 @@ void CTextRam::fc_POP(DWORD ch)
 void CTextRam::fc_SESC(DWORD ch)
 {
 	fc_KANJI(ch);
-	CallReciveChar(ch);
+	CallReceiveChar(ch);
 
 	if ( IsOptEnable(TO_RLC1DIS) ) {
 		ch &= 0x7F;
@@ -2234,7 +2234,7 @@ void CTextRam::fc_BEL(DWORD ch)
 void CTextRam::fc_BS(DWORD ch)
 {
 	fc_KANJI(ch);
-	CallReciveChar(ch);
+	CallReceiveChar(ch);
 
 	m_DoWarp = FALSE;
 
@@ -2250,21 +2250,21 @@ void CTextRam::fc_BS(DWORD ch)
 void CTextRam::fc_HT(DWORD ch)
 {
 	fc_KANJI(ch);
-	CallReciveChar(ch);
+	CallReceiveChar(ch);
 
 	TABSET(TAB_COLSNEXT);
 }
 void CTextRam::fc_LF(DWORD ch)
 {
 	fc_KANJI(ch);
-	CallReciveChar(ch);
+	CallReceiveChar(ch);
 
 	switch(IsOptEnable(TO_ANSILNM) ? 2 : m_RecvCrLf) {
 	case 2:		// LF
 	case 3:		// CR|LF
 		LOCATE(GetLeftMargin(), m_CurY);
 		if ( (m_pDocument->m_bDelayPast || IsOptEnable(TO_RLDELAY)) && m_pDocument->m_DelayFlag == DELAY_WAIT )
-			m_pDocument->OnDelayRecive(ch);
+			m_pDocument->OnDelayReceive(ch);
 	case 0:		// CR+LF
 		GETVRAM(0, m_CurY)->m_Vram.attr |= ATT_RETURN;
 		ONEINDEX();
@@ -2275,7 +2275,7 @@ void CTextRam::fc_LF(DWORD ch)
 void CTextRam::fc_VT(DWORD ch)
 {
 	fc_KANJI(ch);
-	CallReciveChar(ch);
+	CallReceiveChar(ch);
 
 	TABSET(TAB_LINENEXT);
 
@@ -2285,7 +2285,7 @@ void CTextRam::fc_VT(DWORD ch)
 void CTextRam::fc_FF(DWORD ch)
 {
 	fc_KANJI(ch);
-	CallReciveChar(ch);
+	CallReceiveChar(ch);
 
 	ONEINDEX();
 
@@ -2295,7 +2295,7 @@ void CTextRam::fc_FF(DWORD ch)
 void CTextRam::fc_CR(DWORD ch)
 {
 	fc_KANJI(ch);
-	CallReciveChar(ch);
+	CallReceiveChar(ch);
 
 	switch(m_RecvCrLf) {
 	case 1:		// CR
@@ -2305,7 +2305,7 @@ void CTextRam::fc_CR(DWORD ch)
 	case 0:		// CR+LF
 		LOCATE(GetLeftMargin(), m_CurY);
 		if ( (m_pDocument->m_bDelayPast || IsOptEnable(TO_RLDELAY)) && m_pDocument->m_DelayFlag == DELAY_WAIT )
-			m_pDocument->OnDelayRecive(ch);
+			m_pDocument->OnDelayReceive(ch);
 	case 2:		// LF
 		break;
 	}
@@ -5753,34 +5753,64 @@ void CTextRam::fc_XTCOLREG(DWORD ch)
 	// If configured to support either Sixel Graphics or ReGIS Graph-
 	// ics, xterm accepts a three-parameter control sequence, where
 	// Pi, Pa and Pv are the item, action and value.
-	//  Pi = 1  -> item (color registers)
-	//  Pa = 1  -> read the number of color registers
-	//  Pa = 2  -> reset the number of color registers
-	//  Pa = 3  -> set the number of color registers to the value Pv
+	//  Pi = 1  -> item is number of color registers.
+	//  Pi = 2  -> item is Sixel graphics geometry (in pixels).
+	//  Pi = 3  -> item is ReGIS graphics geometry (in pixels).
+	//
+	//  Pa = 1  -> read
+	//  Pa = 2  -> reset to default
+	//  Pa = 3  -> set to value in Pv
+	//  Pa = 4  -> read the maximum allowed value
+	//
+	//  Pv can be omitted except when setting (Pa == 3 ).
+	//  Pv = n <- A single integer is used for color registers.
+	//  Pv = width; height <- Two integers for graphics geometry.
+	//
 	// The control sequence returns a response using the same form:
-	//   CSI ? Pi; Ps; Pv S
+	//  CSI ? Pi; Ps; Pv S
 	// where Ps is the status:
-	//  Ps = 0  -> success
-	//  Ps = 1  -> Pi != 1
-	//  Ps = 2  -> Pa != 1,2,3
-	//  Ps = 3  -> failure
+	//  Ps = 0  -> success.
+	//  Ps = 1  -> error in Pi.
+	//  Ps = 2  -> error in Pa.
+	//  Ps = 3  -> failure.
 
 	int status = 3;
 	int result = 0;
+	int width = 1000, height = 1000;
 
 	fc_POP(ch);
 
-	if ( m_AnsiPara.GetSize() != 3 )
+	if ( m_AnsiPara.GetSize() < 3 )
 		return;
 
 	switch(GetAnsiPara(0, 0, 0)) {
+	case 0:	// –³ŒÀƒ‹[ƒv—}§
+		return;
 	case 1:	// color registers
 		switch(GetAnsiPara(1, 0, 0)) {
 		case 1:	// read
 		case 2:	// reset
 		case 3:	// set
+		case 4:	// read max
 			status = 0;
 			result = SIXEL_PALET;
+			break;
+		default:
+			status = 2;
+			break;
+		}
+		break;
+	case 2:	// Sixel graphics geometry (in pixels).
+	case 3:	// ReGIS graphics geometry (in pixels).
+		switch(GetAnsiPara(1, 0, 0)) {
+		case 1:	// read
+			status = 10;
+			m_pDocument->m_TextRam.GetScreenSize(&width, &height);
+			break;
+		case 2:	// reset
+		case 3:	// set
+		case 4:	// read max
+			status = 10;
 			break;
 		default:
 			status = 2;
@@ -5796,6 +5826,8 @@ void CTextRam::fc_XTCOLREG(DWORD ch)
 
 	if ( status == 0 )
 		UNGETSTR(_T("%s?%d;%d;%dS"), m_RetChar[RC_CSI], GetAnsiPara(0, 0, 0), status, result);
+	else if ( status == 10 )
+		UNGETSTR(_T("%s?%d;%d;%d;%dS"), m_RetChar[RC_CSI], GetAnsiPara(0, 0, 0), 0, width, height);
 	else
 		UNGETSTR(_T("%s?%d;%dS"), m_RetChar[RC_CSI], GetAnsiPara(0, 0, 0), status);
 }

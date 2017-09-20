@@ -386,6 +386,7 @@ TD {
             ※2.22.5からGitHubにも<A href="https://github.com/kmiya-culti/RLogin/">ソースコード</A>及び<A href="https://github.com/kmiya-culti/RLogin/releases/">実行プログラム</A>を登録するようにしました。<BR>
             また、このページもGitHubの<A href="https://kmiya-culti.github.io/RLogin/">https://kmiya-culti.github.io/RLogin/</A>で参照できます。<BR>
             http://nanno.dip.jp/がアクセスできない場合などにご利用ください。<BR>
+            さらに、バグ報告や機能の要望なども<A href="https://github.com/kmiya-culti/RLogin/issues">GitHubのIssues</A>が使用できます。<BR>
             <BR>
             <TABLE cellpadding="5" cellspacing="0">
               <TBODY>
@@ -434,6 +435,16 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">次期試作版<BR>
+            RC1</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.22.7/">2.22.7</A></TD>
+            <TD><FONT color="#c0c0c0">DECBKMの誤解釈を訂正してBS/DELの送信に修正<BR>
+            標準の設定にしたエントリー編集で更新の確認を追加<BR>
+            ssh2のユーザー認証のキャンセル時の動作を変更<BR>
+            telnetにKeepAliveパケットの送信を追加<BR>
+            </FONT><FONT color="#ff0000">libiconv-1.15の日本語パッチの取り込みミスを修正</FONT></TD>
+          </TR>
+          <TR>
             <TD align="center">2017/09/05</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.22.6/">2.22.6</A></TD>
             <TD>libiconv-1.15に更新<BR>
@@ -475,22 +486,6 @@ TD {
             タブバーに同時受信のチェックボックスを追加<BR>
             拡張機能にタブにマウスで情報表示を追加<BR>
             openssl-1.1.0fに更新</TD>
-          </TR>
-          <TR>
-            <TD align="center">2017/04/24</TD>
-            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.22.2/">2.22.2</A></TD>
-            <TD>RLCURCOL(CSI&lt;!q)で文字カーソル色の設定を追加<BR>
-            文字カーソルのオプション変更でデフォルト値を確認<BR>
-            ステータスのメッセージ表示で余分な文字列を修正<BR>
-            プロトコル無しでファイルダウンロードを追加<BR>
-            Zmodem/BPlusでLF/GSをエスケープするように変更<BR>
-            クリップボードの改行コードをチェックするように変更<BR>
-            非接続時にSFTPなどのメニューをグレーアウトに修正<BR>
-            非接続時に文字カーソルを非表示に変更<BR>
-            エラー時のみ再接続の確認を行うように変更<BR>
-            送信文字列の特殊文字に%sソケットステータスを追加<BR>
-            サーバーのオプション設定に「標準の設定を使用」を追加<BR>
-            ターミナルのオプションに「壊れたMBCを記号で表示」を追加</TD>
           </TR>
           <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
@@ -1818,7 +1813,7 @@ TD {
                   <TD align="center">Password</TD>
                   <TD>ユーザー認証に使用するパスワードです。公開鍵認証の場合は、その認証鍵のパスフレーズを設定します。<BR>
                   <BR>
-                  User Name,Passwordを設定するとサーバー情報を保存で作成されるファイルや次回起動時用にPasswordなども保存されます。セキュリティーを考えるなら<B>Passwordを保存しないでください</B>。</TD>
+                  User Name,Passwordを設定するとサーバー情報を保存で作成されるファイルや次回起動時用にPasswordなども保存されます。セキュリティーを考えるなら<B>Passwordを保存しないでください</B>。保存しない場合は、下記のパスワード/フレーズ入力をチェックして接続時に入力するようにしてください。</TD>
                 </TR>
                 <TR>
                   <TD align="center">Terminal</TD>
@@ -2371,6 +2366,10 @@ fi</PRE>
                 <TR>
                   <TD align="center">LINEMODEを・・・</TD>
                   <TD>LINEMODEに移行しない</TD>
+                </TR>
+                <TR>
+                  <TD align="center"><FONT color="#c0c0c0">KeepAliveパケット・・・</FONT></TD>
+                  <TD><FONT color="#c0c0c0">KeepAliveパケットを指定秒数間隔で送信します</FONT></TD>
                 </TR>
                 <TR>
                   <TD colspan="2">SSH</TD>
@@ -4073,11 +4072,16 @@ function TekClock2() {
                 </TR>
                 <TR>
                   <TD width="30%" align="center">EUC</TD>
-                  <TD>EUC-JISX0213,EUCJP,EUCJP-MSから選択</TD>
+                  <TD>EUCJP-MS/EUCJP/EUC-JISX0213から選択<BR>
+                  それぞれの違いをEUCJP-MSとの違いで<A href="http://nanno.dip.jp/softlib/man/rlogin/eucjp.html">テーブル</A>にしてみました</TD>
                 </TR>
                 <TR>
                   <TD align="center">SJIS</TD>
-                  <TD>SHIFT-JISX0213,SJIS,CP932から選択</TD>
+                  <TD>CP932/SHIFT-JIS/SHIFT-JISX0213から選択<BR>
+                  それぞれの違いをCP932との違いで<A href="http://nanno.dip.jp/softlib/man/rlogin/sjis.html">テーブル</A>にしてみました<BR>
+                  ※ブラウザで使用されるフォントとRLoginで使用するフォントにより表示が異なります。<BR>
+                  ※一部のコードは、CP932と互換になるように内部で変換しています。これは、Windowsの言語設定のCP932と合わせる為です。<BR>
+                  (U+005C,U+007E,U+2015,U+2225,U+FF0D,U+FFE0,U+FFE1,U+FFE2)</TD>
                 </TR>
                 <TR>
                   <TD align="center">ASCII</TD>

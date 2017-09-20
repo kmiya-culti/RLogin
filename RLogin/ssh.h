@@ -469,7 +469,7 @@ public:
 	virtual void Close();
 	virtual void OnConnect();
 	virtual void Send(LPBYTE buf, int len);
-	virtual void OnRecive(const void *lpBuf, int nBufLen);
+	virtual void OnReceive(const void *lpBuf, int nBufLen);
 	virtual void OnSendEmpty();
 	virtual int GetSendSize();
 	virtual int GetRecvSize();
@@ -512,8 +512,8 @@ public:
 	void OnClose();
 	void OnAccept(SOCKET hand);
 	void OnConnect();
-	void OnReciveCallBack(void *lpBuf, int nBufLen, int nFlags);
-	int OnReciveProcBack(void *lpBuf, int nBufLen, int nFlags);
+	void OnReceiveCallBack(void *lpBuf, int nBufLen, int nFlags);
+	int OnReceiveProcBack(void *lpBuf, int nBufLen, int nFlags);
 	int GetSendSize();
 	int GetRecvSize();
 	void OnRecvEmpty();
@@ -527,7 +527,7 @@ class CStdIoFilter : public CFilter
 {
 public:
 	CStdIoFilter();
-	void OnRecive(const void *lpBuf, int nBufLen);
+	void OnReceive(const void *lpBuf, int nBufLen);
 	void OnSendEmpty();
 	int GetSendSize();
 };
@@ -538,7 +538,7 @@ public:
 	CBuffer m_Buffer;
 
 	CX11Filter();
-	void OnRecive(const void *lpBuf, int nBufLen);
+	void OnReceive(const void *lpBuf, int nBufLen);
 	void OnConnect();
 	int GetSendSize();
 	int GetRecvSize();
@@ -552,7 +552,7 @@ public:
 	CSFtpFilter();
 	void Destroy();
 	void OnConnect();
-	void OnRecive(const void *lpBuf, int nBufLen);
+	void OnReceive(const void *lpBuf, int nBufLen);
 	int GetSendSize();
 };
 
@@ -562,11 +562,11 @@ public:
 	CBuffer m_RecvBuf;
 
 	CAgent();
-	void OnRecive(const void *lpBuf, int nBufLen);
+	void OnReceive(const void *lpBuf, int nBufLen);
 	int GetSendSize();
 
 	CIdKey *GetIdKey(CIdKey *key, LPCTSTR pass);
-	void ReciveBuffer(CBuffer *bp);
+	void ReceiveBuffer(CBuffer *bp);
 };
 
 class CRcpUpload : public CFilter
@@ -584,7 +584,7 @@ public:
 
 	void Destroy();
 	void Close();
-	void OnRecive(const void *lpBuf, int nBufLen);
+	void OnReceive(const void *lpBuf, int nBufLen);
 	void OnClose();
 	void OnSendEmpty();
 
@@ -646,7 +646,7 @@ public:
 	BOOL Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM, void *pAddrInfo = NULL);
 	void Close();
 	void OnConnect();
-	void OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags = 0);
+	void OnReceiveCallBack(void* lpBuf, int nBufLen, int nFlags = 0);
 	int Send(const void* lpBuf, int nBufLen, int nFlags = 0);
 	void SendWindSize(int x, int y);
 	void OnTimer(UINT_PTR nIDEvent);
@@ -700,7 +700,7 @@ private:
 	CIdKey *SelectIdKeyEntry();
 	int SMsgPublicKey(CBuffer *bp);
 	int SMsgAuthRsaChallenge(CBuffer *bp);
-	void RecivePacket(CBuffer *bp);
+	void ReceivePacket(CBuffer *bp);
 	void SendPacket(CBuffer *bp);
 	void SendDisconnect(LPCSTR str);
 
@@ -773,6 +773,8 @@ private:
 	void ChannelClose(int id, BOOL bClose = FALSE);
 	LPCTSTR GetSigAlgs();
 	BOOL IsServerVersion(LPCTSTR pattan);
+	void UserAuthNextState();
+	void AddAuthLog(LPCTSTR str, ...);
 
 	void SendMsgKexInit();
 	void SendMsgNewKeys();
@@ -821,7 +823,7 @@ private:
 	int SSH2MsgGlobalRequest(CBuffer *bp);
 	int SSH2MsgGlobalRequestReply(CBuffer *bp, int type);
 
-	void RecivePacket2(CBuffer *bp);
+	void ReceivePacket2(CBuffer *bp);
 	void SendPacket2(CBuffer *bp);
 
 public:

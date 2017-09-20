@@ -66,8 +66,11 @@ BOOL CPassDlg::OnInitDialog()
 	if ( (m_Enable & PASSDLG_PASS) == 0 )
 		m_PassWnd.EnableWindow(FALSE);
 
-	if ( m_PassEcho )
+	if ( m_PassEcho ) {
 		m_PassWnd.ModifyStyle(ES_PASSWORD, 0);
+		m_PassWnd.SetPasswordChar(_T('\0'));
+		m_PassWnd.Invalidate(TRUE);
+	}
 
 	if ( !m_HostAddr.IsEmpty() ) {
 		if ( !m_UserName.IsEmpty() ) {

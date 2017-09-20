@@ -85,8 +85,10 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 		m_CipherMode = SSH_CIPHER_NONE;
 		m_SessionIdLen = 0;
 		m_StdChan = (-1);
-		m_AuthStat = 0;
+		m_AuthStat = AST_START;
 		m_AuthMode = AUTH_MODE_NONE;
+		m_AuthMeta.Empty();
+		m_AuthLog.Empty();
 		m_HostName = m_pDocument->m_ServerEntry.m_HostName;
 		m_DhMode = DHMODE_GROUP_1;
 		m_GlbReqMap.RemoveAll();
@@ -124,11 +126,11 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 
 		//CStringA tmp;
 		//CCipher::BenchMark(tmp);
-		//CExtSocket::OnReciveCallBack((void *)(LPCSTR)tmp, tmp.GetLength(), 0);
+		//CExtSocket::OnReceiveCallBack((void *)(LPCSTR)tmp, tmp.GetLength(), 0);
 
 		//CStringA tmp;
 		//CMacomp::BenchMark(tmp);
-		//CExtSocket::OnReciveCallBack((void *)(LPCSTR)tmp, tmp.GetLength(), 0);
+		//CExtSocket::OnReceiveCallBack((void *)(LPCSTR)tmp, tmp.GetLength(), 0);
 
 		if ( !m_pDocument->m_ServerEntry.m_IdkeyName.IsEmpty() ) {
 			if ( !IdKey.LoadPrivateKey(m_pDocument->m_ServerEntry.m_IdkeyName, m_pDocument->m_ServerEntry.m_PassName) ) {
@@ -271,8 +273,10 @@ void Cssh::OnConnect()
 	m_bCallConnect = FALSE;
 	CExtSocket::OnConnect();
 }
-void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
+void Cssh::OnReceiveCallBack(void* lpBuf, int nBufLen, int nFlags)
 {
+	CString msg;
+
 	try {
 		int crc, ch;
 		CBuffer *bp, tmp, cmp, dec;
@@ -313,7 +317,7 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 						str.Format("%s\r\n", m_pDocument->RemoteStr(m_ClientVerStr));
 						CExtSocket::Send((LPCSTR)str, str.GetLength());
 
-						DEBUGLOG(_T("Recive Version %s"), m_ServerVerStr);
+						DEBUGLOG(_T("Receive Version %s"), m_ServerVerStr);
 						DEBUGLOG(_T("Send Version %s"), MbsToTstr(str));
 
 						break;
@@ -355,7 +359,7 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				cmp.Clear();
 				m_DecCmp.UnCompress(bp->GetPtr(), bp->GetSize(), &cmp);
 				bp = &cmp;
-				RecivePacket(bp);
+				ReceivePacket(bp);
 				break;
 
 			case 3:		// SSH2 Packet Lenght
@@ -406,7 +410,7 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				}
 				m_RecvPackSeq += 1;
 				m_RecvPackLen += bp->GetSize();
-				RecivePacket2(bp);
+				ReceivePacket2(bp);
 				break;
 
 			case 5:		// SSH2 AEAD Packet length
@@ -443,7 +447,7 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				m_DecCmp.UnCompress(tmp.GetPtr(), tmp.GetSize(), &m_InPackBuf);
 				m_RecvPackSeq += 1;
 				m_RecvPackLen += m_InPackBuf.GetSize();
-				RecivePacket2(&m_InPackBuf);
+				ReceivePacket2(&m_InPackBuf);
 				break;
 
 			case 7:		// SSH2 etm Packet length
@@ -486,7 +490,7 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				m_DecCmp.UnCompress(dec.GetPtr(), dec.GetSize(), &m_InPackBuf);
 				m_RecvPackSeq += 1;
 				m_RecvPackLen += m_InPackBuf.GetSize();
-				RecivePacket2(&m_InPackBuf);
+				ReceivePacket2(&m_InPackBuf);
 				break;
 
 			case 9:		// SSH2 Poly1305 Packet length
@@ -523,7 +527,7 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				m_DecCmp.UnCompress(tmp.GetPtr(), tmp.GetSize(), &m_InPackBuf);
 				m_RecvPackSeq += 1;
 				m_RecvPackLen += m_InPackBuf.GetSize();
-				RecivePacket2(&m_InPackBuf);
+				ReceivePacket2(&m_InPackBuf);
 				break;
 			}
 		}
@@ -531,14 +535,42 @@ void Cssh::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 	ENDLOOP:
 		if ( m_StdChan != (-1) )
 			((CChannel *)m_pChan[m_StdChan])->m_pFilter->OnSendEmpty();
+		return;
 
 	} catch(LPCWSTR pMsg) {
-		CStringW tmp;
-		tmp.Format(L"ssh Recive Packet Error '%s'", pMsg);
-		::AfxMessageBox(UniToTstr(tmp));
+		msg.Format(_T("ssh Receive '%s'"), UniToTstr(pMsg));
+	} catch(LPCSTR pMsg) {
+		msg.Format(_T("ssh Receive '%s'"), MbsToTstr(pMsg));
 	} catch(...) {
-		::AfxMessageBox(_T("ssh Recive unkown Error"));
+		msg.Format(_T("ssh Receive '%s'"), _T("unkown"));
 	}
+
+	int n;
+	CString str;
+
+	msg += _T("\n\nReceive Packet Dump\n");
+
+	for ( n = 0 ; n < nBufLen && n < 16 ; n++ ) {
+		str.Format(_T("%02x "), ((LPBYTE)lpBuf)[n]);
+		msg += str;
+	}
+
+	if ( nBufLen > 16 )
+		msg += _T("...");
+	msg += _T('\n');
+
+	for ( n = 0 ; n < nBufLen && n < 16 ; n++ ) {
+		if ( ((LPBYTE)lpBuf)[n] < ' ' || ((LPBYTE)lpBuf)[n] >= 0x7F )
+			msg += _T('.');
+		else
+			msg += ((CHAR *)lpBuf)[n];
+	}
+
+	if ( nBufLen > 16 )
+		msg += _T("...");
+	msg += _T('\n');
+
+	::AfxMessageBox(msg);
 }
 void Cssh::SendWindSize(int x, int y)
 {
@@ -609,7 +641,7 @@ int Cssh::GetSendSize()
 	if ( m_StdChan == (-1) )
 		return 0;
 
-	// CStdIoFilter Recive Size = Console input Size
+	// CStdIoFilter Receive Size = Console input Size
 	return ((CChannel *)m_pChan[m_StdChan])->GetRecvSize();
 }
 
@@ -683,7 +715,7 @@ void Cssh::GetStatus(CString &str)
 		str += _T("none");
 	str += _T("\r\n");
 
-	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHKEEPAL) && m_pDocument->m_TextRam.m_KeepAliveSec > 0 ) {
+	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHKEEPAL) && m_pDocument->m_TextRam.m_SshKeepAlive > 0 ) {
 		CTime now = CTime::GetCurrentTime();
 		int sec = (int)(now.GetTime() - m_ConnectTime);
 
@@ -697,9 +729,9 @@ void Cssh::GetStatus(CString &str)
 			tmp.Format(_T("%d"), sec);
 		str += tmp;
 
-		tmp.Format(_T(" / %d = "), m_pDocument->m_TextRam.m_KeepAliveSec);
+		tmp.Format(_T(" / %d = "), m_pDocument->m_TextRam.m_SshKeepAlive);
 		str += tmp;
-		tmp.Format(_T("%d, Send %d, Reply %d\r\n"), sec / m_pDocument->m_TextRam.m_KeepAliveSec, m_KeepAliveSendCount, m_KeepAliveReplyCount);
+		tmp.Format(_T("%d, Send %d, Reply %d\r\n"), sec / m_pDocument->m_TextRam.m_SshKeepAlive, m_KeepAliveSendCount, m_KeepAliveReplyCount);
 		str += tmp;
 	}
 
@@ -929,7 +961,7 @@ int Cssh::SMsgAuthRsaChallenge(CBuffer *bp)
 	BN_free(challenge);
 	return TRUE;
 }
-void Cssh::RecivePacket(CBuffer *bp)
+void Cssh::ReceivePacket(CBuffer *bp)
 {
 	int n;
 	CStringA str;
@@ -1134,7 +1166,7 @@ void Cssh::LogIt(LPCTSTR format, ...)
 	tmp += _T("\r\n");
 
 	CStringA mbs(tmp);
-	CExtSocket::OnReciveCallBack((void *)(LPCSTR)mbs, mbs.GetLength(), 0);
+	CExtSocket::OnReceiveCallBack((void *)(LPCSTR)mbs, mbs.GetLength(), 0);
 }
 void Cssh::SendTextMsg(LPCSTR str, int len)
 {
@@ -1153,7 +1185,7 @@ void Cssh::SendTextMsg(LPCSTR str, int len)
 		}
 	}
 
-	CExtSocket::OnReciveCallBack((void *)(LPCSTR)mbs, mbs.GetLength(), 0);
+	CExtSocket::OnReceiveCallBack((void *)(LPCSTR)mbs, mbs.GetLength(), 0);
 }
 int Cssh::ChannelOpen()
 {
@@ -1870,12 +1902,33 @@ BOOL Cssh::IsServerVersion(LPCTSTR pattan)
 
 	return FALSE;
 }
+void Cssh::UserAuthNextState()
+{
+	m_IdKeyPos = 0;
+	m_AuthStat = m_AuthReqTab[m_AuthStat];
+	m_AuthMode = AUTH_MODE_NONE;
+}
+void Cssh::AddAuthLog(LPCTSTR str, ...)
+{
+	CString tmp;
+	va_list arg;
+
+	va_start(arg, str);
+	tmp.FormatV(str, arg);
+	va_end(arg);
+
+	if ( !m_AuthLog.IsEmpty() )
+		m_AuthLog += _T(", ");
+
+	m_AuthLog += tmp;
+}
 int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 {
-	int skip, len, atry;
+	int skip, len;
 	CBuffer tmp(-1), blob(-1), sig(-1);
 	CString wrk;
 	CPassDlg dlg;
+	CStringA meta;
 
 	tmp.PutBuf(m_SessionId, m_SessionIdLen);
 	skip = tmp.GetSize();
@@ -1884,27 +1937,34 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 	tmp.PutStr("ssh-connection");
 
 	if ( str == NULL ) {
-		m_AuthLog.Empty();
+		meta = m_AuthMeta;
+		str = meta;
+	} else if ( m_AuthMeta.IsEmpty() ) {
+		m_AuthMeta = str;
+	} else if ( m_AuthMeta.Compare(MbsToTstr(str)) != 0 ) {
+		// 複数認証の場合、最初に戻す必要がある
+		// Methodsが変化しない場合は、認証順位をユーザーが管理する必要あり
+		m_AuthMeta = str;
 		m_AuthStat = AST_START;
-		str = "none";
+		UserAuthNextState();
 	}
-	m_AuthMeta = str;
 
-	for ( atry = 0 ; atry < 7 ; atry++ ) {
-		if ( m_AuthStat == AST_DONE )
-			m_AuthStat = m_AuthReqTab[AST_START];
+	while ( m_AuthStat != AST_DONE ) {
 
 		if ( m_AuthStat == AST_START ) {
 			tmp.PutStr("none");
-			m_IdKeyPos = 0;
-			m_AuthStat = m_AuthReqTab[AST_START];
-			m_AuthMode = AUTH_MODE_NONE;
+			m_AuthMeta.Empty();
+			UserAuthNextState();
 
 		} else if ( m_AuthStat == AST_PUBKEY_TRY ) {
-			if ( m_AuthMode == AUTH_MODE_PUBLICKEY )
-				m_AuthMode = AUTH_MODE_NONE;
+			if ( strstr(str, "publickey") == NULL ) {
+				UserAuthNextState();
+				continue;
+			}
 
-			while ( strstr(str, "publickey") != NULL && m_IdKeyPos < m_IdKeyTab.GetSize() ) {
+			m_AuthMode = AUTH_MODE_NONE;
+
+			while ( m_IdKeyPos < m_IdKeyTab.GetSize() ) {
 				m_pIdKey = &(m_IdKeyTab[m_IdKeyPos++]);
 
 				if ( m_pIdKey->m_Type == IDKEY_RSA1 )
@@ -1926,22 +1986,14 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 
 					tmp.PutBuf(sig.GetPtr(), sig.GetSize());
 
-					if ( !m_AuthLog.IsEmpty() )
-						m_AuthLog += _T(", ");
-					m_AuthLog += _T("publickey(");
-					m_AuthLog += m_pIdKey->GetName();
-					m_AuthLog += _T(")");
+					AddAuthLog(_T("publickey(%s)"), m_pIdKey->GetName());
 
 				} else {
 					tmp.Put8Bit(0);
 					tmp.PutStr(TstrToMbs(m_pIdKey->GetName()));
 					tmp.PutBuf(blob.GetPtr(), blob.GetSize());
 
-					if ( !m_AuthLog.IsEmpty() )
-						m_AuthLog += _T(", ");
-					m_AuthLog += _T("publickey:offered(");
-					m_AuthLog += m_pIdKey->GetName();
-					m_AuthLog += _T(")");
+					AddAuthLog(_T("publickey:offered(%s)"), m_pIdKey->GetName());
 				}
 
 				m_AuthMode = AUTH_MODE_PUBLICKEY;
@@ -1949,16 +2001,19 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 			}
 
 			if ( m_AuthMode != AUTH_MODE_PUBLICKEY ) {
-				m_IdKeyPos = 0;
-				m_AuthStat = m_AuthReqTab[AST_PUBKEY_TRY];
+				UserAuthNextState();
 				continue;
 			}
 
 		} else if ( m_AuthStat == AST_HOST_TRY ) {
-			if ( m_AuthMode == AUTH_MODE_HOSTBASED )
-				m_AuthMode = AUTH_MODE_NONE;
+			if ( strstr(str, "hostbased") == NULL ) {
+				UserAuthNextState();
+				continue;
+			}
 
-			while ( strstr(str, "hostbased") != NULL && m_IdKeyPos < m_IdKeyTab.GetSize() ) {
+			m_AuthMode = AUTH_MODE_NONE;
+
+			while ( m_IdKeyPos < m_IdKeyTab.GetSize() ) {
 				m_pIdKey = &(m_IdKeyTab[m_IdKeyPos++]);
 
 				if ( !m_pIdKey->InitPass(m_pDocument->m_ServerEntry.m_PassName) )
@@ -1980,43 +2035,36 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 				}
 
 				tmp.PutBuf(sig.GetPtr(), sig.GetSize());
+
+				AddAuthLog(_T("hostbased(%s)"), m_pIdKey->GetName());
+
 				m_AuthMode = AUTH_MODE_HOSTBASED;
-
-				if ( !m_AuthLog.IsEmpty() )
-					m_AuthLog += _T(", ");
-				m_AuthLog += _T("hostbased(");
-				m_AuthLog += m_pIdKey->GetName();
-				m_AuthLog += _T(")");
-
 				break;
 			}
 
 			if ( m_AuthMode != AUTH_MODE_HOSTBASED ) {
-				m_IdKeyPos = 0;
-				m_AuthStat = m_AuthReqTab[AST_HOST_TRY];
+				UserAuthNextState();
 				continue;
 			}
 
 		} else if ( m_AuthStat == AST_PASS_TRY ) {
-			if ( m_AuthMode == AUTH_MODE_PASSWORD ) {
-				m_IdKeyPos = 0;
-				m_AuthStat = m_AuthReqTab[AST_PASS_TRY];
-			}
-			m_AuthMode = AUTH_MODE_PASSWORD;
-
-			if ( strstr(str, "password") == NULL )
+			if ( strstr(str, "password") == NULL ) {
+				UserAuthNextState();
 				continue;
+			}
 
-			// ２度目のパスワードなら
-			if ( m_AuthStat != AST_PASS_TRY ) {
+			// ２度目以降のパスワードなら
+			if ( m_IdKeyPos > 0 ) {
 				dlg.m_HostAddr = m_pDocument->m_ServerEntry.m_HostName;
 				dlg.m_UserName = m_pDocument->m_ServerEntry.m_UserName;
 				dlg.m_PassName = m_pDocument->m_ServerEntry.m_PassName;
 				dlg.m_Prompt   = _T("ssh Password");
 				dlg.m_Enable   = PASSDLG_PASS;
 
-				if ( dlg.DoModal() != IDOK )
+				if ( dlg.DoModal() != IDOK ) {
+					UserAuthNextState();
 					continue;
+				}
 
 				m_pDocument->m_ServerEntry.m_PassName = dlg.m_PassName;
 			}
@@ -2025,36 +2073,25 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 			tmp.Put8Bit(0);
 			tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_PassName));
 
-			if ( !m_AuthLog.IsEmpty() )
-				m_AuthLog += _T(", ");
-			m_AuthLog += _T("password(");
-			m_AuthLog += m_pDocument->m_ServerEntry.m_UserName;
-			m_AuthLog += _T(")");
+			AddAuthLog(_T("password(%s)"), m_pDocument->m_ServerEntry.m_UserName);
+
+			m_IdKeyPos++;
+			m_AuthMode = AUTH_MODE_PASSWORD;
 
 		} else if ( m_AuthStat == AST_KEYB_TRY ) {
-			if ( m_AuthMode == AUTH_MODE_KEYBOARD ) {
-				m_IdKeyPos = 0;
-				m_AuthStat = m_AuthReqTab[AST_KEYB_TRY];
-			}
-			m_AuthMode = AUTH_MODE_KEYBOARD;
-
-			if ( strstr(str, "keyboard-interactive") == NULL )
+			if ( strstr(str, "keyboard-interactive") == NULL ) {
+				UserAuthNextState();
 				continue;
+			}
 
 			tmp.PutStr("keyboard-interactive");
 			tmp.PutStr("");		// LANG
 			tmp.PutStr("");		// DEV
 
-			if ( !m_AuthLog.IsEmpty() )
-				m_AuthLog += _T(", ");
-			m_AuthLog += _T("keyboard-interactive(");
-			m_AuthLog += m_pDocument->m_ServerEntry.m_UserName;
-			m_AuthLog += _T(")");
+			m_AuthMode = AUTH_MODE_KEYBOARD;
 
 		} else if ( m_AuthStat == AST_GSSAPI_TRY ) {
-			m_IdKeyPos = 0;
-			m_AuthStat = m_AuthReqTab[AST_GSSAPI_TRY];
-			m_AuthMode = AUTH_MODE_GSSAPI;
+			UserAuthNextState();
 
 			if ( strstr(str, "gssapi-with-mic") == NULL )
 				continue;
@@ -2076,9 +2113,9 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 			tmp.Put8Bit(gssapi_kerberos_mech.len);
 			tmp.Apend(gssapi_kerberos_mech.data, gssapi_kerberos_mech.len);
 
-			if ( !m_AuthLog.IsEmpty() )
-				m_AuthLog += _T(", ");
-			m_AuthLog += _T("gssapi-with-mic");
+			AddAuthLog(_T("gssapi-with-mic(%s)"), m_HostName);
+
+			m_AuthMode = AUTH_MODE_GSSAPI;
 		}
 
 		tmp.Consume(skip);
@@ -2372,6 +2409,7 @@ void Cssh::SendMsgGlobalRequest(int num, LPCSTR str, LPCTSTR rhost, int rport)
 }
 void Cssh::SendMsgKeepAlive()
 {
+	int n;
 	CBuffer tmp;
 
 	if ( (m_SSH2Status & SSH2_STAT_SENTKEXINIT) != 0 )
@@ -2381,7 +2419,13 @@ void Cssh::SendMsgKeepAlive()
 	tmp.PutStr("keepalive@openssh.com");
 	tmp.Put8Bit(1);
 	SendPacket2(&tmp);
-	m_GlbReqMap.Add(0xFFFF);
+
+	for ( n = 0 ; n < m_GlbReqMap.GetSize() ; n++ ) {
+		if ( m_GlbReqMap[n] == 0xFFFF )
+			break;
+	}
+	if ( n >= m_GlbReqMap.GetSize() )
+		m_GlbReqMap.Add(0xFFFF);
 
 	m_KeepAliveSendCount++;
 }
@@ -2985,11 +3029,10 @@ int Cssh::SSH2MsgUserAuthPkOk(CBuffer *bp)
 			m_IdKeyPos = n;
 			m_AuthStat = AST_PUBKEY_TRY;
 		}
-
-		return SendMsgUserAuthRequest("publickey");
 	}
 
-	return FALSE;
+	SendMsgUserAuthRequest(NULL);
+	return TRUE;
 }
 int Cssh::SSH2MsgUserAuthPasswdChangeReq(CBuffer *bp)
 {
@@ -3012,8 +3055,10 @@ int Cssh::SSH2MsgUserAuthPasswdChangeReq(CBuffer *bp)
 	dlg.m_Enable   = PASSDLG_PASS;
 	dlg.m_Prompt   = "Enter Old Password";
 	dlg.m_PassName = "";
+
 	if ( dlg.DoModal() != IDOK )
-		return FALSE;
+		goto NEXTAUTH;
+
 	tmp.PutStr(m_pDocument->RemoteStr(dlg.m_PassName));
 
 	info = "Enter New Password";
@@ -3023,8 +3068,10 @@ int Cssh::SSH2MsgUserAuthPasswdChangeReq(CBuffer *bp)
 		dlg.m_Enable   = PASSDLG_PASS;
 		dlg.m_Prompt   = info;
 		dlg.m_PassName = "";
+
 		if ( dlg.DoModal() != IDOK )
-			return FALSE;
+			goto NEXTAUTH;
+
 		pass = dlg.m_PassName;
 
 		dlg.m_HostAddr = m_pDocument->m_ServerEntry.m_HostName;
@@ -3032,16 +3079,23 @@ int Cssh::SSH2MsgUserAuthPasswdChangeReq(CBuffer *bp)
 		dlg.m_Enable   = PASSDLG_PASS;
 		dlg.m_Prompt   = "Retype New Password";
 		dlg.m_PassName = "";
+
 		if ( dlg.DoModal() != IDOK )
-			return FALSE;
+			goto NEXTAUTH;
+
 		if ( pass.Compare(dlg.m_PassName) != 0 ) {
 			info = "Mismatch ReEntry New Password";
 			pass.Empty();
 		}
 	}
-	tmp.PutStr(m_pDocument->RemoteStr(pass));
 
+	tmp.PutStr(m_pDocument->RemoteStr(pass));
 	SendPacket2(&tmp);
+	return TRUE;
+
+NEXTAUTH:
+	UserAuthNextState();
+	SendMsgUserAuthRequest(NULL);
 	return TRUE;
 }
 int Cssh::SSH2MsgUserAuthInfoRequest(CBuffer *bp)
@@ -3064,7 +3118,7 @@ int Cssh::SSH2MsgUserAuthInfoRequest(CBuffer *bp)
 		echo = bp->Get8Bit();
 
 		// 最初のトライでは、保存されたパスワードを送ってみる
-		if ( m_AuthStat == AST_KEYB_TRY && n == 0 && max == 1 && !m_pDocument->m_ServerEntry.m_PassName.IsEmpty() ) {
+		if ( m_IdKeyPos == 0 && n == 0 && max == 1 && !m_pDocument->m_ServerEntry.m_PassName.IsEmpty() ) {
 			tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_PassName));
 
 		} else {
@@ -3074,11 +3128,21 @@ int Cssh::SSH2MsgUserAuthInfoRequest(CBuffer *bp)
 			dlg.m_Prompt   = prom;
 			dlg.m_PassEcho = echo != 0 ? TRUE : FALSE;
 			dlg.m_PassName = _T("");
-			if ( dlg.DoModal() != IDOK )
-				return FALSE;
+
+			if ( dlg.DoModal() != IDOK ) {
+				UserAuthNextState();
+				SendMsgUserAuthRequest(NULL);
+				return TRUE;
+			}
+
 			tmp.PutStr(m_pDocument->RemoteStr(dlg.m_PassName));
 		}
 	}
+
+	// 呼び出し回数をカウント
+	m_IdKeyPos++;
+
+	AddAuthLog(_T("keyboard-interactive(%s)"), m_pDocument->m_ServerEntry.m_UserName);
 
 	SendPacket2(&tmp);
 	return TRUE;
@@ -3117,14 +3181,14 @@ int Cssh::SSH2MsgUserAuthGssapiProcess(CBuffer *bp, int type)
 
 	case SSH2_MSG_USERAUTH_GSSAPI_ERRTOK:
 		bp->GetBuf(&tmp);
-		str.Format(_T("SSH2 Gssapi Recive ErrToken(%dbyte)"), tmp.GetSize());
+		str.Format(_T("SSH2 Gssapi Receive ErrToken(%dbyte)"), tmp.GetSize());
 		AfxMessageBox(str);
 		goto RETRYAUTH;
 
 	case SSH2_MSG_USERAUTH_GSSAPI_ERROR:
 		bp->GetStr(msg);
 		bp->GetStr(lang);
-		str.Format(_T("SSH2 Gssapi Recive Error\n%s"), MbsToTstr(msg));
+		str.Format(_T("SSH2 Gssapi Receive Error\n%s"), MbsToTstr(msg));
 		AfxMessageBox(str);
 		goto RETRYAUTH;
 	}
@@ -3224,8 +3288,8 @@ RETRYAUTH:
 	FreeCredentialsHandle(&m_SSPI_hCredential);
 	m_SSH2Status &= ~SSH2_STAT_AUTHGSSAPI;
 
-	msg = m_AuthMeta;
-	return SendMsgUserAuthRequest(msg);
+	SendMsgUserAuthRequest(NULL);
+	return TRUE;
 }
 
 int Cssh::SSH2MsgChannelOpen(CBuffer *bp)
@@ -3372,7 +3436,7 @@ int Cssh::SSH2MsgChannelOpenReply(CBuffer *bp, int type)
 	cp->m_ConnectTime = CTime::GetCurrentTime();
 	m_OpenChanCount++;
 	
-//	while ( cp->OnIdle() );	// Channel Recive data check XXXXXX
+//	while ( cp->OnIdle() );	// Channel Receive data check XXXXXX
 
 	if ( cp->m_pFilter != NULL ) {
 		switch(cp->m_pFilter->m_Type) {
@@ -3692,9 +3756,9 @@ int Cssh::SSH2MsgGlobalRequestReply(CBuffer *bp, int type)
 
 	return FALSE;
 }
-void Cssh::RecivePacket2(CBuffer *bp)
+void Cssh::ReceivePacket2(CBuffer *bp)
 {
-	DEBUGLOG(_T("RecivePacket2 %d(%d) Seq=%d"), bp->PTR8BIT(bp->GetPtr()), bp->GetSize(), m_RecvPackSeq);
+	DEBUGLOG(_T("ReceivePacket2 %d(%d) Seq=%d"), bp->PTR8BIT(bp->GetPtr()), bp->GetSize(), m_RecvPackSeq);
 	DEBUGDUMP(bp->GetPtr(), bp->GetSize());
 
 	CStringA str;
@@ -3791,7 +3855,7 @@ void Cssh::RecivePacket2(CBuffer *bp)
 		m_SSH2Status &= ~SSH2_STAT_HAVEKEYS;
 		m_SSH2Status |= SSH2_STAT_HAVESESS;
 		if ( (m_SSH2Status & SSH2_STAT_HAVELOGIN) == 0 ) {
-			m_AuthStat = 0;
+			m_AuthStat = AST_START;
 			SendMsgServiceRequest("ssh-userauth");
 		} else {
 			if ( m_EncCmp.m_Mode == 4 )
@@ -3806,7 +3870,7 @@ void Cssh::RecivePacket2(CBuffer *bp)
 		bp->GetStr(str);
 		if ( str.Compare("ssh-userauth") == 0 ) {
 			if ( !SendMsgUserAuthRequest(NULL) )
-				goto DISCONNECT;
+				break;
 		} else
 			goto DISCONNECT;
 		break;
@@ -3838,8 +3902,8 @@ void Cssh::RecivePacket2(CBuffer *bp)
 				SendMsgChannelOpen(m_StdChan, "session");
 			}
 		}
-		if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHKEEPAL) && m_pDocument->m_TextRam.m_KeepAliveSec > 0 )
-			((CMainFrame *)AfxGetMainWnd())->SetTimerEvent(m_pDocument->m_TextRam.m_KeepAliveSec * 1000, TIMEREVENT_SOCK | TIMEREVENT_INTERVAL, this);
+		if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHKEEPAL) && m_pDocument->m_TextRam.m_SshKeepAlive > 0 )
+			((CMainFrame *)AfxGetMainWnd())->SetTimerEvent(m_pDocument->m_TextRam.m_SshKeepAlive * 1000, TIMEREVENT_SOCK | TIMEREVENT_INTERVAL, this);
 		break;
 	case SSH2_MSG_USERAUTH_FAILURE:
 		if ( (m_SSH2Status & SSH2_STAT_HAVESESS) == 0 )
@@ -3937,7 +4001,7 @@ void Cssh::RecivePacket2(CBuffer *bp)
 	case SSH2_MSG_DISCONNECT:
 		bp->Get32Bit();
 		bp->GetStr(str);
-		str.Format("SSH2 Recive Disconnect Message\n%s", TstrToMbs(m_pDocument->LocalStr(str)));
+		str.Format("SSH2 Receive Disconnect Message\n%s", TstrToMbs(m_pDocument->LocalStr(str)));
 		AfxMessageBox(MbsToTstr(str));
 		break;
 	case SSH2_MSG_IGNORE:
@@ -3952,7 +4016,7 @@ void Cssh::RecivePacket2(CBuffer *bp)
 	DISCONNECT:
 		str.Format("Packet Type %d Error", type);
 		SendDisconnect2(SSH2_DISCONNECT_HOST_NOT_ALLOWED_TO_CONNECT, str);
-		str.Format("SSH2 Recive Packet Error Type=%d Status=%04o\nSend Disconnect Message...", type, m_SSH2Status);
+		str.Format("SSH2 Receive Packet Error Type=%d Status=%04o\nSend Disconnect Message...", type, m_SSH2Status);
 		AfxMessageBox(MbsToTstr(str), MB_ICONSTOP);
 		break;
 	}

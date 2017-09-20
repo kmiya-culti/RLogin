@@ -743,7 +743,7 @@ void CTimerObject::CallObject()
 
 	switch(m_Mode & 007) {
 	case TIMEREVENT_DOC:
-		((CRLoginDoc *)(m_pObject))->OnDelayRecive((-1));
+		((CRLoginDoc *)(m_pObject))->OnDelayReceive((-1));
 		break;
 	case TIMEREVENT_SOCK:
 		((CExtSocket *)(m_pObject))->OnTimer(m_Id);
@@ -2239,9 +2239,9 @@ LRESULT CMainFrame::OnWinSockSelect(WPARAM wParam, LPARAM lParam)
 	if ( (fs & FD_ACCEPT) != 0 )
 		pSock->OnAccept((SOCKET)wParam);
 	if ( (fs & FD_READ) != 0 )
-		pSock->OnRecive(0);
+		pSock->OnReceive(0);
 	if ( (fs & FD_OOB) != 0 )
-		pSock->OnRecive(MSG_OOB);
+		pSock->OnReceive(MSG_OOB);
 	if ( (fs & FD_WRITE) != 0 )
 		pSock->OnSend();
 	if ( (fs & FD_CLOSE) != 0 )

@@ -252,6 +252,7 @@
 #define	TO_RLREOPEN		1477		// 再接続を確認
 #define	TO_RLDELCRLF	1478		// ペースト時に末尾のCRLFを削除
 #define	TO_RLPSUPWIN	1479		// 積極的なウィンドウの描画更新
+#define	TO_TELKEEPAL	1480		// KeepAliveパケットの送信間隔(sec)
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -846,7 +847,8 @@ public:	// Options
 	int m_BitMapStyle;
 	int m_DelayMSec;
 	CString m_HisFile;
-	int m_KeepAliveSec;
+	int m_SshKeepAlive;
+	int m_TelKeepAlive;
 	CString m_LogFile;
 	int m_DropFileMode;
 	CString m_DropFileCmd[8];
@@ -1148,22 +1150,25 @@ public:
 	BOOL GetMargin(int bCheck = MARCHK_NONE);
 
 	void OnClose();
-	void CallReciveLine(int y);
-	void CallReciveChar(DWORD ch, LPCTSTR name = NULL);
+	void CallReceiveLine(int y);
+	void CallReceiveChar(DWORD ch, LPCTSTR name = NULL);
 	int UnicodeCharFlag(DWORD code);
 	int UnicodeWidth(DWORD code);
 	void SetRetChar(BOOL f8);
 
 	// Static Lib
-	static void MsToIconvUniStr(LPCTSTR charset, LPWSTR str, int len);
 	static int JapanCharSet(LPCTSTR name);
-	static DWORD CTextRam::IconvToMsUnicode(int jpset, DWORD code);
-	static DWORD CTextRam::IconvToMsUnicode(LPCTSTR charset, DWORD code) { return IconvToMsUnicode(JapanCharSet(charset), code); }
+	static DWORD IconvToMsUnicode(int jpset, DWORD code);
+	static DWORD IconvToMsUnicode(LPCTSTR charset, DWORD code) { return IconvToMsUnicode(JapanCharSet(charset), code); }
+	static void IconvToMsUniStr(LPCTSTR charset, LPWSTR str, int len);
+	static DWORD MsToIconvUnicode(int jpset, DWORD code);
+	static DWORD MsToIconvUnicode(LPCTSTR charset, DWORD code) { return MsToIconvUnicode(JapanCharSet(charset), code); }
+	static void MsToIconvUniStr(LPCTSTR charset, LPWSTR str, int len);
 	static DWORD UCS2toUCS4(DWORD code);
 	static DWORD UCS4toUCS2(DWORD code);
 	static void UCS4ToWStr(DWORD code, CStringW &str);
 	static DWORD UnicodeNomal(DWORD code1, DWORD code2);
-	static void IconvToMsUniStr(LPCTSTR charset, LPCWSTR p, int len, CBuffer &out);
+	static void UnicodeNomalStr(LPCWSTR p, int len, CBuffer &out);
 	static int OptionToIndex(int value, BOOL bAnsi = FALSE);
 	static int IndexToOption(int value);
 	static void OptionString(int value, CString &str);

@@ -228,10 +228,11 @@ static const struct _slc_init {
 CTelnet::CTelnet(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 {
 	m_Type = ESCT_TELNET;
-	ReciveStatus = RVST_NON;
+	ReceiveStatus = RVST_NON;
 }
 CTelnet::~CTelnet()
 {
+	((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this);
 }
 BOOL CTelnet::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
 {
@@ -259,7 +260,7 @@ BOOL CTelnet::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, in
 	MyOpt[TELOPT_COMPORT].flags		|= TELFLAG_ACCEPT;
 
     SubOptLen = 0;
-    ReciveStatus = RVST_NON;
+    ReceiveStatus = RVST_NON;
 
 	srand((int)time(NULL));
 	PassSendFlag = FALSE;
@@ -316,7 +317,7 @@ void CTelnet::OnConnect()
 {
 	BOOL val = 1;
 	CExtSocket::SetSockOpt(SO_OOBINLINE, &val, sizeof(BOOL), SOL_SOCKET);
-    ReciveStatus = RVST_DATA;
+    ReceiveStatus = RVST_DATA;
 
 	SendOpt(TELC_DO, TELOPT_BINARY);
 	HisOpt[TELOPT_BINARY].status = TELSTS_WANT_ON;
@@ -324,10 +325,16 @@ void CTelnet::OnConnect()
 	SendOpt(TELC_WILL, TELOPT_BINARY);
 	MyOpt[TELOPT_BINARY].status = TELSTS_WANT_ON;
 
+	if ( m_pDocument->m_TextRam.IsOptEnable(TO_TELKEEPAL) && m_pDocument->m_TextRam.m_TelKeepAlive > 0 )
+		((CMainFrame *)AfxGetMainWnd())->SetTimerEvent(m_pDocument->m_TextRam.m_TelKeepAlive * 1000, TIMEREVENT_SOCK | TIMEREVENT_INTERVAL, this);
+
 	CExtSocket::OnConnect();
 }
 void CTelnet::SockSend(char *buf, int len)
 {
+	if ( m_Fd == (-1) )
+		return;
+
 	if ( EncryptOutputFlag )
 		EncryptEncode(buf, len);
 
@@ -347,7 +354,7 @@ int CTelnet::Send(const void* lpBuf, int nBufLen, int nFlags)
 	char *buf = (char *)lpBuf;
 	char tmp[4];
 
-   if ( ReciveStatus == RVST_NON )
+   if ( ReceiveStatus == RVST_NON )
 	   return 0;
 
 	if ( (MyOpt[TELOPT_LINEMODE].flags & TELFLAG_ON) != 0 ) {
@@ -404,6 +411,14 @@ void CTelnet::SendBreak(int opt)
 		tmp[1] = (char)TELC_BREAK;
 		SockSend(tmp, 2);
 	}
+}
+void CTelnet::OnTimer(UINT_PTR nIDEvent)
+{
+	char tmp[4];
+
+	tmp[0] = (char)TELC_IAC;
+	tmp[1] = (char)TELC_NOP;
+	SockSend(tmp, 2);
 }
 void CTelnet::PrintOpt(int st, int ch, int opt)
 {
@@ -481,7 +496,7 @@ void CTelnet::SendWindSize(int x, int y)
 	int n = 0;
 	char tmp[32];
 
-   if ( ReciveStatus == RVST_NON )
+   if ( ReceiveStatus == RVST_NON )
 	   return;
 
    if ( (MyOpt[TELOPT_NAWS].flags & TELFLAG_ON) == 0 )
@@ -517,7 +532,7 @@ void CTelnet::GetStatus(CString &str)
 	CExtSocket::GetStatus(str);
 
 	str += _T("\r\n");
-	tmp.Format(_T("Telnet Status: %d\r\n"), ReciveStatus);
+	tmp.Format(_T("Telnet Status: %d\r\n"), ReceiveStatus);
 	str += tmp;
 
 	str += _T("\r\n");
@@ -993,7 +1008,7 @@ void CTelnet::SubOptFunc(char *buf, int len)
 		break;
 	}
 }
-void CTelnet::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
+void CTelnet::OnReceiveCallBack(void* lpBuf, int nBufLen, int nFlags)
 {
     int c;
     int n = 0;
@@ -1001,21 +1016,21 @@ void CTelnet::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
     char *tmp, *buf;
 	int DoDecode = FALSE;
 
-	if ( nFlags != 0 || ReciveStatus == RVST_NON )
+	if ( nFlags != 0 || ReceiveStatus == RVST_NON )
 		return;
 
 	tmp = buf = (char *)lpBuf;
 
-    while ( len-- > 0 ) {
+	while ( len-- > 0 ) {
 		if ( EncryptInputFlag && !DoDecode ) {
 			EncryptDecode(buf, len + 1);
 			DoDecode = TRUE;
 		}
 		c = (unsigned char)(*(buf++));
-		switch(ReciveStatus) {
+		switch(ReceiveStatus) {
 		case RVST_DATA:
 			if ( c == TELC_IAC )
-				ReciveStatus = RVST_IAC;
+				ReceiveStatus = RVST_IAC;
 			else {
 	    		tmp[n++] = c;
 				while ( len > 0 ) {
@@ -1032,62 +1047,62 @@ void CTelnet::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 			switch(c) {
 			case TELC_IAC:
 				tmp[n++] = (char)TELC_IAC;
-				ReciveStatus = RVST_DATA;
+				ReceiveStatus = RVST_DATA;
 				break;
 			case TELC_DONT:
-				ReciveStatus = RVST_DONT;
+				ReceiveStatus = RVST_DONT;
 				break;
 			case TELC_DO:
-				ReciveStatus = RVST_DO;
+				ReceiveStatus = RVST_DO;
 				break;
 			case TELC_WONT:
-				ReciveStatus = RVST_WONT;
+				ReceiveStatus = RVST_WONT;
 				break;
 			case TELC_WILL:
-				ReciveStatus = RVST_WILL;
+				ReceiveStatus = RVST_WILL;
 				break;
-		    case TELC_SB:
-				ReciveStatus = RVST_SB;
+			case TELC_SB:
+				ReceiveStatus = RVST_SB;
 				break;
 			case TELC_DM:
 				PrintOpt(1, c, TELOPT_NON);
-				ReciveStatus = RVST_DATA;
+				ReceiveStatus = RVST_DATA;
 				break;
 			case TELC_NOP:
 			case TELC_GA:
 				PrintOpt(1, c, TELOPT_NON);
-				ReciveStatus = RVST_DATA;
+				ReceiveStatus = RVST_DATA;
 				break;
 			default:
-				ReciveStatus = RVST_DATA;
+				ReceiveStatus = RVST_DATA;
 				break;
-		    }
+			}
 			break;
 
 		case RVST_DONT:
 			PrintOpt(1, TELC_DONT, c);
 			OptFunc(MyOpt, c, DO_OFF, TELC_WONT);
-			ReciveStatus = RVST_DATA;
+			ReceiveStatus = RVST_DATA;
 			break;
 		case RVST_DO:
 			PrintOpt(1, TELC_DO, c);
-		    OptFunc(MyOpt, c, DO_ON, TELC_WONT);
-			ReciveStatus = RVST_DATA;
+			OptFunc(MyOpt, c, DO_ON, TELC_WONT);
+			ReceiveStatus = RVST_DATA;
 			break;
 		case RVST_WONT:
 			PrintOpt(1, TELC_WONT, c);
 			OptFunc(HisOpt, c, DO_OFF, TELC_DONT);
-			ReciveStatus = RVST_DATA;
+			ReceiveStatus = RVST_DATA;
 			break;
 		case RVST_WILL:
 			PrintOpt(1, TELC_WILL, c);
 			OptFunc(HisOpt, c, DO_ON, TELC_DONT);
-			ReciveStatus = RVST_DATA;
+			ReceiveStatus = RVST_DATA;
 			break;
 
 		case RVST_SB:
-		    if ( c == TELC_IAC )
-				ReciveStatus = RVST_SE;
+			if ( c == TELC_IAC )
+				ReceiveStatus = RVST_SE;
 			else if ( SubOptLen < SUBOPTLEN )
 				SubOptBuf[SubOptLen++] = c;
 			break;
@@ -1096,24 +1111,24 @@ void CTelnet::OnReciveCallBack(void* lpBuf, int nBufLen, int nFlags)
 			case TELC_IAC:
 	    		if ( SubOptLen < SUBOPTLEN )
 					SubOptBuf[SubOptLen++] = c;
-				ReciveStatus = RVST_SB;
+				ReceiveStatus = RVST_SB;
 				break;
 			case TELC_SE:
 				SubOptFunc(SubOptBuf, SubOptLen);
 				SubOptLen = 0;
-				ReciveStatus = RVST_DATA;
+				ReceiveStatus = RVST_DATA;
 				break;
 			default:
 				SubOptFunc(SubOptBuf, SubOptLen);
 				SubOptLen = 0;
-				ReciveStatus = RVST_IAC;
+				ReceiveStatus = RVST_IAC;
 				goto PROC_IAC;
 			}
 			break;
 		}
-    }
+	}
 
-	CExtSocket::OnReciveCallBack(tmp, n, 0);
+	CExtSocket::OnReceiveCallBack(tmp, n, 0);
 }
 
 void CTelnet::SendCpcValue(int cmd, int value)

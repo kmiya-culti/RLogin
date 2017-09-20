@@ -544,7 +544,7 @@ BEGIN
                     "SysLink",WS_TABSTOP,44,178,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,193,60,14,WS_GROUP
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.22.6 (2017/09/05)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.22.7 (2017/09/26)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2017 Culti",IDC_STATIC,44,16,189,8
     LTEXT           "OpenSSL 1.1.0f 25 May 2017",IDC_STATIC,44,52,189,8
     LTEXT           "Copyright (c) 1998-2017 The OpenSSL Project",IDC_STATIC,44,61,189,8
@@ -686,15 +686,15 @@ BEGIN
     GROUPBOX        "Other",IDC_STATIC,8,120,216,49
 END
 
-IDD_EDITDLG DIALOGEX 0, 0, 259, 103
+IDD_EDITDLG DIALOGEX 0, 0, 259, 112
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "ファイル／フォルダ名入力"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    EDITTEXT        IDC_EDIT1,14,55,230,14,ES_AUTOHSCROLL
-    DEFPUSHBUTTON   "OK",IDOK,59,82,60,14
-    PUSHBUTTON      "キャンセル",IDCANCEL,139,82,60,14
-    LTEXT           "",IDC_TITLE,14,16,230,30
+    EDITTEXT        IDC_EDIT1,14,67,230,14,ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "OK",IDOK,59,91,60,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,139,91,60,14
+    LTEXT           "",IDC_TITLE,14,16,230,40
 END
 
 IDD_SERVERLIST DIALOGEX 0, 0, 290, 113
@@ -795,14 +795,16 @@ STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "プロトコル"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    CONTROL         "自動ユーザー認証を行わない",IDC_PROTOCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,22,240,10
-    CONTROL         "データの暗号化を禁止する",IDC_PROTOCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,39,240,10
-    CONTROL         "LINEMODEを禁止する",IDC_PROTOCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,56,240,10
-    CONTROL         "SSHバージョン１で接続する",IDC_PROTOCHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,96,240,10
-    CONTROL         "ポートフォワードだけ行う （SSH2のみ）",IDC_PROTOCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,114,240,10
-    CONTROL         "エージェント転送を有効にする(SSH2のみ)",IDC_PROTOCHECK6,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,132,240,10
-    CONTROL         "KeepAliveパケットの送信間隔(sec)",IDC_PROTOCHECK7,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,150,180,10
-    EDITTEXT        IDC_KEEPALIVE,205,148,50,14,ES_AUTOHSCROLL
+    CONTROL         "自動ユーザー認証を行わない",IDC_PROTOCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,20,240,10
+    CONTROL         "データの暗号化を禁止する",IDC_PROTOCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,35,240,10
+    CONTROL         "LINEMODEを禁止する",IDC_PROTOCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,50,240,10
+    CONTROL         "KeepAliveパケットの送信間隔(sec)",IDC_PROTOCHECK8,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,65,180,10
+    EDITTEXT        IDC_KEEPALIVE2,205,63,50,14,ES_AUTOHSCROLL
+    CONTROL         "SSHバージョン１で接続する",IDC_PROTOCHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,104,240,10
+    CONTROL         "ポートフォワードだけ行う （SSH2のみ）",IDC_PROTOCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,120,240,10
+    CONTROL         "エージェント転送を有効にする(SSH2のみ)",IDC_PROTOCHECK6,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,136,240,10
+    CONTROL         "KeepAliveパケットの送信間隔(sec)",IDC_PROTOCHECK7,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,152,180,10
+    EDITTEXT        IDC_KEEPALIVE,205,150,50,14,ES_AUTOHSCROLL
     LTEXT           "RSA2認証鍵の署名方式を拡張(サーバーの対応が必要)",IDC_STATIC,15,169,180,10
     COMBOBOX        IDC_RSAEXTSEL,207,166,48,80,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "暗号方式(&C)",IDC_SSHALGO,35,189,90,14
@@ -810,8 +812,8 @@ BEGIN
     PUSHBUTTON      "ポートフォワード(&P)",IDC_SSHPFD,35,209,90,14
     PUSHBUTTON      "端末モード(&T)",IDC_SSHTTYMODE,144,209,90,14
     EDITTEXT        IDC_VERINDENT,15,250,240,14,ES_AUTOHSCROLL
-    GROUPBOX        "TELNET",IDC_STATIC,7,7,256,67
-    GROUPBOX        "SSH",IDC_STATIC,7,81,256,192
+    GROUPBOX        "TELNET",IDC_STATIC,7,7,256,77
+    GROUPBOX        "SSH",IDC_STATIC,7,91,256,182
     LTEXT           "追加のバージョン情報",IDC_STATIC,15,234,240,8
 END
 
@@ -1790,8 +1792,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,22,6,0
- PRODUCTVERSION 2,22,6,0
+ FILEVERSION 2,22,7,0
+ PRODUCTVERSION 2,22,7,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1808,12 +1810,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.22.6.0"
+            VALUE "FileVersion", "2.22.7.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2017 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.22.6.0"
+            VALUE "ProductVersion", "2.22.7.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -1892,7 +1894,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 252
         TOPMARGIN, 7
-        BOTTOMMARGIN, 96
+        BOTTOMMARGIN, 105
     END
 
     IDD_SERVERLIST, DIALOG
@@ -3708,6 +3710,7 @@ BEGIN
     IDS_OPTFIXEDMSG         "変更できません。\n標準の設定を使用します\nサーバーのオプションを確認してください"
     IDS_OPTFIXEDSAVEMSG     "標準の設定を使用しているエントリーです。\n前設定を上書きして使用を解除しますか？"
     IDS_TTYMODE_LIST56      "端末でUTF-8エンコードを使用する"
+    IDS_DEFENTRYEDITMSG     "標準の設定のエントリーが編集されました\n標準の設定を更新しますか？"
 END
 
 STRINGTABLE
@@ -4087,7 +4090,7 @@ BEGIN
     IDT_TERM_LIST21         "タブ(HT)のバグ修正モード\txtermタブバグ互換モード\t"
     IDT_TERM_LIST22         "行頭BSによる上行右端移動\t行頭のBSで移動しない\t"
     IDT_TERM_LIST23         "現在の画面の保存\t保存した画面の復帰\t"
-    IDT_TERM_LIST24         "BSキー変換を行わない\tBSキーをDELキーに変換\t"
+    IDT_TERM_LIST24         "BSキーでBSを送信\tBSキーでDELを送信\t"
     IDT_TERM_LIST25         "左右マージン有効\t左右マージン無効\t"
     IDT_TERM_LIST26         "Sixelを別ウィンドウで表示\tSixelスクロールモード表示\t"
     IDT_TERM_LIST27         "画面サイズ変更でクリアしない\t画面サイズ変更でクリアする\t"

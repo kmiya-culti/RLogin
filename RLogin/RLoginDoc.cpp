@@ -993,7 +993,7 @@ BOOL CRLoginDoc::LogClose()
 		return FALSE;
 
 	if ( m_TextRam.m_LogMode == LOGMOD_LINE && m_TextRam.m_LogCurY != (-1) )
-		m_TextRam.CallReciveLine(m_TextRam.m_LogCurY - m_TextRam.m_HisPos);
+		m_TextRam.CallReceiveLine(m_TextRam.m_LogCurY - m_TextRam.m_HisPos);
 
 	LogWrite(NULL, 0, LOGDEBUG_NONE);
 	m_TextRam.SaveLogFile();
@@ -1239,7 +1239,7 @@ void CRLoginDoc::PostIdleMessage()
 
 /////////////////////////////////////////////////////////////////////////////
 
-void CRLoginDoc::OnReciveChar(DWORD ch, int pos)
+void CRLoginDoc::OnReceiveChar(DWORD ch, int pos)
 {
 	LPCWSTR str;
 
@@ -1270,7 +1270,7 @@ void CRLoginDoc::OnSendBuffer(CBuffer &buf)
 	if ( m_pStrScript != NULL && m_pStrScript->m_MakeFlag )
 		m_pStrScript->SendStr((LPCWSTR)(buf.GetPtr()), buf.GetSize() / sizeof(WCHAR), &m_ServerEntry);
 }
-void CRLoginDoc::OnDelayRecive(int ch)
+void CRLoginDoc::OnDelayReceive(int ch)
 {
 	((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this);
 
@@ -1297,7 +1297,7 @@ void CRLoginDoc::OnSocketConnect()
 	m_ServerEntry.m_ChatScript.ExecInit();
 	if ( m_ServerEntry.m_ChatScript.Status() != SCPSTAT_NON ) {
 		m_pStrScript = &(m_ServerEntry.m_ChatScript);
-		OnReciveChar(0, (-1));
+		OnReceiveChar(0, (-1));
 	}
 
 	if ( m_AfterId != (-1) ) {
@@ -1412,12 +1412,12 @@ void CRLoginDoc::OnSocketClose()
 	else
 		OnFileClose();
 }
-int CRLoginDoc::OnSocketRecive(LPBYTE lpBuf, int nBufLen, int nFlags)
+int CRLoginDoc::OnSocketReceive(LPBYTE lpBuf, int nBufLen, int nFlags)
 {
 	int n;
 	BOOL sync = FALSE;
 
-//	TRACE("OnSocketRecive %dByte\n", nBufLen);
+//	TRACE("OnSocketReceive %dByte\n", nBufLen);
 
 	if ( !m_TextRam.IsInitText() )
 		return 0;
@@ -1664,11 +1664,11 @@ void CRLoginDoc::SocketClose()
 	m_pSock = NULL;
 	m_TextRam.OnClose();
 }
-int CRLoginDoc::SocketRecive(void *lpBuf, int nBufLen)
+int CRLoginDoc::SocketReceive(void *lpBuf, int nBufLen)
 {
 	if ( m_pSock == NULL )
 		return 0;
-	return m_pSock->Recive(lpBuf, nBufLen, 0);
+	return m_pSock->Receive(lpBuf, nBufLen, 0);
 }
 void CRLoginDoc::SocketSend(void *lpBuf, int nBufLen, BOOL delaySend)
 {
