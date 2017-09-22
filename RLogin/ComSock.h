@@ -23,10 +23,11 @@ public:
 	DWORD m_ModemStatus;
 	BOOL m_bGetStatus;
 
-	volatile int m_ThreadMode;
+	volatile enum { THREAD_NONE = 0, THREAD_RUN, THREAD_ENDOF, THREAD_DONE } m_ThreadMode;
 
-	CEvent *m_pThredEvent;
+	CEvent *m_pThreadEvent;
 	CEvent *m_pSendEvent;
+	CEvent *m_pRecvEvent;
 	CEvent *m_pStatEvent;
 
 	CSemaphore m_RecvSema;
@@ -55,6 +56,7 @@ public:
 	int Send(const void* lpBuf, int nBufLen, int nFlags = 0);
 	void OnReceive(int nFlags);
 	void OnSend();
+	void OnRecvEmpty();
 	void GetStatus(CString &str);
 	int GetRecvSize();
 	int GetSendSize();

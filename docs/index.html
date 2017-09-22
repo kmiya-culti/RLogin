@@ -436,12 +436,13 @@ TD {
         <TBODY>
           <TR>
             <TD align="center">次期試作版<BR>
-            RC1</TD>
+            RC2</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.22.7/">2.22.7</A></TD>
             <TD><FONT color="#c0c0c0">DECBKMの誤解釈を訂正してBS/DELの送信に修正<BR>
             標準の設定にしたエントリー編集で更新の確認を追加<BR>
             ssh2のユーザー認証のキャンセル時の動作を変更<BR>
             telnetにKeepAliveパケットの送信を追加<BR>
+            RS232C回りの処理を整理してタイムアウト時間を修正<BR>
             </FONT><FONT color="#ff0000">libiconv-1.15の日本語パッチの取り込みミスを修正</FONT></TD>
           </TR>
           <TR>
@@ -4073,12 +4074,12 @@ function TekClock2() {
                 <TR>
                   <TD width="30%" align="center">EUC</TD>
                   <TD>EUCJP-MS/EUCJP/EUC-JISX0213から選択<BR>
-                  それぞれの違いをEUCJP-MSとの違いで<A href="http://nanno.dip.jp/softlib/man/rlogin/eucjp.html">テーブル</A>にしてみました</TD>
+                  それぞれの違いをEUCJP-MSとの違いで<A href="eucjp.html">テーブル</A>にしてみました</TD>
                 </TR>
                 <TR>
                   <TD align="center">SJIS</TD>
                   <TD>CP932/SHIFT-JIS/SHIFT-JISX0213から選択<BR>
-                  それぞれの違いをCP932との違いで<A href="http://nanno.dip.jp/softlib/man/rlogin/sjis.html">テーブル</A>にしてみました<BR>
+                  それぞれの違いをCP932との違いで<A href="sjis.html">テーブル</A>にしてみました<BR>
                   ※ブラウザで使用されるフォントとRLoginで使用するフォントにより表示が異なります。<BR>
                   ※一部のコードは、CP932と互換になるように内部で変換しています。これは、Windowsの言語設定のCP932と合わせる為です。<BR>
                   (U+005C,U+007E,U+2015,U+2225,U+FF0D,U+FFE0,U+FFE1,U+FFE2)</TD>
