@@ -54,7 +54,7 @@ CComSock::CComSock(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 	m_ModemStatus = 0;
 	m_bGetStatus = FALSE;
 
-	SetRecvBufSize(1024);
+	SetRecvBufSize(COMBUFSIZE);
 }
 CComSock::~CComSock()
 {
@@ -278,13 +278,13 @@ void CComSock::GetStatus(CString &str)
 void CComSock::OnReceive(int nFlags)
 {
 	int n;
-	BYTE buff[1024];
+	BYTE buff[COMBUFSIZE];
 
 	m_RecvSema.Lock();
 
 	while ( (n = m_RecvBuff.GetSize()) > 0 ) {
-		if ( n > 1024 )
-			n = 1024;
+		if ( n > COMBUFSIZE )
+			n = COMBUFSIZE;
 		memcpy(buff, m_RecvBuff.GetPtr(), n);
 		m_RecvBuff.Consume(n);
 		m_RecvSema.Unlock();
@@ -319,8 +319,9 @@ void CComSock::OnReadWriteProc()
 	DWORD ReadByte  = 0;
 	DWORD WriteByte = 0;
 	DWORD WriteTop = 0;
-	BYTE ReadBuf[1024];
-	BYTE WriteBuf[1024];
+	DWORD WriteDone = 0;
+	BYTE *ReadBuf  = new BYTE[COMBUFSIZE];
+	BYTE *WriteBuf = new BYTE[COMBUFSIZE];
 	CEvent ReadTimerEvent(FALSE, TRUE);
 	CEvent WriteTimerEvent(FALSE, TRUE);
 	BOOL bCommOverLap = FALSE;
@@ -354,8 +355,12 @@ void CComSock::OnReadWriteProc()
 					ReadByte += n;
 					m_RecvSema.Lock();
 					m_RecvBuff.Apend(ReadBuf, n);
+					if ( (CExtSocket::GetRecvSize() + m_RecvBuff.GetSize()) > (COMBUFSIZE * 4) ) {
+						m_pRecvEvent->ResetEvent();
+						ReadStat = READ_EVENT_WAIT;
+					} else
+						ReadStat = READ_HAVE_DATA;
 					m_RecvSema.Unlock();
-					ReadStat = READ_HAVE_DATA;
 				} else
 					ReadStat = READ_RX_WAIT;
 			} else if ( (n = ::GetLastError()) == ERROR_IO_INCOMPLETE || n == ERROR_IO_PENDING ) {
@@ -367,16 +372,18 @@ void CComSock::OnReadWriteProc()
 		}
 
 		// ReadFile
-		if ( ReadStat == READ_HAVE_DATA  ) {
+		while ( ReadStat == READ_HAVE_DATA  ) {
 			ClearCommError(m_hCom, &m_CommError, NULL);
-			if ( ReadFile(m_hCom, ReadBuf, 1024, &n, &m_ReadOverLap) ) {
+			if ( ReadFile(m_hCom, ReadBuf, COMBUFSIZE, &n, &m_ReadOverLap) ) {
 				if ( n > 0 ) {
 					ReadByte += n;
 					m_RecvSema.Lock();
 					m_RecvBuff.Apend(ReadBuf, n);
-					m_pRecvEvent->ResetEvent();
+					if ( (CExtSocket::GetRecvSize() + m_RecvBuff.GetSize()) > (COMBUFSIZE * 4) ) {
+						m_pRecvEvent->ResetEvent();
+						ReadStat = READ_EVENT_WAIT;
+					}
 					m_RecvSema.Unlock();
-					ReadStat = READ_EVENT_WAIT;
 				} else
 					ReadStat = READ_RX_WAIT;
 			} else if ( (n = ::GetLastError()) == ERROR_IO_PENDING ) {
@@ -449,18 +456,19 @@ void CComSock::OnReadWriteProc()
 		while ( WriteStat == WRITE_CHECK_DATA ) {
 			if ( WriteTop >= WriteByte ) {
 				WriteTop = 0;
+				WriteDone = WriteByte;
 				m_SendSema.Lock();
 				if ( (WriteByte = m_SendBuff.GetSize()) > 0 ) {
-					if ( WriteByte > 1024 )
-						WriteByte = 1024;
+					if ( WriteByte > COMBUFSIZE )
+						WriteByte = COMBUFSIZE;
 					memcpy(WriteBuf, m_SendBuff.GetPtr(), WriteByte);
 					m_SendBuff.Consume(WriteByte);
-					if ( m_SendBuff.GetSize() == 0 )
-						AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hCom, FD_WRITE);
 					m_SendSema.Unlock();
 				} else {
 					m_pSendEvent->ResetEvent();
 					m_SendSema.Unlock();
+					if ( WriteDone > 0 )
+						AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hCom, FD_WRITE);
 					WriteStat = WRITE_EVENT_WAIT;
 					break;
 				}
@@ -468,15 +476,12 @@ void CComSock::OnReadWriteProc()
 
 			ClearCommError(m_hCom, &m_CommError, NULL);
 			if ( WriteFile(m_hCom, WriteBuf + WriteTop, WriteByte - WriteTop, &n, &m_WriteOverLap) ) {
-				if ( n > 0 ) {
+				if ( n > 0 )
 					WriteTop += n;
-				} else {
+				else
 					WriteStat = WRITE_TX_WAIT;
-					break;
-				}
 			} else if ( (n = ::GetLastError()) == ERROR_IO_PENDING ) {
 				WriteStat = WRITE_OVERLAP;
-				break;
 			} else {
 				HaveError = n;
 				goto ERRENDOF;
@@ -525,7 +530,7 @@ void CComSock::OnReadWriteProc()
 		else if ( WriteStat == WRITE_TX_WAIT ) {
 			// CommEvent EV_TXEMPTY Recovery Timer
 			WriteTimerEvent.ResetEvent();
-			timeSetEvent(300, 300, (LPTIMECALLBACK)(WriteTimerEvent.m_hObject), 0, TIME_ONESHOT | TIME_CALLBACK_EVENT_SET);
+			timeSetEvent(300, 500, (LPTIMECALLBACK)(WriteTimerEvent.m_hObject), 0, TIME_ONESHOT | TIME_CALLBACK_EVENT_SET);
 			HandleTab[HandleCount++] = WriteTimerEvent.m_hObject;
 		}
 
@@ -556,6 +561,9 @@ ERRENDOF:
 
 	if ( ReadStat == READ_OVERLAP || WriteStat == WRITE_OVERLAP || bCommOverLap )
 		CancelIo(m_hCom);
+
+	delete [] ReadBuf;
+	delete [] WriteBuf;
 }
 
 static struct _ComTab {

@@ -1535,7 +1535,8 @@ void CExtSocket::OnReceiveCallBack(void *lpBuf, int nBufLen, int nFlags)
 
 	if ( (m_RecvSyncMode & SYNC_ACTIVE) == 0 && m_ProcHead == NULL ) {
 		if ( (n = OnReceiveProcBack((LPBYTE)lpBuf, nBufLen, nFlags)) >= nBufLen ) {
-			OnRecvEmpty();
+			if ( m_RecvProcSize < RECVMINSIZ )
+				OnRecvEmpty();
 			return;
 		}
 		lpBuf = (LPBYTE)lpBuf + n;

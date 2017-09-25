@@ -3557,7 +3557,7 @@ void CTextRam::fc_DECRQSS(DWORD ch)
 
 	int n;
 	LPCSTR p;
-	int res = 0;	// 0 HostÅfs request is valid.
+	int res = 1;	// HostÅfs request is valid. XXXXX vt520 manual = 0, vt382 manial 1 !!!
 	CString pre, str, cmd, wrk;
 	CDWordArray para;
 	void (CTextRam::*pFunc)(DWORD ch) = NULL;
@@ -3784,7 +3784,13 @@ void CTextRam::fc_DECRQSS(DWORD ch)
 		para.Add(GetBValue(m_CaretColor));
 
 	} else if ( pFunc == NULL || pFunc == &CTextRam::fc_POP || pFunc == &CTextRam::fc_IGNORE ) {
-		res = 1;	// HostÅfs request is invalid.
+		res = 0;	// HostÅfs request is invalid. XXXXX vt520 manual = 1, vt382 manial 0 !!!
+
+		// Delete All ?
+		para.RemoveAll();
+		pre.Empty();
+		str.Empty();
+		cmd.Empty();
 	}
 
 	for ( n = 0 ; n < para.GetSize() ; n++ ) {

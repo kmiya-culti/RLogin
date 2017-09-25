@@ -11,6 +11,8 @@
 
 #include "ExtSocket.h"
 
+#define	COMBUFSIZE		1024
+
 class CComSock : public CExtSocket  
 {
 public:
