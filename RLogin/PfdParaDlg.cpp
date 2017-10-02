@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "RLogin.h"
 #include "Data.h"
+#include "PfdListDlg.h"
 #include "PfdParaDlg.h"
 
 #ifdef _DEBUG
@@ -20,29 +21,33 @@ IMPLEMENT_DYNAMIC(CPfdParaDlg, CDialogExt)
 CPfdParaDlg::CPfdParaDlg(CWnd* pParent /*=NULL*/)
 	: CDialogExt(CPfdParaDlg::IDD, pParent)
 {
-	m_ListenHost = _T("");
-	m_ListenPort = _T("");
-	m_ConnectHost = _T("");
-	m_ConnectPort = _T("");
-	m_pData = NULL;
 	m_pEntry = NULL;
-	m_EntryNum = (-1);
-	m_ListenType = 0;
 }
 
 void CPfdParaDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogExt::DoDataExchange(pDX);
 
-	DDX_CBString(pDX, IDC_LISTENHOST, m_ListenHost);
-	DDX_CBString(pDX, IDC_LISTENPORT, m_ListenPort);
-	DDX_CBString(pDX, IDC_CONNECTHOST, m_ConnectHost);
-	DDX_CBString(pDX, IDC_CONNECTPORT, m_ConnectPort);
-	DDX_Radio(pDX, IDC_RADIO1, m_ListenType);
+	DDX_CBString(pDX, IDC_LISTENHOST, m_Data.m_ListenHost);
+	DDX_CBString(pDX, IDC_LISTENPORT, m_Data.m_ListenPort);
+	DDX_CBString(pDX, IDC_CONNECTHOST, m_Data.m_ConnectHost);
+	DDX_CBString(pDX, IDC_CONNECTPORT, m_Data.m_ConnectPort);
+	DDX_Radio(pDX, IDC_RADIO1, m_Data.m_ListenType);
+}
+
+void CPfdParaDlg::DisableWnd()
+{
+	CWnd *pWnd;
+
+	if ( (pWnd = GetDlgItem(IDC_CONNECTHOST)) != NULL )
+		pWnd->EnableWindow(PFD_IS_SOCKS(m_Data.m_ListenType) ? FALSE : TRUE);
+
+	if ( (pWnd = GetDlgItem(IDC_CONNECTPORT)) != NULL )
+		pWnd->EnableWindow(PFD_IS_SOCKS(m_Data.m_ListenType) ? FALSE : TRUE);
 }
 
 BEGIN_MESSAGE_MAP(CPfdParaDlg, CDialogExt)
-	ON_CONTROL_RANGE(BN_CLICKED, IDC_RADIO1, IDC_RADIO3, OnBnClickedListen)
+	ON_CONTROL_RANGE(BN_CLICKED, IDC_RADIO1, IDC_RADIO4, OnBnClickedListen)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -50,36 +55,23 @@ END_MESSAGE_MAP()
 
 BOOL CPfdParaDlg::OnInitDialog() 
 {
-	ASSERT(m_pData != NULL);
+	CComboBox *pCombo;
 
 	CDialogExt::OnInitDialog();
-	CStringArrayExt stra;
 
-	if ( m_EntryNum >= 0 && m_EntryNum < m_pData->GetSize() )
-		stra.GetString(m_pData->GetAt(m_EntryNum));
-	else
-		m_EntryNum = (-1);
-
-	if ( stra.GetSize() >= 5 ) {
-		m_ListenHost  = stra[0];
-		m_ListenPort  = stra[1];
-		m_ConnectHost = stra[2];
-		m_ConnectPort = stra[3];
-		m_ListenType  = stra.GetVal(4);
-	}
-
-	CComboBox *pCombo;
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_LISTENHOST)) != NULL ) {
 		pCombo->AddString(_T("localhost"));
 		if ( m_pEntry != NULL && !m_pEntry->m_HostName.IsEmpty() )
 			pCombo->AddString(m_pEntry->m_HostName);
 	}
+
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_CONNECTHOST)) != NULL ) {
 		pCombo->AddString(_T("localhost"));
 		if ( m_pEntry != NULL && !m_pEntry->m_HostName.IsEmpty() )
 			pCombo->AddString(m_pEntry->m_HostName);
 	}
 
+	DisableWnd();
 	UpdateData(FALSE);
 
 	return TRUE;
@@ -87,42 +79,21 @@ BOOL CPfdParaDlg::OnInitDialog()
 
 void CPfdParaDlg::OnOK() 
 {
-	ASSERT(m_pData != NULL);
-
 	CString str;
 	CStringArrayExt stra;
 
 	UpdateData(TRUE);
 
-	stra.Add(m_ListenHost);
-	stra.Add(m_ListenPort);
-	stra.Add(m_ConnectHost);
-	stra.Add(m_ConnectPort);
-	stra.AddVal(m_ListenType);
-	stra.SetString(str);
-
-	if ( m_ListenHost.IsEmpty() || m_ListenPort.IsEmpty() ) {
+	if ( m_Data.m_ListenHost.IsEmpty() || m_Data.m_ListenPort.IsEmpty() ) {
 		MessageBox(CStringLoad(IDE_PFDLISTENEMPTY), NULL, MB_ICONSTOP);
 		return;
 	}
-
-	if ( m_EntryNum >= 0 )
-		(*m_pData)[m_EntryNum] = str;
-	else
-		m_pData->Add(str);
 
 	CDialogExt::OnOK();
 }
 
 void CPfdParaDlg::OnBnClickedListen(UINT nID)
 {
-	CWnd *pWnd;
-
 	UpdateData(TRUE);
-
-	if ( (pWnd = GetDlgItem(IDC_CONNECTHOST)) != NULL )
-		pWnd->EnableWindow(m_ListenType == 1 ? FALSE : TRUE);
-
-	if ( (pWnd = GetDlgItem(IDC_CONNECTPORT)) != NULL )
-		pWnd->EnableWindow(m_ListenType == 1 ? FALSE : TRUE);
+	DisableWnd();
 }

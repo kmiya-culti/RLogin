@@ -140,6 +140,10 @@ public:
 	BOOL SavePrivateKey(HKEY hKey, CFile *file);
 	BOOL SavePrivateProfile();
 
+	void RegistryEscapeStr(LPCTSTR str, int len, CString &out);
+	BOOL SaveRegistryKey(HKEY hKey, CFile *file, LPCTSTR base);
+	BOOL SaveRegistryFile();
+
 	void GetVersion(CString &str);
 	void SetDefaultPrinter();
 	void SSL_Init();
@@ -214,6 +218,8 @@ public:
 	afx_msg void OnSaveresfile();
 	afx_msg void OnCreateprofile();
 	afx_msg void OnUpdateCreateprofile(CCmdUI *pCmdUI);
+	afx_msg void OnSaveregfile();
+	afx_msg void OnUpdateSaveregfile(CCmdUI *pCmdUI);
 };
 
 extern CRLoginApp theApp;

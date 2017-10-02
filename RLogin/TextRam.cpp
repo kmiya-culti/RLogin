@@ -1894,7 +1894,8 @@ BOOL CTextRam::OpenHisFile()
 		name.Format(_T("History File Open Error '%s.rlh'"), base);
 		::AfxMessageBox(name);
 		return FALSE;
-	}
+	} else
+		m_HisFhd.SeekToEnd();
 
 	return TRUE;
 }

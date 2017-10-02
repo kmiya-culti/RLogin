@@ -481,6 +481,8 @@ BEGIN_MESSAGE_MAP(CRLoginApp, CWinApp)
 	ON_COMMAND(IDM_SAVERESFILE, &CRLoginApp::OnSaveresfile)
 	ON_COMMAND(IDM_CREATEPROFILE, &CRLoginApp::OnCreateprofile)
 	ON_UPDATE_COMMAND_UI(IDM_CREATEPROFILE, &CRLoginApp::OnUpdateCreateprofile)
+	ON_COMMAND(IDM_SAVEREGFILE, &CRLoginApp::OnSaveregfile)
+	ON_UPDATE_COMMAND_UI(IDM_SAVEREGFILE, &CRLoginApp::OnUpdateSaveregfile)
 END_MESSAGE_MAP()
 
 
@@ -2018,7 +2020,8 @@ BOOL CRLoginApp::SavePrivateKey(HKEY hKey, CFile *file)
 	TCHAR name[1024];
 	DWORD len;
 	DWORD type;
-	BYTE *pData;
+	DWORD max = 0;
+	BYTE *pData = NULL;
 	DWORD size;
 	FILETIME last;
 	HKEY hSubKey;
@@ -2048,26 +2051,30 @@ BOOL CRLoginApp::SavePrivateKey(HKEY hKey, CFile *file)
 		if ( RegEnumValue(hKey, n, name, &len, NULL, &type, NULL, &size) != ERROR_SUCCESS )
 			break;
 
-		if ( type != REG_DWORD && type != REG_BINARY && type != REG_SZ )
-			return FALSE;
-
-		if ( size == 0 )
-			continue;
-
-		pData = new BYTE[size + 2];
-
-		if ( RegQueryValueEx(hKey, name, NULL, &type, pData, &size) != ERROR_SUCCESS ) {
-			delete [] pData;
-			return FALSE;
+		if ( max < (size + 2) ) {
+			if ( pData != NULL )
+				delete [] pData;
+			max = size + 2;
+			pData = new BYTE[max];
 		}
+
+		if ( RegQueryValueEx(hKey, name, NULL, &type, pData, &size) != ERROR_SUCCESS )
+			continue;
 
 		switch(type) {
 		case REG_DWORD:
-			mbs.Format("%s=%d\r\n", TstrToMbs(name), *((DWORD *)pData));
+			if ( size == 0 )
+				mbs.Format("%s=\r\n", TstrToMbs(name));
+			else
+				mbs.Format("%s=%d\r\n", TstrToMbs(name), *((DWORD *)pData));
 			break;
 		case REG_SZ:
-			*((LPTSTR)(pData + size)) = L'\0';
-			mbs.Format("%s=%s\r\n", TstrToMbs(name), TstrToMbs((LPCTSTR)pData));
+			if ( size == 0 )
+				mbs.Format("%s=\r\n", TstrToMbs(name));
+			else {
+				*((LPTSTR)(pData + size)) = L'\0';
+				mbs.Format("%s=%s\r\n", TstrToMbs(name), TstrToMbs((LPCTSTR)pData));
+			}
 			break;
 		case REG_BINARY:
 			mbs.Format("%s=", TstrToMbs(name));
@@ -2077,11 +2084,18 @@ BOOL CRLoginApp::SavePrivateKey(HKEY hKey, CFile *file)
 			}
 			mbs += "\r\n";
 			break;
+		default:
+			// XXX Error
+			mbs.Empty();
+			break;
 		}
 
-		file->Write((LPCSTR)mbs, mbs.GetLength() * sizeof(CHAR));
-		delete [] pData;
+		if ( !mbs.IsEmpty() )
+			file->Write((LPCSTR)mbs, mbs.GetLength() * sizeof(CHAR));
 	}
+
+	if ( pData != NULL )
+		delete [] pData;
 
 	return TRUE;
 }
@@ -2098,13 +2112,174 @@ BOOL CRLoginApp::SavePrivateProfile()
 	if ( dlg.DoModal() != IDOK )
 		return FALSE;
 
-	if ( !file.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite | CFile::shareDenyWrite) ) {
+	CWaitCursor wait;
+
+	if ( !file.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeWrite | CFile::shareDenyWrite) ) {
 		::AfxMessageBox(_T("Cann't Create Private Profile"));
 		return FALSE;
 	}
 
 	if ( (hAppKey = GetAppRegistryKey()) != NULL ) {
 		if ( SavePrivateKey(hAppKey, &file) )
+			ret = TRUE;
+		RegCloseKey(hAppKey);
+	}
+
+	file.Close();
+	return ret;
+}
+
+void CRLoginApp::RegistryEscapeStr(LPCTSTR str, int len, CString &out)
+{
+	out.Empty();
+
+	for ( ; len > 0 ; len--, str++ ) {
+		switch(*str) {
+		case _T('\n'):
+			out += _T("\r\n");
+			break;
+		case _T('"'):
+			out += _T("\\\"");
+			break;
+		case _T('\\'):
+			out += _T("\\\\");
+			break;
+		default:
+			out += *str;
+			break;
+		}
+	}
+}
+BOOL CRLoginApp::SaveRegistryKey(HKEY hKey, CFile *file, LPCTSTR base)
+{
+	int n;
+	TCHAR name[1024];
+	DWORD len;
+	DWORD type;
+	DWORD max = 0;
+	BYTE *pData = NULL;
+	DWORD size;
+	FILETIME last;
+	HKEY hSubKey;
+	CString keypath, out;
+	CStringW key, str, hex;
+
+	str.Format(L"[%s]\r\n", TstrToUni(base));
+	file->Write((LPCWSTR)str, str.GetLength() * sizeof(WCHAR));
+
+	for ( n = 0 ; ; n++ ) {
+		len = 1024;
+		if ( RegEnumValue(hKey, n, name, &len, NULL, &type, NULL, &size) != ERROR_SUCCESS )
+			break;
+
+		if ( max < size ) {
+			if ( pData != NULL )
+				delete [] pData;
+			max = size;
+			pData = new BYTE[max];
+		}
+
+		if ( RegQueryValueEx(hKey, name, NULL, &type, pData, &size) != ERROR_SUCCESS )
+			continue;
+
+		if ( _tcslen(name) > 0 )
+			key.Format(L"\"%s\"", name);
+		else
+			key = L"@";
+
+		switch(type) {
+		case REG_SZ:
+			RegistryEscapeStr((LPCTSTR)pData, size / sizeof(TCHAR), out);
+			str.Format(L"%s=\"%s\"\r\n", key, TstrToUni(out));
+			break;
+
+		case REG_DWORD:
+			str.Format(L"%s=dword:%08x\r\n", key, size < sizeof(DWORD) ? 0 : *((DWORD *)pData));
+			break;
+
+		default:
+			if ( type == REG_BINARY )
+				str.Format(L"%s=hex:", key);
+			else
+				str.Format(L"%s=hex(%x):", key, type);
+
+			for ( len = 0 ; len < size ; len++ ) {
+				hex.Format(L"%02x", pData[len]);
+				str += hex;
+				if ( (len + 1) < size ) {
+					str += L',';
+					if ( str.GetLength() > 76 ) {
+						str += L"\\\r\n";
+						file->Write((LPCWSTR)str, str.GetLength() * sizeof(WCHAR));
+						str = L"  ";
+					}
+				}
+			}
+			str += L"\r\n";
+			break;
+		}
+
+		file->Write((LPCWSTR)str, str.GetLength() * sizeof(WCHAR));
+	}
+
+	if ( pData != NULL )
+		delete [] pData;
+
+	file->Write(L"\r\n", 2 * sizeof(WCHAR));
+
+	for ( n = 0 ; ; n++ ) {
+		len = 1024;
+		if ( RegEnumKeyEx(hKey, n, name, &len, NULL, NULL, NULL, &last) != ERROR_SUCCESS )
+			break;
+
+		if ( RegOpenKeyEx(hKey, name, 0, KEY_READ, &hSubKey) != ERROR_SUCCESS )
+			continue;
+
+		keypath.Format(_T("%s\\%s"), base, name);
+
+		if ( !SaveRegistryKey(hSubKey, file, keypath) ) {
+			RegCloseKey(hSubKey);
+			return FALSE;
+		}
+
+		RegCloseKey(hSubKey);
+	}
+
+	return TRUE;
+}
+BOOL CRLoginApp::SaveRegistryFile()
+{
+	CString key;
+	CFile file;
+	CString filename;
+	CTime tm = CTime::GetCurrentTime();
+	HKEY hAppKey;
+	BOOL ret = FALSE;
+	static LPCWSTR head = L"Windows Registry Editor Version 5.00\r\n\r\n";
+
+	filename.Format(_T("%s\\RLogin-%s.reg"), m_BaseDir, tm.Format(_T("%y%m%d")));
+	CFileDialog dlg(FALSE, _T("reg"), filename, OFN_OVERWRITEPROMPT, _T("Registry file (*.reg)|*.reg|All Files (*.*)|*.*||"), AfxGetMainWnd());
+
+	if ( dlg.DoModal() != IDOK )
+		return FALSE;
+
+	CWaitCursor wait;
+
+	if ( !file.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeWrite | CFile::shareDenyWrite) ) {
+		::AfxMessageBox(_T("Cann't Create Registry file"));
+		return FALSE;
+	}
+
+	file.Write("\xff\xfe", 2);	// LE BOM 
+	file.Write(head, (UINT)_tcslen(head) * sizeof(WCHAR));
+
+	ASSERT(m_pszRegistryKey != NULL);
+	ASSERT(m_pszProfileName != NULL);
+
+	key.Format(_T("HKEY_CURRENT_USER\\Software\\%s\\%s"), m_pszRegistryKey, m_pszProfileName);
+
+	if ( (hAppKey = GetAppRegistryKey()) != NULL ) {
+		if ( SaveRegistryKey(hAppKey, &file, key) )
 			ret = TRUE;
 		RegCloseKey(hAppKey);
 	}
@@ -2512,6 +2687,17 @@ void CRLoginApp::OnCreateprofile()
 		::AfxMessageBox(IDS_CREATEPROFILE);
 }
 void CRLoginApp::OnUpdateCreateprofile(CCmdUI *pCmdUI)
+{
+	pCmdUI->Enable(m_pszRegistryKey != NULL ? TRUE : FALSE);
+}
+
+void CRLoginApp::OnSaveregfile()
+{
+	if ( !SaveRegistryFile() )
+		::AfxMessageBox(_T("Can't Save Registry File"));
+}
+
+void CRLoginApp::OnUpdateSaveregfile(CCmdUI *pCmdUI)
 {
 	pCmdUI->Enable(m_pszRegistryKey != NULL ? TRUE : FALSE);
 }

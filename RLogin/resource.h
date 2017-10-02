@@ -998,6 +998,7 @@
 #define IDM_CLIPCHAIN                   5123
 #define IDM_DELOLDENTRYTAB              5124
 #define IDM_TITLEEDIT                   5125
+#define IDM_SAVEREGFILE                 5126
 #define IDM_FIRST_MDICHILD              0xFF00
 
 // Next default values for new objects
@@ -1005,7 +1006,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        163
-#define _APS_NEXT_COMMAND_VALUE         5126
+#define _APS_NEXT_COMMAND_VALUE         5127
 #define _APS_NEXT_CONTROL_VALUE         2470
 #define _APS_NEXT_SYMED_VALUE           632
 #endif

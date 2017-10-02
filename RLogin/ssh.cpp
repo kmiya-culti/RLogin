@@ -1284,7 +1284,7 @@ void Cssh::ChannelClose(int id, BOOL bClose)
 			GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, FD_CLOSE);
 	}
 
-	if ( bClose && m_pChanNext == NULL )
+	if ( bClose && m_pChanNext == NULL && m_Permit.GetSize() == 0 )
 		GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, FD_CLOSE);
 }
 void Cssh::ChannelCheck(int n)
@@ -1402,7 +1402,7 @@ void Cssh::ChannelPolling(int id)
 	if ( cp->GetSendSize() <= 0 )
 		ChannelCheck(id);
 }
-void Cssh::DecodeProxySocks(int id)
+void Cssh::DecodeProxySocks(int id, CBuffer &resvbuf)
 {
 	int n;
 	int len;
@@ -1426,11 +1426,12 @@ void Cssh::DecodeProxySocks(int id)
 	struct sockaddr_in in;
     struct sockaddr_in6 in6;
 	CChannel *cp = (CChannel *)m_pChan[id];
+	CBuffer sendbuf;
 
-	if ( (len = cp->m_Output.GetSize()) < 2 )
+	if ( (len = resvbuf.GetSize()) < 2 )
 		return;
 
-	p = cp->m_Output.GetPtr();
+	p = resvbuf.GetPtr();
 	e = p + len;
 
 	switch(p[0]) {
@@ -1469,26 +1470,39 @@ void Cssh::DecodeProxySocks(int id)
 		}
 		tmp[dm_len] = '\0';
 
-		s4_req.version      = cp->m_Output.Get8Bit();
-		s4_req.command      = cp->m_Output.Get8Bit();
-		s4_req.dest_port    = cp->m_Output.GetWord();	// LT Word
-		s4_req.dest.dw_addr = cp->m_Output.GetDword();	// LT DWord
-		cp->m_Output.Consume(id_len);					// UserID
-		cp->m_Output.Consume(dm_len);					// Domain Name
+		s4_req.version      = resvbuf.Get8Bit();
+		s4_req.command      = resvbuf.Get8Bit();
+		s4_req.dest_port    = resvbuf.GetWord();	// LT Word
+		s4_req.dest.dw_addr = resvbuf.GetDword();	// LT DWord
+		resvbuf.Consume(id_len);					// UserID
+		resvbuf.Consume(dm_len);					// Domain Name
 
-		cp->m_Input.Put8Bit(0);
-		cp->m_Input.Put8Bit(90);
-		cp->m_Input.Put16Bit(0);
-		cp->m_Input.Put32Bit(INADDR_ANY);
-		cp->Send(cp->m_Input.GetPtr(), cp->m_Input.GetSize());
-		cp->m_Input.Clear();
+		sendbuf.Put8Bit(0);
+		sendbuf.Put8Bit(90);
+		sendbuf.Put16Bit(0);
+		sendbuf.Put32Bit(INADDR_ANY);
+		cp->Send(sendbuf.GetPtr(), sendbuf.GetSize());
+		sendbuf.Clear();
 
 		host[0] = (bS4a && dm_len > 0 ? (LPCSTR)tmp : inet_ntoa(s4_req.dest.in_addr));
 		port[0] = ntohs(s4_req.dest_port);
 		host[1] = cp->m_lHost;
 		port[1] = cp->m_lPort;
 
-		SendMsgChannelOpen(id, "direct-tcpip", host[0], port[0], host[1], port[1]);
+
+		if ( (cp->m_Status & CHAN_REMOTE_SOCKS) != 0 ) {
+			cp->m_Status &= ~CHAN_REMOTE_SOCKS;
+			cp->m_rHost = host[0];
+			cp->m_rPort = port[0];
+
+			if ( cp->AsyncOpen(cp->m_rHost, cp->m_rPort) )
+				LogIt(_T("Open #%d %s:%d -> %s:%d"), id, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
+			else
+				LogIt(_T("Remote-socks Open Permit Failure #%d %s:%d -> %s:%d"), id, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
+
+		} else
+			SendMsgChannelOpen(id, "direct-tcpip", host[0], port[0], host[1], port[1]);
+
 		break;
 
 	case 5:
@@ -1503,13 +1517,13 @@ void Cssh::DecodeProxySocks(int id)
 				ChannelClose(id);
 				break;
 			}
-			cp->m_Output.Consume(p[1] + 2);
-			len = cp->m_Output.GetSize();
+			resvbuf.Consume(p[1] + 2);
+			len = resvbuf.GetSize();
 
-			cp->m_Input.Put8Bit(5);
-			cp->m_Input.Put8Bit(0);
-			cp->Send(cp->m_Input.GetPtr(), cp->m_Input.GetSize());
-			cp->m_Input.Clear();
+			sendbuf.Put8Bit(5);
+			sendbuf.Put8Bit(0);
+			cp->Send(sendbuf.GetPtr(), sendbuf.GetSize());
+			sendbuf.Clear();
 
 			cp->m_Status |= CHAN_SOCKS5_AUTH;
 		}
@@ -1524,7 +1538,7 @@ void Cssh::DecodeProxySocks(int id)
 			if ( len < (4 + 4 + 2) )
 				break;
 			memcpy(tmp, p + 4, 4);
-			cp->m_Output.Consume(4 + 4);
+			resvbuf.Consume(4 + 4);
 			memset(&in, 0, sizeof(in));
 			in.sin_family = AF_INET;
 			memcpy(&(in.sin_addr), tmp, 4);
@@ -1533,14 +1547,14 @@ void Cssh::DecodeProxySocks(int id)
 			if ( len < (4 + p[4] + 2) )
 				break;
 			memcpy(tmp, p + 5, p[4]);
-			cp->m_Output.Consume(5 + p[4]);
+			resvbuf.Consume(5 + p[4]);
 			tmp[p[4]] = '\0';
 			host[0] = tmp;
 		} else if ( p[3] == '\x04' ) {	// SOCKS5_IPV6
 			if ( len < (4 + 16 + 2) )
 				break;
 			memcpy(tmp, p + 4, 16);
-			cp->m_Output.Consume(4 + 16);
+			resvbuf.Consume(4 + 16);
 			memset(&in6, 0, sizeof(in6));
 			in6.sin6_family = AF_INET6;
 			memcpy(&(in6.sin6_addr), tmp, 16);
@@ -1550,23 +1564,35 @@ void Cssh::DecodeProxySocks(int id)
 			break;
 		}
 
-		dw = *((WORD *)(cp->m_Output.GetPtr()));
-		cp->m_Output.Consume(2);
+		dw = *((WORD *)(resvbuf.GetPtr()));
+		resvbuf.Consume(2);
 
-		cp->m_Input.Put8Bit(0x05);
-		cp->m_Input.Put8Bit(0x00);	// SOCKS5_SUCCESS
-		cp->m_Input.Put8Bit(0x00);
-		cp->m_Input.Put8Bit(0x01);	// SOCKS5_IPV4
-		cp->m_Input.Put32Bit(INADDR_ANY);
-		cp->m_Input.Put16Bit(dw);
-		cp->Send(cp->m_Input.GetPtr(), cp->m_Input.GetSize());
-		cp->m_Input.Clear();
+		sendbuf.Put8Bit(0x05);
+		sendbuf.Put8Bit(0x00);	// SOCKS5_SUCCESS
+		sendbuf.Put8Bit(0x00);
+		sendbuf.Put8Bit(0x01);	// SOCKS5_IPV4
+		sendbuf.Put32Bit(INADDR_ANY);
+		sendbuf.Put16Bit(dw);
+		cp->Send(sendbuf.GetPtr(), sendbuf.GetSize());
+		sendbuf.Clear();
 
 		port[0] = ntohs((WORD)dw);
 		host[1] = cp->m_lHost;
 		port[1] = cp->m_lPort;
 
-		SendMsgChannelOpen(id, "direct-tcpip", host[0], port[0], host[1], port[1]);
+		if ( (cp->m_Status & CHAN_REMOTE_SOCKS) != 0 ) {
+			cp->m_Status &= ~CHAN_REMOTE_SOCKS;
+			cp->m_rHost = host[0];
+			cp->m_rPort = port[0];
+
+			if ( cp->AsyncOpen(cp->m_rHost, cp->m_rPort) )
+				LogIt(_T("Open #%d %s:%d -> %s:%d"), id, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
+			else
+				LogIt(_T("Remote-socks Open Permit Failure #%d %s:%d -> %s:%d"), id, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
+
+		} else
+			SendMsgChannelOpen(id, "direct-tcpip", host[0], port[0], host[1], port[1]);
+
 		break;
 
 	default:
@@ -1618,7 +1644,10 @@ void Cssh::PortForward()
 
 	for ( i = 0 ; i < m_pDocument->m_ParamTab.m_PortFwd.GetSize() ; i++ ) {
 		m_pDocument->m_ParamTab.m_PortFwd.GetArray(i, tmp);
-		if ( tmp.GetSize() < 5 )
+		if ( tmp.GetSize() <= 4 )
+			continue;
+
+		if ( tmp.GetSize() > 5 && tmp.GetVal(5) == 0 )
 			continue;
 
 		switch(tmp.GetVal(4)) {
@@ -1653,12 +1682,14 @@ void Cssh::PortForward()
 			break;
 
 		case PFD_REMOTE:
+		case PFD_RSOCKS:
 			n = (int)m_Permit.GetSize();
 			m_Permit.SetSize(n + 1);
 			m_Permit[n].m_lHost = tmp[2];
 			m_Permit[n].m_lPort = GetPortNum(tmp[3]);
 			m_Permit[n].m_rHost = tmp[0];
 			m_Permit[n].m_rPort = GetPortNum(tmp[1]);
+			m_Permit[n].m_Type  = tmp.GetVal(4);
 			SendMsgGlobalRequest(n, "tcpip-forward", tmp[0], GetPortNum(tmp[1]));
 			LogIt(_T("Remote Listen %s:%s"), tmp[0], tmp[1]);
 			m_bPfdConnect++;
@@ -2184,7 +2215,7 @@ void Cssh::SendMsgChannelOpenConfirmation(int id)
 
 	if ( cp->m_pFilter != NULL )
 		LogIt(_T("Open #%d Filter"), id);
-	else
+	else if ( (cp->m_Status & CHAN_REMOTE_SOCKS) == 0 )
 		LogIt(_T("Open #%d %s:%d -> %s:%d"), id, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
 }
 void Cssh::SendMsgChannelOpenFailure(int id)
@@ -2409,25 +2440,22 @@ void Cssh::SendMsgGlobalRequest(int num, LPCSTR str, LPCTSTR rhost, int rport)
 }
 void Cssh::SendMsgKeepAlive()
 {
-	int n;
 	CBuffer tmp;
+	BOOL bReply = ((m_KeepAliveSendCount - m_KeepAliveReplyCount) > 10 ? FALSE : TRUE);
 
 	if ( (m_SSH2Status & SSH2_STAT_SENTKEXINIT) != 0 )
 		return;
 
 	tmp.Put8Bit(SSH2_MSG_GLOBAL_REQUEST);
 	tmp.PutStr("keepalive@openssh.com");
-	tmp.Put8Bit(1);
+	tmp.Put8Bit(bReply ? 1 : 0);
 	SendPacket2(&tmp);
 
-	for ( n = 0 ; n < m_GlbReqMap.GetSize() ; n++ ) {
-		if ( m_GlbReqMap[n] == 0xFFFF )
-			break;
-	}
-	if ( n >= m_GlbReqMap.GetSize() )
+	if ( bReply )
 		m_GlbReqMap.Add(0xFFFF);
 
-	m_KeepAliveSendCount++;
+	if ( ++m_KeepAliveSendCount < 0 )
+		m_KeepAliveSendCount = 0;
 }
 void Cssh::SendMsgUnimplemented()
 {
@@ -3299,7 +3327,6 @@ int Cssh::SSH2MsgChannelOpen(CBuffer *bp)
 	CStringA type, mbs;
 	CString host[2];
 	int port[2];
-	CString str;
 	LPCTSTR p;
 	CChannel *cp;
 
@@ -3357,9 +3384,8 @@ int Cssh::SSH2MsgChannelOpen(CBuffer *bp)
 		cp->m_rHost = host[0];
 		cp->m_rPort = port[0];
 
-		if ( (i = cp->Open(host[1], 6000 + port[1])) < 0 ) {
-			str.Format(_T("Channel Open Failure %s:%d->%s:%d"), host[0], port[0], host[1], 6000 + port[1]);
-			AfxMessageBox(str);
+		if ( !cp->Open(host[1], 6000 + port[1]) ) {
+			LogIt(_T("x11 Open Failure #%d %s:%d -> %s:%d"), id, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
 			goto FAILURE;
 		}
 
@@ -3379,21 +3405,24 @@ int Cssh::SSH2MsgChannelOpen(CBuffer *bp)
 		}
 
 		if ( i >=  m_Permit.GetSize() ) {
-			str.Format(_T("Channel Open Permit Failure %s:%d->%s:%d"), host[0], port[0], host[1], port[1]);
-			AfxMessageBox(str);
+			LogIt(_T("forwarded-tcpip Permit Failure #%d %s:%d -> %s:%d"), id, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
 			goto FAILURE;
 		}
-
+		
 		cp->m_Status |= CHAN_OPEN_REMOTE;
 		cp->m_lHost = host[1];
 		cp->m_lPort = port[1];
 		cp->m_rHost = host[0];
 		cp->m_rPort = port[0];
 
-		if ( (i = cp->Open(m_Permit[i].m_lHost, m_Permit[i].m_lPort)) < 0 ) {
-			str.Format(_T("Channel Open Failure %s:%d->%s:%d"), host[0], port[0], host[1], port[1]);
-			AfxMessageBox(str);
-			goto FAILURE;
+		if ( m_Permit[i].m_Type == PFD_RSOCKS ) {
+			cp->m_Status |= CHAN_REMOTE_SOCKS;
+			SendMsgChannelOpenConfirmation(cp->m_LocalID);
+		} else {
+			if ( !cp->AsyncOpen(m_Permit[i].m_lHost, m_Permit[i].m_lPort) ) {
+				LogIt(_T("forwarded-tcpip Open Failure #%d %s:%d -> %s:%d"), id, cp->m_lHost, cp->m_lPort, cp->m_rHost, cp->m_rPort);
+				goto FAILURE;
+			}
 		}
 
 		return FALSE;
@@ -3482,15 +3511,23 @@ int Cssh::SSH2MsgChannelData(CBuffer *bp, int type)
 {
 	CBuffer tmp;
 	int id = bp->Get32Bit();
+	CChannel *cp;
 
 	if ( id < 0 || id >= m_pChan.GetSize() || !CHAN_OK(id) )
 		return TRUE;
 
-	bp->GetBuf(&tmp);
-	((CChannel *)m_pChan[id])->m_LocalComs += tmp.GetSize();
+	cp = (CChannel *)m_pChan[id];
 
-	if ( type == SSH2_MSG_CHANNEL_DATA )
-		((CChannel *)m_pChan[id])->Send(tmp.GetPtr(), tmp.GetSize());
+	bp->GetBuf(&tmp);
+	cp->m_LocalComs += tmp.GetSize();
+
+	if ( type == SSH2_MSG_CHANNEL_DATA ) {
+		if ( (cp->m_Status & CHAN_REMOTE_SOCKS) != 0 ) {
+			cp->m_Input.Apend(tmp.GetPtr(), tmp.GetSize());
+			DecodeProxySocks(id, cp->m_Input);
+		} else
+			cp->Send(tmp.GetPtr(), tmp.GetSize());
+	}
 
 	ChannelPolling(id);
 	return FALSE;
@@ -3738,7 +3775,8 @@ int Cssh::SSH2MsgGlobalRequestReply(CBuffer *bp, int type)
 	m_GlbReqMap.RemoveAt(0);
 
 	if ( (WORD)num == 0xFFFF ) {	// KeepAlive Reply
-		m_KeepAliveReplyCount++;
+		if ( ++m_KeepAliveReplyCount < 0 )
+			m_KeepAliveReplyCount = 0;
 		return FALSE;
 	}
 

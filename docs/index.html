@@ -435,6 +435,13 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">次期試作版</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.22.8/">2.22.8</A></TD>
+            <TD><FONT color="#c0c0c0">ssh2のポートフォワードにチェックマークで有効・無効を追加<BR>
+            ヘルプメニューにレジストリをファイルに保存を追加<BR>
+            ssh2ポートフォワードにRemote Socksを追加</FONT></TD>
+          </TR>
+          <TR>
             <TD align="center">2017/09/26</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.22.7/">2.22.7</A></TD>
             <TD>DECBKMの誤解釈を訂正してBS/DELの送信に修正<BR>
@@ -478,15 +485,6 @@ TD {
             拡張機能に末尾の改行を削除を追加<BR>
             範囲指定を解除しない場合にSHIFT+クリックで範囲拡張に変更<BR>
             スクリプトにpopen/pcloseを追加</TD>
-          </TR>
-          <TR>
-            <TD align="center">2017/05/29</TD>
-            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.22.3/">2.22.3</A></TD>
-            <TD>マウスイベント時のダブルクリック処理を修正<BR>
-            OSC52で送信するテキストの改行コードを選択に変更<BR>
-            タブバーに同時受信のチェックボックスを追加<BR>
-            拡張機能にタブにマウスで情報表示を追加<BR>
-            openssl-1.1.0fに更新</TD>
           </TR>
           <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
@@ -1222,7 +1220,7 @@ TD {
                   <TD colspan="6">ヘルプ(H)</TD>
                 </TR>
                 <TR>
-                  <TD align="center" rowspan="8" width="10">&nbsp;</TD>
+                  <TD align="center" rowspan="9" width="10">&nbsp;</TD>
                   <TD valign="top" colspan="2" width="250">Rloginのバージョン情報(A)</TD>
                   <TD valign="top" width="450">プログラムやライブラリなどのバージョン情報を表示します</TD>
                   <TD valign="top" width="120" align="right"></TD>
@@ -1258,6 +1256,14 @@ TD {
                   また、条件によりパスワードなどの情報は、消去されます。</TD>
                   <TD valign="top" align="right" width="120"></TD>
                   <TD valign="top" width="150">$PROFILE_SAVE</TD>
+                </TR>
+                <TR>
+                  <TD valign="top" colspan="2" width="250"><FONT color="#c0c0c0">レジストリをファイルに保存(B)</FONT></TD>
+                  <TD valign="top" width="450"><FONT color="#c0c0c0">RLoginで使用しているレジストリ（すべての設定）を年月日を付けてファイルに保存します。<BR>
+                  レジストリを元に戻すには、保存したregファイルを実行してください。<BR>
+                  すべての設定のバックアップを目的としています。</FONT></TD>
+                  <TD valign="top" align="right" width="120"></TD>
+                  <TD valign="top" width="150"><FONT color="#c0c0c0">$REGISTRY_SAVE</FONT></TD>
                 </TR>
                 <TR>
                   <TD valign="top" colspan="2" width="250">リソースをファイルに保存(R)</TD>
@@ -2909,7 +2915,11 @@ fi</PRE>
                       </TR>
                       <TR>
                         <TD>Remote</TD>
-                        <TD>リモート側（SSHサーバー)で待機します</TD>
+                        <TD>リモート側で待機します</TD>
+                      </TR>
+                      <TR>
+                        <TD><FONT color="#c0c0c0">Remote Socks</FONT></TD>
+                        <TD><FONT color="#c0c0c0">リモート側のSOCKSサーバーで待機します</FONT></TD>
                       </TR>
                     </TBODY>
                   </TABLE>
@@ -2925,7 +2935,7 @@ fi</PRE>
             例： localhost:pop3 &gt; mailxxx.com:pop3<BR>
             <BR>
             RLoginが動いているパソコンでダミーのpop3サーバーを開き、接続があった場合には、その内容をSSH2で暗号化して安全にmailxxx.com:pop3に転送します。</TD>
-            <TD align="left" valign="top"><IMG src="image018.jpg" width="375" height="289" border="0"></TD>
+            <TD align="left" valign="top"><IMG src="image018.jpg" width="377" height="301" border="0"></TD>
           </TR>
           <TR>
             <TD valign="top" colspan="2" height="10">

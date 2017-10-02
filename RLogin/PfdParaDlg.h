@@ -17,14 +17,10 @@ public:
 	enum { IDD = IDD_PFDPARADLG };
 
 public:
-	int m_EntryNum;
-	CStringArrayExt *m_pData;
+	CPfdData m_Data;
 	class CServerEntry *m_pEntry;
-	CString	m_ListenHost;
-	CString	m_ListenPort;
-	CString	m_ConnectHost;
-	CString	m_ConnectPort;
-	int m_ListenType;
+
+	void DisableWnd();
 
 // オーバーライド
 protected:

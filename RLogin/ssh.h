@@ -407,6 +407,7 @@ public:
 	int m_lPort;
 	CString m_rHost;
 	int m_rPort;
+	int m_Type;
 
 	const CPermit & operator = (CPermit &data);
 
@@ -426,7 +427,8 @@ public:
 #define	CHAN_LISTEN			004
 #define	CHAN_PROXY_SOCKS	010
 #define	CHAN_SOCKS5_AUTH	020
-#define	CHAN_OK(n)			(((CChannel *)m_pChan[n])->m_Status == (CHAN_OPEN_LOCAL | CHAN_OPEN_REMOTE))
+#define	CHAN_REMOTE_SOCKS	040
+#define	CHAN_OK(n)			((((CChannel *)m_pChan[n])->m_Status & (CHAN_OPEN_LOCAL | CHAN_OPEN_REMOTE)) == (CHAN_OPEN_LOCAL | CHAN_OPEN_REMOTE))
 #define	CHAN_MAXSIZE		100
 
 #define	CEOF_IEOF		0001
@@ -565,6 +567,7 @@ public:
 	void OnReceive(const void *lpBuf, int nBufLen);
 	int GetSendSize();
 
+	LPCTSTR GetRsaSignAlg(CIdKey *key, int flag);
 	CIdKey *GetIdKey(CIdKey *key, LPCTSTR pass);
 	void ReceiveBuffer(CBuffer *bp);
 };
@@ -833,7 +836,7 @@ public:
 	void SendMsgChannelData(int id);
 	void SendMsgChannelOpenConfirmation(int id);
 	void SendMsgChannelOpenFailure(int id);
-	void DecodeProxySocks(int id);
+	void DecodeProxySocks(int id, CBuffer &resvbuf);
 	void ChannelCheck(int n);
 	void ChannelPolling(int id);
 	void ChannelAccept(int id, SOCKET hand);

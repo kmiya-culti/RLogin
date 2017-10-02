@@ -817,6 +817,9 @@ public:
 #define	PFD_LOCAL		0
 #define	PFD_SOCKS		1
 #define	PFD_REMOTE		2
+#define	PFD_RSOCKS		3
+
+#define	PFD_IS_SOCKS(n)	((n & 1) != 0)
 
 #define	SEL_IPV6V4		0
 #define	SEL_IPV6		1
