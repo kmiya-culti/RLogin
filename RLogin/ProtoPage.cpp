@@ -170,6 +170,9 @@ void CProtoPage::OnSshIdkey()
 {
 	CIdkeySelDLg dlg;
 
+	((CMainFrame *)::AfxGetMainWnd())->PageantInit();
+
+	dlg.m_pParamTab = m_pSheet->m_pParamTab;
 	dlg.m_pIdKeyTab = &(((CMainFrame *)AfxGetMainWnd())->m_IdKeyTab);
 	dlg.m_IdKeyList = m_IdKeyList;
 

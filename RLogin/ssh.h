@@ -279,7 +279,7 @@ public:
 	BOOL m_bSecInit;
 	CString m_SecBlob;
 	BOOL m_bHostPass;
-	BOOL m_bPagent;
+	BOOL m_bPageant;
 
 	int GetIndexNid(int nid);
 	int GetIndexName(LPCTSTR name);
@@ -310,7 +310,7 @@ public:
 	int CompPass(LPCTSTR pass);
 	int InitPass(LPCTSTR pass);
 
-	LPCTSTR GetName(BOOL bCert = TRUE);
+	LPCTSTR GetName(BOOL bCert = TRUE, BOOL bExtname = FALSE);
 	int GetTypeFromName(LPCTSTR name);
 	int HostVerify(LPCTSTR host);
 	int ChkOldCertHosts(LPCTSTR host);
@@ -387,7 +387,7 @@ public:
 	inline INT_PTR GetSize() { return m_Data.GetSize(); }
 	inline CIdKey & GetAt(int nIndex) { return m_Data[nIndex]; }
 	inline CIdKey & operator [](int nIndex) { return m_Data[nIndex]; }
-	int AddEntry(CIdKey &key);
+	int AddEntry(CIdKey &key, BOOL bDups = TRUE);
 	int Add(CIdKey &key);
 	CIdKey *GetUid(int uid);
 	void UpdateUid(int uid);
@@ -564,9 +564,12 @@ public:
 	CBuffer m_RecvBuf;
 
 	CAgent();
+	~CAgent();
+
 	void OnReceive(const void *lpBuf, int nBufLen);
 	int GetSendSize();
 
+	BOOL IsLocked();
 	LPCTSTR GetRsaSignAlg(CIdKey *key, int flag);
 	CIdKey *GetIdKey(CIdKey *key, LPCTSTR pass);
 	void ReceiveBuffer(CBuffer *bp);
@@ -666,6 +669,9 @@ public:
 	CArray<CIdKey, CIdKey &> m_IdKeyTab;
 	CString m_x11AuthName, m_x11LocalName;
 	CBuffer m_x11AuthData, m_x11LocalData;
+
+	CMutex *m_pAgentMutex;
+	CStringA m_AgentPass;
 
 private:
 	CString m_ServerVerStr;

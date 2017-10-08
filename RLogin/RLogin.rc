@@ -3714,6 +3714,7 @@ BEGIN
     IDS_OPTFIXEDSAVEMSG     "標準の設定を使用しているエントリーです。\n前設定を上書きして使用を解除しますか？"
     IDS_TTYMODE_LIST56      "端末でUTF-8エンコードを使用する"
     IDS_DEFENTRYEDITMSG     "標準の設定のエントリーが編集されました\n標準の設定を更新しますか？"
+	IDS_ADDPAGEANTENTRY     "このエントリーで最初のPageantの起動を確認しました。\n認証鍵の優先順位を設定してください"
 END
 
 STRINGTABLE
@@ -3733,6 +3734,7 @@ BEGIN
     IDE_RESVERSIONMISMATCH  "リソースファイルのバージョンが違います\n一部のリソースが無効化されます\n読み込みを続行しますか？"
     IDE_ENTRYLOADERROR      "サーバーエントリーの読み込みに失敗しました\nレジストリ／プロファイルが壊れている可能性があります\nこのエントリーを削除しますか？"
     IDE_KEYMACTOOLONG       "キー操作の記録が大きくなっています。\n記録を続けますか？"
+    IDE_PAGEANTKEYEDIT      "Pageantのエントリーは、編集や保存など出来ません"
 END
 
 STRINGTABLE

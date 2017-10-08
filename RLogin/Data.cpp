@@ -5882,6 +5882,8 @@ void CParamTab::Init()
 	m_x11AuthFlag = FALSE;
 	m_x11AuthName.Empty();
 	m_x11AuthData.Empty();
+
+	m_bInitPageant = FALSE;
 }
 void CParamTab::SetArray(CStringArrayExt &stra)
 {
@@ -5927,6 +5929,7 @@ void CParamTab::SetArray(CStringArrayExt &stra)
 	stra.Add(m_x11AuthName);
 	stra.Add(m_x11AuthData);
 	stra.AddVal(m_x11AuthFlag);
+	stra.AddVal(m_bInitPageant);
 }
 void CParamTab::GetArray(CStringArrayExt &stra)
 {
@@ -6048,6 +6051,9 @@ void CParamTab::GetArray(CStringArrayExt &stra)
 	if ( stra.GetSize() > i )
 		m_x11AuthFlag = stra.GetVal(i++);
 
+	if ( stra.GetSize() > i )
+		m_bInitPageant = stra.GetVal(i++);
+
 	// Fix IdKeyList
 	if ( m_IdKeyStr[0].Compare(_T("IdKeyList Entry")) == 0 ) {
 		m_IdKeyList.GetString(m_IdKeyStr[1]);
@@ -6122,6 +6128,8 @@ void CParamTab::SetIndex(int mode, CStringIndex &index)
 		index[_T("x11AuthName")] = m_x11AuthName;
 		index[_T("x11AuthData")] = m_x11AuthData;
 		index[_T("x11AuthFlag")] = m_x11AuthFlag;
+
+		index[_T("InitPageant")]  = m_bInitPageant;
 
 	} else {			// Read
 		if ( (n = index.Find(_T("Algo"))) >= 0 ) {
@@ -6220,6 +6228,9 @@ void CParamTab::SetIndex(int mode, CStringIndex &index)
 
 		if ( (n = index.Find(_T("x11AuthFlag"))) >= 0 )
 			m_x11AuthFlag = index[n];
+
+		if ( (n = index.Find(_T("InitPageant"))) >= 0 )
+			m_bInitPageant = index[n];
 	}
 }
 void CParamTab::DiffIndex(CParamTab &orig, CStringIndex &index)
@@ -6319,6 +6330,9 @@ void CParamTab::DiffIndex(CParamTab &orig, CStringIndex &index)
 		index[_T("x11AuthData")] = m_x11AuthData;
 	if ( m_x11AuthFlag != orig.m_x11AuthFlag )
 		index[_T("x11AuthFlag")] = m_x11AuthFlag;
+
+	if ( m_bInitPageant != orig.m_bInitPageant )
+		index[_T("InitPageant")] = m_bInitPageant;
 }
 
 static const ScriptCmdsDefs DocSsh[] = {
@@ -6541,6 +6555,7 @@ const CParamTab & CParamTab::operator = (CParamTab &data)
 	for ( n = 0 ; n < data.m_TtyMode.GetSize() ; n++ )
 		m_TtyMode[n] = data.m_TtyMode[n];
 	m_RsaExt = data.m_RsaExt;
+	m_bInitPageant = data.m_bInitPageant;
 	return *this;
 }
 

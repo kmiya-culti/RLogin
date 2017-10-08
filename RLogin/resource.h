@@ -226,6 +226,7 @@
 #define IDS_OPTFIXEDSAVEMSG             629
 #define IDS_TTYMODE_LIST56              630
 #define IDS_DEFENTRYEDITMSG             631
+#define IDS_ADDPAGEANTENTRY             632
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -261,6 +262,7 @@
 #define IDE_RESVERSIONMISMATCH          732
 #define IDE_ENTRYLOADERROR              733
 #define IDE_KEYMACTOOLONG               734
+#define IDE_PAGEANTKEYEDIT              735
 #define IDT_EXTOPT_LIST01               800
 #define IDT_EXTOPT_LIST02               801
 #define IDT_EXTOPT_LIST03               802
@@ -1008,6 +1010,6 @@
 #define _APS_NEXT_RESOURCE_VALUE        163
 #define _APS_NEXT_COMMAND_VALUE         5127
 #define _APS_NEXT_CONTROL_VALUE         2470
-#define _APS_NEXT_SYMED_VALUE           632
+#define _APS_NEXT_SYMED_VALUE           633
 #endif
 #endif

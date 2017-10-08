@@ -1179,7 +1179,7 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 #define AGENT_COPYDATA_ID 0x804e50ba   /* random goop */
 #define AGENT_MAX_MSGLEN  8192
 
-BOOL CMainFrame::PagentQuery(CBuffer *pInBuf, CBuffer *pOutBuf)
+BOOL CMainFrame::PageantQuery(CBuffer *pInBuf, CBuffer *pOutBuf)
 {
 	int len;
 	CWnd *pWnd;
@@ -1224,40 +1224,63 @@ BOOL CMainFrame::PagentQuery(CBuffer *pInBuf, CBuffer *pOutBuf)
 
 	return TRUE;
 }
-void CMainFrame::PagentInit(CArray<CIdKey, CIdKey &> *pKeyTab)
+BOOL CMainFrame::PageantInit()
 {
+	int n, i;
 	int count;
 	CBuffer in, out;
 	CIdKey key;
 	CBuffer blob;
 	CStringA name;
 
+	for ( i = 0 ; i < m_IdKeyTab.GetSize() ; i++ ) {
+		if ( m_IdKeyTab[i].m_bPageant )
+			m_IdKeyTab[i].m_bSecInit = FALSE;
+	}
+
 	in.Put32Bit(1);
 	in.Put8Bit(SSH_AGENTC_REQUEST_IDENTITIES);
 
-	if ( !PagentQuery(&in, &out) )
-		return;
+	if ( !PageantQuery(&in, &out) )
+		return FALSE;
 
 	if ( out.GetSize() < 5 || out.Get8Bit() != SSH_AGENT_IDENTITIES_ANSWER )
-		return;
+		return FALSE;
 
 	try {
-		for ( count = out.Get32Bit() ; count > 0 ; count-- ) {
+		count = out.Get32Bit();
+		for ( n = 0 ; n < count ; n++ ) {
 			out.GetBuf(&blob);
 			out.GetStr(name);
 			key.m_Name = name;
-			key.m_bPagent = TRUE;
-			if ( key.GetBlob(&blob) )
-				pKeyTab->Add(key);
+			key.m_bPageant = TRUE;
+			key.m_bSecInit = TRUE;
+			if ( !key.GetBlob(&blob) )
+				continue;
+
+			for ( i = 0 ; i < m_IdKeyTab.GetSize() ; i++ ) {
+				if ( m_IdKeyTab[i].m_bPageant && m_IdKeyTab[i].ComperePublic(&key) == 0 ) {
+					m_IdKeyTab[i].m_bSecInit = TRUE;
+					break;
+				}
+			}
+
+			if ( i >= m_IdKeyTab.GetSize() )
+				m_IdKeyTab.AddEntry(key, FALSE);
 		}
+
 #ifdef	DEBUG
 	} catch(LPCTSTR msg) {
-		TRACE(_T("PagentInit Error %s '%s'\n"), MbsToTstr(name), msg);
+		TRACE(_T("PageantInit Error %s '%s'\n"), MbsToTstr(name), msg);
+		return FALSE;
 #endif
 	} catch(...) {
+		return FALSE;
 	}
+
+	return TRUE;
 }
-BOOL CMainFrame::PagentSign(CBuffer *blob, CBuffer *sign, LPBYTE buf, int len)
+BOOL CMainFrame::PageantSign(CBuffer *blob, CBuffer *sign, LPBYTE buf, int len)
 {
 	CBuffer in, out, work;
 
@@ -1268,7 +1291,7 @@ BOOL CMainFrame::PagentSign(CBuffer *blob, CBuffer *sign, LPBYTE buf, int len)
 	
 	in.PutBuf(work.GetPtr(), work.GetSize());
 
-	if ( !PagentQuery(&in, &out) )
+	if ( !PageantQuery(&in, &out) )
 		return FALSE;
 
 	if ( out.GetSize() < 5 || out.Get8Bit() != SSH_AGENT_SIGN_RESPONSE )

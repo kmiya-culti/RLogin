@@ -29,6 +29,8 @@ CIdkeySelDLg::CIdkeySelDLg(CWnd* pParent /*=NULL*/)
 	m_KeyGenFlag = 0;
 	m_GenIdKeyTimer = NULL;
 	m_ListInit = FALSE;
+	m_pParamTab = NULL;
+	m_bInitPageant = FALSE;
 }
 CIdkeySelDLg::~CIdkeySelDLg()
 {
@@ -102,11 +104,15 @@ void CIdkeySelDLg::InitList()
 
 		m_List.SetItemText(n, 2, pKey->m_Name);
 
-		switch(pKey->m_Cert) {
-		case IDKEY_CERTV00:  str = _T("V00"); break;
-		case IDKEY_CERTV01:  str = _T("V01"); break;
-		case IDKEY_CERTX509: str = _T("x509"); break;
-		default:             str = _T(""); break;
+		if ( pKey->m_bPageant ) {
+			str = pKey->m_bSecInit ? _T("Pageant") : _T("None");
+		} else {
+			switch(pKey->m_Cert) {
+			case IDKEY_CERTV00:  str = _T("V00"); break;
+			case IDKEY_CERTV01:  str = _T("V01"); break;
+			case IDKEY_CERTX509: str = _T("x509"); break;
+			default:             str = _T(""); break;
+			}
 		}
 		m_List.SetItemText(n, 3, str);
 
@@ -153,8 +159,8 @@ void CIdkeySelDLg::EndofKeyGenThead()
 static const LV_COLUMN InitListTab[4] = {
 		{ LVCF_TEXT | LVCF_WIDTH, 0,   80, _T("Type"), 0, 0 }, 
 		{ LVCF_TEXT | LVCF_WIDTH, 0,   40, _T("Bits"), 0, 0 }, 
-		{ LVCF_TEXT | LVCF_WIDTH, 0,  100, _T("Name"), 0, 0 }, 
-		{ LVCF_TEXT | LVCF_WIDTH, 0,   40, _T("Cert"), 0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0,   80, _T("Name"), 0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0,   60, _T("Ext"), 0, 0 }, 
 	};
 
 BOOL CIdkeySelDLg::OnInitDialog() 
@@ -167,7 +173,15 @@ BOOL CIdkeySelDLg::OnInitDialog()
 	CDialogExt::OnInitDialog();
 
 	m_Data.RemoveAll();
-	for ( n = 0 ; n < m_pIdKeyTab->GetSize() ; n++ ) {
+	for ( n = a = 0 ; n < m_pIdKeyTab->GetSize() ; n++ ) {
+		if ( m_pIdKeyTab->GetAt(n).m_bPageant ) {
+			m_bInitPageant = TRUE;
+			if ( m_pParamTab != NULL && !m_pParamTab->m_bInitPageant ) {
+				m_Data.InsertAt(a++, m_pIdKeyTab->GetAt(n).m_Uid);
+				m_pIdKeyTab->GetAt(n).m_Flag = TRUE;
+				continue;
+			}
+		}
 		m_Data.Add(m_pIdKeyTab->GetAt(n).m_Uid);
 		m_pIdKeyTab->GetAt(n).m_Flag = FALSE;
 	}
@@ -212,6 +226,9 @@ void CIdkeySelDLg::OnOK()
 			m_IdKeyList.AddVal(m_Data[i]);
 		}
 	}
+
+	if ( m_pParamTab != NULL && m_bInitPageant && !m_pParamTab->m_bInitPageant )
+		m_pParamTab->m_bInitPageant = TRUE;
 
 	m_List.SaveColumn(_T("IdkeySelDLg"));
 
@@ -363,6 +380,11 @@ void CIdkeySelDLg::OnIdkeyExport()
 	if ( pKey == NULL )
 		return;
 
+	if ( pKey->m_bPageant ) {
+		MessageBox(CStringLoad(IDE_PAGEANTKEYEDIT));
+		return;
+	}
+
 	dlg.m_OpenMode = 2;
 	dlg.m_Title.LoadString(IDS_IDKEYFILESAVE);
 	dlg.m_Message.LoadString(IDS_IDKEYFILESAVECOM);
@@ -486,6 +508,11 @@ void CIdkeySelDLg::OnEditUpdate()
 	if ( pKey == NULL )
 		return;
 
+	if ( pKey->m_bPageant ) {
+		MessageBox(CStringLoad(IDE_PAGEANTKEYEDIT));
+		return;
+	}
+
 	dlg.m_Title.LoadString(IDS_IDKEYRENAME);
 	dlg.m_Edit  = pKey->m_Name;
 
@@ -581,6 +608,11 @@ void CIdkeySelDLg::OnIdkeyCakey()
 
 	if ( pKey == NULL )
 		return;
+
+	if ( pKey->m_bPageant ) {
+		MessageBox(CStringLoad(IDE_PAGEANTKEYEDIT));
+		return;
+	}
 
 	CFileDialog dlg(TRUE, _T(""), _T(""), OFN_HIDEREADONLY, CStringLoad(IDS_FILEDLGALLFILE), this);
 

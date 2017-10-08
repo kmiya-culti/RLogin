@@ -8,6 +8,7 @@
 #include "RLoginDoc.h"
 #include "RLoginView.h"
 #include "PassDlg.h"
+#include "IdkeySelDLg.h"
 #include "IdKeyFileDlg.h"
 #include "ssh.h"
 
@@ -52,6 +53,8 @@ Cssh::Cssh(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 
 	for ( int n = 0 ; n < 6 ; n++ )
 		m_VKey[n] = NULL;
+
+	m_pAgentMutex = NULL;
 }
 Cssh::~Cssh()
 {
@@ -64,6 +67,9 @@ Cssh::~Cssh()
 	}
 
 	((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this);
+
+	if ( m_pAgentMutex != NULL )
+		delete m_pAgentMutex;
 }
 int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
 {
@@ -124,6 +130,11 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 		ZeroMemory(&m_SSPI_hNewContext, sizeof(m_SSPI_hNewContext));
 		ZeroMemory(&m_SSPI_tsExpiry, sizeof(m_SSPI_tsExpiry));
 
+		if ( m_pAgentMutex != NULL ) {
+			delete m_pAgentMutex;
+			m_pAgentMutex = NULL;
+		}
+
 		//CStringA tmp;
 		//CCipher::BenchMark(tmp);
 		//CExtSocket::OnReceiveCallBack((void *)(LPCSTR)tmp, tmp.GetLength(), 0);
@@ -156,23 +167,35 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 			m_IdKeyTab.Add(IdKey);
 		}
 
+		if ( pMain->PageantInit() && !m_pDocument->m_ParamTab.m_bInitPageant && AfxMessageBox(IDS_ADDPAGEANTENTRY, MB_ICONQUESTION | MB_YESNO) == IDYES ) {
+			CIdkeySelDLg dlg;
+
+			dlg.m_pParamTab = &(m_pDocument->m_ParamTab);
+			dlg.m_pIdKeyTab = &(((CMainFrame *)AfxGetMainWnd())->m_IdKeyTab);
+			dlg.m_IdKeyList = m_pDocument->m_ParamTab.m_IdKeyList;
+
+			if ( dlg.DoModal() == IDOK ) {
+				m_pDocument->m_ParamTab.m_IdKeyList = dlg.m_IdKeyList;
+				m_pDocument->SetModifiedFlag(TRUE);
+			}
+		}
+
 		for ( n = 0 ; n < m_pDocument->m_ParamTab.m_IdKeyList.GetSize() ; n++ ) {
-			if ( (pKey = pMain->m_IdKeyTab.GetUid(m_pDocument->m_ParamTab.m_IdKeyList.GetVal(n))) == NULL || pKey->m_Type == IDKEY_NONE )
+			if ( (pKey = pMain->m_IdKeyTab.GetUid(m_pDocument->m_ParamTab.m_IdKeyList.GetVal(n))) == NULL || pKey->m_Type == IDKEY_NONE || (pKey->m_bPageant && !pKey->m_bSecInit) )
 				continue;
+
 			list[pKey->CompPass(m_pDocument->m_ServerEntry.m_PassName) == 0 ? 0 : 1].Add(m_pDocument->m_ParamTab.m_IdKeyList.GetVal(n));
 		}
 
 		for ( n = 0 ; n < list[0].GetSize() ; n++ )
 			m_IdKeyTab.Add(*(pMain->m_IdKeyTab.GetUid(list[0][n])));
 
-		pMain->PagentInit(&m_IdKeyTab);
-
 		for ( n = 0 ; n < list[1].GetSize() ; n++ )
 			m_IdKeyTab.Add(*(pMain->m_IdKeyTab.GetUid(list[1][n])));
 
 		if ( m_pDocument->m_ParamTab.m_RsaExt != 0 ) {
 			for ( n = 0 ; n < m_IdKeyTab.GetSize() ; n++ ) {
-				if ( (m_IdKeyTab[n].m_Type & IDKEY_TYPE_MASK) != IDKEY_RSA2 || m_IdKeyTab[n].m_RsaNid != NID_sha1 )
+				if ( (m_IdKeyTab[n].m_Type & IDKEY_TYPE_MASK) != IDKEY_RSA2 || m_IdKeyTab[n].m_RsaNid != NID_sha1 || m_IdKeyTab[n].m_bPageant )
 					continue;
 
 				IdKey = m_IdKeyTab[n];
@@ -650,6 +673,7 @@ void Cssh::GetStatus(CString &str)
 	CString tmp;
 	CChannel *cp;
 
+
 	CExtSocket::GetStatus(str);
 
 	str += _T("\r\n");
@@ -752,6 +776,17 @@ void Cssh::GetStatus(CString &str)
 		tmp.Format(_T("Chanel: RemoteId=%d LocalId=%d Status=%o(%o) Type=%s Read=%lld Write=%lld\r\n"),
 			cp->m_RemoteID, cp->m_LocalID, cp->m_Status, cp->m_Eof, cp->m_TypeName, cp->m_WriteByte, cp->m_ReadByte);
 		str += tmp;
+	}
+
+	if ( m_Permit.GetSize() > 0 ) {
+		str += _T("\r\n");
+		tmp.Format(_T("Remote listened : %d\r\n"), m_Permit.GetSize());
+		str += tmp;
+
+		for ( int n = 0 ; n < m_Permit.GetSize() ; n++ ) {
+			tmp.Format(_T("Type=%d Listened=%s:%d Connect=%s:%d\r\n"), m_Permit[n].m_Type, m_Permit[n].m_rHost, m_Permit[n].m_rPort, m_Permit[n].m_lHost, m_Permit[n].m_lPort);
+			str += tmp;
+		}
 	}
 }
 
@@ -2007,7 +2042,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 
 				if ( m_pIdKey->Init(m_pDocument->m_ServerEntry.m_PassName) ) {
 					tmp.Put8Bit(1);
-					tmp.PutStr(TstrToMbs(m_pIdKey->GetName()));
+					tmp.PutStr(TstrToMbs(m_pIdKey->GetName(TRUE, FALSE)));
 					tmp.PutBuf(blob.GetPtr(), blob.GetSize());
 
 					if ( !m_pIdKey->Sign(&sig, tmp.GetPtr(), tmp.GetSize(), GetSigAlgs()) ) {
@@ -2017,14 +2052,14 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 
 					tmp.PutBuf(sig.GetPtr(), sig.GetSize());
 
-					AddAuthLog(_T("publickey(%s)"), m_pIdKey->GetName());
+					AddAuthLog(_T("publickey(%s)"), m_pIdKey->GetName(TRUE, TRUE));
 
 				} else {
 					tmp.Put8Bit(0);
-					tmp.PutStr(TstrToMbs(m_pIdKey->GetName()));
+					tmp.PutStr(TstrToMbs(m_pIdKey->GetName(TRUE, FALSE)));
 					tmp.PutBuf(blob.GetPtr(), blob.GetSize());
 
-					AddAuthLog(_T("publickey:offered(%s)"), m_pIdKey->GetName());
+					AddAuthLog(_T("publickey:offered(%s)"), m_pIdKey->GetName(TRUE, TRUE));
 				}
 
 				m_AuthMode = AUTH_MODE_PUBLICKEY;
@@ -2053,7 +2088,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 
 				len = tmp.GetSize();
 				tmp.PutStr("hostbased");
-				tmp.PutStr(TstrToMbs(m_pIdKey->GetName()));
+				tmp.PutStr(TstrToMbs(m_pIdKey->GetName(TRUE, FALSE)));
 				tmp.PutBuf(blob.GetPtr(), blob.GetSize());
 				GetSockName(m_Fd, wrk, &len);
 				tmp.PutStr(m_pDocument->RemoteStr(wrk));			// client ip address
@@ -2067,7 +2102,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 
 				tmp.PutBuf(sig.GetPtr(), sig.GetSize());
 
-				AddAuthLog(_T("hostbased(%s)"), m_pIdKey->GetName());
+				AddAuthLog(_T("hostbased(%s)"), m_pIdKey->GetName(TRUE, TRUE));
 
 				m_AuthMode = AUTH_MODE_HOSTBASED;
 				break;

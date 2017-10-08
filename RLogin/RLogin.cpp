@@ -2254,6 +2254,7 @@ BOOL CRLoginApp::SaveRegistryFile()
 	CString filename;
 	CTime tm = CTime::GetCurrentTime();
 	HKEY hAppKey;
+	WCHAR bom = 0xFEFF;
 	BOOL ret = FALSE;
 	static LPCWSTR head = L"Windows Registry Editor Version 5.00\r\n\r\n";
 
@@ -2270,7 +2271,7 @@ BOOL CRLoginApp::SaveRegistryFile()
 		return FALSE;
 	}
 
-	file.Write("\xff\xfe", 2);	// LE BOM 
+	file.Write(&bom, sizeof(WCHAR)); 
 	file.Write(head, (UINT)_tcslen(head) * sizeof(WCHAR));
 
 	ASSERT(m_pszRegistryKey != NULL);

@@ -848,6 +848,7 @@ public:
 	BOOL m_x11AuthFlag;
 	CString m_x11AuthName;
 	CString m_x11AuthData;
+	BOOL m_bInitPageant;
 
 	CParamTab();
 	void Init();

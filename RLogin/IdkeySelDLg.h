@@ -28,6 +28,7 @@ public:
 	CString	m_Bits;
 	CString	m_Name;
 
+	class CParamTab *m_pParamTab;
 	CIdKeyTab *m_pIdKeyTab;
 	CStringArrayExt m_IdKeyList;
 	CWordArray m_Data;
@@ -43,6 +44,7 @@ public:
 	CString m_GenIdKeyPass;
 	CIdKey m_GenIdKey;
 	BOOL m_ListInit;
+	BOOL m_bInitPageant;
 
 	void StartKeyGenThead();
 	void ProcKeyGenThead();

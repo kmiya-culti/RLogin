@@ -853,6 +853,15 @@ void CExtSocket::GetStatus(CString &str)
 		tmp.Format(_T(" - %s#%d\r\n"), name, port);
 		str += tmp;
 	}
+
+	if ( m_pDocument != NULL && m_pDocument->m_ConnectTime != 0 ) {
+		CTime tm = m_pDocument->m_ConnectTime;
+		str += _T("Access Time: ");
+		str += tm.Format(_T("%c"));
+		int sec = (int)(time(NULL) - m_pDocument->m_ConnectTime);
+		tmp.Format(_T(" (%02d:%02d:%02d)\r\n"), sec / 3600, (sec % 3600) / 60, sec % 60);
+		str += tmp;
+	}
 }
 
 //////////////////////////////////////////////////////////////////////

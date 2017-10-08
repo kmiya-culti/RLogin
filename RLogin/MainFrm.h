@@ -180,9 +180,9 @@ public:
 	CKeyNodeTab m_DefKeyTab;
 	BOOL m_UseBitmapUpdate;
 
-	BOOL PagentQuery(CBuffer *pInBuf, CBuffer *pOutBuf);
-	void PagentInit(CArray<CIdKey, CIdKey &> *pKeyTab);
-	BOOL PagentSign(CBuffer *blob, CBuffer *sign, LPBYTE buf, int len);
+	BOOL PageantQuery(CBuffer *pInBuf, CBuffer *pOutBuf);
+	BOOL PageantInit();
+	BOOL PageantSign(CBuffer *blob, CBuffer *sign, LPBYTE buf, int len);
 
 	void SetTransPar(COLORREF rgb, int value, DWORD flag);
 	void SetIconStyle();
