@@ -1427,6 +1427,119 @@ function OnClickOk(id) {
     <TR>
       <TD>
       <HR>
+      <P><B><A name="FILEUPDOWN"></A>5.18 ファイル転送</B></P>
+      <HR>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE width="1250" cellpadding="5">
+        <TBODY>
+          <TR>
+            <TD width="600" valign="top">メニュー・ファイル・XYZModemファイル転送にある各種ファイル転送プロトコルは、パソコン通信を経験された方には、馴染みのある物ですが、現在のリモートサーバーに端末接続した場合にでも十分に使用できる便利な機能です。（さすがにXYModemは、古い仕様すぎて使用に耐えませんが・・・）<BR>
+            <BR>
+            現在のFreeBSD/Ubuntu/CentOSなどでもプログラムをインストールさえすれば簡単に使用できます。<BR>
+            <BR>
+            FreeBSD<BR>
+            pkg install kermit-9.0.302<BR>
+            pkg install lrzsz-0.12.20_4<BR>
+            <BR>
+            Ubuntu<BR>
+            apt-get install ckermit<BR>
+            apt-get install lrzsz<BR>
+            <BR>
+            CentOS<BR>
+            yum install ckermit<BR>
+            yum install lrzsz<BR>
+            <BR>
+            ※コマンドの頭にsudoを指定してroot権限でのインストールが必要な場合があります<BR>
+            <BR>
+            ソースからインストールするなら下記のページから可能です。<BR>
+            <A href="http://www.columbia.edu/kermit/index.html">http://www.columbia.edu/kermit/index.html</A><BR>
+            <A href="https://ohse.de/uwe/software/lrzsz.html">https://ohse.de/uwe/software/lrzsz.html</A><BR>
+            <BR>
+            ckermitなどがKermitプロトコルでlrzszがXYZModemプロトコルのプログラムです。どちらも同程度の速度と性能ですが、Kermitの方が細かいオプションを利用できます。<BR>
+            <BR>
+            また、FreeBSD用のBPlusプロトコル用のプログラムを昔に作成しました。これも好みの問題程度の差しかありませんが、利用可能です。<BR>
+            <BR>
+            <A href="bp.tar.gz">bp.tar.gz</A></TD>
+            <TD valign="top"><IMG src="image261.jpg" width="476" height="512" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top" width="600">サーバー上のファイルをローカル(RLoginを実行しているWindowsパソコン）に転送することをダウンロード、逆にローカル上のファイルをサーバーに転送するのをアップロードとすると・・・（サーバー側から見ると逆になるのでややこしい言い方になります）<BR>
+            <BR>
+            <TABLE cellpadding="3">
+              <TBODY>
+                <TR>
+                  <TD align="center"></TD>
+                  <TD width="140">Kermit</TD>
+                  <TD width="140">ZModem</TD>
+                  <TD width="140">BPlus</TD>
+                </TR>
+                <TR>
+                  <TD>ダウンロード</TD>
+                  <TD width="140">kermit -s &lt;filename&gt;</TD>
+                  <TD width="140">sz &lt;filename&gt;<BR>
+                  lsz &lt;filename&gt;</TD>
+                  <TD width="140">bp -u &lt;filename&gt;</TD>
+                </TR>
+                <TR>
+                  <TD>アップロード</TD>
+                  <TD width="140">kermit -r</TD>
+                  <TD width="140">rz<BR>
+                  lrz</TD>
+                  <TD width="140">bp -d</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            <BR>
+            オプション設定の<A href="./#TRSOPT">通信共通</A>の「<FONT color="#ff0000">BPlus/ZModem/Kermitファイル転送を有効にする</FONT>」をチェックしておけばコマンドを実行するだけで自動でファイル転送プロトコルが動きます。この場合には、アップ･ダウンなど転送方向なども気にする必要もありません。（Kermitは、多少、自動起動が遅いようですが・・・）<BR>
+            <BR>
+            Kermit/ZModemの場合、手動で起動するには、メニュー・ファイル・XYZModemファイル転送・Kermit/ZModemダウン・アップロードを実行です。<BR>
+            <BR>
+            また、マウス操作で<A href="./#MOUSEOPT">ファイルをドラッグ＆ドロップ</A>するだけでファイルのアップロードも可能です。<BR>
+            この場合、コマンドをサーバー側に送信しますので注意が必要です。</TD>
+            <TD valign="top"><IMG src="image262.jpg" width="435" height="197" border="0"><BR>
+            <BR>
+            <BR>
+            <IMG src="image263.jpg" width="457" height="105" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top" width="600">tmuxやGNU Screenなどを使用している場合には、ファイル転送プロトコルは、使用できません。<BR>
+            これは、入力・出力が内部で変換されてしまう為で端末では、制御のしようがありません。<BR>
+            <BR>
+            小さなサイズのファイルならば、<A href="ctrlcode.html#OSC">OSC 1337の機能</A>を使用してサーバーからローカルにダウンロードすることが可能です。あまり大きなサイズのファイルは、すべてメモリ上で展開しているので苦しいです。さらに途中経過などの表示もしないのでハングアップしたように見えます。<BR>
+            <BR>
+            右のシェルスクリプトでは、tmuxの場合には、DCSでパックするようにしています。</TD>
+            <TD valign="top">
+            <PRE style="font-size : 9pt;">#! /bin/sh
+
+for n in $*
+do
+  if test $TERM == screen* ; then
+    printf &quot;\033Ptmux;\033&quot;
+  fi
+
+  printf '\033]1337;File=name=%s;inline=0:' `echo -n $n | base64`
+
+  base64 $n
+
+  printf '\007'
+
+  if test $TERM == screen* ; then
+    printf '\033\\'
+  fi
+done
+</PRE>
+            </TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR>
       </TD>
     </TR>
   </TBODY>

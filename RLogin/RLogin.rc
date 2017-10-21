@@ -3714,7 +3714,7 @@ BEGIN
     IDS_OPTFIXEDSAVEMSG     "標準の設定を使用しているエントリーです。\n前設定を上書きして使用を解除しますか？"
     IDS_TTYMODE_LIST56      "端末でUTF-8エンコードを使用する"
     IDS_DEFENTRYEDITMSG     "標準の設定のエントリーが編集されました\n標準の設定を更新しますか？"
-	IDS_ADDPAGEANTENTRY     "このエントリーで最初のPageantの起動を確認しました。\n認証鍵の優先順位を設定してください"
+	IDS_ADDPAGEANTENTRY     "このエントリーで最初のPageantの起動を確認しました\n使用する認証鍵の優先順位を設定してください\n以降、鍵の追加などした場合に設定が必要になります"
 END
 
 STRINGTABLE

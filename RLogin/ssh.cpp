@@ -3076,7 +3076,6 @@ int Cssh::SSH2MsgUserAuthPkOk(CBuffer *bp)
 	CStringA name;
 	CBuffer blob(-1);
 	CIdKey ReqKey;
-	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
 
 	bp->GetStr(name);
 	bp->GetBuf(&blob);
@@ -3091,6 +3090,7 @@ int Cssh::SSH2MsgUserAuthPkOk(CBuffer *bp)
 		if ( m_pIdKey->InitPass(m_pDocument->m_ServerEntry.m_PassName) ) {
 			m_IdKeyPos = n;
 			m_AuthStat = AST_PUBKEY_TRY;
+			break;
 		}
 	}
 
