@@ -28,8 +28,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.22.7)</TD>
-            <TD width="20%" align="right">2017/09/26</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.22.8)</TD>
+            <TD width="20%" align="right">2017/11/03</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -436,13 +436,14 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
-            <TD align="center">次期試作版</TD>
+            <TD align="center">2017/11/03</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.22.8/">2.22.8</A></TD>
-            <TD><FONT color="#c0c0c0">ssh2のポートフォワードにチェックマークで有効・無効を追加<BR>
+            <TD>ssh2のポートフォワードにチェックマークで有効・無効を追加<BR>
             ヘルプメニューにレジストリをファイルに保存を追加<BR>
             ssh2ポートフォワードにRemote Socksを追加<BR>
             sshのエージェントにlock/unlockとrsa拡張を追加<BR>
-            Pageantの鍵を認証キーの設定で管理するように変更</FONT></TD>
+            Pageantの鍵を認証キーの設定で管理するように変更<BR>
+            openssl-1.1.0gに更新</TD>
           </TR>
           <TR>
             <TD align="center">2017/09/26</TD>
@@ -605,7 +606,7 @@ TD {
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 1.1.0f 25 May 2017<BR>
+            <P>OpenSSL 1.1.0g 2 Nov 2017<BR>
             Copyright (c) 1998-2016 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>
@@ -655,7 +656,13 @@ TD {
             <BR>
             ソースの改変による配布も自由ですが、どのバージョンの改変かを明記されることを希望します。<BR>
             <BR>
-            また、ソースコードの部分使用なども自由です。</TD>
+            また、ソースコードの部分使用なども自由です。<BR>
+            <BR>
+            追記（2017/10/20）<BR>
+            <BR>
+            This software is released under the MIT License.<BR>
+            <BR>
+            <A href="http://opensource.org/licenses/mit-license.php">http://opensource.org/licenses/mit-license.php</A></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -1261,12 +1268,12 @@ TD {
                   <TD valign="top" width="150">$PROFILE_SAVE</TD>
                 </TR>
                 <TR>
-                  <TD valign="top" colspan="2" width="250"><FONT color="#c0c0c0">レジストリをファイルに保存(B)</FONT></TD>
-                  <TD valign="top" width="450"><FONT color="#c0c0c0">RLoginで使用しているレジストリ（すべての設定）を年月日を付けてファイルに保存します。<BR>
+                  <TD valign="top" colspan="2" width="250">レジストリをファイルに保存(B)</TD>
+                  <TD valign="top" width="450">RLoginで使用しているレジストリ（すべての設定）を年月日を付けてファイルに保存します。<BR>
                   レジストリを元に戻すには、保存したregファイルを実行してください。<BR>
-                  すべての設定のバックアップを目的としています。</FONT></TD>
+                  すべての設定のバックアップを目的としています。</TD>
                   <TD valign="top" align="right" width="120"></TD>
-                  <TD valign="top" width="150"><FONT color="#c0c0c0">$REGISTRY_SAVE</FONT></TD>
+                  <TD valign="top" width="150">$REGISTRY_SAVE</TD>
                 </TR>
                 <TR>
                   <TD valign="top" colspan="2" width="250">リソースをファイルに保存(R)</TD>
@@ -2921,8 +2928,8 @@ fi</PRE>
                         <TD>リモート側で待機します</TD>
                       </TR>
                       <TR>
-                        <TD><FONT color="#c0c0c0">Remote Socks</FONT></TD>
-                        <TD><FONT color="#c0c0c0">リモート側のSOCKSサーバーで待機します</FONT></TD>
+                        <TD>Remote Socks</TD>
+                        <TD>リモート側のSOCKSサーバーで待機します</TD>
                       </TR>
                     </TBODY>
                   </TABLE>

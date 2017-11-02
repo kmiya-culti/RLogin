@@ -257,7 +257,8 @@ BOOL CTelnet::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, in
 	MyOpt[TELOPT_NAWS].flags		|= TELFLAG_ACCEPT;
 	MyOpt[TELOPT_NEW_ENVIRON].flags	|= TELFLAG_ACCEPT;
 //	MyOpt[TELOPT_LFLOW].flags		|= TELFLAG_ACCEPT;
-	MyOpt[TELOPT_COMPORT].flags		|= TELFLAG_ACCEPT;
+//	MyOpt[TELOPT_COMPORT].flags		|= TELFLAG_ACCEPT;
+	MyOpt[TELOPT_TSPEED].flags		|= TELFLAG_ACCEPT;
 
     SubOptLen = 0;
     ReceiveStatus = RVST_NON;
@@ -749,6 +750,42 @@ void CTelnet::SubOptFunc(char *buf, int len)
 		tmp[n++] = (char)TELC_SE;
 		SockSend(tmp, n);
 		PrintOpt(0, TELC_SB, TELOPT_TTYPE);
+		break;
+
+	case TELOPT_TSPEED:
+        if ( (MyOpt[TELOPT_TSPEED].flags & TELFLAG_ON) == 0 )
+            break;
+        if ( SB_GETC() != TELQUAL_SEND )
+			break;
+		n = 0;
+		tmp[n++] = (char)TELC_IAC;
+		tmp[n++] = (char)TELC_SB;
+		tmp[n++] = (char)TELOPT_TSPEED;
+		tmp[n++] = (char)TELQUAL_IS;
+		SockSend(tmp, n);
+		{
+			int n;
+			int ispeed = 9600;
+			int ospeed = 9600;
+			CString str;
+
+			if ( m_pDocument != NULL ) {
+				for ( n = 0 ; n < m_pDocument->m_ParamTab.m_TtyMode.GetSize() ; n++ ) {
+					if ( m_pDocument->m_ParamTab.m_TtyMode[n].opcode == 128 )		// ISPEED
+						ispeed = m_pDocument->m_ParamTab.m_TtyMode[n].param;
+					else if ( m_pDocument->m_ParamTab.m_TtyMode[n].opcode == 129 )	// OSPEED
+						ospeed = m_pDocument->m_ParamTab.m_TtyMode[n].param;
+				}
+			}
+
+			str.Format(_T("%d,%d"), ispeed, ospeed);;
+			SendStr(str);
+		}
+		n = 0;
+		tmp[n++] = (char)TELC_IAC;
+		tmp[n++] = (char)TELC_SE;
+		SockSend(tmp, n);
+		PrintOpt(0, TELC_SB, TELOPT_TSPEED);
 		break;
 
 	case TELOPT_NEW_ENVIRON:
