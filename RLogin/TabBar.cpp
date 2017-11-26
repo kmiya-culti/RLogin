@@ -277,6 +277,10 @@ void CTabBar::OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler)
 		pDoc = (CRLoginDoc *)(pWnd->GetActiveDocument());
 
 		pWnd->GetWindowText(title);
+
+		if ( title.GetLength() >= MAX_PATH )
+			title = title.Left(MAX_PATH -1);
+
 		if ( title.Compare(tmp) != 0 ) {
 			ntc.mask |= TCIF_TEXT;
 			ntc.pszText = tmp;

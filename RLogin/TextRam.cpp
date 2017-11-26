@@ -1476,6 +1476,7 @@ CTextRam::CTextRam()
 	m_CharWidth = 8;
 	m_CharHeight = 16;
 	m_MarkColor = RGB(255, 255, 0);
+	m_RtfMode = 0;
 
 	for ( int n = 0 ; n < 8 ; n++ )
 		pGrapListIndex[n] = pGrapListImage[n] = NULL;
@@ -2222,6 +2223,7 @@ void CTextRam::Init()
 	m_BankGR		= 1;
 	m_DefAtt		= TempAtt;
 	m_DefCaretColor = RGB(255, 255, 255);
+	m_RtfMode       = 0;
 
 	memcpy(m_DefColTab, ColSetTab[DEFCOLTAB], sizeof(m_DefColTab));
 	memcpy(m_ColTab, m_DefColTab, sizeof(m_DefColTab));
@@ -2455,6 +2457,8 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		index[_T("CaretColor")].Add(GetBValue(m_DefCaretColor));
 
 		index[_T("Title")] = m_TitleName;
+
+		index[_T("RtfMode")] = m_RtfMode;
 
 	} else {		// Read
 		if ( (n = index.Find(_T("Cols"))) >= 0 ) {
@@ -2721,6 +2725,9 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		if ( (n = index.Find(_T("Title"))) >= 0 )
 			m_TitleName = index[n];
 
+		if ( (n = index.Find(_T("RtfMode"))) >= 0 )
+			m_RtfMode = index[n];
+
 		memcpy(m_ColTab, m_DefColTab, sizeof(m_DefColTab));
 		memcpy(m_AnsiOpt, m_DefAnsiOpt, sizeof(m_AnsiOpt));
 		memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
@@ -2955,6 +2962,9 @@ void CTextRam::DiffIndex(CTextRam &orig, CStringIndex &index)
 	
 	if ( m_TitleName.Compare(orig.m_TitleName) != 0 )
 		index[_T("Title")] = m_TitleName;
+
+	if ( m_RtfMode != orig.m_RtfMode )
+		index[_T("RtfMode")] = m_RtfMode;
 }
 void CTextRam::SetArray(CStringArrayExt &stra)
 {
@@ -3062,6 +3072,8 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 	stra.Add(m_TitleName);
 	stra.AddVal(m_ClipCrLf);
 	stra.AddVal(m_TelKeepAlive);
+
+	stra.AddVal(m_RtfMode);
 }
 void CTextRam::GetArray(CStringArrayExt &stra)
 {
@@ -3287,6 +3299,9 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 		m_ClipCrLf = stra.GetVal(73);
 	if ( stra.GetSize() > 74 )
 		m_TelKeepAlive = stra.GetVal(74);
+
+	if ( stra.GetSize() > 75 )
+		m_RtfMode = stra.GetVal(75);
 
 	if ( m_FixVersion < 9 ) {
 		if ( m_pDocument != NULL ) {
@@ -3600,6 +3615,7 @@ const CTextRam & CTextRam::operator = (CTextRam &data)
 	m_SshKeepAlive = data.m_SshKeepAlive;
 	m_MarkColor = data.m_MarkColor;
 	m_TelKeepAlive = data.m_TelKeepAlive;
+	m_RtfMode = data.m_RtfMode;
 
 	return *this;
 }
@@ -4113,18 +4129,44 @@ SKIP:
 }
 void CTextRam::EditCopy(int sps, int eps, BOOL rectflag, BOOL lineflag)
 {
-	int n, x, y, sx, ex, tc;
+	int i, x, y, sx, ex, tc;
 	int x1, y1, x2, y2;
+	int len;
 	CCharCell *vp;
-	CBuffer tmp, str;
-	LPCWSTR p;
+	CBuffer text, rtf, colrtf, fontrtf, mixrtf;
+	LPCWSTR p, s;
 	WCHAR tabc;
+	int attr = 0;
+	int fcol = 0;
+	int bcol = 0;
+	int fnum = 0;
+	CDWordArray coltbl;
+	CStringArrayExt fonttbl;
+	CGrapWnd *pWnd;
+	CRLoginView *pView = (CRLoginView *)GetAciveView();
+	int fsize = 12;		// RTF default font size = 24 (1/2 point) = 12 point
 
 	SetCalcPos(sps, &x1, &y1);
 	SetCalcPos(eps, &x2, &y2);
 
 	if ( rectflag && x1 > x2 ) {
 		x = x1; x1 = x2; x2 = x;
+	}
+
+	if ( m_RtfMode != RTF_NONE ) {
+		if ( m_RtfMode >= RTF_FONT ) {
+			if ( pView != NULL )
+				fsize = MulDiv(pView->m_CharHeight, 72, ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY);
+
+			fonttbl.Add(m_DefFontName[0]);
+			fontrtf.AddFormat("{\\fonttbl{\\f0\\fmodern %s;}", TstrToMbs(m_DefFontName[0]));
+		} else
+			fontrtf = "{\\fonttbl\\f0;}\\f0";
+
+		if ( m_RtfMode >= RTF_COLOR )
+			colrtf = "{\\colortbl ;";
+
+		rtf = "\r\n";
 	}
 
 	for ( y = y1 ; y <= y2 ; y++ ) {
@@ -4146,63 +4188,276 @@ void CTextRam::EditCopy(int sps, int eps, BOOL rectflag, BOOL lineflag)
 			ex /= 2;
 		}
 
-		while ( sx <= ex && vp[ex].IsEmpty() )
-			ex--;
+		if ( m_RtfMode >= RTF_JPEG ) {
+			while ( sx <= ex && !IS_IMAGE(vp[ex].m_Vram.mode) && vp[ex].IsEmpty() )
+				ex--;
+		} else {
+			while ( sx <= ex && vp[ex].IsEmpty() )
+				ex--;
+		}
 
 		if ( IS_2BYTE(vp[sx].m_Vram.mode) )
 			sx++;
 
 		tc = 0;
-		str.Clear();
-		for ( x = sx ; x <= ex ; x += n ) {
+		for ( x = sx ; x <= ex ; x += len ) {
 			if ( vp[x].IsEmpty() ) {
-				p = L" ";
-				n = 1;
+				s = L" ";
+				len = 1;
 			} else if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].m_Vram.mode) && IS_2BYTE(vp[x + 1].m_Vram.mode) && vp[x].Compare(vp[x + 1]) == 0 ) {
-				p = vp[x];
-				n = 2;
+				s = vp[x];
+				len = 2;
 			} else {
-				p = vp[x];
-				n = 1;
+				s = vp[x];
+				len = 1;
 			}
 
-			if ( n == 1 && p[0] <= L' ' && p[1] == L'\0' ) {
+			// TEXT Format
+			if ( len == 1 && s[0] <= L' ' && s[1] == L'\0' ) {
 				if ( tc++ == 0 )
-					tabc = p[0];
+					tabc = s[0];
 				if ( (x % m_DefTab) == (m_DefTab - 1) && IsOptEnable(TO_RLSPCTAB) ) {
-					if ( tc > 1 )
-						str.PutWord(L'\t');
-					else
-						str.PutWord(tabc);
+					text.PutWord(tc > 1 ? L'\t' : tabc);
 					tc = 0;
 				}
 			} else {
 				for ( ; tc > 0 ; tc-- )
-					str.PutWord(L' ');
-				while ( *p != L'\0' )
-					str.PutWord(*(p++));
+					text.PutWord(L' ');
+				for ( p = s ; *p != L'\0' ; p++ )
+					text.PutWord(*p);
+			}
+
+			// RTF Format
+			if ( m_RtfMode >= RTF_FONT ) {
+				LPCTSTR fontname = NULL;
+
+				if ( (i = vp[x].m_Vram.bank) >= 0 && i < CODE_MAX ) {
+					if ( !m_FontTab[i].m_FontName[vp[x].m_Vram.font].IsEmpty() )
+						fontname = m_FontTab[i].m_FontName[vp[x].m_Vram.font];
+					else if ( !m_FontTab[i].m_FontName[0].IsEmpty() )
+						fontname = m_FontTab[i].m_FontName[0];
+					else if ( !m_DefFontName[vp[x].m_Vram.font].IsEmpty() )
+						fontname = m_DefFontName[vp[x].m_Vram.font];
+					else if ( !m_DefFontName[0].IsEmpty() )
+						fontname = m_DefFontName[0];
+				}
+
+				if ( fontname != NULL ) {
+					if ( (i = fonttbl.Find(fontname)) < 0 ) {
+						i = (int)fonttbl.Add(fontname);
+						fontrtf.AddFormat("{\\f%d\\fmodern %s;}", i, TstrToMbs(fontname));
+					}
+				} else
+					i = 0;
+
+				if ( i != fnum ) {
+					fnum = i;
+					rtf.AddFormat("\\f%d ", fnum);
+				}
+			}
+
+			if ( m_RtfMode >= RTF_COLOR ) {
+				int fcn, bcn;
+				COLORREF frgb, brgb;
+
+				fcn = vp[x].m_Vram.fcol;
+				bcn = vp[x].m_Vram.bcol;
+
+				if ( (vp[x].m_Vram.attr & ATT_EXTVRAM) != 0 && (vp->GetEatt() & EATT_FRGBCOL) != 0 )
+					frgb = vp->GetFrgb();
+				else
+					frgb = m_ColTab[fcn];
+
+				if ( (vp[x].m_Vram.attr & ATT_EXTVRAM) != 0 && (vp->GetEatt() & EATT_BRGBCOL) != 0 )
+					brgb = vp->GetBrgb();
+				else
+					brgb = m_ColTab[bcn];
+
+				if ( (vp[x].m_Vram.attr & ATT_REVS) != 0 ) {
+					COLORREF trgb = frgb;
+					frgb = brgb;
+					brgb = trgb;
+
+					i = fcn;
+					fcn = bcn;
+					bcn = i;
+				}
+
+				if ( fcn == m_DefAtt.std.fcol )
+					i = 0;
+				else {
+					for ( i = 0 ; ; i++ ) {
+						if ( i >= coltbl.GetSize() ) {
+							i = (int)coltbl.Add((DWORD)frgb);
+							colrtf.AddFormat("\\red%d\\green%d\\blue%d;", GetRValue(frgb), GetGValue(frgb), GetBValue(frgb));
+							break;
+						} else if ( coltbl[i] == (DWORD)frgb )
+							break;
+					}
+					i++;	// 0=default color
+				}
+
+				if ( i != fcol ) {
+					fcol = i;
+					rtf.AddFormat("\\cf%d ", fcol);
+				}
+
+				if ( bcn == m_DefAtt.std.bcol )
+					i = 0;
+				else {
+					for ( i = 0 ; ; i++ ) {
+						if ( i >= coltbl.GetSize() ) {
+							i = (int)coltbl.Add((DWORD)brgb);
+							colrtf.AddFormat("\\red%d\\green%d\\blue%d;", GetRValue(brgb), GetGValue(brgb), GetBValue(brgb));
+							break;
+						} else if ( coltbl[i] == (DWORD)brgb )
+							break;
+					}
+					i++;	// 0=default color
+				}
+
+				if ( i != bcol ) {
+					bcol = i;
+					rtf.AddFormat("\\highlight%d ", bcol);
+				}
+			}
+
+			if ( m_RtfMode >= RTF_ATTR ) {
+				if ( vp[x].m_Vram.attr != attr ) {
+					i = vp[x].m_Vram.attr ^ attr;
+					attr = vp[x].m_Vram.attr;
+					if ( (i & ATT_BOLD) != 0 )
+						rtf += ((attr & ATT_BOLD) != 0 ? "\\b " : "\\b0 ");
+					if ( (i & ATT_ITALIC) != 0 )
+						rtf += ((attr & ATT_ITALIC) != 0 ? "\\i " : "\\i0 ");
+					if ( (i & ATT_LINE) != 0 )
+						rtf += ((attr & ATT_LINE) != 0 ? "\\strike " : "\\strike0 ");
+					if ( (i & ATT_STRESS) != 0 )
+						rtf += ((attr & ATT_STRESS) != 0 ? "\\striked1 " : "\\striked0 ");
+
+					if ( (i & (ATT_UNDER | ATT_DUNDER)) != 0 ) {
+						if ( (attr & (ATT_UNDER | ATT_DUNDER)) == 0 )
+							rtf += "\\ulnone ";
+						else if ( (attr & ATT_DUNDER) != 0 )
+							rtf += "\\uldb ";
+						else if ( (attr & ATT_UNDER) != 0 )
+							rtf += "\\ul ";
+					}
+				}
+			}
+
+			if ( m_RtfMode != RTF_NONE ) {
+				if ( m_RtfMode >= RTF_JPEG && IS_IMAGE(vp[x].m_Vram.mode) && (pWnd = GetGrapWnd(vp[x].m_Vram.pack.image.id)) != NULL && pWnd->m_pActMap != NULL ) {
+					for ( len = 1 ; (x + len) <= ex ; len++ ) {
+						if ( !IS_IMAGE(vp[x + len].m_Vram.mode) )
+							break;
+						if ( vp[x].m_Vram.pack.image.id != vp[x + len].m_Vram.pack.image.id )
+							break;
+						if ( vp[x].m_Vram.pack.image.iy != vp[x + len].m_Vram.pack.image.iy )
+							break;
+						if ( (vp[x].m_Vram.pack.image.ix + len) != vp[x + len].m_Vram.pack.image.ix )
+							break;
+					}
+
+					CBuffer buf;
+					BITMAP map;
+					HANDLE hBitmap = pWnd->GetBitmapBlock(RGB(255, 255, 255), //m_ColTab[m_DefAtt.std.bcol],
+						vp[x].m_Vram.pack.image.ix, vp[x].m_Vram.pack.image.iy,
+						vp[x].m_Vram.pack.image.ix + len, vp[x].m_Vram.pack.image.iy + 1,
+						MulDiv(fsize, RTF_DPI, 72) * 10 / m_DefFontHw, MulDiv(fsize, RTF_DPI, 72),
+						m_Cols, m_Lines, &map);
+
+/*
+								gdiplus		RTF			Word2010	WordPad		Taro2016
+	Gdiplus::ImageFormatBMP		OK			\dibitmap	X			OK			OK			(BMPFILEHEADER Skip 14 Byte)
+	Gdiplus::ImageFormatEMF		X			\emfblip
+	Gdiplus::ImageFormatWMF		X			\wmetafileN
+	Gdiplus::ImageFormatJPEG	OK			\jpegblip	OK			△			OK
+	Gdiplus::ImageFormatPNG		OK			\pngblip	OK			△			OK
+	Gdiplus::ImageFormatGIF		OK
+	Gdiplus::ImageFormatTIFF	OK
+	Gdiplus::ImageFormatEXIF	X
+	Gdiplus::ImageFormatIcon	X
+
+	GetBitmapBits							\wbitmapN	OK			OK			X			DDB
+*/
+					if ( m_RtfMode >= RTF_BITMAP ) {
+						CBitmap Bitmap;
+						Bitmap.Attach(hBitmap);
+						int size = map.bmWidthBytes * map.bmHeight;
+						Bitmap.GetBitmapBits(size, buf.PutSpc(size));
+						Bitmap.Detach();
+
+						rtf.AddFormat("{\\pict\\wbitmap%d\\picw%d\\pich%d\\picwgoal%d\\pichgoal%d\\wbmbitspixel%d\\wbmplanes%d\\wbmwidthbytes%d ",
+								map.bmType, map.bmWidth, map.bmHeight,
+								MulDiv(map.bmWidth, 72 * 20, RTF_DPI), MulDiv(map.bmHeight, 72 * 20, RTF_DPI),	// twips=1/20 point
+								map.bmBitsPixel, map.bmPlanes, map.bmWidthBytes);
+
+						rtf.PutHexBuf(buf.GetPtr(), buf.GetSize());
+						rtf += '}';
+
+					} else if ( pWnd->SaveImage(hBitmap, Gdiplus::ImageFormatJPEG, buf) ) {
+						rtf.AddFormat("{\\pict\\jpegblip\\picw%d\\pich%d\\picwgoal%d\\pichgoal%d ",
+							map.bmWidth, map.bmHeight,
+							MulDiv(map.bmWidth, 72 * 20, RTF_DPI), MulDiv(map.bmHeight, 72 * 20, RTF_DPI));	// twips=1/20 point
+
+						rtf.PutHexBuf(buf.GetPtr(), buf.GetSize());
+						rtf += '}';
+
+					} else {
+						rtf += ' ';
+					}
+
+					if ( hBitmap != NULL )
+						::DeleteObject(hBitmap);
+
+				} else {
+					for ( p = s ; *p != L'\0' ; p++ ) {
+						if ( *p < 0x20 )
+							rtf += ' ';
+						else if ( _tcschr(_T("\\{}"), *p) != NULL )
+							rtf.AddFormat("\\%c", *p);
+						else if ( *p <= 0x7E )
+							rtf += (CHAR)*p;
+						else
+							rtf.AddFormat("{\\uc\\u%d}", *p);
+					}
+				}
 			}
 		}
 
 		for ( ; tc > 0 ; tc-- )
-			str.PutWord(L' ');
+			text += L' ';
 
 		if ( (y == y2 && lineflag) || (y < y2 && (x < m_Cols || (vp[0].m_Vram.attr & ATT_RETURN) != 0)) ) {
-			str.PutWord(L'\r');
-			str.PutWord(L'\n');
-		}
+			text += L"\r\n";
 
-		tmp.Apend(str.GetPtr(), str.GetSize());
+			if ( m_RtfMode != RTF_NONE )
+				rtf += "\\par\r\n";
+		}
 	}
 
-	tmp.PutWord(0);
+	if ( m_RtfMode != RTF_NONE ) {
+		rtf += '}';
+
+		if ( m_RtfMode >= RTF_FONT )
+			fontrtf.AddFormat("}\\f0\\fs%d\\sa0\\sl%d\\slmult1", fsize * 2, fsize * 20);		// \fs=1/2 point, sl=1/20 point
+
+		if ( m_RtfMode >= RTF_COLOR )
+			colrtf += '}';
+
+		mixrtf = "{\\rtf1\\ansi\\deff0";
+		mixrtf.Apend(fontrtf.GetPtr(), fontrtf.GetSize());
+		mixrtf.Apend(colrtf.GetPtr(), colrtf.GetSize());
+		mixrtf.Apend(rtf.GetPtr(), rtf.GetSize());
+	}
 
 	if ( IsOptEnable(TO_RLGAWL) != 0 ) {
-		if ( m_ShellExec.Match(UniToTstr((LPCWSTR)tmp)) >= 0 )
-			ShellExecuteW(AfxGetMainWnd()->GetSafeHwnd(), NULL, (LPCWSTR)tmp, NULL, NULL, SW_NORMAL);
+		if ( m_ShellExec.Match(UniToTstr((LPCWSTR)text)) >= 0 )
+			ShellExecuteW(AfxGetMainWnd()->GetSafeHwnd(), NULL, (LPCWSTR)text, NULL, NULL, SW_NORMAL);
 	}
 
-	((CMainFrame *)::AfxGetMainWnd())->SetClipboardText((LPCWSTR)tmp);
+	((CMainFrame *)::AfxGetMainWnd())->SetClipboardText((LPCWSTR)text, (m_RtfMode != RTF_NONE ? (LPCSTR)mixrtf : NULL));
 }
 void CTextRam::EditMark(int sps, int eps, BOOL rectflag, BOOL lineflag)
 {
@@ -5240,7 +5495,8 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, struct DrawWork &prop, class CR
 	if ( prop.idx != (-1) ) {
 		// Image Draw
 		if ( (pWnd = GetGrapWnd(prop.idx)) != NULL ) {
-			pWnd->DrawBlock(pDC, rect, bcol, bEraBack, prop.stx, prop.sty, prop.edx, prop.sty + 1, pView);
+			pWnd->DrawBlock(pDC, rect, bcol, bEraBack, prop.stx, prop.sty, prop.edx, prop.sty + 1,
+				pView->m_Width, pView->m_Height, pView->m_CharWidth, pView->m_CharHeight, pView->m_Cols, pView->m_Lines);
 			if ( pWnd->IsGifAnime() && !prop.print )
 				pView->AddDeleyInval(pWnd->m_GifAnimeClock, rect);
 		} else if ( bEraBack )

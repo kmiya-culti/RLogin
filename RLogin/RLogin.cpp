@@ -2409,7 +2409,7 @@ BOOL CRLoginApp::OnIdle(LONG lCount)
 	CIdleProc *pProc;
 	BOOL rt = FALSE;
 
-	// TRACE("OnIdle(%d)\n", lCount);
+	//TRACE("OnIdle(%d)\n", lCount);
 
 	if ( lCount >= 0 && CWinApp::OnIdle(lCount) )
 		return TRUE;

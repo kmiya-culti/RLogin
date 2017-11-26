@@ -90,6 +90,15 @@
 #define	BLINK_TIME		300				// ATT_BLINK time (ms)
 #define	SBLINK_TIME		600				// ATT_SBLINK time (ms)
 
+#define	RTF_NONE		0				// Not Create RTF
+#define	RTF_ATTR		1				// Attribute
+#define	RTF_COLOR		2				// Attribute + Color
+#define	RTF_FONT		3				// Attribute + Color + Fonts
+#define	RTF_JPEG		4				// Attribute + Color + Fonts + Jpeg
+#define	RTF_BITMAP		5				// Attribute + Color + Fonts + Bitmap
+
+#define	RTF_DPI			180				// RTF Print DPI 96-300?
+
 #define CODE_MAX		0x0400
 #define CODE_MASK		0x03FF
 #define SET_MASK		0x0300
@@ -253,6 +262,7 @@
 #define	TO_RLDELCRLF	1478		// ペースト時に末尾のCRLFを削除
 #define	TO_RLPSUPWIN	1479		// 積極的なウィンドウの描画更新
 #define	TO_TELKEEPAL	1480		// KeepAliveパケットの送信間隔(sec)
+#define	TO_SSHSFTPORY	1481		// 接続時にSFTPを起動する
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -879,6 +889,7 @@ public:	// Options
 	CStringArrayExt m_InlineExt;
 	CString m_TitleName;
 	COLORREF m_DefCaretColor;
+	int m_RtfMode;
 
 	void Init();
 	void SetIndex(int mode, CStringIndex &index);

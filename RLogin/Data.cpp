@@ -90,6 +90,24 @@ void CBuffer::Dump()
 }
 #endif
 
+CBuffer::CBuffer(LPCSTR str)
+{
+	m_bZero = FALSE;
+	m_Ofs   = 0;
+	m_Len   = (int)strlen(str) * sizeof(CHAR);
+	m_Max   = m_Len + sizeof(CHAR);
+	m_Data  = new BYTE[m_Max];
+	memcpy(m_Data, str, m_Max);
+}
+CBuffer::CBuffer(LPCWSTR str)
+{
+	m_bZero = FALSE;
+	m_Ofs   = 0;
+	m_Len   = (int)wcslen(str) * sizeof(WCHAR);
+	m_Max   = m_Len + sizeof(WCHAR);
+	m_Data  = new BYTE[m_Max];
+	memcpy(m_Data, str, m_Max);
+}
 CBuffer::CBuffer(LPBYTE pData, int len)
 {
 	m_bZero = FALSE;
@@ -159,6 +177,26 @@ void CBuffer::Move(CBuffer &data)
 	data.m_Len = data.m_Ofs = 0;
 	data.m_Max = 32;
 	data.m_Data = new BYTE[data.m_Max];
+}
+void CBuffer::Swap(CBuffer &data)
+{
+	int Len, Ofs, Max;
+	LPBYTE Data;
+
+	Len  = m_Len;
+	Ofs  = m_Ofs;
+	Max  = m_Max;
+	Data = m_Data;
+
+	m_Len  = data.m_Len;
+	m_Ofs  = data.m_Ofs;
+	m_Max  = data.m_Max;
+	m_Data = data.m_Data;
+
+	data.m_Len  = Len;
+	data.m_Ofs  = Ofs;
+	data.m_Max  = Max;
+	data.m_Data = Data;
 }
 void CBuffer::Consume(int len)
 {
@@ -236,6 +274,42 @@ LPCWSTR CBuffer::operator += (LPCWSTR str)
 	memcpy(m_Data + m_Len, str, len);
 	m_Len += len;
 	return *this;
+}
+void CBuffer::AddFormat(LPCSTR pszFormat, ...)
+{
+	CStringA tmp;
+	va_list arg;
+	va_start(arg, pszFormat);
+	tmp.FormatV(pszFormat, arg);
+	*this += (LPCSTR)tmp;
+	va_end(arg);
+}
+void CBuffer::AddFormat(LPCWSTR pszFormat, ...)
+{
+	CStringW tmp;
+	va_list arg;
+	va_start(arg, pszFormat);
+	tmp.FormatV(pszFormat, arg);
+	*this += (LPCWSTR)tmp;
+	va_end(arg);
+}
+void CBuffer::Format(LPCSTR pszFormat, ...)
+{
+	CStringA tmp;
+	va_list arg;
+	va_start(arg, pszFormat);
+	tmp.FormatV(pszFormat, arg);
+	*this = (LPCSTR)tmp;
+	va_end(arg);
+}
+void CBuffer::Format(LPCWSTR pszFormat, ...)
+{
+	CStringW tmp;
+	va_list arg;
+	va_start(arg, pszFormat);
+	tmp.FormatV(pszFormat, arg);
+	*this = (LPCWSTR)tmp;
+	va_end(arg);
 }
 LPBYTE CBuffer::PutSpc(int len)
 {
@@ -807,8 +881,17 @@ void CBuffer::Base16Encode(LPBYTE buf, int len)
     while ( len > 0 ) {
 		PutTChar(QuotedEncTab[*buf >> 4]);
 		PutTChar(QuotedEncTab[*buf & 15]);
-		buf += 1;
-		len -= 1;
+		buf++;
+		len--;
+    }
+}
+void CBuffer::PutHexBuf(LPBYTE buf, int len)
+{
+    while ( len > 0 ) {
+		PutByte(QuotedEncTab[*buf >> 4]);
+		PutByte(QuotedEncTab[*buf & 15]);
+		buf++;
+		len--;
     }
 }
 
@@ -5884,6 +5967,7 @@ void CParamTab::Init()
 	m_x11AuthData.Empty();
 
 	m_bInitPageant = FALSE;
+	m_StdIoBufSize = 8;
 }
 void CParamTab::SetArray(CStringArrayExt &stra)
 {
@@ -5930,6 +6014,7 @@ void CParamTab::SetArray(CStringArrayExt &stra)
 	stra.Add(m_x11AuthData);
 	stra.AddVal(m_x11AuthFlag);
 	stra.AddVal(m_bInitPageant);
+	stra.AddVal(m_StdIoBufSize);
 }
 void CParamTab::GetArray(CStringArrayExt &stra)
 {
@@ -6054,6 +6139,9 @@ void CParamTab::GetArray(CStringArrayExt &stra)
 	if ( stra.GetSize() > i )
 		m_bInitPageant = stra.GetVal(i++);
 
+	if ( stra.GetSize() > i )
+		m_StdIoBufSize = stra.GetVal(i++);
+
 	// Fix IdKeyList
 	if ( m_IdKeyStr[0].Compare(_T("IdKeyList Entry")) == 0 ) {
 		m_IdKeyList.GetString(m_IdKeyStr[1]);
@@ -6130,6 +6218,7 @@ void CParamTab::SetIndex(int mode, CStringIndex &index)
 		index[_T("x11AuthFlag")] = m_x11AuthFlag;
 
 		index[_T("InitPageant")]  = m_bInitPageant;
+		index[_T("StdIoBufSize")] = m_StdIoBufSize;
 
 	} else {			// Read
 		if ( (n = index.Find(_T("Algo"))) >= 0 ) {
@@ -6231,6 +6320,9 @@ void CParamTab::SetIndex(int mode, CStringIndex &index)
 
 		if ( (n = index.Find(_T("InitPageant"))) >= 0 )
 			m_bInitPageant = index[n];
+
+		if ( (n = index.Find(_T("StdIoBufSize"))) >= 0 )
+			m_StdIoBufSize = index[n];
 	}
 }
 void CParamTab::DiffIndex(CParamTab &orig, CStringIndex &index)
@@ -6333,6 +6425,9 @@ void CParamTab::DiffIndex(CParamTab &orig, CStringIndex &index)
 
 	if ( m_bInitPageant != orig.m_bInitPageant )
 		index[_T("InitPageant")] = m_bInitPageant;
+
+	if ( m_StdIoBufSize != orig.m_StdIoBufSize )
+		index[_T("StdIoBufSize")] = m_StdIoBufSize;
 }
 
 static const ScriptCmdsDefs DocSsh[] = {

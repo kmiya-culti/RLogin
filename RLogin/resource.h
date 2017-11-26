@@ -711,6 +711,7 @@
 #define IDC_PROTOCHECK8                 2297
 #define IDC_PROXYSET                    2297
 #define IDC_RADIO1                      2298
+#define IDC_PROTOCHECK9                 2298
 #define IDC_RADIO2                      2299
 #define IDC_RADIO3                      2300
 #define IDC_RADIO4                      2301
@@ -847,6 +848,8 @@
 #define IDC_SHELLESC                    2430
 #define IDC_RSAEXTSEL                   2431
 #define IDC_MSGTEXT                     2432
+#define IDC_RSAEXTSEL2                  2432
+#define IDC_STDBUFSIZE                  2432
 #define IDC_NOCHECK                     2433
 #define IDC_BITMAPALPHA                 2434
 #define IDC_MENUBTN                     2435

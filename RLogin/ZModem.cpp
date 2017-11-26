@@ -1414,9 +1414,9 @@ void CZModem::ZSendData(char *buf, int length, int frameend)
 	int c, n;
 	unsigned short crc16 = 0;
 	unsigned long crc32 = 0xFFFFFFFF;
-#ifdef	DEBUG_DUMP
-	int send_len = length;
-#endif
+
+	DebugMsg("SendData %d\r\n", length);
+	DebugDump(buf, length < 16 ? length : 16);
 
 	switch (Crc32t) {
 	case 1:		// CRC 32 bit
@@ -1512,8 +1512,6 @@ void CZModem::ZSendData(char *buf, int length, int frameend)
 		Bufferd_Send(XON);
 		Bufferd_Flush();
 	}
-
-	DebugMsg("SendData %d\r\n", send_len);
 }
 int CZModem::ZReceiveData(char *buf, int length, int &Rxcount)
 {
@@ -1556,6 +1554,7 @@ int CZModem::ZReceiveData(char *buf, int length, int &Rxcount)
 				}
 
 				DebugMsg("RecvData %d/%d\r\n", Rxcount, length);
+				DebugDump(buf, Rxcount < 16 ? Rxcount : 16);
 				return c;
 
 			case GOTCAN:

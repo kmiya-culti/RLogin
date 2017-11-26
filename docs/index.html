@@ -436,6 +436,17 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">次期試作版<BR>
+            RC1</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.22.9/">2.22.9</A></TD>
+            <TD><FONT color="#c0c0c0">プロトコルのオプションに接続時にSFTPを起動するを追加<BR>
+            クリップボードのオプションにRTFを作成を追加<BR>
+            タブバーのタイトルが256文字以上の場合の不都合を修正<BR>
+            ssh2の標準入出力バッファサイズを設定できるように変更<BR>
+            メニュー操作時のアイドル処理をタイマーで処理するように変更<BR>
+            ファイル転送プロトコルの送信を確認するように変更</FONT></TD>
+          </TR>
+          <TR>
             <TD align="center">2017/11/03</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.22.8/">2.22.8</A></TD>
             <TD>ssh2のポートフォワードにチェックマークで有効・無効を追加<BR>
@@ -482,15 +493,6 @@ TD {
             フォントセット設定に&quot;0&quot;Zeroに文字を重ねて表示を追加</TD>
           </TR>
           <TR>
-            <TD align="center">2017/07/03</TD>
-            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.22.4/">2.22.4</A></TD>
-            <TD>スクリプトにメッセージウィンドウ関数を追加<BR>
-            拡張機能に再接続の確認を追加<BR>
-            拡張機能に末尾の改行を削除を追加<BR>
-            範囲指定を解除しない場合にSHIFT+クリックで範囲拡張に変更<BR>
-            スクリプトにpopen/pcloseを追加</TD>
-          </TR>
-          <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
           </TR>
         </TBODY>
@@ -514,7 +516,7 @@ TD {
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-1.1.0f.tar.gz</A><BR>
+                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-1.1.0g.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
@@ -2395,8 +2397,12 @@ fi</PRE>
                   <TD>SSHバージョン１で接続します</TD>
                 </TR>
                 <TR>
-                  <TD align="center">ポートフォワード・・・</TD>
+                  <TD align="center">シェル起動なし・・・</TD>
                   <TD>SSH2で接続した場合にSHELLを起動しません。代わりにポートフォワードのログを表示します(SSH2のみ)</TD>
+                </TR>
+                <TR>
+                  <TD align="center"><FONT color="#c0c0c0">接続時にSFTP・・・</FONT></TD>
+                  <TD><FONT color="#c0c0c0">接続時にSFTPを起動するようにします。上記のシェル起動なしと併用するとSFTPの為のエントリーを作成することができます。</FONT></TD>
                 </TR>
                 <TR>
                   <TD align="center">エージェント転送・・・</TD>
@@ -3781,8 +3787,48 @@ function TekClock2() {
                   <TD>コピーした後に自動で範囲指定の解除を行わないにします</TD>
                 </TR>
                 <TR>
-                  <TD align="center">コピーした文字列・・・</TD>
+                  <TD align="center">連続したスペース・・・</TD>
                   <TD>コピーした文字列の連続したスペースをタブに変換します。</TD>
+                </TR>
+                <TR>
+                  <TD align="center"><FONT color="#c0c0c0">RTFを作成</FONT></TD>
+                  <TD><FONT color="#c0c0c0">コピー時にRTF(Rich Text Format)を作成するようにします。<BR>
+                  MS Wordなどにペーストした場合に文字装飾や文字色、フォント情報、Sixelなどの画像を含めてペーストすることができます。<BR>
+                  </FONT>
+                  <TABLE cellpadding="3">
+                    <TBODY>
+                      <TR>
+                        <TD>None</TD>
+                        <TD colspan="2">RTFを作成しません</TD>
+                      </TR>
+                      <TR>
+                        <TD>Attr</TD>
+                        <TD>一部の文字装飾をコピー</TD>
+                        <TD>SGR 1/3/4/7/9/21/64</TD>
+                      </TR>
+                      <TR>
+                        <TD>+Color</TD>
+                        <TD>文字色、背景色を追加</TD>
+                        <TD>Word/一太郎では色制限</TD>
+                      </TR>
+                      <TR>
+                        <TD>+Font</TD>
+                        <TD>フォント、文字サイズを追加</TD>
+                        <TD>行サイズも設定</TD>
+                      </TR>
+                      <TR>
+                        <TD>+Jpeg</TD>
+                        <TD>画像をJpeg形式で追加</TD>
+                        <TD>旧WordPadは不可</TD>
+                      </TR>
+                      <TR>
+                        <TD>+Bitmap</TD>
+                        <TD>画像をBitmap形式で追加</TD>
+                        <TD>一太郎は不可</TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  <FONT color="#c0c0c0">※すべての情報が正しくペーストされるわけではありません。受け取り側でかなり変化するようなのでご注意ください。</FONT></TD>
                 </TR>
                 <TR>
                   <TD align="center">http:で始まる・・・</TD>

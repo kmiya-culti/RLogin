@@ -11,6 +11,7 @@
 #include "Script.h"
 #include "ssh2.h"
 #include "ToolDlg.h"
+#include "richedit.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -773,6 +774,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_WM_MOUSEMOVE()
 	ON_WM_COPYDATA()
 	ON_WM_ENTERMENULOOP()
+	ON_WM_EXITMENULOOP()
 	ON_WM_ACTIVATE()
 	ON_WM_CLOSE()
 	ON_WM_DRAWCLIPBOARD()
@@ -893,6 +895,7 @@ CMainFrame::CMainFrame()
 	m_UseBitmapUpdate = FALSE;
 	m_bClipThreadCount = 0;
 	m_ClipTimer = 0;
+	m_IdleTimer = 0;
 }
 
 CMainFrame::~CMainFrame()
@@ -1227,7 +1230,7 @@ BOOL CMainFrame::PageantQuery(CBuffer *pInBuf, CBuffer *pOutBuf)
 BOOL CMainFrame::PageantInit()
 {
 	int n, i;
-	int count;
+	int count = 0;
 	CBuffer in, out;
 	CIdKey key;
 	CBuffer blob;
@@ -1278,7 +1281,7 @@ BOOL CMainFrame::PageantInit()
 		return FALSE;
 	}
 
-	return TRUE;
+	return (count <= 0 ? FALSE : TRUE);
 }
 BOOL CMainFrame::PageantSign(CBuffer *blob, CBuffer *sign, LPBYTE buf, int len)
 {
@@ -1509,6 +1512,17 @@ void CMainFrame::SetMidiEvent(int msec, DWORD msg)
 
 	if ( m_MidiTimer == 0 )
 		m_MidiTimer = SetTimer(TIMERID_MIDIEVENT, qp->m_mSec, NULL);
+}
+void CMainFrame::SetIdleTimer(BOOL bSw)
+{
+	if ( bSw ) {
+		if ( m_IdleTimer == 0 )
+			m_IdleTimer = SetTimer(TIMERID_IDLETIMER, 200, NULL);
+
+	} else if ( m_IdleTimer != 0 ) {
+		KillTimer(m_IdleTimer);
+		m_IdleTimer = 0;
+	}
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -2054,7 +2068,7 @@ static UINT CopyClipboardThead(LPVOID pParam)
 	pWnd->m_bClipThreadCount--;
 	return 0;
 }
-BOOL CMainFrame::SetClipboardText(LPCTSTR str)
+BOOL CMainFrame::SetClipboardText(LPCTSTR str, LPCSTR rtf)
 {
 	HGLOBAL hData;
 	LPTSTR pData;
@@ -2112,6 +2126,32 @@ BOOL CMainFrame::SetClipboardText(LPCTSTR str)
 		m_OpenClipboardLock.Unlock();
 		MessageBox(_T("Clipboard Set Data Error"));
 		return FALSE;
+	}
+
+	if ( rtf != NULL ) {
+		if ( (hData = GlobalAlloc(GMEM_MOVEABLE, (strlen(rtf) + 1))) == NULL ) {
+			m_OpenClipboardLock.Unlock();
+			MessageBox(_T("Global Alloc Error"));
+			return FALSE;
+		}
+
+		if ( (pData = (TCHAR *)GlobalLock(hData)) == NULL ) {
+			GlobalFree(hData);
+			m_OpenClipboardLock.Unlock();
+			MessageBox(_T("Global Lock Error"));
+			return FALSE;
+		}
+
+		strcpy((LPSTR)pData, rtf);
+		GlobalUnlock(pData);
+
+		if ( SetClipboardData(RegisterClipboardFormat(CF_RTF), hData) == NULL ) {
+			GlobalFree(hData);
+			CloseClipboard();
+			m_OpenClipboardLock.Unlock();
+			MessageBox(_T("Clipboard Set Data Error"));
+			return FALSE;
+		}
 	}
 
 	CloseClipboard();
@@ -2506,8 +2546,8 @@ void CMainFrame::OnEnterIdle(UINT nWhy, CWnd* pWho)
 {
 	CMDIFrameWnd::OnEnterIdle(nWhy, pWho);
 
-	if ( nWhy == MSGF_MENU )
-		((CRLoginApp *)AfxGetApp())->OnIdle(-1);
+	//if ( nWhy == MSGF_MENU )
+	//	((CRLoginApp *)AfxGetApp())->OnIdle(-1);
 }
 
 void CMainFrame::OnTimer(UINT_PTR nIDEvent) 
@@ -2559,6 +2599,14 @@ void CMainFrame::OnTimer(UINT_PTR nIDEvent)
 		} else {
 			KillTimer(nIDEvent);
 			m_ClipTimer = 0;
+		}
+
+	} else if ( nIDEvent == TIMERID_IDLETIMER ) {
+		// ç≈ëÂ10âÒÅA200msà»â∫Ç…êßå¿
+		clock_t st = clock() + 200;
+		for ( int n = 0 ; n < 10 && st > clock() ; n++ ) {
+			if ( !((CRLoginApp *)AfxGetApp())->OnIdle((LONG)(-1)) )
+				break;
 		}
 
 	} else {
@@ -3198,6 +3246,8 @@ void CMainFrame::OnEnterMenuLoop(BOOL bIsTrackPopupMenu)
 	CRLoginDoc *pDoc;
 	CString str;
 
+	SetIdleTimer(TRUE);
+
 	if ( (pMenu = GetMenu()) == NULL )
 		return;
 
@@ -3228,6 +3278,10 @@ void CMainFrame::OnEnterMenuLoop(BOOL bIsTrackPopupMenu)
 	}
 
 	SetMenuBitmap(pMenu);
+}
+void CMainFrame::OnExitMenuLoop(BOOL bIsTrackPopupMenu)
+{
+	SetIdleTimer(FALSE);
 }
 
 void CMainFrame::OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized)

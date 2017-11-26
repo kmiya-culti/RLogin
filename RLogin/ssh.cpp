@@ -1734,7 +1734,7 @@ void Cssh::PortForward()
 	}
 
 	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHPFORY) ) {
-		if ( a == 0 ) {
+		if ( a == 0 && !m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFTPORY) ) {
 			AfxMessageBox(IDE_PORTFWORDERROR);
 			GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, FD_CLOSE);
 		}
@@ -2284,7 +2284,7 @@ void Cssh::SendMsgChannelData(int id)
 			len = cp->m_RemoteMax;
 
 		if ( len <= 0 )
-			return;
+			return;			// ChannelCheck“à‚ÅSendMsgChannelData‚ðŒÄ‚Ño‚·‚Ì‚Å’ˆÓ
 
 		tmp.Clear();
 		tmp.Put8Bit(SSH2_MSG_CHANNEL_DATA);
@@ -3965,13 +3965,15 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 			m_SSH2Status |= SSH2_STAT_HAVEPFWD;
 			PortForward();
 		}
+		if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFTPORY) )
+			OpenSFtpChannel();
 		if ( !m_pDocument->m_TextRam.IsOptEnable(TO_SSHPFORY) && (m_SSH2Status & SSH2_STAT_HAVESTDIO) == 0 ) {
 			if ( (m_StdChan = ChannelOpen()) >= 0 ) {
 				CChannel *cp = (CChannel *)m_pChan[m_StdChan];
 				cp->m_pFilter = new CStdIoFilter;
 				cp->m_pFilter->m_pChan = cp;
-				cp->m_LocalPacks = CHAN_STD_PACKET_DEFAULT;
-				cp->m_LocalWind  = CHAN_STD_WINDOW_DEFAULT;
+				cp->m_LocalPacks = m_pDocument->m_ParamTab.m_StdIoBufSize * 1024;	//CHAN_STD_PACKET_DEFAULT;
+				cp->m_LocalWind  = cp->m_LocalPacks * 16;							//CHAN_STD_WINDOW_DEFAULT;
 				SendMsgChannelOpen(m_StdChan, "session");
 			}
 		}

@@ -59,10 +59,12 @@ BEGIN_MESSAGE_MAP(CRLoginView, CView)
 	ON_WM_MOUSEWHEEL()
 	ON_WM_XBUTTONDOWN()
 	ON_WM_MBUTTONDOWN()
+	ON_WM_DESTROY()
 
 	ON_MESSAGE(WM_IME_NOTIFY, OnImeNotify)
 	ON_MESSAGE(WM_IME_COMPOSITION, OnImeComposition)
 	ON_MESSAGE(WM_IME_REQUEST, OnImeRequest)
+	ON_MESSAGE(WM_LOGWRITE, OnLogWrite)
 
 	ON_COMMAND(ID_EDIT_COPY, OnEditCopy)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_COPY, OnUpdateEditCopy)
@@ -107,7 +109,7 @@ BEGIN_MESSAGE_MAP(CRLoginView, CView)
 	ON_COMMAND(ID_FILE_PRINT_PREVIEW, &CView::OnFilePrintPreview)
 	ON_COMMAND(IDM_EDIT_MARK, &CRLoginView::OnEditMark)
 	ON_UPDATE_COMMAND_UI(IDM_EDIT_MARK, &CRLoginView::OnUpdateEditMark)
-	ON_WM_DESTROY()
+
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -2480,8 +2482,14 @@ void CRLoginView::PopUpMenu(CPoint point)
 		state.DoUpdate(this, TRUE);
 	}
 
+	// OnEnterMenuLoop
+	((CMainFrame *)::AfxGetMainWnd())->SetIdleTimer(TRUE);
+
 	ClientToScreen(&point);
 	pMenu->TrackPopupMenu(TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, this);
+
+	// OnExitMenuLoop
+	((CMainFrame *)::AfxGetMainWnd())->SetIdleTimer(FALSE);
 
 	if ( m_pSelectGrapWnd != NULL ) {
 		pMenu->DeleteMenu(6, MF_BYPOSITION);
@@ -3795,6 +3803,20 @@ void CRLoginView::OnSplitWidthNew()
 	pMain->SplitWidthPane();
 	cmds.ParseParam(_T("inpane"), TRUE, TRUE);
 	pApp->OpenProcsCmd(&cmds);
+}
+LRESULT CRLoginView::OnLogWrite(WPARAM wParam, LPARAM lParam)
+{
+	CRLoginDoc *pDoc = GetDocument();
+	CBuffer *pBuffer = (CBuffer *)lParam;
+
+	if ( wParam == 0 )
+		pDoc->LogWrite(pBuffer->GetPtr(), pBuffer->GetSize(), LOGDEBUG_INSIDE);
+	else
+		pDoc->LogDump(pBuffer->GetPtr(), pBuffer->GetSize());
+
+	delete pBuffer;
+
+	return TRUE;
 }
 
 /////////////////////////////////////////////////////////////////////////////

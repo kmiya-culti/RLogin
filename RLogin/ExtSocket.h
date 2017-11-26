@@ -24,7 +24,7 @@
 #define	RECVMAXSIZ		(m_RecvBufSize * 4)
 
 #define	RECVBGNSIZ		(4 * 1024)
-#define	RECVBIGSIZ		(128 * 1024)
+#define	RECVBIGSIZ		(16 * 1024)
 
 #define	ESCT_DIRECT			0
 #define	ESCT_RLOGIN			1

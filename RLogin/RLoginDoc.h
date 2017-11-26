@@ -217,7 +217,6 @@ protected:
 	afx_msg void OnScreenReset(UINT nID);
 	afx_msg void OnUpdateResetSize(CCmdUI *pCmdUI);
 	afx_msg void OnScriptMenu(UINT nID);
-public:
 	afx_msg void OnTitleedit();
 };
 

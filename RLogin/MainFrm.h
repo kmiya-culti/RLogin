@@ -84,6 +84,7 @@ public:
 #define	TIMERID_MIDIEVENT	1025
 #define	TIMERID_STATUSCLR	1026
 #define	TIMERID_CLIPUPDATE	1027
+#define	TIMERID_IDLETIMER	1028
 #define	TIMERID_TIMEREVENT	1100
 
 class CTimerObject : public CObject
@@ -179,6 +180,7 @@ public:
 	UINT m_ScreenDpiY;
 	CKeyNodeTab m_DefKeyTab;
 	BOOL m_UseBitmapUpdate;
+	UINT_PTR m_IdleTimer;
 
 	BOOL PageantQuery(CBuffer *pInBuf, CBuffer *pOutBuf);
 	BOOL PageantInit();
@@ -201,6 +203,7 @@ public:
 	void FreeTimerEvent(CTimerObject *pObject);
 
 	void SetMidiEvent(int msec, DWORD msg);
+	void SetIdleTimer(BOOL bSw);
 
 	void SetWakeUpSleep(int sec);
 	void WakeUpSleep();
@@ -245,7 +248,7 @@ public:
 	void SetClipBoardMenu(UINT nId, CMenu *pMenu);
 	BOOL CopyClipboardData(CString &str);
 	BOOL GetClipboardText(CString &str);
-	BOOL SetClipboardText(LPCTSTR str);
+	BOOL SetClipboardText(LPCTSTR str, LPCSTR rtf = NULL);
 
 	CMenu *GetSaveMenu(HMENU hDocMenu);
 	void SetMenuBitmap(CMenu *pMenu);
@@ -289,6 +292,7 @@ protected:
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg BOOL OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCopyDataStruct);
 	afx_msg void OnEnterMenuLoop(BOOL bIsTrackPopupMenu);
+	afx_msg void OnExitMenuLoop(BOOL bIsTrackPopupMenu);
 	afx_msg void OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized);
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
 	afx_msg void OnClose();

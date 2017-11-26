@@ -26,11 +26,11 @@ static char THIS_FILE[] = __FILE__;
 
 IMPLEMENT_DYNCREATE(CProtoPage, CTreePage)
 
-#define	CHECKOPTMAX		8
+#define	CHECKOPTMAX		9
 #define	CHECKOPTEXT		3
 #define	IDC_CHECKFAST	IDC_PROTOCHECK1
 static const int CheckOptTab[] = { TO_RLTENAT,  TO_RLTENEC,  TO_RLTENLM,
-								   TO_SSH1MODE, TO_SSHPFORY, TO_SSHAGENT, TO_SSHKEEPAL, TO_TELKEEPAL,
+								   TO_SSH1MODE, TO_SSHPFORY, TO_SSHAGENT, TO_SSHKEEPAL, TO_TELKEEPAL, TO_SSHSFTPORY,
 								   TO_SSHSFENC, TO_SSHSFMAC, TO_SSHX11PF	};		// Extend
 
 CProtoPage::CProtoPage() : CTreePage(CProtoPage::IDD)
@@ -56,6 +56,7 @@ void CProtoPage::DoDataExchange(CDataExchange* pDX)
 		DDX_Check(pDX, IDC_CHECKFAST + n, m_Check[n]);
 	DDX_CBIndex(pDX, IDC_RSAEXTSEL, m_RsaExt);
 	DDX_Text(pDX, IDC_VERINDENT, m_VerIdent);
+	DDX_CBIndex(pDX, IDC_STDBUFSIZE, m_StdIoBufSize);
 }
 
 BEGIN_MESSAGE_MAP(CProtoPage, CTreePage)
@@ -69,6 +70,7 @@ BEGIN_MESSAGE_MAP(CProtoPage, CTreePage)
 	ON_EN_CHANGE(IDC_VERINDENT, OnUpdateEdit)
 	ON_EN_CHANGE(IDC_KEEPALIVE, OnUpdateEdit)
 	ON_EN_CHANGE(IDC_KEEPALIVE2, OnUpdateEdit)
+	ON_CBN_SELCHANGE(IDC_STDBUFSIZE, OnUpdateEdit)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -94,6 +96,13 @@ void CProtoPage::DoInit()
 	m_x11AuthFlag = m_pSheet->m_pParamTab->m_x11AuthFlag;
 	m_x11AuthName = m_pSheet->m_pParamTab->m_x11AuthName;
 	m_x11AuthData = m_pSheet->m_pParamTab->m_x11AuthData;
+
+	int r = m_pSheet->m_pParamTab->m_StdIoBufSize;
+	for ( m_StdIoBufSize = 0 ; m_StdIoBufSize < 6 ; m_StdIoBufSize++ ) {
+		if ( r <= 1 )
+			break;
+		r /= 2;
+	}
 
 	UpdateData(FALSE);
 }
@@ -132,6 +141,8 @@ BOOL CProtoPage::OnApply()
 	m_pSheet->m_pParamTab->m_x11AuthFlag = m_x11AuthFlag;
 	m_pSheet->m_pParamTab->m_x11AuthName = m_x11AuthName;
 	m_pSheet->m_pParamTab->m_x11AuthData = m_x11AuthData;
+
+	m_pSheet->m_pParamTab->m_StdIoBufSize = 1 << m_StdIoBufSize;
 
 	return TRUE;
 }

@@ -1289,6 +1289,9 @@ void CRLoginDoc::OnSocketConnect()
 	if ( m_pSock == NULL )
 		return;
 
+	if ( m_ServerEntry.m_HostName.Compare(m_ServerEntry.m_HostNameProvs) != 0 )
+		UpdateAllViews(NULL, UPDATE_INITPARA, NULL);
+
 	UpdateAllViews(NULL, UPDATE_GOTOXY, NULL);
 
 	if ( m_pScript != NULL )

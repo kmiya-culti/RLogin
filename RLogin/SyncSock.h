@@ -40,6 +40,7 @@ class CSyncSock : public CObject
 public:
 	CWnd *m_pWnd;
 	class CRLoginDoc *m_pDoc;
+	CWnd *m_pView;
 
 	BOOL m_ThreadFlag;
 	BOOL m_DoAbortFlag;
@@ -61,14 +62,14 @@ public:
 	LONGLONG m_RemSize;
 	CEvent *m_pParamEvent;
 	clock_t m_LastUpdate;
+	CBuffer m_LogBuffer;
 
-#ifdef	DEBUG_DUMP
-	int m_DebugMode;
-	int m_DebugCount;
-	void DebugDump(LPBYTE buf, int len, int DebugMode);
+#ifdef	USE_DEBUGLOG
 	void DebugMsg(LPCSTR fmt, ...);
+	void DebugDump(LPBYTE buf, int len);
 #else
 	#define	DebugMsg(...)
+	#define DebugDump(...)
 #endif
 
 	void Bufferd_Send(int c);

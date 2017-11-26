@@ -546,7 +546,7 @@ BEGIN
                     "SysLink",WS_TABSTOP,44,178,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,193,60,14,WS_GROUP
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.22.8 (2017/11/03)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.22.9 (2017/12/04)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2017 Culti",IDC_STATIC,44,16,189,8
     LTEXT           "OpenSSL 1.1.0g 2 Nov 2017",IDC_STATIC,44,52,189,8
     LTEXT           "Copyright (c) 1998-2017 The OpenSSL Project",IDC_STATIC,44,61,189,8
@@ -798,25 +798,29 @@ CAPTION "プロトコル"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     CONTROL         "自動ユーザー認証を行わない",IDC_PROTOCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,20,240,10
-    CONTROL         "データの暗号化を禁止する",IDC_PROTOCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,35,240,10
-    CONTROL         "LINEMODEを禁止する",IDC_PROTOCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,50,240,10
-    CONTROL         "KeepAliveパケットの送信間隔(sec)",IDC_PROTOCHECK8,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,65,180,10
-    EDITTEXT        IDC_KEEPALIVE2,205,63,50,14,ES_AUTOHSCROLL
-    CONTROL         "SSHバージョン１で接続する",IDC_PROTOCHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,104,240,10
-    CONTROL         "ポートフォワードだけ行う （SSH2のみ）",IDC_PROTOCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,120,240,10
-    CONTROL         "エージェント転送を有効にする(SSH2のみ)",IDC_PROTOCHECK6,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,136,240,10
-    CONTROL         "KeepAliveパケットの送信間隔(sec)",IDC_PROTOCHECK7,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,152,180,10
-    EDITTEXT        IDC_KEEPALIVE,205,150,50,14,ES_AUTOHSCROLL
-    LTEXT           "RSA2認証鍵の署名方式を拡張(サーバーの対応が必要)",IDC_STATIC,15,169,180,10
-    COMBOBOX        IDC_RSAEXTSEL,207,166,48,80,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "暗号方式(&C)",IDC_SSHALGO,35,189,90,14
-    PUSHBUTTON      "認証キー(&K)",IDC_SSHIDKEY,144,189,90,14
-    PUSHBUTTON      "ポートフォワード(&P)",IDC_SSHPFD,35,209,90,14
-    PUSHBUTTON      "端末モード(&T)",IDC_SSHTTYMODE,144,209,90,14
-    EDITTEXT        IDC_VERINDENT,15,250,240,14,ES_AUTOHSCROLL
-    GROUPBOX        "TELNET",IDC_STATIC,7,7,256,77
-    GROUPBOX        "SSH",IDC_STATIC,7,91,256,182
-    LTEXT           "追加のバージョン情報",IDC_STATIC,15,234,240,8
+    CONTROL         "データの暗号化を禁止する",IDC_PROTOCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,34,240,10
+    CONTROL         "LINEMODEを禁止する",IDC_PROTOCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,48,240,10
+    CONTROL         "KeepAliveパケットの送信間隔(sec)",IDC_PROTOCHECK8,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,62,180,10
+    EDITTEXT        IDC_KEEPALIVE2,205,60,50,14,ES_AUTOHSCROLL
+    CONTROL         "SSHバージョン１で接続する (以下のオプションはSSHバージョン2で有効です)",IDC_PROTOCHECK4,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,98,240,10
+    CONTROL         "シェル起動なしでPFログを表示",IDC_PROTOCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,114,117,10
+    CONTROL         "接続時にSFTPを起動する",IDC_PROTOCHECK9,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,138,114,117,10
+    CONTROL         "エージェント転送を有効にする",IDC_PROTOCHECK6,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,130,240,10
+    CONTROL         "KeepAliveパケットの送信間隔(sec)",IDC_PROTOCHECK7,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,146,180,10
+    EDITTEXT        IDC_KEEPALIVE,205,144,50,14,ES_AUTOHSCROLL
+    COMBOBOX        IDC_RSAEXTSEL,205,160,50,80,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_STDBUFSIZE,205,176,50,80,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "暗号方式(&C)",IDC_SSHALGO,35,198,90,14
+    PUSHBUTTON      "認証キー(&K)",IDC_SSHIDKEY,144,198,90,14
+    PUSHBUTTON      "ポートフォワード(&P)",IDC_SSHPFD,35,218,90,14
+    PUSHBUTTON      "端末モード(&T)",IDC_SSHTTYMODE,144,218,90,14
+    EDITTEXT        IDC_VERINDENT,15,253,240,14,ES_AUTOHSCROLL
+    GROUPBOX        "TELNET",IDC_STATIC,7,7,256,71
+    GROUPBOX        "SSH",IDC_STATIC,7,84,256,189
+    LTEXT           "RSA2認証鍵の署名方式を拡張(サーバーの対応が必要)",IDC_STATIC,15,162,180,10
+    LTEXT           "標準入出力のバッファサイズを指定します",IDC_STATIC,15,178,180,10
+    LTEXT           "追加のバージョン情報",IDC_STATIC,15,240,240,8
 END
 
 IDD_PFDPARADLG DIALOGEX 0, 0, 206, 175
@@ -1402,7 +1406,8 @@ FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     CONTROL         "左クリックの範囲指定だけでクリップボードにコピーする",IDC_OPTCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,19,240,10
     CONTROL         "コピー時に範囲指定を解除しない",IDC_OPTCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,36,240,10
-    CONTROL         "コピーした文字列から連続したスペースをタブに変換する",IDC_OPTCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,53,240,10
+    CONTROL         "コピー時に連続したスペースをタブに変換",IDC_OPTCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,53,142,10
+    COMBOBOX        IDC_COMBO2,215,52,40,50,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     CONTROL         "http://で始まる文字列をコピーすると自動でブラウザを起動する",IDC_OPTCHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,70,240,10
     CONTROL         "右クリックで編集メニュー",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,15,87,82,10
     CONTROL         "右ダブルクリックでペースト",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,102,87,81,10
@@ -1418,6 +1423,7 @@ BEGIN
     GROUPBOX        "左ダブルクリックのワード選択で英数と同し扱いにする記号などを設定",IDC_STATIC,7,149,256,35
     GROUPBOX        "制御コードによるクリップボード操作",IDC_STATIC,7,230,256,43
     GROUPBOX        "http://などのURLの開始文字列を | で区切って指定",IDC_STATIC,7,189,256,35
+    RTEXT           "RTFを作成",IDC_STATIC,165,53,43,10,SS_CENTERIMAGE
 END
 
 IDD_MOUSEPAGE DIALOGEX 0, 0, 270, 280
@@ -1795,8 +1801,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,22,8,0
- PRODUCTVERSION 2,22,8,0
+ FILEVERSION 2,22,9,0
+ PRODUCTVERSION 2,22,9,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1813,12 +1819,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.22.8.0"
+            VALUE "FileVersion", "2.22.9.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2017 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.22.8.0"
+            VALUE "ProductVersion", "2.22.9.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -3167,6 +3173,20 @@ BEGIN
 0x4853, 0x3241, 0x322d, 0x3635, "\000" 
     IDC_RSAEXTSEL, 0x403, 9, 0
 0x4853, 0x3241, 0x352d, 0x3231, "\000" 
+    IDC_STDBUFSIZE, 0x403, 3, 0
+0x4b31, "\000" 
+    IDC_STDBUFSIZE, 0x403, 3, 0
+0x4b32, "\000" 
+    IDC_STDBUFSIZE, 0x403, 3, 0
+0x4b34, "\000" 
+    IDC_STDBUFSIZE, 0x403, 3, 0
+0x4b38, "\000" 
+    IDC_STDBUFSIZE, 0x403, 4, 0
+0x3631, 0x004b, 
+    IDC_STDBUFSIZE, 0x403, 4, 0
+0x3233, 0x004b, 
+    IDC_STDBUFSIZE, 0x403, 4, 0
+0x3436, 0x004b, 
     0
 END
 
@@ -3499,6 +3519,18 @@ END
 
 IDD_CLIPBOARDPAGE DLGINIT
 BEGIN
+    IDC_COMBO2, 0x403, 5, 0
+0x6f4e, 0x656e, "\000" 
+    IDC_COMBO2, 0x403, 5, 0
+0x7441, 0x7274, "\000" 
+    IDC_COMBO2, 0x403, 7, 0
+0x432b, 0x6c6f, 0x726f, "\000" 
+    IDC_COMBO2, 0x403, 6, 0
+0x462b, 0x6e6f, 0x0074, 
+    IDC_COMBO2, 0x403, 6, 0
+0x4a2b, 0x6570, 0x0067, 
+    IDC_COMBO2, 0x403, 8, 0
+0x422b, 0x7469, 0x616d, 0x0070, 
     IDC_COMBO1, 0x403, 3, 0
 0x464c, "\000" 
     IDC_COMBO1, 0x403, 3, 0

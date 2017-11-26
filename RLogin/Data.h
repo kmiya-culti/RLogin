@@ -63,6 +63,7 @@ public:
 	void Apend(LPBYTE buff, int len);
 	void RemoveAll();
 	void Move(CBuffer &data);
+	void Swap(CBuffer &data);
 	inline void Clear() { m_Len = m_Ofs = 0; }
 	inline LPBYTE GetPtr() { return (m_Data + m_Ofs); }
 	inline LPBYTE GetPos(int pos) { return (m_Data + m_Ofs + pos); }
@@ -116,6 +117,7 @@ public:
 	void Base64Encode(LPBYTE buf, int len);
 	LPCTSTR Base16Decode(LPCTSTR str);
 	void Base16Encode(LPBYTE buf, int len);
+	void PutHexBuf(LPBYTE buf, int len);
 	LPCTSTR QuotedDecode(LPCTSTR str);
 	void QuotedEncode(LPBYTE buf, int len);
 	void BubbleBabble(LPBYTE buf, int len);
@@ -130,6 +132,13 @@ public:
 	void SetMbsStr(LPCTSTR str);
 	LPCSTR operator += (LPCSTR str);
 	LPCWSTR operator += (LPCWSTR str);
+	void AddFormat(LPCSTR pszFormat, ...);
+	void AddFormat(LPCWSTR pszFormat, ...);
+	void Format(LPCSTR pszFormat, ...);
+	void Format(LPCWSTR pszFormat, ...);
+
+	inline LPCSTR operator += (CHAR ch) { PutByte(ch); return *this; }
+	inline LPCWSTR operator += (WCHAR ch) { PutWord(ch); return *this; }
 	inline LPCSTR operator = (LPCSTR str) { Clear(); *this += str; return *this; }
 	inline LPCWSTR operator = (LPCWSTR str) { Clear(); *this += str; return *this; }
 	inline const CBuffer & operator = (CBuffer &data) { Clear(); Apend(data.GetPtr(), data.GetSize()); return *this; }
@@ -141,6 +150,8 @@ public:
 	void Dump();
 #endif
 
+	CBuffer(LPCSTR str);
+	CBuffer(LPCWSTR str);
 	CBuffer(LPBYTE pData, int len);
 	CBuffer(int size);
 	CBuffer();
@@ -849,6 +860,7 @@ public:
 	CString m_x11AuthName;
 	CString m_x11AuthData;
 	BOOL m_bInitPageant;
+	int m_StdIoBufSize;
 
 	CParamTab();
 	void Init();

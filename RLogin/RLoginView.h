@@ -260,6 +260,7 @@ protected:
 	afx_msg LRESULT OnImeNotify(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnImeComposition(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnImeRequest(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnLogWrite(WPARAM wParam, LPARAM lParam);
 
 	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);

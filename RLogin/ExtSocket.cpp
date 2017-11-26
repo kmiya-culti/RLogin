@@ -772,6 +772,8 @@ int CExtSocket::Send(const void* lpBuf, int nBufLen, int nFlags)
 		else
 			n = (m_Fd != (-1) ? ::send(m_Fd, (char *)lpBuf, nBufLen, nFlags) : 0);
 
+		//TRACE("Send %s %d\r\n", m_SSL_mode ? "SSL" : "", n);
+
 		if ( n > 0 ) {
 			lpBuf = (LPBYTE)lpBuf + n;
 			if ( (nBufLen -= n) <= 0 ) {
