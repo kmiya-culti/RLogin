@@ -2302,13 +2302,15 @@ LRESULT CMainFrame::OnWinSockSelect(WPARAM wParam, LPARAM lParam)
 	if ( (fs & FD_ACCEPT) != 0 )
 		pSock->OnAccept((SOCKET)wParam);
 	if ( (fs & FD_READ) != 0 )
-		pSock->OnReceive(0);
+		pSock->OnReceive(0, TRUE);
 	if ( (fs & FD_OOB) != 0 )
-		pSock->OnReceive(MSG_OOB);
+		pSock->OnReceive(MSG_OOB, TRUE);
 	if ( (fs & FD_WRITE) != 0 )
 		pSock->OnSend();
 	if ( (fs & FD_CLOSE) != 0 )
 		pSock->OnPreClose();
+	if ( (fs & FD_RECVEMPTY) != 0 )
+		pSock->OnRecvEmpty();
 
 	return TRUE;
 }
@@ -2602,12 +2604,14 @@ void CMainFrame::OnTimer(UINT_PTR nIDEvent)
 		}
 
 	} else if ( nIDEvent == TIMERID_IDLETIMER ) {
-		// ç≈ëÂ10âÒÅA200msà»â∫Ç…êßå¿
-		clock_t st = clock() + 200;
-		for ( int n = 0 ; n < 10 && st > clock() ; n++ ) {
+		// ç≈ëÂ20âÒÅA200msà»â∫Ç…êßå¿
+		int n;
+		clock_t st = clock() + 180;
+		for ( n = 0 ; n < 20 && st > clock() ; n++ ) {
 			if ( !((CRLoginApp *)AfxGetApp())->OnIdle((LONG)(-1)) )
 				break;
 		}
+		//TRACE("TimerIdle %d(%d)\n", n, clock() - st + 180);
 
 	} else {
 		for ( tp = m_pTimerUsedId ; tp != NULL ; tp = tp->m_pList ) {

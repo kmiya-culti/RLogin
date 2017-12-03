@@ -161,7 +161,7 @@ public:
 	BOOL LogOpen(LPCTSTR filename);
 	BOOL LogClose();
 	void LogWrite(LPBYTE lpBuf, int nBufLen, int SendRecv);
-	void LogDebug(LPCTSTR str, ...);
+	void LogDebug(LPCSTR str, ...);
 	void LogDump(LPBYTE lpBuf, int nBufLen);
 	void LogInit();
 

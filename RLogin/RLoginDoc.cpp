@@ -1049,10 +1049,9 @@ NEWLINE:
 			m_pLogFile->Write(lpBuf++, 1);
 	}
 }
-void CRLoginDoc::LogDebug(LPCTSTR str, ...)
+void CRLoginDoc::LogDebug(LPCSTR str, ...)
 {
-	CStringA mbs;
-	CString tmp;
+	CStringA tmp;
 	va_list arg;
 
 	if ( m_pLogFile == NULL || m_TextRam.m_LogMode != LOGMOD_DEBUG )
@@ -1062,8 +1061,7 @@ void CRLoginDoc::LogDebug(LPCTSTR str, ...)
 	tmp.FormatV(str, arg);
 	va_end(arg);
 
-	mbs = tmp;
-	LogWrite((LPBYTE)(LPCSTR)mbs, mbs.GetLength(), LOGDEBUG_INSIDE);
+	LogWrite((LPBYTE)(LPCSTR)tmp, tmp.GetLength(), LOGDEBUG_INSIDE);
 	LogWrite(NULL, 0, LOGDEBUG_FLASH);
 }
 void CRLoginDoc::LogDump(LPBYTE lpBuf, int nBufLen)

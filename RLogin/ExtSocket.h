@@ -19,12 +19,11 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
-#define	RECVMINSIZ		(m_RecvBufSize / 4)
-#define	RECVBUFSIZ		(m_RecvBufSize    )
-#define	RECVMAXSIZ		(m_RecvBufSize * 4)
+#define	RECVMINSIZ			(m_RecvBufSize / 4)
+#define	RECVBUFSIZ			(m_RecvBufSize    )
+#define	RECVMAXSIZ			(m_RecvBufSize * 4)
 
-#define	RECVBGNSIZ		(4 * 1024)
-#define	RECVBIGSIZ		(16 * 1024)
+#define	RECVDEFSIZ			(2 * 1024)
 
 #define	ESCT_DIRECT			0
 #define	ESCT_RLOGIN			1
@@ -42,17 +41,16 @@
 
 #define	SYNC_NONE			000
 #define	SYNC_ACTIVE			001
-#define	SYNC_EMPTY			010
-#define	SYNC_EVENT			020
+#define	SYNC_EVENT			010
 
 #define	RECV_ACTIVE			001
 #define	RECV_DOCLOSE		002
 #define	RECV_INPROC			004
 #define	RECV_PROCBACK		010
 
-#define	SEND_EMPTY			001
-
 #define	LISTENSOCKS			8
+
+#define	FD_RECVEMPTY		(1 << (FD_MAX_EVENTS + 0))
 
 #ifdef	USE_DEBUGLOG
 #define	DEBUGLOG			m_pDocument->LogDebug
@@ -111,6 +109,7 @@ public:
 
 	inline void Clear() { m_Len = m_Ofs = 0; }
 	inline int GetSize() { return (m_Len - m_Ofs); }
+	inline int GetFreeSize() { return (m_Max - m_Len); }
 	inline void AddSize(int len) { m_Len += len; }
 	inline LPBYTE GetLast() { return (m_Data + m_Len); }
 	inline LPBYTE GetPtr() { return (m_Data + m_Ofs); }
@@ -142,7 +141,6 @@ private:
 	int m_RecvBufSize;
 	CSemaphore m_RecvSema;
 	int m_OnRecvFlag;
-	int m_OnSendFlag;
 	BOOL m_DestroyFlag;
 	CString m_RealHostAddr;
 	CString m_RealRemoteAddr;
@@ -231,7 +229,7 @@ public:
 	virtual void OnConnect();
 	virtual void OnAccept(SOCKET hand);
 	virtual void OnClose();
-	virtual void OnReceive(int nFlags);
+	virtual void OnReceive(int nFlags, BOOL bWinSock);
 	virtual void OnSend();
 	virtual int OnIdle();
 	virtual void OnTimer(UINT_PTR nIDEvent);

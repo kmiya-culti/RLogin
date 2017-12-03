@@ -423,11 +423,10 @@ void CTelnet::OnTimer(UINT_PTR nIDEvent)
 }
 void CTelnet::PrintOpt(int st, int ch, int opt)
 {
-#ifdef	_DEBUG
-	char tmp[32];
 	if ( opt < 0 || opt > TELOPT_MAX )
 		opt = TELOPT_MAX;
-	sprintf(tmp, "%s %s %s\r\n",
+
+	DEBUGLOG("%s %s %s",
 		(st == 0 ? "SEND":"RECV"),
 		(ch == TELC_DO   ? "DO" :
 		(ch == TELC_DONT ? "DONT" :
@@ -436,8 +435,6 @@ void CTelnet::PrintOpt(int st, int ch, int opt)
 		(ch == TELC_SB   ? "SB" :
 		(ch == TELC_DM   ? "DM" : "???")))))),
 		telopts[opt]);
-	TRACE(tmp);
-#endif
 }
 void CTelnet::SendStr(LPCTSTR str)
 {

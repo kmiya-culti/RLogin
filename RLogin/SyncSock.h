@@ -48,7 +48,7 @@ public:
 	CEvent *m_pThreadEvent;
 
 	CBuffer m_RecvBuf;
-	CBuffer m_SendBuf;
+	CBuffer m_SendBuf, m_SwapBuf;
 	CSemaphore m_SendSema;
 
 	class CProgDlg m_ProgDlg;

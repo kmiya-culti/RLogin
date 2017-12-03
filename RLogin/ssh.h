@@ -419,8 +419,6 @@ public:
 
 #define CHAN_SES_PACKET_DEFAULT (32 * 1024)
 #define CHAN_SES_WINDOW_DEFAULT (64 * CHAN_SES_PACKET_DEFAULT)
-#define CHAN_STD_PACKET_DEFAULT (16 * 1024)
-#define CHAN_STD_WINDOW_DEFAULT (32 * CHAN_SES_PACKET_DEFAULT)
 
 #define	CHAN_OPEN_LOCAL		001
 #define	CHAN_OPEN_REMOTE	002
@@ -473,6 +471,7 @@ public:
 	virtual void Send(LPBYTE buf, int len);
 	virtual void OnReceive(const void *lpBuf, int nBufLen);
 	virtual void OnSendEmpty();
+	virtual void OnRecvEmpty();
 	virtual int GetSendSize();
 	virtual int GetRecvSize();
 };
@@ -531,7 +530,9 @@ public:
 	CStdIoFilter();
 	void OnReceive(const void *lpBuf, int nBufLen);
 	void OnSendEmpty();
+	void OnRecvEmpty();
 	int GetSendSize();
+	int GetRecvSize();
 };
 
 class CX11Filter : public CFilter

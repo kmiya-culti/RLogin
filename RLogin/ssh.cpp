@@ -340,8 +340,8 @@ void Cssh::OnReceiveCallBack(void* lpBuf, int nBufLen, int nFlags)
 						str.Format("%s\r\n", m_pDocument->RemoteStr(m_ClientVerStr));
 						CExtSocket::Send((LPCSTR)str, str.GetLength());
 
-						DEBUGLOG(_T("Receive Version %s"), m_ServerVerStr);
-						DEBUGLOG(_T("Send Version %s"), MbsToTstr(str));
+						DEBUGLOG("Receive Version %s", TstrToMbs(m_ServerVerStr));
+						DEBUGLOG("Send Version %s", str);
 
 						break;
 					} else if ( ch != '\r' )
@@ -351,7 +351,7 @@ void Cssh::OnReceiveCallBack(void* lpBuf, int nBufLen, int nFlags)
 
 			case 1:		// SSH1 Packet Length
 				if ( m_Incom.GetSize() < 4 )
-					goto ENDLOOP;
+					return;
 				m_InPackLen = m_Incom.Get32Bit();
 				m_InPackPad = 8 - (m_InPackLen % 8);
 				if ( m_InPackLen < 4 || m_InPackLen > (256 * 1024) ) {	// Error Packet Length
@@ -363,7 +363,7 @@ void Cssh::OnReceiveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				// break; Not use
 			case 2:		// SSH1 Packet
 				if ( m_Incom.GetSize() < (m_InPackLen + m_InPackPad) )
-					goto ENDLOOP;
+					return;
 				tmp.Clear();
 				tmp.Apend(m_Incom.GetPtr(), m_InPackLen + m_InPackPad);
 				m_Incom.Consume(m_InPackLen + m_InPackPad);
@@ -397,7 +397,7 @@ void Cssh::OnReceiveCallBack(void* lpBuf, int nBufLen, int nFlags)
 					break;
 				}
 				if ( m_Incom.GetSize() < m_DecCip.GetBlockSize() )
-					goto ENDLOOP;
+					return;
 				m_InPackBuf.Clear();
 				m_DecCip.Cipher(m_Incom.GetPtr(), m_DecCip.GetBlockSize(), &m_InPackBuf);
 				m_Incom.Consume(m_DecCip.GetBlockSize());
@@ -411,7 +411,7 @@ void Cssh::OnReceiveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				// break; Not use
 			case 4:		// SSH2 Packet
 				if ( m_Incom.GetSize() < (m_InPackLen - m_DecCip.GetBlockSize() + 4 + m_DecMac.GetBlockSize()) )
-					goto ENDLOOP;
+					return;
 				m_InPackStat = 3;
 				m_DecCip.Cipher(m_Incom.GetPtr(), m_InPackLen - m_DecCip.GetBlockSize() + 4, &m_InPackBuf);
 				m_Incom.Consume(m_InPackLen - m_DecCip.GetBlockSize() + 4);
@@ -442,7 +442,7 @@ void Cssh::OnReceiveCallBack(void* lpBuf, int nBufLen, int nFlags)
 					break;
 				}
 				if ( m_Incom.GetSize() < 4 )
-					goto ENDLOOP;
+					return;
 				m_DecCip.SetIvCounter(m_RecvPackSeq);
 				m_InPackLen = m_DecCip.GeHeadData(m_Incom.GetPtr());
 				if ( m_InPackLen < 5 || m_InPackLen > (256 * 1024) ) {
@@ -454,7 +454,7 @@ void Cssh::OnReceiveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				// break; Not use
 			case 6:		// SSH2 AEAD Packet
 				if ( m_Incom.GetSize() < (4 + m_InPackLen + SSH2_GCM_TAGSIZE) )
-					goto ENDLOOP;
+					return;
 				m_InPackStat = 5;
 				tmp.Clear();
 				if ( !m_DecCip.Cipher(m_Incom.GetPtr(), 4 + m_InPackLen + SSH2_GCM_TAGSIZE, &tmp) ) {
@@ -479,7 +479,7 @@ void Cssh::OnReceiveCallBack(void* lpBuf, int nBufLen, int nFlags)
 					break;
 				}
 				if ( m_Incom.GetSize() < 4 )
-					goto ENDLOOP;
+					return;
 				m_DecCip.SetIvCounter(m_RecvPackSeq);
 				m_InPackLen = m_DecCip.GeHeadData(m_Incom.GetPtr());
 				if ( m_InPackLen < 5 || m_InPackLen > (256 * 1024) ) {
@@ -491,7 +491,7 @@ void Cssh::OnReceiveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				// break; Not use
 			case 8:		// SSH2 etm Packet
 				if ( m_Incom.GetSize() < (4 + m_InPackLen + m_DecMac.GetBlockSize()) )
-					goto ENDLOOP;
+					return;
 				m_InPackStat = 7;
 				dec.Clear();
 				dec.Apend(m_Incom.GetPtr(), 4);
@@ -522,7 +522,7 @@ void Cssh::OnReceiveCallBack(void* lpBuf, int nBufLen, int nFlags)
 					break;
 				}
 				if ( m_Incom.GetSize() < 4 )
-					goto ENDLOOP;
+					return;
 				m_DecCip.SetIvCounter(m_RecvPackSeq);
 				m_InPackLen = m_DecCip.GeHeadData(m_Incom.GetPtr());
 				if ( m_InPackLen < 5 || m_InPackLen > (256 * 1024) ) {
@@ -534,7 +534,7 @@ void Cssh::OnReceiveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				// break; Not use
 			case 10:		// SSH2 Poly1305 Packet
 				if ( m_Incom.GetSize() < (4 + m_InPackLen + SSH2_POLY1305_TAGSIZE) )
-					goto ENDLOOP;
+					return;
 				m_InPackStat = 9;
 				tmp.Clear();
 				if ( !m_DecCip.Cipher(m_Incom.GetPtr(), 4 + m_InPackLen + SSH2_POLY1305_TAGSIZE, &tmp) ) {
@@ -554,11 +554,6 @@ void Cssh::OnReceiveCallBack(void* lpBuf, int nBufLen, int nFlags)
 				break;
 			}
 		}
-
-	ENDLOOP:
-		if ( m_StdChan != (-1) )
-			((CChannel *)m_pChan[m_StdChan])->m_pFilter->OnSendEmpty();
-		return;
 
 	} catch(LPCWSTR pMsg) {
 		msg.Format(_T("ssh Receive '%s'"), UniToTstr(pMsg));
@@ -638,25 +633,26 @@ void Cssh::OnTimer(UINT_PTR nIDEvent)
 }
 void Cssh::OnRecvEmpty()
 {
+	// Display処理(OnSocketReceive)バッファが少なくなった時
+
 	if ( m_StdChan != (-1) )
-		ChannelPolling(m_StdChan);
+		((CChannel *)m_pChan[m_StdChan])->m_pFilter->OnRecvEmpty();
+
+	CExtSocket::OnRecvEmpty();
 }
 void Cssh::OnSendEmpty()
 {
-	if ( m_StdChan != (-1) )
-		ChannelPolling(m_StdChan);
+	// すべてのパケットを送信後
 
 	for ( CFilter *fp = m_pListFilter ; fp != NULL ; fp = fp->m_pNext )
 		fp->OnSendEmpty();
-
-	CExtSocket::OnSendEmpty();
 }
 int Cssh::GetRecvSize()
 {
 	if ( m_StdChan == (-1) )
 		return 0;
 
-	// CStdIoFilter Send Size = Display Wait Size
+	// CStdIoFilter Recive Size = Display Wait Size
 	return ((CChannel *)m_pChan[m_StdChan])->GetSendSize();
 }
 int Cssh::GetSendSize()
@@ -664,7 +660,7 @@ int Cssh::GetSendSize()
 	if ( m_StdChan == (-1) )
 		return 0;
 
-	// CStdIoFilter Receive Size = Console input Size
+	// CStdIoFilter Send Size = Console input Size
 	return ((CChannel *)m_pChan[m_StdChan])->GetRecvSize();
 }
 
@@ -1182,7 +1178,7 @@ void Cssh::LogIt(LPCTSTR format, ...)
 	va_end(args);
 
 	if ( !m_pDocument->m_TextRam.IsOptEnable(TO_SSHPFORY) ) {
-		m_pDocument->LogDebug(_T("%s"), str);
+		m_pDocument->LogDebug("%s", TstrToMbs(str));
 		GetMainWnd()->SetStatusText(str);
 		return;
 	}
@@ -1431,6 +1427,9 @@ void Cssh::ChannelPolling(int id)
 		tmp.Put32Bit(cp->m_RemoteID);
 		tmp.Put32Bit(n);
 		SendPacket2(&tmp);
+
+		DEBUGLOG("WindowAdjust #%d %d - %d = %d (%d)", cp->m_LocalID, cp->m_LocalComs, cp->GetSendSize(), n, cp->m_LocalWind);
+
 		cp->m_LocalComs -= n;
 	}
 
@@ -2293,6 +2292,9 @@ void Cssh::SendMsgChannelData(int id)
 		cp->m_Output.Consume(len);
 		cp->m_RemoteWind -= len;
 		SendPacket2(&tmp);
+
+		if ( cp->m_Output.GetSize() <= 0 && id == m_StdChan )
+			cp->m_pFilter->OnSendEmpty();
 	}
 
 	ChannelCheck(id);
@@ -2517,7 +2519,7 @@ void Cssh::SendPacket2(CBuffer *bp)
 	static int padflag = FALSE;
 	static BYTE padimage[64];
 
-	DEBUGLOG(_T("SendPacket2 %d(%d) Seq=%d"), bp->PTR8BIT(bp->GetPtr()), bp->GetSize(), m_SendPackSeq);
+	DEBUGLOG("SendPacket2 %d(%d) Seq=%d", bp->PTR8BIT(bp->GetPtr()), bp->GetSize(), m_SendPackSeq);
 	DEBUGDUMP(bp->GetPtr(), bp->GetSize());
 
 	tmp.PutSpc(4 + 1);		// Size + Pad Era
@@ -3831,7 +3833,7 @@ int Cssh::SSH2MsgGlobalRequestReply(CBuffer *bp, int type)
 }
 void Cssh::ReceivePacket2(CBuffer *bp)
 {
-	DEBUGLOG(_T("ReceivePacket2 %d(%d) Seq=%d"), bp->PTR8BIT(bp->GetPtr()), bp->GetSize(), m_RecvPackSeq);
+	DEBUGLOG("ReceivePacket2 %d(%d) Seq=%d", bp->PTR8BIT(bp->GetPtr()), bp->GetSize(), m_RecvPackSeq);
 	DEBUGDUMP(bp->GetPtr(), bp->GetSize());
 
 	CStringA str;
@@ -3972,8 +3974,8 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 				CChannel *cp = (CChannel *)m_pChan[m_StdChan];
 				cp->m_pFilter = new CStdIoFilter;
 				cp->m_pFilter->m_pChan = cp;
-				cp->m_LocalPacks = m_pDocument->m_ParamTab.m_StdIoBufSize * 1024;	//CHAN_STD_PACKET_DEFAULT;
-				cp->m_LocalWind  = cp->m_LocalPacks * 16;							//CHAN_STD_WINDOW_DEFAULT;
+				cp->m_LocalPacks = m_pDocument->m_ParamTab.m_StdIoBufSize * 1024;
+				cp->m_LocalWind  = cp->m_LocalPacks * 8;
 				SendMsgChannelOpen(m_StdChan, "session");
 			}
 		}

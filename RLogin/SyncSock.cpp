@@ -127,11 +127,11 @@ void CSyncSock::ThreadCommand(int cmd)
 		break;
 	case THCMD_SENDBUF:
 		m_SendSema.Lock();
-		if ( m_pDoc->m_pSock != NULL )
-			m_pDoc->m_pSock->Send(m_SendBuf.GetPtr(), m_SendBuf.GetSize(), 0);
+		m_SwapBuf.Swap(m_SendBuf);
 		m_SendBuf.Clear();
 		m_SendSema.Unlock();
-		m_pParamEvent->SetEvent();
+		if ( m_pDoc->m_pSock != NULL )
+			m_pDoc->m_pSock->Send(m_SwapBuf.GetPtr(), m_SwapBuf.GetSize(), 0);
 		break;
 	case THCMD_CHECKPATH:
 		RECHECK:
@@ -263,7 +263,7 @@ void CSyncSock::DebugDump(LPBYTE buf, int len)
 	if ( m_pView != NULL ) {
 		pBuffer = new CBuffer(len);
 		pBuffer->Apend(buf, len);
-		m_pView->PostMessage(WM_LOGWRITE, 1, pBuffer);
+		m_pView->PostMessage(WM_LOGWRITE, (WPARAM)1, (LPARAM)pBuffer);
 	}
 }
 void CSyncSock::DebugMsg(LPCSTR fmt, ...)
@@ -278,7 +278,7 @@ void CSyncSock::DebugMsg(LPCSTR fmt, ...)
 
 	if ( m_pView != NULL ) {
 		pBuffer = new CBuffer((LPCSTR)tmp);
-		m_pView->PostMessage(WM_LOGWRITE, 0, pBuffer);
+		m_pView->PostMessage(WM_LOGWRITE, (WPARAM)0, (LPARAM)pBuffer);
 	}
 }
 #endif
@@ -299,12 +299,10 @@ void CSyncSock::Bufferd_Flush()
 {
 	ASSERT(m_pWnd != NULL);
 
-	DebugMsg("Bufferd_Flush");
-	DebugDump(m_SendBuf.GetPtr(), m_SendBuf.GetSize() < 16 ? m_SendBuf.GetSize() : 16);
+	DebugMsg("Bufferd_Flush %d", m_SendBuf.GetSize());
+	//DebugDump(m_SendBuf.GetPtr(), m_SendBuf.GetSize() < 16 ? m_SendBuf.GetSize() : 16);
 
-	m_pParamEvent->ResetEvent();
-	m_pWnd->PostMessage(WM_THREADCMD, THCMD_SENDSYNC, (LPARAM)this);
-	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
+	m_pWnd->PostMessage(WM_THREADCMD, THCMD_SENDBUF, (LPARAM)this);
 }
 void CSyncSock::Bufferd_Clear()
 {
@@ -339,8 +337,8 @@ int CSyncSock::Bufferd_Receive(int sec)
 			return (-2);	// TIME OUT
 		m_RecvBuf.Apend(tmp, n);
 
-		DebugMsg("Bufferd_Receive");
-		DebugDump(tmp, n < 16 ? n : 16);
+		DebugMsg("Bufferd_Receive %d", n);
+		//DebugDump(tmp, n < 16 ? n : 16);
 	}
 
 	return m_RecvBuf.Get8Bit();
@@ -367,8 +365,8 @@ BOOL CSyncSock::Bufferd_ReceiveBuf(char *buf, int len, int sec)
 		if ( (n = m_pDoc->m_pSock->SyncReceive(buf, len, sec, &m_ProgDlg.m_AbortFlag)) <= 0 )
 			return FALSE;
 
-		DebugMsg("Bufferd_Receive");
-		DebugDump(buf, n < 16 ? n : 16);
+		DebugMsg("Bufferd_Receive %d", n);
+		//DebugDump((LPBYTE)buf, n < 16 ? n : 16);
 
 		buf += n;
 		len -= n;

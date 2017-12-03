@@ -5927,7 +5927,7 @@ static const ttymode_node def_ttymode[] = {
 	//	CS7			CS8			PARENB		PARODD
 		{ 90,1 },	{ 91,1 },	{ 92,0 },	{ 93,0 },
 	//	OSPEED			ISPEED
-		{ 129,9600 },	{ 128,9600 },
+		{ 129,38400 },	{ 128,38400 },
 		{ 0, 0 }
 	};
 

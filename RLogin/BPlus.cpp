@@ -722,6 +722,8 @@ void CBPlus::Send_Failure(char *Reason)
 
     if ( Reason[0] != 'A' )
 		UpDownMessage(Reason + 1);
+
+	Bufferd_Clear();
 }
 
 void CBPlus::Do_Transport_Parameters()

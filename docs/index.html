@@ -28,8 +28,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.22.8)</TD>
-            <TD width="20%" align="right">2017/11/03</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.22.9)</TD>
+            <TD width="20%" align="right">2017/12/04</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -436,15 +436,15 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
-            <TD align="center">次期試作版<BR>
-            RC1</TD>
+            <TD align="center">2017/12/04</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.22.9/">2.22.9</A></TD>
-            <TD><FONT color="#c0c0c0">プロトコルのオプションに接続時にSFTPを起動するを追加<BR>
+            <TD>プロトコルのオプションに接続時にSFTPを起動するを追加<BR>
             クリップボードのオプションにRTFを作成を追加<BR>
             タブバーのタイトルが256文字以上の場合の不都合を修正<BR>
             ssh2の標準入出力バッファサイズを設定できるように変更<BR>
             メニュー操作時のアイドル処理をタイマーで処理するように変更<BR>
-            ファイル転送プロトコルの送信を確認するように変更</FONT></TD>
+            全体的に送受信バッファサイズを見直してその処理を変更<BR>
+            Winsockメッセージの受信処理を変更</TD>
           </TR>
           <TR>
             <TD align="center">2017/11/03</TD>
@@ -2387,7 +2387,8 @@ fi</PRE>
                 </TR>
                 <TR>
                   <TD align="center">KeepAliveパケット・・・</TD>
-                  <TD>KeepAliveパケットを指定秒数間隔で送信します</TD>
+                  <TD>KeepAliveパケット(NULLパケット）を指定秒数間隔で送信します<BR>
+                  ルーターなどで無通信が続く場合に切断されるのを防ぎます</TD>
                 </TR>
                 <TR>
                   <TD colspan="2">SSH</TD>
@@ -2401,8 +2402,8 @@ fi</PRE>
                   <TD>SSH2で接続した場合にSHELLを起動しません。代わりにポートフォワードのログを表示します(SSH2のみ)</TD>
                 </TR>
                 <TR>
-                  <TD align="center"><FONT color="#c0c0c0">接続時にSFTP・・・</FONT></TD>
-                  <TD><FONT color="#c0c0c0">接続時にSFTPを起動するようにします。上記のシェル起動なしと併用するとSFTPの為のエントリーを作成することができます。</FONT></TD>
+                  <TD align="center">接続時にSFTP・・・</TD>
+                  <TD>接続時にSFTPを起動するようにします。上記のシェル起動なしと併用するとSFTPの為のエントリーを作成することができます。</TD>
                 </TR>
                 <TR>
                   <TD align="center">エージェント転送・・・</TD>
@@ -2410,12 +2411,18 @@ fi</PRE>
                 </TR>
                 <TR>
                   <TD align="center">KeepAliveパケット・・・</TD>
-                  <TD>KeepAliveパケットを指定秒数間隔で送信します(SSH2のみ)</TD>
+                  <TD>KeepAliveパケットを指定秒数間隔で送信します(SSH2のみ)<BR>
+                  ルーターなどで無通信が続く場合に切断されるのを防ぎます</TD>
                 </TR>
                 <TR>
                   <TD align="center">RSA2認証鍵の・・・</TD>
-                  <TD>RSA2鍵の署名で使用するハッシュ関数を拡張します。<BR>
+                  <TD>RSA2鍵の署名で使用するハッシュ関数を拡張します<BR>
                   標準はSHA1でopenssh-7.2以降からSHA2を使用できます</TD>
+                </TR>
+                <TR>
+                  <TD align="center">標準入出力の・・・</TD>
+                  <TD>標準入出力のバッファサイズを変更します<BR>
+                  小さくするとCtrl+C/S/Qなどの操作で表示との同期が速くなります</TD>
                 </TR>
                 <TR>
                   <TD align="center">暗号方式</TD>
@@ -3791,10 +3798,9 @@ function TekClock2() {
                   <TD>コピーした文字列の連続したスペースをタブに変換します。</TD>
                 </TR>
                 <TR>
-                  <TD align="center"><FONT color="#c0c0c0">RTFを作成</FONT></TD>
-                  <TD><FONT color="#c0c0c0">コピー時にRTF(Rich Text Format)を作成するようにします。<BR>
+                  <TD align="center">RTFを作成</TD>
+                  <TD>コピー時にRTF(Rich Text Format)を作成するようにします。<BR>
                   MS Wordなどにペーストした場合に文字装飾や文字色、フォント情報、Sixelなどの画像を含めてペーストすることができます。<BR>
-                  </FONT>
                   <TABLE cellpadding="3">
                     <TBODY>
                       <TR>
@@ -3828,7 +3834,7 @@ function TekClock2() {
                       </TR>
                     </TBODY>
                   </TABLE>
-                  <FONT color="#c0c0c0">※すべての情報が正しくペーストされるわけではありません。受け取り側でかなり変化するようなのでご注意ください。</FONT></TD>
+                  ※すべての情報が正しくペーストされるわけではありません。受け取り側でかなり変化するようなのでご注意ください。</TD>
                 </TR>
                 <TR>
                   <TD align="center">http:で始まる・・・</TD>

@@ -1365,7 +1365,7 @@ void CZModem::ZSendBinHeader(int len, int type, char *hdr)
 
 	Bufferd_Flush();
 
-	DebugMsg("SendBinHeader %d : %02x,%02x,%02x,%02x...\r\n", len, hdr[0] & 0377, hdr[1] & 0377, hdr[2] & 0377, hdr[3] & 0377);
+	DebugMsg("SendBinHeader %d : %02x,%02x,%02x,%02x...", len, hdr[0] & 0377, hdr[1] & 0377, hdr[2] & 0377, hdr[3] & 0377);
 }
 void CZModem::ZSendHexHeader(int len, int type, char *hdr)
 {
@@ -1407,7 +1407,7 @@ void CZModem::ZSendHexHeader(int len, int type, char *hdr)
 
 	Bufferd_Flush();
 
-	DebugMsg("SendHexHeader %d : %02x,%02x,%02x,%02x...\r\n", len, hdr[0] & 0377, hdr[1] & 0377, hdr[2] & 0377, hdr[3] & 0377);
+	DebugMsg("SendHexHeader %d : %02x,%02x,%02x,%02x...", len, hdr[0] & 0377, hdr[1] & 0377, hdr[2] & 0377, hdr[3] & 0377);
 }
 void CZModem::ZSendData(char *buf, int length, int frameend)
 {
@@ -1415,8 +1415,8 @@ void CZModem::ZSendData(char *buf, int length, int frameend)
 	unsigned short crc16 = 0;
 	unsigned long crc32 = 0xFFFFFFFF;
 
-	DebugMsg("SendData %d\r\n", length);
-	DebugDump(buf, length < 16 ? length : 16);
+	DebugMsg("SendData %d", length);
+	DebugDump((LPBYTE)buf, length < 16 ? length : 16);
 
 	switch (Crc32t) {
 	case 1:		// CRC 32 bit
@@ -1553,8 +1553,8 @@ int CZModem::ZReceiveData(char *buf, int length, int &Rxcount)
 					}
 				}
 
-				DebugMsg("RecvData %d/%d\r\n", Rxcount, length);
-				DebugDump(buf, Rxcount < 16 ? Rxcount : 16);
+				DebugMsg("RecvData %d/%d", Rxcount, length);
+				DebugDump((LPBYTE)buf, Rxcount < 16 ? Rxcount : 16);
 				return c;
 
 			case GOTCAN:
@@ -1850,7 +1850,7 @@ int CZModem::ZReceiveHeader(char *hdr, int eflag)
 			if ( Rxtype >= 0 && Rxtype <= FRTYPES && (Rxframeind & 040) != 0 )
 				Usevhdrs = 1;
 
-			DebugMsg("RecvHeader %03o(%c) %d : %02x,%02x,%02x,%02x...\r\n",
+			DebugMsg("RecvHeader %03o(%c) %d : %02x,%02x,%02x,%02x...",
 				Rxtype, (Rxtype >= ' ' && Rxtype < 0x7F ? Rxtype : '?'), 
 				Rxhlen, hdr[0] & 0377, hdr[1] & 0377, hdr[2] & 0377, hdr[3] & 0377);
 

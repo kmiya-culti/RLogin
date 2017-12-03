@@ -3809,9 +3809,10 @@ LRESULT CRLoginView::OnLogWrite(WPARAM wParam, LPARAM lParam)
 	CRLoginDoc *pDoc = GetDocument();
 	CBuffer *pBuffer = (CBuffer *)lParam;
 
-	if ( wParam == 0 )
+	if ( wParam == 0 ) {
 		pDoc->LogWrite(pBuffer->GetPtr(), pBuffer->GetSize(), LOGDEBUG_INSIDE);
-	else
+		pDoc->LogWrite(NULL, 0, LOGDEBUG_FLASH);
+	} else
 		pDoc->LogDump(pBuffer->GetPtr(), pBuffer->GetSize());
 
 	delete pBuffer;
