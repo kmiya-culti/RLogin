@@ -116,7 +116,7 @@ void CKeyParaDlg::OnBnClickedMenubtn()
 
 	pWnd->GetWindowRect(rect);
 
-	id = PopUpMenu.TrackPopupMenuEx(TPM_NONOTIFY | TPM_RETURNCMD, rect.right, rect.top, this, NULL);
+	id = ((CMainFrame *)::AfxGetMainWnd())->TrackPopupMenuIdle(&PopUpMenu, TPM_NONOTIFY | TPM_RETURNCMD, rect.right, rect.top, this, NULL);
 
 	if ( id == 0 )
 		return;

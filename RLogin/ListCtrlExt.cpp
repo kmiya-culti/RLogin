@@ -196,7 +196,7 @@ BOOL CListCtrlExt::OnRclick(NMHDR* pNMHDR, LRESULT* pResult)
 	}
 
 	ClientToScreen(&point);
-	pSubMenu->TrackPopupMenu(TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, pOwner);
+	((CMainFrame *)::AfxGetMainWnd())->TrackPopupMenuIdle(pSubMenu, TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, pOwner);
 	return TRUE;
 }
 void CListCtrlExt::OpenEditBox(int item, int num, int fmt, CRect &rect)
@@ -350,7 +350,7 @@ BOOL CListCtrlExt::PreTranslateMessage(MSG* pMsg)
 			flag = TPM_CENTERALIGN | TPM_VCENTERALIGN;
 		}
 
-		pSubMenu->TrackPopupMenu(flag | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, pOwner);
+		((CMainFrame *)::AfxGetMainWnd())->TrackPopupMenuIdle(pSubMenu, flag | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, pOwner);
 		return TRUE;
 	}
 	return CListCtrl::PreTranslateMessage(pMsg);

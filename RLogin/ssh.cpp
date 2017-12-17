@@ -1236,13 +1236,6 @@ int Cssh::ChannelOpen()
 					return (-1);
 			}
 			m_pChan.SetSize(mx);
-			//for ( ; n < mx ; n++ ) {
-			//	cp = new CChannel;
-			//	cp->m_pNext = m_pChanFree;
-			//	m_pChanFree = cp;
-			//	m_pChan[n] = cp;
-			//	cp->m_LocalID = n;
-			//}
 			while ( n < mx ) {
 				cp = new CChannel;
 				cp->m_pNext = m_pChanFree;

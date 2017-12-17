@@ -427,7 +427,7 @@ public:
 #define	CHAN_SOCKS5_AUTH	020
 #define	CHAN_REMOTE_SOCKS	040
 #define	CHAN_OK(n)			((((CChannel *)m_pChan[n])->m_Status & (CHAN_OPEN_LOCAL | CHAN_OPEN_REMOTE)) == (CHAN_OPEN_LOCAL | CHAN_OPEN_REMOTE))
-#define	CHAN_MAXSIZE		100
+#define	CHAN_MAXSIZE		200
 
 #define	CEOF_IEOF		0001
 #define	CEOF_ICLOSE		0002

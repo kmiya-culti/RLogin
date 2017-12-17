@@ -273,10 +273,16 @@ void CTabBar::OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler)
 			continue;
 
 		ntc.mask = 0;
-		pWnd = (CChildFrame *)FromHandle((HWND)tci.lParam);
-		pDoc = (CRLoginDoc *)(pWnd->GetActiveDocument());
 
-		pWnd->GetWindowText(title);
+		if ( (HWND)tci.lParam != NULL ) {
+			pWnd = (CChildFrame *)FromHandle((HWND)tci.lParam);
+			pDoc = (CRLoginDoc *)(pWnd->GetActiveDocument());
+			pWnd->GetWindowText(title);
+		} else {
+			pWnd = NULL;
+			pDoc = NULL;
+			title.Empty();
+		}
 
 		if ( title.GetLength() >= MAX_PATH )
 			title = title.Left(MAX_PATH -1);
@@ -330,7 +336,7 @@ void CTabBar::OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler)
 				m_TabCtrl.SetItem(n, &ntc);
 		}
 
-		if ( pActive != NULL && pActive->m_hWnd == pWnd->m_hWnd )
+		if ( pActive != NULL && pWnd != NULL && pActive->m_hWnd == pWnd->m_hWnd )
 			sel = n;
 	}
 
@@ -448,6 +454,7 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 	CString title;
 	MSG msg;
 	clock_t stc = clock() - (CLOCKS_PER_SEC * 2);
+	int count = m_TabCtrl.GetItemCount();
 
 	CControlBar::OnLButtonDown(nFlags, point);
 
@@ -505,7 +512,21 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 	track.Create(NULL, title, WS_TILED | WS_CHILD, rect, pDeskTop, (-1));
 	track.SetWindowPos(&wndTopMost, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
 
-	while ( ::GetMessage(&msg, NULL, 0, 0) ) {
+	for ( ; ; ) {
+		while ( !::PeekMessage(&msg, NULL, NULL, NULL, PM_NOREMOVE) ) {
+			if ( !((CRLoginApp *)AfxGetApp())->OnIdle(-1) )
+				break;
+		}
+
+		if ( !::GetMessage(&msg, NULL, 0, 0) )
+			break;
+
+		// タブバーの操作をチェック
+		if ( m_TabCtrl.GetItemCount() != count ) {
+			track.DestroyWindow();
+			ReleaseCapture();
+			return;
+		}
 
 		switch (msg.message) {
 		case WM_LBUTTONUP:
@@ -673,18 +694,29 @@ int CTabBar::GetImageIndex(LPCTSTR filename)
 	} else
 		return pNode->m_Value;
 }
-void CTabBar::Add(CWnd *pWnd)
+void CTabBar::Add(CWnd *pWnd, int index)
 {
 	TC_ITEM tci;
 	CString title;
 
-	pWnd->GetWindowText(title);
+	if ( index == (-1) )
+		index = m_TabCtrl.GetItemCount();
+
 	tci.mask = TCIF_PARAM | TCIF_TEXT | TCIF_IMAGE;
+	tci.pszText = _T("");
+	tci.lParam = NULL;
+	tci.iImage = (-1);
+
+	while ( index >= m_TabCtrl.GetItemCount() )
+		m_TabCtrl.InsertItem(m_TabCtrl.GetItemCount(), &tci);
+
+	pWnd->GetWindowText(title);
 	tci.pszText = title.LockBuffer();
 	tci.lParam = (LPARAM)(pWnd->m_hWnd);
 	tci.iImage = (-1);
 
-	m_TabCtrl.InsertItem(m_TabCtrl.GetItemCount(), &tci);
+	m_TabCtrl.SetItem(index, &tci);
+
 	title.UnlockBuffer();
 	ReSize();
 }
@@ -722,10 +754,13 @@ void CTabBar::Remove(CWnd *pWnd)
 CWnd *CTabBar::GetAt(int nIndex)
 {
 	TC_ITEM tci;
+
 	tci.mask = TCIF_PARAM;
+
 	if ( !m_TabCtrl.GetItem(nIndex, &tci) )
 		return NULL;
-	return FromHandle((HWND)tci.lParam);
+
+	return ((HWND)tci.lParam != NULL ? FromHandle((HWND)tci.lParam) : NULL);
 }
 void CTabBar::GetTitle(int nIndex, CString &title)
 {
@@ -838,7 +873,7 @@ int CTabBar::GetIndex(CWnd *pWnd)
 	int n;
 	CWnd *pFrame;
 
-	for ( n = 0 ; n <  GetSize() ; n++ ) {
+	for ( n = 0 ; n < GetSize() ; n++ ) {
 		if ( (pFrame = GetAt(n)) != NULL && pFrame->m_hWnd == pWnd->m_hWnd )
 			return n;
 	}
@@ -891,8 +926,11 @@ void CTabBar::SetTabTitle(BOOL bNumber)
 		if ( !m_TabCtrl.GetItem(n, &tci) )
 			continue;
 
-		pWnd = FromHandle((HWND)tci.lParam);
-		pWnd->GetWindowText(work);
+		if ( (HWND)tci.lParam != NULL ) {
+			pWnd = FromHandle((HWND)tci.lParam);
+			pWnd->GetWindowText(work);
+		} else
+			work.Empty();
 
 		if ( m_bNumber )
 			title.Format(_T("%d %s"), n + 1, work);
@@ -922,7 +960,7 @@ void CTabBar::SetGhostWnd(BOOL sw)
 		if ( (pMain = (CMainFrame *)AfxGetMainWnd()) == NULL )
 			return;
 
-		if ( !pMain->IsOverLap((HWND)tci.lParam) )
+		if ( (HWND)tci.lParam == NULL || !pMain->IsOverLap((HWND)tci.lParam) )
 			return;
 
 		m_GhostItem = m_GhostReq;

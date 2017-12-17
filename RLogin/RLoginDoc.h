@@ -100,7 +100,6 @@ public:
 	CString m_WorkStr;
 	class CScript *m_pScript;
 	BOOL m_InPane;
-	int m_PostIdleCount;
 	int m_AfterId;
 	int m_LogSendRecv;
 	CString m_ScriptFile;
@@ -156,7 +155,6 @@ public:
 	void DoDropFile();
 	CWnd *GetAciveView();
 	int GetViewCount();
-	void PostIdleMessage();
 
 	BOOL LogOpen(LPCTSTR filename);
 	BOOL LogClose();
@@ -186,7 +184,6 @@ protected:
 
 	afx_msg void OnFileClose();
 	afx_msg void OnCancelBtn();
-	afx_msg void OnSockIdle();
 
 	afx_msg void OnLogOpen();
 	afx_msg void OnUpdateLogOpen(CCmdUI* pCmdUI);

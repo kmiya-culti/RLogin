@@ -196,7 +196,7 @@ void CChatDlg::OnNMRClickNodetree(NMHDR *pNMHDR, LRESULT *pResult)
 	pSubMenu = PopUpMenu.GetSubMenu(4);
 
 	GetCursorPos(&point);
-	pSubMenu->TrackPopupMenu(TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, this);
+	((CMainFrame *)::AfxGetMainWnd())->TrackPopupMenuIdle(pSubMenu, TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, this);
 
 	*pResult = 0;
 }

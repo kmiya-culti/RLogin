@@ -109,7 +109,6 @@ BEGIN_MESSAGE_MAP(CRLoginView, CView)
 	ON_COMMAND(ID_FILE_PRINT_PREVIEW, &CView::OnFilePrintPreview)
 	ON_COMMAND(IDM_EDIT_MARK, &CRLoginView::OnEditMark)
 	ON_UPDATE_COMMAND_UI(IDM_EDIT_MARK, &CRLoginView::OnUpdateEditMark)
-
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -2040,6 +2039,7 @@ void CRLoginView::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 		pos = min;
 		break;
 	case SB_ENDSCROLL:	// スクロール終了。
+		((CMainFrame *)::AfxGetMainWnd())->SetIdleTimer(FALSE);
 		break;
 	case SB_LINEDOWN:	// 1 行下へスクロール。
 		if ( (pos -= 1) < min )
@@ -2066,6 +2066,7 @@ void CRLoginView::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 		info.fMask  = SIF_TRACKPOS;
 		GetScrollInfo(SB_VERT, &info, SIF_TRACKPOS);
 		pos = pDoc->m_TextRam.m_HisLen - m_Lines - info.nTrackPos;
+		((CMainFrame *)::AfxGetMainWnd())->SetIdleTimer(TRUE);
 		break;
 	}
 
@@ -2482,14 +2483,8 @@ void CRLoginView::PopUpMenu(CPoint point)
 		state.DoUpdate(this, TRUE);
 	}
 
-	// OnEnterMenuLoop
-	((CMainFrame *)::AfxGetMainWnd())->SetIdleTimer(TRUE);
-
 	ClientToScreen(&point);
-	pMenu->TrackPopupMenu(TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, this);
-
-	// OnExitMenuLoop
-	((CMainFrame *)::AfxGetMainWnd())->SetIdleTimer(FALSE);
+	((CMainFrame *)::AfxGetMainWnd())->TrackPopupMenuIdle(pMenu, TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, this);
 
 	if ( m_pSelectGrapWnd != NULL ) {
 		pMenu->DeleteMenu(6, MF_BYPOSITION);
@@ -3275,7 +3270,7 @@ void CRLoginView::OnClipboardMenu()
 	point.x = m_CaretX;
 	point.y = m_CaretY + m_CharHeight;
 	ClientToScreen(&point);
-	pMenu->TrackPopupMenu(TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, this);
+	((CMainFrame *)::AfxGetMainWnd())->TrackPopupMenuIdle(pMenu, TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, this);
 }
 
 void CRLoginView::OnMacroRec() 
@@ -3929,3 +3924,4 @@ void CRLoginView::OnPrint(CDC* pDC, CPrintInfo* pInfo)
 
 	m_TopOffset = save_param[10];
 }
+

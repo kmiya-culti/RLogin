@@ -252,4 +252,3 @@ BOOL CChildFrame::PreTranslateMessage(MSG* pMsg)
 
 	return CMDIChildWnd::PreTranslateMessage(pMsg);
 }
-

@@ -33,6 +33,7 @@ CPaneFrame::CPaneFrame(class CMainFrame *pMain, HWND hWnd, class CPaneFrame *pOw
 	m_bActive = FALSE;
 	m_pServerEntry = NULL;
 	m_bReqSize = FALSE;
+	m_TabIndex = (-1);
 
 	if ( m_pOwn != NULL )
 		m_Frame = m_pOwn->m_Frame;
@@ -613,7 +614,7 @@ void CPaneFrame::SetBuffer(CBuffer *buf, BOOL bEntry)
 #if	_MSC_VER >= _MSC_VER_VS10
 					pDoc->ClearPathName();
 #endif
-					tmp.Format("%d\t0\t1\t", m_Style);
+					tmp.Format("%d\t0\t1\t%d\t", m_Style, ((CMainFrame *)::AfxGetMainWnd())->GetTabIndex(pWnd));
 				}
 			}
 		}
@@ -671,6 +672,7 @@ class CPaneFrame *CPaneFrame::GetBuffer(class CMainFrame *pMain, class CPaneFram
 		if ( stra.GetSize() > 2 && stra.GetVal(2) == 1 ) {
 			pPane->m_pServerEntry = new CServerEntry;
 			pPane->m_pServerEntry->GetBuffer(*buf);
+			pPane->m_TabIndex = (stra.GetSize() > 3 ? stra.GetVal(3) : (-1));
 		}
 		return pPane;
 	}
@@ -766,7 +768,6 @@ IMPLEMENT_DYNAMIC(CMainFrame, CMDIFrameWnd)
 BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_WM_CREATE()
 	ON_WM_DESTROY()
-	ON_WM_ENTERIDLE()
 	ON_WM_SYSCOMMAND()
 	ON_WM_TIMER()
 	ON_WM_SETCURSOR()
@@ -791,6 +792,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_MESSAGE(WM_GETCLIPBOARD, OnGetClipboard)
 	ON_MESSAGE(WM_DPICHANGED, OnDpiChanged)
 	ON_MESSAGE(WM_SETMESSAGESTRING, OnSetMessageString)
+	ON_MESSAGE(WM_NULL, OnNullMessage)
 
 	ON_COMMAND(ID_FILE_ALL_LOAD, OnFileAllLoad)
 	ON_COMMAND(ID_FILE_ALL_SAVE, OnFileAllSave)
@@ -896,6 +898,8 @@ CMainFrame::CMainFrame()
 	m_bClipThreadCount = 0;
 	m_ClipTimer = 0;
 	m_IdleTimer = 0;
+	m_bPostIdleMsg = FALSE;
+	m_LastClipUpdate = clock();
 }
 
 CMainFrame::~CMainFrame()
@@ -1517,12 +1521,20 @@ void CMainFrame::SetIdleTimer(BOOL bSw)
 {
 	if ( bSw ) {
 		if ( m_IdleTimer == 0 )
-			m_IdleTimer = SetTimer(TIMERID_IDLETIMER, 200, NULL);
+			m_IdleTimer = SetTimer(TIMERID_IDLETIMER, 100, NULL);
 
 	} else if ( m_IdleTimer != 0 ) {
 		KillTimer(m_IdleTimer);
 		m_IdleTimer = 0;
 	}
+}
+void CMainFrame::PostIdleMessage()
+{
+	if ( m_bPostIdleMsg || m_IdleTimer != 0 )
+		return;
+
+	m_bPostIdleMsg = TRUE;
+	PostMessage(WM_NULL);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1716,7 +1728,6 @@ void CMainFrame::AddChild(CWnd *pWnd)
 {
 	if ( m_wndTabBar.m_TabCtrl.GetItemCount() >= 1 )
 		ShowControlBar(&m_wndTabBar, TRUE, TRUE);
-	m_wndTabBar.Add(pWnd);
 
 	CPaneFrame *pPane;
 
@@ -1737,6 +1748,9 @@ void CMainFrame::AddChild(CWnd *pWnd)
 		pPane = m_pTopPane->GetPane(pTemp->m_hWnd);
 		pPane->CreatePane(PANEFRAME_MAXIM, pWnd->m_hWnd);
 	}
+
+	m_wndTabBar.Add(pWnd, pPane->m_TabIndex);
+	pPane->m_TabIndex = (-1);
 }
 void CMainFrame::RemoveChild(CWnd *pWnd, BOOL bDelete)
 {
@@ -2032,7 +2046,7 @@ BOOL CMainFrame::CopyClipboardData(CString &str)
 	str.Empty();
 	max = (int)GlobalSize(hData) / sizeof(WCHAR);
 
-	for ( len = 0 ; len < max && len < (256 * 1024) && *pData != L'\0' && *pData != L'\x1A' ; len++ )
+	for ( len = 0 ; len < max && *pData != L'\0' && *pData != L'\x1A' ; len++ )
 		str += *(pData++);
 
 	GlobalUnlock(hData);
@@ -2302,9 +2316,9 @@ LRESULT CMainFrame::OnWinSockSelect(WPARAM wParam, LPARAM lParam)
 	if ( (fs & FD_ACCEPT) != 0 )
 		pSock->OnAccept((SOCKET)wParam);
 	if ( (fs & FD_READ) != 0 )
-		pSock->OnReceive(0, TRUE);
+		pSock->OnReceive(0);
 	if ( (fs & FD_OOB) != 0 )
-		pSock->OnReceive(MSG_OOB, TRUE);
+		pSock->OnReceive(MSG_OOB);
 	if ( (fs & FD_WRITE) != 0 )
 		pSock->OnSend();
 	if ( (fs & FD_CLOSE) != 0 )
@@ -2544,20 +2558,17 @@ void CMainFrame::OnDestroy()
 	CMDIFrameWnd::OnDestroy();
 }
 
-void CMainFrame::OnEnterIdle(UINT nWhy, CWnd* pWho)
-{
-	CMDIFrameWnd::OnEnterIdle(nWhy, pWho);
-
-	//if ( nWhy == MSGF_MENU )
-	//	((CRLoginApp *)AfxGetApp())->OnIdle(-1);
-}
-
 void CMainFrame::OnTimer(UINT_PTR nIDEvent) 
 {
+	int n;
+	clock_t st;
 	CTimerObject *tp;
 	CMidiQue *mp;
 
-	if ( nIDEvent == m_SleepTimer ) {
+	CMDIFrameWnd::OnTimer(nIDEvent);
+
+	switch(nIDEvent) {
+	case TIMERID_SLEEPMODE:
 		if ( m_SleepStatus < m_SleepCount ) {
 			m_SleepStatus += 5;
 		} else if ( m_SleepStatus == m_SleepCount ) {
@@ -2571,8 +2582,9 @@ void CMainFrame::OnTimer(UINT_PTR nIDEvent)
 			KillTimer(nIDEvent);
 			m_SleepTimer = 0;
 		}
+		break;
 
-	} else if ( nIDEvent == m_MidiTimer ) {
+	case TIMERID_MIDIEVENT:
 		KillTimer(nIDEvent);
 		m_MidiTimer = 0;
 		if ( !m_MidiQue.IsEmpty() && (mp = m_MidiQue.RemoveHead()) != NULL ) {
@@ -2588,13 +2600,15 @@ void CMainFrame::OnTimer(UINT_PTR nIDEvent)
 		}
 		if ( !m_MidiQue.IsEmpty() && (mp = m_MidiQue.GetHead()) != NULL )
 			m_MidiTimer = SetTimer(TIMERID_MIDIEVENT, mp->m_mSec, NULL);
+		break;
 
-	} else if ( nIDEvent == m_StatusTimer ) {
+	case TIMERID_STATUSCLR:
 		KillTimer(m_StatusTimer);
 		m_StatusTimer = 0;
 		SetMessageText(AFX_IDS_IDLEMESSAGE);
+		break;
 
-	} else if ( nIDEvent == TIMERID_CLIPUPDATE ) {
+	case TIMERID_CLIPUPDATE:
 		if ( m_bClipChain ) {
 			ChangeClipboardChain(m_hNextClipWnd);
 			m_hNextClipWnd = SetClipboardViewer();
@@ -2602,18 +2616,19 @@ void CMainFrame::OnTimer(UINT_PTR nIDEvent)
 			KillTimer(nIDEvent);
 			m_ClipTimer = 0;
 		}
+		break;
 
-	} else if ( nIDEvent == TIMERID_IDLETIMER ) {
-		// 最大20回、200ms以下に制限
-		int n;
-		clock_t st = clock() + 180;
+	case TIMERID_IDLETIMER:
+		// 最大20回、100ms以下に制限
+		st = clock() + 90;
 		for ( n = 0 ; n < 20 && st > clock() ; n++ ) {
 			if ( !((CRLoginApp *)AfxGetApp())->OnIdle((LONG)(-1)) )
 				break;
 		}
-		//TRACE("TimerIdle %d(%d)\n", n, clock() - st + 180);
+		//TRACE("TimerIdle %d(%d)\n", n, clock() - st + 90);
+		break;
 
-	} else {
+	default:
 		for ( tp = m_pTimerUsedId ; tp != NULL ; tp = tp->m_pList ) {
 			if ( tp->m_Id == (int)nIDEvent ) {
 				if ( (tp->m_Mode & 030) == 000 ) {
@@ -2627,8 +2642,8 @@ void CMainFrame::OnTimer(UINT_PTR nIDEvent)
 		}
 		if ( tp == NULL )
 			KillTimer(nIDEvent);
+		break;
 	}
-	CMDIFrameWnd::OnTimer(nIDEvent);
 }
 
 void CMainFrame::RecalcLayout(BOOL bNotify) 
@@ -3242,6 +3257,20 @@ CBitmap *CMainFrame::GetMenuBitmap(UINT nId)
 	}
 	return NULL;
 }
+BOOL CMainFrame::TrackPopupMenuIdle(CMenu *pMenu, UINT nFlags, int x, int y, CWnd* pWnd, LPCRECT lpRect)
+{
+	BOOL rt = FALSE;
+
+	// OnEnterMenuLoop
+	SetIdleTimer(TRUE);
+
+	rt = pMenu->TrackPopupMenu(nFlags, x, y, pWnd, lpRect);
+
+	// OnExitMenuLoop
+	SetIdleTimer(FALSE);
+
+	return rt;
+}
 
 void CMainFrame::OnEnterMenuLoop(BOOL bIsTrackPopupMenu)
 {
@@ -3249,8 +3278,6 @@ void CMainFrame::OnEnterMenuLoop(BOOL bIsTrackPopupMenu)
 	CMenu *pMenu, *pSubMenu;
 	CRLoginDoc *pDoc;
 	CString str;
-
-	SetIdleTimer(TRUE);
 
 	if ( (pMenu = GetMenu()) == NULL )
 		return;
@@ -3282,6 +3309,8 @@ void CMainFrame::OnEnterMenuLoop(BOOL bIsTrackPopupMenu)
 	}
 
 	SetMenuBitmap(pMenu);
+
+	SetIdleTimer(TRUE);
 }
 void CMainFrame::OnExitMenuLoop(BOOL bIsTrackPopupMenu)
 {
@@ -3471,12 +3500,7 @@ void CMainFrame::OnDrawClipboard()
 	if ( m_hNextClipWnd && m_hNextClipWnd != m_hWnd )
 		::SendMessage(m_hNextClipWnd, WM_DRAWCLIPBOARD, NULL, NULL);
 
-	m_bClipEnable = TRUE;	// クリップボードチェインが有効？
-
-	if ( m_bClipThreadCount < CLIPOPENTHREADMAX  ) {
-		m_bClipThreadCount++;
-		AfxBeginThread(CopyClipboardThead, this, THREAD_PRIORITY_NORMAL);
-	}
+	OnClipboardUpdate();
 }
 void CMainFrame::OnChangeCbChain(HWND hWndRemove, HWND hWndAfter)
 {
@@ -3489,8 +3513,6 @@ void CMainFrame::OnChangeCbChain(HWND hWndRemove, HWND hWndAfter)
 }
 void CMainFrame::OnClipboardUpdate()
 {
-	m_bClipEnable = TRUE;	// クリップボードチェインが有効？
-
 	// 本来ならここでOpenClipboardなどのクリップボードにアクセスすれば良いと思うのだが
 	// リモートディスクトップをRLogin上のポートフォワードで実行するとGetClipboardDataで
 	// デッドロックが起こってしまう。
@@ -3507,6 +3529,17 @@ void CMainFrame::OnClipboardUpdate()
 	// にした。別スレッドのクリップボードアクセスは、問題が多いと思う
 
 	// かなりややこしい動作なのでここにメモを残す
+
+	clock_t now = clock();
+	int msec = (int)(now - m_LastClipUpdate) * 1000 / CLOCKS_PER_SEC;
+	m_LastClipUpdate = now;
+
+	if ( msec > 0 && msec < CLIPOPENLASTMSEC )
+		return;
+
+	//TRACE("OnClipboardUpdate %d\n", msec);
+
+	m_bClipEnable = TRUE;	// クリップボードチェインが有効？
 
 	if ( m_bClipThreadCount < CLIPOPENTHREADMAX  ) {
 		m_bClipThreadCount++;
@@ -3532,6 +3565,7 @@ void CMainFrame::OnClipchain()
 	if ( m_bAllowClipChain ) {
 		// Do Disable
 		m_bAllowClipChain = FALSE;
+		m_bClipEnable = FALSE;
 
 		if ( m_bClipChain == FALSE ) {
 			if ( ExRemoveClipboardFormatListener != NULL )
@@ -3547,6 +3581,7 @@ void CMainFrame::OnClipchain()
 	} else {
 		// Do Enable
 		m_bAllowClipChain = TRUE;
+		m_bClipEnable = TRUE;
 
 		if ( ExAddClipboardFormatListener != NULL && ExRemoveClipboardFormatListener != NULL ) {
 			if ( ExAddClipboardFormatListener(m_hWnd) )
@@ -3626,6 +3661,11 @@ LRESULT CMainFrame::OnSetMessageString(WPARAM wParam, LPARAM lParam)
 		msg.Truncate(n);
 
 	return CMDIFrameWnd::OnSetMessageString(0, (LPARAM)(LPCTSTR)msg);
+}
+LRESULT CMainFrame::OnNullMessage(WPARAM wParam, LPARAM lParam)
+{
+	m_bPostIdleMsg = FALSE;
+	return TRUE;
 }
 
 #define _AfxGetDlgCtrlID(hWnd)          ((UINT)(WORD)::GetDlgCtrlID(hWnd))

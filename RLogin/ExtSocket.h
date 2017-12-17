@@ -19,7 +19,7 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
-#define	RECVMINSIZ			(m_RecvBufSize / 4)
+#define	RECVMINSIZ			(m_RecvBufSize * 1)
 #define	RECVBUFSIZ			(m_RecvBufSize    )
 #define	RECVMAXSIZ			(m_RecvBufSize * 4)
 
@@ -229,7 +229,8 @@ public:
 	virtual void OnConnect();
 	virtual void OnAccept(SOCKET hand);
 	virtual void OnClose();
-	virtual void OnReceive(int nFlags, BOOL bWinSock);
+	BOOL ReceiveFlowCheck();
+	virtual void OnReceive(int nFlags);
 	virtual void OnSend();
 	virtual int OnIdle();
 	virtual void OnTimer(UINT_PTR nIDEvent);

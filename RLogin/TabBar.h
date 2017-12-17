@@ -38,7 +38,7 @@ public:
 	BOOL Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID);
 
 	int GetImageIndex(LPCTSTR filename);
-	void Add(CWnd *pWnd);
+	void Add(CWnd *pWnd, int index);
 	void Remove(CWnd *pWnd);
 	int GetCurSel() { return m_TabCtrl.GetCurSel(); }
 	int GetSize() { return m_TabCtrl.GetItemCount(); }

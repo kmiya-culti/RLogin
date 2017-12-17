@@ -39,7 +39,6 @@ BEGIN_MESSAGE_MAP(CRLoginDoc, CDocument)
 
 	ON_COMMAND(ID_FILE_CLOSE, &CRLoginDoc::OnFileClose)
 	ON_COMMAND(IDC_CANCELBTN, OnCancelBtn)
-	ON_COMMAND(IDM_SOCK_IDLE, &CRLoginDoc::OnSockIdle)
 
 	ON_COMMAND(ID_LOG_OPEN, OnLogOpen)
 	ON_UPDATE_COMMAND_UI(ID_LOG_OPEN, OnUpdateLogOpen)
@@ -96,7 +95,6 @@ CRLoginDoc::CRLoginDoc()
 	m_LogSendRecv = LOGDEBUG_NONE;
 	m_ScriptFile.Empty();
 	m_bReqDlg = FALSE;
-	m_PostIdleCount = 0;
 	m_TitleName.Empty();
 	m_bCastLock = FALSE;
 	m_ConnectTime = 0;
@@ -238,6 +236,9 @@ BOOL CRLoginDoc::DoFileSave()
 }
 void CRLoginDoc::OnFileClose()
 {
+	if ( ((CMainFrame *)::AfxGetMainWnd())->IsTimerIdleBusy() )
+		return;
+
 	if ( m_pSock != NULL && m_pSock->m_bConnect && AfxMessageBox(CStringLoad(IDS_FILECLOSEQES), MB_ICONQUESTION | MB_YESNO) != IDYES )
 		return;
 
@@ -1219,21 +1220,6 @@ int CRLoginDoc::GetViewCount()
 
 	return count;
 }
-void CRLoginDoc::PostIdleMessage()
-{
-	// OnIdleの誘発
-	::AfxGetMainWnd()->PostMessage(WM_NULL);
-
-	if ( m_PostIdleCount > 0 )
-		return;
-
-	CWnd *pWnd = GetAciveView();
-
-	if ( pWnd != NULL )
-		pWnd->PostMessage(WM_COMMAND, IDM_SOCK_IDLE);
-
-	m_PostIdleCount++;
-}
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -1349,7 +1335,7 @@ void CRLoginDoc::OnSocketError(int err)
 		tmp += CStringLoad(IDS_SOCKREOPEN);
 		if ( AfxMessageBox(tmp, MB_ICONERROR | MB_YESNO) == IDYES )
 			pWnd->PostMessage(WM_COMMAND, IDM_REOPENSOCK, (LPARAM)0);
-		else if ( m_TextRam.IsOptEnable(TO_RLNOTCLOSE) )
+		else if ( m_TextRam.IsOptEnable(TO_RLNOTCLOSE) || ((CMainFrame *)::AfxGetMainWnd())->IsTimerIdleBusy() )
 			UpdateAllViews(NULL, UPDATE_DISPMSG, (CObject *)_T("Error"));
 		else
 			pWnd->PostMessage(WM_COMMAND, ID_FILE_CLOSE, (LPARAM)0);
@@ -1404,7 +1390,7 @@ void CRLoginDoc::OnSocketClose()
 
 	if (m_TextRam.IsOptEnable(TO_RLREOPEN) && pWnd != NULL && AfxMessageBox(IDS_SOCKREOPEN, MB_ICONQUESTION | MB_YESNO) == IDYES )
 		pWnd->PostMessage(WM_COMMAND, IDM_REOPENSOCK, (LPARAM)0);
-	else if ( m_TextRam.IsOptEnable(TO_RLNOTCLOSE) )
+	else if ( m_TextRam.IsOptEnable(TO_RLNOTCLOSE) || ((CMainFrame *)::AfxGetMainWnd())->IsTimerIdleBusy() )
 		UpdateAllViews(NULL, UPDATE_DISPMSG, (CObject *)_T("Closed"));
 	else if ( bCanExit )
 		m_pMainWnd->PostMessage(WM_COMMAND, ID_APP_EXIT, 0 );
@@ -1441,7 +1427,7 @@ int CRLoginDoc::OnSocketReceive(LPBYTE lpBuf, int nBufLen, int nFlags)
 		}
 	}
 
-	n = m_TextRam.Write(lpBuf, (nBufLen < 4096 ? nBufLen : 4096), &sync);
+	n = m_TextRam.Write(lpBuf, (nBufLen < RECVDEFSIZ ? nBufLen : RECVDEFSIZ), &sync);
 
 	if ( sync ) {
 		m_pSock->SetRecvSyncMode(TRUE);
@@ -1461,7 +1447,7 @@ int CRLoginDoc::OnSocketReceive(LPBYTE lpBuf, int nBufLen, int nFlags)
 	}
 
 	if ( (nBufLen - n + m_pSock->GetRecvProcSize()) > 0 )
-		PostIdleMessage();
+		((CMainFrame *)::AfxGetMainWnd())->PostIdleMessage();		// OnIdleの誘発
 
 	nBufLen = n;
 
@@ -1486,18 +1472,6 @@ int CRLoginDoc::OnSocketReceive(LPBYTE lpBuf, int nBufLen, int nFlags)
 		m_pScript->SetSockBuff(lpBuf, nBufLen);
 
 	return nBufLen;
-}
-void CRLoginDoc::OnSockIdle()
-{
-	// CRLoginApp::OnIdleが忙しい場合、ここで更新
-	if ( !m_TextRam.IsOptEnable(TO_RLPSUPWIN) )
-		UpdateAllViews(NULL, UPDATE_UPDATEWINDOW, NULL);
-
-	if ( m_pSock != NULL )
-		m_pSock->OnIdle();
-
-	// 後でデクリメントにより重複しないように・・・
-	m_PostIdleCount--;
 }
 void CRLoginDoc::OnSockReOpen()
 {

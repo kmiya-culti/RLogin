@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "Afxpriv.h"
 #include "RLogin.h"
+#include "MainFrm.h"
 #include "RLoginDoc.h"
 #include "RLoginView.h"
 #include "Ssh.h"
@@ -3136,7 +3137,7 @@ void CSFtp::OnRclickLocalList(NMHDR* pNMHDR, LRESULT* pResult)
 		if ( !IsClipboardFormatAvailable(CF_HDROP) )
 			submenu->EnableMenuItem(ID_EDIT_PASTE, MF_BYCOMMAND | MF_GRAYED);
 		submenu->EnableMenuItem(IDM_SFTP_UIDGID, MF_BYCOMMAND | MF_GRAYED);
-		submenu->TrackPopupMenu(TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, this);
+		((CMainFrame *)::AfxGetMainWnd())->TrackPopupMenuIdle(submenu, TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, this);
 	}
 	*pResult = 0;
 }
@@ -3155,7 +3156,7 @@ void CSFtp::OnRclickRemoteList(NMHDR* pNMHDR, LRESULT* pResult)
 		if ( !IsClipboardFormatAvailable(CF_HDROP) )
 			submenu->EnableMenuItem(ID_EDIT_PASTE, MF_BYCOMMAND | MF_GRAYED);
 		submenu->CheckMenuItem(IDM_SFTP_UIDGID, MF_BYCOMMAND | (m_bUidGid ? MF_CHECKED : MF_UNCHECKED));
-		submenu->TrackPopupMenu(TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, this);
+		((CMainFrame *)::AfxGetMainWnd())->TrackPopupMenuIdle(submenu, TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, this);
 	}
 	*pResult = 0;
 }

@@ -1,0 +1,34 @@
+REGEDIT
+; この .REG ファイルは SETUP プログラムで使用される可能性があります。
+;   SETUP プログラムが使用できない場合、以下のエントリは CWinApp::RegisterShellFileTypes
+;   および COleObjectFactory::UpdateRegistryAll の呼び出しで自動的に InitInstance 中に
+;   登録されます。
+
+HKEY_CLASSES_ROOT\.rlg = RLogin.Document
+HKEY_CLASSES_ROOT\RLogin.Document\shell\open\command = RLogin.EXE %1
+HKEY_CLASSES_ROOT\RLogin.Document\shell\open\ddeexec = [open("%1")]
+HKEY_CLASSES_ROOT\RLogin.Document\shell\open\ddeexec\application = RLogin
+    ; メモ : アプリケーションは省略可能です。
+    ;  ("command" のアプリケーション名が既定値になります。)
+
+HKEY_CLASSES_ROOT\RLogin.Document = RLogin.Document
+
+; プロトコルハンドラの設定
+;
+;[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\ssh]
+;@="URL: SSH プロトコル"
+;"BrowserFlags"=dword:00000008
+;"EditFlags"=dword:00000002
+;"URL Protocol"=""
+;
+;[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\ssh\DefaultIcon]
+;@="\"C:\\Program Files\\RLogin\\RLogin.exe\",1"
+;
+;[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\ssh\shell]
+;@="open"
+;
+;[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\ssh\shell\open]
+;
+;[HKEY_LOCAL_MACHINE\SOFTWARE\Classes\ssh\shell\open\command]
+;@="\"C:\\Program Files\\RLogin\\RLogin.exe\" /term xterm /inuse %1"
+;

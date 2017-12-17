@@ -40,6 +40,7 @@ public:
 	HWND m_hWnd;
 	CStatic m_NullWnd;
 	CServerEntry *m_pServerEntry;
+	int m_TabIndex;
 
 	void Attach(HWND hWnd);
 	void CreatePane(int Style, HWND hWnd);
@@ -112,7 +113,8 @@ public:
 	CBitmap m_Bitmap;
 };
 
-#define	CLIPOPENTHREADMAX	3	// クリップボードアクセススレッド多重起動数
+#define	CLIPOPENTHREADMAX	3		// クリップボードアクセススレッド多重起動数
+#define	CLIPOPENLASTMSEC	500		// 指定msec以内のクリップボードアップデートを無視する
 
 class CMainFrame : public CMDIFrameWnd
 {
@@ -181,6 +183,8 @@ public:
 	CKeyNodeTab m_DefKeyTab;
 	BOOL m_UseBitmapUpdate;
 	UINT_PTR m_IdleTimer;
+	BOOL m_bPostIdleMsg;
+	clock_t m_LastClipUpdate;
 
 	BOOL PageantQuery(CBuffer *pInBuf, CBuffer *pOutBuf);
 	BOOL PageantInit();
@@ -204,6 +208,7 @@ public:
 
 	void SetMidiEvent(int msec, DWORD msg);
 	void SetIdleTimer(BOOL bSw);
+	void PostIdleMessage();
 
 	void SetWakeUpSleep(int sec);
 	void WakeUpSleep();
@@ -250,7 +255,8 @@ public:
 	BOOL GetClipboardText(CString &str);
 	BOOL SetClipboardText(LPCTSTR str, LPCSTR rtf = NULL);
 
-	CMenu *GetSaveMenu(HMENU hDocMenu);
+	inline BOOL IsTimerIdleBusy() { return (m_IdleTimer != 0 ? TRUE : FALSE); }
+	BOOL TrackPopupMenuIdle(CMenu *pMenu, UINT nFlags, int x, int y, CWnd* pWnd, LPCRECT lpRect = 0);
 	void SetMenuBitmap(CMenu *pMenu);
 	CBitmap *GetMenuBitmap(UINT nId);
 	void InitMenuBitmap();
@@ -285,7 +291,6 @@ protected:
 
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnDestroy();
-	afx_msg void OnEnterIdle(UINT nWhy, CWnd* pWho);
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
@@ -355,6 +360,7 @@ protected:
 	afx_msg LRESULT OnGetClipboard(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnDpiChanged(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnSetMessageString(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnNullMessage(WPARAM wParam, LPARAM lParam);
 };
 
 
