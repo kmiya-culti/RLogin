@@ -3392,7 +3392,7 @@ TD {
                 </TR>
                 <TR>
                   <TD width="120"><FONT size="-1"><I>Pfn</I></FONT> = [0],1,2</TD>
-                  <TD>フォント番号</TD>
+                  <TD>フォント番号（未使用）</TD>
                 </TR>
                 <TR>
                   <TD width="120"><FONT size="-1"><I>Pcn</I></FONT> = [0]</TD>
@@ -3400,8 +3400,8 @@ TD {
                 </TR>
                 <TR>
                   <TD width="120" valign="top"><FONT size="-1"><I>Pe</I></FONT> = [0],1,2</TD>
-                  <TD>0 指定<A href="#DSCS">Dscs</A>のすべてのフォント定義をクリア<BR>
-                  1 指定フォントを置き換え<BR>
+                  <TD>0 指定<A href="#DSCS">Dscs</A>のすべてのフォントをクリアして置換<BR>
+                  1 指定<A href="#DSCS">Dscs</A>にフォントを追加・置換<BR>
                   2 すべてのユーザーフォントをクリア</TD>
                 </TR>
                 <TR>
@@ -3415,11 +3415,11 @@ TD {
                 </TR>
                 <TR>
                   <TD width="120"><FONT size="-1"><I>Pss</I></FONT> = [0]</TD>
-                  <TD>Font set size (無視)</TD>
+                  <TD>Font set size (未使用)</TD>
                 </TR>
                 <TR>
                   <TD width="120" valign="top"><FONT size="-1"><I>Pt</I></FONT> = [0],3</TD>
-                  <TD>0,1,2 Text or full cell（無視）<BR>
+                  <TD>0,1,2 Text or full cell（未使用）<BR>
                   3 Sixelグラフィック</TD>
                 </TR>
                 <TR>
@@ -3767,7 +3767,36 @@ TD {
                   <TD>Pt = 3 の場合、&lt;font-pattern&gt;をSixelグラフィックと<BR>
                   解釈してビットマップをPcmw/Pcmhのマトリクスに<BR>
                   分割し、カラーフォントパターンとして文字コードに<BR>
-                  割り当てます。</TD>
+                  割り当てます。<BR>
+                  ※2.23.1より分割を切り上げに変更し余白を背景色で<BR>
+                  塗りつぶすように変更しました。また文字コード範囲<BR>
+                  （20-7F)を超えた場合は、次のDscs(30-7E)に加算し<BR>
+                  さらに桁上がりでDcss(0-1)を変更します。これらの<BR>
+                  変更は、<A href="http://mlterm.sourceforge.net/DRCS-SIXEL-v2">DRCSMMv2</A>の画像分割表示に合わせる為<BR>
+                  のものです。<BR>
+                  <TABLE cellpadding="2" cellspacing="1" bgcolor="#999999">
+                    <TBODY>
+                      <TR>
+                        <TD>Dcss</TD>
+                        <TD>Dscs</TD>
+                        <TD>Char</TD>
+                        <TD>DRCSMMv2</TD>
+                      </TR>
+                      <TR>
+                        <TD>0(94)</TD>
+                        <TD>2/0 3/0-7/14</TD>
+                        <TD>2/0-7/15</TD>
+                        <TD>U+103020-U+107E7F</TD>
+                      </TR>
+                      <TR>
+                        <TD>1(96)</TD>
+                        <TD>2/0 3/0-7/14</TD>
+                        <TD>2/0-7/15</TD>
+                        <TD>U+1030A0-U+107EFF</TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  </TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -4361,8 +4390,8 @@ TD {
           <TR>
             <TD align="center">8453</TD>
             <TD align="center">8800 DRCSMMv1</TD>
-            <TD>Unicodeマッピング有効</TD>
-            <TD>Unicodeマッピング無効</TD>
+            <TD>DRCS Unicodeマッピング有効</TD>
+            <TD>DRCS Unicodeマッピング無効</TD>
           </TR>
           <TR>
             <TD align="center">8455</TD>

@@ -58,7 +58,7 @@ CCommandLineInfoEx::CCommandLineInfoEx()
 	m_Pass.Empty();
 	m_Term.Empty();
 	m_Name.Empty();
-	m_InUse = FALSE;
+	m_InUse = INUSE_NONE;
 	m_InPane = FALSE;
 	m_AfterId = (-1);
 	m_ScreenX = (-1);
@@ -102,7 +102,9 @@ void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLas
 			m_Proto = PROTO_SSH;
 			m_Port  = _T("ssh");
 		} else if ( _tcsicmp(_T("inuse"), pszParam) == 0 )
-			m_InUse = TRUE;
+			m_InUse = INUSE_ACTWIN;
+		else if ( _tcsicmp(_T("inusea"), pszParam) == 0 )
+			m_InUse = INUSE_ALLWIN;
 		else if ( _tcsicmp(_T("inpane"), pszParam) == 0 )
 			m_InPane = TRUE;
 		else if ( _tcsicmp(_T("nothing"), pszParam) == 0 )
@@ -378,8 +380,10 @@ void CCommandLineInfoEx::GetString(CString &str)
 	if ( m_ReqDlg )
 		str += _T(" /req");
 
-	//if ( m_InUse )
+	//if ( m_InUse == INUSE_ACTWIN )
 	//	str += _T(" /inuse");
+	//else if ( m_InUse == INUSE_ALLWIN )
+	//	str += _T(" /inusea");
 
 	if ( m_InPane )
 		str += _T(" /inpne");
@@ -507,6 +511,8 @@ CRLoginApp::CRLoginApp()
 	m_IdleProcCount = 0;
 	m_pIdleTop = NULL;
 	m_bUseIdle = FALSE;
+
+	m_TempSeqId = 0;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -556,6 +562,31 @@ void ExDwmEnableWindow(HWND hWnd, BOOL bEnable)
 		//ExDwmExtendFrameIntoClientArea(hWnd, &margin);
 	}
 #endif
+}
+
+#ifdef	USE_OLE
+	CLIPFORMAT CF_FILEDESCRIPTOR = RegisterClipboardFormat(CFSTR_FILEDESCRIPTOR);
+	CLIPFORMAT CF_FILECONTENTS = RegisterClipboardFormat(CFSTR_FILECONTENTS);
+#endif
+
+int ThreadMessageBox(LPCTSTR msg, ...)
+{
+	LPVOID lpMessageBuffer;
+	CString tmp;
+	va_list arg;
+	DWORD err = ::GetLastError();
+
+	va_start(arg, msg);
+	tmp.FormatV(msg, arg);
+
+	if ( err != 0 ) {
+		FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&lpMessageBuffer, 0, NULL);
+		tmp += _T("\n\n");
+		tmp += (LPTSTR)lpMessageBuffer;
+		LocalFree(lpMessageBuffer);
+	}
+
+	return ::AfxMessageBox(tmp);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -901,6 +932,10 @@ BOOL CRLoginApp::InitInstance()
 	// 標準の INI ファイルのオプションをロードします (MRU を含む)
 	LoadStdProfileSettings(4);
 
+	// TempPathの設定
+	GetTempPath(MAX_PATH, PathTemp);
+	m_TempDirBase.Format(_T("%sRLogin%d\\"), PathTemp, GetCurrentThreadId());
+
 #ifdef	USE_RCDLL
 	// リソースDLL読み込み
 	CString rcDllName;
@@ -983,7 +1018,7 @@ BOOL CRLoginApp::InitInstance()
 	m_pCmdInfo = &cmdInfo;
 
 	// inuseオプションで別プロセスを見つけたら終了
-	if ( cmdInfo.m_InUse && InUseCheck() )
+	if ( cmdInfo.m_InUse != INUSE_NONE && InUseCheck(cmdInfo.m_InUse == INUSE_ALLWIN ? TRUE : FALSE) )
 		return FALSE;
 	
 	// メイン MDI フレーム ウィンドウを作成します。
@@ -1075,6 +1110,20 @@ BOOL CRLoginApp::InitInstance()
 	return TRUE;
 }
 
+LPCTSTR CRLoginApp::GetTempDir(BOOL bSeqId)
+{
+	if ( GetFileAttributes(m_TempDirBase) == (-1) )
+		CreateDirectory(m_TempDirBase, NULL);
+
+	if ( !bSeqId )
+		return m_TempDirBase;
+
+	m_TempDirPath.Format(_T("%sTemp%04d\\"), m_TempDirBase, m_TempSeqId++);
+	CreateDirectory(m_TempDirPath, NULL);
+
+	return m_TempDirPath;
+}
+
 int CRLoginApp::ExitInstance() 
 {
 	// Free Handle or Library
@@ -1129,6 +1178,8 @@ int CRLoginApp::ExitInstance()
 #ifdef	USE_COMINIT
 	CoUninitialize();
 #endif
+
+	CSFtp::LocalDelete(m_TempDirBase);
 
 	return CWinApp::ExitInstance();
 }
@@ -1377,12 +1428,12 @@ static BOOL CALLBACK RLoginEnumFunc(HWND hwnd, LPARAM lParam)
 	return TRUE;
 }
 
-BOOL CRLoginApp::OnInUseCheck(COPYDATASTRUCT *pCopyData)
+BOOL CRLoginApp::OnInUseCheck(COPYDATASTRUCT *pCopyData, BOOL bIcon)
 {
 	CCommandLineInfoEx cmdInfo;
 	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
 
-	if ( pMain->IsIconic() || pMain->m_IconShow )
+	if ( (!bIcon && pMain->IsIconic()) || pMain->m_IconShow )
 		return TRUE;	// continue
 
 	cmdInfo.SetString((LPCTSTR)(pCopyData->lpData));
@@ -1390,12 +1441,16 @@ BOOL CRLoginApp::OnInUseCheck(COPYDATASTRUCT *pCopyData)
 	if ( cmdInfo.m_ScreenX != (-1) && cmdInfo.m_ScreenY != (-1) )
 		pMain->SetActivePoint(CPoint(cmdInfo.m_ScreenX, cmdInfo.m_ScreenY));
 
+	if (  pMain->IsIconic() )
+		pMain->ShowWindow(SW_RESTORE);
+
 	OpenProcsCmd(&cmdInfo);
+
 	pMain->SetForegroundWindow();
 
 	return FALSE;	// not continue
 }
-BOOL CRLoginApp::InUseCheck()
+BOOL CRLoginApp::InUseCheck(BOOL bIcon)
 {
 	CString cmdLine;
 	COPYDATASTRUCT copyData;
@@ -1403,12 +1458,14 @@ BOOL CRLoginApp::InUseCheck()
 	if ( m_pCmdInfo == NULL )
 		return FALSE;
 
-	m_pCmdInfo->m_InUse = FALSE;
+	m_pCmdInfo->m_InUse = INUSE_NONE;
 	m_pCmdInfo->GetString(cmdLine);
 
-	copyData.dwData = 0x524c4f31;
+	copyData.dwData = bIcon ? 0x524c4f39 : 0x524c4f31;
 	copyData.cbData = (cmdLine.GetLength() + 1) * sizeof(TCHAR);
 	copyData.lpData = cmdLine.GetBuffer();
+
+	AllowSetForegroundWindow(ASFW_ANY);
 
 	return (::EnumWindows(RLoginEnumFunc, (LPARAM)&copyData) ? FALSE : TRUE);
 }
@@ -1677,16 +1734,14 @@ CString CRLoginApp::GetProfileString(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPC
 			lpszDefault = _T("");	// don't pass in NULL
 
 		DWORD dw;
-		CBuffer work(64 * 1024);
+		CBuffer work(64 * 1024 * sizeof(TCHAR));
 		for ( ; ; ) {
-			dw = ::GetPrivateProfileString(lpszSection, lpszEntry, lpszDefault, (LPWSTR)(work.GetPtr()), work.m_Max / sizeof(TCHAR), m_pszProfileName);
-			if ( dw < (work.m_Max / sizeof(TCHAR) - 1) ) {
-				work.m_Len = dw * sizeof(TCHAR);
+			dw = ::GetPrivateProfileString(lpszSection, lpszEntry, lpszDefault, (LPTSTR)work.m_Data, work.m_Max / sizeof(TCHAR), m_pszProfileName);
+			if ( dw < (work.m_Max  / sizeof(TCHAR) - 1) )
 				break;
-			}
 			work.ReAlloc(work.m_Max * 2);
 		}
-		return (LPCTSTR)work;
+		return (LPCTSTR)work.m_Data;
 	}
 }
 void CRLoginApp::GetProfileData(LPCTSTR lpszSection, LPCTSTR lpszEntry, void *lpBuf, int nBufLen, void *lpDef)

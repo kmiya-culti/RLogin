@@ -1741,7 +1741,7 @@ int CExtSocket::GetPortNum(LPCTSTR str)
 
 	if ( *str == 0 )
 		return (-1);
-	else if ( _tcsncmp(str, _T("COM"), 3) == 0 )
+	else if ( _tcsnicmp(str, _T("COM"), 3) == 0 )
 		return (0 - _tstoi(str + 3));
 	else if ( (n = _tstoi(str)) > 0 )
 		return n;

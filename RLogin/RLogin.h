@@ -24,6 +24,10 @@
 #define	IDLEPROC_SCRIPT		2
 #define	IDLEPROC_VIEW		3
 
+#define	INUSE_NONE			0
+#define	INUSE_ACTWIN		1
+#define	INUSE_ALLWIN		2
+
 //////////////////////////////////////////////////////////////////////
 // CCommandLineInfoEx
 
@@ -38,7 +42,7 @@ public:
 	CString m_Pass;
 	CString m_Term;
 	CString m_Name;
-	BOOL m_InUse;
+	int m_InUse;
 	BOOL m_InPane;
 	int m_AfterId;
 	int m_ScreenX;
@@ -91,6 +95,9 @@ public:
 	BOOL m_bOtherCast;
 	CString m_LocalPass;
 	BOOL m_bUseIdle;
+	int m_TempSeqId;
+	CString m_TempDirBase;
+	CString m_TempDirPath;
 
 #ifdef	USE_KEYMACGLOBAL
 	CKeyMacTab m_KeyMacGlobal;
@@ -163,8 +170,8 @@ public:
 	HWND FindProcsMainWnd(DWORD ProcsId);
 	HWND NewProcsMainWnd(CPoint *pPoint, BOOL *pbOpen);
 
-	BOOL OnInUseCheck(COPYDATASTRUCT *pCopyData);
-	BOOL InUseCheck();
+	BOOL OnInUseCheck(COPYDATASTRUCT *pCopyData, BOOL bIcon);
+	BOOL InUseCheck(BOOL bIcon);
 	BOOL OnIsOnlineEntry(COPYDATASTRUCT *pCopyData);
 	BOOL IsOnlineEntry(LPCTSTR entry);
 	BOOL OnIsOpenRLogin(COPYDATASTRUCT *pCopyData);
@@ -191,6 +198,8 @@ public:
 	inline BOOL LoadResToolBar(LPCTSTR lpszName, CToolBar &ToolBar) { return m_ResDataBase.LoadResToolBar(lpszName, ToolBar); }
 	inline BOOL LoadResBitmap(LPCTSTR lpszName, CBitmap &Bitmap) { return m_ResDataBase.LoadResBitmap(lpszName, Bitmap); }
 	inline BOOL InitToolBarBitmap(LPCTSTR lpszName, UINT ImageId) { return m_ResDataBase.InitToolBarBitmap(lpszName, ImageId); }
+
+	LPCTSTR GetTempDir(BOOL bSeqId);
 
 	CRLoginApp();
 
@@ -233,3 +242,10 @@ extern BOOL (__stdcall *ExRemoveClipboardFormatListener)(HWND hwnd);
 #define	WM_DPICHANGED	0x02E0
 typedef enum _MONITOR_DPI_TYPE { MDT_EFFECTIVE_DPI = 0, MDT_ANGULAR_DPI = 1, MDT_RAW_DPI = 2, MDT_DEFAULT = MDT_EFFECTIVE_DPI } MONITOR_DPI_TYPE;
 extern HRESULT (__stdcall *ExGetDpiForMonitor)(HMONITOR hmonitor, MONITOR_DPI_TYPE dpiType, UINT *dpiX, UINT *dpiY);
+
+extern int ThreadMessageBox(LPCTSTR msg, ...);
+
+#ifdef	USE_OLE
+extern CLIPFORMAT CF_FILEDESCRIPTOR;
+extern CLIPFORMAT CF_FILECONTENTS;
+#endif

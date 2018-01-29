@@ -8,6 +8,9 @@
 #include "RLoginDoc.h"
 #include "RLoginView.h"
 #include "ComSock.h"
+#include "ComMoniDlg.h"
+#include "ComInitDlg.h"
+
 #include <winbase.h>
 
 #ifdef _DEBUG
@@ -22,16 +25,15 @@ static char THIS_FILE[]=__FILE__;
 
 CComSock::CComSock(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 {
-	m_hCom     = NULL;
-	m_ComPort  = 1;
-	m_BaudRate = CBR_9600;
-	m_ByteSize = 8;
-	m_Parity   = NOPARITY;
-	m_StopBits = ONESTOPBIT;
-	m_FlowCtrl = m_SaveFlowCtrl = 1;
 	m_Type     = ESCT_COMDEV;
 
-	memset(&m_ComConf, 0, sizeof(COMMCONFIG));
+	m_hCom     = INVALID_HANDLE_VALUE;
+	m_ComPort = (-1);
+	m_pComConf = NULL;
+
+	m_SendWait[0] = 0;
+	m_SendWait[1] = 0;
+	m_MsecByte = 0;
 
 	m_ThreadMode  = THREAD_NONE;
 	m_pThreadEvent = new CEvent(FALSE, TRUE);
@@ -49,10 +51,16 @@ CComSock::CComSock(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 
 	m_SendBreak = 0;
 	m_bCommState = FALSE;
+	m_ComCtrl = 0;
 
 	m_CommError = 0;
 	m_ModemStatus = 0;
 	m_bGetStatus = FALSE;
+
+	m_pComMoni = NULL;
+	m_RecvByteSec = 0;
+	m_SendByteSec = 0;
+	m_bXonXffMode = FALSE;
 
 	SetRecvBufSize(COMBUFSIZE);
 }
@@ -68,6 +76,9 @@ CComSock::~CComSock()
 	CloseHandle(m_ReadOverLap.hEvent);
 	CloseHandle(m_WriteOverLap.hEvent);
 	CloseHandle(m_CommOverLap.hEvent);
+
+	if ( m_pComConf != NULL )
+		delete m_pComConf;
 }
 
 static UINT ComEventThread(LPVOID pParam)
@@ -82,47 +93,43 @@ static UINT ComEventThread(LPVOID pParam)
 
 BOOL CComSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
 {
-	Close();
-	GetMode(lpszHostAddress);
+	COMMTIMEOUTS ComTime;
 
-	CString tmp;
-	tmp.Format((m_ComPort >= 10 ? _T("\\\\.\\COM%d") : _T("COM%d")), m_ComPort);
+	if ( m_hCom != INVALID_HANDLE_VALUE )
+		return FALSE;
 
-	if ( (m_hCom = CreateFile(tmp, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL)) == INVALID_HANDLE_VALUE ) {
-		::AfxMessageBox(GetFormatErrorMessage(m_pDocument->m_ServerEntry.m_EntryName, lpszHostAddress, nHostPort, _T("OpenComm"), ::GetLastError()), MB_ICONSTOP);
-		m_hCom = NULL;
+	if ( !LoadComConf(lpszHostAddress, nHostPort, TRUE) ) {
+		::AfxMessageBox(GetFormatErrorMessage(m_pDocument->m_ServerEntry.m_EntryName, lpszHostAddress, nHostPort, _T("GetCommConfig"), ::GetLastError()), MB_ICONSTOP);
 		return FALSE;
 	}
 
 	PurgeComm(m_hCom, PURGE_TXABORT | PURGE_RXABORT | PURGE_TXCLEAR | PURGE_RXCLEAR);
+	SetupComm(m_hCom, COMQUEUESIZE, COMQUEUESIZE);
 
-	DWORD sz = sizeof(COMMCONFIG);
-	GetCommConfig(m_hCom, &m_ComConf, &sz);
-	GetCommTimeouts(m_hCom, &m_ComTime);
+	SetCommState(m_hCom, &(m_pComConf->dcb));
+	EscapeCommFunction(m_hCom, m_pComConf->dcb.fDtrControl == DTR_CONTROL_DISABLE ? CLRDTR : SETDTR);
+	EscapeCommFunction(m_hCom, m_pComConf->dcb.fRtsControl == RTS_CONTROL_DISABLE ? CLRRTS : SETRTS);
 
-	SetConfig();
-	SetCommState(m_hCom, &(m_ComConf.dcb));
 	PurgeComm(m_hCom, PURGE_TXABORT | PURGE_RXABORT);
-	m_SaveFlowCtrl = m_FlowCtrl;
 
-	m_ComTime.ReadIntervalTimeout         = 10;
-	m_ComTime.ReadTotalTimeoutMultiplier  = 0;
-	m_ComTime.ReadTotalTimeoutConstant    = 50;
-	m_ComTime.WriteTotalTimeoutMultiplier = 35;		// 300bps = 30byte/sec = 33.3ms
-	m_ComTime.WriteTotalTimeoutConstant   = 100;
-	SetCommTimeouts(m_hCom, &m_ComTime);
+	GetCommTimeouts(m_hCom, &ComTime);
+	ComTime.ReadIntervalTimeout         = 10;
+	ComTime.ReadTotalTimeoutMultiplier  = 0;
+	ComTime.ReadTotalTimeoutConstant    = 50;
+	ComTime.WriteTotalTimeoutMultiplier = (m_MsecByte <= 0 ? 1 : m_MsecByte);
+	ComTime.WriteTotalTimeoutConstant   = 50;
+	SetCommTimeouts(m_hCom, &ComTime);
 
+	GetCommModemStatus(m_hCom, &m_ModemStatus);
 	SetCommMask(m_hCom, EV_RXCHAR | EV_RX80FULL | EV_DSR | EV_TXEMPTY | EV_CTS | EV_RING | EV_RLSD | EV_ERR);
 
 	GetMainWnd()->SetAsyncSelect((SOCKET)m_hCom, this, 0);
 
 	m_ThreadMode = THREAD_RUN;
 	m_pThreadEvent->ResetEvent();
-	AfxBeginThread(ComEventThread, this, THREAD_PRIORITY_BELOW_NORMAL);
+	AfxBeginThread(ComEventThread, this, THREAD_PRIORITY_NORMAL);
 
-//	CExtSocket::OnConnect();
-	AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hCom, FD_CONNECT);
-
+	AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hCom, WSAMAKESELECTREPLY(FD_CONNECT, 0));
 	return TRUE;
 }
 BOOL CComSock::AsyncOpen(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType)
@@ -131,7 +138,7 @@ BOOL CComSock::AsyncOpen(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPo
 }
 void CComSock::Close()
 {
-	if ( m_hCom == NULL )
+	if ( m_hCom == INVALID_HANDLE_VALUE )
 		return;
 
 	//	GetApp()->DelSocketIdle(this);
@@ -151,14 +158,19 @@ void CComSock::Close()
 
 	SetCommMask(m_hCom, 0);
 	PurgeComm(m_hCom, PURGE_TXABORT | PURGE_RXABORT | PURGE_TXCLEAR | PURGE_RXCLEAR);
+	EscapeCommFunction(m_hCom, CLRDTR);
+	EscapeCommFunction(m_hCom, CLRRTS);
 	CloseHandle(m_hCom);
 	m_hCom = NULL;
+
+	if ( m_pComMoni != NULL )
+		m_pComMoni->DestroyWindow();
 
 	CExtSocket::Close();
 }
 void CComSock::SendBreak(int opt)
 {
-	if ( m_hCom == NULL )
+	if ( m_hCom == INVALID_HANDLE_VALUE )
 		return;
 
 	m_SendSema.Lock();
@@ -178,20 +190,60 @@ int CComSock::Send(const void* lpBuf, int nBufLen, int nFlags)
 
 	return nBufLen;
 }
-void CComSock::SetXonXoff(int sw)
+BOOL CComSock::SetComConf()
 {
-	if ( m_SaveFlowCtrl != 2 )
-		return;
+	if ( m_hCom == INVALID_HANDLE_VALUE || m_pComConf == NULL )
+		return FALSE;
 
 	m_SendSema.Lock();
-	m_FlowCtrl = (sw ? 2 : 0);
 	m_pStatEvent->ResetEvent();
+	m_bRetCode = FALSE;
 	m_bCommState = TRUE;
 	m_pSendEvent->SetEvent();
 	m_SendSema.Unlock();
 
 	if ( m_ThreadMode == THREAD_RUN )
 		WaitForSingleObject(m_pStatEvent->m_hObject, INFINITE);
+
+	return m_bRetCode;
+}
+void CComSock::SetXonXoff(int sw)
+{
+	if ( m_hCom == INVALID_HANDLE_VALUE || m_pComConf == NULL )
+		return;
+
+	if ( sw ) {		// ->ON
+		if ( m_pComConf->dcb.fInX != 0 && m_pComConf->dcb.fOutX != 0 )
+			return;
+		if ( !m_bXonXffMode )
+			return;
+		m_pComConf->dcb.fInX  = 1;
+		m_pComConf->dcb.fOutX = 1;
+	} else {		// ->OFF
+		if ( m_pComConf->dcb.fInX == 0 && m_pComConf->dcb.fOutX == 0 ) {
+			m_bXonXffMode = FALSE;
+			return;
+		}
+		m_pComConf->dcb.fInX  = 0;
+		m_pComConf->dcb.fOutX = 0;
+		m_bXonXffMode = TRUE;
+	}
+
+	SetComConf();
+}
+BOOL CComSock::SetComCtrl(DWORD ctrl)
+{
+	m_SendSema.Lock();
+	m_pStatEvent->ResetEvent();
+	m_bRetCode = FALSE;
+	m_ComCtrl = ctrl;
+	m_pSendEvent->SetEvent();
+	m_SendSema.Unlock();
+
+	if ( m_ThreadMode == THREAD_RUN )
+		WaitForSingleObject(m_pStatEvent->m_hObject, INFINITE);
+
+	return m_bRetCode;
 }
 int CComSock::GetRecvSize()
 {
@@ -213,6 +265,18 @@ int CComSock::GetSendSize()
 
 	return len;
 }
+void CComSock::GetRecvSendByteSec(int &recvByte, int &sendByte)
+{
+	m_RecvSema.Lock();
+	recvByte = m_RecvByteSec;
+	m_RecvByteSec = 0;
+	m_RecvSema.Unlock();
+
+	m_SendSema.Lock();
+	sendByte = m_SendByteSec;
+	m_SendByteSec = 0;
+	m_SendSema.Unlock();
+}
 
 void CComSock::GetStatus(CString &str)
 {
@@ -223,15 +287,15 @@ void CComSock::GetStatus(CString &str)
 
 	str += _T("\r\n");
 
-	m_SendSema.Lock();
+	m_RecvSema.Lock();
 	n = m_RecvBuff.GetSize();
-	m_SendSema.Unlock();
+	m_RecvSema.Unlock();
 	tmp.Format(_T("Receive Buffer: %d Bytes\r\n"), n);
 	str += tmp;
 
-	m_RecvSema.Lock();
+	m_SendSema.Lock();
 	n = m_SendBuff.GetSize();
-	m_RecvSema.Unlock();
+	m_SendSema.Unlock();
 	tmp.Format(_T("Send Buffer: %d Bytes\r\n"), n);
 	str += tmp;
 
@@ -249,8 +313,11 @@ void CComSock::GetStatus(CString &str)
 
 	str += _T("\r\n");
 
+	tmp.Format(_T("Open Device: COM%d\r\n"), m_ComPort);
+	str += tmp;
+
 	str += _T("Configuration: ");
-	SetMode(tmp);
+	SaveComConf(tmp);
 	str += tmp;
 	str += _T("\r\n");
 
@@ -273,6 +340,15 @@ void CComSock::GetStatus(CString &str)
 		if ( (m_CommError & CE_TXFULL)   != 0 ) str += _T(" Send Buffer Full,");
 	}
 	str += _T("\r\n");
+}
+void CComSock::ComMoniter()
+{
+	if ( m_pComMoni == NULL ) {
+		m_pComMoni = new CComMoniDlg(this);
+		m_pComMoni->Create(IDD_COMMONIDLG, CWnd::GetDesktopWindow());
+		m_pComMoni->ShowWindow(SW_SHOW);
+	} else
+		m_pComMoni->DestroyWindow();
 }
 
 void CComSock::OnReceive(int nFlags)
@@ -303,7 +379,7 @@ void CComSock::OnRecvEmpty()
 }
 void CComSock::OnSend()
 {
-	// AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hCom, FD_WRITE);
+	// AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hCom, WSAMAKESELECTREPLY(FD_WRITE, 0));
 	// Send Empty Call
 
 	CExtSocket::OnSendEmpty();
@@ -312,6 +388,8 @@ void CComSock::OnSend()
 void CComSock::OnReadWriteProc()
 {
 	DWORD n;
+	BOOL bRes;
+	BOOL bSendWait = FALSE;
 	int HandleCount = 0;
 	HANDLE HandleTab[6];
 	DWORD HaveError = 0;
@@ -324,36 +402,77 @@ void CComSock::OnReadWriteProc()
 	BYTE *WriteBuf = new BYTE[COMBUFSIZE];
 	CEvent ReadTimerEvent(FALSE, TRUE);
 	CEvent WriteTimerEvent(FALSE, TRUE);
+	MMRESULT WriteTimerHandle = NULL;
 	BOOL bCommOverLap = FALSE;
+	int WriteWaitMsec = 0;
+	int TimerWaitMsec = 0;
+	clock_t WriteReqClock = clock();
+	clock_t WriteNextClock = clock();
+	DWORD LastModemStatus;
 	enum { READ_HAVE_DATA = 0, READ_RX_WAIT, READ_OVERLAP, READ_EVENT_WAIT } ReadStat = READ_HAVE_DATA;
-	enum { WRITE_CHECK_DATA = 0, WRITE_TX_WAIT, WRITE_OVERLAP, WRITE_EVENT_WAIT } WriteStat = WRITE_CHECK_DATA;
+	enum { WRITE_CHECK_DATA = 0, WRITE_TX_WAIT, WRITE_OVERLAP, WRITE_EVENT_WAIT, WRITE_TIMER_WAIT } WriteStat = WRITE_CHECK_DATA;
+
+	GetCommModemStatus(m_hCom, &LastModemStatus);
 
 	while ( m_ThreadMode == THREAD_RUN ) {
 
-		// CommOverLap
-		if ( bCommOverLap ) {
-			if ( GetOverlappedResult(m_hCom, &m_CommOverLap, &n, FALSE) ) {
+		// WaitCommEvent or CommOverLap
+		for ( ; ; ) {
+			if ( bCommOverLap )
+				bRes = GetOverlappedResult(m_hCom, &m_CommOverLap, &n, FALSE);
+			else
+				bRes = WaitCommEvent(m_hCom, &ComEvent, &m_CommOverLap);
+
+			if ( bRes ) {
 				if ( ReadStat == READ_RX_WAIT && (ComEvent & (EV_RXCHAR | EV_RX80FULL | EV_DSR | EV_CTS | EV_RING | EV_RLSD)) != 0 )
 					ReadStat = READ_HAVE_DATA;
-				if ( WriteStat == WRITE_TX_WAIT && (ComEvent & (EV_TXEMPTY | EV_DSR | EV_CTS)) != 0 )
+
+				if ( WriteStat == WRITE_TX_WAIT && (ComEvent & (EV_TXEMPTY | EV_DSR | EV_CTS | EV_RLSD)) != 0 )
 					WriteStat = WRITE_CHECK_DATA;
-				if ( (ComEvent & EV_ERR) != 0 )
-					ClearCommError(m_hCom, &ComEvent, NULL);
+
+				if ( (ComEvent & (EV_CTS | EV_DSR | EV_RLSD | EV_BREAK | EV_ERR | EV_RING)) != 0 ) {
+					ClearCommError(m_hCom, &n, NULL); m_CommError |= n;
+					GetCommModemStatus(m_hCom, &m_ModemStatus);
+
+					if ( m_pComMoni != NULL && m_pComMoni->m_hWnd != NULL && m_pComMoni->m_bActive )
+						m_pComMoni->PostMessage(WM_COMMAND, (WPARAM)ID_COMM_EVENT_MONI);
+
+					if ( (m_ModemStatus & MS_DSR_ON) == 0 && (LastModemStatus & MS_DSR_ON) != 0 && m_pComConf->dcb.fDsrSensitivity != 0 )
+						AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hCom, WSAMAKESELECTREPLY(FD_CLOSE, 0));
+
+					LastModemStatus = m_ModemStatus;
+				}
+
+				if ( !bCommOverLap )
+					break;
+
 				bCommOverLap = FALSE;
+
 			} else if ( (n = ::GetLastError()) == ERROR_IO_INCOMPLETE || n == ERROR_IO_PENDING ) {
 				bCommOverLap = TRUE;
+				break;
+
 			} else {
 				HaveError = n;
 				goto ERRENDOF;
 			}
 		}
 
-		// ReadOverLap
-		if ( ReadStat == READ_OVERLAP ) {
-			if ( GetOverlappedResult(m_hCom, &m_ReadOverLap, &n, FALSE) ) {
+		// ReadFile or ReadOverLap
+		for ( ; ; ) {
+			if ( ReadStat == READ_OVERLAP )
+				bRes = GetOverlappedResult(m_hCom, &m_ReadOverLap, &n, FALSE);
+			else if ( ReadStat == READ_HAVE_DATA  ) {
+				ClearCommError(m_hCom, &n, NULL);
+				bRes = ReadFile(m_hCom, ReadBuf, COMBUFSIZE, &n, &m_ReadOverLap);
+			} else
+				break;
+
+			if ( bRes ) {
 				if ( n > 0 ) {
 					ReadByte += n;
 					m_RecvSema.Lock();
+					m_RecvByteSec += n;
 					m_RecvBuff.Apend(ReadBuf, n);
 					if ( (CExtSocket::GetRecvSize() + m_RecvBuff.GetSize()) > (COMBUFSIZE * 4) ) {
 						m_pRecvEvent->ResetEvent();
@@ -363,31 +482,11 @@ void CComSock::OnReadWriteProc()
 					m_RecvSema.Unlock();
 				} else
 					ReadStat = READ_RX_WAIT;
+
 			} else if ( (n = ::GetLastError()) == ERROR_IO_INCOMPLETE || n == ERROR_IO_PENDING ) {
 				ReadStat = READ_OVERLAP;
-			} else {
-				HaveError = n;
-				goto ERRENDOF;
-			}
-		}
+				break;
 
-		// ReadFile
-		while ( ReadStat == READ_HAVE_DATA  ) {
-			ClearCommError(m_hCom, &m_CommError, NULL);
-			if ( ReadFile(m_hCom, ReadBuf, COMBUFSIZE, &n, &m_ReadOverLap) ) {
-				if ( n > 0 ) {
-					ReadByte += n;
-					m_RecvSema.Lock();
-					m_RecvBuff.Apend(ReadBuf, n);
-					if ( (CExtSocket::GetRecvSize() + m_RecvBuff.GetSize()) > (COMBUFSIZE * 4) ) {
-						m_pRecvEvent->ResetEvent();
-						ReadStat = READ_EVENT_WAIT;
-					}
-					m_RecvSema.Unlock();
-				} else
-					ReadStat = READ_RX_WAIT;
-			} else if ( (n = ::GetLastError()) == ERROR_IO_PENDING ) {
-				ReadStat = READ_OVERLAP;
 			} else {
 				HaveError = n;
 				goto ERRENDOF;
@@ -397,17 +496,26 @@ void CComSock::OnReadWriteProc()
 		// PostMsg Call OnReceive
 		if ( ReadByte > 0 ) {
 			ReadByte = 0;
-			AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hCom, FD_READ);
+			AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hCom, WSAMAKESELECTREPLY(FD_READ, 0));
 		}
 
 		// WriteOverLap
 		if ( WriteStat == WRITE_OVERLAP ) {
 			if ( GetOverlappedResult(m_hCom, &m_WriteOverLap, &n, FALSE) ) {
-				if ( n > 0 ) {
-					WriteTop += n;
-					WriteStat = WRITE_CHECK_DATA;
-				} else
-					WriteStat = WRITE_TX_WAIT;
+				if ( n > 0 && (WriteTop += n) >= WriteByte && bSendWait ) {
+					// COMデバイスにより完了タイミングが異なる
+					// UARTデバイスはFIFOのようでm_MsecByte * (WriteByte - FifoSize)
+					// USBシリアルはメインメモリのようで0msec
+					// EV_TXEMPTYも同様で実送信完了は、判断できない
+					// 送信途中にCTSコントールがあった場合を考慮して論理時間以上の場合は、
+					// この完了から送信遅延を行う
+					clock_t now = clock();
+					if ( (now - WriteReqClock) < (m_MsecByte * (int)WriteByte) )
+						WriteNextClock = WriteReqClock + m_MsecByte * WriteByte + WriteWaitMsec;
+					else
+						WriteNextClock = now + WriteWaitMsec;
+				}
+				WriteStat = WRITE_CHECK_DATA;
 			} else if ( (n = ::GetLastError()) == ERROR_IO_INCOMPLETE || n == ERROR_IO_PENDING ) {
 				WriteStat = WRITE_OVERLAP;
 			} else {
@@ -420,7 +528,7 @@ void CComSock::OnReadWriteProc()
 		if ( WriteStat == WRITE_CHECK_DATA ) {
 			// SendBreak
 			if ( m_SendBreak != 0 ) {
-				SetCommBreak(m_hCom);
+				m_bRetCode = SetCommBreak(m_hCom);
 				Sleep(m_SendBreak);
 				ClearCommBreak(m_hCom);
 
@@ -431,8 +539,12 @@ void CComSock::OnReadWriteProc()
 
 			// CommState
 			if ( m_bCommState ) {
-				SetConfig();
-				SetCommState(m_hCom, &(m_ComConf.dcb));
+				if ( m_pComConf != NULL ) {
+					m_bRetCode = SetCommState(m_hCom, &(m_pComConf->dcb));
+					EscapeCommFunction(m_hCom, m_pComConf->dcb.fDtrControl == DTR_CONTROL_DISABLE ? CLRDTR : SETDTR);
+					EscapeCommFunction(m_hCom, m_pComConf->dcb.fRtsControl == RTS_CONTROL_DISABLE ? CLRRTS : SETRTS);
+				} else
+					m_bRetCode = FALSE;
 
 				m_SendSema.Lock();
 				m_bCommState = FALSE;
@@ -442,11 +554,20 @@ void CComSock::OnReadWriteProc()
 
 			// GetStatus
 			if ( m_bGetStatus ) {
-				GetCommModemStatus(m_hCom, &m_ModemStatus);
-				ClearCommError(m_hCom, &m_CommError, NULL);
+				m_bRetCode = GetCommModemStatus(m_hCom, &m_ModemStatus);
 
 				m_SendSema.Lock();
 				m_bGetStatus = FALSE;
+				m_pStatEvent->SetEvent();
+				m_SendSema.Unlock();
+			}
+
+			// Set Com DTR/RTS
+			if ( m_ComCtrl != 0 ) {
+				m_bRetCode = EscapeCommFunction(m_hCom, m_ComCtrl);
+
+				m_SendSema.Lock();
+				m_ComCtrl = 0;
 				m_pStatEvent->SetEvent();
 				m_SendSema.Unlock();
 			}
@@ -455,54 +576,76 @@ void CComSock::OnReadWriteProc()
 		// WriteFile Loop
 		while ( WriteStat == WRITE_CHECK_DATA ) {
 			if ( WriteTop >= WriteByte ) {
-				WriteTop = 0;
 				WriteDone = WriteByte;
+				WriteTop = WriteByte = 0;
+				WriteWaitMsec = 0;
 				m_SendSema.Lock();
-				if ( (WriteByte = m_SendBuff.GetSize()) > 0 ) {
-					if ( WriteByte > COMBUFSIZE )
+				if ( m_SendBuff.GetSize() > 0 ) {
+					WriteReqClock = clock();
+					if ( bSendWait && WriteNextClock > WriteReqClock ) {
+						m_SendSema.Unlock();
+						TimerWaitMsec =  (WriteNextClock - WriteReqClock) * 1000 / CLOCKS_PER_SEC;
+						WriteStat = WRITE_TIMER_WAIT;
+						break;
+					}
+
+					if ( (WriteByte = m_SendBuff.GetSize()) > COMBUFSIZE )
 						WriteByte = COMBUFSIZE;
 					memcpy(WriteBuf, m_SendBuff.GetPtr(), WriteByte);
+
+					BYTE CrLf = (m_pDocument->m_TextRam.m_SendCrLf == 0 ? '\r' : '\n');
+
+					if ( m_SendWait[0] != 0 ) {
+						if ( m_SendWait[1] != 0 && WriteBuf[0] == CrLf )
+							WriteWaitMsec = m_SendWait[1];
+						else
+							WriteWaitMsec = m_SendWait[0];
+
+						WriteByte = 1;
+						bSendWait = TRUE;
+					} else if ( m_SendWait[1] != 0 ) {
+						for ( n = 0 ; n < WriteByte ; ) {
+							if ( WriteBuf[n++] == CrLf ) {
+								WriteWaitMsec = m_SendWait[1];
+								break;
+							}
+						}
+
+						WriteByte = n;
+						bSendWait = TRUE;
+					} else
+						bSendWait = FALSE;
+
 					m_SendBuff.Consume(WriteByte);
+					m_SendByteSec += WriteByte;
 					m_SendSema.Unlock();
+
 				} else {
 					m_pSendEvent->ResetEvent();
 					m_SendSema.Unlock();
 					if ( WriteDone > 0 )
-						AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hCom, FD_WRITE);
+						AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hCom, WSAMAKESELECTREPLY(FD_WRITE, 0));
 					WriteStat = WRITE_EVENT_WAIT;
 					break;
 				}
 			}
 
-			ClearCommError(m_hCom, &m_CommError, NULL);
+			ClearCommError(m_hCom, &n, NULL);
 			if ( WriteFile(m_hCom, WriteBuf + WriteTop, WriteByte - WriteTop, &n, &m_WriteOverLap) ) {
-				if ( n > 0 )
-					WriteTop += n;
-				else
+				if ( n > 0 ) {
+					if ( (WriteTop += n) >= WriteByte && bSendWait ) {
+						clock_t now = clock();
+						if ( (now - WriteReqClock) < (m_MsecByte * (int)WriteByte) )
+							WriteNextClock = WriteReqClock + m_MsecByte * WriteByte + WriteWaitMsec;
+						else
+							WriteNextClock = now + WriteWaitMsec;
+					}
+				} else
 					WriteStat = WRITE_TX_WAIT;
+
 			} else if ( (n = ::GetLastError()) == ERROR_IO_PENDING ) {
 				WriteStat = WRITE_OVERLAP;
-			} else {
-				HaveError = n;
-				goto ERRENDOF;
-			}
-		}
 
-		// WaitCommEvent
-		if ( !bCommOverLap ) {
-			if ( WaitCommEvent(m_hCom, &ComEvent, &m_CommOverLap) ) {
-				if ( ReadStat == READ_RX_WAIT && (ComEvent & (EV_RXCHAR | EV_RX80FULL | EV_DSR | EV_CTS | EV_RING | EV_RLSD)) != 0 )
-					ReadStat = READ_HAVE_DATA;
-				if ( WriteStat == WRITE_TX_WAIT && (ComEvent & (EV_TXEMPTY | EV_DSR | EV_CTS)) != 0 )
-					WriteStat = WRITE_CHECK_DATA;
-				if ( (ComEvent & EV_ERR) != 0 )
-					ClearCommError(m_hCom, &ComEvent, NULL);
-
-				if ( ReadStat == READ_HAVE_DATA || WriteStat == WRITE_CHECK_DATA )
-					continue;
-
-			} else if ( (n = ::GetLastError()) == ERROR_IO_PENDING ) {
-				bCommOverLap = TRUE;
 			} else {
 				HaveError = n;
 				goto ERRENDOF;
@@ -512,32 +655,47 @@ void CComSock::OnReadWriteProc()
 		// Event Set
 		HandleCount = 0;
 
-		if ( ReadStat == READ_EVENT_WAIT )
+		switch(ReadStat) {
+		case READ_EVENT_WAIT:
 			HandleTab[HandleCount++] = m_pRecvEvent->m_hObject;
-		else if ( ReadStat == READ_OVERLAP )
+			break;
+		case READ_OVERLAP:
 			HandleTab[HandleCount++] = m_ReadOverLap.hEvent;
-		else if ( ReadStat == READ_RX_WAIT ) {
+			break;
+		case READ_RX_WAIT:
 			// CommEvent EV_RXCHAR Recovery Timer
 			ReadTimerEvent.ResetEvent();
-			timeSetEvent(300, 1000, (LPTIMECALLBACK)(ReadTimerEvent.m_hObject), 0, TIME_ONESHOT | TIME_CALLBACK_EVENT_SET);
+			timeSetEvent(500, 50, (LPTIMECALLBACK)(ReadTimerEvent.m_hObject), 0, TIME_ONESHOT | TIME_CALLBACK_EVENT_SET);
 			HandleTab[HandleCount++] = ReadTimerEvent.m_hObject;
+			break;
 		}
 
-		if ( WriteStat == WRITE_EVENT_WAIT )
+		switch(WriteStat) {
+		case WRITE_EVENT_WAIT:
 			HandleTab[HandleCount++] = m_pSendEvent->m_hObject;
-		else if ( WriteStat == WRITE_OVERLAP )
+			break;
+		case WRITE_OVERLAP:
 			HandleTab[HandleCount++] = m_WriteOverLap.hEvent;
-		else if ( WriteStat == WRITE_TX_WAIT ) {
+			break;
+		case WRITE_TX_WAIT:
 			// CommEvent EV_TXEMPTY Recovery Timer
 			WriteTimerEvent.ResetEvent();
-			timeSetEvent(300, 500, (LPTIMECALLBACK)(WriteTimerEvent.m_hObject), 0, TIME_ONESHOT | TIME_CALLBACK_EVENT_SET);
+			timeSetEvent(500, 50, (LPTIMECALLBACK)(WriteTimerEvent.m_hObject), 0, TIME_ONESHOT | TIME_CALLBACK_EVENT_SET);
 			HandleTab[HandleCount++] = WriteTimerEvent.m_hObject;
+			break;
+		case WRITE_TIMER_WAIT:
+			if ( WriteTimerHandle == NULL ) {
+				WriteTimerEvent.ResetEvent();
+				WriteTimerHandle = timeSetEvent(TimerWaitMsec, 0, (LPTIMECALLBACK)(WriteTimerEvent.m_hObject), 0, TIME_ONESHOT | TIME_CALLBACK_EVENT_SET);
+			}
+			HandleTab[HandleCount++] = WriteTimerEvent.m_hObject;
+			break;
 		}
 
 		if ( bCommOverLap )
 			HandleTab[HandleCount++] = m_CommOverLap.hEvent;
 
-		TRACE("PipeThredProc CommOverLap=%d, ReadStat=%d, WriteStat=%d, WaitFor=%d, CommEvent=%04x, CommError=%04x\n",
+		TRACE("ComThredProc CommOverLap=%d, ReadStat=%d, WriteStat=%d, WaitFor=%d, CommEvent=%04x, CommError=%04x\n",
 			bCommOverLap, ReadStat, WriteStat, HandleCount, ComEvent, m_CommError);
 
 		// Wait For Event
@@ -552,6 +710,10 @@ void CComSock::OnReadWriteProc()
 				WriteStat = WRITE_CHECK_DATA;
 			else if ( HandleTab[n] == WriteTimerEvent.m_hObject && WriteStat == WRITE_TX_WAIT )
 				WriteStat = WRITE_CHECK_DATA;
+			else if ( HandleTab[n] == WriteTimerEvent.m_hObject && WriteStat == WRITE_TIMER_WAIT ) {
+				WriteTimerHandle = NULL;
+				WriteStat = WRITE_CHECK_DATA;
+			}
 		}
 	}
 
@@ -571,38 +733,6 @@ static struct _ComTab {
 		int		mode;
 		int		value;
 	} ComTab[] = {
-		{	_T("COM1"),		0,	1			},
-		{	_T("COM2"),		0,	2			},
-		{	_T("COM3"),		0,	3			},
-		{	_T("COM4"),		0,	4			},
-		{	_T("COM5"),		0,	5			},
-		{	_T("COM6"),		0,	6			},
-		{	_T("COM7"),		0,	7			},
-		{	_T("COM8"),		0,	8			},
-		{	_T("COM9"),		0,	9			},
-		{	_T("COM10"),	0,	10			},
-		{	_T("COM11"),	0,	11			},
-		{	_T("COM12"),	0,	12			},
-		{	_T("COM13"),	0,	13			},
-		{	_T("COM14"),	0,	14			},
-		{	_T("COM15"),	0,	15			},
-		{	_T("COM16"),	0,	16			},
-		{	_T("COM17"),	0,	17			},
-		{	_T("COM18"),	0,	18			},
-		{	_T("COM19"),	0,	19			},
-		{	_T("COM20"),	0,	20			},
-		{	_T("COM21"),	0,	21			},
-		{	_T("COM22"),	0,	22			},
-		{	_T("COM23"),	0,	23			},
-		{	_T("COM24"),	0,	24			},
-		{	_T("COM25"),	0,	25			},
-		{	_T("COM26"),	0,	26			},
-		{	_T("COM27"),	0,	27			},
-		{	_T("COM28"),	0,	28			},
-		{	_T("COM29"),	0,	29			},
-		{	_T("COM30"),	0,	30			},
-		{	_T("COM31"),	0,	31			},
-
 		{	_T("110"),		1,	CBR_110		},
 		{	_T("300"),		1,	CBR_300		},
 		{	_T("600"),		1,	CBR_600		},
@@ -629,125 +759,182 @@ static struct _ComTab {
 		{	_T("7"),		2,	7			},
 		{	_T("8"),		2,	8			},
 
-		{	_T("EVEN"),		3,	EVENPARITY	},
-		{	_T("ODD"),		3,	ODDPARITY	},
 		{	_T("NOP"),		3,	NOPARITY	},
+		{	_T("ODD"),		3,	ODDPARITY	},
+		{	_T("EVEN"),		3,	EVENPARITY	},
 		{	_T("MARK"),		3,	MARKPARITY	},
 		{	_T("SPC"),		3,	SPACEPARITY	},
 
-		{	_T("1"),		4,	ONESTOPBIT	},
-		{	_T("1.5"),		4,	ONE5STOPBITS },
-		{	_T("2"),		4,	TWOSTOPBITS	},
+		{	_T("1"),		4,	ONESTOPBIT		},
+		{	_T("1.5"),		4,	ONE5STOPBITS	},
+		{	_T("2"),		4,	TWOSTOPBITS		},
 
-		{	_T("NOC"),		5,	0			},
-		{	_T("CTS"),		5,	1			},
-		{	_T("XON"),		5,	2			},
+		{	_T("NOC"),		5,	COMFLOW_NONE	},
+		{	_T("CTS"),		5,	COMFLOW_RTSCTS	},
+		{	_T("XON"),		5,	COMFLOW_XONXOFF	},
 
 		{	NULL,			0,	0			},
 	};
 
-void CComSock::GetConfig()
+BOOL CComSock::LoadComConf(LPCTSTR ComSetStr, int ComPort, BOOL bOpen)
 {
-	m_BaudRate = m_ComConf.dcb.BaudRate;
-	m_ByteSize = m_ComConf.dcb.ByteSize;
-	m_Parity   = m_ComConf.dcb.Parity;
-	m_StopBits = m_ComConf.dcb.StopBits;
-	m_FlowCtrl = (m_ComConf.dcb.fOutxCtsFlow ? 1 : (m_ComConf.dcb.fOutX ? 2 : 0));
-}
-void CComSock::SetConfig()
-{
-	m_ComName.Format(_T("COM%d"), m_ComPort);
-
+	int n, i;
 	DWORD sz = sizeof(COMMCONFIG);
-	GetDefaultCommConfig(m_ComName, &m_ComConf, &sz);
+	BYTE *temp = new BYTE[sz];
+	CStringArrayExt param;
+	HANDLE hCom = INVALID_HANDLE_VALUE;
+	CString ComName;
 
-	m_ComConf.dcb.BaudRate		= m_BaudRate;
-	m_ComConf.dcb.ByteSize		= m_ByteSize;
-	m_ComConf.dcb.Parity		= m_Parity;
-	m_ComConf.dcb.StopBits		= m_StopBits;
+	ZeroMemory(temp, sz);
 
-	switch(m_FlowCtrl) {
-	case 0:		// Non
-		m_ComConf.dcb.fDtrControl	= DTR_CONTROL_ENABLE;
-		m_ComConf.dcb.fOutxDsrFlow	= FALSE;
-		m_ComConf.dcb.fRtsControl	= RTS_CONTROL_ENABLE;
-		m_ComConf.dcb.fOutxCtsFlow	= FALSE;
-		m_ComConf.dcb.fInX			= FALSE;
-		m_ComConf.dcb.fOutX			= FALSE;
-		break;
-	case 1:		// Haed
-		m_ComConf.dcb.fDtrControl	= DTR_CONTROL_ENABLE;
-		m_ComConf.dcb.fOutxDsrFlow	= FALSE;
-		m_ComConf.dcb.fRtsControl	= RTS_CONTROL_HANDSHAKE;
-		m_ComConf.dcb.fOutxCtsFlow	= TRUE;
-		m_ComConf.dcb.fInX			= FALSE;
-		m_ComConf.dcb.fOutX			= FALSE;
-		break;
-	case 2:		// XonOff
-		m_ComConf.dcb.fDtrControl	= DTR_CONTROL_ENABLE;
-		m_ComConf.dcb.fOutxDsrFlow	= FALSE;
-		m_ComConf.dcb.fRtsControl	= RTS_CONTROL_ENABLE;
-		m_ComConf.dcb.fOutxCtsFlow	= FALSE;
-		m_ComConf.dcb.fInX			= TRUE;
-		m_ComConf.dcb.fOutX			= TRUE;
-		break;
-	}
-}
+	// ComSetStrをNULLでデバイスの規定値を取得
+	if ( ComSetStr != NULL )
+		param.GetString(ComSetStr, _T(';'));
 
-void CComSock::GetMode(LPCTSTR str)
-{
-	int i, a, b;
-	CString work = str;
-	CStringArray stra;
-
-	stra.RemoveAll();
-	for ( i = 0 ; i < work.GetLength() ; i = a + 1 ) {
-		if ( (a = work.Find(_T(';'), i)) < 0 )
-			a = work.GetLength();
-		if ( (a - i) > 0 )
-			stra.Add(work.Mid(i, a - i));
+	// ComSetStr内のCOM設定を優先（古いバージョン互換の為）
+	for ( n = 0 ; n < param.GetSize() ; n++ ) {
+		if ( _tcsnicmp(param[n], _T("COM"), 3) == 0 ) {
+			ComPort = _tstoi((LPCTSTR)param[n] + 3);
+			break;
+		}
 	}
 
-	for ( i = 0 ; i < stra.GetSize() ; i++ ) {
-		for ( a = 0 ; ComTab[a].name != NULL ; a++ ) {
-			if ( stra[i].CompareNoCase(ComTab[a].name) == 0 ) {
-				switch(ComTab[a].mode) {
-				case 0: m_ComPort  = ComTab[a].value; break;
-				case 1: m_BaudRate = ComTab[a].value; break;
-				case 2: m_ByteSize = ComTab[a].value; break;
-				case 3: m_Parity   = ComTab[a].value; break;
-				case 4: m_StopBits = ComTab[a].value; break;
-				case 5: m_FlowCtrl = ComTab[a].value; break;
+	// CExtSocket::GetPortNum()では、マイナス値を返す！
+	if ( ComPort < 0 )
+		ComPort = 0 - ComPort;
+	else if ( ComPort == 0 ) {
+		::SetLastError(ERROR_PATH_NOT_FOUND);
+		return FALSE;
+	}
+	m_ComPort = ComPort;
+
+	// GetDefaultCommConfigは、\\.\COMnを使用しない
+	ComName.Format(_T("COM%d"), ComPort);
+	if ( !GetDefaultCommConfig(ComName, (LPCOMMCONFIG)temp, &sz) ) {
+		if ( ComPort >= 10 )
+			ComName.Format(_T("\\\\.\\COM%d"), ComPort);
+
+		if ( (hCom = CreateFile(ComName, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL)) == INVALID_HANDLE_VALUE )
+			return FALSE;
+
+		if ( !GetCommConfig(hCom, (LPCOMMCONFIG)temp, &sz) ) {
+			::CloseHandle(hCom);
+			return FALSE;
+		}
+	}
+
+	// ReSize COMMCONFIG ?
+	if ( sz > sizeof(COMMCONFIG) ) {
+		delete [] temp;
+		temp = new BYTE[sz];
+		ZeroMemory(temp, sz);
+
+		if ( hCom == INVALID_HANDLE_VALUE ) {
+			if ( !GetDefaultCommConfig(ComName, (LPCOMMCONFIG)temp, &sz) )
+				return FALSE;
+		} else  if ( !GetCommConfig(hCom, (LPCOMMCONFIG)temp, &sz) ) {
+			::CloseHandle(hCom);
+			return FALSE;
+		}
+	}
+
+	if ( bOpen ) { 
+		if ( hCom == INVALID_HANDLE_VALUE ) {
+			if ( ComPort >= 10 )
+				ComName.Format(_T("\\\\.\\COM%d"), ComPort);
+			if ( (m_hCom = CreateFile(ComName, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL)) == INVALID_HANDLE_VALUE )
+				return FALSE;
+		} else
+			m_hCom = hCom;
+	} else if ( hCom != INVALID_HANDLE_VALUE )
+		::CloseHandle(hCom);
+
+	if ( m_pComConf != NULL )
+		delete m_pComConf;
+	m_pComConf = (COMMCONFIG *)temp;
+
+	// Default DCB Parameter
+
+	//	XoffLim	受信バッファの空き容量が XoffLim バイト未満になると 
+	//			XoffChar が送信され、 受信不可能であることを示します。 
+	m_pComConf->dcb.XoffLim  = COMQUEUESIZE - COMQUEUESIZE * 75 / 100;
+
+	//	XonLim	受信バッファのデータが XonLim バイト以下になると 
+	//			XonChar が送信され、 受信可能であることを示します。  
+	m_pComConf->dcb.XonLim   = COMQUEUESIZE * 25 / 100;
+
+	m_pComConf->dcb.XonChar  = 0x11;	// ^Q
+	m_pComConf->dcb.XoffChar = 0x13;	// ^S
+	m_SendWait[0] = 0;
+	m_SendWait[1] = 0;
+
+	for ( n = 0 ; n < param.GetSize() ; n++ ) {
+		for ( i = 0 ; ComTab[i].name != NULL ; i++ ) {
+			if ( param[n].Compare(ComTab[i].name) == 0 ) {
+				switch(ComTab[i].mode) {
+				case 1: m_pComConf->dcb.BaudRate = ComTab[i].value; break;
+				case 2: m_pComConf->dcb.ByteSize = ComTab[i].value; break;
+				case 3: m_pComConf->dcb.Parity   = ComTab[i].value; break;
+				case 4: m_pComConf->dcb.StopBits = ComTab[i].value; break;
+				case 5: SetFlowCtrlMode(&(m_pComConf->dcb), ComTab[i].value, NULL); break;
 				}
 				break;
 			}
 		}
-		if ( ComTab[a].name == NULL ) {
-			if ( stra[i].Left(3).CompareNoCase(_T("COM")) == 0 ) {
-				m_ComPort = _tstoi(stra[i].Mid(3));
-			} else if ( (b = _tstoi(stra[i])) >= 100 ) {
-				m_BaudRate = b;
-			}
+		if ( ComTab[i].name != NULL )
+			continue;
+
+		if ( _tcsncmp(param[n], _T("USER="), 5) == 0 ) {
+			SetFlowCtrlMode(&(m_pComConf->dcb), COMFLOW_USERDEF, (LPCTSTR)param[n] + 5);
+
+		} else if ( _tcsncmp(param[n], _T("XOFFL="), 6) == 0 ) {
+			m_pComConf->dcb.XoffLim = COMQUEUESIZE - COMQUEUESIZE * _tstoi((LPCTSTR)param[n] + 6) / 100;
+			if ( m_pComConf->dcb.XoffLim < (COMQUEUESIZE - COMQUEUESIZE * 95 / 100) )
+				m_pComConf->dcb.XoffLim = (COMQUEUESIZE - COMQUEUESIZE * 95 / 100);
+			else if ( m_pComConf->dcb.XoffLim > (COMQUEUESIZE - COMQUEUESIZE * 50 / 100) )
+				m_pComConf->dcb.XoffLim = (COMQUEUESIZE - COMQUEUESIZE * 50 / 100);
+
+		} else if ( _tcsncmp(param[n], _T("XONL="), 5) == 0 ) {
+			m_pComConf->dcb.XonLim = COMQUEUESIZE * _tstoi((LPCTSTR)param[n] + 5) / 100;
+			if ( m_pComConf->dcb.XonLim > (COMQUEUESIZE * 50 / 100) )
+				m_pComConf->dcb.XonLim = (COMQUEUESIZE * 50 / 100);
+			else if ( m_pComConf->dcb.XonLim < (COMQUEUESIZE * 5 / 100) )
+				m_pComConf->dcb.XonLim = (COMQUEUESIZE * 5 / 100);
+
+		} else if ( _tcsncmp(param[n], _T("XONC="), 5) == 0 ) {
+			m_pComConf->dcb.XonChar = (char)_tstoi((LPCTSTR)param[n] + 5);
+		} else if ( _tcsncmp(param[n], _T("XOFFC="), 6) == 0 ) {
+			m_pComConf->dcb.XoffChar = (char)_tstoi((LPCTSTR)param[n] + 6);
+
+		} else if ( _tcsncmp(param[n], _T("WC="), 3) == 0 ) {
+			m_SendWait[0] = _tstoi((LPCTSTR)param[n] + 3);
+		} else if ( _tcsncmp(param[n], _T("WL="), 3) == 0 ) {
+			m_SendWait[1] = _tstoi((LPCTSTR)param[n] + 3);
+
+		} else if ( (i = _tstoi(param[n])) >= 100 ) {
+			m_pComConf->dcb.BaudRate = i;
 		}
 	}
 
-	m_ComName.Format(_T("COM%d"), m_ComPort);
+	return TRUE;
 }
-void CComSock::SetMode(CString &str)
+BOOL CComSock::SaveComConf(CString &str)
 {
-	int n, r, b = 0;
+	int n, r;
+	int b = 0;
 	CString tmp;
 
-	str = _T("");
+	str.Empty();
+
+	if ( m_pComConf == NULL )
+		return FALSE;
 
 	for ( n = 0 ; ComTab[n].name != NULL ; n++ ) {
 		switch(ComTab[n].mode) {
-		case 0: r = (m_ComPort  == ComTab[n].value ? TRUE : FALSE); break;
-		case 1: r = (m_BaudRate == ComTab[n].value ? TRUE : FALSE); break;
-		case 2: r = (m_ByteSize == ComTab[n].value ? TRUE : FALSE); break;
-		case 3: r = (m_Parity   == ComTab[n].value ? TRUE : FALSE); break;
-		case 4: r = (m_StopBits == ComTab[n].value ? TRUE : FALSE); break;
-		case 5: r = (m_FlowCtrl == ComTab[n].value ? TRUE : FALSE); break;
+		case 1: r = (m_pComConf->dcb.BaudRate == ComTab[n].value ? TRUE : FALSE); break;
+		case 2: r = (m_pComConf->dcb.ByteSize == ComTab[n].value ? TRUE : FALSE); break;
+		case 3: r = (m_pComConf->dcb.Parity   == ComTab[n].value ? TRUE : FALSE); break;
+		case 4: r = (m_pComConf->dcb.StopBits == ComTab[n].value ? TRUE : FALSE); break;
 		}
 		if ( r == TRUE ) {
 			str += ComTab[n].name;
@@ -755,31 +942,167 @@ void CComSock::SetMode(CString &str)
 			b |= (1 << ComTab[n].mode);
 		}
 	}
-	if ( (b & (1 << 0)) == 0 ) {
-		tmp.Format(_T("COM%d;"), m_ComPort);
-		str += tmp;
-	}
+
 	if ( (b & (1 << 1)) == 0 ) {
-		tmp.Format(_T("%d;"), m_BaudRate);
+		tmp.Format(_T("%d;"), m_pComConf->dcb.BaudRate);
 		str += tmp;
 	}
-}
 
-void CComSock::ConfigDlg(CWnd *pWnd, CString &str)
+	n = GetFlowCtrlMode(&(m_pComConf->dcb), tmp);
+	switch(n) {
+	case COMFLOW_NONE:		str += _T("NOC;"); break;
+	case COMFLOW_RTSCTS:	str += _T("CTS;"); break;
+	case COMFLOW_XONXOFF:	str += _T("XON;"); break;
+	case COMFLOW_USERDEF:	str += _T("USER="); str += tmp; str += _T(";"); break;
+	}
+
+	if ( m_pComConf->dcb.XoffLim != (COMQUEUESIZE - COMQUEUESIZE * 75 / 100) ) {
+		tmp.Format(_T("XOFFL=%d;"), 100 - 100 * m_pComConf->dcb.XoffLim / COMQUEUESIZE);
+		str += tmp;
+	}
+	if ( m_pComConf->dcb.XonLim != (COMQUEUESIZE * 25 / 100) ) {
+		tmp.Format(_T("XONL=%d;"), m_pComConf->dcb.XonLim * 100 / COMQUEUESIZE);
+		str += tmp;
+	}
+	if ( m_pComConf->dcb.XonChar != 0x11 ) {
+		tmp.Format(_T("XONC=%d;"), m_pComConf->dcb.XonChar);
+		str += tmp;
+	}
+	if ( m_pComConf->dcb.XoffChar != 0x13 ) {
+		tmp.Format(_T("XOFFC=%d;"), m_pComConf->dcb.XoffChar);
+		str += tmp;
+	}
+
+	if ( m_SendWait[0] != 0 ) {
+		tmp.Format(_T("WC=%d;"), m_SendWait[0]);
+		str += tmp;
+	}
+	if ( m_SendWait[1] != 0 ) {
+		tmp.Format(_T("WL=%d;"), m_SendWait[1]);
+		str += tmp;
+	}
+
+	return TRUE;
+}
+BOOL CComSock::SetupComConf(CString &ComSetStr, int &ComPort, CWnd *pOwner)
 {
-	GetMode(str);
-	SetConfig();
+	CComInitDlg dlg(pOwner);
 
-	if ( !CommConfigDialog(m_ComName, pWnd->m_hWnd, &m_ComConf) )
-		return;
+	if ( !LoadComConf(ComSetStr, ComPort) ) {
+		ThreadMessageBox(_T("COM%d Load Config Error '%s'"), ComPort, ComSetStr);
+		return FALSE;
+	}
 
-	GetConfig();
-	SetMode(str);
+	dlg.m_pSock = this;
+
+	if ( dlg.DoModal() != IDOK )
+		return FALSE;
+
+	if ( !SaveComConf(ComSetStr) )
+		return FALSE;
+
+	if ( ComPort != m_ComPort )
+		ComPort = m_ComPort;
+
+	return TRUE;
 }
-DWORD CComSock::AliveComPort()
+
+void CComSock::SetFlowCtrlMode(DCB *pDCB, int FlowCtrl, LPCTSTR UserDef)
+{
+	switch(FlowCtrl) {
+	case COMFLOW_NONE:
+		pDCB->fDtrControl		= DTR_CONTROL_ENABLE;
+		pDCB->fOutxDsrFlow		= FALSE;
+		pDCB->fDsrSensitivity	= FALSE;
+		pDCB->fTXContinueOnXoff	= FALSE;
+		pDCB->fRtsControl		= RTS_CONTROL_ENABLE;
+		pDCB->fOutxCtsFlow		= FALSE;
+		pDCB->fInX				= FALSE;
+		pDCB->fOutX				= FALSE;
+		break;
+	case COMFLOW_RTSCTS:
+		pDCB->fDtrControl		= DTR_CONTROL_ENABLE;
+		pDCB->fOutxDsrFlow		= FALSE;
+		pDCB->fDsrSensitivity	= FALSE;
+		pDCB->fTXContinueOnXoff	= FALSE;
+		pDCB->fRtsControl		= RTS_CONTROL_HANDSHAKE;
+		pDCB->fOutxCtsFlow		= TRUE;
+		pDCB->fInX				= FALSE;
+		pDCB->fOutX				= FALSE;
+		break;
+	case COMFLOW_XONXOFF:
+		pDCB->fDtrControl		= DTR_CONTROL_ENABLE;
+		pDCB->fOutxDsrFlow		= FALSE;
+		pDCB->fDsrSensitivity	= FALSE;
+		pDCB->fTXContinueOnXoff	= FALSE;
+		pDCB->fRtsControl		= RTS_CONTROL_ENABLE;
+		pDCB->fOutxCtsFlow		= FALSE;
+		pDCB->fInX				= TRUE;
+		pDCB->fOutX				= TRUE;
+		break;
+	case COMFLOW_USERDEF:
+		if ( UserDef != NULL ) {
+			LPCTSTR p = UserDef;
+			if ( *p >= _T('0') && *p <= _T('9') ) pDCB->fDtrControl			= *(p++) - _T('0');
+			if ( *p >= _T('0') && *p <= _T('9') ) pDCB->fOutxDsrFlow		= *(p++) - _T('0');
+			if ( *p >= _T('0') && *p <= _T('9') ) pDCB->fDsrSensitivity		= *(p++) - _T('0');
+			if ( *p >= _T('0') && *p <= _T('9') ) pDCB->fTXContinueOnXoff	= *(p++) - _T('0');
+			if ( *p >= _T('0') && *p <= _T('9') ) pDCB->fRtsControl			= *(p++) - _T('0');
+			if ( *p >= _T('0') && *p <= _T('9') ) pDCB->fOutxCtsFlow		= *(p++) - _T('0');
+			if ( *p >= _T('0') && *p <= _T('9') ) pDCB->fInX				= *(p++) - _T('0');
+			if ( *p >= _T('0') && *p <= _T('9') ) pDCB->fOutX				= *(p++) - _T('0');
+		}
+		break;
+	}
+
+}
+int CComSock::GetFlowCtrlMode(DCB *pDCB, CString &UserDef)
+{
+	if (	pDCB->fDtrControl		== DTR_CONTROL_ENABLE &&
+			pDCB->fOutxDsrFlow		== FALSE &&
+			pDCB->fDsrSensitivity	== FALSE &&
+			pDCB->fTXContinueOnXoff	== FALSE &&
+			pDCB->fRtsControl		== RTS_CONTROL_ENABLE &&
+			pDCB->fOutxCtsFlow		== FALSE &&
+			pDCB->fInX				== FALSE &&
+			pDCB->fOutX				== FALSE )
+		return COMFLOW_NONE;
+	else if (
+			pDCB->fDtrControl		== DTR_CONTROL_ENABLE &&
+			pDCB->fOutxDsrFlow		== FALSE &&
+			pDCB->fDsrSensitivity	== FALSE &&
+			pDCB->fTXContinueOnXoff	== FALSE &&
+			pDCB->fRtsControl		== RTS_CONTROL_HANDSHAKE &&
+			pDCB->fOutxCtsFlow		== TRUE &&
+			pDCB->fInX				== FALSE &&
+			pDCB->fOutX				== FALSE )
+		return COMFLOW_RTSCTS;
+	else if (
+			pDCB->fDtrControl		== DTR_CONTROL_ENABLE &&
+			pDCB->fOutxDsrFlow		== FALSE &&
+			pDCB->fDsrSensitivity	== FALSE &&
+			pDCB->fTXContinueOnXoff	== FALSE &&
+			pDCB->fRtsControl		== RTS_CONTROL_ENABLE &&
+			pDCB->fOutxCtsFlow		== FALSE &&
+			pDCB->fInX				== TRUE &&
+			pDCB->fOutX				== TRUE )
+		return COMFLOW_XONXOFF;
+	else {
+		UserDef.Format(_T("%c%c%c%c%c%c%c%c"),
+			pDCB->fDtrControl		+ _T('0'),
+			pDCB->fOutxDsrFlow		+ _T('0'),
+			pDCB->fDsrSensitivity	+ _T('0'),
+			pDCB->fTXContinueOnXoff	+ _T('0'),
+			pDCB->fRtsControl		+ _T('0'),
+			pDCB->fOutxCtsFlow		+ _T('0'),
+			pDCB->fInX				+ _T('0'),
+			pDCB->fOutX				+ _T('0'));
+		return COMFLOW_USERDEF;
+	}
+}
+void CComSock::AliveComPort(BYTE pComAliveBits[COMALIVEBYTE])
 {
 	int n;
-	int port = 0;
 	TCHAR *p;
 	int ReTry = 4;	// 64,128,256...
 	int nBufLen = (64 * 1024);
@@ -787,11 +1110,14 @@ DWORD CComSock::AliveComPort()
 	COMMCONFIG conf;
 	CString name;
 
+	ZeroMemory(pComAliveBits, COMALIVEBYTE);
+
 RETRY:
 	if ( QueryDosDevice(NULL, pDevBuf, nBufLen) > 0 ) {
 		for ( p = pDevBuf ; *p != _T('\0') ; ) {
-			if ( _tcsncmp(p, _T("COM"), 3) == 0 && (n = _tstoi(p + 3)) > 0 )
-				port |= (1 << n);
+			TRACE(_T("QueryDosDevice %s\n"), p);
+			if ( _tcsnicmp(p, _T("COM"), 3) == 0 && (n = _tstoi(p + 3)) > 0 && n < COMALIVEBITS )
+				pComAliveBits[n / 8] |= (1 << (n % 8));
 			while ( *(p++) != _T('\0') );
 		}
 
@@ -802,15 +1128,13 @@ RETRY:
 		goto RETRY;
 
 	} else {
-		for ( n = 1 ; n <= 31 ; n++ ) {
+		for ( n = 1 ; n < 10 ; n++ ) {
 			name.Format(_T("COM%d"), n);
 			DWORD sz = sizeof(COMMCONFIG);
-			if ( GetDefaultCommConfig(name, &conf, &sz) )
-				port |= (1 << n);
+			if ( GetDefaultCommConfig(name, &conf, &sz) && n < COMALIVEBITS )
+				pComAliveBits[n / 8] |= (1 << (n % 8));
 		}
 	}
 
 	delete pDevBuf;
-
-	return port;
 }

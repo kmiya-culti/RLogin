@@ -638,7 +638,7 @@ public:
 	void GetArray(CStringArrayExt &stra);
 	CFontChacheNode *GetFont(int Width, int Height, int Style, int FontNum, LPCTSTR DefFontName);
 	const CFontNode & operator = (CFontNode &data);
-	void SetUserBitmap(int code, int width, int height, CBitmap *pMap, int ofx, int ofy);
+	void SetUserBitmap(int code, int width, int height, CBitmap *pMap, int ofx, int ofy, int asx, int asy, COLORREF bc);
 	void SetUserFont(int code, int width, int height, LPBYTE map);
 	BOOL SetFontImage(int width, int height);
 	int Compare(CFontNode &data);
@@ -1183,6 +1183,7 @@ public:
 	static int OptionToIndex(int value, BOOL bAnsi = FALSE);
 	static int IndexToOption(int value);
 	static void OptionString(int value, CString &str);
+	static void IncDscs(int &Pcss, CString &str);
 
 	// Low Level
 	void RESET(int mode = RESET_PAGE | RESET_CURSOR | RESET_CARET | RESET_MARGIN | RESET_TABS | RESET_BANK | RESET_ATTR | RESET_COLOR | RESET_TEK | RESET_SAVE | RESET_MOUSE | RESET_CHAR | RESET_OPTION | RESET_XTOPT | RESET_MODKEY);

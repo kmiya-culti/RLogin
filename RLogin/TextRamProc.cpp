@@ -2150,12 +2150,15 @@ void CTextRam::fc_UTF85(DWORD ch)
 		//       cc		code x256
 		// U+100000 = U+DBC0 U+DC00
 		// U+10FFFF = U+DBFF U+DFFF
+		//
+		// DRCSMMv2
+		//       cc		0x20-0x7F = SET_94, 0xA0-0xFF = SET_96
 		if ( m_BackChar >= 0xDBC0DC00L && m_BackChar <= 0xDBFFDFFFL && IsOptEnable(TO_DRCSMMv1) ) {
 			n = UCS2toUCS4(m_BackChar);
 			CString tmp;
 			tmp.Format(_T(" %c"), (n >> 8) & 0xFF);
 			INSMDCK(1);
-			PUT1BYTE(n & 0xFF, m_FontTab.IndexFind(SET_94, tmp));
+			PUT1BYTE(n & 0x7F, m_FontTab.IndexFind(((n & 0x80) == 0 ? SET_94 : SET_96), tmp));
 			m_LastFlag = cf;
 			goto BREAK;
 		}
@@ -3389,7 +3392,7 @@ void CTextRam::fc_DECDLD(DWORD ch)
 	//		0 = Dscs is 94 character set
 	//		1 = Dscs is 96 character set
 	//	Dscs
-	//		Chacter set name
+	//		Chacter set name (IIF)
 	//	sixel-font-pattern
 	//		0x3F(?) + binary
 	//			A        B       C
@@ -3463,7 +3466,7 @@ void CTextRam::fc_DECDLD(DWORD ch)
 		}
 	}
 
-	if ( Pcmw < 5 || Pcmw > USFTWMAX || Pcmh < 1 || Pcmh > USFTHMAX )
+	if ( Pcmw < 5 || Pcmh < 1 )
 		return;
 
 	p = (LPCSTR)m_OscPara;
@@ -3471,8 +3474,10 @@ void CTextRam::fc_DECDLD(DWORD ch)
 		if ( *p >= 0x30 && *p <= 0x7E ) {
 			Pscs += *(p++);
 			break;
-		} else
+		} else if ( *p >= 0x20 && *p <= 0x2F )
 			Pscs += *(p++);
+		else
+			p++;
 	}
 
 	if ( Pscs.IsEmpty() )
@@ -3488,10 +3493,48 @@ void CTextRam::fc_DECDLD(DWORD ch)
 	if ( Pt == 3 ) {				// Sixel
 		pGrapWnd = new CGrapWnd(this);
 		pGrapWnd->Create(NULL, _T("DCS"));
-		pGrapWnd->SetSixel(9, 0, 0, p, GetBackColor(m_AttNow));
-		for ( n = i = 0 ; ((i + 1) * Pcmh) <= pGrapWnd->m_MaxY && (Pcn + n) < 0x80 ; i++ ) {
-			for ( x = 0 ; ((x + 1) * Pcmw) <= pGrapWnd->m_MaxX && (Pcn + n) < 0x80 ; x++, n++ )
-				m_FontTab[idx].SetUserBitmap(Pcn + n, Pcmw, Pcmh, pGrapWnd->m_pActMap, x * Pcmw, i * Pcmh);
+
+		// SIXEL DCS Parameter
+		int max = 0;
+		int pam[3];
+		LPCSTR s = p;
+		pam[0] = pam[1] = pam[2] = 0;
+
+		while ( *s != '\0' ) {
+			if ( *s >= '0' && *s <= '9' ) {
+				if ( max < 3 )
+					pam[max] = pam[max] * 10 + *s - '0';
+				s++;
+			} else if ( *s == ';' ) {
+				s++;
+				max++;
+			} else if ( *s == 'q' ) {
+				s++;
+				p = s;
+				break;
+			} else {
+				s++;
+				break;
+			}
+		}
+
+		if ( p != s ) {
+			pam[0] = 9;
+			pam[1] = 0;
+			pam[2] = 0;
+		}
+
+		pGrapWnd->SetSixel(pam[0], pam[1], pam[2], p, GetBackColor(m_AttNow));
+
+		for ( i = 0 ; (i * Pcmh) < pGrapWnd->m_MaxY ; i++ ) {
+			for ( x = 0 ; (x * Pcmw) < pGrapWnd->m_MaxX ; x++ ) {
+				if ( Pcn > 0x7F ) {
+					Pcn = 0x20;
+					IncDscs(Pcss, Pscs);
+					idx = m_FontTab.IndexFind((Pcss == 0 ? SET_94 : SET_96), Pscs);
+				}
+				m_FontTab[idx].SetUserBitmap(Pcn++, Pcmw, Pcmh, pGrapWnd->m_pActMap, x * Pcmw, i * Pcmh, pGrapWnd->m_AspX, pGrapWnd->m_AspY, GetBackColor(m_AttNow));
+			}
 		}
 		pGrapWnd->DestroyWindow();
 
@@ -3510,6 +3553,8 @@ void CTextRam::fc_DECDLD(DWORD ch)
 			m_FontTab[idx].SetUserFont(Pcn + n, Pcmw, Pcmh, map);
 		}
 	}
+
+	DISPUPDATE();
 }
 void CTextRam::fc_DECRSTS(DWORD ch)
 {
@@ -7516,15 +7561,11 @@ void CTextRam::iTerm2Ext(LPCSTR param)
 
 				if ( (p = _tcsrchr(name, _T('.'))) != NULL && m_InlineExt.Match(p + 1) >= 0 ) {
 					CString path;
-					TCHAR dir[MAX_PATH];
+					path.Format(_T("%s%s"), ((CRLoginApp *)::AfxGetApp())->GetTempDir(FALSE), name);
 
-					GetTempPath(MAX_PATH, dir);
-					path.Format(_T("%s%s"), dir, name);
-
-					if ( tmp.SaveFile(path) ) {
+					if ( tmp.SaveFile(path) )
 						ShellExecute(AfxGetMainWnd()->GetSafeHwnd(), NULL, path, NULL, NULL, SW_NORMAL);
-						((CMainFrame *)AfxGetMainWnd())->AddTempPath(path);
-					} else
+					else
 						bInLine = 0;
 
 				} else

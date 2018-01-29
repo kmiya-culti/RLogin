@@ -177,7 +177,6 @@ public:
 	int m_ScreenW;
 	int m_ScreenH;
 	UINT_PTR m_StatusTimer;
-	CStringArray m_TempPath;
 	UINT m_ScreenDpiX;
 	UINT m_ScreenDpiY;
 	CKeyNodeTab m_DefKeyTab;
@@ -270,7 +269,6 @@ public:
 
 	inline CImageList *GetTabImageList() { return &(m_wndTabBar.m_ImageList); }
 	inline int GetTabImageIndex(LPCTSTR filename) { return m_wndTabBar.GetImageIndex(filename); }
-	inline void AddTempPath(LPCTSTR path) { m_TempPath.Add(path); }
 	inline void TabBarFontCheck() { m_wndTabBar.m_bFontCheck = TRUE; }
 
 // コントロール バー用メンバ

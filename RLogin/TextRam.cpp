@@ -527,7 +527,7 @@ int CFontNode::Compare(CFontNode &data)
 
 	return 0;
 }
-void CFontNode::SetUserBitmap(int code, int width, int height, CBitmap *pMap, int ofx, int ofy)
+void CFontNode::SetUserBitmap(int code, int width, int height, CBitmap *pMap, int ofx, int ofy, int asx, int asy, COLORREF bc)
 {
 	CDC oDc, nDc;
 	CBitmap *pOld[2];
@@ -555,15 +555,15 @@ void CFontNode::SetUserBitmap(int code, int width, int height, CBitmap *pMap, in
 		}
 		m_MapType = FNT_BITMAP_COLOR;
 		pOld[1] = nDc.SelectObject(&m_UserFontMap);
-		nDc.FillSolidRect(0, 0, USFTWMAX * 96, USFTHMAX, RGB(0, 0, 0));
+		nDc.FillSolidRect(0, 0, USFTWMAX * 96, USFTHMAX, bc);
 		memset(m_UserFontDef, 0, 96 / 8);
 	} else
 		pOld[1] = nDc.SelectObject(&m_UserFontMap);
 
 	pOld[0] = oDc.SelectObject(pMap);
 
-//	nDc.BitBlt(USFTWMAX * code, 0, width, height, &oDc, ofx, ofy, SRCCOPY);
-	nDc.BitBlt(USFTWMAX * code, 0, USFTWMAX, USFTHMAX, &oDc, ofx, ofy, SRCCOPY);
+	nDc.StretchBlt(USFTWMAX * code, 0, (width < USFTWMAX ? width : USFTWMAX), (height < USFTHMAX ? height : USFTHMAX),
+		&oDc, ofx * asx / ASP_DIV, ofy * asy / ASP_DIV, width * asx / ASP_DIV, height * asy / ASP_DIV, SRCCOPY);
 
 	oDc.SelectObject(pOld[0]);
 	nDc.SelectObject(pOld[1]);
@@ -1159,6 +1159,9 @@ int CFontTab::IndexFind(int code, LPCTSTR name)
 		else if ( m_Data[i].m_IndexName.Compare(name) == 0 )
 			return i;
 	}
+
+	if ( n >= (255 - 0x4F) && m_Data[i].m_IndexName.IsEmpty() )
+		::AfxMessageBox(_T("Dscs Buffer Overflow Warning"), MB_ICONWARNING);
 
 FOUND:
 	m_Data[i].m_IndexName = name;
@@ -5694,8 +5697,8 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 					pView->SetCellSize(x + 1, y, 0);
 				} else if ( IS_ASCII(vp->m_Vram.mode) ) {
 					str = (LPCWSTR)*vp;
+					work.bank = vp->m_Vram.bank & CODE_MASK;
 					if ( !str.IsEmpty() && str[0] > _T(' ') ) {
-						work.bank = vp->m_Vram.bank & CODE_MASK;
 						if ( (work.bank & SET_MASK) <= SET_96 && m_FontTab[work.bank].m_Shift == 0 ) {
 							switch(str[0]) {
 							case 0x0023: UCS4ToWStr(m_FontTab[work.bank].m_Iso646Tab[0], str); break;
@@ -5716,7 +5719,8 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 								work.attr |= ATT_MIRROR;
 							}
 						}
-					}
+					} else if ( str.IsEmpty() || str[0] < ' ' || m_FontTab[work.bank].m_UserFontMap.GetSafeHandle() == NULL )
+						work.bank = (-1);
 					pView->SetCellSize(x, y, 0);
 				}
 
@@ -5935,6 +5939,73 @@ void CTextRam::OptionString(int value, CString &str)
 		str.Format(_T("%d"), value + (0 - 200));
 	else							// DEC Terminal Option	0-199 -> ?0-199
 		str.Format(_T("?%d"), value);
+}
+void CTextRam::IncDscs(int &Pcss, CString &str)
+{
+	// I I F        
+	// Generic Dscs.
+	// A Dscs can consist of 0 to 2 intermediates (I) and a final (F).
+	// Intermediates are in the range 2/0 to 2/15.
+	// Finals are in the range 3/0 to 7/14. 
+
+	LPCTSTR p = str;
+	TCHAR scs[3];
+
+	scs[0] = scs[1] = scs[2] = 0;
+
+	while ( *p != _T('\0') ) {
+		if ( *p >= _T('\x20') && *p <= _T('\x2F') ) {
+			if ( scs[0] == 0 )
+				scs[0] = *(p++);
+			else if ( scs[1] == 0 )
+				scs[1] = *(p++);
+			else {
+				// shift
+				scs[0] = scs[1];
+				scs[1] = *(p++);
+			}
+		} else if ( *p >= _T('\x30') && *p <= _T('\x7E') ) {
+			scs[2] = *(p++);
+			break;
+		} else
+			p++;
+	}
+
+	scs[2] += 1;
+	if ( scs[2] < _T('\x30') )
+		scs[2] = _T('\x30');
+	else if ( scs[2] > _T('\x7E') ) {
+		scs[2] = _T('\x30');
+
+#if 1
+		// IIF のFのみインクリメント
+		// オーバー時は、文字セットを変更
+		Pcss = (Pcss == 0 ? 1 : 0);
+#else
+		scs[1] += 1;
+		if ( scs[1] < _T('\x20') )
+			scs[1] = _T('\x20');
+		else if ( scs[1] > _T('\x2F') ) {
+			scs[1] = _T('\x20');
+
+			scs[0] += 1;
+			if ( scs[0] < _T('\x20') )
+				scs[0] = _T('\x20');
+			else if ( scs[0] > _T('\x2F') ) {
+				scs[0] = _T('\x20');
+				// Over Flow !!!
+			}
+		}
+#endif
+	}
+
+	str.Empty();
+	if ( scs[0] != 0 )
+		str += scs[0];
+	if ( scs[1] != 0 )
+		str += scs[1];
+	if ( scs[2] != 0 )
+		str += scs[2];
 }
 BOOL CTextRam::IsOptEnable(int opt)
 {

@@ -60,6 +60,12 @@
 #define IDD_BACKPAGE                    159
 #define IDD_TOOLDLG                     160
 #define IDD_RESTRANSDLG                 161
+#define IDD_COMSETUPDLG                 163
+#define IDD_COMMONIDLG                  163
+#define IDD_USERFLOWDLG                 165
+#define IDD_DIALOG3                     167
+#define IDD_COMCONFDLG                  167
+#define IDD_COMINITDLG                  167
 #define IDR_GRAPWND                     300
 #define IDR_MAINFRAME                   301
 #define IDR_POPUPMENU                   302
@@ -227,6 +233,7 @@
 #define IDS_TTYMODE_LIST56              630
 #define IDS_DEFENTRYEDITMSG             631
 #define IDS_ADDPAGEANTENTRY             632
+#define IDS_DROPSUBDIRCHECK             633
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -263,6 +270,7 @@
 #define IDE_ENTRYLOADERROR              733
 #define IDE_KEYMACTOOLONG               734
 #define IDE_PAGEANTKEYEDIT              735
+#define IDE_SFTPTHREADCMDEXEC           736
 #define IDT_EXTOPT_LIST01               800
 #define IDT_EXTOPT_LIST02               801
 #define IDT_EXTOPT_LIST03               802
@@ -395,6 +403,7 @@
 #define ID_VIEW_TABBAR                  1042
 #define ID_WINDOW_CLOSE                 1043
 #define ID_WINDOW_ROTATION              1044
+#define ID_COMM_EVENT_MONI              1045
 #define IDC_ALGO_LIST1                  2000
 #define IDC_ALGO_LIST2                  2001
 #define IDC_ALGO_LIST3                  2002
@@ -476,8 +485,11 @@
 #define IDC_CHMOD1                      2077
 #define IDC_CHECK3                      2077
 #define IDC_CHMOD2                      2078
+#define IDC_CHECK4                      2078
 #define IDC_CHMOD3                      2079
+#define IDC_CHECK5                      2079
 #define IDC_CHMOD4                      2080
+#define IDC_CHECK6                      2080
 #define IDC_CHMOD5                      2081
 #define IDC_CHMOD6                      2082
 #define IDC_CHMOD7                      2083
@@ -493,6 +505,7 @@
 #define IDC_CONNECTHOST                 2093
 #define IDC_COMCONFIG2                  2093
 #define IDC_ICONFILE                    2093
+#define IDC_CLEARERROR                  2093
 #define IDC_CONNECTPORT                 2094
 #define IDC_CONTINUE                    2095
 #define IDC_CSILIST                     2096
@@ -695,6 +708,7 @@
 #define IDC_PFDNEW                      2281
 #define IDC_PROGRESS1                   2282
 #define IDC_PROMPT                      2283
+#define IDC_PROGRESS2                   2283
 #define IDC_PROTO1                      2284
 #define IDC_PROTO2                      2285
 #define IDC_PROTO3                      2286
@@ -889,6 +903,30 @@
 #define IDC_RESFILENAME                 2467
 #define IDC_RESFILESEL                  2468
 #define IDC_TRANSPROGRES                2469
+#define IDC_BAUDRATE                    2470
+#define IDC_DATABITS                    2471
+#define IDC_PARITYBIT                   2472
+#define IDC_STOPBITS                    2473
+#define IDC_FLOWCTRL                    2474
+#define IDC_COM_DCD                     2475
+#define IDC_FLOWCTRL2                   2475
+#define IDC_COMDEVLIST                  2475
+#define IDC_COM_RxD                     2476
+#define IDC_COM_TxD                     2477
+#define IDC_COM_DTR                     2478
+#define IDC_COM_GND                     2479
+#define IDC_COM_DSR                     2480
+#define IDC_COM_RTS                     2481
+#define IDC_COM_CTS                     2482
+#define IDC_COM_RI                      2483
+#define IDC_CTRL_DTR                    2484
+#define IDC_CTRL_RTS                    2485
+#define IDC_COMGRAP                     2486
+#define IDC_SENDWAITC                   2487
+#define IDC_SENDWAITC2                  2488
+#define IDC_SENDWAITL                   2488
+#define IDC_USERFLOW                    2489
+#define IDC_DEFCONF                     2490
 #define IDM_BROADCAST                   5000
 #define IDM_CAP_CLIPBORD                5001
 #define IDM_CAP_EXPORT                  5002
@@ -1004,15 +1042,16 @@
 #define IDM_DELOLDENTRYTAB              5124
 #define IDM_TITLEEDIT                   5125
 #define IDM_SAVEREGFILE                 5126
+#define IDM_COMMONITER                  5127
 #define IDM_FIRST_MDICHILD              0xFF00
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        163
-#define _APS_NEXT_COMMAND_VALUE         5127
-#define _APS_NEXT_CONTROL_VALUE         2470
-#define _APS_NEXT_SYMED_VALUE           633
+#define _APS_NEXT_RESOURCE_VALUE        169
+#define _APS_NEXT_COMMAND_VALUE         5128
+#define _APS_NEXT_CONTROL_VALUE         2491
+#define _APS_NEXT_SYMED_VALUE           634
 #endif
 #endif

@@ -208,6 +208,10 @@ protected:
 	afx_msg void OnSockReOpen();
 
 	afx_msg void OnTracedisp();
+	afx_msg void OnUpdateTracedisp(CCmdUI *pCmdUI);
+	afx_msg void OnCommoniter();
+	afx_msg void OnUpdateCommoniter(CCmdUI *pCmdUI);
+
 	afx_msg void OnLoadDefault();
 	afx_msg void OnSaveDefault();
 	afx_msg void OnSetOption();

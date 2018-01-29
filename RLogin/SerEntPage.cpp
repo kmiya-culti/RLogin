@@ -119,7 +119,7 @@ void CSerEntPage::SetEnableWind()
 
 	switch(m_ProtoType) {
 	case PROTO_COMPORT:
-		if ( m_PortName.Left(3).Compare(_T("COM")) != 0 )
+		if ( _tcsnicmp(m_PortName, _T("COM"), 3) != 0 )
 			m_PortName = m_DefComPort;
 		break;
 
@@ -143,8 +143,6 @@ void CSerEntPage::SetEnableWind()
 
 void CSerEntPage::DoInit()
 {
-	CComSock com(NULL);
-
 	m_EntryName   = m_pSheet->m_pEntry->m_EntryName;
 	m_HostName    = m_pSheet->m_pEntry->m_HostNameProvs;
 	m_PortName    = m_pSheet->m_pEntry->m_PortName;
@@ -171,11 +169,6 @@ void CSerEntPage::DoInit()
 	m_UsePassDlg  = (m_pSheet->m_pTextRam->IsOptEnable(TO_RLUSEPASS) ? TRUE : FALSE);
 	m_UseProxyDlg = (m_pSheet->m_pTextRam->IsOptEnable(TO_PROXPASS)  ? TRUE : FALSE);
 
-	if ( m_PortName.Compare(_T("serial")) == 0 ) {
-		com.GetMode(m_HostName);
-		m_PortName = com.m_ComName;
-	}
-
 	UpdateData(FALSE);
 }
 
@@ -185,27 +178,12 @@ BOOL CSerEntPage::OnInitDialog()
 	CString str;
 	CComboBox *pCombo;
 	CButton *pCheck;
-	DWORD pb = CComSock::AliveComPort();
-
+	BYTE ComAliveBits[COMALIVEBYTE];
+	CServerEntryTab *pTab = &(((CMainFrame *)AfxGetMainWnd())->m_ServerEntryTab);
+	
 	ASSERT(m_pSheet != NULL && m_pSheet->m_pEntry != NULL);
 
 	CTreePage::OnInitDialog();
-
-	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_SOCKNO)) != NULL ) {
-		for ( n = 1 ; n <= 31 ; n++ ) {
-			str.Format(_T("COM%d"), n);
-			if ( (pb & (1 << n)) != 0 ) {
-				if ( (i = pCombo->FindStringExact((-1), str)) == CB_ERR )
-					pCombo->AddString(str);
-				if ( m_DefComPort.IsEmpty() )
-					m_DefComPort = str;
-			} else if ( (i = pCombo->FindStringExact((-1), str)) != CB_ERR ) {
-				pCombo->DeleteString(i);
-			}
-		}
-	}
-
-	CServerEntryTab *pTab = &(((CMainFrame *)AfxGetMainWnd())->m_ServerEntryTab);
 
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_SERVERNAME)) != NULL ) {
 		for ( n = 0 ; n < pTab->m_Data.GetSize() ; n++ ) {
@@ -231,8 +209,18 @@ BOOL CSerEntPage::OnInitDialog()
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_SOCKNO)) != NULL ) {
 		for ( n = 0 ; n < pTab->m_Data.GetSize() ; n++ ) {
 			str = pTab->m_Data[n].m_PortName;
-			if ( !str.IsEmpty() && pCombo->FindStringExact((-1), str) == CB_ERR )
+			if ( !str.IsEmpty() && _tcsncmp(str, _T("COM"), 3) != 0 && pCombo->FindStringExact((-1), str) == CB_ERR )
 				pCombo->AddString(str);
+		}
+		CComSock::AliveComPort(ComAliveBits);
+		for ( n = 1 ; n < COMALIVEBITS ; n++ ) {
+			if ( (ComAliveBits[n / 8] & (1 << (n % 8))) != 0 ) {
+				str.Format(_T("COM%d"), n);
+				if ( (i = pCombo->FindStringExact((-1), str)) == CB_ERR )
+					pCombo->AddString(str);
+				if ( m_DefComPort.IsEmpty() )
+					m_DefComPort = str;
+			}
 		}
 	}
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_GROUP)) != NULL ) {
@@ -309,18 +297,21 @@ void CSerEntPage::OnReset()
 
 void CSerEntPage::OnComconfig() 
 {
+	int Port = (-1);
 	CComSock com(NULL);
 
 	UpdateData(TRUE);
-	if ( m_PortName.Left(3).CompareNoCase(_T("COM")) == 0 ) {
-		com.m_ComPort = (-1);
-		com.GetMode(m_HostName);
-		if ( com.m_ComPort != _tstoi(m_PortName.Mid(3)) )
-			m_HostName = m_PortName;
-	}
-	com.ConfigDlg(this, m_HostName);
+
+	if ( _tcsnicmp(m_PortName, _T("COM"), 3) == 0 )
+		Port = _tstoi((LPCTSTR)m_PortName + 3);
+
+	if ( !com.SetupComConf(m_HostName, Port, this) )
+		return;
+
+	m_PortName.Format(_T("COM%d"), Port);
 
 	UpdateData(FALSE);
+
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_ENTRY;
 }

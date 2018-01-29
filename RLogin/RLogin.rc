@@ -286,6 +286,7 @@ BEGIN
         MENUITEM "Tekウィンドウ(&K)",                IDM_TEKDISP
         MENUITEM "Imageウィンドウ(&I)",              IDM_IMAGEDISP
         MENUITEM "ソケットステータス(&X)",               IDM_SOCKETSTATUS
+        MENUITEM "シリアルモニター(&Z)",                IDM_COMMONITER
         MENUITEM "トレースウィンドウ(&W)",               IDM_TRACEDISP
         MENUITEM "おさかなを飼う(&O)",                 ID_GOZIVIEW
         MENUITEM SEPARATOR
@@ -545,8 +546,8 @@ BEGIN
     CONTROL         "<a href=""http://www.1023world.net/material/gif/"">http://www.1023world.net/material/gif/</a>",IDC_SYSLINK1,
                     "SysLink",WS_TABSTOP,44,178,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,193,60,14,WS_GROUP
-    ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.23.0 (2017/12/18)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    ICON            IDR_MAINFRAME,IDC_STATIC,7,7,18,21
+    LTEXT           "RLogin Version 2.23.1 (2018/01/30)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2017 Culti",IDC_STATIC,44,16,189,8
     LTEXT           "OpenSSL 1.1.0g 2 Nov 2017",IDC_STATIC,44,52,189,8
     LTEXT           "Copyright (c) 1998-2017 The OpenSSL Project",IDC_STATIC,44,61,189,8
@@ -1794,6 +1795,112 @@ BEGIN
     LTEXT           "To",IDC_STATIC,93,82,8,8
 END
 
+IDD_COMMONIDLG DIALOGEX 0, 0, 238, 265
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "シリアルモニター"
+FONT 9, "MS UI Gothic", 400, 0, 0x80
+BEGIN
+    RTEXT           "ビット/秒(&B)",IDC_STATIC,8,22,50,8
+    COMBOBOX        IDC_BAUDRATE,63,20,50,150,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "データ ビット(&D)",IDC_STATIC,8,41,50,8
+    COMBOBOX        IDC_DATABITS,63,39,50,150,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "パリティ(&P)",IDC_STATIC,8,60,50,8
+    COMBOBOX        IDC_PARITYBIT,63,58,50,150,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "ストップ ビット(&S)",IDC_STATIC,8,79,50,8
+    COMBOBOX        IDC_STOPBITS,63,77,50,150,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "フロー制御(&F)",IDC_USERFLOW,119,20,50,14,0,WS_EX_RIGHT
+    COMBOBOX        IDC_FLOWCTRL,173,20,50,150,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "送信遅延(&C)",IDC_STATIC,118,41,50,8
+    EDITTEXT        IDC_SENDWAITC,173,41,50,14,ES_AUTOHSCROLL
+    RTEXT           "送信遅延(&L)",IDC_STATIC,118,60,50,8
+    EDITTEXT        IDC_SENDWAITL,173,58,50,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "適用(&X)",IDC_COMCONFIG,173,77,50,14
+    PUSHBUTTON      "DTR",IDC_CTRL_DTR,75,115,20,14
+    PUSHBUTTON      "RTS",IDC_CTRL_RTS,46,156,20,14
+    CHECKBOX        "Receive Queue overflow",IDC_CHECK1,16,193,100,10,NOT WS_TABSTOP
+    CHECKBOX        "Receive Overrun Error",IDC_CHECK2,16,207,100,10,NOT WS_TABSTOP
+    CHECKBOX        "Receive Parity Error",IDC_CHECK3,16,221,100,10,NOT WS_TABSTOP
+    CHECKBOX        "Receive Framing error",IDC_CHECK4,126,193,100,10,NOT WS_TABSTOP
+    CHECKBOX        "Break Detected",IDC_CHECK5,126,207,100,10,NOT WS_TABSTOP
+    CHECKBOX        "TX Queue is full",IDC_CHECK6,126,221,100,10,NOT WS_TABSTOP
+    PUSHBUTTON      "エラーをクリア(&E)",IDC_CLEARERROR,83,237,70,14
+    GROUPBOX        "ポートの設定",IDC_STATIC,7,7,223,91
+    CONTROL         "",IDC_COM_DCD,"Static",SS_OWNERDRAW | WS_BORDER,18,132,7,7
+    CONTROL         "",IDC_COM_RxD,"Static",SS_OWNERDRAW | WS_BORDER,39,132,7,7
+    CONTROL         "",IDC_COM_TxD,"Static",SS_OWNERDRAW | WS_BORDER,60,132,7,7
+    CONTROL         "",IDC_COM_DTR,"Static",SS_OWNERDRAW | WS_BORDER,81,132,7,7
+    CONTROL         "",IDC_COM_GND,"Static",SS_OWNERDRAW | WS_BORDER,102,132,7,7
+    CTEXT           "DCD",IDC_STATIC,13,118,16,8
+    CTEXT           "RxD",IDC_STATIC,34,118,16,8
+    CTEXT           "TxD",IDC_STATIC,55,118,16,8
+    CTEXT           "GND",IDC_STATIC,97,118,16,8
+    CTEXT           "DSR",IDC_STATIC,26,159,16,8
+    CTEXT           "CTS",IDC_STATIC,68,159,16,8
+    CTEXT           "RI",IDC_STATIC,89,159,16,8
+    CONTROL         "",IDC_COM_DSR,"Static",SS_OWNERDRAW | WS_BORDER,30,145,7,7
+    CONTROL         "",IDC_COM_RTS,"Static",SS_OWNERDRAW | WS_BORDER,51,145,7,7
+    CONTROL         "",IDC_COM_CTS,"Static",SS_OWNERDRAW | WS_BORDER,72,145,7,7
+    CONTROL         "",IDC_COM_RI,"Static",SS_OWNERDRAW | WS_BORDER,93,145,7,7
+    GROUPBOX        "ポートの状態",IDC_STATIC,7,101,223,75
+    GROUPBOX        "通信エラーの履歴",IDC_STATIC,7,179,223,79
+    CONTROL         "",IDC_COMGRAP,"Static",SS_OWNERDRAW,117,113,106,56
+END
+
+IDD_USERFLOWDLG DIALOGEX 0, 0, 274, 272
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "フロー制御の詳細"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "DTR出力の使用方法を選択(受信の制御)",IDC_STATIC,21,21,150,8
+    COMBOBOX        IDC_COMBO1,185,19,70,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "DSR入力がOFFで送信停止(接続先のフロー制御)",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,21,36,230,10
+    CONTROL         "DSR入力がOFFの間は受信を無視 ONからOFFの変化で切断処理",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,21,53,230,10
+    LTEXT           "RTS出力の使用方法を選択(受信の制御)",IDC_STATIC,21,85,150,8
+    COMBOBOX        IDC_COMBO2,185,83,70,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "CTS入力がOFFで送信停止(接続先のフロー制御)",IDC_CHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,21,100,230,10
+    CONTROL         "XOFFの受信で送信停止、XONの受信で送信再開",IDC_CHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,21,133,230,10
+    CONTROL         "受信バッファ上限でXOFF送信、受信バッファ下限でXON送信",IDC_CHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,21,150,230,10
+    CONTROL         "XOFF送信後もデータの送信を継続",IDC_CHECK6,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,21,167,230,10
+    LTEXT           "フロー制御する受信バッファの上限(50-90%)",IDC_STATIC,21,184,150,8
+    EDITTEXT        IDC_EDIT1,185,182,70,12,ES_AUTOHSCROLL
+    LTEXT           "フロー制御する受信バッファの下限(10-50%)",IDC_STATIC,21,198,150,8
+    EDITTEXT        IDC_EDIT2,185,197,70,12,ES_AUTOHSCROLL
+    LTEXT           "XOFFの文字コード",IDC_STATIC,21,214,150,8
+    EDITTEXT        IDC_EDIT3,185,212,70,12,ES_AUTOHSCROLL
+    LTEXT           "XONの文字コード",IDC_STATIC,21,229,150,8
+    EDITTEXT        IDC_EDIT4,185,226,70,12,ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "OK",IDOK,57,251,70,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,146,251,70,14
+    GROUPBOX        "DTR/DSR",IDC_STATIC,7,7,260,62
+    GROUPBOX        "RTS/CTS",IDC_STATIC,7,72,260,44
+    GROUPBOX        "XON/XOFF",IDC_STATIC,7,119,260,126
+END
+
+IDD_COMINITDLG DIALOGEX 0, 0, 199, 215
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "ポートの設定"
+FONT 9, "MS UI Gothic", 400, 0, 0x80
+BEGIN
+    RTEXT           "ビット/秒(&B)",IDC_STATIC,22,40,70,8
+    COMBOBOX        IDC_BAUDRATE,105,38,70,150,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "データ ビット(&D)",IDC_STATIC,22,62,70,8
+    COMBOBOX        IDC_DATABITS,105,59,70,150,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "パリティ(&P)",IDC_STATIC,22,82,70,8
+    COMBOBOX        IDC_PARITYBIT,105,80,70,150,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "ストップ ビット(&S)",IDC_STATIC,22,103,70,8
+    COMBOBOX        IDC_STOPBITS,105,101,70,150,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "フロー制御(&F)",IDC_USERFLOW,22,121,70,14,0,WS_EX_RIGHT
+    COMBOBOX        IDC_FLOWCTRL,105,122,70,150,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "文字の送信遅延(&C)",IDC_STATIC,22,146,70,8
+    EDITTEXT        IDC_SENDWAITC,105,143,70,13,ES_AUTOHSCROLL
+    RTEXT           "改行の送信遅延(&L)",IDC_STATIC,22,167,70,8
+    EDITTEXT        IDC_SENDWAITL,105,165,70,13,ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "OK",IDOK,74,194,50,14
+    PUSHBUTTON      "既定値",IDC_DEFCONF,7,194,50,14,BS_CENTER
+    PUSHBUTTON      "キャンセル",IDCANCEL,142,194,50,14
+    COMBOBOX        IDC_COMDEVLIST,22,17,153,150,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1801,8 +1908,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,23,0,0
- PRODUCTVERSION 2,23,0,0
+ FILEVERSION 2,23,1,0
+ PRODUCTVERSION 2,23,1,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1819,12 +1926,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.23.0.0"
+            VALUE "FileVersion", "2.23.1.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2017 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.23.0.0"
+            VALUE "ProductVersion", "2.23.1.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2279,6 +2386,30 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 144
     END
+
+    IDD_COMMONIDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 231
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 258
+    END
+
+    IDD_USERFLOWDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 267
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 265
+    END
+
+    IDD_COMINITDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 192
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 208
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -2715,14 +2846,6 @@ BEGIN
 0x7468, 0x7074, "\000" 
     IDC_SOCKNO, 0x403, 4, 0
 0x7466, 0x0070, 
-    IDC_SOCKNO, 0x403, 5, 0
-0x4f43, 0x314d, "\000" 
-    IDC_SOCKNO, 0x403, 5, 0
-0x4f43, 0x324d, "\000" 
-    IDC_SOCKNO, 0x403, 5, 0
-0x4f43, 0x334d, "\000" 
-    IDC_SOCKNO, 0x403, 5, 0
-0x4f43, 0x344d, "\000" 
     IDC_TERMNAME, 0x403, 6, 0
 0x746b, 0x7265, 0x006d, 
     IDC_TERMNAME, 0x403, 12, 0
@@ -3540,6 +3663,179 @@ BEGIN
     0
 END
 
+IDD_COMMONIDLG DLGINIT
+BEGIN
+    IDC_BAUDRATE, 0x403, 4, 0
+0x3131, 0x0030, 
+    IDC_BAUDRATE, 0x403, 4, 0
+0x3033, 0x0030, 
+    IDC_BAUDRATE, 0x403, 4, 0
+0x3036, 0x0030, 
+    IDC_BAUDRATE, 0x403, 5, 0
+0x3231, 0x3030, "\000" 
+    IDC_BAUDRATE, 0x403, 5, 0
+0x3432, 0x3030, "\000" 
+    IDC_BAUDRATE, 0x403, 5, 0
+0x3834, 0x3030, "\000" 
+    IDC_BAUDRATE, 0x403, 5, 0
+0x3639, 0x3030, "\000" 
+    IDC_BAUDRATE, 0x403, 6, 0
+0x3431, 0x3034, 0x0030, 
+    IDC_BAUDRATE, 0x403, 6, 0
+0x3931, 0x3032, 0x0030, 
+    IDC_BAUDRATE, 0x403, 6, 0
+0x3832, 0x3038, 0x0030, 
+    IDC_BAUDRATE, 0x403, 6, 0
+0x3833, 0x3034, 0x0030, 
+    IDC_BAUDRATE, 0x403, 5, 0
+0x3635, 0x3030, "\000" 
+    IDC_BAUDRATE, 0x403, 7, 0
+0x3735, 0x3036, 0x3030, "\000" 
+    IDC_BAUDRATE, 0x403, 7, 0
+0x3131, 0x3235, 0x3030, "\000" 
+    IDC_BAUDRATE, 0x403, 7, 0
+0x3231, 0x3038, 0x3030, "\000" 
+    IDC_BAUDRATE, 0x403, 7, 0
+0x3332, 0x3430, 0x3030, "\000" 
+    IDC_BAUDRATE, 0x403, 7, 0
+0x3532, 0x3036, 0x3030, "\000" 
+    IDC_BAUDRATE, 0x403, 7, 0
+0x3634, 0x3830, 0x3030, "\000" 
+    IDC_BAUDRATE, 0x403, 7, 0
+0x3135, 0x3032, 0x3030, "\000" 
+    IDC_BAUDRATE, 0x403, 7, 0
+0x3239, 0x3631, 0x3030, "\000" 
+    IDC_DATABITS, 0x403, 2, 0
+0x0035, 
+    IDC_DATABITS, 0x403, 2, 0
+0x0036, 
+    IDC_DATABITS, 0x403, 2, 0
+0x0037, 
+    IDC_DATABITS, 0x403, 2, 0
+0x0038, 
+    IDC_PARITYBIT, 0x403, 9, 0
+0x4f4e, 0x4150, 0x4952, 0x5954, "\000" 
+    IDC_PARITYBIT, 0x403, 10, 0
+0x444f, 0x5044, 0x5241, 0x5449, 0x0059, 
+    IDC_PARITYBIT, 0x403, 11, 0
+0x5645, 0x4e45, 0x4150, 0x4952, 0x5954, "\000" 
+    IDC_PARITYBIT, 0x403, 11, 0
+0x414d, 0x4b52, 0x4150, 0x4952, 0x5954, "\000" 
+    IDC_PARITYBIT, 0x403, 12, 0
+0x5053, 0x4341, 0x5045, 0x5241, 0x5449, 0x0059, 
+    IDC_STOPBITS, 0x403, 2, 0
+0x0031, 
+    IDC_STOPBITS, 0x403, 4, 0
+0x2e31, 0x0035, 
+    IDC_STOPBITS, 0x403, 2, 0
+0x0032, 
+    IDC_FLOWCTRL, 0x403, 5, 0
+0x4f4e, 0x454e, "\000" 
+    IDC_FLOWCTRL, 0x403, 8, 0
+0x5443, 0x2f53, 0x5452, 0x0053, 
+    IDC_FLOWCTRL, 0x403, 9, 0
+0x4f58, 0x2f4e, 0x4f58, 0x4646, "\000" 
+    IDC_FLOWCTRL, 0x403, 5, 0
+0x5355, 0x5245, "\000" 
+    0
+END
+
+IDD_USERFLOWDLG DLGINIT
+BEGIN
+    IDC_COMBO1, 0x403, 11, 0
+0x4c41, 0x4157, 0x5359, 0x4f20, 0x4646, "\000" 
+    IDC_COMBO1, 0x403, 10, 0
+0x4c41, 0x4157, 0x5359, 0x4f20, 0x004e, 
+    IDC_COMBO1, 0x403, 10, 0
+0x4c46, 0x574f, 0x4320, 0x5254, 0x004c, 
+    IDC_COMBO2, 0x403, 11, 0
+0x4c41, 0x4157, 0x5359, 0x4f20, 0x4646, "\000" 
+    IDC_COMBO2, 0x403, 10, 0
+0x4c41, 0x4157, 0x5359, 0x4f20, 0x004e, 
+    IDC_COMBO2, 0x403, 10, 0
+0x4c46, 0x574f, 0x4320, 0x5254, 0x004c, 
+    IDC_COMBO2, 0x403, 8, 0
+0x4552, 0x5643, 0x4f20, 0x004e, 
+    0
+END
+
+IDD_COMINITDLG DLGINIT
+BEGIN
+    IDC_BAUDRATE, 0x403, 4, 0
+0x3131, 0x0030, 
+    IDC_BAUDRATE, 0x403, 4, 0
+0x3033, 0x0030, 
+    IDC_BAUDRATE, 0x403, 4, 0
+0x3036, 0x0030, 
+    IDC_BAUDRATE, 0x403, 5, 0
+0x3231, 0x3030, "\000" 
+    IDC_BAUDRATE, 0x403, 5, 0
+0x3432, 0x3030, "\000" 
+    IDC_BAUDRATE, 0x403, 5, 0
+0x3834, 0x3030, "\000" 
+    IDC_BAUDRATE, 0x403, 5, 0
+0x3639, 0x3030, "\000" 
+    IDC_BAUDRATE, 0x403, 6, 0
+0x3431, 0x3034, 0x0030, 
+    IDC_BAUDRATE, 0x403, 6, 0
+0x3931, 0x3032, 0x0030, 
+    IDC_BAUDRATE, 0x403, 6, 0
+0x3832, 0x3038, 0x0030, 
+    IDC_BAUDRATE, 0x403, 6, 0
+0x3833, 0x3034, 0x0030, 
+    IDC_BAUDRATE, 0x403, 6, 0
+0x3635, 0x3030, 0x0030, 
+    IDC_BAUDRATE, 0x403, 6, 0
+0x3735, 0x3036, 0x0030, 
+    IDC_BAUDRATE, 0x403, 7, 0
+0x3131, 0x3235, 0x3030, "\000" 
+    IDC_BAUDRATE, 0x403, 7, 0
+0x3231, 0x3038, 0x3030, "\000" 
+    IDC_BAUDRATE, 0x403, 7, 0
+0x3332, 0x3430, 0x3030, "\000" 
+    IDC_BAUDRATE, 0x403, 7, 0
+0x3532, 0x3036, 0x3030, "\000" 
+    IDC_BAUDRATE, 0x403, 7, 0
+0x3634, 0x3830, 0x3030, "\000" 
+    IDC_BAUDRATE, 0x403, 7, 0
+0x3135, 0x3032, 0x3030, "\000" 
+    IDC_BAUDRATE, 0x403, 7, 0
+0x3239, 0x3631, 0x3030, "\000" 
+    IDC_DATABITS, 0x403, 2, 0
+0x0035, 
+    IDC_DATABITS, 0x403, 2, 0
+0x0036, 
+    IDC_DATABITS, 0x403, 2, 0
+0x0037, 
+    IDC_DATABITS, 0x403, 2, 0
+0x0038, 
+    IDC_PARITYBIT, 0x403, 9, 0
+0x4f4e, 0x4150, 0x4952, 0x5954, "\000" 
+    IDC_PARITYBIT, 0x403, 10, 0
+0x444f, 0x5044, 0x5241, 0x5449, 0x0059, 
+    IDC_PARITYBIT, 0x403, 11, 0
+0x5645, 0x4e45, 0x4150, 0x4952, 0x5954, "\000" 
+    IDC_PARITYBIT, 0x403, 11, 0
+0x414d, 0x4b52, 0x4150, 0x4952, 0x5954, "\000" 
+    IDC_PARITYBIT, 0x403, 12, 0
+0x5053, 0x4341, 0x5045, 0x5241, 0x5449, 0x0059, 
+    IDC_STOPBITS, 0x403, 2, 0
+0x0031, 
+    IDC_STOPBITS, 0x403, 4, 0
+0x2e31, 0x0035, 
+    IDC_STOPBITS, 0x403, 2, 0
+0x0032, 
+    IDC_FLOWCTRL, 0x403, 5, 0
+0x4f4e, 0x454e, "\000" 
+    IDC_FLOWCTRL, 0x403, 8, 0
+0x5452, 0x2f53, 0x5443, 0x0053, 
+    IDC_FLOWCTRL, 0x403, 9, 0
+0x4f58, 0x2f4e, 0x4f58, 0x4646, "\000" 
+    IDC_FLOWCTRL, 0x403, 5, 0
+0x5355, 0x5245, "\000" 
+    0
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -3559,7 +3855,7 @@ BEGIN
     IDS_REMOTEFILEDELETE    "リモートに無いファイルを削除しますか？"
     IDS_RENAMEMSG           "ファイル名の変更"
     IDS_SCRIPTNEW           "すでに読み込んでいるスクリプトを放棄しますか？"
-    IDS_SERVERENTRYDELETE   "'%s'サーバーエントリーを削除してもよいですか？"
+    IDS_SERVERENTRYDELETE   "サーバーエントリーを削除しますか？\n\n"
     IDS_SOCKETS_INIT_FAILED "Windows ソケットの初期化に失敗しました。"
     IDS_SSH_PASS_MSG        "作成時に設定したパスフレーズを入力してください"
     IDS_SSH_PASS_TITLE      "SSH鍵ファイルの読み込み"
@@ -3747,6 +4043,7 @@ BEGIN
     IDS_TTYMODE_LIST56      "端末でUTF-8エンコードを使用する"
     IDS_DEFENTRYEDITMSG     "標準の設定のエントリーが編集されました\n標準の設定を更新しますか？"
     IDS_ADDPAGEANTENTRY     "このエントリーで最初のPageantの起動を確認しました\n使用する認証鍵の優先順位を設定してください\n以降、鍵の追加などした場合に設定が必要になります"
+    IDS_DROPSUBDIRCHECK     "ドロップ操作でサブフォルダは作成されません\nフォルダ内のファイルをダウンロードしますか？"
 END
 
 STRINGTABLE
@@ -3767,6 +4064,11 @@ BEGIN
     IDE_ENTRYLOADERROR      "サーバーエントリーの読み込みに失敗しました\nレジストリ／プロファイルが壊れている可能性があります\nこのエントリーを削除しますか？"
     IDE_KEYMACTOOLONG       "キー操作の記録が大きくなっています。\n記録を続けますか？"
     IDE_PAGEANTKEYEDIT      "Pageantのエントリーは、編集や保存など出来ません"
+END
+
+STRINGTABLE
+BEGIN
+    IDE_SFTPTHREADCMDEXEC   "現在、ローカルファイルのコピー操作中です。終了を待つか中断してから閉じてください"
 END
 
 STRINGTABLE
@@ -3895,6 +4197,7 @@ BEGIN
     IDM_DELOLDENTRYTAB      "不用になった古いエントリー情報を削除します\n古いエントリー削除"
     IDM_TITLEEDIT           "ウィンドウタイトルを編集して変更します\nタイトルの変更"
     IDM_SAVEREGFILE         "レジストリをファイルに保存\nレジストリの保存"
+    IDM_COMMONITER          "シリアル通信をモニターする\nシリアルモニター"
 END
 
 STRINGTABLE

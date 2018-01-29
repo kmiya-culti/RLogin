@@ -64,6 +64,7 @@ protected:
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnSizing(UINT fwSide, LPRECT pRect);
 	afx_msg void OnTcnSelchangeServertab(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnNMRClickServertab(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnServProto();
 	afx_msg void OnSaveDefault();
 	afx_msg void OnUpdateSaveDefault(CCmdUI *pCmdUI);
@@ -75,4 +76,5 @@ protected:
 	afx_msg void OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct);
 	afx_msg void OnMeasureItem(int nIDCtl, LPMEASUREITEMSTRUCT lpMeasureItemStruct);
 #endif
+public:
 };

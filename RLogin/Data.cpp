@@ -2760,7 +2760,7 @@ CFontChacheNode *CFontChache::GetFont(LPCTSTR pFontName, int Width, int Height, 
 		pNext = pNext->m_pNext;
 	}
 
-	//TRACE(_T("CacheMiss %s(%d,%d,%d,%d)\n"), pFontName, CharSet, Width, Height, Hash);
+	//TRACE(_T("CacheMiss %s(%d,%d,%d,%d,%d)\n"), pFontName, CharSet, Width, Height, Quality, Hash);
 
 	if ( pNext->Open(pFontName, Width, Height, CharSet, Style, Quality) == NULL )
 		return NULL;
@@ -5097,7 +5097,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	132
+#define	CMDSKEYTABMAX	133
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -5217,6 +5217,7 @@ static const struct _CmdsKeyTab {
 	{	IDM_IMAGEDISP,				L"$VIEW_IMAGEDISP"	},
 	{	ID_GOZIVIEW,				L"$VIEW_JOKE"		},
 	{	ID_VIEW_MENUBAR,			L"$VIEW_MENUBAR"	},
+	{	IDM_COMMONITER,				L"$VIEW_MONITOR"	},
 	{	ID_VIEW_SCROLLBAR,			L"$VIEW_SCROLLBAR"	},
 	{	IDM_SFTP,					L"$VIEW_SFTP"		},
 	{	IDM_SOCKETSTATUS,			L"$VIEW_SOCKET"		},

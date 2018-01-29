@@ -76,6 +76,7 @@ BEGIN_MESSAGE_MAP(CServerSelect, CDialogExt)
 	ON_UPDATE_COMMAND_UI(IDC_SAVEDEFAULT, OnUpdateSaveDefault)
 	ON_WM_DRAWITEM()
 	ON_WM_MEASUREITEM()
+	ON_NOTIFY(NM_RCLICK, IDC_SERVERTAB, &CServerSelect::OnNMRClickServertab)
 END_MESSAGE_MAP()
 
 void CServerSelect::InitList()
@@ -490,19 +491,37 @@ void CServerSelect::OnEditEntry()
 void CServerSelect::OnDelEntry() 
 {
 	int n, i;
-	CString tmp;
+	CString tmp, msg;
 	CDWordArray tab;
 
 	for ( n = 0 ; n < m_List.GetItemCount() ; n++ ) {
 		if ( m_List.GetItemState(n, LVIS_SELECTED) == 0 )
 			continue;
 		i = (int)m_List.GetItemData(n);
-		tmp.Format(CStringLoad(IDS_SERVERENTRYDELETE), m_pData->m_Data[i].m_EntryName);
-		if ( MessageBox(tmp, _T("Question"), MB_YESNO | MB_ICONQUESTION ) != IDYES )
-			break;
+
+		if ( !tmp.IsEmpty() )
+			tmp += _T(',');
+		tmp += m_pData->m_Data[i].m_EntryName;
+
 		if ( m_pData->m_Data[i].m_Uid >= 0 )
 			tab.Add(m_pData->m_Data[i].m_Uid);
 	}
+
+	if ( (n = tmp.GetLength()) > 50 )
+		tmp.Delete(40, n - 40);
+
+	if ( (n = (int)tab.GetSize()) <= 0 )
+		return;
+	else if ( n > 1 ) {
+		msg.Format(_T("...[%d]"), n);
+		tmp += msg;
+	}
+	
+	msg.LoadString(IDS_SERVERENTRYDELETE);
+	msg += tmp;
+
+	if ( MessageBox(msg, _T("Question"), MB_YESNO | MB_ICONQUESTION ) != IDYES )
+		return;
 
 	for ( n = 0 ; n < tab.GetSize() ; n++ ) {
 		for ( i = 0 ; i < m_pData->GetSize() ; i++ ) {
@@ -922,6 +941,32 @@ void CServerSelect::OnTcnSelchangeServertab(NMHDR *pNMHDR, LRESULT *pResult)
 		InitList();
 	}
 	*pResult = 0;
+}
+
+void CServerSelect::OnNMRClickServertab(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	int n;
+	TCHITTESTINFO info;
+	
+	*pResult = 0;
+
+	if ( !GetCursorPos(&info.pt) )
+		return;
+
+	m_Tab.ScreenToClient(&info.pt);
+
+	if ( (n = m_Tab.HitTest(&info)) < 0 || n >= m_TabEntry.GetSize() )
+		return;
+
+	m_Tab.SetCurSel(n);
+	m_Group = m_TabEntry[n].m_nIndex;
+	m_EntryNum = (-1);
+	InitList();
+
+	m_List.SetItemState(0, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+
+	for ( n = 1 ; n < m_List.GetItemCount() ; n++ )
+		m_List.SetItemState(n, LVIS_SELECTED, LVIS_SELECTED);
 }
 
 void CServerSelect::OnSaveDefault()

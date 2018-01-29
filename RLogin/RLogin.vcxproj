@@ -278,6 +278,8 @@
     <ClCompile Include="ClipPage.cpp" />
     <ClCompile Include="ColParaDlg.cpp" />
     <ClCompile Include="ComboBoxHis.cpp" />
+    <ClCompile Include="ComInitDlg.cpp" />
+    <ClCompile Include="ComMoniDlg.cpp" />
     <ClCompile Include="ComSock.cpp" />
     <ClCompile Include="CsiParaDlg.cpp" />
     <ClCompile Include="curve25519.cpp" />
@@ -357,6 +359,7 @@
     <ClCompile Include="TraceDlg.cpp" />
     <ClCompile Include="TtyModeDlg.cpp" />
     <ClCompile Include="UpdateDlg.cpp" />
+    <ClCompile Include="UserFlowDlg.cpp" />
     <ClCompile Include="ZModem.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -376,6 +379,8 @@
     <ClInclude Include="ClipPage.h" />
     <ClInclude Include="ColParaDlg.h" />
     <ClInclude Include="ComboBoxHis.h" />
+    <ClInclude Include="ComInitDlg.h" />
+    <ClInclude Include="ComMoniDlg.h" />
     <ClInclude Include="ComSock.h" />
     <ClInclude Include="CsiParaDlg.h" />
     <ClInclude Include="Data.h" />
@@ -454,6 +459,7 @@
     <ClInclude Include="UniCharTab.h" />
     <ClInclude Include="UniNomalTab.h" />
     <ClInclude Include="UpdateDlg.h" />
+    <ClInclude Include="UserFlowDlg.h" />
     <ClInclude Include="zm.h" />
     <ClInclude Include="ZModem.h" />
   </ItemGroup>

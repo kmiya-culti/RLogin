@@ -71,6 +71,9 @@ BEGIN_MESSAGE_MAP(CRLoginDoc, CDocument)
 
 	ON_UPDATE_COMMAND_UI(IDM_RESET_SIZE, &CRLoginDoc::OnUpdateResetSize)
 	ON_COMMAND(IDM_TITLEEDIT, &CRLoginDoc::OnTitleedit)
+	ON_COMMAND(IDM_COMMONITER, &CRLoginDoc::OnCommoniter)
+	ON_UPDATE_COMMAND_UI(IDM_COMMONITER, &CRLoginDoc::OnUpdateCommoniter)
+	ON_UPDATE_COMMAND_UI(IDM_TRACEDISP, &CRLoginDoc::OnUpdateTracedisp)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -522,8 +525,10 @@ void CRLoginDoc::SetCmdInfo(CCommandLineInfoEx *pCmdInfo)
 		m_bReqDlg = pCmdInfo->m_ReqDlg;
 	}
 
-	//if ( pCmdInfo->m_InUse )
+	//if ( pCmdInfo->m_InUse == INUSE_ACTWIN )
 	//	m_CmdLine += _T(" /inuse");
+	//else if ( pCmdInfo->m_InUse == INUSE_ALLWIN )
+	//	m_CmdLine += _T(" /inusea");
 
 	if ( pCmdInfo->m_InPane ) {
 		//m_CmdLine += _T(" /inpne");
@@ -1961,6 +1966,10 @@ void CRLoginDoc::OnTracedisp()
 	} else
 		m_TextRam.m_pTraceWnd->SendMessage(WM_CLOSE);
 }
+void CRLoginDoc::OnUpdateTracedisp(CCmdUI *pCmdUI)
+{
+	pCmdUI->SetCheck(m_TextRam.m_pTraceWnd != NULL ? TRUE : FALSE);
+}
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -2145,4 +2154,19 @@ void CRLoginDoc::OnTitleedit()
 
 	m_TitleName = dlg.m_Edit;
 	SetTitle(m_TitleName);
+}
+void CRLoginDoc::OnCommoniter()
+{
+	if ( m_pSock != NULL && m_pSock->m_Type == ESCT_COMDEV )
+		((CComSock *)m_pSock)->ComMoniter();
+}
+void CRLoginDoc::OnUpdateCommoniter(CCmdUI *pCmdUI)
+{
+	if ( m_pSock != NULL && m_pSock->m_Type == ESCT_COMDEV ) {
+		pCmdUI->Enable(TRUE);
+		pCmdUI->SetCheck(((CComSock *)m_pSock)->m_pComMoni != NULL ? TRUE : FALSE);
+	} else {
+		pCmdUI->Enable(FALSE);
+		pCmdUI->SetCheck(FALSE);
+	}
 }

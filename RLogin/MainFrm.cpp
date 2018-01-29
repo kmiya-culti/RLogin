@@ -2538,23 +2538,6 @@ void CMainFrame::OnDestroy()
 	} else if ( ExRemoveClipboardFormatListener != NULL )
 		ExRemoveClipboardFormatListener(m_hWnd);
 
-	if ( m_TempPath.GetSize() > 0 ) {
-		int n, er;
-		CString msg;
-		do {
-			msg.Format(CStringLoad(IDS_TEMPFILEDELETEMSG), m_TempPath.GetSize());
-			for ( er = n = 0 ; n < m_TempPath.GetSize() ; n++ ) {
-				if ( DeleteFile(m_TempPath[n]) ) {
-					m_TempPath.RemoveAt(n);
-					n--;
-				} else if ( ++er < 3 ) {
-					msg += _T("\n");
-					msg += m_TempPath[n];
-				}
-			}
-		} while ( er > 0 && MessageBox(msg, _T("Question"), MB_ICONQUESTION | MB_YESNO) == IDYES );
-	}
-
 	CMDIFrameWnd::OnDestroy();
 }
 
@@ -3140,7 +3123,7 @@ void CMainFrame::OnFileAllLoad()
 BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCopyDataStruct)
 {
 	if ( pCopyDataStruct->dwData == 0x524c4f31 ) {
-		return ((CRLoginApp *)::AfxGetApp())->OnInUseCheck(pCopyDataStruct);
+		return ((CRLoginApp *)::AfxGetApp())->OnInUseCheck(pCopyDataStruct, FALSE);
 
 	} else if ( pCopyDataStruct->dwData == 0x524c4f32 ) {
 		return ((CRLoginApp *)::AfxGetApp())->OnIsOnlineEntry(pCopyDataStruct);
@@ -3170,6 +3153,9 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCopyDataStruct)
 
 	} else if ( pCopyDataStruct->dwData == 0x524c4f38 ) {
 		return ((CRLoginApp *)::AfxGetApp())->OnIsOpenRLogin(pCopyDataStruct);
+
+	} else if ( pCopyDataStruct->dwData == 0x524c4f39 ) {
+		return ((CRLoginApp *)::AfxGetApp())->OnInUseCheck(pCopyDataStruct, TRUE);
 	}
 
 	return CMDIFrameWnd::OnCopyData(pWnd, pCopyDataStruct);

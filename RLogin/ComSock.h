@@ -11,19 +11,37 @@
 
 #include "ExtSocket.h"
 
-#define	COMBUFSIZE		1024
+#define	COMFLOW_NONE		0
+#define	COMFLOW_RTSCTS		1
+#define	COMFLOW_XONXOFF		2
+#define	COMFLOW_USERDEF		3
+
+#define	COMQUEUESIZE		4096
+#define	COMBUFSIZE			(COMQUEUESIZE / 4)
+
+#define	COMALIVEBYTE		33	// COMn n=1-256 = (256 / 8 + 1) = 33
+#define	COMALIVEBITS		(COMALIVEBYTE * 8)
 
 class CComSock : public CExtSocket  
 {
 public:
 	HANDLE m_hCom;
-	CString m_ComName;
 	int m_ComPort;
+	COMMCONFIG *m_pComConf;
+	UINT m_SendWait[2];
+
 	int m_SendBreak;
 	BOOL m_bCommState;
 	DWORD m_CommError;
 	DWORD m_ModemStatus;
+	DWORD m_ComCtrl;
 	BOOL m_bGetStatus;
+	BOOL m_bRetCode;
+	int m_MsecByte;
+	class CComMoniDlg *m_pComMoni;
+	int m_RecvByteSec;
+	int m_SendByteSec;
+	BOOL m_bXonXffMode;
 
 	volatile enum { THREAD_NONE = 0, THREAD_RUN, THREAD_ENDOF, THREAD_DONE } m_ThreadMode;
 
@@ -39,22 +57,14 @@ public:
 	OVERLAPPED m_WriteOverLap;
 	OVERLAPPED m_CommOverLap;
 
-private:
-	COMMCONFIG m_ComConf;
-	COMMTIMEOUTS m_ComTime;
-	int m_BaudRate;
-	int m_ByteSize;
-	int m_Parity;
-	int m_StopBits;
-	int m_FlowCtrl;
-	int m_SaveFlowCtrl;
-
 public:
 	BOOL Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM, void *pAddrInfo = NULL);
 	BOOL AsyncOpen(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM);
 	void Close();
+	BOOL SetComConf();
 	void SetXonXoff(int sw);
 	void SendBreak(int opt = 0);
+	BOOL SetComCtrl(DWORD ctrl);
 	int Send(const void* lpBuf, int nBufLen, int nFlags = 0);
 	void OnReceive(int nFlags);
 	void OnSend();
@@ -62,17 +72,18 @@ public:
 	void GetStatus(CString &str);
 	int GetRecvSize();
 	int GetSendSize();
+	void GetRecvSendByteSec(int &recvByte, int &sendByte);
+	void ComMoniter();
 
 	void OnReadWriteProc();
 
-	void GetConfig();
-	void SetConfig();
+	BOOL LoadComConf(LPCTSTR ComSetStr, int ComPort, BOOL bOpen = FALSE);
+	BOOL SaveComConf(CString &str);
+	BOOL SetupComConf(CString &ComSetStr, int &ComPort, CWnd *pOwner = NULL);
 
-	void GetMode(LPCTSTR str);
-	void SetMode(CString &str);
-
-	void ConfigDlg(CWnd *pWnd, CString &str);
-	static DWORD AliveComPort();
+	static void SetFlowCtrlMode(DCB *pDCB, int FlowCtrl, LPCTSTR UserDef);
+	static int GetFlowCtrlMode(DCB *pDCB, CString &UserDef);
+	static void AliveComPort(BYTE pComAliveBits[COMALIVEBYTE]);
 
 	CComSock(class CRLoginDoc *pDoc);
 	virtual ~CComSock();

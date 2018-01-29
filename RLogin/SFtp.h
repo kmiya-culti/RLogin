@@ -71,9 +71,25 @@
 
 #define	SSH2_FX_MAXQUESIZE				64
 
-#define _S_IFLNK  0xA000		/* symbolic link */
+#define _S_IFLNK						0xA000		/* symbolic link */
+#define	FILEIORETRY_MAX					10
 
-#define WM_RECIVEBUFFER		(WM_USER + 4)
+#define WM_RECIVEBUFFER					(WM_USER + 16)
+#define WM_THREADENDOF					(WM_USER + 17)
+
+#define	SENDCMD_NOWAIT					0
+#define	SENDCMD_HEAD					1
+#define	SENDCMD_TAIL					2
+
+#define	THREADCMD_COPY					0
+#define	THREADCMD_MOVE					1
+#define	THREADCMD_MKDIR					2
+#define	THREADCMD_RMDIR					3
+
+#define	ENDCMD_NONE						0
+#define	ENDCMD_PASSFILE					1
+#define	ENDCMD_GROUPFILE				2
+#define	ENDCMD_MOVEFILE					3
 
 /////////////////////////////////////////////////////////////////////////////
 // CSFtp ウィンドウ
@@ -142,39 +158,21 @@ public:
 	LONGLONG m_NextOfs;
 	int m_Len;
 	int m_Max;
-	int m_Fd;
+	HANDLE m_hFile;
 	CString m_Path;
 	CString m_CopyPath;
 	CArray<CFileNode, CFileNode &> m_FileNode;
 	CArray<CFileNode, CFileNode &> m_SaveNode;
 	class CCmdQue *m_pOwner;
 	CBuffer m_MemData;
+	int m_EndCmd;
+	BOOL m_bThrad;
+	class CSFtp *m_pSFtp;
 
 	CCmdQue();
 };
 
 #ifdef	USE_OLE
-class CSFtpDataSource : public COleDataSource
-{
-public:
-	CWnd *m_pWnd;
-
-	CSFtpDataSource(CWnd *pWnd);
-	~CSFtpDataSource();
-
-	virtual BOOL OnRenderGlobalData(LPFORMATETC lpFormatEtc, HGLOBAL *phGlobal);
-};
-
-class CSFtpDropSource : public COleDropSource 
-{
-public:
-	CSFtpDropSource();
-	~CSFtpDropSource();
-
-	virtual SCODE QueryContinueDrag(BOOL bEscapePressed, DWORD dwKeyState);
-	virtual SCODE GiveFeedback(DROPEFFECT dropEffect);
-};
-
 class CSFtpDropTarget : public COleDropTarget
 {
 public:
@@ -184,15 +182,8 @@ public:
 	virtual DROPEFFECT OnDragEnter(CWnd* pWnd, COleDataObject* pDataObject, DWORD dwKeyState, CPoint point);
 	virtual DROPEFFECT OnDragOver(CWnd* pWnd, COleDataObject* pDataObject, DWORD dwKeyState, CPoint point);
 	virtual BOOL OnDrop(CWnd* pWnd, COleDataObject* pDataObject, DROPEFFECT dropEffect, CPoint point);
-	//virtual DROPEFFECT OnDropEx(CWnd* pWnd, COleDataObject* pDataObject, DROPEFFECT dropDefault, DROPEFFECT dropList, CPoint point);
-	//virtual void OnDragLeave(CWnd* pWnd);
-	//virtual DROPEFFECT OnDragScroll(CWnd* pWnd, DWORD dwKeyState, CPoint point);
 };
 #endif	// USE_OLE
-
-#define	SENDCMD_NOWAIT	0
-#define	SENDCMD_HEAD	1
-#define	SENDCMD_TAIL	2
 
 class CSFtp : public CDialogExt
 {
@@ -249,6 +240,7 @@ public:
 	HICON m_hIcon;
 	int m_bShellExec[2];
 	BOOL m_bPostMsg;
+	BOOL m_bTheadExec;
 
 #ifdef	USE_OLE
 	CSFtpDropTarget m_DropTarget;
@@ -268,6 +260,9 @@ public:
 	void SendCommand(class CCmdQue *pQue, int (CSFtp::*pFunc)(int type, CBuffer *bp, class CCmdQue *pQue), int mode);
 	void RemoveWaitQue();
 	void SendWaitQue();
+
+	BOOL SeekReadFile(HANDLE hFile, LPBYTE pBuffer, DWORD BufLen, LONGLONG SeekPos);
+	BOOL SeekWriteFile(HANDLE hFile, LPBYTE pBuffer, DWORD BufLen, LONGLONG SeekPos);
 
 	int RemoteMakePacket(class CCmdQue *pQue, int Type);
 
@@ -313,24 +308,30 @@ public:
 	int RemoteCloseMemReadRes(int type, CBuffer *bp, class CCmdQue *pQue);
 	int RemoteDataMemReadRes(int type, CBuffer *bp, class CCmdQue *pQue);
 	int RemoteOpenMemReadRes(int type, CBuffer *bp, class CCmdQue *pQue);
-	void MemLoadFile(LPCTSTR file, int id);
+	void MemLoadFile(LPCTSTR file, int cmd);
 
+	int RemoteDownEndof(int st, class CCmdQue *pQue);
 	int RemoteCloseWriteRes(int type, CBuffer *bp, class CCmdQue *pQue);
 	int RemoteAttrWriteRes(int type, CBuffer *bp, class CCmdQue *pQue);
 	int RemoteDataWriteRes(int type, CBuffer *bp, class CCmdQue *pQue);
 	int RemoteOpenWriteRes(int type, CBuffer *bp, class CCmdQue *pQue);
 	int RemoteMkDirWriteRes(int type, CBuffer *bp, class CCmdQue *pQue);
 	int RemoteStatWriteRes(int type, CBuffer *bp, class CCmdQue *pQue);
-	void UpLoadFile(CFileNode *pNode, LPCTSTR file);
+	void UpLoadFile(CFileNode *pNode, LPCTSTR file, BOOL bMove = FALSE);
+
+	void ThreadCmdExec(int id, int type, LPCTSTR src, LPCTSTR dis, LONGLONG size);
+	BOOL ThreadCmdStart(CCmdQue *pQue);
+	void ThreadCmdAdd(int type, LPCTSTR src, LPCTSTR dis, LONGLONG size = 0);
 
 	int LocalCopy(LPCTSTR src, LPCTSTR dis, BOOL bMove);
-	int LocalDelete(LPCTSTR path);
+	static BOOL LocalDelete(LPCTSTR path);
 	int LocalSetCwd(LPCTSTR path);
 	void LocalUpdateCwd(LPCTSTR path);
 	HDROP LocalDropInfo();
 	int LocalSelectCount();
 
-	int DropFiles(HWND hWnd, HDROP hDropInfo, DROPEFFECT dropEffect);
+	BOOL DropFiles(HWND hWnd, HDROP hDropInfo, DROPEFFECT dropEffect);
+	BOOL DescriptorFiles(HWND hWnd, HGLOBAL hDescInfo, DROPEFFECT dropEffect, COleDataObject *pDataObject);
 
 	CStringList m_LocalCwdHis;
 	CStringList m_RemoteCwdHis;
@@ -340,6 +341,7 @@ public:
 
 	void InitItemOffset();
 	void SetItemOffset(int cx, int cy);
+	void SaveListColumn(LPCTSTR lpszSection, CListCtrl *pList);
 
 	int m_LocalSortItem;
 	int m_RemoteSortItem;
@@ -353,12 +355,17 @@ public:
 	LONGLONG m_ProgSize;
 	LONGLONG m_ProgOfs;
 	clock_t m_ProgClock;
+	LONGLONG m_TotalPos;
 	LONGLONG m_TotalSize;
+	LONGLONG m_TransmitSize;
+	clock_t m_TransmitClock;
 
 	void SetUpDownCount(int count);
+	void AddTotalRange(LONGLONG size);
 	void SetRangeProg(LPCTSTR file, LONGLONG size, LONGLONG ofs);
 	void SetPosProg(LONGLONG pos);
 	void DispErrMsg(LPCTSTR msg, LPCTSTR file);
+	LPCTSTR JointPath(LPCTSTR dir, LPCTSTR file, CString &path);
 	inline void KanjiConvToLocal(LPCSTR in, CString &out) { m_IConv.RemoteToStr(m_HostKanjiSet, in, out); }
 	inline void KanjiConvToRemote(LPCTSTR in, CStringA &out) {	m_IConv.StrToRemote(m_HostKanjiSet, in, out); }
 
@@ -383,6 +390,7 @@ protected:
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 	afx_msg LRESULT OnReceiveBuffer(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnThreadEndof(WPARAM wParam, LPARAM lParam);
 	afx_msg void OnLocalUp();
 	afx_msg void OnRemoteUp();
 	afx_msg void OnSftpDelete();

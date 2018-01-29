@@ -28,8 +28,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.23.0)</TD>
-            <TD width="20%" align="right">2017/12/18</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.23.1)</TD>
+            <TD width="20%" align="right">2018/01/30</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -82,6 +82,7 @@ TD {
                         <OL>
                           <LI><A href="#SERVEROPT">サーバーのオプション設定</A>
                           <OL>
+                            <LI><A href="#COMSET">COMの通信設定</A>
                             <LI><A href="#ENVSET">環境変数の設定</A>
                             <LI><A href="#CHATSCRIPT">チャットスクリプトの設定</A>
                             <LI><A href="#PROXYSET">プロキシーサーバーの設定</A>
@@ -151,6 +152,7 @@ TD {
                         <OL>
                           <LI><A href="#TEKWIND">Tek40xx/41xxウィンドウ</A>
                           <LI><A href="#REGWIND">ReGIS/Sixelグラフィック・ウィンドウ</A>
+                          <LI><A href="#MONITOR">シリアルモニター</A>
                           <LI><A href="#TRACE">トレースウィンドウ</A>
                           <LI><A href="#TOOLBAR">ツールバーのカスタマイズ</A>
                           <LI><A href="#RESOURCE">リソースをファイルに保存</A>
@@ -377,7 +379,7 @@ TD {
             <BR>
             ※プライベートプロファイルは、複数のプロセスからの変更などに弱いです。<BR>
             また、ファイルベースで意図せぬハングアップやファイルのコピーなどで壊れる場合が<BR>
-            ありレジストリベースよりリスクが高いと思いますのでご注意ください。<BR>
+            ありレジストリベースよりリスクが高くなり動作も非常に遅いと思いますのでご注意ください。<BR>
             <BR>
             ※2.22.0からOSの言語設定に依存しないようにレジストリに保存する文字列を<BR>
             Unicodeに統一しました。しかしプライベートプロファイルは、OSの言語設定に強く<BR>
@@ -436,6 +438,19 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2018/01/30</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.23.1/">2.23.1</A></TD>
+            <TD>サーバーセレクトのタブを右クリックですべてを選択を追加<BR>
+            最小化したRLoginも対象にする/inuseaオプションを追加<BR>
+            SFTPのプログレスバーを全体の状態を示すように変更<BR>
+            DECDLDのSIXEL拡張を画像処理にも使えるように変更<BR>
+            SFTPのファイル操作を行う関数や処理を変更<BR>
+            SFTPのドロップによるファイル操作をスレッド処理に変更<BR>
+            OLEでの圧縮フォルダ－ツールのファイルコピーを追加<BR>
+            シリアル通信（プロトコルcom)の設定に送信遅延を追加<BR>
+            表示メニューにシリアルモニターを追加</TD>
+          </TR>
+          <TR>
             <TD align="center">2017/12/18</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.23.0/">2.23.0</A></TD>
             <TD>すべての状態を保存にタブの位置も含むように変更<BR>
@@ -475,18 +490,6 @@ TD {
             RS232C回りの処理を整理してタイムアウト時間を修正<BR>
             2.22.5で変更したDECRQSSのリターンコードを元に戻した<BR>
             libiconv-1.15の日本語パッチの取り込みミスを修正</TD>
-          </TR>
-          <TR>
-            <TD align="center">2017/09/05</TD>
-            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.22.6/">2.22.6</A></TD>
-            <TD>libiconv-1.15に更新<BR>
-            オープン時のエラーメッセージを修正<BR>
-            オプションの初期化に他エントリー設定に合わすを追加<BR>
-            Zeroに重ねるオプションがファイル保存されないのを修正<BR>
-            ファイルに保存したANSIオプションが読み込まれないのを修正<BR>
-            メッセージ処理後に必ずアイドル処理を実行するように変更<BR>
-            拡張機能にウィンドウ画面を積極的に更新を追加<BR>
-            ターミナルのオプション設定に太字と高輝度を併用を追加</TD>
           </TR>
           <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
@@ -658,9 +661,7 @@ TD {
             <BR>
             追記（2017/10/20）<BR>
             <BR>
-            This software is released under the MIT License.<BR>
-            <BR>
-            <A href="http://opensource.org/licenses/mit-license.php">http://opensource.org/licenses/mit-license.php</A></TD>
+            <A href="LICENSE.txt">This software is released under the MIT License.</A></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -920,7 +921,7 @@ TD {
                   <TD align="left" colspan="6">表示(V)</TD>
                 </TR>
                 <TR>
-                  <TD align="center" width="10" rowspan="24">&nbsp;</TD>
+                  <TD align="center" width="10" rowspan="25">&nbsp;</TD>
                   <TD colspan="2" width="250" valign="top">メニューバー(M)</TD>
                   <TD width="450" valign="top">メニューバーを表示・非表示にします<BR>
                   ※非表示の時は、システムメニューでメニューバーを表示できます</TD>
@@ -968,6 +969,12 @@ TD {
                   <TD valign="top">接続しているソケットの状態を表示します（デバッグ目的です）</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$VIEW_SOCKET</TD>
+                </TR>
+                <TR>
+                  <TD valign="top" colspan="2">シリアルモニター(Z)</TD>
+                  <TD valign="top">プロトコルでcomを使用した場合に<A href="#MONITOR">シリアルモニター</A>表示します</TD>
+                  <TD valign="top" align="right"></TD>
+                  <TD valign="top">$VIEW_MONITOR</TD>
                 </TR>
                 <TR>
                   <TD valign="top" colspan="2">トレースウィンドウ(W)</TD>
@@ -1405,6 +1412,10 @@ TD {
                   <TD>すでに起動中のRLoginがあれば、そのウインドウのタブとしてオープンします</TD>
                 </TR>
                 <TR>
+                  <TD><FONT color="#c0c0c0">/inusea</FONT></TD>
+                  <TD><FONT color="#c0c0c0">上記の/inuseに最小化したRLoginも対象にします</FONT></TD>
+                </TR>
+                <TR>
                   <TD>/inpane</TD>
                   <TD>接続を終了時にウィンドウを閉じます</TD>
                 </TR>
@@ -1816,9 +1827,14 @@ TD {
                   &quot;1-2-3-4.com&quot;</TD>
                 </TR>
                 <TR>
+                  <TD align="center">com</TD>
+                  <TD>プロトコルcomの場合に<A href="#COMSET">COMの通信設定</A>で指定した接続条件をServer Addressに書き込みます</TD>
+                </TR>
+                <TR>
                   <TD align="center">Sock Port</TD>
                   <TD>使用するポート番号を設定します<BR>
-                  （Protocolとの関係が重要となります、通常は、Protocolと同じに合わせてください）</TD>
+                  ※プロトコルとの関係が重要となります、通常は、Protocolと同じ名前になります。変更する場合は、数値で指定してください。<BR>
+                  ※プロトコルcomの場合は、使用するCOMポートを設定します</TD>
                 </TR>
                 <TR>
                   <TD align="center">User Name</TD>
@@ -1837,24 +1853,13 @@ TD {
                 </TR>
                 <TR>
                   <TD align="center">サーバー・ユーザー・・・</TD>
-                  <TD>接続時にサーバー、ユーザー、パスワードの入力を要求します<BR>
-                  <BR>
-                  ※Server Adress/User Nameは、履歴を残します。履歴を削除するには、プルダウンメニューで選択しDELキーで削除することができます。<BR>
-                  <IMG src="image053.jpg" width="384" height="232" border="0"></TD>
+                  <TD>接続時にサーバー、ユーザー、パスワードの入力を要求します</TD>
                 </TR>
                 <TR>
                   <TD align="center">アイコン</TD>
                   <TD>適当な小さい画像ファイルをタブにアイコンとして表示します。<BR>
                   画像ファイルとしてgif/jpg/png/bmp/icoなどが使用できます。<BR>
                   表示サイズは、16x16ですが拡大・縮小して表示します。</TD>
-                </TR>
-                <TR>
-                  <TD align="center">標準の設定を・・・</TD>
-                  <TD>サーバーのオプション設定以外のすべてのオプションを接続時の標準の設定を使用するようにします。これを有効にするとその他のオプション設定は、変更できなくなり接続には使用されません<BR>
-                  <BR>
-                  標準の設定は、<A href="#SERVERSEL">サーバーの選択・設定</A>の右クリックによるポップアップメニューで任意のエントリー設定を標準にすることができます。ただしこのオプションを有効にしたエントリーは標準に設定できません<BR>
-                  <BR>
-                  接続中のオプション設定では、このオプションを変更することができません。サーバーの選択ダイアログのエントリー編集時のみ変更できます。また接続中のオプション変更は、終了時に保存確認の後、さらに上書きするか確認します。これは、元のエントリー設定が標準の設定にすべて置き換わるリスクを確認する為です</TD>
                 </TR>
                 <TR>
                   <TD align="center">Chat Script</TD>
@@ -1870,12 +1875,29 @@ TD {
                   ※設定を削除するにはファイル名選択でキャンセルをクリックして削除の確認にて「はい」を選択してください</TD>
                 </TR>
                 <TR>
+                  <TD align="center">標準の設定を・・・</TD>
+                  <TD>サーバーのオプション設定以外のすべてのオプションを接続時の標準の設定を使用するようにします。これを有効にするとその他のオプション設定は、変更できなくなり接続には使用されません<BR>
+                  <BR>
+                  標準の設定は、<A href="#SERVERSEL">サーバーの選択・設定</A>の右クリックによるポップアップメニューで任意のエントリー設定を標準にすることができます。ただしこのオプションを有効にしたエントリーは標準に設定できません<BR>
+                  <BR>
+                  接続中のオプション設定では、このオプションを変更することができません。サーバーの選択ダイアログのエントリー編集時のみ変更できます。また接続中のオプション変更は、終了時に保存確認の後、さらに上書きするか確認します。これは、元のエントリー設定が標準の設定にすべて置き換わるリスクを確認する為です</TD>
+                </TR>
+                <TR>
                   <TD align="center">文字セット</TD>
                   <TD>文字セットを選択します（接続時のデフォルト値となります）</TD>
                 </TR>
               </TBODY>
             </TABLE>
+            </TD>
+            <TD valign="top" align="left"><IMG src="image008.jpg" width="611" height="511" border="0"><BR>
             <BR>
+            <BR>
+            <IMG src="image053.jpg" width="384" height="232" border="0"><BR>
+            Server Adress/User Nameは、履歴を残します。履歴を削除するには<BR>
+            プルダウンメニューで選択しDELキーで削除することができます。</TD>
+          </TR>
+          <TR>
+            <TD valign="top">
             <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
               <TBODY>
                 <TR>
@@ -1899,7 +1921,7 @@ TD {
                 </TR>
                 <TR>
                   <TD width="20%" align="center">com</TD>
-                  <TD>RS232CのCOM:ポートに接続します。Server Addressにポートや接続条件を設定します。[COM]ボタンで詳細設定できます</TD>
+                  <TD>RS232CのCOM:ポートに接続します。</TD>
                 </TR>
                 <TR>
                   <TD width="20%" align="center">pipe</TD>
@@ -1912,12 +1934,211 @@ TD {
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top" align="left"><IMG src="image008.jpg" width="611" height="511" border="0"></TD>
+            <TD valign="top" align="left"><BR>
+            </TD>
           </TR>
           <TR>
             <TD valign="top" colspan="2" height="10">
             <HR>
-            <P><A name="ENVSET"></A><B>3.1.1 環境変数の設定</B></P>
+            <P><A name="COMSET"></A><B>3.1.1 COMの通信設定</B></P>
+            <HR>
+            </TD>
+          </TR>
+          <TR>
+            <TD valign="top" width="600">
+            <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
+              <TBODY>
+                <TR>
+                  <TD colspan="3">ポートの設定</TD>
+                </TR>
+                <TR>
+                  <TD align="center">COM…</TD>
+                  <TD colspan="2">接続に使用するCOMポートを変更することが出来ます</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">ビット/秒</TD>
+                  <TD>110-921600</TD>
+                  <TD>通信速度、baudrate/bpsで表現されます</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">データ ビット</TD>
+                  <TD>5/6/7/8</TD>
+                  <TD>8bit未満の場合は、文字としてビットが欠落しますので注意が必要です（EUC/SJIS/UTF8が使用できません）</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">パリティ</TD>
+                  <TD>NOP/EVEN/ODD<BR>
+                  MARK/SPC</TD>
+                  <TD>MARKは、常に1。SPACEは、常に0になります。<BR>
+                  パリティが一致しない場合は、通信履歴にパリティエラーとして記録されます</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">ストップ ビット</TD>
+                  <TD>1/1.5/2</TD>
+                  <TD>スタート(1)+データ+パリティ+ストップでシリアルデータを構成します。これらの長さが一致しないとフレーミングエラーとして記録されます。<BR>
+                  細かな動作的には、1から2に変更すると1ビットの送信遅延と同じになります。<BR>
+                  例：1bit=1000ms/300bps=3ms</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">フロー制御</TD>
+                  <TD>NOC/CTS/XON<BR>
+                  USER=n</TD>
+                  <TD>通常使用するフロー制御の設定<BR>
+                  <TABLE cellpadding="2">
+                    <TBODY>
+                      <TR>
+                        <TD>NONE</TD>
+                        <TD>フロー制御を行いません</TD>
+                      </TR>
+                      <TR>
+                        <TD>CTS/RTS</TD>
+                        <TD>CTS入力で接続先のフロー制御<BR>
+                        RTS出力で受信のフロー制御</TD>
+                      </TR>
+                      <TR>
+                        <TD>XON/XOFF</TD>
+                        <TD>XON/XOFF文字でフロー制御</TD>
+                      </TR>
+                      <TR>
+                        <TD>USER</TD>
+                        <TD>フロー制御ボタンで詳細を変更し上記の設定と異なる場合</TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  </TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">文字の送信遅延</TD>
+                  <TD>WC=n</TD>
+                  <TD>１文字単位で指定ミリ秒遅延してから次を送信します。実際の動作としては、送信が完了するタイミングをプログラム上で特定することは、出来ません。送信バッファに入れた時間から<B>推定した時間の遅延</B>になります。これは、9600bps以下の通信速度で影響されることになります。<BR>
+                  例：1000msec*(1+8+1)/300bps=33ms</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">改行の送信遅延</TD>
+                  <TD>WL=n</TD>
+                  <TD>改行文字(<A href="#SCREENOPT">スクリーンのオプション設定</A>の送信する改行コードの設定)の場合は、このミリ秒を使用します</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">既定値</TD>
+                  <TD colspan="2">デバイスのプロパティで設定された既定値にすべての設定を戻します</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+            <TD valign="top"><IMG src="image055.jpg" width="364" height="361" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">
+            <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
+              <TBODY>
+                <TR>
+                  <TD colspan="3">フロー制御の詳細</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">DTR出力</TD>
+                  <TD colspan="2">
+                  <TABLE cellpadding="2">
+                    <TBODY>
+                      <TR>
+                        <TD>ALWAYS OFF</TD>
+                        <TD>常にOFF状態を維持します</TD>
+                      </TR>
+                      <TR>
+                        <TD>ALWAYS ON</TD>
+                        <TD>常にON状態を維持します</TD>
+                      </TR>
+                      <TR>
+                        <TD>FLOW CTRL</TD>
+                        <TD>受信バッファの状態でON/OFFを切り替えて<BR>
+                        オーバーフロー制御を行います</TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  </TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">DSR入力…送信停止</TD>
+                  <TD colspan="2">接続先のフロー制御で使用するように送信の停止を行います</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">DSR入力…受信無視</TD>
+                  <TD colspan="2">接続先の電源OFFやケーブルの取り外しなどで接続が不定の場合の通信エラーで受信したデータを放棄する効果を見込めます。<BR>
+                  また、DSR入力がOFFに変化した時に接続の切断処理を行うので自動で接続を閉じることができます。</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">RTR出力</TD>
+                  <TD colspan="2">
+                  <TABLE cellpadding="2">
+                    <TBODY>
+                      <TR>
+                        <TD>ALWAYS OFF</TD>
+                        <TD>常にOFF状態を維持します</TD>
+                      </TR>
+                      <TR>
+                        <TD>ALWAYS ON</TD>
+                        <TD>常にON状態を維持します</TD>
+                      </TR>
+                      <TR>
+                        <TD>FLOW CTRL</TD>
+                        <TD>受信バッファの状態でON/OFFを切り替えて<BR>
+                        オーバーフロー制御を行います</TD>
+                      </TR>
+                      <TR>
+                        <TD>RECV ON</TD>
+                        <TD>受信バッファにデータがあるとOFF<BR>
+                        受信バッファが空だとONになります</TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  </TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">CTS入力…送信停止</TD>
+                  <TD colspan="2">接続先のフロー制御で使用するように送信の停止を行います</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">XOFF/XONの受信</TD>
+                  <TD colspan="2">接続先のフロー制御で使用するようにXOFFの受信で送信停止。<BR>
+                  XONの受信で送信の再開を行います</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">XOFF/XONの送信</TD>
+                  <TD colspan="2">受信バッファのが上限に達するとXOFFを送信します。<BR>
+                  受信バッファが下限以下になるとXONを送信します</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">XOFF送信後の送信</TD>
+                  <TD colspan="2">XOFFを送信した場合に接続先の負担軽減で送信を停止しまたほうが無難ですが、それを行わずに送信を継続するようにします</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">受信バッファの上限</TD>
+                  <TD>XOFFL=n</TD>
+                  <TD>受信バッファのフロー制御を行う上限値を50-90%で設定します。内部ではバッファサイズに換算しますので端数により設定値が変化する場合があります。</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">受信バッファの下限</TD>
+                  <TD>XONL=n</TD>
+                  <TD>受信バッファのフロー制御を行う下限値を10-50%で設定します。設定値が変化する場合があります。</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">XOFFの文字コード</TD>
+                  <TD>XOFFC=n</TD>
+                  <TD>XOFFの文字コードを10進数で指定します。19=CTRL+S(1/3)</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">XONの文字コード</TD>
+                  <TD>XONC=n</TD>
+                  <TD>XOFFの文字コードを10進数で指定します。17=CTRL+Q(1/1)</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+            <TD valign="top"><IMG src="image056.jpg" width="427" height="480" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top" colspan="2" height="10">
+            <HR>
+            <P><A name="ENVSET"></A><B>3.1.2 環境変数の設定</B></P>
             <HR>
             </TD>
           </TR>
@@ -1986,7 +2207,7 @@ TD {
           <TR>
             <TD valign="top" colspan="2" height="10">
             <HR>
-            <P><A name="CHATSCRIPT"></A><B>3.1.2 チャットスクリプトの設定</B></P>
+            <P><A name="CHATSCRIPT"></A><B>3.1.3 チャットスクリプトの設定</B></P>
             <HR>
             </TD>
           </TR>
@@ -2156,7 +2377,7 @@ fi</PRE>
           <TR>
             <TD valign="top" colspan="2" height="10">
             <HR>
-            <P><A name="PROXYSET"></A><B>3.1.3 プロキシーサーバーの設定</B></P>
+            <P><A name="PROXYSET"></A><B>3.1.4 プロキシーサーバーの設定</B></P>
             <HR>
             </TD>
           </TR>
@@ -5139,7 +5360,84 @@ function TekClock2() {
     <TR>
       <TD>
       <HR noshade size="0">
-      <P><A name="TRACE"></A><B>4.3 トレースウィンドウ</B></P>
+      <P><A name="MONITOR"></A><B>4.3 シリアルモニター</B></P>
+      <HR noshade size="0">
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" width="1250">
+        <TBODY>
+          <TR>
+            <TD width="600" valign="top" align="left">
+            <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
+              <TBODY>
+                <TR>
+                  <TD colspan="2">ポートの設定</TD>
+                </TR>
+                <TR>
+                  <TD width="30%" align="center">ビット/秒 ...</TD>
+                  <TD>各種<A href="#COMSET">通信モードの設定</A>を行います。</TD>
+                </TR>
+                <TR>
+                  <TD align="center">適用</TD>
+                  <TD>通信モードを変更します<BR>
+                  ※接続を閉じた時にその変更を保存するか確認します</TD>
+                </TR>
+                <TR>
+                  <TD colspan="2">ポートの状態</TD>
+                </TR>
+                <TR>
+                  <TD align="center">DCD RxD TxD ...</TD>
+                  <TD>COMポートの各信号線の状態を色で表示します（約１秒間隔）<BR>
+                  緑：入力信号線がON<BR>
+                  赤：出力信号線がON<BR>
+                  灰：出力信号線をフロー制御で使用<BR>
+                  黒：入出力信号線がOFF</TD>
+                </TR>
+                <TR>
+                  <TD align="center">DTR RTS</TD>
+                  <TD>DTRとRTSの出力を変更します<BR>
+                  ※フロー制御で使用している場合は、変更できません</TD>
+                </TR>
+                <TR>
+                  <TD align="center">グラフ</TD>
+                  <TD>横軸：約180秒<BR>
+                  縦軸：送受信データのバイト数（最大はビット/秒から計算)<BR>
+                  緑：受信データ<BR>
+                  赤：送信データ<BR>
+                  <BR>
+                  グラフ上部にその時点での信号線・エラーの変化を表示<BR>
+                  黄：DCD<BR>
+                  紫：DSR<BR>
+                  青：CTS<BR>
+                  白：RI<BR>
+                  赤：通信エラー</TD>
+                </TR>
+                <TR>
+                  <TD colspan="2">通信エラーの履歴</TD>
+                </TR>
+                <TR>
+                  <TD align="center">…</TD>
+                  <TD>各種通信エラーがあった場合に記録されます</TD>
+                </TR>
+                <TR>
+                  <TD align="center">エラーをクリア</TD>
+                  <TD>すべてのエラー履歴をクリアします</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+            <TD valign="top" align="left"><IMG src="image054.jpg" width="433" height="436" border="0"></TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR noshade size="0">
+      <P><A name="TRACE"></A><B>4.4 トレースウィンドウ</B></P>
       <HR noshade size="0">
       </TD>
     </TR>
@@ -5191,7 +5489,7 @@ function TekClock2() {
     <TR>
       <TD>
       <HR noshade size="0">
-      <P><A name="TOOLBAR"></A><B>4.4 ツールバーのカスタマイズ</B></P>
+      <P><A name="TOOLBAR"></A><B>4.5 ツールバーのカスタマイズ</B></P>
       <HR noshade size="0">
       </TD>
     </TR>
@@ -5256,7 +5554,7 @@ function TekClock2() {
     <TR>
       <TD>
       <HR noshade size="0">
-      <P><A name="RESOURCE"></A><B>4.5 リソースをファイルに保存</B></P>
+      <P><A name="RESOURCE"></A><B>4.6 リソースをファイルに保存</B></P>
       <HR noshade size="0">
       </TD>
     </TR>
@@ -5313,7 +5611,7 @@ function TekClock2() {
     <TR>
       <TD>
       <HR noshade size="0">
-      <P><A name="SFTPWIND"></A><B>4.6 SFTPによるファイル転送</B></P>
+      <P><A name="SFTPWIND"></A><B>4.7 SFTPによるファイル転送</B></P>
       <HR noshade size="0">
       </TD>
     </TR>

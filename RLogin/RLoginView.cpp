@@ -25,6 +25,149 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
+#ifdef	USE_OLE
+/////////////////////////////////////////////////////////////////////////////
+// CViewDropTarget
+
+CViewDropTarget::CViewDropTarget()
+{
+}
+CViewDropTarget::~CViewDropTarget()
+{
+}
+DROPEFFECT CViewDropTarget::OnDragEnter(CWnd* pWnd, COleDataObject* pDataObject, DWORD dwKeyState, CPoint point)
+{
+	return OnDragOver(pWnd, pDataObject, dwKeyState, point);
+}
+DROPEFFECT CViewDropTarget::OnDragOver(CWnd* pWnd, COleDataObject* pDataObject, DWORD dwKeyState, CPoint point)
+{
+	if ( pDataObject->IsDataAvailable(CF_HDROP) || pDataObject->IsDataAvailable(CF_FILEDESCRIPTOR) )
+		return DROPEFFECT_COPY;
+
+	return DROPEFFECT_NONE;
+}
+BOOL CViewDropTarget::OnDrop(CWnd* pWnd, COleDataObject* pDataObject, DROPEFFECT dropEffect, CPoint point)
+{
+	HGLOBAL hData = NULL;
+
+	if ( pDataObject->IsDataAvailable(CF_HDROP) ) {
+		if ( (hData = pDataObject->GetGlobalData(CF_HDROP)) == NULL )
+			return FALSE;
+
+		pWnd->SendMessage(WM_DROPFILES, (WPARAM)hData);
+		return TRUE;
+
+	} else if ( pDataObject->IsDataAvailable(CF_FILEDESCRIPTOR) ) {
+		if ( (hData = pDataObject->GetGlobalData(CF_FILEDESCRIPTOR)) == NULL )
+			return FALSE;
+
+		return DescToDrop(pWnd, pDataObject, hData);
+	}
+
+	return FALSE;
+}
+BOOL CViewDropTarget::DescToDrop(CWnd* pWnd, COleDataObject* pDataObject, HGLOBAL hDescInfo)
+{
+	int n, i;
+	FILEGROUPDESCRIPTOR *pGroupDesc;
+	FORMATETC FormatEtc;
+	CString TempPath;
+	LPCTSTR TempDir;
+	CFile *pFile, TempFile;
+	BYTE buff[4096];
+	int dropCount = 0;
+	DROPFILES drop;
+	HDROP hDrop;
+	CSharedFile sf(GMEM_MOVEABLE | GMEM_ZEROINIT);
+	int doSub = 0;
+
+	if ( (pGroupDesc = (FILEGROUPDESCRIPTOR *)::GlobalLock(hDescInfo)) == NULL )
+		return FALSE;
+
+	TempDir = ((CRLoginApp *)::AfxGetApp())->GetTempDir(TRUE);
+
+	ZeroMemory(&FormatEtc, sizeof(FormatEtc));
+	FormatEtc.cfFormat = CF_FILECONTENTS;
+	FormatEtc.dwAspect = DVASPECT_CONTENT;
+	FormatEtc.tymed = TYMED_FILE;
+
+	ZeroMemory(&drop, sizeof(drop));
+	drop.pFiles = sizeof(DROPFILES);
+	drop.pt.x   = 0;
+	drop.pt.y   = 0;
+	drop.fNC    = FALSE;
+
+#ifdef	_UNICODE
+	drop.fWide  = TRUE;
+#else
+	drop.fWide  = FALSE;
+#endif
+
+	sf.Write(&drop, sizeof(DROPFILES));
+
+	for ( n = 0 ; n < (int)pGroupDesc->cItems ; n++ ) {
+		if ( (pGroupDesc->fgd[n].dwFlags & FD_ATTRIBUTES) != 0 && (pGroupDesc->fgd[n].dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0 ) {
+
+			if ( doSub == 0 )
+				doSub = (AfxMessageBox(IDS_DROPSUBDIRCHECK, MB_ICONQUESTION | MB_YESNO) == IDYES ? 2 : 1);
+
+			if ( doSub == 1 )
+				continue;
+
+			TempPath.Format(_T("%s%s"), TempDir, pGroupDesc->fgd[n].cFileName);
+			if ( !CreateDirectory(TempPath, NULL) ) {
+				ThreadMessageBox(_T("GetFileData Error %s"), pGroupDesc->fgd[n].cFileName);
+				break;
+			}
+
+		} else {
+			if ( doSub != 2 && _tcschr(pGroupDesc->fgd[n].cFileName, _T('\\')) != NULL )
+				continue;
+
+			FormatEtc.lindex = n;
+			if ( (pFile = pDataObject->GetFileData(CF_FILECONTENTS, &FormatEtc)) == NULL ) {
+				ThreadMessageBox(_T("GetFileData Error %s"), pGroupDesc->fgd[n].cFileName);
+				break;
+			}
+
+			TempPath.Format(_T("%s%s"), TempDir, pGroupDesc->fgd[n].cFileName);
+			if ( !TempFile.Open(TempPath, CFile::modeCreate | CFile::modeWrite, NULL) ) {
+				ThreadMessageBox(_T("OpenFile Error %s"), TempPath);
+				break;
+			}
+
+			try {
+				while ( (i = pFile->Read(buff, 4096)) > 0 )
+					TempFile.Write(buff, i);
+				TempFile.Close();
+
+				// Release GetFileData Object
+				pFile->Close();
+				delete pFile;
+			} catch(...) {
+				ThreadMessageBox(_T("CopyFile Error %s"), TempPath);
+				break;
+			}
+
+			dropCount++;
+			sf.Write((LPCTSTR)TempPath, (TempPath.GetLength() + 1) * sizeof(TCHAR));
+		}
+	}
+
+	::GlobalUnlock(hDescInfo);
+
+	if ( dropCount > 0 ) {
+		sf.Write(_T("\0"), sizeof(TCHAR));
+		hDrop = (HDROP)sf.Detach();
+		pWnd->SendMessage(WM_DROPFILES, (WPARAM)hDrop);
+		::GlobalFree(hDrop);
+	}
+
+	return TRUE;
+}
+
+#endif	// USE_OLE
+
 /////////////////////////////////////////////////////////////////////////////
 // CRLoginView
 
@@ -1278,7 +1421,11 @@ int CRLoginView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	if (CView::OnCreate(lpCreateStruct) == -1)
 		return -1;
 
+#ifdef	USE_OLE
+	m_DropTarget.Register(this);
+#else
 	DragAcceptFiles();
+#endif
 
 	m_ToolTip.Create(this, TTS_ALWAYSTIP | TTS_BALLOON);
 	m_ToolTip.SetMaxTipWidth(512);
@@ -3493,57 +3640,80 @@ BOOL CRLoginView::PreTranslateMessage(MSG* pMsg)
 	return CView::PreTranslateMessage(pMsg);
 }
 
+BOOL CRLoginView::SetDropFile(LPCTSTR FileName, BOOL &doCmd, BOOL &doSub)
+{
+	CFileStatus st;
+	CRLoginDoc *pDoc = GetDocument();
+
+	if ( !CFile::GetStatus(FileName, st) || (st.m_attribute & CFile::directory) != 0 ) {
+		CString str;
+		BOOL DoLoop;
+	    CFileFind Finder;
+
+		if ( !doSub && MessageBox(CStringLoad(IDS_DROPSUBDIRCHECK), _T("Question"), MB_ICONQUESTION | MB_YESNO) != IDYES )
+			return FALSE;
+
+		doSub = TRUE;
+		str.Format(_T("%s\\*.*"), FileName);
+		DoLoop = Finder.FindFile(str);
+		while ( DoLoop != FALSE ) {
+			DoLoop = Finder.FindNextFile();
+			if ( Finder.IsDots() )
+				continue;
+			if ( !SetDropFile(Finder.GetFilePath(), doCmd, doSub) )
+				return FALSE;
+		}
+		Finder.Close();
+
+		return TRUE;
+	}
+
+	if ( pDoc->m_TextRam.m_DropFileMode == 1 ) {
+		if ( pDoc->m_pBPlus == NULL )
+			pDoc->m_pBPlus = new CBPlus(pDoc, AfxGetMainWnd());
+		if ( pDoc->m_pBPlus->m_ResvPath.IsEmpty() && !pDoc->m_pBPlus->m_ThreadFlag )
+			doCmd = TRUE;
+		pDoc->m_pBPlus->m_ResvPath.AddTail(FileName);
+	} else if ( pDoc->m_TextRam.m_DropFileMode == 5 ) {
+		if ( pDoc->m_pSock != NULL && pDoc->m_pSock->m_Type == ESCT_SSH_MAIN && ((Cssh *)(pDoc->m_pSock))->m_SSHVer == 2 )
+			((Cssh *)(pDoc->m_pSock))->OpenRcpUpload(FileName);
+	} else if ( pDoc->m_TextRam.m_DropFileMode == 6 || pDoc->m_TextRam.m_DropFileMode == 7 ) {
+		if ( pDoc->m_pKermit == NULL )
+			pDoc->m_pKermit = new CKermit(pDoc, AfxGetMainWnd());
+		if ( pDoc->m_pKermit->m_ResvPath.IsEmpty() && !pDoc->m_pKermit->m_ThreadFlag )
+			doCmd = TRUE;
+		pDoc->m_pKermit->m_ResvPath.AddTail(FileName);
+	} else if ( pDoc->m_TextRam.m_DropFileMode >= 2 ) {
+		if ( pDoc->m_pZModem == NULL )
+			pDoc->m_pZModem = new CZModem(pDoc, AfxGetMainWnd());
+		if ( pDoc->m_pZModem->m_ResvPath.IsEmpty() && !pDoc->m_pZModem->m_ThreadFlag )
+			doCmd = TRUE;
+		pDoc->m_pZModem->m_ResvPath.AddTail(FileName);
+	}
+
+	return TRUE;
+}
 void CRLoginView::OnDropFiles(HDROP hDropInfo)
 {
     int i;
-	TCHAR FileName[512];
-    int NameSize = sizeof(FileName);
-    int FileNumber;
+	TCHAR FileName[MAX_PATH * 2];
+    int FileCount;
 	CRLoginDoc *pDoc = GetDocument();
-	CFileStatus st;
 	BOOL doCmd = FALSE;
+	BOOL doSub = FALSE;
 
-	if ( pDoc->m_TextRam.m_DropFileMode == 0 ) { // || pDoc->m_TextRam.m_DropFileCmd[pDoc->m_TextRam.m_DropFileMode].IsEmpty() ) {
-		CView::OnDropFiles(hDropInfo);
+	if ( pDoc->m_TextRam.m_DropFileMode == 0 )
 		return;
-	}
 
-    FileNumber = DragQueryFile(hDropInfo, 0xffffffff, FileName, NameSize);
+    FileCount = DragQueryFile(hDropInfo, 0xffffffff, FileName, sizeof(FileName));
 
-	for( i = 0 ; i < FileNumber ; i++ ) {
-		DragQueryFile(hDropInfo, i, FileName, NameSize);
-
-		if ( !CFile::GetStatus(FileName, st) || (st.m_attribute & CFile::directory) != 0 )
-			continue;
-
-		if ( pDoc->m_TextRam.m_DropFileMode == 1 ) {
-			if ( pDoc->m_pBPlus == NULL )
-				pDoc->m_pBPlus = new CBPlus(pDoc, AfxGetMainWnd());
-			if ( pDoc->m_pBPlus->m_ResvPath.IsEmpty() && !pDoc->m_pBPlus->m_ThreadFlag )
-				doCmd = TRUE;
-			pDoc->m_pBPlus->m_ResvPath.AddTail(FileName);
-		} else if ( pDoc->m_TextRam.m_DropFileMode == 5 ) {
-			if ( pDoc->m_pSock != NULL && pDoc->m_pSock->m_Type == ESCT_SSH_MAIN && ((Cssh *)(pDoc->m_pSock))->m_SSHVer == 2 )
-				((Cssh *)(pDoc->m_pSock))->OpenRcpUpload(FileName);
-		} else if ( pDoc->m_TextRam.m_DropFileMode == 6 || pDoc->m_TextRam.m_DropFileMode == 7 ) {
-			if ( pDoc->m_pKermit == NULL )
-				pDoc->m_pKermit = new CKermit(pDoc, AfxGetMainWnd());
-			if ( pDoc->m_pKermit->m_ResvPath.IsEmpty() && !pDoc->m_pKermit->m_ThreadFlag )
-				doCmd = TRUE;
-			pDoc->m_pKermit->m_ResvPath.AddTail(FileName);
-		} else if ( pDoc->m_TextRam.m_DropFileMode >= 2 ) {
-			if ( pDoc->m_pZModem == NULL )
-				pDoc->m_pZModem = new CZModem(pDoc, AfxGetMainWnd());
-			if ( pDoc->m_pZModem->m_ResvPath.IsEmpty() && !pDoc->m_pZModem->m_ThreadFlag )
-				doCmd = TRUE;
-			pDoc->m_pZModem->m_ResvPath.AddTail(FileName);
-		}
+	for( i = 0 ; i < FileCount ; i++ ) {
+		DragQueryFile(hDropInfo, i, FileName, sizeof(FileName));
+		SetDropFile(FileName, doCmd, doSub);
 	}
 
 	if ( doCmd )
 		pDoc->DoDropFile();
-
-	CView::OnDropFiles(hDropInfo);
 }
 
 BOOL CRLoginView::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)

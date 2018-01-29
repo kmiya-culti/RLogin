@@ -34,6 +34,21 @@
 
 #define	DELAYINVALMINCLOCK	30		// 最小タイマ値 msec
 
+#ifdef	USE_OLE
+class CViewDropTarget : public COleDropTarget
+{
+public:
+	CViewDropTarget();
+	~CViewDropTarget();
+
+	virtual DROPEFFECT OnDragEnter(CWnd* pWnd, COleDataObject* pDataObject, DWORD dwKeyState, CPoint point);
+	virtual DROPEFFECT OnDragOver(CWnd* pWnd, COleDataObject* pDataObject, DWORD dwKeyState, CPoint point);
+	virtual BOOL OnDrop(CWnd* pWnd, COleDataObject* pDataObject, DROPEFFECT dropEffect, CPoint point);
+
+	BOOL DescToDrop(CWnd* pWnd, COleDataObject* pDataObject, HGLOBAL hDescInfo);
+};
+#endif	// USE_OLE
+
 class CRLoginView : public CView
 {
 	DECLARE_DYNCREATE(CRLoginView)
@@ -140,6 +155,10 @@ public:
 	BOOL RenderDraw(RECT rect);
 #endif
 
+#ifdef	USE_OLE
+	CViewDropTarget m_DropTarget;
+#endif
+
 	int m_CellCols;
 	int m_CellLines;
 	BYTE *m_pCellSize;
@@ -212,6 +231,7 @@ public:
 	BOOL SendPasteText(LPCWSTR wstr);
 
 	void KillScrollTimer();
+	BOOL SetDropFile(LPCTSTR FileName, BOOL &doCmd, BOOL &doSub);
 
 	inline int CalcGrapX(int x)	{ CRLoginDoc *pDoc = GetDocument(); return (m_Width  * x / m_Cols  + pDoc->m_TextRam.m_ScrnOffset.left); }
 	inline int CalcGrapY(int y) { CRLoginDoc *pDoc = GetDocument(); return (m_Height * y / m_Lines + pDoc->m_TextRam.m_ScrnOffset.top + m_TopOffset); }
