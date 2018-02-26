@@ -323,7 +323,14 @@
 #define	RESET_MODKEY	0x010000
 #define	RESET_XTOPT		0x020000
 #define	RESET_CARET		0x040000
-#define	RESET_ALL		0x0FFFFF
+#define	RESET_STATUS	0x080000
+#define	RESET_TRANSMIT	0x100000
+
+						// WithOut RESET_CLS RESET_HISTORY RESET_SIZE RESET_STATUS RESET_TRANSMIT
+#define	RESET_ALL		(RESET_CURSOR | RESET_TABS | RESET_BANK | RESET_ATTR | RESET_COLOR | \
+						 RESET_TEK | RESET_SAVE | RESET_MOUSE | RESET_CHAR | RESET_OPTION | \
+						 RESET_PAGE | RESET_MARGIN | RESET_IDS | RESET_MODKEY | RESET_XTOPT | \
+						 RESET_CARET | RESET_STATUS)
 
 #define	RC_DCS			0
 #define	RC_SOS			1
@@ -425,6 +432,21 @@
 #define	OSCCLIP_LF				0
 #define	OSCCLIP_CR				1
 #define	OSCCLIP_CRLF			2
+
+#define	MEDIACOPY_NONE			0
+#define	MEDIACOPY_RELAY			1
+#define	MEDIACOPY_THROUGH		2
+
+#define	STSMODE_HIDE			0
+#define	STSMODE_INDICATOR		1
+#define	STSMODE_INSCREEN		2
+#define	STSMODE_DISABLE			3
+#define	STSMODE_ENABLE			4
+#define	STSMODE_MASK			3
+
+#define	SAVEMODE_PARAM			0
+#define	SAVEMODE_VRAM			1
+#define	SAVEMODE_ALL			2
 
 #define UNIBLOCKTABMAX			262
 
@@ -772,6 +794,35 @@ public:
 	~CTraceNode();
 };
 
+typedef struct _SAVEPARAM {
+	EXTVRAM m_AttNow;
+	EXTVRAM m_AttSpc;
+
+	int m_CurX;
+	int m_CurY;
+	int m_TopY;
+	int m_BtmY;
+	int m_LeftX;
+	int m_RightX;
+
+	BOOL m_DoWarp;
+	BOOL m_Exact;
+	DWORD m_LastChar;
+	int m_LastFlag;
+	int m_LastPos;
+	BOOL m_bRtoL;
+
+	int m_BankGL;
+	int m_BankGR;
+	int m_BankSG;
+	WORD m_BankTab[5][4];
+
+	BOOL m_Decom;
+	DWORD m_AnsiOpt[16];
+
+	BYTE m_TabMap[LINE_MAX + 1][COLS_MAX / 8 + 1];
+} SAVEPARAM;
+
 class CTextSave : public CObject
 {
 public:
@@ -793,11 +844,12 @@ public:
 	int m_LeftX;
 	int m_RightX;
 
-	int m_DoWarp;
+	BOOL m_DoWarp;
 	BOOL m_Exact;
 	DWORD m_LastChar;
 	int m_LastFlag;
 	int m_LastPos;
+	BOOL m_bRtoL;
 
 	DWORD m_AnsiOpt[16];
 
@@ -807,22 +859,11 @@ public:
 	WORD m_BankTab[5][4];
 
 	BYTE m_TabMap[LINE_MAX + 1][COLS_MAX / 8 + 1];
+	SAVEPARAM m_SaveParam;
 
-	EXTVRAM m_Save_AttNow;
-	EXTVRAM m_Save_AttSpc;
-
-	int m_Save_CurX;
-	int m_Save_CurY;
-
-	BOOL m_Save_DoWarp;
-	BOOL m_Save_Decom;
-	DWORD m_Save_AnsiOpt[16];
-
-	int m_Save_BankGL;
-	int m_Save_BankGR;
-	int m_Save_BankSG;
-	WORD m_Save_BankTab[5][4];
-	BYTE m_Save_TabMap[LINE_MAX + 1][COLS_MAX / 8 + 1];
+	int m_StsMode;
+	int m_StsLine;
+	SAVEPARAM m_StsParam;
 
 	int m_XtMosPointMode;
 	DWORD m_XtOptFlag;
@@ -890,6 +931,8 @@ public:	// Options
 	CString m_TitleName;
 	COLORREF m_DefCaretColor;
 	int m_RtfMode;
+	int m_RecvCrLf;
+	int m_SendCrLf;
 
 	void Init();
 	void SetIndex(int mode, CStringIndex &index);
@@ -955,23 +998,21 @@ public:
 	COLORREF m_CaretColor;
 
 	BOOL m_DoWarp;
-	int m_Status;
-	int m_RecvCrLf;
-	int m_SendCrLf;
-
-	DWORD m_BackChar;
-	int m_BackMode;
+	BOOL m_Exact;
 	DWORD m_LastChar;
 	int m_LastFlag;
 	int m_LastPos;
 	BOOL m_bRtoL;
+
+	DWORD m_BackChar;
+	int m_BackMode;
+	int m_Status;
 
 	CParaIndex m_AnsiPara;
 	int m_OscMode;
 	CBuffer m_OscPara;
 	BYTE m_TabMap[LINE_MAX + 1][COLS_MAX / 8 + 1];
 	BOOL m_RetSync;
-	BOOL m_Exact;
 	CString m_StrPara;
 	DWORD m_MacroExecFlag[MACROMAX / 32];
 	CBuffer m_Macro[MACROMAX];
@@ -982,10 +1023,12 @@ public:
 	int m_TermId;
 	int m_KeybId;
 
-	BOOL m_StsFlag;
 	int m_StsMode;
+	int m_StsLine;
+	CStringW m_StsText;
+	SAVEPARAM m_StsParam;
+
 	int m_StsLed;
-	CStringW m_StsPara;
 	int m_LangMenu;
 	LPCTSTR m_RetChar[7];
 	int m_ImageIndex;
@@ -994,24 +1037,18 @@ public:
 	CString m_SeqMsg;
 	BOOL m_bIntTimer;
 	int m_IntCounter;
+	int m_MediaCopyMode;
 
 	WORD m_BankTab[5][4];
 	int m_BankNow;
 	int m_BankSG;
 	int m_CodeLen;
 
-	EXTVRAM m_Save_AttNow;
-	EXTVRAM m_Save_AttSpc;
-	int m_Save_CurX;
-	int m_Save_CurY;
-	DWORD m_Save_AnsiOpt[16];
-	int m_Save_BankGL;
-	int m_Save_BankGR;
-	int m_Save_BankSG;
-	BOOL m_Save_DoWarp;
-	BOOL m_Save_Decom;
-	WORD m_Save_BankTab[5][4];
-	BYTE m_Save_TabMap[LINE_MAX + 1][COLS_MAX / 8 + 1];
+	SAVEPARAM m_SaveParam;
+
+	void SaveParam(SAVEPARAM *pSave);
+	void LoadParam(SAVEPARAM *pSave, BOOL bAll);
+	void SwapParam(SAVEPARAM *pSave, BOOL bAll);
 
 	int m_Page;
 	CPtrArray m_PageTab;
@@ -1119,9 +1156,12 @@ public:
 	void EditMark(int sps, int eps, BOOL rectflag = FALSE, BOOL lineflag = FALSE);
 	void GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf);
 	void GetLine(int sy, CString &str);
+	void MediaCopyStr(LPCTSTR str);
+	void MediaCopyDchar(DWORD ch);
+	void MediaCopy(int y1, int y2);
 	BOOL IsEmptyLine(int sy);
 	void GetCellSize(int *x, int *y);
-	void GetScreenSize(int *x, int *y);
+	void GetScreenSize(int *pCx, int *pCy, int *pSx, int *pSy);
 
 	void DrawBitmap(CDC *pDestDC, CRect &rect, CDC *pSrcDC, int width, int height, DWORD dwRop);
 	void DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, struct DrawWork &prop, class CRLoginView *pView);
@@ -1147,8 +1187,9 @@ public:
 
 	inline int GetCalcPos(int x, int y) { return (m_ColsMax * (y + m_HisPos + m_HisMax) + x); }
 	inline void SetCalcPos(int pos, int *x, int *y) { *x = pos % m_ColsMax; *y = (pos / m_ColsMax - m_HisPos - m_HisMax); }
-	inline int GetDm(int y) { CCharCell *vp = GETVRAM(0, y); return vp->m_Vram.zoom; }
-	inline void SetDm(int y, int dm) { CCharCell *vp = GETVRAM(0, y); vp->m_Vram.zoom = dm; }
+	inline int GetDm(int y) { return GETVRAM(0, y)->m_Vram.zoom; }
+	inline void SetDm(int y, int dm) { GETVRAM(0, y)->m_Vram.zoom = dm; }
+	inline void SetRet(int y) { GETVRAM(0, y)->m_Vram.attr |= ATT_RETURN; }
 
 	inline COLORREF GetCharColor(EXTVRAM &evram) { return ((evram.eatt & EATT_FRGBCOL) != 0 ? evram.frgb : m_ColTab[evram.std.fcol]); }
 	inline COLORREF GetBackColor(EXTVRAM &evram) { return ((evram.eatt & EATT_BRGBCOL) != 0 ? evram.brgb : m_ColTab[evram.std.bcol]); }
@@ -1157,12 +1198,13 @@ public:
 	inline int GetRightMargin() { return (IsOptEnable(TO_DECLRMM) ? m_RightX : m_Cols); }
 	inline int GetTopMargin() { return m_TopY; }
 	inline int GetBottomMargin() { return m_BtmY; }
+	inline int GetLineSize() { return (m_Lines - m_StsLine); }
 
 	BOOL GetMargin(int bCheck = MARCHK_NONE);
 
 	void OnClose();
 	void CallReceiveLine(int y);
-	void CallReceiveChar(DWORD ch, LPCTSTR name = NULL);
+	BOOL CallReceiveChar(DWORD ch, LPCTSTR name = NULL);
 	int UnicodeCharFlag(DWORD code);
 	int UnicodeWidth(DWORD code);
 	void SetRetChar(BOOL f8);
@@ -1186,7 +1228,7 @@ public:
 	static void IncDscs(int &Pcss, CString &str);
 
 	// Low Level
-	void RESET(int mode = RESET_PAGE | RESET_CURSOR | RESET_CARET | RESET_MARGIN | RESET_TABS | RESET_BANK | RESET_ATTR | RESET_COLOR | RESET_TEK | RESET_SAVE | RESET_MOUSE | RESET_CHAR | RESET_OPTION | RESET_XTOPT | RESET_MODKEY);
+	void RESET(int mode);
 	CCharCell *GETVRAM(int cols, int lines);
 	void UNGETSTR(LPCTSTR str, ...);
 	void BEEP();
@@ -1203,6 +1245,7 @@ public:
 	void SetAnsiParaArea(int top);
 	LPCTSTR GetHexPara(LPCTSTR str, CBuffer &buf);
 	void AddOscClipCrLf(CString &text);
+	void SetStatusMode(int fMode, int nLine = 1);
 
 	void LOCATE(int x, int y);
 	void ERABOX(int sx, int sy, int ex, int ey, int df = 0);
@@ -1221,7 +1264,7 @@ public:
 	void PUTADD(int x, int y, DWORD ch, int cf);
 	void INSMDCK(int len);
 	void ANSIOPT(int opt, int bit);
-	CTextSave *GETSAVERAM(BOOL bAll);
+	CTextSave *GETSAVERAM(int fMode);
 	void SETSAVERAM(CTextSave *pSave);
 	void SAVERAM();
 	void LOADRAM();
@@ -1603,6 +1646,7 @@ public:
 	void fc_DECDMAC(DWORD ch);
 	void fc_DECSTUI(DWORD ch);
 	void fc_XTRQCAP(DWORD ch);
+	void fc_RLMML(DWORD ch);
 	void fc_OSCEXE(DWORD ch);
 	void fc_OSCNULL(DWORD ch);
 

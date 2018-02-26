@@ -879,7 +879,6 @@ CMainFrame::CMainFrame()
 	m_TransParValue = 255;
 	m_TransParColor = RGB(0, 0, 0);
 	m_SleepCount = 60;
-	m_hMidiOut = NULL;
 	m_MidiTimer = 0;
 	m_InfoThreadCount = 0;
 	m_SplitType = PANEFRAME_WSPLIT;
@@ -900,6 +899,7 @@ CMainFrame::CMainFrame()
 	m_IdleTimer = 0;
 	m_bPostIdleMsg = FALSE;
 	m_LastClipUpdate = clock();
+	m_pMidiData = NULL;
 }
 
 CMainFrame::~CMainFrame()
@@ -918,15 +918,13 @@ CMainFrame::~CMainFrame()
 
 	if ( m_MidiTimer != 0 )
 		KillTimer(m_MidiTimer);
-
+	
 	CMidiQue *mp;
 	while ( !m_MidiQue.IsEmpty() && (mp = m_MidiQue.RemoveHead()) != NULL )
 		delete mp;
 
-	if ( m_hMidiOut != NULL ) {
-		midiOutReset(m_hMidiOut);
-		midiOutClose(m_hMidiOut);
-	}
+	if ( m_pMidiData != NULL )
+		delete m_pMidiData;
 
 	CMenuBitMap *pMap;
 	for ( int n = 0 ; n < m_MenuMap.GetSize() ; n++ ) {
@@ -1495,15 +1493,41 @@ void CMainFrame::FreeTimerEvent(CTimerObject *pObject)
 	pObject->m_pList   = m_pTimerFreeId;
 	m_pTimerFreeId     = pObject;
 }
+
+void CMainFrame::SetMidiData(int nInit, int nPlay, LPCSTR mml)
+{
+	if ( m_pMidiData == NULL )
+		m_pMidiData = new CMidiData;
+
+	if ( m_pMidiData->m_hStream == NULL )
+		return;
+
+	m_pMidiData->LoadMML(mml, nInit);
+
+	switch(nPlay) {
+	case 0:
+		m_pMidiData->Play();
+		break;
+	case 1:
+		m_pMidiData->Stop();
+		break;
+	case 2:
+		m_pMidiData->Pause();
+		break;
+	}
+}
 void CMainFrame::SetMidiEvent(int msec, DWORD msg)
 {
 	CMidiQue *qp;
 
-	if ( m_hMidiOut == NULL && midiOutOpen(&m_hMidiOut, MIDIMAPPER, NULL, 0, CALLBACK_NULL) != MMSYSERR_NOERROR )
+	if ( m_pMidiData == NULL )
+		m_pMidiData = new CMidiData;
+
+	if ( m_pMidiData->m_hStream == NULL )
 		return;
 
 	if ( m_MidiQue.IsEmpty() && msec == 0 ) {
-		midiOutShortMsg(m_hMidiOut, msg);
+		midiOutShortMsg((HMIDIOUT)m_pMidiData->m_hStream, msg);
 		return;
 	}
 
@@ -2571,13 +2595,13 @@ void CMainFrame::OnTimer(UINT_PTR nIDEvent)
 		KillTimer(nIDEvent);
 		m_MidiTimer = 0;
 		if ( !m_MidiQue.IsEmpty() && (mp = m_MidiQue.RemoveHead()) != NULL ) {
-			if ( m_hMidiOut != NULL )
-				midiOutShortMsg(m_hMidiOut, mp->m_Msg);
+			if ( m_pMidiData != NULL && m_pMidiData->m_hStream != NULL )
+				midiOutShortMsg((HMIDIOUT)m_pMidiData->m_hStream, mp->m_Msg);
 			delete mp;
 		}
 		while ( !m_MidiQue.IsEmpty() && (mp = m_MidiQue.GetHead()) != NULL && mp->m_mSec == 0 ) {
-			if ( m_hMidiOut != NULL )
-				midiOutShortMsg(m_hMidiOut, mp->m_Msg);
+			if ( m_pMidiData != NULL && m_pMidiData->m_hStream != NULL )
+				midiOutShortMsg((HMIDIOUT)m_pMidiData->m_hStream, mp->m_Msg);
 			m_MidiQue.RemoveHead();
 			delete mp;
 		}

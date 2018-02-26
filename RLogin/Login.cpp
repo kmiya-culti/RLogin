@@ -66,18 +66,17 @@ void CLogin::SendStr(LPCSTR str)
 	CExtSocket::Send(str, (int)strlen(str) + 1);		// With '\0'
 }
 
-void CLogin::SendWindSize(int x, int y)
+void CLogin::SendWindSize()
 {
 	struct	winsize {
 		unsigned short ws_row, ws_col;
 		unsigned short ws_xpixel, ws_ypixel;
 	} *wp;
 	char obuf[4 + sizeof (struct winsize)];
-	int sx = 0;
-	int sy = 0;
+	int cx = 0, cy = 0, sx = 0, sy = 0;
 
 	if ( m_pDocument != NULL )
-		m_pDocument->m_TextRam.GetScreenSize(&sx, &sy);
+		m_pDocument->m_TextRam.GetScreenSize(&cx, &cy, &sx, &sy);
 
 	if ( m_ConnectFlag < 2 )
 		return;
@@ -87,8 +86,8 @@ void CLogin::SendWindSize(int x, int y)
 	obuf[1] = '\377';
 	obuf[2] = 's';
 	obuf[3] = 's';
-	wp->ws_row = htons(y);
-	wp->ws_col = htons(x);
+	wp->ws_row = htons(cy);
+	wp->ws_col = htons(cx);
 	wp->ws_xpixel = htons(sx);
 	wp->ws_ypixel = htons(sy);
 
@@ -116,7 +115,7 @@ void CLogin::OnReceiveCallBack(void *lpBuf, int nBufLen, int nFlags)
 
 	for ( int n = 0 ; n < nBufLen ; n++ ) {
 		if ( pDoc != NULL && (buf[n] & 0x80) != 0 )
-			SendWindSize(pDoc->m_TextRam.m_Cols, pDoc->m_TextRam.m_Lines);
+			SendWindSize();
 		TRACE("Resv OOB %02x\n", buf[n]);
 	}
 	m_ConnectFlag = 3;

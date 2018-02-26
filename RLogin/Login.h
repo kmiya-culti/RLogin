@@ -19,7 +19,7 @@ public:
 	BOOL Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM, void *pAddrInfo = NULL);
 	void OnConnect();
 	void OnReceiveCallBack(void *lpBuf, int nBufLen, int nFlags);
-	void SendWindSize(int x, int y);
+	void SendWindSize();
 
 	CLogin(class CRLoginDoc *pDoc);
 	virtual ~CLogin();

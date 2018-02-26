@@ -655,7 +655,8 @@ public:
 	void OnConnect();
 	void OnReceiveCallBack(void* lpBuf, int nBufLen, int nFlags = 0);
 	int Send(const void* lpBuf, int nBufLen, int nFlags = 0);
-	void SendWindSize(int x, int y);
+	void SendWindSize();
+	void SendBreak(int opt = 0);
 	void OnTimer(UINT_PTR nIDEvent);
 	void OnRecvEmpty();
 	void OnSendEmpty();

@@ -532,6 +532,7 @@ static const CTextRam::CSIEXTTAB fc_DcsExtTab[] = {
 //	{				('$' << 8) | 'w',		&CTextRam::fc_POP		},	// DECLKD Locator key definition
 //	{				('+' << 8) | 'p',		&CTextRam::fc_POP		},	// XTSTCAP Set Termcap/Terminfo Data (xterm, experimental)
 	{				('+' << 8) | 'q',		&CTextRam::fc_XTRQCAP	},	// XTRQCAP Request Termcap/Terminfo String (xterm, experimental)
+	{				('#' << 8) | 'm',		&CTextRam::fc_RLMML		},	// RLMML RLogin Music Macro Language
 	{							   0,		NULL } };
 
 static const CTextRam::PROCTAB fc_TekTab[] = {
@@ -762,7 +763,7 @@ static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
 	{	_T("XTWOP"),	&CTextRam::fc_XTWOP,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
 };
 
-#define	DCSNAMETABMAX	11
+#define	DCSNAMETABMAX	12
 static CTextRam::ESCNAMEPROC fc_DcsNameTab[] = {
 	{	_T("DECDLD"),	&CTextRam::fc_DECDLD,	NULL,	PROCTYPE_DCS,	TRACE_NON	},
 	{	_T("DECDMAC"),	&CTextRam::fc_DECDMAC,	NULL,	PROCTYPE_DCS,	TRACE_NON	},
@@ -774,6 +775,7 @@ static CTextRam::ESCNAMEPROC fc_DcsNameTab[] = {
 	{	_T("DECSTUI"),	&CTextRam::fc_DECSTUI,	NULL,	PROCTYPE_DCS,	TRACE_OUT	},
 	{	_T("DECUDK"),	&CTextRam::fc_DECUDK,	NULL,	PROCTYPE_DCS,	TRACE_NON	},
 	{	_T("NOP"),		&CTextRam::fc_POP,		NULL,	PROCTYPE_DCS,	TRACE_OUT	},
+	{	_T("RLMML"),	&CTextRam::fc_RLMML,	NULL,	PROCTYPE_DCS,	TRACE_NON	},
 	{	_T("XTRQCAP"),	&CTextRam::fc_XTRQCAP,	NULL,	PROCTYPE_DCS,	TRACE_NON	},
 };
 
@@ -1196,7 +1198,7 @@ void CTextRam::fc_TraceLogFlush(ESCNAMEPROC *pProc, BOOL bParam)
 		m_pTraceNow->m_BakCol = m_AttNow.std.bcol;
 
 		if ( m_TraceSaveCount <= 0 ) {
-			m_pTraceNow->m_pSave = GETSAVERAM(TRUE);
+			m_pTraceNow->m_pSave = GETSAVERAM(SAVEMODE_ALL);
 			m_TraceSaveCount = TRACE_SAVE;
 		} else
 			m_TraceSaveCount--;
@@ -1610,11 +1612,8 @@ void CTextRam::fc_POP(DWORD ch)
 void CTextRam::fc_SESC(DWORD ch)
 {
 	fc_KANJI(ch);
-	CallReceiveChar(ch);
 
-	if ( IsOptEnable(TO_RLC1DIS) ) {
-		ch &= 0x7F;
-	} else {
+	if ( !IsOptEnable(TO_RLC1DIS) ) {
 		ch &= 0x1F;
 		ch += '@';
 		fc_Push(STAGE_ESC);
@@ -1889,16 +1888,11 @@ void CTextRam::fc_TEXT(DWORD ch)
 		if ( (ch & 0x7F) < 0x21 || (ch & 0x7F) > 0x7E )
 			break;
 		fc_Push(STAGE_94X94);
-		goto CODELEN;
+		m_CodeLen = 1;
+		break;
 	case SET_96x96:
 		fc_Push(STAGE_96X96);
-	CODELEN:
-		switch(m_BankNow & CODE_MASK) {
-		case 0x00:
-		case 0x10: m_CodeLen = 2 - 1; break;
-		case 0x20: m_CodeLen = 3 - 1; break;
-		case 0x30: m_CodeLen = 4 - 1; break;
-		}
+		m_CodeLen = 1;
 		break;
 	}
 }
@@ -2237,30 +2231,38 @@ void CTextRam::fc_BEL(DWORD ch)
 void CTextRam::fc_BS(DWORD ch)
 {
 	fc_KANJI(ch);
-	CallReceiveChar(ch);
 
 	m_DoWarp = FALSE;
+
+	if ( CallReceiveChar(ch) )
+		return;
 
 	GetMargin(MARCHK_NONE);
 
 	if ( --m_CurX < m_Margin.left ) {
-		if ( IsOptEnable(TO_XTMRVW) != 0 )
+		if ( IsOptEnable(TO_XTMRVW) ) {
 			m_CurX = m_Margin.right - 1;
-		else
+			if ( --m_CurY < m_Margin.top )
+				m_CurY = m_Margin.top;
+		} else
 			m_CurX = m_Margin.left;
 	}
 }
 void CTextRam::fc_HT(DWORD ch)
 {
 	fc_KANJI(ch);
-	CallReceiveChar(ch);
+
+	if ( CallReceiveChar(ch) )
+		return;
 
 	TABSET(TAB_COLSNEXT);
 }
 void CTextRam::fc_LF(DWORD ch)
 {
 	fc_KANJI(ch);
-	CallReceiveChar(ch);
+
+	if ( CallReceiveChar(ch) )
+		return;
 
 	switch(IsOptEnable(TO_ANSILNM) ? 2 : m_RecvCrLf) {
 	case 2:		// LF
@@ -2269,7 +2271,7 @@ void CTextRam::fc_LF(DWORD ch)
 		if ( (m_pDocument->m_bDelayPast || IsOptEnable(TO_RLDELAY)) && m_pDocument->m_DelayFlag == DELAY_WAIT )
 			m_pDocument->OnDelayReceive(ch);
 	case 0:		// CR+LF
-		GETVRAM(0, m_CurY)->m_Vram.attr |= ATT_RETURN;
+		SetRet(m_CurY);
 		ONEINDEX();
 	case 1:		// CR
 		break;
@@ -2278,7 +2280,9 @@ void CTextRam::fc_LF(DWORD ch)
 void CTextRam::fc_VT(DWORD ch)
 {
 	fc_KANJI(ch);
-	CallReceiveChar(ch);
+
+	if ( CallReceiveChar(ch) )
+		return;
 
 	TABSET(TAB_LINENEXT);
 
@@ -2288,7 +2292,9 @@ void CTextRam::fc_VT(DWORD ch)
 void CTextRam::fc_FF(DWORD ch)
 {
 	fc_KANJI(ch);
-	CallReceiveChar(ch);
+
+	if ( CallReceiveChar(ch) )
+		return;
 
 	ONEINDEX();
 
@@ -2298,12 +2304,14 @@ void CTextRam::fc_FF(DWORD ch)
 void CTextRam::fc_CR(DWORD ch)
 {
 	fc_KANJI(ch);
-	CallReceiveChar(ch);
+
+	if ( CallReceiveChar(ch) )
+		return;
 
 	switch(m_RecvCrLf) {
 	case 1:		// CR
 	case 3:		// CR|LF
-		GETVRAM(0, m_CurY)->m_Vram.attr |= ATT_RETURN;
+		SetRet(m_CurY);
 		ONEINDEX();
 	case 0:		// CR+LF
 		LOCATE(GetLeftMargin(), m_CurY);
@@ -2397,35 +2405,13 @@ void CTextRam::fc_BI(DWORD ch)
 void CTextRam::fc_SC(DWORD ch)
 {
 	// ESC 7	DECSC Save Cursor
-	m_Save_CurX   = m_CurX;
-	m_Save_CurY   = m_CurY;
-	m_Save_AttNow = m_AttNow;
-	m_Save_AttSpc = m_AttSpc;
-	m_Save_BankGL = m_BankGL;
-	m_Save_BankGR = m_BankGR;
-	m_Save_BankSG = m_BankSG;
-	m_Save_DoWarp = m_DoWarp;
-	m_Save_Decom  = (IsOptEnable(TO_DECOM) ? TRUE : FALSE);
-	memcpy(m_Save_BankTab, m_BankTab, sizeof(m_BankTab));
-//	memcpy(m_Save_AnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
-	memcpy(m_Save_TabMap, m_TabMap, sizeof(m_TabMap));
+	SaveParam(&m_SaveParam);
 	fc_POP(ch);
 }
 void CTextRam::fc_RC(DWORD ch)
 {
 	// ESC 8	DECRC Restore Cursor
-	m_CurX   = m_Save_CurX;
-	m_CurY   = m_Save_CurY;
-	m_AttNow = m_Save_AttNow;
-	m_AttSpc = m_Save_AttSpc;
-	m_BankGL = m_Save_BankGL;
-	m_BankGR = m_Save_BankGR;
-	m_BankSG = m_Save_BankSG;
-	m_DoWarp = m_Save_DoWarp;
-	SetOption(TO_DECOM, m_Save_Decom);
-	memcpy(m_BankTab, m_Save_BankTab, sizeof(m_BankTab));
-//	memcpy(m_AnsiOpt, m_Save_AnsiOpt, sizeof(m_AnsiOpt));
-	memcpy(m_TabMap, m_Save_TabMap, sizeof(m_TabMap));
+	LoadParam(&m_SaveParam, FALSE);
 	fc_POP(ch);
 }
 void CTextRam::fc_FI(DWORD ch)
@@ -2440,7 +2426,8 @@ void CTextRam::fc_FI(DWORD ch)
 void CTextRam::fc_V5CUP(DWORD ch)
 {
 	// ESC A	VT52 Cursor up.
-	LOCATE(m_CurX, m_CurY - 1);
+	if ( !IsOptEnable(TO_DECANM) )
+		LOCATE(m_CurX, m_CurY - 1);
 	fc_POP(ch);
 }
 void CTextRam::fc_BPH(DWORD ch)
@@ -2600,21 +2587,37 @@ void CTextRam::fc_RIS(DWORD ch)
 {
 	// ESC c													ANSI RIS Reset to initial state
 
+	//	Sets all features listed on set-up screens to their saved settings.
+	//	Causes a communication line disconnect.
+	//	Clears user-defined keys.
+	//	Clears the screen and all off-screen page memory.
+	//	Clears the soft character set.
+	//	Clears page memory. All data stored in page memory is lost.
+	//	Clears the screen.
+	//	Returns the cursor to the upper-left corner of the screen.
+	//	Sets the select graphic rendition (SGR) function to normal rendition.
+	//	Selects the default character sets (ASCII in GL, and DEC Supplemental Graphic in GR).
+	//	Clears all macro definitions.
+	//	Erases the paste buffer.
+
 	RESET(RESET_PAGE | RESET_CURSOR | RESET_MARGIN | RESET_TABS | RESET_BANK | 
-		  RESET_ATTR | RESET_COLOR | RESET_OPTION | RESET_XTOPT | RESET_MODKEY | RESET_SAVE | RESET_MOUSE | RESET_CHAR);
+		  RESET_ATTR | RESET_COLOR | RESET_OPTION | RESET_XTOPT | RESET_MODKEY |
+		  RESET_SAVE | RESET_MOUSE | RESET_CHAR | RESET_CLS);
 
 	fc_POP(ch);
 }
 void CTextRam::fc_LMA(DWORD ch)
 {
-	// ESC l	HP fc_LMA LOCK
-	m_TopY = m_CurY;
+	// ESC l	HP LMA Lock memory above
+	if ( m_StsMode != (STSMODE_ENABLE | STSMODE_INSCREEN) )
+		m_TopY = m_CurY;
 	fc_POP(ch);
 }
 void CTextRam::fc_USR(DWORD ch)
 {
-	// ESC m	HP USR UNLOCK
-	m_TopY = 0;
+	// ESC m	HP USR Unlock scrolling region
+	if ( m_StsMode != (STSMODE_ENABLE | STSMODE_INSCREEN) )
+		m_TopY = 0;
 	fc_POP(ch);
 }
 void CTextRam::fc_V5EX(DWORD ch)
@@ -2625,7 +2628,7 @@ void CTextRam::fc_V5EX(DWORD ch)
 }
 void CTextRam::fc_DECPAM(DWORD ch)
 {
-	// ESC =	DECPAM Application Keypad				VT52 Enter alternate keypad mode.
+	// ESC =	DECPAM Application Keypad					VT52 Enter alternate keypad mode.
 	EnableOption(TO_RLPNAM);
 	EnableOption(TO_DECNKM);
 	fc_POP(ch);
@@ -3720,7 +3723,7 @@ void CTextRam::fc_DECRQSS(DWORD ch)
 
 	} else if ( pFunc == &CTextRam::fc_DECSTBM ) {		// 'r'		DECSTBM
 		para.Add(m_TopY + 1);
-		para.Add(m_BtmY + 1 - 1);
+		para.Add(m_BtmY - m_TopY);
 
 	} else if ( pFunc == &CTextRam::fc_DECSLRM ) {		// 's'		DECSLRM Set left and right margins
 		para.Add(m_LeftX + 1);
@@ -3731,7 +3734,7 @@ void CTextRam::fc_DECRQSS(DWORD ch)
 		para.Add(m_RightX + 1 - 1);
 
 	} else if ( pFunc == &CTextRam::fc_DECSLPP || pFunc == &CTextRam::fc_XTWOP ) {		// 't'		DECSLPP Set lines per physical page
-		para.Add(m_Lines);
+		para.Add(GetLineSize());
 
 	} else if ( pFunc == &CTextRam::fc_DECSCPP ) {		// ('$' << 8) | '|'		DECSCPP
 		para.Add(m_Cols);
@@ -3748,10 +3751,10 @@ void CTextRam::fc_DECRQSS(DWORD ch)
 		para.Add((m_AttNow.std.eram & EM_DECPROTECT) != 0 ? 1 : 0);
 
 	} else if ( pFunc == &CTextRam::fc_DECSASD ) {		// ('$' << 8) | '}'		DECSASD Select active status display
-		para.Add( m_StsFlag ? 1 : 0);
+		para.Add((m_StsMode & STSMODE_ENABLE) != 0 ? 1 : 0);
 
 	} else if ( pFunc == &CTextRam::fc_DECSSDT ) {		// ('$' << 8) | '~'		DECSSDT Select status display type
-		para.Add(m_StsMode);
+		para.Add(m_StsMode & STSMODE_MASK);
 
 	} else if ( pFunc == &CTextRam::fc_DECTID ) {		// (',' << 8) | 'q'		DECTID Select Terminal ID
 		para.Add(m_TermId);
@@ -4088,6 +4091,12 @@ void CTextRam::fc_XTRQCAP(DWORD ch)
 
 	fc_POP(ch);
 }
+void CTextRam::fc_RLMML(DWORD ch)
+{
+	((CMainFrame *)::AfxGetMainWnd())->SetMidiData(GetAnsiPara(0, 0, 0), GetAnsiPara(1, 0, 0), (LPCSTR)m_OscPara);
+
+	fc_POP(ch);
+}
 
 //////////////////////////////////////////////////////////////////////
 // fc OSC
@@ -4284,6 +4293,11 @@ void CTextRam::fc_OSCEXE(DWORD ch)
 		break;
 
 	case 104:	// 104;c -> Reset Color Number c.
+		if ( *p == '\0' ) {
+			RESET(RESET_COLOR);
+			DISPUPDATE();
+			break;
+		}
 		while ( *p != '\0' ) {
 			tmp.Empty();
 			while ( *p != '\0' && *p != ';' )
@@ -5104,21 +5118,37 @@ void CTextRam::fc_RM(DWORD ch)
 void CTextRam::fc_MC(DWORD ch)
 {
 	// CSI i	MC Media copy
+	//		0 initiate transfer to a primary auxiliary device
+	//		1 initiate transfer from a primary auxiliary device
+	//		2 initiate transfer to a secondary auxiliary device
+	//		3 initiate transfer from a secondary auxiliary device
+	//		4 stop relay to a primary auxiliary device
+	//		5 start relay to a primary auxiliary device
+	//		6 stop relay to a secondary auxiliary device
+	//		7 start relay to a secondary auxiliary device
 
 	fc_POP(ch);
 
-	if ( (m_ClipFlag & OSC52_WRITE) == 0 )
-		return;
-
 	switch(GetAnsiPara(0, 0, 0)) {
 	case 0:
+	case 2:
 		if ( IsOptEnable(TO_DECPEX) )
-			EditCopy(GetCalcPos(0, 0), GetCalcPos(m_Cols - 1, m_Lines - 1), FALSE, TRUE);
+			MediaCopy(0, m_Lines - 1);
 		else
-			EditCopy(GetCalcPos(0, m_TopY), GetCalcPos(m_Cols - 1, m_BtmY - 1), FALSE, TRUE);
+			MediaCopy(m_TopY, m_BtmY - 1);
 		break;
 	case 1:
-		EditCopy(GetCalcPos(0, m_CurY), GetCalcPos(m_Cols - 1, m_CurY), FALSE, TRUE);
+	case 3:
+		MediaCopy(m_CurY, m_CurY);
+		break;
+
+	case 4:
+	case 6:
+		m_MediaCopyMode = MEDIACOPY_NONE;
+		break;
+	case 5:
+	case 7:
+		m_MediaCopyMode = MEDIACOPY_RELAY;
 		break;
 	}
 }
@@ -5446,19 +5476,24 @@ void CTextRam::fc_DECLL(DWORD ch)
 }
 void CTextRam::fc_DECSTBM(DWORD ch)
 {
-	// CSI r	DECSTBM Set Top and Bottom Margins
-	int n, i;
+	// CSI Pt ; Pl r	DECSTBM Set Top and Bottom Margins
+	//		Pt	Top Pos
+	//		Pl	Bottom Pos
 
-	if ( (n = GetAnsiPara(0, 1, 1) - 1) < 0 )
-		n = 0;
+	int ty = GetAnsiPara(0, 1, 1, m_Lines) - 1;
+	int by = GetAnsiPara(1, m_Lines, 1, m_Lines);
 
-	if ( (i = GetAnsiPara(1, m_Lines, 1) - 1) < 0 || i >= m_Lines )
-		i = m_Lines - 1;
+	if ( m_StsMode == STSMODE_INSCREEN ) {
+		if ( by > GetLineSize() )
+			by = GetLineSize();
+	} else if ( m_StsMode == (STSMODE_ENABLE | STSMODE_INSCREEN) )
+		return;
 
-	if ( n < i ) {
-		m_TopY = n;
-		m_BtmY = i + 1;
-	}
+	if ( ty >= by )
+		return;
+
+	m_TopY = ty;
+	m_BtmY = by;
 
 	if ( IsOptEnable(TO_DECOM) )
 		LOCATE(GetLeftMargin(), GetTopMargin());
@@ -5481,6 +5516,11 @@ void CTextRam::fc_DECSLRM(DWORD ch)
 		m_RightX = m_LeftX + 1;
 	else if ( m_RightX > m_Cols )
 		m_RightX = m_Cols;
+
+	if ( IsOptEnable(TO_DECOM) )
+		LOCATE(GetLeftMargin(), GetTopMargin());
+	else
+		LOCATE(0, 0);
 
 	fc_POP(ch);
 }
@@ -5531,9 +5571,7 @@ void CTextRam::fc_SCOSC(DWORD ch)
 	if ( IsOptEnable(TO_DECLRMM) )
 		fc_DECSLRM(ch);
 	else {
-		m_Save_CurX   = m_CurX;
-		m_Save_CurY   = m_CurY;
-		m_Save_DoWarp = m_DoWarp;
+		SaveParam(&m_SaveParam);
 		fc_POP(ch);
 	}
 }
@@ -5617,7 +5655,7 @@ void CTextRam::fc_XTWOP(DWORD ch)
 		break;
 
     case 18:    	/* Report the text's size in characters ESC[8;l;ct */
-		UNGETSTR(_T("%s8;%d;%dt"), m_RetChar[RC_CSI], m_Lines, m_Cols);
+		UNGETSTR(_T("%s8;%d;%dt"), m_RetChar[RC_CSI], GetLineSize(), m_Cols);
 		break;
     case 19:    	/* Report the screen's size, in characters ESC[9;h;wt */
 		GetCellSize(&w, &h);
@@ -5685,8 +5723,7 @@ void CTextRam::fc_XTWOP(DWORD ch)
 void CTextRam::fc_SCORC(DWORD ch)
 {
 	// CSI u	SCORC Load Cursol Pos
-	LOCATE(m_Save_CurX, m_Save_CurY);
-	m_DoWarp = m_Save_DoWarp;
+	LoadParam(&m_SaveParam, FALSE);
 	fc_POP(ch);
 }
 void CTextRam::fc_RLSCD(DWORD ch)
@@ -5827,6 +5864,7 @@ void CTextRam::fc_XTCOLREG(DWORD ch)
 
 	int status = 3;
 	int result = 0;
+	int cols, lines;
 	int width = 1000, height = 1000;
 
 	fc_POP(ch);
@@ -5856,7 +5894,7 @@ void CTextRam::fc_XTCOLREG(DWORD ch)
 		switch(GetAnsiPara(1, 0, 0)) {
 		case 1:	// read
 			status = 10;
-			m_pDocument->m_TextRam.GetScreenSize(&width, &height);
+			m_pDocument->m_TextRam.GetScreenSize(&cols, &lines, &width, &height);
 			break;
 		case 2:	// reset
 		case 3:	// set
@@ -5891,26 +5929,39 @@ void CTextRam::fc_DECST8C(DWORD ch)
 void CTextRam::fc_DECMC(DWORD ch)
 {
 	// CSI ? i	DECMC	Media Copy (DEC)
+	//		0 Select auxiliary port for ReGIS hardcopy output.
+	//		1 copy the cursor line to the auxilary(printer)Port
+	//		2 Select computer port for ReGIS hardcopy output.
+	//		3 copy the cursor line to the modem(host) Port
+	//		4 diaable the copy passthru print mode
+	//		5 enable the copy passthru print mode
 
 	fc_POP(ch);
 
-	if ( (m_ClipFlag & OSC52_WRITE) == 0 )
-		return;
-
 	switch(GetAnsiPara(0, 1, 0)) {
 	case 0:
+	case 2:
 		if ( IsOptEnable(TO_DECPEX) )
-			EditCopy(GetCalcPos(0, 0), GetCalcPos(m_Cols - 1, m_Lines - 1), FALSE, TRUE);
+			MediaCopy(0, m_Lines - 1);
 		else
-			EditCopy(GetCalcPos(0, m_TopY), GetCalcPos(m_Cols - 1, m_BtmY - 1), FALSE, TRUE);
+			MediaCopy(m_TopY, m_BtmY - 1);
 		break;
 	case 1:
-		EditCopy(GetCalcPos(0, m_CurY), GetCalcPos(m_Cols - 1, m_CurY), FALSE, TRUE);
+	case 3:
+		MediaCopy(m_CurY, m_CurY);
 		break;
+
+	case 4:
+		m_MediaCopyMode = MEDIACOPY_NONE;
+		break;
+	case 5:
+		m_MediaCopyMode = MEDIACOPY_THROUGH;
+		break;
+
 	case 10:
-		EditCopy(GetCalcPos(0, 0), GetCalcPos(m_Cols - 1, m_Lines - 1), FALSE, TRUE);
+		MediaCopy(0, m_Lines - 1);
 	case 11:
-		EditCopy(GetCalcPos(0, 0 - m_HisLen + m_Lines), GetCalcPos(m_Cols - 1, m_Lines - 1), FALSE, TRUE);
+		MediaCopy(0 - m_HisLen + m_Lines, m_Lines - 1);
 		break;
 	}
 }
@@ -5994,8 +6045,12 @@ void CTextRam::fc_DECSRET(DWORD ch)
 		case TO_DECOM:		// 6 DECOM Origin mode
 			if ( IsOptEnable(TO_DECOM) )
 				LOCATE(GetLeftMargin(), GetTopMargin());
-			else
+			else if ( m_StsMode == (STSMODE_ENABLE | STSMODE_INSCREEN) ) {
+				EnableOption(TO_DECOM);
+				LOCATE(GetLeftMargin(), GetTopMargin());
+			} else
 				LOCATE(0, 0);
+
 			break;
 		case TO_DECTCEM:	// 25 DECTCEM Text Cursor Enable Mode
 			if ( IsOptEnable(TO_DECTCEM) )
@@ -6037,12 +6092,9 @@ void CTextRam::fc_DECSRET(DWORD ch)
 			break;
 		case TO_XTSRCUR:	// 1048 XTERM Save/Restore cursor as in DECSC/DECRC
 			if ( ch == 'l' ) {
-				LOCATE(m_Save_CurX, m_Save_CurY);
-				m_DoWarp = m_Save_DoWarp;
+				LoadParam(&m_SaveParam, FALSE);
 			} else if ( ch == 'h' ) {
-				m_Save_CurX = m_CurX;
-				m_Save_CurY = m_CurY;
-				m_Save_DoWarp = m_DoWarp;
+				SaveParam(&m_SaveParam);
 			}
 			break;
 		case TO_XTALTCLR:	// 1049 XTERM Use Alternate/Normal screen buffer, clearing it first
@@ -6051,9 +6103,7 @@ void CTextRam::fc_DECSRET(DWORD ch)
 			if ( ch == 'l' )
 				LOADRAM();
 			else if ( ch == 'h' ) {
-				m_Save_CurX = m_CurX;
-				m_Save_CurY = m_CurY;
-				m_Save_DoWarp = m_DoWarp;
+				SaveParam(&m_SaveParam);
 				SAVERAM();
 				RESET(RESET_CURSOR | RESET_MARGIN | RESET_ATTR | RESET_CLS);
 			}
@@ -6614,14 +6664,40 @@ void CTextRam::fc_DECSCPP(DWORD ch)
 void CTextRam::fc_DECSASD(DWORD ch)
 {
 	// CSI $}	DECSASD Select Active Status Display
-	m_StsFlag = GetAnsiPara(0, 0, 0) == 1 ? TRUE : FALSE;
-	m_StsPara.Empty();
+	//		0 (default) Selects the main display. The terminal sends data to the main display only.
+	//		1 Selects the status line. The terminal sends data to the status line only.
+
+	switch(GetAnsiPara(0, 0, 0)) {
+	case 0:
+		SetStatusMode(STSMODE_DISABLE);
+		break;
+	case 1:
+		SetStatusMode(STSMODE_ENABLE);
+		break;
+	}
 	fc_POP(ch);
 }
 void CTextRam::fc_DECSSDT(DWORD ch)
 {
-	//	CSI $~	DECSSDT Set Status Display (Line) Type
-	m_StsMode = GetAnsiPara(0, 0, 0);
+	// CSI $~	DECSSDT Set Status Display (Line) Type
+	//		0 (default) No status line
+	//		1 Indicator status line
+	//		2 Host-writable status line
+
+	int n = GetAnsiPara(0, 0, 0);
+
+	switch(n) {
+	case 0:
+		SetStatusMode(STSMODE_HIDE);
+		break;
+	case 1:
+		SetStatusMode(STSMODE_INDICATOR);
+		break;
+	default:	// n >= 2
+		SetStatusMode(STSMODE_INSCREEN, n - 1);
+		break;
+	}
+
 	fc_POP(ch);
 }
 
@@ -6789,7 +6865,7 @@ void CTextRam::fc_DECSCL(DWORD ch)
 
 	int n;
 
-	RESET();
+	RESET(RESET_PAGE | RESET_CURSOR | RESET_CARET | RESET_MARGIN | RESET_TABS | RESET_BANK | RESET_ATTR | RESET_COLOR | RESET_TEK | RESET_SAVE | RESET_MOUSE | RESET_CHAR | RESET_OPTION | RESET_XTOPT | RESET_MODKEY);
 
 	if ( (n = GetAnsiPara(0, 0, 0)) == 61 )
 		m_VtLevel = n;
@@ -6816,7 +6892,7 @@ void CTextRam::fc_DECRQDE(DWORD ch)
 	// CSI ('"' << 8) | 'v'		DECRQDE Request device extent
 	// CSI Ph ; Pw ; Pml ; Pmt ; Pmp " w
 
-	UNGETSTR(_T("%s%d;%d;%d;%d;%d\"w"), m_RetChar[RC_CSI], m_Lines, m_Cols, m_LeftX + 1, m_TopY + 1, m_Page + 1);
+	UNGETSTR(_T("%s%d;%d;%d;%d;%d\"w"), m_RetChar[RC_CSI], GetLineSize(), m_Cols, m_LeftX + 1, m_TopY + 1, m_Page + 1);
 	fc_POP(ch);
 }
 void CTextRam::fc_DECRQUPSS(DWORD ch)
@@ -7048,7 +7124,7 @@ void CTextRam::fc_DECSR(DWORD ch)
 {
 	// CSI ('+'  << 8) | 'p'	DECSR Secure Reset
 
-	RESET();
+	RESET(RESET_ALL);
 	UNGETSTR(_T("%s%d*q"), m_RetChar[RC_CSI], GetAnsiPara(0, 0, 0));		// CSI * q	DECSRC Secure Reset Confirmation
 	fc_POP(ch);
 }

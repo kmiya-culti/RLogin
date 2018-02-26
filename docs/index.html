@@ -28,8 +28,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.23.1)</TD>
-            <TD width="20%" align="right">2018/01/30</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.23.2)</TD>
+            <TD width="20%" align="right">2018/02/27</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -97,7 +97,7 @@ TD {
                           </OL>
                           <LI><A href="#SCRIPT">スクリプトのオプション設定</A>
                           <LI><A href="#SCREENOPT">スクリーンのオプション設定</A>
-                          <LI><A href="#TERMOPT">ターミナルのオプション設定</A>
+                          <LI><A href="#TERMOPT">制御コードのオプション設定</A>
                           <OL>
                             <LI><A href="#ESCCSIDCS">ESC/CSI/DCSの設定</A>
                           </OL>
@@ -403,19 +403,19 @@ TD {
                   <TD width="200">実行プログラム(32bit)</TD>
                   <TD width="320"><A href="http://nanno.dip.jp/softlib/program/rlogin.zip">http://nanno.dip.jp/softlib/program/rlogin.zip</A></TD>
                   <TD width="250">Windows XP以降(32bit)</TD>
-                  <TD><IMG src="http://nanno.dip.jp/softlib/accessbar.php?a=program/rlogin.zip&c=1"></TD>
+                  <TD><IMG src="http://nanno.dip.jp/softlib/accessbar.php?a=x32&c=1"></TD>
                 </TR>
                 <TR>
                   <TD>実行プログラム(64bit)</TD>
                   <TD width="320"><A href="http://nanno.dip.jp/softlib/program/rlogin_x64.zip">http://nanno.dip.jp/softlib/program/rlogin_x64.zip</A></TD>
                   <TD>Windows XP以降(64bit)</TD>
-                  <TD><IMG src="http://nanno.dip.jp/softlib/accessbar.php?a=rlogin_x64.zip&c=3"></TD>
+                  <TD><IMG src="http://nanno.dip.jp/softlib/accessbar.php?a=x64&c=3"></TD>
                 </TR>
                 <TR>
                   <TD width="200">ソースファイル(<A href="https://github.com/kmiya-culti/RLogin">GitHub</A>)</TD>
                   <TD width="320"><A href="http://nanno.dip.jp/softlib/source/rlogin.zip">http://nanno.dip.jp/softlib/source/rlogin.zip</A></TD>
                   <TD>Microsoft Visual Studio 2010</TD>
-                  <TD><IMG src="http://nanno.dip.jp/softlib/accessbar.php?a=source/rlogin.zip&c=5"></TD>
+                  <TD><IMG src="http://nanno.dip.jp/softlib/accessbar.php?a=src&c=5"></TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -437,6 +437,14 @@ TD {
       <BR>
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
+          <TR>
+            <TD align="center">2018/02/27</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.23.2/">2.23.2</A></TD>
+            <TD>拡張機能の一部を各種オプションに移動<BR>
+            MC/DECMCの操作をMCウィンドウに転送に変更<BR>
+            DECSSDTのステータス表示を拡張<BR>
+            DCSにRLMML(DCS#m)でMML形式のMIDI演奏を追加</TD>
+          </TR>
           <TR>
             <TD align="center">2018/01/30</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.23.1/">2.23.1</A></TD>
@@ -479,17 +487,6 @@ TD {
             sshのエージェントにlock/unlockとrsa拡張を追加<BR>
             Pageantの鍵を認証キーの設定で管理するように変更<BR>
             openssl-1.1.0gに更新</TD>
-          </TR>
-          <TR>
-            <TD align="center">2017/09/26</TD>
-            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.22.7/">2.22.7</A></TD>
-            <TD>DECBKMの誤解釈を訂正してBS/DELの送信に修正<BR>
-            標準の設定にしたエントリー編集で更新の確認を追加<BR>
-            ssh2のユーザー認証のキャンセル時の動作を変更<BR>
-            telnetにKeepAliveパケットの送信を追加<BR>
-            RS232C回りの処理を整理してタイムアウト時間を修正<BR>
-            2.22.5で変更したDECRQSSのリターンコードを元に戻した<BR>
-            libiconv-1.15の日本語パッチの取り込みミスを修正</TD>
           </TR>
           <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
@@ -1412,8 +1409,8 @@ TD {
                   <TD>すでに起動中のRLoginがあれば、そのウインドウのタブとしてオープンします</TD>
                 </TR>
                 <TR>
-                  <TD><FONT color="#c0c0c0">/inusea</FONT></TD>
-                  <TD><FONT color="#c0c0c0">上記の/inuseに最小化したRLoginも対象にします</FONT></TD>
+                  <TD>/inusea</TD>
+                  <TD>上記の/inuseに最小化したRLoginも対象にします</TD>
                 </TR>
                 <TR>
                   <TD>/inpane</TD>
@@ -1672,7 +1669,7 @@ TD {
                 </TR>
                 <TR>
                   <TD align="center">ファイルにエクスポート</TD>
-                  <TD>ファイルに設定を保存します。ファイルには、テキスト形式ですのでメモ帳などで編集可能です</TD>
+                  <TD>ファイルに設定を保存します。ファイルは、テキスト形式ですのでメモ帳などで編集可能です</TD>
                 </TR>
                 <TR>
                   <TD align="center">最新の情報に更新</TD>
@@ -1958,7 +1955,8 @@ TD {
                 <TR>
                   <TD align="center" width="30%">ビット/秒</TD>
                   <TD>110-921600</TD>
-                  <TD>通信速度、baudrate/bpsで表現されます</TD>
+                  <TD>通信速度、bpsで表現されます<BR>
+                  1変調=1bitで考えればbaud rateと同じ値です</TD>
                 </TR>
                 <TR>
                   <TD align="center" width="30%">データ ビット</TD>
@@ -2058,7 +2056,7 @@ TD {
                 </TR>
                 <TR>
                   <TD align="center" width="30%">DSR入力…送信停止</TD>
-                  <TD colspan="2">接続先のフロー制御で使用するように送信の停止を行います</TD>
+                  <TD colspan="2">接続先のフロー制御で使用する為の送信停止を行います</TD>
                 </TR>
                 <TR>
                   <TD align="center" width="30%">DSR入力…受信無視</TD>
@@ -2094,12 +2092,12 @@ TD {
                 </TR>
                 <TR>
                   <TD align="center" width="30%">CTS入力…送信停止</TD>
-                  <TD colspan="2">接続先のフロー制御で使用するように送信の停止を行います</TD>
+                  <TD colspan="2">接続先のフロー制御で使用する為の送信停止を行います</TD>
                 </TR>
                 <TR>
                   <TD align="center" width="30%">XOFF/XONの受信</TD>
-                  <TD colspan="2">接続先のフロー制御で使用するようにXOFFの受信で送信停止。<BR>
-                  XONの受信で送信の再開を行います</TD>
+                  <TD colspan="2">接続先のフロー制御で使用する為のXOFF受信で送信停止。<BR>
+                  XON受信で送信の再開を行います</TD>
                 </TR>
                 <TR>
                   <TD align="center" width="30%">XOFF/XONの送信</TD>
@@ -2123,12 +2121,14 @@ TD {
                 <TR>
                   <TD align="center" width="30%">XOFFの文字コード</TD>
                   <TD>XOFFC=n</TD>
-                  <TD>XOFFの文字コードを10進数で指定します。19=CTRL+S(1/3)</TD>
+                  <TD>XOFFの文字コードを10進数で指定します。<BR>
+                  19=CTRL+S(1/3)</TD>
                 </TR>
                 <TR>
                   <TD align="center" width="30%">XONの文字コード</TD>
                   <TD>XONC=n</TD>
-                  <TD>XOFFの文字コードを10進数で指定します。17=CTRL+Q(1/1)</TD>
+                  <TD>XOFFの文字コードを10進数で指定します。<BR>
+                  17=CTRL+Q(1/1)</TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -2465,12 +2465,16 @@ fi</PRE>
                   <TD>行単位で編集してから送信します。ただしコントロールコードなどを送信しなくなりますので注意してください。</TD>
                 </TR>
                 <TR>
-                  <TD align="center">接続が切れると・・・</TD>
-                  <TD>通信が切れれば自動でウインドウを閉じます</TD>
+                  <TD align="center">接続が・・・再接続</TD>
+                  <TD>接続が切れると再接続の確認を表示して動作を選択</TD>
                 </TR>
                 <TR>
-                  <TD align="center">接続が切れても・・・</TD>
+                  <TD align="center">接続が・・・閉じない</TD>
                   <TD>接続が切れてもウィンドウを閉じません</TD>
+                </TR>
+                <TR>
+                  <TD align="center">接続が・・・終了する</TD>
+                  <TD>接続が切れれば自動でウインドウを閉じて他に接続が無ければプログラムを終了します</TD>
                 </TR>
                 <TR>
                   <TD align="center">画面更新が・・・</TD>
@@ -3332,6 +3336,11 @@ function TekClock2() {
                   ※2.19.1から括弧内の数値でポイント換算した値を示すようにしました。</TD>
                 </TR>
                 <TR>
+                  <TD align="center">HiDPIの変更・・・</TD>
+                  <TD>HiDPI（ディスプレイの設定の拡大)が変更されたディスプレイに移動した場合に自動でウィンドウサイズやフォントサイズを変更します。<BR>
+                  ※このオプションをチェックした場合は、上記フォントサイズのピクセル値が実際と異なります。括弧内のポイント換算は、追従して計算されます。</TD>
+                </TR>
+                <TR>
                   <TD align="center">スクリーン左右の</TD>
                   <TD>スクリーン左右の余白をピクセル単位で設定します</TD>
                 </TR>
@@ -3349,6 +3358,14 @@ function TekClock2() {
                   右の色見本をクリックすると色を変更することができます<BR>
                   描画方法はXORで行いますので背景色により実際に表示される色が異なります。黒背景なら一致しますが白背景の場合は、補色で表示されますのでご注意ください。<BR>
                   また、色を黒(0,0,0)にすると接続ごとに色を自動で変更します</TD>
+                </TR>
+                <TR>
+                  <TD align="center">CSI 1-6/9/10 t ・・・</TD>
+                  <TD>ウィンドウの移動やリサイズをコントロールコードで操作できるようにします。全体のメインウィンドウがリサイズされるのでご注意ください</TD>
+                </TR>
+                <TR>
+                  <TD align="center">アクティブでない・・・</TD>
+                  <TD>子ウィンドウのフォーカス移動でアクティブでないウィンドウの文字の輝度を半分に落として表示します</TD>
                 </TR>
                 <TR>
                   <TD colspan="2">ウィンドウタイトル&nbsp;</TD>
@@ -3395,6 +3412,42 @@ function TekClock2() {
                 <TR>
                   <TD align="center">変更を禁止</TD>
                   <TD>OSC 0/1/2 での変更を禁止</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+            <TD valign="top" align="left"><IMG src="image022.jpg" width="611" height="511" border="0"></TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR noshade size="0">
+      <P><A name="TERMOPT"></A><B>3.6 制御コードのオプション設定</B></P>
+      <HR noshade size="0">
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" width="1250">
+        <TBODY>
+          <TR>
+            <TD valign="top" width="600" align="left">
+            <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
+              <TBODY>
+                <TR>
+                  <TD colspan="2">エスケープシーケンス</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">ESC/CSI/DCS</TD>
+                  <TD>ESC/CSI/DCSシーケンスを個別に変更します</TD>
+                </TR>
+                <TR>
+                  <TD align="center">&nbsp;セット時の...</TD>
+                  <TD>CSIシーケンスのオプションを個別に設定します<BR>
+                  <A href="ctrlcode.html#OPT">オプション一覧を参照</A></TD>
                 </TR>
                 <TR>
                   <TD colspan="2">改行コード</TD>
@@ -3472,42 +3525,6 @@ function TekClock2() {
                     </TBODY>
                   </TABLE>
                   （※RETURNキーに下記のキーコードの割り当てで0D(CR)以外を設定した場合は、動作が変わりますので注意)</TD>
-                </TR>
-              </TBODY>
-            </TABLE>
-            </TD>
-            <TD valign="top" align="left"><IMG src="image022.jpg" width="611" height="511" border="0"></TD>
-          </TR>
-        </TBODY>
-      </TABLE>
-      </TD>
-    </TR>
-    <TR>
-      <TD>
-      <HR noshade size="0">
-      <P><A name="TERMOPT"></A><B>3.6 ターミナルのオプション設定</B></P>
-      <HR noshade size="0">
-      </TD>
-    </TR>
-    <TR>
-      <TD>
-      <TABLE cellpadding="5" width="1250">
-        <TBODY>
-          <TR>
-            <TD valign="top" width="600" align="left">
-            <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
-              <TBODY>
-                <TR>
-                  <TD colspan="2">エスケープシーケンス</TD>
-                </TR>
-                <TR>
-                  <TD align="center" width="30%">ESC/CSI/DCS</TD>
-                  <TD>ESC/CSI/DCSシーケンスを個別に変更します</TD>
-                </TR>
-                <TR>
-                  <TD align="center">&nbsp;セット時の...</TD>
-                  <TD>CSIシーケンスのオプションを個別に設定します<BR>
-                  <A href="ctrlcode.html#OPT">オプション一覧を参照</A></TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -3740,16 +3757,6 @@ function TekClock2() {
                         <TD colspan="3">各種オプション</TD>
                       </TR>
                       <TR>
-                        <TD align="center" width="10%" rowspan="2">454</TD>
-                        <TD width="40%">ゴースト表示しない</TD>
-                        <TD width="40%">タブにマウスでゴースト表示</TD>
-                      </TR>
-                      <TR>
-                        <TD colspan="2">この接続でのゴースト表示を禁止します。<BR>
-                        すべて表示しないようにするにはレジストリの変更で可能です<BR>
-                        HCU\\Software\\Culti\\RLogin\\TabBar\\GhostWnd=1</TD>
-                      </TR>
-                      <TR>
                         <TD align="center" width="10%" rowspan="2">455</TD>
                         <TD width="40%">サイズを表示しない</TD>
                         <TD width="40%">画面サイズを表示する</TD>
@@ -3766,14 +3773,6 @@ function TekClock2() {
                       <TR>
                         <TD colspan="2">Sixel/Imageを外部ウィンドウで表示する場合の表示方法を選択します<BR>
                         全表示では、上下/左右に余白が表示されます</TD>
-                      </TR>
-                      <TR>
-                        <TD align="center" rowspan="2">461</TD>
-                        <TD>XTWOPでウィンドウ操作</TD>
-                        <TD>ウインドウ操作しない</TD>
-                      </TR>
-                      <TR>
-                        <TD colspan="2">XTWOPXOP(CSI t)でメインウィンドウの位置やサイズなどを操作できるようにします</TD>
                       </TR>
                       <TR>
                         <TD align="center" rowspan="2">462</TD>
@@ -3793,24 +3792,6 @@ function TekClock2() {
                         現在のペインでアクティブな接続が移動することになります</TD>
                       </TR>
                       <TR>
-                        <TD align="center" rowspan="2">472</TD>
-                        <TD>HiDPIに追従する</TD>
-                        <TD>文字サイズは画素数</TD>
-                      </TR>
-                      <TR>
-                        <TD colspan="2">文字サイズをHiDPIの変更に追従するようにします<BR>
-                        ※<A href="#SCREENOPT">スクリーンのオプション設定</A>のフォントサイズが正しい数値でなくなります。<BR>
-                        あまり意義の無いオプションですご注意ください。</TD>
-                      </TR>
-                      <TR>
-                        <TD align="center" rowspan="2">473</TD>
-                        <TD>文字輝度を下げる</TD>
-                        <TD>文字輝度を維持</TD>
-                      </TR>
-                      <TR>
-                        <TD colspan="2">アクティブでない接続の文字輝度を下げて表示する</TD>
-                      </TR>
-                      <TR>
                         <TD align="center" rowspan="2">474</TD>
                         <TD>通信ログをフラッシュする</TD>
                         <TD>通信ログをフラッシュしない</TD>
@@ -3828,22 +3809,6 @@ function TekClock2() {
                       <TR>
                         <TD colspan="2">文字カレットを動画で点滅させます<BR>
                         ※あくまで試験的な実装です。あまり実用性がありません</TD>
-                      </TR>
-                      <TR>
-                        <TD align="center" rowspan="2">476</TD>
-                        <TD>タブにマウスで情報表示</TD>
-                        <TD>情報表示を行わない</TD>
-                      </TR>
-                      <TR>
-                        <TD colspan="2">タブにマウスで接続先の情報をツールチップで表示する</TD>
-                      </TR>
-                      <TR>
-                        <TD align="center" rowspan="2">477</TD>
-                        <TD>再接続を確認</TD>
-                        <TD>接続断で接続確認</TD>
-                      </TR>
-                      <TR>
-                        <TD colspan="2">接続が切れた場合に再接続を確認する</TD>
                       </TR>
                       <TR>
                         <TD align="center" rowspan="2">479</TD>
@@ -4128,6 +4093,31 @@ function TekClock2() {
                   <TD colspan="2">右クリックの上下移動でスムーズスクロールします<BR>
                   <BR>
                   ボタンを放した時の移動スピードでスムーズスクロールを維持する猫の手タイプのスクロールです</TD>
+                </TR>
+                <TR>
+                  <TD align="center">タブバーのタブ・・・</TD>
+                  <TD colspan="2">タブバーのタブにマウスを移動した場合に行う動作を選択します<BR>
+                  <TABLE cellpadding="3">
+                    <TBODY>
+                      <TR>
+                        <TD>None</TD>
+                        <TD>何も行いません</TD>
+                      </TR>
+                      <TR>
+                        <TD>Ghost</TD>
+                        <TD>重ねて合成表示します</TD>
+                      </TR>
+                      <TR>
+                        <TD>Info</TD>
+                        <TD>接続情報を表示します</TD>
+                      </TR>
+                      <TR>
+                        <TD>Ghost+Info</TD>
+                        <TD>どちらも実行します</TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  </TD>
                 </TR>
                 <TR>
                   <TD colspan="3">マウスホイール</TD>

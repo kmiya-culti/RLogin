@@ -109,6 +109,8 @@ public:
 	BOOL m_bCastLock;
 	time_t m_ConnectTime;
 	time_t m_CloseTime;
+	class CStatusDlg *m_pStatusWnd;
+	class CStatusDlg *m_pMediaCopyWnd;
 
 	static void LoadOption(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab);
 	static void SaveOption(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab);
@@ -137,7 +139,6 @@ public:
 	void SocketClose();
 	int SocketReceive(void *lpBuf, int nBufLen);
 	void SocketSend(void *lpBuf, int nBufLen, BOOL delaySend = FALSE);
-	void SocketSendWindSize(int x, int y);
 	LPCSTR Utf8Str(LPCTSTR str);
 	LPCSTR RemoteStr(LPCTSTR str);
 	LPCTSTR LocalStr(LPCSTR str);
@@ -155,6 +156,7 @@ public:
 	void DoDropFile();
 	CWnd *GetAciveView();
 	int GetViewCount();
+	BOOL IsCanExit();
 
 	BOOL LogOpen(LPCTSTR filename);
 	BOOL LogClose();

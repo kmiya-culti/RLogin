@@ -34,6 +34,11 @@ public:
 	CStringBinary m_CapName;
 	CStringArray m_CapNode;
 	CString m_WorkStr;
+
+#ifdef	USE_DEBUGCAP
+	CStringIndex m_SaveEntry;
+	CStringIndex m_SaveCapInfo;
+#endif
 	
 	void SetNode(CStringIndex &cap, LPCTSTR p);
 	void SetEntry(CStringIndex &cap, LPCTSTR entry);

@@ -113,6 +113,7 @@ public:
 	LONG PTR32BIT(LPBYTE pos);
 	LONGLONG PTR64BIT(LPBYTE pos);
 
+	LPCSTR Base64Param(LPCSTR str);
 	LPCTSTR Base64Decode(LPCTSTR str);
 	void Base64Encode(LPBYTE buf, int len);
 	LPCTSTR Base16Decode(LPCTSTR str);

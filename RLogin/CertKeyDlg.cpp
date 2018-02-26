@@ -3,6 +3,7 @@
 
 #include "stdafx.h"
 #include "RLogin.h"
+#include "MainFrm.h"
 #include "CertKeyDlg.h"
 //#include "afxdialogex.h"
 
@@ -50,7 +51,8 @@ BOOL CCertKeyDlg::OnInitDialog()
 	SetTimer(1028, 1000, NULL);
 	m_Counter = 0;
 
-	if ( (pWnd = GetDlgItem(IDC_DIGEST)) != NULL && m_DigestFont.CreatePointFont(9 * 10, _T("Consolas")) )
+	if ( (pWnd = GetDlgItem(IDC_DIGEST)) != NULL && m_DigestFont.CreatePointFont(
+			MulDiv(9 * 10, ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY, 96), _T("Consolas")) )
 		pWnd->SetFont(&m_DigestFont);
 
 	return TRUE;

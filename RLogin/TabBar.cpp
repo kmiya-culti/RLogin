@@ -652,7 +652,6 @@ void CTabBar::OnGetDispInfo(NMHDR* pNMHDR, LRESULT* pResult)
 	NMTTDISPINFO* pINFO = (NMTTDISPINFO*)pNMHDR;
 	CChildFrame *pChild;
 	CRLoginDoc *pDoc;
-	CString str;
 	CTime tm;
 
 	if ( (pChild = (CChildFrame *)GetAt((int)pINFO->hdr.idFrom)) == NULL ||
@@ -663,12 +662,15 @@ void CTabBar::OnGetDispInfo(NMHDR* pNMHDR, LRESULT* pResult)
 		return;
 
 	tm = pDoc->m_ConnectTime;
-	str.Format(_T("%s\r\n%s@%s\r\n%s"),
+	m_ToolTipStr.Format(_T("%s\r\n%s@%s\r\n%s"),
 		pDoc->m_ServerEntry.m_EntryName,
-		pDoc->m_ServerEntry.m_UserName, pDoc->m_ServerEntry.m_HostName,
+		pDoc->m_ServerEntry.m_ProtoType == PROTO_COMPORT ? pDoc->m_ServerEntry.m_PortName : pDoc->m_ServerEntry.m_UserName, 
+		pDoc->m_ServerEntry.m_HostName,
 		tm.Format(_T("%c")));
 
-	_tcsncpy(pINFO->szText, str, sizeof(pINFO->szText) / sizeof(TCHAR));
+	pINFO->lpszText = (LPTSTR)(LPCTSTR)m_ToolTipStr;
+	pINFO->hinst = NULL;
+
 	*pResult = 0;
 }
 

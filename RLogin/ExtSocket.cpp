@@ -797,7 +797,7 @@ int CExtSocket::Send(const void* lpBuf, int nBufLen, int nFlags)
 	
 	return len;
 }
-void CExtSocket::SendWindSize(int x, int y)
+void CExtSocket::SendWindSize()
 {
 }
 void CExtSocket::SendBreak(int opt)

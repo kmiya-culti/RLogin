@@ -34,6 +34,7 @@ public:
 	int m_TabHeight;
 	int m_BoderSize;
 	int m_TabLines;
+	CString m_ToolTipStr;
 
 	BOOL Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID);
 

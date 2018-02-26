@@ -66,6 +66,7 @@
 #define IDD_DIALOG3                     167
 #define IDD_COMCONFDLG                  167
 #define IDD_COMINITDLG                  167
+#define IDD_PRNTEXTDLG                  170
 #define IDR_GRAPWND                     300
 #define IDR_MAINFRAME                   301
 #define IDR_POPUPMENU                   302
@@ -73,6 +74,7 @@
 #define IDR_SFTPMENU                    304
 #define IDR_SFTPTOOL                    305
 #define IDR_TEKWND                      306
+#define IDR_STATUSWND                   307
 #define IDB_ATTR1                       400
 #define IDB_ATTR2                       401
 #define IDB_ATTR3                       402
@@ -535,7 +537,9 @@
 #define IDC_EDIT3                       2118
 #define IDC_EDIT4                       2119
 #define IDC_EDITENTRY                   2120
+#define IDC_EDIT5                       2120
 #define IDC_ENDTIME                     2121
+#define IDC_EDIT6                       2121
 #define IDC_ENTRY                       2122
 #define IDC_ENTRYMEMO                   2123
 #define IDC_ENTRYNAME                   2124
@@ -1049,7 +1053,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        169
+#define _APS_NEXT_RESOURCE_VALUE        171
 #define _APS_NEXT_COMMAND_VALUE         5128
 #define _APS_NEXT_CONTROL_VALUE         2491
 #define _APS_NEXT_SYMED_VALUE           634

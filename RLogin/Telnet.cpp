@@ -489,9 +489,10 @@ void CTelnet::SendSlcOpt()
 
 	SockSend(tmp, len);
 }
-void CTelnet::SendWindSize(int x, int y)
+void CTelnet::SendWindSize()
 {
 	int n = 0;
+	int cx = 0, cy = 0, sx = 0, sy = 0;
 	char tmp[32];
 
    if ( ReceiveStatus == RVST_NON )
@@ -500,16 +501,19 @@ void CTelnet::SendWindSize(int x, int y)
    if ( (MyOpt[TELOPT_NAWS].flags & TELFLAG_ON) == 0 )
 	   return;
 
+   if ( m_pDocument != NULL )
+	   m_pDocument->m_TextRam.GetScreenSize(&cx, &cy, &sx, &sy);
+
 	tmp[n++] = (char)TELC_IAC;
 	tmp[n++] = (char)TELC_SB;
 	tmp[n++] = (char)TELOPT_NAWS;
-	if ( (tmp[n++] = (char)(x >> 8)) == (char)TELC_IAC )
+	if ( (tmp[n++] = (char)(cx >> 8)) == (char)TELC_IAC )
 		tmp[n++] = (char)TELC_IAC;
-	if ( (tmp[n++] = (char)(x)) == (char)TELC_IAC )
+	if ( (tmp[n++] = (char)(cx)) == (char)TELC_IAC )
 		tmp[n++] = (char)TELC_IAC;
-	if ( (tmp[n++] = (char)(y >> 8)) == (char)TELC_IAC )
+	if ( (tmp[n++] = (char)(cy >> 8)) == (char)TELC_IAC )
 		tmp[n++] = (char)TELC_IAC;
-	if ( (tmp[n++] = (char)(y)) == (char)TELC_IAC )
+	if ( (tmp[n++] = (char)(cy)) == (char)TELC_IAC )
 		tmp[n++] = (char)TELC_IAC;
 	tmp[n++] = (char)TELC_IAC;
 	tmp[n++] = (char)TELC_SE;
@@ -699,7 +703,7 @@ void CTelnet::OptFunc(struct TelOptTab *tab, int opt, int sw, int ch)
 		case TELSTS_ON:
 			tab[opt].flags |= TELFLAG_ON;
 			if ( opt == TELOPT_NAWS )
-				SendWindSize(m_pDocument->m_TextRam.m_Cols, m_pDocument->m_TextRam.m_Lines);
+				SendWindSize();
 			else if ( opt == TELOPT_ENCRYPT )
 				EncryptSendSupport();
 			else if ( opt == TELOPT_LINEMODE ) {

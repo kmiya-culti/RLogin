@@ -41,7 +41,7 @@ public:
 	class CComMoniDlg *m_pComMoni;
 	int m_RecvByteSec;
 	int m_SendByteSec;
-	BOOL m_bXonXffMode;
+	DWORD m_fInXOutXMode;
 
 	volatile enum { THREAD_NONE = 0, THREAD_RUN, THREAD_ENDOF, THREAD_DONE } m_ThreadMode;
 

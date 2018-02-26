@@ -309,6 +309,7 @@
     <ClCompile Include="ListCtrlExt.cpp" />
     <ClCompile Include="Login.cpp" />
     <ClCompile Include="MainFrm.cpp" />
+    <ClCompile Include="MidiData.cpp" />
     <ClCompile Include="ModKeyPage.cpp" />
     <ClCompile Include="MousePage.cpp" />
     <ClCompile Include="MsgChkDlg.cpp" />
@@ -318,6 +319,7 @@
     <ClCompile Include="PfdListDlg.cpp" />
     <ClCompile Include="PfdParaDlg.cpp" />
     <ClCompile Include="PipeSock.cpp" />
+    <ClCompile Include="PrnTextDlg.cpp" />
     <ClCompile Include="ProgDlg.cpp" />
     <ClCompile Include="ProtoPage.cpp" />
     <ClCompile Include="ProxyDlg.cpp" />
@@ -408,6 +410,7 @@
     <ClInclude Include="KeyParaDlg.h" />
     <ClInclude Include="ListCtrlExt.h" />
     <ClInclude Include="Login.h" />
+    <ClInclude Include="MidiData.h" />
     <ClInclude Include="ModKeyPage.h" />
     <ClInclude Include="MousePage.h" />
     <ClInclude Include="MsgChkDlg.h" />
@@ -419,6 +422,7 @@
     <ClInclude Include="PfdListDlg.h" />
     <ClInclude Include="PfdParaDlg.h" />
     <ClInclude Include="PipeSock.h" />
+    <ClInclude Include="PrnTextDlg.h" />
     <ClInclude Include="ProgDlg.h" />
     <ClInclude Include="ProtoPage.h" />
     <ClInclude Include="ProxyDlg.h" />

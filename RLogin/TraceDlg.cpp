@@ -291,7 +291,7 @@ void CTraceDlg::OnLvnItemchangedList(NMHDR *pNMHDR, LRESULT *pResult)
 		return;
 
 	if ( m_pSave == NULL )
-		m_pSave = m_pDocument->m_TextRam.GETSAVERAM(TRUE);
+		m_pSave = m_pDocument->m_TextRam.GETSAVERAM(SAVEMODE_ALL);
 
 	for ( n = num ; n > 0 ; n-- ) {
 		np = (CTraceNode *)(m_List.GetItemData(n));

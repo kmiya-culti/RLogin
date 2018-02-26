@@ -3,6 +3,7 @@
 
 #include "stdafx.h"
 #include "RLogin.h"
+#include "MainFrm.h"
 #include "MsgChkDlg.h"
 
 //////////////////////////////////////////////////////////////////////
@@ -43,7 +44,7 @@ BOOL CMsgChkDlg::OnInitDialog()
 	CFont *pFont = m_MsgWnd.GetFont();
 	pFont->GetLogFont(&logfont);
 
-	if ( m_MsgFont.CreatePointFont(11 * 10, logfont.lfFaceName) )
+	if ( m_MsgFont.CreatePointFont(MulDiv(11 * 10, ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY, 96), logfont.lfFaceName) )
 		m_MsgWnd.SetFont(&m_MsgFont);
 
 	m_BkBrush.CreateSolidBrush(RGB(255, 255, 255));

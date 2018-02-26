@@ -458,49 +458,51 @@ fi</PRE>
             <BR>
             デフォルトのRLoginオリジナルのtermcap/terminfoです・・・<BR>
             <PRE style="font-size : 9pt;">rlogin-color:\
-        :am:ut:xn:km:mi:ms:co#80:it#8:li#24:Co#256:pa#64:bt=\E[Z:bl=^G:\
-        :cr=^M:cs=\E[%i%d;%dr:ct=\E[3g:cl=\E[H\E[2J:cb=\E[1K:ce=\E[K:\
-        :cd=\E[J:ch=\E[%i%dG:cm=\E[%i%d;%dH:do=^J:ho=\E[H:vi=\E[?25l:\
-        :le=^H:ve=\E[?25h:nd=\E[C:up=\E[A:vs=\E[?25h:dc=\E[P:dl=\E[M:\
-        :as=\E(0:SA=\E[?7h:mb=\E[5m:md=\E[1m:ti=\E7\E[?47h:mh=\E[2m:\
-        :im=\E[4h:ZH=\E[3m:mr=\E[7m:mk=\E[8m:so=\E[7m:us=\E[4m:\
-        :ec=\E[%dX:ae=\E(B:RA=\E[?7l:me=\E[m:te=\E[2J\E[?47l\E8:\
-        :ei=\E[4l:ZR=\E[23m:se=\E[27m:ue=\E[24m:\
-        :is=\E[m\E[?7h\E[4l\E&gt;\E7\E[r\E[?1;3;4;6l\E8:al=\E[L:kb=^H:\
-        :kD=\E[3~:kd=\EOB:@7=\E[F:k1=\EOP:k;=\E[21~:F1=\E[23~:\
-        :F2=\E[24~:k2=\EOQ:k3=\EOR:k4=\EOS:k5=\E[15~:k6=\E[17~:\
-        :k7=\E[18~:k8=\E[19~:k9=\E[20~:kh=\E[H:kI=\E[2~:kl=\EOD:\
-        :Km=\E[M:kN=\E[6~:kP=\E[5~:kr=\EOC:ku=\EOA:ke=\E[?1l\E&gt;:\
+        :am:ut:xn:km:mi:ms:co#80:it#8:li#24:Co#256:pa#65536:bt=\E[Z:\
+        :bl=^G:cr=^M:cs=\E[%i%d;%dr:ct=\E[3g:cl=\E[H\E[2J:cb=\E[1K:\
+        :ce=\E[K:cd=\E[J:ch=\E[%i%dG:cm=\E[%i%d;%dH:do=^J:ho=\E[H:\
+        :vi=\E[?25l:le=^H:ve=\E[?25h:nd=\E[C:up=\E[A:vs=\E[?25h:\
+        :dc=\E[P:dl=\E[M:as=\E(0:SA=\E[?7h:mb=\E[5m:md=\E[1m:\
+        :ti=\E[?1049h:mh=\E[2m:im=\E[4h:ZH=\E[3m:mr=\E[7m:mk=\E[8m:\
+        :so=\E[7m:us=\E[4m:ec=\E[%dX:ae=\E(B:RA=\E[?7l:me=\E[m:\
+        :te=\E[?1049l:ei=\E[4l:ZR=\E[23m:se=\E[27m:ue=\E[24m:\
+        :is=\E[!p\E[?3;4l\E[4l\E&gt;\E]104^G:al=\E[L:kb=^H:kD=\E[3~:\
+        :kd=\EOB:@7=\EOF:k1=\EOP:k;=\E[21~:F1=\E[23~:F2=\E[24~:\
+        :k2=\EOQ:k3=\EOR:k4=\EOS:k5=\E[15~:k6=\E[17~:k7=\E[18~:\
+        :k8=\E[19~:k9=\E[20~:kh=\EOH:kI=\E[2~:kl=\EOD:kH=\EOF:\
+        :kN=\E[6~:kP=\E[5~:kr=\EOC:*6=\EOF:ku=\EOA:ke=\E[?1l\E&gt;:\
         :ks=\E[?1h\E=:op=\E[39;49m:DC=\E[%dP:DL=\E[%dM:DO=\E[%dB:\
         :IC=\E[%d@:SF=\E[%dS:AL=\E[%dL:LE=\E[%dD:RI=\E[%dC:SR=\E[%dT:\
         :UP=\E[%dA:r1=\Ec:rc=\E8:cv=\E[%i%dd:sc=\E7:sf=^J:sr=\EM:\
-        :AB=\E[48;5;%dm:AF=\E[38;5;%dm:st=\EH:ta=^I:bs:kn#12:pt:ml=\El:\
-        :mu=\Em:</PRE>
+        :st=\EH:ta=^I:Km=\E[M:AB=\E[48;5;%dm:AF=\E[38;5;%dm:\
+        :rs=\E[!p\E[?3;4l\E[4l\E&gt;\E]104^G:bs:kn#12:pt:ml=\El:mu=\Em:\
+        :AX:XT:</PRE>
             <PRE style="font-size : 9pt;">rlogin-color, 
         am, bce, xenl, km, mir, msgr, cols#80, it#8, lines#24, 
-        colors#256, pairs#64, cbt=\E[Z, bel=^G, cr=^M, 
+        colors#256, pairs#65536, cbt=\E[Z, bel=^G, cr=^M, 
         csr=\E[%i%p1%d;%p2%dr, tbc=\E[3g, clear=\E[H\E[2J, 
         el1=\E[1K, el=\E[K, ed=\E[J, hpa=\E[%i%p1%dG, 
         cup=\E[%i%p1%d;%p2%dH, cud1=^J, home=\E[H, civis=\E[?25l, 
         cub1=^H, cnorm=\E[?25h, cuf1=\E[C, cuu1=\E[A, 
         cvvis=\E[?25h, dch1=\E[P, dl1=\E[M, smacs=\E(0, 
-        smam=\E[?7h, blink=\E[5m, bold=\E[1m, smcup=\E7\E[?47h, 
+        smam=\E[?7h, blink=\E[5m, bold=\E[1m, smcup=\E[?1049h, 
         dim=\E[2m, smir=\E[4h, sitm=\E[3m, rev=\E[7m, invis=\E[8m, 
         smso=\E[7m, smul=\E[4m, ech=\E[%p1%dX, rmacs=\E(B, 
-        rmam=\E[?7l, sgr0=\E[m, rmcup=\E[2J\E[?47l\E8, rmir=\E[4l, 
+        rmam=\E[?7l, sgr0=\E[m, rmcup=\E[?1049l, rmir=\E[4l, 
         ritm=\E[23m, rmso=\E[27m, rmul=\E[24m, 
-        is2=\E[m\E[?7h\E[4l\E&gt;\E7\E[r\E[?1;3;4;6l\E8, il1=\E[L, 
-        kbs=^H, kdch1=\E[3~, kcud1=\EOB, kend=\E[F, kf1=\EOP, 
-        kf10=\E[21~, kf11=\E[23~, kf12=\E[24~, kf2=\EOQ, kf3=\EOR, 
-        kf4=\EOS, kf5=\E[15~, kf6=\E[17~, kf7=\E[18~, kf8=\E[19~, 
-        kf9=\E[20~, khome=\E[H, kich1=\E[2~, kcub1=\EOD, 
-        kmous=\E[M, knp=\E[6~, kpp=\E[5~, kcuf1=\EOC, kcuu1=\EOA, 
+        is2=\E[!p\E[?3;4l\E[4l\E&gt;\E]104^G, il1=\E[L, kbs=^H, 
+        kdch1=\E[3~, kcud1=\EOB, kend=\EOF, kf1=\EOP, kf10=\E[21~, 
+        kf11=\E[23~, kf12=\E[24~, kf2=\EOQ, kf3=\EOR, kf4=\EOS, 
+        kf5=\E[15~, kf6=\E[17~, kf7=\E[18~, kf8=\E[19~, kf9=\E[20~, 
+        khome=\EOH, kich1=\E[2~, kcub1=\EOD, kll=\EOF, knp=\E[6~, 
+        kpp=\E[5~, kcuf1=\EOC, kslt=\EOF, kcuu1=\EOA, 
         rmkx=\E[?1l\E&gt;, smkx=\E[?1h\E=, op=\E[39;49m, 
         dch=\E[%p1%dP, dl=\E[%p1%dM, cud=\E[%p1%dB, ich=\E[%p1%d@, 
         indn=\E[%p1%dS, il=\E[%p1%dL, cub=\E[%p1%dD, cuf=\E[%p1%dC, 
         rin=\E[%p1%dT, cuu=\E[%p1%dA, rs1=\Ec, rc=\E8, 
-        vpa=\E[%i%p1%dd, sc=\E7, ind=^J, ri=\EM, setab=\E[48;5;%p1%dm, 
-        setaf=\E[38;5;%p1%dm, hts=\EH, ht=^I, OTbs, OTkn#12, OTpt, 
+        vpa=\E[%i%p1%dd, sc=\E7, ind=^J, ri=\EM, hts=\EH, ht=^I, 
+        kmous=\E[M, setab=\E[48;5;%p1%dm, setaf=\E[38;5;%p1%dm, 
+        OTrs=\E[!p\E[?3;4l\E[4l\E&gt;\E]104^G, OTbs, OTkn#12, OTpt, 
         meml=\El, memu=\Em, </PRE>
             </TD>
             <TD valign="top"><IMG src="image215.jpg" width="611" height="511" border="0"><BR>
@@ -1529,8 +1531,7 @@ do
   if test $TERM == screen* ; then
     printf '\033\\'
   fi
-done
-</PRE>
+done</PRE>
             </TD>
           </TR>
         </TBODY>

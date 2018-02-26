@@ -2185,27 +2185,28 @@ CScriptLex *CScript::Stage13(CScriptLex *lex)
 	|	'#' expr
 	|	'$' expr
 ****/
-	for ( ; ; ) {
-		if ( lex->m_Type == '-' ) {
-			lex = Stage14(Lex());
-			CodeAdd(CM_NEG);
-		} else if ( lex->m_Type == '+' ) {
-			lex = Stage14(Lex());
-		} else if ( lex->m_Type == '~' ) {
-			lex = Stage14(Lex());
-			CodeAdd(CM_COM);
-		} else if ( lex->m_Type == '!' ) {
-			lex = Stage14(Lex());
-			CodeAdd(CM_NOT);
-		} else if ( lex->m_Type == '#' ) {
-			lex = Stage14(Lex());
-			CodeAdd(CM_INT);
-		} else if ( lex->m_Type == '$' ) {
-			lex = Stage14(Lex());
-			CodeAdd(CM_STR);
-		} else
-			return Stage14(lex);
-	}
+
+	if ( lex->m_Type == '-' ) {
+		lex = Stage14(Lex());
+		CodeAdd(CM_NEG);
+	} else if ( lex->m_Type == '+' ) {
+		lex = Stage14(Lex());
+	} else if ( lex->m_Type == '~' ) {
+		lex = Stage14(Lex());
+		CodeAdd(CM_COM);
+	} else if ( lex->m_Type == '!' ) {
+		lex = Stage14(Lex());
+		CodeAdd(CM_NOT);
+	} else if ( lex->m_Type == '#' ) {
+		lex = Stage14(Lex());
+		CodeAdd(CM_INT);
+	} else if ( lex->m_Type == '$' ) {
+		lex = Stage14(Lex());
+		CodeAdd(CM_STR);
+	} else
+		lex = Stage14(lex);
+
+	return lex;
 }
 CScriptLex *CScript::Stage12(CScriptLex *lex)
 {
@@ -3878,11 +3879,13 @@ int CScript::TextWnd(int cmd, CScriptValue &local)
 			break;
 		pWnd = new CStatusDlg(NULL);
 		pWnd->m_Title = (LPCTSTR)(base->GetAt("TitleText"));
-		pWnd->m_Status = (LPCTSTR)(base->GetAt("StatusText"));
+		pWnd->m_OwnerType = 1;
 		pWnd->m_pValue = (void *)base;
 		base->GetAt("pWnd") = (void *)pWnd;
-		if ( pWnd->Create(IDD_STATUS_DLG, CWnd::GetDesktopWindow()) )
+		if ( pWnd->Create(IDD_STATUS_DLG, CWnd::GetDesktopWindow()) ) {
 			pWnd->ShowWindow(SW_SHOW);
+			pWnd->SetStatusText((LPCTSTR)(base->GetAt("StatusText")));
+		}
 		break;
 	case 2:		// textwnd.close()
 		if ( base == NULL || (pWnd = (CStatusDlg *)((void *)(base->GetAt("pWnd")))) == NULL )
@@ -7070,7 +7073,7 @@ int CTempWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	if ( (n = (int)m_pValue->GetAt("FontPoint")) < 10 )
 		n = 90;
-	m_Font.CreatePointFont(n, (LPCTSTR)(m_pValue->GetAt("FontName")));
+	m_Font.CreatePointFont(MulDiv(n, ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY, 96), (LPCTSTR)(m_pValue->GetAt("FontName")));
 	SetFont(&m_Font, FALSE);
 
 	for ( n = 0 ; n < sp->GetSize() ; n++ ) {

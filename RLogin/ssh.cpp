@@ -590,21 +590,20 @@ void Cssh::OnReceiveCallBack(void* lpBuf, int nBufLen, int nFlags)
 
 	::AfxMessageBox(msg);
 }
-void Cssh::SendWindSize(int x, int y)
+void Cssh::SendWindSize()
 {
 	try {
-		int sx = 0;
-		int sy = 0;
+		int cx = 0, cy = 0, sx = 0, sy = 0;
 
 		if ( m_pDocument != NULL )
-			m_pDocument->m_TextRam.GetScreenSize(&sx, &sy);
+			m_pDocument->m_TextRam.GetScreenSize(&cx, &cy, &sx, &sy);
 
 		CBuffer tmp;
 		switch(m_SSHVer) {
 		case 1:
 			tmp.Put8Bit(SSH_CMSG_WINDOW_SIZE);
-			tmp.Put32Bit(y);
-			tmp.Put32Bit(x);
+			tmp.Put32Bit(cy);
+			tmp.Put32Bit(cx);
 			tmp.Put32Bit(sx);
 			tmp.Put32Bit(sy);
 			SendPacket(&tmp);
@@ -616,8 +615,8 @@ void Cssh::SendWindSize(int x, int y)
 			tmp.Put32Bit(((CChannel *)m_pChan[m_StdChan])->m_RemoteID);
 			tmp.PutStr("window-change");
 			tmp.Put8Bit(0);
-			tmp.Put32Bit(x);
-			tmp.Put32Bit(y);
+			tmp.Put32Bit(cx);
+			tmp.Put32Bit(cy);
 			tmp.Put32Bit(sx);
 			tmp.Put32Bit(sy);
 			SendPacket2(&tmp);
@@ -627,6 +626,27 @@ void Cssh::SendWindSize(int x, int y)
 		::AfxMessageBox(_T("ssh SendWindSize Error"));
 	}
 }
+void Cssh::SendBreak(int opt)
+{
+	try {
+		CBuffer tmp;
+		switch(m_SSHVer) {
+		case 2:
+			if ( m_StdChan == (-1) || !CHAN_OK(m_StdChan) || !CEOF_OK(m_StdChan) )	// ((CChannel *)m_pChan[m_StdChan])->m_RemoteID == (-1) )
+				break;
+			tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
+			tmp.Put32Bit(((CChannel *)m_pChan[m_StdChan])->m_RemoteID);
+			tmp.PutStr("break");
+			tmp.Put8Bit(0);
+			tmp.Put32Bit(opt != 0 ? 300 : 100);
+			SendPacket2(&tmp);
+			break;
+		}
+	} catch(...) {
+		::AfxMessageBox(_T("ssh SendBreak Error"));
+	}
+}
+
 void Cssh::OnTimer(UINT_PTR nIDEvent)
 {
 	SendMsgKeepAlive();
@@ -2295,7 +2315,7 @@ void Cssh::SendMsgChannelData(int id)
 void Cssh::SendMsgChannelRequesstShell(int id)
 {
 	int n;
-	int sx = 0, sy = 0;
+	int cx = 0, cy = 0, sx = 0, sy = 0;
 	LPCTSTR p;
 	CBuffer tmp, tmode, dump;
 	CString str;
@@ -2376,7 +2396,7 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 	}
 
 	if ( m_pDocument != NULL )
-		m_pDocument->m_TextRam.GetScreenSize(&sx, &sy);
+		m_pDocument->m_TextRam.GetScreenSize(&cx, &cy, &sx, &sy);
 
 	tmp.Clear();
 	tmp.Put8Bit(SSH2_MSG_CHANNEL_REQUEST);
@@ -2384,8 +2404,8 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 	tmp.PutStr("pty-req");
 	tmp.Put8Bit(1);
 	tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_TermName));
-	tmp.Put32Bit(m_pDocument->m_TextRam.m_Cols);
-	tmp.Put32Bit(m_pDocument->m_TextRam.m_Lines);
+	tmp.Put32Bit(cx);
+	tmp.Put32Bit(cy);
 	tmp.Put32Bit(sx);
 	tmp.Put32Bit(sy);
 
@@ -2582,20 +2602,20 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 		int		mode;
 		LPCTSTR	name;
 	} kextab[] = {
-		{ DHMODE_ECDH_S2_N256,	_T("ecdh-sha2-nistp256")					},	// MAY
-		{ DHMODE_ECDH_S2_N384,	_T("ecdh-sha2-nistp384")					},	// SHOULD
-		{ DHMODE_ECDH_S2_N521,	_T("ecdh-sha2-nistp521")					},	// SHOULD
-		{ DHMODE_GROUP_GEX256,	_T("diffie-hellman-group-exchange-sha256")	},	// MAY
-		{ DHMODE_GROUP_GEX,		_T("diffie-hellman-group-exchange-sha1")	},	// SHOULD NOT
-		{ DHMODE_GROUP_14,		_T("diffie-hellman-group14-sha1")			},	// SHOULD
-		{ DHMODE_GROUP_1,		_T("diffie-hellman-group1-sha1")			},	// SHOULD NOT
+		{ DHMODE_ECDH_S2_N256,	_T("ecdh-sha2-nistp256")					},	// RFC5656	MAY
+		{ DHMODE_ECDH_S2_N384,	_T("ecdh-sha2-nistp384")					},	// RFC5656	SHOULD
+		{ DHMODE_ECDH_S2_N521,	_T("ecdh-sha2-nistp521")					},	// RFC5656	SHOULD
+		{ DHMODE_GROUP_GEX256,	_T("diffie-hellman-group-exchange-sha256")	},	// RFC4419	MAY
+		{ DHMODE_GROUP_GEX,		_T("diffie-hellman-group-exchange-sha1")	},	// RFC4419	SHOULD NOT
+		{ DHMODE_GROUP_14,		_T("diffie-hellman-group14-sha1")			},	// RFC4253	SHOULD
+		{ DHMODE_GROUP_1,		_T("diffie-hellman-group1-sha1")			},	// RFC4253	SHOULD NOT
 		{ DHMODE_CURVE25519,	_T("curve25519-sha256@libssh.org")			},
-		{ DHMODE_CURVE25519,	_T("curve25519-sha256")						},	// MUST
-		{ DHMODE_GROUP_14_256,	_T("diffie-hellman-group14-sha256")			},	// MAY
-		{ DHMODE_GROUP_15_512,	_T("diffie-hellman-group15-sha512")			},	// MAY
-		{ DHMODE_GROUP_16_512,	_T("diffie-hellman-group16-sha512")			},	// SHOULD
-		{ DHMODE_GROUP_17_512,	_T("diffie-hellman-group17-sha512")			},	// MAY
-		{ DHMODE_GROUP_18_512,	_T("diffie-hellman-group18-sha512")			},	// MAY
+		{ DHMODE_CURVE25519,	_T("curve25519-sha256")						},	//			MUST
+		{ DHMODE_GROUP_14_256,	_T("diffie-hellman-group14-sha256")			},	// RFC8268	MAY
+		{ DHMODE_GROUP_15_512,	_T("diffie-hellman-group15-sha512")			},	// RFC8268	MAY
+		{ DHMODE_GROUP_16_512,	_T("diffie-hellman-group16-sha512")			},	// RFC8268	SHOULD
+		{ DHMODE_GROUP_17_512,	_T("diffie-hellman-group17-sha512")			},	// RFC8268	MAY
+		{ DHMODE_GROUP_18_512,	_T("diffie-hellman-group18-sha512")			},	// RFC8268	MAY
 		{ 0,					NULL										},
 	};
 

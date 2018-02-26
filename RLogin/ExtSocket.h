@@ -207,7 +207,7 @@ public:
 
 	virtual int Receive(void *lpBuf, int nBufLen, int nFlags = 0);
 	virtual int Send(const void *lpBuf, int nBufLen, int nFlags = 0);
-	virtual void SendWindSize(int x, int y);
+	virtual void SendWindSize();
 	virtual void SendBreak(int opt = 0);
 	void SendFlash(int sec);
 

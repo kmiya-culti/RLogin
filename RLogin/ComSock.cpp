@@ -60,7 +60,7 @@ CComSock::CComSock(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 	m_pComMoni = NULL;
 	m_RecvByteSec = 0;
 	m_SendByteSec = 0;
-	m_bXonXffMode = FALSE;
+	m_fInXOutXMode = 0;
 
 	SetRecvBufSize(COMBUFSIZE);
 }
@@ -103,14 +103,12 @@ BOOL CComSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, i
 		return FALSE;
 	}
 
-	PurgeComm(m_hCom, PURGE_TXABORT | PURGE_RXABORT | PURGE_TXCLEAR | PURGE_RXCLEAR);
-	SetupComm(m_hCom, COMQUEUESIZE, COMQUEUESIZE);
-
 	SetCommState(m_hCom, &(m_pComConf->dcb));
+	SetupComm(m_hCom, COMQUEUESIZE, COMQUEUESIZE);
+	PurgeComm(m_hCom, PURGE_TXABORT | PURGE_RXABORT | PURGE_TXCLEAR | PURGE_RXCLEAR);
+
 	EscapeCommFunction(m_hCom, m_pComConf->dcb.fDtrControl == DTR_CONTROL_DISABLE ? CLRDTR : SETDTR);
 	EscapeCommFunction(m_hCom, m_pComConf->dcb.fRtsControl == RTS_CONTROL_DISABLE ? CLRRTS : SETRTS);
-
-	PurgeComm(m_hCom, PURGE_TXABORT | PURGE_RXABORT);
 
 	GetCommTimeouts(m_hCom, &ComTime);
 	ComTime.ReadIntervalTimeout         = 10;
@@ -212,21 +210,18 @@ void CComSock::SetXonXoff(int sw)
 	if ( m_hCom == INVALID_HANDLE_VALUE || m_pComConf == NULL )
 		return;
 
-	if ( sw ) {		// ->ON
-		if ( m_pComConf->dcb.fInX != 0 && m_pComConf->dcb.fOutX != 0 )
+	if ( sw ) {		// OFF->ON
+		if ( m_pComConf->dcb.fInX != 0 || m_pComConf->dcb.fOutX != 0 || m_fInXOutXMode == 0 )
 			return;
-		if ( !m_bXonXffMode )
+		m_pComConf->dcb.fInX  = m_fInXOutXMode & 1;
+		m_pComConf->dcb.fOutX = (m_fInXOutXMode >> 4) & 1;
+		m_fInXOutXMode = 0;
+	} else {		// ON->OFF
+		if ( m_pComConf->dcb.fInX == 0 && m_pComConf->dcb.fOutX == 0 )
 			return;
-		m_pComConf->dcb.fInX  = 1;
-		m_pComConf->dcb.fOutX = 1;
-	} else {		// ->OFF
-		if ( m_pComConf->dcb.fInX == 0 && m_pComConf->dcb.fOutX == 0 ) {
-			m_bXonXffMode = FALSE;
-			return;
-		}
+		m_fInXOutXMode = m_pComConf->dcb.fInX | (m_pComConf->dcb.fOutX << 4);
 		m_pComConf->dcb.fInX  = 0;
 		m_pComConf->dcb.fOutX = 0;
-		m_bXonXffMode = TRUE;
 	}
 
 	SetComConf();
@@ -1115,7 +1110,6 @@ void CComSock::AliveComPort(BYTE pComAliveBits[COMALIVEBYTE])
 RETRY:
 	if ( QueryDosDevice(NULL, pDevBuf, nBufLen) > 0 ) {
 		for ( p = pDevBuf ; *p != _T('\0') ; ) {
-			TRACE(_T("QueryDosDevice %s\n"), p);
 			if ( _tcsnicmp(p, _T("COM"), 3) == 0 && (n = _tstoi(p + 3)) > 0 && n < COMALIVEBITS )
 				pComAliveBits[n / 8] |= (1 << (n % 8));
 			while ( *(p++) != _T('\0') );

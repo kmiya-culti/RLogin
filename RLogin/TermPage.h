@@ -21,6 +21,8 @@ public:
 public:
 	CProcTab m_ProcTab;
 	CListCtrlExt m_OptList;
+	int m_RecvCrLf;
+	int m_SendCrLf;
 
 public:
 	void DoInit();
@@ -42,4 +44,5 @@ protected:
 	afx_msg void OnBnClickedEscedit();
 	afx_msg void OnNMClickOptlist(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnLvnGetInfoTipEsclist(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnUpdateEdit();
 };

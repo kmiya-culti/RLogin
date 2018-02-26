@@ -1437,8 +1437,9 @@ CTextRam::CTextRam()
 	m_Loc_Mode  = 0;
 	memset(m_MetaKeys, 0, sizeof(m_MetaKeys));
 	m_TitleMode = WTTL_ENTRY;
-	m_StsFlag = FALSE;
+	m_MediaCopyMode = MEDIACOPY_NONE;
 	m_StsMode = 0;
+	m_StsLine = 0;
 	m_StsLed  = 0;
 	m_DefTermPara[TERMPARA_VTLEVEL] = m_VtLevel = DEFVAL_VTLEVEL;
 	m_DefTermPara[TERMPARA_FIRMVER] = m_FirmVer = DEFVAL_FIRMVER;
@@ -1514,6 +1515,8 @@ CTextRam::CTextRam()
 		m_DefModKey[n] = (-1);
 	memcpy(m_ModKey, m_DefModKey, sizeof(m_ModKey));
 	memset(m_ModKeyTab, 0xFF, sizeof(m_ModKeyTab));
+
+	SaveParam(&m_SaveParam);
 
 	fc_Init(EUC_SET);
 
@@ -1829,8 +1832,10 @@ void CTextRam::InitText(int Width, int Height)
 	if ( m_RightX == oldCols || m_RightX > m_Cols )
 		m_RightX = m_Cols;
 
-	if ( m_Cols != oldCols || m_Lines != oldLines )
-		m_pDocument->SocketSendWindSize(m_Cols, m_Lines);
+	if ( m_Cols != oldCols || m_Lines != oldLines ) {
+		if ( m_pDocument != NULL && m_pDocument->m_pSock != NULL )
+			m_pDocument->m_pSock->SendWindSize();
+	}
 
 	if ( bHisInit )
 		InitHistory();
@@ -2238,7 +2243,7 @@ void CTextRam::Init()
 	EnableOption(TO_DECARM);	// ?   8 Autorepeat mode
 	EnableOption(TO_DECTCEM);	// ?  25 Text Cursor Enable Mode
 	EnableOption(TO_XTMCUS);	// ?  41 XTerm tab bug fix
-	EnableOption(TO_XTMRVW);	// ?  45 XTerm Reverse-wraparound mod
+//	EnableOption(TO_XTMRVW);	// ?  45 XTerm Reverse-wraparound mod
 	EnableOption(TO_DECBKM);	// ?  67 Backarrow key mode (BS)
 	EnableOption(TO_XTPRICOL);	// ?1070 Private Color Map
 	EnableOption(TO_RLFONT);	// ?8404 フォントサイズから一行あたりの文字数を決定
@@ -2290,8 +2295,9 @@ void CTextRam::Init()
 	m_DefTermPara[TERMPARA_KEYBID]  = m_KeybId  = DEFVAL_KEYBID;
 
 	m_LangMenu = 0;
-	m_StsFlag = FALSE;
+	m_MediaCopyMode = MEDIACOPY_NONE;
 	m_StsMode = 0;
+	m_StsLine = 0;
 	m_StsLed  = 0;
 	SetRetChar(FALSE);
 
@@ -2326,7 +2332,7 @@ void CTextRam::Init()
 //	m_FontTab.Init();
 	m_TextBitMap.Init();
 
-	RESET();
+	RESET(RESET_ALL);
 }
 
 static const LPCTSTR setname[] = { _T("EUC"), _T("SJIS"), _T("ASCII"), _T("UTF8"), _T("BIG5") };
@@ -2735,7 +2741,7 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		memcpy(m_AnsiOpt, m_DefAnsiOpt, sizeof(m_AnsiOpt));
 		memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
 
-		RESET();
+		RESET(RESET_ALL);
 	}
 }
 void CTextRam::DiffIndex(CTextRam &orig, CStringIndex &index)
@@ -3327,7 +3333,7 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 		}
 	}
 
-	RESET();
+	RESET(RESET_ALL);
 }
 
 static const ScriptCmdsDefs DocScrn[] = {
@@ -4129,6 +4135,92 @@ SKIP:
 
 	*sps = GetCalcPos(sx, sy);
 	*eps = GetCalcPos(ex, ey);
+}
+void CTextRam::MediaCopyStr(LPCWSTR str)
+{
+	if ( m_pDocument->m_pMediaCopyWnd == NULL ) {
+		m_pDocument->m_pMediaCopyWnd = new CStatusDlg;
+		m_pDocument->m_pMediaCopyWnd->m_bEdit = TRUE;
+		m_pDocument->m_pMediaCopyWnd->m_OwnerType = 3;
+		m_pDocument->m_pMediaCopyWnd->m_pValue = m_pDocument;
+		m_pDocument->m_pMediaCopyWnd->m_Title = m_pDocument->m_ServerEntry.m_EntryName;
+		m_pDocument->m_pMediaCopyWnd->Create(IDD_STATUS_DLG, CWnd::GetDesktopWindow());
+		m_pDocument->m_pMediaCopyWnd->ShowWindow(SW_SHOW);
+		::AfxGetMainWnd()->SetFocus();
+	}
+
+	m_pDocument->m_pMediaCopyWnd->AddStatusText(UniToTstr(str));
+}
+void CTextRam::MediaCopyDchar(DWORD ch)
+{
+	CStringW str;
+
+	if ( (ch & 0xFFFF0000) != 0 )
+		str = (WCHAR)(ch >> 16);
+	str += (WCHAR)(ch & 0xFFFF);
+
+	MediaCopyStr(str);
+}
+void CTextRam::MediaCopy(int y1, int y2)
+{
+	int x, y, sx, ex, tc;
+	int len;
+	LPCWSTR s;
+	WCHAR tabc;
+	CCharCell *vp;
+	CStringW str;
+
+	for ( y = y1 ; y <= y2 ; y++ ) {
+		vp = GETVRAM(0, y);
+
+		sx = 0;
+		ex = m_Cols - 1;
+
+		if ( vp->m_Vram.zoom != 0 ) {
+			sx /= 2;
+			ex /= 2;
+		}
+
+		while ( sx <= ex && vp[ex].IsEmpty() )
+			ex--;
+
+		if ( IS_2BYTE(vp[sx].m_Vram.mode) )
+			sx++;
+
+		tc = 0;
+		for ( x = sx ; x <= ex ; x += len ) {
+			if ( vp[x].IsEmpty() ) {
+				s = L" ";
+				len = 1;
+			} else if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].m_Vram.mode) && IS_2BYTE(vp[x + 1].m_Vram.mode) && vp[x].Compare(vp[x + 1]) == 0 ) {
+				s = vp[x];
+				len = 2;
+			} else {
+				s = vp[x];
+				len = 1;
+			}
+
+			if ( len == 1 && s[0] <= L' ' && s[1] == L'\0' ) {
+				if ( tc++ == 0 )
+					tabc = s[0];
+				if ( (x % m_DefTab) == (m_DefTab - 1) && IsOptEnable(TO_RLSPCTAB) ) {
+					str += (tc > 1 ? L'\t' : tabc);
+					tc = 0;
+				}
+			} else {
+				for ( ; tc > 0 ; tc-- )
+					str += L' ';
+				while ( *s != L'\0' )
+					str += *(s++);
+			}
+		}
+		for ( ; tc > 0 ; tc-- )
+			str += L' ';
+
+		str += L"\r\n";
+	}
+
+	MediaCopyStr(str);
 }
 void CTextRam::EditCopy(int sps, int eps, BOOL rectflag, BOOL lineflag)
 {
@@ -5878,12 +5970,15 @@ void CTextRam::GetCellSize(int *x, int *y)
 		*y = *x * m_DefFontHw / 10;
 	}
 }
-void CTextRam::GetScreenSize(int *x, int *y)
+void CTextRam::GetScreenSize(int *pCx, int *pCy, int *pSx, int *pSy)
 {
-	GetCellSize(x, y);
+	*pCx = m_Cols;
+	*pCy = GetLineSize();
 
-	*x = *x * m_Cols;
-	*y = *y * m_Lines;
+	GetCellSize(pSx, pSy);
+
+	*pSx = *pSx * *pCx;
+	*pSy = *pSy * *pCy;
 }
 
 int CTextRam::OptionToIndex(int value, BOOL bAnsi)
@@ -6140,12 +6235,12 @@ void CTextRam::CallReceiveLine(int y)
 		return;
 
 	CStringW tmp, str;
+	CBuffer in, out;
+
 	GetLine(y, tmp);
 
-	CBuffer in, out;
-	CTime now = CTime::GetCurrentTime();
-
 	if ( IsOptEnable(TO_RLLOGTIME) ) {
+		CTime now = CTime::GetCurrentTime();
 		str = now.Format(m_TimeFormat);
 		in.Apend((LPBYTE)((LPCWSTR)str), str.GetLength() * sizeof(WCHAR));
 	}
@@ -6154,7 +6249,7 @@ void CTextRam::CallReceiveLine(int y)
 	m_IConv.StrToRemote(m_SendCharSet[m_LogCharSet[IsOptValue(TO_RLLOGCODE, 2)]], &in, &out);
 	m_pDocument->m_pLogFile->Write(out.GetPtr(), out.GetSize());
 }
-void CTextRam::CallReceiveChar(DWORD ch, LPCTSTR name)
+BOOL CTextRam::CallReceiveChar(DWORD ch, LPCTSTR name)
 {
 	// UTF-16LE x 2 or BS(08) HT(09) LF(0A) VT(0B) FF(0C) CR(0D) ESC(1B)
 	//
@@ -6162,13 +6257,26 @@ void CTextRam::CallReceiveChar(DWORD ch, LPCTSTR name)
 	//		  UCS2 UCS2
 
 	if ( (ch & 0xFFFF0000) == 0 && ch < ' ' ) {
-//		m_LastChar = 0;
 		m_LastFlag = 0;
 		m_bRtoL = FALSE;
 	}
 
 	if ( m_pDocument == NULL || m_bTraceActive )
-		return;
+		return FALSE;
+
+	if ( m_StsMode == (STSMODE_ENABLE | STSMODE_INDICATOR) ) {
+		if ( (ch & 0xFFFF0000) != 0 )
+			m_StsText += (WCHAR)(ch >> 16);
+		else if ( ch == L'\r' || ch == L'\n' )
+			m_StsText.Empty();
+		else if ( ch >= L' ' )
+			m_StsText += (WCHAR)ch;
+		((CMainFrame *)AfxGetMainWnd())->SetStatusText(UniToTstr(m_StsText));
+		return TRUE;
+	}
+
+	if ( name == NULL && m_MediaCopyMode != MEDIACOPY_NONE )
+		MediaCopyDchar(ch);
 
 	int pos = m_CurY + m_HisPos;
 	
@@ -6180,7 +6288,7 @@ void CTextRam::CallReceiveChar(DWORD ch, LPCTSTR name)
 	m_pDocument->OnReceiveChar(ch, m_CurX + pos * m_ColsMax);
 
 	if ( m_pDocument->m_pLogFile == NULL )
-		return;
+		return (m_MediaCopyMode == MEDIACOPY_RELAY ? TRUE : FALSE);
 
 	if ( m_LogMode == LOGMOD_LINE ) {
 		if ( pos != m_LogCurY ) { // && ch >= 0x20 ) {
@@ -6188,56 +6296,53 @@ void CTextRam::CallReceiveChar(DWORD ch, LPCTSTR name)
 				CallReceiveLine(m_LogCurY - m_HisPos);
 			m_LogCurY = pos;
 		}
-		return;
 
-	} else if ( m_LogMode == LOGMOD_RAW || m_LogMode == LOGMOD_PAGE || m_LogMode == LOGMOD_DEBUG )
-		return;
+	} else if ( m_LogMode == LOGMOD_CTRL || m_LogMode == LOGMOD_CHAR ) {
+		CBuffer in, out;
+		CStringW tmp, str;
 
-	// LOGMOD_CTRL or LOGMOD_CHAR
+		switch(ch) {
+		case 0x08:
+			tmp = L"<BS>";
+			break;
+		case 0x0B:
+			tmp = L"<VT>";
+			break;
+		case 0x0C:
+			tmp = L"<FF>";
+			break;
+		case 0x1B:
+			ASSERT(name != NULL);
+			tmp.Format(L"<%s>", TstrToUni(name));
+			break;
+		case 0x09:	// TAB
+		case 0x0A:	// LF
+		case 0x0D:	// CR
+			tmp = (WCHAR)ch;
+			break;
+		default:
+			if ( (ch & 0xFFFF0000) != 0 )
+				tmp = (WCHAR)(ch >> 16);
+			tmp += (WCHAR)(ch & 0xFFFF);
+			break;
+		}
 
-	CStringW tmp, str;
+		if ( m_LogTimeFlag && IsOptEnable(TO_RLLOGTIME) ) {
+			CTime now = CTime::GetCurrentTime();
+			str = now.Format(m_TimeFormat);
+			in.Apend((LPBYTE)((LPCWSTR)str), str.GetLength() * sizeof(WCHAR));
+			m_LogTimeFlag = FALSE;
+		}
 
-	switch(ch) {
-	case 0x08:
-		tmp = L"<BS>";
-		break;
-	case 0x0B:
-		tmp = L"<VT>";
-		break;
-	case 0x0C:
-		tmp = L"<FF>";
-		break;
-	case 0x1B:
-		ASSERT(name != NULL);
-		tmp.Format(L"<%s>", TstrToUni(name));
-		break;
-	case 0x09:	// TAB
-	case 0x0A:	// LF
-	case 0x0D:	// CR
-		tmp = (WCHAR)ch;
-		break;
-	default:
-		if ( (ch & 0xFFFF0000) != 0 )
-			tmp = (WCHAR)(ch >> 16);
-		tmp += (WCHAR)(ch & 0xFFFF);
-		break;
+		if ( ch == 0x0A )
+			m_LogTimeFlag = TRUE;
+
+		in.Apend((LPBYTE)((LPCWSTR)tmp), tmp.GetLength() * sizeof(WCHAR));
+		m_IConv.StrToRemote(m_SendCharSet[m_LogCharSet[IsOptValue(TO_RLLOGCODE, 2)]], &in, &out);
+		m_pDocument->m_pLogFile->Write(out.GetPtr(), out.GetSize());
 	}
 
-	CBuffer in, out;
-	CTime now = CTime::GetCurrentTime();
-
-	if ( m_LogTimeFlag && IsOptEnable(TO_RLLOGTIME) ) {
-		str = now.Format(m_TimeFormat);
-		in.Apend((LPBYTE)((LPCWSTR)str), str.GetLength() * sizeof(WCHAR));
-		m_LogTimeFlag = FALSE;
-	}
-
-	if ( ch == 0x0A )
-		m_LogTimeFlag = TRUE;
-
-	in.Apend((LPBYTE)((LPCWSTR)tmp), tmp.GetLength() * sizeof(WCHAR));
-	m_IConv.StrToRemote(m_SendCharSet[m_LogCharSet[IsOptValue(TO_RLLOGCODE, 2)]], &in, &out);
-	m_pDocument->m_pLogFile->Write(out.GetPtr(), out.GetSize());
+	return (m_MediaCopyMode == MEDIACOPY_RELAY ? TRUE : FALSE);
 }
 
 int CTextRam::UnicodeCharFlag(DWORD code)
@@ -6873,7 +6978,9 @@ void CTextRam::DispGrapWnd(class CGrapWnd *pGrapWnd, BOOL bNextCols)
 
 void CTextRam::RESET(int mode)
 {
-	if ( mode & RESET_SIZE ) {
+	BOOL bSendSize = FALSE;
+
+	if ( mode & RESET_SIZE && m_pDocument != NULL ) {
 		m_bReSize = FALSE;
 		m_pDocument->UpdateAllViews(NULL, UPDATE_RESIZE, NULL);
 	}
@@ -6904,9 +7011,24 @@ void CTextRam::RESET(int mode)
 		m_CaretColor = m_DefCaretColor;
 	}
 
+	if ( mode & RESET_STATUS ) {
+		if ( (m_StsMode & STSMODE_MASK) == STSMODE_INSCREEN )
+			bSendSize = TRUE;
+		m_StsMode = 0;
+		m_StsLine = 0;
+	}
+
 	if ( mode & RESET_MARGIN ) {
-		m_TopY = 0;
-		m_BtmY = m_Lines;
+		if ( m_StsMode == STSMODE_INSCREEN ) {
+			m_TopY = 0;
+			m_BtmY = m_Lines - m_StsLine;
+		} else if ( m_StsMode == (STSMODE_ENABLE | STSMODE_INSCREEN) ) {
+			m_TopY = m_Lines - m_StsLine;
+			m_BtmY = m_Lines;
+		} else {
+			m_TopY = 0;
+			m_BtmY = m_Lines;
+		}
 		m_LeftX  = 0;
 		m_RightX = m_Cols;
 	}
@@ -6984,6 +7106,9 @@ void CTextRam::RESET(int mode)
 		memcpy(m_AnsiOpt, m_DefAnsiOpt, sizeof(m_AnsiOpt));
 		SetRetChar(FALSE);
 		m_FileSaveFlag = TRUE;
+
+		if ( m_StsMode == (STSMODE_ENABLE | STSMODE_INSCREEN) )
+			EnableOption(TO_DECOM);
 	}
 
 	if ( mode & RESET_XTOPT ) {
@@ -7012,24 +7137,6 @@ void CTextRam::RESET(int mode)
 	if ( mode & RESET_HISTORY )
 		m_HisLen = m_Lines;
 
-	if ( mode & RESET_SAVE ) {
-		m_Save_CurX = m_CurX;
-		m_Save_CurY = m_CurY;
-		m_Save_AttNow = m_AttNow;
-		m_Save_AttSpc = m_AttSpc;
-		m_Save_BankGL = m_BankGL;
-		m_Save_BankGR = m_BankGR;
-		m_Save_BankSG = m_BankSG;
-		m_Save_DoWarp = m_DoWarp;
-		m_Save_Decom  = (IsOptEnable(TO_DECOM) ? TRUE : FALSE);
-		memcpy(m_Save_BankTab, m_BankTab, sizeof(m_BankTab));
-		memcpy(m_Save_AnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
-		memcpy(m_Save_TabMap, m_TabMap, sizeof(m_TabMap));
-		for ( int n = 0 ; n < 64 ; n++ )
-			m_Macro[n].Clear();
-		memset(m_MacroExecFlag, 0, sizeof(m_MacroExecFlag));
-	}
-
 	if ( mode & RESET_MOUSE ) {
 		m_MouseTrack = MOS_EVENT_NONE;
 		m_MouseRect.SetRectEmpty();
@@ -7037,10 +7144,16 @@ void CTextRam::RESET(int mode)
 	}
 
 	if ( mode & RESET_CHAR ) {
+		m_MediaCopyMode = MEDIACOPY_NONE;
 		m_Exact = FALSE;
-		m_StsFlag = FALSE;
-		m_StsMode = 0;
 		m_StsLed  = 0;
+	}
+
+	if ( mode & RESET_SAVE ) {
+		SaveParam(&m_SaveParam);
+		for ( int n = 0 ; n < 64 ; n++ )
+			m_Macro[n].Clear();
+		memset(m_MacroExecFlag, 0, sizeof(m_MacroExecFlag));
 	}
 
 	if ( mode & RESET_TEK ) {
@@ -7061,6 +7174,9 @@ void CTextRam::RESET(int mode)
 		m_Tek_wX = 0; m_Tek_wY = m_Tek_cY;
 		TekClear(m_pTekWnd != NULL ? TRUE : FALSE);
 	}
+
+	if ( bSendSize && m_pDocument != NULL && m_pDocument->m_pSock != NULL )
+		m_pDocument->m_pSock->SendWindSize();
 }
 CCharCell *CTextRam::GETVRAM(int cols, int lines)
 {
@@ -7648,18 +7764,199 @@ void CTextRam::AddOscClipCrLf(CString &text)
 		break;
 	}
 }
+void CTextRam::SetStatusMode(int fMode, int nLine)
+{
+	BOOL bSendSize = FALSE;
+
+	switch(fMode) {
+	case STSMODE_HIDE:
+	case STSMODE_INDICATOR:
+		if ( (m_StsMode & STSMODE_MASK) == STSMODE_INSCREEN ) {
+			// In Screen Status Hide
+			if ( (m_StsMode & STSMODE_ENABLE) != 0 )
+				LoadParam(&m_StsParam, TRUE);
+			if ( m_BtmY == (m_Lines - m_StsLine) )
+				m_BtmY = m_Lines;
+			m_StsMode = (m_StsMode & STSMODE_ENABLE) | fMode;
+			ERABOX(0, m_Lines - m_StsLine, m_Cols, m_Lines);
+			m_StsLine = 0;
+			bSendSize = TRUE;
+		} else
+			m_StsMode = (m_StsMode & STSMODE_ENABLE) | fMode;
+		break;
+	case STSMODE_INSCREEN:
+		if ( (m_StsMode & STSMODE_MASK) != STSMODE_INSCREEN ) {
+			// In Screen Status Show
+			if ( (m_StsLine = nLine) >= m_Lines )
+				m_StsLine = m_Lines - 1;
+			if ( m_StsLine <= 0 )
+				break;
+			while ( m_CurY >= (m_Lines - m_StsLine) ) {
+				FORSCROLL(0, 0, m_Cols, m_Lines);
+				m_CurY--;
+			}
+			while ( m_BtmY > (m_Lines - m_StsLine) )
+				m_BtmY--;
+			ERABOX(0, m_Lines - m_StsLine, m_Cols, m_Lines); 
+			bSendSize = TRUE;
+
+			SaveParam(&m_StsParam);
+			m_StsParam.m_CurX = 0;
+			m_StsParam.m_CurY = m_Lines - m_StsLine;
+			m_StsParam.m_TopY = m_Lines - m_StsLine;
+			m_StsParam.m_BtmY = m_Lines;
+			m_StsParam.m_Decom = TRUE;
+
+			if ( (m_StsMode & STSMODE_ENABLE) != 0 )
+				SwapParam(&m_StsParam, TRUE);
+		}
+		m_StsMode = (m_StsMode & STSMODE_ENABLE) | STSMODE_INSCREEN;
+		break;
+
+	case STSMODE_DISABLE:
+		switch(m_StsMode) {
+		case STSMODE_HIDE:
+		case STSMODE_INDICATOR:
+		case STSMODE_INSCREEN:
+			break;
+		case STSMODE_ENABLE | STSMODE_HIDE:
+		case STSMODE_ENABLE | STSMODE_INDICATOR:
+			m_StsMode &= ~STSMODE_ENABLE;
+			break;
+		case STSMODE_ENABLE | STSMODE_INSCREEN:
+			m_StsMode = STSMODE_INSCREEN;
+			// Move Main Screen
+			SwapParam(&m_StsParam, TRUE);
+			break;
+		}
+		break;
+	case STSMODE_ENABLE:
+		switch(m_StsMode) {
+		case STSMODE_HIDE:
+			break;
+		case STSMODE_INDICATOR:
+			m_StsMode = STSMODE_ENABLE | STSMODE_INDICATOR;
+			break;
+		case STSMODE_INSCREEN:
+			m_StsMode = STSMODE_ENABLE | STSMODE_INSCREEN;
+			// Move Status Line
+			SwapParam(&m_StsParam, TRUE);
+			break;
+		case STSMODE_ENABLE | STSMODE_HIDE:
+			m_StsMode = STSMODE_HIDE;
+			break;
+		case STSMODE_ENABLE | STSMODE_INDICATOR:
+		case STSMODE_ENABLE | STSMODE_INSCREEN:
+			break;
+		}
+		break;
+	}
+
+	if ( bSendSize && m_pDocument != NULL && m_pDocument->m_pSock != NULL )
+		m_pDocument->m_pSock->SendWindSize();
+}
+void CTextRam::SaveParam(SAVEPARAM *pSave)
+{
+	pSave->m_CurX     = m_CurX;
+	pSave->m_CurY     = m_CurY;
+
+	pSave->m_TopY     = m_TopY;
+	pSave->m_BtmY     = m_BtmY;
+	pSave->m_LeftX    = m_LeftX;
+	pSave->m_RightX   = m_RightX;
+
+	pSave->m_AttNow   = m_AttNow;
+	pSave->m_AttSpc   = m_AttSpc;
+
+	pSave->m_BankGL   = m_BankGL;
+	pSave->m_BankGR   = m_BankGR;
+	pSave->m_BankSG   = m_BankSG;
+	memcpy(pSave->m_BankTab, m_BankTab, sizeof(m_BankTab));
+
+	pSave->m_DoWarp   = m_DoWarp;
+	pSave->m_Exact    = m_Exact;
+	pSave->m_LastChar = m_LastChar;
+	pSave->m_LastFlag = m_LastFlag;
+	pSave->m_LastPos  = m_LastPos;
+	pSave->m_bRtoL    = m_bRtoL;
+
+	pSave->m_Decom    = (IsOptEnable(TO_DECOM) ? TRUE : FALSE);
+	memcpy(pSave->m_AnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
+
+	memcpy(pSave->m_TabMap, m_TabMap, sizeof(m_TabMap));
+}
+void CTextRam::LoadParam(SAVEPARAM *pSave, BOOL bAll)
+{
+	m_CurX     = pSave->m_CurX;
+	m_CurY     = pSave->m_CurY;
+
+	if ( m_CurX < 0 ) m_CurX = 0; else if ( m_CurX >= m_Cols ) m_CurX = m_Cols - 1;
+	if ( m_CurY < 0 ) m_CurY = 0; else if ( m_CurY >= m_Lines ) m_CurY = m_Lines - 1;
+
+	m_AttNow   = pSave->m_AttNow;
+	m_AttSpc   = pSave->m_AttSpc;
+
+	m_BankGL   = pSave->m_BankGL;
+	m_BankGR   = pSave->m_BankGR;
+	m_BankSG   = pSave->m_BankSG;
+	memcpy(m_BankTab, pSave->m_BankTab, sizeof(m_BankTab));
+
+	m_DoWarp   = pSave->m_DoWarp;
+	m_Exact    = pSave->m_Exact;
+	m_LastChar = pSave->m_LastChar;
+	m_LastFlag = pSave->m_LastFlag;
+	m_LastPos  = pSave->m_LastPos;
+	m_bRtoL    = pSave->m_bRtoL;
+
+	if ( bAll ) {
+		m_TopY     = pSave->m_TopY;
+		m_BtmY     = pSave->m_BtmY;
+		m_LeftX    = pSave->m_LeftX;
+		m_RightX   = pSave->m_RightX;
+
+		if ( m_TopY < 0 ) m_TopY = 0; else if ( m_TopY >= m_Lines ) m_TopY = m_Lines - 1;
+		if ( m_BtmY < 0 ) m_BtmY = 0; else if ( m_BtmY > m_Lines ) m_BtmY = m_Lines;
+
+		if ( m_LeftX < 0 ) m_LeftX = 0; else if ( m_LeftX >= m_Cols ) m_LeftX = m_Cols - 1;
+		if ( m_RightX < 0 ) m_RightX = 0; else if ( m_RightX > m_Cols ) m_RightX = m_Cols;
+
+		memcpy(m_AnsiOpt, pSave->m_AnsiOpt, sizeof(m_AnsiOpt));
+		memcpy(m_TabMap, pSave->m_TabMap, sizeof(m_TabMap));
+	}
+
+	SetOption(TO_DECOM, pSave->m_Decom);
+}
+void CTextRam::SwapParam(SAVEPARAM *pSave, BOOL bAll)
+{
+	SAVEPARAM temp;
+
+	SaveParam(&temp);
+	LoadParam(pSave, bAll);
+	memcpy(pSave, &temp, sizeof(temp));
+}
+
+//////////////////////////////////////////////////////////////////////
+// Low Level
 
 void CTextRam::LOCATE(int x, int y)
 {
 	m_DoWarp = FALSE;
+
 	if ( (m_CurX = x) >= m_Cols )
 		m_CurX = m_Cols - 1;
 	else if ( m_CurX < 0 )
 		m_CurX = 0;
+
 	if ( (m_CurY = y) >= m_Lines )
 		m_CurY = m_Lines - 1;
 	else if ( m_CurY < 0 )
 		m_CurY = 0;
+
+	if ( m_StsMode == STSMODE_INSCREEN && m_CurY >= GetLineSize() )
+		m_CurY = GetLineSize() - 1;
+	else if ( m_StsMode == (STSMODE_ENABLE | STSMODE_INSCREEN) && m_CurY < GetLineSize() )
+		m_CurY = GetLineSize();
+
 	if ( m_CurX >= (m_Cols / 2) && GetDm(m_CurY) != 0 )
 		m_CurX = (m_Cols / 2) - 1;
 }
@@ -7675,14 +7972,26 @@ void CTextRam::ERABOX(int sx, int sy, int ex, int ey, int df)
 	if ( ex < sx ) return; else if ( ex > m_Cols  ) ex = m_Cols;
 	if ( ey < sy ) return; else if ( ey > m_Lines ) ey = m_Lines;
 
-	if ( sx == 0 && ex == m_Cols && sy == 0 && ey == m_Lines && m_Lines > 1 && IsOptEnable(TO_RLCLSBACK) ) {
-		for ( x = m_Lines ; x > 0 ; x-- ) {
+	if ( m_StsMode == STSMODE_INSCREEN ) {
+		if ( sy >= GetLineSize() ) return;
+		if ( ey > GetLineSize() ) ey = GetLineSize();
+		if ( ey <= sy ) return;
+	} else if ( m_StsMode == (STSMODE_ENABLE | STSMODE_INSCREEN) ) {
+		if ( ey < GetLineSize() ) return;
+		if ( sy < GetLineSize() ) sy = GetLineSize();
+		if ( ey <= sy ) return;
+	}
+
+	if ( sx == 0 && ex == m_Cols && sy == 0 && GetLineSize() > 1 && IsOptEnable(TO_RLCLSBACK) ) {
+		for ( x = ey ; x > 0 ; x-- ) {
 			if ( !IsEmptyLine(x - 1) )
 				break;
 		}
 		for ( y = 0 ; y < x ; y++)
-			FORSCROLL(0, 0, m_Cols, m_Lines);
+			FORSCROLL(0, 0, m_Cols, ey);
+
 		m_pDocument->UpdateAllViews(NULL, UPDATE_SCROLLOUT, NULL);
+		return;
 	}
 
 	if ( (df & ERM_ISOPRO) != 0 && IsOptEnable(TO_ANSIERM) )
@@ -7734,7 +8043,7 @@ void CTextRam::FORSCROLL(int sx, int sy, int ex, int ey)
 
 	m_DoWarp = FALSE;
 
-	if ( sy == 0 && ey == m_Lines && sx == 0 && ex == m_Cols && !m_LineEditMode && !m_bTraceActive ) {
+	if ( sy == 0 && sx == 0 && ex == m_Cols && !m_LineEditMode && !m_bTraceActive ) {
 		if ( m_LogMode == LOGMOD_PAGE )
 			CallReceiveLine(0);
 		m_HisUse++;
@@ -7746,10 +8055,17 @@ void CTextRam::FORSCROLL(int sx, int sy, int ex, int ey)
 		if ( m_LineUpdate < m_HisMax )
 			m_LineUpdate++;
 
-		CCharCell::Fill(GETVRAM(0, m_Lines - 1), m_AttSpc, m_ColsMax);
+		if ( ey == m_Lines )
+			CCharCell::Fill(GETVRAM(0, m_Lines - 1), m_AttSpc, m_ColsMax);
+		else {
+			for ( int y = m_Lines - 1; y >= ey ; y-- )
+				CCharCell::Copy(GETVRAM(0, y), GETVRAM(0, y - 1), m_Cols);
+
+			CCharCell::Fill(GETVRAM(0, ey - 1), m_AttSpc, m_ColsMax);
+		}
 
 	} else {
-		for ( int y = sy + 1; y < ey ; y++ )
+		for ( int y = sy + 1 ; y < ey ; y++ )
 			CCharCell::Copy(GETVRAM(sx, y - 1), GETVRAM(sx, y), ex - sx);
 
 		ERABOX(sx, ey - 1, ex, ey);
@@ -7764,11 +8080,9 @@ void CTextRam::BAKSCROLL(int sx, int sy, int ex, int ey)
 	ASSERT(ex > 0 && ex <= m_Cols);
 	ASSERT(ey > 0 && ey <= m_Lines);
 
-	int y;
-
 	m_DoWarp = FALSE;
 
-	for ( y = ey - 1; y > sy ; y-- )
+	for ( int y = ey - 1 ; y > sy ; y-- )
 		CCharCell::Copy(GETVRAM(sx, y), GETVRAM(sx, y - 1), ex - sx);
 
 	ERABOX(sx, sy, ex, sy + 1);
@@ -7816,11 +8130,9 @@ void CTextRam::DOWARP()
 	if ( !m_DoWarp )
 		return;
 
-	GetMargin(MARCHK_NONE);
-
 	m_DoWarp = FALSE;
 	m_LastPos -= COLS_MAX;
-	m_CurX = m_Margin.left;
+	m_CurX = GetLeftMargin();
 
 	ONEINDEX();
 }
@@ -7912,6 +8224,7 @@ void CTextRam::ONEINDEX()
 		if ( ++m_CurY >= m_Lines )
 			m_CurY = m_Lines - 1;
 	}
+	LOCATE(m_CurX, m_CurY);
 }
 void CTextRam::REVINDEX()
 {
@@ -7926,29 +8239,28 @@ void CTextRam::REVINDEX()
 		if ( --m_CurY < 0 )
 			m_CurY = 0;
 	}
+	LOCATE(m_CurX, m_CurY);
 }
 void CTextRam::PUT1BYTE(DWORD ch, int md, int at)
 {
-	if ( m_StsFlag ) {
-		md &= CODE_MASK;
-		ch |= m_FontTab[md].m_Shift;
-		ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// Char変換ではUTF-16BEを使用！
-		ch = IconvToMsUnicode(m_FontTab[md].m_IContName, ch);
-		m_LastChar = ch;
-		m_LastFlag = 0;
-		m_LastPos  = 0;
-		if ( (ch & 0xFFFF0000) != 0 )
-			m_StsPara += (WCHAR)(ch >> 16);
-		m_StsPara += (WCHAR)ch;
-		((CMainFrame *)AfxGetMainWnd())->SetStatusText(UniToTstr(m_StsPara));
-		return;
-	}
-
-	DOWARP();
-
 	int block;
 	CCharCell *vp;
 	int dm = GetDm(m_CurY);
+	WORD bank = (WORD)md;
+
+	DOWARP();
+
+	md &= CODE_MASK;
+	ch |= m_FontTab[md].m_Shift;
+	ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// Char変換ではUTF-16BEを使用！
+	ch = IconvToMsUnicode(m_FontTab[md].m_IContName, ch);
+
+	m_LastChar = ch;
+	m_LastFlag = 0;
+	m_LastPos  = m_CurX + m_CurY * COLS_MAX;
+
+	if ( ch != 0 && CallReceiveChar(ch) )
+		return;
 
 	if ( !GetMargin(MARCHK_COLS) ) {
 		m_Margin.left  = 0;
@@ -7965,7 +8277,7 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at)
 
 	vp = GETVRAM(m_CurX, m_CurY);
 
-	vp->m_Vram.bank = (WORD)md;
+	vp->m_Vram.bank = bank;
 	vp->m_Vram.eram = m_AttNow.std.eram;
 //	vp->m_Vram.zoom = m_AttNow.dm;	no Init
 	vp->m_Vram.mode = CM_ASCII;
@@ -7974,11 +8286,6 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at)
 	vp->m_Vram.fcol = m_AttNow.std.fcol;
 	vp->m_Vram.bcol = m_AttNow.std.bcol;
 	vp->GetEXTVRAM(m_AttNow);
-
-	md &= CODE_MASK;
-	ch |= m_FontTab[md].m_Shift;
-	ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// Char変換ではUTF-16BEを使用！
-	ch = IconvToMsUnicode(m_FontTab[md].m_IContName, ch);
 
 	if ( m_bRtoL && md != SET_UNICODE ) {
 		if ( (block = m_FontTab.m_UniBlockTab.Find(0x0600)) != (-1) )
@@ -7998,10 +8305,6 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at)
 	else
 		DISPVRAM(m_CurX, m_CurY, 1, 1);
 
-	m_LastChar = ch;
-	m_LastFlag = 0;
-	m_LastPos  = m_CurX + m_CurY * COLS_MAX;
-
 	if ( ++m_CurX >= m_Margin.right ) {
 		if ( IsOptEnable(TO_DECAWM) != 0 ) {
 			if ( IsOptEnable(TO_RLGNDW) != 0 ) {
@@ -8015,32 +8318,26 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at)
 		} else 
 			m_CurX = m_Margin.right - 1;
 	}
-
-	if ( ch != 0 )
-		CallReceiveChar(ch);
 }
 void CTextRam::PUT2BYTE(DWORD ch, int md, int at)
 {
-	if ( m_StsFlag ) {
-		md &= CODE_MASK;
-		ch |= m_FontTab[md].m_Shift;
-		ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// Char変換ではUTF-16BEを使用！
-		ch = IconvToMsUnicode(m_FontTab[md].m_IContName, ch);
-		m_LastChar = ch;
-		m_LastFlag = 0;
-		m_LastPos  = 0;
-		if ( (ch & 0xFFFF0000) != 0 )
-			m_StsPara += (WCHAR)(ch >> 16);
-		m_StsPara += (WCHAR)ch;
-		((CMainFrame *)AfxGetMainWnd())->SetStatusText(UniToTstr(m_StsPara));
-		return;
-	}
-
-	DOWARP();
-
 	int block;
 	CCharCell *vp;
 	int dm = GetDm(m_CurY);
+	WORD bank = (WORD)md;
+
+	DOWARP();
+
+	md &= CODE_MASK;
+	ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// Char変換ではUTF-16BEを使用！
+	ch = IconvToMsUnicode(m_FontTab[md].m_IContName, ch);
+
+	m_LastChar = ch;
+	m_LastFlag = 0;
+	m_LastPos  = m_CurX + m_CurY * COLS_MAX;
+
+	if ( ch != 0 && CallReceiveChar(ch) )
+		return;
 
 	if ( !GetMargin(MARCHK_COLS) ) {
 		m_Margin.left  = 0;
@@ -8071,7 +8368,7 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at)
 
 	vp = GETVRAM(m_CurX, m_CurY);
 
-	vp[0].m_Vram.bank = vp[1].m_Vram.bank = (WORD)md;
+	vp[0].m_Vram.bank = vp[1].m_Vram.bank = bank;
 	vp[0].m_Vram.eram = vp[1].m_Vram.eram = m_AttNow.std.eram;
 //	vp[0].dm = vp[1].dm = m_AttNow.dm;	no Init
 	vp[0].m_Vram.mode = CM_1BYTE;
@@ -8081,10 +8378,6 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at)
 	vp[0].m_Vram.fcol = vp[1].m_Vram.fcol = m_AttNow.std.fcol;
 	vp[0].m_Vram.bcol = vp[1].m_Vram.bcol = m_AttNow.std.bcol;
 	vp[0].GetEXTVRAM(m_AttNow); vp[1].GetEXTVRAM(m_AttNow);
-
-	md &= CODE_MASK;
-	ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// Char変換ではUTF-16BEを使用！
-	ch = IconvToMsUnicode(m_FontTab[md].m_IContName, ch);
 
 	if ( md == SET_UNICODE && (block = m_FontTab.m_UniBlockTab.Find(ch)) != (-1) )
 		vp[0].m_Vram.bank = vp[1].m_Vram.bank = (WORD)block;
@@ -8100,10 +8393,6 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at)
 	else
 		DISPVRAM(m_CurX, m_CurY, 2, 1);
 
-	m_LastChar = ch;
-	m_LastFlag = 0;
-	m_LastPos  = m_CurX + m_CurY * COLS_MAX;
-
 	if ( (m_CurX += 2) >= m_Margin.right ) {
 		if ( IsOptEnable(TO_DECAWM) != 0 ) {
 			if ( IsOptEnable(TO_RLGNDW) != 0 ) {
@@ -8117,13 +8406,13 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at)
 		} else 
 			m_CurX = m_Margin.right - 1;
 	}
-
-	if ( ch != 0 )
-		CallReceiveChar(ch);
 }
 void CTextRam::PUTADD(int x, int y, DWORD ch, int cf)
 {
 	CCharCell *vp;
+
+	if ( ch != 0 && CallReceiveChar(ch) )
+		return;
 
 	if ( x < 0 || x >= m_Cols )
 		return;
@@ -8155,13 +8444,13 @@ void CTextRam::ANSIOPT(int opt, int bit)
 		break;
 	case 'r':
 		DisableOption(bit);
-		if ( IS_ENABLE(m_Save_AnsiOpt, bit) )
+		if ( IS_ENABLE(m_SaveParam.m_AnsiOpt, bit) )
 			EnableOption(bit);
 		break;
 	case 's':
-		m_Save_AnsiOpt[bit / 32] &= ~(1 << (bit % 32));
+		m_SaveParam.m_AnsiOpt[bit / 32] &= ~(1 << (bit % 32));
 		if ( IsOptEnable(bit) )
-			m_Save_AnsiOpt[bit / 32] |= (1 << (bit % 32));
+			m_SaveParam.m_AnsiOpt[bit / 32] |= (1 << (bit % 32));
 		break;
 	}
 }
@@ -8173,39 +8462,40 @@ void CTextRam::INSMDCK(int len)
 	while ( len-- > 0 )
 		INSCHAR(FALSE);
 }
-CTextSave *CTextRam::GETSAVERAM(BOOL bAll)
+CTextSave *CTextRam::GETSAVERAM(int fMode)
 {
 	int n, i, x;
 	CCharCell *vp, *wp;
 	CTextSave *pSave = new CTextSave;
 	CGrapWnd *pWnd;
 	
-	pSave->m_pCharCell = new CCharCell[m_Cols * m_Lines];
+	pSave->m_pTextRam = this;
+	pSave->m_bAll = (fMode == SAVEMODE_ALL ? TRUE : FALSE);
 
-	for ( n = 0 ; n < m_Lines ; n++ ) {
-		vp = GETVRAM(0, n);
-		wp = pSave->m_pCharCell + n * m_Cols;
-		for ( x = 0 ; x < m_Cols ; x++ ) {
-			if ( IS_IMAGE(vp->m_Vram.mode) && vp->m_Vram.pack.image.id >= 0 ) {
-				for ( i = 0 ; i < pSave->m_GrapIdx.GetSize() ; i++ ) {
-					if ( pSave->m_GrapIdx[i] == vp->m_Vram.pack.image.id )
-						break;
+	if ( fMode >= SAVEMODE_VRAM ) {
+		pSave->m_pCharCell = new CCharCell[m_Cols * m_Lines];
+
+		for ( n = 0 ; n < m_Lines ; n++ ) {
+			vp = GETVRAM(0, n);
+			wp = pSave->m_pCharCell + n * m_Cols;
+			for ( x = 0 ; x < m_Cols ; x++ ) {
+				if ( IS_IMAGE(vp->m_Vram.mode) && vp->m_Vram.pack.image.id >= 0 ) {
+					for ( i = 0 ; i < pSave->m_GrapIdx.GetSize() ; i++ ) {
+						if ( pSave->m_GrapIdx[i] == vp->m_Vram.pack.image.id )
+							break;
+					}
+					if ( i >= pSave->m_GrapIdx.GetSize() )
+						pSave->m_GrapIdx.Add(vp->m_Vram.pack.image.id);
 				}
-				if ( i >= pSave->m_GrapIdx.GetSize() )
-					pSave->m_GrapIdx.Add(vp->m_Vram.pack.image.id);
+				*(wp++) = *(vp++);
 			}
-			*(wp++) = *(vp++);
 		}
 	}
-
-	pSave->m_pTextRam = this;
 
 	for ( i = 0 ; i < pSave->m_GrapIdx.GetSize() ; i++ ) {
 		if ( (pWnd = GetGrapWnd(pSave->m_GrapIdx[i])) != NULL )
 			pWnd->m_Use++;
 	}
-
-	pSave->m_bAll = bAll;
 
 	pSave->m_AttNow = m_AttNow;
 	pSave->m_AttSpc = m_AttSpc;
@@ -8224,6 +8514,7 @@ CTextSave *CTextRam::GETSAVERAM(BOOL bAll)
 	pSave->m_LastChar = m_LastChar;
 	pSave->m_LastFlag = m_LastFlag;
 	pSave->m_LastPos  = m_LastPos;
+	pSave->m_bRtoL    = m_bRtoL;
 
 	memcpy(pSave->m_AnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
 
@@ -8231,20 +8522,13 @@ CTextSave *CTextRam::GETSAVERAM(BOOL bAll)
 	pSave->m_BankGR = m_BankGR;
 	pSave->m_BankSG = m_BankSG;
 	memcpy(pSave->m_BankTab, m_BankTab, sizeof(m_BankTab));
-	memcpy(pSave->m_TabMap, m_TabMap, sizeof(m_TabMap));
 
-	pSave->m_Save_CurX   = m_Save_CurX;
-	pSave->m_Save_CurY   = m_Save_CurY;
-	pSave->m_Save_AttNow = m_Save_AttNow;
-	pSave->m_Save_AttSpc = m_Save_AttSpc;
-	pSave->m_Save_BankGL = m_Save_BankGL;
-	pSave->m_Save_BankGR = m_Save_BankGR;
-	pSave->m_Save_BankSG = m_Save_BankSG;
-	pSave->m_Save_DoWarp = m_Save_DoWarp;
-	pSave->m_Save_Decom  = m_Save_Decom;
-	memcpy(pSave->m_Save_BankTab, m_Save_BankTab, sizeof(m_Save_BankTab));
-	memcpy(pSave->m_Save_AnsiOpt, m_Save_AnsiOpt, sizeof(m_Save_AnsiOpt));
-	memcpy(pSave->m_Save_TabMap, m_Save_TabMap, sizeof(m_Save_TabMap));
+	memcpy(pSave->m_TabMap, m_TabMap, sizeof(m_TabMap));
+	memcpy(&pSave->m_SaveParam, &m_SaveParam, sizeof(m_SaveParam));
+
+	pSave->m_StsMode = m_StsMode;
+	pSave->m_StsLine = m_StsLine;
+	memcpy(&pSave->m_StsParam, &m_StsParam, sizeof(m_StsParam));
 
 	if ( pSave->m_bAll ) {
 		pSave->m_XtMosPointMode = m_XtMosPointMode;
@@ -8261,10 +8545,7 @@ CTextSave *CTextRam::GETSAVERAM(BOOL bAll)
 		//m_TermId
 		//m_UnitId
 		//m_LangMenu
-		//m_StsFlag
-		//m_StsMode
 		//m_StsLed
-		//m_StsPara
 		//m_KanjiMode SetKanjiMode(mode) ???
 	}
 
@@ -8272,22 +8553,20 @@ CTextSave *CTextRam::GETSAVERAM(BOOL bAll)
 }
 void CTextRam::SETSAVERAM(CTextSave *pSave)
 {
-	int n, x, cx;
-	CCharCell *vp, *wp;
-
 	if ( pSave->m_bAll && (pSave->m_Cols != m_Cols || pSave->m_Lines != m_Lines) )
 		InitScreen(pSave->m_Cols, pSave->m_Lines);
 
 	m_AttNow = pSave->m_AttNow;
 	m_AttSpc = pSave->m_AttSpc;
+
 	if ( (m_CurX = pSave->m_CurX) >= m_Cols )  m_CurX = m_Cols - 1;
 	if ( (m_CurY = pSave->m_CurY) >= m_Lines ) m_CurY = m_Lines - 1;
-	if ( m_Cols == pSave->m_Cols && m_Lines == pSave->m_Lines ) {
-		if ( (m_TopY = pSave->m_TopY) >= m_Lines ) m_TopY = m_Lines - 1;
-		if ( (m_BtmY = pSave->m_BtmY) > m_Lines )  m_BtmY = m_Lines;
-		if ( (m_LeftX  = pSave->m_LeftX) >= m_Cols ) m_LeftX  = m_Lines - 1;
-		if ( (m_RightX = pSave->m_RightX) > m_Cols ) m_RightX = m_Cols;
-	}
+
+	if ( (m_TopY = pSave->m_TopY) >= m_Lines ) m_TopY = m_Lines - 1;
+	if ( (m_BtmY = pSave->m_BtmY) > m_Lines || pSave->m_BtmY == pSave->m_Lines )  m_BtmY = m_Lines;
+
+	if ( (m_LeftX  = pSave->m_LeftX) >= m_Cols ) m_LeftX  = m_Lines - 1;
+	if ( (m_RightX = pSave->m_RightX) > m_Cols ) m_RightX = m_Cols;
 
 	m_DoWarp   = pSave->m_DoWarp;
 	m_Exact    = pSave->m_Exact;
@@ -8303,18 +8582,11 @@ void CTextRam::SETSAVERAM(CTextSave *pSave)
 	memcpy(m_BankTab, pSave->m_BankTab, sizeof(m_BankTab));
 	memcpy(m_TabMap, pSave->m_TabMap, sizeof(m_TabMap));
 
-	m_Save_CurX   = pSave->m_Save_CurX;
-	m_Save_CurY   = pSave->m_Save_CurY;
-	m_Save_AttNow = pSave->m_Save_AttNow;
-	m_Save_AttSpc = pSave->m_Save_AttSpc;
-	m_Save_BankGL = pSave->m_Save_BankGL;
-	m_Save_BankGR = pSave->m_Save_BankGR;
-	m_Save_BankSG = pSave->m_Save_BankSG;
-	m_Save_DoWarp = pSave->m_Save_DoWarp;
-	m_Save_Decom  = pSave->m_Save_Decom;
-	memcpy(m_Save_BankTab, pSave->m_Save_BankTab, sizeof(m_BankTab));
-	memcpy(m_Save_AnsiOpt, pSave->m_Save_AnsiOpt, sizeof(m_AnsiOpt));
-	memcpy(m_Save_TabMap, pSave->m_Save_TabMap, sizeof(m_TabMap));
+	memcpy(&m_SaveParam, &pSave->m_SaveParam, sizeof(m_SaveParam));
+
+	m_StsMode = pSave->m_StsMode;
+	m_StsLine = pSave->m_StsLine;
+	memcpy(&m_StsParam, &pSave->m_StsParam, sizeof(m_StsParam));
 
 	if ( pSave->m_bAll ) {
 		m_XtMosPointMode = pSave->m_XtMosPointMode;
@@ -8331,22 +8603,24 @@ void CTextRam::SETSAVERAM(CTextSave *pSave)
 		//m_TermId
 		//m_UnitId
 		//m_LangMenu
-		//m_StsFlag
-		//m_StsMode
 		//m_StsLed
-		//m_StsPara
 		//m_KanjiMode SetKanjiMode(mode) ???
 	}
 
-	cx = (pSave->m_Cols < m_Cols ? pSave->m_Cols : m_Cols);
-	for ( n = 0 ; n < pSave->m_Lines && n < m_Lines ; n++ ) {
-		vp = GETVRAM(0, n);
-		wp = pSave->m_pCharCell + n * pSave->m_Cols;
-		for ( x = 0 ; x < cx ; x++ )
-			*(vp++) = *(wp++);
-	}
+	if ( pSave->m_pCharCell != NULL ) {
+		int n, x, cx;
+		CCharCell *vp, *wp;
 
-	DISPVRAM(0, 0, m_Cols, m_Lines);
+		cx = (pSave->m_Cols < m_Cols ? pSave->m_Cols : m_Cols);
+		for ( n = 0 ; n < pSave->m_Lines && n < m_Lines ; n++ ) {
+			vp = GETVRAM(0, n);
+			wp = pSave->m_pCharCell + n * pSave->m_Cols;
+			for ( x = 0 ; x < cx ; x++ )
+				*(vp++) = *(wp++);
+		}
+
+		DISPVRAM(0, 0, m_Cols, m_Lines);
+	}
 }
 void CTextRam::SAVERAM()
 {
@@ -8357,7 +8631,7 @@ void CTextRam::SAVERAM()
 	if ( m_bTraceActive )
 		return;
 
-	pSave = GETSAVERAM(FALSE);
+	pSave = GETSAVERAM(SAVEMODE_VRAM);
 
 	pSave->m_pNext = m_pTextSave;
 	m_pTextSave = pNext = pSave;
@@ -8518,11 +8792,11 @@ void CTextRam::COPY(int sp, int sx, int sy, int ex, int ey, int dp, int dx, int 
 
 	if ( IsOptEnable(TO_DECOM) ) {
 		sx += GetLeftMargin();
-		sy += m_TopY;
+		sy += GetTopMargin();
 		ex += GetLeftMargin();
-		ey += m_TopY;
+		ey += GetTopMargin();
 		dx += GetLeftMargin();
-		dy += m_TopY;
+		dy += GetTopMargin();
 	}
 
 	if      ( sp < 0 )   sp = 0;

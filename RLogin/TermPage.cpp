@@ -114,6 +114,8 @@ static const struct _OptListTab {
 
 CTermPage::CTermPage() : CTreePage(CTermPage::IDD)
 {
+	m_RecvCrLf = 0;
+	m_SendCrLf = 0;
 }
 CTermPage::~CTermPage()
 {
@@ -124,17 +126,24 @@ void CTermPage::DoDataExchange(CDataExchange* pDX)
 	CTreePage::DoDataExchange(pDX);
 
 	DDX_Control(pDX, IDC_ESCLIST, m_OptList);
+	DDX_CBIndex(pDX, IDC_RECVCRLF, m_RecvCrLf);
+	DDX_CBIndex(pDX, IDC_SENDCRLF, m_SendCrLf);
 }
 
 BEGIN_MESSAGE_MAP(CTermPage, CTreePage)
 	ON_BN_CLICKED(IDC_ESCEDIT, &CTermPage::OnBnClickedEscedit)
 	ON_NOTIFY(NM_CLICK, IDC_ESCLIST, &CTermPage::OnNMClickOptlist)
 	ON_NOTIFY(LVN_GETINFOTIP, IDC_ESCLIST, &CTermPage::OnLvnGetInfoTipEsclist)
+	ON_CBN_SELCHANGE(IDC_RECVCRLF, &CTermPage::OnUpdateEdit)
+	ON_CBN_SELCHANGE(IDC_SENDCRLF, &CTermPage::OnUpdateEdit)
 END_MESSAGE_MAP()
 
 void CTermPage::DoInit()
 {
 	int n, i;
+
+	m_RecvCrLf   = m_pSheet->m_pTextRam->m_RecvCrLf;
+	m_SendCrLf   = m_pSheet->m_pTextRam->m_SendCrLf;
 
 	m_ProcTab = m_pSheet->m_pTextRam->m_ProcTab;
 
@@ -199,6 +208,9 @@ BOOL CTermPage::OnApply()
 	ASSERT(m_pSheet != NULL && m_pSheet->m_pTextRam != NULL);
 
 	UpdateData(TRUE);
+
+	m_pSheet->m_pTextRam->m_RecvCrLf = m_RecvCrLf;
+	m_pSheet->m_pTextRam->m_SendCrLf = m_SendCrLf;
 
 	m_pSheet->m_pTextRam->m_ProcTab = m_ProcTab;
 
@@ -314,4 +326,9 @@ void CTermPage::OnLvnGetInfoTipEsclist(NMHDR *pNMHDR, LRESULT *pResult)
 	lstrcpyn(pGetInfoTip->pszText, str, n);
 
 	*pResult = 0;
+}
+void CTermPage::OnUpdateEdit() 
+{
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 }

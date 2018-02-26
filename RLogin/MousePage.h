@@ -20,6 +20,7 @@ public:
 	int m_DropMode;
 	CString m_DropCmd[8];
 	CString m_CmdWork;
+	int m_MouseOnTab;
 
 	void DoInit();
 

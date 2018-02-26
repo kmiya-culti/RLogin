@@ -20,8 +20,6 @@ public:
 	CString	m_ColsMax[2];
 	int m_VisualBell;
 	int m_TypeCaret;
-	int m_RecvCrLf;
-	int m_SendCrLf;
 	BOOL m_Check[10];
 	int m_FontHw;
 	int m_TtlMode;
@@ -29,13 +27,13 @@ public:
 	BOOL m_TtlCng;
 	CString m_ScrnOffsLeft;
 	CString m_ScrnOffsRight;
-	double m_PixDpiY;
 	CStatic m_ColBox;
 	COLORREF m_CaretColor;
 	CString m_TitleName;
 
 public:
 	void InitDlgItem();
+	void InitFontSize();
 	void DoInit();
 
 // オーバーライド

@@ -750,6 +750,38 @@ static const char Base64DecTab[] = {
         -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
         -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
 
+LPCSTR CBuffer::Base64Param(LPCSTR str)
+{
+	int n, c, o;
+
+	Clear();
+	for ( n = o = 0 ; *str != '\0' ; n++, str++ ) {
+		while ( *str <= ' ' && *str != '\0' )
+			str++;
+		if ( (c = Base64DecTab[(BYTE)(*str)]) < 0 )
+			break;
+		switch(n % 4) {
+		case 0:
+			o = c << 2;
+			break;
+		case 1:
+			o |= (c >> 4);
+			Put8Bit(o);
+			o = c << 4;
+			break;
+		case 2:
+			o |= (c >> 2);
+			Put8Bit(o);
+			o = c << 6;
+			break;
+		case 3:
+			o |= c;
+			Put8Bit(o);
+			break;
+		}
+	}
+	return str;
+}
 LPCTSTR CBuffer::Base64Decode(LPCTSTR str)
 {
 	int n, c, o;

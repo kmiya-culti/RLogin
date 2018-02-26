@@ -315,7 +315,7 @@ public:
 	void OnReceiveCallBack(void *lpBuf, int nBufLen, int nFlags);
 	int Send(const void *lpBuf, int nBufLen, int nFlags = 0);
 	void SendBreak(int opt = 0);
-	void SendWindSize(int x, int y);
+	void SendWindSize();
 	void SetXonXoff(int sw);
 	void GetStatus(CString &str);
 	void OnTimer(UINT_PTR nIDEvent);

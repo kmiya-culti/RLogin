@@ -1,0 +1,364 @@
+P#m t63 xs v?10
+// Vocal
+z1 @76 v90 q100 w0 l16 o5
+r1 r1
+r1 r2r4r8gg
+g8ga&ae8g&g8g8>cdr8 dee8&e8dd&dcc8r4
+ee8.f8ee&edr8redd& dc8.m,40r4r4r8.<f
+// 9
+gg8.a8`cg&g8g8>cd8d e8r8e8.ddcc8r4
+ee8.f8ee&edr8redd& dc8.m,40r4r4edc8&
+c4m,40ega8r4gge32d32c& c4m,40"a"g8e&e8r8r4
+e8ef&f8ee&edr8redd& dc8.m,40r4r4r8.<f
+// 17
+g8ga&a`cg8g4m,40>cdr8 dee8&e8dd&d8cc&cr8.
+e8e8fee8d8r8redd& dc8.m,40r4r4r8.<f
+g8ga&a`cg8g8r8r>cd8 dee8&e8ca&ae8e32d32c8r8
+e8e8fee8d8r8redd& dc8.m,40r4r4edc8&
+// 25
+c4ega8r4gge32d32c& c4"a"g8e&e8r8r4
+e8e8a8e8&ed8.redd&dc8.m,40r4r4redc&
+c4ega8r4gge32d32c& c4m,40"a"g8e&e8r8r4
+e8ef&f8ee&edr8redd& dc8.c4m,40r2
+// 44
+z,(44-1)*4
+r2r4 edc8& c4m,40ega8r4gge32d32c&c8d8"a"g8ee8r8r4
+e8ef&f8ee&ed8.redd& dc8.`c4&`c8m40r8r8.<a
+g8ga&ae8g&ggr8>cd8. dee8&e8dd&dc8dr4
+// 51
+e8e8fge8&edr8redd& dc8.r4r4r8.<f
+ggr8a8eg&g8g>c&cdr8 dee8&eg8e&ecd8r4
+ee8.f8ee&edr8redd& dc8.r8`c8&`c8m40c8edc8
+c4m,40ega8e8r8gge32d32c& c8d8"a"g8e&e8m,40r8r4
+// 59
+e8e8fee8d8r8redd& dc8.r8`c8&`c4m40edc8&
+c4ega8e8r8gge32d32c& c8d8"a"g8e&e8r8r4
+e8e8fee8d8r8redd& dc8.r8`c8&`c4m40edc8&
+c4ega8r4gge32d32c& c8d8"a"g8e&e8m,40r8r4
+// 67
+e8ef&f8ee&ed8.redd& dc`c8&`c2m80r4
+
+// Piano Right
+z2 @1 v100 q100 w-32 l4 o5
+[eg`c]v`[eg`c][dgb]v`[dgb] [cea][cea]8[cea]8[cea][cda]
+[eg`c]v`[eg`c][dgb][dgb] [fa][eg]8[df]8[ceg]2
+[eg`c][eg`c][dgb][dgb] [cea][cea]8[cea]8[cea][cda]
+[eg`c][eg`c][dgb][dgb] [cfa][ceg`c]8[cdfa]8[ceg`c][ceg]
+// 9
+[eg`c][eg`c][dgb][dgb] [cea][cea]8[cea]8[cea][cda]
+[eg`c][eg`c][dgb][dgb] [cfa][ceg`c]8[cdfa]8[ceg`c][ceg`c]
+[ea`c][ea`c]8[ea`c]8[eg`c]8d8[eg`c]8d8 [fa`c][fa`c][eg`c][eg`c]
+[eg`c][eg`c][dgb][dgb] [cfa][ceg`c]8[cdfa]8[ceg`c]2
+// 17
+[eg`c][eg`c][dgb][dgb] [cea][cea]8[cea]8[cea][cda]
+[eg`c]2[dgb][dgb] [cfa][ceg`c]8[cdfa]8[ceg`c][ceg`c]
+[eg`c][eg`c][dgb][dgb] [cea][cea]8[cea]8[cea][cda]
+[eg`c][eg`c][dgb]2 [cfa][ceg`c]8[cdfa]8[ceg`c][ceg`c]
+// 25
+[ea`c]8[ea`c]8[ea`c]8[ea`c]8[eg`c]8d8[eg`c]8d8 [fa`c][fa`c][eg`c][eg`c]
+[eg`c][eg`c][dgb][dgb] [cfa][ceg`c]8[cdfa]8[ceg`c]2
+[ea`c]8e8[ea`c]8e8[eg`c]8d8[eg`c]8d8 [fa`c][fa`c][eg`c]8e8[eg`c]
+[eg`c][eg`c][dgb][dgb] [cfa][ceg`c]8[cdfa]8[ceg`c]8v<[eg`c]16[eg`c]16[eg`c]16[eg`c]16[eg`c]8v>
+// 33
+[fa][eg]8[df]8[ce]["b-d]8["ac]8 <[dgb][cfa][ceg]2>
+// 35
+[fa`c]2[ceg]2
+[dgb][fa`c][eg`c]2 v<<l8>[cge][cge][cge][cge]["bgf]["bgf]["bgf]["bgf]<l4v>>
+[a`c`e]8[a`c`e]8[a`c`e]8[a`c`e]8[a`c`e]8[a`c`e]8[a`c`d]8[a`c`d]8 [eg`c][eg`c][dgb]8[dgb]8[dgb]
+[cfa][ceg`c]8[cdfa]8 [ceg`c][ceg]8f8 [`c`e`g]8[`c`e`g]8[`c`e`g]8[`c`e`g]8[b`d`g]8[b`d`g]8[b`d`g]8[b`d`g]8
+// 42
+[a`c`e]16.[a`c`e]32[a`c`e]16[a`c`e]16&[a`c`e]32[a`c`e]16.[a`c`e]8[a`c`f][a`c`d] [`c`e`g][`c`e`g][b`d`g][b`d`g]
+[cfa][ceg`c]8[cdfa]8[ceg`c][ceg`c] [ea`c][ea`c][eg`c][eg`c] [fa`c][fa`c][eg`c][eg`c]
+[eg`c][eg`c][dgb][dgb] [cfa][ceg`c]8[cdfa]8[ceg`c][ceg`c]
+[eg`c][eg`c][dgb][dgb] [cea][cea]8[cea]8[cea][cda]
+// 51
+[eg`c][eg`c][dgb][dgb] [cfa][ceg`c]8[cdfa]8[ceg`c][ceg]
+[eg`c][eg`c][dgb][dgb] [cea][cea]8[cea]8[cea][cda]
+[eg`c][eg`c][dgb][dgb] [cfa][ceg`c]8[cdfa]8[ceg`c][ceg`c]
+[ea`c]8e8[ea`c]8e8[eg`c]8d8[eg`c]8d8 [fa`c][fa`c][eg`c]8.[eg`c]16&[eg`c]8[eg`c]8
+// 59
+[eg`c][eg`c][dgb][dgb] [cfa][ceg`c]8[cdfa]8[ceg`c][ceg`c]
+[ea`c]8[ea`c]8[ea`c]8[ea`c]8[eg`c]8d8[eg`c]8d8 [fa`c][fa`c][eg`c]8.[eg`c]16&[eg`c]8[eg`c]8
+[eg`c][eg`c][dgb][dgb] [cfa][ceg`c]8[cdfa]8[ceg`c][ceg`c]
+[ea`c]8[ea`c]8[ea`c]8[ea`c]8[eg`c]8d8[eg`c]8d8 [fa`c][fa`c][eg`c][eg`c]
+// 67
+[eg`c][eg`c][dgb][dgb] [cfa][ceg`c]8[cdfa]8[ceg`c][ceg`c]
+[fa][eg]8[df]8[ce]["b-d]8["ac]8 <[dgb]["cfa]["ceg]2 &["ceg]1
+
+// Piano Left
+z3 @1 v100 q100 w32 l4 o4
+c8`c`c16f#32&f#32&g8"gg8 "a8a["gg]8["ff]8ff8
+c8`c`c16f#32&f#32&g8"gg8 "f8f.[c`c]8`c8`c8`c8
+c8`c`c16f#32&f#32&g8"gg8 "a8a["gg]8["ff]8f`c8
+c8`c`c16f#32&f#32&g8"gg8 "f8f8[e`e]8[d`d]8[c`c]8`c8`c8`c8
+// 9
+c8`c`c16f#32&f#32&g8"gg8 "a8a["gg]8["ff]8f`c8
+c8`c`c16f#32&f#32&g8"gg8 "f8f8[e`e]8[d`d]8[c`c]8[c`c]8[c`c]8["bb]8
+"a8aa8"g8gg8 "f8ff8c8`c`c8
+c8`c`c16f#32&f#32&g8"gg8 "f8f8[e`e]8[d`d]8[c`c]8`c8`c8`c8
+// 17
+c8`c`c16f#32&f#32&g8"gg8 "a8a["gg]8["ff]8f`c8
+c8`c`c16f#32&f#32&g8"gg8 "f8f8[e`e]8[d`d]8[c`c]8`c8`c8`c8
+c8`c`c16f#32&f#32&g8"gg8 "a8a["gg]8["ff]8f`c8
+c8`c`c16f#32&f#32&g8"g8"g8g8 "f8f8[e`e]8[d`d]8[c`c]8[c`c]8[c`c]8["bb]8
+// 25
+"a8aa8"g8gg8 "f8ff8c8`cc8
+c8`c`c16f#32&f#32&g8"gg8 "f8f8[e`e]8[d`d]8[c`c]8[c`c]8[c`c]8["bb]8
+"a8aa8"g8gg8 "f8ff8c8`c`c8
+c8`c`c16f#32&f#32&g8"gg8 "f8f8[e`e]8[d`d]8[c`c]8[c`c]16[c`c]16[c`c]16[c`c]16[c`c]8
+// 33
+fe8d8c"b-8"a8 "g8g8"f8f8["cc]2
+// 35
+f2`c2
+gf`c2 c8`c`c16f#32&f#32&g8"gg8
+"a8a["gg]8["ff]8f`c8 c8`c`c16f#32&f#32&g8"gg8
+"f8f8[e`e]8[d`d]8[c`c]8[c`c]16[c`c]16[c`c]16[c`c]16[c`c]8 "a8a["gg]8["ff]8f`c8
+// 42
+"a8a["gg]8["ff]8f`c8 c8`c`c16f#32&f#32&g8"gg8
+"f8f8[e`e]8[d`d]8[c`c]8[c`c]8[c`c]8["bb]8 "a8aa8"g8gg8 "f8ff8c8`cc8
+c8`c`c16f#32&f#32&g8"gg8 "f8f8[e`e]8[d`d]8[c`c]8`c8`c8`c8
+c8`c`c16f#32&f#32&g8"gg8 "a8a["gg]8["ff]8f`c8
+// 51
+c8`c`c16f#32&f#32&g8"gg8 "f8f8[e`e]8[d`d]8[c`c]8`c8`c8`c8
+c8`c`c16f#32&f#32&g8"gg8 "a8a["gg]8["ff]8ff8
+c8`c`c16f#32&f#32&g8"gg8 "f8f8[e`e]8[d`d]8[c`c]8[c`c]8[c`c]8["bb]8
+"a8aa8"g8gg8 "f8ff8c8cc8
+// 59
+c8`c`c16f#32&f#32&g8"g4g8 "f8f8[e`e]8[d`d]8[c`c]8[c`c]8[c`c]8["bb]8
+"a8aa8"g8gg8 "f8ff8c8`cc8
+c8`c`c16f#32&f#32&g8"g4g8 "f8f8[e`e]8[d`d]8[c`c]8[c`c]8[c`c]8["bb]8
+"a8aa8"g8gg8 "f8ff8c8`cc8
+// 67
+c8`c`c16f#32&f#32&g8"g4g8 "f8f8[e`e]8[d`d]8[c`c]8[c`c]8[c`c]8["bb]8
+f4e8d8c4"b-8"a8 "g8g8"f8f8["cc]2& ["cc]1
+
+// Guter z4
+z4,(36-1)*4 @30 v100 q100 w0 l16 o4 yy0,0,12
+// 36
+r2r8v"{g16^[a8`c]8}8v"{[g`c]8v"e}8^d8m20 v"c8.p>8m,40d^e^gg^ev"g4&gm40g^a>c
+d4.p>8m40v"d8^c4.m40r8 r8v"d8p>2,8v"d8c^dm30d8p>2d8d8^c8m20<
+a^ga^g e^dc^d v"c4m40rg^a>c c8"acv"e8p<16g8&gm10v"ep<8g8&gm10v""ep<8v"g8m10
+// 42
+a4m80 rg^a>cd8.p>8m80 rd8^c^d c4.p>8m80r<b`g4p>8&`g8m80r>d&
+d^cdrd8p>8c^dc4.m100r8<
+// 52
+z,(52-1)*4
+r2v""{g^v"[a`c]8}8v"[g`c]8{e^d8}8{c^d8}8
+v"c2p>8m40r2
+// 61
+z,(61-1)*4 v<
+r4r8r[g`c]&v"[a`c]`ca8p>8v"[dg`c]8v""e^d^ f4.m60[g`c]8e^d^c^dv"c8v""d^c
+v"c4p>8m80r4r8>d8p>8[d8^c]8^d8 c8.p>8m40r<v"[eg]^[ae]`c8`c4p>8m60rv"[`cg]^[a`c]`c
+{g^a8}8`c8{g^a8}8`c8 {g^a8}8>[c8ea]d8&[dea]d8p> c8drep>8[eg]8gg8.m80rr8`c8p>m60
+// 67
+a8.p>8m80rg^a8rg8e^drcd8 c4p>8m80"g^"ac8v""c4p>8m100r4
+<[fa]4v<[eg]8[eg]8v<<[ce]4v<<[cf]8[cf]8 v<<<<[dg]4v<<<<[cf]4v<<<<[ceg`c`e]2& [ceg`c`e]2.m30r4
+
+// Bass z5
+z5,(19-1)*4 @34 v90 q100 w0 l16 o3 yy0,0,12
+// 19
+r1 r4e8d8c4&crg8
+`c4.r8g4.r8 a8r8r8g8f4f4
+c4.e8g4.r8 f4e8d8c8`c8`c^bb8
+// 25
+a4.r8g4.r8 f4.r8c4&cef^g
+c4e8f8g4g8r8 f4e8^d8c4`c8g8
+a4a8`c8g4g8`c8 f4f8`c8c4cef^g
+c4e8f8g4"g8g8 f4e8d8c4.r8
+// 33
+f4e8d8c4"b8"a8 "g4"f4"c4.r8
+// 35
+f4.r8`c4.r8
+g4.b8^`c8g8a`c`ca c8c8.e8eg8g8g8g^a
+a4a8g8f4ffa^`c c4`c8efg4"g8g8
+f8.fe8d8c8`c`c`cage c8`c8e8f8 g8ggggg8m,80
+//42
+a4a8g8f4f8`c8 c8.`c`c8e8g4"g8g8
+f8.fe8d8c8`c`c`c^bb8 a4a8r8g8.gg8r8 f4.r8c4`c4
+c4.r8g4.r8 f4e8d8c4.r8
+`c4.r8g4.r8 a4a8g8f4f8g8
+// 51
+c4r8e8g4.r8 f4e8d8c8>ccc<ag^e
+c4e8f8g4.r8 a4r8g8f4f8^g8
+c4r8e8g4.r8 f4e8d8c8`c`c`c^bb8
+a8.a`c8r8g4`c8^b8 f4`c8r8c4e^fg8
+// 59
+c4e8f8g4g8r8 f8.fe8d8c8`c^b`c^bb8
+a8.a`c8r8g4`c8^b8 f4`c8r8c4e^fg8
+c4e8f8g4g8r8 f8.fe8d8c8`c^b`c^bb8
+a8.a`c^br8g8.g`c^dr8f4c^dr8c4`cag^e
+// 67
+c8c8e8f8g8"g8"b8d8 f4e8d8c4c8`c8
+f4e8d8c8`cc "b8"a8 g8gf8p>f&f8c2& c1
+
+// Drams z10
+z10,(17-1)*4 v85 q100 w0 l4 o5
+rn42rn rnrn
+rn42rn rnrn
+rn42rn rnrn
+rn42rn rn42[{r8n38,16n48,16n45,16n45,16n38,8}{r8n44,8n36,8n44,16n36,16}]2
+// 25
+[{l8n57n42nnnnnn}{l8rrn38v"nrrn38v"n}{l4n36rn,8n,8r}]1 [{l8n42nnnnnnn}{l8rrn38v"nrrn38v"n}{l4n36rn,8n,8r}]1
+[{l8n42nnnnnnn}{n36,8n,8rnr}{l8rrn38v"nrrn38v"n}]1 [{l8n42nnnnrrr}{n36rn,8r8n,8n,8}{l8rrn38v"nrn38,16n48,16n45,16n45,16n38,8}]1
+[{l8n42nnnnnnn}{n36,8n,8rnr}{l8rrn38v"nrrn38v"n}]1 [{l8n42nnnnnnn}{n36,8n,8rnr}{l8rrn38v"nrrn38r}]1 
+[{l8n42nnnnnnn}{n36,8n,8rnr}{l8rrn38rrrn38r}]1 [{l8n42nnnnnnn}{n36,8n,8rnr}{l8rrn38rrrn38r}]1
+// 33
+[{n57rnr}{l8 r.n48,16 nn45 l16 rrn48n n45n n41n}{n36rnr}]1 [{n57nnr}{l16 rrn45n rrn41nr4r4}{n36nnr}]1
+// 35
+r1
+r2[{r8n38,16n48,16n45,16n45,16n38,8}{n36n,8r16n,16}]2 [{l8n57n42nl16nnnnnnnnnn}{rn38rn}{n36rnr}]1
+[{l16n42nnn nnnn nnnn nnnn}{rn38rn}{n36rnr}]1 [{l16n42nnn nnnn nnnn nnnn}{rn38rn}{n36rnr}]1
+[{l16n42nnn nnnn nnnnrrrr}{rn38rn,16n,16n,8}{n36rnr8.n,16}]1 [{l16n57,16n42n nnnn nnnn nnnn}{rn38rn}{n36rnr}]1
+//42
+[{l16n42nnn nnnn nnnn nnnn}{rn38rn}{n36rnr}]1 [{l16n42nnn nnnn nnnn nnnn}{rn38rn}{n36rnr}]1
+[{l16n42nnn nnnn nnnn nnnn}{rn38rn,8,n,8}{n36rnr}]1 [{l8n42nnnnnnn}{rn38rn,8,n,8}{n36rnr}]1 [{l8n42nnnnnnn}{rn38rn,8,n,8}{n36rnr}]1
+[{l8n42nnnnnnn}{rn38rn,8,n,8}{n36rnr}]1 [{l8n42nnnnnnn}{rn38rn,8,n,8}{n36rnr}]1
+[{l8n42,16n,16nnnnnnn}{l16r4n38n48n45,8r8.n41n38n48n,8}{n36rnr}]1 [{l8n42nnnnnnn}{l16r4n38n45n48n45r8rn41n38n48nn}{n36rnr}]1
+// 51
+[{l8n42nnnnnnn}{l16r4n38n48n45,8r8.n41n38n48n,8}{n36rnr}]1 [{l8n42nnnnnnn}{l16r8.n41n38n48nnr8.n48n38n48n,8}{n36rnr}]1
+[{l8n42nnnnnnn}{l16r8.n48n38n48n45,8r8.n48n38n48n45,8}{n36rnr}]1 [{l8n42nnnnnnn}{l16r4n38n48n,8r8n48n45n38n48n,8}{n36rnr}]1
+[{l8n42nnnnnnn}{l16r8.n41n38n48n,8 r8.n41n38n48n,8}{n36rnr}]1 [{l8n42nnnn57,4r4}{l16r8 n48n45n38n48n,8r8 n38[n38n48]n45[n45n38][n38n48]8}{n36rl8nn44[n36n44]n44,16n36,16}]1
+[{l8n42nnnnnnn}{rn38rn}{n36rnr}]1 [{l8n42nnnnnnn}{rn38rn}{n36rnr}]1
+// 59
+[{l8n42nnnnnnn}{rn38rn}{n36rnr}]1 [{l8n42nnn n57,2}{l8rrn38r l16rrn38n48n45nn38,8}{n36rnn,8r16n,16}]1
+[{l8n42nnnnnnn}{rn38rn}{n36rnr}]1 [{l8n42nnnnnnn}{rn38rn}{n36rnr}]1
+[{l8n42nnnnnnn}{rn38rn}{n36rnr}]1 [{l8n42nnn n57,2}{l8rrn38r l16rrn38n48n45nn38,8}{n36rnn,8r16n,16}]1
+[{l8n42nnnnnnn}{rn38rn}{n36rnr}]1 [{l8n42nnn n57,2}{l8rrn38r l16rrn38n48n45nn38,8}{n36rnn,8r16n,16}]1
+// 67
+[{l8n42nnnnnnn}{rn38rn}{n36rnr}]1 [{l8n42nnnnnnn}{rn38rn}{n36rnr}]1
+[{l2n57n}{l16r8n48nn45nn41nr8n48nn45nn41n}{n36rnr}]1 [{l4n57nnr}{l16r8n48nr8n45nr2}{n36nnr}]1
+
+// Key2 Chorus
+z6,(13-1)*4 @53 v60 q100 w-16 l4 o4
+[a`c`e]&[a`c`e]16&[a`c`d]16&[a`c`e]8&[gb`e]2& [fa`e]8&[fa`f]8&[fa`e]8&[fa`f]8[eg`c]r
+[eg`c]2&[dgb]2 [fa`c]&[eg`c]8&[df`c]8[ce`c]r
+// 17
+r1 r1
+r1 r1
+[g`c`e]2&[gb`d]r [ea`e]2&[fa`f]2
+[a`c`e`g]2&[gb`d`g]2 [fa`c`f]&[eg`c`e]8&[df`c`d]8&[ce`c`e]2
+// 25
+[a`c`e]&[a`c`e]16&[a`c`d]16&[a`c`e]8&[gb`e]2& [fa`e]8&[fa`f]8&[af`e]8&[fa`f]8[eg`c]r
+[eg`c]2&[dgb]2 [fa`c]&[eg`c]8&[df`c]8[ce`c]r
+[a`c`e]&[a`c`e]16&[a`c`d]16&[a`c`e]8&[gb`e]2& [fa`e]8&[fa`f]8&[af`e]8&[fa`f]8[eg`c]r
+[eg`c]2&[dgb]2 [fa`c]&[eg`c]8&[df`c]8[ce`c]r
+//37
+z,(37-1)*4
+[g`c`e]2[gb`d]r
+[ea`e]2&[fa`f]2 [a`c`e`g]2&[gb`d`g]2
+[fa`c`f]&[eg`c`e]8&[df`c`d]8&[ce`c`e]2 [g`c`e]2&[gb`d]r
+// 42
+[ea`e]2&[fa`f]2 [a`c`e`g]2&[gb`d`g]2
+[fa`c`f]&[eg`c`e]8&[df`c`d]8&[ce`c`e]2 [a`c`e]&[a`c`e]16&[a`c`d]16&[a`c`e]8&[gb`e]2& [fa`e]8&[fa`f]8&[af`e]8&[fa`f]8[eg`c]r
+[eg`c]2&[dgb]2 [fa`c]&[eg`c]8&[df`c]8[ce`c]r
+[g`c`e]2[gb`d]r [ea`e]2&[fa`f]2
+// 51
+[a`c`e`g]2&[gb`d`g]2 [fa`c`f]&[eg`c`e]8&[df`c`d]8&[ce`c`e]2
+[g`c`e]2[gb`d]r [ea`e]2&[fa`f]2
+[a`c`e`g]2&[gb`d`g]2 [fa`c`f]&[eg`c`e]8&[df`c`d]8&[ce`c`e]2
+[a`c`e]&[a`c`e]16&[a`c`d]16&[a`c`e]8&[gb`e]2& [fa`e]8&[fa`f]8&[af`e]8&[fa`f]8[eg`c]r
+// 59
+[eg`c]2&[dgb]2 [fa`c]&[eg`c]8&[df`c]8[ce`c]r
+[a`c`e]&[a`c`e]16&[a`c`d]16&[a`c`e]8&[gb`e]2& [fa`e]8&[fa`f]8&[af`e]8&[fa`f]8[eg`c]r
+[eg`c]2&[dgb]2 [fa`c]&[eg`c]8&[df`c]8[ce`c]r
+[a`c`e]&[a`c`e]16&[a`c`d]16&[a`c`e]8&[gb`e]2& [fa`e]8&[fa`f]8&[af`e]8&[fa`f]8[eg`c]r
+// 67
+[eg`c]2&[dgb]2 [fa`c]&[eg`c]8&[df`c]8[ce`c]r
+
+// Key3 Organ
+z7,(29-1)*4 @17 v60 q100 w0 l4 o5
+["aca`c`e]2&["g"bgb`e]2& ["f"afa`e]2["e"geg`c]r
+["gcg`c`e]2["g"bgbd]2 ["f"afa`c]2&["c"e"geg`c]r
+// 37
+z,(37-1)*4
+["gcg`c`e]2["g"bgb`d]2
+["a"ca`c`e].&["g"bgb`e]8["f"afa`e]&["f"afa`d]8r8 ["gcg`c`e]2["g"bgb`d]2
+["f"afa`c]2&["c"e"geg`c]4.r8 ["gcg`c`e]2["g"bgb`d]2
+//42
+["aca`c`e]4.["g"bgb`e]8["f"afa`e]4&["f"afa`d]8r8 ["gcg`c`e]2&["g"bgb`d]2
+["f"afa`c]2&["c"e"geg`c].r8 ["aca`c`e]2&["g"bgb`e]2& ["f"afa`e]2["e"geg`c].r8
+["gcg`c`e]2["g"bgbd]2 ["f"afa`c]2&["c"e"geg`c].r8
+// 57
+z,(57-1)*4
+["aca`c`e]2&["g"bgb`e]2& ["f"afa`e]2["e"geg`c]r
+// 59
+["gcg`c`e]2["g"bgbd]2 ["f"afa`c]2&["c"e"geg`c].r8
+["aca`c`e]2&["g"bgb`e]2& ["f"afa`e]2["e"geg`c]r
+["gcg`c`e]2["g"bgbd]2 ["f"afa`c]2&["c"e"geg`c].r8
+["aca`c`e]2&["g"bgb`e]2& ["f"afa`e]2["e"geg`c]r
+//67
+["gcg`c`e]2["g"bgbd]2 ["f"afa`c]2&["c"e"geg`c].r8
+
+// Key4 Right 60's Orgran
+z8,(35-1)*4 @17,16 v50 q100 w0 l4 o4
+// 35
+[`a`f][`g`e]8[`f`d]8[`e`c]v"[`d`b]8[`ca]8
+[bg][a`c][eg`c]8[g`e]16[f`d]16&[f`d]16r16[f`c]8 [eg`c]2&[dgb]2
+[ea`c].&[eab]8&[ea`c]r [eg`c]2[dgb]2
+[cfa]2[cea]8[g`e]16[f`d]16r16[f`c]16[f`c]8 [g`c`e]2&[gb`d]2
+// 42
+[a`c`e]1 [g`c`e]2&[gb`d]2
+[cfa].[fa`c]8[eg`c]2
+
+// Key4 Left
+z9,(35-1)*4 @17,16 v70 q100 w0 l4 o3
+// 35
+`fr16`g16r16`g16`c`v""b-16`f16`a16`d16
+`g`f`c8``e16``d16&``d16r16``c8 `c2`g2
+`a2`f2 ``c2`g2
+`f`e8`d8`c2 ``c2`g2
+// 42
+`a2`f2 ``c2`g2
+`f`e8`d8`c2
+
+// Key5 60's E.Piano
+z11,(33-1)*4 @5,24 v70 q100 w0 l4 o5
+[`f`a][`e`g]8[`d`f]8[`c`e][b-d]8[a`c]8 [gb][fa][eg]2
+// 35
+rgrf
+dfe8e16d8.c8
+// 69
+z,(69-1)*4
+[`f`a][`e`g]8[`d`f]8[`c`e][b-d]8[a`c]8 [gb][fa][eg]2& [eg]1
+
+// Key6 Pipe Organ Right
+z12,(13-1)*4 @20 v40 q100 w16 l4 o5
+`c2b2 `c1
+`c2b2 [fa][eg]8[df]8[eg`c]2
+z,(25-1)*4
+`e2`d2 `c2`e2
+`c2b2 [fa][eg]8[df]8[eg`c]2
+`e2`d2 `c2`e2
+`c2b2 [fa][eg]8[df]8[eg`c]2
+z,(35-1)*4
+// 35
+``c2`g2
+`g`a`g8.`f16&`f8`f8
+// 45
+z,(45-1)*4
+`e2`d2 `c2`e2
+`c2b2 [fa][eg]8[df]8[eg`c]2
+// 57
+z,(45-1)*4
+`e2`d2 `c2`e2
+// 59
+`c2b2 [fa][eg]8[df]8[eg`c]2
+`e2`d2 `c2`e2
+`c2b2 [fa][eg]8[df]8[eg`c]2
+`e2`d2 `c2`e2
+// 67
+`c2b2 [fa][eg]8[df]8[eg`c]2
+
+// Key7 Pipe Organ Left
+z13,(57-1)*4 @20 v40 q100 w16 l4 o4
+//57
+a2g2 f2c2
+// 59
+`c2g2 f2c2
+a2g2 f2c2
+`c2g2 f2c2
+a2g2 f2c2
+// 67
+`c2g2 f2c2
+
+\

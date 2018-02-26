@@ -8,7 +8,7 @@
 #include "TabBar.h"
 #include "IConv.h"
 #include "Ssh.h"
-#include <mmsystem.h>
+#include "MidiData.h"
 
 #define	PANEFRAME_NOCHNG		0
 #define	PANEFRAME_MAXIM			1
@@ -153,7 +153,7 @@ public:
 	int m_SleepCount;
 	int m_TransParValue;
 	COLORREF m_TransParColor;
-	HMIDIOUT m_hMidiOut;
+	class CMidiData *m_pMidiData;
 	UINT_PTR m_MidiTimer;
 	CList<class CMidiQue *, class CMidiQue *> m_MidiQue;
 	volatile int m_InfoThreadCount;
@@ -205,7 +205,9 @@ public:
 	void RemoveTimerEvent(CTimerObject *pObject);
 	void FreeTimerEvent(CTimerObject *pObject);
 
+	void SetMidiData(int nInit, int nPlay, LPCSTR mml);
 	void SetMidiEvent(int msec, DWORD msg);
+
 	void SetIdleTimer(BOOL bSw);
 	void PostIdleMessage();
 

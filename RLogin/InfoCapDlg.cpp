@@ -561,6 +561,7 @@ static const LV_COLUMN InitListTab[6] = {
 
 static LPCTSTR	TypeStr[] = { _T(" "), _T("#"), _T("="), _T("@") };
 
+/************************** Update 2018/01/31
 static LPCTSTR	TermCap = _T("rlogin-color:")\
 	_T("am:ut:xn:km:mi:ms:co#80:it#8:li#24:Co#256:pa#64:bt=\\E[Z:bl=^G:cr=^M:cs=\\E[%i%d;%dr:ct=\\E[3g:")\
 	_T("cl=\\E[H\\E[2J:cb=\\E[1K:ce=\\E[K:cd=\\E[J:ch=\\E[%i%dG:cm=\\E[%i%d;%dH:do=^J:ho=\\E[H:vi=\\E[?25l:")\
@@ -574,6 +575,26 @@ static LPCTSTR	TermCap = _T("rlogin-color:")\
 	_T("DC=\\E[%dP:DL=\\E[%dM:DO=\\E[%dB:IC=\\E[%d@:SF=\\E[%dS:AL=\\E[%dL:LE=\\E[%dD:RI=\\E[%dC:SR=\\E[%dT:")\
 	_T("UP=\\E[%dA:r1=\\Ec:rc=\\E8:cv=\\E[%i%dd:sc=\\E7:sf=^J:sr=\\EM:AB=\\E[48;5;%dm:AF=\\E[38;5;%dm:st=\\EH:ta=^I:")\
 	_T("bs:kn#12:pt:ml=\\El:mu=\\Em:");
+
+	// Diff xterm-256color
+static LPCTSTR	TermCap = _T("rlogin-color:")\
+	_T("IC=\\E[%d@:RA=\\E[?7l:SA=\\E[?7h:SF=\\E[%dS:SR=\\E[%dT:ZH=\\E[3m:ZR=\\E[23m:bt=\\E[Z:cb=\\E[1K:")\
+	_T("ch=\\E[%i%dG:cr=^M:cv=\\E[%i%dd:do=^J:ec=\\E[%dX:it#8:mb=\\E[5m:mh=\\E[2m:mk=\\E[8m:pt:r1=\\Ec:ta=^I:")\
+	_T("ve=\\E[?25h:vi=\\E[?25l:vs=\\E[?25h:tc=xterm-256color:");
+***************************/
+static LPCTSTR	TermCap = _T("rlogin-color:")\
+	_T("*6=\\EOF:@7=\\EOF:AB=\\E[48;5;%dm:AF=\\E[38;5;%dm:AL=\\E[%dL:AX:Co#256:DC=\\E[%dP:DL=\\E[%dM:")\
+	_T("DO=\\E[%dB:F1=\\E[23~:F2=\\E[24~:IC=\\E[%d@:Km=\\E[M:LE=\\E[%dD:RA=\\E[?7l:RI=\\E[%dC:SA=\\E[?7h:")\
+	_T("SF=\\E[%dS:SR=\\E[%dT:UP=\\E[%dA:XT:ZH=\\E[3m:ZR=\\E[23m:ae=\\E(B:al=\\E[L:am:as=\\E(0:bl=^G:")\
+	_T("bs:bt=\\E[Z:cb=\\E[1K:cd=\\E[J:ce=\\E[K:ch=\\E[%i%dG:cl=\\E[H\\E[2J:cm=\\E[%i%d;%dH:co#80:cr=^M:")\
+	_T("cs=\\E[%i%d;%dr:ct=\\E[3g:cv=\\E[%i%dd:dc=\\E[P:dl=\\E[M:do=^J:ec=\\E[%dX:ei=\\E[4l:ho=\\E[H:")\
+	_T("im=\\E[4h:is=\\E[!p\\E[?3;4l\\E[4l\\E>\\E]104^G:it#8:k1=\\EOP:k2=\\EOQ:k3=\\EOR:k4=\\EOS:")\
+	_T("k5=\\E[15~:k6=\\E[17~:k7=\\E[18~:k8=\\E[19~:k9=\\E[20~:k;=\\E[21~:kD=\\E[3~:kH=\\EOF:kI=\\E[2~:")\
+	_T("kN=\\E[6~:kP=\\E[5~:kb=^H:kd=\\EOB:ke=\\E[?1l\\E>:kh=\\EOH:kl=\\EOD:km:kn#12:kr=\\EOC:ks=\\E[?1h\\E=:")\
+	_T("ku=\\EOA:le=^H:li#24:mb=\\E[5m:md=\\E[1m:me=\\E[m:mh=\\E[2m:mi:mk=\\E[8m:ml=\\El:mr=\\E[7m:ms:")\
+	_T("mu=\\Em:nd=\\E[C:op=\\E[39;49m:pa#65536:pt:r1=\\Ec:rc=\\E8:rs=\\E[!p\\E[?3;4l\\E[4l\\E>\\E]104^G:")\
+	_T("sc=\\E7:se=\\E[27m:sf=^J:so=\\E[7m:sr=\\EM:st=\\EH:ta=^I:te=\\E[?1049l:ti=\\E[?1049h:ue=\\E[24m:")\
+	_T("up=\\E[A:us=\\E[4m:ut:ve=\\E[?25h:vi=\\E[?25l:vs=\\E[?25h:xn:");
 
 void CInfoCapDlg::SetNode(CStringIndex &cap, LPCTSTR p)
 {
@@ -1424,6 +1445,20 @@ void CInfoCapDlg::OnCbnSelchangeEntry()
 
 	SetCapName(cap, tmp);
 	SetList(cap, *m_pIndex);
+
+#ifdef	USE_DEBUGCAP
+	m_SaveEntry.Add(tmp);
+	m_SaveCapInfo.SetNoCase(FALSE);
+	for ( n = 0 ; n < cap.GetSize() ; n++ ) {
+		while ( m_SaveCapInfo[cap[n].m_nIndex].GetSize() < m_SaveEntry.GetSize() )
+			m_SaveCapInfo[cap[n].m_nIndex].Add(_T(""));
+		m_SaveCapInfo[cap[n].m_nIndex].Add(cap[n].m_String);
+	}
+	for ( n = 0 ; n < m_SaveCapInfo.GetSize() ; n++ ) {
+		if ( cap.Find(m_SaveCapInfo[n].m_nIndex) < 0 )
+			m_SaveCapInfo[n].Add(_T(""));
+	}
+#endif
 }
 
 void CInfoCapDlg::OnCapInport()
@@ -1464,20 +1499,35 @@ void CInfoCapDlg::OnCapExport()
 	if ( (fp = _tfopen(dlg.GetPathName(), _T("wb"))) == NULL )
 		return;
 
-#ifdef	_UNICODE
-	fputs(CStringA(m_TermCap), fp);
-#else
-	fputs(m_TermCap, fp);
-#endif
+	fputs(TstrToMbs(m_TermCap), fp);
 
 	fclose(fp);
 }
 
 void CInfoCapDlg::OnCapClipbord()
 {
+#ifndef USE_DEBUGCAP
 	SetCapStr(TRUE);
 
 	((CMainFrame *)::AfxGetMainWnd())->SetClipboardText(m_TermCap);
+#else
+	int n, i;
+	m_TermCap.Empty();
+	for ( n = 0 ; n < m_SaveCapInfo.GetSize() ; n++ ) {
+		m_TermCap += m_SaveCapInfo[n].m_nIndex;
+		m_TermCap += _T('\t');
+		for ( i = 0 ; i < m_SaveCapInfo[n].GetSize() ; i++ ) {
+			m_TermCap += _T("\"");
+			if ( m_SaveCapInfo[n][i].m_String[0] == _T(' ') )
+				m_TermCap += _T('*');
+			else if ( m_SaveCapInfo[n][i].m_String[0] != _T('@') )
+				m_TermCap += m_SaveCapInfo[n][i].m_String;
+			m_TermCap += _T("\"\t");
+		}
+		m_TermCap += _T("\r\n");
+	}
+	((CMainFrame *)::AfxGetMainWnd())->SetClipboardText(m_TermCap);
+#endif
 }
 
 void CInfoCapDlg::OnInfoInport()
@@ -1518,11 +1568,7 @@ void CInfoCapDlg::OnInfoExport()
 	if ( (fp = _tfopen(dlg.GetPathName(), _T("wb"))) == NULL )
 		return;
 
-#ifdef	_UNICODE
-	fputs(CStringA(m_TermInfo), fp);
-#else
-	fputs(m_TermInfo, fp);
-#endif
+	fputs(TstrToMbs(m_TermInfo), fp);
 
 	fclose(fp);
 }

@@ -30,6 +30,7 @@ CMousePage::CMousePage() : CTreePage(CMousePage::IDD)
 	m_MouseMode[3] = 2;
 	m_DropMode = 0;
 	m_CmdWork = _T("");
+	m_MouseOnTab = 0;
 }
 
 CMousePage::~CMousePage()
@@ -49,6 +50,7 @@ void CMousePage::DoDataExchange(CDataExchange* pDX)
 	DDX_CBIndex(pDX, IDC_MOUSE_KEY2, m_MouseMode[3]);
 	DDX_CBIndex(pDX, IDC_COMBO1, m_DropMode);
 	DDX_Text(pDX, IDC_EDIT1, m_CmdWork);
+	DDX_CBIndex(pDX, IDC_COMBO2, m_MouseOnTab);
 }
 
 BEGIN_MESSAGE_MAP(CMousePage, CTreePage)
@@ -61,6 +63,7 @@ BEGIN_MESSAGE_MAP(CMousePage, CTreePage)
 	ON_CBN_SELCHANGE(IDC_MOUSE_KEY2, OnUpdateEdit)
 	ON_EN_CHANGE(IDC_EDIT1, OnUpdateChangeDropMode)
 	ON_CBN_SELCHANGE(IDC_COMBO1, OnCbnSelchangeDropMode)
+	ON_CBN_SELCHANGE(IDC_COMBO2, OnUpdateEdit)
 END_MESSAGE_MAP()
 
 
@@ -109,6 +112,9 @@ void CMousePage::DoInit()
 
 	m_CmdWork  = m_DropCmd[m_DropMode];
 
+	m_MouseOnTab = (m_pSheet->m_pTextRam->IsOptEnable(TO_RLGWDIS)   ? 0 : 1) |
+				   (m_pSheet->m_pTextRam->IsOptEnable(TO_RLTABINFO) ? 2 : 0);
+
 	UpdateData(FALSE);
 }
 
@@ -145,6 +151,9 @@ BOOL CMousePage::OnApply()
 
 	for ( n = 0 ; n < 8 ; n++ )
 		m_pSheet->m_pTextRam->m_DropFileCmd[n] = m_DropCmd[n];
+
+	m_pSheet->m_pTextRam->SetOption(TO_RLGWDIS,   (m_MouseOnTab & 1) != 0 ? FALSE : TRUE);
+	m_pSheet->m_pTextRam->SetOption(TO_RLTABINFO, (m_MouseOnTab & 2) != 0 ? TRUE : FALSE);
 
 	return TRUE;
 }

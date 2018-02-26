@@ -1114,12 +1114,20 @@ TD {
             <TABLE cellpadding="1">
               <TBODY>
                 <TR>
-                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = [0]</TD>
-                  <TD>全画面をクリップボードにコピー（<A href="#DECPEX">DECPEX</A>の影響を受ける）</TD>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = [0],2</TD>
+                  <TD>全画面をMCウィンドウに転送（<A href="#DECPEX">DECPEX</A>の影響を受ける）</TD>
                 </TR>
                 <TR>
-                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 1</TD>
-                  <TD>現在行のみクリップボードにコピー</TD>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 1,3</TD>
+                  <TD>現在行のみMCウィンドウに転送</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Pn</FONT></I> = 4,6</TD>
+                  <TD>以降、通常操作に戻す</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Pn</FONT></I> = 5,7</TD>
+                  <TD>以降の文字出力をMCウィンドウに転送</TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -1132,20 +1140,28 @@ TD {
             <TABLE cellpadding="1">
               <TBODY>
                 <TR>
-                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = [0]</TD>
-                  <TD>全画面をクリップボードにコピー（<A href="#DECPEX">DECPEX</A>の影響を受ける）</TD>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = [0],2</TD>
+                  <TD>全画面をMCウィンドウに転送（<A href="#DECPEX">DECPEX</A>の影響を受ける）</TD>
                 </TR>
                 <TR>
-                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 1</TD>
-                  <TD>現在行のみクリップボードにコピー</TD>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 1,3</TD>
+                  <TD>現在行のみMCウィンドウに転送</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Pn</FONT></I> = 4</TD>
+                  <TD>以降、通常操作に戻す</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Pn</FONT></I> = 5</TD>
+                  <TD>以降の文字出力をMCウィンドウに転送</TD>
                 </TR>
                 <TR>
                   <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 10</TD>
-                  <TD>全画面をクリップボードにコピー</TD>
+                  <TD>全画面をMCウィンドウに転送</TD>
                 </TR>
                 <TR>
                   <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 11</TD>
-                  <TD>ヒストリーを含めててすべてコピー</TD>
+                  <TD>ヒストリーを含めててすべてをMCウィンドウに転送</TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -2762,7 +2778,8 @@ TD {
                 </TR>
                 <TR>
                   <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 1</TD>
-                  <TD>以降の文字をステータスバーに表示</TD>
+                  <TD>以降の操作をステータス画面で行う<BR>
+                  <A href="#DECSSDT">DECSSDT</A>でステータス画面の設定が必要</TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -2819,7 +2836,32 @@ TD {
           <TR>
             <TD width="120">CSI <I><FONT size="-1">Pn</FONT></I> $ ~</TD>
             <TD align="center" width="120">DECSSDT</TD>
-            <TD width="680">現在、DECRQSSにのみ応答</TD>
+            <TD width="680"><A name="DECSSDT"></A>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = [0]</TD>
+                  <TD>ステータス画面を閉じます</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I> = 1</TD>
+                  <TD>ステータスバーに文字を表示します</TD>
+                </TR>
+                <TR>
+                  <TD><FONT color="#c0c0c0"><I><FONT size="-1">Pn</FONT></I> = 2以上</FONT></TD>
+                  <TD><FONT color="#c0c0c0">画面を分割してステータス画面を作成します。<BR>
+                  2で１行、3で2行・・・(Pn-1)行で下方分割します</FONT></TD>
+                </TR>
+                <TR>
+                  <TD></TD>
+                  <TD><FONT color="#c0c0c0">※<A href="#DECSTBM">DECSTBM</A>の機能と<A href="#DECOM">DECOM</A>を利用して実装しています<BR>
+                  ※この操作で画面サイズ変更が通知されます<BR>
+                  ※ステータス画面のサイズ変更は、出来ません。必ずステータス<BR>
+                  画面を閉じてから再度指定する必要があります</FONT></TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
           </TR>
           <TR>
             <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> ' ~</TD>
@@ -3990,6 +4032,259 @@ TD {
             例　termcapのCo（色数）を調べる<BR>
             送信 &quot;\033P+q436f\033\134&quot;<BR>
             受信 &quot;\033P+r436f=323536\033\134&quot;</TD>
+          </TR>
+          <TR>
+            <TD>DCS <FONT size="-1"><I>Pn</I></FONT> #m <FONT size="-1"><I>MML</I></FONT> ST</TD>
+            <TD align="center">RLMML *3</TD>
+            <TD>MML形式でMIDI演奏を行う
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><FONT size="-1"><I>Pn1</I></FONT> = [0],1,2</TD>
+                  <TD>0 すべて初期化<BR>
+                  1 パラメータのみ初期化<BR>
+                  2 初期化せずにMMLを追加<BR>
+                  3 MMLの代わりにSMFをBase64で読み込む<BR>
+                  4 SMF形式でファイルに保存</TD>
+                </TR>
+                <TR>
+                  <TD><FONT size="-1"><I>Pn2</I></FONT> = [0],1,2</TD>
+                  <TD>0 演奏を開始<BR>
+                  1 演奏を停止<BR>
+                  2 演奏を中断</TD>
+                </TR>
+                <TR>
+                  <TD><FONT size="-1"><I>MML</I></FONT></TD>
+                  <TD>
+                  <TABLE cellpadding="2">
+                    <TBODY>
+                      <TR>
+                        <TD>A-G[#+-][n][.][,q][,v][,s][,o]</TD>
+                        <TD>C=ドで発音</TD>
+                      </TR>
+                      <TR>
+                        <TD>Nt[,n][.][,q][,v][,s][,o]</TD>
+                        <TD>ノート番号で発音。N60でオクターブ5のC(ド)</TD>
+                      </TR>
+                      <TR>
+                        <TD>It[,n][.][,q][,v][,s][,o]</TD>
+                        <TD>前音のオフセットで発音。[Ci4i3]でCの和音</TD>
+                      </TR>
+                      <TR>
+                        <TD>R[n][.]</TD>
+                        <TD>休符</TD>
+                      </TR>
+                      <TR>
+                        <TD>&amp;</TD>
+                        <TD>タイ記号</TD>
+                      </TR>
+                      <TR>
+                        <TD>^</TD>
+                        <TD>スラー（ピッチベンドで変調)<BR>
+                        通常は、1度の変調<BR>
+                        RPNのyy0,0,24まで設定可能(2オクターブ)</TD>
+                      </TR>
+                      <TR>
+                        <TD>L[n][.]</TD>
+                        <TD>音の長さをn分音符で指定(1-96初期値4)</TD>
+                      </TR>
+                      <TR>
+                        <TD>Qn</TD>
+                        <TD>音の長さに対するゲートタイム(0-100初期値80%)</TD>
+                      </TR>
+                      <TR>
+                        <TD>V[n|&lt;|&gt;|&quot;|`]</TD>
+                        <TD>ベロシティを指定(0-127初期値100)<BR>
+                        &lt;|&gt; ベロシティをダウン|アップ(約10%)<BR>
+                        &quot;|` 一時的ベロシティをダウン|アップ(約10%)</TD>
+                      </TR>
+                      <TR>
+                        <TD>V?[n]</TD>
+                        <TD>ランダムにベロシティを変化させる(n%)</TD>
+                      </TR>
+                      <TR>
+                        <TD>Sn</TD>
+                        <TD>発音のタイミングをステップ単位で指定(初期値0)</TD>
+                      </TR>
+                      <TR>
+                        <TD>On</TD>
+                        <TD>オクターブ(音階)を指定(0-10初期値5)</TD>
+                      </TR>
+                      <TR>
+                        <TD>Kn</TD>
+                        <TD>半音単位で移調</TD>
+                      </TR>
+                      <TR>
+                        <TD>&lt;|&gt;</TD>
+                        <TD>オクターブダウン|アップ</TD>
+                      </TR>
+                      <TR>
+                        <TD>&quot;|`</TD>
+                        <TD>一時的オクターブダウン|アップ</TD>
+                      </TR>
+                      <TR>
+                        <TD>~n[,n]...</TD>
+                        <TD>Polyphonic Key Pressure(0-127初期値0)</TD>
+                      </TR>
+                      <TR>
+                        <TD>Yn,n[n,n]</TD>
+                        <TD>Control Change</TD>
+                      </TR>
+                      <TR>
+                        <TD>YYm,l[,dm][,dl]</TD>
+                        <TD>RPN/NRPN</TD>
+                      </TR>
+                      <TR>
+                        <TD>@n[,m][,l]</TD>
+                        <TD>Program Change</TD>
+                      </TR>
+                      <TR>
+                        <TD>!n[,n]...</TD>
+                        <TD>Channel Pressure(0-127初期値0)</TD>
+                      </TR>
+                      <TR>
+                        <TD>Pw[,w]...</TD>
+                        <TD>Pitch Bend (-8191～8192初期値0)</TD>
+                      </TR>
+                      <TR>
+                        <TD>P[&lt;|&gt;]s,n</TD>
+                        <TD>前音の音長/sをnノートで連続変調</TD>
+                      </TR>
+                      <TR>
+                        <TD>Mn[,n]...</TD>
+                        <TD>Modulation(0-127初期値0)</TD>
+                      </TR>
+                      <TR>
+                        <TD>Wn</TD>
+                        <TD>Pan(-64-63初期値0)</TD>
+                      </TR>
+                      <TR>
+                        <TD>Un</TD>
+                        <TD>Expression(0-127初期値127)</TD>
+                      </TR>
+                      <TR>
+                        <TD>Xn[,n]...</TD>
+                        <TD>System Exclusive($F0....$F7)</TD>
+                      </TR>
+                      <TR>
+                        <TD>X[M|R}</TD>
+                        <TD>GM Reset</TD>
+                      </TR>
+                      <TR>
+                        <TD>XS</TD>
+                        <TD>GS Reset</TD>
+                      </TR>
+                      <TR>
+                        <TD>XV[n]</TD>
+                        <TD>Master Volume</TD>
+                      </TR>
+                      <TR>
+                        <TD>XZn[,n]</TD>
+                        <TD>ExclusiveのID設定($41,$10,$42,$12)</TD>
+                      </TR>
+                      <TR>
+                        <TD>XX[a,a,a][,n]</TD>
+                        <TD>アドレスｘ３とデータを指定してサム計算</TD>
+                      </TR>
+                      <TR>
+                        <TD>Zn[,r]</TD>
+                        <TD>チャンネル指定(1-16)。r個の4分休符を挿入</TD>
+                      </TR>
+                      <TR>
+                        <TD>;</TD>
+                        <TD>次のチャンネルに移動</TD>
+                      </TR>
+                      <TR>
+                        <TD>Tn</TD>
+                        <TD>テンポ指定(120)</TD>
+                      </TR>
+                      <TR>
+                        <TD>=n</TD>
+                        <TD>n/４分音符でステップ値を確認<BR>
+                        小節単位で端数がある場合にメッセージを表示</TD>
+                      </TR>
+                      <TR>
+                        <TD>[???][#+-][n][.]</TD>
+                        <TD>和音。中のMMLを指定音長で同時発音</TD>
+                      </TR>
+                      <TR>
+                        <TD>{???}[n][,]</TD>
+                        <TD>連符。中のMMLを指定音長で均等分割</TD>
+                      </TR>
+                      <TR>
+                        <TD></TD>
+                        <TD>引数</TD>
+                      </TR>
+                      <TR>
+                        <TD>n</TD>
+                        <TD>[+|-][0-9]* 符号付き１０進数<BR>
+                        $[0-9A-F]* １６進数<BR>
+                        [(] expr [+-][*/%] expr [)] で演算</TD>
+                      </TR>
+                      <TR>
+                        <TD>[n][.]</TD>
+                        <TD>n分音符で指定に付点で1.5倍<BR>
+                        %[n] ステップタイムで指定(4分音符=96)</TD>
+                      </TR>
+                      <TR>
+                        <TD>...</TD>
+                        <TD>~,!,P,Mで複数の場合は、前音符を基本に分割配置<BR>
+                        して初期値に戻す</TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  </TD>
+                </TR>
+                <TR>
+                  <TD colspan="2">
+                  <TABLE cellpadding="3" width="550">
+                    <TBODY>
+                      <TR>
+                        <TD colspan="3">サンプルMML</TD>
+                      </TR>
+                      <TR>
+                        <TD>ウェストミンスターの鐘</TD>
+                        <TD><FONT size="-2" style="font-size : 67%;">echo -e '\eP#m t120 q100 @12 &gt; ced&quot;g2. cdec2. ecd&quot;g2. &quot;gdec2.
+                        \e\\'</FONT></TD>
+                        <TD><A href="westbell.mid">westbell.mid</A></TD>
+                      </TR>
+                      <TR>
+                        <TD>ドラムリズム</TD>
+                        <TD><FONT size="-2" style="font-size : 67%;">echo -e '\eP#m z10 [{n36rnn rrrr}{rn38rr nrnn}{n42rnr nnrr}]2 \e\\'</FONT></TD>
+                        <TD><A href="drum.mid">drum.mid</A></TD>
+                      </TR>
+                      <TR>
+                        <TD>PC-9801のピポ</TD>
+                        <TD><FONT size="-2">echo -e '\eP#m xs @81,8 l14 q100 n96 v70 n84 \e\\'</FONT></TD>
+                        <TD><A href="pipo.mid">pipo.mid</A></TD>
+                      </TR>
+                      <TR>
+                        <TD>電話を掛けるスクリプト</TD>
+                        <TD><A href="teltone.sh">teltone.sh</A> 03-123-4568</TD>
+                        <TD><A href="teltine.mid">teltone.mid</A></TD>
+                      </TR>
+                      <TR>
+                        <TD>コード演奏のスクリプト</TD>
+                        <TD><A href="guitar.sh">guitar.sh</A> CAmG7</TD>
+                        <TD><A href="guitar.mid">guitar.mid</A></TD>
+                      </TR>
+                      <TR>
+                        <TD>アルペジオのスクリプト</TD>
+                        <TD><A href="arpeggio.sh">arpeggio.sh</A> CAmG7</TD>
+                        <TD><A href="arpeggio.mid">arpeggio.mid</A></TD>
+                      </TR>
+                      <TR>
+                        <TD>レット・イット・ビー</TD>
+                        <TD><A href="letitbe.mml">letitbe.mml</A></TD>
+                        <TD><A href="letitbe.mid">letitbe.mid</A></TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  </TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
           </TR>
         </TBODY>
       </TABLE>

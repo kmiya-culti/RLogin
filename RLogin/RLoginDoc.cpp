@@ -102,6 +102,8 @@ CRLoginDoc::CRLoginDoc()
 	m_bCastLock = FALSE;
 	m_ConnectTime = 0;
 	m_CloseTime = 0;
+	m_pStatusWnd = NULL;
+	m_pMediaCopyWnd = NULL;
 }
 
 CRLoginDoc::~CRLoginDoc()
@@ -242,11 +244,13 @@ void CRLoginDoc::OnFileClose()
 	if ( ((CMainFrame *)::AfxGetMainWnd())->IsTimerIdleBusy() )
 		return;
 
-	if ( m_pSock != NULL && m_pSock->m_bConnect && AfxMessageBox(CStringLoad(IDS_FILECLOSEQES), MB_ICONQUESTION | MB_YESNO) != IDYES )
-		return;
+	if ( m_pSock != NULL && m_pSock->m_bConnect ) {
+		if ( AfxMessageBox(CStringLoad(IDS_FILECLOSEQES), MB_ICONQUESTION | MB_YESNO) != IDYES )
+			return;
+	}
 
-	//if ( m_InPane )
-	//	::AfxGetMainWnd()->SendMessage(WM_COMMAND, ID_PANE_DELETE);
+	if ( IsCanExit() )
+		m_pMainWnd->PostMessage(WM_COMMAND, ID_APP_EXIT, 0 );
 
 	if ( m_InPane ) {
 		POSITION pos;
@@ -543,6 +547,12 @@ void CRLoginDoc::SetCmdInfo(CCommandLineInfoEx *pCmdInfo)
 }
 void CRLoginDoc::DeleteContents() 
 {
+	if ( m_pStatusWnd != NULL )
+		m_pStatusWnd->DestroyWindow();
+
+	if ( m_pMediaCopyWnd != NULL )
+		m_pMediaCopyWnd->DestroyWindow();
+
 	if ( m_TextRam.m_pTraceWnd != NULL )
 		m_TextRam.m_pTraceWnd->SendMessage(WM_CLOSE);
 
@@ -1225,7 +1235,26 @@ int CRLoginDoc::GetViewCount()
 
 	return count;
 }
+BOOL CRLoginDoc::IsCanExit()
+{
+	if ( !m_TextRam.IsOptEnable(TO_RLPOFF) )
+		return FALSE;
 
+	CRLoginDoc *pDoc;
+	CDocTemplate *pDocTemp = GetDocTemplate();
+
+	if ( pDocTemp != NULL ) {
+		POSITION pos = pDocTemp->GetFirstDocPosition();
+
+		while (pos != NULL) {
+			pDoc = (CRLoginDoc *)(pDocTemp->GetNextDoc(pos));
+			if ( pDoc != NULL && pDoc != this && pDoc->m_pSock != NULL)
+				return FALSE;
+		}
+	}
+
+	return TRUE;
+}
 /////////////////////////////////////////////////////////////////////////////
 
 void CRLoginDoc::OnReceiveChar(DWORD ch, int pos)
@@ -1369,35 +1398,17 @@ void CRLoginDoc::OnSocketClose()
 	if ( m_pKermit != NULL )
 		m_pKermit->DoAbort();
 
-	CWnd *pWnd;
-	BOOL bCanExit = FALSE;
-
-	if ( m_TextRam.IsOptEnable(TO_RLPOFF) ) {
-		bCanExit = TRUE;
-		CRLoginDoc *pDoc;
-		CDocTemplate *pDocTemp = GetDocTemplate();
-
-		if ( pDocTemp != NULL ) {
-			POSITION pos = pDocTemp->GetFirstDocPosition();
-
-			while (pos != NULL) {
-				pDoc = (CRLoginDoc *)(pDocTemp->GetNextDoc(pos));
-				if ( pDoc != NULL && pDoc != this && pDoc->m_pSock != NULL)
-					bCanExit = FALSE;
-			}
-		}
-	}
-
 	UpdateAllViews(NULL, UPDATE_GOTOXY, NULL);
 	SetStatus(_T("Close"));
 	time(&m_CloseTime);
-	pWnd = GetAciveView();
+
+	CWnd *pWnd = GetAciveView();
 
 	if (m_TextRam.IsOptEnable(TO_RLREOPEN) && pWnd != NULL && AfxMessageBox(IDS_SOCKREOPEN, MB_ICONQUESTION | MB_YESNO) == IDYES )
 		pWnd->PostMessage(WM_COMMAND, IDM_REOPENSOCK, (LPARAM)0);
 	else if ( m_TextRam.IsOptEnable(TO_RLNOTCLOSE) || ((CMainFrame *)::AfxGetMainWnd())->IsTimerIdleBusy() )
 		UpdateAllViews(NULL, UPDATE_DISPMSG, (CObject *)_T("Closed"));
-	else if ( bCanExit )
+	else if ( IsCanExit() )
 		m_pMainWnd->PostMessage(WM_COMMAND, ID_APP_EXIT, 0 );
 	else if ( pWnd != NULL )
 		pWnd->PostMessage(WM_COMMAND, ID_FILE_CLOSE, (LPARAM)0);
@@ -1671,12 +1682,6 @@ void CRLoginDoc::SocketSend(void *lpBuf, int nBufLen, BOOL delaySend)
 	if ( m_pLogFile != NULL && m_TextRam.m_LogMode == LOGMOD_DEBUG )
 		LogWrite((LPBYTE)lpBuf, nBufLen, LOGDEBUG_SEND);
 }
-void CRLoginDoc::SocketSendWindSize(int x, int y)
-{
-	if ( m_pSock == NULL )
-		return;
-	m_pSock->SendWindSize(x, y);
-}
 LPCSTR CRLoginDoc::Utf8Str(LPCTSTR str)
 {
 	m_TextRam.m_IConv.StrToRemote(m_TextRam.m_SendCharSet[UTF8_SET], str, m_WorkMbs);
@@ -1833,12 +1838,13 @@ void CRLoginDoc::OnUpdateChatStop(CCmdUI *pCmdUI)
 
 void CRLoginDoc::OnSendBreak()
 {
-	if ( m_pSock != NULL && m_pSock->m_Type == ESCT_COMDEV )
+	if ( m_pSock != NULL ) // && m_pSock->m_Type == ESCT_COMDEV )
 		m_pSock->SendBreak(1);
 }
 void CRLoginDoc::OnUpdateSendBreak(CCmdUI *pCmdUI)
 {
-	pCmdUI->Enable(m_pSock != NULL && m_pSock->m_bConnect && m_pSock->m_Type == ESCT_COMDEV ? TRUE : FALSE);
+	pCmdUI->Enable(m_pSock != NULL && m_pSock->m_bConnect && 
+		(m_pSock->m_Type == ESCT_COMDEV || m_pSock->m_Type == ESCT_SSH_MAIN) ? TRUE : FALSE);
 }
 void CRLoginDoc::OnScriptMenu(UINT nID)
 {
@@ -1886,17 +1892,18 @@ void CRLoginDoc::OnScreenReset(UINT nID)
 	case IDM_RESET_BANK:  mode = RESET_BANK; break;
 	case IDM_RESET_ATTR:  mode = RESET_ATTR | RESET_COLOR; break;
 	case IDM_RESET_TEK:   mode = RESET_TEK; break;
-	case IDM_RESET_ESC:   mode = RESET_SAVE | RESET_CHAR; RESET_OPTION; RESET_XTOPT | RESET_MODKEY; break;
+	case IDM_RESET_ESC:   mode = RESET_BANK | RESET_CHAR | RESET_OPTION | RESET_XTOPT | RESET_MODKEY | RESET_TRANSMIT; break;
 	case IDM_RESET_MOUSE: mode = RESET_MOUSE; break;
-	case IDM_RESET_SCREEN:mode = RESET_PAGE | RESET_CURSOR | RESET_CARET | RESET_MARGIN | RESET_BANK | RESET_ATTR | RESET_COLOR | RESET_CHAR | RESET_CLS | RESET_XTOPT; RESET_OPTION; break;
+	case IDM_RESET_SCREEN:mode = RESET_PAGE | RESET_CURSOR | RESET_CARET | RESET_MARGIN | RESET_BANK | RESET_ATTR |
+								 RESET_COLOR | RESET_CHAR | RESET_CLS | RESET_XTOPT | RESET_OPTION | RESET_STATUS; break;
 	case IDM_RESET_SIZE:  mode = RESET_SIZE; break;
-	case IDM_RESET_ALL:   mode = RESET_ALL; break;
+	case IDM_RESET_ALL:   mode = RESET_ALL | RESET_CLS | RESET_HISTORY | RESET_TRANSMIT; break;
 	}
 
 	m_TextRam.RESET(mode);
 	m_TextRam.FLUSH();
 
-	if ( mode == RESET_ALL ) {
+	if ( (mode & RESET_TRANSMIT) != 0 ) {
 		if ( m_pBPlus != NULL )
 			m_pBPlus->DoAbort();
 		if ( m_pZModem != NULL )
@@ -1908,18 +1915,26 @@ void CRLoginDoc::OnScreenReset(UINT nID)
 
 void CRLoginDoc::OnSocketstatus()
 {
-	CStatusDlg dlg;
-
 	if ( m_pSock == NULL )
 		return;
 
-	m_pSock->GetStatus(dlg.m_Status);
-
-	dlg.DoModal();
+	if ( m_pStatusWnd == NULL ) {
+		CString status;
+		m_pSock->GetStatus(status);
+		m_pStatusWnd = new CStatusDlg;
+		m_pStatusWnd->m_OwnerType = 2;
+		m_pStatusWnd->m_pValue = this;
+		m_pStatusWnd->m_Title = m_ServerEntry.m_EntryName;
+		m_pStatusWnd->Create(IDD_STATUS_DLG, CWnd::GetDesktopWindow());
+		m_pStatusWnd->ShowWindow(SW_SHOW);
+		m_pStatusWnd->SetStatusText(status);
+	} else
+		m_pStatusWnd->DestroyWindow();
 }
 void CRLoginDoc::OnUpdateSocketstatus(CCmdUI *pCmdUI)
 {
 	pCmdUI->Enable(m_pSock != NULL ? TRUE : FALSE);
+	pCmdUI->SetCheck(m_pStatusWnd != NULL ? TRUE : FALSE);
 }
 
 void CRLoginDoc::OnScript()
