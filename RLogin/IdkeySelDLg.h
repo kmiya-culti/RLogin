@@ -78,4 +78,5 @@ protected:
 	afx_msg void OnLvnItemchangedIdkeyList(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnIdkeyCakey();
 	afx_msg void OnSavePublicKey();
+	afx_msg void OnCbnSelchangeIdkeyType();
 };

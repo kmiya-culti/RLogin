@@ -23,7 +23,7 @@
 
 #define	GRAPDATA_MAX		180
 
-typedef struct {
+typedef struct _GRAPDATA {
 	DWORD ByteSec[2];
 	DWORD ModSts[2];
 } GRAPDATA;

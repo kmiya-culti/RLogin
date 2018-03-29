@@ -4090,15 +4090,16 @@ void CServerEntryTab::Serialize(int mode)
 			if ( tmp.GetProfile(_T("ServerEntryTab"), uid) ) {
 				tmp.m_Uid = ((CRLoginApp *)AfxGetApp())->GetProfileSeqNum(m_pSection, _T("ListMax"));
 
+				CTextRam *pTextRam   = new CTextRam;
+				CKeyNodeTab *pKeyTab = new CKeyNodeTab;
+				CKeyMacTab *pKeyMac  = new CKeyMacTab;
+				CParamTab *pParamTab = new CParamTab;
+
 				try {
 					// Unicode‚ÅÄ\¬
-					CTextRam TextRam;
-					CKeyNodeTab KeyTab;
-					CKeyMacTab KeyMac;
-					CParamTab ParamTab;
 
-					CRLoginDoc::LoadOption(tmp, TextRam, KeyTab, KeyMac, ParamTab);
-					CRLoginDoc::SaveOption(tmp, TextRam, KeyTab, KeyMac, ParamTab);
+					CRLoginDoc::LoadOption(tmp, *pTextRam, *pKeyTab, *pKeyMac, *pParamTab);
+					CRLoginDoc::SaveOption(tmp, *pTextRam, *pKeyTab, *pKeyMac, *pParamTab);
 
 					// V‚µ‚¢Section‚É•Û‘¶
 					tmp.SetProfile(m_pSection);
@@ -4114,6 +4115,11 @@ void CServerEntryTab::Serialize(int mode)
 					errcount++;
 					continue;
 				}
+
+				delete pTextRam;
+				delete pKeyTab;
+				delete pKeyMac;
+				delete pParamTab;
 			} else
 				errcount++;
 		}
@@ -5129,7 +5135,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	133
+#define	CMDSKEYTABMAX	134
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -5213,6 +5219,7 @@ static const struct _CmdsKeyTab {
 	{	ID_FILE_PRINT_SETUP,		L"$PRINT_SETUP"		},
 	{	ID_PAGE_PRIOR,				L"$PRIOR"			},
 	{	IDM_CREATEPROFILE,			L"$PROFILE_SAVE"	},
+	{	IDM_REGISTAPP,				L"$REGISTRY_HANDLE"	},
 	{	IDM_SAVEREGFILE,			L"$REGISTRY_SAVE"	},
 	{	IDM_RESET_ALL,				L"$RESET_ALL"		},
 	{	IDM_RESET_ATTR,				L"$RESET_ATTR"		},
@@ -6001,6 +6008,8 @@ void CParamTab::Init()
 
 	m_bInitPageant = FALSE;
 	m_StdIoBufSize = 8;
+
+	m_TransmitLimit = 1000;
 }
 void CParamTab::SetArray(CStringArrayExt &stra)
 {
@@ -6048,6 +6057,7 @@ void CParamTab::SetArray(CStringArrayExt &stra)
 	stra.AddVal(m_x11AuthFlag);
 	stra.AddVal(m_bInitPageant);
 	stra.AddVal(m_StdIoBufSize);
+	stra.AddVal(m_TransmitLimit);
 }
 void CParamTab::GetArray(CStringArrayExt &stra)
 {
@@ -6175,6 +6185,9 @@ void CParamTab::GetArray(CStringArrayExt &stra)
 	if ( stra.GetSize() > i )
 		m_StdIoBufSize = stra.GetVal(i++);
 
+	if ( stra.GetSize() > i )
+		m_TransmitLimit = stra.GetVal(i++);
+
 	// Fix IdKeyList
 	if ( m_IdKeyStr[0].Compare(_T("IdKeyList Entry")) == 0 ) {
 		m_IdKeyList.GetString(m_IdKeyStr[1]);
@@ -6252,6 +6265,8 @@ void CParamTab::SetIndex(int mode, CStringIndex &index)
 
 		index[_T("InitPageant")]  = m_bInitPageant;
 		index[_T("StdIoBufSize")] = m_StdIoBufSize;
+
+		index[_T("TransmitLimit")] = m_TransmitLimit;
 
 	} else {			// Read
 		if ( (n = index.Find(_T("Algo"))) >= 0 ) {
@@ -6356,6 +6371,9 @@ void CParamTab::SetIndex(int mode, CStringIndex &index)
 
 		if ( (n = index.Find(_T("StdIoBufSize"))) >= 0 )
 			m_StdIoBufSize = index[n];
+
+		if ( (n = index.Find(_T("TransmitLimit"))) >= 0 )
+			m_TransmitLimit = index[n];
 	}
 }
 void CParamTab::DiffIndex(CParamTab &orig, CStringIndex &index)
@@ -6461,6 +6479,9 @@ void CParamTab::DiffIndex(CParamTab &orig, CStringIndex &index)
 
 	if ( m_StdIoBufSize != orig.m_StdIoBufSize )
 		index[_T("StdIoBufSize")] = m_StdIoBufSize;
+
+	if ( m_TransmitLimit != orig.m_TransmitLimit )
+		index[_T("TransmitLimit")] = m_TransmitLimit;
 }
 
 static const ScriptCmdsDefs DocSsh[] = {

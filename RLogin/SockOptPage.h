@@ -19,6 +19,7 @@ public:
 	int m_SelIPver;
 	UINT m_SleepTime;
 	CString m_GroupCast;
+	UINT m_TransmitLimit;
 
 public:
 	void DoInit();

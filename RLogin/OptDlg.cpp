@@ -92,6 +92,12 @@ COptDlg::COptDlg(LPCTSTR pszCaption, CWnd* pParentWnd)
 	TRACE("CModKeyPage %d\n", sizeof(CModKeyPage));
 	TRACE("CBackPage %d\n", sizeof(CBackPage));
 	TRACE("COptDlg %d\n", sizeof(COptDlg));
+
+	TRACE("CServerEntry %d\n", sizeof(CServerEntry));
+	TRACE("CTextRam %d\n", sizeof(CTextRam));
+	TRACE("CKeyNodeTab %d\n", sizeof(CKeyNodeTab));
+	TRACE("CKeyMacTab %d\n", sizeof(CKeyMacTab));
+	TRACE("CParamTab %d\n", sizeof(CParamTab));
 #endif
 
 	m_pSerEntPage  = new CSerEntPage;

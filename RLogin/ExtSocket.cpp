@@ -91,6 +91,11 @@ CExtSocket::CExtSocket(class CRLoginDoc *pDoc)
 	m_AddrInfoTop = NULL;
 	m_pSyncEvent = NULL;
 	m_bUseProc = FALSE;
+
+	m_TransmitLimit = 0;
+	m_SendLimit.clock = m_RecvLimit.clock = clock();
+	m_SendLimit.size  = m_RecvLimit.size  = 0;
+	m_SendLimit.timer = m_RecvLimit.timer = 0;
 }
 
 CExtSocket::~CExtSocket()
@@ -114,6 +119,13 @@ CExtSocket::~CExtSocket()
 	}
 }
 
+void CExtSocket::ResetOption()
+{
+	if ( m_pDocument == NULL )
+		return;
+
+	m_TransmitLimit = m_pDocument->m_TextRam.IsOptEnable(TO_RLTRSLIMIT) ? (m_pDocument->m_ParamTab.m_TransmitLimit * 1024) : 0;
+}
 void CExtSocket::Destroy()
 {
 	Close();
@@ -532,6 +544,8 @@ BOOL CExtSocket::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort,
 	while ( m_SendHead != NULL )
 		m_SendHead = RemoveHead(m_SendHead);
 
+	m_TransmitLimit = m_pDocument->m_TextRam.IsOptEnable(TO_RLTRSLIMIT) ? (m_pDocument->m_ParamTab.m_TransmitLimit * 1024) : 0;
+
 	m_RecvSize = m_RecvProcSize = 0;
 	m_SendSize = 0;
 
@@ -572,6 +586,8 @@ BOOL CExtSocket::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort,
 }
 void CExtSocket::Close()
 {
+	((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this);
+
 	SSLClose();
 
 	if ( m_AddrInfoTop != NULL ) {
@@ -752,13 +768,37 @@ void CExtSocket::SendFlash(int sec)
 		Sleep(100);
 	}
 }
+void CExtSocket::CheckLimit(int len, struct _LimitData *pLimit)
+{
+	int msec;
+	clock_t now = clock();
+
+	pLimit->size += len;
+
+	if ( (msec = now - pLimit->clock) >= (CLOCKS_PER_SEC * 2) ) {
+		pLimit->size = pLimit->size * CLOCKS_PER_SEC / msec;
+		pLimit->clock = now - CLOCKS_PER_SEC;
+		msec = CLOCKS_PER_SEC;
+	}
+
+	if ( msec > 0 && (int)(pLimit->size * CLOCKS_PER_SEC / msec) > m_TransmitLimit ) {
+		if ( (msec = RECVBUFSIZ * 1000 / m_TransmitLimit) < 10 )
+			msec = 10;
+		else if ( msec > 500 )
+			msec = 500;
+		pLimit->timer = ((CMainFrame *)::AfxGetMainWnd())->SetTimerEvent(msec, TIMEREVENT_SOCK, this);
+	}
+}
 int CExtSocket::Send(const void* lpBuf, int nBufLen, int nFlags)
 {
 	int n;
 	int len = nBufLen;
 	CSockBuffer *sp;
 
-	while ( m_SendHead == NULL && nBufLen > 0 ) {
+	if ( nBufLen <= 0 )
+		return len;
+
+	while ( m_SendHead == NULL && m_SendLimit.timer == 0 ) {
 		if ( m_SSL_mode != 0 )
 			n = (m_SSL_pSock != NULL ? SSL_write(m_SSL_pSock, lpBuf, nBufLen) : 0);
 		else
@@ -769,7 +809,11 @@ int CExtSocket::Send(const void* lpBuf, int nBufLen, int nFlags)
 		if ( n <= 0 )
 			break;
 
+		if ( m_TransmitLimit > 0 )
+			CheckLimit(n, &m_SendLimit);
+
 		if ( (nBufLen -= n) <= 0 ) {
+			// Call OnSendEmpty
 			GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, WSAMAKESELECTREPLY(FD_WRITE, 0));
 			return len;
 		}
@@ -777,10 +821,7 @@ int CExtSocket::Send(const void* lpBuf, int nBufLen, int nFlags)
 		lpBuf = (LPBYTE)lpBuf + n;
 	}
 
-	if ( nBufLen <= 0 )
-		return len;
-
-	if ( m_Fd != (-1) && (m_SocketEvent & FD_WRITE) == 0 ) {
+	if ( m_Fd != (-1) && (m_SocketEvent & FD_WRITE) == 0 && m_SendLimit.timer == 0 ) {
 		m_SocketEvent |= FD_WRITE;
 		WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), WM_SOCKSEL, m_SocketEvent);
 		TRACE("Send SocketEvent FD_WRITE On %04x\n", m_SocketEvent);
@@ -1390,8 +1431,10 @@ void CExtSocket::OnError(int err)
 void CExtSocket::OnClose()
 {
 	Close();
+
 	if ( m_pDocument == NULL )
 		return;
+
 	m_pDocument->OnSocketClose();
 }
 void CExtSocket::OnConnect()
@@ -1423,7 +1466,7 @@ void CExtSocket::OnSend()
 {
 	int n;
 
-	while ( m_SendHead != NULL ) {
+	while ( m_SendHead != NULL && m_SendLimit.timer == 0 ) {
 		if ( m_SSL_mode != 0 )
 			n = (m_SSL_pSock != NULL ? SSL_write(m_SSL_pSock, m_SendHead->GetPtr(), m_SendHead->GetSize()): 0);
 		else
@@ -1432,9 +1475,10 @@ void CExtSocket::OnSend()
 		//TRACE("OnSend %s %d\r\n", m_SSL_mode ? "SSL" : "", n);
 
 		if ( n <= 0 ) {
-			m_SocketEvent |= FD_WRITE;
-			WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), WM_SOCKSEL, m_SocketEvent);
-			TRACE("OnSend SocketEvent FD_WRITE On %04x\n", m_SocketEvent);
+			if ( (m_SocketEvent & FD_WRITE) == 0 ) {
+				m_SocketEvent |= FD_WRITE;
+				WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), WM_SOCKSEL, m_SocketEvent);
+			}
 			return;
 		}
 
@@ -1442,6 +1486,9 @@ void CExtSocket::OnSend()
 			m_SendHead = RemoveHead(m_SendHead);
 
 		m_SendSize -= n;
+
+		if ( m_TransmitLimit > 0 )
+			CheckLimit(n, &m_SendLimit);
 	}
 
 	if ( m_Fd != (-1) && (m_SocketEvent & FD_WRITE) != 0 ) {
@@ -1450,7 +1497,8 @@ void CExtSocket::OnSend()
 		TRACE("OnSend SocketEvent FD_WRITE Off %04x\n", m_SocketEvent);
 	}
 
-	OnSendEmpty();
+	if ( m_SendHead == NULL )
+		OnSendEmpty();
 }
 BOOL CExtSocket::ReceiveFlowCheck()
 {
@@ -1458,13 +1506,13 @@ BOOL CExtSocket::ReceiveFlowCheck()
 		return FALSE;
 
 	if ( (m_SocketEvent & (FD_READ | FD_OOB)) == 0 ) {
-		if ( m_RecvSize <= RECVMINSIZ ) {
+		if ( m_RecvSize <= RECVMINSIZ && m_RecvLimit.timer == 0 ) {
 			m_SocketEvent |= (FD_READ | FD_OOB);
 			WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), WM_SOCKSEL, m_SocketEvent);
 			TRACE("OnReceive SocketEvent On %04x (%d:%d)\n", m_SocketEvent, m_RecvSize, m_RecvProcSize);
 		}
 	} else {
-		if ( m_RecvSize >= RECVMAXSIZ ) {
+		if ( m_RecvSize >= RECVMAXSIZ || m_RecvLimit.timer != 0 ) {
 			m_SocketEvent &= ~(FD_READ | FD_OOB);
 			WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), WM_SOCKSEL, m_SocketEvent);
 			TRACE("OnReceive SocketEvent Off %04x (%d:%d)\n", m_SocketEvent, m_RecvSize, m_RecvProcSize);
@@ -1508,6 +1556,9 @@ void CExtSocket::OnReceive(int nFlags)
 		m_RecvHead = AddTail(sp, m_RecvHead);
 		m_RecvSize += sp->GetSize();
 		m_RecvSema.Unlock();
+
+		if ( m_TransmitLimit > 0 )
+			CheckLimit(n, &m_RecvLimit);
 	}
 }
 BOOL CExtSocket::ReceiveCall()
@@ -1673,6 +1724,14 @@ int CExtSocket::OnIdle()
 }
 void CExtSocket::OnTimer(UINT_PTR nIDEvent)
 {
+	if ( m_SendLimit.timer == (int)nIDEvent ) {
+		m_SendLimit.timer = 0;
+		OnSend();
+	} else if ( m_RecvLimit.timer == (int)nIDEvent ) {
+		m_RecvLimit.timer = 0;
+		OnReceive(0);
+	} else
+		((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this, (int)nIDEvent);
 }
 
 //////////////////////////////////////////////////////////////////////

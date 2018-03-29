@@ -30,7 +30,7 @@ static char THIS_FILE[]=__FILE__;
 
 #define	SSH2_GSS_OIDTYPE	0x06
 
-static const struct {
+static const struct _gssapi_kerberos_mech {
 	BYTE	len;
 	BYTE	*data;
 } gssapi_kerberos_mech = { 9, (BYTE *)"\x2a\x86\x48\x86\xf7\x12\x01\x02\x02" };	// Kerberos : iso(1) member-body(2) United States(840) mit(113554) infosys(1) gssapi(2) krb5(2)
@@ -48,6 +48,7 @@ Cssh::Cssh(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 	m_InPackStat = 0;
 	m_pListFilter = NULL;
 	m_ConnectTime = 0;
+	m_KeepAliveTiimerId = 0;
 	m_KeepAliveSendCount = m_KeepAliveReplyCount = 0;
 	m_KeepAliveRecvGlobalCount = m_KeepAliveRecvChannelCount = 0;
 
@@ -66,7 +67,8 @@ Cssh::~Cssh()
 			free(m_VKey[n]);
 	}
 
-	((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this);
+	if ( m_KeepAliveTiimerId != 0 )
+		((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this, m_KeepAliveTiimerId);
 
 	if ( m_pAgentMutex != NULL )
 		delete m_pAgentMutex;
@@ -649,7 +651,10 @@ void Cssh::SendBreak(int opt)
 
 void Cssh::OnTimer(UINT_PTR nIDEvent)
 {
-	SendMsgKeepAlive();
+	if ( nIDEvent == m_KeepAliveTiimerId )
+		SendMsgKeepAlive();
+	else
+		CExtSocket::OnTimer(nIDEvent);
 }
 void Cssh::OnRecvEmpty()
 {
@@ -3993,7 +3998,7 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 			}
 		}
 		if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHKEEPAL) && m_pDocument->m_TextRam.m_SshKeepAlive > 0 )
-			((CMainFrame *)AfxGetMainWnd())->SetTimerEvent(m_pDocument->m_TextRam.m_SshKeepAlive * 1000, TIMEREVENT_SOCK | TIMEREVENT_INTERVAL, this);
+			m_KeepAliveTiimerId = ((CMainFrame *)AfxGetMainWnd())->SetTimerEvent(m_pDocument->m_TextRam.m_SshKeepAlive * 1000, TIMEREVENT_SOCK | TIMEREVENT_INTERVAL, this);
 		break;
 	case SSH2_MSG_USERAUTH_FAILURE:
 		if ( (m_SSH2Status & SSH2_STAT_HAVESESS) == 0 )

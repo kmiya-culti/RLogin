@@ -177,6 +177,13 @@ private:
 	SSL *m_SSL_pSock;
 	BOOL m_SSL_keep;
 
+	int m_TransmitLimit;
+	struct _LimitData {
+		clock_t	clock;
+		LONGLONG size;
+		int timer;
+	} m_RecvLimit, m_SendLimit;
+
 	CSockBuffer *AllocBuffer();
 	void FreeBuffer(CSockBuffer *sp);
 	CSockBuffer *AddTail(CSockBuffer *sp, CSockBuffer *head);
@@ -209,7 +216,9 @@ public:
 	virtual int Send(const void *lpBuf, int nBufLen, int nFlags = 0);
 	virtual void SendWindSize();
 	virtual void SendBreak(int opt = 0);
+
 	void SendFlash(int sec);
+	void CheckLimit(int len, struct _LimitData *pLimit);
 
 	virtual int GetRecvSize();
 	virtual int GetSendSize();
@@ -234,6 +243,7 @@ public:
 	virtual void OnSend();
 	virtual int OnIdle();
 	virtual void OnTimer(UINT_PTR nIDEvent);
+	virtual void ResetOption();
 
 	int AsyncGetHostByName(LPCTSTR pHostName);
 	BOOL AsyncCreate(LPCTSTR lpszHostAddress, UINT nHostPort, LPCTSTR lpszRemoteAddress = NULL, int nSocketType = SOCK_STREAM);

@@ -28,8 +28,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.23.2)</TD>
-            <TD width="20%" align="right">2018/02/27</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.23.3)</TD>
+            <TD width="20%" align="right">2018/03/30</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -151,12 +151,12 @@ TD {
                         <TD>
                         <OL>
                           <LI><A href="#TEKWIND">Tek40xx/41xxウィンドウ</A>
-                          <LI><A href="#REGWIND">ReGIS/Sixelグラフィック・ウィンドウ</A>
+                          <LI><A href="#REGWIND">ReGIS/Sixeウィンドウ</A>
                           <LI><A href="#MONITOR">シリアルモニター</A>
                           <LI><A href="#TRACE">トレースウィンドウ</A>
                           <LI><A href="#TOOLBAR">ツールバーのカスタマイズ</A>
                           <LI><A href="#RESOURCE">リソースをファイルに保存</A>
-                          <LI><A href="#SFTPWIND">SFTPによるファイル転送ウィンドウ</A>
+                          <LI><A href="#SFTPWIND">SFTPによるファイル転送</A>
                         </OL>
                         </TD>
                       </TR>
@@ -367,7 +367,7 @@ TD {
           <TR>
             <TD>動作環境としてWindows XP x32/Windows 7 x64/Windows 10 x64にて確認しています。<BR>
             <BR>
-            サーバーは、FreeBSD 10.3のrlogind, telnetd, sshd(openssh-7.4p1)にて確認しています。<BR>
+            サーバーは、FreeBSD 10.3のrlogind, telnetd, sshd(openssh-7.6p1)にて確認しています。<BR>
             <BR>
             「rlogin.zip」を解凍してRLogin.exeを適当な場所に置いて実行してください。<BR>
             <BR>
@@ -438,6 +438,17 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2018/03/30</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.23.3/">2.23.3</A></TD>
+            <TD>RLMMLにMML形式でファイルに保存(DCS5#m))を追加<BR>
+            認証鍵のssh-xmss@openssh.comを試験的に追加<BR>
+            メニュー・ヘルプに既定のアプリへ登録を行うを追加<BR>
+            User Nameに$XXXで環境変数を展開するように変更<BR>
+            Socket Portの既定値をプロトコル変更時のみに変更<BR>
+            通信共通・TCP/IPに帯域制限を行うを追加<BR>
+            openssl-1.1.0hに更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2018/02/27</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.23.2/">2.23.2</A></TD>
             <TD>拡張機能の一部を各種オプションに移動<BR>
@@ -477,16 +488,6 @@ TD {
             メニュー操作時のアイドル処理をタイマーで処理するように変更<BR>
             全体的に送受信バッファサイズを見直してその処理を変更<BR>
             Winsockメッセージの受信処理を変更</TD>
-          </TR>
-          <TR>
-            <TD align="center">2017/11/03</TD>
-            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.22.8/">2.22.8</A></TD>
-            <TD>ssh2のポートフォワードにチェックマークで有効・無効を追加<BR>
-            ヘルプメニューにレジストリをファイルに保存を追加<BR>
-            ssh2ポートフォワードにRemote Socksを追加<BR>
-            sshのエージェントにlock/unlockとrsa拡張を追加<BR>
-            Pageantの鍵を認証キーの設定で管理するように変更<BR>
-            openssl-1.1.0gに更新</TD>
           </TR>
           <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
@@ -604,7 +605,7 @@ TD {
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 1.1.0g 2 Nov 2017<BR>
+            <P>OpenSSL 1.1.0h 27 Mar 2018<BR>
             Copyright (c) 1998-2016 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>
@@ -1232,7 +1233,7 @@ TD {
                   <TD colspan="6">ヘルプ(H)</TD>
                 </TR>
                 <TR>
-                  <TD align="center" rowspan="9" width="10">&nbsp;</TD>
+                  <TD align="center" rowspan="10" width="10">&nbsp;</TD>
                   <TD valign="top" colspan="2" width="250">Rloginのバージョン情報(A)</TD>
                   <TD valign="top" width="450">プログラムやライブラリなどのバージョン情報を表示します</TD>
                   <TD valign="top" width="120" align="right"></TD>
@@ -1243,6 +1244,13 @@ TD {
                   <TD valign="top" width="450">RLogin起動時に定期的に新バージョンのチェックを行うようにします</TD>
                   <TD valign="top" align="right" width="120"></TD>
                   <TD valign="top" width="150">$VERSION_CHECK</TD>
+                </TR>
+                <TR>
+                  <TD valign="top" colspan="2" width="250">既定のアプリへ登録を行う(X)</TD>
+                  <TD valign="top" width="450">Windowsの設定・アプリ・既定のアプリにRLoginを登録して管理します。<BR>
+                  ※ファイルの種類として&quot;.rlg&quot;との関連付け、プロトコルとしてssh　telnet　loginを設定することができます（プロトコルハンドラは、<A href="#SERVERSEL">サーバーの選択・設定</A>で個別のエントリーと関連付けを行って作成する必要があります）。また、このメニューのチェックを外すとすべての関連付け及び既定のアプリでの管理を行うレジストリの設定を削除します。</TD>
+                  <TD valign="top" align="right" width="120"></TD>
+                  <TD valign="top" width="150">$REGISTRY_HANDLE</TD>
                 </TR>
                 <TR>
                   <TD valign="top" colspan="2" width="250">ダイアログフォントの設定(D)</TD>
@@ -1439,6 +1447,10 @@ TD {
                 <TR>
                   <TD>/req</TD>
                   <TD>サーバーアドレス・ユーザー名・パスワードの入力ダイアログを接続時に表示</TD>
+                </TR>
+                <TR>
+                  <TD>/idkey &lt;IdKey File Name&gt;</TD>
+                  <TD>sshで使用する認証鍵ファイルを指定</TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -1835,7 +1847,42 @@ TD {
                 </TR>
                 <TR>
                   <TD align="center">User Name</TD>
-                  <TD>ユーザー認証に使用するユーザー名です</TD>
+                  <TD>ユーザー認証に使用するユーザー名です<BR>
+                  <BR>
+                  ※2.23.3より&quot;$XXX&quot;&quot;${XXX}&quot;で環境変数を展開します<BR>
+                  <TABLE cellpadding="3">
+                    <TBODY>
+                      <TR>
+                        <TD>$USER</TD>
+                        <TD>アカウント名</TD>
+                      </TR>
+                      <TR>
+                        <TD>$COMPUTER</TD>
+                        <TD>コンピュータ名</TD>
+                      </TR>
+                      <TR>
+                        <TD>${XXX:abc=xyz}</TD>
+                        <TD>abcをxyzに置換</TD>
+                      </TR>
+                      <TR>
+                        <TD>${XXX:i,n}</TD>
+                        <TD>i文字目からn文字切り出し</TD>
+                      </TR>
+                      <TR>
+                        <TD>${XXX:U}</TD>
+                        <TD>すべて大文字に変換</TD>
+                      </TR>
+                      <TR>
+                        <TD>${XXX:L}</TD>
+                        <TD>頭の文字を大文字、以降小文字に変換</TD>
+                      </TR>
+                      <TR>
+                        <TD>${XXX:l}</TD>
+                        <TD>すべて小文字に変換</TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  </TD>
                 </TR>
                 <TR>
                   <TD align="center">Password</TD>
@@ -2500,6 +2547,11 @@ fi</PRE>
                   <TD colspan="2">TCP/IP</TD>
                 </TR>
                 <TR>
+                  <TD align="center">送信・受信の・・・</TD>
+                  <TD>送信・受信共に帯域制限を掛けます<BR>
+                  数値はKByte/Secで指定します</TD>
+                </TR>
+                <TR>
                   <TD align="center">TCPオプションの・・・</TD>
                   <TD>TCPオプションのKeepAliveが有効のソケットを作成します</TD>
                 </TR>
@@ -2968,7 +3020,8 @@ fi</PRE>
                         <TD valign="top">openssh独自形式</TD>
                         <TD>ssh-rsa,ssh-dss<BR>
                         ecdsa-sha2-*<BR>
-                        ssh-ed25519</TD>
+                        ssh-ed25519<BR>
+                        ssh-xmss@openssh.com</TD>
                       </TR>
                       <TR>
                         <TD valign="top">ssh.com</TD>
@@ -3004,15 +3057,18 @@ fi</PRE>
                     <TBODY>
                       <TR>
                         <TD></TD>
+                        <TD align="center">10</TD>
+                        <TD align="center">16</TD>
+                        <TD align="center">20</TD>
                         <TD align="center" width="30">-</TD>
                         <TD align="center" width="30">256</TD>
                         <TD align="center" width="30">384</TD>
                         <TD align="center" width="30">521</TD>
                         <TD align="center" width="30">768</TD>
-                        <TD align="center" width="30">1024</TD>
-                        <TD align="center" width="30">2048</TD>
-                        <TD align="center" width="30">4096</TD>
-                        <TD align="center" width="30">8192</TD>
+                        <TD align="center" width="30"><FONT size="-1">1024</FONT></TD>
+                        <TD align="center" width="30"><FONT size="-1">2048</FONT></TD>
+                        <TD align="center" width="30"><FONT size="-1">4096</FONT></TD>
+                        <TD align="center" width="30"><FONT size="-1">8192</FONT></TD>
                       </TR>
                       <TR>
                         <TD>RSA1/2</TD>
@@ -3020,14 +3076,20 @@ fi</PRE>
                         <TD align="center">-</TD>
                         <TD align="center">-</TD>
                         <TD align="center">-</TD>
+                        <TD align="center">-</TD>
+                        <TD align="center">-</TD>
+                        <TD align="center">-</TD>
                         <TD align="center">△</TD>
-                        <TD align="center">○</TD>
+                        <TD align="center">〇</TD>
                         <TD align="center">◎</TD>
-                        <TD align="center">○</TD>
+                        <TD align="center">〇</TD>
                         <TD align="center">△</TD>
                       </TR>
                       <TR>
                         <TD>DSA2</TD>
+                        <TD align="center">-</TD>
+                        <TD align="center">-</TD>
+                        <TD align="center">-</TD>
                         <TD align="center">-</TD>
                         <TD align="center">-</TD>
                         <TD align="center">-</TD>
@@ -3041,9 +3103,12 @@ fi</PRE>
                       <TR>
                         <TD>ECDSA</TD>
                         <TD align="center">-</TD>
+                        <TD align="center">-</TD>
+                        <TD align="center">-</TD>
+                        <TD align="center">-</TD>
                         <TD align="center">◎</TD>
                         <TD align="center">◎</TD>
-                        <TD align="center">○</TD>
+                        <TD align="center">〇</TD>
                         <TD align="center">-</TD>
                         <TD align="center">-</TD>
                         <TD align="center">-</TD>
@@ -3052,7 +3117,25 @@ fi</PRE>
                       </TR>
                       <TR>
                         <TD>ED25519</TD>
+                        <TD align="center">-</TD>
+                        <TD align="center">-</TD>
+                        <TD align="center">-</TD>
                         <TD align="center">◎</TD>
+                        <TD align="center">-</TD>
+                        <TD align="center">-</TD>
+                        <TD align="center">-</TD>
+                        <TD align="center">-</TD>
+                        <TD align="center">-</TD>
+                        <TD align="center">-</TD>
+                        <TD align="center">-</TD>
+                        <TD align="center">-</TD>
+                      </TR>
+                      <TR>
+                        <TD>XMSS</TD>
+                        <TD align="center">〇</TD>
+                        <TD align="center">〇</TD>
+                        <TD align="center">△</TD>
+                        <TD align="center">-</TD>
                         <TD align="center">-</TD>
                         <TD align="center">-</TD>
                         <TD align="center">-</TD>
@@ -3064,11 +3147,12 @@ fi</PRE>
                       </TR>
                     </TBODY>
                   </TABLE>
-                  △推奨しません、○使用できます、◎推奨します<BR>
+                  △推奨しません、〇使用できます、◎推奨します<BR>
                   ×環境により使用できません<BR>
                   <BR>
                   ※DSA2は1024のみ互換性があります<BR>
-                  ※ED25519では、ビットサイズ指定できません</TD>
+                  ※ED25519では、ビットサイズ指定できません<BR>
+                  ※XMSSは、ビットサイズではありません。インデックスのサイズを2のn乗で表します(2^10=1024)</TD>
                 </TR>
                 <TR>
                   <TD width="30%" align="center">Name</TD>
@@ -3076,7 +3160,8 @@ fi</PRE>
                 </TR>
                 <TR>
                   <TD width="30%" align="center">作成</TD>
-                  <TD>作成時にパスフレーズの設定が必要です。</TD>
+                  <TD>作成時にパスフレーズの設定が必要です。<BR>
+                  ※XMSSで20の場合は、鍵の作成に１時間程かかります</TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -4297,7 +4382,7 @@ function TekClock2() {
                       </TR>
                       <TR>
                         <TD>In</TD>
-                        <TD>指定フォントにCharacter Setが含まれるかどうかを○×で示します。</TD>
+                        <TD>指定フォントにCharacter Setが含まれるかどうかを〇×で示します。</TD>
                       </TR>
                     </TBODY>
                   </TABLE>

@@ -195,6 +195,7 @@ BEGIN
     BEGIN
         MENUITEM "RLogin のバージョン情報(&A)",         ID_APP_ABOUT
         MENUITEM "自動バージョンチェック(&V)",             IDM_VERSIONCHECK
+        MENUITEM "既定のアプリへ登録を行う(&X)",            IDM_REGISTAPP
         MENUITEM SEPARATOR
         MENUITEM "ダイアログフォントの設定(&D)",            IDM_DIALOGFONT
         MENUITEM "ツールバーのカスタマイズ(&T)",            IDM_TOOLCUST
@@ -355,6 +356,7 @@ BEGIN
     BEGIN
         MENUITEM "RLogin のバージョン情報(&A)",         ID_APP_ABOUT
         MENUITEM "自動バージョンチェック(&V)",             IDM_VERSIONCHECK
+        MENUITEM "既定のアプリへ登録を行う(&X)",            IDM_REGISTAPP
         MENUITEM SEPARATOR
         MENUITEM "ダイアログフォントの設定(&D)",            IDM_DIALOGFONT
         MENUITEM "ツールバーのカスタマイズ(&T)",            IDM_TOOLCUST
@@ -569,10 +571,10 @@ BEGIN
                     "SysLink",WS_TABSTOP,44,178,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,193,60,14,WS_GROUP
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.23.2 (2018/02/27)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.23.3 (2018/03/30)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2018 Culti",IDC_STATIC,44,16,189,8
-    LTEXT           "OpenSSL 1.1.0g 2 Nov 2017",IDC_STATIC,44,52,189,8
-    LTEXT           "Copyright (c) 1998-2017 The OpenSSL Project",IDC_STATIC,44,61,189,8
+    LTEXT           "OpenSSL 1.1.0h 27 Mar 2018",IDC_STATIC,44,52,189,8
+    LTEXT           "Copyright (c) 1998-2018 The OpenSSL Project",IDC_STATIC,44,61,189,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,70,189,8
     LTEXT           "All rights reserved.",IDC_STATIC,44,79,189,8
     LTEXT           "zlib 1.2.11 (15 Jan 2017)",IDC_STATIC,44,92,189,8
@@ -1549,14 +1551,15 @@ BEGIN
     EDITTEXT        IDC_GROUPCAST,205,152,50,14,ES_AUTOHSCROLL
     CONTROL         "すべての同時送信(ブロード・グループ）を受け取りません",IDC_OPTCHECK8,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,170,240,10
     CONTROL         "ブロード・グループキャストで同時送信しません",IDC_OPTCHECK9,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,186,240,10
-    CONTROL         "TCPオプションのKeepAliveを有効にする",IDC_OPTCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,222,240,10
-    CONTROL         "IPv6/IPv4",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,15,256,60,10
-    CONTROL         "IPv6のみ",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,97,256,60,10
-    CONTROL         "IPv4のみ",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,179,256,60,10
+    CONTROL         "送信・受信の帯域制限を行う(KByte/Sec)",IDC_OPTCHECK12,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,222,180,10
+    EDITTEXT        IDC_TRANSMITLIMIT,205,220,50,14,ES_AUTOHSCROLL
+    CONTROL         "TCPオプションのKeepAliveを有効にする",IDC_OPTCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,239,240,10
+    CONTROL         "IPv6/IPv4(DNSの応答順位)",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,15,256,98,10
+    CONTROL         "IPv6のみ",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,125,256,50,10
+    CONTROL         "IPv4のみ",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,191,256,50,10
     GROUPBOX        "オプション",IDC_STATIC,7,7,256,129
     GROUPBOX        "TCP/IP",IDC_STATIC,7,208,256,65
     GROUPBOX        "ブロードキャスト（同時送信）",IDC_STATIC,7,140,256,64
-    LTEXT           "接続するIPバージョンの選択（IPv6/IPv4の場合、DNSの応答により決定）",IDC_STATIC,15,240,240,8
 END
 
 IDD_MODKEYPAGE DIALOGEX 0, 0, 270, 280
@@ -1962,8 +1965,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,23,2,0
- PRODUCTVERSION 2,23,2,0
+ FILEVERSION 2,23,3,0
+ PRODUCTVERSION 2,23,3,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1980,12 +1983,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.23.2.0"
+            VALUE "FileVersion", "2.23.3.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2017 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.23.2.0"
+            VALUE "ProductVersion", "2.23.3.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2875,6 +2878,14 @@ BEGIN
 0x4345, 0x5344, 0x0041, 
     IDC_IDKEY_TYPE, 0x403, 8, 0
 0x4445, 0x3532, 0x3135, 0x0039, 
+    IDC_IDKEY_TYPE, 0x403, 5, 0
+0x4d58, 0x5353, "\000" 
+    IDC_IDKEY_BITS, 0x403, 3, 0
+0x3031, "\000" 
+    IDC_IDKEY_BITS, 0x403, 3, 0
+0x3631, "\000" 
+    IDC_IDKEY_BITS, 0x403, 3, 0
+0x3032, "\000" 
     IDC_IDKEY_BITS, 0x403, 4, 0
 0x3532, 0x0036, 
     IDC_IDKEY_BITS, 0x403, 4, 0
@@ -4119,6 +4130,7 @@ BEGIN
     IDS_DEFENTRYEDITMSG     "標準の設定のエントリーが編集されました\n標準の設定を更新しますか？"
     IDS_ADDPAGEANTENTRY     "このエントリーで最初のPageantの起動を確認しました\n使用する認証鍵の優先順位を設定してください\n以降、鍵の追加などした場合に設定が必要になります"
     IDS_DROPSUBDIRCHECK     "ドロップ操作でサブフォルダは作成されません\nフォルダ内のファイルをダウンロードしますか？"
+    IDS_REGISTAPPPROTOCOL   "既定のアプリでプロトコル登録を行いますか？"
 END
 
 STRINGTABLE
@@ -4144,6 +4156,9 @@ END
 STRINGTABLE
 BEGIN
     IDE_SFTPTHREADCMDEXEC   "現在、ローカルファイルのコピー操作中です。終了を待つか中断してから閉じてください"
+    IDE_XMSSBITSIZEERR      "XMSSは、ビットサイズを10/16/20から選択してください"
+    IDE_XMSSBITSIZECHECK    "XMSSで20以上の作成は非常に長い時間が必要です。\nまた途中で中断出来ません。\n本当に作成しますか？"
+    IDE_REGISTRYDELETEERROR "管理者として実行しないと消せないレジストリが残っている可能性があります"
 END
 
 STRINGTABLE
@@ -4273,6 +4288,7 @@ BEGIN
     IDM_TITLEEDIT           "ウィンドウタイトルを編集して変更します\nタイトルの変更"
     IDM_SAVEREGFILE         "レジストリをファイルに保存\nレジストリの保存"
     IDM_COMMONITER          "シリアル通信をモニターする\nシリアルモニター"
+    IDM_REGISTAPP           "既定のアプリでファイルやプロトコルを管理する\n既定のアプリに登録"
 END
 
 STRINGTABLE

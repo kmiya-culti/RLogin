@@ -78,34 +78,40 @@ void CAlgoDlg::OnOK()
 void CAlgoDlg::OnBnClickedReset()
 {
 	int n, i;
-	CTextRam TextRam;
-	CKeyNodeTab KeyTab;
-	CKeyMacTab KeyMac;
-	CParamTab ParamTab;
+	CTextRam *pTextRam   = new CTextRam;
+	CKeyNodeTab *pKeyTab = new CKeyNodeTab;
+	CKeyMacTab *pKeyMac  = new CKeyMacTab;
+	CParamTab *pParamTab = new CParamTab;
 	CInitAllDlg dlg;
 
 	if ( dlg.DoModal() != IDOK )
-		return;
+		goto ENDOF;
 
 	switch(dlg.m_InitType) {
 	case 0:		// Init Default Entry
-		ParamTab.Serialize(FALSE);
+		pParamTab->Serialize(FALSE);
 		break;
 
 	case 1:		// Init Program Default
-		ParamTab.Init();
+		pParamTab->Init();
 		break;
 
 	case 2:		// Copy Entry option
 		ASSERT(dlg.m_pInitEntry != NULL);
-		CRLoginDoc::LoadOption(*(dlg.m_pInitEntry), TextRam, KeyTab, KeyMac, ParamTab);
+		CRLoginDoc::LoadOption(*(dlg.m_pInitEntry), *pTextRam, *pKeyTab, *pKeyMac, *pParamTab);
 		break;
 	}
 
 	for ( n = 0 ; n < 12 ; n++ ) {
-		m_AlgoTab[n] = ParamTab.m_AlgoTab[n];
+		m_AlgoTab[n] = pParamTab->m_AlgoTab[n];
 		m_List[n].DeleteAllItems();
 		for ( i = 0 ; i < m_AlgoTab[n].GetSize() ; i++ )
 			m_List[n].InsertItem(i, m_AlgoTab[n][i]);
 	}
+
+ENDOF:
+	delete pTextRam;
+	delete pKeyTab;
+	delete pKeyMac;
+	delete pParamTab;
 }

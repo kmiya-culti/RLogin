@@ -39,110 +39,111 @@ static const struct _CipherTab {
 	const EVP_CIPHER * (*func)(void);
 	int		block_size;
 	int		key_len;
+	int     iv_len;
 	int		discard;
 } CipherTab[] = {
-	{ SSH_CIPHER_NONE,			_T("none"),					(const EVP_CIPHER *(*)())EVP_enc_null,			8,	0,	0	},	// RFC 4253
-	{ SSH_CIPHER_DES,			_T("des"),					(const EVP_CIPHER *(*)())EVP_des_cbc,			8,	8,	0	},
-	{ SSH_CIPHER_3DES,			_T("3des"),					(const EVP_CIPHER *(*)())evp_ssh1_3des,			8,	16,	0	},
-	{ SSH_CIPHER_BLOWFISH,		_T("blowfish"),				(const EVP_CIPHER *(*)())evp_ssh1_bf,			8,	32,	0	},
+	{ SSH_CIPHER_NONE,			_T("none"),					(const EVP_CIPHER *(*)())EVP_enc_null,			8,	0,	0, 0	},	// RFC 4253
+	{ SSH_CIPHER_DES,			_T("des"),					(const EVP_CIPHER *(*)())EVP_des_cbc,			8,	8,	0, 0	},
+	{ SSH_CIPHER_3DES,			_T("3des"),					(const EVP_CIPHER *(*)())evp_ssh1_3des,			8,	16,	0, 0	},
+	{ SSH_CIPHER_BLOWFISH,		_T("blowfish"),				(const EVP_CIPHER *(*)())evp_ssh1_bf,			8,	32,	0, 0	},
 
-	{ SSH2_CIPHER_3DES_CBC,		_T("3des-cbc"),				(const EVP_CIPHER *(*)())EVP_des_ede3_cbc,		8,	24,	0	},	// RFC 4253	REQUIRED
-//	{ SSH2_CIPHER_3DES_ECB,		_T("3des-ecb"),				(const EVP_CIPHER *(*)())EVP_des_ede3_ecb,		8,	24,	0	},
-//	{ SSH2_CIPHER_3DES_CFB,		_T("3des-cfb"),				(const EVP_CIPHER *(*)())EVP_des_ede3_cfb,		8,	24,	0	},
-//	{ SSH2_CIPHER_3DES_OFB,		_T("3des-ofb"),				(const EVP_CIPHER *(*)())EVP_des_ede3_ofb,		8,	24,	0	},
-	{ SSH2_CIPHER_3DES_CTR,		_T("3des-ctr"),				(const EVP_CIPHER *(*)())evp_des3_ctr,			8,	24,	0	},	// RFC 4344	RECOMMENDED
-	{ SSH2_CIPHER_DES_CBC,		_T("des-cbc"),				(const EVP_CIPHER *(*)())EVP_des_cbc,			8,	8,	0	},	// FIPS-46-3
+	{ SSH2_CIPHER_3DES_CBC,		_T("3des-cbc"),				(const EVP_CIPHER *(*)())EVP_des_ede3_cbc,		8,	24,	0, 0	},	// RFC 4253	REQUIRED
+//	{ SSH2_CIPHER_3DES_ECB,		_T("3des-ecb"),				(const EVP_CIPHER *(*)())EVP_des_ede3_ecb,		8,	24,	0, 0	},
+//	{ SSH2_CIPHER_3DES_CFB,		_T("3des-cfb"),				(const EVP_CIPHER *(*)())EVP_des_ede3_cfb,		8,	24,	0, 0	},
+//	{ SSH2_CIPHER_3DES_OFB,		_T("3des-ofb"),				(const EVP_CIPHER *(*)())EVP_des_ede3_ofb,		8,	24,	0, 0	},
+	{ SSH2_CIPHER_3DES_CTR,		_T("3des-ctr"),				(const EVP_CIPHER *(*)())evp_des3_ctr,			8,	24,	0, 0	},	// RFC 4344	RECOMMENDED
+	{ SSH2_CIPHER_DES_CBC,		_T("des-cbc"),				(const EVP_CIPHER *(*)())EVP_des_cbc,			8,	8,	0, 0	},	// FIPS-46-3
 
-	{ SSH2_CIPHER_BLF_CBC,		_T("blowfish-cbc"),			(const EVP_CIPHER *(*)())EVP_bf_cbc,			8,	16,	0	},	// RFC 4253
-//	{ SSH2_CIPHER_BLF_ECB,		_T("blowfish-ecb"),			(const EVP_CIPHER *(*)())EVP_bf_ecb,			8,	16,	0	},
-//	{ SSH2_CIPHER_BLF_CFB,		_T("blowfish-cfb"),			(const EVP_CIPHER *(*)())EVP_bf_cfb,			8,	16,	0	},
-//	{ SSH2_CIPHER_BLF_OFB,		_T("blowfish-ofb"),			(const EVP_CIPHER *(*)())EVP_bf_ofb,			8,	16,	0	},
-	{ SSH2_CIPHER_BLF_CTR,		_T("blowfish-ctr"),			(const EVP_CIPHER *(*)())evp_bf_ctr,			8,	32,	0	},	// RFC 4344
+	{ SSH2_CIPHER_BLF_CBC,		_T("blowfish-cbc"),			(const EVP_CIPHER *(*)())EVP_bf_cbc,			8,	16,	0, 0	},	// RFC 4253
+//	{ SSH2_CIPHER_BLF_ECB,		_T("blowfish-ecb"),			(const EVP_CIPHER *(*)())EVP_bf_ecb,			8,	16,	0, 0	},
+//	{ SSH2_CIPHER_BLF_CFB,		_T("blowfish-cfb"),			(const EVP_CIPHER *(*)())EVP_bf_cfb,			8,	16,	0, 0	},
+//	{ SSH2_CIPHER_BLF_OFB,		_T("blowfish-ofb"),			(const EVP_CIPHER *(*)())EVP_bf_ofb,			8,	16,	0, 0	},
+	{ SSH2_CIPHER_BLF_CTR,		_T("blowfish-ctr"),			(const EVP_CIPHER *(*)())evp_bf_ctr,			8,	32,	0, 0	},	// RFC 4344
 
-	{ SSH2_CIPHER_IDEA_CBC,		_T("idea-cbc"),				(const EVP_CIPHER *(*)())EVP_idea_cbc,			8,	16,	0	},	// RFC 4253
-//	{ SSH2_CIPHER_IDEA_ECB,		_T("idea-ecb"),				(const EVP_CIPHER *(*)())EVP_idea_ecb,			8,	16,	0	},
-//	{ SSH2_CIPHER_IDEA_CFB,		_T("idea-cfb"),				(const EVP_CIPHER *(*)())EVP_idea_cfb,			8,	16,	0	},
-//	{ SSH2_CIPHER_IDEA_OFB,		_T("idea-ofb"),				(const EVP_CIPHER *(*)())EVP_idea_ofb,			8,	16,	0	},
-	{ SSH2_CIPHER_IDEA_CTR,		_T("idea-ctr"),				(const EVP_CIPHER *(*)())evp_idea_ctr,			8,	16,	0	},	// RFC 4344
+	{ SSH2_CIPHER_IDEA_CBC,		_T("idea-cbc"),				(const EVP_CIPHER *(*)())EVP_idea_cbc,			8,	16,	0, 0	},	// RFC 4253
+//	{ SSH2_CIPHER_IDEA_ECB,		_T("idea-ecb"),				(const EVP_CIPHER *(*)())EVP_idea_ecb,			8,	16,	0, 0	},
+//	{ SSH2_CIPHER_IDEA_CFB,		_T("idea-cfb"),				(const EVP_CIPHER *(*)())EVP_idea_cfb,			8,	16,	0, 0	},
+//	{ SSH2_CIPHER_IDEA_OFB,		_T("idea-ofb"),				(const EVP_CIPHER *(*)())EVP_idea_ofb,			8,	16,	0, 0	},
+	{ SSH2_CIPHER_IDEA_CTR,		_T("idea-ctr"),				(const EVP_CIPHER *(*)())evp_idea_ctr,			8,	16,	0, 0	},	// RFC 4344
 
-	{ SSH2_CIPHER_CAST_CBC,		_T("cast128-cbc"),			(const EVP_CIPHER *(*)())EVP_cast5_cbc,			8,	16,	0	},	// RFC 4253
-//	{ SSH2_CIPHER_CAST_ECB,		_T("cast128-ecb"),			(const EVP_CIPHER *(*)())EVP_cast5_ecb,			8,	16,	0	},
-//	{ SSH2_CIPHER_CAST_CFB,		_T("cast128-cfb"),			(const EVP_CIPHER *(*)())EVP_cast5_cfb,			8,	16,	0	},
-//	{ SSH2_CIPHER_CAST_OFB,		_T("cast128-ofb"),			(const EVP_CIPHER *(*)())EVP_cast5_ofb,			8,	16,	0	},
-	{ SSH2_CIPHER_CAST_CTR,		_T("cast128-ctr"),			(const EVP_CIPHER *(*)())evp_cast5_ctr,			8,	16,	0	},	// RFC 4344
+	{ SSH2_CIPHER_CAST_CBC,		_T("cast128-cbc"),			(const EVP_CIPHER *(*)())EVP_cast5_cbc,			8,	16,	0, 0	},	// RFC 4253
+//	{ SSH2_CIPHER_CAST_ECB,		_T("cast128-ecb"),			(const EVP_CIPHER *(*)())EVP_cast5_ecb,			8,	16,	0, 0	},
+//	{ SSH2_CIPHER_CAST_CFB,		_T("cast128-cfb"),			(const EVP_CIPHER *(*)())EVP_cast5_cfb,			8,	16,	0, 0	},
+//	{ SSH2_CIPHER_CAST_OFB,		_T("cast128-ofb"),			(const EVP_CIPHER *(*)())EVP_cast5_ofb,			8,	16,	0, 0	},
+	{ SSH2_CIPHER_CAST_CTR,		_T("cast128-ctr"),			(const EVP_CIPHER *(*)())evp_cast5_ctr,			8,	16,	0, 0	},	// RFC 4344
 
-	{ SSH2_CIPHER_ARCFOUR,		_T("arcfour"),				(const EVP_CIPHER *(*)())EVP_rc4,				8,	16,	0	},	// RFC 4253
-	{ SSH2_CIPHER_ARC128,		_T("arcfour128"),			(const EVP_CIPHER *(*)())EVP_rc4,				8,	16,	1536},	// RFC 4345
-	{ SSH2_CIPHER_ARC256,		_T("arcfour256"),			(const EVP_CIPHER *(*)())EVP_rc4,				8,	32,	1536},	// RFC 4345
+	{ SSH2_CIPHER_ARCFOUR,		_T("arcfour"),				(const EVP_CIPHER *(*)())EVP_rc4,				8,	16,	0, 0	},	// RFC 4253
+	{ SSH2_CIPHER_ARC128,		_T("arcfour128"),			(const EVP_CIPHER *(*)())EVP_rc4,				8,	16,	0, 1536},	// RFC 4345
+	{ SSH2_CIPHER_ARC256,		_T("arcfour256"),			(const EVP_CIPHER *(*)())EVP_rc4,				8,	32,	0, 1536},	// RFC 4345
 
-	{ SSH2_CIPHER_AES128,		_T("aes128-cbc"),			(const EVP_CIPHER *(*)())EVP_aes_128_cbc,		16,	16,	0	},	// RFC 4253	RECOMMENDED
-	{ SSH2_CIPHER_AES192,		_T("aes192-cbc"),			(const EVP_CIPHER *(*)())EVP_aes_192_cbc,		16,	24,	0	},	// RFC 4253
-	{ SSH2_CIPHER_AES256,		_T("aes256-cbc"),			(const EVP_CIPHER *(*)())EVP_aes_256_cbc,		16,	32,	0	},	// RFC 4253
+	{ SSH2_CIPHER_AES128,		_T("aes128-cbc"),			(const EVP_CIPHER *(*)())EVP_aes_128_cbc,		16,	16,	0, 0	},	// RFC 4253	RECOMMENDED
+	{ SSH2_CIPHER_AES192,		_T("aes192-cbc"),			(const EVP_CIPHER *(*)())EVP_aes_192_cbc,		16,	24,	0, 0	},	// RFC 4253
+	{ SSH2_CIPHER_AES256,		_T("aes256-cbc"),			(const EVP_CIPHER *(*)())EVP_aes_256_cbc,		16,	32,	0, 0	},	// RFC 4253
 
 #if 0
-	{ SSH2_CIPHER_AES128R,		_T("aes128-ctr"),			(const EVP_CIPHER *(*)())evp_aes_128_ctr,		16,	16,	0	},	// RFC 4344	RECOMMENDED
-	{ SSH2_CIPHER_AES192R,		_T("aes192-ctr"),			(const EVP_CIPHER *(*)())evp_aes_128_ctr,		16,	24,	0	},	// RFC 4344	RECOMMENDED
-	{ SSH2_CIPHER_AES256R,		_T("aes256-ctr"),			(const EVP_CIPHER *(*)())evp_aes_128_ctr,		16,	32,	0	},	// RFC 4344	RECOMMENDED
+	{ SSH2_CIPHER_AES128R,		_T("aes128-ctr"),			(const EVP_CIPHER *(*)())evp_aes_128_ctr,		16,	16,	0, 0	},	// RFC 4344	RECOMMENDED
+	{ SSH2_CIPHER_AES192R,		_T("aes192-ctr"),			(const EVP_CIPHER *(*)())evp_aes_128_ctr,		16,	24,	0, 0	},	// RFC 4344	RECOMMENDED
+	{ SSH2_CIPHER_AES256R,		_T("aes256-ctr"),			(const EVP_CIPHER *(*)())evp_aes_128_ctr,		16,	32,	0, 0	},	// RFC 4344	RECOMMENDED
 #else
-	{ SSH2_CIPHER_AES128R,		_T("aes128-ctr"),			(const EVP_CIPHER *(*)())EVP_aes_128_ctr,		16,	16,	0	},	// RFC 4344	RECOMMENDED
-	{ SSH2_CIPHER_AES192R,		_T("aes192-ctr"),			(const EVP_CIPHER *(*)())EVP_aes_192_ctr,		16,	24,	0	},	// RFC 4344	RECOMMENDED
-	{ SSH2_CIPHER_AES256R,		_T("aes256-ctr"),			(const EVP_CIPHER *(*)())EVP_aes_256_ctr,		16,	32,	0	},	// RFC 4344	RECOMMENDED
+	{ SSH2_CIPHER_AES128R,		_T("aes128-ctr"),			(const EVP_CIPHER *(*)())EVP_aes_128_ctr,		16,	16,	0, 0	},	// RFC 4344	RECOMMENDED
+	{ SSH2_CIPHER_AES192R,		_T("aes192-ctr"),			(const EVP_CIPHER *(*)())EVP_aes_192_ctr,		16,	24,	0, 0	},	// RFC 4344	RECOMMENDED
+	{ SSH2_CIPHER_AES256R,		_T("aes256-ctr"),			(const EVP_CIPHER *(*)())EVP_aes_256_ctr,		16,	32,	0, 0	},	// RFC 4344	RECOMMENDED
 #endif
 
 #ifdef	USE_NETTLE
-	{ SSH2_CIPHER_TWF256,		_T("twofish-cbc"),			(const EVP_CIPHER *(*)())evp_twofish_cbc,		16,	32,	0	},	// RFC 4253
-	{ SSH2_CIPHER_TWF256R,		_T("twofish-ctr"),			(const EVP_CIPHER *(*)())evp_twofish_ctr,		16,	32,	0	},
+	{ SSH2_CIPHER_TWF256,		_T("twofish-cbc"),			(const EVP_CIPHER *(*)())evp_twofish_cbc,		16,	32,	0, 0	},	// RFC 4253
+	{ SSH2_CIPHER_TWF256R,		_T("twofish-ctr"),			(const EVP_CIPHER *(*)())evp_twofish_ctr,		16,	32,	0, 0	},
 
-	{ SSH2_CIPHER_TWF128,		_T("twofish128-cbc"),		(const EVP_CIPHER *(*)())evp_twofish_cbc,		16,	16,	0	},	// RFC 4253
-	{ SSH2_CIPHER_TWF192,		_T("twofish192-cbc"),		(const EVP_CIPHER *(*)())evp_twofish_cbc,		16,	24,	0	},	// RFC 4253
-	{ SSH2_CIPHER_TWF256,		_T("twofish256-cbc"),		(const EVP_CIPHER *(*)())evp_twofish_cbc,		16,	32,	0	},	// RFC 4253
-	{ SSH2_CIPHER_TWF128R,		_T("twofish128-ctr"),		(const EVP_CIPHER *(*)())evp_twofish_ctr,		16,	16,	0	},	// RFC 4344
-	{ SSH2_CIPHER_TWF192R,		_T("twofish192-ctr"),		(const EVP_CIPHER *(*)())evp_twofish_ctr,		16,	24,	0	},	// RFC 4344
-	{ SSH2_CIPHER_TWF256R,		_T("twofish256-ctr"),		(const EVP_CIPHER *(*)())evp_twofish_ctr,		16,	32,	0	},	// RFC 4344
+	{ SSH2_CIPHER_TWF128,		_T("twofish128-cbc"),		(const EVP_CIPHER *(*)())evp_twofish_cbc,		16,	16,	0, 0	},	// RFC 4253
+	{ SSH2_CIPHER_TWF192,		_T("twofish192-cbc"),		(const EVP_CIPHER *(*)())evp_twofish_cbc,		16,	24,	0, 0	},	// RFC 4253
+	{ SSH2_CIPHER_TWF256,		_T("twofish256-cbc"),		(const EVP_CIPHER *(*)())evp_twofish_cbc,		16,	32,	0, 0	},	// RFC 4253
+	{ SSH2_CIPHER_TWF128R,		_T("twofish128-ctr"),		(const EVP_CIPHER *(*)())evp_twofish_ctr,		16,	16,	0, 0	},	// RFC 4344
+	{ SSH2_CIPHER_TWF192R,		_T("twofish192-ctr"),		(const EVP_CIPHER *(*)())evp_twofish_ctr,		16,	24,	0, 0	},	// RFC 4344
+	{ SSH2_CIPHER_TWF256R,		_T("twofish256-ctr"),		(const EVP_CIPHER *(*)())evp_twofish_ctr,		16,	32,	0, 0	},	// RFC 4344
 
-	{ SSH2_CIPHER_SEP128,		_T("serpent128-cbc"),		(const EVP_CIPHER *(*)())evp_serpent_cbc,		16,	16,	0	},	// RFC 4253
-	{ SSH2_CIPHER_SEP192,		_T("serpent192-cbc"),		(const EVP_CIPHER *(*)())evp_serpent_cbc,		16,	24,	0	},	// RFC 4253
-	{ SSH2_CIPHER_SEP256,		_T("serpent256-cbc"),		(const EVP_CIPHER *(*)())evp_serpent_cbc,		16,	32,	0	},	// RFC 4253
-	{ SSH2_CIPHER_SEP128R,		_T("serpent128-ctr"),		(const EVP_CIPHER *(*)())evp_serpent_ctr,		16,	16,	0	},	// RFC 4344
-	{ SSH2_CIPHER_SEP192R,		_T("serpent192-ctr"),		(const EVP_CIPHER *(*)())evp_serpent_ctr,		16,	24,	0	},	// RFC 4344
-	{ SSH2_CIPHER_SEP256R,		_T("serpent256-ctr"),		(const EVP_CIPHER *(*)())evp_serpent_ctr,		16,	32,	0	},	// RFC 4344
+	{ SSH2_CIPHER_SEP128,		_T("serpent128-cbc"),		(const EVP_CIPHER *(*)())evp_serpent_cbc,		16,	16,	0, 0	},	// RFC 4253
+	{ SSH2_CIPHER_SEP192,		_T("serpent192-cbc"),		(const EVP_CIPHER *(*)())evp_serpent_cbc,		16,	24,	0, 0	},	// RFC 4253
+	{ SSH2_CIPHER_SEP256,		_T("serpent256-cbc"),		(const EVP_CIPHER *(*)())evp_serpent_cbc,		16,	32,	0, 0	},	// RFC 4253
+	{ SSH2_CIPHER_SEP128R,		_T("serpent128-ctr"),		(const EVP_CIPHER *(*)())evp_serpent_ctr,		16,	16,	0, 0	},	// RFC 4344
+	{ SSH2_CIPHER_SEP192R,		_T("serpent192-ctr"),		(const EVP_CIPHER *(*)())evp_serpent_ctr,		16,	24,	0, 0	},	// RFC 4344
+	{ SSH2_CIPHER_SEP256R,		_T("serpent256-ctr"),		(const EVP_CIPHER *(*)())evp_serpent_ctr,		16,	32,	0, 0	},	// RFC 4344
 #endif
 
-	{ SSH2_CIPHER_CAM128,		_T("camellia128-cbc"),		(const EVP_CIPHER *(*)())EVP_camellia_128_cbc,	16,	16,	0	},
-	{ SSH2_CIPHER_CAM192,		_T("camellia192-cbc"),		(const EVP_CIPHER *(*)())EVP_camellia_192_cbc,	16,	24,	0	},
-	{ SSH2_CIPHER_CAM256,		_T("camellia256-cbc"),		(const EVP_CIPHER *(*)())EVP_camellia_256_cbc,	16,	32,	0	},
-	{ SSH2_CIPHER_CAM128R,		_T("camellia128-ctr"),		(const EVP_CIPHER *(*)())evp_camellia_128_ctr,	16,	16,	0	},
-	{ SSH2_CIPHER_CAM192R,		_T("camellia192-ctr"),		(const EVP_CIPHER *(*)())evp_camellia_128_ctr,	16,	24,	0	},
-	{ SSH2_CIPHER_CAM256R,		_T("camellia256-ctr"),		(const EVP_CIPHER *(*)())evp_camellia_128_ctr,	16,	32,	0	},
+	{ SSH2_CIPHER_CAM128,		_T("camellia128-cbc"),		(const EVP_CIPHER *(*)())EVP_camellia_128_cbc,	16,	16,	0, 0	},
+	{ SSH2_CIPHER_CAM192,		_T("camellia192-cbc"),		(const EVP_CIPHER *(*)())EVP_camellia_192_cbc,	16,	24,	0, 0	},
+	{ SSH2_CIPHER_CAM256,		_T("camellia256-cbc"),		(const EVP_CIPHER *(*)())EVP_camellia_256_cbc,	16,	32,	0, 0	},
+	{ SSH2_CIPHER_CAM128R,		_T("camellia128-ctr"),		(const EVP_CIPHER *(*)())evp_camellia_128_ctr,	16,	16,	0, 0	},
+	{ SSH2_CIPHER_CAM192R,		_T("camellia192-ctr"),		(const EVP_CIPHER *(*)())evp_camellia_128_ctr,	16,	24,	0, 0	},
+	{ SSH2_CIPHER_CAM256R,		_T("camellia256-ctr"),		(const EVP_CIPHER *(*)())evp_camellia_128_ctr,	16,	32,	0, 0	},
 
 #ifdef	USE_CLEFIA
-	{ SSH2_CIPHER_CLE128,		_T("clefia128-cbc"),		(const EVP_CIPHER *(*)())evp_clefia_cbc,		16,	16,	0	},
-	{ SSH2_CIPHER_CLE192,		_T("clefia192-cbc"),		(const EVP_CIPHER *(*)())evp_clefia_cbc,		16,	24,	0	},
-	{ SSH2_CIPHER_CLE256,		_T("clefia256-cbc"),		(const EVP_CIPHER *(*)())evp_clefia_cbc,		16,	32,	0	},
-	{ SSH2_CIPHER_CLE128R,		_T("clefia128-ctr"),		(const EVP_CIPHER *(*)())evp_clefia_ctr,		16,	16,	0	},
-	{ SSH2_CIPHER_CLE192R,		_T("clefia192-ctr"),		(const EVP_CIPHER *(*)())evp_clefia_ctr,		16,	24,	0	},
-	{ SSH2_CIPHER_CLE256R,		_T("clefia256-ctr"),		(const EVP_CIPHER *(*)())evp_clefia_ctr,		16,	32,	0	},
+	{ SSH2_CIPHER_CLE128,		_T("clefia128-cbc"),		(const EVP_CIPHER *(*)())evp_clefia_cbc,		16,	16,	0, 0	},
+	{ SSH2_CIPHER_CLE192,		_T("clefia192-cbc"),		(const EVP_CIPHER *(*)())evp_clefia_cbc,		16,	24,	0, 0	},
+	{ SSH2_CIPHER_CLE256,		_T("clefia256-cbc"),		(const EVP_CIPHER *(*)())evp_clefia_cbc,		16,	32,	0, 0	},
+	{ SSH2_CIPHER_CLE128R,		_T("clefia128-ctr"),		(const EVP_CIPHER *(*)())evp_clefia_ctr,		16,	16,	0, 0	},
+	{ SSH2_CIPHER_CLE192R,		_T("clefia192-ctr"),		(const EVP_CIPHER *(*)())evp_clefia_ctr,		16,	24,	0, 0	},
+	{ SSH2_CIPHER_CLE256R,		_T("clefia256-ctr"),		(const EVP_CIPHER *(*)())evp_clefia_ctr,		16,	32,	0, 0	},
 #endif
 
-	{ SSH2_CIPHER_SEED_CBC,		_T("seed-cbc@ssh.com"),		(const EVP_CIPHER *(*)())EVP_seed_cbc,			16,	16,	0	},
-//	{ SSH2_CIPHER_SEED_ECB,		_T("seed-ecb@ssh.com"),		(const EVP_CIPHER *(*)())EVP_seed_ecb,			16,	16,	0	},
-//	{ SSH2_CIPHER_SEED_CFB,		_T("seed-cfb@ssh.com"),		(const EVP_CIPHER *(*)())EVP_seed_cfb,			16,	16,	0	},
-//	{ SSH2_CIPHER_SEED_OFB,		_T("seed-ofb@ssh.com"),		(const EVP_CIPHER *(*)())EVP_seed_ofb,			16,	16,	0	},
-	{ SSH2_CIPHER_SEED_CTR,		_T("seed-ctr@ssh.com"),		(const EVP_CIPHER *(*)())evp_seed_ctr,			16,	16,	0	},
+	{ SSH2_CIPHER_SEED_CBC,		_T("seed-cbc@ssh.com"),		(const EVP_CIPHER *(*)())EVP_seed_cbc,			16,	16,	0, 0	},
+//	{ SSH2_CIPHER_SEED_ECB,		_T("seed-ecb@ssh.com"),		(const EVP_CIPHER *(*)())EVP_seed_ecb,			16,	16,	0, 0	},
+//	{ SSH2_CIPHER_SEED_CFB,		_T("seed-cfb@ssh.com"),		(const EVP_CIPHER *(*)())EVP_seed_cfb,			16,	16,	0, 0	},
+//	{ SSH2_CIPHER_SEED_OFB,		_T("seed-ofb@ssh.com"),		(const EVP_CIPHER *(*)())EVP_seed_ofb,			16,	16,	0, 0	},
+	{ SSH2_CIPHER_SEED_CTR,		_T("seed-ctr@ssh.com"),		(const EVP_CIPHER *(*)())evp_seed_ctr,			16,	16,	0, 0	},
 
 #if	OPENSSL_VERSION_NUMBER >= 0x10001000L
-	{ SSH2_AEAD_AES128GCM,		_T("aes128-gcm@openssh.com"),	(const EVP_CIPHER *(*)())EVP_aes_128_gcm,		16,	16,	0	},
-	{ SSH2_AEAD_AES256GCM,		_T("aes256-gcm@openssh.com"),	(const EVP_CIPHER *(*)())EVP_aes_256_gcm,		16,	32,	0	},
+	{ SSH2_AEAD_AES128GCM,		_T("aes128-gcm@openssh.com"),	(const EVP_CIPHER *(*)())EVP_aes_128_gcm,		16,	16,	12, 0	},
+	{ SSH2_AEAD_AES256GCM,		_T("aes256-gcm@openssh.com"),	(const EVP_CIPHER *(*)())EVP_aes_256_gcm,		16,	32,	12, 0	},
 
-	{ SSH2_AEAD_AES128GCM,		_T("AEAD_AES_128_GCM"),			(const EVP_CIPHER *(*)())EVP_aes_128_gcm,		16,	16,	0	},	// RFC 5647
-	{ SSH2_AEAD_AES256GCM,		_T("AEAD_AES_256_GCM"),			(const EVP_CIPHER *(*)())EVP_aes_256_gcm,		16,	32,	0	},	// RFC 5647
+	{ SSH2_AEAD_AES128GCM,		_T("AEAD_AES_128_GCM"),			(const EVP_CIPHER *(*)())EVP_aes_128_gcm,		16,	16,	12, 0	},	// RFC 5647
+	{ SSH2_AEAD_AES256GCM,		_T("AEAD_AES_256_GCM"),			(const EVP_CIPHER *(*)())EVP_aes_256_gcm,		16,	32,	12, 0	},	// RFC 5647
 
-	{ SSH2_AEAD_AES128CCM,		_T("AEAD_AES_128_CCM"),			(const EVP_CIPHER *(*)())EVP_aes_128_ccm,		16,	16,	0	},	// RFC 5116
-	{ SSH2_AEAD_AES256CCM,		_T("AEAD_AES_256_CCM"),			(const EVP_CIPHER *(*)())EVP_aes_256_ccm,		16,	32,	0	},	// RFC 5116
+	{ SSH2_AEAD_AES128CCM,		_T("AEAD_AES_128_CCM"),			(const EVP_CIPHER *(*)())EVP_aes_128_ccm,		16,	16,	12, 0	},	// RFC 5116
+	{ SSH2_AEAD_AES256CCM,		_T("AEAD_AES_256_CCM"),			(const EVP_CIPHER *(*)())EVP_aes_256_ccm,		16,	32,	12, 0	},	// RFC 5116
 #endif
 
-	{ SSH2_CHACHA20_POLY1305,	_T("chacha20-poly1305@openssh.com"),	(const EVP_CIPHER *(*)())evp_chachapoly_256,	8,	64,	0	},
-	{ SSH2_CHACHA20_POLY1305,	_T("AEAD_CHACHA20_POLY1305"),			(const EVP_CIPHER *(*)())evp_chachapoly_256,	8,	64,	0	},
+	{ SSH2_CHACHA20_POLY1305,	_T("chacha20-poly1305@openssh.com"),	(const EVP_CIPHER *(*)())evp_chachapoly_256,	8,	64,	0, 0	},
+	{ SSH2_CHACHA20_POLY1305,	_T("AEAD_CHACHA20_POLY1305"),			(const EVP_CIPHER *(*)())evp_chachapoly_256,	8,	64,	0, 0	},
 
 	{ 0, NULL, NULL }
 };
@@ -426,6 +427,14 @@ int CCipher::GetBlockSize(LPCTSTR name)
 		return 8;
 	else
 		return CipherTab[n].block_size;
+}
+int CCipher::GetIvSize(LPCTSTR name)
+{
+	int n;
+	if ( (n = GetIndex(name)) < 0 )
+		return 8;
+	else
+		return (CipherTab[n].iv_len == 0 ? CipherTab[n].block_size : CipherTab[n].iv_len);
 }
 BOOL CCipher::IsAEAD(LPCTSTR name)
 {
@@ -791,6 +800,25 @@ LPCTSTR CMacomp::GetTitle()
 		return _T("");
 	return MacsTab[m_Index].name;
 }
+int CMacomp::SpeedCheck()
+{
+	int n;
+	CMacomp mac;
+	clock_t st;
+	BYTE tmp[1024];
+	CBuffer mac_buf;
+
+	st = clock();
+
+	mac.Init(_T("hmac-sha2-512"), tmp);
+
+	for ( n = 0 ; n < 70000 ; n++ ) {
+		mac_buf.Clear();
+		mac.Compute(n, tmp, 1024, &mac_buf);
+	}
+
+	return (clock() - st);
+}
 void CMacomp::BenchMark(CString &out)
 {
 #if 0
@@ -950,8 +978,318 @@ LPCTSTR CCompress::GetTitle()
 }
 
 //////////////////////////////////////////////////////////////////////
-// CIdKey
+// CXmssKey
+
+CXmssKey::CXmssKey()
+{
+	m_oId = 0;
+	m_PubLen = m_SecLen = 0;
+	m_pPubBuf = m_pSecBuf = NULL;
+	m_PassLen = 0;
+	m_pPassBuf = NULL;
+}
+CXmssKey::~CXmssKey()
+{
+	RemoveAll();
+}
+void CXmssKey::RemoveAll()
+{
+	if ( m_pPubBuf != NULL )
+		delete [] m_pPubBuf;
+
+	if ( m_pSecBuf != NULL ) {
+		SecureZeroMemory(m_pSecBuf, m_SecLen);
+		delete [] m_pSecBuf;
+	}
+
+	if ( m_pPassBuf != NULL ) {
+		SecureZeroMemory(m_pPassBuf, m_PassLen * sizeof(TCHAR));
+		delete [] m_pPassBuf;
+	}
+
+	m_pPubBuf = m_pSecBuf = NULL;
+	m_pPassBuf = NULL;
+
+	m_EncName.Empty();
+
+	if ( m_EncIvBuf.GetSize() > 0 )
+		SecureZeroMemory(m_EncIvBuf.GetPtr(), m_EncIvBuf.GetSize());
+	m_EncIvBuf.Clear();
+}
+const CXmssKey & CXmssKey::operator = (CXmssKey &data)
+{
+	RemoveAll();
+
+	m_oId = data.m_oId;
+
+	m_EncName  = data.m_EncName;
+	m_EncIvBuf = data.m_EncIvBuf;
+
+	if ( data.m_pPubBuf != NULL ) {
+		m_PubLen = data.m_PubLen;
+		m_pPubBuf = new BYTE[m_PubLen];
+		memcpy(m_pPubBuf, data.m_pPubBuf, m_PubLen);
+	}
+
+	if ( data.m_pSecBuf != NULL ) {
+		m_SecLen = data.m_SecLen;
+		m_pSecBuf = new BYTE[m_SecLen];
+		memcpy(m_pSecBuf, data.m_pSecBuf, m_SecLen);
+	}
+
+	if ( data.m_pPassBuf != NULL ) {
+		m_PassLen = data.m_PassLen;
+		m_pPassBuf = new TCHAR[m_PassLen];
+		memcpy(m_pPassBuf, data.m_pPassBuf, m_PassLen * sizeof(TCHAR));
+	}
+
+	return *this;
+}
+BOOL CXmssKey::SetBufSize(uint32_t oId)
+{
+	RemoveAll();
+
+	if ( oId != 0 )
+		m_oId = oId;
+
+	if ( xmss_key_bytes(m_oId, &m_PubLen, &m_SecLen) != 0 )
+		return FALSE;
+
+	m_pPubBuf = new BYTE[m_PubLen];
+	m_pSecBuf = new BYTE[m_SecLen];
+
+	ZeroMemory(m_pPubBuf, m_PubLen);
+	ZeroMemory(m_pSecBuf, m_SecLen);
+
+    for ( int i = 0 ; i < XMSS_OID_LEN ; i++) {
+		m_pPubBuf[XMSS_OID_LEN - i - 1] = (BYTE)(m_oId >> (8 * i));
+		m_pSecBuf[XMSS_OID_LEN - i - 1] = (BYTE)(m_oId >> (8 * i));
+	}
+
+	return TRUE;
+}
+BOOL CXmssKey::SetBufSize(LPCSTR name)
+{
+	uint32_t oId;
+
+	if ( xmss_str_to_oid(&oId, name) != 0 )
+		return FALSE;
+
+	return SetBufSize(oId);
+}
+void CXmssKey::SetPassBuf(LPCTSTR pass)
+{
+	if ( m_pPassBuf != NULL ) {
+		SecureZeroMemory(m_pPassBuf, m_PassLen * sizeof(TCHAR));
+		delete [] m_pPassBuf;
+	}
+	m_pPassBuf = NULL;
+
+	if ( pass != NULL ) {
+		m_PassLen = (int)_tcslen(pass) + 1;
+		m_pPassBuf = new TCHAR[m_PassLen];
+		_tcscpy(m_pPassBuf, pass);
+	}
+}
+BOOL CXmssKey::MakeEncIvBuf()
+{
+	if ( m_EncName.IsEmpty() || m_EncIvBuf.GetSize() <= 0 ) {
+		CCipher cip;
+		m_EncName = "aes256-gcm@openssh.com";
+		m_EncIvBuf.Clear();
+		m_EncIvBuf.PutSpc(cip.GetKeyLen(MbsToTstr(m_EncName)) + cip.GetIvSize(MbsToTstr(m_EncName)));
+		rand_buf(m_EncIvBuf.GetPtr(), m_EncIvBuf.GetSize());
+		return TRUE;
+	}
+
+	return FALSE;
+}
+BOOL CXmssKey::LoadOpenSshSec(CBuffer *bp)
+{
+	if ( xmss_load_openssh_sk(m_oId, m_pSecBuf, bp, &m_EncName, &m_EncIvBuf) != 0 )
+		return FALSE;
+
+	return TRUE;
+}
+BOOL CXmssKey::SaveOpenSshSec(CBuffer *bp)
+{
+	MakeEncIvBuf();
+
+	if ( xmss_save_openssh_sk(m_oId, m_pSecBuf, bp, m_EncName, m_EncIvBuf.GetPtr(), m_EncIvBuf.GetSize()) != 0 )
+		return FALSE;
+
+	return TRUE;
+}
+BOOL CXmssKey::LoadStateFile(LPCTSTR fileName)
+{
+	int n, i, a;
+	CCipher cip;
+	int keylen, ivlen;
+	CBuffer tmp, dec;
+	CBuffer index, state;
+	CString baseName;
+	CString statFile;
+	CFile file;
+
+	// Not File Entry !?
+	if ( m_EncName.IsEmpty() || m_EncIvBuf.GetSize() <= 0 )
+		return FALSE;
+
+	if ( m_pSecBuf == NULL || m_SecLen <= 0 )
+		return FALSE;
+
+	keylen = cip.GetKeyLen(MbsToTstr(m_EncName));
+	ivlen  = cip.GetIvSize(MbsToTstr(m_EncName));
+	
+	if ( m_EncIvBuf.GetSize() < (keylen + ivlen) )
+		return FALSE;
+
+	if ( cip.Init(MbsToTstr(m_EncName), MODE_DEC, m_EncIvBuf.GetPtr(), keylen, m_EncIvBuf.GetPtr() + keylen) )
+		return FALSE;
+
+	baseName = fileName;
+	if ( (n = baseName.ReverseFind(_T('.'))) >= 0 )
+		baseName.Delete(n, baseName.GetLength() - n);
+
+	statFile.Format(_T("%s.xmss"), baseName);
+
+	try {
+		if ( !file.Open(statFile, CFile::modeRead | CFile::shareExclusive) )
+			return FALSE;
+
+		n = (int)file.GetLength();
+		file.Read(tmp.PutSpc(n), n);
+		file.Close();
+
+		if ( !cip.Cipher(tmp.GetPtr(), tmp.GetSize(), &dec) )
+			return FALSE;
+
+		tmp.Clear(); dec.GetBuf(&tmp);
+		if ( strcmp((LPCSTR)tmp, "xmss-state-v1") != 0 )
+			return FALSE;
+
+		tmp.Clear(); dec.GetBuf(&tmp);
+		if ( m_PubLen != tmp.GetSize() || memcmp(m_pPubBuf, tmp.GetPtr(), m_PubLen) != 0 )
+			return FALSE;
+
+		if ( xmss_sk_bytes(m_oId, &i, &n) != 0 )
+			return FALSE;
+		a = m_SecLen - (XMSS_OID_LEN + i + n);
+
+		dec.GetBuf(&index);		// index
+		if ( index.GetSize() != i )
+			return FALSE;
+
+		dec.GetBuf(&state);		// state
+		if ( state.GetSize() != a )
+			return FALSE;
+
+		memcpy(m_pSecBuf + XMSS_OID_LEN, index.GetPtr(), index.GetSize()); 
+		memcpy(m_pSecBuf + XMSS_OID_LEN + i + n, state.GetPtr(), state.GetSize()); 
+
+		return TRUE;
+
+	} catch(...) {
+		::AfxMessageBox(_T("xmss state file read error"));
+		return FALSE;
+	}
+}
+BOOL CXmssKey::SaveStateFile(LPCTSTR fileName)
+{
+	int n, i;
+	CCipher cip;
+	int keylen, ivlen;
+	CBuffer tmp, enc;
+	CString baseName;
+	CString statFile, oldFile;
+	CFile file;
+
+	// Not File Entry !?
+	if ( m_EncName.IsEmpty() || m_EncIvBuf.GetSize() <= 0 )
+		return FALSE;
+
+	if ( m_pSecBuf == NULL || m_SecLen <= 0 )
+		return FALSE;
+
+	keylen = cip.GetKeyLen(MbsToTstr(m_EncName));
+	ivlen  = cip.GetIvSize(MbsToTstr(m_EncName));
+	
+	if ( m_EncIvBuf.GetSize() < (keylen + ivlen) )
+		return FALSE;
+
+	if ( cip.Init(MbsToTstr(m_EncName), MODE_ENC, m_EncIvBuf.GetPtr(), keylen, m_EncIvBuf.GetPtr() + keylen) )
+		return FALSE;
+
+	tmp.PutStr("xmss-state-v1");
+	tmp.PutBuf(m_pPubBuf, m_PubLen);
+
+	if ( xmss_sk_bytes(m_oId, &i, &n) != 0 )
+		return FALSE;
+
+	tmp.PutBuf(m_pSecBuf + XMSS_OID_LEN, i);											// index
+	tmp.PutBuf(m_pSecBuf + XMSS_OID_LEN + i + n, m_SecLen - (XMSS_OID_LEN + i + n));	// state
+
+	if ( !cip.Cipher(tmp.GetPtr(), tmp.GetSize(), &enc) )
+		return FALSE;
+
+	baseName = fileName;
+	if ( (n = baseName.ReverseFind(_T('.'))) >= 0 )
+		baseName.Delete(n, baseName.GetLength() - n);
+
+	statFile.Format(_T("%s.xmss"), baseName);
+	oldFile.Format(_T("%s.omss"), baseName);
+
+	DeleteFile(oldFile);
+	_trename(statFile, oldFile);
+
+	try {
+		if ( !file.Open(statFile, CFile::modeCreate | CFile::modeWrite | CFile::shareExclusive) )
+			return FALSE;
+
+		file.Write(enc.GetPtr(), enc.GetSize());
+		file.Close();
+
+		DeleteFile(oldFile);
+
+		return TRUE;
+
+	} catch(...) {
+		return FALSE;
+	}
+}
+const char *CXmssKey::GetName()
+{
+	return xmss_oid_to_str(m_oId);
+}
+int CXmssKey::GetBits()
+{
+	return xmss_bits(m_oId);
+}
+int CXmssKey::GetHeight()
+{ 
+	return xmss_height(m_oId);
+}
+int CXmssKey::KeyPair()
+{ 
+	return xmss_keypair(m_pPubBuf, m_pSecBuf, m_oId);
+}
+int CXmssKey::GetSignByte()
+{ 
+	return xmss_sign_bytes(m_oId);
+}
+int CXmssKey::Sign(unsigned char *sm, unsigned long long *smlen, 
+		const unsigned char *m, unsigned long long mlen)
+{
+	return xmss_sign(m_pSecBuf, sm, smlen, m, mlen); 
+}
+int CXmssKey::Verify(unsigned char *m, unsigned long long *mlen, 
+		const unsigned char *sm, unsigned long long smlen)
+{
+	return xmss_sign_open(m, mlen, sm, smlen, m_pPubBuf);
+}
+
 //////////////////////////////////////////////////////////////////////
+// CIdKey
 
 CIdKey::CIdKey()
 {
@@ -975,10 +1313,13 @@ CIdKey::~CIdKey()
 {
 	if ( m_Rsa != NULL )
 		RSA_free(m_Rsa);
+
 	if ( m_Dsa != NULL )
 		DSA_free(m_Dsa);
+
 	if ( m_EcDsa != NULL )
 		EC_KEY_free(m_EcDsa);
+
 	if ( m_Ed25519 != NULL )
 		free(m_Ed25519);
 }
@@ -996,7 +1337,11 @@ int CIdKey::Init(LPCTSTR pass)
 	if ( m_bHostPass )
 		WritePrivateKey(m_SecBlob, pass);
 
+	if ( m_Type == IDKEY_XMSS )
+		m_XmssKey.SetPassBuf(pass);
+
 	m_bSecInit = TRUE;
+
 	return TRUE;
 }
 void CIdKey::SetString(CString &str)
@@ -1092,6 +1437,8 @@ const CIdKey & CIdKey::operator = (CIdKey &data)
 	m_Cert     = data.m_Cert;
 	m_CertBlob = data.m_CertBlob;
 
+	m_FilePath = data.m_FilePath;
+
 	switch(data.m_Type) {
 	case IDKEY_NONE:
 		m_Type = IDKEY_NONE;
@@ -1162,6 +1509,10 @@ const CIdKey & CIdKey::operator = (CIdKey &data)
 		if ( !Create(data.m_Type) )
 			break;
 		memcpy(m_Ed25519, data.m_Ed25519, sizeof(ED25519_KEY));
+		break;
+	case IDKEY_XMSS:
+		m_XmssKey = data.m_XmssKey;
+		m_Type  = IDKEY_XMSS;
 		break;
 	}
 
@@ -1353,6 +1704,10 @@ int CIdKey::Create(int type)
 		if ( (m_Ed25519 = (ED25519_KEY *)malloc(sizeof(ED25519_KEY))) == NULL )
 			return FALSE;
 		break;
+	case IDKEY_XMSS:
+		m_Type = type;
+		m_XmssKey.RemoveAll();
+		break;
 	default:
 		return FALSE;
 	}
@@ -1363,6 +1718,7 @@ int CIdKey::Generate(int type, int bits, LPCTSTR pass)
 {
 	int n;
 	BIGNUM *f4;
+	char *name;
 
 	m_Type = IDKEY_NONE;
 	switch(type) {
@@ -1425,6 +1781,23 @@ int CIdKey::Generate(int type, int bits, LPCTSTR pass)
 		m_Type = IDKEY_ED25519;
 		break;
 
+	case IDKEY_XMSS:
+		if ( bits <= 10 )
+			name = "XMSS-SHA2_10_256";
+		else if ( bits <= 16 )
+			name = "XMSS-SHA2_16_256";
+		else // if ( bits <= 20 )
+			name = "XMSS-SHA2_20_256";
+
+		if ( !m_XmssKey.SetBufSize(name) )
+			return FALSE;
+
+		if ( m_XmssKey.KeyPair() != 0 )
+			return FALSE;;
+
+		m_Type = IDKEY_XMSS;
+		break;
+
 	default:
 		return FALSE;
 	}
@@ -1440,21 +1813,27 @@ int CIdKey::Close()
 {
 	if ( m_Rsa != NULL )
 		RSA_free(m_Rsa);
+
 	if ( m_Dsa != NULL )
 		DSA_free(m_Dsa);
+
 	if ( m_EcDsa != NULL )
 		EC_KEY_free(m_EcDsa);
+
 	if ( m_Ed25519 != NULL )
 		free(m_Ed25519);
+
 	m_Rsa = NULL;
 	m_Dsa = NULL;
 	m_EcDsa = NULL;
 	m_Ed25519 = NULL;
+	m_XmssKey.RemoveAll();
 	m_Type = IDKEY_NONE;
 	m_bSecInit = FALSE;
 	m_SecBlob.Empty();
 	m_Cert = 0;
 	m_CertBlob.Clear();
+
 	return FALSE;
 }
 int CIdKey::ComperePublic(CIdKey *pKey)
@@ -1532,6 +1911,13 @@ int CIdKey::ComperePublic(CIdKey *pKey)
 			break;
 		ret = 0;
 		break;
+	case IDKEY_XMSS:
+		if ( m_XmssKey.m_pPubBuf == NULL || pKey->m_XmssKey.m_pPubBuf == NULL || m_XmssKey.m_PubLen != pKey->m_XmssKey.m_PubLen )
+			break;
+		if ( memcmp(m_XmssKey.m_pPubBuf, pKey->m_XmssKey.m_pPubBuf, m_XmssKey.m_PubLen) != 0 )
+			break;
+		ret = 0;
+		break;
 	}
 
 	if ( bnctx != NULL )
@@ -1598,6 +1984,9 @@ LPCTSTR CIdKey::GetName(BOOL bCert, BOOL bExtname)
 	case IDKEY_ED25519:
 		m_Work += _T("ssh-ed25519");
 		break;
+	case IDKEY_XMSS:
+		m_Work += _T("ssh-xmss@openssh.com");
+		break;
 	}
 	
 	if ( bCert ) {
@@ -1657,6 +2046,8 @@ int CIdKey::GetTypeFromName(LPCTSTR name)
 		type = IDKEY_ECDSA;
 	else if ( _tcscmp(name, _T("ssh-ed25519")) == 0 )
 		type = IDKEY_ED25519;
+	else if ( _tcscmp(name, _T("ssh-xmss@openssh.com")) == 0 )
+		type = IDKEY_XMSS;
 	else
 		cert = 0;
 
@@ -1724,6 +2115,9 @@ int CIdKey::HostVerify(LPCTSTR host)
 		case IDKEY_ED25519:
 			type = SSHFP_KEY_ED25519;
 			break;
+		case IDKEY_XMSS:
+			type = SSHFP_KEY_XMSS;
+			break;
 		}
 
 		if ( type != SSHFP_KEY_RESERVED && DnsQuery(host, DNS_RDATATYPE_SSHFP, DNS_QUERY_STANDARD, NULL, &rec, NULL) == 0 ) {
@@ -1732,7 +2126,7 @@ int CIdKey::HostVerify(LPCTSTR host)
 				if ( p->wType != DNS_RDATATYPE_SSHFP )
 					continue;
 				t = (struct _DNS_SSHFP_DATA *)&(p->Data.Null);
-				if ( t->type == SSHFP_KEY_RSA || t->type == SSHFP_KEY_DSA || t->type == SSHFP_KEY_ECDSA || t->type == SSHFP_KEY_ED25519 ) {
+				if ( t->type == SSHFP_KEY_RSA || t->type == SSHFP_KEY_DSA || t->type == SSHFP_KEY_ECDSA || t->type == SSHFP_KEY_ED25519 || t->type == SSHFP_KEY_XMSS ) {
 					found |= 001;
 					if ( t->type == type && DnsDigest(t->hash, digest) && p->wDataLength == (digest.GetSize() + 2) && memcmp(t->digest, digest.GetPtr(), digest.GetSize()) == 0 )
 						found |= 002;
@@ -1939,6 +2333,79 @@ int CIdKey::Ed25519Sign(CBuffer *bp, LPBYTE buf, int len)
 
 	return TRUE;
 }
+int CIdKey::XmssSign(CBuffer *bp, LPBYTE buf, int len)
+{
+	int reqlen;
+	unsigned long long siglen;
+	CBuffer tmp(-1);
+
+	if ( (reqlen = m_XmssKey.GetSignByte()) <= 0 )
+		return FALSE;
+
+	tmp.PutSpc(reqlen + len);
+	siglen = tmp.GetSize();
+
+	if ( m_Uid >= 0 && m_XmssKey.m_pPassBuf != NULL ) {
+		// レジストリベースのXMSS
+
+		// XMSSのロック
+		CIdKey *pKey;
+		CString lockName;
+		lockName.Format(_T("RLogin_XMSS_%d"), m_Uid);
+		CMutexLock mutex(lockName);
+
+		// XMSSの更新をチェック
+		pKey = ((CMainFrame *)::AfxGetMainWnd())->m_IdKeyTab.ReloadUid(m_Uid);
+		if ( pKey != NULL && pKey != this && pKey->m_Type == m_Type ) {
+			if ( Compere(pKey) == 0 && m_SecBlob.Compare(pKey->m_SecBlob) != 0 ) {
+				m_SecBlob = pKey->m_SecBlob;
+				if ( !ReadPrivateKey(m_SecBlob, m_XmssKey.m_pPassBuf, m_bHostPass) )
+					return FALSE;
+			}
+		}
+	
+		if ( m_XmssKey.Sign(tmp.GetPtr(), &siglen, buf, len) != 0 )
+			return FALSE;
+
+		// 鍵を更新
+		WritePrivateKey(m_SecBlob, m_XmssKey.m_pPassBuf);
+		m_XmssKey.SetPassBuf(NULL);
+
+		// レジストリの鍵を更新
+		pKey = ((CMainFrame *)::AfxGetMainWnd())->m_IdKeyTab.GetUid(m_Uid);
+		if ( pKey != NULL && pKey != this && pKey->m_Type == m_Type )
+			pKey->m_SecBlob = m_SecBlob;
+		((CMainFrame *)::AfxGetMainWnd())->m_IdKeyTab.UpdateUid(m_Uid);
+
+	} else if ( !m_FilePath.IsEmpty() ) {
+		// ファイルベースのXMSS
+		int n;
+		CString lockName(_T("RLogin_XMSS_"));
+
+		if ( (n = m_FilePath.ReverseFind('\\')) >= 0 || (n = m_FilePath.ReverseFind(':')) >= 0 )
+			lockName += m_FilePath.Mid(n + 1);
+		else
+			lockName += m_FilePath;
+
+		lockName += _T(".lock");
+		CMutexLock mutex(lockName);
+
+		m_XmssKey.LoadStateFile(m_FilePath);
+
+		if ( m_XmssKey.Sign(tmp.GetPtr(), &siglen, buf, len) != 0 )
+			return FALSE;
+
+		m_XmssKey.SaveStateFile(m_FilePath);
+
+	} else if ( m_XmssKey.Sign(tmp.GetPtr(), &siglen, buf, len) != 0 )
+		return FALSE;
+
+	bp->Clear();
+	bp->PutStr(TstrToMbs(GetName(FALSE)));
+	bp->PutBuf(tmp.GetPtr(), (int)(siglen - len));
+
+	return TRUE;
+}
 int CIdKey::Sign(CBuffer *bp, LPBYTE buf, int len, LPCTSTR alg)
 {
 	if ( m_bPageant ) {
@@ -1955,6 +2422,7 @@ int CIdKey::Sign(CBuffer *bp, LPBYTE buf, int len, LPCTSTR alg)
 	case IDKEY_DSA2:    return DssSign(bp, buf, len);
 	case IDKEY_ECDSA:   return EcDsaSign(bp, buf, len);
 	case IDKEY_ED25519: return Ed25519Sign(bp, buf, len);
+	case IDKEY_XMSS:	return XmssSign(bp, buf, len);
 	}
 	return FALSE;
 }
@@ -2166,13 +2634,40 @@ int CIdKey::Ed25519Verify(CBuffer *bp, LPBYTE data, int datalen)
 
 	return TRUE;
 }
+int CIdKey::XmssVerify(CBuffer *bp, LPBYTE data, int datalen)
+{
+	unsigned long long mlen;
+	CStringA keytype;
+	CBuffer sig(-1), tmp(-1);
+
+	bp->GetStr(keytype);
+	if ( (GetTypeFromName(MbsToTstr(keytype)) & IDKEY_TYPE_MASK) != IDKEY_XMSS )
+		return FALSE;
+
+	bp->GetBuf(&sig);
+	sig.Apend(data, datalen);
+	tmp.PutSpc(sig.GetSize());
+	mlen = sig.GetSize();
+
+	if ( m_XmssKey.Verify(tmp.GetPtr(), &mlen, sig.GetPtr(), mlen) != 0 )
+		return FALSE;
+
+	if ( mlen != datalen )
+		return FALSE;
+
+	if ( memcmp(tmp.GetPtr(), data, datalen) != 0 )
+		return FALSE;
+
+	return TRUE;
+}
 int CIdKey::Verify(CBuffer *bp, LPBYTE data, int datalen)
 {
 	switch(m_Type) {
-	case IDKEY_RSA2:     return RsaVerify(bp, data, datalen);
-	case IDKEY_DSA2:     return DssVerify(bp, data, datalen);
-	case IDKEY_ECDSA:    return EcDsaVerify(bp, data, datalen);
-	case IDKEY_ED25519:  return Ed25519Verify(bp, data, datalen);
+	case IDKEY_RSA2:    return RsaVerify(bp, data, datalen);
+	case IDKEY_DSA2:    return DssVerify(bp, data, datalen);
+	case IDKEY_ECDSA:   return EcDsaVerify(bp, data, datalen);
+	case IDKEY_ED25519: return Ed25519Verify(bp, data, datalen);
+	case IDKEY_XMSS:	return XmssVerify(bp, data, datalen);
 	}
 	return FALSE;
 }
@@ -2316,6 +2811,20 @@ int CIdKey::GetBlob(CBuffer *bp)
 		memcpy(m_Ed25519->pub, work.GetPtr(), ED25519_PUBBYTES);
 		break;
 
+	case IDKEY_XMSS:
+		bp->GetStr(str);
+		if ( !m_XmssKey.SetBufSize(str) )
+			return FALSE;
+
+		work.Clear(); bp->GetBuf(&work);				// public key
+		if ( (work.GetSize() + XMSS_OID_LEN) != m_XmssKey.m_PubLen )
+			return FALSE;
+
+		memcpy(m_XmssKey.m_pPubBuf + XMSS_OID_LEN, work.GetPtr(), work.GetSize());
+
+		m_Type = IDKEY_XMSS;
+		break;
+
 	default:
 		return FALSE;
 	}
@@ -2388,6 +2897,10 @@ int CIdKey::SetBlob(CBuffer *bp, BOOL bCert)
 		break;
 	case IDKEY_ED25519:
 		bp->PutBuf(m_Ed25519->pub, ED25519_PUBBYTES);
+		break;
+	case IDKEY_XMSS:
+		bp->PutStr(m_XmssKey.GetName());
+		bp->PutBuf(m_XmssKey.m_pPubBuf + XMSS_OID_LEN, m_XmssKey.m_PubLen - XMSS_OID_LEN);
 		break;
 	default:
 		return FALSE;
@@ -2498,6 +3011,22 @@ int CIdKey::GetPrivateBlob(CBuffer *bp)
 
 		break;
 
+	case IDKEY_XMSS:
+		bp->GetStr(str);
+		if ( !m_XmssKey.SetBufSize(str) )
+			return FALSE;
+
+		tmp.Clear(); bp->GetBuf(&tmp);
+		if ( (tmp.GetSize() + XMSS_OID_LEN) != m_XmssKey.m_PubLen )
+			return FALSE;
+		memcpy(m_XmssKey.m_pPubBuf + XMSS_OID_LEN, tmp.GetPtr(), tmp.GetSize());
+
+		if ( !m_XmssKey.LoadOpenSshSec(bp) )
+			return FALSE;
+
+		m_Type = IDKEY_XMSS;
+		break;
+
 	default:
 		return FALSE;
 	}
@@ -2558,6 +3087,12 @@ int CIdKey::SetPrivateBlob(CBuffer *bp)
 	case IDKEY_ED25519:
 		bp->PutBuf(m_Ed25519->pub, ED25519_PUBBYTES);
 		bp->PutBuf(m_Ed25519->sec, ED25519_SECBYTES);
+		break;
+	case IDKEY_XMSS:
+		bp->PutStr(m_XmssKey.GetName());
+		bp->PutBuf(m_XmssKey.m_pPubBuf + XMSS_OID_LEN, m_XmssKey.m_PubLen - XMSS_OID_LEN);
+		if ( !m_XmssKey.SaveOpenSshSec(bp) )
+			return FALSE;
 		break;
 	default:
 		return FALSE;
@@ -2816,6 +3351,7 @@ int CIdKey::WritePublicKey(CString &str, BOOL bAddUser)
 	case IDKEY_DSA2:
 	case IDKEY_ECDSA:
 	case IDKEY_ED25519:
+	case IDKEY_XMSS:
 		if ( !SetBlob(&tmp, bAddUser ? TRUE : FALSE) )
 			return FALSE;
 		buf.Base64Encode(tmp.GetPtr(), tmp.GetSize());
@@ -2929,6 +3465,21 @@ int CIdKey::ReadPrivateKey(LPCTSTR str, LPCTSTR pass, BOOL bHost)
 		memcpy(m_Ed25519->sec, work.GetPtr(), ED25519_SECBYTES);
 		break;
 
+	case IDKEY_XMSS:
+		if ( !m_XmssKey.SetBufSize(tmp.Get32Bit()) )
+			return FALSE;
+
+		work.Clear(); tmp.GetBuf(&work);
+		if ( (work.GetSize() + XMSS_OID_LEN) != m_XmssKey.m_PubLen )
+			return FALSE;
+		memcpy(m_XmssKey.m_pPubBuf + XMSS_OID_LEN, work.GetPtr(), work.GetSize());
+
+		work.Clear(); tmp.GetBuf(&work);
+		if ( (work.GetSize() + XMSS_OID_LEN) != m_XmssKey.m_SecLen )
+			return FALSE;
+		memcpy(m_XmssKey.m_pSecBuf + XMSS_OID_LEN, work.GetPtr(), work.GetSize());
+		break;
+
 	default:
 		return FALSE;
 	}
@@ -2977,6 +3528,12 @@ int CIdKey::WritePrivateKey(CString &str, LPCTSTR pass)
 		tmp.Put8Bit(m_Type);
 		tmp.PutBuf(m_Ed25519->pub, ED25519_PUBBYTES);
 		tmp.PutBuf(m_Ed25519->sec, ED25519_SECBYTES);
+		break;
+	case IDKEY_XMSS:
+		tmp.Put8Bit(m_Type);
+		tmp.Put32Bit(m_XmssKey.m_oId);
+		tmp.PutBuf(m_XmssKey.m_pPubBuf + XMSS_OID_LEN, m_XmssKey.m_PubLen - XMSS_OID_LEN);
+		tmp.PutBuf(m_XmssKey.m_pSecBuf + XMSS_OID_LEN, m_XmssKey.m_SecLen - XMSS_OID_LEN);
 		break;
 	default:
 		return FALSE;
@@ -3879,6 +4436,8 @@ ENDOF:
 	if ( !WritePrivateKey(m_SecBlob, pass) )
 		return FALSE;
 
+	m_FilePath = file;
+
 	cert.Format(_T("%s-cert.pub"), file);
 	if ( LoadCertPublicKey(cert) )
 		return TRUE;
@@ -3933,6 +4492,10 @@ int CIdKey::SavePrivateKey(int type, LPCTSTR file, LPCTSTR pass)
 		break;
 	case IDKEY_ED25519:
 		if ( m_Ed25519 != NULL )
+			rt = SaveOpenSshKey(fp, pass);
+		break;
+	case IDKEY_XMSS:
+		if ( m_XmssKey.m_oId != 0 && m_XmssKey.m_pPubBuf != NULL && m_XmssKey.m_pSecBuf != NULL )
 			rt = SaveOpenSshKey(fp, pass);
 		break;
 	}
@@ -4127,8 +4690,17 @@ int CIdKey::GetSize()
 		return NidListTab[n].bits;
 	case IDKEY_ED25519:
 		return ED25519_PUBBYTES * 8;
+	case IDKEY_XMSS:
+		return m_XmssKey.GetBits();
 	}
 	return 0;
+}
+int CIdKey::GetHeight()
+{
+	if ( m_Type == IDKEY_XMSS )
+		return m_XmssKey.GetHeight();
+	else
+		return GetSize();
 }
 BOOL CIdKey::IsNotSupport()
 { 
@@ -4476,6 +5048,16 @@ void CIdKeyTab::RemoveUid(int uid)
 			return;
 		}
 	}
+}
+CIdKey *CIdKeyTab::ReloadUid(int uid)
+{
+	for ( int n = 0 ; n < m_Data.GetSize() ; n++ ) {
+		if ( m_Data[n].m_Uid == uid ) {
+			m_Data[n].GetProfile(m_pSection, uid);
+			return &(m_Data[n]);
+		}
+	}
+	return NULL;
 }
 
 //////////////////////////////////////////////////////////////////////

@@ -1,4 +1,4 @@
-P#m t63 xs v?10
+P#m t70 xs v?10
 // Vocal
 z1 @76 v90 q100 w0 l16 o5
 r1 r1
@@ -144,15 +144,15 @@ d^cdrd8p>8c^dc4.m100r8<
 // 52
 z,(52-1)*4
 r2v""{g^v"[a`c]8}8v"[g`c]8{e^d8}8{c^d8}8
-v"c2p>8m40r2
+v"c2p>8m40
 // 61
 z,(61-1)*4 v<
 r4r8r[g`c]&v"[a`c]`ca8p>8v"[dg`c]8v""e^d^ f4.m60[g`c]8e^d^c^dv"c8v""d^c
-v"c4p>8m80r4r8>d8p>8[d8^c]8^d8 c8.p>8m40r<v"[eg]^[ae]`c8`c4p>8m60rv"[`cg]^[a`c]`c
+v"c4p>8m80r4r8>d8p>8{d8^c}8d8 c8.p>8m40r<v"[eg]&[ea]`c8`c4p>8m60rv"[g`c]&[a`c]`c
 {g^a8}8`c8{g^a8}8`c8 {g^a8}8>[c8ea]d8&[dea]d8p> c8drep>8[eg]8gg8.m80rr8`c8p>m60
 // 67
 a8.p>8m80rg^a8rg8e^drcd8 c4p>8m80"g^"ac8v""c4p>8m100r4
-<[fa]4v<[eg]8[eg]8v<<[ce]4v<<[cf]8[cf]8 v<<<<[dg]4v<<<<[cf]4v<<<<[ceg`c`e]2& [ceg`c`e]2.m30r4
+<[fa]4v<[eg]8[eg]8v<<[ce]4v<<[cf]8[cf]8 v<<<<[dg]4v<<[cf]4q95v<<[ceg`c`e]2& [ceg`c`e]1m30u<
 
 // Bass z5
 z5,(19-1)*4 @34 v90 q100 w0 l16 o3 yy0,0,12
@@ -290,7 +290,7 @@ z,(57-1)*4
 ["gcg`c`e]2["g"bgbd]2 ["f"afa`c]2&["c"e"geg`c].r8
 
 // Key4 Right 60's Orgran
-z8,(35-1)*4 @17,16 v50 q100 w0 l4 o4
+z8,(35-1)*4 @17,16 v50 q100 w8 l4 o4
 // 35
 [`a`f][`g`e]8[`f`d]8[`e`c]v"[`d`b]8[`ca]8
 [bg][a`c][eg`c]8[g`e]16[f`d]16&[f`d]16r16[f`c]8 [eg`c]2&[dgb]2
@@ -301,7 +301,7 @@ z8,(35-1)*4 @17,16 v50 q100 w0 l4 o4
 [cfa].[fa`c]8[eg`c]2
 
 // Key4 Left
-z9,(35-1)*4 @17,16 v70 q100 w0 l4 o3
+z9,(35-1)*4 @17,16 v70 q100 w-8 l4 o3
 // 35
 `fr16`g16r16`g16`c`v""b-16`f16`a16`d16
 `g`f`c8``e16``d16&``d16r16``c8 `c2`g2

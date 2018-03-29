@@ -14,6 +14,7 @@ class CServerSelect : public CDialogExt
 
 // コンストラクション
 	CServerSelect(CWnd* pParent = NULL);   // 標準のコンストラクタ
+	virtual ~CServerSelect();
 
 // ダイアログ データ
 	enum { IDD = IDD_SERVERLIST };
@@ -32,6 +33,11 @@ public:
 	class CServerEntryTab *m_pData;
 	BOOL m_ShowTabWnd;
 	int m_DefaultEntryUid;
+	CTextRam *m_pTextRam;
+	CKeyNodeTab *m_pKeyTab;
+	CKeyMacTab *m_pKeyMac;
+	CParamTab *m_pParamTab;
+
 
 // クラスファンクション
 public:

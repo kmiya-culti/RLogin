@@ -58,6 +58,7 @@ CCommandLineInfoEx::CCommandLineInfoEx()
 	m_Pass.Empty();
 	m_Term.Empty();
 	m_Name.Empty();
+	m_Idkey.Empty();
 	m_InUse = INUSE_NONE;
 	m_InPane = FALSE;
 	m_AfterId = (-1);
@@ -125,6 +126,8 @@ void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLas
 			m_PasStat = 14;
 		else if ( _tcsicmp(_T("req"), pszParam) == 0 )
 			m_ReqDlg = TRUE;
+		else if ( _tcsicmp(_T("idkey"), pszParam) == 0 )
+			m_PasStat = 15;
 		else
 			break;
 		ParseLast(bLast);
@@ -228,6 +231,13 @@ void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLas
 		if ( bFlag )
 			break;
 		m_Script = pszParam;
+		ParseLast(bLast);
+		return;
+	case 15:		// idkey
+		m_PasStat = 0;
+		if ( bFlag )
+			break;
+		m_Idkey = pszParam;
 		ParseLast(bLast);
 		return;
 	}
@@ -387,6 +397,11 @@ void CCommandLineInfoEx::GetString(CString &str)
 
 	if ( m_InPane )
 		str += _T(" /inpne");
+
+	if ( !m_Idkey.IsEmpty() ) {
+		tmp.Format(_T(" /idkey %s"), ShellEscape(m_Idkey));
+		str += tmp;
+	}
 }
 void CCommandLineInfoEx::SetString(LPCTSTR str)
 {
@@ -487,6 +502,8 @@ BEGIN_MESSAGE_MAP(CRLoginApp, CWinApp)
 	ON_UPDATE_COMMAND_UI(IDM_CREATEPROFILE, &CRLoginApp::OnUpdateCreateprofile)
 	ON_COMMAND(IDM_SAVEREGFILE, &CRLoginApp::OnSaveregfile)
 	ON_UPDATE_COMMAND_UI(IDM_SAVEREGFILE, &CRLoginApp::OnUpdateSaveregfile)
+	ON_COMMAND(IDM_REGISTAPP, &CRLoginApp::OnRegistapp)
+	ON_UPDATE_COMMAND_UI(IDM_REGISTAPP, &CRLoginApp::OnUpdateRegistapp)
 END_MESSAGE_MAP()
 
 
@@ -513,6 +530,8 @@ CRLoginApp::CRLoginApp()
 	m_bUseIdle = FALSE;
 
 	m_TempSeqId = 0;
+
+	m_bRegistAppp = FALSE;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1043,7 +1062,14 @@ BOOL CRLoginApp::InitInstance()
 
 	// DDE Execute open を使用可能にします。
 	EnableShellOpen();
-	RegisterShellFileTypes(TRUE);
+
+	m_bRegistAppp = GetProfileInt(_T("RLoginApp"), _T("RegistAppp"),  FALSE);
+
+	if ( m_bRegistAppp ) {
+		// 管理者でないとレジストリを構築できないので削除
+		//RegisterShellFileTypes(TRUE);
+		RegisterShellFileEntry();
+	}
 
 	// デフォルトプリンタの設定
 	SetDefaultPrinter();
@@ -1915,83 +1941,198 @@ BOOL CRLoginApp::AliveProfileKeys(LPCTSTR lpszSection)
 	return rt;
 }
 
-void CRLoginApp::RegisterShellProtocol(LPCTSTR pSection, LPCTSTR pOption)
+void CRLoginApp::RegisterShellRemoveAll()
 {
-	HKEY hKey[4];
-	DWORD val;
+	int n;
+	CString strTemp;
+	static LPCTSTR protoName[] = { _T("ssh"), _T("telnet"), _T("login"), NULL };
+
+	RegisterDelete(HKEY_CURRENT_USER, _T("Software\\RegisteredApplications"), _T("RLogin"));
+
+	RegisterDelete(HKEY_CURRENT_USER, _T("Software\\Culti\\RLogin\\Capabilities\\FileAssociations"), _T(".rlg"));
+	RegisterDelete(HKEY_CURRENT_USER, _T("Software\\Classes"), _T(".rlg"));
+	RegisterDelete(HKEY_CURRENT_USER, _T("Software\\Classes"), _T("RLogin.Document"));
+
+	RegisterDelete(HKEY_LOCAL_MACHINE, _T("Software\\Classes"), _T(".rlg"));
+	RegisterDelete(HKEY_LOCAL_MACHINE, _T("Software\\Classes"), _T("RLogin.Document"));
+
+	for ( n = 0 ; protoName[n] != NULL ; n++ ) {
+		strTemp.Format(_T("RLogin.%s"), protoName[n]);
+		RegisterDelete(HKEY_CURRENT_USER, _T("Software\\Culti\\RLogin\\Capabilities\\UrlAssociations"), protoName[n]);
+		RegisterDelete(HKEY_CURRENT_USER, _T("Software\\Classes"), strTemp);
+
+		strTemp.Format(_T("Software\\Classes\\%s\\shell\\open\\command"), protoName[n]);
+		if ( RegisterGetStr(HKEY_CURRENT_USER, strTemp, _T(""), strTemp) && strTemp.Find(_T("RLogin")) >= 0 ) {
+
+			strTemp.Format(_T("Software\\Classes\\%s"), protoName[n]);
+			RegisterDelete(HKEY_CURRENT_USER, strTemp, _T("BrowserFlags"));
+			RegisterDelete(HKEY_CURRENT_USER, strTemp, _T("EditFlags"));
+			RegisterDelete(HKEY_CURRENT_USER, strTemp, _T("DefaultIcon"));
+			RegisterDelete(HKEY_CURRENT_USER, strTemp, _T("shell"));
+		}
+	}
+
+	if ( RegisterGetStr(HKEY_CLASSES_ROOT, _T("RLogin.Document\\shell\\open\\ddeexec"), _T(""), strTemp) )
+		::AfxMessageBox(IDE_REGISTRYDELETEERROR);
+}
+void CRLoginApp::RegisterShellFileEntry()
+{
 	CString strTemp;
 	CString strPathName;
-	CString oldDefine;
-	CBuffer buf;
-	CRegKey reg;
+
+	if ( RegisterGetStr(HKEY_CURRENT_USER, _T("Software\\Classes\\RLogin.Document\\shell\\open\\command"), _T(""), strTemp) 
+				&& _tcsncmp(strPathName, strTemp, strPathName.GetLength()) == 0 )
+		return;
+
+	// HKEY_CURRENT_USER\Software\Culti\RLogin\Capabilities
+	//   ApplicationDescription = "RLogin Terminal Software"
+	// HKEY_CURRENT_USER\Software\Culti\RLogin\Capabilities\FileAssociations
+	//   .rlg   = "RLogin.Document"
+	//
+	// HKEY_CURRENT_USER\Software\RegisteredApplications
+	//	 RLogin = "Software\Culti\RLogin\Capabilities"
+
+	RegisterSetStr(HKEY_CURRENT_USER, _T("Software\\Culti\\RLogin\\Capabilities"), _T("ApplicationDescription"), _T("RLogin Terminal Software"));
+	RegisterSetStr(HKEY_CURRENT_USER, _T("Software\\Culti\\RLogin\\Capabilities\\FileAssociations"), _T(".rlg"), _T("RLogin.Document"));
+	RegisterSetStr(HKEY_CURRENT_USER, _T("Software\\RegisteredApplications"), _T("RLogin"), _T("Software\\Culti\\RLogin\\Capabilities"), FALSE);
+
+	// HKEY_CURRENT_USER\Software\Classes\.rlg = RLogin.Document
+	// HKEY_CURRENT_USER\Software\Classes\RLogin.Document = "RLogin Document"
+	// HKEY_CURRENT_USER\Software\Classes\RLogin.Document\DefaultIcon = "RLogin.exe,1"
+	// HKEY_CURRENT_USER\Software\Classes\RLogin.Document\shell\open\command = "RLogin.exe /inuse %1"
+
+	RegisterSetStr(HKEY_CURRENT_USER, _T("Software\\Classes\\.rlg"), _T(""), _T("RLogin.Document"));
+	RegisterSetStr(HKEY_CURRENT_USER, _T("Software\\Classes\\RLogin.Document"), _T(""), _T("RLogin Document"));
 
 	AfxGetModuleShortFileName(AfxGetInstanceHandle(), strPathName);
 
-	CString strOpenCommandLine;
-	CString strDefaultIconCommandLine;
+	strTemp.Format(_T("%s,%d"), strPathName, 1);
+	RegisterSetStr(HKEY_CURRENT_USER, _T("Software\\Classes\\RLogin.Document\\DefaultIcon"), _T(""), strTemp);
 
-	strDefaultIconCommandLine.Format(_T("%s,%d"), strPathName, 1);
-	strOpenCommandLine.Format(_T("%s %s %%1"), strPathName, pOption);
+	strTemp.Format(_T("%s /inuse \"%%1\""), strPathName);
+	RegisterSetStr(HKEY_CURRENT_USER, _T("Software\\Classes\\RLogin.Document\\shell\\open\\command"), _T(""), strTemp);
+}
+void CRLoginApp::RegisterShellProtocol(LPCTSTR pProtocol, LPCTSTR pOption)
+{
+	CString strTemp;
+	CString strEntry;
+	CString strSection;
+	CString strPathName;
+	LPCTSTR pSection = pProtocol;
 
-	//	HKEY_CLASSES_ROOT or HKEY_CURRENT_USER\Software\Classes
+	if ( !m_bRegistAppp ) {
+		if ( ::AfxMessageBox(IDS_REGISTAPPPROTOCOL, MB_ICONQUESTION | MB_YESNO) != IDYES )
+			return;
+		m_bRegistAppp = TRUE;
+		WriteProfileInt(_T("RLoginApp"), _T("RegistAppp"), m_bRegistAppp);
+	}
+
+	// HKEY_CURRENT_USER\Software\Culti\RLogin\Capabilities
+	//   ApplicationDescription = "RLogin Terminal Software"
+	// HKEY_CURRENT_USER\Software\Culti\RLogin\Capabilities\UrlAssociations
+	//   login  = "RLogin.login"
+	//   telnet = "RLogin.telnet"
+	//   ssh    = "RLogin.ssh"
 	//
-	//	[HKEY_CLASSES_ROOT\ssh]
-	//	@ = "URL: ssh Protocol"
-	//	BrowserFlags = dword:00000008
-	//	EditFlags = dword:00000002
-	//	URL Protocol = ""
+	// HKEY_CURRENT_USER\Software\RegisteredApplications
+	//	 RLogin = "Software\Culti\RLogin\Capabilities"
+	//
+	// HKEY_CURRENT_USER\Software\Microsoft\Windows\Shell\Associations\UrlAssociations\SSH
+	//    UserChoice = "RLogin.ssh"
 
-	//	[HKEY_CLASSES_ROOT\ssh\DefaultIcon]
-	//	@ = "RLogin.exe,1"
+	strEntry.Format(_T("RLogin.%s"), pProtocol);
 
-	//	[HKEY_CLASSES_ROOT\ssh\shell]
-	//	[HKEY_CLASSES_ROOT\ssh\shell\open]
-	//	[HKEY_CLASSES_ROOT\ssh\shell\open\command]
-	//	@ = "RLogin.exe /term xterm /inuse %1"
+	RegisterSetStr(HKEY_CURRENT_USER, _T("Software\\Culti\\RLogin\\Capabilities"), _T("ApplicationDescription"), _T("RLogin Terminal Software"));
+	RegisterSetStr(HKEY_CURRENT_USER, _T("Software\\Culti\\RLogin\\Capabilities\\UrlAssociations"), pProtocol, strEntry);
+	RegisterSetStr(HKEY_CURRENT_USER, _T("Software\\RegisteredApplications"), _T("RLogin"), _T("Software\\Culti\\RLogin\\Capabilities"), FALSE);
 
-	strTemp.Format(_T("Software\\Classes\\%s"), pSection);
+	// HKEY_CURRENT_USER\Software\Classes\RLogin.ssh = "URL: ssh Protocol"
+	//	 BrowserFlags = dword:00000008
+	//	 EditFlags = dword:00000002
+	//	 URL Protocol = ""
+	// HKEY_CURRENT_USER\Software\Classes\RLogin.ssh\DefaultIcon = "RLogin.exe,1"
+	// HKEY_CURRENT_USER\Software\Classes\RLogin.ssh\shell\open\command = "RLogin.exe /inuse %1"
+	//
+	// HKEY_CURRENT_USER\Software\Classes\ssh = "URL: ssh Protocol"
+	//	 BrowserFlags = dword:00000008
+	//	 EditFlags = dword:00000002
+	//	 URL Protocol = ""
+	// HKEY_CURRENT_USER\Software\Classes\ssh\DefaultIcon = "RLogin.exe,1"
+	// HKEY_CURRENT_USER\Software\Classes\ssh\shell\open\command = "RLogin.exe /inuse %1"
 
-	if ( reg.Open(HKEY_CURRENT_USER, strTemp) == ERROR_SUCCESS ) {
-		ULONG len = 0;
-		if ( reg.QueryBinaryValue(_T("OldDefine"), NULL, &len) == ERROR_SUCCESS )
-			reg.QueryBinaryValue(_T("OldDefine"), buf.PutSpc(len), &len);
-		else
-			RegisterSave(HKEY_CURRENT_USER, strTemp, buf);
-		buf.Clear();
-		reg.Close();
+	AfxGetModuleShortFileName(AfxGetInstanceHandle(), strPathName);
+
+	for ( int n = 0 ; n < 2 ; n++ ) {
+		strSection.Format(_T("Software\\Classes\\%s"), pSection);
+		strTemp.Format(_T("URL: %s Protocol"), pProtocol);
+		RegisterSetStr(HKEY_CURRENT_USER, strSection, _T(""), strTemp);
+		RegisterSetDword(HKEY_CURRENT_USER, strSection, _T("BrowserFlags"), 8);
+		RegisterSetDword(HKEY_CURRENT_USER, strSection, _T("EditFlags"), 2);
+		RegisterSetStr(HKEY_CURRENT_USER, strSection, _T("URL Protocol"), _T(""));
+
+		strSection.Format(_T("Software\\Classes\\%s\\DefaultIcon"), pSection);
+		strTemp.Format(_T("%s,%d"), strPathName, 1);
+		RegisterSetStr(HKEY_CURRENT_USER, strSection, _T(""), strTemp);
+
+		strSection.Format(_T("Software\\Classes\\%s\\shell\\open\\command"), pSection);
+		strTemp.Format(_T("%s %s \"%%1\""), strPathName, pOption);
+		RegisterSetStr(HKEY_CURRENT_USER, strSection, _T(""), strTemp);
+
+		// "RLogin.ssh"と"ssh"に同じ内容を設定
+		pSection = strEntry;
+	}
+}
+BOOL CRLoginApp::RegisterGetStr(HKEY hKey, LPCTSTR pSection, LPCTSTR pEntryName, CString &str)
+{
+	HKEY hSubKey = NULL;
+	DWORD type, size;
+	BOOL ret = FALSE;
+
+	if ( RegOpenKeyEx(hKey, pSection, 0, KEY_READ, &hSubKey) == ERROR_SUCCESS ) {
+		if ( RegQueryValueEx(hSubKey, pEntryName, NULL, &type, NULL, &size) == ERROR_SUCCESS && type == REG_SZ ) {
+			if ( RegQueryValueEx(hSubKey, pEntryName, NULL, &type, LPBYTE(str.GetBufferSetLength(size)), &size) == ERROR_SUCCESS )
+				ret = TRUE;
+		}
+		RegCloseKey(hSubKey);
 	}
 
-	if( AfxRegCreateKey(HKEY_CURRENT_USER, strTemp, &(hKey[0])) == ERROR_SUCCESS ) {
+	return ret;
+}
+BOOL CRLoginApp::RegisterSetStr(HKEY hKey, LPCTSTR pSection, LPCTSTR pEntryName, LPCTSTR str, BOOL bCreate)
+{
+	HKEY hSubKey;
+	BOOL ret = FALSE;
+	DWORD dw = 0;
 
-		strTemp.Format(_T("URL: %s Protocol"), pSection);
-		RegSetValueEx(hKey[0], _T(""), 0, REG_SZ, (const LPBYTE)(LPCTSTR)strTemp, (strTemp.GetLength() + 1) * sizeof(TCHAR));
-		val = 8;
-		RegSetValueEx(hKey[0], _T("BrowserFlags"), 0, REG_DWORD, (const LPBYTE)(&val), sizeof(val));
-		val = 2;
-		RegSetValueEx(hKey[0], _T("EditFlags"), 0, REG_DWORD, (const LPBYTE)(&val), sizeof(val));
-		strTemp = "";
-		RegSetValueEx(hKey[0], _T("URL Protocol"), 0, REG_SZ, (const LPBYTE)(LPCTSTR)strTemp, (strTemp.GetLength() + 1) * sizeof(TCHAR));
-
-		RegSetValueEx(hKey[0], _T("OldDefine"), 0, REG_BINARY, (const LPBYTE)buf.GetPtr(), buf.GetSize());
-
-		if( AfxRegCreateKey(hKey[0], _T("DefaultIcon"), &(hKey[1])) == ERROR_SUCCESS ) {
-			RegSetValueEx(hKey[1], _T(""), 0, REG_SZ, (const LPBYTE)(LPCTSTR)strDefaultIconCommandLine, (strDefaultIconCommandLine.GetLength() + 1) * sizeof(TCHAR));
-			RegCloseKey(hKey[1]);
-		}
-
-		if( AfxRegCreateKey(hKey[0], _T("shell"), &(hKey[1])) == ERROR_SUCCESS ) {
-			if( AfxRegCreateKey(hKey[1], _T("open"), &(hKey[2])) == ERROR_SUCCESS ) {
-				if( AfxRegCreateKey(hKey[2], _T("command"), &(hKey[3])) == ERROR_SUCCESS ) {
-					RegSetValueEx(hKey[3], _T(""), 0, REG_SZ, (const LPBYTE)(LPCTSTR)strOpenCommandLine, (strOpenCommandLine.GetLength() + 1) * sizeof(TCHAR));
-					RegCloseKey(hKey[3]);
-				}
-				RegCloseKey(hKey[2]);
-			}
-			RegCloseKey(hKey[1]);
-		}
-
-		RegCloseKey(hKey[0]);
+	if ( RegOpenKeyEx(hKey, pSection, 0, KEY_WRITE, &hSubKey) != ERROR_SUCCESS ) {
+		if ( !bCreate || RegCreateKeyEx(hKey, pSection, 0, REG_NONE, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_READ, NULL, &hSubKey, &dw) != ERROR_SUCCESS )
+			return FALSE;
 	}
+
+	if ( RegSetValueEx(hSubKey, pEntryName, 0, REG_SZ, (const LPBYTE)str, (DWORD)(_tcslen(str) + 1) * sizeof(TCHAR)) == ERROR_SUCCESS )
+		ret = TRUE;
+
+	RegCloseKey(hSubKey);
+
+	return ret;
+}
+BOOL CRLoginApp::RegisterSetDword(HKEY hKey, LPCTSTR pSection, LPCTSTR pEntryName, DWORD dword, BOOL bCreate)
+{
+	HKEY hSubKey;
+	BOOL ret = FALSE;
+	DWORD dw = 0;
+
+	if ( RegOpenKeyEx(hKey, pSection, 0, KEY_WRITE, &hSubKey) != ERROR_SUCCESS ) {
+		if ( !bCreate || RegCreateKeyEx(hKey, pSection, 0, REG_NONE, REG_OPTION_NON_VOLATILE, KEY_WRITE | KEY_READ, NULL, &hSubKey, &dw) != ERROR_SUCCESS )
+			return FALSE;
+	}
+
+	if ( RegSetValueEx(hSubKey, pEntryName, 0, REG_DWORD, (const LPBYTE)&dword, (DWORD)sizeof(DWORD)) == ERROR_SUCCESS )
+		ret = TRUE;
+
+	RegCloseKey(hSubKey);
+
+	return ret;
 }
 void CRLoginApp::RegisterDelete(HKEY hKey, LPCTSTR pSection, LPCTSTR pKey)
 {
@@ -2000,7 +2141,9 @@ void CRLoginApp::RegisterDelete(HKEY hKey, LPCTSTR pSection, LPCTSTR pKey)
 	if ( reg.Open(hKey, pSection) != ERROR_SUCCESS )
 		return;
 
-	reg.RecurseDeleteKey(pKey);
+	if ( reg.DeleteValue(pKey) != ERROR_SUCCESS )
+		reg.RecurseDeleteKey(pKey);
+
 	reg.Close();
 }
 void CRLoginApp::RegisterSave(HKEY hKey, LPCTSTR pSection, CBuffer &buf)
@@ -2756,4 +2899,23 @@ void CRLoginApp::OnSaveregfile()
 void CRLoginApp::OnUpdateSaveregfile(CCmdUI *pCmdUI)
 {
 	pCmdUI->Enable(m_pszRegistryKey != NULL ? TRUE : FALSE);
+}
+
+void CRLoginApp::OnRegistapp()
+{
+	m_bRegistAppp = GetProfileInt(_T("RLoginApp"), _T("RegistAppp"),  FALSE);
+
+	if ( m_bRegistAppp ) {
+		m_bRegistAppp = FALSE;
+		RegisterShellRemoveAll();
+	} else {
+		m_bRegistAppp = TRUE;
+		RegisterShellFileEntry();
+	}
+
+	WriteProfileInt(_T("RLoginApp"), _T("RegistAppp"), m_bRegistAppp);
+}
+void CRLoginApp::OnUpdateRegistapp(CCmdUI *pCmdUI)
+{
+	pCmdUI->SetCheck(m_bRegistAppp);
 }

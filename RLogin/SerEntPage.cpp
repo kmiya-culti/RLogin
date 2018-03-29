@@ -95,7 +95,6 @@ void CSerEntPage::SetEnableWind()
 {
 	int n;
 	CWnd *pWnd;
-	static LPCTSTR	DefPortName[] = { _T(""), _T("login"), _T("telnet"), _T("ssh"), _T("COM1"), _T("") };
 	static const struct {
 		int		nId;
 		BOOL	mode[6];
@@ -116,26 +115,6 @@ void CSerEntPage::SetEnableWind()
 		if ( (pWnd = GetDlgItem(ItemTab[n].nId)) != NULL )
 			pWnd->EnableWindow(ItemTab[n].mode[m_ProtoType]);
 	}
-
-	switch(m_ProtoType) {
-	case PROTO_COMPORT:
-		if ( _tcsnicmp(m_PortName, _T("COM"), 3) != 0 )
-			m_PortName = m_DefComPort;
-		break;
-
-	case PROTO_SSH:
-	case PROTO_LOGIN:
-	case PROTO_TELNET:
-		if ( _tstoi(m_PortName) <= 0 )
-			m_PortName = DefPortName[m_ProtoType];
-		break;
-
-	case PROTO_DIRECT:
-	case PROTO_PIPE:
-		break;
-	}
-
-	UpdateData(FALSE);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -334,9 +313,30 @@ void CSerEntPage::OnKeyfileselect()
 }
 void CSerEntPage::OnProtoType(UINT nID) 
 {
+	static LPCTSTR	DefPortName[] = { _T(""), _T("login"), _T("telnet"), _T("ssh"), _T("COM1"), _T("") };
+
 	UpdateData(TRUE);
 	SetEnableWind();
 
+	switch(m_ProtoType) {
+	case PROTO_COMPORT:
+		if ( _tcsnicmp(m_PortName, _T("COM"), 3) != 0 )
+			m_PortName = m_DefComPort;
+		break;
+
+	case PROTO_SSH:
+	case PROTO_LOGIN:
+	case PROTO_TELNET:
+		if ( _tstoi(m_PortName) <= 0 )
+			m_PortName = DefPortName[m_ProtoType];
+		break;
+
+	case PROTO_DIRECT:
+	case PROTO_PIPE:
+		break;
+	}
+
+	UpdateData(FALSE);
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_ENTRY;
 }

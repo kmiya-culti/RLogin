@@ -14,12 +14,12 @@
 
 IMPLEMENT_DYNAMIC(CSockOptPage, CTreePage)
 
-#define	CHECKOPTMAX		11
+#define	CHECKOPTMAX		12
 #define	IDC_CHECKFAST	IDC_OPTCHECK1
 static const int CheckOptTab[] = {
 	TO_RLDELAY,		TO_RLBPLUS,		TO_RLDSECHO,	TO_RLPOFF,		TO_RLKEEPAL, 
 	TO_SLEEPTIMER,	TO_RLGROUPCAST,	TO_RLNTBCRECV,	TO_RLNTBCSEND,	TO_RLNOTCLOSE, 
-	TO_RLREOPEN,
+	TO_RLREOPEN,	TO_RLTRSLIMIT,
 };
 
 CSockOptPage::CSockOptPage() : CTreePage(CSockOptPage::IDD)
@@ -29,6 +29,7 @@ CSockOptPage::CSockOptPage() : CTreePage(CSockOptPage::IDD)
 		m_Check[n] = FALSE;
 	m_SelIPver = 0;
 	m_SleepTime = 10;
+	m_TransmitLimit = 1000;
 }
 
 CSockOptPage::~CSockOptPage()
@@ -46,6 +47,7 @@ void CSockOptPage::DoDataExchange(CDataExchange* pDX)
 	DDX_Radio(pDX, IDC_RADIO1, m_SelIPver);
 	DDX_Text(pDX, IDC_SLEEPTIME, m_SleepTime);
 	DDX_Text(pDX, IDC_GROUPCAST, m_GroupCast);
+	DDX_Text(pDX, IDC_TRANSMITLIMIT, m_TransmitLimit);
 }
 
 
@@ -55,6 +57,7 @@ BEGIN_MESSAGE_MAP(CSockOptPage, CTreePage)
 	ON_EN_CHANGE(IDC_DELAYMSEC, OnUpdateEdit)
 	ON_EN_CHANGE(IDC_SLEEPTIME, OnUpdateEdit)
 	ON_EN_CHANGE(IDC_GROUPCAST, OnUpdateEdit)
+	ON_EN_CHANGE(IDC_TRANSMITLIMIT, OnUpdateEdit)
 END_MESSAGE_MAP()
 
 
@@ -65,10 +68,11 @@ void CSockOptPage::DoInit()
 	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
 		m_Check[n] = (m_pSheet->m_pTextRam->IsOptEnable(CheckOptTab[n]) ? TRUE : FALSE);
 
-	m_DelayMsec = m_pSheet->m_pTextRam->m_DelayMSec;
-	m_SelIPver  = m_pSheet->m_pParamTab->m_SelIPver;
-	m_SleepTime = m_pSheet->m_pTextRam->m_SleepMax / 6;
-	m_GroupCast = m_pSheet->m_pTextRam->m_GroupCast;
+	m_DelayMsec     = m_pSheet->m_pTextRam->m_DelayMSec;
+	m_SelIPver      = m_pSheet->m_pParamTab->m_SelIPver;
+	m_SleepTime     = m_pSheet->m_pTextRam->m_SleepMax / 6;
+	m_GroupCast     = m_pSheet->m_pTextRam->m_GroupCast;
+	m_TransmitLimit = m_pSheet->m_pParamTab->m_TransmitLimit;
 
 	UpdateData(FALSE);
 }
@@ -98,6 +102,7 @@ BOOL CSockOptPage::OnApply()
 	m_pSheet->m_pParamTab->m_SelIPver   = m_SelIPver;
 	m_pSheet->m_pTextRam->m_SleepMax    = m_SleepTime * 6;
 	m_pSheet->m_pTextRam->m_GroupCast   = m_GroupCast;
+	m_pSheet->m_pParamTab->m_TransmitLimit = m_TransmitLimit;
 
 	return TRUE;
 }

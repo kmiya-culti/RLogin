@@ -862,6 +862,7 @@ public:
 	CString m_x11AuthData;
 	BOOL m_bInitPageant;
 	int m_StdIoBufSize;
+	int m_TransmitLimit;
 
 	CParamTab();
 	void Init();
@@ -881,10 +882,6 @@ public:
 #define	FEXT_BUF_MAX	(16 * 1024)
 #define	FEXT_FLUSH_MAX	(512 * 1024)
 #define	FEXT_MSG_MAX	64				// 512K / 16K = 32 * 2 = 64
-
-#define	WM_FILEWRITE	(WM_USER + 1)
-#define	WM_FILEFLUSH	(WM_USER + 2)
-#define	WM_FILESYNC		(WM_USER + 3)
 
 class CFileThread : public CWinThread
 {

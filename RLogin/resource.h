@@ -236,6 +236,7 @@
 #define IDS_DEFENTRYEDITMSG             631
 #define IDS_ADDPAGEANTENTRY             632
 #define IDS_DROPSUBDIRCHECK             633
+#define IDS_REGISTAPPPROTOCOL           634
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -273,6 +274,9 @@
 #define IDE_KEYMACTOOLONG               734
 #define IDE_PAGEANTKEYEDIT              735
 #define IDE_SFTPTHREADCMDEXEC           736
+#define IDE_XMSSBITSIZEERR              737
+#define IDE_XMSSBITSIZECHECK            738
+#define IDE_REGISTRYDELETEERROR         739
 #define IDT_EXTOPT_LIST01               800
 #define IDT_EXTOPT_LIST02               801
 #define IDT_EXTOPT_LIST03               802
@@ -526,6 +530,7 @@
 #define IDC_SLEEPTIME2                  2108
 #define IDC_GROUPCAST                   2108
 #define IDC_DIGEST                      2109
+#define IDC_TRANSMITLIMIT               2109
 #define IDC_DISIPV6                     2110
 #define IDC_DISPOFFSETH                 2111
 #define IDC_DISPOFFSETW                 2112
@@ -1047,6 +1052,7 @@
 #define IDM_TITLEEDIT                   5125
 #define IDM_SAVEREGFILE                 5126
 #define IDM_COMMONITER                  5127
+#define IDM_REGISTAPP                   5128
 #define IDM_FIRST_MDICHILD              0xFF00
 
 // Next default values for new objects
@@ -1054,7 +1060,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        171
-#define _APS_NEXT_COMMAND_VALUE         5128
+#define _APS_NEXT_COMMAND_VALUE         5129
 #define _APS_NEXT_CONTROL_VALUE         2491
 #define _APS_NEXT_SYMED_VALUE           634
 #endif

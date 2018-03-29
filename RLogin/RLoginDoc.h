@@ -117,6 +117,7 @@ public:
 	static void LoadIndex(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab, CStringIndex &index);
 	static void SaveIndex(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab, CStringIndex &index);
 	static void DiffIndex(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab, CServerEntry &OrigEntry, CStringIndex &index);
+	static void LoadInitOption(CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab);
 	static void LoadDefOption(CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab);
 	static void SaveDefOption(CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab);
 
@@ -125,6 +126,7 @@ public:
 
 	BOOL EntryText(CString &name);
 	void ScriptText(LPCWSTR str, LPCWSTR match, CStringW &tmp);
+	void EnvironText(CString &str);
 
 	BOOL ScriptInit();
 	void SendBuffer(CBuffer &buf);

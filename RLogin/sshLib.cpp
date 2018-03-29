@@ -2062,9 +2062,11 @@ void mm_zfree(void *mm, void *address)
 
 void rand_buf(void *buf, int len)
 {
+#ifdef	CryptAcquireContext
 	// CryptGenRandom cryptographically random
 	static BOOL ProvInit = FALSE;
 	static HCRYPTPROV hProv = NULL;
+#endif
 
 	// RtlGenRandom pseudo-random
 	static BOOL Rtlinit = FALSE;
@@ -2073,11 +2075,13 @@ void rand_buf(void *buf, int len)
 
 	// Free Handle & Library
 	if ( buf == NULL && len <= 0 ) {
+#ifdef	CryptAcquireContext
 		if ( ProvInit && hProv != NULL ) {
 			CryptReleaseContext(hProv, 0);
 			hProv = NULL;
 			ProvInit = FALSE;
 		}
+#endif
 
 		if ( Rtlinit && hAdvApi != NULL ) {
 			FreeLibrary(hAdvApi);
@@ -2089,6 +2093,7 @@ void rand_buf(void *buf, int len)
 		return;
 	}
 
+#ifdef	CryptAcquireContext
 	// cryptographically random
 	if ( !ProvInit ) {
 		if ( !CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_FULL, 0) )
@@ -2098,6 +2103,7 @@ void rand_buf(void *buf, int len)
 
 	if ( hProv != NULL && CryptGenRandom(hProv, len, (BYTE *)buf) )
 		return;
+#endif
 
 	// rand_s pseudo-random
 	if ( !Rtlinit ) {

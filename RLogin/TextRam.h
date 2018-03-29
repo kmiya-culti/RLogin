@@ -263,6 +263,7 @@
 #define	TO_RLPSUPWIN	1479		// 積極的なウィンドウの描画更新
 #define	TO_TELKEEPAL	1480		// KeepAliveパケットの送信間隔(sec)
 #define	TO_SSHSFTPORY	1481		// 接続時にSFTPを起動する
+#define	TO_RLTRSLIMIT	1482		// TCP/IPの帯域制限を行う
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 

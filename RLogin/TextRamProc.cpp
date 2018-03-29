@@ -6281,7 +6281,7 @@ void CTextRam::fc_DECRQM(DWORD ch)
 void CTextRam::fc_DECCARA(DWORD ch)
 {
 	// CSI $r	DECCARA Change Attribute in Rectangle
-	int n, i, x, y;
+	int n, i, x, y, sx, ex, ad;
 	CCharCell *vp;
 
 	SetAnsiParaArea(0);
@@ -6289,20 +6289,23 @@ void CTextRam::fc_DECCARA(DWORD ch)
 	while ( m_AnsiPara.GetSize() < 5 )
 		m_AnsiPara.Add(0);
 
-	if ( !m_Exact ) {
-		m_AnsiPara[1] = 0;
-		m_AnsiPara[3] = m_Cols - 1;
-	}
-
 	for ( y = (int)m_AnsiPara[0] ; y <= (int)m_AnsiPara[2] ; y++ ) {
 		if ( y < m_TopY || y >= m_BtmY )
 			continue;
 
-		for ( x = m_AnsiPara[1] ; x <= (int)m_AnsiPara[3] ; x++ ) {
+		ad = 1;
+		sx = (m_Exact || y == (int)m_AnsiPara[0] ? (int)m_AnsiPara[1] : 0);
+		ex = (m_Exact || y == (int)m_AnsiPara[2] ? (int)m_AnsiPara[3] : (m_Cols - 1));
+
+		for ( x = sx ; x <= ex ; x++ ) {
 			if ( IsOptEnable(TO_DECLRMM) && (x < m_LeftX || x >= m_RightX) )
 				continue;
 
 			vp = GETVRAM(x, y);
+
+			if ( x == ex && IS_2BYTE(vp->m_Vram.mode) && x < (m_Cols - 1) )
+				ad++;
+
 			for ( n = 4 ; n < m_AnsiPara.GetSize() ; n++ ) {
 				if ( m_AnsiPara[n].IsOpt() )
 					continue;
@@ -6398,16 +6401,16 @@ void CTextRam::fc_DECCARA(DWORD ch)
 				}
 			}
 		}
-	}
 
-	DISPVRAM(m_AnsiPara[1], m_AnsiPara[0], m_AnsiPara[3] - m_AnsiPara[1] + 1, m_AnsiPara[2] - m_AnsiPara[0] + 1);
+		DISPVRAM(sx, y, ex - sx + ad, 1);
+	}
 
 	fc_POP(ch);
 }
 void CTextRam::fc_DECRARA(DWORD ch)
 {
 	// CSI $t	DECRARA Reverse Attribute in Rectangle
-	int n, x, y;
+	int n, x, y, sx, ex, ad;
 	CCharCell *vp;
 
 	SetAnsiParaArea(0);
@@ -6415,20 +6418,23 @@ void CTextRam::fc_DECRARA(DWORD ch)
 	while ( m_AnsiPara.GetSize() < 5 )
 		m_AnsiPara.Add(0);
 
-	if ( !m_Exact ) {
-		m_AnsiPara[1] = 0;
-		m_AnsiPara[3] = m_Cols - 1;
-	}
-
 	for ( y = m_AnsiPara[0] ; y <= (int)m_AnsiPara[2] ; y++ ) {
 		if ( y < m_TopY || y >= m_BtmY )
 			continue;
 
-		for ( x = m_AnsiPara[1] ; x <= (int)m_AnsiPara[3] ; x++ ) {
+		ad = 1;
+		sx = (m_Exact || y == (int)m_AnsiPara[0] ? (int)m_AnsiPara[1] : 0);
+		ex = (m_Exact || y == (int)m_AnsiPara[2] ? (int)m_AnsiPara[3] : (m_Cols - 1));
+
+		for ( x = sx ; x <= ex ; x++ ) {
 			if ( IsOptEnable(TO_DECLRMM) && (x < m_LeftX || x >= m_RightX) )
 				continue;
 
 			vp = GETVRAM(x, y);
+
+			if ( x == ex && IS_2BYTE(vp->m_Vram.mode) && x < (m_Cols - 1) )
+				ad++;
+
 			for ( n = 4 ; n < m_AnsiPara.GetSize() ; n++ ) {
 				if ( m_AnsiPara[n].IsOpt() )
 					continue;
@@ -6446,9 +6452,9 @@ void CTextRam::fc_DECRARA(DWORD ch)
 				}
 			}
 		}
-	}
 
-	DISPVRAM(m_AnsiPara[1], m_AnsiPara[0], m_AnsiPara[3] - m_AnsiPara[1] + 1, m_AnsiPara[2] - m_AnsiPara[0] + 1);
+		DISPVRAM(sx, y, ex - sx + ad, 1);
+	}
 
 	fc_POP(ch);
 }

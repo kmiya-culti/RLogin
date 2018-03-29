@@ -201,7 +201,7 @@ public:
 	int OpenServerEntry(CServerEntry &Entry);
 
 	int SetTimerEvent(int msec, int mode, void *pParam);
-	void DelTimerEvent(void *pParam);
+	void DelTimerEvent(void *pParam, int Id = 0);
 	void RemoveTimerEvent(CTimerObject *pObject);
 	void FreeTimerEvent(CTimerObject *pObject);
 

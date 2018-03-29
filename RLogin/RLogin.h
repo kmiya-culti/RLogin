@@ -10,14 +10,28 @@
 #include "Data.h"
 #include "ResDataBase.h"
 
-#define	WM_SOCKSEL			(WM_USER + 0)
-#define WM_GETHOSTADDR		(WM_USER + 1)
-#define	WM_ICONMSG			(WM_USER + 2)
-#define WM_THREADCMD		(WM_USER + 3)
-#define WM_AFTEROPEN		(WM_USER + 4)
-#define WM_GETCLIPBOARD		(WM_USER + 5)
-#define WM_HTTPREQUEST		(WM_USER + 6)
-#define WM_LOGWRITE			(WM_USER + 7)
+// CMainFrame
+#define	WM_SOCKSEL			(WM_APP + 0)
+#define WM_GETHOSTADDR		(WM_APP + 1)
+#define	WM_ICONMSG			(WM_APP + 2)
+#define WM_THREADCMD		(WM_APP + 3)
+#define WM_AFTEROPEN		(WM_APP + 4)
+#define WM_GETCLIPBOARD		(WM_APP + 5)
+
+// CResTransDlg
+#define WM_HTTPREQUEST		(WM_APP + 6)
+
+// CRLoginView
+#define WM_LOGWRITE			(WM_APP + 7)
+
+// CSFtp
+#define WM_RECIVEBUFFER		(WM_APP + 20)
+#define WM_THREADENDOF		(WM_APP + 21)
+
+// CFileThread
+#define	WM_FILEWRITE		(WM_APP + 31)
+#define	WM_FILEFLUSH		(WM_APP + 32)
+#define	WM_FILESYNC			(WM_APP + 33)
 
 #define	IDLEPROC_SOCKET		0
 #define	IDLEPROC_ENCRYPT	1
@@ -42,6 +56,7 @@ public:
 	CString m_Pass;
 	CString m_Term;
 	CString m_Name;
+	CString m_Idkey;
 	int m_InUse;
 	BOOL m_InPane;
 	int m_AfterId;
@@ -98,6 +113,7 @@ public:
 	int m_TempSeqId;
 	CString m_TempDirBase;
 	CString m_TempDirPath;
+	BOOL m_bRegistAppp;
 
 #ifdef	USE_KEYMACGLOBAL
 	CKeyMacTab m_KeyMacGlobal;
@@ -140,7 +156,12 @@ public:
 	void DelProfileSection(LPCTSTR lpszSection);
 	BOOL AliveProfileKeys(LPCTSTR lpszSection);
 
-	void RegisterShellProtocol(LPCTSTR pSection, LPCTSTR pOption);
+	void RegisterShellRemoveAll();
+	void RegisterShellFileEntry();
+	void RegisterShellProtocol(LPCTSTR pProtocol, LPCTSTR pOption);
+	BOOL RegisterGetStr(HKEY hKey, LPCTSTR pSection, LPCTSTR pEntryName, CString &str);
+	BOOL RegisterSetStr(HKEY hKey, LPCTSTR pSection, LPCTSTR pEntryName, LPCTSTR str, BOOL bCreate = TRUE);
+	BOOL RegisterSetDword(HKEY hKey, LPCTSTR pSection, LPCTSTR pEntryName, DWORD dword, BOOL bCreate = TRUE);
 	void RegisterDelete(HKEY hKey, LPCTSTR pSection, LPCTSTR pKey);
 	void RegisterSave(HKEY hKey, LPCTSTR pSection, CBuffer &buf);
 	void RegisterLoad(HKEY hKey, LPCTSTR pSection, CBuffer &buf);
@@ -230,6 +251,8 @@ public:
 	afx_msg void OnUpdateCreateprofile(CCmdUI *pCmdUI);
 	afx_msg void OnSaveregfile();
 	afx_msg void OnUpdateSaveregfile(CCmdUI *pCmdUI);
+	afx_msg void OnRegistapp();
+	afx_msg void OnUpdateRegistapp(CCmdUI *pCmdUI);
 };
 
 extern CRLoginApp theApp;

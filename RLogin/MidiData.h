@@ -56,7 +56,7 @@ public:
 	int		m_SubT;
 
 	int GetEventSize();
-	int SetEvent(DWORD pos, BYTE *pData, int Flag = 0);
+	int SetEvent(DWORD pos, BYTE *pData);
 
 	CNode();
 	~CNode();
@@ -165,8 +165,13 @@ public:
 	void UpdateData(CMMLData *pData);
 	BOOL LoadMML(LPCSTR str, int nInit);
 
-	BOOL GetNoteOn(CNode *pNode, int &note, int &velo, int &step, int &gate);
+	int m_NowTrack;
+
+	void SaveSingStep(int step, CStringA &mbs);
+	void SaveNoteStep(LPCSTR cmd, int step, CStringA &mbs);
 	void SaveNote(CFile *pFile, CMMLData *pData);
+	int SaveStepPos(CNode *pNode, int stepPos, int ch);
+	BOOL GetNoteData(CNode *pNode, int &note, int &velo, int &step, int &gate);
 	BOOL SaveMML(LPCTSTR fileName);
 
 	int m_PlayMode;

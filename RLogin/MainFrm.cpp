@@ -1450,22 +1450,23 @@ int CMainFrame::SetTimerEvent(int msec, int mode, void *pParam)
 
 	return tp->m_Id;
 }
-void CMainFrame::DelTimerEvent(void *pParam)
+void CMainFrame::DelTimerEvent(void *pParam, int Id)
 {
 	CTimerObject *tp, *bp;
 
 	for ( tp = bp = m_pTimerUsedId ; tp != NULL ; ) {
-		if ( tp->m_pObject == pParam ) {
+		if ( tp->m_pObject == pParam && (Id == 0 || tp->m_Id == Id) ) {
 			KillTimer(tp->m_Id);
 			if ( tp == m_pTimerUsedId )
 				m_pTimerUsedId = tp->m_pList;
 			else
 				bp->m_pList = tp->m_pList;
 			FreeTimerEvent(tp);
-			break;
+			tp = bp->m_pList;
+		} else {
+			bp = tp;
+			tp = tp->m_pList;
 		}
-		bp = tp;
-		tp = tp->m_pList;
 	}
 }
 void CMainFrame::RemoveTimerEvent(CTimerObject *pObject)
@@ -3058,9 +3059,9 @@ void CMainFrame::OnMouseMove(UINT nFlags, CPoint point)
 
 void CMainFrame::OnUpdateIndicatorSock(CCmdUI* pCmdUI)
 {
-	int n = 6;
+	int n = 7;
 	CRLoginDoc *pDoc;
-	static LPCTSTR ProtoName[] = { _T("TCP"), _T("Login"), _T("Telnet"), _T("SSH"), _T("COM"), _T("PIPE"), _T("") };
+	static LPCTSTR ProtoName[] = { _T("TCP"), _T("Login"), _T("Telnet"), _T("SSH"), _T("PFD"), _T("COM"), _T("PIPE"), _T("") };
 
 	if ( (pDoc = GetMDIActiveDocument()) != NULL && pDoc->m_pSock != NULL )
 		n = pDoc->m_pSock->m_Type;

@@ -331,6 +331,7 @@ private:
 	int SubOptLen;
 	char SubOptBuf[SUBOPTLEN + 1];
 	int ReceiveStatus;
+	int m_KeepAliveTiimerId;
 
 	void SockSend(char *buf, int len);
 	void SendFlush();

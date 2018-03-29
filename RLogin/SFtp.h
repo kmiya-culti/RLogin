@@ -65,17 +65,14 @@
 #define SSH2_FX_OP_UNSUPPORTED          8
 
 #define	SSH2_FX_TRANSBUFLEN				(32 * 1024)
-#define	SSH2_FX_TRANSMINMSEC			80
-#define	SSH2_FX_TRANSTYPMSEC			100
-#define	SSH2_FX_TRANSMAXMSEC			120
+#define	SSH2_FX_TRANSMINMSEC			20
+#define	SSH2_FX_TRANSTYPMSEC			25
+#define	SSH2_FX_TRANSMAXMSEC			30
 
-#define	SSH2_FX_MAXQUESIZE				64
+#define	SSH2_FX_MAXQUESIZE				32
 
 #define _S_IFLNK						0xA000		/* symbolic link */
 #define	FILEIORETRY_MAX					10
-
-#define WM_RECIVEBUFFER					(WM_USER + 16)
-#define WM_THREADENDOF					(WM_USER + 17)
 
 #define	SENDCMD_NOWAIT					0
 #define	SENDCMD_HEAD					1

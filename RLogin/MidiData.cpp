@@ -131,8 +131,16 @@ int CNode::GetEventSize()
 {
 	int n = sizeof(DWORD) * 3;
 
-	if ( (m_Cmd & 0xFF00) == 0xFF00 )
-		return  (m_Cmd == 0xFF51 ? n : 0);
+	if ( (m_Cmd & 0xFF00) == 0xFF00 ) {
+		switch(m_Cmd) {
+		case 0xFF51:	// Tempo
+			return n;
+		case 0xFF80:	// Speek
+			return (n + 4 + ((m_Len + (sizeof(DWORD) - 1)) / sizeof(DWORD)) * sizeof(DWORD));
+		default:
+			return 0;
+		}
+	}
 
 	if ( m_Data != NULL )
 		n += ((m_Len + 1 + (sizeof(DWORD) - 1)) / sizeof(DWORD)) * sizeof(DWORD);
@@ -140,7 +148,7 @@ int CNode::GetEventSize()
 	return n;
 }
 
-int CNode::SetEvent(DWORD pos, BYTE *pData, int Flag)
+int CNode::SetEvent(DWORD pos, BYTE *pData)
 {
 	int n = 0;
 	DWORD tmp;
@@ -155,23 +163,35 @@ int CNode::SetEvent(DWORD pos, BYTE *pData, int Flag)
 	memcpy(pData + n, &tmp, sizeof(DWORD));
 	n += sizeof(DWORD);
 
-	// dwEvent
-	tmp = (Flag ? MEVT_F_CALLBACK : 0);
-
 	if ( (m_Cmd & 0xFF00) == 0xFF00 ) {
 		switch(m_Cmd) {
 		case 0xFF51:	// Tempo
-			tmp |= (MEVT_TEMPO << 24) | m_Pam.m_DWord;
+			// dwEvent
+			tmp = (MEVT_TEMPO << 24) | m_Pam.m_DWord;
 			memcpy(pData + n, &tmp, sizeof(DWORD));
 			n += sizeof(DWORD);
-			break;
+			return n;
+
+		case 0xFF80:	// Speek
+			tmp = ((MEVT_COMMENT << 24) | MEVT_F_CALLBACK | ((DWORD)sizeof(DWORD) + m_Len));
+			memcpy(pData + n, &tmp, sizeof(DWORD));
+			n += sizeof(DWORD);
+			tmp = 0x0001;
+			memcpy(pData + n, &tmp, sizeof(DWORD));
+			n += sizeof(DWORD);
+			memcpy(pData + n, m_Data, m_Len);
+			n += ((m_Len + (sizeof(DWORD) - 1)) / sizeof(DWORD)) * sizeof(DWORD);
+			return n;
 
 		default:
 			return 0;
 		}
 
-	} else if ( m_Data == NULL ) {
-		tmp |= (MEVT_F_SHORT | m_Pam.m_DWord);
+	}
+	
+	if ( m_Data == NULL ) {
+		// dwEvent
+		tmp = (MEVT_F_SHORT | m_Pam.m_DWord);
 		memcpy(pData + n, &tmp, sizeof(DWORD));
 		n += sizeof(DWORD);
 
@@ -180,7 +200,8 @@ int CNode::SetEvent(DWORD pos, BYTE *pData, int Flag)
 #endif
 
 	} else {
-		tmp |= (MEVT_F_LONG | (m_Len + 1));
+		// dwEvent
+		tmp = (MEVT_F_LONG | (m_Len + 1));
 		memcpy(pData + n, &tmp, sizeof(DWORD));
 		n += sizeof(DWORD);
 
@@ -198,7 +219,6 @@ int CNode::SetEvent(DWORD pos, BYTE *pData, int Flag)
 		n += ((m_Len + 1 + (sizeof(DWORD) - 1)) / sizeof(DWORD)) * sizeof(DWORD);
 
 	}
-
 
 	return n;
 }
@@ -850,7 +870,7 @@ BOOL CMidiData::SaveFile(LPCTSTR fileName)
 
 		total = 0;
 		for ( pNode = TopNode(n) ; pNode != NULL ; pNode = NextNode(n) ) {
-			if ( pNode->m_Cmd == 0xFFFF || pNode->m_Cmd == 0xFFFE || pNode->m_Cmd == 0xFF2F )
+			if ( pNode->m_Cmd == 0xFFFF || pNode->m_Cmd == 0xFFFE || pNode->m_Cmd == 0xFF2F || pNode->m_Cmd == 0xFF80 )
 				continue;
 			tmp.AddDelta(pNode->m_Pos - total);
 			total = pNode->m_Pos;
@@ -1135,6 +1155,7 @@ int CMidiData::ParseNote(int ch)
 	int nTai = 0;
 	int nOct = 0;
 	int nVol = 0;
+	CStringA mbs;
 
 	for ( ; ; ) { 
 		switch(ch) {
@@ -1166,16 +1187,16 @@ int CMidiData::ParseNote(int ch)
 				for ( ; ; ) {
 					if ( ch == '<' ) {
 						ch = ParseChar();
-						m_mmlData.m_Velo -= (m_mmlData.m_Velo / 10);
+						m_mmlData.m_Velo -= (m_mmlData.m_Velo / 15);
 					} else if ( ch == '>' ) {
 						ch = ParseChar();
-						m_mmlData.m_Velo += (m_mmlData.m_Velo / 10);
+						m_mmlData.m_Velo += (m_mmlData.m_Velo / 15);
 					} else if ( ch == '"' ) {
 						ch = ParseChar();
-						nVol -= (m_mmlData.m_Velo / 10);
+						nVol -= (m_mmlData.m_Velo / 15);
 					} else if ( ch == '`' ) {
 						ch = ParseChar();
-						nVol += (m_mmlData.m_Velo / 10);
+						nVol += (m_mmlData.m_Velo / 15);
 					} else
 						break;
 				}
@@ -1548,32 +1569,44 @@ int CMidiData::ParseNote(int ch)
 
 			} else {
 				ch = ParseParam(ch);
-				step = (pLast != NULL ? pLast->m_Step : m_mmlData.m_Step);
-				offs = (pLast != NULL ? pLast->m_Time : m_mmlData.m_Time);
+				if ( m_mmlParam.GetSize() == 1 && m_mmlParam[0] != MML_NOVALUE ) {
+					int w= 8192 + (short)m_mmlParam[0];
+					if ( w < 0 ) w = 0;
+					else if ( w > 0x3FFF ) w = 0x3FFF;
+					pData = new CMMLData(m_mmlData);
+					pData->m_Cmd = 0xE0;
+					pData->m_Note = (BYTE)(w % 128);
+					pData->m_Velo = (BYTE)(w / 128);
+					pData->m_Step = 0;
+					m_mmlData.Add(pData);
+				} else {
+					step = (pLast != NULL ? pLast->m_Step : m_mmlData.m_Step);
+					offs = (pLast != NULL ? pLast->m_Time : m_mmlData.m_Time);
 
-				for ( int n = 0 ; n < m_mmlParam.GetSize() ; n++ ) {
-					if ( m_mmlParam[n] != MML_NOVALUE ) {
-						int w= 8192 + (short)m_mmlParam[n];
-						if ( w < 0 ) w = 0;
-						else if ( w > 0x3FFF ) w = 0x3FFF;
-						pData = new CMMLData(m_mmlData);
-						pData->m_Cmd = 0xE0;
-						pData->m_Note = (BYTE)(w % 128);
-						pData->m_Velo = (BYTE)(w / 128);
-						pData->m_Time = offs + step * n / (int)m_mmlParam.GetSize();
-						pData->m_Step = 0;
-						pData->m_bBase = TRUE;
-						m_mmlData.Add(pData);
+					for ( int n = 0 ; n < m_mmlParam.GetSize() ; n++ ) {
+						if ( m_mmlParam[n] != MML_NOVALUE ) {
+							int w= 8192 + (short)m_mmlParam[n];
+							if ( w < 0 ) w = 0;
+							else if ( w > 0x3FFF ) w = 0x3FFF;
+							pData = new CMMLData(m_mmlData);
+							pData->m_Cmd = 0xE0;
+							pData->m_Note = (BYTE)(w % 128);
+							pData->m_Velo = (BYTE)(w / 128);
+							pData->m_Time = offs + step * n / (int)m_mmlParam.GetSize();
+							pData->m_Step = 0;
+							pData->m_bBase = TRUE;
+							m_mmlData.Add(pData);
+						}
 					}
-				}
 
-				pData = new CMMLData(m_mmlData);
-				pData->m_Cmd = 0xE0;
-				pData->m_Note = 0x00;
-				pData->m_Velo = 0x40;
-				pData->m_Time = 0;
-				pData->m_Step = 0;
-				m_mmlData.Add(pData);
+					pData = new CMMLData(m_mmlData);
+					pData->m_Cmd = 0xE0;
+					pData->m_Note = 0x00;
+					pData->m_Velo = 0x40;
+					pData->m_Time = 0;
+					pData->m_Step = 0;
+					m_mmlData.Add(pData);
+				}
 			}
 			break;
 
@@ -1600,7 +1633,7 @@ int CMidiData::ParseNote(int ch)
 			pData = new CMMLData(m_mmlData);
 			pData->m_Cmd = 0xB0;
 			pData->m_Note = 1;
-			pData->m_Velo = 1;
+			pData->m_Velo = 0;
 			pData->m_Time = 0;
 			pData->m_Step = 0;
 			m_mmlData.Add(pData);
@@ -1619,14 +1652,69 @@ int CMidiData::ParseNote(int ch)
 			break;
 
 		case 'U':
-			ch = ParseAddSub(ParseChar());
-			if ( m_mmlValue != MML_NOVALUE && m_mmlValue >= 0 && m_mmlValue <= 127 ) {
-				pData = new CMMLData(m_mmlData);
-				pData->m_Cmd = 0xB0;
-				pData->m_Note = 11;
-				pData->m_Velo = m_mmlValue;
-				pData->m_Step = 0;
-				m_mmlData.Add(pData);
+			if ( (ch = ParseChar()) == '<' || ch == '>' ) {
+				BOOL vect = (ch == '<' ? TRUE : FALSE);
+				step = (pLast != NULL ? pLast->m_Step : m_mmlData.m_Step);
+				offs = (pLast != NULL ? pLast->m_Time : m_mmlData.m_Time);
+
+				ch = ParseAddSub(ParseChar());
+				if ( m_mmlValue != MML_NOVALUE && m_mmlValue > 0 )
+					step = step / m_mmlValue;
+
+				step = 6 * ((step + 3) / 6);
+				for ( int n = 0 ; n <= step ; n += 6 ) {
+					pData = new CMMLData(m_mmlData);
+					pData->m_Cmd = 0xB0;
+					pData->m_Note = 11;
+					pData->m_Velo = (vect ? (127 - 127 * n / step) : (127 * n / step));
+					pData->m_Time = offs + n;
+					pData->m_Step = 0;
+					pData->m_bBase = TRUE;
+					m_mmlData.Add(pData);
+				}
+				if ( vect ) {
+					pData = new CMMLData(m_mmlData);
+					pData->m_Cmd = 0xB0;
+					pData->m_Note = 11;
+					pData->m_Velo = 127;
+					pData->m_Time = 0;
+					pData->m_Step = 0;
+					m_mmlData.Add(pData);
+				}
+			} else {
+				ch = ParseParam(ch);
+				if ( m_mmlParam.GetSize() == 1 && m_mmlParam[0] != MML_NOVALUE ) {
+					pData = new CMMLData(m_mmlData);
+					pData->m_Cmd = 0xB0;
+					pData->m_Note = 11;
+					pData->m_Velo = m_mmlValue;
+					pData->m_Step = 0;
+					m_mmlData.Add(pData);
+				} else {
+					step = (pLast != NULL ? pLast->m_Step : m_mmlData.m_Step);
+					offs = (pLast != NULL ? pLast->m_Time : m_mmlData.m_Time);
+
+					for ( int n = 0 ; n < m_mmlParam.GetSize() ; n++ ) {
+						if ( m_mmlParam[n] != MML_NOVALUE ) {
+							pData = new CMMLData(m_mmlData);
+							pData->m_Cmd = 0xB0;
+							pData->m_Note = 11;
+							pData->m_Velo = m_mmlParam[n];
+							pData->m_Time = offs + step * n / (int)m_mmlParam.GetSize();
+							pData->m_Step = 0;
+							pData->m_bBase = TRUE;
+							m_mmlData.Add(pData);
+						}
+					}
+
+					pData = new CMMLData(m_mmlData);
+					pData->m_Cmd = 0xB0;
+					pData->m_Note = 11;
+					pData->m_Velo = 127;
+					pData->m_Time = 0;
+					pData->m_Step = 0;
+					m_mmlData.Add(pData);
+				}
 			}
 			break;
 
@@ -1829,6 +1917,23 @@ int CMidiData::ParseNote(int ch)
 			m_mmlData.Add(pData);
 			break;
 
+		case '\'':
+			mbs.Empty();
+			while ( *m_mmlStr != '\0' && *m_mmlStr != '\'' )
+				mbs += *(m_mmlStr++);
+			if ( *m_mmlStr == '\'' )
+				m_mmlStr++;
+			ch = ParseChar();
+
+			pData = new CMMLData(m_mmlData);
+			pData->m_Cmd = 0x0100;
+			pData->m_Note = mbs.GetLength() + 1;
+			pData->m_pData = new BYTE[pData->m_Note];
+			memcpy(pData->m_pData, (LPCSTR)mbs, pData->m_Note);
+			pData->m_Step = 0;
+			m_mmlData.Add(pData);
+			break;
+
 		default:
 			return ch;
 		}
@@ -1996,6 +2101,7 @@ void CMidiData::UpdateData(CMMLData *pData)
 	int step[16];
 	CNode *pNode, *pNext;
 	CNode *pOnNode, *pOffNode;
+	DWORD OnPos, OffPos;
 	CMMLData *pTemp;
 
 	switch(pData->m_Cmd) {
@@ -2053,17 +2159,21 @@ void CMidiData::UpdateData(CMMLData *pData)
 
 	case 0x80:	// Note
 		m_mmlBase[pData->m_Track] = m_mmlPos[pData->m_Track];
-		pOnNode = AddNode(m_mmlPos[pData->m_Track] + pData->m_Time, pData->m_Track, 0x90 | pData->m_Track, pData->m_Note, pData->m_Velo);
-		pOffNode = AddNode(m_mmlPos[pData->m_Track] + (pData->m_Step + pData->m_AddStep) * pData->m_Gate / 100, pData->m_Track, 0x80 | pData->m_Track, pData->m_Note, 0);
-		for ( pNode = pOnNode->m_Next ; pNode != pOffNode ; pNode = pNext ) {
+		OnPos  = m_mmlPos[pData->m_Track] + pData->m_Time;
+		OffPos = m_mmlPos[pData->m_Track] + pData->m_Time + (pData->m_Step + pData->m_AddStep) * pData->m_Gate / 100;
+		m_mmlPos[pData->m_Track] += pData->m_Step;
+		pOnNode = AddNode(OnPos, pData->m_Track, 0x90 | pData->m_Track, pData->m_Note, pData->m_Velo);
+		pOffNode = AddNode(OffPos, pData->m_Track, 0x80 | pData->m_Track, pData->m_Note, 0);
+		for ( pNode = pOnNode->m_Next ; pNode != NULL && pNode != pOffNode ; pNode = pNext ) {
 			pNext = pNode->m_Next;
+			if ( pNode->m_Pos >= pOffNode->m_Pos )
+				break;
 			// 同じノートオフを削除
 			if ( pNode->m_Cmd == pOffNode->m_Cmd && pNode->m_Pam.m_DWord == pOffNode->m_Pam.m_DWord ) {
 				Unlink(pNode);
 				FreeNode(pNode);
 			}
 		}
-		m_mmlPos[pData->m_Track] += pData->m_Step;
 		break;
 
 	case 0x90:	// Nop
@@ -2075,13 +2185,29 @@ void CMidiData::UpdateData(CMMLData *pData)
 	case 0xB0:
 	case 0xC0:
 	case 0xD0:
-	case 0xE0:
 		AddNode((pData->m_bBase ? m_mmlBase[pData->m_Track] : m_mmlPos[pData->m_Track])	+ pData->m_Time, 
-			pData->m_Track, pData->m_Cmd | pData->m_Track, pData->m_Note, pData->m_Velo);
+				pData->m_Track, pData->m_Cmd | pData->m_Track, pData->m_Note, pData->m_Velo);
+		break;
+	case 0xE0:
+		pOnNode = AddNode((pData->m_bBase ? m_mmlBase[pData->m_Track] : m_mmlPos[pData->m_Track])	+ pData->m_Time, 
+					pData->m_Track, pData->m_Cmd | pData->m_Track, pData->m_Note, pData->m_Velo);
+		for ( pNode = pOnNode->m_Back ; pNode != NULL ; pNode = pNext ) {
+			pNext = pNode->m_Back;
+			// 同じ位置のピッチベンドを削除
+			if ( pOnNode->m_Pos != pNode->m_Pos )
+				break;
+			if ( pOnNode->m_Cmd == pNode->m_Cmd ) {
+				Unlink(pNode);
+				FreeNode(pNode);
+			}
+		}
 		break;
 
 	case 0xF0:
 		AddNode(m_mmlPos[0] + pData->m_Time, 0, pData->m_Cmd, pData->m_Note, pData->m_pData);
+		break;
+	case 0x100:
+		AddNode(m_mmlPos[0] + pData->m_Time, 0, 0xFF80, pData->m_Note, pData->m_pData);
 		break;
 	}
 }
@@ -2162,7 +2288,248 @@ BOOL CMidiData::LoadMML(LPCSTR str, int nInit)
 
 	return TRUE;
 }
-BOOL CMidiData::GetNoteOn(CNode *pNode, int &note, int &velo, int &step, int &gate)
+
+void CMidiData::SaveSingStep(int step, CStringA &mbs)
+{
+	int n, i;
+	int max = (int)m_DivVal * 4;
+
+	for ( n = 1 ; n <= 64 ; n *= 2 ) {
+		i = max / n;
+		if ( i == step ) {
+			mbs.Format("%d", n);
+			return;
+		}
+		i += i / 2;
+		if ( i == step ) {
+			mbs.Format("%d.", n);
+			return;
+		}
+	}
+
+	if ( (n = max / step) > 0 && step == (max / n) ) {
+		mbs.Format("%d", n);
+		return;
+	}
+
+	mbs.Format("%%%d", step * 96 / m_DivVal);
+}
+void CMidiData::SaveNoteStep(LPCSTR cmd, int step, CStringA &mbs)
+{
+	int n;
+	int div = 1;
+	int max = (int)m_DivVal * 4;
+	CStringA fmt;
+
+	while ( step > 0 ) {
+		while ( div <= 64 && step < (max / div) )
+			div *= 2;
+
+		if ( div > 64 ) {
+			if ( (div = max / step) <= 0 )
+				div = 1;
+			if ( step < (max / div) )
+				div *= 2;
+		}
+
+		fmt.Format("%s%d", cmd, div);
+		mbs += fmt;
+
+		n = max / div;
+		if ( step == (n + n / 2) ) {
+			mbs += '.';
+			break;
+		}
+
+		if ( (step -= n) > 0 )
+			mbs += (*cmd == 'r' ? ' ' : '&');
+	}
+}
+void CMidiData::SaveNote(CFile *pFile, CMMLData *pData)
+{
+	int n, step, gate;
+	CMMLData *pTemp, save;
+	CStringA mbs, fmt;
+
+	switch(pData->m_Cmd) {
+	case 0x00:	// List
+		for ( pTemp = pData->m_pLink ; pTemp != NULL ; pTemp = pTemp->m_pNext )
+			SaveNote(pFile, pTemp);
+		break;
+	case 0x10:	// 和音
+		save.m_Gate = m_mmlData.m_Gate;
+		save.m_Velo = m_mmlData.m_Velo;
+		save.m_Time = m_mmlData.m_Time;
+		save.m_Octa = m_mmlData.m_Octa;
+		pFile->Write("[", 1);
+		for ( pTemp = pData->m_pLink ; pTemp != NULL ; pTemp = pTemp->m_pNext )
+			SaveNote(pFile, pTemp);
+		SaveSingStep(pData->m_Step, fmt);
+		mbs.Format("]%s ", fmt);
+		pFile->Write((LPCSTR)mbs, mbs.GetLength());
+		m_mmlData.m_Gate = save.m_Gate;
+		m_mmlData.m_Velo = save.m_Velo;
+		m_mmlData.m_Time = save.m_Time;
+		m_mmlData.m_Octa = save.m_Octa;
+		break;
+	case 0x20:	// 連符
+		for ( pTemp = pData->m_pLink ; pTemp != NULL ; pTemp = pTemp->m_pNext )
+			SaveNote(pFile, pTemp);
+		break;
+
+	case 0x30:	// スラー
+	case 0x40:	// 小節チェック
+		break;
+
+	case 0x50:	// Tempo
+		fmt.Format("t%d ", 60000000 / pData->m_Note);
+		pFile->Write((LPCSTR)fmt, fmt.GetLength());
+		break;
+
+	case 0x60:	// ステップ位置リセット
+		fmt.Format("\r\nz%d,%d ", pData->m_Track + 1, pData->m_Step / m_DivVal);
+		mbs = fmt;
+
+		if ( (n = pData->m_Step % m_DivVal) > 0 ) {
+			SaveNoteStep("r", n, mbs);
+			mbs += ' ';
+		}
+
+		pFile->Write((LPCSTR)mbs, mbs.GetLength());
+		break;
+
+	case 0x70:	// 休符
+		SaveNoteStep("r", pData->m_Step, mbs);
+		mbs += ' ';
+		pFile->Write((LPCSTR)mbs, mbs.GetLength());
+		break;
+
+	case 0x80:	// Note
+		step = pData->m_Step;
+		gate = pData->m_Gate * 100 / step;
+
+		if ( m_mmlData.m_Gate != gate ) {
+			m_mmlData.m_Gate = gate;
+			fmt.Format("q%d", gate);
+			mbs += fmt;
+		}
+		if ( m_mmlData.m_Velo != pData->m_Velo ) {
+			m_mmlData.m_Velo = pData->m_Velo;
+			fmt.Format("v%d", pData->m_Velo);
+			mbs += fmt;
+		}
+		n = pData->m_Time * (MML_STEPMAX / 4) / m_DivVal;
+		if ( m_mmlData.m_Time != n ) {
+			m_mmlData.m_Time = n;
+			fmt.Format("s%d", n);
+			mbs += fmt;
+		}
+
+		n = pData->m_Note / 12;
+		for ( ; n > m_mmlData.m_Octa ; m_mmlData.m_Octa++ )
+			mbs += '>';
+		for ( ; n < m_mmlData.m_Octa ; m_mmlData.m_Octa-- )
+			mbs += '<';
+
+		if ( pData->m_Track == 9 )
+			fmt.Format("n%d,", pData->m_Note);
+		else
+			fmt.Format("%s", NoteName[pData->m_Note % 12]);
+
+		SaveNoteStep(fmt, step, mbs);
+		mbs += ' ';
+
+		pFile->Write((LPCSTR)mbs, mbs.GetLength());
+		break;
+
+	case 0x90:	// Nop
+		break;
+
+	case 0xA0:	// Polyphonic Key Pressure
+		break;
+	case 0xB0:	// Control Change
+		n = pData->m_Time * (MML_STEPMAX / 4) / m_DivVal;
+		if ( m_mmlData.m_Time != n ) {
+			m_mmlData.m_Time = n;
+			fmt.Format("s%d", n);
+			mbs += fmt;
+		}
+		fmt.Format("y%d,%d ", pData->m_Note, pData->m_Velo);
+		mbs += fmt;
+		pFile->Write((LPCSTR)mbs, mbs.GetLength());
+		break;
+	case 0xC0:	// Program Change
+		n = pData->m_Time * (MML_STEPMAX / 4) / m_DivVal;
+		if ( m_mmlData.m_Time != n ) {
+			m_mmlData.m_Time = n;
+			fmt.Format("s%d", n);
+			mbs += fmt;
+		}
+		fmt.Format("@%d ", pData->m_Note + 1);
+		mbs += fmt;
+		pFile->Write((LPCSTR)mbs, mbs.GetLength());
+		break;
+	case 0xD0:	// Channel Pressure
+		break;
+
+	case 0xE0:	// Pitch Bend
+		n = pData->m_Time * (MML_STEPMAX / 4) / m_DivVal;
+		if ( m_mmlData.m_Time != n ) {
+			m_mmlData.m_Time = n;
+			fmt.Format("s%d", n);
+			mbs += fmt;
+		}
+		n = (pData->m_Velo * 128 + pData->m_Note) - 8192;
+		fmt.Format("p%d ", n);
+		mbs += fmt;
+		pFile->Write((LPCSTR)mbs, mbs.GetLength());
+		break;
+
+	case 0xF0:
+		n = pData->m_Time * (MML_STEPMAX / 4) / m_DivVal;
+		if ( m_mmlData.m_Time != n ) {
+			m_mmlData.m_Time = n;
+			fmt.Format("s%d", n);
+			mbs += fmt;
+		}
+		mbs = "x$f0";
+		for ( n = 0 ; n < pData->m_Note ; n++ ) {
+			fmt.Format(",$%02x", pData->m_pData[n]);
+			mbs += fmt;
+		}
+		mbs += ' ';
+		pFile->Write((LPCSTR)mbs, mbs.GetLength());
+		break;
+	}
+}
+int CMidiData::SaveStepPos(CNode *pNode, int stepPos, int ch)
+{
+	int n;
+	int div;
+	CMMLData *pData;
+
+	div = m_DivVal / 8;		// 4分音符 / 8 = 32分音符
+	n = (pNode->m_Pos / div) * div;
+
+	if ( m_NowTrack != ch || stepPos > n || (n - stepPos) > ((int)m_DivVal * 4 * 2) ) {
+		pData = new CMMLData;
+		pData->m_Cmd = 0x60;
+		pData->m_Step = n;
+		pData->m_Track = ch;
+		m_mmlData.Add(pData);
+		m_NowTrack = ch;
+
+	} else if ( stepPos < n ) {
+		pData = new CMMLData;
+		pData->m_Cmd = 0x70;
+		pData->m_Step = n - stepPos;
+		pData->m_Track = ch;
+		m_mmlData.Add(pData);
+	}
+
+	return n;
+}
+BOOL CMidiData::GetNoteData(CNode *pNode, int &note, int &velo, int &step, int &gate)
 {
 	note = pNode->m_Pam.m_Byte[1];
 	velo = pNode->m_Pam.m_Byte[2];
@@ -2195,122 +2562,17 @@ BOOL CMidiData::GetNoteOn(CNode *pNode, int &note, int &velo, int &step, int &ga
 			step = pNext->m_Pos - pNode->m_Pos;
 	}
 
+	while ( step > 0 && (gate * 100 / step) < 50 )
+		step /= 2;
+
 	return (step <= 0 || gate <= 0 ? FALSE : TRUE);
-}
-void CMidiData::SaveNote(CFile *pFile, CMMLData *pData)
-{
-	int n, step, resv, gate;
-	CMMLData *pTemp, save;
-	CStringA mbs, fmt;
-
-	switch(pData->m_Cmd) {
-	case 0x00:	// List
-		for ( pTemp = pData->m_pLink ; pTemp != NULL ; pTemp = pTemp->m_pNext )
-			SaveNote(pFile, pTemp);
-		break;
-	case 0x10:	// 和音
-		save.m_Gate = m_mmlData.m_Gate;
-		save.m_Velo = m_mmlData.m_Velo;
-		save.m_Time = m_mmlData.m_Time;
-		save.m_Octa = m_mmlData.m_Octa;
-		pFile->Write("[", 1);
-		for ( pTemp = pData->m_pLink ; pTemp != NULL ; pTemp = pTemp->m_pNext )
-			SaveNote(pFile, pTemp);
-		pFile->Write("]\r\n", 3);
-		m_mmlData.m_Gate = save.m_Gate;
-		m_mmlData.m_Velo = save.m_Velo;
-		m_mmlData.m_Time = save.m_Time;
-		m_mmlData.m_Octa = save.m_Octa;
-		break;
-	case 0x20:	// 連符
-		for ( pTemp = pData->m_pLink ; pTemp != NULL ; pTemp = pTemp->m_pNext )
-			SaveNote(pFile, pTemp);
-		break;
-
-	case 0x30:	// スラー
-	case 0x40:	// 小節チェック
-		break;
-
-	case 0x50:	// Tempo
-		break;
-
-	case 0x60:	// ステップ位置リセット
-		pFile->Write("\r\n", 2);
-		break;
-	case 0x70:	// 休符
-		break;
-
-	case 0x80:	// Note
-		resv = 0;
-		step = pData->m_Step;
-		if ( (gate = pData->m_Gate * 100 / step) < 50 ) {
-			resv = step / 2;
-			step -= resv;
-		}
-
-		if ( m_mmlData.m_Gate != gate ) {
-			m_mmlData.m_Gate = gate;
-			fmt.Format("q%d", pData->m_Gate);
-		}
-		if ( m_mmlData.m_Velo != pData->m_Velo ) {
-			m_mmlData.m_Velo = pData->m_Velo;
-			fmt.Format("v%d", pData->m_Velo);
-		}
-		n = pData->m_Time * (MML_STEPMAX / 4) / m_DivVal;
-		if ( m_mmlData.m_Time != n ) {
-			m_mmlData.m_Time = n;
-			fmt.Format("s%d", n);
-		}
-
-		n = pData->m_Note / 12;
-		for ( ; n > m_mmlData.m_Octa ; m_mmlData.m_Octa++ )
-			mbs += '>';
-		for ( ; n < m_mmlData.m_Octa ; m_mmlData.m_Octa-- )
-			mbs += '<';
-
-		while ( step > 0 ) {
-			if ( (n = (m_DivVal * 4) / step) < 1 )
-				n = 1;
-			mbs += NoteName[pData->m_Note % 12];
-			fmt.Format("%d", n);
-			mbs += fmt;
-			if ( (step -= ((m_DivVal * 4) / n)) > 0 )
-				mbs += '&';
-		}
-		while ( resv > 0 ) {
-			if ( (n = (m_DivVal * 4) / resv) < 1 )
-				n = 1;
-			fmt.Format("r%d", n);
-			mbs += fmt;
-			if ( (resv -= ((m_DivVal * 4) / n)) > 0 )
-				mbs += '&';
-		}
-
-		mbs += ' ';
-		pFile->Write((LPCSTR)mbs, mbs.GetLength());
-		break;
-
-	case 0x90:	// Nop
-		break;
-
-	case 0xA0:
-	case 0xB0:
-	case 0xC0:
-	case 0xD0:
-	case 0xE0:
-		break;
-
-	case 0xF0:
-		break;
-	}
 }
 BOOL CMidiData::SaveMML(LPCTSTR fileName)
 {
-	int ch = 0;
-	int note, velo, step, gate;
-	int sect;
+	int ch, note, velo, step, gate;
 	CNode *pNode;
-	DWORD basePos, stepPos;
+	DWORD stepPos;
+	CMMLData *pData, *pTemp, *pWork;
 	CFile file;
 
 	if ( !file.Open(fileName, CFile::modeCreate | CFile::modeWrite) )
@@ -2327,6 +2589,10 @@ BOOL CMidiData::SaveMML(LPCTSTR fileName)
 	m_mmlData.m_Keys  = 0;		// K
 	m_mmlData.RemoveAll();
 
+	ZeroMemory(m_mmlPos, sizeof(m_mmlPos));
+
+	m_NowTrack = (-1);
+
 	// ノードのチェックフラグクリア
 	pNode = TopNode();
 	while ( pNode != NULL ) {
@@ -2339,37 +2605,24 @@ BOOL CMidiData::SaveMML(LPCTSTR fileName)
 		if ( (m_ActiveCh & (1 << ch)) == 0 )
 			continue;
 
-		sect = 0;
-		basePos = stepPos = 0;
+		stepPos = 0;
 		for ( pNode = TopNode() ; pNode != NULL ; pNode = NextNode() ) {
 			if ( pNode->m_Flag )
 				continue;
 
 			if ( pNode->m_Cmd == (0x90 | ch) ) {
-				if ( GetNoteOn(pNode, note, velo, step, gate) ) {
-					int n = pNode->m_Pos / (m_DivVal * 4);
-					if ( sect != n ) {
-						sect = n;
-						CMMLData *pData = new CMMLData;
-						pData->m_Cmd = 0x60;
-						pData->m_Step = n * 4 * m_DivVal;
-						m_mmlData.Add(pData);
-					}
-
+				if ( GetNoteData(pNode, note, velo, step, gate) ) {
 					pNode->m_Flag = TRUE;
+					stepPos = SaveStepPos(pNode, stepPos, ch);
 
-					basePos = pNode->m_Pos;
-					stepPos = pNode->m_Pos + step;
-					
-					CMMLData *pData = new CMMLData;
+					pData = new CMMLData;
 					pData->m_Cmd = 0x80;
 					pData->m_Note = note;
 					pData->m_Velo = velo;
 					pData->m_Step = step;
-					pData->m_Time = basePos % (m_DivVal / 8);	// 1/4 / 8 = 1/32
+					pData->m_Time = pNode->m_Pos - stepPos;
 					pData->m_Gate = gate;
 					pData->m_Track = ch;
-					pData->m_AddStep = basePos;
 
 					//TRACE("c=%d n=%d v=%d g=%d s=%d\n", ch, note, velo, gate, step);
 
@@ -2382,23 +2635,22 @@ BOOL CMidiData::SaveMML(LPCTSTR fileName)
 							continue;
 
 						if ( pNext->m_Pam.m_Byte[0] == (0x90 | ch) ) {
-							if ( GetNoteOn(pNext, note, velo, step, gate) && pData->m_Step == step ) {
-								pNode->m_Flag = TRUE;
+							if ( pNext->m_Pos == pNode->m_Pos && GetNoteData(pNext, note, velo, step, gate) && pData->m_Gate == gate ) {
+								pNext->m_Flag = TRUE;
 
-								CMMLData *pTemp = new CMMLData;
+								pTemp = new CMMLData;
 								pTemp->m_Cmd = 0x80;
 								pTemp->m_Note = note;
 								pTemp->m_Velo = velo;
-								pTemp->m_Step = step;
+								pTemp->m_Step = pData->m_Step;
 								pTemp->m_Gate = gate;
-								pTemp->m_Time = pNext->m_Pos - pNode->m_Pos;
+								pTemp->m_Time = pNext->m_Pos - stepPos;
 								pTemp->m_Track = ch;
-								pTemp->m_AddStep = basePos;
 
 								//TRACE("  c=%d n=%d v=%d g=%d s=%d\n", ch, note, velo, gate, step);
 
 								if ( pData->m_Cmd != 0x10 ) {	// 和音
-									CMMLData *pWork = new CMMLData;
+									pWork = new CMMLData;
 									*pWork = *pData;
 									pData->m_Cmd = 0x10;
 									pData->Add(pWork);
@@ -2411,19 +2663,25 @@ BOOL CMidiData::SaveMML(LPCTSTR fileName)
 					}
 
 					m_mmlData.Add(pData);
+					stepPos += pData->m_Step;
 				}
 
 			} else if ( pNode->m_Cmd == 0xFF51 ) {
-				CMMLData *pData = new CMMLData;
+				pNode->m_Flag = TRUE;
+				stepPos = SaveStepPos(pNode, stepPos, ch);
+
+				pData = new CMMLData;
 				pData->m_Cmd = 0x50;
 				pData->m_Note = pNode->m_Pam.m_DWord;
 				pData->m_Step = 0;
 				pData->m_Time = pNode->m_Pos - stepPos;
 				m_mmlData.Add(pData);
-				pNode->m_Flag = TRUE;
 
 			} else if ( pNode->m_Cmd == 0xF0 ) {
-				CMMLData *pData = new CMMLData;
+				pNode->m_Flag = TRUE;
+				stepPos = SaveStepPos(pNode, stepPos, ch);
+
+				pData = new CMMLData;
 				pData->m_Cmd = 0xF0;
 				pData->m_Note = pNode->m_Len;
 				pData->m_pData = new BYTE[pNode->m_Len];
@@ -2431,18 +2689,19 @@ BOOL CMidiData::SaveMML(LPCTSTR fileName)
 				pData->m_Step = 0;
 				pData->m_Time = pNode->m_Pos - stepPos;
 				m_mmlData.Add(pData);
-				pNode->m_Flag = TRUE;
 
 			} else if ( (pNode->m_Cmd & 0xFF0F) == ch && (pNode->m_Cmd & 0xF0) != 0xF0 && (pNode->m_Cmd & 0xF0) != 0x80 ) {
-				CMMLData *pData = new CMMLData;
+				pNode->m_Flag = TRUE;
+				stepPos = SaveStepPos(pNode, stepPos, ch);
+
+				pData = new CMMLData;
 				pData->m_Cmd = pNode->m_Cmd & 0xF0;
 				pData->m_Note = pNode->m_Pam.m_Byte[1];
 				pData->m_Velo = pNode->m_Pam.m_Byte[2];
 				pData->m_Step = 0;
-				pData->m_Time = pNode->m_Pos - basePos;
+				pData->m_Time = pNode->m_Pos - stepPos;
 				pData->m_Track = ch;
 				m_mmlData.Add(pData);
-				pNode->m_Flag = TRUE;
 			}
 		}
 
@@ -2458,8 +2717,6 @@ BOOL CMidiData::SaveMML(LPCTSTR fileName)
 
 DWORD WINAPI CMidiData::ThreadProc(void *lpParameter)
 {
-	int n;
-	DWORD *pDw;
 	MSG msg;
 	MIDIHDR *pMidiHdr;
 	MIDIEVENT *pEvent;
@@ -2471,16 +2728,15 @@ DWORD WINAPI CMidiData::ThreadProc(void *lpParameter)
 			pMidiHdr = (MIDIHDR*)msg.lParam;
 			pEvent = (MIDIEVENT*)&(pMidiHdr->lpData[pMidiHdr->dwOffset]);
 			if ( (pEvent->dwEvent & 0xFF000000) == ((MEVT_COMMENT << 24) | MEVT_F_CALLBACK) ) {
-				pDw = (DWORD *)(pEvent->dwParms);
-				for ( n = pEvent->dwEvent & 0x00FFFFFF ; n > 0 ; n -= sizeof(DWORD) ) {
-					switch(*pDw >> 24) {
-					case 0x00:
-						pMidiHdr->dwFlags = 0;
-						if ( !pMidi->StreamQueIn() )
-							pMidi->Stop();
-						break;
-					}
-					pDw++;
+				switch(*((DWORD *)(pEvent->dwParms))) {
+				case 0x0000:	// Next Stream
+					pMidiHdr->dwFlags = 0;
+					if ( !pMidi->StreamQueIn() )
+						pMidi->Stop();
+					break;
+				case 0x0001:	// Speek
+					((CRLoginApp *)::AfxGetApp())->Speek(MbsToTstr((LPCSTR)((BYTE *)(pEvent->dwParms) + sizeof(DWORD))));
+					break;
 				}
 			}
 			break;
@@ -2521,7 +2777,7 @@ BOOL CMidiData::StreamQueIn()
 				m_PlayPos = m_pPlayNode->m_Pos;
 
 			pEvent = (MIDIEVENT *)(m_MidiHdr[n].lpData + i);
-			i += m_pPlayNode->SetEvent(m_PlayPos, (BYTE *)(m_MidiHdr[n].lpData + i), 0);
+			i += m_pPlayNode->SetEvent(m_PlayPos, (BYTE *)(m_MidiHdr[n].lpData + i));
 
 			m_PlayPos = m_pPlayNode->m_Pos;
 			m_pPlayNode = m_pPlayNode->m_Next;
@@ -2532,8 +2788,8 @@ BOOL CMidiData::StreamQueIn()
 		pEvent = (MIDIEVENT *)(m_MidiHdr[n].lpData + i);
 		pEvent->dwDeltaTime = (m_pPlayNode == NULL ? m_DivVal : 0);
 		pEvent->dwStreamID = 0;
-		pEvent->dwEvent = ((MEVT_COMMENT << 24) | 4 | MEVT_F_CALLBACK);
-		*((DWORD *)(pEvent->dwParms)) = 0;
+		pEvent->dwEvent = ((MEVT_COMMENT << 24) | MEVT_F_CALLBACK | (DWORD)sizeof(DWORD));
+		*((DWORD *)(pEvent->dwParms)) = 0x0000;
 		i += (sizeof(DWORD) * 4);
 
 		m_MidiHdr[n].dwFlags = 0;

@@ -147,6 +147,7 @@ public:
 	int GetIndex(LPCTSTR name);
 	int GetKeyLen(LPCTSTR name = NULL);
 	int GetBlockSize(LPCTSTR name = NULL);
+	int GetIvSize(LPCTSTR name = NULL);
 	BOOL IsAEAD(LPCTSTR name = NULL);
 	BOOL IsPOLY(LPCTSTR name = NULL);
 	LPCTSTR GetName(int num);
@@ -182,6 +183,7 @@ public:
 	inline BOOL IsEtm() { return m_EtmMode; }
 	BOOL IsAEAD(LPCTSTR name = NULL);
 
+	static int SpeedCheck();
 	static void BenchMark(CString &out);
 
 	CMacomp();
@@ -209,7 +211,7 @@ public:
 #define	IDKEY_RSA2		00002
 #define	IDKEY_DSA2		00004
 #define	IDKEY_ED25519	00010
-#define	IDKEY_RESV		00020		// not use
+#define	IDKEY_XMSS		00020
 #define	IDKEY_ECDSA		00040
 
 #define	IDKEY_DSA2EX	00104		// BIGNUM2 fix
@@ -227,6 +229,7 @@ public:
 #define	SSHFP_KEY_DSA		2
 #define	SSHFP_KEY_ECDSA		3
 #define	SSHFP_KEY_ED25519	4 
+#define	SSHFP_KEY_XMSS		5
 
 #define	SSHFP_HASH_RESERVED	0
 #define	SSHFP_HASH_SHA1		1
@@ -252,14 +255,52 @@ public:
 #define ED25519_PUBBYTES	32
 #define	ED25519_SIGBYTES	64
 
+//#define	USE_X509
+
 typedef struct _ed25519_key {
 	BYTE pub[ED25519_PUBBYTES];
 	BYTE sec[ED25519_SECBYTES];
 } ED25519_KEY;
 
-//#define	USE_X509
+class CXmssKey : public CObject
+{
+public:
+	uint32_t m_oId;
+	int m_PubLen;
+	BYTE *m_pPubBuf;
+	int m_SecLen;
+	BYTE *m_pSecBuf;
+	int m_PassLen;
+	TCHAR *m_pPassBuf;
+	CStringA m_EncName;
+	CBuffer m_EncIvBuf;
 
-class CIdKey: public CObject
+	void RemoveAll();
+	const CXmssKey & operator = (CXmssKey &data);
+	BOOL SetBufSize(uint32_t oId = 0);
+	BOOL SetBufSize(LPCSTR name);
+	void SetPassBuf(LPCTSTR pass);
+	BOOL MakeEncIvBuf();
+
+	BOOL LoadOpenSshSec(CBuffer *bp);
+	BOOL SaveOpenSshSec(CBuffer *bp);
+
+	BOOL LoadStateFile(LPCTSTR fileName);
+	BOOL SaveStateFile(LPCTSTR fileName);
+
+	const char *GetName();
+	int GetBits();
+	int GetHeight();
+	int KeyPair();
+	int GetSignByte();
+	int Sign(unsigned char *sm, unsigned long long *smlen, const unsigned char *m, unsigned long long mlen);
+	int Verify(unsigned char *m, unsigned long long *mlen, const unsigned char *sm, unsigned long long smlen);
+
+	CXmssKey();
+	~CXmssKey();
+};
+
+class CIdKey : public CObject
 {
 public:
 	int m_Uid;
@@ -274,12 +315,14 @@ public:
 	EC_KEY *m_EcDsa;
 	int	 m_EcNid;
 	ED25519_KEY *m_Ed25519;
+	CXmssKey m_XmssKey;
 	CString m_Work;
 	CBuffer m_CertBlob;
 	BOOL m_bSecInit;
 	CString m_SecBlob;
 	BOOL m_bHostPass;
 	BOOL m_bPageant;
+	CString m_FilePath;
 
 	int GetIndexNid(int nid);
 	int GetIndexName(LPCTSTR name);
@@ -319,12 +362,14 @@ public:
 	int DssSign(CBuffer *bp, LPBYTE buf, int len);
 	int EcDsaSign(CBuffer *bp, LPBYTE buf, int len);
 	int Ed25519Sign(CBuffer *bp, LPBYTE buf, int len);
+	int XmssSign(CBuffer *bp, LPBYTE buf, int len);
 	int Sign(CBuffer *bp, LPBYTE buf, int len, LPCTSTR alg = NULL);
 
 	int RsaVerify(CBuffer *bp, LPBYTE data, int datalen);
 	int DssVerify(CBuffer *bp, LPBYTE data, int datalen);
 	int EcDsaVerify(CBuffer *bp, LPBYTE data, int datalen);
 	int Ed25519Verify(CBuffer *bp, LPBYTE data, int datalen);
+	int XmssVerify(CBuffer *bp, LPBYTE data, int datalen);
 	int Verify(CBuffer *bp, LPBYTE data, int datalen);
 
 #ifdef	USE_X509
@@ -369,6 +414,7 @@ public:
 	const CIdKey & operator = (CIdKey &data);
 
 	int GetSize();
+	int GetHeight();
 	void FingerPrint(CString &str, int digest = SSHFP_DIGEST_SHA256, int format = SSHFP_FORMAT_BASE64);
 	int DnsDigest(int hash, CBuffer &digest);
 
@@ -392,6 +438,7 @@ public:
 	CIdKey *GetUid(int uid);
 	void UpdateUid(int uid);
 	void RemoveUid(int uid);
+	CIdKey *ReloadUid(int uid);
 
 	void Init();
 	void GetArray(CStringArrayExt &stra);
@@ -420,40 +467,40 @@ public:
 #define CHAN_SES_PACKET_DEFAULT (32 * 1024)
 #define CHAN_SES_WINDOW_DEFAULT (64 * CHAN_SES_PACKET_DEFAULT)
 
-#define	CHAN_OPEN_LOCAL		001
-#define	CHAN_OPEN_REMOTE	002
-#define	CHAN_LISTEN			004
-#define	CHAN_PROXY_SOCKS	010
-#define	CHAN_SOCKS5_AUTH	020
-#define	CHAN_REMOTE_SOCKS	040
-#define	CHAN_OK(n)			((((CChannel *)m_pChan[n])->m_Status & (CHAN_OPEN_LOCAL | CHAN_OPEN_REMOTE)) == (CHAN_OPEN_LOCAL | CHAN_OPEN_REMOTE))
-#define	CHAN_MAXSIZE		200
+#define	CHAN_OPEN_LOCAL			001
+#define	CHAN_OPEN_REMOTE		002
+#define	CHAN_LISTEN				004
+#define	CHAN_PROXY_SOCKS		010
+#define	CHAN_SOCKS5_AUTH		020
+#define	CHAN_REMOTE_SOCKS		040
+#define	CHAN_OK(n)				((((CChannel *)m_pChan[n])->m_Status & (CHAN_OPEN_LOCAL | CHAN_OPEN_REMOTE)) == (CHAN_OPEN_LOCAL | CHAN_OPEN_REMOTE))
+#define	CHAN_MAXSIZE			200
 
-#define	CEOF_IEOF		0001
-#define	CEOF_ICLOSE		0002
-#define	CEOF_SEOF		0004
-#define	CEOF_SCLOSE		0010
-#define	CEOF_DEAD		0020
-#define	CEOF_IEMPY		0040
-#define	CEOF_OEMPY		0100
+#define	CEOF_IEOF				0001
+#define	CEOF_ICLOSE				0002
+#define	CEOF_SEOF				0004
+#define	CEOF_SCLOSE				0010
+#define	CEOF_DEAD				0020
+#define	CEOF_IEMPY				0040
+#define	CEOF_OEMPY				0100
 
-#define	CEOF_OK(n)		((((CChannel *)m_pChan[n])->m_Eof & (CEOF_DEAD | CEOF_SEOF | CEOF_SCLOSE)) == 0)
+#define	CEOF_OK(n)				((((CChannel *)m_pChan[n])->m_Eof & (CEOF_DEAD | CEOF_SEOF | CEOF_SCLOSE)) == 0)
 
-#define	CHAN_REQ_PTY	0
-#define	CHAN_REQ_SHELL	1
-#define	CHAN_REQ_SUBSYS	2
-#define	CHAN_REQ_EXEC	3
-#define	CHAN_REQ_X11	4
-#define	CHAN_REQ_ENV	5
-#define	CHAN_REQ_AGENT	6
-#define	CHAN_REQ_WSIZE	7
+#define	CHAN_REQ_PTY			0
+#define	CHAN_REQ_SHELL			1
+#define	CHAN_REQ_SUBSYS			2
+#define	CHAN_REQ_EXEC			3
+#define	CHAN_REQ_X11			4
+#define	CHAN_REQ_ENV			5
+#define	CHAN_REQ_AGENT			6
+#define	CHAN_REQ_WSIZE			7
 
-#define	SSHFT_NONE		0
-#define	SSHFT_STDIO		1
-#define	SSHFT_SFTP		2
-#define	SSHFT_AGENT		3
-#define	SSHFT_RCP		4
-#define	SSHFT_X11		5
+#define	SSHFT_NONE				0
+#define	SSHFT_STDIO				1
+#define	SSHFT_SFTP				2
+#define	SSHFT_AGENT				3
+#define	SSHFT_RCP				4
+#define	SSHFT_X11				5
 
 class CFilter : public CObject
 {
@@ -766,6 +813,7 @@ private:
 	CStringIndex m_ExtInfo;
 	int m_DhGexReqBits;
 	time_t m_ConnectTime;
+	int m_KeepAliveTiimerId;
 	int m_KeepAliveSendCount;
 	int m_KeepAliveReplyCount;
 	int m_KeepAliveRecvGlobalCount;
@@ -951,5 +999,37 @@ extern int crypto_sign_ed25519_keypair(unsigned char *pk, unsigned char *sk);
 extern int crypto_sign_ed25519(unsigned char *sm, unsigned long long *smlen, const unsigned char *m, unsigned long long mlen, const unsigned char *sk);
 extern int crypto_sign_ed25519_open(unsigned char *m,unsigned long long *mlen, const unsigned char *sm,unsigned long long smlen, const unsigned char *pk);
 
+// xmss.cpp
+#define XMSS_OID_LEN 4
+
+int xmss_str_to_oid(uint32_t *oid, const char *s);
+int xmssmt_str_to_oid(uint32_t *oid, const char *s);
+
+const char *xmss_oid_to_str(uint32_t oid);
+const char *xmssmt_oid_to_str(uint32_t oid);
+
+int xmss_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid);
+int xmss_sign(unsigned char *sk, unsigned char *sm, unsigned long long *smlen, const unsigned char *m, unsigned long long mlen);
+int xmss_sign_open(unsigned char *m, unsigned long long *mlen, const unsigned char *sm, unsigned long long smlen, const unsigned char *pk);
+int xmss_sign_bytes(uint32_t oid);
+int xmss_bits(uint32_t oid);
+int xmss_height(uint32_t oid);
+int xmss_key_bytes(uint32_t oid, int *plen, int *slen);
+int xmss_sk_bytes(uint32_t oid, int *ilen, int *slen);
+
+int xmss_load_openssh_sk(uint32_t oid, unsigned char *sk, CBuffer *bp, CStringA *encname, CBuffer *ivbuf);
+int xmss_save_openssh_sk(uint32_t oid, unsigned char *sk, CBuffer *bp, const char *encname, unsigned char *ivbuf, int ivlen);
+
+int xmssmt_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid);
+int xmssmt_sign(unsigned char *sk, unsigned char *sm, unsigned long long *smlen, const unsigned char *m, unsigned long long mlen);
+int xmssmt_sign_open(unsigned char *m, unsigned long long *mlen, const unsigned char *sm, unsigned long long smlen, const unsigned char *pk);
+int xmssmt_sign_bytes(uint32_t oid);
+int xmssmt_bits(uint32_t oid);
+int xmssmt_height(uint32_t oid);
+int xmssmt_key_bytes(uint32_t oid, int *plen, int *slen);
+
+// xmss.cpp(fips202.c)
+void shake128(unsigned char *out, unsigned long long outlen, const unsigned char *in, unsigned long long inlen);
+void shake256(unsigned char *out, unsigned long long outlen, const unsigned char *in, unsigned long long inlen);
 
 #endif // !defined(AFX_SSH_H__2A682FAC_4F24_4168_9082_C9CDF2DD19D7__INCLUDED_)

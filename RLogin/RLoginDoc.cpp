@@ -323,23 +323,36 @@ void CRLoginDoc::SaveIndex(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNod
 }
 void CRLoginDoc::DiffIndex(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab, CServerEntry &OrigEntry, CStringIndex &index)
 {
-	CTextRam OrigTextRam;
-	CKeyNodeTab OrigKeyTab;
-	CKeyMacTab OrigKeyMac;
-	CParamTab OrigParamTab;
+	CTextRam *pOrigTextRam   = new CTextRam;
+	CKeyNodeTab *pOrigKeyTab = new CKeyNodeTab;
+	CKeyMacTab *pOrigKeyMac  = new CKeyMacTab;
+	CParamTab *pOrigParamTab = new CParamTab;
 
-	LoadOption(OrigEntry, OrigTextRam, OrigKeyTab, OrigKeyMac, OrigParamTab);
+	LoadOption(OrigEntry, *pOrigTextRam, *pOrigKeyTab, *pOrigKeyMac, *pOrigParamTab);
 
 	index.RemoveAll();
 	index.SetNoCase(TRUE);
 	index.SetNoSort(TRUE);
 
 	ServerEntry.DiffIndex(OrigEntry, index[_T("Entry")]);
-	ParamTab.DiffIndex(OrigParamTab, index[_T("Protocol")]);
-	TextRam.DiffIndex(OrigTextRam, index[_T("Screen")]);
-	TextRam.m_FontTab.DiffIndex(OrigTextRam.m_FontTab, index[_T("Fontset")]);
-	TextRam.m_TextBitMap.DiffIndex(OrigTextRam.m_TextBitMap, index[_T("TextBitMap")]);
-	KeyTab.DiffIndex(OrigKeyTab, index[_T("Keycode")]);
+	ParamTab.DiffIndex(*pOrigParamTab, index[_T("Protocol")]);
+	TextRam.DiffIndex(*pOrigTextRam, index[_T("Screen")]);
+	TextRam.m_FontTab.DiffIndex(pOrigTextRam->m_FontTab, index[_T("Fontset")]);
+	TextRam.m_TextBitMap.DiffIndex(pOrigTextRam->m_TextBitMap, index[_T("TextBitMap")]);
+	KeyTab.DiffIndex(*pOrigKeyTab, index[_T("Keycode")]);
+
+	delete pOrigTextRam;
+	delete pOrigKeyTab;
+	delete pOrigKeyMac;
+	delete pOrigParamTab;
+}
+void CRLoginDoc::LoadInitOption(CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab)
+{
+	TextRam.Init();
+	TextRam.m_FontTab.Init();
+	KeyTab.Init();
+	KeyMac.Init();
+	ParamTab.Init();
 }
 void CRLoginDoc::LoadDefOption(CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab)
 {
@@ -467,7 +480,7 @@ void CRLoginDoc::SetCmdInfo(CCommandLineInfoEx *pCmdInfo)
 		break;
 	}
 
-	if ( pCmdInfo == NULL )
+	if ( pCmdInfo == NULL || pCmdInfo->m_nShellCommand == CCommandLineInfo::FileDDE )
 		return;
 
 	if ( pCmdInfo->m_Proto != (-1) ) {
@@ -510,6 +523,12 @@ void CRLoginDoc::SetCmdInfo(CCommandLineInfoEx *pCmdInfo)
 		tmp.Format(_T(" /term %s"), CCommandLineInfoEx::ShellEscape(pCmdInfo->m_Term));
 		m_CmdLine += tmp;
 		m_ServerEntry.m_TermName = pCmdInfo->m_Term;
+	}
+
+	if ( !pCmdInfo->m_Idkey.IsEmpty() ) {
+		tmp.Format(_T(" /idkey %s"), CCommandLineInfoEx::ShellEscape(pCmdInfo->m_Idkey));
+		m_CmdLine += tmp;
+		m_ServerEntry.m_IdkeyName = pCmdInfo->m_Idkey;
 	}
 
 	if ( !pCmdInfo->m_Title.IsEmpty() ) {
@@ -929,6 +948,122 @@ void CRLoginDoc::ScriptText(LPCWSTR str, LPCWSTR match, CStringW &tmp)
 		} else
 			tmp += *(str++);
 	}
+}
+void CRLoginDoc::EnvironText(CString &str)
+{
+	int n;
+	TCHAR ed;
+	LPCTSTR s, p = str;
+	CString work, env, src, dis, tmp;
+	DWORD size;
+	TCHAR buf[MAX_COMPUTERNAME_LENGTH + 2];
+
+	while ( *p != _T('\0') ) {
+		if ( p[0] == '$' && p[1] == _T('$') ) {
+			p += 2;
+			work += _T('$');
+		} else if ( *p == _T('$') ) {
+			p++;
+			ed = _T('\0');
+			env.Empty();
+			src.Empty();
+			dis.Empty();
+			if ( *p == _T('{') ) {
+				p++;
+				while ( *p != _T('\0') ) {
+					if ( *p == _T('}') ) {
+						p++;
+						break;
+					} else
+						env += *(p++);
+				}
+			} else {
+				while ( *p != _T('\0') && *p > _T(' ') )
+					env += *(p++);
+			}
+
+			if ( (n = env.Find(_T(':'))) >= 0 ) {
+				src = (LPCTSTR)env + n + 1;
+				env.Delete(n, env.GetLength() - n);
+				if ( (n = src.Find(_T('='))) >= 0 || (n = src.Find(_T(','))) >= 0 ) {
+					ed = src[n];
+					dis = (LPCTSTR)src + n + 1;
+					src.Delete(n, src.GetLength() - n);
+				} else if ( src.CompareNoCase(_T("L")) == 0 || src.CompareNoCase(_T("U")) == 0 )
+					ed = src[0];
+			}
+
+			if ( (s = _tgetenv(env)) == NULL ) {
+				if ( env.CompareNoCase(_T("USER")) == 0 || env.CompareNoCase(_T("USERNAME")) == 0 ) {
+					size = MAX_COMPUTERNAME_LENGTH;
+					if ( GetUserName(buf, &size) )
+						s = buf;
+				} else if ( env.CompareNoCase(_T("COMPUTER")) == 0 || env.CompareNoCase(_T("COMPUTERNAME")) == 0 ) {
+					size = MAX_COMPUTERNAME_LENGTH;
+					if ( GetComputerName(buf, &size) )
+						s = buf;
+				}
+			}
+
+			switch(ed) {
+			case _T('='):
+				if ( (n = src.GetLength()) <= 0 )
+					break;
+				while ( *s != _T('\0') ) {
+					if ( _tcsncmp(s, src, n) == 0 ) {
+						s += n;
+						work += dis;
+					} else
+						work += *(s++);
+				}
+				break;
+
+			case _T(','):
+				for ( n = _tstoi(src) ; n > 0 && *s != _T('\0') ; n-- )
+					s++;
+				for ( n = _tstoi(dis) ; n > 0 && *s != _T('\0') ; n-- )
+					work += *(s++);
+				break;
+
+			case _T('L'):
+				for ( n = 0 ; *s != _T('\0') ; n++ ) {
+					if ( n > 0 && *s >= _T('A') && *s <= _T('Z') )
+						work += (TCHAR)(*(s++) + 0x20);
+					else if ( n == 0 && *s >= _T('a') && *s <= _T('z') )
+						work += (TCHAR)(*(s++) - 0x20);
+					else
+						work += *(s++);
+				}
+				break;
+
+			case _T('l'):
+				while ( *s != _T('\0') ) {
+					if ( *s >= _T('A') && *s <= _T('Z') )
+						work += (TCHAR)(*(s++) + 0x20);
+					else
+						work += *(s++);
+				}
+				break;
+
+			case _T('U'):
+			case _T('u'):
+				while ( *s != _T('\0') ) {
+					if ( *s >= _T('a') && *s <= _T('z') )
+						work += (TCHAR)(*(s++) - 0x20);
+					else
+						work += *(s++);
+				}
+				break;
+
+			case _T('\0'):
+				work += s;
+				break;
+			}
+
+		} else
+			work += *(p++);
+	}
+	str = work;
 }
 
 void CRLoginDoc::SendScript(LPCWSTR str, LPCWSTR match)
@@ -1520,6 +1655,7 @@ int CRLoginDoc::SocketOpen()
 	}
 
 	num = CExtSocket::GetPortNum(m_ServerEntry.m_PortName);
+	EnvironText(m_ServerEntry.m_UserName);
 
 	if ( m_ServerEntry.m_ReEntryFlag )
 		goto SKIPINPUT;
@@ -1754,8 +1890,11 @@ void CRLoginDoc::OnSetOption()
 	if ( (dlg.m_ModFlag & (UMOD_ANSIOPT | UMOD_MODKEY | UMOD_COLTAB | UMOD_BANKTAB | UMOD_DEFATT | UMOD_CARET)) != 0 )
 		dlg.m_ModFlag = m_TextRam.InitDefParam(TRUE, dlg.m_ModFlag);
 
-	if ( dlg.m_ModFlag != 0 || dlg.m_bModified )
+	if ( dlg.m_ModFlag != 0 || dlg.m_bModified ) {
 		SetModifiedFlag(TRUE);
+		if ( m_pSock != NULL )
+			m_pSock->ResetOption();
+	}
 
 	if ( m_pLogFile != NULL && LogMode != m_TextRam.m_LogMode ) {
 		int save = m_TextRam.m_LogMode;

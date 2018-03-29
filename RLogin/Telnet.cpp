@@ -229,10 +229,12 @@ CTelnet::CTelnet(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 {
 	m_Type = ESCT_TELNET;
 	ReceiveStatus = RVST_NON;
+	m_KeepAliveTiimerId = 0;
 }
 CTelnet::~CTelnet()
 {
-	((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this);
+	if ( m_KeepAliveTiimerId != 0 )
+		((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this, m_KeepAliveTiimerId);
 }
 BOOL CTelnet::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
 {
@@ -327,7 +329,7 @@ void CTelnet::OnConnect()
 	MyOpt[TELOPT_BINARY].status = TELSTS_WANT_ON;
 
 	if ( m_pDocument->m_TextRam.IsOptEnable(TO_TELKEEPAL) && m_pDocument->m_TextRam.m_TelKeepAlive > 0 )
-		((CMainFrame *)AfxGetMainWnd())->SetTimerEvent(m_pDocument->m_TextRam.m_TelKeepAlive * 1000, TIMEREVENT_SOCK | TIMEREVENT_INTERVAL, this);
+		m_KeepAliveTiimerId = ((CMainFrame *)AfxGetMainWnd())->SetTimerEvent(m_pDocument->m_TextRam.m_TelKeepAlive * 1000, TIMEREVENT_SOCK | TIMEREVENT_INTERVAL, this);
 
 	CExtSocket::OnConnect();
 }
@@ -415,11 +417,13 @@ void CTelnet::SendBreak(int opt)
 }
 void CTelnet::OnTimer(UINT_PTR nIDEvent)
 {
-	char tmp[4];
-
-	tmp[0] = (char)TELC_IAC;
-	tmp[1] = (char)TELC_NOP;
-	SockSend(tmp, 2);
+	if ( nIDEvent == m_KeepAliveTiimerId ) {
+		char tmp[4];
+		tmp[0] = (char)TELC_IAC;
+		tmp[1] = (char)TELC_NOP;
+		SockSend(tmp, 2);
+	} else
+		CExtSocket::OnTimer(nIDEvent);
 }
 void CTelnet::PrintOpt(int st, int ch, int opt)
 {

@@ -75,6 +75,7 @@ BEGIN_MESSAGE_MAP(CIdkeySelDLg, CDialogExt)
 	ON_COMMAND(ID_IDKEY_CAKEY, &CIdkeySelDLg::OnIdkeyCakey)
 	ON_COMMAND(IDM_SAVEPUBLICKEY, &CIdkeySelDLg::OnSavePublicKey)
 	ON_UPDATE_COMMAND_UI(IDM_SAVEPUBLICKEY, OnUpdateEditEntry)
+	ON_CBN_SELCHANGE(IDC_IDKEY_TYPE, &CIdkeySelDLg::OnCbnSelchangeIdkeyType)
 END_MESSAGE_MAP()
 
 void CIdkeySelDLg::InitList()
@@ -96,10 +97,11 @@ void CIdkeySelDLg::InitList()
 		case IDKEY_DSA2:    str = _T("DSA2"); break;
 		case IDKEY_ECDSA:   str = _T("ECDSA"); break;
 		case IDKEY_ED25519: str = _T("ED25519"); break;
+		case IDKEY_XMSS:    str = _T("XMSS"); break;
 		}
 		m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, n, str, 0, 0, 0, n);
 
-		str.Format(_T("%d"), pKey->GetSize());
+		str.Format(_T("%d"), pKey->GetHeight());
 		m_List.SetItemText(n, 1, str);
 
 		m_List.SetItemText(n, 2, pKey->m_Name);
@@ -136,7 +138,7 @@ void CIdkeySelDLg::StartKeyGenThead()
 		return;
 	m_KeyGenFlag = 1;
 	m_pKeyGenEvent->ResetEvent();
-	AfxBeginThread(KeyGenThread, this, THREAD_PRIORITY_LOWEST);
+	AfxBeginThread(KeyGenThread, this, THREAD_PRIORITY_NORMAL);
 	m_GenIdKeyTimer = (UINT)SetTimer(1024, 200, NULL);
 }
 void CIdkeySelDLg::ProcKeyGenThead()
@@ -252,8 +254,12 @@ void CIdkeySelDLg::OnTimer(UINT_PTR nIDEvent)
 			EndofKeyGenThead();
 		} else {
 			m_KeyGenProg.SetPos(m_GenIdKeyCount++);
-			if ( m_GenIdKeyCount > m_GenIdKeyMax )
-				m_GenIdKeyCount = 0;
+			if ( m_GenIdKeyCount > m_GenIdKeyMax ) {
+				int n = m_GenIdKeyMax / 5;
+				m_GenIdKeyMax += (n <= 1 ? 2 : n);
+				m_KeyGenProg.SetRange(0, m_GenIdKeyMax);
+				m_KeyGenProg.SetPos(m_GenIdKeyCount);
+			}
 		}
 		break;
 	}
@@ -358,6 +364,7 @@ void CIdkeySelDLg::OnIdkeyInport()
 	}
 
 	key.m_Flag = TRUE;
+	key.m_FilePath.Empty();
 
 	if ( !m_pIdKeyTab->AddEntry(key) ) {
 		MessageBox(CStringLoad(IDE_DUPIDKEYENTRY));
@@ -428,8 +435,10 @@ void CIdkeySelDLg::OnIdkeyCreate()
 		m_GenIdKeyType = IDKEY_ECDSA;
 	else if ( m_Type.Compare(_T("ED25519")) == 0 )
 		m_GenIdKeyType = IDKEY_ED25519;
+	else if ( m_Type.Compare(_T("XMSS")) == 0 )
+		m_GenIdKeyType = IDKEY_XMSS;
 
-	if ( m_GenIdKeyType == IDKEY_ECDSA && m_GenIdKeyBits > 521 ) {
+	if ( m_GenIdKeyType == IDKEY_ECDSA && (m_GenIdKeyBits < 256 || m_GenIdKeyBits > 521) ) {
 		if ( MessageBox(CStringLoad(IDE_ECDSABITSIZEERR), _T("Warning"), MB_ICONWARNING | MB_OKCANCEL) != IDOK )
 			return;
 	} else if ( (m_GenIdKeyType == IDKEY_RSA1 || m_GenIdKeyType == IDKEY_RSA2) && m_GenIdKeyBits <= 1024 ) {
@@ -438,6 +447,15 @@ void CIdkeySelDLg::OnIdkeyCreate()
 	} else if ( m_GenIdKeyType == IDKEY_DSA2 && (m_GenIdKeyBits < 768 || m_GenIdKeyBits > 1024) ) {
 		if ( MessageBox(CStringLoad(IDE_DSABITSIZEERR), _T("Warning"), MB_ICONWARNING | MB_OKCANCEL) != IDOK )
 			return;
+	} else if ( m_GenIdKeyType == IDKEY_XMSS ) {
+		if ( m_GenIdKeyBits > 60 ) {
+			if ( MessageBox(CStringLoad(IDE_XMSSBITSIZEERR), _T("Warning"), MB_ICONWARNING | MB_OKCANCEL) != IDOK )
+				return;
+		}
+		if ( m_GenIdKeyBits >= 20 ) {
+			if ( MessageBox(CStringLoad(IDE_XMSSBITSIZECHECK), _T("Question"), MB_ICONQUESTION | MB_OKCANCEL) != IDOK )
+				return;
+		}
 	}
 
 	dlg.m_OpenMode = 3;
@@ -462,8 +480,38 @@ void CIdkeySelDLg::OnIdkeyCreate()
 		pWnd->EnableWindow(FALSE);
 
 	m_GenIdKeyPass  = dlg.m_PassName;
-	m_GenIdKeyMax   = (int)(pow(1.5, (double)m_GenIdKeyBits / 256.0) * 2.56);
 	m_GenIdKeyCount = 0;
+
+	//				x64			x32
+	// speed		200			300
+	//
+	// RSA	1024	17			43
+	// RSA	2048	78			261
+	// RSA	4096	172			1641
+	// RSA	8172	1594		33223
+	//
+	// XMSS	10		1532		1875
+	// XMSS	16		97095		118186
+	// XMSS	20		1568768		1920000
+
+#ifdef	_M_X64
+  #define	SPEED_DIV	200
+  #define	SPEED_RSA	18
+  #define	SPEED_XMSS	1600
+#else
+  #define	SPEED_DIV	300
+  #define	SPEED_RSA	45
+  #define	SPEED_XMSS	1900
+#endif
+
+	int speed = CMacomp::SpeedCheck();
+
+	if ( m_GenIdKeyType == IDKEY_RSA1 || m_GenIdKeyType == IDKEY_RSA2 || m_GenIdKeyType == IDKEY_DSA2 )
+		m_GenIdKeyMax = (1 << (m_GenIdKeyBits / 1024)) * (SPEED_RSA * speed / SPEED_DIV) / 200 + 1;
+	else if ( m_GenIdKeyType == IDKEY_XMSS )
+		m_GenIdKeyMax = (1 << (m_GenIdKeyBits - 10)) * (SPEED_XMSS * speed / SPEED_DIV) / 200;
+	else
+		m_GenIdKeyMax = speed / 20;
 
 	m_KeyGenProg.EnableWindow(TRUE);
 	m_KeyGenProg.SetRange(0, m_GenIdKeyMax);
@@ -643,4 +691,28 @@ void CIdkeySelDLg::OnSavePublicKey()
 
 	if ( !pKey->SavePublicKey(dlg.GetPathName()) )
 		MessageBox(CStringLoad(IDE_IDKEYSAVEERROR));
+}
+
+void CIdkeySelDLg::OnCbnSelchangeIdkeyType()
+{
+	int bits, now;
+
+	UpdateData(TRUE);
+
+	now = bits = _tstoi(m_Bits);
+
+	if ( m_Type.Compare(_T("RSA1")) == 0 || m_Type.Compare(_T("RSA2")) == 0 ) {
+		if ( bits < 768 ) bits = 2048;
+	} else if ( m_Type.Compare(_T("DSA2")) == 0 ) {
+		if ( bits < 768 || bits > 1024 ) bits = 1024;
+	} else if ( m_Type.Compare(_T("ECDSA")) == 0 ) {
+		if ( bits < 256 || bits > 521 ) bits = 256;
+	} else if ( m_Type.Compare(_T("XMSS")) == 0 ) {
+		if ( bits > 20 ) bits = 10;
+	}
+
+	if ( now != bits ) {
+		m_Bits.Format(_T("%d"), bits);
+		UpdateData(FALSE);
+	}
 }
