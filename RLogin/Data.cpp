@@ -5944,7 +5944,8 @@ static LPCTSTR InitAlgo[12]= {
 	_T("ecdsa-sha2-nistp256-cert-v01@openssh.com,ecdsa-sha2-nistp384-cert-v01@openssh.com,ecdsa-sha2-nistp521-cert-v01@openssh.com,") \
 	_T("ssh-ed25519-cert-v01@openssh.com,ssh-rsa-cert-v01@openssh.com,ssh-dss-cert-v01@openssh.com,") \
 	_T("ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,") \
-	_T("ssh-ed25519,rsa-sha2-512,rsa-sha2-256,ssh-rsa,ssh-dss"),
+	_T("ssh-ed25519,rsa-sha2-512,rsa-sha2-256,ssh-rsa,ssh-dss,") \
+	_T("ssh-xmss@openssh.com,ssh-xmss-cert-v01@openssh.com"),
 
 	_T("publickey,hostbased,gssapi-with-mic,password,keyboard-interactive"),
 };

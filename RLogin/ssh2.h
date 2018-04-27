@@ -80,7 +80,8 @@
 #define SSH2_MSG_DEBUG						4
 #define SSH2_MSG_SERVICE_REQUEST			5
 #define SSH2_MSG_SERVICE_ACCEPT				6
-#define SSH2_MSG_EXT_INFO					7
+#define SSH2_MSG_EXT_INFO					7	// RFC 8308
+#define	SSH2_MSG_NEWCOMPRESS				8	// RFC 8308
 
 /* transport layer: alg negotiation */
 

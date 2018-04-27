@@ -1388,6 +1388,11 @@ int CSFtp::RemoteDataReadRes(int type, CBuffer *bp, class CCmdQue *pQue)
 	if ( pOwner != pQue && (n > SSH2_FX_TRANSMAXMSEC || (pQue->m_Offset + pQue->m_Len) >= pOwner->m_Size) ) {
 		pOwner->m_Max--;
 		return TRUE;
+	} else if ( pOwner == pQue && pQue->m_Len <= 0 && pOwner->m_FileNode[0].HaveSize() ) {
+		pQue->m_Len = 0;
+		RemoteMakePacket(pQue, SSH2_FXP_CLOSE);
+		SendCommand(pQue, &CSFtp::RemoteCloseReadRes, SENDCMD_NOWAIT);
+		return FALSE;
 	}
 
 	RemoteMakePacket(pQue, SSH2_FXP_READ);
@@ -1663,7 +1668,7 @@ int CSFtp::RemoteCloseWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 		else if ( pQue->m_Len == (-2) )
 			DispErrMsg(_T("Remote Write Error"), pQue->m_Path);
 		else if ( pQue->m_Len == (-3) )
-			DispErrMsg(_T("Set Attr Error"), pQue->m_Path);
+			DispErrMsg(_T("Set Attr Error"), pQue->m_Path);	
 		else
 			st = SSH2_FX_OK;
 	} else if ( type == (-1) )
@@ -1731,7 +1736,7 @@ int CSFtp::RemoteDataWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 		SetPosProg(pQue->m_Offset + pQue->m_Len);
 		if ( (pQue->m_Offset + pQue->m_Len) >= pQue->m_Size ) {		// End of ?
 			RemoteMakePacket(pQue, SSH2_FXP_FSETSTAT);
-			pQue->m_FileNode[0].m_flags &= ~SSH2_FILEXFER_ATTR_PERMISSIONS;		// Not Copy Permissions XXXXXXXX
+			pQue->m_FileNode[0].m_flags &= ~(SSH2_FILEXFER_ATTR_SIZE | SSH2_FILEXFER_ATTR_UIDGID | SSH2_FILEXFER_ATTR_PERMISSIONS);		// Not Copy Permissions XXXXXXXX
 			pQue->m_FileNode[0].EncodeAttr(&(pQue->m_Msg));
 			SendCommand(pQue, &CSFtp::RemoteAttrWriteRes, SENDCMD_NOWAIT);
 			return FALSE;

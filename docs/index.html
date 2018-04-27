@@ -28,8 +28,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.23.3)</TD>
-            <TD width="20%" align="right">2018/03/30</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.23.4)</TD>
+            <TD width="20%" align="right">2018/04/27</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -438,6 +438,15 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2018/04/27</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.23.4/">2.23.4</A></TD>
+            <TD>sshのURLでファイルがあった場合にダウンロードのみ実行<BR>
+            UserNameの環境変数展開を削除して特殊文字に併合<BR>
+            Windowsのssh-agentサービスに試験的に対応<BR>
+            サーバーのオプション設定の表示を整理<BR>
+            エスケープシーケンスのxterm互換性を向上</TD>
+          </TR>
+          <TR>
             <TD align="center">2018/03/30</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.23.3/">2.23.3</A></TD>
             <TD>RLMMLにMML形式でファイルに保存(DCS5#m))を追加<BR>
@@ -513,13 +522,13 @@ TD {
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-1.1.0g.tar.gz</A><BR>
+                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-1.1.0h.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
                   Visual Studio コマンド <BR>
                   プロンプト (2010)</TD>
-                  <TD width="500" valign="top">rename openssl-1.1.0e openssl-1.1.0e-x32<BR>
+                  <TD width="500" valign="top">rename openssl-1.1.0h openssl-1.1.0h-x32<BR>
                   perl Configure VC-WIN32 no-shared<BR>
                   nmake</TD>
                 </TR>
@@ -1234,7 +1243,7 @@ TD {
                 </TR>
                 <TR>
                   <TD align="center" rowspan="10" width="10">&nbsp;</TD>
-                  <TD valign="top" colspan="2" width="250">Rloginのバージョン情報(A)</TD>
+                  <TD valign="top" colspan="2" width="250">RLoginのバージョン情報(A)</TD>
                   <TD valign="top" width="450">プログラムやライブラリなどのバージョン情報を表示します</TD>
                   <TD valign="top" width="120" align="right"></TD>
                   <TD valign="top" width="180">$ABOUT</TD>
@@ -1369,8 +1378,9 @@ TD {
               <TBODY>
                 <TR>
                   <TD width="30%">&lt;RLogin File Name&gt;</TD>
-                  <TD>「サーバー情報を保存」で保存したファイルを指定。URL形式(login/telnet/ssh)の場合は、それを解釈して/user/pass/ip/portを設定する。<BR>
-                  例: telnet://user:pass@host:port</TD>
+                  <TD>「サーバー情報を保存」で保存したファイルを指定。<BR>
+                  URL形式([login|telnet|ssh]://user:pass@host:port/file)の場合は、それを解釈する<BR>
+                  sshの場合にfileが指定されていれば、そのファイルのダウンロードのみ行う</TD>
                 </TR>
                 <TR>
                   <TD>/ip &lt;IP Address&gt;</TD>
@@ -1451,6 +1461,10 @@ TD {
                 <TR>
                   <TD>/idkey &lt;IdKey File Name&gt;</TD>
                   <TD>sshで使用する認証鍵ファイルを指定</TD>
+                </TR>
+                <TR>
+                  <TD>/file &lt;File Name&gt;</TD>
+                  <TD>sshの場合にサーバー側のファイルを指定するとダウンロードのみ行う</TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -1821,8 +1835,9 @@ TD {
                   <TD>通信制御する方式を選択します</TD>
                 </TR>
                 <TR>
-                  <TD align="center" width="30%">Server Address</TD>
-                  <TD>サーバーのアドレスを設定します<BR>
+                  <TD align="center" width="30%">ホスト名<BR>
+                  (サーバーIPアドレス)</TD>
+                  <TD>サーバーのIPアドレスを設定します<BR>
                   （空の場合は、接続時にホスト名入力を求めます）<BR>
                   <BR>
                   ホスト名を','で区切って指定すると同じエントリー設定で複数接続します。また'[n-n]'で１０進数の範囲、'[x,x]'で部分置換できます。<BR>
@@ -1836,87 +1851,39 @@ TD {
                   &quot;1-2-3-4.com&quot;</TD>
                 </TR>
                 <TR>
-                  <TD align="center">com</TD>
-                  <TD>プロトコルcomの場合に<A href="#COMSET">COMの通信設定</A>で指定した接続条件をServer Addressに書き込みます</TD>
+                  <TD align="center">シリアル<BR>
+                  設定</TD>
+                  <TD>プロトコルcomの場合に<A href="#COMSET">COMの通信設定</A>で指定した接続条件をホスト名の代わりに書き込みます</TD>
                 </TR>
                 <TR>
-                  <TD align="center">Sock Port</TD>
+                  <TD align="center">TCPポート</TD>
                   <TD>使用するポート番号を設定します<BR>
                   ※プロトコルとの関係が重要となります、通常は、Protocolと同じ名前になります。変更する場合は、数値で指定してください。<BR>
                   ※プロトコルcomの場合は、使用するCOMポートを設定します</TD>
                 </TR>
                 <TR>
-                  <TD align="center">User Name</TD>
+                  <TD align="center">ログインユーザー名</TD>
                   <TD>ユーザー認証に使用するユーザー名です<BR>
-                  <BR>
-                  ※2.23.3より&quot;$XXX&quot;&quot;${XXX}&quot;で環境変数を展開します<BR>
-                  <TABLE cellpadding="3">
-                    <TBODY>
-                      <TR>
-                        <TD>$USER</TD>
-                        <TD>アカウント名</TD>
-                      </TR>
-                      <TR>
-                        <TD>$COMPUTER</TD>
-                        <TD>コンピュータ名</TD>
-                      </TR>
-                      <TR>
-                        <TD>${XXX:abc=xyz}</TD>
-                        <TD>abcをxyzに置換</TD>
-                      </TR>
-                      <TR>
-                        <TD>${XXX:i,n}</TD>
-                        <TD>i文字目からn文字切り出し</TD>
-                      </TR>
-                      <TR>
-                        <TD>${XXX:U}</TD>
-                        <TD>すべて大文字に変換</TD>
-                      </TR>
-                      <TR>
-                        <TD>${XXX:L}</TD>
-                        <TD>頭の文字を大文字、以降小文字に変換</TD>
-                      </TR>
-                      <TR>
-                        <TD>${XXX:l}</TD>
-                        <TD>すべて小文字に変換</TD>
-                      </TR>
-                    </TBODY>
-                  </TABLE>
-                  </TD>
+                  ※2.23.4より<A href="#FILENAMEEXT">送信文字列の特殊文字</A>が利用できます</TD>
                 </TR>
                 <TR>
-                  <TD align="center">Password</TD>
-                  <TD>ユーザー認証に使用するパスワードです。公開鍵認証の場合は、その認証鍵のパスフレーズを設定します。<BR>
+                  <TD align="center">ユーザー認証の方式・・<BR>
+                  パスワードorパスフレーズ</TD>
+                  <TD>パスワード認証やキーボードインタラクティブの場合に使用るパスワード。公開鍵認証の場合は、認証鍵のパスフレーズを設定します。<BR>
                   <BR>
                   User Name,Passwordを設定するとサーバー情報を保存で作成されるファイルや次回起動時用にPasswordなども保存されます。セキュリティーを考えるなら<B>Passwordを保存しないでください</B>。保存しない場合は、下記のパスワード/フレーズ入力をチェックして接続時に入力するようにしてください。</TD>
                 </TR>
                 <TR>
-                  <TD align="center">Terminal</TD>
-                  <TD>telnet,ssh2の時に追加で送信する環境変数を設定します<BR>
-                  送り出す<A href="faq.html#TERM">TERM環境変数を設定</A>します</TD>
+                  <TD align="center">TERM</TD>
+                  <TD>接続先で使用する<A href="faq.html#TERM">TERM環境変数を設定</A>します</TD>
                 </TR>
                 <TR>
-                  <TD align="center">サーバー・ユーザー・・・</TD>
-                  <TD>接続時にサーバー、ユーザー、パスワードの入力を要求します</TD>
+                  <TD align="center">環境変数</TD>
+                  <TD>telnet,ssh2の時に追加で送信する環境変数を設定します</TD>
                 </TR>
                 <TR>
-                  <TD align="center">アイコン</TD>
-                  <TD>適当な小さい画像ファイルをタブにアイコンとして表示します。<BR>
-                  画像ファイルとしてgif/jpg/png/bmp/icoなどが使用できます。<BR>
-                  表示サイズは、16x16ですが拡大・縮小して表示します。</TD>
-                </TR>
-                <TR>
-                  <TD align="center">Chat Script</TD>
-                  <TD>接続後に簡単なキー入力の自動化ができます</TD>
-                </TR>
-                <TR>
-                  <TD align="center">Proxy Server</TD>
-                  <TD>プロキシーを利用して接続します</TD>
-                </TR>
-                <TR>
-                  <TD align="center">SSH Identity Key</TD>
-                  <TD>このエントリーだけで使用するSSH2の認証鍵ファイル(ssh-keygenなどで作成）を指定します<BR>
-                  ※設定を削除するにはファイル名選択でキャンセルをクリックして削除の確認にて「はい」を選択してください</TD>
+                  <TD align="center">ホスト・ユーザー・・・</TD>
+                  <TD>接続時にホスト、ユーザー、パスワードの入力を要求します</TD>
                 </TR>
                 <TR>
                   <TD align="center">標準の設定を・・・</TD>
@@ -1925,6 +1892,25 @@ TD {
                   標準の設定は、<A href="#SERVERSEL">サーバーの選択・設定</A>の右クリックによるポップアップメニューで任意のエントリー設定を標準にすることができます。ただしこのオプションを有効にしたエントリーは標準に設定できません<BR>
                   <BR>
                   接続中のオプション設定では、このオプションを変更することができません。サーバーの選択ダイアログのエントリー編集時のみ変更できます。また接続中のオプション変更は、終了時に保存確認の後、さらに上書きするか確認します。これは、元のエントリー設定が標準の設定にすべて置き換わるリスクを確認する為です</TD>
+                </TR>
+                <TR>
+                  <TD align="center">アイコン</TD>
+                  <TD>適当な小さい画像ファイルをタブにアイコンとして表示します。<BR>
+                  画像ファイルとしてgif/jpg/png/bmp/icoなどが使用できます。<BR>
+                  表示サイズは、16x16ですが拡大・縮小して表示します。</TD>
+                </TR>
+                <TR>
+                  <TD align="center">チャットスクリプト</TD>
+                  <TD>接続後に簡単なキー入力の自動化ができます</TD>
+                </TR>
+                <TR>
+                  <TD align="center">プロキシ設定</TD>
+                  <TD>プロキシーを利用して接続します</TD>
+                </TR>
+                <TR>
+                  <TD align="center">SSH認証鍵</TD>
+                  <TD>このエントリーだけで使用するSSH2の認証鍵ファイル(ssh-keygenなどで作成）を指定します<BR>
+                  ※設定を削除するにはファイル名選択でキャンセルをクリックして削除の確認にて「はい」を選択してください</TD>
                 </TR>
                 <TR>
                   <TD align="center">文字セット</TD>
@@ -2416,6 +2402,35 @@ fi</PRE>
                   <TD align="center">%u</TD>
                   <TD>Windowsのユーザー名に置き換え</TD>
                 </TR>
+                <TR>
+                  <TD align="center"><FONT color="#c0c0c0">%{XXX}</FONT></TD>
+                  <TD><FONT color="#c0c0c0">環境変数を展開し簡単な編集ができます</FONT><BR>
+                  <TABLE cellpadding="3">
+                    <TBODY>
+                      <TR>
+                        <TD>%{XXX:abc=xyz}</TD>
+                        <TD>abcをxyzに置換</TD>
+                      </TR>
+                      <TR>
+                        <TD>%{XXX:i,n}</TD>
+                        <TD>i文字目からn文字切り出し</TD>
+                      </TR>
+                      <TR>
+                        <TD>%{XXX:U}</TD>
+                        <TD>すべて大文字に変換</TD>
+                      </TR>
+                      <TR>
+                        <TD>%{XXX:L}</TD>
+                        <TD>頭の文字を大文字、以降小文字に変換</TD>
+                      </TR>
+                      <TR>
+                        <TD>%{XXX:l}</TD>
+                        <TD>すべて小文字に変換</TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  </TD>
+                </TR>
               </TBODY>
             </TABLE>
             </TD>
@@ -2456,7 +2471,8 @@ fi</PRE>
                 </TR>
                 <TR>
                   <TD align="center">User Name</TD>
-                  <TD>プロキシの認証を行う場合のユーザー名</TD>
+                  <TD>プロキシの認証を行う場合のユーザー名<BR>
+                  ※2.23.4より<A href="#FILENAMEEXT">送信文字列の特殊文字</A>が利用できます</TD>
                 </TR>
                 <TR>
                   <TD width="30%" align="center">Password</TD>
@@ -3904,6 +3920,14 @@ function TekClock2() {
                         <TD colspan="2">ウィンドウの画面更新を積極的に行うようにします。<BR>
                         ※画面の変更があった場合に即時に更新するようにします。通常は、OSのペイント処理でまとめて更新されますが、Windows 10では、遅延があるようなのでメッセージ処理後のアイドル時に更新するようにしています。それでも表示が遅延される場合には、このオプションを有効かもしれませんが、逆に表示更新が多くなって遅く感じる可能性があります。</TD>
                       </TR>
+                      <TR>
+                        <TD align="center" rowspan="2">483</TD>
+                        <TD>SOS/PM/APCをファイルに保存</TD>
+                        <TD>保存しない</TD>
+                      </TR>
+                      <TR>
+                        <TD colspan="2">エスケープシーケンスのSOS/PM/APCでバッファリングしたデータをファイルに保存するようにします。</TD>
+                      </TR>
                     </TBODY>
                   </TABLE>
                   <BR>
@@ -5000,35 +5024,17 @@ function TekClock2() {
                         ※マルチディスプレイには、対応していません</TD>
                       </TR>
                       <TR>
-                        <TD>LT</TD>
-                        <TD rowspan="9" valign="top">横位置：[L]eft,[C]enter,[R]ight<BR>
+                        <TD>LT/LC/LB</TD>
+                        <TD rowspan="3" valign="top">横位置：[L]eft,[C]enter,[R]ight<BR>
                         縦位置：[T]op,[C]enter,[B]ottom<BR>
                         の組み合わせで画像を拡大縮小無しで配置します<BR>
                         ※CCは、上記CENTERと同じです</TD>
                       </TR>
                       <TR>
-                        <TD>LC</TD>
+                        <TD>CT/CC/CB</TD>
                       </TR>
                       <TR>
-                        <TD>LB</TD>
-                      </TR>
-                      <TR>
-                        <TD>CT</TD>
-                      </TR>
-                      <TR>
-                        <TD>CC</TD>
-                      </TR>
-                      <TR>
-                        <TD>CB</TD>
-                      </TR>
-                      <TR>
-                        <TD>RT</TD>
-                      </TR>
-                      <TR>
-                        <TD>RC</TD>
-                      </TR>
-                      <TR>
-                        <TD>RB</TD>
+                        <TD>RT/RC/RB</TD>
                       </TR>
                     </TBODY>
                   </TABLE>

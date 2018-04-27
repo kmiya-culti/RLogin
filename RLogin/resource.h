@@ -299,6 +299,7 @@
 #define IDT_EXTOPT_LIST20               819
 #define IDT_EXTOPT_LIST21               820
 #define IDT_EXTOPT_LIST22               821
+#define IDT_EXTOPT_LIST23               822
 #define IDT_TERM_LIST01                 900
 #define IDT_TERM_LIST02                 901
 #define IDT_TERM_LIST03                 902

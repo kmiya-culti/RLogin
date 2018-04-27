@@ -59,6 +59,7 @@ CCommandLineInfoEx::CCommandLineInfoEx()
 	m_Term.Empty();
 	m_Name.Empty();
 	m_Idkey.Empty();
+	m_Path.Empty();
 	m_InUse = INUSE_NONE;
 	m_InPane = FALSE;
 	m_AfterId = (-1);
@@ -128,6 +129,8 @@ void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLas
 			m_ReqDlg = TRUE;
 		else if ( _tcsicmp(_T("idkey"), pszParam) == 0 )
 			m_PasStat = 15;
+		else if ( _tcsicmp(_T("file"), pszParam) == 0 )
+			m_PasStat = 16;
 		else
 			break;
 		ParseLast(bLast);
@@ -240,6 +243,13 @@ void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLas
 		m_Idkey = pszParam;
 		ParseLast(bLast);
 		return;
+	case 16:		// file
+		m_PasStat = 0;
+		if ( bFlag )
+			break;
+		m_Path = pszParam;
+		ParseLast(bLast);
+		return;
 	}
 	if ( !bFlag && ParseUrl(pszParam) ) {
 		ParseLast(bLast);
@@ -250,8 +260,8 @@ void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLas
 BOOL CCommandLineInfoEx::ParseUrl(const TCHAR* pszParam)
 {
 	// ssh://username:password@hostname:port/path?arg=value#anchor
-	int n;
-	CString tmp, str;
+	int n, i;
+	CString tmp, str, argv;
 	static const struct {
 		int		type;
 		LPCTSTR	name;
@@ -280,7 +290,7 @@ BOOL CCommandLineInfoEx::ParseUrl(const TCHAR* pszParam)
 	tmp = pszParam;
 
 	if ( (n = tmp.Find(_T('@'))) >= 0 ) {
-		str = tmp.Left(n);
+		str = tmp.Left(n);				// username:password
 		tmp.Delete(0, n + 1);
 
 		if ( (n = str.Find(_T(':'))) >= 0 ) {
@@ -290,13 +300,42 @@ BOOL CCommandLineInfoEx::ParseUrl(const TCHAR* pszParam)
 			m_User = str;
 	}
 
-	str = tmp.SpanExcluding(_T("/?#"));
+	if ( (n = tmp.Find(_T('#'))) >= 0 ) {
+		str = (LPCTSTR)tmp + n + 1;		// anchor
+		tmp.Delete(n, tmp.GetLength() - n);
+	}
+	if ( (n = tmp.Find(_T('?'))) >= 0 ) {
+		argv = (LPCTSTR)tmp + n + 1;		// arg=value
+		tmp.Delete(n, tmp.GetLength() - n);
+	}
+	if ( (n = tmp.Find(_T('/'))) >= 0 ) {
+		m_Path = (LPCTSTR)tmp + n + 1;		// path
+		tmp.Delete(n, tmp.GetLength() - n);
+	}
 
-	if ( (n = str.Find(_T(':'))) >= 0 ) {
-		m_Addr = str.Left(n);
-		m_Port = str.Mid(n + 1);
+	if ( (i = tmp.Find(_T('['))) >= 0 && (n = tmp.Find(_T(']'))) > i ) {
+		m_Addr = tmp.Mid(i + 1, n - i - 1);
+		tmp.Delete(0, n + 1);
+		if ( (n = tmp.Find(_T(':'))) >= 0 )
+			m_Port = tmp.Mid(n + 1);	// [::1]:port
+	} else if ( (n = tmp.Find(_T(':'))) >= 0 ) {
+		m_Addr = tmp.Left(n);			// hostname:port
+		m_Port = tmp.Mid(n + 1);
 	} else
-		m_Addr = str;
+		m_Addr = tmp;
+
+	if ( !argv.IsEmpty() ) {
+		CStringIndex index;
+		index.GetQueryString(argv);
+		for ( n = 0 ; n < index.GetSize() ; n++ ) {
+			if ( index[n].IsEmpty() ) {
+				ParseParam(index[n].GetIndex(), TRUE, FALSE);
+			} else {
+				ParseParam(index[n].GetIndex(), TRUE, FALSE);
+				ParseParam(index[n], FALSE, FALSE);
+			}
+		}
+	}
 
 	return TRUE;
 }

@@ -79,6 +79,7 @@ public:
 #define	TIMEREVENT_SOCK		002
 #define	TIMEREVENT_SCRIPT	003
 #define	TIMEREVENT_TEXTRAM	004
+#define	TIMEREVENT_CLOSE	005
 #define	TIMEREVENT_INTERVAL	010
 
 #define	TIMERID_SLEEPMODE	1024
@@ -185,9 +186,11 @@ public:
 	BOOL m_bPostIdleMsg;
 	clock_t m_LastClipUpdate;
 
+	BOOL WageantQuery(CBuffer *pInBuf, CBuffer *pOutBuf);
 	BOOL PageantQuery(CBuffer *pInBuf, CBuffer *pOutBuf);
-	BOOL PageantInit();
-	BOOL PageantSign(CBuffer *blob, CBuffer *sign, LPBYTE buf, int len);
+
+	BOOL AgeantInit();
+	BOOL AgeantSign(int type, CBuffer *blob, CBuffer *sign, LPBYTE buf, int len);
 
 	void SetTransPar(COLORREF rgb, int value, DWORD flag);
 	void SetIconStyle();

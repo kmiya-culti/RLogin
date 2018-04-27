@@ -149,7 +149,10 @@ void CHisPage::OnHisfileSel()
 
 	if ( m_HisFile.IsEmpty() )
 		file.Format(_T("%s\\%s.rlh"), ((CRLoginApp *)AfxGetApp())->m_BaseDir, m_pSheet->m_pEntry->m_EntryName);
+	else
+		file = m_HisFile;
 
+	CRLoginDoc::EnvironPath(file);
 	CFileDialog dlg(FALSE, _T("rlh"), file, 0, CStringLoad(IDS_FILEDLGHISTORY), this);
 
 	if ( dlg.DoModal() != IDOK )
@@ -169,7 +172,10 @@ void CHisPage::OnAutoLogSel()
 
 	if ( m_LogFile.IsEmpty() )
 		file.Format(_T("%s\\%s.txt"), ((CRLoginApp *)AfxGetApp())->m_BaseDir, m_pSheet->m_pEntry->m_EntryName);
+	else
+		file = m_LogFile;
 
+	CRLoginDoc::EnvironPath(file);
 	CFileDialog dlg(FALSE, _T("txt"), file, 0, CStringLoad(IDS_FILEDLGLOGFILE), this);
 
 	if ( dlg.DoModal() != IDOK )
@@ -183,9 +189,13 @@ void CHisPage::OnAutoLogSel()
 }
 void CHisPage::OnTraceLogSel()
 {
-	UpdateData(TRUE);
+	CString file;
 
-	CFileDialog dlg(FALSE, _T("txt"), m_TraceFile, 0, CStringLoad(IDS_FILEDLGLOGFILE), this);
+	UpdateData(TRUE);
+	file = m_TraceFile;
+
+	CRLoginDoc::EnvironPath(file);
+	CFileDialog dlg(FALSE, _T("txt"), file, 0, CStringLoad(IDS_FILEDLGLOGFILE), this);
 
 	if ( dlg.DoModal() != IDOK )
 		return;

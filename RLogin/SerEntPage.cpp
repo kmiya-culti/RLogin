@@ -296,9 +296,13 @@ void CSerEntPage::OnComconfig()
 }
 void CSerEntPage::OnKeyfileselect() 
 {
-	UpdateData(TRUE);
+	CString file;
 
-	CFileDialog dlg(TRUE, _T(""), m_IdkeyName, OFN_HIDEREADONLY, CStringLoad(IDS_FILEDLGALLFILE), this);
+	UpdateData(TRUE);
+	file = m_IdkeyName;
+
+	CRLoginDoc::EnvironPath(file);
+	CFileDialog dlg(TRUE, _T(""), file, OFN_HIDEREADONLY, CStringLoad(IDS_FILEDLGALLFILE), this);
 
 	if ( dlg.DoModal() != IDOK ) {
 		if ( m_IdkeyName.IsEmpty() || MessageBox(CStringLoad(IDS_IDKEYFILEDELREQ), _T("Question"), MB_ICONQUESTION | MB_YESNO) != IDYES )

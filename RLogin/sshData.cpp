@@ -1307,7 +1307,7 @@ CIdKey::CIdKey()
 	m_Cert = 0;
 	m_bSecInit = FALSE;
 	m_bHostPass = TRUE;
-	m_bPageant = FALSE;
+	m_AgeantType = IDKEY_AGEANT_NONE;
 }
 CIdKey::~CIdKey()
 {
@@ -1325,7 +1325,7 @@ CIdKey::~CIdKey()
 }
 int CIdKey::Init(LPCTSTR pass)
 {
-	if ( m_bSecInit || m_bPageant )
+	if ( m_bSecInit || m_AgeantType != IDKEY_AGEANT_NONE )
 		return TRUE;
 
 	if ( CompPass(pass) != 0 )
@@ -1357,7 +1357,7 @@ void CIdKey::SetString(CString &str)
 	stra.Add(m_SecBlob);
 	stra.Add(m_Hash);
 	stra.AddVal(m_bHostPass);
-	stra.AddVal(m_bPageant);
+	stra.AddVal(m_AgeantType);
 
 	stra.SetString(str);
 }
@@ -1380,8 +1380,8 @@ int CIdKey::GetString(LPCTSTR str)
 	m_SecBlob = stra.GetAt(4);
 	m_bSecInit = FALSE;
 
-	m_bHostPass = (stra.GetSize() > 6 ? stra.GetVal(6) : TRUE);
-	m_bPageant  = (stra.GetSize() > 7 ? stra.GetVal(7) : FALSE);
+	m_bHostPass  = (stra.GetSize() > 6 ? stra.GetVal(6) : TRUE);
+	m_AgeantType = (stra.GetSize() > 7 ? stra.GetVal(7) : IDKEY_AGEANT_NONE);
 
 	if ( stra.GetAt(2).Compare(_T("=remove")) != 0 ) {
 		DecryptStr(tmp, stra.GetAt(2));
@@ -1429,10 +1429,10 @@ const CIdKey & CIdKey::operator = (CIdKey &data)
 	m_Hash = data.m_Hash;
 	m_Flag = data.m_Flag;
 
-	m_bSecInit  = data.m_bSecInit;
-	m_SecBlob   = data.m_SecBlob;
-	m_bHostPass = data.m_bHostPass;
-	m_bPageant   = data.m_bPageant;
+	m_bSecInit   = data.m_bSecInit;
+	m_SecBlob    = data.m_SecBlob;
+	m_bHostPass  = data.m_bHostPass;
+	m_AgeantType = data.m_AgeantType;
 
 	m_Cert     = data.m_Cert;
 	m_CertBlob = data.m_CertBlob;
@@ -1944,8 +1944,12 @@ LPCTSTR CIdKey::GetName(BOOL bCert, BOOL bExtname)
 
 	m_Work.Empty();
 
-	if ( bExtname && m_bPageant )
-		m_Work += _T("Pageant:");
+	if ( bExtname ) {
+		if ( m_AgeantType == IDKEY_AGEANT_PUTTY )
+			m_Work += _T("Pageant:");
+		else if ( m_AgeantType == IDKEY_AGEANT_WINSSH )
+			m_Work += _T("Wageant:");
+	}
 
 #ifdef	USE_X509
 	if ( bCert ) {
@@ -1985,7 +1989,10 @@ LPCTSTR CIdKey::GetName(BOOL bCert, BOOL bExtname)
 		m_Work += _T("ssh-ed25519");
 		break;
 	case IDKEY_XMSS:
-		m_Work += _T("ssh-xmss@openssh.com");
+		if ( bCert && m_Cert != 0 )
+			m_Work += _T("ssh-xmss");
+		else
+			m_Work += _T("ssh-xmss@openssh.com");
 		break;
 	}
 	
@@ -2046,7 +2053,7 @@ int CIdKey::GetTypeFromName(LPCTSTR name)
 		type = IDKEY_ECDSA;
 	else if ( _tcscmp(name, _T("ssh-ed25519")) == 0 )
 		type = IDKEY_ED25519;
-	else if ( _tcscmp(name, _T("ssh-xmss@openssh.com")) == 0 )
+	else if ( _tcscmp(name, _T("ssh-xmss")) == 0 || _tcscmp(name, _T("ssh-xmss@openssh.com")) == 0 )
 		type = IDKEY_XMSS;
 	else
 		cert = 0;
@@ -2408,10 +2415,10 @@ int CIdKey::XmssSign(CBuffer *bp, LPBYTE buf, int len)
 }
 int CIdKey::Sign(CBuffer *bp, LPBYTE buf, int len, LPCTSTR alg)
 {
-	if ( m_bPageant ) {
+	if ( m_AgeantType != IDKEY_AGEANT_NONE ) {
 		CBuffer blob;
 		SetBlob(&blob, FALSE);
-		return ((CMainFrame *)AfxGetMainWnd())->PageantSign(&blob, bp, buf, len);
+		return ((CMainFrame *)AfxGetMainWnd())->AgeantSign(m_AgeantType, &blob, bp, buf, len);
 	}
 
 	if ( !m_bSecInit )
@@ -3211,7 +3218,7 @@ void CIdKey::Digest(CString &out, LPCTSTR str)
 int CIdKey::CompPass(LPCTSTR pass)
 {
 	// Pageant Not Password Check
-	if ( m_bPageant )
+	if ( m_AgeantType != IDKEY_AGEANT_NONE )
 		return 0;
 
 	CString hash;
@@ -3809,7 +3816,7 @@ int CIdKey::SaveOpenSshKey(FILE *fp, LPCTSTR pass)
 {
 	CBuffer body(-1), keyiv(-1), kdf(-1), blob(-1), psx(-1), enc, tmp;
 	CStringA text;
-	LPCSTR encname = "aes256-cbc";
+	LPCSTR encname = "aes256-ctr";
 	BYTE salt[16];
 	int pad, keylen, ivlen, round;
 	CCipher cip;

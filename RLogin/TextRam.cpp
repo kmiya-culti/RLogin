@@ -1410,6 +1410,8 @@ CTextRam::CTextRam()
 	m_HisLen = 0;
 	m_HisUse = 0;
 	m_pTextSave = m_pTextStack = NULL;
+	m_AltIdx = 0;
+	m_pAltSave[0] = m_pAltSave[1] = NULL;
 	m_DispCaret = TRUE;
 	m_DefTypeCaret = 1;
 	m_TypeCaret = m_DefTypeCaret;
@@ -1450,7 +1452,6 @@ CTextRam::CTextRam()
 	SetRetChar(FALSE);
 	m_ClipFlag = 0;
 	m_ClipCrLf = OSCCLIP_LF;
-	m_FileSaveFlag = TRUE;
 	m_ImageIndex = 1024;
 	m_bOscActive = FALSE;
 	m_bIntTimer = FALSE;
@@ -1539,9 +1540,22 @@ CTextRam::~CTextRam()
 		m_pTextSave = pSave->m_pNext;
 		delete pSave;
 	}
+
 	while ( (pSave = m_pTextStack) != NULL ) {
 		m_pTextStack = pSave->m_pNext;
 		delete pSave;
+	}
+	
+	for ( int n = (int)m_PageTab.GetSize() - 1 ; n >= 0 ; n-- ) {
+		if ( (pSave = (CTextSave *)m_PageTab[n]) != NULL ) {
+			m_PageTab[n] = NULL;
+			delete pSave;
+		}
+	}
+
+	for ( int n = 0 ; n < 2 ; n++ ) {
+		if ( m_pAltSave[n] != NULL )
+			delete m_pAltSave[n];
 	}
 
 	TEKNODE *tp;
@@ -6986,10 +7000,13 @@ void CTextRam::RESET(int mode)
 	}
 
 	if ( mode & RESET_PAGE ) {
-		if ( IsInitText() )
+		if ( IsInitText() ) {
 			SETPAGE(0);
-		else
+			ALTRAM(0);
+		} else {
 			m_Page = 0;
+			m_AltIdx = 0;
+		}
 	}
 
 	if ( mode & RESET_CURSOR ) {
@@ -7029,6 +7046,8 @@ void CTextRam::RESET(int mode)
 			m_TopY = 0;
 			m_BtmY = m_Lines;
 		}
+	}
+	if ( mode &	RESET_RLMARGIN ) {
 		m_LeftX  = 0;
 		m_RightX = m_Cols;
 	}
@@ -7105,7 +7124,6 @@ void CTextRam::RESET(int mode)
 	if ( mode & RESET_OPTION ) {
 		memcpy(m_AnsiOpt, m_DefAnsiOpt, sizeof(m_AnsiOpt));
 		SetRetChar(FALSE);
-		m_FileSaveFlag = TRUE;
 
 		if ( m_StsMode == (STSMODE_ENABLE | STSMODE_INSCREEN) )
 			EnableOption(TO_DECOM);
@@ -7880,7 +7898,8 @@ void CTextRam::SaveParam(SAVEPARAM *pSave)
 	pSave->m_LastPos  = m_LastPos;
 	pSave->m_bRtoL    = m_bRtoL;
 
-	pSave->m_Decom    = (IsOptEnable(TO_DECOM) ? TRUE : FALSE);
+	pSave->m_Decom    = (IsOptEnable(TO_DECOM)  ? TRUE : FALSE);
+	pSave->m_Decawm   = (IsOptEnable(TO_DECAWM) ? TRUE : FALSE);
 	memcpy(pSave->m_AnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
 
 	memcpy(pSave->m_TabMap, m_TabMap, sizeof(m_TabMap));
@@ -7924,7 +7943,8 @@ void CTextRam::LoadParam(SAVEPARAM *pSave, BOOL bAll)
 		memcpy(m_TabMap, pSave->m_TabMap, sizeof(m_TabMap));
 	}
 
-	SetOption(TO_DECOM, pSave->m_Decom);
+	SetOption(TO_DECOM,  pSave->m_Decom);
+	SetOption(TO_DECAWM, pSave->m_Decawm);
 }
 void CTextRam::SwapParam(SAVEPARAM *pSave, BOOL bAll)
 {
@@ -7998,6 +8018,7 @@ void CTextRam::ERABOX(int sx, int sy, int ex, int ey, int df)
 		df &= ~ERM_ISOPRO;
 
 	spc = m_AttSpc;
+
 	for ( y = sy ; y < ey ; y++ ) {
 		tp = GETVRAM(0, y);
 		dm = tp->m_Vram.zoom;
@@ -8120,6 +8141,7 @@ void CTextRam::RIGHTSCROLL()
 		for ( i = m_Margin.right - 1 ; i > m_Margin.left ; i-- )
 			vp[i] = vp[i - 1];
 		vp[m_Margin.left] = m_AttSpc;
+		//vp[m_Margin.left] = L' ';
 		vp->m_Vram.zoom = dm;
 	}
 
@@ -8160,6 +8182,7 @@ void CTextRam::INSCHAR(BOOL bMargin)
 			vp[n] = vp[n - 1];
 
 		vp[n] = m_AttSpc;
+		//vp[n] = L' ';
 		vp->m_Vram.zoom = dm;
 
 		if ( dm != 0 )
@@ -8217,8 +8240,10 @@ void CTextRam::ONEINDEX()
 	if ( GetMargin(MARCHK_LINES) ) {
 		if ( ++m_CurY >= m_Margin.bottom ) {
 			m_CurY = m_Margin.bottom - 1;
-			FORSCROLL(m_Margin.left, m_Margin.top, m_Margin.right, m_Margin.bottom);
-			m_LineEditIndex++;
+			if ( m_CurX >= m_Margin.left && m_CurX < m_Margin.right ) {
+				FORSCROLL(m_Margin.left, m_Margin.top, m_Margin.right, m_Margin.bottom);
+				m_LineEditIndex++;
+			}
 		}
 	} else {
 		if ( ++m_CurY >= m_Lines )
@@ -8233,7 +8258,8 @@ void CTextRam::REVINDEX()
 	if ( GetMargin(MARCHK_LINES) ) {
 		if ( --m_CurY < m_Margin.top ) {
 			m_CurY = m_Margin.top;
-			BAKSCROLL(m_Margin.left, m_Margin.top, m_Margin.right, m_Margin.bottom);
+			if ( m_CurX >= m_Margin.left && m_CurX < m_Margin.right )
+				BAKSCROLL(m_Margin.left, m_Margin.top, m_Margin.right, m_Margin.bottom);
 		}
 	} else {
 		if ( --m_CurY < 0 )
@@ -8457,6 +8483,9 @@ void CTextRam::ANSIOPT(int opt, int bit)
 void CTextRam::INSMDCK(int len)
 {
 	if ( IsOptEnable(TO_ANSIIRM) == 0 )
+		return;
+
+	if ( m_DoWarp )
 		return;
 
 	while ( len-- > 0 )
@@ -8708,6 +8737,36 @@ void CTextRam::POPRAM()
 
 	m_TraceSaveCount = 0;
 }
+void CTextRam::ALTRAM(int idx)
+{
+	if ( idx < 0 )
+		idx = 0;
+	else if ( idx > 1 )
+		idx = 1;
+
+	if ( idx == m_AltIdx )
+		return;
+
+	SAVERAM();
+
+	if ( m_pAltSave[m_AltIdx] != NULL )
+		delete m_pAltSave[m_AltIdx];
+
+	m_pAltSave[m_AltIdx] = m_pTextSave;
+	m_pTextSave = m_pTextSave->m_pNext;
+
+	if ( m_pAltSave[idx] != NULL ) {
+		m_pAltSave[idx]->m_pNext = m_pTextSave;
+		m_pTextSave = m_pAltSave[idx];
+		m_pAltSave[idx] = NULL;
+		LOADRAM();
+	} else {
+		ERABOX(0, 0, m_Cols, m_Lines);
+		LOCATE(0, 0);
+	}
+
+	m_AltIdx = idx;
+}
 void CTextRam::SETPAGE(int page)
 {
 	CTextSave *pSave;
@@ -8805,9 +8864,9 @@ void CTextRam::COPY(int sp, int sx, int sy, int ex, int ey, int dp, int dx, int 
 	else if ( dp > 100 ) dp = 100;
 
 	if ( sx < 0 )  sx = 0;
-	if ( ex < sx ) ex = sx;
+	if ( ex < sx ) return;	// ex = sx;
 	if ( sy < 0 )  sy = 0;
-	if ( ey < sy ) ey = sy;
+	if ( ey < sy ) return;	//ey = sy;
 	if ( dx < 0 )  dx = 0;
 	if ( dy < 0 )  dy = 0;
 
@@ -8819,7 +8878,7 @@ void CTextRam::COPY(int sp, int sx, int sy, int ex, int ey, int dp, int dx, int 
 				for ( ty = sy, ny = dy ; ty <= ey && ny < m_Lines ; ty++, ny++ ) {
 					for ( tx = sx, nx = dx ; tx <= ex && nx < m_Cols ; tx++, nx++ ) {
 						if ( tx >= m_Cols || ty >= m_Lines )
-							tp = &spc;
+							break;	//tp = &spc;
 						else
 							tp = GETVRAM(tx, ty);
 						np = GETVRAM(nx, ny);
@@ -8839,7 +8898,7 @@ void CTextRam::COPY(int sp, int sx, int sy, int ex, int ey, int dp, int dx, int 
 						if ( nx >= m_Cols )
 							continue;
 						if ( tx >= m_Cols || ty >= m_Lines )
-							tp = &spc;
+							continue;	//tp = &spc;
 						else
 							tp = GETVRAM(tx, ty);
 						np = GETVRAM(nx, ny);
@@ -8863,7 +8922,7 @@ void CTextRam::COPY(int sp, int sx, int sy, int ex, int ey, int dp, int dx, int 
 				for ( ty = sy, ny = dy ; ty <= ey && ny < pSrc->m_Lines ; ty++, ny++ ) {
 					for ( tx = sx, nx = dx ; tx <= ex && nx < pSrc->m_Cols ; tx++, nx++ ) {
 						if ( tx >= pSrc->m_Cols || ty >= pSrc->m_Lines )
-							tp = &spc;
+							break;	//tp = &spc;
 						else
 							tp = pSrc->m_pCharCell + tx + pSrc->m_Cols * ty;
 						np = pSrc->m_pCharCell + nx + pSrc->m_Cols * ny;
@@ -8883,7 +8942,7 @@ void CTextRam::COPY(int sp, int sx, int sy, int ex, int ey, int dp, int dx, int 
 						if ( nx >= pSrc->m_Cols )
 							continue;
 						if ( tx >= pSrc->m_Cols || ty >= pSrc->m_Lines )
-							tp = &spc;
+							continue;	//tp = &spc;
 						else
 							tp = pSrc->m_pCharCell + tx + pSrc->m_Cols * ty;
 						np = pSrc->m_pCharCell + nx + pSrc->m_Cols * ny;
@@ -8905,7 +8964,7 @@ void CTextRam::COPY(int sp, int sx, int sy, int ex, int ey, int dp, int dx, int 
 			for ( ty = sy, ny = dy ; ty <= ey && ny < pDis->m_Lines ; ty++, ny++ ) {
 				for ( tx = sx, nx = dx ; tx <= ex && nx < pDis->m_Cols ; tx++, nx++ ) {
 					if ( tx >= m_Cols || ty >= m_Lines )
-						tp = &spc;
+						break;	//tp = &spc;
 					else
 						tp = GETVRAM(tx, ty);
 					np = pDis->m_pCharCell + nx + pDis->m_Cols * ny;
@@ -8924,7 +8983,7 @@ void CTextRam::COPY(int sp, int sx, int sy, int ex, int ey, int dp, int dx, int 
 			for ( ty = sy, ny = dy ; ty <= ey && ny < m_Lines ; ty++, ny++ ) {
 				for ( tx = sx, nx = dx ; tx <= ex && nx < m_Cols ; tx++, nx++ ) {
 					if ( tx >= pSrc->m_Cols || ty >= pSrc->m_Lines )
-						tp = &spc;
+						break;	//tp = &spc;
 					else
 						tp = pSrc->m_pCharCell + tx + pSrc->m_Cols * ty;
 					np = GETVRAM(nx, ny);
@@ -8946,7 +9005,7 @@ void CTextRam::COPY(int sp, int sx, int sy, int ex, int ey, int dp, int dx, int 
 			for ( ty = sy, ny = dy ; ty <= ey && ny < pDis->m_Lines ; ty++, ny++ ) {
 				for ( tx = sx, nx = dx ; tx <= ex && nx < pDis->m_Cols ; tx++, nx++ ) {
 					if ( tx >= pSrc->m_Cols || ty >= pSrc->m_Lines )
-						tp = &spc;
+						break;	//tp = &spc;
 					else
 						tp = pSrc->m_pCharCell + tx + pSrc->m_Cols * ty;
 					np = pDis->m_pCharCell + nx + pDis->m_Cols * ny;
@@ -9042,7 +9101,7 @@ void CTextRam::TABSET(int sw)
 		if ( m_CurX >= m_Margin.right )
 			m_Margin.right = m_Cols;
 		for ( n = m_CurX + 1 ; n < m_Cols ; n++ ) {
-			if ( (m_TabMap[i][n / 8 + 1] & (0x80 >> (n % 8))) != 0 && n >= m_Margin.left )
+			if ( (m_TabMap[i][n / 8 + 1] & (0x80 >> (n % 8))) != 0 ) //&& n >= m_Margin.left )
 				break;
 		}
 		if ( n >= m_Margin.right )
@@ -9076,6 +9135,38 @@ void CTextRam::TABSET(int sw)
 			n = m_Margin.left;
 		LOCATE(n, m_CurY);
 		break;
+	case TAB_CHT:		// Cols Tab Stop
+		if ( IsOptEnable(TO_XTMCUS) )
+			DOWARP();
+		i = (IsOptEnable(TO_ANSITSM) ? (m_CurY + 1) : 0);
+		for ( n = m_CurX + 1 ; n < m_Cols ; n++ ) {
+			if ( (m_TabMap[i][n / 8 + 1] & (0x80 >> (n % 8))) != 0 )
+				break;
+		}
+		if ( n > m_CurX ) {
+			CCharCell *vp = GETVRAM(m_CurX, m_CurY);
+			if ( !IS_IMAGE(vp->m_Vram.mode) && (DWORD)(*vp) <= L' ' ) {
+				*vp = (DWORD)'\t';
+				vp->m_Vram.bank = (WORD)m_BankTab[m_KanjiMode][0];
+				vp->m_Vram.eram = m_AttNow.std.eram;
+				vp->m_Vram.mode = CM_ASCII;
+				vp->m_Vram.attr = m_AttNow.std.attr;
+				vp->m_Vram.font = m_AttNow.std.font;
+				vp->m_Vram.fcol = m_AttNow.std.fcol;
+				vp->m_Vram.bcol = m_AttNow.std.bcol;
+				vp->GetEXTVRAM(m_AttNow);
+			}
+		}
+		LOCATE(n, m_CurY);
+		break;
+	case TAB_CBT:		// Cols Back Tab Stop
+		i = (IsOptEnable(TO_ANSITSM) ? (m_CurY + 1) : 0);
+		for ( n = m_CurX - 1 ; n > 0 ; n-- ) {
+			if ( (m_TabMap[i][n / 8 + 1] & (0x80 >> (n % 8))) != 0 && n < m_Cols )
+				break;
+		}
+		LOCATE(n, m_CurY);
+		break;
 
 	case TAB_LINENEXT:		// Line Tab Stop
 		if ( IsOptEnable(TO_ANSITSM) ) {	// MULTIPLE
@@ -9083,8 +9174,10 @@ void CTextRam::TABSET(int sw)
 				if ( (m_TabMap[n + 1][0] & 001) != 0 && n >= m_TopY )
 					break;
 			}
-		} else
-			n = m_CurY + 1;
+		} else {
+			ONEINDEX();
+			break;
+		}
 		if ( n >= m_BtmY )
 			n = m_BtmY - 1;
 		LOCATE(m_CurX, n);
@@ -9095,8 +9188,10 @@ void CTextRam::TABSET(int sw)
 				if ( (m_TabMap[n + 1][0] & 001) != 0 && n < m_BtmY )
 					break;
 			}
-		} else
-			n = m_CurY - 1;
+		} else {
+			REVINDEX();
+			break;
+		}
 		if ( n < m_TopY )
 			n = m_TopY;
 		LOCATE(m_CurX, n);

@@ -1491,10 +1491,51 @@ void CTextRam::EscCsiDefName(LPCTSTR *esc, LPCTSTR *csi,  LPCTSTR *dcs)
 #define	GetBValue16(n)		(int)((DWORD)GetBValue(n) * 65535 / 255)
 #define	RoundMulDiv(d,m)	(BYTE)(((DWORD)(d) * 255 + (m / 2)) / m)
 
+	// RGBtoXYZmatrix[3][3]
+	// { 0.38106149108714790, 0.32025712365352110, 0.24834578525933100 }	X
+    // { 0.20729745115140850, 0.68054638776373240, 0.11215616108485920 }	Y
+	// { 0.02133944350088028, 0.14297193020246480, 1.24172892629665500 }	Z
+#define	W_X		0.9496644
+#define	W_Y		1.0000000
+#define	W_Z		1.4060403
+	//W_u = 4.0 * W_X / (W_X + 15 * W_Y + 3 * W_Z);
+	//W_v = 9.0 * W_Y / (W_X + 15 * W_Y + 3 * W_Z);
+#define	W_u		0.18835273895939383
+#define	W_v		0.44625623816017124
+
+static COLORREF RGBVALUE(double ri, double gi, double bi)
+{
+	if ( ri < 0.0 ) ri = 0.0; else if ( ri > 1.0 ) ri = 1.0;
+	if ( gi < 0.0 ) gi = 0.0; else if ( gi > 1.0 ) gi = 1.0;
+	if ( bi < 0.0 ) bi = 0.0; else if ( bi > 1.0 ) bi = 1.0;
+
+#ifdef	USE_LINEAR
+	int r = (int)(ri * 255.0 + 0.5);
+	int g = (int)(gi * 255.0 + 0.5);
+	int b = (int)(bi * 255.0 + 0.5);
+#else
+	int r = (int)(pow(ri, 0.40) * 255.0 + 0.5);		// 1/2.50
+	int g = (int)(pow(gi, 0.45) * 255.0 + 0.5);		// 1/2.22
+	int b = (int)(pow(bi, 0.44) * 255.0 + 0.5);		// 1/2.27
+#endif
+
+	if ( r < 0 ) r = 0; else if ( r > 255 ) r = 255;
+	if ( g < 0 ) g = 0; else if ( g > 255 ) g = 255;
+	if ( b < 0 ) b = 0; else if ( b > 255 ) b = 255;
+
+	return RGB(r, g, b);
+}
+static COLORREF RGBXYZ(double X, double Y, double Z)
+{
+	return RGBVALUE(
+			 3.48340481253539000 * X - 1.52176374927285200 * Y - 0.55923133354049780 * Z,
+			-1.07152751306193600 * X + 1.96593795204372400 * Y + 0.03673691339553462 * Z,
+			 0.06351179790497788 * X - 0.20020501000496480 * Y + 0.81070942031648220 * Z);
+}
+
 void CTextRam::ParseColor(int cmd, int idx, LPCTSTR para, DWORD ch)
 {
 	int n, r, g, b;
-	float rf, gf, bf;
 
 	if ( idx < 0 || idx >= EXTCOL_MAX )
 		return;
@@ -1558,10 +1599,265 @@ void CTextRam::ParseColor(int cmd, int idx, LPCTSTR para, DWORD ch)
 		DISPUPDATE();
 
 	} else if ( _tcsnicmp(para, _T("rgbi:"), 5) == 0 ) {
+		//rgbi:<ri>/<gi>/<bi>
+		//    XcmsFloat red;		/* 0.0 to 1.0 */
+		//    XcmsFloat green;		/* 0.0 to 1.0 */
+		//    XcmsFloat blue;		/* 0.0 to 1.0 */
+
 		para += 5;
-		if ( _stscanf(para, _T("%f/%f/%f"), &rf, &gf, &bf) == 3 )
-			m_ColTab[idx] = RGB((BYTE)(rf * 255.0 + 0.5), (BYTE)(gf * 255.0 + 0.5), (BYTE)(bf * 255.0 + 0.5));
-		DISPUPDATE();
+		double ri, gi, bi;
+
+		if ( _stscanf(para, _T("%lf/%lf/%lf"), &ri, &gi, &bi) == 3 ) {
+			m_ColTab[idx] = RGBVALUE(ri, gi, bi);
+			DISPUPDATE();
+		}
+
+	} else if ( _tcsnicmp(para, _T("CIEXYZ:"), 7) == 0 ) {
+		//CIEXYZ:<X>/<Y>/<Z>
+		//    XcmsFloat X;
+		//    XcmsFloat Y;    /* 0.0 to 1.0 */
+		//    XcmsFloat Z;
+
+		para += 7;
+		double X, Y, Z;
+
+		if ( _stscanf(para, _T("%lf/%lf/%lf"), &X, &Y, &Z) == 3 ) {
+			m_ColTab[idx] = RGBXYZ(X, Y, Z);
+			DISPUPDATE();
+		}
+
+	} else if ( _tcsnicmp(para, _T("CIExyY:"), 7) == 0 ) {
+		//CIExyY:<x>/<y>/<Y>
+		//    XcmsFloat x;     /* 0.0 to ~.75 */
+		//    XcmsFloat y;     /* 0.0 to ~.85 */
+		//    XcmsFloat Y;     /* 0.0 to 1.0 */
+
+		para += 7;
+		double x, y, Y;
+
+		if ( _stscanf(para, _T("%lf/%lf/%lf"), &x, &y, &Y) == 3 && y > 0.0 ) {
+			double X, Z;
+			double div;
+
+			if ( (div = (-2.0 * x) + (12.0 * y) + 3.0) == 0.0 ) {
+			    X = Y = Z = 0.0;
+			} else {
+				double u = (4.0 * x) / div;
+				double v = (9.0 * y) / div;
+				div = (6.0 * u) - (16.0 * v) + 12.0;
+				if ( div == 0.0 ) {
+					if ( (div = (6.0 * W_u) - (16.0 * W_v) + 12.0) == 0.0 )
+					    div = 0.0001;
+					x = 9.0 * W_u / div;
+					y = 4.0 * W_v / div;
+			    } else {
+					x = 9.0 * u / div;
+					y = 4.0 * v / div;
+			    }
+				double z = 1.0 - x - y;
+			    if ( y == 0.0 )
+					y = 0.0001;
+				X = x * Y / y;
+				Z = z * Y / y;
+			}
+
+			m_ColTab[idx] = RGBXYZ(X, Y, Z);
+			DISPUPDATE();
+		}
+
+	} else if ( _tcsnicmp(para, _T("CIEuvY:"), 7) == 0 ) {
+		//CIEuvY:<u>/<v>/<Y>
+		//    XcmsFloat u_prime;    /* 0.0 to ~0.6 */
+		//    XcmsFloat v_prime;    /* 0.0 to ~0.6 */
+		//    XcmsFloat Y;			/* 0.0 to 1.0 */
+
+		para += 7;
+		double u, v, Y;
+
+		if ( _stscanf(para, _T("%lf/%lf/%lf"), &u, &v, &Y) == 3 ) {
+			double X, Z;
+			double x, y, z;
+			double div;
+
+			div = (6.0 * u) - (16.0 * v) + 12.0;
+			if ( div == 0.0 ) {
+			    div = (6.0 * W_u) - (16.0 * W_v) + 12.0;
+			    if ( div == 0.0 )
+					div = 0.0001;
+				x = 9.0 * W_u / div;
+				y = 4.0 * W_v / div;
+			} else {
+				x = 9.0 * u / div;
+				y = 4.0 * v / div;
+			}
+			z = 1.0 - x - y;
+
+			if ( y != 0.0 ) {
+				X = x * Y / y;
+				Z = z * Y / y;
+			} else {
+				X = x;
+				Z = z;
+			}
+
+			m_ColTab[idx] = RGBXYZ(X, Y, Z);
+			DISPUPDATE();
+		}
+		
+	} else if ( _tcsnicmp(para, _T("CIELab:"), 7) == 0 ) {
+		//CIELab:<L>/<a>/<b>
+		//    XcmsFloat L_star;     /* 0.0 to 100.0 */
+		//    XcmsFloat a_star;
+		//    XcmsFloat b_star;
+
+		para += 7;
+		double L, a, b;
+
+		if ( _stscanf(para, _T("%lf/%lf/%lf"), &L, &a, &b) == 3 ) {
+			double X, Y, Z;
+			double tmpL = (L + 16.0) / 116.0;
+
+			Y = tmpL * tmpL * tmpL;
+			if ( Y < 0.008856) {
+				tmpL = L / 9.03292;
+				X = W_X * ((a / 3893.5) + tmpL);
+				Y = tmpL;
+				Z = W_Z * (tmpL - (b / 1557.4));
+			} else {
+				double tmpFloat = tmpL + (a / 5.0);
+				X = W_X * tmpFloat * tmpFloat * tmpFloat;
+				tmpFloat = tmpL - (b / 2.0);
+				Z = W_Z * tmpFloat * tmpFloat * tmpFloat;
+			}
+
+			m_ColTab[idx] = RGBXYZ(X, Y, Z);
+			DISPUPDATE();
+		}
+
+	} else if ( _tcsnicmp(para, _T("CIELuv:"), 7) == 0 ) {
+		//CIELuv:<L>/<u>/<v>
+		//    XcmsFloat L_star;     /* 0.0 to 100.0 */
+		//    XcmsFloat u_star;
+		//    XcmsFloat v_star;
+
+		para += 7;
+		double L, u, v;
+
+		if ( _stscanf(para, _T("%lf/%lf/%lf"), &L, &u, &v) == 3 ) {
+			double Y;
+
+			if ( L < 7.99953624 ) {
+				Y = L / 903.29;
+			} else {
+				double tmpVal = (L + 16.0) / 116.0;
+				Y = tmpVal * tmpVal * tmpVal;
+			}
+			if ( L == 0.0 ) {
+				u = W_u;
+				v = W_v;
+			} else {
+				double tmpVal = 13.0 * (L / 100.0);
+				u = u / tmpVal + W_u;
+				v = v / tmpVal + W_v;
+			}
+
+			double X, Z;
+			double x, y, z;
+			double div;
+
+			div = (6.0 * u) - (16.0 * v) + 12.0;
+			if ( div == 0.0 ) {
+			    div = (6.0 * W_u) - (16.0 * W_v) + 12.0;
+			    if ( div == 0.0 )
+					div = 0.0001;
+				x = 9.0 * W_u / div;
+				y = 4.0 * W_v / div;
+			} else {
+				x = 9.0 * u / div;
+				y = 4.0 * v / div;
+			}
+			z = 1.0 - x - y;
+
+			if ( y != 0.0 ) {
+				X = x * Y / y;
+				Z = z * Y / y;
+			} else {
+				X = x;
+				Z = z;
+			}
+
+			m_ColTab[idx] = RGBXYZ(X, Y, Z);
+			DISPUPDATE();
+		}
+
+	} else if ( _tcsnicmp(para, _T("TekHVC:"), 7) == 0 ) {
+		//TekHVC:<H>/<V>/<C>
+		//    XcmsFloat H;     /* 0.0 to 360.0 */
+		//    XcmsFloat V;     /* 0.0 to 100.0 */
+		//    XcmsFloat C;     /* 0.0 to 100.0 */
+
+		para += 7;
+		double H, V, C;
+
+		if ( _stscanf(para, _T("%lf/%lf/%lf"), &H, &V, &C) == 3 ) {
+			double u, v, Y;
+
+			if ( V == 0.0 || V == 100.0) {
+			    if ( V == 100.0 ) {
+					Y = 1.0;
+				} else { /* pColor->spec.TekHVC.V == 0.0 */
+					Y = 0.0;
+				}
+				u = W_u;
+				v = W_v;
+			} else {
+				//atan((0.4931 - 0.46834) / (0.7127 - 0.19782)) * 180 / pi = 2.753168619889263
+				double tempHue = H + 2.753168619889263;
+				while (tempHue < 0.0)
+					tempHue += 360.0;
+				while (tempHue >= 360.0)
+					tempHue -= 360.0;
+				tempHue = tempHue * 3.14159265358 / 180.0;
+
+				u = (cos(tempHue) * C) / (V * 7.50725) + 0.19782;
+			    v = (sin(tempHue) * C) / (V * 7.50725) + 0.46834;
+
+			    if ( V < 7.99953624 )
+					Y = V / 903.29;
+				else {
+					double tmpVal = (V + 16.0) / 116.0;
+					Y = tmpVal * tmpVal * tmpVal;
+			    }
+			}
+
+			double X, Z;
+			double x, y, z;
+			double div;
+
+			div = (6.0 * u) - (16.0 * v) + 12.0;
+			if ( div == 0.0 ) {
+			    div = (6.0 * W_u) - (16.0 * W_v) + 12.0;
+			    if ( div == 0.0 )
+					div = 0.0001;
+				x = 9.0 * W_u / div;
+				y = 4.0 * W_v / div;
+			} else {
+				x = 9.0 * u / div;
+				y = 4.0 * v / div;
+			}
+			z = 1.0 - x - y;
+
+			if ( y != 0.0 ) {
+				X = x * Y / y;
+				Z = z * Y / y;
+			} else {
+				X = x;
+				Z = z;
+			}
+
+			m_ColTab[idx] = RGBXYZ(X, Y, Z);
+			DISPUPDATE();
+		}
 
 	} else if ( _tcsicmp(para, _T("reset")) == 0 ) {
 		if ( idx < 16 ) {
@@ -2232,18 +2528,27 @@ void CTextRam::fc_BS(DWORD ch)
 {
 	fc_KANJI(ch);
 
-	m_DoWarp = FALSE;
-
 	if ( CallReceiveChar(ch) )
 		return;
 
+	if ( m_DoWarp ) {
+		m_DoWarp = FALSE;
+		if ( IsOptEnable(TO_DECAWM) && IsOptEnable(TO_XTMRVW) && !IsOptEnable(TO_RLGNDW) )
+			return;
+	}
+
 	GetMargin(MARCHK_NONE);
 
+	if ( m_CurX < m_Margin.left )
+		m_Margin.left = 0;
+
 	if ( --m_CurX < m_Margin.left ) {
-		if ( IsOptEnable(TO_XTMRVW) ) {
+		if ( IsOptEnable(TO_DECAWM) && IsOptEnable(TO_XTMRVW) ) {
 			m_CurX = m_Margin.right - 1;
-			if ( --m_CurY < m_Margin.top )
+			if ( --m_CurY < m_Margin.top ) {
+				m_CurX = m_Margin.left;
 				m_CurY = m_Margin.top;
+			}
 		} else
 			m_CurX = m_Margin.left;
 	}
@@ -2267,7 +2572,10 @@ void CTextRam::fc_LF(DWORD ch)
 	switch(IsOptEnable(TO_ANSILNM) ? 2 : m_RecvCrLf) {
 	case 2:		// LF
 	case 3:		// CR|LF
-		LOCATE(GetLeftMargin(), m_CurY);
+		if ( m_CurX < GetLeftMargin() )
+			LOCATE(0, m_CurY);
+		else
+			LOCATE(GetLeftMargin(), m_CurY);
 		if ( (m_pDocument->m_bDelayPast || IsOptEnable(TO_RLDELAY)) && m_pDocument->m_DelayFlag == DELAY_WAIT )
 			m_pDocument->OnDelayReceive(ch);
 	case 0:		// CR+LF
@@ -2314,7 +2622,10 @@ void CTextRam::fc_CR(DWORD ch)
 		SetRet(m_CurY);
 		ONEINDEX();
 	case 0:		// CR+LF
-		LOCATE(GetLeftMargin(), m_CurY);
+		if ( m_CurX < GetLeftMargin() )
+			LOCATE(0, m_CurY);
+		else
+			LOCATE(GetLeftMargin(), m_CurY);
 		if ( (m_pDocument->m_bDelayPast || IsOptEnable(TO_RLDELAY)) && m_pDocument->m_DelayFlag == DELAY_WAIT )
 			m_pDocument->OnDelayReceive(ch);
 	case 2:		// LF
@@ -2457,9 +2768,10 @@ void CTextRam::fc_NEL(DWORD ch)
 {
 	// ESC E													ANSI NEL Next Line
 
-	LOCATE((IsOptEnable(TO_DECOM) ? GetLeftMargin() : 0), m_CurY);
-//	LOCATE(GetLeftMargin(), m_CurY);
 	ONEINDEX();
+
+	if ( m_CurX >= GetLeftMargin() )
+		LOCATE(GetLeftMargin(), m_CurY);
 
 	fc_POP(ch);
 }
@@ -2600,7 +2912,7 @@ void CTextRam::fc_RIS(DWORD ch)
 	//	Clears all macro definitions.
 	//	Erases the paste buffer.
 
-	RESET(RESET_PAGE | RESET_CURSOR | RESET_MARGIN | RESET_TABS | RESET_BANK | 
+	RESET(RESET_PAGE | RESET_CURSOR | RESET_MARGIN | RESET_RLMARGIN | RESET_TABS | RESET_BANK | 
 		  RESET_ATTR | RESET_COLOR | RESET_OPTION | RESET_XTOPT | RESET_MODKEY |
 		  RESET_SAVE | RESET_MOUSE | RESET_CHAR | RESET_CLS);
 
@@ -2876,7 +3188,7 @@ void CTextRam::fc_STAT(DWORD ch)
 			break;
 		case '8':		// DECALN Screen Alignment Pattern
 			FILLCHAR('E');
-			RESET(RESET_CURSOR | RESET_MARGIN);
+			RESET(RESET_CURSOR | RESET_MARGIN | RESET_RLMARGIN);
 			break;
 		case '9':		// DECFPP Perform pending motion
 			break;
@@ -3723,7 +4035,7 @@ void CTextRam::fc_DECRQSS(DWORD ch)
 
 	} else if ( pFunc == &CTextRam::fc_DECSTBM ) {		// 'r'		DECSTBM
 		para.Add(m_TopY + 1);
-		para.Add(m_BtmY - m_TopY);
+		para.Add(m_BtmY);
 
 	} else if ( pFunc == &CTextRam::fc_DECSLRM ) {		// 's'		DECSLRM Set left and right margins
 		para.Add(m_LeftX + 1);
@@ -4415,13 +4727,12 @@ void CTextRam::fc_OSCNULL(DWORD ch)
 	CFile file;
 	CFileDialog dlg(FALSE, _T("txt"), (m_OscMode == 'X' ? _T("SOS") : (m_OscMode == '^' ? _T("PM") : _T("APC"))), OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGALLFILE), AfxGetMainWnd());
 
-	if ( m_FileSaveFlag && dlg.DoModal() == IDOK ) {
+	if ( IsOptEnable(TO_RLDOSAVE) && dlg.DoModal() == IDOK ) {
 		if ( file.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeWrite) ) {
 			file.Write(m_OscPara.GetPtr(), m_OscPara.GetSize());
 			file.Close();
 		}
-	} else
-		m_FileSaveFlag = FALSE;
+	}
 
 	fc_POP(ch);
 }
@@ -4605,6 +4916,8 @@ void CTextRam::fc_CUU(DWORD ch)
 {
 	// CSI A	CUU Cursor Up
 	int m = GetTopMargin();
+	if ( m_CurY < m )
+		m = 0;
 	if ( (m_CurY -= GetAnsiPara(0, 1, 0)) < m )
 		m_CurY = m;
 	LOCATE(m_CurX, m_CurY);
@@ -4614,6 +4927,8 @@ void CTextRam::fc_CUD(DWORD ch)
 {
 	// CSI B	CUD Cursor Down
 	int m = GetBottomMargin();
+	if ( m_CurY >= m )
+		m = m_Lines;
 	if ( (m_CurY += GetAnsiPara(0, 1, 0)) >= m )
 		m_CurY = m - 1;
 	LOCATE(m_CurX, m_CurY);
@@ -4624,6 +4939,8 @@ void CTextRam::fc_CUF(DWORD ch)
 	// CSI C	CUF Cursor Forward
 
 	int m = GetRightMargin();
+	if ( m_CurX >= m )
+		m = m_Cols;
 	if ( (m_CurX += GetAnsiPara(0, 1, 1)) >= m )
 		m_CurX = m - 1;
 	LOCATE(m_CurX, m_CurY);
@@ -4632,9 +4949,23 @@ void CTextRam::fc_CUF(DWORD ch)
 void CTextRam::fc_CUB(DWORD ch)
 {
 	// CSI D	CUB Cursor Backward
-	int m = GetLeftMargin();
-	if ( (m_CurX -= GetAnsiPara(0, 1, 1)) < m )
-		m_CurX = m;
+
+	GetMargin(MARCHK_NONE);
+
+	if ( m_CurX < m_Margin.left )
+		m_Margin.left = 0;
+
+	if ( (m_CurX -= GetAnsiPara(0, 1, 1)) < m_Margin.left ) {
+		if ( IsOptEnable(TO_DECAWM) && IsOptEnable(TO_XTMRVW) ) {
+			while ( m_CurX < m_Margin.left ) {
+				m_CurX += m_Margin.right;
+				if ( --m_CurY < m_Margin.top )
+					m_CurY = m_Margin.top;
+			}
+		} else
+			m_CurX = m_Margin.left;
+	}
+
 	LOCATE(m_CurX, m_CurY);
 	fc_POP(ch);
 }
@@ -4642,18 +4973,24 @@ void CTextRam::fc_CNL(DWORD ch)
 {
 	// CSI E	CNL Move the cursor to the next line.
 	int m = GetBottomMargin();
+	if ( m_CurY >= m )
+		m = m_Lines;
 	if ( (m_CurY += GetAnsiPara(0, 1, 1)) >= m )
 		m_CurY = m - 1;
-	LOCATE((IsOptEnable(TO_DECOM) ? GetLeftMargin() : 0), m_CurY);
+//	LOCATE((IsOptEnable(TO_DECOM) ? GetLeftMargin() : 0), m_CurY);
+	LOCATE(GetLeftMargin(), m_CurY);
 	fc_POP(ch);
 }
 void CTextRam::fc_CPL(DWORD ch)
 {
 	// CSI F	CPL Move the cursor to the preceding line.
 	int m = GetTopMargin();
+	if ( m_CurY < m )
+		m = 0;
 	if ( (m_CurY -= GetAnsiPara(0, 1, 1)) < m )
 		m_CurY = m;
-	LOCATE((IsOptEnable(TO_DECOM) ? GetLeftMargin() : 0), m_CurY);
+//	LOCATE((IsOptEnable(TO_DECOM) ? GetLeftMargin() : 0), m_CurY);
+	LOCATE(GetLeftMargin(), m_CurY);
 	fc_POP(ch);
 }
 void CTextRam::fc_CHA(DWORD ch)
@@ -4686,7 +5023,7 @@ void CTextRam::fc_CHT(DWORD ch)
 {
 	// CSI I	CHT Move the active position n tabs forward.
 	for ( int i = GetAnsiPara(0, 1, 0, m_Cols) ; i > 0 ; i-- )
-		TABSET(TAB_COLSNEXT);
+		TABSET(TAB_CHT);
 	fc_POP(ch);
 }
 void CTextRam::fc_ED(DWORD ch)
@@ -4729,7 +5066,7 @@ void CTextRam::fc_IL(DWORD ch)
 {
 	// CSI L	IL Insert Line
 
-	if ( GetMargin(MARCHK_LINES) ) {
+	if ( GetMargin(MARCHK_BOTH) ) {
 		for ( int n = GetAnsiPara(0, 1, 1, m_Lines) ; n > 0 ; n-- )
 			BAKSCROLL(m_Margin.left, m_CurY, m_Margin.right, m_Margin.bottom);
 		//	TABSET(TAB_INSLINE);	with ?
@@ -4740,7 +5077,7 @@ void CTextRam::fc_DL(DWORD ch)
 {
 	// CSI M	DL Delete Line
 
-	if ( GetMargin(MARCHK_LINES) ) {
+	if ( GetMargin(MARCHK_BOTH) ) {
 		for ( int n = GetAnsiPara(0, 1, 1, m_Lines) ; n > 0 ; n-- )
 			FORSCROLL(m_Margin.left, m_CurY, m_Margin.right, m_Margin.bottom);
 		//	TABSET(TAB_DELINE);		with ?
@@ -4906,7 +5243,7 @@ void CTextRam::fc_CBT(DWORD ch)
 	// CSI Z	CBT Move the active position n tabs backward.
 
 	for ( int n = GetAnsiPara(0, 1, 0, m_Cols) ; n > 0 ; n-- )
-		TABSET(TAB_COLSBACK);
+		TABSET(TAB_CBT);
 
 	fc_POP(ch);
 }
@@ -5489,11 +5826,10 @@ void CTextRam::fc_DECSTBM(DWORD ch)
 	} else if ( m_StsMode == (STSMODE_ENABLE | STSMODE_INSCREEN) )
 		return;
 
-	if ( ty >= by )
-		return;
-
-	m_TopY = ty;
-	m_BtmY = by;
+	if ( ty < (by - 1) ) {
+		m_TopY = ty;
+		m_BtmY = by;
+	}
 
 	if ( IsOptEnable(TO_DECOM) )
 		LOCATE(GetLeftMargin(), GetTopMargin());
@@ -5681,7 +6017,7 @@ void CTextRam::fc_XTWOP(DWORD ch)
 			}
 
 			tmp.Format("%s%c%s%s", TstrToMbs(m_RetChar[RC_OSC]), (n == 20 ? 'L':'l'), mbs, TstrToMbs(m_RetChar[RC_ST]));
-			m_pDocument->SocketSend((void *)(LPCSTR)mbs, mbs.GetLength());
+			m_pDocument->SocketSend((void *)(LPCSTR)tmp, tmp.GetLength());
 
 		} else
 			UNGETSTR(_T("%s%c%s"), m_RetChar[RC_OSC], (n == 20 ? 'L':'l'), m_RetChar[RC_ST]);
@@ -5826,7 +6162,7 @@ void CTextRam::fc_DECSEL(DWORD ch)
 		ERABOX(m_CurX, m_CurY, m_Cols, m_CurY + 1, ERM_DECPRO | ERM_SAVEDM);
 		break;
 	case 1:
-		ERABOX(0, m_CurY, m_CurX, m_CurY + 1, ERM_DECPRO | ERM_SAVEDM);
+		ERABOX(0, m_CurY, m_CurX + 1, m_CurY + 1, ERM_DECPRO | ERM_SAVEDM);
 		break;
 	case 2:
 		ERABOX(0, m_CurY, m_Cols, m_CurY + 1, ERM_DECPRO | ERM_SAVEDM);
@@ -6033,10 +6369,8 @@ void CTextRam::fc_DECSRET(DWORD ch)
 		case TO_XTMCSC:		// 40 XTERM Column switch control
 			if ( IsOptEnable(TO_XTMCSC) ) {
 				InitScreen(m_DefCols[IsOptValue(TO_DECCOLM, 1)], m_Lines);
-				if ( !IsOptEnable(TO_DECNCSM) ) {
-					LOCATE(0, 0);
-					ERABOX(0, 0, m_Cols, m_Lines);
-				}
+				if ( !IsOptEnable(TO_DECNCSM) )
+					RESET(RESET_CURSOR | RESET_MARGIN | RESET_RLMARGIN | RESET_CLS);
 			}
 			break;
 		case TO_DECSCNM:	// 5 DECSCNM Screen Mode: Light or Dark Screen
@@ -6068,13 +6402,17 @@ void CTextRam::fc_DECSRET(DWORD ch)
 			break;
 
 		case TO_XTMABUF:	// 47 XTERM alternate buffer
-			if ( IsOptEnable(TO_RLALTBDIS) )
-				break;
-			if ( ch == 'l' )
-				LOADRAM();
-			else if ( ch == 'h' )
-				SAVERAM();
-			ANSIOPT(ch, i);
+			if ( IsOptEnable(TO_RLALTBDIS) ) {
+				if ( ch == 'l' )
+					ALTRAM(0);
+				else if ( ch == 'h' )
+					ALTRAM(1);
+			} else {
+				if ( ch == 'l' )
+					LOADRAM();
+				else if ( ch == 'h' )
+					SAVERAM();
+			}
 			break;
 
 		case TO_DECNKM:		// 66 Numeric Keypad Mode
@@ -6082,32 +6420,32 @@ void CTextRam::fc_DECSRET(DWORD ch)
 			break;
 
 		case TO_XTALTSCR:	// 1047 XTERM Use Alternate/Normal screen buffer
-			if ( IsOptEnable(TO_RLALTBDIS) )
-				break;
-			if ( ch == 'l' )
-				POPRAM();
-			else if ( ch == 'h' )
-				PUSHRAM();
-			ANSIOPT(ch, i);
+			if ( IsOptEnable(TO_RLALTBDIS) ) {
+				if ( ch == 'l' )
+					ALTRAM(0);
+				else if ( ch == 'h' )
+					ALTRAM(1);
+			} else {
+				if ( ch == 'l' )
+					POPRAM();
+				else if ( ch == 'h' )
+					PUSHRAM();
+			}
 			break;
 		case TO_XTSRCUR:	// 1048 XTERM Save/Restore cursor as in DECSC/DECRC
-			if ( ch == 'l' ) {
+			if ( ch == 'l' )
 				LoadParam(&m_SaveParam, FALSE);
-			} else if ( ch == 'h' ) {
+			else if ( ch == 'h' )
 				SaveParam(&m_SaveParam);
-			}
 			break;
 		case TO_XTALTCLR:	// 1049 XTERM Use Alternate/Normal screen buffer, clearing it first
-			if ( IsOptEnable(TO_RLALTBDIS) )
-				break;
 			if ( ch == 'l' )
-				LOADRAM();
+				ALTRAM(0);
 			else if ( ch == 'h' ) {
 				SaveParam(&m_SaveParam);
-				SAVERAM();
-				RESET(RESET_CURSOR | RESET_MARGIN | RESET_ATTR | RESET_CLS);
+				ALTRAM(1);
+				RESET(RESET_CURSOR | RESET_MARGIN | RESET_RLMARGIN | RESET_ATTR | RESET_CLS);
 			}
-			ANSIOPT(ch, i);
 			break;
 
 		case TO_XTMOSREP:	// 9 X10 mouse reporting
@@ -6281,7 +6619,7 @@ void CTextRam::fc_DECRQM(DWORD ch)
 void CTextRam::fc_DECCARA(DWORD ch)
 {
 	// CSI $r	DECCARA Change Attribute in Rectangle
-	int n, i, x, y, sx, ex, ad;
+	int n, i, x, y, sx, ex;
 	CCharCell *vp;
 
 	SetAnsiParaArea(0);
@@ -6293,18 +6631,25 @@ void CTextRam::fc_DECCARA(DWORD ch)
 		if ( y < m_TopY || y >= m_BtmY )
 			continue;
 
-		ad = 1;
 		sx = (m_Exact || y == (int)m_AnsiPara[0] ? (int)m_AnsiPara[1] : 0);
 		ex = (m_Exact || y == (int)m_AnsiPara[2] ? (int)m_AnsiPara[3] : (m_Cols - 1));
+
+		if ( sx > 0 ) {
+			vp = GETVRAM(sx, y);
+			if ( IS_1BYTE(vp[-1].m_Vram.mode) && IS_2BYTE(vp[0].m_Vram.mode) )
+				sx--;
+		}
+		if ( ex < (m_Cols - 1) ) {
+			vp = GETVRAM(ex, y);
+			if ( IS_1BYTE(vp[0].m_Vram.mode) && IS_2BYTE(vp[1].m_Vram.mode) )
+				ex++;
+		}
 
 		for ( x = sx ; x <= ex ; x++ ) {
 			if ( IsOptEnable(TO_DECLRMM) && (x < m_LeftX || x >= m_RightX) )
 				continue;
 
 			vp = GETVRAM(x, y);
-
-			if ( x == ex && IS_2BYTE(vp->m_Vram.mode) && x < (m_Cols - 1) )
-				ad++;
 
 			for ( n = 4 ; n < m_AnsiPara.GetSize() ; n++ ) {
 				if ( m_AnsiPara[n].IsOpt() )
@@ -6320,7 +6665,6 @@ void CTextRam::fc_DECCARA(DWORD ch)
 				case 7: vp->m_Vram.attr |= ATT_REVS;   break;
 				case 8: vp->m_Vram.attr |= ATT_SECRET; break;
 				case 9: vp->m_Vram.attr |= ATT_LINE;   break;
-				case 21: vp->m_Vram.attr |= ATT_DUNDER; break;
 
 				case 10: case 11: case 12:
 				case 13: case 14: case 15:
@@ -6329,6 +6673,7 @@ void CTextRam::fc_DECCARA(DWORD ch)
 					vp->m_Vram.font = GetAnsiPara(n, 0, 0) - 10;
 					break;
 
+				case 21: vp->m_Vram.attr |= ATT_DUNDER; break;
 				case 22: vp->m_Vram.attr &= ~(ATT_BOLD | ATT_HALF); break;
 				case 23: vp->m_Vram.attr &= ~ATT_ITALIC; break;
 				case 24: vp->m_Vram.attr &= ~ATT_UNDER; break;
@@ -6374,11 +6719,12 @@ void CTextRam::fc_DECCARA(DWORD ch)
 					vp->m_Vram.attr &= ~ATT_EXTVRAM;
 					break;
 
+				case 50: vp->m_Vram.attr |= ATT_SUNDER; break;					// 50  sigle underlined
 				case 51: vp->m_Vram.attr |= ATT_FRAME; break;					// 51  framed
 				case 52: vp->m_Vram.attr |= ATT_CIRCLE; break;					// 52  encircled
 				case 53: vp->m_Vram.attr |= ATT_OVER;   break;					// 53  overlined
 				case 54: vp->m_Vram.attr &= ~(ATT_FRAME | ATT_CIRCLE); break;	// 54  not framed, not encircled
-				case 55: vp->m_Vram.attr &= ~ATT_OVER; break;					// 55  not overlined
+				case 55: vp->m_Vram.attr &= ~(ATT_OVER  | ATT_SUNDER); break;	// 55  not overlined, not single underlined
 
 				case 60: vp->m_Vram.attr |= ATT_RSLINE; break;					// 60  ideogram underline or right side line
 				case 61: vp->m_Vram.attr |= ATT_RDLINE; break;					// 61  ideogram double underline or double line on the right side
@@ -6402,7 +6748,7 @@ void CTextRam::fc_DECCARA(DWORD ch)
 			}
 		}
 
-		DISPVRAM(sx, y, ex - sx + ad, 1);
+		DISPVRAM(sx, y, ex - sx + 1, 1);
 	}
 
 	fc_POP(ch);
@@ -6410,7 +6756,7 @@ void CTextRam::fc_DECCARA(DWORD ch)
 void CTextRam::fc_DECRARA(DWORD ch)
 {
 	// CSI $t	DECRARA Reverse Attribute in Rectangle
-	int n, x, y, sx, ex, ad;
+	int n, x, y, sx, ex;
 	CCharCell *vp;
 
 	SetAnsiParaArea(0);
@@ -6422,18 +6768,25 @@ void CTextRam::fc_DECRARA(DWORD ch)
 		if ( y < m_TopY || y >= m_BtmY )
 			continue;
 
-		ad = 1;
 		sx = (m_Exact || y == (int)m_AnsiPara[0] ? (int)m_AnsiPara[1] : 0);
 		ex = (m_Exact || y == (int)m_AnsiPara[2] ? (int)m_AnsiPara[3] : (m_Cols - 1));
+
+		if ( sx > 0 ) {
+			vp = GETVRAM(sx, y);
+			if ( IS_1BYTE(vp[-1].m_Vram.mode) && IS_2BYTE(vp[0].m_Vram.mode) )
+				sx--;
+		}
+		if ( ex < (m_Cols - 1) ) {
+			vp = GETVRAM(ex, y);
+			if ( IS_1BYTE(vp[0].m_Vram.mode) && IS_2BYTE(vp[1].m_Vram.mode) )
+				ex++;
+		}
 
 		for ( x = sx ; x <= ex ; x++ ) {
 			if ( IsOptEnable(TO_DECLRMM) && (x < m_LeftX || x >= m_RightX) )
 				continue;
 
 			vp = GETVRAM(x, y);
-
-			if ( x == ex && IS_2BYTE(vp->m_Vram.mode) && x < (m_Cols - 1) )
-				ad++;
 
 			for ( n = 4 ; n < m_AnsiPara.GetSize() ; n++ ) {
 				if ( m_AnsiPara[n].IsOpt() )
@@ -6453,7 +6806,7 @@ void CTextRam::fc_DECRARA(DWORD ch)
 			}
 		}
 
-		DISPVRAM(sx, y, ex - sx + ad, 1);
+		DISPVRAM(sx, y, ex - sx + 1, 1);
 	}
 
 	fc_POP(ch);
@@ -6852,8 +7205,28 @@ void CTextRam::fc_DECSTR(DWORD ch)
 {
 	// CSI ('!' << 8) | 'p'		DECSTR Soft terminal reset
 
-	RESET(RESET_PAGE | RESET_CURSOR | RESET_MARGIN | RESET_BANK | RESET_ATTR | RESET_OPTION | RESET_MODKEY);
+	RESET(RESET_BANK | RESET_ATTR | RESET_MARGIN);	// RESET_PAGE | RESET_CURSOR | RESET_OPTION | RESET_MODKEY
+	
+	DisableOption(TO_ANSIIRM);
 
+	DisableOption(TO_DECCKM);
+	DisableOption(TO_DECOM);
+	EnableOption(TO_DECAWM);
+	EnableOption(TO_DECTCEM);
+	DisableOption(TO_DECNKM);
+	DisableOption(TO_XTMRVW);
+
+	SetStatusMode(STSMODE_DISABLE);
+
+	m_SaveParam.m_CurX     = 0;
+	m_SaveParam.m_CurY     = 0;
+	m_SaveParam.m_DoWarp   = FALSE;
+	m_SaveParam.m_Exact    = FALSE;
+	m_SaveParam.m_LastChar = 0;
+	m_SaveParam.m_LastFlag = 0;
+	m_SaveParam.m_LastPos  = 0;
+	m_SaveParam.m_bRtoL    = FALSE;
+		
 	fc_POP(ch);
 }
 
@@ -6871,7 +7244,7 @@ void CTextRam::fc_DECSCL(DWORD ch)
 
 	int n;
 
-	RESET(RESET_PAGE | RESET_CURSOR | RESET_CARET | RESET_MARGIN | RESET_TABS | RESET_BANK | RESET_ATTR | RESET_COLOR | RESET_TEK | RESET_SAVE | RESET_MOUSE | RESET_CHAR | RESET_OPTION | RESET_XTOPT | RESET_MODKEY);
+	RESET(RESET_PAGE | RESET_CURSOR | RESET_CARET | RESET_MARGIN | RESET_RLMARGIN | RESET_TABS | RESET_BANK | RESET_ATTR | RESET_COLOR | RESET_TEK | RESET_SAVE | RESET_MOUSE | RESET_CHAR | RESET_OPTION | RESET_XTOPT | RESET_MODKEY | RESET_CLS);
 
 	if ( (n = GetAnsiPara(0, 0, 0)) == 61 )
 		m_VtLevel = n;
@@ -7039,7 +7412,8 @@ void CTextRam::fc_DECIC(DWORD ch)
 
 	if ( GetMargin(MARCHK_BOTH) ) {
 		for ( n = GetAnsiPara(0, 1, 1, m_Cols) ; n > 0 ; n-- ) {
-			for ( i = m_CurY ; m_CurY < m_Margin.bottom ; m_CurY++ )
+			i = m_CurY;
+			for ( m_CurY = m_Margin.top ; m_CurY < m_Margin.bottom ; m_CurY++ )
 				INSCHAR();
 			m_CurY = i;
 		}
@@ -7055,7 +7429,8 @@ void CTextRam::fc_DECDC(DWORD ch)
 
 	if ( GetMargin(MARCHK_BOTH) ) {
 		for ( n = GetAnsiPara(0, 1, 1, m_Cols) ; n > 0 ; n-- ) {
-			for ( i = m_CurY ; m_CurY < m_Margin.bottom ; m_CurY++ )
+			i = m_CurY;
+			for ( m_CurY = m_Margin.top ; m_CurY < m_Margin.bottom ; m_CurY++ )
 				DELCHAR();
 			m_CurY = i;
 		}

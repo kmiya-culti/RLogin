@@ -570,8 +570,8 @@ BEGIN
     CONTROL         "<a href=""http://www.1023world.net/material/gif/"">http://www.1023world.net/material/gif/</a>",IDC_SYSLINK1,
                     "SysLink",WS_TABSTOP,44,178,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,193,60,14,WS_GROUP
-    ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.23.3 (2018/03/30)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    ICON            IDR_MAINFRAME,IDC_STATIC,7,7,18,21
+    LTEXT           "RLogin Version 2.23.4 (2018/04/27)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2018 Culti",IDC_STATIC,44,16,189,8
     LTEXT           "OpenSSL 1.1.0h 27 Mar 2018",IDC_STATIC,44,52,189,8
     LTEXT           "Copyright (c) 1998-2018 The OpenSSL Project",IDC_STATIC,44,61,189,8
@@ -625,7 +625,7 @@ END
 
 IDD_PASSDLG DIALOGEX 0, 0, 210, 129
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "パスワード入力"
+CAPTION "パスワード/パスフレーズ入力"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     COMBOBOX        IDC_HOSTADDR,91,17,105,105,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
@@ -1144,35 +1144,34 @@ BEGIN
     CONTROL         "ssh",IDC_PROTO4,"Button",BS_AUTORADIOBUTTON,141,72,29,10
     CONTROL         "com",IDC_PROTO5,"Button",BS_AUTORADIOBUTTON,183,72,29,10
     CONTROL         "pipe",IDC_PROTO6,"Button",BS_AUTORADIOBUTTON,225,72,29,10
-    COMBOBOX        IDC_SERVERNAME,15,112,150,60,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_GROUP | WS_TABSTOP
-    PUSHBUTTON      "com",IDC_COMCONFIG,173,112,30,14
-    COMBOBOX        IDC_SOCKNO,209,112,46,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_LOGINNAME,15,151,70,62,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    EDITTEXT        IDC_PASSWORD,100,151,70,14,ES_PASSWORD | ES_AUTOHSCROLL
-    PUSHBUTTON      "Terminal(&T)",IDC_TERMCAP,185,133,70,14
-    COMBOBOX        IDC_TERMNAME,185,151,70,59,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "サーバー・ユーザー・パスワード/フレーズの入力",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,173,166,10
-    PUSHBUTTON      "アイコン(&I)",IDC_ICONFILE,185,171,70,14
-    PUSHBUTTON      "編集(&C)",IDC_CHATEDIT,15,203,70,14
-    PUSHBUTTON      "設定(&P)",IDC_PROXYSET,100,203,70,14
-    PUSHBUTTON      "参照(&K)",IDC_KEYFILESELECT,185,202,70,14
+    COMBOBOX        IDC_SERVERNAME,15,114,150,60,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_GROUP | WS_TABSTOP
+    PUSHBUTTON      "設定",IDC_COMCONFIG,173,113,30,14
+    COMBOBOX        IDC_SOCKNO,209,114,46,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_LOGINNAME,15,155,70,62,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_PASSWORD,100,155,70,14,ES_PASSWORD | ES_AUTOHSCROLL
+    COMBOBOX        IDC_TERMNAME,185,155,70,59,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "ホスト・ユーザー・パスワード/フレーズを接続時に入力",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,181,160,10
+    PUSHBUTTON      "環境変数(&T)",IDC_TERMCAP,185,179,70,14
+    CONTROL         "このページ以外のオプションは標準の設定を使用",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,200,160,10
+    PUSHBUTTON      "アイコン(&I)",IDC_ICONFILE,185,198,70,14
+    PUSHBUTTON      "チャットスクリプト(&C)",IDC_CHATEDIT,15,218,70,14
+    PUSHBUTTON      "プロキシ設定(&P)",IDC_PROXYSET,100,218,70,14
+    PUSHBUTTON      "SSH認証鍵(&K)",IDC_KEYFILESELECT,185,217,70,14
     CONTROL         "EUC",IDC_KANJICODE1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,22,255,40,10
     CONTROL         "SJIS",IDC_KANJICODE2,"Button",BS_AUTORADIOBUTTON,84,255,40,10
     CONTROL         "ASCII",IDC_KANJICODE3,"Button",BS_AUTORADIOBUTTON,146,255,40,10
     CONTROL         "UTF-8",IDC_KANJICODE4,"Button",BS_AUTORADIOBUTTON,208,255,40,10
-    CTEXT           "Server Address",IDC_STATIC,15,100,150,8
-    CTEXT           "User Name",IDC_STATIC,15,136,70,8
+    CTEXT           "ホスト名（サーバーIPアドレス）",IDC_STATIC,15,102,150,8
+    CTEXT           "ログインユーザー名",IDC_STATIC,15,143,70,8
     GROUPBOX        "デフォルト文字セット",IDC_STATIC,7,243,256,30
-    CTEXT           "Password/phrase",IDC_STATIC,100,136,70,8
-    CTEXT           "SSH Identity Key",IDC_STATIC,185,191,70,8
-    CTEXT           "Socket Port",IDC_STATIC,209,100,46,8
-    GROUPBOX        "エントリー/コメント",IDC_STATIC,7,7,166,51
+    CTEXT           "ユーザー認証の方式により\nパスワード or パスフレーズ",IDC_STATIC,95,135,80,16
+    CTEXT           "TCPポート",IDC_STATIC,209,102,46,8
+    GROUPBOX        "エントリー(上)/コメント(下)",IDC_STATIC,7,7,166,51
     GROUPBOX        "プロトコル",IDC_STATIC,7,60,256,30
-    GROUPBOX        "オプション",IDC_STATIC,7,92,256,148
-    CTEXT           "Chat Script",IDC_STATIC,15,191,70,8
-    CTEXT           "Proxy Server",IDC_STATIC,100,191,70,8
-    GROUPBOX        "タブ/前接続先",IDC_STATIC,178,7,85,51
-    CONTROL         "このページ以外のオプションは標準の設定を使用します",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,223,240,10
+    GROUPBOX        "ホスト設定",IDC_STATIC,7,92,256,148
+    GROUPBOX        "タブ(上)/前接続先(下)",IDC_STATIC,178,7,85,51
+    CTEXT           "TERM環境変数",IDC_STATIC,185,143,70,8
+    CTEXT           "シリアル",IDC_STATIC,173,102,30,8
 END
 
 IDD_CHATDLG DIALOGEX 0, 0, 299, 247
@@ -1965,8 +1964,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,23,3,0
- PRODUCTVERSION 2,23,3,0
+ FILEVERSION 2,23,4,0
+ PRODUCTVERSION 2,23,4,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1983,12 +1982,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.23.3.0"
+            VALUE "FileVersion", "2.23.4.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2017 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.23.3.0"
+            VALUE "ProductVersion", "2.23.4.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -4150,7 +4149,7 @@ BEGIN
     IDE_RESVERSIONMISMATCH  "リソースファイルのバージョンが違います\n一部のリソースが無効化されます\n読み込みを続行しますか？"
     IDE_ENTRYLOADERROR      "サーバーエントリーの読み込みに失敗しました\nレジストリ／プロファイルが壊れている可能性があります\nこのエントリーを削除しますか？"
     IDE_KEYMACTOOLONG       "キー操作の記録が大きくなっています。\n記録を続けますか？"
-    IDE_PAGEANTKEYEDIT      "Pageantのエントリーは、編集や保存など出来ません"
+    IDE_PAGEANTKEYEDIT      "Ageantのエントリーは、編集や保存など出来ません"
 END
 
 STRINGTABLE
@@ -4491,6 +4490,7 @@ BEGIN
     IDT_EXTOPT_LIST20       "再接続を確認\t接続断で終了処理\t接続が切れた場合に再接続を確認する"
     IDT_EXTOPT_LIST21       "末尾の改行を削除\t改行を確認\tペースト時に末尾の改行コードを削除します"
     IDT_EXTOPT_LIST22       "積極的に更新\t通常の画面更新\tウィンドウの描画更新を積極的に行う"
+    IDT_EXTOPT_LIST23       "SOS/PM/APCを保存\t保存しない\tSOS/PM/APCのデータをファイルに保存する"
 END
 
 STRINGTABLE

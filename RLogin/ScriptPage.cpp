@@ -114,7 +114,10 @@ void CScriptPage::OnBnClickedScriptSel()
 
 	if ( m_ScriptFile.IsEmpty() )
 		file.Format(_T("%s\\%s.txt"), ((CRLoginApp *)AfxGetApp())->m_BaseDir, m_pSheet->m_pEntry->m_EntryName);
+	else
+		file = m_ScriptFile;
 
+	CRLoginDoc::EnvironPath(file);
 	CFileDialog dlg(FALSE, _T("txt"), file, 0, CStringLoad(IDS_FILEDLGSCRIPT), this);
 
 	if ( dlg.DoModal() != IDOK )

@@ -149,9 +149,13 @@ void CBackPage::OnUpdateEdit()
 }
 void CBackPage::OnBitMapFileSel() 
 {
-	UpdateData(TRUE);
+	CString file;
 
-	CFileDialog dlg(TRUE, _T("jpg"), m_BitMapFile, OFN_HIDEREADONLY, CStringLoad(IDS_FILEDLGIMAGE), this);
+	UpdateData(TRUE);
+	file = m_BitMapFile;
+
+	CRLoginDoc::EnvironPath(file);
+	CFileDialog dlg(TRUE, _T("jpg"), file, OFN_HIDEREADONLY, CStringLoad(IDS_FILEDLGIMAGE), this);
 
 	if ( dlg.DoModal() != IDOK )
 		return;

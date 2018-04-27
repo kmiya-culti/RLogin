@@ -57,6 +57,7 @@ public:
 	CString m_Term;
 	CString m_Name;
 	CString m_Idkey;
+	CString m_Path;
 	int m_InUse;
 	BOOL m_InPane;
 	int m_AfterId;

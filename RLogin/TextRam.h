@@ -153,11 +153,22 @@
 #define	TO_DECNCSM		95			// Set/Reset No Clearing Screen On Column Change
 #define	TO_DECECM		117			// SGR space color disable
 // ANSI Screen Option	0-99(200-299)
+#define	TO_ANSIGATM		(1+200)		// GATM Guarded area transfer
 #define	TO_ANSIKAM		(2+200)		// KAM Set Keyboard Action Mode
 #define	TO_ANSIIRM		(4+200)		// IRM Insertion replacement mode
+#define	TO_ANSISRTM		(5+200)		// SRTM Status reporting transfer
 #define	TO_ANSIERM		(6+200)		// ERM Erasure mode
+#define	TO_ANSIVEM		(7+200)		// VEM Vertical editing
+#define	TO_ANSIHEM		(10+200)	// HEM Horiz editing
+#define	TO_ANSIPUM		(11+200)	// PUM Positioning unit
 #define	TO_ANSISRM		(12+200)	// SRM Set Send/Receive mode (Local echo off)
+#define	TO_ANSIFEAM		(13+200)	// FEAM Format effector action
+#define	TO_ANSIFETM		(14+200)	// FETM Format effector transfer
+#define	TO_ANSIMATM		(15+200)	// MATM Multiple area transfer
+#define	TO_ANSITTM		(16+200)	// TTM Transfer termination
+#define	TO_ANSISATM		(17+200)	// SATM Selected area transfer
 #define	TO_ANSITSM		(18+200)	// ISM Tabulation stop mode
+#define	TO_ANSIEBM		(19+200)	// EBM Editing boundary
 #define	TO_ANSILNM		(20+200)	// LNM Line feed/new line mode
 // XTerm Option			1000-1079(300-379)
 #define	TO_XTNOMTRK		(1000-700)	// X11 normal mouse tracking
@@ -264,6 +275,7 @@
 #define	TO_TELKEEPAL	1480		// KeepAliveパケットの送信間隔(sec)
 #define	TO_SSHSFTPORY	1481		// 接続時にSFTPを起動する
 #define	TO_RLTRSLIMIT	1482		// TCP/IPの帯域制限を行う
+#define	TO_RLDOSAVE		1483		// SOS/PM/APCでファイルに保存する
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -326,12 +338,13 @@
 #define	RESET_CARET		0x040000
 #define	RESET_STATUS	0x080000
 #define	RESET_TRANSMIT	0x100000
+#define	RESET_RLMARGIN	0x002000
 
 						// WithOut RESET_CLS RESET_HISTORY RESET_SIZE RESET_STATUS RESET_TRANSMIT
 #define	RESET_ALL		(RESET_CURSOR | RESET_TABS | RESET_BANK | RESET_ATTR | RESET_COLOR | \
 						 RESET_TEK | RESET_SAVE | RESET_MOUSE | RESET_CHAR | RESET_OPTION | \
 						 RESET_PAGE | RESET_MARGIN | RESET_IDS | RESET_MODKEY | RESET_XTOPT | \
-						 RESET_CARET | RESET_STATUS)
+						 RESET_CARET | RESET_STATUS | RESET_RLMARGIN)
 
 #define	RC_DCS			0
 #define	RC_SOS			1
@@ -498,6 +511,7 @@ enum ETabSetNum {
 		TAB_DELINE,		TAB_INSLINE,
 		TAB_ALLCLR,
 		TAB_COLSNEXT,	TAB_COLSBACK,
+		TAB_CHT,		TAB_CBT,
 		TAB_LINENEXT,	TAB_LINEBACK,
 };
 
@@ -819,6 +833,7 @@ typedef struct _SAVEPARAM {
 	WORD m_BankTab[5][4];
 
 	BOOL m_Decom;
+	BOOL m_Decawm;
 	DWORD m_AnsiOpt[16];
 
 	BYTE m_TabMap[LINE_MAX + 1][COLS_MAX / 8 + 1];
@@ -1053,6 +1068,8 @@ public:
 
 	int m_Page;
 	CPtrArray m_PageTab;
+	int m_AltIdx;
+	CTextSave *m_pAltSave[2];
 
 	CTextSave *m_pTextSave;
 	CTextSave *m_pTextStack;
@@ -1081,7 +1098,6 @@ public:
 	BOOL m_LogTimeFlag;
 	int m_LogCurY;
 	int m_TitleMode;
-	BOOL m_FileSaveFlag;
 	DWORD m_XtOptFlag;
 	int m_XtMosPointMode;
 	CStringArrayExt m_TitleStack;
@@ -1271,6 +1287,7 @@ public:
 	void LOADRAM();
 	void PUSHRAM();
 	void POPRAM();
+	void ALTRAM(int idx);
 	void SETPAGE(int page);
 	CTextSave *GETPAGE(int page);
 	void COPY(int sp, int sx, int sy, int ex, int ey, int dp, int dx, int dy);

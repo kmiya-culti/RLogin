@@ -206,41 +206,45 @@ public:
 	~CCompress();
 };
 
-#define	IDKEY_NONE		00000
-#define	IDKEY_RSA1		00001
-#define	IDKEY_RSA2		00002
-#define	IDKEY_DSA2		00004
-#define	IDKEY_ED25519	00010
-#define	IDKEY_XMSS		00020
-#define	IDKEY_ECDSA		00040
+#define	IDKEY_NONE					00000
+#define	IDKEY_RSA1					00001
+#define	IDKEY_RSA2					00002
+#define	IDKEY_DSA2					00004
+#define	IDKEY_ED25519				00010
+#define	IDKEY_XMSS					00020
+#define	IDKEY_ECDSA					00040
 
-#define	IDKEY_DSA2EX	00104		// BIGNUM2 fix
-#define	IDKEY_ECDSAEX	00140		// BIGNUM2 fix
+#define	IDKEY_DSA2EX				00104		// BIGNUM2 fix
+#define	IDKEY_ECDSAEX				00140		// BIGNUM2 fix
 
-#define	IDKEY_CERTV00	00200
-#define	IDKEY_CERTV01	00400
-#define	IDKEY_CERTX509	01000
+#define	IDKEY_CERTV00				00200
+#define	IDKEY_CERTV01				00400
+#define	IDKEY_CERTX509				01000
 
-#define	IDKEY_TYPE_MASK	00077
-#define	IDKEY_CERT_MASK	01600
+#define	IDKEY_TYPE_MASK				00077
+#define	IDKEY_CERT_MASK				01600
 
-#define	SSHFP_KEY_RESERVED	0
-#define	SSHFP_KEY_RSA		1
-#define	SSHFP_KEY_DSA		2
-#define	SSHFP_KEY_ECDSA		3
-#define	SSHFP_KEY_ED25519	4 
-#define	SSHFP_KEY_XMSS		5
+#define	IDKEY_AGEANT_NONE			0
+#define	IDKEY_AGEANT_PUTTY			1
+#define	IDKEY_AGEANT_WINSSH			2
 
-#define	SSHFP_HASH_RESERVED	0
-#define	SSHFP_HASH_SHA1		1
-#define	SSHFP_HASH_SHA256	2
+#define	SSHFP_KEY_RESERVED			0
+#define	SSHFP_KEY_RSA				1
+#define	SSHFP_KEY_DSA				2
+#define	SSHFP_KEY_ECDSA				3
+#define	SSHFP_KEY_ED25519			4 
+#define	SSHFP_KEY_XMSS				5
 
-#define	SSHFP_DIGEST_MD5		0
-#define	SSHFP_DIGEST_RIPEMD160	1
-#define	SSHFP_DIGEST_SHA1		2
-#define	SSHFP_DIGEST_SHA256		3
-#define	SSHFP_DIGEST_SHA384		4
-#define	SSHFP_DIGEST_SHA512		5
+#define	SSHFP_HASH_RESERVED			0
+#define	SSHFP_HASH_SHA1				1
+#define	SSHFP_HASH_SHA256			2
+
+#define	SSHFP_DIGEST_MD5			0
+#define	SSHFP_DIGEST_RIPEMD160		1
+#define	SSHFP_DIGEST_SHA1			2
+#define	SSHFP_DIGEST_SHA256			3
+#define	SSHFP_DIGEST_SHA384			4
+#define	SSHFP_DIGEST_SHA512			5
 
 #define	SSHFP_FORMAT_HEX			0
 #define	SSHFP_FORMAT_BASE64			1
@@ -248,12 +252,12 @@ public:
 #define	SSHFP_FORMAT_RANDOMART		3
 #define	SSHFP_FORMAT_SIMPLE			4
 
-#define DNS_RDATACLASS_IN	1
-#define DNS_RDATATYPE_SSHFP	44
+#define DNS_RDATACLASS_IN			1
+#define DNS_RDATATYPE_SSHFP			44
 
-#define ED25519_SECBYTES	64
-#define ED25519_PUBBYTES	32
-#define	ED25519_SIGBYTES	64
+#define ED25519_SECBYTES			64
+#define ED25519_PUBBYTES			32
+#define	ED25519_SIGBYTES			64
 
 //#define	USE_X509
 
@@ -321,7 +325,7 @@ public:
 	BOOL m_bSecInit;
 	CString m_SecBlob;
 	BOOL m_bHostPass;
-	BOOL m_bPageant;
+	int m_AgeantType;
 	CString m_FilePath;
 
 	int GetIndexNid(int nid);
@@ -631,7 +635,7 @@ public:
 	CString m_Path;
 	CString m_File;
 	struct _stati64 m_Stat;
-	int m_Fd;
+	FILE *m_Fd;
 	LONGLONG m_Size;
 	int m_Mode;
 	class CProgDlg m_ProgDlg;
@@ -644,6 +648,43 @@ public:
 
 	CRcpUpload();
 	~CRcpUpload();
+};
+
+class CRcpDownload : public CFilter
+{
+public:
+	class Cssh *m_pSsh;
+	int m_Mode;
+	FILE *m_Fd;
+
+	int m_Req;
+	int m_Flag;
+	LONGLONG m_Size;
+	CStringA m_StrMsg;
+	__time64_t m_atime;
+	__time64_t m_mtime;
+	CString m_PathName;
+
+	LONGLONG m_ReadSize;
+	CStringList m_DirPath;
+	BOOL m_bHaveErr;
+	clock_t m_StartClock;
+
+	int m_MaxCols;
+	int m_DivCols;
+
+	void DispMsg(LPCTSTR msg);
+	void DispInit();
+	void DispPos();
+
+	void PutOkMsg();
+	void PutErrorMsg(LPCSTR msg);
+
+	void OnConnect();
+	void OnReceive(const void *lpBuf, int nBufLen);
+
+	CRcpDownload();
+	~CRcpDownload();
 };
 
 #define	DHMODE_GROUP_1		0
@@ -897,6 +938,7 @@ public:
 	void ChannelPolling(int id);
 	void ChannelAccept(int id, SOCKET hand);
 	void OpenRcpUpload(LPCTSTR file);
+	void OpenRcpDownload(LPCTSTR file);
 };
 
 //////////////////////////////////////////////////////////////////////

@@ -55,6 +55,7 @@
 #define	PROTO_PIPE			5
 
 #define	DELAY_ECHO_MSEC		1000
+#define	DELAY_CLOSE_SOCKET	3000
 
 #define	LOGDEBUG_NONE		0
 #define	LOGDEBUG_RECV		1
@@ -101,12 +102,14 @@ public:
 	class CScript *m_pScript;
 	BOOL m_InPane;
 	int m_AfterId;
+	CString m_CmdsPath;
 	int m_LogSendRecv;
 	CString m_ScriptFile;
 	BOOL m_bReqDlg;
 	CString m_CmdLine;
 	CString m_TitleName;
 	BOOL m_bCastLock;
+	BOOL m_bExitPause;
 	time_t m_ConnectTime;
 	time_t m_CloseTime;
 	class CStatusDlg *m_pStatusWnd;
@@ -124,9 +127,9 @@ public:
 	inline void SetIndex(int mode, CStringIndex &index) { 	if ( mode ) SaveIndex(m_ServerEntry, m_TextRam, m_KeyTab, m_KeyMac, m_ParamTab, index); else LoadIndex(m_ServerEntry, m_TextRam, m_KeyTab, m_KeyMac, m_ParamTab, index); }
 	void SetMenu(CMenu *pMenu);
 
-	BOOL EntryText(CString &name);
-	void ScriptText(LPCWSTR str, LPCWSTR match, CStringW &tmp);
-	void EnvironText(CString &str);
+	static void EnvironText(CString &env, CString &str);
+	static void EnvironPath(CString &path);
+	BOOL EntryText(CString &name, LPCWSTR match = NULL);
 
 	BOOL ScriptInit();
 	void SendBuffer(CBuffer &buf);

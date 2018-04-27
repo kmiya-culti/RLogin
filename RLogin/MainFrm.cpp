@@ -757,6 +757,9 @@ void CTimerObject::CallObject()
 	case TIMEREVENT_TEXTRAM:
 		((CTextRam *)(m_pObject))->OnTimer(m_Id);
 		break;
+	case TIMEREVENT_CLOSE:
+		((CRLoginDoc *)(m_pObject))->OnSocketClose();
+		break;
 	}
 }
 
@@ -1181,8 +1184,57 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 
 /////////////////////////////////////////////////////////////////////////////
 
-#define AGENT_COPYDATA_ID 0x804e50ba   /* random goop */
-#define AGENT_MAX_MSGLEN  8192
+#define AGENT_PIPE_ID		L"\\\\.\\pipe\\openssh-ssh-agent"
+#define AGENT_COPYDATA_ID	0x804e50ba   /* random goop */
+#define AGENT_MAX_MSGLEN	(16 * 1024)
+
+BOOL CMainFrame::WageantQuery(CBuffer *pInBuf, CBuffer *pOutBuf)
+{
+	int n, len;
+	HANDLE hPipe;
+	BOOL bRet = FALSE;
+	LPBYTE pBuffer;
+	DWORD BufLen;
+	DWORD writeByte;
+	BYTE readBuffer[4096];
+	DWORD readByte = 0;
+
+	if ( (hPipe = CreateFile(AGENT_PIPE_ID, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE )
+		return bRet;
+
+	pBuffer = pInBuf->GetPtr();
+	BufLen  = pInBuf->GetSize();
+
+	while ( BufLen > 0 ) {
+		if ( !WriteFile(hPipe, pBuffer, BufLen, &writeByte, NULL) )
+			goto ENDOFRET;
+		pBuffer += writeByte;
+		BufLen  -= writeByte;
+	}
+
+	pOutBuf->Clear();
+
+	if ( ReadFile(hPipe, readBuffer, 4, &readByte, NULL) && readByte == 4 ) {
+		len = (readBuffer[0] << 24) | (readBuffer[1] << 16) | (readBuffer[2] << 8) | (readBuffer[3]);
+		if ( len > 0 && len < AGENT_MAX_MSGLEN ) {
+			for ( n = 0 ; n < len ; ) {
+				if ( !ReadFile(hPipe, readBuffer, 4096, &readByte, NULL) ) {
+					pOutBuf->Clear();
+					break;
+				}
+				pOutBuf->Apend(readBuffer, readByte);
+				n += readByte;
+			}
+		}
+	}
+
+	if ( pOutBuf->GetSize() > 0 )
+		bRet = TRUE;
+
+ENDOFRET:
+	CloseHandle(hPipe);
+	return bRet;
+}
 
 BOOL CMainFrame::PageantQuery(CBuffer *pInBuf, CBuffer *pOutBuf)
 {
@@ -1229,9 +1281,11 @@ BOOL CMainFrame::PageantQuery(CBuffer *pInBuf, CBuffer *pOutBuf)
 
 	return TRUE;
 }
-BOOL CMainFrame::PageantInit()
+
+BOOL CMainFrame::AgeantInit()
 {
-	int n, i;
+	int n, i, mx;
+	int type;
 	int count = 0;
 	CBuffer in, out;
 	CIdKey key;
@@ -1239,53 +1293,61 @@ BOOL CMainFrame::PageantInit()
 	CStringA name;
 
 	for ( i = 0 ; i < m_IdKeyTab.GetSize() ; i++ ) {
-		if ( m_IdKeyTab[i].m_bPageant )
+		if ( m_IdKeyTab[i].m_AgeantType != IDKEY_AGEANT_NONE )
 			m_IdKeyTab[i].m_bSecInit = FALSE;
 	}
 
 	in.Put32Bit(1);
 	in.Put8Bit(SSH_AGENTC_REQUEST_IDENTITIES);
 
-	if ( !PageantQuery(&in, &out) )
-		return FALSE;
+	for ( type = IDKEY_AGEANT_PUTTY ; type <= IDKEY_AGEANT_WINSSH ;  type++ ) {
 
-	if ( out.GetSize() < 5 || out.Get8Bit() != SSH_AGENT_IDENTITIES_ANSWER )
-		return FALSE;
-
-	try {
-		count = out.Get32Bit();
-		for ( n = 0 ; n < count ; n++ ) {
-			out.GetBuf(&blob);
-			out.GetStr(name);
-			key.m_Name = name;
-			key.m_bPageant = TRUE;
-			key.m_bSecInit = TRUE;
-			if ( !key.GetBlob(&blob) )
+		if ( type == IDKEY_AGEANT_PUTTY ) {
+			if ( !PageantQuery(&in, &out) )
 				continue;
-
-			for ( i = 0 ; i < m_IdKeyTab.GetSize() ; i++ ) {
-				if ( m_IdKeyTab[i].m_bPageant && m_IdKeyTab[i].ComperePublic(&key) == 0 ) {
-					m_IdKeyTab[i].m_bSecInit = TRUE;
-					break;
-				}
-			}
-
-			if ( i >= m_IdKeyTab.GetSize() )
-				m_IdKeyTab.AddEntry(key, FALSE);
+		} else if ( type == IDKEY_AGEANT_WINSSH ) {
+			if ( !WageantQuery(&in, &out) )
+				continue;
 		}
 
+		if ( out.GetSize() < 5 || out.Get8Bit() != SSH_AGENT_IDENTITIES_ANSWER )
+			continue;
+
+		try {
+			mx = out.Get32Bit();
+			for ( n = 0 ; n < mx ; n++ ) {
+				out.GetBuf(&blob);
+				out.GetStr(name);
+				key.m_Name = name;
+				key.m_bSecInit = TRUE;
+				key.m_AgeantType = type;
+				if ( !key.GetBlob(&blob) )
+					continue;
+
+				for ( i = 0 ; i < m_IdKeyTab.GetSize() ; i++ ) {
+					if ( m_IdKeyTab[i].m_AgeantType == type && m_IdKeyTab[i].ComperePublic(&key) == 0 ) {
+						m_IdKeyTab[i].m_bSecInit = TRUE;
+						count++;
+						break;
+					}
+				}
+
+				if ( i >= m_IdKeyTab.GetSize() ) {
+					m_IdKeyTab.AddEntry(key, FALSE);
+					count++;
+				}
+			}
 #ifdef	DEBUG
-	} catch(LPCTSTR msg) {
-		TRACE(_T("PageantInit Error %s '%s'\n"), MbsToTstr(name), msg);
-		return FALSE;
+		} catch(LPCTSTR msg) {
+			TRACE(_T("AgeantInit Error %s '%s'\n"), MbsToTstr(name), msg);
 #endif
-	} catch(...) {
-		return FALSE;
+		} catch(...) {
+		}
 	}
 
-	return (count <= 0 ? FALSE : TRUE);
+	return (count > 0 ? TRUE : FALSE);
 }
-BOOL CMainFrame::PageantSign(CBuffer *blob, CBuffer *sign, LPBYTE buf, int len)
+BOOL CMainFrame::AgeantSign(int type, CBuffer *blob, CBuffer *sign, LPBYTE buf, int len)
 {
 	CBuffer in, out, work;
 
@@ -1296,7 +1358,13 @@ BOOL CMainFrame::PageantSign(CBuffer *blob, CBuffer *sign, LPBYTE buf, int len)
 	
 	in.PutBuf(work.GetPtr(), work.GetSize());
 
-	if ( !PageantQuery(&in, &out) )
+	if ( type == IDKEY_AGEANT_PUTTY ) {
+		if ( !PageantQuery(&in, &out) )
+			return FALSE;
+	} else if ( type == IDKEY_AGEANT_WINSSH ) {
+		if ( !WageantQuery(&in, &out) )
+			return FALSE;
+	} else
 		return FALSE;
 
 	if ( out.GetSize() < 5 || out.Get8Bit() != SSH_AGENT_SIGN_RESPONSE )

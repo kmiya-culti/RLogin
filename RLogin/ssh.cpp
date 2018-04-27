@@ -146,14 +146,16 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 		//CExtSocket::OnReceiveCallBack((void *)(LPCSTR)tmp, tmp.GetLength(), 0);
 
 		if ( !m_pDocument->m_ServerEntry.m_IdkeyName.IsEmpty() ) {
-			if ( !IdKey.LoadPrivateKey(m_pDocument->m_ServerEntry.m_IdkeyName, m_pDocument->m_ServerEntry.m_PassName) ) {
+			CString fileName(m_pDocument->m_ServerEntry.m_IdkeyName);
+			m_pDocument->EntryText(fileName);
+			if ( !IdKey.LoadPrivateKey(fileName, m_pDocument->m_ServerEntry.m_PassName) ) {
 				CIdKeyFileDlg dlg;
 				dlg.m_OpenMode  = 1;
 				dlg.m_Title.LoadString(IDS_SSH_PASS_TITLE);		// = _T("SSH鍵ファイルの読み込み");
 				dlg.m_Message.LoadString(IDS_SSH_PASS_MSG);		// = _T("作成時に設定したパスフレーズを入力してください");
-				dlg.m_IdkeyFile = m_pDocument->m_ServerEntry.m_IdkeyName;
+				dlg.m_IdkeyFile = fileName;
 				if ( dlg.DoModal() != IDOK ) {
-					m_pDocument->m_ServerEntry.m_IdkeyName.Empty();
+					//m_pDocument->m_ServerEntry.m_IdkeyName.Empty();
 					return FALSE;
 				}
 				if ( !IdKey.LoadPrivateKey(dlg.m_IdkeyFile, dlg.m_PassName) ) {
@@ -169,7 +171,7 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 			m_IdKeyTab.Add(IdKey);
 		}
 
-		if ( pMain->PageantInit() && !m_pDocument->m_ParamTab.m_bInitPageant && AfxMessageBox(IDS_ADDPAGEANTENTRY, MB_ICONQUESTION | MB_YESNO) == IDYES ) {
+		if ( pMain->AgeantInit() && !m_pDocument->m_ParamTab.m_bInitPageant && AfxMessageBox(IDS_ADDPAGEANTENTRY, MB_ICONQUESTION | MB_YESNO) == IDYES ) {
 			CIdkeySelDLg dlg;
 
 			dlg.m_pParamTab = &(m_pDocument->m_ParamTab);
@@ -183,7 +185,7 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 		}
 
 		for ( n = 0 ; n < m_pDocument->m_ParamTab.m_IdKeyList.GetSize() ; n++ ) {
-			if ( (pKey = pMain->m_IdKeyTab.GetUid(m_pDocument->m_ParamTab.m_IdKeyList.GetVal(n))) == NULL || pKey->m_Type == IDKEY_NONE || (pKey->m_bPageant && !pKey->m_bSecInit) )
+			if ( (pKey = pMain->m_IdKeyTab.GetUid(m_pDocument->m_ParamTab.m_IdKeyList.GetVal(n))) == NULL || pKey->m_Type == IDKEY_NONE || (pKey->m_AgeantType != IDKEY_AGEANT_NONE && !pKey->m_bSecInit) )
 				continue;
 
 			list[pKey->CompPass(m_pDocument->m_ServerEntry.m_PassName) == 0 ? 0 : 1].Add(m_pDocument->m_ParamTab.m_IdKeyList.GetVal(n));
@@ -197,7 +199,7 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 
 		if ( m_pDocument->m_ParamTab.m_RsaExt != 0 ) {
 			for ( n = 0 ; n < m_IdKeyTab.GetSize() ; n++ ) {
-				if ( (m_IdKeyTab[n].m_Type & IDKEY_TYPE_MASK) != IDKEY_RSA2 || m_IdKeyTab[n].m_RsaNid != NID_sha1 || m_IdKeyTab[n].m_bPageant )
+				if ( (m_IdKeyTab[n].m_Type & IDKEY_TYPE_MASK) != IDKEY_RSA2 || m_IdKeyTab[n].m_RsaNid != NID_sha1 || m_IdKeyTab[n].m_AgeantType != IDKEY_AGEANT_NONE )
 					continue;
 
 				IdKey = m_IdKeyTab[n];
@@ -1802,6 +1804,23 @@ void Cssh::OpenRcpUpload(LPCTSTR file)
 		m_pListFilter = &m_RcpCmd;
 	}
 }
+void Cssh::OpenRcpDownload(LPCTSTR file)
+{
+	int id;
+	CString cmd;
+
+	CRcpDownload *pRcpDown = new CRcpDownload;
+	pRcpDown->m_pSsh = this;
+	cmd.Format(_T("scp -p -r -f %s"), file);
+	pRcpDown->m_Cmd = m_pDocument->RemoteStr(UniToTstr(cmd));
+
+	if ( (id = SendMsgChannelOpen((-1), "session")) >= 0 ) {
+		((CChannel *)m_pChan[id])->m_pFilter = pRcpDown;
+		pRcpDown->m_pChan = (CChannel *)m_pChan[id];
+	} else
+		delete pRcpDown;
+}
+
 void Cssh::SendMsgKexInit()
 {
 	CBuffer tmp(-1);
@@ -3069,14 +3088,29 @@ int Cssh::SSH2MsgNewKeys(CBuffer *bp)
 }
 int Cssh::SSH2MsgExtInfo(CBuffer *bp)
 {
+	//	RFC 8308
+	//	byte       SSH_MSG_EXT_INFO (value 7)
+	//
+	//	uint32     nr-extensions
+	//	repeat the following 2 fields "nr-extensions" times:
+	//		string   extension-name
+	//		string   extension-value (binary)
+
 	//	string      "server-sig-algs"
 	//	name-list   signature-algorithms-accepted
-	//
+
+	//	string         "delay-compression"
+	//	string:
+	//		name-list    compression_algorithms_client_to_server
+	//		name-list    compression_algorithms_server_to_client
+	//			"foo,bar" "bar,baz"
+	//			00000016 00000007 666f6f2c626172 00000007 6261722c62617a
+
 	//	string      "no-flow-control"
-	//	string      (empty)
-	//
-	//	string      "accept-channels"
-	//	name-list   channel-types-accepted
+	//	string      choice of: "p" for preferred | "s" for supported
+
+	//	string      "elevation"
+	//	string      choice of: "y" | "n" | "d"
 
 	int n, count;
 	CStringA name, value;
@@ -3084,7 +3118,19 @@ int Cssh::SSH2MsgExtInfo(CBuffer *bp)
 	count = bp->Get32Bit();
 	for ( n = 0 ; n < count ; n++ ) {
 		bp->GetStr(name);
-		bp->GetStr(value);
+		if ( strcmp(name, "delay-compression") == 0 ) {
+			CBuffer tmp;
+			CStringA str;
+			bp->GetBuf(&tmp);
+			while ( tmp.GetSize() > 4 ) {
+				tmp.GetStr(str);
+				if ( !value.IsEmpty() )
+					value += ';';
+				value += str;
+			}
+		} else
+			bp->GetStr(value);
+
 		m_ExtInfo[MbsToTstr(name)] = MbsToTstr(value);
 	}
 
@@ -3804,6 +3850,10 @@ int Cssh::SSH2MsgGlobalRequest(CBuffer *bp)
 	} else if ( str.Compare("hostkeys-00@openssh.com") == 0 ) {
 		success = SSH2MsgGlobalHostKeys(bp);
 
+	} else if ( str.Compare("elevation") == 0 ) {	// RFC 8308
+		success = TRUE;
+		bp->Get8Bit();	// boolean     elevation performed
+
 #ifdef	DEBUG
 	} else if ( !str.IsEmpty() ) {
 		msg.Format(_T("Get Msg Global Request '%s'"), m_pDocument->LocalStr(str));
@@ -3981,6 +4031,10 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 		if ( m_DecCmp.m_Mode == 4 )
 			m_DecCmp.Init(NULL, MODE_DEC, COMPLEVEL);
 		m_SSH2Status |= SSH2_STAT_HAVELOGIN;
+		if ( !m_pDocument->m_CmdsPath.IsEmpty() ) {
+			OpenRcpDownload(m_pDocument->m_CmdsPath);
+			break;
+		}
 		if ( (m_SSH2Status & SSH2_STAT_HAVEPFWD) == 0 ) {
 			m_SSH2Status |= SSH2_STAT_HAVEPFWD;
 			PortForward();

@@ -14,6 +14,7 @@
 #include "ssh1.h"
 #include "ssh2.h"
 
+#include <stdarg.h>
 #include <io.h>
 #include <fcntl.h>
 #include <direct.h>
@@ -852,7 +853,7 @@ void CAgent::ReceiveBuffer(CBuffer *bp)
 CRcpUpload::CRcpUpload()
 {
 	m_Type = SSHFT_RCP;
-	m_Fd   = (-1);
+	m_Fd   = NULL;
 	m_Mode = 0;
 }
 CRcpUpload::~CRcpUpload()
@@ -863,9 +864,9 @@ void CRcpUpload::Close()
 	if ( m_ProgDlg.m_hWnd != NULL )
 		m_ProgDlg.DestroyWindow();
 
-	if ( m_Fd != (-1) )
-		_close(m_Fd);
-	m_Fd = (-1);
+	if ( m_Fd != NULL )
+		fclose(m_Fd);
+	m_Fd = NULL;
 
 	CFilter *fp;
 	if ( (fp = m_pSsh->m_pListFilter) == this )
@@ -899,7 +900,7 @@ void CRcpUpload::OnSendEmpty()
 	}
 
 	while ( m_pChan->m_Output.GetSize() < (CHAN_SES_PACKET_DEFAULT * 4) ) {
-		if ( (n = _read(m_Fd, tmp, 4096)) <= 0 )
+		if ( (n = (int)fread(tmp, 1, 4096, m_Fd)) <= 0 )
 			break;
 
 		m_pChan->m_ReadByte += n;
@@ -980,11 +981,343 @@ void CRcpUpload::Destroy()
 	if ( _tstati64(m_Path, &m_Stat) || (m_Stat.st_mode & _S_IFMT) == _S_IFDIR )
 		return;
 
-	if ( (m_Fd = _topen(m_Path, _O_BINARY | _O_RDONLY)) == (-1) )
+	if ( (m_Fd = _tfopen(m_Path, _T("rb"))) == NULL )
 		return;
 
 	fmt.SetMaps(m_pSsh->m_pDocument->m_TextRam.m_DropFileCmd[5]);
 	fmt.CommandLine(TstrToUni(m_File), cmd);
 	m_Cmd = m_pSsh->m_pDocument->RemoteStr(UniToTstr(cmd));
 	m_pSsh->OpenRcpUpload(NULL);
+}
+
+//////////////////////////////////////////////////////////////////////
+// CRcpDownload
+//////////////////////////////////////////////////////////////////////
+//
+//	ssh server --> rcp
+//	SSH2MsgChannelData (SSH2_MSG_CHANNEL_DATA or SSH2_MSG_CHANNEL_EXTENDED_DATA)
+//		CChannel::Send
+//			CRcpDownload::OnReceive
+//	CChannel::GetSendSize
+//		CFilter::GetSendSize (zero)
+//
+//	rcp --> ssh server
+//	CFilter::Send (m_Output.Apend)
+//		Cssh::SendMsgChannelData (m_Output.Consume)
+//	CChannel::GetRecvSize
+//		CFilter::GetRecvSize (m_Output.GetSize)
+
+CRcpDownload::CRcpDownload()
+{
+	m_Type = SSHFT_RCP;
+	m_Mode = 0;
+	m_Fd   = NULL;
+	m_atime = m_mtime = 0;
+}
+CRcpDownload::~CRcpDownload()
+{
+	if ( m_Fd != NULL )
+		fclose(m_Fd);
+}
+void CRcpDownload::DispMsg(LPCTSTR msg)
+{
+	LPCSTR mbs = m_pSsh->m_pDocument->RemoteStr(msg);
+	m_pSsh->CExtSocket::OnReceiveCallBack((void *)mbs, (int)strlen(mbs), 0);
+}
+void CRcpDownload::DispInit()
+{
+	int n;
+	int cx, cy, sx, sy;
+
+	m_pSsh->m_pDocument->m_TextRam.GetScreenSize(&cx, &cy, &sx, &sy);
+
+	if ( cx > 120 )
+		cx -= 40;
+	else if ( cx > 80 )
+		cx -= 30;
+	else if ( cx > 60 )
+		cx -= 20;
+	else if ( cx > 40 )
+		cx -= 10;
+	else if ( cx > 10 )
+		cx -= 5;
+
+	for ( n = 10 ; n > 2 && (cx / n) < 5 ; )
+		n -= 2;
+
+	m_DivCols = cx / n;
+	m_MaxCols = m_DivCols * n - 1;
+	m_StartClock = clock();
+
+	DispPos();
+}
+void CRcpDownload::DispPos()
+{
+	int n, mx, msec;
+	CString msg;
+	CString left, mid, right;
+
+	if ( m_Size <= 0 )
+		mx = m_MaxCols;
+	else
+		mx = (int)(m_ReadSize * m_MaxCols / m_Size);
+
+	for ( n = 0 ; n < m_MaxCols ; n++ )
+		msg += (((n % m_DivCols) + 1) == m_DivCols ? _T('|') : _T('-'));
+
+	if ( m_MaxCols > 10 && m_Size > 0 ) {
+		if ( (msec = clock() - m_StartClock) > 100 ) {
+			n = (int)((m_Size - m_ReadSize) / (m_ReadSize * CLOCKS_PER_SEC / (LONGLONG)msec));
+
+			if ( n >= 3600 )
+				mid.Format(_T("%d:%02d:%02d"), n / 3600, (n % 3600) / 60, n % 60);
+			else if ( n >= 60 )
+				mid.Format(_T("%d:%02d"), n / 60, n % 60);
+			else if ( n > 0 )
+				mid.Format(_T("%dsec"), n);
+
+			else {
+				n = (int)(m_ReadSize * CLOCKS_PER_SEC / (LONGLONG)msec);
+
+				if ( n >= 10000000 )
+					mid.Format(_T("%dMb/s"), n / 1000000);
+				else if ( n >= 10000 )
+					mid.Format(_T("%dKb/s"), n / 1000);
+				else
+					mid.Format(_T("%db/s"), n);
+			}
+		} else
+			mid.Format(_T("%d%%"), (int)(m_ReadSize * 100 / m_Size));
+
+		left = msg.Left((msg.GetLength() - mid.GetLength()) / 2);
+		right = msg.Right(msg.GetLength() - left.GetLength() - mid.GetLength());
+		msg = left;
+		msg += mid;
+		msg += right;
+	}
+
+	mid = _T("\r[\x1B[7m");
+	mid += msg.Left(mx);
+	mid += _T("\x1B[m");
+	mid += msg.Right(msg.GetLength() - mx);
+	mid += _T("]");
+
+	DispMsg(mid);
+}
+void CRcpDownload::PutOkMsg()
+{
+	Send((LPBYTE)"", 1);
+}
+void CRcpDownload::PutErrorMsg(LPCSTR msg)
+{
+	Send((LPBYTE)(LPCSTR)msg, (int)strlen(msg));
+}
+void CRcpDownload::OnConnect()
+{
+	PutOkMsg();
+
+	// ウィンドウをディレイクローズ
+	m_pSsh->m_pDocument->m_bExitPause = TRUE;
+}
+void CRcpDownload::OnReceive(const void *lpBuf, int nBufLen)
+{
+	// read	"D%04o %d %.1024s\n"
+	// write "\0" or "Error\n"
+
+	//  read "T%llu 0 %llu 0\n" st_mtime, st_atime
+	//	read "C%04o %lld %s\n"
+	//	write "\0" or "Error\n"
+	//	  read file data
+	//	read "\0" or "Error\n"
+	//	write "\0" or "Error\n"
+
+	// read "E\n"
+	// write "\0" or "Error\n"
+
+	int n;
+	CString work;
+	LPCSTR p = (LPCSTR)lpBuf;
+	LPCSTR e = (LPCSTR)lpBuf + nBufLen;
+
+	while ( p < e ) {
+		switch(m_Mode) {
+		case 0:	// C
+			m_Req = (int)*(p++);
+			switch(m_Req) {
+			case '\0':
+				break;
+			case 'C':
+			case 'D':
+				m_Flag = 0;
+				m_Size = 0;
+				m_StrMsg.Empty();
+				m_Mode = 1;
+				break;
+			default:
+				m_StrMsg.Empty();
+				m_Mode = 3;
+				break;
+			}
+			break;
+
+		case 1:	// %04o
+			if ( *p >= '0' && *p <= '7' ) {
+				m_Flag = m_Flag * 8 + (*(p++) - '0');
+				break;
+			}
+			p++;
+			m_Mode = 2;
+			break;
+		case 2:	// %lld
+			if ( *p >= '0' && *p <= '9' ) {
+				m_Size = m_Size * 10 + (*(p++) - '0');
+				break;
+			}
+			p++;
+			m_Mode = 3;
+			break;
+
+		case 3:	// %s\n
+			if ( *p != '\n' ) {
+				m_StrMsg += (*p++);
+				break;
+			}
+			p++;
+
+			work = m_pSsh->m_pDocument->LocalStr(m_StrMsg);
+
+			if ( m_Req == 'E' ) {
+				if ( !m_DirPath.IsEmpty() )
+					m_DirPath.RemoveHead();
+				PutOkMsg();
+				m_Mode = 0;
+				break;
+			} else if ( m_Req == 'T' ) {
+				sscanf(m_StrMsg, "%I64u 0 %I64u 0", &m_mtime, &m_atime);
+				PutOkMsg();
+				m_Mode = 0;
+				break;
+			} else if ( m_Req == '\001' ) {
+				work += _T("\r\n");
+				DispMsg(work);
+				PutErrorMsg("Error abort\n");
+				m_Mode = 0;
+				break;
+			} else if ( m_Req != 'C' && m_Req != 'D' ) {
+				CString tmp;
+				tmp.Format(_T("%c%s: unkown command\r\n"), (m_Req < ' ' || m_Req >= 0x7e ? '?' : m_Req), work);
+				DispMsg(tmp);
+				PutErrorMsg("Unkown command\n");
+				m_Mode = 0;
+				break;
+			}
+
+			if ( (n = work.Find(_T('/'))) >= 0 )
+				work.Delete(0, n + 1);
+
+			DispMsg(work);
+
+			if ( m_DirPath.IsEmpty() ) {
+				LPCTSTR ext;
+				if ( (n = work.ReverseFind(_T('.'))) >= 0 )
+					ext = (LPCTSTR)work + n;
+				else
+					ext = _T(".");
+				CFileDialog dlg(FALSE, ext + 1, work, OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGALLFILE), ::AfxGetMainWnd());
+				if ( dlg.DoModal() != IDOK ) {
+					PutErrorMsg("Cancel file\n");
+					DispMsg(_T(": cancel\r\n"));
+					break;
+				}
+				m_PathName = dlg.GetPathName();
+			} else {
+				m_PathName.Format(_T("%s\\%s"), (LPCTSTR)(m_DirPath.GetHead()), work);
+			}
+				
+			if ( m_Req == 'C' ) {
+				if ( (m_Fd = _tfopen(m_PathName, _T("wb"))) == NULL ) {
+					PutErrorMsg("Can't open file\n");
+					DispMsg(_T(": open error\r\n"));
+					break;
+				}
+				m_ReadSize = 0;
+				m_bHaveErr = FALSE;
+				DispMsg(_T(": get\r\n"));
+				DispInit();
+				m_Mode = 4;
+
+			} else if ( m_Req == 'D' ) {
+				if ( !CreateDirectory(m_PathName, NULL) ) {
+					PutErrorMsg("Can't Create directory\n");
+					DispMsg(_T(": mkdir error\r\n"));
+					break;
+				}
+				m_DirPath.AddHead(m_PathName);
+				DispMsg(_T(": mkdir\r\n"));
+				m_Mode = 0;
+			}
+
+			PutOkMsg();
+			break;
+
+		case 4:	// File Data
+			if ( (n = (int)(e - p)) <= 0 )
+				break;
+			if ( (LONGLONG)n > (m_Size - m_ReadSize) )
+				n = (int)(m_Size - m_ReadSize);
+
+			if ( !m_bHaveErr && (int)fwrite(p, 1, n, m_Fd) != n )
+				m_bHaveErr = TRUE;
+
+			p += n;
+			m_ReadSize += n;
+			DispPos();
+			if ( m_ReadSize < m_Size )
+				break;
+
+			m_StrMsg.Empty();
+			if ( ferror(m_Fd) )
+				m_bHaveErr = TRUE;
+			fclose(m_Fd);
+			m_Fd = NULL;
+			m_Mode = 5;
+			break;
+
+		case 5:	// File I/O Status
+			if ( !m_StrMsg.IsEmpty() ) {
+				if ( *p != '\n' ) {
+					m_StrMsg += *(p++);
+					break;
+				}
+			} else if ( *p != '\0' ) {
+				m_StrMsg += *(p++);
+				break;
+			}
+			p++;
+
+			if ( m_StrMsg.IsEmpty() && !m_bHaveErr ) {
+				if ( m_atime != 0 && m_mtime != 0 ) {
+					struct _utimbuf utm;
+					utm.actime  = m_atime;
+					utm.modtime = m_mtime;
+					_tutime(m_PathName, &utm);
+				}
+				DispMsg(_T(" ok\r\n"));
+				PutOkMsg();
+			} else {
+				if ( m_StrMsg.IsEmpty() )
+					DispMsg(_T(" bad\r\n"));
+				else {
+					work = m_pSsh->m_pDocument->LocalStr(m_StrMsg);
+					work += _T("\r\n");
+					DispMsg(work);
+				}
+				PutErrorMsg("File Write Error\n");
+			}
+
+			m_atime = m_mtime = 0;
+			m_Mode = 0;
+			break;
+		}
+	}
 }

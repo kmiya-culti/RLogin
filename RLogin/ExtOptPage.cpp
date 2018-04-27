@@ -48,6 +48,7 @@ static const struct _OptListTab {
 //	{	TO_RLREOPEN,	IDT_EXTOPT_LIST20	},
 //	{	TO_RLDELCRLF,	IDT_EXTOPT_LIST21	},
 	{	TO_RLPSUPWIN,	IDT_EXTOPT_LIST22	},
+	{	TO_RLDOSAVE,	IDT_EXTOPT_LIST23	},
 	{	0,				0					},
 };
 

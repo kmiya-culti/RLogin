@@ -106,8 +106,10 @@ void CIdkeySelDLg::InitList()
 
 		m_List.SetItemText(n, 2, pKey->m_Name);
 
-		if ( pKey->m_bPageant ) {
+		if ( pKey->m_AgeantType == IDKEY_AGEANT_PUTTY ) {
 			str = pKey->m_bSecInit ? _T("Pageant") : _T("None");
+		} else if ( pKey->m_AgeantType == IDKEY_AGEANT_WINSSH ) {
+			str = pKey->m_bSecInit ? _T("Wageant") : _T("None");
 		} else {
 			switch(pKey->m_Cert) {
 			case IDKEY_CERTV00:  str = _T("V00"); break;
@@ -176,7 +178,7 @@ BOOL CIdkeySelDLg::OnInitDialog()
 
 	m_Data.RemoveAll();
 	for ( n = a = 0 ; n < m_pIdKeyTab->GetSize() ; n++ ) {
-		if ( m_pIdKeyTab->GetAt(n).m_bPageant ) {
+		if ( m_pIdKeyTab->GetAt(n).m_AgeantType != IDKEY_AGEANT_NONE ) {
 			m_bInitPageant = TRUE;
 			if ( m_pParamTab != NULL && !m_pParamTab->m_bInitPageant ) {
 				m_Data.InsertAt(a++, m_pIdKeyTab->GetAt(n).m_Uid);
@@ -387,7 +389,7 @@ void CIdkeySelDLg::OnIdkeyExport()
 	if ( pKey == NULL )
 		return;
 
-	if ( pKey->m_bPageant ) {
+	if ( pKey->m_AgeantType != IDKEY_AGEANT_NONE ) {
 		MessageBox(CStringLoad(IDE_PAGEANTKEYEDIT));
 		return;
 	}
@@ -556,7 +558,7 @@ void CIdkeySelDLg::OnEditUpdate()
 	if ( pKey == NULL )
 		return;
 
-	if ( pKey->m_bPageant ) {
+	if ( pKey->m_AgeantType != IDKEY_AGEANT_NONE ) {
 		MessageBox(CStringLoad(IDE_PAGEANTKEYEDIT));
 		return;
 	}
@@ -657,7 +659,7 @@ void CIdkeySelDLg::OnIdkeyCakey()
 	if ( pKey == NULL )
 		return;
 
-	if ( pKey->m_bPageant ) {
+	if ( pKey->m_AgeantType != IDKEY_AGEANT_NONE ) {
 		MessageBox(CStringLoad(IDE_PAGEANTKEYEDIT));
 		return;
 	}

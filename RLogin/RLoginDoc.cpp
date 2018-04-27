@@ -104,6 +104,8 @@ CRLoginDoc::CRLoginDoc()
 	m_CloseTime = 0;
 	m_pStatusWnd = NULL;
 	m_pMediaCopyWnd = NULL;
+	m_CmdsPath.Empty();
+	m_bExitPause = FALSE;
 }
 
 CRLoginDoc::~CRLoginDoc()
@@ -136,8 +138,11 @@ BOOL CRLoginDoc::ScriptInit()
 	m_pScript = new CScript;
 	m_pScript->SetDocument(this);
 
-	if ( !m_ServerEntry.m_ScriptFile.IsEmpty() )
-		m_pScript->ExecFile(m_ServerEntry.m_ScriptFile);
+	if ( !m_ServerEntry.m_ScriptFile.IsEmpty() ) {
+		CString file(m_ServerEntry.m_ScriptFile);
+		EntryText(file);
+		m_pScript->ExecFile(file);
+	}
 
 	if ( !m_ServerEntry.m_ScriptStr.IsEmpty() )
 		m_pScript->ExecStr(m_ServerEntry.m_ScriptStr);
@@ -563,6 +568,12 @@ void CRLoginDoc::SetCmdInfo(CCommandLineInfoEx *pCmdInfo)
 		//m_CmdLine += tmp;
 		m_AfterId = pCmdInfo->m_AfterId;
 	}
+
+	if ( !pCmdInfo->m_Path.IsEmpty() )
+		m_CmdsPath = pCmdInfo->m_Path;
+
+	if ( m_ServerEntry.m_DocType == DOCTYPE_SESSION && (m_ServerEntry.m_HostName.IsEmpty() || m_ServerEntry.m_UserName.IsEmpty() || m_ServerEntry.m_PassName.IsEmpty() ) )
+		m_bReqDlg = TRUE;
 }
 void CRLoginDoc::DeleteContents() 
 {
@@ -590,6 +601,8 @@ void CRLoginDoc::DeleteContents()
 	m_bCastLock = FALSE;
 	m_ConnectTime = 0;
 	m_CloseTime = 0;
+	m_CmdsPath.Empty();
+	m_bExitPause = FALSE;
 
 	CDocument::DeleteContents();
 }
@@ -727,15 +740,145 @@ void CRLoginDoc::SetMenu(CMenu *pMenu)
 		pMenu->CheckMenuItem(ThisId, MF_BYCOMMAND | MF_CHECKED);
 }
 
-BOOL CRLoginDoc::EntryText(CString &name)
+void CRLoginDoc::EnvironText(CString &env, CString &str)
 {
+	int n;
+	TCHAR c = _T('\0');
+	DWORD size;
+	TCHAR buf[MAX_COMPUTERNAME_LENGTH + 2];
+	CString work, src, dis;
+	LPCTSTR s;
+
+	if ( (n = env.Find(_T(':'))) >= 0 ) {
+		src = (LPCTSTR)env + n + 1;
+		env.Delete(n, env.GetLength() - n);
+		if ( (n = src.Find(_T('='))) >= 0 || (n = src.Find(_T(','))) >= 0 ) {
+			c = src[n];
+			dis = (LPCTSTR)src + n + 1;
+			src.Delete(n, src.GetLength() - n);
+		} else if ( src.CompareNoCase(_T("L")) == 0 || src.CompareNoCase(_T("U")) == 0 )
+			c = src[0];
+	}
+
+	if ( env.IsEmpty() )
+		return;
+
+	if ( (s = _tgetenv(env)) == NULL ) {
+		if ( env.CompareNoCase(_T("USER")) == 0 || env.CompareNoCase(_T("USERNAME")) == 0 ) {
+			size = MAX_COMPUTERNAME_LENGTH;
+			if ( !GetUserName(buf, &size) )
+				return;
+			s = buf;
+		} else if ( env.CompareNoCase(_T("COMPUTER")) == 0 || env.CompareNoCase(_T("COMPUTERNAME")) == 0 ) {
+			size = MAX_COMPUTERNAME_LENGTH;
+			if ( !GetComputerName(buf, &size) )
+				return;
+			s = buf;
+		} else if ( env.CompareNoCase(_T("BASEDIR")) == 0 ) {
+			s = ((CRLoginApp *)::AfxGetApp())->m_BaseDir;
+		} else if ( env.CompareNoCase(_T("RLOGINDIR")) == 0 ) {
+			s = ((CRLoginApp *)::AfxGetApp())->m_ExecDir;
+		} else if ( env.CompareNoCase(_T("RLOGINPATH")) == 0 ) {
+			s = ((CRLoginApp *)::AfxGetApp())->m_PathName;
+		} else
+			return;
+	}
+
+	switch(c) {
+	case _T('='):
+		if ( (n = src.GetLength()) <= 0 )
+			break;
+		while ( *s != _T('\0') ) {
+			if ( _tcsncmp(s, src, n) == 0 ) {
+				s += n;
+				work += dis;
+			} else
+				work += *(s++);
+		}
+		s = work;
+		break;
+
+	case _T(','):
+		for ( n = _tstoi(src) ; n > 0 && *s != _T('\0') ; n-- )
+			s++;
+		for ( n = _tstoi(dis) ; n > 0 && *s != _T('\0') ; n-- )
+			work += *(s++);
+		s = work;
+		break;
+
+	case _T('L'):
+		for ( n = 0 ; *s != _T('\0') ; n++ ) {
+			if ( n > 0 && *s >= _T('A') && *s <= _T('Z') )
+				work += (TCHAR)(*(s++) + 0x20);
+			else if ( n == 0 && *s >= _T('a') && *s <= _T('z') )
+				work += (TCHAR)(*(s++) - 0x20);
+			else
+				work += *(s++);
+		}
+		s = work;
+		break;
+
+	case _T('l'):
+		while ( *s != _T('\0') ) {
+			if ( *s >= _T('A') && *s <= _T('Z') )
+				work += (TCHAR)(*(s++) + 0x20);
+			else
+				work += *(s++);
+		}
+		s = work;
+		break;
+
+	case _T('U'):
+	case _T('u'):
+		while ( *s != _T('\0') ) {
+			if ( *s >= _T('a') && *s <= _T('z') )
+				work += (TCHAR)(*(s++) - 0x20);
+			else
+				work += *(s++);
+		}
+		s = work;
+		break;
+	}
+
+	str += s;
+}
+void CRLoginDoc::EnvironPath(CString &path)
+{
+	LPCTSTR s = path;
+	LPCTSTR e, p;
+	CString tmp, env;
+
+	if ( (e = _tcsrchr(s, _T('\\'))) == NULL )
+		return;
+
+	while ( s < e ) {
+		if ( s[0] == _T('%') && s[1] == _T('{') && (p = _tcschr(s + 2, _T('}'))) != NULL && p < e ) {
+			env.Empty();
+			for ( s += 2 ; s < p ; )
+				env += *(s++);
+			s++;
+			EnvironText(env, tmp);
+		} else
+			tmp += *(s++);
+	}
+
+	path = tmp;
+	path += e;
+}
+BOOL CRLoginDoc::EntryText(CString &name, LPCWSTR match)
+{
+	int n;
+	TCHAR c;
 	CEditDlg dlg;
+	CPassDlg pass;
 	CTime tm = CTime::GetCurrentTime();
 	CString tmp;
 	LPCTSTR str = name;
 	BOOL st = FALSE;
 	DWORD size;
 	TCHAR buf[MAX_COMPUTERNAME_LENGTH + 2];
+	CString work, env, src, dis;
+	LPCTSTR s;
 
 	while ( *str != _T('\0') ) {
 		if ( *str == _T('%') ) {
@@ -777,25 +920,47 @@ BOOL CRLoginDoc::EntryText(CString &name)
 				st = TRUE;
 				break;
 			case _T('I'):
-				dlg.m_WinText = _T("FileName");
-				dlg.m_Title = m_ServerEntry.m_EntryName;
-				dlg.m_Edit  = tmp;
-				tmp.Empty();
-				if ( dlg.DoModal() == IDOK )
-					tmp = dlg.m_Edit;
-				st = TRUE;
+				if ( match != NULL ) {
+					dlg.m_WinText = _T("ChatScript");
+					dlg.m_Title = UniToTstr(match);
+					dlg.m_Edit  = tmp;
+					tmp.Empty();
+					if ( dlg.DoModal() == IDOK )
+						tmp = dlg.m_Edit;
+				} else {
+					dlg.m_WinText = _T("FileName");
+					dlg.m_Title = m_ServerEntry.m_EntryName;
+					dlg.m_Edit  = tmp;
+					tmp.Empty();
+					if ( dlg.DoModal() == IDOK )
+						tmp = dlg.m_Edit;
+					st = TRUE;
+				}
+				break;
+			case L'i':
+				pass.m_Title    = m_ServerEntry.m_EntryName;
+				pass.m_HostAddr = m_ServerEntry.m_HostName;
+				pass.m_UserName = m_ServerEntry.m_UserName;
+				pass.m_PassName = m_ServerEntry.m_PassName;
+				pass.m_Prompt   = _T("Password");
+				pass.m_MaxTime  = 120;
+				if ( pass.DoModal() == IDOK ) {
+					m_ServerEntry.m_HostName = pass.m_HostAddr;
+					m_ServerEntry.m_UserName = pass.m_UserName;
+					m_ServerEntry.m_PassName = pass.m_PassName;
+				}
 				break;
 			case _T('s'):
 				tmp += m_SockStatus;
 				st = TRUE;
 				break;
-			case 'u':
+			case _T('u'):
 				size = MAX_COMPUTERNAME_LENGTH;
 				if ( GetUserName(buf, &size) )
 					tmp += buf;
 				st = TRUE;
 				break;
-			case 'h':
+			case _T('h'):
 				size = MAX_COMPUTERNAME_LENGTH;
 				if ( GetComputerName(buf, &size) )
 					tmp += buf;
@@ -805,12 +970,100 @@ BOOL CRLoginDoc::EntryText(CString &name)
 				tmp += _T('%');
 				st = TRUE;
 				break;
+			case _T('{'):
+				env.Empty();
+				for ( s = str + 2 ; *s != _T('}') ; ) {
+					if ( *s == _T('\0') )
+						break;
+					env += *(s++);
+				}
+				if ( *s != _T('}') ) {
+					tmp += str[0];
+					tmp += str[1];
+					break;
+				}
+				str = s + 1 - 2;
+				EnvironText(env, tmp);
+				st = TRUE;
+				break;
 			default:
 				tmp += str[0];
 				tmp += str[1];
 				break;
 			}
 			str += 2;
+
+		} else if ( match == NULL && *str == _T('$') ) {
+			if ( str[1] == '$' ) {
+				tmp += *(str++);
+				str++;
+				st = TRUE;
+			} else if ( str[1] == '{' ) {
+				env.Empty();
+				for ( s = str + 2 ; *s != _T('}') ; ) {
+					if ( *s == _T('\0') )
+						break;
+					env += *(s++);
+				}
+				if ( *s != _T('}') ) {
+					tmp += *(str++);
+					tmp += *(str++);
+					break;
+				}
+				str = s + 1;
+				EnvironText(env, tmp);
+				st = TRUE;
+			} else {
+				env.Empty();
+				for ( str++ ; *str != '\0' && _istalnum(*str) ; )
+					env += *(str++);
+				EnvironText(env, tmp);
+				st = TRUE;
+			}
+
+		} else if ( match != NULL && *str == _T('\\') ) {
+			switch(str[1]) {
+			case _T('a'): tmp += _T('\x07'); str += 2; break;
+			case _T('b'): tmp += _T('\x08'); str += 2; break;
+			case _T('t'): tmp += _T('\x09'); str += 2; break;
+			case _T('n'): tmp += _T('\x0A'); str += 2; break;
+			case _T('v'): tmp += _T('\x0B'); str += 2; break;
+			case _T('f'): tmp += _T('\x0C'); str += 2; break;
+			case _T('r'): tmp += _T('\x0D'); str += 2; break;
+			case _T('\\'): tmp += _T('\\'); str += 2; break;
+
+			case _T('x'): case _T('X'):
+				str += 2;
+				for ( n = c = 0 ; n < 2 ; n++ ) {
+					if ( *str >= _T('0') && *str <= _T('9') )
+						c = c * 16 + (*(str++) - _T('0'));
+					else if ( *str >= _T('A') && *str <= _T('F') )
+						c = c * 16 + (*(str++) - _T('A') + 10);
+					else if ( *str >= _T('a') && *str <= _T('f') )
+						c = c * 16 + (*(str++) - _T('a') + 10);
+					else
+						break;
+				}
+				tmp += c;
+				break;
+
+			case _T('0'): case _T('1'): case _T('2'): case _T('3'):
+			case _T('4'): case _T('5'): case _T('6'): case _T('7'):
+				str += 1;
+				for ( n = c = 0 ; n < 3 ; n++ ) {
+					if ( *str >= _T('0') && *str <= _T('7') )
+						c = c * 8 + (*(str++) - _T('0'));
+						break;
+				}
+				tmp += c;
+				break;
+
+			default:
+				str += 1;
+				break;
+			}
+			st = TRUE;
+
 		} else
 			tmp += *(str++);
 	}
@@ -820,258 +1073,16 @@ BOOL CRLoginDoc::EntryText(CString &name)
 
 	return st;
 }
-void CRLoginDoc::ScriptText(LPCWSTR str, LPCWSTR match, CStringW &tmp)
-{
-	int n;
-	WCHAR c;
-	CEditDlg edit;
-	CPassDlg dlg;
-	CTime tm = CTime::GetCurrentTime();
-	DWORD size;
-	TCHAR buf[MAX_COMPUTERNAME_LENGTH + 2];
-
-	while ( *str != L'\0' ) {
-		if ( *str == L'%' ) {
-			switch(str[1]) {
-			case L'E':
-				tmp += m_ServerEntry.m_EntryName;
-				break;
-			case _T('G'):
-				tmp += m_ServerEntry.m_Group;
-				break;
-			case L'U':
-				tmp += m_ServerEntry.m_UserName;
-				break;
-			case L'P':
-				tmp += m_ServerEntry.m_PassName;
-				break;
-			case L'T':
-				tmp += m_ServerEntry.m_TermName;
-				break;
-			case L'S':
-				tmp += m_ServerEntry.m_HostName;
-				break;
-			case L'p':
-				tmp += m_ServerEntry.m_PortName;
-				break;
-			case L'D':
-				tmp += tm.Format(_T("%y%m%d"));
-				break;
-			case L't':
-				tmp += tm.Format(_T("%H%M%S"));
-				break;
-			case L'I':
-				edit.m_WinText = _T("ChatScript");
-				if ( match != NULL )
-					edit.m_Title = match;
-				edit.m_Edit  = tmp;
-				tmp.Empty();
-				if ( edit.DoModal() == IDOK )
-					tmp = edit.m_Edit;
-				break;
-			case L'i':
-				dlg.m_Title    = m_ServerEntry.m_EntryName;
-				dlg.m_HostAddr = m_ServerEntry.m_HostName;
-				dlg.m_UserName = m_ServerEntry.m_UserName;
-				dlg.m_PassName = m_ServerEntry.m_PassName;
-				dlg.m_Prompt   = _T("Password");
-				dlg.m_MaxTime  = 120;
-				if ( dlg.DoModal() == IDOK ) {
-					m_ServerEntry.m_HostName = dlg.m_HostAddr;
-					m_ServerEntry.m_UserName = dlg.m_UserName;
-					m_ServerEntry.m_PassName = dlg.m_PassName;
-				}
-				break;
-			case L's':
-				tmp += m_SockStatus;
-				break;
-			case L'u':
-				size = MAX_COMPUTERNAME_LENGTH;
-				if ( GetUserName(buf, &size) )
-					tmp += buf;
-				break;
-			case L'h':
-				size = MAX_COMPUTERNAME_LENGTH;
-				if ( GetComputerName(buf, &size) )
-					tmp += buf;
-				break;
-			case L'%':
-				tmp += L'%';
-				break;
-			default:
-				tmp += str[0];
-				tmp += str[1];
-				break;
-			}
-			str += 2;
-		} else if ( *str == L'\\' ) {
-			switch(str[1]) {
-			case L'a': tmp += L'\x07'; str += 2; break;
-			case L'b': tmp += L'\x08'; str += 2; break;
-			case L't': tmp += L'\x09'; str += 2; break;
-			case L'n': tmp += L'\x0A'; str += 2; break;
-			case L'v': tmp += L'\x0B'; str += 2; break;
-			case L'f': tmp += L'\x0C'; str += 2; break;
-			case L'r': tmp += L'\x0D'; str += 2; break;
-			case L'\\': tmp += L'\\'; str += 2; break;
-
-			case L'x': case L'X':
-				str += 2;
-				for ( n = c = 0 ; n < 2 ; n++ ) {
-					if ( *str >= L'0' && *str <= L'9' )
-						c = c * 16 + (*(str++) - L'0');
-					else if ( *str >= L'A' && *str <= L'F' )
-						c = c * 16 + (*(str++) - L'A' + 10);
-					else if ( *str >= L'a' && *str <= L'f' )
-						c = c * 16 + (*(str++) - L'a' + 10);
-					else
-						break;
-				}
-				tmp += c;
-				break;
-
-			case L'0': case L'1': case L'2': case L'3':
-			case L'4': case L'5': case L'6': case L'7':
-				str += 1;
-				for ( n = c = 0 ; n < 3 ; n++ ) {
-					if ( *str >= L'0' && *str <= L'7' )
-						c = c * 8 + (*(str++) - L'0');
-						break;
-				}
-				tmp += c;
-				break;
-
-			default:
-				str += 1;
-				break;
-			}
-		} else
-			tmp += *(str++);
-	}
-}
-void CRLoginDoc::EnvironText(CString &str)
-{
-	int n;
-	TCHAR ed;
-	LPCTSTR s, p = str;
-	CString work, env, src, dis, tmp;
-	DWORD size;
-	TCHAR buf[MAX_COMPUTERNAME_LENGTH + 2];
-
-	while ( *p != _T('\0') ) {
-		if ( p[0] == '$' && p[1] == _T('$') ) {
-			p += 2;
-			work += _T('$');
-		} else if ( *p == _T('$') ) {
-			p++;
-			ed = _T('\0');
-			env.Empty();
-			src.Empty();
-			dis.Empty();
-			if ( *p == _T('{') ) {
-				p++;
-				while ( *p != _T('\0') ) {
-					if ( *p == _T('}') ) {
-						p++;
-						break;
-					} else
-						env += *(p++);
-				}
-			} else {
-				while ( *p != _T('\0') && *p > _T(' ') )
-					env += *(p++);
-			}
-
-			if ( (n = env.Find(_T(':'))) >= 0 ) {
-				src = (LPCTSTR)env + n + 1;
-				env.Delete(n, env.GetLength() - n);
-				if ( (n = src.Find(_T('='))) >= 0 || (n = src.Find(_T(','))) >= 0 ) {
-					ed = src[n];
-					dis = (LPCTSTR)src + n + 1;
-					src.Delete(n, src.GetLength() - n);
-				} else if ( src.CompareNoCase(_T("L")) == 0 || src.CompareNoCase(_T("U")) == 0 )
-					ed = src[0];
-			}
-
-			if ( (s = _tgetenv(env)) == NULL ) {
-				if ( env.CompareNoCase(_T("USER")) == 0 || env.CompareNoCase(_T("USERNAME")) == 0 ) {
-					size = MAX_COMPUTERNAME_LENGTH;
-					if ( GetUserName(buf, &size) )
-						s = buf;
-				} else if ( env.CompareNoCase(_T("COMPUTER")) == 0 || env.CompareNoCase(_T("COMPUTERNAME")) == 0 ) {
-					size = MAX_COMPUTERNAME_LENGTH;
-					if ( GetComputerName(buf, &size) )
-						s = buf;
-				}
-			}
-
-			switch(ed) {
-			case _T('='):
-				if ( (n = src.GetLength()) <= 0 )
-					break;
-				while ( *s != _T('\0') ) {
-					if ( _tcsncmp(s, src, n) == 0 ) {
-						s += n;
-						work += dis;
-					} else
-						work += *(s++);
-				}
-				break;
-
-			case _T(','):
-				for ( n = _tstoi(src) ; n > 0 && *s != _T('\0') ; n-- )
-					s++;
-				for ( n = _tstoi(dis) ; n > 0 && *s != _T('\0') ; n-- )
-					work += *(s++);
-				break;
-
-			case _T('L'):
-				for ( n = 0 ; *s != _T('\0') ; n++ ) {
-					if ( n > 0 && *s >= _T('A') && *s <= _T('Z') )
-						work += (TCHAR)(*(s++) + 0x20);
-					else if ( n == 0 && *s >= _T('a') && *s <= _T('z') )
-						work += (TCHAR)(*(s++) - 0x20);
-					else
-						work += *(s++);
-				}
-				break;
-
-			case _T('l'):
-				while ( *s != _T('\0') ) {
-					if ( *s >= _T('A') && *s <= _T('Z') )
-						work += (TCHAR)(*(s++) + 0x20);
-					else
-						work += *(s++);
-				}
-				break;
-
-			case _T('U'):
-			case _T('u'):
-				while ( *s != _T('\0') ) {
-					if ( *s >= _T('a') && *s <= _T('z') )
-						work += (TCHAR)(*(s++) - 0x20);
-					else
-						work += *(s++);
-				}
-				break;
-
-			case _T('\0'):
-				work += s;
-				break;
-			}
-
-		} else
-			work += *(p++);
-	}
-	str = work;
-}
 
 void CRLoginDoc::SendScript(LPCWSTR str, LPCWSTR match)
 {
+	CString work;
 	CStringW tmp;
 	CBuffer buf;
 
-	ScriptText(str, match, tmp);
+	work = UniToTstr(str);
+	EntryText(work, match);
+	tmp = TstrToUni(work);
 
 	if ( tmp.IsEmpty() )
 		return;
@@ -1543,7 +1554,11 @@ void CRLoginDoc::OnSocketClose()
 		pWnd->PostMessage(WM_COMMAND, IDM_REOPENSOCK, (LPARAM)0);
 	else if ( m_TextRam.IsOptEnable(TO_RLNOTCLOSE) || ((CMainFrame *)::AfxGetMainWnd())->IsTimerIdleBusy() )
 		UpdateAllViews(NULL, UPDATE_DISPMSG, (CObject *)_T("Closed"));
-	else if ( IsCanExit() )
+	else if ( m_bExitPause ) {
+		m_bExitPause = FALSE;
+		UpdateAllViews(NULL, UPDATE_DISPMSG, (CObject *)_T("Paused"));
+		m_pMainWnd->SetTimerEvent(DELAY_CLOSE_SOCKET, TIMEREVENT_CLOSE, this);
+	} else if ( IsCanExit() )
 		m_pMainWnd->PostMessage(WM_COMMAND, ID_APP_EXIT, 0 );
 	else if ( pWnd != NULL )
 		pWnd->PostMessage(WM_COMMAND, ID_FILE_CLOSE, (LPARAM)0);
@@ -1655,7 +1670,8 @@ int CRLoginDoc::SocketOpen()
 	}
 
 	num = CExtSocket::GetPortNum(m_ServerEntry.m_PortName);
-	EnvironText(m_ServerEntry.m_UserName);
+	EntryText(m_ServerEntry.m_UserName);
+	EntryText(m_ServerEntry.m_ProxyUser);
 
 	if ( m_ServerEntry.m_ReEntryFlag )
 		goto SKIPINPUT;
@@ -1665,9 +1681,9 @@ int CRLoginDoc::SocketOpen()
 
 		dlg.m_Title    = m_ServerEntry.m_EntryName;
 		dlg.m_Title   += _T("(Proxy Server)");
-		dlg.m_HostAddr = m_ServerEntry.m_ProxyHostProvs;
-		dlg.m_UserName = m_ServerEntry.m_ProxyUserProvs;
-		dlg.m_PassName = m_ServerEntry.m_ProxyPassProvs;
+		dlg.m_HostAddr = m_ServerEntry.m_ProxyHost;
+		dlg.m_UserName = m_ServerEntry.m_ProxyUser;
+		dlg.m_PassName = m_ServerEntry.m_ProxyPass;
 		dlg.m_Prompt   = _T("Proxy Password");
 		dlg.m_MaxTime  = 120;
 
@@ -2033,7 +2049,7 @@ void CRLoginDoc::OnScreenReset(UINT nID)
 	case IDM_RESET_TEK:   mode = RESET_TEK; break;
 	case IDM_RESET_ESC:   mode = RESET_BANK | RESET_CHAR | RESET_OPTION | RESET_XTOPT | RESET_MODKEY | RESET_TRANSMIT; break;
 	case IDM_RESET_MOUSE: mode = RESET_MOUSE; break;
-	case IDM_RESET_SCREEN:mode = RESET_PAGE | RESET_CURSOR | RESET_CARET | RESET_MARGIN | RESET_BANK | RESET_ATTR |
+	case IDM_RESET_SCREEN:mode = RESET_PAGE | RESET_CURSOR | RESET_CARET | RESET_MARGIN | RESET_RLMARGIN | RESET_BANK | RESET_ATTR |
 								 RESET_COLOR | RESET_CHAR | RESET_CLS | RESET_XTOPT | RESET_OPTION | RESET_STATUS; break;
 	case IDM_RESET_SIZE:  mode = RESET_SIZE; break;
 	case IDM_RESET_ALL:   mode = RESET_ALL | RESET_CLS | RESET_HISTORY | RESET_TRANSMIT; break;
