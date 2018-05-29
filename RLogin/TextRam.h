@@ -276,6 +276,7 @@
 #define	TO_SSHSFTPORY	1481		// 接続時にSFTPを起動する
 #define	TO_RLTRSLIMIT	1482		// TCP/IPの帯域制限を行う
 #define	TO_RLDOSAVE		1483		// SOS/PM/APCでファイルに保存する
+#define	TO_RLNOCHKFONT	1484		// デフォルトフォントのCSetチェックを行わない
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -640,6 +641,11 @@ public:
 	static void Fill(CCharCell *dis, EXTVRAM &vram, int size);
 };
 
+#define	FONTSTYLE_NONE		0
+#define	FONTSTYLE_BOLD		1
+#define	FONTSTYLE_ITALIC	2
+#define	FONTSTYLE_UNDER		4
+
 class CFontNode : public CObject
 {
 public:
@@ -653,7 +659,6 @@ public:
 	CString m_EntryName;
 	CString m_IContName;
 	CString m_IndexName;
-	int m_Hash[16];
 	int m_Quality;
 	BOOL m_Init;
 	int m_UserFontWidth;
@@ -669,11 +674,10 @@ public:
 	DWORD m_Iso646Tab[12];
 	CString m_OverZero;
 
-	void SetHash(int num);
 	void Init();
 	void SetArray(CStringArrayExt &stra);
 	void GetArray(CStringArrayExt &stra);
-	CFontChacheNode *GetFont(int Width, int Height, int Style, int FontNum, LPCTSTR DefFontName);
+	CFontChacheNode *GetFont(int Width, int Height, int Style, int FontNum, class CTextRam *pTextRam);
 	const CFontNode & operator = (CFontNode &data);
 	void SetUserBitmap(int code, int width, int height, CBitmap *pMap, int ofx, int ofy, int asx, int asy, COLORREF bc);
 	void SetUserFont(int code, int width, int height, LPBYTE map);

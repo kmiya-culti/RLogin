@@ -17,9 +17,9 @@ static char THIS_FILE[] = __FILE__;
 
 CListCtrlExt::CListCtrlExt()
 {
-	m_SortSubItem = 0;
-	m_SortReverse = 0;
-	m_SortDupItem = 0;
+	//m_SortSubItem = 0;
+	//m_SortReverse = 0;
+	//m_SortDupItem = 0;
 	m_SubMenuPos  = (-1);
 	m_EditSubItem = 0;
 	m_bSort = TRUE;
@@ -34,17 +34,23 @@ BEGIN_MESSAGE_MAP(CListCtrlExt, CListCtrl)
 	ON_WM_KEYDOWN()
 	ON_EN_KILLFOCUS(ID_EDIT_BOX, OnKillfocusEditBox)
 	ON_NOTIFY_REFLECT(LVN_COLUMNCLICK, OnColumnclick)
-	ON_NOTIFY_REFLECT(LVN_BEGINDRAG, OnLvnBegindrag)
+	ON_NOTIFY_REFLECT_EX(LVN_BEGINDRAG, OnLvnBegindrag)
 	ON_NOTIFY_REFLECT_EX(NM_RCLICK, OnRclick)
 	ON_NOTIFY_REFLECT_EX(NM_DBLCLK, OnDblclk)
 END_MESSAGE_MAP()
 
 static int CALLBACK CompareFunc(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort)
 {
-	int i1, i2, it;
+	int n, ret;
+	int i1, i2;
 	CStringLoad s1, s2;
 	LV_FINDINFO lvinfo;
 	CListCtrlExt *pCompList = (CListCtrlExt *)lParamSort;
+
+	if ( lParam1 < 0 && lParam2 >= 0 )
+		return (-1);
+	else if ( lParam1 >= 0 && lParam2 < 0 )
+		return 1;
 
 	lvinfo.flags = LVFI_PARAM;
 	lvinfo.lParam = lParam1;
@@ -55,20 +61,17 @@ static int CALLBACK CompareFunc(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSor
 	if ( i1 == (-1) || i2 == (-1) )
 		return 0;
 
-	if ( pCompList->m_SortReverse ) {
-		it = i1;
-		i1 = i2;
-		i2 = it;
+	for ( n = 0 ; n < pCompList->m_SortItem.GetSize() ; n++ ) {
+		s1 = pCompList->GetItemText(i1, pCompList->m_SortItem[n] & SORTMASK_ITEM);
+		s2 = pCompList->GetItemText(i2, pCompList->m_SortItem[n] & SORTMASK_ITEM);
+		if ( (ret = s1.CompareDigit(s2)) != 0 ) {
+			if ( (pCompList->m_SortItem[n] & SORTMASK_REVS) != 0 )
+				ret = (ret > 0 ? (-1) : 1);
+			return ret;
+		}
 	}
 
-	s1 = pCompList->GetItemText(i1, pCompList->m_SortSubItem);
-	s2 = pCompList->GetItemText(i2, pCompList->m_SortSubItem);
-	if ( (it = s1.CompareDigit(s2)) != 0 || pCompList->m_SortSubItem == pCompList->m_SortDupItem )
-		return it;
-
-	s1 = pCompList->GetItemText(i1, pCompList->m_SortDupItem);
-	s2 = pCompList->GetItemText(i2, pCompList->m_SortDupItem);
-	return s1.CompareDigit(s2);
+	return 0;
 }
 int CListCtrlExt::GetParamItem(int para)
 {
@@ -102,8 +105,9 @@ void CListCtrlExt::DoSortItem()
 }
 void CListCtrlExt::InitColumn(LPCTSTR lpszSection, const LV_COLUMN *lpColumn, int nMax)
 {
-	int n;
+	int n, i;
 	LV_COLUMN tmp;
+	CBuffer buf;
 
 	for ( n = 0 ; n < nMax ; n++ ) {
 		tmp = lpColumn[n];
@@ -112,15 +116,49 @@ void CListCtrlExt::InitColumn(LPCTSTR lpszSection, const LV_COLUMN *lpColumn, in
 		InsertColumn(n, &tmp);
 	}
 
-	m_SortSubItem = AfxGetApp()->GetProfileInt(lpszSection, _T("SortItem"), 0);
-	m_SortReverse = AfxGetApp()->GetProfileInt(lpszSection, _T("SortRevs"), 0);
-	m_SortDupItem = AfxGetApp()->GetProfileInt(lpszSection, _T("SortDups"), 0);
+	m_SortItem.SetSize(nMax);
+	for ( n = 0 ; n < nMax ; n++ )
+		m_SortItem[n] = n;
+
+	((CRLoginApp *)AfxGetApp())->GetProfileBuffer(lpszSection, _T("SortItemTab"), buf);
+
+	if ( buf.GetSize() == 0 ) {
+		int item = AfxGetApp()->GetProfileInt(lpszSection, _T("SortItem"), 0);
+		int revs = AfxGetApp()->GetProfileInt(lpszSection, _T("SortRevs"), 0);
+		int dups = AfxGetApp()->GetProfileInt(lpszSection, _T("SortDups"), 0);
+
+		if ( revs != 0 ) {
+			item |= SORTMASK_REVS;
+			dups |= SORTMASK_REVS;
+		}
+		if ( dups != item )
+			buf.Put16Bit(dups);
+		buf.Put16Bit(item);
+
+		((CRLoginApp *)AfxGetApp())->WriteProfileBinary(lpszSection, _T("SortItemTab"), buf.GetPtr(), buf.GetSize());
+
+		((CRLoginApp *)AfxGetApp())->DelProfileEntry(lpszSection, _T("SortItem"));
+		((CRLoginApp *)AfxGetApp())->DelProfileEntry(lpszSection, _T("SortRevs"));
+		((CRLoginApp *)AfxGetApp())->DelProfileEntry(lpszSection, _T("SortDups"));
+	}
+
+	while ( buf.GetSize() >= 2 ) {
+		i = buf.Get16Bit();
+		for ( n = 0 ; n < m_SortItem.GetSize() ; n++ ) {
+			if ( (m_SortItem[n] & SORTMASK_ITEM) == (i & SORTMASK_ITEM) ) {
+				m_SortItem.RemoveAt(n);
+				m_SortItem.InsertAt(0, i);
+				break;
+			}
+		}
+	}
 }
 void CListCtrlExt::SaveColumn(LPCTSTR lpszSection)
 {
 	int n = 0;
 	LV_COLUMN tmp;
 	TCHAR name[256];
+	CBuffer buf;
 
 	memset(&tmp, 0, sizeof(tmp));
 	tmp.pszText = name;
@@ -132,9 +170,10 @@ void CListCtrlExt::SaveColumn(LPCTSTR lpszSection)
 		AfxGetApp()->WriteProfileInt(lpszSection, tmp.pszText, tmp.cx);
 	}
 
-	AfxGetApp()->WriteProfileInt(lpszSection, _T("SortItem"), m_SortSubItem);
-	AfxGetApp()->WriteProfileInt(lpszSection, _T("SortRevs"), m_SortReverse);
-	AfxGetApp()->WriteProfileInt(lpszSection, _T("SortDups"), m_SortDupItem);
+	for ( n = (int)m_SortItem.GetSize() - 1 ; n >= 0 ; n-- )
+		buf.Put16Bit(m_SortItem[n]);
+
+	((CRLoginApp *)AfxGetApp())->WriteProfileBinary(lpszSection, _T("SortItemTab"), buf.GetPtr(), buf.GetSize());
 }
 void CListCtrlExt::SetLVCheck(WPARAM ItemIndex, BOOL bCheck)
 {
@@ -155,6 +194,7 @@ void CListCtrlExt::SetPopUpMenu(UINT nIDResource, int Pos)
 
 void CListCtrlExt::OnColumnclick(NMHDR* pNMHDR, LRESULT* pResult) 
 {
+	int n;
 	NM_LISTVIEW* pNMListView = (NM_LISTVIEW*)pNMHDR;
 
 	*pResult = 0;
@@ -162,12 +202,21 @@ void CListCtrlExt::OnColumnclick(NMHDR* pNMHDR, LRESULT* pResult)
 	if ( !m_bSort )
 		return;
 
-	if ( m_SortSubItem == pNMListView->iSubItem )
-		m_SortReverse ^= 1;
-	else
-		m_SortReverse = 0;
+	for ( n = (int)m_SortItem.GetSize() ; n <= pNMListView->iSubItem ; n++ )
+		m_SortItem.InsertAt(0, n);
 
-	m_SortSubItem = pNMListView->iSubItem;
+	if ( (m_SortItem[0] & SORTMASK_ITEM) == pNMListView->iSubItem )
+		m_SortItem[0] ^= SORTMASK_REVS;
+	else {
+		for ( n = 0 ; n < m_SortItem.GetSize() ; n++ ) {
+			if ( (m_SortItem[n] & SORTMASK_ITEM) == pNMListView->iSubItem ) {
+				m_SortItem.RemoveAt(n);
+				m_SortItem.InsertAt(0, pNMListView->iSubItem);
+				break;
+			}
+		}
+	}
+
 	SortItems(CompareFunc, (DWORD_PTR)this);
 }
 BOOL CListCtrlExt::OnRclick(NMHDR* pNMHDR, LRESULT* pResult) 
@@ -526,7 +575,7 @@ void CRectTrackerList::OnChangedRect(const CRect& rectOld)
 		m_pOwner->Scroll(CSize(0, point.y - rect.Height()));
 }
 
-void CListCtrlExt::OnLvnBegindrag(NMHDR *pNMHDR, LRESULT *pResult)
+BOOL CListCtrlExt::OnLvnBegindrag(NMHDR *pNMHDR, LRESULT *pResult)
 {
 	int item, y;
 	CRect rect;
@@ -534,7 +583,7 @@ void CListCtrlExt::OnLvnBegindrag(NMHDR *pNMHDR, LRESULT *pResult)
 	LPNMLISTVIEW pNMLV = reinterpret_cast<LPNMLISTVIEW>(pNMHDR);
 
 	if ( !m_bMove )
-		return;
+		return FALSE;
 
 	GetItemRect(pNMLV->iItem, rect, LVIR_LABEL);
 	tracker.m_rect = rect;
@@ -566,4 +615,5 @@ void CListCtrlExt::OnLvnBegindrag(NMHDR *pNMHDR, LRESULT *pResult)
 	Invalidate(FALSE);
 
 	*pResult = 0;
+	return TRUE;
 }

@@ -185,6 +185,7 @@ public:
 	UINT_PTR m_IdleTimer;
 	BOOL m_bPostIdleMsg;
 	clock_t m_LastClipUpdate;
+	class CServerSelect *m_pServerSelect;
 
 	BOOL WageantQuery(CBuffer *pInBuf, CBuffer *pOutBuf);
 	BOOL PageantQuery(CBuffer *pInBuf, CBuffer *pOutBuf);
@@ -201,6 +202,7 @@ public:
 	int SetAsyncHostAddr(int mode, LPCTSTR pHostName, CExtSocket *pSock);
 	int SetAsyncAddrInfo(int mode, LPCTSTR pHostName, int PortNum, void *pHint, CExtSocket *pSock);
 	int SetAfterId(void *param);
+	void UpdateServerEntry();
 	int OpenServerEntry(CServerEntry &Entry);
 
 	int SetTimerEvent(int msec, int mode, void *pParam);

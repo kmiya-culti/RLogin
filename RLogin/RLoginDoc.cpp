@@ -940,12 +940,14 @@ BOOL CRLoginDoc::EntryText(CString &name, LPCWSTR match)
 			case L'i':
 				pass.m_Title    = m_ServerEntry.m_EntryName;
 				pass.m_HostAddr = m_ServerEntry.m_HostName;
+				pass.m_PortName = m_ServerEntry.m_PortName;
 				pass.m_UserName = m_ServerEntry.m_UserName;
 				pass.m_PassName = m_ServerEntry.m_PassName;
 				pass.m_Prompt   = _T("Password");
 				pass.m_MaxTime  = 120;
 				if ( pass.DoModal() == IDOK ) {
 					m_ServerEntry.m_HostName = pass.m_HostAddr;
+					m_ServerEntry.m_PortName = pass.m_PortName;
 					m_ServerEntry.m_UserName = pass.m_UserName;
 					m_ServerEntry.m_PassName = pass.m_PassName;
 				}
@@ -1650,7 +1652,6 @@ void CRLoginDoc::OnSockReOpen()
 int CRLoginDoc::SocketOpen()
 {
 	BOOL rt;
-	int num;
 	CPassDlg dlg;
 	CStringArrayExt hosts;
 	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
@@ -1663,13 +1664,11 @@ int CRLoginDoc::SocketOpen()
 
 	if ( !m_ServerEntry.m_BeforeEntry.IsEmpty() && m_ServerEntry.m_BeforeEntry.Compare(m_ServerEntry.m_EntryName) != 0 && !((CRLoginApp *)::AfxGetApp())->IsOnlineEntry(m_ServerEntry.m_BeforeEntry) ) {
 		CString cmds;
-		num = ((CMainFrame *)::AfxGetMainWnd())->SetAfterId((void *)this);
-		cmds.Format(_T("/Entry \"%s\" /After %d"), m_ServerEntry.m_BeforeEntry, num);
+		cmds.Format(_T("/Entry \"%s\" /After %d"), m_ServerEntry.m_BeforeEntry, ((CMainFrame *)::AfxGetMainWnd())->SetAfterId((void *)this));
 		pApp->OpenCommandLine(cmds);
 		return TRUE;
 	}
 
-	num = CExtSocket::GetPortNum(m_ServerEntry.m_PortName);
 	EntryText(m_ServerEntry.m_UserName);
 	EntryText(m_ServerEntry.m_ProxyUser);
 
@@ -1682,6 +1681,7 @@ int CRLoginDoc::SocketOpen()
 		dlg.m_Title    = m_ServerEntry.m_EntryName;
 		dlg.m_Title   += _T("(Proxy Server)");
 		dlg.m_HostAddr = m_ServerEntry.m_ProxyHost;
+		dlg.m_PortName = m_ServerEntry.m_ProxyPort;
 		dlg.m_UserName = m_ServerEntry.m_ProxyUser;
 		dlg.m_PassName = m_ServerEntry.m_ProxyPass;
 		dlg.m_Prompt   = _T("Proxy Password");
@@ -1691,6 +1691,7 @@ int CRLoginDoc::SocketOpen()
 			return FALSE;
 
 		m_ServerEntry.m_ProxyHost = dlg.m_HostAddr;
+		m_ServerEntry.m_ProxyPort = dlg.m_PortName;
 		m_ServerEntry.m_ProxyUser = dlg.m_UserName;
 		m_ServerEntry.m_ProxyPass = dlg.m_PassName;
 
@@ -1709,6 +1710,7 @@ int CRLoginDoc::SocketOpen()
 
 		dlg.m_Title    = m_ServerEntry.m_EntryName;
 		dlg.m_HostAddr = m_ServerEntry.m_HostName;
+		dlg.m_PortName = m_ServerEntry.m_PortName;
 		dlg.m_UserName = m_ServerEntry.m_UserName;
 		dlg.m_PassName = m_ServerEntry.m_PassName;
 		dlg.m_Prompt   = _T("Password");
@@ -1720,6 +1722,7 @@ int CRLoginDoc::SocketOpen()
 			return FALSE;
 
 		m_ServerEntry.m_HostName = dlg.m_HostAddr;
+		m_ServerEntry.m_PortName = dlg.m_PortName;
 		m_ServerEntry.m_UserName = dlg.m_UserName;
 		m_ServerEntry.m_PassName = dlg.m_PassName;
 
@@ -1779,9 +1782,11 @@ SKIPINPUT:
 	if ( m_ServerEntry.m_ProxyMode != 0 )
 		rt = m_pSock->ProxyOpen(m_ServerEntry.m_ProxyMode, m_ServerEntry.m_ProxySSLKeep,
 			m_ServerEntry.m_ProxyHost, CExtSocket::GetPortNum(m_ServerEntry.m_ProxyPort),
-			m_ServerEntry.m_ProxyUser, m_ServerEntry.m_ProxyPass, m_ServerEntry.m_HostName, num);
+			m_ServerEntry.m_ProxyUser, m_ServerEntry.m_ProxyPass, m_ServerEntry.m_HostName,
+			CExtSocket::GetPortNum(m_ServerEntry.m_PortName));
 	else 
-		rt = m_pSock->AsyncOpen(m_ServerEntry.m_HostName, num);
+		rt = m_pSock->AsyncOpen(m_ServerEntry.m_HostName,
+			CExtSocket::GetPortNum(m_ServerEntry.m_PortName));
 
 	if ( !rt ) {
 		SocketClose();

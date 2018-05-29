@@ -4594,6 +4594,8 @@ void CTextRam::fc_OSCEXE(DWORD ch)
 					pView->GetClipboard(&clip);
 					work.Base64Encode(clip.GetPtr(), clip.GetSize());
 				}
+				if ( tmp.IsEmpty() )
+					tmp = _T("s0");
 				UNGETSTR(_T("%s52;%s;%s%s"), m_RetChar[RC_OSC], tmp, (LPCTSTR)work, (ch == 0x07 ? _T("\007") : m_RetChar[RC_ST]));
 			} else {						// Set Clipboad
 				if ( (pView = (CRLoginView *)GetAciveView()) != NULL && (m_pDocument->m_TextRam.m_ClipFlag & OSC52_WRITE) != 0 ) {

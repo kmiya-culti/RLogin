@@ -146,7 +146,7 @@ void CResTransDlg::TranslateProc(UINT msg, WPARAM wParam, LPARAM lParam)
 				}
 
 				int len = 0;
-				CStringA mbs;
+				CBuffer mbs;
 				CStringIndex index(TRUE, TRUE);
 				CString url, head;
 
@@ -157,7 +157,7 @@ void CResTransDlg::TranslateProc(UINT msg, WPARAM wParam, LPARAM lParam)
 					index.Add(m_TransStrTab[m_TransNext].m_SourceString);
 				}
 
-				index.SetJsonFormat(mbs, 0, TRUE);
+				index.SetJsonFormat(mbs, 0, JSON_UTF8);
 
 				url.Format(_T("http://api.microsofttranslator.com/V2/Ajax.svc/TranslateArray?from=%s&to=%s&texts="), m_TransFrom, m_TransTo);
 				CHttpSession::QueryString(mbs, url);

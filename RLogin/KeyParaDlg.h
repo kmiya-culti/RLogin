@@ -2,6 +2,7 @@
 
 #include "Data.h"
 #include "DialogExt.h"
+#include "afxwin.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CKeyParaDlg ダイアログ
@@ -29,6 +30,9 @@ public:
 	BOOL	m_WithCap;
 	CString	m_KeyCode;
 	CString	m_Maps;
+	CButton m_EditCtrl;
+	HWND m_hMapsEdit;
+	BOOL m_bCtrlMode;
 
 	class CKeyNode *m_pData;
 
@@ -37,9 +41,11 @@ protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート
 	virtual BOOL OnInitDialog();
 	virtual void OnOK();
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
 
 // インプリメンテーション
 protected:
 	afx_msg void OnBnClickedMenubtn();
+	afx_msg void OnBnClickedEditctrl();
 	DECLARE_MESSAGE_MAP()
 };

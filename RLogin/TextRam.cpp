@@ -352,10 +352,8 @@ void CFontNode::Init()
 	m_IndexName   = _T("");
 	m_Quality     = DEFAULT_QUALITY;
 	m_Init        = FALSE;
-	for ( int n = 0 ; n < 16 ; n++ ) {
+	for ( int n = 0 ; n < 16 ; n++ )
 		m_FontName[n] = _T("");
-		m_Hash[n]     = 0;
-	}
 	m_MapType     = 0;
 	m_UniBlock    = _T("");
 	m_OverZero    = _T("");
@@ -397,7 +395,6 @@ void CFontNode::SetArray(CStringArrayExt &stra)
 	for ( int n = 0 ; n < 12 ; n++ )
 		stra.AddVal(m_Iso646Tab[n]);
 	stra.Add(m_OverZero);
-
 }
 void CFontNode::GetArray(CStringArrayExt &stra)
 {
@@ -411,7 +408,6 @@ void CFontNode::GetArray(CStringArrayExt &stra)
 	m_OffsetH	  = stra.GetVal(2);
 	m_CharSet	  = stra.GetVal(3);
 	m_FontName[0] = stra.GetAt(4);
-	SetHash(0);
 
 	m_EntryName   = stra.GetAt(5);
 	m_IContName   = stra.GetAt(6);
@@ -421,10 +417,8 @@ void CFontNode::GetArray(CStringArrayExt &stra)
 		m_IContName = _T("GB_2312-80");
 
 	for ( int n = 1 ; n < 16 ; n++ ) {				// 8 - 23
-		if ( stra.GetSize() > (7 + n) ) {
+		if ( stra.GetSize() > (7 + n) )
 			m_FontName[n] = stra.GetAt(7 + n);
-			SetHash(n);
-		}
 	}
 
 	if ( stra.GetSize() > (7 + 16) )
@@ -454,20 +448,26 @@ void CFontNode::GetArray(CStringArrayExt &stra)
 	
 	m_Init = TRUE;
 }
-void CFontNode::SetHash(int num)
+CFontChacheNode *CFontNode::GetFont(int Width, int Height, int Style, int FontNum, class CTextRam *pTextRam)
 {
-	m_Hash[num] = 0;
-	LPCTSTR p = m_FontName[num];
-	while ( *p != _T('\0') )
-		m_Hash[num] = m_Hash[num] * 31 + *(p++);
-}
-CFontChacheNode *CFontNode::GetFont(int Width, int Height, int Style, int FontNum, LPCTSTR DefFontName)
-{
-	if ( m_FontName[FontNum].IsEmpty() )
-		FontNum = 0;
+	LPCTSTR FontName;
+	int CharSet = m_CharSet;
+
+	if ( m_FontName[FontNum].IsEmpty() ) {
+		if ( m_FontName[0].IsEmpty() ) {
+			if ( pTextRam->m_DefFontName[FontNum].IsEmpty() )
+				FontName = pTextRam->m_DefFontName[0];
+			else
+				FontName = pTextRam->m_DefFontName[FontNum];
+
+			if ( pTextRam->IsOptEnable(TO_RLNOCHKFONT) )
+				CharSet = DEFAULT_CHARSET;
+		} else
+			FontName = m_FontName[0];
+	} else
+		FontName = m_FontName[FontNum];
 	
-	return ((CRLoginApp *)AfxGetApp())->m_FontData.GetFont((m_FontName[FontNum].IsEmpty() ? DefFontName : m_FontName[FontNum]),
-					Width * m_ZoomW / 100, Height * m_ZoomH / 100, m_CharSet, Style, m_Quality, m_Hash[FontNum]);
+	return ((CRLoginApp *)AfxGetApp())->m_FontData.GetFont(FontName, Width * m_ZoomW / 100, Height * m_ZoomH / 100, CharSet, Style, m_Quality);
 }
 const CFontNode & CFontNode::operator = (CFontNode &data)
 {
@@ -484,10 +484,8 @@ const CFontNode & CFontNode::operator = (CFontNode &data)
 	m_Init      = data.m_Init;
 	m_UniBlock  = data.m_UniBlock;
 
-	for ( int n = 0 ; n < 16 ; n++ ) {
+	for ( int n = 0 ; n < 16 ; n++ )
 		m_FontName[n] = data.m_FontName[n];
-		m_Hash[n]     = data.m_Hash[n];
-	}
 
 	m_Iso646Name[0] = data.m_Iso646Name[0];
 	m_Iso646Name[1] = data.m_Iso646Name[1];
@@ -889,8 +887,6 @@ void CFontTab::Init()
 		m_Data[i].m_IContName   = FontInitTab[n].iset;
 		m_Data[i].m_IndexName   = FontInitTab[n].scs;
 		m_Data[i].m_Init        = FALSE;
-		m_Data[i].SetHash(0);
-		m_Data[i].SetHash(1);
 	}
 
 	InitUniBlock();
@@ -5050,7 +5046,7 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 {
 	int n, i, a, c;
 	int x, y, nw, ow;
-	int width, height, style = 0;
+	int width, height, style = FONTSTYLE_NONE;
 	int type = 0;
 	UINT mode;
 	CSize sz;
@@ -5058,7 +5054,6 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 	CStringW str;
 	CFontChacheNode *pFontCache;
 	CFontNode *pFontNode = &(m_FontTab[prop.bank]);
-	LPCTSTR deffont = (m_DefFontName[prop.font].IsEmpty() ? m_DefFontName[0] : m_DefFontName[prop.font]);
 	CDC workDC, mirDC, *pSaveDC;
 	CBitmap *pOldMap, *pOldMirMap, MirMap;
 
@@ -5069,9 +5064,11 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 	width  = pView->m_CharWidth  * (prop.zoom == 0 ? 1 : 2);
 	height = pView->m_CharHeight * (prop.zoom <= 1 ? 1 : 2);
 
-	style |= (prop.attr & ATT_BOLD) != 0 && IsOptEnable(TO_RLBOLD) ? 1 : 0;
+	if ( (prop.attr & ATT_BOLD) != 0 && IsOptEnable(TO_RLBOLD) )
+		style |= FONTSTYLE_BOLD;
+
 	if ( (prop.attr & ATT_ITALIC) != 0 ) {
-		style |= 2;
+		style |= FONTSTYLE_ITALIC;
 		width = width * 80 / 100;
 	}
 
@@ -5091,7 +5088,7 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 		box = frame = rect;
 	}
 
-	pFontCache = pFontNode->GetFont(width, height, style, prop.font, deffont);
+	pFontCache = pFontNode->GetFont(width, height, style, prop.font, this);
 	pDC->SelectObject(pFontCache->m_pFont);
 	pDC->SetTextColor(fc);
 	pDC->SetBkColor(bc);
@@ -5135,7 +5132,7 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 					nw = 1;
 
 				if ( nw != width ) {
-					pFontCache = pFontNode->GetFont(nw, height, style, prop.font, deffont);
+					pFontCache = pFontNode->GetFont(nw, height, style, prop.font, this);
 					pDC->SelectObject(pFontCache->m_pFont);
 					sz = pDC->GetTextExtent(str);
 				}
@@ -5146,7 +5143,7 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 				pDC->ExtTextOutW(x, y, mode, box, str, NULL);
 
 				if ( nw != width ) {
-					pFontCache = pFontNode->GetFont(width, height, style, prop.font, deffont);
+					pFontCache = pFontNode->GetFont(width, height, style, prop.font, this);
 					pDC->SelectObject(pFontCache->m_pFont);
 				}
 			}
@@ -5166,7 +5163,7 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 		sz = pDC->GetTextExtent(prop.pText, prop.tlen);
 		if ( sz.cx <= 0 ) sz.cx = 1;
 
-		pFontCache = pFontNode->GetFont(width * box.Width() / sz.cx, height, style, prop.font, deffont);
+		pFontCache = pFontNode->GetFont(width * box.Width() / sz.cx, height, style, prop.font, this);
 		pDC->SelectObject(pFontCache->m_pFont);
 		sz = pDC->GetTextExtent(prop.pText, prop.tlen);
 
@@ -5196,7 +5193,7 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 		sz = pDC->GetTextExtent(prop.pText, prop.tlen);
 
 		if ( box.Width() < sz.cx ) {
-			pFontCache = pFontNode->GetFont(width * box.Width() / sz.cx, height, style, prop.font, deffont);
+			pFontCache = pFontNode->GetFont(width * box.Width() / sz.cx, height, style, prop.font, this);
 			pDC->SelectObject(pFontCache->m_pFont);
 			sz = pDC->GetTextExtent(prop.pText, prop.tlen);
 		}
@@ -5264,7 +5261,7 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 				nw = 1;
 
 			if ( nw != width ) {
-				pFontCache = pFontNode->GetFont(nw, height, style, prop.font, deffont);
+				pFontCache = pFontNode->GetFont(nw, height, style, prop.font, this);
 				pDC->SelectObject(pFontCache->m_pFont);
 				sz = pDC->GetTextExtent(str);
 			}
@@ -5275,7 +5272,7 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 			pDC->ExtTextOutW(x, y, mode, box, str, NULL);
 
 			if ( nw != width ) {
-				pFontCache = pFontNode->GetFont(width, height, style, prop.font, deffont);
+				pFontCache = pFontNode->GetFont(width, height, style, prop.font, this);
 				pDC->SelectObject(pFontCache->m_pFont);
 			}
 
@@ -5448,19 +5445,18 @@ void CTextRam::DrawOverChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, str
 	CFontNode *pFontNode = &(m_FontTab[prop.bank]);
 	CString str;
 	LPCTSTR over;
-	LPCTSTR deffont = (m_DefFontName[prop.font].IsEmpty() ? m_DefFontName[0] : m_DefFontName[prop.font]);
 	int width  = pView->m_CharWidth  * (prop.zoom == 0 ? 1 : 2);
 	int height = pView->m_CharHeight * (prop.zoom <= 1 ? 1 : 2);
-	int style  = (prop.attr & ATT_BOLD) != 0 && IsOptEnable(TO_RLBOLD) ? 1 : 0;
+	int style  = (prop.attr & ATT_BOLD) != 0 && IsOptEnable(TO_RLBOLD) ? FONTSTYLE_BOLD : FONTSTYLE_NONE;
 	CSize sz;
 	CRect box;
 
 	if ( (prop.attr & ATT_ITALIC) != 0 ) {
-		style |= 2;
+		style |= FONTSTYLE_ITALIC;
 		width = width * 80 / 100;
 	}
 
-	pFontCache = pFontNode->GetFont(width, height, style, prop.font, deffont);
+	pFontCache = pFontNode->GetFont(width, height, style, prop.font, this);
 	pDC->SelectObject(pFontCache->m_pFont);
 	pDC->SetTextColor(fc);
 	int OldBkMode = pDC->SetBkMode(TRANSPARENT);

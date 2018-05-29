@@ -189,7 +189,7 @@ void CChatDlg::OnTvnDeleteitemNodetree(NMHDR *pNMHDR, LRESULT *pResult)
 void CChatDlg::OnNMRClickNodetree(NMHDR *pNMHDR, LRESULT *pResult)
 {
 	CPoint point;
-	CMenu PopUpMenu;
+	CMenuLoad PopUpMenu;
 	CMenu *pSubMenu;
 
 	PopUpMenu.LoadMenu(IDR_POPUPMENU);

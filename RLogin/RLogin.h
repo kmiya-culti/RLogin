@@ -149,6 +149,8 @@ public:
 	void GetProfileBuffer(LPCTSTR lpszSection, LPCTSTR lpszEntry, CBuffer &Buf);
 	void GetProfileStringArray(LPCTSTR lpszSection, LPCTSTR lpszEntry, CStringArrayExt &stra);
 	void WriteProfileStringArray(LPCTSTR lpszSection, LPCTSTR lpszEntry, CStringArrayExt &stra);
+	void GetProfileStringIndex(LPCTSTR lpszSection, LPCTSTR lpszEntry, CStringIndex &index);
+	void WriteProfileStringIndex(LPCTSTR lpszSection, LPCTSTR lpszEntry, CStringIndex &index);
 	void GetProfileArray(LPCTSTR lpszSection, CStringArrayExt &stra);
 	void WriteProfileArray(LPCTSTR lpszSection, CStringArrayExt &stra);
 	int GetProfileSeqNum(LPCTSTR lpszSection, LPCTSTR lpszEntry);
@@ -198,6 +200,8 @@ public:
 	BOOL IsOnlineEntry(LPCTSTR entry);
 	BOOL OnIsOpenRLogin(COPYDATASTRUCT *pCopyData);
 	BOOL IsOpenRLogin();
+	void OnUpdateServerEntry(COPYDATASTRUCT *pCopyData);
+	void UpdateServerEntry();
 #ifdef	USE_KEYMACGLOBAL
 	void OnUpdateKeyMac(COPYDATASTRUCT *pCopyData);
 	void UpdateKeyMacGlobal();

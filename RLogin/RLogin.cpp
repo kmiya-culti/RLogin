@@ -1639,6 +1639,25 @@ ENDOF:
 	return ret;
 }
 
+void CRLoginApp::OnUpdateServerEntry(COPYDATASTRUCT *pCopyData)
+{
+	if ( pCopyData->cbData == sizeof(DWORD) && *((DWORD *)(pCopyData->lpData)) == GetCurrentThreadId() )
+		return;
+
+	((CMainFrame *)AfxGetMainWnd())->UpdateServerEntry();
+}
+void CRLoginApp::UpdateServerEntry()
+{
+	COPYDATASTRUCT copyData;
+	DWORD id = GetCurrentThreadId();
+
+	copyData.dwData = 0x524c4f3a;
+	copyData.cbData = sizeof(DWORD);
+	copyData.lpData = (PVOID)&id;
+
+	::EnumWindows(RLoginEnumFunc, (LPARAM)&copyData);
+}
+
 #ifdef	USE_KEYMACGLOBAL
 void CRLoginApp::OnUpdateKeyMac(COPYDATASTRUCT *pCopyData)
 {
@@ -1819,9 +1838,11 @@ void CRLoginApp::GetProfileData(LPCTSTR lpszSection, LPCTSTR lpszEntry, void *lp
 			memcpy(lpBuf, pData, nBufLen);
 		else if ( lpDef != NULL )
 			memcpy(lpBuf, lpDef, nBufLen);
-		delete [] pData;
 	} else if ( lpDef != NULL )
 		memcpy(lpBuf, lpDef, nBufLen);
+
+	if ( pData != NULL )
+		delete [] pData;
 }
 void CRLoginApp::GetProfileBuffer(LPCTSTR lpszSection, LPCTSTR lpszEntry, CBuffer &Buf)
 {
@@ -1829,10 +1850,12 @@ void CRLoginApp::GetProfileBuffer(LPCTSTR lpszSection, LPCTSTR lpszEntry, CBuffe
 	UINT len = 0;
 
 	Buf.Clear();
-	if ( GetProfileBinary(lpszSection, lpszEntry, &pData, &len) && pData != NULL && len > 0 && len < (512 * 1024) ) {
+
+	if ( GetProfileBinary(lpszSection, lpszEntry, &pData, &len) && pData != NULL && len > 0 && len < (512 * 1024) )
 		Buf.Apend(pData, len);
+
+	if ( pData != NULL )
 		delete [] pData;
-	}
 }
 void CRLoginApp::GetProfileStringArray(LPCTSTR lpszSection, LPCTSTR lpszEntry, CStringArrayExt &stra)
 {
@@ -1855,6 +1878,20 @@ void CRLoginApp::WriteProfileStringArray(LPCTSTR lpszSection, LPCTSTR lpszEntry,
 	for ( n = 0 ; n < stra.GetSize() ; n++ )
 		buf.PutStrT(stra[n]);
 
+	WriteProfileBinary(lpszSection, lpszEntry, buf.GetPtr(), buf.GetSize());
+}
+void CRLoginApp::GetProfileStringIndex(LPCTSTR lpszSection, LPCTSTR lpszEntry, CStringIndex &index)
+{
+	CBuffer buf;
+
+	GetProfileBuffer(lpszSection, lpszEntry, buf);
+	index.GetBuffer(&buf);
+}
+void CRLoginApp::WriteProfileStringIndex(LPCTSTR lpszSection, LPCTSTR lpszEntry, CStringIndex &index)
+{
+	CBuffer buf;
+
+	index.SetBuffer(&buf);
 	WriteProfileBinary(lpszSection, lpszEntry, buf.GetPtr(), buf.GetSize());
 }
 void CRLoginApp::GetProfileArray(LPCTSTR lpszSection, CStringArrayExt &stra)

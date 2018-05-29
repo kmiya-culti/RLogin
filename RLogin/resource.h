@@ -277,6 +277,7 @@
 #define IDE_XMSSBITSIZEERR              737
 #define IDE_XMSSBITSIZECHECK            738
 #define IDE_REGISTRYDELETEERROR         739
+#define IDE_ENTRYUPDATEEERROR           740
 #define IDT_EXTOPT_LIST01               800
 #define IDT_EXTOPT_LIST02               801
 #define IDT_EXTOPT_LIST03               802
@@ -300,6 +301,7 @@
 #define IDT_EXTOPT_LIST21               820
 #define IDT_EXTOPT_LIST22               821
 #define IDT_EXTOPT_LIST23               822
+#define IDT_EXTOPT_LIST24               823
 #define IDT_TERM_LIST01                 900
 #define IDT_TERM_LIST02                 901
 #define IDT_TERM_LIST03                 902
@@ -815,6 +817,7 @@
 #define IDC_UPDATENODE                  2373
 #define IDC_USERNAME                    2374
 #define IDC_VISUALBELL                  2375
+#define IDC_PORTNAME                    2375
 #define IDC_WHEELSIZE                   2376
 #define IDC_VISUALBELL2                 2377
 #define IDC_DEFCARET                    2378
@@ -937,6 +940,8 @@
 #define IDC_SENDWAITL                   2488
 #define IDC_USERFLOW                    2489
 #define IDC_DEFCONF                     2490
+#define IDC_SERVERTREE                  2491
+#define IDC_EDITCTRL                    2492
 #define IDM_BROADCAST                   5000
 #define IDM_CAP_CLIPBORD                5001
 #define IDM_CAP_EXPORT                  5002
@@ -1054,15 +1059,20 @@
 #define IDM_SAVEREGFILE                 5126
 #define IDM_COMMONITER                  5127
 #define IDM_REGISTAPP                   5128
-#define IDM_FIRST_MDICHILD              0xFF00
+#define IDM_TREECTRLNEW                 5129
+#define IDM_TREECTRLRENAME              5130
+#define IDM_TREECTRLDELETE              5131
+#define IDM_TREECTRLSELECT              5132
+#define IDM_TREECTRLEXPAND              5133
+#define IDM_FIRST_MDICHILD              0xF800
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        171
-#define _APS_NEXT_COMMAND_VALUE         5129
-#define _APS_NEXT_CONTROL_VALUE         2491
+#define _APS_NEXT_COMMAND_VALUE         5134
+#define _APS_NEXT_CONTROL_VALUE         2493
 #define _APS_NEXT_SYMED_VALUE           634
 #endif
 #endif

@@ -2158,6 +2158,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 			// ２度目以降のパスワードなら
 			if ( m_IdKeyPos > 0 ) {
 				dlg.m_HostAddr = m_pDocument->m_ServerEntry.m_HostName;
+				dlg.m_PortName = m_pDocument->m_ServerEntry.m_PortName;
 				dlg.m_UserName = m_pDocument->m_ServerEntry.m_UserName;
 				dlg.m_PassName = m_pDocument->m_ServerEntry.m_PassName;
 				dlg.m_Prompt   = _T("ssh Password");
@@ -3193,6 +3194,7 @@ int Cssh::SSH2MsgUserAuthPasswdChangeReq(CBuffer *bp)
 	info = "Enter New Password";
 	while ( pass.IsEmpty() ) {
 		dlg.m_HostAddr = m_pDocument->m_ServerEntry.m_HostName;
+		dlg.m_PortName = m_pDocument->m_ServerEntry.m_PortName;
 		dlg.m_UserName = m_pDocument->m_ServerEntry.m_UserName;
 		dlg.m_Enable   = PASSDLG_PASS;
 		dlg.m_Prompt   = info;
@@ -3204,6 +3206,7 @@ int Cssh::SSH2MsgUserAuthPasswdChangeReq(CBuffer *bp)
 		pass = dlg.m_PassName;
 
 		dlg.m_HostAddr = m_pDocument->m_ServerEntry.m_HostName;
+		dlg.m_PortName = m_pDocument->m_ServerEntry.m_PortName;
 		dlg.m_UserName = m_pDocument->m_ServerEntry.m_UserName;
 		dlg.m_Enable   = PASSDLG_PASS;
 		dlg.m_Prompt   = "Retype New Password";
@@ -3252,6 +3255,7 @@ int Cssh::SSH2MsgUserAuthInfoRequest(CBuffer *bp)
 
 		} else {
 			dlg.m_HostAddr = m_pDocument->m_ServerEntry.m_HostName;
+			dlg.m_PortName = m_pDocument->m_ServerEntry.m_PortName;
 			dlg.m_UserName = m_pDocument->m_ServerEntry.m_UserName;
 			dlg.m_Enable   = PASSDLG_PASS;
 			dlg.m_Prompt   = prom;

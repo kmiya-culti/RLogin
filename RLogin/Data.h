@@ -275,6 +275,16 @@ public:
 	~CStringMaps();
 };
 
+#define	JSON_UTF16		0
+#define	JSON_UTF8		1
+#define	JSON_OEM		2
+
+#ifdef	_UNICODE
+#define	JSON_TCODE		JSON_UTF16
+#else
+#define	JSON_TCODE		JSON_OEM
+#endif
+
 class CStringIndex : public CObject
 {
 public:
@@ -286,6 +296,8 @@ public:
 	CString m_nIndex;
 	CString m_String;
 	CArray<CStringIndex, CStringIndex &> m_Array;
+	CStringIndex *m_pOwner;
+	CDWordArray m_TabData;
 
 	CStringIndex();
 	CStringIndex(BOOL bNoCase, BOOL bNoSort);
@@ -304,14 +316,22 @@ public:
 	void SetSize(int nIndex) { m_Array.SetSize(nIndex); }
 	LPCTSTR GetIndex() { return m_nIndex; }
 	void RemoveAll() { m_Array.RemoveAll(); m_bEmpty = TRUE; }
-	int Add(LPCTSTR str) { CStringIndex tmp; tmp = str; return (int)m_Array.Add(tmp); }
-	int Add(int value) { CStringIndex tmp; tmp = value; return (int)m_Array.Add(tmp); }
-	int Add(CStringIndex &data) { return (int)m_Array.Add(data); }
+	void RemoveAt(int index) { m_Array.RemoveAt(index); }
+	int Add(LPCTSTR str) { CStringIndex tmp(m_bNoCase, m_bNoSort); tmp = str; return (int)m_Array.Add(tmp); }
+	int Add(int value) { CStringIndex tmp(m_bNoCase, m_bNoSort); tmp = value; return (int)m_Array.Add(tmp); }
+	int Add(CStringIndex &data) { int n = (int)m_Array.Add(data); return n; }
+	CStringIndex & Add() { CStringIndex tmp(m_bNoCase, m_bNoSort); int n = (int)m_Array.Add(tmp); return m_Array[n]; }
 	void SetNoCase(BOOL b) { m_bNoCase = b; }
 	void SetNoSort(BOOL b) { m_bNoSort = b; }
 
 	int Find(LPCTSTR str);
 	void SetArray(LPCTSTR str);
+
+	CStringIndex &AddPath(LPCTSTR path, BOOL *pNest = NULL);
+	CStringIndex *FindPath(LPCTSTR path);
+	CStringIndex *RootPath(LPCTSTR path);
+	void GetPath(CString &path);
+	void OwnerLink(CStringIndex *pOwner);
 
 	void GetBuffer(CBuffer *bp);
 	void SetBuffer(CBuffer *bp);
@@ -335,8 +355,9 @@ public:
 	TCHAR SubJsonArray(LPCTSTR &str);
 	TCHAR SubJsonObject(LPCTSTR &str);
 	BOOL GetJsonFormat(LPCTSTR str);
-	void AddJasonString(CStringA &mbs, LPCTSTR str, BOOL bUtf8);
-	void SetJsonFormat(CStringA &mbs, int nest = 0, BOOL bUtf8 = FALSE);
+	void AddJasonTstr(CBuffer &mbs, LPCTSTR str, int nCode);
+	void AddJasonString(CBuffer &mbs, LPCTSTR str, int nCode);
+	void SetJsonFormat(CBuffer &mbs, int nest = 0, int nCode = JSON_OEM);
 
 	void SubQueryValue(LPCTSTR &str);
 	void GetQueryString(LPCTSTR str);
@@ -468,7 +489,7 @@ public:
 	CFontChacheNode *m_pTop[4];
 	CFontChacheNode m_Data[FONTCACHEMAX];
 
-	CFontChacheNode *GetFont(LPCTSTR pFontName, int Width, int Height, int CharSet, int Style, int Quality, int Hash);
+	CFontChacheNode *GetFont(LPCTSTR pFontName, int Width, int Height, int CharSet, int Style, int Quality);
 	CFontChache();
 };
 
@@ -604,9 +625,11 @@ public:
 	CString m_ScriptFile;
 	CString m_ScriptStr;
 	CString m_HostNameProvs;
+	CString m_PortNameProvs;
 	CString m_UserNameProvs;
 	CString m_PassNameProvs;
 	CString m_ProxyHostProvs;
+	CString m_ProxyPortProvs;
 	CString m_ProxyUserProvs;
 	CString m_ProxyPassProvs;
 	CString m_BeforeEntry;

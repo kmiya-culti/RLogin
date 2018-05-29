@@ -14,6 +14,7 @@ CPassDlg::CPassDlg(CWnd* pParent /*=NULL*/)
 	: CDialogExt(CPassDlg::IDD, pParent)
 {
 	m_HostAddr = _T("");
+	m_PortName = _T("");
 	m_UserName = _T("");
 	m_PassName = _T("");
 	m_Prompt = _T("Password");
@@ -30,6 +31,7 @@ void CPassDlg::DoDataExchange(CDataExchange* pDX)
 
 	DDX_Control(pDX, IDC_TIMELIMIT, m_TimeLimit);
 	DDX_Control(pDX, IDC_HOSTADDR, m_HostWnd);
+	DDX_Control(pDX, IDC_PORTNAME, m_PortWnd);
 	DDX_Control(pDX, IDC_USERNAME, m_UserWnd);
 	DDX_Control(pDX, IDC_PASSNAME, m_PassWnd);
 	DDX_Text(pDX, IDC_PROMPT, m_Prompt);
@@ -54,6 +56,12 @@ BOOL CPassDlg::OnInitDialog()
 
 	if ( (m_Enable & PASSDLG_HOST) == 0 )
 		m_HostWnd.EnableWindow(FALSE);
+
+	m_PortWnd.LoadHis(_T("PassDlgSocketPort"));
+	m_PortWnd.SetWindowText(m_PortName);
+
+	if ( (m_Enable & PASSDLG_HOST) == 0 )
+		m_PortWnd.EnableWindow(FALSE);
 
 	m_UserWnd.LoadHis(_T("PassDlgUserName"));
 	m_UserWnd.SetWindowText(m_UserName);
@@ -104,6 +112,9 @@ void CPassDlg::OnOK()
 {
 	m_HostWnd.GetWindowText(m_HostAddr);
 	m_HostWnd.AddHis(m_HostAddr);
+
+	m_PortWnd.GetWindowText(m_PortName);
+	m_PortWnd.AddHis(m_PortName);
 
 	m_UserWnd.GetWindowText(m_UserName);
 	m_UserWnd.AddHis(m_UserName);

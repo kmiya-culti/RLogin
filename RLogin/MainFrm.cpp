@@ -903,6 +903,7 @@ CMainFrame::CMainFrame()
 	m_bPostIdleMsg = FALSE;
 	m_LastClipUpdate = clock();
 	m_pMidiData = NULL;
+	m_pServerSelect = NULL;
 }
 
 CMainFrame::~CMainFrame()
@@ -1632,9 +1633,17 @@ void CMainFrame::PostIdleMessage()
 
 /////////////////////////////////////////////////////////////////////////////
 
+void CMainFrame::UpdateServerEntry()
+{
+	m_ServerEntryTab.Serialize(FALSE);
+
+	if ( m_pServerSelect != NULL )
+		m_pServerSelect->PostMessage(WM_COMMAND, ID_EDIT_CHECK);
+}
 int CMainFrame::OpenServerEntry(CServerEntry &Entry)
 {
 	int n;
+	INT_PTR retId;
 	CServerSelect dlg;
 	CWnd *pTemp = MDIGetActive(NULL);
 	CPaneFrame *pPane = NULL;
@@ -1686,7 +1695,11 @@ int CMainFrame::OpenServerEntry(CServerEntry &Entry)
 			return TRUE;
 		}
 
-		if ( dlg.DoModal() != IDOK || dlg.m_EntryNum < 0 )
+		m_pServerSelect = &dlg;
+		retId = dlg.DoModal();
+		m_pServerSelect = NULL;
+
+		if ( retId != IDOK || dlg.m_EntryNum < 0 )
 			return FALSE;
 	}
 
@@ -2177,26 +2190,28 @@ static UINT CopyClipboardThead(LPVOID pParam)
 }
 BOOL CMainFrame::SetClipboardText(LPCTSTR str, LPCSTR rtf)
 {
-	HGLOBAL hData;
+	HGLOBAL hData = NULL;
 	LPTSTR pData;
+	BOOL bLock = FALSE;
+	BOOL bOpen = FALSE;
+	LPCTSTR pMsg = NULL;
+	BOOL bRet = FALSE;
 
 	// 500msƒƒbƒNo—ˆ‚é‚Ü‚Å‘Ò‚Â
 	if ( !m_OpenClipboardLock.Lock(500) ) {
-		MessageBox(_T("Clipboard Busy..."));
-		return FALSE;
+		pMsg = _T("Clipboard Busy...");
+		goto ENDOF;
 	}
+	bLock = TRUE;
 
 	if ( (hData = GlobalAlloc(GMEM_MOVEABLE, (_tcslen(str) + 1) * sizeof(TCHAR))) == NULL ) {
-		m_OpenClipboardLock.Unlock();
-		MessageBox(_T("Global Alloc Error"));
-		return FALSE;
+		pMsg = _T("Global Alloc Error");
+		goto ENDOF;
 	}
 
 	if ( (pData = (TCHAR *)GlobalLock(hData)) == NULL ) {
-		GlobalFree(hData);
-		m_OpenClipboardLock.Unlock();
-		MessageBox(_T("Global Lock Error"));
-		return FALSE;
+		pMsg = _T("Global Lock Error");
+		goto ENDOF;
 	}
 
 	_tcscpy(pData, str);
@@ -2207,20 +2222,16 @@ BOOL CMainFrame::SetClipboardText(LPCTSTR str, LPCSTR rtf)
 
 	for ( int n = 0 ; !OpenClipboard() ; n++ ) {
 		if ( n >= 10 ) {
-			GlobalFree(hData);
-			m_OpenClipboardLock.Unlock();
-			MessageBox(_T("Clipboard Open Error"));
-			return FALSE;
+			pMsg = _T("Clipboard Open Error");
+			goto ENDOF;
 		}
 		Sleep(100);
 	}
+	bOpen = TRUE;
 
 	if ( !EmptyClipboard() ) {
-		GlobalFree(hData);
-		CloseClipboard();
-		m_OpenClipboardLock.Unlock();
-		MessageBox(_T("Clipboard Empty Error"));
-		return FALSE;
+		pMsg = _T("Clipboard Empty Error");
+		goto ENDOF;
 	}
 
 #ifdef	_UNICODE
@@ -2228,42 +2239,44 @@ BOOL CMainFrame::SetClipboardText(LPCTSTR str, LPCSTR rtf)
 #else
 	if ( SetClipboardData(CF_TEXT, hData) == NULL ) {
 #endif
-		GlobalFree(hData);
-		CloseClipboard();
-		m_OpenClipboardLock.Unlock();
-		MessageBox(_T("Clipboard Set Data Error"));
-		return FALSE;
+		pMsg = _T("Clipboard Set Data Error");
+		goto ENDOF;
 	}
+	hData = NULL;
+	bRet = TRUE;
 
 	if ( rtf != NULL ) {
 		if ( (hData = GlobalAlloc(GMEM_MOVEABLE, (strlen(rtf) + 1))) == NULL ) {
-			m_OpenClipboardLock.Unlock();
-			MessageBox(_T("Global Alloc Error"));
-			return FALSE;
+			pMsg = _T("Global Alloc Error");
+			goto ENDOF;
 		}
 
 		if ( (pData = (TCHAR *)GlobalLock(hData)) == NULL ) {
-			GlobalFree(hData);
-			m_OpenClipboardLock.Unlock();
-			MessageBox(_T("Global Lock Error"));
-			return FALSE;
+			pMsg = _T("Global Lock Error");
+			goto ENDOF;
 		}
 
 		strcpy((LPSTR)pData, rtf);
 		GlobalUnlock(pData);
 
 		if ( SetClipboardData(RegisterClipboardFormat(CF_RTF), hData) == NULL ) {
-			GlobalFree(hData);
-			CloseClipboard();
-			m_OpenClipboardLock.Unlock();
-			MessageBox(_T("Clipboard Set Data Error"));
-			return FALSE;
+			pMsg = _T("Clipboard Set Data Error");
+			goto ENDOF;
 		}
+		hData = NULL;
 	}
 
-	CloseClipboard();
-	m_OpenClipboardLock.Unlock();
-	return TRUE;
+ENDOF:
+	if ( hData != NULL )
+		GlobalFree(hData);
+	if ( bOpen )
+		CloseClipboard();
+	if ( bLock )
+		m_OpenClipboardLock.Unlock();
+	if ( pMsg != NULL )
+		MessageBox(pMsg);
+
+	return bRet;
 }
 BOOL CMainFrame::GetClipboardText(CString &str)
 {
@@ -2532,20 +2545,23 @@ LRESULT CMainFrame::OnGetClipboard(WPARAM wParam, LPARAM lParam)
 	else
 		return TRUE;
 
-	POSITION pos = m_ClipBoard.GetHeadPosition();
+	if ( !CServerSelect::IsJsonEntryText(*pStr) ) {
 
-	while ( pos != NULL ) {
-		if ( m_ClipBoard.GetAt(pos).Compare(TstrToUni(*pStr)) == 0 ) {
-			m_ClipBoard.RemoveAt(pos);
-			break;
+		POSITION pos = m_ClipBoard.GetHeadPosition();
+
+		while ( pos != NULL ) {
+			if ( m_ClipBoard.GetAt(pos).Compare(TstrToUni(*pStr)) == 0 ) {
+				m_ClipBoard.RemoveAt(pos);
+				break;
+			}
+			m_ClipBoard.GetNext(pos);
 		}
-		m_ClipBoard.GetNext(pos);
+
+		m_ClipBoard.AddHead(*pStr);
+
+		while ( m_ClipBoard.GetSize() > 10 )
+			m_ClipBoard.RemoveTail();
 	}
-
-	m_ClipBoard.AddHead(*pStr);
-
-	while ( m_ClipBoard.GetSize() > 10 )
-		m_ClipBoard.RemoveTail();
 
 	if ( lParam != NULL )
 		delete pStr;
@@ -3249,6 +3265,10 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCopyDataStruct)
 
 	} else if ( pCopyDataStruct->dwData == 0x524c4f39 ) {
 		return ((CRLoginApp *)::AfxGetApp())->OnInUseCheck(pCopyDataStruct, TRUE);
+
+	} else if ( pCopyDataStruct->dwData == 0x524c4f3a ) {
+		((CRLoginApp *)::AfxGetApp())->OnUpdateServerEntry(pCopyDataStruct);
+		return TRUE;
 	}
 
 	return CMDIFrameWnd::OnCopyData(pWnd, pCopyDataStruct);

@@ -117,6 +117,8 @@ void CSerEntPage::SetEnableWind()
 	}
 }
 
+static LPCTSTR	DefPortName[] = { _T(""), _T("login"), _T("telnet"), _T("ssh"), _T("COM1"), _T("") };
+
 /////////////////////////////////////////////////////////////////////////////
 // CSerEntPage メッセージ ハンドラ
 
@@ -124,7 +126,7 @@ void CSerEntPage::DoInit()
 {
 	m_EntryName   = m_pSheet->m_pEntry->m_EntryName;
 	m_HostName    = m_pSheet->m_pEntry->m_HostNameProvs;
-	m_PortName    = m_pSheet->m_pEntry->m_PortName;
+	m_PortName    = m_pSheet->m_pEntry->m_PortNameProvs;
 	m_UserName    = m_pSheet->m_pEntry->m_UserNameProvs;
 	m_PassName    = m_pSheet->m_pEntry->m_PassNameProvs;
 	m_TermName    = m_pSheet->m_pEntry->m_TermName;
@@ -133,7 +135,7 @@ void CSerEntPage::DoInit()
 	m_ProtoType   = m_pSheet->m_pEntry->m_ProtoType;
 	m_ProxyMode   = m_pSheet->m_pEntry->m_ProxyMode;
 	m_ProxyHost   = m_pSheet->m_pEntry->m_ProxyHostProvs;
-	m_ProxyPort   = m_pSheet->m_pEntry->m_ProxyPort;
+	m_ProxyPort   = m_pSheet->m_pEntry->m_ProxyPortProvs;
 	m_ProxyUser   = m_pSheet->m_pEntry->m_ProxyUserProvs;
 	m_ProxyPass   = m_pSheet->m_pEntry->m_ProxyPassProvs;
 	m_SSL_Keep    = m_pSheet->m_pEntry->m_ProxySSLKeep;
@@ -147,6 +149,13 @@ void CSerEntPage::DoInit()
 
 	m_UsePassDlg  = (m_pSheet->m_pTextRam->IsOptEnable(TO_RLUSEPASS) ? TRUE : FALSE);
 	m_UseProxyDlg = (m_pSheet->m_pTextRam->IsOptEnable(TO_PROXPASS)  ? TRUE : FALSE);
+
+	if ( m_PortName.IsEmpty() ) {
+		if ( m_ProtoType == PROTO_COMPORT )
+			m_PortName = m_DefComPort;
+		else
+			m_PortName = DefPortName[m_ProtoType];
+	}
 
 	UpdateData(FALSE);
 }
@@ -165,6 +174,8 @@ BOOL CSerEntPage::OnInitDialog()
 	CTreePage::OnInitDialog();
 
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_SERVERNAME)) != NULL ) {
+		if ( !m_pSheet->m_pEntry->m_HostNameProvs.IsEmpty() )
+			pCombo->AddString(m_pSheet->m_pEntry->m_HostNameProvs);
 		for ( n = 0 ; n < pTab->m_Data.GetSize() ; n++ ) {
 			str = pTab->m_Data[n].m_HostName;
 			if ( !str.IsEmpty() && pCombo->FindStringExact((-1), str) == CB_ERR )
@@ -172,6 +183,8 @@ BOOL CSerEntPage::OnInitDialog()
 		}
 	}
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_LOGINNAME)) != NULL ) {
+		if ( !m_pSheet->m_pEntry->m_UserNameProvs.IsEmpty() )
+			pCombo->AddString(m_pSheet->m_pEntry->m_UserNameProvs);
 		for ( n = 0 ; n < pTab->m_Data.GetSize() ; n++ ) {
 			str = pTab->m_Data[n].m_UserName;
 			if ( !str.IsEmpty() && pCombo->FindStringExact((-1), str) == CB_ERR )
@@ -179,6 +192,8 @@ BOOL CSerEntPage::OnInitDialog()
 		}
 	}
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_TERMNAME)) != NULL ) {
+		if ( !m_pSheet->m_pEntry->m_TermName.IsEmpty() )
+			pCombo->AddString(m_pSheet->m_pEntry->m_TermName);
 		for ( n = 0 ; n < pTab->m_Data.GetSize() ; n++ ) {
 			str = pTab->m_Data[n].m_TermName;
 			if ( !str.IsEmpty() && pCombo->FindStringExact((-1), str) == CB_ERR )
@@ -187,7 +202,7 @@ BOOL CSerEntPage::OnInitDialog()
 	}
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_SOCKNO)) != NULL ) {
 		for ( n = 0 ; n < pTab->m_Data.GetSize() ; n++ ) {
-			str = pTab->m_Data[n].m_PortName;
+			str = pTab->m_Data[n].m_PortNameProvs;
 			if ( !str.IsEmpty() && _tcsncmp(str, _T("COM"), 3) != 0 && pCombo->FindStringExact((-1), str) == CB_ERR )
 				pCombo->AddString(str);
 		}
@@ -203,6 +218,8 @@ BOOL CSerEntPage::OnInitDialog()
 		}
 	}
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_GROUP)) != NULL ) {
+		if ( !m_pSheet->m_pEntry->m_Group.IsEmpty() )
+			pCombo->AddString(m_pSheet->m_pEntry->m_Group);
 		for ( n = 0 ; n < pTab->m_Data.GetSize() ; n++ ) {
 			str = pTab->m_Data[n].m_Group;
 			if ( !str.IsEmpty() && pCombo->FindStringExact((-1), str) == CB_ERR )
@@ -210,6 +227,8 @@ BOOL CSerEntPage::OnInitDialog()
 		}
 	}
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_BEFORE)) != NULL ) {
+		if ( !m_pSheet->m_pEntry->m_BeforeEntry.IsEmpty() )
+			pCombo->AddString(m_pSheet->m_pEntry->m_BeforeEntry);
 		for ( n = 0 ; n < pTab->m_Data.GetSize() ; n++ ) {
 			str = pTab->m_Data[n].m_EntryName;
 			if ( !str.IsEmpty() && pCombo->FindStringExact((-1), str) == CB_ERR )
@@ -249,9 +268,11 @@ BOOL CSerEntPage::OnApply()
 	m_pSheet->m_pEntry->m_Memo      = m_Memo;
 	m_pSheet->m_pEntry->m_Group     = m_Group;
 	m_pSheet->m_pEntry->m_HostNameProvs  = m_HostName;
+	m_pSheet->m_pEntry->m_PortNameProvs  = m_PortName;
 	m_pSheet->m_pEntry->m_UserNameProvs  = m_UserName;
 	m_pSheet->m_pEntry->m_PassNameProvs  = m_PassName;
 	m_pSheet->m_pEntry->m_ProxyHostProvs = m_ProxyHost;
+	m_pSheet->m_pEntry->m_ProxyPortProvs = m_ProxyPort;
 	m_pSheet->m_pEntry->m_ProxyUserProvs = m_ProxyUser;
 	m_pSheet->m_pEntry->m_ProxyPassProvs = m_ProxyPass;
 	m_pSheet->m_pEntry->m_ProxySSLKeep   = m_SSL_Keep;
@@ -317,8 +338,6 @@ void CSerEntPage::OnKeyfileselect()
 }
 void CSerEntPage::OnProtoType(UINT nID) 
 {
-	static LPCTSTR	DefPortName[] = { _T(""), _T("login"), _T("telnet"), _T("ssh"), _T("COM1"), _T("") };
-
 	UpdateData(TRUE);
 	SetEnableWind();
 

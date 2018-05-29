@@ -8,6 +8,10 @@
 /////////////////////////////////////////////////////////////////////////////
 // CServerSelect ダイアログ
 
+#define	INIT_CALL_NONE			0
+#define	INIT_CALL_UPDATE		1
+#define	INIT_CALL_AND_EDIT		2
+
 class CServerSelect : public CDialogExt
 {
 	DECLARE_DYNAMIC(CServerSelect)
@@ -22,6 +26,7 @@ class CServerSelect : public CDialogExt
 public:
 	CListCtrlExt m_List;
 	CTabCtrl m_Tab;
+	CTreeCtrl m_Tree;
 
 // クラスデータ
 public:
@@ -31,21 +36,53 @@ public:
 	CString m_Group;
 	CStringIndex m_TabEntry;
 	class CServerEntryTab *m_pData;
-	BOOL m_ShowTabWnd;
+	CStringArrayExt m_AddGroup;
+	CStringArrayExt m_TreeExpand;
 	int m_DefaultEntryUid;
 	CTextRam *m_pTextRam;
 	CKeyNodeTab *m_pKeyTab;
 	CKeyMacTab *m_pKeyMac;
 	CParamTab *m_pParamTab;
-
+	CImageList m_ImageList;
+	CPtrArray m_TabData;
+	BOOL m_bShowTabWnd;
+	BOOL m_bShowTreeWnd;
+	BOOL m_bTreeUpdate;
+	CPoint m_TrackerPoint;
+	CRect m_TrackerRect;
+	CRect m_TrackerMove;
+	BOOL m_bTrackerActive;
+	int m_TreeListPer;
+	int m_DragImage;
+	int m_DragActive;
+	BOOL m_bDragList;
+	int m_DragNumber;
+	class COptDlg *m_pOPtDlg;
+	CEdit m_EditWnd;
+	CStringIndex *m_pEditIndex;
+	CRect m_EditNow, m_EditRect, m_EditMax;
 
 // クラスファンクション
 public:
-	void InitList();
+	void TreeExpandUpdate(HTREEITEM hTree, BOOL bExpand);
+	void InitExpand(HTREEITEM hTree, UINT nCode);
+	void InitTree(CStringIndex *pIndex, HTREEITEM hOwner, CStringIndex *pActive);
+	void InitList(CStringIndex *pIndex, BOOL bFolder);
+	void InitEntry(int nUpdate);
 	void InitItemOffset();
 	void SetItemOffset(int cx, int cy);
-	void UpdateTabWnd();
 	void UpdateDefaultEntry(int num);
+	BOOL GetTrackerRect(CRect &rect, CRect &move);
+	void InvertTracker(CRect &rect);
+	void OffsetTracker(CPoint point);
+	CStringIndex *DragIndex(CPoint point);
+	void UpdateGroupName(CStringIndex *pIndex, LPCTSTR newName);
+	void SetIndexList(CStringIndex *pIndex, BOOL bSelect);
+	BOOL OpenTabEdit(int num);
+	void SaveWindowStyle();
+	void EntryNameCheck(CServerEntry &entry);
+
+	static BOOL IsJsonEntryText(LPCTSTR str);
 
 // オーバーライド
 protected:
@@ -53,34 +90,50 @@ protected:
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	virtual BOOL OnInitDialog();
 	virtual void OnOK();
+	virtual void OnCancel();
 
 // インプリメンテーション
 protected:
 	DECLARE_MESSAGE_MAP()
-	afx_msg void OnNewEntry();
-	afx_msg void OnEditEntry();
-	afx_msg void OnDelEntry();
-	afx_msg void OnDblclkServerlist(NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnEditCopy();
-	afx_msg void OnEditCheck();
-	afx_msg void OnServInport();
-	afx_msg void OnServExport();
-	afx_msg void OnUpdateEditEntry(CCmdUI* pCmdUI);
 	afx_msg void OnClose();
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnSizing(UINT fwSide, LPRECT pRect);
-	afx_msg void OnTcnSelchangeServertab(NMHDR *pNMHDR, LRESULT *pResult);
-	afx_msg void OnNMRClickServertab(NMHDR *pNMHDR, LRESULT *pResult);
+
+	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
+	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
+	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
+	afx_msg void OnKillfocusEditBox();
+	afx_msg void OnEnUpdateEditBox();
+
+	afx_msg void OnNewEntry();
+	afx_msg void OnEditEntry();
+	afx_msg void OnDelEntry();
+	afx_msg void OnCopyEntry();
+	afx_msg void OnCheckEntry();
+	afx_msg void OnServInport();
+	afx_msg void OnServExport();
 	afx_msg void OnServProto();
 	afx_msg void OnSaveDefault();
-	afx_msg void OnUpdateSaveDefault(CCmdUI *pCmdUI);
 	afx_msg void OnServExchng();
-	afx_msg void OnUpdateServExchng(CCmdUI *pCmdUI);
 	afx_msg void OnLoaddefault();
 	afx_msg void OnShortcut();
-#ifdef	USE_DEFENTRYMARK
-	afx_msg void OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct);
-	afx_msg void OnMeasureItem(int nIDCtl, LPMEASUREITEMSTRUCT lpMeasureItemStruct);
-#endif
-public:
+	afx_msg void OnEditCopy();
+	afx_msg void OnEditPaste();
+
+	afx_msg void OnUpdateSaveDefault(CCmdUI *pCmdUI);
+	afx_msg void OnUpdateEditEntry(CCmdUI* pCmdUI);
+	afx_msg void OnUpdateEditCopy(CCmdUI *pCmdUI);
+
+	afx_msg void OnDblclkServerlist(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnLvnBegindragServerlist(NMHDR *pNMHDR, LRESULT *pResult);
+
+	afx_msg void OnTcnSelchangeServertab(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnNMRClickServertab(NMHDR *pNMHDR, LRESULT *pResult);
+
+	afx_msg void OnTvnSelchangedServertree(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnTvnBeginlabeleditServertree(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnTvnEndlabeleditServertree(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnNMRClickServertree(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnTvnItemexpandedServertree(NMHDR *pNMHDR, LRESULT *pResult);
 };

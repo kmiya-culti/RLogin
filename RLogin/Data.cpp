@@ -2671,10 +2671,10 @@ CFont *CFontChacheNode::Open(LPCTSTR pFontName, int Width, int Height, int CharS
     _tcsncpy(m_LogFont.lfFaceName, pFontName, sizeof(m_LogFont.lfFaceName) / sizeof(TCHAR));
 	m_LogFont.lfWidth       = Width;
 	m_LogFont.lfHeight		= Height;
+	m_LogFont.lfWeight      = ((Style & FONTSTYLE_BOLD)   != 0 ? FW_BOLD : FW_DONTCARE);
+	m_LogFont.lfItalic      = ((Style & FONTSTYLE_ITALIC) != 0 ? TRUE : FALSE);
+	m_LogFont.lfUnderline	= ((Style & FONTSTYLE_UNDER)  != 0 ? TRUE : FALSE);
 	m_LogFont.lfCharSet		= CharSet;
-	m_LogFont.lfWeight      = ((Style & 1) != 0 ? FW_BOLD : FW_DONTCARE);
-	m_LogFont.lfItalic      = ((Style & 2) != 0 ? TRUE : FALSE);
-	m_LogFont.lfUnderline	= ((Style & 4) != 0 ? TRUE : FALSE);
 	m_LogFont.lfQuality     = Quality;
 
 	m_Width   = Width;
@@ -2765,14 +2765,16 @@ CFontChache::CFontChache()
 		m_pTop[hs] = &(m_Data[n]);
 	}
 }
-CFontChacheNode *CFontChache::GetFont(LPCTSTR pFontName, int Width, int Height, int CharSet, int Style, int Quality, int Hash)
+CFontChacheNode *CFontChache::GetFont(LPCTSTR pFontName, int Width, int Height, int CharSet, int Style, int Quality)
 {
+	int Hash;
 	CFontChacheNode *pNext, *pBack;
 
-	Hash = (Hash + Width + Height + Style) & 3;
+	Hash = (pFontName[0] + Width + Height + CharSet + Style + Quality) & 3;
 	pNext = pBack = m_pTop[Hash];
+
 	for ( ; ; ) {
-		if ( pNext->m_pFont   != NULL &&
+		if ( pNext->m_pFont   != NULL    &&
 			 pNext->m_Width   == Width   &&
 			 pNext->m_Height  == Height  &&
 			 pNext->m_CharSet == CharSet &&
@@ -3416,9 +3418,11 @@ void CServerEntry::Init()
 	m_ScriptFile.Empty();
 	m_ScriptStr.Empty();
 	m_HostNameProvs.Empty();
+	m_PortNameProvs.Empty();
 	m_UserNameProvs.Empty();
 	m_PassNameProvs.Empty();
 	m_ProxyHostProvs.Empty();
+	m_ProxyPortProvs.Empty();
 	m_ProxyUserProvs.Empty();
 	m_ProxyPassProvs.Empty();
 	m_ProxySSLKeep = FALSE;
@@ -3455,9 +3459,11 @@ const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 	m_ScriptFile = data.m_ScriptFile;
 	m_ScriptStr  = data.m_ScriptStr;
 	m_HostNameProvs  = data.m_HostNameProvs;
+	m_PortNameProvs  = data.m_PortNameProvs;
 	m_UserNameProvs  = data.m_UserNameProvs;
 	m_PassNameProvs  = data.m_PassNameProvs;
 	m_ProxyHostProvs = data.m_ProxyHostProvs;
+	m_ProxyPortProvs = data.m_ProxyPortProvs;
 	m_ProxyUserProvs = data.m_ProxyUserProvs;
 	m_ProxyPassProvs = data.m_ProxyPassProvs;
 	m_ProxySSLKeep   = data.m_ProxySSLKeep;
@@ -3525,9 +3531,11 @@ void CServerEntry::GetArray(CStringArrayExt &stra)
 	m_ProBuffer.Clear();
 
 	m_HostNameProvs  = m_HostName;
+	m_PortNameProvs  = m_PortName;
 	m_UserNameProvs  = m_UserName;
 	m_PassNameProvs  = m_PassName;
 	m_ProxyHostProvs = m_ProxyHost;
+	m_ProxyPortProvs = m_ProxyPort;
 	m_ProxyUserProvs = m_ProxyUser;
 	m_ProxyPassProvs = m_ProxyPass;
 }
@@ -3540,7 +3548,7 @@ void CServerEntry::SetArray(CStringArrayExt &stra)
 	stra.RemoveAll();
 	stra.Add(m_EntryName);
 	stra.Add(m_HostNameProvs);
-	stra.Add(m_PortName);
+	stra.Add(m_PortNameProvs);
 	stra.Add(m_UserNameProvs);
 	key.EncryptStr(str, m_PassNameProvs, TRUE);
 	stra.Add(str);
@@ -3553,7 +3561,7 @@ void CServerEntry::SetArray(CStringArrayExt &stra)
 	stra.AddBin(buf.GetPtr(), buf.GetSize());
 	stra.AddVal(m_ProxyMode);
 	stra.Add(m_ProxyHostProvs);
-	stra.Add(m_ProxyPort);
+	stra.Add(m_ProxyPortProvs);
 	stra.Add(m_ProxyUserProvs);
 	key.EncryptStr(str, m_ProxyPassProvs, TRUE);
 	stra.Add(str);
@@ -3791,7 +3799,7 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 	if ( mode ) {		// Write
 		index[_T("Name")]  = m_EntryName;
 		index[_T("Host")]  = m_HostNameProvs;
-		index[_T("Port")]  = m_PortName;
+		index[_T("Port")]  = m_PortNameProvs;
 		index[_T("User")]  = m_UserNameProvs;
 		index[_T("Term")]  = m_TermName;
 		index[_T("IdKey")] = m_IdkeyName;
@@ -3808,7 +3816,7 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 
 		index[_T("Proxy")][_T("Mode")] = m_ProxyMode;
 		index[_T("Proxy")][_T("Host")] = m_ProxyHostProvs;
-		index[_T("Proxy")][_T("Port")] = m_ProxyPort;
+		index[_T("Proxy")][_T("Port")] = m_ProxyPortProvs;
 		index[_T("Proxy")][_T("User")] = m_ProxyUserProvs;
 
 		pass.Format(_T("TEST%s"), m_ProxyPassProvs);
@@ -3900,9 +3908,11 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 		m_ProBuffer.Clear();
 
 		m_HostNameProvs  = m_HostName;
+		m_PortNameProvs  = m_PortName;
 		m_UserNameProvs  = m_UserName;
 		m_PassNameProvs  = m_PassName;
 		m_ProxyHostProvs = m_ProxyHost;
+		m_ProxyPortProvs = m_ProxyPort;
 		m_ProxyUserProvs = m_ProxyUser;
 		m_ProxyPassProvs = m_ProxyPass;
 	}
@@ -3918,8 +3928,8 @@ void CServerEntry::DiffIndex(CServerEntry &orig, CStringIndex &index)
 	if ( m_HostNameProvs.Compare(orig.m_HostNameProvs) != 0 )
 		index[_T("Host")]  = m_HostNameProvs;
 
-	if ( m_PortName.Compare(orig.m_PortName) != 0 )
-		index[_T("Port")]  = m_PortName;
+	if ( m_PortNameProvs.Compare(orig.m_PortNameProvs) != 0 )
+		index[_T("Port")]  = m_PortNameProvs;
 
 	if ( m_UserNameProvs.Compare(orig.m_UserNameProvs) != 0 )
 		index[_T("User")]  = m_UserNameProvs;
@@ -3955,7 +3965,7 @@ void CServerEntry::DiffIndex(CServerEntry &orig, CStringIndex &index)
 		index[_T("Proxy")][_T("Host")] = m_ProxyHostProvs;
 
 	if ( m_ProxyPort.Compare(orig.m_ProxyPort) != 0 )
-		index[_T("Proxy")][_T("Port")] = m_ProxyPort;
+		index[_T("Proxy")][_T("Port")] = m_ProxyPortProvs;
 
 	if ( m_ProxyUserProvs.Compare(orig.m_ProxyUserProvs) != 0 )
 		index[_T("Proxy")][_T("User")] = m_ProxyUserProvs;
@@ -4166,7 +4176,8 @@ int CServerEntryTab::AddEntry(CServerEntry &Entry)
 	}
 	Entry.m_Uid = ((CRLoginApp *)AfxGetApp())->GetProfileSeqNum(m_pSection, _T("ListMax"));
 	Entry.SetProfile(m_pSection);
-	return (int)m_Data.Add(Entry);
+	n = (int)m_Data.Add(Entry);
+	return n;
 }
 void CServerEntryTab::UpdateAt(int nIndex)
 {
@@ -6804,6 +6815,8 @@ CStringIndex::CStringIndex()
 	m_nIndex.Empty();
 	m_String.Empty();
 	m_Array.RemoveAll();
+	m_pOwner = NULL;
+	m_TabData.RemoveAll();
 }
 CStringIndex::CStringIndex(BOOL bNoCase, BOOL bNoSort)
 {
@@ -6815,6 +6828,8 @@ CStringIndex::CStringIndex(BOOL bNoCase, BOOL bNoSort)
 	m_nIndex.Empty();
 	m_String.Empty();
 	m_Array.RemoveAll();
+	m_pOwner = NULL;
+	m_TabData.RemoveAll();
 }
 CStringIndex::~CStringIndex()
 {
@@ -6832,6 +6847,10 @@ const CStringIndex & CStringIndex::operator = (CStringIndex &data)
 	m_Array.RemoveAll();
 	for ( int n = 0 ; n < data.m_Array.GetSize() ; n++ )
 		m_Array.Add(data.m_Array[n]);
+
+	m_TabData.RemoveAll();
+	for ( int n = 0 ; n < data.m_TabData.GetSize() ; n++ )
+		m_TabData.Add(data.m_TabData[n]);
 
 	return *this;
 }
@@ -6950,16 +6969,95 @@ void CStringIndex::SetArray(LPCTSTR str)
 		break;
     }
 }
+CStringIndex &CStringIndex::AddPath(LPCTSTR path, BOOL *pNest)
+{
+	CString tmp;
+	LPCTSTR s, p;
+
+	if ( (p = _tcschr(path, _T('\\'))) != NULL ) {
+		if ( pNest != NULL )
+			*pNest = TRUE;
+
+		for ( s = path ; s < p ; )
+			tmp += *(s++);
+
+		return (*this)[tmp].AddPath(p + 1);
+	}
+
+	return (*this)[path];
+}
+CStringIndex *CStringIndex::FindPath(LPCTSTR path)
+{
+	int n;
+	CString tmp;
+	LPCTSTR s, p;
+
+	if ( (p = _tcschr(path, _T('\\'))) != NULL ) {
+		for ( s = path ; s < p ; )
+			tmp += *(s++);
+
+		if ( (n = Find(tmp)) < 0 )
+			return NULL;
+
+		return m_Array[n].FindPath(p + 1);
+	}
+
+	if ( (n = Find(path)) < 0 )
+		return  NULL;
+
+	return &(m_Array[n]);
+}
+CStringIndex *CStringIndex::RootPath(LPCTSTR path)
+{
+	int n;
+	CString tmp;
+	LPCTSTR s, p;
+
+	if ( (p = _tcschr(path, _T('\\'))) != NULL ) {
+		for ( s = path ; s < p ; )
+			tmp += *(s++);
+
+		if ( (n = Find(tmp)) < 0 )
+			return NULL;
+
+		return m_Array[n].RootPath(p + 1);
+	}
+
+	return this;
+}
+void CStringIndex::GetPath(CString &path)
+{
+	if ( m_pOwner != NULL )
+		m_pOwner->GetPath(path);
+
+	if ( !path.IsEmpty() )
+		path += _T('\\');
+
+	path += m_nIndex;
+}
+void CStringIndex::OwnerLink(CStringIndex *pOwner)
+{
+	for ( int n = 0 ; n < m_Array.GetSize() ; n++ )
+		m_Array[n].OwnerLink(this);
+
+	m_pOwner = pOwner;
+}
+
 void CStringIndex::GetBuffer(CBuffer *bp)
 {
-	m_Value = bp->Get32Bit();
-	bp->GetStrT(m_nIndex);
-	bp->GetStrT(m_String);
+	try {
+		m_Value = bp->Get32Bit();
+		bp->GetStrT(m_nIndex);
+		bp->GetStrT(m_String);
 
-	SetSize(bp->Get32Bit());
+		SetSize(bp->Get32Bit());
 
-	for ( int n = 0 ; n < GetSize() ; n++ )
-		m_Array[n].GetBuffer(bp);
+		for ( int n = 0 ; n < GetSize() ; n++ )
+			m_Array[n].GetBuffer(bp);
+
+	} catch(...) {
+		RemoveAll();
+	}
 }
 void CStringIndex::SetBuffer(CBuffer *bp)
 {
@@ -7225,9 +7323,9 @@ void CStringIndex::Serialize(CArchive& ar, LPCSTR base, int version)
 {
 	if ( ar.IsStoring() ) {		// Write
 		if ( version == 4 ) {
-			CStringA mbs;
+			CBuffer mbs;
 			SetJsonFormat(mbs);
-			ar.Write((LPCSTR)mbs, sizeof(CHAR) * mbs.GetLength());
+			ar.Write(mbs.GetPtr(), mbs.GetSize());
 
 		} else {
 			CStringA mbs, tmp;
@@ -7620,8 +7718,22 @@ BOOL CStringIndex::GetJsonFormat(LPCTSTR str)
 	// index["fff"][1] = "hhh";
 
 	try {
-		if ( SubJsonValue(str) != _T('\0') )
+		SubJsonChara(str);
+
+		if ( *str == _T('"') || *str == _T('\'') ) {
+			if ( SubJsonString(str) != _T(':') )
+				throw _T("JsonObject Wont ':'");
+
+			m_nIndex = m_String;
+			m_String.Empty();
+			m_bEmpty = TRUE;
+
+			if ( SubJsonValue(++str) != _T('\0') )
+				return FALSE;
+
+		} else if ( SubJsonValue(str) != _T('\0') )
 			return FALSE;
+
 #ifdef	DEBUG
 	} catch(LPCTSTR msg) {
 		TRACE(_T("%s\n"), msg);
@@ -7633,13 +7745,42 @@ BOOL CStringIndex::GetJsonFormat(LPCTSTR str)
 
 	return TRUE;
 }
-void CStringIndex::AddJasonString(CStringA &mbs, LPCTSTR str, BOOL bUtf8)
+void CStringIndex::AddJasonString(CBuffer &mbs, LPCTSTR str, int nCode)
 {
+	CIConv iconv;
 	CStringA tmp;
+	CStringW uni;
 
-	if ( bUtf8 ) {
-		CIConv iconv;
+	switch(nCode) {
+	case JSON_UTF16:
+		mbs += L'"';
+		for ( LPCTSTR p = str ; *p != _T('\0') ; ) {
+			if ( *p == _T('\\') || *p == _T('"') ) {
+				mbs += L'\\';
+				mbs += (WCHAR)*(p++);
+			} else if ( (*p & 0xFF00) != 0 ) {
+				mbs += (WCHAR)*(p++);
+			} else if ( *p < _T('\x20') ) {
+				switch(*p) {
+				case _T('\b'): mbs += L"\\b"; break;
+				case _T('\t'): mbs += L"\\t"; break;
+				case _T('\n'): mbs += L"\\n"; break;
+				case _T('\a'): mbs += L"\\a"; break;
+				case _T('\f'): mbs += L"\\f"; break;
+				case _T('\r'): mbs += L"\\r"; break;
+				default:
+					uni.Format(L"\\u%04X", (BYTE)*p);
+					mbs += (LPCWSTR)uni;
+					break;
+				}
+				p++;
+			} else
+				mbs += (WCHAR)*(p++);
+		}
+		mbs += L'"';
+		break;
 
+	case JSON_UTF8:
 		iconv.StrToRemote(_T("UTF-8"), str, tmp);
 
 		mbs += '"';
@@ -7657,7 +7798,7 @@ void CStringIndex::AddJasonString(CStringA &mbs, LPCTSTR str, BOOL bUtf8)
 				case '\r': mbs += "\\r"; break;
 				default:
 					tmp.Format("\\u%04X", (BYTE)*p);
-					mbs += tmp;
+					mbs += (LPCSTR)tmp;
 					break;
 				}
 				p++;
@@ -7665,18 +7806,19 @@ void CStringIndex::AddJasonString(CStringA &mbs, LPCTSTR str, BOOL bUtf8)
 				mbs += *(p++);
 		}
 		mbs += '"';
+		break;
 
-	} else {
+	case JSON_OEM:
 		mbs += '"';
 		for ( LPCTSTR p = str ; *p != _T('\0') ; ) {
 			if ( *p == _T('\\') || *p == _T('"') ) {
 				mbs += '\\';
-				mbs += *(p++);
+				mbs += (CHAR)*(p++);
 			} else if ( (*p & 0xFF00) != 0 ) {
 				tmp = *p;
 				if ( tmp.IsEmpty() || tmp.Compare("?") == 0 || tmp.Compare("\\") == 0 )
 					tmp.Format("\\u%04X", *p);
-				mbs += tmp;
+				mbs += (LPCSTR)tmp;
 				p++;
 			} else if ( *p < _T('\x20') || *p > _T('\x7E') ) {
 				switch(*p) {
@@ -7688,74 +7830,87 @@ void CStringIndex::AddJasonString(CStringA &mbs, LPCTSTR str, BOOL bUtf8)
 				case _T('\r'): mbs += "\\r"; break;
 				default:
 					tmp.Format("\\u%04X", (BYTE)*p);
-					mbs += tmp;
+					mbs += (LPCSTR)tmp;
 					break;
 				}
 				p++;
 			} else
-				mbs += *(p++);
+				mbs += (CHAR)*(p++);
 		}
 		mbs += '"';
+		break;
 	}
 }
-void CStringIndex::SetJsonFormat(CStringA &mbs, int nest, BOOL bUtf8)
+void CStringIndex::AddJasonTstr(CBuffer &mbs, LPCTSTR str, int nCode)
+{
+	switch(nCode) {
+	case JSON_UTF16:
+		mbs += TstrToUni(str);
+		break;
+	case JSON_UTF8:
+	case JSON_OEM:
+		mbs += TstrToMbs(str);
+		break;
+	}
+}
+void CStringIndex::SetJsonFormat(CBuffer &mbs, int nest, int nCode)
 {
 	if ( !m_nIndex.IsEmpty() ) {
-		AddJasonString(mbs, m_nIndex, bUtf8);
-		mbs += ':';
+		AddJasonString(mbs, m_nIndex, nCode);
+		AddJasonTstr(mbs, _T(":"), nCode);
 	}
 
 	if ( GetSize() > 0 ) {
 		if ( !m_Array[0].m_nIndex.IsEmpty() ) {
-			mbs += "{\r\n";
+			AddJasonTstr(mbs, _T("{\r\n"), nCode);
 			for ( int n = 0 ; n < GetSize() ; n++ ) {
 				for ( int i = 0 ; i <= nest ; i++ )
-					mbs += "  ";
-				m_Array[n].SetJsonFormat(mbs, nest + 1, bUtf8);
+					AddJasonTstr(mbs, _T("  "), nCode);
+				m_Array[n].SetJsonFormat(mbs, nest + 1, nCode);
 				if ( (n + 1) < GetSize() )
-					mbs += ",\r\n";
+					AddJasonTstr(mbs, _T(",\r\n"), nCode);
 			}
-			mbs += "\r\n";
+			AddJasonTstr(mbs, _T("\r\n"), nCode);
 			for ( int i = 0 ; i < nest ; i++ )
-				mbs += "  ";
-			mbs += "}";
+				AddJasonTstr(mbs, _T("  "), nCode);
+			AddJasonTstr(mbs, _T("}"), nCode);
 
 		} else {
-			mbs += "[";
+			AddJasonTstr(mbs, _T("["), nCode);
 			for ( int n = 0 ; n < GetSize() ; n++ ) {
 				if ( !m_Array[n].m_nIndex.IsEmpty() ) {
-					mbs += "\r\n";
+					AddJasonTstr(mbs, _T("\r\n"), nCode);
 					for ( int i = 0 ; i <= nest ; i++ )
-						mbs += "  ";
-					mbs += "{\r\n";
+						AddJasonTstr(mbs, _T("  "), nCode);
+					AddJasonTstr(mbs, _T("{\r\n"), nCode);
 				}
-				m_Array[n].SetJsonFormat(mbs, nest + 1, bUtf8);
+				m_Array[n].SetJsonFormat(mbs, nest + 1, nCode);
 				if ( !m_Array[n].m_nIndex.IsEmpty() ) {
-					mbs += "\r\n";
+					AddJasonTstr(mbs, _T("\r\n"), nCode);
 					for ( int i = 0 ; i <= nest ; i++ )
-						mbs += "  ";
-					mbs += "}";
+						AddJasonTstr(mbs, _T("  "), nCode);
+					AddJasonTstr(mbs, _T("}"), nCode);
 				}
 				if ( (n + 1) < GetSize() )
-					mbs += ",";
+					AddJasonTstr(mbs, _T(","), nCode);
 			}
-			mbs += "]";
+			AddJasonTstr(mbs, _T("]"), nCode);
 		}
 
 	} else if ( IsEmpty() ) {
-		mbs += "null";
+		AddJasonTstr(mbs, _T("null"), nCode);
 
 	} else if ( m_bString ) {
-		AddJasonString(mbs, m_String, bUtf8);
+		AddJasonString(mbs, m_String, nCode);
 
 	} else {
-		CStringA tmp;
-		tmp.Format("%d", m_Value);
-		mbs += tmp;
+		CString tmp;
+		tmp.Format(_T("%d"), m_Value);
+		AddJasonTstr(mbs, tmp, nCode);
 	}
 
 	if ( nest == 0 )
-		mbs += "\r\n";
+		AddJasonTstr(mbs, _T("\r\n"), nCode);
 }
 
 //////////////////////////////////////////////////////////////////////

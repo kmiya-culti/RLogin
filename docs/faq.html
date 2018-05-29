@@ -7,10 +7,14 @@
 <STYLE type="text/css">
 <!--
 TD {
+    
+    
   background-color : #ffffff;
   font-size : 90%;
 }
 .BOX{
+    
+    
   background-color : silver;
 }
 -->
@@ -562,9 +566,11 @@ fi</PRE>
             表示したいフォントを変更するには、その仕組みを理解する必要がありますが、<FONT color="#ff0000">大まかにフォントセットのデフォルトのフォントを設定するだけでそれなりに十分です</FONT>。注意点としては、文字幅が固定のFixedフォントを使用しないと表示が見づらくなります。「MS ゴシック」が固定幅で「MS Pゴシック」がプロポーショナル、可変幅のフォントとなります。<BR>
             <BR>
             多言語の表示をしたい場合やASCIIで「＼」が「￥」で表示されるのが気持ち悪い場合は、それぞれのフォントセットのフォントを設定してください。設定の指針としてフォントセットのリストでWindows
-            Charactor Setによる判定を○×で表示しています。Ｘのフォントセットのフォントを設定するするようにすればよいでしょう。ただしCSetがDEFAULTの場合は、判定できません。<BR>
+            Charactor Setによる判定を○×で表示しています。Ｘのフォントセットは、Windowsが勝手にフォント置換します。<BR>
             <BR>
-            右の表示では、MS ゴシックでは、ARABICを表示できませんが、BALTICは表示できることを示しています。しかしWindowsの機能でARABICの場合は、勝手にフォントを変えて表示することになります。このWindowsの機能は、FontLinkと合わせてデフォルトフォントを欧文フォントなどにした場合やMS　ゴシックでハングルを表示しようと場合にでも自動でフォントが置換されることになります。</TD>
+            右の表示では、MS ゴシックは、ARABICを別のフォントに置換して表示しBALTICは、MS ゴシックで表示できることを示しています。このWindowsの機能は、FontLinkと合わせてフォントを欧文フォントにして漢字を表示しようとした場合やMS ゴシックでハングルを表示しようと場合にでも自動でフォントが置換されることになります。フォントを変更しても別のフォントで表示されますのでご注意ください。特に<B>デフォルトフォントを欧文フォントにした場合には、SHIFTJISのフォントがすべて違うフォントで表示</B>されることになります。<BR>
+            <BR>
+            ※2.23.5より拡張機能484「フォント置換しない」でWindowsのCSetによる置換を抑制するオプションを追加しました。<B>勝手にフォントを変更してほしくない場合など</B>に使用してください。</TD>
             <TD valign="top"><IMG src="image221.jpg" width="611" height="511" border="0"></TD>
           </TR>
           <TR>
@@ -789,6 +795,12 @@ fi</PRE>
                   <TD align="center">文字単位で調整する<BR>
                   <IMG src="image223.jpg" width="110" height="17" border="0"></TD>
                   <TD>プロポーショナルフォントの表示方法を選択します</TD>
+                </TR>
+                <TR>
+                  <TD align="center">484</TD>
+                  <TD align="center"><SPAN style="color: rgb(0, 0, 0); font-family: Meiryo; font-size: 14.4px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;">フォント置換しない</SPAN></TD>
+                  <TD align="center"><SPAN style="color: rgb(0, 0, 0); font-family: Meiryo; font-size: 14.4px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;">フォント置換する</SPAN></TD>
+                  <TD>デフォルトフォントのWindowsによるフォント置換を抑制します</TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -1501,16 +1513,14 @@ function OnClickOk(id) {
             <BR>
             Kermit/ZModemの場合、手動で起動するには、メニュー・ファイル・XYZModemファイル転送・Kermit/ZModemダウン・アップロードを実行です。<BR>
             <BR>
-            また、マウス操作で<A href="./#MOUSEOPT">ファイルをドラッグ＆ドロップ</A>するだけでファイルのアップロードも可能です。<BR>
-            この場合、コマンドをサーバー側に送信しますので注意が必要です。</TD>
+            また、マウス操作で<A href="./#MOUSEOPT">ファイルをドラッグ＆ドロップ</A>するだけでファイルのアップロードも可能です。この場合、コマンドをサーバー側に送信しますので注意が必要です。</TD>
             <TD valign="top"><IMG src="image262.jpg" width="435" height="197" border="0"><BR>
             <BR>
             <BR>
             <IMG src="image263.jpg" width="457" height="105" border="0"></TD>
           </TR>
           <TR>
-            <TD valign="top" width="600">tmuxやGNU Screenなどを使用している場合には、ファイル転送プロトコルは、使用できません。<BR>
-            これは、入力・出力が内部で変換されてしまう為で端末では、制御のしようがありません。<BR>
+            <TD valign="top" width="600">tmuxやGNU Screenなどを使用している場合には、ファイル転送プロトコルは、使用できません。これは、入力・出力が内部で変換されてしまう為で端末では、制御のしようがありません。<BR>
             <BR>
             小さなサイズのファイルならば、<A href="ctrlcode.html#OSC">OSC 1337の機能</A>を使用してサーバーからローカルにダウンロードすることが可能です。あまり大きなサイズのファイルは、すべてメモリ上で展開しているので苦しいです。さらに途中経過などの表示もしないのでハングアップしたように見えます。<BR>
             <BR>

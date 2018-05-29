@@ -24,9 +24,11 @@ public:
 public:
 	CProgressCtrl m_TimeLimit;
 	CComboBoxHis m_HostWnd;
+	CComboBoxHis m_PortWnd;
 	CComboBoxHis m_UserWnd;
 	CEdit m_PassWnd;
 	CString m_HostAddr;
+	CString m_PortName;
 	CString	m_UserName;
 	CString	m_PassName;
 	CString	m_Prompt;

@@ -5036,24 +5036,26 @@ int CScript::Func10(int cmd, CScriptValue &local)
 		(*acc) = (int)(INT_PTR)ShellExecute(AfxGetMainWnd()->GetSafeHwnd(), NULL, (LPCTSTR)local[0], (LPCTSTR)local[1], (LPCTSTR)local[2], SW_NORMAL);
 		break;
 
-	case 6:		// passdlg(host, user, pass, prompt, title, sec)
+	case 6:		// passdlg(host, port, user, pass, prompt, title, sec)
 		{
 			CPassDlg dlg;
 
 			if ( local.GetSize() > 0 )	dlg.m_HostAddr = (LPCTSTR)local[0];
-			if ( local.GetSize() > 1 )	dlg.m_UserName = (LPCTSTR)local[1];
-			if ( local.GetSize() > 2 )	dlg.m_PassName = (LPCTSTR)local[2];
-			if ( local.GetSize() > 3 )	dlg.m_Prompt   = (LPCTSTR)local[3];
-			if ( local.GetSize() > 4 )	dlg.m_Title    = (LPCTSTR)local[4];
-			if ( local.GetSize() > 5 )	dlg.m_MaxTime  = (int)local[5];
+			if ( local.GetSize() > 1 )	dlg.m_PortName = (LPCTSTR)local[1];
+			if ( local.GetSize() > 2 )	dlg.m_UserName = (LPCTSTR)local[2];
+			if ( local.GetSize() > 3 )	dlg.m_PassName = (LPCTSTR)local[3];
+			if ( local.GetSize() > 4 )	dlg.m_Prompt   = (LPCTSTR)local[4];
+			if ( local.GetSize() > 5 )	dlg.m_Title    = (LPCTSTR)local[5];
+			if ( local.GetSize() > 6 )	dlg.m_MaxTime  = (int)local[6];
 
 			if ( dlg.DoModal() != IDOK ) {
 				(*acc) = (int)0;
 				break;
 			}
 			(*acc)[0] = (LPCTSTR)dlg.m_HostAddr;
-			(*acc)[1] = (LPCTSTR)dlg.m_UserName;
-			(*acc)[2] = (LPCTSTR)dlg.m_PassName;
+			(*acc)[1] = (LPCTSTR)dlg.m_PortName;
+			(*acc)[2] = (LPCTSTR)dlg.m_UserName;
+			(*acc)[3] = (LPCTSTR)dlg.m_PassName;
 			(*acc) = (int)1;
 		}
 		break;

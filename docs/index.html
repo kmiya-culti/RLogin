@@ -28,8 +28,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.23.4)</TD>
-            <TD width="20%" align="right">2018/04/27</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.23.5)</TD>
+            <TD width="20%" align="right">2018/05/30</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -396,25 +396,25 @@ TD {
                 <TR>
                   <TD>GitHubからダウンロード</TD>
                   <TD width="320"><A href="https://github.com/kmiya-culti/RLogin/releases/">https://github.com/kmiya-culti/RLogin/releases/</A></TD>
-                  <TD></TD>
+                  <TD width="200"></TD>
                   <TD align="left"><FONT size="-1">過去３０日間のアクセス数</FONT></TD>
                 </TR>
                 <TR>
                   <TD width="200">実行プログラム(32bit)</TD>
                   <TD width="320"><A href="http://nanno.dip.jp/softlib/program/rlogin.zip">http://nanno.dip.jp/softlib/program/rlogin.zip</A></TD>
-                  <TD width="250">Windows XP以降(32bit)</TD>
+                  <TD width="200">Windows XP以降(32bit)</TD>
                   <TD><IMG src="http://nanno.dip.jp/softlib/accessbar.php?a=x32&c=1"></TD>
                 </TR>
                 <TR>
                   <TD>実行プログラム(64bit)</TD>
                   <TD width="320"><A href="http://nanno.dip.jp/softlib/program/rlogin_x64.zip">http://nanno.dip.jp/softlib/program/rlogin_x64.zip</A></TD>
-                  <TD>Windows XP以降(64bit)</TD>
+                  <TD width="200">Windows XP以降(64bit)</TD>
                   <TD><IMG src="http://nanno.dip.jp/softlib/accessbar.php?a=x64&c=3"></TD>
                 </TR>
                 <TR>
                   <TD width="200">ソースファイル(<A href="https://github.com/kmiya-culti/RLogin">GitHub</A>)</TD>
                   <TD width="320"><A href="http://nanno.dip.jp/softlib/source/rlogin.zip">http://nanno.dip.jp/softlib/source/rlogin.zip</A></TD>
-                  <TD>Microsoft Visual Studio 2010</TD>
+                  <TD width="200">Visual Studio 2010</TD>
                   <TD><IMG src="http://nanno.dip.jp/softlib/accessbar.php?a=src&c=5"></TD>
                 </TR>
               </TBODY>
@@ -437,6 +437,18 @@ TD {
       <BR>
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
+          <TR>
+            <TD align="center">2018/05/30</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.23.5/">2.23.5</A></TD>
+            <TD>Server Selectのタブを￥区切りでツリー表示に変更<BR>
+            Server Selectのエントリーをドラッグでタブグループを移動<BR>
+            Server Selectのタブグループを右クリックでグループ編集<BR>
+            他のRLoginにエントリーの変更を即時通知するように変更<BR>
+            コンボボックスのダウンリストで置換される問題を修正<BR>
+            拡張機能にデフォルトフォントのCSETによる置換を追加<BR>
+            ホスト・ユーザー・パスワード・ダイアログにTCPポートを追加<BR>
+            Server Selectにクリップボード経由のコピー貼り付けを追加</TD>
+          </TR>
           <TR>
             <TD align="center">2018/04/27</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.23.4/">2.23.4</A></TD>
@@ -477,26 +489,6 @@ TD {
             OLEでの圧縮フォルダ－ツールのファイルコピーを追加<BR>
             シリアル通信（プロトコルcom)の設定に送信遅延を追加<BR>
             表示メニューにシリアルモニターを追加</TD>
-          </TR>
-          <TR>
-            <TD align="center">2017/12/18</TD>
-            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.23.0/">2.23.0</A></TD>
-            <TD>すべての状態を保存にタブの位置も含むように変更<BR>
-            タイマーアイドリングにポップアップ、タブのドラッグ、スクロールを追加<BR>
-            タイマーアイドリング中に切断してもウィンドウを閉じないように変更<BR>
-            2.22.9のCOM/PIPEで受信処理されない不都合を修正<BR>
-            一定時間以内のクリップボードアップデートを無視するように変更</TD>
-          </TR>
-          <TR>
-            <TD align="center">2017/12/04</TD>
-            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.22.9/">2.22.9</A></TD>
-            <TD>プロトコルのオプションに接続時にSFTPを起動するを追加<BR>
-            クリップボードのオプションにRTFを作成を追加<BR>
-            タブバーのタイトルが256文字以上の場合の不都合を修正<BR>
-            ssh2の標準入出力バッファサイズを設定できるように変更<BR>
-            メニュー操作時のアイドル処理をタイマーで処理するように変更<BR>
-            全体的に送受信バッファサイズを見直してその処理を変更<BR>
-            Winsockメッセージの受信処理を変更</TD>
           </TR>
           <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
@@ -700,72 +692,72 @@ TD {
                   <TD valign="top" width="180">$FILE_NEW</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">サーバーに再接続(A)</TD>
-                  <TD valign="top"><A href="#TRSOPT">通信関連のオプション設定</A>の「接続が切れても閉じない」が有効の接続が切れたウィンドウの場合に追加されるメニューです。</TD>
+                  <TD valign="top" width="250">サーバーに再接続(A)</TD>
+                  <TD valign="top" width="450"><A href="#TRSOPT">通信関連のオプション設定</A>の「接続が切れても閉じない」が有効の接続が切れたウィンドウの場合に追加されるメニューです。</TD>
                   <TD valign="top" align="right" width="120"></TD>
-                  <TD valign="top">$FILE_RECONNECT</TD>
+                  <TD valign="top" width="180">$FILE_RECONNECT</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">接続を閉じる(C)</TD>
-                  <TD valign="top">接続中のサーバーとの通信を閉じます</TD>
+                  <TD valign="top" width="250">接続を閉じる(C)</TD>
+                  <TD valign="top" width="450">接続中のサーバーとの通信を閉じます</TD>
                   <TD valign="top" align="right" width="120"></TD>
-                  <TD valign="top">$FILE_CLOSE</TD>
+                  <TD valign="top" width="180">$FILE_CLOSE</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">サーバー情報を開く(O)</TD>
-                  <TD valign="top">保存されたサーバー情報を元にサーバーに接続します</TD>
+                  <TD valign="top" width="250">サーバー情報を開く(O)</TD>
+                  <TD valign="top" width="450">保存されたサーバー情報を元にサーバーに接続します</TD>
                   <TD valign="top" align="right" width="120"></TD>
-                  <TD valign="top">$FILE_OPEN</TD>
+                  <TD valign="top" width="180">$FILE_OPEN</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">サーバー情報を保存(S)</TD>
-                  <TD valign="top">接続中のサーバー設定などをファイルに保存します</TD>
+                  <TD valign="top" width="250">サーバー情報を保存(S)</TD>
+                  <TD valign="top" width="450">接続中のサーバー設定などをファイルに保存します</TD>
                   <TD valign="top" align="right" width="120"></TD>
-                  <TD valign="top">$FILE_SAVE</TD>
+                  <TD valign="top" width="180">$FILE_SAVE</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">すべての状態を保存(W)</TD>
-                  <TD valign="top">ウインドウの分割状態、サーバーへの接続情報を含めてファイルに保存します</TD>
+                  <TD valign="top" width="250">すべての状態を保存(W)</TD>
+                  <TD valign="top" width="450">ウインドウの分割状態、サーバーへの接続情報を含めてファイルに保存します</TD>
                   <TD valign="top" align="right" width="120"></TD>
-                  <TD valign="top">$FILE_ALLSAVE</TD>
+                  <TD valign="top" width="180">$FILE_ALLSAVE</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">印刷(P)</TD>
-                  <TD valign="top">現在の画面を印刷します</TD>
+                  <TD valign="top" width="250">印刷(P)</TD>
+                  <TD valign="top" width="450">現在の画面を印刷します</TD>
                   <TD valign="top" align="right" width="120"></TD>
-                  <TD valign="top">$PRINT_DIRECT</TD>
+                  <TD valign="top" width="180">$PRINT_DIRECT</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">印刷プレビュー(V)</TD>
-                  <TD valign="top">印刷をプレビューで表示します</TD>
+                  <TD valign="top" width="250">印刷プレビュー(V)</TD>
+                  <TD valign="top" width="450">印刷をプレビューで表示します</TD>
                   <TD valign="top" align="right" width="120"></TD>
-                  <TD valign="top">$PRINT_PREVIEW</TD>
+                  <TD valign="top" width="180">$PRINT_PREVIEW</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">プリンタの設定(R)</TD>
-                  <TD valign="top">使用するプリンタを設定します</TD>
+                  <TD valign="top" width="250">プリンタの設定(R)</TD>
+                  <TD valign="top" width="450">使用するプリンタを設定します</TD>
                   <TD valign="top" align="right" width="120"></TD>
-                  <TD valign="top">$PRINT_SETUP</TD>
+                  <TD valign="top" width="180">$PRINT_SETUP</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">ログファイルに保存(L)</TD>
-                  <TD valign="top">指定するファイルに通信記録を残します</TD>
+                  <TD valign="top" width="250">ログファイルに保存(L)</TD>
+                  <TD valign="top" width="450">指定するファイルに通信記録を残します</TD>
                   <TD valign="top" align="right" width="120"></TD>
-                  <TD valign="top">$LOG_OPEN</TD>
+                  <TD valign="top" width="180">$LOG_OPEN</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">SFTPファイルの転送(T)</TD>
-                  <TD valign="top"><A href="#SFTPWIND">SFTPによるファイル転送</A>ダイアログを開きます</TD>
+                  <TD valign="top" width="250">SFTPファイルの転送(T)</TD>
+                  <TD valign="top" width="450"><A href="#SFTPWIND">SFTPによるファイル転送</A>ダイアログを開きます</TD>
                   <TD valign="top" align="right" width="120"></TD>
-                  <TD valign="top">$VIEW_SFTP</TD>
+                  <TD valign="top" width="180">$VIEW_SFTP</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">XYZModemファイル転送(F)</TD>
-                  <TD valign="top">XYZModem/Kermitプロトコルによるファイル転送を実行します<BR>
+                  <TD valign="top" width="250">XYZModemファイル転送(F)</TD>
+                  <TD valign="top" width="450">XYZModem/Kermitプロトコルによるファイル転送を実行します<BR>
                   ※2.20.5で追加した「ファイルアップロード」は、ファイルをそのまま送信します。データの取りこぼしや意図しないエコーバックなどにご注意ください。<BR>
                   ※2.22.2で追加した「ファイルダウンロード」は、画面表示無しで送られてきた文字をそのままファイルに記録します。</TD>
                   <TD valign="top" align="right" width="120"></TD>
-                  <TD valign="top">$XMODEM_DOWNLOAD<BR>
+                  <TD valign="top" width="180">$XMODEM_DOWNLOAD<BR>
                   $XMODEM_UPLOAD<BR>
                   $YMODEM_DOWNLOAD<BR>
                   $YMODEM_UPLOAD<BR>
@@ -777,16 +769,16 @@ TD {
                   $FILE_DOWNLOAD</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">スクリプトの実行(E)</TD>
-                  <TD valign="top">スクリプトファイルを読み込んで実行します。</TD>
+                  <TD valign="top" width="250">スクリプトの実行(E)</TD>
+                  <TD valign="top" width="450">スクリプトファイルを読み込んで実行します。</TD>
                   <TD valign="top" align="right" width="120"></TD>
-                  <TD valign="top">$SCRIPT_EXEC</TD>
+                  <TD valign="top" width="180">$SCRIPT_EXEC</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">アプリケーションの終了(X)</TD>
-                  <TD valign="top">プログラムを終了します</TD>
+                  <TD valign="top" width="250">アプリケーションの終了(X)</TD>
+                  <TD valign="top" width="450">プログラムを終了します</TD>
                   <TD valign="top" align="right" width="120"></TD>
-                  <TD valign="top">$EXIT</TD>
+                  <TD valign="top" width="180">$EXIT</TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -810,46 +802,45 @@ TD {
                   <TD valign="top" width="180">$EDIT_COPY</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">貼り付け(P)</TD>
+                  <TD valign="top" width="250">貼り付け(P)</TD>
                   <TD valign="top">クリップボードのテキストを送信します</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$EDIT_PASTE</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">すべて選択/コピー</TD>
+                  <TD valign="top" width="250">すべて選択/コピー</TD>
                   <TD valign="top">ヒストリーを含めてすべてをクリップボードにコピーします</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$EDIT_COPYALL</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">クリップボードチェイン有効</TD>
+                  <TD valign="top" width="250">クリップボードチェイン有効</TD>
                   <TD valign="top">クリップボードの更新をチェックして自動で取得する機能を有効・無効にします。<BR>
                   ※これは、sshのポートフォワードでリモートデスクトップの通信などを行った場合などにデッドロックする問題や意図せぬ障害などに暫定的に対応する為の物です。</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$CLIPBOARD_CHAIN</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">クリップボード(B)</TD>
+                  <TD valign="top" width="250">クリップボード(B)</TD>
                   <TD valign="top">クリップボードにテキストがコピーされると（クリップボードチェイン動作時）このサブメニューに追加されます。<BR>
-                  ※クリップボードチェインが働かない場合はペースト時に追加されます<BR>
-                  （チェインの動作確認は、自身がコピーした時に行ないます）</TD>
+                  ※クリップボードチェインが働かない場合はペースト時に追加されます。（チェインの動作確認は、自身がコピーした時に行ないます）</TD>
                   <TD valign="top" align="right">Alt+V</TD>
                   <TD valign="top">$CLIPBOARD</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">検索マーク(K)</TD>
+                  <TD valign="top" width="250">検索マーク(K)</TD>
                   <TD valign="top">範囲選択した文字列を検索結果と同じ扱いにして前後検索で移動できるように反転表示します</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$EDIT_MARK</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">文字列を検索(F)</TD>
+                  <TD valign="top" width="250">文字列を検索(F)</TD>
                   <TD valign="top">正規表現などで文字列を検索し反転表示します</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$SEARCH_REG</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">前を検索(D)<BR>
+                  <TD valign="top" width="250">前を検索(D)<BR>
                   次を検索(N)</TD>
                   <TD valign="top">上記検索結果を次の位置まで移動します</TD>
                   <TD valign="top" align="right">Ctrl+PRIOR<BR>
@@ -858,57 +849,56 @@ TD {
                   $SEARCH_BACK</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">スクリプトの停止(S)</TD>
+                  <TD valign="top" width="250">スクリプトの停止(S)</TD>
                   <TD valign="top">実行中のChatScript/スクリプトを終了させます</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$SCRIPT_END</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">Break信号を送る(B)</TD>
+                  <TD valign="top" width="250">Break信号を送る(B)</TD>
                   <TD valign="top">COMポートの場合、ブレーク信号を送ります</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$BREAK</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">マウスイベントを無効(M)</TD>
+                  <TD valign="top" width="250">マウスイベントを無効(M)</TD>
                   <TD valign="top">マウス・イベント・トラック・モードを一時的に無効にします</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$MOUSE_EVENT</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">ブロードキャスト(A)</TD>
-                  <TD valign="top">開いているすべての接続にキー操作を同時送信します。<BR>
-                  使い方を間違うと意図しない結果になりますのでご注意ください。<BR>
+                  <TD valign="top" width="250">ブロードキャスト(A)</TD>
+                  <TD valign="top">開いているすべての接続にキー操作を同時送信します。使い方を間違うと意図しない結果になりますのでご注意ください。<BR>
                   ※2.22.3からブロードキャスト時にタブバーにチェックボックスを表示して同時受信の一時的な拒否を設定出来るようにしました。オプション設定・通信共通・ブリードキャストで同時受信を拒否している場合は無効です</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$BROADCAST</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">別のRLoginへも送信(O)</TD>
+                  <TD valign="top" width="250">別のRLoginへも送信(O)</TD>
                   <TD valign="top">別に起動したRLoginへも同時送信を行います</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$OTHERCAST</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">見えてるだけに制限(L)</TD>
+                  <TD valign="top" width="250">見えてるだけに制限(L)</TD>
                   <TD valign="top">重なったウィンドウの場合に見えないウィンドウには同時送信しません</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$LOOKCAST</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">キー操作の記録(R)</TD>
+                  <TD valign="top" width="250">キー操作の記録(R)</TD>
                   <TD valign="top">以降のキー入力など再度このメニューを選択するまで記録します</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$KEY_REC</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">キー操作の再現(Q)</TD>
+                  <TD valign="top" width="250">キー操作の再現(Q)</TD>
                   <TD valign="top">最後に記録、再現されたキー操作を再現します</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$KEY_PLAY</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">キー操作のヒストリ(H)</TD>
+                  <TD valign="top" width="250">キー操作のヒストリ(H)</TD>
                   <TD valign="top">記録されたキー操作を最大５つまでここに表示され選択すれば再現します</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$KEY_HIS1-5</TD>
@@ -936,86 +926,85 @@ TD {
                   <TD valign="top" width="180">$VIEW_MENUBAR</TD>
                 </TR>
                 <TR>
-                  <TD colspan="2" valign="top">ツールバー(T)</TD>
+                  <TD colspan="2" valign="top" width="250">ツールバー(T)</TD>
                   <TD valign="top">ツールバーを表示・非表示にします</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$VIEW_TOOLBAR</TD>
                 </TR>
                 <TR>
-                  <TD valign="top" colspan="2">タブバー(B)</TD>
+                  <TD valign="top" colspan="2" width="250">タブバー(B)</TD>
                   <TD valign="top">タブバーを常時表示・２つ以上なら表示を切り替えます</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$VIEW_TABBAR</TD>
                 </TR>
                 <TR>
-                  <TD colspan="2" valign="top">ステータスバー(S)</TD>
+                  <TD colspan="2" valign="top" width="250">ステータスバー(S)</TD>
                   <TD valign="top">ステータスバーを表示・非表示にします</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$VIEW_STATUSBAR</TD>
                 </TR>
                 <TR>
-                  <TD colspan="2" valign="top">スクロールバー(V)</TD>
+                  <TD colspan="2" valign="top" width="250">スクロールバー(V)</TD>
                   <TD valign="top">スクロールバーを表示・非表示にします</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$VIEW_SCROLLBAR</TD>
                 </TR>
                 <TR>
-                  <TD colspan="2" valign="top">Tekウインドウ(K)</TD>
+                  <TD colspan="2" valign="top" width="250">Tekウインドウ(K)</TD>
                   <TD valign="top">Tek40xx/41xxウインドウを表示・非表示にします</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$VIEW_TEKDISP</TD>
                 </TR>
                 <TR>
-                  <TD colspan="2" valign="top">Imageウィンドウ(I)</TD>
+                  <TD colspan="2" valign="top" width="250">Imageウィンドウ(I)</TD>
                   <TD valign="top">コンソール画面をグラフィックイメージでウィンドウに表示します</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$VIEW_IMAGEDISP</TD>
                 </TR>
                 <TR>
-                  <TD colspan="2" valign="top">ソケットステータス(X)</TD>
+                  <TD colspan="2" valign="top" width="250">ソケットステータス(X)</TD>
                   <TD valign="top">接続しているソケットの状態を表示します（デバッグ目的です）</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$VIEW_SOCKET</TD>
                 </TR>
                 <TR>
-                  <TD valign="top" colspan="2">シリアルモニター(Z)</TD>
+                  <TD valign="top" colspan="2" width="250">シリアルモニター(Z)</TD>
                   <TD valign="top">プロトコルでcomを使用した場合に<A href="#MONITOR">シリアルモニター</A>表示します</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$VIEW_MONITOR</TD>
                 </TR>
                 <TR>
-                  <TD valign="top" colspan="2">トレースウィンドウ(W)</TD>
+                  <TD valign="top" colspan="2" width="250">トレースウィンドウ(W)</TD>
                   <TD valign="top"><A href="#TRACE">トレースウィンドウ</A>でESCシーケンスなどのログを表示します</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$VIEW_TRACEDISP</TD>
                 </TR>
                 <TR>
-                  <TD valign="top" colspan="2">おさかなを飼う(O)</TD>
+                  <TD valign="top" colspan="2" width="250">おさかなを飼う(O)</TD>
                   <TD valign="top">おさかなを数匹飼います</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$VIEW_JOKE</TD>
                 </TR>
                 <TR>
-                  <TD colspan="2" valign="top">オプション設定(P)</TD>
+                  <TD colspan="2" valign="top" width="250">オプション設定(P)</TD>
                   <TD valign="top">各種のオプション設定を行います</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$OPTION_SET</TD>
                 </TR>
                 <TR>
-                  <TD colspan="2" valign="top">標準の設定に戻す(Y)</TD>
+                  <TD colspan="2" valign="top" width="250">標準の設定に戻す(Y)</TD>
                   <TD valign="top">オプション設定を下記の標準に設定した時の状態に戻します</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$OPTION_LOAD</TD>
                 </TR>
                 <TR>
-                  <TD valign="top" colspan="2">タイトルの変更(E)</TD>
-                  <TD valign="top">ウィンドウやタブに表示するタイトルを一時的に変更します<BR>
-                  「すべての状態を保存」以外では、この変更は、保存されません</TD>
+                  <TD valign="top" colspan="2" width="250">タイトルの変更(E)</TD>
+                  <TD valign="top">ウィンドウやタブに表示するタイトルを一時的に変更します。「すべての状態を保存」以外では、この変更は、保存されません</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$TITLE_EDIT</TD>
                 </TR>
                 <TR>
-                  <TD colspan="2" valign="top">漢字コードの変更(C)</TD>
+                  <TD colspan="2" valign="top" width="250">漢字コードの変更(C)</TD>
                   <TD valign="top">EUC,SJIS,ASCII,UTF8の漢字コードに一時的に変更します。<BR>
                   ※オプションやこの変更で漢字コードを変更しても次回起動時にはサーバーエントリーで設定された漢字コードが有効になります。</TD>
                   <TD valign="top" align="right"></TD>
@@ -1029,55 +1018,55 @@ TD {
                 </TR>
                 <TR>
                   <TD align="center" width="10" rowspan="9" valign="top">&nbsp;</TD>
-                  <TD width="180" valign="top">タブリセット</TD>
+                  <TD width="230" valign="top">タブリセット</TD>
                   <TD valign="top">タブの設定をデフォルト８文字に設定します</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$RESET_TAB</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">文字バックリセット</TD>
+                  <TD valign="top" width="230">文字バックリセット</TD>
                   <TD valign="top">文字バンクの設定を初期値に設定します</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$RESET_BANK</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">文字属性リセット</TD>
+                  <TD valign="top" width="230">文字属性リセット</TD>
                   <TD valign="top">文字属性や色を初期値に設定します</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$RESET_ATTR</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">ESCシーケンスリセット</TD>
+                  <TD valign="top" width="230">ESCシーケンスリセット</TD>
                   <TD valign="top">ESCシーケンス中の処理を中断します</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$RESET_ESC</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">マウスイベントリセット</TD>
+                  <TD valign="top" width="230">マウスイベントリセット</TD>
                   <TD valign="top">マウスイベントを取り消します</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$RESET_MOUSE</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">tek40/41xxリセット</TD>
+                  <TD valign="top" width="230">tek40/41xxリセット</TD>
                   <TD valign="top">tekウインドウの状態をクリアし初期化します</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$RESET_TEK</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">スクリーンリセット</TD>
+                  <TD valign="top" width="230">スクリーンリセット</TD>
                   <TD valign="top">文字属性などを初期値に戻し画面をクリアします</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$RESET_SCREEN</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">サイズ固定リセット</TD>
+                  <TD valign="top" width="230">サイズ固定リセット</TD>
                   <TD valign="top">サイズ設定シーケンスによるスクリーンサイズ固定を解除します</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$RESET_SIZE</TD>
                 </TR>
                 <TR>
-                  <TD valign="top">すべてリセット</TD>
+                  <TD valign="top" width="230">すべてリセット</TD>
                   <TD valign="top">すべてを初期値に戻しヒストリーも含めて画面をクリアします</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$RESET_ALL</TD>
@@ -1271,33 +1260,26 @@ TD {
                 </TR>
                 <TR>
                   <TD valign="top" colspan="2" width="250">ツールバーをカスタマイズ(T)</TD>
-                  <TD valign="top" width="450"><A href="#TOOLBAR">ツールバーをカスタマイズ</A>しメニューから追加・削除などを行います<BR>
-                  また、ツールバーアイコンも変更・追加することができます。</TD>
+                  <TD valign="top" width="450"><A href="#TOOLBAR">ツールバーをカスタマイズ</A>しメニューから追加・削除などを行います。また、ツールバーアイコンも変更・追加することができます。</TD>
                   <TD valign="top" align="right" width="120"></TD>
                   <TD valign="top" width="150">$CUSTOM_TOOLBAR</TD>
                 </TR>
                 <TR>
                   <TD valign="top" colspan="2" width="250">プライベートプロファイル作成(P)</TD>
-                  <TD valign="top" width="450">プライベートプロファイル(RLogin.ini)をレジストリからコピーして新規作成<BR>
-                  します。<BR>
-                  ※プライベートプロファイルは、レジストリベースのプロファイルのバックア<BR>
-                  ップには、なりません。プライベートからレジストリには戻せません。<BR>
-                  また、条件によりパスワードなどの情報は、消去されます。</TD>
+                  <TD valign="top" width="450">プライベートプロファイル(RLogin.ini)をレジストリからコピーして新規作成します。<BR>
+                  ※プライベートプロファイルは、レジストリベースのプロファイルのバックアップには、なりません。プライベートからレジストリには戻せません。また、条件によりパスワードなどの情報は、消去されます。</TD>
                   <TD valign="top" align="right" width="120"></TD>
                   <TD valign="top" width="150">$PROFILE_SAVE</TD>
                 </TR>
                 <TR>
                   <TD valign="top" colspan="2" width="250">レジストリをファイルに保存(B)</TD>
-                  <TD valign="top" width="450">RLoginで使用しているレジストリ（すべての設定）を年月日を付けてファイルに保存します。<BR>
-                  レジストリを元に戻すには、保存したregファイルを実行してください。<BR>
-                  すべての設定のバックアップを目的としています。</TD>
+                  <TD valign="top" width="450">RLoginで使用しているレジストリ（すべての設定）を年月日を付けてファイルに保存します。レジストリを元に戻すには、保存したregファイルを実行してください。すべての設定のバックアップを目的としています。</TD>
                   <TD valign="top" align="right" width="120"></TD>
                   <TD valign="top" width="150">$REGISTRY_SAVE</TD>
                 </TR>
                 <TR>
                   <TD valign="top" colspan="2" width="250">リソースをファイルに保存(R)</TD>
-                  <TD valign="top" width="450">リソースを編集可能なテキストでファイルに保存します。<BR>
-                  実行時の作業フォルダもしくは、RLogin.exeと同じフォルダにRLogin_rc.txtで保存すると次回起動時に読み込みます。<BR>
+                  <TD valign="top" width="450">リソースを編集可能なテキストでファイルに保存します。実行時の作業フォルダもしくは、RLogin.exeと同じフォルダにRLogin_rc.txtで保存すると次回起動時に読み込みます。<BR>
                   ※変更した場合に不都合が起きる可能性があります。文字列の変更程度です。また変更できないリソースもあります。<BR>
                   ※RLogin_rc.txtは、バージョンに依存します。</TD>
                   <TD valign="top" align="right" width="120"></TD>
@@ -1312,9 +1294,7 @@ TD {
                 </TR>
                 <TR>
                   <TD valign="top" colspan="2">古いエントリー情報を削除</TD>
-                  <TD valign="top" width="450">2.22.0からレジストリに保存する文字列をUnicodeに変更しました。<BR>
-                  下位互換が無くなる為に古いエントリー情報を保存しています。<BR>
-                  必要がないと判断された場合に古いエントリー情報をここで削除することができます。</TD>
+                  <TD valign="top" width="450">2.22.0からレジストリに保存する文字列をUnicodeに変更しました。下位互換が無くなる為に古いエントリー情報を保存しています。必要がないと判断された場合に古いエントリー情報をここで削除することができます。</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top"></TD>
                 </TR>
@@ -1637,8 +1617,7 @@ TD {
                 <TR>
                   <TD align="center">編集</TD>
                   <TD>サーバーエントリーを変更します<BR>
-                  ※複数選択時は、変更された差分データを作成して適用します。<BR>
-                  期待と違う動作の場合がありますのでご注意ください。</TD>
+                  ※複数選択時は、変更された差分データを作成して適用します。期待と違う動作の場合がありますのでご注意ください。</TD>
                 </TR>
                 <TR>
                   <TD align="center">削除</TD>
@@ -1650,7 +1629,7 @@ TD {
             <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
               <TBODY>
                 <TR>
-                  <TD colspan="2">右クリックによるポップアップメニュー</TD>
+                  <TD colspan="2">エントリーリスト内での右クリックによるポップアップメニュー</TD>
                 </TR>
                 <TR>
                   <TD width="30%" align="center">接続先を新規作成</TD>
@@ -1669,6 +1648,14 @@ TD {
                   <TD>同じ設定のエントリーを新規作成します</TD>
                 </TR>
                 <TR>
+                  <TD align="center">クリップボードに…</TD>
+                  <TD>エントリー情報をテキスト形式でクリップボードにコピーします</TD>
+                </TR>
+                <TR>
+                  <TD align="center">クリップボードから…</TD>
+                  <TD>クリップボードからエントリー情報を読み込み新規作成します</TD>
+                </TR>
+                <TR>
                   <TD align="center">標準の設定にする</TD>
                   <TD>初期化で選択する標準の設定にします</TD>
                 </TR>
@@ -1677,8 +1664,8 @@ TD {
                   <TD>設定を標準の設定などに初期化します</TD>
                 </TR>
                 <TR>
-                  <TD align="center">プロトコルハンドラに登録</TD>
-                  <TD>ssh://hostnameなどのURLリンクで起動・接続できるようにハンドラを登録する</TD>
+                  <TD align="center">プロトコルハンドラ…</TD>
+                  <TD>ssh://hostnameなどのURLリンクで起動・接続できるようにプロトコルハンドラを登録する。既定のアプリに登録されていない場合は、登録を確認します。</TD>
                 </TR>
                 <TR>
                   <TD align="center">ショートカットを作成</TD>
@@ -1703,12 +1690,41 @@ TD {
                 </TR>
               </TBODY>
             </TABLE>
+            <BR>
+            <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
+              <TBODY>
+                <TR>
+                  <TD colspan="2">タブやツリー内での右クリックによるポップアップメニュー</TD>
+                </TR>
+                <TR>
+                  <TD width="30%" align="center">新しいグループを作成</TD>
+                  <TD>新しくグループを作成し名前の編集状態になります。ツリーでグループ選択時には、子グループを作成します</TD>
+                </TR>
+                <TR>
+                  <TD align="center">グループの名前を変更</TD>
+                  <TD>グループの名前を変更します。編集時に「￥」区切りで子グループを直接編集することが出来ます</TD>
+                </TR>
+                <TR>
+                  <TD align="center">空のグループを削除</TD>
+                  <TD>エントリーが空のグループのみ削除する事が出来ます</TD>
+                </TR>
+                <TR>
+                  <TD align="center">エントリーをすべて選択</TD>
+                  <TD>グループ内のエントリーすべてを選択状態にします</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
             </TD>
             <TD align="left" valign="top"><IMG src="image007.jpg" width="524" height="208" border="0"><BR>
             <BR>
+            <A href="#SERVEROPT">サーバーのオプション設定</A>のタブグループの名前を設定すると分類ができます<BR>
+            <IMG src="image052.jpg" width="524" height="208" border="0"><BR>
             <BR>
-            <A href="#SERVEROPT">サーバーのオプション設定</A>のタブグループの名前を設定するとタブによる分類ができます<BR>
-            <IMG src="image052.jpg" width="524" height="208" border="0"></TD>
+            タブグループを「￥」で区切ると階層化してツリー表示に変更します<BR>
+            <IMG src="image057.jpg" width="524" height="208" border="0"><BR>
+            選択中のタブやツリーをクリックするとグループ名の編集ができます<BR>
+            また、リストのエントリーをドラッグしてタブやツリーにドロップすると<BR>
+            グループを変更することができます</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -1739,20 +1755,20 @@ TD {
                   <TD>テキストに含まれるそれぞれの制御コードの個数を表示しています。横のボタンでスペースに変換することができます。</TD>
                 </TR>
                 <TR>
-                  <TD align="center" width="30%">改行を確認・・・</TD>
+                  <TD align="center" width="30%">改行を確認…</TD>
                   <TD><A href="#TRSOPT">通信共通の設定</A>の改行(CR)を確認し指定時間待って次を送信の設定を使ってペーストします。多くのテキストを一度に送信すると正しく受信されない場合などにこれをチェックしてください。</TD>
                 </TR>
                 <TR>
-                  <TD align="center">編集後クリップ・・・</TD>
+                  <TD align="center">編集後クリップ…</TD>
                   <TD>テキストを編集した場合に編集後のテキストをクリップボードにコピーします。<BR>
                   ※この設定を変更するとオプション設定が変更され切断時に変更を保存するか確認されます。</TD>
                 </TR>
                 <TR>
-                  <TD align="center">次回から確認・・・</TD>
+                  <TD align="center">次回から確認…</TD>
                   <TD>このダイアログを表示しないようにします。</TD>
                 </TR>
                 <TR>
-                  <TD align="center">・・・</TD>
+                  <TD align="center">…</TD>
                   <TD>ペーストされるテキストを事前に編集することが出来ます。<BR>
                   改行が含まれる場合に直接shellに渡す前に確認することで誤動作などを修正することができます。</TD>
                 </TR>
@@ -1819,12 +1835,12 @@ TD {
                     <TBODY>
                       <TR>
                         <TD width="40">上段</TD>
-                        <TD>サーバー選択画面で表示されるタブグループの名前</TD>
+                        <TD>サーバー選択画面で表示されるタブグループの名前を指定します。名前を「￥」区切りで階層化してタブグループを構成するこができます。階層化した場合には、Server
+                        Selectの画面は、タブの代わりにツリー表示に変更されます</TD>
                       </TR>
                       <TR>
                         <TD>下段</TD>
-                        <TD>このエントリーを接続する前に接続するエントリーを指定します。すでに接続されている場合は無視します。<BR>
-                        別エントリーのSSHポートフォワードを使用して接続する場合を想定してます。</TD>
+                        <TD>このエントリーを接続する前に接続するエントリーを指定します。すでに接続されている場合は無視します。別エントリーのSSHポートフォワードを使用して接続する場合を想定してます。</TD>
                       </TR>
                     </TBODY>
                   </TABLE>
@@ -1867,9 +1883,11 @@ TD {
                   ※2.23.4より<A href="#FILENAMEEXT">送信文字列の特殊文字</A>が利用できます</TD>
                 </TR>
                 <TR>
-                  <TD align="center">ユーザー認証の方式・・<BR>
-                  パスワードorパスフレーズ</TD>
-                  <TD>パスワード認証やキーボードインタラクティブの場合に使用るパスワード。公開鍵認証の場合は、認証鍵のパスフレーズを設定します。<BR>
+                  <TD align="center">ユーザー認証の…<BR>
+                  パスワード<BR>
+                  or<BR>
+                  パスフレーズ</TD>
+                  <TD>パスワード認証やキーボードインタラクティブの場合に使用するパスワード。公開鍵認証の場合は、認証鍵のパスフレーズを設定します。<BR>
                   <BR>
                   User Name,Passwordを設定するとサーバー情報を保存で作成されるファイルや次回起動時用にPasswordなども保存されます。セキュリティーを考えるなら<B>Passwordを保存しないでください</B>。保存しない場合は、下記のパスワード/フレーズ入力をチェックして接続時に入力するようにしてください。</TD>
                 </TR>
@@ -1882,11 +1900,11 @@ TD {
                   <TD>telnet,ssh2の時に追加で送信する環境変数を設定します</TD>
                 </TR>
                 <TR>
-                  <TD align="center">ホスト・ユーザー・・・</TD>
+                  <TD align="center">ホスト・ユーザー…</TD>
                   <TD>接続時にホスト、ユーザー、パスワードの入力を要求します</TD>
                 </TR>
                 <TR>
-                  <TD align="center">標準の設定を・・・</TD>
+                  <TD align="center">標準の設定を…</TD>
                   <TD>サーバーのオプション設定以外のすべてのオプションを接続時の標準の設定を使用するようにします。これを有効にするとその他のオプション設定は、変更できなくなり接続には使用されません<BR>
                   <BR>
                   標準の設定は、<A href="#SERVERSEL">サーバーの選択・設定</A>の右クリックによるポップアップメニューで任意のエントリー設定を標準にすることができます。ただしこのオプションを有効にしたエントリーは標準に設定できません<BR>
@@ -1895,9 +1913,7 @@ TD {
                 </TR>
                 <TR>
                   <TD align="center">アイコン</TD>
-                  <TD>適当な小さい画像ファイルをタブにアイコンとして表示します。<BR>
-                  画像ファイルとしてgif/jpg/png/bmp/icoなどが使用できます。<BR>
-                  表示サイズは、16x16ですが拡大・縮小して表示します。</TD>
+                  <TD>適当な小さい画像ファイルをタブにアイコンとして表示します。画像ファイルとしてgif/jpg/png/bmp/icoなどが使用できます。表示サイズは、16x16ですが拡大・縮小して表示します。</TD>
                 </TR>
                 <TR>
                   <TD align="center">チャットスクリプト</TD>
@@ -1922,7 +1938,7 @@ TD {
             <TD valign="top" align="left"><IMG src="image008.jpg" width="611" height="511" border="0"><BR>
             <BR>
             <BR>
-            <IMG src="image053.jpg" width="384" height="232" border="0"><BR>
+            <IMG src="image053.jpg" width="419" height="248" border="0"><BR>
             Server Adress/User Nameは、履歴を残します。履歴を削除するには<BR>
             プルダウンメニューで選択しDELキーで削除することができます。</TD>
           </TR>
@@ -2268,7 +2284,7 @@ TD {
                   <TD>選択されている受信送信文字列と同じタイミングで別の受信文字列を待つように登録します</TD>
                 </TR>
                 <TR>
-                  <TD width="30%" align="center">次回接続時に・・・</TD>
+                  <TD width="30%" align="center">次回接続時に…</TD>
                   <TD>次回接続時に受信文字列とキー入力した送信文字列を記録してChat Scriptを自動作成します</TD>
                 </TR>
               </TBODY>
@@ -2288,43 +2304,44 @@ TD {
                   <TD align="center">内容</TD>
                 </TR>
                 <TR>
-                  <TD width="30%">/ATZ\r</TD>
+                  <TD width="30%"><FONT size="-1">/ATZ\r</FONT></TD>
                   <TD align="center" width="15%">無し</TD>
                   <TD align="center" width="15%">ATZ\r</TD>
                   <TD>無条件でATZを送信</TD>
                 </TR>
                 <TR>
-                  <TD width="30%">　OK\r\n/ATD123-1234\r</TD>
+                  <TD width="30%"><FONT size="-1">　OK\r\n/ATD123-<BR>
+                  　　　　　　　1234\r</FONT></TD>
                   <TD align="center" width="15%">OK\r\n</TD>
                   <TD align="center" width="15%">ATD123-1234\r</TD>
                   <TD>OKを待ってダイヤル</TD>
                 </TR>
                 <TR>
-                  <TD width="30%">　　CONNECT/</TD>
+                  <TD width="30%"><FONT size="-1">　　CONNECT/</FONT></TD>
                   <TD align="center" width="15%">CONNECT</TD>
                   <TD align="center" width="15%">無し</TD>
                   <TD>CONNECTを待つ</TD>
                 </TR>
                 <TR>
-                  <TD width="30%">　　　login:/%U\r</TD>
+                  <TD width="30%"><FONT size="-1">　　　login:/%U\r</FONT></TD>
                   <TD align="center" width="15%">login:</TD>
                   <TD align="center" width="15%">User Name</TD>
                   <TD>login:を待ってサーバーエントリーで指定したUser Nameを送信</TD>
                 </TR>
                 <TR>
-                  <TD width="30%">　　　　password:/%P\r</TD>
+                  <TD width="30%"><FONT size="-1">　　　　password:/%P\r</FONT></TD>
                   <TD align="center" width="15%">password:</TD>
                   <TD align="center" width="15%">Password</TD>
                   <TD>password:を待ってサーバーエントリーで指定したPasswordを送信</TD>
                 </TR>
                 <TR>
-                  <TD width="30%">　　NO CARRIER/</TD>
+                  <TD width="30%"><FONT size="-1">　　NO CARRIER/</FONT></TD>
                   <TD align="center" width="15%">NO CARRIER</TD>
                   <TD align="center" width="15%">無し</TD>
                   <TD>終了</TD>
                 </TR>
                 <TR>
-                  <TD width="30%">　　ERROR/</TD>
+                  <TD width="30%"><FONT size="-1">　　ERROR/</FONT></TD>
                   <TD align="center" width="15%">ERROR</TD>
                   <TD align="center" width="15%">無し</TD>
                   <TD>終了</TD>
@@ -2403,8 +2420,8 @@ fi</PRE>
                   <TD>Windowsのユーザー名に置き換え</TD>
                 </TR>
                 <TR>
-                  <TD align="center"><FONT color="#c0c0c0">%{XXX}</FONT></TD>
-                  <TD><FONT color="#c0c0c0">環境変数を展開し簡単な編集ができます</FONT><BR>
+                  <TD align="center">%{XXX}</TD>
+                  <TD>環境変数を展開し簡単な編集ができます<BR>
                   <TABLE cellpadding="3">
                     <TBODY>
                       <TR>
@@ -2479,7 +2496,7 @@ fi</PRE>
                   <TD>プロキシの認証を行う場合のパスワード</TD>
                 </TR>
                 <TR>
-                  <TD align="center">接続時に・・・</TD>
+                  <TD align="center">接続時に…</TD>
                   <TD>接続時にサーバー、ユーザー、パスワードの入力を要求します</TD>
                 </TR>
               </TBODY>
@@ -2514,61 +2531,61 @@ fi</PRE>
                   <TD colspan="2">オプション</TD>
                 </TR>
                 <TR>
-                  <TD align="center" width="30%">改行(CR)を確認・・・</TD>
+                  <TD align="center" width="30%">改行(CR)を確認…</TD>
                   <TD>1行単位（CR文字にて判断）で送信しその受信（エコーバックされたCR文字）を確認してから指定した時間(msec)待って次を送信します。<BR>
                   ※CRがエコーバックされない場合は、500msec待って次を送信します。また１つのCR文字に複数のCRが返される場合などは、正常に動作しません</TD>
                 </TR>
                 <TR>
-                  <TD align="center">BPlus/ZModem・・・</TD>
+                  <TD align="center">BPlus/ZModem…</TD>
                   <TD>BPlus/ZModem/Kermitプロトコルでファイルの転送を自動で開始します。BPlusやZModemプロトコルは、昔パソコン通信(Niftyなど)で流行したファイル転送方法です。現在では、ほとんど使われていないと思いますが、Unix上のサーバープログラムのソースをここに置いておきます。<BR>
                   BPlusサーバープログラムソース <A href="bp.tar.gz">bp.tar.gz</A></TD>
                 </TR>
                 <TR>
-                  <TD align="center">キーボード入力・・・</TD>
+                  <TD align="center">キーボード入力…</TD>
                   <TD>行単位で編集してから送信します。ただしコントロールコードなどを送信しなくなりますので注意してください。</TD>
                 </TR>
                 <TR>
-                  <TD align="center">接続が・・・再接続</TD>
+                  <TD align="center">接続が…再接続</TD>
                   <TD>接続が切れると再接続の確認を表示して動作を選択</TD>
                 </TR>
                 <TR>
-                  <TD align="center">接続が・・・閉じない</TD>
+                  <TD align="center">接続が…閉じない</TD>
                   <TD>接続が切れてもウィンドウを閉じません</TD>
                 </TR>
                 <TR>
-                  <TD align="center">接続が・・・終了する</TD>
+                  <TD align="center">接続が…終了する</TD>
                   <TD>接続が切れれば自動でウインドウを閉じて他に接続が無ければプログラムを終了します</TD>
                 </TR>
                 <TR>
-                  <TD align="center">画面更新が・・・</TD>
+                  <TD align="center">画面更新が…</TD>
                   <TD>一定時間（分単位）、画面の更新が無いとスリープ画面に移行します。スリープ画面は、キー入力などで通常画面に戻ります。</TD>
                 </TR>
                 <TR>
                   <TD colspan="2">ブロードキャスト（同時送信）</TD>
                 </TR>
                 <TR>
-                  <TD align="center">右のグループ・・・</TD>
+                  <TD align="center">右のグループ…</TD>
                   <TD>ブロードキャストによる同時送信からの受信を右のグループ以外から受け取りません。グループが指定されていない場合は、すべて受信しません。<BR>
                   また、右のグループ名を指定した場合は、同じ名前のグループ名を持つ接続だけに同時送信します。グループが指定されていない場合は、すべてに送信します。</TD>
                 </TR>
                 <TR>
-                  <TD align="center">すべての同時送信・・・</TD>
+                  <TD align="center">すべての同時送信…</TD>
                   <TD>すべての同時送信されたデータを受け取りません</TD>
                 </TR>
                 <TR>
-                  <TD align="center">ブロード・グループ・・・</TD>
+                  <TD align="center">ブロード・グループ…</TD>
                   <TD>この接続から同時送信しないようにします</TD>
                 </TR>
                 <TR>
                   <TD colspan="2">TCP/IP</TD>
                 </TR>
                 <TR>
-                  <TD align="center">送信・受信の・・・</TD>
+                  <TD align="center">送信・受信の…</TD>
                   <TD>送信・受信共に帯域制限を掛けます<BR>
                   数値はKByte/Secで指定します</TD>
                 </TR>
                 <TR>
-                  <TD align="center">TCPオプションの・・・</TD>
+                  <TD align="center">TCPオプションの…</TD>
                   <TD>TCPオプションのKeepAliveが有効のソケットを作成します</TD>
                 </TR>
                 <TR>
@@ -2663,55 +2680,51 @@ fi</PRE>
                   <TD colspan="2">TELNET</TD>
                 </TR>
                 <TR>
-                  <TD align="center" width="30%">自動ユーザー・・・</TD>
+                  <TD align="center" width="30%">自動ユーザー…</TD>
                   <TD>暗号化された自動ユーザー認証を行いません</TD>
                 </TR>
                 <TR>
-                  <TD align="center">データの暗号化・・・</TD>
+                  <TD align="center">データの暗号化…</TD>
                   <TD>自動ユーザー認証後のデータ通信を暗号化しません</TD>
                 </TR>
                 <TR>
-                  <TD align="center">LINEMODEを・・・</TD>
+                  <TD align="center">LINEMODEを…</TD>
                   <TD>LINEMODEに移行しない</TD>
                 </TR>
                 <TR>
-                  <TD align="center">KeepAliveパケット・・・</TD>
-                  <TD>KeepAliveパケット(NULLパケット）を指定秒数間隔で送信します<BR>
-                  ルーターなどで無通信が続く場合に切断されるのを防ぎます</TD>
+                  <TD align="center">KeepAliveパケット…</TD>
+                  <TD>KeepAliveパケット(NULLパケット）を指定秒数間隔で送信します。ルーターなどで無通信が続く場合に切断されるのを防ぎます</TD>
                 </TR>
                 <TR>
                   <TD colspan="2">SSH</TD>
                 </TR>
                 <TR>
-                  <TD align="center">SSHバージョン１・・・</TD>
+                  <TD align="center">SSHバージョン１…</TD>
                   <TD>SSHバージョン１で接続します</TD>
                 </TR>
                 <TR>
-                  <TD align="center">シェル起動なし・・・</TD>
+                  <TD align="center">シェル起動なし…</TD>
                   <TD>SSH2で接続した場合にSHELLを起動しません。代わりにポートフォワードのログを表示します(SSH2のみ)</TD>
                 </TR>
                 <TR>
-                  <TD align="center">接続時にSFTP・・・</TD>
+                  <TD align="center">接続時にSFTP…</TD>
                   <TD>接続時にSFTPを起動するようにします。上記のシェル起動なしと併用するとSFTPの為のエントリーを作成することができます。</TD>
                 </TR>
                 <TR>
-                  <TD align="center">エージェント転送・・・</TD>
+                  <TD align="center">エージェント転送…</TD>
                   <TD>ユーザー認証を行うエージェント転送を有効にしssh-addを使用して認証キーの追加・削除を行うことができます(SSH2のみ)</TD>
                 </TR>
                 <TR>
-                  <TD align="center">KeepAliveパケット・・・</TD>
-                  <TD>KeepAliveパケットを指定秒数間隔で送信します(SSH2のみ)<BR>
-                  ルーターなどで無通信が続く場合に切断されるのを防ぎます</TD>
+                  <TD align="center">KeepAliveパケット…</TD>
+                  <TD>KeepAliveパケットを指定秒数間隔で送信します(SSH2のみ)。ルーターなどで無通信が続く場合に切断されるのを防ぎます</TD>
                 </TR>
                 <TR>
-                  <TD align="center">RSA2認証鍵の・・・</TD>
-                  <TD>RSA2鍵の署名で使用するハッシュ関数を拡張します<BR>
-                  標準はSHA1でopenssh-7.2以降からSHA2を使用できます</TD>
+                  <TD align="center">RSA2認証鍵の…</TD>
+                  <TD>RSA2鍵の署名で使用するハッシュ関数を拡張します。標準はSHA1でopenssh-7.2以降からSHA2を使用できます</TD>
                 </TR>
                 <TR>
-                  <TD align="center">標準入出力の・・・</TD>
-                  <TD>標準入出力のバッファサイズを変更します<BR>
-                  小さくするとCtrl+C/S/Qなどの操作で表示との同期が速くなります</TD>
+                  <TD align="center">標準入出力の…</TD>
+                  <TD>標準入出力のバッファサイズを変更します。小さくするとCtrl+C/S/Qなどの操作で表示との同期が速くなります</TD>
                 </TR>
                 <TR>
                   <TD align="center">暗号方式</TD>
@@ -2730,9 +2743,8 @@ fi</PRE>
                   <TD>端末モードの設定をします</TD>
                 </TR>
                 <TR>
-                  <TD align="center">追加のバージョン・・・</TD>
-                  <TD>sshのクライアントバージョン情報に任意の文字列を追加します<BR>
-                  ※通常は、使用しません</TD>
+                  <TD align="center">追加のバージョン…</TD>
+                  <TD>sshのクライアントバージョン情報に任意の文字列を追加します。（通常は、使用しません）</TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -3022,7 +3034,7 @@ fi</PRE>
                 <TR>
                   <TD width="30%" align="center">インポート</TD>
                   <TD>ファイルに保存された認証キーを読み込みます。正しいパスフレーズを入力しないと読み込めません
-                  <TABLE border="0" width="300">
+                  <TABLE border="0" width="400">
                     <TBODY>
                       <TR>
                         <TD colspan="2">対応している鍵のファイル形式</TD>
@@ -3065,7 +3077,8 @@ fi</PRE>
                   openssh-7.0以上からDSAがデフォルトで使用できません</TD>
                 </TR>
                 <TR>
-                  <TD width="30%" align="center">256/384/521<BR>
+                  <TD width="30%" align="center">10/16/20<BR>
+                  256/384/521<BR>
                   768/1024/2048/4096</TD>
                   <TD>認証キーのサイズを指定します。サイズが大きい程、作成するのに時間がかかります。詳しくは<A href="faq.html#SSHPUBLIC">SSHでの公開鍵認証</A>を参照。<BR>
                   <BR>
@@ -3424,20 +3437,20 @@ function TekClock2() {
                   <TD colspan="2">スクリーン</TD>
                 </TR>
                 <TR>
-                  <TD align="center" width="30%">1行あたりの・・・</TD>
+                  <TD align="center" width="30%">1行あたりの…</TD>
                   <TD>一行あたりの文字数を20～512文字に設定します</TD>
                 </TR>
                 <TR>
-                  <TD align="center">DECCOLMの・・・</TD>
+                  <TD align="center">DECCOLMの…</TD>
                   <TD>DECCOLM(ESC[?3h)の処理でウィンドウをリサイズして1行あたりの文字数を変更します。</TD>
                 </TR>
                 <TR>
-                  <TD align="center">フォントサイズ・・・</TD>
+                  <TD align="center">フォントサイズ…</TD>
                   <TD>フォントサイズ（ピクセル単位）から一行あたりの文字数を計算します。<BR>
                   ※2.19.1から括弧内の数値でポイント換算した値を示すようにしました。</TD>
                 </TR>
                 <TR>
-                  <TD align="center">HiDPIの変更・・・</TD>
+                  <TD align="center">HiDPIの変更…</TD>
                   <TD>HiDPI（ディスプレイの設定の拡大)が変更されたディスプレイに移動した場合に自動でウィンドウサイズやフォントサイズを変更します。<BR>
                   ※このオプションをチェックした場合は、上記フォントサイズのピクセル値が実際と異なります。括弧内のポイント換算は、追従して計算されます。</TD>
                 </TR>
@@ -3446,26 +3459,26 @@ function TekClock2() {
                   <TD>スクリーン左右の余白をピクセル単位で設定します</TD>
                 </TR>
                 <TR>
-                  <TD align="center">フォントの縦横比・・・</TD>
+                  <TD align="center">フォントの縦横比…</TD>
                   <TD>フォントの縦横比を設定します</TD>
                 </TR>
                 <TR>
-                  <TD align="center">ベルコード(07)・・・</TD>
+                  <TD align="center">ベルコード(07)…</TD>
                   <TD>None/Sound/Visual/Bothから選択します</TD>
                 </TR>
                 <TR>
-                  <TD align="center">文字カーソル・・・</TD>
+                  <TD align="center">文字カーソル…</TD>
                   <TD>デフォルトの文字カーソル形状をBox/Under/VerticalとBlink/Steadyの組み合わせで選択します。<BR>
                   右の色見本をクリックすると色を変更することができます<BR>
                   描画方法はXORで行いますので背景色により実際に表示される色が異なります。黒背景なら一致しますが白背景の場合は、補色で表示されますのでご注意ください。<BR>
                   また、色を黒(0,0,0)にすると接続ごとに色を自動で変更します</TD>
                 </TR>
                 <TR>
-                  <TD align="center">CSI 1-6/9/10 t ・・・</TD>
+                  <TD align="center">CSI 1-6/9/10 t …</TD>
                   <TD>ウィンドウの移動やリサイズをコントロールコードで操作できるようにします。全体のメインウィンドウがリサイズされるのでご注意ください</TD>
                 </TR>
                 <TR>
-                  <TD align="center">アクティブでない・・・</TD>
+                  <TD align="center">アクティブでない…</TD>
                   <TD>子ウィンドウのフォーカス移動でアクティブでないウィンドウの文字の輝度を半分に落として表示します</TD>
                 </TR>
                 <TR>
@@ -3554,73 +3567,81 @@ function TekClock2() {
                   <TD colspan="2">改行コード</TD>
                 </TR>
                 <TR>
-                  <TD align="center">受信した改行・・・</TD>
+                  <TD align="center">受信した改行…</TD>
                   <TD>0D(CR),0A(LF)の文字コードを受信した時のそれぞれの動作を変更します。<BR>
-                  <TABLE cellpadding="3" width="400" class="BOX" cellspacing="1" bgcolor="#dddddd">
+                  <TABLE cellpadding="3" class="BOX" cellspacing="1" bgcolor="#dddddd">
                     <TBODY>
                       <TR>
                         <TD></TD>
-                        <TD align="center">0D(CR))</TD>
-                        <TD align="center">0A(LF)</TD>
-                        <TD></TD>
+                        <TD align="center" width="120">0D(CR))</TD>
+                        <TD align="center" width="120">0A(LF)</TD>
+                        <TD width="120"></TD>
                       </TR>
                       <TR>
                         <TD align="center">CR+LF</TD>
-                        <TD align="center"><FONT size="-1">キャリッジリターン<BR>
-                        (左端に移動)</FONT></TD>
-                        <TD align="center"><FONT size="-1">ラインフィード<BR>
-                        (改行、スクロール)</FONT></TD>
-                        <TD align="center"><FONT size="-1">標準の設定</FONT></TD>
+                        <TD align="center" width="120"><FONT size="-1">キャリッジ<BR>
+                        リターン<BR>
+                        左端に移動<BR>
+                        </FONT></TD>
+                        <TD align="center" width="120"><FONT size="-1">ラインフィード<BR>
+                        改行、スクロール</FONT></TD>
+                        <TD align="center" width="120"><FONT size="-1">標準の設定</FONT></TD>
                       </TR>
                       <TR>
                         <TD align="center">CR</TD>
-                        <TD align="center"><FONT size="-1">左端に移動して<BR>
+                        <TD align="center" width="120"><FONT size="-1">左端に移動して<BR>
                         改行、スクロール</FONT></TD>
-                        <TD align="center"><FONT size="-1">何もしない</FONT></TD>
-                        <TD align="center"><FONT size="-1">0D(CR)コードだけで<BR>
-                        CR+LFの動作を行う</FONT></TD>
+                        <TD align="center" width="120"><FONT size="-1">何もしない</FONT></TD>
+                        <TD align="center" width="120"><FONT size="-1">0D(CR)コード<BR>
+                        だけで<BR>
+                        CR+LFの<BR>
+                        動作を行う</FONT></TD>
                       </TR>
                       <TR>
                         <TD align="center">LF</TD>
-                        <TD align="center"><FONT size="-1">何もしない</FONT></TD>
-                        <TD align="center"><FONT size="-1">左端に移動して<BR>
+                        <TD align="center" width="120"><FONT size="-1">何もしない</FONT></TD>
+                        <TD align="center" width="120"><FONT size="-1">左端に移動して<BR>
                         改行、スクロール</FONT></TD>
-                        <TD align="center"><FONT size="-1">0A(LF)コードだけで<BR>
-                        CR+LFの動作を行う</FONT></TD>
+                        <TD align="center" width="120"><FONT size="-1">0A(LF)コード<BR>
+                        だけで<BR>
+                        CR+LFの<BR>
+                        動作を行う</FONT></TD>
                       </TR>
                       <TR>
                         <TD align="center">CR/LF</TD>
-                        <TD align="center"><FONT size="-1">左端に移動して<BR>
+                        <TD align="center" width="120"><FONT size="-1">左端に移動して<BR>
                         改行、スクロール</FONT></TD>
-                        <TD align="center"><FONT size="-1">左端に移動して<BR>
+                        <TD align="center" width="120"><FONT size="-1">左端に移動して<BR>
                         改行、スクロール</FONT></TD>
-                        <TD align="center"><FONT size="-1">0D(CR),OA(LF)共に<BR>
-                        CR+LFの動作を行う</FONT></TD>
+                        <TD align="center" width="120"><FONT size="-1">0D(CR),OA(LF)<BR>
+                        共に<BR>
+                        CR+LFの<BR>
+                        動作を行う</FONT></TD>
                       </TR>
                     </TBODY>
                   </TABLE>
                   </TD>
                 </TR>
                 <TR>
-                  <TD align="center">送信する改行・・・</TD>
+                  <TD align="center">送信する改行…</TD>
                   <TD>標準のRETURN(ENTER)キーを押した時に送信するコードを指定します。<BR>
-                  <TABLE cellpadding="3" width="400" class="BOX" cellspacing="1" bgcolor="#dddddd">
+                  <TABLE cellpadding="3" class="BOX" cellspacing="1" bgcolor="#dddddd">
                     <TBODY>
                       <TR>
                         <TD align="center">CR</TD>
-                        <TD>0D(CR)のみを送信する</TD>
-                        <TD>標準の設定</TD>
+                        <TD width="180">0D(CR)のみを送信する</TD>
+                        <TD width="180">標準の設定</TD>
                       </TR>
                       <TR>
                         <TD align="center">LF</TD>
-                        <TD><FONT size="-1">0A(LF)のみを送信する</FONT></TD>
-                        <TD><FONT size="-1">0D(CR)を0A(LF)に<BR>
+                        <TD width="180"><FONT size="-1">0A(LF)のみを送信する</FONT></TD>
+                        <TD width="180"><FONT size="-1">0D(CR)を0A(LF)に<BR>
                         変換して送信します</FONT></TD>
                       </TR>
                       <TR>
                         <TD align="center">CR+LF</TD>
-                        <TD><FONT size="-1">0D(CR)と0A(LF)を送信する</FONT></TD>
-                        <TD><FONT size="-1">0D(CR)を0D(CR)0A(LF)に<BR>
+                        <TD width="180"><FONT size="-1">0D(CR)と0A(LF)を送信</FONT></TD>
+                        <TD width="180"><FONT size="-1">0D(CR)を0D(CR)0A(LF)に<BR>
                         変換して送信します</FONT></TD>
                       </TR>
                     </TBODY>
@@ -3928,6 +3949,14 @@ function TekClock2() {
                       <TR>
                         <TD colspan="2">エスケープシーケンスのSOS/PM/APCでバッファリングしたデータをファイルに保存するようにします。</TD>
                       </TR>
+                      <TR>
+                        <TD align="center" rowspan="2">484</TD>
+                        <TD>フォント置換しない</TD>
+                        <TD>フォント置換する</TD>
+                      </TR>
+                      <TR>
+                        <TD colspan="2">デフォルトフォントのWindowsによるCHARSETでフォント置換を行わないようにします。結果、文字が正しく表示されない場合がありますのでご注意ください。</TD>
+                      </TR>
                     </TBODY>
                   </TABLE>
                   <BR>
@@ -3969,11 +3998,11 @@ function TekClock2() {
                   <TD colspan="2">通信ログ</TD>
                 </TR>
                 <TR>
-                  <TD align="center">通信ログを・・・</TD>
+                  <TD align="center">通信ログを…</TD>
                   <TD>通信ログを指定したファイルに年月日を追加して自動で作成します。ファイル名にChatScriptの「<A href="#FILENAMEEXT">送信文字列の特殊文字</A>」を使用することができます(%E-%D.txtなどが利用できます)</TD>
                 </TR>
                 <TR>
-                  <TD align="center">ファイルに保存・・・</TD>
+                  <TD align="center">ファイルに保存…</TD>
                   <TD>ログファイルに記録する形式を選択します<BR>
                   <TABLE>
                     <TBODY>
@@ -4006,12 +4035,12 @@ function TekClock2() {
                   ※１LINE/PAGEは制御コードを含みませんが通信内容と一致しませんので注意が必要です。<A href="faq.html#LOGFILE">5.10 通信ログの設定</A>に詳細</TD>
                 </TR>
                 <TR>
-                  <TD align="center">ログの文字・・・</TD>
+                  <TD align="center">ログの文字…</TD>
                   <TD>ログファイルに保存する漢字コードを選択します<BR>
                   上記ログ形式でRAW以外で有効です</TD>
                 </TR>
                 <TR>
-                  <TD align="center">ログの先頭に・・・</TD>
+                  <TD align="center">ログの先頭に…</TD>
                   <TD>行頭に時間を記録します<BR>
                   strftimeのフォーマットを指定できます<BR>
                   上記ログ形式でRAW以外で有効です<BR>
@@ -4021,13 +4050,13 @@ function TekClock2() {
                   <TD colspan="2">ヒストリー</TD>
                 </TR>
                 <TR>
-                  <TD align="center" width="30%">ヒストリーを保存・・・</TD>
+                  <TD align="center" width="30%">ヒストリーを保存…</TD>
                   <TD>接続終了時のヒストリーをファイルに保存し次回接続時に復元します。同じエントリーで複数接続した場合は、連番でファイルを自動で作成し管理します。<BR>
                   ※2.3.0から文字をUnicodeに変更しました。それ以前の物を復元すると漢字などが化けます<BR>
                   ※2.7.2からファイル名にChatScriptの「<A href="#FILENAMEEXT">送信文字列の特殊文字</A>」を使用することができます(%E-%D.txtなどが利用できます</TD>
                 </TR>
                 <TR>
-                  <TD align="center" width="30%">スクロールバック・・・</TD>
+                  <TD align="center" width="30%">スクロールバック…</TD>
                   <TD>記録できる行数を設定します（400～200000行）<BR>
                   あまり多くの行を指定するとメモリを大量に使用し動作が遅くなります。<BR>
                   ※2.18.0からメモリマップでヒストリーバッファを管理しています。<BR>
@@ -4041,7 +4070,7 @@ function TekClock2() {
                   <TD>トレースウィンドウを開くと指定したファイルに即時ログを記録します。このファイル名にも「<A href="#FILENAMEEXT">送信文字列の特殊文字</A>」を使用できます</TD>
                 </TR>
                 <TR>
-                  <TD align="center">トレースバック・・・</TD>
+                  <TD align="center">トレースバック…</TD>
                   <TD>記録できるトレースウィンドウの行数を指定ます(60-200000)<BR>
                   多く指定すると動作が極度に遅くなりますので注意してください</TD>
                 </TR>
@@ -4073,7 +4102,7 @@ function TekClock2() {
                   <TD colspan="2">クリップボード</TD>
                 </TR>
                 <TR>
-                  <TD align="center" width="30%">左クリック・・・</TD>
+                  <TD align="center" width="30%">左クリック…</TD>
                   <TD>左クリックの範囲指定するだけで自動でクリップボードに文字列をコピーします。チェックなしでは、範囲指定のみ行います。<BR>
                   <BR>
                   ※CTRLキーを押すと矩形選択モードになります。<BR>
@@ -4081,11 +4110,11 @@ function TekClock2() {
                   ※左右ウインドウ外で行選択モードになります。</TD>
                 </TR>
                 <TR>
-                  <TD align="center">コピー時に範囲・・・</TD>
+                  <TD align="center">コピー時に範囲…</TD>
                   <TD>コピーした後に自動で範囲指定の解除を行わないにします</TD>
                 </TR>
                 <TR>
-                  <TD align="center">連続したスペース・・・</TD>
+                  <TD align="center">連続したスペース…</TD>
                   <TD>コピーした文字列の連続したスペースをタブに変換します。</TD>
                 </TR>
                 <TR>
@@ -4128,27 +4157,27 @@ function TekClock2() {
                   ※すべての情報が正しくペーストされるわけではありません。受け取り側でかなり変化するようなのでご注意ください。</TD>
                 </TR>
                 <TR>
-                  <TD align="center">http:で始まる・・・</TD>
+                  <TD align="center">http:で始まる…</TD>
                   <TD>http:で始まる文字列をコピーすると自動でブラウザを起動します</TD>
                 </TR>
                 <TR>
-                  <TD align="center">右クリックで編集・・・</TD>
+                  <TD align="center">右クリックで編集…</TD>
                   <TD>右クリックで編集メニューをポップアップで表示します</TD>
                 </TR>
                 <TR>
-                  <TD align="center">右ダブルクリック・・・</TD>
+                  <TD align="center">右ダブルクリック…</TD>
                   <TD>クリップボードからのペーストを右ダブルクリックだけで行います。</TD>
                 </TR>
                 <TR>
-                  <TD align="center">右クリックで・・・</TD>
+                  <TD align="center">右クリックで…</TD>
                   <TD>クリップボードからのペーストを右クリックだけで行います。</TD>
                 </TR>
                 <TR>
-                  <TD align="center">常にクリップボード・・・</TD>
+                  <TD align="center">常にクリップボード…</TD>
                   <TD>通常は、複数行やコントロールコードが含まれる場合に表示されるペースト確認・編集ダイアログを常に表示します。</TD>
                 </TR>
                 <TR>
-                  <TD align="center">ペーストするテキスト・・・</TD>
+                  <TD align="center">ペーストするテキスト…</TD>
                   <TD>ペーストするテキストの末尾の改行を無条件で削除します<BR>
                   複数の改行がある場合は、末尾の改行のみ削除してペースト確認・編集ダイアログを表示します</TD>
                 </TR>
@@ -4161,7 +4190,7 @@ function TekClock2() {
                   <TD>自動でブラウザを起動するURL文字列を設定します</TD>
                 </TR>
                 <TR>
-                  <TD align="center">制御コードによる・・・</TD>
+                  <TD align="center">制御コードによる…</TD>
                   <TD>OSC 52 によるクリップボードの読み書きを許可します<BR>
                   ※2.22.3よりOSC52?によるクリップボードの読み込み時のホストに送信するテキストの改行コードをLFのみCRのみCRLFを選択できるようにしました。</TD>
                 </TR>
@@ -4198,13 +4227,13 @@ function TekClock2() {
                   同時送信やマウスイベント時には、変化します</TD>
                 </TR>
                 <TR>
-                  <TD align="center">右クリックの上下で・・・</TD>
+                  <TD align="center">右クリックの上下で…</TD>
                   <TD colspan="2">右クリックの上下移動でスムーズスクロールします<BR>
                   <BR>
                   ボタンを放した時の移動スピードでスムーズスクロールを維持する猫の手タイプのスクロールです</TD>
                 </TR>
                 <TR>
-                  <TD align="center">タブバーのタブ・・・</TD>
+                  <TD align="center">タブバーのタブ…</TD>
                   <TD colspan="2">タブバーのタブにマウスを移動した場合に行う動作を選択します<BR>
                   <TABLE cellpadding="3">
                     <TBODY>
@@ -4232,13 +4261,13 @@ function TekClock2() {
                   <TD colspan="3">マウスホイール</TD>
                 </TR>
                 <TR>
-                  <TD align="center">ホイールを動かして・・・</TD>
+                  <TD align="center">ホイールを動かして…</TD>
                   <TD colspan="2">マウスのホイールでスクロールする方向や量を指定します<BR>
                   <BR>
                   ※2.10.9からshift+wheelですべてのウィンドウを同時にスクロールすることができます</TD>
                 </TR>
                 <TR>
-                  <TD align="center">アプリモード時・・・&nbsp;</TD>
+                  <TD align="center">アプリモード時…&nbsp;</TD>
                   <TD colspan="2">キーコードがアプリモードの場合にマウスホイールの動作を上下カーソルキーが押されたようにする動作を禁止します</TD>
                 </TR>
                 <TR>
@@ -4591,19 +4620,19 @@ function TekClock2() {
                   ※Alt.Fonts 0(ESC[10m）にゴシック体、Alt.Fonts 1(ESC[11m）に明朝体などのフォントを個別に設定することができます</TD>
                 </TR>
                 <TR>
-                  <TD align="center">GRバンク用・・・</TD>
+                  <TD align="center">GRバンク用…</TD>
                   <TD>1バイト文字の場合0x80-0xFFまでの文字をGRバンク用として使用します</TD>
                 </TR>
                 <TR>
-                  <TD align="center">UTF-8で・・・</TD>
+                  <TD align="center">UTF-8で…</TD>
                   <TD>UTF-8表示時にこのフォント設定で表示するブロックを設定します</TD>
                 </TR>
                 <TR>
-                  <TD align="center">94/96の場合・・・</TD>
+                  <TD align="center">94/96の場合…</TD>
                   <TD>Bankが94/96でGLバンク用の場合ISO646で変更可能な文字を設定します。</TD>
                 </TR>
                 <TR>
-                  <TD align="center">&quot;0&quot;ゼロに右の・・・</TD>
+                  <TD align="center">&quot;0&quot;ゼロに右の…</TD>
                   <TD>数字の&quot;0&quot;ゼロに任意の文字を重ねて表示します<BR>
                   &quot;/&quot;を重ねると”Ø”のように表示するようになります</TD>
                 </TR>
@@ -4925,7 +4954,7 @@ function TekClock2() {
                   <TD colspan="2">Color Set</TD>
                 </TR>
                 <TR>
-                  <TD align="center" rowspan="4">16色カラーテーブル</TD>
+                  <TD align="center" rowspan="4" width="30%">16色カラーテーブル</TD>
                   <TD>16色のカラーセットを選択</TD>
                 </TR>
                 <TR>
@@ -4935,28 +4964,29 @@ function TekClock2() {
                   <TD>色見本をダブルクリックすると変更できます</TD>
                 </TR>
                 <TR>
-                  <TD>スライダーでコントラスト(C)、明るさ(B)、色相(H)を変更できます</TD>
+                  <TD>16色を同時にスライダーでコントラスト(C)、明るさ(B)、色相(H)を変更します</TD>
                 </TR>
                 <TR>
                   <TD align="center">文字カラー</TD>
-                  <TD>上の[Color Table]の色見本をドラックすれば設定を変更できます</TD>
+                  <TD>上の[Color Table]の色見本をドラックしてここにドロップすれば設定を変更できます</TD>
                 </TR>
                 <TR>
                   <TD align="center">透明化</TD>
-                  <TD>ウインドウ全体を半透明します。0で薄くなり255で不透明です</TD>
+                  <TD>ウインドウ全体を半透明します<BR>
+                  左(0)で薄くなり右(255)で不透明です</TD>
                 </TR>
                 <TR>
                   <TD align="center">Sleep Time</TD>
                   <TD>指定時間、通信が無いとウインドウを透明化します</TD>
                 </TR>
                 <TR>
-                  <TD align="center">ガラス効果・・</TD>
+                  <TD align="center">ガラス効果…</TD>
                   <TD>Vista/Win7でガラス効果でウィンドウを表示します<BR>
-                  ※2.21.2よりOSにガラス効果が無い場合は、デスクトップを透過表示するにしてみました。</TD>
+                  ※2.21.2よりOSにガラス効果が無い場合は、デスクトップを透過表示するにしてみました</TD>
                 </TR>
                 <TR>
                   <TD align="center">文字装飾</TD>
-                  <TD>文字属性を変更できます。</TD>
+                  <TD>文字属性を変更できます</TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -5187,10 +5217,14 @@ function TekClock2() {
                   設定したショートカットは、メニューで確認できます。<BR>
                   例　Alt+V=$EDIT_PASTE</TD>
                 </TR>
+                <TR>
+                  <TD align="center">コントロールコードの…</TD>
+                  <TD>ESC/TAB/BS/ENTERやCtrl+[A-Z]のコントロールコードを&quot;\xxx&quot;の文字列に変換してAssin Stringに挿入します</TD>
+                </TR>
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top" align="left"><IMG src="image036.jpg" width="382" height="256" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image036.jpg" width="384" height="281" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -5457,7 +5491,7 @@ function TekClock2() {
                   <TD colspan="2">ポートの設定</TD>
                 </TR>
                 <TR>
-                  <TD width="30%" align="center">ビット/秒 ...</TD>
+                  <TD width="30%" align="center">ビット/秒</TD>
                   <TD>各種<A href="#COMSET">通信モードの設定</A>を行います。</TD>
                 </TR>
                 <TR>
@@ -5469,7 +5503,8 @@ function TekClock2() {
                   <TD colspan="2">ポートの状態</TD>
                 </TR>
                 <TR>
-                  <TD align="center">DCD RxD TxD ...</TD>
+                  <TD align="center">DCD RxD TxD GND<BR>
+                  DSR CTS RI</TD>
                   <TD>COMポートの各信号線の状態を色で表示します（約１秒間隔）<BR>
                   緑：入力信号線がON<BR>
                   赤：出力信号線がON<BR>
@@ -5764,8 +5799,7 @@ function TekClock2() {
             </TABLE>
             <BR>
             ファイルリストの中から右クリックでファイルを選択すると上記の操作メニューが表示されます。また、ファイルリストからファイルをドラック＆ドロップするとアップ・ダウンロードされます。<BR>
-            2.19.8より左（ローカル）のみエクスプローラー経由のコピーや移動、開くなどの操作ができます。<BR>
-            また右（リモート）でファイルをダブルクリックすると左（ローカル）にコピーしてから開くの動作を行うようにしました。</TD>
+            ※2.19.8より左（ローカル）のみエクスプローラー経由のコピーや移動、開くなどの操作ができます。また右（リモート）でファイルをダブルクリックすると左（ローカル）にコピーしてから開くの動作を行うようにしました。</TD>
             <TD align="left" valign="top"><IMG src="image043.jpg" width="613" height="362" border="0"></TD>
           </TR>
         </TBODY>

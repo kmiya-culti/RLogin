@@ -407,6 +407,9 @@ BEGIN
         MENUITEM "接続先を削除する(&D)",                ID_EDIT_DELETE
         MENUITEM "接続先を複写する(&C)",                ID_EDIT_DUPS
         MENUITEM SEPARATOR
+        MENUITEM "クリップボードにコピー(&B)",             ID_EDIT_COPY
+        MENUITEM "クリップボードから貼り付け(&H)",           ID_EDIT_PASTE
+        MENUITEM SEPARATOR
         MENUITEM "標準の設定にする(&S)",                IDC_SAVEDEFAULT
         MENUITEM "標準の設定に戻す(&Y)",                IDC_LOADDEFAULT
         MENUITEM "プロトコルハンドラに登録(&P)",            IDM_SERV_PROTO
@@ -490,6 +493,14 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "初期化する(&U)",                   ID_EDIT_DELALL
     END
+    POPUP "TREECTRL"
+    BEGIN
+        MENUITEM "新しいグループを作成(&N)",              IDM_TREECTRLNEW
+        MENUITEM "グループの名前を変更(&R)",              IDM_TREECTRLRENAME
+        MENUITEM "空のグループを削除(&D)",               IDM_TREECTRLDELETE
+        MENUITEM SEPARATOR
+        MENUITEM "エントリーをすべて選択(&S)",             IDM_TREECTRLSELECT
+    END
 END
 
 IDR_TEKWND MENU
@@ -570,8 +581,8 @@ BEGIN
     CONTROL         "<a href=""http://www.1023world.net/material/gif/"">http://www.1023world.net/material/gif/</a>",IDC_SYSLINK1,
                     "SysLink",WS_TABSTOP,44,178,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,193,60,14,WS_GROUP
-    ICON            IDR_MAINFRAME,IDC_STATIC,7,7,18,21
-    LTEXT           "RLogin Version 2.23.4 (2018/04/27)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
+    LTEXT           "RLogin Version 2.23.5 (2018/05/30)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2018 Culti",IDC_STATIC,44,16,189,8
     LTEXT           "OpenSSL 1.1.0h 27 Mar 2018",IDC_STATIC,44,52,189,8
     LTEXT           "Copyright (c) 1998-2018 The OpenSSL Project",IDC_STATIC,44,61,189,8
@@ -623,21 +634,22 @@ BEGIN
     LTEXT           "ログイン",IDC_STATIC,275,78,24,8
 END
 
-IDD_PASSDLG DIALOGEX 0, 0, 210, 129
+IDD_PASSDLG DIALOGEX 0, 0, 230, 140
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "パスワード/パスフレーズ入力"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    COMBOBOX        IDC_HOSTADDR,91,17,105,105,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_USERNAME,91,37,105,30,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
-    EDITTEXT        IDC_PASSNAME,91,57,105,14,ES_PASSWORD | ES_AUTOHSCROLL
-    DEFPUSHBUTTON   "OK",IDOK,38,108,60,14
-    PUSHBUTTON      "キャンセル",IDCANCEL,111,108,60,14
-    LTEXT           "Password",IDC_PROMPT,18,57,69,14,SS_CENTERIMAGE
-    LTEXT           "User Name",IDC_STATIC,18,37,69,14,SS_CENTERIMAGE
-    CONTROL         "Progress1",IDC_TIMELIMIT,"msctls_progress32",0x0,13,77,183,14
-    LTEXT           "Server Address",IDC_STATIC,18,17,69,14,SS_CENTERIMAGE
-    GROUPBOX        "",IDC_STATIC,7,7,196,93
+    COMBOBOX        IDC_HOSTADDR,91,17,85,105,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_PORTNAME,180,17,36,30,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_USERNAME,91,40,125,30,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_PASSNAME,91,63,125,14,ES_PASSWORD | ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "OK",IDOK,45,119,60,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,124,119,60,14
+    LTEXT           "Password",IDC_PROMPT,18,63,69,14,SS_CENTERIMAGE
+    LTEXT           "User Name",IDC_STATIC,18,40,69,14,SS_CENTERIMAGE
+    CONTROL         "Progress1",IDC_TIMELIMIT,"msctls_progress32",0x0,13,88,203,14
+    LTEXT           "Server Address/Port",IDC_STATIC,18,17,69,14,SS_CENTERIMAGE
+    GROUPBOX        "",IDC_STATIC,7,7,216,104
 END
 
 IDD_IDKEYFILEDLG DIALOGEX 0, 0, 243, 195
@@ -729,13 +741,14 @@ STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "Server Select"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    CONTROL         "List1",IDC_SERVERLIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,7,22,220,84
+    CONTROL         "List1",IDC_SERVERLIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,67,22,160,84
     DEFPUSHBUTTON   "OK",IDOK,233,7,50,14
     PUSHBUTTON      "キャンセル",IDCANCEL,233,24,50,14
     PUSHBUTTON      "新規(&N)",IDC_NEWENTRY,233,53,50,14
     PUSHBUTTON      "編集(&E)",IDC_EDITENTRY,233,72,50,14
     PUSHBUTTON      "削除(&D)",IDC_DELENTRY,233,92,50,14
-    CONTROL         "",IDC_SERVERTAB,"SysTabControl32",WS_TABSTOP,7,7,221,17
+    CONTROL         "",IDC_SERVERTAB,"SysTabControl32",WS_TABSTOP,7,7,220,17
+    CONTROL         "",IDC_SERVERTREE,"SysTreeView32",TVS_HASLINES | TVS_EDITLABELS | TVS_DISABLEDRAGDROP | TVS_SHOWSELALWAYS | WS_BORDER | WS_HSCROLL | WS_TABSTOP,7,7,59,99
 END
 
 IDD_FONTPARADLG DIALOGEX 0, 0, 250, 337
@@ -783,7 +796,7 @@ BEGIN
     LTEXT           """0""ゼロに右の文字を重ねて表示する",IDC_STATIC,15,228,169,8
 END
 
-IDD_KEYPARADLG DIALOGEX 0, 0, 209, 145
+IDD_KEYPARADLG DIALOGEX 0, 0, 210, 162
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Assign Key String"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
@@ -795,15 +808,17 @@ BEGIN
     CONTROL         "App",IDC_KEYSTAT4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,99,42,26,10
     CONTROL         "CKM",IDC_KEYSTAT5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,133,42,26,10
     CONTROL         "VT52",IDC_KEYSTAT6,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,167,42,26,10
-    COMBOBOX        IDC_KEYMAPS,15,96,140,110,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    DEFPUSHBUTTON   "OK",IDOK,38,124,60,14
-    PUSHBUTTON      "キャンセル",IDCANCEL,111,124,60,14
-    GROUPBOX        "",IDC_STATIC,90,7,112,55
+    COMBOBOX        IDC_KEYMAPS,15,96,140,110,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    DEFPUSHBUTTON   "OK",IDOK,38,141,60,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,111,141,60,14
+    GROUPBOX        "",IDC_STATIC,91,7,112,55
     CTEXT           "+",IDC_STATIC,78,33,8,8
     PUSHBUTTON      "メニュー",IDC_MENUBTN,159,95,36,14
     GROUPBOX        "Key Code",IDC_STATIC,7,7,66,55
-    GROUPBOX        "Assign String",IDC_STATIC,7,66,195,50
-    LTEXT           "$で始まる文字列は、メニューのショートカットです",IDC_STATIC,15,81,163,8
+    GROUPBOX        "Assign String",IDC_STATIC,7,66,196,68
+    LTEXT           "$で始まる文字列は、メニューのショートカットです",IDC_STATIC,15,81,181,8
+    CONTROL         "コントロールコードの挿入(ESC/TAB/BS/ENT/Ctrl+[A-Z])",IDC_EDITCTRL,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,116,181,10
 END
 
 IDD_TERMPAGE DIALOGEX 0, 0, 270, 280
@@ -1135,9 +1150,9 @@ CAPTION "サーバー"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     EDITTEXT        IDC_ENTRYNAME,15,19,152,14,ES_AUTOHSCROLL
-    COMBOBOX        IDC_GROUP,185,19,70,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_GROUP,185,19,70,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
     EDITTEXT        IDC_ENTRYMEMO,15,37,152,14,ES_AUTOHSCROLL
-    COMBOBOX        IDC_BEFORE,185,37,70,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_BEFORE,185,37,70,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
     CONTROL         "direct",IDC_PROTO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,15,72,29,10
     CONTROL         "login",IDC_PROTO2,"Button",BS_AUTORADIOBUTTON,57,72,29,10
     CONTROL         "telnet",IDC_PROTO3,"Button",BS_AUTORADIOBUTTON,99,72,29,10
@@ -1964,8 +1979,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,23,4,0
- PRODUCTVERSION 2,23,4,0
+ FILEVERSION 2,23,5,0
+ PRODUCTVERSION 2,23,5,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1982,12 +1997,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.23.4.0"
+            VALUE "FileVersion", "2.23.5.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2017 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.23.4.0"
+            VALUE "ProductVersion", "2.23.5.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2024,9 +2039,9 @@ BEGIN
     IDD_PASSDLG, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 203
+        RIGHTMARGIN, 223
         TOPMARGIN, 7
-        BOTTOMMARGIN, 122
+        BOTTOMMARGIN, 133
     END
 
     IDD_IDKEYFILEDLG, DIALOG
@@ -2088,9 +2103,9 @@ BEGIN
     IDD_KEYPARADLG, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 202
+        RIGHTMARGIN, 203
         TOPMARGIN, 7
-        BOTTOMMARGIN, 138
+        BOTTOMMARGIN, 155
     END
 
     IDD_TERMPAGE, DIALOG
@@ -4158,6 +4173,7 @@ BEGIN
     IDE_XMSSBITSIZEERR      "XMSSは、ビットサイズを10/16/20から選択してください"
     IDE_XMSSBITSIZECHECK    "XMSSで20以上の作成は非常に長い時間が必要です。\nまた途中で中断出来ません。\n本当に作成しますか？"
     IDE_REGISTRYDELETEERROR "管理者として実行しないと消せないレジストリが残っている可能性があります"
+    IDE_ENTRYUPDATEEERROR   "別のRLoginでサーバーエントリー情報が更新されました。\n整合性を失う可能性がある為すべての編集を中止します。"
 END
 
 STRINGTABLE
@@ -4288,6 +4304,9 @@ BEGIN
     IDM_SAVEREGFILE         "レジストリをファイルに保存\nレジストリの保存"
     IDM_COMMONITER          "シリアル通信をモニターする\nシリアルモニター"
     IDM_REGISTAPP           "既定のアプリでファイルやプロトコルを管理する\n既定のアプリに登録"
+    IDM_TREECTRLNEW         "新しいグループを作成\n新規作成"
+    IDM_TREECTRLRENAME      "グループの名前を変更\n名前変更"
+    IDM_TREECTRLDELETE      "空のグループを削除\nグループ削除"
 END
 
 STRINGTABLE
@@ -4491,6 +4510,7 @@ BEGIN
     IDT_EXTOPT_LIST21       "末尾の改行を削除\t改行を確認\tペースト時に末尾の改行コードを削除します"
     IDT_EXTOPT_LIST22       "積極的に更新\t通常の画面更新\tウィンドウの描画更新を積極的に行う"
     IDT_EXTOPT_LIST23       "SOS/PM/APCを保存\t保存しない\tSOS/PM/APCのデータをファイルに保存する"
+    IDT_EXTOPT_LIST24       "フォント置換しない\tフォント置換する\tデフォルトフォントのWindowsによるCHARSETフォント置換を行わない"
 END
 
 STRINGTABLE

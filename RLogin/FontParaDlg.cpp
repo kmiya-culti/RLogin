@@ -279,10 +279,9 @@ void CFontParaDlg::OnOK()
 	m_pData->m_OverZero = m_OverZero;
 
 	m_FontNameTab[m_FontNum] = m_FontName;
-	for ( int n = 0 ; n < 16 ; n++ ) {
+
+	for ( int n = 0 ; n < 16 ; n++ )
 		m_pData->m_FontName[n] = m_FontNameTab[n];
-		m_pData->SetHash(n);
-	}
 
 	CDialogExt::OnOK();
 }
@@ -315,13 +314,17 @@ void CFontParaDlg::OnFontsel()
 		return;
 
     m_FontNameTab[m_FontNum] = m_FontName = LogFont.lfFaceName;
+
 	UpdateData(FALSE);
 }
 
 void CFontParaDlg::OnCbnSelchangeFontnum()
 {
-	m_FontNameTab[m_FontNum] = m_FontName;
+	int OldFondNum = m_FontNum;
+
 	UpdateData(TRUE);
+	m_FontNameTab[OldFondNum] = m_FontName;
+
 	m_FontName  = m_FontNameTab[m_FontNum];
 	UpdateData(FALSE);
 }

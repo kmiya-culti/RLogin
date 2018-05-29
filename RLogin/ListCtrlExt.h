@@ -3,6 +3,9 @@
 /////////////////////////////////////////////////////////////////////////////
 // CListCtrlExt ウィンドウ
 
+#define	SORTMASK_REVS	0x8000
+#define	SORTMASK_ITEM	0x7FFF
+
 class CListCtrlExt : public CListCtrl
 {
 // コンストラクション
@@ -12,9 +15,7 @@ public:
 
 // オペレーション
 public:
-	int m_SortSubItem;
-	int m_SortReverse;
-	int m_SortDupItem;
+	CWordArray m_SortItem;
 	CMenuLoad m_PopUpMenu;
 	int m_SubMenuPos;
 
@@ -55,5 +56,5 @@ protected:
 	afx_msg void OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
 	afx_msg void OnKillfocusEditBox();
 	afx_msg void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags);
-	afx_msg void OnLvnBegindrag(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg BOOL OnLvnBegindrag(NMHDR *pNMHDR, LRESULT *pResult);
 };

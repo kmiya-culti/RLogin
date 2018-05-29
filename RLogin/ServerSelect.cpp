@@ -30,8 +30,15 @@ CServerSelect::CServerSelect(CWnd* pParent /*=NULL*/)
 	m_EntryNum = (-1);
 	m_pData = NULL;
 	m_Group.Empty();
-	m_ShowTabWnd = TRUE;
 	m_DefaultEntryUid = (-1);
+	m_bShowTabWnd = (-1);
+	m_bShowTreeWnd = (-1);
+	m_bTreeUpdate = FALSE;
+	m_bTrackerActive = FALSE;
+	m_TreeListPer = 200;
+	m_bDragList = FALSE;
+	m_pOPtDlg = NULL;
+	m_pEditIndex = NULL;
 
 	m_pTextRam  = new CTextRam;
 	m_pKeyTab   = new CKeyNodeTab;
@@ -52,15 +59,19 @@ void CServerSelect::DoDataExchange(CDataExchange* pDX)
 
 	DDX_Control(pDX, IDC_SERVERLIST, m_List);
 	DDX_Control(pDX, IDC_SERVERTAB, m_Tab);
+	DDX_Control(pDX, IDC_SERVERTREE, m_Tree);
 }
 
 BEGIN_MESSAGE_MAP(CServerSelect, CDialogExt)
 	ON_WM_CLOSE()
 	ON_WM_SIZE()
 	ON_WM_SIZING()
-
-	ON_NOTIFY(NM_DBLCLK, IDC_SERVERLIST, OnDblclkServerlist)
-	ON_NOTIFY(TCN_SELCHANGE, IDC_SERVERTAB, &CServerSelect::OnTcnSelchangeServertab)
+	ON_WM_DRAWITEM()
+	ON_WM_MEASUREITEM()
+	ON_WM_LBUTTONUP()
+	ON_WM_LBUTTONDOWN()
+	ON_WM_MOUSEMOVE()
+	ON_WM_SETCURSOR()
 
 	ON_BN_CLICKED(IDC_NEWENTRY, OnNewEntry)
 	ON_BN_CLICKED(IDC_EDITENTRY, OnEditEntry)
@@ -69,14 +80,14 @@ BEGIN_MESSAGE_MAP(CServerSelect, CDialogExt)
 	ON_COMMAND(ID_EDIT_NEW, OnNewEntry)
 	ON_COMMAND(ID_EDIT_UPDATE, OnEditEntry)
 	ON_COMMAND(ID_EDIT_DELETE, OnDelEntry)
-	ON_COMMAND(ID_EDIT_DUPS, OnEditCopy)
-	ON_COMMAND(ID_EDIT_CHECK, OnEditCheck)
+	ON_COMMAND(ID_EDIT_DUPS, OnCopyEntry)
+	ON_COMMAND(ID_EDIT_CHECK, OnCheckEntry)
 
 	ON_COMMAND(IDM_SERV_INPORT, &CServerSelect::OnServInport)
 	ON_COMMAND(IDM_SERV_EXPORT, &CServerSelect::OnServExport)
+	ON_COMMAND(IDM_SERV_EXCHNG, &CServerSelect::OnServExchng)
 	ON_COMMAND(IDM_SERV_PROTO, &CServerSelect::OnServProto)
 	ON_COMMAND(IDC_SAVEDEFAULT, &CServerSelect::OnSaveDefault)
-	ON_COMMAND(IDM_SERV_EXCHNG, &CServerSelect::OnServExchng)
 	ON_COMMAND(IDC_LOADDEFAULT, &CServerSelect::OnLoaddefault)
 	ON_COMMAND(IDM_SHORTCUT, &CServerSelect::OnShortcut)
 
@@ -84,83 +95,246 @@ BEGIN_MESSAGE_MAP(CServerSelect, CDialogExt)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_DELETE, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_DUPS, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(IDM_SERV_EXPORT, OnUpdateEditEntry)
-	ON_UPDATE_COMMAND_UI(IDM_SERV_EXCHNG, OnUpdateServExchng)
+	ON_UPDATE_COMMAND_UI(IDM_SERV_EXCHNG, OnUpdateEditEntry)
+	ON_UPDATE_COMMAND_UI(IDM_SERV_PROTO, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(IDC_SAVEDEFAULT, OnUpdateSaveDefault)
-	ON_WM_DRAWITEM()
-	ON_WM_MEASUREITEM()
+	ON_UPDATE_COMMAND_UI(IDC_LOADDEFAULT, OnUpdateEditEntry)
+	ON_UPDATE_COMMAND_UI(IDM_SHORTCUT, OnUpdateEditEntry)
+
+	ON_EN_KILLFOCUS(ID_EDIT_BOX, &CServerSelect::OnKillfocusEditBox)
+	ON_EN_UPDATE(ID_EDIT_BOX, &CServerSelect::OnEnUpdateEditBox)
+
+	ON_NOTIFY(NM_DBLCLK, IDC_SERVERLIST, OnDblclkServerlist)
+	ON_NOTIFY(LVN_BEGINDRAG, IDC_SERVERLIST, &CServerSelect::OnLvnBegindragServerlist)
+
+	ON_NOTIFY(TCN_SELCHANGE, IDC_SERVERTAB, &CServerSelect::OnTcnSelchangeServertab)
 	ON_NOTIFY(NM_RCLICK, IDC_SERVERTAB, &CServerSelect::OnNMRClickServertab)
+
+	ON_NOTIFY(TVN_SELCHANGED, IDC_SERVERTREE, &CServerSelect::OnTvnSelchangedServertree)
+	ON_NOTIFY(TVN_ENDLABELEDIT, IDC_SERVERTREE, &CServerSelect::OnTvnEndlabeleditServertree)
+	ON_NOTIFY(TVN_ITEMEXPANDED, IDC_SERVERTREE, &CServerSelect::OnTvnItemexpandedServertree)
+	ON_NOTIFY(NM_RCLICK, IDC_SERVERTREE, &CServerSelect::OnNMRClickServertree)
+	ON_NOTIFY(TVN_BEGINLABELEDIT, IDC_SERVERTREE, &CServerSelect::OnTvnBeginlabeleditServertree)
+	ON_COMMAND(ID_EDIT_COPY, &CServerSelect::OnEditCopy)
+	ON_COMMAND(ID_EDIT_PASTE, &CServerSelect::OnEditPaste)
+	ON_UPDATE_COMMAND_UI(ID_EDIT_COPY, &CServerSelect::OnUpdateEditCopy)
 END_MESSAGE_MAP()
 
-void CServerSelect::InitList()
+void CServerSelect::TreeExpandUpdate(HTREEITEM hTree, BOOL bExpand)
+{
+	int n;
+	CString path;
+	CStringIndex *pIndex;
+
+	if ( hTree == NULL || (pIndex = (CStringIndex *)m_Tree.GetItemData(hTree)) == NULL )
+		return;
+
+	pIndex->GetPath(path);
+
+	if ( bExpand ) {
+		pIndex->m_Value = 0;
+		if ( (n = m_TreeExpand.Find(path)) >= 0 )
+			m_TreeExpand.RemoveAt(n);
+
+	} else {
+		pIndex->m_Value = 1;
+		m_TreeExpand.Add(path);
+	}
+}
+void CServerSelect::InitExpand(HTREEITEM hTree, UINT nCode)
+{
+	if ( !m_Tree.ItemHasChildren(hTree) )
+		return;
+
+	m_Tree.Expand(hTree, nCode);
+
+	if ( (m_Tree.GetItemState(hTree, TVIS_EXPANDED) & TVIS_EXPANDED) != 0 ) {
+		TreeExpandUpdate(hTree, TRUE);
+		nCode = TVE_EXPAND;
+	} else {
+		TreeExpandUpdate(hTree, FALSE);
+		nCode = TVE_COLLAPSE;
+	}
+	
+	hTree = m_Tree.GetChildItem(hTree);
+
+	while ( hTree != NULL ) {
+		InitExpand(hTree, nCode);
+		hTree = m_Tree.GetNextSiblingItem(hTree);
+	}
+}
+void CServerSelect::InitTree(CStringIndex *pIndex, HTREEITEM hOwner, CStringIndex *pActive)
+{
+	int image = (pIndex->GetSize() > 0 ? 0 : (pIndex->m_TabData.GetSize() > 0 ? 7 : 2));
+	LPCTSTR name = (pIndex->m_nIndex.IsEmpty() ? _T("...") : pIndex->m_nIndex);
+	HTREEITEM hTree;
+	
+	if ( (hTree = m_Tree.InsertItem(name, image, image, hOwner)) == NULL ) 
+		return;
+
+	m_Tree.SetItemData(hTree, (DWORD_PTR)pIndex);
+
+	if ( pIndex->m_Value == 0 )
+		m_Tree.SetItemState(hTree, TVIS_EXPANDED, TVIS_EXPANDED);
+
+	if ( pActive == pIndex )
+		m_Tree.SelectItem(hTree);
+
+	for ( int n = 0 ; n < pIndex->GetSize() ; n++ )
+		InitTree(&((*pIndex)[n]), hTree, pActive);
+}
+
+void CServerSelect::InitList(CStringIndex *pIndex, BOOL bFolder)
 {
 	int n, i;
-	int idx;
 	CString str;
 
-RETRY:
-	idx = (-1);
-	m_TabEntry.RemoveAll();
-	m_Tab.DeleteAllItems();
 	m_List.DeleteAllItems();
+	
+	for ( i = 0 ; i < pIndex->m_TabData.GetSize() ; i++ ) {
+		n = pIndex->m_TabData[i];
 
-	if ( m_EntryNum >= 0 && m_EntryNum < m_pData->GetSize() )
-		m_Group = m_pData->GetAt(m_EntryNum).m_Group;
+		m_List.InsertItem(LVIF_TEXT | LVIF_IMAGE | LVIF_PARAM, i, m_pData->GetAt(n).m_EntryName, 0, 0, 
+			(m_DefaultEntryUid == m_pData->GetAt(n).m_Uid ? 1 : 2), n);
 
-	for ( n = i = 0 ; n < m_pData->GetSize() ; n++ ) {
-		if ( m_Group.Compare(m_pData->GetAt(n).m_Group) == 0 ) {
-#ifdef	USE_DEFENTRYMARK
-			if ( m_DefaultEntryUid == m_pData->GetAt(n).m_Uid ) {
-				str.Format(_T("%s (*)"), m_pData->GetAt(n).m_EntryName);
-				m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, i, str, 0, 0, 0, n);
-			} else
-#endif
-				m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, i, m_pData->GetAt(n).m_EntryName, 0, 0, 0, n);
+		m_List.SetItemText(i, 1, m_pData->GetAt(n).m_HostName);
+		m_List.SetItemText(i, 2, m_pData->GetAt(n).m_UserName);
+		m_List.SetItemText(i, 3, m_pData->GetAt(n).m_TermName);
+		m_List.SetItemText(i, 4, m_pData->GetAt(n).GetKanjiCode());
+		m_List.SetItemText(i, 5, m_pData->GetAt(n).m_PortName);
 
-			m_List.SetItemText(i, 1, m_pData->GetAt(n).m_HostName);
-			m_List.SetItemText(i, 2, m_pData->GetAt(n).m_UserName);
-			m_List.SetItemText(i, 3, m_pData->GetAt(n).m_TermName);
-			m_List.SetItemText(i, 4, m_pData->GetAt(n).GetKanjiCode());
-			m_List.SetItemText(i, 5, m_pData->GetAt(n).m_PortName);
-
-			if ( m_pData->GetAt(n).m_bSelFlag ) {
-				m_List.SetItemState(i, LVIS_SELECTED, LVIS_SELECTED);
-				m_pData->GetAt(n).m_bSelFlag = FALSE;
-			}
-
-			if ( n == m_EntryNum )
-				idx = i;
-			i++;
+		if ( m_pData->GetAt(n).m_bSelFlag ) {
+			m_List.SetItemState(i, LVIS_SELECTED, LVIS_SELECTED);
+			m_pData->GetAt(n).m_bSelFlag = FALSE;
 		}
-		m_TabEntry[m_pData->GetAt(n).m_Group].m_Value = 1;
+
+		if ( n == m_EntryNum )
+			m_List.SetItemState(i, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
 	}
-
-	if ( m_TabEntry.GetSize() == 0 )
-		m_TabEntry[_T("")].m_Value = 1;
-
-	for ( n = 0 ; n < m_TabEntry.GetSize() ; n++ )
-		m_Tab.InsertItem(n, m_TabEntry[n].m_nIndex);
-
-	if ( (n = m_TabEntry.Find(m_Group)) != (-1) )
-		m_Tab.SetCurSel(n);
-	else {
-		m_Group = m_TabEntry[0].m_nIndex;
-		goto RETRY;
+	
+	if ( bFolder ) {
+		for ( n = 0 ; n < pIndex->GetSize() ; n++, i++ ) {
+			m_List.InsertItem(LVIF_TEXT | LVIF_IMAGE | LVIF_PARAM, i, (*pIndex)[n].m_nIndex, 0, 0, 0, (-1) - n);
+			str.Format(_T("<-Tab (%d)"), (*pIndex)[n].m_TabData.GetSize());
+			m_List.SetItemText(i, 1, str); //_T("<--Tab Group"));
+		}
 	}
-
-	if ( idx != (-1) )
-		m_List.SetItemState(idx, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
 
 	m_List.DoSortItem();
 }
 
-#define	ITM_LEFT_HALF	0001
-#define	ITM_LEFT_RIGHT	0002
-#define	ITM_RIGHT_HALF	0004
-#define	ITM_RIGHT_RIGHT	0010
-#define	ITM_TOP_BTM		0020
-#define	ITM_BTM_BTM		0040
-#define	ITM_TOP_SAVE	0100
-#define	ITM_TOP_LOAD	0200
+void CServerSelect::InitEntry(int nUpdate)
+{
+	int n, i;
+	CStringIndex *pIndex, *pOwner;
+	BOOL bNest = FALSE;
+	BOOL bShowTab = FALSE;
+	BOOL bShowTree = FALSE;
+
+	m_TabEntry.RemoveAll();
+
+	m_Tab.DeleteAllItems();
+	m_TabData.RemoveAll();
+
+	m_bTreeUpdate = TRUE;
+	m_Tree.DeleteAllItems();
+
+	for ( n = 0 ; n < m_pData->GetSize() ; n++ )
+		m_TabEntry.AddPath(m_pData->GetAt(n).m_Group, &bNest).m_TabData.Add(n);
+
+	for ( n = i = 0 ; n < m_AddGroup.GetSize() ; n++, i++ ) {
+		pIndex = &(m_TabEntry.AddPath(m_AddGroup[n], &bNest));
+		if ( pIndex->GetSize() > 0 || pIndex->m_TabData.GetSize() > 0 )
+			m_AddGroup.RemoveAt(n--);
+	}
+
+	if ( n != i || nUpdate != INIT_CALL_NONE ) {
+		((CRLoginApp *)::AfxGetApp())->WriteProfileStringArray(_T("ServerSelect"), _T("AddGroup"), m_AddGroup);
+		((CRLoginApp *)::AfxGetApp())->UpdateServerEntry();
+	}
+
+	if ( m_TabEntry.GetSize() == 0 ) {
+		m_TabEntry.AddPath(_T(""));
+		m_Group.Empty();
+	}
+
+	for ( n = 0 ; n < m_TreeExpand.GetSize() ; n++ ) {
+		if ( (pIndex = m_TabEntry.FindPath(m_TreeExpand[n])) != NULL )
+			pIndex->m_Value = 1;
+		else
+			m_TreeExpand.RemoveAt(n--);
+	}
+
+	// CArrayで構築しているので構造体のアドレスが変化する!!!
+	m_TabEntry.OwnerLink(NULL);
+
+	if ( m_EntryNum >= 0 && m_EntryNum < m_pData->GetSize() )
+		m_Group = m_pData->GetAt(m_EntryNum).m_Group;
+
+	if ( (pIndex = m_TabEntry.FindPath(m_Group)) == NULL ) {
+		pIndex = &(m_TabEntry[0]);
+		m_Group.Empty();
+		pIndex->GetPath(m_Group);
+	}
+
+	if ( (pOwner = pIndex->m_pOwner) != NULL ) {
+		n = 0;
+		if ( pOwner->m_pOwner != NULL ) {
+			m_Tab.InsertItem(n++, pOwner->m_nIndex);
+			m_TabData.Add(pOwner);
+		}
+		for ( i = 0 ; i < pOwner->GetSize() ; i++ ) {
+			m_Tab.InsertItem(n, (*pOwner)[i].m_nIndex);
+			m_TabData.Add(&((*pOwner)[i]));
+			if ( &((*pOwner)[i]) == pIndex )
+				m_Tab.SetCurSel(n);
+			n++;
+		}
+	}
+
+	for ( n = 0 ; n < m_TabEntry.GetSize() ; n++ )
+		InitTree(&(m_TabEntry[n]), TVI_ROOT, pIndex);
+	m_bTreeUpdate = FALSE;
+
+	if ( bNest )
+		bShowTree = TRUE;
+	else if ( m_TabEntry.GetSize() > 1 )
+		bShowTab = TRUE;
+
+	InitList(pIndex, bShowTab);
+
+	if ( m_bShowTabWnd != bShowTab || m_bShowTreeWnd != bShowTree ) {
+		CRect rect;
+
+		m_bShowTabWnd  = bShowTab;
+		m_bShowTreeWnd = bShowTree;
+
+		GetClientRect(rect);
+		SetItemOffset(rect.Width(), rect.Height());
+	}
+
+	if ( nUpdate == INIT_CALL_AND_EDIT ) {
+		if ( m_bShowTabWnd )
+			OpenTabEdit(m_Tab.GetCurSel());
+		if ( m_bShowTreeWnd ) {
+			HTREEITEM hTree = m_Tree.GetSelectedItem();
+			if ( hTree != NULL )
+				m_Tree.EditLabel(hTree);
+		}
+	}
+}
+
+#define	ITM_LEFT_HALF	00001
+#define	ITM_LEFT_RIGHT	00002
+#define	ITM_RIGHT_HALF	00004
+#define	ITM_RIGHT_RIGHT	00010
+#define	ITM_TOP_BTM		00020
+#define	ITM_BTM_BTM		00040
+#define	ITM_TOP_SAVE	00100
+#define	ITM_LEFT_SAVE	00200
+#define	ITM_TOP_LOAD	00400
+#define	ITM_RIGHT_PER	01000
+#define	ITM_LEFT_PER	02000
 
 static	int		ItemTabInit = FALSE;
 static	struct	_SftpDlgItem	{
@@ -173,8 +347,9 @@ static	struct	_SftpDlgItem	{
 	{ IDC_NEWENTRY,		ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT | ITM_TOP_BTM | ITM_BTM_BTM },
 	{ IDC_EDITENTRY,	ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT | ITM_TOP_BTM | ITM_BTM_BTM },
 	{ IDC_DELENTRY,		ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT | ITM_TOP_BTM | ITM_BTM_BTM },
-	{ IDC_SERVERTAB,	ITM_RIGHT_RIGHT | ITM_TOP_SAVE },
-	{ IDC_SERVERLIST,	ITM_RIGHT_RIGHT | ITM_BTM_BTM | ITM_TOP_LOAD },
+	{ IDC_SERVERTREE,	ITM_LEFT_SAVE  | ITM_RIGHT_PER   |               ITM_BTM_BTM  },
+	{ IDC_SERVERTAB,	                 ITM_RIGHT_RIGHT | ITM_TOP_SAVE },
+	{ IDC_SERVERLIST,	ITM_LEFT_PER   | ITM_RIGHT_RIGHT | ITM_TOP_LOAD | ITM_BTM_BTM },
 	{ 0,	0 },
 };
 
@@ -198,7 +373,9 @@ void CServerSelect::InitItemOffset()
 	for ( n = 0 ; ItemTab[n].id != 0 ; n++ ) {
 		if ( (pWnd = GetDlgItem(ItemTab[n].id)) == NULL )
 			continue;
+
 		pWnd->GetWindowPlacement(&place);
+
 		if ( ItemTab[n].mode & ITM_LEFT_HALF )
 			ItemTab[n].rect.left = place.rcNormalPosition.left - mx;
 		if ( ItemTab[n].mode & ITM_LEFT_RIGHT )
@@ -214,14 +391,23 @@ void CServerSelect::InitItemOffset()
 			ItemTab[n].rect.bottom = cy - place.rcNormalPosition.bottom;
 
 		if ( ItemTab[n].mode & ITM_TOP_SAVE )
-			ItemTab[n].rect.top = place.rcNormalPosition.top;
+			ItemTab[n].rect.top  = place.rcNormalPosition.top;
+		if ( ItemTab[n].mode & ITM_LEFT_SAVE )
+			ItemTab[n].rect.left = place.rcNormalPosition.left;
+
 		if ( ItemTab[n].mode & ITM_TOP_LOAD )
 			ItemTab[n].rect.top = place.rcNormalPosition.top;
+
+		if ( ItemTab[n].mode & ITM_RIGHT_PER )
+			m_TreeListPer = place.rcNormalPosition.right * 1000 / rect.Width();
+		if ( ItemTab[n].mode & ITM_LEFT_PER )
+			ItemTab[n].rect.left = place.rcNormalPosition.left - m_TreeListPer * rect.Width() / 1000;
 	}
 }
+
 void CServerSelect::SetItemOffset(int cx, int cy)
 {
-	int n, sy;
+	int n, sx = 0, sy = 0;
 	int mx = cx / 2;
 	WINDOWPLACEMENT place;
 	CWnd *pWnd;
@@ -249,31 +435,33 @@ void CServerSelect::SetItemOffset(int cx, int cy)
 
 		if ( ItemTab[n].mode & ITM_TOP_SAVE )
 			sy = ItemTab[n].rect.top;
+		if ( ItemTab[n].mode & ITM_LEFT_SAVE )
+			sx = ItemTab[n].rect.left;
+
+		if ( ItemTab[n].mode & ITM_RIGHT_PER )
+			place.rcNormalPosition.right = m_TreeListPer * cx / 1000;
+
 		if ( ItemTab[n].mode & ITM_TOP_LOAD ) {
-			if ( m_Tab.GetItemCount() <= 1 ) {
-				place.rcNormalPosition.top = sy;
-				m_Tab.ShowWindow(SW_HIDE);
-				m_ShowTabWnd = FALSE;
-			} else {
+			if ( m_bShowTabWnd ) {
 				place.rcNormalPosition.top = ItemTab[n].rect.top;
 				m_Tab.ShowWindow(SW_NORMAL);
-				m_ShowTabWnd = TRUE;
+			} else {
+				place.rcNormalPosition.top = sy;
+				m_Tab.ShowWindow(SW_HIDE);
+			}
+			if ( m_bShowTreeWnd ) {
+				place.rcNormalPosition.left = m_TreeListPer * cx / 1000 + ItemTab[n].rect.left;
+				m_Tree.ShowWindow(SW_NORMAL);
+			} else {
+				place.rcNormalPosition.left = sx;
+				m_Tree.ShowWindow(SW_HIDE);
 			}
 		}
 
 		pWnd->SetWindowPlacement(&place);
 	}
 }
-void CServerSelect::UpdateTabWnd()
-{
-	CRect rect;
-	BOOL req = (m_Tab.GetItemCount() <= 1 ? FALSE : TRUE);
 
-	if ( req != m_ShowTabWnd ) {
-		GetClientRect(rect);
-		SetItemOffset(rect.Width(), rect.Height());
-	}
-}
 void CServerSelect::UpdateDefaultEntry(int num)
 {
 	CServerEntry *pEntry;
@@ -309,6 +497,7 @@ BOOL CServerSelect::OnInitDialog()
 {
 	int cx, cy;
 	CRect rect;
+	CBitmap BitMap;
 
 	ASSERT(m_pData != NULL);
 
@@ -317,9 +506,17 @@ BOOL CServerSelect::OnInitDialog()
 	m_TabEntry.SetNoCase(FALSE);
 	m_TabEntry.SetNoSort(FALSE);
 
-	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT);
+	((CRLoginApp *)::AfxGetApp())->LoadResBitmap(MAKEINTRESOURCE(IDB_BITMAP4), BitMap);
+	m_ImageList.Create(16, 16, ILC_COLOR24 | ILC_MASK, 0, 4);
+	m_ImageList.Add(&BitMap, RGB(192, 192, 192));
+	BitMap.DeleteObject();
+
+	//m_List.SetImageList(&m_ImageList, LVSIL_SMALL);
+	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_SUBITEMIMAGES);
 	m_List.InitColumn(_T("ServerSelect"), InitListTab, 6);
 	m_List.SetPopUpMenu(IDR_POPUPMENU, 0);
+
+	m_Tree.SetImageList(&m_ImageList, TVSIL_NORMAL);
 
 	if ( m_EntryNum == (-1) ) {
 		m_EntryNum = AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("LastAccess"), (-1));
@@ -332,8 +529,8 @@ BOOL CServerSelect::OnInitDialog()
 
 	m_DefaultEntryUid = ::AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("DefaultEntry"), (-1));
 
-	InitList();
 	InitItemOffset();
+	m_TreeListPer = AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("TreePer"), m_TreeListPer);
 
 	GetWindowRect(rect);
 	m_MinWidth = rect.Width();
@@ -345,41 +542,110 @@ BOOL CServerSelect::OnInitDialog()
 	if ( cy < rect.Height() )
 		cy = rect.Height();
 	MoveWindow(rect.left, rect.top, cx, cy, FALSE);
-	UpdateTabWnd();
+
+	((CRLoginApp *)::AfxGetApp())->GetProfileStringArray(_T("ServerSelect"), _T("AddGroup"), m_AddGroup);
+	((CRLoginApp *)::AfxGetApp())->GetProfileStringArray(_T("ServerSelect"), _T("TreeExpand"), m_TreeExpand);
+
+	InitEntry(INIT_CALL_NONE);
 
 	return TRUE;
 }
-void CServerSelect::OnOK()
+
+void CServerSelect::SaveWindowStyle()
 {
 	CRect rect;
+
 	GetWindowRect(rect);
 	AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("cx"), rect.Width());
 	AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("cy"), rect.Height());
+	AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("TreePer"), m_TreeListPer);
 
-	m_EntryNum = m_List.GetSelectMarkData();
-	AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("LastAccess"), m_EntryNum);
+	((CRLoginApp *)::AfxGetApp())->WriteProfileStringArray(_T("ServerSelect"), _T("TreeExpand"), m_TreeExpand);
+
 	m_List.SaveColumn(_T("ServerSelect"));
+}
 
+void CServerSelect::EntryNameCheck(CServerEntry &entry)
+{
 	int n, i;
+	int num = 2;
+	CString name, tmp;
+
+	name = entry.m_EntryName;
+	n = i = name.GetLength();
+
+	if ( n > 0 && name[n - 1] == _T(')') ) {
+		n--;
+		while ( n > 0 && name[n - 1] >= _T('0') && name[n - 1] <= _T('9') ) {
+			tmp += name[n - 1];
+			n--;
+		}
+		if ( n > 0 && name[n - 1] == _T('(') ) {
+			n--;
+			name.Delete(n, i - n);
+			num = _tstoi(tmp) + 1;
+		}
+	}
+
+	for ( ; ; ) {
+		for ( n = 0 ; n < m_pData->GetSize() ; n++ ) {
+			if ( entry.m_EntryName.Compare(m_pData->GetAt(n).m_EntryName) == 0 )
+				break;
+		}
+		if ( n >= m_pData->GetSize() )
+			break;
+
+		entry.m_EntryName.Format(_T("%s(%d)"), name, num++);
+	}
+}
+
+void CServerSelect::OnOK()
+{
+	int n, i;
+	int count = 0;
 
 	for ( n = 0 ; n < m_pData->GetSize() ; n++ )
 		m_pData->GetAt(n).m_CheckFlag = FALSE;
 
 	for ( n = 0 ; n < m_List.GetItemCount() ; n++ ) {
 		if ( m_List.GetItemState(n, LVIS_SELECTED) != 0 ) {
-			i = (int)m_List.GetItemData(n);
-			m_pData->GetAt(i).m_CheckFlag = TRUE;
+			if ( (i = (int)m_List.GetItemData(n)) >= 0 ) {
+				m_pData->GetAt(i).m_CheckFlag = TRUE;
+				count++;
+			} else {
+				if ( !m_Group.IsEmpty() )
+					m_Group += _T('\\');
+				m_Group += m_List.GetItemText(n, 0);
+				m_EntryNum = (-1);
+				InitEntry(INIT_CALL_NONE);
+				return;
+			}
 		}
 	}
 
+	//if ( count <= 0 )
+	//	return;
+
+	m_EntryNum = m_List.GetSelectMarkData();
+	AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("LastAccess"), m_EntryNum);
+
+	SaveWindowStyle();
 	CDialogExt::OnOK();
 }
 
-void CServerSelect::OnDblclkServerlist(NMHDR* pNMHDR, LRESULT* pResult) 
+void CServerSelect::OnCancel()
 {
-	PostMessage(WM_COMMAND, IDOK);
-	*pResult = 0;
+	SaveWindowStyle();
+	CDialogExt::OnCancel();
 }
+
+void CServerSelect::OnClose()
+{
+	SaveWindowStyle();
+	CDialogExt::OnClose();
+}
+
+/////////////////////////////////////////////////////////////////////////////
 
 void CServerSelect::OnNewEntry() 
 {
@@ -403,9 +669,10 @@ void CServerSelect::OnNewEntry()
 	CRLoginDoc::SaveOption(Entry, *m_pTextRam, *m_pKeyTab, *m_pKeyMac, *m_pParamTab);
 
 	m_EntryNum = m_pData->AddEntry(Entry);
-	InitList();
-	UpdateTabWnd();
+
+	InitEntry(INIT_CALL_UPDATE);
 }
+
 void CServerSelect::OnEditEntry() 
 {
 	int n;
@@ -413,9 +680,10 @@ void CServerSelect::OnEditEntry()
 	CServerEntry Entry;
 	CStringIndex index;
 	int Count = 0;
+	INT_PTR retId;
 
 	for ( n = 0 ; n < m_List.GetItemCount() ; n++ ) {
-		if ( m_List.GetItemState(n, LVIS_SELECTED) != 0 )
+		if ( m_List.GetItemState(n, LVIS_SELECTED) != 0 && (int)m_List.GetItemData(n) >= 0 )
 			Count++;
 	}
 
@@ -434,7 +702,11 @@ void CServerSelect::OnEditEntry()
 	dlg.m_pParamTab = m_pParamTab;
 	dlg.m_psh.dwFlags |= PSH_NOAPPLYNOW;
 
-	if ( dlg.DoModal() != IDOK )
+	m_pOPtDlg = &dlg;
+	retId = dlg.DoModal();
+	m_pOPtDlg = NULL;
+
+	if ( retId != IDOK )
 		return;
 
 	m_pTextRam->InitDefParam(FALSE);
@@ -456,7 +728,8 @@ void CServerSelect::OnEditEntry()
 			Entry.Init();
 			CRLoginDoc::LoadInitOption(*m_pTextRam, *m_pKeyTab, *m_pKeyMac, *m_pParamTab);
 
-			num = (int)m_List.GetItemData(n);
+			if ( (num = (int)m_List.GetItemData(n)) < 0 )
+				continue;
 			Entry = m_pData->GetAt(num);
 
 			CRLoginDoc::LoadOption(Entry, *m_pTextRam, *m_pKeyTab, *m_pKeyMac, *m_pParamTab);
@@ -475,9 +748,9 @@ void CServerSelect::OnEditEntry()
 		UpdateDefaultEntry(m_EntryNum);
 	}
 
-	InitList();
-	UpdateTabWnd();
+	InitEntry(INIT_CALL_UPDATE);
 }
+
 void CServerSelect::OnDelEntry() 
 {
 	int n, i;
@@ -487,7 +760,8 @@ void CServerSelect::OnDelEntry()
 	for ( n = 0 ; n < m_List.GetItemCount() ; n++ ) {
 		if ( m_List.GetItemState(n, LVIS_SELECTED) == 0 )
 			continue;
-		i = (int)m_List.GetItemData(n);
+		if ( (i = (int)m_List.GetItemData(n)) < 0 )
+			continue;
 
 		if ( !tmp.IsEmpty() )
 			tmp += _T(',');
@@ -522,31 +796,26 @@ void CServerSelect::OnDelEntry()
 		}
 	}
 
-	InitList();
-	UpdateTabWnd();
+	InitEntry(INIT_CALL_UPDATE);
 }
-void CServerSelect::OnEditCopy() 
+
+void CServerSelect::OnCopyEntry() 
 {
+	CServerEntry tmp;
+
 	if ( (m_EntryNum = m_List.GetSelectMarkData()) < 0 )
 		return;
-	int n, i;
-	CServerEntry tmp;
+
 	tmp = m_pData->GetAt(m_EntryNum);
-	for ( i = 2 ; ; i++ ) {
-		tmp.m_EntryName.Format(_T("%s(%d)"), m_pData->GetAt(m_EntryNum).m_EntryName, i);
-		for ( n = 0 ; n < m_pData->GetSize() ; n++ ) {
-			if ( tmp.m_EntryName.Compare(m_pData->GetAt(n).m_EntryName) == 0 )
-				break;
-		}
-		if ( n >= m_pData->GetSize() )
-			break;
-	}
+	EntryNameCheck(tmp);
+
 	tmp.m_Uid = (-1);
 	m_EntryNum = m_pData->AddEntry(tmp);
-	InitList();
-	UpdateTabWnd();
+
+	InitEntry(INIT_CALL_UPDATE);
 }
-void CServerSelect::OnEditCheck()
+
+void CServerSelect::OnCheckEntry()
 {
 	int n, i;
 	CServerEntryTab tab;
@@ -589,14 +858,14 @@ void CServerSelect::OnEditCheck()
 		m_pData->m_Data.RemoveAt(remove[n]);
 
 	m_DefaultEntryUid = ::AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("DefaultEntry"), (-1));
+	((CRLoginApp *)::AfxGetApp())->GetProfileStringArray(_T("ServerSelect"), _T("AddGroup"), m_AddGroup);
 
-	InitList();
-	UpdateTabWnd();
-}
+	InitEntry(INIT_CALL_NONE);
 
-void CServerSelect::OnUpdateEditEntry(CCmdUI* pCmdUI) 
-{
-	pCmdUI->Enable(m_List.GetSelectMarkData() >= 0);
+	if ( m_pOPtDlg != NULL ) {
+		MessageBox(CStringLoad(IDE_ENTRYUPDATEEERROR), _T("Warning"), MB_ICONWARNING);
+		m_pOPtDlg->PostMessage(WM_COMMAND, IDCANCEL);
+	}
 }
 
 void CServerSelect::OnServInport()
@@ -628,14 +897,52 @@ void CServerSelect::OnServInport()
 				break;
 		}
 
-		if ( strncmp((LPSTR)tmp, "RLG4", 4) == 0 )
-			ver = 4;
+		if ( strncmp((LPSTR)tmp, "RLG2", 4) == 0 )
+			ver = 2;
 		else if ( strncmp((LPSTR)tmp, "RLG3", 4) == 0 )
 			ver = 3;
-		else if ( strncmp((LPSTR)tmp, "RLG2", 4) == 0 )
-			ver = 2;
+		else if ( strncmp((LPSTR)tmp, "RLG4", 4) == 0 )
+			ver = 4;
+		else if ( strncmp((LPSTR)tmp, "\"RLG5", 5) == 0 )
+			ver = 5;
 
-		if ( ver == 3 || ver == 4 ) {
+		if ( ver == 5 ) {
+			CString str;
+			CBuffer buf;
+			CStringIndex index;
+
+			tmp[n] = '\0';
+			str = tmp;
+			buf.Apend((LPBYTE)(LPCTSTR)str, str.GetLength() * sizeof(TCHAR));
+
+			while ( index.ReadString(Archive, str) )
+				buf.Apend((LPBYTE)(LPCTSTR)str, str.GetLength() * sizeof(TCHAR));
+
+			index.SetNoCase(TRUE);
+			index.SetNoSort(TRUE);
+
+			if ( !index.GetJsonFormat(buf) || _tcsncmp(index.m_nIndex, _T("RLG5"), 4) != 0 )
+				AfxThrowArchiveException(CArchiveException::badIndex, Archive.GetFile()->GetFileTitle());
+
+			for ( n = 0 ; n < index.GetSize() ; n++ ) {
+				if ( index[n].Find(_T("Entry")) < 0 )
+					continue;
+
+				CRLoginDoc::LoadIndex(Entry, *m_pTextRam, *m_pKeyTab, *m_pKeyMac, *m_pParamTab, index[n]);
+
+				Entry.m_Uid = (-1);
+				Entry.m_bSelFlag = TRUE;
+
+				//m_pParamTab->m_IdKeyList.RemoveAll();
+				CRLoginDoc::SaveOption(Entry, *m_pTextRam, *m_pKeyTab, *m_pKeyMac, *m_pParamTab);
+
+				m_EntryNum = m_pData->AddEntry(Entry);
+
+				Entry.Init();
+				CRLoginDoc::LoadInitOption(*m_pTextRam, *m_pKeyTab, *m_pKeyMac, *m_pParamTab);
+			}
+
+		} else if ( ver == 3 || ver == 4 ) {
 			for ( ; ; ) {
 				CStringIndex index;
 
@@ -647,7 +954,9 @@ void CServerSelect::OnServInport()
 				CRLoginDoc::LoadIndex(Entry, *m_pTextRam, *m_pKeyTab, *m_pKeyMac, *m_pParamTab, index);
 
 				Entry.m_Uid = (-1);
-				m_pParamTab->m_IdKeyList.RemoveAll();
+				Entry.m_bSelFlag = TRUE;
+
+				//m_pParamTab->m_IdKeyList.RemoveAll();
 				CRLoginDoc::SaveOption(Entry, *m_pTextRam, *m_pKeyTab, *m_pKeyMac, *m_pParamTab);
 
 				m_EntryNum = m_pData->AddEntry(Entry);
@@ -674,7 +983,9 @@ void CServerSelect::OnServInport()
 				m_pParamTab->Serialize(Archive);
 
 				Entry.m_Uid = (-1);
-				m_pParamTab->m_IdKeyList.RemoveAll();
+				Entry.m_bSelFlag = TRUE;
+
+				//m_pParamTab->m_IdKeyList.RemoveAll();
 				CRLoginDoc::SaveOption(Entry, *m_pTextRam, *m_pKeyTab, *m_pKeyMac, *m_pParamTab);
 
 				m_EntryNum = m_pData->AddEntry(Entry);
@@ -690,6 +1001,7 @@ void CServerSelect::OnServInport()
 				Entry.Init();
 				CRLoginDoc::LoadInitOption(*m_pTextRam, *m_pKeyTab, *m_pKeyMac, *m_pParamTab);
 			}
+
 		} else
 			AfxThrowArchiveException(CArchiveException::badIndex, Archive.GetFile()->GetFileTitle());
 
@@ -700,9 +1012,9 @@ void CServerSelect::OnServInport()
 	Archive.Close();
 	File.Close();
 
-	InitList();
-	UpdateTabWnd();
+	InitEntry(INIT_CALL_UPDATE);
 }
+
 void CServerSelect::OnServExport()
 {
 	int n;
@@ -731,7 +1043,9 @@ void CServerSelect::OnServExport()
 			if ( m_List.GetItemState(n, LVIS_SELECTED) == 0 )
 				continue;
 
-			m_EntryNum = (int)m_List.GetItemData(n);
+			if ( (m_EntryNum = (int)m_List.GetItemData(n)) < 0 )
+				continue;
+
 			Entry = m_pData->GetAt(m_EntryNum);
 			CRLoginDoc::LoadOption(Entry, *m_pTextRam, *m_pKeyTab, *m_pKeyMac, *m_pParamTab);
 
@@ -753,6 +1067,7 @@ void CServerSelect::OnServExport()
 	Archive.Close();
 	File.Close();
 }
+
 void CServerSelect::OnServExchng()
 {
 	CFileDialog dlg(TRUE, _T("rlg"), _T(""), OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGRLOGIN), this);
@@ -793,7 +1108,9 @@ void CServerSelect::OnServExchng()
 		if ( m_List.GetItemState(n, LVIS_SELECTED) == 0 )
 			continue;
 
-		m_EntryNum = (int)m_List.GetItemData(n);
+		if ( (m_EntryNum = (int)m_List.GetItemData(n)) < 0 )
+			continue;
+
 		Entry = m_pData->GetAt(m_EntryNum);
 		CRLoginDoc::LoadOption(Entry, *m_pTextRam, *m_pKeyTab, *m_pKeyMac, *m_pParamTab);
 		CRLoginDoc::LoadIndex(Entry, *m_pTextRam, *m_pKeyTab, *m_pKeyMac, *m_pParamTab, index);
@@ -804,12 +1121,7 @@ void CServerSelect::OnServExchng()
 		UpdateDefaultEntry(m_EntryNum);
 	}
 
-	InitList();
-	UpdateTabWnd();
-}
-void CServerSelect::OnUpdateServExchng(CCmdUI *pCmdUI)
-{
-	pCmdUI->Enable(m_List.GetSelectMarkData() >= 0);
+	InitEntry(INIT_CALL_UPDATE);
 }
 
 void CServerSelect::OnServProto()
@@ -857,88 +1169,6 @@ void CServerSelect::OnServProto()
 	pApp->RegisterShellProtocol(proto, option);
 }
 
-void CServerSelect::OnClose()
-{
-	CRect rect;
-
-	GetWindowRect(rect);
-	AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("cx"), rect.Width());
-	AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("cy"), rect.Height());
-
-	CDialogExt::OnClose();
-}
-void CServerSelect::OnSize(UINT nType, int cx, int cy)
-{
-	SetItemOffset(cx, cy);
-	CDialogExt::OnSize(nType, cx, cy);
-	Invalidate(TRUE);
-}
-void CServerSelect::OnSizing(UINT fwSide, LPRECT pRect)
-{
-	//case WMSZ_LEFT:			// 1 Left edge
-	//case WMSZ_RIGHT:			// 2 Right edge
-	//case WMSZ_TOP:			// 3 Top edge
-	//case WMSZ_TOPLEFT:		// 4 Top-left corner
-	//case WMSZ_TOPRIGHT:		// 5 Top-right corner
-	//case WMSZ_BOTTOM:			// 6 Bottom edge
-	//case WMSZ_BOTTOMLEFT:		// 7 Bottom-left corner
-	//case WMSZ_BOTTOMRIGHT:	// 8 Bottom-right corner
-
-	if ( (pRect->right - pRect->left) < m_MinWidth ) {
-		if ( fwSide == WMSZ_LEFT || fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_BOTTOMLEFT )
-			pRect->left = pRect->right - m_MinWidth;
-		else
-			pRect->right = pRect->left + m_MinWidth;
-	}
-
-	if ( (pRect->bottom - pRect->top) < m_MinHeight ) {
-		if ( fwSide == WMSZ_TOP || fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_TOPRIGHT )
-			pRect->top = pRect->bottom - m_MinHeight;
-		else
-			pRect->bottom = pRect->top + m_MinHeight;
-	}
-
-	CDialogExt::OnSizing(fwSide, pRect);
-}
-
-void CServerSelect::OnTcnSelchangeServertab(NMHDR *pNMHDR, LRESULT *pResult)
-{
-	int n = m_Tab.GetCurSel();
-
-	if ( n >= 0 && n < m_TabEntry.GetSize() ) {
-		m_Group = m_TabEntry[n].m_nIndex;
-		m_EntryNum = (-1);
-		InitList();
-	}
-	*pResult = 0;
-}
-
-void CServerSelect::OnNMRClickServertab(NMHDR *pNMHDR, LRESULT *pResult)
-{
-	int n;
-	TCHITTESTINFO info;
-	
-	*pResult = 0;
-
-	if ( !GetCursorPos(&info.pt) )
-		return;
-
-	m_Tab.ScreenToClient(&info.pt);
-
-	if ( (n = m_Tab.HitTest(&info)) < 0 || n >= m_TabEntry.GetSize() )
-		return;
-
-	m_Tab.SetCurSel(n);
-	m_Group = m_TabEntry[n].m_nIndex;
-	m_EntryNum = (-1);
-	InitList();
-
-	m_List.SetItemState(0, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
-
-	for ( n = 1 ; n < m_List.GetItemCount() ; n++ )
-		m_List.SetItemState(n, LVIS_SELECTED, LVIS_SELECTED);
-}
-
 void CServerSelect::OnSaveDefault()
 {
 	if ( (m_EntryNum = m_List.GetSelectMarkData()) < 0 )
@@ -955,9 +1185,14 @@ void CServerSelect::OnSaveDefault()
 
 	m_DefaultEntryUid = pEntry->m_Uid;
 
-	InitList();
-	UpdateTabWnd();
+	InitEntry(INIT_CALL_NONE);
 }
+
+void CServerSelect::OnUpdateEditEntry(CCmdUI* pCmdUI) 
+{
+	pCmdUI->Enable(m_List.GetSelectMarkData() >= 0);
+}
+
 void CServerSelect::OnUpdateSaveDefault(CCmdUI *pCmdUI)
 {
 	int n = m_List.GetSelectMarkData();
@@ -967,6 +1202,7 @@ void CServerSelect::OnUpdateSaveDefault(CCmdUI *pCmdUI)
 	else
 		pCmdUI->Enable(FALSE);
 }
+
 void CServerSelect::OnLoaddefault()
 {
 	int n;
@@ -1000,11 +1236,14 @@ void CServerSelect::OnLoaddefault()
 		if ( m_List.GetItemState(n, LVIS_SELECTED) == 0 )
 			continue;
 
-		m_EntryNum = (int)m_List.GetItemData(n);
+		if ( (m_EntryNum = (int)m_List.GetItemData(n)) < 0 )
+			continue;
+
 		m_pData->GetAt(m_EntryNum).m_ProBuffer = ProBuffer;
 		m_pData->UpdateAt(m_EntryNum);
 	}
 }
+
 void CServerSelect::OnShortcut()
 {
 	int n, i;
@@ -1013,7 +1252,9 @@ void CServerSelect::OnShortcut()
 		if ( m_List.GetItemState(n, LVIS_SELECTED) == 0 )
 			continue;
 
-		i = (int)m_List.GetItemData(n);
+		if ( (i = (int)m_List.GetItemData(n)) < 0 )
+			continue;
+
 		if ( m_pData->GetAt(i).m_EntryName.IsEmpty() )
 			continue;
 
@@ -1024,98 +1265,858 @@ void CServerSelect::OnShortcut()
 	}
 }
 
-BOOL CServerSelect::PreTranslateMessage(MSG* pMsg)
+void CServerSelect::OnEditCopy()
+{
+	int n, i;
+	CStringIndex index;
+	CServerEntry Entry;
+	CBuffer mbs;
+
+	if ( (m_EntryNum = m_List.GetSelectMarkData()) < 0 )
+		return;
+
+	index.m_nIndex = _T("RLG510");
+	index.SetNoCase(TRUE);
+	index.SetNoSort(TRUE);
+
+	for ( n = 0 ; n < m_List.GetItemCount() ; n++ ) {
+		if ( m_List.GetItemState(n, LVIS_SELECTED) == 0 )
+			continue;
+
+		if ( (i = (int)m_List.GetItemData(n)) < 0 )
+			continue;
+
+		Entry = m_pData->GetAt(i);
+		CRLoginDoc::LoadOption(Entry, *m_pTextRam, *m_pKeyTab, *m_pKeyMac, *m_pParamTab);
+
+		CRLoginDoc::SaveIndex(Entry, *m_pTextRam, *m_pKeyTab, *m_pKeyMac, *m_pParamTab, index.Add());
+	}
+
+	index.SetJsonFormat(mbs, 0, JSON_TCODE);
+	((CMainFrame *)::AfxGetMainWnd())->SetClipboardText((LPCTSTR)mbs);
+}
+
+void CServerSelect::OnUpdateEditCopy(CCmdUI *pCmdUI)
+{
+	pCmdUI->Enable(m_List.GetSelectMarkData() >= 0);
+}
+
+void CServerSelect::OnEditPaste()
 {
 	int n;
-	CWnd *pWnd = GetFocus();
+	CString str;
+	CStringIndex index;
+	CServerEntry Entry;
 
-	if ( m_ShowTabWnd && pMsg->message == WM_KEYDOWN && (pWnd != NULL && pWnd->GetSafeHwnd() == m_List.GetSafeHwnd()) ) {
-		if ( (pMsg->wParam == VK_LEFT || pMsg->wParam == VK_RIGHT) ) {
-			n = m_Tab.GetCurSel() + (pMsg->wParam == VK_LEFT ? (-1) : 1);
+	if ( !((CMainFrame *)::AfxGetMainWnd())->CopyClipboardData(str) )
+		return;
 
-			if ( n < 0 )
-				n = m_Tab.GetItemCount() - 1;
-			else if ( n >= m_Tab.GetItemCount() )
-				n = 0;
+	index.SetNoCase(TRUE);
+	index.SetNoSort(TRUE);
 
-			m_Tab.SetCurSel(n);
-			m_Group = m_TabEntry[n].m_nIndex;
-			m_EntryNum = (-1);
-			InitList();
-			return TRUE;
+	if ( !index.GetJsonFormat(str) || _tcsncmp(index.m_nIndex, _T("RLG5"), 4) != 0 )
+		return;
+
+	for ( n = 0 ; n < index.GetSize() ; n++ ) {
+		if ( index[n].Find(_T("Entry")) < 0 )
+			continue;
+
+		Entry.Init();
+		CRLoginDoc::LoadInitOption(*m_pTextRam, *m_pKeyTab, *m_pKeyMac, *m_pParamTab);
+
+		CRLoginDoc::LoadIndex(Entry, *m_pTextRam, *m_pKeyTab, *m_pKeyMac, *m_pParamTab, index[n]);
+
+		Entry.m_Uid = (-1);
+		Entry.m_bSelFlag = TRUE;
+		CRLoginDoc::SaveOption(Entry, *m_pTextRam, *m_pKeyTab, *m_pKeyMac, *m_pParamTab);
+
+		EntryNameCheck(Entry);
+		m_EntryNum = m_pData->AddEntry(Entry);
+	}
+
+	InitEntry(INIT_CALL_UPDATE);
+}
+
+BOOL CServerSelect::IsJsonEntryText(LPCTSTR str)
+{
+	int n;
+	LPCTSTR ptn = _T(":[{");
+
+	// "RLG510":[{
+
+	while ( *str != _T('\0') && *str <= _T(' ') )
+		str++;
+
+	if ( _tcsncmp(str, _T("\"RLG5"), 5) != 0 )
+		return FALSE;
+
+	if ( str[5] < _T('0') || str[5] > _T('9') )
+		return FALSE;
+
+	if ( str[6] < _T('0') || str[6] > _T('9') )
+		return FALSE;
+
+	if ( str[7] != _T('"') )
+		return FALSE;
+
+	str += 8;
+
+	for ( n = 0 ; ptn[n] != _T('\0') ; n++ ) {
+		while ( *str != _T('\0') && *str <= _T(' ') )
+			str++;
+
+		if ( *str != ptn[n] )
+			return FALSE;
+		str++;
+	}
+
+	while ( *str != _T('\0') )
+		str++;
+
+	while ( *str <= _T(' ') )
+		str--;
+
+	if ( *str != _T(']') )
+		return FALSE;
+	str--;
+
+	while ( *str <= _T(' ') )
+		str--;
+
+	if ( *str != _T('}') )
+		return FALSE;
+
+	return TRUE;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+BOOL CServerSelect::OpenTabEdit(int num)
+{
+	CRect rect;
+
+	if ( num < 0 || num >= m_Tab.GetItemCount() || !m_Tab.GetItemRect(num, rect) )
+		return FALSE;
+
+	rect.InflateRect(4, 4);
+	m_Tab.ClientToScreen(rect);
+	ScreenToClient(rect);
+
+	if ( num >= m_TabData.GetSize() || (m_pEditIndex = (CStringIndex *)m_TabData[num]) == NULL )
+		return FALSE;
+
+	m_EditWnd.Create(ES_AUTOHSCROLL | WS_CHILD | WS_VISIBLE | WS_BORDER, rect, this, ID_EDIT_BOX);
+
+	m_EditWnd.GetWindowRect(m_EditRect);
+	ScreenToClient(m_EditRect);
+	m_Tab.GetWindowRect(m_EditMax);
+	ScreenToClient(m_EditMax);
+	m_EditNow = m_EditRect;
+
+	m_EditWnd.SetWindowText(m_pEditIndex->m_nIndex);
+	m_EditWnd.SetSel(0, -1);
+	m_EditWnd.SetFocus();
+
+	return TRUE;
+}
+
+void CServerSelect::OnKillfocusEditBox() 
+{
+	if ( m_pEditIndex != NULL ) {
+		CString group;
+
+		m_EditWnd.GetWindowText(group);
+
+		if ( group.Compare(m_pEditIndex->m_nIndex) != 0 ) {
+			UpdateGroupName(m_pEditIndex, group);
+
+			m_Group.Empty();
+			m_pEditIndex->GetPath(m_Group);
+
+			InitEntry(INIT_CALL_UPDATE);
 		}
+
+		m_pEditIndex = NULL;
+	}
+
+	m_EditWnd.PostMessage(WM_CLOSE, 0, 0);
+}
+
+void CServerSelect::OnEnUpdateEditBox()
+{
+	CRect rect;
+	CSize sz;
+	CString text;
+	CDC *pDC = m_EditWnd.GetDC();
+
+	m_EditWnd.GetWindowText(text);
+	text += _T("AA");
+
+	sz = pDC->GetTextExtent(text);
+	m_EditWnd.ReleaseDC(pDC);
+
+	rect = m_EditNow;
+
+	if ( sz.cx < rect.Width() ) {
+		if ( sz.cx < m_EditRect.Width() )
+			sz.cx = m_EditRect.Width();
+		rect.left = m_EditRect.left;
+		rect.right = rect.left + sz.cx;
+
+	} else if ( sz.cx > rect.Width() ) {
+		rect.left = m_EditRect.left;
+		rect.right = rect.left + sz.cx;
+	}
+
+	if ( rect.right > m_EditMax.right ) {
+		rect.left -= (rect.right - m_EditMax.right);
+		rect.right = rect.left + sz.cx;
+	}
+
+	if ( rect.left < m_EditMax.left )
+		rect.left = m_EditMax.left;
+
+	if ( rect.left != m_EditNow.left || rect.Width() != m_EditNow.Width() ) {
+		m_EditNow = rect;
+		m_EditWnd.SetWindowPos(NULL, m_EditNow.left, m_EditNow.top, m_EditNow.Width(), m_EditNow.Height(), SWP_NOZORDER | SWP_DEFERERASE);
+	}
+}
+
+BOOL CServerSelect::PreTranslateMessage(MSG* pMsg)
+{
+	CWnd *pWnd;
+
+	if ( pMsg->message == WM_KEYDOWN && (pMsg->wParam == VK_LEFT || pMsg->wParam == VK_RIGHT) && ((pWnd = GetFocus()) != NULL && pWnd->GetSafeHwnd() == m_List.GetSafeHwnd()) ) {
+		// Listにフォーカスがある場合は、左右キーでグループ移動
+		if ( m_bShowTabWnd ) {
+			pMsg->hwnd = m_Tab.GetSafeHwnd();
+		} else if ( m_bShowTreeWnd ) {
+			pMsg->wParam = (pMsg->wParam == VK_LEFT ? VK_UP : VK_DOWN);
+			pMsg->hwnd = m_Tree.GetSafeHwnd();
+		}
+
+	} else if ( pMsg->message == WM_CHAR && pMsg->hwnd == m_List.GetSafeHwnd() ) {
+		switch(pMsg->wParam) {
+		case 0x03:		// Ctrl+C
+			PostMessage(WM_COMMAND, ID_EDIT_COPY);
+			break;
+		case 0x16:		// Ctrl+V
+			PostMessage(WM_COMMAND, ID_EDIT_PASTE);
+			break;
+		}
+
+	} else if ( m_pEditIndex != NULL && pMsg->message == WM_KEYDOWN && (pMsg->wParam == VK_RETURN || pMsg->wParam == VK_ESCAPE) ) {
+		// グループ名編集中はDLGデフォルト動作しない
+		if ( pMsg->wParam == VK_ESCAPE )
+			m_pEditIndex = NULL;
+		m_List.SetFocus();
+		return TRUE;
+
+	} else if ( pMsg->message >= WM_RBUTTONDOWN && pMsg->hwnd == GetSafeHwnd() ) {
+		// Tabの空き領域でもNM_RCLICKを呼ぶ
+		CRect rect;
+		CPoint point(pMsg->lParam);
+		::ClientToScreen(pMsg->hwnd, &point);
+		m_Tab.GetWindowRect(rect);
+		if ( rect.PtInRect(point) ) {
+			m_Tab.ScreenToClient(&point);
+			pMsg->hwnd = m_Tab.GetSafeHwnd();
+			pMsg->lParam = MAKEWPARAM(point.x, point.y);
+		}
+
+	} else if ( pMsg->message >= WM_MOUSEFIRST && pMsg->message <= WM_MOUSELAST && pMsg->hwnd == m_Tab.GetSafeHwnd() ) {
+		if ( m_EditWnd.GetSafeHwnd() != NULL ) {
+			// 重なっているのでチェック
+			CRect rect;
+			CPoint point(pMsg->lParam);
+			::ClientToScreen(pMsg->hwnd, &point);
+			m_EditWnd.GetWindowRect(rect);
+			if ( rect.PtInRect(point) ) {
+				m_EditWnd.ScreenToClient(&point);
+				pMsg->hwnd = m_EditWnd.GetSafeHwnd();
+				pMsg->lParam = MAKEWPARAM(point.x, point.y);
+			}
+
+		} else if ( pMsg->message == WM_LBUTTONDOWN ) {
+			// タブグループ名編集に移行
+			int n;
+			CRect rect;
+			TCHITTESTINFO info;
+			info.pt.x = LOWORD(pMsg->lParam);
+			info.pt.y = HIWORD(pMsg->lParam);
+
+			if ( (n = m_Tab.HitTest(&info)) >= 0 && n == m_Tab.GetCurSel() && OpenTabEdit(n) )
+				return TRUE;
+		}
+
+	} else if ( pMsg->message == WM_PAINT && pMsg->hwnd == m_Tab.GetSafeHwnd() && m_EditWnd.GetSafeHwnd() != NULL ) {
+		// 重なっているので再描画
+		m_EditWnd.Invalidate(FALSE);
 	}
 
 	return CDialogExt::PreTranslateMessage(pMsg);
 }
 
-#ifdef	USE_DEFENTRYMARK
-void CServerSelect::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
+void CServerSelect::OnSize(UINT nType, int cx, int cy)
 {
-	if ( nIDCtl != IDC_SERVERLIST ) {
-		CDialogExt::OnDrawItem(nIDCtl, lpDrawItemStruct);
-		return;
-	}
+	SetItemOffset(cx, cy);
+	CDialogExt::OnSize(nType, cx, cy);
+	Invalidate(TRUE);
+}
 
-	LV_ITEM lvi;
-	ZeroMemory(&lvi, sizeof(lvi));
-    lvi.mask = LVIF_STATE | LVIF_PARAM;
-	lvi.iItem = lpDrawItemStruct->itemID;
-	lvi.stateMask = 0xFFFF;
+void CServerSelect::OnSizing(UINT fwSide, LPRECT pRect)
+{
+	//case WMSZ_LEFT:			// 1 Left edge
+	//case WMSZ_RIGHT:			// 2 Right edge
+	//case WMSZ_TOP:			// 3 Top edge
+	//case WMSZ_TOPLEFT:		// 4 Top-left corner
+	//case WMSZ_TOPRIGHT:		// 5 Top-right corner
+	//case WMSZ_BOTTOM:			// 6 Bottom edge
+	//case WMSZ_BOTTOMLEFT:		// 7 Bottom-left corner
+	//case WMSZ_BOTTOMRIGHT:	// 8 Bottom-right corner
 
-	if ( !m_List.GetItem(&lvi) ) {
-		CDialogExt::OnDrawItem(nIDCtl, lpDrawItemStruct);
-		return;
-	}
-
-	CDC *pDC = CDC::FromHandle(lpDrawItemStruct->hDC);
-	COLORREF bkc, txc;
-
-	if ( (lvi.state & LVIS_SELECTED) != 0 ) {
-		pDC->FillSolidRect(&lpDrawItemStruct->rcItem, GetSysColor(COLOR_HIGHLIGHT));
-		bkc = pDC->SetBkColor(GetSysColor(COLOR_HIGHLIGHT));
-		txc = pDC->SetTextColor(GetSysColor(COLOR_HIGHLIGHTTEXT));
-	} else {
-		pDC->FillSolidRect(&lpDrawItemStruct->rcItem, GetSysColor(COLOR_WINDOW));
-		bkc = pDC->SetBkColor(GetSysColor(COLOR_WINDOW));
-		if ( m_DefaultEntryUid == m_pData->GetAt((int)lvi.lParam).m_Uid )
-			txc = pDC->SetTextColor(GetSysColor(COLOR_GRAYTEXT));
+	if ( (pRect->right - pRect->left) < m_MinWidth ) {
+		if ( fwSide == WMSZ_LEFT || fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_BOTTOMLEFT )
+			pRect->left = pRect->right - m_MinWidth;
 		else
-			txc = pDC->SetTextColor(GetSysColor(COLOR_WINDOWTEXT));
+			pRect->right = pRect->left + m_MinWidth;
 	}
 
-	CString str;
-	CRect rect(lpDrawItemStruct->rcItem);
-	LVCOLUMN lvc;
-	ZeroMemory(&lvc, sizeof(lvc));
-	lvc.mask = LVCF_WIDTH | LVCF_FMT;
-
-	m_List.GetItemRect(lpDrawItemStruct->itemID, rect, LVIR_LABEL);
-
-	rect.left -= m_List.GetScrollPos(SB_HORZ);
-	for ( int i = 0 ; m_List.GetColumn(i, &lvc) ; i++ ) {
-		str = m_List.GetItemText(lpDrawItemStruct->itemID, i);
-
-		rect.right = rect.left + lvc.cx - 4;
-		pDC->DrawText(str, rect,
-			(lvc.fmt == LVCFMT_LEFT   ? DT_LEFT : 0) |
-			(lvc.fmt == LVCFMT_RIGHT  ? DT_RIGHT : 0) |
-			(lvc.fmt == LVCFMT_CENTER ? DT_CENTER : 0) | DT_SINGLELINE | DT_NOPREFIX | DT_WORD_ELLIPSIS | DT_VCENTER);
-
-		rect.left = rect.right + 4;
+	if ( (pRect->bottom - pRect->top) < m_MinHeight ) {
+		if ( fwSide == WMSZ_TOP || fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_TOPRIGHT )
+			pRect->top = pRect->bottom - m_MinHeight;
+		else
+			pRect->bottom = pRect->top + m_MinHeight;
 	}
 
-	if ( (lvi.state & LVIS_FOCUSED) != 0 && GetFocus()->GetSafeHwnd() == m_List.GetSafeHwnd() )
-		pDC->DrawFocusRect(&lpDrawItemStruct->rcItem);
-
-	pDC->SetBkColor(bkc);
-	pDC->SetTextColor(txc);
+	CDialogExt::OnSizing(fwSide, pRect);
 }
-void CServerSelect::OnMeasureItem(int nIDCtl, LPMEASUREITEMSTRUCT lpMeasureItemStruct)
+
+BOOL CServerSelect::GetTrackerRect(CRect &rect, CRect &move)
 {
-	if ( nIDCtl == IDC_SERVERLIST )
-		lpMeasureItemStruct->itemHeight = m_FontSize * 96 / 72 + 4;
+	CRect TreeRect, ListRect;
 
-	CDialogExt::OnMeasureItem(nIDCtl, lpMeasureItemStruct);
+	if ( !m_bShowTreeWnd )
+		return FALSE;
+
+	m_List.GetWindowRect(ListRect);
+	m_Tree.GetWindowRect(TreeRect);
+
+	ScreenToClient(ListRect);
+	ScreenToClient(TreeRect);
+
+	rect.left   = TreeRect.right;
+	rect.right  = ListRect.left;
+	rect.top    = TreeRect.top;
+	rect.bottom = TreeRect.bottom;
+
+	move.left   = TreeRect.left  + 50;
+	move.right  = ListRect.right - 50;
+	move.top    = TreeRect.top;
+	move.bottom = TreeRect.bottom;
+
+	return TRUE;
 }
-#endif	// USE_DEFENTRYMARK
+
+void CServerSelect::InvertTracker(CRect &rect)
+{
+	CDC* pDC = GetDC();
+	CBrush* pBrush = CDC::GetHalftoneBrush();
+	HBRUSH hOldBrush = NULL;
+
+	if (pBrush != NULL)
+		hOldBrush = (HBRUSH)SelectObject(pDC->m_hDC, pBrush->m_hObject);
+
+	pDC->PatBlt(rect.left, rect.top, rect.Width(), rect.Height(), PATINVERT);
+
+	if (hOldBrush != NULL)
+		SelectObject(pDC->m_hDC, hOldBrush);
+
+	ReleaseDC(pDC);
+}
+
+void CServerSelect::OffsetTracker(CPoint point)
+{
+	int w = m_TrackerRect.Width();
+
+	m_TrackerRect.left  += (point.x - m_TrackerPoint.x);
+	m_TrackerRect.right += (point.x - m_TrackerPoint.x);
+
+	if ( m_TrackerRect.left < m_TrackerMove.left ) {
+		m_TrackerRect.left  = m_TrackerMove.left;
+		m_TrackerRect.right = m_TrackerRect.left + w;
+	} else if ( m_TrackerRect.right > m_TrackerMove.right ) {
+		m_TrackerRect.right = m_TrackerMove.right;
+		m_TrackerRect.left  = m_TrackerRect.right - w;
+	}
+}
+
+CStringIndex *CServerSelect::DragIndex(CPoint point)
+{
+	int n;
+	UINT uFlags;
+	HTREEITEM hItem;
+	TCHITTESTINFO info;
+	CStringIndex *pIndex = NULL;
+
+	if ( m_bShowTreeWnd ) {
+		m_Tree.ScreenToClient(&point);
+
+		if ( (hItem = m_Tree.HitTest(point, &uFlags)) != NULL && (uFlags & TVHT_ONITEM) != 0 )
+			pIndex = (CStringIndex *)m_Tree.GetItemData(hItem);
+
+	} else if ( m_bShowTabWnd ) {
+		m_Tab.ScreenToClient(&point);
+
+		info.pt = point;
+		info.flags = 0;
+		if ( (n = m_Tab.HitTest(&info)) >= 0 && (info.flags & TCHT_ONITEM) != 0 && n < m_TabData.GetSize() )
+			pIndex = (CStringIndex *)(m_TabData[n]);
+	}
+
+	return pIndex;
+}
+
+void CServerSelect::UpdateGroupName(CStringIndex *pIndex, LPCTSTR newName)
+{
+	int n;
+	CString path;
+
+	if ( newName != NULL ) {
+		pIndex->GetPath(path);
+		if ( (n = m_AddGroup.Find(path)) >= 0 )
+			m_AddGroup.RemoveAt(n);
+
+		pIndex->m_nIndex = newName;
+		path.Empty();
+		pIndex->GetPath(path);
+
+		if ( pIndex->GetSize() <= 0 && pIndex->m_TabData.GetSize() <= 0 && (n = m_AddGroup.Find(path)) < 0 )
+			m_AddGroup.Add(path);
+
+	} else
+		pIndex->GetPath(path);
+
+	for ( n = 0 ; n < pIndex->m_TabData.GetSize() ; n++ ) {
+		m_pData->GetAt(pIndex->m_TabData[n]).m_Group = path;
+		m_pData->UpdateAt(pIndex->m_TabData[n]);
+	}
+
+	for ( n = 0 ; n < pIndex->GetSize() ; n++ )
+		UpdateGroupName(&((*pIndex)[n]), NULL);
+}
+
+void CServerSelect::SetIndexList(CStringIndex *pIndex, BOOL bSelect)
+{
+	int n;
+	BOOL bForcus = FALSE;
+
+	m_Group.Empty();
+	pIndex->GetPath(m_Group);
+	m_EntryNum = (-1);
+	InitList(pIndex, FALSE);
+
+	if ( !bSelect )
+		return;
+
+	for ( n = 0 ; n < m_List.GetItemCount() ; n++ ) {
+		if ( (int)m_List.GetItemData(n) >= 0 ) {
+			if ( !bForcus ) {
+				m_List.SetItemState(n, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+				bForcus = TRUE;
+			} else
+				m_List.SetItemState(n, LVIS_SELECTED, LVIS_SELECTED);
+		} else
+			m_List.SetItemState(n, NULL, LVIS_SELECTED);
+	}
+
+	m_List.SetFocus();
+}
+
+void CServerSelect::OnLButtonDown(UINT nFlags, CPoint point)
+{
+	if ( m_pEditIndex != NULL )
+		m_List.SetFocus();
+
+	if ( GetTrackerRect(m_TrackerRect, m_TrackerMove) && m_TrackerRect.PtInRect(point) ) {
+		InvertTracker(m_TrackerRect);
+		m_TrackerPoint = point;
+		m_bTrackerActive = TRUE;
+		SetCapture();
+	}
+
+	CDialogExt::OnLButtonDown(nFlags, point);
+}
+
+void CServerSelect::OnMouseMove(UINT nFlags, CPoint point)
+{
+	if ( m_bTrackerActive ) {
+		InvertTracker(m_TrackerRect);
+		OffsetTracker(point);
+		InvertTracker(m_TrackerRect);
+		m_TrackerPoint = point;
+
+	} else if ( m_bDragList ) {
+		CPoint po = point;
+		ClientToScreen(&po);
+		int image = (DragIndex(po) != NULL ? m_DragImage : 8);
+
+		if ( m_DragActive == image )
+			m_ImageList.DragMove(po);
+		else {
+			m_ImageList.DragLeave(GetDesktopWindow());
+			m_ImageList.EndDrag();
+			m_ImageList.BeginDrag(image, CPoint(12, 8));
+			m_ImageList.DragEnter(GetDesktopWindow(), po);
+			m_DragActive = image;
+		}
+	}
+
+	CDialogExt::OnMouseMove(nFlags, point);
+}
+
+void CServerSelect::OnLButtonUp(UINT nFlags, CPoint point)
+{
+	if ( m_bTrackerActive ) {
+		InvertTracker(m_TrackerRect);
+		OffsetTracker(point);
+		m_bTrackerActive = FALSE;
+		ReleaseCapture();
+
+		CRect rect;
+		GetClientRect(rect);
+		m_TreeListPer = m_TrackerRect.left * 1000 / rect.Width();
+		SetItemOffset(rect.Width(), rect.Height());
+
+	} else if ( m_bDragList ) {
+		m_ImageList.DragLeave(GetDesktopWindow());
+		m_ImageList.EndDrag();
+		m_bDragList = FALSE;
+		ReleaseCapture();
+
+		int n, i;
+		CPoint po = point;
+		CStringIndex *pIndex;
+
+		ClientToScreen(&po);
+		if ( (pIndex = DragIndex(po)) != NULL ) {
+			m_Group.Empty();
+			pIndex->GetPath(m_Group);
+			m_EntryNum = m_DragNumber;
+			for ( i = 0 ; i < m_List.GetItemCount() ; i++ ) {
+				if ( m_List.GetItemState(i, LVIS_SELECTED) != 0 && (n = (int)m_List.GetItemData(i)) >= 0 ) {
+					m_pData->GetAt(n).m_bSelFlag = TRUE;
+					m_pData->GetAt(n).m_Group = m_Group;
+					m_pData->UpdateAt(n);
+				}
+			}
+			InitEntry(INIT_CALL_UPDATE);
+		}
+	}
+
+	CDialogExt::OnLButtonUp(nFlags, point);
+}
+
+BOOL CServerSelect::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
+{
+	CRect rect, move;
+	CPoint point;
+
+	GetCursorPos(&point);
+	ScreenToClient(&point);
+
+	if ( !m_bTrackerActive && GetTrackerRect(rect, move) && rect.PtInRect(point) ) {
+		LPCTSTR id = ATL_MAKEINTRESOURCE(AFX_IDC_HSPLITBAR);
+		HINSTANCE hInst = AfxFindResourceHandle(id, ATL_RT_GROUP_CURSOR);
+		HCURSOR hCursor = NULL;
+
+		if ( hInst != NULL )
+			hCursor = ::LoadCursorW(hInst, id);
+
+		if ( hCursor == NULL )
+			hCursor = AfxGetApp()->LoadStandardCursor(IDC_SIZEWE);
+
+		if ( hCursor != NULL )
+			::SetCursor(hCursor);
+
+		return TRUE;
+	}
+
+	return CDialogExt::OnSetCursor(pWnd, nHitTest, message);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+void CServerSelect::OnDblclkServerlist(NMHDR* pNMHDR, LRESULT* pResult) 
+{
+	*pResult = 0;
+
+	PostMessage(WM_COMMAND, IDOK);
+}
+
+void CServerSelect::OnLvnBegindragServerlist(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	*pResult = 0;
+
+	LPNMLISTVIEW pNMLV = reinterpret_cast<LPNMLISTVIEW>(pNMHDR);
+
+	if ( m_pEditIndex != NULL )
+		m_List.SetFocus();
+
+	m_DragNumber = (int)m_List.GetItemData(pNMLV->iItem);
+
+	if ( m_DragNumber < 0 || (!m_bShowTreeWnd && !m_bShowTabWnd) )
+		return;
+
+	SetCapture();
+	m_bDragList = TRUE;
+	m_DragImage = (m_List.GetSelectedCount() > 1 ? 7 : 2);
+	m_DragActive = m_DragImage;
+
+	m_ImageList.BeginDrag(m_DragImage, CPoint(12, 8));
+	m_ImageList.DragEnter(GetDesktopWindow(), pNMLV->ptAction);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+void CServerSelect::OnTcnSelchangeServertab(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	*pResult = 0;
+
+	if ( m_pEditIndex != NULL )
+		m_Tab.SetFocus();
+
+	int n = m_Tab.GetCurSel();
+
+	if ( n >= 0 && n < m_TabData.GetSize() ) {
+		CStringIndex *pIndex = (CStringIndex *)m_TabData[n];
+		m_Group.Empty();
+		pIndex->GetPath(m_Group);
+		m_EntryNum = (-1);
+		InitEntry(INIT_CALL_NONE);
+	}
+}
+
+void CServerSelect::OnNMRClickServertab(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	*pResult = 0;
+
+	if ( m_pEditIndex != NULL )
+		m_Tab.SetFocus();
+
+	int n, id;
+	TCHITTESTINFO info;
+	CStringIndex *pIndex = NULL;
+	CMenuLoad PopUpMenu;
+	CMenu *pSubMenu;
+	CString path;
+
+	if ( !PopUpMenu.LoadMenu(IDR_POPUPMENU) || (pSubMenu = PopUpMenu.GetSubMenu(8)) == NULL )
+		return;
+
+	if ( !GetCursorPos(&info.pt) )
+		return;
+
+	m_Tab.ScreenToClient(&info.pt);
+
+	if ( (n = m_Tab.HitTest(&info)) >= 0 && n < m_Tab.GetItemCount() && n < m_TabData.GetSize() && (pIndex = (CStringIndex *)m_TabData[n]) != NULL ) {
+		if ( m_Tab.GetCurSel() != n ) {
+			m_Tab.SetCurSel(n);
+			m_Group.Empty();
+			pIndex->GetPath(m_Group);
+			m_EntryNum = (-1);
+			InitList(pIndex, FALSE);
+		}
+
+		if ( pIndex->m_TabData.GetSize() > 0 || pIndex->GetSize() > 0 )
+			pSubMenu->EnableMenuItem(IDM_TREECTRLDELETE, MF_DISABLED);
+		if ( pIndex->m_TabData.GetSize() <= 0 )
+			pSubMenu->EnableMenuItem(IDM_TREECTRLSELECT, MF_DISABLED);
+
+	} else {
+		pSubMenu->EnableMenuItem(IDM_TREECTRLRENAME, MF_DISABLED);
+		pSubMenu->EnableMenuItem(IDM_TREECTRLDELETE, MF_DISABLED);
+		pSubMenu->EnableMenuItem(IDM_TREECTRLSELECT, MF_DISABLED);
+	}
+
+	pSubMenu->EnableMenuItem(IDM_TREECTRLEXPAND, MF_DISABLED);
+
+	m_Tab.ClientToScreen(&info.pt);
+	id = ((CMainFrame *)::AfxGetMainWnd())->TrackPopupMenuIdle(pSubMenu, TPM_NONOTIFY | TPM_RETURNCMD, info.pt.x, info.pt.y, this, NULL);
+
+	switch(id) {
+	case IDM_TREECTRLNEW:
+		m_Group = _T("NewGroup");
+		for ( n = 1 ; m_TabEntry.FindPath(m_Group) != NULL ; n++ )
+			m_Group.Format(_T("NewGroup%d"), n);
+		m_AddGroup.Add(m_Group);
+		m_EntryNum = (-1);
+		InitEntry(INIT_CALL_AND_EDIT);
+		break;
+
+	case IDM_TREECTRLRENAME:
+		OpenTabEdit(n);
+		break;
+
+	case IDM_TREECTRLDELETE:
+		pIndex->GetPath(path);
+		if ( (n = m_AddGroup.Find(path)) >= 0 )
+			m_AddGroup.RemoveAt(n);
+		InitEntry(INIT_CALL_UPDATE);
+		break;
+
+	case IDM_TREECTRLSELECT:
+		m_Tab.SetCurSel(n);
+		SetIndexList(pIndex, TRUE);
+		break;
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+void CServerSelect::OnTvnSelchangedServertree(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	*pResult = 0;
+
+	CStringIndex *pIndex;
+	HTREEITEM hti = m_Tree.GetSelectedItem();
+	//LPNMTREEVIEW pNMTreeView = reinterpret_cast<LPNMTREEVIEW>(pNMHDR);
+
+	if ( !m_bTreeUpdate && hti != NULL && (pIndex = (CStringIndex *)m_Tree.GetItemData(hti)) != NULL ) {
+		m_Group.Empty();
+		pIndex->GetPath(m_Group);
+		m_EntryNum = (-1);
+		InitList(pIndex, FALSE);
+	}
+}
+
+void CServerSelect::OnTvnBeginlabeleditServertree(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	*pResult = 0;
+
+	LPNMTVDISPINFO pTVDispInfo = reinterpret_cast<LPNMTVDISPINFO>(pNMHDR);
+
+	if ( pTVDispInfo->item.hItem != NULL )
+		m_pEditIndex = (CStringIndex *)m_Tree.GetItemData(pTVDispInfo->item.hItem);
+}
+
+void CServerSelect::OnTvnEndlabeleditServertree(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	*pResult = 0;
+
+	LPNMTVDISPINFO pTVDispInfo = reinterpret_cast<LPNMTVDISPINFO>(pNMHDR);
+
+	if ( pTVDispInfo->item.hItem != NULL && pTVDispInfo->item.pszText != NULL && m_pEditIndex != NULL && (CStringIndex *)m_Tree.GetItemData(pTVDispInfo->item.hItem) == m_pEditIndex ) {
+		UpdateGroupName(m_pEditIndex, pTVDispInfo->item.pszText);
+
+		m_Group.Empty();
+		m_pEditIndex->GetPath(m_Group);
+
+		InitEntry(INIT_CALL_UPDATE);
+	}
+
+	m_pEditIndex = NULL;
+}
+
+void CServerSelect::OnNMRClickServertree(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	*pResult = 0;
+
+	int n, id;
+	CMenuLoad PopUpMenu;
+	CMenu *pSubMenu;
+	UINT uFlags;
+	CPoint point;
+	HTREEITEM hTree;
+	CStringIndex *pIndex = NULL;
+	CString path;
+
+	if ( !PopUpMenu.LoadMenu(IDR_POPUPMENU) || (pSubMenu = PopUpMenu.GetSubMenu(8)) == NULL )
+		return;
+
+	if ( !GetCursorPos(&point) )
+		return;
+
+	m_Tree.ScreenToClient(&point);
+
+	if ( (hTree = m_Tree.HitTest(point, &uFlags)) != NULL && (uFlags & TVHT_ONITEM) != 0 && (pIndex = (CStringIndex *)m_Tree.GetItemData(hTree)) != NULL ) {
+		if ( m_Tree.GetSelectedItem() != hTree ) {
+			m_Tree.SelectItem(hTree);
+			m_Group.Empty();
+			pIndex->GetPath(m_Group);
+			m_EntryNum = (-1);
+			InitList(pIndex, FALSE);
+		}
+
+		if ( pIndex->m_TabData.GetSize() > 0 || pIndex->GetSize() > 0 )
+			pSubMenu->EnableMenuItem(IDM_TREECTRLDELETE, MF_DISABLED);
+		if ( pIndex->GetSize() <= 0 )
+			pSubMenu->EnableMenuItem(IDM_TREECTRLEXPAND, MF_DISABLED);
+		if ( pIndex->m_TabData.GetSize() <= 0 )
+			pSubMenu->EnableMenuItem(IDM_TREECTRLSELECT, MF_DISABLED);
+
+	} else {
+		pSubMenu->EnableMenuItem(IDM_TREECTRLRENAME, MF_DISABLED);
+		pSubMenu->EnableMenuItem(IDM_TREECTRLDELETE, MF_DISABLED);
+		pSubMenu->EnableMenuItem(IDM_TREECTRLSELECT, MF_DISABLED);
+		hTree = m_Tree.GetRootItem();
+	}
+
+	m_Tree.ClientToScreen(&point);
+	id = ((CMainFrame *)::AfxGetMainWnd())->TrackPopupMenuIdle(pSubMenu, TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, this, NULL);
+
+	switch(id) {
+	case IDM_TREECTRLNEW:
+		if ( pIndex != NULL ) {
+			pIndex->GetPath(path);
+			m_Group.Format(_T("%s\\SubGroup"), path);
+			for ( n = 1 ; m_TabEntry.FindPath(m_Group) != NULL ; n++ )
+				m_Group.Format(_T("%s\\SubGroup%d"), path, n);
+		} else {
+			m_Group = _T("NewGroup");
+			for ( n = 1 ; m_TabEntry.FindPath(m_Group) != NULL ; n++ )
+				m_Group.Format(_T("NewGroup%d"), n);
+		}
+		m_AddGroup.Add(m_Group);
+		m_EntryNum = (-1);
+		InitEntry(INIT_CALL_AND_EDIT);
+		break;
+
+	case IDM_TREECTRLRENAME:
+		m_Tree.EditLabel(hTree);
+		break;
+
+	case IDM_TREECTRLDELETE:
+		pIndex->GetPath(path);
+		if ( (n = m_AddGroup.Find(path)) >= 0 )
+			m_AddGroup.RemoveAt(n);
+		InitEntry(INIT_CALL_UPDATE);
+		break;
+
+	case IDM_TREECTRLSELECT:
+		m_Tree.SelectItem(hTree);
+		SetIndexList(pIndex, TRUE);
+		break;
+
+	case IDM_TREECTRLEXPAND:
+		InitExpand(hTree, TVE_TOGGLE);
+		break;
+	}
+}
+
+void CServerSelect::OnTvnItemexpandedServertree(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	*pResult = 0;
+
+	LPNMTREEVIEW pNMTreeView = reinterpret_cast<LPNMTREEVIEW>(pNMHDR);
+
+	switch(pNMTreeView->action) {
+	case TVE_COLLAPSE:
+		TreeExpandUpdate(pNMTreeView->itemNew.hItem, FALSE);
+		break;
+	case TVE_EXPAND:
+		TreeExpandUpdate(pNMTreeView->itemNew.hItem, TRUE);
+		break;
+	}
+}
+

@@ -26,6 +26,9 @@ CKeyParaDlg::CKeyParaDlg(CWnd* pParent /*=NULL*/)
 	m_KeyCode = _T("");
 	m_Maps = _T("");
 
+	m_hMapsEdit = NULL;
+	m_bCtrlMode = FALSE;
+
 	m_pData = NULL;
 }
 
@@ -44,10 +47,12 @@ void CKeyParaDlg::DoDataExchange(CDataExchange* pDX)
 	//DDX_Check(pDX, IDC_KEYSTAT9, m_WithCap);
 	DDX_CBString(pDX, IDC_KEYCODE, m_KeyCode);
 	DDX_CBString(pDX, IDC_KEYMAPS, m_Maps);
+	DDX_Control(pDX, IDC_EDITCTRL, m_EditCtrl);
 }
 
 BEGIN_MESSAGE_MAP(CKeyParaDlg, CDialogExt)
 	ON_BN_CLICKED(IDC_MENUBTN, &CKeyParaDlg::OnBnClickedMenubtn)
+	ON_BN_CLICKED(IDC_EDITCTRL, &CKeyParaDlg::OnBnClickedEditctrl)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -75,6 +80,10 @@ BOOL CKeyParaDlg::OnInitDialog()
 	CKeyNodeTab::SetComboList((CComboBox *)GetDlgItem(IDC_KEYMAPS));
 
 	UpdateData(FALSE);
+	
+	CWnd *pWnd;
+	if ( (pWnd = GetDlgItem(IDC_KEYMAPS)) != NULL && (pWnd = pWnd->GetWindow(GW_CHILD)) != NULL )
+		m_hMapsEdit = pWnd->GetSafeHwnd();
 
 	return TRUE;
 }
@@ -98,6 +107,58 @@ void CKeyParaDlg::OnOK()
 	//if ( m_WithCap )   m_pData->m_Mask |= MASK_CAPLCK;
 	m_pData->SetMaps(m_Maps);
 	CDialogExt::OnOK();
+}
+
+BOOL CKeyParaDlg::PreTranslateMessage(MSG* pMsg)
+{
+	if ( m_bCtrlMode && m_hMapsEdit != NULL && (pMsg->message == WM_KEYDOWN || pMsg->message == WM_CHAR) && pMsg->hwnd == m_hMapsEdit ) {
+		if ( pMsg->message == WM_KEYDOWN ) {
+			switch(pMsg->wParam) {
+			case VK_CANCEL:
+				pMsg->message = WM_CHAR;
+				pMsg->wParam  = 0x03;
+				break;
+			case VK_TAB:
+				pMsg->message = WM_CHAR;
+				pMsg->wParam  = 0x09;
+				break;
+			case VK_CLEAR:
+				pMsg->message = WM_CHAR;
+				pMsg->wParam  = 0x0C;
+				break;
+			case VK_RETURN:
+				pMsg->message = WM_CHAR;
+				pMsg->wParam  = 0x0D;
+				break;
+			case VK_ESCAPE:
+				pMsg->message = WM_CHAR;
+				pMsg->wParam  = 0x1B;
+				break;
+			//case VK_PRIOR:
+			//case VK_NEXT:
+			//case VK_END:
+			//case VK_HOME:
+			//case VK_LEFT:
+			//case VK_UP:
+			//case VK_RIGHT:
+			//case VK_DOWN:
+			//case VK_PRINT:
+			//case VK_EXECUTE:
+			//case VK_SNAPSHOT:
+			//case VK_INSERT:
+			//case VK_DELETE:
+			//case VK_HELP:
+			//	return TRUE;
+			}
+		}
+		if ( pMsg->message == WM_CHAR && pMsg->wParam < _T(' ') ) {
+			CString tmp;
+			tmp.Format(_T("\\%03o"), (int)pMsg->wParam);
+			::SendMessage(m_hMapsEdit, EM_REPLACESEL, (WPARAM)TRUE, (LPARAM)(LPCTSTR)tmp);
+			return TRUE;
+		}
+	}
+	return CDialogExt::PreTranslateMessage(pMsg);
 }
 
 void CKeyParaDlg::OnBnClickedMenubtn()
@@ -127,4 +188,12 @@ void CKeyParaDlg::OnBnClickedMenubtn()
 	UpdateData(TRUE);
 	m_Maps = p;
 	UpdateData(FALSE);
+}
+
+void CKeyParaDlg::OnBnClickedEditctrl()
+{
+	m_bCtrlMode = (m_EditCtrl.GetCheck() == BST_CHECKED ? TRUE : FALSE);
+
+	if ( m_hMapsEdit != NULL )
+		::SetFocus(m_hMapsEdit);
 }
