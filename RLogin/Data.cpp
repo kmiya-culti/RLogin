@@ -8919,3 +8919,14 @@ void CHttpThreadSession::Request(LPCTSTR url, LPCTSTR head, LPCSTR body, CWnd *p
 
 	AfxBeginThread(ThreadRequestProc, pSess, THREAD_PRIORITY_BELOW_NORMAL);
 }
+
+CEmojiImage::CEmojiImage()
+{
+	m_pNext = NULL;
+	m_bFileImage = FALSE;
+}
+CEmojiImage::~CEmojiImage()
+{
+	if ( (HBITMAP)m_Image != NULL )
+		m_Image.Destroy();
+}

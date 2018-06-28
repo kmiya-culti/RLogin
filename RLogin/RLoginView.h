@@ -147,14 +147,6 @@ public:
 	int m_GoziMax;
 #endif	// USE_GOZI
 
-#ifdef	USE_DIRECTWRITE
-	ID2D1HwndRenderTarget *m_pRenderTarget;
-	ID2D1GdiInteropRenderTarget *m_pGDIRT;
-	CRect m_RenderRect;
-
-	BOOL RenderDraw(RECT rect);
-#endif
-
 #ifdef	USE_OLE
 	CViewDropTarget m_DropTarget;
 #endif
@@ -272,10 +264,6 @@ protected:
 	afx_msg void OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnDropFiles(HDROP hDropInfo);
-
-#ifdef	USE_DIRECTWRITE
-	afx_msg void OnPaint();
-#endif
 
 	afx_msg LRESULT OnImeNotify(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnImeComposition(WPARAM wParam, LPARAM lParam);

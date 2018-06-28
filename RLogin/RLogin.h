@@ -42,6 +42,9 @@
 #define	INUSE_ACTWIN		1
 #define	INUSE_ALLWIN		2
 
+#define	EMOJI_HASH			16
+#define	EMOJI_LISTMAX		64
+
 //////////////////////////////////////////////////////////////////////
 // CCommandLineInfoEx
 
@@ -123,9 +126,15 @@ public:
 #ifdef	USE_DIRECTWRITE
 	ID2D1Factory *m_pD2DFactory;
 	IDWriteFactory *m_pDWriteFactory;
+	ID2D1DCRenderTarget *m_pDCRT;
+	CEmojiImage *m_pEmojiList[EMOJI_HASH];
+	CString m_EmojiFontName;
+	CString m_EmojiImageDir;
 
-	inline ID2D1Factory *GetD2D1Factory() { return m_pD2DFactory; }
-	inline IDWriteFactory *GetDWriteFactory() { return m_pDWriteFactory; }
+	HDC GetEmojiImage(CEmojiImage *pEmoji);
+	void SaveEmojiImage(CEmojiImage *pEmoji);
+	HDC GetEmojiDrawText(CEmojiImage *pEmoji, COLORREF fc, int fh);
+	BOOL DrawEmoji(CDC *pDC, CRect &rect, LPCTSTR str, COLORREF fc, COLORREF bc, BOOL bEraBack, int fh, int zm);
 #endif
 
 #ifdef	USE_JUMPLIST
@@ -139,6 +148,7 @@ public:
 #endif
 
 	BOOL GetExtFilePath(LPCTSTR ext, CString &path);
+	BOOL IsDirectory(LPCTSTR dir);
 	BOOL CreateDesktopShortcut(LPCTSTR entry);
 
 	void AddIdleProc(int Type, void *pParam);

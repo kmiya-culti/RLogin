@@ -558,6 +558,10 @@ CRLoginApp::CRLoginApp()
 #ifdef	USE_DIRECTWRITE
 	m_pD2DFactory    = NULL;
 	m_pDWriteFactory = NULL;
+	m_pDCRT = NULL;
+
+	for ( int n = 0 ; n < EMOJI_HASH ; n++ )
+		m_pEmojiList[n] = NULL;
 #endif
 
 #ifdef	USE_SAPI
@@ -597,6 +601,13 @@ CRLoginApp theApp;
 
 	HMODULE ExShcoreApi = NULL;
 	HRESULT (__stdcall *ExGetDpiForMonitor)(HMONITOR hmonitor, MONITOR_DPI_TYPE dpiType, UINT *dpiX, UINT *dpiY) = NULL;
+
+#ifdef	USE_DIRECTWRITE
+	HMODULE ExD2D1Api = NULL;
+    EXTERN_C HRESULT (WINAPI *ExD2D1CreateFactory)(__in D2D1_FACTORY_TYPE factoryType, __in REFIID riid, __in_opt CONST D2D1_FACTORY_OPTIONS *pFactoryOptions, __out void **ppIFactory) = NULL;
+	HMODULE ExDWriteApi = NULL;
+	EXTERN_C HRESULT (WINAPI *ExDWriteCreateFactory)(__in DWRITE_FACTORY_TYPE factoryType, __in REFIID iid, __out IUnknown **factory) = NULL;
+#endif
 
 void ExDwmEnableWindow(HWND hWnd, BOOL bEnable)
 {
@@ -837,11 +848,20 @@ BOOL CRLoginApp::IsWinVerCheck(int ver, int op)
 BOOL CRLoginApp::GetExtFilePath(LPCTSTR ext, CString &path)
 {
 	path.Format(_T("%s\\%s%s"), m_BaseDir, m_pszAppName, ext);
-	if ( _taccess_s(path, 6) == 0 )
+	if ( _taccess_s(path, 06) == 0 )
 		return TRUE;
 
 	path.Format(_T("%s\\%s%s"), m_ExecDir, m_pszAppName, ext);
-	if ( _taccess_s(path, 6) == 0 )
+	if ( _taccess_s(path, 06) == 0 )
+		return TRUE;
+
+	return FALSE;
+}
+BOOL CRLoginApp::IsDirectory(LPCTSTR dir)
+{
+	CFileStatus st;
+
+	if ( CFile::GetStatus(dir, st) && (st.m_attribute & CFile::directory) != 0 )
 		return TRUE;
 
 	return FALSE;
@@ -1043,8 +1063,29 @@ BOOL CRLoginApp::InitInstance()
 
 #ifdef	USE_DIRECTWRITE
 	// DirectWriteを試す
-	if ( SUCCEEDED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &m_pD2DFactory)) )
-		DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(m_pDWriteFactory), reinterpret_cast<IUnknown **>(&m_pDWriteFactory));
+	if ( IsWinVerCheck(_WIN32_WINNT_WINBLUE, VER_GREATER_EQUAL) ) {
+		if ( (ExD2D1Api = LoadLibrary(_T("d2d1.dll"))) != NULL && (ExDWriteApi = LoadLibrary(_T("dwrite.dll"))) != NULL ) {
+			ExD2D1CreateFactory = (HRESULT (WINAPI *)(__in D2D1_FACTORY_TYPE factoryType, __in REFIID riid, __in_opt CONST D2D1_FACTORY_OPTIONS *pFactoryOptions, __out void **ppIFactory))GetProcAddress(ExD2D1Api, "D2D1CreateFactory");
+			ExDWriteCreateFactory = (HRESULT (WINAPI *)(__in DWRITE_FACTORY_TYPE factoryType, __in REFIID iid, __out IUnknown **factory))GetProcAddress(ExDWriteApi, "DWriteCreateFactory");
+
+			if ( ExD2D1CreateFactory != NULL && ExDWriteCreateFactory != NULL && SUCCEEDED(ExD2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, __uuidof(ID2D1Factory), NULL, reinterpret_cast<void **>(&m_pD2DFactory))) )
+				ExDWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(m_pDWriteFactory), reinterpret_cast<IUnknown **>(&m_pDWriteFactory));
+
+			m_EmojiFontName = GetProfileString(_T("RLoginApp"), _T("EmojiFontName"), _T("Segoe UI emoji"));
+		}
+	}
+
+	m_EmojiImageDir.Format(_T("%s\\emoji"), m_BaseDir);
+	if ( !IsDirectory(m_EmojiImageDir) ) {
+		m_EmojiImageDir.Format(_T("%s\\emoji"), m_ExecDir);
+		if ( !IsDirectory(m_EmojiImageDir) ) {
+			m_EmojiImageDir = GetProfileString(_T("RLoginApp"), _T("EmojiImageDir"), _T(""));
+			if ( !m_EmojiImageDir.IsEmpty() ) {
+				if ( !IsDirectory(m_EmojiImageDir) )
+					m_EmojiImageDir.Empty();
+			}
+		}
+	}
 #endif
 
 #ifdef	USE_SAPI
@@ -1229,10 +1270,28 @@ int CRLoginApp::ExitInstance()
 #endif
 
 #ifdef	USE_DIRECTWRITE
+	if ( m_pDCRT != NULL )
+		m_pDCRT->Release();
+
 	if ( m_pDWriteFactory != NULL )
 		m_pDWriteFactory->Release();
+
 	if ( m_pD2DFactory != NULL )
 		m_pD2DFactory->Release();
+
+	for ( int n = 0 ; n < EMOJI_HASH ; n++ ) {
+		CEmojiImage *pEmoji;
+		while ( (pEmoji = m_pEmojiList[n]) != NULL ) {
+			m_pEmojiList[n] = pEmoji->m_pNext;
+			delete pEmoji;
+		}
+	}
+
+	if ( ExD2D1Api != NULL )
+		FreeLibrary(ExD2D1Api);
+
+	if ( ExDWriteApi != NULL )
+		FreeLibrary(ExDWriteApi);
 #endif
 
 #ifdef	USE_SAPI
@@ -2995,3 +3054,241 @@ void CRLoginApp::OnUpdateRegistapp(CCmdUI *pCmdUI)
 {
 	pCmdUI->SetCheck(m_bRegistAppp);
 }
+
+#ifdef	USE_DIRECTWRITE
+
+HDC CRLoginApp::GetEmojiImage(class CEmojiImage *pEmoji)
+{
+	if ( m_EmojiImageDir.IsEmpty() )
+		return NULL;
+
+	int n;
+	CString path, base, name, fmt;
+	CStringD dstr = pEmoji->m_String;
+	LPCDSTR p = dstr;
+
+	base.Format(_T("%s\\%05X\\"), m_EmojiImageDir, *p & 0xFFFF00);
+
+	for ( ; *p != 0 ; p++ ) {
+		fmt.Format(_T("%05X_"), *p);
+		name += fmt;
+	}
+	name.Delete(name.GetLength() - 1, 1);
+
+
+	for ( ; ; ) {
+		path.Format(_T("%s%s.png"), base, name);
+
+		if ( _taccess_s(path, 04) == 0 ) {
+			if ( FAILED(pEmoji->m_Image.Load(path)) )
+				break;
+			pEmoji->m_bFileImage = TRUE;
+			return pEmoji->m_Image.GetDC();
+		}
+
+		if ( (n = name.ReverseFind(_T('_'))) < 0 )
+			break;
+
+		name.Delete(n, name.GetLength() - n);
+	}
+
+	return NULL;
+}
+void CRLoginApp::SaveEmojiImage(class CEmojiImage *pEmoji)
+{
+	CString path, fmt;
+	CStringD dstr = pEmoji->m_String;
+	LPCDSTR p = dstr;
+
+	path.Format(_T("%s\\emoji\\%05X"), m_BaseDir, *p & 0xFFFF00);
+	CreateDirectory(path, NULL);
+	path += _T('\\');
+
+	for ( ; *p != 0 ; p++ ) {
+		fmt.Format(_T("%05X_"), *p);
+		path += fmt;
+	}
+
+	path.Delete(path.GetLength() - 1, 1);
+	path += _T(".png");
+
+	pEmoji->m_Image.Save(path);
+}
+HDC CRLoginApp::GetEmojiDrawText(class CEmojiImage *pEmoji, COLORREF fc, int fh)
+{
+	if ( m_pD2DFactory == NULL || m_pDWriteFactory == NULL )
+		return NULL;
+
+	BOOL rc = FALSE;
+	ID2D1SolidColorBrush *pBrush = NULL;
+	IDWriteTextFormat *pTextFormat = NULL;
+	IDWriteTextLayout* pTextLayout = NULL;
+	DWRITE_TEXT_METRICS tTextMetrics;
+	CRect frame;
+	HDC hDC = NULL;
+	LPCTSTR str = pEmoji->m_String;
+	int len = pEmoji->m_String.GetLength();
+	static D2D1_COLOR_F oBKColor = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+	if ( m_pDCRT == NULL ) {
+		D2D1_RENDER_TARGET_PROPERTIES props = D2D1::RenderTargetProperties(
+			D2D1_RENDER_TARGET_TYPE_DEFAULT,
+			D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
+			0, 0, D2D1_RENDER_TARGET_USAGE_NONE, D2D1_FEATURE_LEVEL_DEFAULT);
+
+		if ( FAILED(m_pD2DFactory->CreateDCRenderTarget(&props, &m_pDCRT)) )
+			goto ENDOF;
+	}
+
+	if ( FAILED(m_pDCRT->CreateSolidColorBrush(D2D1::ColorF(fc), &pBrush)) )
+		goto ENDOF;
+
+	if ( FAILED(m_pDWriteFactory->CreateTextFormat(m_EmojiFontName, NULL,
+			DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL,
+			(FLOAT)fh, _T(""), &pTextFormat)) )
+		goto ENDOF;
+
+	if ( FAILED(m_pDWriteFactory->CreateTextLayout(str, len, pTextFormat, 1024, 256, &pTextLayout)) )
+		goto ENDOF;
+                        
+	pTextLayout->GetMetrics(&tTextMetrics);
+
+	frame.left   = frame.top = 0;
+	frame.right  = (LONG)tTextMetrics.width;
+	frame.bottom = (LONG)tTextMetrics.height;
+
+	if ( pEmoji == NULL )
+		pEmoji = new CEmojiImage;
+	pEmoji->m_String = str;
+
+	if ( !pEmoji->m_Image.CreateEx(frame.Width(), frame.Height(), 32, BI_RGB, NULL, CImage::createAlphaChannel) )
+		goto ENDOF;
+
+	hDC = pEmoji->m_Image.GetDC();
+
+	if ( FAILED(m_pDCRT->BindDC(hDC, &frame)) )
+		goto ENDOF;
+
+	m_pDCRT->BeginDraw();
+	m_pDCRT->SetTransform(D2D1::Matrix3x2F::Identity());
+	m_pDCRT->Clear(oBKColor);
+
+#define	D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT	0x00000004
+
+	m_pDCRT->DrawText(str, len, pTextFormat,
+		&D2D1::RectF((FLOAT)frame.left, (FLOAT)frame.top, (FLOAT)frame.right, (FLOAT)frame.bottom), 
+		pBrush, (D2D1_DRAW_TEXT_OPTIONS)D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT);
+
+	if ( FAILED(m_pDCRT->EndDraw()) ) {
+		m_pDCRT->Release();
+		m_pDCRT = NULL;
+		goto ENDOF;
+	}
+
+	rc = TRUE;
+	pEmoji->m_bFileImage = FALSE;
+
+	// emoji\xxx00\xxxxx.pngを作成
+	//SaveEmojiImage(pEmoji);
+
+ENDOF:
+	if ( !rc && hDC != NULL ) {
+		pEmoji->m_Image.ReleaseDC();
+		hDC = NULL;
+	}
+
+	if ( pTextLayout != NULL )
+		pTextLayout->Release();
+
+	if ( pTextFormat != NULL )
+		pTextFormat->Release();
+
+	if ( pBrush != NULL )
+		pBrush->Release();
+
+	return hDC;
+}
+
+BOOL CRLoginApp::DrawEmoji(CDC *pDC, CRect &rect, LPCTSTR str, COLORREF fc, COLORREF bc, BOOL bEraBack, int fh, int zm)
+{
+	BOOL rc = FALSE;
+	HDC hDC = NULL;
+	int hash = 0;
+	int count = 0;
+	BOOL bLast = FALSE;
+	CEmojiImage *pBack, *pMid, *pEmoji;
+	int width, height;
+ 	static BLENDFUNCTION bf = { AC_SRC_OVER, 0, 0xFF, AC_SRC_ALPHA};
+
+	for ( int n = 0 ; str[n] != _T('\0') ; n++ )
+		hash = hash + (int)str[n];
+	hash &= (EMOJI_HASH -1);
+
+	for ( pBack = pEmoji = m_pEmojiList[hash] ; pEmoji != NULL ; ) {
+		if ( pEmoji->m_String.Compare(str) == 0 ) {
+			if ( pEmoji == pBack )
+				m_pEmojiList[hash] = pEmoji->m_pNext;
+			else
+				pBack->m_pNext = pEmoji->m_pNext;
+
+			if ( (HBITMAP)(pEmoji->m_Image) == NULL )
+				goto ENDOF;
+
+			// キャッシュしているサイズが小さい場合は、再構築
+			if ( !pEmoji->m_bFileImage && pEmoji->m_Image.GetHeight() < fh )
+				pEmoji->m_Image.Destroy();
+			else
+				hDC = pEmoji->m_Image.GetDC();
+			break;
+		}
+
+		if ( ++count > EMOJI_LISTMAX && pEmoji->m_pNext == NULL ) {
+			// 再利用時には、リストの中間に挿入。キャッシュミスが連続する場合には有効？(ARCのつもり)
+			bLast = TRUE;
+			pBack->m_pNext = NULL;
+			pEmoji->m_Image.Destroy();
+			break;
+		} else if ( count == (EMOJI_LISTMAX / 2) )
+			pMid = pEmoji;
+
+		pBack = pEmoji;
+		pEmoji = pEmoji->m_pNext;
+	}
+
+	if ( hDC == NULL ) {
+		if ( pEmoji == NULL )
+			pEmoji = new CEmojiImage;
+		pEmoji->m_String = str;
+
+		// ビットマップ取得できない情報もキャッシュに登録
+		if (  (hDC = GetEmojiImage(pEmoji)) == NULL && (hDC = GetEmojiDrawText(pEmoji, fc, fh)) == NULL )
+			goto ENDOF;
+	}
+
+	width  = pEmoji->m_Image.GetWidth();
+	height = pEmoji->m_Image.GetHeight();
+
+	if ( bEraBack )
+		pDC->FillSolidRect(rect, bc);
+
+	::AlphaBlend(pDC->GetSafeHdc(), rect.left, rect.top, rect.Width(), rect.Height(),
+		hDC, 0, zm == 3 ? (height / 2) : 0, width, zm >= 2 ? (height / 2) : height, bf);
+
+	// CImage.GetDC()してあるので注意
+	pEmoji->m_Image.ReleaseDC();
+	rc = TRUE;
+
+ENDOF:
+	if ( bLast ) {
+		// Insert Middle
+		pEmoji->m_pNext = pMid->m_pNext;
+		pMid->m_pNext = pEmoji;
+	} else {
+		// Insert Top
+		pEmoji->m_pNext = m_pEmojiList[hash];
+		m_pEmojiList[hash] = pEmoji;
+	}
+
+	return rc;
+}
+#endif

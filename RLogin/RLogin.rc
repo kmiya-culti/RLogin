@@ -262,7 +262,7 @@ BEGIN
         MENUITEM "次を検索(&N)",                    IDM_SEARCH_NEXT
         MENUITEM SEPARATOR
         MENUITEM "スクリプトの停止(&S)",                ID_CHARSCRIPT_END
-        MENUITEM "Brark信号を送る(&B)",              ID_SEND_BREAK
+        MENUITEM "Break信号を送る(&B)",              ID_SEND_BREAK
         MENUITEM "マウスイベントを無効(&M)",              ID_MOUSE_EVENT
         MENUITEM SEPARATOR
         MENUITEM "ブロードキャスト(&A)",                IDM_BROADCAST
@@ -582,7 +582,7 @@ BEGIN
                     "SysLink",WS_TABSTOP,44,178,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,193,60,14,WS_GROUP
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.23.5 (2018/05/30)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.23.6 (2018/06/29)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2018 Culti",IDC_STATIC,44,16,189,8
     LTEXT           "OpenSSL 1.1.0h 27 Mar 2018",IDC_STATIC,44,52,189,8
     LTEXT           "Copyright (c) 1998-2018 The OpenSSL Project",IDC_STATIC,44,61,189,8
@@ -1979,8 +1979,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,23,5,0
- PRODUCTVERSION 2,23,5,0
+ FILEVERSION 2,23,6,0
+ PRODUCTVERSION 2,23,6,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1997,12 +1997,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.23.5.0"
+            VALUE "FileVersion", "2.23.6.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2017 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.23.5.0"
+            VALUE "ProductVersion", "2.23.6.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -3972,7 +3972,7 @@ STRINGTABLE
 BEGIN
     IDS_AGENT_DELKEY        "指定された認証鍵を削除しますか？"
     IDS_ALLINITREQ          "すべての設定を標準に戻しますか？"
-    IDS_CERTTRASTREQ        "%s\n%s\nこの証明書を信頼しますか？"
+    IDS_CERTTRASTREQ        "%s\n%s\n\n上記の問題があるこの証明書を信頼して登録しますか？"
     IDS_CREATEDIRMSG        "新しいフォルダの作成"
     IDS_FILECLOSEQES        "現在、接続中です。接続を閉じますか？"
     IDS_FILECOUNTMSG        "%d個のファイル"
@@ -4145,6 +4145,8 @@ BEGIN
     IDS_ADDPAGEANTENTRY     "このエントリーで最初のPageantの起動を確認しました\n使用する認証鍵の優先順位を設定してください\n以降、鍵の追加などした場合に設定が必要になります"
     IDS_DROPSUBDIRCHECK     "ドロップ操作でサブフォルダは作成されません\nフォルダ内のファイルをダウンロードしますか？"
     IDS_REGISTAPPPROTOCOL   "既定のアプリでプロトコル登録を行いますか？"
+    IDS_DISCLIPBOARDREAD    "OSC52?によるクリップボードの読み込みが許可されていません"
+    IDS_DISCLIPBOARDWRITE   "OSC52によるクリップボードの書き込みが許可されていません"
 END
 
 STRINGTABLE
@@ -4511,6 +4513,7 @@ BEGIN
     IDT_EXTOPT_LIST22       "積極的に更新\t通常の画面更新\tウィンドウの描画更新を積極的に行う"
     IDT_EXTOPT_LIST23       "SOS/PM/APCを保存\t保存しない\tSOS/PM/APCのデータをファイルに保存する"
     IDT_EXTOPT_LIST24       "フォント置換しない\tフォント置換する\tデフォルトフォントのWindowsによるCHARSETフォント置換を行わない"
+    IDT_EXTOPT_LIST25       "カラー絵文字\tモノクロ絵文字\tWindows8.1移行でカラーの絵文字を表示する"
 END
 
 STRINGTABLE

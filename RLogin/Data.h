@@ -1038,4 +1038,16 @@ public:
 	static void Request(LPCTSTR url, LPCTSTR head, LPCSTR body, CWnd *pWnd);
 };
 
+class CEmojiImage : public CObject
+{
+public:
+	class CEmojiImage *m_pNext;
+	CString m_String;
+	CImage m_Image;
+	BOOL m_bFileImage;
+
+	CEmojiImage();
+	~CEmojiImage();
+};
+
 #endif // !defined(AFX_DATA_H__6A23DC3E_3DDC_47BD_A6FC_E0127564AE6E__INCLUDED_)

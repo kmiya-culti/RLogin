@@ -76,16 +76,22 @@
 //						0x00800000
 #define	ATT_RTOL		0x01000000		// RtoL Char
 #define	ATT_BORDER		0x02000000		// U+2500 Border Char
-//						0x04000000
+#define	ATT_EMOJI		0x04000000		// Color Emoji
 #define	ATT_RETURN		0x08000000		// CR/LF Mark		// max 7 * 4 = 28 bit
 #define	ATT_MASK		0x00FFFFFF
-#define	ATT_MASKEXT		0x07FFFFFF
+#define	ATT_MASKEXT		0x07FFFFFF		// ATT_RETURN Mask
 
 // 保存されないアトリビュート
 #define	ATT_CLIP		0x10000000		// Mouse Clip
+// どれか１つ
 #define	ATT_MIRROR		0x20000000		// Mirror Draw
 #define	ATT_OVERCHAR	0x40000000		// Over Write Charctor
+//						0x60000000
 //						0x80000000
+//						0xA0000000
+//						0xC0000000
+//						0xE0000000
+#define	ATT_EXTYPE(a)	((a) & 0xE0000000)
 
 #define	BLINK_TIME		300				// ATT_BLINK time (ms)
 #define	SBLINK_TIME		600				// ATT_SBLINK time (ms)
@@ -277,6 +283,7 @@
 #define	TO_RLTRSLIMIT	1482		// TCP/IPの帯域制限を行う
 #define	TO_RLDOSAVE		1483		// SOS/PM/APCでファイルに保存する
 #define	TO_RLNOCHKFONT	1484		// デフォルトフォントのCSetチェックを行わない
+#define	TO_RLCOLEMOJI	1485		// カラー絵文字を表示する
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -358,6 +365,7 @@
 #define	OSC52_READ		001
 #define	OSC52_WRITE		002
 
+#define	USFTCMAX		96
 #define	USFTWMAX		24
 #define	USFTHMAX		36
 #define	USFTLNSZ		((USFTHMAX + 5) / 6)
@@ -382,6 +390,10 @@
 #define	UNI_HNM			0x00000200		// Hangle Mid
 #define	UNI_HNL			0x00000400		// Hangle Last
 #define	UNI_RTL			0x00000800		// Right to Left block
+#define	UNI_GAIJI		0x00001000		// Gaiji
+#define	UNI_EMOJI		0x00002000		// Emoji
+#define	UNI_EMODF		0x00004000		// Emoji Modifier
+#define	UNI_BN			0x00008000		// Boundary Neutral
 
 										// CSI > Ps T/t		xterm CASE_RM_TITLE/CASE_SM_TITLE option flag bits m_XtOptFlag
 #define	XTOP_SETHEX		0x0001			//    Ps = 0  -> Set window/icon labels using hexadecimal.
@@ -673,13 +685,14 @@ public:
 	CString m_Iso646Name[2];
 	DWORD m_Iso646Tab[12];
 	CString m_OverZero;
+	COLORREF *m_pTransColor;
 
 	void Init();
 	void SetArray(CStringArrayExt &stra);
 	void GetArray(CStringArrayExt &stra);
 	CFontChacheNode *GetFont(int Width, int Height, int Style, int FontNum, class CTextRam *pTextRam);
 	const CFontNode & operator = (CFontNode &data);
-	void SetUserBitmap(int code, int width, int height, CBitmap *pMap, int ofx, int ofy, int asx, int asy, COLORREF bc);
+	void SetUserBitmap(int code, int width, int height, CBitmap *pMap, int ofx, int ofy, int asx, int asy, COLORREF bc, COLORREF tc);
 	void SetUserFont(int code, int width, int height, LPBYTE map);
 	BOOL SetFontImage(int width, int height);
 	int Compare(CFontNode &data);
@@ -830,6 +843,7 @@ typedef struct _SAVEPARAM {
 	int m_LastFlag;
 	int m_LastPos;
 	BOOL m_bRtoL;
+	BOOL m_bJoint;
 
 	int m_BankGL;
 	int m_BankGR;
@@ -870,6 +884,7 @@ public:
 	int m_LastFlag;
 	int m_LastPos;
 	BOOL m_bRtoL;
+	BOOL m_bJoint;
 
 	DWORD m_AnsiOpt[16];
 
@@ -998,6 +1013,7 @@ public:
 
 	BOOL m_bSixelColInit;
 	COLORREF *m_pSixelColor;
+	BYTE *m_pSixelAlpha;
 
 	int m_ColsMax;
 	int m_LineUpdate;
@@ -1023,6 +1039,7 @@ public:
 	int m_LastFlag;
 	int m_LastPos;
 	BOOL m_bRtoL;
+	BOOL m_bJoint;
 
 	DWORD m_BackChar;
 	int m_BackMode;
@@ -1282,7 +1299,7 @@ public:
 	void REVINDEX();
 	void PUT1BYTE(DWORD ch, int md, int at = 0);
 	void PUT2BYTE(DWORD ch, int md, int at = 0);
-	void PUTADD(int x, int y, DWORD ch, int cf);
+	void PUTADD(int x, int y, DWORD ch);
 	void INSMDCK(int len);
 	void ANSIOPT(int opt, int bit);
 	CTextSave *GETSAVERAM(int fMode);

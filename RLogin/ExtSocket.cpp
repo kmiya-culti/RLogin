@@ -905,6 +905,11 @@ void CExtSocket::GetStatus(CString &str)
 		tmp.Format(_T(" (%02d:%02d:%02d)\r\n"), sec / 3600, (sec % 3600) / 60, sec % 60);
 		str += tmp;
 	}
+
+	if ( !m_SSL_Msg.IsEmpty() ) {
+		str += _T("\r\nOpenSSL: Cert Chain list\r\n");
+		str += m_SSL_Msg;
+	}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -2037,11 +2042,16 @@ int CExtSocket::SSLConnect()
 	DWORD val;
 	const SSL_METHOD *method;
 	long result = 0;
-	X509 *cert = NULL;
+	X509 *pX509, *cert = NULL;
 	const char *errstr;
-	CString tmp, dig;
+	CString tmp, subject, finger, dig;
 	CIdKey key;
 	BOOL rf = FALSE;
+	X509_STORE *pStore;
+	X509_NAME *pName;
+	char name_buf[1024];
+	STACK_OF(X509) *pStack;
+	EVP_PKEY *pkey;
 
 	WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), 0, 0);
 
@@ -2088,44 +2098,82 @@ int CExtSocket::SSLConnect()
 	SSL_CTX_set_mode(m_SSL_pCtx, SSL_MODE_AUTO_RETRY);
 	SSL_set_fd(m_SSL_pSock, (int)m_Fd);
 
+	if ( (pStore = X509_STORE_new()) != NULL ) {
+		// Windows Certificate Store からROOT証明書をOpenSSLに登録
+	    HCERTSTORE hStore;
+		PCCERT_CONTEXT pContext = NULL;
+
+		if ( (hStore = CertOpenSystemStore(0, _T("ROOT"))) != NULL ) {
+			while ( (pContext = CertEnumCertificatesInStore(hStore, pContext)) != NULL ) {
+				if ( (pX509 = d2i_X509(NULL, (const unsigned char **)(&pContext->pbCertEncoded), pContext->cbCertEncoded)) != NULL ) {
+					X509_STORE_add_cert(pStore, pX509);
+					X509_free(pX509);
+				}
+			}
+			CertFreeCertificateContext(pContext);
+			CertCloseStore(hStore, 0);
+
+			SSL_CTX_set_cert_store(m_SSL_pCtx, pStore);
+		} else
+			X509_STORE_free(pStore);
+	}
+
 	if ( SSL_connect(m_SSL_pSock) < 0 )
 		goto ERRENDOF;
 
 	cert   = SSL_get_peer_certificate(m_SSL_pSock);
 	result = SSL_get_verify_result(m_SSL_pSock);
 
-	if ( cert == NULL || result != 0 ) {
-		// X509_NAME *X509_get_subject_name(const X509 *x);
-		// X509_NAME *X509_get_issuer_name(const X509 *x);
-		// char * X509_NAME_oneline(X509_NAME *a,char *buf,int size);
-		//
-		// EVP_PKEY *X509_get_pubkey(X509 *x);
-		// EVP_PKEY *X509_get0_pubkey(const X509 *x);
+	m_SSL_Msg.Empty();
 
-		X509_NAME *name;
-		char name_buf[1024];
-		EVP_PKEY *pkey = NULL;
+	if ( (pStack = SSL_get_peer_cert_chain(m_SSL_pSock)) != NULL ) {
+		// 証明書のチェインをステータスに残す
+		int n, num = sk_X509_num(pStack);
 
-		if ( (name = X509_get_subject_name(cert)) == NULL || X509_NAME_oneline(name, name_buf, 1024) == NULL )
-			strcpy(name_buf, "unknown");
+		for ( n = 0 ; n < num ; n++ ) {
+			if ( (pX509 = sk_X509_value(pStack, n)) != NULL && (pName = X509_get_subject_name(pX509)) != NULL && X509_NAME_oneline(pName, name_buf, 1024) != NULL ) {
+				if ( !m_SSL_Msg.IsEmpty() )
+					m_SSL_Msg += _T("\r\n");
 
-		pkey = X509_get_pubkey(cert);
+				tmp.Format(_T("Subject: %s\r\n"), MbsToTstr(name_buf));
+				m_SSL_Msg += tmp;
 
-		if ( cert != NULL && pkey != NULL ) {
-			key.SetEvpPkey(pkey);
+				if ( (pName = X509_get_issuer_name(pX509)) != NULL && X509_NAME_oneline(pName, name_buf, 1024) != NULL ) {
+					tmp.Format(_T("Issuer: %s\r\n"), MbsToTstr(name_buf));
+					m_SSL_Msg += tmp;
+				}
+
+				if ( (pkey = X509_get_pubkey(pX509)) != NULL && key.SetEvpPkey(pkey) ) {
+					key.FingerPrint(finger, SSHFP_DIGEST_SHA256, SSHFP_FORMAT_SIMPLE);
+					tmp.Format(_T("PublicKey: %s %dbits %s\r\n"), key.GetName(), key.GetSize(), finger);
+					m_SSL_Msg += tmp;
+				}
+			}
+		}
+	}
+
+	if ( cert == NULL || result != X509_V_OK ) {
+		if ( cert != NULL && (pName = X509_get_subject_name(cert)) != NULL && X509_NAME_oneline(pName, name_buf, 1024) != NULL )
+			subject = MbsToTstr(name_buf);
+		else
+			subject = _T("unkown");
+
+		if ( cert != NULL && (pkey = X509_get_pubkey(cert)) != NULL && key.SetEvpPkey(pkey) ) {
 			key.WritePublicKey(dig);
-			tmp = AfxGetApp()->GetProfileString(_T("Certificate"), MbsToTstr(name_buf), _T(""));
+			tmp = AfxGetApp()->GetProfileString(_T("Certificate"), subject, _T(""));
 			if ( !tmp.IsEmpty() && tmp.Compare(dig) == 0 )
 				rf = TRUE;
 		}
 
 		if ( rf == FALSE ) {
 			errstr = X509_verify_cert_error_string(result);
-			tmp.Format(CStringLoad(IDS_CERTTRASTREQ), MbsToTstr(name_buf),  MbsToTstr(errstr));
-			if ( AfxMessageBox(tmp, MB_ICONQUESTION | MB_YESNO) != IDYES )
+			tmp.Format(CStringLoad(IDS_CERTTRASTREQ), (m_SSL_Msg.IsEmpty() ? _T("Subject: unkown") : m_SSL_Msg), MbsToTstr(errstr));
+
+			if ( AfxMessageBox(tmp, MB_ICONWARNING | MB_YESNO) != IDYES )
 				goto ERRENDOF;
-			if ( cert != NULL && pkey != NULL && !dig.IsEmpty() )
-				AfxGetApp()->WriteProfileString(_T("Certificate"), MbsToTstr(name_buf), dig);
+
+			if ( cert != NULL && !dig.IsEmpty() )
+				AfxGetApp()->WriteProfileString(_T("Certificate"), subject, dig);
 		}
 	}
 

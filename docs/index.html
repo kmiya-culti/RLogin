@@ -28,8 +28,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.23.5)</TD>
-            <TD width="20%" align="right">2018/05/30</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.23.6)</TD>
+            <TD width="20%" align="right">2018/06/29</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -438,6 +438,14 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2018/06/29</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.23.6/">2.23.6</A></TD>
+            <TD>ProxyのSSL/TLSでWinodwsのROOT証明書を使用するように変更<BR>
+            Sixelの表示で背景色を変更しても透過するように変更<BR>
+            拡張機能にカラーで絵文字を表示を追加<BR>
+            UTF-8の文字幅などをUnicode-11.0.0のデータに更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2018/05/30</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.23.5/">2.23.5</A></TD>
             <TD>Server Selectのタブを￥区切りでツリー表示に変更<BR>
@@ -476,19 +484,6 @@ TD {
             MC/DECMCの操作をMCウィンドウに転送に変更<BR>
             DECSSDTのステータス表示を拡張<BR>
             DCSにRLMML(DCS#m)でMML形式のMIDI演奏を追加</TD>
-          </TR>
-          <TR>
-            <TD align="center">2018/01/30</TD>
-            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.23.1/">2.23.1</A></TD>
-            <TD>サーバーセレクトのタブを右クリックですべてを選択を追加<BR>
-            最小化したRLoginも対象にする/inuseaオプションを追加<BR>
-            SFTPのプログレスバーを全体の状態を示すように変更<BR>
-            DECDLDのSIXEL拡張を画像処理にも使えるように変更<BR>
-            SFTPのファイル操作を行う関数や処理を変更<BR>
-            SFTPのドロップによるファイル操作をスレッド処理に変更<BR>
-            OLEでの圧縮フォルダ－ツールのファイルコピーを追加<BR>
-            シリアル通信（プロトコルcom)の設定に送信遅延を追加<BR>
-            表示メニューにシリアルモニターを追加</TD>
           </TR>
           <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
@@ -1926,7 +1921,8 @@ TD {
                 <TR>
                   <TD align="center">SSH認証鍵</TD>
                   <TD>このエントリーだけで使用するSSH2の認証鍵ファイル(ssh-keygenなどで作成）を指定します<BR>
-                  ※設定を削除するにはファイル名選択でキャンセルをクリックして削除の確認にて「はい」を選択してください</TD>
+                  ※設定を削除するにはファイル名選択でキャンセルをクリックして削除の確認にて「はい」を選択してください<BR>
+                  ※2.23.4より<A href="#FILENAMEEXT">送信文字列の特殊文字</A>が利用できます</TD>
                 </TR>
                 <TR>
                   <TD align="center">文字セット</TD>
@@ -2446,7 +2442,10 @@ fi</PRE>
                       </TR>
                     </TBODY>
                   </TABLE>
-                  </TD>
+                  <BR>
+                  ※2.23.3の名残で「$XXX」の形式でも環境変数を展開しています<BR>
+                  ファイル名などに「$」を使用されている場合は、「$$」としてください。<BR>
+                  また、この仕様は、将来的に変更される可能性があります。</TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -3343,7 +3342,8 @@ fi</PRE>
                 </TR>
                 <TR>
                   <TD align="center" width="30%">エントリー・スクリプト</TD>
-                  <TD>接続時に実行するスクリプトファイル</TD>
+                  <TD>接続時に実行するスクリプトファイル<BR>
+                  ※2.23.4より<A href="#FILENAMEEXT">送信文字列の特殊文字</A>が利用できます</TD>
                 </TR>
                 <TR>
                   <TD align="center">トレースデバック</TD>
@@ -3956,6 +3956,18 @@ function TekClock2() {
                       </TR>
                       <TR>
                         <TD colspan="2">デフォルトフォントのWindowsによるCHARSETでフォント置換を行わないようにします。結果、文字が正しく表示されない場合がありますのでご注意ください。</TD>
+                      </TR>
+                      <TR>
+                        <TD align="center" rowspan="2">485</TD>
+                        <TD>カラー絵文字</TD>
+                        <TD>モノクロ絵文字</TD>
+                      </TR>
+                      <TR>
+                        <TD colspan="2">Winodws 8.1以降の場合は、DirectTextを用いてカラー絵文字を表示します。カラー絵文字に対応していないWindowsの場合などは、RLogin実行時の作業フォルダもしくは、RLogin.exeのあるフォルダにemojiフォルダを置くとPNG画像ファイルから表示を試みます。<A href="https://github.com/adobe-fonts/emojione-color">EmojiOne Color</A>から作成した<A href="emoji.zip">カラー絵文字のPNG画像ファイル</A>です。<BR>
+                        ※レジストリの変更で絵文字のフォント、イメージのフォルダを指定できます。<BR>
+                        [HKEY_CURRENT_USER\Software\Culti\RLogin\RLoginApp]<BR>
+                        &quot;EmojiFontName&quot;=&quot;Segoe UI emoji&quot;<BR>
+                        &quot;EmojiImageDir&quot;=&quot;C:\emoji&quot;</TD>
                       </TR>
                     </TBODY>
                   </TABLE>
@@ -5017,7 +5029,8 @@ function TekClock2() {
                 </TR>
                 <TR>
                   <TD width="30%" align="center">参照</TD>
-                  <TD>バック画面で使用する画像をBMP/JPEGなどから選択できます</TD>
+                  <TD>バック画面で使用する画像をBMP/JPEGなどから選択できます<BR>
+                  ※2.23.4より<A href="#FILENAMEEXT">送信文字列の特殊文字</A>が利用できます</TD>
                 </TR>
                 <TR>
                   <TD align="center">画像の配置方法</TD>

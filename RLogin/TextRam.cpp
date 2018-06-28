@@ -334,10 +334,15 @@ void CCharCell::Fill(CCharCell *dis, EXTVRAM &vram, int size)
 
 CFontNode::CFontNode()
 {
+	m_pTransColor = NULL;
 	Init();
 }
 CFontNode::~CFontNode()
 {
+	if ( m_pTransColor != NULL ) {
+		delete [] m_pTransColor;
+		m_pTransColor = NULL;
+	}
 }
 void CFontNode::Init()
 {
@@ -371,6 +376,11 @@ void CFontNode::Init()
 	m_Iso646Tab[9]  = 0x007C;
 	m_Iso646Tab[10] = 0x007D;
 	m_Iso646Tab[11] = 0x007E;	//	0x203E		0x223C
+
+	if ( m_pTransColor != NULL ) {
+		delete [] m_pTransColor;
+		m_pTransColor = NULL;
+	}
 }
 void CFontNode::SetArray(CStringArrayExt &stra)
 {
@@ -493,7 +503,7 @@ const CFontNode & CFontNode::operator = (CFontNode &data)
 	for ( int n = 0 ; n < 12 ; n++ )
 		m_Iso646Tab[n] = data.m_Iso646Tab[n];
 
-	m_OverZero = data.m_OverZero;
+	m_OverZero   = data.m_OverZero;
 
 	return *this;
 }
@@ -525,7 +535,7 @@ int CFontNode::Compare(CFontNode &data)
 
 	return 0;
 }
-void CFontNode::SetUserBitmap(int code, int width, int height, CBitmap *pMap, int ofx, int ofy, int asx, int asy, COLORREF bc)
+void CFontNode::SetUserBitmap(int code, int width, int height, CBitmap *pMap, int ofx, int ofy, int asx, int asy, COLORREF bc, COLORREF tc)
 {
 	CDC oDc, nDc;
 	CBitmap *pOld[2];
@@ -533,8 +543,8 @@ void CFontNode::SetUserBitmap(int code, int width, int height, CBitmap *pMap, in
 
 	if ( (code -= 0x20) < 0 )
 		code = 0;
-	else if ( code > 95 )
-		code = 95;
+	else if ( code >= USFTCMAX )
+		code = USFTCMAX - 1;
 
 	if ( !pMap->GetBitmap(&info) )
 		return;
@@ -553,15 +563,31 @@ void CFontNode::SetUserBitmap(int code, int width, int height, CBitmap *pMap, in
 		}
 		m_MapType = FNT_BITMAP_COLOR;
 		pOld[1] = nDc.SelectObject(&m_UserFontMap);
-		nDc.FillSolidRect(0, 0, USFTWMAX * 96, USFTHMAX, bc);
-		memset(m_UserFontDef, 0, 96 / 8);
+		nDc.FillSolidRect(0, 0, USFTWMAX * USFTCMAX, USFTHMAX, bc);
+		memset(m_UserFontDef, 0, USFTCMAX / 8);
+		if ( m_pTransColor != NULL )
+			memset(m_pTransColor, 0xFF, sizeof(COLORREF) * USFTCMAX);
+
 	} else
 		pOld[1] = nDc.SelectObject(&m_UserFontMap);
 
 	pOld[0] = oDc.SelectObject(pMap);
 
-	nDc.StretchBlt(USFTWMAX * code, 0, (width < USFTWMAX ? width : USFTWMAX), (height < USFTHMAX ? height : USFTHMAX),
-		&oDc, ofx * asx / ASP_DIV, ofy * asy / ASP_DIV, width * asx / ASP_DIV, height * asy / ASP_DIV, SRCCOPY);
+	if ( tc != (-1) ) {
+		if ( m_pTransColor == NULL ) {
+			m_pTransColor = new COLORREF[USFTCMAX];
+			memset(m_pTransColor, 0xFF, sizeof(COLORREF) * USFTCMAX);
+		}
+		m_pTransColor[code] = tc;
+
+		nDc.FillSolidRect(USFTWMAX * code, 0, (width < USFTWMAX ? width : USFTWMAX), (height < USFTHMAX ? height : USFTHMAX), tc);
+		nDc.TransparentBlt(USFTWMAX * code, 0, (width < USFTWMAX ? width : USFTWMAX), (height < USFTHMAX ? height : USFTHMAX),
+			&oDc, ofx * asx / ASP_DIV, ofy * asy / ASP_DIV, width * asx / ASP_DIV, height * asy / ASP_DIV, tc);
+
+	} else {
+		nDc.StretchBlt(USFTWMAX * code, 0, (width < USFTWMAX ? width : USFTWMAX), (height < USFTHMAX ? height : USFTHMAX),
+			&oDc, ofx * asx / ASP_DIV, ofy * asy / ASP_DIV, width * asx / ASP_DIV, height * asy / ASP_DIV, SRCCOPY);
+	}
 
 	oDc.SelectObject(pOld[0]);
 	nDc.SelectObject(pOld[1]);
@@ -584,8 +610,8 @@ void CFontNode::SetUserFont(int code, int width, int height, LPBYTE map)
 
 	if ( (code -= 0x20) < 0 )
 		code = 0;
-	else if ( code > 95 )
-		code = 95;
+	else if ( code >= USFTCMAX )
+		code = USFTCMAX - 1;
 
 	if ( !dc.CreateCompatibleDC(NULL) )
 		return;
@@ -594,14 +620,14 @@ void CFontNode::SetUserFont(int code, int width, int height, LPBYTE map)
 		m_UserFontMap.DeleteObject();
 
 	if ( m_UserFontMap.GetSafeHandle() == NULL ) {
-		if ( !m_UserFontMap.CreateBitmap(USFTWMAX * 96, USFTHMAX, 1, 1, NULL) ) {
+		if ( !m_UserFontMap.CreateBitmap(USFTWMAX * USFTCMAX, USFTHMAX, 1, 1, NULL) ) {
 			dc.DeleteDC();
 			return;
 		}
 		m_MapType = FNT_BITMAP_MONO;
 		pOld = dc.SelectObject(&m_UserFontMap);
-		dc.FillSolidRect(0, 0, USFTWMAX * 96, USFTHMAX, RGB(255, 255, 255));
-		memset(m_UserFontDef, 0, 96 / 8);
+		dc.FillSolidRect(0, 0, USFTWMAX * USFTCMAX, USFTHMAX, RGB(255, 255, 255));
+		memset(m_UserFontDef, 0, USFTCMAX / 8);
 		m_UserFontDef[0] |= 0x01;	// ' '
 	} else
 		pOld = dc.SelectObject(&m_UserFontMap);
@@ -624,6 +650,11 @@ void CFontNode::SetUserFont(int code, int width, int height, LPBYTE map)
 
 	if (  m_FontMap.GetSafeHandle() != NULL )
 		m_FontMap.DeleteObject();
+
+	if ( m_pTransColor != NULL ) {
+		delete [] m_pTransColor;
+		m_pTransColor = NULL;
+	}
 }
 BOOL CFontNode::SetFontImage(int width, int height)
 {
@@ -647,16 +678,16 @@ BOOL CFontNode::SetFontImage(int width, int height)
 		if ( !oDc.CreateCompatibleDC(NULL) || !nDc.CreateCompatibleDC(NULL) )
 			return FALSE;
 
-		if ( !m_FontMap.CreateBitmap(width * 96, height, info.bmPlanes, info.bmBitsPixel, NULL) )
+		if ( !m_FontMap.CreateBitmap(width * USFTCMAX, height, info.bmPlanes, info.bmBitsPixel, NULL) )
 			return FALSE;
 
 		pOld[0] = oDc.SelectObject(&m_UserFontMap);
 		pOld[1] = nDc.SelectObject(&m_FontMap);
 
-		if ( width > m_UserFontWidth || info.bmBitsPixel > 1 )
+		if ( m_pTransColor == NULL && (width > m_UserFontWidth || info.bmBitsPixel > 1) )
 			nDc.SetStretchBltMode(HALFTONE);
 
-		nDc.StretchBlt(0, 0, width * 96, height, &oDc, 0, 0, USFTWMAX * 96, USFTHMAX, SRCCOPY);
+		nDc.StretchBlt(0, 0, width * USFTCMAX, height, &oDc, 0, 0, USFTWMAX * USFTCMAX, USFTHMAX, SRCCOPY);
 
 		oDc.SelectObject(pOld[0]);
 		nDc.SelectObject(pOld[1]);
@@ -1452,6 +1483,7 @@ CTextRam::CTextRam()
 	m_bOscActive = FALSE;
 	m_bIntTimer = FALSE;
 	m_bRtoL = FALSE;
+	m_bJoint = FALSE;
 	m_XtOptFlag = 0;
 	m_XtMosPointMode = 0;
 	m_TitleStack.RemoveAll();
@@ -1505,6 +1537,7 @@ CTextRam::CTextRam()
 	m_pImageWnd = NULL;
 	m_bSixelColInit = FALSE;
 	m_pSixelColor = NULL;
+	m_pSixelAlpha = NULL;
 	m_FixVersion = 0;
 	m_SleepMax = VIEW_SLEEP_MAX;
 
@@ -1578,6 +1611,9 @@ CTextRam::~CTextRam()
 
 	if ( m_pSixelColor != NULL )
 		delete [] m_pSixelColor;
+
+	if ( m_pSixelAlpha != NULL )
+		delete [] m_pSixelAlpha;
 
 	SetTraceLog(FALSE);
 }
@@ -5072,7 +5108,7 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 		width = width * 80 / 100;
 	}
 
-	if ( (prop.attr & ATT_MIRROR) != 0 ) {
+	if ( ATT_EXTYPE(prop.attr) == ATT_MIRROR ) {
 		mirDC.CreateCompatibleDC(pDC);
 		MirMap.CreateCompatibleBitmap(pDC, rect.Width(), rect.Height());
 		pOldMirMap = mirDC.SelectObject(&MirMap);
@@ -5093,7 +5129,9 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 	pDC->SetTextColor(fc);
 	pDC->SetBkColor(bc);
 
-	if ( pFontCache->m_bFixed )
+	if ( (prop.attr & ATT_EMOJI) != 0 )
+		type = 3;
+	else if ( pFontCache->m_bFixed )
 		type = 1;
 	else if ( IsOptEnable(TO_RLWORDPP) )
 		type = 2;
@@ -5113,10 +5151,17 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 			while ( a <= i )
 				str += prop.pText[a++];
 
-			if ( (c = str[0] - 0x20) >= 0 && c < 96 && (pFontNode->m_UserFontDef[c / 8] & (1 << (c % 8))) != 0 ) {
-				if ( bEraBack || pFontNode->m_MapType == FNT_BITMAP_COLOR )
+			if ( (c = str[0] - 0x20) >= 0 && c < USFTCMAX && (pFontNode->m_UserFontDef[c / 8] & (1 << (c % 8))) != 0 ) {
+				if ( pFontNode->m_MapType == FNT_BITMAP_COLOR ) {
+					if ( pFontNode->m_pTransColor != NULL && pFontNode->m_pTransColor[c] != (-1) ) {
+						if ( bEraBack )
+							pDC->FillSolidRect(box, bc);
+						pDC->TransparentBlt(box.left, box.top, box.Width(), box.Height(), &workDC, pFontNode->m_FontWidth * c, (prop.zoom == 3 ? pView->m_CharHeight : 0), box.Width(), box.Height(), pFontNode->m_pTransColor[c]);
+					} else
+						pDC->BitBlt(box.left, box.top, box.Width(), box.Height(), &workDC, pFontNode->m_FontWidth * c, (prop.zoom == 3 ? pView->m_CharHeight : 0), SRCCOPY);
+				} else if ( bEraBack ) {
 					pDC->BitBlt(box.left, box.top, box.Width(), box.Height(), &workDC, pFontNode->m_FontWidth * c, (prop.zoom == 3 ? pView->m_CharHeight : 0), SRCCOPY);
-				else {
+				} else {
 					pDC->SetTextColor(RGB(0, 0, 0));
 					pDC->SetBkColor(RGB(255, 255, 255));
 					pDC->BitBlt(box.left, box.top, box.Width(), box.Height(), &workDC, pFontNode->m_FontWidth * c, (prop.zoom == 3 ? pView->m_CharHeight : 0), SRCAND);
@@ -5212,18 +5257,19 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 			sz = pDC->GetTextExtent(str);
 			ow += sz.cx;
 
+			// 文字幅(box.right)を計算
 			if ( nw > 0 ) {
-				x = ow * frame.Width() / nw;
-				y = rect.left + (n + 2) * rect.Width() / prop.size;
+				x = ow * frame.Width() / nw;						// 相対幅
+				y = rect.left + (n + 2) * rect.Width() / prop.size;	// 固定位置+2
 				if ( (frame.left + x) >= y && nw > ow ) {
 					nw -= ow;
 					ow = 0;
 					box.right = box.left + sz.cx;
 					frame.left = box.right;
 				} else
-					box.right = frame.left + x;
+					box.right = frame.left + x;						// 均等割
 			} else
-				box.right = box.left + sz.cx;
+				box.right = box.left + sz.cx;						// 表示幅
 
 			x = box.left + pView->m_CharWidth  * pFontNode->m_OffsetW / 100 + (box.Width() - sz.cx) / 2;
 			y = box.top  - pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? pView->m_CharHeight : 0);
@@ -5247,7 +5293,7 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 		// Center Draw
 		// 文字単位で縮小、固定幅、センターリング
 		DRAWCHAR:
-		for ( n = i = a = 0 ; n < prop.size ; n++ ) {
+		for ( n = i = a = 0 ; n < prop.size ; n++ ) { 
 			while ( prop.pSpace[i] == 0 )
 				i++;
 			box.right = box.left + prop.pSpace[i];
@@ -5256,31 +5302,38 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 			while ( a <= i )
 				str += prop.pText[a++];
 
-			sz = pDC->GetTextExtent(str);
-			if ( (nw = (box.Width() < sz.cx ? (width * box.Width() / sz.cx) : width)) <= 0 )
-				nw = 1;
-
-			if ( nw != width ) {
-				pFontCache = pFontNode->GetFont(nw, height, style, prop.font, this);
-				pDC->SelectObject(pFontCache->m_pFont);
+#ifdef	USE_DIRECTWRITE
+			// Try DirectWrite Color Emoji Draw
+			if ( type != 3 || !((CRLoginApp *)::AfxGetApp())->DrawEmoji(pDC, box, str, fc, bc, bEraBack, height, prop.zoom == 3 ? TRUE : FALSE) ) {
+#endif
 				sz = pDC->GetTextExtent(str);
+				if ( (nw = (box.Width() < sz.cx ? (width * box.Width() / sz.cx) : width)) <= 0 )
+					nw = 1;
+
+				if ( nw != width ) {
+					pFontCache = pFontNode->GetFont(nw, height, style, prop.font, this);
+					pDC->SelectObject(pFontCache->m_pFont);
+					sz = pDC->GetTextExtent(str);
+				}
+
+				x = box.left + pView->m_CharWidth * pFontNode->m_OffsetW / 100 + (box.Width() - sz.cx) / 2;
+				y = box.top - pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? pView->m_CharHeight : 0);
+
+				pDC->ExtTextOutW(x, y, mode, box, str, NULL);
+
+				if ( nw != width ) {
+					pFontCache = pFontNode->GetFont(width, height, style, prop.font, this);
+					pDC->SelectObject(pFontCache->m_pFont);
+				}
+#ifdef	USE_DIRECTWRITE
 			}
-
-			x = box.left + pView->m_CharWidth * pFontNode->m_OffsetW / 100 + (box.Width() - sz.cx) / 2;
-			y = box.top - pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? pView->m_CharHeight : 0);
-
-			pDC->ExtTextOutW(x, y, mode, box, str, NULL);
-
-			if ( nw != width ) {
-				pFontCache = pFontNode->GetFont(width, height, style, prop.font, this);
-				pDC->SelectObject(pFontCache->m_pFont);
-			}
+#endif
 
 			box.left += prop.pSpace[i++];
 		}
 	}
 	
-	if ( (prop.attr & ATT_MIRROR) != 0 ) {
+	if ( ATT_EXTYPE(prop.attr) == ATT_MIRROR ) {
 		rect = save;
 		pSaveDC->StretchBlt(rect.left + rect.Width() - 1, rect.top, 0 - rect.Width(), rect.Height(), pDC, 0, 0, rect.Width(), rect.Height(), SRCCOPY);
 		mirDC.SelectObject(pOldMirMap);
@@ -5624,7 +5677,7 @@ void CTextRam::DrawString(CDC *pDC, CRect &rect, struct DrawWork &prop, class CR
 		DrawChar(pDC, rect, fcol, bcol, bEraBack, prop, pView);
 	}
 
-	if ( (prop.attr & ATT_OVERCHAR) != 0 )
+	if ( ATT_EXTYPE(prop.attr) == ATT_OVERCHAR )
 		DrawOverChar(pDC, rect, fcol, bcol, prop, pView);
 
 	if ( (prop.attr & (ATT_OVER | ATT_DOVER | ATT_LINE | ATT_UNDER | ATT_DUNDER | ATT_SUNDER | ATT_STRESS)) != 0 )
@@ -6269,6 +6322,7 @@ BOOL CTextRam::CallReceiveChar(DWORD ch, LPCTSTR name)
 	if ( (ch & 0xFFFF0000) == 0 && ch < ' ' ) {
 		m_LastFlag = 0;
 		m_bRtoL = FALSE;
+		m_bJoint = FALSE;
 	}
 
 	if ( m_pDocument == NULL || m_bTraceActive )
@@ -7011,6 +7065,7 @@ void CTextRam::RESET(int mode)
 		m_DoWarp = FALSE;
 
 		m_bRtoL = FALSE;
+		m_bJoint = FALSE;
 		m_Status = ST_NULL;
 		m_LastChar = 0;
 		m_LastFlag = 0;
@@ -7893,6 +7948,7 @@ void CTextRam::SaveParam(SAVEPARAM *pSave)
 	pSave->m_LastFlag = m_LastFlag;
 	pSave->m_LastPos  = m_LastPos;
 	pSave->m_bRtoL    = m_bRtoL;
+	pSave->m_bJoint   = m_bJoint;
 
 	pSave->m_Decom    = (IsOptEnable(TO_DECOM)  ? TRUE : FALSE);
 	pSave->m_Decawm   = (IsOptEnable(TO_DECAWM) ? TRUE : FALSE);
@@ -7922,6 +7978,7 @@ void CTextRam::LoadParam(SAVEPARAM *pSave, BOOL bAll)
 	m_LastFlag = pSave->m_LastFlag;
 	m_LastPos  = pSave->m_LastPos;
 	m_bRtoL    = pSave->m_bRtoL;
+	m_bJoint   = pSave->m_bJoint;
 
 	if ( bAll ) {
 		m_TopY     = pSave->m_TopY;
@@ -8429,7 +8486,7 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at)
 			m_CurX = m_Margin.right - 1;
 	}
 }
-void CTextRam::PUTADD(int x, int y, DWORD ch, int cf)
+void CTextRam::PUTADD(int x, int y, DWORD ch)
 {
 	CCharCell *vp;
 
@@ -8540,6 +8597,7 @@ CTextSave *CTextRam::GETSAVERAM(int fMode)
 	pSave->m_LastFlag = m_LastFlag;
 	pSave->m_LastPos  = m_LastPos;
 	pSave->m_bRtoL    = m_bRtoL;
+	pSave->m_bJoint   = m_bJoint;
 
 	memcpy(pSave->m_AnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
 

@@ -237,6 +237,8 @@
 #define IDS_ADDPAGEANTENTRY             632
 #define IDS_DROPSUBDIRCHECK             633
 #define IDS_REGISTAPPPROTOCOL           634
+#define	IDS_DISCLIPBOARDREAD			635
+#define	IDS_DISCLIPBOARDWRITE			636
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -302,6 +304,7 @@
 #define IDT_EXTOPT_LIST22               821
 #define IDT_EXTOPT_LIST23               822
 #define IDT_EXTOPT_LIST24               823
+#define IDT_EXTOPT_LIST25               824
 #define IDT_TERM_LIST01                 900
 #define IDT_TERM_LIST02                 901
 #define IDT_TERM_LIST03                 902
@@ -1073,6 +1076,6 @@
 #define _APS_NEXT_RESOURCE_VALUE        171
 #define _APS_NEXT_COMMAND_VALUE         5134
 #define _APS_NEXT_CONTROL_VALUE         2493
-#define _APS_NEXT_SYMED_VALUE           634
+#define _APS_NEXT_SYMED_VALUE           637
 #endif
 #endif

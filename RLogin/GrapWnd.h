@@ -98,11 +98,12 @@ public:
 	CDC m_SixelTempDC;
 	COLORREF m_SixelBackColor;
 	COLORREF m_SixelTransColor;
+	BYTE *m_pAlphaMap;
 
 	void SixelStart(int aspect, int mode, int grid, COLORREF bc = 0);
 	void SixelResize();
 	void SixelData(int ch);
-	void SixelEndof();
+	void SixelEndof(BOOL bAlpha = FALSE);
 	void SetSixel(int aspect, int mode, int grid, LPCSTR str, COLORREF bc = 0);
 
 	// Grap Image Load
@@ -159,7 +160,9 @@ public:
 	// Screen Option
 	int m_ActMap;
 	COLORREF *m_ColMap;
-	COLORREF m_PriColMap[SIXEL_PALET];
+	COLORREF m_ColMapLoc[SIXEL_PALET];
+	BYTE *m_ColAlpha;
+	BYTE m_ColAlphaLoc[SIXEL_PALET];
 	COLORREF m_BakCol;
 	BYTE m_PtnMap[10];
 

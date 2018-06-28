@@ -2330,7 +2330,9 @@ void CTextRam::fc_UTF84(DWORD ch)
 void CTextRam::fc_UTF85(DWORD ch)
 {
 	// 10xx xxxx
-	int n, cf;
+	int n, cf, ea = 0;
+	DWORD DCode;
+	BOOL bJoint = FALSE;
 
 	fc_KANJI(ch);
 
@@ -2360,6 +2362,7 @@ void CTextRam::fc_UTF85(DWORD ch)
 			goto BREAK;
 
 		// ˆÈ~AƒTƒƒQ[ƒg‚³‚ê‚½UTF-16‚Åˆ—
+		DCode = m_BackChar;
 		m_BackChar = UCS4toUCS2(m_BackChar);
 		cf = UnicodeCharFlag(m_BackChar);
 
@@ -2414,10 +2417,10 @@ void CTextRam::fc_UTF85(DWORD ch)
 			// U+11A8-11F9 ‚ÍIºŽq‰¹
 			if ( (m_LastFlag & UNI_HNF) != 0 ) {
 				if ( (cf & UNI_HNM) != 0 ) {
-					PUTADD(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX, m_BackChar, cf);
+					PUTADD(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX, m_BackChar);
 					goto BREAK;
 				} else if ( (cf & UNI_HNL) != 0 ) {
-					PUTADD(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX, m_BackChar, cf);
+					PUTADD(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX, m_BackChar);
 					m_LastChar = m_LastFlag = 0;
 					goto BREAK;
 				}
@@ -2429,8 +2432,9 @@ void CTextRam::fc_UTF85(DWORD ch)
 		// U+FE00 - U+FE0F
 		// U+E0100 = U+DB40 U+DD00 - U+E01EF = U+DB40 U+DDEF
 		// Non Spaceing Mark (with VARIATION SELECTOR !!)
-		if ( m_LastChar > 0 && (cf & (UNI_IVS | UNI_NSM)) != 0 ) {
-			PUTADD(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX, m_BackChar, cf);
+		if ( (cf & (UNI_IVS | UNI_NSM)) != 0 ) {
+			if ( m_LastChar > 0 )
+				PUTADD(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX, m_BackChar);
 			goto BREAK;
 		}
 
@@ -2443,7 +2447,7 @@ void CTextRam::fc_UTF85(DWORD ch)
 		//
 		// DRCSMMv2
 		//       cc		0x20-0x7F = SET_94, 0xA0-0xFF = SET_96
-		if ( m_BackChar >= 0xDBC0DC00L && m_BackChar <= 0xDBFFDFFFL && IsOptEnable(TO_DRCSMMv1) ) {
+		if ( (cf & UNI_GAIJI) != 0 && IsOptEnable(TO_DRCSMMv1) ) {
 			n = UCS2toUCS4(m_BackChar);
 			CString tmp;
 			tmp.Format(_T(" %c"), (n >> 8) & 0xFF);
@@ -2460,25 +2464,91 @@ void CTextRam::fc_UTF85(DWORD ch)
 		else
 			n = 1;
 
-		// 1 Cell type Unicode
-		if ( n == 1 ) {
+		if ( (cf & UNI_RTL) != 0 )
+			ea |= ATT_RTOL;
+
+#ifdef	USE_DIRECTWRITE
+		// Unicode Emoji
+		// U+2600`U+27BF
+		// U+1F300(D83C DF00)`U+1F6FF(D83D DEFF) 
+		// U+1F900(D83E DD00)`U+1F9FF(D83E DDFF)
+		if ( (cf & UNI_EMOJI) != 0 && IsOptEnable(TO_RLCOLEMOJI) )
+			ea |= ATT_EMOJI;
+#endif
+
+		if ( (cf & UNI_EMODF) != 0 ) {
+			if ( m_LastChar > 0 && (m_LastFlag & UNI_EMOJI) != 0 )
+				PUTADD(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX, m_BackChar);
+			goto BREAK;
+
+		} else if ( (cf & UNI_BN) != 0 ) {
+			switch(DCode) {
+			// 180E;MONGOLIAN VOWEL SEPARATOR
+			// 200B;ZERO WIDTH SPACE;Cf;0;BN;;;;;N;;;;;
+
+			// 200C;ZERO WIDTH NON-JOINER;Cf;0;BN;;;;;N;;;;;
+			// 200D;ZERO WIDTH JOINER;Cf;0;BN;;;;;N;;;;;
+			case 0x200C:
+			case 0x200D:
+				bJoint = m_bJoint = TRUE;
+				break;
+
+			// 2060;WORD JOINER;Cf;0;BN;;;;;N;;;;;
+			// 2061;FUNCTION APPLICATION;Cf;0;BN;;;;;N;;;;;
+			// 2062;INVISIBLE TIMES;Cf;0;BN;;;;;N;;;;;
+			// 2063;INVISIBLE SEPARATOR;Cf;0;BN;;;;;N;;;;;
+
+			// 206A;INHIBIT SYMMETRIC SWAPPING;Cf;0;BN;;;;;N;;;;;
+			// 206B;ACTIVATE SYMMETRIC SWAPPING;Cf;0;BN;;;;;N;;;;;
+			// 206C;INHIBIT ARABIC FORM SHAPING;Cf;0;BN;;;;;N;;;;;
+			// 206D;ACTIVATE ARABIC FORM SHAPING;Cf;0;BN;;;;;N;;;;;
+
+			// 1BCA0;SHORTHAND FORMAT LETTER OVERLAP;Cf;0;BN;;;;;N;;;;;
+			// 1BCA1;SHORTHAND FORMAT CONTINUING OVERLAP;Cf;0;BN;;;;;N;;;;;
+			// 1BCA2;SHORTHAND FORMAT DOWN STEP;Cf;0;BN;;;;;N;;;;;
+			// 1BCA3;SHORTHAND FORMAT UP STEP;Cf;0;BN;;;;;N;;;;;
+
+			// 1D173;MUSICAL SYMBOL BEGIN BEAM;Cf;0;BN;;;;;N;;;;;
+			// 1D174;MUSICAL SYMBOL END BEAM;Cf;0;BN;;;;;N;;;;;
+			// 1D175;MUSICAL SYMBOL BEGIN TIE;Cf;0;BN;;;;;N;;;;;
+			// 1D176;MUSICAL SYMBOL END TIE;Cf;0;BN;;;;;N;;;;;
+			// 1D177;MUSICAL SYMBOL BEGIN SLUR;Cf;0;BN;;;;;N;;;;;
+			// 1D178;MUSICAL SYMBOL END SLUR;Cf;0;BN;;;;;N;;;;;
+			// 1D179;MUSICAL SYMBOL BEGIN PHRASE;Cf;0;BN;;;;;N;;;;;
+			// 1D17A;MUSICAL SYMBOL END PHRASE;Cf;0;BN;;;;;N;;;;;
+
+			// E0001;LANGUAGE TAG;Cf;0;BN;;;;;N;;;;;
+			// E0020;TAG SPACE;Cf;0;BN;;;;;N;;;;; - E007E;TAG TILDE;Cf;0;BN;;;;;N;;;;;
+			// E007F;CANCEL TAG;Cf;0;BN;;;;;N;;;;;
+
+			default:
+				goto BREAK;
+			}
+		}
+
+		if ( m_bJoint && m_LastChar > 0 ) {
+			PUTADD(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX, m_BackChar);
+
+		} else if ( n == 1 ) {
+			// 1 Cell type Unicode
 			INSMDCK(1);
 			if ( m_BackChar < 0x0080 )
 				PUT1BYTE(m_BackChar & 0x7F, m_BankTab[m_KanjiMode][0]);
 			else if ( m_BackChar < 0x0100 )
 				PUT1BYTE(m_BackChar & 0x7F, m_BankTab[m_KanjiMode][1]);
 			else
-				PUT1BYTE(m_BackChar, SET_UNICODE, ((cf & UNI_RTL) ? ATT_RTOL : 0));
+				PUT1BYTE(m_BackChar, SET_UNICODE, ea);
 			m_LastFlag = cf;
 
-		// 2 Cell type Unicode
 		} else {
+			// 2 Cell type Unicode
 			INSMDCK(2);
-			PUT2BYTE(m_BackChar, SET_UNICODE, ((cf & UNI_RTL) ? ATT_RTOL : 0));
+			PUT2BYTE(m_BackChar, SET_UNICODE, ea);
 			m_LastFlag = cf;
 		}
 
 	BREAK:
+		m_bJoint = bJoint;
 		m_BankNow  = SET_UNICODE;
 	case 0:
 		fc_POP(ch);
@@ -3848,7 +3918,7 @@ void CTextRam::fc_DECDLD(DWORD ch)
 					IncDscs(Pcss, Pscs);
 					idx = m_FontTab.IndexFind((Pcss == 0 ? SET_94 : SET_96), Pscs);
 				}
-				m_FontTab[idx].SetUserBitmap(Pcn++, Pcmw, Pcmh, pGrapWnd->m_pActMap, x * Pcmw, i * Pcmh, pGrapWnd->m_AspX, pGrapWnd->m_AspY, GetBackColor(m_AttNow));
+				m_FontTab[idx].SetUserBitmap(Pcn++, Pcmw, Pcmh, pGrapWnd->m_pActMap, x * Pcmw, i * Pcmh, pGrapWnd->m_AspX, pGrapWnd->m_AspY, GetBackColor(m_AttNow), pGrapWnd->m_SixelTransColor);
 			}
 		}
 		pGrapWnd->DestroyWindow();
@@ -4588,20 +4658,24 @@ void CTextRam::fc_OSCEXE(DWORD ch)
 			p++;
 			// tmp = "s c p 0 1 2 3 4 7"	 SELECT, PRIMARY, CLIPBOARD, CUT_BUFFER0 - 7
 			CBuffer clip, work;
-			CRLoginView *pView;
+			CRLoginView *pView = (CRLoginView *)GetAciveView();
 			if ( strcmp(p, "?") == 0 ) {	// Get Clipboad
-				if ( (pView = (CRLoginView *)GetAciveView()) != NULL && (m_pDocument->m_TextRam.m_ClipFlag & OSC52_READ) != 0 ) {
-					pView->GetClipboard(&clip);
+				if ( (m_pDocument->m_TextRam.m_ClipFlag & OSC52_READ) != 0 ) {
+					if ( pView != NULL )
+						pView->GetClipboard(&clip);
 					work.Base64Encode(clip.GetPtr(), clip.GetSize());
-				}
+				} else
+					((CMainFrame *)AfxGetMainWnd())->SetStatusText(CStringLoad(IDS_DISCLIPBOARDREAD));
 				if ( tmp.IsEmpty() )
 					tmp = _T("s0");
 				UNGETSTR(_T("%s52;%s;%s%s"), m_RetChar[RC_OSC], tmp, (LPCTSTR)work, (ch == 0x07 ? _T("\007") : m_RetChar[RC_ST]));
 			} else {						// Set Clipboad
-				if ( (pView = (CRLoginView *)GetAciveView()) != NULL && (m_pDocument->m_TextRam.m_ClipFlag & OSC52_WRITE) != 0 ) {
+				if ( (m_pDocument->m_TextRam.m_ClipFlag & OSC52_WRITE) != 0 ) {
 					clip.Base64Decode(MbsToTstr(p));
-					pView->SetClipboard(&clip);
-				}
+					if ( pView != NULL )
+						pView->SetClipboard(&clip);
+				} else
+					((CMainFrame *)AfxGetMainWnd())->SetStatusText(CStringLoad(IDS_DISCLIPBOARDWRITE));
 			}
 		}
 		break;
@@ -5975,21 +6049,80 @@ void CTextRam::fc_XTWOP(DWORD ch)
 #endif
 		break;
     case 9:			/* Maximize or restore mx = p1 */
+		if ( IsOptEnable(TO_SETWINPOS) ) {
+			switch(GetAnsiPara(1, 0, 0)) {
+			case 0:		// Ps = 9  ;  0  -> Restore maximized window.
+				pMainWnd->ShowWindow(SW_SHOWNORMAL);
+				break;
+			case 1:		// Ps = 9  ;  1  -> Maximize window (i.e., resize to screen size).
+			case 2:		// Ps = 9  ;  2  -> Maximize window vertically.
+			case 3:		// Ps = 9  ;  3  -> Maximize window horizontally.
+				pMainWnd->ShowWindow(SW_SHOWMAXIMIZED);
+				break;
+			}
+		}
+		break;
+
 	case 10:		/* Fullscreen or restore */
-		if ( IsOptEnable(TO_SETWINPOS) )
-			pMainWnd->ShowWindow(GetAnsiPara(1, 0, 0) == 0 ? SW_SHOWNORMAL : SW_SHOWMAXIMIZED);
+		if ( IsOptEnable(TO_SETWINPOS) ) {
+			switch(GetAnsiPara(1, 0, 0)) {
+			case 0:		// Ps = 1 0  ;  0  -> Undo full-screen mode.
+				pMainWnd->ShowWindow(SW_SHOWNORMAL);
+				break;
+			case 1:		// Ps = 1 0  ;  1  -> Change to full-screen.
+				pMainWnd->ShowWindow(SW_SHOWMAXIMIZED);
+				break;
+			case 2:		// Ps = 1 0  ;  2  -> Toggle full-screen.
+				pMainWnd->ShowWindow(pMainWnd->IsZoomed() ? SW_SHOWNORMAL : SW_SHOWMAXIMIZED);
+				break;
+			}
+		}
 		break;
 
     case 11:    	/* Report the window's state ESC[1/2t */
 		UNGETSTR(_T("%s%dt"), m_RetChar[RC_CSI], pMainWnd->IsIconic() ? 2 : 1);
 		break;
     case 13:    	/* Report the window's position ESC[3;x;yt */
+		GetCellSize(&w, &h);
 		pMainWnd->GetWindowRect(rect);
-		UNGETSTR(_T("%s3;%d;%dt"), m_RetChar[RC_CSI], rect.left, rect.top);
+		switch(GetAnsiPara(1, 0, 0)) {
+		case 0:		// Report xterm window position.		Result is CSI 3 ; x ; y t
+			UNGETSTR(_T("%s3;%d;%dt"), m_RetChar[RC_CSI], rect.left, rect.top);
+			break;
+		case 2:		// Report xterm text-area position.		Result is CSI 3 ; x ; y t
+			UNGETSTR(_T("%s3;%d;%dt"), m_RetChar[RC_CSI], rect.left / w, rect.top / h);
+			break;
+		}
 		break;
     case 14:    	/* Report the window's size in pixels ESC[4;h;wt */
-		pMainWnd->GetWindowRect(rect);
-		UNGETSTR(_T("%s4;%d;%dt"), m_RetChar[RC_CSI], rect.Height(), rect.Width());
+		switch(GetAnsiPara(1, 0, 0)) {
+		case 0:		// Report xterm text area size in pixels.			Result is CSI  4  ;  height ;  width t
+			pMainWnd->GetClientRect(rect);
+			if ( m_pDocument != NULL && (pMainWnd = m_pDocument->GetAciveView()) != NULL )
+				pMainWnd->GetClientRect(rect);
+			UNGETSTR(_T("%s4;%d;%dt"), m_RetChar[RC_CSI], rect.Height(), rect.Width());
+			break;
+		case 2:		// Report xterm window size in pixels.				Result is CSI  4  ;  height ;  width t
+					// Normally xterm's window is larger than its text area, since it 
+					// includes the frame (or decoration) applied by the window manager,
+					// as well as the area used by a scroll-bar.
+			pMainWnd->GetWindowRect(rect);
+			if ( m_pDocument != NULL && (pMainWnd = m_pDocument->GetAciveView()) != NULL )
+				pMainWnd->GetWindowRect(rect);
+			UNGETSTR(_T("%s4;%d;%dt"), m_RetChar[RC_CSI], rect.Height(), rect.Width());
+			break;
+		}
+		break;
+
+	case 15:		// Report size of the screen in pixels.		Result is CSI  5  ;  height ;  width t
+		pMainWnd->GetClientRect(rect);
+		if ( m_pDocument != NULL && (pMainWnd = m_pDocument->GetAciveView()) != NULL )
+			pMainWnd->GetClientRect(rect);
+		UNGETSTR(_T("%s5;%d;%dt"), m_RetChar[RC_CSI], rect.Height(), rect.Width());
+		break;
+	case 16:		// Report xterm character size in pixels.	Result is CSI  6  ;  height ;  width t
+		GetCellSize(&w, &h);
+		UNGETSTR(_T("%s6;%d;%dt"), m_RetChar[RC_CSI], h, w);
 		break;
 
     case 18:    	/* Report the text's size in characters ESC[8;l;ct */
@@ -7228,6 +7361,7 @@ void CTextRam::fc_DECSTR(DWORD ch)
 	m_SaveParam.m_LastFlag = 0;
 	m_SaveParam.m_LastPos  = 0;
 	m_SaveParam.m_bRtoL    = FALSE;
+	m_SaveParam.m_bJoint   = FALSE;
 		
 	fc_POP(ch);
 }

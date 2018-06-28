@@ -176,6 +176,7 @@ private:
 	SSL_CTX *m_SSL_pCtx;
 	SSL *m_SSL_pSock;
 	BOOL m_SSL_keep;
+	CString m_SSL_Msg;
 
 	int m_TransmitLimit;
 	struct _LimitData {

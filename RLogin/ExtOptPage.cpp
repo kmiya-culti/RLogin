@@ -50,6 +50,7 @@ static const struct _OptListTab {
 	{	TO_RLPSUPWIN,	IDT_EXTOPT_LIST22	},
 	{	TO_RLDOSAVE,	IDT_EXTOPT_LIST23	},
 	{	TO_RLNOCHKFONT,	IDT_EXTOPT_LIST24	},
+	{	TO_RLCOLEMOJI,	IDT_EXTOPT_LIST25	},
 	{	0,				0					},
 };
 

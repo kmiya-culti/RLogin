@@ -276,8 +276,33 @@ void CGrapWnd::DrawBlock(CDC *pDC, LPCRECT pRect, COLORREF bc, BOOL bEraBack, in
 		if ( m_bHaveAlpha ) {
 			pDC->FillSolidRect(rect, bc);
 			pDC->AlphaBlend(rect.left, rect.top, rect.Width(), rect.Height(), &TempDC, box.left, box.top, box.Width(), box.Height(), bf);
-		} else
+
+		} else {
+			if ( m_SixelTransColor != (-1) ) {
+				int n = m_Maps ^ 1;
+
+				if ( bc != m_SixelBackColor || m_Bitmap[n].GetSafeHandle() == NULL ) {
+					CDC SecDC;
+					CBitmap *pOldSecMap;
+
+					if ( m_Bitmap[n].GetSafeHandle() == NULL )
+						m_Bitmap[n].CreateCompatibleBitmap(pDC, m_MaxX, m_MaxY);
+
+					SecDC.CreateCompatibleDC(pDC);
+					pOldSecMap = (CBitmap *)SecDC.SelectObject(&(m_Bitmap[n]));
+					SecDC.FillSolidRect(0, 0, m_MaxX, m_MaxX, bc);
+					SecDC.TransparentBlt(0, 0, m_MaxX, m_MaxY, &TempDC, 0, 0, m_MaxX, m_MaxY, m_SixelTransColor);
+					SecDC.SelectObject(pOldSecMap);
+					SecDC.DeleteDC();
+
+					m_SixelBackColor = bc;
+				}
+
+				TempDC.SelectObject(&(m_Bitmap[n]));
+			}
+
 			pDC->StretchBlt(rect.left, rect.top, rect.Width(), rect.Height(), &TempDC, box.left, box.top, box.Width(), box.Height(), SRCCOPY);
+		}
 
 	} else if ( m_bHaveAlpha ) {
 		pDC->AlphaBlend(rect.left, rect.top, rect.Width(), rect.Height(), &TempDC, box.left, box.top, box.Width(), box.Height(), bf);
@@ -898,12 +923,19 @@ void CGrapWnd::InitColMap()
 	if ( !m_pTextRam->IsOptEnable(TO_XTPRICOL) ) {
 		if ( m_pTextRam->m_pSixelColor == NULL )
 			m_pTextRam->m_pSixelColor = new COLORREF [SIXEL_PALET];
-		m_ColMap = m_pTextRam->m_pSixelColor;
+		if ( m_pTextRam->m_pSixelAlpha == NULL )
+			m_pTextRam->m_pSixelAlpha = new BYTE [SIXEL_PALET];
+
+		m_ColMap      = m_pTextRam->m_pSixelColor;
+		m_ColAlpha = m_pTextRam->m_pSixelAlpha;
+
 		if ( m_pTextRam->m_bSixelColInit )
 			return;
 		m_pTextRam->m_bSixelColInit = TRUE;
-	} else
-		m_ColMap = m_PriColMap;
+	} else {
+		m_ColMap      = m_ColMapLoc;
+		m_ColAlpha = m_ColAlphaLoc;
+	}
 
 	i = (m_pTextRam->m_TermId < VT_COLMAP_ID ? 0 : 1);
 
@@ -931,6 +963,8 @@ void CGrapWnd::InitColMap()
 	// ext palet
 	for ( ; n < SIXEL_PALET ; n++ )
 		m_ColMap[n] = m_BakCol;
+
+	memset(m_ColAlpha, 0xFF, sizeof(BYTE) * SIXEL_PALET);
 }
 int CGrapWnd::GetChar(LPCSTR &p)
 {
@@ -2686,18 +2720,23 @@ void CGrapWnd::SixelStart(int aspect, int mode, int grid, COLORREF bc)
 	if ( m_Bitmap[1].GetSafeHandle() != NULL )
 		m_Bitmap[1].DeleteObject();
 
-	m_SixelBackColor  = m_SixelTransColor = bc;
+	m_SixelBackColor = m_SixelTransColor = bc;
 
 	m_SixelTempDC.CreateCompatibleDC(&DispDC);
 	m_Bitmap[m_Maps].CreateCompatibleBitmap(&DispDC, m_MaxX, m_MaxY);
 	m_SixelTempDC.SelectObject(&(m_Bitmap[m_Maps]));
 	m_SixelTempDC.FillSolidRect(0, 0, m_MaxX, m_MaxY, m_SixelBackColor);
+
+	m_pAlphaMap = new BYTE[m_MaxX * m_MaxY];
+	ZeroMemory(m_pAlphaMap, m_MaxX * m_MaxY);
 }
 void CGrapWnd::SixelResize()
 {
 	int n;
 	CDC SecDC;
 	CBitmap *pOldSecMap;
+	BITMAP info;
+	BYTE *pAlpha;
 
 	n = m_Maps ^ 1;
 
@@ -2711,8 +2750,22 @@ void CGrapWnd::SixelResize()
 	SecDC.DeleteDC();
 
 	m_SixelTempDC.SelectObject(&(m_Bitmap[n]));
+	ZeroMemory(&info, sizeof(info));
+	m_Bitmap[m_Maps].GetBitmap(&info);
 	m_Bitmap[m_Maps].DeleteObject();
 	m_Maps = n;
+
+	pAlpha = new BYTE[m_MaxX * m_MaxY];
+	ZeroMemory(pAlpha, m_MaxX * m_MaxY);
+
+	int mx = m_MaxX < info.bmWidth  ? m_MaxX : info.bmWidth;
+	int my = m_MaxY < info.bmHeight ? m_MaxY : info.bmHeight;
+
+	for ( int y = 0 ; y < my ; y++ )
+		memcpy(pAlpha + m_MaxX * y, m_pAlphaMap + info.bmWidth * y, mx);
+
+	delete [] m_pAlphaMap;
+	m_pAlphaMap = pAlpha;
 }
 void CGrapWnd::SixelData(int ch)
 {
@@ -2760,10 +2813,17 @@ RECHECK:
 				m_SixelPointX += m_SixelRepCount;
 
 			} else if ( m_SixelPointX < GRAPMAX_X && m_SixelPointY < GRAPMAX_Y ) {
+				if ( m_ColMap[m_SixelColorIndex] == m_SixelTransColor )
+					m_SixelTransColor = (-1);
+
+				if ( m_ColAlpha[m_SixelColorIndex] != 0xFF )
+					m_bHaveAlpha = TRUE;
+
 				mask = 0x01;
 				if ( m_SixelRepCount <= 1 ) {
 					for ( i = 0 ; i < 6 ; i++ ) {
 						if ( (bit & mask) != 0 ) {
+							m_pAlphaMap[m_SixelPointX + m_MaxX * (m_SixelPointY + i)] = m_ColAlpha[m_SixelColorIndex];
 							m_SixelTempDC.SetPixelV(m_SixelPointX, m_SixelPointY + i, m_ColMap[m_SixelColorIndex]);
 							if ( m_SixelWidth <= m_SixelPointX )
 								m_SixelWidth = m_SixelPointX + 1;
@@ -2776,11 +2836,13 @@ RECHECK:
 				} else {
 					for ( i = 0 ; i < 6 ; i++ ) {
 						if ( (bit & mask) != 0 ) {
+							memset(m_pAlphaMap + m_SixelPointX + m_MaxX * (m_SixelPointY + i), m_ColAlpha[m_SixelColorIndex], m_SixelRepCount);
 							line = mask << 1;
 							for ( n = 1 ; (i + n) < 6 ; n++ ) {
 								if ( (bit & line) == 0 )
 									break;
 								line <<= 1;
+								memset(m_pAlphaMap + m_SixelPointX + m_MaxX * (m_SixelPointY + i + n), m_ColAlpha[m_SixelColorIndex], m_SixelRepCount);
 							}
 							m_SixelTempDC.FillSolidRect(m_SixelPointX, m_SixelPointY + i, m_SixelRepCount, n, m_ColMap[m_SixelColorIndex]);
 
@@ -2872,9 +2934,8 @@ RECHECK:
 						if ( m_SixelParam[3] > 255 ) m_SixelParam[3] = 255;
 						if ( m_SixelParam[4] > 255 ) m_SixelParam[4] = 255;
 						m_ColMap[m_SixelColorIndex] = RGB(m_SixelParam[2], m_SixelParam[3], m_SixelParam[4]);
-
-						if ( m_ColMap[m_SixelColorIndex]  == m_SixelTransColor )
-							m_SixelTransColor = (-1);
+						if ( m_SixelParam.GetSize() > 5 )
+							m_ColAlpha[m_SixelColorIndex] = (BYTE)(m_SixelParam[5] > 255 ? 255 : m_SixelParam[5]);
 					}
 				}
 				break;
@@ -2887,7 +2948,7 @@ RECHECK:
 		break;
 	}
 }
-void CGrapWnd::SixelEndof()
+void CGrapWnd::SixelEndof(BOOL bAlpha)
 {
 	if ( m_MaxX > m_SixelWidth || m_MaxY > m_SixelHeight ) {
 		m_MaxX = m_SixelWidth;
@@ -2897,9 +2958,61 @@ void CGrapWnd::SixelEndof()
 			SixelResize();
 	}
 
+	if ( *m_pAlphaMap == 0xFF && memcmp(m_pAlphaMap, m_pAlphaMap + 1, m_MaxX * m_MaxY - 1) == 0 ) {
+		// すべてのビットマップを描画
+		m_SixelTransColor = (-1);
+		m_bHaveAlpha = FALSE;
+
+	} else if ( bAlpha || m_bHaveAlpha ) {
+		// ビットマップをアルファ付きに変更
+		CImage tmp;
+		tmp.CreateEx(m_MaxX, m_MaxY, 32, BI_RGB, NULL, CImage::createAlphaChannel);
+		::BitBlt(tmp.GetDC(), 0, 0, m_MaxX, m_MaxY, m_SixelTempDC, 0, 0, SRCCOPY);
+		tmp.ReleaseDC();
+
+		for ( int y = 0 ; y < m_MaxY ; y++ ) {
+			for ( int x = 0 ; x < m_MaxX ; x++ ) {
+				BYTE *p = (BYTE *)tmp.GetPixelAddress(x, y);
+				if ( (p[3] = m_pAlphaMap[x + y * m_MaxX]) == 0x00 )
+					p[0] = p[1] = p[2] = 0x00;
+				else if ( p[3] < 255 ) {
+					p[0] = p[0] * p[3] / 255;
+					p[1] = p[1] * p[3] / 255;
+					p[2] = p[2] * p[3] / 255;
+				}
+			}
+		}
+
+		m_Bitmap[m_Maps].DeleteObject();
+		m_Bitmap[m_Maps].Attach(tmp);
+		tmp.Detach();
+
+		m_SixelTransColor = (-1);
+		m_bHaveAlpha = TRUE;
+
+	} else if ( m_SixelTransColor == (-1) ) {
+		// m_SixelTransColorを使用して単色透明
+		m_SixelTransColor = (m_SixelBackColor + 1) & 0x00FFFFFF;
+		for ( int n = 0 ; n < SIXEL_PALET ; n++ ) {
+			if ( m_ColMap[n] == m_SixelTransColor ) {
+				// 使用していない色を探す（随時パレット変更されていると不十分の可能性あり）
+				m_SixelTransColor = (m_SixelTransColor + 1) & 0x00FFFFFF;
+				n = (-1);
+			}
+		}
+		for ( int y = 0 ; y < m_MaxY ; y++ ) {
+			for ( int x = 0 ; x < m_MaxX ; x++ ) {
+				if ( m_pAlphaMap[x + y * m_MaxX] == 0x00 )
+					m_SixelTempDC.SetPixelV(x, y, m_SixelTransColor);
+			}
+		}
+	}
+
 	m_SixelTempDC.DeleteDC();
+	delete [] m_pAlphaMap;
 
 	m_pActMap = &(m_Bitmap[m_Maps]);
+	m_SixelBackColor = (-1);
 
 	if ( m_hWnd != NULL )
 		Invalidate(FALSE);

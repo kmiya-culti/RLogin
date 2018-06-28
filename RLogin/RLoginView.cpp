@@ -188,10 +188,6 @@ BEGIN_MESSAGE_MAP(CRLoginView, CView)
 	ON_WM_VSCROLL()
 	ON_WM_TIMER()
 
-#ifdef	USE_DIRECTWRITE
-	ON_WM_PAINT()
-#endif
-
 	ON_WM_RBUTTONDOWN()
 	ON_WM_RBUTTONDBLCLK()
 	ON_WM_RBUTTONUP()
@@ -326,7 +322,7 @@ CRLoginView::CRLoginView()
 	m_CaretMapSize.cx = m_CaretMapSize.cy = 0;
 	m_CaretColor = 0;
 	m_bCaretAllocCol = FALSE;
-	m_CaretBaseClock = 0;
+	m_CaretBaseClock = clock();
 	m_CaretAnimeMax = 1;
 	m_CaretAnimeClock = 100;
 
@@ -335,11 +331,6 @@ CRLoginView::CRLoginView()
 	m_bDelayInvalThread = 0;
 	m_DelayInvalWait = INFINITE;
 	m_DelayInvalClock = (-1);
-
-#ifdef	USE_DIRECTWRITE
-	m_pRenderTarget = NULL;
-	m_pGDIRT = NULL;
-#endif
 }
 
 CRLoginView::~CRLoginView()
@@ -349,13 +340,6 @@ CRLoginView::~CRLoginView()
 
 	if ( m_pCellSize != NULL )
 		delete [] m_pCellSize;
-
-#ifdef	USE_DIRECTWRITE
-	if ( m_pGDIRT != NULL )
-		m_pGDIRT->Release();
-	if ( m_pRenderTarget != NULL )
-		m_pRenderTarget->Release();
-#endif
 }
 
 BOOL CRLoginView::PreCreateWindow(CREATESTRUCT& cs)
@@ -386,70 +370,6 @@ BOOL CRLoginView::PreCreateWindow(CREATESTRUCT& cs)
 /////////////////////////////////////////////////////////////////////////////
 // CRLoginView クラスの描画
 
-#ifdef	USE_DIRECTWRITE
-BOOL CRLoginView::RenderDraw(RECT rect)
-{
-	if ( m_pRenderTarget == NULL ) {
-		CRect rect;
-		D2D1_SIZE_U size;
-		CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
-        D2D1_RENDER_TARGET_PROPERTIES rtProps = D2D1::RenderTargetProperties();
-        rtProps.usage =  D2D1_RENDER_TARGET_USAGE_GDI_COMPATIBLE;
-
-		GetClientRect(rect);
-		size = D2D1::SizeU(rect.Width(), rect.Height());
-
-		if ( pApp->m_pD2DFactory != NULL && pApp->m_pDWriteFactory != NULL ) {
-			if ( SUCCEEDED(pApp->GetD2D1Factory()->CreateHwndRenderTarget(rtProps, D2D1::HwndRenderTargetProperties(m_hWnd, size), &m_pRenderTarget)) ) {
-	            m_pRenderTarget->QueryInterface(__uuidof(ID2D1GdiInteropRenderTarget), (void**)&m_pGDIRT);
-			}
-		}
-	}
-
-	if ( m_pRenderTarget == NULL || m_pGDIRT == NULL )
-		return FALSE;
-
-	m_pRenderTarget->BeginDraw();
-
-    HDC hDC = NULL;
-
-    if ( SUCCEEDED(m_pGDIRT->GetDC(D2D1_DC_INITIALIZE_MODE_COPY, &hDC)) ) {
-
-		CDC *pDC = CDC::FromHandle(hDC);
-
-		m_RenderRect = rect;
-		OnDraw(pDC);
-
-		m_pGDIRT->ReleaseDC(NULL);
-	}
-
-	HRESULT hr = m_pRenderTarget->EndDraw();
-
-	if ( FAILED(hr) || hr == D2DERR_RECREATE_TARGET ) {
-		m_pGDIRT->Release();
-		m_pGDIRT = NULL;
-		m_pRenderTarget->Release();
-		m_pRenderTarget = NULL;
-	}
-
-	return TRUE;
-}
-void CRLoginView::OnPaint()
-{
-	PAINTSTRUCT ps;
-
-	BeginPaint(&ps);
-
-	if ( !RenderDraw(ps.rcPaint) ) {
-		CDC *pDC = CDC::FromHandle(ps.hdc);
-		m_RenderRect = ps.rcPaint;
-		OnDraw(pDC);
-	}
-
-	EndPaint(&ps);
-}
-#endif
-
 void CRLoginView::OnDraw(CDC* pDC)
 {
 	int sx = 0;
@@ -468,11 +388,7 @@ void CRLoginView::OnDraw(CDC* pDC)
 	m_HaveBack = FALSE;
 
 	if ( !pDC->IsPrinting() ) {
-#ifdef	USE_DIRECTWRITE
-		drawbox = m_RenderRect;
-#else
 		drawbox = ((CPaintDC *)(pDC))->m_ps.rcPaint;
-#endif
 
 		// 描画範囲をグラフィック座標からキャラクタ座標に変換
 		sx = (drawbox.left + 1 - pDoc->m_TextRam.m_ScrnOffset.left) * m_Cols / m_Width;
@@ -958,6 +874,7 @@ void CRLoginView::PollingDeleyInval()
 {
 	clock_t tic, now = clock();
 	DeleyInval *pIc;
+	CRect *pRect = NULL;
 
 	// タイマーをクリア
 	m_DelayInvalClock = (-1);
@@ -966,7 +883,9 @@ void CRLoginView::PollingDeleyInval()
 		pIc = &m_DeleyInvalList.GetHead();
 
 		if ( (tic = pIc->m_Clock - now) < DELAYINVALMINCLOCK ) {
-			InvalidateRect(pIc->m_Rect, FALSE);
+			if ( pRect == NULL || *pRect != pIc->m_Rect )
+				InvalidateRect(pIc->m_Rect, FALSE);
+			pRect = &(pIc->m_Rect);
 			m_DeleyInvalList.RemoveHead();
 
 		} else {
@@ -979,7 +898,7 @@ void CRLoginView::PollingDeleyInval()
 }
 BOOL CRLoginView::OnIdle()
 {
-	// 最初のアイドル時に更新 (USE_DIRECTWRITEには有効な手段)
+	// 最初のアイドル時に更新
 	UpdateWindow();
 
 	return FALSE;
@@ -1480,17 +1399,6 @@ void CRLoginView::SetFrameRect(int cx, int cy)
 void CRLoginView::OnSize(UINT nType, int cx, int cy) 
 {
 	CView::OnSize(nType, cx, cy);
-
-#ifdef	USE_DIRECTWRITE
-	if ( m_pGDIRT != NULL ) {
-		m_pGDIRT->Release();
-		m_pGDIRT = NULL;
-	}
-	if ( m_pRenderTarget != NULL ) {
-		m_pRenderTarget->Release();
-		m_pRenderTarget = NULL;
-	}
-#endif
 
 //	TRACE("CRLoginView::OnSize(%d,%d) %d\n", cx, cy, ((CChildFrame *)GetFrameWnd())->m_bInit);
 

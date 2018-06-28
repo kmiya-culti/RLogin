@@ -11,7 +11,7 @@
 #define	USE_JUMPLIST
 #define	USE_TEXTFRAME
 //#define	USE_CLEFIA
-//#define	USE_DIRECTWRITE
+#define	USE_DIRECTWRITE
 //#define	USE_DEBUGLOG
 #define	USE_OLE
 //#define	USE_RCDLL
@@ -113,8 +113,9 @@
 
 #define	SECURITY_WIN32
 #include <Security.h>
+#include <wincrypt.h>
 
-#pragma comment(lib,"winmm")
+#pragma comment(lib,"winmm.lib")
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "Dnsapi.lib")
 #pragma comment(lib, "secur32.lib")
@@ -125,9 +126,6 @@
   #include <d2d1helper.h>
   #include <dwrite.h>
   #include <wincodec.h>
-
-  #pragma comment(lib, "d2d1.lib")
-  #pragma comment(lib, "dwrite.lib")
 #endif
 
 #ifdef	USE_SAPI

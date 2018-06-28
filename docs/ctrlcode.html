@@ -3416,7 +3416,8 @@ TD {
                 <TR>
                   <TD valign="top" colspan="2">※<A href="#DECSDM">DECSDM</A>によりコンソール・外部ウィンドウと表示方法が異なる<BR>
                   ※<I>Pn1,Pn3</I> の設定より、Sixel内のDECGRA(&quot;)のPan(V),Pad(H)が優先されます<BR>
-                  ※ 2.17.2よりDECGCI(#Pc;Pu;Px;Py;Pz)のPu=3で0-255のRGBが指定できます</TD>
+                  ※ 2.17.2よりDECGCI(#Pc;Pu;Px;Py;Pz)のPu=3で0-255のRGBが指定できます<BR>
+                  ※ 2.23.6よりDECGCI(#Pc;3;Px;Py;Pz;Pa)のPaで透明度(255で不透明)を指定できます</TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -4037,7 +4038,7 @@ TD {
             <TD>DCS <FONT size="-1"><I>Pn</I></FONT> #m <FONT size="-1"><I>MML</I></FONT> ST</TD>
             <TD align="center">RLMML *3</TD>
             <TD>MML形式でMIDI演奏を行う
-            <TABLE cellpadding="1">
+            <TABLE cellpadding="1" width="100%">
               <TBODY>
                 <TR>
                   <TD width="90"><FONT size="-1"><I>Pn1</I></FONT> = [0],1,2</TD>
@@ -4238,45 +4239,45 @@ TD {
                 </TR>
                 <TR>
                   <TD colspan="2">
-                  <TABLE cellpadding="3" width="550">
+                  <TABLE cellpadding="3" width="650">
                     <TBODY>
                       <TR>
                         <TD colspan="3">サンプルMML</TD>
                       </TR>
                       <TR>
-                        <TD>ウェストミンスターの鐘</TD>
-                        <TD><FONT size="-2" style="font-size : 67%;">echo -e '\eP#m t120 q100 @12 &gt; ced&quot;g2. cdec2. ecd&quot;g2. &quot;gdec2.
+                        <TD width="200">ウェストミンスターの鐘</TD>
+                        <TD width="300"><FONT size="-2" style="font-size : 67%;">echo -e '\eP#m t120 q100 @12 &gt; ced&quot;g2. cdec2. ecd&quot;g2. &quot;gdec2.
                         \e\\'</FONT></TD>
                         <TD><A href="westbell.mid">westbell.mid</A></TD>
                       </TR>
                       <TR>
-                        <TD>ドラムリズム</TD>
-                        <TD><FONT size="-2" style="font-size : 67%;">echo -e '\eP#m z10 [{n36rnn rrrr}{rn38rr nrnn}{n42rnr nnrr}]2 \e\\'</FONT></TD>
+                        <TD width="200">ドラムリズム</TD>
+                        <TD width="300"><FONT size="-2" style="font-size : 67%;">echo -e '\eP#m z10 [{n36rnn rrrr}{rn38rr nrnn}{n42rnr nnrr}]2 \e\\'</FONT></TD>
                         <TD><A href="drum.mid">drum.mid</A></TD>
                       </TR>
                       <TR>
-                        <TD>PC-9801のピポ</TD>
-                        <TD><FONT size="-2">echo -e '\eP#m xs @81,8 l14 q100 n96 v70 n84 \e\\'</FONT></TD>
+                        <TD width="200">PC-9801のピポ</TD>
+                        <TD width="300"><FONT size="-2">echo -e '\eP#m xs @81,8 l14 q100 n96 v70 n84 \e\\'</FONT></TD>
                         <TD><A href="pipo.mid">pipo.mid</A></TD>
                       </TR>
                       <TR>
-                        <TD>電話を掛けるスクリプト</TD>
-                        <TD><A href="teltone.sh">teltone.sh</A> 03-123-4568</TD>
+                        <TD width="200">電話を掛けるスクリプト</TD>
+                        <TD width="300"><A href="teltone.sh">teltone.sh</A> 03-123-4568</TD>
                         <TD><A href="teltine.mid">teltone.mid</A></TD>
                       </TR>
                       <TR>
-                        <TD>コード演奏のスクリプト</TD>
-                        <TD><A href="guitar.sh">guitar.sh</A> CAmG7</TD>
+                        <TD width="200">コード演奏のスクリプト</TD>
+                        <TD width="300"><A href="guitar.sh">guitar.sh</A> CAmG7</TD>
                         <TD><A href="guitar.mid">guitar.mid</A></TD>
                       </TR>
                       <TR>
-                        <TD>アルペジオのスクリプト</TD>
-                        <TD><A href="arpeggio.sh">arpeggio.sh</A> CAmG7</TD>
+                        <TD width="200">アルペジオのスクリプト</TD>
+                        <TD width="300"><A href="arpeggio.sh">arpeggio.sh</A> CAmG7</TD>
                         <TD><A href="arpeggio.mid">arpeggio.mid</A></TD>
                       </TR>
                       <TR>
-                        <TD>レット・イット・ビー</TD>
-                        <TD><A href="letitbe.mml">letitbe.mml</A></TD>
+                        <TD width="200">レット・イット・ビー</TD>
+                        <TD width="300"><A href="letitbe.mml">letitbe.mml</A></TD>
                         <TD><A href="letitbe.mid">letitbe.mid</A></TD>
                       </TR>
                     </TBODY>
