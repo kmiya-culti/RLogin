@@ -1045,7 +1045,16 @@ public:
 	CString m_String;
 	CImage m_Image;
 	BOOL m_bFileImage;
+#ifdef	USE_SAVEBITMAP
+	int m_Width;
+	int m_Height;
+	int m_Bpp;
+	BYTE *m_pBits;
+	int m_BitsLen;
 
+	void SaveMap();
+	void LoadMap();
+#endif
 	CEmojiImage();
 	~CEmojiImage();
 };

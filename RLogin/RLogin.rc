@@ -528,6 +528,8 @@ BEGIN
     BEGIN
         MENUITEM "ファイルに保存(&S)",                 IDM_TEK_SAVE
         MENUITEM SEPARATOR
+        MENUITEM "ヒストグラムを表示",                   IDM_HISTOGRAM
+        MENUITEM SEPARATOR
         MENUITEM "閉じる(&X)",                     IDM_TEK_CLOSE
     END
     POPUP "編集(&E)"
@@ -582,9 +584,9 @@ BEGIN
                     "SysLink",WS_TABSTOP,44,178,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,193,60,14,WS_GROUP
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.23.6 (2018/06/29)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.23.7 (2018/08/15)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2018 Culti",IDC_STATIC,44,16,189,8
-    LTEXT           "OpenSSL 1.1.0h 27 Mar 2018",IDC_STATIC,44,52,189,8
+    LTEXT           "OpenSSL 1.1.0i 14 Aug 2018",IDC_STATIC,44,52,189,8
     LTEXT           "Copyright (c) 1998-2018 The OpenSSL Project",IDC_STATIC,44,61,189,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,70,189,8
     LTEXT           "All rights reserved.",IDC_STATIC,44,79,189,8
@@ -1979,8 +1981,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,23,6,0
- PRODUCTVERSION 2,23,6,0
+ FILEVERSION 2,23,7,0
+ PRODUCTVERSION 2,23,7,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1997,12 +1999,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.23.6.0"
+            VALUE "FileVersion", "2.23.7.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2017 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.23.6.0"
+            VALUE "ProductVersion", "2.23.7.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -4309,6 +4311,8 @@ BEGIN
     IDM_TREECTRLNEW         "新しいグループを作成\n新規作成"
     IDM_TREECTRLRENAME      "グループの名前を変更\n名前変更"
     IDM_TREECTRLDELETE      "空のグループを削除\nグループ削除"
+    IDM_IMAGEGRAPHIST       "画像のヒストグラムを表示(&T)"
+    IDM_HISTOGRAM           "画像のヒストグラムを表示\nヒストグラム"
 END
 
 STRINGTABLE

@@ -97,7 +97,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>openssl-1.1.0h-x32;openssl-1.1.0h-x32\include;openssl-1.1.0h-x32\crypto\include;libiconv-1.15\include;zlib-1.2.11;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>openssl-1.1.0i-x32;openssl-1.1.0i-x32\include;openssl-1.1.0i-x32\crypto\include;libiconv-1.15\include;zlib-1.2.11;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -113,7 +113,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalDependencies>d2d1.lib;dwrite.lib;windowscodecs.lib;dxgi.lib;d3d10_1.lib;imm32.lib;ComCtl32.lib;libcrypto.lib;libssl.lib;iconv.lib;zlib.lib;Wininet.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>openssl-1.1.0h-x32;libiconv-1.15\lib\x32;zlib-1.2.11\x32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>openssl-1.1.0i-x32;libiconv-1.15\lib\x32;zlib-1.2.11\x32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>libcmt.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <DelayLoadDLLs>%(DelayLoadDLLs)</DelayLoadDLLs>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -140,7 +140,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>openssl-1.1.0h-x32;openssl-1.1.0h-x32\include;openssl-1.1.0h-x32\crypto\include;libiconv-1.15\include;zlib-1.2.11;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>openssl-1.1.0i-x32;openssl-1.1.0i-x32\include;openssl-1.1.0i-x32\crypto\include;libiconv-1.15\include;zlib-1.2.11;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -155,7 +155,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalDependencies>imm32.lib;ComCtl32.lib;libcrypto.lib;libssl.lib;iconv.lib;zlib.lib;Wininet.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>openssl-1.1.0h-x32;libiconv-1.15\lib\x32;zlib-1.2.11\x32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>openssl-1.1.0i-x32;libiconv-1.15\lib\x32;zlib-1.2.11\x32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
@@ -186,7 +186,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <AdditionalIncludeDirectories>openssl-1.1.0h;openssl-1.1.0h\include;openssl-1.1.0h\crypto\include;libiconv-1.15\include;zlib-1.2.11;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>openssl-1.1.0i;openssl-1.1.0i\include;openssl-1.1.0i\crypto\include;libiconv-1.15\include;zlib-1.2.11;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -203,7 +203,7 @@
     </ResourceCompile>
     <Link>
       <AdditionalDependencies>imm32.lib;ComCtl32.lib;libcrypto.lib;libssl.lib;iconv.lib;zlib.lib;Wininet.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>openssl-1.1.0h;libiconv-1.15\lib\x64;zlib-1.2.11\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>openssl-1.1.0i;libiconv-1.15\lib\x64;zlib-1.2.11\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
@@ -231,7 +231,7 @@
       <ValidateAllParameters>false</ValidateAllParameters>
     </Midl>
     <ClCompile>
-      <AdditionalIncludeDirectories>openssl-1.1.0h;openssl-1.1.0h\include;openssl-1.1.0h\crypto\include;libiconv-1.15\include;zlib-1.2.11;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>openssl-1.1.0i;openssl-1.1.0i\include;openssl-1.1.0i\crypto\include;libiconv-1.15\include;zlib-1.2.11;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <OmitFramePointers>false</OmitFramePointers>
@@ -243,7 +243,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>openssl-1.1.0h;libiconv-1.15\lib\x64;zlib-1.2.11\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>openssl-1.1.0i;libiconv-1.15\lib\x64;zlib-1.2.11\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>imm32.lib;ComCtl32.lib;libcrypto.lib;libssl.lib;iconv.lib;zlib.lib;Wininet.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>

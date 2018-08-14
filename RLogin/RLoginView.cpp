@@ -216,6 +216,8 @@ BEGIN_MESSAGE_MAP(CRLoginView, CView)
 
 	ON_COMMAND(IDM_IMAGEGRAPCOPY, OnImageGrapCopy)
 	ON_COMMAND(IDM_IMAGEGRAPSAVE, OnImageGrapSave)
+	ON_COMMAND(IDM_IMAGEGRAPHIST, OnImageGrapHistogram)
+	ON_UPDATE_COMMAND_UI(IDM_IMAGEGRAPHIST, OnUpdateHistogram)
 
 	ON_COMMAND(ID_MACRO_REC, OnMacroRec)
 	ON_UPDATE_COMMAND_UI(ID_MACRO_REC, OnUpdateMacroRec)
@@ -1060,7 +1062,7 @@ COLORREF CRLoginView::CaretColor()
 	if ( (hue += 70) >= 360 )
 		hue -= 360;
 
-	return CGrapWnd::HLStoRGB(hue, lum, sat);
+	return CGrapWnd::HLStoRGB(hue * HLSMAX / 360, lum * HLSMAX / 100, sat * HLSMAX / 100);
 }
 void CRLoginView::CaretPos(POINT point)
 {
@@ -2526,7 +2528,8 @@ void CRLoginView::PopUpMenu(CPoint point)
 	if ( m_pSelectGrapWnd != NULL ) {
 		pMenu->InsertMenu(4, MF_BYPOSITION, IDM_IMAGEGRAPCOPY, CStringLoad(IDM_IMAGEGRAPCOPY));
 		pMenu->InsertMenu(5, MF_BYPOSITION, IDM_IMAGEGRAPSAVE, CStringLoad(IDM_IMAGEGRAPSAVE));
-		pMenu->InsertMenu(6, MF_BYPOSITION | MF_SEPARATOR);
+		pMenu->InsertMenu(6, MF_BYPOSITION, IDM_IMAGEGRAPHIST, CStringLoad(IDM_IMAGEGRAPHIST));
+		pMenu->InsertMenu(7, MF_BYPOSITION | MF_SEPARATOR);
 	}
 
 	state.m_pMenu = pMenu;
@@ -3523,6 +3526,17 @@ void CRLoginView::OnImageGrapSave()
 		return;
 
 	m_pSelectGrapWnd->SaveBitmap(1);
+}
+void CRLoginView::OnImageGrapHistogram()
+{
+	if ( m_pSelectGrapWnd == NULL || m_pSelectGrapWnd->m_pActMap == NULL )
+		return;
+
+	m_pSelectGrapWnd->PostMessage(WM_COMMAND, IDM_HISTOGRAM);
+}
+void CRLoginView::OnUpdateHistogram(CCmdUI* pCmdUI)
+{
+	pCmdUI->Enable(m_pSelectGrapWnd != NULL && m_pSelectGrapWnd->m_pActMap != NULL && m_pSelectGrapWnd->m_pHistogram == NULL ? TRUE : FALSE);
 }
 
 BOOL CRLoginView::PreTranslateMessage(MSG* pMsg)

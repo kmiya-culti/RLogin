@@ -295,6 +295,8 @@ protected:
 
 	afx_msg void OnImageGrapCopy();
 	afx_msg void OnImageGrapSave();
+	afx_msg void OnImageGrapHistogram();
+	afx_msg void OnUpdateHistogram(CCmdUI* pCmdUI);
 
 	afx_msg void OnMacroRec();
 	afx_msg void OnUpdateMacroRec(CCmdUI* pCmdUI);

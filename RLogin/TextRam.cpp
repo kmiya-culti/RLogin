@@ -1538,6 +1538,7 @@ CTextRam::CTextRam()
 	m_bSixelColInit = FALSE;
 	m_pSixelColor = NULL;
 	m_pSixelAlpha = NULL;
+
 	m_FixVersion = 0;
 	m_SleepMax = VIEW_SLEEP_MAX;
 
@@ -7170,6 +7171,14 @@ void CTextRam::RESET(int mode)
 			m_ColTab[n++] = RGB(0, g * 11, 0);
 		m_ColTab[n++] = RGB(255, 255, 255);
 		m_ColTab[n++] = RGB(0, 0, 0);
+
+		if ( m_bSixelColInit ) {
+			delete [] m_pSixelColor;
+			delete [] m_pSixelAlpha;
+			m_bSixelColInit = 0;
+			m_pSixelColor = NULL;
+			m_pSixelAlpha = NULL;
+		}
 	}
 
 	if ( mode & RESET_OPTION ) {

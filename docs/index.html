@@ -28,8 +28,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.23.6)</TD>
-            <TD width="20%" align="right">2018/06/29</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.23.7)</TD>
+            <TD width="20%" align="right">2018/08/15</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -367,7 +367,7 @@ TD {
           <TR>
             <TD>動作環境としてWindows XP x32/Windows 7 x64/Windows 10 x64にて確認しています。<BR>
             <BR>
-            サーバーは、FreeBSD 10.3のrlogind, telnetd, sshd(openssh-7.6p1)にて確認しています。<BR>
+            サーバーは、FreeBSD 11.2のrlogind, telnetd, sshd(openssh-7.7p1)にて確認しています。<BR>
             <BR>
             「rlogin.zip」を解凍してRLogin.exeを適当な場所に置いて実行してください。<BR>
             <BR>
@@ -437,6 +437,13 @@ TD {
       <BR>
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
+          <TR>
+            <TD align="center">2018/08/15</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.23.7/">2.23.7</A></TD>
+            <TD>Sixelの色情報DECGCIの解像度と透明度を拡張<BR>
+            Sixel画像のポップアップメニューにヒストグラムを表示を追加<BR>
+            openssl-1.1.0iに更新</TD>
+          </TR>
           <TR>
             <TD align="center">2018/06/29</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.23.6/">2.23.6</A></TD>
@@ -509,13 +516,13 @@ TD {
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-1.1.0h.tar.gz</A><BR>
+                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-1.1.0i.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
                   Visual Studio コマンド <BR>
                   プロンプト (2010)</TD>
-                  <TD width="500" valign="top">rename openssl-1.1.0h openssl-1.1.0h-x32<BR>
+                  <TD width="500" valign="top">rename openssl-1.1.0i openssl-1.1.0i-x32<BR>
                   perl Configure VC-WIN32 no-shared<BR>
                   nmake</TD>
                 </TR>
@@ -601,7 +608,7 @@ TD {
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 1.1.0h 27 Mar 2018<BR>
+            <P>OpenSSL 1.1.0i 14 Aug 2018<BR>
             Copyright (c) 1998-2016 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>
@@ -4624,7 +4631,8 @@ function TekClock2() {
                 </TR>
                 <TR>
                   <TD align="center">Font</TD>
-                  <TD>Windowsのフォントを選択します</TD>
+                  <TD>Windowsのフォント名を選択します<BR>
+                  ※スタイル、サイズ、文字セットは、無視されます。</TD>
                 </TR>
                 <TR>
                   <TD align="center">Alt.Fonts</TD>

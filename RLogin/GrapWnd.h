@@ -5,26 +5,29 @@
 
 // CGrapWnd ÉtÉåÅ[ÉÄ
 
-#define	TYPE_SIXEL	1
-#define	TYPE_REGIS	2
-#define	TYPE_VRAM	3
+#define	TYPE_SIXEL			1
+#define	TYPE_REGIS			2
+#define	TYPE_VRAM			3
 
-#define	WRST_OVERLAY	0
-#define	WRST_REPLACE	1
-#define	WRST_COMPLEMENT	2
-#define	WRST_ERASE		3
+#define	WRST_OVERLAY		0
+#define	WRST_REPLACE		1
+#define	WRST_COMPLEMENT		2
+#define	WRST_ERASE			3
 
-#define	VT_COLMAP_ID	5		// < VT220 Mono ?
-#define	SIXEL_PALET		1024
-#define	ASP_DIV			1000
+#define	VT_COLMAP_ID		5		// < VT220 Mono ?
+#define	SIXEL_PALET			1024
+#define	ASP_DIV				1000
 
-#define	GRAPLIST_INDEX	0
-#define	GRAPLIST_IMAGE	1
-#define	GRAPLIST_TYPE	2
-#define	GRAPLIST_MAX	3
+#define	GRAPLIST_INDEX		0
+#define	GRAPLIST_IMAGE		1
+#define	GRAPLIST_TYPE		2
+#define	GRAPLIST_MAX		3
 
-#define	GRAPMAX_X		(32 * 1024)
-#define	GRAPMAX_Y		(32 * 1024)
+#define	GRAPMAX_X			(32 * 1024)
+#define	GRAPMAX_Y			(32 * 1024)
+
+#define	RGBMAX				255
+#define	HLSMAX				600
 
 class CGifAnime : public CBitmap
 {
@@ -38,6 +41,33 @@ public:
 
 	CGifAnime(void);
 	~CGifAnime();
+};
+
+class CHistogram : public CFrameWnd
+{
+	DECLARE_DYNAMIC(CHistogram)
+
+public:
+	CImage m_Image;
+	int m_MaxValue;
+	int m_Histgram[3][256];
+	class CGrapWnd *m_pGrapWnd;
+	int m_TheadFlag;
+
+	int CalcMaxValue();
+	void CalcHistogram();
+	void SetBitmap(HBITMAP hBitmap);
+
+	CHistogram();
+	virtual ~CHistogram();
+
+protected:
+	DECLARE_MESSAGE_MAP()
+
+public:
+	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
+	afx_msg void OnPaint();
+	afx_msg void OnTimer(UINT_PTR nIDEvent);
 };
 
 class CGrapWnd : public CFrameWnd
@@ -70,6 +100,7 @@ public:
 	int m_GifAnimePos;
 	clock_t m_GifAnimeClock;
 	CArray<CGifAnime, CGifAnime &> m_GifAnime;
+	CHistogram *m_pHistogram;
 
 	void SaveBitmap(int type);
 	BOOL SaveImage(HANDLE hBitmap, const GUID &guid, CBuffer &buf);
@@ -92,14 +123,17 @@ public:
 	int m_SixelStat;
 	int m_SixelWidth, m_SixelHeight;
 	int m_SixelPointX, m_SixelPointY, m_SixelRepCount;
-	int m_SixelColorIndex, m_SixelValue;
+	DWORD m_SixelColorIndex, m_SixelValue;
+	DWORD m_SixelTrueColor;
 	BOOL m_SixelValueInit;
 	CDWordArray m_SixelParam;
+	DWORD m_SixelMaxTab[3][4];
 	CDC m_SixelTempDC;
 	COLORREF m_SixelBackColor;
 	COLORREF m_SixelTransColor;
 	BYTE *m_pAlphaMap;
 
+	void SixelMaxInit();
 	void SixelStart(int aspect, int mode, int grid, COLORREF bc = 0);
 	void SixelResize();
 	void SixelData(int ch);
@@ -160,9 +194,7 @@ public:
 	// Screen Option
 	int m_ActMap;
 	COLORREF *m_ColMap;
-	COLORREF m_ColMapLoc[SIXEL_PALET];
 	BYTE *m_ColAlpha;
-	BYTE m_ColAlphaLoc[SIXEL_PALET];
 	COLORREF m_BakCol;
 	BYTE m_PtnMap[10];
 
@@ -218,7 +250,7 @@ public:
 
 	void SetReGIS(int mode, LPCSTR p);
 
-	static COLORREF RGBtoHLS(COLORREF rgb);
+	static void RGBtoHLS(COLORREF rgb, WORD hls[3]);
 	static COLORREF HLStoRGB(int hue, int lum, int sat);
 
 	CGrapWnd(class CTextRam *pTextRam);
@@ -229,17 +261,20 @@ protected:
 
 public:
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	virtual void PostNcDestroy();
+
 	afx_msg void OnDestroy();
 	afx_msg void OnPaint();
 	afx_msg void OnGrapClose();
 	afx_msg void OnGrapSave();
 	afx_msg void OnGrapClear();
-	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	afx_msg void OnUpdateGrapSave(CCmdUI *pCmdUI);
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
 	afx_msg void OnEditCopy();
 	afx_msg void OnUpdateEditCopy(CCmdUI *pCmdUI);
+	afx_msg void OnHistogram();
+	afx_msg void OnUpdateHistogram(CCmdUI *pCmdUI);
 };
 
 

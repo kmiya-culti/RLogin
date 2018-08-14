@@ -3948,6 +3948,7 @@ void CTextRam::fc_DECRSTS(DWORD ch)
 	int n;
 	CStringArrayExt node, value;
 	int Pc, Pu, Px, Py, Pz;
+	int Mh, Mx, My, Mz;
 
 	switch(GetAnsiPara(0, 0, 0)) {
 	case 1:		// Selects the format of the terminal state report (DECTSR)
@@ -3955,6 +3956,7 @@ void CTextRam::fc_DECRSTS(DWORD ch)
 
 	case 2:		// DECCTR Color Table Restore
 		// Pc; Pu; Px; Py; Pz / Pc; Pu; Px; Py; Pz / ...
+		Mh = 360; Mx = My = Mz = 100;
 		node.GetString(MbsToTstr((LPCSTR)m_OscPara), _T('/'));
 		for ( n = 0 ; n < node.GetSize() ; n++ ) {
 			value.GetString(node[n], _T(';'));
@@ -3969,10 +3971,13 @@ void CTextRam::fc_DECRSTS(DWORD ch)
 				continue;
 			switch(Pu) {
 			case 1:		// HLS
-				m_ColTab[Pc] = CGrapWnd::HLStoRGB(Px, Py, Pz);
+				m_ColTab[Pc] = CGrapWnd::HLStoRGB((Px * HLSMAX + Mh / 2) / Mh, (Py * HLSMAX + My / 2) / My, (Pz * HLSMAX + Mz / 2) / Mz);
 				break;
 			case 2:		// RGB
-				m_ColTab[Pc] = RGB(Px * 255 / 100, Py * 255 / 100, Pz * 255 / 100);
+				m_ColTab[Pc] = RGB((Px * RGBMAX + Mx / 2) / Mx, (Py * RGBMAX + My / 2) / My, (Pz * RGBMAX + Mz / 2) / Mz);
+				break;
+			case 9:		// MAX
+				Mh = Mx = Px; My = Py; Mz = Pz;
 				break;
 			}
 		}
@@ -6336,7 +6341,7 @@ void CTextRam::fc_XTCOLREG(DWORD ch)
 	int status = 3;
 	int result = 0;
 	int cols, lines;
-	int width = 1000, height = 1000;
+	int width, height;
 
 	fc_POP(ch);
 
@@ -6352,24 +6357,27 @@ void CTextRam::fc_XTCOLREG(DWORD ch)
 		case 2:	// reset
 		case 3:	// set
 		case 4:	// read max
-			status = 0;
 			result = SIXEL_PALET;
+			status = 0;
 			break;
 		default:
 			status = 2;
 			break;
 		}
 		break;
+
 	case 2:	// Sixel graphics geometry (in pixels).
 	case 3:	// ReGIS graphics geometry (in pixels).
 		switch(GetAnsiPara(1, 0, 0)) {
 		case 1:	// read
+		case 2:	// reset
+		case 3:	// set
 			status = 10;
 			m_pDocument->m_TextRam.GetScreenSize(&cols, &lines, &width, &height);
 			break;
-		case 2:	// reset
-		case 3:	// set
 		case 4:	// read max
+			width  = GRAPMAX_X;
+			height = GRAPMAX_Y;
 			status = 10;
 			break;
 		default:
@@ -6377,6 +6385,7 @@ void CTextRam::fc_XTCOLREG(DWORD ch)
 			break;
 		}
 		break;
+
 	default:
 		status = 1;
 		break;
@@ -6973,17 +6982,17 @@ void CTextRam::fc_DECRQTSR(DWORD ch)
 		{
 			int n;
 			CString str, tmp;
-			COLORREF hls;
+			WORD hls[3];
 			int Ps = GetAnsiPara(1, 0, 0);
 
 			switch(Ps) {
 			case 1:		// HLS
 				for ( n = 0 ; n < 256 ; n++ ) {
-					hls = CGrapWnd::RGBtoHLS(m_ColTab[n]);
+					CGrapWnd::RGBtoHLS(m_ColTab[n], hls);
 					tmp.Format(_T("%d;1;%d;%d;%d"), n,
-						GetRValue(hls) * 360 / 100,
-						GetGValue(hls) * 100 / 100,
-						GetBValue(hls) * 100 / 100);
+						hls[0] * 360 / HLSMAX,
+						hls[1] * 100 / HLSMAX,
+						hls[2] * 100 / HLSMAX);
 					if ( n > 0 )
 						str += '/';
 					str += tmp;
@@ -6992,9 +7001,9 @@ void CTextRam::fc_DECRQTSR(DWORD ch)
 			case 2:		// RGB
 				for ( n = 0 ; n < 256 ; n++ ) {
 					tmp.Format(_T("%d;2;%d;%d;%d"), n,
-						GetRValue(m_ColTab[n]) * 100 / 255,
-						GetGValue(m_ColTab[n]) * 100 / 255,
-						GetBValue(m_ColTab[n]) * 100 / 255);
+						GetRValue(m_ColTab[n]) * 100 / RGBMAX,
+						GetGValue(m_ColTab[n]) * 100 / RGBMAX,
+						GetBValue(m_ColTab[n]) * 100 / RGBMAX);
 					if ( n > 0 )
 						str += '/';
 					str += tmp;

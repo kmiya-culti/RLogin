@@ -30,9 +30,20 @@ CGrapWnd::CGrapWnd(class CTextRam *pTextRam)
 	m_TransIndex = (-1);
 	m_bHaveAlpha = FALSE;
 	m_SixelBackColor = m_SixelTransColor = (-1);
+	m_pHistogram = NULL;
+	m_ColMap = NULL;
+	m_ColAlpha = NULL;
 }
 CGrapWnd::~CGrapWnd()
 {
+	if ( m_pHistogram != NULL )
+		m_pHistogram->DestroyWindow();
+
+	if ( m_ColMap != NULL && m_ColMap != m_pTextRam->m_pSixelColor )
+		delete [] m_ColMap;
+
+	if ( m_ColAlpha != NULL && m_ColAlpha != m_pTextRam->m_pSixelAlpha )
+		delete [] m_ColAlpha;
 }
 
 BEGIN_MESSAGE_MAP(CGrapWnd, CFrameWnd)
@@ -45,6 +56,8 @@ BEGIN_MESSAGE_MAP(CGrapWnd, CFrameWnd)
 	ON_WM_ERASEBKGND()
 	ON_COMMAND(ID_EDIT_COPY, &CGrapWnd::OnEditCopy)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_COPY, &CGrapWnd::OnUpdateEditCopy)
+	ON_COMMAND(IDM_HISTOGRAM, &CGrapWnd::OnHistogram)
+	ON_UPDATE_COMMAND_UI(IDM_HISTOGRAM, &CGrapWnd::OnUpdateHistogram)
 END_MESSAGE_MAP()
 
 // CGrapWnd メッセージ ハンドラー
@@ -477,18 +490,31 @@ void CGrapWnd::OnUpdateEditCopy(CCmdUI *pCmdUI)
 	pCmdUI->Enable(m_pActMap != NULL ? TRUE : FALSE);
 }
 
+void CGrapWnd::OnHistogram()
+{
+	if ( m_pActMap == NULL || m_pActMap->m_hObject == NULL || m_pHistogram != NULL )
+		return;
+
+	m_pHistogram = new CHistogram;
+	m_pHistogram->m_pGrapWnd = this;
+	m_pHistogram->Create(NULL, _T("Histogram"));
+	m_pHistogram->SetBitmap((HBITMAP)m_pActMap->m_hObject);
+	m_pHistogram->ShowWindow(SW_SHOW);
+}
+void CGrapWnd::OnUpdateHistogram(CCmdUI *pCmdUI)
+{
+	pCmdUI->Enable(m_pActMap != NULL && m_pHistogram == NULL ? TRUE : FALSE);
+}
+
 //////////////////////////////////////////////////////////////////////
 // Static libs
-
-#define	RGBMAX	255
-#define	HLSMAX	100
 	
-COLORREF CGrapWnd::RGBtoHLS(COLORREF rgb)
+void CGrapWnd::RGBtoHLS(COLORREF rgb, WORD hls[3])
 {
-	WORD	R, G, B;				/* input RGB values */
-	WORD	H, L, S;				/* output HLS values */
-	BYTE	cMax, cMin;				/* max and min RGB values */
-	WORD	Rdelta, Gdelta, Bdelta; /* intermediate value: % of spread from max*/
+	int R, G, B;				/* input RGB values */
+	int H, L, S;				/* output HLS values */
+	int cMax, cMin;				/* max and min RGB values */
+	int Rdelta, Gdelta, Bdelta; /* intermediate value: % of spread from max*/
 
 	/* get R, G, and B out of DWORD */
 	R = GetRValue(rgb);
@@ -496,14 +522,14 @@ COLORREF CGrapWnd::RGBtoHLS(COLORREF rgb)
 	B = GetBValue(rgb);
 
 	/* calculate lightness */
-	cMax = (BYTE)max( max(R,G), B);
-	cMin = (BYTE)min( min(R,G), B);
+	cMax = max(max(R, G), B);
+	cMin = min(min(R, G), B);
 	L = (((cMax + cMin) * HLSMAX) + RGBMAX) / (2 * RGBMAX);
 
 	if ( cMax == cMin ) {
 		/* r=g=b --> achromatic case */
 		S = 0;						/* saturation */
-		H = (HLSMAX * 2 / 3);		/* hue */
+		H = (HLSMAX * 2 / 3);		/* hue 240 */
 		goto RETOF;
 	}
 
@@ -533,7 +559,9 @@ RETOF:
 	if ( H > HLSMAX )
 		H -= HLSMAX;
 
-	return RGB(H, L, S);
+	hls[0] = (WORD)H;
+	hls[1] = (WORD)L;
+	hls[2] = (WORD)S;
 }
 COLORREF CGrapWnd::HLStoRGB(int hue, int lum, int sat)
 {
@@ -543,8 +571,8 @@ COLORREF CGrapWnd::HLStoRGB(int hue, int lum, int sat)
 
 	//if ( hue < 0 )
 	//	hue = 0;
-	//else if ( hue > 360 )
-	//	hue = 360;
+	//else if ( hue > HLSMAX )
+	//	hue = HLSMAX;
 
 	//if ( lum < 0 )
 	//	lum = 0;
@@ -568,19 +596,19 @@ COLORREF CGrapWnd::HLStoRGB(int hue, int lum, int sat)
 		Magic1 = 2 * lum - Magic2;
 
 		for ( n = 0 ; n < 3 ; n++ ) {
-			if ( hue < 60 )
-				c = (Magic1 + (((Magic2 - Magic1) * hue + 30) / 60));
-			else if ( hue < 180 )
+			if ( hue < (HLSMAX / 6) )			// 360 / 6 = 60
+				c = (Magic1 + (((Magic2 - Magic1) * hue + (HLSMAX / 12)) / (HLSMAX / 6)));
+			else if ( hue < (HLSMAX / 2) )		// 360 / 2 = 120
 				c = Magic2;
-			else if ( hue < 240 )
-				c = (Magic1 + (((Magic2 - Magic1) * (240 - hue) + 30) / 60));
+			else if ( hue < (HLSMAX * 2 / 3) )	// 360 * 2 / 3 = 240
+				c = (Magic1 + (((Magic2 - Magic1) * ((HLSMAX * 2 / 3) - hue) + (HLSMAX / 12)) / (HLSMAX / 6)));
 			else
 				c = Magic1;
 
 			rgb[n] = (BYTE)(c * RGBMAX / HLSMAX);
 
-			if ( (hue -= 120) < 0 )
-				hue += 360;
+			if ( (hue -= (HLSMAX / 3)) < 0 )	// 360 / 3 = 120
+				hue += HLSMAX;
 		}
 	}
 
@@ -922,19 +950,21 @@ void CGrapWnd::InitColMap()
 
 	if ( !m_pTextRam->IsOptEnable(TO_XTPRICOL) ) {
 		if ( m_pTextRam->m_pSixelColor == NULL )
-			m_pTextRam->m_pSixelColor = new COLORREF [SIXEL_PALET];
+			m_pTextRam->m_pSixelColor = new COLORREF [SIXEL_PALET + 1];
 		if ( m_pTextRam->m_pSixelAlpha == NULL )
-			m_pTextRam->m_pSixelAlpha = new BYTE [SIXEL_PALET];
+			m_pTextRam->m_pSixelAlpha = new BYTE [SIXEL_PALET + 1];
 
-		m_ColMap      = m_pTextRam->m_pSixelColor;
+		m_ColMap   = m_pTextRam->m_pSixelColor;
 		m_ColAlpha = m_pTextRam->m_pSixelAlpha;
 
 		if ( m_pTextRam->m_bSixelColInit )
 			return;
+
 		m_pTextRam->m_bSixelColInit = TRUE;
+
 	} else {
-		m_ColMap      = m_ColMapLoc;
-		m_ColAlpha = m_ColAlphaLoc;
+		m_ColMap   = new COLORREF [SIXEL_PALET + 1];
+		m_ColAlpha = new BYTE [SIXEL_PALET + 1];
 	}
 
 	i = (m_pTextRam->m_TermId < VT_COLMAP_ID ? 0 : 1);
@@ -964,7 +994,7 @@ void CGrapWnd::InitColMap()
 	for ( ; n < SIXEL_PALET ; n++ )
 		m_ColMap[n] = m_BakCol;
 
-	memset(m_ColAlpha, 0xFF, sizeof(BYTE) * SIXEL_PALET);
+	memset(m_ColAlpha, 0xFF, sizeof(BYTE) * SIXEL_PALET + 1);
 }
 int CGrapWnd::GetChar(LPCSTR &p)
 {
@@ -1072,7 +1102,7 @@ int CGrapWnd::GetColor(LPCSTR &p, COLORREF &rgb)
 				if ( h < 0 ) h = 0; else if ( h > 360 ) h = 360;
 			} else
 				h = 0;
-			rgb = HLStoRGB(h, l, s);
+			rgb = HLStoRGB(h * HLSMAX / 360, l * HLSMAX / 100, s * HLSMAX / 100);
 			break;
 		case 'L':
 			if ( isdigit(*p) ) {
@@ -1080,7 +1110,7 @@ int CGrapWnd::GetColor(LPCSTR &p, COLORREF &rgb)
 				if ( l < 0 ) l = 0; else if ( l > 100 ) l = 100;
 			} else
 				l = 0;
-			rgb = HLStoRGB(h, l, s);
+			rgb = HLStoRGB(h * HLSMAX / 360, l * HLSMAX / 100, s * HLSMAX / 100);
 			break;
 		case 'S':
 			if ( isdigit(*p) ) {
@@ -1088,7 +1118,7 @@ int CGrapWnd::GetColor(LPCSTR &p, COLORREF &rgb)
 				if ( s < 0 ) s = 0; else if ( s > 100 ) s = 100;
 			} else
 				s = 0;
-			rgb = HLStoRGB(h, l, s);
+			rgb = HLStoRGB(h * HLSMAX / 360, l * HLSMAX / 100, s * HLSMAX / 100);
 			break;
 
 		case 'A':
@@ -2607,6 +2637,20 @@ void CGrapWnd::SetReGIS(int mode, LPCSTR p)
 //////////////////////////////////////////////////////////////////////
 // Sixel
 
+void CGrapWnd::SixelMaxInit()
+{
+										//Pu=1 HLS				Pu=2 RGB				Pu=3 RGB 255
+	static const DWORD DefMax[4][4] = { { 360, 100, 100, 100 }, { 100, 100, 100, 100 }, { 255, 255, 255, 255 } };
+	int n, i;
+
+	for ( n = 0 ; n < 3 ; n++ ) {
+		for ( i = 0 ; i < 4 ; i++ ) {
+			if ( m_SixelMaxTab[n][i] == 0 )
+				m_SixelMaxTab[n][i] = DefMax[n][i];
+		}
+	}
+}
+
 void CGrapWnd::SixelStart(int aspect, int mode, int grid, COLORREF bc)
 {
 	CClientDC DispDC(this);
@@ -2622,6 +2666,8 @@ void CGrapWnd::SixelStart(int aspect, int mode, int grid, COLORREF bc)
 	m_SixelValueInit  = FALSE;
 
 	m_SixelParam.RemoveAll();
+	ZeroMemory(m_SixelMaxTab, sizeof(m_SixelMaxTab));
+	SixelMaxInit();
 
 	m_AspX = ASP_DIV;
 	m_AspY = ASP_DIV;
@@ -2770,182 +2816,201 @@ void CGrapWnd::SixelResize()
 void CGrapWnd::SixelData(int ch)
 {
 	int n, i, bit, mask, line;
+	DWORD Px, Py, Pz, Pa;
+	DWORD Mx, My, Mz, Ma;
 
-RECHECK:
+	for ( ; ; ) {
+		if ( m_SixelStat == 0 ) {
+			if ( ch == '"' ) { 				// DECGRA Set Raster Attributes				"Pan;Pad;Ph;Pv 
+				m_SixelStat = 1;
 
-	switch(m_SixelStat) {
-	case 0:
-		if ( ch == '"' ) { 				// DECGRA Set Raster Attributes				" Pan ; Pad ; Ph ; Pv 
-			m_SixelStat = 1;
+			} else if ( ch == '!' ) {		// DECGRI Graphics Repeat Introducer		!Pn
+				m_SixelStat = 2;
 
-		} else if ( ch == '!' ) {		// DECGRI Graphics Repeat Introducer		! Pn Ch
-			m_SixelStat = 2;
+			} else if ( ch == '#' ) {		// DECGCI Graphics Color Introducer			#Pc;Pu;Px;Py;Pz;Pa 
+				m_SixelStat = 3;
 
-		} else if ( ch == '#' ) {		// DECGCI Graphics Color Introducer			# Pc ; Pu; Px; Py; Pz 
-			m_SixelStat = 3;
+			} else if ( ch == '*' ) {		// RLGCIMAX									*Pu;Px;Py;Pz;Pa
+				m_SixelStat = 4;
 
-		} else if ( ch == '$' ) {		// DECGCR Graphics Carriage Return
-			m_SixelPointX   = 0;
-			m_SixelRepCount = 1;
+			} else if ( ch == '$' ) {		// DECGCR Graphics Carriage Return			$
+				m_SixelPointX   = 0;
+				m_SixelRepCount = 1;
 
-		} else if ( ch == '-' ) {		// DECGNL Graphics Next Line
-			m_SixelPointX   = 0;
-			m_SixelPointY  += 6;
-			m_SixelRepCount = 1;
+			} else if ( ch == '-' ) {		// DECGNL Graphics Next Line				-
+				m_SixelPointX   = 0;
+				m_SixelPointY  += 6;
+				m_SixelRepCount = 1;
 
-		} else if ( ch >= '?' && ch <= '\x7E' ) {
+			} else if ( ch >= '?' && ch <= '\x7E' ) {
 
-			if ( m_MaxX < (m_SixelPointX + m_SixelRepCount) || m_MaxY < (m_SixelPointY + 6) ) {
-				while ( m_MaxX < (m_SixelPointX + m_SixelRepCount) )
-					m_MaxX *= 2;
-				while ( m_MaxY < (m_SixelPointY + 6) )
-					m_MaxY *= 2;
+				if ( m_MaxX < (m_SixelPointX + m_SixelRepCount) || m_MaxY < (m_SixelPointY + 6) ) {
+					while ( m_MaxX < (m_SixelPointX + m_SixelRepCount) )
+						m_MaxX *= 2;
+					while ( m_MaxY < (m_SixelPointY + 6) )
+						m_MaxY *= 2;
 
-				if ( m_MaxX > GRAPMAX_X )
-					m_MaxX = GRAPMAX_X;
-				if ( m_MaxY > GRAPMAX_Y )
-					m_MaxY = GRAPMAX_Y;
+					if ( m_MaxX > GRAPMAX_X )
+						m_MaxX = GRAPMAX_X;
+					if ( m_MaxY > GRAPMAX_Y )
+						m_MaxY = GRAPMAX_Y;
 
-				SixelResize();
-			}
-
-			if ( (bit = ch - '?') <= 0 ) {
-				m_SixelPointX += m_SixelRepCount;
-
-			} else if ( m_SixelPointX < GRAPMAX_X && m_SixelPointY < GRAPMAX_Y ) {
-				if ( m_ColMap[m_SixelColorIndex] == m_SixelTransColor )
-					m_SixelTransColor = (-1);
-
-				if ( m_ColAlpha[m_SixelColorIndex] != 0xFF )
-					m_bHaveAlpha = TRUE;
-
-				mask = 0x01;
-				if ( m_SixelRepCount <= 1 ) {
-					for ( i = 0 ; i < 6 ; i++ ) {
-						if ( (bit & mask) != 0 ) {
-							m_pAlphaMap[m_SixelPointX + m_MaxX * (m_SixelPointY + i)] = m_ColAlpha[m_SixelColorIndex];
-							m_SixelTempDC.SetPixelV(m_SixelPointX, m_SixelPointY + i, m_ColMap[m_SixelColorIndex]);
-							if ( m_SixelWidth <= m_SixelPointX )
-								m_SixelWidth = m_SixelPointX + 1;
-							if ( m_SixelHeight <= (m_SixelPointY + i) )
-								m_SixelHeight = m_SixelPointY + i + 1;
-						}
-						mask <<= 1;
-					}
-					m_SixelPointX += 1;
-				} else {
-					for ( i = 0 ; i < 6 ; i++ ) {
-						if ( (bit & mask) != 0 ) {
-							memset(m_pAlphaMap + m_SixelPointX + m_MaxX * (m_SixelPointY + i), m_ColAlpha[m_SixelColorIndex], m_SixelRepCount);
-							line = mask << 1;
-							for ( n = 1 ; (i + n) < 6 ; n++ ) {
-								if ( (bit & line) == 0 )
-									break;
-								line <<= 1;
-								memset(m_pAlphaMap + m_SixelPointX + m_MaxX * (m_SixelPointY + i + n), m_ColAlpha[m_SixelColorIndex], m_SixelRepCount);
-							}
-							m_SixelTempDC.FillSolidRect(m_SixelPointX, m_SixelPointY + i, m_SixelRepCount, n, m_ColMap[m_SixelColorIndex]);
-
-							if ( m_SixelWidth <= (m_SixelPointX + m_SixelRepCount - 1)  )
-								m_SixelWidth = m_SixelPointX + m_SixelRepCount - 1 + 1;
-							if ( m_SixelHeight <= (m_SixelPointY + i + n - 1) )
-								m_SixelHeight = m_SixelPointY + i + n - 1 + 1;
-
-							i += (n - 1);
-							mask <<= (n - 1);
-						}
-						mask <<= 1;
-					}
-					m_SixelPointX += m_SixelRepCount;
+					SixelResize();
 				}
+
+				if ( (bit = ch - '?') <= 0 ) {
+					m_SixelPointX += m_SixelRepCount;
+
+				} else if ( m_SixelPointX < GRAPMAX_X && m_SixelPointY < GRAPMAX_Y ) {
+					if ( m_ColMap[m_SixelColorIndex] == m_SixelTransColor )
+						m_SixelTransColor = (-1);
+
+					if ( m_ColAlpha[m_SixelColorIndex] != RGBMAX )
+						m_bHaveAlpha = TRUE;
+
+					mask = 0x01;
+					if ( m_SixelRepCount <= 1 ) {
+						for ( i = 0 ; i < 6 ; i++ ) {
+							if ( (bit & mask) != 0 ) {
+								m_pAlphaMap[m_SixelPointX + m_MaxX * (m_SixelPointY + i)] = m_ColAlpha[m_SixelColorIndex];
+								m_SixelTempDC.SetPixelV(m_SixelPointX, m_SixelPointY + i, m_ColMap[m_SixelColorIndex]);
+								if ( m_SixelWidth <= m_SixelPointX )
+									m_SixelWidth = m_SixelPointX + 1;
+								if ( m_SixelHeight <= (m_SixelPointY + i) )
+									m_SixelHeight = m_SixelPointY + i + 1;
+							}
+							mask <<= 1;
+						}
+						m_SixelPointX += 1;
+					} else {
+						for ( i = 0 ; i < 6 ; i++ ) {
+							if ( (bit & mask) != 0 ) {
+								memset(m_pAlphaMap + m_SixelPointX + m_MaxX * (m_SixelPointY + i), m_ColAlpha[m_SixelColorIndex], m_SixelRepCount);
+								line = mask << 1;
+								for ( n = 1 ; (i + n) < 6 ; n++ ) {
+									if ( (bit & line) == 0 )
+										break;
+									line <<= 1;
+									memset(m_pAlphaMap + m_SixelPointX + m_MaxX * (m_SixelPointY + i + n), m_ColAlpha[m_SixelColorIndex], m_SixelRepCount);
+								}
+								m_SixelTempDC.FillSolidRect(m_SixelPointX, m_SixelPointY + i, m_SixelRepCount, n, m_ColMap[m_SixelColorIndex]);
+
+								if ( m_SixelWidth <= (m_SixelPointX + m_SixelRepCount - 1)  )
+									m_SixelWidth = m_SixelPointX + m_SixelRepCount - 1 + 1;
+								if ( m_SixelHeight <= (m_SixelPointY + i + n - 1) )
+									m_SixelHeight = m_SixelPointY + i + n - 1 + 1;
+
+								i += (n - 1);
+								mask <<= (n - 1);
+							}
+							mask <<= 1;
+						}
+						m_SixelPointX += m_SixelRepCount;
+					}
+				}
+
+				m_SixelRepCount = 1;
 			}
-
-			m_SixelRepCount = 1;
-		}
-		break;
-	case 1:		// DECGRA
-	case 2:		// DECGRI
-	case 3:		// DECGCI
-		if ( isdigit(ch) ) {
-			if ( !m_SixelValueInit ) {
-				m_SixelValueInit = TRUE;
-				m_SixelValue = 0;
-			}
-			if ( m_SixelValue < (0x7FFFFFF / 10) )
-				m_SixelValue = m_SixelValue * 10 + (ch - '0');
-
-		} else if ( ch == ' ' || ch == '\t' ) {
-			m_SixelValueInit = FALSE;
-
-		} else if ( ch == ';' ) {
-			m_SixelParam.Add(m_SixelValueInit ? m_SixelValue : 0);
-			m_SixelValueInit = FALSE;
 
 		} else {
-			if ( m_SixelValueInit )
-				m_SixelParam.Add(m_SixelValue);
-			m_SixelValueInit = FALSE;
-			switch(m_SixelStat) {
-			case 1:		// DECGRA Set Raster Attributes				" Pan ; Pad ; Ph ; Pv 
-				if ( m_SixelParam.GetSize() > 0 ) m_AspY = m_SixelParam[0] * ASP_DIV;
-				if ( m_SixelParam.GetSize() > 1 ) m_AspX = m_SixelParam[1] * ASP_DIV;
-				if ( m_SixelParam.GetSize() > 2 ) m_MaxX = m_SixelWidth  = m_SixelParam[2];
-				if ( m_SixelParam.GetSize() > 3 ) m_MaxY = m_SixelHeight = m_SixelParam[3];
-
-				if ( m_SixelWidth  <= 0 ) m_SixelWidth  = 1; else if ( m_SixelWidth  > GRAPMAX_X ) m_SixelWidth  = GRAPMAX_X;
-				if ( m_SixelHeight <= 0 ) m_SixelHeight = 1; else if ( m_SixelHeight > GRAPMAX_Y ) m_SixelHeight = GRAPMAX_Y;
-
-				if ( m_AspX <= 0 ) m_AspX = ASP_DIV; else if ( m_AspX > (ASP_DIV * 1000) ) m_AspX = ASP_DIV * 1000;
-				if ( m_AspY <= 0 ) m_AspY = ASP_DIV; else if ( m_AspY > (ASP_DIV * 1000) ) m_AspY = ASP_DIV * 1000;
-				if ( m_MaxX <= 0 ) m_MaxX = 1; else if ( m_MaxX > GRAPMAX_X ) m_MaxX = GRAPMAX_X;
-				if ( m_MaxY <= 0 ) m_MaxY = 1; else if ( m_MaxY > GRAPMAX_Y ) m_MaxY = GRAPMAX_Y;
-
-				SixelResize();
-				break;
-
-			case 2:		// DECGRI Graphics Repeat Introducer		! Pn Ch
-				if ( m_SixelParam.GetSize() > 0 )
-					m_SixelRepCount = m_SixelParam[0];
-				if ( m_SixelRepCount > m_MaxX )
-					m_SixelRepCount = m_MaxX;
-				break;
-
-			case 3:		// DECGCI Graphics Color Introducer			# Pc ; Pu; Px; Py; Pz
-				if ( m_SixelParam.GetSize() > 0 ) {
-					if ( (m_SixelColorIndex = m_SixelParam[0]) < 0 )
-						m_SixelColorIndex = 0;
-					else if ( m_SixelColorIndex >= SIXEL_PALET )
-						m_SixelColorIndex = SIXEL_PALET - 1;
+			if ( isdigit(ch) ) {
+				if ( !m_SixelValueInit ) {
+					m_SixelValueInit = TRUE;
+					m_SixelValue = 0;
 				}
+				m_SixelValue = m_SixelValue * 10 + (ch - '0');
 
-				if ( m_SixelParam.GetSize() > 4 ) {
+			} else if ( ch == ' ' || ch == '\t' ) {
+				m_SixelValueInit = FALSE;
+
+			} else if ( ch == ';' ) {
+				m_SixelParam.Add(m_SixelValueInit ? m_SixelValue : 0);
+				m_SixelValueInit = FALSE;
+
+			} else {
+				if ( m_SixelValueInit )
+					m_SixelParam.Add(m_SixelValue);
+				m_SixelValueInit = FALSE;
+
+				switch(m_SixelStat) {
+				case 1:		// DECGRA
+					if ( m_SixelParam.GetSize() > 0 ) m_AspY = m_SixelParam[0] * ASP_DIV;
+					if ( m_SixelParam.GetSize() > 1 ) m_AspX = m_SixelParam[1] * ASP_DIV;
+					if ( m_SixelParam.GetSize() > 2 ) m_MaxX = m_SixelWidth  = m_SixelParam[2];
+					if ( m_SixelParam.GetSize() > 3 ) m_MaxY = m_SixelHeight = m_SixelParam[3];
+
+					if ( m_SixelWidth  <= 0 ) m_SixelWidth  = 1; else if ( m_SixelWidth  > GRAPMAX_X ) m_SixelWidth  = GRAPMAX_X;
+					if ( m_SixelHeight <= 0 ) m_SixelHeight = 1; else if ( m_SixelHeight > GRAPMAX_Y ) m_SixelHeight = GRAPMAX_Y;
+
+					if ( m_AspX <= 0 ) m_AspX = ASP_DIV; else if ( m_AspX > (ASP_DIV * 1000) ) m_AspX = ASP_DIV * 1000;
+					if ( m_AspY <= 0 ) m_AspY = ASP_DIV; else if ( m_AspY > (ASP_DIV * 1000) ) m_AspY = ASP_DIV * 1000;
+					if ( m_MaxX <= 0 ) m_MaxX = 1; else if ( m_MaxX > GRAPMAX_X ) m_MaxX = GRAPMAX_X;
+					if ( m_MaxY <= 0 ) m_MaxY = 1; else if ( m_MaxY > GRAPMAX_Y ) m_MaxY = GRAPMAX_Y;
+
+					SixelResize();
+					break;
+
+				case 2:		// DECGRI
+					if ( m_SixelParam.GetSize() > 0 )
+						m_SixelRepCount = m_SixelParam[0];
+					if ( m_SixelRepCount > m_MaxX )
+						m_SixelRepCount = m_MaxX;
+					break;
+				
+				case 3:		// DECGCI
+					if ( m_SixelParam.GetSize() > 0 )
+						m_SixelColorIndex = m_SixelParam[0] % SIXEL_PALET;
+
+					// Pu ? 1=HLS, 2=RGB, 3=R8G8B8
+					if ( m_SixelParam.GetSize() < 5 || (n = m_SixelParam[1] - 1) < 0 || n > 2 )
+						break;
+
+					Mx = m_SixelMaxTab[n][0];
+					My = m_SixelMaxTab[n][1];
+					Mz = m_SixelMaxTab[n][2];
+					Ma = m_SixelMaxTab[n][3];
+
+					if ( (Px = m_SixelParam[2]) > Mx ) Px = Mx;
+					if ( (Py = m_SixelParam[3]) > My ) Py = My;
+					if ( (Pz = m_SixelParam[4]) > Mz ) Pz = Mz;
+					if ( m_SixelParam.GetSize() <= 5 || (Pa = m_SixelParam[5]) > Ma ) Pa = Ma;	// Alpha Default Max
+
 					if ( m_SixelParam[1] == 1 ) {			// HLS
-						if ( m_SixelParam[2] > 360 ) m_SixelParam[2] = 360;
-						if ( m_SixelParam[3] > 100 ) m_SixelParam[3] = 100;
-						if ( m_SixelParam[4] > 100 ) m_SixelParam[4] = 100;
-						m_ColMap[m_SixelColorIndex] = HLStoRGB(m_SixelParam[2], m_SixelParam[3], m_SixelParam[4]);
-					} else if ( m_SixelParam[1] == 2 ) {	// RGB
-						if ( m_SixelParam[2] > 100 ) m_SixelParam[2] = 100;
-						if ( m_SixelParam[3] > 100 ) m_SixelParam[3] = 100;
-						if ( m_SixelParam[4] > 100 ) m_SixelParam[4] = 100;
-						m_ColMap[m_SixelColorIndex] = RGB(m_SixelParam[2] * 255 / 100, m_SixelParam[3] * 255 / 100, m_SixelParam[4] * 255 / 100);
-					} else if ( m_SixelParam[1] == 3 ) {	// RGB 255
-						if ( m_SixelParam[2] > 255 ) m_SixelParam[2] = 255;
-						if ( m_SixelParam[3] > 255 ) m_SixelParam[3] = 255;
-						if ( m_SixelParam[4] > 255 ) m_SixelParam[4] = 255;
-						m_ColMap[m_SixelColorIndex] = RGB(m_SixelParam[2], m_SixelParam[3], m_SixelParam[4]);
-						if ( m_SixelParam.GetSize() > 5 )
-							m_ColAlpha[m_SixelColorIndex] = (BYTE)(m_SixelParam[5] > 255 ? 255 : m_SixelParam[5]);
-					}
-				}
-				break;
-			}
+						m_ColMap[m_SixelColorIndex] = HLStoRGB(
+							(Px * HLSMAX + Mx / 2) / Mx,
+							(Py * HLSMAX + My / 2) / My,
+							(Pz * HLSMAX + Mz / 2) / Mz);
 
-			m_SixelStat = 0;
-			m_SixelParam.RemoveAll();
-			goto RECHECK;
+					} else {								// RGB / R8G8B8
+						m_ColMap[m_SixelColorIndex] = RGB(
+							(BYTE)((Px * RGBMAX + Mx / 2) / Mx),
+							(BYTE)((Py * RGBMAX + My / 2) / My),
+							(BYTE)((Pz * RGBMAX + Mz / 2) / Mz));
+					}
+
+					m_ColAlpha[m_SixelColorIndex] = (BYTE)((Pa * RGBMAX + Ma / 2) / Ma);
+					break;
+
+				case 4:		// RLGCIMAX
+					if ( m_SixelParam.GetSize() < 1 || (n = m_SixelParam[0] - 1) < 0 || n > 2 )
+						break;
+
+					for ( i = 0 ; i < 4 ; i++ )
+						m_SixelMaxTab[n][i] = ((i + 1) < m_SixelParam.GetSize() ? m_SixelParam[i + 1] : 0);
+
+					// Max Value Check and Init
+					SixelMaxInit();
+					break;
+				}
+
+				m_SixelStat = 0;
+				m_SixelParam.RemoveAll();
+
+				continue;	// Loop !!!
+			}
 		}
-		break;
+
+		break;	// No Loop !!!
 	}
 }
 void CGrapWnd::SixelEndof(BOOL bAlpha)
@@ -3559,4 +3624,171 @@ BOOL CGrapWnd::LoadPicture(LPBYTE lpBuf, int len)
 	SetImage(image, TRUE);
 
 	return TRUE;
+}
+
+//////////////////////////////////////////////////////////////////////
+
+CHistogram::CHistogram()
+{
+	m_MaxValue = 0;
+	m_pGrapWnd = NULL;
+	m_TheadFlag = 0;
+}
+CHistogram::~CHistogram()
+{
+	if ( m_pGrapWnd != NULL )
+		m_pGrapWnd->m_pHistogram = NULL;
+
+	if ( m_TheadFlag != 0 ) {
+		m_TheadFlag = 2;
+		while ( m_TheadFlag != 0 )
+			Sleep(100);
+	}
+}
+
+IMPLEMENT_DYNAMIC(CHistogram, CFrameWnd)
+
+BEGIN_MESSAGE_MAP(CHistogram, CFrameWnd)
+	ON_WM_PAINT()
+	ON_WM_TIMER()
+END_MESSAGE_MAP()
+
+int CHistogram::CalcMaxValue()
+{
+	int n, i;
+	int max = 0;
+
+	for ( n = 0 ; n < 3 ; n++ ) {
+		for ( i = 0 ; i < 256 ; i++ ) {
+			if ( max < m_Histgram[n][i] )
+				max = m_Histgram[n][i];
+		}
+	}
+
+	return max;
+}
+void CHistogram::CalcHistogram()
+{
+	int x, y;
+	BYTE *p;
+	COLORREF rgb;
+
+	ZeroMemory(m_Histgram, sizeof(int) * 3 * 256);
+
+	if ( m_Image.IsDIBSection() ) {
+		for ( y = 0 ; y < m_Image.GetHeight() ; y++ ) {
+			for ( x = 0 ; x < m_Image.GetWidth() ; x++ ) {
+				p = (BYTE *)m_Image.GetPixelAddress(x, y);
+				m_Histgram[0][p[2]]++;
+				m_Histgram[1][p[1]]++;
+				m_Histgram[2][p[0]]++;
+			}
+			if ( m_TheadFlag != 1 )
+				break;
+		}
+
+	} else {
+		for ( y = 0 ; y < m_Image.GetHeight() ; y++ ) {
+			for ( x = 0 ; x < m_Image.GetWidth() ; x++ ) {
+				rgb = m_Image.GetPixel(x, y);
+				m_Histgram[0][GetRValue(rgb)]++;
+				m_Histgram[1][GetGValue(rgb)]++;
+				m_Histgram[2][GetBValue(rgb)]++;
+			}
+			if ( m_TheadFlag != 1 )
+				break;
+		}
+	}
+
+	m_Image.Destroy();
+	m_MaxValue = CalcMaxValue();
+	m_TheadFlag = 0;
+}
+static UINT CountRGBThread(LPVOID pParam)
+{
+	CHistogram *pWnd = (CHistogram *)pParam;
+	pWnd->CalcHistogram();
+	return 0;
+}
+void CHistogram::SetBitmap(HBITMAP hBitmap)
+{
+	CImage SrcImage;
+
+	SrcImage.Attach(hBitmap);
+
+	if ( !m_Image.CreateEx(SrcImage.GetWidth(), SrcImage.GetHeight(), SrcImage.GetBPP(), BI_RGB, NULL, 0) ) {
+		SrcImage.Detach();
+		return;
+	}
+
+	SrcImage.BitBlt(m_Image.GetDC(), 0, 0);
+	m_Image.ReleaseDC();
+	SrcImage.Detach();
+
+	m_TheadFlag = 1;
+	AfxBeginThread(CountRGBThread, this, THREAD_PRIORITY_NORMAL);
+
+	SetTimer(1024, 300, NULL);
+}
+
+void CHistogram::OnPaint()
+{
+	int n, i, v, max;
+	CRect frame, box;
+	int val[3], pos[3];
+	COLORREF col;
+	CPaintDC dc(this);
+	static const COLORREF ctb[3] = { RGB(255, 64, 64), RGB(64, 255, 64), RGB(64, 64, 255) };
+
+	GetClientRect(frame);
+
+	dc.FillSolidRect(frame, RGB(32, 32, 32));
+
+	if ( (max = m_MaxValue) == 0 )
+		max = CalcMaxValue();
+
+	for ( n = 0 ; n < 256 ; n++ ) {
+		pos[0] = 0; val[0] = m_Histgram[0][n] * frame.Height() / max;
+		pos[1] = 1; val[1] = m_Histgram[1][n] * frame.Height() / max;
+		pos[2] = 2; val[2] = m_Histgram[2][n] * frame.Height() / max;
+
+#define	Swap(a,b)	{ v = pos[a]; pos[a] = pos[b]; pos[b] = v; }
+
+		if ( val[pos[0]] < val[pos[1]] )
+			Swap(0, 1);
+		if ( val[pos[0]] < val[pos[2]] )
+			Swap(0, 2);
+		if ( val[pos[1]] < val[pos[2]] )
+			Swap(1, 2);
+
+		col = 0;
+
+		for ( i = 0 ; i < 3 ; i++ ) {
+			box.left   = frame.left + n * frame.Width() / 256;
+			box.right  = frame.left + (n + 1) * frame.Width() / 256;
+			box.top    = frame.bottom - val[pos[i]];
+			box.bottom = frame.bottom;
+
+			col |= ctb[pos[i]];
+			dc.FillSolidRect(box, col);
+		}
+	}
+}
+
+BOOL CHistogram::PreCreateWindow(CREATESTRUCT& cs)
+{
+	cs.cx = 500;
+	cs.cy = 300;
+
+	return CFrameWnd::PreCreateWindow(cs);
+}
+
+void CHistogram::OnTimer(UINT_PTR nIDEvent)
+{
+	if ( m_TheadFlag == 0 )
+		KillTimer(nIDEvent);
+
+	Invalidate(FALSE);
+
+	CFrameWnd::OnTimer(nIDEvent);
 }

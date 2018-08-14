@@ -237,8 +237,8 @@
 #define IDS_ADDPAGEANTENTRY             632
 #define IDS_DROPSUBDIRCHECK             633
 #define IDS_REGISTAPPPROTOCOL           634
-#define	IDS_DISCLIPBOARDREAD			635
-#define	IDS_DISCLIPBOARDWRITE			636
+#define IDS_DISCLIPBOARDREAD            635
+#define IDS_DISCLIPBOARDWRITE           636
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -1067,6 +1067,8 @@
 #define IDM_TREECTRLDELETE              5131
 #define IDM_TREECTRLSELECT              5132
 #define IDM_TREECTRLEXPAND              5133
+#define IDM_IMAGEGRAPHIST               5134
+#define IDM_HISTOGRAM                   5135
 #define IDM_FIRST_MDICHILD              0xF800
 
 // Next default values for new objects
@@ -1074,7 +1076,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        171
-#define _APS_NEXT_COMMAND_VALUE         5134
+#define _APS_NEXT_COMMAND_VALUE         5136
 #define _APS_NEXT_CONTROL_VALUE         2493
 #define _APS_NEXT_SYMED_VALUE           637
 #endif

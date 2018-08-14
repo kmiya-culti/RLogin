@@ -8924,9 +8924,68 @@ CEmojiImage::CEmojiImage()
 {
 	m_pNext = NULL;
 	m_bFileImage = FALSE;
+#ifdef	USE_SAVEBITMAP
+	m_pBits = NULL;
+#endif
 }
 CEmojiImage::~CEmojiImage()
 {
 	if ( (HBITMAP)m_Image != NULL )
 		m_Image.Destroy();
+
+#ifdef	USE_SAVEBITMAP
+	if ( m_pBits != NULL )
+		delete [] m_pBits;
+#endif
 }
+#ifdef	USE_SAVEBITMAP
+void CEmojiImage::SaveMap()
+{
+	if ( m_pBits != NULL || (HBITMAP)m_Image == NULL || !m_Image.IsDIBSection() )
+		return;
+
+	m_Width  = m_Image.GetWidth();
+	m_Height = m_Image.GetHeight();
+	m_Bpp    = m_Image.GetBPP();
+
+	int Pitch = m_Image.GetPitch();
+	BYTE *pBits = (BYTE *)m_Image.GetBits();
+
+	if ( Pitch < 0 ) {
+		pBits = pBits + ((m_Height - 1) * Pitch);
+		Pitch = 0 - Pitch;
+	}
+
+	m_BitsLen = Pitch * m_Height;
+	m_pBits = new BYTE[m_BitsLen];
+	memcpy(m_pBits, pBits, m_BitsLen);
+
+	m_Image.Destroy();
+}
+void CEmojiImage::LoadMap()
+{
+	if ( m_pBits == NULL || (HBITMAP)m_Image != NULL )
+		return;
+
+	if ( !m_Image.CreateEx(m_Width, m_Height, m_Bpp, BI_RGB, NULL, m_Bpp == 32 ? CImage::createAlphaChannel : 0) )
+		return;
+
+	int Pitch = m_Image.GetPitch();
+	BYTE *pBits = (BYTE *)m_Image.GetBits();
+
+	if ( Pitch < 0 ) {
+		pBits = pBits + ((m_Height - 1) * Pitch);
+		Pitch = 0 - Pitch;
+	}
+
+	int len = Pitch * m_Height;
+
+	if ( len > m_BitsLen )
+		len = m_BitsLen;
+
+	memcpy(pBits, m_pBits, len);
+
+	delete [] m_pBits;
+	m_pBits = NULL;
+}
+#endif
