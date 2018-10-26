@@ -28,7 +28,6 @@ public:
 	int m_ImageCount;
 	CString m_FontName;
 	int m_FontSize;
-	BOOL m_bFontCheck;
 	UINT_PTR m_SetCurTimer;
 	UINT_PTR m_GhostWndTimer;
 	int m_TabHeight;
@@ -45,7 +44,7 @@ public:
 	int GetSize() { return m_TabCtrl.GetItemCount(); }
 	CWnd *GetAt(int nIndex);
 	void GetTitle(int nIndex, CString &title);
-	void ReSize();
+	void ReSize(BOOL bCallLayout);
 	void SetGhostWnd(BOOL sw);
 	void NextActive();
 	void PrevActive();
@@ -54,6 +53,7 @@ public:
 	int HitPoint(CPoint point);
 	void SetTabTitle(BOOL bNumber);
 	void ReSetAllTab();
+	void FontSizeCheck();
 
 protected:
 	virtual void OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler);

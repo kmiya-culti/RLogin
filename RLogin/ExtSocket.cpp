@@ -2061,28 +2061,29 @@ int CExtSocket::SSLConnect()
 	GetApp()->SSL_Init();
 
 	switch(m_SSL_mode) {
-#if	OPENSSL_VERSION_NUMBER < 0x10100000L
+#if	OPENSSL_VERSION_NUMBER >= 0x10001000L
+	case 1:
+	case 2:
+		method = SSLv23_client_method();
+		break;
+	case 3:
+		method = TLSv1_client_method();
+		break;
+	case 4:
+		method = TLSv1_1_client_method();
+		break;
+	case 5:
+		method = TLSv1_2_client_method();
+		break;
+#else
 	case 1:
 		method = SSLv23_client_method();
 		break;
 	case 2:
 		method = SSLv3_client_method();
 		break;
-#else
-	case 1:
-	case 2:
-		method = SSLv23_client_method();
-		break;
-#endif
 	case 3:
 		method = TLSv1_client_method();
-		break;
-#if	OPENSSL_VERSION_NUMBER >= 0x10001000L
-	case 4:
-		method = TLSv1_1_client_method();
-		break;
-	case 5:
-		method = TLSv1_2_client_method();
 		break;
 #endif
 	default:

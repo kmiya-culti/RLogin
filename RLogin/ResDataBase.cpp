@@ -1033,6 +1033,7 @@ void CResToolBarBase::Serialize(int mode, class CBuffer &buf)
 BOOL CResToolBarBase::SetToolBar(CToolBar &ToolBar)
 {
 	int n, i, max, num;
+	int width, height;
 	UINT *pNewTab;
 	CBitmap Bitmap, ImageMap;
 	CImageList ImageList[3];
@@ -1060,20 +1061,29 @@ BOOL CResToolBarBase::SetToolBar(CToolBar &ToolBar)
 	delete [] pNewTab;
 
 	// サイズを設定
-	ToolBar.SetSizes(CSize(m_Width + 7, m_Height + 8), CSize(m_Width, m_Height));
+
+	if ( ::AfxGetMainWnd() == NULL ) {
+		width  = m_Width;
+		height = m_Height;
+	} else {
+		width  = MulDiv(m_Width,  ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiX, 96);
+		height = MulDiv(m_Height, ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY, 96);
+	}
+
+	ToolBar.SetSizes(CSize(width + 7, height + 8), CSize(width, height));
 
 	// BitmapリソースからImageListを作成
-	ImageList[0].Create(m_Width, m_Height, ILC_COLOR24 | ILC_MASK, max, 1);
-	ImageList[1].Create(m_Width, m_Height, ILC_COLOR24 | ILC_MASK, max, 1);
-	ImageList[2].Create(m_Width, m_Height, ILC_COLOR24 | ILC_MASK, max, 1);
+	ImageList[0].Create(width, height, ILC_COLOR24 | ILC_MASK, max, 1);
+	ImageList[1].Create(width, height, ILC_COLOR24 | ILC_MASK, max, 1);
+	ImageList[2].Create(width, height, ILC_COLOR24 | ILC_MASK, max, 1);
 
 	DisDC.CreateCompatibleDC(NULL);
 	SrcDC.CreateCompatibleDC(NULL);
 
-	ImageMap.CreateBitmap(m_Width, m_Height, DisDC.GetDeviceCaps(PLANES), DisDC.GetDeviceCaps(BITSPIXEL), NULL);
+	ImageMap.CreateBitmap(width, height, DisDC.GetDeviceCaps(PLANES), DisDC.GetDeviceCaps(BITSPIXEL), NULL);
 	pDisOld = DisDC.SelectObject(&ImageMap);
 	
-	font.CreateFont(m_Height / 2, 0, 0, 0, 0, FALSE, 0, 0, ANSI_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY, FIXED_PITCH | FF_MODERN, _T(""));
+	font.CreateFont(height / 2, 0, 0, 0, 0, FALSE, 0, 0, ANSI_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY, FIXED_PITCH | FF_MODERN, _T(""));
 	pOldFont = DisDC.SelectObject(&font);
 
 	for ( num = n = 0 ; n < m_Item.GetSize() ; n++ ) {
@@ -1085,8 +1095,8 @@ BOOL CResToolBarBase::SetToolBar(CToolBar &ToolBar)
 			Bitmap.GetBitmap(&mapinfo);
 
 			for ( i = 0 ; i < 3 ; i++ ) {
-				DisDC.FillSolidRect(0, 0, m_Width, m_Height, RGB(192, 192, 192));
-				DisDC.TransparentBlt(0, 0, m_Width, m_Height, &SrcDC, (mapinfo.bmHeight == m_Height && mapinfo.bmWidth >= (m_Width * 3) ? (m_Width * i) : 0), 0, (mapinfo.bmWidth <= mapinfo.bmHeight ? mapinfo.bmWidth : mapinfo.bmHeight), mapinfo.bmHeight, RGB(192, 192, 192));
+				DisDC.FillSolidRect(0, 0, width, height, RGB(192, 192, 192));
+				DisDC.TransparentBlt(0, 0, width, height, &SrcDC, (mapinfo.bmHeight == height && mapinfo.bmWidth >= (width * 3) ? (width * i) : 0), 0, (mapinfo.bmWidth <= mapinfo.bmHeight ? mapinfo.bmWidth : mapinfo.bmHeight), mapinfo.bmHeight, RGB(192, 192, 192));
 
 				DisDC.SelectObject(pDisOld);
 				ImageList[i].Add(&ImageMap, RGB(192, 192, 192));
@@ -1124,13 +1134,13 @@ BOOL CResToolBarBase::SetToolBar(CToolBar &ToolBar)
 				DisDC.SetBkMode(TRANSPARENT);
 				DisDC.SetTextColor(RGB(255 - 60 * i, 0, 0));
 
-				DisDC.FillSolidRect(0, 0, m_Width, m_Height, RGB(192, 192, 192));
+				DisDC.FillSolidRect(0, 0, width, height, RGB(192, 192, 192));
 
 				sz = DisDC.GetTextExtent(line[0]);
-				DisDC.TextOut((m_Width - sz.cx) / 2, (m_Height / 2 - sz.cy) / 2, line[0]);
+				DisDC.TextOut((width - sz.cx) / 2, (height / 2 - sz.cy) / 2, line[0]);
 
 				sz = DisDC.GetTextExtent(line[1]);
-				DisDC.TextOut((m_Width - sz.cx) / 2, (m_Height / 2) + (m_Height / 2 - sz.cy) / 2, line[1]);
+				DisDC.TextOut((width - sz.cx) / 2, (height / 2) + (height / 2 - sz.cy) / 2, line[1]);
 
 				DisDC.SelectObject(pDisOld);
 				ImageList[i].Add(&ImageMap, RGB(192, 192, 192));

@@ -1129,11 +1129,14 @@ BOOL CRLoginApp::InitInstance()
 	pMainFrame->m_ScreenW = cmdInfo.m_ScreenW;
 	pMainFrame->m_ScreenH = cmdInfo.m_ScreenH;
 
+	// AfxGetMainWndがCMainFrameの作成中に使えるように
+	m_pMainWnd = pMainFrame;
+
 	if ( !pMainFrame || !pMainFrame->LoadFrame(IDR_MAINFRAME) ) {
+		m_pMainWnd = NULL;
 		delete pMainFrame;
 		return FALSE;
 	}
-	m_pMainWnd = pMainFrame;
 
 	// 接尾辞が存在する場合にのみ DragAcceptFiles を呼び出します。
 	//  MDI アプリケーションでは、この呼び出しは、m_pMainWnd を設定した直後に発生しなければなりません。
@@ -1235,7 +1238,11 @@ int CRLoginApp::ExitInstance()
 	// Free Handle or Library
 	rand_buf(NULL, 0);
 
-#if	OPENSSL_VERSION_NUMBER >= 0x10100000L
+#if	OPENSSL_VERSION_NUMBER >= 0x1010100fL
+	CONF_modules_finish();
+	CONF_modules_unload(1);
+	ERR_remove_state(0);
+#elif	OPENSSL_VERSION_NUMBER >= 0x10100000L
 	CONF_modules_finish();
 	CONF_modules_unload(1);
 	ERR_remove_state(0);

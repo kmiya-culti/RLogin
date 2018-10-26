@@ -4474,7 +4474,7 @@ int CIdKey::SavePrivateKey(int type, LPCTSTR file, LPCTSTR pass)
 
 	((CRLoginApp *)AfxGetApp())->SSL_Init();
 
-	if ( (fp = _tfopen(file, _T("w"))) == NULL )
+	if ( (fp = _tfopen(file, _T("wb"))) == NULL )
 		return FALSE;
 
 	switch(type) {
@@ -4532,7 +4532,7 @@ int CIdKey::SavePublicKey(LPCTSTR file)
 	if ( !SetBlob(&body, FALSE) )
 		return FALSE;
 
-	if ( (fp = _tfopen(file, _T("w"))) == NULL )
+	if ( (fp = _tfopen(file, _T("wb"))) == NULL )
 		return FALSE;
 
 	tmp.Base64Encode(body.GetPtr(), body.GetSize());
@@ -4672,7 +4672,7 @@ int CIdKey::SaveCertPublicKey(LPCTSTR file)
 	CString str;
 
 	str.Format(_T("%s-cert.pub"), file);
-	if ( (fp = _tfopen(str, _T("w"))) == NULL )
+	if ( (fp = _tfopen(str, _T("wb"))) == NULL )
 		return FALSE;
 
 	WritePublicKey(str);

@@ -28,8 +28,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.23.7)</TD>
-            <TD width="20%" align="right">2018/08/15</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.23.8)</TD>
+            <TD width="20%" align="right">2018/10/26</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -438,6 +438,13 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2018/10/26</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.23.8/">2.23.8</A></TD>
+            <TD>HiDPIの変更でツールバーのサイズを追従するように変更<BR>
+            openssh形式のプライベート鍵ファイルの行末コードをLFのみに変更<BR>
+            openssl-1.1.1に更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2018/08/15</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.23.7/">2.23.7</A></TD>
             <TD>Sixelの色情報DECGCIの解像度と透明度を拡張<BR>
@@ -474,25 +481,6 @@ TD {
             エスケープシーケンスのxterm互換性を向上</TD>
           </TR>
           <TR>
-            <TD align="center">2018/03/30</TD>
-            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.23.3/">2.23.3</A></TD>
-            <TD>RLMMLにMML形式でファイルに保存(DCS5#m))を追加<BR>
-            認証鍵のssh-xmss@openssh.comを試験的に追加<BR>
-            メニュー・ヘルプに既定のアプリへ登録を行うを追加<BR>
-            User Nameに$XXXで環境変数を展開するように変更<BR>
-            Socket Portの既定値をプロトコル変更時のみに変更<BR>
-            通信共通・TCP/IPに帯域制限を行うを追加<BR>
-            openssl-1.1.0hに更新</TD>
-          </TR>
-          <TR>
-            <TD align="center">2018/02/27</TD>
-            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.23.2/">2.23.2</A></TD>
-            <TD>拡張機能の一部を各種オプションに移動<BR>
-            MC/DECMCの操作をMCウィンドウに転送に変更<BR>
-            DECSSDTのステータス表示を拡張<BR>
-            DCSにRLMML(DCS#m)でMML形式のMIDI演奏を追加</TD>
-          </TR>
-          <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
           </TR>
         </TBODY>
@@ -516,13 +504,13 @@ TD {
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-1.1.0i.tar.gz</A><BR>
+                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-1.1.1.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
                   Visual Studio コマンド <BR>
                   プロンプト (2010)</TD>
-                  <TD width="500" valign="top">rename openssl-1.1.0i openssl-1.1.0i-x32<BR>
+                  <TD width="500" valign="top">rename openssl-1.1.1 openssl-1.1.1-x32<BR>
                   perl Configure VC-WIN32 no-shared<BR>
                   nmake</TD>
                 </TR>
@@ -608,7 +596,7 @@ TD {
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 1.1.0i 14 Aug 2018<BR>
+            <P>OpenSSL 1.1.1 11 Sep 2018<BR>
             Copyright (c) 1998-2016 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>
@@ -5647,7 +5635,8 @@ function TekClock2() {
                 </TR>
                 <TR>
                   <TD>ツールバーサイズ</TD>
-                  <TD>ツールバーのアイコンサイズを10x10～32x32で選びます</TD>
+                  <TD>ツールバーのアイコンサイズを10x10～32x32で選びます<BR>
+                  ※2.23.8よりHiDPIの変更に追従するようにしました。サイズは、96dpiから換算されますのでご注意ください。</TD>
                 </TR>
                 <TR>
                   <TD>ツールバーリスト</TD>

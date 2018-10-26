@@ -276,7 +276,7 @@ public:
 
 	inline CImageList *GetTabImageList() { return &(m_wndTabBar.m_ImageList); }
 	inline int GetTabImageIndex(LPCTSTR filename) { return m_wndTabBar.GetImageIndex(filename); }
-	inline void TabBarFontCheck() { m_wndTabBar.m_bFontCheck = TRUE; }
+	inline void TabBarFontCheck() { m_wndTabBar.FontSizeCheck(); this->RecalcLayout(TRUE); }
 
 // コントロール バー用メンバ
 protected: 

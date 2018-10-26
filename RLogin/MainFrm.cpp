@@ -2582,7 +2582,10 @@ LRESULT CMainFrame::OnDpiChanged(WPARAM wParam, LPARAM lParam)
 	m_ScreenDpiX = LOWORD(wParam);
 	m_ScreenDpiY = HIWORD(wParam);
 
-	TabBarFontCheck();
+	m_wndTabBar.FontSizeCheck();
+	((CRLoginApp *)::AfxGetApp())->LoadResToolBar(MAKEINTRESOURCE(IDR_MAINFRAME), m_wndToolBar);
+
+	RecalcLayout(FALSE);
 
 	MoveWindow((RECT *)lParam, TRUE);
 
