@@ -239,6 +239,7 @@
 #define IDS_REGISTAPPPROTOCOL           634
 #define IDS_DISCLIPBOARDREAD            635
 #define IDS_DISCLIPBOARDWRITE           636
+#define IDS_DISWINDOWSIZE               637
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702

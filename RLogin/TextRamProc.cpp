@@ -6006,32 +6006,42 @@ void CTextRam::fc_XTWOP(DWORD ch)
     case 1:			/* Restore (de-iconify) window */
 		if ( IsOptEnable(TO_SETWINPOS) )
 			pMainWnd->ShowWindow(SW_SHOWNORMAL);
+		else
+			((CMainFrame *)AfxGetMainWnd())->SetStatusText(CStringLoad(IDS_DISWINDOWSIZE));
 		break;
     case 2:			/* Minimize (iconify) window */
 		if ( IsOptEnable(TO_SETWINPOS) )
 			pMainWnd->ShowWindow(SW_SHOWMINIMIZED);
+		else
+			((CMainFrame *)AfxGetMainWnd())->SetStatusText(CStringLoad(IDS_DISWINDOWSIZE));
 		break;
 
 	case 3:			/* Move the window to the given position x = p1, y = p2 */
 		if ( IsOptEnable(TO_SETWINPOS) ) {
 			pMainWnd->GetWindowRect(rect);
 			pMainWnd->SetWindowPos(NULL, GetAnsiPara(1, rect.left, 0), GetAnsiPara(2, rect.top, 0), 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_SHOWWINDOW);
-		}
+		} else
+			((CMainFrame *)AfxGetMainWnd())->SetStatusText(CStringLoad(IDS_DISWINDOWSIZE));
 		break;
     case 4:			/* Resize the window to given size in pixels h = p1, w = p2 */
 		if ( IsOptEnable(TO_SETWINPOS) ) {
 			pMainWnd->GetWindowRect(rect);
 			pMainWnd->SetWindowPos(NULL, 0, 0, GetAnsiPara(2, rect.Width(), 100), GetAnsiPara(1, rect.Height(), 100), SWP_NOZORDER | SWP_NOMOVE | SWP_SHOWWINDOW);
-		}
+		} else
+			((CMainFrame *)AfxGetMainWnd())->SetStatusText(CStringLoad(IDS_DISWINDOWSIZE));
 		break;
 
     case 5:			/* Raise the window to the front of the stack */
 		if ( IsOptEnable(TO_SETWINPOS) )
 			pMainWnd->SetWindowPos(&CWnd::wndTop, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+		else
+			((CMainFrame *)AfxGetMainWnd())->SetStatusText(CStringLoad(IDS_DISWINDOWSIZE));
 		break;
     case 6:			/* Lower the window to the bottom of the stack */
 		if ( IsOptEnable(TO_SETWINPOS) )
 			pMainWnd->SetWindowPos(&CWnd::wndBottom, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+		else
+			((CMainFrame *)AfxGetMainWnd())->SetStatusText(CStringLoad(IDS_DISWINDOWSIZE));
 		break;
 	
 	case 7:			/* Refresh the window */
@@ -6065,7 +6075,8 @@ void CTextRam::fc_XTWOP(DWORD ch)
 				pMainWnd->ShowWindow(SW_SHOWMAXIMIZED);
 				break;
 			}
-		}
+		} else
+			((CMainFrame *)AfxGetMainWnd())->SetStatusText(CStringLoad(IDS_DISWINDOWSIZE));
 		break;
 
 	case 10:		/* Fullscreen or restore */
@@ -6081,7 +6092,8 @@ void CTextRam::fc_XTWOP(DWORD ch)
 				pMainWnd->ShowWindow(pMainWnd->IsZoomed() ? SW_SHOWNORMAL : SW_SHOWMAXIMIZED);
 				break;
 			}
-		}
+		} else
+			((CMainFrame *)AfxGetMainWnd())->SetStatusText(CStringLoad(IDS_DISWINDOWSIZE));
 		break;
 
     case 11:    	/* Report the window's state ESC[1/2t */
