@@ -2591,8 +2591,15 @@ BOOL CRLoginView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 
 	//TRACE("OnMouseWheel %x, %d(%d), (%d,%d)\n", nFlags, zDelta, ofs, pt.x, pt.y);
 
-	if ( (!pDoc->m_TextRam.IsOptEnable(TO_RLMSWAPP) && pDoc->m_TextRam.IsOptEnable(TO_DECCKM)) ||
-					(pDoc->m_TextRam.m_MouseTrack != MOS_EVENT_NONE && !m_MouseEventFlag) || (nFlags & MK_CONTROL) != 0 || pDoc->m_TextRam.IsOptEnable(TO_RLMSWAPE) ) {
+	if ( pDoc->m_TextRam.m_MouseTrack != MOS_EVENT_NONE && !m_MouseEventFlag ) {
+		int x, y;
+		ScreenToClient(&pt);
+		CalcGrapPoint(pt, &x, &y);
+		for ( pos = (ofs < 0 ? (0 - ofs) : ofs) ; pos > 0 ; pos-- )
+			pDoc->m_TextRam.MouseReport((ofs > 0 ? MOS_LOCA_WHUP : MOS_LOCA_WHDOWN), nFlags, x, y);
+
+	} else if ( (!pDoc->m_TextRam.IsOptEnable(TO_RLMSWAPP) && pDoc->m_TextRam.IsOptEnable(TO_DECCKM)) || 
+			    (nFlags & MK_CONTROL) != 0 || pDoc->m_TextRam.IsOptEnable(TO_RLMSWAPE) ) {
 		if ( pDoc->m_KeyTab.FindMaps((ofs > 0 ? VK_UP : VK_DOWN), (pDoc->m_TextRam.IsOptEnable(TO_DECCKM) ? MASK_CKM : 0), &tmp) ) {
 			for ( pos = (ofs < 0 ? (0 - ofs) : ofs) ; pos > 0 ; pos-- )
 				SendBuffer(tmp, TRUE);

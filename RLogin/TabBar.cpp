@@ -16,8 +16,6 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
-//#define	USE_MULTILINE
-
 #define NEWCLICK_SIZE	18
 #define	MINTAB_SIZE		48
 #define	DEFTAB_COUNT	4
@@ -36,6 +34,7 @@ CTabBar::CTabBar()
 	m_GhostWndTimer = 0;
 	m_TabHeight = 8;
 	m_BoderSize = 8;
+	m_MinTabSize = MINTAB_SIZE;
 	m_TabLines = 1;
 }
 
@@ -131,11 +130,21 @@ CSize CTabBar::CalcFixedLayout(BOOL bStretch, BOOL bHorz)
 		}
 	}
 
-	m_BoderSize = BoderSize;
-	m_TabHeight = FontSize + BoderSize + WinBdSize;
 
-	size.cx = Width;
-	size.cy = m_TabHeight * m_TabLines + TabUdSize + BarInSide;
+	if ( m_bMultiLine ) {
+		m_BoderSize = BoderSize;
+		m_TabHeight = FontSize + BoderSize * 2 + WinBdSize;
+
+		size.cx = Width;
+		size.cy = (m_TabHeight + WinBdSize * 3 / 2) * m_TabLines;
+
+	} else {
+		m_BoderSize = BoderSize;
+		m_TabHeight = FontSize + BoderSize + WinBdSize;
+
+		size.cx = Width;
+		size.cy = m_TabHeight * m_TabLines + TabUdSize + BarInSide;
+	}
 
 	return size;
 }
@@ -165,9 +174,10 @@ int CTabBar::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	CRect rect; rect.SetRectEmpty();
 	DWORD addStyle = (AfxGetApp()->GetProfileInt(_T("TabBar"), _T("ToolTip"), 0) == 0 ? TCS_TOOLTIPS : 0);
 
-#ifdef	USE_MULTILINE
-	addStyle |= TCS_MULTILINE;
-#endif
+	m_bMultiLine = (AfxGetApp()->GetProfileInt(_T("TabBar"), _T("MultiLine"), 0) != 0 ? TRUE : FALSE);
+
+	if ( m_bMultiLine )
+		addStyle |= (TCS_MULTILINE | TCS_BUTTONS);
 
 	if ( !m_TabCtrl.Create(WS_VISIBLE | WS_CHILD | TCS_FOCUSNEVER | TCS_FIXEDWIDTH | TCS_FORCELABELLEFT | addStyle, rect, this, IDC_MDI_TAB_CTRL) ) {
 		TRACE0("Unable to create tab control bar\n");
@@ -216,14 +226,14 @@ void CTabBar::OnSize(UINT nType, int cx, int cy)
 	if ( m_TabCtrl.m_hWnd == NULL )
 		return;
 
+	ReSize(FALSE);
+
 	CRect rect;
 	GetClientRect(rect);
 	rect.right -= m_BoderSize;
 
 	m_TabCtrl.AdjustRect(TRUE, &rect);
 	m_TabCtrl.SetWindowPos(&wndTop ,0, 0, rect.Width(), rect.Height(), SWP_SHOWWINDOW);
-
-	ReSize(FALSE);
 }
 
 void CTabBar::FontSizeCheck()
@@ -790,13 +800,36 @@ void CTabBar::GetTitle(int nIndex, CString &title)
 		title.Format(_T("%d %s"), nIndex + 1, str);
 }
 
+int CTabBar::LineCount()
+{
+	int n;
+	int line = 0;
+	int cols = 1;
+	int top = (-1);
+	CRect rect;
+
+	for ( n = 0 ; n < m_TabCtrl.GetItemCount() ; n += cols ) {
+		if ( !m_TabCtrl.GetItemRect(n, rect) )
+			continue;
+
+		if ( top >= rect.top )
+			continue;
+
+		top = rect.top;
+
+		if ( line++ == 1 )
+			cols = n;
+	}
+
+	return line;
+}
 void CTabBar::ReSize(BOOL bCallLayout)
 {
-	int width;
-	int lines = 1;
+	int width, lines;
 	int count = m_TabCtrl.GetItemCount();
 	CRect rect;
 	CSize sz;
+	BOOL bSetSize = FALSE;
 
 	if ( m_TabCtrl.GetSafeHwnd() == NULL || count <= 0 )
 		return;
@@ -806,29 +839,44 @@ void CTabBar::ReSize(BOOL bCallLayout)
 	if ( count < DEFTAB_COUNT )
 		count = DEFTAB_COUNT;
 
-#ifdef	USE_MULTILINE
-	for ( int n = count ; (width = (rect.Width() - NEWCLICK_SIZE) / n) < MINTAB_SIZE ; n = (count + lines - 1) / lines )
-		lines++;
-#else
-	if ( (width = (rect.Width() - NEWCLICK_SIZE) / count) < MINTAB_SIZE )
-		width = MINTAB_SIZE;
-#endif
+	if ( m_bMultiLine ) {
+		if ( (m_MinTabSize = (rect.Width() - NEWCLICK_SIZE - m_BoderSize * 10) / 10) < (MINTAB_SIZE * 2) )
+			m_MinTabSize = MINTAB_SIZE * 2;
+
+		if ( (width = (rect.Width() - NEWCLICK_SIZE - m_BoderSize * 10) / count) < m_MinTabSize ) {
+			int n = (rect.Width() - NEWCLICK_SIZE) / m_MinTabSize;
+			if ( n > 0 )
+				width = (rect.Width() - NEWCLICK_SIZE - m_BoderSize * n) / n;
+			else
+				width = m_MinTabSize;
+		}
+
+	} else {
+		if ( (m_MinTabSize = (rect.Width() - NEWCLICK_SIZE) / 20) < MINTAB_SIZE )
+			m_MinTabSize = MINTAB_SIZE;
+
+		if ( (width = (rect.Width() - NEWCLICK_SIZE) / count) < m_MinTabSize )
+			width = m_MinTabSize;
+	}
 
 	m_TabCtrl.GetItemRect(0, rect);
 
-	if ( width == rect.Width() && m_TabHeight == rect.Height() && lines == m_TabLines )
+	if ( width != rect.Width() || m_TabHeight != rect.Height() ) {
+		sz.cx = width;
+		sz.cy = m_TabHeight;
+
+		m_TabCtrl.SetItemSize(sz);
+		bSetSize = TRUE;
+	}
+
+	lines = (m_bMultiLine ? LineCount() : 1);
+
+	if ( lines == m_TabLines && !bSetSize )
 		return;
 
-	sz.cx = width;
-	sz.cy = m_TabHeight;
-
-	m_TabCtrl.SetItemSize(sz);
-
-	if ( lines != m_TabLines ) {
+	if ( lines != m_TabLines || bCallLayout ) {
 		m_TabLines = lines;
-
-		if ( bCallLayout )
-			((CMainFrame *)::AfxGetMainWnd())->RecalcLayout(FALSE);
+		((CMainFrame *)::AfxGetMainWnd())->RecalcLayout(FALSE);
 	}
 }
 
@@ -1023,4 +1071,18 @@ void CTabBar::ReSetAllTab()
 		m_TabCtrl.SetCurSel(idx);
 
 	delete [] pTci;
+}
+
+void CTabBar::MultiLine()
+{
+	m_bMultiLine = (m_bMultiLine ? FALSE : TRUE);
+
+	AfxGetApp()->WriteProfileInt(_T("TabBar"), _T("MultiLine"), m_bMultiLine ? 1 :0);
+
+	if ( m_bMultiLine )
+		m_TabCtrl.ModifyStyle(0, TCS_MULTILINE | TCS_BUTTONS);
+	else
+		m_TabCtrl.ModifyStyle(TCS_MULTILINE | TCS_BUTTONS, 0);
+
+	ReSize(TRUE);
 }

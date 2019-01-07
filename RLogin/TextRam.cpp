@@ -7602,6 +7602,8 @@ void CTextRam::LocReport(int md, int sw, int x, int y)
 				return;
 			Pe = 10;
 			break;
+		default:
+			return;
 		}
 
 		m_Loc_Mode &= ~LOC_MODE_FILTER;
@@ -7709,6 +7711,13 @@ void CTextRam::MouseReport(int md, int sw, int x, int y)
 		else
 			stat = 0x03;	// Release
 		stat |= 0x20;		// Motion
+		break;
+
+	case MOS_LOCA_WHUP:
+		stat = 0x40;
+		break;
+	case MOS_LOCA_WHDOWN:
+		stat = 0x41;
 		break;
 
 	default:

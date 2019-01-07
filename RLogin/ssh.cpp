@@ -676,19 +676,7 @@ void Cssh::OnSendEmpty()
 }
 int Cssh::GetRecvSize()
 {
-	if ( m_StdChan == (-1) )
-		return 0;
-
-	// CStdIoFilter Recive Size = Display Wait Size
-	return ((CChannel *)m_pChan[m_StdChan])->GetSendSize();
-}
-int Cssh::GetSendSize()
-{
-	if ( m_StdChan == (-1) )
-		return 0;
-
-	// CStdIoFilter Send Size = Console input Size
-	return ((CChannel *)m_pChan[m_StdChan])->GetRecvSize();
+	return m_RecvSize;
 }
 
 void Cssh::GetStatus(CString &str)

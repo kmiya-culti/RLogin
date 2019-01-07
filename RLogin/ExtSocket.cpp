@@ -674,7 +674,6 @@ int CExtSocket::Receive(void* lpBuf, int nBufLen, int nFlags)
 		memcpy(buf, m_ProcHead->GetPtr(), n);
 		if ( m_ProcHead->Consume(n) <= 0 )
 			m_ProcHead = RemoveHead(m_ProcHead);
-		m_RecvSize -= n;
 		m_RecvProcSize -= n;
 		if ( m_RecvProcSize <= RECVMINSIZ )
 			GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, WSAMAKESELECTREPLY(FD_RECVEMPTY, 0));
@@ -697,7 +696,6 @@ int CExtSocket::SyncReceive(void* lpBuf, int nBufLen, int nSec, BOOL *pAbort)
 		m_RecvSema.Lock();
 		while ( nBufLen > 0 && m_ProcHead != NULL ) {
 			if ( m_ProcHead->m_Type != 0 ) {
-				m_RecvSize -= m_ProcHead->GetSize();
 				m_RecvProcSize -= m_ProcHead->GetSize();
 				m_ProcHead = RemoveHead(m_ProcHead);
 			} else {
@@ -706,7 +704,6 @@ int CExtSocket::SyncReceive(void* lpBuf, int nBufLen, int nSec, BOOL *pAbort)
 				memcpy(buf, m_ProcHead->GetPtr(), n);
 				if ( m_ProcHead->Consume(n) <= 0 )
 					m_ProcHead = RemoveHead(m_ProcHead);
-				m_RecvSize -= n;
 				m_RecvProcSize -= n;
 				len += n;
 				buf += n;
@@ -743,7 +740,6 @@ void CExtSocket::SyncReceiveBack(void *lpBuf, int nBufLen)
 	m_RecvSema.Lock();
 	sp->Apend((LPBYTE)lpBuf, nBufLen, 0);
 	m_ProcHead = AddHead(sp, m_ProcHead);
-	m_RecvSize += nBufLen;
 	m_RecvProcSize += nBufLen;
 	m_RecvSema.Unlock();
 }
@@ -852,7 +848,7 @@ void CExtSocket::SetXonXoff(int sw)
 
 int CExtSocket::GetRecvSize()
 {
-	return m_RecvSize;
+	return m_RecvSize + m_RecvProcSize;
 }
 int CExtSocket::GetRecvProcSize()
 {
@@ -883,7 +879,7 @@ void CExtSocket::GetStatus(CString &str)
 
 	tmp.Format(_T("Socket Type: %d\r\n"), m_Type);
 	str += tmp;
-	tmp.Format(_T("Receive Reserved: %d Bytes\r\n"), m_RecvSize);
+	tmp.Format(_T("Receive Reserved: %d + %d Bytes\r\n"), m_RecvSize, m_RecvProcSize);
 	str += tmp;
 	tmp.Format(_T("Send Reserved: %d Bytes\r\n"), m_SendSize);
 	str += tmp;
@@ -1507,20 +1503,22 @@ void CExtSocket::OnSend()
 }
 BOOL CExtSocket::ReceiveFlowCheck()
 {
+	int n;
+
 	if ( m_Fd == (-1) )
 		return FALSE;
 
 	if ( (m_SocketEvent & (FD_READ | FD_OOB)) == 0 ) {
-		if ( m_RecvSize <= RECVMINSIZ && m_RecvLimit.timer == 0 ) {
+		if ( (n = GetRecvSize()) <= RECVMINSIZ && m_RecvLimit.timer == 0 ) {
 			m_SocketEvent |= (FD_READ | FD_OOB);
 			WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), WM_SOCKSEL, m_SocketEvent);
-			TRACE("OnReceive SocketEvent On %04x (%d:%d)\n", m_SocketEvent, m_RecvSize, m_RecvProcSize);
+			TRACE("OnReceive SocketEvent On %04x %d(%d:%d)\n", m_SocketEvent, n, m_RecvSize, m_RecvProcSize);
 		}
 	} else {
-		if ( m_RecvSize >= RECVMAXSIZ || m_RecvLimit.timer != 0 ) {
+		if ( (n = GetRecvSize()) >= RECVMAXSIZ || m_RecvLimit.timer != 0 ) {
 			m_SocketEvent &= ~(FD_READ | FD_OOB);
 			WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), WM_SOCKSEL, m_SocketEvent);
-			TRACE("OnReceive SocketEvent Off %04x (%d:%d)\n", m_SocketEvent, m_RecvSize, m_RecvProcSize);
+			TRACE("OnReceive SocketEvent Off %04x %d(%d:%d)\n", m_SocketEvent, n, m_RecvSize, m_RecvProcSize);
 			return TRUE;
 		}
 	}
@@ -1626,7 +1624,6 @@ void CExtSocket::OnReceiveCallBack(void *lpBuf, int nBufLen, int nFlags)
 	sp->Apend((LPBYTE)lpBuf, nBufLen, nFlags);
 	if ( m_ProcHead == NULL || sp != m_ProcHead->m_Left )
 		m_ProcHead = AddTail(sp, m_ProcHead);
-	m_RecvSize += nBufLen;
 	m_RecvProcSize += nBufLen;
 	if ( m_pRecvEvent != NULL && (m_RecvSyncMode & SYNC_EVENT) != 0 )
 		m_pRecvEvent->SetEvent();
@@ -1656,7 +1653,6 @@ BOOL CExtSocket::ReceiveProc()
 		m_RecvSema.Unlock();
 		if ( (n = OnReceiveProcBack(sp->GetPtr(), sp->GetSize(), sp->m_Type)) > 0 ) {
 			m_RecvSema.Lock();
-			m_RecvSize -= n;
 			m_RecvProcSize -= n;
 			if ( sp->Consume(n) > 0 )
 				m_ProcHead = AddHead(sp, m_ProcHead);

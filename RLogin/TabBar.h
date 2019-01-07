@@ -33,7 +33,9 @@ public:
 	int m_TabHeight;
 	int m_BoderSize;
 	int m_TabLines;
+	int m_MinTabSize;
 	CString m_ToolTipStr;
+	BOOL m_bMultiLine;
 
 	BOOL Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID);
 
@@ -44,6 +46,7 @@ public:
 	int GetSize() { return m_TabCtrl.GetItemCount(); }
 	CWnd *GetAt(int nIndex);
 	void GetTitle(int nIndex, CString &title);
+	int LineCount();
 	void ReSize(BOOL bCallLayout);
 	void SetGhostWnd(BOOL sw);
 	void NextActive();
@@ -54,6 +57,7 @@ public:
 	void SetTabTitle(BOOL bNumber);
 	void ReSetAllTab();
 	void FontSizeCheck();
+	void MultiLine();
 
 protected:
 	virtual void OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler);

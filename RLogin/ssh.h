@@ -750,7 +750,6 @@ public:
 	void OnSendEmpty();
 	void GetStatus(CString &str);
 	int GetRecvSize();
-	int GetSendSize();
 
 	int m_SSHVer;
 	CString m_HostName;

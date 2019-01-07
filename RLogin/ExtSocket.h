@@ -136,6 +136,10 @@ public:
 	CBuffer m_RecvBuff;
 	CBuffer m_SendBuff;
 
+	int m_RecvSize;
+	int m_RecvProcSize;
+	int m_SendSize;
+
 private:
 	int m_RecvSyncMode;
 	int m_RecvBufSize;
@@ -149,9 +153,6 @@ private:
 	int m_RealSocketType;
 	CEvent *m_pRecvEvent;
 
-	int m_RecvSize;
-	int m_RecvProcSize;
-	int m_SendSize;
 	CSockBuffer *m_ProcHead;
 	CSockBuffer *m_RecvHead;
 	CSockBuffer *m_SendHead;
@@ -223,7 +224,7 @@ public:
 
 	virtual int GetRecvSize();
 	virtual int GetSendSize();
-	int GetRecvProcSize();
+	virtual int GetRecvProcSize();
 	virtual void OnRecvEmpty();
 	virtual void OnSendEmpty();
 	virtual void GetStatus(CString &str);

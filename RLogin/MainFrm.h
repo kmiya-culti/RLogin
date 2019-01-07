@@ -356,6 +356,8 @@ protected:
 	afx_msg void OnUpdateBroadcast(CCmdUI *pCmdUI);
 	afx_msg void OnToolcust();
 	afx_msg void OnDeleteOldEntry();
+	afx_msg void OnTabmultiline();
+	afx_msg void OnUpdateTabmultiline(CCmdUI *pCmdUI);
 
 	afx_msg LRESULT OnWinSockSelect(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnGetHostAddr(WPARAM wParam, LPARAM lParam);

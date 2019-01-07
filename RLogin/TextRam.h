@@ -212,7 +212,6 @@
 #define	TO_RLCKMESC		442			// ESCキーをDECCKMに含める		7727  -  Application Escape mode を有効にする。 
 #define	TO_RLMSWAPE		443			// ホイールのキー変換強制		7786  -  マウスホイール - カーソルキー変換を有効にする。
 #define	TO_RLTEKINWND	446			// Tekウィンドウをビューで描く
-#define	TO_RLOSCPAM		447			// OSC/DCS...キャンセル時にバッファを書き戻す
 #define	TO_RLUNINOM		448			// Unicode ノーマライズを禁止する
 #define	TO_RLUNIAHF		449			// Unicodeの半角時にサイズを調整する
 #define	TO_RLMODKEY		450			// modfiyKeysを優先する
@@ -313,6 +312,8 @@
 #define	MOS_LOCA_RTUP	4			//	Right Up
 #define	MOS_LOCA_MOVE	5			//	Mouse Move
 #define	MOS_LOCA_REQ	6			//	Request
+#define	MOS_LOCA_WHUP	7			//	Wheel Up
+#define	MOS_LOCA_WHDOWN	8			//	Wheel Down
 
 #define	LOC_MODE_ENABLE		0x0001
 #define	LOC_MODE_ONESHOT	0x0002

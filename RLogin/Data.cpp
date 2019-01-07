@@ -4156,7 +4156,7 @@ void CServerEntryTab::Serialize(int mode)
 			uid = _tstoi(entry[n].Mid(4));
 			tmp.Init();
 			if ( tmp.GetProfile(m_pSection, uid) ) {
-				if ( tmp.m_Uid == (-1) )
+				//if ( tmp.m_Uid == (-1) )		// Uidミスマッチを強制
 					tmp.m_Uid = uid;
 				m_Data.Add(tmp);
 			}
@@ -5146,7 +5146,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	134
+#define	CMDSKEYTABMAX	135
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -5262,6 +5262,7 @@ static const struct _CmdsKeyTab {
 	{	ID_SPLIT_OVER,				L"$SPLIT_OVER"		},
 	{	ID_SPLIT_WIDTH,				L"$SPLIT_WIDTH"		},
 	{	IDM_SPLIT_WIDTH_NEW,		L"$SPLIT_WIDTHNEW"	},
+	{	IDM_TABMULTILINE,			L"$TAB_MULTILINE"	},
 	{	IDM_TITLEEDIT,				L"$TITLE_EDIT"		},
 	{	IDM_VERSIONCHECK,			L"$VERSION_CHECK"	},
 	{	IDM_IMAGEDISP,				L"$VIEW_IMAGEDISP"	},

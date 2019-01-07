@@ -848,6 +848,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_UPDATE_COMMAND_UI(IDM_CLIPCHAIN, &CMainFrame::OnUpdateClipchain)
 	ON_COMMAND(IDM_DELOLDENTRYTAB, OnDeleteOldEntry)
 
+	ON_COMMAND(IDM_TABMULTILINE, &CMainFrame::OnTabmultiline)
+	ON_UPDATE_COMMAND_UI(IDM_TABMULTILINE, &CMainFrame::OnUpdateTabmultiline)
 END_MESSAGE_MAP()
 
 static const UINT indicators[] =
@@ -3822,4 +3824,13 @@ BOOL CMainFrame::OnToolTipText(UINT nId, NMHDR* pNMHDR, LRESULT* pResult)
 		SWP_NOACTIVATE|SWP_NOSIZE|SWP_NOMOVE|SWP_NOOWNERZORDER);
 
 	return TRUE;    // message was handled
+}
+
+void CMainFrame::OnTabmultiline()
+{
+	m_wndTabBar.MultiLine();
+}
+void CMainFrame::OnUpdateTabmultiline(CCmdUI *pCmdUI)
+{
+	pCmdUI->SetCheck(m_wndTabBar.m_bMultiLine ? 1 : 0);
 }

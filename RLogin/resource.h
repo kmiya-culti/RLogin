@@ -1070,6 +1070,7 @@
 #define IDM_TREECTRLEXPAND              5133
 #define IDM_IMAGEGRAPHIST               5134
 #define IDM_HISTOGRAM                   5135
+#define IDM_TABMULTILINE                5136
 #define IDM_FIRST_MDICHILD              0xF800
 
 // Next default values for new objects
@@ -1077,7 +1078,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        171
-#define _APS_NEXT_COMMAND_VALUE         5136
+#define _APS_NEXT_COMMAND_VALUE         5137
 #define _APS_NEXT_CONTROL_VALUE         2493
 #define _APS_NEXT_SYMED_VALUE           637
 #endif
