@@ -1,4 +1,4 @@
-// ExtSocket.cpp: CExtSocket クラスのインプリメンテーション
+// ExtSocket.cpp: CExtSocket 繧ｯ繝ｩ繧ｹ縺ｮ繧､繝ｳ繝励Μ繝｡繝ｳ繝�繝ｼ繧ｷ繝ｧ繝ｳ
 //
 //////////////////////////////////////////////////////////////////////
 
@@ -2007,9 +2007,9 @@ LPCTSTR CExtSocket::GetFormatErrorMessage(LPCTSTR entry, LPCTSTR host, int port,
 
 	if ( host != NULL ) {
 		if ( port > 0 )
-			tmp.Format(_T("Connecttion '%s:%d'\n"), host, port);
+			tmp.Format(_T("Connection '%s:%d'\n"), host, port);
 		else
-			tmp.Format(_T("Connecttion '%s'\n"), host);
+			tmp.Format(_T("Connection '%s'\n"), host);
 		msg += tmp;
 	}
 
@@ -2096,7 +2096,7 @@ int CExtSocket::SSLConnect()
 	SSL_set_fd(m_SSL_pSock, (int)m_Fd);
 
 	if ( (pStore = X509_STORE_new()) != NULL ) {
-		// Windows Certificate Store からROOT証明書をOpenSSLに登録
+		// Windows Certificate Store 縺九ｉROOT險ｼ譏取嶌繧丹penSSL縺ｫ逋ｻ骭ｲ
 	    HCERTSTORE hStore;
 		PCCERT_CONTEXT pContext = NULL;
 
@@ -2124,7 +2124,7 @@ int CExtSocket::SSLConnect()
 	m_SSL_Msg.Empty();
 
 	if ( (pStack = SSL_get_peer_cert_chain(m_SSL_pSock)) != NULL ) {
-		// 証明書のチェインをステータスに残す
+		// 險ｼ譏取嶌縺ｮ繝√ぉ繧､繝ｳ繧偵せ繝�繝ｼ繧ｿ繧ｹ縺ｫ谿九☆
 		int n, num = sk_X509_num(pStack);
 
 		for ( n = 0 ; n < num ; n++ ) {
