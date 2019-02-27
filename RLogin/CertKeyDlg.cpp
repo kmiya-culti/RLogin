@@ -43,9 +43,9 @@ END_MESSAGE_MAP()
 
 BOOL CCertKeyDlg::OnInitDialog()
 {
-	CWnd *pWnd;
-
 	CDialogExt::OnInitDialog();
+
+	CWnd *pWnd;
 
 	m_TimeLimit.SetRange(0, m_MaxTime);
 	SetTimer(1028, 1000, NULL);

@@ -38,6 +38,8 @@ END_MESSAGE_MAP()
 
 BOOL CChatStatDlg::OnInitDialog()
 {
+	CDialogExt::OnInitDialog();
+
 	int x, y;
 	CRect rect, box;
 
@@ -51,14 +53,11 @@ BOOL CChatStatDlg::OnInitDialog()
 	rect.bottom += y;
 	MoveWindow(rect);
 
-	CDialogExt::OnInitDialog();
-
 	m_TimeProg.SetRange(0, 180);
 	SetTimer(1028, 1000, NULL);
 	m_Counter = 0;
 
-	return TRUE;  // return TRUE unless you set the focus to a control
-	// 例外 : OCX プロパティ ページは必ず FALSE を返します。
+	return TRUE;
 }
 
 void CChatStatDlg::OnTimer(UINT_PTR nIDEvent)

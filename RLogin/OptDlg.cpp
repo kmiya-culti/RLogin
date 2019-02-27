@@ -244,17 +244,22 @@ void COptDlg::DoDataExchange(CDataExchange* pDX)
 /////////////////////////////////////////////////////////////////////////////
 // COptDlg メッセージ ハンドラ
 
-#define	ITM_LEFT_HALF	0001
-#define	ITM_LEFT_RIGHT	0002
-#define	ITM_RIGHT_HALF	0004
-#define	ITM_RIGHT_RIGHT	0010
-#define	ITM_TOP_BTM		0020
-#define	ITM_BTM_BTM		0040
+static INITDLGTAB ItemTab[] = {
+	{ IDC_DOINIT,		ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ IDOK,				ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ IDCANCEL,			ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ ID_APPLY_NOW,		ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ IDC_TABTREE,		ITM_BTM_BTM },
+	{ IDC_FRAME,		ITM_RIGHT_RIGHT | ITM_BTM_BTM },
+	{ 0,				0 },
+};
 
 BOOL COptDlg::OnInitDialog() 
 {
-	int n, i;
-	int cx, mx, cy;
+	CDialogExt::OnInitDialog();
+
+	int n;
+	int cx, cy;
 	CRect frame, rect;
 	CSize size, pageSize;
 	CTreePage *pPage;
@@ -263,20 +268,6 @@ BOOL COptDlg::OnInitDialog()
 	WINDOWPLACEMENT place;
 	CWnd *pWnd;
 	CRect ItemOfs[10];
-	static const struct _OptDlgItem	{
-		UINT	id;
-		int		mode;
-	} ItemTab[] = {
-		{ IDC_DOINIT,		ITM_LEFT_HALF | ITM_RIGHT_HALF | ITM_TOP_BTM | ITM_BTM_BTM },
-		{ IDOK,				ITM_LEFT_HALF | ITM_RIGHT_HALF | ITM_TOP_BTM | ITM_BTM_BTM },
-		{ IDCANCEL,			ITM_LEFT_HALF | ITM_RIGHT_HALF | ITM_TOP_BTM | ITM_BTM_BTM },
-		{ ID_APPLY_NOW,		ITM_LEFT_HALF | ITM_RIGHT_HALF | ITM_TOP_BTM | ITM_BTM_BTM },
-		{ IDC_TABTREE,		ITM_BTM_BTM },
-		{ IDC_FRAME,		ITM_RIGHT_RIGHT | ITM_BTM_BTM },
-		{ 0,				0 },
-	};
-
-	CDialogExt::OnInitDialog();
 
 	// ページの作成と最大サイズ取得
 
@@ -291,7 +282,7 @@ BOOL COptDlg::OnInitDialog()
 		if ( (pPage = GetPage(n)) == NULL )
 			continue;
 
-		if ( !pPage->GetSizeAndText(&pageSize, title) )
+		if ( !pPage->GetSizeAndText(&pageSize, title, this) )
 			continue;
 
 		if ( n < 2 ) {
@@ -332,32 +323,7 @@ BOOL COptDlg::OnInitDialog()
 	}
 
 	// アイテムオフセット取得
-
-	GetClientRect(frame);
-	cx = frame.Width();
-	mx = cx / 2;
-	cy = frame.Height();
-
-	for ( n = 0 ; ItemTab[n].id != 0 ; n++ ) {
-		if ( (pWnd = GetDlgItem(ItemTab[n].id)) == NULL )
-			continue;
-
-		pWnd->GetWindowPlacement(&place);
-
-		if ( ItemTab[n].mode & ITM_LEFT_HALF )
-			ItemOfs[n].left = place.rcNormalPosition.left - mx;
-		if ( ItemTab[n].mode & ITM_LEFT_RIGHT )
-			ItemOfs[n].left = cx - place.rcNormalPosition.left;
-		if ( ItemTab[n].mode & ITM_RIGHT_HALF )
-			ItemOfs[n].right = place.rcNormalPosition.right - mx;
-		if ( ItemTab[n].mode & ITM_RIGHT_RIGHT )
-			ItemOfs[n].right = cx - place.rcNormalPosition.right;
-
-		if ( ItemTab[n].mode & ITM_TOP_BTM )
-			ItemOfs[n].top = cy - place.rcNormalPosition.top;
-		if ( ItemTab[n].mode & ITM_BTM_BTM )
-			ItemOfs[n].bottom = cy - place.rcNormalPosition.bottom;
-	}
+	CDialogExt::InitItemOffset(ItemTab);
 
 	// ウィンドウサイズ設定
 
@@ -372,37 +338,14 @@ BOOL COptDlg::OnInitDialog()
 	// アイテム再配置
 
 	GetClientRect(frame);
-	cx = frame.Width();
-	mx = cx / 2;
-	cy = frame.Height();
+	CDialogExt::SetItemOffset(ItemTab, frame.Width(), frame.Height());
 
-	for ( n = i = 0 ; ItemTab[n].id != 0 ; n++ ) {
-		if ( (pWnd = GetDlgItem(ItemTab[n].id)) == NULL )
-			continue;
+	if ( (m_psh.dwFlags & PSH_NOAPPLYNOW) != 0 && (pWnd = GetDlgItem(ID_APPLY_NOW)) != NULL )
+		pWnd->ShowWindow(SW_HIDE);
 
+	if ( (pWnd = GetDlgItem(IDC_FRAME)) != NULL ) {
 		pWnd->GetWindowPlacement(&place);
-
-		if ( ItemTab[n].mode & ITM_LEFT_HALF )
-			place.rcNormalPosition.left = mx + ItemOfs[n].left;
-		if ( ItemTab[n].mode & ITM_LEFT_RIGHT )
-			place.rcNormalPosition.left = cx - ItemOfs[n].left;
-		if ( ItemTab[n].mode & ITM_RIGHT_HALF )
-			place.rcNormalPosition.right = mx + ItemOfs[n].right;
-		if ( ItemTab[n].mode & ITM_RIGHT_RIGHT )
-			place.rcNormalPosition.right = cx - ItemOfs[n].right;
-
-		if ( ItemTab[n].mode & ITM_TOP_BTM )
-			place.rcNormalPosition.top = cy - ItemOfs[n].top;
-		if ( ItemTab[n].mode & ITM_BTM_BTM )
-			place.rcNormalPosition.bottom = cy - ItemOfs[n].bottom;
-
-		if ( ItemTab[n].id == ID_APPLY_NOW && (m_psh.dwFlags & PSH_NOAPPLYNOW) != 0 )
-			place.showCmd = SW_HIDE;
-
-		if ( ItemTab[n].id == IDC_FRAME )
-			i = n;
-
-		pWnd->SetWindowPlacement(&place);
+		ItemOfs[0] = place.rcNormalPosition;
 	}
 
 	for ( n = 0 ; n < GetPageCount() ; n++ ) {
@@ -411,8 +354,7 @@ BOOL COptDlg::OnInitDialog()
 
 		pPage->GetWindowPlacement(&place);
 
-		place.rcNormalPosition.right  = cx - ItemOfs[i].right;
-		place.rcNormalPosition.bottom = cy - ItemOfs[i].bottom;
+		place.rcNormalPosition = ItemOfs[0];
 		place.showCmd = SW_HIDE;
 
 		pPage->SetWindowPlacement(&place);
@@ -433,7 +375,7 @@ BOOL COptDlg::OnInitDialog()
 	// CharSetPageの初期化が遅いので先に作成
 	CreatePage(10);
 
-	return FALSE;
+	return TRUE;
 }
 void COptDlg::OnOK()
 {

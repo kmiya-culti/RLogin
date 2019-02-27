@@ -1999,7 +1999,7 @@ void CExtSocket::PunyCodeAdress(LPCTSTR str, CString &out)
 
 LPCTSTR CExtSocket::GetFormatErrorMessage(LPCTSTR entry, LPCTSTR host, int port, LPCTSTR type, int err)
 {
-	LPVOID lpMessageBuffer;
+	LPVOID lpMessageBuffer = NULL;
 	CString tmp;
 	static CString msg;
 
@@ -2021,8 +2021,7 @@ LPCTSTR CExtSocket::GetFormatErrorMessage(LPCTSTR entry, LPCTSTR host, int port,
 	tmp.Format(_T("Have Error #%d\n"), err);
 	msg += tmp;
 
-	if ( err > 0 ) {
-		FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&lpMessageBuffer, 0, NULL);
+	if ( err > 0 && FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&lpMessageBuffer, 0, NULL) != 0 && lpMessageBuffer != NULL ) {
 		msg += _T("\n");
 		msg += (LPTSTR)lpMessageBuffer;
 		LocalFree(lpMessageBuffer);

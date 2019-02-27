@@ -38,8 +38,6 @@ public:
 	int m_MinHeight;
 
 public:
-	void InitItemOffset();
-	void SetItemOffset(int cx, int cy);
 	void InitList();
 	void DrawPreView(HDC hDC);
 

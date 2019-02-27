@@ -1358,10 +1358,10 @@ void CInfoCapDlg::InfoNameToCapName(CStringBinary &tab)
 
 BOOL CInfoCapDlg::OnInitDialog()
 {
+	CDialogExt::OnInitDialog();
+
 	int n;
 	CStringIndex cap;
-
-	CDialogExt::OnInitDialog();
 
 	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT); // | LVS_EX_SUBITEMIMAGES);
 	m_List.InitColumn(_T("InfoCapDlg"), InitListTab, 6);

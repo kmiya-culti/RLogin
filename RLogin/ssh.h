@@ -126,6 +126,11 @@
 
 #define CURVE25519_SIZE 32
 
+#define sntrup4591761_PUBLICKEYBYTES	1218
+#define sntrup4591761_SECRETKEYBYTES	1600
+#define sntrup4591761_CIPHERTEXTBYTES	1047
+#define sntrup4591761_BYTES				32
+
 #define	EVP_CTRL_POLY_IV_GEN	0x30
 #define	EVP_CTRL_POLY_SET_TAG	0x31
 #define	EVP_CTRL_POLY_GET_TAG	0x32
@@ -700,6 +705,7 @@ public:
 #define	DHMODE_GROUP_16_512	10
 #define	DHMODE_GROUP_17_512	11
 #define	DHMODE_GROUP_18_512	12
+#define	DHMODE_SNT4591761	13	
 
 #define	AUTH_MODE_NONE		0
 #define	AUTH_MODE_PUBLICKEY	1
@@ -833,6 +839,8 @@ private:
 	const EC_GROUP *m_EcdhGroup;
 	BYTE m_CurveClientKey[CURVE25519_SIZE];
 	BYTE m_CurveClientPubkey[CURVE25519_SIZE];
+	BYTE m_SntrupClientKey[sntrup4591761_SECRETKEYBYTES];
+	BYTE m_SntrupClientPubkey[sntrup4591761_PUBLICKEYBYTES + CURVE25519_SIZE];
 	int m_AuthStat;
 	int m_AuthMode;
 	CString m_AuthMeta;
@@ -881,6 +889,7 @@ private:
 	void SendMsgKexDhGexRequest();
 	int SendMsgKexEcdhInit();
 	void SendMsgKexCurveInit();
+	void SendMsgKexSntrupInit();
 
 	void SendMsgServiceRequest(LPCSTR str);
 	int SendMsgUserAuthRequest(LPCSTR str);
@@ -896,11 +905,14 @@ private:
 	void SendDisconnect2(int st, LPCSTR str);
 
 	int SSH2MsgKexInit(CBuffer *bp);
+	void SetDeriveKey(LPBYTE hash, int hashlen, LPBYTE secb, int secblen, const EVP_MD *evp_md);
 	int SSH2MsgKexDhReply(CBuffer *bp);
 	int SSH2MsgKexDhGexGroup(CBuffer *bp);
 	int SSH2MsgKexDhGexReply(CBuffer *bp);
 	int SSH2MsgKexEcdhReply(CBuffer *bp);
 	int SSH2MsgKexCurveReply(CBuffer *bp);
+	int SSH2MsgKexSntrupReply(CBuffer *bp);
+
 	int SSH2MsgNewKeys(CBuffer *bp);
 	int SSH2MsgExtInfo(CBuffer *bp);
 
@@ -1006,13 +1018,10 @@ extern DH *dh_new_group15(void);
 extern DH *dh_new_group16(void);
 extern DH *dh_new_group17(void);
 extern DH *dh_new_group18(void);
-extern int kex_dh_hash(BYTE *digest, LPCSTR client_version_string, LPCSTR server_version_string, LPBYTE ckexinit, int ckexinitlen, LPBYTE skexinit, int skexinitlen, LPBYTE serverhostkeyblob, int sbloblen, BIGNUM *client_dh_pub, BIGNUM *server_dh_pub, BIGNUM *shared_secret, const EVP_MD *evp_md);
 extern int dh_estimate(int bits);
-extern int kex_gex_hash(BYTE *digest, LPCSTR client_version_string, LPCSTR server_version_string, LPBYTE ckexinit, int ckexinitlen, LPBYTE skexinit, int skexinitlen, LPBYTE serverhostkeyblob, int sbloblen, int min, int wantbits, int max, BIGNUM *prime, BIGNUM *gen, BIGNUM *client_dh_pub, BIGNUM *server_dh_pub, BIGNUM *shared_secret, const EVP_MD *evp_md);
 extern int key_ec_validate_public(const EC_GROUP *group, const EC_POINT *pub);
-extern int kex_ecdh_hash(BYTE *digest, LPCSTR client_version_string, LPCSTR server_version_string, LPBYTE ckexinit, int ckexinitlen, LPBYTE skexinit, int skexinitlen, LPBYTE serverhostkeyblob, int sbloblen, const EC_GROUP *ec_group, const EC_POINT *client_dh_pub, const EC_POINT *server_dh_pub, BIGNUM *shared_secret, const EVP_MD *evp_md);
-extern int kex_c25519_hash(BYTE *digest, LPCSTR client_version_string, LPCSTR server_version_string, LPBYTE ckexinit, int ckexinitlen, LPBYTE skexinit, int skexinitlen, LPBYTE serverhostkeyblob, int sbloblen, const BYTE client_dh_pub[CURVE25519_SIZE], const BYTE server_dh_pub[CURVE25519_SIZE], BIGNUM *shared_secret, const EVP_MD *evp_md);
-extern u_char *derive_key(int id, int need, u_char *hash, int hashlen, BIGNUM *shared_secret, u_char *session_id, int sesslen, const EVP_MD *evp_md);
+extern int kex_gen_hash(BYTE *digest, LPCSTR client_version_string, LPCSTR server_version_string, LPBYTE ckexinit, int ckexinitlen, LPBYTE skexinit, int skexinitlen, LPBYTE sblob, int sbloblen, LPBYTE addb, int addblen, const EVP_MD *evp_md);
+extern u_char *derive_key(int id, int need, u_char *hash, int hashlen, u_char *ssec, int sseclen, u_char *session_id, int sesslen, const EVP_MD *evp_md);
 
 extern void *mm_zalloc(void *mm, unsigned int ncount, unsigned int size);
 extern void mm_zfree(void *mm, void *address);
@@ -1072,5 +1081,11 @@ int xmssmt_key_bytes(uint32_t oid, int *plen, int *slen);
 // xmss.cpp(fips202.c)
 void shake128(unsigned char *out, unsigned long long outlen, const unsigned char *in, unsigned long long inlen);
 void shake256(unsigned char *out, unsigned long long outlen, const unsigned char *in, unsigned long long inlen);
+
+// sntrup4591761.cpp
+
+int	sntrup4591761_keypair(unsigned char *pk, unsigned char *sk);
+int	sntrup4591761_enc(unsigned char *cstr, unsigned char *k, const unsigned char *pk);
+int	sntrup4591761_dec(unsigned char *k, const unsigned char *cstr, const unsigned char *sk);
 
 #endif // !defined(AFX_SSH_H__2A682FAC_4F24_4168_9082_C9CDF2DD19D7__INCLUDED_)

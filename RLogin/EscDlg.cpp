@@ -156,11 +156,11 @@ static const LV_COLUMN ParaListTab[] = {
 
 BOOL CEscDlg::OnInitDialog()
 {
+	CDialogExt::OnInitDialog();
+
 	int n, i, c;
 
 	ASSERT(m_pTextRam != NULL && m_pProcTab != NULL);
-
-	CDialogExt::OnInitDialog();
 
 	m_EscList.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_SUBITEMIMAGES);
 	m_EscList.InitColumn(_T("CEscList"), InitListTab, 2);

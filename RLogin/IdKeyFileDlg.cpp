@@ -42,8 +42,9 @@ END_MESSAGE_MAP()
 
 BOOL CIdKeyFileDlg::OnInitDialog() 
 {
-	CWnd *pWnd;
 	CDialogExt::OnInitDialog();
+
+	CWnd *pWnd;
 	
 	SetWindowText(m_Title);
 	switch(m_OpenMode) {
@@ -67,6 +68,7 @@ BOOL CIdKeyFileDlg::OnInitDialog()
 			pWnd->EnableWindow(FALSE);
 		break;
 	}
+
 	return TRUE;
 }
 

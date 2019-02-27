@@ -60,9 +60,9 @@ END_MESSAGE_MAP()
 
 BOOL CKeyParaDlg::OnInitDialog() 
 {
-	ASSERT(m_pData != NULL);
-
 	CDialogExt::OnInitDialog();
+
+	ASSERT(m_pData != NULL);
 	
 	m_KeyCode   = m_pData->GetCode();
 	m_WithShift = (m_pData->m_Mask & MASK_SHIFT)  ? TRUE : FALSE;

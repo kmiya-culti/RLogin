@@ -49,95 +49,15 @@ BEGIN_MESSAGE_MAP(CBlockDlg, CDialogExt)
 	ON_WM_VSCROLL()
 END_MESSAGE_MAP()
 
-
-#define	ITM_LEFT_HALF	0001
-#define	ITM_LEFT_RIGHT	0002
-#define	ITM_RIGHT_HALF	0004
-#define	ITM_RIGHT_RIGHT	0010
-#define	ITM_TOP_BTM		0020
-#define	ITM_BTM_BTM		0040
-
-static	int		ItemTabInit = FALSE;
-static	struct	_SftpDlgItem	{
-	UINT	id;
-	int		mode;
-	RECT	rect;
-} ItemTab[] = {
-	{ IDOK,				ITM_LEFT_HALF | ITM_RIGHT_HALF | ITM_TOP_BTM | ITM_BTM_BTM },
-	{ IDCANCEL,			ITM_LEFT_HALF | ITM_RIGHT_HALF | ITM_TOP_BTM | ITM_BTM_BTM },
+static const INITDLGTAB ItemTab[] = {
+	{ IDOK,				ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ IDCANCEL,			ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
 	{ IDC_BLOCKLIST,	ITM_BTM_BTM },
 	{ IDC_PREVIEWBOX,	ITM_RIGHT_RIGHT | ITM_BTM_BTM },
 	{ IDC_SCROLLBAR1,	ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT | ITM_BTM_BTM },
 	{ 0,	0 },
 };
 
-void CBlockDlg::InitItemOffset()
-{
-	int n;
-	int cx, mx, cy;
-	CRect rect;
-	WINDOWPLACEMENT place;
-	CWnd *pWnd;
-
-	//if ( ItemTabInit )
-	//	return;
-	ItemTabInit = TRUE;
-
-	GetClientRect(rect);
-	cx = rect.Width();
-	mx = cx / 2;
-	cy = rect.Height();
-
-	for ( n = 0 ; ItemTab[n].id != 0 ; n++ ) {
-		if ( (pWnd = GetDlgItem(ItemTab[n].id)) == NULL )
-			continue;
-		pWnd->GetWindowPlacement(&place);
-		if ( ItemTab[n].mode & ITM_LEFT_HALF )
-			ItemTab[n].rect.left = place.rcNormalPosition.left - mx;
-		if ( ItemTab[n].mode & ITM_LEFT_RIGHT )
-			ItemTab[n].rect.left = cx - place.rcNormalPosition.left;
-		if ( ItemTab[n].mode & ITM_RIGHT_HALF )
-			ItemTab[n].rect.right = place.rcNormalPosition.right - mx;
-		if ( ItemTab[n].mode & ITM_RIGHT_RIGHT )
-			ItemTab[n].rect.right = cx - place.rcNormalPosition.right;
-
-		if ( ItemTab[n].mode & ITM_TOP_BTM )
-			ItemTab[n].rect.top = cy - place.rcNormalPosition.top;
-		if ( ItemTab[n].mode & ITM_BTM_BTM )
-			ItemTab[n].rect.bottom = cy - place.rcNormalPosition.bottom;
-	}
-}
-void CBlockDlg::SetItemOffset(int cx, int cy)
-{
-	int n;
-	int mx = cx / 2;
-	WINDOWPLACEMENT place;
-	CWnd *pWnd;
-
-	if ( !ItemTabInit )
-		return;
-
-	for ( n = 0 ; ItemTab[n].id != 0 ; n++ ) {
-		if ( (pWnd = GetDlgItem(ItemTab[n].id)) == NULL )
-			continue;
-		pWnd->GetWindowPlacement(&place);
-		if ( ItemTab[n].mode & ITM_LEFT_HALF )
-			place.rcNormalPosition.left = mx + ItemTab[n].rect.left;
-		if ( ItemTab[n].mode & ITM_LEFT_RIGHT )
-			place.rcNormalPosition.left = cx - ItemTab[n].rect.left;
-		if ( ItemTab[n].mode & ITM_RIGHT_HALF )
-			place.rcNormalPosition.right = mx + ItemTab[n].rect.right;
-		if ( ItemTab[n].mode & ITM_RIGHT_RIGHT )
-			place.rcNormalPosition.right = cx - ItemTab[n].rect.right;
-
-		if ( ItemTab[n].mode & ITM_TOP_BTM )
-			place.rcNormalPosition.top = cy - ItemTab[n].rect.top;
-		if ( ItemTab[n].mode & ITM_BTM_BTM )
-			place.rcNormalPosition.bottom = cy - ItemTab[n].rect.bottom;
-
-		pWnd->SetWindowPlacement(&place);
-	}
-}
 void CBlockDlg::InitList()
 {
 	int n;
@@ -289,15 +209,15 @@ static const LV_COLUMN InitListTab[2] = {
 
 BOOL CBlockDlg::OnInitDialog()
 {
-	int n;
-
 	CDialogExt::OnInitDialog();
+
+	int n;
 
 	ASSERT(m_CodeSet >= 0 && m_CodeSet < CODE_MAX);
 	ASSERT(m_pFontTab != NULL);
 	ASSERT(m_pFontNode != NULL);
 
-	InitItemOffset();
+	InitItemOffset(ItemTab);
 
 	for ( n = 0 ; n < UNIBLOCKTABMAX ; n++ )
 		m_UniBlockTab.Add(UniBlockTab[n].code, (-1), UniBlockTab[n].name);
@@ -477,25 +397,28 @@ void CBlockDlg::OnEditPasteAll()
 
 void CBlockDlg::OnSize(UINT nType, int cx, int cy)
 {
-	SetItemOffset(cx, cy);
+	SetItemOffset(ItemTab, cx, cy);
 	CDialogExt::OnSize(nType, cx, cy);
 	Invalidate(FALSE);
 }
 
 void CBlockDlg::OnSizing(UINT fwSide, LPRECT pRect)
 {
-	if ( (pRect->right - pRect->left) < m_MinWidth ) {
+	int width  = MulDiv(m_MinWidth,  m_NowDpi.cx, m_InitDpi.cx);
+	int height = MulDiv(m_MinHeight, m_NowDpi.cy, m_InitDpi.cy);
+
+	if ( (pRect->right - pRect->left) < width ) {
 		if ( fwSide == WMSZ_LEFT || fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_BOTTOMLEFT )
-			pRect->left = pRect->right - m_MinWidth;
+			pRect->left = pRect->right - width;
 		else
-			pRect->right = pRect->left + m_MinWidth;
+			pRect->right = pRect->left + width;
 	}
 
-	if ( (pRect->bottom - pRect->top) < m_MinHeight ) {
+	if ( (pRect->bottom - pRect->top) < height ) {
 		if ( fwSide == WMSZ_TOP || fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_TOPRIGHT )
-			pRect->top = pRect->bottom - m_MinHeight;
+			pRect->top = pRect->bottom - height;
 		else
-			pRect->bottom = pRect->top + m_MinHeight;
+			pRect->bottom = pRect->top + height;
 	}
 
 	CDialogExt::OnSizing(fwSide, pRect);

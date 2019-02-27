@@ -60,12 +60,12 @@ static struct _DefParaCheckTab {
 
 BOOL CDefParamDlg::OnInitDialog()
 {
+	CDialogExt::OnInitDialog();
+
 	int n, i;
 	CWnd *pWnd, *pMsg;
 	CString text, str, msg, tmp;
 	LPCTSTR icon = IDI_QUESTION;
-
-	CDialogExt::OnInitDialog();
 
 	if ( (pWnd = GetDlgItem(IDC_DEFPAMCHECK1)) != NULL ) {
 		if ( m_pTextRam != NULL && (m_InitFlag & UMOD_ANSIOPT) != 0 ) {

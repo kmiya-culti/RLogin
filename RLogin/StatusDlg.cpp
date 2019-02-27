@@ -50,10 +50,9 @@ END_MESSAGE_MAP()
 
 BOOL CStatusDlg::OnInitDialog()
 {
-	CWnd *pWnd;
-
 	CDialogExt::OnInitDialog();
 
+	CWnd *pWnd;
 	HMENU hMenu;
 
 	if ( ((CRLoginApp *)::AfxGetApp())->LoadResMenu(MAKEINTRESOURCE(IDR_STATUSWND), hMenu) )

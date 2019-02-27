@@ -40,10 +40,10 @@ END_MESSAGE_MAP()
 
 BOOL CEscParaDlg::OnInitDialog()
 {
+	CDialogExt::OnInitDialog();
+
 	int n;
 	CString tmp;
-
-	CDialogExt::OnInitDialog();
 
 	for ( n = 0 ; n < 95 ; n++ ) {
 		tmp.Format(_T("%c"), n + _T(' '));

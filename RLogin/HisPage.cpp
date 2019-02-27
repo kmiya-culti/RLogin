@@ -92,6 +92,7 @@ BOOL CHisPage::OnInitDialog()
 	ASSERT(m_pSheet != NULL && m_pSheet->m_pTextRam != NULL);
 
 	CTreePage::OnInitDialog();
+
 	DoInit();
 
 	return TRUE;

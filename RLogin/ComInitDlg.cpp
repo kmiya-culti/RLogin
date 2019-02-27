@@ -114,11 +114,12 @@ END_MESSAGE_MAP()
 
 BOOL CComInitDlg::OnInitDialog()
 {
+	CDialogExt::OnInitDialog();
+
 	CString portIndex, FriendlyName;
 	CComboBox *pCombo;
 
 	ASSERT(m_pSock != NULL && m_pSock->m_pComConf != NULL);
-	CDialogExt::OnInitDialog();
 
 	GetComDeviceList();
 
@@ -148,6 +149,7 @@ BOOL CComInitDlg::OnInitDialog()
 	m_FlowCtrl		= CComSock::GetFlowCtrlMode(&(m_pSock->m_pComConf->dcb), m_UserDef);
 
 	UpdateData(FALSE);
+
 	return TRUE;
 }
 void CComInitDlg::OnOK()

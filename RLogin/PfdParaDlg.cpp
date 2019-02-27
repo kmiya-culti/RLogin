@@ -55,9 +55,9 @@ END_MESSAGE_MAP()
 
 BOOL CPfdParaDlg::OnInitDialog() 
 {
-	CComboBox *pCombo;
-
 	CDialogExt::OnInitDialog();
+
+	CComboBox *pCombo;
 
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_LISTENHOST)) != NULL ) {
 		pCombo->AddString(_T("localhost"));

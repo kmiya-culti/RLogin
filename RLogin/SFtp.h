@@ -201,6 +201,7 @@ public:
 	CComboBox	m_LocalCwd;
 	CProgressCtrl	m_UpDownProg;
 	CStatic	m_UpDownStat[4];
+	CString m_LastErrorMsg;
 
 // クラスデータ
 public:
@@ -258,6 +259,7 @@ public:
 	void RemoveWaitQue();
 	void SendWaitQue();
 
+	void SetLastErrorMsg();
 	BOOL SeekReadFile(HANDLE hFile, LPBYTE pBuffer, DWORD BufLen, LONGLONG SeekPos);
 	BOOL SeekWriteFile(HANDLE hFile, LPBYTE pBuffer, DWORD BufLen, LONGLONG SeekPos);
 
@@ -336,8 +338,6 @@ public:
 	void SetLocalCwdHis(LPCTSTR cwd);
 	void SetRemoteCwdHis(LPCTSTR cwd);
 
-	void InitItemOffset();
-	void SetItemOffset(int cx, int cy);
 	void SaveListColumn(LPCTSTR lpszSection, CListCtrl *pList);
 
 	int m_LocalSortItem;

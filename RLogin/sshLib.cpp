@@ -1748,44 +1748,6 @@ DH *dh_new_group18(void)
 
 	return (dh_new_group_asc(gen, group18));
 }
-int kex_dh_hash(
-	BYTE *digest,
-    LPCSTR client_version_string, LPCSTR server_version_string,
-    LPBYTE ckexinit, int ckexinitlen,
-    LPBYTE skexinit, int skexinitlen,
-    LPBYTE serverhostkeyblob, int sbloblen, BIGNUM *client_dh_pub,
-    BIGNUM *server_dh_pub, BIGNUM *shared_secret,
-	const EVP_MD *evp_md)
-{
-	CBuffer b;
-	EVP_MD_CTX *md_ctx;
-
-	b.PutStr(client_version_string);
-	b.PutStr(server_version_string);
-
-	/* kexinit messages: fake header: len+SSH2_MSG_KEXINIT */
-	b.Put32Bit(ckexinitlen+1);
-	b.Put8Bit(SSH2_MSG_KEXINIT);
-	b.Apend((LPBYTE)ckexinit, ckexinitlen);
-
-	b.Put32Bit(skexinitlen+1);
-	b.Put8Bit(SSH2_MSG_KEXINIT);
-	b.Apend((LPBYTE)skexinit, skexinitlen);
-
-	b.PutBuf((LPBYTE)serverhostkeyblob, sbloblen);
-
-	b.PutBIGNUM2(client_dh_pub);
-	b.PutBIGNUM2(server_dh_pub);
-	b.PutBIGNUM2(shared_secret);
-
-	md_ctx = EVP_MD_CTX_new();
-	EVP_DigestInit(md_ctx, evp_md);
-	EVP_DigestUpdate(md_ctx, b.GetPtr(), b.GetSize());
-	EVP_DigestFinal(md_ctx, digest, NULL);
-	EVP_MD_CTX_free(md_ctx);
-
-	return EVP_MD_size(evp_md);;
-}
 int	dh_estimate(int bits)
 {
 	if ( bits <= 112 )
@@ -1796,54 +1758,6 @@ int	dh_estimate(int bits)
 		return 7680;
 	else
 		return 8192;
-}
-int kex_gex_hash(
-	BYTE *digest,
-    LPCSTR client_version_string, LPCSTR server_version_string,
-    LPBYTE ckexinit, int ckexinitlen,
-    LPBYTE skexinit, int skexinitlen,
-    LPBYTE serverhostkeyblob, int sbloblen,
-	int min, int wantbits, int max, BIGNUM *prime, BIGNUM *gen, BIGNUM *client_dh_pub,
-    BIGNUM *server_dh_pub, BIGNUM *shared_secret,
-	const EVP_MD *evp_md)
-{
-	CBuffer b;
-	EVP_MD_CTX *md_ctx;
-
-	b.PutStr(client_version_string);
-	b.PutStr(server_version_string);
-
-	/* kexinit messages: fake header: len+SSH2_MSG_KEXINIT */
-	b.Put32Bit(ckexinitlen+1);
-	b.Put8Bit(SSH2_MSG_KEXINIT);
-	b.Apend((LPBYTE)ckexinit, ckexinitlen);
-
-	b.Put32Bit(skexinitlen+1);
-	b.Put8Bit(SSH2_MSG_KEXINIT);
-	b.Apend((LPBYTE)skexinit, skexinitlen);
-
-	b.PutBuf((LPBYTE)serverhostkeyblob, sbloblen);
-	if ( min == -1 || max == -1 )
-		b.Put32Bit(wantbits);
-	else {
-		b.Put32Bit(min);
-		b.Put32Bit(wantbits);
-		b.Put32Bit(max);
-	}
-
-	b.PutBIGNUM2(prime);
-	b.PutBIGNUM2(gen);
-	b.PutBIGNUM2(client_dh_pub);
-	b.PutBIGNUM2(server_dh_pub);
-	b.PutBIGNUM2(shared_secret);
-
-	md_ctx = EVP_MD_CTX_new();
-	EVP_DigestInit(md_ctx, evp_md);
-	EVP_DigestUpdate(md_ctx, b.GetPtr(), b.GetSize());
-	EVP_DigestFinal(md_ctx, digest, NULL);
-	EVP_MD_CTX_free(md_ctx);
-
-	return EVP_MD_size(evp_md);
 }
 int key_ec_validate_public(const EC_GROUP *group, const EC_POINT *pub)
 {
@@ -1907,55 +1821,14 @@ out:
 		EC_POINT_free(nq);
 	return ret;
 }
-int kex_ecdh_hash(
-	BYTE *digest,
-    LPCSTR client_version_string, LPCSTR server_version_string,
-    LPBYTE ckexinit, int ckexinitlen,
-    LPBYTE skexinit, int skexinitlen,
-    LPBYTE serverhostkeyblob, int sbloblen,
-	const EC_GROUP *ec_group, const EC_POINT *client_dh_pub,
-    const EC_POINT *server_dh_pub, BIGNUM *shared_secret,
-	const EVP_MD *evp_md)
-{
-	CBuffer b;
-	EVP_MD_CTX *md_ctx;
-
-	b.PutStr(client_version_string);
-	b.PutStr(server_version_string);
-
-	/* kexinit messages: fake header: len+SSH2_MSG_KEXINIT */
-	b.Put32Bit(ckexinitlen+1);
-	b.Put8Bit(SSH2_MSG_KEXINIT);
-	b.Apend((LPBYTE)ckexinit, ckexinitlen);
-
-	b.Put32Bit(skexinitlen+1);
-	b.Put8Bit(SSH2_MSG_KEXINIT);
-	b.Apend((LPBYTE)skexinit, skexinitlen);
-
-	b.PutBuf((LPBYTE)serverhostkeyblob, sbloblen);
-
-	b.PutEcPoint(ec_group, client_dh_pub);
-	b.PutEcPoint(ec_group, server_dh_pub);
-	b.PutBIGNUM2(shared_secret);
-
-	md_ctx = EVP_MD_CTX_new();
-	EVP_DigestInit(md_ctx, evp_md);
-	EVP_DigestUpdate(md_ctx, b.GetPtr(), b.GetSize());
-	EVP_DigestFinal(md_ctx, digest, NULL);
-	EVP_MD_CTX_free(md_ctx);
-
-	return EVP_MD_size(evp_md);
-}
-int kex_c25519_hash(
+int kex_gen_hash(
 	BYTE *digest,
     LPCSTR client_version_string,
 	LPCSTR server_version_string,
     LPBYTE ckexinit, int ckexinitlen,
     LPBYTE skexinit, int skexinitlen,
-    LPBYTE serverhostkeyblob, int sbloblen,
-    const BYTE client_dh_pub[CURVE25519_SIZE],
-    const BYTE server_dh_pub[CURVE25519_SIZE],
-	BIGNUM *shared_secret,
+    LPBYTE sblob, int sbloblen,
+	LPBYTE addb, int addblen,
 	const EVP_MD *evp_md)
 {
 	CBuffer b;
@@ -1973,10 +1846,9 @@ int kex_c25519_hash(
 	b.Put8Bit(SSH2_MSG_KEXINIT);
 	b.Apend((LPBYTE)skexinit, skexinitlen);
 
-	b.PutBuf((LPBYTE)serverhostkeyblob, sbloblen);
-	b.PutBuf((LPBYTE)client_dh_pub, CURVE25519_SIZE);
-	b.PutBuf((LPBYTE)server_dh_pub, CURVE25519_SIZE);
-	b.PutBIGNUM2(shared_secret);
+	b.PutBuf((LPBYTE)sblob, sbloblen);
+
+	b.Apend(addb, addblen);
 
 	md_ctx = EVP_MD_CTX_new();
 	EVP_DigestInit(md_ctx, evp_md);
@@ -1986,21 +1858,19 @@ int kex_c25519_hash(
 
 	return EVP_MD_size(evp_md);
 }
-u_char *derive_key(int id, int need, u_char *hash, int hashlen, BIGNUM *shared_secret, u_char *session_id, int sesslen, const EVP_MD *evp_md)
+
+u_char *derive_key(int id, int need, u_char *hash, int hashlen, u_char *ssec, int sseclen, u_char *session_id, int sesslen, const EVP_MD *evp_md)
 {
-	CBuffer b;
 	EVP_MD_CTX *md_ctx;
 	char c = id;
 	int have;
 	int mdsz = EVP_MD_size(evp_md);
 	u_char *digest = (u_char *)malloc(need + (mdsz - (need % mdsz)));
 
-	b.PutBIGNUM2(shared_secret);
-
 	/* K1 = HASH(K || H || "A" || session_id) */
 	md_ctx = EVP_MD_CTX_new();
 	EVP_DigestInit(md_ctx, evp_md);
-	EVP_DigestUpdate(md_ctx, b.GetPtr(), b.GetSize());
+	EVP_DigestUpdate(md_ctx, ssec, sseclen);
 	EVP_DigestUpdate(md_ctx, hash, hashlen);
 	EVP_DigestUpdate(md_ctx, &c, 1);
 	EVP_DigestUpdate(md_ctx, session_id, sesslen);
@@ -2015,7 +1885,7 @@ u_char *derive_key(int id, int need, u_char *hash, int hashlen, BIGNUM *shared_s
 	for ( have = mdsz ; need > have ; have += mdsz ) {
 		md_ctx = EVP_MD_CTX_new();
 		EVP_DigestInit(md_ctx, evp_md);
-		EVP_DigestUpdate(md_ctx, b.GetPtr(), b.GetSize());
+		EVP_DigestUpdate(md_ctx, ssec, sseclen);
         EVP_DigestUpdate(md_ctx, hash, hashlen);
 		EVP_DigestUpdate(md_ctx, digest, have);
 		EVP_DigestFinal(md_ctx, digest + have, NULL);

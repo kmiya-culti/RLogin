@@ -70,5 +70,8 @@ void CAutoRenDlg::OnEnUpdateEdit3()
 BOOL CAutoRenDlg::OnInitDialog()
 {
 	CDialogExt::OnInitDialog();
+	
+	// not use
+
 	return TRUE;
 }

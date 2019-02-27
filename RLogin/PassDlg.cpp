@@ -47,7 +47,7 @@ END_MESSAGE_MAP()
 BOOL CPassDlg::OnInitDialog() 
 {
 	CDialogExt::OnInitDialog();
-	
+
 	if ( !m_Title.IsEmpty() )
 		SetWindowText(m_Title);
 
@@ -94,7 +94,7 @@ BOOL CPassDlg::OnInitDialog()
 
 	UpdateData(FALSE);
 
-	return FALSE;
+	return TRUE;
 }
 
 void CPassDlg::OnTimer(UINT_PTR nIDEvent) 

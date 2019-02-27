@@ -225,12 +225,12 @@ void CToolDlg::UpdateImage(WORD nId)
 
 BOOL CToolDlg::OnInitDialog()
 {
+	CDialogExt::OnInitDialog();
+
 	int n;
 	CResToolBarBase *pResToolBar;
 	int sz = 16;
 	CBuffer buf;
-
-	CDialogExt::OnInitDialog();
 
 	// Init Menu
 	CMenuLoad::GetPopUpMenu(IDR_RLOGINTYPE, m_DefMenu);

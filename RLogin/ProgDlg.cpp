@@ -81,8 +81,7 @@ BOOL CProgDlg::OnInitDialog()
 	m_ResumeSize = 0;
 	m_StartClock = clock();
 
-	return TRUE;  // コントロールにフォーカスを設定しないとき、戻り値は TRUE となります
-	              // 例外: OCX プロパティ ページの戻り値は FALSE となります
+	return TRUE;
 }
 
 void CProgDlg::SetRange(LONGLONG max, LONGLONG rem)

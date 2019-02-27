@@ -324,142 +324,48 @@ void CServerSelect::InitEntry(int nUpdate)
 	}
 }
 
-#define	ITM_LEFT_HALF	00001
-#define	ITM_LEFT_RIGHT	00002
-#define	ITM_RIGHT_HALF	00004
-#define	ITM_RIGHT_RIGHT	00010
-#define	ITM_TOP_BTM		00020
-#define	ITM_BTM_BTM		00040
-#define	ITM_TOP_SAVE	00100
-#define	ITM_LEFT_SAVE	00200
-#define	ITM_TOP_LOAD	00400
-#define	ITM_RIGHT_PER	01000
-#define	ITM_LEFT_PER	02000
-
-static	int		ItemTabInit = FALSE;
-static	struct	_SftpDlgItem	{
-	UINT	id;
-	int		mode;
-	RECT	rect;
-} ItemTab[] = {
+static const INITDLGTAB ItemTab[] = {
 	{ IDOK,				ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT },
 	{ IDCANCEL,			ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT },
 	{ IDC_NEWENTRY,		ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT | ITM_TOP_BTM | ITM_BTM_BTM },
 	{ IDC_EDITENTRY,	ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT | ITM_TOP_BTM | ITM_BTM_BTM },
 	{ IDC_DELENTRY,		ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT | ITM_TOP_BTM | ITM_BTM_BTM },
-	{ IDC_SERVERTREE,	ITM_LEFT_SAVE  | ITM_RIGHT_PER   |               ITM_BTM_BTM  },
-	{ IDC_SERVERTAB,	                 ITM_RIGHT_RIGHT | ITM_TOP_SAVE },
-	{ IDC_SERVERLIST,	ITM_LEFT_PER   | ITM_RIGHT_RIGHT | ITM_TOP_LOAD | ITM_BTM_BTM },
+	{ IDC_SERVERTREE,													 ITM_BTM_BTM  },
+	{ IDC_SERVERTAB,	                 ITM_RIGHT_RIGHT },
+	{ IDC_SERVERLIST,					 ITM_RIGHT_RIGHT |				 ITM_BTM_BTM },
 	{ 0,	0 },
 };
 
-void CServerSelect::InitItemOffset()
-{
-	int n;
-	int cx, mx, cy;
-	CRect rect;
-	WINDOWPLACEMENT place;
-	CWnd *pWnd;
-
-	//if ( ItemTabInit )
-	//	return;
-	ItemTabInit = TRUE;
-
-	GetClientRect(rect);
-	cx = rect.Width();
-	mx = cx / 2;
-	cy = rect.Height();
-
-	for ( n = 0 ; ItemTab[n].id != 0 ; n++ ) {
-		if ( (pWnd = GetDlgItem(ItemTab[n].id)) == NULL )
-			continue;
-
-		pWnd->GetWindowPlacement(&place);
-
-		if ( ItemTab[n].mode & ITM_LEFT_HALF )
-			ItemTab[n].rect.left = place.rcNormalPosition.left - mx;
-		if ( ItemTab[n].mode & ITM_LEFT_RIGHT )
-			ItemTab[n].rect.left = cx - place.rcNormalPosition.left;
-		if ( ItemTab[n].mode & ITM_RIGHT_HALF )
-			ItemTab[n].rect.right = place.rcNormalPosition.right - mx;
-		if ( ItemTab[n].mode & ITM_RIGHT_RIGHT )
-			ItemTab[n].rect.right = cx - place.rcNormalPosition.right;
-
-		if ( ItemTab[n].mode & ITM_TOP_BTM )
-			ItemTab[n].rect.top = cy - place.rcNormalPosition.top;
-		if ( ItemTab[n].mode & ITM_BTM_BTM )
-			ItemTab[n].rect.bottom = cy - place.rcNormalPosition.bottom;
-
-		if ( ItemTab[n].mode & ITM_TOP_SAVE )
-			ItemTab[n].rect.top  = place.rcNormalPosition.top;
-		if ( ItemTab[n].mode & ITM_LEFT_SAVE )
-			ItemTab[n].rect.left = place.rcNormalPosition.left;
-
-		if ( ItemTab[n].mode & ITM_TOP_LOAD )
-			ItemTab[n].rect.top = place.rcNormalPosition.top;
-
-		if ( ItemTab[n].mode & ITM_RIGHT_PER )
-			m_TreeListPer = place.rcNormalPosition.right * 1000 / rect.Width();
-		if ( ItemTab[n].mode & ITM_LEFT_PER )
-			ItemTab[n].rect.left = place.rcNormalPosition.left - m_TreeListPer * rect.Width() / 1000;
-	}
-}
-
 void CServerSelect::SetItemOffset(int cx, int cy)
 {
-	int n, sx = 0, sy = 0;
-	int mx = cx / 2;
-	WINDOWPLACEMENT place;
-	CWnd *pWnd;
+	CDialogExt::SetItemOffset(ItemTab, cx, cy);
 
-	if ( !ItemTabInit )
+	int n;
+	WINDOWPLACEMENT placeTree, placeTab, placeList;
+
+	if ( m_Tree.GetSafeHwnd() == NULL || m_Tab.GetSafeHwnd() == NULL || m_List.GetSafeHwnd() == NULL )
 		return;
 
-	for ( n = 0 ; ItemTab[n].id != 0 ; n++ ) {
-		if ( (pWnd = GetDlgItem(ItemTab[n].id)) == NULL )
-			continue;
-		pWnd->GetWindowPlacement(&place);
-		if ( ItemTab[n].mode & ITM_LEFT_HALF )
-			place.rcNormalPosition.left = mx + ItemTab[n].rect.left;
-		if ( ItemTab[n].mode & ITM_LEFT_RIGHT )
-			place.rcNormalPosition.left = cx - ItemTab[n].rect.left;
-		if ( ItemTab[n].mode & ITM_RIGHT_HALF )
-			place.rcNormalPosition.right = mx + ItemTab[n].rect.right;
-		if ( ItemTab[n].mode & ITM_RIGHT_RIGHT )
-			place.rcNormalPosition.right = cx - ItemTab[n].rect.right;
+	m_Tree.GetWindowPlacement(&placeTree);
+	m_Tab.GetWindowPlacement(&placeTab);
+	m_List.GetWindowPlacement(&placeList);
 
-		if ( ItemTab[n].mode & ITM_TOP_BTM )
-			place.rcNormalPosition.top = cy - ItemTab[n].rect.top;
-		if ( ItemTab[n].mode & ITM_BTM_BTM )
-			place.rcNormalPosition.bottom = cy - ItemTab[n].rect.bottom;
+	if ( m_bShowTreeWnd ) {
+		n = placeList.rcNormalPosition.left - placeTree.rcNormalPosition.right;
+		placeTree.rcNormalPosition.right = cx * m_TreeListPer / 1000;
+		placeList.rcNormalPosition.left = placeTree.rcNormalPosition.right + n;
+	} else
+		placeList.rcNormalPosition.left = placeTree.rcNormalPosition.left;
 
-		if ( ItemTab[n].mode & ITM_TOP_SAVE )
-			sy = ItemTab[n].rect.top;
-		if ( ItemTab[n].mode & ITM_LEFT_SAVE )
-			sx = ItemTab[n].rect.left;
+	if ( !m_bShowTabWnd )
+		placeList.rcNormalPosition.top = placeTab.rcNormalPosition.top;
 
-		if ( ItemTab[n].mode & ITM_RIGHT_PER )
-			place.rcNormalPosition.right = m_TreeListPer * cx / 1000;
+	placeTree.showCmd = m_bShowTreeWnd ? SW_NORMAL : SW_HIDE;
+	placeTab.showCmd  = m_bShowTabWnd  ? SW_NORMAL : SW_HIDE;
 
-		if ( ItemTab[n].mode & ITM_TOP_LOAD ) {
-			if ( m_bShowTabWnd ) {
-				place.rcNormalPosition.top = ItemTab[n].rect.top;
-				m_Tab.ShowWindow(SW_NORMAL);
-			} else {
-				place.rcNormalPosition.top = sy;
-				m_Tab.ShowWindow(SW_HIDE);
-			}
-			if ( m_bShowTreeWnd ) {
-				place.rcNormalPosition.left = m_TreeListPer * cx / 1000 + ItemTab[n].rect.left;
-				m_Tree.ShowWindow(SW_NORMAL);
-			} else {
-				place.rcNormalPosition.left = sx;
-				m_Tree.ShowWindow(SW_HIDE);
-			}
-		}
-
-		pWnd->SetWindowPlacement(&place);
-	}
+	m_Tree.SetWindowPlacement(&placeTree);
+	m_Tab.SetWindowPlacement(&placeTab);
+	m_List.SetWindowPlacement(&placeList);
 }
 
 void CServerSelect::UpdateDefaultEntry(int num)
@@ -495,13 +401,13 @@ static const LV_COLUMN InitListTab[6] = {
 
 BOOL CServerSelect::OnInitDialog() 
 {
+	CDialogExt::OnInitDialog();
+
 	int cx, cy;
 	CRect rect;
 	CBitmap BitMap;
 
 	ASSERT(m_pData != NULL);
-
-	CDialogExt::OnInitDialog();
 
 	m_TabEntry.SetNoCase(FALSE);
 	m_TabEntry.SetNoSort(FALSE);
@@ -529,12 +435,13 @@ BOOL CServerSelect::OnInitDialog()
 
 	m_DefaultEntryUid = ::AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("DefaultEntry"), (-1));
 
-	InitItemOffset();
+	InitItemOffset(ItemTab);
 	m_TreeListPer = AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("TreePer"), m_TreeListPer);
 
 	GetWindowRect(rect);
 	m_MinWidth = rect.Width();
 	m_MinHeight = rect.Height();
+
 	cx = AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("cx"), rect.Width());
 	cy = AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("cy"), rect.Height());
 	if ( cx < rect.Width() )
@@ -1575,18 +1482,21 @@ void CServerSelect::OnSizing(UINT fwSide, LPRECT pRect)
 	//case WMSZ_BOTTOMLEFT:		// 7 Bottom-left corner
 	//case WMSZ_BOTTOMRIGHT:	// 8 Bottom-right corner
 
-	if ( (pRect->right - pRect->left) < m_MinWidth ) {
+	int width  = MulDiv(m_MinWidth,  m_NowDpi.cx, m_InitDpi.cx);
+	int height = MulDiv(m_MinHeight, m_NowDpi.cy, m_InitDpi.cy);
+
+	if ( (pRect->right - pRect->left) < width ) {
 		if ( fwSide == WMSZ_LEFT || fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_BOTTOMLEFT )
-			pRect->left = pRect->right - m_MinWidth;
+			pRect->left = pRect->right - width;
 		else
-			pRect->right = pRect->left + m_MinWidth;
+			pRect->right = pRect->left + width;
 	}
 
-	if ( (pRect->bottom - pRect->top) < m_MinHeight ) {
+	if ( (pRect->bottom - pRect->top) < height ) {
 		if ( fwSide == WMSZ_TOP || fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_TOPRIGHT )
-			pRect->top = pRect->bottom - m_MinHeight;
+			pRect->top = pRect->bottom - height;
 		else
-			pRect->bottom = pRect->top + m_MinHeight;
+			pRect->bottom = pRect->top + height;
 	}
 
 	CDialogExt::OnSizing(fwSide, pRect);

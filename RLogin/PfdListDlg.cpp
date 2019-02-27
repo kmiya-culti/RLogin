@@ -154,9 +154,9 @@ static const LV_COLUMN InitListTab[5] = {
 
 BOOL CPfdListDlg::OnInitDialog() 
 {
-	CPfdData data;
-
 	CDialogExt::OnInitDialog();
+
+	CPfdData data;
 
 	for ( int n = 0 ; n < m_PortFwd.GetSize() ; n++ ) {
 		if ( data.GetString(m_PortFwd[n]) )

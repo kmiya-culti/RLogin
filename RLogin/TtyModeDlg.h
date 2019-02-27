@@ -24,9 +24,7 @@ public:
 	int m_MinWidth;
 	int m_MinHeight;
 
-	virtual void InitList();
-	void InitItemOffset();
-	void SetItemOffset(int cx, int cy);
+	void InitList();
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート

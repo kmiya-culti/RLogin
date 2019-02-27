@@ -43,9 +43,10 @@ END_MESSAGE_MAP()
 
 BOOL CScriptDlg::OnInitDialog()
 {
+	CDialogExt::OnInitDialog();
+
 	CodeStack *cp;
 	CWnd *pWnd;
-	CDialogExt::OnInitDialog();
 
 	if ( m_pSrc != NULL ) {
 		m_Text.SetLimitText(m_Max + 2);

@@ -202,13 +202,13 @@ void CFontParaDlg::SetFontFace(int nID)
 
 BOOL CFontParaDlg::OnInitDialog() 
 {
+	CDialogExt::OnInitDialog();
+
 	int n;
 	CComboBox *pCombo;
 	CStringArray stra;
 
 	ASSERT(m_pData != NULL && m_pFontTab != NULL);
-
-	CDialogExt::OnInitDialog();
 
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_CHARSET)) != NULL ) {
 		for ( n = 0 ; CharSetTab[n].name != NULL ; n++ )

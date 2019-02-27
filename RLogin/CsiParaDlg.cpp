@@ -48,8 +48,6 @@ BOOL CCsiParaDlg::OnInitDialog()
 	int n;
 	CString tmp;
 
-	CDialogExt::OnInitDialog();
-
 	m_Ext1Combo.AddString(_T(" "));
 	for ( n = 0 ; n < 4 ; n++ ) {
 		tmp.Format(_T("%c"), n + _T('<'));

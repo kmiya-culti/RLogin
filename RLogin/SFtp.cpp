@@ -720,6 +720,16 @@ void CSFtp::RemoveWaitQue()
 		delete pQue;
 	}
 }
+void CSFtp::SetLastErrorMsg()
+{
+	DWORD err = GetLastError();
+	LPVOID lpMessageBuffer = NULL;
+
+	if ( FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&lpMessageBuffer, 0, NULL) != 0 && lpMessageBuffer != NULL ) {
+		m_LastErrorMsg = (LPTSTR)lpMessageBuffer;
+		LocalFree(lpMessageBuffer);
+	}
+}
 BOOL CSFtp::SeekReadFile(HANDLE hFile, LPBYTE pBuffer, DWORD BufLen, LONGLONG SeekPos)
 {
 	int retry;
@@ -732,7 +742,7 @@ BOOL CSFtp::SeekReadFile(HANDLE hFile, LPBYTE pBuffer, DWORD BufLen, LONGLONG Se
 		if ( SetFilePointerEx(hFile, large, NULL, FILE_BEGIN) )
 			break;
 		if ( ++retry > FILEIORETRY_MAX )
-			return FALSE;
+			goto ERRRET;
 	}
 
 	for ( retry = 0 ; ; ) {
@@ -744,10 +754,14 @@ BOOL CSFtp::SeekReadFile(HANDLE hFile, LPBYTE pBuffer, DWORD BufLen, LONGLONG Se
 		}
 
 		if ( ++retry > FILEIORETRY_MAX )
-			return FALSE;
+			goto ERRRET;
 	}
 
 	return TRUE;
+
+ERRRET:
+	SetLastErrorMsg();
+	return FALSE;
 }
 BOOL CSFtp::SeekWriteFile(HANDLE hFile, LPBYTE pBuffer, DWORD BufLen, LONGLONG SeekPos)
 {
@@ -761,7 +775,7 @@ BOOL CSFtp::SeekWriteFile(HANDLE hFile, LPBYTE pBuffer, DWORD BufLen, LONGLONG S
 		if ( SetFilePointerEx(hFile, large, NULL, FILE_BEGIN) )
 			break;
 		if ( ++retry > FILEIORETRY_MAX )
-			return FALSE;
+			goto ERRRET;
 	}
 
 	for ( retry = 0 ; ; ) {
@@ -773,10 +787,14 @@ BOOL CSFtp::SeekWriteFile(HANDLE hFile, LPBYTE pBuffer, DWORD BufLen, LONGLONG S
 		}
 
 		if ( ++retry > FILEIORETRY_MAX )
-			return FALSE;
+			goto ERRRET;
 	}
 
 	return TRUE;
+
+ERRRET:
+	SetLastErrorMsg();
+	return FALSE;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1436,6 +1454,7 @@ int CSFtp::RemoteOpenReadRes(int type, CBuffer *bp, class CCmdQue *pQue)
 	bp->GetBuf(&pQue->m_Handle);
 
 	if ( (pQue->m_hFile = CreateFile(pQue->m_CopyPath, GENERIC_WRITE, 0, NULL, (pQue->m_NextOfs != 0 ? OPEN_EXISTING : CREATE_ALWAYS), FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE ) {
+		SetLastErrorMsg();
 		pQue->m_Len = (-2);
 		RemoteMakePacket(pQue, SSH2_FXP_CLOSE);
 		SendCommand(pQue, &CSFtp::RemoteCloseReadRes, SENDCMD_NOWAIT);
@@ -1805,8 +1824,10 @@ int CSFtp::RemoteOpenWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 		return RemoteCloseWriteRes((-3), bp, pQue);
 	bp->GetBuf(&pQue->m_Handle);
 
-	if ( (pQue->m_hFile = CreateFile(pQue->m_FileNode[0].m_path, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE )
+	if ( (pQue->m_hFile = CreateFile(pQue->m_FileNode[0].m_path, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE ) {
+		SetLastErrorMsg();
 		goto CLOSEWRITE;
+	}
 
 	pQue->m_pOwner  = NULL;
 	pQue->m_Size = (pQue->m_FileNode[0].HaveSize() ? pQue->m_FileNode[0].m_size : 0);
@@ -1829,7 +1850,7 @@ int CSFtp::RemoteOpenWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 CLOSEWRITE:
 	pQue->m_Len = (-1);
 	RemoteMakePacket(pQue, SSH2_FXP_CLOSE);
-	SendCommand(pQue, &CSFtp::RemoteCloseReadRes, SENDCMD_NOWAIT);
+	SendCommand(pQue, &CSFtp::RemoteCloseWriteRes, SENDCMD_NOWAIT);
 	return FALSE;
 }
 int CSFtp::RemoteMkDirWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
@@ -2575,6 +2596,12 @@ void CSFtp::DispErrMsg(LPCTSTR msg, LPCTSTR file)
 	else
 		tmp = msg;
 
+	if ( !m_LastErrorMsg.IsEmpty() ) {
+		tmp += _T("\n\n");
+		tmp += m_LastErrorMsg;
+		m_LastErrorMsg.Empty();
+	}
+
 	MessageBox(tmp);
 }
 LPCTSTR CSFtp::JointPath(LPCTSTR dir, LPCTSTR file, CString &path)
@@ -2636,113 +2663,24 @@ BEGIN_MESSAGE_MAP(CSFtp, CDialogExt)
 
 END_MESSAGE_MAP()
 
-#define	ITM_LEFT_HALF	0001
-#define	ITM_LEFT_RIGHT	0002
-#define	ITM_RIGHT_HALF	0004
-#define	ITM_RIGHT_RIGHT	0010
-#define	ITM_TOP_BTM		0020
-#define	ITM_BTM_BTM		0040
-
-static	int		ItemTabInit = FALSE;
-static	struct	_SftpDlgItem	{
-	UINT	id;
-	int		mode;
-	RECT	rect;
-} ItemTab[] = {
+static const INITDLGTAB ItemTab[] = {
 	{ IDC_LOCAL_UP,		0 },
-	{ IDC_LOCAL_CWD,	ITM_RIGHT_HALF },
-	{ IDC_LOCAL_LIST,	ITM_RIGHT_HALF | ITM_BTM_BTM },
+	{ IDC_LOCAL_CWD,	ITM_RIGHT_MID },
+	{ IDC_LOCAL_LIST,	ITM_RIGHT_MID | ITM_BTM_BTM },
 
-	{ IDC_REMOTE_UP,	ITM_LEFT_HALF | ITM_RIGHT_HALF },
-	{ IDC_REMOTE_CWD,	ITM_LEFT_HALF | ITM_RIGHT_RIGHT },
-	{ IDC_REMOTE_LIST,	ITM_LEFT_HALF | ITM_RIGHT_RIGHT | ITM_BTM_BTM },
+	{ IDC_REMOTE_UP,	ITM_LEFT_MID | ITM_RIGHT_MID },
+	{ IDC_REMOTE_CWD,	ITM_LEFT_MID | ITM_RIGHT_RIGHT },
+	{ IDC_REMOTE_LIST,	ITM_LEFT_MID | ITM_RIGHT_RIGHT | ITM_BTM_BTM },
 
 	{ IDC_STATUS1,		ITM_TOP_BTM | ITM_BTM_BTM },
-	{ IDC_STATUS2,		ITM_RIGHT_HALF | ITM_TOP_BTM | ITM_BTM_BTM }, 
-	{ IDC_PROGRESS1,	ITM_LEFT_HALF  | ITM_RIGHT_RIGHT | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ IDC_STATUS2,		ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM }, 
+	{ IDC_PROGRESS1,	ITM_LEFT_MID  | ITM_RIGHT_RIGHT | ITM_TOP_BTM | ITM_BTM_BTM },
 	{ IDC_STATUS3,		ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT | ITM_TOP_BTM | ITM_BTM_BTM },
 	{ IDC_STATUS4,		ITM_LEFT_RIGHT | ITM_RIGHT_RIGHT | ITM_TOP_BTM | ITM_BTM_BTM },
 
 	{ 0,	0 },
 };
 
-void CSFtp::InitItemOffset()
-{
-	int n;
-	int cx, mx, cy;
-	CRect rect;
-	WINDOWPLACEMENT place;
-	CWnd *pWnd;
-
-	if ( ItemTabInit )
-		return;
-	ItemTabInit = TRUE;
-
-	GetClientRect(rect);
-	cx = rect.Width();
-	mx = cx / 2;
-	cy = rect.Height();
-
-	for ( n = 0 ; ItemTab[n].id != 0 ; n++ ) {
-		if ( (pWnd = GetDlgItem(ItemTab[n].id)) == NULL )
-			continue;
-		pWnd->GetWindowPlacement(&place);
-		if ( ItemTab[n].mode & ITM_LEFT_HALF )
-			ItemTab[n].rect.left = place.rcNormalPosition.left - mx;
-		if ( ItemTab[n].mode & ITM_LEFT_RIGHT )
-			ItemTab[n].rect.left = cx - place.rcNormalPosition.left;
-		if ( ItemTab[n].mode & ITM_RIGHT_HALF )
-			ItemTab[n].rect.right = place.rcNormalPosition.right - mx;
-		if ( ItemTab[n].mode & ITM_RIGHT_RIGHT )
-			ItemTab[n].rect.right = cx - place.rcNormalPosition.right;
-
-		if ( ItemTab[n].mode & ITM_TOP_BTM )
-			ItemTab[n].rect.top = cy - place.rcNormalPosition.top;
-		else
-			ItemTab[n].rect.top = place.rcNormalPosition.top;
-
-		if ( ItemTab[n].mode & ITM_BTM_BTM )
-			ItemTab[n].rect.bottom = cy - place.rcNormalPosition.bottom;
-		else
-			ItemTab[n].rect.bottom = place.rcNormalPosition.bottom;
-	}
-}
-void CSFtp::SetItemOffset(int cx, int cy)
-{
-	int n;
-	int mx = cx / 2;
-	WINDOWPLACEMENT place;
-	CWnd *pWnd;
-
-	if ( !ItemTabInit )
-		return;
-
-	for ( n = 0 ; ItemTab[n].id != 0 ; n++ ) {
-		if ( (pWnd = GetDlgItem(ItemTab[n].id)) == NULL )
-			continue;
-		pWnd->GetWindowPlacement(&place);
-		if ( ItemTab[n].mode & ITM_LEFT_HALF )
-			place.rcNormalPosition.left = mx + ItemTab[n].rect.left;
-		if ( ItemTab[n].mode & ITM_LEFT_RIGHT )
-			place.rcNormalPosition.left = cx - ItemTab[n].rect.left;
-		if ( ItemTab[n].mode & ITM_RIGHT_HALF )
-			place.rcNormalPosition.right = mx + ItemTab[n].rect.right;
-		if ( ItemTab[n].mode & ITM_RIGHT_RIGHT )
-			place.rcNormalPosition.right = cx - ItemTab[n].rect.right;
-
-		if ( ItemTab[n].mode & ITM_TOP_BTM )
-			place.rcNormalPosition.top = cy - ItemTab[n].rect.top;
-		else
-			place.rcNormalPosition.top = ItemTab[n].rect.top + m_ToolBarOfs;
-
-		if ( ItemTab[n].mode & ITM_BTM_BTM )
-			place.rcNormalPosition.bottom = cy - ItemTab[n].rect.bottom;
-		else
-			place.rcNormalPosition.bottom = ItemTab[n].rect.bottom + m_ToolBarOfs;
-
-		pWnd->SetWindowPlacement(&place);
-	}
-}
 void CSFtp::SaveListColumn(LPCTSTR lpszSection, CListCtrl *pList)
 {
 	int n = 0;
@@ -2876,6 +2814,8 @@ void CSFtp::PostNcDestroy()
 
 BOOL CSFtp::OnInitDialog() 
 {
+	CDialogExt::OnInitDialog();
+
 	int n;
 	CRect rect;
 	CBitmap BitMap;
@@ -2888,8 +2828,6 @@ BOOL CSFtp::OnInitDialog()
 		{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,   60, _T("uid"),		0, 0 },
 		{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,   60, _T("gid"),		0, 0 },
 	};
-
-	CDialogExt::OnInitDialog();
 
 	if ( !m_wndToolBar.CToolBar::CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT, WS_CHILD | WS_VISIBLE | CBRS_TOP | CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC) ||
 		!((CRLoginApp *)::AfxGetApp())->LoadResToolBar(MAKEINTRESOURCE(IDR_SFTPTOOL), m_wndToolBar) )
@@ -2974,7 +2912,7 @@ BOOL CSFtp::OnInitDialog()
 	RemoteSetCwd(work, FALSE);
 	SendWaitQue();
 
-	InitItemOffset();
+	InitItemOffset(ItemTab);
 
 #ifdef	USE_OLE
 	m_DropTarget.Register(this);
@@ -3149,7 +3087,7 @@ void CSFtp::OnColumnclickRemoteList(NMHDR* pNMHDR, LRESULT* pResult)
 void CSFtp::OnSize(UINT nType, int cx, int cy) 
 {
 	if ( nType != SIZE_MINIMIZED )
-		SetItemOffset(cx, cy);
+		SetItemOffset(ItemTab, cx, cy, m_ToolBarOfs);
 	CDialogExt::OnSize(nType, cx, cy);
 	Invalidate(TRUE);
 }

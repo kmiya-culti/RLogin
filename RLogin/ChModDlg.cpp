@@ -35,7 +35,7 @@ END_MESSAGE_MAP()
 BOOL CChModDlg::OnInitDialog() 
 {
 	CDialogExt::OnInitDialog();
-	
+
 	int n, b = 0400;
 
 	for ( n = 0 ; n < 9 ; n++, b >>= 1 )

@@ -77,14 +77,14 @@ END_MESSAGE_MAP()
 
 BOOL CIso646Dlg::OnInitDialog()
 {
+	CDialogExt::OnInitDialog();
+
 	int n, i;
 	CString str;
 	CComboBox *pCombo;
 	LOGFONT logfont;
 	CRect rect;
 	DWORD code;
-
-	CDialogExt::OnInitDialog();
 
 	if ( m_FontSetName.IsEmpty() )
 		m_FontSetName = _T("US");

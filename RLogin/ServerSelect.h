@@ -64,13 +64,12 @@ public:
 
 // クラスファンクション
 public:
+	void SetItemOffset(int cx, int cy);
 	void TreeExpandUpdate(HTREEITEM hTree, BOOL bExpand);
 	void InitExpand(HTREEITEM hTree, UINT nCode);
 	void InitTree(CStringIndex *pIndex, HTREEITEM hOwner, CStringIndex *pActive);
 	void InitList(CStringIndex *pIndex, BOOL bFolder);
 	void InitEntry(int nUpdate);
-	void InitItemOffset();
-	void SetItemOffset(int cx, int cy);
 	void UpdateDefaultEntry(int num);
 	BOOL GetTrackerRect(CRect &rect, CRect &move);
 	void InvertTracker(CRect &rect);
