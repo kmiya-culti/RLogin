@@ -212,6 +212,9 @@ BOOL CIdkeySelDLg::OnInitDialog()
 
 	m_KeyGenProg.EnableWindow(FALSE);
 
+	SubclassComboBox(IDC_IDKEY_TYPE);
+	SubclassComboBox(IDC_IDKEY_BITS);
+
 	return TRUE;
 }
 void CIdkeySelDLg::OnOK() 

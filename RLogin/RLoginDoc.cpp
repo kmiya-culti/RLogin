@@ -181,7 +181,10 @@ BOOL CRLoginDoc::OnNewDocument()
 		BOOL UsePass = m_TextRam.IsOptEnable(TO_RLUSEPASS);
 		BOOL ProxyPass = m_TextRam.IsOptEnable(TO_PROXPASS);
 
-		LoadDefOption(m_TextRam, m_KeyTab, m_KeyMac, m_ParamTab);
+		InitOptFixCheck(m_ServerEntry.m_Uid);
+
+		if ( !SetOptFixEntry(m_ServerEntry.m_OptFixEntry) )
+			LoadDefOption(m_TextRam, m_KeyTab, m_KeyMac, m_ParamTab);
 
 		m_ParamTab.m_ExtEnvStr = ExtEnvStr;
 		m_TextRam.SetOption(TO_RLUSEPASS, UsePass);
@@ -1119,6 +1122,46 @@ int CRLoginDoc::DelaySend()
 		m_bDelayPast = FALSE;
 	}
 
+	return FALSE;
+}
+
+void CRLoginDoc::InitOptFixCheck(int Uid)
+{
+	int n;
+	CServerEntryTab *pTab = &(((CMainFrame *)AfxGetMainWnd())->m_ServerEntryTab);
+
+	m_OptFixCheck.RemoveAll();
+	m_OptFixCheck.SetSize(pTab->m_Data.GetSize());
+
+	for ( n = 0 ; n < m_OptFixCheck.GetSize() ; n++ )
+		m_OptFixCheck[n] = (Uid == pTab->m_Data[n].m_Uid ? TRUE : FALSE);
+}
+BOOL CRLoginDoc::SetOptFixEntry(LPCTSTR entryName)
+{
+	int n;
+	CServerEntryTab *pTab = &(((CMainFrame *)AfxGetMainWnd())->m_ServerEntryTab);
+
+	if ( entryName == NULL || entryName[0] == _T('\0') )
+		return FALSE;
+
+	for ( n = 0 ; n < pTab->m_Data.GetSize() ; n++ ) {
+		if ( pTab->m_Data[n].m_EntryName.Compare(entryName) == 0 ) {
+			if ( m_OptFixCheck[n] != FALSE ) {
+				AfxMessageBox(IDE_OPTFIXDEEPENTRY);
+				return FALSE;
+			}
+
+			m_OptFixCheck[n] = TRUE;
+
+			if ( pTab->m_Data[n].m_bOptFixed )
+				return SetOptFixEntry(pTab->m_Data[n].m_OptFixEntry);
+
+			LoadOption(pTab->m_Data[n], m_TextRam, m_KeyTab, m_KeyMac, m_ParamTab);
+			return TRUE;
+		}
+	}
+
+	AfxMessageBox(IDE_OPTFIXNOTFOUND);
 	return FALSE;
 }
 

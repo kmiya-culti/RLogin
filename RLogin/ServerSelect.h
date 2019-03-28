@@ -71,6 +71,8 @@ public:
 	void InitList(CStringIndex *pIndex, BOOL bFolder);
 	void InitEntry(int nUpdate);
 	void UpdateDefaultEntry(int num);
+	void UpdateListIndex();
+
 	BOOL GetTrackerRect(CRect &rect, CRect &move);
 	void InvertTracker(CRect &rect);
 	void OffsetTracker(CPoint point);

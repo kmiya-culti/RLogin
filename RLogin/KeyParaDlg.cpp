@@ -85,6 +85,9 @@ BOOL CKeyParaDlg::OnInitDialog()
 	if ( (pWnd = GetDlgItem(IDC_KEYMAPS)) != NULL && (pWnd = pWnd->GetWindow(GW_CHILD)) != NULL )
 		m_hMapsEdit = pWnd->GetSafeHwnd();
 
+	SubclassComboBox(IDC_KEYCODE);
+	SubclassComboBox(IDC_KEYMAPS);
+
 	return TRUE;
 }
 

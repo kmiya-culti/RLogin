@@ -79,6 +79,8 @@ BOOL CPrnTextDlg::OnInitDialog()
 
 	UpdateData(FALSE);
 
+	SubclassComboBox(IDC_COMBO1);
+
 	return TRUE;
 }
 

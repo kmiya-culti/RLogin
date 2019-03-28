@@ -117,6 +117,9 @@ public:
 #define	CLIPOPENTHREADMAX	3		// クリップボードアクセススレッド多重起動数
 #define	CLIPOPENLASTMSEC	500		// 指定msec以内のクリップボードアップデートを無視する
 
+#define	SOCKPARAHASH		4
+#define	SOCKPARAMASK(fd)	(int)(((INT_PTR)fd / sizeof(INT_PTR)) & (SOCKPARAHASH - 1))
+
 class CMainFrame : public CMDIFrameWnd
 {
 	DECLARE_DYNAMIC(CMainFrame)
@@ -136,7 +139,7 @@ public:
 	HICON m_hIconActive;
 	NOTIFYICONDATA m_IconData;
 	CImageList m_ImageGozi;
-	CPtrArray m_SocketParam;
+	CPtrArray m_SocketParam[SOCKPARAHASH];
 	CPtrArray m_HostAddrParam;
 	CPtrArray m_AfterIdParam;
 	CServerEntryTab m_ServerEntryTab;

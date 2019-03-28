@@ -352,6 +352,9 @@ BOOL CResTransDlg::OnInitDialog()
 	m_ProcStat = TRANSPROC_ENDOF;
 	m_bProcAbort = FALSE;
 
+	SubclassComboBox(IDC_TRANSFROM);
+	SubclassComboBox(IDC_TRANSTO);
+
 	return TRUE;
 }
 void CResTransDlg::OnOK()

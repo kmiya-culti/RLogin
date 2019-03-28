@@ -40,6 +40,7 @@ public:
 	BOOL m_UseProxyDlg;
 	CString m_IconName;
 	BOOL m_bOptFixed;
+	CString m_OptFixEntry;
 
 public:
 	void DoInit();

@@ -74,6 +74,11 @@ BOOL CPfdParaDlg::OnInitDialog()
 	DisableWnd();
 	UpdateData(FALSE);
 
+	SubclassComboBox(IDC_LISTENHOST);
+	SubclassComboBox(IDC_LISTENPORT);
+	SubclassComboBox(IDC_CONNECTHOST);
+	SubclassComboBox(IDC_CONNECTPORT);
+
 	return TRUE;
 }
 

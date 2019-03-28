@@ -95,6 +95,8 @@ BOOL CHisPage::OnInitDialog()
 
 	DoInit();
 
+	SubclassComboBox(IDC_COMBO3);
+
 	return TRUE;
 }
 BOOL CHisPage::OnApply() 

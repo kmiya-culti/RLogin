@@ -56,6 +56,7 @@ public:
 	CSize m_InitDpi, m_NowDpi;
 	CSize m_ZoomMul, m_ZoomDiv;
 	CFont m_DpiFont;
+	CPtrArray m_ComboBoxPtr;
 
 // クラスファンクション
 public:
@@ -66,6 +67,9 @@ public:
 	inline BOOL IsDefineFont() { return (m_FontName.IsEmpty() ? FALSE : TRUE); }
 	BOOL GetSizeAndText(SIZE *pSize, CString &title, CWnd *pParent);
 	void AddShortCutKey(UINT MsgID, UINT KeyCode, UINT KeyWith, UINT CtrlID, WPARAM wParam);
+	void SubclassComboBox(int nID);
+
+	static BOOL IsDialogExt(CWnd *pWnd);
 
 // オーバーライド
 public:

@@ -586,8 +586,8 @@ BEGIN
                     "SysLink",WS_TABSTOP,44,178,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,193,60,14,WS_GROUP
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.24.1 (2019/02/27)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
-    LTEXT           "Copyright (C) 1998-2018 Culti",IDC_STATIC,44,16,189,8
+    LTEXT           "RLogin Version 2.24.2 (2019/03/29)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    LTEXT           "Copyright (C) 1998-2019 Culti",IDC_STATIC,44,16,189,8
     LTEXT           "OpenSSL 1.1.1b 26 Feb 2019",IDC_STATIC,44,52,189,8
     LTEXT           "Copyright (c) 1998-2018 The OpenSSL Project",IDC_STATIC,44,61,189,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,70,189,8
@@ -1171,7 +1171,7 @@ BEGIN
     COMBOBOX        IDC_TERMNAME,185,155,70,59,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
     CONTROL         "ホスト・ユーザー・パスワード/フレーズを接続時に入力",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,181,160,10
     PUSHBUTTON      "環境変数(&T)",IDC_TERMCAP,185,179,70,14
-    CONTROL         "このページ以外のオプションは標準の設定を使用",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,200,160,10
+    CONTROL         "その他オプションを継承",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,200,80,10
     PUSHBUTTON      "アイコン(&I)",IDC_ICONFILE,185,198,70,14
     PUSHBUTTON      "チャットスクリプト(&C)",IDC_CHATEDIT,15,218,70,14
     PUSHBUTTON      "プロキシ設定(&P)",IDC_PROXYSET,100,218,70,14
@@ -1191,6 +1191,7 @@ BEGIN
     GROUPBOX        "タブ(上)/前接続先(下)",IDC_STATIC,178,7,85,51
     CTEXT           "TERM環境変数",IDC_STATIC,185,143,70,8
     CTEXT           "シリアル",IDC_STATIC,173,102,30,8
+    COMBOBOX        IDC_OPTFIXENTRY,100,198,70,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
 END
 
 IDD_CHATDLG DIALOGEX 0, 0, 299, 247
@@ -1621,9 +1622,9 @@ BEGIN
     CONTROL         "編集後クリップボードに送る",IDC_CHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,163,24,100,10
     CONTROL         "次回から確認しない",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,163,39,100,10
     ICON            "",IDC_ICONBOX,7,7,20,20
-    LTEXT           "タブコード",IDC_STATIC,34,9,40,8
-    LTEXT           "改行コード",IDC_STATIC,34,24,40,8
-    LTEXT           "その他コード",IDC_STATIC,34,39,40,8
+    LTEXT           "タブコード",IDC_STATIC,34,9,40,10
+    LTEXT           "改行コード",IDC_STATIC,34,24,40,10
+    LTEXT           "その他コード",IDC_STATIC,34,39,40,10
     RTEXT           "",IDC_CTRLCODE3,80,37,24,14,SS_CENTERIMAGE,WS_EX_CLIENTEDGE
     RTEXT           "",IDC_CTRLCODE2,80,22,24,14,SS_CENTERIMAGE,WS_EX_CLIENTEDGE
     RTEXT           "",IDC_CTRLCODE1,80,7,24,14,SS_CENTERIMAGE,WS_EX_CLIENTEDGE
@@ -1983,8 +1984,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,24,1,0
- PRODUCTVERSION 2,24,1,0
+ FILEVERSION 2,24,2,0
+ PRODUCTVERSION 2,24,2,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2001,12 +2002,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.24.1.0"
+            VALUE "FileVersion", "2.24.2.0"
             VALUE "InternalName", "RLogin.exe"
-            VALUE "LegalCopyright", "Copyright (C) 2017 Culti  All rights reserved."
+            VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.24.1.0"
+            VALUE "ProductVersion", "2.24.2.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -4142,8 +4143,8 @@ BEGIN
     IDS_TRANSLATEABORT      "翻訳プロセスを実行中です。中断しますか？"
     IDS_SEPARATESTRING      "区切り記号"
     IDS_REOPENSOCK          "サーバーに再接続(&A)"
-    IDS_OPTFIXEDMSG         "変更できません。\n標準の設定を使用します\nサーバーのオプションを確認してください"
-    IDS_OPTFIXEDSAVEMSG     "標準の設定を使用しているエントリーです。\n前設定を上書きして使用を解除しますか？"
+    IDS_OPTFIXEDMSG         "変更できません。\n標準／別エントリーの設定を使用します\nサーバーのオプションを確認してください"
+    IDS_OPTFIXEDSAVEMSG     "標準／他エントリーのオプション設定を\n使用しているエントリーです。\n前設定を上書きして使用を解除しますか？"
     IDS_TTYMODE_LIST56      "端末でUTF-8エンコードを使用する"
     IDS_DEFENTRYEDITMSG     "標準の設定のエントリーが編集されました\n標準の設定を更新しますか？"
     IDS_ADDPAGEANTENTRY     "このエントリーで最初のPageantの起動を確認しました\n使用する認証鍵の優先順位を設定してください\n以降、鍵の追加などした場合に設定が必要になります"
@@ -4181,6 +4182,8 @@ BEGIN
     IDE_XMSSBITSIZECHECK    "XMSSで20以上の作成は非常に長い時間が必要です。\nまた途中で中断出来ません。\n本当に作成しますか？"
     IDE_REGISTRYDELETEERROR "管理者として実行しないと消せないレジストリが残っている可能性があります"
     IDE_ENTRYUPDATEEERROR   "別のRLoginでサーバーエントリー情報が更新されました。\n整合性を失う可能性がある為すべての編集を中止します。"
+    IDE_OPTFIXDEEPENTRY     "再帰的なエントリーオプションの継承をしようとしています。\n標準の設定を使用して接続します"
+    IDE_OPTFIXNOTFOUND      "継承先のエントリーが見当たりませんませんでした。\n標準の設定を使用して接続します"
 END
 
 STRINGTABLE

@@ -24,6 +24,8 @@ CListCtrlExt::CListCtrlExt()
 	m_EditSubItem = 0;
 	m_bSort = TRUE;
 	m_bMove = FALSE;
+	m_Dpi.cx = 96;
+	m_Dpi.cy = 96;
 }
 CListCtrlExt::~CListCtrlExt()
 {
@@ -37,6 +39,7 @@ BEGIN_MESSAGE_MAP(CListCtrlExt, CListCtrl)
 	ON_NOTIFY_REFLECT_EX(LVN_BEGINDRAG, OnLvnBegindrag)
 	ON_NOTIFY_REFLECT_EX(NM_RCLICK, OnRclick)
 	ON_NOTIFY_REFLECT_EX(NM_DBLCLK, OnDblclk)
+	ON_MESSAGE(WM_DPICHANGED, OnDpiChanged)
 END_MESSAGE_MAP()
 
 static int CALLBACK CompareFunc(LPARAM lParam1, LPARAM lParam2, LPARAM lParamSort)
@@ -108,11 +111,20 @@ void CListCtrlExt::InitColumn(LPCTSTR lpszSection, const LV_COLUMN *lpColumn, in
 	int n, i;
 	LV_COLUMN tmp;
 	CBuffer buf;
+	CDialogExt *pParent = (CDialogExt *)GetParent();
+
+	if ( CDialogExt::IsDialogExt(pParent) ) {
+		m_Dpi.cx = pParent->m_NowDpi.cx;
+		m_Dpi.cy = pParent->m_NowDpi.cy;
+	} else {
+		m_Dpi.cx = ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiX;
+		m_Dpi.cy = ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY;
+	}
 
 	for ( n = 0 ; n < nMax ; n++ ) {
 		tmp = lpColumn[n];
 		tmp.cx = AfxGetApp()->GetProfileInt(lpszSection, tmp.pszText, tmp.cx);
-		tmp.cx = MulDiv(tmp.cx, ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY, 96);
+		tmp.cx = MulDiv(tmp.cx, m_Dpi.cy, 96);
 		InsertColumn(n, &tmp);
 	}
 
@@ -155,7 +167,7 @@ void CListCtrlExt::InitColumn(LPCTSTR lpszSection, const LV_COLUMN *lpColumn, in
 }
 void CListCtrlExt::SaveColumn(LPCTSTR lpszSection)
 {
-	int n = 0;
+	int n;
 	LV_COLUMN tmp;
 	TCHAR name[256];
 	CBuffer buf;
@@ -165,8 +177,8 @@ void CListCtrlExt::SaveColumn(LPCTSTR lpszSection)
 	tmp.cchTextMax = 256;
 	tmp.mask = LVCF_WIDTH | LVCF_TEXT;
 
-	while ( GetColumn(n++, &tmp) ) {
-		tmp.cx = MulDiv(tmp.cx, 96, ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY);
+	for ( n = 0 ; GetColumn(n, &tmp) ; n++ ) {
+		tmp.cx = MulDiv(tmp.cx, 96, m_Dpi.cy);
 		AfxGetApp()->WriteProfileInt(lpszSection, tmp.pszText, tmp.cx);
 	}
 
@@ -192,15 +204,31 @@ void CListCtrlExt::SetPopUpMenu(UINT nIDResource, int Pos)
 /////////////////////////////////////////////////////////////////////////////
 // CListCtrlExt メッセージ ハンドラ
 
+void CListCtrlExt::SetSortCols(int subitem)
+{
+	int n;
+
+	for ( n = (int)m_SortItem.GetSize() ; n <= subitem ; n++ )
+		m_SortItem.InsertAt(0, n);
+
+	for ( n = 0 ; n < m_SortItem.GetSize() ; n++ ) {
+		if ( (m_SortItem[n] & SORTMASK_ITEM) == subitem ) {
+			m_SortItem.RemoveAt(n);
+			m_SortItem.InsertAt(0, subitem);
+			break;
+		}
+	}
+}
+
 void CListCtrlExt::OnColumnclick(NMHDR* pNMHDR, LRESULT* pResult) 
 {
 	int n;
 	NM_LISTVIEW* pNMListView = (NM_LISTVIEW*)pNMHDR;
 
-	*pResult = 0;
-
 	if ( !m_bSort )
 		return;
+
+	*pResult = 0;
 
 	for ( n = (int)m_SortItem.GetSize() ; n <= pNMListView->iSubItem ; n++ )
 		m_SortItem.InsertAt(0, n);
@@ -489,6 +517,40 @@ void CListCtrlExt::MoveItemText(int src, int dis)
 
 	SetLVCheck(dis, bchk);
 }
+int CListCtrlExt::ItemHitTest(CPoint point)
+{
+	int item, ofs = 4;
+	CRect frame, rect;
+
+	ScreenToClient(&point);
+	GetClientRect(frame);
+
+	if ( point.x >= frame.left && point.x <= frame.right ) {
+		if ( point.y >= frame.top && point.y <= frame.bottom ) {
+			for ( item = GetTopIndex() ; item < GetItemCount() ; item++ ) {
+				if ( !GetItemRect(item, rect, LVIR_LABEL) )
+					break;
+				if ( point.y >= rect.top && point.y <= rect.bottom )
+					return item;
+				else if ( rect.top >= frame.bottom )
+					break;
+			}
+		}
+
+		//if ( GetItemRect(GetTopIndex(), rect, LVIR_LABEL) ) {
+		//	frame.top = rect.top;
+		//	ofs = rect.Height() / 2;
+		//}
+
+		//if ( point.y < frame.top && point.y > (frame.top - ofs) ) {
+		//	Scroll(CSize(0, 0 - ofs * 2));
+		//} else if ( point.y > frame.bottom && point.y < (frame.bottom + ofs) ) {
+		//	Scroll(CSize(0, ofs * 2));
+		//}
+	}
+
+	return (-1);
+}
 
 void CListCtrlExt::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags) 
 {
@@ -616,4 +678,37 @@ BOOL CListCtrlExt::OnLvnBegindrag(NMHDR *pNMHDR, LRESULT *pResult)
 
 	*pResult = 0;
 	return TRUE;
+}
+
+LRESULT CListCtrlExt::OnDpiChanged(WPARAM wParam, LPARAM lParam)
+{
+	int n;
+	LV_COLUMN tmp;
+	CSize dpi;
+
+	dpi.cx = LOWORD(wParam);
+	dpi.cy = HIWORD(wParam);
+
+	memset(&tmp, 0, sizeof(tmp));
+	tmp.mask = LVCF_WIDTH;
+
+	for ( n = 0 ; GetColumn(n, &tmp) ; n++ ) {
+		tmp.cx = MulDiv(tmp.cx, dpi.cy, m_Dpi.cy);
+		SetColumn(n, &tmp);
+	}
+
+	m_Dpi = dpi;
+
+	// Font/Sizeは変更しないのでFALSE
+	return FALSE;
+}
+
+BOOL CListCtrlExt::OnChildNotify(UINT message, WPARAM wParam, LPARAM lParam, LRESULT* pLResult)
+{
+	NMHDR *pHdr = (NMHDR *)lParam;
+
+	if ( message == WM_NOTIFY && !m_bSort && pHdr->code == LVN_COLUMNCLICK )
+		return FALSE;
+
+	return CListCtrl::OnChildNotify(message, wParam, lParam, pLResult);
 }

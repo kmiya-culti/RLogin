@@ -114,6 +114,7 @@ public:
 	time_t m_CloseTime;
 	class CStatusDlg *m_pStatusWnd;
 	class CStatusDlg *m_pMediaCopyWnd;
+	CWordArray m_OptFixCheck;
 
 	static void LoadOption(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab);
 	static void SaveOption(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab);
@@ -139,6 +140,9 @@ public:
 
 	int DelaySend();
 	void OnDelayReceive(int ch);
+
+	void InitOptFixCheck(int Uid);
+	BOOL SetOptFixEntry(LPCTSTR entryName);
 
 	int SocketOpen();
 	void SocketClose();

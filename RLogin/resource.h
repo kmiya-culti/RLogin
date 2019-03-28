@@ -281,6 +281,8 @@
 #define IDE_XMSSBITSIZECHECK            738
 #define IDE_REGISTRYDELETEERROR         739
 #define IDE_ENTRYUPDATEEERROR           740
+#define	IDE_OPTFIXDEEPENTRY             741
+#define	IDE_OPTFIXNOTFOUND              742
 #define IDT_EXTOPT_LIST01               800
 #define IDT_EXTOPT_LIST02               801
 #define IDT_EXTOPT_LIST03               802
@@ -456,6 +458,8 @@
 #define IDC_BANKGR4                     2035
 #define IDC_BEFORE                      2036
 #define IDC_BOX0                        2037
+#define IDC_FIXOPTENTRY                 2037
+#define IDC_OPTFIXENTRY                 2037
 #define IDC_BOX1                        2038
 #define IDC_BOX2                        2039
 #define IDC_BOX3                        2040

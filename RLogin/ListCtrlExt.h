@@ -27,6 +27,7 @@ public:
 	CString m_EditOld;
 	BOOL m_bSort;
 	BOOL m_bMove;
+	CSize m_Dpi;
 
 	int GetParamItem(int para);
 	int GetSelectMarkData();
@@ -42,10 +43,13 @@ public:
 
 	void SwapItemText(int src, int dis);
 	void MoveItemText(int src, int dis);
+	int ItemHitTest(CPoint point);
+	void SetSortCols(int subitem);
 
 // オーバーライド
 protected:
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
+	virtual BOOL OnChildNotify(UINT message, WPARAM wParam, LPARAM lParam, LRESULT* pLResult);
 
 // インプリメンテーション
 protected:
@@ -57,4 +61,5 @@ protected:
 	afx_msg void OnKillfocusEditBox();
 	afx_msg void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags);
 	afx_msg BOOL OnLvnBegindrag(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg LRESULT OnDpiChanged(WPARAM wParam, LPARAM lParam);
 };

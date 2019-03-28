@@ -114,6 +114,7 @@
 #define	SECURITY_WIN32
 #include <Security.h>
 #include <wincrypt.h>
+#include <bcrypt.h>
 
 #pragma comment(lib,"winmm.lib")
 #pragma comment(lib, "ws2_32.lib")

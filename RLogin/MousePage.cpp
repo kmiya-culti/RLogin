@@ -126,6 +126,8 @@ BOOL CMousePage::OnInitDialog()
 
 	DoInit();
 
+	SubclassComboBox(IDC_WHEELSIZE);
+
 	return TRUE;
 }
 

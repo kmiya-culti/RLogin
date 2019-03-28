@@ -1,9 +1,25 @@
 #pragma once
 
+// CComboBoxExt
+
+class CComboBoxExt : public CComboBox
+{
+	DECLARE_DYNAMIC(CComboBoxExt)
+
+public:
+	CComboBoxExt();
+	virtual ~CComboBoxExt();
+
+protected:
+	DECLARE_MESSAGE_MAP()
+	afx_msg void OnWindowPosChanged(WINDOWPOS* lpwndpos);
+	afx_msg LRESULT OnSetFont(WPARAM wParam, LPARAM lParam);
+};
+
 
 // CComboBoxHis
 
-class CComboBoxHis : public CComboBox
+class CComboBoxHis : public CComboBoxExt
 {
 	DECLARE_DYNAMIC(CComboBoxHis)
 

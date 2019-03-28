@@ -128,6 +128,8 @@ BOOL CIso646Dlg::OnInitDialog()
 				pCombo->AddString(_T("U+223C"));	// TILDE OPERATOR
 		}
 		m_CharCode[n].Format(_T("U+%04X"), m_Iso646Tab[n]);
+
+		SubclassComboBox(IDC_CODESET1 + n);
 	}
 
 	UpdateData(FALSE);

@@ -633,12 +633,16 @@ public:
 	CString m_ProxyUserProvs;
 	CString m_ProxyPassProvs;
 	CString m_BeforeEntry;
+	CString m_OptFixEntry;
 	BOOL m_ReEntryFlag;
 	int m_DocType;
 	CString m_IconName;
 	BOOL m_bPassOk;
 	BOOL m_bSelFlag;
 	BOOL m_bOptFixed;
+	CString m_ListIndex;
+	CTime m_LastAccess;
+	CServerEntry *m_pList;
 
 	void Init();
 	void SetArray(CStringArrayExt &stra);
@@ -663,10 +667,13 @@ public:
 	CServerEntry();
 };
 
+#define	ENTHASHMAX	8
+
 class CServerEntryTab : public COptObject
 {
 public:
 	CArray<CServerEntry, CServerEntry &> m_Data;
+	CServerEntry *m_pListTab[ENTHASHMAX];
 
 	void Init();
 	void SetArray(CStringArrayExt &stra);
@@ -677,6 +684,9 @@ public:
 	void UpdateAt(int nIndex);
 	void RemoveAt(int nIndex);
 	void ReloadAt(int nIndex);
+
+	void InitGetUid();
+	CServerEntry *GetUid(int uid);
 
 	inline CServerEntry &GetAt(int nIndex) { return m_Data[nIndex]; }
 	inline INT_PTR GetSize() { return m_Data.GetSize(); }

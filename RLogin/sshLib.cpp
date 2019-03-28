@@ -1943,6 +1943,10 @@ void rand_buf(void *buf, int len)
     static HMODULE hAdvApi = NULL;
 	static BOOLEAN (__stdcall *RtlGenRandom)(PVOID RandomBuffer, ULONG RandomBufferLength) = NULL;
 
+	static BOOL BCryptInit = FALSE;
+    static HMODULE hBCrypt = NULL;
+	static NTSTATUS (WINAPI *pBCryptGenRandom)(BCRYPT_ALG_HANDLE hAlgorithm, PUCHAR pbBuffer, ULONG cbBuffer, ULONG dwFlags) = NULL;
+
 	// Free Handle & Library
 	if ( buf == NULL && len <= 0 ) {
 #ifdef	CryptAcquireContext
@@ -1960,11 +1964,28 @@ void rand_buf(void *buf, int len)
 			Rtlinit = FALSE;
 		}
 
+		if ( BCryptInit && hBCrypt != NULL ) {
+			FreeLibrary(hBCrypt);
+			hBCrypt = NULL;
+			pBCryptGenRandom = NULL;
+			hBCrypt = FALSE;
+		}
+
 		return;
 	}
 
+	// BCryptGenRandom(NIST SP800-90 standard) Windows Vista SP1 later
+	if ( !BCryptInit ) {
+		if ( (hBCrypt = LoadLibrary(_T("Bcrypt.dll"))) != NULL )
+			pBCryptGenRandom = (NTSTATUS (WINAPI *)(BCRYPT_ALG_HANDLE hAlgorithm, PUCHAR pbBuffer, ULONG cbBuffer, ULONG dwFlags))GetProcAddress(hBCrypt, "BCryptGenRandom");
+		BCryptInit = TRUE;
+	}
+
+	if ( pBCryptGenRandom != NULL && pBCryptGenRandom(NULL, (PUCHAR)buf, len, BCRYPT_USE_SYSTEM_PREFERRED_RNG) == ((NTSTATUS)0x00000000L) ) // STATUS_SUCCESS
+		return;
+
 #ifdef	CryptAcquireContext
-	// cryptographically random
+	// cryptographically random (This API is deprecated)
 	if ( !ProvInit ) {
 		if ( !CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_FULL, 0) )
 			hProv = NULL;

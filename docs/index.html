@@ -28,8 +28,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.24.1)</TD>
-            <TD width="20%" align="right">2019/02/27</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.24.2)</TD>
+            <TD width="20%" align="right">2019/03/29</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -408,7 +408,7 @@ TD {
                 <TR>
                   <TD>実行プログラム(64bit)</TD>
                   <TD width="320"><A href="http://nanno.dip.jp/softlib/program/rlogin_x64.zip">http://nanno.dip.jp/softlib/program/rlogin_x64.zip</A></TD>
-                  <TD width="200">Windows XP以降(64bit)</TD>
+                  <TD width="200">Windows 7以降(64bit)</TD>
                   <TD><IMG src="http://nanno.dip.jp/softlib/accessbar.php?a=x64&c=3"></TD>
                 </TR>
                 <TR>
@@ -438,6 +438,17 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2019/03/29</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.24.2/">2.24.2</A></TD>
+            <TD>2.24.1で一部ダイアログの初期フォーカスが変更される問題を修正<BR>
+            2.24.1で一部ダイアログのHiDPI時にサイズが変更される問題を修正<BR>
+            サーバーオプションの標準の設定を使用をその他オプションの継承に変更<BR>
+            ComboBoxのリサイズ時に全選択表示される問題を試験的に対処<BR>
+            32bit版のopensslのみbcryptを使用しないように修正<BR>
+            Server Selectのエントリーに任意順位及びラストアクセスを追加<BR>
+            ListCtrlのコラムサイズをHiDPIの変更に追従するように変更</TD>
+          </TR>
+          <TR>
             <TD align="center">2019/02/27</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.24.1/">2.24.1</A></TD>
             <TD>SFtpのエラーダイアログにローカルエラー時の詳細を追加<BR>
@@ -463,21 +474,6 @@ TD {
             <TD>HiDPIの変更でツールバーのサイズを追従するように変更<BR>
             openssh形式のプライベート鍵ファイルの行末コードをLFのみに変更<BR>
             openssl-1.1.1に更新</TD>
-          </TR>
-          <TR>
-            <TD align="center">2018/08/15</TD>
-            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.23.7/">2.23.7</A></TD>
-            <TD>Sixelの色情報DECGCIの解像度と透明度を拡張<BR>
-            Sixel画像のポップアップメニューにヒストグラムを表示を追加<BR>
-            openssl-1.1.0iに更新</TD>
-          </TR>
-          <TR>
-            <TD align="center">2018/06/29</TD>
-            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.23.6/">2.23.6</A></TD>
-            <TD>ProxyのSSL/TLSでWinodwsのROOT証明書を使用するように変更<BR>
-            Sixelの表示で背景色を変更しても透過するように変更<BR>
-            拡張機能にカラーで絵文字を表示を追加<BR>
-            UTF-8の文字幅などをUnicode-11.0.0のデータに更新</TD>
           </TR>
           <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
@@ -1719,7 +1715,13 @@ TD {
             <IMG src="image057.jpg" width="524" height="208" border="0"><BR>
             選択中のタブやツリーをクリックするとグループ名の編集ができます<BR>
             また、リストのエントリーをドラッグしてタブやツリーにドロップすると<BR>
-            グループを変更することができます</TD>
+            グループを変更することができます<BR>
+            <BR>
+            <IMG src="image058.jpg" width="524" height="208" border="0"><BR>
+            Last(最終アクセス日時)/Index(任意順位、Ctrl+UP/DOWNでエントリー移動)は、<BR>
+            リストのヘッダーでデフォルトサイズ０で隠しています。<BR>
+            必要に応じてサイズ変更してください。<BR>
+            </TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -1899,12 +1901,12 @@ TD {
                   <TD>接続時にホスト、ユーザー、パスワードの入力を要求します</TD>
                 </TR>
                 <TR>
-                  <TD align="center">標準の設定を…</TD>
-                  <TD>サーバーのオプション設定以外のすべてのオプションを接続時の標準の設定を使用するようにします。これを有効にするとその他のオプション設定は、変更できなくなり接続には使用されません<BR>
+                  <TD align="center">その他オプションを…</TD>
+                  <TD>サーバーのオプション設定以外のすべてのオプションを接続時に標準の設定（右のボックスを空白）もしくは、別エントリー（右のボックスで指定）の物を使用するようにします。これを有効にするとその他のオプション設定は、変更できなくなり接続には使用されません<BR>
                   <BR>
                   標準の設定は、<A href="#SERVERSEL">サーバーの選択・設定</A>の右クリックによるポップアップメニューで任意のエントリー設定を標準にすることができます。ただしこのオプションを有効にしたエントリーは標準に設定できません<BR>
                   <BR>
-                  接続中のオプション設定では、このオプションを変更することができません。サーバーの選択ダイアログのエントリー編集時のみ変更できます。また接続中のオプション変更は、終了時に保存確認の後、さらに上書きするか確認します。これは、元のエントリー設定が標準の設定にすべて置き換わるリスクを確認する為です</TD>
+                  接続中のオプション設定では、このオプションを変更することができません。サーバーの選択ダイアログのエントリー編集時のみ変更できます。また接続中のオプション変更は、終了時に保存確認の後、さらに上書きするか確認します。これは、元のエントリー設定がすべて置き換わるリスクを確認する為です</TD>
                 </TR>
                 <TR>
                   <TD align="center">アイコン</TD>
@@ -1931,7 +1933,7 @@ TD {
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top" align="left"><IMG src="image008.jpg" width="611" height="511" border="0"><BR>
+            <TD valign="top" align="left"><IMG src="image0081.jpg" width="611" height="511" border="0"><BR>
             <BR>
             <BR>
             <IMG src="image053.jpg" width="419" height="248" border="0"><BR>

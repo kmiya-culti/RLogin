@@ -6,6 +6,7 @@
 #include "MainFrm.h"
 #include "Data.h"
 #include "DialogExt.h"
+#include "ComboBoxHis.h"
 
 //////////////////////////////////////////////////////////////////////
 
@@ -58,6 +59,14 @@ CDialogExt::CDialogExt(UINT nIDTemplate, CWnd *pParent)
 }
 CDialogExt::~CDialogExt()
 {
+	int n;
+
+	for ( n = 0 ;  n < m_ComboBoxPtr.GetSize() ; n++ ) {
+		CComboBoxExt *pCombo = (CComboBoxExt *)m_ComboBoxPtr[n];
+		if ( pCombo->GetSafeHwnd() != NULL )
+			pCombo->UnsubclassWindow();
+		delete pCombo;
+	}
 }
 
 void CDialogExt::InitItemOffset(const INITDLGTAB *pTab)
@@ -201,6 +210,18 @@ void CDialogExt::GetActiveDpi(CSize &dpi, CWnd *pParent)
 	}
 
 	dpi = m_NowDpi;
+}
+BOOL CDialogExt::IsDialogExt(CWnd *pWnd)
+{
+	CRuntimeClass *pClass = pWnd->GetRuntimeClass();
+
+	while ( pClass != NULL ) {
+		if ( strcmp("CDialogExt", pClass->m_lpszClassName) == 0 )
+			return TRUE;
+		pClass = pClass->m_pBaseClass;
+	}
+
+	return FALSE;
 }
 
 #pragma pack(push, 1)
@@ -549,7 +570,7 @@ LRESULT CDialogExt::HandleInitDialog(WPARAM wParam, LPARAM lParam)
 
 	GetActiveDpi(dpi, GetParent());
 
-	if ( m_InitDpi.cx != dpi.cx || m_InitDpi.cy != dpi.cy ) {
+	if ( m_NowDpi.cx != dpi.cx || m_NowDpi.cy != dpi.cy ) {
 		CRect rect;
 		GetWindowRect(rect);
 		rect.right  += (MulDiv(rect.Width(),  dpi.cx, m_InitDpi.cx) - rect.Width());
@@ -558,4 +579,16 @@ LRESULT CDialogExt::HandleInitDialog(WPARAM wParam, LPARAM lParam)
 	}
 
 	return result;
+}
+
+void CDialogExt::SubclassComboBox(int nID)
+{
+	CWnd *pWnd = GetDlgItem(nID);
+	CComboBoxExt *pCombo = new CComboBoxExt;
+
+	if ( pWnd == NULL || pCombo == NULL )
+		return;
+
+	pCombo->SubclassWindow(pWnd->GetSafeHwnd());
+	m_ComboBoxPtr.Add(pCombo);
 }

@@ -202,6 +202,8 @@ void CServerSelect::InitList(CStringIndex *pIndex, BOOL bFolder)
 		m_List.SetItemText(i, 3, m_pData->GetAt(n).m_TermName);
 		m_List.SetItemText(i, 4, m_pData->GetAt(n).GetKanjiCode());
 		m_List.SetItemText(i, 5, m_pData->GetAt(n).m_PortName);
+		m_List.SetItemText(i, 6, m_pData->GetAt(n).m_LastAccess.GetTime() != 0 ? m_pData->GetAt(n).m_LastAccess.Format(_T("%y/%m/%d %H:%M:%S")) : _T(""));
+		m_List.SetItemText(i, 7, m_pData->GetAt(n).m_ListIndex);
 
 		if ( m_pData->GetAt(n).m_bSelFlag ) {
 			m_List.SetItemState(i, LVIS_SELECTED, LVIS_SELECTED);
@@ -386,17 +388,31 @@ void CServerSelect::UpdateDefaultEntry(int num)
 	CRLoginDoc::LoadOption(*pEntry, *m_pTextRam, *m_pKeyTab, *m_pKeyMac, *m_pParamTab);
 	CRLoginDoc::SaveDefOption(*m_pTextRam, *m_pKeyTab, *m_pKeyMac, *m_pParamTab);
 }
+void CServerSelect::UpdateListIndex()
+{
+	int n, i;
+
+	for ( i = 0 ; i < m_List.GetItemCount() ; i++ ) {
+		if ( (n = (int)m_List.GetItemData(i)) >= 0 ) {
+			m_pData->GetAt(n).m_ListIndex.Format(_T("%04d"), i);
+			m_List.SetItemText(i, 7, m_pData->GetAt(n).m_ListIndex);
+		}
+	}
+	m_List.SetSortCols(7);
+}
 
 /////////////////////////////////////////////////////////////////////////////
 // CServerSelect メッセージ ハンドラ
 
-static const LV_COLUMN InitListTab[6] = {
+static const LV_COLUMN InitListTab[8] = {
 		{ LVCF_TEXT | LVCF_WIDTH, 0,  80, _T("Entry"),  0, 0 }, 
 		{ LVCF_TEXT | LVCF_WIDTH, 0,  60, _T("Server"), 0, 0 }, 
 		{ LVCF_TEXT | LVCF_WIDTH, 0,  50, _T("User"),   0, 0 }, 
 		{ LVCF_TEXT | LVCF_WIDTH, 0,  50, _T("Term"),   0, 0 }, 
 		{ LVCF_TEXT | LVCF_WIDTH, 0,  40, _T("Kanji"),  0, 0 }, 
 		{ LVCF_TEXT | LVCF_WIDTH, 0,  40, _T("Socket"), 0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0,   0, _T("Last"),   0, 0 }, 
+		{ LVCF_TEXT | LVCF_WIDTH, 0,   0, _T("Index"),  0, 0 }, 
 	};
 
 BOOL CServerSelect::OnInitDialog() 
@@ -406,6 +422,7 @@ BOOL CServerSelect::OnInitDialog()
 	int cx, cy;
 	CRect rect;
 	CBitmap BitMap;
+	CBuffer buf;
 
 	ASSERT(m_pData != NULL);
 
@@ -419,7 +436,7 @@ BOOL CServerSelect::OnInitDialog()
 
 	//m_List.SetImageList(&m_ImageList, LVSIL_SMALL);
 	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_SUBITEMIMAGES);
-	m_List.InitColumn(_T("ServerSelect"), InitListTab, 6);
+	m_List.InitColumn(_T("ServerSelect"), InitListTab, 8);
 	m_List.SetPopUpMenu(IDR_POPUPMENU, 0);
 
 	m_Tree.SetImageList(&m_ImageList, TVSIL_NORMAL);
@@ -453,6 +470,25 @@ BOOL CServerSelect::OnInitDialog()
 	((CRLoginApp *)::AfxGetApp())->GetProfileStringArray(_T("ServerSelect"), _T("AddGroup"), m_AddGroup);
 	((CRLoginApp *)::AfxGetApp())->GetProfileStringArray(_T("ServerSelect"), _T("TreeExpand"), m_TreeExpand);
 
+	((CRLoginApp *)::AfxGetApp())->GetProfileBuffer(_T("ServerSelect"), _T("AddEntryData"), buf);
+
+	m_pData->InitGetUid();
+	while ( buf.GetSize() >= (4 + 4 + 8) ) {
+		int uid;
+		int index;
+		time_t last;
+		CServerEntry *pEntry;
+
+		uid   = buf.Get32Bit();
+		index = buf.Get32Bit();
+		last  = buf.Get64Bit();
+
+		if ( (pEntry = m_pData->GetUid(uid)) != NULL ) {
+			pEntry->m_ListIndex.Format(_T("%04d"), index);
+			pEntry->m_LastAccess = last;
+		}
+	}
+
 	InitEntry(INIT_CALL_NONE);
 
 	return TRUE;
@@ -463,13 +499,24 @@ void CServerSelect::SaveWindowStyle()
 	CRect rect;
 
 	GetWindowRect(rect);
-	AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("cx"), rect.Width());
-	AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("cy"), rect.Height());
+	AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("cx"), MulDiv(rect.Width(), m_InitDpi.cx, m_NowDpi.cx));
+	AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("cy"), MulDiv(rect.Height(), m_InitDpi.cy, m_NowDpi.cy));
 	AfxGetApp()->WriteProfileInt(_T("ServerSelect"), _T("TreePer"), m_TreeListPer);
 
 	((CRLoginApp *)::AfxGetApp())->WriteProfileStringArray(_T("ServerSelect"), _T("TreeExpand"), m_TreeExpand);
 
 	m_List.SaveColumn(_T("ServerSelect"));
+
+	CBuffer buf;
+	for ( int n = 0 ; n < m_pData->GetSize() ; n++ ) {
+		if ( m_pData->GetAt(n).m_ListIndex.IsEmpty() && m_pData->GetAt(n).m_LastAccess == 0 )
+			continue;
+
+		buf.Put32Bit(m_pData->GetAt(n).m_Uid);
+		buf.Put32Bit(_tstoi(m_pData->GetAt(n).m_ListIndex));
+		buf.Put64Bit(m_pData->GetAt(n).m_LastAccess.GetTime());
+	}
+	((CRLoginApp *)::AfxGetApp())->WriteProfileBinary(_T("ServerSelect"), _T("AddEntryData"), buf.GetPtr(), buf.GetSize());
 }
 
 void CServerSelect::EntryNameCheck(CServerEntry &entry)
@@ -518,6 +565,7 @@ void CServerSelect::OnOK()
 		if ( m_List.GetItemState(n, LVIS_SELECTED) != 0 ) {
 			if ( (i = (int)m_List.GetItemData(n)) >= 0 ) {
 				m_pData->GetAt(i).m_CheckFlag = TRUE;
+				m_pData->GetAt(i).m_LastAccess = CTime::GetCurrentTime();
 				count++;
 			} else {
 				if ( !m_Group.IsEmpty() )
@@ -1393,13 +1441,34 @@ BOOL CServerSelect::PreTranslateMessage(MSG* pMsg)
 {
 	CWnd *pWnd;
 
-	if ( pMsg->message == WM_KEYDOWN && (pMsg->wParam == VK_LEFT || pMsg->wParam == VK_RIGHT) && ((pWnd = GetFocus()) != NULL && pWnd->GetSafeHwnd() == m_List.GetSafeHwnd()) ) {
-		// Listにフォーカスがある場合は、左右キーでグループ移動
-		if ( m_bShowTabWnd ) {
-			pMsg->hwnd = m_Tab.GetSafeHwnd();
-		} else if ( m_bShowTreeWnd ) {
-			pMsg->wParam = (pMsg->wParam == VK_LEFT ? VK_UP : VK_DOWN);
-			pMsg->hwnd = m_Tree.GetSafeHwnd();
+	if ( pMsg->message == WM_KEYDOWN && ((pWnd = GetFocus()) != NULL && pWnd->GetSafeHwnd() == m_List.GetSafeHwnd()) ) {
+		if ( pMsg->wParam == VK_LEFT || pMsg->wParam == VK_RIGHT ) {
+			// Listにフォーカスがある場合は、左右キーでグループ移動
+			if ( m_bShowTabWnd ) {
+				pMsg->hwnd = m_Tab.GetSafeHwnd();
+			} else if ( m_bShowTreeWnd ) {
+				pMsg->wParam = (pMsg->wParam == VK_LEFT ? VK_UP : VK_DOWN);
+				pMsg->hwnd = m_Tree.GetSafeHwnd();
+			}
+		} else if ( (GetKeyState(VK_CONTROL) & 0x80) != 0 ) {
+			// Ctrl+UP/DOWNで移動
+			int n;
+			switch(pMsg->wParam) {
+			case VK_UP:
+				if ( (n = m_List.GetSelectionMark()) <= 0 )
+					break;
+				m_List.MoveItemText(n - 1, n);
+				m_List.EnsureVisible(n - 1, 0);
+				UpdateListIndex();
+				return TRUE;
+			case VK_DOWN:
+				if ( (n = m_List.GetSelectionMark()) < 0 || (n + 1) >=  m_List.GetItemCount() )
+					break;
+				m_List.MoveItemText(n + 1, n);
+				m_List.EnsureVisible(n + 1, 0);
+				UpdateListIndex();
+				return TRUE;
+			}
 		}
 
 	} else if ( pMsg->message == WM_CHAR && pMsg->hwnd == m_List.GetSafeHwnd() ) {
@@ -1669,7 +1738,7 @@ void CServerSelect::OnMouseMove(UINT nFlags, CPoint point)
 	} else if ( m_bDragList ) {
 		CPoint po = point;
 		ClientToScreen(&po);
-		int image = (DragIndex(po) != NULL ? m_DragImage : 8);
+		int image = (DragIndex(po) != NULL || m_List.ItemHitTest(po) >= 0 ? m_DragImage : 8);
 
 		if ( m_DragActive == image )
 			m_ImageList.DragMove(po);
@@ -1721,6 +1790,18 @@ void CServerSelect::OnLButtonUp(UINT nFlags, CPoint point)
 				}
 			}
 			InitEntry(INIT_CALL_UPDATE);
+
+		} else if ( (n = m_List.ItemHitTest(po)) >= 0 ) {
+			for ( i = 0 ; i < m_List.GetItemCount() ; i++ ) {
+				if ( m_List.GetItemState(i, LVIS_SELECTED) != 0 ) {
+					if ( i > n )
+						m_List.MoveItemText(i, n++);
+					else if ( i < n )
+						m_List.MoveItemText(i--, n);
+				}
+			}
+
+			UpdateListIndex();
 		}
 	}
 
@@ -1775,7 +1856,7 @@ void CServerSelect::OnLvnBegindragServerlist(NMHDR *pNMHDR, LRESULT *pResult)
 
 	m_DragNumber = (int)m_List.GetItemData(pNMLV->iItem);
 
-	if ( m_DragNumber < 0 || (!m_bShowTreeWnd && !m_bShowTabWnd) )
+	if ( m_DragNumber < 0 ) //|| (!m_bShowTreeWnd && !m_bShowTabWnd) )
 		return;
 
 	SetCapture();

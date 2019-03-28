@@ -94,7 +94,7 @@ BOOL CPassDlg::OnInitDialog()
 
 	UpdateData(FALSE);
 
-	return TRUE;
+	return FALSE;
 }
 
 void CPassDlg::OnTimer(UINT_PTR nIDEvent) 

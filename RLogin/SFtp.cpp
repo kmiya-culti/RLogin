@@ -2681,23 +2681,6 @@ static const INITDLGTAB ItemTab[] = {
 	{ 0,	0 },
 };
 
-void CSFtp::SaveListColumn(LPCTSTR lpszSection, CListCtrl *pList)
-{
-	int n = 0;
-	LV_COLUMN tmp;
-	TCHAR name[256];
-
-	memset(&tmp, 0, sizeof(tmp));
-	tmp.pszText = name;
-	tmp.cchTextMax = 256;
-	tmp.mask = LVCF_WIDTH | LVCF_TEXT;
-
-	while ( pList->GetColumn(n++, &tmp) ) {
-		tmp.cx = MulDiv(tmp.cx, 96, ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY);
-		AfxGetApp()->WriteProfileInt(lpszSection, tmp.pszText, tmp.cx);
-	}
-}
-
 /////////////////////////////////////////////////////////////////////////////
 // CSFtp メッセージ ハンドラ
 
@@ -2713,11 +2696,11 @@ void CSFtp::OnCancel()
 		GetWindowRect(rect);
 		AfxGetApp()->WriteProfileInt(_T("SFtpWnd"), _T("x"),  rect.left);
 		AfxGetApp()->WriteProfileInt(_T("SFtpWnd"), _T("y"),  rect.top);
-		AfxGetApp()->WriteProfileInt(_T("SFtpWnd"), _T("cx"), rect.right);
-		AfxGetApp()->WriteProfileInt(_T("SFtpWnd"), _T("cy"), rect.bottom);
+		AfxGetApp()->WriteProfileInt(_T("SFtpWnd"), _T("cx"), rect.left + MulDiv(rect.Width(),  m_InitDpi.cx, m_NowDpi.cx));
+		AfxGetApp()->WriteProfileInt(_T("SFtpWnd"), _T("cy"), rect.top  + MulDiv(rect.Height(), m_InitDpi.cy, m_NowDpi.cy));
 
-		SaveListColumn(_T("SFtpLocalList"), &m_LocalList);
-		SaveListColumn(_T("SFtpRemoteList"), &m_RemoteList);
+		m_LocalList.SaveColumn(_T("SFtpLocalList"));
+		m_RemoteList.SaveColumn(_T("SFtpRemoteList"));
 	}
 
 	Close();
@@ -2819,7 +2802,6 @@ BOOL CSFtp::OnInitDialog()
 	int n;
 	CRect rect;
 	CBitmap BitMap;
-	LV_COLUMN lvt;
 	static const LV_COLUMN InitListTab[6] = {
 		{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_LEFT,	180, _T("Name"),	0, 0 },
 		{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  110, _T("Date"),	0, 0 },
@@ -2843,21 +2825,13 @@ BOOL CSFtp::OnInitDialog()
 	m_ImageList.Add(&BitMap, RGB(192, 192, 192));
 	BitMap.DeleteObject();
 
-	for ( n = 0 ; n < 4 ; n++ ) {
-		lvt = InitListTab[n];
-		lvt.cx = AfxGetApp()->GetProfileInt(_T("SFtpLocalList"), lvt.pszText, lvt.cx);
-		lvt.cx = MulDiv(lvt.cx, ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY, 96);
-		m_LocalList.InsertColumn(n, &lvt);
-	}
+	m_LocalList.m_bSort = FALSE;
+	m_LocalList.InitColumn(_T("SFtpLocalList"), InitListTab, 4);
 	m_LocalList.SetImageList(&m_ImageList, LVSIL_SMALL);
 	m_LocalList.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_SUBITEMIMAGES);
 
-	for ( n = 0 ; n < 6 ; n++ ) {
-		lvt = InitListTab[n];
-		lvt.cx = AfxGetApp()->GetProfileInt(_T("SFtpRemoteList"), lvt.pszText, lvt.cx);
-		lvt.cx = MulDiv(lvt.cx, ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY, 96);
-		m_RemoteList.InsertColumn(n, &lvt);
-	}
+	m_RemoteList.m_bSort = FALSE;
+	m_RemoteList.InitColumn(_T("SFtpRemoteList"), InitListTab, 6);
 	m_RemoteList.SetImageList(&m_ImageList, LVSIL_SMALL);
 	m_RemoteList.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_SUBITEMIMAGES);
 

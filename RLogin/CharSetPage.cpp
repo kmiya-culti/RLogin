@@ -189,6 +189,12 @@ BOOL CCharSetPage::OnInitDialog()
 				pCombo[i]->AddString(pStr);
 		}
 	}
+
+	SubclassComboBox(IDC_CHARBANK1);
+	SubclassComboBox(IDC_CHARBANK2);
+	SubclassComboBox(IDC_CHARBANK3);
+	SubclassComboBox(IDC_CHARBANK4);
+	SubclassComboBox(IDC_FONTNAME);
 	
 	return TRUE;
 }

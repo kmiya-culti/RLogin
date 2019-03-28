@@ -5,9 +5,52 @@
 #include "RLogin.h"
 #include "ComboBoxHis.h"
 
+// CComboBoxExt
+
+/*
+	CComboBoxに対してSetFont/MoveWindowを実行すると全範囲が選択されるバグ？
+*/
+
+IMPLEMENT_DYNAMIC(CComboBoxExt, CComboBox)
+
+CComboBoxExt::CComboBoxExt()
+{
+}
+
+CComboBoxExt::~CComboBoxExt()
+{
+}
+
+BEGIN_MESSAGE_MAP(CComboBoxExt, CComboBox)
+	ON_WM_WINDOWPOSCHANGED()
+	ON_MESSAGE(WM_SETFONT, OnSetFont)
+END_MESSAGE_MAP()
+
+void CComboBoxExt::OnWindowPosChanged(WINDOWPOS* lpwndpos)
+{
+	DWORD pos = GetEditSel();
+
+	CComboBox::OnWindowPosChanged(lpwndpos);
+
+	if ( pos != CB_ERR )
+		SetEditSel(LOWORD(pos), HIWORD(pos));
+}
+LRESULT CComboBoxExt::OnSetFont(WPARAM wParam, LPARAM lParam)
+{
+	LRESULT result;
+	DWORD pos = GetEditSel();
+
+	result = DefWindowProc(WM_SETFONT, wParam, lParam);
+
+	if ( pos != CB_ERR )
+		SetEditSel(LOWORD(pos), HIWORD(pos));
+
+	return result;
+}
+
 // CComboBoxHis
 
-IMPLEMENT_DYNAMIC(CComboBoxHis, CComboBox)
+IMPLEMENT_DYNAMIC(CComboBoxHis, CComboBoxExt)
 
 CComboBoxHis::CComboBoxHis()
 {
@@ -17,7 +60,7 @@ CComboBoxHis::~CComboBoxHis()
 {
 }
 
-BEGIN_MESSAGE_MAP(CComboBoxHis, CComboBox)
+BEGIN_MESSAGE_MAP(CComboBoxHis, CComboBoxExt)
 	ON_WM_DESTROY()
 END_MESSAGE_MAP()
 

@@ -44,6 +44,8 @@ BOOL CIConvDlg::OnInitDialog()
 			for ( n = 0 ; n < stra.GetSize() ; n++ )
 				pCombo->AddString(stra[n]);
 		}
+
+		SubclassComboBox(IDC_CHARSET1 + i);
 	}
 	
 	return TRUE;

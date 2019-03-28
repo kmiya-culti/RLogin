@@ -253,6 +253,17 @@ BOOL CFontParaDlg::OnInitDialog()
 
 	UpdateData(FALSE);
 
+	SubclassComboBox(IDC_CHARSET);
+	SubclassComboBox(IDC_DISPZOOMH);
+	SubclassComboBox(IDC_DISPZOOMW);
+	SubclassComboBox(IDC_DISPOFFSETH);
+	SubclassComboBox(IDC_DISPOFFSETW);
+	SubclassComboBox(IDC_CHARBANK);
+	SubclassComboBox(IDC_FONTCODE);
+	SubclassComboBox(IDC_ICONVSET);
+	SubclassComboBox(IDC_FACENAME);
+	SubclassComboBox(IDC_OVERZERO);
+
 	return TRUE;
 }
 void CFontParaDlg::OnOK()

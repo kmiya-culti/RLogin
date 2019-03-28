@@ -96,6 +96,8 @@ BOOL CProxyDlg::OnInitDialog()
 
 	OnProtoType(IDC_RADIO1 + m_ProxyMode);
 
+	SubclassComboBox(IDC_SOCKNO);
+
 	return TRUE;
 }
 

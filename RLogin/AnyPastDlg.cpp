@@ -100,17 +100,21 @@ BOOL CAnyPastDlg::OnInitDialog()
 	CtrlCount();
 
 	CRect rect;
-	int cx = AfxGetApp()->GetProfileInt(_T("AnyPastDlg"), _T("cx"), 0);
-	int cy = AfxGetApp()->GetProfileInt(_T("AnyPastDlg"), _T("cy"), 0);
+	int cx, cy;
 
 	GetWindowRect(rect);
-	m_MinWidth  = rect.Width();
+	m_MinWidth = rect.Width();
 	m_MinHeight = rect.Height();
 
-	if ( cx >= m_MinWidth && cy >= m_MinHeight ) {
-		MoveWindow(0, 0, cx, cy);
-		CenterWindow();
-	}
+	cx = AfxGetApp()->GetProfileInt(_T("AnyPastDlg"), _T("cx"), rect.Width());
+	cy = AfxGetApp()->GetProfileInt(_T("AnyPastDlg"), _T("cy"), rect.Height());
+
+	if ( cx < rect.Width() )
+		cx = rect.Width();
+	if ( cy < rect.Height() )
+		cy = rect.Height();
+
+	MoveWindow(rect.left, rect.top, cx, cy, FALSE);
 
 	AddShortCutKey(0, VK_RETURN, MASK_CTRL, 0, IDOK);
 
@@ -122,8 +126,8 @@ void CAnyPastDlg::SaveWindowRect()
 	if ( !IsIconic() ) {
 		CRect rect;
 		GetWindowRect(rect);
-		AfxGetApp()->WriteProfileInt(_T("AnyPastDlg"), _T("cx"), rect.Width());
-		AfxGetApp()->WriteProfileInt(_T("AnyPastDlg"), _T("cy"), rect.Height());
+		AfxGetApp()->WriteProfileInt(_T("AnyPastDlg"), _T("cx"), MulDiv(rect.Width(), m_InitDpi.cx, m_NowDpi.cx));
+		AfxGetApp()->WriteProfileInt(_T("AnyPastDlg"), _T("cy"), MulDiv(rect.Height(), m_InitDpi.cy, m_NowDpi.cy));
 	}
 }
 void CAnyPastDlg::OnOK()

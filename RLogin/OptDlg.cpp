@@ -375,7 +375,7 @@ BOOL COptDlg::OnInitDialog()
 	// CharSetPage‚Ì‰Šú‰»‚ª’x‚¢‚Ì‚Åæ‚Éì¬
 	CreatePage(10);
 
-	return TRUE;
+	return FALSE;
 }
 void COptDlg::OnOK()
 {

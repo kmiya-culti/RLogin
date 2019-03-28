@@ -1,6 +1,8 @@
 #pragma once
 
 #include "DialogExt.h"
+#include "ComboBoxHis.h"
+#include "ListCtrlExt.h"
 
 /* version */
 #define SSH2_FILEXFER_VERSION           3
@@ -195,10 +197,10 @@ public:
 	enum { IDD = IDD_SFTPDLG };
 
 public:
-	CListCtrl	m_RemoteList;
-	CComboBox	m_RemoteCwd;
-	CListCtrl	m_LocalList;
-	CComboBox	m_LocalCwd;
+	CListCtrlExt	m_RemoteList;
+	CComboBoxExt	m_RemoteCwd;
+	CListCtrlExt	m_LocalList;
+	CComboBoxExt	m_LocalCwd;
 	CProgressCtrl	m_UpDownProg;
 	CStatic	m_UpDownStat[4];
 	CString m_LastErrorMsg;
@@ -337,8 +339,6 @@ public:
 
 	void SetLocalCwdHis(LPCTSTR cwd);
 	void SetRemoteCwdHis(LPCTSTR cwd);
-
-	void SaveListColumn(LPCTSTR lpszSection, CListCtrl *pList);
 
 	int m_LocalSortItem;
 	int m_RemoteSortItem;

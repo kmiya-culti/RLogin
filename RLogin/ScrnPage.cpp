@@ -190,6 +190,11 @@ BOOL CScrnPage::OnInitDialog()
 
 	DoInit();
 
+	SubclassComboBox(IDC_SCSZFONT);
+	SubclassComboBox(IDC_SCRNOFFSLEFT);
+	SubclassComboBox(IDC_SCRNOFFSRIGHT);
+	SubclassComboBox(IDC_TITLENAME);
+
 	return TRUE;
 }
 BOOL CScrnPage::OnApply() 

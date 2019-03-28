@@ -100,6 +100,8 @@ BOOL CComInitDlg::GetComDeviceList()
 
 	SetupDiDestroyDeviceInfoList(DeviceInfoSet);
 
+	SubclassComboBox(IDC_BAUDRATE);
+
 	return TRUE;
 }
 

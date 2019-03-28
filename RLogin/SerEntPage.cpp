@@ -67,6 +67,7 @@ void CSerEntPage::DoDataExchange(CDataExchange* pDX)
 	DDX_CBString(pDX, IDC_BEFORE, m_BeforeEntry);
 	DDX_Check(pDX, IDC_CHECK1, m_UsePassDlg);
 	DDX_Check(pDX, IDC_CHECK2, m_bOptFixed);
+	DDX_CBString(pDX, IDC_OPTFIXENTRY, m_OptFixEntry);
 }
 
 BEGIN_MESSAGE_MAP(CSerEntPage, CTreePage)
@@ -89,6 +90,7 @@ BEGIN_MESSAGE_MAP(CSerEntPage, CTreePage)
 	ON_BN_CLICKED(IDC_CHECK1, OnUpdateOption)
 	ON_BN_CLICKED(IDC_ICONFILE, &CSerEntPage::OnIconfile)
 	ON_BN_CLICKED(IDC_CHECK2, OnUpdateOptFixed)
+	ON_CBN_EDITCHANGE(IDC_OPTFIXENTRY, OnUpdateEdit)
 END_MESSAGE_MAP()
 
 void CSerEntPage::SetEnableWind()
@@ -144,6 +146,7 @@ void CSerEntPage::DoInit()
 	m_BeforeEntry = m_pSheet->m_pEntry->m_BeforeEntry;
 	m_IconName    = m_pSheet->m_pEntry->m_IconName;
 	m_bOptFixed   = m_pSheet->m_pEntry->m_bOptFixed;
+	m_OptFixEntry = m_pSheet->m_pEntry->m_OptFixEntry;
 
 	m_ExtEnvStr   = m_pSheet->m_pParamTab->m_ExtEnvStr;
 
@@ -235,6 +238,15 @@ BOOL CSerEntPage::OnInitDialog()
 				pCombo->AddString(str);
 		}
 	}
+	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_OPTFIXENTRY)) != NULL ) {
+		if ( !m_pSheet->m_pEntry->m_OptFixEntry.IsEmpty() )
+			pCombo->AddString(m_pSheet->m_pEntry->m_OptFixEntry);
+		for ( n = 0 ; n < pTab->m_Data.GetSize() ; n++ ) {
+			str = pTab->m_Data[n].m_EntryName;
+			if ( !str.IsEmpty() && pCombo->FindStringExact((-1), str) == CB_ERR )
+				pCombo->AddString(str);
+		}
+	}
 
 	if ( (m_pSheet->m_psh.dwFlags & PSH_NOAPPLYNOW) == 0 && (pCheck = (CButton *)GetDlgItem(IDC_CHECK2)) != NULL )
 		pCheck->EnableWindow(FALSE);
@@ -242,6 +254,14 @@ BOOL CSerEntPage::OnInitDialog()
 	DoInit();
 
 	SetEnableWind();
+
+	SubclassComboBox(IDC_SERVERNAME);
+	SubclassComboBox(IDC_LOGINNAME);
+	SubclassComboBox(IDC_TERMNAME);
+	SubclassComboBox(IDC_SOCKNO);
+	SubclassComboBox(IDC_GROUP);
+	SubclassComboBox(IDC_BEFORE);
+	SubclassComboBox(IDC_OPTFIXENTRY);
 	
 	return TRUE;
 }
@@ -282,7 +302,8 @@ BOOL CSerEntPage::OnApply()
 	m_pSheet->m_pTextRam->SetOption(TO_PROXPASS, m_UseProxyDlg);
 	m_pSheet->m_pEntry->m_IconName  = m_IconName;
 	m_pSheet->m_pEntry->m_bPassOk   = TRUE;
-	m_pSheet->m_pEntry->m_bOptFixed = m_bOptFixed;
+	m_pSheet->m_pEntry->m_bOptFixed   = m_bOptFixed;
+	m_pSheet->m_pEntry->m_OptFixEntry = m_OptFixEntry;
 
 	return TRUE;
 }

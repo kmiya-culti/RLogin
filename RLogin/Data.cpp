@@ -3427,12 +3427,15 @@ void CServerEntry::Init()
 	m_ProxyPassProvs.Empty();
 	m_ProxySSLKeep = FALSE;
 	m_BeforeEntry.Empty();
+	m_OptFixEntry.Empty();
 	m_ReEntryFlag = FALSE;
 	m_DocType = (-1);
 	m_IconName.Empty();
 	m_bPassOk = TRUE;
 	m_bSelFlag = FALSE;
 	m_bOptFixed = FALSE;
+	m_ListIndex.Empty();
+	m_LastAccess = 0;
 }
 const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 {
@@ -3468,6 +3471,7 @@ const CServerEntry & CServerEntry::operator = (CServerEntry &data)
 	m_ProxyPassProvs = data.m_ProxyPassProvs;
 	m_ProxySSLKeep   = data.m_ProxySSLKeep;
 	m_BeforeEntry    = data.m_BeforeEntry;
+	m_OptFixEntry    = data.m_OptFixEntry;
 	m_ReEntryFlag    = data.m_ReEntryFlag;
 	m_DocType        = data.m_DocType;
 	m_IconName       = data.m_IconName;
@@ -3527,6 +3531,7 @@ void CServerEntry::GetArray(CStringArrayExt &stra)
 	m_ProxySSLKeep = (stra.GetSize() > 22 ?  stra.GetVal(22) : FALSE);;
 	m_IconName     = (stra.GetSize() > 23 ?  stra.GetAt(23) : _T(""));
 	m_bOptFixed    = (stra.GetSize() > 24 ?  stra.GetVal(24) : FALSE);;
+	m_OptFixEntry  = (stra.GetSize() > 25 ?  stra.GetAt(25) : _T(""));
 
 	m_ProBuffer.Clear();
 
@@ -3575,6 +3580,7 @@ void CServerEntry::SetArray(CStringArrayExt &stra)
 	stra.AddVal(m_ProxySSLKeep);
 	stra.Add(m_IconName);
 	stra.AddVal(m_bOptFixed);
+	stra.Add(m_OptFixEntry);
 }
 
 static const ScriptCmdsDefs DocEntry[] = {
@@ -3833,6 +3839,7 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 		index[_T("Icon")] = m_IconName;
 
 		index[_T("OptFixed")] = m_bOptFixed;
+		index[_T("OptFixEntry")] = m_OptFixEntry;
 
 	} else {			// Read
 		if ( (n = index.Find(_T("Name"))) >= 0 )
@@ -3904,6 +3911,9 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 
 		if ( (n = index.Find(_T("OptFixed"))) >= 0 )
 			m_bOptFixed = index[n];
+
+		if ( (n = index.Find(_T("OptFixEntry"))) >= 0 )
+			m_OptFixEntry = index[n];
 
 		m_ProBuffer.Clear();
 
@@ -3995,6 +4005,9 @@ void CServerEntry::DiffIndex(CServerEntry &orig, CStringIndex &index)
 
 	if ( m_bOptFixed != orig.m_bOptFixed )
 		index[_T("OptFixed")] = m_bOptFixed;
+
+	if ( m_OptFixEntry.Compare(orig.m_OptFixEntry) != 0 )
+		index[_T("OptFixEntry")] = m_OptFixEntry;
 }
 
 LPCTSTR CServerEntry::GetKanjiCode()
@@ -4047,6 +4060,9 @@ CServerEntryTab::CServerEntryTab()
 {
 	m_pSection = _T("ServerEntryTabW");
 	m_MinSize = 1;
+
+	for ( int hs = 0 ; hs < ENTHASHMAX ; hs++ )
+		m_pListTab[hs] = NULL;
 }
 void CServerEntryTab::Init()
 {
@@ -4192,6 +4208,30 @@ void CServerEntryTab::ReloadAt(int nIndex)
 {
 	if ( m_Data[nIndex].m_Uid != (-1) )
 		m_Data[nIndex].GetProfile(m_pSection, m_Data[nIndex].m_Uid);
+}
+
+void CServerEntryTab::InitGetUid()
+{
+	int n, hs;
+
+	for ( hs = 0 ; hs < ENTHASHMAX ; hs++ )
+		m_pListTab[hs] = NULL;
+
+	for ( n = 0 ; n < m_Data.GetSize() ; n++ ) {
+		hs = m_Data[n].m_Uid % ENTHASHMAX;
+		m_Data[n].m_pList = m_pListTab[hs];
+		m_pListTab[hs] = &(m_Data[n]);
+	}
+}
+CServerEntry *CServerEntryTab::GetUid(int uid)
+{
+	int hs = uid % ENTHASHMAX;
+	CServerEntry *pEntry = m_pListTab[hs];
+
+	while ( pEntry != NULL && pEntry->m_Uid != uid )
+		pEntry = pEntry->m_pList;
+
+	return pEntry;
 }
 
 //////////////////////////////////////////////////////////////////////

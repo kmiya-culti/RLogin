@@ -1390,14 +1390,15 @@ int CMainFrame::SetAsyncSelect(SOCKET fd, CExtSocket *pSock, long lEvent)
 
 	((CRLoginApp *)AfxGetApp())->AddIdleProc(IDLEPROC_SOCKET, pSock);
 
-	for ( int n = 0 ; n < m_SocketParam.GetSize() ; n += 2 ) {
-		if ( m_SocketParam[n] == (void *)fd ) {
-			m_SocketParam[n + 1] = (void *)pSock;
+	CPtrArray *pSockPara = &(m_SocketParam[SOCKPARAMASK(fd)]);
+	for ( int n = 0 ; n < pSockPara->GetSize() ; n += 2 ) {
+		if ( (*pSockPara)[n] == (void *)fd ) {
+			(*pSockPara)[n + 1] = (void *)pSock;
 			return TRUE;
 		}
 	}
-	m_SocketParam.Add((void *)fd);
-	m_SocketParam.Add(pSock);
+	pSockPara->Add((void *)fd);
+	pSockPara->Add(pSock);
 
 	return TRUE;
 }
@@ -1409,9 +1410,10 @@ void CMainFrame::DelAsyncSelect(SOCKET fd, CExtSocket *pSock, BOOL useWsa)
 
 	((CRLoginApp *)AfxGetApp())->DelIdleProc(IDLEPROC_SOCKET, pSock);
 
-	for ( int n = 0 ; n < m_SocketParam.GetSize() ; n += 2 ) {
-		if ( m_SocketParam[n] == (void *)fd ) {
-			m_SocketParam.RemoveAt(n, 2);
+	CPtrArray *pSockPara = &(m_SocketParam[SOCKPARAMASK(fd)]);
+	for ( int n = 0 ; n < pSockPara->GetSize() ; n += 2 ) {
+		if ( (*pSockPara)[n] == (void *)fd ) {
+			pSockPara->RemoveAt(n, 2);
 			break;
 		}
 	}
@@ -2401,10 +2403,11 @@ LRESULT CMainFrame::OnWinSockSelect(WPARAM wParam, LPARAM lParam)
 {
 	int	fs = WSAGETSELECTEVENT(lParam);
 	CExtSocket *pSock = NULL;
+	CPtrArray *pSockPara = &(m_SocketParam[SOCKPARAMASK(wParam)]);
 
-	for ( int n = 0 ; n < m_SocketParam.GetSize() ; n += 2 ) {
-		if ( m_SocketParam[n] == (void *)wParam ) {
-			pSock = (CExtSocket *)(m_SocketParam[n + 1]);
+	for ( int n = 0 ; n < pSockPara->GetSize() ; n += 2 ) {
+		if ( (*pSockPara)[n] == (void *)wParam ) {
+			pSock = (CExtSocket *)((*pSockPara)[n + 1]);
 			break;
 		}
 	}

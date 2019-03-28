@@ -237,6 +237,8 @@ BOOL CComMoniDlg::OnInitDialog()
 
 	SetTimer(1024, 1000, NULL);
 
+	SubclassComboBox(IDC_BAUDRATE);
+
 	return TRUE;
 }
 void CComMoniDlg::OnOK()
