@@ -978,7 +978,7 @@ BOOL CExtSocket::ProxyFunc()
 					   _T("Host: %s\r\n")\
 					   _T("Connection: keep-alive\r\n")\
 					   _T("\r\n"),
-					   m_ProxyHost, m_ProxyPort, m_RealHostAddr);
+					   m_ProxyHost, m_ProxyPort, m_ProxyHost);
 			mbs = tmp; CExtSocket::Send((void *)(LPCSTR)mbs, mbs.GetLength(), 0);
 			DEBUGLOG("ProxyFunc PRST_HTTP_START %s", mbs);
 			m_ProxyStatus = PRST_HTTP_READLINE;
@@ -2007,9 +2007,9 @@ LPCTSTR CExtSocket::GetFormatErrorMessage(LPCTSTR entry, LPCTSTR host, int port,
 
 	if ( host != NULL ) {
 		if ( port > 0 )
-			tmp.Format(_T("Connecttion '%s:%d'\n"), host, port);
+			tmp.Format(_T("Connection '%s:%d'\n"), host, port);
 		else
-			tmp.Format(_T("Connecttion '%s'\n"), host);
+			tmp.Format(_T("Connection '%s'\n"), host);
 		msg += tmp;
 	}
 

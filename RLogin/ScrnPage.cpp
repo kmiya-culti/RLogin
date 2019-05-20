@@ -117,7 +117,7 @@ void CScrnPage::InitFontSize()
 	if ( m_Check[2] )	// m_pSheet->m_pTextRam->IsOptEnable(TO_RLHIDPIFSZ)
 		pixDpi = (double)dpi;
 	else
-		pixDpi = (double)MulDiv(dpi, ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY, 96);
+		pixDpi = (double)MulDiv(dpi, SCREEN_DPI_Y, DEFAULT_DPI_Y);
 
 	for ( n = pCombo->GetCount() - 1 ; n >= 0; n-- )
 		pCombo->DeleteString(n);

@@ -40,21 +40,13 @@ IMPLEMENT_DYNAMIC(CDialogExt, CDialog)
 CDialogExt::CDialogExt(UINT nIDTemplate, CWnd *pParent)
 	: CDialog(nIDTemplate, pParent)
 {
-//	CMainFrame *pMain;
-
 	m_nIDTemplate = nIDTemplate;
 	
 	m_FontName = ::AfxGetApp()->GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
 	m_FontSize = ::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9);
 
-	m_InitDpi.cx = m_InitDpi.cy = 96;
-
-	//if ( (pMain = (CMainFrame *)::AfxGetMainWnd()) != NULL ) {
-	//	m_InitDpi.cx = pMain->m_ScreenDpiX;
-	//	m_InitDpi.cy = pMain->m_ScreenDpiY;
-	//	m_FontSize = MulDiv(m_FontSize, pMain->m_ScreenDpiY, 96);
-	//}
-
+	m_InitDpi.cx = DEFAULT_DPI_X;
+	m_InitDpi.cy = DEFAULT_DPI_Y;
 	m_NowDpi = m_InitDpi;
 }
 CDialogExt::~CDialogExt()
@@ -181,8 +173,10 @@ void CDialogExt::SetBackColor(COLORREF color)
 	m_BkBrush.CreateSolidBrush(color);
 }
 
-void CDialogExt::GetActiveDpi(CSize &dpi, CWnd *pParent)
+void CDialogExt::GetActiveDpi(CSize &dpi, CWnd *pWnd, CWnd *pParent)
 {
+	UINT d;
+
 	if ( pParent != NULL ) {
 		CRuntimeClass *pClass = pParent->GetRuntimeClass();
 
@@ -195,21 +189,29 @@ void CDialogExt::GetActiveDpi(CSize &dpi, CWnd *pParent)
 		}
 	}
 
-	if ( ExGetDpiForMonitor != NULL && GetSafeHwnd() != NULL ) {
+	if ( ExGetDpiForWindow != NULL && pWnd != NULL && pWnd->GetSafeHwnd() != NULL && (d = ExGetDpiForWindow(pWnd->GetSafeHwnd())) != 0 ) {
+		dpi.cx = dpi.cy = d;
+
+	} else if ( ExGetDpiForMonitor != NULL && pWnd != NULL && pWnd->GetSafeHwnd() != NULL && (::AfxGetMainWnd() == NULL || pWnd->GetSafeHwnd() != ::AfxGetMainWnd()->GetSafeHwnd()) ) {
 		UINT DpiX, DpiY;
 		HMONITOR hMonitor;
 		CRect rect;
 
-		GetWindowRect(rect);
+		pWnd->GetWindowRect(rect);
 		hMonitor = MonitorFromRect(&rect, MONITOR_DEFAULTTONEAREST);
 		ExGetDpiForMonitor(hMonitor, MDT_EFFECTIVE_DPI, &DpiX, &DpiY);
 
 		dpi.cx = DpiX;
 		dpi.cy = DpiY;
-		return;
-	}
 
-	dpi = m_NowDpi;
+	} else if ( ::AfxGetMainWnd() != NULL ) {
+		dpi.cx = SCREEN_DPI_X;
+		dpi.cy = SCREEN_DPI_Y;
+
+	} else {
+		dpi.cx = DEFAULT_DPI_X;
+		dpi.cy = DEFAULT_DPI_Y;
+	}
 }
 BOOL CDialogExt::IsDialogExt(CWnd *pWnd)
 {
@@ -293,7 +295,7 @@ BOOL CDialogExt::GetSizeAndText(SIZE *pSize, CString &title, CWnd *pParent)
 	if ( hInitData != NULL )
 		FreeResource(hInitData);
 
-	GetActiveDpi(dpi, pParent);
+	GetActiveDpi(dpi, NULL, pParent);
 
 	if ( m_InitDpi.cx != dpi.cx || m_InitDpi.cy != dpi.cy ) {
 		pSize->cx = MulDiv(pSize->cx, dpi.cx, m_InitDpi.cx);
@@ -419,6 +421,7 @@ BEGIN_MESSAGE_MAP(CDialogExt, CDialog)
 	ON_MESSAGE(WM_KICKIDLE, OnKickIdle)
 	ON_MESSAGE(WM_DPICHANGED, OnDpiChanged)
 	ON_MESSAGE(WM_INITDIALOG, HandleInitDialog)
+	ON_WM_CREATE()
 END_MESSAGE_MAP()
 
 //////////////////////////////////////////////////////////////////////
@@ -564,18 +567,18 @@ BOOL CDialogExt::PreTranslateMessage(MSG* pMsg)
 
 LRESULT CDialogExt::HandleInitDialog(WPARAM wParam, LPARAM lParam)
 {
+	CSize dpi;
 	LRESULT result = CDialog::HandleInitDialog(wParam, lParam);
 
-	CSize dpi;
-
-	GetActiveDpi(dpi, GetParent());
+	GetActiveDpi(dpi, this, GetParent());
 
 	if ( m_NowDpi.cx != dpi.cx || m_NowDpi.cy != dpi.cy ) {
-		CRect rect;
+		CRect rect, client;
 		GetWindowRect(rect);
-		rect.right  += (MulDiv(rect.Width(),  dpi.cx, m_InitDpi.cx) - rect.Width());
-		rect.bottom += (MulDiv(rect.Height(), dpi.cy, m_InitDpi.cy) - rect.Height());
-		OnDpiChanged(MAKEWPARAM(dpi.cx, dpi.cy), (LPARAM)((RECT *)rect));
+		GetClientRect(client);
+		rect.right  += (MulDiv(client.Width(),  dpi.cx, m_InitDpi.cx) - client.Width());
+		rect.bottom += (MulDiv(client.Height(), dpi.cy, m_InitDpi.cy) - client.Height());
+		SendMessage(WM_DPICHANGED, MAKEWPARAM(dpi.cx, dpi.cy), (LPARAM)((RECT *)rect));
 	}
 
 	return result;
@@ -591,4 +594,30 @@ void CDialogExt::SubclassComboBox(int nID)
 
 	pCombo->SubclassWindow(pWnd->GetSafeHwnd());
 	m_ComboBoxPtr.Add(pCombo);
+}
+
+int CDialogExt::OnCreate(LPCREATESTRUCT lpCreateStruct)
+{
+	if (CDialog::OnCreate(lpCreateStruct) == -1)
+		return -1;
+
+	CRect frame, oldClient, newClient;
+
+	GetClientRect(oldClient);
+
+	if ( ExEnableNonClientDpiScaling != NULL ) {
+		ExEnableNonClientDpiScaling(GetSafeHwnd());
+
+		GetClientRect(newClient);
+
+		if ( oldClient.Width() != newClient.Width() || oldClient.Height() != newClient.Height() ) {
+			// クライアントサイズ基準でウィンドウサイズを調整
+			GetWindowRect(frame);
+			frame.right  += (oldClient.Width()  - newClient.Width());
+			frame.bottom += (oldClient.Height() - newClient.Height());
+			MoveWindow(frame, FALSE);
+		}
+	}
+
+	return 0;
 }

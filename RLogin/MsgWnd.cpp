@@ -59,7 +59,7 @@ int CMsgWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 void CMsgWnd::Message(LPCTSTR str, CWnd *pWnd, COLORREF bc)
 {
 	CString line, tmp;
-	CSize sz;
+	CSize sz, dpi;
 	CSize text(100, 40);
 	CRect rect(0, 0, 100, 40);
 	CDC *pDC = NULL;
@@ -72,14 +72,17 @@ void CMsgWnd::Message(LPCTSTR str, CWnd *pWnd, COLORREF bc)
 	if ( pWnd != NULL )
 		pWnd->GetClientRect(rect);
 
-	if ( m_hWnd != NULL )
+	if ( m_hWnd != NULL ) {
 		pDC = GetDC();
-	else if ( pWnd != NULL )
+		CDialogExt::GetActiveDpi(dpi, this, GetParent());
+	} else if ( pWnd != NULL ) {
 		pDC = pWnd->GetDC();
+		CDialogExt::GetActiveDpi(dpi, pWnd, pWnd);
+	}
 
 	if ( pDC != NULL ) {
 		m_FontSize = 25;
-		font.CreateFont(MulDiv(m_FontSize, ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY, 96), 0, 0, 0, FW_BOLD, FALSE, 0, 0, ANSI_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY, FIXED_PITCH | FF_MODERN, _T(""));
+		font.CreateFont(MulDiv(m_FontSize, dpi.cy, DEFAULT_DPI_Y), 0, 0, 0, FW_BOLD, FALSE, 0, 0, ANSI_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY, FIXED_PITCH | FF_MODERN, _T(""));
 		pOldFont = pDC->SelectObject(&font);
 	}
 
@@ -94,7 +97,7 @@ void CMsgWnd::Message(LPCTSTR str, CWnd *pWnd, COLORREF bc)
 		for ( ;  ; str++ ) {
 			if ( *str == _T('\0') || *str == _T('\n') ) {
 				sz.cx = 0;
-				sz.cy = MulDiv(30, ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY, 96);
+				sz.cy = MulDiv(30, dpi.cy, DEFAULT_DPI_Y);
 
 				while ( !line.IsEmpty() ) {
 					tmp = line;
@@ -104,8 +107,8 @@ void CMsgWnd::Message(LPCTSTR str, CWnd *pWnd, COLORREF bc)
 					if ( pDC != NULL )
 						sz = pDC->GetTextExtent(tmp);
 					else {
-						sz.cx = tmp.GetLength() * MulDiv(m_FontSize / 2, ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiX, 96);
-						sz.cy = MulDiv(m_FontSize, ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY, 96);
+						sz.cx = tmp.GetLength() * MulDiv(m_FontSize / 2, dpi.cx, DEFAULT_DPI_X);
+						sz.cy = MulDiv(m_FontSize, dpi.cy, DEFAULT_DPI_Y);
 					}
 
 					if ( sz.cx < rect.Width() )
@@ -115,7 +118,7 @@ void CMsgWnd::Message(LPCTSTR str, CWnd *pWnd, COLORREF bc)
 						m_FontSize -= 2;
 						pDC->SelectObject(pOldFont);
 						font.DeleteObject();
-						font.CreateFont(MulDiv(m_FontSize, ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY, 96), 0, 0, 0, FW_BOLD, FALSE, 0, 0, ANSI_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY, FIXED_PITCH | FF_MODERN, _T(""));
+						font.CreateFont(MulDiv(m_FontSize, dpi.cy, DEFAULT_DPI_Y), 0, 0, 0, FW_BOLD, FALSE, 0, 0, ANSI_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY, FIXED_PITCH | FF_MODERN, _T(""));
 						pOldFont = pDC->SelectObject(&font);
 					} else {
 						line.Delete(line.GetLength() - 1);
@@ -158,6 +161,10 @@ void CMsgWnd::Message(LPCTSTR str, CWnd *pWnd, COLORREF bc)
 			pWnd->ReleaseDC(pDC);
 	}
 
+	// ‚·‚±‚µ—]—T
+	text.cx = MulDiv(text.cx, 12, 10);
+	text.cy = MulDiv(text.cy, 12, 10);
+
 	rect.left = (rect.left + rect.right - text.cx) / 2; rect.right  = rect.left + text.cx;
 	rect.top  = (rect.top + rect.bottom - text.cy) / 2; rect.bottom = rect.top  + text.cy;
 
@@ -181,15 +188,16 @@ void CMsgWnd::Message(LPCTSTR str, CWnd *pWnd, COLORREF bc)
 void CMsgWnd::OnPaint()
 {
 	int x, y;
-	CSize sz;
+	CSize sz, dpi;
 	CRect rect;
 	CFont font, *pOldFont;
 	COLORREF col;
 	CPaintDC dc(this); // device context for painting
 
 	GetClientRect(rect);
+	CDialogExt::GetActiveDpi(dpi, this, GetParent());
 
-	font.CreateFont(MulDiv(m_FontSize, ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY, 96), 0, 0, 0, FW_BOLD, FALSE, 0, 0, ANSI_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY, FIXED_PITCH | FF_MODERN, _T(""));
+	font.CreateFont(MulDiv(m_FontSize, dpi.cy, DEFAULT_DPI_Y), 0, 0, 0, FW_BOLD, FALSE, 0, 0, ANSI_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY, FIXED_PITCH | FF_MODERN, _T(""));
 	pOldFont = dc.SelectObject(&font);
 
 	dc.SetBkMode(TRANSPARENT);
@@ -415,7 +423,7 @@ void CTrackWnd::OnPaint()
 	GetClientRect(rect);
 
 	CString FontName = ::AfxGetApp()->GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
-	int FontSize = MulDiv(::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9), ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY, 96);
+	int FontSize = MulDiv(::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9), SCREEN_DPI_Y, DEFAULT_DPI_Y);
 
 	font.CreateFont(0 - MulDiv(FontSize, dc.GetDeviceCaps(LOGPIXELSY), 72), 0, 0, 0, 0, FALSE, 0, 0, DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY, FIXED_PITCH | FF_MODERN, FontName);
 	pOldFont = dc.SelectObject(&font);

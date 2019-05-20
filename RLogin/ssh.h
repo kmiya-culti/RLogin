@@ -264,6 +264,11 @@ public:
 #define ED25519_PUBBYTES			32
 #define	ED25519_SIGBYTES			64
 
+#define	MAKEKEY_FIXTEXT				0
+#define	MAKEKEY_USERHOST			1
+#define	MAKEKEY_HOSTSID				2
+#define	MAKEKEY_USERSID				3
+
 //#define	USE_X509
 
 typedef struct _ed25519_key {
@@ -350,12 +355,14 @@ public:
 	int ComperePublic(CIdKey *pKey);
 	int Compere(CIdKey *pKey);
 
+	BOOL GetUserSid(CBuffer &buf);
+	BOOL GetHostSid(CBuffer &buf);
 	void GetUserHostName(CString &str);
-	void MakeKey(CBuffer *bp, LPCTSTR pass, BOOL bHost = TRUE);
-	void Decrypt(CBuffer *bp, LPCTSTR str, LPCTSTR pass = NULL, BOOL bHost = TRUE);
-	void Encrypt(CString &str, LPBYTE buf, int len, LPCTSTR pass = NULL, BOOL bHost = TRUE);
-	void DecryptStr(CString &out, LPCTSTR str, BOOL bLocalPass = FALSE);
-	void EncryptStr(CString &out, LPCTSTR str, BOOL bLocalPass = FALSE);
+	void MakeKey(CBuffer *bp, LPCTSTR pass, int Mode);
+	void Decrypt(CBuffer *bp, LPCTSTR str, LPCTSTR pass, int Mode);
+	void Encrypt(CString &str, LPBYTE buf, int len, LPCTSTR pass, int Mode);
+	void DecryptStr(CString &out, LPCTSTR str, BOOL bLocalPass = TRUE);
+	void EncryptStr(CString &out, LPCTSTR str);
 
 	void Digest(CString &out, LPCTSTR str);
 	inline void SetPass(LPCTSTR pass) { Digest(m_Hash, pass); }

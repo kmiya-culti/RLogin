@@ -28,10 +28,10 @@ public:
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート
 	virtual BOOL OnInitDialog();
+	virtual void OnCancel();
 
 protected:
 	DECLARE_MESSAGE_MAP()
-	virtual void OnCancel();
-public:
 	afx_msg HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
+	afx_msg LRESULT OnDpiChanged(WPARAM wParam, LPARAM lParam);
 };

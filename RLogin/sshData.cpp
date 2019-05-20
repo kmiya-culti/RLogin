@@ -22,6 +22,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/utime.h>
+#include <sddl.h>
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -1384,7 +1385,7 @@ int CIdKey::GetString(LPCTSTR str)
 	m_AgeantType = (stra.GetSize() > 7 ? stra.GetVal(7) : IDKEY_AGEANT_NONE);
 
 	if ( stra.GetAt(2).Compare(_T("=remove")) != 0 ) {
-		DecryptStr(tmp, stra.GetAt(2));
+		DecryptStr(tmp, stra.GetAt(2), FALSE);
 		SetPass(tmp);
 		if ( m_bHostPass ) {
 			if ( !ReadPrivateKey(m_SecBlob, tmp, m_bHostPass) )
@@ -3108,6 +3109,83 @@ int CIdKey::SetPrivateBlob(CBuffer *bp)
 	return TRUE;
 }
 
+BOOL CIdKey::GetUserSid(CBuffer &buf)
+{
+	DWORD size = 0, dsz = 0;
+	TCHAR host[MAX_COMPUTERNAME_LENGTH + 2];
+	TCHAR user[MAX_COMPUTERNAME_LENGTH + 2];
+	SID_NAME_USE snu;
+	PSID pSid = NULL;
+    LPTSTR pDomain = NULL;
+	BOOL rt = FALSE;
+
+	size = MAX_COMPUTERNAME_LENGTH;
+	if ( !GetComputerName(host, &size) )
+		return FALSE;
+
+	size = MAX_COMPUTERNAME_LENGTH;
+	if ( !GetUserName(user, &size) )
+		goto ENDOF;
+
+	LookupAccountName(host, user, NULL, &size, NULL, &dsz, &snu);
+
+	if ( size == 0 || dsz == 0 )
+		goto ENDOF;
+
+	pSid    = new BYTE[size];
+	pDomain = new TCHAR[dsz];
+
+	if ( !LookupAccountName(host, user, pSid, &size, pDomain, &dsz, &snu) )
+		goto ENDOF;
+
+	buf.Apend((LPBYTE)pSid, size);
+	rt = TRUE;
+
+ENDOF:
+	if ( pSid != NULL )
+		delete pSid;
+
+	if ( pDomain != NULL )
+		delete pDomain;
+
+	return rt;
+}
+BOOL CIdKey::GetHostSid(CBuffer &buf)
+{
+	DWORD size = 0, dsz = 0;
+	TCHAR host[MAX_COMPUTERNAME_LENGTH + 2];
+	SID_NAME_USE snu;
+	PSID pSid = NULL;
+    LPTSTR pDomain = NULL;
+	BOOL rt = FALSE;
+
+	size = MAX_COMPUTERNAME_LENGTH;
+	if ( !GetComputerName(host, &size) )
+		return FALSE;
+
+	LookupAccountName(NULL, host, NULL, &size, NULL, &dsz, &snu);
+
+	if ( size == 0 || dsz == 0 )
+		goto ENDOF;
+
+	pSid    = new BYTE[size];
+	pDomain = new TCHAR[dsz];
+
+	if ( !LookupAccountName(NULL, host, pSid, &size, pDomain, &dsz, &snu) )
+		goto ENDOF;
+
+	buf.Apend((LPBYTE)pSid, size);
+	rt = TRUE;
+
+ENDOF:
+	if ( pSid != NULL )
+		delete pSid;
+
+	if ( pDomain != NULL )
+		delete pDomain;
+
+	return rt;
+}
 void CIdKey::GetUserHostName(CString &str)
 {
 	DWORD size;
@@ -3117,12 +3195,14 @@ void CIdKey::GetUserHostName(CString &str)
 	size = MAX_COMPUTERNAME_LENGTH;
 	if ( GetUserName(buf, &size) )
 		str += buf;
+
 	str += _T("@");
 	size = MAX_COMPUTERNAME_LENGTH;
 	if ( GetComputerName(buf, &size) )
 		str += buf;
 }
-void CIdKey::MakeKey(CBuffer *bp, LPCTSTR pass, BOOL bHost)
+
+void CIdKey::MakeKey(CBuffer *bp, LPCTSTR pass, int Mode)
 {
 	CString tmp;
 	CBuffer mbs(-1);
@@ -3131,11 +3211,23 @@ void CIdKey::MakeKey(CBuffer *bp, LPCTSTR pass, BOOL bHost)
 	const EVP_MD *evp_md = EVP_sha1();
 	EVP_MD_CTX *md_ctx;
 
-	if ( bHost ) {
+	switch(Mode) {
+	case MAKEKEY_FIXTEXT:
+		mbs = "RLoginPassKey";
+		break;
+	case MAKEKEY_USERHOST:
 		GetUserHostName(tmp);
 		mbs.SetMbsStr(tmp);
-	} else
-		mbs = "RLoginPassKey";
+		break;
+	case MAKEKEY_HOSTSID:
+		if ( !GetHostSid(mbs) )
+			throw _T("GetHostSid Error");
+		break;
+	case MAKEKEY_USERSID:
+		if ( !GetUserSid(mbs) )
+			throw _T("GetUserSid Error");
+		break;
+	}
 
 	if ( pass != NULL )
 		mbs.SetMbsStr(pass);
@@ -3149,25 +3241,37 @@ void CIdKey::MakeKey(CBuffer *bp, LPCTSTR pass, BOOL bHost)
 	bp->Clear();
 	bp->Apend(digest, dlen);
 }
-void CIdKey::Decrypt(CBuffer *bp, LPCTSTR str, LPCTSTR pass, BOOL bHost)
+
+void CIdKey::Decrypt(CBuffer *bp, LPCTSTR str, LPCTSTR pass, int Mode)
 {
 	CBuffer key(-1);
 	CBuffer tmp(-1);
 	CCipher cip;
 
 	tmp.Base64Decode(str);
-	MakeKey(&key, pass, bHost);
-	cip.Init((bHost ? _T("3des") : _T("aes128-ctr")), MODE_DEC, key.GetPtr(),  (bHost ? key.GetSize() : (-1)));
+
+	MakeKey(&key, pass, Mode);
+
+	if ( Mode == MAKEKEY_USERHOST )
+		cip.Init(_T("3des"), MODE_DEC, key.GetPtr(), key.GetSize());
+	else
+		cip.Init(_T("aes128-ctr"), MODE_DEC, key.GetPtr(), (-1));
+
 	cip.Cipher(tmp.GetPtr(), tmp.GetSize(), bp);
 }
-void CIdKey::Encrypt(CString &str, LPBYTE buf, int len, LPCTSTR pass, BOOL bHost)
+void CIdKey::Encrypt(CString &str, LPBYTE buf, int len, LPCTSTR pass, int Mode)
 {
 	CBuffer key(-1);
 	CBuffer tmp(-1), out(-1), sub(-1);
 	CCipher cip;
 
-	MakeKey(&key, pass, bHost);
-	cip.Init((bHost ? _T("3des") : _T("aes128-ctr")), MODE_ENC, key.GetPtr(), (bHost ? key.GetSize() : (-1)));
+	MakeKey(&key, pass, Mode);
+
+	if ( Mode == MAKEKEY_USERHOST )
+		cip.Init(_T("3des"), MODE_ENC, key.GetPtr(), key.GetSize());
+	else
+		cip.Init(_T("aes128-ctr"), MODE_ENC, key.GetPtr(), (-1));
+
 	sub.Apend(buf, len);
 	sub.RoundUp(16);
 	cip.Cipher(sub.GetPtr(), sub.GetSize(), &tmp);
@@ -3179,22 +3283,23 @@ void CIdKey::DecryptStr(CString &out, LPCTSTR str, BOOL bLocalPass)
 	CBuffer tmp(-1);
 	LPCTSTR pass = NULL;
 
+	// bLocalPass == FALSE　は、旧形式の互換モード
 	if ( bLocalPass && !((CRLoginApp *)::AfxGetApp())->m_LocalPass.IsEmpty() )
 		pass = ((CRLoginApp *)::AfxGetApp())->m_LocalPass;
 
-	Decrypt(&tmp, str, pass);
+	Decrypt(&tmp, str, pass, (bLocalPass ? ((CRLoginApp *)::AfxGetApp())->m_MakeKeyMode : MAKEKEY_USERHOST));
 	out = (LPCSTR)tmp;
 }
-void CIdKey::EncryptStr(CString &out, LPCTSTR str, BOOL bLocalPass)
+void CIdKey::EncryptStr(CString &out, LPCTSTR str)
 {
 	CBuffer mbs(-1);
 	LPCTSTR pass = NULL;
 
-	if ( bLocalPass && !((CRLoginApp *)::AfxGetApp())->m_LocalPass.IsEmpty() )
+	if ( !((CRLoginApp *)::AfxGetApp())->m_LocalPass.IsEmpty() )
 		pass = ((CRLoginApp *)::AfxGetApp())->m_LocalPass;
 
 	mbs.SetMbsStr(str);
-	Encrypt(out, mbs.GetPtr(), mbs.GetSize(), pass);
+	Encrypt(out, mbs.GetPtr(), mbs.GetSize(), pass, ((CRLoginApp *)::AfxGetApp())->m_MakeKeyMode);
 }
 void CIdKey::Digest(CString &out, LPCTSTR str)
 {
@@ -3383,7 +3488,7 @@ int CIdKey::ReadPrivateKey(LPCTSTR str, LPCTSTR pass, BOOL bHost)
 	int nid;
 	BIGNUM *p;
 
-	Decrypt(&tmp, str, pass, bHost);
+	Decrypt(&tmp, str, pass, (bHost ? MAKEKEY_USERHOST : MAKEKEY_FIXTEXT));
 
 	type = tmp.Get8Bit();
 
@@ -3547,7 +3652,7 @@ int CIdKey::WritePrivateKey(CString &str, LPCTSTR pass)
 	}
 
 	m_bHostPass = FALSE;
-	Encrypt(str, tmp.GetPtr(), tmp.GetSize(), pass, FALSE);
+	Encrypt(str, tmp.GetPtr(), tmp.GetSize(), pass, MAKEKEY_FIXTEXT);
 	SetPass(pass);
 	m_bSecInit = TRUE;
 

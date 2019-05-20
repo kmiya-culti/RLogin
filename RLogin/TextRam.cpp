@@ -1632,14 +1632,13 @@ void CTextRam::InitText(int Width, int Height)
 	int newCols, newLines;
 	int newColsMax, newHisMax;
 	BOOL bHisInit = FALSE;
-	CMainFrame *pMain = (CMainFrame *)::AfxGetMainWnd();
 
 	if ( !m_bOpen )
 		return;
 
 	if ( IsOptEnable(TO_RLFONT) ) {
 		if ( IsOptEnable(TO_RLHIDPIFSZ) )
-			charHeight = m_DefFontSize * pMain->m_ScreenDpiY / 96;
+			charHeight = MulDiv(m_DefFontSize, SCREEN_DPI_Y, DEFAULT_DPI_Y);
 		else
 			charHeight = m_DefFontSize;
 
@@ -4298,7 +4297,7 @@ void CTextRam::EditCopy(int sps, int eps, BOOL rectflag, BOOL lineflag)
 	if ( m_RtfMode != RTF_NONE ) {
 		if ( m_RtfMode >= RTF_FONT ) {
 			if ( pView != NULL )
-				fsize = MulDiv(pView->m_CharHeight, 72, ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY);
+				fsize = MulDiv(pView->m_CharHeight, 72, SCREEN_DPI_Y);
 
 			fonttbl.Add(m_DefFontName[0]);
 			fontrtf.AddFormat("{\\fonttbl{\\f0\\fmodern %s;}", TstrToMbs(m_DefFontName[0]));

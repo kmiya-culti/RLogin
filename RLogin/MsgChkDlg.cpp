@@ -31,6 +31,7 @@ void CMsgChkDlg::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(CMsgChkDlg, CDialogExt)
 	ON_WM_CTLCOLOR()
+	ON_MESSAGE(WM_DPICHANGED, OnDpiChanged)
 END_MESSAGE_MAP()
 
 //////////////////////////////////////////////////////////////////////
@@ -40,12 +41,18 @@ BOOL CMsgChkDlg::OnInitDialog()
 {
 	CDialogExt::OnInitDialog();
 
+	CFont *pFont;
 	LOGFONT logfont;
-	CFont *pFont = m_MsgWnd.GetFont();
-	pFont->GetLogFont(&logfont);
+	
+	if ( (pFont = m_MsgWnd.GetFont()) != NULL ) {
+		pFont->GetLogFont(&logfont);
 
-	if ( m_MsgFont.CreatePointFont(MulDiv(11 * 10, ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY, 96), logfont.lfFaceName) )
-		m_MsgWnd.SetFont(&m_MsgFont);
+		logfont.lfWidth  = logfont.lfWidth  * 11 / 9;
+		logfont.lfHeight = logfont.lfHeight * 11 / 9;
+
+		if ( m_MsgFont.CreateFontIndirect(&logfont) )
+			m_MsgWnd.SetFont(&m_MsgFont);
+	}
 
 	m_BkBrush.CreateSolidBrush(RGB(255, 255, 255));
 
@@ -77,4 +84,31 @@ HBRUSH CMsgChkDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 	}
 
 	return hbr;
+}
+
+LRESULT CMsgChkDlg::OnDpiChanged(WPARAM wParam, LPARAM lParam)
+{
+	LRESULT result = CDialogExt::OnDpiChanged(wParam, lParam);
+
+	CFont *pFont;
+	LOGFONT logfont;
+	
+	if ( (pFont = m_MsgWnd.GetFont()) != NULL ) {
+		pFont->GetLogFont(&logfont);
+
+		if ( pFont->GetSafeHandle() != m_MsgFont.GetSafeHandle() ) {
+			logfont.lfWidth  = logfont.lfWidth  * 11 / 9;
+			logfont.lfHeight = logfont.lfHeight * 11 / 9;
+		}
+
+		if ( m_MsgFont.GetSafeHandle() != NULL )
+			m_MsgFont.DeleteObject();
+
+		if ( m_MsgFont.CreateFontIndirect(&logfont) )
+			m_MsgWnd.SetFont(&m_MsgFont);
+
+		Invalidate(TRUE);
+	}
+
+	return result;
 }

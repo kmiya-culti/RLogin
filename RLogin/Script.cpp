@@ -7075,7 +7075,7 @@ int CTempWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	if ( (n = (int)m_pValue->GetAt("FontPoint")) < 10 )
 		n = 90;
-	m_Font.CreatePointFont(MulDiv(n, ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY, 96), (LPCTSTR)(m_pValue->GetAt("FontName")));
+	m_Font.CreatePointFont(MulDiv(n, SCREEN_DPI_Y, DEFAULT_DPI_Y), (LPCTSTR)(m_pValue->GetAt("FontName")));
 	SetFont(&m_Font, FALSE);
 
 	for ( n = 0 ; n < sp->GetSize() ; n++ ) {

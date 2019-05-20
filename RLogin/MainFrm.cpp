@@ -955,6 +955,9 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	if (CMDIFrameWnd::OnCreate(lpCreateStruct) == -1)
 		return -1;
 
+	if ( ExEnableNonClientDpiScaling != NULL )
+		ExEnableNonClientDpiScaling(GetSafeHwnd());
+
 	// キャラクタービットマップの読み込み
 #if		USE_GOZI == 1 || USE_GOZI == 2
 	((CRLoginApp *)::AfxGetApp())->LoadResBitmap(MAKEINTRESOURCE(IDB_BITMAP8), BitMap);
@@ -981,7 +984,7 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	// ツール・ステータス・タブ　バーの作成
 	if ( !m_wndToolBar.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT,
 			WS_CHILD | WS_VISIBLE | CBRS_TOP | /*CBRS_GRIPPER | */CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC) ||
-		!((CRLoginApp *)::AfxGetApp())->LoadResToolBar(MAKEINTRESOURCE(IDR_MAINFRAME), m_wndToolBar) ) {
+		!((CRLoginApp *)::AfxGetApp())->LoadResToolBar(MAKEINTRESOURCE(IDR_MAINFRAME), m_wndToolBar, this) ) {
 		TRACE0("Failed to create toolbar\n");
 		return -1;      // 作成に失敗
 	}
@@ -2588,7 +2591,7 @@ LRESULT CMainFrame::OnDpiChanged(WPARAM wParam, LPARAM lParam)
 	m_ScreenDpiY = HIWORD(wParam);
 
 	m_wndTabBar.FontSizeCheck();
-	((CRLoginApp *)::AfxGetApp())->LoadResToolBar(MAKEINTRESOURCE(IDR_MAINFRAME), m_wndToolBar);
+	((CRLoginApp *)::AfxGetApp())->LoadResToolBar(MAKEINTRESOURCE(IDR_MAINFRAME), m_wndToolBar, this);
 
 	RecalcLayout(FALSE);
 
@@ -3661,7 +3664,7 @@ void CMainFrame::OnToolcust()
 	if ( dlg.DoModal() != IDOK )
 		return;
 
-	((CRLoginApp *)::AfxGetApp())->LoadResToolBar(MAKEINTRESOURCE(IDR_MAINFRAME), m_wndToolBar);
+	((CRLoginApp *)::AfxGetApp())->LoadResToolBar(MAKEINTRESOURCE(IDR_MAINFRAME), m_wndToolBar, this);
 
 	// ツールバーの再表示
 	RecalcLayout(FALSE);

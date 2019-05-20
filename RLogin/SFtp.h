@@ -388,6 +388,7 @@ protected:
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 	afx_msg LRESULT OnReceiveBuffer(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnThreadEndof(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnDpiChanged(WPARAM wParam, LPARAM lParam);
 	afx_msg void OnLocalUp();
 	afx_msg void OnRemoteUp();
 	afx_msg void OnSftpDelete();

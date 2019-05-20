@@ -49,4 +49,5 @@ protected:
 	afx_msg void OnStatusCopy();
 	afx_msg void OnFilePrintSetup();
 	afx_msg void OnFilePrint();
+	afx_msg LRESULT OnDpiChanged(WPARAM wParam, LPARAM lParam);
 };

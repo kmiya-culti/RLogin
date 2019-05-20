@@ -43,7 +43,21 @@ public:
 	~CGifAnime();
 };
 
-class CHistogram : public CFrameWnd
+class CFrameWndExt : public CFrameWnd
+{
+	DECLARE_DYNAMIC(CFrameWndExt)
+
+public:
+	CFrameWndExt();
+	virtual~CFrameWndExt();
+
+protected:
+	DECLARE_MESSAGE_MAP()
+	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
+	afx_msg LRESULT OnDpiChanged(WPARAM wParam, LPARAM lParam);
+};
+
+class CHistogram : public CFrameWndExt
 {
 	DECLARE_DYNAMIC(CHistogram)
 
@@ -61,16 +75,16 @@ public:
 	CHistogram();
 	virtual ~CHistogram();
 
-protected:
-	DECLARE_MESSAGE_MAP()
-
 public:
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
+
+protected:
+	DECLARE_MESSAGE_MAP()
 	afx_msg void OnPaint();
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 };
 
-class CGrapWnd : public CFrameWnd
+class CGrapWnd : public CFrameWndExt
 {
 	DECLARE_DYNAMIC(CGrapWnd)
 
@@ -256,14 +270,13 @@ public:
 	CGrapWnd(class CTextRam *pTextRam);
 	virtual ~CGrapWnd();
 
-protected:
-	DECLARE_MESSAGE_MAP()
-
 public:
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	virtual void PostNcDestroy();
 
+protected:
+	DECLARE_MESSAGE_MAP()
 	afx_msg void OnDestroy();
 	afx_msg void OnPaint();
 	afx_msg void OnGrapClose();

@@ -8,9 +8,43 @@
 #include "RLoginView.h"
 #include "GrapWnd.h"
 
+// CFrameWndExt
+
+IMPLEMENT_DYNAMIC(CFrameWndExt, CFrameWnd)
+
+CFrameWndExt::CFrameWndExt()
+{
+}
+CFrameWndExt::~CFrameWndExt()
+{
+}
+
+BEGIN_MESSAGE_MAP(CFrameWndExt, CFrameWnd)
+	ON_WM_CREATE()
+	ON_MESSAGE(WM_DPICHANGED, OnDpiChanged)
+END_MESSAGE_MAP()
+
+int CFrameWndExt::OnCreate(LPCREATESTRUCT lpCreateStruct)
+{
+	if (CFrameWnd::OnCreate(lpCreateStruct) == -1)
+		return -1;
+
+	if ( ExEnableNonClientDpiScaling != NULL )
+		ExEnableNonClientDpiScaling(GetSafeHwnd());
+
+	return 0;
+}
+
+LRESULT CFrameWndExt::OnDpiChanged(WPARAM wParam, LPARAM lParam)
+{
+	MoveWindow((RECT *)lParam, TRUE);
+
+	return TRUE;
+}
+
 // CGrapWnd
 
-IMPLEMENT_DYNAMIC(CGrapWnd, CFrameWnd)
+IMPLEMENT_DYNAMIC(CGrapWnd, CFrameWndExt)
 
 CGrapWnd::CGrapWnd(class CTextRam *pTextRam)
 {
@@ -46,7 +80,7 @@ CGrapWnd::~CGrapWnd()
 		delete [] m_ColAlpha;
 }
 
-BEGIN_MESSAGE_MAP(CGrapWnd, CFrameWnd)
+BEGIN_MESSAGE_MAP(CGrapWnd, CFrameWndExt)
 	ON_WM_DESTROY()
 	ON_WM_PAINT()
 	ON_COMMAND(IDM_TEK_CLOSE, &CGrapWnd::OnGrapClose)
@@ -73,7 +107,7 @@ BOOL CGrapWnd::PreCreateWindow(CREATESTRUCT& cs)
 //	cs.hwndParent = ::AfxGetMainWnd()->m_hWnd;
 	cs.hwndParent = CWnd::GetDesktopWindow()->m_hWnd;
 
-	return CFrameWnd::PreCreateWindow(cs);
+	return CFrameWndExt::PreCreateWindow(cs);
 }
 void CGrapWnd::PostNcDestroy()
 {
@@ -100,7 +134,7 @@ BOOL CGrapWnd::PreTranslateMessage(MSG* pMsg)
 		return TRUE;
 	}
 
-	return CFrameWnd::PreTranslateMessage(pMsg);
+	return CFrameWndExt::PreTranslateMessage(pMsg);
 }
 
 void CGrapWnd::OnDestroy()
@@ -114,7 +148,7 @@ void CGrapWnd::OnDestroy()
 		AfxGetApp()->WriteProfileInt(_T("GrapWnd"), _T("cy"), rect.Height());
 	}
 
-	CFrameWnd::OnDestroy();
+	CFrameWndExt::OnDestroy();
 }
 void CGrapWnd::OnPaint()
 {
@@ -333,7 +367,7 @@ void CGrapWnd::DrawBlock(CDC *pDC, LPCRECT pRect, COLORREF bc, BOOL bEraBack, in
 BOOL CGrapWnd::OnEraseBkgnd(CDC* pDC)
 {
 	return FALSE;
-//	return CFrameWnd::OnEraseBkgnd(pDC);
+//	return CFrameWndExt::OnEraseBkgnd(pDC);
 }
 
 void CGrapWnd::OnGrapClose()
@@ -3646,9 +3680,9 @@ CHistogram::~CHistogram()
 	}
 }
 
-IMPLEMENT_DYNAMIC(CHistogram, CFrameWnd)
+IMPLEMENT_DYNAMIC(CHistogram, CFrameWndExt)
 
-BEGIN_MESSAGE_MAP(CHistogram, CFrameWnd)
+BEGIN_MESSAGE_MAP(CHistogram, CFrameWndExt)
 	ON_WM_PAINT()
 	ON_WM_TIMER()
 END_MESSAGE_MAP()
@@ -3780,7 +3814,7 @@ BOOL CHistogram::PreCreateWindow(CREATESTRUCT& cs)
 	cs.cx = 500;
 	cs.cy = 300;
 
-	return CFrameWnd::PreCreateWindow(cs);
+	return CFrameWndExt::PreCreateWindow(cs);
 }
 
 void CHistogram::OnTimer(UINT_PTR nIDEvent)
@@ -3790,5 +3824,5 @@ void CHistogram::OnTimer(UINT_PTR nIDEvent)
 
 	Invalidate(FALSE);
 
-	CFrameWnd::OnTimer(nIDEvent);
+	CFrameWndExt::OnTimer(nIDEvent);
 }

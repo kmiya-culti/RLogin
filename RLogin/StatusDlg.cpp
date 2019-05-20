@@ -44,6 +44,7 @@ BEGIN_MESSAGE_MAP(CStatusDlg, CDialogExt)
 	ON_COMMAND(ID_EDIT_COPY, &CStatusDlg::OnStatusCopy)
 	ON_COMMAND(ID_FILE_PRINT_SETUP, &CStatusDlg::OnFilePrintSetup)
 	ON_COMMAND(ID_FILE_PRINT, &CStatusDlg::OnFilePrint)
+	ON_MESSAGE(WM_DPICHANGED, OnDpiChanged)
 END_MESSAGE_MAP()
 
 // CStatusDlg メッセージ ハンドラ
@@ -62,7 +63,7 @@ BOOL CStatusDlg::OnInitDialog()
 		SetWindowText(m_Title);
 
 	if ( (pWnd = GetDlgItem(IDC_EDIT1)) != NULL && m_StatusFont.CreatePointFont(
-			MulDiv(9 * 10, ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY, 96), _T("Consolas")) )
+			MulDiv(9 * 10, m_NowDpi.cy, DEFAULT_DPI_Y), _T("Consolas")) )
 		pWnd->SetFont(&m_StatusFont);
 
 	m_StatusWnd.SetWindowText(m_StatusText);
@@ -326,4 +327,19 @@ void CStatusDlg::OnFilePrint()
 	dc.SelectObject(pOldFont);
 
 	dc.Detach();
+}
+
+LRESULT CStatusDlg::OnDpiChanged(WPARAM wParam, LPARAM lParam)
+{
+	LRESULT result = CDialogExt::OnDpiChanged(wParam, lParam);
+	CWnd *pWnd;
+
+	if ( (pWnd = GetDlgItem(IDC_EDIT1)) != NULL ) {
+		if ( m_StatusFont.GetSafeHandle() != NULL )
+			m_StatusFont.DeleteObject();
+		if ( m_StatusFont.CreatePointFont(MulDiv(9 * 10, m_NowDpi.cy, DEFAULT_DPI_Y), _T("Consolas")) )
+			pWnd->SetFont(&m_StatusFont);
+	}
+
+	return result;
 }

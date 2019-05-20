@@ -573,17 +573,16 @@ CRLoginApp::CRLoginApp()
 	m_bUseIdle = FALSE;
 
 	m_TempSeqId = 0;
-
 	m_bRegistAppp = FALSE;
+	m_MakeKeyMode = MAKEKEY_USERHOST;
 }
 
 //////////////////////////////////////////////////////////////////////
 // 唯一の CRLoginApp オブジェクトです。
 
-CRLoginApp theApp;
+	CRLoginApp theApp;
 
 	BOOL ExDwmEnable = FALSE;
-
 #ifdef	USE_DWMAPI
 	HMODULE ExDwmApi = NULL;
 	HRESULT (__stdcall *ExDwmIsCompositionEnabled)(BOOL * pfEnabled) = NULL;
@@ -591,15 +590,21 @@ CRLoginApp theApp;
 	HRESULT (__stdcall *ExDwmExtendFrameIntoClientArea)(HWND hWnd, const MARGINS* pMarInset) = NULL;
 #endif
 	
-	HMODULE ExClipApi = NULL;
+	HMODULE ExUserApi = NULL;
 	BOOL (__stdcall *ExAddClipboardFormatListener)(HWND hwnd) = NULL;
 	BOOL (__stdcall *ExRemoveClipboardFormatListener)(HWND hwnd) = NULL;
+	UINT (__stdcall *ExGetDpiForSystem)() = NULL;
+	HRESULT (__stdcall *ExSetProcessDpiAwareness)(PROCESS_DPI_AWARENESS value) = NULL;
+	DPI_AWARENESS_CONTEXT (__stdcall *ExSetThreadDpiAwarenessContext)(DPI_AWARENESS_CONTEXT dpiContext) = NULL;
+	BOOL (__stdcall *ExEnableNonClientDpiScaling)(HWND hwnd) = NULL;
+	UINT GlobalSystemDpi = 96;
 
 #ifdef	USE_RCDLL
 	HMODULE ExRcDll = NULL;
 #endif
 
 	HMODULE ExShcoreApi = NULL;
+	UINT (__stdcall *ExGetDpiForWindow)(HWND hwnd) = NULL;
 	HRESULT (__stdcall *ExGetDpiForMonitor)(HMONITOR hmonitor, MONITOR_DPI_TYPE dpiType, UINT *dpiX, UINT *dpiY) = NULL;
 
 #ifdef	USE_DIRECTWRITE
@@ -822,7 +827,7 @@ BOOL CRLoginApp::InitLocalPass()
 		}
 
 		key.Digest(m_LocalPass, dlg.m_Edit);
-		key.DecryptStr(tmp, passok, TRUE);
+		key.DecryptStr(tmp, passok);
 
 		if ( tmp.Compare(_T("01234567")) == 0 )
 			return TRUE;
@@ -1052,14 +1057,26 @@ BOOL CRLoginApp::InitInstance()
 #endif
 
 	// クリップボードチェインライブラリを取得
-	if ( (ExClipApi = LoadLibrary(_T("User32.dll"))) != NULL ) {
-		ExAddClipboardFormatListener    = (BOOL (__stdcall *)(HWND hwnd))GetProcAddress(ExClipApi, "AddClipboardFormatListener");
-		ExRemoveClipboardFormatListener = (BOOL (__stdcall *)(HWND hwnd))GetProcAddress(ExClipApi, "RemoveClipboardFormatListener");
+	if ( (ExUserApi = LoadLibrary(_T("User32.dll"))) != NULL ) {
+		ExAddClipboardFormatListener    = (BOOL (__stdcall *)(HWND hwnd))GetProcAddress(ExUserApi, "AddClipboardFormatListener");
+		ExRemoveClipboardFormatListener = (BOOL (__stdcall *)(HWND hwnd))GetProcAddress(ExUserApi, "RemoveClipboardFormatListener");
+		ExGetDpiForSystem               = (UINT (__stdcall *)())GetProcAddress(ExUserApi, "GetDpiForSystem");
+		ExGetDpiForWindow               = (UINT (__stdcall *)(HWND hwnd))GetProcAddress(ExUserApi, "GetDpiForWindow");
+		ExEnableNonClientDpiScaling     = (BOOL (__stdcall *)(HWND hwnd))GetProcAddress(ExUserApi, "EnableNonClientDpiScaling");
+		ExSetThreadDpiAwarenessContext  = (DPI_AWARENESS_CONTEXT (__stdcall *)(DPI_AWARENESS_CONTEXT dpiContext))GetProcAddress(ExUserApi, "SetThreadDpiAwarenessContext");
 	}
 
 	// モニターDPIのライブラリを取得
-	if ( (ExShcoreApi = LoadLibrary(_T("Shcore.dll"))) != NULL )
-		ExGetDpiForMonitor = (HRESULT (__stdcall *)(HMONITOR hmonitor, MONITOR_DPI_TYPE dpiType, UINT *dpiX, UINT *dpiY))GetProcAddress(ExShcoreApi, "GetDpiForMonitor");
+	if ( (ExShcoreApi = LoadLibrary(_T("Shcore.dll"))) != NULL ) {
+		ExGetDpiForMonitor             = (HRESULT (__stdcall *)(HMONITOR hmonitor, MONITOR_DPI_TYPE dpiType, UINT *dpiX, UINT *dpiY))GetProcAddress(ExShcoreApi, "GetDpiForMonitor");
+		ExSetProcessDpiAwareness       = (HRESULT (__stdcall *)(PROCESS_DPI_AWARENESS value))GetProcAddress(ExShcoreApi, "SetProcessDpiAwareness");
+	}
+
+	// System DPIの取得（念の為に０以下をチェック)
+	if ( ExGetDpiForSystem != NULL ) {
+		if ( (GlobalSystemDpi = ExGetDpiForSystem()) <= 0 )
+			GlobalSystemDpi = 96;
+	}
 
 #ifdef	USE_DIRECTWRITE
 	// DirectWriteを試す
@@ -1093,6 +1110,9 @@ BOOL CRLoginApp::InitInstance()
 	if ( FAILED(CoCreateInstance(CLSID_SpVoice, NULL, CLSCTX_ALL, IID_ISpVoice, (void **)&m_pVoice)) )
 		m_pVoice = NULL;
 #endif
+
+	// レジストリに保存するパスワードの暗号キーを選択
+	m_MakeKeyMode = GetProfileInt(_T("RLoginApp"), _T("MakeKeyMode"), MAKEKEY_USERHOST);
 
 	// アプリケーション用のドキュメント テンプレートを登録します。ドキュメント テンプレート
 	//  はドキュメント、フレーム ウィンドウとビューを結合するために機能します。
@@ -1268,8 +1288,8 @@ int CRLoginApp::ExitInstance()
 	if ( ExShcoreApi != NULL )
 		FreeLibrary(ExShcoreApi);
 
-	if ( ExClipApi != NULL )
-		FreeLibrary(ExClipApi);
+	if ( ExUserApi != NULL )
+		FreeLibrary(ExUserApi);
 
 #ifdef	USE_RCDLL
 	if ( ExRcDll != NULL )
@@ -1654,7 +1674,7 @@ BOOL CRLoginApp::OnIsOpenRLogin(COPYDATASTRUCT *pCopyData)
 	}
 
 	str.Format(_T("TEST%s"), m_LocalPass);
-	key.Encrypt(tmp, (LPBYTE)(str.GetBuffer()), ((str.GetLength() + 1) * sizeof(TCHAR)), m_PathName, TRUE);
+	key.Encrypt(tmp, (LPBYTE)(str.GetBuffer()), ((str.GetLength() + 1) * sizeof(TCHAR)), m_PathName, MAKEKEY_USERHOST);
 	_tcsncpy(pData, tmp, 1024);
 
 	UnmapViewOfFile(pData);
@@ -1688,7 +1708,7 @@ BOOL CRLoginApp::IsOpenRLogin()
 	if ( (pData = (TCHAR *)MapViewOfFile(hHandle, FILE_MAP_READ, 0, 0, 0)) == NULL )
 		goto ENDOF;
 
-	key.Decrypt(&tmp, pData, m_PathName, TRUE);
+	key.Decrypt(&tmp, pData, m_PathName, MAKEKEY_USERHOST);
 	if ( _tcsncmp((LPCTSTR)tmp, _T("TEST"), 4) != 0 )
 		goto ENDOF;
 
@@ -2982,7 +3002,7 @@ void CRLoginApp::OnPassLock()
 			return;
 
 		key.Digest(m_LocalPass, dlg.m_Edit);
-		key.EncryptStr(passok, _T("01234567"), TRUE);
+		key.EncryptStr(passok, _T("01234567"));
 
 		WriteProfileString(_T("RLoginApp"), _T("LocalPass"), passok);
 
@@ -3037,7 +3057,6 @@ void CRLoginApp::OnSaveregfile()
 	if ( !SaveRegistryFile() )
 		::AfxMessageBox(_T("Can't Save Registry File"));
 }
-
 void CRLoginApp::OnUpdateSaveregfile(CCmdUI *pCmdUI)
 {
 	pCmdUI->Enable(m_pszRegistryKey != NULL ? TRUE : FALSE);

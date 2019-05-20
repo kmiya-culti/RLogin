@@ -1030,7 +1030,7 @@ void CResToolBarBase::Serialize(int mode, class CBuffer &buf)
 		}
 	}
 }
-BOOL CResToolBarBase::SetToolBar(CToolBar &ToolBar)
+BOOL CResToolBarBase::SetToolBar(CToolBar &ToolBar, CWnd *pWnd)
 {
 	int n, i, max, num;
 	int width, height;
@@ -1042,7 +1042,7 @@ BOOL CResToolBarBase::SetToolBar(CToolBar &ToolBar)
 	BITMAP mapinfo;
 	CFont font, *pOldFont;
 	CString str;
-	CSize sz;
+	CSize sz, dpi;
 
 	// ItemƒŠƒXƒg‚ðì¬ WORD != UINT ?
 	pNewTab = new UINT[(int)m_Item.GetSize()];
@@ -1066,8 +1066,9 @@ BOOL CResToolBarBase::SetToolBar(CToolBar &ToolBar)
 		width  = m_Width;
 		height = m_Height;
 	} else {
-		width  = MulDiv(m_Width,  ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiX, 96);
-		height = MulDiv(m_Height, ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY, 96);
+		CDialogExt::GetActiveDpi(dpi, pWnd, pWnd);
+		width  = MulDiv(m_Width,  dpi.cx, DEFAULT_DPI_X);
+		height = MulDiv(m_Height, dpi.cy, DEFAULT_DPI_Y);
 	}
 
 	ToolBar.SetSizes(CSize(width + 7, height + 8), CSize(width, height));
@@ -1942,7 +1943,7 @@ BOOL CResDataBase::LoadResString(LPCTSTR lpszName, CString &str)
 
 	return FALSE;
 }
-BOOL CResDataBase::LoadResToolBar(LPCTSTR lpszName, CToolBar &ToolBar)
+BOOL CResDataBase::LoadResToolBar(LPCTSTR lpszName, CToolBar &ToolBar, CWnd *pWnd)
 {
 	int n;
 
@@ -1951,7 +1952,7 @@ BOOL CResDataBase::LoadResToolBar(LPCTSTR lpszName, CToolBar &ToolBar)
 			return FALSE;
 	}
 
-	return m_ToolBar[n].SetToolBar(ToolBar);
+	return m_ToolBar[n].SetToolBar(ToolBar, pWnd);
 }
 BOOL CResDataBase::LoadResBitmap(LPCTSTR lpszName, CBitmap &Bitmap)
 {

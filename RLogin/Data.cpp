@@ -3490,7 +3490,7 @@ void CServerEntry::GetArray(CStringArrayExt &stra)
 	m_HostName  = stra.GetAt(1);
 	m_PortName  = stra.GetAt(2);
 	m_UserName  = stra.GetAt(3);
-	key.DecryptStr(m_PassName, stra.GetAt(4), TRUE);
+	key.DecryptStr(m_PassName, stra.GetAt(4));
 	m_TermName  = stra.GetAt(5);
 	m_IdkeyName = stra.GetAt(6);
 	m_KanjiCode = stra.GetVal(7);
@@ -3509,13 +3509,13 @@ void CServerEntry::GetArray(CStringArrayExt &stra)
 		m_ProxyHost = stra.GetAt(12);
 		m_ProxyPort = stra.GetAt(13);
 		m_ProxyUser = stra.GetAt(14);
-		key.DecryptStr(m_ProxyPass, stra.GetAt(15), TRUE);
+		key.DecryptStr(m_ProxyPass, stra.GetAt(15));
 	}
 
 	m_bPassOk = TRUE;
 
 	if ( stra.GetSize() > 16 ) {
-		key.DecryptStr(str, stra.GetAt(16), TRUE);
+		key.DecryptStr(str, stra.GetAt(16));
 		if ( str.Compare(_T("12345678")) != 0 ) {
 			m_PassName.Empty();
 			m_ProxyPass.Empty();
@@ -3555,7 +3555,7 @@ void CServerEntry::SetArray(CStringArrayExt &stra)
 	stra.Add(m_HostNameProvs);
 	stra.Add(m_PortNameProvs);
 	stra.Add(m_UserNameProvs);
-	key.EncryptStr(str, m_PassNameProvs, TRUE);
+	key.EncryptStr(str, m_PassNameProvs);
 	stra.Add(str);
 	stra.Add(m_TermName);
 	stra.Add(m_IdkeyName);
@@ -3568,9 +3568,9 @@ void CServerEntry::SetArray(CStringArrayExt &stra)
 	stra.Add(m_ProxyHostProvs);
 	stra.Add(m_ProxyPortProvs);
 	stra.Add(m_ProxyUserProvs);
-	key.EncryptStr(str, m_ProxyPassProvs, TRUE);
+	key.EncryptStr(str, m_ProxyPassProvs);
 	stra.Add(str);
-	key.EncryptStr(str, _T("12345678"), TRUE);
+	key.EncryptStr(str, _T("12345678"));
 	stra.Add(str);
 	stra.Add(m_Memo);
 	stra.Add(m_Group);
@@ -3811,7 +3811,7 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 		index[_T("IdKey")] = m_IdkeyName;
 
 		pass.Format(_T("TEST%s"), m_PassNameProvs);
-		key.EncryptStr(str, pass, TRUE);
+		key.EncryptStr(str, pass);
 		index[_T("Pass")]  = str;
 
 		index[_T("CharSet")]  = GetKanjiCode();
@@ -3826,7 +3826,7 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 		index[_T("Proxy")][_T("User")] = m_ProxyUserProvs;
 
 		pass.Format(_T("TEST%s"), m_ProxyPassProvs);
-		key.EncryptStr(str, pass, TRUE);
+		key.EncryptStr(str, pass);
 		index[_T("Proxy")][_T("Pass")] = str;
 
 		index[_T("Script")][_T("File")] = m_ScriptFile;
@@ -3858,7 +3858,7 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 		m_bPassOk = TRUE;
 
 		if ( (n = index.Find(_T("Pass"))) >= 0 ) {
-			key.DecryptStr(str, index[n], TRUE);
+			key.DecryptStr(str, index[n]);
 			if ( str.Left(4).Compare(_T("TEST")) == 0 )
 				m_PassName = str.Mid(4);
 			else
@@ -3885,7 +3885,7 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 			if ( (i = index[n].Find(_T("User"))) >= 0 )
 				m_ProxyUser = index[n][i];
 			if ( (i = index[n].Find(_T("Pass"))) >= 0 ) {
-				key.DecryptStr(str, index[n][i], TRUE);
+				key.DecryptStr(str, index[n][i]);
 				if ( str.Left(4).Compare(_T("TEST")) == 0 )
 					m_ProxyPass = str.Mid(4);
 				else
@@ -3952,7 +3952,7 @@ void CServerEntry::DiffIndex(CServerEntry &orig, CStringIndex &index)
 
 	if ( m_PassNameProvs.Compare(orig.m_PassNameProvs) != 0 ) {
 		pass.Format(_T("TEST%s"), m_PassNameProvs);
-		key.EncryptStr(str, pass, TRUE);
+		key.EncryptStr(str, pass);
 		index[_T("Pass")]  = str;
 	}
 
@@ -3982,7 +3982,7 @@ void CServerEntry::DiffIndex(CServerEntry &orig, CStringIndex &index)
 
 	if ( m_ProxyPassProvs.Compare(orig.m_ProxyPassProvs) != 0 ) {
 		pass.Format(_T("TEST%s"), m_PassNameProvs);
-		key.EncryptStr(str, pass, TRUE);
+		key.EncryptStr(str, pass);
 		index[_T("Pass")]  = str;
 	}
 
@@ -6125,7 +6125,7 @@ void CParamTab::GetArray(CStringArrayExt &stra)
 
 	for ( n = 0 ; n < 9 ; n++ ) {
 		if ( (n % 3) == 2 )
-			key.DecryptStr(m_IdKeyStr[n], stra.GetAt(i++));
+			key.DecryptStr(m_IdKeyStr[n], stra.GetAt(i++), FALSE);
 		else
 			m_IdKeyStr[n] = stra.GetAt(i++);
 	}

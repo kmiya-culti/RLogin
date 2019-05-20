@@ -281,8 +281,8 @@
 #define IDE_XMSSBITSIZECHECK            738
 #define IDE_REGISTRYDELETEERROR         739
 #define IDE_ENTRYUPDATEEERROR           740
-#define	IDE_OPTFIXDEEPENTRY             741
-#define	IDE_OPTFIXNOTFOUND              742
+#define IDE_OPTFIXDEEPENTRY             741
+#define IDE_OPTFIXNOTFOUND              742
 #define IDT_EXTOPT_LIST01               800
 #define IDT_EXTOPT_LIST02               801
 #define IDT_EXTOPT_LIST03               802
@@ -950,6 +950,9 @@
 #define IDC_DEFCONF                     2490
 #define IDC_SERVERTREE                  2491
 #define IDC_EDITCTRL                    2492
+#define IDC_CTRLTITLE1                  2493
+#define IDC_CTRLTITLE2                  2494
+#define IDC_CTRLTITLE3                  2495
 #define IDM_BROADCAST                   5000
 #define IDM_CAP_CLIPBORD                5001
 #define IDM_CAP_EXPORT                  5002
@@ -1083,7 +1086,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        171
 #define _APS_NEXT_COMMAND_VALUE         5137
-#define _APS_NEXT_CONTROL_VALUE         2493
+#define _APS_NEXT_CONTROL_VALUE         2496
 #define _APS_NEXT_SYMED_VALUE           637
 #endif
 #endif

@@ -2626,6 +2626,7 @@ BEGIN_MESSAGE_MAP(CSFtp, CDialogExt)
 
 	ON_MESSAGE(WM_RECIVEBUFFER, OnReceiveBuffer)
 	ON_MESSAGE(WM_THREADENDOF, OnThreadEndof)
+	ON_MESSAGE(WM_DPICHANGED, OnDpiChanged)
 
 	ON_COMMAND(IDM_SFTP_CLOSE, OnSftpClose)
 	ON_COMMAND(IDM_SFTP_DELETE, OnSftpDelete)
@@ -2660,7 +2661,6 @@ BEGIN_MESSAGE_MAP(CSFtp, CDialogExt)
 
 	ON_NOTIFY_EX_RANGE(TTN_NEEDTEXTW, 0, 0xFFFF, OnToolTipText)
 	ON_NOTIFY_EX_RANGE(TTN_NEEDTEXTA, 0, 0xFFFF, OnToolTipText)
-
 END_MESSAGE_MAP()
 
 static const INITDLGTAB ItemTab[] = {
@@ -2812,7 +2812,7 @@ BOOL CSFtp::OnInitDialog()
 	};
 
 	if ( !m_wndToolBar.CToolBar::CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT, WS_CHILD | WS_VISIBLE | CBRS_TOP | CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC) ||
-		!((CRLoginApp *)::AfxGetApp())->LoadResToolBar(MAKEINTRESOURCE(IDR_SFTPTOOL), m_wndToolBar) )
+		!((CRLoginApp *)::AfxGetApp())->LoadResToolBar(MAKEINTRESOURCE(IDR_SFTPTOOL), m_wndToolBar, this) )
 		MessageBox(_T("Failed to create toolbar"));
 
 	RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST,0, reposQuery, rect);
@@ -3838,4 +3838,21 @@ void CSFtp::OnEditPaste()
 	DropFiles(pWnd->GetSafeHwnd(), hData, DROPEFFECT_COPY);
 
 	CloseClipboard();
+}
+
+LRESULT CSFtp::OnDpiChanged(WPARAM wParam, LPARAM lParam)
+{
+	CRect rect;
+	LRESULT result = CDialogExt::OnDpiChanged(wParam, lParam);
+
+	((CRLoginApp *)::AfxGetApp())->LoadResToolBar(MAKEINTRESOURCE(IDR_SFTPTOOL), m_wndToolBar, this);
+
+	RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST,0, reposQuery, rect);
+	m_ToolBarOfs = rect.top;
+	RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
+
+	GetClientRect(rect);
+	SetItemOffset(ItemTab, rect.Width(), rect.Height(), m_ToolBarOfs);
+
+	return result;
 }

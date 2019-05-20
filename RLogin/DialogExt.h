@@ -63,12 +63,12 @@ public:
 	void InitItemOffset(const INITDLGTAB *pTab);
 	void SetItemOffset(const INITDLGTAB *pTab, int cx, int cy, int oy = 0);
 	void SetBackColor(COLORREF color);
-	void GetActiveDpi(CSize &dpi, CWnd *pParent);
 	inline BOOL IsDefineFont() { return (m_FontName.IsEmpty() ? FALSE : TRUE); }
 	BOOL GetSizeAndText(SIZE *pSize, CString &title, CWnd *pParent);
 	void AddShortCutKey(UINT MsgID, UINT KeyCode, UINT KeyWith, UINT CtrlID, WPARAM wParam);
 	void SubclassComboBox(int nID);
 
+	static void GetActiveDpi(CSize &dpi, CWnd *pWnd, CWnd *pParent);
 	static BOOL IsDialogExt(CWnd *pWnd);
 
 // オーバーライド
@@ -80,6 +80,7 @@ public:
 
 protected:
 	DECLARE_MESSAGE_MAP()
+	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
 	afx_msg LRESULT OnKickIdle(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnDpiChanged(WPARAM wParam, LPARAM lParam);

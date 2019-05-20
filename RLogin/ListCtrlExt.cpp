@@ -24,8 +24,8 @@ CListCtrlExt::CListCtrlExt()
 	m_EditSubItem = 0;
 	m_bSort = TRUE;
 	m_bMove = FALSE;
-	m_Dpi.cx = 96;
-	m_Dpi.cy = 96;
+	m_Dpi.cx = DEFAULT_DPI_X;
+	m_Dpi.cy = DEFAULT_DPI_Y;
 }
 CListCtrlExt::~CListCtrlExt()
 {
@@ -116,15 +116,12 @@ void CListCtrlExt::InitColumn(LPCTSTR lpszSection, const LV_COLUMN *lpColumn, in
 	if ( CDialogExt::IsDialogExt(pParent) ) {
 		m_Dpi.cx = pParent->m_NowDpi.cx;
 		m_Dpi.cy = pParent->m_NowDpi.cy;
-	} else {
-		m_Dpi.cx = ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiX;
-		m_Dpi.cy = ((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY;
 	}
 
 	for ( n = 0 ; n < nMax ; n++ ) {
 		tmp = lpColumn[n];
 		tmp.cx = AfxGetApp()->GetProfileInt(lpszSection, tmp.pszText, tmp.cx);
-		tmp.cx = MulDiv(tmp.cx, m_Dpi.cy, 96);
+		tmp.cx = MulDiv(tmp.cx, m_Dpi.cy, DEFAULT_DPI_Y);
 		InsertColumn(n, &tmp);
 	}
 
@@ -178,7 +175,7 @@ void CListCtrlExt::SaveColumn(LPCTSTR lpszSection)
 	tmp.mask = LVCF_WIDTH | LVCF_TEXT;
 
 	for ( n = 0 ; GetColumn(n, &tmp) ; n++ ) {
-		tmp.cx = MulDiv(tmp.cx, 96, m_Dpi.cy);
+		tmp.cx = MulDiv(tmp.cx, DEFAULT_DPI_Y, m_Dpi.cy);
 		AfxGetApp()->WriteProfileInt(lpszSection, tmp.pszText, tmp.cx);
 	}
 

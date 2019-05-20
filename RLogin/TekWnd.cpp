@@ -8,7 +8,7 @@
 
 // CTekWnd
 
-IMPLEMENT_DYNAMIC(CTekWnd, CFrameWnd)
+IMPLEMENT_DYNAMIC(CTekWnd, CFrameWndExt)
 
 CTekWnd::CTekWnd(class CTextRam *pTextRam, CWnd *pWnd)
 {
@@ -19,21 +19,22 @@ CTekWnd::~CTekWnd()
 {
 }
 
-BEGIN_MESSAGE_MAP(CTekWnd, CFrameWnd)
+BEGIN_MESSAGE_MAP(CTekWnd, CFrameWndExt)
 	ON_WM_PAINT()
 	ON_WM_DESTROY()
+	ON_WM_LBUTTONDOWN()
+	ON_WM_LBUTTONUP()
+	ON_WM_RBUTTONDOWN()
+	ON_WM_RBUTTONUP()
 	ON_COMMAND(IDM_TEK_CLOSE, &CTekWnd::OnTekClose)
 	ON_COMMAND(IDM_TEK_SAVE, &CTekWnd::OnTekSave)
 	ON_COMMAND(IDM_TEK_CLEAR, &CTekWnd::OnTekClear)
 	ON_COMMAND(IDM_TEK_MODE, &CTekWnd::OnTekMode)
 	ON_UPDATE_COMMAND_UI(IDM_TEK_MODE, &CTekWnd::OnUpdateTekMode)
-	ON_WM_LBUTTONDOWN()
-	ON_WM_LBUTTONUP()
-	ON_WM_RBUTTONDOWN()
-	ON_WM_RBUTTONUP()
 END_MESSAGE_MAP()
 
 // CTekWnd メッセージ ハンドラ
+
 
 void CTekWnd::OnPaint()
 {
@@ -59,7 +60,7 @@ BOOL CTekWnd::PreCreateWindow(CREATESTRUCT& cs)
 	cs.cx = AfxGetApp()->GetProfileInt(_T("TekWnd"), _T("cx"), 640);
 	cs.cy = AfxGetApp()->GetProfileInt(_T("TekWnd"), _T("cy"), 480 + 60);
 
-	return CFrameWnd::PreCreateWindow(cs);
+	return CFrameWndExt::PreCreateWindow(cs);
 }
 
 void CTekWnd::OnDestroy()
@@ -73,7 +74,7 @@ void CTekWnd::OnDestroy()
 		AfxGetApp()->WriteProfileInt(_T("TekWnd"), _T("cy"), rect.Height());
 	}
 
-	CFrameWnd::OnDestroy();
+	CFrameWndExt::OnDestroy();
 }
 
 void CTekWnd::OnTekClose()
@@ -275,7 +276,7 @@ BOOL CTekWnd::PreTranslateMessage(MSG* pMsg)
 		return TRUE;
 	}
 
-	return CFrameWnd::PreTranslateMessage(pMsg);
+	return CFrameWndExt::PreTranslateMessage(pMsg);
 }
 
 void CTekWnd::GinMouse(int ch, int x, int y)
@@ -296,23 +297,23 @@ void CTekWnd::GinMouse(int ch, int x, int y)
 void CTekWnd::OnLButtonDown(UINT nFlags, CPoint point)
 {
 	GinMouse('L', point.x, point.y);
-	CFrameWnd::OnLButtonDown(nFlags, point);
+	CFrameWndExt::OnLButtonDown(nFlags, point);
 }
 
 void CTekWnd::OnLButtonUp(UINT nFlags, CPoint point)
 {
 	GinMouse('l', point.x, point.y);
-	CFrameWnd::OnLButtonUp(nFlags, point);
+	CFrameWndExt::OnLButtonUp(nFlags, point);
 }
 
 void CTekWnd::OnRButtonDown(UINT nFlags, CPoint point)
 {
 	GinMouse('R', point.x, point.y);
-	CFrameWnd::OnRButtonDown(nFlags, point);
+	CFrameWndExt::OnRButtonDown(nFlags, point);
 }
 
 void CTekWnd::OnRButtonUp(UINT nFlags, CPoint point)
 {
 	GinMouse('r', point.x, point.y);
-	CFrameWnd::OnRButtonUp(nFlags, point);
+	CFrameWndExt::OnRButtonUp(nFlags, point);
 }

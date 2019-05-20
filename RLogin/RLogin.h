@@ -118,6 +118,7 @@ public:
 	CString m_TempDirBase;
 	CString m_TempDirPath;
 	BOOL m_bRegistAppp;
+	int m_MakeKeyMode;
 
 #ifdef	USE_KEYMACGLOBAL
 	CKeyMacTab m_KeyMacGlobal;
@@ -231,7 +232,7 @@ public:
 	inline BOOL LoadResDialog(LPCTSTR lpszName, HGLOBAL &hTemplate, HGLOBAL &hInitData) { return m_ResDataBase.LoadResDialog(lpszName, hTemplate, hInitData); }
 	inline BOOL LoadResString(LPCTSTR lpszName, CString &str) { return m_ResDataBase.LoadResString(lpszName, str); }
 	inline BOOL LoadResMenu(LPCTSTR lpszName, HMENU &hMenu) { return m_ResDataBase.LoadResMenu(lpszName, hMenu); }
-	inline BOOL LoadResToolBar(LPCTSTR lpszName, CToolBar &ToolBar) { return m_ResDataBase.LoadResToolBar(lpszName, ToolBar); }
+	inline BOOL LoadResToolBar(LPCTSTR lpszName, CToolBar &ToolBar, CWnd *pWnd) { return m_ResDataBase.LoadResToolBar(lpszName, ToolBar, pWnd); }
 	inline BOOL LoadResBitmap(LPCTSTR lpszName, CBitmap &Bitmap) { return m_ResDataBase.LoadResBitmap(lpszName, Bitmap); }
 	inline BOOL InitToolBarBitmap(LPCTSTR lpszName, UINT ImageId) { return m_ResDataBase.InitToolBarBitmap(lpszName, ImageId); }
 
@@ -271,15 +272,29 @@ public:
 };
 
 extern CRLoginApp theApp;
+
 extern BOOL ExDwmEnable;
 extern void ExDwmEnableWindow(HWND hWnd, BOOL bEnable);
 
 extern BOOL (__stdcall *ExAddClipboardFormatListener)(HWND hwnd);
 extern BOOL (__stdcall *ExRemoveClipboardFormatListener)(HWND hwnd);
+extern UINT (__stdcall *ExGetDpiForSystem)();
+extern BOOL (__stdcall *ExEnableNonClientDpiScaling)(HWND hwnd);
+#define DPI_AWARENESS_CONTEXT_UNAWARE              ((DPI_AWARENESS_CONTEXT)-1)
+#define DPI_AWARENESS_CONTEXT_SYSTEM_AWARE         ((DPI_AWARENESS_CONTEXT)-2)
+#define DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE    ((DPI_AWARENESS_CONTEXT)-3)
+#define DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 ((DPI_AWARENESS_CONTEXT)-4)
+#define DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED    ((DPI_AWARENESS_CONTEXT)-5)
+DECLARE_HANDLE(DPI_AWARENESS_CONTEXT);
+extern DPI_AWARENESS_CONTEXT (__stdcall *ExSetThreadDpiAwarenessContext)(DPI_AWARENESS_CONTEXT dpiContext);
+extern UINT GlobalSystemDpi;
 
 #define	WM_DPICHANGED	0x02E0
+extern UINT (__stdcall *ExGetDpiForWindow)(HWND hwnd);
 typedef enum _MONITOR_DPI_TYPE { MDT_EFFECTIVE_DPI = 0, MDT_ANGULAR_DPI = 1, MDT_RAW_DPI = 2, MDT_DEFAULT = MDT_EFFECTIVE_DPI } MONITOR_DPI_TYPE;
 extern HRESULT (__stdcall *ExGetDpiForMonitor)(HMONITOR hmonitor, MONITOR_DPI_TYPE dpiType, UINT *dpiX, UINT *dpiY);
+typedef enum PROCESS_DPI_AWARENESS { PROCESS_DPI_UNAWARE, PROCESS_SYSTEM_DPI_AWARE, PROCESS_PER_MONITOR_DPI_AWARE };
+extern HRESULT (__stdcall *ExSetProcessDpiAwareness)(PROCESS_DPI_AWARENESS value);
 
 extern int ThreadMessageBox(LPCTSTR msg, ...);
 
