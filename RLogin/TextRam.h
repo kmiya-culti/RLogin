@@ -283,6 +283,7 @@
 #define	TO_RLDOSAVE		1483		// SOS/PM/APCでファイルに保存する
 #define	TO_RLNOCHKFONT	1484		// デフォルトフォントのCSetチェックを行わない
 #define	TO_RLCOLEMOJI	1485		// カラー絵文字を表示する
+#define	TO_RLNODELAY	1486		// TCPオプションのNoDelayを有効にする
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 

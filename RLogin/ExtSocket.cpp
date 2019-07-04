@@ -1451,7 +1451,18 @@ void CExtSocket::OnConnect()
 
 		if ( m_pDocument->m_TextRam.IsOptEnable(TO_RLKEEPAL) ) {
 			BOOL opval = TRUE;
-			::setsockopt(m_Fd, SOL_SOCKET, SO_KEEPALIVE, (const char *)(&opval), sizeof(opval));
+			if ( ::setsockopt(m_Fd, SOL_SOCKET, SO_KEEPALIVE, (const char *)(&opval), sizeof(opval)) ) {
+				OnError(WSAGetLastError());
+				return;
+			}
+		}
+
+		if ( m_pDocument->m_TextRam.IsOptEnable(TO_RLNODELAY) ) {
+			BOOL opval = TRUE;
+			if ( ::setsockopt(m_Fd, SOL_SOCKET, TCP_NODELAY, (const char *)(&opval), sizeof(opval)) ) {
+				OnError(WSAGetLastError());
+				return;
+			}
 		}
 	}
 

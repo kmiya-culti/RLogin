@@ -28,8 +28,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.24.3)</TD>
-            <TD width="20%" align="right">2019/05/21</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.24.4)</TD>
+            <TD width="20%" align="right">2019/07/05</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -438,6 +438,13 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2019/07/05</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.24.4/">2.24.4</A></TD>
+            <TD>TCPオプションにNoDelayを有効を追加<BR>
+            UTF-8の文字幅などをUnicode-12.1.0のデータに更新<BR>
+            openssl-1.1.1cに更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2019/05/21</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.24.3/">2.24.3</A></TD>
             <TD>固定DPI(96)からシステムDPI値を取得して使用するように変更<BR>
@@ -498,7 +505,7 @@ TD {
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-1.1.1b.tar.gz</A><BR>
+                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-1.1.1c.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
@@ -590,8 +597,8 @@ TD {
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 1.1.1b 26 Feb 2019<BR>
-            Copyright (c) 1998-2016 The OpenSSL Project<BR>
+            <P>OpenSSL 1.1.1c 28 May 2019<BR>
+            Copyright (c) 1998-2019 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>
             <BR>
@@ -2585,8 +2592,12 @@ fi</PRE>
                   数値はKByte/Secで指定します</TD>
                 </TR>
                 <TR>
-                  <TD align="center">TCPオプションの…</TD>
+                  <TD align="center">TCPのKeepAlive…</TD>
                   <TD>TCPオプションのKeepAliveが有効のソケットを作成します</TD>
+                </TR>
+                <TR>
+                  <TD align="center">TCPのNoDelay…</TD>
+                  <TD>TCPオプションのNoDelayが有効のソケットを作成します</TD>
                 </TR>
                 <TR>
                   <TD align="center">IPv6/IPv4</TD>

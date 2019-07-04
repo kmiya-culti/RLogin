@@ -838,7 +838,8 @@ NEXTFILE:
 			}
 
 			ZSendData(txbuf, n, e);
-			Bufferd_Flush();
+			//Bufferd_Flush();
+			Bufferd_Sync();
 
 			Txpos += n;
 			break;

@@ -45,7 +45,9 @@ int CLogin::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int 
 		}
 	}
 
-	SetSockOpt(TCP_NODELAY, &val, sizeof(BOOL), SOL_SOCKET);
+	// TO_RLNODELAYオプションに移行
+	// SetSockOpt(TCP_NODELAY, &val, sizeof(BOOL), SOL_SOCKET);
+
 	m_ConnectFlag = 1;
 	return TRUE;
 }

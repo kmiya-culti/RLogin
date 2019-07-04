@@ -586,9 +586,9 @@ BEGIN
                     "SysLink",WS_TABSTOP,44,178,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,193,60,14,WS_GROUP
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.24.3 (2019/05/21)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.24.4 (2019/07/05)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2019 Culti",IDC_STATIC,44,16,189,8
-    LTEXT           "OpenSSL 1.1.1b 26 Feb 2019",IDC_STATIC,44,52,189,8
+    LTEXT           "OpenSSL 1.1.1c 28 May 2019",IDC_STATIC,44,52,189,8
     LTEXT           "Copyright (c) 1998-2018 The OpenSSL Project",IDC_STATIC,44,61,189,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,70,189,8
     LTEXT           "All rights reserved.",IDC_STATIC,44,79,189,8
@@ -1572,7 +1572,8 @@ BEGIN
     CONTROL         "ブロード・グループキャストで同時送信しません",IDC_OPTCHECK9,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,186,240,10
     CONTROL         "送信・受信の帯域制限を行う(KByte/Sec)",IDC_OPTCHECK12,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,222,180,10
     EDITTEXT        IDC_TRANSMITLIMIT,205,220,50,14,ES_AUTOHSCROLL
-    CONTROL         "TCPオプションのKeepAliveを有効にする",IDC_OPTCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,239,240,10
+    CONTROL         "TCPのKeepAliveを有効にする",IDC_OPTCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,239,119,10
+    CONTROL         "TCPのNoDelayを有効にする",IDC_OPTCHECK13,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,144,239,119,10
     CONTROL         "IPv6/IPv4(DNSの応答順位)",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,15,256,98,10
     CONTROL         "IPv6のみ",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,125,256,50,10
     CONTROL         "IPv4のみ",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,191,256,50,10
@@ -1984,8 +1985,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,24,3,0
- PRODUCTVERSION 2,24,3,0
+ FILEVERSION 2,24,4,0
+ PRODUCTVERSION 2,24,4,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2002,12 +2003,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.24.3.0"
+            VALUE "FileVersion", "2.24.4.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.24.3.0"
+            VALUE "ProductVersion", "2.24.4.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -4524,6 +4525,7 @@ BEGIN
     IDT_EXTOPT_LIST23       "SOS/PM/APCを保存\t保存しない\tSOS/PM/APCのデータをファイルに保存する"
     IDT_EXTOPT_LIST24       "フォント置換しない\tフォント置換する\tデフォルトフォントのWindowsによるCHARSETフォント置換を行わない"
     IDT_EXTOPT_LIST25       "カラー絵文字\tモノクロ絵文字\tWindows8.1移行でカラーの絵文字を表示する"
+    IDT_EXTOPT_LIST26       "TCP_NODLAY Enable\tDisable\tTCPオプションのNoDelayを有効にす"
 END
 
 STRINGTABLE
