@@ -763,6 +763,7 @@ public:
 	void OnSendEmpty();
 	void GetStatus(CString &str);
 	int GetRecvSize();
+	void ResetOption();
 
 	int m_SSHVer;
 	CString m_HostName;
@@ -873,6 +874,8 @@ private:
 	int m_KeepAliveReplyCount;
 	int m_KeepAliveRecvGlobalCount;
 	int m_KeepAliveRecvChannelCount;
+	BOOL m_bAuthAgentReqEnable;
+	CStringArrayExt m_PortFwdTable;
 
 	CredHandle m_SSPI_hCredential;
 	CtxtHandle *m_SSPI_phContext;

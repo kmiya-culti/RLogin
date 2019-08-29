@@ -240,6 +240,7 @@
 #define IDS_DISCLIPBOARDREAD            635
 #define IDS_DISCLIPBOARDWRITE           636
 #define IDS_DISWINDOWSIZE               637
+#define	IDS_SSHOPTIONCHECK              638
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -1088,6 +1089,6 @@
 #define _APS_NEXT_RESOURCE_VALUE        171
 #define _APS_NEXT_COMMAND_VALUE         5137
 #define _APS_NEXT_CONTROL_VALUE         2496
-#define _APS_NEXT_SYMED_VALUE           637
+#define _APS_NEXT_SYMED_VALUE           639
 #endif
 #endif

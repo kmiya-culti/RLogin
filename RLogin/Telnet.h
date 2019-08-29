@@ -319,6 +319,7 @@ public:
 	void SetXonXoff(int sw);
 	void GetStatus(CString &str);
 	void OnTimer(UINT_PTR nIDEvent);
+	void ResetOption();
 
 	CTelnet(class CRLoginDoc *pDoc);
 	virtual ~CTelnet();

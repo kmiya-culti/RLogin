@@ -1455,6 +1455,9 @@ CTextRam::CTextRam()
 	m_LastChar = 0;
 	m_LastFlag = 0;
 	m_LastPos  = 0;
+	m_LastSize = CM_ASCII;
+	m_LastAttr = 0;
+	m_LastStr.Empty();
 	m_DropFileMode = 0;
 	m_WordStr.Empty();
 	m_Exact = FALSE;
@@ -3233,7 +3236,6 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 	if ( m_FixVersion < 8 )
 		EnableOption(TO_XTPRICOL);	// ?1070 Regis/Sixel Private Color Map
 
-	DisableOption(TO_IMECTRL);
 	memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_DefAnsiOpt));
 
 	if ( stra.GetSize() > 38 )
@@ -7070,6 +7072,9 @@ void CTextRam::RESET(int mode)
 		m_LastChar = 0;
 		m_LastFlag = 0;
 		m_LastPos  = 0;
+		m_LastSize = CM_ASCII;
+		m_LastAttr = 0;
+		m_LastStr.Empty();
 		m_Kan_Pos = 0;
 		memset(m_Kan_Buf, 0, sizeof(m_Kan_Buf));
 	}
@@ -7964,6 +7969,10 @@ void CTextRam::SaveParam(SAVEPARAM *pSave)
 	pSave->m_LastChar = m_LastChar;
 	pSave->m_LastFlag = m_LastFlag;
 	pSave->m_LastPos  = m_LastPos;
+	pSave->m_LastSize = m_LastSize;
+	pSave->m_LastAttr = m_LastAttr;
+	wcscpy_s(pSave->m_LastStr, MAXCHARSIZE, m_LastStr);
+
 	pSave->m_bRtoL    = m_bRtoL;
 	pSave->m_bJoint   = m_bJoint;
 
@@ -7994,6 +8003,9 @@ void CTextRam::LoadParam(SAVEPARAM *pSave, BOOL bAll)
 	m_LastChar = pSave->m_LastChar;
 	m_LastFlag = pSave->m_LastFlag;
 	m_LastPos  = pSave->m_LastPos;
+	m_LastSize = pSave->m_LastSize;
+	m_LastAttr = pSave->m_LastAttr;
+	m_LastStr  = pSave->m_LastStr;
 	m_bRtoL    = pSave->m_bRtoL;
 	m_bJoint   = pSave->m_bJoint;
 
@@ -8337,7 +8349,7 @@ void CTextRam::REVINDEX()
 	}
 	LOCATE(m_CurX, m_CurY);
 }
-void CTextRam::PUT1BYTE(DWORD ch, int md, int at)
+void CTextRam::PUT1BYTE(DWORD ch, int md, int at, LPCWSTR str)
 {
 	int block;
 	CCharCell *vp;
@@ -8347,15 +8359,20 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at)
 	DOWARP();
 
 	md &= CODE_MASK;
-	ch |= m_FontTab[md].m_Shift;
-	ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// Char変換ではUTF-16BEを使用！
-	ch = IconvToMsUnicode(m_FontTab[md].m_IContName, ch);
+
+	if ( str == NULL ) {
+		ch |= m_FontTab[md].m_Shift;
+		ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// Char変換ではUTF-16BEを使用！
+		ch = IconvToMsUnicode(m_FontTab[md].m_IContName, ch);
+	}
 
 	m_LastChar = ch;
 	m_LastFlag = 0;
 	m_LastPos  = m_CurX + m_CurY * COLS_MAX;
+	m_LastSize = CM_ASCII;
+	m_LastAttr = at;
 
-	if ( ch != 0 && CallReceiveChar(ch) )
+	if ( str == NULL && ch != 0 && CallReceiveChar(ch) )
 		return;
 
 	if ( !GetMargin(MARCHK_COLS) ) {
@@ -8394,7 +8411,12 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at)
 	if ( ch >= 0x2500 && ch <= 0x259F && !IsOptEnable(TO_RLDRWLINE) )		// Border Char
 		vp->m_Vram.attr |= ATT_BORDER;
 
-	*vp = (DWORD)ch;
+	if ( str != NULL ) {
+		*vp = str;
+	} else {
+		*vp = (DWORD)ch;
+		m_LastStr = (LPCWSTR)(*vp);
+	}
 
 	if ( dm != 0 )
 		DISPVRAM(m_CurX * 2, m_CurY, 2, 1);
@@ -8415,7 +8437,7 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at)
 			m_CurX = m_Margin.right - 1;
 	}
 }
-void CTextRam::PUT2BYTE(DWORD ch, int md, int at)
+void CTextRam::PUT2BYTE(DWORD ch, int md, int at, LPCWSTR str)
 {
 	int block;
 	CCharCell *vp;
@@ -8425,14 +8447,19 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at)
 	DOWARP();
 
 	md &= CODE_MASK;
-	ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// Char変換ではUTF-16BEを使用！
-	ch = IconvToMsUnicode(m_FontTab[md].m_IContName, ch);
+
+	if ( str == NULL ) {
+		ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// Char変換ではUTF-16BEを使用！
+		ch = IconvToMsUnicode(m_FontTab[md].m_IContName, ch);
+	}
 
 	m_LastChar = ch;
 	m_LastFlag = 0;
 	m_LastPos  = m_CurX + m_CurY * COLS_MAX;
+	m_LastSize = CM_1BYTE;
+	m_LastAttr = at;
 
-	if ( ch != 0 && CallReceiveChar(ch) )
+	if ( str == NULL && ch != 0 && CallReceiveChar(ch) )
 		return;
 
 	if ( !GetMargin(MARCHK_COLS) ) {
@@ -8448,6 +8475,8 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at)
 	if ( (m_CurX + 1) >= m_Margin.right ) {
 		m_DoWarp = TRUE;
 		DOWARP();
+
+		m_LastPos  = m_CurX + m_CurY * COLS_MAX;	// Reset
 
 		dm = GetDm(m_CurY);
 
@@ -8481,8 +8510,14 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at)
 	if ( ch >= 0x2500 && ch <= 0x259F && !IsOptEnable(TO_RLDRWLINE) )		// Border Char
 		vp[0].m_Vram.attr |= ATT_BORDER;
 
-	vp[0] = (DWORD)ch;
-	vp[1] = (DWORD)ch;
+	if ( str != NULL ) {
+		vp[0] = str;
+		vp[1] = str;
+	} else {
+		vp[0] = (DWORD)ch;
+		vp[1] = (DWORD)ch;
+		m_LastStr = (LPCWSTR)(*vp);
+	}
 
 	if ( dm != 0 )
 		DISPVRAM(m_CurX * 2, m_CurY, 4, 1);
@@ -8518,6 +8553,8 @@ void CTextRam::PUTADD(int x, int y, DWORD ch)
 
 	vp = GETVRAM(x, y);
 	*vp += (DWORD)ch;
+
+	m_LastStr = *vp;
 
 	if ( x < (m_Cols - 1) && IS_1BYTE(vp[0].m_Vram.mode) && IS_2BYTE(vp[1].m_Vram.mode) ) {
 		vp[1] = (LPCWSTR)(*vp);
@@ -8613,6 +8650,9 @@ CTextSave *CTextRam::GETSAVERAM(int fMode)
 	pSave->m_LastChar = m_LastChar;
 	pSave->m_LastFlag = m_LastFlag;
 	pSave->m_LastPos  = m_LastPos;
+	pSave->m_LastSize = m_LastSize;
+	pSave->m_LastAttr = m_LastAttr;
+	wcscpy_s(pSave->m_LastStr, MAXCHARSIZE, m_LastStr);
 	pSave->m_bRtoL    = m_bRtoL;
 	pSave->m_bJoint   = m_bJoint;
 
@@ -8673,6 +8713,9 @@ void CTextRam::SETSAVERAM(CTextSave *pSave)
 	m_LastChar = pSave->m_LastChar;
 	m_LastFlag = pSave->m_LastFlag;
 	m_LastPos  = pSave->m_LastPos;
+	m_LastSize = pSave->m_LastSize;
+	m_LastAttr = pSave->m_LastAttr;
+	m_LastStr  = pSave->m_LastStr;
 
 	memcpy(m_AnsiOpt, pSave->m_AnsiOpt, sizeof(DWORD) * 12);	// 0 - 384
 

@@ -1724,6 +1724,20 @@ int CStringArrayExt::FindSort(LPCTSTR str)
 
 	return (-1);
 }
+int CStringArrayExt::Compare(CStringArrayExt &data)
+{
+	int n, r;
+
+	if ( (r = (int)GetSize() - (int)data.GetSize()) != 0 )
+		return r;
+
+	for ( n = 0 ; n < GetSize() ; n++ ) {
+		if ( (r = GetAt(n).Compare(data.GetAt(n))) != 0 )
+			return r;
+	}
+
+	return 0;
+}
 
 //////////////////////////////////////////////////////////////////////
 // CMenuLoad
@@ -1851,6 +1865,43 @@ BOOL CMenuLoad::GetPopUpMenu(UINT nId, CMenu &PopUpMenu)
 	((CMainFrame *)::AfxGetMainWnd())->SetMenuBitmap(&PopUpMenu);
 
 	return TRUE;
+}
+void CMenuLoad::CopyMenu(CMenu *pSrcMenu, CMenu *pDisMenu)
+{
+	int n;
+	UINT item;
+	CMenu *pSrcSub, *pDisSub;
+	CString str;
+
+	for ( n = 0 ; n < pSrcMenu->GetMenuItemCount() ; n++ ) {
+		if ( (item = pSrcMenu->GetMenuItemID(n)) != (UINT)(-1) ) {
+			pSrcMenu->GetMenuString(n, str, MF_BYPOSITION);
+			if ( pDisMenu->GetMenuItemID(n) != item ) {
+				pDisMenu->InsertMenu(n, MF_BYPOSITION | (item == 0 ? MF_SEPARATOR : MF_STRING), item, str);
+				pDisMenu->DeleteMenu(n + 1, MF_BYPOSITION);
+			} else if ( item != 0 ) {
+				pDisMenu->ModifyMenu(n, MF_BYPOSITION | MF_STRING, item, str);
+			}
+
+		} else if ( (pSrcSub = pSrcMenu->GetSubMenu(n)) != NULL ) {
+			pSrcMenu->GetMenuString(n, str, MF_BYPOSITION);
+			if ( (pDisSub = pDisMenu->GetSubMenu(n)) == NULL ) {
+				CMenu NewMenu;
+				if ( NewMenu.CreateMenu() ) {
+					pDisMenu->InsertMenu(n, MF_BYPOSITION | MF_POPUP | MF_STRING, (INT_PTR)NewMenu.Detach(), str);
+					pDisMenu->DeleteMenu(n + 1, MF_BYPOSITION);
+					if ( (pDisSub = pDisMenu->GetSubMenu(n)) != NULL )
+						CMenuLoad::CopyMenu(pSrcSub, pDisSub);
+				}
+			} else {
+				pDisMenu->ModifyMenu(n, MF_BYPOSITION | MF_STRING, 0, str);
+				CMenuLoad::CopyMenu(pSrcSub, pDisSub);
+			}
+		}
+	}
+
+	while ( n < pDisMenu->GetMenuItemCount() )
+		pDisMenu->DeleteMenu(n, MF_BYPOSITION);
 }
 
 //////////////////////////////////////////////////////////////////////

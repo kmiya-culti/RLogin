@@ -1239,6 +1239,7 @@ int CRLoginView::ImmOpenCtrl(int sw)
 			if ( ImmSetOpenStatus(hIMC, TRUE) )		// open
 				rt = 1;
 		}
+		ImmReleaseContext(m_hWnd, hIMC);
 	}
 	return rt;
 }
@@ -1965,6 +1966,10 @@ LRESULT CRLoginView::OnImeNotify(WPARAM wParam, LPARAM lParam)
 			m_bImmActive = ImmGetOpenStatus(hIMC);
 			ImmReleaseContext(m_hWnd, hIMC);
 	    }
+		if ( m_bImmActive )
+			pDoc->m_TextRam.EnableOption(TO_IMECTRL);
+		else
+			pDoc->m_TextRam.DisableOption(TO_IMECTRL);
 		break;
     case IMN_SETSTATUSWINDOWPOS:
 		ImmSetPos(m_CaretX, m_CaretY);

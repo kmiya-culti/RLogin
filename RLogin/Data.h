@@ -185,6 +185,7 @@ public:
 	static BOOL UpdateMenuShortCut(CMenu *pMenu, CMenu *pUpdateMenu, LPCTSTR pShortCut);
 	static CMenu *GetItemSubMenu(UINT nId, CMenu *pMenu);
 	static BOOL GetPopUpMenu(UINT nId, CMenu &PopUpMenu);
+	static void CopyMenu(CMenu *pSrcMenu, CMenu *pDisMenu);
 };
 
 class CStringLoad : public CString
@@ -245,6 +246,7 @@ public:
 	int Match(LPCTSTR str);
 	void AddSort(LPCTSTR str);
 	int FindSort(LPCTSTR str);
+	int Compare(CStringArrayExt &data);
 
 	CStrNode *ParseWord(LPCTSTR *ptr);
 	CStrNode *ParseLine(CStrNode *top, LPCTSTR *ptr, BOOL bNest);

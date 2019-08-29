@@ -844,6 +844,9 @@ typedef struct _SAVEPARAM {
 	DWORD m_LastChar;
 	int m_LastFlag;
 	int m_LastPos;
+	int m_LastSize;
+	int m_LastAttr;
+	WCHAR m_LastStr[MAXCHARSIZE + 2];
 	BOOL m_bRtoL;
 	BOOL m_bJoint;
 
@@ -885,6 +888,9 @@ public:
 	DWORD m_LastChar;
 	int m_LastFlag;
 	int m_LastPos;
+	int m_LastSize;
+	int m_LastAttr;
+	WCHAR m_LastStr[MAXCHARSIZE + 2];
 	BOOL m_bRtoL;
 	BOOL m_bJoint;
 
@@ -1040,6 +1046,9 @@ public:
 	DWORD m_LastChar;
 	int m_LastFlag;
 	int m_LastPos;
+	int m_LastSize;
+	int m_LastAttr;
+	CStringW m_LastStr;
 	BOOL m_bRtoL;
 	BOOL m_bJoint;
 
@@ -1049,6 +1058,7 @@ public:
 
 	CParaIndex m_AnsiPara;
 	int m_OscMode;
+	int m_OscLast;
 	CBuffer m_OscPara;
 	BYTE m_TabMap[LINE_MAX + 1][COLS_MAX / 8 + 1];
 	BOOL m_RetSync;
@@ -1299,8 +1309,8 @@ public:
 	void FILLCHAR(int ch);
 	void ONEINDEX();
 	void REVINDEX();
-	void PUT1BYTE(DWORD ch, int md, int at = 0);
-	void PUT2BYTE(DWORD ch, int md, int at = 0);
+	void PUT1BYTE(DWORD ch, int md, int at = 0, LPCWSTR str = NULL);
+	void PUT2BYTE(DWORD ch, int md, int at = 0, LPCWSTR str = NULL);
 	void PUTADD(int x, int y, DWORD ch);
 	void INSMDCK(int len);
 	void ANSIOPT(int opt, int bit);

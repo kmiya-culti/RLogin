@@ -850,6 +850,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 
 	ON_COMMAND(IDM_TABMULTILINE, &CMainFrame::OnTabmultiline)
 	ON_UPDATE_COMMAND_UI(IDM_TABMULTILINE, &CMainFrame::OnUpdateTabmultiline)
+	ON_WM_INITMENU()
 END_MESSAGE_MAP()
 
 static const UINT indicators[] =
@@ -3382,8 +3383,46 @@ BOOL CMainFrame::TrackPopupMenuIdle(CMenu *pMenu, UINT nFlags, int x, int y, CWn
 	return rt;
 }
 
+void CMainFrame::OnInitMenu(CMenu* pMenu)
+{
+	int n, a;
+	CMenu *pSubMenu;
+	CRLoginDoc *pDoc;
+	CString str;
+
+	CMDIFrameWnd::OnInitMenu(pMenu);
+
+	if ( (pDoc = GetMDIActiveDocument()) != NULL && pMenu != NULL && (pSubMenu = GetMenu()) != NULL && pSubMenu->GetSafeHmenu() == pMenu->GetSafeHmenu() )
+		pDoc->SetMenu(pMenu);
+
+	else {
+		m_DefKeyTab.CmdsInit();
+
+		for ( n = 0 ; n < m_DefKeyTab.m_Cmds.GetSize() ; n++ ) {
+			if ( pMenu->GetMenuString(m_DefKeyTab.m_Cmds[n].m_Id, str, MF_BYCOMMAND) <= 0 )
+				continue;
+
+			if ( (a = str.Find(_T('\t'))) >= 0 )
+				str.Truncate(a);
+
+			m_DefKeyTab.m_Cmds[n].m_Text = str;
+			m_DefKeyTab.m_Cmds[n].SetMenu(pMenu);
+		}
+	}
+	
+	// Add Old ServerEntryTab Delete Menu
+	if ( (pSubMenu = CMenuLoad::GetItemSubMenu(IDM_PASSWORDLOCK, pMenu)) != NULL ) {
+		pSubMenu->DeleteMenu(IDM_DELOLDENTRYTAB, MF_BYCOMMAND);
+
+		if ( ((CRLoginApp *)AfxGetApp())->AliveProfileKeys(_T("ServerEntryTab")) )
+			pSubMenu->AppendMenu(MF_STRING, IDM_DELOLDENTRYTAB, CStringLoad(IDS_DELOLDENTRYMENU));
+	}
+
+	SetMenuBitmap(pMenu);
+}
 void CMainFrame::OnEnterMenuLoop(BOOL bIsTrackPopupMenu)
 {
+#if 0
 	int n, a;
 	CMenu *pMenu, *pSubMenu;
 	CRLoginDoc *pDoc;
@@ -3419,6 +3458,7 @@ void CMainFrame::OnEnterMenuLoop(BOOL bIsTrackPopupMenu)
 	}
 
 	SetMenuBitmap(pMenu);
+#endif
 
 	SetIdleTimer(TRUE);
 }
@@ -3491,7 +3531,7 @@ void CMainFrame::OnViewMenubar()
 }
 void CMainFrame::OnUpdateViewMenubar(CCmdUI *pCmdUI)
 {
-	pCmdUI->SetCheck(GetMenu() != NULL ? TRUE : FALSE);
+	pCmdUI->SetCheck(AfxGetApp()->GetProfileInt(_T("ChildFrame"), _T("VMenu"), TRUE) == TRUE ? TRUE : FALSE);
 }
 void CMainFrame::OnSysCommand(UINT nID, LPARAM lParam)
 {

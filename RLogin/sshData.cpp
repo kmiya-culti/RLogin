@@ -2359,6 +2359,7 @@ int CIdKey::XmssSign(CBuffer *bp, LPBYTE buf, int len)
 		// XMSSのロック
 		CIdKey *pKey;
 		CString lockName;
+		CString passBuf(m_XmssKey.m_pPassBuf);
 		lockName.Format(_T("RLogin_XMSS_%d"), m_Uid);
 		CMutexLock mutex(lockName);
 
@@ -2371,12 +2372,12 @@ int CIdKey::XmssSign(CBuffer *bp, LPBYTE buf, int len)
 					return FALSE;
 			}
 		}
-	
+
 		if ( m_XmssKey.Sign(tmp.GetPtr(), &siglen, buf, len) != 0 )
 			return FALSE;
 
 		// 鍵を更新
-		WritePrivateKey(m_SecBlob, m_XmssKey.m_pPassBuf);
+		WritePrivateKey(m_SecBlob, passBuf);
 		m_XmssKey.SetPassBuf(NULL);
 
 		// レジストリの鍵を更新

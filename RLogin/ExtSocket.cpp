@@ -121,10 +121,37 @@ CExtSocket::~CExtSocket()
 
 void CExtSocket::ResetOption()
 {
+	BOOL opval;
+	int oplen;
+
 	if ( m_pDocument == NULL )
 		return;
 
 	m_TransmitLimit = m_pDocument->m_TextRam.IsOptEnable(TO_RLTRSLIMIT) ? (m_pDocument->m_ParamTab.m_TransmitLimit * 1024) : 0;
+
+	opval = FALSE;
+	oplen = sizeof(opval);
+	::getsockopt(m_Fd, SOL_SOCKET, SO_KEEPALIVE, (char *)(&opval), (int *)&oplen);
+
+	if ( m_pDocument->m_TextRam.IsOptEnable(TO_RLKEEPAL) && !opval ) {
+		opval = TRUE;
+		::setsockopt(m_Fd, SOL_SOCKET, SO_KEEPALIVE, (const char *)(&opval), sizeof(opval));
+	} else if ( !m_pDocument->m_TextRam.IsOptEnable(TO_RLKEEPAL) && opval ) {
+		opval = FALSE;
+		::setsockopt(m_Fd, SOL_SOCKET, SO_KEEPALIVE, (const char *)(&opval), sizeof(opval));
+	}
+
+	opval = FALSE;
+	oplen = sizeof(opval);
+	::getsockopt(m_Fd, SOL_SOCKET, TCP_NODELAY, (char *)(&opval), (int *)&oplen);
+
+	if ( m_pDocument->m_TextRam.IsOptEnable(TO_RLNODELAY) && !opval ) {
+		opval = TRUE;
+		::setsockopt(m_Fd, SOL_SOCKET, TCP_NODELAY, (const char *)(&opval), sizeof(opval));
+	} else if ( !m_pDocument->m_TextRam.IsOptEnable(TO_RLNODELAY) && opval ) {
+		opval = FALSE;
+		::setsockopt(m_Fd, SOL_SOCKET, TCP_NODELAY, (const char *)(&opval), sizeof(opval));
+	}
 }
 void CExtSocket::Destroy()
 {

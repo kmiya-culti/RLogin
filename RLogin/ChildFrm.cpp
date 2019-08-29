@@ -96,15 +96,6 @@ BOOL CChildFrame::PreCreateWindow(CREATESTRUCT& cs)
 //	cs.style &= ~(WS_BORDER | WS_DLGFRAME);
 //	cs.dwExStyle &= ~WS_EX_CLIENTEDGE;
 
-//	if ( AfxGetApp()->GetProfileInt(_T("ChildFrame"), _T("Style"), 1) == 1 )
-//		cs.style |= WS_MAXIMIZE;
-//	else {
-//		cs.x  = AfxGetApp()->GetProfileInt(_T("ChildFrame"), _T("x"), cs.x);
-//		cs.y  = AfxGetApp()->GetProfileInt(_T("ChildFrame"), _T("y"), cs.y);
-//		cs.cx = AfxGetApp()->GetProfileInt(_T("ChildFrame"), _T("cx"), cs.cx);
-//		cs.cy = AfxGetApp()->GetProfileInt(_T("ChildFrame"), _T("cy"), cs.cy);
-//	}
-
 	CRect rect;
 	((CMainFrame *)AfxGetMainWnd())->GetFrameRect(rect);
 	cs.cx = rect.Width();
@@ -125,8 +116,6 @@ BOOL CChildFrame::PreCreateWindow(CREATESTRUCT& cs)
 
 void CChildFrame::ActivateFrame(int nCmdShow)
 {
-//	if ( AfxGetApp()->GetProfileInt(_T("ChildFrame"), _T("Style"), 1) == 1 )
-//		nCmdShow = SW_SHOWMAXIMIZED;
 	CMDIChildWnd::ActivateFrame(nCmdShow);
 }
 
@@ -160,9 +149,6 @@ void CChildFrame::Dump(CDumpContext& dc) const
 void CChildFrame::OnSize(UINT nType, int cx, int cy) 
 {
 	CMDIChildWnd::OnSize(nType, cx, cy);
-
-//	if ( nType != SIZE_MINIMIZED )
-//		AfxGetApp()->WriteProfileInt(_T("ChildFrame"), _T("Style"), (nType == SIZE_MAXIMIZED ? 1 : 0));
 }
 
 void CChildFrame::OnMove(int x, int y)
@@ -187,14 +173,6 @@ int CChildFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 void CChildFrame::OnDestroy() 
 {
-//	if ( !IsIconic() && !IsZoomed() ) {
-//		CRect rect;
-//		GetWindowRect(&rect);
-//		AfxGetApp()->WriteProfileInt(_T("ChildFrame"), _T("x"), rect.left);
-//		AfxGetApp()->WriteProfileInt(_T("ChildFrame"), _T("y"), rect.top);
-//		AfxGetApp()->WriteProfileInt(_T("ChildFrame"), _T("cx"), rect.Width());
-//		AfxGetApp()->WriteProfileInt(_T("ChildFrame"), _T("cy"), rect.Height());
-//	}
 	((CMainFrame *)AfxGetMainWnd())->RemoveChild(this, m_bDeletePane);
 	CMDIChildWnd::OnDestroy();
 }
@@ -215,28 +193,19 @@ void CChildFrame::OnMDIActivate(BOOL bActivate, CWnd* pActivateWnd, CWnd* pDeact
 	
 	if ( bActivate && pActivateWnd->m_hWnd == m_hWnd ) {
 		m_bInit = TRUE;
-		//if ( !m_bInit ) {
-		//	CRect rect;
-		//	m_bInit = TRUE;
-		//	GetClientRect(rect);
-		//	OnSize(SIZE_RESTORED, rect.Width(), rect.Height());
-		//}
 		((CMainFrame *)AfxGetMainWnd())->ActiveChild(this);	
 	}
 }
 
 void CChildFrame::OnUpdateFrameMenu(BOOL bActive, CWnd* pActiveWnd, HMENU hMenuAlt)
 {
-	CMenu cMenu;
 	CMainFrame *pFrame = (CMainFrame *)GetMDIFrame();
 
 	if ( bActive && AfxGetApp()->GetProfileInt(_T("ChildFrame"), _T("VMenu"), TRUE) == FALSE ) {
 		pFrame->SetMenu(NULL);
 
 	} else if ( !bActive && pActiveWnd == NULL && pFrame != NULL && pFrame->m_StartMenuHand != NULL ) {
-		cMenu.Attach(pFrame->m_StartMenuHand);
-		pFrame->SetMenu(&cMenu);
-		cMenu.Detach();
+		CMDIChildWnd::OnUpdateFrameMenu(bActive, pActiveWnd, pFrame->m_StartMenuHand);
 
 	} else {
 		CMDIChildWnd::OnUpdateFrameMenu(bActive, pActiveWnd, hMenuAlt);

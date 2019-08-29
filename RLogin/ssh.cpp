@@ -126,6 +126,8 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 		m_ConnectTime = 0;
 		m_KeepAliveSendCount = m_KeepAliveReplyCount = 0;
 		m_KeepAliveRecvGlobalCount = m_KeepAliveRecvChannelCount = 0;
+		m_bAuthAgentReqEnable = FALSE;
+		m_PortFwdTable.RemoveAll();
 
 		m_SSPI_phContext = NULL;
 		ZeroMemory(&m_SSPI_hCredential, sizeof(m_SSPI_hCredential));
@@ -677,6 +679,25 @@ void Cssh::OnSendEmpty()
 int Cssh::GetRecvSize()
 {
 	return m_RecvSize;
+}
+void Cssh::ResetOption()
+{
+	CExtSocket::ResetOption();
+
+	if ( m_KeepAliveTiimerId != 0 ) {
+		((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this, m_KeepAliveTiimerId);
+		m_KeepAliveTiimerId = 0;
+	}
+
+	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHKEEPAL) && m_pDocument->m_TextRam.m_SshKeepAlive > 0 )
+		m_KeepAliveTiimerId = ((CMainFrame *)AfxGetMainWnd())->SetTimerEvent(m_pDocument->m_TextRam.m_SshKeepAlive * 1000, TIMEREVENT_SOCK | TIMEREVENT_INTERVAL, this);
+
+	if ( m_bAuthAgentReqEnable != m_pDocument->m_TextRam.IsOptEnable(TO_SSHAGENT) || m_PortFwdTable.Compare(m_pDocument->m_ParamTab.m_PortFwd) != 0 ) {
+		AfxMessageBox(IDS_SSHOPTIONCHECK, MB_ICONWARNING);
+
+		m_bAuthAgentReqEnable = m_pDocument->m_TextRam.IsOptEnable(TO_SSHAGENT);
+		m_PortFwdTable = m_pDocument->m_ParamTab.m_PortFwd;
+	}
 }
 
 void Cssh::GetStatus(CString &str)
@@ -1680,6 +1701,7 @@ void Cssh::PortForward()
 	CStringArrayExt tmp;
 
 	m_bPfdConnect = 0;
+	m_PortFwdTable = m_pDocument->m_ParamTab.m_PortFwd;
 
 	if ( m_pDocument->m_ServerEntry.m_ReEntryFlag && !m_pDocument->m_TextRam.IsOptEnable(TO_SSHPFORY) )
 		return;
@@ -2382,6 +2404,7 @@ void Cssh::SendMsgChannelRequesstShell(int id)
 		tmp.PutStr("auth-agent-req@openssh.com");
 		tmp.Put8Bit(0);
 		SendPacket2(&tmp);
+		m_bAuthAgentReqEnable = TRUE;
 	}
 
 	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHX11PF) ) {

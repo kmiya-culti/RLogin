@@ -425,6 +425,19 @@ void CTelnet::OnTimer(UINT_PTR nIDEvent)
 	} else
 		CExtSocket::OnTimer(nIDEvent);
 }
+void CTelnet::ResetOption()
+{
+	CExtSocket::ResetOption();
+
+	if ( m_KeepAliveTiimerId != 0 ) {
+		((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this, m_KeepAliveTiimerId);
+		m_KeepAliveTiimerId = 0;
+	}
+
+	if ( m_pDocument->m_TextRam.IsOptEnable(TO_TELKEEPAL) && m_pDocument->m_TextRam.m_TelKeepAlive > 0 )
+		m_KeepAliveTiimerId = ((CMainFrame *)AfxGetMainWnd())->SetTimerEvent(m_pDocument->m_TextRam.m_TelKeepAlive * 1000, TIMEREVENT_SOCK | TIMEREVENT_INTERVAL, this);
+}
+
 void CTelnet::PrintOpt(int st, int ch, int opt)
 {
 	if ( opt < 0 || opt > TELOPT_MAX )

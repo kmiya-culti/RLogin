@@ -2373,8 +2373,6 @@ void CTextRam::fc_UTF85(DWORD ch)
 			// U+1100 U+1161        -> U+AC00
 			// U+1100 U+1161 U+11A8 -> U+AC00 U+11A8 -> U+AC01
 			if ( (n = UnicodeNomal(m_LastChar, m_BackChar)) != 0 ) {
-				m_LastChar = 0;
-				m_LastFlag = 0;
 				m_BackChar = n;
 				cf = UnicodeCharFlag(m_BackChar);
 				LOCATE(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX);
@@ -2421,7 +2419,6 @@ void CTextRam::fc_UTF85(DWORD ch)
 					goto BREAK;
 				} else if ( (cf & UNI_HNL) != 0 ) {
 					PUTADD(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX, m_BackChar);
-					m_LastChar = m_LastFlag = 0;
 					goto BREAK;
 				}
 			}
@@ -2433,7 +2430,7 @@ void CTextRam::fc_UTF85(DWORD ch)
 		// U+E0100 = U+DB40 U+DD00 - U+E01EF = U+DB40 U+DDEF
 		// Non Spaceing Mark (with VARIATION SELECTOR !!)
 		if ( (cf & (UNI_IVS | UNI_NSM)) != 0 ) {
-			if ( m_LastChar > 0 )
+			if ( m_LastChar != 0 )
 				PUTADD(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX, m_BackChar);
 			goto BREAK;
 		}
@@ -2477,7 +2474,7 @@ void CTextRam::fc_UTF85(DWORD ch)
 #endif
 
 		if ( (cf & UNI_EMODF) != 0 ) {
-			if ( m_LastChar > 0 && (m_LastFlag & UNI_EMOJI) != 0 )
+			if ( m_LastChar != 0 && (m_LastFlag & UNI_EMOJI) != 0 )
 				PUTADD(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX, m_BackChar);
 			goto BREAK;
 
@@ -2526,7 +2523,7 @@ void CTextRam::fc_UTF85(DWORD ch)
 			}
 		}
 
-		if ( m_bJoint && m_LastChar > 0 ) {
+		if ( m_bJoint && m_LastChar != 0 ) {
 			PUTADD(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX, m_BackChar);
 
 		} else if ( n == 1 ) {
@@ -3409,6 +3406,7 @@ void CTextRam::fc_DCS(DWORD ch)
 	m_OscMode = 'P';
 	m_BackChar = 0;
 	m_CodeLen = 0;
+	m_OscLast = 0;
 	m_OscPara.Clear();
 	m_AnsiPara.RemoveAll();
 	m_AnsiPara.Add(PARA_NOT);
@@ -3420,6 +3418,7 @@ void CTextRam::fc_SOS(DWORD ch)
 	m_OscMode = 'X';
 	m_BackChar = 0;
 	m_CodeLen = 0;
+	m_OscLast = 0;
 	m_OscPara.Clear();
 	fc_Case(STAGE_OSC2);
 	fc_TimerSet(_T("SOS"));
@@ -3429,6 +3428,7 @@ void CTextRam::fc_APC(DWORD ch)
 	m_OscMode = '_';
 	m_BackChar = 0;
 	m_CodeLen = 0;
+	m_OscLast = 0;
 	m_OscPara.Clear();
 	fc_Case(STAGE_OSC2);
 	fc_TimerSet(_T("APC"));
@@ -3438,6 +3438,7 @@ void CTextRam::fc_PM(DWORD ch)
 	m_OscMode = '^';
 	m_BackChar = 0;
 	m_CodeLen = 0;
+	m_OscLast = 0;
 	m_OscPara.Clear();
 	fc_Case(STAGE_OSC2);
 	fc_TimerSet(_T("PM"));
@@ -3447,20 +3448,21 @@ void CTextRam::fc_OSC(DWORD ch)
 	m_OscMode = ']';
 	m_BackChar = 0;
 	m_CodeLen = 0;
+	m_OscLast = 0;
 	m_OscPara.Clear();
 	fc_Case(STAGE_OSC2);
 	fc_TimerSet(_T("OSC"));
 }
 void CTextRam::fc_OSC_CMD(DWORD ch)
 {
-	if ( m_LastChar == '\033' && ch == '\\' ) {
+	if ( m_OscLast == '\033' && ch == '\\' ) {
 		fc_OSC_ST(ch);
 
 	} else if ( (m_OscMode == ']' && ch == 0x07) || ((m_KanjiMode == EUC_SET || m_KanjiMode == ASCII_SET || m_KanjiMode == UTF8_SET) && ch == 0x9C) ) {
 		fc_OSC_ST(ch);
 
 	} else {
-		m_LastChar = ch;
+		m_OscLast = ch;
 		ch &= 0x7F;
 
 		if ( ch >= 0x20 && ch <= 0x2F ) {			// SP!"#$%&'()*+,-./
@@ -3491,7 +3493,7 @@ void CTextRam::fc_OSC_CMD(DWORD ch)
 }
 void CTextRam::fc_OSC_PAM(DWORD ch)
 {
-	if ( m_LastChar == '\033' && ch == '\\' ) {
+	if ( m_OscLast == '\033' && ch == '\\' ) {
 		if ( m_OscPara.GetSize() > 0 )
 			m_OscPara.ConsumeEnd(1);
 		fc_OSC_ST(ch);
@@ -3507,7 +3509,7 @@ void CTextRam::fc_OSC_PAM(DWORD ch)
 			m_pWorkGrapWnd->SixelData(ch);
 		else
 			m_OscPara.Put8Bit(ch);
-		m_LastChar = ch;
+		m_OscLast = ch;
 
 		if ( m_CodeLen > 0 && ch >= 0x80 && ch <= 0xBF )
 			m_CodeLen--;
@@ -3535,7 +3537,7 @@ void CTextRam::fc_OSC_PAM(DWORD ch)
 			m_pWorkGrapWnd->SixelData(ch);
 		else
 			m_OscPara.Put8Bit(ch);
-		m_LastChar = ch;
+		m_OscLast = ch;
 	}
 }
 void CTextRam::fc_OSC_ST(DWORD ch)
@@ -5385,12 +5387,16 @@ void CTextRam::fc_HPR(DWORD ch)
 void CTextRam::fc_REP(DWORD ch)
 {
 	// CSI b	REP Repeat
-	if ( m_LastChar != 0 ) {
-		if ( (m_LastChar & 0xFFFFFF00) != 0 )
-			m_LastChar = ' ';
-		for ( int n = GetAnsiPara(0, 1, 1, m_Cols * m_Lines) ; n > 0 ; n-- )
-			PUT1BYTE(m_LastChar, m_BankNow);
-		m_LastChar = 0;
+
+	for ( int n = GetAnsiPara(0, 1, 1, m_Cols * m_Lines) ; n > 0 ; n-- ) {
+		switch(m_LastSize) {
+		case CM_ASCII:
+			PUT1BYTE(m_LastChar, m_BankNow, m_LastAttr, m_LastStr);
+			break;
+		case CM_1BYTE:
+			PUT2BYTE(m_LastChar, m_BankNow, m_LastAttr, m_LastStr);
+			break;
+		}
 	}
 	fc_POP(ch);
 }
@@ -7381,6 +7387,8 @@ void CTextRam::fc_DECSTR(DWORD ch)
 	m_SaveParam.m_LastChar = 0;
 	m_SaveParam.m_LastFlag = 0;
 	m_SaveParam.m_LastPos  = 0;
+	m_SaveParam.m_LastSize = CM_ASCII;
+	m_SaveParam.m_LastStr[0] = L'\0';
 	m_SaveParam.m_bRtoL    = FALSE;
 	m_SaveParam.m_bJoint   = FALSE;
 		

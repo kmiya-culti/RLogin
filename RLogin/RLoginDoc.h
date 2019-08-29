@@ -127,6 +127,7 @@ public:
 
 	inline void SetIndex(int mode, CStringIndex &index) { 	if ( mode ) SaveIndex(m_ServerEntry, m_TextRam, m_KeyTab, m_KeyMac, m_ParamTab, index); else LoadIndex(m_ServerEntry, m_TextRam, m_KeyTab, m_KeyMac, m_ParamTab, index); }
 	void SetMenu(CMenu *pMenu);
+	BOOL InitDocument();
 
 	static void EnvironText(CString &env, CString &str);
 	static void EnvironPath(CString &path);

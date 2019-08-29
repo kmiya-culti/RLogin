@@ -166,6 +166,28 @@ BOOL CRLoginDoc::ScriptInit()
 	// ソケットをオープン許可
 	return TRUE;
 }
+BOOL CRLoginDoc::InitDocument()
+{
+	m_TextRam.SetKanjiMode(m_ServerEntry.m_KanjiCode);
+
+	SetTitle(m_ServerEntry.m_EntryName);
+	SetCmdInfo(((CRLoginApp *)AfxGetApp())->m_pCmdInfo);
+
+	if ( ScriptInit() && !SocketOpen() )
+		return FALSE;
+
+	CRLoginView *pView;
+	if ( (pView = (CRLoginView *)GetAciveView()) != NULL && pView->ImmOpenCtrl(2) == 1 ) {
+		m_TextRam.EnableOption(TO_IMECTRL);
+		pView->ImmOpenCtrl(1);
+	} else {
+		pView->ImmOpenCtrl(1);
+		m_TextRam.DisableOption(TO_IMECTRL);
+		pView->ImmOpenCtrl(0);
+	}
+
+	return TRUE;
+}
 BOOL CRLoginDoc::OnNewDocument()
 {
 	if (!CDocument::OnNewDocument())
@@ -193,12 +215,8 @@ BOOL CRLoginDoc::OnNewDocument()
 
 	m_TextRam.m_bOpen = TRUE;
 	m_TextRam.m_pServerEntry = &m_ServerEntry;
-	m_TextRam.SetKanjiMode(m_ServerEntry.m_KanjiCode);
 
-	SetTitle(m_ServerEntry.m_EntryName);
-	SetCmdInfo(((CRLoginApp *)AfxGetApp())->m_pCmdInfo);
-
-	if ( ScriptInit() && !SocketOpen() )
+	if ( !InitDocument() )
 		return FALSE;
 
 	return TRUE;
@@ -216,10 +234,8 @@ BOOL CRLoginDoc::OnOpenDocument(LPCTSTR lpszPathName)
 	if ( m_ServerEntry.m_DocType == DOCTYPE_ENTRYFILE ) {
 
 		SetPathName(lpszPathName, TRUE);
-		SetTitle(m_ServerEntry.m_EntryName);
-		SetCmdInfo(((CRLoginApp *)AfxGetApp())->m_pCmdInfo);
 
-		if ( ScriptInit() && !SocketOpen() )
+		if ( !InitDocument() )
 			return FALSE;
 	}
 	
@@ -667,6 +683,7 @@ void CRLoginDoc::SetMenu(CMenu *pMenu)
 	if ( !DefMenu.LoadMenu(IDR_RLOGINTYPE) )
 		return;
 
+#if 0
 	// Reset Menu
 	while ( pMenu->GetMenuItemCount() > 0 )
 		pMenu->DeleteMenu(0, MF_BYPOSITION);
@@ -679,6 +696,9 @@ void CRLoginDoc::SetMenu(CMenu *pMenu)
 			n--;
 		}
 	}
+#else
+	CMenuLoad::CopyMenu(&DefMenu, pMenu);
+#endif
 
 	// Add ReOpen Menu
 	if ( m_pSock != NULL && !m_pSock->m_bConnect )
