@@ -28,8 +28,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.24.5)</TD>
-            <TD width="20%" align="right">2019/08/30</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.24.6)</TD>
+            <TD width="20%" align="right">2019/10/21</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -438,6 +438,14 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2019/10/21</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.24.6/">2.24.6</A></TD>
+            <TD>その他オプションを継承でスクリプト関連が継承されないバグを修正<BR>
+            scpで作成されるファイルのパーミションをオーナー以外も有効に変更<BR>
+            プロトコルpipeがファイルに保存されないバグを修正<BR>
+            openssl-1.1.1dに更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2019/08/30</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.24.5/">2.24.5</A></TD>
             <TD>接続中のオプション設定でソケット回りの変更が反映されないのを修正<BR>
@@ -477,12 +485,6 @@ TD {
             openssl-1.1.1bに更新</TD>
           </TR>
           <TR>
-            <TD align="center">2019/01/07</TD>
-            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.24.0/">2.24.0</A></TD>
-            <TD>マウスイベント時にホイール操作を含めるように変更<BR>
-            ヘルプメニューにタブバーをマルチラインで表示を追加</TD>
-          </TR>
-          <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
           </TR>
         </TBODY>
@@ -506,13 +508,16 @@ TD {
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-1.1.1c.tar.gz</A><BR>
+                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-1.1.1d.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
                   Visual Studio コマンド <BR>
-                  プロンプト (2010)</TD>
-                  <TD width="500" valign="top">rename openssl-1.1.1b openssl-1.1.1b-x32<BR>
+                  プロンプト (2010)<BR>
+                  <BR>
+                  ※crypto\rand\rand_win.c<BR>
+                  _WIN32_WINNT=0x0501</TD>
+                  <TD width="500" valign="top">rename openssl-1.1.1d openssl-1.1.1d-x32<BR>
                   perl Configure VC-WIN32 no-shared<BR>
                   nmake</TD>
                 </TR>
@@ -598,7 +603,7 @@ TD {
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 1.1.1c 28 May 2019<BR>
+            <P>OpenSSL 1.1.1d 10 Sep 2019<BR>
             Copyright (c) 1998-2019 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>
@@ -4335,43 +4340,34 @@ function TekClock2() {
                   <TD align="center" width="30%">BPlus</TD>
                   <TD align="center" width="30%">bp -d %s\r</TD>
                   <TD>コマンドを送信します<BR>
-                  ※通信の設定でBPlusの自動<BR>
-                  起動を有効にする必要があります。</TD>
+                  ※通信の設定でBPlusの自動起動を有効にする必要があります。</TD>
                 </TR>
                 <TR>
                   <TD align="center" width="30%">XModem</TD>
                   <TD align="center" width="30%">rx %s\r</TD>
-                  <TD>コマンドを送信しXModem<BR>
-                  アップロードを起動します</TD>
+                  <TD>コマンドを送信しXModemアップロードを起動します</TD>
                 </TR>
                 <TR>
                   <TD align="center" width="30%">Ymodem</TD>
                   <TD align="center" width="30%">rx %s\r</TD>
-                  <TD>コマンドを送信しYModem<BR>
-                  アップロードを起動します</TD>
+                  <TD>コマンドを送信しYModemアップロードを起動します</TD>
                 </TR>
                 <TR>
                   <TD align="center" width="30%">ZModem</TD>
                   <TD align="center" width="30%">rz\r</TD>
-                  <TD>コマンドを送信しZModem<BR>
-                  アップロードを起動します</TD>
+                  <TD>コマンドを送信しZModemアップロードを起動します</TD>
                 </TR>
                 <TR>
                   <TD align="center" width="30%">SCP</TD>
                   <TD align="center" width="30%">scp -t %s</TD>
-                  <TD>SSH2で接続している場合<BR>
-                  のみバックグランドでSCP<BR>
-                  を起動しファイルを転送します<BR>
-                  ※別プロセスで起動する為にカレント<BR>
-                  ディレクトリがユーザーホームになり<BR>
-                  ますので転送先にご注意ください</TD>
+                  <TD>SSH2で接続している場合のみバックグランドでSCPを起動しファイルを転送します<BR>
+                  ※別プロセスで起動する為にカレントディレクトリがユーザーホームになりますので転送先にご注意ください</TD>
                 </TR>
                 <TR>
                   <TD align="center" width="30%">Kermit&nbsp;</TD>
                   <TD align="center" width="30%">kermit -i -r\r</TD>
                   <TD>&nbsp;コマンドを送信します<BR>
-                  ※通信の設定でKermitの自動<BR>
-                  起動を有効にする必要があります。</TD>
+                  ※通信の設定でKermitの自動起動を有効にする必要があります。</TD>
                 </TR>
                 <TR>
                   <TD align="center">File</TD>

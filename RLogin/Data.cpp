@@ -4087,6 +4087,7 @@ LPCTSTR CServerEntry::GetProtoName()
 	case PROTO_TELNET:	return _T("telnet");
 	case PROTO_LOGIN:	return _T("login");
 	case PROTO_SSH:		return _T("ssh");
+	case PROTO_PIPE:	return _T("pipe");
 	default:			return _T("direct");
 	}
 }
@@ -4100,6 +4101,8 @@ int CServerEntry::GetProtoType(LPCTSTR str)
 		return PROTO_LOGIN;
 	else if ( _tcscmp(str, _T("ssh")) == 0 )
 		return PROTO_SSH;
+	else if ( _tcscmp(str, _T("pipe")) == 0 )
+		return PROTO_PIPE;
 	else
 		return PROTO_DIRECT;
 }

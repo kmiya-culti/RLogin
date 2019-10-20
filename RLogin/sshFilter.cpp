@@ -936,7 +936,7 @@ void CRcpUpload::OnReceive(const void *lpBuf, int nBufLen)
 				Close();
 				return;
 			}
-			str.Format(_T("C%04o %I64d %s\n"), (m_Stat.st_mode & (_S_IREAD | _S_IWRITE | _S_IEXEC)), m_Stat.st_size, m_File);
+			str.Format(_T("C%04o %I64d %s\n"), (m_Stat.st_mode & 0777), m_Stat.st_size, m_File);
 			tmp = m_pSsh->m_pDocument->RemoteStr(str);
 			Send((LPBYTE)(LPCSTR)tmp, tmp.GetLength());
 			m_Size = 0;

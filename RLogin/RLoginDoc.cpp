@@ -1177,6 +1177,11 @@ BOOL CRLoginDoc::SetOptFixEntry(LPCTSTR entryName)
 				return SetOptFixEntry(pTab->m_Data[n].m_OptFixEntry);
 
 			LoadOption(pTab->m_Data[n], m_TextRam, m_KeyTab, m_KeyMac, m_ParamTab);
+
+			// Fix 2019.09.11
+			m_ServerEntry.m_ScriptFile = pTab->m_Data[n].m_ScriptFile;
+			m_ServerEntry.m_ScriptStr  = pTab->m_Data[n].m_ScriptStr;
+
 			return TRUE;
 		}
 	}
