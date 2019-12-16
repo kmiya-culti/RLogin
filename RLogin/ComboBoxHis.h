@@ -32,6 +32,7 @@ public:
 	void LoadHis(LPCTSTR lpszSection);
 	void SaveHis(LPCTSTR lpszSection);
 	void AddHis(LPCTSTR str);
+	void RemoveAll();
 
 public:
 	virtual BOOL PreTranslateMessage(MSG* pMsg);

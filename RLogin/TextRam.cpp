@@ -5099,7 +5099,8 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 	if ( bEraBack )
 		mode |= ETO_OPAQUE;
 
-	width  = pView->m_CharWidth  * (prop.zoom == 0 ? 1 : 2);
+	// SHIFTJIS_CHARSETのみ文字幅を半角で指定で行ってみる
+	width  = (pView->m_CharWidth * (pFontNode->m_CharSet != SHIFTJIS_CHARSET ? prop.csz : 1))  * (prop.zoom == 0 ? 1 : 2);
 	height = pView->m_CharHeight * (prop.zoom <= 1 ? 1 : 2);
 
 	if ( (prop.attr & ATT_BOLD) != 0 && IsOptEnable(TO_RLBOLD) )
@@ -5222,11 +5223,11 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 
 	} else if ( type == 1 ) {
 		// Fixed Draw
-		// 文字幅１の場合に縮小する必要があればCenter Drawに変更、固定幅
+		// オプションで縮小する必要があればCenter Drawに変更、固定幅
 		x = box.left + pView->m_CharWidth  * pFontNode->m_OffsetW / 100;
 		y = box.top  - pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? pView->m_CharHeight : 0);
 
-		if ( prop.csz == 1 && !IsOptEnable(TO_RLUNIAHF) ) {
+		if ( !IsOptEnable(TO_RLUNIAHF) ) {
 			sz = pDC->GetTextExtent(prop.pText, prop.tlen);
 			if ( box.Width() < sz.cx )
 				goto DRAWCHAR;

@@ -28,8 +28,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.24.6)</TD>
-            <TD width="20%" align="right">2019/10/21</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.24.7)</TD>
+            <TD width="20%" align="right">2019/12/16</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -377,6 +377,9 @@ TD {
             作業フォルダもしくは、実行プログラムと同じフォルダに「RLogin.ini」を作成しておくと<BR>
             レジストリに保存せずにプライベートプロファイルを使用します。<BR>
             <BR>
+            2.24.7より作業フォルダもしくは、実行プログラムと同じフォルダに「RLogin.rlg」を作成して<BR>
+            おくとサーバーエントリーが無い場合に読み込みを確認します。ひな形として利用できます。<BR>
+            <BR>
             ※プライベートプロファイルは、複数のプロセスからの変更などに弱いです。<BR>
             また、ファイルベースで意図せぬハングアップやファイルのコピーなどで壊れる場合が<BR>
             ありレジストリベースよりリスクが高くなり動作も非常に遅いと思いますのでご注意ください。<BR>
@@ -438,6 +441,14 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2019/12/16</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.24.7/">2.24.7</A></TD>
+            <TD>ファイルエントリーのチャットスクリプト作成フラグが保存されないバグを修正<BR>
+            固定幅フォントの全角文字でも表示幅を調整するように変更<BR>
+            メインウィンドウにクィックバーで接続を追加<BR>
+            エントリーのひな形としてRLogin.rlgの読み込みを行うように変更</TD>
+          </TR>
+          <TR>
             <TD align="center">2019/10/21</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.24.6/">2.24.6</A></TD>
             <TD>その他オプションを継承でスクリプト関連が継承されないバグを修正<BR>
@@ -475,14 +486,6 @@ TD {
             32bit版のopensslのみbcryptを使用しないように修正<BR>
             Server Selectのエントリーに任意順位及びラストアクセスを追加<BR>
             ListCtrlのカラムサイズをHiDPIの変更に追従するように変更</TD>
-          </TR>
-          <TR>
-            <TD align="center">2019/02/27</TD>
-            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.24.1/">2.24.1</A></TD>
-            <TD>SFtpのエラーダイアログにローカルエラー時の詳細を追加<BR>
-            試験的にsntrup4591761x25519-sha512@tinyssh.orgに対応<BR>
-            ダイアログをHiDPIの変更に追従するように変更<BR>
-            openssl-1.1.1bに更新</TD>
           </TR>
           <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
@@ -915,7 +918,7 @@ TD {
                   <TD align="left" colspan="6">表示(V)</TD>
                 </TR>
                 <TR>
-                  <TD align="center" width="10" rowspan="25">&nbsp;</TD>
+                  <TD align="center" width="10" rowspan="26">&nbsp;</TD>
                   <TD colspan="2" width="250" valign="top">メニューバー(M)</TD>
                   <TD width="450" valign="top">メニューバーを表示・非表示にします<BR>
                   ※非表示の時は、システムメニューでメニューバーを表示できます</TD>
@@ -927,6 +930,13 @@ TD {
                   <TD valign="top">ツールバーを表示・非表示にします</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$VIEW_TOOLBAR</TD>
+                </TR>
+                <TR>
+                  <TD valign="top" colspan="2">クィックバー(Q)</TD>
+                  <TD valign="top">クィックバーを表示・非表示にします。<BR>
+                  指定したエントリーを用いてホスト・ポート・ユーザー・パスワードを変更して接続を行います。</TD>
+                  <TD valign="top" align="right"></TD>
+                  <TD valign="top">$VIEW_QUICKBAR</TD>
                 </TR>
                 <TR>
                   <TD valign="top" colspan="2" width="250">タブバー(B)</TD>
@@ -1316,7 +1326,7 @@ TD {
             <TD colspan="5">その他ショートカットメニュー</TD>
           </TR>
           <TR>
-            <TD width="10" rowspan="3"></TD>
+            <TD width="10" rowspan="4"></TD>
             <TD width="250" valign="top">スクリプトメニュー</TD>
             <TD width="450" valign="top">スクリプトで設定するメニューです</TD>
             <TD valign="top" width="120" align="right"></TD>
@@ -1333,6 +1343,12 @@ TD {
             <TD valign="top">クリップボードに記録されているテキストを貼り付けます</TD>
             <TD valign="top" align="right"></TD>
             <TD valign="top">$CLIPBOARD_HIS1-10</TD>
+          </TR>
+          <TR>
+            <TD valign="top">クィックバーの接続ボタン</TD>
+            <TD valign="top">クィックバーによる接続を行います</TD>
+            <TD valign="top" align="right"></TD>
+            <TD valign="top">$QUICK_CONNECT</TD>
           </TR>
         </TBODY>
       </TABLE>

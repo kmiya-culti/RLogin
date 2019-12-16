@@ -72,6 +72,8 @@ void CComboBoxHis::LoadHis(LPCTSTR lpszSection)
 	CStringArrayExt aray;
 	CRLoginApp *pApp = (CRLoginApp *)AfxGetApp();
 
+	RemoveAll();
+
 	pApp->GetProfileArray(lpszSection, aray);
 	for ( n = 0 ; n < aray.GetSize() ; n++ )
 		AddString(aray[n]);
@@ -99,12 +101,18 @@ void CComboBoxHis::AddHis(LPCTSTR str)
 
 	InsertString(0, str);
 }
+void CComboBoxHis::RemoveAll()
+{
+	for ( int n = this->GetCount() ;  n > 0 ; n-- )
+		DeleteString(0);
+}
+
 BOOL CComboBoxHis::PreTranslateMessage(MSG* pMsg)
 {
 	int idx;
 	CString tmp[2];
 
-	if ( pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_DELETE && GetDroppedState() && (idx = GetCurSel()) >= 0 ) {
+	if ( pMsg->message == WM_KEYDOWN && pMsg->wParam == VK_DELETE && !m_Section.IsEmpty() && GetDroppedState() && (idx = GetCurSel()) >= 0 ) {
 		GetWindowText(tmp[0]);
 		GetLBText(idx, tmp[1]);
 		ShowDropDown(FALSE);

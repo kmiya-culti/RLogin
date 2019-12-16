@@ -491,6 +491,11 @@ BOOL CServerSelect::OnInitDialog()
 
 	InitEntry(INIT_CALL_NONE);
 
+	if ( m_pData->GetSize() == 0 && ((CRLoginApp *)::AfxGetApp())->GetExtFilePath(_T(".rlg"), m_InitPathName) ) {
+		if ( ::AfxMessageBox(IDS_INITENTRYINPORT, MB_ICONQUESTION | MB_YESNO) == IDYES )
+			PostMessage(WM_COMMAND, IDM_SERV_INPORT);
+	}
+
 	return TRUE;
 }
 
@@ -825,14 +830,21 @@ void CServerSelect::OnCheckEntry()
 
 void CServerSelect::OnServInport()
 {
+	CString PathName;
 	CFileDialog dlg(TRUE, _T("rlg"), _T(""), OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGRLOGIN), this);
 
-	if ( dlg.DoModal() != IDOK )
-		return;
+	if ( m_InitPathName.IsEmpty() ) {
+		if ( dlg.DoModal() != IDOK )
+			return;
+		PathName = dlg.GetPathName();
+	} else {
+		PathName = m_InitPathName;
+		m_InitPathName.Empty();
+	}
 
 	CFile File;
 
-	if ( !File.Open(dlg.GetPathName(), CFile::modeRead | CFile::shareExclusive) ) {
+	if ( !File.Open(PathName, CFile::modeRead | CFile::shareExclusive) ) {
 		MessageBox(_T("File Open Error"));
 		return;
 	}

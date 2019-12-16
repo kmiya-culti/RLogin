@@ -786,6 +786,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_WM_CLIPBOARDUPDATE()
 	ON_WM_MOVING()
 	ON_WM_GETMINMAXINFO()
+	ON_WM_INITMENU()
 
 	ON_MESSAGE(WM_SOCKSEL, OnWinSockSelect)
 	ON_MESSAGE(WM_GETHOSTADDR, OnGetHostAddr)
@@ -807,6 +808,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 
 	ON_COMMAND(ID_VIEW_MENUBAR, &CMainFrame::OnViewMenubar)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_MENUBAR, &CMainFrame::OnUpdateViewMenubar)
+	ON_COMMAND(ID_VIEW_QUICKBAR, &CMainFrame::OnViewQuickbar)
+	ON_UPDATE_COMMAND_UI(ID_VIEW_QUICKBAR, &CMainFrame::OnUpdateViewQuickbar)
 	ON_COMMAND(ID_VIEW_TABBAR, &CMainFrame::OnViewTabbar)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_TABBAR, &CMainFrame::OnUpdateViewTabbar)
 	ON_COMMAND(ID_VIEW_SCROLLBAR, &CMainFrame::OnViewScrollbar)
@@ -850,7 +853,10 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 
 	ON_COMMAND(IDM_TABMULTILINE, &CMainFrame::OnTabmultiline)
 	ON_UPDATE_COMMAND_UI(IDM_TABMULTILINE, &CMainFrame::OnUpdateTabmultiline)
-	ON_WM_INITMENU()
+
+	ON_COMMAND(IDM_QUICKCONNECT, &CMainFrame::OnQuickConnect)
+	ON_BN_CLICKED(IDC_CONNECT, &CMainFrame::OnQuickConnect)
+	ON_UPDATE_COMMAND_UI(IDC_CONNECT, &CMainFrame::OnUpdateConnect)
 END_MESSAGE_MAP()
 
 static const UINT indicators[] =
@@ -893,6 +899,8 @@ CMainFrame::CMainFrame()
 	m_hNextClipWnd = NULL;
 	m_bBroadCast = FALSE;
 	m_bTabBarShow = FALSE;
+	m_bQuickBarShow = FALSE;
+	m_bQuickConnect = FALSE;
 	m_StatusTimer = 0;
 	m_bAllowClipChain = TRUE;
 	m_bClipEnable = FALSE;
@@ -995,8 +1003,13 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		return -1;      // 作成に失敗
 	}
 
-	if ( !m_wndTabBar.Create(this, WS_VISIBLE| WS_CHILD|CBRS_TOP|WS_EX_WINDOWEDGE, IDC_MDI_TAB_CTRL_BAR) ) {
+	if ( !m_wndTabBar.Create(this, WS_VISIBLE| WS_CHILD | CBRS_TOP | WS_EX_WINDOWEDGE, IDC_MDI_TAB_CTRL_BAR) ) {
 		TRACE("Failed to create tabbar\n");
+		return -1;      // fail to create
+	}
+
+	if ( !m_wndQuickBar.Create(this, IDD_QUICKBAR, WS_VISIBLE | CBRS_TOP, IDD_QUICKBAR) ) {
+		TRACE("Failed to create dialogbar\n");
 		return -1;      // fail to create
 	}
 
@@ -1005,8 +1018,12 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	m_wndToolBar.EnableDocking(CBRS_ALIGN_ANY);
 	m_wndTabBar.EnableDocking(CBRS_ALIGN_ANY);
+	m_wndQuickBar.EnableDocking(CBRS_ALIGN_ANY);
+
 	EnableDocking(CBRS_ALIGN_ANY);
+
 	DockControlBar(&m_wndToolBar);
+	DockControlBar(&m_wndQuickBar);
 	DockControlBar(&m_wndTabBar);
 
 	// バーの表示設定
@@ -1014,6 +1031,9 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		ShowControlBar(&m_wndToolBar, FALSE, 0);
 	if ( (AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("StatusBarStyle"), WS_VISIBLE) & WS_VISIBLE) == 0 )
 		ShowControlBar(&m_wndStatusBar, FALSE, 0);
+
+	m_bQuickBarShow = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("QuickBarShow"), FALSE);
+	ShowControlBar(&m_wndQuickBar, m_bQuickBarShow, 0);
 
 	m_bTabBarShow = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("TabBarShow"), FALSE);
 	ShowControlBar(&m_wndTabBar, m_bTabBarShow, 0);
@@ -1644,6 +1664,7 @@ void CMainFrame::PostIdleMessage()
 void CMainFrame::UpdateServerEntry()
 {
 	m_ServerEntryTab.Serialize(FALSE);
+	QuickBarInit();
 
 	if ( m_pServerSelect != NULL )
 		m_pServerSelect->PostMessage(WM_COMMAND, ID_EDIT_CHECK);
@@ -2594,6 +2615,8 @@ LRESULT CMainFrame::OnDpiChanged(WPARAM wParam, LPARAM lParam)
 	m_wndTabBar.FontSizeCheck();
 	((CRLoginApp *)::AfxGetApp())->LoadResToolBar(MAKEINTRESOURCE(IDR_MAINFRAME), m_wndToolBar, this);
 
+	m_wndQuickBar.DpiChanged();
+
 	RecalcLayout(FALSE);
 
 	MoveWindow((RECT *)lParam, TRUE);
@@ -2633,6 +2656,9 @@ void CMainFrame::OnDestroy()
 	//AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("LayeredColor"), m_TransParColor);
 	//AfxGetApp()->WriteProfileInt(_T("ChildFrame"), _T("VScroll"), m_ScrollBarFlag);
 	//AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("VersionCheckFlag"), m_bVersionCheck);
+
+	// save QuickBar Data...
+	m_wndQuickBar.SaveDialog();
 
 	if ( !IsIconic() && !IsZoomed() ) {
 		int n = GetExecCount();
@@ -3544,6 +3570,19 @@ void CMainFrame::OnSysCommand(UINT nID, LPARAM lParam)
 		break;
 	}
 }
+void CMainFrame::OnViewQuickbar()
+{
+	CWinApp *pApp = AfxGetApp();
+	
+	m_bQuickBarShow = (m_bQuickBarShow? FALSE : TRUE);
+	pApp->WriteProfileInt(_T("MainFrame"), _T("QuickBarShow"), m_bQuickBarShow);
+
+	ShowControlBar(&m_wndQuickBar, m_bQuickBarShow, 0);
+}
+void CMainFrame::OnUpdateViewQuickbar(CCmdUI *pCmdUI)
+{
+	pCmdUI->SetCheck(m_bQuickBarShow);
+}
 void CMainFrame::OnViewTabbar()
 {
 	CWinApp *pApp = AfxGetApp();
@@ -3879,4 +3918,304 @@ void CMainFrame::OnTabmultiline()
 void CMainFrame::OnUpdateTabmultiline(CCmdUI *pCmdUI)
 {
 	pCmdUI->SetCheck(m_wndTabBar.m_bMultiLine ? 1 : 0);
+}
+
+void CMainFrame::OnQuickConnect()
+{
+	CString cmds;
+
+	if ( !m_bQuickConnect )
+		return;
+
+	m_wndQuickBar.SetComdLine(cmds);
+	((CRLoginApp *)::AfxGetApp())->OpenCommandLine(cmds);
+}
+void CMainFrame::OnUpdateConnect(CCmdUI *pCmdUI)
+{
+	pCmdUI->Enable(m_bQuickConnect ? TRUE : FALSE);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// CQuickBar ダイアログ
+
+IMPLEMENT_DYNAMIC(CQuickBar, CDialogBar)
+
+CQuickBar::CQuickBar()
+{
+}
+
+CQuickBar::~CQuickBar()
+{
+}
+
+void CQuickBar::DoDataExchange(CDataExchange* pDX)
+{
+	DDX_Control(pDX, IDC_ENTRYNAME, m_EntryWnd);
+	DDX_Control(pDX, IDC_HOSTNAME, m_HostWnd);
+	DDX_Control(pDX, IDC_PORTNAME, m_PortWnd);
+	DDX_Control(pDX, IDC_USERNAME, m_UserWnd);
+	DDX_Control(pDX, IDC_PASSNAME, m_PassWnd);
+}
+	
+BOOL CQuickBar::Create(CWnd* pParentWnd, LPCTSTR lpszTemplateName, UINT nStyle, UINT nID)
+{
+//	return CDialogBar::Create(pParentWnd, lpszTemplateName, nStyle, nID);
+
+	ASSERT(pParentWnd != NULL);
+	ASSERT(lpszTemplateName != NULL);
+
+	// allow chance to modify styles
+	m_dwStyle = (nStyle & CBRS_ALL);
+	CREATESTRUCT cs;
+	memset(&cs, 0, sizeof(cs));
+	cs.style = (DWORD)nStyle | WS_CHILD;
+	cs.hMenu = (HMENU)(UINT_PTR)nID;
+	cs.hInstance = AfxGetInstanceHandle();
+	cs.hwndParent = pParentWnd->GetSafeHwnd();
+	if (!PreCreateWindow(cs))
+		return FALSE;
+
+	// create a modeless dialog
+	HGLOBAL hDialog;
+	HGLOBAL hInitData = NULL;
+	void* lpInitData = NULL;
+	LPCDLGTEMPLATE lpDialogTemplate;
+
+	m_lpszTemplateName = lpszTemplateName;
+
+	if ( !((CRLoginApp *)AfxGetApp())->LoadResDialog(m_lpszTemplateName, hDialog, hInitData) )
+		return (-1);
+
+	if ( hInitData != NULL )
+		lpInitData = (void *)LockResource(hInitData);
+
+	lpDialogTemplate = (LPCDLGTEMPLATE)LockResource(hDialog);
+
+	CDialogTemplate dlgTemp(lpDialogTemplate);
+
+	CString FontName = ::AfxGetApp()->GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
+	int FontSize = MulDiv(::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9), SCREEN_DPI_Y, DEFAULT_DPI_Y);
+
+	m_InitDpi.cx = SCREEN_DPI_X;
+	m_InitDpi.cy = SCREEN_DPI_Y;
+	m_NowDpi = m_InitDpi;
+
+	if ( !FontName.IsEmpty() )
+		dlgTemp.SetFont(FontName, FontSize);
+	else {
+		CString name;
+		WORD size;
+		dlgTemp.GetFont(name, size);
+		if ( FontSize != size )
+			dlgTemp.SetFont(name, FontSize);
+	}
+
+	lpDialogTemplate = (LPCDLGTEMPLATE)LockResource(dlgTemp.m_hTemplate);
+
+	BOOL bSuccess = CreateDlgIndirect(lpDialogTemplate, pParentWnd, NULL);
+
+	UnlockResource(dlgTemp.m_hTemplate);
+
+	UnlockResource(hDialog);
+	FreeResource(hDialog);
+
+	if ( hInitData != NULL ) {
+		UnlockResource(hInitData);
+		FreeResource(hInitData);
+	}
+
+	if (!bSuccess)
+		return FALSE;
+
+	// dialog template MUST specify that the dialog
+	//  is an invisible child window
+	SetDlgCtrlID(nID);
+	CRect rect;
+	GetWindowRect(&rect);
+	m_sizeDefault = rect.Size();    // set fixed size
+
+	// force WS_CLIPSIBLINGS
+	ModifyStyle(0, WS_CLIPSIBLINGS);
+
+	if (!ExecuteDlgInit(lpszTemplateName))
+		return FALSE;
+
+	// force the size to zero - resizing bar will occur later
+	SetWindowPos(NULL, 0, 0, 0, 0, SWP_NOZORDER|SWP_NOACTIVATE|SWP_SHOWWINDOW);
+
+	return TRUE;
+}
+void CQuickBar::InitDialog()
+{
+	CString str;
+	CServerEntryTab *pTab = &(((CMainFrame *)AfxGetMainWnd())->m_ServerEntryTab);
+
+	UpdateData(FALSE);
+	
+	m_EntryWnd.RemoveAll();
+	for ( int n = 0 ; n < pTab->m_Data.GetSize() ; n++ ) {
+		str = pTab->m_Data[n].m_EntryName;
+		if ( !str.IsEmpty() && m_EntryWnd.FindStringExact((-1), str) == CB_ERR )
+			m_EntryWnd.AddString(str);
+	}
+
+	m_HostWnd.LoadHis(_T("QuickBarHostAddr"));
+	m_PortWnd.LoadHis(_T("QuickBarSocketPort"));
+	m_UserWnd.LoadHis(_T("QuickBarUserName"));
+
+	m_EntryWnd.SetWindowText(AfxGetApp()->GetProfileString(_T("QuickBar"), _T("EntryName"), _T("")));
+	m_HostWnd.SetWindowText(AfxGetApp()->GetProfileString(_T("QuickBar"), _T("HostName"), _T("")));
+	m_PortWnd.SetWindowText(AfxGetApp()->GetProfileString(_T("QuickBar"), _T("PortName"), _T("")));
+	m_UserWnd.SetWindowText(AfxGetApp()->GetProfileString(_T("QuickBar"), _T("UserName"), _T("")));
+
+	// EntryName Update Connect Button Flag
+	OnCbnEditchangeEntryname();
+}
+void CQuickBar::SaveDialog()
+{
+	CString str;
+
+	m_EntryWnd.GetWindowText(str);
+	AfxGetApp()->WriteProfileString(_T("QuickBar"), _T("EntryName"), str);
+
+	m_HostWnd.GetWindowText(str);
+	AfxGetApp()->WriteProfileString(_T("QuickBar"), _T("HostName"), str);
+
+	m_PortWnd.GetWindowText(str);
+	AfxGetApp()->WriteProfileString(_T("QuickBar"), _T("PortName"), str);
+
+	m_UserWnd.GetWindowText(str);
+	AfxGetApp()->WriteProfileString(_T("QuickBar"), _T("UserName"), str);
+}
+void CQuickBar::SetComdLine(CString &cmds)
+{
+	CString str, fmt;
+
+	m_EntryWnd.GetWindowText(str);
+	if ( !str.IsEmpty() ) {
+		if ( !cmds.IsEmpty() ) cmds += _T(" ");
+		fmt.Format(_T("/entry \"%s\""), str);
+		cmds += fmt;
+	}
+
+	m_HostWnd.GetWindowText(str);
+	if ( !str.IsEmpty() ) {
+		m_HostWnd.AddHis(str);
+		if ( !cmds.IsEmpty() ) cmds += _T(" ");
+		fmt.Format(_T("/ip \"%s\""), str);
+		cmds += fmt;
+	}
+
+	m_PortWnd.GetWindowText(str);
+	if ( !str.IsEmpty() ) {
+		m_PortWnd.AddHis(str);
+		if ( !cmds.IsEmpty() ) cmds += _T(" ");
+		fmt.Format(_T("/port \"%s\""), str);
+		cmds += fmt;
+	}
+
+	m_UserWnd.GetWindowText(str);
+	if ( !str.IsEmpty() ) {
+		m_UserWnd.AddHis(str);
+		if ( !cmds.IsEmpty() ) cmds += _T(" ");
+		fmt.Format(_T("/user \"%s\""), str);
+		cmds += fmt;
+	}
+
+	m_PassWnd.GetWindowText(str);
+	if ( !str.IsEmpty() ) {
+		if ( !cmds.IsEmpty() ) cmds += _T(" ");
+		fmt.Format(_T("/pass \"%s\""), str);
+		cmds += fmt;
+	}
+
+	// Save Last Data
+	SaveDialog();
+}
+
+static BOOL CALLBACK EnumWindowsProc(HWND hWnd , LPARAM lParam)
+{
+	CWnd *pWnd = CWnd::FromHandle(hWnd);
+	CQuickBar *pParent = (CQuickBar *)lParam;
+	CRect rect;
+
+	if ( pWnd->GetParent()->GetSafeHwnd() != pParent->GetSafeHwnd() )
+		return TRUE;
+
+	pWnd->GetWindowRect(rect);
+	pParent->ScreenToClient(rect);
+
+	rect.left   = MulDiv(rect.left,   pParent->m_ZoomMul.cx, pParent->m_ZoomDiv.cx);
+	rect.right  = MulDiv(rect.right,  pParent->m_ZoomMul.cx, pParent->m_ZoomDiv.cx);
+	rect.top    = MulDiv(rect.top,    pParent->m_ZoomMul.cy, pParent->m_ZoomDiv.cy);
+	rect.bottom = MulDiv(rect.bottom, pParent->m_ZoomMul.cy, pParent->m_ZoomDiv.cy);
+
+	if ( pWnd->SendMessage(WM_DPICHANGED, MAKEWPARAM(SCREEN_DPI_X, SCREEN_DPI_Y), (LPARAM)((RECT *)rect)) == FALSE ) {
+		if ( pParent->m_DpiFont.GetSafeHandle() != NULL )
+			pWnd->SetFont(&(pParent->m_DpiFont), FALSE);
+
+		if ( (pParent->GetStyle() & WS_SIZEBOX) == 0 )
+			pWnd->MoveWindow(rect, FALSE);
+	}
+
+	return TRUE;
+}
+void CQuickBar::DpiChanged()
+{
+	CFont *pFont;
+	LOGFONT LogFont;
+	CRect rect, client;
+
+	GetWindowRect(rect);
+	GetClientRect(client);
+	rect.right  += (MulDiv(client.Width(),  SCREEN_DPI_X, m_NowDpi.cx) - client.Width());
+	rect.bottom += (MulDiv(client.Height(), SCREEN_DPI_Y, m_NowDpi.cy) - client.Height());
+
+	//MoveWindow(rect, FALSE);
+	SetWindowPos(&wndTop ,0, 0, rect.Width(), rect.Height(), SWP_SHOWWINDOW);
+	m_sizeDefault = rect.Size();    // set fixed size
+
+	GetClientRect(rect);
+
+	m_ZoomMul.cx = rect.Width();
+	m_ZoomDiv.cx = client.Width();
+	m_ZoomMul.cy = rect.Height();
+	m_ZoomDiv.cy = client.Height();
+
+	m_NowDpi.cx = SCREEN_DPI_X;
+	m_NowDpi.cy = SCREEN_DPI_Y;
+	
+	if ( (pFont = GetFont()) != NULL ) {
+		pFont->GetLogFont(&LogFont);
+
+		if ( m_DpiFont.GetSafeHandle() != NULL )
+			m_DpiFont.DeleteObject();
+
+		LogFont.lfHeight = MulDiv(LogFont.lfHeight, SCREEN_DPI_Y, m_InitDpi.cy);
+
+		m_DpiFont.CreateFontIndirect(&LogFont);
+	}
+
+	EnumChildWindows(GetSafeHwnd(), EnumWindowsProc, (LPARAM)this);
+}
+
+BEGIN_MESSAGE_MAP(CQuickBar, CDialogBar)
+	ON_CBN_EDITCHANGE(IDC_ENTRYNAME, &CQuickBar::OnCbnEditchangeEntryname)
+	ON_CBN_SELCHANGE(IDC_ENTRYNAME, &CQuickBar::OnCbnEditchangeEntryname)
+END_MESSAGE_MAP()
+
+void CQuickBar::OnCbnEditchangeEntryname()
+{
+	CString str;
+	BOOL rc = FALSE;
+
+	if ( m_EntryWnd.GetCurSel() >= 0 )
+		rc = TRUE;
+	else {
+		m_EntryWnd.GetWindowText(str);
+		if ( !str.IsEmpty() && m_EntryWnd.FindStringExact((-1), str) != CB_ERR )
+			rc = TRUE;
+	}
+
+	((CMainFrame *)::AfxGetMainWnd())->m_bQuickConnect = rc;
 }

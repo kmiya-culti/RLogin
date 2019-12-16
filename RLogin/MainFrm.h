@@ -9,6 +9,7 @@
 #include "IConv.h"
 #include "Ssh.h"
 #include "MidiData.h"
+#include "ComboBoxHis.h"
 
 #define	PANEFRAME_NOCHNG		0
 #define	PANEFRAME_MAXIM			1
@@ -114,6 +115,46 @@ public:
 	CBitmap m_Bitmap;
 };
 
+class CQuickBar : public CDialogBar
+{
+	DECLARE_DYNAMIC(CQuickBar)
+
+public:
+	CQuickBar();
+	virtual ~CQuickBar();
+
+	enum { IDD = IDD_QUICKBAR };
+
+public:
+	CComboBoxHis m_EntryWnd;
+	CComboBoxHis m_HostWnd;
+	CComboBoxHis m_PortWnd;
+	CComboBoxHis m_UserWnd;
+	CEdit m_PassWnd;
+
+	CSize m_InitDpi;
+	CSize m_NowDpi;
+	CFont m_DpiFont;
+	CSize m_ZoomMul;
+	CSize m_ZoomDiv;
+
+	void InitDialog();
+	void SaveDialog();
+	void DpiChanged();
+	void SetComdLine(CString &cmds);
+
+public:
+	BOOL Create(CWnd* pParentWnd, LPCTSTR lpszTemplateName, UINT nStyle, UINT nID);
+	inline BOOL Create(CWnd* pParentWnd, UINT nIDTemplate, UINT nStyle, UINT nID) { return Create(pParentWnd, MAKEINTRESOURCE(nIDTemplate), nStyle, nID); }
+
+protected:
+	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート
+
+public:
+	DECLARE_MESSAGE_MAP()
+	afx_msg void OnCbnEditchangeEntryname();
+};
+
 #define	CLIPOPENTHREADMAX	3		// クリップボードアクセススレッド多重起動数
 #define	CLIPOPENLASTMSEC	500		// 指定msec以内のクリップボードアップデートを無視する
 
@@ -167,6 +208,8 @@ public:
 	CList<class CMidiQue *, class CMidiQue *> m_MidiQue;
 	volatile int m_InfoThreadCount;
 	BOOL m_bTabBarShow;
+	BOOL m_bQuickBarShow;
+	BOOL m_bQuickConnect;
 	BOOL m_ScrollBarFlag;
 	BOOL m_bVersionCheck;
 	BOOL m_bGlassStyle;
@@ -285,12 +328,14 @@ public:
 	inline CImageList *GetTabImageList() { return &(m_wndTabBar.m_ImageList); }
 	inline int GetTabImageIndex(LPCTSTR filename) { return m_wndTabBar.GetImageIndex(filename); }
 	inline void TabBarFontCheck() { m_wndTabBar.FontSizeCheck(); this->RecalcLayout(TRUE); }
+	inline void QuickBarInit() { m_wndQuickBar.InitDialog(); }
 
 // コントロール バー用メンバ
 protected: 
 	CStatusBar  m_wndStatusBar;
 	CToolBar    m_wndToolBar;
 	CTabBar		m_wndTabBar;
+	CQuickBar	m_wndQuickBar;
 
 // オーバーライド
 public:
@@ -349,6 +394,8 @@ protected:
 
 	afx_msg void OnViewMenubar();
 	afx_msg void OnUpdateViewMenubar(CCmdUI *pCmdUI);
+	afx_msg void OnViewQuickbar();
+	afx_msg void OnUpdateViewQuickbar(CCmdUI *pCmdUI);
 	afx_msg void OnViewTabbar();
 	afx_msg void OnUpdateViewTabbar(CCmdUI *pCmdUI);
 	afx_msg void OnViewScrollbar();
@@ -367,6 +414,8 @@ protected:
 	afx_msg void OnDeleteOldEntry();
 	afx_msg void OnTabmultiline();
 	afx_msg void OnUpdateTabmultiline(CCmdUI *pCmdUI);
+	afx_msg void OnQuickConnect();
+	afx_msg void OnUpdateConnect(CCmdUI *pCmdUI);
 
 	afx_msg LRESULT OnWinSockSelect(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnGetHostAddr(WPARAM wParam, LPARAM lParam);

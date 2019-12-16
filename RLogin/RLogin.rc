@@ -177,6 +177,7 @@ BEGIN
     BEGIN
         MENUITEM "メニューバー(&M)",                  ID_VIEW_MENUBAR
         MENUITEM "ツールバー(&T)",                   ID_VIEW_TOOLBAR
+        MENUITEM "クイックバー(&Q)",                  ID_VIEW_QUICKBAR
         MENUITEM "タブバー(&B)",                    ID_VIEW_TABBAR
         MENUITEM "ステータスバー(&S)",                 ID_VIEW_STATUS_BAR
     END
@@ -281,6 +282,7 @@ BEGIN
     BEGIN
         MENUITEM "メニューバー(&M)",                  ID_VIEW_MENUBAR
         MENUITEM "ツールバー(&T)",                   ID_VIEW_TOOLBAR
+        MENUITEM "クイックバー(&Q)",                  ID_VIEW_QUICKBAR
         MENUITEM "タブバー(&B)",                    ID_VIEW_TABBAR
         MENUITEM "ステータスバー(&S)",                 ID_VIEW_STATUS_BAR
         MENUITEM "スクロールバー(&V)",                 ID_VIEW_SCROLLBAR
@@ -586,7 +588,7 @@ BEGIN
                     "SysLink",WS_TABSTOP,44,178,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,193,60,14,WS_GROUP
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin Version 2.24.6 (2019/10/21)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin Version 2.24.7 (2019/12/16)",IDC_STATIC,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2019 Culti",IDC_STATIC,44,16,189,8
     LTEXT           "OpenSSL 1.1.1d 10 Sep 2019",IDC_STATIC,44,52,189,8
     LTEXT           "Copyright (c) 1998-2018 The OpenSSL Project",IDC_STATIC,44,61,189,8
@@ -1978,6 +1980,22 @@ BEGIN
     LTEXT           "下余白(mm)",IDC_STATIC,125,114,50,8
 END
 
+IDD_QUICKBAR DIALOGEX 0, 0, 421, 21
+STYLE DS_SETFONT | WS_CHILD | WS_SYSMENU
+FONT 9, "MS UI Gothic", 400, 0, 0x80
+BEGIN
+    COMBOBOX        IDC_ENTRYNAME,59,3,60,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_HOSTNAME,162,3,60,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_PORTNAME,225,3,36,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_USERNAME,288,3,50,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_PASSNAME,366,3,50,12,ES_PASSWORD | ES_AUTOHSCROLL
+    PUSHBUTTON      "接続",IDC_CONNECT,3,3,30,14
+    RTEXT           "Entry",IDC_STATIC,35,6,20,8
+    RTEXT           "Host/Port",IDC_STATIC,122,6,36,8
+    RTEXT           "User",IDC_STATIC,264,6,20,8
+    RTEXT           "Pass",IDC_STATIC,341,6,20,8
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1985,8 +2003,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,24,6,0
- PRODUCTVERSION 2,24,6,0
+ FILEVERSION 2,24,7,0
+ PRODUCTVERSION 2,24,7,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2003,12 +2021,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.24.6.0"
+            VALUE "FileVersion", "2.24.7.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.24.6.0"
+            VALUE "ProductVersion", "2.24.7.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2494,6 +2512,14 @@ BEGIN
         RIGHTMARGIN, 232
         TOPMARGIN, 7
         BOTTOMMARGIN, 161
+    END
+
+    IDD_QUICKBAR, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 414
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 14
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -4155,6 +4181,7 @@ BEGIN
     IDS_DISCLIPBOARDWRITE   "OSC52によるクリップボードの書き込みが許可されていません"
     IDS_DISWINDOWSIZE       "メインウィンドウに対する移動やリサイズが許可されていません"
     IDS_SSHOPTIONCHECK      "エージェント転送・ポートフォワードの変更は、次回接続時から有効になります"
+	IDS_INITENTRYINPORT     "初期エントリー情報をファイルから読み込みますか？"
 END
 
 STRINGTABLE
@@ -4389,6 +4416,7 @@ BEGIN
     ID_VIEW_TABBAR          "タブバーの 表示/非表示\nタブバーの表示切り替え"
     ID_WINDOW_CLOSE         "作業中のウィンドウを閉じます\n閉じる"
     ID_WINDOW_ROTATION      "表示しているペインを移動します\nペインの移動"
+    ID_VIEW_QUICKBAR        "クイックバーの 表示/非表示\nクィック接続バーの表示切り替え"
 END
 
 STRINGTABLE
@@ -4599,7 +4627,7 @@ BEGIN
     IDT_TERM_LIST54         "7786 ホイールのキー変換\tホイールの通常動作\t"
     IDT_TERM_LIST55         "Tekをコンソールで表示\tTekコンソールを無効\t"
     IDT_TERM_LIST56         "UTF-8ノーマライズを禁止\tUTF-8ノーマライズを行う\tUNICODEの文字変換処理をしないでそのままの形で表示するようにします。"
-    IDT_TERM_LIST57         "Unicde半角の調整をしない\tUnicde半角の調整をする\t一部のフォントで半角・全角になるように調整して表示ます"
+    IDT_TERM_LIST57         "文字幅の調整をしない\t文字幅の調整をする\t一部のフォントで半角・全角になるように調整して表示ます"
     IDT_TERM_LIST58         "modifyKeysを優先する\tショートカットを優先\t"
     IDT_TERM_LIST59         "罫線を文字で表示する\t罫線を線で表示する\t罫線を線で描画せずにフォントの持つ本来の文字として表示します"
     IDT_TERM_LIST60         "Sixel画像の右にカーソル\tSixel画像の下にカーソル\tスクロールモード時のSixel画像表示後のカーソル位置を設定します"
@@ -4623,6 +4651,7 @@ END
 STRINGTABLE
 BEGIN
     IDM_TABMULTILINE        "タブバーをボタンスタイルの複数行で表示する\nタブバーのマルチライン"
+    IDM_QUICKCONNECT        "クィックバーで接続"
 END
 
 #endif    // 日本語 (日本) resources

@@ -61,6 +61,7 @@ public:
 	CEdit m_EditWnd;
 	CStringIndex *m_pEditIndex;
 	CRect m_EditNow, m_EditRect, m_EditMax;
+	CString m_InitPathName;
 
 // クラスファンクション
 public:

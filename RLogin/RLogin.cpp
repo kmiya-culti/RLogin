@@ -1195,6 +1195,7 @@ BOOL CRLoginApp::InitInstance()
 
 	// レジストリベースのサーバーエントリーの読み込み
 	pMainFrame->m_ServerEntryTab.Serialize(FALSE);
+	pMainFrame->QuickBarInit();
 
 	// プログラムバージョンチェック
 	pMainFrame->VersionCheck();

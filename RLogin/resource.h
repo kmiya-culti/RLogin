@@ -51,22 +51,18 @@
 #define IDD_TTYMODEDLG                  147
 #define IDD_UPDATEDLG                   148
 #define IDD_OPTDLG                      149
-#define IDD_DIALOG1                     150
 #define IDD_BLOCKDLG                    150
 #define IDD_ISO646DLG                   151
 #define IDD_EXTOPTPAGE                  152
-#define IDD_DIALOG2                     156
-#define IDD_MSGDLG                      156
-#define IDD_BACKPAGE                    159
-#define IDD_TOOLDLG                     160
-#define IDD_RESTRANSDLG                 161
-#define IDD_COMSETUPDLG                 163
-#define IDD_COMMONIDLG                  163
-#define IDD_USERFLOWDLG                 165
-#define IDD_DIALOG3                     167
-#define IDD_COMCONFDLG                  167
-#define IDD_COMINITDLG                  167
-#define IDD_PRNTEXTDLG                  170
+#define IDD_MSGDLG                      153
+#define IDD_BACKPAGE                    154
+#define IDD_TOOLDLG                     155
+#define IDD_RESTRANSDLG                 156
+#define IDD_COMMONIDLG                  157
+#define IDD_USERFLOWDLG                 158
+#define IDD_COMINITDLG                  159
+#define IDD_PRNTEXTDLG                  160
+#define IDD_QUICKBAR                    161
 #define IDR_GRAPWND                     300
 #define IDR_MAINFRAME                   301
 #define IDR_POPUPMENU                   302
@@ -240,7 +236,8 @@
 #define IDS_DISCLIPBOARDREAD            635
 #define IDS_DISCLIPBOARDWRITE           636
 #define IDS_DISWINDOWSIZE               637
-#define	IDS_SSHOPTIONCHECK              638
+#define IDS_SSHOPTIONCHECK              638
+#define IDS_INITENTRYINPORT             639
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -421,6 +418,7 @@
 #define ID_WINDOW_CLOSE                 1043
 #define ID_WINDOW_ROTATION              1044
 #define ID_COMM_EVENT_MONI              1045
+#define ID_VIEW_QUICKBAR                1046
 #define IDC_ALGO_LIST1                  2000
 #define IDC_ALGO_LIST2                  2001
 #define IDC_ALGO_LIST3                  2002
@@ -955,6 +953,7 @@
 #define IDC_CTRLTITLE1                  2493
 #define IDC_CTRLTITLE2                  2494
 #define IDC_CTRLTITLE3                  2495
+#define IDC_CONNECT                     2496
 #define IDM_BROADCAST                   5000
 #define IDM_CAP_CLIPBORD                5001
 #define IDM_CAP_EXPORT                  5002
@@ -1080,15 +1079,16 @@
 #define IDM_IMAGEGRAPHIST               5134
 #define IDM_HISTOGRAM                   5135
 #define IDM_TABMULTILINE                5136
+#define IDM_QUICKCONNECT                5137
 #define IDM_FIRST_MDICHILD              0xF800
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        171
-#define _APS_NEXT_COMMAND_VALUE         5137
-#define _APS_NEXT_CONTROL_VALUE         2496
-#define _APS_NEXT_SYMED_VALUE           639
+#define _APS_NEXT_RESOURCE_VALUE        162
+#define _APS_NEXT_COMMAND_VALUE         5138
+#define _APS_NEXT_CONTROL_VALUE         2497
+#define _APS_NEXT_SYMED_VALUE           670
 #endif
 #endif

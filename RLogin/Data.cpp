@@ -1819,6 +1819,9 @@ BOOL CMenuLoad::GetPopUpMenu(UINT nId, CMenu &PopUpMenu)
 	// Add ReOpen Menu
 	PopUpMenu.InsertMenu(ID_FILE_CLOSE, MF_BYCOMMAND, IDM_REOPENSOCK, CStringLoad(IDS_REOPENSOCK));
 
+	// Add QuickConnect Menu
+	PopUpMenu.InsertMenu(ID_FILE_CLOSE, MF_BYCOMMAND, IDM_QUICKCONNECT, CStringLoad(IDM_QUICKCONNECT));
+
 	// Create Key History Menu
 	if ( (pMenu = GetItemSubMenu(ID_MACRO_HIS1, &PopUpMenu)) != NULL ) {
 		if ( pMenu->GetMenuString(ID_MACRO_HIS1, tmp, MF_BYCOMMAND) <= 0 )
@@ -3299,8 +3302,12 @@ void CStrScript::ExecNode(CStrScriptNode *np)
 }
 void CStrScript::ExecStop()
 {
+	if ( m_MakeFlag && !m_Str.IsEmpty() )
+		AddNode(m_Line[2], m_Str);
+
 	m_MakeFlag = FALSE;
 	m_Exec = NULL;
+
 	if ( m_StatDlg.m_hWnd != NULL )
 		m_StatDlg.DestroyWindow();
 }
@@ -3375,7 +3382,7 @@ void CStrScript::SendStr(LPCWSTR str, int len, CServerEntry *ep)
 			if ( m_Line[2].IsEmpty() )
 				m_Line[2] = m_Line[1];
 		}
-		if ( *str == L'\r' ) {
+		if ( *str == L'\r' || *str == L'\n' ) {
 			if ( ep != NULL ) {
 				if ( ep->m_EntryName.Compare(CString(m_Str)) == 0 )
 					m_Str = L"%E";
@@ -3885,6 +3892,7 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 
 		m_ChatScript.SetString(str);
 		index[_T("Chat")]  = str;
+		index[_T("MakeChat")]  = m_ChatScript.m_MakeChat;
 
 		index[_T("Before")] = m_BeforeEntry;
 		index[_T("Icon")] = m_IconName;
@@ -3953,6 +3961,9 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 
 		if ( (n = index.Find(_T("Chat"))) >= 0 )
 			m_ChatScript.GetString(index[n]);
+
+		if ( (n = index.Find(_T("MakeChat"))) >= 0 )
+			m_ChatScript.m_MakeChat = index[n];
 
 		if ( (n = index.Find(_T("Before"))) >= 0 )
 			m_BeforeEntry = index[n];
@@ -4047,6 +4058,9 @@ void CServerEntry::DiffIndex(CServerEntry &orig, CStringIndex &index)
 	orig.m_ChatScript.SetString(pass);
 	if ( str.Compare(pass) != 0 )
 		index[_T("Chat")]  = str;
+
+	if (  m_ChatScript.m_MakeChat != orig.m_ChatScript.m_MakeChat )
+		index[_T("MakeChat")]  = m_ChatScript.m_MakeChat;
 
 	if ( m_BeforeEntry.Compare(orig.m_BeforeEntry) != 0 )
 		index[_T("Before")] = m_BeforeEntry;
@@ -5240,7 +5254,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	135
+#define	CMDSKEYTABMAX	137
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -5324,6 +5338,7 @@ static const struct _CmdsKeyTab {
 	{	ID_FILE_PRINT_SETUP,		L"$PRINT_SETUP"		},
 	{	ID_PAGE_PRIOR,				L"$PRIOR"			},
 	{	IDM_CREATEPROFILE,			L"$PROFILE_SAVE"	},
+	{	IDM_QUICKCONNECT,			L"$QUICK_CONNECT"	},
 	{	IDM_REGISTAPP,				L"$REGISTRY_HANDLE"	},
 	{	IDM_SAVEREGFILE,			L"$REGISTRY_SAVE"	},
 	{	IDM_RESET_ALL,				L"$RESET_ALL"		},
@@ -5371,6 +5386,7 @@ static const struct _CmdsKeyTab {
 	{	IDM_TEKDISP,				L"$VIEW_TEKDISP"	},
 	{	ID_VIEW_TOOLBAR,			L"$VIEW_TOOLBAR"	},
 	{	IDM_TRACEDISP,				L"$VIEW_TRACEDISP"	},
+	{	ID_VIEW_QUICKBAR,			L"$VIEW_QUICKBAR"	},
 	{	ID_WINDOW_CLOSE,			L"$WINDOW_CLOSE"	},
 	{	IDM_DISPWINIDX,				L"$WINDOW_INDEX"	},
 	{	ID_WINDOW_NEW,				L"$WINDOW_NEW"		},
