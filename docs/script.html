@@ -753,6 +753,22 @@ default: a = 1 + 3; break;
             <TD valign="top">ウィンドウを閉じる</TD>
           </TR>
           <TR>
+            <TD valign="top">menucheck (<I>menu</I> )</TD>
+            <TD valign="top">キー定義で使用している$から始まる文字でメニューのチェック状態を取得します</TD>
+            <TD valign="top">int</TD>
+            <TD valign="top" rowspan="2">if(menucheck(&quot;$BROADCAST&quot;)==0)<BR>
+            menucall(&quot;$BROADCAST&quot;); <BR>
+            broadcast(&quot;ls\r&quot;);<BR>
+            if(menucheck(&quot;$BROADCAST&quot;)==1)<BR>
+            menucall(&quot;$BROADCAST&quot;);</TD>
+            <TD valign="top" rowspan="2">ブロードキャストメニューをON/OFFしてすべてのウィンドウにコマンドを送る</TD>
+          </TR>
+          <TR>
+            <TD valign="top">menuenable (<I>menu</I> )</TD>
+            <TD valign="top">キー定義で使用している$から始まる文字でメニューの状態を取得します</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
             <TD valign="top">iconstyle ( <I>msg</I> )</TD>
             <TD valign="top">タスクトレーにアイコン化します</TD>
             <TD valign="top"></TD>
@@ -1538,6 +1554,20 @@ sclose();</PRE>
             echo(&quot;Hello&quot;);</TD>
             <TD valign="top">サーバー接続後「Hello」を表示</TD>
           </TR>
+          <TR>
+            <TD valign="top">sendstr ( <I>string</I> )</TD>
+            <TD valign="top">キー入力された文字などと同じレベルで文字列を送信します。結果、ブロードキャストや改行コード変換などの影響をうけます</TD>
+            <TD valign="top"></TD>
+            <TD valign="top"></TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">broadcast ( <I>string , [group]</I> )</TD>
+            <TD valign="top">ブロードキャストがONの接続に文字列を送信します</TD>
+            <TD valign="top"></TD>
+            <TD valign="top"></TD>
+            <TD valign="top"></TD>
+          </TR>
         </TBODY>
       </TABLE>
       </TD>
@@ -2286,8 +2316,8 @@ tekflush();</PRE>
             array</TD>
           </TR>
           <TR>
-            <TD valign="top"><FONT color="#c0c0c0">textwnd(<I>title, msg</I> )</FONT></TD>
-            <TD valign="top"><FONT color="#c0c0c0">テキストウィンドウ変数を返す</FONT></TD>
+            <TD valign="top">textwnd(<I>title, msg</I> )</TD>
+            <TD valign="top">テキストウィンドウ変数を返す</TD>
             <TD valign="top">wnd</TD>
             <TD valign="top" rowspan="5">msg&nbsp;=&nbsp;textwnd(&quot;Test&quot;,&nbsp;&quot;Hello&quot;);<BR>
             msg.open();<BR>
@@ -2297,23 +2327,23 @@ tekflush();</PRE>
             <TD valign="top" rowspan="5">テキストウィンドウを開きます</TD>
           </TR>
           <TR>
-            <TD valign="top"><FONT color="#c0c0c0"><I>wnd.</I>open()</FONT></TD>
-            <TD valign="top"><FONT color="#c0c0c0">ウィンドウを表示します</FONT></TD>
+            <TD valign="top"><I>wnd.</I>open()</TD>
+            <TD valign="top">ウィンドウを表示します</TD>
             <TD valign="top"></TD>
           </TR>
           <TR>
-            <TD valign="top"><FONT color="#c0c0c0"><I>wnd.</I>settext(msg)</FONT></TD>
-            <TD valign="top"><FONT color="#c0c0c0">テキストを置き換え表示します</FONT></TD>
+            <TD valign="top"><I>wnd.</I>settext(msg)</TD>
+            <TD valign="top">テキストを置き換え表示します</TD>
             <TD valign="top"></TD>
           </TR>
           <TR>
-            <TD valign="top"><FONT color="#c0c0c0"><I>wnd.addtext(msg)</I></FONT></TD>
-            <TD valign="top"><FONT color="#c0c0c0">テキストを追加表示します</FONT></TD>
+            <TD valign="top"><I>wnd.addtext(msg)</I></TD>
+            <TD valign="top">テキストを追加表示します</TD>
             <TD valign="top"></TD>
           </TR>
           <TR>
-            <TD valign="top"><FONT color="#c0c0c0"><I>wnd.close()</I></FONT></TD>
-            <TD valign="top"><FONT color="#c0c0c0">ウィンドウを閉じます</FONT></TD>
+            <TD valign="top"><I>wnd.close()</I></TD>
+            <TD valign="top">ウィンドウを閉じます</TD>
             <TD valign="top"></TD>
           </TR>
           <TR>

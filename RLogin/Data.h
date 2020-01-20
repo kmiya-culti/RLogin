@@ -113,8 +113,8 @@ public:
 	LONG PTR32BIT(LPBYTE pos);
 	LONGLONG PTR64BIT(LPBYTE pos);
 
-	LPCSTR Base64Param(LPCSTR str);
-	LPCTSTR Base64Decode(LPCTSTR str);
+	LPCSTR Base64Decode(LPCSTR str);
+	LPCWSTR Base64Decode(LPCWSTR str);
 	void Base64Encode(LPBYTE buf, int len);
 	LPCTSTR Base16Decode(LPCTSTR str);
 	void Base16Encode(LPBYTE buf, int len);
@@ -483,12 +483,13 @@ public:
 	~CFontChacheNode();
 };
 
+#define	FONTHASHMAX		8
 #define	FONTCACHEMAX	64
 
 class CFontChache : public CObject
 {
 public:
-	CFontChacheNode *m_pTop[4];
+	CFontChacheNode *m_pTop[FONTHASHMAX];
 	CFontChacheNode m_Data[FONTCACHEMAX];
 
 	CFontChacheNode *GetFont(LPCTSTR pFontName, int Width, int Height, int CharSet, int Style, int Quality);

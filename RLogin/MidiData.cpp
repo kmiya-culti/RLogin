@@ -2220,7 +2220,7 @@ BOOL CMidiData::LoadMML(LPCSTR str, int nInit)
 	if ( nInit == 3 ) {
 		CBuffer tmp;
 		Stop();
-		tmp.Base64Param(str);
+		tmp.Base64Decode(str);
 		return SetSmfData(tmp.GetPtr(), tmp.GetSize());
 
 	} else if ( nInit == 4 ) {

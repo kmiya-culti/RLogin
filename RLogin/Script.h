@@ -317,6 +317,22 @@ protected:
 	DECLARE_MESSAGE_MAP()
 };
 
+class CScriptCmdUI : public CCmdUI
+{
+public:
+	int m_Check;
+	BOOL m_bEnable;
+	BOOL m_bRadio;
+	CString m_Text;
+
+	CScriptCmdUI();
+
+	virtual void Enable(BOOL bOn = TRUE);
+	virtual void SetCheck(int nCheck = 1);
+	virtual void SetRadio(BOOL bOn = TRUE);
+	virtual void SetText(LPCTSTR lpszText);
+};
+
 class CScript : public CObject
 {
 public:

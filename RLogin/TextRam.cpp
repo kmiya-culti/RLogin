@@ -67,7 +67,7 @@ HANDLE CMemMap::Create(ULONGLONG size)
 
 	// サイズをm_MapPageで丸めるが1ページ余分に確保
 	// MapView時にMapPageの倍のm_MapSizeで割り当てる為
-	// COLS_MAX * sizeof(CCharCell)=0x4000がページ(0x10000)
+	// COLS_MAX * sizeof(CCharCell)=0x8000がページ(0x10000)
 	// で割り切れるので必要ないが念の為の処置
 	size = ((size + m_MapPage - 1) / m_MapPage + 1) * m_MapPage;
 
@@ -1396,6 +1396,7 @@ CTextSave::CTextSave()
 	m_pNext = NULL;
 	m_pCharCell = NULL;
 	m_pTextRam = NULL;
+	m_TabMap = new BYTE[TABFLAGSIZE];
 }
 CTextSave::~CTextSave()
 {
@@ -1411,6 +1412,8 @@ CTextSave::~CTextSave()
 				pWnd->m_Use--;
 		}
 	}
+
+	delete [] m_TabMap;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1420,6 +1423,11 @@ CTextRam::CTextRam()
 {
 	m_pDocument = NULL;
 	m_pServerEntry = NULL;
+
+	m_ColTab = new COLORREF[EXTCOL_MAX + EXTCOL_MATRIX];
+	m_Kan_Buf = new BYTE[KANBUFMAX];
+	m_Macro = new CBuffer[MACROMAX];
+	m_TabMap = new BYTE[TABFLAGSIZE];
 
 	m_bOpen = FALSE;
 	m_hMap = NULL;
@@ -1446,6 +1454,7 @@ CTextRam::CTextRam()
 	m_CaretColor = m_DefCaretColor;
 	m_UpdateRect.SetRectEmpty();
 	m_UpdateFlag = FALSE;
+	m_UpdateClock = clock();
 	m_DelayMSec = 0;
 	m_HisFile.Empty();
 	m_LogFile.Empty();
@@ -1620,6 +1629,11 @@ CTextRam::~CTextRam()
 		delete [] m_pSixelAlpha;
 
 	SetTraceLog(FALSE);
+
+	delete [] m_ColTab;
+	delete [] m_Kan_Buf;
+	delete [] m_Macro;
+	delete [] m_TabMap;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -2298,6 +2312,7 @@ void CTextRam::Init()
 	EnableOption(TO_RLFONT);	// ?8404 フォントサイズから一行あたりの文字数を決定
 	EnableOption(TO_RLUNIAWH);	// ?8428 UnicodeのAタイプの文字を半角として表示する
 	EnableOption(TO_DRCSMMv1);	// ?8800 Unicode 16 Maping
+	EnableOption(TO_RLNODELAY);	//  1486 TCPオプションのNoDelayを有効にする
 
 	memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
 	memcpy(m_DefBankTab, DefBankTab, sizeof(m_DefBankTab));
@@ -5229,8 +5244,15 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 
 		if ( !IsOptEnable(TO_RLUNIAHF) ) {
 			sz = pDC->GetTextExtent(prop.pText, prop.tlen);
-			if ( box.Width() < sz.cx )
-				goto DRAWCHAR;
+			if ( box.Width() < sz.cx ) {
+				if ( prop.csz == 2 && (box.Width() * 50 / sz.cx) == 25 ) {	// 50-51%
+					// 全角のサイズ指定を半角で行う場合の救済処置
+					pFontCache = pFontNode->GetFont(width * box.Width() / sz.cx, height, style, prop.font, this);
+					pDC->SelectObject(pFontCache->m_pFont);
+				} else {
+					goto DRAWCHAR;
+				}
+			}
 		}
 
 		pDC->ExtTextOutW(x, y, mode, box, prop.pText, prop.tlen, prop.pSpace);
@@ -7360,9 +7382,6 @@ void CTextRam::DISPUPDATE()
 	m_UpdateRect.right  = m_Cols;
 	m_UpdateRect.bottom = m_Lines;
 	m_FrameCheck = FALSE;
-
-	if ( IsOptEnable(TO_DECSCLM) )
-		m_UpdateFlag = TRUE;
 }
 void CTextRam::DISPVRAM(int sx, int sy, int w, int h)
 {
@@ -7386,9 +7405,6 @@ void CTextRam::DISPVRAM(int sx, int sy, int w, int h)
 		m_UpdateRect.top = sy;
 	if ( m_UpdateRect.bottom < ey )
 		m_UpdateRect.bottom = ey;
-
-	if ( IsOptEnable(TO_DECSCLM) )
-		m_UpdateFlag = TRUE;
 }
 void CTextRam::DISPRECT(int sx, int sy, int ex, int ey)
 {
@@ -7981,7 +7997,7 @@ void CTextRam::SaveParam(SAVEPARAM *pSave)
 	pSave->m_Decawm   = (IsOptEnable(TO_DECAWM) ? TRUE : FALSE);
 	memcpy(pSave->m_AnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
 
-	memcpy(pSave->m_TabMap, m_TabMap, sizeof(m_TabMap));
+	memcpy(pSave->m_TabMap, m_TabMap, TABFLAGSIZE);
 }
 void CTextRam::LoadParam(SAVEPARAM *pSave, BOOL bAll)
 {
@@ -8023,7 +8039,7 @@ void CTextRam::LoadParam(SAVEPARAM *pSave, BOOL bAll)
 		if ( m_RightX < 0 ) m_RightX = 0; else if ( m_RightX > m_Cols ) m_RightX = m_Cols;
 
 		memcpy(m_AnsiOpt, pSave->m_AnsiOpt, sizeof(m_AnsiOpt));
-		memcpy(m_TabMap, pSave->m_TabMap, sizeof(m_TabMap));
+		memcpy(m_TabMap, pSave->m_TabMap, TABFLAGSIZE);
 	}
 
 	SetOption(TO_DECOM,  pSave->m_Decom);
@@ -8197,6 +8213,8 @@ void CTextRam::LEFTSCROLL()
 	int n, i, dm;
 	CCharCell *vp;
 
+	m_DoWarp = FALSE;
+
 	GetMargin(MARCHK_NONE);
 
 	for ( n = m_Margin.top ; n < m_Margin.bottom ; n++ ) {
@@ -8215,6 +8233,8 @@ void CTextRam::RIGHTSCROLL()
 {
 	int n, i, dm;
 	CCharCell *vp;
+
+	m_DoWarp = FALSE;
 
 	GetMargin(MARCHK_NONE);
 
@@ -8326,6 +8346,11 @@ void CTextRam::ONEINDEX()
 			if ( m_CurX >= m_Margin.left && m_CurX < m_Margin.right ) {
 				FORSCROLL(m_Margin.left, m_Margin.top, m_Margin.right, m_Margin.bottom);
 				m_LineEditIndex++;
+
+				if ( IsOptEnable(TO_DECSCLM) && ((m_pDocument != NULL && m_pDocument->m_pSock != NULL && m_pDocument->m_pSock->GetRecvProcSize() < RECVDEFSIZ) || (clock() - m_UpdateClock) > 20) ) {
+					m_UpdateClock = clock();
+					m_UpdateFlag = TRUE;
+				}
 			}
 		}
 	} else {
@@ -8664,7 +8689,7 @@ CTextSave *CTextRam::GETSAVERAM(int fMode)
 	pSave->m_BankSG = m_BankSG;
 	memcpy(pSave->m_BankTab, m_BankTab, sizeof(m_BankTab));
 
-	memcpy(pSave->m_TabMap, m_TabMap, sizeof(m_TabMap));
+	memcpy(pSave->m_TabMap, m_TabMap, TABFLAGSIZE);
 	memcpy(&pSave->m_SaveParam, &m_SaveParam, sizeof(m_SaveParam));
 
 	pSave->m_StsMode = m_StsMode;
@@ -8724,7 +8749,7 @@ void CTextRam::SETSAVERAM(CTextSave *pSave)
 	m_BankGR = pSave->m_BankGR;
 	m_BankSG = pSave->m_BankSG;
 	memcpy(m_BankTab, pSave->m_BankTab, sizeof(m_BankTab));
-	memcpy(m_TabMap, pSave->m_TabMap, sizeof(m_TabMap));
+	memcpy(m_TabMap, pSave->m_TabMap, TABFLAGSIZE);
 
 	memcpy(&m_SaveParam, &pSave->m_SaveParam, sizeof(m_SaveParam));
 
@@ -9142,53 +9167,53 @@ void CTextRam::TABSET(int sw)
 	switch(sw) {
 	case TAB_COLSSET:		// Cols Set
 		if ( IsOptEnable(TO_ANSITSM) )	// MULTIPLE
-			m_TabMap[m_CurY + 1][m_CurX / 8 + 1] |= (0x80 >> (m_CurX % 8));
+			TABFLAG(m_TabMap, m_CurY + 1, m_CurX / 8 + 1) |= (0x80 >> (m_CurX % 8));
 		else							// SINGLE
-			m_TabMap[0][m_CurX / 8 + 1] |= (0x80 >> (m_CurX % 8));
+			TABFLAG(m_TabMap, 0, m_CurX / 8 + 1) |= (0x80 >> (m_CurX % 8));
 		break;
 	case TAB_COLSCLR:		// Cols Clear
 		if ( IsOptEnable(TO_ANSITSM) )	// MULTIPLE
-			m_TabMap[m_CurY + 1][m_CurX / 8 + 1] &= ~(0x80 >> (m_CurX % 8));
+			TABFLAG(m_TabMap, m_CurY + 1, m_CurX / 8 + 1) &= ~(0x80 >> (m_CurX % 8));
 		else							// SINGLE
-			m_TabMap[0][m_CurX / 8 + 1] &= ~(0x80 >> (m_CurX % 8));
+			TABFLAG(m_TabMap, 0, m_CurX / 8 + 1) &= ~(0x80 >> (m_CurX % 8));
 		break;
 	case TAB_COLSALLCLR:	// Cols All Claer
 		if ( IsOptEnable(TO_ANSITSM) )	// MULTIPLE
-			memset(&(m_TabMap[m_CurY + 1][1]), 0, COLS_MAX / 8);
+			memset(&(TABFLAG(m_TabMap, m_CurY + 1, 1)), 0, COLS_MAX / 8);
 		else							// SINGLE
-			memset(&(m_TabMap[0][1]), 0, COLS_MAX / 8);
+			memset(&(TABFLAG(m_TabMap, 0, 1)), 0, COLS_MAX / 8);
 		break;
 
 	case TAB_COLSALLCLRACT:	// Cols All Clear if Active Line
-		if ( (m_TabMap[m_CurY + 1][0] & 001) != 0 )
-			memset(&(m_TabMap[m_CurY + 1][1]), 0, COLS_MAX / 8);
+		if ( (TABFLAG(m_TabMap, m_CurY + 1, 0) & 001) != 0 )
+			memset(&(TABFLAG(m_TabMap, m_CurY + 1, 1)), 0, COLS_MAX / 8);
 		break;
 
 	case TAB_LINESET:		// Line Set
-		m_TabMap[m_CurY + 1][0] |= 001;
+		TABFLAG(m_TabMap, m_CurY + 1, 0) |= 001;
 		break;
 	case TAB_LINECLR:		// Line Clear
-		m_TabMap[m_CurY + 1][0] &= ~001;
+		TABFLAG(m_TabMap, m_CurY + 1, 0) &= ~001;
 		break;
 	case TAB_LINEALLCLR:	// Line All Clear
 		for ( n = 0 ; n < m_Lines ; n++ )
-			m_TabMap[n + 1][0] &= ~001;
+			TABFLAG(m_TabMap, n + 1, 0) &= ~001;
 		break;
 
 	case TAB_RESET:			// Reset
-		m_TabMap[0][0] = 001;
-		memset(&(m_TabMap[0][1]), 0, COLS_MAX / 8);
+		TABFLAG(m_TabMap, 0, 0) = 001;
+		memset(&(TABFLAG(m_TabMap, 0, 1)), 0, COLS_MAX / 8);
 		for ( i = 0 ; i < LINE_MAX ; i += m_DefTab )
-			m_TabMap[0][i / 8 + 1] |= (0x80 >> (i % 8));
+			TABFLAG(m_TabMap, 0, i / 8 + 1) |= (0x80 >> (i % 8));
 		for ( n = 1 ; n <= m_Lines ; n++ )
-			memcpy(&(m_TabMap[n][0]), &(m_TabMap[0][0]), COLS_MAX / 8 + 1);
+			memcpy(&(TABFLAG(m_TabMap, n, 0)), &(TABFLAG(m_TabMap, 0, 0)), TABELEMENT);
 		break;
 
 	case TAB_DELINE:		// Delete Line
 		if ( IsOptEnable(TO_ANSITSM) ) {	// MULTIPLE
 			i = GetBottomMargin();
 			for ( n = m_CurY + 1 ; n < i ; n++ )
-				memcpy(m_TabMap[n], m_TabMap[n + 1], COLS_MAX / 8 + 1);
+				memcpy(&(TABFLAG(m_TabMap, n, 0)), &(TABFLAG(m_TabMap, n + 1, 0)), TABELEMENT);
 			//m_TabMap[m_Lines][0] = 0;
 			//memset(&(m_TabMap[m_Lines][1]), 0, COLS_MAX / 8);
 		}
@@ -9197,7 +9222,7 @@ void CTextRam::TABSET(int sw)
 		if ( IsOptEnable(TO_ANSITSM) ) {	// MULTIPLE
 			i = GetBottomMargin();
 			for ( n = i - 1 ; n > m_CurY ; n-- )
-				memcpy(m_TabMap[n + 1], m_TabMap[n], COLS_MAX / 8 + 1);
+				memcpy(&(TABFLAG(m_TabMap, n + 1, 0)), &(TABFLAG(m_TabMap, n, 0)), TABELEMENT);
 			//m_TabMap[m_CurY + 1][0] = 0;
 			//memset(&(m_TabMap[m_CurY + 1][1]), 0, COLS_MAX / 8);
 		}
@@ -9205,7 +9230,7 @@ void CTextRam::TABSET(int sw)
 
 	case TAB_ALLCLR:		// Cols Line All Clear
 		for ( n = 0 ; n <= m_Lines ; n++ )
-			memset(&(m_TabMap[n][0]), 0, COLS_MAX / 8 + 1);
+			memset(&(TABFLAG(m_TabMap, n, 0)), 0, TABELEMENT);
 		break;
 
 	case TAB_COLSNEXT:		// Cols Tab Stop
@@ -9216,7 +9241,7 @@ void CTextRam::TABSET(int sw)
 		if ( m_CurX >= m_Margin.right )
 			m_Margin.right = m_Cols;
 		for ( n = m_CurX + 1 ; n < m_Cols ; n++ ) {
-			if ( (m_TabMap[i][n / 8 + 1] & (0x80 >> (n % 8))) != 0 ) //&& n >= m_Margin.left )
+			if ( (TABFLAG(m_TabMap, i, n / 8 + 1) & (0x80 >> (n % 8))) != 0 ) //&& n >= m_Margin.left )
 				break;
 		}
 		if ( n >= m_Margin.right )
@@ -9243,7 +9268,7 @@ void CTextRam::TABSET(int sw)
 		if ( m_CurX < m_Margin.left )
 			m_Margin.left = 0;
 		for ( n = m_CurX - 1 ; n > 0 ; n-- ) {
-			if ( (m_TabMap[i][n / 8 + 1] & (0x80 >> (n % 8))) != 0 && n < m_Margin.right )
+			if ( (TABFLAG(m_TabMap, i, n / 8 + 1) & (0x80 >> (n % 8))) != 0 && n < m_Margin.right )
 				break;
 		}
 		if ( n < m_Margin.left )
@@ -9255,7 +9280,7 @@ void CTextRam::TABSET(int sw)
 			DOWARP();
 		i = (IsOptEnable(TO_ANSITSM) ? (m_CurY + 1) : 0);
 		for ( n = m_CurX + 1 ; n < m_Cols ; n++ ) {
-			if ( (m_TabMap[i][n / 8 + 1] & (0x80 >> (n % 8))) != 0 )
+			if ( (TABFLAG(m_TabMap, i, n / 8 + 1) & (0x80 >> (n % 8))) != 0 )
 				break;
 		}
 		if ( n > m_CurX ) {
@@ -9277,7 +9302,7 @@ void CTextRam::TABSET(int sw)
 	case TAB_CBT:		// Cols Back Tab Stop
 		i = (IsOptEnable(TO_ANSITSM) ? (m_CurY + 1) : 0);
 		for ( n = m_CurX - 1 ; n > 0 ; n-- ) {
-			if ( (m_TabMap[i][n / 8 + 1] & (0x80 >> (n % 8))) != 0 && n < m_Cols )
+			if ( (TABFLAG(m_TabMap, i, n / 8 + 1) & (0x80 >> (n % 8))) != 0 && n < m_Cols )
 				break;
 		}
 		LOCATE(n, m_CurY);
@@ -9286,7 +9311,7 @@ void CTextRam::TABSET(int sw)
 	case TAB_LINENEXT:		// Line Tab Stop
 		if ( IsOptEnable(TO_ANSITSM) ) {	// MULTIPLE
 			for ( n = m_CurY + 1 ; n < m_Lines ; n++ ) {
-				if ( (m_TabMap[n + 1][0] & 001) != 0 && n >= m_TopY )
+				if ( (TABFLAG(m_TabMap, n + 1, 0) & 001) != 0 && n >= m_TopY )
 					break;
 			}
 		} else {
@@ -9300,7 +9325,7 @@ void CTextRam::TABSET(int sw)
 	case TAB_LINEBACK:		// Line Back Tab Stop
 		if ( IsOptEnable(TO_ANSITSM) ) {	// MULTIPLE
 			for ( n = m_CurY - 1 ; n > 0 ; n-- ) {
-				if ( (m_TabMap[n + 1][0] & 001) != 0 && n < m_BtmY )
+				if ( (TABFLAG(m_TabMap, n + 1, 0) & 001) != 0 && n < m_BtmY )
 					break;
 			}
 		} else {

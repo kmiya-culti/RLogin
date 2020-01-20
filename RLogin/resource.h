@@ -954,6 +954,7 @@
 #define IDC_CTRLTITLE2                  2494
 #define IDC_CTRLTITLE3                  2495
 #define IDC_CONNECT                     2496
+#define IDC_VERSIONSTR                  2497
 #define IDM_BROADCAST                   5000
 #define IDM_CAP_CLIPBORD                5001
 #define IDM_CAP_EXPORT                  5002
@@ -1088,7 +1089,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        162
 #define _APS_NEXT_COMMAND_VALUE         5138
-#define _APS_NEXT_CONTROL_VALUE         2497
+#define _APS_NEXT_CONTROL_VALUE         2498
 #define _APS_NEXT_SYMED_VALUE           670
 #endif
 #endif

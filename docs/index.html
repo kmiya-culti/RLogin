@@ -28,8 +28,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.24.7)</TD>
-            <TD width="20%" align="right">2019/12/16</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.24.8)</TD>
+            <TD width="20%" align="right">2020/01/20</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -441,6 +441,16 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2020/01/20</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.24.8/">2.24.8</A></TD>
+            <TD>2.24.7で変更した全角固定幅フォントの表示が遅くなる問題を改善<BR>
+            クィックバーのダイアログ文字種変更を即時行うように変更<BR>
+            スクリプトにメニュー状態取得関数とブロードキャスト出力関数を追加<BR>
+            一部、スクリーン最大値・バッファ・キャッシュなどのサイズを見直し<BR>
+            DECSCLMのスムーズスクロールが極度に遅いので動作を変更<BR>
+            DPIチェンジでクィックバーが非表示でも表示される問題を修正</TD>
+          </TR>
+          <TR>
             <TD align="center">2019/12/16</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.24.7/">2.24.7</A></TD>
             <TD>ファイルエントリーのチャットスクリプト作成フラグが保存されないバグを修正<BR>
@@ -469,23 +479,6 @@ TD {
             <TD>TCPオプションにNoDelayを有効を追加<BR>
             UTF-8の文字幅などをUnicode-12.1.0のデータに更新<BR>
             openssl-1.1.1cに更新</TD>
-          </TR>
-          <TR>
-            <TD align="center">2019/05/21</TD>
-            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.24.3/">2.24.3</A></TD>
-            <TD>固定DPI(96)からシステムDPI値を取得して使用するように変更<BR>
-            一部ダイアログのHiDPIに対応出来ていない部分を変更</TD>
-          </TR>
-          <TR>
-            <TD align="center">2019/03/29</TD>
-            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.24.2/">2.24.2</A></TD>
-            <TD>2.24.1で一部ダイアログの初期フォーカスが変更される問題を修正<BR>
-            2.24.1で一部ダイアログのHiDPI時にサイズが変更される問題を修正<BR>
-            サーバーオプションの標準の設定を使用をその他オプションの継承に変更<BR>
-            ComboBoxのリサイズ時に全選択表示される問題を試験的に対処<BR>
-            32bit版のopensslのみbcryptを使用しないように修正<BR>
-            Server Selectのエントリーに任意順位及びラストアクセスを追加<BR>
-            ListCtrlのカラムサイズをHiDPIの変更に追従するように変更</TD>
           </TR>
           <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>

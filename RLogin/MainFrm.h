@@ -137,11 +137,13 @@ public:
 	CFont m_DpiFont;
 	CSize m_ZoomMul;
 	CSize m_ZoomDiv;
+	CFont m_NewFont;
 
 	void InitDialog();
 	void SaveDialog();
 	void DpiChanged();
 	void SetComdLine(CString &cmds);
+	void FontSizeCheck();
 
 public:
 	BOOL Create(CWnd* pParentWnd, LPCTSTR lpszTemplateName, UINT nStyle, UINT nID);
@@ -327,7 +329,7 @@ public:
 
 	inline CImageList *GetTabImageList() { return &(m_wndTabBar.m_ImageList); }
 	inline int GetTabImageIndex(LPCTSTR filename) { return m_wndTabBar.GetImageIndex(filename); }
-	inline void TabBarFontCheck() { m_wndTabBar.FontSizeCheck(); this->RecalcLayout(TRUE); }
+	inline void BarFontCheck() { m_wndTabBar.FontSizeCheck(); m_wndQuickBar.FontSizeCheck(); RecalcLayout(TRUE); }
 	inline void QuickBarInit() { m_wndQuickBar.InitDialog(); }
 
 // コントロール バー用メンバ

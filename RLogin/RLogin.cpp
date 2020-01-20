@@ -490,6 +490,7 @@ public:
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート
+	virtual BOOL OnInitDialog();
 
 // 実装
 protected:
@@ -504,6 +505,26 @@ CAboutDlg::CAboutDlg() : CDialogExt(CAboutDlg::IDD)
 void CAboutDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogExt::DoDataExchange(pDX);
+}
+
+BOOL CAboutDlg::OnInitDialog()
+{
+	CWnd *pWnd;
+	CString form, text;
+
+	CDialogExt::OnInitDialog();
+
+	if ( (pWnd = GetDlgItem(IDC_VERSIONSTR)) != NULL ) {
+		pWnd->GetWindowText(form);
+#ifdef	_M_X64
+		text.Format(form, _T("x64"));
+#else
+		text.Format(form, _T("x32"));
+#endif
+		pWnd->SetWindowText(text);
+	}
+
+	return TRUE;
 }
 
 void CAboutDlg::OnNMClickSyslink(NMHDR *pNMHDR, LRESULT *pResult)
@@ -2963,7 +2984,7 @@ void CRLoginApp::OnDialogfont()
 	WriteProfileString(_T("Dialog"), _T("FontName"), FontName);
 	WriteProfileInt(_T("Dialog"), _T("FontSize"), FontSize);
 
-	((CMainFrame *)AfxGetMainWnd())->TabBarFontCheck();
+	((CMainFrame *)AfxGetMainWnd())->BarFontCheck();
 }
 
 void CRLoginApp::OnLookcast()

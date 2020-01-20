@@ -134,7 +134,7 @@ public:
 	BOOL EntryText(CString &name, LPCWSTR match = NULL);
 
 	BOOL ScriptInit();
-	void SendBuffer(CBuffer &buf);
+	void SendBuffer(CBuffer &buf, BOOL macflag = TRUE);
 	void SendScript(LPCWSTR str, LPCWSTR match);
 	void OnReceiveChar(DWORD ch, int pos);
 	void OnSendBuffer(CBuffer &buf);

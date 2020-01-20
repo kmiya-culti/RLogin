@@ -4133,7 +4133,7 @@ void CQuickBar::SetComdLine(CString &cmds)
 	SaveDialog();
 }
 
-static BOOL CALLBACK EnumWindowsProc(HWND hWnd , LPARAM lParam)
+static BOOL CALLBACK DpiChangedProc(HWND hWnd , LPARAM lParam)
 {
 	CWnd *pWnd = CWnd::FromHandle(hWnd);
 	CQuickBar *pParent = (CQuickBar *)lParam;
@@ -4172,7 +4172,7 @@ void CQuickBar::DpiChanged()
 	rect.bottom += (MulDiv(client.Height(), SCREEN_DPI_Y, m_NowDpi.cy) - client.Height());
 
 	//MoveWindow(rect, FALSE);
-	SetWindowPos(&wndTop ,0, 0, rect.Width(), rect.Height(), SWP_SHOWWINDOW);
+	SetWindowPos(&wndTop ,0, 0, rect.Width(), rect.Height(), ((CMainFrame *)::AfxGetMainWnd())->m_bQuickBarShow ? SWP_SHOWWINDOW : SWP_HIDEWINDOW);
 	m_sizeDefault = rect.Size();    // set fixed size
 
 	GetClientRect(rect);
@@ -4185,7 +4185,7 @@ void CQuickBar::DpiChanged()
 	m_NowDpi.cx = SCREEN_DPI_X;
 	m_NowDpi.cy = SCREEN_DPI_Y;
 	
-	if ( (pFont = GetFont()) != NULL ) {
+	if ( (pFont = m_NewFont.GetSafeHandle() != NULL ? &m_NewFont : GetFont()) != NULL ) {
 		pFont->GetLogFont(&LogFont);
 
 		if ( m_DpiFont.GetSafeHandle() != NULL )
@@ -4196,7 +4196,83 @@ void CQuickBar::DpiChanged()
 		m_DpiFont.CreateFontIndirect(&LogFont);
 	}
 
-	EnumChildWindows(GetSafeHwnd(), EnumWindowsProc, (LPARAM)this);
+	EnumChildWindows(GetSafeHwnd(), DpiChangedProc, (LPARAM)this);
+}
+
+static BOOL CALLBACK FontSizeCheckProc(HWND hWnd , LPARAM lParam)
+{
+	CRect rect;
+	CWnd *pWnd = CWnd::FromHandle(hWnd);
+	CQuickBar *pParent = (CQuickBar *)lParam;
+
+	if ( pWnd->GetParent()->GetSafeHwnd() != pParent->GetSafeHwnd() )
+		return TRUE;
+
+	pWnd->GetWindowRect(rect);
+	pParent->ScreenToClient(rect);
+
+	rect.left   = MulDiv(rect.left,   pParent->m_ZoomMul.cx, pParent->m_ZoomDiv.cx);
+	rect.right  = MulDiv(rect.right,  pParent->m_ZoomMul.cx, pParent->m_ZoomDiv.cx);
+	rect.top    = MulDiv(rect.top,    pParent->m_ZoomMul.cy, pParent->m_ZoomDiv.cy);
+	rect.bottom = MulDiv(rect.bottom, pParent->m_ZoomMul.cy, pParent->m_ZoomDiv.cy);
+
+	pWnd->SetFont(&(pParent->m_NewFont), FALSE);
+	pWnd->MoveWindow(rect, FALSE);
+
+	return TRUE;
+}
+void CQuickBar::FontSizeCheck()
+{
+	CFont *pFont;
+	CDC *pDc = GetDC();
+	CFont *pOld;
+	CRect rect;
+	TEXTMETRIC OldMetric, NewMetric;
+	CString FontName = ::AfxGetApp()->GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
+	int FontSize = MulDiv(::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9), SCREEN_DPI_Y, DEFAULT_DPI_Y);
+
+	if ( m_NewFont.GetSafeHandle() != NULL ) {
+		pOld = pDc->SelectObject(&m_NewFont);
+		pDc->GetTextMetrics(&OldMetric);
+		m_NewFont.DeleteObject();
+	} else if ( (pFont = GetFont()) != NULL ) {
+		pOld = pDc->SelectObject(pFont);
+		pDc->GetTextMetrics(&OldMetric);
+	} else
+		return;
+
+	if ( !m_NewFont.CreatePointFont(FontSize * 10, FontName) )
+		return;
+
+	m_InitDpi.cx = SCREEN_DPI_X;
+	m_InitDpi.cy = SCREEN_DPI_Y;
+
+	SetFont(&m_NewFont);
+
+	pDc->SelectObject(&m_NewFont);
+	pDc->GetTextMetrics(&NewMetric);
+
+	pDc->SelectObject(pOld);
+	ReleaseDC(pDc);
+
+	m_ZoomMul.cx = NewMetric.tmAveCharWidth;
+	m_ZoomDiv.cx = OldMetric.tmAveCharWidth;
+	m_ZoomMul.cy = NewMetric.tmHeight;
+	m_ZoomDiv.cy = OldMetric.tmHeight;
+
+	GetWindowRect(rect);
+
+	rect.left   = MulDiv(rect.left,   m_ZoomMul.cx, m_ZoomDiv.cx);
+	rect.right  = MulDiv(rect.right,  m_ZoomMul.cx, m_ZoomDiv.cx);
+	rect.top    = MulDiv(rect.top,    m_ZoomMul.cy, m_ZoomDiv.cy);
+	rect.bottom = MulDiv(rect.bottom, m_ZoomMul.cy, m_ZoomDiv.cy);
+
+//	SetWindowPos(&wndTop ,0, 0, rect.Width(), rect.Height(), SWP_SHOWWINDOW);
+	m_sizeDefault = rect.Size();    // set fixed size
+
+	EnumChildWindows(GetSafeHwnd(), FontSizeCheckProc, (LPARAM)this);
+
+	Invalidate();
 }
 
 BEGIN_MESSAGE_MAP(CQuickBar, CDialogBar)

@@ -19,9 +19,9 @@
 
 #define	FIX_VERSION		10				// AnsiOpt Bugfix version
 
-#define	COLS_MAX		512
+#define	COLS_MAX		1024
 #define	LINE_MAX		512
-#define	HIS_MAX			200000			// HIS_MAX * COLS_MAX * sizeof(CCharCell) = 1,638,400,000 byte
+#define	HIS_MAX			200000			// HIS_MAX * COLS_MAX * sizeof(CCharCell) = 6,553,600,000 byte
 #define	DEF_TAB			8
 #define	FKEY_MAX		24
 #define	KANBUFMAX		128
@@ -545,7 +545,7 @@ enum EStageNum {
 
 ///////////////////////////////////////////////////////
 
-#define	MEMMAPSIZE		(sizeof(CCharCell) * COLS_MAX * 128)		// 32 * 512 * 128 = 2M
+#define	MEMMAPSIZE		(sizeof(CCharCell) * COLS_MAX * 128)		// 32 * 1024 * 128 = 4M
 #define	MEMMAPCACHE		4
 
 typedef struct _MemMapNode {
@@ -828,6 +828,10 @@ public:
 	~CTraceNode();
 };
 
+#define	TABELEMENT		(COLS_MAX / 8 + 1)
+#define	TABFLAGSIZE		((LINE_MAX + 1) * TABELEMENT)
+#define	TABFLAG(p,y,x)	(p[(y) * TABELEMENT + (x)])
+
 typedef struct _SAVEPARAM {
 	EXTVRAM m_AttNow;
 	EXTVRAM m_AttSpc;
@@ -859,7 +863,7 @@ typedef struct _SAVEPARAM {
 	BOOL m_Decawm;
 	DWORD m_AnsiOpt[16];
 
-	BYTE m_TabMap[LINE_MAX + 1][COLS_MAX / 8 + 1];
+	BYTE m_TabMap[TABFLAGSIZE];
 } SAVEPARAM;
 
 class CTextSave : public CObject
@@ -901,7 +905,7 @@ public:
 	int m_BankSG;
 	WORD m_BankTab[5][4];
 
-	BYTE m_TabMap[LINE_MAX + 1][COLS_MAX / 8 + 1];
+	BYTE *m_TabMap;
 	SAVEPARAM m_SaveParam;
 
 	int m_StsMode;
@@ -1012,7 +1016,7 @@ public:
 	int m_LeftX;
 	int m_RightX;
 	int m_DefTab;
-	COLORREF m_ColTab[EXTCOL_MAX + EXTCOL_MATRIX];
+	COLORREF *m_ColTab;
 	DWORD m_AnsiOpt[16];
 	DWORD m_OptTab[16];
 	int m_ModKey[MODKEY_MAX];
@@ -1060,11 +1064,11 @@ public:
 	int m_OscMode;
 	int m_OscLast;
 	CBuffer m_OscPara;
-	BYTE m_TabMap[LINE_MAX + 1][COLS_MAX / 8 + 1];
+	BYTE *m_TabMap;
 	BOOL m_RetSync;
 	CString m_StrPara;
 	DWORD m_MacroExecFlag[MACROMAX / 32];
-	CBuffer m_Macro[MACROMAX];
+	CBuffer *m_Macro;
 
 	int m_FirmVer;
 	int m_UnitId;
@@ -1110,6 +1114,7 @@ public:
 	CRect m_UpdateRect;
 	BOOL m_UpdateFlag;
 	BOOL m_FrameCheck;
+	clock_t m_UpdateClock;
 
 	BOOL m_LineEditMode;
 	int m_LineEditIndex;
@@ -1407,7 +1412,7 @@ public:
 
 	// Kanji Check
 	int m_Kan_Pos;
-	BYTE m_Kan_Buf[KANBUFMAX];
+	BYTE *m_Kan_Buf;
 
 	typedef struct _KANCODEWORK {
 		int		sjis_st, euc_st, utf8_st;

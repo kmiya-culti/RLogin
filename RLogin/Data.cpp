@@ -750,13 +750,13 @@ static const char Base64DecTab[] = {
         -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
         -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
 
-LPCSTR CBuffer::Base64Param(LPCSTR str)
+LPCSTR CBuffer::Base64Decode(LPCSTR str)
 {
 	int n, c, o;
 
 	Clear();
 	for ( n = o = 0 ; *str != '\0' ; n++, str++ ) {
-		while ( *str <= ' ' && *str != '\0' )
+		while ( *str == '\t' || *str == '\r' || *str == '\n' )
 			str++;
 		if ( (c = Base64DecTab[(BYTE)(*str)]) < 0 )
 			break;
@@ -782,13 +782,13 @@ LPCSTR CBuffer::Base64Param(LPCSTR str)
 	}
 	return str;
 }
-LPCTSTR CBuffer::Base64Decode(LPCTSTR str)
+LPCWSTR CBuffer::Base64Decode(LPCWSTR str)
 {
 	int n, c, o;
 
 	Clear();
 	for ( n = o = 0 ; *str != _T('\0') ; n++, str++ ) {
-		while ( *str == _T('\r') || *str == _T('\n') )
+		while ( *str == _T('\t') || *str == _T('\r') || *str == _T('\n') )
 			str++;
 		if ( (c = Base64DecTab[(BYTE)(*str)]) < 0 )
 			break;
@@ -2740,10 +2740,12 @@ CFont *CFontChacheNode::Open(LPCTSTR pFontName, int Width, int Height, int CharS
 
 	ZeroMemory(&m_Metric, sizeof(m_Metric));
 	m_Metric.tmHeight = m_Metric.tmAscent = Height;
+	m_Metric.tmAveCharWidth = Width;
 
-	if ( m_pFont != NULL )
-		delete m_pFont;
-	m_pFont = new CFont;
+	if ( m_pFont == NULL )
+		m_pFont = new CFont;
+	else if ( m_pFont->GetSafeHandle() != NULL )
+		m_pFont->DeleteObject();
 
 	if ( !m_pFont->CreateFontIndirect(&m_LogFont) )
 		m_pFont->Attach((HFONT)GetStockObject(SYSTEM_FONT));
@@ -2764,23 +2766,23 @@ CFont *CFontChacheNode::Open(LPCTSTR pFontName, int Width, int Height, int CharS
 		if ( (n = sz.cx * 100 / n) >= 80 )
 			m_bFixed = TRUE;
 
+		dc.GetTextMetrics(&m_Metric);
+
 		// AvgWidth Check Width > 'A'
 		sz = dc.GetTextExtent(_T("ABC012abc"), 9);
 
 		// Resize Width ?
-		if ( sz.cx > 0 && (sz.cx * 100 / (m_Width * 9)) < 80 ) {
+		if ( sz.cx > 0 && (sz.cx * 100 / (m_Metric.tmAveCharWidth * 9)) < 80 ) {
 			dc.SelectObject(pOld);
 			m_pFont->DeleteObject();
 
-			m_LogFont.lfWidth  = m_LogFont.lfWidth * (m_Width * 9) / sz.cx;
+			m_LogFont.lfWidth  = m_Metric.tmAveCharWidth * (m_Metric.tmAveCharWidth * 9) / sz.cx;
 
 			if ( !m_pFont->CreateFontIndirect(&m_LogFont) )
 				m_pFont->Attach((HFONT)GetStockObject(SYSTEM_FONT));
 
 			pOld = dc.SelectObject(m_pFont);
 		}
-
-		dc.GetTextMetrics(&m_Metric);
 
 		//		---- ---+---+
 		//				|	| tmInternalLeading	
@@ -2811,10 +2813,10 @@ CFontChache::CFontChache()
 {
 	int n, hs;
 
-	for ( hs = 0 ; hs < 4 ; hs++ )
+	for ( hs = 0 ; hs < FONTHASHMAX ; hs++ )
 		m_pTop[hs] = NULL;
 	for ( n = 0 ; n < FONTCACHEMAX ; n++ ) {
-		hs = n % 4;
+		hs = n % FONTHASHMAX;
 		m_Data[n].m_pNext = m_pTop[hs];
 		m_pTop[hs] = &(m_Data[n]);
 	}
@@ -2824,7 +2826,7 @@ CFontChacheNode *CFontChache::GetFont(LPCTSTR pFontName, int Width, int Height, 
 	int Hash;
 	CFontChacheNode *pNext, *pBack;
 
-	Hash = (pFontName[0] + Width + Height + CharSet + Style + Quality) & 3;
+	Hash = (pFontName[0] + Width + Height + CharSet + Style + Quality) & (FONTHASHMAX - 1);
 	pNext = pBack = m_pTop[Hash];
 
 	for ( ; ; ) {
@@ -2848,7 +2850,7 @@ CFontChacheNode *CFontChache::GetFont(LPCTSTR pFontName, int Width, int Height, 
 		pNext = pNext->m_pNext;
 	}
 
-	//TRACE(_T("CacheMiss %s(%d,%d,%d,%d,%d)\n"), pFontName, CharSet, Width, Height, Quality, Hash);
+	// TRACE(_T("CacheMiss %s(%d,%d,%d,%d,%d)\n"), pFontName, CharSet, Width, Height, Quality, Hash);
 
 	if ( pNext->Open(pFontName, Width, Height, CharSet, Style, Quality) == NULL )
 		return NULL;
@@ -6004,8 +6006,8 @@ static LPCTSTR InitAlgo[12]= {
 	_T("crc32"),
 	_T("zlib,none"),
 
-	_T("chacha20-poly1305@openssh.com,") \
 	_T("aes256-ctr,aes192-ctr,aes128-ctr,") \
+	_T("chacha20-poly1305@openssh.com,") \
 	_T("camellia256-ctr,camellia192-ctr,camellia128-ctr,") \
 	_T("blowfish-ctr,cast128-ctr,idea-ctr,") \
 	_T("twofish-ctr,seed-ctr@ssh.com,3des-ctr,") \
@@ -6030,8 +6032,8 @@ static LPCTSTR InitAlgo[12]= {
 
 	_T("zlib@openssh.com,zlib,none"),
 
-	_T("chacha20-poly1305@openssh.com,") \
 	_T("aes256-ctr,aes192-ctr,aes128-ctr,") \
+	_T("chacha20-poly1305@openssh.com,") \
 	_T("camellia256-ctr,camellia192-ctr,camellia128-ctr,") \
 	_T("blowfish-ctr,cast128-ctr,idea-ctr,") \
 	_T("twofish-ctr,seed-ctr@ssh.com,3des-ctr,") \

@@ -1914,6 +1914,13 @@ void CTextRam::fc_SESC(DWORD ch)
 		ch += '@';
 		fc_Push(STAGE_ESC);
 		fc_RenameCall(ch);
+
+	} else {
+		if ( IsOptEnable(TO_RLBRKMBCS) )
+			fc_KANBRK();
+
+		if ( IsOptEnable(TO_RLKANAUTO) )
+			fc_KANCHK();
 	}
 }
 void CTextRam::fc_CESC(DWORD ch)
@@ -2568,6 +2575,9 @@ void CTextRam::fc_UTF86(DWORD ch)
 void CTextRam::fc_UTF87(DWORD ch)
 {
 	fc_KANJI(ch);
+
+	if ( IsOptEnable(TO_RLBRKMBCS) )
+		fc_KANBRK();
 
 	if ( IsOptEnable(TO_RLKANAUTO) )
 		fc_KANCHK();
@@ -4678,7 +4688,7 @@ void CTextRam::fc_OSCEXE(DWORD ch)
 				UNGETSTR(_T("%s52;%s;%s%s"), m_RetChar[RC_OSC], tmp, (LPCTSTR)work, (ch == 0x07 ? _T("\007") : m_RetChar[RC_ST]));
 			} else {						// Set Clipboad
 				if ( (m_pDocument->m_TextRam.m_ClipFlag & OSC52_WRITE) != 0 ) {
-					clip.Base64Decode(MbsToTstr(p));
+					clip.Base64Decode(p);
 					if ( pView != NULL )
 						pView->SetClipboard(&clip);
 				} else
@@ -7113,7 +7123,7 @@ void CTextRam::fc_DECRQPSR(DWORD ch)
 		wrk.Empty();
 		i = (IsOptEnable(TO_ANSITSM) ? (m_CurY + 1) : 0);
 		for ( n = 0 ; n < m_Cols ; n++ ) {
-			if ( (m_TabMap[i][n / 8 + 1] & (0x80 >> (n % 8))) != 0 ) {
+			if ( (TABFLAG(m_TabMap, i, n / 8 + 1) & (0x80 >> (n % 8))) != 0 ) {
 				if ( !wrk.IsEmpty() )
 					str += _T("/");
 				wrk.Format(_T("%d"), n + 1);

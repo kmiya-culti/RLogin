@@ -664,12 +664,12 @@ void CRLoginDoc::SetDocTitle()
 	SetTitle(title);
 }
 
-void CRLoginDoc::SendBuffer(CBuffer &buf)
+void CRLoginDoc::SendBuffer(CBuffer &buf, BOOL macflag)
 {
 	POSITION pos;
 	CRLoginView *pView;
 	if ( (pos = GetFirstViewPosition()) != NULL && (pView = (CRLoginView *)GetNextView(pos)) != NULL )
-		pView->SendBuffer(buf, TRUE);
+		pView->SendBuffer(buf, macflag);
 }
 
 void CRLoginDoc::SetMenu(CMenu *pMenu)

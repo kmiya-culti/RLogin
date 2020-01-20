@@ -5156,6 +5156,28 @@ int CScript::Func10(int cmd, CScriptValue &local)
 				AfxGetMainWnd()->SendMessage(WM_COMMAND, (WPARAM)cmd);
 		}
 		break;
+	case 15:	// menucheck(menu)
+		{
+			CScriptCmdUI cmdui;
+			cmdui.m_nID = CKeyNodeTab::GetCmdsKey((LPCWSTR)local[0]);
+			if ( cmdui.m_nID > 0 ) {
+				cmdui.DoUpdate(::AfxGetMainWnd(), FALSE);
+				(*acc) = cmdui.m_Check;
+			} else
+				(*acc) = (-1);
+		}
+		break;
+	case 16:	// menuenable(menu)
+		{
+			CScriptCmdUI cmdui;
+			cmdui.m_nID = CKeyNodeTab::GetCmdsKey((LPCWSTR)local[0]);
+			if ( cmdui.m_nID > 0 ) {
+				cmdui.DoUpdate(::AfxGetMainWnd(), FALSE);
+				(*acc) = (int)cmdui.m_bEnable;
+			} else
+				(*acc) = (-1);
+		}
+		break;
 	}
 	return FUNC_RET_NOMAL;
 }
@@ -5301,6 +5323,19 @@ int CScript::Func09(int cmd, CScriptValue &local)
 		} else {
 			if ( IsConnect() )
 				return SetEvent(SCP_EVENT_CLOSE);
+		}
+		break;
+
+	case 11:		// sendstr(str)
+		{
+			CBuffer tmp((LPCWSTR)local[0]);
+			m_pDoc->SendBuffer(tmp, FALSE);
+		}
+		break;
+	case 12:		// broadcast(str, group)
+		{
+			CBuffer tmp((LPCWSTR)local[0]);
+			((CRLoginApp *)::AfxGetApp())->SendBroadCast(tmp, (LPCTSTR)local[1]);
 		}
 		break;
 	}
@@ -6729,7 +6764,8 @@ void CScript::FuncInit()
 		{ "sputs",		4,	&CScript::Func09 },	{ "swrite",		5,	&CScript::Func09 },
 		{ "sopen",		6,	&CScript::Func09 },	{ "sclose",		7,	&CScript::Func09 },
 		{ "remotestr",	8,	&CScript::Func09 },	{ "localstr",	9,	&CScript::Func09 },
-		{ "wait",		10,	&CScript::Func09 },
+		{ "wait",		10,	&CScript::Func09 },	{ "sendstr",	11,	&CScript::Func09 },
+		{ "broadcast",	12,	&CScript::Func09 },
 
 		{ "msgdlg",		0,	&CScript::Func10 },	{ "yesnodlg",	1,	&CScript::Func10 },
 		{ "inputdlg",	2,	&CScript::Func10 },	{ "filedlg",	3,	&CScript::Func10 },
@@ -6738,8 +6774,9 @@ void CScript::FuncInit()
 		{ "menu",		8,	&CScript::Func10 },	{ "iconstyle",	9,	&CScript::Func10 },
 		{ "getproint",	10,	&CScript::Func10 },	{ "putproint",	11,	&CScript::Func10 },
 		{ "getprostr",	12,	&CScript::Func10 },	{ "putprostr",	13,	&CScript::Func10 },
-		{ "menucall",	14,	&CScript::Func10 },
-		
+		{ "menucall",	14,	&CScript::Func10 },	{ "menucheck",	15,	&CScript::Func10 },
+		{ "menuenable",	16,	&CScript::Func10 },
+
 		{ "tekopen",	0,	&CScript::TekGrp },	{ "tekclose",	1,	&CScript::TekGrp },
 		{ "tekclear",	2,	&CScript::TekGrp },	{ "tekmark",	3,	&CScript::TekGrp },
 		{ "tekline",	4,	&CScript::TekGrp },	{ "tektext",	5,	&CScript::TekGrp },
@@ -7269,4 +7306,30 @@ BOOL CTempWnd::PreTranslateMessage(MSG* pMsg)
         return TRUE;
     else
 		return CWnd::PreTranslateMessage(pMsg);
+}
+
+//////////////////////////////////////////////////////////////////////
+// CScriptCmdUI
+
+CScriptCmdUI::CScriptCmdUI()
+{
+	m_bEnable = FALSE;
+	m_Check   = 0;
+	m_bRadio  = FALSE;
+}
+void CScriptCmdUI::Enable(BOOL bOn)
+{
+	m_bEnable = bOn;
+}
+void CScriptCmdUI::SetCheck(int nCheck)
+{
+	m_Check = nCheck;
+}
+void CScriptCmdUI::SetRadio(BOOL bOn)
+{
+	m_bRadio = bOn;
+}
+void CScriptCmdUI::SetText(LPCTSTR lpszText)
+{
+	m_Text = lpszText;
 }

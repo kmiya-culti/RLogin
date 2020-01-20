@@ -118,7 +118,7 @@ void CLogin::OnReceiveCallBack(void *lpBuf, int nBufLen, int nFlags)
 	for ( int n = 0 ; n < nBufLen ; n++ ) {
 		if ( pDoc != NULL && (buf[n] & 0x80) != 0 )
 			SendWindSize();
-		TRACE("Resv OOB %02x\n", buf[n]);
+		//TRACE("Resv OOB %02x\n", buf[n]);
 	}
 	m_ConnectFlag = 3;
 }
