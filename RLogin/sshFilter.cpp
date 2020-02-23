@@ -1224,7 +1224,7 @@ void CRcpDownload::OnReceive(const void *lpBuf, int nBufLen)
 				else
 					ext = _T(".");
 				CFileDialog dlg(FALSE, ext + 1, work, OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGALLFILE), ::AfxGetMainWnd());
-				if ( dlg.DoModal() != IDOK ) {
+				if ( DpiAwareDoModal(dlg) != IDOK ) {
 					PutErrorMsg("Cancel file\n");
 					DispMsg(_T(": cancel\r\n"));
 					break;

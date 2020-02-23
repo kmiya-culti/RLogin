@@ -346,7 +346,7 @@ void CSerEntPage::OnKeyfileselect()
 	CRLoginDoc::EnvironPath(file);
 	CFileDialog dlg(TRUE, _T(""), file, OFN_HIDEREADONLY, CStringLoad(IDS_FILEDLGALLFILE), this);
 
-	if ( dlg.DoModal() != IDOK ) {
+	if ( DpiAwareDoModal(dlg) != IDOK ) {
 		if ( m_IdkeyName.IsEmpty() || MessageBox(CStringLoad(IDS_IDKEYFILEDELREQ), _T("Question"), MB_ICONQUESTION | MB_YESNO) != IDYES )
 			return;
 		m_IdkeyName.Empty();
@@ -484,7 +484,7 @@ void CSerEntPage::OnIconfile()
 
 	CFileDialog dlg(TRUE, _T(""), m_IconName, OFN_HIDEREADONLY, CStringLoad(IDS_FILEDLGICONGRAP), this);
 
-	if ( dlg.DoModal() != IDOK ) {
+	if ( DpiAwareDoModal(dlg) != IDOK ) {
 		if ( m_IconName.IsEmpty() || MessageBox(CStringLoad(IDS_ICONFILEDELREQ), _T("Question"), MB_ICONQUESTION | MB_YESNO) != IDYES )
 			return;
 		m_IconName.Empty();

@@ -23,21 +23,26 @@ public:
 	BOOL m_bUpdateText;
 	BOOL m_bDelayPast;
 	BOOL m_NoCheck;
+	BOOL m_bCtrlView;
+	CString m_ConvStr;
 
 	CString m_EditText;
 	BOOL m_bUpdateEnable;
 	int m_MinWidth;
 	int m_MinHeight;
+	class CRLoginView *m_pView;
 
 public:
 	void CtrlCount();
 	void SaveWindowRect();
+	LPCTSTR CtrlStr(LPCTSTR str, BOOL bCtrl);
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート
 	virtual BOOL OnInitDialog();
 	virtual void OnOK();
 	virtual void OnCancel();
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
 
 protected:
 	DECLARE_MESSAGE_MAP()
@@ -46,4 +51,6 @@ protected:
 	afx_msg void OnSizing(UINT fwSide, LPRECT pRect);
 	afx_msg void OnCtrlConv(UINT nID);
 	afx_msg void OnShellesc();
+	afx_msg void OnOneLine();
+	afx_msg void OnCtrlView();
 };

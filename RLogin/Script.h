@@ -99,6 +99,7 @@ public:
 	CBuffer m_Work;
 	int m_ArrayPos;
 	DWORD m_FuncPos;
+	int m_SrcTextPos;
 	int (CScript::*m_FuncExt)(int cmd, CScriptValue &local);
 	CPtrArray m_Array;
 	CScriptValue *m_Left;
@@ -442,10 +443,10 @@ public:
 	void Stop();
 	void Abort();
 	int ExecFile(LPCTSTR filename);
-	void ExecStr(LPCTSTR addstr);
+	int ExecStr(LPCTSTR addstr, int num = (-1));
 	BOOL OnIdle();
 
-	int Call(LPCTSTR func, CScriptValue *loacl);
+	int Call(LPCTSTR func, CScriptValue *local);
 	int Call(LPCTSTR func) { return Call(func, NULL); }
 
 	class CRLoginDoc *m_pDoc;

@@ -2382,7 +2382,7 @@ void CTextRam::fc_UTF85(DWORD ch)
 			if ( (n = UnicodeNomal(m_LastChar, m_BackChar)) != 0 ) {
 				m_BackChar = n;
 				cf = UnicodeCharFlag(m_BackChar);
-				LOCATE(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX);
+				LOCATE(m_LastPos.x, m_LastPos.y);
 			}
 
 			// Mark•¶Žš‚ð‚»‚ê‚È‚è‚É‰ðŽß
@@ -2422,10 +2422,10 @@ void CTextRam::fc_UTF85(DWORD ch)
 			// U+11A8-11F9 ‚ÍIºŽq‰¹
 			if ( (m_LastFlag & UNI_HNF) != 0 ) {
 				if ( (cf & UNI_HNM) != 0 ) {
-					PUTADD(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX, m_BackChar);
+					PUTADD(m_LastPos.x, m_LastPos.y, m_BackChar);
 					goto BREAK;
 				} else if ( (cf & UNI_HNL) != 0 ) {
-					PUTADD(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX, m_BackChar);
+					PUTADD(m_LastPos.x, m_LastPos.y, m_BackChar);
 					goto BREAK;
 				}
 			}
@@ -2438,7 +2438,7 @@ void CTextRam::fc_UTF85(DWORD ch)
 		// Non Spaceing Mark (with VARIATION SELECTOR !!)
 		if ( (cf & (UNI_IVS | UNI_NSM)) != 0 ) {
 			if ( m_LastChar != 0 )
-				PUTADD(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX, m_BackChar);
+				PUTADD(m_LastPos.x, m_LastPos.y, m_BackChar);
 			goto BREAK;
 		}
 
@@ -2482,7 +2482,7 @@ void CTextRam::fc_UTF85(DWORD ch)
 
 		if ( (cf & UNI_EMODF) != 0 ) {
 			if ( m_LastChar != 0 && (m_LastFlag & UNI_EMOJI) != 0 )
-				PUTADD(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX, m_BackChar);
+				PUTADD(m_LastPos.x, m_LastPos.y, m_BackChar);
 			goto BREAK;
 
 		} else if ( (cf & UNI_BN) != 0 ) {
@@ -2531,7 +2531,7 @@ void CTextRam::fc_UTF85(DWORD ch)
 		}
 
 		if ( m_bJoint && m_LastChar != 0 ) {
-			PUTADD(m_LastPos % COLS_MAX, m_LastPos / COLS_MAX, m_BackChar);
+			PUTADD(m_LastPos.x, m_LastPos.y, m_BackChar);
 
 		} else if ( n == 1 ) {
 			// 1 Cell type Unicode
@@ -2653,8 +2653,8 @@ void CTextRam::fc_LF(DWORD ch)
 			LOCATE(0, m_CurY);
 		else
 			LOCATE(GetLeftMargin(), m_CurY);
-		if ( (m_pDocument->m_bDelayPast || IsOptEnable(TO_RLDELAY)) && m_pDocument->m_DelayFlag == DELAY_WAIT )
-			m_pDocument->OnDelayReceive(ch);
+		if ( m_pDocument->m_DelayFlag == DELAY_WAIT && IsOptEnable(TO_RLDELAYCR) )
+			m_pDocument->OnDelayReceive(0);
 	case 0:		// CR+LF
 		SetRet(m_CurY);
 		ONEINDEX();
@@ -2703,8 +2703,8 @@ void CTextRam::fc_CR(DWORD ch)
 			LOCATE(0, m_CurY);
 		else
 			LOCATE(GetLeftMargin(), m_CurY);
-		if ( (m_pDocument->m_bDelayPast || IsOptEnable(TO_RLDELAY)) && m_pDocument->m_DelayFlag == DELAY_WAIT )
-			m_pDocument->OnDelayReceive(ch);
+		if ( m_pDocument->m_DelayFlag == DELAY_WAIT && IsOptEnable(TO_RLDELAYCR) )
+			m_pDocument->OnDelayReceive(0);
 	case 2:		// LF
 		break;
 	}
@@ -3425,33 +3425,42 @@ void CTextRam::fc_DCS(DWORD ch)
 }
 void CTextRam::fc_SOS(DWORD ch)
 {
-	m_OscMode = 'X';
-	m_BackChar = 0;
-	m_CodeLen = 0;
-	m_OscLast = 0;
-	m_OscPara.Clear();
-	fc_Case(STAGE_OSC2);
-	fc_TimerSet(_T("SOS"));
+	if ( IsOptEnable(TO_RLDOSAVE) ) {
+		m_OscMode = 'X';
+		m_BackChar = 0;
+		m_CodeLen = 0;
+		m_OscLast = 0;
+		m_OscPara.Clear();
+		fc_Case(STAGE_OSC2);
+		fc_TimerSet(_T("SOS"));
+	} else
+		fc_POP(ch);
 }
 void CTextRam::fc_APC(DWORD ch)
 {
-	m_OscMode = '_';
-	m_BackChar = 0;
-	m_CodeLen = 0;
-	m_OscLast = 0;
-	m_OscPara.Clear();
-	fc_Case(STAGE_OSC2);
-	fc_TimerSet(_T("APC"));
+	if ( IsOptEnable(TO_RLDOSAVE) ) {
+		m_OscMode = '_';
+		m_BackChar = 0;
+		m_CodeLen = 0;
+		m_OscLast = 0;
+		m_OscPara.Clear();
+		fc_Case(STAGE_OSC2);
+		fc_TimerSet(_T("APC"));
+	} else
+		fc_POP(ch);
 }
 void CTextRam::fc_PM(DWORD ch)
 {
-	m_OscMode = '^';
-	m_BackChar = 0;
-	m_CodeLen = 0;
-	m_OscLast = 0;
-	m_OscPara.Clear();
-	fc_Case(STAGE_OSC2);
-	fc_TimerSet(_T("PM"));
+	if ( IsOptEnable(TO_RLDOSAVE) ) {
+		m_OscMode = '^';
+		m_BackChar = 0;
+		m_CodeLen = 0;
+		m_OscLast = 0;
+		m_OscPara.Clear();
+		fc_Case(STAGE_OSC2);
+		fc_TimerSet(_T("PM"));
+	} else
+		fc_POP(ch);
 }
 void CTextRam::fc_OSC(DWORD ch)
 {
@@ -4820,7 +4829,7 @@ void CTextRam::fc_OSCNULL(DWORD ch)
 	CFile file;
 	CFileDialog dlg(FALSE, _T("txt"), (m_OscMode == 'X' ? _T("SOS") : (m_OscMode == '^' ? _T("PM") : _T("APC"))), OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGALLFILE), AfxGetMainWnd());
 
-	if ( IsOptEnable(TO_RLDOSAVE) && dlg.DoModal() == IDOK ) {
+	if ( IsOptEnable(TO_RLDOSAVE) && DpiAwareDoModal(dlg) == IDOK ) {
 		if ( file.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeWrite) ) {
 			file.Write(m_OscPara.GetPtr(), m_OscPara.GetSize());
 			file.Close();
@@ -6016,20 +6025,21 @@ void CTextRam::fc_XTWOP(DWORD ch)
 	int w = 6;
 	int h = 12;
 	CRect rect;
-	CWnd *pMainWnd = ::AfxGetMainWnd();
+	CMainFrame *pMainWnd = (CMainFrame *)::AfxGetMainWnd();
+	CWnd *pView;
 
 	switch (n) {
     case 1:			/* Restore (de-iconify) window */
 		if ( IsOptEnable(TO_SETWINPOS) )
 			pMainWnd->ShowWindow(SW_SHOWNORMAL);
 		else
-			((CMainFrame *)AfxGetMainWnd())->SetStatusText(CStringLoad(IDS_DISWINDOWSIZE));
+			pMainWnd->SetStatusText(CStringLoad(IDS_DISWINDOWSIZE));
 		break;
     case 2:			/* Minimize (iconify) window */
 		if ( IsOptEnable(TO_SETWINPOS) )
 			pMainWnd->ShowWindow(SW_SHOWMINIMIZED);
 		else
-			((CMainFrame *)AfxGetMainWnd())->SetStatusText(CStringLoad(IDS_DISWINDOWSIZE));
+			pMainWnd->SetStatusText(CStringLoad(IDS_DISWINDOWSIZE));
 		break;
 
 	case 3:			/* Move the window to the given position x = p1, y = p2 */
@@ -6037,27 +6047,27 @@ void CTextRam::fc_XTWOP(DWORD ch)
 			pMainWnd->GetWindowRect(rect);
 			pMainWnd->SetWindowPos(NULL, GetAnsiPara(1, rect.left, 0), GetAnsiPara(2, rect.top, 0), 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_SHOWWINDOW);
 		} else
-			((CMainFrame *)AfxGetMainWnd())->SetStatusText(CStringLoad(IDS_DISWINDOWSIZE));
+			pMainWnd->SetStatusText(CStringLoad(IDS_DISWINDOWSIZE));
 		break;
     case 4:			/* Resize the window to given size in pixels h = p1, w = p2 */
 		if ( IsOptEnable(TO_SETWINPOS) ) {
 			pMainWnd->GetWindowRect(rect);
 			pMainWnd->SetWindowPos(NULL, 0, 0, GetAnsiPara(2, rect.Width(), 100), GetAnsiPara(1, rect.Height(), 100), SWP_NOZORDER | SWP_NOMOVE | SWP_SHOWWINDOW);
 		} else
-			((CMainFrame *)AfxGetMainWnd())->SetStatusText(CStringLoad(IDS_DISWINDOWSIZE));
+			pMainWnd->SetStatusText(CStringLoad(IDS_DISWINDOWSIZE));
 		break;
 
     case 5:			/* Raise the window to the front of the stack */
 		if ( IsOptEnable(TO_SETWINPOS) )
 			pMainWnd->SetWindowPos(&CWnd::wndTop, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
 		else
-			((CMainFrame *)AfxGetMainWnd())->SetStatusText(CStringLoad(IDS_DISWINDOWSIZE));
+			pMainWnd->SetStatusText(CStringLoad(IDS_DISWINDOWSIZE));
 		break;
     case 6:			/* Lower the window to the bottom of the stack */
 		if ( IsOptEnable(TO_SETWINPOS) )
 			pMainWnd->SetWindowPos(&CWnd::wndBottom, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
 		else
-			((CMainFrame *)AfxGetMainWnd())->SetStatusText(CStringLoad(IDS_DISWINDOWSIZE));
+			pMainWnd->SetStatusText(CStringLoad(IDS_DISWINDOWSIZE));
 		break;
 	
 	case 7:			/* Refresh the window */
@@ -6092,7 +6102,7 @@ void CTextRam::fc_XTWOP(DWORD ch)
 				break;
 			}
 		} else
-			((CMainFrame *)AfxGetMainWnd())->SetStatusText(CStringLoad(IDS_DISWINDOWSIZE));
+			pMainWnd->SetStatusText(CStringLoad(IDS_DISWINDOWSIZE));
 		break;
 
 	case 10:		/* Fullscreen or restore */
@@ -6109,7 +6119,7 @@ void CTextRam::fc_XTWOP(DWORD ch)
 				break;
 			}
 		} else
-			((CMainFrame *)AfxGetMainWnd())->SetStatusText(CStringLoad(IDS_DISWINDOWSIZE));
+			pMainWnd->SetStatusText(CStringLoad(IDS_DISWINDOWSIZE));
 		break;
 
     case 11:    	/* Report the window's state ESC[1/2t */
@@ -6131,8 +6141,8 @@ void CTextRam::fc_XTWOP(DWORD ch)
 		switch(GetAnsiPara(1, 0, 0)) {
 		case 0:		// Report xterm text area size in pixels.			Result is CSI  4  ;  height ;  width t
 			pMainWnd->GetClientRect(rect);
-			if ( m_pDocument != NULL && (pMainWnd = m_pDocument->GetAciveView()) != NULL )
-				pMainWnd->GetClientRect(rect);
+			if ( m_pDocument != NULL && (pView = m_pDocument->GetAciveView()) != NULL )
+				pView->GetClientRect(rect);
 			UNGETSTR(_T("%s4;%d;%dt"), m_RetChar[RC_CSI], rect.Height(), rect.Width());
 			break;
 		case 2:		// Report xterm window size in pixels.				Result is CSI  4  ;  height ;  width t
@@ -6140,8 +6150,8 @@ void CTextRam::fc_XTWOP(DWORD ch)
 					// includes the frame (or decoration) applied by the window manager,
 					// as well as the area used by a scroll-bar.
 			pMainWnd->GetWindowRect(rect);
-			if ( m_pDocument != NULL && (pMainWnd = m_pDocument->GetAciveView()) != NULL )
-				pMainWnd->GetWindowRect(rect);
+			if ( m_pDocument != NULL && (pView = m_pDocument->GetAciveView()) != NULL )
+				pView->GetWindowRect(rect);
 			UNGETSTR(_T("%s4;%d;%dt"), m_RetChar[RC_CSI], rect.Height(), rect.Width());
 			break;
 		}
@@ -6149,8 +6159,8 @@ void CTextRam::fc_XTWOP(DWORD ch)
 
 	case 15:		// Report size of the screen in pixels.		Result is CSI  5  ;  height ;  width t
 		pMainWnd->GetClientRect(rect);
-		if ( m_pDocument != NULL && (pMainWnd = m_pDocument->GetAciveView()) != NULL )
-			pMainWnd->GetClientRect(rect);
+		if ( m_pDocument != NULL && (pView = m_pDocument->GetAciveView()) != NULL )
+			pView->GetClientRect(rect);
 		UNGETSTR(_T("%s5;%d;%dt"), m_RetChar[RC_CSI], rect.Height(), rect.Width());
 		break;
 	case 16:		// Report xterm character size in pixels.	Result is CSI  6  ;  height ;  width t
@@ -7063,7 +7073,7 @@ void CTextRam::fc_DECCRA(DWORD ch)
 void CTextRam::fc_DECRQPSR(DWORD ch)
 {
 	// CSI $w	DECRQPSR Request Presentation State Report
-	int n, i;
+	int n;
 	CString str, wrk;
 
 	switch(GetAnsiPara(0, 0, 0)) {
@@ -7121,9 +7131,8 @@ void CTextRam::fc_DECRQPSR(DWORD ch)
 		str = m_RetChar[RC_DCS];
 		str += _T("2$u");
 		wrk.Empty();
-		i = (IsOptEnable(TO_ANSITSM) ? (m_CurY + 1) : 0);
 		for ( n = 0 ; n < m_Cols ; n++ ) {
-			if ( (TABFLAG(m_TabMap, i, n / 8 + 1) & (0x80 >> (n % 8))) != 0 ) {
+			if ( m_TabFlag.IsSingleColsFlag(n) ) {
 				if ( !wrk.IsEmpty() )
 					str += _T("/");
 				wrk.Format(_T("%d"), n + 1);
@@ -7396,7 +7405,8 @@ void CTextRam::fc_DECSTR(DWORD ch)
 	m_SaveParam.m_Exact    = FALSE;
 	m_SaveParam.m_LastChar = 0;
 	m_SaveParam.m_LastFlag = 0;
-	m_SaveParam.m_LastPos  = 0;
+	m_SaveParam.m_LastPos.x = 0;
+	m_SaveParam.m_LastPos.y = 0;
 	m_SaveParam.m_LastSize = CM_ASCII;
 	m_SaveParam.m_LastStr[0] = L'\0';
 	m_SaveParam.m_bRtoL    = FALSE;
@@ -8208,7 +8218,7 @@ void CTextRam::iTerm2Ext(LPCSTR param)
 		if ( bInLine == 0 ) {
 			CFileDialog dlg(FALSE, _T(""), name, OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGALLFILE), ::AfxGetMainWnd());
 
-			if ( dlg.DoModal() == IDOK && !tmp.SaveFile(dlg.GetPathName()) )
+			if ( DpiAwareDoModal(dlg) == IDOK && !tmp.SaveFile(dlg.GetPathName()) )
 				::AfxMessageBox(_T("Can't File Save"));
 		}
 	}

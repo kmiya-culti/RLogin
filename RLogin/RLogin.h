@@ -9,6 +9,7 @@
 #include "resource.h"       // ÉÅÉCÉì ÉVÉìÉ{Éã
 #include "Data.h"
 #include "ResDataBase.h"
+#include "ExtFileDialog.h"
 
 // CMainFrame
 #define	WM_SOCKSEL			(WM_APP + 0)
@@ -286,6 +287,7 @@ extern BOOL (__stdcall *ExEnableNonClientDpiScaling)(HWND hwnd);
 #define DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 ((DPI_AWARENESS_CONTEXT)-4)
 #define DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED    ((DPI_AWARENESS_CONTEXT)-5)
 DECLARE_HANDLE(DPI_AWARENESS_CONTEXT);
+extern BOOL (__stdcall *ExIsValidDpiAwarenessContext)(DPI_AWARENESS_CONTEXT dpiContext);
 extern DPI_AWARENESS_CONTEXT (__stdcall *ExSetThreadDpiAwarenessContext)(DPI_AWARENESS_CONTEXT dpiContext);
 extern UINT GlobalSystemDpi;
 
@@ -297,6 +299,12 @@ typedef enum PROCESS_DPI_AWARENESS { PROCESS_DPI_UNAWARE, PROCESS_SYSTEM_DPI_AWA
 extern HRESULT (__stdcall *ExSetProcessDpiAwareness)(PROCESS_DPI_AWARENESS value);
 
 extern int ThreadMessageBox(LPCTSTR msg, ...);
+
+#define	REQDPICONTEXT_SCALED	015
+#define	REQDPICONTEXT_AWAREV2	016
+
+extern INT_PTR DpiAwareDoModal(CCommonDialog &dlg, int req = REQDPICONTEXT_AWAREV2);
+extern void DpiAwareSwitch(BOOL sw, int req = REQDPICONTEXT_AWAREV2);
 
 #ifdef	USE_OLE
 extern CLIPFORMAT CF_FILEDESCRIPTOR;

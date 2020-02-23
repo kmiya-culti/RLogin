@@ -82,6 +82,8 @@ BEGIN_MESSAGE_MAP(CServerSelect, CDialogExt)
 	ON_COMMAND(ID_EDIT_DELETE, OnDelEntry)
 	ON_COMMAND(ID_EDIT_DUPS, OnCopyEntry)
 	ON_COMMAND(ID_EDIT_CHECK, OnCheckEntry)
+	ON_COMMAND(ID_EDIT_COPY, &CServerSelect::OnEditCopy)
+	ON_COMMAND(ID_EDIT_PASTE, &CServerSelect::OnEditPaste)
 
 	ON_COMMAND(IDM_SERV_INPORT, &CServerSelect::OnServInport)
 	ON_COMMAND(IDM_SERV_EXPORT, &CServerSelect::OnServExport)
@@ -94,6 +96,7 @@ BEGIN_MESSAGE_MAP(CServerSelect, CDialogExt)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_UPDATE, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_DELETE, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_DUPS, OnUpdateEditEntry)
+	ON_UPDATE_COMMAND_UI(ID_EDIT_COPY, &CServerSelect::OnUpdateEditCopy)
 	ON_UPDATE_COMMAND_UI(IDM_SERV_EXPORT, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(IDM_SERV_EXCHNG, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(IDM_SERV_PROTO, OnUpdateEditEntry)
@@ -115,9 +118,6 @@ BEGIN_MESSAGE_MAP(CServerSelect, CDialogExt)
 	ON_NOTIFY(TVN_ITEMEXPANDED, IDC_SERVERTREE, &CServerSelect::OnTvnItemexpandedServertree)
 	ON_NOTIFY(NM_RCLICK, IDC_SERVERTREE, &CServerSelect::OnNMRClickServertree)
 	ON_NOTIFY(TVN_BEGINLABELEDIT, IDC_SERVERTREE, &CServerSelect::OnTvnBeginlabeleditServertree)
-	ON_COMMAND(ID_EDIT_COPY, &CServerSelect::OnEditCopy)
-	ON_COMMAND(ID_EDIT_PASTE, &CServerSelect::OnEditPaste)
-	ON_UPDATE_COMMAND_UI(ID_EDIT_COPY, &CServerSelect::OnUpdateEditCopy)
 END_MESSAGE_MAP()
 
 void CServerSelect::TreeExpandUpdate(HTREEITEM hTree, BOOL bExpand)
@@ -492,8 +492,10 @@ BOOL CServerSelect::OnInitDialog()
 	InitEntry(INIT_CALL_NONE);
 
 	if ( m_pData->GetSize() == 0 && ((CRLoginApp *)::AfxGetApp())->GetExtFilePath(_T(".rlg"), m_InitPathName) ) {
-		if ( ::AfxMessageBox(IDS_INITENTRYINPORT, MB_ICONQUESTION | MB_YESNO) == IDYES )
+		if ( MessageBox(CStringLoad(IDS_INITENTRYINPORT), _T("Question"), MB_ICONQUESTION | MB_YESNO) == IDYES )
 			PostMessage(WM_COMMAND, IDM_SERV_INPORT);
+		else
+			m_InitPathName.Empty();
 	}
 
 	return TRUE;
@@ -834,7 +836,7 @@ void CServerSelect::OnServInport()
 	CFileDialog dlg(TRUE, _T("rlg"), _T(""), OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGRLOGIN), this);
 
 	if ( m_InitPathName.IsEmpty() ) {
-		if ( dlg.DoModal() != IDOK )
+		if ( DpiAwareDoModal(dlg) != IDOK )
 			return;
 		PathName = dlg.GetPathName();
 	} else {
@@ -994,7 +996,7 @@ void CServerSelect::OnServExport()
 
 	CFileDialog dlg(FALSE, _T("rlg"), _T(""), OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGRLOGIN), this);
 
-	if ( dlg.DoModal() != IDOK )
+	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
 	if ( !File.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeReadWrite | CFile::shareExclusive) ) {
@@ -1039,7 +1041,7 @@ void CServerSelect::OnServExchng()
 {
 	CFileDialog dlg(TRUE, _T("rlg"), _T(""), OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGRLOGIN), this);
 
-	if ( dlg.DoModal() != IDOK )
+	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
 	CFile File;

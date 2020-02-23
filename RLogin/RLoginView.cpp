@@ -304,8 +304,6 @@ CRLoginView::CRLoginView()
 	m_SleepView = FALSE;
 	m_SleepCount = 0;
 
-	m_PastNoCheck = FALSE;
-	m_PastDelaySend = FALSE;
 	m_ScrollOut = FALSE;
 	m_LastMouseFlags = 0;
 	m_LastMouseClock = 0;
@@ -333,6 +331,12 @@ CRLoginView::CRLoginView()
 	m_bDelayInvalThread = 0;
 	m_DelayInvalWait = INFINITE;
 	m_DelayInvalClock = (-1);
+
+	m_MatrixCols.SetSize(COLS_MAX);
+
+	m_PastNoCheck = FALSE;
+	m_PastDelaySend = FALSE;
+	m_PastCtrlView = FALSE;
 }
 
 CRLoginView::~CRLoginView()
@@ -1698,6 +1702,7 @@ BOOL CRLoginView::ModifyKeys(UINT nChar, int nStat)
 	WCHAR esc, end, *p;
 	CStringW pam, fmt;
 	CBuffer tmp;
+	CKeyNode *pNode;
 	CRLoginDoc *pDoc = GetDocument();
 
 	if ( nChar > 255 || (num = pDoc->m_TextRam.m_ModKeyTab[nChar]) < 0 )
@@ -1706,7 +1711,7 @@ BOOL CRLoginView::ModifyKeys(UINT nChar, int nStat)
 	if ( (mod = pDoc->m_TextRam.m_ModKey[num]) < 0 )
 		return FALSE;
 
-	if ( !pDoc->m_TextRam.IsOptEnable(TO_RLMODKEY) && pDoc->m_KeyTab.FindMaps(nChar, nStat, &tmp) && (n = CKeyNodeTab::GetCmdsKey((LPCWSTR)tmp)) > 0 ) {
+	if ( !pDoc->m_TextRam.IsOptEnable(TO_RLMODKEY) && (pNode = pDoc->m_KeyTab.FindMaps(nChar, nStat)) != NULL && (n = CKeyNodeTab::GetCmdsKey((LPCWSTR)pNode->m_Maps)) > 0 ) {
 		AfxGetMainWnd()->PostMessage(WM_COMMAND, (WPARAM)n);
 		return TRUE;
 	}
@@ -1715,11 +1720,11 @@ BOOL CRLoginView::ModifyKeys(UINT nChar, int nStat)
 	if ( (nStat & MASK_ALT)   != 0 ) msk |= 002;
 	if ( (nStat & MASK_CTRL)  != 0 ) msk |= 004;
 
-	if ( !pDoc->m_KeyTab.FindMaps(nChar, (nStat & ~(MASK_SHIFT | MASK_CTRL | MASK_ALT)), &tmp) )
+	if ( (pNode = pDoc->m_KeyTab.FindMaps(nChar, (nStat & ~(MASK_SHIFT | MASK_CTRL | MASK_ALT)))) == NULL )
 		goto NOTDEF;
 
-	n = tmp.GetSize() / sizeof(WCHAR);
-	p = (WCHAR *)(tmp.GetPtr());
+	n = pNode->m_Maps.GetSize() / sizeof(WCHAR);
+	p = (WCHAR *)(pNode->m_Maps.GetPtr());
 
 	// CSI or SS3 ?
 	if ( !(n > 2 && p[0] == L'\033' && (p[1] == L'[' || p[1] == L'O')) )
@@ -1776,6 +1781,7 @@ int CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 	int n;
 	int st = 0;
 	CBuffer tmp;
+	CKeyNode *pNode;
 	CRLoginDoc *pDoc = GetDocument();
 
 	//CView::OnKeyDown(nChar, nRepCnt, nFlags);
@@ -1856,8 +1862,8 @@ int CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 			tmp.PutWord(nChar - L'@');
 			SendBuffer(tmp);
 			return FALSE;
-		} else if ( pDoc->m_KeyTab.FindMaps(nChar, st & ~MASK_ALT, &tmp) && tmp.GetSize() == sizeof(WCHAR) ) {
-			n = tmp.GetWord();
+		} else if ( (pNode = pDoc->m_KeyTab.FindMaps(nChar, st & ~MASK_ALT)) != NULL && pNode->m_Maps.GetSize() == sizeof(WCHAR) ) {
+			n = *((WORD *)(pNode->m_Maps.GetPtr()));
 			tmp.Clear();
 			tmp.PutWord(L'\033');
 			tmp.PutWord(n);
@@ -1867,15 +1873,20 @@ int CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 			return TRUE;
 	}
 
-	if ( pDoc->m_KeyTab.FindMaps(nChar, st, &tmp) ) {
+	if ( (pNode = pDoc->m_KeyTab.FindMaps(nChar, st)) != NULL ) {
 		// ESCキーのCKM操作		TO_RLCKMESCによりCKM時にコード変換を抑制
-		if ( (st & MASK_CKM) != 0 && wcscmp((LPCWSTR)tmp, L"\033O[") == 0 && !pDoc->m_TextRam.IsOptEnable(TO_RLCKMESC) )
+		if ( (st & MASK_CKM) != 0 && wcscmp((LPCWSTR)pNode->m_Maps, L"\033O[") == 0 && !pDoc->m_TextRam.IsOptEnable(TO_RLCKMESC) ) {
 			tmp = L"\033";
-
-		if ( (n = CKeyNodeTab::GetCmdsKey((LPCWSTR)tmp)) > 0 )
-			AfxGetMainWnd()->PostMessage(WM_COMMAND, (WPARAM)n);
-		else
 			SendBuffer(tmp);
+		} else if ( (n = CKeyNodeTab::GetCmdsKey((LPCWSTR)pNode->m_Maps)) > 0 ) {
+			AfxGetMainWnd()->PostMessage(WM_COMMAND, (WPARAM)n);
+#ifdef	USE_KEYSCRIPT
+		} else if ( ((LPCWSTR)pNode->m_Maps)[0] == L'%' ) {
+			if ( pDoc->m_pScript != NULL )
+				pNode->m_ScriptNumber = pDoc->m_pScript->ExecStr(UniToTstr((LPCWSTR)pNode->m_Maps + 1), pNode->m_ScriptNumber);
+#endif
+		} else
+			SendBuffer(pNode->m_Maps);
 
 		return FALSE;
 
@@ -2445,6 +2456,8 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 				m_SleepCount = 0;
 			else if ( ++m_SleepCount >= pDoc->m_TextRam.m_SleepMax ) {
 				m_SleepView = TRUE;
+				if ( m_MatrixCols.GetSize() < pDoc->m_TextRam.m_ColsMax )
+					m_MatrixCols.SetSize(pDoc->m_TextRam.m_ColsMax);
 				for ( int n = 0 ; n < m_Cols ; n++ )
 					m_MatrixCols[n] = rand() % (m_Lines + 25);
 				SetTimer(VTMID_SLEEPTIMER, 200, NULL);
@@ -2454,6 +2467,8 @@ void CRLoginView::OnTimer(UINT_PTR nIDEvent)
 				m_SleepView = FALSE;
 				SetTimer(VTMID_SLEEPTIMER, VIEW_SLEEP_MSEC, NULL);
 			} else {
+				while ( m_MatrixCols.GetSize() < pDoc->m_TextRam.m_ColsMax )
+					m_MatrixCols.Add(rand() % (m_Lines + 25));
 				for ( mx = 0 ; mx < m_Cols ; mx++ ) {
 					if ( ++m_MatrixCols[mx] > (m_Lines + 24) )
 						m_MatrixCols[mx] = 0 - (rand() % 10);
@@ -2560,9 +2575,9 @@ BOOL CRLoginView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 {
 	int n;
 	int pos, ofs;
-	CBuffer tmp;
 	CRLoginDoc *pDoc = GetDocument();
 	clock_t now, msec;
+	CKeyNode *pNode;
 
 	if ( (nFlags & MK_SHIFT) != 0 ) {
 		((CRLoginApp *)::AfxGetApp())->SendBroadCastMouseWheel(nFlags & ~MK_SHIFT, zDelta, pt);
@@ -2605,9 +2620,9 @@ BOOL CRLoginView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 
 	} else if ( (!pDoc->m_TextRam.IsOptEnable(TO_RLMSWAPP) && pDoc->m_TextRam.IsOptEnable(TO_DECCKM)) || 
 			    (nFlags & MK_CONTROL) != 0 || pDoc->m_TextRam.IsOptEnable(TO_RLMSWAPE) ) {
-		if ( pDoc->m_KeyTab.FindMaps((ofs > 0 ? VK_UP : VK_DOWN), (pDoc->m_TextRam.IsOptEnable(TO_DECCKM) ? MASK_CKM : 0), &tmp) ) {
+		if ( (pNode = pDoc->m_KeyTab.FindMaps((ofs > 0 ? VK_UP : VK_DOWN), (pDoc->m_TextRam.IsOptEnable(TO_DECCKM) ? MASK_CKM : 0))) != NULL ) {
 			for ( pos = (ofs < 0 ? (0 - ofs) : ofs) ; pos > 0 ; pos-- )
-				SendBuffer(tmp, TRUE);
+				SendBuffer(pNode->m_Maps, TRUE);
 		}
 
 	} else {
@@ -3223,12 +3238,19 @@ BOOL CRLoginView::SendPasteText(LPCWSTR wstr)
 		dlg.m_EditText    = wstr;
 		dlg.m_bDelayPast  = pDoc->m_TextRam.IsOptEnable(TO_RLDELYPAST) || m_PastDelaySend ? TRUE : FALSE;
 		dlg.m_bUpdateText = pDoc->m_TextRam.IsOptEnable(TO_RLUPDPAST) ? TRUE : FALSE;
+		dlg.m_bCtrlView   = m_PastCtrlView;
+		dlg.m_pView       = this;
 
-		if ( dlg.DoModal() != IDOK )
+		if ( dlg.DoModal() != IDOK ) {
+			m_PastDelaySend = dlg.m_bDelayPast;
+			m_PastCtrlView  = dlg.m_bCtrlView;
 			return FALSE;
+		}
 
-		m_PastNoCheck = dlg.m_NoCheck;
+		m_PastNoCheck   = dlg.m_NoCheck;
 		m_PastDelaySend = dlg.m_bDelayPast;
+		m_PastCtrlView  = dlg.m_bCtrlView;
+
 		wstr = TstrToUni(dlg.m_EditText);
 
 		if ( dlg.m_bUpdateText != pDoc->m_TextRam.IsOptEnable(TO_RLUPDPAST) ) {
@@ -3611,12 +3633,18 @@ BOOL CRLoginView::SetDropFile(LPCTSTR FileName, BOOL &doCmd, BOOL &doSub)
 	} else if ( pDoc->m_TextRam.m_DropFileMode == 5 ) {
 		if ( pDoc->m_pSock != NULL && pDoc->m_pSock->m_Type == ESCT_SSH_MAIN && ((Cssh *)(pDoc->m_pSock))->m_SSHVer == 2 )
 			((Cssh *)(pDoc->m_pSock))->OpenRcpUpload(FileName);
-	} else if ( pDoc->m_TextRam.m_DropFileMode == 6 || pDoc->m_TextRam.m_DropFileMode == 7 ) {
+	} else if ( pDoc->m_TextRam.m_DropFileMode == 6 ) {
 		if ( pDoc->m_pKermit == NULL )
 			pDoc->m_pKermit = new CKermit(pDoc, AfxGetMainWnd());
 		if ( pDoc->m_pKermit->m_ResvPath.IsEmpty() && !pDoc->m_pKermit->m_ThreadFlag )
 			doCmd = TRUE;
 		pDoc->m_pKermit->m_ResvPath.AddTail(FileName);
+	} else if ( pDoc->m_TextRam.m_DropFileMode == 7 ) {
+		if ( pDoc->m_pFileUpDown == NULL )
+			pDoc->m_pFileUpDown = new CFileUpDown(pDoc, AfxGetMainWnd());
+		if ( pDoc->m_pFileUpDown->m_ResvPath.IsEmpty() && !pDoc->m_pFileUpDown->m_ThreadFlag )
+			doCmd = TRUE;
+		pDoc->m_pFileUpDown->m_ResvPath.AddTail(FileName);
 	} else if ( pDoc->m_TextRam.m_DropFileMode >= 2 ) {
 		if ( pDoc->m_pZModem == NULL )
 			pDoc->m_pZModem = new CZModem(pDoc, AfxGetMainWnd());

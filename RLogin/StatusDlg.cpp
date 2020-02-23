@@ -160,7 +160,7 @@ void CStatusDlg::OnStatusSave()
 	CStringA mbs;
 	CFileDialog dlg(FALSE, _T("txt"), _T(""), OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGALLFILE), this);
 
-	if ( dlg.DoModal() != IDOK )
+	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
 	try {

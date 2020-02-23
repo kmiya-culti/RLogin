@@ -88,9 +88,6 @@ public:
 	void DownLoad();
 	void UpLoad(BOOL ascii);
 
-	void SimpleUpLoad();
-	void SimpleDownLoad();
-
 	int ChkSumType1(BYTE *p, int len);
 	int ChkSumType2(BYTE *p, int len);
 	int ChkSumType3(BYTE *p, int len);

@@ -14,6 +14,7 @@
 #include "BPlus.h"
 #include "ZModem.h"
 #include "Kermit.h"
+#include "FileUpDown.h"
 #include "Data.h"
 
 #define	DOCUMENT_MAX		200
@@ -54,7 +55,9 @@
 #define	PROTO_COMPORT		4
 #define	PROTO_PIPE			5
 
-#define	DELAY_ECHO_MSEC		1000
+#define	DELAY_CHAR_USEC		100
+#define	DELAY_LINE_MSEC		500
+#define	DELAY_RECV_MSEC		100
 #define	DELAY_CLOSE_SOCKET	3000
 
 #define	LOGDEBUG_NONE		0
@@ -89,9 +92,14 @@ public:
 	CBPlus *m_pBPlus;
 	CZModem *m_pZModem;
 	CKermit *m_pKermit;
+	CFileUpDown *m_pFileUpDown;
 	int m_DelayFlag;
 	CBuffer m_DelayBuf;
 	BOOL m_bDelayPast;
+	int m_DelayLen;
+	int m_TimerIdLine;
+	int m_TimerIdRecv;
+	int m_TimerIdCrLf;
 	CMainFrame *m_pMainWnd;
 	CString m_SockStatus;
 	CStrScript *m_pStrScript;
@@ -140,7 +148,7 @@ public:
 	void OnSendBuffer(CBuffer &buf);
 
 	int DelaySend();
-	void OnDelayReceive(int ch);
+	void OnDelayReceive(int id);
 
 	void InitOptFixCheck(int Uid);
 	BOOL SetOptFixEntry(LPCTSTR entryName);

@@ -87,8 +87,11 @@ CRLoginDoc::CRLoginDoc()
 	m_pBPlus = NULL;
 	m_pZModem = NULL;
 	m_pKermit = NULL;
+	m_pFileUpDown = NULL;
 	m_bDelayPast = FALSE;
 	m_DelayFlag = DELAY_NON;
+	m_DelayLen = 0;
+	m_TimerIdLine = m_TimerIdRecv = m_TimerIdCrLf = 0;
 	m_pMainWnd = (CMainFrame *)AfxGetMainWnd();
 	m_SockStatus.Empty();
 	m_pStrScript = NULL;
@@ -118,6 +121,8 @@ CRLoginDoc::~CRLoginDoc()
 		delete m_pZModem;
 	if ( m_pKermit != NULL )
 		delete m_pKermit;
+	if ( m_pFileUpDown != NULL )
+		delete m_pFileUpDown;
 
 	if ( m_pScript != NULL )
 		delete m_pScript;
@@ -1117,7 +1122,7 @@ void CRLoginDoc::SendScript(LPCWSTR str, LPCWSTR match)
 }
 int CRLoginDoc::DelaySend()
 {
-	int n = 0;
+	int ch, n = 0;
 
 	if ( m_pSock == NULL ) {
 		m_DelayBuf.Clear();
@@ -1126,11 +1131,15 @@ int CRLoginDoc::DelaySend()
 	}
 
 	while ( n < m_DelayBuf.GetSize() ) {
-		if ( m_DelayBuf.GetAt(n++) == '\r' ) {
+		if ( (ch = m_DelayBuf.GetAt(n++)) == '\r' || ch == '\n' ) {
+			if ( ch == '\r' && n < m_DelayBuf.GetSize() && m_DelayBuf.GetAt(n) == '\n' )
+				n++;
 			m_pSock->Send(m_DelayBuf.GetPtr(), n, 0);
 			m_DelayBuf.Consume(n);
 			m_DelayFlag = DELAY_WAIT;
-			m_pMainWnd->SetTimerEvent(DELAY_ECHO_MSEC, TIMEREVENT_DOC, this);
+			m_DelayLen += n;
+			m_TimerIdLine = m_pMainWnd->SetTimerEvent(m_TextRam.m_DelayUSecChar * m_DelayLen / 1000 + m_TextRam.m_DelayMSecLine, TIMEREVENT_DOC, this);
+			m_DelayLen = 0;
 			if ( m_DelayBuf.GetSize() == 0 )
 				m_bDelayPast = FALSE;
 			return TRUE;
@@ -1140,6 +1149,7 @@ int CRLoginDoc::DelaySend()
 		m_pSock->Send(m_DelayBuf.GetPtr(), m_DelayBuf.GetSize(), 0);
 		m_DelayBuf.Clear();
 		m_bDelayPast = FALSE;
+		m_DelayLen += n;
 	}
 
 	return FALSE;
@@ -1400,6 +1410,8 @@ void CRLoginDoc::DoDropFile()
 		path = m_pZModem->m_ResvPath.GetHead();
 	else if ( m_pKermit != NULL && !m_pKermit->m_ResvPath.IsEmpty() )
 		path = m_pKermit->m_ResvPath.GetHead();
+	else if ( m_pFileUpDown != NULL && !m_pFileUpDown->m_ResvPath.IsEmpty() )
+		path = m_pFileUpDown->m_ResvPath.GetHead();
 	else
 		return;
 
@@ -1418,7 +1430,7 @@ void CRLoginDoc::DoDropFile()
 	case 3: m_pZModem->DoProc(2); break;
 	case 4: m_pZModem->DoProc(7); break;
 	case 6: m_pKermit->DoProc(1); break;
-	case 7: m_pKermit->DoProc(3); break;
+	case 7: m_pFileUpDown->DoProc(1); break;
 	}
 }
 
@@ -1498,20 +1510,69 @@ void CRLoginDoc::OnReceiveChar(DWORD ch, int pos)
 		}
 		ch = 0;
 	}
+
+	if ( m_DelayFlag == DELAY_WAIT && m_TextRam.m_DelayMSecRecv > 0 && m_TextRam.IsOptEnable(TO_RLDELAYRV) ) {
+		if ( m_TimerIdRecv != 0 )
+			((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this, m_TimerIdRecv);
+		m_TimerIdRecv = m_pMainWnd->SetTimerEvent(m_TextRam.m_DelayMSecRecv, TIMEREVENT_DOC, this);
+	}
 }
 void CRLoginDoc::OnSendBuffer(CBuffer &buf)
 {
 	if ( m_pStrScript != NULL && m_pStrScript->m_MakeFlag )
 		m_pStrScript->SendStr((LPCWSTR)(buf.GetPtr()), buf.GetSize() / sizeof(WCHAR), &m_ServerEntry);
 }
-void CRLoginDoc::OnDelayReceive(int ch)
+void CRLoginDoc::OnDelayReceive(int id)
 {
-	((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this);
+//Send		A............B
+//Recive	    A............B
+//			|--------{Lms * Len + Wms]--------|			delaySend || m_bDelayPast || m_TextRam.IsOptEnable(TO_RLDELAY)
+//			xxxx||||||||||||||---[Rms]---|				m_TextRam.IsOptEnable(TO_RLDELAYRV)
+//			                 |-[Cms]-|					m_TextRam.IsOptEnable(TO_RLDELAYCR)
+//
+//	Lms		m_DelayMSecChar
+//	Wms		m_DelayMSecLine
+//	Rms		m_DelayMSecRecv
+//	Cms		m_DelayMSecCrLf
 
-	if ( ch >= 0 && m_TextRam.m_DelayMSec > 0 ) {
-		m_DelayFlag = DELAY_PAUSE;
-		m_pMainWnd->SetTimerEvent(m_TextRam.m_DelayMSec, TIMEREVENT_DOC, this);
-		return;
+	if ( id != 0 ) {	// Time out
+		((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this, id);
+
+		if ( id == m_TimerIdLine ) {
+			m_TimerIdLine = 0;
+			if ( m_TimerIdRecv != 0 ) {
+				((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this, m_TimerIdRecv);
+				m_TimerIdRecv = 0;
+			}
+		} else if ( id == m_TimerIdRecv ) {
+			m_TimerIdRecv = 0;
+			if ( m_TimerIdLine != 0 ) {
+				((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this, m_TimerIdLine);
+				m_TimerIdLine = 0;
+			}
+		} else if ( id == m_TimerIdCrLf ) {
+			m_TimerIdCrLf = 0;
+		}
+
+	} else {			// Recive CR/LF
+		if ( m_TimerIdLine != 0 ) {
+			((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this, m_TimerIdLine);
+			m_TimerIdLine = 0;
+		}
+		if ( m_TimerIdRecv != 0 ) {
+			((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this, m_TimerIdRecv);
+			m_TimerIdRecv = 0;
+		}
+		if ( m_TimerIdCrLf != 0 ) {
+			((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this, m_TimerIdCrLf);
+			m_TimerIdCrLf = 0;
+		}
+
+		if ( m_TextRam.m_DelayMSecCrLf > 0 ) {
+			m_DelayFlag = DELAY_PAUSE;
+			m_TimerIdCrLf = m_pMainWnd->SetTimerEvent(m_TextRam.m_DelayMSecCrLf, TIMEREVENT_DOC, this);
+			return;
+		}
 	}
 
 	m_DelayFlag = DELAY_NON;
@@ -1567,6 +1628,8 @@ void CRLoginDoc::OnSocketError(int err)
 		m_pZModem->DoAbort();
 	if ( m_pKermit != NULL )
 		m_pKermit->DoAbort();
+	if ( m_pFileUpDown != NULL )
+		m_pFileUpDown->DoAbort();
 
 	if ( m_AfterId != (-1) ) {
 		((CMainFrame *)::AfxGetMainWnd())->PostMessage(WM_AFTEROPEN, (WPARAM)m_AfterId, (LPARAM)err);
@@ -1613,6 +1676,8 @@ void CRLoginDoc::OnSocketClose()
 		m_pZModem->DoAbort();
 	if ( m_pKermit != NULL )
 		m_pKermit->DoAbort();
+	if ( m_pFileUpDown != NULL )
+		m_pFileUpDown->DoAbort();
 
 	UpdateAllViews(NULL, UPDATE_GOTOXY, NULL);
 	SetStatus(_T("Close"));
@@ -1870,12 +1935,16 @@ void CRLoginDoc::SocketClose()
 {
 	if ( m_pSock == NULL )
 		return;
+
 	if ( m_pBPlus != NULL )
 		m_pBPlus->DoAbort();
 	if ( m_pZModem != NULL )
 		m_pZModem->DoAbort();
 	if ( m_pKermit != NULL )
 		m_pKermit->DoAbort();
+	if ( m_pFileUpDown != NULL )
+		m_pFileUpDown->DoAbort();
+
 	m_pSock->Destroy();
 	m_pSock = NULL;
 	m_TextRam.OnClose();
@@ -1890,11 +1959,6 @@ void CRLoginDoc::SocketSend(void *lpBuf, int nBufLen, BOOL delaySend)
 {
 	if ( m_pSock == NULL )
 		return;
-
-	//if ( m_pScript != NULL && m_pScript->m_ConsMode == DATA_BUF_HAVE ) {
-	//	m_pScript->SetConsBuff((LPBYTE)lpBuf, nBufLen);
-	//	return;
-	//}
 
 	if ( delaySend || m_bDelayPast || m_TextRam.IsOptEnable(TO_RLDELAY) ) {
 		m_bDelayPast = TRUE;
@@ -1932,7 +1996,7 @@ void CRLoginDoc::OnLogOpen()
 
 	CFileDialog dlg(FALSE, _T("log"), _T("RLOGIN"), OFN_HIDEREADONLY, CStringLoad(IDS_FILEDLGLOGFILE), AfxGetMainWnd());
 
-	if ( dlg.DoModal() != IDOK )
+	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
 	if ( !LogOpen(dlg.GetPathName()) ) {
@@ -2022,9 +2086,12 @@ void CRLoginDoc::OnXYZModem(UINT nID)
 	if ( m_pSock == NULL || !m_pSock->m_bConnect )
 		return;
 
-	if ( nID == IDM_KERMIT_UPLOAD || nID == IDM_KERMIT_DOWNLOAD || nID == IDM_SIMPLE_UPLOAD || nID == IDM_SIMPLE_DOWNLOAD ) {
+	if ( nID == IDM_KERMIT_UPLOAD || nID == IDM_KERMIT_DOWNLOAD ) {
 		if ( m_pKermit == NULL )
 			m_pKermit = new CKermit(this, AfxGetMainWnd());
+	} else if ( nID == IDM_SIMPLE_UPLOAD || nID == IDM_SIMPLE_DOWNLOAD ) {
+		if ( m_pFileUpDown == NULL )
+			m_pFileUpDown = new CFileUpDown(this, AfxGetMainWnd());
 	} else {
 		if ( m_pZModem == NULL )
 			m_pZModem = new CZModem(this, AfxGetMainWnd());
@@ -2039,8 +2106,8 @@ void CRLoginDoc::OnXYZModem(UINT nID)
 	case IDM_ZMODEM_DOWNLOAD: m_pZModem->DoProc(6); break;
 	case IDM_KERMIT_UPLOAD:   m_pKermit->DoProc(1); break;
 	case IDM_KERMIT_DOWNLOAD: m_pKermit->DoProc(0); break;
-	case IDM_SIMPLE_UPLOAD:	  m_pKermit->DoProc(3); break;
-	case IDM_SIMPLE_DOWNLOAD: m_pKermit->DoProc(4); break;
+	case IDM_SIMPLE_UPLOAD:	  m_pFileUpDown->DoProc(1); break;
+	case IDM_SIMPLE_DOWNLOAD: m_pFileUpDown->DoProc(0); break;
 	}
 }
 void CRLoginDoc::OnUpdateXYZModem(CCmdUI* pCmdUI)
@@ -2138,6 +2205,8 @@ void CRLoginDoc::OnScreenReset(UINT nID)
 			m_pZModem->DoAbort();
 		if ( m_pKermit != NULL )
 			m_pKermit->DoAbort();
+		if ( m_pFileUpDown != NULL )
+			m_pFileUpDown->DoAbort();
 	}
 }
 
@@ -2172,7 +2241,7 @@ void CRLoginDoc::OnScript()
 
 	CFileDialog dlg(FALSE, _T("txt"), _T(""), 0, CStringLoad(IDS_FILEDLGSCRIPT), AfxGetMainWnd());
 
-	if ( dlg.DoModal() != IDOK )
+	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
 	if ( m_pScript->m_Code.GetSize() > 0 && AfxMessageBox(IDS_SCRIPTNEW, MB_ICONQUESTION | MB_YESNO) == IDYES ) {

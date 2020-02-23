@@ -14,8 +14,11 @@ public:
 	enum { IDD = IDD_SOCKOPTPAGE };
 
 public:
-	UINT m_DelayMsec;
-	BOOL m_Check[15];
+	double m_DelayUsecChar;
+	UINT m_DelayMsecLine;
+	UINT m_DelayMsecRecv;
+	UINT m_DelayMsecCrLf;
+	BOOL m_Check[20];
 	int m_SelIPver;
 	UINT m_SleepTime;
 	CString m_GroupCast;

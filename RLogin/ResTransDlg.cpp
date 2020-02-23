@@ -366,7 +366,7 @@ void CResTransDlg::OnOK()
 
 	CFileDialog dlg(FALSE, _T("txt"), m_ResFileName, OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGALLFILE), this);
 
-	if ( dlg.DoModal() != IDOK )
+	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
 	m_ResFileName = dlg.GetPathName();

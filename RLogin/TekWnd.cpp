@@ -89,7 +89,7 @@ void CTekWnd::OnTekSave()
 	CImage image;
 	CFileDialog dlg(FALSE, _T("gif"), _T(""), OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGTEKIMAGE), this);
 
-	if ( dlg.DoModal() != IDOK )
+	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
 	if ( dlg.GetFileExt().CompareNoCase(_T("dxf")) == 0 ) {

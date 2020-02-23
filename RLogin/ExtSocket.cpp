@@ -711,14 +711,14 @@ int CExtSocket::Receive(void* lpBuf, int nBufLen, int nFlags)
 	m_RecvSema.Unlock();
 	return len;
 }
-int CExtSocket::SyncReceive(void* lpBuf, int nBufLen, int nSec, BOOL *pAbort)
+int CExtSocket::SyncReceive(void* lpBuf, int nBufLen, int mSec, BOOL *pAbort)
 {
 	int n;
 	int len = 0;
 	LPBYTE buf = (LPBYTE)lpBuf;
-	time_t st, nt;
+	clock_t st;
 
-	time(&st);
+	st = clock();
 	while ( !*pAbort ) {
 		m_RecvSema.Lock();
 		while ( nBufLen > 0 && m_ProcHead != NULL ) {
@@ -746,17 +746,15 @@ int CExtSocket::SyncReceive(void* lpBuf, int nBufLen, int nSec, BOOL *pAbort)
 		} else if ( m_pRecvEvent != NULL ) {
 			m_RecvSyncMode |= SYNC_EVENT;
 			m_RecvSema.Unlock();
-			time(&nt);
-			if ( (n = (int)(nt - st)) >= nSec )
+			if ( (n = (int)(clock() - st) * 1000 / CLOCKS_PER_SEC) >= mSec )
 				break;
-//			TRACE("SyncReceive wait %d\n", nSec - n);
-			WaitForSingleObject(m_pRecvEvent->m_hObject, (nSec - n) * 1000);
+//			TRACE("SyncReceive wait %d\n", mSec - n);
+			WaitForSingleObject(m_pRecvEvent->m_hObject, mSec - n);
 		} else {
 			m_RecvSema.Unlock();
-			time(&nt);
-			if ( (n = (int)(nt - st)) >= nSec )
+			if ( (n = (int)(clock() - st) * 1000 / CLOCKS_PER_SEC) >= mSec )
 				break;
-			Sleep(100);
+			Sleep(mSec - n);
 		}
 	}
 	return len;

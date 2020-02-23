@@ -292,6 +292,7 @@
     <ClCompile Include="EscParaDlg.cpp" />
     <ClCompile Include="ExtOptPage.cpp" />
     <ClCompile Include="ExtSocket.cpp" />
+    <ClCompile Include="FileUpDown.cpp" />
     <ClCompile Include="FontParaDlg.cpp" />
     <ClCompile Include="GhostWnd.cpp" />
     <ClCompile Include="GrapWnd.cpp" />
@@ -362,6 +363,7 @@
     <ClCompile Include="TraceDlg.cpp" />
     <ClCompile Include="TtyModeDlg.cpp" />
     <ClCompile Include="UpdateDlg.cpp" />
+    <ClCompile Include="ExtFileDialog.cpp" />
     <ClCompile Include="UserFlowDlg.cpp" />
     <ClCompile Include="xmss.cpp" />
     <ClCompile Include="ZModem.cpp" />
@@ -396,6 +398,7 @@
     <ClInclude Include="EscParaDlg.h" />
     <ClInclude Include="ExtOptPage.h" />
     <ClInclude Include="ExtSocket.h" />
+    <ClInclude Include="FileUpDown.h" />
     <ClInclude Include="FontParaDlg.h" />
     <ClInclude Include="GhostWnd.h" />
     <ClInclude Include="GrapWnd.h" />
@@ -465,6 +468,7 @@
     <ClInclude Include="UniCharTab.h" />
     <ClInclude Include="UniNomalTab.h" />
     <ClInclude Include="UpdateDlg.h" />
+    <ClInclude Include="ExtFileDialog.h" />
     <ClInclude Include="UserFlowDlg.h" />
     <ClInclude Include="zm.h" />
     <ClInclude Include="ZModem.h" />

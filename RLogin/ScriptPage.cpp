@@ -120,7 +120,7 @@ void CScriptPage::OnBnClickedScriptSel()
 	CRLoginDoc::EnvironPath(file);
 	CFileDialog dlg(FALSE, _T("txt"), file, 0, CStringLoad(IDS_FILEDLGSCRIPT), this);
 
-	if ( dlg.DoModal() != IDOK )
+	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
 	m_ScriptFile = dlg.GetPathName();

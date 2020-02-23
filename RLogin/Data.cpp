@@ -241,6 +241,21 @@ void CBuffer::Apend(LPBYTE buff, int len)
 	memcpy(m_Data + m_Len, buff, len);
 	m_Len += len;
 }
+void CBuffer::Insert(LPBYTE buff, int len)
+{
+	if ( len <= 0 )
+		return;
+
+	if ( m_Ofs >= len ) {
+		m_Ofs -= len;
+	} else {
+		ReAlloc(len);
+		memmove(m_Data + m_Ofs + len, m_Data + m_Ofs, m_Len);
+		m_Len += len;
+	}
+
+	memcpy(m_Data + m_Ofs, buff, len);
+}
 void CBuffer::RoundUp(int len)
 {
 	int n = len - (GetSize() % len);
@@ -1082,6 +1097,78 @@ LPCTSTR CBuffer::BubBabDecode(LPCTSTR str)
 	}
 
 	return str;
+}
+LPCSTR CBuffer::UuDecode(LPCSTR str)
+{
+#define DEC(c)		(((c) - ' ') & 077)
+#define IS_DEC(c)	( (((c) - ' ') >= 0) && (((c) - ' ') <= 077 + 1) )
+
+	int len;
+
+	Clear();
+
+	if ( !IS_DEC(str[0]) )
+		return str;
+
+	len = DEC(*(str++));
+
+	while ( len > 0 ) {
+		if ( IS_DEC(str[0]) && IS_DEC(str[1]) && IS_DEC(str[2]) && IS_DEC(str[3]) ) {
+			if ( len-- > 0 )
+				PutByte(DEC(str[0]) << 2 | DEC(str[1]) >> 4);
+			if ( len-- > 0 )
+				PutByte(DEC(str[1]) << 4 | DEC(str[2]) >> 2);
+			if ( len-- > 0 )
+				PutByte(DEC(str[2]) << 6 | DEC(str[3]));
+			str += 4;
+
+		} else if ( IS_DEC(str[0]) && IS_DEC(str[1]) && IS_DEC(str[2]) ) {
+			if ( len-- > 0 )
+				PutByte(DEC(str[0]) << 2 | DEC(str[1]) >> 4);
+			if ( len-- > 0 )
+				PutByte(DEC(str[1]) << 4 | DEC(str[2]) >> 2);
+			str += 3;
+
+		} else if ( IS_DEC(str[0]) && IS_DEC(str[1]) ) {
+			if ( len-- > 0 )
+				PutByte(DEC(str[0]) << 2 | DEC(str[1]) >> 4);
+			str += 2;
+
+		} else
+			break;
+	}
+
+	return str;
+}
+void CBuffer::UuEncode(LPBYTE buf, int len)
+{
+#define ENC(c) ((c) ? ((c) & 077) + ' ': '`')
+
+	int ch;
+	BYTE tmp[4];
+
+	ASSERT(len <= 45);
+
+	PutByte(ENC(len));
+
+	while ( len > 0 ) {
+		tmp[0] = tmp[1] = tmp[2] = tmp[3] = '\0';
+		if ( len-- > 0 )
+			tmp[0] = *(buf++);
+		if ( len-- > 0 )
+			tmp[1] = *(buf++);
+		if ( len-- > 0 )
+			tmp[2] = *(buf++);
+
+		ch = tmp[0] >> 2;
+		PutByte(ENC(ch));
+		ch = ((tmp[0] << 4) & 060) | ((tmp[1] >> 4) & 017);
+		PutByte(ENC(ch));
+		ch = ((tmp[1] << 2) & 074) | ((tmp[2] >> 6) & 003);
+		PutByte(ENC(ch));
+		ch = tmp[2] & 077;
+		PutByte(ENC(ch));
+	}
 }
 
 void CBuffer::md5(LPCTSTR str)
@@ -4312,16 +4399,25 @@ CKeyNode::CKeyNode()
 	m_Code = (-1);
 	m_Mask = 0;
 	m_Maps.Clear();
+	m_ScriptNumber = (-1);
 }
 LPCTSTR CKeyNode::GetMaps()
 {
-	int n;
 	LPCWSTR p;
 	CString tmp;
 	
-	m_Temp = _T("");
-	p = m_Maps;
-	for ( n = 0 ; n < m_Maps.GetSize() ; n += 2, p++ ) {
+	m_Temp.Empty();
+	p = (LPCWSTR)m_Maps;
+
+#ifdef	USE_KEYSCRIPT
+	// MenuCall or Script Command
+	if ( *p == L'$' || *p == L'%' ) {
+		m_Temp = p;
+		return m_Temp;
+	}
+#endif
+
+	for ( ; *p != L'\0' ; p++ ) {
 		switch(*p) {
 		case L'\b': m_Temp += _T("\\b"); break;
 		case L'\t': m_Temp += _T("\\t"); break;
@@ -4331,6 +4427,10 @@ LPCTSTR CKeyNode::GetMaps()
 		case L'\r': m_Temp += _T("\\r"); break;
 		case L'\\': m_Temp += _T("\\\\"); break;
 		case L' ':  m_Temp += _T("\\s"); break;
+#ifdef	USE_KEYSCRIPT
+		case L'$':  m_Temp += _T("\\$"); break;
+		case L'%':  m_Temp += _T("\\%"); break;
+#endif
 		default:
 			if ( *p == L'\x7F' || *p < L' ' ) {
 				tmp.Format(_T("\\%03o"), *p);
@@ -4342,6 +4442,7 @@ LPCTSTR CKeyNode::GetMaps()
 			break;
 		}
 	}
+
 	return m_Temp;
 }
 void CKeyNode::SetMaps(LPCTSTR str)
@@ -4353,6 +4454,16 @@ void CKeyNode::SetMaps(LPCTSTR str)
 	tmp = str;
 	p = tmp;
 	m_Maps.Clear();
+	m_ScriptNumber = (-1);
+
+#ifdef	USE_KEYSCRIPT
+	// MenuCall or Script Command
+	if ( *p == L'$' || *p == L'%' ) {
+		m_Maps = p;
+		return;
+	}
+#endif
+
 	while ( *p != L'\0' ) {
 		if ( *p == L'\\' ) {
 			switch(*(++p)) {
@@ -4363,6 +4474,10 @@ void CKeyNode::SetMaps(LPCTSTR str)
 			case L'f': m_Maps.PutWord(L'\f'); p++; break;
 			case L'r': m_Maps.PutWord(L'\r'); p++; break;
 			case L's': m_Maps.PutWord(L' '); p++; break;
+#ifdef	USE_KEYSCRIPT
+			case L'$': m_Maps.PutWord(L'$'); p++; break;
+			case L'%': m_Maps.PutWord(L'%'); p++; break;
+#endif
 			case L'\\': m_Maps.PutWord(L'\\'); p++; break;
 			case L'x': case L'X':
 				p++;
@@ -4919,46 +5034,44 @@ int CKeyNodeTab::Add(int code, int mask, LPCTSTR str)
 	tmp.SetMaps(str);
 	return Add(tmp);
 }
-BOOL CKeyNodeTab::FindKeys(int code, int mask, CBuffer *pBuf, int base, int bits)
+CKeyNode *CKeyNodeTab::FindKeys(int code, int mask, int base, int bits)
 {
+	CKeyNode *pNode;
+
 	if ( (mask & bits & MASK_VT52) != 0 ) {
-		if ( FindKeys(code, mask, pBuf, base, bits & ~MASK_VT52) )
-			return TRUE;
-		if ( FindKeys(code, mask & ~MASK_VT52, pBuf, base, bits & ~MASK_VT52) )
-			return TRUE;
+		if ( (pNode = FindKeys(code, mask, base, bits & ~MASK_VT52)) != NULL )
+			return pNode;
+		if ( (pNode = FindKeys(code, mask & ~MASK_VT52, base, bits & ~MASK_VT52)) != NULL )
+			return pNode;
 	} else if ( (mask & bits & MASK_CKM) != 0 ) {
-		if ( FindKeys(code, mask, pBuf, base, bits & ~MASK_CKM) )
-			return TRUE;
-		if ( FindKeys(code, mask & ~MASK_CKM, pBuf, base, bits & ~MASK_CKM) )
-			return TRUE;
+		if ( (pNode = FindKeys(code, mask, base, bits & ~MASK_CKM)) != NULL )
+			return pNode;
+		if ( (pNode = FindKeys(code, mask & ~MASK_CKM, base, bits & ~MASK_CKM)) != NULL )
+			return pNode;
 	} else if ( (mask & bits & MASK_APPL) != 0 ) {
-		if ( FindKeys(code, mask, pBuf, base, bits & ~MASK_APPL) )
-			return TRUE;
-		if ( FindKeys(code, mask & ~MASK_APPL, pBuf, base, bits & ~MASK_APPL) )
-			return TRUE;
+		if ( (pNode = FindKeys(code, mask, base, bits & ~MASK_APPL)) != NULL )
+			return pNode;
+		if ( (pNode = FindKeys(code, mask & ~MASK_APPL, base, bits & ~MASK_APPL)) != NULL )
+			return pNode;
 	} else if ( (mask & bits & MASK_SHIFT) != 0 ) {
-		if ( FindKeys(code, mask, pBuf, base, bits & ~MASK_SHIFT) )
-			return TRUE;
-		if ( FindKeys(code, mask & ~MASK_SHIFT, pBuf, base, bits & ~MASK_SHIFT) )
-			return TRUE;
+		if ( (pNode = FindKeys(code, mask, base, bits & ~MASK_SHIFT)) != NULL )
+			return pNode;
+		if ( (pNode = FindKeys(code, mask & ~MASK_SHIFT, base, bits & ~MASK_SHIFT)) != NULL )
+			return pNode;
 	} else {
 		for ( int i = base ; i < m_Node.GetSize() && m_Node[i].m_Code == code ; i++ ) {
-			if ( m_Node[i].m_Mask == mask ) {
-				*pBuf = m_Node[i].m_Maps;
-				return TRUE;
-			}
+			if ( m_Node[i].m_Mask == mask )
+				return &(m_Node[i]);
 		}
 	}
-	return FALSE;
+	return NULL;
 }
-BOOL CKeyNodeTab::FindMaps(int code, int mask, CBuffer *pBuf)
+CKeyNode *CKeyNodeTab::FindMaps(int code, int mask)
 {
 	int n;
 
-	if ( Find(code, mask, &n) ) {
-		*pBuf = m_Node[n].m_Maps;
-		return TRUE;
-	}
+	if ( Find(code, mask, &n) )
+		return &(m_Node[n]);
 
 	while ( n > 0 && m_Node[n - 1].m_Code == code )
 		n--;
@@ -4966,7 +5079,7 @@ BOOL CKeyNodeTab::FindMaps(int code, int mask, CBuffer *pBuf)
 	if ( n >= GetSize() || m_Node[n].m_Code != code )
 		return FALSE;
 
-	return FindKeys(code, mask, pBuf, n, MASK_VT52 | MASK_CKM | MASK_APPL | MASK_SHIFT);
+	return FindKeys(code, mask, n, MASK_VT52 | MASK_CKM | MASK_APPL | MASK_SHIFT);
 }
 
 #define	CAPINFOKEYMAX	76

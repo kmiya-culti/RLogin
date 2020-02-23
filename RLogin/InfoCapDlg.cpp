@@ -1401,7 +1401,7 @@ void CInfoCapDlg::OnBnClickedLoadcap()
 	CString tmp;
 	CFileDialog dlg(TRUE, _T(""), _T("termcap"), OFN_HIDEREADONLY, CStringLoad(IDS_FILEDLGALLFILE), this);
 
-	if ( dlg.DoModal() != IDOK )
+	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
 	m_Entry.GetWindowText(tmp);
@@ -1420,7 +1420,7 @@ void CInfoCapDlg::OnBnClickedLoadinfo()
 	CString tmp;
 	CFileDialog dlg(TRUE, _T(""), _T("terminfo"), OFN_HIDEREADONLY, CStringLoad(IDS_FILEDLGALLFILE), this);
 
-	if ( dlg.DoModal() != IDOK )
+	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
 	m_Entry.GetWindowText(tmp);
@@ -1468,7 +1468,7 @@ void CInfoCapDlg::OnCapInport()
 	CStringIndex cap;
 	CFileDialog dlg(TRUE, _T(""), _T("termcap.txt"), OFN_HIDEREADONLY, CStringLoad(IDS_FILEDLGALLFILE), this);
 
-	if ( dlg.DoModal() != IDOK )
+	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
 	for ( n = m_Entry.GetCount() - 1 ; n >= 0; n-- )
@@ -1491,7 +1491,7 @@ void CInfoCapDlg::OnCapExport()
 	FILE *fp;
 	CFileDialog dlg(FALSE, _T(""), _T("termcap.txt"), OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGALLFILE), this);
 
-	if ( dlg.DoModal() != IDOK )
+	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
 	SetCapStr(TRUE);
@@ -1537,7 +1537,7 @@ void CInfoCapDlg::OnInfoInport()
 	CStringIndex cap;
 	CFileDialog dlg(TRUE, _T(""), _T("terminfo.txt"), OFN_HIDEREADONLY, CStringLoad(IDS_FILEDLGALLFILE), this);
 
-	if ( dlg.DoModal() != IDOK )
+	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
 	for ( n = m_Entry.GetCount() - 1 ; n >= 0; n-- )
@@ -1560,7 +1560,7 @@ void CInfoCapDlg::OnInfoExport()
 	FILE *fp;
 	CFileDialog dlg(FALSE, _T(""), _T("terminfo.txt"), OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGALLFILE), this);
 
-	if ( dlg.DoModal() != IDOK )
+	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
 	SetInfoStr(TRUE);

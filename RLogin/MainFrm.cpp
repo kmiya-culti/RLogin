@@ -746,7 +746,7 @@ void CTimerObject::CallObject()
 
 	switch(m_Mode & 007) {
 	case TIMEREVENT_DOC:
-		((CRLoginDoc *)(m_pObject))->OnDelayReceive((-1));
+		((CRLoginDoc *)(m_pObject))->OnDelayReceive(m_Id);
 		break;
 	case TIMEREVENT_SOCK:
 		((CExtSocket *)(m_pObject))->OnTimer(m_Id);
@@ -3049,7 +3049,7 @@ BOOL CMainFrame::PreTranslateMessage(MSG* pMsg)
 	} else if ( (pMsg->message == WM_KEYDOWN || pMsg->message == WM_SYSKEYDOWN) ) {
 		if ( MDIGetActive() == NULL ) {
 			int id, st = 0;
-			CBuffer tmp;
+			CKeyNode *pNode;
 
 			if ( (GetKeyState(VK_SHIFT) & 0x80) != 0 )
 				st |= MASK_SHIFT;
@@ -3060,7 +3060,7 @@ BOOL CMainFrame::PreTranslateMessage(MSG* pMsg)
 			if ( (GetKeyState(VK_MENU) & 0x80) != 0 )
 				st |= MASK_ALT;
 
-			if ( m_DefKeyTab.FindMaps((int)pMsg->wParam, st, &tmp) &&  (id = CKeyNodeTab::GetCmdsKey((LPCWSTR)tmp)) > 0 ) {
+			if ( (pNode = m_DefKeyTab.FindMaps((int)pMsg->wParam, st)) != NULL &&  (id = CKeyNodeTab::GetCmdsKey((LPCWSTR)pNode->m_Maps)) > 0 ) {
 				PostMessage(WM_COMMAND, (WPARAM)id);
 				return TRUE;
 			}
@@ -3225,7 +3225,7 @@ void CMainFrame::OnFileAllSave()
 	CBuffer buf;
 	CFileDialog dlg(FALSE, _T("rlg"), m_AllFilePath, OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGRLOGIN), this);
 
-	if ( dlg.DoModal() != IDOK )
+	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
 	m_pTopPane->SetBuffer(&buf);

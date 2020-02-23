@@ -87,11 +87,12 @@ public:
 	INT_PTR m_WheelTimer;
 	clock_t m_WheelClock;
 	int m_WheelzDelta;
-	BOOL m_PastNoCheck;
-	BOOL m_PastDelaySend;
 	BOOL m_ScrollOut;
 	BOOL m_ClipUpdateLine;
 	CBitmap m_TekBitmap;
+	BOOL m_PastNoCheck;
+	BOOL m_PastDelaySend;
+	BOOL m_PastCtrlView;
 
 	clock_t m_RDownClock;
 	CPoint m_RDownPoint;
@@ -131,7 +132,7 @@ public:
 
 	BOOL m_SleepView;
 	int m_SleepCount;
-	int m_MatrixCols[COLS_MAX];
+	CArray<int, int> m_MatrixCols;
 
 	BOOL m_GoziView;
 #if   USE_GOZI == 1 || USE_GOZI == 2

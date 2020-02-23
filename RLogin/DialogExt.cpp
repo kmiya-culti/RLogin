@@ -598,8 +598,8 @@ void CDialogExt::SubclassComboBox(int nID)
 
 int CDialogExt::OnCreate(LPCREATESTRUCT lpCreateStruct)
 {
-	if (CDialog::OnCreate(lpCreateStruct) == -1)
-		return -1;
+	if ( CDialog::OnCreate(lpCreateStruct) == (-1) )
+		return (-1);
 
 	CRect frame, oldClient, newClient;
 

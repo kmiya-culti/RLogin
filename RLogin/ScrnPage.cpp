@@ -122,7 +122,7 @@ void CScrnPage::InitFontSize()
 	for ( n = pCombo->GetCount() - 1 ; n >= 0; n-- )
 		pCombo->DeleteString(n);
 
-	for ( n = 2 ; n <= 30 ; n++ ) {
+	for ( n = 2 ; n <= 48; n++ ) {
 		tmp.Format(_T("%d (%.2f)"), n, (double)n * 72.0 / pixDpi);
 		pCombo->AddString(tmp);
 	}
@@ -304,7 +304,7 @@ void CScrnPage::OnStnClickedCaretCol()
 {
 	CColorDialog cdl(m_CaretColor, CC_ANYCOLOR | CC_FULLOPEN | CC_RGBINIT, this);
 
-	if ( cdl.DoModal() != IDOK )
+	if ( DpiAwareDoModal(cdl) != IDOK )
 		return;
 
 	m_CaretColor = cdl.GetColor();

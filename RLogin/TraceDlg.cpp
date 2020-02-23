@@ -374,7 +374,7 @@ void CTraceDlg::OnTekSave()
 		return;
 	}
 
-	if ( dlg.DoModal() != IDOK )
+	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
 	if ( !m_File.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite | CFile::shareExclusive) )

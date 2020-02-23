@@ -11,6 +11,7 @@
 #include "TextRam.h"
 #include "ExtSocket.h"
 #include "SyncSock.h"
+#include "ExtFileDialog.h"
 
 #include <mbctype.h>
 
@@ -39,6 +40,7 @@ CSyncSock::CSyncSock(class CRLoginDoc *pDoc, CWnd *pWnd)
 	m_IsAscii = FALSE;
 	m_bUseWrite = FALSE;
 	m_LastUpdate = clock();
+	m_ExtFileDlgMode = 0;
 }
 
 CSyncSock::~CSyncSock()
@@ -146,8 +148,8 @@ void CSyncSock::ThreadCommand(int cmd)
 			m_PathName = m_pDoc->LocalStr(m_FileName);
 			if ( (p = _tcsrchr(m_PathName, _T('.'))) == NULL )
 				p = _T(".");
-			CFileDialog dlg(((m_Param & 1) ? TRUE : FALSE), p + 1, m_PathName, OFN_HIDEREADONLY | ((m_Param & 2) ? OFN_ALLOWMULTISELECT : 0), CStringLoad(IDS_FILEDLGALLFILE), m_pWnd);
-			if ( dlg.DoModal() == IDOK ) {
+			CExtFileDialog dlg(((m_Param & 1) ? TRUE : FALSE), p + 1, m_PathName, OFN_HIDEREADONLY | OFN_ENABLESIZING | ((m_Param & 2) ? OFN_ALLOWMULTISELECT : 0), CStringLoad(IDS_FILEDLGALLFILE), m_pWnd, 0, (m_ExtFileDlgMode == 0 ? TRUE : FALSE), m_ExtFileDlgMode, this);
+			if ( DpiAwareDoModal(dlg, m_ExtFileDlgMode != 0 ? REQDPICONTEXT_SCALED : REQDPICONTEXT_AWAREV2) == IDOK ) {
 				if ( (m_Param & 2) != 0 ) {
 					POSITION pos = dlg.GetStartPosition();
 					while ( pos != NULL )
@@ -217,10 +219,13 @@ void CSyncSock::ThreadCommand(int cmd)
 		break;
 	case THCMD_ECHOBUFFER:
 		m_SendSema.Lock();
-		n = m_pDoc->OnSocketReceive(m_SendBuf.GetPtr(), m_SendBuf.GetSize(), 0);
-		m_SendBuf.Consume(n);
+		m_SwapBuf.Swap(m_EchoBuf);
+		m_EchoBuf.Clear();
 		m_SendSema.Unlock();
-		m_pParamEvent->SetEvent();
+		while ( m_SwapBuf.GetSize() > 0 ) {
+			n = m_pDoc->OnSocketReceive(m_SwapBuf.GetPtr(), m_SwapBuf.GetSize(), 0);
+			m_SwapBuf.Consume(n);
+		}
 		break;
 	}
 }
@@ -316,7 +321,7 @@ void CSyncSock::Bufferd_Clear()
 
 	BOOL f = FALSE;
 	BYTE tmp[256];
-	while ( m_pDoc->m_pSock->SyncReceive(tmp, 256, 1, &f) > 0 );
+	while ( m_pDoc->m_pSock->SyncReceive(tmp, 256, 1000, &f) > 0 );
 }
 void CSyncSock::Bufferd_Sync()
 {
@@ -324,7 +329,7 @@ void CSyncSock::Bufferd_Sync()
 	m_pWnd->PostMessage(WM_THREADCMD, THCMD_SENDSYNC, (LPARAM)this);
 	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
 }
-int CSyncSock::Bufferd_Receive(int sec)
+int CSyncSock::Bufferd_Receive(int sec, int msec)
 {
 	int n;
 	BYTE tmp[1024];
@@ -333,7 +338,7 @@ int CSyncSock::Bufferd_Receive(int sec)
 		return (-1);	// ERROR
 
 	if ( m_RecvBuf.GetSize() <= 0 ) {
-		if ( (n = m_pDoc->m_pSock->SyncReceive(tmp, 1024, sec, &m_ProgDlg.m_AbortFlag)) <= 0 )
+		if ( (n = m_pDoc->m_pSock->SyncReceive(tmp, 1024, sec * 1000 + msec, &m_ProgDlg.m_AbortFlag)) <= 0 )
 			return (-2);	// TIME OUT
 		m_RecvBuf.Apend(tmp, n);
 
@@ -343,7 +348,7 @@ int CSyncSock::Bufferd_Receive(int sec)
 
 	return m_RecvBuf.Get8Bit();
 }
-BOOL CSyncSock::Bufferd_ReceiveBuf(char *buf, int len, int sec)
+BOOL CSyncSock::Bufferd_ReceiveBuf(char *buf, int len, int sec, int msec)
 {
 	int n;
 
@@ -362,7 +367,7 @@ BOOL CSyncSock::Bufferd_ReceiveBuf(char *buf, int len, int sec)
 	}
 
 	while ( len > 0 ) {
-		if ( (n = m_pDoc->m_pSock->SyncReceive(buf, len, sec, &m_ProgDlg.m_AbortFlag)) <= 0 )
+		if ( (n = m_pDoc->m_pSock->SyncReceive(buf, len, sec * 1000 + msec, &m_ProgDlg.m_AbortFlag)) <= 0 )
 			return FALSE;
 
 		DebugMsg("Bufferd_Receive %d", n);
@@ -374,12 +379,16 @@ BOOL CSyncSock::Bufferd_ReceiveBuf(char *buf, int len, int sec)
 
 	return TRUE;
 }
+void CSyncSock::Bufferd_ReceiveBack(char *buf, int len)
+{
+	m_RecvBuf.Insert((LPBYTE)buf, len);
+}
 int CSyncSock::Bufferd_ReceiveSize()
 {
 	if ( m_pDoc->m_pSock == NULL || m_DoAbortFlag )
 		return 0;
 
-	return m_pDoc->m_pSock->GetRecvSize() + m_RecvBuf.GetSize();
+	return m_pDoc->m_pSock->GetRecvProcSize() + m_RecvBuf.GetSize();
 }
 void CSyncSock::SetXonXoff(int sw)
 {
@@ -433,12 +442,9 @@ void CSyncSock::SendEchoBuffer(char *buf, int len)
 	if ( m_DoAbortFlag )
 		return;
 	m_SendSema.Lock();
-	m_SendBuf.Clear();
-	m_SendBuf.Apend((LPBYTE)buf, len);
+	m_EchoBuf.Apend((LPBYTE)buf, len);
 	m_SendSema.Unlock();
-	m_pParamEvent->ResetEvent();
 	m_pWnd->PostMessage(WM_THREADCMD, THCMD_ECHOBUFFER, (LPARAM)this);
-	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
 }
 void CSyncSock::UpDownOpen(LPCSTR msg)
 {

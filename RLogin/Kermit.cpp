@@ -36,12 +36,6 @@ void CKermit::OnProc(int cmd)
 	case 2:
 		UpLoad(TRUE);
 		break;
-	case 3:
-		SimpleUpLoad();
-		break;
-	case 4:
-		SimpleDownLoad();
-		break;
 	}
 }
 
@@ -1052,94 +1046,5 @@ void CKermit::UpLoad(BOOL ascii)
 ENDOF:
 	if ( fp != NULL )
 		FileClose(fp);
-	UpDownClose();
-}
-
-//////////////////////////////////////////////////////////////////////
-// Simple File Up/Down Load
-
-void CKermit::SimpleUpLoad()
-{
-	FILE *fp = NULL;
-	struct _stati64 st;
-	int len;
-	char buf[1024];
-
-	while ( !m_DoAbortFlag ) {
-		if ( CheckFileName(3, "") == NULL || m_PathName.IsEmpty() )
-			break;
-
-		if ( _tstati64(m_PathName, &st) || (st.st_mode & _S_IFMT) != _S_IFREG )
-			break;
-
-		if ( (fp = FileOpen(m_PathName, "rb", FALSE)) == NULL )
-			break;
-
-		m_FileType = FALSE;
-		m_FileTime = st.st_mtime;
-		m_FileMode = st.st_mode;
-		m_FileSize = st.st_size;
-		m_TranSize = 0;
-
-		UpDownOpen("Simple File Upload");
-		UpDownInit(m_FileSize);
-
-		while ( !m_DoAbortFlag && (len = ReadFileToHost(buf, 1024, fp)) > 0 ) {
-			Bufferd_SendBuf(buf, len);
-			Bufferd_Sync();
-
-			m_TranSize += len;
-			UpDownStat(m_TranSize);
-
-			while ( (len = Bufferd_ReceiveSize()) > 0 ) {
-				if ( len > 1024 )
-					len = 1024;
-				if ( !Bufferd_ReceiveBuf(buf, len, 0) )
-					break;
-				SendEchoBuffer(buf, len);
-			}
-		}
-
-		FileClose(fp);
-		UpDownClose();
-
-		if (  m_ResvPath.IsEmpty() )
-			break;
-	}
-}
-void CKermit::SimpleDownLoad()
-{
-	int ch, len = 0;
-	FILE *fp = NULL;
-	char buf[1024];
-
-	if ( CheckFileName(0, (LPCSTR)(m_Work)) == NULL )
-		return;
-
-	if ( (fp = FileOpen(m_PathName, "wb", FALSE)) == NULL )
-		return;
-
-	UpDownOpen("Simple File Download");
-	m_TranSize = 0;
-
-	while ( !m_DoAbortFlag ) {
-		ch = Bufferd_Receive(len > 0 ? 2 : 60);
-
-		if ( len <= 0 && ch < 0 )
-			break;
-
-		if ( ch >= 0 )
-			buf[len++] = (char)ch;
-
-		if ( len > 0 && (len >= 1024 || ch < 0) ) {
-			WriteFileFromHost(buf, len, fp);
-
-			m_TranSize += len;
-			UpDownStat(m_TranSize);
-			len = 0;
-		}
-	}
-
-	FileClose(fp);
 	UpDownClose();
 }

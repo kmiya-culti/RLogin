@@ -158,7 +158,7 @@ void CHisPage::OnHisfileSel()
 	CRLoginDoc::EnvironPath(file);
 	CFileDialog dlg(FALSE, _T("rlh"), file, 0, CStringLoad(IDS_FILEDLGHISTORY), this);
 
-	if ( dlg.DoModal() != IDOK )
+	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
 	m_HisFile = dlg.GetPathName();
@@ -181,7 +181,7 @@ void CHisPage::OnAutoLogSel()
 	CRLoginDoc::EnvironPath(file);
 	CFileDialog dlg(FALSE, _T("txt"), file, 0, CStringLoad(IDS_FILEDLGLOGFILE), this);
 
-	if ( dlg.DoModal() != IDOK )
+	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
 	m_LogFile = dlg.GetPathName();
@@ -200,7 +200,7 @@ void CHisPage::OnTraceLogSel()
 	CRLoginDoc::EnvironPath(file);
 	CFileDialog dlg(FALSE, _T("txt"), file, 0, CStringLoad(IDS_FILEDLGLOGFILE), this);
 
-	if ( dlg.DoModal() != IDOK )
+	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
 	m_TraceFile = dlg.GetPathName();

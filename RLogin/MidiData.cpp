@@ -2225,13 +2225,13 @@ BOOL CMidiData::LoadMML(LPCSTR str, int nInit)
 
 	} else if ( nInit == 4 ) {
 		CFileDialog dlg(FALSE, _T("mid"), _T("*.mid"), OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGALLFILE), ::AfxGetMainWnd());
-		if ( dlg.DoModal() != IDOK )
+		if ( DpiAwareDoModal(dlg) != IDOK )
 			return FALSE;
 		return SaveFile(dlg.GetPathName());
 
 	} else if ( nInit == 5 ) {
 		CFileDialog dlg(FALSE, _T("mml"), _T("*.mml"), OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGALLFILE), ::AfxGetMainWnd());
-		if ( dlg.DoModal() != IDOK )
+		if ( DpiAwareDoModal(dlg) != IDOK )
 			return FALSE;
 		return SaveMML(dlg.GetPathName());
 

@@ -100,6 +100,7 @@ CScriptValue::CScriptValue()
 	m_Buf.Clear();
 	m_ArrayPos = 0;
 	m_FuncPos = (-1);
+	m_SrcTextPos = 0;
 	m_FuncExt = NULL;
 	m_Array.RemoveAll();
 	m_Left = m_Right = m_Child = m_Next = m_Root = NULL;
@@ -3062,6 +3063,7 @@ int CScript::LoadFile(LPCTSTR filename)
 	n = m_IncFile.Add(TstrToMbs(filename));
 	m_IncFile[n] = (int)0;
 	m_IncFile[n].m_FuncPos = pos;
+	m_IncFile[n].m_SrcTextPos = m_SrcMax;
 
 	qsort(m_SrcCode.GetData(), m_SrcCode.GetSize(), sizeof(ScriptDebug), ScrDebCmp);
 	m_SrcMax += size;
@@ -3101,6 +3103,7 @@ int CScript::LoadStr(LPCTSTR str)
 	n = m_IncFile.Add((LPCSTR)NULL);
 	m_IncFile[n] = (int)0;
 	m_IncFile[n].m_FuncPos = pos;
+	m_IncFile[n].m_SrcTextPos = m_SrcMax;
 
 	qsort(m_SrcCode.GetData(), m_SrcCode.GetSize(), sizeof(ScriptDebug), ScrDebCmp);
 	m_SrcMax += size;
@@ -5003,7 +5006,7 @@ int CScript::Func10(int cmd, CScriptValue &local)
 			if ( local.GetSize() <= 3 )
 				local[3] = CStringLoad(IDS_FILEDLGALLFILE);
 			CFileDialog dlg((int)local[0], (LPCTSTR)local[1], (LPCTSTR)local[2], OFN_HIDEREADONLY, (LPCTSTR)local[3], ::AfxGetMainWnd());
-			if ( dlg.DoModal() == IDOK )
+			if ( DpiAwareDoModal(dlg) == IDOK )
 				(*acc) = (LPCTSTR)dlg.GetPathName();
 			else
 				(*acc) = (LPCSTR)"";
@@ -6986,15 +6989,17 @@ int CScript::ExecFile(LPCTSTR filename)
 
 	return n;
 }
-void CScript::ExecStr(LPCTSTR str)
+int CScript::ExecStr(LPCTSTR str, int num)
 {
-	int i;
-	if ( (i = LoadStr(str)) < 0 )
-		return;
+	if ( num < 0 && (num = LoadStr(str)) < 0 )
+		return (-1);
+
 	CodeStackPush(TRUE, _T("ExecStr"));
 	m_ExecLocal = NULL;
-	m_CodePos   = m_IncFile[i].m_FuncPos;
+	m_CodePos   = m_IncFile[num].m_FuncPos;
 	m_bAbort    = FALSE;
+
+	return num;
 }
 void CScript::OpenDebug(LPCTSTR filename)
 {
@@ -7020,6 +7025,7 @@ void CScript::OpenDebug(LPCTSTR filename)
 	m_pSrcDlg->Create(IDD_SCRIPTDLG, CWnd::GetDesktopWindow());
 	m_pSrcDlg->ShowWindow(SW_SHOW);
 }
+
 int CScript::Call(LPCTSTR func, CScriptValue *local)
 {
 	int n, i;

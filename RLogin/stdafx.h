@@ -17,6 +17,7 @@
 //#define	USE_RCDLL
 #define	USE_KEYMACGLOBAL
 //#define	USE_CLIENTKEY
+//#define	USE_KEYSCRIPT
 
 // Windows ƒo[ƒWƒ‡ƒ“
 

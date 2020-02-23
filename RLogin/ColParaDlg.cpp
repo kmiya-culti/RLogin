@@ -345,7 +345,7 @@ void CColParaDlg::OnLButtonDblClk(UINT nFlags, CPoint point)
 		ScreenToClient(rect);
 		if ( rect.PtInRect(point) ) {
 			CColorDialog cdl((n < 16 ? m_ColTab[n] : (m_FontCol[n - 16] < 16 ? m_ColTab[m_FontCol[n - 16]] : m_pSheet->m_pTextRam->m_ColTab[m_FontCol[n - 16]])), CC_ANYCOLOR | CC_FULLOPEN | CC_RGBINIT, this);
-			if ( cdl.DoModal() != IDOK )
+			if ( DpiAwareDoModal(cdl) != IDOK )
 				break;
 			if ( n < 16 ) {
 				m_ColTab[n] = cdl.GetColor();

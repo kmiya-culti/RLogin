@@ -383,7 +383,7 @@ void CGrapWnd::SaveBitmap(int type)
 	static LPCTSTR defname[] = { _T("*.gif"), _T("*.jpg"), _T("*.png"), _T("*.bmp") };
 	CFileDialog dlg(FALSE, extname[type], defname[type], OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGGRAPHICS) , this);
 
-	if ( m_pActMap == NULL || dlg.DoModal() != IDOK )
+	if ( m_pActMap == NULL || DpiAwareDoModal(dlg) != IDOK )
 		return;
 
 	if ( !image.Create(m_MaxX, m_MaxY, 24) )

@@ -669,7 +669,7 @@ void CIdkeySelDLg::OnIdkeyCakey()
 
 	CFileDialog dlg(TRUE, _T(""), _T(""), OFN_HIDEREADONLY, CStringLoad(IDS_FILEDLGALLFILE), this);
 
-	if ( dlg.DoModal() != IDOK )
+	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
 	if ( !pKey->LoadCertPublicKey(dlg.GetPathName()) )
@@ -691,7 +691,7 @@ void CIdkeySelDLg::OnSavePublicKey()
 
 	CFileDialog dlg(FALSE, _T(""), _T(""), OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGALLFILE), this);
 
-	if ( dlg.DoModal() != IDOK )
+	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
 	if ( !pKey->SavePublicKey(dlg.GetPathName()) )

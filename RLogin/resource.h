@@ -63,6 +63,11 @@
 #define IDD_COMINITDLG                  159
 #define IDD_PRNTEXTDLG                  160
 #define IDD_QUICKBAR                    161
+#define IDD_FILEUPDLG                   162
+#define IDD_FILEUPCONVDLG               162
+#define IDD_EXTFILEDLG                  164
+#define IDD_FILEUPSENDDLG               165
+#define IDD_FILEDOWNDLG                 166
 #define IDR_GRAPWND                     300
 #define IDR_MAINFRAME                   301
 #define IDR_POPUPMENU                   302
@@ -238,6 +243,7 @@
 #define IDS_DISWINDOWSIZE               637
 #define IDS_SSHOPTIONCHECK              638
 #define IDS_INITENTRYINPORT             639
+#define IDS_OSCBUFFERINGMSG             640
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -523,6 +529,7 @@
 #define IDC_COMCONFIG2                  2093
 #define IDC_ICONFILE                    2093
 #define IDC_CLEARERROR                  2093
+#define IDC_COMBO4                      2093
 #define IDC_CONNECTPORT                 2094
 #define IDC_CONTINUE                    2095
 #define IDC_CSILIST                     2096
@@ -533,16 +540,16 @@
 #define IDC_DEFPAMCHECK4                2101
 #define IDC_DEFPAMCHECK5                2102
 #define IDC_DEFPAMCHECK6                2103
-#define IDC_DELAYMSEC                   2104
+#define IDC_DELAYLINE                   2104
 #define IDC_DELENTRY                    2105
-#define IDC_DELAYMSEC2                  2106
+#define IDC_DELAYRECV                   2105
+#define IDC_DELAYCRLF                   2106
 #define IDC_SLEEPTIME                   2107
 #define IDC_DELNODE                     2108
-#define IDC_SLEEPTIME2                  2108
 #define IDC_GROUPCAST                   2108
 #define IDC_DIGEST                      2109
 #define IDC_TRANSMITLIMIT               2109
-#define IDC_DISIPV6                     2110
+#define IDC_DELAYCHAR                   2110
 #define IDC_DISPOFFSETH                 2111
 #define IDC_DISPOFFSETW                 2112
 #define IDC_DISPZOOMH                   2113
@@ -751,6 +758,7 @@
 #define IDC_RADIO4                      2301
 #define IDC_RADIO5                      2302
 #define IDC_RECVCRLF                    2303
+#define IDC_RADIO6                      2303
 #define IDC_RECVSTR                     2304
 #define IDC_REMOTE_CWD                  2305
 #define IDC_REMOTE_LIST                 2306
@@ -882,6 +890,8 @@
 #define IDC_CTRLCONV3                   2429
 #define IDC_SHELLESC                    2430
 #define IDC_RSAEXTSEL                   2431
+#define IDC_SHELLESC2                   2431
+#define IDC_ONELINE                     2431
 #define IDC_MSGTEXT                     2432
 #define IDC_RSAEXTSEL2                  2432
 #define IDC_STDBUFSIZE                  2432
@@ -1087,9 +1097,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        162
+#define _APS_NEXT_RESOURCE_VALUE        165
 #define _APS_NEXT_COMMAND_VALUE         5138
-#define _APS_NEXT_CONTROL_VALUE         2498
+#define _APS_NEXT_CONTROL_VALUE         2499
 #define _APS_NEXT_SYMED_VALUE           670
 #endif
 #endif

@@ -269,7 +269,7 @@ public:
 	static LPCTSTR GetFormatErrorMessage(LPCTSTR entry, LPCTSTR host, int port, LPCTSTR type, int err);
 
 	void SetRecvSyncMode(BOOL mode);
-	int SyncReceive(void* lpBuf, int nBufLen, int nSec, BOOL *pAbort);
+	int SyncReceive(void* lpBuf, int nBufLen, int mSec, BOOL *pAbort);
 	void SyncReceiveBack(void *lpBuf, int nBufLen);
 	void SyncAbort();
 

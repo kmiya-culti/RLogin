@@ -321,7 +321,7 @@ void CFontParaDlg::OnFontsel()
 
 	CFontDialog font(&LogFont, CF_NOVERTFONTS | CF_SCREENFONTS | CF_SELECTSCRIPT | CF_INACTIVEFONTS, NULL, this);
 
-	if ( font.DoModal() != IDOK )
+	if ( DpiAwareDoModal(font) != IDOK )
 		return;
 
     m_FontNameTab[m_FontNum] = m_FontName = LogFont.lfFaceName;

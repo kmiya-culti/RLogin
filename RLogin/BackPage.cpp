@@ -157,7 +157,7 @@ void CBackPage::OnBitMapFileSel()
 	CRLoginDoc::EnvironPath(file);
 	CFileDialog dlg(TRUE, _T("jpg"), file, OFN_HIDEREADONLY, CStringLoad(IDS_FILEDLGIMAGE), this);
 
-	if ( dlg.DoModal() != IDOK )
+	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
 	m_BitMapFile = dlg.GetPathName();
@@ -170,7 +170,7 @@ void CBackPage::OnBnClickedTextfont()
 {
 	CFontDialog font(&m_LogFont, CF_NOVERTFONTS | CF_SCREENFONTS | CF_INACTIVEFONTS, NULL, this);
 
-	if ( font.DoModal() != IDOK )
+	if ( DpiAwareDoModal(font) != IDOK )
 		return;
 
 	SetModified(TRUE);
@@ -181,7 +181,7 @@ void CBackPage::OnStnClickedTextcolor()
 {
 	CColorDialog cdl(m_TextColor, CC_ANYCOLOR | CC_FULLOPEN | CC_RGBINIT, this);
 
-	if ( cdl.DoModal() != IDOK )
+	if ( DpiAwareDoModal(cdl) != IDOK )
 		return;
 
 	m_TextColor = cdl.GetColor();

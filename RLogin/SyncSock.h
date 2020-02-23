@@ -48,7 +48,7 @@ public:
 	CEvent *m_pThreadEvent;
 
 	CBuffer m_RecvBuf;
-	CBuffer m_SendBuf, m_SwapBuf;
+	CBuffer m_SendBuf, m_EchoBuf, m_SwapBuf;
 	CSemaphore m_SendSema;
 
 	class CProgDlg m_ProgDlg;
@@ -64,6 +64,8 @@ public:
 	clock_t m_LastUpdate;
 	CBuffer m_LogBuffer;
 
+	int m_ExtFileDlgMode;
+
 #ifdef	USE_DEBUGLOG
 	void DebugMsg(LPCSTR fmt, ...);
 	void DebugDump(LPBYTE buf, int len);
@@ -77,8 +79,9 @@ public:
 	void Bufferd_Flush();
 	void Bufferd_Clear();
 	void Bufferd_Sync();
-	int Bufferd_Receive(int sec);
-	BOOL Bufferd_ReceiveBuf(char *buf, int len, int sec);
+	int Bufferd_Receive(int sec, int msec = 0);
+	BOOL Bufferd_ReceiveBuf(char *buf, int len, int sec, int msec = 0);
+	void Bufferd_ReceiveBack(char *buf, int len);
 	int Bufferd_ReceiveSize();
 	void SetXonXoff(int sw);
 

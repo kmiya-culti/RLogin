@@ -616,6 +616,7 @@ CRLoginApp::CRLoginApp()
 	BOOL (__stdcall *ExRemoveClipboardFormatListener)(HWND hwnd) = NULL;
 	UINT (__stdcall *ExGetDpiForSystem)() = NULL;
 	HRESULT (__stdcall *ExSetProcessDpiAwareness)(PROCESS_DPI_AWARENESS value) = NULL;
+	BOOL (WINAPI *ExIsValidDpiAwarenessContext)(DPI_AWARENESS_CONTEXT dpiContext);
 	DPI_AWARENESS_CONTEXT (__stdcall *ExSetThreadDpiAwarenessContext)(DPI_AWARENESS_CONTEXT dpiContext) = NULL;
 	BOOL (__stdcall *ExEnableNonClientDpiScaling)(HWND hwnd) = NULL;
 	UINT GlobalSystemDpi = 96;
@@ -682,6 +683,46 @@ int ThreadMessageBox(LPCTSTR msg, ...)
 	}
 
 	return ::AfxMessageBox(tmp);
+}
+void DpiAwareSwitch(BOOL sw, int req)
+{
+	static BOOL bSwitch = FALSE;
+
+	if ( sw ) {
+		if ( ExIsValidDpiAwarenessContext != NULL && ExSetThreadDpiAwarenessContext != NULL ) {
+			if ( (req & 001) != 0 && ExIsValidDpiAwarenessContext(DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED) ) {
+				ExSetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED);
+				bSwitch = TRUE;
+			} else if ( (req & 002) != 0 && ExIsValidDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2) ) {
+				ExSetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+				bSwitch = TRUE;
+			} else if ( (req & 004) != 0 && ExIsValidDpiAwarenessContext(DPI_AWARENESS_CONTEXT_SYSTEM_AWARE) ) {
+				ExSetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_SYSTEM_AWARE);
+				bSwitch = TRUE;
+			} else if ( (req & 010) != 0 && ExIsValidDpiAwarenessContext(DPI_AWARENESS_CONTEXT_UNAWARE) ) {
+				ExSetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_UNAWARE);
+				bSwitch = TRUE;
+			}
+		}
+	} else if ( bSwitch ) {
+		ExSetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE);
+		bSwitch = FALSE;
+	}
+}
+INT_PTR DpiAwareDoModal(CCommonDialog &dlg, int req)
+{
+	INT_PTR result;
+
+	// CCommonDialogがDPI_AWARENESS_CONTEXT_PER_MONITOR_AWARでは、DPIチェンジに対応出来ないので変更してみる
+	// CFileDialogのbVistaStyleがFALSE(古いタイプ)は、V2でも駄目な模様・・・
+
+	DpiAwareSwitch(TRUE, req);
+
+	result = dlg.DoModal();
+
+	DpiAwareSwitch(FALSE);
+
+	return result;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -881,6 +922,7 @@ BOOL CRLoginApp::GetExtFilePath(LPCTSTR ext, CString &path)
 	if ( _taccess_s(path, 06) == 0 )
 		return TRUE;
 
+	path.Empty();
 	return FALSE;
 }
 BOOL CRLoginApp::IsDirectory(LPCTSTR dir)
@@ -1084,6 +1126,7 @@ BOOL CRLoginApp::InitInstance()
 		ExGetDpiForSystem               = (UINT (__stdcall *)())GetProcAddress(ExUserApi, "GetDpiForSystem");
 		ExGetDpiForWindow               = (UINT (__stdcall *)(HWND hwnd))GetProcAddress(ExUserApi, "GetDpiForWindow");
 		ExEnableNonClientDpiScaling     = (BOOL (__stdcall *)(HWND hwnd))GetProcAddress(ExUserApi, "EnableNonClientDpiScaling");
+		ExIsValidDpiAwarenessContext    = (BOOL (__stdcall *)(DPI_AWARENESS_CONTEXT dpiContext))GetProcAddress(ExUserApi, "IsValidDpiAwarenessContext");
 		ExSetThreadDpiAwarenessContext  = (DPI_AWARENESS_CONTEXT (__stdcall *)(DPI_AWARENESS_CONTEXT dpiContext))GetProcAddress(ExUserApi, "SetThreadDpiAwarenessContext");
 	}
 
@@ -2491,7 +2534,7 @@ BOOL CRLoginApp::SavePrivateProfile()
 	filename.Format(_T("%s\\RLogin.ini"), m_BaseDir);
 	CFileDialog dlg(FALSE, _T("ini"), filename, OFN_OVERWRITEPROMPT, _T("Private Profile (*.ini)|*.ini|All Files (*.*)|*.*||"), AfxGetMainWnd());
 
-	if ( dlg.DoModal() != IDOK )
+	if ( DpiAwareDoModal(dlg) != IDOK )
 		return FALSE;
 
 	CWaitCursor wait;
@@ -2643,7 +2686,7 @@ BOOL CRLoginApp::SaveRegistryFile()
 	filename.Format(_T("%s\\RLogin-%s.reg"), m_BaseDir, tm.Format(_T("%y%m%d")));
 	CFileDialog dlg(FALSE, _T("reg"), filename, OFN_OVERWRITEPROMPT, _T("Registry file (*.reg)|*.reg|All Files (*.*)|*.*||"), AfxGetMainWnd());
 
-	if ( dlg.DoModal() != IDOK )
+	if ( DpiAwareDoModal(dlg) != IDOK )
 		return FALSE;
 
 	CWaitCursor wait;
@@ -2909,11 +2952,17 @@ void CRLoginApp::OnAppAbout()
 	CAboutDlg aboutDlg;
 	aboutDlg.DoModal();
 }
+
 void CRLoginApp::OnFilePrintSetup()
 {
+	INT_PTR res;
 	CPrintDialog pd(TRUE);
 
-	if ( DoPrintDialog(&pd) != IDOK )
+	DpiAwareSwitch(TRUE);
+	res = DoPrintDialog(&pd);
+	DpiAwareSwitch(FALSE);
+
+	if ( res != IDOK )
 		return;
 
 	LPDEVNAMES lpDevNames;
@@ -2975,7 +3024,7 @@ void CRLoginApp::OnDialogfont()
 
 	CFontDialog font(&LogFont, CF_NOVERTFONTS | CF_SCREENFONTS | CF_SELECTSCRIPT, NULL, ::AfxGetMainWnd());
 
-	if ( font.DoModal() != IDOK )
+	if ( DpiAwareDoModal(font) != IDOK )
 		return;
 
     FontName = LogFont.lfFaceName;

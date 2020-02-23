@@ -453,7 +453,7 @@ void CToolDlg::OnIconload()
 	if ( (id = (WORD)(m_ToolList.GetItemData(pos))) == 0 || id == (WORD)(-1) )
 		return;
 
-	if ( dlg.DoModal() != IDOK )
+	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
 	if ( !work.LoadBitmap(id, dlg.GetPathName()) )

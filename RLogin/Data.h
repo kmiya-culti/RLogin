@@ -61,6 +61,7 @@ public:
 	void Consume(int len);
 	inline void ConsumeEnd(int len) { m_Len -= len; }
 	void Apend(LPBYTE buff, int len);
+	void Insert(LPBYTE buff, int len);
 	void RemoveAll();
 	void Move(CBuffer &data);
 	void Swap(CBuffer &data);
@@ -123,6 +124,9 @@ public:
 	void QuotedEncode(LPBYTE buf, int len);
 	void BubbleBabble(LPBYTE buf, int len);
 	LPCTSTR BubBabDecode(LPCTSTR str);
+	LPCSTR UuDecode(LPCSTR str);
+	void UuEncode(LPBYTE buf, int len);
+
 	void md5(LPCTSTR str);
 	BOOL LoadFile(LPCTSTR filename);
 	BOOL SaveFile(LPCTSTR filename);
@@ -726,6 +730,7 @@ public:
 	int m_Mask;
 	CBuffer m_Maps;
 	CString m_Temp;
+	int m_ScriptNumber;
 
 	void SetKeyMap(LPCTSTR str, int type, char map[256]);
 	LPCTSTR GetMaps();
@@ -792,8 +797,8 @@ public:
 	int Add(CKeyNode &node);
 	int Add(int code, int mask, LPCTSTR str);
 	int Add(LPCTSTR code, int mask, LPCTSTR maps);
-	BOOL FindKeys(int code, int mask, CBuffer *pBuf, int base, int bits);
-	BOOL FindMaps(int code, int mask, CBuffer *pBuf);
+	CKeyNode *FindKeys(int code, int mask, int base, int bits);
+	CKeyNode *FindMaps(int code, int mask);
 	BOOL FindCapInfo(LPCTSTR name, CBuffer &buf);
 
 	inline CKeyNode &GetAt(int pos) { return m_Node[pos]; }

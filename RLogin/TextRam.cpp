@@ -37,74 +37,65 @@ static char THIS_FILE[]=__FILE__;
 //////////////////////////////////////////////////////////////////////
 // CMemMap
 
-CMemMap::CMemMap()
+CMemMap::CMemMap(int cols_max, int line_max, int his_max)
 {
+	static int SeqNum = 0;
+	CString mapname;
 	SYSTEM_INFO SystemInfo;
+	ULONGLONG size;
+
+	mapname.Format(_T("RLoginTextRam_%08x_%d"), (unsigned)GetCurrentThreadId(), SeqNum++);
+
+	for ( m_ColsMax = COLS_MAX ; m_ColsMax < cols_max ; )
+		m_ColsMax <<= 1;
+	for ( m_LineMax = LINE_MAX ; m_LineMax < line_max ; )
+		m_LineMax <<= 1;
 
 	GetSystemInfo(&SystemInfo);
-	m_MapPage = (ULONGLONG)((MEMMAPSIZE + SystemInfo.dwAllocationGranularity - 1) / SystemInfo.dwAllocationGranularity * SystemInfo.dwAllocationGranularity);
+	m_MapPage = (ULONGLONG)(((sizeof(CCharCell) * m_ColsMax * (m_LineMax / 2)) + SystemInfo.dwAllocationGranularity - 1) / SystemInfo.dwAllocationGranularity * SystemInfo.dwAllocationGranularity);
 	m_MapSize = m_MapPage * 2;
+
+	size = (((ULONGLONG)sizeof(CCharCell) * (ULONGLONG)m_ColsMax * (ULONGLONG)his_max + m_MapPage - 1) / m_MapPage + 1) * m_MapPage;
+
+	m_hFile = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, (DWORD)(size >> 32), (DWORD)size, mapname);
+
+	if ( m_hFile == NULL || m_hFile == INVALID_HANDLE_VALUE )
+		AfxThrowMemoryException();
 
 	m_pMapTop = NULL;
 
 	for ( int n = 0 ; n < MEMMAPCACHE ; n++ ) {
-		m_MapData[n].hFile = NULL;
+		m_MapData[n].bMap = FALSE;
 		m_MapData[n].pNext = m_pMapTop;
 		m_pMapTop = &(m_MapData[n]);
 	}
 }
 CMemMap::~CMemMap()
 {
-}
-
-HANDLE CMemMap::Create(ULONGLONG size)
-{
-	static int SeqNum = 0;
-	CString mapname;
-	HANDLE hFile;
-
-	mapname.Format(_T("RLoginTextRam_%08x_%d"), (unsigned)GetCurrentThreadId(), SeqNum++);
-
-	// サイズをm_MapPageで丸めるが1ページ余分に確保
-	// MapView時にMapPageの倍のm_MapSizeで割り当てる為
-	// COLS_MAX * sizeof(CCharCell)=0x8000がページ(0x10000)
-	// で割り切れるので必要ないが念の為の処置
-	size = ((size + m_MapPage - 1) / m_MapPage + 1) * m_MapPage;
-
-	hFile = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, (DWORD)(size >> 32), (DWORD)size, mapname);
-
-	if ( hFile == NULL || hFile == INVALID_HANDLE_VALUE )
-		AfxThrowMemoryException();
-
-	return hFile;
-}
-void CMemMap::Close(HANDLE hFile)
-{
 	MEMMAPNODE *mp;
 
 	for ( mp = m_pMapTop ;  mp != NULL ; mp = mp->pNext ) {
-		if ( mp->hFile == hFile ) {
+		if ( mp->bMap )
 			UnmapViewOfFile(mp->pAddress);
-			mp->hFile = NULL;
-		}
 	}
 
-    CloseHandle(hFile);
+    CloseHandle(m_hFile);
 }
-void *CMemMap::MemMap(HANDLE hFile, ULONGLONG pos)
+CCharCell *CMemMap::GetMapRam(int x, int y)
 {
 	int diff;
-	ULONGLONG offset;
+	ULONGLONG pos, offset;
 	MEMMAPNODE *pNext, *pBack;
 
 	pNext = pBack = m_pMapTop;
+	pos = (ULONGLONG)sizeof(CCharCell) * ((ULONGLONG)y * m_ColsMax + x);
 	offset = (pos / m_MapPage) * m_MapPage;
 	diff = (int)(pos - offset);
 
-	ASSERT((m_MapSize - diff) >= (COLS_MAX * sizeof(CCharCell)));
+	ASSERT((m_MapSize - diff) >= (m_ColsMax * sizeof(CCharCell)));
 
 	for ( ; ; ) {
-		if ( pNext->hFile == hFile && pNext->Offset == offset )
+		if ( pNext->bMap && pNext->Offset == offset )
 			goto ENDOF;
 		if ( pNext->pNext == NULL )
 			break;
@@ -112,12 +103,12 @@ void *CMemMap::MemMap(HANDLE hFile, ULONGLONG pos)
 		pNext = pNext->pNext;
 	}
 
-	if ( pNext->hFile != NULL )
+	if ( pNext->bMap )
 		UnmapViewOfFile(pNext->pAddress);
 
-	pNext->hFile = hFile;
+	pNext->bMap = TRUE;
 	pNext->Offset = offset;
-	pNext->pAddress = MapViewOfFile(hFile, FILE_MAP_WRITE, (DWORD)(offset >> 32), (DWORD)offset, (SIZE_T)m_MapSize);
+	pNext->pAddress = MapViewOfFile(m_hFile, FILE_MAP_WRITE, (DWORD)(offset >> 32), (DWORD)offset, (SIZE_T)m_MapSize);
 
 	if ( pNext->pAddress == NULL )
 		AfxThrowMemoryException();
@@ -130,7 +121,7 @@ ENDOF:
 		pNext->pNext = m_pMapTop;
 		m_pMapTop = pNext;
 	}
-	return (void *)((BYTE *)(pNext->pAddress) + diff);
+	return (CCharCell *)((BYTE *)(pNext->pAddress) + diff);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1396,7 +1387,9 @@ CTextSave::CTextSave()
 	m_pNext = NULL;
 	m_pCharCell = NULL;
 	m_pTextRam = NULL;
-	m_TabMap = new BYTE[TABFLAGSIZE];
+	m_TabMap = NULL;
+	m_SaveParam.m_TabMap = NULL;
+	m_StsParam.m_TabMap = NULL;
 }
 CTextSave::~CTextSave()
 {
@@ -1413,7 +1406,269 @@ CTextSave::~CTextSave()
 		}
 	}
 
-	delete [] m_TabMap;
+	if ( m_TabMap != NULL )
+		delete [] m_TabMap;
+	if ( m_SaveParam.m_TabMap != NULL )
+		delete [] m_SaveParam.m_TabMap;
+	if ( m_StsParam.m_TabMap != NULL )
+		delete [] m_StsParam.m_TabMap;
+}
+
+//////////////////////////////////////////////////////////////////////
+// CTabFlag
+
+CTabFlag::CTabFlag()
+{
+	m_Param.Cols = COLS_MAX;
+	m_Param.Line = LINE_MAX;
+	m_DefTabSize = DEF_TAB;
+
+	m_pData = m_pSingleColsFlag = m_pMultiColsFlag = m_pLineFlag = NULL;
+}
+CTabFlag::~CTabFlag()
+{
+	if ( m_pData != NULL )
+		delete [] m_pData;
+}
+void CTabFlag::InitTab()
+{
+	m_Param.Element = (m_Param.Cols + 7) / 8;
+	m_Param.Size = m_Param.Line + m_Param.Element + m_Param.Line * m_Param.Element;
+	m_pData = new BYTE[m_Param.Size];
+
+	m_pLineFlag = m_pData;
+	m_pSingleColsFlag = m_pLineFlag + m_Param.Line;
+	m_pMultiColsFlag = m_pSingleColsFlag + m_Param.Element;
+	memset(m_pData, 0, m_Param.Size);
+
+	memset(m_pLineFlag, 001, m_Param.Line);
+
+	for ( int x = 0 ; x < m_Param.Cols ; x += m_DefTabSize )
+		m_pSingleColsFlag[x / 8] |= (1 << (x % 8));
+
+	for ( int y = 0 ; y < m_Param.Line ; y++ )
+		memcpy(m_pMultiColsFlag + y * m_Param.Element, m_pSingleColsFlag, m_Param.Element);
+}
+void CTabFlag::ResetAll(int cols_max, int line_max, int def_tab)
+{
+	m_Param.Cols = cols_max;
+	m_Param.Line = line_max;
+	m_DefTabSize = def_tab;
+
+	if ( m_pData != NULL )
+		delete [] m_pData;
+
+	m_pData = m_pSingleColsFlag = m_pMultiColsFlag = m_pLineFlag = NULL;
+}
+void CTabFlag::SizeCheck(int cols_max, int line_max, int def_tab)
+{
+	if ( m_pData == NULL ) {
+		m_Param.Cols = cols_max;
+		m_Param.Line = line_max;
+		m_DefTabSize = def_tab;
+		return;
+	}
+
+	if ( m_Param.Cols >= cols_max && m_Param.Line >= line_max )
+		return;
+
+	struct _TabFlagParam newParam;
+	newParam.Cols = cols_max;
+	newParam.Line = line_max;
+	newParam.Element = (newParam.Cols + 7) / 8;
+	newParam.Size = newParam.Line + newParam.Element + newParam.Line * newParam.Element;
+	BYTE *pNewData = new BYTE[newParam.Size];
+	BYTE *pNewLineFlag = pNewData;
+	BYTE *pNewSingleColsFlag = pNewLineFlag + newParam.Line;
+	BYTE *pNewMultiColsFlag = pNewSingleColsFlag + newParam.Element;
+
+	memset(pNewData, 0, newParam.Size);
+
+	memcpy(pNewLineFlag, m_pLineFlag, m_Param.Line);
+	for ( int y = m_Param.Line ; y < newParam.Line ; y++ )
+		pNewLineFlag[y] = 001;
+
+	memcpy(pNewSingleColsFlag, m_pSingleColsFlag, m_Param.Element);
+	for ( int x = (m_Param.Cols + def_tab - 1) / def_tab * def_tab ;  x < newParam.Cols ; x += def_tab )
+		pNewSingleColsFlag[x / 8] |= (1 << (x % 8));
+
+	for ( int y = 0 ; y < m_Param.Line ; y++ ) {
+		memcpy(pNewMultiColsFlag + y * newParam.Element, m_pMultiColsFlag + y * m_Param.Element, m_Param.Element);
+		for ( int x = (m_Param.Cols + def_tab - 1) / def_tab * def_tab ;  x < newParam.Cols ; x += def_tab )
+			pNewMultiColsFlag[x / 8 + y * newParam.Element] |= (1 << (x % 8));
+	}
+	if ( m_Param.Line < newParam.Line ) {
+		for ( int x = 0 ;  x < newParam.Cols ; x += def_tab )
+			pNewMultiColsFlag[x / 8 + m_Param.Line * newParam.Element] |= (1 << (x % 8));
+		for ( int y = m_Param.Line + 1 ; y < newParam.Line ; y++ )
+			memcpy(pNewMultiColsFlag + y * newParam.Element, pNewMultiColsFlag + m_Param.Line * newParam.Element, newParam.Element);
+	}
+
+	delete [] m_pData;
+
+	m_Param = newParam;
+	m_pData = pNewData;
+	m_pLineFlag = pNewLineFlag;
+	m_pSingleColsFlag = pNewSingleColsFlag;
+	m_pMultiColsFlag = pNewMultiColsFlag;
+	m_DefTabSize = def_tab;
+}
+
+BOOL CTabFlag::IsSingleColsFlag(int x)
+{
+	if ( m_pSingleColsFlag != NULL )
+		return ((m_pSingleColsFlag[x / 8] & (1 << (x % 8))) != 0 ? TRUE : FALSE);
+
+	return ((x % m_DefTabSize) == 0 ? TRUE : FALSE);
+}
+BOOL CTabFlag::IsMultiColsFlag(int x, int y)
+{
+	if ( m_pMultiColsFlag != NULL )
+		return ((m_pMultiColsFlag[x / 8 + y * m_Param.Element] & (1 << (x % 8))) != 0 ? TRUE : FALSE);
+
+	return ((x % m_DefTabSize) == 0 ? TRUE : FALSE);
+}
+BOOL CTabFlag::IsLineFlag(int y)
+{
+	if ( m_pLineFlag != NULL )
+		return m_pLineFlag[y];
+
+	return TRUE;
+}
+
+void CTabFlag::SetSingleColsFlag(int x)
+{
+	if ( m_pSingleColsFlag == NULL )
+		InitTab();
+
+	m_pSingleColsFlag[x / 8] |= (1 << (x % 8));
+}
+void CTabFlag::ClrSingleColsFlag(int x)
+{
+	if ( m_pSingleColsFlag == NULL )
+		InitTab();
+
+	m_pSingleColsFlag[x / 8] &= ~(1 << (x % 8));
+}
+void CTabFlag::SetMultiColsFlag(int x, int y)
+{
+	if ( m_pMultiColsFlag == NULL )
+		InitTab();
+
+	m_pMultiColsFlag[x / 8 + y * m_Param.Element] |= (1 << (x % 8));
+}
+void CTabFlag::ClrMultiColsFlag(int x, int y)
+{
+	if ( m_pMultiColsFlag == NULL )
+		InitTab();
+
+	m_pMultiColsFlag[x / 8 + y * m_Param.Element] &= ~(1 << (x % 8));
+}
+void CTabFlag::SetLineflag(int y)
+{
+	if ( m_pLineFlag == NULL )
+		InitTab();
+
+	m_pLineFlag[y] = 001;
+}
+void CTabFlag::ClrLineflag(int y)
+{
+	if ( m_pLineFlag == NULL )
+		InitTab();
+
+	m_pLineFlag[y] = 000;
+}
+
+void CTabFlag::AllClrSingle()
+{ 
+	if ( m_pSingleColsFlag == NULL )
+		InitTab();
+
+	memset(m_pSingleColsFlag, 0, m_Param.Element);
+}
+void CTabFlag::AllClrMulti()
+{
+	if ( m_pMultiColsFlag == NULL )
+		InitTab();
+
+	memset(m_pMultiColsFlag, 0, m_Param.Line * m_Param.Element);
+}
+void CTabFlag::LineClrMulti(int y)
+{ 
+	if ( m_pMultiColsFlag == NULL )
+		InitTab();
+
+	memset(m_pMultiColsFlag + y * m_Param.Element, 0, m_Param.Element);
+}
+void CTabFlag::AllClrLine()
+{
+	if ( m_pLineFlag == NULL )
+		InitTab();
+
+	memset(m_pLineFlag, 0, m_Param.Line);
+}
+void CTabFlag::CopyLine(int dy, int sy)
+{
+	if ( m_pMultiColsFlag == NULL )
+		InitTab();
+
+	m_pLineFlag[dy] = m_pLineFlag[sy];
+	memcpy(m_pMultiColsFlag + dy * m_Param.Element, m_pMultiColsFlag + sy * m_Param.Element, m_Param.Element);
+}
+
+void *CTabFlag::SaveFlag(void *pData)
+{
+	if ( m_pData == NULL )
+		return NULL;
+
+	if ( pData != NULL && memcmp(&m_Param, pData, sizeof(m_Param)) != 0 ) {
+		delete [] pData;
+		pData = NULL;
+	}
+
+	if ( pData == NULL ) {
+		pData = (void *)(new BYTE[sizeof(m_Param) + m_Param.Size]);
+		memcpy(pData, &m_Param, sizeof(m_Param));
+	}
+
+	memcpy((BYTE *)pData + sizeof(m_Param), m_pData, m_Param.Size);
+
+	return pData;
+}
+void CTabFlag::LoadFlag(void *pData)
+{
+	if ( pData == NULL )
+		return;
+
+	if ( m_pData == NULL )
+		InitTab();
+
+	if ( memcmp(&m_Param, pData, sizeof(m_Param)) == 0 )
+		memcpy(m_pData, (BYTE *)pData + sizeof(m_Param), m_Param.Size);
+
+	else {
+		struct _TabFlagParam *pParam = (struct _TabFlagParam *)pData;
+		BYTE *pLineFlag = (BYTE *)pData + sizeof(struct _TabFlagParam);
+		BYTE *pSingleColsFlag = pLineFlag + pParam->Line;
+		BYTE *pMultiColsFlag = pSingleColsFlag + pParam->Element;
+
+		memcpy(m_pLineFlag, pLineFlag, m_Param.Line < pParam->Line ? m_Param.Line : pParam->Line);
+		memcpy(m_pSingleColsFlag, pSingleColsFlag, m_Param.Element < pParam->Element ? m_Param.Element : pParam->Element);
+
+		for ( int y = 0 ; y < m_Param.Line && y < pParam->Line ; y++ )
+			memcpy(m_pMultiColsFlag + y * m_Param.Element, pMultiColsFlag + y * pParam->Element, m_Param.Element < pParam->Element ? m_Param.Element : pParam->Element);
+	}
+}
+void *CTabFlag::CopyFlag(void *pData)
+{
+	if ( pData == NULL )
+		return NULL;
+
+	struct _TabFlagParam *pParam = (struct _TabFlagParam *)pData;
+	void *pTemp = (void *)(new BYTE[sizeof(struct _TabFlagParam) + pParam->Size]);
+
+	memcpy(pTemp, pData, sizeof(struct _TabFlagParam) + pParam->Size);
+	return pTemp;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1427,10 +1682,11 @@ CTextRam::CTextRam()
 	m_ColTab = new COLORREF[EXTCOL_MAX + EXTCOL_MATRIX];
 	m_Kan_Buf = new BYTE[KANBUFMAX];
 	m_Macro = new CBuffer[MACROMAX];
-	m_TabMap = new BYTE[TABFLAGSIZE];
+	m_SaveParam.m_TabMap = NULL;
+	m_StsParam.m_TabMap = NULL;
 
 	m_bOpen = FALSE;
-	m_hMap = NULL;
+	m_pMemMap = NULL;
 	m_Cols = m_ColsMax = 80;
 	m_LineUpdate = 0;
 	m_Lines = 25;
@@ -1455,7 +1711,10 @@ CTextRam::CTextRam()
 	m_UpdateRect.SetRectEmpty();
 	m_UpdateFlag = FALSE;
 	m_UpdateClock = clock();
-	m_DelayMSec = 0;
+	m_DelayUSecChar = DELAY_CHAR_USEC;
+	m_DelayMSecLine = DELAY_LINE_MSEC;
+	m_DelayMSecRecv = DELAY_RECV_MSEC;
+	m_DelayMSecCrLf = 0;
 	m_HisFile.Empty();
 	m_LogFile.Empty();
 	m_SshKeepAlive = 300;
@@ -1463,7 +1722,7 @@ CTextRam::CTextRam()
 	m_RecvCrLf = m_SendCrLf = 0;
 	m_LastChar = 0;
 	m_LastFlag = 0;
-	m_LastPos  = 0;
+	m_LastPos.SetPoint(0, 0);
 	m_LastSize = CM_ASCII;
 	m_LastAttr = 0;
 	m_LastStr.Empty();
@@ -1575,8 +1834,8 @@ CTextRam::~CTextRam()
 	if ( m_bIntTimer )
 		((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this);
 
-	if ( m_hMap != NULL )
-		m_MemMap.Close(m_hMap);
+	if ( m_pMemMap != NULL )
+		delete m_pMemMap;
 
 	while ( (pSave = m_pTextSave) != NULL ) {
 		m_pTextSave = pSave->m_pNext;
@@ -1633,7 +1892,11 @@ CTextRam::~CTextRam()
 	delete [] m_ColTab;
 	delete [] m_Kan_Buf;
 	delete [] m_Macro;
-	delete [] m_TabMap;
+
+	if ( m_SaveParam.m_TabMap != NULL )
+		delete [] m_SaveParam.m_TabMap;
+	if ( m_StsParam.m_TabMap != NULL )
+		delete [] m_StsParam.m_TabMap;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1711,13 +1974,9 @@ void CTextRam::InitText(int Width, int Height)
 
 	if ( newCols < 4 )
 		newCols = 4;
-	else if ( newCols > COLS_MAX )
-		newCols = COLS_MAX;
 
 	if ( newLines < 2 )
 		newLines = 2;
-	else if ( newLines > LINE_MAX )
-		newLines = LINE_MAX;
 
 	if ( (newHisMax = m_DefHisMax)  < (newLines * 5) )
 		newHisMax = newLines * 5;
@@ -1740,7 +1999,7 @@ void CTextRam::InitText(int Width, int Height)
 
 **************************************************************/
 
-	if ( newHisMax == m_HisMax && m_hMap != NULL ) {
+	if ( newHisMax == m_HisMax && m_pMemMap != NULL && m_pMemMap->m_ColsMax >= newCols && m_pMemMap->m_LineMax >= newLines ) {
 		if ( newCols == m_Cols && newLines == m_Lines )
 			return;
 
@@ -1757,29 +2016,30 @@ void CTextRam::InitText(int Width, int Height)
 
 	} else {
 		newColsMax = (m_ColsMax >= newCols && m_LineUpdate < m_HisMax ? m_ColsMax : newCols);
-		HANDLE hNewMap = m_MemMap.Create(ULONGLONG(sizeof(CCharCell) * COLS_MAX) * (ULONGLONG)newHisMax);
+		CMemMap *pNewMap = new CMemMap(newColsMax, newLines, newHisMax);
 
-		if ( m_hMap != NULL ) {
+		if ( m_pMemMap != NULL ) {
 			oldCurX  = (m_ColsMax < newColsMax ? m_ColsMax : newColsMax);
 			oldCurY  = (m_HisLen < newHisMax ? m_HisLen : newHisMax);
 			oldCols  = m_Cols;
 			oldLines = m_Lines;
 
 			for ( n = 1 ; n <= oldCurY ; n++ ) {
-				CCharCell::Copy(GETMAPRAM(hNewMap, 0, newHisMax - n), GETVRAM(0, oldLines - n), oldCurX);
+				CCharCell::Copy(pNewMap->GetMapRam(0, newHisMax - n), GETVRAM(0, oldLines - n), oldCurX);
 				if ( oldCurX < newColsMax )
-					CCharCell::Fill(GETMAPRAM(hNewMap, oldCurX, newHisMax - n), m_DefAtt, newColsMax - oldCurX);
+					CCharCell::Fill(pNewMap->GetMapRam(oldCurX, newHisMax - n), m_DefAtt, newColsMax - oldCurX);
 			}
 
-			m_MemMap.Close(m_hMap);
-			m_hMap = NULL;
+			delete m_pMemMap;
+			m_pMemMap = NULL;
 
+			m_HisLen = oldCurY;
 			oldCurX  = m_CurX;
 			oldCurY  = m_CurY;
 
 		} else {
 			for ( n = 1 ; n <= newLines ; n++ )
-				CCharCell::Fill(GETMAPRAM(hNewMap, 0, newHisMax - n), m_DefAtt, newColsMax);
+				CCharCell::Fill(pNewMap->GetMapRam(0, newHisMax - n), m_DefAtt, newColsMax);
 
 			oldCurX  = 0;
 			oldCurY  = 0;
@@ -1796,9 +2056,10 @@ void CTextRam::InitText(int Width, int Height)
 			bHisInit = TRUE;
 		}
 
-		m_hMap   = hNewMap;
+		m_pMemMap = pNewMap;
+
 		m_HisMax = newHisMax;
-		m_HisPos = newHisMax - newLines;
+		m_HisPos = newHisMax - oldLines;	// 後で計算する場合に古い位置である必要あり
 	}
 
 	m_Cols       = newCols;
@@ -1806,28 +2067,22 @@ void CTextRam::InitText(int Width, int Height)
 	m_ColsMax    = newColsMax;
 	m_LineUpdate = 0;
 
+	m_TabFlag.SizeCheck(m_pMemMap->m_ColsMax, m_pMemMap->m_LineMax, m_DefTab);
+
 	if ( oldLines < newLines ) {
-		int top = 0;
-		int bottom = 0;
+		int add = 0;
 
-		if ( (n = m_HisLen - oldLines) > 0 ) {
-			// 上を伸ばす 
-			if ( n > (newLines - oldLines) )
-				n = newLines - oldLines;
-			top = n;
-			bottom = (newLines - oldLines - n);
+		if ( (n = m_HisLen - oldLines) >= (newLines - oldLines) )
+			n = newLines - oldLines;
+		else
+			add = (newLines - oldLines - n);
 
-		} else {
-			// 下を伸ばす
-			bottom = (newLines - oldLines);
-		}
+		oldCurY  += n;
+		m_HisPos -= n;
+		m_HisLen += add;
 
-		for ( n = 0 ; n < bottom ; n++ )
-			CCharCell::Fill(GETVRAM(0, oldLines + n), m_DefAtt, newColsMax);
-
-		oldCurY  += top;
-		m_HisPos -= top;
-		m_HisLen += bottom;
+		for ( n = 1 ; n <= add ; n++ )
+			CCharCell::Fill(GETVRAM(0, newLines - n), m_DefAtt, newColsMax);
 
 	} else if ( oldLines > newLines ) {
 		int top = 0;
@@ -2328,7 +2583,9 @@ void CTextRam::Init()
 	m_BitMapAlpha    = 255;
 	m_BitMapBlend    = 128;
 	m_BitMapStyle    = MAPING_FILL;
-	m_DelayMSec      = 0;
+	m_DelayMSecLine = DELAY_LINE_MSEC;
+	m_DelayMSecRecv = DELAY_RECV_MSEC;
+	m_DelayMSecCrLf = 0;
 	m_HisFile        = _T("");
 	m_SshKeepAlive   = 300;
 	m_TelKeepAlive   = 300;
@@ -2397,6 +2654,9 @@ void CTextRam::Init()
 	m_TextBitMap.Init();
 
 	RESET(RESET_ALL);
+
+	// RESETでFALSEに設定される
+	m_bInit = TRUE;
 }
 
 static const LPCTSTR setname[] = { _T("EUC"), _T("SJIS"), _T("ASCII"), _T("UTF8"), _T("BIG5") };
@@ -2448,7 +2708,10 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		index[_T("LogFile")]      = m_LogFile;
 
 		index[_T("WheelSize")]    = m_WheelSize;
-		index[_T("DelayMSec")]    = m_DelayMSec;
+		index[_T("DelayUSecChar")] = m_DelayUSecChar;
+		index[_T("DelayMSecLine")] = m_DelayMSecLine;
+		index[_T("DelayMSecRecv")] = m_DelayMSecRecv;
+		index[_T("DelayMSec")]     = m_DelayMSecCrLf;
 		index[_T("KeepAliveSec")] = m_SshKeepAlive;
 		index[_T("TelKeepAlive")] = m_TelKeepAlive;
 
@@ -2606,8 +2869,15 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 
 		if ( (n = index.Find(_T("WheelSize"))) >= 0 )
 			m_WheelSize = index[n];
+		if ( (n = index.Find(_T("DelayUSecChar"))) >= 0 )
+			m_DelayUSecChar = index[n];
+		if ( (n = index.Find(_T("DelayMSecLine"))) >= 0 )
+			m_DelayMSecLine = index[n];
+		if ( (n = index.Find(_T("DelayMSecRecv"))) >= 0 )
+			m_DelayMSecRecv = index[n];
 		if ( (n = index.Find(_T("DelayMSec"))) >= 0 )
-			m_DelayMSec = index[n];
+			m_DelayMSecCrLf = index[n];
+
 		if ( (n = index.Find(_T("KeepAliveSec"))) >= 0 )
 			m_SshKeepAlive = index[n];
 		if ( (n = index.Find(_T("TelKeepAlive"))) >= 0 )
@@ -2880,8 +3150,14 @@ void CTextRam::DiffIndex(CTextRam &orig, CStringIndex &index)
 
 	if ( m_WheelSize != orig.m_WheelSize )
 		index[_T("WheelSize")]    = m_WheelSize;
-	if ( m_DelayMSec != orig.m_DelayMSec )
-		index[_T("DelayMSec")]    = m_DelayMSec;
+	if ( m_DelayUSecChar != orig.m_DelayUSecChar )
+		index[_T("DelayUSecChar")]    = m_DelayUSecChar;
+	if ( m_DelayMSecLine != orig.m_DelayMSecLine )
+		index[_T("DelayMSecLine")]    = m_DelayMSecLine;
+	if ( m_DelayMSecRecv != orig.m_DelayMSecRecv )
+		index[_T("DelayMSecRecv")]    = m_DelayMSecRecv;
+	if ( m_DelayMSecCrLf != orig.m_DelayMSecCrLf )
+		index[_T("DelayMSec")]    = m_DelayMSecCrLf;
 	if ( m_SshKeepAlive != orig.m_SshKeepAlive )
 		index[_T("KeepAliveSec")] = m_SshKeepAlive;
 	if ( m_TelKeepAlive != orig.m_TelKeepAlive )
@@ -3062,7 +3338,7 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 	stra.Add(m_SendCharSet[3]);
 	stra.AddVal(m_WheelSize);
 	stra.Add(m_BitMapFile);
-	stra.AddVal(m_DelayMSec);
+	stra.AddVal(m_DelayMSecCrLf);
 	stra.Add(m_HisFile);
 	stra.AddVal(m_SshKeepAlive);
 	stra.Add(m_LogFile);
@@ -3147,6 +3423,10 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 	stra.AddVal(m_TelKeepAlive);
 
 	stra.AddVal(m_RtfMode);
+
+	stra.AddVal(m_DelayUSecChar);
+	stra.AddVal(m_DelayMSecLine);
+	stra.AddVal(m_DelayMSecRecv);
 }
 void CTextRam::GetArray(CStringArrayExt &stra)
 {
@@ -3154,7 +3434,8 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 	BYTE tmp[16];
 	CStringArrayExt ext;
 
-	Init();
+	if ( !m_bInit )
+		Init();
 
 	m_DefCols[0]  = stra.GetVal(0);
 	m_DefHisMax   = stra.GetVal(1);
@@ -3190,7 +3471,7 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 	m_WheelSize    = stra.GetVal(14);
 	m_BitMapFile   = stra.GetAt(15);
 
-	m_DelayMSec    = (stra.GetSize() > 16 ? stra.GetVal(16) : 0);
+	m_DelayMSecCrLf = (stra.GetSize() > 16 ? stra.GetVal(16) : 0);
 	m_HisFile      = (stra.GetSize() > 17 ? stra.GetAt(17) : _T(""));
 	m_SshKeepAlive = (stra.GetSize() > 18 ? stra.GetVal(18) : 0);
 	m_LogFile      = (stra.GetSize() > 19 ? stra.GetAt(19) : _T(""));
@@ -3375,6 +3656,13 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 	if ( stra.GetSize() > 75 )
 		m_RtfMode = stra.GetVal(75);
 
+	if ( stra.GetSize() > 76 )
+		m_DelayUSecChar = stra.GetVal(76);
+	if ( stra.GetSize() > 77 )
+		m_DelayMSecLine = stra.GetVal(77);
+	if ( stra.GetSize() > 78 )
+		m_DelayMSecRecv = stra.GetVal(78);
+
 	if ( m_FixVersion < 9 ) {
 		if ( m_pDocument != NULL ) {
 			if ( m_pDocument->m_ServerEntry.m_UserNameProvs.IsEmpty() || m_pDocument->m_ServerEntry.m_PassNameProvs.IsEmpty() )
@@ -3394,6 +3682,11 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 			m_ModKeyList[4] = InitKeyList[4];
 			m_ModKeyList[5] = InitKeyList[5];
 		}
+	}
+
+	if ( m_FixVersion < 11 ) {
+		if ( IsOptEnable(TO_RLDELAY) )
+			EnableOption(TO_RLDELAYCR);
 	}
 
 	RESET(RESET_ALL);
@@ -3618,78 +3911,6 @@ void CTextRam::Serialize(CArchive& ar)
 {
 	COptObject::Serialize(ar);
 	m_FontTab.Serialize(ar);
-}
-const CTextRam & CTextRam::operator = (CTextRam &data)
-{
-	m_DefCols[0]  = data.m_DefCols[0];
-	m_DefCols[1]  = data.m_DefCols[1];
-	m_DefHisMax   = data.m_DefHisMax;
-	m_DefFontSize = data.m_DefFontSize;
-	m_DefFontHw   = data.m_DefFontHw;
-	m_KanjiMode   = data.m_KanjiMode;
-	m_BankGL      = data.m_BankGL;
-	m_BankGR      = data.m_BankGR;
-	m_DefAtt	  = data.m_DefAtt;
-	memcpy(m_DefColTab,  data.m_DefColTab,  sizeof(m_DefColTab));
-	memcpy(m_ColTab,  data.m_ColTab,  sizeof(m_ColTab));
-	memcpy(m_DefAnsiOpt, data.m_DefAnsiOpt, sizeof(m_DefAnsiOpt));
-	memcpy(m_AnsiOpt, m_DefAnsiOpt, sizeof(m_AnsiOpt));
-	memcpy(m_OptTab, data.m_OptTab, sizeof(m_OptTab));
-	memcpy(m_DefBankTab, data.m_DefBankTab, sizeof(m_DefBankTab));
-	memcpy(m_BankTab, m_BankTab, sizeof(m_BankTab));
-	m_SendCharSet[0] = data.m_SendCharSet[0];
-	m_SendCharSet[1] = data.m_SendCharSet[1];
-	m_SendCharSet[2] = data.m_SendCharSet[2];
-	m_SendCharSet[3] = data.m_SendCharSet[3];
-	m_SendCharSet[4] = data.m_SendCharSet[4];
-	m_WheelSize    = data.m_WheelSize;
-	m_HisFile      = data.m_HisFile;
-	m_DropFileMode = data.m_DropFileMode;
-	for ( int n = 0 ; n < 8 ; n++ )
-		m_DropFileCmd[n]  = data.m_DropFileCmd[n];
-	m_WordStr      = data.m_WordStr;
-	memcpy(m_MouseMode, data.m_MouseMode, sizeof(m_MouseMode));
-	fc_Init(m_KanjiMode);
-	memcpy(m_MetaKeys,  data.m_MetaKeys,  sizeof(m_MetaKeys));
-	m_ProcTab = data.m_ProcTab;
-	m_TitleMode = data.m_TitleMode;
-	m_TitleName = data.m_TitleName;
-	m_UnitId = data.m_UnitId;
-	m_FirmVer = data.m_FirmVer;
-	m_VtLevel = data.m_VtLevel;
-	m_TermId  = data.m_TermId;
-	m_KeybId  = data.m_KeybId;
-	memcpy(m_DefTermPara, data.m_DefTermPara, sizeof(m_DefTermPara));
-	m_LangMenu = data.m_LangMenu;
-	m_UnitId = data.m_UnitId;
-	m_ClipFlag  = data.m_ClipFlag;
-	m_ShellExec = data.m_ShellExec;
-	memcpy(m_DefModKey, data.m_DefModKey, sizeof(m_DefModKey));
-	memcpy(m_ModKey, m_DefModKey, sizeof(m_ModKey));
-	for ( int n = 0 ; n < MODKEY_MAX ; n++ )
-		m_ModKeyList[n] = data.m_ModKeyList[n];
-	InitModKeyTab();
-	m_ScrnOffset = data.m_ScrnOffset;
-	m_FixVersion = data.m_FixVersion;
-	m_SleepMax = data.m_SleepMax;
-	m_LogMode = data.m_LogMode;
-	m_GroupCast = data.m_GroupCast;
-	m_BitMapFile = data.m_BitMapFile;
-	m_BitMapAlpha = data.m_BitMapAlpha;
-	m_BitMapBlend = data.m_BitMapBlend;
-	m_BitMapStyle = data.m_BitMapStyle;
-	m_TextBitMap = data.m_TextBitMap;
-	m_InlineExt = data.m_InlineExt;
-	m_DefTypeCaret = data.m_DefTypeCaret;
-	m_TypeCaret = data.m_TypeCaret;
-	m_CaretColor = data.m_CaretColor;
-	m_DefCaretColor = data.m_DefCaretColor;
-	m_SshKeepAlive = data.m_SshKeepAlive;
-	m_MarkColor = data.m_MarkColor;
-	m_TelKeepAlive = data.m_TelKeepAlive;
-	m_RtfMode = data.m_RtfMode;
-
-	return *this;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -6310,6 +6531,10 @@ void CTextRam::OnTimer(int id)
 		if ( m_pDocument != NULL && m_IntCounter == 10 ) {
 			m_SeqMsg.Format(CStringLoad(IDM_SEQCANCELSTR), m_OscName);
 			m_pDocument->UpdateAllViews(NULL, UPDATE_CANCELBTN, (CObject *)(LPCTSTR)m_SeqMsg);
+
+			CString str;
+			str.Format(CStringLoad(IDS_OSCBUFFERINGMSG), m_OscName);
+			((CMainFrame *)AfxGetMainWnd())->SetStatusText(str);
 		}
 	} else if ( m_IntCounter > 180 ) {
 		m_bIntTimer = FALSE;
@@ -7094,7 +7319,7 @@ void CTextRam::RESET(int mode)
 		m_Status = ST_NULL;
 		m_LastChar = 0;
 		m_LastFlag = 0;
-		m_LastPos  = 0;
+		m_LastPos.SetPoint(0, 0);
 		m_LastSize = CM_ASCII;
 		m_LastAttr = 0;
 		m_LastStr.Empty();
@@ -7282,6 +7507,8 @@ void CTextRam::RESET(int mode)
 
 	if ( bSendSize && m_pDocument != NULL && m_pDocument->m_pSock != NULL )
 		m_pDocument->m_pSock->SendWindSize();
+
+	m_bInit = FALSE;
 }
 CCharCell *CTextRam::GETVRAM(int cols, int lines)
 {
@@ -7293,7 +7520,7 @@ CCharCell *CTextRam::GETVRAM(int cols, int lines)
 	while ( pos >= m_HisMax )
 		pos -= m_HisMax;
 
-	return GETMAPRAM(m_hMap, cols, pos);
+	return m_pMemMap->GetMapRam(cols, pos);
 }
 void CTextRam::UNGETSTR(LPCTSTR str, ...)
 {
@@ -7793,17 +8020,21 @@ void CTextRam::MouseReport(int md, int sw, int x, int y)
 		x += (' ' + 1);
 		if ( x < 128 )
 			tmp += (CHAR)(x);
-		else {							// x < COLS_MAX !!!
+		else if ( x < 4096 ) {
 		    tmp += (CHAR)(0xC0 + (x >> 6));
 		    tmp += (CHAR)(0x80 + (x & 0x3F));
+		} else {
+			tmp += "\xFF\xFF";
 		}
 
 		y += (' ' + 1);
 		if ( y < 128 )
 			tmp += (CHAR)(y);
-		else {							// y < LINE_MAX !!!
+		else if ( y < 4096 ) {
 		    tmp += (CHAR)(0xC0 + (y >> 6));
 		    tmp += (CHAR)(0x80 + (y & 0x3F));
+		} else {
+			tmp += "\xFF\xFF";
 		}
 
 	} else {
@@ -7997,7 +8228,7 @@ void CTextRam::SaveParam(SAVEPARAM *pSave)
 	pSave->m_Decawm   = (IsOptEnable(TO_DECAWM) ? TRUE : FALSE);
 	memcpy(pSave->m_AnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
 
-	memcpy(pSave->m_TabMap, m_TabMap, TABFLAGSIZE);
+	pSave->m_TabMap = m_TabFlag.SaveFlag(pSave->m_TabMap);
 }
 void CTextRam::LoadParam(SAVEPARAM *pSave, BOOL bAll)
 {
@@ -8039,7 +8270,7 @@ void CTextRam::LoadParam(SAVEPARAM *pSave, BOOL bAll)
 		if ( m_RightX < 0 ) m_RightX = 0; else if ( m_RightX > m_Cols ) m_RightX = m_Cols;
 
 		memcpy(m_AnsiOpt, pSave->m_AnsiOpt, sizeof(m_AnsiOpt));
-		memcpy(m_TabMap, pSave->m_TabMap, TABFLAGSIZE);
+		m_TabFlag.LoadFlag(pSave->m_TabMap);
 	}
 
 	SetOption(TO_DECOM,  pSave->m_Decom);
@@ -8051,7 +8282,19 @@ void CTextRam::SwapParam(SAVEPARAM *pSave, BOOL bAll)
 
 	SaveParam(&temp);
 	LoadParam(pSave, bAll);
-	memcpy(pSave, &temp, sizeof(temp));
+
+	if ( pSave->m_TabMap != NULL )
+		delete [] pSave->m_TabMap;
+
+	memcpy(pSave, &temp, sizeof(SAVEPARAM));
+}
+void CTextRam::CopyParam(SAVEPARAM *pDis, SAVEPARAM *pSrc)
+{
+	if ( pDis->m_TabMap != NULL )
+		delete [] pDis->m_TabMap;
+
+	memcpy(pDis, pSrc, sizeof(SAVEPARAM));
+	pDis->m_TabMap = m_TabFlag.CopyFlag(pSrc->m_TabMap);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -8256,7 +8499,7 @@ void CTextRam::DOWARP()
 		return;
 
 	m_DoWarp = FALSE;
-	m_LastPos -= COLS_MAX;
+	m_LastPos.y++;
 	m_CurX = GetLeftMargin();
 
 	ONEINDEX();
@@ -8394,7 +8637,7 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at, LPCWSTR str)
 
 	m_LastChar = ch;
 	m_LastFlag = 0;
-	m_LastPos  = m_CurX + m_CurY * COLS_MAX;
+	m_LastPos.SetPoint(m_CurX, m_CurY);
 	m_LastSize = CM_ASCII;
 	m_LastAttr = at;
 
@@ -8453,7 +8696,7 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at, LPCWSTR str)
 		if ( IsOptEnable(TO_DECAWM) != 0 ) {
 			if ( IsOptEnable(TO_RLGNDW) != 0 ) {
 				m_CurX = m_Margin.left;
-				m_LastPos -= COLS_MAX;
+				m_LastPos.y--;
 				ONEINDEX();
 			} else {
 				m_CurX = m_Margin.right - 1;
@@ -8481,7 +8724,7 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at, LPCWSTR str)
 
 	m_LastChar = ch;
 	m_LastFlag = 0;
-	m_LastPos  = m_CurX + m_CurY * COLS_MAX;
+	m_LastPos.SetPoint(m_CurX, m_CurY);
 	m_LastSize = CM_1BYTE;
 	m_LastAttr = at;
 
@@ -8502,7 +8745,7 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at, LPCWSTR str)
 		m_DoWarp = TRUE;
 		DOWARP();
 
-		m_LastPos  = m_CurX + m_CurY * COLS_MAX;	// Reset
+		m_LastPos.SetPoint(m_CurX, m_CurY);		// Reset
 
 		dm = GetDm(m_CurY);
 
@@ -8554,7 +8797,7 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at, LPCWSTR str)
 		if ( IsOptEnable(TO_DECAWM) != 0 ) {
 			if ( IsOptEnable(TO_RLGNDW) != 0 ) {
 				m_CurX = m_Margin.left;
-				m_LastPos -= COLS_MAX;
+				m_LastPos.y--;
 				ONEINDEX();
 			} else {
 				m_CurX = m_Margin.right - 1;
@@ -8688,13 +8931,15 @@ CTextSave *CTextRam::GETSAVERAM(int fMode)
 	pSave->m_BankGR = m_BankGR;
 	pSave->m_BankSG = m_BankSG;
 	memcpy(pSave->m_BankTab, m_BankTab, sizeof(m_BankTab));
+	
+	pSave->m_TabMap = m_TabFlag.SaveFlag(pSave->m_TabMap);
 
-	memcpy(pSave->m_TabMap, m_TabMap, TABFLAGSIZE);
-	memcpy(&pSave->m_SaveParam, &m_SaveParam, sizeof(m_SaveParam));
+	CopyParam(&pSave->m_SaveParam, &m_SaveParam);
 
 	pSave->m_StsMode = m_StsMode;
 	pSave->m_StsLine = m_StsLine;
-	memcpy(&pSave->m_StsParam, &m_StsParam, sizeof(m_StsParam));
+
+	CopyParam(&pSave->m_StsParam, &m_StsParam);
 
 	if ( pSave->m_bAll ) {
 		pSave->m_XtMosPointMode = m_XtMosPointMode;
@@ -8749,13 +8994,15 @@ void CTextRam::SETSAVERAM(CTextSave *pSave)
 	m_BankGR = pSave->m_BankGR;
 	m_BankSG = pSave->m_BankSG;
 	memcpy(m_BankTab, pSave->m_BankTab, sizeof(m_BankTab));
-	memcpy(m_TabMap, pSave->m_TabMap, TABFLAGSIZE);
 
-	memcpy(&m_SaveParam, &pSave->m_SaveParam, sizeof(m_SaveParam));
+	m_TabFlag.LoadFlag(pSave->m_TabMap);
+
+	CopyParam(&m_SaveParam, &pSave->m_SaveParam);
 
 	m_StsMode = pSave->m_StsMode;
 	m_StsLine = pSave->m_StsLine;
-	memcpy(&m_StsParam, &pSave->m_StsParam, sizeof(m_StsParam));
+
+	CopyParam(&m_StsParam, &pSave->m_StsParam);
 
 	if ( pSave->m_bAll ) {
 		m_XtMosPointMode = pSave->m_XtMosPointMode;
@@ -9167,81 +9414,74 @@ void CTextRam::TABSET(int sw)
 	switch(sw) {
 	case TAB_COLSSET:		// Cols Set
 		if ( IsOptEnable(TO_ANSITSM) )	// MULTIPLE
-			TABFLAG(m_TabMap, m_CurY + 1, m_CurX / 8 + 1) |= (0x80 >> (m_CurX % 8));
+			m_TabFlag.SetMultiColsFlag(m_CurX, m_CurY);
 		else							// SINGLE
-			TABFLAG(m_TabMap, 0, m_CurX / 8 + 1) |= (0x80 >> (m_CurX % 8));
+			m_TabFlag.SetSingleColsFlag(m_CurX);
 		break;
 	case TAB_COLSCLR:		// Cols Clear
 		if ( IsOptEnable(TO_ANSITSM) )	// MULTIPLE
-			TABFLAG(m_TabMap, m_CurY + 1, m_CurX / 8 + 1) &= ~(0x80 >> (m_CurX % 8));
+			m_TabFlag.ClrMultiColsFlag(m_CurX, m_CurY);
 		else							// SINGLE
-			TABFLAG(m_TabMap, 0, m_CurX / 8 + 1) &= ~(0x80 >> (m_CurX % 8));
+			m_TabFlag.ClrSingleColsFlag(m_CurX);
 		break;
 	case TAB_COLSALLCLR:	// Cols All Claer
 		if ( IsOptEnable(TO_ANSITSM) )	// MULTIPLE
-			memset(&(TABFLAG(m_TabMap, m_CurY + 1, 1)), 0, COLS_MAX / 8);
+			m_TabFlag.AllClrMulti();
 		else							// SINGLE
-			memset(&(TABFLAG(m_TabMap, 0, 1)), 0, COLS_MAX / 8);
+			m_TabFlag.AllClrSingle();
 		break;
 
 	case TAB_COLSALLCLRACT:	// Cols All Clear if Active Line
-		if ( (TABFLAG(m_TabMap, m_CurY + 1, 0) & 001) != 0 )
-			memset(&(TABFLAG(m_TabMap, m_CurY + 1, 1)), 0, COLS_MAX / 8);
+		m_TabFlag.LineClrMulti(m_CurY);
 		break;
 
 	case TAB_LINESET:		// Line Set
-		TABFLAG(m_TabMap, m_CurY + 1, 0) |= 001;
+		m_TabFlag.SetLineflag(m_CurY);
 		break;
 	case TAB_LINECLR:		// Line Clear
-		TABFLAG(m_TabMap, m_CurY + 1, 0) &= ~001;
+		m_TabFlag.ClrLineflag(m_CurY);
 		break;
 	case TAB_LINEALLCLR:	// Line All Clear
-		for ( n = 0 ; n < m_Lines ; n++ )
-			TABFLAG(m_TabMap, n + 1, 0) &= ~001;
+		m_TabFlag.AllClrLine();
 		break;
 
 	case TAB_RESET:			// Reset
-		TABFLAG(m_TabMap, 0, 0) = 001;
-		memset(&(TABFLAG(m_TabMap, 0, 1)), 0, COLS_MAX / 8);
-		for ( i = 0 ; i < LINE_MAX ; i += m_DefTab )
-			TABFLAG(m_TabMap, 0, i / 8 + 1) |= (0x80 >> (i % 8));
-		for ( n = 1 ; n <= m_Lines ; n++ )
-			memcpy(&(TABFLAG(m_TabMap, n, 0)), &(TABFLAG(m_TabMap, 0, 0)), TABELEMENT);
+		if ( m_pMemMap != NULL )
+			m_TabFlag.ResetAll(m_pMemMap->m_ColsMax, m_pMemMap->m_LineMax, m_DefTab);
+		else
+			m_TabFlag.ResetAll(m_ColsMax, m_Lines, m_DefTab);
 		break;
 
 	case TAB_DELINE:		// Delete Line
 		if ( IsOptEnable(TO_ANSITSM) ) {	// MULTIPLE
-			i = GetBottomMargin();
-			for ( n = m_CurY + 1 ; n < i ; n++ )
-				memcpy(&(TABFLAG(m_TabMap, n, 0)), &(TABFLAG(m_TabMap, n + 1, 0)), TABELEMENT);
-			//m_TabMap[m_Lines][0] = 0;
-			//memset(&(m_TabMap[m_Lines][1]), 0, COLS_MAX / 8);
+			i = GetBottomMargin() - 1;
+			for ( n = m_CurY ; n < i ; n++ )
+				m_TabFlag.CopyLine(n, n + 1);
 		}
 		break;
 	case TAB_INSLINE:		// Insert Line
 		if ( IsOptEnable(TO_ANSITSM) ) {	// MULTIPLE
-			i = GetBottomMargin();
-			for ( n = i - 1 ; n > m_CurY ; n-- )
-				memcpy(&(TABFLAG(m_TabMap, n + 1, 0)), &(TABFLAG(m_TabMap, n, 0)), TABELEMENT);
-			//m_TabMap[m_CurY + 1][0] = 0;
-			//memset(&(m_TabMap[m_CurY + 1][1]), 0, COLS_MAX / 8);
+			i = GetBottomMargin() - 1;
+			for ( n = i ; n > m_CurY ; n-- )
+				m_TabFlag.CopyLine(n + 1, n);
 		}
 		break;
 
 	case TAB_ALLCLR:		// Cols Line All Clear
-		for ( n = 0 ; n <= m_Lines ; n++ )
-			memset(&(TABFLAG(m_TabMap, n, 0)), 0, TABELEMENT);
+		m_TabFlag.AllClrLine();
+		m_TabFlag.AllClrSingle();
+		m_TabFlag.AllClrMulti();
 		break;
 
 	case TAB_COLSNEXT:		// Cols Tab Stop
 		if ( IsOptEnable(TO_XTMCUS) )
 			DOWARP();
-		i = (IsOptEnable(TO_ANSITSM) ? (m_CurY + 1) : 0);
+		i = IsOptEnable(TO_ANSITSM);
 		GetMargin(MARCHK_NONE);
 		if ( m_CurX >= m_Margin.right )
 			m_Margin.right = m_Cols;
 		for ( n = m_CurX + 1 ; n < m_Cols ; n++ ) {
-			if ( (TABFLAG(m_TabMap, i, n / 8 + 1) & (0x80 >> (n % 8))) != 0 ) //&& n >= m_Margin.left )
+			if ( m_TabFlag.IsColsFlag(n, m_CurY, i) )
 				break;
 		}
 		if ( n >= m_Margin.right )
@@ -9263,12 +9503,12 @@ void CTextRam::TABSET(int sw)
 		LOCATE(n, m_CurY);
 		break;
 	case TAB_COLSBACK:		// Cols Back Tab Stop
-		i = (IsOptEnable(TO_ANSITSM) ? (m_CurY + 1) : 0);
 		GetMargin(MARCHK_NONE);
+		i = IsOptEnable(TO_ANSITSM);
 		if ( m_CurX < m_Margin.left )
 			m_Margin.left = 0;
 		for ( n = m_CurX - 1 ; n > 0 ; n-- ) {
-			if ( (TABFLAG(m_TabMap, i, n / 8 + 1) & (0x80 >> (n % 8))) != 0 && n < m_Margin.right )
+			if ( m_TabFlag.IsColsFlag(n, m_CurY, i) )
 				break;
 		}
 		if ( n < m_Margin.left )
@@ -9278,9 +9518,9 @@ void CTextRam::TABSET(int sw)
 	case TAB_CHT:		// Cols Tab Stop
 		if ( IsOptEnable(TO_XTMCUS) )
 			DOWARP();
-		i = (IsOptEnable(TO_ANSITSM) ? (m_CurY + 1) : 0);
+		i = IsOptEnable(TO_ANSITSM);
 		for ( n = m_CurX + 1 ; n < m_Cols ; n++ ) {
-			if ( (TABFLAG(m_TabMap, i, n / 8 + 1) & (0x80 >> (n % 8))) != 0 )
+			if ( m_TabFlag.IsColsFlag(n, m_CurY, i) )
 				break;
 		}
 		if ( n > m_CurX ) {
@@ -9300,9 +9540,9 @@ void CTextRam::TABSET(int sw)
 		LOCATE(n, m_CurY);
 		break;
 	case TAB_CBT:		// Cols Back Tab Stop
-		i = (IsOptEnable(TO_ANSITSM) ? (m_CurY + 1) : 0);
+		i = IsOptEnable(TO_ANSITSM);
 		for ( n = m_CurX - 1 ; n > 0 ; n-- ) {
-			if ( (TABFLAG(m_TabMap, i, n / 8 + 1) & (0x80 >> (n % 8))) != 0 && n < m_Cols )
+			if ( m_TabFlag.IsColsFlag(n, m_CurY, i) )
 				break;
 		}
 		LOCATE(n, m_CurY);
@@ -9311,30 +9551,28 @@ void CTextRam::TABSET(int sw)
 	case TAB_LINENEXT:		// Line Tab Stop
 		if ( IsOptEnable(TO_ANSITSM) ) {	// MULTIPLE
 			for ( n = m_CurY + 1 ; n < m_Lines ; n++ ) {
-				if ( (TABFLAG(m_TabMap, n + 1, 0) & 001) != 0 && n >= m_TopY )
+				if ( m_TabFlag.IsLineFlag(n) && n >= m_TopY )
 					break;
 			}
+			if ( n >= m_BtmY )
+				n = m_BtmY - 1;
+			LOCATE(m_CurX, n);
 		} else {
 			ONEINDEX();
-			break;
 		}
-		if ( n >= m_BtmY )
-			n = m_BtmY - 1;
-		LOCATE(m_CurX, n);
 		break;
 	case TAB_LINEBACK:		// Line Back Tab Stop
 		if ( IsOptEnable(TO_ANSITSM) ) {	// MULTIPLE
 			for ( n = m_CurY - 1 ; n > 0 ; n-- ) {
-				if ( (TABFLAG(m_TabMap, n + 1, 0) & 001) != 0 && n < m_BtmY )
+				if ( m_TabFlag.IsLineFlag(n) && n < m_BtmY )
 					break;
 			}
+			if ( n < m_TopY )
+				n = m_TopY;
+			LOCATE(m_CurX, n);
 		} else {
 			REVINDEX();
-			break;
 		}
-		if ( n < m_TopY )
-			n = m_TopY;
-		LOCATE(m_CurX, n);
 		break;
 	}
 }

@@ -17,10 +17,11 @@
 #include "GrapWnd.h"
 #include "GhostWnd.h"
 
-#define	FIX_VERSION		10				// AnsiOpt Bugfix version
+#define	FIX_VERSION		11				// AnsiOpt Bugfix version
 
-#define	COLS_MAX		1024
-#define	LINE_MAX		512
+#define	COLS_MAX		256
+#define	LINE_MAX		128
+
 #define	HIS_MAX			200000			// HIS_MAX * COLS_MAX * sizeof(CCharCell) = 6,553,600,000 byte
 #define	DEF_TAB			8
 #define	FKEY_MAX		24
@@ -232,7 +233,7 @@
 #define	TO_RLRCLICK		1410		// 右ダブルクリックだけでクリップボードからペーストする
 #define	TO_RLCKCOPY		1411		// 左クリックの範囲指定だけでクリップボードにコピーする
 #define	TO_RLDSECHO		1412		// キーボード入力をローカルエディットモードにする
-#define	TO_RLDELAY		1413		// 改行(CR)を確認し指定時間待って次を送信する(ms)
+#define	TO_RLDELAY		1413		// 行単位で指定時間待って送信する(ms)
 #define	TO_RLHISFILE	1414		// ヒストリーを保存し次接続時に復元する
 #define	TO_RLKEEPAL		1415		// TCPオプションのKeepAliveを有効にする
 #define	TO_SSH1MODE		1420		// SSHバージョン１で接続する
@@ -284,6 +285,8 @@
 #define	TO_RLNOCHKFONT	1484		// デフォルトフォントのCSetチェックを行わない
 #define	TO_RLCOLEMOJI	1485		// カラー絵文字を表示する
 #define	TO_RLNODELAY	1486		// TCPオプションのNoDelayを有効にする
+#define	TO_RLDELAYRV	1487		// 無受信時間待って次を送信する(ms)
+#define	TO_RLDELAYCR	1488		// 改行(CR)を確認し指定時間待って次を送信する(ms)
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -545,34 +548,6 @@ enum EStageNum {
 
 ///////////////////////////////////////////////////////
 
-#define	MEMMAPSIZE		(sizeof(CCharCell) * COLS_MAX * 128)		// 32 * 1024 * 128 = 4M
-#define	MEMMAPCACHE		4
-
-typedef struct _MemMapNode {
-	struct _MemMapNode *pNext;
-	HANDLE hFile;
-	ULONGLONG Offset;
-	void *pAddress;
-} MEMMAPNODE;
-
-class CMemMap : public CObject
-{
-public:
-	MEMMAPNODE *m_pMapTop;
-	MEMMAPNODE m_MapData[MEMMAPCACHE];
-	ULONGLONG m_MapSize;
-	ULONGLONG m_MapPage;
-
-	CMemMap();
-	~CMemMap();
-
-	HANDLE Create(ULONGLONG size);
-	void Close(HANDLE hFile);
-	void *MemMap(HANDLE hFile, ULONGLONG pos);
-};
-
-///////////////////////////////////////////////////////
-
 #define	EATT_FRGBCOL	0x0001
 #define	EATT_BRGBCOL	0x0002
 
@@ -654,6 +629,36 @@ public:
 	static void Copy(CCharCell *dis, CCharCell *src, int size);
 	static void Fill(CCharCell *dis, EXTVRAM &vram, int size);
 };
+
+///////////////////////////////////////////////////////
+
+#define	MEMMAPCACHE		4
+
+typedef struct _MemMapNode {
+	struct _MemMapNode *pNext;
+	BOOL bMap;
+	ULONGLONG Offset;
+	void *pAddress;
+} MEMMAPNODE;
+
+class CMemMap : public CObject
+{
+public:
+	HANDLE m_hFile;
+	int m_ColsMax;
+	int m_LineMax;
+	MEMMAPNODE *m_pMapTop;
+	MEMMAPNODE m_MapData[MEMMAPCACHE];
+	ULONGLONG m_MapSize;
+	ULONGLONG m_MapPage;
+
+	CCharCell *GetMapRam(int x, int y);
+
+	CMemMap(int cols_max, int line_max, int his_max);
+	~CMemMap();
+};
+
+///////////////////////////////////////////////////////
 
 #define	FONTSTYLE_NONE		0
 #define	FONTSTYLE_BOLD		1
@@ -828,10 +833,6 @@ public:
 	~CTraceNode();
 };
 
-#define	TABELEMENT		(COLS_MAX / 8 + 1)
-#define	TABFLAGSIZE		((LINE_MAX + 1) * TABELEMENT)
-#define	TABFLAG(p,y,x)	(p[(y) * TABELEMENT + (x)])
-
 typedef struct _SAVEPARAM {
 	EXTVRAM m_AttNow;
 	EXTVRAM m_AttSpc;
@@ -847,7 +848,7 @@ typedef struct _SAVEPARAM {
 	BOOL m_Exact;
 	DWORD m_LastChar;
 	int m_LastFlag;
-	int m_LastPos;
+	POINT m_LastPos;
 	int m_LastSize;
 	int m_LastAttr;
 	WCHAR m_LastStr[MAXCHARSIZE + 2];
@@ -863,7 +864,7 @@ typedef struct _SAVEPARAM {
 	BOOL m_Decawm;
 	DWORD m_AnsiOpt[16];
 
-	BYTE m_TabMap[TABFLAGSIZE];
+	void *m_TabMap;
 } SAVEPARAM;
 
 class CTextSave : public CObject
@@ -891,7 +892,7 @@ public:
 	BOOL m_Exact;
 	DWORD m_LastChar;
 	int m_LastFlag;
-	int m_LastPos;
+	POINT m_LastPos;
 	int m_LastSize;
 	int m_LastAttr;
 	WCHAR m_LastStr[MAXCHARSIZE + 2];
@@ -905,7 +906,7 @@ public:
 	int m_BankSG;
 	WORD m_BankTab[5][4];
 
-	BYTE *m_TabMap;
+	void *m_TabMap;
 	SAVEPARAM m_SaveParam;
 
 	int m_StsMode;
@@ -921,6 +922,52 @@ public:
 
 	CTextSave();
 	~CTextSave();
+};
+
+class CTabFlag : public CObject
+{
+public:
+	struct _TabFlagParam {
+		int Cols;
+		int Line;
+		int Element;
+		int Size;
+	} m_Param;
+	int m_DefTabSize;
+	BYTE *m_pData;
+	BYTE *m_pSingleColsFlag;
+	BYTE *m_pMultiColsFlag;
+	BYTE *m_pLineFlag;
+
+	void InitTab();
+	void ResetAll(int cols_max, int line_max, int def_tab);
+	void SizeCheck(int cols_max, int line_max, int def_tab);
+
+	BOOL IsSingleColsFlag(int x);
+	BOOL IsMultiColsFlag(int x, int y);
+	inline BOOL IsColsFlag(int x, int y, BOOL bMulti) { if ( bMulti ) return IsMultiColsFlag(x, y); else return IsSingleColsFlag(x); }
+	BOOL IsLineFlag(int y);
+
+	void SetSingleColsFlag(int x);
+	void ClrSingleColsFlag(int x);
+	void SetMultiColsFlag(int x, int y);
+	void ClrMultiColsFlag(int x, int y);
+	void SetLineflag(int y);
+	void ClrLineflag(int y);
+
+	void AllClrSingle();
+	void AllClrMulti();
+	void LineClrMulti(int y);
+	void AllClrLine();
+
+	void CopyLine(int dy, int sy);
+
+	void *SaveFlag(void *pData);
+	void LoadFlag(void *pData);
+	void *CopyFlag(void *pData);
+
+	CTabFlag();
+	~CTabFlag();
 };
 
 class CTextRam : public COptObject
@@ -943,7 +990,10 @@ public:	// Options
 	int m_BitMapAlpha;
 	int m_BitMapBlend;
 	int m_BitMapStyle;
-	int m_DelayMSec;
+	int m_DelayUSecChar;	// us
+	int m_DelayMSecLine;	// ms
+	int m_DelayMSecRecv;
+	int m_DelayMSecCrLf;
 	CString m_HisFile;
 	int m_SshKeepAlive;
 	int m_TelKeepAlive;
@@ -980,6 +1030,7 @@ public:	// Options
 	int m_RtfMode;
 	int m_RecvCrLf;
 	int m_SendCrLf;
+	BOOL m_bInit;
 
 	void Init();
 	void SetIndex(int mode, CStringIndex &index);
@@ -992,7 +1043,6 @@ public:	// Options
 	void Serialize(int mode);
 	void Serialize(int mode, CBuffer &buf);
 	void Serialize(CArchive& ar);
-	const CTextRam & operator = (CTextRam &data);
 
 public:
 	class CRLoginDoc *m_pDocument;
@@ -1000,8 +1050,7 @@ public:
 	class CFontTab m_FontTab;
 	class CTextBitMap m_TextBitMap;
 
-	CMemMap m_MemMap;
-	HANDLE m_hMap;
+	CMemMap *m_pMemMap;
 
 	BOOL m_bOpen;
 	EXTVRAM m_AttSpc;
@@ -1049,7 +1098,7 @@ public:
 	BOOL m_Exact;
 	DWORD m_LastChar;
 	int m_LastFlag;
-	int m_LastPos;
+	CPoint m_LastPos;
 	int m_LastSize;
 	int m_LastAttr;
 	CStringW m_LastStr;
@@ -1064,7 +1113,7 @@ public:
 	int m_OscMode;
 	int m_OscLast;
 	CBuffer m_OscPara;
-	BYTE *m_TabMap;
+	CTabFlag m_TabFlag;
 	BOOL m_RetSync;
 	CString m_StrPara;
 	DWORD m_MacroExecFlag[MACROMAX / 32];
@@ -1102,6 +1151,7 @@ public:
 	void SaveParam(SAVEPARAM *pSave);
 	void LoadParam(SAVEPARAM *pSave, BOOL bAll);
 	void SwapParam(SAVEPARAM *pSave, BOOL bAll);
+	void CopyParam(SAVEPARAM *pDis, SAVEPARAM *pSrc);
 
 	int m_Page;
 	CPtrArray m_PageTab;
@@ -1146,14 +1196,13 @@ public:
 	virtual ~CTextRam();
 	
 	// Window Fonction
-	BOOL IsInitText() { return (m_bOpen && m_hMap != NULL ? TRUE : FALSE); }
-	inline ULONGLONG CalcOffset(int x, int y) { return sizeof(CCharCell) * ((ULONGLONG)y * COLS_MAX + x); }
-	inline CCharCell *GETMAPRAM(HANDLE hFile, int x, int y) { return (CCharCell *)m_MemMap.MemMap(hFile, CalcOffset(x, y)); }
+	inline BOOL IsInitText() { return (m_bOpen && m_pMemMap != NULL ? TRUE : FALSE); }
 
 	void InitText(int Width, int Height);
 	void InitScreen(int cols, int lines);
 	int Write(LPBYTE lpBuf, int nBufLen, BOOL *sync);
 	void OnTimer(int id);
+	void UpdateScrnMaxSize();
 
 	int LineEdit(CBuffer &buf);
 	void LineEditEcho();
