@@ -2653,6 +2653,8 @@ void CTextRam::Init()
 //	m_FontTab.Init();
 	m_TextBitMap.Init();
 
+	m_SleepMode = SLEEPMODE_ACTIVE;
+
 	RESET(RESET_ALL);
 
 	// RESETでFALSEに設定される
@@ -2793,8 +2795,8 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		index[_T("CaretColor")].Add(GetBValue(m_DefCaretColor));
 
 		index[_T("Title")] = m_TitleName;
-
 		index[_T("RtfMode")] = m_RtfMode;
+		index[_T("SleepMode")] = m_SleepMode;
 
 	} else {		// Read
 		if ( (n = index.Find(_T("Cols"))) >= 0 ) {
@@ -3071,6 +3073,9 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		if ( (n = index.Find(_T("RtfMode"))) >= 0 )
 			m_RtfMode = index[n];
 
+		if ( (n = index.Find(_T("SleepMode"))) >= 0 )
+			m_SleepMode = index[n];
+
 		memcpy(m_ColTab, m_DefColTab, sizeof(m_DefColTab));
 		memcpy(m_AnsiOpt, m_DefAnsiOpt, sizeof(m_AnsiOpt));
 		memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
@@ -3314,6 +3319,9 @@ void CTextRam::DiffIndex(CTextRam &orig, CStringIndex &index)
 
 	if ( m_RtfMode != orig.m_RtfMode )
 		index[_T("RtfMode")] = m_RtfMode;
+
+	if ( m_SleepMode != orig.m_SleepMode )
+		index[_T("SleepMode")] = m_SleepMode;
 }
 void CTextRam::SetArray(CStringArrayExt &stra)
 {
@@ -3427,6 +3435,8 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 	stra.AddVal(m_DelayUSecChar);
 	stra.AddVal(m_DelayMSecLine);
 	stra.AddVal(m_DelayMSecRecv);
+
+	stra.AddVal(m_SleepMode);
 }
 void CTextRam::GetArray(CStringArrayExt &stra)
 {
@@ -3662,6 +3672,9 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 		m_DelayMSecLine = stra.GetVal(77);
 	if ( stra.GetSize() > 78 )
 		m_DelayMSecRecv = stra.GetVal(78);
+
+	if ( stra.GetSize() > 79 )
+		m_SleepMode = stra.GetVal(79);
 
 	if ( m_FixVersion < 9 ) {
 		if ( m_pDocument != NULL ) {

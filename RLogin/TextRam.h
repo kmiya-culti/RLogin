@@ -480,6 +480,10 @@
 #define	SAVEMODE_VRAM			1
 #define	SAVEMODE_ALL			2
 
+#define	SLEEPMODE_NONE			0
+#define	SLEEPMODE_ACTIVE		1
+#define	SLEEPMODE_ALLWAY		2
+
 #define UNIBLOCKTABMAX			262
 
 typedef struct _UNIBLOCKTAB {
@@ -1031,6 +1035,7 @@ public:	// Options
 	int m_RecvCrLf;
 	int m_SendCrLf;
 	BOOL m_bInit;
+	int m_SleepMode;
 
 	void Init();
 	void SetIndex(int mode, CStringIndex &index);

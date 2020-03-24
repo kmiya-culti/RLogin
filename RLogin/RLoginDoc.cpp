@@ -109,6 +109,7 @@ CRLoginDoc::CRLoginDoc()
 	m_pMediaCopyWnd = NULL;
 	m_CmdsPath.Empty();
 	m_bExitPause = FALSE;
+	m_bSleepDisable = FALSE;
 }
 
 CRLoginDoc::~CRLoginDoc()
@@ -890,8 +891,8 @@ void CRLoginDoc::EnvironPath(CString &path)
 			tmp += *(s++);
 	}
 
+	tmp += e;
 	path = tmp;
-	path += e;
 }
 BOOL CRLoginDoc::EntryText(CString &name, LPCWSTR match)
 {
@@ -965,7 +966,7 @@ BOOL CRLoginDoc::EntryText(CString &name, LPCWSTR match)
 					st = TRUE;
 				}
 				break;
-			case L'i':
+			case _T('i'):
 				pass.m_Title    = m_ServerEntry.m_EntryName;
 				pass.m_HostAddr = m_ServerEntry.m_HostName;
 				pass.m_PortName = m_ServerEntry.m_PortName;
@@ -994,6 +995,10 @@ BOOL CRLoginDoc::EntryText(CString &name, LPCWSTR match)
 				size = MAX_COMPUTERNAME_LENGTH;
 				if ( GetComputerName(buf, &size) )
 					tmp += buf;
+				st = TRUE;
+				break;
+			case _T('w'):
+				tmp += GetTitle();
 				st = TRUE;
 				break;
 			case _T('%'):
@@ -1198,6 +1203,55 @@ BOOL CRLoginDoc::SetOptFixEntry(LPCTSTR entryName)
 
 	AfxMessageBox(IDE_OPTFIXNOTFOUND);
 	return FALSE;
+}
+void CRLoginDoc::SetSleepReq(int req)
+{
+	switch(req) {
+	case SLEEPSTAT_CONNECT:
+		if ( m_TextRam.m_SleepMode == SLEEPMODE_ALLWAY && !m_bSleepDisable ) {
+			CRLoginApp::SetSleepMode(SLEEPREQ_DISABLE);
+			m_bSleepDisable = TRUE;
+		}
+		break;
+	case SLEEPSTAT_CLOSE:
+		if ( m_bSleepDisable ) {
+			CRLoginApp::SetSleepMode(SLEEPREQ_ENABLE);
+			m_bSleepDisable = FALSE;
+		}
+		break;
+	case SLEEPSTAT_DISABLE:
+		if ( m_TextRam.m_SleepMode == SLEEPMODE_ACTIVE && !m_bSleepDisable ) {
+			CRLoginApp::SetSleepMode(SLEEPREQ_DISABLE);
+			m_bSleepDisable = TRUE;
+		}
+		break;
+	case SLEEPSTAT_ENABLE:
+		if ( m_TextRam.m_SleepMode != SLEEPMODE_ALLWAY && m_bSleepDisable ) {
+			CRLoginApp::SetSleepMode(SLEEPREQ_ENABLE);
+			m_bSleepDisable = FALSE;
+		}
+		break;
+	case SLEEPSTAT_RESET:
+		switch(m_TextRam.m_SleepMode) {
+		case SLEEPMODE_NONE:
+			if ( m_bSleepDisable ) {
+				CRLoginApp::SetSleepMode(SLEEPREQ_ENABLE);
+				m_bSleepDisable = FALSE;
+			}
+			break;
+		case SLEEPMODE_ACTIVE:
+			if ( !m_bSleepDisable )
+				CRLoginApp::SetSleepMode(SLEEPREQ_RESET);
+			break;
+		case SLEEPMODE_ALLWAY:
+			if ( !m_bSleepDisable ) {
+				CRLoginApp::SetSleepMode(SLEEPREQ_DISABLE);
+				m_bSleepDisable = TRUE;
+			}
+			break;
+		}
+		break;
+	}
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1605,6 +1659,8 @@ void CRLoginDoc::OnSocketConnect()
 
 	time(&m_ConnectTime);
 	SetStatus(_T("Connect"));
+
+	SetSleepReq(SLEEPSTAT_CONNECT);
 }
 void CRLoginDoc::OnSocketError(int err)
 {
@@ -1613,6 +1669,8 @@ void CRLoginDoc::OnSocketError(int err)
 
 	SetStatus(_T("Error"));
 	time(&m_CloseTime);
+
+	SetSleepReq(SLEEPSTAT_CLOSE);
 
 	if ( m_pStrScript != NULL ) {
 		m_pStrScript->ExecStop();
@@ -1682,6 +1740,8 @@ void CRLoginDoc::OnSocketClose()
 	UpdateAllViews(NULL, UPDATE_GOTOXY, NULL);
 	SetStatus(_T("Close"));
 	time(&m_CloseTime);
+
+	SetSleepReq(SLEEPSTAT_CLOSE);
 
 	CWnd *pWnd = GetAciveView();
 
@@ -1768,6 +1828,7 @@ int CRLoginDoc::OnSocketReceive(LPBYTE lpBuf, int nBufLen, int nFlags)
 
 	m_pMainWnd->WakeUpSleep();
 	UpdateAllViews(NULL, UPDATE_WAKEUP, NULL);
+	SetSleepReq(SLEEPSTAT_RESET);
 
 	if ( m_pScript != NULL && m_pScript->m_SockMode == DATA_BUF_BOTH )
 		m_pScript->SetSockBuff(lpBuf, nBufLen);
@@ -1901,6 +1962,7 @@ SKIPINPUT:
 	}
 
 	// AfxMessageBoxでメッセージが先に進む可能性あり
+	SetDocTitle();
 	LogInit();
 
 	switch(m_ServerEntry.m_ProtoType) {
@@ -1927,12 +1989,13 @@ SKIPINPUT:
 	}
 
 	SetStatus(_T("Open"));
-	SetDocTitle();
 
 	return TRUE;
 }
 void CRLoginDoc::SocketClose()
 {
+	SetSleepReq(SLEEPSTAT_CLOSE);
+
 	if ( m_pSock == NULL )
 		return;
 

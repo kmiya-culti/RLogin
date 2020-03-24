@@ -197,6 +197,7 @@ BEGIN
         MENUITEM "RLogin のバージョン情報(&A)",         ID_APP_ABOUT
         MENUITEM "自動バージョンチェック(&V)",             IDM_VERSIONCHECK
         MENUITEM "既定のアプリへ登録を行う(&X)",            IDM_REGISTAPP
+        MENUITEM "セキュリティポリシーの設定(&S)",           IDM_SECPORICY
         MENUITEM SEPARATOR
         MENUITEM "ダイアログフォントの設定(&D)",            IDM_DIALOGFONT
         MENUITEM "ツールバーのカスタマイズ(&T)",            IDM_TOOLCUST
@@ -360,6 +361,7 @@ BEGIN
         MENUITEM "RLogin のバージョン情報(&A)",         ID_APP_ABOUT
         MENUITEM "自動バージョンチェック(&V)",             IDM_VERSIONCHECK
         MENUITEM "既定のアプリへ登録を行う(&X)",            IDM_REGISTAPP
+        MENUITEM "セキュリティポリシーの設定(&S)",           IDM_SECPORICY
         MENUITEM SEPARATOR
         MENUITEM "ダイアログフォントの設定(&D)",            IDM_DIALOGFONT
         MENUITEM "ツールバーのカスタマイズ(&T)",            IDM_TOOLCUST
@@ -588,10 +590,10 @@ BEGIN
                     "SysLink",WS_TABSTOP,44,178,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,193,60,14,WS_GROUP
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin (%s) Version 2.24.9 (2020/02/24)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.25.0 (2020/03/25)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2020 Culti",IDC_STATIC,44,16,189,8
-    LTEXT           "OpenSSL 1.1.1d 10 Sep 2019",IDC_STATIC,44,52,189,8
-    LTEXT           "Copyright (c) 1998-2018 The OpenSSL Project",IDC_STATIC,44,61,189,8
+    LTEXT           "OpenSSL 1.1.1e 17 Mar 2020",IDC_STATIC,44,52,189,8
+    LTEXT           "Copyright (c) 1998-2019 The OpenSSL Project",IDC_STATIC,44,61,189,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,70,189,8
     LTEXT           "All rights reserved.",IDC_STATIC,44,79,189,8
     LTEXT           "zlib 1.2.11 (15 Jan 2017)",IDC_STATIC,44,92,189,8
@@ -1266,32 +1268,34 @@ CAPTION "スクリーン"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     CONTROL         "一行あたりの文字数からフォントサイズを決定",IDC_SCRNSIZE1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,15,25,180,10
-    CONTROL         "フォントサイズから一行あたりの文字数を決定",IDC_SCRNSIZE2,"Button",BS_AUTORADIOBUTTON,15,63,180,10
-    EDITTEXT        IDC_SCSZCOLS,205,22,50,12,ES_AUTOHSCROLL | WS_GROUP
-    CONTROL         "DECCOLMでウィンドウをリサイズする",IDC_OPTCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,44,180,10
-    EDITTEXT        IDC_SCSZCOLS2,205,41,50,12,ES_AUTOHSCROLL
-    COMBOBOX        IDC_SCSZFONT,205,60,50,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "フォントサイズから一行あたりの文字数を決定",IDC_SCRNSIZE2,"Button",BS_AUTORADIOBUTTON,15,59,180,10
+    EDITTEXT        IDC_SCSZCOLS,205,23,50,12,ES_AUTOHSCROLL | WS_GROUP
+    CONTROL         "DECCOLMでウィンドウをリサイズする",IDC_OPTCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,42,180,10
+    EDITTEXT        IDC_SCSZCOLS2,205,40,50,12,ES_AUTOHSCROLL
+    COMBOBOX        IDC_SCSZFONT,205,57,50,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
     CONTROL         "HiDPIの変更でフォントサイズを追従して変更する(上記フォントサイズ注意)",IDC_OPTCHECK3,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,82,240,10
-    COMBOBOX        IDC_SCRNOFFSLEFT,149,98,50,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_SCRNOFFSRIGHT,205,98,50,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_FONTHW,205,117,50,100,CBS_DROPDOWNLIST | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_VISUALBELL,205,136,50,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "",IDC_CARETCOL,"Static",SS_OWNERDRAW | SS_NOTIFY,187,155,12,12,WS_EX_STATICEDGE
-    COMBOBOX        IDC_DEFCARET,205,155,50,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,76,240,10
+    COMBOBOX        IDC_SCRNOFFSLEFT,149,91,50,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_SCRNOFFSRIGHT,205,91,50,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_FONTHW,205,108,50,100,CBS_DROPDOWNLIST | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_VISUALBELL,205,125,50,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "",IDC_CARETCOL,"Static",SS_OWNERDRAW | SS_NOTIFY,187,142,12,12,WS_EX_STATICEDGE
+    COMBOBOX        IDC_DEFCARET,205,142,50,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     CONTROL         "CSI 1-6/9/10 t でウィンドウの移動やリサイズの操作を許可する",IDC_OPTCHECK2,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,177,240,10
-    CONTROL         "アクティブでないウィンドウの文字輝度を下げて表示する",IDC_OPTCHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,196,240,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,161,240,10
+    CONTROL         "アクティブでないウィンドウの文字輝度を下げて表示する",IDC_OPTCHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,178,240,10
+    COMBOBOX        IDC_SLEEPMODE,205,193,50,100,CBS_DROPDOWNLIST | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_TITLENAME,150,236,105,96,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
     CONTROL         "CSI 20/21 t でウィンドウタイトルの報告を禁止する",IDC_TERMCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,257,240,10
     CONTROL         "OSC 0/1/2 でウィンドウタイトルの変更を禁止する",IDC_TERMCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,275,240,10
     LTEXT           "初期タイトル(特殊文字%Eでエントリー名)",IDC_STATIC,15,239,125,10
-    LTEXT           "ベルコード(07)による動作を選択",IDC_STATIC,15,139,180,10
-    GROUPBOX        "スクリーン",IDC_STATIC,7,7,256,208
-    LTEXT           "フォントの縦横比を変更する (標準 2.0)",IDC_STATIC,15,120,180,10
+    LTEXT           "ベルコード(07)による動作を選択",IDC_STATIC,15,127,180,10
+    GROUPBOX        "スクリーン",IDC_STATIC,7,7,256,209
+    LTEXT           "フォントの縦横比を変更する (標準 2.0)",IDC_STATIC,15,110,180,10
     GROUPBOX        "ウィンドウタイトル",IDC_STATIC,7,222,256,70
-    LTEXT           "スクリーン左右の余白設定",IDC_STATIC,15,101,125,10
-    LTEXT           "文字カーソルの形状(DECSCUSRで変化)と色を設定",IDC_STATIC,15,158,165,10
+    LTEXT           "スクリーン左右の余白設定",IDC_STATIC,15,93,125,10
+    LTEXT           "文字カーソルの形状(DECSCUSRで変化)と色を設定",IDC_STATIC,15,144,165,10
+    LTEXT           "OSのスリープモードへの移行を抑制する",IDC_STATIC,15,195,180,10
 END
 
 IDD_AUTORENDLG DIALOGEX 0, 0, 271, 141
@@ -2064,6 +2068,21 @@ BEGIN
     EDITTEXT        IDC_EDIT1,298,73,50,14,ES_AUTOHSCROLL
 END
 
+IDD_SECPOLICYDLG DIALOGEX 0, 0, 270, 161
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "セキュリティポリシーの設定"
+FONT 9, "MS UI Gothic", 400, 0, 0x80
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,56,140,70,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,144,140,70,14
+    CONTROL         "固定の文字列で暗号化します（安全性がありません）",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,26,59,218,10
+    CONTROL         "ユーザー名@ホスト名で暗号化します（最低限のセキュリティです）",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,26,77,218,10
+    CONTROL         "WindowsのホストSIDで暗号化します（同じパソコンで共有できます）",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON,26,95,218,10
+    CONTROL         "WindowsのユーザーSIDで暗号化します（上位のセキュリティです）",IDC_RADIO4,"Button",BS_AUTORADIOBUTTON,26,113,218,10
+    ICON            "",IDC_MSGICON,21,20,20,20
+    LTEXT           "レジストリやファイルエントリーに保存するパスワードの暗号化に使用するキーワードを設定します。変更は、次回起動時から有効になりますが既存のエントリー設定のすべてのパスワードは、読み込まれません。すべてのパスワードを再設定する必要があります。ご注意ください！",IDC_STATIC,53,15,193,31
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -2071,8 +2090,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,24,9,0
- PRODUCTVERSION 2,24,9,0
+ FILEVERSION 2,25,0,0
+ PRODUCTVERSION 2,25,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2089,12 +2108,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.24.9.0"
+            VALUE "FileVersion", "2.25.0.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.24.9.0"
+            VALUE "ProductVersion", "2.25.0.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2620,6 +2639,14 @@ BEGIN
         RIGHTMARGIN, 348
         TOPMARGIN, 7
         BOTTOMMARGIN, 115
+    END
+
+    IDD_SECPOLICYDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 263
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 154
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -3285,6 +3312,12 @@ BEGIN
 0x6556, 0x7472, 0x6369, 0x6c61, 0x422f, 0x696c, 0x6b6e, "\000" 
     IDC_DEFCARET, 0x403, 16, 0
 0x6556, 0x7472, 0x6369, 0x6c61, 0x532f, 0x6574, 0x6461, 0x0079, 
+    IDC_SLEEPMODE, 0x403, 5, 0
+0x6f4e, 0x656e, "\000" 
+    IDC_SLEEPMODE, 0x403, 7, 0
+0x6341, 0x6974, 0x6576, "\000" 
+    IDC_SLEEPMODE, 0x403, 7, 0
+0x6c41, 0x6177, 0x7379, "\000" 
     IDC_TITLENAME, 0x403, 3, 0
 0x4525, "\000" 
     IDC_TITLENAME, 0x403, 3, 0
@@ -4787,6 +4820,7 @@ STRINGTABLE
 BEGIN
     IDM_TABMULTILINE        "タブバーをボタンスタイルの複数行で表示する\nタブバーのマルチライン"
     IDM_QUICKCONNECT        "クィックバーで接続"
+    IDM_SECPORICY           "エントリー情報のパスワードの暗号化に関する設定を行う\nパスワード暗号化設定"
 END
 
 #endif    // 日本語 (日本) resources

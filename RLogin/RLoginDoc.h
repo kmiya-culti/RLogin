@@ -66,6 +66,12 @@
 #define	LOGDEBUG_INSIDE		3
 #define	LOGDEBUG_FLASH		4
 
+#define	SLEEPSTAT_CONNECT	0
+#define	SLEEPSTAT_CLOSE		1
+#define	SLEEPSTAT_DISABLE	2
+#define	SLEEPSTAT_ENABLE	3
+#define	SLEEPSTAT_RESET		4
+
 class CRLoginDoc : public CDocument
 {
 	DECLARE_DYNCREATE(CRLoginDoc)
@@ -123,6 +129,7 @@ public:
 	class CStatusDlg *m_pStatusWnd;
 	class CStatusDlg *m_pMediaCopyWnd;
 	CWordArray m_OptFixCheck;
+	BOOL m_bSleepDisable;
 
 	static void LoadOption(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab);
 	static void SaveOption(CServerEntry &ServerEntry, CTextRam &TextRam, CKeyNodeTab &KeyTab, CKeyMacTab &KeyMac, CParamTab &ParamTab);
@@ -152,6 +159,8 @@ public:
 
 	void InitOptFixCheck(int Uid);
 	BOOL SetOptFixEntry(LPCTSTR entryName);
+
+	void SetSleepReq(int req);
 
 	int SocketOpen();
 	void SocketClose();

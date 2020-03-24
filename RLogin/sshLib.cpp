@@ -36,7 +36,13 @@ static char THIS_FILE[]=__FILE__;
 #include "openssl/des.h"
 #include "openssl/rand.h"
 
-#if	OPENSSL_VERSION_NUMBER >= 0x10100000L
+#if	OPENSSL_VERSION_NUMBER >= 0x1010105fL
+extern "C" {
+	#include "crypto/evp.h"
+	#include "crypto/chacha.h"
+	#include "crypto/poly1305.h"
+}
+#elif	OPENSSL_VERSION_NUMBER >= 0x10100000L
 extern "C" {
 	#include "internal/evp_int.h"
 	#include "internal/chacha.h"

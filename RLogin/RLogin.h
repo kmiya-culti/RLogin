@@ -46,6 +46,10 @@
 #define	EMOJI_HASH			16
 #define	EMOJI_LISTMAX		64
 
+#define	SLEEPREQ_DISABLE	0
+#define	SLEEPREQ_ENABLE		1
+#define	SLEEPREQ_RESET		2
+
 //////////////////////////////////////////////////////////////////////
 // CCommandLineInfoEx
 
@@ -227,6 +231,7 @@ public:
 	static BOOL IsRLoginWnd(HWND hWnd);
 	static HWND GetRLoginFromPoint(CPoint point);
 	static BOOL IsWinVerCheck(int ver, int op = VER_EQUAL);	// VER_GREATER_EQUAL
+	static void SetSleepMode(int req);
 
 	CResDataBase m_ResDataBase;
 
@@ -270,6 +275,7 @@ public:
 	afx_msg void OnUpdateSaveregfile(CCmdUI *pCmdUI);
 	afx_msg void OnRegistapp();
 	afx_msg void OnUpdateRegistapp(CCmdUI *pCmdUI);
+	afx_msg void OnSecporicy();
 };
 
 extern CRLoginApp theApp;

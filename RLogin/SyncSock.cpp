@@ -82,6 +82,8 @@ void CSyncSock::ThreadCommand(int cmd)
 		m_pThreadEvent->ResetEvent();
 		AfxBeginThread(ProcThread, this, THREAD_PRIORITY_NORMAL);
 		Sleep(100);
+		if ( m_pDoc != NULL )
+			m_pDoc->SetSleepReq(SLEEPSTAT_DISABLE);
 		break;
 	case THCMD_ENDOF:
 		if ( m_DoAbortFlag )
@@ -92,6 +94,8 @@ void CSyncSock::ThreadCommand(int cmd)
 		if ( m_ResvDoit && !m_ResvPath.IsEmpty() )
 			m_pDoc->DoDropFile();
 		m_ResvDoit = FALSE;
+		if ( m_pDoc != NULL )
+			m_pDoc->SetSleepReq(SLEEPSTAT_ENABLE);
 		break;
 	case THCMD_DLGOPEN:
 		if ( m_ProgDlg.m_hWnd != NULL )
@@ -256,6 +260,8 @@ void CSyncSock::DoAbort()
 	WaitForSingleObject(m_pThreadEvent->m_hObject, INFINITE);
 	if ( m_pDoc != NULL && m_pDoc->m_pSock != NULL )
 		m_pDoc->m_pSock->SetRecvSyncMode(FALSE);
+	if ( m_pDoc != NULL )
+		m_pDoc->SetSleepReq(SLEEPSTAT_ENABLE);
 }
 
 //////////////////////////////////////////////////////////////////////

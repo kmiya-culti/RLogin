@@ -68,6 +68,7 @@
 #define IDD_EXTFILEDLG                  164
 #define IDD_FILEUPSENDDLG               165
 #define IDD_FILEDOWNDLG                 166
+#define IDD_SECPOLICYDLG                167
 #define IDR_GRAPWND                     300
 #define IDR_MAINFRAME                   301
 #define IDR_POPUPMENU                   302
@@ -575,6 +576,7 @@
 #define IDC_FONTCODE                    2131
 #define IDC_FONTHW                      2132
 #define IDC_FONTLIST                    2133
+#define IDC_SLEEPMODE                   2133
 #define IDC_FONTLISTDEL                 2134
 #define IDC_FONTLISTEDIT                2135
 #define IDC_FONTLISTNEW                 2136
@@ -1091,14 +1093,15 @@
 #define IDM_HISTOGRAM                   5135
 #define IDM_TABMULTILINE                5136
 #define IDM_QUICKCONNECT                5137
+#define IDM_SECPORICY                   5138
 #define IDM_FIRST_MDICHILD              0xF800
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        165
-#define _APS_NEXT_COMMAND_VALUE         5138
+#define _APS_NEXT_RESOURCE_VALUE        168
+#define _APS_NEXT_COMMAND_VALUE         5139
 #define _APS_NEXT_CONTROL_VALUE         2499
 #define _APS_NEXT_SYMED_VALUE           670
 #endif

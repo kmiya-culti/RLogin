@@ -1867,7 +1867,7 @@ void CMainFrame::AddChild(CWnd *pWnd)
 	CPaneFrame *pPane;
 
 	if ( m_pTopPane == NULL ) {
-		m_pTopPane = new CPaneFrame(this, pWnd->m_hWnd, NULL);
+		pPane = m_pTopPane = new CPaneFrame(this, pWnd->m_hWnd, NULL);
 		m_pTopPane->MoveFrame();
 	} else if ( (pPane = m_pTopPane->GetNull()) != NULL ) {
 		pPane->Attach(pWnd->m_hWnd);

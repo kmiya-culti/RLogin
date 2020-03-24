@@ -4403,6 +4403,7 @@ CKeyNode::CKeyNode()
 }
 LPCTSTR CKeyNode::GetMaps()
 {
+	int n;
 	LPCWSTR p;
 	CString tmp;
 	
@@ -4417,7 +4418,7 @@ LPCTSTR CKeyNode::GetMaps()
 	}
 #endif
 
-	for ( ; *p != L'\0' ; p++ ) {
+	for ( n = 0 ; n < m_Maps.GetSize() ; n += 2, p++ ) {
 		switch(*p) {
 		case L'\b': m_Temp += _T("\\b"); break;
 		case L'\t': m_Temp += _T("\\t"); break;
@@ -5200,7 +5201,7 @@ void CKeyNodeTab::SetArray(CStringArrayExt &stra)
 
 	tmp.RemoveAll();
 	tmp.AddVal(-1);
-	tmp.AddVal(10);			// KeyCode Bug Fix
+	tmp.AddVal(11);			// KeyCode Bug Fix
 	stra.AddArray(tmp);
 }
 void CKeyNodeTab::GetArray(CStringArrayExt &stra)
@@ -5369,7 +5370,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	137
+#define	CMDSKEYTABMAX	138
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -5481,6 +5482,7 @@ static const struct _CmdsKeyTab {
 	{	IDM_SEARCH_BACK,			L"$SEARCH_BACK"		},
 	{	IDM_SEARCH_NEXT,			L"$SEARCH_NEXT"		},
 	{	IDM_SEARCH_REG,				L"$SEARCH_REG"		},
+	{	IDM_SECPORICY,				L"$SECURITYCOLICY"	},
 	{	ID_SPLIT_HEIGHT,			L"$SPLIT_HEIGHT"	},
 	{	IDM_SPLIT_HEIGHT_NEW,		L"$SPLIT_HEIGHTNEW"	},
 	{	ID_SPLIT_OVER,				L"$SPLIT_OVER"		},
@@ -5656,6 +5658,13 @@ void CKeyNodeTab::BugFix(int fix)
 				p[7] = L'A';
 				p[8] = L'R';
 			}
+		}
+	}
+
+	if ( fix < 11 ) {
+		for ( n = 0 ; n < m_Node.GetSize() ; n++ ) {
+			if ( m_Node[n].m_Maps.GetSize() == 0 )
+				m_Node[n].m_Maps.PutWord(0);
 		}
 	}
 

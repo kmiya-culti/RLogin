@@ -28,8 +28,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.24.9)</TD>
-            <TD width="20%" align="right">2020/02/24</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.25.0)</TD>
+            <TD width="20%" align="right">2020/03/25</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -367,7 +367,7 @@ TD {
         <TBODY>
           <TR>
             <TD width="600">動作環境としてWindows XP x32/Windows 7 x64/Windows 10 x64にて確認しています<BR>
-            サーバーは、FreeBSD 11.2のrlogind, telnetd, sshd(openssh-8.1p1)を使用しています<BR>
+            サーバーは、FreeBSD 11.3のrlogind, telnetd, sshd(openssh-8.2p1)を使用しています<BR>
             <BR>
             「rlogin.zip」を解凍してRLogin.exeを適当な場所に置いて実行してください<BR>
             <BR>
@@ -433,6 +433,15 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2020/03/25</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.25.0/">2.25.0</A></TD>
+            <TD>2.24.9でキーコード設定が&quot;\000&quot;の場合に削除されるバグを修正<BR>
+            特殊文字に%wでウィンドウタイトルに置き換えを追加<BR>
+            スクリーン設定にOSのスリープモードの移行を抑制するオプションを追加<BR>
+            メニュー・ヘルプにセキュリティポリシーの設定を追加<BR>
+            openssl-1.1.1eに更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2020/02/24</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.24.9/">2.24.9</A></TD>
             <TD>スクリーン最大値の制限を無くすように変更<BR>
@@ -469,20 +478,6 @@ TD {
             openssl-1.1.1dに更新</TD>
           </TR>
           <TR>
-            <TD align="center">2019/08/30</TD>
-            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.24.5/">2.24.5</A></TD>
-            <TD>接続中のオプション設定でソケット回りの変更が反映されないのを修正<BR>
-            エスケープシーケンスのREPでマルチバイト文字でも表示するように変更<BR>
-            メニューの再構築でハンドルの置換を行わずにコピーするように変更</TD>
-          </TR>
-          <TR>
-            <TD align="center">2019/07/05</TD>
-            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.24.4/">2.24.4</A></TD>
-            <TD>TCPオプションにNoDelayを有効を追加<BR>
-            UTF-8の文字幅などをUnicode-12.1.0のデータに更新<BR>
-            openssl-1.1.1cに更新</TD>
-          </TR>
-          <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
           </TR>
         </TBODY>
@@ -506,7 +501,7 @@ TD {
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-1.1.1d.tar.gz</A><BR>
+                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-1.1.1e.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
@@ -515,7 +510,7 @@ TD {
                   <BR>
                   ※crypto\rand\rand_win.c<BR>
                   _WIN32_WINNT=0x0501</TD>
-                  <TD width="500" valign="top">rename openssl-1.1.1d openssl-1.1.1d-x32<BR>
+                  <TD width="500" valign="top">rename openssl-1.1.1e openssl-1.1.1e-x32<BR>
                   perl Configure VC-WIN32 no-shared<BR>
                   nmake</TD>
                 </TR>
@@ -601,7 +596,7 @@ TD {
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 1.1.1d 10 Sep 2019<BR>
+            <P>OpenSSL 1.1.1e 17 Mar 2020<BR>
             Copyright (c) 1998-2019 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>
@@ -1233,7 +1228,7 @@ TD {
                   <TD colspan="6">ヘルプ(H)</TD>
                 </TR>
                 <TR>
-                  <TD align="center" rowspan="11" width="10">&nbsp;</TD>
+                  <TD align="center" rowspan="12" width="10">&nbsp;</TD>
                   <TD valign="top" colspan="2" width="250">RLoginのバージョン情報(A)</TD>
                   <TD valign="top" width="450">プログラムやライブラリなどのバージョン情報を表示します</TD>
                   <TD valign="top" width="120" align="right"></TD>
@@ -1253,10 +1248,15 @@ TD {
                   <TD valign="top" width="150">$REGISTRY_HANDLE</TD>
                 </TR>
                 <TR>
+                  <TD valign="top" colspan="2" width="250">セキュリティポリシーの設定(S)</TD>
+                  <TD valign="top" width="450">エントリー情報で保存するパスワードの暗号化に使用するキーワードを選択します。変更は、次回起動時から有効になり、すべてのエントリーのパスワードは、削除されます。<B>すべてのパスワードを再設定する必要があります</B>のでご注意ください。また、どの設定でもセキュリティにそれなりの問題がありますので下記のパスワードロックとの併用をお薦めいたします</TD>
+                  <TD valign="top" align="right" width="120"></TD>
+                  <TD valign="top" width="150">$SECURITYCOLICY</TD>
+                </TR>
+                <TR>
                   <TD valign="top" colspan="2" width="250">ダイアログフォントの設定(D)</TD>
                   <TD valign="top" width="450">オプション設定などのダイアログで使用するフォントとサイズを設定します<BR>
-                  参照：「<A href="faq.html#DIALOGFONT">ダイアログフォントを変更する</A>」<BR>
-                  ※2.20.5よりタブバーのフォントもこの設定のフォントを使用しますが変更は、次回起動時からになります</TD>
+                  参照：「<A href="faq.html#DIALOGFONT">ダイアログフォントを変更する</A>」</TD>
                   <TD valign="top" align="right" width="120"></TD>
                   <TD valign="top" width="150">$DIALOG_FONT</TD>
                 </TR>
@@ -1296,7 +1296,7 @@ TD {
                 <TR>
                   <TD valign="top" colspan="2" width="250">パスワードロック(K)</TD>
                   <TD valign="top" width="450">パスワードによるRLogin起動の制限を行います<BR>
-                  ※ロックを解除した場合に各接続のパスワードが削除される場合があります。またセキュリティーが向上するわけではありません</TD>
+                  ※ロックを解除した場合に各接続のパスワードが削除される場合があります</TD>
                   <TD valign="top" align="right" width="120"></TD>
                   <TD valign="top" width="150">$PASSLOCK</TD>
                 </TR>
@@ -2555,6 +2555,10 @@ fi</PRE>
                   <TD>Windowsのユーザー名に置き換え</TD>
                 </TR>
                 <TR>
+                  <TD align="center"><FONT color="#c0c0c0">%w</FONT></TD>
+                  <TD><FONT color="#c0c0c0">現在のウィンドウタイトルに置き換え</FONT></TD>
+                </TR>
+                <TR>
                   <TD align="center">%{XXX}</TD>
                   <TD>環境変数を展開し簡単な編集ができます<BR>
                   <TABLE cellpadding="3">
@@ -3626,6 +3630,27 @@ function TekClock2() {
                   <TD>子ウィンドウのフォーカス移動でアクティブでないウィンドウの文字の輝度を半分に落として表示します</TD>
                 </TR>
                 <TR>
+                  <TD align="center">OSのスリープモード…</TD>
+                  <TD>
+                  <TABLE cellpadding="0" cellspacing="2">
+                    <TBODY>
+                      <TR>
+                        <TD>None</TD>
+                        <TD>OSのスリープモードの抑制をしません</TD>
+                      </TR>
+                      <TR>
+                        <TD>Active</TD>
+                        <TD>コンソールへの受信・ファイルの送受信時は、スリープモードへの移行を抑制します</TD>
+                      </TR>
+                      <TR>
+                        <TD>Always</TD>
+                        <TD>接続中は、常にスリープモードへの移行を抑制します</TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  </TD>
+                </TR>
+                <TR>
                   <TD colspan="2">ウィンドウタイトル&nbsp;</TD>
                 </TR>
                 <TR>
@@ -3673,7 +3698,7 @@ function TekClock2() {
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top" align="left"><IMG src="image022.jpg" width="611" height="511" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image022.jpg" width="611" height="541" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>

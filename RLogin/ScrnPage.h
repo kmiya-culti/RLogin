@@ -30,6 +30,7 @@ public:
 	CStatic m_ColBox;
 	COLORREF m_CaretColor;
 	CString m_TitleName;
+	int m_SleepMode;
 
 public:
 	void InitDlgItem();

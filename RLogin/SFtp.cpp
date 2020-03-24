@@ -2519,6 +2519,9 @@ void CSFtp::SetRangeProg(LPCTSTR file, LONGLONG size, LONGLONG ofs)
 			m_UpDownStat[2].EnableWindow(FALSE);
 			m_UpDownStat[3].EnableWindow(FALSE);
 
+			if ( m_pSSh != NULL && m_pSSh->m_pDocument != NULL )
+				m_pSSh->m_pDocument->SetSleepReq(SLEEPSTAT_ENABLE);
+
 		} else if ( m_ProgDiv > 0 )
 			m_UpDownProg.SetPos((int)(m_TotalPos / m_ProgDiv));
 
@@ -2538,6 +2541,9 @@ void CSFtp::SetRangeProg(LPCTSTR file, LONGLONG size, LONGLONG ofs)
 		m_UpDownProg.SetRange(0, (int)(m_TotalSize / m_ProgDiv));
 		m_UpDownProg.SetPos((int)((m_TotalPos + ofs) / m_ProgDiv));
 		m_UpDownStat[1].SetWindowText(file);
+
+		if ( m_pSSh != NULL && m_pSSh->m_pDocument != NULL )
+			m_pSSh->m_pDocument->SetSleepReq(SLEEPSTAT_DISABLE);
 	}
 }
 void CSFtp::SetPosProg(LONGLONG pos)

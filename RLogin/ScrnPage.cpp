@@ -35,6 +35,7 @@ CScrnPage::CScrnPage() : CTreePage(CScrnPage::IDD)
 	m_TtlRep = m_TtlCng = FALSE;
 	m_CaretColor = RGB(0, 0, 0);
 	m_TitleName.Empty();
+	m_SleepMode = 0;
 }
 
 CScrnPage::~CScrnPage()
@@ -60,6 +61,7 @@ void CScrnPage::DoDataExchange(CDataExchange* pDX)
 	DDX_CBString(pDX, IDC_SCRNOFFSRIGHT, m_ScrnOffsRight);
 	DDX_Control(pDX, IDC_CARETCOL, m_ColBox);
 	DDX_CBString(pDX, IDC_TITLENAME, m_TitleName);
+	DDX_CBIndex(pDX, IDC_SLEEPMODE, m_SleepMode);
 }
 
 BEGIN_MESSAGE_MAP(CScrnPage, CTreePage)
@@ -81,6 +83,7 @@ BEGIN_MESSAGE_MAP(CScrnPage, CTreePage)
 	ON_STN_CLICKED(IDC_CARETCOL, &CScrnPage::OnStnClickedCaretCol)
 	ON_CBN_EDITCHANGE(IDC_TITLENAME, &CScrnPage::OnUpdateEdit)
 	ON_CBN_SELENDCANCEL(IDC_TITLENAME, &CScrnPage::OnUpdateEdit)
+	ON_CBN_SELCHANGE(IDC_SLEEPMODE, &CScrnPage::OnUpdateEdit)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -179,6 +182,8 @@ void CScrnPage::DoInit()
 	m_ScrnOffsLeft.Format(_T("%d"),   m_pSheet->m_pTextRam->m_ScrnOffset.left);
 	m_ScrnOffsRight.Format(_T("%d"),  m_pSheet->m_pTextRam->m_ScrnOffset.right);
 
+	m_SleepMode = m_pSheet->m_pTextRam->m_SleepMode;
+
 	InitDlgItem();
 	UpdateData(FALSE);
 }
@@ -238,6 +243,8 @@ BOOL CScrnPage::OnApply()
 		m_pSheet->m_pTextRam->m_ScrnOffset.right = n;
 		m_pSheet->m_ModFlag |= UMOD_RESIZE;
 	}
+
+	m_pSheet->m_pTextRam->m_SleepMode = m_SleepMode;
 
 	return TRUE;
 }

@@ -47,7 +47,6 @@ void CProgDlg::DoDataExchange(CDataExchange* pDX)
 	//}}AFX_DATA_MAP
 }
 
-
 BEGIN_MESSAGE_MAP(CProgDlg, CDialogExt)
 	//{{AFX_MSG_MAP(CProgDlg)
 	//}}AFX_MSG_MAP

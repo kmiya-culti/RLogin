@@ -1311,10 +1311,10 @@ int CRLoginView::GetClipboard(CBuffer *bp)
 }
 int CRLoginView::SetClipboard(CBuffer *bp)
 {
-	CString buf, tmp;
+	CBuffer buf, tmp;
 	CRLoginDoc *pDoc = GetDocument();
 
-	pDoc->m_TextRam.m_IConv.RemoteToStr(pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode], (LPCSTR)*bp, buf);
+	pDoc->m_TextRam.m_IConv.RemoteToStr(pDoc->m_TextRam.m_SendCharSet[pDoc->m_TextRam.m_KanjiMode], bp, &buf);
 	
 	for ( LPCTSTR p = buf ; *p != _T('\0') ; ) {
 		if ( p[0] == _T('\x0D') && p[1] == _T('\x0A') ) {

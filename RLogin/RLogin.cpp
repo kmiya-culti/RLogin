@@ -541,6 +541,73 @@ BEGIN_MESSAGE_MAP(CAboutDlg, CDialogExt)
 END_MESSAGE_MAP()
 
 //////////////////////////////////////////////////////////////////////
+// CSecPolicyDlg
+
+class CSecPolicyDlg : public CDialogExt
+{
+	DECLARE_DYNAMIC(CSecPolicyDlg)
+
+public:
+	CSecPolicyDlg();
+
+// ダイアログ データ
+	enum { IDD = IDD_SECPOLICYDLG };
+
+public:
+	CStatic m_MsgIcon;
+	int m_MakeKeyMode;
+
+protected:
+	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート
+	virtual BOOL OnInitDialog();
+	virtual void OnOK();
+
+// 実装
+protected:
+	DECLARE_MESSAGE_MAP()
+};
+
+IMPLEMENT_DYNAMIC(CSecPolicyDlg, CDialogExt)
+
+CSecPolicyDlg::CSecPolicyDlg() : CDialogExt(CSecPolicyDlg::IDD)
+{
+	m_MakeKeyMode = MAKEKEY_USERHOST;
+}
+
+void CSecPolicyDlg::DoDataExchange(CDataExchange* pDX)
+{
+	CDialogExt::DoDataExchange(pDX);
+
+	DDX_Control(pDX, IDC_MSGICON, m_MsgIcon);
+	DDX_Radio(pDX, IDC_RADIO1, m_MakeKeyMode);
+}
+
+BOOL CSecPolicyDlg::OnInitDialog()
+{
+	CDialogExt::OnInitDialog();
+
+	m_MsgIcon.SetIcon(::LoadIcon(NULL, IDI_WARNING));
+	m_MakeKeyMode = AfxGetApp()->GetProfileInt(_T("RLoginApp"), _T("MakeKeyMode"), MAKEKEY_USERHOST);
+
+	UpdateData(FALSE);
+
+	return TRUE;
+}
+
+void CSecPolicyDlg::OnOK()
+{
+	UpdateData(TRUE);
+
+	AfxGetApp()->WriteProfileInt(_T("RLoginApp"), _T("MakeKeyMode"), m_MakeKeyMode);
+
+	CDialogExt::OnOK();
+}
+
+
+BEGIN_MESSAGE_MAP(CSecPolicyDlg, CDialogExt)
+END_MESSAGE_MAP()
+
+//////////////////////////////////////////////////////////////////////
 // CRLoginApp
 
 BEGIN_MESSAGE_MAP(CRLoginApp, CWinApp)
@@ -564,6 +631,7 @@ BEGIN_MESSAGE_MAP(CRLoginApp, CWinApp)
 	ON_UPDATE_COMMAND_UI(IDM_SAVEREGFILE, &CRLoginApp::OnUpdateSaveregfile)
 	ON_COMMAND(IDM_REGISTAPP, &CRLoginApp::OnRegistapp)
 	ON_UPDATE_COMMAND_UI(IDM_REGISTAPP, &CRLoginApp::OnUpdateRegistapp)
+	ON_COMMAND(IDM_SECPORICY, &CRLoginApp::OnSecporicy)
 END_MESSAGE_MAP()
 
 
@@ -2933,6 +3001,34 @@ void CRLoginApp::DelIdleProc(int Type, void *pParam)
 			break;
 	}
 }
+void CRLoginApp::SetSleepMode(int req)
+{
+	static int disCount = 0;
+	static clock_t lastReset = 0;
+
+	switch(req) {
+	case SLEEPREQ_DISABLE:
+		if ( disCount++ == 0 )
+			SetThreadExecutionState(ES_SYSTEM_REQUIRED | ES_CONTINUOUS);
+		break;
+	case SLEEPREQ_ENABLE:
+		if ( --disCount <= 0 ) {
+			SetThreadExecutionState(ES_CONTINUOUS);
+			lastReset = clock() + CLOCKS_PER_SEC * 20;
+			disCount = 0;
+		}
+		break;
+	case SLEEPREQ_RESET:
+		if ( disCount == 0 ) {
+			clock_t now = clock();
+			if ( lastReset == 0 || lastReset <= now ) {
+				SetThreadExecutionState(ES_CONTINUOUS);
+				lastReset = now + CLOCKS_PER_SEC * 20;
+			}
+		}
+		break;
+	}
+}
 
 //////////////////////////////////////////////////////////////////////
 // CRLoginApp メッセージ ハンドラ
@@ -3150,6 +3246,13 @@ void CRLoginApp::OnRegistapp()
 void CRLoginApp::OnUpdateRegistapp(CCmdUI *pCmdUI)
 {
 	pCmdUI->SetCheck(m_bRegistAppp);
+}
+
+void CRLoginApp::OnSecporicy()
+{
+	CSecPolicyDlg dlg;
+
+	dlg.DoModal();
 }
 
 #ifdef	USE_DIRECTWRITE
