@@ -1060,6 +1060,26 @@ ENDOF:
 
 BOOL CRLoginApp::InitInstance()
 {
+	//Load language .dll file 
+	HINSTANCE hResourceDll = NULL;
+	LANGID CurLangID = 0;
+
+	CurLangID = GetUserDefaultUILanguage();
+
+	switch(CurLangID)
+	{
+	case 0x412: //Korean
+		hResourceDll = LoadLibrary(_T("RloginKOR.dll"));
+	break;
+
+	default: //Japanese
+	break;
+	}
+
+	if (hResourceDll != NULL)
+		AfxSetResourceHandle(hResourceDll);
+
+
 	// LoadLibrary Search Path
 	HMODULE hModule;
 	if ((hModule = GetModuleHandle(_T("kernel32.dll"))) != NULL) {

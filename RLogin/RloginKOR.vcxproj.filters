@@ -1,0 +1,122 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\RLogin\res\Active.ico">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\RLogin\res\toolbar1.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\RLogin\res\attr1.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\RLogin\res\attr2.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\RLogin\res\attr3.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\RLogin\res\attr4.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\RLogin\res\attr5.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\RLogin\res\attr6.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\RLogin\res\attr7.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\RLogin\res\attr8.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\RLogin\res\bitmap1.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\RLogin\res\bitmap2.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\RLogin\res\bitmap3.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\RLogin\res\bitmap4.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\RLogin\res\bitmap5.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\RLogin\res\bitmap6.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\RLogin\res\bitmap7.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\RLogin\res\bitmap8.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\RLogin\res\bitmap9.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\RLogin\res\checkbox.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\RLogin\res\checkbox1.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\RLogin\res\checkbox2.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\RLogin\res\hatch1.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\RLogin\res\hatch2.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\RLogin\res\hatch3.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\RLogin\res\menumap1.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\RLogin\res\menumap2.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\RLogin\res\menumap3.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\RLogin\res\RLogin.ico">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\RLogin\res\RLoginDoc.ico">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\RLogin\res\Toolbar.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\RLogin\Resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="RLoginKor.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+</Project>

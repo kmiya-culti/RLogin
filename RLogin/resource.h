@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
-// Used by RLogin.rc
+// Used by RLoginKor.rc
 //
 #define IDD_ABOUTBOX                    100
 #define IDD_ALGOPARADLG                 101
