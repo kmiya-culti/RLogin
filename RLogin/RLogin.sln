@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RLogin", "RLogin.vcxproj", "{BE11FEB8-C751-4A03-97ED-648D89717202}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RloginKOR", "RloginKOR.vcxproj", "{A650B175-FEB1-40AB-A4B6-F57CAB2A82B3}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RLoginKOR", "RLoginKOR.vcxproj", "{A650B175-FEB1-40AB-A4B6-F57CAB2A82B3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

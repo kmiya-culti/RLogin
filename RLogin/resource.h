@@ -245,6 +245,7 @@
 #define IDS_SSHOPTIONCHECK              638
 #define IDS_INITENTRYINPORT             639
 #define IDS_OSCBUFFERINGMSG             640
+#define IDS_RESTART                     641
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -1094,6 +1095,7 @@
 #define IDM_TABMULTILINE                5136
 #define IDM_QUICKCONNECT                5137
 #define IDM_SECPORICY                   5138
+#define IDM_LANGUAGE                    5139
 #define IDM_FIRST_MDICHILD              0xF800
 
 // Next default values for new objects
@@ -1101,7 +1103,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        168
-#define _APS_NEXT_COMMAND_VALUE         5139
+#define _APS_NEXT_COMMAND_VALUE         5140
 #define _APS_NEXT_CONTROL_VALUE         2499
 #define _APS_NEXT_SYMED_VALUE           670
 #endif

@@ -419,6 +419,9 @@ protected:
 	afx_msg void OnQuickConnect();
 	afx_msg void OnUpdateConnect(CCmdUI *pCmdUI);
 
+	afx_msg void OnUpdateLanguage(CCmdUI *pCmdUI);
+	afx_msg void OnLanguage(UINT nId);
+
 	afx_msg LRESULT OnWinSockSelect(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnGetHostAddr(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnIConMsg(WPARAM wParam, LPARAM lParam);

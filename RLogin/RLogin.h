@@ -10,6 +10,7 @@
 #include "Data.h"
 #include "ResDataBase.h"
 #include "ExtFileDialog.h"
+#include "LanguageSupport.h" //Implement language support
 
 // CMainFrame
 #define	WM_SOCKSEL			(WM_APP + 0)
@@ -124,6 +125,7 @@ public:
 	CString m_TempDirPath;
 	BOOL m_bRegistAppp;
 	int m_MakeKeyMode;
+	CLanguageSupport m_LanguageSupport;
 
 #ifdef	USE_KEYMACGLOBAL
 	CKeyMacTab m_KeyMacGlobal;

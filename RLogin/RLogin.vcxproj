@@ -307,6 +307,7 @@
     <ClCompile Include="Kermit.cpp" />
     <ClCompile Include="KeyPage.cpp" />
     <ClCompile Include="KeyParaDlg.cpp" />
+    <ClCompile Include="LanguageSupport.cpp" />
     <ClCompile Include="ListCtrlExt.cpp" />
     <ClCompile Include="Login.cpp" />
     <ClCompile Include="MainFrm.cpp" />
@@ -413,6 +414,7 @@
     <ClInclude Include="Kermit.h" />
     <ClInclude Include="KeyPage.h" />
     <ClInclude Include="KeyParaDlg.h" />
+    <ClInclude Include="LanguageSupport.h" />
     <ClInclude Include="ListCtrlExt.h" />
     <ClInclude Include="Login.h" />
     <ClInclude Include="MidiData.h" />

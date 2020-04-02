@@ -207,6 +207,8 @@ BEGIN
         MENUITEM "レジストリをファイルに保存(&B)",           IDM_SAVEREGFILE
         MENUITEM "リソースをファイルに保存(&R)",            IDM_SAVERESFILE
         MENUITEM "パスワードロック(&K)",                IDM_PASSWORDLOCK
+		MENUITEM SEPARATOR
+		MENUITEM "言語(&L)",                               IDM_LANGUAGE
     END
 END
 
@@ -371,6 +373,8 @@ BEGIN
         MENUITEM "レジストリをファイルに保存(&B)",           IDM_SAVEREGFILE
         MENUITEM "リソースをファイルに保存(&R)",            IDM_SAVERESFILE
         MENUITEM "パスワードロック(&K)",                IDM_PASSWORDLOCK
+		MENUITEM SEPARATOR
+		MENUITEM "言語(&L)",                               IDM_LANGUAGE
     END
 END
 
@@ -4350,6 +4354,11 @@ END
 STRINGTABLE
 BEGIN
     IDS_OSCBUFFERINGMSG     "%sシーケンスを実行中です。キャンセルは画面右上の(C)をクリック"
+END
+
+STRINGTABLE
+BEGIN
+	IDS_RESTART				"Please restart %1"
 END
 
 STRINGTABLE

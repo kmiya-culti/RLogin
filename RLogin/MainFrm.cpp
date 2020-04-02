@@ -857,6 +857,9 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_COMMAND(IDM_QUICKCONNECT, &CMainFrame::OnQuickConnect)
 	ON_BN_CLICKED(IDC_CONNECT, &CMainFrame::OnQuickConnect)
 	ON_UPDATE_COMMAND_UI(IDC_CONNECT, &CMainFrame::OnUpdateConnect)
+
+	ON_COMMAND_RANGE(ID_LANGUAGE_FIRST, ID_LANGUAGE_LAST, OnLanguage)
+	ON_UPDATE_COMMAND_UI(IDM_LANGUAGE, OnUpdateLanguage)
 END_MESSAGE_MAP()
 
 static const UINT indicators[] =
@@ -3933,6 +3936,17 @@ void CMainFrame::OnQuickConnect()
 void CMainFrame::OnUpdateConnect(CCmdUI *pCmdUI)
 {
 	pCmdUI->Enable(m_bQuickConnect ? TRUE : FALSE);
+}
+
+void CMainFrame::OnLanguage(UINT nID)
+{ 
+  // When language clicked in language submenu
+  theApp.m_LanguageSupport.OnSwitchLanguage(nID); 
+}
+void CMainFrame::OnUpdateLanguage(CCmdUI *pCmdUI) 
+{
+  // Creates the languages submenu
+  theApp.m_LanguageSupport.CreateMenu(pCmdUI); 
 }
 
 /////////////////////////////////////////////////////////////////////////////

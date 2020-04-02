@@ -1060,26 +1060,6 @@ ENDOF:
 
 BOOL CRLoginApp::InitInstance()
 {
-	//Load language .dll file 
-	HINSTANCE hResourceDll = NULL;
-	LANGID CurLangID = 0;
-
-	CurLangID = GetUserDefaultUILanguage();
-
-	switch(CurLangID)
-	{
-	case 0x412: //Korean
-		hResourceDll = LoadLibrary(_T("RloginKOR.dll"));
-	break;
-
-	default: //Japanese
-	break;
-	}
-
-	if (hResourceDll != NULL)
-		AfxSetResourceHandle(hResourceDll);
-
-
 	// LoadLibrary Search Path
 	HMODULE hModule;
 	if ((hModule = GetModuleHandle(_T("kernel32.dll"))) != NULL) {
@@ -1162,6 +1142,16 @@ BOOL CRLoginApp::InitInstance()
 	// 設定が格納されているレジストリ キーを変更します。
 	if ( bInitFile == FALSE )
 		SetRegistryKey(_T("Culti"));
+
+
+	// CWinApp::InitInstance() automatically loads satellite DLL according to OS Language.
+	// In that case, resource DLL that is chosen manually by user won't be loaded.
+	// So this code unloads the DLL loaded by CWinApp::InitInstance(), 
+	// and sets resource to default .exe resource.
+	AfxSetResourceHandle(AfxGetApp()->m_hInstance);
+
+	//Load Language DLL chosen by user.                                           
+	m_LanguageSupport.LoadBestLanguage(); 
 
 	// 標準の INI ファイルのオプションをロードします (MRU を含む)
 	LoadStdProfileSettings(4);
