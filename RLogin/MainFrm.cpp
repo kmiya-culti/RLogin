@@ -640,8 +640,8 @@ void CPaneFrame::SetBuffer(CBuffer *buf, BOOL bEntry)
 
 	tmp.Format("%d\t%d\t", m_Style, sz);
 	buf->PutStr(tmp);
-	m_pLeft->SetBuffer(buf);
-	m_pRight->SetBuffer(buf);
+	m_pLeft->SetBuffer(buf, bEntry);
+	m_pRight->SetBuffer(buf, bEntry);
 }
 class CPaneFrame *CPaneFrame::GetBuffer(class CMainFrame *pMain, class CPaneFrame *pPane, class CPaneFrame *pOwn, CBuffer *buf)
 {
@@ -3835,7 +3835,7 @@ void CMainFrame::OnGetMinMaxInfo(MINMAXINFO* lpMMI)
 }
 void CMainFrame::OnDeleteOldEntry()
 {
-	if ( ::AfxMessageBox(IDS_DELOLDENTRYMSG, MB_ICONQUESTION | MB_YESNO) == IDYES )
+	if ( ::AfxMessageBox(CStringLoad(IDS_DELOLDENTRYMSG), MB_ICONQUESTION | MB_YESNO) == IDYES )
 		((CRLoginApp *)AfxGetApp())->DelProfileSection(_T("ServerEntryTab"));
 }
 LRESULT CMainFrame::OnSetMessageString(WPARAM wParam, LPARAM lParam)

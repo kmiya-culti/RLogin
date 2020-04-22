@@ -109,7 +109,7 @@ BOOL CViewDropTarget::DescToDrop(CWnd* pWnd, COleDataObject* pDataObject, HGLOBA
 		if ( (pGroupDesc->fgd[n].dwFlags & FD_ATTRIBUTES) != 0 && (pGroupDesc->fgd[n].dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0 ) {
 
 			if ( doSub == 0 )
-				doSub = (AfxMessageBox(IDS_DROPSUBDIRCHECK, MB_ICONQUESTION | MB_YESNO) == IDYES ? 2 : 1);
+				doSub = (AfxMessageBox(CStringLoad(IDS_DROPSUBDIRCHECK), MB_ICONQUESTION | MB_YESNO) == IDYES ? 2 : 1);
 
 			if ( doSub == 1 )
 				continue;

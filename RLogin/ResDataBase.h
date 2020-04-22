@@ -19,6 +19,7 @@ public:
 	inline BOOL IsEmpty() { return (m_Type == 0xFFFF || m_String.IsEmpty() ? TRUE : FALSE); }
 
 	const CSizeStr & operator = (CSizeStr &data);
+	BOOL operator == (CSizeStr &data);
 
 	CSizeStr();
 	~CSizeStr();
@@ -122,6 +123,7 @@ public:
 
 	void SetIndex(int mode, class CStringIndex &index);
 	void Serialize(int mode, class CBuffer &buf);
+	void CopyData(CResMenuBase &data);
 
 	HMENU GetMenuHandle();
 
@@ -172,6 +174,7 @@ public:
 	BYTE      m_charset;
 	CString   m_typeface;
 
+	BOOL	m_bInst;
 	HGLOBAL m_hTemplate;
 	HGLOBAL m_hInitData;
 	CArray<CDlgItemData, CDlgItemData &> m_Item;
@@ -179,6 +182,7 @@ public:
 
 	void SetIndex(int mode, class CStringIndex &index);
 	void Serialize(int mode, class CBuffer &buf);
+	void CopyData(CDlgTempBase &data);
 
 	HGLOBAL GetDialogHandle();
 	HGLOBAL GetInitDataHandle();
@@ -213,9 +217,14 @@ public:
 //////////////////////////////////////////////////////////////////////
 // CResDataBase
 
+#define	RESFILE_TYPE	5	// 4 = OEM, 5 = UTF-8
+
 class CResDataBase : CObject
 {
 public:
+	LANGID m_LangId;
+	CString m_Transrate;
+	CString m_Language;
 	CArray<CDlgTempBase, CDlgTempBase &> m_Dialog;
 	CArray<CResStringBase, CResStringBase &> m_String;
 	CArray<CResMenuBase, CResMenuBase &> m_Menu;

@@ -2316,11 +2316,11 @@ void CTextRam::SaveHistory()
 		m_HisFhd.Close();
 
 	} catch(CFileException* pEx) {
-		AfxMessageBox(IDE_HISTORYBACKUPERROR);
+		AfxMessageBox(CStringLoad(IDE_HISTORYBACKUPERROR));
 		pEx->Delete();
 		return;
 	} catch(...) {
-		AfxMessageBox(IDE_HISTORYBACKUPERROR);
+		AfxMessageBox(CStringLoad(IDE_HISTORYBACKUPERROR));
 	}
 }
 void CTextRam::SaveLogFile()

@@ -255,7 +255,7 @@ BOOL CRLoginDoc::DoFileSave()
 
 	} else if ( m_ServerEntry.m_DocType == DOCTYPE_REGISTORY ) {
 		if ( m_ServerEntry.m_bOptFixed ) {
-			if ( ::AfxMessageBox(IDS_OPTFIXEDSAVEMSG, MB_ICONQUESTION | MB_YESNO) != IDYES )
+			if ( ::AfxMessageBox(CStringLoad(IDS_OPTFIXEDSAVEMSG), MB_ICONQUESTION | MB_YESNO) != IDYES )
 				return FALSE;
 			m_ServerEntry.m_bOptFixed = FALSE;
 		}
@@ -1182,7 +1182,7 @@ BOOL CRLoginDoc::SetOptFixEntry(LPCTSTR entryName)
 	for ( n = 0 ; n < pTab->m_Data.GetSize() ; n++ ) {
 		if ( pTab->m_Data[n].m_EntryName.Compare(entryName) == 0 ) {
 			if ( m_OptFixCheck[n] != FALSE ) {
-				AfxMessageBox(IDE_OPTFIXDEEPENTRY);
+				AfxMessageBox(CStringLoad(IDE_OPTFIXDEEPENTRY));
 				return FALSE;
 			}
 
@@ -1201,7 +1201,7 @@ BOOL CRLoginDoc::SetOptFixEntry(LPCTSTR entryName)
 		}
 	}
 
-	AfxMessageBox(IDE_OPTFIXNOTFOUND);
+	AfxMessageBox(CStringLoad(IDE_OPTFIXNOTFOUND));
 	return FALSE;
 }
 void CRLoginDoc::SetSleepReq(int req)
@@ -1745,7 +1745,7 @@ void CRLoginDoc::OnSocketClose()
 
 	CWnd *pWnd = GetAciveView();
 
-	if (m_TextRam.IsOptEnable(TO_RLREOPEN) && pWnd != NULL && AfxMessageBox(IDS_SOCKREOPEN, MB_ICONQUESTION | MB_YESNO) == IDYES )
+	if (m_TextRam.IsOptEnable(TO_RLREOPEN) && pWnd != NULL && AfxMessageBox(CStringLoad(IDS_SOCKREOPEN), MB_ICONQUESTION | MB_YESNO) == IDYES )
 		pWnd->PostMessage(WM_COMMAND, IDM_REOPENSOCK, (LPARAM)0);
 	else if ( m_TextRam.IsOptEnable(TO_RLNOTCLOSE) || ((CMainFrame *)::AfxGetMainWnd())->IsTimerIdleBusy() )
 		UpdateAllViews(NULL, UPDATE_DISPMSG, (CObject *)_T("Closed"));
@@ -1943,7 +1943,7 @@ SKIPINPUT:
 		hosts.GetParam(m_ServerEntry.m_HostName);
 
 		if ( hosts.GetSize() > 1 ) {
-			if ( hosts.GetSize() > 20 && AfxMessageBox(IDS_TOOMANYHOSTNAME, MB_ICONWARNING | MB_YESNO) != IDYES )
+			if ( hosts.GetSize() > 20 && AfxMessageBox(CStringLoad(IDS_TOOMANYHOSTNAME), MB_ICONWARNING | MB_YESNO) != IDYES )
 				return FALSE;
 			CCommandLineInfoEx cmds;
 			cmds.ParseParam(_T("inpane"), TRUE, FALSE);
@@ -2063,7 +2063,7 @@ void CRLoginDoc::OnLogOpen()
 		return;
 
 	if ( !LogOpen(dlg.GetPathName()) ) {
-		AfxMessageBox(IDE_LOGOPENERROR);
+		AfxMessageBox(CStringLoad(IDE_LOGOPENERROR));
 		delete m_pLogFile;
 		m_pLogFile = NULL;
 		return;
@@ -2076,7 +2076,7 @@ void CRLoginDoc::OnUpdateLogOpen(CCmdUI* pCmdUI)
 
 void CRLoginDoc::OnLoadDefault() 
 {
-	if ( AfxMessageBox(IDS_ALLINITREQ, MB_ICONQUESTION | MB_YESNO) != IDYES )
+	if ( AfxMessageBox(CStringLoad(IDS_ALLINITREQ), MB_ICONQUESTION | MB_YESNO) != IDYES )
 		return;
 
 	LoadDefOption(m_TextRam, m_KeyTab, m_KeyMac, m_ParamTab);
@@ -2307,7 +2307,7 @@ void CRLoginDoc::OnScript()
 	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
-	if ( m_pScript->m_Code.GetSize() > 0 && AfxMessageBox(IDS_SCRIPTNEW, MB_ICONQUESTION | MB_YESNO) == IDYES ) {
+	if ( m_pScript->m_Code.GetSize() > 0 && AfxMessageBox(CStringLoad(IDS_SCRIPTNEW), MB_ICONQUESTION | MB_YESNO) == IDYES ) {
 		if ( m_pScript != NULL )
 			delete m_pScript;
 		m_pScript = new CScript;

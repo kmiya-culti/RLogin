@@ -1002,13 +1002,11 @@ class CTranslateString : public CObject
 {
 public:
 	BOOL m_bSplitFlag;
-	TCHAR m_SplitChar;
 	CString *m_pBaseString;
 	CString m_SourceString;
 	CString m_FrontString;
-	CString m_AddString;
+	CString m_BackString;
 
-	void SetSourceString(LPCTSTR str);
 	void SetTargetString(LPCTSTR str);
 		
 	const CTranslateString & operator = (CTranslateString &data);

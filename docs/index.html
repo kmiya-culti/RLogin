@@ -28,8 +28,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.25.0)</TD>
-            <TD width="20%" align="right">2020/03/25</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.25.1)</TD>
+            <TD width="20%" align="right">2020/04/23</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -188,6 +188,7 @@ TD {
                           <LI><A href="faq.html#SSHCASCADE">SSHによる多段接続</A>
                           <LI><A href="faq.html#LINECHAR">罫線が表示されない</A>
                           <LI><A href="faq.html#FILEUPDOWN">ファイル転送</A>
+                          <LI><A href="faq.html#LANG">RLoginの多言語化</A>
                         </OL>
                         </TD>
                       </TR>
@@ -373,13 +374,36 @@ TD {
             <BR>
             レジストリは、”HKEY_CURRENT_USER\Software\Culti\RLogin”を使用します。アンイストールする場合は、このレジストリを削除してください<BR>
             <BR>
-            2.24.7より作業フォルダもしくは、実行プログラムと同じフォルダに「RLogin.rlg」を作成しておくとサーバーエントリーが無い場合に読み込みを確認します。ひな形として利用できます<BR>
+            RLogin起動時の作業フォルダ、RLogin.exeがあるフォルダに下記のファイルやフォルダがあると各種設定などが変更されます<BR>
             <BR>
-            作業フォルダもしくは、実行プログラムと同じフォルダに「RLogin.ini」を作成しておくとレジストリに保存せずにプライベートプロファイルを使用します<BR>
-            <BR>
-            ※プライベートプロファイルは、複数のプロセスからの変更などに弱いです。また、ファイルベースで意図せぬハングアップやファイルのコピーなどで壊れる場合がありレジストリベースより<B>リスクが高くなり動作も非常に遅い</B>と思いますのでご注意ください<BR>
-            <BR>
-            ※2.22.0からOSの言語設定に依存しないようにレジストリに保存する文字列をUnicodeに統一しました。しかしプライベートプロファイルは、OSの言語設定に強く依存しています。（プライベートプロファイルでもエントリー情報などは、Unicodeに移行します)<BR>
+            <TABLE cellpadding="3">
+              <TBODY>
+                <TR>
+                  <TD valign="top">RLogin.ini</TD>
+                  <TD>レジストリに保存せずにプライベートプロファイルを使用します<BR>
+                  ※プライベートプロファイルは、複数のプロセスからの変更などに弱いです。また、ファイルベースで意図せぬハングアップやファイルのコピーなどで壊れる場合がありレジストリベースより<B>リスクが高くなり動作も非常に遅い</B>と思いますのでご注意ください</TD>
+                </TR>
+                <TR>
+                  <TD valign="top">RLogin.rlg</TD>
+                  <TD>サーバーエントリーが無い場合に読み込みを確認します。ひな形として利用できます</TD>
+                </TR>
+                <TR>
+                  <TD valign="top">RLogin_rc.txt</TD>
+                  <TD>独自のリソースを読み込みます。作成は、<A href="#RESOURCE">リソースをファイルに保存</A>で出来ます</TD>
+                </TR>
+                <TR>
+                  <TD valign="top">lang\RLogin_??.txt</TD>
+                  <TD>OSの言語設定に合ったリソースファイルを読込ます<BR>
+                  参照：<A href="faq.html#LANG" style="font-family: Meiryo; font-size: 14.4px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: left; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255);">RLoginの多言語化</A><BR>
+                  <A href="lang.zip">Multi Language Resource File Pack (lang.zip)</A></TD>
+                </TR>
+                <TR>
+                  <TD valign="top">emoji\????.png</TD>
+                  <TD><A href="#EXTOPT">拡張機能のオプション設定</A>の485をチェックするとOSにカラー絵文字の表示機能が無い場合、png画像で絵文字を表示するこが出来ます<BR>
+                  <SPAN style="color: rgb(0, 0, 0); font-family: Meiryo; font-size: 14.4px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;"></SPAN><A href="emoji.zip" style="font-family: Meiryo; font-size: 14.4px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px;">カラー絵文字のPNG画像ファイル</A></TD>
+                </TR>
+              </TBODY>
+            </TABLE>
             <BR>
             ※2.22.5からGitHubにも<A href="https://github.com/kmiya-culti/RLogin/">ソースコード</A>及び<A href="https://github.com/kmiya-culti/RLogin/releases/">実行プログラム</A>を登録するようにしました。このページもGitHubの<A href="https://kmiya-culti.github.io/RLogin/">https://kmiya-culti.github.io/RLogin/</A>で参照できます。http://nanno.dip.jp/がアクセスできない場合などにご利用ください。さらに、バグ報告や機能の要望なども<A href="https://github.com/kmiya-culti/RLogin/issues">GitHubのIssues</A>が使用できます</TD>
             <TD valign="top" align="left"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="120" height="120" border="0"></A></TD>
@@ -433,6 +457,16 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2020/04/23</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.25.1/">2.25.1</A></TD>
+            <TD>リソースをファイルに保存する文字コードをUTF-8に変更<BR>
+            OSの言語設定にあったリソースファイルを起動時に読み込み<BR>
+            RLoginを他言語で利用する為のlang.zipを試しに作成<BR>
+            Sixel Graphicsのormodeに対応<BR>
+            接続中に「現在の分割を保存」を行うと不正になるバグを修正<BR>
+            openssl-1.1.1gに更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2020/03/25</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.25.0/">2.25.0</A></TD>
             <TD>2.24.9でキーコード設定が&quot;\000&quot;の場合に削除されるバグを修正<BR>
@@ -470,14 +504,6 @@ TD {
             エントリーのひな形としてRLogin.rlgの読み込みを行うように変更</TD>
           </TR>
           <TR>
-            <TD align="center">2019/10/21</TD>
-            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.24.6/">2.24.6</A></TD>
-            <TD>その他オプションを継承でスクリプト関連が継承されないバグを修正<BR>
-            scpで作成されるファイルのパーミションをオーナー以外も有効に変更<BR>
-            プロトコルpipeがファイルに保存されないバグを修正<BR>
-            openssl-1.1.1dに更新</TD>
-          </TR>
-          <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
           </TR>
         </TBODY>
@@ -501,7 +527,7 @@ TD {
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-1.1.1e.tar.gz</A><BR>
+                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-1.1.1g.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
@@ -510,7 +536,7 @@ TD {
                   <BR>
                   ※crypto\rand\rand_win.c<BR>
                   _WIN32_WINNT=0x0501</TD>
-                  <TD width="500" valign="top">rename openssl-1.1.1e openssl-1.1.1e-x32<BR>
+                  <TD width="500" valign="top">rename openssl-1.1.1g openssl-1.1.1g-x32<BR>
                   perl Configure VC-WIN32 no-shared<BR>
                   nmake</TD>
                 </TR>
@@ -596,7 +622,7 @@ TD {
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 1.1.1e 17 Mar 2020<BR>
+            <P>OpenSSL 1.1.1g 21 Apr 2020<BR>
             Copyright (c) 1998-2019 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>
@@ -1288,6 +1314,7 @@ TD {
                 <TR>
                   <TD valign="top" colspan="2" width="250">リソースをファイルに保存(R)</TD>
                   <TD valign="top" width="450">リソースを編集可能なテキストでファイルに保存します。実行時の作業フォルダもしくは、RLogin.exeと同じフォルダにRLogin_rc.txtで保存すると次回起動時に読み込みます<BR>
+                  参照：「<A href="#RESOURCE">リソースをファイルに保存</A>」<BR>
                   ※変更した場合に不都合が起きる可能性があります。文字列の変更程度です。また変更できないリソースもあります<BR>
                   ※RLogin_rc.txtは、バージョンに依存します</TD>
                   <TD valign="top" align="right" width="120"></TD>
@@ -2555,8 +2582,8 @@ fi</PRE>
                   <TD>Windowsのユーザー名に置き換え</TD>
                 </TR>
                 <TR>
-                  <TD align="center"><FONT color="#c0c0c0">%w</FONT></TD>
-                  <TD><FONT color="#c0c0c0">現在のウィンドウタイトルに置き換え</FONT></TD>
+                  <TD align="center">%w</TD>
+                  <TD>現在のウィンドウタイトルに置き換え</TD>
                 </TR>
                 <TR>
                   <TD align="center">%{XXX}</TD>
@@ -5730,7 +5757,10 @@ function TekClock2() {
                   <TD width="30%" colspan="2"><SPAN class="short_text" id="result_box" lang="en">Automatic Translation</SPAN></TD>
                 </TR>
                 <TR>
-                  <TD colspan="2"><A href="https://www.microsoft.com/ja-jp/translator/">Microsoft　Translator</A>の<A href="https://www.microsoft.com/ja-jp/translator/translatorapi.aspx">Microsoft Translator API</A>を使用して自動翻訳します。基本有料サービスですが無料の範囲で翻訳できると思います</TD>
+                  <TD colspan="2"><A href="https://www.microsoft.com/ja-jp/translator/">Microsoft　Translator</A>の<A href="https://www.microsoft.com/ja-jp/translator/translatorapi.aspx">Microsoft Translator API</A>を使用して自動翻訳します。基本有料サービスですが無料の範囲で翻訳できると思います。また、有料ですがGoogle翻訳APIを使用するこができます。Client
+                  Idを空白にしてClient SecretにGoogle API Keyを設定してください。さらに2.25.1から<A href="https://developers.google.com/apps-script/">Google App Script</A>を作成して<A href="gascript.txt">ウェブアプリケーション</A>のURLをClient Secretに設定すれば利用することもできます<BR>
+                  <BR>
+                  参照：「<A href="faq.html#LANG">RLoginの多言語化</A>」</TD>
                 </TR>
                 <TR>
                   <TD width="30%" align="center">Client Id</TD>
@@ -5756,7 +5786,7 @@ function TekClock2() {
                   <BR>
                   Loginのあるフォルダ／実行時の作業フォルダにRLogin_rc.txtを置くと起動時にダイヤログやメニューなどが読み込まれます<BR>
                   <BR>
-                  リソースファイルは、OSの言語設定に依存した文字コードで保存します（日本語ならSHIFT-JISです）先にOSの言語設定を行わないとその言語が正しく保存されませんのでご注意ください</TD>
+                  ※2.25.1からリソースファイルの文字コードをOSの言語設定に依存しないようにUTF-8に変更しました。編集する場合にご注意ください</TD>
                 </TR>
               </TBODY>
             </TABLE>

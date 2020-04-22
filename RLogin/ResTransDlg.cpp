@@ -75,7 +75,16 @@ void CResTransDlg::TranslateProc(UINT msg, WPARAM wParam, LPARAM lParam)
 		case TRANSPROC_START:
 			UpdateData(TRUE);
 			m_TransExec.EnableWindow(FALSE);
-			m_ProcStat = (m_ClientId.IsEmpty() ? TRANSPROC_GOOGLEREQ : TRANSPROC_TOKENREQ);
+			// no break
+
+		case TRANSPROC_RESTART:
+			if ( m_ClientId.IsEmpty() ) {
+				if ( _tcsncmp(m_ClientSecret, _T("https://script.google.com/macros/"), 33) == 0 )
+					m_ProcStat = TRANSPROC_GASCRIPTREQ;
+				else
+					m_ProcStat = TRANSPROC_GOOGLEREQ;
+			} else
+				m_ProcStat = TRANSPROC_TOKENREQ;
 			break;
 
 		case TRANSPROC_TOKENREQ:
@@ -202,7 +211,7 @@ void CResTransDlg::TranslateProc(UINT msg, WPARAM wParam, LPARAM lParam)
 					break;
 				}
 
-				for ( n = 0 ; (m_TransPos + n) < m_TransNext && n < index.GetSize() ; n++ )
+				for ( n = 0 ; (m_TransPos + n) < m_TransMax && n < index.GetSize() ; n++ )
 					m_TransStrTab[m_TransPos + n].SetTargetString((LPCTSTR)index[n][_T("TranslatedText")]);
 
 				m_TransPos += n;
@@ -278,7 +287,7 @@ void CResTransDlg::TranslateProc(UINT msg, WPARAM wParam, LPARAM lParam)
 
 				ip = &(index[_T("data")][_T("translations")]);
 
-				for ( n = 0 ; (m_TransPos + n) < m_TransNext && n < index.GetSize() ; n++ )
+				for ( n = 0 ; (m_TransPos + n) < m_TransMax && n < index.GetSize() ; n++ )
 					m_TransStrTab[m_TransPos + n].SetTargetString((LPCTSTR)(*ip)[n][_T("translatedText")]);
 
 				m_TransPos += n;
@@ -287,11 +296,89 @@ void CResTransDlg::TranslateProc(UINT msg, WPARAM wParam, LPARAM lParam)
 				m_ProcStat = (m_bProcAbort ? TRANSPROC_ENDOF : TANSPROC_PAUSE);
 				break;
 			}
-			break;
+
+		case TRANSPROC_GASCRIPTREQ:
+			{
+				/****
+					Google Apps Script
+					m_ClientSecret == https://script.google.com/macros/s/XXXXX/exec
+					{ "source" : "jp", "target" : "en", "text" : [ "Hello", "World" ] }
+
+					function doPost(e) {
+						var p = e.parameter;
+						var data = JSON.parse(e.postData.getDataAsString());
+						var body;
+
+						for ( var idx in data )
+							body[idx] = LanguageApp.translate(data[idx], p.source, p.target);
+
+						var response = ContentService.createTextOutput();
+						response.setMimeType(ContentService.MimeType.JSON);
+						response.setContent(JSON.stringify(body));
+
+						return response;
+					}
+				****/
+
+				if ( m_TransPos >= m_TransMax || m_bProcAbort ) {
+					m_ProcStat = TRANSPROC_ENDOF;
+					break;
+				}
+
+				CBuffer mbs;
+				CStringIndex index(TRUE, TRUE), *ip;
+
+				index[_T("source")] = m_TransFrom;
+				index[_T("target")] = m_TransTo;
+				ip = &(index[_T("text")]);
+
+				for ( int n = 0, m_TransNext = m_TransPos ; n < 50 && m_TransNext < m_TransMax ; n++, m_TransNext++ )
+					ip->Add(m_TransStrTab[m_TransNext].m_SourceString);
+
+				index.SetJsonFormat(mbs, 0, JSON_UTF8);
+
+				CHttpThreadSession::Request(m_ClientSecret, _T("Content-Type: application/json;charset=UTF-8"), mbs, this);
+
+				m_ProcStat = TANSPROC_GASCRIPTRESULT;
+				return;
+			}
+
+		case TANSPROC_GASCRIPTRESULT:
+			{
+				if ( msg != WM_HTTPREQUEST || !(BOOL)wParam ) {
+					m_ProcStat = TransErrMsg((CString *)lParam, NULL) ? TANSPROC_RETRY : TRANSPROC_ENDOF;
+					break;
+				}
+
+				int n;
+				CBuffer body;
+				CStringIndex index(TRUE, TRUE), *ip;
+
+				if ( lParam != NULL ) {
+					CIConv iconv;
+					iconv.RemoteToStr(_T("UTF-8"), (CBuffer *)lParam, &body);
+					delete (CBuffer *)lParam;
+				}
+
+				if ( !index.GetJsonFormat((LPCTSTR)body) || index.Find(_T("text")) < 0) {
+					m_ProcStat = TransErrMsg(NULL, (LPCTSTR)body) ? TANSPROC_RETRY : TRANSPROC_ENDOF;
+					break;
+				}
+
+				ip = &(index[_T("text")]);
+				for ( n = 0 ; (m_TransPos + n) < m_TransMax && n < ip->GetSize() ; n++ )
+					m_TransStrTab[m_TransPos + n].SetTargetString((LPCTSTR)(*ip)[n]);
+
+				m_TransPos += n;
+				m_TransProgress.SetPos(m_TransPos);
+
+				m_ProcStat = (m_bProcAbort ? TRANSPROC_ENDOF : TANSPROC_PAUSE);
+				break;
+			}
 
 		case TANSPROC_PAUSE:
-			SetTimer(1024, 100, NULL);
-			m_ProcStat = (m_ClientId.IsEmpty() ? TRANSPROC_GOOGLEREQ : TANSPROC_TRANSREQ);
+			SetTimer(1024, 5000, NULL);
+			m_ProcStat = TRANSPROC_WAIT;
 			return;
 
 		case TANSPROC_RETRY:
@@ -304,11 +391,13 @@ void CResTransDlg::TranslateProc(UINT msg, WPARAM wParam, LPARAM lParam)
 				m_ProcStat = TRANSPROC_ENDOF;
 				break;
 			}
-			m_ProcStat = (m_ClientId.IsEmpty() ? TRANSPROC_GOOGLEREQ : TRANSPROC_TOKENREQ);
+			m_ProcStat = TRANSPROC_RESTART;
 			break;
 
 		case TRANSPROC_ENDOF:
 			m_TransExec.EnableWindow(TRUE);
+			if ( m_TransPos >= m_TransMax )
+				m_bTranstate = TRUE;
 			return;
 		}
 	}
@@ -340,7 +429,8 @@ BOOL CResTransDlg::OnInitDialog()
 
 	m_ClientId     = pApp->GetProfileString(_T("ResTransDlg"), _T("ClientId"),     _T(""));
 	m_ClientSecret = pApp->GetProfileString(_T("ResTransDlg"), _T("ClientSecret"), _T(""));
-	m_TransFrom    = pApp->GetProfileString(_T("ResTransDlg"), _T("TransFrom"),    _T("ja"));
+//	m_TransFrom    = pApp->GetProfileString(_T("ResTransDlg"), _T("TransFrom"),    _T("ja"));
+	m_TransFrom    = m_ResDataBase.m_Transrate;
 	m_TransTo      = pApp->GetProfileString(_T("ResTransDlg"), _T("TransTo"),      _T("en"));
 
 	UpdateData(FALSE);
@@ -351,6 +441,7 @@ BOOL CResTransDlg::OnInitDialog()
 	m_TransProgress.SetRange(0, m_TransMax);
 	m_ProcStat = TRANSPROC_ENDOF;
 	m_bProcAbort = FALSE;
+	m_bTranstate = FALSE;
 
 	SubclassComboBox(IDC_TRANSFROM);
 	SubclassComboBox(IDC_TRANSTO);
@@ -370,13 +461,33 @@ void CResTransDlg::OnOK()
 		return;
 
 	m_ResFileName = dlg.GetPathName();
+
+	if ( m_bTranstate ) {
+		LCID lcid;
+		TCHAR name[256];
+
+#ifdef	_M_X64
+		if ( (lcid = LocaleNameToLCID(m_TransTo, 0)) != 0 ) {
+			m_ResDataBase.m_LangId = LANGIDFROMLCID(lcid);
+			m_ResDataBase.m_Transrate = m_TransTo;
+			GetLocaleInfo(lcid, LOCALE_SNATIVELANGNAME, name, sizeof(name));
+			m_ResDataBase.m_Language = name;
+		} else 
+#endif
+		{
+			m_ResDataBase.m_LangId = 0;
+			m_ResDataBase.m_Transrate = m_TransTo;
+			m_ResDataBase.m_Language.Empty();
+		}
+	}
+
 	m_ResDataBase.SaveFile(m_ResFileName);
 
 	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
 
 	pApp->WriteProfileString(_T("ResTransDlg"), _T("ClientId"),     m_ClientId);
 	pApp->WriteProfileString(_T("ResTransDlg"), _T("ClientSecret"), m_ClientSecret);
-	pApp->WriteProfileString(_T("ResTransDlg"), _T("TransFrom"),    m_TransFrom);
+//	pApp->WriteProfileString(_T("ResTransDlg"), _T("TransFrom"),    m_TransFrom);
 	pApp->WriteProfileString(_T("ResTransDlg"), _T("TransTo"),      m_TransTo);
 
 	//CDialogExt::OnOK();
@@ -398,9 +509,52 @@ void CResTransDlg::PostNcDestroy()
 
 void CResTransDlg::OnBnClickedTransexec()
 {
+#if 1
 	m_ProcStat = TRANSPROC_START;
 	m_bProcAbort = FALSE;
+	m_bTranstate = FALSE;
 	TranslateProc(0, NULL, NULL);
+#elif 0
+	int seq, num;
+	CString file;
+	CBuffer tmp, mbs;
+	CIConv iconv;
+
+	for ( seq = num = 0 ; num < m_TransStrTab.GetSize() ; seq++ ) {
+		tmp.Clear();
+		mbs.Clear();
+		while ( num < m_TransStrTab.GetSize() ) {
+			tmp += (LPCTSTR)m_TransStrTab[num].m_SourceString;
+			tmp += _T("\r\n");
+			num++;
+			if ( (num % 500) == 0 )
+				break;
+		}
+		iconv.StrToRemote(_T("UTF-8"), &tmp, &mbs);
+
+		file.Format(_T("D:\\Temp\\Translate%02d.txt"), seq);
+		if ( !mbs.SaveFile(file) )
+			break;
+	}
+#else
+	int seq, num;
+	CString file, text;
+	CBuffer tmp;
+	CIConv iconv;
+
+	for ( seq = num = 0 ; num < m_TransStrTab.GetSize() ; seq++ ) {
+		file.Format(_T("D:\\Temp\\Translate%02d.txt"), seq);
+		if ( !tmp.LoadFile(file) )
+			break;
+		tmp.KanjiConvert(tmp.KanjiCheck(KANJI_UTF8));
+
+		while ( tmp.ReadString(text) && num < m_TransStrTab.GetSize() ) {
+			text.TrimRight(_T("\r\n"));
+			m_TransStrTab[num].SetTargetString(text);
+			num++;
+		}
+	}
+#endif
 }
 void CResTransDlg::OnNMClickSyslink1(NMHDR *pNMHDR, LRESULT *pResult)
 {

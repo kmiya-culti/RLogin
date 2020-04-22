@@ -3915,7 +3915,7 @@ int CServerEntry::GetProfile(LPCTSTR pSection, int Uid)
 	((CRLoginApp *)AfxGetApp())->GetProfileBuffer(pSection, entry, buf);
 
 	if ( !GetBuffer(buf) ) {
-		if ( ::AfxMessageBox(IDE_ENTRYLOADERROR,  MB_ICONERROR | MB_YESNO) == IDYES )
+		if ( ::AfxMessageBox(CStringLoad(IDE_ENTRYLOADERROR),  MB_ICONERROR | MB_YESNO) == IDYES )
 			((CRLoginApp *)AfxGetApp())->DelProfileEntry(pSection, entry);
 		return FALSE;
 	}
@@ -7558,9 +7558,14 @@ BOOL CStringIndex::MsgStr(CString &str, LPCSTR base)
 void CStringIndex::Serialize(CArchive& ar, LPCSTR base, int version)
 {
 	if ( ar.IsStoring() ) {		// Write
-		if ( version == 4 ) {
+		if ( version == 5 ) {
 			CBuffer mbs;
-			SetJsonFormat(mbs);
+			SetJsonFormat(mbs, 0, JSON_UTF8);
+			ar.Write(mbs.GetPtr(), mbs.GetSize());
+
+		} else if ( version == 4 ) {
+			CBuffer mbs;
+			SetJsonFormat(mbs, 0, JSON_OEM);
 			ar.Write(mbs.GetPtr(), mbs.GetSize());
 
 		} else {
@@ -7585,7 +7590,20 @@ void CStringIndex::Serialize(CArchive& ar, LPCSTR base, int version)
 		}
 
 	} else {					// Read
-		if ( version == 4 ) {
+		if ( version == 5 ) {
+			int n;
+			BYTE buf[1024];
+			CBuffer tmp;
+
+			while ( (n = ar.Read(buf, 1024)) > 0 )
+				tmp.Apend(buf, n);
+
+			tmp.KanjiConvert(KANJI_UTF8);
+
+			if ( !GetJsonFormat(tmp) )
+				AfxThrowArchiveException(CArchiveException::badIndex, ar.GetFile()->GetFileTitle());
+
+		} else if ( version == 4 ) {
 			CString str;
 			CBuffer tmp;
 
@@ -7848,6 +7866,22 @@ TCHAR CStringIndex::SubJsonNumber(LPCTSTR &str)
 
 		m_Value = (int)value;		// XXXXXXXXXXXXXŽè”²‚«
 
+	} else if ( neg == FALSE && digit == 0 && (*str == _T('x') || *str == _T('X')) ) {	// 0x
+		str++;
+
+		while ( *str != _T('\0') ) {
+			if ( *str >= _T('0') && *str <= _T('9') ) {
+				digit = (digit * 16 + (*str - _T('0')));
+			} else if ( *str >= _T('A') && *str <= _T('F') ) {
+				digit = (digit * 16 + (*str - _T('A') + 10));
+			} else if ( *str >= _T('a') && *str <= _T('f') ) {
+				digit = (digit * 16 + (*str - _T('a') + 10));
+			} else
+				break;
+			str++;
+		}
+		m_Value = digit;
+
 	} else
 		m_Value = digit;
 
@@ -8024,7 +8058,7 @@ void CStringIndex::AddJasonString(CBuffer &mbs, LPCTSTR str, int nCode)
 			if ( *p == '\\' || *p == '"' ) {
 				mbs += '\\';
 				mbs += *(p++);
-			} else if ( (BYTE)*p < 0x20 || *p == 0x7E ) {
+			} else if ( (BYTE)*p < 0x20 || *p == 0x7F ) {
 				switch(*p) {
 				case '\b': mbs += "\\b"; break;
 				case '\t': mbs += "\\t"; break;
@@ -8844,128 +8878,140 @@ BOOL CFileExt::ReadString(CString &str)
 CTranslateString::CTranslateString()
 {
 	m_bSplitFlag = FALSE;
-	m_SplitChar = _T('\0');
 	m_pBaseString = NULL;
-}
-void CTranslateString::SetSourceString(LPCTSTR str)
-{
-	m_SourceString.Empty();
-	m_AddString.Empty();
-
-	for ( LPCTSTR p = str ; *p != _T('\0') ; ) {
-		if ( p[0] == _T('(') && p[1] == _T('&') && p[2] != _T('\0') && p[3] == _T(')') ) {	// (&?)
-			m_AddString += p[0];
-			m_AddString += p[1];
-			m_AddString += p[2];
-			m_AddString += p[3];
-			p += 4;
-
-		} else if ( p == str && p[0] == _T('&') && p[1] != _T('\0') && p[2] == _T(' ') ) {	// &1 ...
-			m_AddString += _T('(');
-			m_AddString += p[0];
-			m_AddString += p[1];
-			m_AddString += _T(')');
-			p += 3;
-
-		} else if ( p[0] == _T('&') && p[1] != _T('\0') ) {		// e&Xec
-			m_AddString += _T('(');
-			m_AddString += p[0];
-			m_AddString += p[1];
-			m_AddString += _T(')');
-			p += 1;
-
-		} else if ( p[0] == _T('(') && p[1] == _T('*') && p[2] == _T('.') && p[3] != _T('\0') ) {	// (*.?
-			m_AddString += p;
-			break;
-
-		} else
-			m_SourceString += *(p++);
-	}
 }
 void CTranslateString::SetTargetString(LPCTSTR str)
 {
+	CString fmt;
+
 	if ( m_pBaseString == NULL )
 		return;
 
 	if ( !m_bSplitFlag )
 		m_pBaseString->Empty();
 
-	*m_pBaseString += m_FrontString;
-
 	while ( *str != _T('\0') ) {
-		if ( str[0] == _T('%') && str[1] == _T(' ') && _tcschr(_T("sSdD12"), str[2]) != NULL ) {
-			*m_pBaseString += *(str++);
-			str++;
-			*m_pBaseString += *(str++);
-		} else
-			*m_pBaseString += *(str++);
+		if ( str[0] == _T('%') && str[1] == _T(' ') && _tcschr(_T("sduD12345"), str[2]) != NULL ) {
+			fmt += str[0];
+			fmt += str[2];
+			str += 3;
+		} else {
+			fmt += *(str++);
+		}
 	}
 
-	*m_pBaseString += m_AddString;
-
-	if ( m_SplitChar != _T('\0') )
-		*m_pBaseString += m_SplitChar;
+	*m_pBaseString += m_FrontString;
+	*m_pBaseString += fmt;
+	*m_pBaseString += m_BackString;
 }
 const CTranslateString & CTranslateString::operator = (CTranslateString &data)
 {
 	m_bSplitFlag   = data.m_bSplitFlag;
-	m_SplitChar    = data.m_SplitChar;
 	m_pBaseString  = data.m_pBaseString;
 	m_SourceString = data.m_SourceString;
 	m_FrontString  = data.m_FrontString;
-	m_AddString    = data.m_AddString;
+	m_BackString   = data.m_BackString;
 
 	return *this;
 }
 void CTranslateStringTab::Add(CString *pStr)
 {
-	CString str, front;;
 	CTranslateString tmp;
+	CString front, src, work;
 	BOOL bSplit = FALSE;
 
-	for ( LPCTSTR p = *pStr ; *p != _T('\0') ; p++ ) {
-		if ( *p == _T('\t') || *p == _T('\n') ) {
-			tmp.SetSourceString(str);
-			tmp.m_bSplitFlag = bSplit;
-			tmp.m_SplitChar = *p;
-			tmp.m_pBaseString = pStr;
-			tmp.m_FrontString = front;
-			front.Empty();
-			m_Data.Add(tmp);
-			str.Empty();
-			bSplit = TRUE;
+	for ( LPCTSTR p = *pStr ; *p != _T('\0') ; ) {
+		if ( *p < _T(' ') ) {
+			while ( *p != _T('\0') && *p < _T(' ') )
+				work += *(p++);
 
-		} else if ( _tcsncmp(p, _T("<a href="), 8) == 0 ) {	// <a href=
-
-			if ( !str.IsEmpty() || !front.IsEmpty() ) {
-				tmp.SetSourceString(str);
-				tmp.m_bSplitFlag = bSplit;
-				tmp.m_SplitChar = *p;
-				tmp.m_pBaseString = pStr;
-				tmp.m_FrontString = front;
-				front.Empty();
-				m_Data.Add(tmp);
-				str.Empty();
-				bSplit = TRUE;
-			}
-
-			for ( ; *p != _T('\0') ; p++ ) {
-				front += *p;
-				if ( *p == _T('>') )
+		} else if ( _tcsncmp(p, _T("<a href="), 8) == 0 || _tcsncmp(p, _T("</a>"), 4) == 0 ) {
+			while ( *p != _T('\0') ) {
+				work += *p;
+				if ( *(p++) == _T('>') )
 					break;
 			}
 
-		} else
-			str += *p;
+		} else if ( p[0] == _T('(') && p[1] == _T('&') && p[2] > _T(' ') && p[3] == _T(')') ) {
+			for ( int n = 0 ; n < 4 ; n++ )
+				work += *(p++);
+			while ( *p != _T('\0') && (*p <= _T(' ') || *p == _T('.')) )
+				work += *(p++);
+
+		} else if ( p[0] == _T('&') && p[1] > _T(' ') && p[2] <= _T(' ') ) {
+			for ( int n = 0 ; n < 2 ; n++ )
+				work += *(p++);
+			while ( *p != _T('\0') && (*p <= _T(' ') || *p == _T('.')) )
+				work += *(p++);
+
+		} else if ( p[0] == _T('(') && p[1] == _T('*') && p[2] == _T('.') ) {
+			while ( *p != _T('\0') ) {
+				work += *p;
+				if ( *(p++) == _T(')') )
+					break;
+			}
+
+		} else if ( p[0] == _T('|') && p[1] == _T('*') && p[2] == _T('.') ) {	// |*.*||
+			work += *(p++);
+			while ( *p != _T('\0') ) {
+				work += *p;
+				if ( *(p++) == _T('|') )
+					break;
+			}
+			if ( *p == _T('|') )
+				work += *(p++);
+
+		} else if ( *p <= _T(' ') && src.IsEmpty() ) {
+			while ( *p != _T('\0') && *p <= _T(' ') )
+				work += *(p++);
+
+		} else if ( !src.IsEmpty() && p[0] == _T('&') && p[1] > _T(' ') ) {	// e&Xec
+			p++;
+			src += *(p++);
+
+		} else {
+			src += *(p++);
+		}
+
+		if ( !work.IsEmpty() ) {
+			if ( src.IsEmpty() ) {
+				front += work;
+			} else if ( src.GetLength() == 2 && src[0] == _T('%') && _tcschr(_T("sdu123"), src[1]) != NULL ) {
+				front += src;
+				front += work;
+				src.Empty();
+			} else {
+				tmp.m_pBaseString  = pStr;
+				tmp.m_SourceString = src;
+				tmp.m_FrontString  = front;
+				tmp.m_BackString   = work;
+				tmp.m_bSplitFlag   = bSplit;
+				m_Data.Add(tmp);
+
+				front.Empty();
+				src.Empty();
+				bSplit = TRUE;
+			}
+			work.Empty();
+		}
 	}
 
-	if ( !str.IsEmpty() || !front.IsEmpty() ) {
-		tmp.SetSourceString(str);
-		tmp.m_bSplitFlag = bSplit;
-		tmp.m_SplitChar = _T('\0');
-		tmp.m_pBaseString = pStr;
-		tmp.m_FrontString = front;
+	if ( src.GetLength() == 2 && src[0] == _T('%') && _tcschr(_T("sdu123"), src[1]) != NULL ) {
+		front += src;
+		src.Empty();
+	}
+
+	if ( !src.IsEmpty() ) {
+		tmp.m_pBaseString  = pStr;
+		tmp.m_SourceString = src;
+		tmp.m_FrontString  = front;
+		tmp.m_BackString   = _T("");
+		tmp.m_bSplitFlag   = bSplit;
 		m_Data.Add(tmp);
+
+	} else if ( bSplit && !front.IsEmpty() ) {
+		int n = (int)m_Data.GetSize() - 1;
+		m_Data[n].m_BackString += front;
 	}
 }
 
@@ -9058,6 +9104,12 @@ BOOL CHttpSession::GetRequest(LPCTSTR url, CBuffer &buf, LPCTSTR head, LPCSTR bo
 	if ( InternetAttemptConnect(0) != ERROR_SUCCESS )
 		return FALSE;
 
+	if ( head != NULL && head[0] == _T('\0') )
+		head = NULL;
+
+	if ( body != NULL && body[0] == '\0' )
+		body = NULL;
+
 	ParseUrl(url);
 
 	try {
@@ -9130,9 +9182,7 @@ static UINT ThreadRequestProc(LPVOID pParam)
 	CBuffer *pBuf = new CBuffer;
 	CString *pMsg = new CString;
 
-	if ( pSess->GetRequest(pSess->m_ThreadUrl, *pBuf, 
-			(pSess->m_ThreadHead.IsEmpty() ? NULL : pSess->m_ThreadHead),
-			(pSess->m_ThreadBody.IsEmpty() ? NULL : pSess->m_ThreadBody), pMsg) ) {
+	if ( pSess->GetRequest(pSess->m_ThreadUrl, *pBuf, pSess->m_ThreadHead, pSess->m_ThreadBody, pMsg) ) {
 		::PostMessage(pSess->m_TheadhWnd, WM_HTTPREQUEST, (WPARAM)TRUE, (LPARAM)pBuf);
 		delete pMsg;
 

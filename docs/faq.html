@@ -7,14 +7,10 @@
 <STYLE type="text/css">
 <!--
 TD {
-    
-    
   background-color : #ffffff;
   font-size : 90%;
 }
 .BOX{
-    
-    
   background-color : silver;
 }
 -->
@@ -556,7 +552,7 @@ fi</PRE>
               </TBODY>
             </TABLE>
             </TD>
-            <TD><IMG src="image022.jpg" width="611" height="511" border="0" align="top"></TD>
+            <TD><IMG src="image022.jpg" width="611" height="541" border="0" align="top"></TD>
           </TR>
           <TR>
             <TD valign="top" width="600">次に<A href="./#CHAROPT">フォントのオプション設定</A>で使用するフォントの種類を設定します。これはISO2022に従った難解な方法で表示されるフォントセットが選択されますが、まずサーバーの仕様に従った文字セットを決定します。古い仕様のサーバーならEUC/SJISが多かったですが、最近ではUTF-8が多いように思います。サーバーのファイル名に使用される文字コードが選択の基本になるでしょう。shellやアプリケーションなどは、LANG環境変数で&quot;ja_JP.eucJP&quot;や&quot;UTF-8&quot;などに設定され利用しています。（接続時のデフォルト文字セットは、<A href="./#SERVEROPT">サーバーのオプション設定</A>で行います）<BR>
@@ -568,7 +564,8 @@ fi</PRE>
             多言語の表示をしたい場合やASCIIで「＼」が「￥」で表示されるのが気持ち悪い場合は、それぞれのフォントセットのフォントを設定してください。設定の指針としてフォントセットのリストでWindows
             Charactor Setによる判定を○×で表示しています。Ｘのフォントセットは、Windowsが勝手にフォント置換します。<BR>
             <BR>
-            右の表示では、MS ゴシックは、ARABICを別のフォントに置換して表示しBALTICは、MS ゴシックで表示できることを示しています。このWindowsの機能は、FontLinkと合わせてフォントを欧文フォントにして漢字を表示しようとした場合やMS ゴシックでハングルを表示しようと場合にでも自動でフォントが置換されることになります。フォントを変更しても別のフォントで表示されますのでご注意ください。特に<B>デフォルトフォントを欧文フォントにした場合には、SHIFTJISのフォントがすべて違うフォントで表示</B>されることになります。<BR>
+            右の表示では、MS ゴシックは、ARABICを別のフォントに置換して表示しBALTICは、MS ゴシックで表示できることを示しています。このWindowsの機能は、FontLinkと合わせてフォントを欧文フォントにして漢字を表示しようとした場合やMS
+            ゴシックでハングルを表示しようと場合にでも自動でフォントが置換されることになります。フォントを変更しても別のフォントで表示されますのでご注意ください。特に<B>デフォルトフォントを欧文フォントにした場合には、SHIFTJISのフォントがすべて違うフォントで表示</B>されることになります。<BR>
             <BR>
             ※2.23.5より拡張機能484「フォント置換しない」でWindowsのCSetによる置換を抑制するオプションを追加しました。<B>勝手にフォントを変更してほしくない場合など</B>に使用してください。</TD>
             <TD valign="top"><IMG src="image221.jpg" width="611" height="511" border="0"></TD>
@@ -1549,6 +1546,54 @@ done</PRE>
         </TBODY>
       </TABLE>
       </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR>
+      <P><B><A name="LANG"></A>5.19 RLoginの多言語化</B></P>
+      <HR>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE width="1250" cellpadding="5">
+        <TBODY>
+          <TR>
+            <TD width="600" valign="top">「<A href="index.html#RESOURCE">リソースをファイルに保存</A>」でRLogin_rc.txtを作成する前に自動翻訳APIを使用すると希望の言語に翻訳を行うことができます。<BR>
+            <BR>
+            <IMG src="image051.jpg" width="490" height="265" border="0"><BR>
+            <BR>
+            試しにGoogleの翻訳ですが色々な言語に自動翻訳してみました。実用性は？です。それなりに見えますが、酷いようにも思います。「プライベートプロファイル作成」-&gt;「建立私人個人資料」は中国語が分からないけどいくらなんでも違うような・・・<BR>
+            <BR>
+            ※2.25.1からRLogin.exe起動時の作業フォルダ、又はRLogin.exeと同じフォルダに<A href="lang.zip">lang..zip</A>を展開しておくとOSの言語設定に合った「lang\RLogin_??.txt」があれば自動で読み込みます。ただしリソースファイルは、RLoginのバージョンに依存しています。バージョンが合わない場合は、一部の文字列などが翻訳されませんのでご注意ください。</TD>
+            <TD valign="top" align="center"><IMG src="image267.jpg" width="583" height="323" border="0"></TD>
+          </TR>
+          <TR>
+            <TD align="center"><IMG src="image274.jpg" width="583" height="323" border="0"></TD>
+            <TD align="center"><IMG src="image266.jpg" width="583" height="323" border="0"></TD>
+          </TR>
+          <TR>
+            <TD align="center"><IMG src="image268.jpg" width="583" height="323" border="0"></TD>
+            <TD align="center"><IMG src="image272.jpg" width="583" height="323" border="0"></TD>
+          </TR>
+          <TR>
+            <TD align="center"><IMG src="image269.jpg" width="583" height="323" border="0"></TD>
+            <TD align="center"><IMG src="image270.jpg" width="582" height="322" border="0"></TD>
+          </TR>
+          <TR>
+            <TD align="center"><IMG src="image265.jpg" width="583" height="323" border="0"></TD>
+            <TD align="center"><IMG src="image273.jpg" width="583" height="323" border="0"></TD>
+          </TR>
+          <TR>
+            <TD align="center"><IMG src="image275.jpg" width="583" height="323" border="0"></TD>
+            <TD align="center"><IMG src="image271.jpg" width="583" height="323" border="0"></TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD></TD>
     </TR>
     <TR>
       <TD>

@@ -245,6 +245,7 @@
 #define IDS_SSHOPTIONCHECK              638
 #define IDS_INITENTRYINPORT             639
 #define IDS_OSCBUFFERINGMSG             640
+#define IDS_DLGFONTDELMSG               641
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -1103,6 +1104,6 @@
 #define _APS_NEXT_RESOURCE_VALUE        168
 #define _APS_NEXT_COMMAND_VALUE         5139
 #define _APS_NEXT_CONTROL_VALUE         2499
-#define _APS_NEXT_SYMED_VALUE           670
+#define _APS_NEXT_SYMED_VALUE           671
 #endif
 #endif

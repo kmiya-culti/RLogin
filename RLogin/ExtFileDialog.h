@@ -7,7 +7,36 @@
 
 //////////////////////////////////////////////////////////////////////
 
-class CFileDownPage : public CDialog
+class CDialogRes : public CDialog
+{
+	DECLARE_DYNAMIC(CDialogRes)
+
+// コンストラクター
+public:
+	CDialogRes(UINT nIDTemplate, CWnd* pParent = NULL);
+	virtual ~CDialogRes();
+
+// クラスデータ
+public:
+	UINT m_nIDTemplate;
+	CString m_FontName;
+	int m_FontSize;
+
+public:
+	inline BOOL IsDefineFont() { return (m_FontName.IsEmpty() ? FALSE : TRUE); }
+
+// オーバーライド
+public:
+	virtual BOOL Create(LPCTSTR lpszTemplateName, CWnd* pParentWnd = NULL);
+	inline BOOL Create(UINT nIDTemplate, CWnd* pParentWnd = NULL) { return Create(ATL_MAKEINTRESOURCE(nIDTemplate), pParentWnd); }
+
+protected:
+	DECLARE_MESSAGE_MAP()
+};
+
+//////////////////////////////////////////////////////////////////////
+
+class CFileDownPage : public CDialogRes
 {
 	DECLARE_DYNAMIC(CFileDownPage)
 
@@ -42,7 +71,7 @@ public:
 
 //////////////////////////////////////////////////////////////////////
 
-class CFileUpConvPage : public CDialog
+class CFileUpConvPage : public CDialogRes
 {
 	DECLARE_DYNAMIC(CFileUpConvPage)
 
@@ -74,7 +103,7 @@ public:
 
 //////////////////////////////////////////////////////////////////////
 
-class CFileUpSendPage : public CDialog
+class CFileUpSendPage : public CDialogRes
 {
 	DECLARE_DYNAMIC(CFileUpSendPage)
 

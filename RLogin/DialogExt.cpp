@@ -261,13 +261,13 @@ BOOL CDialogExt::GetSizeAndText(SIZE *pSize, CString &title, CWnd *pParent)
 
 	if ( IsDefineFont() )
 		dlgTemp.SetFont(m_FontName, m_FontSize);
-	else {
-		CString name;
-		WORD size;
-		dlgTemp.GetFont(name, size);
-		if ( m_FontSize != size )
-			dlgTemp.SetFont(name, m_FontSize);
-	}
+	//else {
+	//	CString name;
+	//	WORD size;
+	//	dlgTemp.GetFont(name, size);
+	//	if ( m_FontSize != size )
+	//		dlgTemp.SetFont(name, m_FontSize);
+	//}
 
 	dlgTemp.GetSizeInPixels(pSize);
 
@@ -329,13 +329,13 @@ BOOL CDialogExt::Create(LPCTSTR lpszTemplateName, CWnd* pParentWnd)
 
 	if ( IsDefineFont() )
 		dlgTemp.SetFont(m_FontName, m_FontSize);
-	else {
-		CString name;
-		WORD size;
-		dlgTemp.GetFont(name, size);
-		if ( m_FontSize != size )
-			dlgTemp.SetFont(name, m_FontSize);
-	}
+	//else {
+	//	CString name;
+	//	WORD size;
+	//	dlgTemp.GetFont(name, size);
+	//	if ( m_FontSize != size )
+	//		dlgTemp.SetFont(name, m_FontSize);
+	//}
 
 	lpDialogTemplate = (LPCDLGTEMPLATE)LockResource(dlgTemp.m_hTemplate);
 
@@ -368,13 +368,13 @@ INT_PTR CDialogExt::DoModal()
 
 	if ( IsDefineFont() )
 		dlgTemp.SetFont(m_FontName, m_FontSize);
-	else {
-		CString name;
-		WORD size;
-		dlgTemp.GetFont(name, size);
-		if ( m_FontSize != size )
-			dlgTemp.SetFont(name, m_FontSize);
-	}
+	//else {
+	//	CString name;
+	//	WORD size;
+	//	dlgTemp.GetFont(name, size);
+	//	if ( m_FontSize != size )
+	//		dlgTemp.SetFont(name, m_FontSize);
+	//}
 
 	lpDialogTemplate = (LPCDLGTEMPLATE)LockResource(dlgTemp.m_hTemplate);
 

@@ -2714,6 +2714,7 @@ void CGrapWnd::SixelStart(int aspect, int mode, int grid, COLORREF bc)
 	m_Crc = 0;
 	m_TransIndex = (-1);
 	m_bHaveAlpha = FALSE;
+	m_pIndexMap = NULL;
 
 	// DECTID < 5(VT220) なら背景色をデフォルト白色でパレットをモノクロに
 	// mode == 1 なら背景色を補色に
@@ -2809,6 +2810,11 @@ void CGrapWnd::SixelStart(int aspect, int mode, int grid, COLORREF bc)
 
 	m_pAlphaMap = new BYTE[m_MaxX * m_MaxY];
 	ZeroMemory(m_pAlphaMap, m_MaxX * m_MaxY);
+
+	if ( mode == 5 ) {	// sixel or mode
+		m_pIndexMap = new WORD[m_MaxX * m_MaxY];
+		ZeroMemory(m_pIndexMap, m_MaxX * m_MaxY * sizeof(WORD));
+	}
 }
 void CGrapWnd::SixelResize()
 {
@@ -2817,6 +2823,7 @@ void CGrapWnd::SixelResize()
 	CBitmap *pOldSecMap;
 	BITMAP info;
 	BYTE *pAlpha;
+	WORD *pIndex;
 
 	n = m_Maps ^ 1;
 
@@ -2846,6 +2853,18 @@ void CGrapWnd::SixelResize()
 
 	delete [] m_pAlphaMap;
 	m_pAlphaMap = pAlpha;
+
+	if ( m_pIndexMap == NULL )
+		return;
+
+	pIndex = new WORD[m_MaxX * m_MaxY];
+	ZeroMemory(pIndex, m_MaxX * m_MaxY * sizeof(WORD));
+
+	for ( int y = 0 ; y < my ; y++ )
+		memcpy(pIndex + m_MaxX * y, m_pIndexMap + info.bmWidth * y, mx * sizeof(WORD));
+
+	delete [] m_pIndexMap;
+	m_pIndexMap = pIndex;
 }
 void CGrapWnd::SixelData(int ch)
 {
@@ -2894,6 +2913,24 @@ void CGrapWnd::SixelData(int ch)
 
 				if ( (bit = ch - '?') <= 0 ) {
 					m_SixelPointX += m_SixelRepCount;
+
+				} else if ( m_pIndexMap != NULL ) {	// sixel or mode
+					for ( n = 0 ; n < m_SixelRepCount ; n++ ) {
+						mask = 0x01;
+						for ( i = 0 ; i < 6 ; i++ ) {
+							if ( m_SixelPointX >= m_MaxX || (m_SixelPointY + i) >= m_MaxY )
+								break;
+							if ( (bit & mask) != 0 ) {
+								m_pIndexMap[m_SixelPointX + (m_SixelPointY + i) * m_MaxX] |= m_SixelColorIndex;
+								if ( m_SixelWidth <= m_SixelPointX )
+									m_SixelWidth = m_SixelPointX + 1;
+								if ( m_SixelHeight <= (m_SixelPointY + i) )
+									m_SixelHeight = m_SixelPointY + i + 1;
+							}
+							mask <<= 1;
+						}
+						m_SixelPointX += 1;
+					}
 
 				} else if ( m_SixelPointX < GRAPMAX_X && m_SixelPointY < GRAPMAX_Y ) {
 					if ( m_ColMap[m_SixelColorIndex] == m_SixelTransColor )
@@ -3055,6 +3092,24 @@ void CGrapWnd::SixelEndof(BOOL bAlpha)
 
 		if ( m_MaxX > 0 && m_MaxY > 0 )
 			SixelResize();
+	}
+
+	if ( m_pIndexMap != NULL ) {
+		for ( int y = 0 ; y < m_MaxY ; y++ ) {
+			for ( int x = 0 ; x < m_MaxX ; x++ ) {
+				int i = m_pIndexMap[x + y * m_MaxX];
+
+				if ( m_ColMap[i] == m_SixelTransColor )
+					m_SixelTransColor = (-1);
+
+				if ( m_ColAlpha[i] != RGBMAX )
+					m_bHaveAlpha = TRUE;
+
+				m_pAlphaMap[x + y * m_MaxX] = m_ColAlpha[i];
+				m_SixelTempDC.SetPixelV(x, y, m_ColMap[i]);
+			}
+		}
+		delete [] m_pIndexMap;
 	}
 
 	if ( *m_pAlphaMap == 0xFF && memcmp(m_pAlphaMap, m_pAlphaMap + 1, m_MaxX * m_MaxY - 1) == 0 ) {

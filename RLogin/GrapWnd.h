@@ -146,6 +146,7 @@ public:
 	COLORREF m_SixelBackColor;
 	COLORREF m_SixelTransColor;
 	BYTE *m_pAlphaMap;
+	WORD *m_pIndexMap;
 
 	void SixelMaxInit();
 	void SixelStart(int aspect, int mode, int grid, COLORREF bc = 0);

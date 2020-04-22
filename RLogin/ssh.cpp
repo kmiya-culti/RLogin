@@ -161,19 +161,19 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 					return FALSE;
 				}
 				if ( !IdKey.LoadPrivateKey(dlg.m_IdkeyFile, dlg.m_PassName) ) {
-					AfxMessageBox(IDE_IDKEYLOADERROR);
+					AfxMessageBox(CStringLoad(IDE_IDKEYLOADERROR));
 					return FALSE;
 				}
 			}
 			if ( IdKey.IsNotSupport() ) {
-				AfxMessageBox(IDE_IDKEYNOTSUPPORT);
+				AfxMessageBox(CStringLoad(IDE_IDKEYNOTSUPPORT));
 				return FALSE;
 			}
 			IdKey.SetPass(m_pDocument->m_ServerEntry.m_PassName);
 			m_IdKeyTab.Add(IdKey);
 		}
 
-		if ( pMain->AgeantInit() && !m_pDocument->m_ParamTab.m_bInitPageant && AfxMessageBox(IDS_ADDPAGEANTENTRY, MB_ICONQUESTION | MB_YESNO) == IDYES ) {
+		if ( pMain->AgeantInit() && !m_pDocument->m_ParamTab.m_bInitPageant && AfxMessageBox(CStringLoad(IDS_ADDPAGEANTENTRY), MB_ICONQUESTION | MB_YESNO) == IDYES ) {
 			CIdkeySelDLg dlg;
 
 			dlg.m_pParamTab = &(m_pDocument->m_ParamTab);
@@ -693,7 +693,7 @@ void Cssh::ResetOption()
 		m_KeepAliveTiimerId = ((CMainFrame *)AfxGetMainWnd())->SetTimerEvent(m_pDocument->m_TextRam.m_SshKeepAlive * 1000, TIMEREVENT_SOCK | TIMEREVENT_INTERVAL, this);
 
 	if ( m_bAuthAgentReqEnable != m_pDocument->m_TextRam.IsOptEnable(TO_SSHAGENT) || m_PortFwdTable.Compare(m_pDocument->m_ParamTab.m_PortFwd) != 0 ) {
-		AfxMessageBox(IDS_SSHOPTIONCHECK, MB_ICONWARNING);
+		AfxMessageBox(CStringLoad(IDS_SSHOPTIONCHECK), MB_ICONWARNING);
 
 		m_bAuthAgentReqEnable = m_pDocument->m_TextRam.IsOptEnable(TO_SSHAGENT);
 		m_PortFwdTable = m_pDocument->m_ParamTab.m_PortFwd;
@@ -1268,7 +1268,7 @@ int Cssh::ChannelOpen()
 		if ( mx < 5 ) {
 			n = (int)m_pChan.GetSize();
 			if ( (mx = n + 10) == CHAN_MAXSIZE ) {
-				if ( AfxMessageBox(IDE_MANYCHANNEL, MB_ICONQUESTION | MB_YESNO) != IDYES )
+				if ( AfxMessageBox(CStringLoad(IDE_MANYCHANNEL), MB_ICONQUESTION | MB_YESNO) != IDYES )
 					return (-1);
 			}
 			m_pChan.SetSize(mx);
@@ -1340,7 +1340,7 @@ void Cssh::ChannelClose(int id, BOOL bClose)
 		m_StdChan = (-1);
 		m_SSH2Status &= ~SSH2_STAT_HAVESTDIO;
 
-		if ( m_pChanNext != NULL && AfxMessageBox(IDS_SSHCLOSEALL, MB_ICONQUESTION | MB_YESNO) == IDYES )
+		if ( m_pChanNext != NULL && AfxMessageBox(CStringLoad(IDS_SSHCLOSEALL), MB_ICONQUESTION | MB_YESNO) == IDYES )
 			GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, WSAMAKESELECTREPLY(FD_CLOSE, 0));
 	}
 
@@ -1764,7 +1764,7 @@ void Cssh::PortForward()
 
 	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHPFORY) ) {
 		if ( a == 0 && !m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFTPORY) ) {
-			AfxMessageBox(IDE_PORTFWORDERROR);
+			AfxMessageBox(CStringLoad(IDE_PORTFWORDERROR));
 			GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, WSAMAKESELECTREPLY(FD_CLOSE, 0));
 		}
 
@@ -3977,7 +3977,7 @@ int Cssh::SSH2MsgGlobalRequestReply(CBuffer *bp, int type)
 	CString str;
 
 	if ( m_GlbReqMap.GetSize() <= 0 ) {
-		AfxMessageBox(IDE_SSHGLOBALREQERROR);
+		AfxMessageBox(CStringLoad(IDE_SSHGLOBALREQERROR));
 		return FALSE;
 	}
 	num = m_GlbReqMap.GetAt(0);

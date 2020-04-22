@@ -153,7 +153,7 @@ public:
 	void Speek(LPCTSTR str);
 #endif
 
-	BOOL GetExtFilePath(LPCTSTR ext, CString &path);
+	BOOL GetExtFilePath(LPCTSTR name, LPCTSTR ext, CString &path);
 	BOOL IsDirectory(LPCTSTR dir);
 	BOOL CreateDesktopShortcut(LPCTSTR entry);
 
@@ -192,6 +192,7 @@ public:
 	BOOL SaveRegistryKey(HKEY hKey, CFile *file, LPCTSTR base);
 	BOOL SaveRegistryFile();
 
+	LANGID GetLangId();
 	void GetVersion(CString &str);
 	void SetDefaultPrinter();
 	void SSL_Init();

@@ -949,7 +949,7 @@ BOOL CRLoginApp::InitLocalPass()
 			dlg.m_Title += CStringLoad(IDS_PASSLOCKRETRYMSG);
 
 		if ( dlg.DoModal() != IDOK ) {
-			if ( ::AfxMessageBox(IDS_PASSLOCKDELMSG, MB_ICONQUESTION | MB_YESNO) == IDYES ) {
+			if ( ::AfxMessageBox(CStringLoad(IDS_PASSLOCKDELMSG), MB_ICONQUESTION | MB_YESNO) == IDYES ) {
 				WriteProfileString(_T("RLoginApp"), _T("LocalPass"), _T(""));
 				return TRUE;
 			}
@@ -980,13 +980,16 @@ BOOL CRLoginApp::IsWinVerCheck(int ver, int op)
 
     return VerifyVersionInfo(&osvi, VER_MAJORVERSION | VER_MINORVERSION, dwlConditionMask);
 }
-BOOL CRLoginApp::GetExtFilePath(LPCTSTR ext, CString &path)
+BOOL CRLoginApp::GetExtFilePath(LPCTSTR name, LPCTSTR ext, CString &path)
 {
-	path.Format(_T("%s\\%s%s"), m_BaseDir, m_pszAppName, ext);
+	if ( name == NULL )
+		name = m_pszAppName;
+
+	path.Format(_T("%s\\%s%s"), m_BaseDir, name, ext);
 	if ( _taccess_s(path, 06) == 0 )
 		return TRUE;
 
-	path.Format(_T("%s\\%s%s"), m_ExecDir, m_pszAppName, ext);
+	path.Format(_T("%s\\%s%s"), m_ExecDir, name, ext);
 	if ( _taccess_s(path, 06) == 0 )
 		return TRUE;
 
@@ -1107,7 +1110,7 @@ BOOL CRLoginApp::InitInstance()
 	WORD wVersionRequested;
 	wVersionRequested = MAKEWORD( 2, 2 );
 	if ( WSAStartup( wVersionRequested, &wsaData ) != 0 ) {
-		AfxMessageBox(IDS_SOCKETS_INIT_FAILED);
+		AfxMessageBox(CStringLoad(IDS_SOCKETS_INIT_FAILED));
 		return FALSE;
 	}
 
@@ -1133,7 +1136,7 @@ BOOL CRLoginApp::InitInstance()
 		m_BaseDir = m_ExecDir;
 
 	// ユーザープロファイルの検索
-	if ( GetExtFilePath(_T(".ini"), iniFileName) ) {
+	if ( GetExtFilePath(NULL, _T(".ini"), iniFileName) ) {
 		free((void*)m_pszProfileName);
 		m_pszProfileName = _tcsdup(iniFileName);
 		bInitFile = TRUE;
@@ -1153,16 +1156,29 @@ BOOL CRLoginApp::InitInstance()
 #ifdef	USE_RCDLL
 	// リソースDLL読み込み
 	CString rcDllName;
-	if ( GetExtFilePath(_T("_rc.dll"), rcDllName) && (ExRcDll = LoadLibrary(rcDllName)) != NULL )
+	if ( GetExtFilePath(NULL, _T("_rc.dll"), rcDllName) && (ExRcDll = LoadLibrary(rcDllName)) != NULL )
 		AfxSetResourceHandle(ExRcDll);
 #endif
 
 	// リソースデータベースの設定
 	// m_ResDataBase.InitRessource();
 	CString rcFileName;
-	if ( GetExtFilePath(_T("_rc.txt"), rcFileName) ) {
+	if ( GetExtFilePath(NULL, _T("_rc.txt"), rcFileName) ) {
 		if ( !m_ResDataBase.LoadFile(rcFileName) )
 			::AfxMessageBox(_T("Can't Load Resources File"));
+	} else {
+		TCHAR locale[256];
+		LANGID id = GetUserDefaultUILanguage();
+
+		if ( GetLocaleInfo(MAKELCID(id, SORT_DEFAULT), LOCALE_SISO639LANGNAME, locale, sizeof(locale)) != 0 ) {
+			CString base, ext;
+			base.Format(_T("lang\\%s"), m_pszAppName);
+			ext.Format(_T("_%s.txt"), locale);
+			if ( GetExtFilePath(base, ext, rcFileName) ) {
+				if ( !m_ResDataBase.LoadFile(rcFileName) )
+					::AfxMessageBox(_T("Can't Load Locale Resources File"));
+			}
+		}
 	}
 
 	// デフォルトツールバーイメージからBitmapリソースを作成
@@ -2052,7 +2068,7 @@ void CRLoginApp::GetProfileData(LPCTSTR lpszSection, LPCTSTR lpszEntry, void *lp
 	LPBYTE pData = NULL;
 	UINT len = 0;
 
-	if ( GetProfileBinary(lpszSection, lpszEntry, &pData, &len) && pData != NULL && len > 0 && len < (512 * 1024) ) {
+	if ( GetProfileBinary(lpszSection, lpszEntry, &pData, &len) && pData != NULL && len > 0 ) {
 		if ( len == (UINT)nBufLen )
 			memcpy(lpBuf, pData, nBufLen);
 		else if ( lpDef != NULL )
@@ -2070,7 +2086,7 @@ void CRLoginApp::GetProfileBuffer(LPCTSTR lpszSection, LPCTSTR lpszEntry, CBuffe
 
 	Buf.Clear();
 
-	if ( GetProfileBinary(lpszSection, lpszEntry, &pData, &len) && pData != NULL && len > 0 && len < (512 * 1024) )
+	if ( GetProfileBinary(lpszSection, lpszEntry, &pData, &len) && pData != NULL && len > 0 )
 		Buf.Apend(pData, len);
 
 	if ( pData != NULL )
@@ -2268,7 +2284,7 @@ void CRLoginApp::RegisterShellRemoveAll()
 	}
 
 	if ( RegisterGetStr(HKEY_CLASSES_ROOT, _T("RLogin.Document\\shell\\open\\ddeexec"), _T(""), strTemp) )
-		::AfxMessageBox(IDE_REGISTRYDELETEERROR);
+		::AfxMessageBox(CStringLoad(IDE_REGISTRYDELETEERROR));
 }
 void CRLoginApp::RegisterShellFileEntry()
 {
@@ -2316,7 +2332,7 @@ void CRLoginApp::RegisterShellProtocol(LPCTSTR pProtocol, LPCTSTR pOption)
 	LPCTSTR pSection = pProtocol;
 
 	if ( !m_bRegistAppp ) {
-		if ( ::AfxMessageBox(IDS_REGISTAPPPROTOCOL, MB_ICONQUESTION | MB_YESNO) != IDYES )
+		if ( ::AfxMessageBox(CStringLoad(IDS_REGISTAPPPROTOCOL), MB_ICONQUESTION | MB_YESNO) != IDYES )
 			return;
 		m_bRegistAppp = TRUE;
 		WriteProfileInt(_T("RLoginApp"), _T("RegistAppp"), m_bRegistAppp);
@@ -2784,6 +2800,42 @@ BOOL CRLoginApp::SaveRegistryFile()
 
 //////////////////////////////////////////////////////////////////////
 
+LANGID CRLoginApp::GetLangId()
+{
+	HRSRC hRsrc;
+	HGLOBAL hGlobal;
+	void *pData;
+	UINT dwLength;
+	void *pValue;
+	LANGID LangId = 0;
+
+	if ( (hRsrc = FindResource(NULL, (LPCTSTR)VS_VERSION_INFO, RT_VERSION)) == NULL )
+		return 0;
+
+	if ( (hGlobal = LoadResource(NULL, hRsrc)) == NULL )
+		return 0;
+
+	if ( (pData = (void *)LockResource(hGlobal)) == NULL )
+		return 0;
+
+	if ( VerQueryValue(pData, _T("\\VarFileInfo\\Translation"), &pValue, &dwLength) ) {
+		switch(dwLength) {
+		case 1:	// BYTE
+			LangId = (LANGID)*((BYTE *)pValue);
+			break;
+		case 2:	// WORD
+			LangId = (LANGID)*((WORD *)pValue);
+			break;
+		case 4:	// DWORD
+			LangId = (LANGID)*((DWORD *)pValue);
+			break;
+		}
+	}
+
+	FreeResource(hGlobal);
+
+	return LangId;
+}
 void CRLoginApp::GetVersion(CString &str)
 {
 	HRSRC hRsrc;
@@ -3097,14 +3149,14 @@ void CRLoginApp::OnDispwinidx()
 
 void CRLoginApp::OnDialogfont()
 {
-	CString FontName;
+	CString FontName, tmp;
 	int FontSize;
 	LOGFONT LogFont;
 	CDC dc;
 
 	dc.CreateCompatibleDC(NULL);
 
-	FontName = GetProfileString(_T("Dialog"), _T("FontName"), _T("MS UI Gothic"));
+	FontName = GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
 	FontSize = GetProfileInt(_T("Dialog"), _T("FontSize"), 9);
 
 	memset(&(LogFont), 0, sizeof(LOGFONT));
@@ -3116,18 +3168,25 @@ void CRLoginApp::OnDialogfont()
 	LogFont.lfClipPrecision  = CLIP_DEFAULT_PRECIS;
 	LogFont.lfQuality        = DEFAULT_QUALITY;
 	LogFont.lfPitchAndFamily = DEFAULT_PITCH | FF_DONTCARE;
-    _tcsncpy(LogFont.lfFaceName, FontName, LF_FACESIZE);
 
-	CFontDialog font(&LogFont, CF_NOVERTFONTS | CF_SCREENFONTS | CF_SELECTSCRIPT, NULL, ::AfxGetMainWnd());
+	if ( FontName.IsEmpty() && RegisterGetStr(HKEY_LOCAL_MACHINE, _T("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\FontSubstitutes"), _T("MS Shell Dlg"), tmp) )
+	    _tcsncpy(LogFont.lfFaceName, tmp, LF_FACESIZE);
+	else
+	    _tcsncpy(LogFont.lfFaceName, FontName, LF_FACESIZE);
 
-	if ( DpiAwareDoModal(font) != IDOK )
-		return;
+	CFontDialog font(&LogFont, CF_NOVERTFONTS | CF_SCREENFONTS | CF_INACTIVEFONTS /*| CF_SELECTSCRIPT */, NULL, ::AfxGetMainWnd());
 
-    FontName = LogFont.lfFaceName;
-	FontSize = 0 - MulDiv(LogFont.lfHeight, 72, dc.GetDeviceCaps(LOGPIXELSY));
+	if ( DpiAwareDoModal(font) == IDOK ) {
+		FontName = LogFont.lfFaceName;
+		FontSize = 0 - MulDiv(LogFont.lfHeight, 72, dc.GetDeviceCaps(LOGPIXELSY));
 
-	WriteProfileString(_T("Dialog"), _T("FontName"), FontName);
-	WriteProfileInt(_T("Dialog"), _T("FontSize"), FontSize);
+		WriteProfileString(_T("Dialog"), _T("FontName"), FontName);
+		WriteProfileInt(_T("Dialog"), _T("FontSize"), FontSize);
+
+	} else if ( !FontName.IsEmpty() && AfxMessageBox(CStringLoad(IDS_DLGFONTDELMSG), MB_ICONQUESTION | MB_YESNO) == IDYES ) {
+		DelProfileEntry(_T("Dialog"), _T("FontName"));
+		DelProfileEntry(_T("Dialog"), _T("FontSize"));
+	}
 
 	((CMainFrame *)AfxGetMainWnd())->BarFontCheck();
 }
@@ -3181,7 +3240,7 @@ void CRLoginApp::OnPassLock()
 		}
 
 	} else {						// パスワードロック解除
-		if ( ::AfxMessageBox(IDS_PASSLOCKDELMSG, MB_ICONQUESTION | MB_YESNO) != IDYES )
+		if ( ::AfxMessageBox(CStringLoad(IDS_PASSLOCKDELMSG), MB_ICONQUESTION | MB_YESNO) != IDYES )
 			return;
 
 		WriteProfileString(_T("RLoginApp"), _T("LocalPass"), _T(""));
@@ -3212,7 +3271,7 @@ void CRLoginApp::OnSaveresfile()
 void CRLoginApp::OnCreateprofile()
 {
 	if ( SavePrivateProfile() )
-		::AfxMessageBox(IDS_CREATEPROFILE);
+		::AfxMessageBox(CStringLoad(IDS_CREATEPROFILE));
 }
 void CRLoginApp::OnUpdateCreateprofile(CCmdUI *pCmdUI)
 {

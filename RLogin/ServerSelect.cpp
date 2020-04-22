@@ -491,7 +491,7 @@ BOOL CServerSelect::OnInitDialog()
 
 	InitEntry(INIT_CALL_NONE);
 
-	if ( m_pData->GetSize() == 0 && ((CRLoginApp *)::AfxGetApp())->GetExtFilePath(_T(".rlg"), m_InitPathName) ) {
+	if ( m_pData->GetSize() == 0 && ((CRLoginApp *)::AfxGetApp())->GetExtFilePath(NULL, _T(".rlg"), m_InitPathName) ) {
 		if ( MessageBox(CStringLoad(IDS_INITENTRYINPORT), _T("Question"), MB_ICONQUESTION | MB_YESNO) == IDYES )
 			PostMessage(WM_COMMAND, IDM_SERV_INPORT);
 		else

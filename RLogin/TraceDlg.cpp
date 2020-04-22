@@ -208,7 +208,7 @@ BOOL CTraceDlg::OnInitDialog()
 		m_TraceMaxCount = 200000;
 
 	if ( !m_TraceLogFile.IsEmpty() && !m_File.Open(m_TraceLogFile, CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite | CFile::shareExclusive) )
-		AfxMessageBox(IDE_LOGOPENERROR);
+		AfxMessageBox(CStringLoad(IDE_LOGOPENERROR));
 
 	if ( m_File.m_hFile != CFile::hFileNull )
 		m_File.SeekToEnd();
@@ -378,7 +378,7 @@ void CTraceDlg::OnTekSave()
 		return;
 
 	if ( !m_File.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite | CFile::shareExclusive) )
-		AfxMessageBox(IDE_LOGOPENERROR);
+		AfxMessageBox(CStringLoad(IDE_LOGOPENERROR));
 
 	if ( m_File.m_hFile != CFile::hFileNull )
 		m_File.SeekToEnd();
