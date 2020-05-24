@@ -203,10 +203,8 @@ void CChildFrame::OnUpdateFrameMenu(BOOL bActive, CWnd* pActiveWnd, HMENU hMenuA
 
 	if ( bActive && AfxGetApp()->GetProfileInt(_T("ChildFrame"), _T("VMenu"), TRUE) == FALSE ) {
 		pFrame->SetMenu(NULL);
-
 	} else if ( !bActive && pActiveWnd == NULL && pFrame != NULL && pFrame->m_StartMenuHand != NULL ) {
 		CMDIChildWnd::OnUpdateFrameMenu(bActive, pActiveWnd, pFrame->m_StartMenuHand);
-
 	} else {
 		CMDIChildWnd::OnUpdateFrameMenu(bActive, pActiveWnd, hMenuAlt);
 	}

@@ -1,5 +1,6 @@
-// RLogin.h : RLogin アプリケーションのメイン ヘッダー ファイル
-//
+//////////////////////////////////////////////////////////////////////
+// CRLogin
+
 #pragma once
 
 #ifndef __AFXWIN_H__
@@ -33,6 +34,9 @@
 #define	WM_FILEWRITE		(WM_APP + 31)
 #define	WM_FILEFLUSH		(WM_APP + 32)
 #define	WM_FILESYNC			(WM_APP + 33)
+
+// CCmdHisDlg
+#define	WM_ADDCMDHIS		(WM_APP + 34)
 
 #define	IDLEPROC_SOCKET		0
 #define	IDLEPROC_ENCRYPT	1

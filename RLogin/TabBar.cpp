@@ -32,8 +32,9 @@ CTabBar::CTabBar()
 	m_ImageCount = 0;
 	m_SetCurTimer = 0;
 	m_GhostWndTimer = 0;
-	m_TabHeight = 8;
-	m_BoderSize = 8;
+	m_TabRect.SetRect(0, 0, 200, 20);
+	m_TabHeight = 16;
+	m_BoderSize = 2;
 	m_MinTabSize = MINTAB_SIZE;
 	m_TabLines = 1;
 }
@@ -72,79 +73,43 @@ BOOL CTabBar::Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID)
 CSize CTabBar::CalcFixedLayout(BOOL bStretch, BOOL bHorz)
 {
 	CSize size;
-
-	int Width = 32767;
+	CWnd *pMain;
+	CRect MainRect(0, 0, 32767, 32767);
+	CRect InSideRect;
 	int FontSize = 12;
-	int BarInSide = 6;
-	int BoderSize = 4;
-	int WinBdSize = 2;
-	int TabUdSize = 2;
+	int WinBdSize = 1;
+	int rgBorders[3];	// バーの境界線の幅を取得 0=横, 1=縦, 2=セパレーター
 
-	// フォントサイズの取得
-	{
-		TEXTMETRIC tm;
-		CClientDC dc(NULL);
-		HFONT hFont = (HFONT)SendMessage(WM_GETFONT);
-		HGDIOBJ hOldFont = NULL;
+	if ( (pMain = ::AfxGetMainWnd()) != NULL )
+		pMain->GetClientRect(MainRect);
 
-		if (hFont != NULL)
-			hOldFont = dc.SelectObject(hFont);
-
-		dc.GetTextMetrics(&tm);
-
-		if (hOldFont != NULL)
-			dc.SelectObject(hOldFont);
-
-		FontSize = tm.tmHeight - tm.tmInternalLeading;
-	}
-
-	// CControlBarの内サイズの取得
-	{
-		CRect rect;
-		rect.SetRectEmpty();
-		CalcInsideRect(rect, bHorz);
-		BarInSide = 0 - rect.Height();
-	}
-
-	// バーの境界線の幅を取得 0=横, 1=縦, 2=セパレーター
-	{
-		int rgBorders[3];
-		DefWindowProc(SB_GETBORDERS, 0, (LPARAM)&rgBorders);
-		BoderSize = rgBorders[1] * 2;
-	}
-
-	// ウィンドウ境界線の取得
-	{
-		WinBdSize = ::GetSystemMetrics(SM_CYBORDER) * 2;
-		TabUdSize = ::GetSystemMetrics(SM_CYBORDER) * 2;
-	}
-
-	// メインウィンドウのクライアントサイズ取得
-	{
-		CRect rect;
-		CWnd *pMain;
-
-		if ( (pMain = ::AfxGetMainWnd()) != NULL ) {
-			pMain->GetClientRect(rect);
-			Width = rect.Width();
+	if ( m_TabCtrl.GetSafeHwnd() != NULL ) {
+		CFont *pFont = m_TabCtrl.GetFont();
+		if ( pFont != NULL ) {
+			LOGFONT LogFont;
+			pFont->GetLogFont(&LogFont);
+			if ( (FontSize = LogFont.lfHeight) < 0 )
+				FontSize = 0 - FontSize;
 		}
 	}
+	
+	DefWindowProc(SB_GETBORDERS, 0, (LPARAM)&rgBorders);
+	m_BoderSize = rgBorders[1]; 
+	WinBdSize = ::GetSystemMetrics(SM_CYBORDER);
 
+	InSideRect.SetRect(0, 0, 100, 100);
+	CalcInsideRect(InSideRect, bHorz);
 
-	if ( m_bMultiLine ) {
-		m_BoderSize = BoderSize;
-		m_TabHeight = FontSize + BoderSize * 2 + WinBdSize;
+	if ( m_bMultiLine )
+		m_TabHeight = WinBdSize + m_BoderSize * 2 + FontSize + m_BoderSize * 2 + WinBdSize;
+	else
+		m_TabHeight = WinBdSize + m_BoderSize + FontSize + m_BoderSize + WinBdSize;
 
-		size.cx = Width;
-		size.cy = (m_TabHeight + WinBdSize * 3 / 2) * m_TabLines;
+	size.cx = WinBdSize + MainRect.Width() + WinBdSize;
+	size.cy = WinBdSize + (m_TabHeight + m_BoderSize + WinBdSize) * m_TabLines + (100 - InSideRect.Height());
 
-	} else {
-		m_BoderSize = BoderSize;
-		m_TabHeight = FontSize + BoderSize + WinBdSize;
-
-		size.cx = Width;
-		size.cy = m_TabHeight * m_TabLines + TabUdSize + BarInSide;
-	}
+	m_TabRect.SetRect(0, 0, size.cx, size.cy);
+	CalcInsideRect(m_TabRect, bHorz);
 
 	return size;
 }
@@ -216,6 +181,8 @@ int CTabBar::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		bitmap.DeleteObject();
 	}
 
+	SetBorders(2, 2, 2, 2);
+
 	return 0;
 }
 
@@ -228,12 +195,7 @@ void CTabBar::OnSize(UINT nType, int cx, int cy)
 
 	ReSize(FALSE);
 
-	CRect rect;
-	GetClientRect(rect);
-	rect.right -= m_BoderSize;
-
-	m_TabCtrl.AdjustRect(TRUE, &rect);
-	m_TabCtrl.SetWindowPos(&wndTop ,0, 0, rect.Width(), rect.Height(), SWP_SHOWWINDOW);
+	m_TabCtrl.SetWindowPos(&wndTop, m_TabRect.left, m_TabRect.top, m_TabRect.Width(), m_TabRect.Height(), SWP_SHOWWINDOW);
 }
 
 void CTabBar::FontSizeCheck()
@@ -429,13 +391,14 @@ void CTabBar::OnSelchange(NMHDR* pNMHDR, LRESULT* pResult)
 void CTabBar::OnLButtonDblClk(UINT nFlags, CPoint point)
 {
 	CRect rect;
-	int idx = m_TabCtrl.GetCurSel();
-	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
 
-	CControlBar::OnLButtonDblClk(nFlags, point);
+	m_TabCtrl.GetWindowRect(rect);
+	ScreenToClient(rect);
 
-	if ( idx < 0 || !m_TabCtrl.GetItemRect(idx, rect) || !rect.PtInRect(point) )
-		pMain->PostMessage(WM_COMMAND, (WPARAM)ID_FILE_NEW);
+	if ( rect.PtInRect(point) && HitPoint(point) == (-1) )
+		AfxGetMainWnd()->PostMessage(WM_COMMAND, (WPARAM)ID_FILE_NEW);
+	else
+		CControlBar::OnLButtonDblClk(nFlags, point);
 }
 
 void CTabBar::OnLButtonDown(UINT nFlags, CPoint point) 
@@ -464,13 +427,15 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 	clock_t stc = clock() - (CLOCKS_PER_SEC * 2);
 	int count = m_TabCtrl.GetItemCount();
 
-	CControlBar::OnLButtonDown(nFlags, point);
+	ASSERT(pApp != NULL && pMain != NULL);
 
-	if ( pApp == NULL || pMain == NULL )
+	if ( (idx = HitPoint(point)) < 0 || !m_TabCtrl.GetItemRect(idx, rect) ) {
+		CControlBar::OnLButtonDown(nFlags, point);
 		return;
+	}
 
-	if ( (idx = HitPoint(point)) < 0 || !m_TabCtrl.GetItemRect(idx, rect) )
-		return;
+	m_TabCtrl.ClientToScreen(rect);
+	ScreenToClient(rect);
 
 	if ( (pChild = (CChildFrame *)GetAt(idx)) == NULL ||
 		 (pDoc = (CRLoginDoc*)pChild->GetActiveDocument()) == NULL ||
@@ -486,6 +451,8 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 		pMain->MDIActivate(pChild);
 		m_TabCtrl.SetCurSel(idx);
 		m_TabCtrl.GetItemRect(idx, rect);
+		m_TabCtrl.ClientToScreen(rect);
+		ScreenToClient(rect);
 	}
 
 	switch(pDoc->m_ServerEntry.m_DocType) {
@@ -574,7 +541,7 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 				CPoint tmp = capos;
 				ClientToScreen(&tmp);
 				pMain->ScreenToClient(&tmp);
-				TypeCol = (pMain->IsWindowPanePoint(tmp) ? 0 : 5);
+				TypeCol = (pMain->GetWindowPanePoint(tmp) != NULL ? 0 : 5);
 
 			} else if ( hit == (-3) ) {
 				TypeCol = 5;
@@ -840,13 +807,13 @@ void CTabBar::ReSize(BOOL bCallLayout)
 		count = DEFTAB_COUNT;
 
 	if ( m_bMultiLine ) {
-		if ( (m_MinTabSize = (rect.Width() - NEWCLICK_SIZE - m_BoderSize * 10) / 10) < (MINTAB_SIZE * 2) )
+		if ( (m_MinTabSize = (rect.Width() - NEWCLICK_SIZE - m_BoderSize * 20) / 10) < (MINTAB_SIZE * 2) )
 			m_MinTabSize = MINTAB_SIZE * 2;
 
-		if ( (width = (rect.Width() - NEWCLICK_SIZE - m_BoderSize * 10) / count) < m_MinTabSize ) {
+		if ( (width = (rect.Width() - NEWCLICK_SIZE - m_BoderSize * 20) / count) < m_MinTabSize ) {
 			int n = (rect.Width() - NEWCLICK_SIZE) / m_MinTabSize;
 			if ( n > 0 )
-				width = (rect.Width() - NEWCLICK_SIZE - m_BoderSize * n) / n;
+				width = (rect.Width() - NEWCLICK_SIZE - m_BoderSize * 2 * n) / n;
 			else
 				width = m_MinTabSize;
 		}
@@ -861,7 +828,7 @@ void CTabBar::ReSize(BOOL bCallLayout)
 
 	m_TabCtrl.GetItemRect(0, rect);
 
-	if ( width != rect.Width() || m_TabHeight != rect.Height() ) {
+	if ( width != rect.Width() ) {
 		sz.cx = width;
 		sz.cy = m_TabHeight;
 
@@ -950,7 +917,7 @@ int CTabBar::HitPoint(CPoint point)
 		return (-3);				// メインクライアント外
 
 	// CTabBarクライアント座標
-	ScreenToClient(&point);
+	m_TabCtrl.ScreenToClient(&point);
 	for ( int n = 0 ; n < m_TabCtrl.GetItemCount() ; n++ ) {
 		if ( m_TabCtrl.GetItemRect(n, rect) && rect.PtInRect(point) )
 			return n;				// タブ内

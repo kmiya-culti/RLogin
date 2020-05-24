@@ -85,4 +85,5 @@ protected:
 	afx_msg LRESULT OnKickIdle(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnDpiChanged(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT HandleInitDialog(WPARAM, LPARAM);
+	afx_msg void OnInitMenuPopup(CMenu *pPopupMenu, UINT nIndex,BOOL bSysMenu);
 };

@@ -1700,6 +1700,7 @@ CTextRam::CTextRam()
 	m_HisPos = 0;
 	m_HisLen = 0;
 	m_HisUse = 0;
+	m_HisAbs = 0;
 	m_pTextSave = m_pTextStack = NULL;
 	m_AltIdx = 0;
 	m_pAltSave[0] = m_pAltSave[1] = NULL;
@@ -1781,6 +1782,8 @@ CTextRam::CTextRam()
 	m_CharHeight = 16;
 	m_MarkColor = RGB(255, 255, 0);
 	m_RtfMode = 0;
+	m_iTerm2Mark = 0;
+	m_pCmdHisWnd = NULL;
 
 	for ( int n = 0 ; n < 8 ; n++ )
 		pGrapListIndex[n] = pGrapListImage[n] = NULL;
@@ -1897,6 +1900,10 @@ CTextRam::~CTextRam()
 		delete [] m_SaveParam.m_TabMap;
 	if ( m_StsParam.m_TabMap != NULL )
 		delete [] m_StsParam.m_TabMap;
+
+	CMDHIS *pCmdHis;
+	while ( !m_CommandHistory.IsEmpty() && (pCmdHis = m_CommandHistory.RemoveHead()) != NULL )
+		delete pCmdHis;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1989,11 +1996,11 @@ void CTextRam::InitText(int Width, int Height)
 /************************************************************
 
 						m_Cols		m_ColsMax		COLS_MAX
-			0-------0---+-----------+---------------+
+			0		0---+-----------+---------------+
 			|    
-			+-------+m_HisLen
-			|		|
-	m_HisPos+-------+-----------0
+			+-------+m_HisLen			0
+			|		|					|
+	m_HisPos+-------+-----------0-------+m_HisAbs
 			|		|			|
 	m_HisMax+-------0-----------+m_Lines
 
@@ -4975,12 +4982,12 @@ void CTextRam::GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf)
 	for ( y = staY ; y <= endY ; y++ ) {
 		vp = GETVRAM(0, y);
 
+		sx = (y == staY ? staX : 0);
+		ex = (y == endY ? endX : (m_Cols - 1));
+
 		if ( vp->m_Vram.zoom != 0 ) {
-			sx = staX / 2;
-			ex = endX / 2;
-		} else {
-			sx = staX;
-			ex = endX;
+			sx = sx / 2;
+			ex = ex / 2;
 		}
 
 		while ( sx <= ex && vp[ex].IsEmpty() )
@@ -7338,6 +7345,8 @@ void CTextRam::RESET(int mode)
 		m_LastStr.Empty();
 		m_Kan_Pos = 0;
 		memset(m_Kan_Buf, 0, sizeof(m_Kan_Buf));
+
+		memset(m_iTerm2MaekPos, 0, sizeof(CPoint) * 4);
 	}
 	
 	if ( mode & RESET_CARET ) {
@@ -8422,7 +8431,9 @@ void CTextRam::FORSCROLL(int sx, int sy, int ex, int ey)
 	if ( sy == 0 && sx == 0 && ex == m_Cols && !m_LineEditMode && !m_bTraceActive ) {
 		if ( m_LogMode == LOGMOD_PAGE )
 			CallReceiveLine(0);
+
 		m_HisUse++;
+		m_HisAbs++;
 
 		if ( (m_HisPos += 1) >= m_HisMax )
 			m_HisPos -= m_HisMax;
@@ -8606,6 +8617,13 @@ void CTextRam::ONEINDEX()
 				if ( IsOptEnable(TO_DECSCLM) && ((m_pDocument != NULL && m_pDocument->m_pSock != NULL && m_pDocument->m_pSock->GetRecvProcSize() < RECVDEFSIZ) || (clock() - m_UpdateClock) > 20) ) {
 					m_UpdateClock = clock();
 					m_UpdateFlag = TRUE;
+				}
+
+				if ( m_iTerm2Mark != 0 ) {
+					m_iTerm2MaekPos[0].y--;
+					m_iTerm2MaekPos[1].y--;
+					m_iTerm2MaekPos[2].y--;
+					m_iTerm2MaekPos[3].y--;
 				}
 			}
 		}

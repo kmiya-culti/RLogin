@@ -179,6 +179,7 @@ BEGIN
         MENUITEM "ツールバー(&T)",                   ID_VIEW_TOOLBAR
         MENUITEM "クイックバー(&Q)",                  ID_VIEW_QUICKBAR
         MENUITEM "タブバー(&B)",                    ID_VIEW_TABBAR
+        MENUITEM "ダイアログバー(&D)",                 ID_VIEW_TABDLGBAR
         MENUITEM "ステータスバー(&S)",                 ID_VIEW_STATUS_BAR
     END
     POPUP "ウィンドウ(&W)"
@@ -285,6 +286,7 @@ BEGIN
         MENUITEM "ツールバー(&T)",                   ID_VIEW_TOOLBAR
         MENUITEM "クイックバー(&Q)",                  ID_VIEW_QUICKBAR
         MENUITEM "タブバー(&B)",                    ID_VIEW_TABBAR
+        MENUITEM "ダイアログバー(&D)",                 ID_VIEW_TABDLGBAR
         MENUITEM "ステータスバー(&S)",                 ID_VIEW_STATUS_BAR
         MENUITEM "スクロールバー(&V)",                 ID_VIEW_SCROLLBAR
         MENUITEM SEPARATOR
@@ -293,6 +295,8 @@ BEGIN
         MENUITEM "ソケットステータス(&X)",               IDM_SOCKETSTATUS
         MENUITEM "シリアルモニター(&Z)",                IDM_COMMONITER
         MENUITEM "トレースウィンドウ(&W)",               IDM_TRACEDISP
+        MENUITEM "コマンドウィンドウ(&I)",               IDM_CMDHIS
+        MENUITEM "ヒストリーウィンドウ(&H)",              IDM_HISTORYDLG
         MENUITEM "おさかなを飼う(&O)",                 ID_GOZIVIEW
         MENUITEM SEPARATOR
         MENUITEM "オプション設定(&P)",                 ID_SETOPTION
@@ -507,6 +511,19 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "エントリーをすべて選択(&S)",             IDM_TREECTRLSELECT
     END
+    POPUP "CMDHIS"
+    BEGIN
+        MENUITEM "スクロールモード(&S)\tSpace",         IDM_CMDHIS_SCRM
+        MENUITEM SEPARATOR
+        MENUITEM "コマンドを送信(&E)\tEnter",          IDM_CMDHIS_CMDS
+        MENUITEM "カレントディレクトリを送信(&D)\tTab",      IDM_CMDHIS_CURD
+        MENUITEM "コマンド終了メッセージ(&M)\tEsc",        IDM_CMDHIS_MSG
+        MENUITEM SEPARATOR
+        MENUITEM "ファイルに保存(&F)",                 IDM_TEK_SAVE
+        MENUITEM SEPARATOR
+        MENUITEM "コピー(&C)",                     ID_EDIT_COPY
+        MENUITEM "画面をクリア(&X)",                  IDM_TEK_CLEAR
+    END
 END
 
 IDR_TEKWND MENU
@@ -571,6 +588,25 @@ BEGIN
     END
 END
 
+IDR_TRACEWND MENU
+BEGIN
+    POPUP "ファイル(&F)"
+    BEGIN
+        MENUITEM "ファイルに保存(&S)",                 IDM_TEK_SAVE
+        MENUITEM SEPARATOR
+        MENUITEM "閉じる(&X)",                     IDM_TEK_CLOSE
+    END
+    POPUP "編集(&E)"
+    BEGIN
+        MENUITEM "コピー(&C)",                     ID_EDIT_COPY
+        MENUITEM "画面をクリア(&X)",                  IDM_TEK_CLEAR
+    END
+    POPUP "ヘルプ(&H)"
+    BEGIN
+        MENUITEM "RLogin のバージョン情報(&A)...",      ID_APP_ABOUT
+    END
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -590,7 +626,7 @@ BEGIN
                     "SysLink",WS_TABSTOP,44,178,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,193,60,14,WS_GROUP
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin (%s) Version 2.25.1 (2020/04/23)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.25.2 (2020/05/25)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2020 Culti",IDC_STATIC,44,16,189,8
     LTEXT           "OpenSSL 1.1.1g 21 Apr 2020",IDC_STATIC,44,52,189,8
     LTEXT           "Copyright (c) 1998-2019 The OpenSSL Project",IDC_STATIC,44,61,189,8
@@ -1676,7 +1712,7 @@ STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "Trace"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    CONTROL         "",IDC_LIST2,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,0,0,318,169
+    CONTROL         "",IDC_LIST2,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_TABSTOP,0,0,318,169
 END
 
 IDD_OPTDLG DIALOGEX 0, 0, 316, 185
@@ -1991,20 +2027,20 @@ BEGIN
     LTEXT           "下余白(mm)",IDC_STATIC,125,114,50,8
 END
 
-IDD_QUICKBAR DIALOGEX 0, 0, 421, 21
+IDD_QUICKBAR DIALOGEX 0, 0, 427, 21
 STYLE DS_SETFONT | WS_CHILD | WS_SYSMENU
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    COMBOBOX        IDC_ENTRYNAME,59,3,60,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_HOSTNAME,162,3,60,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_PORTNAME,225,3,36,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_USERNAME,288,3,50,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
-    EDITTEXT        IDC_PASSNAME,366,3,50,12,ES_PASSWORD | ES_AUTOHSCROLL
-    PUSHBUTTON      "接続",IDC_CONNECT,3,3,30,14
-    RTEXT           "Entry",IDC_STATIC,35,6,20,8
-    RTEXT           "Host/Port",IDC_STATIC,122,6,36,8
-    RTEXT           "User",IDC_STATIC,264,6,20,8
-    RTEXT           "Pass",IDC_STATIC,341,6,20,8
+    COMBOBOX        IDC_ENTRYNAME,63,3,60,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_HOSTNAME,166,3,60,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_PORTNAME,229,3,36,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_USERNAME,292,3,50,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_PASSNAME,370,3,50,12,ES_PASSWORD | ES_AUTOHSCROLL
+    PUSHBUTTON      "接続",IDC_CONNECT,7,3,30,14
+    RTEXT           "Entry",IDC_STATIC,39,6,20,8
+    RTEXT           "Host/Port",IDC_STATIC,126,6,36,8
+    RTEXT           "User",IDC_STATIC,268,6,20,8
+    RTEXT           "Pass",IDC_STATIC,345,6,20,8
 END
 
 IDD_FILEUPCONVDLG DIALOGEX 0, 0, 355, 122
@@ -2083,6 +2119,19 @@ BEGIN
     LTEXT           "レジストリやファイルエントリーに保存するパスワードの暗号化に使用するキーワードを設定します。変更は、次回起動時から有効になりますが既存のエントリー設定のすべてのパスワードは、読み込まれません。すべてのパスワードを再設定する必要があります。ご注意ください！",IDC_STATIC,53,15,193,31
 END
 
+IDD_HISTORYDLG DIALOGEX 0, 0, 316, 126
+STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "History"
+FONT 9, "MS UI Gothic", 400, 0, 0x80
+BEGIN
+    CONTROL         "",IDC_LIST1,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,4,13,100,108
+    CONTROL         "",IDC_LIST2,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,108,13,100,108
+    CONTROL         "",IDC_LIST3,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | WS_BORDER | WS_TABSTOP,212,13,100,108
+    LTEXT           "Command",IDC_TITLEBOX1,4,2,100,10
+    LTEXT           "Directory",IDC_TITLEBOX2,108,2,100,10
+    LTEXT           "Clipboard",IDC_TITLEBOX3,213,2,100,10
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -2090,8 +2139,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,25,1,0
- PRODUCTVERSION 2,25,1,0
+ FILEVERSION 2,25,2,0
+ PRODUCTVERSION 2,25,2,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2108,12 +2157,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.25.1.0"
+            VALUE "FileVersion", "2.25.2.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.25.1.0"
+            VALUE "ProductVersion", "2.25.2.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2604,7 +2653,7 @@ BEGIN
     IDD_QUICKBAR, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 414
+        RIGHTMARGIN, 420
         TOPMARGIN, 7
         BOTTOMMARGIN, 14
     END
@@ -2647,6 +2696,14 @@ BEGIN
         RIGHTMARGIN, 263
         TOPMARGIN, 7
         BOTTOMMARGIN, 154
+    END
+
+    IDD_HISTORYDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 309
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 119
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -4483,8 +4540,8 @@ BEGIN
     IDM_SOCKETSTATUS        "ソケットの現在の状態を表示\nソケットステータス"
     IDM_SPLIT_HEIGHT_NEW    "縦方向に分割して新規に接続します\n縦新規接続"
     IDM_SPLIT_WIDTH_NEW     "横方向に分割して新規に接続します\n横新規接続"
-    IDM_TEK_CLEAR           "Tekウインドウをクリアする\nクリア"
-    IDM_TEK_CLOSE           "Tekウィンドウを閉じる\n閉じる"
+    IDM_TEK_CLEAR           "ウインドウをクリアする\nクリア"
+    IDM_TEK_CLOSE           "ウィンドウを閉じる\n閉じる"
     IDM_TEK_MODE            "Tek/VTモードの切換を行います\nモード切替"
     IDM_TEK_SAVE            "ファイルに保存する\n保存"
     IDM_TEKDISP             "Tekウィンドウを表示・非表示します\nTek表示"
@@ -4822,6 +4879,13 @@ BEGIN
     IDM_TABMULTILINE        "タブバーをボタンスタイルの複数行で表示する\nタブバーのマルチライン"
     IDM_QUICKCONNECT        "クィックバーで接続"
     IDM_SECPORICY           "エントリー情報のパスワードの暗号化に関する設定を行う\nパスワード暗号化設定"
+    IDM_CMDHIS              "コマンドウィンドウを表示・非表示\nコマンドウィンドウ"
+    IDM_CMDHIS_CMDS         "コマンドラインを送信する\nコマンド送信"
+    IDM_CMDHIS_CURD         "カレントディレクトリを送信する\nディレクトリ送信"
+    IDM_CMDHIS_MSG          "コマンド終了時にメッセージを表示\n終了メッセージ"
+    IDM_CMDHIS_SCRM         "スクロールモードの着替え\nスクロールモード"
+    ID_VIEW_TABDLGBAR       "ダイアログバーの使用/非使用\nダイアログバーの使用切り替え"
+    IDM_HISTORYDLG          "ヒストリーウィンドウを表示・非表示\nヒストリーウィンドウ"
 END
 
 #endif    // 日本語 (日本) resources

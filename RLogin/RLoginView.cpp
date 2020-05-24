@@ -1955,10 +1955,6 @@ void CRLoginView::OnActivateView(BOOL bActivate, CView* pActivateView, CView* pD
 
 	if ( bActivate && pActivateView->m_hWnd == m_hWnd ) {
 		CRLoginDoc *pDoc = GetDocument();
-		CChildFrame *pFrame = GetFrameWnd();
-
-		ASSERT(pFrame != NULL);
-
 		m_ActiveFlag = TRUE;
 		SetFrameRect(-1, -1);
 		pDoc->UpdateAllViews(NULL, UPDATE_INITPARA, NULL);
@@ -4056,4 +4052,3 @@ void CRLoginView::OnPrint(CDC* pDC, CPrintInfo* pInfo)
 
 	m_TopOffset = save_param[10];
 }
-

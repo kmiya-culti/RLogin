@@ -195,8 +195,8 @@ BOOL CSerEntPage::OnInitDialog()
 		}
 	}
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_TERMNAME)) != NULL ) {
-		if ( !m_pSheet->m_pEntry->m_TermName.IsEmpty() )
-			pCombo->AddString(m_pSheet->m_pEntry->m_TermName);
+		//if ( !m_pSheet->m_pEntry->m_TermName.IsEmpty() )
+		//	pCombo->AddString(m_pSheet->m_pEntry->m_TermName);
 		for ( n = 0 ; n < pTab->m_Data.GetSize() ; n++ ) {
 			str = pTab->m_Data[n].m_TermName;
 			if ( !str.IsEmpty() && pCombo->FindStringExact((-1), str) == CB_ERR )

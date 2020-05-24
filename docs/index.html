@@ -28,8 +28,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.25.1)</TD>
-            <TD width="20%" align="right">2020/04/23</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.25.2)</TD>
+            <TD width="20%" align="right">2020/05/25</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -155,6 +155,7 @@ TD {
                           <LI><A href="#REGWIND">ReGIS/Sixeウィンドウ</A>
                           <LI><A href="#MONITOR">シリアルモニター</A>
                           <LI><A href="#TRACE">トレースウィンドウ</A>
+                          <LI><A href="#CMDHIS">コマンド・ヒストリーウィンドウ</A>
                           <LI><A href="#TOOLBAR">ツールバーのカスタマイズ</A>
                           <LI><A href="#RESOURCE">リソースをファイルに保存</A>
                           <LI><A href="#SFTPWIND">SFTPによるファイル転送</A>
@@ -457,6 +458,14 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2020/05/25</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.25.2/">2.25.2</A></TD>
+            <TD>サーバーオプションのTERM環境変数のリストが重なるのを修正<BR>
+            iTerm2のShell Integrationに試験的に対応しコマンドヒストリーを追加<BR>
+            トレースウィンドウとコマンドヒストリーを統合するダイアログバーを追加<BR>
+            各種バーのドッキングによる移動を有効に変更</TD>
+          </TR>
+          <TR>
             <TD align="center">2020/04/23</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.25.1/">2.25.1</A></TD>
             <TD>リソースをファイルに保存する文字コードをUTF-8に変更<BR>
@@ -494,14 +503,6 @@ TD {
             一部、スクリーン最大値・バッファ・キャッシュなどのサイズを見直し<BR>
             DECSCLMのスムーズスクロールが極度に遅いので動作を変更<BR>
             DPIチェンジでクィックバーが非表示でも表示される問題を修正</TD>
-          </TR>
-          <TR>
-            <TD align="center">2019/12/16</TD>
-            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.24.7/">2.24.7</A></TD>
-            <TD>ファイルエントリーのチャットスクリプト作成フラグが保存されないバグを修正<BR>
-            固定幅フォントの全角文字でも表示幅を調整するように変更<BR>
-            メインウィンドウにクィックバーで接続を追加<BR>
-            エントリーのひな形としてRLogin.rlgの読み込みを行うように変更</TD>
           </TR>
           <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
@@ -934,7 +935,7 @@ TD {
                   <TD align="left" colspan="6">表示(V)</TD>
                 </TR>
                 <TR>
-                  <TD align="center" width="10" rowspan="26">&nbsp;</TD>
+                  <TD align="center" width="10" rowspan="28">&nbsp;</TD>
                   <TD colspan="2" width="250" valign="top">メニューバー(M)</TD>
                   <TD width="450" valign="top">メニューバーを表示・非表示にします<BR>
                   ※非表示の時は、システムメニューでメニューバーを表示できます</TD>
@@ -948,7 +949,7 @@ TD {
                   <TD valign="top">$VIEW_TOOLBAR</TD>
                 </TR>
                 <TR>
-                  <TD valign="top" colspan="2">クィックバー(Q)</TD>
+                  <TD valign="top" colspan="2" width="250">クィックバー(Q)</TD>
                   <TD valign="top">クィックバーを表示・非表示にします<BR>
                   指定したエントリーを用いてホスト・ポート・ユーザー・パスワードを変更して接続を行います</TD>
                   <TD valign="top" align="right"></TD>
@@ -959,6 +960,12 @@ TD {
                   <TD valign="top">タブバーを常時表示・２つ以上なら表示を切り替えます</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$VIEW_TABBAR</TD>
+                </TR>
+                <TR>
+                  <TD valign="top" colspan="2" width="250">ダイアログバー(D)</TD>
+                  <TD valign="top">トレースウィンドウとコマンドヒストリーをメインウィンドウ下部に統合して表示することができます</TD>
+                  <TD valign="top" align="right"></TD>
+                  <TD valign="top">$VIEW_DIALOGBAR</TD>
                 </TR>
                 <TR>
                   <TD colspan="2" valign="top" width="250">ステータスバー(S)</TD>
@@ -1001,6 +1008,14 @@ TD {
                   <TD valign="top"><A href="#TRACE">トレースウィンドウ</A>でESCシーケンスなどのログを表示します</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$VIEW_TRACEDISP</TD>
+                </TR>
+                <TR>
+                  <TD valign="top" colspan="2" width="250">コマンドウィンドウ(I)<BR>
+                  ヒストリーウィンドウ(H)</TD>
+                  <TD valign="top"><A href="https://www.iterm2.com/documentation-shell-integration.html">iTerm2のShell Integration</A>をインストールするとコマンドの履歴をコマンドウィンドウ・ヒストリーウィンドウに表示することが出来ます</TD>
+                  <TD valign="top" align="right"></TD>
+                  <TD valign="top">$VIEW_CMDHIS<BR>
+                  $VIEW_HISTORY</TD>
                 </TR>
                 <TR>
                   <TD valign="top" colspan="2" width="250">おさかなを飼う(O)</TD>
@@ -5675,7 +5690,83 @@ function TekClock2() {
     <TR>
       <TD>
       <HR noshade size="0">
-      <P><A name="TOOLBAR"></A><B>4.5 ツールバーのカスタマイズ</B></P>
+      <P><A name="CMDHIS"></A><B>4.5 コマンド・ヒストリーウィンドウ</B></P>
+      <HR noshade size="0">
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" width="1250">
+        <TBODY>
+          <TR>
+            <TD width="600" valign="top" align="left"><A href="https://www.iterm2.com/documentation-shell-integration.html">iTerm2のShell Integration</A>をインストールするとコマンドのヒストリーを残すことが出来ます。また、そのコマンドの終了した時にスクロールしたりコマンドの再出力や実行時のカレントディレクトリを送信したり実行中のコマンドが終了した時にメッセージを表示します。コマンドウィンドウは、開いたエントリーにだけ送信しますが、ヒストリーウィンドウは、アクティブな接続に対してコマンド・ディレクトリ・クリップボードなどの履歴を送信します<BR>
+            <BR>
+            <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
+              <TBODY>
+                <TR>
+                  <TD colspan="2">ファイルメニュー</TD>
+                </TR>
+                <TR>
+                  <TD width="30%" align="center">ファイルに保存</TD>
+                  <TD>コマンドヒストリーをファイルに保存します</TD>
+                </TR>
+                <TR>
+                  <TD align="center">閉じる</TD>
+                  <TD>ウィンドウを閉じます</TD>
+                </TR>
+                <TR>
+                  <TD colspan="2">編集メニュー</TD>
+                </TR>
+                <TR>
+                  <TD align="center">コピー</TD>
+                  <TD>クリップボードにコピーします</TD>
+                </TR>
+                <TR>
+                  <TD align="center">画面のクリア</TD>
+                  <TD>コマンドヒストリーをクリアします</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            <BR>
+            <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
+              <TBODY>
+                <TR>
+                  <TD colspan="2">右クリックによるポップアップメニュー</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">スクロールモード</TD>
+                  <TD>選択行のコマンドが終了した時の画面にスクロールするモードになります</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">コマンドを送信</TD>
+                  <TD>選択行のコマンドを送信します</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">カレントディレクトリを送信</TD>
+                  <TD>選択行のカレントディレクトリをシェルエスケープして送信します</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="30%">コマンド終了メッセージ</TD>
+                  <TD>実行中のコマンドが終了した時にポップアップメーセージを表示します</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            <BR>
+            上記トレースウィンドウ・コマンドウィンドウ・ヒストリーウィンドウは、メニューの表示・ダイアログバーをチェックするとメインウィンドウにドッキングして表示します。さらにダイアログバーの左端をドラッグしてメインウィンドウの上下左右の任意位置にドッキングする場所を選択出来ます</TD>
+            <TD valign="top" align="left"><IMG src="image062.jpg" width="573" height="292" border="0"><BR>
+            <BR>
+            <IMG src="image063.jpg" width="569" height="216" border="0"><BR>
+            <BR>
+            <IMG src="image064.jpg" width="568" height="190" border="0"></TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR noshade size="0">
+      <P><A name="TOOLBAR"></A><B>4.6 ツールバーのカスタマイズ</B></P>
       <HR noshade size="0">
       </TD>
     </TR>
@@ -5741,7 +5832,7 @@ function TekClock2() {
     <TR>
       <TD>
       <HR noshade size="0">
-      <P><A name="RESOURCE"></A><B>4.6 リソースをファイルに保存</B></P>
+      <P><A name="RESOURCE"></A><B>4.7 リソースをファイルに保存</B></P>
       <HR noshade size="0">
       </TD>
     </TR>
@@ -5800,7 +5891,7 @@ function TekClock2() {
     <TR>
       <TD>
       <HR noshade size="0">
-      <P><A name="SFTPWIND"></A><B>4.7 SFTPによるファイル転送</B></P>
+      <P><A name="SFTPWIND"></A><B>4.8 SFTPによるファイル転送</B></P>
       <HR noshade size="0">
       </TD>
     </TR>

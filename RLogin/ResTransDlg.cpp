@@ -463,10 +463,10 @@ void CResTransDlg::OnOK()
 	m_ResFileName = dlg.GetPathName();
 
 	if ( m_bTranstate ) {
+#ifdef	_M_X64
 		LCID lcid;
 		TCHAR name[256];
 
-#ifdef	_M_X64
 		if ( (lcid = LocaleNameToLCID(m_TransTo, 0)) != 0 ) {
 			m_ResDataBase.m_LangId = LANGIDFROMLCID(lcid);
 			m_ResDataBase.m_Transrate = m_TransTo;

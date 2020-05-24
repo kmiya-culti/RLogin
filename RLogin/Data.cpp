@@ -5370,7 +5370,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	138
+#define	CMDSKEYTABMAX	141
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -5491,6 +5491,9 @@ static const struct _CmdsKeyTab {
 	{	IDM_TABMULTILINE,			L"$TAB_MULTILINE"	},
 	{	IDM_TITLEEDIT,				L"$TITLE_EDIT"		},
 	{	IDM_VERSIONCHECK,			L"$VERSION_CHECK"	},
+	{	IDM_CMDHIS,					L"$VIEW_CMDHIS"		},
+	{	ID_VIEW_TABDLGBAR,			L"$VIEW_DIALOGBAR"	},
+	{	IDM_HISTORYDLG,				L"$VIEW_HISTORY"	},
 	{	IDM_IMAGEDISP,				L"$VIEW_IMAGEDISP"	},
 	{	ID_GOZIVIEW,				L"$VIEW_JOKE"		},
 	{	ID_VIEW_MENUBAR,			L"$VIEW_MENUBAR"	},
@@ -7712,6 +7715,9 @@ void CStringIndex::SubOscParam(LPCTSTR &str)
 					value += *(str++);
 				break;
 			}
+		} else if ( *str == _T(';') ) {
+			str++;
+			break;
 		} else if ( *str >= _T(' ') )
 			value += *(str++);
 		else

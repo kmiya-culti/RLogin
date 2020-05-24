@@ -8,6 +8,7 @@
 #include "MainFrm.h"
 #include "RLoginDoc.h"
 #include "RLoginView.h"
+#include "Script.h"
 #include "TextRam.h"
 #include "PipeSock.h"
 #include "GrapWnd.h"
@@ -616,7 +617,7 @@ static CTextRam::ESCNAMEPROC fc_EscNameTab[] = {
 	{	_T("NBH"),		&CTextRam::fc_NBH,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
 	{	_T("NEL"),		&CTextRam::fc_NEL,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
 	{	_T("NOP"),		&CTextRam::fc_POP,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
-	{	_T("OSC"),		&CTextRam::fc_OSC,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("OSC"),		&CTextRam::fc_OSC,		NULL,	PROCTYPE_ESC,	TRACE_NON	},
 	{	_T("PLD"),		&CTextRam::fc_PLD,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
 	{	_T("PLU"),		&CTextRam::fc_PLU,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
 	{	_T("PM"),		&CTextRam::fc_PM,		NULL,	PROCTYPE_ESC,	TRACE_NON	},
@@ -1265,6 +1266,9 @@ void CTextRam::fc_TraceCall(DWORD ch)
 				m_pTraceProc = tp;
 			} else if ( m_TraceFunc != &CTextRam::fc_DCS && m_TraceFunc != &CTextRam::fc_CSI && 
 						m_TraceFunc != &CTextRam::fc_OSC && m_TraceFunc != &CTextRam::fc_PM  && m_TraceFunc != &CTextRam::fc_APC ) {
+				fc_TraceLogChar(ch);
+				fc_TraceLogFlush(tp, FALSE);
+			} else if ( m_TraceFunc == &CTextRam::fc_OSC && ch == 0x07 ) {
 				fc_TraceLogChar(ch);
 				fc_TraceLogFlush(tp, FALSE);
 			} else
@@ -4773,6 +4777,111 @@ void CTextRam::fc_OSCEXE(DWORD ch)
 		}
 		break;
 
+	case 133:	// iTerm2
+		// iTerm2 ShellIntegration
+		// [OSC 133 A] Prompt [OSC 133 B] Command... [OSC 133 C] Result... [OSC 133 D;?]
+		switch(*p) {
+		case 'A':	// A	iterm2_prompt_mark
+			m_iTerm2MaekPos[0].x = m_CurX;
+			m_iTerm2MaekPos[0].y = m_CurY;
+
+			m_iTerm2Mark = 1;
+			break;
+		case 'B':	// B	iterm2_prompt_suffix
+			m_iTerm2MaekPos[1].x = m_CurX;
+			m_iTerm2MaekPos[1].y = m_CurY;
+
+			if ( m_iTerm2Mark == 1 ) {
+				CBuffer buf;
+				GetVram(m_iTerm2MaekPos[0].x, m_iTerm2MaekPos[1].x, m_iTerm2MaekPos[0].y, m_iTerm2MaekPos[1].y, &buf);
+				m_iTerm2Prompt = (LPCTSTR)buf;
+				m_iTerm2Mark = 2;
+			}
+			break;
+		case 'C':	// C	preexec
+			m_iTerm2MaekPos[2].x = m_CurX;
+			m_iTerm2MaekPos[2].y = m_CurY;
+
+			if ( m_iTerm2Mark == 2 ) {
+				CBuffer buf;
+				GetVram(m_iTerm2MaekPos[1].x, m_iTerm2MaekPos[2].x, m_iTerm2MaekPos[1].y, m_iTerm2MaekPos[2].y, &buf);
+				if ( buf.GetSize() >= (sizeof(WCHAR) * 2) && _tcsncmp((LPCTSTR)buf.GetPos(buf.GetSize() - (sizeof(WCHAR) * 2)), _T("\r\n"), 2) == 0 )
+					buf.ConsumeEnd((sizeof(WCHAR) * 2));
+				m_iTerm2Command = (LPCTSTR)buf;
+
+				if ( m_iTerm2Command.GetLength() == 0 || m_iTerm2Command.IsEmpty() )
+					m_iTerm2Mark = 0;
+				else {
+					CMDHIS *pCmdHis = new CMDHIS;
+
+					time(&(pCmdHis->st));
+					pCmdHis->et   = 0;
+					pCmdHis->user = m_iTerm2RemoteHost;
+					pCmdHis->curd = m_iTerm2CurrentDir;
+					pCmdHis->cmds = m_iTerm2Command;
+					pCmdHis->exit.Empty();
+					pCmdHis->emsg = FALSE;
+					pCmdHis->habs = m_HisAbs;
+
+					m_CommandHistory.AddHead(pCmdHis);
+
+					((CMainFrame *)::AfxGetMainWnd())->AddHistory(pCmdHis);
+
+					if ( m_pCmdHisWnd != NULL && m_pCmdHisWnd->GetSafeHwnd() != NULL )
+						m_pCmdHisWnd->PostMessage(WM_ADDCMDHIS, 0, (LPARAM)pCmdHis);
+
+					while ( m_CommandHistory.GetSize() > CMDHISMAX ) {
+						pCmdHis = m_CommandHistory.RemoveTail();
+
+						if ( m_pCmdHisWnd != NULL && m_pCmdHisWnd->GetSafeHwnd() != NULL )
+							m_pCmdHisWnd->DelCmdHis(pCmdHis);
+
+						delete pCmdHis;
+					}
+
+					if ( m_HisAbs >= (m_HisMax * 2) ) {
+						POSITION pos = m_CommandHistory.GetHeadPosition();
+						while ( pos != NULL ) {
+							pCmdHis = m_CommandHistory.GetNext(pos);
+							pCmdHis->habs -= m_HisMax;
+						}
+						m_HisAbs -= m_HisMax;
+					}
+
+					m_iTerm2Mark = 3;
+				}
+			}
+			break;
+		case 'D':	// D;0	iterm2_prompt_prefix
+			m_iTerm2MaekPos[3].x = m_CurX;
+			m_iTerm2MaekPos[3].y = m_CurY;
+
+			while ( *p != '\0' ) {
+				if ( *(p++) == ';' )
+					break;
+			}
+			m_iTerm2ExitStatus = m_pDocument->LocalStr(p);
+
+			if ( m_iTerm2Mark == 3 && !m_CommandHistory.IsEmpty() ) {
+				CMDHIS *pCmdHis = m_CommandHistory.GetHead();
+				time(&(pCmdHis->et));
+				pCmdHis->exit = m_iTerm2ExitStatus;
+				pCmdHis->habs = m_HisAbs;
+
+				if ( m_pCmdHisWnd != NULL && m_pCmdHisWnd->GetSafeHwnd() != NULL )
+					m_pCmdHisWnd->PostMessage(WM_ADDCMDHIS, 1, (LPARAM)pCmdHis);
+				
+				if ( pCmdHis->emsg ) {
+					pCmdHis->emsg = FALSE;
+					CCmdHisDlg::InfoExitStatus(pCmdHis);
+				}
+			}
+
+			m_iTerm2Mark = 0;
+			break;
+		}
+		break;
+
 	case 1337:	// iTerm2
 		iTerm2Ext(p);
 		break;
@@ -8098,7 +8207,7 @@ void CTextRam::iTerm2Ext(LPCSTR param)
 	LPCTSTR p;
 	BOOL bAspect = TRUE;
 
-	m_IConv.RemoteToStr(_T("UTF-8"), param, name);
+	m_IConv.RemoteToStr(m_SendCharSet[m_KanjiMode], param, name);
 	index.GetOscString(name);
 
 	if ( (i = index.Find(_T("File"))) >= 0 ) {
@@ -8222,4 +8331,25 @@ void CTextRam::iTerm2Ext(LPCSTR param)
 				::AfxMessageBox(_T("Can't File Save"));
 		}
 	}
+
+	// iTerm2 ShellIntegration
+	// RemoteHost=user@host
+	// CurrentDir=/home/user
+	// ShellIntegrationVersion=5;shell=bash
+	// SetUserVar=%s=%s" "$1" $(printf "%s" "$2" | base64 | tr -d '\n')
+
+	if ( (i = index.Find(_T("RemoteHost"))) >= 0 )
+		m_iTerm2RemoteHost = (LPCTSTR)index[i];
+
+	if ( (i = index.Find(_T("CurrentDir"))) >= 0 )
+		m_iTerm2CurrentDir = (LPCTSTR)index[i];
+
+	if ( (i = index.Find(_T("ShellIntegrationVersion"))) >= 0 )
+		m_iTerm2Version = (LPCTSTR)index[i];
+
+	if ( (i = index.Find(_T("shell"))) >= 0 )
+		m_iTerm2Shell = (LPCTSTR)index[i];
+
+	if ( (i = index.Find(_T("SetUserVar"))) >= 0 )
+		m_iTerm2SetUserVar = index[i];
 }

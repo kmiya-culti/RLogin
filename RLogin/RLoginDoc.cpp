@@ -74,6 +74,8 @@ BEGIN_MESSAGE_MAP(CRLoginDoc, CDocument)
 	ON_COMMAND(IDM_COMMONITER, &CRLoginDoc::OnCommoniter)
 	ON_UPDATE_COMMAND_UI(IDM_COMMONITER, &CRLoginDoc::OnUpdateCommoniter)
 	ON_UPDATE_COMMAND_UI(IDM_TRACEDISP, &CRLoginDoc::OnUpdateTracedisp)
+	ON_COMMAND(IDM_CMDHIS, &CRLoginDoc::OnCmdhis)
+	ON_UPDATE_COMMAND_UI(IDM_CMDHIS, &CRLoginDoc::OnUpdateCmdhis)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -610,6 +612,9 @@ void CRLoginDoc::DeleteContents()
 
 	if ( m_TextRam.m_pTraceWnd != NULL )
 		m_TextRam.m_pTraceWnd->SendMessage(WM_CLOSE);
+
+	if ( m_TextRam.m_pCmdHisWnd != NULL )
+		m_TextRam.m_pCmdHisWnd->SendMessage(WM_CLOSE);
 
 	SocketClose();
 
@@ -2336,14 +2341,31 @@ void CRLoginDoc::OnTracedisp()
 		EntryText(m_TextRam.m_pTraceWnd->m_TraceLogFile);
 		m_TextRam.m_pTraceWnd->m_TraceMaxCount = m_TextRam.m_TraceMaxCount;
 		m_TextRam.m_pTraceWnd->Create(IDD_TRACEDLG, CWnd::GetDesktopWindow());
+		((CMainFrame *)::AfxGetMainWnd())->AddTabDlg(m_TextRam.m_pTraceWnd, 6);
 		m_TextRam.m_pTraceWnd->ShowWindow(SW_SHOW);
-//		::AfxGetMainWnd()->SetFocus();
 	} else
 		m_TextRam.m_pTraceWnd->SendMessage(WM_CLOSE);
 }
 void CRLoginDoc::OnUpdateTracedisp(CCmdUI *pCmdUI)
 {
 	pCmdUI->SetCheck(m_TextRam.m_pTraceWnd != NULL ? TRUE : FALSE);
+}
+void CRLoginDoc::OnCmdhis()
+{
+	if ( m_TextRam.m_pCmdHisWnd == NULL ) {
+		m_TextRam.m_pCmdHisWnd = new CCmdHisDlg(NULL);
+		m_TextRam.m_pCmdHisWnd->m_pDocument = this;
+		m_TextRam.m_pCmdHisWnd->m_Title = GetTitle();
+		m_TextRam.m_pCmdHisWnd->Create(IDD_TRACEDLG, CWnd::GetDesktopWindow());
+		((CMainFrame *)::AfxGetMainWnd())->AddTabDlg(m_TextRam.m_pCmdHisWnd, 2);
+		m_TextRam.m_pCmdHisWnd->ShowWindow(SW_SHOW);
+	} else
+		m_TextRam.m_pCmdHisWnd->SendMessage(WM_CLOSE);
+}
+void CRLoginDoc::OnUpdateCmdhis(CCmdUI *pCmdUI)
+{
+	pCmdUI->Enable(!m_TextRam.m_iTerm2Version.IsEmpty() ? TRUE : FALSE);
+	pCmdUI->SetCheck(m_TextRam.m_pCmdHisWnd != NULL ? TRUE : FALSE);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -2545,3 +2567,4 @@ void CRLoginDoc::OnUpdateCommoniter(CCmdUI *pCmdUI)
 		pCmdUI->SetCheck(FALSE);
 	}
 }
+

@@ -69,6 +69,7 @@
 #define IDD_FILEUPSENDDLG               165
 #define IDD_FILEDOWNDLG                 166
 #define IDD_SECPOLICYDLG                167
+#define IDD_HISTORYDLG                  168
 #define IDR_GRAPWND                     300
 #define IDR_MAINFRAME                   301
 #define IDR_POPUPMENU                   302
@@ -77,6 +78,8 @@
 #define IDR_SFTPTOOL                    305
 #define IDR_TEKWND                      306
 #define IDR_STATUSWND                   307
+#define IDR_GRAPWND1                    308
+#define IDR_TRACEWND                    308
 #define IDB_ATTR1                       400
 #define IDB_ATTR2                       401
 #define IDB_ATTR3                       402
@@ -641,10 +644,13 @@
 #define IDC_KEYSTAT9                    2189
 #define IDC_LIST1                       2190
 #define IDC_BLOCKLIST                   2190
+#define IDC_LIST2                       2191
 #define IDC_PARALIST                    2191
-#define IDC_LIST2                       2192
+#define IDC_LIST3                       2192
 #define IDC_LISTENHOST                  2193
+#define IDC_LIST4                       2193
 #define IDC_LISTENPORT                  2194
+#define IDC_LIST5                       2194
 #define IDC_LOADCAP                     2195
 #define IDC_LOADDEFAULT                 2196
 #define IDC_LOADINFO                    2197
@@ -968,6 +974,11 @@
 #define IDC_CTRLTITLE3                  2495
 #define IDC_CONNECT                     2496
 #define IDC_VERSIONSTR                  2497
+#define IDC_TABDLGBAR                   2498
+#define IDC_TABDLGBAR_TAB               2499
+#define IDC_TITLEBOX1                   2500
+#define IDC_TITLEBOX2                   2501
+#define IDC_TITLEBOX3                   2502
 #define IDM_BROADCAST                   5000
 #define IDM_CAP_CLIPBORD                5001
 #define IDM_CAP_EXPORT                  5002
@@ -1095,15 +1106,22 @@
 #define IDM_TABMULTILINE                5136
 #define IDM_QUICKCONNECT                5137
 #define IDM_SECPORICY                   5138
+#define IDM_CMDHIS                      5139
+#define IDM_CMDHIS_CMDS                 5140
+#define IDM_CMDHIS_CURD                 5141
+#define IDM_CMDHIS_MSG                  5142
+#define IDM_CMDHIS_SCRM                 5143
+#define ID_VIEW_TABDLGBAR               5144
+#define IDM_HISTORYDLG                  5145
 #define IDM_FIRST_MDICHILD              0xF800
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        168
-#define _APS_NEXT_COMMAND_VALUE         5139
-#define _APS_NEXT_CONTROL_VALUE         2499
+#define _APS_NEXT_RESOURCE_VALUE        169
+#define _APS_NEXT_COMMAND_VALUE         5146
+#define _APS_NEXT_CONTROL_VALUE         2503
 #define _APS_NEXT_SYMED_VALUE           671
 #endif
 #endif

@@ -1,21 +1,15 @@
-// RLoginDoc.h : CRLoginDoc クラスの宣言およびインターフェイスの定義をします。
-//
 /////////////////////////////////////////////////////////////////////////////
+// CRLoginDoc
 
-#if !defined(AFX_RLOGINDOC_H__E9C04D5B_EA6E_4FFB_8827_C5263E3D30E6__INCLUDED_)
-#define AFX_RLOGINDOC_H__E9C04D5B_EA6E_4FFB_8827_C5263E3D30E6__INCLUDED_
-
-#if _MSC_VER > 1000
 #pragma once
-#endif // _MSC_VER > 1000
 
+#include "Data.h"
 #include "TextRam.h"
 #include "ExtSocket.h"
 #include "BPlus.h"
 #include "ZModem.h"
 #include "Kermit.h"
 #include "FileUpDown.h"
-#include "Data.h"
 
 #define	DOCUMENT_MAX		200
 
@@ -240,6 +234,8 @@ protected:
 	afx_msg void OnUpdateTracedisp(CCmdUI *pCmdUI);
 	afx_msg void OnCommoniter();
 	afx_msg void OnUpdateCommoniter(CCmdUI *pCmdUI);
+	afx_msg void OnCmdhis();
+	afx_msg void OnUpdateCmdhis(CCmdUI *pCmdUI);
 
 	afx_msg void OnLoadDefault();
 	afx_msg void OnSaveDefault();
@@ -249,10 +245,3 @@ protected:
 	afx_msg void OnScriptMenu(UINT nID);
 	afx_msg void OnTitleedit();
 };
-
-/////////////////////////////////////////////////////////////////////////////
-
-//{{AFX_INSERT_LOCATION}}
-// Microsoft Visual C++ は前行の直前に追加の宣言を挿入します。
-
-#endif // !defined(AFX_RLOGINDOC_H__E9C04D5B_EA6E_4FFB_8827_C5263E3D30E6__INCLUDED_)

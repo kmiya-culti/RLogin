@@ -1,13 +1,7 @@
-// RLoginView.h : CRLoginView クラスの宣言およびインターフェイスの定義をします。
-//
 /////////////////////////////////////////////////////////////////////////////
+// CRLoginView
 
-#if !defined(AFX_RLOGINVIEW_H__03B57615_4E99_4D63_9DF0_4B7D3D47E193__INCLUDED_)
-#define AFX_RLOGINVIEW_H__03B57615_4E99_4D63_9DF0_4B7D3D47E193__INCLUDED_
-
-#if _MSC_VER > 1000
 #pragma once
-#endif // _MSC_VER > 1000
 
 #include "Data.h"
 #include "TextRam.h"
@@ -53,19 +47,19 @@ class CRLoginView : public CView
 {
 	DECLARE_DYNCREATE(CRLoginView)
 
-protected: // シリアライズ機能のみから作成します。
+protected:
 	CRLoginView();
-
-public:
 	virtual ~CRLoginView();
+
 #ifdef _DEBUG
 	virtual void AssertValid() const;
 	virtual void Dump(CDumpContext& dc) const;
-#endif
-
-// アトリビュート
 public:
 	CRLoginDoc* GetDocument();
+#else
+public:
+	inline CRLoginDoc* CRLoginView::GetDocument() { return (CRLoginDoc*)m_pDocument; }
+#endif
 
 // オペレーション
 public:
@@ -322,15 +316,3 @@ protected:
 	afx_msg void OnSplitHeightNew();
 	afx_msg void OnSplitWidthNew();
 };
-
-#ifndef _DEBUG  // RLoginView.cpp ファイルがデバッグ環境の時使用されます。
-inline CRLoginDoc* CRLoginView::GetDocument()
-   { return (CRLoginDoc*)m_pDocument; }
-#endif
-
-/////////////////////////////////////////////////////////////////////////////
-
-//{{AFX_INSERT_LOCATION}}
-// Microsoft Visual C++ は前行の直前に追加の宣言を挿入します。
-
-#endif // !defined(AFX_RLOGINVIEW_H__03B57615_4E99_4D63_9DF0_4B7D3D47E193__INCLUDED_)

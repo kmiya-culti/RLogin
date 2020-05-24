@@ -12,6 +12,7 @@
 #include "ssh2.h"
 #include "ToolDlg.h"
 #include "richedit.h"
+#include "TraceDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -72,7 +73,7 @@ void CPaneFrame::CreatePane(int Style, HWND hWnd)
 	m_pRight = new CPaneFrame(m_pMain, hWnd, this);
 
 	m_hWnd  = NULL;
-	m_Style = Style;
+	m_Style = (Style == PANEFRAME_HEDLG ? PANEFRAME_HEIGHT : Style);
 
 	if ( m_NullWnd.m_hWnd != NULL )
 		m_NullWnd.DestroyWindow();
@@ -81,13 +82,17 @@ void CPaneFrame::CreatePane(int Style, HWND hWnd)
 		m_pLeft->m_bActive = TRUE;
 	m_bActive = FALSE;
 
-	switch(m_Style) {
+	switch(Style) {
 	case PANEFRAME_WIDTH:
 		m_pLeft->m_Frame.right = m_pLeft->m_Frame.left + (m_Frame.Width() - m_BoderSize) / 2;
 		m_pRight->m_Frame.left = m_pLeft->m_Frame.right + m_BoderSize;
 		break;
 	case PANEFRAME_HEIGHT:
 		m_pLeft->m_Frame.bottom = m_pLeft->m_Frame.top + (m_Frame.Height() - m_BoderSize) / 2;
+		m_pRight->m_Frame.top   = m_pLeft->m_Frame.bottom + m_BoderSize;
+		break;
+	case PANEFRAME_HEDLG:
+		m_pLeft->m_Frame.bottom = m_pLeft->m_Frame.top + (m_Frame.Height() - m_BoderSize) * 3 / 4;
 		m_pRight->m_Frame.top   = m_pLeft->m_Frame.bottom + m_BoderSize;
 		break;
 	case PANEFRAME_MAXIM:
@@ -315,9 +320,10 @@ void CPaneFrame::MoveFrame()
 			m_NullWnd.DestroyWindow();
 		::SetWindowPos(m_hWnd, NULL, m_Frame.left - 2, m_Frame.top - 2, m_Frame.Width(), m_Frame.Height(),
 			SWP_SHOWWINDOW | SWP_FRAMECHANGED | SWP_NOCOPYBITS | SWP_NOOWNERZORDER | SWP_NOZORDER | SWP_NOACTIVATE | SWP_ASYNCWINDOWPOS | SWP_DEFERERASE);
+
 	} else {
 		CRect rect = m_Frame;
-		m_pMain->AdjustRect(rect);
+		m_pMain->FrameToClient(&rect);
 		if ( m_NullWnd.m_hWnd == NULL )
 			m_NullWnd.Create(NULL, WS_CHILD | WS_VISIBLE | WS_BORDER | (m_bActive ? SS_WHITEFRAME : SS_GRAYFRAME), rect, m_pMain);
 		else {
@@ -472,6 +478,15 @@ void CPaneFrame::MoveParOwn(CRect &rect, int Style)
 			Style = PANEFRAME_NOCHNG;
 			break;
 
+		case PANEFRAME_HEDLG:
+			if ( m_Style != PANEFRAME_MAXIM )
+				goto RECALC;
+			m_Style = Style;
+			left.bottom = left.top    + (rect.Height() - m_BoderSize) * 3 / 4;
+			right.top   = left.bottom + m_BoderSize;
+			Style = PANEFRAME_NOCHNG;
+			break;
+
 		case PANEFRAME_WSPLIT:
 			m_Style = PANEFRAME_WIDTH;
 			left.right = left.left  + (rect.Width() - m_BoderSize) / 2;
@@ -584,7 +599,7 @@ int CPaneFrame::BoderRect(CRect &rect)
 		return FALSE;
 	}
 
-	m_pMain->AdjustRect(rect);
+	m_pMain->FrameToClient(&rect);
 	return TRUE;
 }
 void CPaneFrame::SetBuffer(CBuffer *buf, BOOL bEntry)
@@ -810,10 +825,14 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_MENUBAR, &CMainFrame::OnUpdateViewMenubar)
 	ON_COMMAND(ID_VIEW_QUICKBAR, &CMainFrame::OnViewQuickbar)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_QUICKBAR, &CMainFrame::OnUpdateViewQuickbar)
+	ON_COMMAND(ID_VIEW_TABDLGBAR, &CMainFrame::OnViewTabDlgbar)
+	ON_UPDATE_COMMAND_UI(ID_VIEW_TABDLGBAR, &CMainFrame::OnUpdateViewTabDlgbar)
 	ON_COMMAND(ID_VIEW_TABBAR, &CMainFrame::OnViewTabbar)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_TABBAR, &CMainFrame::OnUpdateViewTabbar)
 	ON_COMMAND(ID_VIEW_SCROLLBAR, &CMainFrame::OnViewScrollbar)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_SCROLLBAR, &CMainFrame::OnUpdateViewScrollbar)
+	ON_COMMAND(IDM_HISTORYDLG, &CMainFrame::OnViewHistoryDlg)
+	ON_UPDATE_COMMAND_UI(IDM_HISTORYDLG, &CMainFrame::OnUpdateHistoryDlg)
 
 	ON_COMMAND(ID_WINDOW_CASCADE, OnWindowCascade)
 	ON_UPDATE_COMMAND_UI(ID_WINDOW_CASCADE, OnUpdateWindowCascade)
@@ -898,8 +917,9 @@ CMainFrame::CMainFrame()
 	m_bVersionCheck = FALSE;
 	m_hNextClipWnd = NULL;
 	m_bBroadCast = FALSE;
+	m_bMenuBarShow = FALSE;
 	m_bTabBarShow = FALSE;
-	m_bQuickBarShow = FALSE;
+	m_bTabDlgBarShow = FALSE;
 	m_bQuickConnect = FALSE;
 	m_StatusTimer = 0;
 	m_bAllowClipChain = TRUE;
@@ -915,6 +935,8 @@ CMainFrame::CMainFrame()
 	m_LastClipUpdate = clock();
 	m_pMidiData = NULL;
 	m_pServerSelect = NULL;
+	m_bTabDlgMove = FALSE;
+	m_pHistoryDlg = NULL;
 }
 
 CMainFrame::~CMainFrame()
@@ -992,7 +1014,7 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	// ツール・ステータス・タブ　バーの作成
 	if ( !m_wndToolBar.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT,
-			WS_CHILD | WS_VISIBLE | CBRS_TOP | /*CBRS_GRIPPER | */CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC) ||
+			WS_CHILD | WS_VISIBLE | CBRS_ALIGN_TOP | CBRS_GRIPPER | CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC) ||
 		!((CRLoginApp *)::AfxGetApp())->LoadResToolBar(MAKEINTRESOURCE(IDR_MAINFRAME), m_wndToolBar, this) ) {
 		TRACE0("Failed to create toolbar\n");
 		return -1;      // 作成に失敗
@@ -1003,40 +1025,60 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		return -1;      // 作成に失敗
 	}
 
-	if ( !m_wndTabBar.Create(this, WS_VISIBLE| WS_CHILD | CBRS_TOP | WS_EX_WINDOWEDGE, IDC_MDI_TAB_CTRL_BAR) ) {
+	if ( !m_wndTabBar.Create(this, WS_VISIBLE| WS_CHILD | CBRS_ALIGN_TOP | CBRS_GRIPPER, IDC_MDI_TAB_CTRL_BAR) ) {
 		TRACE("Failed to create tabbar\n");
 		return -1;      // fail to create
 	}
 
-	if ( !m_wndQuickBar.Create(this, IDD_QUICKBAR, WS_VISIBLE | CBRS_TOP, IDD_QUICKBAR) ) {
+	if ( !m_wndQuickBar.Create(this, IDD_QUICKBAR, WS_VISIBLE | WS_CHILD | CBRS_ALIGN_TOP | CBRS_GRIPPER, IDD_QUICKBAR) ) {
 		TRACE("Failed to create dialogbar\n");
+		return -1;      // fail to create
+	}
+
+	if ( !m_wndTabDlgBar.Create(this, WS_VISIBLE| WS_CHILD | CBRS_ALIGN_BOTTOM | CBRS_GRIPPER, IDC_TABDLGBAR) ) {
+		TRACE("Failed to create tabdlgbar\n");
 		return -1;      // fail to create
 	}
 
 	m_wndStatusBar.GetPaneInfo(0, nID, nSt, n);
 	m_wndStatusBar.SetPaneInfo(0, nID, nSt, 160);
 
-	m_wndToolBar.EnableDocking(CBRS_ALIGN_ANY);
-	m_wndTabBar.EnableDocking(CBRS_ALIGN_ANY);
-	m_wndQuickBar.EnableDocking(CBRS_ALIGN_ANY);
+	m_wndToolBar.EnableDocking(CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM);
+	m_wndTabBar.EnableDocking(CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM);
+	m_wndQuickBar.EnableDocking(CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM);
+	m_wndTabDlgBar.EnableDocking(CBRS_ALIGN_ANY);
 
 	EnableDocking(CBRS_ALIGN_ANY);
 
 	DockControlBar(&m_wndToolBar);
 	DockControlBar(&m_wndQuickBar);
 	DockControlBar(&m_wndTabBar);
+	DockControlBar(&m_wndTabDlgBar);
+
+	//	DockControlBar(&m_wndTabDlgBar, AFX_IDW_DOCKBAR_BOTTOM);
+	//	DockControlBar(&m_wndTabDlgBar, AFX_IDW_DOCKBAR_RIGHT);
+	//	DockControlBar(&m_wndTabDlgBar, AFX_IDW_DOCKBAR_TOP);
+	//	DockControlBar(&m_wndTabDlgBar, AFX_IDW_DOCKBAR_LEFT);
 
 	// バーの表示設定
-	if ( (AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("ToolBarStyle"), WS_VISIBLE) & WS_VISIBLE) == 0 )
-		ShowControlBar(&m_wndToolBar, FALSE, 0);
-	if ( (AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("StatusBarStyle"), WS_VISIBLE) & WS_VISIBLE) == 0 )
-		ShowControlBar(&m_wndStatusBar, FALSE, 0);
+	LoadBarState(_T("BarState"));
 
-	m_bQuickBarShow = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("QuickBarShow"), FALSE);
-	ShowControlBar(&m_wndQuickBar, m_bQuickBarShow, 0);
+	m_bMenuBarShow = AfxGetApp()->GetProfileInt(_T("ChildFrame"), _T("VMenu"), TRUE);
+
+	if ( (AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("ToolBarStyle"), WS_VISIBLE) & WS_VISIBLE) == 0 )
+		ShowControlBar(&m_wndToolBar, FALSE, FALSE);
+
+	if ( (AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("StatusBarStyle"), WS_VISIBLE) & WS_VISIBLE) == 0 )
+		ShowControlBar(&m_wndStatusBar, FALSE, FALSE);
+
+	if ( AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("QuickBarShow"), FALSE) == FALSE )
+		ShowControlBar(&m_wndQuickBar, FALSE, FALSE);
 
 	m_bTabBarShow = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("TabBarShow"), FALSE);
-	ShowControlBar(&m_wndTabBar, m_bTabBarShow, 0);
+	ShowControlBar(&m_wndTabBar, m_bTabBarShow, FALSE);
+
+	m_bTabDlgBarShow = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("TabDlgBarShow"), FALSE);
+	ShowControlBar(&m_wndTabDlgBar, FALSE, FALSE);
 
 	// 特殊効果の設定
 	m_TransParValue = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("LayeredWindow"), 255);
@@ -1092,6 +1134,10 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	// 標準の設定のキー設定を読み込み・初期化
 	m_DefKeyTab.Serialize(FALSE);
 	m_DefKeyTab.CmdsInit();
+
+	// ヒストリーウィンドウを復帰
+	if ( AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("HistoryDlg"), FALSE) )
+		PostMessage(WM_COMMAND, IDM_HISTORYDLG);
 
 	return 0;
 }
@@ -1831,6 +1877,48 @@ void CMainFrame::SetIconData(HICON hIcon, LPCTSTR str)
 
 /////////////////////////////////////////////////////////////////////////////
 
+void CMainFrame::AddHistory(void *pCmdHis)
+{
+	if ( m_pHistoryDlg != NULL && m_pHistoryDlg->GetSafeHwnd() != NULL )
+		m_pHistoryDlg->PostMessage(WM_ADDCMDHIS, (WPARAM)0, (LPARAM)pCmdHis);
+}
+
+void CMainFrame::AddTabDlg(CWnd *pWnd, int nImage)
+{
+	if ( !m_bTabDlgBarShow )
+		return;
+
+	m_wndTabDlgBar.Add(pWnd, nImage);
+
+	if ( m_wndTabDlgBar.m_TabCtrl.GetItemCount() > 0 && (m_wndTabDlgBar.GetStyle() & WS_VISIBLE) == 0 )
+		ShowControlBar(&m_wndTabDlgBar, TRUE, TRUE);
+
+	SetFocus();
+}
+void CMainFrame::DelTabDlg(CWnd *pWnd)
+{
+	if ( !m_bTabDlgBarShow )
+		return;
+
+	m_wndTabDlgBar.Del(pWnd);
+
+	if ( m_wndTabDlgBar.m_TabCtrl.GetItemCount() <=0 )
+		ShowControlBar(&m_wndTabDlgBar, FALSE, TRUE);
+}
+void CMainFrame::SelTabDlg(CWnd *pWnd)
+{
+	if ( !m_bTabDlgBarShow )
+		return;
+
+	m_wndTabDlgBar.Sel(pWnd);
+}
+BOOL CMainFrame::IsInsideDlg(CWnd *pWnd)
+{
+	if ( !m_bTabDlgBarShow )
+		return FALSE;
+
+	return m_wndTabDlgBar.IsInside(pWnd);
+}
 BOOL CMainFrame::IsConnectChild(CPaneFrame *pPane)
 {
 	CChildFrame *pWnd;
@@ -1893,47 +1981,61 @@ void CMainFrame::RemoveChild(CWnd *pWnd, BOOL bDelete)
 	if ( m_wndTabBar.m_TabCtrl.GetItemCount() <= 1 )
 		ShowControlBar(&m_wndTabBar, m_bTabBarShow, TRUE);
 
-	if ( m_pTopPane != NULL ) {
-		CPaneFrame *pPane = m_pTopPane->GetPane(pWnd->m_hWnd);
-		if ( pPane != NULL ) {
-			if ( bDelete || (pPane->m_pOwn != NULL && pPane->m_pOwn->m_Style == PANEFRAME_MAXIM) ) {
-				m_pTopPane = m_pTopPane->DeletePane(pWnd->m_hWnd);
-			} else {
-				pPane->m_hWnd = NULL;
-				pPane->MoveFrame();
-			}
-		}
+	if ( m_pTopPane == NULL )
+		return;
+
+	CPaneFrame *pPane = m_pTopPane->GetPane(pWnd->m_hWnd);
+
+	if ( pPane == NULL )
+		return;
+
+	if ( bDelete || (pPane->m_pOwn != NULL && pPane->m_pOwn->m_Style == PANEFRAME_MAXIM) ) {
+		m_pTopPane = m_pTopPane->DeletePane(pWnd->m_hWnd);
+	} else {
+		pPane->m_hWnd = NULL;
+		pPane->MoveFrame();
 	}
 }
-void CMainFrame::ActiveChild(CWnd *pWnd)
+void CMainFrame::ActiveChild(class CChildFrame *pWnd)
 {
 	if ( m_pTopPane == NULL )
 		return;
-	m_pTopPane->SetActive(pWnd->m_hWnd);
-#ifdef	DEBUG_XXX
-	m_pTopPane->Dump();
-#endif
+
+	m_pTopPane->SetActive(pWnd->GetSafeHwnd());
+
+	CRLoginView *pView;
+	CRLoginDoc *pDoc;
+	
+	if ( m_bTabDlgBarShow && m_wndTabDlgBar.m_pShowWnd != NULL && m_wndTabDlgBar.m_pShowWnd != m_pHistoryDlg &&
+			(pView = (CRLoginView *)pWnd->GetActiveView()) != NULL && (pDoc = pView->GetDocument()) != NULL ) {
+		if ( m_wndTabDlgBar.m_pShowWnd != pDoc->m_TextRam.m_pCmdHisWnd && m_wndTabDlgBar.m_pShowWnd != pDoc->m_TextRam.m_pTraceWnd ) {
+			if ( pDoc->m_TextRam.m_pCmdHisWnd != NULL )
+				SelTabDlg(pDoc->m_TextRam.m_pCmdHisWnd);
+			else if ( pDoc->m_TextRam.m_pTraceWnd != NULL )
+				SelTabDlg(pDoc->m_TextRam.m_pTraceWnd);
+		}
+	}
 }
-BOOL CMainFrame::IsWindowPanePoint(CPoint point)
+CPaneFrame *CMainFrame::GetWindowPanePoint(CPoint point)
 {
 	if ( m_pTopPane == NULL )
-		return FALSE;
+		return NULL;
 
-	point.y -= m_Frame.top;
+	ClientToFrame(&point);
 
 	CPaneFrame *pPane = m_pTopPane->HitTest(point);
 
 	if ( pPane == NULL || pPane->m_Style != PANEFRAME_WINDOW )
-		return FALSE;
+		return NULL;
 
-	return TRUE;
+	return pPane;
 }
 void CMainFrame::MoveChild(CWnd *pWnd, CPoint point)
 {
 	if ( m_pTopPane == NULL )
 		return;
 
-	point.y -= m_Frame.top;
+	ClientToFrame(&point);
 
 	HWND hLeft, hRight;
 	CPaneFrame *pLeftPane  = m_pTopPane->GetPane(pWnd->m_hWnd);
@@ -2037,18 +2139,69 @@ BOOL CMainFrame::IsTopLevelDoc(CRLoginDoc *pDoc)
 	return FALSE;
 }
 
+void CMainFrame::GetCtrlBarRect(LPRECT rect, CControlBar *pCtrl)
+{
+	ShowControlBar(pCtrl, FALSE, TRUE);
+	RepositionBars(0, 0xffff, AFX_IDW_PANE_FIRST, reposQuery, rect);
+	ShowControlBar(pCtrl, TRUE, TRUE);
+}
 void CMainFrame::GetFrameRect(CRect &frame)
 {
 	if ( m_Frame.IsRectEmpty() )
 		RepositionBars(0, 0xffff, AFX_IDW_PANE_FIRST, reposQuery, &m_Frame);
+
 	frame.SetRect(0, 0, m_Frame.Width(), m_Frame.Height());
 }
-void CMainFrame::AdjustRect(CRect &rect)
+void CMainFrame::FrameToClient(LPRECT lpRect)
 {
 	if ( m_Frame.IsRectEmpty() )
 		RepositionBars(0, 0xffff, AFX_IDW_PANE_FIRST, reposQuery, &m_Frame);
-	rect.top    += m_Frame.top;
-	rect.bottom += m_Frame.top;
+
+	// FrameRect -> ClientRect
+	lpRect->left   += m_Frame.left;
+	lpRect->right  += m_Frame.left;
+	lpRect->top    += m_Frame.top;
+	lpRect->bottom += m_Frame.top;
+}
+void CMainFrame::FrameToClient(LPPOINT lpPoint)
+{
+	if ( m_Frame.IsRectEmpty() )
+		RepositionBars(0, 0xffff, AFX_IDW_PANE_FIRST, reposQuery, &m_Frame);
+
+	// FrameRect -> ClientRect
+	lpPoint->x += m_Frame.left;
+	lpPoint->y += m_Frame.top;
+}
+void CMainFrame::ClientToFrame(LPRECT lpRect)
+{
+	if ( m_Frame.IsRectEmpty() )
+		RepositionBars(0, 0xffff, AFX_IDW_PANE_FIRST, reposQuery, &m_Frame);
+
+	// ClientRect -> FrameRect
+	lpRect->left   -= m_Frame.left;
+	lpRect->right  -= m_Frame.left;
+	lpRect->top    -= m_Frame.top;
+	lpRect->bottom -= m_Frame.top;
+}
+void CMainFrame::ClientToFrame(LPPOINT lpPoint)
+{
+	if ( m_Frame.IsRectEmpty() )
+		RepositionBars(0, 0xffff, AFX_IDW_PANE_FIRST, reposQuery, &m_Frame);
+
+	// ClientRect -> FrameRect
+	lpPoint->x -= m_Frame.left;
+	lpPoint->y -= m_Frame.top;
+}
+void CMainFrame::RecalcLayout(BOOL bNotify) 
+{
+	CMDIFrameWnd::RecalcLayout(bNotify);
+
+	RepositionBars(0, 0xffff, AFX_IDW_PANE_FIRST, reposQuery, &m_Frame);
+
+	if ( m_pTopPane != NULL ) {
+		CRect rect(0, 0, m_Frame.Width(), m_Frame.Height());
+		m_pTopPane->MoveParOwn(rect, PANEFRAME_NOCHNG);
+	}
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -2073,8 +2226,8 @@ void CMainFrame::SetActivePoint(CPoint point)
 	CPaneFrame *pPane;
 
 	ScreenToClient(&point);
+	ClientToFrame(&point);
 
-	point.y -= m_Frame.top;
 	if ( m_pTrackPane != NULL || m_pTopPane == NULL )
 		return;
 
@@ -2593,6 +2746,9 @@ LRESULT CMainFrame::OnGetClipboard(WPARAM wParam, LPARAM lParam)
 			m_ClipBoard.RemoveTail();
 	}
 
+	if ( m_pHistoryDlg != NULL )
+		m_pHistoryDlg->Add(HISBOX_CLIP, *pStr);
+
 	if ( lParam != NULL )
 		delete pStr;
 
@@ -2616,6 +2772,7 @@ LRESULT CMainFrame::OnDpiChanged(WPARAM wParam, LPARAM lParam)
 	((CRLoginApp *)::AfxGetApp())->LoadResToolBar(MAKEINTRESOURCE(IDR_MAINFRAME), m_wndToolBar, this);
 
 	m_wndQuickBar.DpiChanged();
+	m_wndTabDlgBar.DpiChanged();
 
 	RecalcLayout(FALSE);
 
@@ -2643,6 +2800,11 @@ void CMainFrame::OnClose()
 	if ( count > 0 && AfxMessageBox(CStringLoad(IDS_FILECLOSEQES), MB_ICONQUESTION | MB_YESNO) != IDYES )
 		return;
 
+	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("HistoryDlg"),	m_bTabDlgBarShow && m_pHistoryDlg != NULL ? TRUE : FALSE);
+
+	if ( m_pHistoryDlg != NULL )
+		m_pHistoryDlg->SendMessage(WM_CLOSE);
+
 	CMDIFrameWnd::OnClose();
 }
 
@@ -2657,8 +2819,13 @@ void CMainFrame::OnDestroy()
 	//AfxGetApp()->WriteProfileInt(_T("ChildFrame"), _T("VScroll"), m_ScrollBarFlag);
 	//AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("VersionCheckFlag"), m_bVersionCheck);
 
+	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("QuickBarShow"), (m_wndQuickBar.GetStyle() & WS_VISIBLE) != 0 ? TRUE : FALSE);
+
+	SaveBarState(_T("BarState"));
+
 	// save QuickBar Data...
-	m_wndQuickBar.SaveDialog();
+	if ( m_wndQuickBar.GetSafeHwnd() != NULL )
+		m_wndQuickBar.SaveDialog();
 
 	if ( !IsIconic() && !IsZoomed() ) {
 		int n = GetExecCount();
@@ -2776,17 +2943,6 @@ void CMainFrame::OnTimer(UINT_PTR nIDEvent)
 	}
 }
 
-void CMainFrame::RecalcLayout(BOOL bNotify) 
-{
-	CMDIFrameWnd::RecalcLayout(bNotify);
-	RepositionBars(0, 0xffff, AFX_IDW_PANE_FIRST, reposQuery, &m_Frame);
-	if ( m_pTopPane == NULL )
-		return;
-	CRect rect;
-	GetFrameRect(rect);
-	m_pTopPane->MoveParOwn(rect, PANEFRAME_NOCHNG);
-}
-
 void CMainFrame::SplitWidthPane()
 {
 	if ( m_pTopPane == NULL )
@@ -2805,7 +2961,7 @@ void CMainFrame::SplitWidthPane()
 		pPane->MoveParOwn(pPane->m_Frame, PANEFRAME_WIDTH);
 	}
 }
-void CMainFrame::SplitHeightPane()
+void CMainFrame::SplitHeightPane(BOOL bDialog)
 {
 	if ( m_pTopPane == NULL )
 		m_pTopPane = new CPaneFrame(this, NULL, NULL);
@@ -2813,14 +2969,14 @@ void CMainFrame::SplitHeightPane()
 	CPaneFrame *pPane = m_pTopPane->GetActive();
 
 	if ( pPane->m_pOwn == NULL || pPane->m_pOwn->m_Style != PANEFRAME_MAXIM )
-		pPane->CreatePane(PANEFRAME_HEIGHT, NULL);
+		pPane->CreatePane((bDialog ? PANEFRAME_HEDLG : PANEFRAME_HEIGHT), NULL);
 	else {
 		while ( pPane->m_pOwn != NULL && pPane->m_pOwn->m_Style == PANEFRAME_MAXIM )
 			pPane = pPane->m_pOwn;
 		pPane = pPane->InsertPane();
 		if ( pPane->m_pOwn == NULL )
 			m_pTopPane = pPane;
-		pPane->MoveParOwn(pPane->m_Frame, PANEFRAME_HEIGHT);
+		pPane->MoveParOwn(pPane->m_Frame, (bDialog ? PANEFRAME_HEDLG : PANEFRAME_HEIGHT));
 	}
 }
 CPaneFrame *CMainFrame::GetPaneFromChild(HWND hWnd)
@@ -3013,27 +3169,61 @@ BOOL CMainFrame::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 {
 	CPoint point;
 	CPaneFrame *pPane;
+	HCURSOR hCursor = NULL;
 
 	GetCursorPos(&point);
+
+	if ( m_bTabDlgBarShow && m_wndTabDlgBar.m_TabCtrl.GetItemCount() > 0 ) {
+		CRect rect;
+		m_wndTabDlgBar.GetWindowRect(rect);
+
+		switch(m_wndTabDlgBar.GetBarStyle() & CBRS_ALIGN_ANY) {
+		case CBRS_ALIGN_LEFT:
+			rect.right -= 2;
+			rect.left = rect.right - 4;
+			if ( rect.PtInRect(point) )
+				hCursor = AfxGetApp()->LoadStandardCursor(IDC_SIZEWE);
+			break;
+		case CBRS_ALIGN_TOP:
+			rect.bottom -= 2;
+			rect.top = rect.bottom - 4;
+			if ( rect.PtInRect(point) )
+				hCursor = AfxGetApp()->LoadStandardCursor(IDC_SIZENS);
+			break;
+		case CBRS_ALIGN_RIGHT:
+			rect.left += 2;
+			rect.right = rect.left + 4;
+			if ( rect.PtInRect(point) )
+				hCursor = AfxGetApp()->LoadStandardCursor(IDC_SIZEWE);
+			break;
+		case CBRS_ALIGN_BOTTOM:
+			rect.top += 2;
+			rect.bottom = rect.top + 4;
+			if ( rect.PtInRect(point) )
+				hCursor = AfxGetApp()->LoadStandardCursor(IDC_SIZENS);
+			break;
+		}
+	}
+
 	ScreenToClient(&point);
-	point.y -= m_Frame.top;
+	ClientToFrame(&point);
 
 	if ( m_pTopPane != NULL && (pPane = m_pTopPane->HitTest(point)) != NULL && pPane->m_Style != PANEFRAME_WINDOW ) {
 		LPCTSTR id = (pPane->m_Style == PANEFRAME_HEIGHT ? ATL_MAKEINTRESOURCE(AFX_IDC_VSPLITBAR) : ATL_MAKEINTRESOURCE(AFX_IDC_HSPLITBAR));
 		HINSTANCE hInst = AfxFindResourceHandle(id, ATL_RT_GROUP_CURSOR);
-		HCURSOR hCursor = NULL;
 
 		if ( hInst != NULL )
 			hCursor = ::LoadCursorW(hInst, id);
 
 		if ( hCursor == NULL )
 			hCursor = AfxGetApp()->LoadStandardCursor(pPane->m_Style == PANEFRAME_HEIGHT ? IDC_SIZENS : IDC_SIZEWE);
+	}
 
-		if ( hCursor != NULL )
-			::SetCursor(hCursor);
-
+	if ( hCursor != NULL ) {
+		::SetCursor(hCursor);
 		return TRUE;
 	}
+
 	return CMDIFrameWnd::OnSetCursor(pWnd, nHitTest, message);
 }
 
@@ -3075,13 +3265,62 @@ BOOL CMainFrame::PreTranslateMessage(MSG* pMsg)
 
 void CMainFrame::OffsetTrack(CPoint point)
 {
-	CRect rect = m_pTrackPane->m_Frame;
-	AdjustRect(rect);
+	int n;
+	CRect rect;
 
-	point.y -= m_Frame.top;
+	// m_TrackPointは、FrameRectの座標、m_TrackRectは、ClientRectの座標なので注意
+	ClientToFrame(&point);
 
-	if ( m_pTrackPane->m_Style == PANEFRAME_WIDTH ) {
-		m_TrackRect += CPoint(point.x - m_TrackPoint.x, 0);
+	if ( m_bTabDlgMove ) {
+		GetClientRect(rect);
+
+		switch(m_wndTabDlgBar.GetBarStyle() & CBRS_ALIGN_ANY) {
+		case CBRS_ALIGN_LEFT:
+			m_TrackRect = m_TrackBase + CPoint(point.x - m_TrackPoint.x, 0);
+			if ( m_TrackRect.left < (n = rect.left + rect.Width() / 10) ) {
+				m_TrackRect.left = n;
+				m_TrackRect.right = n + 6;
+			} else if ( m_TrackRect.right > (n = m_Frame.right - PANEMIN_WIDTH) ) {
+				m_TrackRect.left = n - 6;
+				m_TrackRect.right = n;
+			}
+			break;
+		case CBRS_ALIGN_TOP:
+			m_TrackRect = m_TrackBase + CPoint(0, point.y - m_TrackPoint.y);
+			if ( m_TrackRect.top < (n = rect.top + rect.Height() / 10) ) {
+				m_TrackRect.top = n;
+				m_TrackRect.bottom = n + 6;
+			} else if ( m_TrackRect.bottom > (n = m_Frame.bottom - PANEMIN_HEIGHT) ) {
+				m_TrackRect.top = n - 6;
+				m_TrackRect.bottom = n;
+			}
+			break;
+		case CBRS_ALIGN_RIGHT:
+			m_TrackRect = m_TrackBase + CPoint(point.x - m_TrackPoint.x, 0);
+			if ( m_TrackRect.left < (n = m_Frame.left + PANEMIN_WIDTH) ) {
+				m_TrackRect.left = n;
+				m_TrackRect.right = n + 6;
+			} else if ( m_TrackRect.right > (n = rect.right - rect.Width() / 10) ) {
+				m_TrackRect.left = n - 6;
+				m_TrackRect.right = n;
+			}
+			break;
+		case CBRS_ALIGN_BOTTOM:
+			m_TrackRect = m_TrackBase + CPoint(0, point.y - m_TrackPoint.y);
+			if ( m_TrackRect.top < (n = m_Frame.top + PANEMIN_HEIGHT) ) {
+				m_TrackRect.top = n;
+				m_TrackRect.bottom = n + 6;
+			} else if ( m_TrackRect.bottom > (n = rect.bottom - rect.Height() / 10) ) {
+				m_TrackRect.top = n - 6;
+				m_TrackRect.bottom = n;
+			}
+			break;
+		}
+
+	} else if ( m_pTrackPane->m_Style == PANEFRAME_WIDTH ) {
+		rect = m_pTrackPane->m_Frame;
+		FrameToClient(&rect);
+		m_TrackRect = m_TrackBase + CPoint(point.x - m_TrackPoint.x, 0);
 		int w = m_TrackRect.Width();
 		if ( m_TrackRect.left < (rect.left + PANEMIN_WIDTH) ) {
 			m_TrackRect.left = rect.left + PANEMIN_WIDTH;
@@ -3090,8 +3329,11 @@ void CMainFrame::OffsetTrack(CPoint point)
 			m_TrackRect.right = rect.right - PANEMIN_WIDTH;
 			m_TrackRect.left = m_TrackRect.right - w;
 		}
+
 	} else {
-		m_TrackRect += CPoint(0, point.y - m_TrackPoint.y);
+		rect = m_pTrackPane->m_Frame;
+		FrameToClient(&rect);
+		m_TrackRect = m_TrackBase + CPoint(0, point.y - m_TrackPoint.y);
 		int h = m_TrackRect.Height();
 		if ( m_TrackRect.top < (rect.top + PANEMIN_HEIGHT) ) {
 			m_TrackRect.top = rect.top + PANEMIN_HEIGHT;
@@ -3101,8 +3343,6 @@ void CMainFrame::OffsetTrack(CPoint point)
 			m_TrackRect.top = m_TrackRect.bottom - h;
 		}
 	}
-
-	m_TrackPoint = point;
 }
 void CMainFrame::InvertTracker(CRect &rect)
 {
@@ -3124,11 +3364,41 @@ int CMainFrame::PreLButtonDown(UINT nFlags, CPoint point)
 {
 	CPaneFrame *pPane;
 
-	point.y -= m_Frame.top;
-	if ( m_pTrackPane != NULL || m_pTopPane == NULL )
-		return FALSE;
+	if ( m_bTabDlgBarShow && (m_wndTabDlgBar.GetStyle() & WS_VISIBLE) != 0 ) {
+		CRect rect;
+		m_wndTabDlgBar.GetWindowRect(rect);
+		ScreenToClient(rect);
 
-	if ( (pPane = m_pTopPane->HitTest(point)) == NULL )
+		switch(m_wndTabDlgBar.GetBarStyle() & CBRS_ALIGN_ANY) {
+		case CBRS_ALIGN_LEFT:
+			rect.left = rect.right - 6;
+			break;
+		case CBRS_ALIGN_TOP:
+			rect.top = rect.bottom - 6;
+			break;
+		case CBRS_ALIGN_RIGHT:
+			rect.right = rect.left + 6;
+			break;
+		case CBRS_ALIGN_BOTTOM:
+			rect.bottom = rect.top + 6;
+			break;
+		}
+
+		if ( rect.PtInRect(point) ) {
+			m_TrackRect = rect;
+			SetCapture();
+			InvertTracker(m_TrackRect);
+			ClientToFrame(&point);
+			m_TrackPoint = point;
+			m_TrackBase = m_TrackRect;
+			m_bTabDlgMove = TRUE;
+			return TRUE;
+		}
+	}
+
+	ClientToFrame(&point);
+
+	if ( m_pTrackPane != NULL || m_pTopPane == NULL || (pPane = m_pTopPane->HitTest(point)) == NULL )
 		return FALSE;
 
 	if ( pPane->m_Style == PANEFRAME_WINDOW ) {
@@ -3141,42 +3411,81 @@ int CMainFrame::PreLButtonDown(UINT nFlags, CPoint point)
 	m_pTrackPane->BoderRect(m_TrackRect);
 	InvertTracker(m_TrackRect);
 	m_TrackPoint = point;
+	m_TrackBase = m_TrackRect;
+	m_bTabDlgMove = FALSE;
 	return TRUE;
 }
 void CMainFrame::OnLButtonUp(UINT nFlags, CPoint point) 
 {
 	CMDIFrameWnd::OnLButtonUp(nFlags, point);
 
-	if ( m_pTrackPane == NULL )
+	if ( m_bTabDlgMove ) {
+		InvertTracker(m_TrackRect);
+		OffsetTrack(point);
+		ReleaseCapture();
+		m_bTabDlgMove = FALSE;
+
+		CRect rect, frame;
+		GetClientRect(frame);
+		m_wndTabDlgBar.GetWindowRect(rect);
+		ScreenToClient(rect);
+
+		switch(m_wndTabDlgBar.GetBarStyle() & CBRS_ALIGN_ANY) {
+		case CBRS_ALIGN_LEFT:
+			rect.right = m_TrackRect.right;
+			m_wndTabDlgBar.m_InitSize.cx = rect.Width();
+			::AfxGetApp()->WriteProfileInt(_T("TabDlgBar"), _T("IntWidth"), m_wndTabDlgBar.m_InitSize.cx * 100 / frame.Width());
+			break;
+		case CBRS_ALIGN_TOP:
+			rect.bottom = m_TrackRect.bottom;
+			m_wndTabDlgBar.m_InitSize.cy = rect.Height();
+			::AfxGetApp()->WriteProfileInt(_T("TabDlgBar"), _T("IntHeight"), m_wndTabDlgBar.m_InitSize.cy * 100 / frame.Height());
+			break;
+		case CBRS_ALIGN_RIGHT:
+			rect.left = m_TrackRect.left;
+			m_wndTabDlgBar.m_InitSize.cx = rect.Width();
+			::AfxGetApp()->WriteProfileInt(_T("TabDlgBar"), _T("IntWidth"), m_wndTabDlgBar.m_InitSize.cx * 100 / frame.Width());
+			break;
+		case CBRS_ALIGN_BOTTOM:
+			rect.top = m_TrackRect.top;
+			m_wndTabDlgBar.m_InitSize.cy = rect.Height();
+			::AfxGetApp()->WriteProfileInt(_T("TabDlgBar"), _T("IntHeight"), m_wndTabDlgBar.m_InitSize.cy * 100 / frame.Height());
+			break;
+		}
+
+		RecalcLayout(TRUE);
+		GetClientRect(rect);
 		return;
-	InvertTracker(m_TrackRect);
-	OffsetTrack(point);
-	ReleaseCapture();
 
-	m_TrackRect.top    -= m_Frame.top;
-	m_TrackRect.bottom -= m_Frame.top;
+	} else if ( m_pTrackPane != NULL ) {
+		InvertTracker(m_TrackRect);
+		OffsetTrack(point);
+		ReleaseCapture();
 
-	if ( m_pTrackPane->m_Style == PANEFRAME_WIDTH ) {
-		m_pTrackPane->m_pLeft->m_Frame.right = m_TrackRect.left  + 1;
-		m_pTrackPane->m_pRight->m_Frame.left = m_TrackRect.right - 1;
-	} else {
-		m_pTrackPane->m_pLeft->m_Frame.bottom = m_TrackRect.top    + 1;
-		m_pTrackPane->m_pRight->m_Frame.top   = m_TrackRect.bottom - 1;
+		ClientToFrame(m_TrackRect);
+
+		if ( m_pTrackPane->m_Style == PANEFRAME_WIDTH ) {
+			m_pTrackPane->m_pLeft->m_Frame.right = m_TrackRect.left  + 1;
+			m_pTrackPane->m_pRight->m_Frame.left = m_TrackRect.right - 1;
+		} else {
+			m_pTrackPane->m_pLeft->m_Frame.bottom = m_TrackRect.top    + 1;
+			m_pTrackPane->m_pRight->m_Frame.top   = m_TrackRect.bottom - 1;
+		}
+
+		m_pTrackPane->MoveParOwn(m_pTrackPane->m_Frame, PANEFRAME_NOCHNG);
+		m_pTrackPane = NULL;
 	}
-
-	m_pTrackPane->MoveParOwn(m_pTrackPane->m_Frame, PANEFRAME_NOCHNG);
-	m_pTrackPane = NULL;
 }
 
 void CMainFrame::OnMouseMove(UINT nFlags, CPoint point) 
 {
 	CMDIFrameWnd::OnMouseMove(nFlags, point);
 
-	if ( m_pTrackPane == NULL )
-		return;
-	InvertTracker(m_TrackRect);
-	OffsetTrack(point);
-	InvertTracker(m_TrackRect);
+	if ( m_bTabDlgMove || m_pTrackPane != NULL ) {
+		InvertTracker(m_TrackRect);
+		OffsetTrack(point);
+		InvertTracker(m_TrackRect);
+	}
 }
 
 void CMainFrame::OnUpdateIndicatorSock(CCmdUI* pCmdUI)
@@ -3537,27 +3846,26 @@ void CMainFrame::OnUpdateViewScrollbar(CCmdUI *pCmdUI)
 
 void CMainFrame::OnViewMenubar()
 {
-	CWinApp *pApp;
-	BOOL bMenu;
+	CWinApp *pApp = AfxGetApp();
 	CChildFrame *pChild = (CChildFrame *)MDIGetActive();
+	CMenu *pMenu = NULL;
 
-	if ( (pApp = AfxGetApp()) == NULL )
-		return;
+	ASSERT(pApp != NULL);
 	
-	bMenu = (pApp->GetProfileInt(_T("ChildFrame"), _T("VMenu"), TRUE) ? FALSE : TRUE);
-	pApp->WriteProfileInt(_T("ChildFrame"), _T("VMenu"), bMenu);
+	m_bMenuBarShow = (m_bMenuBarShow ? FALSE : TRUE);
+	pApp->WriteProfileInt(_T("ChildFrame"), _T("VMenu"), m_bMenuBarShow);
 
-	if ( pChild != NULL ) {
-		if ( bMenu ) {
-			pChild->OnUpdateFrameMenu(TRUE, pChild, NULL);
-			SetMenu(GetMenu());
-		} else
-			SetMenu(NULL);
-	}
+	if ( pChild != NULL )
+		pChild->OnUpdateFrameMenu(m_bMenuBarShow, pChild, NULL);
+
+	if ( m_bMenuBarShow )
+		pMenu = GetMenu();
+
+	SetMenu(pMenu);
 }
 void CMainFrame::OnUpdateViewMenubar(CCmdUI *pCmdUI)
 {
-	pCmdUI->SetCheck(AfxGetApp()->GetProfileInt(_T("ChildFrame"), _T("VMenu"), TRUE) == TRUE ? TRUE : FALSE);
+	pCmdUI->SetCheck(m_bMenuBarShow);
 }
 void CMainFrame::OnSysCommand(UINT nID, LPARAM lParam)
 {
@@ -3572,32 +3880,75 @@ void CMainFrame::OnSysCommand(UINT nID, LPARAM lParam)
 }
 void CMainFrame::OnViewQuickbar()
 {
-	CWinApp *pApp = AfxGetApp();
-	
-	m_bQuickBarShow = (m_bQuickBarShow? FALSE : TRUE);
-	pApp->WriteProfileInt(_T("MainFrame"), _T("QuickBarShow"), m_bQuickBarShow);
-
-	ShowControlBar(&m_wndQuickBar, m_bQuickBarShow, 0);
+	ShowControlBar(&m_wndQuickBar, ((m_wndQuickBar.GetStyle() & WS_VISIBLE) != 0 ? FALSE : TRUE), FALSE);
 }
 void CMainFrame::OnUpdateViewQuickbar(CCmdUI *pCmdUI)
 {
-	pCmdUI->SetCheck(m_bQuickBarShow);
+	pCmdUI->SetCheck((m_wndQuickBar.GetStyle() & WS_VISIBLE) ? 1 : 0);
+}
+void CMainFrame::OnViewTabDlgbar()
+{
+	CWinApp *pApp = AfxGetApp();
+
+	if ( m_bTabDlgBarShow && (m_wndTabDlgBar.GetStyle() & WS_VISIBLE) == 0 && m_wndTabDlgBar.m_TabCtrl.GetItemCount() > 0 ) {
+		ShowControlBar(&m_wndTabDlgBar, TRUE, FALSE);
+		return;
+	}
+	
+	m_bTabDlgBarShow = (m_bTabDlgBarShow? FALSE : TRUE);
+	pApp->WriteProfileInt(_T("MainFrame"), _T("TabDlgBarShow"), m_bTabDlgBarShow);
+
+	if ( m_bTabDlgBarShow ) {
+		if ( m_pHistoryDlg != NULL )
+			AddTabDlg(m_pHistoryDlg, 7);
+
+		POSITION pos = pApp->GetFirstDocTemplatePosition();
+		while ( pos != NULL ) {
+			CDocTemplate *pDocTemp = pApp->GetNextDocTemplate(pos);
+			POSITION dpos = pDocTemp->GetFirstDocPosition();
+			while ( dpos != NULL ) {
+				CRLoginDoc *pDoc = (CRLoginDoc *)pDocTemp->GetNextDoc(dpos);
+				if ( pDoc == NULL )
+					continue;
+				if ( pDoc->m_TextRam.m_pCmdHisWnd != NULL )
+					AddTabDlg(pDoc->m_TextRam.m_pCmdHisWnd, 2);
+				if ( pDoc->m_TextRam.m_pTraceWnd != NULL )
+					AddTabDlg(pDoc->m_TextRam.m_pTraceWnd, 6);
+			}
+		}
+	} else {
+		m_wndTabDlgBar.RemoveAll();
+		ShowControlBar(&m_wndTabDlgBar, FALSE, FALSE);
+	}
+}
+void CMainFrame::OnUpdateViewTabDlgbar(CCmdUI *pCmdUI)
+{
+	if ( m_bTabDlgBarShow && (m_wndTabDlgBar.GetStyle() & WS_VISIBLE) == 0 && m_wndTabDlgBar.m_TabCtrl.GetItemCount() > 0 )
+		pCmdUI->SetCheck(0);
+	else
+		pCmdUI->SetCheck(m_bTabDlgBarShow);
 }
 void CMainFrame::OnViewTabbar()
 {
-	CWinApp *pApp = AfxGetApp();
-	
+	if ( (m_wndTabBar.GetStyle() & WS_VISIBLE) == 0 && (m_bTabBarShow || m_wndTabBar.m_TabCtrl.GetItemCount() > 1) ) {
+		ShowControlBar(&m_wndTabBar, TRUE, FALSE);
+		return;
+	}
+
 	m_bTabBarShow = (m_bTabBarShow? FALSE : TRUE);
-	pApp->WriteProfileInt(_T("MainFrame"), _T("TabBarShow"), m_bTabBarShow);
+	::AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("TabBarShow"), m_bTabBarShow);
 
 	if ( m_bTabBarShow )
-		ShowControlBar(&m_wndTabBar, m_bTabBarShow, 0);
+		ShowControlBar(&m_wndTabBar, TRUE, FALSE);
 	else if ( m_wndTabBar.m_TabCtrl.GetItemCount() <= 1 )
-		ShowControlBar(&m_wndTabBar, m_bTabBarShow, 0);
+		ShowControlBar(&m_wndTabBar, FALSE, FALSE);
 }
 void CMainFrame::OnUpdateViewTabbar(CCmdUI *pCmdUI)
 {
-	pCmdUI->SetCheck(m_bTabBarShow);
+	if ( (m_wndTabBar.GetStyle() & WS_VISIBLE) == 0 && (m_bTabBarShow || m_wndTabBar.m_TabCtrl.GetItemCount() > 1) )
+		pCmdUI->SetCheck(0);
+	else
+		pCmdUI->SetCheck(m_bTabBarShow);
 }
 
 void CMainFrame::OnNewVersionFound()
@@ -3932,7 +4283,21 @@ void CMainFrame::OnQuickConnect()
 }
 void CMainFrame::OnUpdateConnect(CCmdUI *pCmdUI)
 {
-	pCmdUI->Enable(m_bQuickConnect ? TRUE : FALSE);
+	pCmdUI->Enable(m_bQuickConnect);
+}
+void CMainFrame::OnViewHistoryDlg()
+{
+	if ( m_pHistoryDlg == NULL ) {
+		m_pHistoryDlg = new CHistoryDlg(NULL);
+		m_pHistoryDlg->Create(IDD_HISTORYDLG, CWnd::GetDesktopWindow());
+		AddTabDlg(m_pHistoryDlg, 7);
+		m_pHistoryDlg->ShowWindow(SW_SHOW);
+	} else
+		m_pHistoryDlg->SendMessage(WM_CLOSE);
+}
+afx_msg void CMainFrame::OnUpdateHistoryDlg(CCmdUI *pCmdUI)
+{
+	pCmdUI->SetCheck(m_pHistoryDlg != NULL ? 1 : 0);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -4172,7 +4537,7 @@ void CQuickBar::DpiChanged()
 	rect.bottom += (MulDiv(client.Height(), SCREEN_DPI_Y, m_NowDpi.cy) - client.Height());
 
 	//MoveWindow(rect, FALSE);
-	SetWindowPos(&wndTop ,0, 0, rect.Width(), rect.Height(), ((CMainFrame *)::AfxGetMainWnd())->m_bQuickBarShow ? SWP_SHOWWINDOW : SWP_HIDEWINDOW);
+	SetWindowPos(&wndTop ,0, 0, rect.Width(), rect.Height(), (GetStyle() & WS_VISIBLE) != 0 ? SWP_SHOWWINDOW : SWP_HIDEWINDOW);
 	m_sizeDefault = rect.Size();    // set fixed size
 
 	GetClientRect(rect);
@@ -4294,4 +4659,365 @@ void CQuickBar::OnCbnEditchangeEntryname()
 	}
 
 	((CMainFrame *)::AfxGetMainWnd())->m_bQuickConnect = rc;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// CTabDlgBar
+
+IMPLEMENT_DYNAMIC(CTabDlgBar, CControlBar)
+
+CTabDlgBar::CTabDlgBar()
+{
+	m_InitSize.cx = m_InitSize.cy = 0;
+	m_pShowWnd = NULL;
+}
+
+CTabDlgBar::~CTabDlgBar()
+{
+	for ( int n = 0 ; n < m_Data.GetSize() ; n++ )
+		delete (struct _DlgWndData *)m_Data[n];
+	m_Data.RemoveAll();
+}
+
+BOOL CTabDlgBar::Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID)
+{
+	m_dwStyle = (dwStyle & CBRS_ALL);
+
+	dwStyle &= ~CBRS_ALL;
+	dwStyle |= CCS_NOPARENTALIGN | CCS_NOMOVEY | CCS_NODIVIDER | CCS_NORESIZE;
+
+	CRect rect; rect.SetRectEmpty();
+	return CWnd::Create(STATUSCLASSNAME, NULL, dwStyle, rect, pParentWnd, nID);
+}
+
+void CTabDlgBar::OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler)
+{
+	int n;
+	TC_ITEM tci;
+	CString title;
+	TCHAR tmp[MAX_PATH + 2];
+	CWnd *pWnd;
+	BOOL bUpdate = FALSE;
+
+	for ( n = 0 ; n < m_TabCtrl.GetItemCount() ; n++ ) {
+		tci.mask = TCIF_PARAM | TCIF_TEXT;
+		tci.pszText = tmp;
+		tci.cchTextMax = MAX_PATH;
+
+		if ( !m_TabCtrl.GetItem(n, &tci) )
+			continue;
+
+		tci.mask = 0;
+
+		pWnd = (CWnd *)tci.lParam;
+		pWnd->GetWindowText(title);
+
+		if ( title.GetLength() >= MAX_PATH )
+			title = title.Left(MAX_PATH -1);
+
+		if ( title.Compare(tmp) != 0 ) {
+			tci.mask |= TCIF_TEXT;
+			tci.pszText = (LPWSTR)(LPCWSTR)TstrToUni(title);
+		}
+
+		if ( tci.mask != 0 ) {
+			m_TabCtrl.SetItem(n, &tci);
+			bUpdate = TRUE;
+		}
+	}
+
+	if ( bUpdate && m_pShowWnd != NULL )
+		m_pShowWnd->RedrawWindow();
+}
+
+CSize CTabDlgBar::CalcFixedLayout(BOOL bStretch, BOOL bHorz)
+{
+	CSize size;
+
+	CMainFrame *pMain;
+	CRect MainRect(0, 0, 32767, 32767);
+
+	if ( (pMain = (CMainFrame *)::AfxGetMainWnd()) != NULL ) {
+		pMain->GetClientRect(MainRect);
+
+		if ( m_InitSize.cx <= 0 )
+			m_InitSize.cx = MainRect.Height() * ::AfxGetApp()->GetProfileInt(_T("TabDlgBar"), _T("IntWidth"),  20) / 100;
+
+		if ( m_InitSize.cy <= 0 )
+			m_InitSize.cy = MainRect.Height() * ::AfxGetApp()->GetProfileInt(_T("TabDlgBar"), _T("IntHeight"), 20) / 100;
+
+		pMain->GetCtrlBarRect(MainRect, this);
+		MainRect.right += (::GetSystemMetrics(SM_CXBORDER) * 2);
+	}
+
+	size.cx = (bHorz ? MainRect.Width() : m_InitSize.cx);
+	size.cy = (bHorz ? m_InitSize.cy    : MainRect.Height());
+
+	return size;
+}
+void CTabDlgBar::Add(CWnd *pWnd, int nImage)
+{
+	int n;
+	TC_ITEM tci;
+	CString title;
+	CRect rect;
+
+	pWnd->GetWindowText(title);
+
+	if ( title.GetLength() >= MAX_PATH )
+		title = title.Left(MAX_PATH -1);
+
+	tci.mask    = TCIF_PARAM | TCIF_TEXT | TCIF_IMAGE;
+	tci.pszText = (LPWSTR)(LPCWSTR)TstrToUni(title);
+	tci.lParam  = (LPARAM)pWnd;
+	tci.iImage  = nImage;
+
+	n = m_TabCtrl.GetItemCount();
+	m_TabCtrl.InsertItem(n, &tci);
+	
+	m_TabCtrl.GetClientRect(rect);
+	m_TabCtrl.AdjustRect(FALSE, rect);
+
+	struct _DlgWndData *pData = new struct _DlgWndData;
+	pData->pWnd    = pWnd;
+	pData->nImage  = nImage;
+	pData->pParent = pWnd->GetParent();
+	pData->hMenu   = pWnd->GetMenu()->GetSafeHmenu();
+	pWnd->GetWindowRect(pData->WinRect);
+	m_Data.Add(pData);
+
+	pWnd->SetParent(&m_TabCtrl);
+	pWnd->ModifyStyle(WS_CAPTION | WS_THICKFRAME | WS_POPUP, WS_CHILD);
+	pWnd->SetMenu(NULL);
+
+	if ( m_pShowWnd != NULL )
+		m_pShowWnd->ShowWindow(SW_HIDE);
+
+	pWnd->SetWindowPos(NULL, rect.left, rect.top, rect.Width(), rect.Height(),
+			SWP_SHOWWINDOW | SWP_FRAMECHANGED | SWP_NOCOPYBITS | SWP_NOOWNERZORDER | SWP_NOZORDER | SWP_NOACTIVATE | SWP_ASYNCWINDOWPOS | SWP_DEFERERASE);
+
+	m_TabCtrl.SetCurSel(n);
+	m_pShowWnd = pWnd;
+}
+void CTabDlgBar::Del(CWnd *pWnd)
+{
+	int n;
+	TC_ITEM tci;
+
+	if ( m_pShowWnd == pWnd ) {
+		m_pShowWnd->ShowWindow(SW_HIDE);
+		m_pShowWnd = NULL;
+	}
+
+	tci.mask = TCIF_PARAM;
+
+	for ( n = 0 ; n < m_TabCtrl.GetItemCount() ; n++ ) {
+		if ( !m_TabCtrl.GetItem(n, &tci) )
+			continue;
+		if ( tci.lParam != (LPARAM)pWnd )
+			continue;
+
+		m_TabCtrl.DeleteItem(n);
+
+		if ( m_pShowWnd == NULL ) {
+			if ( n >= m_TabCtrl.GetItemCount() )
+				n--;
+			if ( n >= 0 ) {
+				m_TabCtrl.SetCurSel(n);
+				if ( m_TabCtrl.GetItem(n, &tci) ) {
+					m_pShowWnd = (CWnd *)tci.lParam;
+					m_pShowWnd->ShowWindow(SW_SHOWNOACTIVATE);
+				}
+			}
+		} else
+			m_pShowWnd->RedrawWindow();
+
+		break;
+	}
+
+	for ( n = 0 ; n < m_Data.GetSize() ; n++ ) {
+		struct _DlgWndData *pData = (struct _DlgWndData *)m_Data[n];
+		if ( pData->pWnd == pWnd ) {
+			m_Data.RemoveAt(n);
+			delete pData;
+			break;
+		}
+	}
+}
+void CTabDlgBar::Sel(CWnd *pWnd)
+{
+	int n;
+	TC_ITEM tci;
+
+	tci.mask = TCIF_PARAM;
+
+	for ( n = 0 ; n < m_TabCtrl.GetItemCount() ; n++ ) {
+		if ( !m_TabCtrl.GetItem(n, &tci) )
+			continue;
+		if ( tci.lParam != (LPARAM)pWnd )
+			continue;
+		if ( m_TabCtrl.GetCurSel() == n )
+			return;
+
+		m_TabCtrl.SetCurSel(n);
+
+		if ( m_pShowWnd != NULL )
+			m_pShowWnd->ShowWindow(SW_HIDE);
+
+		m_pShowWnd = (CWnd *)tci.lParam;
+		m_pShowWnd->ShowWindow(SW_SHOWNOACTIVATE);
+	}
+}
+BOOL CTabDlgBar::IsInside(CWnd *pWnd)
+{
+	for ( int n = 0 ; n < m_Data.GetSize() ; n++ ) {
+		struct _DlgWndData *pData = (struct _DlgWndData *)m_Data[n];
+		if ( pData->pWnd->GetSafeHwnd() == pWnd->GetSafeHwnd() )
+			return TRUE;
+	}
+
+	return FALSE;
+}
+void CTabDlgBar::RemoveAll()
+{
+	for ( int n = 0 ; n < m_Data.GetSize() ; n++ ) {
+		struct _DlgWndData *pData = (struct _DlgWndData *)m_Data[n];
+
+		pData->pWnd->SetParent(pData->pParent);
+		pData->pWnd->ModifyStyle(WS_CHILD, WS_CAPTION | WS_THICKFRAME | WS_POPUP);
+		pData->pWnd->SetMenu(CMenu::FromHandle(pData->hMenu));
+		pData->pWnd->SetWindowPos(NULL, pData->WinRect.left, pData->WinRect.top, pData->WinRect.Width(), pData->WinRect.Height(),
+			SWP_SHOWWINDOW | SWP_FRAMECHANGED | SWP_NOCOPYBITS | SWP_NOOWNERZORDER | SWP_NOZORDER | SWP_NOACTIVATE | SWP_ASYNCWINDOWPOS | SWP_DEFERERASE);
+		delete pData;
+	}
+
+	m_Data.RemoveAll();
+	m_TabCtrl.DeleteAllItems();
+	m_pShowWnd = NULL;
+}
+void CTabDlgBar::FontSizeCheck()
+{
+	CString FontName = ::AfxGetApp()->GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
+	int FontSize = MulDiv(::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9), SCREEN_DPI_Y, DEFAULT_DPI_Y);
+
+	if ( m_FontName.Compare(FontName) != 0 || m_FontSize != FontSize ) {
+		m_FontName = FontName;
+		m_FontSize = FontSize;
+
+		if ( m_TabFont.GetSafeHandle() != NULL )
+			m_TabFont.DeleteObject();
+
+		if ( !m_TabFont.CreatePointFont(m_FontSize * 10, m_FontName) ) {
+			CFont *font = CFont::FromHandle((HFONT)::GetStockObject(DEFAULT_GUI_FONT));
+			m_TabCtrl.SetFont(font);
+			SetFont(font);
+		} else {
+			m_TabCtrl.SetFont(&m_TabFont);
+			SetFont(&m_TabFont);
+		}
+	}
+}
+void CTabDlgBar::DpiChanged()
+{
+	CRect rect;
+
+	FontSizeCheck();
+
+	m_TabCtrl.GetClientRect(rect);
+	m_TabCtrl.AdjustRect(FALSE, rect);
+
+	for ( int n = 0 ; n < m_Data.GetSize() ; n++ ) {
+		struct _DlgWndData *pData = (struct _DlgWndData *)m_Data[n];
+		pData->pWnd->SendMessage(WM_DPICHANGED, MAKEWPARAM(SCREEN_DPI_X, SCREEN_DPI_Y), (LPARAM)((RECT *)rect));
+	}
+}
+
+BEGIN_MESSAGE_MAP(CTabDlgBar, CControlBar)
+	ON_WM_CREATE()
+	ON_WM_SIZE()
+	ON_NOTIFY(TCN_SELCHANGE, IDC_TABDLGBAR_TAB, OnSelchange)
+	ON_WM_LBUTTONDOWN()
+	ON_WM_MOUSEMOVE()
+END_MESSAGE_MAP()
+
+int CTabDlgBar::OnCreate(LPCREATESTRUCT lpCreateStruct)
+{
+	if (CControlBar::OnCreate(lpCreateStruct) == -1)
+		return -1;
+
+	CRect rect; rect.SetRectEmpty();
+
+	if ( !m_TabCtrl.Create(WS_VISIBLE | WS_CHILD | TCS_FOCUSNEVER | TCS_BOTTOM | TCS_FORCELABELLEFT, rect, this, IDC_TABDLGBAR_TAB) )
+		return (-1);
+
+	m_FontName  = ::AfxGetApp()->GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
+	m_FontSize = MulDiv(::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9), SCREEN_DPI_Y, DEFAULT_DPI_Y);
+
+	if ( m_FontName.IsEmpty() || !m_TabFont.CreatePointFont(m_FontSize * 10, m_FontName) ) {
+		CFont *font = CFont::FromHandle((HFONT)::GetStockObject(DEFAULT_GUI_FONT));
+		m_TabCtrl.SetFont(font);
+		SetFont(font);
+	} else {
+		m_TabCtrl.SetFont(&m_TabFont);
+		SetFont(&m_TabFont);
+	}
+
+	SetBorders(2, 4, 2, 4);
+
+	CBitmap BitMap;
+	((CRLoginApp *)::AfxGetApp())->LoadResBitmap(MAKEINTRESOURCE(IDB_BITMAP4), BitMap);
+	m_ImageList.Create(16, 16, ILC_COLOR24 | ILC_MASK, 0, 4);
+	m_ImageList.Add(&BitMap, RGB(192, 192, 192));
+	BitMap.DeleteObject();
+	m_TabCtrl.SetImageList(&m_ImageList);
+
+	return 0;
+}
+
+void CTabDlgBar::OnSize(UINT nType, int cx, int cy)
+{
+	CControlBar::OnSize(nType, cx, cy);
+
+	if ( m_TabCtrl.m_hWnd == NULL )
+		return;
+
+	CRect rect(0, 0, cx, cy);
+	CalcInsideRect(rect, (GetBarStyle() & (CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM)) != 0 ? TRUE : FALSE);
+
+	m_TabCtrl.SetWindowPos(&wndTop , rect.left, rect.top, rect.Width(), rect.Height(), SWP_SHOWWINDOW);
+	
+	m_TabCtrl.GetClientRect(rect);
+	m_TabCtrl.AdjustRect(FALSE, &rect);
+
+	for ( int n = 0 ; n < m_TabCtrl.GetItemCount() ; n++ ) {
+		TC_ITEM tci;
+		tci.mask = TCIF_PARAM;
+		if ( !m_TabCtrl.GetItem(n, &tci) )
+			continue;
+		CWnd *pWnd = (CWnd *)tci.lParam;
+		pWnd->SetWindowPos(&wndTop , rect.left, rect.top, rect.Width(), rect.Height(), 
+			SWP_NOACTIVATE | (pWnd == m_pShowWnd ? SWP_SHOWWINDOW : 0));
+	}
+
+	Invalidate();
+}
+
+void CTabDlgBar::OnSelchange(NMHDR* pNMHDR, LRESULT* pResult) 
+{
+	int n;
+	TC_ITEM tci;
+	CWnd *pWnd;
+
+	*pResult = 0;
+	tci.mask = TCIF_PARAM;
+
+	if ( (n = m_TabCtrl.GetCurSel()) < 0 || !m_TabCtrl.GetItem(n, &tci) )
+		return;
+
+	if ( m_pShowWnd != NULL )
+		m_pShowWnd->ShowWindow(SW_HIDE);
+
+	pWnd = (CWnd *)tci.lParam;
+	pWnd->ShowWindow(SW_SHOWNOACTIVATE);
+	m_pShowWnd = pWnd;
 }

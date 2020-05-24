@@ -1,13 +1,7 @@
-// TextRam.h: CTextRam クラスのインターフェイス
-//
 //////////////////////////////////////////////////////////////////////
+// CTextRam
 
-#if !defined(AFX_TEXTRAM_H__CBEA227A_D7D7_4213_88B1_4F4C0DF48089__INCLUDED_)
-#define AFX_TEXTRAM_H__CBEA227A_D7D7_4213_88B1_4F4C0DF48089__INCLUDED_
-
-#if _MSC_VER > 1000
 #pragma once
-#endif // _MSC_VER > 1000
 
 #include <afxtempl.h>
 #include <afxmt.h>
@@ -28,6 +22,8 @@
 #define	KANBUFMAX		128
 #define	MACROMAX		64
 #define	DEFCOLTAB		0				// Black=0, Amber=1, Green=2, Sian=3, White=4, Solarized=5, Pastel=6
+#define	CMDHISMAX		200
+#define	HISLISTMAX		30
 
 #define	TEK_WIN_WIDTH	4096
 #define	TEK_WIN_HEIGHT	3072
@@ -974,6 +970,17 @@ public:
 	~CTabFlag();
 };
 
+typedef struct _CmdHistory {
+	time_t st;
+	time_t et;
+	CString user;
+	CString curd;
+	CString cmds;
+	CString exit;
+	BOOL emsg;
+	int habs;
+} CMDHIS;
+
 class CTextRam : public COptObject
 {
 public:	// Options
@@ -1093,6 +1100,7 @@ public:
 	int m_HisPos;
 	int m_HisLen;
 	int m_HisUse;
+	int m_HisAbs;
 	CFileExt m_HisFhd;
 
 	BOOL m_DispCaret;
@@ -1838,7 +1846,19 @@ public:
 	void DispGrapWnd(class CGrapWnd *pGrapWnd, BOOL bNextCols);
 
 	// iTerm2
+	int m_iTerm2Mark;
+	CPoint m_iTerm2MaekPos[4];
+	CString m_iTerm2Prompt;
+	CString m_iTerm2Command;
+	CString m_iTerm2RemoteHost;
+	CString m_iTerm2CurrentDir;
+	CString m_iTerm2Version;
+	CString m_iTerm2Shell;
+	CString m_iTerm2ExitStatus;
+	CStringIndex m_iTerm2SetUserVar;
+	CList<CMDHIS *, CMDHIS *> m_CommandHistory;
+	class CCmdHisDlg *m_pCmdHisWnd;
+
 	void iTerm2Ext(LPCSTR param);
 };
 
-#endif // !defined(AFX_TEXTRAM_H__CBEA227A_D7D7_4213_88B1_4F4C0DF48089__INCLUDED_)
