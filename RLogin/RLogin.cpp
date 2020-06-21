@@ -36,10 +36,7 @@
 #endif
 
 #include "afxcmn.h"
-
-#ifdef	USE_SAPI
 #include <sphelper.h>
-#endif
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -653,9 +650,7 @@ CRLoginApp::CRLoginApp()
 		m_pEmojiList[n] = NULL;
 #endif
 
-#ifdef	USE_SAPI
 	m_pVoice = NULL;
-#endif
 
 	m_IdleProcCount = 0;
 	m_pIdleTop = NULL;
@@ -900,14 +895,6 @@ void CRLoginApp::CreateJumpList(CServerEntryTab *pEntry)
 }
 #endif
 	
-#ifdef	USE_SAPI
-void CRLoginApp::Speek(LPCTSTR str)
-{
-	if ( m_pVoice != NULL )
-		m_pVoice->Speak(TstrToUni(str), SPF_ASYNC, NULL);
-}
-#endif
-
 void CRLoginApp::SSL_Init()
 {
 	static BOOL bLoadAlgo = FALSE;
@@ -1012,11 +999,6 @@ BOOL CRLoginApp::CreateDesktopShortcut(LPCTSTR entry)
 	IPersistFile *pPersistFile = NULL;
 	WCHAR desktopPath[MAX_PATH];
 	CStringW srcParam, linkPath;
-
-#ifndef	USE_COMINIT
-	if ( FAILED(CoInitialize(NULL) )
-		return FALSE;
-#endif
 	
 	if ( FAILED(SHGetSpecialFolderPath(NULL, desktopPath, CSIDL_DESKTOPDIRECTORY, FALSE)) )
 		goto ENDOF;
@@ -1051,10 +1033,6 @@ ENDOF:
 
 	if ( pShellLink != NULL )
 		pShellLink->Release();
-
-#ifndef	USE_COMINIT
-	CoUninitialize();
-#endif
 
 	return rt;
 }
@@ -1094,17 +1072,17 @@ BOOL CRLoginApp::InitInstance()
 
 #ifdef	USE_OLE
 	//  OLEの初期化
-	if ( !AfxOleInit() )
+	if ( !AfxOleInit() ) {
+		AfxMessageBox(_T("OLE Init Error"));
 		return FALSE;
+	}
 #endif
 
-#ifdef	USE_COMINIT
 	// COMライブラリ初期化
 	if ( FAILED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED)) ) {
 		AfxMessageBox(_T("Com Library Init Error"));
 		return FALSE;
 	}
-#endif
 
 	// WINSOCK2.2の初期化
 	WORD wVersionRequested;
@@ -1253,11 +1231,9 @@ BOOL CRLoginApp::InitInstance()
 	}
 #endif
 
-#ifdef	USE_SAPI
 	// 音声合成の初期化
 	if ( FAILED(CoCreateInstance(CLSID_SpVoice, NULL, CLSCTX_ALL, IID_ISpVoice, (void **)&m_pVoice)) )
 		m_pVoice = NULL;
-#endif
 
 	// レジストリに保存するパスワードの暗号キーを選択
 	m_MakeKeyMode = GetProfileInt(_T("RLoginApp"), _T("MakeKeyMode"), MAKEKEY_USERHOST);
@@ -1270,8 +1246,10 @@ BOOL CRLoginApp::InitInstance()
 		RUNTIME_CLASS(CChildFrame), // カスタム MDI 子フレーム
 		RUNTIME_CLASS(CRLoginView));
 
-	if ( !pDocTemplate )
+	if ( !pDocTemplate ) {
+		AfxMessageBox(_T("DocTemplate Create Error"));
 		return FALSE;
+	}
 
 	// メニューをリソースデータベースに置き換え
 	DestroyMenu(pDocTemplate->m_hMenuShared);
@@ -1301,6 +1279,7 @@ BOOL CRLoginApp::InitInstance()
 	m_pMainWnd = pMainFrame;
 
 	if ( !pMainFrame || !pMainFrame->LoadFrame(IDR_MAINFRAME) ) {
+		AfxMessageBox(_T("MainFrame Create Error"));
 		m_pMainWnd = NULL;
 		delete pMainFrame;
 		return FALSE;
@@ -1470,14 +1449,10 @@ int CRLoginApp::ExitInstance()
 		FreeLibrary(ExDWriteApi);
 #endif
 
-#ifdef	USE_SAPI
 	if ( m_pVoice != NULL )
 		m_pVoice->Release();
-#endif
 
-#ifdef	USE_COMINIT
 	CoUninitialize();
-#endif
 
 	CSFtp::LocalDelete(m_TempDirBase);
 
@@ -3293,9 +3268,13 @@ void CRLoginApp::OnRegistapp()
 	m_bRegistAppp = GetProfileInt(_T("RLoginApp"), _T("RegistAppp"),  FALSE);
 
 	if ( m_bRegistAppp ) {
+		if ( ::AfxMessageBox(CStringLoad(IDS_REGAPPDELMSG), MB_ICONQUESTION | MB_YESNO) != IDYES )
+			return;
 		m_bRegistAppp = FALSE;
 		RegisterShellRemoveAll();
 	} else {
+		if ( ::AfxMessageBox(CStringLoad(IDS_REGAPPSETMSG), MB_ICONQUESTION | MB_YESNO) != IDYES )
+			return;
 		m_bRegistAppp = TRUE;
 		RegisterShellFileEntry();
 	}

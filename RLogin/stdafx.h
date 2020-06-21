@@ -7,7 +7,6 @@
 #define	USE_DWMAPI
 #define	USE_GOZI	3	// GOZI Version
 #define	USE_NETTLE
-#define	USE_SAPI
 #define	USE_JUMPLIST
 #define	USE_TEXTFRAME
 //#define	USE_CLEFIA
@@ -52,10 +51,6 @@
 #define	_MSC_VER_VS13			1800	// Visual Studio 2013
 #define	_MSC_VER_VS15			1900	// Visual Studio 2015
 #define	_MSC_VER_VS17			1910	// Visual Studio 2017
-
-#if defined(USE_JUMPLIST) || defined(USE_SAPI)
-  #define USE_COMINIT
-#endif
 
 #ifndef _SECURE_ATL
   #define _SECURE_ATL
@@ -131,10 +126,7 @@
   #include <wincodec.h>
 #endif
 
-#ifdef	USE_SAPI
-  #include <sapi.h>
-#endif
-
+#include <sapi.h>
 #include <atlimage.h>
 #include <atlbase.h>
 #include <afxpriv.h>

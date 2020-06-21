@@ -6212,7 +6212,7 @@ int CScript::Func03(int cmd, CScriptValue &local)
 		break;
 
 	case 23:	// speek(s)
-		((CRLoginApp *)::AfxGetApp())->Speek((LPCTSTR)local[0]);
+		((CMainFrame *)::AfxGetMainWnd())->Speek((LPCTSTR)local[0]);
 		break;
 
 	case 24:	// popen(c, m)

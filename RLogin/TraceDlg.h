@@ -54,6 +54,7 @@ public:
 	afx_msg void OnUpdateTekSave(CCmdUI *pCmdUI);
 	afx_msg void OnTekClear();
 	afx_msg void OnEditCopy();
+	afx_msg void OnNcLButtonDown(UINT nHitTest, CPoint point);
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -115,6 +116,7 @@ public:
 	afx_msg void OnCmdhisScrm();
 	afx_msg void OnUpdateCmdhisScrm(CCmdUI *pCmdUI);
 	afx_msg LRESULT OnAddCmdHis(WPARAM wParam, LPARAM lParam);
+	afx_msg void OnNcLButtonDown(UINT nHitTest, CPoint point);
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -152,7 +154,6 @@ public:
 
 	void Add(int nList, LPCTSTR str);
 	void OffsetTrack(CPoint point);
-	void InvertTracker(CRect &rect);
 	void ReSize(int cx, int cy);
 
 protected:
@@ -173,4 +174,5 @@ public:
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
+	afx_msg void OnNcLButtonDown(UINT nHitTest, CPoint point);
 };

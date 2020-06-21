@@ -2377,7 +2377,32 @@ void CTextRam::fc_UTF85(DWORD ch)
 		m_BackChar = UCS4toUCS2(m_BackChar);
 		cf = UnicodeCharFlag(m_BackChar);
 
-		if ( !IsOptEnable(TO_RLUNINOM) ) {		// TO_RLUNINOM(8448)が解除(default)
+		// サロゲート(D800-DBFF/DC00-DFFF)コードの処理・・・不正なUTF-8
+		if ( (cf & UNI_SGH) != 0 ) {
+			m_SurroChar = m_BackChar << 16;
+			m_LastFlag = cf;
+			goto BREAK;
+		} else if ( (cf & UNI_SGL) != 0 ) {
+			if ( (m_LastFlag & UNI_SGH) != 0 && m_SurroChar != 0 ) {
+				m_BackChar |= m_SurroChar;
+				DCode = UCS2toUCS4(m_BackChar);
+				cf = UnicodeCharFlag(m_BackChar);
+			} else {
+				if ( IsOptEnable(TO_RLBRKMBCS) )
+					fc_KANBRK();
+				m_SurroChar = 0;
+				m_LastFlag = cf;
+				goto BREAK;
+			}
+		} else if ( (m_LastFlag & UNI_SGH) != 0 ) {
+			if ( IsOptEnable(TO_RLBRKMBCS) )
+				fc_KANBRK();
+			m_SurroChar = 0;
+		} else
+			m_SurroChar = 0;
+
+		// TO_RLUNINOM(8448)が解除(default)
+		if ( !IsOptEnable(TO_RLUNINOM) ) {
 
 			// Unicode Normalization
 			// ２文字から１文字のみノーマライズ
@@ -4839,15 +4864,6 @@ void CTextRam::fc_OSCEXE(DWORD ch)
 						delete pCmdHis;
 					}
 
-					if ( m_HisAbs >= (m_HisMax * 2) ) {
-						POSITION pos = m_CommandHistory.GetHeadPosition();
-						while ( pos != NULL ) {
-							pCmdHis = m_CommandHistory.GetNext(pos);
-							pCmdHis->habs -= m_HisMax;
-						}
-						m_HisAbs -= m_HisMax;
-					}
-
 					m_iTerm2Mark = 3;
 				}
 			}
@@ -4898,7 +4914,6 @@ void CTextRam::fc_OSCEXE(DWORD ch)
 		}
 		break;
 
-#ifdef	USE_SAPI
 	case 801:	// Speek String
 		if ( (m_XtOptFlag & XTOP_SETUTF) != 0 )
 			m_IConv.RemoteToStr(m_SendCharSet[UTF8_SET], p, tmp);
@@ -4921,9 +4936,8 @@ void CTextRam::fc_OSCEXE(DWORD ch)
 			} else
 				wrk += *s;
 		}
-		((CRLoginApp *)::AfxGetApp())->Speek(wrk);
+		((CMainFrame *)::AfxGetMainWnd())->Speek(wrk);
 		break;
-#endif
 	}
 
 ENDRET:

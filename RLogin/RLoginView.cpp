@@ -337,6 +337,8 @@ CRLoginView::CRLoginView()
 	m_PastNoCheck = FALSE;
 	m_PastDelaySend = FALSE;
 	m_PastCtrlView = FALSE;
+
+	m_bSpeekDispText = FALSE;
 }
 
 CRLoginView::~CRLoginView()
@@ -673,23 +675,28 @@ int CRLoginView::GetGrapPos(int x, int y)
 	return pos;
 }
 
-void CRLoginView::CalcPosRect(CRect &rect)
+void CRLoginView::CalcPosRect(CRect &rect, ULONG staPos, ULONG endPos, BOOL bLine)
 {
 	int x, y;
 	CRLoginDoc *pDoc = GetDocument();
 
-	pDoc->m_TextRam.SetCalcPos(m_ClipStaPos, &x, &y);
+	pDoc->m_TextRam.SetCalcPos(staPos, &x, &y);
 	rect.left = x;
-	rect.top = y;
+	rect.top  = y;
 
-	pDoc->m_TextRam.SetCalcPos(m_ClipEndPos, &x, &y);
-	rect.right = x;
+	pDoc->m_TextRam.SetCalcPos(endPos, &x, &y);
+	rect.right  = x;
 	rect.bottom = y;
 
 	rect.NormalizeRect();
 
 	rect.right  += 2;
 	rect.bottom += 1;
+
+	if ( bLine && rect.Height() > 1 ) {
+		rect.left  = 0;
+		rect.right = m_Cols;
+	}
 }
 void CRLoginView::CalcGrapPoint(CPoint po, int *x, int *y)
 {
@@ -1368,6 +1375,9 @@ int CRLoginView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 }
 void CRLoginView::OnDestroy()
 {
+	if ( ((CMainFrame *)::AfxGetMainWnd())->SpeekViewCheck(this) )
+		((CMainFrame *)::AfxGetMainWnd())->SendMessage(WM_COMMAND, IDM_SPEEKALL);
+
 	DelayInvalThreadEndof();
 	((CRLoginApp *)AfxGetApp())->DelIdleProc(IDLEPROC_VIEW, this);
 
@@ -1627,7 +1637,7 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 
 	case UPDATE_CLIPCLAER:
 	case UPDATE_CLIPERA:
-		CalcPosRect(rect);
+		CalcPosRect(rect, m_ClipStaPos, m_ClipEndPos);
 		if ( IsClipLineMode() || m_ClipUpdateLine ) {
 			rect.left  = 0;
 			rect.right = pDoc->m_TextRam.m_Cols;
@@ -2665,8 +2675,13 @@ void CRLoginView::OnLButtonDown(UINT nFlags, CPoint point)
 	m_FirstMousePoint = point;
 
 	CView::OnLButtonDown(nFlags, point);
-
 	SetCapture();
+
+	if ( ((CMainFrame *)::AfxGetMainWnd())->SpeekViewCheck(this) ) {
+		CalcGrapPoint(point, &x, &y);
+		((CMainFrame *)::AfxGetMainWnd())->SpeekUpdate(x, y);
+		return;
+	}
 
 	if ( m_ClipFlag == 6 ) {
 		m_ClipFlag = 0;
@@ -2705,7 +2720,8 @@ void CRLoginView::OnLButtonDown(UINT nFlags, CPoint point)
 }
 void CRLoginView::OnLButtonUp(UINT nFlags, CPoint point) 
 {
-	int x, y, pos;
+	int x, y;
+	ULONG pos;
 	CRLoginDoc *pDoc = GetDocument();
 
 	m_LastMouseFlags = nFlags;
@@ -2869,7 +2885,8 @@ void CRLoginView::OnXButtonDown(UINT nFlags, UINT nButton, CPoint point)
 
 void CRLoginView::OnMouseMove(UINT nFlags, CPoint point) 
 {
-	int x, y, pos, tos;
+	int x, y, ofs;
+	ULONG pos, tos;
 	CRLoginDoc *pDoc = GetDocument();
 
 	m_LastMouseFlags = nFlags;
@@ -2928,22 +2945,22 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 		m_ClipKeyFlags &= 0xEFFF;
 
 	if ( point.y < 0 || point.y > m_Height ) {
-		pos = m_HisOfs;
+		ofs = m_HisOfs;
 		
 		if ( point.y < 0 && point.y <= m_ClipSavePoint.y )
-			pos -= (point.y / m_CharHeight);
+			ofs -= (point.y / m_CharHeight);
 		else if ( point.y > m_Height && point.y >= m_ClipSavePoint.y )
-			pos -= ((point.y - m_Height) / m_CharHeight);
+			ofs -= ((point.y - m_Height) / m_CharHeight);
 
 		m_ClipSavePoint = point;
 
-		if ( pos < 0 )
-			pos = 0;
-		else if ( pos > (pDoc->m_TextRam.m_HisLen - m_Lines) )
-			pos = pDoc->m_TextRam.m_HisLen - m_Lines;
+		if ( ofs < 0 )
+			ofs = 0;
+		else if ( ofs > (pDoc->m_TextRam.m_HisLen - m_Lines) )
+			ofs = pDoc->m_TextRam.m_HisLen - m_Lines;
 
-		if ( pos != m_HisOfs ) {
-			m_HisOfs = pos;
+		if ( ofs != m_HisOfs ) {
+			m_HisOfs = ofs;
 			OnUpdate(this, UPDATE_INVALIDATE, NULL);
 		}
 
@@ -3715,6 +3732,9 @@ BOOL CRLoginView::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 		}
 #endif
 
+		if ( hCursor == NULL && ((CMainFrame *)::AfxGetMainWnd())->SpeekViewCheck(this) )
+			hCursor = AfxGetApp()->LoadStandardCursor(IDC_HAND);
+
 		if ( hCursor == NULL ) {
 
 			mode = pDoc->m_TextRam.m_XtMosPointMode;
@@ -3853,7 +3873,6 @@ void CRLoginView::OnGoziview()
 		}
 		SetTimer(VTMID_GOZIUPDATE, 200, NULL);
 #endif
-
 	}
 }
 void CRLoginView::OnUpdateGoziview(CCmdUI *pCmdUI)
@@ -3941,6 +3960,35 @@ LRESULT CRLoginView::OnLogWrite(WPARAM wParam, LPARAM lParam)
 	delete pBuffer;
 
 	return TRUE;
+}
+
+void CRLoginView::SpeekTextPos(BOOL bDisp, ULONG sPos, ULONG ePos)
+{
+	CRect rect;
+
+	if ( bDisp ) {
+		if ( m_bSpeekDispText ) {
+			if ( m_SpeekStaPos == sPos && m_SpeekEndPos == ePos )
+				return;
+
+			CalcPosRect(rect, m_SpeekStaPos, m_SpeekEndPos, TRUE);
+			InvalidateTextRect(rect);
+		}
+
+		m_SpeekStaPos = sPos;
+		m_SpeekEndPos = ePos;
+		m_bSpeekDispText = TRUE;
+	} else if ( m_bSpeekDispText ) {
+		m_bSpeekDispText = FALSE;
+	} else {
+		return;
+	}
+
+	CalcPosRect(rect, m_SpeekStaPos, m_SpeekEndPos, TRUE);
+	InvalidateTextRect(rect);
+
+	if ( !bDisp && !((CMainFrame *)::AfxGetMainWnd())->SpeekViewCheck(this) )
+		OnSetCursor(NULL, 0, 0);
 }
 
 /////////////////////////////////////////////////////////////////////////////

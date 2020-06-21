@@ -21,22 +21,23 @@
 #define WM_GETCLIPBOARD		(WM_APP + 5)
 
 // CResTransDlg
-#define WM_HTTPREQUEST		(WM_APP + 6)
+#define WM_HTTPREQUEST		(WM_APP + 20)
 
 // CRLoginView
-#define WM_LOGWRITE			(WM_APP + 7)
+#define WM_LOGWRITE			(WM_APP + 21)
+#define	WM_SPEEKMSG			(WM_APP + 22)
 
 // CSFtp
-#define WM_RECIVEBUFFER		(WM_APP + 20)
-#define WM_THREADENDOF		(WM_APP + 21)
+#define WM_RECIVEBUFFER		(WM_APP + 23)
+#define WM_THREADENDOF		(WM_APP + 24)
 
 // CFileThread
-#define	WM_FILEWRITE		(WM_APP + 31)
-#define	WM_FILEFLUSH		(WM_APP + 32)
-#define	WM_FILESYNC			(WM_APP + 33)
+#define	WM_FILEWRITE		(WM_APP + 25)
+#define	WM_FILEFLUSH		(WM_APP + 26)
+#define	WM_FILESYNC			(WM_APP + 27)
 
 // CCmdHisDlg
-#define	WM_ADDCMDHIS		(WM_APP + 34)
+#define	WM_ADDCMDHIS		(WM_APP + 28)
 
 #define	IDLEPROC_SOCKET		0
 #define	IDLEPROC_ENCRYPT	1
@@ -152,10 +153,7 @@ public:
 	void CreateJumpList(CServerEntryTab *pEntry);
 #endif
 
-#ifdef	USE_SAPI
 	ISpVoice *m_pVoice;
-	void Speek(LPCTSTR str);
-#endif
 
 	BOOL GetExtFilePath(LPCTSTR name, LPCTSTR ext, CString &path);
 	BOOL IsDirectory(LPCTSTR dir);

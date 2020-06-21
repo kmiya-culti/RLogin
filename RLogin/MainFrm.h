@@ -116,6 +116,22 @@ public:
 	CBitmap m_Bitmap;
 };
 
+class CDockContextEx : public CDockContext
+{
+public:
+	explicit CDockContextEx(CControlBar *pBar);
+
+	BOOL IsHitGrip(CPoint point);
+
+	virtual void StartDrag(CPoint pt);
+	virtual void StartResize(int nHitTest, CPoint pt);
+	virtual void ToggleDocking();
+
+	static void EnableDocking(CControlBar *pBar, DWORD dwDockStyle);
+
+	void TrackLoop();
+};
+
 class CQuickBar : public CDialogBar
 {
 	DECLARE_DYNAMIC(CQuickBar)
@@ -190,19 +206,27 @@ public:
 	void Del(CWnd *pWnd);
 	void Sel(CWnd *pWnd);
 	BOOL IsInside(CWnd *pWnd);
+	void *RemoveAt(int idx, CPoint point);
 	void RemoveAll();
 	void FontSizeCheck();
 	void DpiChanged();
+	void TabReSize();
+	int HitPoint(CPoint point);
+	void GetTitle(int nIndex, CString &title);
+	void TrackLoop(CPoint ptScrn, int idx, CWnd *pMoveWnd, int nImage);
 
 protected:
 	virtual void OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler);
 	virtual CSize CalcFixedLayout(BOOL bStretch, BOOL bHorz);
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
 
 public:
 	DECLARE_MESSAGE_MAP()
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnSelchange(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
+	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
 };
 
 #define	CLIPOPENTHREADMAX	3		// クリップボードアクセススレッド多重起動数
@@ -215,6 +239,8 @@ public:
 #define	DEFAULT_DPI_Y		GlobalSystemDpi
 #define	SCREEN_DPI_X		((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiX
 #define	SCREEN_DPI_Y		((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY
+
+#define	SPEEKQUESIZE		2
 
 class CMainFrame : public CMDIFrameWnd
 {
@@ -324,6 +350,7 @@ public:
 
 	void AddHistory(void *pCmdHis);
 	
+	void AddTabDlg(CWnd *pWnd, int nImage, CPoint point);
 	void AddTabDlg(CWnd *pWnd, int nImage);
 	void DelTabDlg(CWnd *pWnd);
 	void SelTabDlg(CWnd *pWnd);
@@ -357,12 +384,11 @@ public:
 
 	CPaneFrame *m_pTrackPane;
 	CRect m_TrackRect;
-	CPoint m_TrackPoint;
 	CRect m_TrackBase;
-	BOOL m_bTabDlgMove;
+	CRect m_TrackLast;
+	CPoint m_TrackPoint;
 
 	void OffsetTrack(CPoint point);
-	void InvertTracker(CRect &rect);
 	int PreLButtonDown(UINT nFlags, CPoint point);
 	int GetExecCount();
 	void SetActivePoint(CPoint point);
@@ -390,10 +416,34 @@ public:
 	void VersionCheckProc();
 	void VersionCheck();
 
+	BOOL m_bVoiceEvent;
+	struct _SpeekData {
+		ULONG num;
+		CString text;
+		CDWordArray pos;
+		long skip;
+		int abs;
+		int line;
+	} m_SpeekData[SPEEKQUESIZE];
+	int m_SpeekQueLen;
+	int m_SpeekQuePos;
+	int m_SpeekQueTop;
+	class CRLoginView *m_pSpeekView;
+	class CRLoginDoc *m_pSpeekDoc;
+	int m_SpeekLine;
+	int m_SpeekAbs;
+
+	BOOL SpeekQueIn();
+	void Speek(LPCTSTR str);
+	void SpeekUpdate(int x, int y);
+	inline BOOL SpeekViewCheck(class CRLoginView *pWnd) { return (m_bVoiceEvent && m_pSpeekView == pWnd ? TRUE : FALSE); }
+
 	inline CImageList *GetTabImageList() { return &(m_wndTabBar.m_ImageList); }
 	inline int GetTabImageIndex(LPCTSTR filename) { return m_wndTabBar.GetImageIndex(filename); }
 	inline void BarFontCheck() { m_wndTabBar.FontSizeCheck(); m_wndQuickBar.FontSizeCheck(); m_wndTabDlgBar.FontSizeCheck(); RecalcLayout(TRUE); }
 	inline void QuickBarInit() { m_wndQuickBar.InitDialog(); }
+	inline void TabDlgShow(BOOL bShow) { ShowControlBar(&m_wndTabDlgBar, bShow, FALSE); }
+	inline BOOL TabDlgInDrag(CPoint point, CWnd *pWnd, int nImage) { if ( !m_bTabDlgBarShow ) return FALSE; m_wndTabDlgBar.TrackLoop(point, (-7), pWnd, nImage); return TRUE; }
 
 // コントロール バー用メンバ
 protected: 
@@ -476,6 +526,8 @@ protected:
 	afx_msg void OnNewVersionFound();
 	afx_msg void OnClipchain();
 	afx_msg void OnUpdateClipchain(CCmdUI *pCmdUI);
+	afx_msg void OnSpeekText();
+	afx_msg void OnUpdateSpeekText(CCmdUI *pCmdUI);
 
 	afx_msg void OnFileAllLoad();
 	afx_msg void OnFileAllSave();
@@ -497,6 +549,7 @@ protected:
 	afx_msg LRESULT OnDpiChanged(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnSetMessageString(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnNullMessage(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnSpeekMsg(WPARAM wParam, LPARAM lParam);
 };
 
 

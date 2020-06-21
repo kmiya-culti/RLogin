@@ -480,7 +480,7 @@
 #define	SLEEPMODE_ACTIVE		1
 #define	SLEEPMODE_ALLWAY		2
 
-#define UNIBLOCKTABMAX			262
+#define	UNIBLOCKTABMAX			308
 
 typedef struct _UNIBLOCKTAB {
 	DWORD	code;
@@ -1119,6 +1119,7 @@ public:
 	BOOL m_bJoint;
 
 	DWORD m_BackChar;
+	DWORD m_SurroChar;
 	int m_BackMode;
 	int m_Status;
 
@@ -1268,7 +1269,7 @@ public:
 	int GetPos(int x, int y);
 	BOOL IncPos(int &x, int &y);
 	BOOL DecPos(int &x, int &y);
-	void EditWordPos(int *sps, int *eps);
+	void EditWordPos(ULONG *sps, ULONG *eps);
 	void EditCopy(int sps, int eps, BOOL rectflag = FALSE, BOOL lineflag = FALSE);
 	void EditMark(int sps, int eps, BOOL rectflag = FALSE, BOOL lineflag = FALSE);
 	void GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf);
@@ -1279,6 +1280,9 @@ public:
 	BOOL IsEmptyLine(int sy);
 	void GetCellSize(int *x, int *y);
 	void GetScreenSize(int *pCx, int *pCy, int *pSx, int *pSy);
+
+	BOOL SpeekLine(int line, CString &text, CDWordArray &pos);
+	BOOL SpeekCheck(ULONG sPos, ULONG ePos, LPCTSTR str);
 
 	void DrawBitmap(CDC *pDestDC, CRect &rect, CDC *pSrcDC, int width, int height, DWORD dwRop);
 	void DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, struct DrawWork &prop, class CRLoginView *pView);
@@ -1302,8 +1306,8 @@ public:
 	int InitDefParam(BOOL bCheck, int modFlag = (-1));
 	void InitModKeyTab();
 
-	inline int GetCalcPos(int x, int y) { return (m_ColsMax * (y + m_HisPos + m_HisMax) + x); }
-	inline void SetCalcPos(int pos, int *x, int *y) { *x = pos % m_ColsMax; *y = (pos / m_ColsMax - m_HisPos - m_HisMax); }
+	inline ULONG GetCalcPos(int x, int y) { return (m_ColsMax * (ULONG)(y + m_HisPos + m_HisMax) + x); }
+	inline void SetCalcPos(ULONG pos, int *x, int *y) { *x = (int)(pos % m_ColsMax); *y = (int)(pos / m_ColsMax - m_HisPos - m_HisMax); }
 	inline int GetDm(int y) { return GETVRAM(0, y)->m_Vram.zoom; }
 	inline void SetDm(int y, int dm) { GETVRAM(0, y)->m_Vram.zoom = dm; }
 	inline void SetRet(int y) { GETVRAM(0, y)->m_Vram.attr |= ATT_RETURN; }

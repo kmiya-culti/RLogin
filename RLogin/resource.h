@@ -249,6 +249,8 @@
 #define IDS_INITENTRYINPORT             639
 #define IDS_OSCBUFFERINGMSG             640
 #define IDS_DLGFONTDELMSG               641
+#define IDS_REGAPPSETMSG                642
+#define IDS_REGAPPDELMSG                643
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -430,6 +432,7 @@
 #define ID_WINDOW_ROTATION              1044
 #define ID_COMM_EVENT_MONI              1045
 #define ID_VIEW_QUICKBAR                1046
+#define ID_VIEW_TABDLGBAR               1047
 #define IDC_ALGO_LIST1                  2000
 #define IDC_ALGO_LIST2                  2001
 #define IDC_ALGO_LIST3                  2002
@@ -1111,8 +1114,8 @@
 #define IDM_CMDHIS_CURD                 5141
 #define IDM_CMDHIS_MSG                  5142
 #define IDM_CMDHIS_SCRM                 5143
-#define ID_VIEW_TABDLGBAR               5144
-#define IDM_HISTORYDLG                  5145
+#define IDM_HISTORYDLG                  5144
+#define IDM_SPEEKALL                    5145
 #define IDM_FIRST_MDICHILD              0xF800
 
 // Next default values for new objects

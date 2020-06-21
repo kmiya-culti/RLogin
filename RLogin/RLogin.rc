@@ -268,6 +268,7 @@ BEGIN
         MENUITEM "スクリプトの停止(&S)",                ID_CHARSCRIPT_END
         MENUITEM "Break信号を送る(&B)",              ID_SEND_BREAK
         MENUITEM "マウスイベントを無効(&M)",              ID_MOUSE_EVENT
+        MENUITEM "音声で読み上げる(&Y)",                IDM_SPEEKALL
         MENUITEM SEPARATOR
         MENUITEM "ブロードキャスト(&A)",                IDM_BROADCAST
         MENUITEM "別のRLoginにも送信(&O)",            IDM_OTHERCAST
@@ -626,7 +627,7 @@ BEGIN
                     "SysLink",WS_TABSTOP,44,178,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,193,60,14,WS_GROUP
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin (%s) Version 2.25.2 (2020/05/25)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.25.3 (2020/06/22)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2020 Culti",IDC_STATIC,44,16,189,8
     LTEXT           "OpenSSL 1.1.1g 21 Apr 2020",IDC_STATIC,44,52,189,8
     LTEXT           "Copyright (c) 1998-2019 The OpenSSL Project",IDC_STATIC,44,61,189,8
@@ -2139,8 +2140,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,25,2,0
- PRODUCTVERSION 2,25,2,0
+ FILEVERSION 2,25,3,0
+ PRODUCTVERSION 2,25,3,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2157,12 +2158,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.25.2.0"
+            VALUE "FileVersion", "2.25.3.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.25.2.0"
+            VALUE "ProductVersion", "2.25.3.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -3129,9 +3130,13 @@ BEGIN
     IDC_IDKEY_BITS, 0x403, 5, 0
 0x3032, 0x3834, "\000" 
     IDC_IDKEY_BITS, 0x403, 5, 0
+0x3033, 0x3237, "\000" 
+    IDC_IDKEY_BITS, 0x403, 5, 0
 0x3034, 0x3639, "\000" 
     IDC_IDKEY_BITS, 0x403, 5, 0
 0x3138, 0x3239, "\000" 
+    IDC_IDKEY_BITS, 0x403, 6, 0
+0x3631, 0x3833, 0x0034, 
     0
 END
 
@@ -4408,13 +4413,15 @@ STRINGTABLE
 BEGIN
     IDS_OSCBUFFERINGMSG     "%sシーケンスを実行中です。キャンセルは画面右上の(C)をクリック"
     IDS_DLGFONTDELMSG       "ダイアログフォントの設定を削除しますか？"
+    IDS_REGAPPSETMSG        "既定のアプリにRLoginを登録しますか？"
+    IDS_REGAPPDELMSG        "すべての関連付け及び既定のアプリへの登録を削除しますか？"
 END
 
 STRINGTABLE
 BEGIN
     IDE_PORTFWORDERROR      "ポートフォワードの設定が無効です"
     IDE_PROTOCOLENTRY       "login/telnet/sshプロトコルのみ登録できます"
-    IDE_RSABITSIZEERR       "RSAは、ビットサイズを768/1024/2048/4096/8192から選択してください。推奨は、2048以上です。"
+    IDE_RSABITSIZEERR       "RSAは、ビットサイズを2048/3072/4096/8192/16384から選択してください。推奨は、3072以上です。"
     IDE_SSHGLOBALREQERROR   "SSH2グローバルリクエストエラー"
     IDE_UPDATERESUMEERROR   "再開できません上書きになります"
     IDE_USEPASSWORDIDKEY    "空のパスフレーズを指定しています。\n空のままで処理を続行しますか？"
@@ -4643,6 +4650,7 @@ BEGIN
     ID_WINDOW_CLOSE         "作業中のウィンドウを閉じます\n閉じる"
     ID_WINDOW_ROTATION      "表示しているペインを移動します\nペインの移動"
     ID_VIEW_QUICKBAR        "クイックバーの 表示/非表示\nクィック接続バーの表示切り替え"
+    ID_VIEW_TABDLGBAR       "ダイアログバーの使用/非使用\nダイアログバーの使用切り替え"
 END
 
 STRINGTABLE
@@ -4884,8 +4892,8 @@ BEGIN
     IDM_CMDHIS_CURD         "カレントディレクトリを送信する\nディレクトリ送信"
     IDM_CMDHIS_MSG          "コマンド終了時にメッセージを表示\n終了メッセージ"
     IDM_CMDHIS_SCRM         "スクロールモードの着替え\nスクロールモード"
-    ID_VIEW_TABDLGBAR       "ダイアログバーの使用/非使用\nダイアログバーの使用切り替え"
     IDM_HISTORYDLG          "ヒストリーウィンドウを表示・非表示\nヒストリーウィンドウ"
+    IDM_SPEEKALL            "表示されている画面を音声で読み上げます\n音声で読み上げ"
 END
 
 #endif    // 日本語 (日本) resources

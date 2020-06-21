@@ -2549,7 +2549,7 @@ void CTextRam::Init()
 	m_DefCols[1]	= 132;
 	m_Page          = 0;
 	m_DefHisMax		= 2000;
-	m_DefFontSize	= 16;
+	m_DefFontSize	= MulDiv(16, DEFAULT_DPI_Y, 96);
 	m_DefFontHw     = 20;
 	m_KanjiMode		= EUC_SET;
 	m_BankGL		= 0;
@@ -2573,6 +2573,7 @@ void CTextRam::Init()
 	EnableOption(TO_XTPRICOL);	// ?1070 Private Color Map
 	EnableOption(TO_RLFONT);	// ?8404 フォントサイズから一行あたりの文字数を決定
 	EnableOption(TO_RLUNIAWH);	// ?8428 UnicodeのAタイプの文字を半角として表示する
+	EnableOption(TO_RLC1DIS);	// ?8454 C1制御を行わない
 	EnableOption(TO_DRCSMMv1);	// ?8800 Unicode 16 Maping
 	EnableOption(TO_RLNODELAY);	//  1486 TCPオプションのNoDelayを有効にする
 
@@ -4358,7 +4359,7 @@ BOOL CTextRam::DecPos(int &x, int &y)
 	}
 	return FALSE;
 }
-void CTextRam::EditWordPos(int *sps, int *eps)
+void CTextRam::EditWordPos(ULONG *sps, ULONG *eps)
 {
 	int n, c;
 	int tx, ty;
@@ -5013,6 +5014,104 @@ void CTextRam::GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf)
 			pBuf->PutWord(L'\n');
 		}
 	}
+}
+BOOL CTextRam::SpeekLine(int line, CString &text, CDWordArray &pos)
+{
+	int n, x, sx, ex;
+	CCharCell *vp;
+	LPCWSTR p;
+	BOOL bContinue = FALSE;
+
+	vp = GETVRAM(0, line);
+	sx = 0;
+	ex = m_Cols - 1;
+
+	if ( vp->m_Vram.zoom != 0 )
+		ex = ex / 2;
+
+	while ( ex >= 0 && vp[ex].IsEmpty() )
+		ex--;
+
+	while ( sx <= ex && vp[sx].IsEmpty() )
+		sx++;
+
+	for ( x = sx ; x <= ex ; x += n ) {
+		if ( vp[x].IsEmpty() ) {
+			text += _T(' ');
+			pos.Add(GetCalcPos(x, line));
+			n = 1;
+		} else if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].m_Vram.mode) && IS_2BYTE(vp[x + 1].m_Vram.mode) && vp[x].Compare(vp[x + 1]) == 0 ) {
+			for ( p = vp[x] ; *p != 0 ; p++ ) {
+				text += *p;
+				pos.Add(GetCalcPos(x, line));
+			}
+			n = 2;
+		} else {
+			for ( p = vp[x] ; *p != 0 ; p++ ) {
+				text += *p;
+				pos.Add(GetCalcPos(x, line));
+			}
+			n = 1;
+		}
+	}
+
+	if ( (vp[0].m_Vram.attr & ATT_RETURN) == 0 )
+		bContinue = TRUE;
+
+	return bContinue;
+}
+BOOL CTextRam::SpeekCheck(ULONG sPos, ULONG ePos, LPCTSTR str)
+{
+	int n, x, y, tx, bx;
+	int sx, sy, ex, ey;
+	CCharCell *vp;
+	LPCWSTR p;
+
+	SetCalcPos(sPos, &sx, &sy);
+	SetCalcPos(ePos, &ex, &ey);
+
+	for ( y = sy ; y <= ey ; y++ ) {
+		vp = GETVRAM(0, y);
+
+		if ( y == ey )
+			bx = ex;
+		else {
+			bx = m_Cols - 1;
+			while ( bx >= 0 && vp[bx].IsEmpty() )
+				bx--;
+		}
+
+		if ( y == sy )
+			tx = sx;
+		else {
+			tx = 0;
+			while ( tx <= bx && vp[tx].IsEmpty() )
+				tx++;
+		}
+
+
+		for ( x = tx ; x <= bx ; x += n ) {
+			if ( vp[x].IsEmpty() ) {
+				if ( *(str++) != _T(' ') )
+					return FALSE;
+				n = 1;
+			} else if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].m_Vram.mode) && IS_2BYTE(vp[x + 1].m_Vram.mode) && vp[x].Compare(vp[x + 1]) == 0 ) {
+				for ( p = vp[x] ; *p != 0 ; p++ ) {
+					if ( *(str++) != *p )
+						return FALSE;
+				}
+				n = 2;
+			} else {
+				for ( p = vp[x] ; *p != 0 ; p++ ) {
+					if ( *(str++) != *p )
+						return FALSE;
+				}
+				n = 1;
+			}
+		}
+	}
+
+	return TRUE;
 }
 
 void CTextRam::DrawBitmap(CDC *pDestDC, CRect &rect, CDC *pSrcDC, int width, int height, DWORD dwRop)
@@ -5964,7 +6063,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 	int n;
 	int x, y, sx, ex;
 	int zoom, len;
-	int cpos, spos, epos;
+	ULONG cpos, spos, epos;
 	int csx, cex, csy, cey;
 	int isx, iex;
 	CRect rect;
@@ -6222,6 +6321,13 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 					} else
 						work.attr |= ATT_CLIP;
 				}
+			}
+
+			// Speek Text
+			if ( pView->m_bSpeekDispText && x >= 0 && x < m_Cols && top != NULL ) {
+				cpos = GetCalcPos(x, y - pView->m_HisOfs + pView->m_HisMin);
+				if ( pView->m_SpeekStaPos <= cpos && cpos <= pView->m_SpeekEndPos )
+					work.attr ^= ATT_UNDER;
 			}
 
 			// Text Draw
@@ -7650,7 +7756,7 @@ void CTextRam::DISPVRAM(int sx, int sy, int w, int h)
 		m_UpdateRect.left = sx;
 	if ( m_UpdateRect.right < ex )
 		m_UpdateRect.right = ex;
-	if ( m_UpdateRect.top> sy )
+	if ( m_UpdateRect.top > sy )
 		m_UpdateRect.top = sy;
 	if ( m_UpdateRect.bottom < ey )
 		m_UpdateRect.bottom = ey;
@@ -7868,7 +7974,7 @@ void CTextRam::LocReport(int md, int sw, int x, int y)
 		case MOS_LOCA_MOVE:	// Mouse Move
 			if ( (m_Loc_Mode & LOC_MODE_FILTER) == 0 )
 				return;
-			if ( m_Loc_Rect.IsRectEmpty() || m_Loc_Rect.PtInRect(CPoint(x, y)) )
+			if ( (m_Loc_Rect.left >= m_Loc_Rect.right && m_Loc_Rect.top >= m_Loc_Rect.bottom) || m_Loc_Rect.PtInRect(CPoint(x, y)) )
 				return;
 			Pe = 10;
 			break;
@@ -8433,7 +8539,16 @@ void CTextRam::FORSCROLL(int sx, int sy, int ex, int ey)
 			CallReceiveLine(0);
 
 		m_HisUse++;
-		m_HisAbs++;
+
+		if ( ++m_HisAbs >= (m_HisMax * 2) ) {
+			POSITION pos = m_CommandHistory.GetHeadPosition();
+			while ( pos != NULL ) {
+				CMDHIS *pCmdHis = m_CommandHistory.GetNext(pos);
+				pCmdHis->habs -= m_HisMax;	// habs = m_HisAbs + y...
+			}
+
+			m_HisAbs -= m_HisMax;
+		}
 
 		if ( (m_HisPos += 1) >= m_HisMax )
 			m_HisPos -= m_HisMax;

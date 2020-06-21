@@ -182,6 +182,7 @@ BEGIN_MESSAGE_MAP(CTraceDlg, CDialogExt)
 	ON_COMMAND(IDM_TEK_CLEAR, &CTraceDlg::OnTekClear)
 	ON_COMMAND(ID_EDIT_COPY, &CTraceDlg::OnEditCopy)
 	ON_UPDATE_COMMAND_UI(IDM_TEK_SAVE, &CTraceDlg::OnUpdateTekSave)
+	ON_WM_NCLBUTTONDOWN()
 END_MESSAGE_MAP()
 
 // CTraceDlg メッセージ ハンドラー
@@ -413,6 +414,12 @@ void CTraceDlg::OnTekClear()
 		m_pDocument->m_TextRam.SetTraceLog(TRUE);
 }
 
+void CTraceDlg::OnNcLButtonDown(UINT nHitTest, CPoint point)
+{
+	if ( nHitTest != HTCAPTION || !((CMainFrame *)::AfxGetMainWnd())->TabDlgInDrag(point, this, 6) )
+		CDialogExt::OnNcLButtonDown(nHitTest, point);
+}
+
 //////////////////////////////////////////////////////////////////////
 // CCmdHisDlg ダイアログ
 
@@ -634,6 +641,7 @@ BEGIN_MESSAGE_MAP(CCmdHisDlg, CDialogExt)
 	ON_UPDATE_COMMAND_UI(IDM_CMDHIS_MSG, &CCmdHisDlg::OnUpdateCmdhisMsg)
 	ON_COMMAND(IDM_CMDHIS_SCRM, &CCmdHisDlg::OnCmdhisScrm)
 	ON_UPDATE_COMMAND_UI(IDM_CMDHIS_SCRM, &CCmdHisDlg::OnUpdateCmdhisScrm)
+	ON_WM_NCLBUTTONDOWN()
 END_MESSAGE_MAP()
 
 // CTraceDlg メッセージ ハンドラー
@@ -1004,6 +1012,11 @@ void CCmdHisDlg::OnUpdateCmdhisScrm(CCmdUI *pCmdUI)
 	pCmdUI->SetCheck(m_bScrollMode ? 1 : 0);
 }
 
+void CCmdHisDlg::OnNcLButtonDown(UINT nHitTest, CPoint point)
+{
+	if ( nHitTest != HTCAPTION || !((CMainFrame *)::AfxGetMainWnd())->TabDlgInDrag(point, this, 2) )
+		CDialogExt::OnNcLButtonDown(nHitTest, point);
+}
 
 //////////////////////////////////////////////////////////////////////
 // CHistoryDlg ダイアログ
@@ -1080,6 +1093,7 @@ BEGIN_MESSAGE_MAP(CHistoryDlg, CDialogExt)
 	ON_WM_MOUSEMOVE()
 	ON_WM_LBUTTONUP()
 	ON_WM_SETCURSOR()
+	ON_WM_NCLBUTTONDOWN()
 END_MESSAGE_MAP()
 
 BOOL CHistoryDlg::OnInitDialog()
@@ -1252,9 +1266,6 @@ void CHistoryDlg::ReSize(int cx, int cy)
 
 		m_TitleBox[n].SetWindowPlacement(&titlePlace);
 		m_ListBox[n].SetWindowPlacement(&listPlace);
-
-		m_TitleBox[n].Invalidate();
-		m_ListBox[n].Invalidate();
 	}
 
 	if ( m_bHorz ) {
@@ -1415,22 +1426,19 @@ void CHistoryDlg::OffsetTrack(CPoint point)
 			m_TrackRect.bottom -= n;
 		}
 	}
-}
-void CHistoryDlg::InvertTracker(CRect &rect)
-{
-	CDC* pDC = GetDC();
-	CBrush* pBrush = CDC::GetHalftoneBrush();
-	HBRUSH hOldBrush = NULL;
 
-	if (pBrush != NULL)
-		hOldBrush = (HBRUSH)SelectObject(pDC->m_hDC, pBrush->m_hObject);
+	CRect frame;
+	GetClientRect(frame);
+	frame.left += MulDiv(m_Boder.left, m_NowDpi.cx, m_InitDpi.cx);
+	frame.top  += MulDiv(m_Boder.top,  m_NowDpi.cy, m_InitDpi.cy);
 
-	pDC->PatBlt(rect.left, rect.top, rect.Width(), rect.Height(), PATINVERT);
+	if ( m_bHorz )
+		m_PaneSize[m_TrackPos + 1] = 1000 * (m_TrackRect.left + 1) / frame.Width();
+	else
+		m_PaneSize[m_TrackPos + 1] = 1000 * (m_TrackRect.bottom - 2) / frame.Height();
 
-	if (hOldBrush != NULL)
-		SelectObject(pDC->m_hDC, hOldBrush);
-
-	ReleaseDC(pDC);
+	GetClientRect(frame);
+	ReSize(frame.Width(), frame.Height());
 }
 void CHistoryDlg::OnLButtonDown(UINT nFlags, CPoint point)
 {
@@ -1441,7 +1449,6 @@ void CHistoryDlg::OnLButtonDown(UINT nFlags, CPoint point)
 			m_TrackBase = m_TrackRect = m_SizeRect[n];
 			m_bTrackMode = TRUE;
 			m_TrackPos = n;
-			InvertTracker(m_TrackRect);
 			SetCapture();
 			return;
 		}
@@ -1452,9 +1459,7 @@ void CHistoryDlg::OnLButtonDown(UINT nFlags, CPoint point)
 void CHistoryDlg::OnMouseMove(UINT nFlags, CPoint point)
 {
 	if ( m_bTrackMode ) {
-		InvertTracker(m_TrackRect);
 		OffsetTrack(point);
-		InvertTracker(m_TrackRect);
 		return;
 	}
 
@@ -1463,24 +1468,9 @@ void CHistoryDlg::OnMouseMove(UINT nFlags, CPoint point)
 void CHistoryDlg::OnLButtonUp(UINT nFlags, CPoint point)
 {
 	if ( m_bTrackMode ) {
-		InvertTracker(m_TrackRect);
 		OffsetTrack(point);
 		m_bTrackMode = FALSE;
 		ReleaseCapture();
-
-		CRect frame;
-		GetClientRect(frame);
-		frame.left += MulDiv(m_Boder.left, m_NowDpi.cx, m_InitDpi.cx);
-		frame.top  += MulDiv(m_Boder.top,  m_NowDpi.cy, m_InitDpi.cy);
-
-		if ( m_bHorz )
-			m_PaneSize[m_TrackPos + 1] = 1000 * (m_TrackRect.left + 1) / frame.Width();
-		else
-			m_PaneSize[m_TrackPos + 1] = 1000 * (m_TrackRect.bottom - 2) / frame.Height();
-
-		GetClientRect(frame);
-		ReSize(frame.Width(), frame.Height());
-
 		return;
 	}
 
@@ -1503,4 +1493,10 @@ BOOL CHistoryDlg::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 	}
 
 	return CDialogExt::OnSetCursor(pWnd, nHitTest, message);
+}
+
+void CHistoryDlg::OnNcLButtonDown(UINT nHitTest, CPoint point)
+{
+	if ( nHitTest != HTCAPTION || !((CMainFrame *)::AfxGetMainWnd())->TabDlgInDrag(point, this, 7) )
+		CDialogExt::OnNcLButtonDown(nHitTest, point);
 }

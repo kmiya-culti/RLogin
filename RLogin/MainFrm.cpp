@@ -812,6 +812,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_MESSAGE(WM_DPICHANGED, OnDpiChanged)
 	ON_MESSAGE(WM_SETMESSAGESTRING, OnSetMessageString)
 	ON_MESSAGE(WM_NULL, OnNullMessage)
+	ON_MESSAGE(WM_SPEEKMSG, OnSpeekMsg)
 
 	ON_COMMAND(ID_FILE_ALL_LOAD, OnFileAllLoad)
 	ON_COMMAND(ID_FILE_ALL_SAVE, OnFileAllSave)
@@ -876,6 +877,10 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_COMMAND(IDM_QUICKCONNECT, &CMainFrame::OnQuickConnect)
 	ON_BN_CLICKED(IDC_CONNECT, &CMainFrame::OnQuickConnect)
 	ON_UPDATE_COMMAND_UI(IDC_CONNECT, &CMainFrame::OnUpdateConnect)
+
+	ON_COMMAND(IDM_SPEEKALL, &CMainFrame::OnSpeekText)
+	ON_UPDATE_COMMAND_UI(IDM_SPEEKALL, &CMainFrame::OnUpdateSpeekText)
+
 END_MESSAGE_MAP()
 
 static const UINT indicators[] =
@@ -935,8 +940,8 @@ CMainFrame::CMainFrame()
 	m_LastClipUpdate = clock();
 	m_pMidiData = NULL;
 	m_pServerSelect = NULL;
-	m_bTabDlgMove = FALSE;
 	m_pHistoryDlg = NULL;
+	m_bVoiceEvent = FALSE;
 }
 
 CMainFrame::~CMainFrame()
@@ -1014,7 +1019,7 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	// ツール・ステータス・タブ　バーの作成
 	if ( !m_wndToolBar.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_TRANSPARENT,
-			WS_CHILD | WS_VISIBLE | CBRS_ALIGN_TOP | CBRS_GRIPPER | CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC) ||
+			WS_CHILD | WS_VISIBLE | CBRS_ALIGN_TOP | CBRS_GRIPPER | CBRS_TOOLTIPS | CBRS_FLYBY) ||
 		!((CRLoginApp *)::AfxGetApp())->LoadResToolBar(MAKEINTRESOURCE(IDR_MAINFRAME), m_wndToolBar, this) ) {
 		TRACE0("Failed to create toolbar\n");
 		return -1;      // 作成に失敗
@@ -1043,10 +1048,17 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_wndStatusBar.GetPaneInfo(0, nID, nSt, n);
 	m_wndStatusBar.SetPaneInfo(0, nID, nSt, 160);
 
+#if 0
 	m_wndToolBar.EnableDocking(CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM);
 	m_wndTabBar.EnableDocking(CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM);
 	m_wndQuickBar.EnableDocking(CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM);
 	m_wndTabDlgBar.EnableDocking(CBRS_ALIGN_ANY);
+#else
+	CDockContextEx::EnableDocking(&m_wndToolBar, CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM);
+	CDockContextEx::EnableDocking(&m_wndTabBar, CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM);
+	CDockContextEx::EnableDocking(&m_wndQuickBar, CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM);
+	CDockContextEx::EnableDocking(&m_wndTabDlgBar, CBRS_ALIGN_ANY);
+#endif
 
 	EnableDocking(CBRS_ALIGN_ANY);
 
@@ -1054,11 +1066,6 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	DockControlBar(&m_wndQuickBar);
 	DockControlBar(&m_wndTabBar);
 	DockControlBar(&m_wndTabDlgBar);
-
-	//	DockControlBar(&m_wndTabDlgBar, AFX_IDW_DOCKBAR_BOTTOM);
-	//	DockControlBar(&m_wndTabDlgBar, AFX_IDW_DOCKBAR_RIGHT);
-	//	DockControlBar(&m_wndTabDlgBar, AFX_IDW_DOCKBAR_TOP);
-	//	DockControlBar(&m_wndTabDlgBar, AFX_IDW_DOCKBAR_LEFT);
 
 	// バーの表示設定
 	LoadBarState(_T("BarState"));
@@ -1883,6 +1890,17 @@ void CMainFrame::AddHistory(void *pCmdHis)
 		m_pHistoryDlg->PostMessage(WM_ADDCMDHIS, (WPARAM)0, (LPARAM)pCmdHis);
 }
 
+void CMainFrame::AddTabDlg(CWnd *pWnd, int nImage, CPoint point)
+{
+	if ( !m_bTabDlgBarShow )
+		return;
+
+	CRect rect;
+	m_wndTabDlgBar.GetWindowRect(rect);
+
+	if ( rect.PtInRect(point) )
+		AddTabDlg(pWnd, nImage);
+}
 void CMainFrame::AddTabDlg(CWnd *pWnd, int nImage)
 {
 	if ( !m_bTabDlgBarShow )
@@ -1919,6 +1937,7 @@ BOOL CMainFrame::IsInsideDlg(CWnd *pWnd)
 
 	return m_wndTabDlgBar.IsInside(pWnd);
 }
+
 BOOL CMainFrame::IsConnectChild(CPaneFrame *pPane)
 {
 	CChildFrame *pWnd;
@@ -2147,14 +2166,14 @@ void CMainFrame::GetCtrlBarRect(LPRECT rect, CControlBar *pCtrl)
 }
 void CMainFrame::GetFrameRect(CRect &frame)
 {
-	if ( m_Frame.IsRectEmpty() )
+	if ( m_Frame.left >= m_Frame.right && m_Frame.top >= m_Frame.bottom )
 		RepositionBars(0, 0xffff, AFX_IDW_PANE_FIRST, reposQuery, &m_Frame);
 
 	frame.SetRect(0, 0, m_Frame.Width(), m_Frame.Height());
 }
 void CMainFrame::FrameToClient(LPRECT lpRect)
 {
-	if ( m_Frame.IsRectEmpty() )
+	if ( m_Frame.left >= m_Frame.right && m_Frame.top >= m_Frame.bottom )
 		RepositionBars(0, 0xffff, AFX_IDW_PANE_FIRST, reposQuery, &m_Frame);
 
 	// FrameRect -> ClientRect
@@ -2165,7 +2184,7 @@ void CMainFrame::FrameToClient(LPRECT lpRect)
 }
 void CMainFrame::FrameToClient(LPPOINT lpPoint)
 {
-	if ( m_Frame.IsRectEmpty() )
+	if ( m_Frame.left >= m_Frame.right && m_Frame.top >= m_Frame.bottom )
 		RepositionBars(0, 0xffff, AFX_IDW_PANE_FIRST, reposQuery, &m_Frame);
 
 	// FrameRect -> ClientRect
@@ -2174,7 +2193,7 @@ void CMainFrame::FrameToClient(LPPOINT lpPoint)
 }
 void CMainFrame::ClientToFrame(LPRECT lpRect)
 {
-	if ( m_Frame.IsRectEmpty() )
+	if ( m_Frame.left >= m_Frame.right && m_Frame.top >= m_Frame.bottom )
 		RepositionBars(0, 0xffff, AFX_IDW_PANE_FIRST, reposQuery, &m_Frame);
 
 	// ClientRect -> FrameRect
@@ -2185,7 +2204,7 @@ void CMainFrame::ClientToFrame(LPRECT lpRect)
 }
 void CMainFrame::ClientToFrame(LPPOINT lpPoint)
 {
-	if ( m_Frame.IsRectEmpty() )
+	if ( m_Frame.left >= m_Frame.right && m_Frame.top >= m_Frame.bottom )
 		RepositionBars(0, 0xffff, AFX_IDW_PANE_FIRST, reposQuery, &m_Frame);
 
 	// ClientRect -> FrameRect
@@ -2800,7 +2819,15 @@ void CMainFrame::OnClose()
 	if ( count > 0 && AfxMessageBox(CStringLoad(IDS_FILECLOSEQES), MB_ICONQUESTION | MB_YESNO) != IDYES )
 		return;
 
-	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("HistoryDlg"),	m_bTabDlgBarShow && m_pHistoryDlg != NULL ? TRUE : FALSE);
+	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("HistoryDlg"),	    m_bTabDlgBarShow && m_pHistoryDlg != NULL && m_wndTabDlgBar.IsInside(m_pHistoryDlg) ? TRUE : FALSE);
+	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("ToolBarStyle"),	m_wndToolBar.GetStyle());
+	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("StatusBarStyle"), m_wndStatusBar.GetStyle());
+	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("QuickBarShow"),  (m_wndQuickBar.GetStyle() & WS_VISIBLE) != 0 ? TRUE : FALSE);
+
+	SaveBarState(_T("BarState"));
+
+	if ( m_wndQuickBar.GetSafeHwnd() != NULL )
+		m_wndQuickBar.SaveDialog();
 
 	if ( m_pHistoryDlg != NULL )
 		m_pHistoryDlg->SendMessage(WM_CLOSE);
@@ -2810,23 +2837,6 @@ void CMainFrame::OnClose()
 
 void CMainFrame::OnDestroy() 
 {
-	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("ToolBarStyle"),	m_wndToolBar.GetStyle());
-	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("StatusBarStyle"), m_wndStatusBar.GetStyle());
-
-	//AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("TabBarShow"), m_bTabBarShow);
-	//AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("LayeredWindow"), m_TransParValue);
-	//AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("LayeredColor"), m_TransParColor);
-	//AfxGetApp()->WriteProfileInt(_T("ChildFrame"), _T("VScroll"), m_ScrollBarFlag);
-	//AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("VersionCheckFlag"), m_bVersionCheck);
-
-	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("QuickBarShow"), (m_wndQuickBar.GetStyle() & WS_VISIBLE) != 0 ? TRUE : FALSE);
-
-	SaveBarState(_T("BarState"));
-
-	// save QuickBar Data...
-	if ( m_wndQuickBar.GetSafeHwnd() != NULL )
-		m_wndQuickBar.SaveDialog();
-
 	if ( !IsIconic() && !IsZoomed() ) {
 		int n = GetExecCount();
 		CString sect;
@@ -3172,39 +3182,6 @@ BOOL CMainFrame::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 	HCURSOR hCursor = NULL;
 
 	GetCursorPos(&point);
-
-	if ( m_bTabDlgBarShow && m_wndTabDlgBar.m_TabCtrl.GetItemCount() > 0 ) {
-		CRect rect;
-		m_wndTabDlgBar.GetWindowRect(rect);
-
-		switch(m_wndTabDlgBar.GetBarStyle() & CBRS_ALIGN_ANY) {
-		case CBRS_ALIGN_LEFT:
-			rect.right -= 2;
-			rect.left = rect.right - 4;
-			if ( rect.PtInRect(point) )
-				hCursor = AfxGetApp()->LoadStandardCursor(IDC_SIZEWE);
-			break;
-		case CBRS_ALIGN_TOP:
-			rect.bottom -= 2;
-			rect.top = rect.bottom - 4;
-			if ( rect.PtInRect(point) )
-				hCursor = AfxGetApp()->LoadStandardCursor(IDC_SIZENS);
-			break;
-		case CBRS_ALIGN_RIGHT:
-			rect.left += 2;
-			rect.right = rect.left + 4;
-			if ( rect.PtInRect(point) )
-				hCursor = AfxGetApp()->LoadStandardCursor(IDC_SIZEWE);
-			break;
-		case CBRS_ALIGN_BOTTOM:
-			rect.top += 2;
-			rect.bottom = rect.top + 4;
-			if ( rect.PtInRect(point) )
-				hCursor = AfxGetApp()->LoadStandardCursor(IDC_SIZENS);
-			break;
-		}
-	}
-
 	ScreenToClient(&point);
 	ClientToFrame(&point);
 
@@ -3265,59 +3242,12 @@ BOOL CMainFrame::PreTranslateMessage(MSG* pMsg)
 
 void CMainFrame::OffsetTrack(CPoint point)
 {
-	int n;
 	CRect rect;
 
 	// m_TrackPointは、FrameRectの座標、m_TrackRectは、ClientRectの座標なので注意
 	ClientToFrame(&point);
 
-	if ( m_bTabDlgMove ) {
-		GetClientRect(rect);
-
-		switch(m_wndTabDlgBar.GetBarStyle() & CBRS_ALIGN_ANY) {
-		case CBRS_ALIGN_LEFT:
-			m_TrackRect = m_TrackBase + CPoint(point.x - m_TrackPoint.x, 0);
-			if ( m_TrackRect.left < (n = rect.left + rect.Width() / 10) ) {
-				m_TrackRect.left = n;
-				m_TrackRect.right = n + 6;
-			} else if ( m_TrackRect.right > (n = m_Frame.right - PANEMIN_WIDTH) ) {
-				m_TrackRect.left = n - 6;
-				m_TrackRect.right = n;
-			}
-			break;
-		case CBRS_ALIGN_TOP:
-			m_TrackRect = m_TrackBase + CPoint(0, point.y - m_TrackPoint.y);
-			if ( m_TrackRect.top < (n = rect.top + rect.Height() / 10) ) {
-				m_TrackRect.top = n;
-				m_TrackRect.bottom = n + 6;
-			} else if ( m_TrackRect.bottom > (n = m_Frame.bottom - PANEMIN_HEIGHT) ) {
-				m_TrackRect.top = n - 6;
-				m_TrackRect.bottom = n;
-			}
-			break;
-		case CBRS_ALIGN_RIGHT:
-			m_TrackRect = m_TrackBase + CPoint(point.x - m_TrackPoint.x, 0);
-			if ( m_TrackRect.left < (n = m_Frame.left + PANEMIN_WIDTH) ) {
-				m_TrackRect.left = n;
-				m_TrackRect.right = n + 6;
-			} else if ( m_TrackRect.right > (n = rect.right - rect.Width() / 10) ) {
-				m_TrackRect.left = n - 6;
-				m_TrackRect.right = n;
-			}
-			break;
-		case CBRS_ALIGN_BOTTOM:
-			m_TrackRect = m_TrackBase + CPoint(0, point.y - m_TrackPoint.y);
-			if ( m_TrackRect.top < (n = m_Frame.top + PANEMIN_HEIGHT) ) {
-				m_TrackRect.top = n;
-				m_TrackRect.bottom = n + 6;
-			} else if ( m_TrackRect.bottom > (n = rect.bottom - rect.Height() / 10) ) {
-				m_TrackRect.top = n - 6;
-				m_TrackRect.bottom = n;
-			}
-			break;
-		}
-
-	} else if ( m_pTrackPane->m_Style == PANEFRAME_WIDTH ) {
+	if ( m_pTrackPane->m_Style == PANEFRAME_WIDTH ) {
 		rect = m_pTrackPane->m_Frame;
 		FrameToClient(&rect);
 		m_TrackRect = m_TrackBase + CPoint(point.x - m_TrackPoint.x, 0);
@@ -3343,125 +3273,13 @@ void CMainFrame::OffsetTrack(CPoint point)
 			m_TrackRect.top = m_TrackRect.bottom - h;
 		}
 	}
-}
-void CMainFrame::InvertTracker(CRect &rect)
-{
-	CDC* pDC = GetDC();
-	CBrush* pBrush = CDC::GetHalftoneBrush();
-	HBRUSH hOldBrush = NULL;
 
-	if (pBrush != NULL)
-		hOldBrush = (HBRUSH)SelectObject(pDC->m_hDC, pBrush->m_hObject);
-
-	pDC->PatBlt(rect.left, rect.top, rect.Width(), rect.Height(), PATINVERT);
-
-	if (hOldBrush != NULL)
-		SelectObject(pDC->m_hDC, hOldBrush);
-
-	ReleaseDC(pDC);
-}
-int CMainFrame::PreLButtonDown(UINT nFlags, CPoint point)
-{
-	CPaneFrame *pPane;
-
-	if ( m_bTabDlgBarShow && (m_wndTabDlgBar.GetStyle() & WS_VISIBLE) != 0 ) {
-		CRect rect;
-		m_wndTabDlgBar.GetWindowRect(rect);
-		ScreenToClient(rect);
-
-		switch(m_wndTabDlgBar.GetBarStyle() & CBRS_ALIGN_ANY) {
-		case CBRS_ALIGN_LEFT:
-			rect.left = rect.right - 6;
-			break;
-		case CBRS_ALIGN_TOP:
-			rect.top = rect.bottom - 6;
-			break;
-		case CBRS_ALIGN_RIGHT:
-			rect.right = rect.left + 6;
-			break;
-		case CBRS_ALIGN_BOTTOM:
-			rect.bottom = rect.top + 6;
-			break;
-		}
-
-		if ( rect.PtInRect(point) ) {
-			m_TrackRect = rect;
-			SetCapture();
-			InvertTracker(m_TrackRect);
-			ClientToFrame(&point);
-			m_TrackPoint = point;
-			m_TrackBase = m_TrackRect;
-			m_bTabDlgMove = TRUE;
-			return TRUE;
-		}
-	}
-
-	ClientToFrame(&point);
-
-	if ( m_pTrackPane != NULL || m_pTopPane == NULL || (pPane = m_pTopPane->HitTest(point)) == NULL )
-		return FALSE;
-
-	if ( pPane->m_Style == PANEFRAME_WINDOW ) {
-		m_pTopPane->HitActive(point);
-		return FALSE;
-	}
-
-	SetCapture();
-	m_pTrackPane = pPane;
-	m_pTrackPane->BoderRect(m_TrackRect);
-	InvertTracker(m_TrackRect);
-	m_TrackPoint = point;
-	m_TrackBase = m_TrackRect;
-	m_bTabDlgMove = FALSE;
-	return TRUE;
-}
-void CMainFrame::OnLButtonUp(UINT nFlags, CPoint point) 
-{
-	CMDIFrameWnd::OnLButtonUp(nFlags, point);
-
-	if ( m_bTabDlgMove ) {
-		InvertTracker(m_TrackRect);
-		OffsetTrack(point);
-		ReleaseCapture();
-		m_bTabDlgMove = FALSE;
-
-		CRect rect, frame;
-		GetClientRect(frame);
-		m_wndTabDlgBar.GetWindowRect(rect);
-		ScreenToClient(rect);
-
-		switch(m_wndTabDlgBar.GetBarStyle() & CBRS_ALIGN_ANY) {
-		case CBRS_ALIGN_LEFT:
-			rect.right = m_TrackRect.right;
-			m_wndTabDlgBar.m_InitSize.cx = rect.Width();
-			::AfxGetApp()->WriteProfileInt(_T("TabDlgBar"), _T("IntWidth"), m_wndTabDlgBar.m_InitSize.cx * 100 / frame.Width());
-			break;
-		case CBRS_ALIGN_TOP:
-			rect.bottom = m_TrackRect.bottom;
-			m_wndTabDlgBar.m_InitSize.cy = rect.Height();
-			::AfxGetApp()->WriteProfileInt(_T("TabDlgBar"), _T("IntHeight"), m_wndTabDlgBar.m_InitSize.cy * 100 / frame.Height());
-			break;
-		case CBRS_ALIGN_RIGHT:
-			rect.left = m_TrackRect.left;
-			m_wndTabDlgBar.m_InitSize.cx = rect.Width();
-			::AfxGetApp()->WriteProfileInt(_T("TabDlgBar"), _T("IntWidth"), m_wndTabDlgBar.m_InitSize.cx * 100 / frame.Width());
-			break;
-		case CBRS_ALIGN_BOTTOM:
-			rect.top = m_TrackRect.top;
-			m_wndTabDlgBar.m_InitSize.cy = rect.Height();
-			::AfxGetApp()->WriteProfileInt(_T("TabDlgBar"), _T("IntHeight"), m_wndTabDlgBar.m_InitSize.cy * 100 / frame.Height());
-			break;
-		}
-
-		RecalcLayout(TRUE);
-		GetClientRect(rect);
+	// 位置の更新をチェック
+	if ( m_TrackLast == m_TrackRect )
 		return;
+	m_TrackLast = m_TrackRect;
 
-	} else if ( m_pTrackPane != NULL ) {
-		InvertTracker(m_TrackRect);
-		OffsetTrack(point);
-		ReleaseCapture();
-
+	if ( m_pTrackPane != NULL ) {
 		ClientToFrame(m_TrackRect);
 
 		if ( m_pTrackPane->m_Style == PANEFRAME_WIDTH ) {
@@ -3473,6 +3291,38 @@ void CMainFrame::OnLButtonUp(UINT nFlags, CPoint point)
 		}
 
 		m_pTrackPane->MoveParOwn(m_pTrackPane->m_Frame, PANEFRAME_NOCHNG);
+	}
+}
+int CMainFrame::PreLButtonDown(UINT nFlags, CPoint point)
+{
+	CPaneFrame *pPane;
+
+	ClientToFrame(&point);
+
+	if ( m_pTrackPane != NULL || m_pTopPane == NULL || (pPane = m_pTopPane->HitTest(point)) == NULL )
+		return FALSE;
+
+	if ( pPane->m_Style == PANEFRAME_WINDOW ) {
+		m_pTopPane->HitActive(point);
+		return FALSE;
+	}
+
+	m_pTrackPane = pPane;
+	m_pTrackPane->BoderRect(m_TrackRect);
+
+	SetCapture();
+	m_TrackPoint = point;
+	m_TrackBase = m_TrackLast = m_TrackRect;
+
+	return TRUE;
+}
+void CMainFrame::OnLButtonUp(UINT nFlags, CPoint point) 
+{
+	CMDIFrameWnd::OnLButtonUp(nFlags, point);
+
+	if ( m_pTrackPane != NULL ) {
+		OffsetTrack(point);
+		ReleaseCapture();
 		m_pTrackPane = NULL;
 	}
 }
@@ -3481,11 +3331,11 @@ void CMainFrame::OnMouseMove(UINT nFlags, CPoint point)
 {
 	CMDIFrameWnd::OnMouseMove(nFlags, point);
 
-	if ( m_bTabDlgMove || m_pTrackPane != NULL ) {
-		InvertTracker(m_TrackRect);
+	MSG msg;
+
+	// 表示が落ち着くまで処理しない
+	if ( m_pTrackPane != NULL && !::PeekMessage(&msg, NULL, NULL, NULL, PM_QS_PAINT | PM_NOREMOVE) )
 		OffsetTrack(point);
-		InvertTracker(m_TrackRect);
-	}
 }
 
 void CMainFrame::OnUpdateIndicatorSock(CCmdUI* pCmdUI)
@@ -4173,7 +4023,7 @@ void CMainFrame::OnGetMinMaxInfo(MINMAXINFO* lpMMI)
 	if ( m_hWnd != NULL ) {
 		GetWindowRect(rect);
 
-		if ( !m_Frame.IsRectEmpty() && !rect.IsRectEmpty() ) {
+		if ( !(m_Frame.left >= m_Frame.right && m_Frame.top >= m_Frame.bottom) && !(rect.left >= rect.right && rect.top >= rect.bottom) ) {
 			cx = rect.Width()  - m_Frame.Width()  + PANEMIN_WIDTH  * 4;
 			cy = rect.Height() - m_Frame.Height() + PANEMIN_HEIGHT * 2;
 		}
@@ -4207,6 +4057,205 @@ LRESULT CMainFrame::OnNullMessage(WPARAM wParam, LPARAM lParam)
 	m_bPostIdleMsg = FALSE;
 	return TRUE;
 }
+
+BOOL CMainFrame::SpeekQueIn()
+{
+	if ( m_SpeekAbs > m_pSpeekDoc->m_TextRam.m_HisAbs ) {
+		m_SpeekLine -= m_SpeekAbs;
+		m_SpeekAbs = m_pSpeekDoc->m_TextRam.m_HisAbs;
+		m_SpeekLine += m_SpeekAbs;
+	}
+
+	BOOL bContinue;
+	int line = m_SpeekLine - m_pSpeekDoc->m_TextRam.m_HisAbs;
+	ISpVoice *pVoice = ((CRLoginApp *)::AfxGetApp())->m_pVoice;
+
+	if ( line < (0 - m_pSpeekDoc->m_TextRam.m_HisLen + m_pSpeekDoc->m_TextRam.m_Lines) ) {
+		line = 0 - m_pSpeekDoc->m_TextRam.m_HisLen + m_pSpeekDoc->m_TextRam.m_Lines + 1;
+		m_SpeekAbs = m_pSpeekDoc->m_TextRam.m_HisAbs;
+		m_SpeekLine = line + m_SpeekAbs;
+	}
+
+	while ( m_SpeekQueLen < SPEEKQUESIZE ) {
+		if ( line >= m_pSpeekDoc->m_TextRam.m_Lines )
+			return FALSE;
+
+		m_SpeekData[m_SpeekQuePos].text.Empty();
+		m_SpeekData[m_SpeekQuePos].pos.RemoveAll();
+		m_SpeekData[m_SpeekQuePos].skip = 0;
+		m_SpeekData[m_SpeekQuePos].abs  = m_SpeekAbs;
+		m_SpeekData[m_SpeekQuePos].line = m_SpeekLine;
+
+		for ( int n = 0 ; n < 3 && line < m_pSpeekDoc->m_TextRam.m_Lines ; n++ ) {
+			bContinue = m_pSpeekDoc->m_TextRam.SpeekLine(line++, m_SpeekData[m_SpeekQuePos].text, m_SpeekData[m_SpeekQuePos].pos);
+	  		m_SpeekLine++;
+
+			if ( !bContinue )
+				break;
+		}
+
+		if ( m_SpeekData[m_SpeekQuePos].text.IsEmpty() || m_SpeekData[m_SpeekQuePos].pos.GetSize() == 0 )
+			continue;
+
+		pVoice->Speak(m_SpeekData[m_SpeekQuePos].text, SPF_ASYNC | SPF_IS_NOT_XML, &(m_SpeekData[m_SpeekQuePos].num));
+
+		if ( ++m_SpeekQuePos >= SPEEKQUESIZE )
+			m_SpeekQuePos = 0;
+		m_SpeekQueLen++;
+	}
+
+	return TRUE;
+}
+void CMainFrame::Speek(LPCTSTR str)
+{
+	ISpVoice *pVoice = ((CRLoginApp *)::AfxGetApp())->m_pVoice;
+
+	if ( pVoice == NULL )
+		return;
+
+	if ( m_bVoiceEvent ) {
+		m_bVoiceEvent = FALSE;
+		pVoice->SetInterest(0, 0);
+		pVoice->Speak(L"", SPF_ASYNC | SPF_PURGEBEFORESPEAK | SPF_IS_NOT_XML, NULL);
+		m_pSpeekView->SpeekTextPos(FALSE, 0, 0);
+	}
+
+	pVoice->Speak(TstrToUni(str), SPF_ASYNC, NULL);
+}
+void CMainFrame::SpeekUpdate(int x, int y)
+{
+	int pos;
+
+	pos = m_SpeekQueTop;
+	for ( int n = 0 ; n < m_SpeekQueLen ; n++ ) {
+		m_SpeekData[pos].skip = 1;
+		if ( ++pos >= SPEEKQUESIZE )
+			pos = 0;
+	}
+
+	m_SpeekAbs  = m_pSpeekDoc->m_TextRam.m_HisAbs;
+	m_SpeekLine = m_SpeekAbs + y;
+}
+LRESULT CMainFrame::OnSpeekMsg(WPARAM wParam, LPARAM lParam)
+{
+	SPEVENT eventItem;
+	ISpVoice *pVoice = ((CRLoginApp *)::AfxGetApp())->m_pVoice;
+	SPVOICESTATUS status;
+	ULONG spos, epos;
+
+	memset(&eventItem, 0, sizeof(SPEVENT));
+
+	while( pVoice->GetEvents(1, &eventItem, NULL ) == S_OK ) {
+		if ( !m_bVoiceEvent )
+			continue;
+
+		switch(eventItem.eEventId) {
+        case SPEI_WORD_BOUNDARY:
+			if ( m_SpeekQueLen <= 0 )
+				break;
+			if ( eventItem.ulStreamNum != m_SpeekData[m_SpeekQueTop].num )
+				break;
+			pVoice->GetStatus(&status, NULL);
+			if ( status.dwRunningState != SPRS_IS_SPEAKING )
+				break;
+			if ( status.ulCurrentStream != m_SpeekData[m_SpeekQueTop].num )
+				break;
+			if ( m_SpeekData[m_SpeekQueTop].skip != 0 ) {
+				pVoice->Skip(L"SENTENCE", m_SpeekData[m_SpeekQueTop].skip, &spos);
+				m_SpeekData[m_SpeekQueTop].skip = 0;
+				break;
+			}
+			if ( status.ulInputWordLen <= 0 )
+				break;
+			if ( (ULONG)m_SpeekData[m_SpeekQueTop].pos.GetSize() < (status.ulInputWordPos + status.ulInputWordLen - 1) )
+				break;
+			spos = m_SpeekData[m_SpeekQueTop].pos[status.ulInputWordPos];
+			epos = m_SpeekData[m_SpeekQueTop].pos[status.ulInputWordPos + status.ulInputWordLen - 1];
+			if ( !m_pSpeekDoc->m_TextRam.SpeekCheck(spos, epos, (LPCTSTR)m_SpeekData[m_SpeekQueTop].text + status.ulInputWordPos) ) {
+				pVoice->Skip(L"SENTENCE", 1, &spos);
+				m_SpeekAbs  = m_SpeekData[m_SpeekQueTop].abs;
+				m_SpeekLine = m_SpeekData[m_SpeekQueTop].line;
+				m_pSpeekView->SpeekTextPos(FALSE, 0, 0);
+				break;
+			}
+			m_pSpeekView->SpeekTextPos(TRUE, spos, epos);
+			break;
+
+		case SPEI_SENTENCE_BOUNDARY:
+		case SPEI_START_INPUT_STREAM:
+			if ( m_SpeekQueLen <= 0 )
+				break;
+			if ( eventItem.ulStreamNum != m_SpeekData[m_SpeekQueTop].num )
+				break;
+			if ( m_SpeekData[m_SpeekQueTop].skip != 0 ) {
+				pVoice->Skip(L"SENTENCE", m_SpeekData[m_SpeekQueTop].skip, &spos);
+				m_SpeekData[m_SpeekQueTop].skip = 0;
+				break;
+			}
+			break;
+
+		case SPEI_END_INPUT_STREAM:
+			if ( m_SpeekQueLen <= 0 )
+				break;
+			if ( eventItem.ulStreamNum != m_SpeekData[m_SpeekQueTop].num )
+				break;
+			m_SpeekData[m_SpeekQueTop].text.Empty();
+			m_SpeekData[m_SpeekQueTop].pos.RemoveAll();
+			if ( ++m_SpeekQueTop >= SPEEKQUESIZE )
+				m_SpeekQueTop = 0;
+			m_SpeekQueLen--;
+			if ( !SpeekQueIn() && m_SpeekQueLen <= 0 ) {
+				pVoice->SetInterest(0, 0);
+				m_bVoiceEvent = FALSE;
+			}
+			m_pSpeekView->SpeekTextPos(FALSE, 0, 0);
+			break;
+		}
+	}
+
+	return TRUE;
+}
+void CMainFrame::OnSpeekText()
+{
+	ISpVoice *pVoice = ((CRLoginApp *)::AfxGetApp())->m_pVoice;
+	CChildFrame *pChild = (CChildFrame *)MDIGetActive();
+	CRLoginView *pView;
+	CRLoginDoc *pDoc;
+
+	if ( pVoice == NULL )
+		return;
+
+	if ( !m_bVoiceEvent ) {
+		if ( pChild == NULL || (pView = (CRLoginView *)pChild->GetActiveView()) == NULL || (pDoc = pView->GetDocument()) == NULL )
+			return;
+
+		ULONGLONG ev = SPFEI(SPEI_WORD_BOUNDARY) | SPFEI(SPEI_SENTENCE_BOUNDARY) | SPFEI(SPEI_END_INPUT_STREAM);
+		pVoice->SetInterest(ev, ev);
+		pVoice->SetNotifyWindowMessage(GetSafeHwnd(), WM_SPEEKMSG, 0, 0);
+
+		m_pSpeekView = pView;
+		m_pSpeekDoc  = pDoc;
+
+		m_SpeekQueLen = m_SpeekQuePos = m_SpeekQueTop = 0;
+		m_SpeekAbs = m_pSpeekDoc->m_TextRam.m_HisAbs;
+		m_SpeekLine = m_SpeekAbs - m_pSpeekView->m_HisOfs;
+		SpeekQueIn();
+
+		m_bVoiceEvent = TRUE;
+
+	} else {
+		m_bVoiceEvent = FALSE;
+		pVoice->SetInterest(0, 0);
+		pVoice->Speak(L"", SPF_ASYNC | SPF_PURGEBEFORESPEAK | SPF_IS_NOT_XML, NULL);
+		m_pSpeekView->SpeekTextPos(FALSE, 0, 0);
+	}
+}
+void CMainFrame::OnUpdateSpeekText(CCmdUI *pCmdUI)
+{
+	pCmdUI->Enable(((CRLoginApp *)::AfxGetApp())->m_pVoice != NULL ? TRUE : FALSE);
+	pCmdUI->SetCheck(m_bVoiceEvent ? 1 : 0);
+}
+
 
 #define _AfxGetDlgCtrlID(hWnd)          ((UINT)(WORD)::GetDlgCtrlID(hWnd))
 
@@ -4301,7 +4350,240 @@ afx_msg void CMainFrame::OnUpdateHistoryDlg(CCmdUI *pCmdUI)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// CQuickBar ダイアログ
+// CDockContextEx
+
+CDockContextEx::CDockContextEx(CControlBar *pBar) : CDockContext(pBar)
+{
+}
+BOOL CDockContextEx::IsHitGrip(CPoint point)
+{
+	CRect rect, inside;
+	BOOL bHorz = (m_pBar->m_dwStyle & CBRS_ORIENT_HORZ) != 0 ? TRUE : FALSE;
+
+	if ( (m_pBar->m_dwStyle & CBRS_GRIPPER) == 0 )
+		return FALSE;
+
+	m_pBar->GetWindowRect(rect);
+
+	inside = rect;
+	m_pBar->CalcInsideRect(inside, bHorz);
+
+	if ( bHorz ) {
+		inside.right = inside.left;
+		inside.left = rect.left;
+	} else {
+		inside.bottom = inside.top;
+		inside.top = rect.top;
+	}
+
+	return (inside.PtInRect(point) ? TRUE : FALSE);
+}
+void CDockContextEx::StartDrag(CPoint pt)
+{
+//	CDockContext::StartDrag(pt);
+
+	m_dwOverDockStyle = m_pBar->IsFloating() ? 0 : m_dwStyle;
+
+	if ( m_dwOverDockStyle != 0 && !IsHitGrip(pt) )
+		return;
+
+	m_ptLast = pt;
+	m_dwDockStyle = m_pBar->m_dwDockStyle;
+	m_dwStyle = m_pBar->m_dwStyle & CBRS_ALIGN_ANY;
+	m_bForceFrame = m_bFlip = m_bDitherLast = FALSE;
+
+	TrackLoop();
+}
+void CDockContextEx::StartResize(int nHitTest, CPoint pt)
+{
+	CDockContext::StartResize(nHitTest, pt);
+}
+void CDockContextEx::ToggleDocking()
+{
+	CPoint point;
+
+	if ( !m_pBar->IsFloating() ) {
+		GetCursorPos(&point);
+
+		if ( !IsHitGrip(point) )
+			return;
+	}
+
+	CDockContext::ToggleDocking();
+}
+void CDockContextEx::EnableDocking(CControlBar *pBar, DWORD dwDockStyle)
+{
+	pBar->m_dwDockStyle = dwDockStyle;
+
+	if ( pBar->m_pDockContext == NULL )
+		pBar->m_pDockContext = new CDockContextEx(pBar);
+
+	if ( pBar->m_hWndOwner == NULL )
+		pBar->m_hWndOwner = pBar->GetParent()->GetSafeHwnd();
+}
+void CDockContextEx::TrackLoop()
+{
+	MSG msg;
+	UINT uID;
+	LONG count;
+	CRect rect, frame;
+	CSize floatSize;
+	CPoint point, ptOffset;
+	CRect BaseHorz, BaseVert;
+	CMiniDockFrameWnd *pFloatBar;
+	BOOL bFloatSytle = TRUE;
+	BOOL bVert = FALSE;
+	BOOL bFloatVert = FALSE;
+	CDockBar *pDockBar;
+
+	m_pBar->SetCapture();
+	m_bDragging = FALSE;
+
+	while ( CWnd::GetCapture() == m_pBar ) {
+		for ( count = 0 ; !::PeekMessage(&msg, NULL, NULL, NULL, PM_NOREMOVE) ; count++ ) {
+			if ( !((CRLoginApp *)AfxGetApp())->OnIdle(count) )
+				break;
+		}
+
+		if (  !::GetMessage(&msg, NULL, 0, 0) )
+			goto ENDOF;
+
+		switch (msg.message) {
+		case WM_MOUSEMOVE:
+			if ( ::PeekMessage(&msg, NULL, NULL, NULL, PM_QS_PAINT | PM_NOREMOVE) )
+				break;
+		case WM_LBUTTONUP:
+			point = msg.pt;
+			ptOffset = point - m_ptLast;
+
+			if ( !m_bDragging && (abs(ptOffset.x) >= ::GetSystemMetrics(SM_CXDRAG) || abs(ptOffset.y) >= ::GetSystemMetrics(SM_CYDRAG)) ) {
+
+				m_bDragging = TRUE;
+
+				bVert = (m_dwStyle & CBRS_ORIENT_VERT) ? TRUE : FALSE;
+				CSize size = m_pBar->CalcDynamicLayout(-1, bVert ? (LM_HORZ | LM_HORZDOCK) : LM_VERTDOCK);
+				m_pBar->GetWindowRect(rect);
+
+				if ( m_pBar->IsFloating() ) {
+					pFloatBar = (CMiniDockFrameWnd *)m_pBar->m_pDockBar->GetParent();
+					ASSERT_KINDOF(CMiniDockFrameWnd, pFloatBar);
+
+					pFloatBar->GetWindowRect(frame);
+					rect.OffsetRect(frame.left - rect.left + 8, frame.top - rect.top);
+				}
+
+				if ( bVert ) {
+					m_rectDragHorz = CRect(CPoint(m_ptLast.x - (m_ptLast.y - rect.top), m_ptLast.y - size.cy / 2), size);
+					m_rectDragVert = rect;
+				} else {
+					m_rectDragHorz = rect;
+					m_rectDragVert = CRect(CPoint(m_ptLast.x - size.cx / 2, m_ptLast.y - (m_ptLast.x - rect.left)), size);
+				}
+
+				BaseHorz = m_rectDragHorz;
+				BaseVert = m_rectDragVert;
+
+				if ( !m_pBar->IsFloating() ) {
+					rect = bVert ? m_rectDragVert : m_rectDragHorz;
+					m_pDockSite->FloatControlBar(m_pBar, rect.TopLeft(), bVert ? CBRS_ALIGN_LEFT : CBRS_ALIGN_TOP);
+				}
+
+				pFloatBar = (CMiniDockFrameWnd *)m_pBar->m_pDockBar->GetParent();
+				ASSERT_KINDOF(CMiniDockFrameWnd, pFloatBar);
+
+				pFloatBar->GetWindowRect(rect);
+				floatSize.cx = rect.Width();
+				floatSize.cy = rect.Height();
+				bFloatVert = bVert;
+
+				if ( m_dwOverDockStyle != 0 ) {
+					rect = bVert ? m_rectDragVert : m_rectDragHorz;
+					pFloatBar->ModifyStyle(WS_CAPTION | WS_THICKFRAME, 0);
+					pFloatBar->SetWindowPos(NULL, rect.left, rect.top, rect.Width(), rect.Height(), SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_SHOWWINDOW);
+					bFloatSytle = FALSE;
+				}
+			}
+
+			if ( m_bDragging ) {
+				m_rectDragHorz = BaseHorz + ptOffset;
+				m_rectDragVert = BaseVert + ptOffset;
+
+				m_dwOverDockStyle = CanDock();
+
+				if ( m_dwOverDockStyle == 0 ) {
+					if ( !bFloatSytle ) {
+						rect = bFloatVert ? m_rectDragVert : m_rectDragHorz;
+						pFloatBar->ModifyStyle(0, WS_CAPTION | WS_THICKFRAME);
+						pFloatBar->SetWindowPos(NULL, rect.left - 8, rect.top, floatSize.cx, floatSize.cy, SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+						bFloatSytle = TRUE;
+					} else {
+						rect = bFloatVert ? m_rectDragVert : m_rectDragHorz;
+						pFloatBar->SetWindowPos(NULL, rect.left - 8, rect.top, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+					}
+
+				} else {
+					bVert = (m_dwOverDockStyle & CBRS_ORIENT_VERT) ? TRUE : FALSE;
+
+					if ( bFloatVert != bVert ) {
+						rect = bVert ? m_rectDragVert : m_rectDragHorz;
+						m_pBar->m_dwStyle &= ~CBRS_ALIGN_ANY;
+						m_pBar->m_dwStyle |= m_dwOverDockStyle;
+						pFloatBar->RecalcLayout(TRUE);
+						pFloatBar->GetWindowRect(rect);
+						floatSize.cx = rect.Width();
+						floatSize.cy = rect.Height();
+
+						bFloatVert = bVert;
+						pFloatBar->ModifyStyle(WS_CAPTION | WS_THICKFRAME, 0);
+						pFloatBar->SetWindowPos(NULL, rect.left, rect.top, rect.Width(), rect.Height(), SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+						bFloatSytle = FALSE;
+
+					} else if ( bFloatSytle ) {
+						rect = bFloatVert ? m_rectDragVert : m_rectDragHorz;
+						pFloatBar->ModifyStyle(WS_CAPTION | WS_THICKFRAME, 0);
+						pFloatBar->SetWindowPos(NULL, rect.left, rect.top, rect.Width(), rect.Height(), SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+						bFloatSytle = FALSE;
+
+					} else {
+						rect = bFloatVert ? m_rectDragVert : m_rectDragHorz;
+						pFloatBar->SetWindowPos(NULL, rect.left, rect.top, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_SHOWWINDOW);
+					}
+				}
+			}
+
+			if ( msg.message == WM_LBUTTONUP ) {
+				if ( m_bDragging && !bFloatSytle && (pDockBar = GetDockBar(m_dwOverDockStyle)) != NULL ) {
+					rect = (m_dwOverDockStyle & CBRS_ORIENT_VERT) ? m_rectDragVert : m_rectDragHorz;
+
+					uID = _AfxGetDlgCtrlID(pDockBar->m_hWnd);
+					if ( uID >= AFX_IDW_DOCKBAR_TOP && uID <= AFX_IDW_DOCKBAR_BOTTOM) {
+						m_uMRUDockID = uID;
+						m_rectMRUDockPos = rect;
+						pDockBar->ScreenToClient(&m_rectMRUDockPos);
+					}
+
+					m_pDockSite->DockControlBar(m_pBar, pDockBar, &rect);
+					//m_pDockSite->RecalcLayout();
+				}
+
+				goto ENDOF;
+			}
+			break;
+
+		default:
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+			break;
+		}
+	}
+
+ENDOF:
+	ReleaseCapture();
+	m_bDragging = FALSE;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// CQuickBar
 
 IMPLEMENT_DYNAMIC(CQuickBar, CDialogBar)
 
@@ -4729,7 +5011,22 @@ void CTabDlgBar::OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler)
 	if ( bUpdate && m_pShowWnd != NULL )
 		m_pShowWnd->RedrawWindow();
 }
+void CTabDlgBar::TabReSize()
+{
+	CRect rect;
+	m_TabCtrl.GetClientRect(rect);
+	m_TabCtrl.AdjustRect(FALSE, &rect);
 
+	for ( int n = 0 ; n < m_TabCtrl.GetItemCount() ; n++ ) {
+		TC_ITEM tci;
+		tci.mask = TCIF_PARAM;
+		if ( !m_TabCtrl.GetItem(n, &tci) )
+			continue;
+		CWnd *pWnd = (CWnd *)tci.lParam;
+		pWnd->SetWindowPos(&wndTop , rect.left, rect.top, rect.Width(), rect.Height(), 
+			SWP_NOACTIVATE | (pWnd == m_pShowWnd ? SWP_SHOWWINDOW : 0));
+	}
+}
 CSize CTabDlgBar::CalcFixedLayout(BOOL bStretch, BOOL bHorz)
 {
 	CSize size;
@@ -4752,6 +5049,17 @@ CSize CTabDlgBar::CalcFixedLayout(BOOL bStretch, BOOL bHorz)
 
 	size.cx = (bHorz ? MainRect.Width() : m_InitSize.cx);
 	size.cy = (bHorz ? m_InitSize.cy    : MainRect.Height());
+
+	if ( IsVisible() && m_TabCtrl.m_hWnd != NULL ) {
+		CRect oldr, rect(CPoint(0, 0), size);
+		CalcInsideRect(rect, bHorz);
+		m_TabCtrl.GetWindowRect(oldr);
+
+		if ( oldr != rect ) {
+			m_TabCtrl.SetWindowPos(&wndTop , rect.left, rect.top, rect.Width(), rect.Height(), SWP_NOACTIVATE | SWP_SHOWWINDOW);
+			TabReSize();
+		}
+	}
 
 	return size;
 }
@@ -4878,13 +5186,63 @@ BOOL CTabDlgBar::IsInside(CWnd *pWnd)
 
 	return FALSE;
 }
+void *CTabDlgBar::RemoveAt(int idx, CPoint point)
+{
+	TC_ITEM tci;
+	
+	ZeroMemory(&tci, sizeof(tci));
+	tci.mask = TCIF_PARAM;
+
+	if ( !m_TabCtrl.GetItem(idx, &tci) )
+		return NULL;
+
+	for ( int n = 0 ; n < m_Data.GetSize() ; n++ ) {
+		struct _DlgWndData *pData = (struct _DlgWndData *)m_Data[n];
+
+		if ( pData->pWnd != (CWnd *)tci.lParam )
+			continue;
+
+		point.x -= pData->WinRect.Width() / 2;
+		point.y -= GetSystemMetrics(SM_CYCAPTION) / 2;
+
+		pData->pWnd->SetParent(pData->pParent);
+		pData->pWnd->ModifyStyle(WS_CHILD, WS_CAPTION | WS_THICKFRAME | WS_POPUP, SWP_HIDEWINDOW);
+		pData->pWnd->SetMenu(CMenu::FromHandle(pData->hMenu));
+		pData->pWnd->SetWindowPos(NULL, point.x, point.y, pData->WinRect.Width(), pData->WinRect.Height(),
+			SWP_SHOWWINDOW | SWP_FRAMECHANGED | SWP_NOCOPYBITS | SWP_NOOWNERZORDER | SWP_NOZORDER | SWP_NOACTIVATE | SWP_ASYNCWINDOWPOS | SWP_DEFERERASE);
+
+		if ( pData->pWnd == m_pShowWnd )
+			m_pShowWnd = NULL;
+
+		m_Data.RemoveAt(n);
+		m_TabCtrl.DeleteItem(idx);
+
+		if ( idx >= m_TabCtrl.GetItemCount() )
+			idx--;
+
+		if ( idx >= 0 ) {
+			m_TabCtrl.SetCurSel(idx);
+			tci.mask = TCIF_PARAM;
+			if ( m_TabCtrl.GetItem(idx, &tci) ) {
+				if ( m_pShowWnd != NULL )
+					m_pShowWnd->ShowWindow(SW_HIDE);
+				m_pShowWnd = (CWnd *)tci.lParam;
+				m_pShowWnd->ShowWindow(SW_SHOWNOACTIVATE);
+			}
+		}
+
+		return pData;
+	}
+
+	return NULL;
+}
 void CTabDlgBar::RemoveAll()
 {
 	for ( int n = 0 ; n < m_Data.GetSize() ; n++ ) {
 		struct _DlgWndData *pData = (struct _DlgWndData *)m_Data[n];
 
 		pData->pWnd->SetParent(pData->pParent);
-		pData->pWnd->ModifyStyle(WS_CHILD, WS_CAPTION | WS_THICKFRAME | WS_POPUP);
+		pData->pWnd->ModifyStyle(WS_CHILD, WS_CAPTION | WS_THICKFRAME | WS_POPUP, SWP_HIDEWINDOW);
 		pData->pWnd->SetMenu(CMenu::FromHandle(pData->hMenu));
 		pData->pWnd->SetWindowPos(NULL, pData->WinRect.left, pData->WinRect.top, pData->WinRect.Width(), pData->WinRect.Height(),
 			SWP_SHOWWINDOW | SWP_FRAMECHANGED | SWP_NOCOPYBITS | SWP_NOOWNERZORDER | SWP_NOZORDER | SWP_NOACTIVATE | SWP_ASYNCWINDOWPOS | SWP_DEFERERASE);
@@ -4935,9 +5293,9 @@ void CTabDlgBar::DpiChanged()
 BEGIN_MESSAGE_MAP(CTabDlgBar, CControlBar)
 	ON_WM_CREATE()
 	ON_WM_SIZE()
-	ON_NOTIFY(TCN_SELCHANGE, IDC_TABDLGBAR_TAB, OnSelchange)
 	ON_WM_LBUTTONDOWN()
-	ON_WM_MOUSEMOVE()
+	ON_NOTIFY(TCN_SELCHANGE, IDC_TABDLGBAR_TAB, &CTabDlgBar::OnSelchange)
+	ON_WM_SETCURSOR()
 END_MESSAGE_MAP()
 
 int CTabDlgBar::OnCreate(LPCREATESTRUCT lpCreateStruct)
@@ -4962,7 +5320,7 @@ int CTabDlgBar::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		SetFont(&m_TabFont);
 	}
 
-	SetBorders(2, 4, 2, 4);
+	SetBorders(2, 5, 2, 4);
 
 	CBitmap BitMap;
 	((CRLoginApp *)::AfxGetApp())->LoadResBitmap(MAKEINTRESOURCE(IDB_BITMAP4), BitMap);
@@ -4981,28 +5339,16 @@ void CTabDlgBar::OnSize(UINT nType, int cx, int cy)
 	if ( m_TabCtrl.m_hWnd == NULL )
 		return;
 
-	CRect rect(0, 0, cx, cy);
+	CRect oldr, rect(0, 0, cx, cy);
 	CalcInsideRect(rect, (GetBarStyle() & (CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM)) != 0 ? TRUE : FALSE);
+	m_TabCtrl.GetWindowRect(oldr);
 
-	m_TabCtrl.SetWindowPos(&wndTop , rect.left, rect.top, rect.Width(), rect.Height(), SWP_SHOWWINDOW);
-	
-	m_TabCtrl.GetClientRect(rect);
-	m_TabCtrl.AdjustRect(FALSE, &rect);
-
-	for ( int n = 0 ; n < m_TabCtrl.GetItemCount() ; n++ ) {
-		TC_ITEM tci;
-		tci.mask = TCIF_PARAM;
-		if ( !m_TabCtrl.GetItem(n, &tci) )
-			continue;
-		CWnd *pWnd = (CWnd *)tci.lParam;
-		pWnd->SetWindowPos(&wndTop , rect.left, rect.top, rect.Width(), rect.Height(), 
-			SWP_NOACTIVATE | (pWnd == m_pShowWnd ? SWP_SHOWWINDOW : 0));
+	if ( oldr != rect ) {
+		m_TabCtrl.SetWindowPos(&wndTop , rect.left, rect.top, rect.Width(), rect.Height(), SWP_SHOWWINDOW);
+		TabReSize();
 	}
-
-	Invalidate();
 }
-
-void CTabDlgBar::OnSelchange(NMHDR* pNMHDR, LRESULT* pResult) 
+void CTabDlgBar::OnSelchange(NMHDR *pNMHDR, LRESULT *pResult) 
 {
 	int n;
 	TC_ITEM tci;
@@ -5020,4 +5366,391 @@ void CTabDlgBar::OnSelchange(NMHDR* pNMHDR, LRESULT* pResult)
 	pWnd = (CWnd *)tci.lParam;
 	pWnd->ShowWindow(SW_SHOWNOACTIVATE);
 	m_pShowWnd = pWnd;
+}
+BOOL CTabDlgBar::PreTranslateMessage(MSG* pMsg)
+{
+	if ( pMsg->hwnd == m_TabCtrl.m_hWnd && (pMsg->message >= WM_MOUSEFIRST && pMsg->message <= WM_MOUSELAST) ) {
+		// WM_MOUSE*をTabCtrlからTabBarに変更
+		CPoint point(LOWORD(pMsg->lParam), HIWORD(pMsg->lParam));
+		::ClientToScreen(pMsg->hwnd, &point);
+		ScreenToClient(&point);
+		pMsg->hwnd = m_hWnd;
+		pMsg->lParam = MAKELPARAM(point.x, point.y);
+	}
+
+	return CControlBar::PreTranslateMessage(pMsg);
+}
+int CTabDlgBar::HitPoint(CPoint point)
+{
+	CRect rect, inside;
+
+	if ( (GetStyle() & WS_VISIBLE) == 0 ) {
+		((CMainFrame *)AfxGetMainWnd())->GetWindowRect(rect);
+		return rect.PtInRect(point) ? (-6) : (-7);
+	}
+
+	GetWindowRect(rect);
+	if ( !rect.PtInRect(point) ) {
+		((CMainFrame *)AfxGetMainWnd())->GetWindowRect(rect);
+		return rect.PtInRect(point) ? (-6) : (-7);		// (-6) CTabDlgBar外 (-7) CMainFrame外
+	}
+
+	inside = rect;
+
+	switch(GetBarStyle() & CBRS_ALIGN_ANY) {
+	case CBRS_ALIGN_LEFT:
+		CalcInsideRect(inside, FALSE);
+		rect.left = inside.right;
+		if ( rect.PtInRect(point) )
+			return (-1);
+		break;
+	case CBRS_ALIGN_TOP:
+		CalcInsideRect(inside, TRUE);
+		rect.top = inside.bottom;
+		if ( rect.PtInRect(point) )
+			return (-2);
+		break;
+	case CBRS_ALIGN_RIGHT:
+		CalcInsideRect(inside, FALSE);
+		rect.right = inside.left;
+		if ( rect.PtInRect(point) )
+			return (-3);
+		break;
+	case CBRS_ALIGN_BOTTOM:
+		CalcInsideRect(inside, TRUE);
+		rect.bottom = inside.top;
+		if ( rect.PtInRect(point) )
+			return (-4);
+		break;
+	}
+
+	// CTabBarクライアント座標
+	m_TabCtrl.ScreenToClient(&point);
+
+	for ( int n = 0 ; n < m_TabCtrl.GetItemCount() ; n++ ) {
+		if ( m_TabCtrl.GetItemRect(n, rect) && rect.PtInRect(point) )
+			return n;				// タブ内
+	}
+
+	return (-5);					// CTabDlgBar内
+}
+void CTabDlgBar::GetTitle(int nIndex, CString &title)
+{
+	TC_ITEM tci;
+	TCHAR tmp[MAX_PATH + 2];
+
+	ZeroMemory(&tci, sizeof(tci));
+	tci.mask = TCIF_TEXT | TCIF_PARAM;
+	tci.pszText = tmp;
+	tci.cchTextMax = MAX_PATH;
+
+	if ( !m_TabCtrl.GetItem(nIndex, &tci) )
+		return;
+
+	title = tci.pszText;
+}
+
+void CTabDlgBar::TrackLoop(CPoint ptScrn, int idx, CWnd *pMoveWnd, int nImage)
+{
+	int n;
+	int hit;
+	int count;
+	int TypeCol = 0;
+	MSG msg;
+	CPoint ptOffset, ptLast;
+	CRect TrackRect, TrackBase;
+	CRect MainClient, MainFrame;
+	CSize InitSize, MoveOfs;
+	CTrackWnd track;
+	CString title;
+	TC_ITEM tci;
+	TCHAR Text[MAX_PATH + 2];
+	BOOL bDrag = FALSE;
+	BOOL bReSize = FALSE;
+	BOOL bGetRect = FALSE;
+
+	if ( !IsFloating() && idx <= (-1) && idx >= (-4) )
+		bReSize = TRUE;
+	else if ( idx < 0 && pMoveWnd == NULL )
+		return;
+
+	if ( pMoveWnd != NULL ) {
+		CRect rect;
+		pMoveWnd->GetWindowRect(rect);
+		MoveOfs.cx = ptScrn.x - rect.left;
+		MoveOfs.cy = ptScrn.y - rect.top;
+		pMoveWnd->SetWindowPos(NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
+	}
+
+	SetCapture();
+	ptLast = ptScrn;
+
+	while ( CWnd::GetCapture() == this ) {
+		for ( count = 0 ; !::PeekMessage(&msg, NULL, NULL, NULL, PM_NOREMOVE) ; count++ ) {
+			if ( !((CRLoginApp *)AfxGetApp())->OnIdle(count) )
+				break;
+		}
+
+		if (  !::GetMessage(&msg, NULL, 0, 0) )
+			goto ENDOF;
+
+		switch (msg.message) {
+		case WM_MOUSEMOVE:
+			if ( ::PeekMessage(&msg, NULL, NULL, NULL, PM_QS_PAINT | PM_NOREMOVE) )
+				break;
+		case WM_LBUTTONUP:
+			ptScrn = msg.pt;
+			ptOffset = ptScrn - ptLast;
+
+			if ( !bDrag && (abs(ptOffset.x) >= ::GetSystemMetrics(SM_CXDRAG) || abs(ptOffset.y) >= ::GetSystemMetrics(SM_CYDRAG)) ) {
+				if ( bReSize ) {
+					GetWindowRect(TrackRect);
+					TrackBase = TrackRect;
+					InitSize = m_InitSize;
+					((CMainFrame *)AfxGetMainWnd())->GetClientRect(MainClient);
+					MainFrame = ((CMainFrame *)AfxGetMainWnd())->m_Frame;
+					((CMainFrame *)AfxGetMainWnd())->ClientToScreen(MainClient);
+					((CMainFrame *)AfxGetMainWnd())->ClientToScreen(MainFrame);
+
+				} else if ( idx >= 0 ) {
+					m_TabCtrl.GetItemRect(idx, TrackRect);
+					m_TabCtrl.ClientToScreen(TrackRect);
+					GetTitle(idx, title);
+
+					track.Create(NULL, title, WS_TILED | WS_CHILD, TrackRect, CWnd::GetDesktopWindow(), (-1));
+					bGetRect = TRUE;
+				}
+
+				bDrag = TRUE;
+			}
+
+			if ( bDrag ) {
+				if ( bReSize ) {
+					switch(idx) {
+					case (-1):	// CBRS_ALIGN_LEFT
+						TrackRect.right = TrackBase.right + (ptScrn.x - ptLast.x);
+						if ( TrackRect.right < (n = MainClient.left + MainClient.Width() / 10) )
+							TrackRect.right = n;
+						else if ( TrackRect.right > (n = MainFrame.right - PANEMIN_WIDTH) )
+							TrackRect.right = n;
+						InitSize.cx = TrackRect.Width();
+						break;
+					case (-2):	// CBRS_ALIGN_TOP
+						TrackRect.bottom = TrackBase.bottom + (ptScrn.y - ptLast.y);
+						if ( TrackRect.bottom < (n = MainClient.top + MainClient.Height() / 10) )
+							TrackRect.bottom = n;
+						else if ( TrackRect.bottom > (n = MainFrame.bottom - PANEMIN_HEIGHT) )
+							TrackRect.bottom = n;
+						InitSize.cy = TrackRect.Height();
+						break;
+					case (-3):	// CBRS_ALIGN_RIGHT
+						TrackRect.left = TrackBase.left + (ptScrn.x - ptLast.x);
+						if ( TrackRect.left < (n = MainFrame.left + PANEMIN_WIDTH) )
+							TrackRect.left = n;
+						else if ( TrackRect.left > (n = MainClient.right - MainClient.Width() / 10) )
+							TrackRect.left = n;
+						InitSize.cx = TrackRect.Width();
+						break;
+					case (-4):	// CBRS_ALIGN_BOTTOM
+						TrackRect.top = TrackBase.top + (ptScrn.y - ptLast.y);
+						if ( TrackRect.top < (n = MainFrame.top + PANEMIN_HEIGHT) )
+							TrackRect.top = n;
+						else if ( TrackRect.top > (n = MainClient.bottom - MainClient.Height() / 10) )
+							TrackRect.top = n;
+						InitSize.cy = TrackRect.Height();
+						break;
+					}
+
+					if ( m_InitSize != InitSize ) {
+						m_InitSize = InitSize;
+						Invalidate(FALSE);
+						((CMainFrame *)AfxGetMainWnd())->RecalcLayout(TRUE);
+					}
+
+					if ( msg.message == WM_LBUTTONUP ) {
+						::AfxGetApp()->WriteProfileInt(_T("TabDlgBar"), _T("IntWidth"),  m_InitSize.cx * 100 / MainClient.Width());
+						::AfxGetApp()->WriteProfileInt(_T("TabDlgBar"), _T("IntHeight"), m_InitSize.cy * 100 / MainClient.Height());
+						goto ENDOF;
+					}
+
+				} else {
+					TrackRect.OffsetRect(ptOffset);
+					ptLast = ptScrn;
+
+					hit = HitPoint(ptScrn);
+
+					if ( hit < (-5) ) {
+						if ( track.GetSafeHwnd() != NULL ) {
+							track.DestroyWindow();
+
+							struct _DlgWndData *pData = (struct _DlgWndData *)RemoveAt(idx, ptScrn);
+							if ( pData != NULL ) {
+								pMoveWnd = pData->pWnd;
+								nImage = pData->nImage;
+								MoveOfs.cx = pData->WinRect.Width() / 2;
+								MoveOfs.cy = GetSystemMetrics(SM_CYCAPTION) / 2;
+								delete pData;
+							}
+
+							idx = m_TabCtrl.GetItemCount() > 0 ? m_TabCtrl.GetCurSel() : (-1);
+							bGetRect = FALSE;
+
+						} else if ( pMoveWnd != NULL ) {
+							if ( hit == (-6) && (GetStyle() & WS_VISIBLE) == 0 )
+								((CMainFrame *)::AfxGetMainWnd())->TabDlgShow(TRUE);
+
+							pMoveWnd->SetWindowPos(NULL, ptScrn.x - MoveOfs.cx, ptScrn.y - MoveOfs.cy, 0, 0,
+								SWP_NOSIZE | SWP_NOZORDER | SWP_SHOWWINDOW);
+						}
+
+					} else {
+						if ( track.GetSafeHwnd() == NULL ) {
+							if ( pMoveWnd != NULL ) {
+								Add(pMoveWnd, nImage);
+								idx = m_TabCtrl.GetItemCount() - 1;
+								pMoveWnd = NULL;
+								bGetRect = FALSE;
+							}
+
+							if ( idx >= 0 && !bGetRect ) {
+								m_TabCtrl.GetItemRect(idx, TrackRect);
+								m_TabCtrl.ClientToScreen(TrackRect);
+								GetTitle(idx, title);
+
+								ptOffset.x = ptScrn.x - TrackRect.left - TrackRect.Width() / 2;
+								ptOffset.y = ptScrn.y - TrackRect.top  - TrackRect.Height() / 2;
+								TrackRect.OffsetRect(ptOffset);
+
+								track.Create(NULL, title, WS_TILED | WS_CHILD, TrackRect, CWnd::GetDesktopWindow(), (-1));
+								bGetRect = TRUE;
+							}
+						}
+
+						if ( track.GetSafeHwnd() != NULL ) {
+							TypeCol = hit >= 0 || hit == (-7) ? 0 : 5;
+							track.SetWindowPos(&wndTopMost, TrackRect.left, TrackRect.top, 0, 0, SWP_NOSIZE | SWP_NOCOPYBITS | SWP_SHOWWINDOW);
+
+							if ( track.m_TypeCol != TypeCol ) {
+								track.m_TypeCol = TypeCol;
+								track.Invalidate();
+							}
+						}
+					}
+
+					if ( msg.message == WM_LBUTTONUP ) {
+						if ( idx >= 0 && hit >= 0 && hit != idx ) {		// Move Tab
+							tci.mask = TCIF_PARAM | TCIF_TEXT | TCIF_IMAGE;
+							tci.pszText = Text;
+							tci.cchTextMax = MAX_PATH;
+							m_TabCtrl.GetItem(idx, &tci);
+
+							m_TabCtrl.DeleteItem(idx);
+							tci.mask = TCIF_PARAM | TCIF_TEXT | TCIF_IMAGE;
+							m_TabCtrl.InsertItem(hit, &tci);
+
+							idx = hit;
+
+							if ( m_pShowWnd != NULL )
+								m_pShowWnd->Invalidate();
+
+						} else if ( hit < (-5) ) {
+							if ( m_TabCtrl.GetItemCount() == 0 )
+								((CMainFrame *)::AfxGetMainWnd())->TabDlgShow(FALSE);
+						}
+						goto ENDOF;
+					}
+				}
+
+			} else if ( msg.message == WM_LBUTTONUP )
+				goto ENDOF;
+
+			break;
+
+		default:
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+			break;
+		}
+	}
+
+ENDOF:
+	if ( track.GetSafeHwnd() != NULL )
+		track.DestroyWindow();
+
+	ReleaseCapture();
+}
+void CTabDlgBar::OnLButtonDown(UINT nFlags, CPoint point)
+{
+	int idx;
+	CPoint ptScrn;
+	TC_ITEM tci;
+
+	ptScrn = point;
+	ClientToScreen(&ptScrn);
+
+	if ( (idx = HitPoint(ptScrn)) < 0 ) {
+		if ( idx == (-5) ) {
+			CControlBar::OnLButtonDown(nFlags, point);
+			return;
+		} else if ( idx <= (-6) ) {
+			CWnd::OnLButtonDown(nFlags, point);
+			return;
+		}
+
+	} else if ( idx != m_TabCtrl.GetCurSel() ) {
+		m_TabCtrl.SetCurSel(idx);
+		tci.mask = TCIF_PARAM;
+		if ( m_TabCtrl.GetItem(idx, &tci) ) {
+			if ( m_pShowWnd != NULL )
+				m_pShowWnd->ShowWindow(SW_HIDE);
+			m_pShowWnd = (CWnd *)tci.lParam;
+			m_pShowWnd->ShowWindow(SW_SHOWNOACTIVATE);
+		}
+	}
+
+	TrackLoop(ptScrn, idx, NULL, (-1));
+}
+
+BOOL CTabDlgBar::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
+{
+	CPoint point;
+	CRect rect, inside;
+	HCURSOR hCursor;
+	LPCTSTR pCurName = NULL;
+
+	if ( (GetStyle() & WS_VISIBLE) != 0 && !IsFloating() ) {
+		GetCursorPos(&point);
+		GetWindowRect(rect);
+		inside = rect;
+
+		switch(GetBarStyle() & CBRS_ALIGN_ANY) {
+		case CBRS_ALIGN_LEFT:
+			CalcInsideRect(inside, FALSE);
+			rect.left = inside.right;
+			pCurName = IDC_SIZEWE;
+			break;
+		case CBRS_ALIGN_TOP:
+			CalcInsideRect(inside, TRUE);
+			rect.top = inside.bottom;
+			pCurName = IDC_SIZENS;
+			break;
+		case CBRS_ALIGN_RIGHT:
+			CalcInsideRect(inside, FALSE);
+			rect.right = inside.left;
+			pCurName = IDC_SIZEWE;
+			break;
+		case CBRS_ALIGN_BOTTOM:
+			CalcInsideRect(inside, TRUE);
+			rect.bottom = inside.top;
+			pCurName = IDC_SIZENS;
+			break;
+		}
+
+		if ( pCurName != NULL && rect.PtInRect(point) && (hCursor = AfxGetApp()->LoadStandardCursor(pCurName)) != NULL ) {
+			::SetCursor(hCursor);
+			return TRUE;
+		}
+	}
+
+	return CControlBar::OnSetCursor(pWnd, nHitTest, message);
 }

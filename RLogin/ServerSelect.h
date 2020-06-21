@@ -50,6 +50,7 @@ public:
 	BOOL m_bTreeUpdate;
 	CPoint m_TrackerPoint;
 	CRect m_TrackerRect;
+	CRect m_TrackerLast;
 	CRect m_TrackerMove;
 	BOOL m_bTrackerActive;
 	int m_TreeListPer;
@@ -75,7 +76,6 @@ public:
 	void UpdateListIndex();
 
 	BOOL GetTrackerRect(CRect &rect, CRect &move);
-	void InvertTracker(CRect &rect);
 	void OffsetTracker(CPoint point);
 	CStringIndex *DragIndex(CPoint point);
 	void UpdateGroupName(CStringIndex *pIndex, LPCTSTR newName);

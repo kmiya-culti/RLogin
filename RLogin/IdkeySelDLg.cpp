@@ -21,7 +21,7 @@ CIdkeySelDLg::CIdkeySelDLg(CWnd* pParent /*=NULL*/)
 	: CDialogExt(CIdkeySelDLg::IDD, pParent)
 {
 	m_Type = _T("RSA2");
-	m_Bits = _T("2048");
+	m_Bits = _T("3072");
 	m_Name = _T("");
 	m_pIdKeyTab = NULL;
 	m_EntryNum = (-1);
@@ -446,7 +446,7 @@ void CIdkeySelDLg::OnIdkeyCreate()
 	if ( m_GenIdKeyType == IDKEY_ECDSA && (m_GenIdKeyBits < 256 || m_GenIdKeyBits > 521) ) {
 		if ( MessageBox(CStringLoad(IDE_ECDSABITSIZEERR), _T("Warning"), MB_ICONWARNING | MB_OKCANCEL) != IDOK )
 			return;
-	} else if ( (m_GenIdKeyType == IDKEY_RSA1 || m_GenIdKeyType == IDKEY_RSA2) && m_GenIdKeyBits <= 1024 ) {
+	} else if ( (m_GenIdKeyType == IDKEY_RSA1 || m_GenIdKeyType == IDKEY_RSA2) && m_GenIdKeyBits <= 2048 ) {
 		if ( MessageBox(CStringLoad(IDE_RSABITSIZEERR), _T("Warning"), MB_ICONWARNING | MB_OKCANCEL) != IDOK )
 			return;
 	} else if ( m_GenIdKeyType == IDKEY_DSA2 && (m_GenIdKeyBits < 768 || m_GenIdKeyBits > 1024) ) {

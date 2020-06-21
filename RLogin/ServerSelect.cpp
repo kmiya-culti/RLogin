@@ -1611,23 +1611,6 @@ BOOL CServerSelect::GetTrackerRect(CRect &rect, CRect &move)
 	return TRUE;
 }
 
-void CServerSelect::InvertTracker(CRect &rect)
-{
-	CDC* pDC = GetDC();
-	CBrush* pBrush = CDC::GetHalftoneBrush();
-	HBRUSH hOldBrush = NULL;
-
-	if (pBrush != NULL)
-		hOldBrush = (HBRUSH)SelectObject(pDC->m_hDC, pBrush->m_hObject);
-
-	pDC->PatBlt(rect.left, rect.top, rect.Width(), rect.Height(), PATINVERT);
-
-	if (hOldBrush != NULL)
-		SelectObject(pDC->m_hDC, hOldBrush);
-
-	ReleaseDC(pDC);
-}
-
 void CServerSelect::OffsetTracker(CPoint point)
 {
 	int w = m_TrackerRect.Width();
@@ -1641,6 +1624,14 @@ void CServerSelect::OffsetTracker(CPoint point)
 	} else if ( m_TrackerRect.right > m_TrackerMove.right ) {
 		m_TrackerRect.right = m_TrackerMove.right;
 		m_TrackerRect.left  = m_TrackerRect.right - w;
+	}
+
+	if ( m_TrackerLast != m_TrackerRect ) {
+		CRect rect;
+		GetClientRect(rect);
+		m_TreeListPer = m_TrackerRect.left * 1000 / rect.Width();
+		SetItemOffset(rect.Width(), rect.Height());
+		m_TrackerLast = m_TrackerRect;
 	}
 }
 
@@ -1732,7 +1723,6 @@ void CServerSelect::OnLButtonDown(UINT nFlags, CPoint point)
 		m_List.SetFocus();
 
 	if ( GetTrackerRect(m_TrackerRect, m_TrackerMove) && m_TrackerRect.PtInRect(point) ) {
-		InvertTracker(m_TrackerRect);
 		m_TrackerPoint = point;
 		m_bTrackerActive = TRUE;
 		SetCapture();
@@ -1744,9 +1734,7 @@ void CServerSelect::OnLButtonDown(UINT nFlags, CPoint point)
 void CServerSelect::OnMouseMove(UINT nFlags, CPoint point)
 {
 	if ( m_bTrackerActive ) {
-		InvertTracker(m_TrackerRect);
 		OffsetTracker(point);
-		InvertTracker(m_TrackerRect);
 		m_TrackerPoint = point;
 
 	} else if ( m_bDragList ) {
@@ -1771,15 +1759,9 @@ void CServerSelect::OnMouseMove(UINT nFlags, CPoint point)
 void CServerSelect::OnLButtonUp(UINT nFlags, CPoint point)
 {
 	if ( m_bTrackerActive ) {
-		InvertTracker(m_TrackerRect);
 		OffsetTracker(point);
 		m_bTrackerActive = FALSE;
 		ReleaseCapture();
-
-		CRect rect;
-		GetClientRect(rect);
-		m_TreeListPer = m_TrackerRect.left * 1000 / rect.Width();
-		SetItemOffset(rect.Width(), rect.Height());
 
 	} else if ( m_bDragList ) {
 		m_ImageList.DragLeave(GetDesktopWindow());

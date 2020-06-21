@@ -98,9 +98,9 @@ public:
 	INT_PTR m_RclickTimer;
 
 	int m_ClipFlag;
-	int m_ClipStaPosSave;
-	int m_ClipStaPos, m_ClipEndPos;
-	int m_ClipStaOld, m_ClipEndOld;
+	ULONG m_ClipStaPosSave;
+	ULONG m_ClipStaPos, m_ClipEndPos;
+	ULONG m_ClipStaOld, m_ClipEndOld;
 	UINT m_ClipTimer;
 	CPoint m_ClipSavePoint;
 	UINT m_ClipKeyFlags;
@@ -179,7 +179,7 @@ public:
 
 	void InvalidateTextRect(CRect &rect);
 	void InvalidateFullText();
-	void CalcPosRect(CRect &rect);
+	void CalcPosRect(CRect &rect, ULONG staPos, ULONG endPos, BOOL bLine = FALSE);
 	void CalcGrapPoint(CPoint po, int *x, int *y);
 	int HitTest(CPoint point);
 	void SetFrameRect(int cx, int cy);
@@ -219,6 +219,11 @@ public:
 
 	void KillScrollTimer();
 	BOOL SetDropFile(LPCTSTR FileName, BOOL &doCmd, BOOL &doSub);
+
+	BOOL m_bSpeekDispText;
+	ULONG m_SpeekStaPos, m_SpeekEndPos;
+
+	void SpeekTextPos(BOOL bDisp, ULONG sPos, ULONG ePos);
 
 	inline int CalcGrapX(int x)	{ CRLoginDoc *pDoc = GetDocument(); return (m_Width  * x / m_Cols  + pDoc->m_TextRam.m_ScrnOffset.left); }
 	inline int CalcGrapY(int y) { CRLoginDoc *pDoc = GetDocument(); return (m_Height * y / m_Lines + pDoc->m_TextRam.m_ScrnOffset.top + m_TopOffset); }

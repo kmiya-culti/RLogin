@@ -28,8 +28,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.25.2)</TD>
-            <TD width="20%" align="right">2020/05/25</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.25.3)</TD>
+            <TD width="20%" align="right">2020/06/22</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -152,7 +152,7 @@ TD {
                         <TD>
                         <OL>
                           <LI><A href="#TEKWIND">Tek40xx/41xxウィンドウ</A>
-                          <LI><A href="#REGWIND">ReGIS/Sixeウィンドウ</A>
+                          <LI><A href="#REGWIND">ReGIS/Sixelウィンドウ</A>
                           <LI><A href="#MONITOR">シリアルモニター</A>
                           <LI><A href="#TRACE">トレースウィンドウ</A>
                           <LI><A href="#CMDHIS">コマンド・ヒストリーウィンドウ</A>
@@ -400,7 +400,7 @@ TD {
                 </TR>
                 <TR>
                   <TD valign="top">emoji\????.png</TD>
-                  <TD><A href="#EXTOPT">拡張機能のオプション設定</A>の485をチェックするとOSにカラー絵文字の表示機能が無い場合、png画像で絵文字を表示するこが出来ます<BR>
+                  <TD><A href="#EXTOPT">拡張機能のオプション設定</A>の485をチェックするとOSにカラー絵文字の表示機能が無い場合、png画像で絵文字を表示することが出来ます<BR>
                   <SPAN style="color: rgb(0, 0, 0); font-family: Meiryo; font-size: 14.4px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;"></SPAN><A href="emoji.zip" style="font-family: Meiryo; font-size: 14.4px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px;">カラー絵文字のPNG画像ファイル</A></TD>
                 </TR>
               </TBODY>
@@ -458,6 +458,18 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2020/06/22</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.25.3/">2.25.3</A></TD>
+            <TD>各種サイズ変更などで反転表示を使用しないように変更<BR>
+            ダイアログバーのタブをドラッグで移動するように変更<BR>
+            デフォルト?8454の「C1制御文字を無視する」をセットに変更<BR>
+            メニュー・編集に「音声で読み上げ」を追加<BR>
+            UTF-8の文字幅などをUnicode-13.0.0のデータに更新<BR>
+            UTF-8化されたサロゲート文字を処理するように変更<BR>
+            初期フォントサイズをシステムDPIで計算するように変更<BR>
+            RSA鍵のデフォルトビットサイズを3072に変更</TD>
+          </TR>
+          <TR>
             <TD align="center">2020/05/25</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.25.2/">2.25.2</A></TD>
             <TD>サーバーオプションのTERM環境変数のリストが重なるのを修正<BR>
@@ -493,16 +505,6 @@ TD {
             ペースト確認ダイアログに１行送信とコードの視覚化・挿入を追加<BR>
             ファイルのアップ／ダウンロードに変換・送信処理のオプションを追加<BR>
             コモンダイアログをDPIチェンジ（OSにより異なる）するように変更</TD>
-          </TR>
-          <TR>
-            <TD align="center">2020/01/20</TD>
-            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.24.8/">2.24.8</A></TD>
-            <TD>2.24.7で変更した全角固定幅フォントの表示が遅くなる問題を改善<BR>
-            クィックバーのダイアログ文字種変更を即時行うように変更<BR>
-            スクリプトにメニュー状態取得関数とブロードキャスト出力関数を追加<BR>
-            一部、スクリーン最大値・バッファ・キャッシュなどのサイズを見直し<BR>
-            DECSCLMのスムーズスクロールが極度に遅いので動作を変更<BR>
-            DPIチェンジでクィックバーが非表示でも表示される問題を修正</TD>
           </TR>
           <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
@@ -812,7 +814,7 @@ TD {
                   <TD align="left" colspan="5">編集(E)</TD>
                 </TR>
                 <TR>
-                  <TD align="center" width="10" rowspan="17"></TD>
+                  <TD align="center" width="10" rowspan="18"></TD>
                   <TD valign="top" width="250">コピー(C)</TD>
                   <TD valign="top" width="450">クリップボードにコピーします</TD>
                   <TD valign="top" align="right" width="120"></TD>
@@ -884,9 +886,15 @@ TD {
                   <TD valign="top">$MOUSE_EVENT</TD>
                 </TR>
                 <TR>
+                  <TD valign="top">音声で読み上げ(Y)</TD>
+                  <TD valign="top">現在表示中の画面を音声合成で読み上げます</TD>
+                  <TD valign="top" align="right"></TD>
+                  <TD valign="top">$SPEEK_ALL</TD>
+                </TR>
+                <TR>
                   <TD valign="top" width="250">ブロードキャスト(A)</TD>
                   <TD valign="top">開いているすべての接続にキー操作を同時送信します。使い方を間違うと意図しない結果になりますのでご注意ください<BR>
-                  ※2.22.3からブロードキャスト時にタブバーにチェックボックスを表示して同時受信の一時的な拒否を設定出来るようにしました。オプション設定・通信共通・ブリードキャストで同時受信を拒否している場合は無効です</TD>
+                  ※2.22.3からブロードキャスト時にタブバーにチェックボックスを表示して同時受信の一時的な拒否を設定出来るようにしました。オプション設定・通信共通・ブロードキャストで同時受信を拒否している場合は無効です</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$BROADCAST</TD>
                 </TR>
@@ -999,7 +1007,7 @@ TD {
                 </TR>
                 <TR>
                   <TD valign="top" colspan="2" width="250">シリアルモニター(Z)</TD>
-                  <TD valign="top">プロトコルでcomを使用した場合に<A href="#MONITOR">シリアルモニター</A>表示します</TD>
+                  <TD valign="top">プロトコルでcomを使用した場合に<A href="#MONITOR">シリアルモニター</A>を表示します</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$VIEW_MONITOR</TD>
                 </TR>
@@ -1062,7 +1070,7 @@ TD {
                   <TD valign="top">$RESET_TAB</TD>
                 </TR>
                 <TR>
-                  <TD valign="top" width="230">文字バックリセット</TD>
+                  <TD valign="top" width="230">文字バンクリセット</TD>
                   <TD valign="top">文字バンクの設定を初期値に設定します</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$RESET_BANK</TD>
@@ -1608,23 +1616,23 @@ TD {
                 <TR>
                   <TD rowspan="2">ウィンドウ外に移動</TD>
                   <TD align="center">赤</TD>
-                  <TD>ファイルベースの設定で接続したウィンドウ空のRLoginを起動し接続設定を送って開きます<BR>
+                  <TD>ファイルベースの設定で接続したウィンドウを空のRLoginを起動し接続設定を送って開きます<BR>
                   その接続の現在のオプション設定を引き継ぎます</TD>
                 </TR>
                 <TR>
                   <TD align="center">黄</TD>
-                  <TD>レジストリベースのエントリーで接続したウィンドウコマンドライン指定でRLoginを起動します<BR>
+                  <TD>レジストリベースのエントリーで接続したウィンドウをコマンドライン指定でRLoginを起動します<BR>
                   その接続の現在のオプション設定を引き継ぎません</TD>
                 </TR>
                 <TR>
                   <TD rowspan="2">別のRLoginに移動</TD>
                   <TD align="center">緑</TD>
-                  <TD>ファイルベースの設定で接続したウィンドウ移動先のRLoginに同じ接続設定を送って開きます<BR>
+                  <TD>ファイルベースの設定で接続したウィンドウを移動先のRLoginに同じ接続設定を送って開きます<BR>
                   その接続の現在のオプション設定を引き継ぎます</TD>
                 </TR>
                 <TR>
                   <TD align="center">青</TD>
-                  <TD>レジストリベースのエントリーで接続したウィンドウ移動先のRLoginにコマンドライン指定で開きます<BR>
+                  <TD>レジストリベースのエントリーで接続したウィンドウを移動先のRLoginにコマンドライン指定で開きます<BR>
                   その接続の現在のオプション設定を引き継ぎません</TD>
                 </TR>
               </TBODY>
@@ -1652,7 +1660,7 @@ TD {
             <TABLE cellpadding="5" width="600" cellspacing="1" class="BOX">
               <TBODY>
                 <TR>
-                  <TD colspan="2">Sever Select</TD>
+                  <TD colspan="2">Server Select</TD>
                 </TR>
                 <TR>
                   <TD align="center" width="30%">OK</TD>
@@ -1830,8 +1838,8 @@ TD {
                   <TD>ペーストされるテキストを事前に編集することが出来ます。改行が含まれる場合に直接shellに渡す前に確認することで誤動作などを修正することができます</TD>
                 </TR>
                 <TR>
-                  <TD align="center">コンロールコード…</TD>
-                  <TD>コンロールコードを%xxの形式（「%」は「%%」で表現）で表示しCtrl+A-Zのキー入力で挿入するようにします。編集で使用するCtrl+Zでアンドゥなどが動作しなくなるので注意してください</TD>
+                  <TD align="center">コントロールコード…</TD>
+                  <TD>コントロールコードを%xxの形式（「%」は「%%」で表現）で表示しCtrl+A-Zのキー入力で挿入するようにします。編集で使用するCtrl+Zでアンドゥなどが動作しなくなるので注意してください</TD>
                 </TR>
                 <TR>
                   <TD align="center">Escape</TD>
@@ -2011,7 +2019,7 @@ TD {
                     <TBODY>
                       <TR>
                         <TD width="40" valign="top">上段</TD>
-                        <TD>サーバー選択画面で表示されるタブグループの名前を指定します。名前を「￥」区切りで階層化してタブグループを構成するこができます。階層化した場合には、Server
+                        <TD>サーバー選択画面で表示されるタブグループの名前を指定します。名前を「￥」区切りで階層化してタブグループを構成することができます。階層化した場合には、Server
                         Selectの画面は、タブの代わりにツリー表示に変更されます</TD>
                       </TR>
                       <TR>
@@ -2290,7 +2298,7 @@ TD {
                   また、DSR入力がOFFに変化した時に接続の切断処理を行うので自動で接続を閉じることができます</TD>
                 </TR>
                 <TR>
-                  <TD align="center" width="30%">RTR出力</TD>
+                  <TD align="center" width="30%">RTS出力</TD>
                   <TD colspan="2">
                   <TABLE cellpadding="2">
                     <TBODY>
@@ -2332,7 +2340,7 @@ TD {
                 </TR>
                 <TR>
                   <TD align="center" width="30%">XOFF送信後の送信</TD>
-                  <TD colspan="2">XOFFを送信した場合に接続先の負担軽減で送信を停止しまたほうが無難ですが、それを行わずに送信を継続するようにします</TD>
+                  <TD colspan="2">XOFFを送信した場合に接続先の負担軽減で送信を停止したほうが無難ですが、それを行わずに送信を継続するようにします</TD>
                 </TR>
                 <TR>
                   <TD align="center" width="30%">受信バッファの上限</TD>
@@ -3545,7 +3553,7 @@ fi</PRE>
                 </TR>
                 <TR>
                   <TD align="center">スクリプト</TD>
-                  <TD>直接実行スクリプトを編集します。上記スクリプトファイルにライブラリを関数定義してここでエントリーごとに実行する関数を呼び出します</TD>
+                  <TD>直接実行スクリプトを編集します。上記スクリプトファイルにライブラリを関数定義してここでエントリーごとに実行する関数を呼び出すような使い方ができます。また、短いスクリプトならここに直接記載できます</TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -4028,7 +4036,7 @@ function TekClock2() {
                       </TR>
                       <TR>
                         <TD colspan="2">ウィンドウの画面更新を積極的に行うようにします<BR>
-                        ※画面の変更があった場合に即時に更新するようにします。通常は、OSのペイント処理でまとめて更新されますが、Windows 10では、遅延があるようなのでメッセージ処理後のアイドル時に更新するようにしています。それでも表示が遅延される場合には、このオプションを有効かもしれませんが、逆に表示更新が多くなって遅く感じる可能性があります</TD>
+                        ※画面の変更があった場合に即時に更新するようにします。通常は、OSのペイント処理でまとめて更新されますが、Windows 10では、遅延があるようなのでメッセージ処理後のアイドル時に更新するようにしています。それでも表示が遅延される場合には、このオプションが有効かもしれませんが、逆に表示更新が多くなって遅く感じる可能性があります</TD>
                       </TR>
                       <TR>
                         <TD align="center" rowspan="2">483</TD>
@@ -4052,7 +4060,7 @@ function TekClock2() {
                         <TD>モノクロ絵文字</TD>
                       </TR>
                       <TR>
-                        <TD colspan="2">Winodws 8.1以降の場合は、DirectTextを用いてカラー絵文字を表示します。カラー絵文字に対応していないWindowsの場合などは、RLogin実行時の作業フォルダもしくは、RLogin.exeのあるフォルダにemojiフォルダを置くとPNG画像ファイルから表示を試みます。<A href="https://github.com/adobe-fonts/emojione-color">EmojiOne Color</A>から作成した<A href="emoji.zip">カラー絵文字のPNG画像ファイル</A>です<BR>
+                        <TD colspan="2">Windows 8.1以降の場合は、DirectTextを用いてカラー絵文字を表示します。カラー絵文字に対応していないWindowsの場合などは、RLogin実行時の作業フォルダもしくは、RLogin.exeのあるフォルダにemojiフォルダを置くとPNG画像ファイルから表示を試みます。<A href="https://github.com/adobe-fonts/emojione-color">EmojiOne Color</A>から作成した<A href="emoji.zip">カラー絵文字のPNG画像ファイル</A>です<BR>
                         ※レジストリの変更で絵文字のフォント、イメージのフォルダを指定できます<BR>
                         [HKEY_CURRENT_USER\Software\Culti\RLogin\RLoginApp]<BR>
                         &quot;EmojiFontName&quot;=&quot;Segoe UI emoji&quot;<BR>
@@ -4645,7 +4653,7 @@ function TekClock2() {
             </TABLE>
             <BR>
             (*1)SJISのみコード変換が行われ漢字コードが変化する場合があります<BR>
-            (*2)Windowsフォントに変換できないもしくはフォントがインストールされていない場合は、UNICODEに変換を試みて表示を行います。それでも表示できない文字は空白文字になります</TD>
+            (*2)Windowsフォントに変換できないもしくは、フォントがインストールされていない場合は、UNICODEに変換を試みて表示を行います。それでも表示できない文字は空白文字になります</TD>
             <TD valign="top" align="left"><IMG src="image031.jpg" border="0" width="384" height="241"></TD>
           </TR>
         </TBODY>
@@ -5352,7 +5360,7 @@ function TekClock2() {
                 </TR>
                 <TR>
                   <TD align="center">3</TD>
-                  <TD>modifyKeypwdKeys</TD>
+                  <TD>modifyKeypadKeys</TD>
                   <TD>NumLock時のテンキー</TD>
                 </TR>
                 <TR>
@@ -5395,7 +5403,7 @@ function TekClock2() {
                   <TD>CSI &gt; 1 ; 2 A</TD>
                 </TR>
                 <TR>
-                  <TD align="center" colspan="2">modifyKetsがメニューのショート...</TD>
+                  <TD align="center" colspan="2">modifyKeysがメニューのショート...</TD>
                   <TD>Shift/Alt/Ctrl + キーの組み合わせがキーコードの設定でメニューのショートカットして使用していた場合に優先するかどうかを指定します。チェックした場合には、ショートカットを行わずにキーコードを返します</TD>
                 </TR>
               </TBODY>
@@ -5742,12 +5750,12 @@ function TekClock2() {
                   <TD>選択行のコマンドを送信します</TD>
                 </TR>
                 <TR>
-                  <TD align="center" width="30%">カレントディレクトリを送信</TD>
+                  <TD align="center" width="30%">カレントディレ…</TD>
                   <TD>選択行のカレントディレクトリをシェルエスケープして送信します</TD>
                 </TR>
                 <TR>
-                  <TD align="center" width="30%">コマンド終了メッセージ</TD>
-                  <TD>実行中のコマンドが終了した時にポップアップメーセージを表示します</TD>
+                  <TD align="center" width="30%">コマンド終了…</TD>
+                  <TD>実行中のコマンドが終了した時にポップアップメッセージを表示します</TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -5805,7 +5813,7 @@ function TekClock2() {
                       </TR>
                       <TR>
                         <TD valign="top">アイコン設定</TD>
-                        <TD>そのツールのアイコンとして画像ファイル選択します<BR>
+                        <TD>そのツールのアイコンとして画像ファイルを選択します<BR>
                         ※画像フォーマットは、bmp jpg gif png などが使用可能です<BR>
                         ※サイズは自動で拡大縮小しますが目安として上記ツールバーサイズです。また、ツールバーには３つ状態（通常、ホット、無効）を別画像で指定できますがイメージを横につなげて指定することが出来ます<BR>
                         例：16x16の場合48x16のサイズの画像で横16の3つのイメージで表します<BR>

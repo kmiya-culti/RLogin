@@ -30,7 +30,6 @@ public:
 	int m_FontSize;
 	UINT_PTR m_SetCurTimer;
 	UINT_PTR m_GhostWndTimer;
-	CRect m_TabRect;
 	int m_TabHeight;
 	int m_BoderSize;
 	int m_TabLines;

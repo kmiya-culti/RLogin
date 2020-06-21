@@ -2733,7 +2733,7 @@ DWORD WINAPI CMidiData::ThreadProc(void *lpParameter)
 						pMidi->Stop();
 					break;
 				case 0x0001:	// Speek
-					((CRLoginApp *)::AfxGetApp())->Speek(MbsToTstr((LPCSTR)((BYTE *)(pEvent->dwParms) + sizeof(DWORD))));
+					((CMainFrame *)::AfxGetMainWnd())->Speek(MbsToTstr((LPCSTR)((BYTE *)(pEvent->dwParms) + sizeof(DWORD))));
 					break;
 				}
 			}

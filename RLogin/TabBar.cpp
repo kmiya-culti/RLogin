@@ -32,7 +32,6 @@ CTabBar::CTabBar()
 	m_ImageCount = 0;
 	m_SetCurTimer = 0;
 	m_GhostWndTimer = 0;
-	m_TabRect.SetRect(0, 0, 200, 20);
 	m_TabHeight = 16;
 	m_BoderSize = 2;
 	m_MinTabSize = MINTAB_SIZE;
@@ -75,7 +74,7 @@ CSize CTabBar::CalcFixedLayout(BOOL bStretch, BOOL bHorz)
 	CSize size;
 	CWnd *pMain;
 	CRect MainRect(0, 0, 32767, 32767);
-	CRect InSideRect;
+	CRect InSideRect, TabRect;
 	int FontSize = 12;
 	int WinBdSize = 1;
 	int rgBorders[3];	// バーの境界線の幅を取得 0=横, 1=縦, 2=セパレーター
@@ -105,11 +104,24 @@ CSize CTabBar::CalcFixedLayout(BOOL bStretch, BOOL bHorz)
 	else
 		m_TabHeight = WinBdSize + m_BoderSize + FontSize + m_BoderSize + WinBdSize;
 
-	size.cx = WinBdSize + MainRect.Width() + WinBdSize;
-	size.cy = WinBdSize + (m_TabHeight + m_BoderSize + WinBdSize) * m_TabLines + (100 - InSideRect.Height());
+	if ( bHorz ) {
+		size.cx = WinBdSize + MainRect.Width() + WinBdSize;
+		size.cy = WinBdSize + (m_TabHeight + m_BoderSize + WinBdSize) * m_TabLines + (100 - InSideRect.Height());
+	} else {
+		size.cx = WinBdSize + (m_TabHeight + m_BoderSize + WinBdSize) * m_TabLines + (100 - InSideRect.Width());
+		size.cy = MainRect.Height();
+	}
 
-	m_TabRect.SetRect(0, 0, size.cx, size.cy);
-	CalcInsideRect(m_TabRect, bHorz);
+	if ( IsVisible() && m_TabCtrl.m_hWnd != NULL ) {
+		InSideRect.SetRect(0, 0, size.cx, size.cy);
+		CalcInsideRect(InSideRect, bHorz);
+		m_TabCtrl.GetWindowRect(TabRect);
+
+		if ( TabRect != InSideRect ) {
+			m_TabCtrl.SetWindowPos(&wndTop, InSideRect.left, InSideRect.top, InSideRect.Width(), InSideRect.Height(), SWP_NOACTIVATE | SWP_SHOWWINDOW);
+			ReSize(FALSE);
+		}
+	}
 
 	return size;
 }
@@ -193,9 +205,15 @@ void CTabBar::OnSize(UINT nType, int cx, int cy)
 	if ( m_TabCtrl.m_hWnd == NULL )
 		return;
 
-	ReSize(FALSE);
+	CRect InSideRect, TabRect;
+	InSideRect.SetRect(0, 0, cx, cy);
+	CalcInsideRect(InSideRect, (GetBarStyle() & (CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM)) != 0 ? TRUE : FALSE);
+	m_TabCtrl.GetWindowRect(TabRect);
 
-	m_TabCtrl.SetWindowPos(&wndTop, m_TabRect.left, m_TabRect.top, m_TabRect.Width(), m_TabRect.Height(), SWP_SHOWWINDOW);
+	if ( TabRect != InSideRect ) {
+		m_TabCtrl.SetWindowPos(&wndTop, InSideRect.left, InSideRect.top, InSideRect.Width(), InSideRect.Height(), SWP_NOACTIVATE | SWP_SHOWWINDOW);
+		ReSize(FALSE);
+	}
 }
 
 void CTabBar::FontSizeCheck()
@@ -493,19 +511,18 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 				break;
 		}
 
-		if ( !::GetMessage(&msg, NULL, 0, 0) )
-			break;
-
 		// タブバーの操作をチェック
-		if ( m_TabCtrl.GetItemCount() != count ) {
+		if (  !::GetMessage(&msg, NULL, 0, 0) || m_TabCtrl.GetItemCount() != count ) {
 			track.DestroyWindow();
 			ReleaseCapture();
 			return;
 		}
 
 		switch (msg.message) {
-		case WM_LBUTTONUP:
 		case WM_MOUSEMOVE:
+			if ( ::PeekMessage(&msg, NULL, NULL, NULL, PM_QS_PAINT | PM_NOREMOVE) )
+				break;
+		case WM_LBUTTONUP:
 			capos.x = GET_X_LPARAM(msg.lParam);
 			capos.y = GET_Y_LPARAM(msg.lParam);
 
@@ -589,7 +606,7 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 				size.cy = rectFirst.Height() / 3;
 			}
 
-			if ( msg.message != WM_LBUTTONUP )
+			if ( msg.message == WM_MOUSEMOVE )
 				break;
 
 			track.DestroyWindow();
@@ -792,56 +809,138 @@ int CTabBar::LineCount()
 }
 void CTabBar::ReSize(BOOL bCallLayout)
 {
-	int width, lines;
+	int width, height, lines;
 	int count = m_TabCtrl.GetItemCount();
 	CRect rect;
 	CSize sz;
 	BOOL bSetSize = FALSE;
+	BOOL bHorz = (GetBarStyle() & (CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM)) != 0 ? TRUE : FALSE;
+	DWORD reqStyle;
 
-	if ( m_TabCtrl.GetSafeHwnd() == NULL || count <= 0 )
+	if ( m_TabCtrl.GetSafeHwnd() == NULL )
 		return;
+
+	// CTabCtrlのTCS_VERTICALは、バグっぽい動作が目立つのでEnableDockingでCBRS_ALIGN_ANYは出来そうに無い
+
+	switch(GetBarStyle() & (CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM | CBRS_ALIGN_LEFT | CBRS_ALIGN_RIGHT)) {
+	case CBRS_ALIGN_TOP:	reqStyle = 0; break;
+	case CBRS_ALIGN_BOTTOM: reqStyle = TCS_BOTTOM; break;
+	case CBRS_ALIGN_LEFT:	reqStyle = TCS_MULTILINE | TCS_VERTICAL; break;
+	case CBRS_ALIGN_RIGHT:	reqStyle = TCS_MULTILINE | TCS_VERTICAL | TCS_RIGHT; break;
+	}
+
+	if ( m_bMultiLine )
+		reqStyle |= (TCS_MULTILINE | TCS_BUTTONS);
+
+	if ( (m_TabCtrl.GetStyle() & (TCS_MULTILINE | TCS_VERTICAL | TCS_BOTTOM | TCS_RIGHT)) != reqStyle ) {
+#if 1
+		m_TabCtrl.ModifyStyle((TCS_MULTILINE | TCS_VERTICAL | TCS_BOTTOM | TCS_RIGHT), reqStyle);
+#else
+		CPtrArray ItemData;
+		TCHAR tmp[MAX_PATH + 2];
+
+		for ( int n = 0 ; n < m_TabCtrl.GetItemCount() ; n++ ) {
+			TC_ITEM *pTci = new TC_ITEM;
+			pTci->mask = TCIF_PARAM | TCIF_TEXT | TCIF_IMAGE;
+			pTci->pszText = tmp;
+			pTci->cchTextMax = MAX_PATH;
+
+			m_TabCtrl.GetItem(n, pTci);
+			ItemData.Add(pTci);
+		}
+
+		m_TabCtrl.GetWindowRect(rect);
+		m_TabCtrl.DestroyWindow();
+		m_TabCtrl.Create(WS_VISIBLE | WS_CHILD | TCS_FOCUSNEVER | TCS_FIXEDWIDTH | TCS_FORCELABELLEFT | reqStyle, rect, this, IDC_MDI_TAB_CTRL);
+
+		if ( m_TabFont.GetSafeHandle() != NULL )
+			m_TabCtrl.SetFont(&m_TabFont);
+		else
+			m_TabCtrl.SetFont(CFont::FromHandle((HFONT)::GetStockObject(DEFAULT_GUI_FONT)));
+
+		m_TabCtrl.SetMinTabWidth(16);
+		m_TabCtrl.SetImageList(m_ImageCount > 0 ? &m_ImageList : NULL);
+
+		for ( int n = 0 ; n < ItemData.GetSize() ; n++ ) {
+			m_TabCtrl.InsertItem(n, (TC_ITEM *)ItemData[n]);
+			delete ItemData[n];
+		}
+
+		ItemData.RemoveAll();
+#endif
+	}
 
 	m_TabCtrl.GetClientRect(rect);
 
 	if ( count < DEFTAB_COUNT )
 		count = DEFTAB_COUNT;
 
-	if ( m_bMultiLine ) {
-		if ( (m_MinTabSize = (rect.Width() - NEWCLICK_SIZE - m_BoderSize * 20) / 10) < (MINTAB_SIZE * 2) )
-			m_MinTabSize = MINTAB_SIZE * 2;
+	if ( bHorz ) {
+		if ( m_bMultiLine ) {
+			if ( (m_MinTabSize = (rect.Width() - NEWCLICK_SIZE - m_BoderSize * 20) / 10) < (MINTAB_SIZE * 2) )
+				m_MinTabSize = MINTAB_SIZE * 2;
 
-		if ( (width = (rect.Width() - NEWCLICK_SIZE - m_BoderSize * 20) / count) < m_MinTabSize ) {
-			int n = (rect.Width() - NEWCLICK_SIZE) / m_MinTabSize;
-			if ( n > 0 )
-				width = (rect.Width() - NEWCLICK_SIZE - m_BoderSize * 2 * n) / n;
-			else
+			if ( (width = (rect.Width() - NEWCLICK_SIZE - m_BoderSize * 20) / count) < m_MinTabSize ) {
+				int n = (rect.Width() - NEWCLICK_SIZE) / m_MinTabSize;
+				if ( n > 0 )
+					width = (rect.Width() - NEWCLICK_SIZE - m_BoderSize * 2 * n) / n;
+				else
+					width = m_MinTabSize;
+			}
+
+		} else {
+			if ( (m_MinTabSize = (rect.Width() - NEWCLICK_SIZE) / 20) < MINTAB_SIZE )
+				m_MinTabSize = MINTAB_SIZE;
+
+			if ( (width = (rect.Width() - NEWCLICK_SIZE) / count) < m_MinTabSize )
 				width = m_MinTabSize;
 		}
 
+		m_TabCtrl.GetItemRect(0, rect);
+
+		if ( width != rect.Width() && m_TabCtrl.GetItemCount() > 0 ) {
+			sz.cx = width;
+			sz.cy = m_TabHeight;
+
+			m_TabCtrl.SetItemSize(sz);
+			bSetSize = TRUE;
+		}
+
 	} else {
-		if ( (m_MinTabSize = (rect.Width() - NEWCLICK_SIZE) / 20) < MINTAB_SIZE )
-			m_MinTabSize = MINTAB_SIZE;
+		if ( m_bMultiLine ) {
+			if ( (m_MinTabSize = (rect.Height() - NEWCLICK_SIZE - m_BoderSize * 20) / 10) < (MINTAB_SIZE * 2) )
+				m_MinTabSize = MINTAB_SIZE * 2;
 
-		if ( (width = (rect.Width() - NEWCLICK_SIZE) / count) < m_MinTabSize )
-			width = m_MinTabSize;
-	}
+			if ( (height = (rect.Height() - NEWCLICK_SIZE - m_BoderSize * 20) / count) < m_MinTabSize ) {
+				int n = (rect.Height() - NEWCLICK_SIZE) / m_MinTabSize;
+				if ( n > 0 )
+					height = (rect.Height() - NEWCLICK_SIZE - m_BoderSize * 2 * n) / n;
+				else
+					height = m_MinTabSize;
+			}
 
-	m_TabCtrl.GetItemRect(0, rect);
+		} else {
+			if ( (m_MinTabSize = (rect.Height() - NEWCLICK_SIZE) / 20) < MINTAB_SIZE )
+				m_MinTabSize = MINTAB_SIZE;
 
-	if ( width != rect.Width() ) {
-		sz.cx = width;
-		sz.cy = m_TabHeight;
+			if ( (height = (rect.Height() - NEWCLICK_SIZE) / count) < m_MinTabSize )
+				height = m_MinTabSize;
+		}
 
-		m_TabCtrl.SetItemSize(sz);
-		bSetSize = TRUE;
+		m_TabCtrl.GetItemRect(0, rect);
+
+		if ( height != rect.Height() && m_TabCtrl.GetItemCount() > 0 ) {
+			sz.cx = height;
+			sz.cy = m_TabHeight;
+
+			m_TabCtrl.SetItemSize(sz);
+			bSetSize = TRUE;
+		}
 	}
 
 	lines = (m_bMultiLine ? LineCount() : 1);
 
-	if ( lines == m_TabLines && !bSetSize )
-		return;
-
-	if ( lines != m_TabLines || bCallLayout ) {
+	if ( lines != m_TabLines || (bSetSize && bCallLayout) ) {
 		m_TabLines = lines;
 		((CMainFrame *)::AfxGetMainWnd())->RecalcLayout(FALSE);
 	}
