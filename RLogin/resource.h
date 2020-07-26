@@ -320,6 +320,7 @@
 #define IDT_EXTOPT_LIST24               823
 #define IDT_EXTOPT_LIST25               824
 #define IDT_EXTOPT_LIST26               825
+#define IDT_EXTOPT_LIST27               826
 #define IDT_TERM_LIST01                 900
 #define IDT_TERM_LIST02                 901
 #define IDT_TERM_LIST03                 902
@@ -386,6 +387,7 @@
 #define IDT_TERM_LIST64                 963
 #define IDT_TERM_LIST65                 964
 #define IDT_TERM_LIST66                 965
+#define IDT_TERM_LIST67                 966
 #define ID_CHARSCRIPT_END               1000
 #define ID_DISCONNECT                   1001
 #define ID_EDIT_BOX                     1002
@@ -982,6 +984,8 @@
 #define IDC_TITLEBOX1                   2500
 #define IDC_TITLEBOX2                   2501
 #define IDC_TITLEBOX3                   2502
+#define IDC_IMECARETCOL                 2503
+#define IDC_IMECARET                    2504
 #define IDM_BROADCAST                   5000
 #define IDM_CAP_CLIPBORD                5001
 #define IDM_CAP_EXPORT                  5002
@@ -1124,7 +1128,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        169
 #define _APS_NEXT_COMMAND_VALUE         5146
-#define _APS_NEXT_CONTROL_VALUE         2503
+#define _APS_NEXT_CONTROL_VALUE         2505
 #define _APS_NEXT_SYMED_VALUE           671
 #endif
 #endif

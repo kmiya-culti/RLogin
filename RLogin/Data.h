@@ -117,6 +117,12 @@ public:
 	LPCSTR Base64Decode(LPCSTR str);
 	LPCWSTR Base64Decode(LPCWSTR str);
 	void Base64Encode(LPBYTE buf, int len);
+	LPCTSTR Base64urlDecode(LPCTSTR str);
+	void Base64urlEncode(LPBYTE buf, int len);
+	LPCTSTR Base32Decode(LPCTSTR str, BOOL bHex = FALSE);
+	void Base32Encode(LPBYTE buf, int len, BOOL bHex = FALSE);
+	inline LPCTSTR Base32hexDecode(LPCTSTR str) { return Base32Decode(str, TRUE); }
+	inline void Base32hexEncode(LPBYTE buf, int len) { Base32Encode(buf, len, TRUE); }
 	LPCTSTR Base16Decode(LPCTSTR str);
 	void Base16Encode(LPBYTE buf, int len);
 	void PutHexBuf(LPBYTE buf, int len);
@@ -707,9 +713,10 @@ public:
 #define	MASK_APPL	00010
 #define	MASK_CKM	00020
 #define	MASK_VT52	00040
-//#define	MASK_NUMLCK	00100
-//#define	MASK_SCRLCK	00200
-//#define	MASK_CAPLCK	00400
+#define	MASK_LEGA	00100
+//#define	MASK_NUMLCK	00200
+//#define	MASK_SCRLCK	00400
+//#define	MASK_CAPLCK	01000
 
 #ifdef	USE_CLIENTKEY
 	#define	VK_LMOUSE_LEFT_TOP			512
@@ -1073,6 +1080,22 @@ public:
 #endif
 	CEmojiImage();
 	~CEmojiImage();
+};
+
+class CCurPos : public tagSIZE
+{
+public:
+	CCurPos();
+	CCurPos(int InitCx, int InitCy);
+
+	BOOL operator == (SIZE size);
+	BOOL operator != (SIZE size);
+	BOOL operator >= (SIZE size);
+	BOOL operator <= (SIZE size);
+	BOOL operator >  (SIZE size);
+	BOOL operator <  (SIZE size);
+
+	inline void SetSize(int ix, int iy) { cx = ix; cy = iy; }
 };
 
 #endif // !defined(AFX_DATA_H__6A23DC3E_3DDC_47BD_A6FC_E0127564AE6E__INCLUDED_)

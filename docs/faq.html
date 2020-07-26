@@ -7,12 +7,10 @@
 <STYLE type="text/css">
 <!--
 TD {
-    
   background-color : #ffffff;
   font-size : 90%;
 }
 .BOX{
-    
   background-color : silver;
 }
 -->
@@ -559,7 +557,7 @@ fi</PRE>
               </TBODY>
             </TABLE>
             </TD>
-            <TD><IMG src="image022.jpg" width="611" height="541" border="0" align="top"></TD>
+            <TD><IMG src="image022.jpg" width="597" height="530" border="0" align="top"></TD>
           </TR>
           <TR>
             <TD valign="top" width="600">次に<A href="./#CHAROPT">フォントのオプション設定</A>で使用するフォントの種類を設定します。これはISO2022に従った難解な方法で表示されるフォントセットが選択されますが、まずサーバーの仕様に従った文字セットを決定します。古い仕様のサーバーならEUC/SJISが多かったですが、最近ではUTF-8が多いように思います。サーバーのファイル名に使用される文字コードが選択の基本になるでしょう。shellやアプリケーションなどは、LANG環境変数で&quot;ja_JP.eucJP&quot;や&quot;UTF-8&quot;などに設定され利用しています。（接続時のデフォルト文字セットは、<A href="./#SERVEROPT">サーバーのオプション設定</A>で行います）<BR>
@@ -671,7 +669,7 @@ fi</PRE>
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top"><IMG src="image030.jpg" width="454" height="544" border="0"></TD>
+            <TD valign="top"><IMG src="image030.jpg" width="440" height="533" border="0"></TD>
           </TR>
           <TR>
             <TD valign="top" width="600">2.19.3から追加した<A href="./#ISO646">ISO646の文字設定</A>では、デフォルトフォントに日本語フォントを指定した場合にASCIIなどで「￥」が表示されるなどの問題を設定することができます。<BR>
@@ -741,7 +739,7 @@ fi</PRE>
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top"><IMG src="image046.jpg" width="399" height="463" border="0"></TD>
+            <TD valign="top"><IMG src="image046.jpg" width="385" height="452" border="0"></TD>
           </TR>
           <TR>
             <TD valign="top" width="600"><A href="./#TERMOPT">ターミナルのオプション設定</A>でフォントの関係のオプション一覧です。<BR>
@@ -809,7 +807,7 @@ fi</PRE>
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top"><IMG src="image023.jpg" width="611" height="511" border="0"></TD>
+            <TD valign="top"><IMG src="image023.jpg" width="597" height="530" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -892,7 +890,7 @@ fi</PRE>
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top"><IMG src="image027.jpg" width="611" height="511" border="0"></TD>
+            <TD valign="top"><IMG src="image027.jpg" width="597" height="530" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -1245,8 +1243,8 @@ function OnClickOk(id) {
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top"><IMG src="image014.jpg" width="611" height="511" border="0"><BR>
-            <IMG src="image015.jpg" width="630" height="553" border="0"></TD>
+            <TD valign="top"><IMG src="image014.jpg" width="597" height="530" border="0"><BR>
+            <IMG src="image015.jpg" width="616" height="542" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -1568,7 +1566,7 @@ done</PRE>
           <TR>
             <TD width="600" valign="top">「<A href="index.html#RESOURCE">リソースをファイルに保存</A>」でRLogin_rc.txtを作成する前に自動翻訳APIを使用すると希望の言語に翻訳を行うことができます。<BR>
             <BR>
-            <IMG src="image051.jpg" width="490" height="265" border="0"><BR>
+            <IMG src="image051.jpg" width="476" height="254" border="0"><BR>
             <BR>
             試しにGoogleの翻訳ですが色々な言語に自動翻訳してみました。実用性は？です。それなりに見えますが、酷いようにも思います。「プライベートプロファイル作成」-&gt;「建立私人個人資料」は中国語が分からないけどいくらなんでも違うような・・・<BR>
             <BR>
@@ -1600,7 +1598,304 @@ done</PRE>
       </TD>
     </TR>
     <TR>
-      <TD></TD>
+      <TD>
+      <HR>
+      <P><B><A name="KEYCODE"></A>5.20 各種キーのコード</B></P>
+      <HR>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE width="1250" cellpadding="5">
+        <TBODY>
+          <TR>
+            <TD width="600" valign="top">RLoginの発生するキーコードは、基本xtermの互換になるように設定しています。バージョン2.25.4からよりxtermに近くなるように拡張オプションの1060に対応し発生するキーコードを整理しました。<BR>
+            <BR>
+            拡張オプションの1060をセット（CSI ? 1060 h）するとHome/End/Delete/F1/F2/F3/F4のキーコードが変化してTera
+            TermやPuTTYに近いコードになります（Deleteが微妙に違う）。注意点としては、TERM環境変数が「xterm」「xterm-256color」などの場合にkh/@7/kD/k1/k2/k3/k4などの設定が実際のキーコードと合わなくなる場合があります。<BR>
+            <BR>
+            ※ CSIとは&quot;ESC [”、SS3とは&quot;ESC O&quot;の略号。ESCは、8進数で&quot;033&quot;です。<A href="http://nanno.dip.jp/softlib/man/rlogin/#KEYOPT" style="font-family: Meiryo; font-size: 14.4px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: left; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255);">キーボードのオプション設定</A>で使用している形式は、&quot;\033&quot;になり、CSIは&quot;\033[&quot;、SS3は&quot;\033O&quot;になります。例：Upキーは、&quot;CSI
+            A&quot;が&quot;\033[A&quot;、&quot;SS3 A&quot;が&quot;\033OA&quot;です。<BR>
+            <BR>
+            ※ 2.25.4よりキーパッドのキーコードも整理しました。<BR>
+            <TABLE border="1" cellpadding="5">
+              <TBODY>
+                <TR>
+                  <TD colspan="2" align="center"><SPAN style="color: rgb(0, 0, 0); font-family: Meiryo; font-size: 14.4px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: -webkit-center; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;">DECPNM<BR>
+                  ESC &gt;</SPAN></TD>
+                  <TD align="center"><SPAN style="color: rgb(0, 0, 0); font-family: Meiryo; font-size: 14.4px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: -webkit-center; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;">DECPAM<BR>
+                  </SPAN>ESC =</TD>
+                </TR>
+                <TR>
+                  <TD width="120">Num Lock (on)</TD>
+                  <TD width="120">Num Lock (off)</TD>
+                  <TD width="120">SS3 P</TD>
+                </TR>
+                <TR>
+                  <TD>/</TD>
+                  <TD>/</TD>
+                  <TD>SS3 Q</TD>
+                </TR>
+                <TR>
+                  <TD>*</TD>
+                  <TD>*</TD>
+                  <TD>SS3 R</TD>
+                </TR>
+                <TR>
+                  <TD>-</TD>
+                  <TD>-</TD>
+                  <TD>SS3 S</TD>
+                </TR>
+                <TR>
+                  <TD>0</TD>
+                  <TD>Insert</TD>
+                  <TD>SS3 p</TD>
+                </TR>
+                <TR>
+                  <TD>1</TD>
+                  <TD>End</TD>
+                  <TD>SS3 q</TD>
+                </TR>
+                <TR>
+                  <TD>2</TD>
+                  <TD>Down</TD>
+                  <TD>SS3 r</TD>
+                </TR>
+                <TR>
+                  <TD>3</TD>
+                  <TD>Page Down</TD>
+                  <TD>SS3 s</TD>
+                </TR>
+                <TR>
+                  <TD>4</TD>
+                  <TD>Right</TD>
+                  <TD>SS3 t</TD>
+                </TR>
+                <TR>
+                  <TD>5</TD>
+                  <TD>Clear</TD>
+                  <TD>SS3 u</TD>
+                </TR>
+                <TR>
+                  <TD>6</TD>
+                  <TD>Left</TD>
+                  <TD>SS3 v</TD>
+                </TR>
+                <TR>
+                  <TD>7</TD>
+                  <TD>Home</TD>
+                  <TD>SS3 w</TD>
+                </TR>
+                <TR>
+                  <TD>8</TD>
+                  <TD>Up</TD>
+                  <TD>SS3 x</TD>
+                </TR>
+                <TR>
+                  <TD>9</TD>
+                  <TD>Page Up</TD>
+                  <TD>SS3 y</TD>
+                </TR>
+                <TR>
+                  <TD>．</TD>
+                  <TD>Del</TD>
+                  <TD>SS3 n</TD>
+                </TR>
+                <TR>
+                  <TD>+</TD>
+                  <TD>+</TD>
+                  <TD>SS3 l</TD>
+                </TR>
+                <TR>
+                  <TD>Enter</TD>
+                  <TD>Enter</TD>
+                  <TD>SS3 M</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+            <TD valign="top">
+            <TABLE border="1" cellpadding="5">
+              <TBODY>
+                <TR>
+                  <TD width="100" align="center"></TD>
+                  <TD width="100" align="center">Nomal<BR>
+                  xterm 互換</TD>
+                  <TD width="100" align="center">DECCKM set<BR>
+                  CSI ? 1h</TD>
+                  <TD width="100" align="center">xterm R6 互換<BR>
+                  CSI ? 1060 h</TD>
+                  <TD width="100" align="center">DECANM set<BR>
+                  CSI ? 2 h</TD>
+                </TR>
+                <TR>
+                  <TD>Up</TD>
+                  <TD>CSI A</TD>
+                  <TD>SS3 A</TD>
+                  <TD></TD>
+                  <TD>ESC A</TD>
+                </TR>
+                <TR>
+                  <TD>Down</TD>
+                  <TD>CSI B</TD>
+                  <TD>SS3 B</TD>
+                  <TD></TD>
+                  <TD>ESC B</TD>
+                </TR>
+                <TR>
+                  <TD>Left</TD>
+                  <TD>CSI C</TD>
+                  <TD>SS3 C</TD>
+                  <TD></TD>
+                  <TD>ESC C</TD>
+                </TR>
+                <TR>
+                  <TD>Right</TD>
+                  <TD>CSI D</TD>
+                  <TD>SS3 D</TD>
+                  <TD></TD>
+                  <TD>ESC D</TD>
+                </TR>
+                <TR>
+                  <TD>Clear</TD>
+                  <TD>CSI E</TD>
+                  <TD>SS3 E</TD>
+                  <TD></TD>
+                  <TD>ESC E</TD>
+                </TR>
+                <TR>
+                  <TD>Home</TD>
+                  <TD>CSI H</TD>
+                  <TD>SS3 H</TD>
+                  <TD>CSI 1~</TD>
+                  <TD>ESC H</TD>
+                </TR>
+                <TR>
+                  <TD>Insert</TD>
+                  <TD>CSI 2~</TD>
+                  <TD></TD>
+                  <TD></TD>
+                  <TD>ESC L</TD>
+                </TR>
+                <TR>
+                  <TD>Delete</TD>
+                  <TD>CSI 3~</TD>
+                  <TD></TD>
+                  <TD>DEL</TD>
+                  <TD>ESC M</TD>
+                </TR>
+                <TR>
+                  <TD>End</TD>
+                  <TD>CSI F</TD>
+                  <TD>SS3 F</TD>
+                  <TD>CSI 4~</TD>
+                  <TD>ESC F</TD>
+                </TR>
+                <TR>
+                  <TD>Page Up</TD>
+                  <TD>CSI 5~</TD>
+                  <TD></TD>
+                  <TD></TD>
+                  <TD>ESC I</TD>
+                </TR>
+                <TR>
+                  <TD>Page Down</TD>
+                  <TD>CSI 6~</TD>
+                  <TD></TD>
+                  <TD></TD>
+                  <TD>ESC G</TD>
+                </TR>
+                <TR>
+                  <TD>F1</TD>
+                  <TD>SS3 P</TD>
+                  <TD></TD>
+                  <TD>CSI 11~</TD>
+                  <TD>ESC P</TD>
+                </TR>
+                <TR>
+                  <TD>F2</TD>
+                  <TD>SS3 Q</TD>
+                  <TD></TD>
+                  <TD>CSI 12~</TD>
+                  <TD>ESC Q</TD>
+                </TR>
+                <TR>
+                  <TD>F3</TD>
+                  <TD>SS3 R</TD>
+                  <TD></TD>
+                  <TD>CSI 13~</TD>
+                  <TD>ESC R</TD>
+                </TR>
+                <TR>
+                  <TD>F4</TD>
+                  <TD>SS3 S</TD>
+                  <TD></TD>
+                  <TD>CSI 14~</TD>
+                  <TD>ESC S</TD>
+                </TR>
+                <TR>
+                  <TD>F5</TD>
+                  <TD>CSI 15~</TD>
+                  <TD></TD>
+                  <TD></TD>
+                  <TD>ESC T</TD>
+                </TR>
+                <TR>
+                  <TD>F6</TD>
+                  <TD>CSI 17~</TD>
+                  <TD></TD>
+                  <TD></TD>
+                  <TD>ESC U</TD>
+                </TR>
+                <TR>
+                  <TD>F7</TD>
+                  <TD>CSI 18~</TD>
+                  <TD></TD>
+                  <TD></TD>
+                  <TD>ESC V</TD>
+                </TR>
+                <TR>
+                  <TD>F8</TD>
+                  <TD>CSI 19~</TD>
+                  <TD></TD>
+                  <TD></TD>
+                  <TD>ESC W</TD>
+                </TR>
+                <TR>
+                  <TD>F9</TD>
+                  <TD>CSI 20~</TD>
+                  <TD></TD>
+                  <TD></TD>
+                  <TD>ESC X</TD>
+                </TR>
+                <TR>
+                  <TD>F10</TD>
+                  <TD>CSI 21~</TD>
+                  <TD></TD>
+                  <TD></TD>
+                  <TD>ESC Y</TD>
+                </TR>
+                <TR>
+                  <TD>F11</TD>
+                  <TD>CSI 23~</TD>
+                  <TD></TD>
+                  <TD></TD>
+                  <TD>ESC Z</TD>
+                </TR>
+                <TR>
+                  <TD>F12</TD>
+                  <TD>CSI 24~</TD>
+                  <TD></TD>
+                  <TD></TD>
+                  <TD>ESC [</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
     </TR>
     <TR>
       <TD>

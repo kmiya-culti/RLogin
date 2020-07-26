@@ -20,7 +20,7 @@ TD {
 </HEAD>
 <BODY bgcolor="#000000" background="/image/bla6b.gif">
 <CENTER>
-<TABLE cellpadding="10" cellspacing="0" bgcolor="#ffffff" width="1280">
+<TABLE cellpadding="5" bgcolor="#ffffff" width="1280">
   <TBODY>
     <TR>
       <TD valign="bottom">
@@ -28,17 +28,17 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.25.3)</TD>
-            <TD width="20%" align="right">2020/06/22</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.25.4)</TD>
+            <TD width="20%" align="right">2020/07/27</TD>
           </TR>
         </TBODY>
       </TABLE>
-      <HR align="left" noshade size="0">
+      <HR noshade size="0">
       </TD>
     </TR>
     <TR>
       <TD>
-      <TABLE cellpadding="5" cellspacing="0" bgcolor="#ffffff" width="1250">
+      <TABLE cellpadding="5" bgcolor="#ffffff" width="1250">
         <TBODY>
           <TR>
             <TD width="600" valign="top">RLoginは、Windows上で動作するターミナルソフトです<BR>
@@ -72,7 +72,21 @@ TD {
                         </TD>
                       </TR>
                       <TR>
-                        <TD height="10"></TD>
+                        <TD>2. 基本操作の説明</TD>
+                      </TR>
+                      <TR>
+                        <TD>
+                        <OL>
+                          <LI><A href="#MENU">メニューの説明</A>
+                          <LI><A href="#CMDLINE">コマンドラインでのオプション</A>
+                          <LI><A href="#WINDOW">各種ウィンドウの操作</A>
+                          <LI><A href="#SERVERSEL">サーバーの選択・設定</A>
+                          <LI><A href="#PASTDLG">ペースト確認の操作</A>
+                          <LI><A href="#UPDOWNDLG">ファイルのアップ・ダウンロード</A>
+                          <LI><A href="ctrlcode.html">エスケープシーケンス一覧</A>
+                          <LI><A href="script.html">スクリプト仕様書</A>
+                        </OL>
+                        </TD>
                       </TR>
                       <TR>
                         <TD>3. 各種オプションの説明</TD>
@@ -126,26 +140,6 @@ TD {
                   <TABLE cellpadding="0">
                     <TBODY>
                       <TR>
-                        <TD>2. 基本操作の説明</TD>
-                      </TR>
-                      <TR>
-                        <TD>
-                        <OL>
-                          <LI><A href="#MENU">メニューの説明</A>
-                          <LI><A href="#CMDLINE">コマンドラインでのオプション</A>
-                          <LI><A href="#WINDOW">各種ウィンドウの操作</A>
-                          <LI><A href="#SERVERSEL">サーバーの選択・設定</A>
-                          <LI><A href="#PASTDLG">ペースト確認の操作</A>
-                          <LI><A href="#UPDOWNDLG">ファイルのアップ・ダウンロード</A>
-                          <LI><A href="ctrlcode.html">エスケープシーケンス一覧</A>
-                          <LI><A href="script.html">スクリプト仕様書</A>
-                        </OL>
-                        </TD>
-                      </TR>
-                      <TR>
-                        <TD height="10"></TD>
-                      </TR>
-                      <TR>
                         <TD>4. 各種ウィンドウの説明</TD>
                       </TR>
                       <TR>
@@ -161,9 +155,6 @@ TD {
                           <LI><A href="#SFTPWIND">SFTPによるファイル転送</A>
                         </OL>
                         </TD>
-                      </TR>
-                      <TR>
-                        <TD height="10"></TD>
                       </TR>
                       <TR>
                         <TD>5. 使い方説明</TD>
@@ -190,6 +181,7 @@ TD {
                           <LI><A href="faq.html#LINECHAR">罫線が表示されない</A>
                           <LI><A href="faq.html#FILEUPDOWN">ファイル転送</A>
                           <LI><A href="faq.html#LANG">RLoginの多言語化</A>
+                          <LI><A href="faq.html#KEYCODE">各種キーのコード</A>
                         </OL>
                         </TD>
                       </TR>
@@ -200,7 +192,7 @@ TD {
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top"><IMG src="image001.jpg" border="0" width="541" height="327"></TD>
+            <TD valign="top"><IMG src="image001.jpg" width="542" height="328" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -314,7 +306,7 @@ TD {
     </TR>
     <TR>
       <TD>
-      <TABLE cellpadding="5" cellspacing="0" width="1250">
+      <TABLE cellpadding="5" width="1250">
         <TBODY>
           <TR>
             <TD width="600" valign="top">
@@ -350,7 +342,7 @@ TD {
             <BR>
             プログラム内部では、文字バンクにしたがったコードからFonts Setで設定されたIconvセットにてUTF-16に変換して表示します。クリップボードやキーボード入力による漢字は、オプション設定の&quot;Iconv
             Character Set&quot;にしたがってUNICODEから変換して送り出します</TD>
-            <TD valign="top" align="left"><IMG src="image002.jpg" width="611" height="511" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image002.jpg" width="597" height="530" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -365,7 +357,7 @@ TD {
     </TR>
     <TR>
       <TD>
-      <TABLE cellpadding="5" width="1280" cellspacing="0">
+      <TABLE cellpadding="5" width="1280">
         <TBODY>
           <TR>
             <TD width="600">動作環境としてWindows XP x32/Windows 7 x64/Windows 10 x64にて確認しています<BR>
@@ -458,6 +450,14 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2020/07/27</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.25.4/">2.25.4</A></TD>
+            <TD>コマンドウィンドウの終了メッセージの選択条件を変更<BR>
+            ファイルのドロップでファイルアップロード時は、毎回ダイアログを表示に変更<BR>
+            ファンクション・パッドの各種モード時の動作及びキーコードを変更<BR>
+            スクリーンオプションにIMEオンで文字カーソルの色・形を変更を追加</TD>
+          </TR>
+          <TR>
             <TD align="center">2020/06/22</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.25.3/">2.25.3</A></TD>
             <TD>各種サイズ変更などで反転表示を使用しないように変更<BR>
@@ -497,16 +497,6 @@ TD {
             openssl-1.1.1eに更新</TD>
           </TR>
           <TR>
-            <TD align="center">2020/02/24</TD>
-            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.24.9/">2.24.9</A></TD>
-            <TD>スクリーン最大値の制限を無くすように変更<BR>
-            リサイズ時のメモリバッファ更新で表示が崩れるバグ修正<BR>
-            行単位での送信遅延の処理を最大・無受信・改行確認に変更<BR>
-            ペースト確認ダイアログに１行送信とコードの視覚化・挿入を追加<BR>
-            ファイルのアップ／ダウンロードに変換・送信処理のオプションを追加<BR>
-            コモンダイアログをDPIチェンジ（OSにより異なる）するように変更</TD>
-          </TR>
-          <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
           </TR>
         </TBODY>
@@ -522,7 +512,7 @@ TD {
     </TR>
     <TR>
       <TD>
-      <TABLE cellpadding="5" width="1250" cellspacing="0">
+      <TABLE cellpadding="5" width="1250">
         <TBODY>
           <TR>
             <TD>ソースをコンパイルするには、以下のライブラリが必要です<BR>
@@ -621,7 +611,7 @@ TD {
     </TR>
     <TR>
       <TD>
-      <TABLE cellpadding="5" cellspacing="0" width="1250">
+      <TABLE cellpadding="5" width="1250">
         <TBODY>
           <TR>
             <TD>
@@ -666,7 +656,7 @@ TD {
     </TR>
     <TR>
       <TD>
-      <TABLE cellpadding="5" cellspacing="0" width="1250">
+      <TABLE cellpadding="5" width="1250">
         <TBODY>
           <TR>
             <TD>RLoginの使用について個人・商用を問わずご自由に使用していただいで結構です<BR>
@@ -1531,75 +1521,39 @@ TD {
     </TR>
     <TR>
       <TD>
-      <TABLE cellpadding="5" cellspacing="0" width="1250">
+      <TABLE cellpadding="5" width="1250">
         <TBODY>
           <TR>
-            <TD width="600" align="left" valign="top">
-            <TABLE width="600" cellpadding="5">
-              <TBODY>
-                <TR>
-                  <TD>「ファイル」「サーバーに接続」もしくは「サーバー情報を開く」にて開いたウィンドウ</TD>
-                </TR>
-                <TR>
-                  <TD>　基本となるウィンドウです。メインウィンドウがすでに分割してある場合は、アクティブな空ウィンドウ＞最初の空ウィンドウ＞アクティブなウィンドウと同じ位置で重ねる。の順位で開かれます。メインウィンドウが分割されていなければ、全画面で開き、複数の接続がある場合は、それぞれのエントリー名でタブバーを表示します</TD>
-                </TR>
-              </TBODY>
-            </TABLE>
-            </TD>
-            <TD><IMG src="image003.jpg" border="0" width="485" height="231"></TD>
+            <TD width="600" align="left" valign="top">「ファイル」「サーバーに接続」もしくは「サーバー情報を開く」にて開いたウィンドウ<BR>
+            <BR>
+            基本となるウィンドウです。メインウィンドウがすでに分割してある場合は、アクティブな空ウィンドウ＞最初の空ウィンドウ＞アクティブなウィンドウと同じ位置で重ねる。の順位で開かれます。メインウィンドウが分割されていなければ、全画面で開き、複数の接続がある場合は、それぞれのエントリー名でタブバーを表示します</TD>
+            <TD><IMG src="image003.jpg" width="489" height="229" border="0"></TD>
           </TR>
           <TR>
-            <TD valign="top" align="left">
-            <TABLE cellpadding="5" width="600">
-              <TBODY>
-                <TR>
-                  <TD>「ウィンドウ」「別ウィンドウを開く」で開いたウィンドウ</TD>
-                </TR>
-                <TR>
-                  <TD>　基本的に上記のウィンドウと同じですが、接続先が同一の複写されたウィンドウです。下記の分割ウィンドウとの違いは、画面サイズ（サーバー側に報告する縦、横の文字数）がこのウィンドウのサイズになり、アクティブなウィンドウが切り替わる度にサーバーに画面サイズを報告し直します</TD>
-                </TR>
-              </TBODY>
-            </TABLE>
-            </TD>
-            <TD><IMG src="image004.jpg" border="0" width="485" height="231"></TD>
+            <TD valign="top" align="left" width="600">「ウィンドウ」「別ウィンドウを開く」で開いたウィンドウ<BR>
+            <BR>
+            基本的に上記のウィンドウと同じですが、接続先が同一の複写されたウィンドウです。下記の分割ウィンドウとの違いは、画面サイズ（サーバー側に報告する縦、横の文字数）がこのウィンドウのサイズになり、アクティブなウィンドウが切り替わる度にサーバーに画面サイズを報告し直します</TD>
+            <TD><IMG src="image004.jpg" width="489" height="229" border="0"></TD>
           </TR>
           <TR>
-            <TD valign="top" align="left">
-            <TABLE width="600" cellpadding="5">
-              <TBODY>
-                <TR>
-                  <TD>各ウィンドウ右端スクロールバー上部の分割バーをドラックして分割したウィンドウ</TD>
-                </TR>
-                <TR>
-                  <TD>　上下２つに分割されたそれぞれのウィンドウは、同じ接続で同じ画面サイズの複写ウィンドウとなりなす。実画面サイズ（サーバー側に報告する縦、横の文字数）は、表示上のサイズでは、なく分割された元ウィンドウのサイズのままで維持します。したがって実画面の一部分を２つのウィンドウで独立して表示することになります。フォーカスのある画面で文字入力や画面更新があるとカーソル位置に基づいて表示位置が動的に変化します。過去のヒストリー画面をちょっと見ながら文字入力をしたい場合などに有効です</TD>
-                </TR>
-              </TBODY>
-            </TABLE>
-            </TD>
-            <TD><IMG src="image005.jpg" border="0" width="485" height="231"></TD>
+            <TD valign="top" align="left" width="600">各ウィンドウ右端スクロールバー上部の分割バーをドラックして分割したウィンドウ<BR>
+            <BR>
+            上下２つに分割されたそれぞれのウィンドウは、同じ接続で同じ画面サイズの複写ウィンドウとなりなす。実画面サイズ（サーバー側に報告する縦、横の文字数）は、表示上のサイズでは、なく分割された元ウィンドウのサイズのままで維持します。したがって実画面の一部分を２つのウィンドウで独立して表示することになります。フォーカスのある画面で文字入力や画面更新があるとカーソル位置に基づいて表示位置が動的に変化します。過去のヒストリー画面をちょっと見ながら文字入力をしたい場合などに有効です</TD>
+            <TD><IMG src="image005.jpg" width="489" height="229" border="0"></TD>
           </TR>
           <TR>
-            <TD align="left" valign="top">
-            <TABLE width="600" cellpadding="5">
-              <TBODY>
-                <TR>
-                  <TD>タブバー上にマウスを2秒以上置くと表示されるウィンドウ</TD>
-                </TR>
-                <TR>
-                  <TD>　アクティブでない接続のタブバーの上にマウスカーソルを2秒以上置くとその接続の現在の画面を重ねて透過表示します。２つの画面をグラフィカルに見比べる事ができます<BR>
-                  <BR>
-                  この機能は、以下のレジストリを設定することで抑制できます<BR>
-                  <BR>
-                  [HKEY_CURRENT_USER\Software\Culti\RLogin\TabBar]<BR>
-                  &quot;GhostWnd&quot;=dword:1</TD>
-                </TR>
-              </TBODY>
-            </TABLE>
-            </TD>
-            <TD valign="top" align="left"><IMG src="image006.jpg" width="485" height="231" border="0">&nbsp;</TD>
+            <TD align="left" valign="top" width="600">タブバー上にマウスを2秒以上置くと表示されるウィンドウ<BR>
+            <BR>
+            アクティブでない接続のタブバーの上にマウスカーソルを2秒以上置くとその接続の現在の画面を重ねて透過表示します。２つの画面をグラフィカルに見比べる事ができます<BR>
+            <BR>
+            この機能は、以下のレジストリを設定することで抑制できます<BR>
+            <BR>
+            [HKEY_CURRENT_USER\Software\Culti\RLogin\TabBar]<BR>
+            &quot;GhostWnd&quot;=dword:1</TD>
+            <TD><IMG src="image006.jpg" width="489" height="229" border="0"></TD>
           </TR>
           <TR>
-            <TD align="left" valign="top">タブバーのタブをドラッグして移動<BR>
+            <TD align="left" valign="top" width="600">タブバーのタブをドラッグして移動<BR>
             <BR>
             <TABLE width="600" cellpadding="5" class="BOX" cellspacing="1">
               <TBODY>
@@ -1638,7 +1592,7 @@ TD {
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top" align="left"><IMG src="image044.jpg" width="486" height="232" border="0"></TD>
+            <TD valign="top"><IMG src="image044.jpg" width="489" height="229" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -1653,7 +1607,7 @@ TD {
     </TR>
     <TR>
       <TD>
-      <TABLE cellpadding="5" cellspacing="0" width="1250">
+      <TABLE cellpadding="5" width="1250">
         <TBODY>
           <TR>
             <TD valign="top" width="600">
@@ -1775,18 +1729,18 @@ TD {
               </TBODY>
             </TABLE>
             </TD>
-            <TD align="left" valign="top"><IMG src="image007.jpg" width="524" height="208" border="0"><BR>
+            <TD align="left" valign="top"><IMG src="image007.jpg" width="510" height="202" border="0"><BR>
             <BR>
             <A href="#SERVEROPT">サーバーのオプション設定</A>のタブグループの名前を設定すると分類ができます<BR>
-            <IMG src="image052.jpg" width="524" height="208" border="0"><BR>
+            <IMG src="image052.jpg" width="510" height="202" border="0"><BR>
             <BR>
             タブグループを「￥」で区切ると階層化してツリー表示に変更します<BR>
-            <IMG src="image057.jpg" width="524" height="208" border="0"><BR>
+            <IMG src="image057.jpg" width="510" height="202" border="0"><BR>
             選択中のタブやツリーをクリックするとグループ名の編集ができます<BR>
             また、リストのエントリーをドラッグしてタブやツリーにドロップすると<BR>
             グループを変更することができます<BR>
             <BR>
-            <IMG src="image058.jpg" width="524" height="208" border="0"><BR>
+            <IMG src="image058.jpg" width="510" height="202" border="0"><BR>
             Last(最終アクセス日時)/Index(任意順位、Ctrl+UP/DOWNでエントリー移動)は、<BR>
             リストのヘッダーでデフォルトサイズ０で隠しています<BR>
             必要に応じてサイズ変更してください<BR>
@@ -1805,7 +1759,7 @@ TD {
     </TR>
     <TR>
       <TD>
-      <TABLE cellpadding="5" cellspacing="0" width="1250">
+      <TABLE cellpadding="5" width="1250">
         <TBODY>
           <TR>
             <TD valign="top" width="600">
@@ -1860,7 +1814,7 @@ TD {
               </TBODY>
             </TABLE>
             </TD>
-            <TD align="left" valign="top"><IMG src="image048.jpg" width="489" height="392" border="0"></TD>
+            <TD align="left" valign="top"><IMG src="image048.jpg" width="475" height="386" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -1875,7 +1829,7 @@ TD {
     </TR>
     <TR>
       <TD>
-      <TABLE cellpadding="5" cellspacing="0" width="1250">
+      <TABLE cellpadding="5" width="1250">
         <TBODY>
           <TR>
             <TD valign="top" width="600">
@@ -2120,10 +2074,10 @@ TD {
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top" align="left"><IMG src="image008.jpg" width="611" height="511" border="0"><BR>
+            <TD valign="top" align="left"><IMG src="image008.jpg" width="597" height="530" border="0"><BR>
             <BR>
             <BR>
-            <IMG src="image053.jpg" width="419" height="248" border="0"><BR>
+            <IMG src="image053.jpg" width="405" height="237" border="0"><BR>
             Server Adress/User Nameは、履歴を残します。履歴を削除するには<BR>
             プルダウンメニューで選択しDELキーで削除することができます</TD>
           </TR>
@@ -2168,13 +2122,21 @@ TD {
             <TD valign="top" align="left"><BR>
             </TD>
           </TR>
-          <TR>
-            <TD valign="top" colspan="2" height="10">
-            <HR>
-            <P><A name="COMSET"></A><B>3.1.1 COMの通信設定</B></P>
-            <HR>
-            </TD>
-          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR noshade size="0">
+      <P><A name="COMSET"></A><B>3.1.1 COMの通信設定</B></P>
+      <HR noshade size="0">
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" width="1250">
+        <TBODY>
           <TR>
             <TD valign="top" width="600">
             <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
@@ -2257,7 +2219,7 @@ TD {
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top"><IMG src="image055.jpg" width="364" height="361" border="0"></TD>
+            <TD valign="top"><IMG src="image055.jpg" width="350" height="350" border="0"></TD>
           </TR>
           <TR>
             <TD valign="top">
@@ -2367,15 +2329,23 @@ TD {
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top"><IMG src="image056.jpg" width="427" height="480" border="0"></TD>
+            <TD valign="top"><IMG src="image056.jpg" width="413" height="469" border="0"></TD>
           </TR>
-          <TR>
-            <TD valign="top" colspan="2" height="10">
-            <HR>
-            <P><A name="ENVSET"></A><B>3.1.2 環境変数の設定</B></P>
-            <HR>
-            </TD>
-          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR noshade size="0">
+      <P><A name="ENVSET"></A><B>3.1.2 環境変数の設定</B></P>
+      <HR noshade size="0">
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" width="1250">
+        <TBODY>
           <TR>
             <TD valign="top" width="600">
             <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
@@ -2406,7 +2376,7 @@ TD {
             ※telnet,ssh2のみ追加で環境変数を送信しますがサーバー側の設定で許可されている必要がありますのでご注意ください。(sshの場合は、sshd_configなどに&quot;AcceptEnv
             TERMCAP&quot;などの設定が必要です)<BR>
             ※リスト内で右クリックするとメニューで各種編集機能が選択できます</TD>
-            <TD valign="top"><IMG src="image009.jpg" width="524" height="313" border="0"></TD>
+            <TD valign="top"><IMG src="image009.jpg" width="510" height="302" border="0"></TD>
           </TR>
           <TR>
             <TD valign="top" width="600">
@@ -2436,15 +2406,23 @@ TD {
             <BR>
             ※リスト内で右クリックするとメニューでそのエントリーをTermcap/infoそれぞれの形式で「ファイルからインポート・エクスポート・クリップボードに送る」など選択できます<BR>
             ※設定された内容は、termcap形式に変換して環境変数TERMCAPに設定されます。元の設定がterminfoの場合は、変換できない場合や文字数制限にかかる場合がありますのでご注意ください</TD>
-            <TD valign="top"><IMG src="image010.jpg" width="559" height="394" border="0"></TD>
+            <TD valign="top"><IMG src="image010.jpg" width="545" height="383" border="0"></TD>
           </TR>
-          <TR>
-            <TD valign="top" colspan="2" height="10">
-            <HR>
-            <P><A name="CHATSCRIPT"></A><B>3.1.3 チャットスクリプトの設定</B></P>
-            <HR>
-            </TD>
-          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR noshade size="0">
+      <P><A name="CHATSCRIPT"></A><B>3.1.3 チャットスクリプトの設定</B></P>
+      <HR noshade size="0">
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" width="1250">
+        <TBODY>
           <TR>
             <TD valign="top" width="600">
             <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
@@ -2641,17 +2619,25 @@ fi</PRE>
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top" align="left"><IMG src="image011.jpg" width="539" height="409" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image011.jpg" width="525" height="398" border="0"></TD>
           </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR noshade size="0">
+      <P><A name="PROXYSET"></A><B>3.1.4 プロキシーサーバーの設定</B></P>
+      <HR noshade size="0">
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" width="1250">
+        <TBODY>
           <TR>
-            <TD valign="top" colspan="2" height="10">
-            <HR>
-            <P><A name="PROXYSET"></A><B>3.1.4 プロキシーサーバーの設定</B></P>
-            <HR>
-            </TD>
-          </TR>
-          <TR>
-            <TD valign="top">
+            <TD valign="top" width="600">
             <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
               <TBODY>
                 <TR>
@@ -2696,7 +2682,7 @@ fi</PRE>
             ※HTTP(Basic)は、Basic認証のみ使用します<BR>
             ※SOCKS4には、ユーザー認証ありません<BR>
             ※SOCKS5は、平文での認証しか対応していません</TD>
-            <TD valign="top" align="left"><IMG src="image012.jpg" width="434" height="403" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image012.jpg" width="420" height="392" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -2807,7 +2793,7 @@ fi</PRE>
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top"><IMG src="image013.jpg" width="611" height="541" border="0"></TD>
+            <TD valign="top"><IMG src="image013.jpg" width="597" height="530" border="0"></TD>
           </TR>
           <TR>
             <TD valign="top" colspan="2" height="10"></TD>
@@ -2873,7 +2859,7 @@ fi</PRE>
     </TR>
     <TR>
       <TD>
-      <TABLE cellpadding="5" cellspacing="0" width="1250">
+      <TABLE cellpadding="5" width="1250">
         <TBODY>
           <TR>
             <TD valign="top" width="600">
@@ -2952,15 +2938,23 @@ fi</PRE>
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top"><IMG src="image014.jpg" width="611" height="511" border="0"></TD>
+            <TD valign="top"><IMG src="image014.jpg" width="597" height="530" border="0"></TD>
           </TR>
-          <TR>
-            <TD valign="top" colspan="2" height="10">
-            <HR>
-            <P><A name="SSHPROTOCOL"></A><B>3.3.1 暗号方式などの設定</B></P>
-            <HR>
-            </TD>
-          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR noshade size="0">
+      <P><A name="SSHPROTOCOL"></A><B>3.3.1 暗号方式などの設定</B></P>
+      <HR noshade size="0">
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" width="1250">
+        <TBODY>
           <TR>
             <TD valign="top" width="600">暗号・検証・圧縮方法の優先順位を任意に並べます<BR>
             <BR>
@@ -3210,15 +3204,23 @@ fi</PRE>
             <BR>
             ※すべての暗号アルゴリズムを検証していません<BR>
             ※ECB/CFB/OFBは、テスト環境しか実装していません</TD>
-            <TD valign="top"><IMG src="image015.jpg" width="630" height="553" border="0"></TD>
+            <TD valign="top"><IMG src="image015.jpg" width="616" height="542" border="0"></TD>
           </TR>
-          <TR>
-            <TD colspan="2" height="10">
-            <HR>
-            <P><A name="SSHKEYSET"></A><B>3.3.2 認証キーの設定</B></P>
-            <HR>
-            </TD>
-          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR noshade size="0">
+      <P><A name="SSHKEYSET"></A><B>3.3.2 認証キーの設定</B></P>
+      <HR noshade size="0">
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" width="1250">
+        <TBODY>
           <TR>
             <TD valign="top" width="600">
             <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
@@ -3285,7 +3287,7 @@ fi</PRE>
                   768/1024/2048/4096</TD>
                   <TD>認証キーのサイズを指定します。サイズが大きい程、作成するのに時間がかかります。詳しくは<A href="faq.html#SSHPUBLIC">SSHでの公開鍵認証</A>を参照<BR>
                   <BR>
-                  <TABLE>
+                  <TABLE width="400">
                     <TBODY>
                       <TR>
                         <TD></TD>
@@ -3293,14 +3295,14 @@ fi</PRE>
                         <TD align="center">16</TD>
                         <TD align="center">20</TD>
                         <TD align="center" width="30">-</TD>
-                        <TD align="center" width="30">256</TD>
-                        <TD align="center" width="30">384</TD>
-                        <TD align="center" width="30">521</TD>
-                        <TD align="center" width="30">768</TD>
-                        <TD align="center" width="30"><FONT size="-1">1024</FONT></TD>
-                        <TD align="center" width="30"><FONT size="-1">2048</FONT></TD>
-                        <TD align="center" width="30"><FONT size="-1">4096</FONT></TD>
-                        <TD align="center" width="30"><FONT size="-1">8192</FONT></TD>
+                        <TD align="center" width="30"><FONT size="-1">256</FONT></TD>
+                        <TD align="center" width="30"><FONT size="-1">384</FONT></TD>
+                        <TD align="center" width="30"><FONT size="-1">521</FONT></TD>
+                        <TD align="center" width="30"><FONT size="-1">768</FONT></TD>
+                        <TD align="center" width="30"><FONT size="-2">1024</FONT></TD>
+                        <TD align="center" width="30"><FONT size="-2">2048</FONT></TD>
+                        <TD align="center" width="30"><FONT size="-2">4096</FONT></TD>
+                        <TD align="center" width="30"><FONT size="-2">8192</FONT></TD>
                       </TR>
                       <TR>
                         <TD>RSA1/2</TD>
@@ -3399,15 +3401,23 @@ fi</PRE>
             </TABLE>
             <BR>
             ※認証キーのリストで右クリックするとメニューが表示され上記の処理以外に削除や署名付きの公開鍵の読み込みなどができます</TD>
-            <TD valign="top"><IMG src="image016.jpg" width="462" height="451" border="0"></TD>
+            <TD valign="top"><IMG src="image016.jpg" width="448" height="440" border="0"></TD>
           </TR>
-          <TR>
-            <TD colspan="2" height="10">
-            <HR>
-            <P><A name="PORTFORWARD"></A><B>3.3.3 ポートフォワードの設定</B></P>
-            <HR>
-            </TD>
-          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR noshade size="0">
+      <P><A name="PORTFORWARD"></A><B>3.3.3 ポートフォワードの設定</B></P>
+      <HR noshade size="0">
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" width="1250">
+        <TBODY>
           <TR>
             <TD valign="top" width="600">
             <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
@@ -3448,7 +3458,7 @@ fi</PRE>
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top" align="left"><IMG src="image017.jpg" width="469" height="440" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image017.jpg" width="455" height="429" border="0"></TD>
           </TR>
           <TR>
             <TD colspan="2" height="10"></TD>
@@ -3495,17 +3505,25 @@ fi</PRE>
             例： localhost:pop3 &gt; mailxxx.com:pop3<BR>
             <BR>
             RLoginが動いているパソコンでダミーのpop3サーバーを開き、接続があった場合には、その内容をSSH2で暗号化して安全にmailxxx.com:pop3に転送します</TD>
-            <TD align="left" valign="top"><IMG src="image018.jpg" width="377" height="301" border="0"></TD>
+            <TD align="left" valign="top"><IMG src="image018.jpg" width="363" height="290" border="0"></TD>
           </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR noshade size="0">
+      <P><A name="TERMMODE"></A><B>3.3.4 端末モードの設定</B></P>
+      <HR noshade size="0">
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" width="1250">
+        <TBODY>
           <TR>
-            <TD valign="top" colspan="2" height="10">
-            <HR>
-            <P><A name="TERMMODE"></A><B>3.3.4 端末モードの設定</B></P>
-            <HR>
-            </TD>
-          </TR>
-          <TR>
-            <TD valign="top">
+            <TD valign="top" width="600">
             <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
               <TBODY>
                 <TR>
@@ -3518,7 +3536,7 @@ fi</PRE>
               </TBODY>
             </TABLE>
             </TD>
-            <TD align="left" valign="top"><IMG src="image019.jpg" width="525" height="400" border="0"></TD>
+            <TD align="left" valign="top"><IMG src="image019.jpg" width="511" height="395" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -3568,7 +3586,7 @@ fi</PRE>
             TekClock(); // アナログ時計<BR>
             TekClock2(); // 図形回転のアナログ時計<BR>
             TekFeq(); // スピーカーフィルター特性</TD>
-            <TD valign="top" align="left"><IMG src="image020.jpg" width="611" height="511" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image020.jpg" width="597" height="530" border="0"></TD>
           </TR>
           <TR>
             <TD valign="top" align="left">「編集」メニューに「アナログ時計」を追加するサンプルスクリプト<BR>
@@ -3613,7 +3631,7 @@ function TekClock2() {
         }
 }</PRE>
             </TD>
-            <TD valign="top" align="left"><IMG src="image021.jpg" width="531" height="602" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image021.jpg" width="534" height="606" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -3670,6 +3688,10 @@ function TekClock2() {
                 <TR>
                   <TD align="center">文字カーソル…</TD>
                   <TD>デフォルトの文字カーソル形状をBox/Under/VerticalとBlink/Steadyの組み合わせで選択します。右の色見本をクリックすると色を変更することができます。描画方法はXORで行いますので背景色により実際に表示される色が異なります。黒背景なら一致しますが白背景の場合は、補色で表示されますのでご注意ください。また、色を黒(0,0,0)にすると接続ごとに色を自動で変更します</TD>
+                </TR>
+                <TR>
+                  <TD align="center">IMEオンで文字…</TD>
+                  <TD>IMEがオンの時に文字カーソルの色と形を変更するようにします。形は、変更しないがデフォルトです</TD>
                 </TR>
                 <TR>
                   <TD align="center">CSI 1-6/9/10 t …</TD>
@@ -3748,7 +3770,7 @@ function TekClock2() {
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top" align="left"><IMG src="image022.jpg" width="611" height="541" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image022.jpg" width="597" height="530" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -3917,15 +3939,23 @@ function TekClock2() {
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top" align="left"><IMG src="image023.jpg" width="611" height="511" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image023.jpg" width="597" height="530" border="0"></TD>
           </TR>
-          <TR>
-            <TD valign="top" colspan="2" height="10">
-            <HR>
-            <P><A name="ESCCSIDCS"></A><B>3.6.1 ESC/CSI/DCSの設定</B></P>
-            <HR>
-            </TD>
-          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR noshade size="0">
+      <P><A name="ESCCSIDCS"></A><B>3.6.1 ESC/CSI/DCSの設定</B></P>
+      <HR noshade size="0">
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" width="1250">
+        <TBODY>
           <TR>
             <TD valign="top" align="left" width="600">ESCシーケンス、CSIシーケンスの変更したいリストをダブルクリックするとそれぞれのシーケンスの設定ダイアログが表示されます。ファンクション名の部分を「NOP」にすると何もしなように変更することができます<BR>
             <BR>
@@ -3956,133 +3986,133 @@ function TekClock2() {
             <BR>
             Code: v<BR>
             Func: ORGSCD -&gt; DECSVTS</TD>
-            <TD valign="top" align="left"><IMG src="image024.jpg" width="455" height="505" border="0"><BR>
-            <IMG src="image025.jpg" width="338" height="133" border="0"><BR>
-            <IMG src="image026.jpg" width="338" height="133" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image024.jpg" width="441" height="494" border="0"><BR>
+            <IMG src="image025.jpg" width="342" height="164" border="0"><BR>
+            <IMG src="image026.jpg" width="389" height="165" border="0"></TD>
           </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR noshade size="0">
+      <P><A name="EXTOPT"></A><B>3.7 拡張機能のオプション設定</B></P>
+      <HR noshade size="0">
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE cellpadding="5" width="1250">
+        <TBODY>
           <TR>
-            <TD valign="top" colspan="2">
-            <HR>
-            <P><A name="EXTOPT"></A><B>3.7 拡張機能のオプション設定</B></P>
-            <HR>
-            </TD>
-          </TR>
-          <TR>
-            <TD valign="top" colspan="2">
-            <TABLE cellpadding="5" width="1250">
+            <TD valign="top" align="left" width="600">
+            <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
               <TBODY>
                 <TR>
-                  <TD valign="top" align="left">
-                  <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
-                    <TBODY>
-                      <TR>
-                        <TD colspan="3">各種オプション</TD>
-                      </TR>
-                      <TR>
-                        <TD align="center" width="10%" rowspan="2">455</TD>
-                        <TD width="40%">サイズを表示しない</TD>
-                        <TD width="40%">画面サイズを表示する</TD>
-                      </TR>
-                      <TR>
-                        <TD colspan="2">画面サイズが変更されると画面中央に横ｘ縦サイズを自動で表示します。表示は、約３秒ほどで自動で消えます</TD>
-                      </TR>
-                      <TR>
-                        <TD align="center" width="10%" rowspan="2">456</TD>
-                        <TD width="40%">イメージを全表示する</TD>
-                        <TD width="40%">イメージを部分表示する</TD>
-                      </TR>
-                      <TR>
-                        <TD colspan="2">Sixel/Imageを外部ウィンドウで表示する場合の表示方法を選択します。全表示では、上下/左右に余白が表示されます</TD>
-                      </TR>
-                      <TR>
-                        <TD align="center" rowspan="2">462</TD>
-                        <TD>ワード単位で調整</TD>
-                        <TD>文字単位で調整する</TD>
-                      </TR>
-                      <TR>
-                        <TD colspan="2">プロポーショナルフォントの調整方法を選択します</TD>
-                      </TR>
-                      <TR>
-                        <TD align="center" rowspan="2">471</TD>
-                        <TD>タブも移動する</TD>
-                        <TD>ペインの移動のみ</TD>
-                      </TR>
-                      <TR>
-                        <TD colspan="2">ペインの移動コマンドの動作が変化します。現在のペインでアクティブな接続が移動することになります</TD>
-                      </TR>
-                      <TR>
-                        <TD align="center" rowspan="2">474</TD>
-                        <TD>通信ログをフラッシュする</TD>
-                        <TD>通信ログをフラッシュしない</TD>
-                      </TR>
-                      <TR>
-                        <TD colspan="2">通信ログファイルを定期的に書き出し更新（フラッシュ）するようにします<BR>
-                        ※通常、ファイルのフラッシュは必要ありません。ログの保存中でも現在の内容を別のアプリケーションで開くことが出来ます。（アプリケーションレベルでのフラッシュ（メモリ上のデータの書き出し）は、常に行っています<BR>
-                        ※ファイルサイズやファイル更新を確認する必要がある場合などにフラッシュすれば、リアルタイムに更新されますが、OSレベルでのライトキャッシュもHDDなどにフラッシュされるようなので非常に重い処理になります</TD>
-                      </TR>
-                      <TR>
-                        <TD align="center" rowspan="2">475</TD>
-                        <TD>微妙なカレット</TD>
-                        <TD>通常のカレット</TD>
-                      </TR>
-                      <TR>
-                        <TD colspan="2">文字カレットを動画で点滅させます<BR>
-                        ※あくまで試験的な実装です。あまり実用性がありません</TD>
-                      </TR>
-                      <TR>
-                        <TD align="center" rowspan="2">479</TD>
-                        <TD>積極的に更新</TD>
-                        <TD>通常の画面更新</TD>
-                      </TR>
-                      <TR>
-                        <TD colspan="2">ウィンドウの画面更新を積極的に行うようにします<BR>
-                        ※画面の変更があった場合に即時に更新するようにします。通常は、OSのペイント処理でまとめて更新されますが、Windows 10では、遅延があるようなのでメッセージ処理後のアイドル時に更新するようにしています。それでも表示が遅延される場合には、このオプションが有効かもしれませんが、逆に表示更新が多くなって遅く感じる可能性があります</TD>
-                      </TR>
-                      <TR>
-                        <TD align="center" rowspan="2">483</TD>
-                        <TD>SOS/PM/APCをファイルに保存</TD>
-                        <TD>保存しない</TD>
-                      </TR>
-                      <TR>
-                        <TD colspan="2">エスケープシーケンスのSOS/PM/APCでバッファリングしたデータをファイルに保存するようにします</TD>
-                      </TR>
-                      <TR>
-                        <TD align="center" rowspan="2">484</TD>
-                        <TD>フォント置換しない</TD>
-                        <TD>フォント置換する</TD>
-                      </TR>
-                      <TR>
-                        <TD colspan="2">デフォルトフォントのWindowsによるCHARSETでフォント置換を行わないようにします。結果、文字が正しく表示されない場合がありますのでご注意ください</TD>
-                      </TR>
-                      <TR>
-                        <TD align="center" rowspan="2">485</TD>
-                        <TD>カラー絵文字</TD>
-                        <TD>モノクロ絵文字</TD>
-                      </TR>
-                      <TR>
-                        <TD colspan="2">Windows 8.1以降の場合は、DirectTextを用いてカラー絵文字を表示します。カラー絵文字に対応していないWindowsの場合などは、RLogin実行時の作業フォルダもしくは、RLogin.exeのあるフォルダにemojiフォルダを置くとPNG画像ファイルから表示を試みます。<A href="https://github.com/adobe-fonts/emojione-color">EmojiOne Color</A>から作成した<A href="emoji.zip">カラー絵文字のPNG画像ファイル</A>です<BR>
-                        ※レジストリの変更で絵文字のフォント、イメージのフォルダを指定できます<BR>
-                        [HKEY_CURRENT_USER\Software\Culti\RLogin\RLoginApp]<BR>
-                        &quot;EmojiFontName&quot;=&quot;Segoe UI emoji&quot;<BR>
-                        &quot;EmojiImageDir&quot;=&quot;C:\emoji&quot;</TD>
-                      </TR>
-                    </TBODY>
-                  </TABLE>
-                  <BR>
-                  <TABLE class="BOX" width="600" cellpadding="5" cellspacing="1">
-                    <TBODY>
-                      <TR>
-                        <TD width="30%">OSC 1337 インライン拡張</TD>
-                        <TD>インライン指定で表示できる画像(jpg/png/gif/bmp...)以外の場合に指定された拡張子のみファイルを作業用フォルダに作成してShell経由で外部プログラムで起動します。作業ファイルは、RLogin終了時に削除します。exeなどの実行プログラムなどは、指定しないでください。セキュリティ的に問題になる場合があります</TD>
-                      </TR>
-                    </TBODY>
-                  </TABLE>
-                  </TD>
-                  <TD valign="top" align="left"><IMG src="image047.jpg" width="611" height="511" border="0"></TD>
+                  <TD colspan="3">各種オプション</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="10%" rowspan="2">455</TD>
+                  <TD width="40%">サイズを表示しない</TD>
+                  <TD width="40%">画面サイズを表示する</TD>
+                </TR>
+                <TR>
+                  <TD colspan="2">画面サイズが変更されると画面中央に横ｘ縦サイズを自動で表示します。表示は、約３秒ほどで自動で消えます</TD>
+                </TR>
+                <TR>
+                  <TD align="center" width="10%" rowspan="2">456</TD>
+                  <TD width="40%">イメージを全表示する</TD>
+                  <TD width="40%">イメージを部分表示する</TD>
+                </TR>
+                <TR>
+                  <TD colspan="2">Sixel/Imageを外部ウィンドウで表示する場合の表示方法を選択します。全表示では、上下/左右に余白が表示されます</TD>
+                </TR>
+                <TR>
+                  <TD align="center" rowspan="2">462</TD>
+                  <TD>ワード単位で調整</TD>
+                  <TD>文字単位で調整する</TD>
+                </TR>
+                <TR>
+                  <TD colspan="2">プロポーショナルフォントの調整方法を選択します</TD>
+                </TR>
+                <TR>
+                  <TD align="center" rowspan="2">471</TD>
+                  <TD>タブも移動する</TD>
+                  <TD>ペインの移動のみ</TD>
+                </TR>
+                <TR>
+                  <TD colspan="2">ペインの移動コマンドの動作が変化します。現在のペインでアクティブな接続が移動することになります</TD>
+                </TR>
+                <TR>
+                  <TD align="center" rowspan="2">474</TD>
+                  <TD>通信ログをフラッシュする</TD>
+                  <TD>通信ログをフラッシュしない</TD>
+                </TR>
+                <TR>
+                  <TD colspan="2">通信ログファイルを定期的に書き出し更新（フラッシュ）するようにします<BR>
+                  ※通常、ファイルのフラッシュは必要ありません。ログの保存中でも現在の内容を別のアプリケーションで開くことが出来ます。（アプリケーションレベルでのフラッシュ（メモリ上のデータの書き出し）は、常に行っています<BR>
+                  ※ファイルサイズやファイル更新を確認する必要がある場合などにフラッシュすれば、リアルタイムに更新されますが、OSレベルでのライトキャッシュもHDDなどにフラッシュされるようなので非常に重い処理になります</TD>
+                </TR>
+                <TR>
+                  <TD align="center" rowspan="2">475</TD>
+                  <TD>微妙なカレット</TD>
+                  <TD>通常のカレット</TD>
+                </TR>
+                <TR>
+                  <TD colspan="2">文字カレットを動画で点滅させます<BR>
+                  ※あくまで試験的な実装です。あまり実用性がありません</TD>
+                </TR>
+                <TR>
+                  <TD align="center" rowspan="2">479</TD>
+                  <TD>積極的に更新</TD>
+                  <TD>通常の画面更新</TD>
+                </TR>
+                <TR>
+                  <TD colspan="2">ウィンドウの画面更新を積極的に行うようにします<BR>
+                  ※画面の変更があった場合に即時に更新するようにします。通常は、OSのペイント処理でまとめて更新されますが、Windows 10では、遅延があるようなのでメッセージ処理後のアイドル時に更新するようにしています。それでも表示が遅延される場合には、このオプションが有効かもしれませんが、逆に表示更新が多くなって遅く感じる可能性があります</TD>
+                </TR>
+                <TR>
+                  <TD align="center" rowspan="2">483</TD>
+                  <TD>SOS/PM/APCをファイルに保存</TD>
+                  <TD>保存しない</TD>
+                </TR>
+                <TR>
+                  <TD colspan="2">エスケープシーケンスのSOS/PM/APCでバッファリングしたデータをファイルに保存するようにします</TD>
+                </TR>
+                <TR>
+                  <TD align="center" rowspan="2">484</TD>
+                  <TD>フォント置換しない</TD>
+                  <TD>フォント置換する</TD>
+                </TR>
+                <TR>
+                  <TD colspan="2">デフォルトフォントのWindowsによるCHARSETでフォント置換を行わないようにします。結果、文字が正しく表示されない場合がありますのでご注意ください</TD>
+                </TR>
+                <TR>
+                  <TD align="center" rowspan="2">485</TD>
+                  <TD>カラー絵文字</TD>
+                  <TD>モノクロ絵文字</TD>
+                </TR>
+                <TR>
+                  <TD colspan="2">Windows 8.1以降の場合は、DirectTextを用いてカラー絵文字を表示します。カラー絵文字に対応していないWindowsの場合などは、RLogin実行時の作業フォルダもしくは、RLogin.exeのあるフォルダにemojiフォルダを置くとPNG画像ファイルから表示を試みます。<A href="https://github.com/adobe-fonts/emojione-color">EmojiOne Color</A>から作成した<A href="emoji.zip">カラー絵文字のPNG画像ファイル</A>です<BR>
+                  ※レジストリの変更で絵文字のフォント、イメージのフォルダを指定できます<BR>
+                  [HKEY_CURRENT_USER\Software\Culti\RLogin\RLoginApp]<BR>
+                  &quot;EmojiFontName&quot;=&quot;Segoe UI emoji&quot;<BR>
+                  &quot;EmojiImageDir&quot;=&quot;C:\emoji&quot;</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            <BR>
+            <TABLE class="BOX" width="600" cellpadding="5" cellspacing="1">
+              <TBODY>
+                <TR>
+                  <TD width="30%">OSC 1337 インライン拡張</TD>
+                  <TD>インライン指定で表示できる画像(jpg/png/gif/bmp...)以外の場合に指定された拡張子のみファイルを作業用フォルダに作成してShell経由で外部プログラムで起動します。作業ファイルは、RLogin終了時に削除します。exeなどの実行プログラムなどは、指定しないでください。セキュリティ的に問題になる場合があります</TD>
                 </TR>
               </TBODY>
             </TABLE>
             </TD>
+            <TD valign="top" align="left"><IMG src="image047.jpg" width="597" height="530" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -4097,7 +4127,7 @@ function TekClock2() {
     </TR>
     <TR>
       <TD>
-      <TABLE cellpadding="5" cellspacing="0" width="1250">
+      <TABLE cellpadding="5" width="1250">
         <TBODY>
           <TR>
             <TD valign="top" align="left" width="600">
@@ -4183,7 +4213,7 @@ function TekClock2() {
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top" align="left"><IMG src="image027.jpg" width="611" height="511" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image027.jpg" width="597" height="530" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -4301,7 +4331,7 @@ function TekClock2() {
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top" align="left"><IMG src="image028.jpg" width="611" height="511" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image028.jpg" width="597" height="530" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -4452,7 +4482,7 @@ function TekClock2() {
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top" align="left"><IMG src="image029.jpg" width="611" height="511" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image029.jpg" width="597" height="530" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -4557,7 +4587,7 @@ function TekClock2() {
             ※GL/GR/G0,G1,G2,G3は、ISO-2022にしたがったエスケープシーケンスで動的に変化します<BR>
             ※Bank94のCode&quot;0&quot;は、VT100グラフィックキャラクターセットとして使用していますがWindowsフォントとして標準では、存在しません。TeraTermに付属する「Tera
             Special」などのフォントが別途必要です</TD>
-            <TD valign="top" align="left"><IMG src="image002.jpg" width="611" height="511" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image002.jpg" width="597" height="530" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -4654,7 +4684,7 @@ function TekClock2() {
             <BR>
             (*1)SJISのみコード変換が行われ漢字コードが変化する場合があります<BR>
             (*2)Windowsフォントに変換できないもしくは、フォントがインストールされていない場合は、UNICODEに変換を試みて表示を行います。それでも表示できない文字は空白文字になります</TD>
-            <TD valign="top" align="left"><IMG src="image031.jpg" border="0" width="384" height="241"></TD>
+            <TD valign="top" align="left"><IMG src="image031.jpg" width="370" height="230" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -4750,7 +4780,7 @@ function TekClock2() {
             ※2.3.0よりCode,Bank,IConv Chacter Setなどを変更しても次回起動から有効になります。すでに表示されている文字は、変更されませんのでご注意ください<BR>
             ※2.6.4より半角・全角の区別が無いフォントを強制的に全角コードの文字を倍の横幅で表示するようにしました。フォントによっては、表示が崩れる場合があります<BR>
             ※2.10.7よりUNICODEのデフォルトフォントをMSゴシックに変更しました。漢字の表示が普通になりますがすべてのUNICODEを表示できません。すべてのコードを表示する場合は、フルセットのUnicodeフォントに変更してください</TD>
-            <TD valign="top" align="left"><IMG src="image030.jpg" width="454" height="544" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image030.jpg" width="440" height="533" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -4970,7 +5000,7 @@ function TekClock2() {
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top"><IMG src="image045.jpg" width="709" height="464" border="0"></TD>
+            <TD valign="top"><IMG src="image045.jpg" width="714" height="460" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -5023,7 +5053,7 @@ function TekClock2() {
               </TBODY>
             </TABLE>
             </TD>
-            <TD><IMG src="image046.jpg" width="399" height="463" border="0"></TD>
+            <TD><IMG src="image046.jpg" width="385" height="452" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -5085,7 +5115,7 @@ function TekClock2() {
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top" align="left"><IMG src="image032.jpg" width="611" height="511" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image032.jpg" width="597" height="530" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -5208,7 +5238,7 @@ function TekClock2() {
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top" align="left"><IMG src="image049.jpg" width="611" height="511" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image049.jpg" width="597" height="530" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -5258,7 +5288,7 @@ function TekClock2() {
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top" align="left"><IMG src="image033.jpg" width="611" height="511" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image033.jpg" width="597" height="530" border="0"></TD>
           </TR>
           <TR>
             <TD valign="top" colspan="2" height="10"></TD>
@@ -5279,24 +5309,30 @@ function TekClock2() {
                   <TD>同時に押すキーを選択します</TD>
                 </TR>
                 <TR>
-                  <TD align="center">App CKM VT52</TD>
+                  <TD align="center">CKM Legacy VT52<BR>
+                  App</TD>
                   <TD>それぞれのモード時のコードを設定します<BR>
                   <TABLE cellpadding="3">
                     <TBODY>
-                      <TR>
-                        <TD width="50">App</TD>
-                        <TD>DECPAM/DECPNM</TD>
-                        <TD>ESC = / ESC &gt;</TD>
-                      </TR>
                       <TR>
                         <TD>CKM</TD>
                         <TD>DECCKM</TD>
                         <TD>CSI ? 1 h/l</TD>
                       </TR>
                       <TR>
+                        <TD>Legacy</TD>
+                        <TD>xterm互換</TD>
+                        <TD>CSI ? 1060 h/l</TD>
+                      </TR>
+                      <TR>
                         <TD>VT52</TD>
                         <TD>DECANM</TD>
                         <TD>CSI ? 2 h/l</TD>
+                      </TR>
+                      <TR>
+                        <TD width="50">App</TD>
+                        <TD>DECPAM/DECPNM</TD>
+                        <TD>ESC = / ESC &gt;</TD>
                       </TR>
                     </TBODY>
                   </TABLE>
@@ -5319,7 +5355,7 @@ function TekClock2() {
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top" align="left"><IMG src="image036.jpg" width="384" height="281" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image036.jpg" width="370" height="270" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -5410,7 +5446,7 @@ function TekClock2() {
             </TABLE>
             <BR>
             ※この設定は、CSI &gt; Pn ; Ps m及びCSI &gt; Pn nで動的に変化します</TD>
-            <TD valign="top" align="left"><IMG src="image037.jpg" width="611" height="511" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image037.jpg" width="597" height="530" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -5457,11 +5493,11 @@ function TekClock2() {
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top" align="left"><IMG src="image038.jpg" width="431" height="374" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image038.jpg" width="431" height="373" border="0"></TD>
           </TR>
           <TR>
             <TD align="left" valign="top" width="600">完全にTek41xxに対応していません。gnuplotを「set term tek410x」で使用できる程度の互換性しかありませんのでご注意ください</TD>
-            <TD valign="top" align="left"><IMG src="image039.jpg" width="431" height="374" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image039.jpg" width="431" height="373" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -5511,7 +5547,7 @@ function TekClock2() {
             <BR>
             gnuplotでは、「set term regis」で利用できます。RLogin上のReGISに最適化したgnuplot-4.4.1用のterm/regis.trmのパッチをこちらに置いておきます<BR>
             <A href="regis.trm.patch">regis.trm.patch</A></TD>
-            <TD valign="top"><IMG src="image040.jpg" width="521" height="438" border="0"></TD>
+            <TD valign="top"><IMG src="image040.jpg" width="522" height="439" border="0"></TD>
           </TR>
           <TR>
             <TD valign="top" width="600"><A href="http://netpbm.sourceforge.net/">Netpbm</A>などのコンバーターを使用すれば画像が表示されます<BR>
@@ -5560,7 +5596,7 @@ function TekClock2() {
             <BR>
             gnuplot-4.6.0のterm/gd.trmに対するsixelパッチです<BR>
             <A href="gnuplot-sixel.tar.gz">gnuplot-sixel.tar.gz</A></TD>
-            <TD valign="top"><IMG src="image041.jpg" width="524" height="493" border="0"></TD>
+            <TD valign="top"><IMG src="image041.jpg" width="522" height="495" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -5638,7 +5674,7 @@ function TekClock2() {
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top" align="left"><IMG src="image054.jpg" width="433" height="436" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image054.jpg" width="419" height="425" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -5689,7 +5725,7 @@ function TekClock2() {
             表示された項目を選択するとその時の画面を表示します。またカーソルキー（↑↓キー）の項目移動でそれぞれの制御文字の挙動を確認できます<BR>
             <BR>
             ＊トレースバックして表示される画面は、完全にその時と同じに再現されない場合があります（画面サイズが違う場合、画面スタック操作、ウィンドウ設定、Tek/Sixel/ReGIS操作など）</TD>
-            <TD valign="top" align="left"><IMG src="image042.jpg" width="573" height="314" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image042.jpg" width="559" height="287" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -5761,11 +5797,11 @@ function TekClock2() {
             </TABLE>
             <BR>
             上記トレースウィンドウ・コマンドウィンドウ・ヒストリーウィンドウは、メニューの表示・ダイアログバーをチェックするとメインウィンドウにドッキングして表示します。さらにダイアログバーの左端をドラッグしてメインウィンドウの上下左右の任意位置にドッキングする場所を選択出来ます</TD>
-            <TD valign="top" align="left"><IMG src="image062.jpg" width="573" height="292" border="0"><BR>
+            <TD valign="top" align="left"><IMG src="image062.jpg" width="559" height="287" border="0"><BR>
             <BR>
-            <IMG src="image063.jpg" width="569" height="216" border="0"><BR>
+            <IMG src="image063.jpg" width="558" height="193" border="0"><BR>
             <BR>
-            <IMG src="image064.jpg" width="568" height="190" border="0"></TD>
+            <IMG src="image064.jpg" width="556" height="195" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -5780,7 +5816,7 @@ function TekClock2() {
     </TR>
     <TR>
       <TD>
-      <TABLE width="1250" cellpadding="5" cellspacing="0">
+      <TABLE width="1250" cellpadding="5">
         <TBODY>
           <TR>
             <TD width="600" valign="top">
@@ -5831,7 +5867,7 @@ function TekClock2() {
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top"><IMG src="image050.jpg" width="574" height="451" border="0"></TD>
+            <TD valign="top"><IMG src="image050.jpg" width="560" height="440" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -5846,7 +5882,7 @@ function TekClock2() {
     </TR>
     <TR>
       <TD>
-      <TABLE width="1250" cellpadding="5" cellspacing="0">
+      <TABLE width="1250" cellpadding="5">
         <TBODY>
           <TR>
             <TD width="600" valign="top">
@@ -5890,7 +5926,7 @@ function TekClock2() {
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top"><IMG src="image051.jpg" width="490" height="265" border="0"></TD>
+            <TD valign="top"><IMG src="image051.jpg" width="476" height="254" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -5973,7 +6009,7 @@ function TekClock2() {
             ファイルリストの中から右クリックでファイルを選択すると上記の操作メニューが表示されます。また、ファイルリストからファイルをドラック＆ドロップするとアップ・ダウンロードされます<BR>
             <BR>
             ※2.19.8より左（ローカル）のみエクスプローラー経由のコピーや移動、開くなどの操作ができます。また右（リモート）でファイルをダブルクリックすると左（ローカル）にコピーしてから開くの動作を行うようにしました</TD>
-            <TD align="left" valign="top"><IMG src="image043.jpg" width="613" height="362" border="0"></TD>
+            <TD align="left" valign="top"><IMG src="image043.jpg" width="614" height="365" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>

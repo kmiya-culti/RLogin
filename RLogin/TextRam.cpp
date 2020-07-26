@@ -1708,6 +1708,8 @@ CTextRam::CTextRam()
 	m_DefTypeCaret = 1;
 	m_TypeCaret = m_DefTypeCaret;
 	m_DefCaretColor = RGB(255, 255, 255);
+	m_ImeTypeCaret = 0;
+	m_ImeCaretColor = RGB(31, 255, 127);
 	m_CaretColor = m_DefCaretColor;
 	m_UpdateRect.SetRectEmpty();
 	m_UpdateFlag = FALSE;
@@ -1724,6 +1726,7 @@ CTextRam::CTextRam()
 	m_LastChar = 0;
 	m_LastFlag = 0;
 	m_LastPos.SetPoint(0, 0);
+	m_LastCur.SetPoint(0, 0);
 	m_LastSize = CM_ASCII;
 	m_LastAttr = 0;
 	m_LastStr.Empty();
@@ -2602,6 +2605,8 @@ void CTextRam::Init()
 	m_TypeCaret      = m_DefTypeCaret;
 	m_CaretColor     = m_DefCaretColor ;
 	m_MarkColor      = RGB(255, 255, 0);
+	m_ImeTypeCaret   = 0;
+	m_ImeCaretColor  = RGB(31, 255, 127);
 
 	for ( int n = 0 ; n < 8 ; n++ )
 		m_DropFileCmd[n] = DropCmdTab[n];
@@ -2805,6 +2810,11 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		index[_T("Title")] = m_TitleName;
 		index[_T("RtfMode")] = m_RtfMode;
 		index[_T("SleepMode")] = m_SleepMode;
+
+		index[_T("ImeTypeCaret")] = m_ImeTypeCaret;
+		index[_T("ImeCaretColor")].Add(GetRValue(m_ImeCaretColor));
+		index[_T("ImeCaretColor")].Add(GetGValue(m_ImeCaretColor));
+		index[_T("ImeCaretColor")].Add(GetBValue(m_ImeCaretColor));
 
 	} else {		// Read
 		if ( (n = index.Find(_T("Cols"))) >= 0 ) {
@@ -3084,6 +3094,12 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		if ( (n = index.Find(_T("SleepMode"))) >= 0 )
 			m_SleepMode = index[n];
 
+		if ( (n = index.Find(_T("ImeTypeCaret"))) >= 0 )
+			m_ImeTypeCaret = index[n];
+
+		if ( (n = index.Find(_T("ImeCaretColor"))) >= 0 && index[n].GetSize() >= 3 )
+			m_ImeCaretColor = RGB((int)index[n][0], (int)index[n][1], (int)index[n][2]);
+
 		memcpy(m_ColTab, m_DefColTab, sizeof(m_DefColTab));
 		memcpy(m_AnsiOpt, m_DefAnsiOpt, sizeof(m_AnsiOpt));
 		memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
@@ -3330,6 +3346,15 @@ void CTextRam::DiffIndex(CTextRam &orig, CStringIndex &index)
 
 	if ( m_SleepMode != orig.m_SleepMode )
 		index[_T("SleepMode")] = m_SleepMode;
+
+	if ( m_ImeTypeCaret != orig.m_ImeTypeCaret )
+		index[_T("ImeTypeCaret")] = m_ImeTypeCaret;
+
+	if ( m_ImeCaretColor != orig.m_ImeCaretColor ) {
+		index[_T("ImeCaretColor")].Add(GetRValue(m_ImeCaretColor));
+		index[_T("ImeCaretColor")].Add(GetGValue(m_ImeCaretColor));
+		index[_T("ImeCaretColor")].Add(GetBValue(m_ImeCaretColor));
+	}
 }
 void CTextRam::SetArray(CStringArrayExt &stra)
 {
@@ -3445,6 +3470,9 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 	stra.AddVal(m_DelayMSecRecv);
 
 	stra.AddVal(m_SleepMode);
+
+	stra.AddVal(m_ImeTypeCaret);
+	stra.AddVal(m_ImeCaretColor);
 }
 void CTextRam::GetArray(CStringArrayExt &stra)
 {
@@ -3683,6 +3711,12 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 
 	if ( stra.GetSize() > 79 )
 		m_SleepMode = stra.GetVal(79);
+
+	if ( stra.GetSize() > 80 )
+		m_ImeTypeCaret = stra.GetVal(80);
+	if ( stra.GetSize() > 81 )
+		m_ImeCaretColor = stra.GetVal(81);
+
 
 	if ( m_FixVersion < 9 ) {
 		if ( m_pDocument != NULL ) {
@@ -4359,7 +4393,7 @@ BOOL CTextRam::DecPos(int &x, int &y)
 	}
 	return FALSE;
 }
-void CTextRam::EditWordPos(ULONG *sps, ULONG *eps)
+void CTextRam::EditWordPos(CCurPos *sps, CCurPos *eps)
 {
 	int n, c;
 	int tx, ty;
@@ -4527,7 +4561,7 @@ void CTextRam::MediaCopy(int y1, int y2)
 
 	MediaCopyStr(str);
 }
-void CTextRam::EditCopy(int sps, int eps, BOOL rectflag, BOOL lineflag)
+void CTextRam::EditCopy(CCurPos sps, CCurPos eps, BOOL rectflag, BOOL lineflag)
 {
 	int i, x, y, sx, ex, tc;
 	int x1, y1, x2, y2;
@@ -4859,7 +4893,7 @@ void CTextRam::EditCopy(int sps, int eps, BOOL rectflag, BOOL lineflag)
 
 	((CMainFrame *)::AfxGetMainWnd())->SetClipboardText((LPCWSTR)text, (m_RtfMode != RTF_NONE ? (LPCSTR)mixrtf : NULL));
 }
-void CTextRam::EditMark(int sps, int eps, BOOL rectflag, BOOL lineflag)
+void CTextRam::EditMark(CCurPos sps, CCurPos eps, BOOL rectflag, BOOL lineflag)
 {
 	int n, x, y, sx, ex;
 	int x1, y1, x2, y2;
@@ -5015,7 +5049,7 @@ void CTextRam::GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf)
 		}
 	}
 }
-BOOL CTextRam::SpeekLine(int line, CString &text, CDWordArray &pos)
+BOOL CTextRam::SpeekLine(int line, CString &text, CArray<CCurPos, CCurPos &> &pos)
 {
 	int n, x, sx, ex;
 	CCharCell *vp;
@@ -5060,7 +5094,7 @@ BOOL CTextRam::SpeekLine(int line, CString &text, CDWordArray &pos)
 
 	return bContinue;
 }
-BOOL CTextRam::SpeekCheck(ULONG sPos, ULONG ePos, LPCTSTR str)
+BOOL CTextRam::SpeekCheck(CCurPos sPos, CCurPos ePos, LPCTSTR str)
 {
 	int n, x, y, tx, bx;
 	int sx, sy, ex, ey;
@@ -6063,7 +6097,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 	int n;
 	int x, y, sx, ex;
 	int zoom, len;
-	ULONG cpos, spos, epos;
+	CCurPos cpos, spos, epos;
 	int csx, cex, csy, cey;
 	int isx, iex;
 	CRect rect;
@@ -7446,6 +7480,7 @@ void CTextRam::RESET(int mode)
 		m_LastChar = 0;
 		m_LastFlag = 0;
 		m_LastPos.SetPoint(0, 0);
+		m_LastCur.SetPoint(0, 0);
 		m_LastSize = CM_ASCII;
 		m_LastAttr = 0;
 		m_LastStr.Empty();
@@ -8638,7 +8673,6 @@ void CTextRam::DOWARP()
 		return;
 
 	m_DoWarp = FALSE;
-	m_LastPos.y++;
 	m_CurX = GetLeftMargin();
 
 	ONEINDEX();
@@ -8783,7 +8817,8 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at, LPCWSTR str)
 
 	m_LastChar = ch;
 	m_LastFlag = 0;
-	m_LastPos.SetPoint(m_CurX, m_CurY);
+	m_LastPos.SetPoint(m_CurX, m_CurY + m_HisPos);
+	m_LastCur = m_LastPos;
 	m_LastSize = CM_ASCII;
 	m_LastAttr = at;
 
@@ -8842,7 +8877,6 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at, LPCWSTR str)
 		if ( IsOptEnable(TO_DECAWM) != 0 ) {
 			if ( IsOptEnable(TO_RLGNDW) != 0 ) {
 				m_CurX = m_Margin.left;
-				m_LastPos.y--;
 				ONEINDEX();
 			} else {
 				m_CurX = m_Margin.right - 1;
@@ -8851,6 +8885,8 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at, LPCWSTR str)
 		} else 
 			m_CurX = m_Margin.right - 1;
 	}
+
+	m_LastCur.SetPoint(m_CurX, m_CurY);
 }
 void CTextRam::PUT2BYTE(DWORD ch, int md, int at, LPCWSTR str)
 {
@@ -8870,7 +8906,8 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at, LPCWSTR str)
 
 	m_LastChar = ch;
 	m_LastFlag = 0;
-	m_LastPos.SetPoint(m_CurX, m_CurY);
+	m_LastPos.SetPoint(m_CurX, m_CurY + m_HisPos);
+	m_LastCur = m_LastPos;
 	m_LastSize = CM_1BYTE;
 	m_LastAttr = at;
 
@@ -8891,7 +8928,7 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at, LPCWSTR str)
 		m_DoWarp = TRUE;
 		DOWARP();
 
-		m_LastPos.SetPoint(m_CurX, m_CurY);		// Reset
+		m_LastPos.SetPoint(m_CurX, m_CurY + m_HisPos);		// Reset
 
 		dm = GetDm(m_CurY);
 
@@ -8943,7 +8980,6 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at, LPCWSTR str)
 		if ( IsOptEnable(TO_DECAWM) != 0 ) {
 			if ( IsOptEnable(TO_RLGNDW) != 0 ) {
 				m_CurX = m_Margin.left;
-				m_LastPos.y--;
 				ONEINDEX();
 			} else {
 				m_CurX = m_Margin.right - 1;
@@ -8952,6 +8988,8 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at, LPCWSTR str)
 		} else 
 			m_CurX = m_Margin.right - 1;
 	}
+
+	m_LastCur.SetPoint(m_CurX, m_CurY);
 }
 void CTextRam::PUTADD(int x, int y, DWORD ch)
 {
@@ -9065,6 +9103,7 @@ CTextSave *CTextRam::GETSAVERAM(int fMode)
 	pSave->m_LastChar = m_LastChar;
 	pSave->m_LastFlag = m_LastFlag;
 	pSave->m_LastPos  = m_LastPos;
+	pSave->m_LastCur  = m_LastCur;
 	pSave->m_LastSize = m_LastSize;
 	pSave->m_LastAttr = m_LastAttr;
 	wcscpy_s(pSave->m_LastStr, MAXCHARSIZE, m_LastStr);
@@ -9130,6 +9169,7 @@ void CTextRam::SETSAVERAM(CTextSave *pSave)
 	m_LastChar = pSave->m_LastChar;
 	m_LastFlag = pSave->m_LastFlag;
 	m_LastPos  = pSave->m_LastPos;
+	m_LastCur  = pSave->m_LastCur;
 	m_LastSize = pSave->m_LastSize;
 	m_LastAttr = pSave->m_LastAttr;
 	m_LastStr  = pSave->m_LastStr;

@@ -24,6 +24,7 @@ public:
 	BOOL	m_WithAlt;
 	BOOL	m_WithAppli;
 	BOOL	m_WithCkm;
+	BOOL	m_WithVt100;
 	BOOL	m_WithVt52;
 	BOOL	m_WithNum;
 	BOOL	m_WithScr;

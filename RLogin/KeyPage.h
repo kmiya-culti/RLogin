@@ -50,4 +50,6 @@ protected:
 	afx_msg void OnBnClickedAllClr();
 	afx_msg void OnBnClickedMetakey(UINT nID);
 	DECLARE_MESSAGE_MAP()
+public:
+	afx_msg void OnEditDelall();
 };

@@ -66,6 +66,7 @@ BEGIN_MESSAGE_MAP(CKeyPage, CTreePage)
 	ON_BN_CLICKED(IDC_ALL_SET, &CKeyPage::OnBnClickedAllSet)
 	ON_BN_CLICKED(IDC_ALL_CLR, &CKeyPage::OnBnClickedAllClr)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_METAKEY1, IDC_METAKEY1 + KEYTABMAX - 1, &CKeyPage::OnBnClickedMetakey)
+	ON_COMMAND(ID_EDIT_DELALL, &CKeyPage::OnEditDelall)
 END_MESSAGE_MAP()
 
 void CKeyPage::InitList()
@@ -200,7 +201,7 @@ BOOL CKeyPage::OnInitDialog()
 
 	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_SUBITEMIMAGES);
 	m_List.InitColumn(_T("CKeyPage"), InitListTab, 3);
-	m_List.SetPopUpMenu(IDR_POPUPMENU, 1);
+	m_List.SetPopUpMenu(IDR_POPUPMENU, 6);
 
 	DoInit();
 
@@ -353,6 +354,18 @@ void CKeyPage::OnBnClickedMetakey(UINT nID)
 	UpdateData(TRUE);
 	m_KeyMap[n] = (m_KeyMap[n] ? FALSE : TRUE);
 	UpdateData(FALSE);
+
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= UMOD_KEYTAB;
+}
+
+void CKeyPage::OnEditDelall()
+{
+	if ( MessageBox(CStringLoad(IDS_ALLINITREQ), _T("Warning"), MB_ICONWARNING | MB_OKCANCEL) != IDOK )
+		return;
+
+	m_KeyTab.Init();
+	InitList();
 
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_KEYTAB;

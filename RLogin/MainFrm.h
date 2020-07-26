@@ -420,7 +420,7 @@ public:
 	struct _SpeekData {
 		ULONG num;
 		CString text;
-		CDWordArray pos;
+		CArray<CCurPos, CCurPos &> pos;
 		long skip;
 		int abs;
 		int line;

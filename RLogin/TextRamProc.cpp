@@ -2408,10 +2408,10 @@ void CTextRam::fc_UTF85(DWORD ch)
 			// ２文字から１文字のみノーマライズ
 			// U+1100 U+1161        -> U+AC00
 			// U+1100 U+1161 U+11A8 -> U+AC00 U+11A8 -> U+AC01
-			if ( (n = UnicodeNomal(m_LastChar, m_BackChar)) != 0 ) {
+			if ( m_LastCur.x == m_CurX && m_LastCur.y == m_CurY && (n = UnicodeNomal(m_LastChar, m_BackChar)) != 0 ) {
 				m_BackChar = n;
 				cf = UnicodeCharFlag(m_BackChar);
-				LOCATE(m_LastPos.x, m_LastPos.y);
+				LOCATE(m_LastPos.x, m_LastPos.y - m_HisPos);
 			}
 
 			// Mark文字をそれなりに解釈
@@ -2449,12 +2449,12 @@ void CTextRam::fc_UTF85(DWORD ch)
 			// U+1100-115F は初声子音
 			// U+1160-11A2 は中声母音
 			// U+11A8-11F9 は終声子音
-			if ( (m_LastFlag & UNI_HNF) != 0 ) {
+			if ( (m_LastFlag & UNI_HNF) != 0 && m_LastCur.x == m_CurX && m_LastCur.y == m_CurY ) {
 				if ( (cf & UNI_HNM) != 0 ) {
-					PUTADD(m_LastPos.x, m_LastPos.y, m_BackChar);
+					PUTADD(m_LastPos.x, m_LastPos.y - m_HisPos, m_BackChar);
 					goto BREAK;
 				} else if ( (cf & UNI_HNL) != 0 ) {
-					PUTADD(m_LastPos.x, m_LastPos.y, m_BackChar);
+					PUTADD(m_LastPos.x, m_LastPos.y - m_HisPos, m_BackChar);
 					goto BREAK;
 				}
 			}
@@ -2467,7 +2467,7 @@ void CTextRam::fc_UTF85(DWORD ch)
 		// Non Spaceing Mark (with VARIATION SELECTOR !!)
 		if ( (cf & (UNI_IVS | UNI_NSM)) != 0 ) {
 			if ( m_LastChar != 0 )
-				PUTADD(m_LastPos.x, m_LastPos.y, m_BackChar);
+				PUTADD(m_LastPos.x, m_LastPos.y - m_HisPos, m_BackChar);
 			goto BREAK;
 		}
 
@@ -2511,7 +2511,7 @@ void CTextRam::fc_UTF85(DWORD ch)
 
 		if ( (cf & UNI_EMODF) != 0 ) {
 			if ( m_LastChar != 0 && (m_LastFlag & UNI_EMOJI) != 0 )
-				PUTADD(m_LastPos.x, m_LastPos.y, m_BackChar);
+				PUTADD(m_LastPos.x, m_LastPos.y - m_HisPos, m_BackChar);
 			goto BREAK;
 
 		} else if ( (cf & UNI_BN) != 0 ) {
@@ -2560,7 +2560,7 @@ void CTextRam::fc_UTF85(DWORD ch)
 		}
 
 		if ( m_bJoint && m_LastChar != 0 ) {
-			PUTADD(m_LastPos.x, m_LastPos.y, m_BackChar);
+			PUTADD(m_LastPos.x, m_LastPos.y - m_HisPos, m_BackChar);
 
 		} else if ( n == 1 ) {
 			// 1 Cell type Unicode
@@ -6792,7 +6792,7 @@ void CTextRam::fc_DECSRET(DWORD ch)
 			if ( m_bTraceActive )
 				break;
 			{
-				int rt = (-1);
+				BOOL rt = FALSE;
 				CRLoginView *pView;
 				if ( (pView = (CRLoginView *)GetAciveView()) != NULL ) {
 					switch(ch) {
@@ -6812,14 +6812,14 @@ void CTextRam::fc_DECSRET(DWORD ch)
 						rt = pView->ImmOpenCtrl(2);	// stat
 						break;
 					}
-					if ( rt == 1 )
-						EnableOption(i);
-					else if ( rt == 0 )
-						DisableOption(i);
+
+					SetOption(i, rt);
 
 					if ( ch == 's' )
 						ANSIOPT(ch, i);
 				}
+
+				m_pDocument->UpdateAllViews(NULL, UPDATE_TYPECARET, NULL);
 			}
 			break;
 		}
@@ -7530,6 +7530,8 @@ void CTextRam::fc_DECSTR(DWORD ch)
 	m_SaveParam.m_LastFlag = 0;
 	m_SaveParam.m_LastPos.x = 0;
 	m_SaveParam.m_LastPos.y = 0;
+	m_SaveParam.m_LastCur.x = 0;
+	m_SaveParam.m_LastCur.y = 0;
 	m_SaveParam.m_LastSize = CM_ASCII;
 	m_SaveParam.m_LastStr[0] = L'\0';
 	m_SaveParam.m_bRtoL    = FALSE;

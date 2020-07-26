@@ -185,6 +185,7 @@
 #define	TO_XTALTSCR		(1047-700)	// Alternate/Normal screen buffer
 #define	TO_XTSRCUR		(1048-700)	// Save/Restore cursor as in DECSC/DECRC
 #define	TO_XTALTCLR		(1049-700)	// Alternate screen with clearing
+#define	TO_XTLEGKEY		(1060-700)	// legacy keyboard emulation (X11R6)
 #define	TO_XTPRICOL		(1070-700)	// Regis/Sixel Private Color Map
 // XTerm Option 2		2000-2019(380-399)
 #define	TO_XTBRPAMD		(2004-1620)	// Bracketed Paste Mode
@@ -283,6 +284,7 @@
 #define	TO_RLNODELAY	1486		// TCPオプションのNoDelayを有効にする
 #define	TO_RLDELAYRV	1487		// 無受信時間待って次を送信する(ms)
 #define	TO_RLDELAYCR	1488		// 改行(CR)を確認し指定時間待って次を送信する(ms)
+#define	TO_IMECARET		1489		// IMEがONの時にカレットの色を変える
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -849,6 +851,7 @@ typedef struct _SAVEPARAM {
 	DWORD m_LastChar;
 	int m_LastFlag;
 	POINT m_LastPos;
+	POINT m_LastCur;
 	int m_LastSize;
 	int m_LastAttr;
 	WCHAR m_LastStr[MAXCHARSIZE + 2];
@@ -893,6 +896,7 @@ public:
 	DWORD m_LastChar;
 	int m_LastFlag;
 	POINT m_LastPos;
+	POINT m_LastCur;
 	int m_LastSize;
 	int m_LastAttr;
 	WCHAR m_LastStr[MAXCHARSIZE + 2];
@@ -1030,6 +1034,7 @@ public:	// Options
 	CString m_TraceLogFile;
 	int m_TraceMaxCount;
 	int m_DefTypeCaret;
+	COLORREF m_DefCaretColor;
 	int m_FixVersion;
 	int m_SleepMax;
 	int m_LogMode;
@@ -1037,12 +1042,13 @@ public:	// Options
 	CString m_GroupCast;
 	CStringArrayExt m_InlineExt;
 	CString m_TitleName;
-	COLORREF m_DefCaretColor;
 	int m_RtfMode;
 	int m_RecvCrLf;
 	int m_SendCrLf;
 	BOOL m_bInit;
 	int m_SleepMode;
+	int m_ImeTypeCaret;
+	COLORREF m_ImeCaretColor;
 
 	void Init();
 	void SetIndex(int mode, CStringIndex &index);
@@ -1112,6 +1118,7 @@ public:
 	DWORD m_LastChar;
 	int m_LastFlag;
 	CPoint m_LastPos;
+	CPoint m_LastCur;
 	int m_LastSize;
 	int m_LastAttr;
 	CStringW m_LastStr;
@@ -1269,9 +1276,9 @@ public:
 	int GetPos(int x, int y);
 	BOOL IncPos(int &x, int &y);
 	BOOL DecPos(int &x, int &y);
-	void EditWordPos(ULONG *sps, ULONG *eps);
-	void EditCopy(int sps, int eps, BOOL rectflag = FALSE, BOOL lineflag = FALSE);
-	void EditMark(int sps, int eps, BOOL rectflag = FALSE, BOOL lineflag = FALSE);
+	void EditWordPos(CCurPos *sps, CCurPos *eps);
+	void EditCopy(CCurPos sps, CCurPos eps, BOOL rectflag = FALSE, BOOL lineflag = FALSE);
+	void EditMark(CCurPos sps, CCurPos eps, BOOL rectflag = FALSE, BOOL lineflag = FALSE);
 	void GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf);
 	void GetLine(int sy, CString &str);
 	void MediaCopyStr(LPCTSTR str);
@@ -1281,8 +1288,8 @@ public:
 	void GetCellSize(int *x, int *y);
 	void GetScreenSize(int *pCx, int *pCy, int *pSx, int *pSy);
 
-	BOOL SpeekLine(int line, CString &text, CDWordArray &pos);
-	BOOL SpeekCheck(ULONG sPos, ULONG ePos, LPCTSTR str);
+	BOOL SpeekLine(int line, CString &text, CArray<CCurPos, CCurPos &> &pos);
+	BOOL SpeekCheck(CCurPos sPos, CCurPos ePos, LPCTSTR str);
 
 	void DrawBitmap(CDC *pDestDC, CRect &rect, CDC *pSrcDC, int width, int height, DWORD dwRop);
 	void DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, struct DrawWork &prop, class CRLoginView *pView);
@@ -1306,8 +1313,8 @@ public:
 	int InitDefParam(BOOL bCheck, int modFlag = (-1));
 	void InitModKeyTab();
 
-	inline ULONG GetCalcPos(int x, int y) { return (m_ColsMax * (ULONG)(y + m_HisPos + m_HisMax) + x); }
-	inline void SetCalcPos(ULONG pos, int *x, int *y) { *x = (int)(pos % m_ColsMax); *y = (int)(pos / m_ColsMax - m_HisPos - m_HisMax); }
+	inline CCurPos GetCalcPos(int x, int y) { return CCurPos(x, y + m_HisPos + m_HisMax); }
+	inline void SetCalcPos(CCurPos pos, int *x, int *y) { *x = pos.cx; *y = pos.cy - m_HisPos - m_HisMax; }
 	inline int GetDm(int y) { return GETVRAM(0, y)->m_Vram.zoom; }
 	inline void SetDm(int y, int dm) { GETVRAM(0, y)->m_Vram.zoom = dm; }
 	inline void SetRet(int y) { GETVRAM(0, y)->m_Vram.attr |= ATT_RETURN; }

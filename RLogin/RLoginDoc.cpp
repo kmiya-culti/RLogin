@@ -185,7 +185,7 @@ BOOL CRLoginDoc::InitDocument()
 		return FALSE;
 
 	CRLoginView *pView;
-	if ( (pView = (CRLoginView *)GetAciveView()) != NULL && pView->ImmOpenCtrl(2) == 1 ) {
+	if ( (pView = (CRLoginView *)GetAciveView()) != NULL && pView->ImmOpenCtrl(2) ) {
 		m_TextRam.EnableOption(TO_IMECTRL);
 		pView->ImmOpenCtrl(1);
 	} else {

@@ -4117,7 +4117,7 @@ void CMainFrame::Speek(LPCTSTR str)
 		m_bVoiceEvent = FALSE;
 		pVoice->SetInterest(0, 0);
 		pVoice->Speak(L"", SPF_ASYNC | SPF_PURGEBEFORESPEAK | SPF_IS_NOT_XML, NULL);
-		m_pSpeekView->SpeekTextPos(FALSE, 0, 0);
+		m_pSpeekView->SpeekTextPos(FALSE, NULL, NULL);
 	}
 
 	pVoice->Speak(TstrToUni(str), SPF_ASYNC, NULL);
@@ -4141,7 +4141,8 @@ LRESULT CMainFrame::OnSpeekMsg(WPARAM wParam, LPARAM lParam)
 	SPEVENT eventItem;
 	ISpVoice *pVoice = ((CRLoginApp *)::AfxGetApp())->m_pVoice;
 	SPVOICESTATUS status;
-	ULONG spos, epos;
+	CCurPos spos, epos;
+	ULONG skipd;
 
 	memset(&eventItem, 0, sizeof(SPEVENT));
 
@@ -4161,7 +4162,7 @@ LRESULT CMainFrame::OnSpeekMsg(WPARAM wParam, LPARAM lParam)
 			if ( status.ulCurrentStream != m_SpeekData[m_SpeekQueTop].num )
 				break;
 			if ( m_SpeekData[m_SpeekQueTop].skip != 0 ) {
-				pVoice->Skip(L"SENTENCE", m_SpeekData[m_SpeekQueTop].skip, &spos);
+				pVoice->Skip(L"SENTENCE", m_SpeekData[m_SpeekQueTop].skip, &skipd);
 				m_SpeekData[m_SpeekQueTop].skip = 0;
 				break;
 			}
@@ -4172,13 +4173,13 @@ LRESULT CMainFrame::OnSpeekMsg(WPARAM wParam, LPARAM lParam)
 			spos = m_SpeekData[m_SpeekQueTop].pos[status.ulInputWordPos];
 			epos = m_SpeekData[m_SpeekQueTop].pos[status.ulInputWordPos + status.ulInputWordLen - 1];
 			if ( !m_pSpeekDoc->m_TextRam.SpeekCheck(spos, epos, (LPCTSTR)m_SpeekData[m_SpeekQueTop].text + status.ulInputWordPos) ) {
-				pVoice->Skip(L"SENTENCE", 1, &spos);
+				pVoice->Skip(L"SENTENCE", 1, &skipd);
 				m_SpeekAbs  = m_SpeekData[m_SpeekQueTop].abs;
 				m_SpeekLine = m_SpeekData[m_SpeekQueTop].line;
-				m_pSpeekView->SpeekTextPos(FALSE, 0, 0);
+				m_pSpeekView->SpeekTextPos(FALSE, NULL, NULL);
 				break;
 			}
-			m_pSpeekView->SpeekTextPos(TRUE, spos, epos);
+			m_pSpeekView->SpeekTextPos(TRUE, &spos, &epos);
 			break;
 
 		case SPEI_SENTENCE_BOUNDARY:
@@ -4188,7 +4189,7 @@ LRESULT CMainFrame::OnSpeekMsg(WPARAM wParam, LPARAM lParam)
 			if ( eventItem.ulStreamNum != m_SpeekData[m_SpeekQueTop].num )
 				break;
 			if ( m_SpeekData[m_SpeekQueTop].skip != 0 ) {
-				pVoice->Skip(L"SENTENCE", m_SpeekData[m_SpeekQueTop].skip, &spos);
+				pVoice->Skip(L"SENTENCE", m_SpeekData[m_SpeekQueTop].skip, &skipd);
 				m_SpeekData[m_SpeekQueTop].skip = 0;
 				break;
 			}
@@ -4208,7 +4209,7 @@ LRESULT CMainFrame::OnSpeekMsg(WPARAM wParam, LPARAM lParam)
 				pVoice->SetInterest(0, 0);
 				m_bVoiceEvent = FALSE;
 			}
-			m_pSpeekView->SpeekTextPos(FALSE, 0, 0);
+			m_pSpeekView->SpeekTextPos(FALSE, NULL, NULL);
 			break;
 		}
 	}
@@ -4247,7 +4248,7 @@ void CMainFrame::OnSpeekText()
 		m_bVoiceEvent = FALSE;
 		pVoice->SetInterest(0, 0);
 		pVoice->Speak(L"", SPF_ASYNC | SPF_PURGEBEFORESPEAK | SPF_IS_NOT_XML, NULL);
-		m_pSpeekView->SpeekTextPos(FALSE, 0, 0);
+		m_pSpeekView->SpeekTextPos(FALSE, NULL, NULL);
 	}
 }
 void CMainFrame::OnUpdateSpeekText(CCmdUI *pCmdUI)
@@ -4434,13 +4435,15 @@ void CDockContextEx::TrackLoop()
 	BOOL bFloatSytle = TRUE;
 	BOOL bVert = FALSE;
 	BOOL bFloatVert = FALSE;
+	BOOL bIdle = FALSE;
 	CDockBar *pDockBar;
 
 	m_pBar->SetCapture();
 	m_bDragging = FALSE;
 
 	while ( CWnd::GetCapture() == m_pBar ) {
-		for ( count = 0 ; !::PeekMessage(&msg, NULL, NULL, NULL, PM_NOREMOVE) ; count++ ) {
+		for ( count = 0 ; bIdle || !::PeekMessage(&msg, NULL, NULL, NULL, PM_NOREMOVE) ; count++ ) {
+			bIdle = FALSE;
 			if ( !((CRLoginApp *)AfxGetApp())->OnIdle(count) )
 				break;
 		}
@@ -4573,6 +4576,8 @@ void CDockContextEx::TrackLoop()
 		default:
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
+			if ( ((CRLoginApp *)::AfxGetApp())->IsIdleMessage(&msg) )
+				bIdle = TRUE;
 			break;
 		}
 	}
@@ -5468,6 +5473,7 @@ void CTabDlgBar::TrackLoop(CPoint ptScrn, int idx, CWnd *pMoveWnd, int nImage)
 	BOOL bDrag = FALSE;
 	BOOL bReSize = FALSE;
 	BOOL bGetRect = FALSE;
+	BOOL bIdle = FALSE;
 
 	if ( !IsFloating() && idx <= (-1) && idx >= (-4) )
 		bReSize = TRUE;
@@ -5486,7 +5492,8 @@ void CTabDlgBar::TrackLoop(CPoint ptScrn, int idx, CWnd *pMoveWnd, int nImage)
 	ptLast = ptScrn;
 
 	while ( CWnd::GetCapture() == this ) {
-		for ( count = 0 ; !::PeekMessage(&msg, NULL, NULL, NULL, PM_NOREMOVE) ; count++ ) {
+		for ( count = 0 ; bIdle || !::PeekMessage(&msg, NULL, NULL, NULL, PM_NOREMOVE) ; count++ ) {
+			bIdle = FALSE;
 			if ( !((CRLoginApp *)AfxGetApp())->OnIdle(count) )
 				break;
 		}
@@ -5669,6 +5676,8 @@ void CTabDlgBar::TrackLoop(CPoint ptScrn, int idx, CWnd *pMoveWnd, int nImage)
 		default:
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
+			if ( ((CRLoginApp *)::AfxGetApp())->IsIdleMessage(&msg) )
+				bIdle = TRUE;
 			break;
 		}
 	}

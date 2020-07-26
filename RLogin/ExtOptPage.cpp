@@ -52,6 +52,7 @@ static const struct _OptListTab {
 	{	TO_RLNOCHKFONT,	IDT_EXTOPT_LIST24	},
 	{	TO_RLCOLEMOJI,	IDT_EXTOPT_LIST25	},
 //	{	TO_RLNODELAY,	IDT_EXTOPT_LIST26	},
+//	{	TO_IMECARET,	IDT_EXTOPT_LIST27	},
 	{	0,				0					},
 };
 

@@ -542,8 +542,10 @@ void CResTransDlg::OnBnClickedTransexec()
 	CBuffer tmp;
 	CIConv iconv;
 
+	UpdateData(TRUE);
+
 	for ( seq = num = 0 ; num < m_TransStrTab.GetSize() ; seq++ ) {
-		file.Format(_T("D:\\Temp\\Translate%02d.txt"), seq);
+		file.Format(_T("D:\\Temp\\%s\\Translate%02d.txt"), m_TransTo, seq);
 		if ( !tmp.LoadFile(file) )
 			break;
 		tmp.KanjiConvert(tmp.KanjiCheck(KANJI_UTF8));
@@ -554,6 +556,8 @@ void CResTransDlg::OnBnClickedTransexec()
 			num++;
 		}
 	}
+
+	m_bTranstate = TRUE;
 #endif
 }
 void CResTransDlg::OnNMClickSyslink1(NMHDR *pNMHDR, LRESULT *pResult)

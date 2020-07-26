@@ -36,6 +36,7 @@ CTabBar::CTabBar()
 	m_BoderSize = 2;
 	m_MinTabSize = MINTAB_SIZE;
 	m_TabLines = 1;
+	m_bTrackMode = FALSE;
 }
 
 CTabBar::~CTabBar()
@@ -252,6 +253,9 @@ void CTabBar::OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler)
 	CRLoginDoc *pDoc;
 	CRect rect;
 
+	if ( m_bTrackMode )
+		return;
+
 	for ( n = 0 ; n < m_TabCtrl.GetItemCount() ; n++ ) {
 		tci.mask = TCIF_PARAM | TCIF_TEXT | TCIF_IMAGE;
 		tci.pszText = tmp;
@@ -444,6 +448,7 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 	MSG msg;
 	clock_t stc = clock() - (CLOCKS_PER_SEC * 2);
 	int count = m_TabCtrl.GetItemCount();
+	BOOL bIdle = FALSE;
 
 	ASSERT(pApp != NULL && pMain != NULL);
 
@@ -500,14 +505,16 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 	ClientToScreen(rect);
 	pDeskTop->ScreenToClient(rect);
 	rectFirst = rectLast = rect;
+	m_bTrackMode = TRUE;
 
 	GetTitle(idx, title);
 	track.Create(NULL, title, WS_TILED | WS_CHILD, rect, pDeskTop, (-1));
 	track.SetWindowPos(&wndTopMost, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
 
 	for ( ; ; ) {
-		while ( !::PeekMessage(&msg, NULL, NULL, NULL, PM_NOREMOVE) ) {
-			if ( !((CRLoginApp *)AfxGetApp())->OnIdle(-1) )
+		for ( int idlecount = 0 ; bIdle || !::PeekMessage(&msg, NULL, NULL, NULL, PM_NOREMOVE) ; idlecount++ ) {
+			bIdle = FALSE;
+			if ( !((CRLoginApp *)AfxGetApp())->OnIdle(idlecount) )
 				break;
 		}
 
@@ -515,6 +522,7 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 		if (  !::GetMessage(&msg, NULL, 0, 0) || m_TabCtrl.GetItemCount() != count ) {
 			track.DestroyWindow();
 			ReleaseCapture();
+			m_bTrackMode = FALSE;
 			return;
 		}
 
@@ -611,6 +619,7 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 
 			track.DestroyWindow();
 			ReleaseCapture();
+			m_bTrackMode = FALSE;
 
 			if ( m_bNumber )
 				SetTabTitle(FALSE);
@@ -635,6 +644,8 @@ void CTabBar::OnLButtonDown(UINT nFlags, CPoint point)
 		default:
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
+			if ( ((CRLoginApp *)::AfxGetApp())->IsIdleMessage(&msg) )
+				bIdle = TRUE;
 			break;
 		}
 	}

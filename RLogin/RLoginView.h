@@ -98,9 +98,9 @@ public:
 	INT_PTR m_RclickTimer;
 
 	int m_ClipFlag;
-	ULONG m_ClipStaPosSave;
-	ULONG m_ClipStaPos, m_ClipEndPos;
-	ULONG m_ClipStaOld, m_ClipEndOld;
+	CCurPos m_ClipStaPosSave;
+	CCurPos m_ClipStaPos, m_ClipEndPos;
+	CCurPos m_ClipStaOld, m_ClipEndOld;
 	UINT m_ClipTimer;
 	CPoint m_ClipSavePoint;
 	UINT m_ClipKeyFlags;
@@ -179,7 +179,7 @@ public:
 
 	void InvalidateTextRect(CRect &rect);
 	void InvalidateFullText();
-	void CalcPosRect(CRect &rect, ULONG staPos, ULONG endPos, BOOL bLine = FALSE);
+	void CalcPosRect(CRect &rect, CCurPos staPos, CCurPos endPos, BOOL bLine = FALSE);
 	void CalcGrapPoint(CPoint po, int *x, int *y);
 	int HitTest(CPoint point);
 	void SetFrameRect(int cx, int cy);
@@ -189,16 +189,16 @@ public:
 	CSize m_CaretSize;
 	CRect m_CaretRect;
 	CSize m_CaretMapSize;
+	CSize m_CaretOffset;
 	CBitmap m_CaretBitmap;
 	COLORREF m_CaretColor;
 	BOOL m_bCaretAllocCol;
+	COLORREF m_CaretAllocColor;
 	clock_t m_CaretBaseClock;
 	int m_CaretAnimeMax;
 	int m_CaretAnimeClock;
 
 	COLORREF CaretColor();
-	void CaretPos(POINT point);
-	void CaretSize(int width, int height);
 	inline void CaretInitView() { m_CaretBaseClock = clock(); }
 
 	void InvalidateCaret();
@@ -207,7 +207,7 @@ public:
 	void KillCaret();
 	void SetCaret();
 	void ImmSetPos(int x, int y);
-	int ImmOpenCtrl(int sw);
+	BOOL ImmOpenCtrl(int sw);
 
 	void SendBuffer(CBuffer &buf, BOOL macflag = FALSE, BOOL delaySend = FALSE);
 	void SetGhostWnd(BOOL sw);
@@ -221,9 +221,9 @@ public:
 	BOOL SetDropFile(LPCTSTR FileName, BOOL &doCmd, BOOL &doSub);
 
 	BOOL m_bSpeekDispText;
-	ULONG m_SpeekStaPos, m_SpeekEndPos;
+	CCurPos m_SpeekStaPos, m_SpeekEndPos;
 
-	void SpeekTextPos(BOOL bDisp, ULONG sPos, ULONG ePos);
+	void SpeekTextPos(BOOL bDisp, CCurPos *pStaPos, CCurPos *pEndPos);
 
 	inline int CalcGrapX(int x)	{ CRLoginDoc *pDoc = GetDocument(); return (m_Width  * x / m_Cols  + pDoc->m_TextRam.m_ScrnOffset.left); }
 	inline int CalcGrapY(int y) { CRLoginDoc *pDoc = GetDocument(); return (m_Height * y / m_Lines + pDoc->m_TextRam.m_ScrnOffset.top + m_TopOffset); }

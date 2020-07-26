@@ -954,10 +954,10 @@ void CCmdHisDlg::OnUpdateCmdhisCurd(CCmdUI *pCmdUI)
 
 void CCmdHisDlg::OnCmdhisMsg()
 {
-	int num = m_List.GetSelectionMark();
+	int num = m_List.GetItemCount() - 1;
 	CMDHIS *pCmdHis;
 	
-	if ( num >= 0 && m_List.GetItemState(num, LVIS_SELECTED) != 0 && (pCmdHis = (CMDHIS *)m_List.GetItemData(num)) != NULL && pCmdHis->exit.IsEmpty() ) {
+	if ( num >= 0 && (pCmdHis = (CMDHIS *)m_List.GetItemData(num)) != NULL && pCmdHis->exit.IsEmpty() ) {
 		pCmdHis->emsg = (pCmdHis->emsg ? FALSE : TRUE);
 		m_List.SetItemText(num, 5, pCmdHis->emsg ? _T("wait") : _T("")); 
 	}
@@ -965,10 +965,10 @@ void CCmdHisDlg::OnCmdhisMsg()
 void CCmdHisDlg::OnUpdateCmdhisMsg(CCmdUI *pCmdUI)
 {
 	BOOL bEnable = FALSE;
-	int num = m_List.GetSelectionMark();
+	int num = m_List.GetItemCount() - 1;
 	CMDHIS *pCmdHis;
 	
-	if ( num >= 0 && m_List.GetItemState(num, LVIS_SELECTED) != 0 && (pCmdHis = (CMDHIS *)m_List.GetItemData(num)) != NULL && pCmdHis->exit.IsEmpty() ) {
+	if ( num >= 0 && (pCmdHis = (CMDHIS *)m_List.GetItemData(num)) != NULL && pCmdHis->exit.IsEmpty() ) {
 		pCmdUI->SetCheck(pCmdHis->emsg ? 1 : 0);
 		bEnable = TRUE;
 	}

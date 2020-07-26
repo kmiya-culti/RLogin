@@ -36,6 +36,7 @@ public:
 	int m_MinTabSize;
 	CString m_ToolTipStr;
 	BOOL m_bMultiLine;
+	BOOL m_bTrackMode;
 
 	BOOL Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID);
 

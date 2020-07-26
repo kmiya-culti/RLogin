@@ -802,8 +802,8 @@ LPCWSTR CBuffer::Base64Decode(LPCWSTR str)
 	int n, c, o;
 
 	Clear();
-	for ( n = o = 0 ; *str != _T('\0') ; n++, str++ ) {
-		while ( *str == _T('\t') || *str == _T('\r') || *str == _T('\n') )
+	for ( n = o = 0 ; *str != L'\0' ; n++, str++ ) {
+		while ( *str == L'\t' || *str == L'\r' || *str == L'\n' )
 			str++;
 		if ( (c = Base64DecTab[(BYTE)(*str)]) < 0 )
 			break;
@@ -850,6 +850,174 @@ void CBuffer::Base64Encode(LPBYTE buf, int len)
 			PutTChar('=');
 			PutTChar('=');
 		}
+	}
+}
+
+static const char *Base64urlEncTab = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+static const char Base64urlDecTab[] = {
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 62, -1, 62, -1, 63,
+        52, 53, 54, 55, 56, 57, 58, 59, 60, 61, -1, -1, -1, -1, -1, -1,
+        -1,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
+        15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, -1, -1, -1, -1, 63,
+        -1, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+        41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
+
+LPCTSTR CBuffer::Base64urlDecode(LPCTSTR str)
+{
+	int n, c, o;
+
+	Clear();
+	for ( n = o = 0 ; *str != _T('\0') ; n++, str++ ) {
+		while ( *str == _T('\t') || *str == _T('\r') || *str == _T('\n') )
+			str++;
+		if ( (c = Base64urlDecTab[(BYTE)(*str)]) < 0 )
+			break;
+		switch(n % 4) {
+		case 0:
+			o = c << 2;
+			break;
+		case 1:
+			o |= (c >> 4);
+			Put8Bit(o);
+			o = c << 4;
+			break;
+		case 2:
+			o |= (c >> 2);
+			Put8Bit(o);
+			o = c << 6;
+			break;
+		case 3:
+			o |= c;
+			Put8Bit(o);
+			break;
+		}
+	}
+	return str;
+}
+void CBuffer::Base64urlEncode(LPBYTE buf, int len)
+{
+	int n;
+	Clear();
+	for ( n = len ; n > 0 ; n -= 3, buf += 3 ) {
+		if ( n >= 3 ) {
+			PutTChar(Base64urlEncTab[(buf[0] >> 2) & 077]);
+			PutTChar(Base64urlEncTab[((buf[0] << 4) | (buf[1] >> 4)) & 077]);
+			PutTChar(Base64urlEncTab[((buf[1] << 2) | (buf[2] >> 6)) & 077]);
+			PutTChar(Base64urlEncTab[buf[2] & 077]);
+		} else if ( n >= 2 ) {
+			PutTChar(Base64urlEncTab[(buf[0] >> 2) & 077]);
+			PutTChar(Base64urlEncTab[((buf[0] << 4) | (buf[1] >> 4)) & 077]);
+			PutTChar(Base64urlEncTab[(buf[1] << 2) & 077]);
+		} else {
+			PutTChar(Base64urlEncTab[(buf[0] >> 2) & 077]);
+			PutTChar(Base64urlEncTab[(buf[0] << 4) & 077]);
+		}
+	}
+}
+
+static const char *Base32EncTab = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+static const char Base32DecTab[] = {
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, 26, 27, 28, 29, 30, 31, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
+        15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
+
+static const char *Base32hexEncTab = "0123456789ABCDEFGHIJKLMNOPQRSTUV";
+static const char Base32hexDecTab[] = {
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+         0,  1,  2,  3,  4,  5,  6,  7,  8,  9, -1, -1, -1, -1, -1, -1,
+        -1, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+        25, 26, 27, 28, 29, 30, 31, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
+
+LPCTSTR CBuffer::Base32Decode(LPCTSTR str, BOOL bHex)
+{
+	char c;
+	int bits = 0;
+	WORD data = 0;
+	const char *DecTab = (bHex ? Base32hexDecTab : Base32DecTab);
+
+	Clear();
+
+	while ( *str != _T('\0') ) {
+		while ( *str == _T('\t') || *str == _T('\r') || *str == _T('\n') )
+			str++;
+		if ( (c = DecTab[(BYTE)(*(str++))]) < 0 )
+			break;
+
+		data <<= 5;
+		data |= c;
+		bits += 5;
+
+		if ( bits >= 8 ) {
+			Put8Bit(data >> (bits - 8));
+			bits -= 8;
+		}
+	}
+
+	return str;
+}
+void CBuffer::Base32Encode(LPBYTE buf, int len, BOOL bHex)
+{
+	int bits = 0;
+	int pad = 0;
+	WORD data = 0;
+	LPBYTE ebuf = buf + len;
+	const char *EncTab = (bHex ? Base32hexEncTab : Base32EncTab);
+
+	while ( buf < ebuf ) {
+		data <<= 8;
+		bits += 8;
+		data |= *(buf++);
+
+		while ( bits >= 5 ) {
+			PutTChar(EncTab[(data >> (bits - 5)) & 037]);
+			bits -= 5;
+			pad++;
+		}
+	}
+
+	if ( bits > 0 ) {
+		PutTChar(EncTab[(data << (5 - bits)) & 037]);
+		pad++;
+	}
+
+	if ( (pad %= 8) > 0 ) {
+		for ( ; pad < 8 ; pad++ )
+			PutTChar('=');
 	}
 }
 
@@ -4550,6 +4718,7 @@ static const struct _KeyNameTab	{
 	{ VK_DELETE,	_T("DELETE")	},
 	{ VK_HOME,		_T("HOME")		},
 	{ VK_END,		_T("END")		},
+	{ VK_CLEAR,		_T("CLEAR")		},
 
 	{ VK_PAUSE,		_T("PAUSE")		},
 	{ VK_CANCEL,	_T("BREAK")		},
@@ -4576,6 +4745,7 @@ static const struct _KeyNameTab	{
 	{ VK_SUBTRACT,	_T("PADSUB")	},
 	{ VK_DECIMAL,	_T("PADDEC")	},
 	{ VK_DIVIDE,	_T("PADDIV")	},
+	{ VK_NUMLOCK,	_T("PADNUM")	},
 
 	{ VK_OEM_1,		_T("$BA(:)")	},
 	{ VK_OEM_PLUS,	_T("$BB(;)")	},
@@ -4685,6 +4855,7 @@ LPCTSTR CKeyNode::GetMask()
 
 	if ( (m_Mask & MASK_APPL) )  m_Temp += _T("App+");
 	if ( (m_Mask & MASK_CKM) )   m_Temp += _T("Ckm+");
+	if ( (m_Mask & MASK_LEGA))   m_Temp += _T("Legacy+");
 	if ( (m_Mask & MASK_VT52) )  m_Temp += _T("VT52+");
 
 	//if ( (m_Mask & MASK_NUMLCK) ) m_Temp += _T("Num+");
@@ -4833,11 +5004,12 @@ static const struct _InitKeyTab {
 		{ 0,	VK_DOWN,		0,						_T("\\033[B")		},
 		{ 0,	VK_RIGHT,		0,						_T("\\033[C")		},
 		{ 0,	VK_LEFT,		0,						_T("\\033[D")		},
+		{ 12,	VK_CLEAR,		0,						_T("\\033[E")		},
 
-		{ 0,	VK_HOME,		0,						_T("\\033[H")		},	//	kh
+		{ 0,	VK_HOME,		0,						_T("\\033[H")		},
 		{ 0,	VK_INSERT,		0,						_T("\\033[2~")		},	//	kI
 		{ 0,	VK_DELETE,		0,						_T("\\033[3~")		},	//	kD
-		{ 0,	VK_END,			0,						_T("\\033[F")		},	//	@7
+		{ 0,	VK_END,			0,						_T("\\033[F")		},
 		{ 0,	VK_PRIOR,		0,						_T("\\033[5~")		},	//	kP
 		{ 0,	VK_NEXT,		0,						_T("\\033[6~")		},	//	kN
 
@@ -4845,15 +5017,46 @@ static const struct _InitKeyTab {
 		{ 0,	VK_DOWN,		MASK_CKM,				_T("\\033OB")		},	//	kd
 		{ 0,	VK_RIGHT,		MASK_CKM,				_T("\\033OC")		},	//	kr
 		{ 0,	VK_LEFT,		MASK_CKM,				_T("\\033OD")		},	//	kl
+		{ 12,	VK_CLEAR,		MASK_CKM,				_T("\\033OE")		},
 
-		{ 0,	VK_HOME,		MASK_CKM,				_T("\\033OH")		},
-		{ 0,	VK_END,			MASK_CKM,				_T("\\033OF")		},
+		{ 0,	VK_HOME,		MASK_CKM,				_T("\\033OH")		},	//	kh
+		{ 0,	VK_END,			MASK_CKM,				_T("\\033OF")		},	//	@7
 		{ 0,	VK_ESCAPE,		MASK_CKM,				_T("\\033O[")		},
 
 		{ 0,	VK_UP,			MASK_VT52,				_T("\\033A")		},
 		{ 0,	VK_DOWN,		MASK_VT52,				_T("\\033B")		},
 		{ 0,	VK_RIGHT,		MASK_VT52,				_T("\\033C")		},
 		{ 0,	VK_LEFT,		MASK_VT52,				_T("\\033D")		},
+		{ 12,	VK_CLEAR,		MASK_VT52,				_T("\\033E")		},
+
+		{ 12,	VK_END,			MASK_VT52,				_T("\\033F")		},
+		{ 12,	VK_NEXT,		MASK_VT52,				_T("\\033G")		},
+		{ 12,	VK_HOME,		MASK_VT52,				_T("\\033H")		},
+		{ 12,	VK_PRIOR,		MASK_VT52,				_T("\\033I")		},
+		{ 12,	VK_INSERT,		MASK_VT52,				_T("\\033L")		},
+		{ 12,	VK_DELETE,		MASK_VT52,				_T("\\033M")		},
+
+		{ 12,	VK_F1,			MASK_VT52,				_T("\\033P")		},
+		{ 12,	VK_F2,			MASK_VT52,				_T("\\033Q")		},
+		{ 12,	VK_F3,			MASK_VT52,				_T("\\033R")		},
+		{ 12,	VK_F4,			MASK_VT52,				_T("\\033S")		},
+		{ 12,	VK_F5,			MASK_VT52,				_T("\\033T")		},
+		{ 12,	VK_F6,			MASK_VT52,				_T("\\033U")		},
+		{ 12,	VK_F7,			MASK_VT52,				_T("\\033V")		},
+		{ 12,	VK_F8,			MASK_VT52,				_T("\\033W")		},
+		{ 12,	VK_F9,			MASK_VT52,				_T("\\033X")		},
+		{ 12,	VK_F10,			MASK_VT52,				_T("\\033Y")		},
+		{ 12,	VK_F11,			MASK_VT52,				_T("\\033Z")		},
+		{ 12,	VK_F12,			MASK_VT52,				_T("\\033[")		},
+
+		{ 12,	VK_HOME,		MASK_LEGA,				_T("\\033[1~")		},
+		{ 12,	VK_END,			MASK_LEGA,				_T("\\033[4~")		},
+		{ 12,	VK_DELETE,		MASK_LEGA,				_T("\\177")			},
+
+		{ 12,	VK_F1,			MASK_LEGA,				_T("\\033[11~")		},
+		{ 12,	VK_F2,			MASK_LEGA,				_T("\\033[12~")		},
+		{ 12,	VK_F3,			MASK_LEGA,				_T("\\033[13~")		},
+		{ 12,	VK_F4,			MASK_LEGA,				_T("\\033[14~")		},
 
 		{ 0,	VK_F1,			0,						_T("\\033OP")		},	//	k1
 		{ 0,	VK_F2,			0,						_T("\\033OQ")		},	//	k2
@@ -4867,24 +5070,6 @@ static const struct _InitKeyTab {
 		{ 0,	VK_F10,			0,						_T("\\033[21~")		},	//	k;
 		{ 0,	VK_F11,			0,						_T("\\033[23~")		},	//	F1
 		{ 0,	VK_F12,			0,						_T("\\033[24~")		},	//	F2
-
-		{ 10,	VK_F1,			MASK_APPL,				_T("\\033[11~")		},
-		{ 10,	VK_F2,			MASK_APPL,				_T("\\033[12~")		},
-		{ 10,	VK_F3,			MASK_APPL,				_T("\\033[13~")		},
-		{ 10,	VK_F4,			MASK_APPL,				_T("\\033[14~")		},
-
-		{ 10,	VK_F3,			MASK_SHIFT | MASK_APPL,	_T("\\033[25~")		},
-		{ 10,	VK_F4,			MASK_SHIFT | MASK_APPL,	_T("\\033[26~")		},
-
-		{ 10,	VK_F3,			MASK_SHIFT,				_T("\\033[25~")		},
-		{ 10,	VK_F4,			MASK_SHIFT,				_T("\\033[26~")		},
-		{ 10,	VK_F5,			MASK_SHIFT,				_T("\\033[28~")		},
-		{ 10,	VK_F6,			MASK_SHIFT,				_T("\\033[29~")		},
-		{ 10,	VK_F7,			MASK_SHIFT,				_T("\\033[31~")		},
-		{ 10,	VK_F8,			MASK_SHIFT,				_T("\\033[32~")		},
-		{ 10,	VK_F9,			MASK_SHIFT,				_T("\\033[33~")		},
-		{ 10,	VK_F10,			MASK_SHIFT,				_T("\\033[34~")		},
-
 		{ 0,	VK_F13,			0,						_T("\\033[25~")		},	//	F3
 		{ 0,	VK_F14,			0,						_T("\\033[26~")		},	//	F4
 		{ 0,	VK_F15,			0,						_T("\\033[28~")		},	//	F5
@@ -4896,12 +5081,15 @@ static const struct _InitKeyTab {
 
 		{ 0,	VK_TAB,			MASK_SHIFT,				_T("\\033[Z")		},
 
-		{ 0,	VK_SEPARATOR,	MASK_APPL,				_T("\\033OX")		},	// = (equal)    | =	  | SS3 X
-		{ 0,	VK_MULTIPLY,	MASK_APPL,				_T("\\033Oj")		},	// * (multiply) | *	  | SS3 j
-		{ 0,	VK_ADD,			MASK_APPL,				_T("\\033On")		},	// + (add)      | +	  | SS3 k
-		{ 0,	VK_SUBTRACT,	MASK_APPL,				_T("\\033Om")		},	// - (minus)    | -	  | SS3 m
-		{ 0,	VK_DECIMAL,		MASK_APPL,				_T("\\033On")		},	// . (period)   | .	  | SS3 n
-		{ 0,	VK_DIVIDE,		MASK_APPL,				_T("\\033Oo")		},	// / (divide)   | /	  | SS3 o
+		{ 12,	VK_NUMLOCK,		MASK_APPL,				_T("\\033OP")		},	// NumLock	    | 	  | SS3 P
+		{ 12,	VK_DIVIDE,		MASK_APPL,				_T("\\033OQ")		},	// / (divide)   | /	  | SS3 Q
+		{ 12,	VK_MULTIPLY,	MASK_APPL,				_T("\\033OR")		},	// * (multiply) | *	  | SS3 R
+		{ 12,	VK_SUBTRACT,	MASK_APPL,				_T("\\033OS")		},	// - (minus)    | -	  | SS3 S
+
+		{ 12,	VK_ADD,			MASK_APPL,				_T("\\033Ol")		},	// + (add)      | +	  | SS3 l
+		{ 12,	VK_DECIMAL,		MASK_APPL,				_T("\\033On")		},	// . (period)   | .	  | SS3 n
+		{ 12,	VK_SEPARATOR,	MASK_APPL,				_T("\\033OM")		},	// = (equal)    | =	  | SS3 M
+
 		{ 0,	VK_NUMPAD0,		MASK_APPL,				_T("\\033Op")		},	// 0	        | 0	  | SS3 p
 		{ 0,	VK_NUMPAD1,		MASK_APPL,				_T("\\033Oq")		},	// 1	        | 1	  | SS3 q
 		{ 0,	VK_NUMPAD2,		MASK_APPL,				_T("\\033Or")		},	// 2	        | 2	  | SS3 r
@@ -4937,6 +5125,7 @@ static const struct _InitKeyTab {
 		{ 8,	VK_DOWN,		MASK_ALT,				_T("$PANE_DOWN")	},
 		{ 8,	VK_RIGHT,		MASK_ALT,				_T("$PANE_RIGHT")	},
 		{ 8,	VK_LEFT,		MASK_ALT,				_T("$PANE_LEFT")	},
+		{ 8,	'V',			MASK_ALT,				_T("$CLIPBOARD")	},
 
 		{ 8,	'1',			MASK_CTRL,				_T("$PANE_SEL1")	},
 		{ 8,	'2',			MASK_CTRL,				_T("$PANE_SEL2")	},
@@ -4948,9 +5137,6 @@ static const struct _InitKeyTab {
 		{ 8,	'8',			MASK_CTRL,				_T("$PANE_SEL8")	},
 		{ 8,	'9',			MASK_CTRL,				_T("$PANE_SEL9")	},
 		{ 8,	'0',			MASK_CTRL,				_T("$PANE_SEL10")	},
-
-//		{ 8,	'V',			MASK_CTRL,				_T("$EDIT_PASTE")	},
-		{ 8,	'V',			MASK_ALT,				_T("$CLIPBOARD")	},
 
 		{ 9,	'2',			MASK_CTRL | MASK_SHIFT,	_T("\\000")			},	// NUL
 		{ 9,	'3',			MASK_CTRL | MASK_SHIFT,	_T("\\033")			},	// ESC
@@ -4971,6 +5157,34 @@ static const struct _InitKeyTab {
 
 		{ 9,	'3',			MASK_CKM | MASK_CTRL | MASK_SHIFT,	_T("\\033O[")		},
 		{ 9,	VK_OEM_4,		MASK_CKM | MASK_CTRL,				_T("\\033O[")		},	// $DB([)
+
+		{ 0,	(-1),			(-1),					NULL },
+	},
+	
+	RemoveKeyTab[] = {
+		{ 12,	VK_F1,			MASK_APPL,				_T("\\033[11~")		},
+		{ 12,	VK_F2,			MASK_APPL,				_T("\\033[12~")		},
+		{ 12,	VK_F3,			MASK_APPL,				_T("\\033[13~")		},
+		{ 12,	VK_F4,			MASK_APPL,				_T("\\033[14~")		},
+
+		{ 12,	VK_F3,			MASK_SHIFT | MASK_APPL,	_T("\\033[25~")		},
+		{ 12,	VK_F4,			MASK_SHIFT | MASK_APPL,	_T("\\033[26~")		},
+
+		{ 12,	VK_F3,			MASK_SHIFT,				_T("\\033[25~")		},
+		{ 12,	VK_F4,			MASK_SHIFT,				_T("\\033[26~")		},
+		{ 12,	VK_F5,			MASK_SHIFT,				_T("\\033[28~")		},
+		{ 12,	VK_F6,			MASK_SHIFT,				_T("\\033[29~")		},
+		{ 12,	VK_F7,			MASK_SHIFT,				_T("\\033[31~")		},
+		{ 12,	VK_F8,			MASK_SHIFT,				_T("\\033[32~")		},
+		{ 12,	VK_F9,			MASK_SHIFT,				_T("\\033[33~")		},
+		{ 12,	VK_F10,			MASK_SHIFT,				_T("\\033[34~")		},
+
+		{ 12,	VK_SEPARATOR,	MASK_APPL,				_T("\\033OX")		},
+		{ 12,	VK_MULTIPLY,	MASK_APPL,				_T("\\033Oj")		},
+		{ 12,	VK_ADD,			MASK_APPL,				_T("\\033On")		},
+		{ 12,	VK_SUBTRACT,	MASK_APPL,				_T("\\033Om")		},
+		{ 12,	VK_DECIMAL,		MASK_APPL,				_T("\\033On")		},
+		{ 12,	VK_DIVIDE,		MASK_APPL,				_T("\\033Oo")		},
 
 		{ 0,	(-1),			(-1),					NULL },
 	};
@@ -5044,6 +5258,11 @@ CKeyNode *CKeyNodeTab::FindKeys(int code, int mask, int base, int bits)
 			return pNode;
 		if ( (pNode = FindKeys(code, mask & ~MASK_VT52, base, bits & ~MASK_VT52)) != NULL )
 			return pNode;
+	} else if ( (mask & bits & MASK_LEGA) != 0 ) {
+		if ( (pNode = FindKeys(code, mask, base, bits & ~MASK_LEGA)) != NULL )
+			return pNode;
+		if ( (pNode = FindKeys(code, mask & ~MASK_LEGA, base, bits & ~MASK_LEGA)) != NULL )
+			return pNode;
 	} else if ( (mask & bits & MASK_CKM) != 0 ) {
 		if ( (pNode = FindKeys(code, mask, base, bits & ~MASK_CKM)) != NULL )
 			return pNode;
@@ -5080,7 +5299,7 @@ CKeyNode *CKeyNodeTab::FindMaps(int code, int mask)
 	if ( n >= GetSize() || m_Node[n].m_Code != code )
 		return FALSE;
 
-	return FindKeys(code, mask, n, MASK_VT52 | MASK_CKM | MASK_APPL | MASK_SHIFT);
+	return FindKeys(code, mask, n, MASK_VT52 | MASK_LEGA | MASK_CKM | MASK_APPL | MASK_SHIFT);
 }
 
 #define	CAPINFOKEYMAX	76
@@ -5201,7 +5420,7 @@ void CKeyNodeTab::SetArray(CStringArrayExt &stra)
 
 	tmp.RemoveAll();
 	tmp.AddVal(-1);
-	tmp.AddVal(11);			// KeyCode Bug Fix
+	tmp.AddVal(12);			// KeyCode Bug Fix
 	stra.AddArray(tmp);
 }
 void CKeyNodeTab::GetArray(CStringArrayExt &stra)
@@ -5596,6 +5815,7 @@ void CKeyNodeTab::BugFix(int fix)
 {
 	int i, n;
 	CStringBinary list;
+	CKeyNode tmp;
 
 	if ( fix < 1 ) {
 		for ( n = 0 ; n < m_Node.GetSize() ; n++ ) {
@@ -5672,6 +5892,18 @@ void CKeyNodeTab::BugFix(int fix)
 		}
 	}
 
+	// Remove Old KeyTab
+	for ( i = 0 ; RemoveKeyTab[i].maps != NULL ; i++ ) {
+		if ( fix >= RemoveKeyTab[i].fix  )
+			continue;
+		if ( !Find(RemoveKeyTab[i].code, RemoveKeyTab[i].mask, &n) )
+			continue;
+		tmp.SetMaps(RemoveKeyTab[i].maps);
+		if ( tmp.m_Maps.GetSize() == m_Node[n].m_Maps.GetSize() && memcmp(tmp.m_Maps.GetPtr(), m_Node[n].m_Maps.GetPtr(), tmp.m_Maps.GetSize()) == 0 )
+			m_Node.RemoveAt(n);
+	}
+
+	// Add New KeyTab
 	for ( n = 0 ; n < GetSize() ; n++ )
 		list[GetAt(n).GetMaps()] = 1;
 
@@ -5796,7 +6028,7 @@ int CKeyNodeTab::GetDecKeyToCode(int code)
 		VK_SUBTRACT,		// 105	PAD -
 		VK_ADD,				// 106	PAD +
 		0,					// 107	
-		0,					// 108	PAD ENTER
+		VK_SEPARATOR,		// 108	PAD ENTER
 		0,					// 109	
 		VK_ESCAPE,			// 110	ESC
 		0,					// 111	
@@ -9282,3 +9514,53 @@ void CEmojiImage::LoadMap()
 	m_pBits = NULL;
 }
 #endif
+
+//////////////////////////////////////////////////////////////////////
+// CCurPos
+
+CCurPos::CCurPos()
+{
+	cx = cy = 0;
+}
+CCurPos::CCurPos(int InitCx, int InitCy)
+{
+	cx = InitCx;
+	cy = InitCy;
+}
+BOOL CCurPos::operator == (SIZE size)
+{
+	return (cx == size.cx && cy == size.cy ? TRUE : FALSE);
+}
+BOOL CCurPos::operator != (SIZE size)
+{
+	return (cx == size.cx && cy == size.cy ? FALSE : TRUE);
+}
+BOOL CCurPos::operator >= (SIZE size)
+{
+	if ( cy == size.cy )
+		return (cx >= size.cx ? TRUE : FALSE);
+	else
+		return (cy > size.cy ? TRUE : FALSE);
+}
+BOOL CCurPos::operator <= (SIZE size)
+{
+	if ( cy == size.cy )
+		return (cx <= size.cx ? TRUE : FALSE);
+	else
+		return (cy < size.cy ? TRUE : FALSE);
+}
+BOOL CCurPos::operator > (SIZE size)
+{
+	if ( cy == size.cy )
+		return (cx > size.cx ? TRUE : FALSE);
+	else
+		return (cy > size.cy ? TRUE : FALSE);
+}
+BOOL CCurPos::operator < (SIZE size)
+{
+	if ( cy == size.cy )
+		return (cx < size.cx ? TRUE : FALSE);
+	else
+		return (cy < size.cy ? TRUE : FALSE);
+}
+

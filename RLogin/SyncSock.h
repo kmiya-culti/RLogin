@@ -32,6 +32,10 @@
 #define	TGCMD_NOWAITMESSAGE		16
 #define	THCMD_ECHOBUFFER		17
 
+#define	CHKFILENAME_SAVE		000
+#define	CHKFILENAME_OPEN		001
+#define	CHKFILENAME_MULTI		002
+
 extern const unsigned short crc16tab[];
 extern const unsigned long  crc32tab[];
 
@@ -53,6 +57,7 @@ public:
 
 	class CProgDlg m_ProgDlg;
 	BOOL m_ResvDoit;
+	BOOL m_MultiFile;
 	CStringList m_ResvPath;
 	CString m_PathName;
 	CStringA m_FileName;
@@ -85,7 +90,7 @@ public:
 	int Bufferd_ReceiveSize();
 	void SetXonXoff(int sw);
 
-	char *CheckFileName(int mode, LPCSTR file);
+	BOOL CheckFileName(int mode, LPCSTR file);
 	int YesOrNo(LPCSTR msg);
 	int AbortCheck();
 	void SendEcho(int ch);
