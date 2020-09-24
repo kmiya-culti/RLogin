@@ -7920,9 +7920,24 @@ void CTextRam::fc_DECPS(DWORD ch)
 			11	A#5		944		24	B6
 			12	B5				25	C7
 			13	C6
+
+		Pp	Program		1-127
+		Pm	Bank MSB	0-127
 	*/
 	int n;
-	DWORD msg = 0x00000090;	// Note On
+	DWORD msg;
+
+	if ( m_AnsiPara.GetSize() >= 4 && (n = GetAnsiPara(4, -1, 0, 127)) >= 0 ) {	// Bank MSB
+		msg = 0x000000B0 | (n << 16);	// B0, 00, nn	Bank Select MSB=00
+		((CMainFrame *)AfxGetMainWnd())->SetMidiEvent(0, msg);
+	}
+
+	if ( m_AnsiPara.GetSize() >= 3 && (n = GetAnsiPara(3, 0, 1, 128)) > 0 ) {	// Program
+		msg = 0x000000C0 | ((n - 1) << 8);
+		((CMainFrame *)AfxGetMainWnd())->SetMidiEvent(0, msg);
+	}
+
+	msg = 0x00000090;	// Note On
 
 	if ( (n = GetAnsiPara(0, 0, 0) * 127 / 7) > 127 )
 		n = 127;

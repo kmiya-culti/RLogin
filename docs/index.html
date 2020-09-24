@@ -28,8 +28,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.25.4)</TD>
-            <TD width="20%" align="right">2020/07/27</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.25.5)</TD>
+            <TD width="20%" align="right">2020/09/25</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -450,6 +450,15 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2020/09/25</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.25.5/">2.25.5</A></TD>
+            <TD>画像のポップアップメニューのセパレータがズレていたのを修正<BR>
+            DECPSに音色変更のパラメータを追加<BR>
+            ProxyのHTTP(Basic)のHostヘッダを接続先ホストアドレスに修正<BR>
+            特殊文字に起動時のフォルダ%X（RLoogin.exeの場所）と%B（カレント）を追加<BR>
+            openssl-1.1.1hに更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2020/07/27</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.25.4/">2.25.4</A></TD>
             <TD>コマンドウィンドウの終了メッセージの選択条件を変更<BR>
@@ -486,15 +495,6 @@ TD {
             Sixel Graphicsのormodeに対応<BR>
             接続中に「現在の分割を保存」を行うと不正になるバグを修正<BR>
             openssl-1.1.1gに更新</TD>
-          </TR>
-          <TR>
-            <TD align="center">2020/03/25</TD>
-            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.25.0/">2.25.0</A></TD>
-            <TD>2.24.9でキーコード設定が&quot;\000&quot;の場合に削除されるバグを修正<BR>
-            特殊文字に%wでウィンドウタイトルに置き換えを追加<BR>
-            スクリーン設定にOSのスリープモードの移行を抑制するオプションを追加<BR>
-            メニュー・ヘルプにセキュリティポリシーの設定を追加<BR>
-            openssl-1.1.1eに更新</TD>
           </TR>
           <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
@@ -2585,6 +2585,14 @@ fi</PRE>
                 <TR>
                   <TD align="center">%w</TD>
                   <TD>現在のウィンドウタイトルに置き換え</TD>
+                </TR>
+                <TR>
+                  <TD align="center">%X</TD>
+                  <TD>起動したRLogin.exeのあるフォルダに置き換え</TD>
+                </TR>
+                <TR>
+                  <TD align="center">%B</TD>
+                  <TD>起動時のカレントフォルに置き換え</TD>
                 </TR>
                 <TR>
                   <TD align="center">%{XXX}</TD>

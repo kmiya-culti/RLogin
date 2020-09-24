@@ -2549,10 +2549,10 @@ void CRLoginView::PopUpMenu(CPoint point)
 		return;
 
 	if ( m_pSelectGrapWnd != NULL ) {
-		pMenu->InsertMenu(4, MF_BYPOSITION, IDM_IMAGEGRAPCOPY, CStringLoad(IDM_IMAGEGRAPCOPY));
-		pMenu->InsertMenu(5, MF_BYPOSITION, IDM_IMAGEGRAPSAVE, CStringLoad(IDM_IMAGEGRAPSAVE));
-		pMenu->InsertMenu(6, MF_BYPOSITION, IDM_IMAGEGRAPHIST, CStringLoad(IDM_IMAGEGRAPHIST));
-		pMenu->InsertMenu(7, MF_BYPOSITION | MF_SEPARATOR);
+		pMenu->InsertMenu(4, MF_BYPOSITION | MF_SEPARATOR);
+		pMenu->InsertMenu(5, MF_BYPOSITION, IDM_IMAGEGRAPCOPY, CStringLoad(IDM_IMAGEGRAPCOPY));
+		pMenu->InsertMenu(6, MF_BYPOSITION, IDM_IMAGEGRAPSAVE, CStringLoad(IDM_IMAGEGRAPSAVE));
+		pMenu->InsertMenu(7, MF_BYPOSITION, IDM_IMAGEGRAPHIST, CStringLoad(IDM_IMAGEGRAPHIST));
 	}
 
 	state.m_pMenu = pMenu;
@@ -2568,6 +2568,7 @@ void CRLoginView::PopUpMenu(CPoint point)
 	((CMainFrame *)::AfxGetMainWnd())->TrackPopupMenuIdle(pMenu, TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, this);
 
 	if ( m_pSelectGrapWnd != NULL ) {
+		pMenu->DeleteMenu(7, MF_BYPOSITION);
 		pMenu->DeleteMenu(6, MF_BYPOSITION);
 		pMenu->DeleteMenu(5, MF_BYPOSITION);
 		pMenu->DeleteMenu(4, MF_BYPOSITION);

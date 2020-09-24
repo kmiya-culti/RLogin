@@ -1006,6 +1006,14 @@ BOOL CRLoginDoc::EntryText(CString &name, LPCWSTR match)
 				tmp += GetTitle();
 				st = TRUE;
 				break;
+			case _T('X'):
+				tmp += ((CRLoginApp *)::AfxGetApp())->m_ExecDir;
+				st = TRUE;
+				break;
+			case _T('B'):
+				tmp += ((CRLoginApp *)::AfxGetApp())->m_BaseDir;
+				st = TRUE;
+				break;
 			case _T('%'):
 				tmp += _T('%');
 				st = TRUE;

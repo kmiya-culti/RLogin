@@ -627,10 +627,10 @@ BEGIN
                     "SysLink",WS_TABSTOP,44,178,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,193,60,14,WS_GROUP
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin (%s) Version 2.25.4 (2020/07/27)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.25.5 (2020/09/25)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2020 Culti",IDC_STATIC,44,16,189,8
-    LTEXT           "OpenSSL 1.1.1g 21 Apr 2020",IDC_STATIC,44,52,189,8
-    LTEXT           "Copyright (c) 1998-2019 The OpenSSL Project",IDC_STATIC,44,61,189,8
+    LTEXT           "OpenSSL 1.1.1h 22 Sep 2020",IDC_STATIC,44,52,189,8
+    LTEXT           "Copyright (c) 1998-2020 The OpenSSL Project",IDC_STATIC,44,61,189,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,70,189,8
     LTEXT           "All rights reserved.",IDC_STATIC,44,79,189,8
     LTEXT           "zlib 1.2.11 (15 Jan 2017)",IDC_STATIC,44,92,189,8

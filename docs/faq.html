@@ -1617,13 +1617,15 @@ done</PRE>
             ※ CSIとは&quot;ESC [”、SS3とは&quot;ESC O&quot;の略号。ESCは、8進数で&quot;033&quot;です。<A href="http://nanno.dip.jp/softlib/man/rlogin/#KEYOPT" style="font-family: Meiryo; font-size: 14.4px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: left; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255);">キーボードのオプション設定</A>で使用している形式は、&quot;\033&quot;になり、CSIは&quot;\033[&quot;、SS3は&quot;\033O&quot;になります。例：Upキーは、&quot;CSI
             A&quot;が&quot;\033[A&quot;、&quot;SS3 A&quot;が&quot;\033OA&quot;です。<BR>
             <BR>
-            ※ 2.25.4よりキーパッドのキーコードも整理しました。<BR>
+            ※ 2.25.4よりキーパッドのキーコードも整理しました（xterm R6 互換モード時のみDECPAMが有効になりますのでご注意ください）<BR>
             <TABLE border="1" cellpadding="5">
               <TBODY>
                 <TR>
                   <TD colspan="2" align="center"><SPAN style="color: rgb(0, 0, 0); font-family: Meiryo; font-size: 14.4px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: -webkit-center; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;">DECPNM<BR>
                   ESC &gt;</SPAN></TD>
-                  <TD align="center"><SPAN style="color: rgb(0, 0, 0); font-family: Meiryo; font-size: 14.4px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: -webkit-center; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;">DECPAM<BR>
+                  <TD align="center"><SPAN style="color: rgb(0, 0, 0); font-family: Meiryo; font-size: 14.4px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: -webkit-center; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;">xterm R6 互換<BR>
+                  CSI ? 1060 h<BR>
+                  DECPAM<BR>
                   </SPAN>ESC =</TD>
                 </TR>
                 <TR>

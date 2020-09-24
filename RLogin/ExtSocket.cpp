@@ -1097,7 +1097,7 @@ BOOL CExtSocket::ProxyFunc()
 					   _T("Host: %s\r\n")\
 					   _T("%sAuthorization: Basic %s\r\n")\
 					   _T("\r\n"),
-					   m_ProxyHost, m_ProxyPort, m_RealHostAddr,
+					   m_ProxyHost, m_ProxyPort, m_ProxyHost,
 					   (m_ProxyCode == 407 ? _T("Proxy-") : _T("")),
 					   (LPCTSTR)buf);
 			mbs = tmp; CExtSocket::Send((void *)(LPCSTR)mbs, mbs.GetLength(), 0);
@@ -1146,7 +1146,7 @@ BOOL CExtSocket::ProxyFunc()
 					   _T(" nc=%s, cnonce=\"%s\"")\
 					   _T("\r\n")\
 					   _T("\r\n"),
-					   m_ProxyHost, m_ProxyPort, m_RealHostAddr,
+					   m_ProxyHost, m_ProxyPort, m_ProxyHost,
 					   (m_ProxyCode == 407 ? _T("Proxy-") : _T("")),
 					   m_ProxyUser, (LPCTSTR)m_ProxyAuth[_T("realm")], (LPCTSTR)m_ProxyAuth[_T("nonce")],
 					   (LPCTSTR)m_ProxyAuth[_T("algorithm")], (LPCTSTR)buf,
