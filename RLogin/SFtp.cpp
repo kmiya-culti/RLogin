@@ -2909,7 +2909,7 @@ BOOL CSFtp::OnInitDialog()
 	rect.top    = AfxGetApp()->GetProfileInt(_T("SFtpWnd"), _T("y"),  rect.top);
 	rect.right  = AfxGetApp()->GetProfileInt(_T("SFtpWnd"), _T("cx"), rect.right);
 	rect.bottom = AfxGetApp()->GetProfileInt(_T("SFtpWnd"), _T("cy"), rect.bottom);
-	MoveWindow(rect, FALSE);
+	CheckMoveWindow(rect, FALSE);
 
 	SetTimer(1120, 3000, NULL);
 

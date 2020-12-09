@@ -627,9 +627,9 @@ BEGIN
                     "SysLink",WS_TABSTOP,44,178,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,193,60,14,WS_GROUP
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin (%s) Version 2.25.5 (2020/09/25)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.25.6 (2020/12/09)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2020 Culti",IDC_STATIC,44,16,189,8
-    LTEXT           "OpenSSL 1.1.1h 22 Sep 2020",IDC_STATIC,44,52,189,8
+    LTEXT           "OpenSSL 1.1.1i 8 Dec 2020",IDC_STATIC,44,52,189,8
     LTEXT           "Copyright (c) 1998-2020 The OpenSSL Project",IDC_STATIC,44,61,189,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,70,189,8
     LTEXT           "All rights reserved.",IDC_STATIC,44,79,189,8
@@ -770,15 +770,15 @@ BEGIN
     GROUPBOX        "Other",IDC_STATIC,8,120,216,49
 END
 
-IDD_EDITDLG DIALOGEX 0, 0, 259, 112
-STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+IDD_EDITDLG DIALOGEX 0, 0, 270, 120
+STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "ファイル／フォルダ名入力"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    EDITTEXT        IDC_EDIT1,14,67,230,14,ES_AUTOHSCROLL
-    DEFPUSHBUTTON   "OK",IDOK,59,91,60,14
-    PUSHBUTTON      "キャンセル",IDCANCEL,139,91,60,14
-    LTEXT           "",IDC_TITLE,14,16,230,40
+    EDITTEXT        IDC_EDIT1,7,77,256,14,ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "OK",IDOK,65,99,60,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,145,99,60,14
+    EDITTEXT        IDC_EDIT2,7,7,256,62,ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | NOT WS_BORDER
 END
 
 IDD_SERVERLIST DIALOGEX 0, 0, 290, 113
@@ -2144,8 +2144,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,25,4,0
- PRODUCTVERSION 2,25,4,0
+ FILEVERSION 2,25,6,0
+ PRODUCTVERSION 2,25,6,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2162,12 +2162,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.25.4.0"
+            VALUE "FileVersion", "2.25.6.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.25.4.0"
+            VALUE "ProductVersion", "2.25.6.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2244,9 +2244,9 @@ BEGIN
     IDD_EDITDLG, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 252
+        RIGHTMARGIN, 263
         TOPMARGIN, 7
-        BOTTOMMARGIN, 105
+        BOTTOMMARGIN, 113
     END
 
     IDD_SERVERLIST, DIALOG

@@ -67,6 +67,7 @@ public:
 	BOOL GetSizeAndText(SIZE *pSize, CString &title, CWnd *pParent);
 	void AddShortCutKey(UINT MsgID, UINT KeyCode, UINT KeyWith, UINT CtrlID, WPARAM wParam);
 	void SubclassComboBox(int nID);
+	void CheckMoveWindow(CRect &rect, BOOL bRepaint);
 
 	static void GetActiveDpi(CSize &dpi, CWnd *pWnd, CWnd *pParent);
 	static BOOL IsDialogExt(CWnd *pWnd);

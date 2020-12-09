@@ -8,6 +8,7 @@
 #include "RLoginDoc.h"
 #include "RLoginView.h"
 #include "PassDlg.h"
+#include "EditDlg.h"
 #include "IdkeySelDLg.h"
 #include "IdKeyFileDlg.h"
 #include "ssh.h"
@@ -95,6 +96,7 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 		m_StdChan = (-1);
 		m_AuthStat = AST_START;
 		m_AuthMode = AUTH_MODE_NONE;
+		m_bKeybIntrReq = FALSE;
 		m_AuthMeta.Empty();
 		m_AuthLog.Empty();
 		m_HostName = m_pDocument->m_ServerEntry.m_HostName;
@@ -2051,6 +2053,25 @@ void Cssh::AddAuthLog(LPCTSTR str, ...)
 
 	m_AuthLog += tmp;
 }
+BOOL Cssh::IsStriStr(LPCSTR str, LPCSTR ptn)
+{
+	for ( ; *str != '\0' ; str++ ) {
+		if ( tolower(*str) == tolower(*ptn) ) {
+			LPCSTR s = str + 1;
+			LPCSTR p = ptn + 1;
+			for ( ; ; ) {
+				if ( *p == '\0' )
+					return TRUE;
+				if ( tolower(*s) != tolower(*p) )
+					break;
+				s++;
+				p++;
+			}
+		}
+	}
+
+	return FALSE;
+}
 int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 {
 	int skip, len;
@@ -2075,6 +2096,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 		// Methodsが変化しない場合は、認証順位をユーザーが管理する必要あり
 		m_AuthMeta = str;
 		m_AuthStat = AST_START;
+		m_bKeybIntrReq = FALSE;
 		UserAuthNextState();
 	}
 
@@ -2209,7 +2231,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 			m_AuthMode = AUTH_MODE_PASSWORD;
 
 		} else if ( m_AuthStat == AST_KEYB_TRY ) {
-			if ( strstr(str, "keyboard-interactive") == NULL ) {
+			if ( strstr(str, "keyboard-interactive") == NULL || m_bKeybIntrReq ) {
 				UserAuthNextState();
 				continue;
 			}
@@ -2219,6 +2241,8 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 			tmp.PutStr("");		// DEV
 
 			m_AuthMode = AUTH_MODE_KEYBOARD;
+			// SSH2_MSG_USERAUTH_INFO_REQUESTでクリア
+			m_bKeybIntrReq = TRUE;
 
 		} else if ( m_AuthStat == AST_GSSAPI_TRY ) {
 			UserAuthNextState();
@@ -3335,7 +3359,8 @@ int Cssh::SSH2MsgUserAuthInfoRequest(CBuffer *bp)
 	int n, echo, max;
 	CBuffer tmp;
 	CStringA name, inst, lang, prom;
-	CPassDlg dlg;
+	CEditDlg dlg;
+	BOOL bAutoPass = FALSE;
 
 	bp->GetStr(name);
 	bp->GetStr(inst);
@@ -3350,17 +3375,22 @@ int Cssh::SSH2MsgUserAuthInfoRequest(CBuffer *bp)
 		echo = bp->Get8Bit();
 
 		// 最初のトライでは、保存されたパスワードを送ってみる
-		if ( m_IdKeyPos == 0 && n == 0 && max == 1 && !m_pDocument->m_ServerEntry.m_PassName.IsEmpty() ) {
+		if ( m_IdKeyPos == 0 && n == 0 && max == 1 && !m_pDocument->m_ServerEntry.m_PassName.IsEmpty() && IsStriStr(prom, "password") ) {
 			tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_PassName));
+			bAutoPass = TRUE;
 
 		} else {
-			dlg.m_HostAddr = m_pDocument->m_ServerEntry.m_HostName;
-			dlg.m_PortName = m_pDocument->m_ServerEntry.m_PortName;
-			dlg.m_UserName = m_pDocument->m_ServerEntry.m_UserName;
-			dlg.m_Enable   = PASSDLG_PASS;
-			dlg.m_Prompt   = prom;
-			dlg.m_PassEcho = echo != 0 ? TRUE : FALSE;
-			dlg.m_PassName = _T("");
+			dlg.m_WinText.Format(_T("keyboard-interactive(%s@%s)"), m_pDocument->m_ServerEntry.m_UserName, m_pDocument->m_ServerEntry.m_HostName);
+			if ( !name.IsEmpty() ) {
+				dlg.m_Title += m_pDocument->LocalStr(name);
+				dlg.m_Title += _T("\r\n");
+			}
+			if ( !inst.IsEmpty() ) {
+				dlg.m_Title += m_pDocument->LocalStr(inst);
+				dlg.m_Title += _T("\r\n");
+			}
+			dlg.m_Title += m_pDocument->LocalStr(prom);
+			dlg.m_bPassword = (echo == 0 ? TRUE : FALSE);
 
 			if ( dlg.DoModal() != IDOK ) {
 				UserAuthNextState();
@@ -3368,14 +3398,16 @@ int Cssh::SSH2MsgUserAuthInfoRequest(CBuffer *bp)
 				return TRUE;
 			}
 
-			tmp.PutStr(m_pDocument->RemoteStr(dlg.m_PassName));
+			tmp.PutStr(m_pDocument->RemoteStr(dlg.m_Edit));
 		}
 	}
 
 	// 呼び出し回数をカウント
 	m_IdKeyPos++;
+	m_bKeybIntrReq = FALSE;
 
-	AddAuthLog(_T("keyboard-interactive(%s)"), m_pDocument->m_ServerEntry.m_UserName);
+	if ( max > 0 )
+		AddAuthLog(_T("keyboard-interactive(%s%s)"), m_pDocument->m_ServerEntry.m_UserName, (bAutoPass ? _T(":auto"): _T("")));
 
 	SendPacket2(&tmp);
 	return TRUE;

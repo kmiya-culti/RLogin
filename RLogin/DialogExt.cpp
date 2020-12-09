@@ -225,6 +225,79 @@ BOOL CDialogExt::IsDialogExt(CWnd *pWnd)
 
 	return FALSE;
 }
+void CDialogExt::CheckMoveWindow(CRect &rect, BOOL bRepaint)
+{
+	HMONITOR hMonitor;
+    MONITORINFOEX  mi;
+
+	hMonitor = MonitorFromRect(&rect, MONITOR_DEFAULTTONEAREST);
+	mi.cbSize = sizeof(MONITORINFOEX);
+	GetMonitorInfo(hMonitor, &mi);
+
+#if 1
+	// モニターを基準に調整
+
+	if ( rect.left < mi.rcMonitor.left ) {
+		rect.right += (mi.rcMonitor.left - rect.left);
+		rect.left  += (mi.rcMonitor.left - rect.left);
+	}
+
+	if ( rect.top < mi.rcMonitor.top ) {
+		rect.bottom += (mi.rcMonitor.top - rect.top);
+		rect.top    += (mi.rcMonitor.top - rect.top);
+	}
+
+	if ( rect.right > mi.rcMonitor.right ) {
+		rect.left  -= (rect.right - mi.rcMonitor.right);
+		rect.right -= (rect.right - mi.rcMonitor.right);
+		if ( rect.left < mi.rcMonitor.left ) {
+			rect.left  = mi.rcMonitor.left;
+			rect.right = mi.rcMonitor.right;
+		}
+	}
+
+	if ( rect.bottom > mi.rcMonitor.bottom ) {
+		rect.top    -= (rect.bottom - mi.rcMonitor.bottom);
+		rect.bottom -= (rect.bottom - mi.rcMonitor.bottom);
+		if ( rect.top < mi.rcMonitor.top ) {
+			rect.top    = mi.rcMonitor.top;
+			rect.bottom = mi.rcMonitor.bottom;
+		}
+	}
+#else
+	// 仮想画面サイズを基準に調整
+
+	if ( rect.left < mi.rcWork.left ) {
+		rect.right += (mi.rcWork.left - rect.left);
+		rect.left  += (mi.rcWork.left - rect.left);
+	}
+
+	if ( rect.top < mi.rcWork.top ) {
+		rect.bottom += (mi.rcWork.top - rect.top);
+		rect.top    += (mi.rcWork.top - rect.top);
+	}
+
+	if ( rect.right > mi.rcWork.right ) {
+		rect.left  -= (rect.right - mi.rcWork.right);
+		rect.right -= (rect.right - mi.rcWork.right);
+		if ( rect.left < mi.rcWork.left ) {
+			rect.left  = mi.rcWork.left;
+			rect.right = mi.rcWork.right;
+		}
+	}
+
+	if ( rect.bottom > mi.rcWork.bottom ) {
+		rect.top    -= (rect.bottom - mi.rcWork.bottom);
+		rect.bottom -= (rect.bottom - mi.rcWork.bottom);
+		if ( rect.top < mi.rcWork.top ) {
+			rect.top    = mi.rcWork.top;
+			rect.bottom = mi.rcWork.bottom;
+		}
+	}
+#endif
+
+	MoveWindow(rect, bRepaint);
+}
 
 #pragma pack(push, 1)
 	typedef struct _DLGTEMPLATEEX {

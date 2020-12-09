@@ -800,6 +800,7 @@ private:
 	CIdKey *m_pIdKey;
 	int m_IdKeyPos;
 	int m_AuthReqTab[10];
+	BOOL m_bKeybIntrReq;
 
 	int m_ServerFlag;
 	int m_SupportCipher;
@@ -892,6 +893,7 @@ private:
 	BOOL IsServerVersion(LPCTSTR pattan);
 	void UserAuthNextState();
 	void AddAuthLog(LPCTSTR str, ...);
+	BOOL IsStriStr(LPCSTR str, LPCSTR ptn);
 
 	void SendMsgKexInit();
 	void SendMsgNewKeys();

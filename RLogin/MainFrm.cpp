@@ -1648,7 +1648,7 @@ void CMainFrame::FreeTimerEvent(CTimerObject *pObject)
 void CMainFrame::SetMidiData(int nInit, int nPlay, LPCSTR mml)
 {
 	if ( m_pMidiData == NULL )
-		m_pMidiData = new CMidiData;
+		m_pMidiData = new CMidiData(this);
 
 	if ( m_pMidiData->m_hStream == NULL )
 		return;
@@ -1672,7 +1672,7 @@ void CMainFrame::SetMidiEvent(int msec, DWORD msg)
 	CMidiQue *qp;
 
 	if ( m_pMidiData == NULL )
-		m_pMidiData = new CMidiData;
+		m_pMidiData = new CMidiData(this);
 
 	if ( m_pMidiData->m_hStream == NULL )
 		return;
