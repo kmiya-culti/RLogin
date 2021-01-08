@@ -48,6 +48,10 @@ CDialogExt::CDialogExt(UINT nIDTemplate, CWnd *pParent)
 	m_InitDpi.cx = DEFAULT_DPI_X;
 	m_InitDpi.cy = DEFAULT_DPI_Y;
 	m_NowDpi = m_InitDpi;
+
+	m_InitDlgRect.RemoveAll();
+	m_MinSize.SetSize(0, 0);
+	m_OfsSize.SetSize(0, 0);
 }
 CDialogExt::~CDialogExt()
 {
@@ -61,17 +65,28 @@ CDialogExt::~CDialogExt()
 	}
 }
 
-void CDialogExt::InitItemOffset(const INITDLGTAB *pTab)
+void CDialogExt::InitItemOffset(const INITDLGTAB *pTab, int ox, int oy, int mx, int my)
 {
 	int n;
 	int cx, cy;
 	CRect frame, rect;
 	WINDOWPLACEMENT place;
 	CWnd *pWnd;
+	INITDLGRECT dlgtmp;
+
+	GetWindowRect(rect);
+	if ( mx <= 0 )
+		mx = rect.Width();
+	if ( my <= 0 )
+		my = rect.Height();
+
+	m_MinSize.SetSize(mx, my);
+	m_OfsSize.SetSize(ox, oy);
 
 	GetClientRect(frame);			// frame.left == 0, frame.top == 0 
 	cx = frame.Width();
 	cy = frame.Height();
+
 	m_InitDlgRect.RemoveAll();
 
 	for ( n = 0 ; pTab[n].id != 0 ; n++ ) {
@@ -109,60 +124,60 @@ void CDialogExt::InitItemOffset(const INITDLGTAB *pTab)
 				rect.bottom = place.rcNormalPosition.bottom;
 		}
 
-		m_InitDlgRect.Add(rect);
+		dlgtmp.id   = pTab[n].id;
+		dlgtmp.mode = pTab[n].mode;
+		dlgtmp.rect = rect;
+		m_InitDlgRect.Add(dlgtmp);
 	}
 }
-void CDialogExt::SetItemOffset(const INITDLGTAB *pTab, int cx, int cy, int oy)
+void CDialogExt::SetItemOffset(int cx, int cy)
 {
 	int n, i;
 	WINDOWPLACEMENT place;
 	CWnd *pWnd;
 
-	if ( m_InitDlgRect.GetSize() == 0 )
-		return;
+	for ( n = 0 ; n < (int)m_InitDlgRect.GetSize() ; n++ ) {
 
-	for ( n = 0 ; pTab[n].id != 0 ; n++ ) {
-
-		if ( (pWnd = GetDlgItem(pTab[n].id)) == NULL )
+		if ( (pWnd = GetDlgItem(m_InitDlgRect[n].id)) == NULL )
 			continue;
 
 		pWnd->GetWindowPlacement(&place);
 
-		i = m_InitDlgRect[n].left * m_NowDpi.cx / m_InitDpi.cx;
+		i = m_InitDlgRect[n].rect.left * m_NowDpi.cx / m_InitDpi.cx;
 
-		if ( pTab[n].mode & ITM_LEFT_MID )
+		if ( m_InitDlgRect[n].mode & ITM_LEFT_MID )
 			place.rcNormalPosition.left = i + cx / 2;
-		else if ( pTab[n].mode & ITM_LEFT_RIGHT )
+		else if ( m_InitDlgRect[n].mode & ITM_LEFT_RIGHT )
 			place.rcNormalPosition.left = i + cx;
 		else
-			place.rcNormalPosition.left = i;
+			place.rcNormalPosition.left = i + m_OfsSize.cx;
 
-		i = m_InitDlgRect[n].right * m_NowDpi.cx / m_InitDpi.cx;
+		i = m_InitDlgRect[n].rect.right * m_NowDpi.cx / m_InitDpi.cx;
 
-		if ( pTab[n].mode & ITM_RIGHT_MID )
+		if ( m_InitDlgRect[n].mode & ITM_RIGHT_MID )
 			place.rcNormalPosition.right = i + cx / 2;
-		else if ( pTab[n].mode & ITM_RIGHT_RIGHT )
+		else if ( m_InitDlgRect[n].mode & ITM_RIGHT_RIGHT )
 			place.rcNormalPosition.right = i + cx;
 		else
-			place.rcNormalPosition.right = i;
+			place.rcNormalPosition.right = i + m_OfsSize.cx;
 
-		i = m_InitDlgRect[n].top * m_NowDpi.cy / m_InitDpi.cy;
+		i = m_InitDlgRect[n].rect.top * m_NowDpi.cy / m_InitDpi.cy;
 
-		if ( pTab[n].mode & ITM_TOP_MID )
+		if ( m_InitDlgRect[n].mode & ITM_TOP_MID )
 			place.rcNormalPosition.top = i + cy / 2;
-		else if ( pTab[n].mode & ITM_TOP_BTM )
+		else if ( m_InitDlgRect[n].mode & ITM_TOP_BTM )
 			place.rcNormalPosition.top = i + cy;
 		else
-			place.rcNormalPosition.top = i + oy;
+			place.rcNormalPosition.top = i + m_OfsSize.cy;
 
-		i = m_InitDlgRect[n].bottom * m_NowDpi.cy / m_InitDpi.cy;
+		i = m_InitDlgRect[n].rect.bottom * m_NowDpi.cy / m_InitDpi.cy;
 
-		if ( pTab[n].mode & ITM_BTM_MID )
+		if ( m_InitDlgRect[n].mode & ITM_BTM_MID )
 			place.rcNormalPosition.bottom = i + cy / 2;
-		else if ( pTab[n].mode & ITM_BTM_BTM )
+		else if ( m_InitDlgRect[n].mode & ITM_BTM_BTM )
 			place.rcNormalPosition.bottom = i + cy;
 		else
-			place.rcNormalPosition.bottom = i + oy;
+			place.rcNormalPosition.bottom = i + m_OfsSize.cy;
 
 		pWnd->SetWindowPlacement(&place);
 	}
@@ -496,6 +511,8 @@ BEGIN_MESSAGE_MAP(CDialogExt, CDialog)
 	ON_MESSAGE(WM_INITDIALOG, HandleInitDialog)
 	ON_WM_CREATE()
 	ON_WM_INITMENUPOPUP()
+	ON_WM_SIZE()
+	ON_WM_SIZING()
 END_MESSAGE_MAP()
 
 //////////////////////////////////////////////////////////////////////
@@ -775,4 +792,38 @@ void CDialogExt::OnInitMenuPopup(CMenu *pPopupMenu, UINT nIndex,BOOL bSysMenu)
         }
         state.m_nIndexMax = nCount;
     }
+}
+
+void CDialogExt::OnSize(UINT nType, int cx, int cy)
+{
+	if ( m_InitDlgRect.GetSize() > 0 && nType != SIZE_MINIMIZED ) {
+		SetItemOffset(cx, cy);
+		Invalidate(FALSE);
+	}
+
+	CDialog::OnSize(nType, cx, cy);
+}
+
+void CDialogExt::OnSizing(UINT fwSide, LPRECT pRect)
+{
+	if ( m_MinSize.cx > 0 && m_MinSize.cy > 0 ) {
+		int width  = MulDiv(m_MinSize.cx, m_NowDpi.cx, m_InitDpi.cx);
+		int height = MulDiv(m_MinSize.cy, m_NowDpi.cy, m_InitDpi.cy);
+
+		if ( (pRect->right - pRect->left) < width ) {
+			if ( fwSide == WMSZ_LEFT || fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_BOTTOMLEFT )
+				pRect->left = pRect->right - width;
+			else
+				pRect->right = pRect->left + width;
+		}
+
+		if ( (pRect->bottom - pRect->top) < height ) {
+			if ( fwSide == WMSZ_TOP || fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_TOPRIGHT )
+				pRect->top = pRect->bottom - height;
+			else
+				pRect->bottom = pRect->top + height;
+		}
+	}
+
+	CDialog::OnSizing(fwSide, pRect);
 }

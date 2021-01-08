@@ -22,6 +22,8 @@
 
 #include <iconv.h>
 #include <imm.h>
+#include <sys/types.h>
+#include <sys/timeb.h>
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -353,6 +355,7 @@ void CFontNode::Init()
 	m_MapType     = 0;
 	m_UniBlock    = _T("");
 	m_OverZero    = _T("");
+	m_JpSet       = (-1);
 
 	// ISO646-US/JP				//	US->JP		JP->US
 	m_Iso646Tab[0]  = 0x0023;
@@ -412,10 +415,13 @@ void CFontNode::GetArray(CStringArrayExt &stra)
 
 	m_EntryName   = stra.GetAt(5);
 	m_IContName   = stra.GetAt(6);
+
 	m_ZoomW		  = (stra.GetSize() > 7 ? stra.GetVal(7) : m_ZoomH);
 
 	if ( m_IContName.Compare(_T("GB2312-80")) == 0 )	// Debug!!
 		m_IContName = _T("GB_2312-80");
+
+	m_JpSet       = CTextRam::JapanCharSet(m_IContName);
 
 	for ( int n = 1 ; n < 16 ; n++ ) {				// 8 - 23
 		if ( stra.GetSize() > (7 + n) )
@@ -484,6 +490,7 @@ const CFontNode & CFontNode::operator = (CFontNode &data)
 	m_Quality   = data.m_Quality;
 	m_Init      = data.m_Init;
 	m_UniBlock  = data.m_UniBlock;
+	m_JpSet     = data.m_JpSet;
 
 	for ( int n = 0 ; n < 16 ; n++ )
 		m_FontName[n] = data.m_FontName[n];
@@ -907,6 +914,7 @@ void CFontTab::Init()
 		m_Data[i].m_FontName[1] = FontInitTab[n].font[1];
 		m_Data[i].m_EntryName   = FontInitTab[n].name;
 		m_Data[i].m_IContName   = FontInitTab[n].iset;
+		m_Data[i].m_JpSet       = CTextRam::JapanCharSet(m_Data[i].m_IContName);
 		m_Data[i].m_IndexName   = FontInitTab[n].scs;
 		m_Data[i].m_Init        = FALSE;
 	}
@@ -981,8 +989,11 @@ void CFontTab::GetArray(CStringArrayExt &stra)
 				m_Data[i].m_IndexName = (CHAR)(i & 0xFF);
 		} else if ( m_Data[i].m_IndexName.Compare(_T("Unicode")) == 0 )
 			m_Data[i].m_IndexName = _T("*U");
-		if ( i == SET_UNICODE )
+
+		if ( i == SET_UNICODE ) {
 			m_Data[i].m_IContName = _T("UTF-16BE");
+			m_Data[i].m_JpSet = (-1);
+		}
 	}
 
 	InitUniBlock();
@@ -1110,6 +1121,7 @@ void CFontTab::SetIndex(int mode, CStringIndex &index)
 					m_Data[code].m_Quality   = index[n][i][7];
 					m_Data[code].m_CharSet   = index[n][i][8];
 					m_Data[code].m_IContName = index[n][i][9];
+					m_Data[code].m_JpSet     = CTextRam::JapanCharSet(m_Data[code].m_IContName);
 
 					for ( a = 0 ; a < 16 && a < index[n][i][10].GetSize() ; a++ )
 						m_Data[code].m_FontName[a] = index[n][i][10][a];
@@ -6571,6 +6583,146 @@ void CTextRam::IncDscs(int &Pcss, CString &str)
 	if ( scs[2] != 0 )
 		str += scs[2];
 }
+LPCTSTR CTextRam::GetCurrentTimeFormat(LPCTSTR fmt)
+{
+	int n;
+	CString env, tmp, wrk, xfmt;
+	TCHAR cmd;
+	BOOL bExt;
+	CTime now;
+	struct _timeb tv;
+	int nest = 0;
+
+#define	CMDMAPBITSIZE	(8 * sizeof(DWORD))
+
+	static BOOL InitCmdMap = FALSE;
+	static DWORD CmdMap[128 / CMDMAPBITSIZE];
+	static CString RetStr;
+
+	/*
+		VS2010	_T("aAbBcdHIjmMpSUwWxXyYzZ%")
+				_T("aAbBcCdDeFgGhHIjmMnprRStTuUVwWxXyYzZ%")
+	*/
+
+	if ( !InitCmdMap ) {
+		ZeroMemory(CmdMap, sizeof(CmdMap));
+		for ( LPCTSTR p = _T("aAbBcdHIjmMpSUwWxXyYzZ%") ; *p != _T('\0') ; p++ )
+			CmdMap[*p / CMDMAPBITSIZE] |= (1 << (*p % CMDMAPBITSIZE));
+		InitCmdMap = TRUE;
+	}
+
+	_ftime(&tv);
+	now = tv.time;
+
+	RetStr.Empty();
+
+	while ( *fmt != _T('\0') ) {
+		if ( fmt[0] == _T('%') && fmt[1] == _T('{') && _tcschr(fmt, _T('}')) != NULL ) {
+			env.Empty();
+			for ( fmt += 2 ; *fmt != _T('\0') ; ) {
+				if ( *fmt == _T('}') ) {
+					fmt++;
+					break;
+				}
+				env += *(fmt++);
+			}
+			wrk = tmp;
+			n = wrk.GetLength();
+			CRLoginDoc::EnvironText(env, wrk);
+			// 環境変数の入れ子による無限ループを回避する為の暫定処理
+			if ( ++nest > 10 )
+				n = wrk.GetLength();
+			wrk += fmt;
+			xfmt = wrk;
+			fmt = (LPCTSTR)xfmt + n;
+
+		} else  if ( *fmt == _T('%') ) {
+			if ( (cmd = fmt[1]) == _T('#') ) {
+				bExt = TRUE;
+				cmd = fmt[2];
+			} else
+				bExt = FALSE;
+
+			if ( cmd == _T('\0') )
+				break;
+			else if ( cmd < 128 && (CmdMap[cmd / CMDMAPBITSIZE] & (1 << (cmd % CMDMAPBITSIZE))) != 0 ) {
+				tmp += (bExt ? _T("%#") : _T("%"));
+				tmp += cmd;
+			} else if ( cmd == _T('L') ) {
+				if ( bExt ) {
+					if ( tv.millitm >= 100 ) {
+						tmp += (TCHAR)(_T('0') + (tv.millitm / 100) % 10);
+						tmp += (TCHAR)(_T('0') + (tv.millitm / 10)  % 10);
+					} else if ( tv.millitm >= 10 )
+						tmp += (TCHAR)(_T('0') + (tv.millitm / 10)  % 10);
+				} else {
+					tmp += (TCHAR)(_T('0') + (tv.millitm / 100) % 10);
+					tmp += (TCHAR)(_T('0') + (tv.millitm / 10)  % 10);
+				}
+				tmp += (TCHAR)(_T('0') +  tv.millitm % 10);
+			}
+
+			fmt += (bExt ? 3 : 2);
+
+		} else if ( *fmt == _T('\\') ) {
+			switch(fmt[1]) {
+			case _T('a'): tmp += _T('\x07'); fmt += 2; break;
+			case _T('b'): tmp += _T('\x08'); fmt += 2; break;
+			case _T('t'): tmp += _T('\x09'); fmt += 2; break;
+			case _T('n'): tmp += _T('\x0A'); fmt += 2; break;
+			case _T('v'): tmp += _T('\x0B'); fmt += 2; break;
+			case _T('f'): tmp += _T('\x0C'); fmt += 2; break;
+			case _T('r'): tmp += _T('\x0D'); fmt += 2; break;
+			case _T('\\'): tmp += _T('\\');  fmt += 2; break;
+
+			case _T('x'): case _T('X'):
+				fmt += 2;
+				for ( n = cmd = 0 ; n < 2 ; n++ ) {
+					if ( *fmt >= _T('0') && *fmt <= _T('9') )
+						cmd = cmd * 16 + (*(fmt++) - _T('0'));
+					else if ( *fmt >= _T('A') && *fmt <= _T('F') )
+						cmd = cmd * 16 + (*(fmt++) - _T('A') + 10);
+					else if ( *fmt >= _T('a') && *fmt <= _T('f') )
+						cmd = cmd * 16 + (*(fmt++) - _T('a') + 10);
+					else
+						break;
+				}
+				if ( cmd == _T('%') )
+					tmp += _T('%');
+				tmp += cmd;
+				break;
+
+			case _T('0'): case _T('1'): case _T('2'): case _T('3'):
+			case _T('4'): case _T('5'): case _T('6'): case _T('7'):
+				fmt += 1;
+				for ( n = cmd = 0 ; n < 3 ; n++ ) {
+					if ( *fmt >= _T('0') && *fmt <= _T('7') )
+						cmd = cmd * 8 + (*(fmt++) - _T('0'));
+					else
+						break;
+				}
+				if ( cmd == _T('%') )
+					tmp += _T('%');
+				tmp += cmd;
+				break;
+
+			default:
+				fmt += 1;
+				break;
+			}
+
+		} else
+			tmp += *(fmt++);
+	}
+
+	if ( tmp.GetLength() > 120 )
+		RetStr += _T("Date/Time Format to long... ");
+	else if ( !tmp.IsEmpty() )
+		RetStr += now.Format(tmp);
+
+	return RetStr;
+}
+
 BOOL CTextRam::IsOptEnable(int opt)
 {
 	if ( opt >= 1000 && opt <= 1511 ) {
@@ -6713,8 +6865,7 @@ void CTextRam::CallReceiveLine(int y)
 	GetLine(y, tmp);
 
 	if ( IsOptEnable(TO_RLLOGTIME) ) {
-		CTime now = CTime::GetCurrentTime();
-		str = now.Format(m_TimeFormat);
+		str = GetCurrentTimeFormat(m_TimeFormat);
 		in.Apend((LPBYTE)((LPCWSTR)str), str.GetLength() * sizeof(WCHAR));
 	}
 
@@ -6802,8 +6953,7 @@ BOOL CTextRam::CallReceiveChar(DWORD ch, LPCTSTR name)
 		}
 
 		if ( m_LogTimeFlag && IsOptEnable(TO_RLLOGTIME) ) {
-			CTime now = CTime::GetCurrentTime();
-			str = now.Format(m_TimeFormat);
+			str = GetCurrentTimeFormat(m_TimeFormat);
 			in.Apend((LPBYTE)((LPCWSTR)str), str.GetLength() * sizeof(WCHAR));
 			m_LogTimeFlag = FALSE;
 		}
@@ -6852,13 +7002,9 @@ int CTextRam::UnicodeWidth(DWORD code)
 // Static Lib
 //////////////////////////////////////////////////////////////////////
 
-#define	JPSET_EUC_X		0
-#define	JPSET_EUC_MS	1
-#define	JPSET_EUC		2
-#define	JPSET_SJIS_X	3
-#define	JPSET_SJIS		4
-#define	JPSET_CP932		5
-#define	JPSET_JIS		6
+#define	JPSET_X0208		0
+#define	JPSET_X0213		1
+#define	JPSET_SJIS		2
 
 typedef struct _JpSetList {
 	LPCTSTR name;
@@ -6871,149 +7017,81 @@ static int JpsetNameComp(const void *src, const void *dis)
 }
 int CTextRam::JapanCharSet(LPCTSTR name)
 {
-	static const JpSetList jpsettab[41] = {
-		{ _T("CP932"),					JPSET_CP932 },
-		{ _T("CSEUCPKDFMTJAPANESE"),	JPSET_EUC },
-		{ _T("CSISO159JISX02121990"),	JPSET_JIS },
-		{ _T("CSISO87JISX0208"),		JPSET_SJIS },
-		{ _T("CSSHIFTJIS"),				JPSET_SJIS },
-		{ _T("CSWINDOWS31J"),			JPSET_CP932 },
-		{ _T("EUC-JIS-2004"),			JPSET_EUC_X },
-		{ _T("EUC-JISX0213"),			JPSET_EUC_X },
-		{ _T("EUC-JP"),					JPSET_EUC },
-		{ _T("EUC-JP-MS"),				JPSET_EUC_MS },
-		{ _T("EUCJP"),					JPSET_EUC },
-		{ _T("EUCJP-MS"),				JPSET_EUC_MS },
-		{ _T("EUCJP-OPEN"),				JPSET_EUC_MS },
-		{ _T("EUCJP-WIN"),				JPSET_EUC_MS },
-		{ _T("EUCJPMS"),				JPSET_EUC_MS },
-		{ _T("EXTENDED_UNIX_CODE_PACKED_FORMAT_FOR_JAPANESE"),	JPSET_EUC },
-		{ _T("ISO-IR-159"),				JPSET_JIS },
-		{ _T("ISO-IR-87"),				JPSET_SJIS },
-		{ _T("JIS0208"),				JPSET_SJIS },
-		{ _T("JIS_C6226-1983"),			JPSET_SJIS },
-		{ _T("JIS_X0208"),				JPSET_SJIS },
-		{ _T("JIS_X0208-1983"),			JPSET_SJIS },
-		{ _T("JIS_X0208-1990"),			JPSET_SJIS },
-		{ _T("JIS_X0212"),				JPSET_JIS },
-		{ _T("JIS_X0212-1990"),			JPSET_JIS },
-		{ _T("JIS_X0212.1990-0"),		JPSET_JIS },
-		{ _T("MS932"),					JPSET_CP932 },
-		{ _T("MS_KANJI"),				JPSET_SJIS },
-		{ _T("SHIFT-JIS"),				JPSET_SJIS },
-		{ _T("SHIFT_JIS"),				JPSET_SJIS },
-		{ _T("SHIFT_JIS-2004"),		 	JPSET_SJIS_X },
-		{ _T("SHIFT_JIS-MS"),			JPSET_CP932 },
-		{ _T("SHIFT_JISX0213"),			JPSET_SJIS_X },
-		{ _T("SJIS"),					JPSET_SJIS },
-		{ _T("SJIS-MS"),				JPSET_CP932 },
-		{ _T("SJIS-OPEN"),				JPSET_CP932 },
-		{ _T("SJIS-WIN"),				JPSET_CP932 },
-		{ _T("WINDOWS-31J"),			JPSET_CP932 },
-		{ _T("WINDOWS-932"),			JPSET_CP932 },
-		{ _T("X0208"),					JPSET_SJIS },
-		{ _T("X0212"),					JPSET_JIS },
+	static const JpSetList jpsettab[30] = {
+		{ _T("CSEUCPKDFMTJAPANESE"),							JPSET_X0208 },	// EUC-JP
+		{ _T("CSISO2022JP"),								    JPSET_X0208 },	// ISO-2022-JP
+		{ _T("CSISO2022JP2"),								    JPSET_X0208 },	// ISO-2022-JP-2
+		{ _T("CSISO87JISX0208"),								JPSET_X0208 },	// JIS_X0208
+		{ _T("CSSHIFTJIS"),									    JPSET_SJIS },	// SHIFT-JIS
+		{ _T("EUC-JIS-2004"),									JPSET_X0213 },	// JISX0213
+		{ _T("EUC-JISX0213"),									JPSET_X0213 },	// JISX0213
+		{ _T("EUC-JP"),										    JPSET_X0208 },	// EUC-JP
+		{ _T("EUCJP"),										    JPSET_X0208 },	// EUC-JP
+		{ _T("EXTENDED_UNIX_CODE_PACKED_FORMAT_FOR_JAPANESE"),	JPSET_X0208 },	// EUC-JP
+
+		{ _T("ISO-2022-JP"),								    JPSET_X0208 },	// ISO-2022-JP
+		{ _T("ISO-2022-JP-1"),								    JPSET_X0208 },	// ISO-2022-JP-1
+		{ _T("ISO-2022-JP-2"),								    JPSET_X0208 },	// ISO-2022-JP-2
+		{ _T("ISO-2022-JP-2004"),								JPSET_X0213 },	// ISO-2022-JP-2004
+		{ _T("ISO-2022-JP-3"),									JPSET_X0213 },	// ISO-2022-JP-2004
+		{ _T("ISO-IR-87"),									    JPSET_X0208 },	// JIS_X0208
+		{ _T("JIS0208"),									    JPSET_X0208 },	// JIS_X0208
+		{ _T("JIS_C6226-1983"),									JPSET_X0208 },	// JIS_X0208
+		{ _T("JIS_X0208"),									    JPSET_X0208 },	// JIS_X0208
+		{ _T("JIS_X0208-1983"),									JPSET_X0208 },	// JIS_X0208
+
+		{ _T("JIS_X0208-1990"),									JPSET_X0208 },	// JIS_X0208
+		{ _T("JIS_X0213-2000.1"),								JPSET_X0213 },	// JISX0213
+		{ _T("JIS_X0213-2000.2"),								JPSET_X0213 },	// JISX0213
+		{ _T("MS_KANJI"),									    JPSET_SJIS },	// SHIFT-JIS
+		{ _T("SHIFT-JIS"),									    JPSET_SJIS },	// SHIFT-JIS
+		{ _T("SHIFT_JIS"),									    JPSET_SJIS },	// SHIFT-JIS
+		{ _T("SHIFT_JIS-2004"),									JPSET_X0213 },	// JISX0213
+		{ _T("SHIFT_JISX0213"),									JPSET_X0213 },	// JISX0213
+		{ _T("SJIS"),										    JPSET_SJIS },	// SHIFT-JIS
+		{ _T("X0208"),										    JPSET_X0208 },	// JIS_X0208
 	};
 	int n;
 
-	if ( BinaryFind((void *)name, (void *)jpsettab, sizeof(JpSetList), 27, JpsetNameComp, &n) )
+	if ( BinaryFind((void *)name, (void *)jpsettab, sizeof(JpSetList), 30, JpsetNameComp, &n) )
 		return jpsettab[n].type;
 
 	return (-1);
 }
 /***********************************
 
-	libiconv-1.15
+	libiconv-1.16
 
-	EUC-JIS-2004	2015 -> 0000
-	EUC-JIS-2004	ffe0 -> 0000
-	EUC-JIS-2004	ffe1 -> 0000
-	EUC-JIS-2004	ffe2 -> 0000
-
-	EUC-JISX0213	2015 -> 0000
-	EUC-JISX0213	ffe0 -> 0000
-	EUC-JISX0213	ffe1 -> 0000
-	EUC-JISX0213	ffe2 -> 0000
-
-	EUC-JP	2015 -> 0000
-	EUC-JP	2225 -> 0000
-	EUC-JP	ff0d -> 0000
-	EUC-JP	ffe0 -> 0000
-	EUC-JP	ffe1 -> 0000
-	EUC-JP	ffe2 -> 0000
-
-	SHIFT_JIS-2004	2015 -> 0000
-	SHIFT_JIS-2004	ffe0 -> 0000
-	SHIFT_JIS-2004	ffe1 -> 0000
-	SHIFT_JIS-2004	ffe2 -> 0000
-
-	SHIFT_JISX0213	2015 -> 0000
-	SHIFT_JISX0213	ffe0 -> 0000
-	SHIFT_JISX0213	ffe1 -> 0000
-	SHIFT_JISX0213	ffe2 -> 0000
-
-	SHIFT_JIS	2015 -> 0000
-	SHIFT_JIS	2225 -> 0000
-	SHIFT_JIS	ff0d -> 0000
-	SHIFT_JIS	ff5e -> 0000
-	SHIFT_JIS	ffe0 -> 0000
-	SHIFT_JIS	ffe1 -> 0000
-	SHIFT_JIS	ffe2 -> 0000
-
-	JIS_X0208	005c -> 0000
-	JIS_X0208	007e -> 0000
-	JIS_X0208	2015 -> 0000
-	JIS_X0208	2225 -> 0000
-	JIS_X0208	ff0d -> 0000
-	JIS_X0208	ff5e -> 0000
-	JIS_X0208	ffe0 -> 0000
-	JIS_X0208	ffe1 -> 0000
-	JIS_X0208	ffe2 -> 0000
-
-	JIS_X0212	005c -> 0000
-	JIS_X0212	007e -> 0000
-	JIS_X0212	2015 -> 0000
-	JIS_X0212	2225 -> 0000
-	JIS_X0212	ff0d -> 0000
-	JIS_X0212	ffe0 -> 0000
-	JIS_X0212	ffe1 -> 0000
-	JIS_X0212	ffe2 -> 0000
+	SJIS	EUC		SHIFT_JIS	JISX0213	EUC-JP		JIS_X0208	CP932
+	005c	005c	00a5		00a5								005c
+	007e	007e	203e		203e								007e
+	815c	a1bd				2014								2015
+	8160	a1c1	301c		301c		301c		301c		ff5e
+	8161	a1c2	2016		2016		2016		2016		2225
+	817c	a1dd	2212		2212		2212		2212		ff0d
+	8191	a1f1	00a2		00a2		00a2		00a2		ffe0
+	8192	a1f2	00a3		00a3		00a3		00a3		ffe1
+	81ca	a2cc	00ac		00ac		00ac		00ac		ffe2
 
 ***************************/
 
 DWORD CTextRam::MsToIconvUnicode(int jpset, DWORD code)
 {
 	switch(jpset) {
-	case JPSET_EUC_X:
+	case JPSET_X0208:
 		switch(code) {							/*                  iconv  MS     */
-		case 0x2015: code = 0x2014; break;		/* ― 0x815C(01-29) U+2014 U+2015 */
-		case 0xFFE0: code = 0x00A2; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
-		case 0xFFE1: code = 0x00A3; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
-		case 0xFFE2: code = 0x00AC; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
-		}
-		break;
-	case JPSET_EUC_MS:
-		break;
-	case JPSET_EUC:
-		switch(code) {							/*                  iconv  MS     */
-		case 0x2015: code = 0x2014; break;		/* ― 0x815C(01-29) U+2014 U+2015 */
 		case 0x2225: code = 0x2016; break;		/* ∥ 0x8161(01-34) U+2016 U+2225 */
 		case 0xFF0D: code = 0x2212; break;		/* － 0x817C(01-61) U+2212 U+FF0D */
+		case 0xFF5E: code = 0x301C; break;		/* ～ 0x8160(01-33) U+301C U+FF5E */
 		case 0xFFE0: code = 0x00A2; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
 		case 0xFFE1: code = 0x00A3; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
 		case 0xFFE2: code = 0x00AC; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
 		}
 		break;
-	case JPSET_SJIS_X:
+	case JPSET_X0213:
 		switch(code) {							/*                  iconv  MS     */
-		case 0x2015: code = 0x2014; break;		/* ― 0x815C(01-29) U+2014 U+2015 */
-		case 0xFFE0: code = 0x00A2; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
-		case 0xFFE1: code = 0x00A3; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
-		case 0xFFE2: code = 0x00AC; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
-		}
-		break;
-	case JPSET_SJIS:
-		switch(code) {							/*                  iconv  MS     */
+		case 0x005C: code = 0x00A5; break;		/* \  0x5C          U+00A5 U+005C */
+		case 0x007E: code = 0x203E; break;		/* ~  0x7E          U+203E U+007E */
 		case 0x2015: code = 0x2014; break;		/* ― 0x815C(01-29) U+2014 U+2015 */
 		case 0x2225: code = 0x2016; break;		/* ∥ 0x8161(01-34) U+2016 U+2225 */
 		case 0xFF0D: code = 0x2212; break;		/* － 0x817C(01-61) U+2212 U+FF0D */
@@ -7023,15 +7101,13 @@ DWORD CTextRam::MsToIconvUnicode(int jpset, DWORD code)
 		case 0xFFE2: code = 0x00AC; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
 		}
 		break;
-	case JPSET_CP932:
-		break;
-	case JPSET_JIS:
+	case JPSET_SJIS:
 		switch(code) {							/*                  iconv  MS     */
 		case 0x005C: code = 0x00A5; break;		/* \  0x5C          U+00A5 U+005C */
 		case 0x007E: code = 0x203E; break;		/* ~  0x7E          U+203E U+007E */
-		case 0x2015: code = 0x2014; break;		/* ― 0x815C(01-29) U+2014 U+2015 */
 		case 0x2225: code = 0x2016; break;		/* ∥ 0x8161(01-34) U+2016 U+2225 */
 		case 0xFF0D: code = 0x2212; break;		/* － 0x817C(01-61) U+2212 U+FF0D */
+		case 0xFF5E: code = 0x301C; break;		/* ～ 0x8160(01-33) U+301C U+FF5E */
 		case 0xFFE0: code = 0x00A2; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
 		case 0xFFE1: code = 0x00A3; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
 		case 0xFFE2: code = 0x00AC; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
@@ -7044,54 +7120,35 @@ DWORD CTextRam::MsToIconvUnicode(int jpset, DWORD code)
 DWORD CTextRam::IconvToMsUnicode(int jpset, DWORD code)
 {
 	switch(jpset) {
-	case JPSET_EUC_X:
+	case JPSET_X0208:
 		switch(code) {							/*                  iconv  MS     */
 		case 0x00A2: code = 0xFFE0; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
 		case 0x00A3: code = 0xFFE1; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
 		case 0x00AC: code = 0xFFE2; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
-		case 0x2014: code = 0x2015; break;		/* ― 0x815C(01-29) U+2014 U+2015 */
-		}
-		break;
-	case JPSET_EUC_MS:
-		break;
-	case JPSET_EUC:
-		switch(code) {							/*                  iconv  MS     */
-		case 0x00A2: code = 0xFFE0; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
-		case 0x00A3: code = 0xFFE1; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
-		case 0x00AC: code = 0xFFE2; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
-		case 0x2014: code = 0x2015; break;		/* ― 0x815C(01-29) U+2014 U+2015 */
-		case 0x2016: code = 0x2225; break;		/* ∥ 0x8161(01-34) U+2016 U+2225 */
-		case 0x2212: code = 0xFF0D; break;		/* － 0x817C(01-61) U+2212 U+FF0D */
-		}
-		break;
-	case JPSET_SJIS_X:
-		switch(code) {							/*                  iconv  MS     */
-		case 0x00A2: code = 0xFFE0; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
-		case 0x00A3: code = 0xFFE1; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
-		case 0x00AC: code = 0xFFE2; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
-		case 0x2014: code = 0x2015; break;		/* ― 0x815C(01-29) U+2014 U+2015 */
-		}
-		break;
-	case JPSET_SJIS:
-		switch(code) {							/*                  iconv  MS     */
-		case 0x00A2: code = 0xFFE0; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
-		case 0x00A3: code = 0xFFE1; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
-		case 0x00AC: code = 0xFFE2; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
-		case 0x2014: code = 0x2015; break;		/* ― 0x815C(01-29) U+2014 U+2015 */
 		case 0x2016: code = 0x2225; break;		/* ∥ 0x8161(01-34) U+2016 U+2225 */
 		case 0x2212: code = 0xFF0D; break;		/* － 0x817C(01-61) U+2212 U+FF0D */
 		case 0x301C: code = 0xFF5E; break;		/* ～ 0x8160(01-33) U+301C U+FF5E */
 		}
 		break;
-	case JPSET_CP932:
-		break;
-	case JPSET_JIS:
+	case JPSET_X0213:
 		switch(code) {							/*                  iconv  MS     */
 		case 0x00A2: code = 0xFFE0; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
 		case 0x00A3: code = 0xFFE1; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
 		case 0x00A5: code = 0x005C; break;		/* \  0x5C          U+00A5 U+005C */
 		case 0x00AC: code = 0xFFE2; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
 		case 0x2014: code = 0x2015; break;		/* ― 0x815C(01-29) U+2014 U+2015 */
+		case 0x2016: code = 0x2225; break;		/* ∥ 0x8161(01-34) U+2016 U+2225 */
+		case 0x203E: code = 0x007E; break;		/* ~  0x7E          U+203E U+007E */
+		case 0x2212: code = 0xFF0D; break;		/* － 0x817C(01-61) U+2212 U+FF0D */
+		case 0x301C: code = 0xFF5E; break;		/* ～ 0x8160(01-33) U+301C U+FF5E */
+		}
+		break;
+	case JPSET_SJIS:
+		switch(code) {							/*                  iconv  MS     */
+		case 0x00A2: code = 0xFFE0; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
+		case 0x00A3: code = 0xFFE1; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
+		case 0x00A5: code = 0x005C; break;		/* \  0x5C          U+00A5 U+005C */
+		case 0x00AC: code = 0xFFE2; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
 		case 0x2016: code = 0x2225; break;		/* ∥ 0x8161(01-34) U+2016 U+2225 */
 		case 0x203E: code = 0x007E; break;		/* ~  0x7E          U+203E U+007E */
 		case 0x2212: code = 0xFF0D; break;		/* － 0x817C(01-61) U+2212 U+FF0D */
@@ -8812,7 +8869,7 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at, LPCWSTR str)
 	if ( str == NULL ) {
 		ch |= m_FontTab[md].m_Shift;
 		ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// Char変換ではUTF-16BEを使用！
-		ch = IconvToMsUnicode(m_FontTab[md].m_IContName, ch);
+		ch = IconvToMsUnicode(m_FontTab[md].m_JpSet, ch);
 	}
 
 	m_LastChar = ch;
@@ -8901,7 +8958,7 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at, LPCWSTR str)
 
 	if ( str == NULL ) {
 		ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// Char変換ではUTF-16BEを使用！
-		ch = IconvToMsUnicode(m_FontTab[md].m_IContName, ch);
+		ch = IconvToMsUnicode(m_FontTab[md].m_JpSet, ch);
 	}
 
 	m_LastChar = ch;

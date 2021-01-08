@@ -2083,10 +2083,10 @@ int CIdKey::ChkOldCertHosts(LPCTSTR host)
 
 	return FALSE;
 }
-int CIdKey::HostVerify(LPCTSTR host)
+int CIdKey::HostVerify(LPCTSTR host, UINT port, BOOL bDnsDisable)
 {
 	int n, i, found;
-	CString dig, ses, known, work;
+	CString dig, ses, known, work, kname;
 	CStringArrayExt entry;
 	CStringBinary cert;
 	CRLoginApp *pApp = (CRLoginApp *)AfxGetApp();
@@ -2102,59 +2102,66 @@ int CIdKey::HostVerify(LPCTSTR host)
 	} *t;
 	ADDRINFOT hints, *ai;
 
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_socktype = SOCK_DGRAM;
-	hints.ai_flags = AI_NUMERICHOST;
+	if ( !bDnsDisable ) {
+		memset(&hints, 0, sizeof(hints));
+		hints.ai_socktype = SOCK_DGRAM;
+		hints.ai_flags = AI_NUMERICHOST;
 
-	if ( GetAddrInfo(host, NULL, &hints, &ai) == 0 )
-		FreeAddrInfo(ai);
-	else {
-		switch(m_Type) {
-		case IDKEY_RSA1:
-		case IDKEY_RSA2:
-			type = SSHFP_KEY_RSA;
-			break;
-		case IDKEY_DSA2:
-			type = SSHFP_KEY_DSA;
-			break;
-		case IDKEY_ECDSA:
-			type = SSHFP_KEY_ECDSA;
-			break;
-		case IDKEY_ED25519:
-			type = SSHFP_KEY_ED25519;
-			break;
-		case IDKEY_XMSS:
-			type = SSHFP_KEY_XMSS;
-			break;
-		}
-
-		if ( type != SSHFP_KEY_RESERVED && DnsQuery(host, DNS_RDATATYPE_SSHFP, DNS_QUERY_STANDARD, NULL, &rec, NULL) == 0 ) {
-			found = 0;
-			for ( p = rec ; p != NULL ; p = p->pNext ) {
-				if ( p->wType != DNS_RDATATYPE_SSHFP )
-					continue;
-				t = (struct _DNS_SSHFP_DATA *)&(p->Data.Null);
-				if ( t->type == SSHFP_KEY_RSA || t->type == SSHFP_KEY_DSA || t->type == SSHFP_KEY_ECDSA || t->type == SSHFP_KEY_ED25519 || t->type == SSHFP_KEY_XMSS ) {
-					found |= 001;
-					if ( t->type == type && DnsDigest(t->hash, digest) && p->wDataLength == (digest.GetSize() + 2) && memcmp(t->digest, digest.GetPtr(), digest.GetSize()) == 0 )
-						found |= 002;
-				}
+		if ( GetAddrInfo(host, NULL, &hints, &ai) == 0 )
+			FreeAddrInfo(ai);
+		else {
+			switch(m_Type) {
+			case IDKEY_RSA1:
+			case IDKEY_RSA2:
+				type = SSHFP_KEY_RSA;
+				break;
+			case IDKEY_DSA2:
+				type = SSHFP_KEY_DSA;
+				break;
+			case IDKEY_ECDSA:
+				type = SSHFP_KEY_ECDSA;
+				break;
+			case IDKEY_ED25519:
+				type = SSHFP_KEY_ED25519;
+				break;
+			case IDKEY_XMSS:
+				type = SSHFP_KEY_XMSS;
+				break;
 			}
-			DnsRecordListFree(rec, DnsFreeRecordList);
 
-			if ( found == 001 ) {
-				if ( MessageBox(NULL, CStringLoad(IDE_DNSDIGESTNOTMATCH), _T("Warning"), MB_ICONWARNING | MB_YESNO) != IDYES )
-					return FALSE;
+			if ( type != SSHFP_KEY_RESERVED && (n = DnsQuery(host, DNS_RDATATYPE_SSHFP, DNS_QUERY_STANDARD, NULL, &rec, NULL)) == 0 ) {
+				found = 0;
+				for ( p = rec ; p != NULL ; p = p->pNext ) {
+					TRACE("rec %d\n", p->wType);
+					if ( p->wType != DNS_RDATATYPE_SSHFP )
+						continue;
+					t = (struct _DNS_SSHFP_DATA *)&(p->Data.Null);
+					if ( t->type == SSHFP_KEY_RSA || t->type == SSHFP_KEY_DSA || t->type == SSHFP_KEY_ECDSA || t->type == SSHFP_KEY_ED25519 || t->type == SSHFP_KEY_XMSS ) {
+						found |= 001;
+						if ( t->type == type && DnsDigest(t->hash, digest) && p->wDataLength == (digest.GetSize() + 2) && memcmp(t->digest, digest.GetPtr(), digest.GetSize()) == 0 )
+							found |= 002;
+					}
+				}
+				DnsRecordListFree(rec, DnsFreeRecordList);
+
+				if ( found == 001 ) {
+					if ( MessageBox(NULL, CStringLoad(IDE_DNSDIGESTNOTMATCH), _T("Warning"), MB_ICONWARNING | MB_YESNO) != IDYES )
+						return FALSE;
+				}
 			}
 		}
 	}
 
 	found = FALSE;
 	WritePublicKey(dig, FALSE);
-	pApp->GetProfileStringArray(_T("KnownHosts"), host, entry);
+
+	kname.Format(_T("%s:%d"), host, port);
+	pApp->GetProfileStringArray(_T("KnownHosts"), kname, entry);
 
 	if ( entry.GetSize() == 0 ) {
 		CStringArrayExt oldEntry;
+
+		// ŒÃ‚¢Œ`Ž®(KnownHosts\host-xxx)‚ð‹~Ï
 		pApp->GetProfileKeys(_T("KnownHosts"), oldEntry);
 		i = (int)_tcslen(host);
 		for ( n = 0 ; n < oldEntry.GetSize() ; n++ ) {
@@ -2165,7 +2172,17 @@ int CIdKey::HostVerify(LPCTSTR host)
 				pApp->DelProfileEntry(_T("KnownHosts"), oldEntry[n]);
 			}
 		}
-		pApp->WriteProfileStringArray(_T("KnownHosts"), host, entry);
+		if ( entry.GetSize() > 0 )
+			pApp->WriteProfileStringArray(_T("KnownHosts"), kname, entry);
+
+		// ŒÃ‚¢Œ`Ž®(KnownHosts\host)‚ð‹~Ï
+		pApp->GetProfileStringArray(_T("KnownHosts"), host, oldEntry);
+		if ( oldEntry.GetSize() != 0 ) {
+			for ( n = 0 ; n < oldEntry.GetSize() ; n++ )
+				entry.Add(oldEntry[n]);
+			pApp->DelProfileEntry(_T("KnownHosts"), host);
+			pApp->WriteProfileStringArray(_T("KnownHosts"), kname, entry);
+		}
 	}
 
 	for ( n = 0 ; n < entry.GetSize() ; n++ ) {
@@ -2185,7 +2202,7 @@ int CIdKey::HostVerify(LPCTSTR host)
 
 		if ( dlg.m_SaveKeyFlag ) {
 			entry.Add(dig);
-			pApp->WriteProfileStringArray(_T("KnownHosts"), host, entry);
+			pApp->WriteProfileStringArray(_T("KnownHosts"), kname, entry);
 		}
 	}
 

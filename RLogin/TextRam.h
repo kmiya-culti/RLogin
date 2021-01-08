@@ -285,6 +285,7 @@
 #define	TO_RLDELAYRV	1487		// 無受信時間待って次を送信する(ms)
 #define	TO_RLDELAYCR	1488		// 改行(CR)を確認し指定時間待って次を送信する(ms)
 #define	TO_IMECARET		1489		// IMEがONの時にカレットの色を変える
+#define	TO_DNSSSSHFP	1490		// DNSによるSSSHホスト鍵のチェックを行う
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -695,6 +696,7 @@ public:
 	DWORD m_Iso646Tab[12];
 	CString m_OverZero;
 	COLORREF *m_pTransColor;
+	int m_JpSet;
 
 	void Init();
 	void SetArray(CStringArrayExt &stra);
@@ -1354,6 +1356,7 @@ public:
 	static int IndexToOption(int value);
 	static void OptionString(int value, CString &str);
 	static void IncDscs(int &Pcss, CString &str);
+	static LPCTSTR GetCurrentTimeFormat(LPCTSTR fmt);
 
 	// Low Level
 	void RESET(int mode);

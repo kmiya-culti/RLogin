@@ -64,8 +64,6 @@ void CServerSelect::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(CServerSelect, CDialogExt)
 	ON_WM_CLOSE()
-	ON_WM_SIZE()
-	ON_WM_SIZING()
 	ON_WM_DRAWITEM()
 	ON_WM_MEASUREITEM()
 	ON_WM_LBUTTONUP()
@@ -340,7 +338,7 @@ static const INITDLGTAB ItemTab[] = {
 
 void CServerSelect::SetItemOffset(int cx, int cy)
 {
-	CDialogExt::SetItemOffset(ItemTab, cx, cy);
+	CDialogExt::SetItemOffset(cx, cy);
 
 	int n;
 	WINDOWPLACEMENT placeTree, placeTab, placeList;
@@ -456,9 +454,6 @@ BOOL CServerSelect::OnInitDialog()
 	m_TreeListPer = AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("TreePer"), m_TreeListPer);
 
 	GetWindowRect(rect);
-	m_MinWidth = rect.Width();
-	m_MinHeight = rect.Height();
-
 	cx = AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("cx"), rect.Width());
 	cy = AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("cy"), rect.Height());
 	if ( cx < rect.Width() )
@@ -1545,44 +1540,6 @@ BOOL CServerSelect::PreTranslateMessage(MSG* pMsg)
 	}
 
 	return CDialogExt::PreTranslateMessage(pMsg);
-}
-
-void CServerSelect::OnSize(UINT nType, int cx, int cy)
-{
-	SetItemOffset(cx, cy);
-	CDialogExt::OnSize(nType, cx, cy);
-	Invalidate(TRUE);
-}
-
-void CServerSelect::OnSizing(UINT fwSide, LPRECT pRect)
-{
-	//case WMSZ_LEFT:			// 1 Left edge
-	//case WMSZ_RIGHT:			// 2 Right edge
-	//case WMSZ_TOP:			// 3 Top edge
-	//case WMSZ_TOPLEFT:		// 4 Top-left corner
-	//case WMSZ_TOPRIGHT:		// 5 Top-right corner
-	//case WMSZ_BOTTOM:			// 6 Bottom edge
-	//case WMSZ_BOTTOMLEFT:		// 7 Bottom-left corner
-	//case WMSZ_BOTTOMRIGHT:	// 8 Bottom-right corner
-
-	int width  = MulDiv(m_MinWidth,  m_NowDpi.cx, m_InitDpi.cx);
-	int height = MulDiv(m_MinHeight, m_NowDpi.cy, m_InitDpi.cy);
-
-	if ( (pRect->right - pRect->left) < width ) {
-		if ( fwSide == WMSZ_LEFT || fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_BOTTOMLEFT )
-			pRect->left = pRect->right - width;
-		else
-			pRect->right = pRect->left + width;
-	}
-
-	if ( (pRect->bottom - pRect->top) < height ) {
-		if ( fwSide == WMSZ_TOP || fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_TOPRIGHT )
-			pRect->top = pRect->bottom - height;
-		else
-			pRect->bottom = pRect->top + height;
-	}
-
-	CDialogExt::OnSizing(fwSide, pRect);
 }
 
 BOOL CServerSelect::GetTrackerRect(CRect &rect, CRect &move)

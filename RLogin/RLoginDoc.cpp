@@ -930,7 +930,8 @@ BOOL CRLoginDoc::EntryText(CString &name, LPCWSTR match)
 				st = TRUE;
 				break;
 			case _T('P'):
-				tmp += m_ServerEntry.m_PassName;
+				if ( match != NULL )
+					tmp += m_ServerEntry.m_PassName;
 				st = TRUE;
 				break;
 			case _T('T'):
@@ -1101,6 +1102,7 @@ BOOL CRLoginDoc::EntryText(CString &name, LPCWSTR match)
 				for ( n = c = 0 ; n < 3 ; n++ ) {
 					if ( *str >= _T('0') && *str <= _T('7') )
 						c = c * 8 + (*(str++) - _T('0'));
+					else
 						break;
 				}
 				tmp += c;
@@ -1326,10 +1328,8 @@ NEWLINE:
 			m_pLogFile->Write("\r\n", 2);
 
 		if ( nBufLen > 0 ) {
-			CTime now = CTime::GetCurrentTime();
-
 			if ( m_TextRam.IsOptEnable(TO_RLLOGTIME) ) {
-				mbs = now.Format(m_TextRam.m_TimeFormat);
+				mbs = m_TextRam.GetCurrentTimeFormat(m_TextRam.m_TimeFormat);
 				m_pLogFile->Write((LPCSTR)mbs, mbs.GetLength());
 			}
 

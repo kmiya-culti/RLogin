@@ -44,8 +44,6 @@ BEGIN_MESSAGE_MAP(CBlockDlg, CDialogExt)
 	ON_NOTIFY(NM_CUSTOMDRAW, IDC_BLOCKLIST, &CBlockDlg::OnNMCustomdrawBlocklist)
 	ON_COMMAND(ID_EDIT_COPY_ALL, &CBlockDlg::OnEditCopyAll)
 	ON_COMMAND(ID_EDIT_PASTE_ALL, &CBlockDlg::OnEditPasteAll)
-	ON_WM_SIZE()
-	ON_WM_SIZING()
 	ON_WM_VSCROLL()
 END_MESSAGE_MAP()
 
@@ -232,11 +230,6 @@ BOOL CBlockDlg::OnInitDialog()
 	m_BlockList.SetPopUpMenu(IDR_POPUPMENU, 4);
 	InitList();
 
-	CRect rect;
-	GetWindowRect(rect);
-	m_MinWidth  = rect.Width();
-	m_MinHeight = rect.Height();
-
 	return TRUE;
 }
 void CBlockDlg::OnOK()
@@ -394,36 +387,6 @@ void CBlockDlg::OnEditPasteAll()
 		
 	InitList();
 }
-
-void CBlockDlg::OnSize(UINT nType, int cx, int cy)
-{
-	SetItemOffset(ItemTab, cx, cy);
-	CDialogExt::OnSize(nType, cx, cy);
-	Invalidate(FALSE);
-}
-
-void CBlockDlg::OnSizing(UINT fwSide, LPRECT pRect)
-{
-	int width  = MulDiv(m_MinWidth,  m_NowDpi.cx, m_InitDpi.cx);
-	int height = MulDiv(m_MinHeight, m_NowDpi.cy, m_InitDpi.cy);
-
-	if ( (pRect->right - pRect->left) < width ) {
-		if ( fwSide == WMSZ_LEFT || fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_BOTTOMLEFT )
-			pRect->left = pRect->right - width;
-		else
-			pRect->right = pRect->left + width;
-	}
-
-	if ( (pRect->bottom - pRect->top) < height ) {
-		if ( fwSide == WMSZ_TOP || fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_TOPRIGHT )
-			pRect->top = pRect->bottom - height;
-		else
-			pRect->bottom = pRect->top + height;
-	}
-
-	CDialogExt::OnSizing(fwSide, pRect);
-}
-
 
 void CBlockDlg::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 {

@@ -28,8 +28,6 @@ void CEditDlg::DoDataExchange(CDataExchange* pDX)
 }
 
 BEGIN_MESSAGE_MAP(CEditDlg, CDialogExt)
-	ON_WM_SIZE()
-	ON_WM_SIZING()
 END_MESSAGE_MAP()
 
 static const INITDLGTAB ItemTab[] = {
@@ -107,42 +105,13 @@ BOOL CEditDlg::OnInitDialog()
 		height = metric.tmInternalLeading + (metric.tmHeight + metric.tmExternalLeading) * lines + metric.tmDescent - rect.Height();
 	}
 
-	GetWindowRect(rect);
-	m_MinWidth  = rect.Width();
-	m_MinHeight = rect.Height() + height;
+	if ( height != 0 ) {
+		GetWindowRect(rect);
+		m_MinSize.cx = rect.Width();
+		m_MinSize.cy = rect.Height() + height;
 
-	if ( height != 0 )
-		MoveWindow(rect.left, rect.top, m_MinWidth, m_MinHeight, FALSE);
+		MoveWindow(rect.left, rect.top, m_MinSize.cx, m_MinSize.cy, FALSE);
+	}
 
 	return TRUE;
-}
-
-void CEditDlg::OnSize(UINT nType, int cx, int cy)
-{
-	SetItemOffset(ItemTab, cx, cy);
-	CDialogExt::OnSize(nType, cx, cy);
-	Invalidate(FALSE);
-}
-
-void CEditDlg::OnSizing(UINT fwSide, LPRECT pRect)
-{
-	int width  = MulDiv(m_MinWidth,  m_NowDpi.cx, m_InitDpi.cx);
-	int height = MulDiv(m_MinHeight, m_NowDpi.cy, m_InitDpi.cy);
-
-	if ( (pRect->right - pRect->left) < width ) {
-		if ( fwSide == WMSZ_LEFT || fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_BOTTOMLEFT )
-			pRect->left = pRect->right - width;
-		else
-			pRect->right = pRect->left + width;
-	}
-
-	if ( (pRect->bottom - pRect->top) < height ) {
-		if ( fwSide == WMSZ_TOP || fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_TOPRIGHT )
-			pRect->top = pRect->bottom - height;
-		else
-			pRect->bottom = pRect->top + height;
-	}
-
-
-	CDialogExt::OnSizing(fwSide, pRect);
 }

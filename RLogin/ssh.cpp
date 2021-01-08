@@ -100,6 +100,7 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 		m_AuthMeta.Empty();
 		m_AuthLog.Empty();
 		m_HostName = m_pDocument->m_ServerEntry.m_HostName;
+		m_HostPort = nHostPort;
 		m_DhMode = DHMODE_GROUP_1;
 		m_GlbReqMap.RemoveAll();
 		m_ChnReqMap.RemoveAll();
@@ -892,7 +893,7 @@ int Cssh::SMsgPublicKey(CBuffer *bp)
 	m_host_key_n = BN_dup(host_key_n);
 	RSA_set0_key(m_HostKey.m_Rsa, m_host_key_n, m_host_key_e, NULL);
 
-	if ( !m_HostKey.HostVerify(m_HostName) )
+	if ( !m_HostKey.HostVerify(m_HostName, m_HostPort, m_pDocument->m_TextRam.IsOptEnable(TO_DNSSSSHFP)) )
 		return FALSE;
 
 	m_ServerFlag  = bp->Get32Bit();
@@ -2808,7 +2809,7 @@ int Cssh::SSH2MsgKexDhReply(CBuffer *bp)
 	if ( !m_HostKey.GetBlob(&tmp) )
 		return TRUE;
 
-	if ( !m_HostKey.HostVerify(m_HostName) )
+	if ( !m_HostKey.HostVerify(m_HostName, m_HostPort, m_pDocument->m_TextRam.IsOptEnable(TO_DNSSSSHFP)) )
 		return TRUE;
 
 	if ( (spub = BN_new()) == NULL || (ssec = BN_new()) == NULL )
@@ -2925,7 +2926,7 @@ int Cssh::SSH2MsgKexDhGexReply(CBuffer *bp)
 	if ( !m_HostKey.GetBlob(&tmp) )
 		return TRUE;
 
-	if ( !m_HostKey.HostVerify(m_HostName) )
+	if ( !m_HostKey.HostVerify(m_HostName, m_HostPort, m_pDocument->m_TextRam.IsOptEnable(TO_DNSSSSHFP)) )
 		return TRUE;
 
 	if ( (spub = BN_new()) == NULL || (ssec = BN_new()) == NULL )
@@ -3004,7 +3005,7 @@ int Cssh::SSH2MsgKexEcdhReply(CBuffer *bp)
 	if ( !m_HostKey.GetBlob(&tmp) )
 		return TRUE;
 
-	if ( !m_HostKey.HostVerify(m_HostName) )
+	if ( !m_HostKey.HostVerify(m_HostName, m_HostPort, m_pDocument->m_TextRam.IsOptEnable(TO_DNSSSSHFP)) )
 		return TRUE;
 
 	if ( (server_public = EC_POINT_new(m_EcdhGroup)) == NULL )
@@ -3091,7 +3092,7 @@ int Cssh::SSH2MsgKexCurveReply(CBuffer *bp)
 	if ( !m_HostKey.GetBlob(&tmp) )
 		return TRUE;
 
-	if ( !m_HostKey.HostVerify(m_HostName) )
+	if ( !m_HostKey.HostVerify(m_HostName, m_HostPort, m_pDocument->m_TextRam.IsOptEnable(TO_DNSSSSHFP)) )
 		return TRUE;
 
 	bp->GetBuf(&server_public);
@@ -3154,7 +3155,7 @@ int Cssh::SSH2MsgKexSntrupReply(CBuffer *bp)
 	if ( !m_HostKey.GetBlob(&tmp) )
 		return TRUE;
 
-	if ( !m_HostKey.HostVerify(m_HostName) )
+	if ( !m_HostKey.HostVerify(m_HostName, m_HostPort, m_pDocument->m_TextRam.IsOptEnable(TO_DNSSSSHFP)) )
 		return TRUE;
 
 	bp->GetBuf(&server_public);
@@ -3897,12 +3898,23 @@ int Cssh::SSH2MsgGlobalHostKeys(CBuffer *bp)
 	int wrtFlag = 0;
 	CIdKey key;
 	CBuffer tmp;
-	CString dig;
+	CString dig, kname;
 	CStringArrayExt entry;
 	CArray<CIdKey, CIdKey &> keyTab;
 	CRLoginApp *pApp = (CRLoginApp *)AfxGetApp();
 
-	pApp->GetProfileStringArray(_T("KnownHosts"), m_HostName, entry);
+	kname.Format(_T("%s:%d"), m_HostName, m_HostPort);
+	pApp->GetProfileStringArray(_T("KnownHosts"), kname, entry);
+
+	if ( entry.GetSize() == 0 ) {
+		// ŒÃ‚¢Œ`Ž®(KnownHosts\host)‚ð‹~Ï
+		pApp->GetProfileStringArray(_T("KnownHosts"), m_HostName, entry);
+		if ( entry.GetSize() != 0 ) {
+			pApp->DelProfileEntry(_T("KnownHosts"), m_HostName);
+			pApp->WriteProfileStringArray(_T("KnownHosts"), kname, entry);
+		}
+	}
+
 	for ( n = 0 ; n < entry.GetSize() ; n++ ) {
 		key.m_Uid = FALSE;
 		if ( key.ReadPublicKey(entry[n]) ) {
@@ -3963,7 +3975,7 @@ int Cssh::SSH2MsgGlobalHostKeys(CBuffer *bp)
 				entry.Add(dig);
 			}
 		}
-		pApp->WriteProfileStringArray(_T("KnownHosts"), m_HostName, entry);
+		pApp->WriteProfileStringArray(_T("KnownHosts"), kname, entry);
 	}
 
 	return TRUE;

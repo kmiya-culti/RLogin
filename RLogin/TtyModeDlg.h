@@ -21,8 +21,6 @@ public:
 public:
 	CListCtrlExt m_List;
 	class CParamTab *m_pParamTab;
-	int m_MinWidth;
-	int m_MinHeight;
 
 	void InitList();
 
@@ -33,8 +31,6 @@ protected:
 
 protected:
 	DECLARE_MESSAGE_MAP()
-	afx_msg void OnSize(UINT nType, int cx, int cy);
-	afx_msg void OnSizing(UINT fwSide, LPRECT pRect);
 };
 
 /////////////////////////////////////////////////////////////////////////////

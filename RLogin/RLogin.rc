@@ -623,11 +623,11 @@ BEGIN
                     "SysLink",WS_TABSTOP,44,26,189,8
     CONTROL         "<a href=""https://kmiya-culti.github.io/RLogin/"">https://kmiya-culti.github.io/RLogin/</a>",IDC_SYSLINK3,
                     "SysLink",WS_TABSTOP,44,37,189,8
-    CONTROL         "<a href=""http://www.1023world.net/material/gif/"">http://www.1023world.net/material/gif/</a>",IDC_SYSLINK1,
+    CONTROL         "<a href=""https://1023world.net/"">https://1023world.net/</a>",IDC_SYSLINK1,
                     "SysLink",WS_TABSTOP,44,178,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,193,60,14,WS_GROUP
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin (%s) Version 2.25.6 (2020/12/09)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.25.7 (2021/01/08)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2020 Culti",IDC_STATIC,44,16,189,8
     LTEXT           "OpenSSL 1.1.1i 8 Dec 2020",IDC_STATIC,44,52,189,8
     LTEXT           "Copyright (c) 1998-2020 The OpenSSL Project",IDC_STATIC,44,61,189,8
@@ -635,7 +635,7 @@ BEGIN
     LTEXT           "All rights reserved.",IDC_STATIC,44,79,189,8
     LTEXT           "zlib 1.2.11 (15 Jan 2017)",IDC_STATIC,44,92,189,8
     LTEXT           "(C) 1995-2017 Jean-loup Gailly and Mark Adler",IDC_STATIC,44,101,189,8
-    LTEXT           "iconv (GNU libiconv 1.15)",IDC_STATIC,44,114,189,8
+    LTEXT           "iconv (GNU libiconv 1.16)",IDC_STATIC,44,114,189,8
     LTEXT           "Copyright (C) 2000-2017 Free Software Foundation, Inc.",IDC_STATIC,44,123,189,8
     LTEXT           "Nettle library (version 2.0)",IDC_STATIC,44,138,189,8
     LTEXT           "Originally written 2001 by Niels Moller, updated 2009.",IDC_STATIC,44,147,189,8
@@ -897,7 +897,8 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,107,240,10
     CONTROL         "シェル起動なしでPFログを表示",IDC_PROTOCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,124,117,10
     CONTROL         "接続時にSFTPを起動する",IDC_PROTOCHECK9,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,138,124,117,10
-    CONTROL         "エージェント転送を有効にする",IDC_PROTOCHECK6,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,141,240,10
+    CONTROL         "エージェント転送を有効にする",IDC_PROTOCHECK6,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,141,117,10
+    CONTROL         "DNSでホスト鍵をチェックしない",IDC_PROTOCHECK10,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,138,141,117,10
     CONTROL         "KeepAliveパケットの送信間隔(sec)",IDC_PROTOCHECK7,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,158,180,10
     EDITTEXT        IDC_KEEPALIVE,205,155,50,14,ES_AUTOHSCROLL
     COMBOBOX        IDC_RSAEXTSEL,205,174,50,80,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
@@ -907,9 +908,9 @@ BEGIN
     PUSHBUTTON      "ポートフォワード(&P)",IDC_SSHPFD,35,235,90,14
     PUSHBUTTON      "端末モード(&T)",IDC_SSHTTYMODE,144,235,90,14
     EDITTEXT        IDC_VERINDENT,15,271,240,14,ES_AUTOHSCROLL
+    LTEXT           "RSA2認証鍵の署名方式を拡張(サーバーの対応が必要)",IDC_STATIC,15,175,180,10
     GROUPBOX        "TELNET",IDC_STATIC,7,7,256,79
     GROUPBOX        "SSH",IDC_STATIC,7,91,256,202
-    LTEXT           "RSA2認証鍵の署名方式を拡張(サーバーの対応が必要)",IDC_STATIC,15,175,180,10
     LTEXT           "標準入出力のバッファサイズを指定する",IDC_STATIC,15,192,180,10
     LTEXT           "追加のバージョン情報",IDC_STATIC,15,258,240,8
 END
@@ -1161,33 +1162,34 @@ BEGIN
     EDITTEXT        IDC_MESSAGE,16,38,235,14,ES_AUTOHSCROLL | ES_READONLY
 END
 
-IDD_IDKEYSELDLG DIALOGEX 0, 0, 255, 275
+IDD_IDKEYSELDLG DIALOGEX 0, 0, 255, 297
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "認証キー"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    CONTROL         "List2",IDC_IDKEY_LIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,17,20,161,69
-    PUSHBUTTON      "上へ",IDC_IDKEY_UP,188,21,50,14
-    PUSHBUTTON      "下へ",IDC_IDKEY_DOWN,188,38,50,14
-    PUSHBUTTON      "公開鍵",IDC_IDKEY_COPY,188,75,50,14
-    PUSHBUTTON      "インポート",IDC_IDKEY_INPORT,188,112,50,14
-    PUSHBUTTON      "エクスポート",IDC_IDKEY_EXPORT,188,128,50,14
-    COMBOBOX        IDC_IDKEY_TYPE,188,162,50,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    COMBOBOX        IDC_IDKEY_BITS,188,178,50,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    EDITTEXT        IDC_IDKEY_NAME,188,194,50,14,ES_AUTOHSCROLL
-    PUSHBUTTON      "作成",IDC_IDKEY_CREATE,188,212,50,14
-    DEFPUSHBUTTON   "OK",IDOK,60,254,60,14
-    PUSHBUTTON      "キャンセル",IDCANCEL,135,254,60,14
-    GROUPBOX        "ファイル",IDC_STATIC,7,102,241,47
-    GROUPBOX        "新規",IDC_STATIC,7,152,241,95
-    LTEXT           "SSH1はRSA1のみ、SSH2はRSA2/DSA2を選択",IDC_STATIC,17,164,161,8
-    LTEXT           "任意の名前が指定できます",IDC_STATIC,17,196,161,8
-    LTEXT           "上記の条件で認証キーを作成します",IDC_STATIC,17,214,161,8
-    LTEXT           "認証キーのビットサイズを指定します",IDC_STATIC,17,180,161,8
-    LTEXT           "ファイルから認証キーを読み込みます",IDC_STATIC,17,116,161,8
-    LTEXT           "ファイルに認証キーを保存します",IDC_STATIC,17,132,161,8
-    GROUPBOX        "認証キーリスト",IDC_STATIC,7,7,241,91
-    CONTROL         "Progress1",IDC_IDKEY_PROG,"msctls_progress32",0x0,15,232,222,10
+    CONTROL         "List2",IDC_IDKEY_LIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,17,37,161,69
+    PUSHBUTTON      "上へ",IDC_IDKEY_UP,188,38,50,14
+    PUSHBUTTON      "下へ",IDC_IDKEY_DOWN,188,55,50,14
+    PUSHBUTTON      "公開鍵",IDC_IDKEY_COPY,188,92,50,14
+    PUSHBUTTON      "インポート",IDC_IDKEY_INPORT,188,132,50,14
+    PUSHBUTTON      "エクスポート",IDC_IDKEY_EXPORT,188,148,50,14
+    COMBOBOX        IDC_IDKEY_TYPE,188,182,50,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_IDKEY_BITS,188,198,50,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_IDKEY_NAME,188,214,50,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "作成",IDC_IDKEY_CREATE,188,232,50,14
+    DEFPUSHBUTTON   "OK",IDOK,60,276,60,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,135,276,60,14
+    GROUPBOX        "ファイル",IDC_STATIC,7,122,241,47
+    GROUPBOX        "新規",IDC_STATIC,7,172,241,95
+    LTEXT           "SSH1はRSA1のみ、SSH2はRSA2/ECDSAなどを選択",IDC_STATIC,17,184,161,8
+    LTEXT           "任意の名前が指定できます",IDC_STATIC,17,216,161,8
+    LTEXT           "上記の条件で認証キーを作成します",IDC_STATIC,17,234,161,8
+    LTEXT           "認証キーのビットサイズを指定します",IDC_STATIC,17,200,161,8
+    LTEXT           "ファイルから認証キーを読み込みます",IDC_STATIC,17,136,161,8
+    LTEXT           "ファイルに認証キーを保存します",IDC_STATIC,17,152,161,8
+    GROUPBOX        "認証キーリスト",IDC_STATIC,7,7,241,111
+    CONTROL         "Progress1",IDC_IDKEY_PROG,"msctls_progress32",0x0,15,252,222,10
+    LTEXT           "このエントリーで使用する認証キーをチェック（任意順位で複数選択可能）",IDC_STATIC,17,22,221,8
 END
 
 IDD_SERENTPAGE DIALOGEX 0, 0, 270, 300
@@ -1720,17 +1722,17 @@ BEGIN
     CONTROL         "",IDC_LIST2,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_TABSTOP,0,0,318,169
 END
 
-IDD_OPTDLG DIALOGEX 0, 0, 316, 185
+IDD_OPTDLG DIALOGEX 0, 0, 323, 186
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "オプション設定"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,93,164,60,14
-    PUSHBUTTON      "キャンセル",IDCANCEL,162,164,60,14
-    PUSHBUTTON      "適用",ID_APPLY_NOW,231,164,60,14
-    PUSHBUTTON      "初期化",IDC_DOINIT,24,164,60,14
-    CONTROL         "",IDC_TABTREE,"SysTreeView32",TVS_HASLINES | TVS_DISABLEDRAGDROP | TVS_SHOWSELALWAYS | WS_BORDER | WS_HSCROLL | WS_TABSTOP,7,7,55,150
-    CONTROL         "",IDC_FRAME,"Static",SS_BLACKFRAME,63,7,246,150
+    DEFPUSHBUTTON   "OK",IDOK,96,165,60,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,165,165,60,14
+    PUSHBUTTON      "適用",ID_APPLY_NOW,234,165,60,14
+    PUSHBUTTON      "初期化",IDC_DOINIT,27,165,60,14
+    CONTROL         "",IDC_TABTREE,"SysTreeView32",TVS_HASLINES | TVS_DISABLEDRAGDROP | TVS_SHOWSELALWAYS | WS_BORDER | WS_HSCROLL | WS_TABSTOP,7,7,62,150
+    CONTROL         "",IDC_FRAME,"Static",SS_BLACKFRAME,70,7,246,150
 END
 
 IDD_BLOCKDLG DIALOGEX 0, 0, 407, 285
@@ -2144,8 +2146,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,25,6,0
- PRODUCTVERSION 2,25,6,0
+ FILEVERSION 2,25,7,0
+ PRODUCTVERSION 2,25,7,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2162,12 +2164,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.25.6.0"
+            VALUE "FileVersion", "2.25.7.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.25.6.0"
+            VALUE "ProductVersion", "2.25.7.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2350,7 +2352,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 248
         TOPMARGIN, 7
-        BOTTOMMARGIN, 268
+        BOTTOMMARGIN, 290
     END
 
     IDD_SERENTPAGE, DIALOG
@@ -2562,9 +2564,9 @@ BEGIN
     IDD_OPTDLG, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 309
+        RIGHTMARGIN, 316
         TOPMARGIN, 7
-        BOTTOMMARGIN, 178
+        BOTTOMMARGIN, 179
     END
 
     IDD_BLOCKDLG, DIALOG
@@ -4802,6 +4804,7 @@ BEGIN
     IDT_EXTOPT_LIST25       "カラー絵文字\tモノクロ絵文字\tWindows8.1移行でカラーの絵文字を表示する"
     IDT_EXTOPT_LIST26       "TCP_NODLAY Enable\tDisable\tTCPオプションのNoDelayを有効にす"
     IDT_EXTOPT_LIST27       "IMEオンでカーソル変更\t通常の文字カーソル\tIMEの状態で文字カーソルを変更します"
+    IDT_EXTOPT_LIST28       "DNSでチェックしない\tDNSでチェックする\tDNSによるSSHホスト鍵のチェックを行なわないようにします"
 END
 
 STRINGTABLE

@@ -1039,6 +1039,63 @@ ENDOF:
 
 //////////////////////////////////////////////////////////////////////
 
+#ifdef	USE_CP932CHECK
+void UnicodeCheckChar(DWORD ch)
+{
+	DWORD ms, ic;
+	static CIConv iconv;
+
+	if ( (ms = iconv.IConvChar(_T("CP932"), _T("UTF-16BE"), ch)) == 0 )
+		return;
+
+	if ( (ic = iconv.IConvChar(_T("SHIFT_JIS"), _T("UTF-16BE"), ch)) != ms && ic != 0 )
+		TRACE("SJIS\t%04x\t%04x\t%04x\n", ch, ic, ms);
+
+	if ( (ic = iconv.IConvChar(_T("SHIFT_JISX0213"), _T("UTF-16BE"), ch)) != ms && ic != 0 )
+		TRACE("JISX0213\t%04x\t%04x\t%04x\n", ch, ic, ms);
+
+	ch = iconv.SJisToJis(ch);
+	if ( (ic = iconv.IConvChar(_T("JIS_X0208"), _T("UTF-16BE"), ch)) != ms && ic != 0 )
+		TRACE("JIS_X0208\t%04x\t%04x\t%04x\n", ch, ic, ms);
+
+	//if ( (ic = iconv.IConvChar(_T("JIS_X0212"), _T("UTF-16BE"), ch)) != ms && ic != 0 )
+	//	TRACE("JIS_X0212\t%04x\t%04x\t%04x\n", ch, ic, ms);
+
+	ch |= 0x8080;
+	if ( (ic = iconv.IConvChar(_T("EUC-JP"), _T("UTF-16BE"), ch)) != ms && ic != 0 )
+		TRACE("EUC-JP\t%04x\t%04x\t%04x\n", ch, ic, ms);
+
+	if ( (ic = iconv.IConvChar(_T("EUC-JISX0213"), _T("UTF-16BE"), ch)) != ms && ic != 0 )
+		TRACE("EUC-JISX0213\t%04x\t%04x\t%04x\n", ch, ic, ms);
+}
+
+void UnicodeCheck()
+{
+	DWORD ch, hi, lo;
+
+
+	for ( ch = 0x20 ; ch <= 0x7E ; ch++ )
+		UnicodeCheckChar(ch);
+
+	for ( ch = 0xA0 ; ch <= 0xFF ; ch++ )
+		UnicodeCheckChar(ch);
+
+	for ( hi = 0x81 ; hi <= 0x9F ; hi++ ) {
+		for ( lo = 0x40 ; lo <= 0x7E ; lo++ )
+			UnicodeCheckChar((hi << 8) | lo);
+		for ( lo = 0x80 ; lo <= 0xFC ; lo++ )
+			UnicodeCheckChar((hi << 8) | lo);
+	}
+
+	for ( hi = 0xE0 ; hi <= 0xFC ; hi++ ) {
+		for ( lo = 0x40 ; lo <= 0x7E ; lo++ )
+			UnicodeCheckChar((hi << 8) | lo);
+		for ( lo = 0x80 ; lo <= 0xFC ; lo++ )
+			UnicodeCheckChar((hi << 8) | lo);
+	}
+}
+#endif
+
 BOOL CRLoginApp::InitInstance()
 {
 	// LoadLibrary Search Path

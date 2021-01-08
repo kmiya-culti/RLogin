@@ -2242,13 +2242,19 @@ void CTextRam::fc_SJIS2(DWORD ch)
 	fc_KANJI(ch);
 
 	m_BackChar = (m_BackChar << 8) | ch;
+
 	if ( (n = m_IConv.IConvChar(m_SendCharSet[SJIS_SET], m_FontTab[m_BankNow].m_IContName, m_BackChar)) == 0 ) {
 		m_BankNow = m_BankTab[m_KanjiMode][3];
 		if ( (n = m_IConv.IConvChar(m_SendCharSet[SJIS_SET], m_FontTab[m_BankNow].m_IContName, m_BackChar)) == 0 ) {
-			m_BankNow = m_BankTab[m_KanjiMode][2];
-			n = 0x2222;
+			m_BankNow  = SET_UNICODE;
+			if ( (n = m_IConv.IConvChar(m_SendCharSet[SJIS_SET], _T("UTF-16BE"), m_BackChar)) == 0 ) {
+				m_BankNow = m_BankTab[m_KanjiMode][2];
+				n = 0x2222;
+			} else
+				n = IconvToMsUnicode(m_SendCharSet[SJIS_SET], n);
 		}
 	}
+
 	INSMDCK(2);
 	PUT2BYTE(n, m_BankNow);
 	fc_POP(ch);

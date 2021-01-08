@@ -11,10 +11,14 @@
 TD {
 				
 				
+				
+				
   background-color : #ffffff;
   font-size : 90%;
 }
 .BOX{
+				
+				
 				
 				
   background-color : silver;
@@ -32,8 +36,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.25.6)</TD>
-            <TD width="20%" align="right">2020/12/09</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.25.7)</TD>
+            <TD width="20%" align="right">2021/01/08</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -53,150 +57,132 @@ TD {
             <BR>
             画面制御としてxtermに準じたエスケープシーケンスなどに対応しANSIやvt100コンソールとして使用する事ができます<BR>
             <BR>
-            <TABLE width="590" cellpadding="0">
+            </TD>
+            <TD valign="top"><IMG src="image001.jpg" width="542" height="328" border="0"></TD>
+          </TR>
+          <TR>
+            <TD valign="top" colspan="2">
+            <TABLE>
               <TBODY>
                 <TR>
-                  <TD valign="top" width="50%">
-                  <TABLE cellpadding="0">
-                    <TBODY>
-                      <TR>
-                        <TD>1. プログラム概要</TD>
-                      </TR>
-                      <TR>
-                        <TD>
-                        <OL>
-                          <LI><A href="#PROTO">対応しているターミナルプロトコル</A>
-                          <LI><A href="#KANJI">対応している漢字コード</A>
-                          <LI><A href="#INSTALL">インストールおよびアンインストール</A>
-                          <LI><A href="#HISTORY">プログラム・ヒストリー</A>
-                          <LI><A href="#COMPILE">ソースのコンパイルについて</A>
-                          <LI><A href="#LIB">使用しているライブラリなど</A>
-                          <LI><A href="#COPY">RLoginの使用に関して</A>
-                        </OL>
-                        </TD>
-                      </TR>
-                      <TR>
-                        <TD>2. 基本操作の説明</TD>
-                      </TR>
-                      <TR>
-                        <TD>
-                        <OL>
-                          <LI><A href="#MENU">メニューの説明</A>
-                          <LI><A href="#CMDLINE">コマンドラインでのオプション</A>
-                          <LI><A href="#WINDOW">各種ウィンドウの操作</A>
-                          <LI><A href="#SERVERSEL">サーバーの選択・設定</A>
-                          <LI><A href="#PASTDLG">ペースト確認の操作</A>
-                          <LI><A href="#UPDOWNDLG">ファイルのアップ・ダウンロード</A>
-                          <LI><A href="ctrlcode.html">エスケープシーケンス一覧</A>
-                          <LI><A href="script.html">スクリプト仕様書</A>
-                        </OL>
-                        </TD>
-                      </TR>
-                      <TR>
-                        <TD>3. 各種オプションの説明</TD>
-                      </TR>
-                      <TR>
-                        <TD>
-                        <OL>
-                          <LI><A href="#SERVEROPT">サーバーのオプション設定</A>
-                          <OL>
-                            <LI><A href="#COMSET">COMの通信設定</A>
-                            <LI><A href="#ENVSET">環境変数の設定</A>
-                            <LI><A href="#CHATSCRIPT">チャットスクリプトの設定</A>
-                            <LI><A href="#PROXYSET">プロキシーサーバーの設定</A>
-                          </OL>
-                          <LI><A href="#TRSOPT">通信共通のオプション設定</A>
-                          <LI><A href="#PROTOPT">プロトコルのオプション設定</A>
-                          <OL>
-                            <LI><A href="#SSHPROTOCOL">暗号方式などの設定</A>
-                            <LI><A href="#SSHKEYSET">認証キーの設定</A>
-                            <LI><A href="#PORTFORWARD">ポートフォワードの設定</A>
-                            <LI><A href="#TERMMODE">端末モードの設定</A>
-                          </OL>
-                          <LI><A href="#SCRIPT">スクリプトのオプション設定</A>
-                          <LI><A href="#SCREENOPT">スクリーンのオプション設定</A>
-                          <LI><A href="#TERMOPT">制御コードのオプション設定</A>
-                          <OL>
-                            <LI><A href="#ESCCSIDCS">ESC/CSI/DCSの設定</A>
-                          </OL>
-                          <LI><A href="#EXTOPT">拡張機能のオプション設定</A>
-                          <LI><A href="#HISOPT">ヒストリーのオプション設定</A>
-                          <LI><A href="#CLIPOPT">クリップボードのオプション設定</A>
-                          <LI><A href="#MOUSEOPT">マウス関連のオプション設定</A>
-                          <LI><A href="#CHAROPT">フォントのオプション設定</A>
-                          <OL>
-                            <LI><A href="#ICONVSET">文字セットのIconv設定</A>
-                            <LI><A href="#FONTPARA">各フォントのパラメータ設定</A>
-                            <LI><A href="#UNIBLOCK">UNICODEのブロック設定</A>
-                            <LI><A href="#ISO646">ISO646の文字設定</A>
-                          </OL>
-                          <LI><A href="#COLOPT">カラーのオプション設定</A>
-                          <LI><A href="#BACKSET">背景のオプション設定</A>
-                          <LI><A href="#KEYOPT">キーボードのオプション設定</A>
-                          <LI><A href="#MODKEY">キーコードのオプション設定</A>
-                        </OL>
-                        </TD>
-                      </TR>
-                    </TBODY>
-                  </TABLE>
+                  <TD valign="top" align="left" width="300">1. プログラム概要</TD>
+                  <TD valign="top" align="left" width="300">3. 各種オプションの説明</TD>
+                  <TD valign="top" align="left" width="300">5. 使い方説明</TD>
+                </TR>
+                <TR>
+                  <TD valign="top" align="left" width="300">
+                  <OL>
+                    <LI><A href="#PROTO">対応しているターミナルプロトコル</A>
+                    <LI><A href="#KANJI">対応している漢字コード</A>
+                    <LI><A href="#INSTALL">インストール・アンインストール</A>
+                    <LI><A href="#HISTORY">プログラム・ヒストリー</A>
+                    <LI><A href="#COMPILE">ソースのコンパイルについて</A>
+                    <LI><A href="#LIB">使用しているライブラリなど</A>
+                    <LI><A href="#COPY">RLoginの使用に関して</A>
+                  </OL>
                   </TD>
-                  <TD valign="top" width="50%">
-                  <TABLE cellpadding="0">
-                    <TBODY>
-                      <TR>
-                        <TD>4. 各種ウィンドウの説明</TD>
-                      </TR>
-                      <TR>
-                        <TD>
-                        <OL>
-                          <LI><A href="#TEKWIND">Tek40xx/41xxウィンドウ</A>
-                          <LI><A href="#REGWIND">ReGIS/Sixelウィンドウ</A>
-                          <LI><A href="#MONITOR">シリアルモニター</A>
-                          <LI><A href="#TRACE">トレースウィンドウ</A>
-                          <LI><A href="#CMDHIS">コマンド・ヒストリーウィンドウ</A>
-                          <LI><A href="#TOOLBAR">ツールバーのカスタマイズ</A>
-                          <LI><A href="#RESOURCE">リソースをファイルに保存</A>
-                          <LI><A href="#SFTPWIND">SFTPによるファイル転送</A>
-                        </OL>
-                        </TD>
-                      </TR>
-                      <TR>
-                        <TD>5. 使い方説明</TD>
-                      </TR>
-                      <TR>
-                        <TD>
-                        <OL>
-                          <LI><A href="faq.html#COLSET">文字色の一括変更</A>
-                          <LI><A href="faq.html#LOGON">ログイン手順の自動化</A>
-                          <LI><A href="faq.html#C1ABORT">文字表示が停止する</A>
-                          <LI><A href="faq.html#SHORTCUT">Ctrl+Vでペースト</A>
-                          <LI><A href="faq.html#LOGINPROT">SSH2でのユーザー認証</A>
-                          <LI><A href="faq.html#SSHPUBLIC">SSHでの公開鍵認証</A>
-                          <LI><A href="faq.html#DIALOGFONT">ダイアログフォントを変更する</A>
-                          <LI><A href="faq.html#TERM">TERM環境変数の設定</A>
-                          <LI><A href="faq.html#FONTSET">フォントの設定</A>
-                          <LI><A href="faq.html#LOGFILE">通信ログの設定</A>
-                          <LI><A href="faq.html#SPLIT">ウィンドウの分割</A>
-                          <LI><A href="faq.html#SCRIPT">スクリプトのサンプル</A>
-                          <LI><A href="faq.html#SSHALGO">SSH2での各種選択</A>
-                          <LI><A href="faq.html#LCLICK">マウスによる範囲指定</A>
-                          <LI><A href="faq.html#WINVIEW">外観の設定</A>
-                          <LI><A href="faq.html#SSHCASCADE">SSHによる多段接続</A>
-                          <LI><A href="faq.html#LINECHAR">罫線が表示されない</A>
-                          <LI><A href="faq.html#FILEUPDOWN">ファイル転送</A>
-                          <LI><A href="faq.html#LANG">RLoginの多言語化</A>
-                          <LI><A href="faq.html#KEYCODE">各種キーのコード</A>
-                        </OL>
-                        </TD>
-                      </TR>
-                    </TBODY>
-                  </TABLE>
+                  <TD rowspan="5" valign="top" align="left" width="300">
+                  <OL>
+                    <LI><A href="#SERVEROPT">サーバーのオプション設定</A>
+                    <OL>
+                      <LI><A href="#COMSET">COMの通信設定</A>
+                      <LI><A href="#ENVSET">環境変数の設定</A>
+                      <LI><A href="#CHATSCRIPT">チャットスクリプトの設定</A>
+                      <LI><A href="#PROXYSET">プロキシーサーバーの設定</A>
+                    </OL>
+                    <LI><A href="#TRSOPT">通信共通のオプション設定</A>
+                    <LI><A href="#PROTOPT">プロトコルのオプション設定</A>
+                    <OL>
+                      <LI><A href="#SSHPROTOCOL">暗号方式などの設定</A>
+                      <LI><A href="#SSHKEYSET">認証キーの設定</A>
+                      <LI><A href="#PORTFORWARD">ポートフォワードの設定</A>
+                      <LI><A href="#TERMMODE">端末モードの設定</A>
+                    </OL>
+                    <LI><A href="#SCRIPT">スクリプトのオプション設定</A>
+                    <LI><A href="#SCREENOPT">スクリーンのオプション設定</A>
+                    <LI><A href="#TERMOPT">制御コードのオプション設定</A>
+                    <OL>
+                      <LI><A href="#ESCCSIDCS">ESC/CSI/DCSの設定</A>
+                    </OL>
+                    <LI><A href="#EXTOPT">拡張機能のオプション設定</A>
+                    <LI><A href="#HISOPT">ヒストリーのオプション設定</A>
+                    <LI><A href="#CLIPOPT">クリップボードのオプション設定</A>
+                    <LI><A href="#MOUSEOPT">マウス関連のオプション設定</A>
+                    <LI><A href="#CHAROPT">フォントのオプション設定</A>
+                    <OL>
+                      <LI><A href="#ICONVSET">文字セットのIconv設定</A>
+                      <LI><A href="#FONTPARA">各フォントのパラメータ設定</A>
+                      <LI><A href="#UNIBLOCK">UNICODEのブロック設定</A>
+                      <LI><A href="#ISO646">ISO646の文字設定</A>
+                    </OL>
+                    <LI><A href="#COLOPT">カラーのオプション設定</A>
+                    <LI><A href="#BACKSET">背景のオプション設定</A>
+                    <LI><A href="#KEYOPT">キーボードのオプション設定</A>
+                    <LI><A href="#MODKEY">キーコードのオプション設定</A>
+                  </OL>
+                  </TD>
+                  <TD valign="top" align="left" width="300" rowspan="5">
+                  <OL>
+                    <LI><A href="faq.html#COLSET">文字色の一括変更</A>
+                    <LI><A href="faq.html#LOGON">ログイン手順の自動化</A>
+                    <LI><A href="faq.html#C1ABORT">文字表示が停止する</A>
+                    <LI><A href="faq.html#SHORTCUT">Ctrl+Vでペースト</A>
+                    <LI><A href="faq.html#LOGINPROT">SSH2でのユーザー認証</A>
+                    <LI><A href="faq.html#SSHPUBLIC">SSHでの公開鍵認証</A>
+                    <LI><A href="faq.html#DIALOGFONT">ダイアログフォントを変更する</A>
+                    <LI><A href="faq.html#TERM">TERM環境変数の設定</A>
+                    <LI><A href="faq.html#FONTSET">フォントの設定</A>
+                    <LI><A href="faq.html#LOGFILE">通信ログの設定</A>
+                    <LI><A href="faq.html#SPLIT">ウィンドウの分割</A>
+                    <LI><A href="faq.html#SCRIPT">スクリプトのサンプル</A>
+                    <LI><A href="faq.html#SSHALGO">SSH2での各種選択</A>
+                    <LI><A href="faq.html#LCLICK">マウスによる範囲指定</A>
+                    <LI><A href="faq.html#WINVIEW">外観の設定</A>
+                    <LI><A href="faq.html#SSHCASCADE">SSHによる多段接続</A>
+                    <LI><A href="faq.html#LINECHAR">罫線が表示されない</A>
+                    <LI><A href="faq.html#FILEUPDOWN">ファイル転送</A>
+                    <LI><A href="faq.html#LANG">RLoginの多言語化</A>
+                    <LI><A href="faq.html#KEYCODE">各種キーのコード</A>
+                  </OL>
+                  </TD>
+                </TR>
+                <TR>
+                  <TD valign="top" align="left" width="300">2. 基本操作の説明</TD>
+                </TR>
+                <TR>
+                  <TD valign="top" align="left" width="300">
+                  <OL>
+                    <LI><A href="#MENU">メニューの説明</A>
+                    <LI><A href="#CMDLINE">コマンドラインでのオプション</A>
+                    <LI><A href="#WINDOW">各種ウィンドウの操作</A>
+                    <LI><A href="#SERVERSEL">サーバーの選択・設定</A>
+                    <LI><A href="#PASTDLG">ペースト確認の操作</A>
+                    <LI><A href="#UPDOWNDLG">ファイルのアップ・ダウンロード</A>
+                    <LI><A href="ctrlcode.html">エスケープシーケンス一覧</A>
+                    <LI><A href="script.html">スクリプト仕様書</A>
+                  </OL>
+                  </TD>
+                </TR>
+                <TR>
+                  <TD valign="top" align="left">4. 各種ウィンドウの説明</TD>
+                </TR>
+                <TR>
+                  <TD valign="top" align="left">
+                  <OL>
+                    <LI><A href="#TEKWIND">Tek40xx/41xxウィンドウ</A>
+                    <LI><A href="#REGWIND">ReGIS/Sixelウィンドウ</A>
+                    <LI><A href="#MONITOR">シリアルモニター</A>
+                    <LI><A href="#TRACE">トレースウィンドウ</A>
+                    <LI><A href="#CMDHIS">コマンド・ヒストリーウィンドウ</A>
+                    <LI><A href="#TOOLBAR">ツールバーのカスタマイズ</A>
+                    <LI><A href="#RESOURCE">リソースをファイルに保存</A>
+                    <LI><A href="#SFTPWIND">SFTPによるファイル転送</A>
+                  </OL>
                   </TD>
                 </TR>
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top"><IMG src="image001.jpg" width="542" height="328" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -454,9 +440,20 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2021/01/08</TD>
+            <TD align="center">&nbsp;<A href="http://nanno.dip.jp/softlib/rlogin/2.25.7/">2.25.7</A></TD>
+            <TD>ダイヤログのリサイズ関数を整理<BR>
+            KnownHostsの管理をホスト名＋ポート番号に変更<BR>
+            SSHのホスト鍵をDNSでチェックしないオプションを追加<BR>
+            strftimeの未対応パラメータを無視するように変更<BR>
+            ログに記録する時間のパラメータに%Lでミリ秒を追加<BR>
+            iconvのSHIFT_JISとCP932との差を吸収する処理を修正<BR>
+            libiconv-1.16に更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2020/12/09&nbsp;</TD>
             <TD align="center">&nbsp;<A href="http://nanno.dip.jp/softlib/rlogin/2.25.6/">2.25.6</A></TD>
-            <TD>&nbsp;sftpダイアログの初期表示位置をモニター範囲になるように修正<BR>
+            <TD>sftpダイアログの初期表示位置をモニター範囲になるように修正<BR>
             sshのkeyboard-interactiveで使用するダイアログを変更<BR>
             openssl-1.1.1iに更新</TD>
           </TR>
@@ -488,14 +485,6 @@ TD {
             UTF-8化されたサロゲート文字を処理するように変更<BR>
             初期フォントサイズをシステムDPIで計算するように変更<BR>
             RSA鍵のデフォルトビットサイズを3072に変更</TD>
-          </TR>
-          <TR>
-            <TD align="center">2020/05/25</TD>
-            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.25.2/">2.25.2</A></TD>
-            <TD>サーバーオプションのTERM環境変数のリストが重なるのを修正<BR>
-            iTerm2のShell Integrationに試験的に対応しコマンドヒストリーを追加<BR>
-            トレースウィンドウとコマンドヒストリーを統合するダイアログバーを追加<BR>
-            各種バーのドッキングによる移動を有効に変更</TD>
           </TR>
           <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
@@ -562,21 +551,21 @@ TD {
                   mv *.obj *.lib x64</TD>
                 </TR>
                 <TR>
-                  <TD rowspan="2" valign="top"><A href="http://www.gnu.org/software/libiconv/">libiconv-1.15.tar.gz</A><BR>
+                  <TD rowspan="2" valign="top"><A href="http://www.gnu.org/software/libiconv/">libiconv-1.16.tar.gz</A><BR>
                   <BR>
-                  <A href="http://apolloron.org/software/libiconv-1.14-ja/">日本語パッチ</A>の一部を1.15に当て直した物です<BR>
-                  <A href="libiconv-1.15.patch">libiconv-1.15.patch</A></TD>
+                  <A href="http://apolloron.org/software/libiconv-1.14-ja/">日本語パッチ</A>の一部を1.16に当て直した物です<BR>
+                  <A href="libiconv-1.16.patch">libiconv-1.16.patch</A></TD>
                   <TD valign="top">x86用 lib\x32<BR>
                   Visual Studio コマンド <BR>
                   プロンプト (2010)</TD>
-                  <TD valign="top">cd libiconv-1.15/lib<BR>
+                  <TD valign="top">cd libiconv-1.16/lib<BR>
                   nmake -f Makefile.ms x32</TD>
                 </TR>
                 <TR>
                   <TD valign="top">x64用 lib\x64<BR>
                   Visual Studio x64 Win64 <BR>
                   コマンド プロンプト (2010)</TD>
-                  <TD valign="top">cd libiconv-1.15/lib<BR>
+                  <TD valign="top">cd libiconv-1.16/lib<BR>
                   nmake -f Makefile.ms x64</TD>
                 </TR>
                 <TR>
@@ -624,7 +613,7 @@ TD {
             zlib 1.2.11<BR>
             (C) 1995-2017 Jean-loup Gailly and Mark Adler<BR>
             <BR>
-            libiconv-1.15<BR>
+            libiconv-1.16<BR>
             Copyright (C) 2000-2017 Free Software Foundation, Inc.<BR>
             <BR>
             Nettle library (version 2.0)<BR>
@@ -633,7 +622,7 @@ TD {
             <BR>
             kumaGIF<BR>
             Copyright (c) 1.023world All Rights Reserved.<BR>
-            <A title="http://www.1023world.net/material/gif/" style="href: " href="http://www.1023world.net/material/gif/" http: www.1023world.net material gif ??>http://www.1023world.net/material/gif/</A><BR>
+            <A title="http://www.1023world.net/material/gif/" style="href: " href="https://1023world.net/" http: www.1023world.net material gif ??>http://1023world.net/</A><BR>
             <BR>
             ◇◇参照したプログラムソース◇◇<BR>
             <BR>
@@ -2914,6 +2903,10 @@ fi</PRE>
                   <TD>ユーザー認証を行うエージェント転送を有効にしssh-addを使用して認証キーの追加・削除を行うことができます(SSH2のみ)</TD>
                 </TR>
                 <TR>
+                  <TD align="center">DNSでホスト鍵…</TD>
+                  <TD>SSHで接続時にDNSでホスト名によるホスト鍵のチェックを行わないようにします。ポートフォワードなどにより接続先が実際のホスト名と一致しない場合などにチェックしてください</TD>
+                </TR>
+                <TR>
                   <TD align="center">KeepAliveパケット…</TD>
                   <TD>KeepAliveパケットを指定秒数間隔で送信します(SSH2のみ)。ルーターなどで無通信が続く場合に切断されるのを防ぎます</TD>
                 </TR>
@@ -2948,7 +2941,7 @@ fi</PRE>
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top"><IMG src="image014.jpg" width="597" height="530" border="0"></TD>
+            <TD valign="top"><IMG src="image014.jpg" width="609" height="531" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -4191,9 +4184,132 @@ function TekClock2() {
                 <TR>
                   <TD align="center">ログの先頭に…</TD>
                   <TD>行頭に時間を記録します<BR>
-                  strftimeのフォーマットを指定できます<BR>
                   上記ログ形式でRAW以外で有効です<BR>
-                  LINE/PAGEでは、時刻が不正確です</TD>
+                  LINE/PAGEでは、時刻が不正確です<BR>
+                  <BR>
+                  以下のstrftimeのフォーマットを指定できます<BR>
+                  <TABLE cellpadding="2">
+                    <TBODY>
+                      <TR>
+                        <TD>%a</TD>
+                        <TD>現在のロケールにおける曜日の省略名</TD>
+                      </TR>
+                      <TR>
+                        <TD align="left" valign="top">%A</TD>
+                        <TD align="left" valign="top">現在のロケールにおける曜日の完全な名前</TD>
+                      </TR>
+                      <TR>
+                        <TD align="left" valign="top">%b</TD>
+                        <TD align="left" valign="top">現在のロケールにおける月の省略名</TD>
+                      </TR>
+                      <TR>
+                        <TD align="left" valign="top">%B</TD>
+                        <TD align="left" valign="top">現在のロケールにおける月の完全な名前</TD>
+                      </TR>
+                      <TR>
+                        <TD align="left" valign="top">%c</TD>
+                        <TD align="left" valign="top">現在のロケールにおける日付・時刻の表記</TD>
+                      </TR>
+                      <TR>
+                        <TD align="left" valign="top">%d</TD>
+                        <TD align="left" valign="top">月内通算日の10 進数表記 (01 - 31)</TD>
+                      </TR>
+                      <TR>
+                        <TD align="left" valign="top">%H</TD>
+                        <TD align="left" valign="top">24 時間表記での時 (00 - 23)</TD>
+                      </TR>
+                      <TR>
+                        <TD align="left" valign="top">%I</TD>
+                        <TD align="left" valign="top">12 時間表記での時 (01 - 12)</TD>
+                      </TR>
+                      <TR>
+                        <TD align="left" valign="top">%j</TD>
+                        <TD align="left" valign="top">年の初めから通算の日数 (001 - 366)</TD>
+                      </TR>
+                      <TR>
+                        <TD align="left" valign="top">%L</TD>
+                        <TD align="left" valign="top">ミリ秒の10進数表記 (000 - 999)</TD>
+                      </TR>
+                      <TR>
+                        <TD align="left" valign="top">%m</TD>
+                        <TD align="left" valign="top">月の10 進数表記 (01 - 12)</TD>
+                      </TR>
+                      <TR>
+                        <TD align="left" valign="top">%M</TD>
+                        <TD align="left" valign="top">分の10 進数表記 (00 - 59)</TD>
+                      </TR>
+                      <TR>
+                        <TD align="left" valign="top">%p</TD>
+                        <TD align="left" valign="top">現在のロケールにおける午前・午後</TD>
+                      </TR>
+                      <TR>
+                        <TD align="left" valign="top">%S</TD>
+                        <TD align="left" valign="top">秒の10 進数表記 (00 - 59)</TD>
+                      </TR>
+                      <TR>
+                        <TD align="left" valign="top">%U</TD>
+                        <TD align="left" valign="top">年の日曜日からの週番号の10 進数表記 (00 - 53)</TD>
+                      </TR>
+                      <TR>
+                        <TD align="left" valign="top">%w</TD>
+                        <TD align="left" valign="top">週の日曜日からの10 進数表記 (0 - 6)</TD>
+                      </TR>
+                      <TR>
+                        <TD align="left" valign="top">%W</TD>
+                        <TD align="left" valign="top">年の月曜日からの週番号の10 進数表記 (00 - 53)</TD>
+                      </TR>
+                      <TR>
+                        <TD align="left" valign="top">%x</TD>
+                        <TD align="left" valign="top">現在のロケールにおける日付の表記</TD>
+                      </TR>
+                      <TR>
+                        <TD align="left" valign="top">%X</TD>
+                        <TD align="left" valign="top">現在のロケールにおける時刻の表記</TD>
+                      </TR>
+                      <TR>
+                        <TD align="left" valign="top">%y</TD>
+                        <TD align="left" valign="top">西暦の下2桁 (00 - 99)</TD>
+                      </TR>
+                      <TR>
+                        <TD align="left" valign="top">%Y</TD>
+                        <TD align="left" valign="top">世紀部分を含めた西暦年</TD>
+                      </TR>
+                      <TR>
+                        <TD align="left" valign="top">%z</TD>
+                        <TD align="left" valign="top">数値形式のタイムゾーン</TD>
+                      </TR>
+                      <TR>
+                        <TD align="left" valign="top">%Z</TD>
+                        <TD align="left" valign="top">タイムゾーン名または省略名</TD>
+                      </TR>
+                      <TR>
+                        <TD align="left" valign="top">%%</TD>
+                        <TD align="left" valign="top">'%'文字</TD>
+                      </TR>
+                      <TR>
+                        <TD align="left" valign="top" colspan="2">
+                        <TABLE cellpadding="0" cellspacing="0">
+                          <TBODY>
+                            <TR>
+                              <TD align="left" valign="top">%#c %#x<BR>
+                              </TD>
+                              <TD align="left" valign="top">　</TD>
+                              <TD align="left" valign="top">長い形式で表記</TD>
+                            </TR>
+                            <TR>
+                              <TD align="left" valign="top">%#d %#H %#I %#j<BR>
+                              %#L %#m %#M %#S<BR>
+                              %#U %#W %#y %#Y</TD>
+                              <TD align="left" valign="top"></TD>
+                              <TD align="left" valign="top">先頭の0を削除</TD>
+                            </TR>
+                          </TBODY>
+                        </TABLE>
+                        </TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  </TD>
                 </TR>
                 <TR>
                   <TD colspan="2">ヒストリー</TD>

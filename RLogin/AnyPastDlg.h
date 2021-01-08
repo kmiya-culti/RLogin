@@ -28,8 +28,6 @@ public:
 
 	CString m_EditText;
 	BOOL m_bUpdateEnable;
-	int m_MinWidth;
-	int m_MinHeight;
 	class CRLoginView *m_pView;
 
 public:
@@ -47,8 +45,6 @@ protected:
 protected:
 	DECLARE_MESSAGE_MAP()
 	afx_msg void OnUpdateEdit();
-	afx_msg void OnSize(UINT nType, int cx, int cy);
-	afx_msg void OnSizing(UINT fwSide, LPRECT pRect);
 	afx_msg void OnCtrlConv(UINT nID);
 	afx_msg void OnShellesc();
 	afx_msg void OnOneLine();

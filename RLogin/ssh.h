@@ -371,7 +371,7 @@ public:
 
 	LPCTSTR GetName(BOOL bCert = TRUE, BOOL bExtname = FALSE);
 	int GetTypeFromName(LPCTSTR name);
-	int HostVerify(LPCTSTR host);
+	int HostVerify(LPCTSTR host, UINT port, BOOL bDnsDisable);
 	int ChkOldCertHosts(LPCTSTR host);
 
 	int RsaSign(CBuffer *bp, LPBYTE buf, int len, LPCTSTR alg);
@@ -767,6 +767,7 @@ public:
 
 	int m_SSHVer;
 	CString m_HostName;
+	UINT m_HostPort;
 	int m_StdChan;
 	CFilter *m_pListFilter;
 	CArray<CIdKey, CIdKey &> m_IdKeyTab;

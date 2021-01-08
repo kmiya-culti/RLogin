@@ -2623,7 +2623,6 @@ LPCTSTR CSFtp::JointPath(LPCTSTR dir, LPCTSTR file, CString &path)
 BEGIN_MESSAGE_MAP(CSFtp, CDialogExt)
 	ON_WM_CLOSE()
 	ON_WM_DESTROY()
-	ON_WM_SIZE()
 	ON_WM_PAINT()
 	ON_WM_TIMER()
 	ON_WM_QUERYDRAGICON()
@@ -2892,7 +2891,7 @@ BOOL CSFtp::OnInitDialog()
 	RemoteSetCwd(work, FALSE);
 	SendWaitQue();
 
-	InitItemOffset(ItemTab);
+	InitItemOffset(ItemTab, 0, m_ToolBarOfs, 200, 200);
 
 #ifdef	USE_OLE
 	m_DropTarget.Register(this);
@@ -3062,14 +3061,6 @@ void CSFtp::OnColumnclickRemoteList(NMHDR* pNMHDR, LRESULT* pResult)
 	NM_LISTVIEW* pNMListView = (NM_LISTVIEW*)pNMHDR;
 	ListSort(1, pNMListView->iSubItem);
 	*pResult = 0;
-}
-
-void CSFtp::OnSize(UINT nType, int cx, int cy) 
-{
-	if ( nType != SIZE_MINIMIZED )
-		SetItemOffset(ItemTab, cx, cy, m_ToolBarOfs);
-	CDialogExt::OnSize(nType, cx, cy);
-	Invalidate(TRUE);
 }
 
 BOOL CSFtp::PreTranslateMessage(MSG* pMsg) 
@@ -3858,7 +3849,7 @@ LRESULT CSFtp::OnDpiChanged(WPARAM wParam, LPARAM lParam)
 	RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
 
 	GetClientRect(rect);
-	SetItemOffset(ItemTab, rect.Width(), rect.Height(), m_ToolBarOfs);
+	SetItemOffset(rect.Width(), rect.Height());
 
 	return result;
 }

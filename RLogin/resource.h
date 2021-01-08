@@ -321,6 +321,7 @@
 #define IDT_EXTOPT_LIST25               824
 #define IDT_EXTOPT_LIST26               825
 #define IDT_EXTOPT_LIST27               826
+#define IDT_EXTOPT_LIST28               827
 #define IDT_TERM_LIST01                 900
 #define IDT_TERM_LIST02                 901
 #define IDT_TERM_LIST03                 902
@@ -768,6 +769,7 @@
 #define IDC_RADIO1                      2298
 #define IDC_PROTOCHECK9                 2298
 #define IDC_RADIO2                      2299
+#define IDC_PROTOCHECK10                2299
 #define IDC_RADIO3                      2300
 #define IDC_RADIO4                      2301
 #define IDC_RADIO5                      2302
