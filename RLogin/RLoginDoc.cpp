@@ -899,7 +899,7 @@ void CRLoginDoc::EnvironPath(CString &path)
 	tmp += e;
 	path = tmp;
 }
-BOOL CRLoginDoc::EntryText(CString &name, LPCWSTR match)
+BOOL CRLoginDoc::EntryText(CString &name, LPCWSTR match, BOOL bCtrl)
 {
 	int n;
 	TCHAR c;
@@ -1070,7 +1070,7 @@ BOOL CRLoginDoc::EntryText(CString &name, LPCWSTR match)
 				st = TRUE;
 			}
 
-		} else if ( match != NULL && *str == _T('\\') ) {
+		} else if ( (match != NULL || bCtrl) && *str == _T('\\') ) {
 			switch(str[1]) {
 			case _T('a'): tmp += _T('\x07'); str += 2; break;
 			case _T('b'): tmp += _T('\x08'); str += 2; break;
@@ -1079,7 +1079,9 @@ BOOL CRLoginDoc::EntryText(CString &name, LPCWSTR match)
 			case _T('v'): tmp += _T('\x0B'); str += 2; break;
 			case _T('f'): tmp += _T('\x0C'); str += 2; break;
 			case _T('r'): tmp += _T('\x0D'); str += 2; break;
-			case _T('\\'): tmp += _T('\\'); str += 2; break;
+			case _T('$'): tmp += _T('$');    str += 2; break;
+			case _T('%'): tmp += _T('%');    str += 2; break;
+			case _T('\\'): tmp += _T('\\');  str += 2; break;
 
 			case _T('x'): case _T('X'):
 				str += 2;
@@ -1317,6 +1319,7 @@ BOOL CRLoginDoc::LogClose()
 }
 void CRLoginDoc::LogWrite(LPBYTE lpBuf, int nBufLen, int SendRecv)
 {
+	CString wrk;
 	CStringA mbs;
 
 	if ( m_pLogFile == NULL || m_TextRam.m_LogMode != LOGMOD_DEBUG )
@@ -1329,7 +1332,8 @@ NEWLINE:
 
 		if ( nBufLen > 0 ) {
 			if ( m_TextRam.IsOptEnable(TO_RLLOGTIME) ) {
-				mbs = m_TextRam.GetCurrentTimeFormat(m_TextRam.m_TimeFormat);
+				m_TextRam.GetCurrentTimeFormat(m_TextRam.m_TimeFormat, wrk);
+				mbs = wrk;
 				m_pLogFile->Write((LPCSTR)mbs, mbs.GetLength());
 			}
 

@@ -389,6 +389,7 @@
 #define IDT_TERM_LIST65                 964
 #define IDT_TERM_LIST66                 965
 #define IDT_TERM_LIST67                 966
+#define IDT_TERM_LIST68                 967
 #define ID_CHARSCRIPT_END               1000
 #define ID_DISCONNECT                   1001
 #define ID_EDIT_BOX                     1002

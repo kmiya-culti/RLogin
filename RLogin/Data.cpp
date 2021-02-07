@@ -2946,6 +2946,8 @@ int CBmpFile::GifTrnsIndex(LPBYTE lpBuf, int len)
 //////////////////////////////////////////////////////////////////////
 // CFontChacheNode
 
+static FONTSIZETAB *pFontTab[4] = { NULL, NULL, NULL, NULL };
+
 CFontChacheNode::CFontChacheNode()
 {
 	m_pFont = NULL;
@@ -2967,19 +2969,106 @@ CFontChacheNode::CFontChacheNode()
 	m_Style   = 0;
 	m_Quality = 0;
 	m_bFixed  = FALSE;
-
-	ZeroMemory(&m_Metric, sizeof(m_Metric));
+	m_Offset  = 0;
 }
 CFontChacheNode::~CFontChacheNode()
 {
 	if ( m_pFont != NULL )
 		delete m_pFont;
 }
+FONTSIZETAB *CFontChacheNode::FontSizeCheck(LPCTSTR pFontName)
+{
+	int n;
+	CDC dc;
+	CFont Font;
+	LOGFONT LogFont;
+	TEXTMETRIC Metric;
+	CSize sz;
+	CFont *pOld;
+	FONTSIZETAB *pTab;
+
+	n = pFontName[0] & 3;
+	for ( pTab = pFontTab[n] ; pTab != NULL ; pTab = pTab->Next ) {
+		if ( _tcscmp(pFontName, pTab->FontName) == 0 )
+			return pTab;
+	}
+
+	pTab = new FONTSIZETAB;
+	pTab->Next = pFontTab[n];
+	pFontTab[n] = pTab;
+
+	_tcsncpy(pTab->FontName, pFontName, LF_FACESIZE);
+	pTab->Width  = 100;
+	pTab->Height = 100;
+	pTab->bFixed = FALSE;
+
+	ZeroMemory(&(LogFont), sizeof(LOGFONT));
+    _tcsncpy(LogFont.lfFaceName, pFontName, LF_FACESIZE);
+	LogFont.lfHeight = 100;
+
+	if ( !Font.CreateFontIndirect(&LogFont) )
+		return pTab;
+
+	dc.CreateCompatibleDC(NULL);
+	pOld = dc.SelectObject(&Font);
+
+	// Fixed Font Check 'W' == 'i'
+	sz = dc.GetTextExtent(_T("W"), 1);
+	if ( (n = sz.cx) <= 0 ) n = 1;
+	sz = dc.GetTextExtent(_T("i"), 1);
+	if ( (sz.cx * 100 / n) >= 80 )
+		pTab->bFixed = TRUE;
+
+	dc.GetTextMetrics(&Metric);
+	sz = dc.GetTextExtent(_T("ABC012abc"), 9);
+
+	//TRACE(_T("Fonts=%s Width=%d Height=%d tmHe=%d tmAsc=%d tmDes=%d tmInLe=%d tmChAv=%d tmChMax=%d Fixed=%d Sx=%d Sy=%d Sw=%d Sh=%d\n"),
+	//	LogFont.lfFaceName, LogFont.lfWidth, LogFont.lfHeight,
+	//	Metric.tmHeight, Metric.tmAscent, Metric.tmDescent, Metric.tmInternalLeading,
+	//	Metric.tmAveCharWidth, Metric.tmMaxCharWidth,
+	//	bFixed, sz.cx, sz.cy, sz.cx * 100 / Metric.tmAveCharWidth * 9),
+	//  Metric.tmInternalLeading * 100 / Metric.tmHeight);
+
+	//		---- ---+---+
+	//				|	| tmInternalLeading	
+	//		----	| --+
+	//		 **		|
+	//		*  *	| tmAsent
+	//		 ***	|
+	//		   * ---+
+	//		 ** 	| tmDescent
+	//		---- ---+
+	//
+	//  Fonts=小塚ゴシック Std R	Width=8 Height=16 tmHe=16 tmAsc=12 tmDes=4 tmInLe=4 tmChAv=8 tmChMax=10 Fixed=0 Sx=40 Sy=16 Sw=55  Sh=25
+	//	Fonts=Source Han Mono SC	Width=8 Height=16 tmHe=16 tmAsc=13 tmDes=3 tmInLe=5 tmChAv=8 tmChMax=8  Fixed=1 Sx=45 Sy=16 Sw=62  Sh=31
+	//  Fonts=メイリオ				Width=8 Height=16 tmHe=16 tmAsc=11 tmDes=5 tmInLe=5 tmChAv=8 tmChMax=24 Fixed=0 Sx=47 Sy=16 Sw=65  Sh=31
+	//  Fonts=ＭＳ ゴシック			Width=8 Height=16 tmHe=16 tmAsc=14 tmDes=2 tmInLe=0 tmChAv=8 tmChMax=32 Fixed=1 Sx=72 Sy=16 Sw=100 Sh=0
+	//  Fonts=Meiryo UI				Width=8 Height=16 tmHe=15 tmAsc=12 tmDes=3 tmInLe=3 tmChAv=8 tmChMax=40 Fixed=0 Sx=81 Sy=15 Sw=112 Sh=18
+	//  Fonts=ＭＳ Ｐゴシック		Width=8 Height=16 tmHe=16 tmAsc=14 tmDes=2 tmInLe=0 tmChAv=8 tmChMax=38 Fixed=0 Sx=95 Sy=16 Sw=131 Sh=0
+
+	// 実際のフォントの幅が小さい場合
+	if ( (sz.cx * 100 / (Metric.tmAveCharWidth * 9)) < 80 )
+		pTab->Width = Metric.tmAveCharWidth * 9 * 90 / sz.cx;
+
+	// 文字上が広い欧文フォントで高さが小さい場合
+	if ( ((Metric.tmHeight - Metric.tmInternalLeading) * 100 / Metric.tmHeight) < 80 )
+		pTab->Height = Metric.tmHeight * 80 / (Metric.tmHeight - Metric.tmInternalLeading);
+
+	TRACE(_T("%s\tWith=%d Height=%d Fixed=%d\n"), pTab->FontName, pTab->Width, pTab->Height, pTab->bFixed);
+
+	dc.SelectObject(pOld);
+	Font.DeleteObject();
+	dc.DeleteDC();
+
+	return pTab;
+}
 CFont *CFontChacheNode::Open(LPCTSTR pFontName, int Width, int Height, int CharSet, int Style, int Quality)
 {
-    _tcsncpy(m_LogFont.lfFaceName, pFontName, sizeof(m_LogFont.lfFaceName) / sizeof(TCHAR));
-	m_LogFont.lfWidth       = Width;
-	m_LogFont.lfHeight		= Height;
+	FONTSIZETAB *pTab= FontSizeCheck(pFontName);
+
+    _tcsncpy(m_LogFont.lfFaceName, pFontName, LF_FACESIZE);
+	m_LogFont.lfWidth       = MulDiv(Width,  pTab->Width,  100);
+	m_LogFont.lfHeight		= MulDiv(Height, pTab->Height, 100);
 	m_LogFont.lfWeight      = ((Style & FONTSTYLE_BOLD)   != 0 ? FW_BOLD : FW_DONTCARE);
 	m_LogFont.lfItalic      = ((Style & FONTSTYLE_ITALIC) != 0 ? TRUE : FALSE);
 	m_LogFont.lfUnderline	= ((Style & FONTSTYLE_UNDER)  != 0 ? TRUE : FALSE);
@@ -2991,11 +3080,13 @@ CFont *CFontChacheNode::Open(LPCTSTR pFontName, int Width, int Height, int CharS
 	m_CharSet = CharSet;
 	m_Style   = Style;
 	m_Quality = Quality;
-	m_bFixed  = FALSE;
 
-	ZeroMemory(&m_Metric, sizeof(m_Metric));
-	m_Metric.tmHeight = m_Metric.tmAscent = Height;
-	m_Metric.tmAveCharWidth = Width;
+	m_bFixed  = pTab->bFixed;
+	m_Offset  = m_LogFont.lfHeight - Height;
+
+	// SHIFTJIS_CHARSETのみ文字幅を半角で指定
+	if ( (Style & FONTSTYLE_FULLWIDTH) != 0 && CharSet == SHIFTJIS_CHARSET )
+		m_LogFont.lfWidth /= 2;
 
 	if ( m_pFont == NULL )
 		m_pFont = new CFont;
@@ -3004,59 +3095,6 @@ CFont *CFontChacheNode::Open(LPCTSTR pFontName, int Width, int Height, int CharS
 
 	if ( !m_pFont->CreateFontIndirect(&m_LogFont) )
 		m_pFont->Attach((HFONT)GetStockObject(SYSTEM_FONT));
-
-	else {
-		int n;
-		CDC dc;
-		CSize sz;
-		CFont *pOld;
-
-		dc.CreateCompatibleDC(NULL);
-		pOld = dc.SelectObject(m_pFont);
-
-		// Fixed Font Check 'W' == 'i'
-		sz = dc.GetTextExtent(_T("W"), 1);
-		if ( (n = sz.cx) <= 0 ) n = 1;
-		sz = dc.GetTextExtent(_T("i"), 1);
-		if ( (n = sz.cx * 100 / n) >= 80 )
-			m_bFixed = TRUE;
-
-		dc.GetTextMetrics(&m_Metric);
-
-		// AvgWidth Check Width > 'A'
-		sz = dc.GetTextExtent(_T("ABC012abc"), 9);
-
-		// Resize Width ?
-		if ( sz.cx > 0 && (sz.cx * 100 / (m_Metric.tmAveCharWidth * 9)) < 80 ) {
-			dc.SelectObject(pOld);
-			m_pFont->DeleteObject();
-
-			m_LogFont.lfWidth  = m_Metric.tmAveCharWidth * (m_Metric.tmAveCharWidth * 9) / sz.cx;
-
-			if ( !m_pFont->CreateFontIndirect(&m_LogFont) )
-				m_pFont->Attach((HFONT)GetStockObject(SYSTEM_FONT));
-
-			pOld = dc.SelectObject(m_pFont);
-		}
-
-		//		---- ---+---+
-		//				|	| tmInternalLeading	
-		//		----	| --+
-		//		 **		|
-		//		*  *	| tmAsent
-		//		 ***	|
-		//		   * ---+
-		//		 ** 	| tmDescent
-		//		---- ---+
-		//
-		//						kozuka	source	meiryo	mei_ui	ms_got	ms_pgot
-		//	         tmHeight	16		16		16		15		16		16
-		//	          tmAsent	13		12		11		12		14		14
-		//	        tmDescent	3		4		5		3		2		2
-		//	tmInternalLeading	6		5		5		3		0		0
-
-		dc.SelectObject(pOld);
-	}
 
 	return m_pFont;
 }
@@ -3070,10 +3108,27 @@ CFontChache::CFontChache()
 
 	for ( hs = 0 ; hs < FONTHASHMAX ; hs++ )
 		m_pTop[hs] = NULL;
+
+	m_Data = new CFontChacheNode[FONTCACHEMAX];
+
 	for ( n = 0 ; n < FONTCACHEMAX ; n++ ) {
 		hs = n % FONTHASHMAX;
 		m_Data[n].m_pNext = m_pTop[hs];
 		m_pTop[hs] = &(m_Data[n]);
+	}
+}
+CFontChache::~CFontChache()
+{
+	int n;
+	FONTSIZETAB *pTab;
+
+	delete[] m_Data;
+
+	for ( n = 0 ; n < 4 ; n++ ) {
+		while ( (pTab = pFontTab[n]) != NULL ) {
+			pFontTab[n] = pTab->Next;
+			delete pTab;
+		}
 	}
 }
 CFontChacheNode *CFontChache::GetFont(LPCTSTR pFontName, int Width, int Height, int CharSet, int Style, int Quality)
@@ -3653,6 +3708,9 @@ void CStrScript::SendStr(LPCWSTR str, int len, CServerEntry *ep)
 			m_Str += *str;
 			AddNode(m_Line[2], m_Str);
 			m_Str.Empty();
+		} else if ( *str == L'%' ) {
+			m_Str += *str;
+			m_Str += *str;
 		} else
 			m_Str += *str;
 	}

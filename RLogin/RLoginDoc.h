@@ -140,7 +140,7 @@ public:
 
 	static void EnvironText(CString &env, CString &str);
 	static void EnvironPath(CString &path);
-	BOOL EntryText(CString &name, LPCWSTR match = NULL);
+	BOOL EntryText(CString &name, LPCWSTR match = NULL, BOOL bCtrl = FALSE);
 
 	BOOL ScriptInit();
 	void SendBuffer(CBuffer &buf, BOOL macflag = TRUE);

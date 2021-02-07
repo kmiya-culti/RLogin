@@ -1561,7 +1561,7 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 			m_pBitmap = m_BmpFile.GetBitmap(pDC, rect.Width(), rect.Height(), pDoc->m_TextRam.GetBackColor(pDoc->m_TextRam.m_DefAtt), pDoc->m_TextRam.m_BitMapAlpha, pDoc->m_TextRam.m_BitMapStyle, this);
 			if ( pDoc->m_TextRam.m_TextBitMap.m_bEnable && !pDoc->m_TextRam.m_TextBitMap.m_Text.IsEmpty() ) {
 				str = pDoc->m_TextRam.m_TextBitMap.m_Text;
-				pDoc->EntryText(str);
+				pDoc->EntryText(str, NULL, TRUE);
 				m_pBitmap = m_BmpFile.GetTextBitmap(pDC, rect.Width(), rect.Height(), pDoc->m_TextRam.GetBackColor(pDoc->m_TextRam.m_DefAtt), &(pDoc->m_TextRam.m_TextBitMap), str, pDoc->m_TextRam.m_BitMapAlpha, pDoc->m_TextRam.m_BitMapStyle, this);
 			}
 			if ( m_BmpFile.m_Style == MAPING_DESKTOP )
@@ -1904,6 +1904,11 @@ int CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 		// If DECBKM is reset, <x works as a delete key. 
 		// When you press <x , the terminal sends a DEL(0x7F) character to the host.
 		tmp = (pDoc->m_TextRam.IsOptEnable(TO_DECBKM) ? L"\x08" : L"\x7F");
+		SendBuffer(tmp);
+		return FALSE;
+
+	} else if ( nChar == VK_OEM_5 && (st & (MASK_SHIFT | MASK_CTRL | MASK_ALT)) == 0 && pDoc->m_TextRam.m_KanjiMode == UTF8_SET && pDoc->m_TextRam.IsOptEnable(TO_RLYENKEY) ) {
+		tmp = L"\xA5";
 		SendBuffer(tmp);
 		return FALSE;
 	}

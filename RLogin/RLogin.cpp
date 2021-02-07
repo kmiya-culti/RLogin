@@ -1040,58 +1040,69 @@ ENDOF:
 //////////////////////////////////////////////////////////////////////
 
 #ifdef	USE_CP932CHECK
-void UnicodeCheckChar(DWORD ch)
+void UnicodeJpset()
 {
-	DWORD ms, ic;
+	int n;
+	DWORD ic, jis, sjis, euc;
+	CStringW ms;
+	CHAR mbs[3];
 	static CIConv iconv;
+	static const DWORD JisTab[] = {
+		0x005c,
+		0x007e,
+		0x213d,
+		0x2141,
+		0x2142,
+		0x215d,
+		0x2171,
+		0x2172,
+		0x224c,
+		0
+	};
 
-	if ( (ms = iconv.IConvChar(_T("CP932"), _T("UTF-16BE"), ch)) == 0 )
-		return;
+	for ( n = 0 ; JisTab[n] != 0 ; n++ ) {
+		jis = sjis = euc = JisTab[n];
+		if ( jis > 255 ) {
+			sjis = iconv.JisToSJis(jis);
+			euc = jis | 0x8080;
+		}
 
-	if ( (ic = iconv.IConvChar(_T("SHIFT_JIS"), _T("UTF-16BE"), ch)) != ms && ic != 0 )
-		TRACE("SJIS\t%04x\t%04x\t%04x\n", ch, ic, ms);
+		TRACE("%04x %04x %04x  ", jis, sjis, euc);
 
-	if ( (ic = iconv.IConvChar(_T("SHIFT_JISX0213"), _T("UTF-16BE"), ch)) != ms && ic != 0 )
-		TRACE("JISX0213\t%04x\t%04x\t%04x\n", ch, ic, ms);
+		if ( sjis < 255 ) {
+			mbs[0] = (CHAR)sjis;
+			mbs[1] = 0;
+		} else {
+			mbs[0] = (CHAR)(sjis >> 8);
+			mbs[1] = (CHAR)sjis;
+			mbs[2] = 0;
+		}
+		ms = mbs;
+		ic = ms[0];
+		if ( ms[1] != 0 )
+			ic = (ic << 8) | ms[1];
+		TRACE("%04x ", ic);
 
-	ch = iconv.SJisToJis(ch);
-	if ( (ic = iconv.IConvChar(_T("JIS_X0208"), _T("UTF-16BE"), ch)) != ms && ic != 0 )
-		TRACE("JIS_X0208\t%04x\t%04x\t%04x\n", ch, ic, ms);
+		ic = iconv.IConvChar(_T("CP932"), _T("UTF-16BE"), sjis);
+		TRACE("%04x ", ic);
+		ic = iconv.IConvChar(_T("SHIFT_JIS"), _T("UTF-16BE"), sjis);
+		TRACE("%04x ", ic);
+		ic = iconv.IConvChar(_T("SHIFT_JISX0213"), _T("UTF-16BE"), sjis);
+		TRACE("%04x  ", ic);
 
-	//if ( (ic = iconv.IConvChar(_T("JIS_X0212"), _T("UTF-16BE"), ch)) != ms && ic != 0 )
-	//	TRACE("JIS_X0212\t%04x\t%04x\t%04x\n", ch, ic, ms);
+		ic = iconv.IConvChar(_T("EUCJP-MS"), _T("UTF-16BE"), euc);
+		TRACE("%04x ", ic);
+		ic = iconv.IConvChar(_T("EUC-JP"), _T("UTF-16BE"), euc);
+		TRACE("%04x ", ic);
+		ic = iconv.IConvChar(_T("EUC-JISX0213"), _T("UTF-16BE"), euc);
+		TRACE("%04x  ", ic);
 
-	ch |= 0x8080;
-	if ( (ic = iconv.IConvChar(_T("EUC-JP"), _T("UTF-16BE"), ch)) != ms && ic != 0 )
-		TRACE("EUC-JP\t%04x\t%04x\t%04x\n", ch, ic, ms);
-
-	if ( (ic = iconv.IConvChar(_T("EUC-JISX0213"), _T("UTF-16BE"), ch)) != ms && ic != 0 )
-		TRACE("EUC-JISX0213\t%04x\t%04x\t%04x\n", ch, ic, ms);
-}
-
-void UnicodeCheck()
-{
-	DWORD ch, hi, lo;
-
-
-	for ( ch = 0x20 ; ch <= 0x7E ; ch++ )
-		UnicodeCheckChar(ch);
-
-	for ( ch = 0xA0 ; ch <= 0xFF ; ch++ )
-		UnicodeCheckChar(ch);
-
-	for ( hi = 0x81 ; hi <= 0x9F ; hi++ ) {
-		for ( lo = 0x40 ; lo <= 0x7E ; lo++ )
-			UnicodeCheckChar((hi << 8) | lo);
-		for ( lo = 0x80 ; lo <= 0xFC ; lo++ )
-			UnicodeCheckChar((hi << 8) | lo);
-	}
-
-	for ( hi = 0xE0 ; hi <= 0xFC ; hi++ ) {
-		for ( lo = 0x40 ; lo <= 0x7E ; lo++ )
-			UnicodeCheckChar((hi << 8) | lo);
-		for ( lo = 0x80 ; lo <= 0xFC ; lo++ )
-			UnicodeCheckChar((hi << 8) | lo);
+		ic = iconv.IConvChar(_T("JIS_X0208"), _T("UTF-16BE"), jis);
+		TRACE("%04x ", ic);
+		ic = iconv.IConvChar(_T("JIS_X0212"), _T("UTF-16BE"), jis);
+		TRACE("%04x ", ic);
+		ic = iconv.IConvChar(_T("JIS_X0213-2000.1"), _T("UTF-16BE"), jis);
+		TRACE("%04x\n", ic);
 	}
 }
 #endif

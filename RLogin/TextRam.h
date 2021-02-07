@@ -221,6 +221,7 @@
 #define	TO_RLBRKMBCS	456			// 壊れたMBCSの代替え表示
 #define	TO_TTCTH		457			// 8200 画面クリア(ED 2)時にカーソルを左上に移動する。
 #define	TO_RLBOLDHC		458			// ボールド文字で高輝度を無効にする
+#define	TO_RLYENKEY		459			// UTF-8の場合に\キーでU+00A5を送信する
 
 // RLogin SockOpt		1000-1511(0-511)
 #define	TO_RLTENAT		1406		// 自動ユーザー認証を行わない
@@ -663,10 +664,11 @@ public:
 
 ///////////////////////////////////////////////////////
 
-#define	FONTSTYLE_NONE		0
-#define	FONTSTYLE_BOLD		1
-#define	FONTSTYLE_ITALIC	2
-#define	FONTSTYLE_UNDER		4
+#define	FONTSTYLE_NONE			000
+#define	FONTSTYLE_BOLD			001
+#define	FONTSTYLE_ITALIC		002
+#define	FONTSTYLE_UNDER			004
+#define	FONTSTYLE_FULLWIDTH		010
 
 class CFontNode : public CObject
 {
@@ -1356,7 +1358,7 @@ public:
 	static int IndexToOption(int value);
 	static void OptionString(int value, CString &str);
 	static void IncDscs(int &Pcss, CString &str);
-	static LPCTSTR GetCurrentTimeFormat(LPCTSTR fmt);
+	static void GetCurrentTimeFormat(LPCTSTR fmt, CString &str);
 
 	// Low Level
 	void RESET(int mode);

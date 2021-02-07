@@ -627,7 +627,7 @@ BEGIN
                     "SysLink",WS_TABSTOP,44,178,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,193,60,14,WS_GROUP
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin (%s) Version 2.25.7 (2021/01/08)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.25.8 (2021/02/08)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2020 Culti",IDC_STATIC,44,16,189,8
     LTEXT           "OpenSSL 1.1.1i 8 Dec 2020",IDC_STATIC,44,52,189,8
     LTEXT           "Copyright (c) 1998-2020 The OpenSSL Project",IDC_STATIC,44,61,189,8
@@ -1794,18 +1794,18 @@ BEGIN
     CTEXT           "~",IDC_FONTVIEW12,65,232,14,14,SS_CENTERIMAGE | WS_BORDER
     GROUPBOX        "変換前",IDC_STATIC,7,7,100,247
     GROUPBOX        "変換後",IDC_STATIC,112,7,100,247
-    CTEXT           "#",IDC_FONTVIEW13,183,67,14,14,SS_CENTERIMAGE | WS_BORDER
-    CTEXT           "$",IDC_FONTVIEW14,183,83,14,14,SS_CENTERIMAGE | WS_BORDER
-    CTEXT           "@",IDC_FONTVIEW15,183,97,14,14,SS_CENTERIMAGE | WS_BORDER
-    CTEXT           "[",IDC_FONTVIEW16,183,113,14,14,SS_CENTERIMAGE | WS_BORDER
-    CTEXT           "\\",IDC_FONTVIEW17,183,127,14,14,SS_CENTERIMAGE | WS_BORDER
-    CTEXT           "]",IDC_FONTVIEW18,183,143,14,14,SS_CENTERIMAGE | WS_BORDER
-    CTEXT           "^",IDC_FONTVIEW19,183,157,14,14,SS_CENTERIMAGE | WS_BORDER
-    CTEXT           "`",IDC_FONTVIEW20,183,173,14,14,SS_CENTERIMAGE | WS_BORDER
-    CTEXT           "{",IDC_FONTVIEW21,183,187,14,14,SS_CENTERIMAGE | WS_BORDER
-    CTEXT           "|",IDC_FONTVIEW22,183,203,14,14,SS_CENTERIMAGE | WS_BORDER
-    CTEXT           "}",IDC_FONTVIEW23,183,217,14,14,SS_CENTERIMAGE | WS_BORDER
-    CTEXT           "~",IDC_FONTVIEW24,183,233,14,14,SS_CENTERIMAGE | WS_BORDER
+    CONTROL         "#",IDC_FONTVIEW13,"Static",SS_OWNERDRAW | WS_BORDER,183,67,14,14
+    CONTROL         "$",IDC_FONTVIEW14,"Static",SS_OWNERDRAW | WS_BORDER,183,83,14,14
+    CONTROL         "@",IDC_FONTVIEW15,"Static",SS_OWNERDRAW | WS_BORDER,183,97,14,14
+    CONTROL         "[",IDC_FONTVIEW16,"Static",SS_OWNERDRAW | WS_BORDER,183,113,14,14
+    CONTROL         "\\",IDC_FONTVIEW17,"Static",SS_OWNERDRAW | WS_BORDER,183,127,14,14
+    CONTROL         "]",IDC_FONTVIEW18,"Static",SS_OWNERDRAW | WS_BORDER,183,143,14,14
+    CONTROL         "^",IDC_FONTVIEW19,"Static",SS_OWNERDRAW | WS_BORDER,183,157,14,14
+    CONTROL         "`",IDC_FONTVIEW20,"Static",SS_OWNERDRAW | WS_BORDER,183,173,14,14
+    CONTROL         "{",IDC_FONTVIEW21,"Static",SS_OWNERDRAW | WS_BORDER,183,187,14,14
+    CONTROL         "|",IDC_FONTVIEW22,"Static",SS_OWNERDRAW | WS_BORDER,183,203,14,14
+    CONTROL         "}",IDC_FONTVIEW23,"Static",SS_OWNERDRAW | WS_BORDER,183,217,14,14
+    CONTROL         "~",IDC_FONTVIEW24,"Static",SS_OWNERDRAW | WS_BORDER,183,233,14,14
     LTEXT           "表示を参考に種類を指定\n例：5/12が￥ならJPです",IDC_STATIC,17,21,80,18
     LTEXT           "実際に表示する文字を設定\n種類の変更で仮設定",IDC_STATIC,123,21,80,18
 END
@@ -2146,8 +2146,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,25,7,0
- PRODUCTVERSION 2,25,7,0
+ FILEVERSION 2,25,8,0
+ PRODUCTVERSION 2,25,8,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2164,12 +2164,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.25.7.0"
+            VALUE "FileVersion", "2.25.8.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.25.7.0"
+            VALUE "ProductVersion", "2.25.8.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -4892,6 +4892,7 @@ BEGIN
     IDT_TERM_LIST65         "8200 画面クリアで移動\t画面クリアのみ\t画面クリア(ED2)と同時にカーソルをホーム（左上)に移動する"
     IDT_TERM_LIST66         "太字と高輝度を併用\t太字か高輝度を選択\t上記8403で太字を選択した場合に高輝度と併用することができます"
     IDT_TERM_LIST67         "Set legacy keyboard\tReset legacy keyboard\tlegacy keyboard emulation"
+    IDT_TERM_LIST68         "￥をU+00A5で送信\t￥をU+005Cで送信\tUTF-8の場合に￥キーの文字コードを変更する"
 END
 
 STRINGTABLE

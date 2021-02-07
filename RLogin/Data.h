@@ -473,6 +473,14 @@ public:
 	virtual ~CBmpFile();
 };
 
+typedef struct _FontSizeTab {
+	struct _FontSizeTab *Next;
+	WCHAR FontName[LF_FACESIZE];
+	int Width;
+	int Height;
+	BOOL bFixed;
+} FONTSIZETAB;
+
 class CFontChacheNode : public CObject
 {
 public:
@@ -485,8 +493,9 @@ public:
 	int m_Style;
 	int m_Quality;
 	BOOL m_bFixed;
-	TEXTMETRIC m_Metric;
+	int m_Offset;
 
+	FONTSIZETAB *FontSizeCheck(LPCTSTR pFontName);
 	CFont *Open(LPCTSTR pFontName, int Width, int Height, int CharSet, int Style, int Quality);
 
 	CFontChacheNode();
@@ -500,10 +509,12 @@ class CFontChache : public CObject
 {
 public:
 	CFontChacheNode *m_pTop[FONTHASHMAX];
-	CFontChacheNode m_Data[FONTCACHEMAX];
+	CFontChacheNode *m_Data;
 
 	CFontChacheNode *GetFont(LPCTSTR pFontName, int Width, int Height, int CharSet, int Style, int Quality);
+
 	CFontChache();
+	~CFontChache();
 };
 
 class CMutexLock : public CObject

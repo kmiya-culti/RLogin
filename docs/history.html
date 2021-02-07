@@ -7,10 +7,12 @@
 <STYLE type="text/css">
 <!--
 TD {		
+				
   background-color : #ffffff;
   font-size : 90%;
 }
 .BOX{		
+				
   background-color : silver;
 }
 -->
@@ -31,6 +33,29 @@ TD {
       <TD>
       <TABLE cellpadding="5" cellspacing="1" class="BOX" width="900">
         <TBODY>
+          <TR>
+            <TD align="center">2021/02/08</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.25.8/">2.25.8</A></TD>
+            <TD>2.25.7での背景のテキスト描画のバグを修正<BR>
+            ヒストリーの日時フォーマットに環境変数の展開を追加<BR>
+            送信文字列の特殊文字で%%が完全にエスケープされないバグを修正<BR>
+            文字バンクによる置換よりフォントのiso646の設定を優先するように変更<BR>
+            UTF-8環境の場合に制御コード?8459で「￥キーでU+00A5を送信」を追加<BR>
+            文字セットのIconv設定のデフォルト値をWindowsのSJISに合うように変更<BR>
+            Unicode罫線の一部（丸コーナー）の描画方法をなめらかに変更<BR>
+            フォントの実サイズにより大きさを調整するように変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2021/01/08</TD>
+            <TD align="center">&nbsp;<A href="http://nanno.dip.jp/softlib/rlogin/2.25.7/">2.25.7</A></TD>
+            <TD>ダイヤログのリサイズ関数を整理<BR>
+            KnownHostsの管理をホスト名＋ポート番号に変更<BR>
+            SSHのホスト鍵をDNSでチェックしないオプションを追加<BR>
+            strftimeの未対応パラメータを無視するように変更<BR>
+            ログに記録する時間のパラメータに%Lでミリ秒を追加<BR>
+            iconvのSHIFT_JISとCP932との差を吸収する処理を修正<BR>
+            libiconv-1.16に更新</TD>
+          </TR>
           <TR>
             <TD align="center">2020/12/09&nbsp;</TD>
             <TD align="center">&nbsp;<A href="http://nanno.dip.jp/softlib/rlogin/2.25.6/">2.25.6</A></TD>

@@ -1158,11 +1158,14 @@ void CRegEx::ConvertRes(LPCWSTR pat, CStringW &buf, CRegExRes *res)
 	int n;
 
 	buf.Empty();
-	while ( *pat != '\0' ) {
-		if ( pat[0] == '%' && (pat[1] >= '0' && pat[1] <= '9') ) {
+	while ( *pat != L'\0' ) {
+		if ( pat[0] == L'%' && pat[1] == L'%' ) {
+			buf += *(pat++);
+			buf += *(pat++);
+		} else if ( pat[0] == L'%' && (pat[1] >= L'0' && pat[1] <= L'9') ) {
 			pat++;
-			for ( n = 0 ; *pat >= '0' && *pat <= '9' ; pat++ )
-					n = n * 10 + (*(pat++) - '0');
+			for ( n = 0 ; *pat >= L'0' && *pat <= L'9' ; pat++ )
+					n = n * 10 + (*pat - L'0');
 			if ( n < res->GetSize() )
 				buf += res->GetAt(n).m_Str;
 		} else
