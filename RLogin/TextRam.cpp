@@ -2406,8 +2406,9 @@ void CTextRam::HisRegCheck(DWORD ch, DWORD pos)
 		}
 
 	} else {
-		if ( m_MarkReg.MatchChar(ch, pos, &res) && (res.m_Status == REG_MATCH || res.m_Status == REG_MATCHOVER) ) {
-			for ( i = 0 ; i < res.GetSize() ; i++ ) {
+		if ( m_MarkReg.MatchChar(ch, pos, &res) ) {
+			if ( res.GetSize() > 0 ) {
+				i = 0;	// for ( i = 0 ; i < res.GetSize() ; i++ ) {
 				for ( a = res[i].m_SPos ; a < res[i].m_EPos ; a++ ) {
 					if ( res.m_Idx[a] != 0xFFFFFFFF )
 						GETVRAM(res.m_Idx[a] % m_ColsMax, res.m_Idx[a] / m_ColsMax - m_HisPos)->m_Vram.attr |= ATT_SMARK;
@@ -2429,9 +2430,6 @@ void CTextRam::HisMarkClear()
 }
 int CTextRam::HisRegMark(LPCTSTR str, BOOL bRegEx)
 {
-	int n, x;
-	CCharCell *vp;
-
 	m_MarkPos = m_HisPos + m_Lines - m_HisLen;
 
 	while ( m_MarkPos < 0 )
@@ -2441,13 +2439,7 @@ int CTextRam::HisRegMark(LPCTSTR str, BOOL bRegEx)
 		m_MarkPos -= m_HisMax;
 
 	if ( str == NULL || *str == _T('\0') ) {
-		for ( n = 0 ; n < m_HisLen ; n++ ) {
-			vp = GETVRAM(0, m_MarkPos - m_HisPos);
-			for ( x = 0 ; x < m_Cols ; x++ )
-				vp[x].m_Vram.attr &= ~ATT_SMARK;
-			while ( ++m_MarkPos >= m_HisMax )
-				m_MarkPos -= m_HisMax;
-		}
+		HisMarkClear();
 		return 0;
 	}
 
@@ -2457,11 +2449,13 @@ int CTextRam::HisRegMark(LPCTSTR str, BOOL bRegEx)
 	m_bSimpSerch = TRUE;
 
 	if ( bRegEx ) {
-		m_MarkReg.Compile(str);
-		m_MarkReg.MatchCharInit();
+		if ( !m_MarkReg.Compile(str) ) {
+			::AfxMessageBox(m_MarkReg.m_ErrMsg);
+			return 0;
+		}
 
-		if ( !m_MarkReg.IsSimple() )
-			m_bSimpSerch = FALSE;
+		m_MarkReg.MatchCharInit();
+		m_bSimpSerch = FALSE;
 	}
 
 	m_MarkLen = 0;
@@ -2578,7 +2572,7 @@ void CTextRam::Init()
 	m_DefCols[1]	= 132;
 	m_Page          = 0;
 	m_DefHisMax		= 2000;
-	m_DefFontSize	= MulDiv(16, DEFAULT_DPI_Y, 96);
+	m_DefFontSize	= MulDiv(16, SYSTEM_DPI_Y, DEFAULT_DPI_Y);
 	m_DefFontHw     = 20;
 	m_KanjiMode		= EUC_SET;
 	m_BankGL		= 0;

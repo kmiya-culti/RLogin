@@ -146,6 +146,7 @@ public:
 	void SaveEmojiImage(CEmojiImage *pEmoji);
 	HDC GetEmojiDrawText(CEmojiImage *pEmoji, COLORREF fc, int fh);
 	BOOL DrawEmoji(CDC *pDC, CRect &rect, LPCTSTR str, COLORREF fc, COLORREF bc, BOOL bEraBack, int fh, int zm);
+	void EmojiImageInit(LPCTSTR pFontName, LPCTSTR pImageDir);
 #endif
 
 #ifdef	USE_JUMPLIST

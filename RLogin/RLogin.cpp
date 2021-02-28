@@ -1281,20 +1281,18 @@ BOOL CRLoginApp::InitInstance()
 
 			if ( ExD2D1CreateFactory != NULL && ExDWriteCreateFactory != NULL && SUCCEEDED(ExD2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, __uuidof(ID2D1Factory), NULL, reinterpret_cast<void **>(&m_pD2DFactory))) )
 				ExDWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(m_pDWriteFactory), reinterpret_cast<IUnknown **>(&m_pDWriteFactory));
-
-			m_EmojiFontName = GetProfileString(_T("RLoginApp"), _T("EmojiFontName"), _T("Segoe UI emoji"));
 		}
 	}
 
-	m_EmojiImageDir.Format(_T("%s\\emoji"), m_BaseDir);
-	if ( !IsDirectory(m_EmojiImageDir) ) {
-		m_EmojiImageDir.Format(_T("%s\\emoji"), m_ExecDir);
+	m_EmojiFontName = GetProfileString(_T("RLoginApp"), _T("EmojiFontName"), _T("Segoe UI emoji"));
+	m_EmojiImageDir = GetProfileString(_T("RLoginApp"), _T("EmojiImageDir"), _T(""));
+
+	if ( m_EmojiImageDir.IsEmpty() || !IsDirectory(m_EmojiImageDir) ) {
+		m_EmojiImageDir.Format(_T("%s\\emoji"), m_BaseDir);
 		if ( !IsDirectory(m_EmojiImageDir) ) {
-			m_EmojiImageDir = GetProfileString(_T("RLoginApp"), _T("EmojiImageDir"), _T(""));
-			if ( !m_EmojiImageDir.IsEmpty() ) {
-				if ( !IsDirectory(m_EmojiImageDir) )
-					m_EmojiImageDir.Empty();
-			}
+			m_EmojiImageDir.Format(_T("%s\\emoji"), m_ExecDir);
+			if ( !IsDirectory(m_EmojiImageDir) )
+				m_EmojiImageDir.Empty();
 		}
 	}
 #endif
@@ -3597,4 +3595,40 @@ ENDOF:
 
 	return rc;
 }
+void CRLoginApp::EmojiImageInit(LPCTSTR pFontName, LPCTSTR pImageDir)
+{
+	int n;
+	CEmojiImage *pEmoji;
+	CString UserImageDir;
+
+	UserImageDir = GetProfileString(_T("RLoginApp"), _T("EmojiImageDir"), _T(""));
+
+	if ( m_EmojiFontName.Compare(pFontName) == 0 && UserImageDir.Compare(pImageDir) == 0 )
+		return;
+
+	WriteProfileString(_T("RLoginApp"), _T("EmojiFontName"), pFontName);
+	WriteProfileString(_T("RLoginApp"), _T("EmojiImageDir"), pImageDir);
+
+	m_EmojiFontName = pFontName;
+	m_EmojiImageDir = pImageDir;
+
+	if ( m_EmojiImageDir.IsEmpty() || !IsDirectory(m_EmojiImageDir) ) {
+		m_EmojiImageDir.Format(_T("%s\\emoji"), m_BaseDir);
+		if ( !IsDirectory(m_EmojiImageDir) ) {
+			m_EmojiImageDir.Format(_T("%s\\emoji"), m_ExecDir);
+			if ( !IsDirectory(m_EmojiImageDir) )
+				m_EmojiImageDir.Empty();
+		}
+	}
+
+	for ( n = 0 ; n < EMOJI_HASH ; n++ ) {
+		while ( (pEmoji = m_pEmojiList[n]) != NULL ) {
+			m_pEmojiList[n] = pEmoji->m_pNext;
+			delete pEmoji;
+		}
+	}
+
+	::AfxGetMainWnd()->Invalidate(FALSE);
+}
+
 #endif

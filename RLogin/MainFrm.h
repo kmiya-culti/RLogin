@@ -235,8 +235,11 @@ public:
 #define	SOCKPARAHASH		4
 #define	SOCKPARAMASK(fd)	(int)(((INT_PTR)fd / sizeof(INT_PTR)) & (SOCKPARAHASH - 1))
 
-#define	DEFAULT_DPI_X		GlobalSystemDpi
-#define	DEFAULT_DPI_Y		GlobalSystemDpi
+
+#define	DEFAULT_DPI_X		96
+#define	DEFAULT_DPI_Y		96
+#define	SYSTEM_DPI_X		GlobalSystemDpi
+#define	SYSTEM_DPI_Y		GlobalSystemDpi
 #define	SCREEN_DPI_X		((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiX
 #define	SCREEN_DPI_Y		((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY
 

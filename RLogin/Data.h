@@ -1096,9 +1096,6 @@ public:
 class CCurPos : public tagSIZE
 {
 public:
-	CCurPos();
-	CCurPos(int InitCx, int InitCy);
-
 	BOOL operator == (SIZE size);
 	BOOL operator != (SIZE size);
 	BOOL operator >= (SIZE size);
@@ -1107,6 +1104,30 @@ public:
 	BOOL operator <  (SIZE size);
 
 	inline void SetSize(int ix, int iy) { cx = ix; cy = iy; }
+
+	CCurPos();
+	CCurPos(int InitCx, int InitCy);
+};
+
+class CDirDialog : public CObject
+{
+public:
+    CString m_strWindowTitle;
+    CString m_strPath;
+    CString m_strInitDir;
+    CString m_strSelDir;
+    CStringLoad m_strTitle;
+    int  m_iImageIndex;
+    BOOL m_bStatus;
+
+    BOOL DoBrowse(CWnd *pwndParent = NULL);
+
+    CDirDialog();
+    virtual ~CDirDialog();
+
+private:
+    virtual BOOL SelChanged(LPCTSTR lpcsSelection, CString& csStatusText) { return TRUE; };
+    static int __stdcall CDirDialog::BrowseCtrlCallback(HWND hwnd, UINT uMsg, LPARAM lParam, LPARAM lpData);
 };
 
 #endif // !defined(AFX_DATA_H__6A23DC3E_3DDC_47BD_A6FC_E0127564AE6E__INCLUDED_)

@@ -21,10 +21,16 @@ TD {
 				
 				
 				
+				
+				
+				
   background-color : #ffffff;
   font-size : 90%;
 }
 .BOX{
+				
+				
+				
 				
 				
 				
@@ -52,8 +58,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.25.8)</TD>
-            <TD width="20%" align="right">2021/02/08</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.25.9)</TD>
+            <TD width="20%" align="right">2021/03/01</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -457,6 +463,17 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2021/03/01</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.25.9/">2.25.9</A></TD>
+            <TD>カラー絵文字の設定を拡張機能からカラーに移動<BR>
+            メニューの画像をアルファ付きのビットマップに変更<BR>
+            2.25.6からx32がWindowsXPで動作しない不都合を修正<BR>
+            システムDPIが96以外の場合の処理を変更<BR>
+            文字列の検索時の正規表現の一致条件を変更<BR>
+            正規表現ライブラリの不都合(８進数表現が不定)や仕様を修正<BR>
+            openssl-1.1.1jに更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2021/02/08</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.25.8/">2.25.8</A></TD>
             <TD>2.25.7での背景のテキスト描画のバグを修正<BR>
@@ -497,14 +514,6 @@ TD {
             openssl-1.1.1hに更新</TD>
           </TR>
           <TR>
-            <TD align="center">2020/07/27</TD>
-            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.25.4/">2.25.4</A></TD>
-            <TD>コマンドウィンドウの終了メッセージの選択条件を変更<BR>
-            ファイルのドロップでファイルアップロード時は、毎回ダイアログを表示に変更<BR>
-            ファンクション・パッドの各種モード時の動作及びキーコードを変更<BR>
-            スクリーンオプションにIMEオンで文字カーソルの色・形を変更を追加</TD>
-          </TR>
-          <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
           </TR>
         </TBODY>
@@ -528,7 +537,7 @@ TD {
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-1.1.1i.tar.gz</A><BR>
+                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-1.1.1j.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
@@ -537,7 +546,7 @@ TD {
                   <BR>
                   ※crypto\rand\rand_win.c<BR>
                   _WIN32_WINNT=0x0501</TD>
-                  <TD width="500" valign="top">rename openssl-1.1.1i openssl-1.1.1i-x32<BR>
+                  <TD width="500" valign="top">rename openssl-1.1.1j openssl-1.1.1j-x32<BR>
                   perl Configure VC-WIN32 no-shared<BR>
                   nmake</TD>
                 </TR>
@@ -623,8 +632,8 @@ TD {
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 1.1.1i 8 Dec 2020<BR>
-            Copyright (c) 1998-2020 The OpenSSL Project<BR>
+            <P>OpenSSL 1.1.1j 16 Feb 2021<BR>
+            Copyright (c) 1998-2021 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>
             <BR>
@@ -4125,18 +4134,6 @@ function TekClock2() {
                 <TR>
                   <TD colspan="2">デフォルトフォントのWindowsによるCHARSETでフォント置換を行わないようにします。結果、文字が正しく表示されない場合がありますのでご注意ください</TD>
                 </TR>
-                <TR>
-                  <TD align="center" rowspan="2">485</TD>
-                  <TD>カラー絵文字</TD>
-                  <TD>モノクロ絵文字</TD>
-                </TR>
-                <TR>
-                  <TD colspan="2">Windows 8.1以降の場合は、DirectTextを用いてカラー絵文字を表示します。カラー絵文字に対応していないWindowsの場合などは、RLogin実行時の作業フォルダもしくは、RLogin.exeのあるフォルダにemojiフォルダを置くとPNG画像ファイルから表示を試みます。<A href="https://github.com/adobe-fonts/emojione-color">EmojiOne Color</A>から作成した<A href="emoji.zip">カラー絵文字のPNG画像ファイル</A>です<BR>
-                  ※レジストリの変更で絵文字のフォント、イメージのフォルダを指定できます<BR>
-                  [HKEY_CURRENT_USER\Software\Culti\RLogin\RLoginApp]<BR>
-                  &quot;EmojiFontName&quot;=&quot;Segoe UI emoji&quot;<BR>
-                  &quot;EmojiImageDir&quot;=&quot;C:\emoji&quot;</TD>
-                </TR>
               </TBODY>
             </TABLE>
             <BR>
@@ -4149,7 +4146,7 @@ function TekClock2() {
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top" align="left"><IMG src="image047.jpg" width="597" height="530" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image047.jpg" width="609" height="531" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -5270,10 +5267,14 @@ function TekClock2() {
                   <TD align="center">文字装飾</TD>
                   <TD>文字属性を変更できます</TD>
                 </TR>
+                <TR>
+                  <TD align="center">カラー絵文字</TD>
+                  <TD>Windows 8.1以降の場合は、DirectTextを用いて指定したフォントでカラー絵文字を表示します。PNG画像ファイルのあるフォルダを指定するとその画像で絵文字を表示します。emojiフォルダは、RLogin実行時の作業フォルダ、RLogin.exeのあるフォルダをデフォルトで検索します。<A href="https://github.com/adobe-fonts/emojione-color">EmojiOne Color</A>から作成した<A href="emoji.zip">カラー絵文字のPNG画像ファイル</A>です</TD>
+                </TR>
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top" align="left"><IMG src="image032.jpg" width="597" height="530" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image032.jpg" width="609" height="531" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>

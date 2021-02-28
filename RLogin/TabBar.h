@@ -1,6 +1,6 @@
 #pragma once
 
-#define	ICONIMG_SIZE	16
+#define	ICONIMG_SIZE	MulDiv(16, SCREEN_DPI_X, DEFAULT_DPI_X)
 
 //////////////////////////////////////////////////////////////////////
 // TabBar.h: CTabBar クラスのインターフェイス

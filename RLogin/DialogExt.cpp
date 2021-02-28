@@ -45,8 +45,8 @@ CDialogExt::CDialogExt(UINT nIDTemplate, CWnd *pParent)
 	m_FontName = ::AfxGetApp()->GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
 	m_FontSize = ::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9);
 
-	m_InitDpi.cx = DEFAULT_DPI_X;
-	m_InitDpi.cy = DEFAULT_DPI_Y;
+	m_InitDpi.cx = SYSTEM_DPI_X;
+	m_InitDpi.cy = SYSTEM_DPI_Y;
 	m_NowDpi = m_InitDpi;
 
 	m_InitDlgRect.RemoveAll();
@@ -224,8 +224,8 @@ void CDialogExt::GetActiveDpi(CSize &dpi, CWnd *pWnd, CWnd *pParent)
 		dpi.cy = SCREEN_DPI_Y;
 
 	} else {
-		dpi.cx = DEFAULT_DPI_X;
-		dpi.cy = DEFAULT_DPI_Y;
+		dpi.cx = SYSTEM_DPI_X;
+		dpi.cy = SYSTEM_DPI_Y;
 	}
 }
 BOOL CDialogExt::IsDialogExt(CWnd *pWnd)

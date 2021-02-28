@@ -52,7 +52,7 @@ BOOL CCertKeyDlg::OnInitDialog()
 	m_Counter = 0;
 
 	if ( (pWnd = GetDlgItem(IDC_DIGEST)) != NULL && m_DigestFont.CreatePointFont(
-			MulDiv(9 * 10, m_NowDpi.cy, DEFAULT_DPI_Y), _T("Consolas")) )
+			MulDiv(9 * 10, m_NowDpi.cy, SYSTEM_DPI_Y), _T("Consolas")) )
 		pWnd->SetFont(&m_DigestFont);
 
 	return TRUE;

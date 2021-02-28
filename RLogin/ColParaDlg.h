@@ -35,6 +35,10 @@ public:
 	CImageList m_ImageList[8];
 	CRect m_InvRect;
 
+	BOOL m_EmojiColorEnable;
+	CString m_EmojiFontName;
+	CString m_EmojiImageDir;
+
 	double m_Constrast;
 	double m_Bright;
 	int m_Huecol[3];
@@ -67,4 +71,6 @@ protected:
 	afx_msg void OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
 	afx_msg void OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct);
 	afx_msg void OnBnClickedColedit();
+	afx_msg void OnBnClickedImageSel();
+	afx_msg void OnUpdateTextRam();
 };

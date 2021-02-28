@@ -107,6 +107,10 @@ public:
 	int			m_SPos;
 	int			m_EPos;
 	CStringD	m_Str;
+	BOOL		m_Del;
+	BOOL		m_Done;
+	CList<int, int>	m_FrArg;
+	CList<int, int>	m_BkArg;
 
 	const CRegExArg & operator = (CRegExArg &data);
 	CRegExArg(void);
@@ -117,6 +121,9 @@ public:
 #define	REG_MATCH		2
 #define	REG_MATCHMORE	3
 #define	REG_MATCHOVER	4
+
+#define	REG_MAXREP		1024
+#define	REG_TABMEM_SIZE	32
 
 class CRegExRes : public CObject
 {
@@ -142,6 +149,7 @@ public:
 
 	CRegExRes			m_Work;
 	CRegExRes			m_Done;
+	CDWordArray			m_Counter;
 	CStringD			m_Str;
 	int					m_Pos;
 	int					m_Seq;
@@ -169,29 +177,39 @@ public:
 
 	int			m_QueSw;
 	int			m_Arg;
+	int			m_Count;
 	int			m_WorkSeq;
 	CRegExWork	m_WorkTmp;
+	CList<int, int>	m_ArgStack;
 
-	DCHAR		m_SaveCh;
-	int			m_Pos;
-	CStringD	m_Patan;
+	typedef struct _CompStrBuf {
+		struct _CompStrBuf *m_Next;
+		DCHAR		m_SaveCh;
+		int			m_Pos;
+		CStringD	m_Patan;
+	} COMPSTRBUF;
+
+	COMPSTRBUF	*m_CompStrBuf;
+	CString		m_ErrMsg;
 
 	CRegEx(void);
 	~CRegEx(void);
 
 	void InitChar(LPCTSTR str);
+	void EndofChar();
 	DCHAR GetChar();
 	void UnGetChar(DCHAR ch);
 
 	CRegExNode *AllocNode(int type);
 	void FreeNode(CRegExNode *np);
-	CRegExNode *CopyNodeSub(CRegExNode *np, CPtrArray &dups);
-	CRegExNode *CopyNode(CRegExNode *np);
-	void AddNode(CRegExNode *hp, int na, CPtrArray &ptr);
+	void RemoveAllNode();
 
 	DCHAR CompileEscape(DCHAR ch);
-	CRegExNode *CompileRange();
+	CRegExNode *CompileExtChar(DCHAR ch, CRegExNode *rp);
+	void CompileReverse(CRegExNode *rp);
+	CRegExNode *CompileRange(CRegExNode *rp);
 	CRegExNode *CompileSub(DCHAR endc);
+	CRegExNode *CompleInline(CRegExNode *rp, LPCTSTR str);
 	BOOL Compile(LPCTSTR str);
 	BOOL IsSimple();
 

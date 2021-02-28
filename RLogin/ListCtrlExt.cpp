@@ -24,8 +24,8 @@ CListCtrlExt::CListCtrlExt()
 	m_EditSubItem = 0;
 	m_bSort = TRUE;
 	m_bMove = FALSE;
-	m_Dpi.cx = DEFAULT_DPI_X;
-	m_Dpi.cy = DEFAULT_DPI_Y;
+	m_Dpi.cx = SYSTEM_DPI_X;
+	m_Dpi.cy = SYSTEM_DPI_Y;
 }
 CListCtrlExt::~CListCtrlExt()
 {
@@ -121,7 +121,7 @@ void CListCtrlExt::InitColumn(LPCTSTR lpszSection, const LV_COLUMN *lpColumn, in
 	for ( n = 0 ; n < nMax ; n++ ) {
 		tmp = lpColumn[n];
 		tmp.cx = AfxGetApp()->GetProfileInt(lpszSection, tmp.pszText, tmp.cx);
-		tmp.cx = MulDiv(tmp.cx, m_Dpi.cy, DEFAULT_DPI_Y);
+		tmp.cx = MulDiv(tmp.cx, m_Dpi.cx, DEFAULT_DPI_X);
 		InsertColumn(n, &tmp);
 	}
 
@@ -175,7 +175,7 @@ void CListCtrlExt::SaveColumn(LPCTSTR lpszSection)
 	tmp.mask = LVCF_WIDTH | LVCF_TEXT;
 
 	for ( n = 0 ; GetColumn(n, &tmp) ; n++ ) {
-		tmp.cx = MulDiv(tmp.cx, DEFAULT_DPI_Y, m_Dpi.cy);
+		tmp.cx = MulDiv(tmp.cx, DEFAULT_DPI_Y, m_Dpi.cx);
 		AfxGetApp()->WriteProfileInt(lpszSection, tmp.pszText, tmp.cx);
 	}
 

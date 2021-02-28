@@ -3473,6 +3473,7 @@ BOOL CMainFrame::OnCopyData(CWnd* pWnd, COPYDATASTRUCT* pCopyDataStruct)
 
 void CMainFrame::InitMenuBitmap()
 {
+#if 0
 	int n, cx, cy;
 	CDC dc[2];
 	CBitmap BitMap;
@@ -3531,6 +3532,85 @@ void CMainFrame::InitMenuBitmap()
 
 	dc[0].DeleteDC();
 	dc[1].DeleteDC();
+#else
+	int n, cx, cy;
+	CImage Image;
+	CDC TmpDC;
+	CBitmap BitMap;
+	CBitmap *pOld;
+	CBitmap *pBitmap;
+	BITMAP mapinfo;
+	CMenuBitMap *pMap;
+
+	// リソースデータベースからメニューイメージを作成
+	cx = GetSystemMetrics(SM_CXMENUCHECK);
+	cy = GetSystemMetrics(SM_CYMENUCHECK);
+
+	CResDataBase *pResData = &(((CRLoginApp *)::AfxGetApp())->m_ResDataBase);
+
+	// Add Menu Image From Bitmap Resource
+	for ( n = 0 ; n < 3 ; n++ )
+		pResData->AddBitmap(MAKEINTRESOURCE(IDB_MENUMAP1 + n));
+
+	// MenuMap RemoveAll
+	for ( int n = 0 ; n < m_MenuMap.GetSize() ; n++ ) {
+		if ( (pMap = (CMenuBitMap *)m_MenuMap[n]) == NULL )
+			continue;
+		pMap->m_Bitmap.DeleteObject();
+		delete pMap;
+	}
+	m_MenuMap.RemoveAll();
+
+	TmpDC.CreateCompatibleDC(NULL);
+
+	for ( n = 0 ; n < pResData->m_Bitmap.GetSize() ; n++ ) {
+		if ( pResData->m_Bitmap[n].m_hBitmap == NULL )
+			continue;
+
+		pBitmap = CBitmap::FromHandle(pResData->m_Bitmap[n].m_hBitmap);
+
+		if ( pBitmap == NULL || !pBitmap->GetBitmap(&mapinfo) )
+			continue;
+
+		if ( (pMap = new CMenuBitMap) == NULL )
+			continue;
+
+		pOld = TmpDC.SelectObject(pBitmap);
+
+		pMap->m_Id = pResData->m_Bitmap[n].m_ResId;
+		Image.CreateEx(cx, cy, 32, BI_RGB, NULL, CImage::createAlphaChannel);
+
+		for ( int y = 0 ; y < cx ; y++ ) {
+			for ( int x = 0 ; x < cy ; x++ ) {
+				BYTE *p = (BYTE *)Image.GetPixelAddress(x, y);
+				p[0] = p[1] = p[2] = 192;
+				p[3] = 255;
+			}
+		}
+
+		::TransparentBlt(Image.GetDC(), 0, 0, cx,cy, TmpDC, 0, 0, (mapinfo.bmWidth <= mapinfo.bmHeight ? mapinfo.bmWidth : mapinfo.bmHeight), mapinfo.bmHeight, RGB(192, 192, 192));
+		Image.ReleaseDC();
+
+		TmpDC.SelectObject(pOld);
+
+		for ( int y = 0 ; y < cx ; y++ ) {
+			for ( int x = 0 ; x < cy ; x++ ) {
+				BYTE *p = (BYTE *)Image.GetPixelAddress(x, y);
+				if ( p[0] == 192 && p[1] == 192 && p[2] == 192 )
+					p[0] = p[1] = p[2] = p[3] = 0;
+				else
+					p[3] = 255;
+			}
+		}
+
+		pMap->m_Bitmap.Attach(Image);
+		Image.Detach();
+
+		m_MenuMap.Add(pMap);
+	}
+
+	TmpDC.DeleteDC();
+#endif
 }
 void CMainFrame::SetMenuBitmap(CMenu *pMenu)
 {
@@ -4646,7 +4726,7 @@ BOOL CQuickBar::Create(CWnd* pParentWnd, LPCTSTR lpszTemplateName, UINT nStyle, 
 	CDialogTemplate dlgTemp(lpDialogTemplate);
 
 	CString FontName = ::AfxGetApp()->GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
-	int FontSize = MulDiv(::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9), SCREEN_DPI_Y, DEFAULT_DPI_Y);
+	int FontSize = MulDiv(::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9), SCREEN_DPI_Y, SYSTEM_DPI_Y);
 
 	m_InitDpi.cx = SCREEN_DPI_X;
 	m_InitDpi.cy = SCREEN_DPI_Y;
@@ -4820,19 +4900,31 @@ void CQuickBar::DpiChanged()
 
 	GetWindowRect(rect);
 	GetClientRect(client);
-	rect.right  += (MulDiv(client.Width(),  SCREEN_DPI_X, m_NowDpi.cx) - client.Width());
-	rect.bottom += (MulDiv(client.Height(), SCREEN_DPI_Y, m_NowDpi.cy) - client.Height());
 
-	//MoveWindow(rect, FALSE);
-	SetWindowPos(&wndTop ,0, 0, rect.Width(), rect.Height(), (GetStyle() & WS_VISIBLE) != 0 ? SWP_SHOWWINDOW : SWP_HIDEWINDOW);
-	m_sizeDefault = rect.Size();    // set fixed size
+	if ( client.Width() <= 0 || client.Height() <= 0 ) {
+		m_ZoomMul.cx = SCREEN_DPI_X;
+		m_ZoomDiv.cx = m_NowDpi.cx;
+		m_ZoomMul.cy = SCREEN_DPI_Y;
+		m_ZoomDiv.cy = m_NowDpi.cy;
 
-	GetClientRect(rect);
+		m_sizeDefault.cx = MulDiv(m_sizeDefault.cx, SCREEN_DPI_X, m_NowDpi.cx);
+		m_sizeDefault.cy = MulDiv(m_sizeDefault.cy, SCREEN_DPI_Y, m_NowDpi.cy);
 
-	m_ZoomMul.cx = rect.Width();
-	m_ZoomDiv.cx = client.Width();
-	m_ZoomMul.cy = rect.Height();
-	m_ZoomDiv.cy = client.Height();
+	} else {
+		rect.right  += (MulDiv(client.Width(),  SCREEN_DPI_X, m_NowDpi.cx) - client.Width());
+		rect.bottom += (MulDiv(client.Height(), SCREEN_DPI_Y, m_NowDpi.cy) - client.Height());
+
+		//MoveWindow(rect, FALSE);
+		SetWindowPos(&wndTop ,0, 0, rect.Width(), rect.Height(), (GetStyle() & WS_VISIBLE) != 0 ? SWP_SHOWWINDOW : SWP_HIDEWINDOW);
+		m_sizeDefault = rect.Size();    // set fixed size
+
+		GetClientRect(rect);
+
+		m_ZoomMul.cx = rect.Width();
+		m_ZoomDiv.cx = client.Width();
+		m_ZoomMul.cy = rect.Height();
+		m_ZoomDiv.cy = client.Height();
+	}
 
 	m_NowDpi.cx = SCREEN_DPI_X;
 	m_NowDpi.cy = SCREEN_DPI_Y;
@@ -4881,7 +4973,7 @@ void CQuickBar::FontSizeCheck()
 	CRect rect;
 	TEXTMETRIC OldMetric, NewMetric;
 	CString FontName = ::AfxGetApp()->GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
-	int FontSize = MulDiv(::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9), SCREEN_DPI_Y, DEFAULT_DPI_Y);
+	int FontSize = MulDiv(::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9), SCREEN_DPI_Y, SYSTEM_DPI_Y);
 
 	if ( m_NewFont.GetSafeHandle() != NULL ) {
 		pOld = pDc->SelectObject(&m_NewFont);
@@ -5261,7 +5353,7 @@ void CTabDlgBar::RemoveAll()
 void CTabDlgBar::FontSizeCheck()
 {
 	CString FontName = ::AfxGetApp()->GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
-	int FontSize = MulDiv(::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9), SCREEN_DPI_Y, DEFAULT_DPI_Y);
+	int FontSize = MulDiv(::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9), SCREEN_DPI_Y, SYSTEM_DPI_Y);
 
 	if ( m_FontName.Compare(FontName) != 0 || m_FontSize != FontSize ) {
 		m_FontName = FontName;
@@ -5314,7 +5406,7 @@ int CTabDlgBar::OnCreate(LPCREATESTRUCT lpCreateStruct)
 		return (-1);
 
 	m_FontName  = ::AfxGetApp()->GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
-	m_FontSize = MulDiv(::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9), SCREEN_DPI_Y, DEFAULT_DPI_Y);
+	m_FontSize = MulDiv(::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9), SCREEN_DPI_Y, SYSTEM_DPI_Y);
 
 	if ( m_FontName.IsEmpty() || !m_TabFont.CreatePointFont(m_FontSize * 10, m_FontName) ) {
 		CFont *font = CFont::FromHandle((HFONT)::GetStockObject(DEFAULT_GUI_FONT));

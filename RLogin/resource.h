@@ -251,6 +251,7 @@
 #define IDS_DLGFONTDELMSG               641
 #define IDS_REGAPPSETMSG                642
 #define IDS_REGAPPDELMSG                643
+#define IDS_EMOJIMAGEMSG                644
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -989,6 +990,12 @@
 #define IDC_TITLEBOX3                   2502
 #define IDC_IMECARETCOL                 2503
 #define IDC_IMECARET                    2504
+#define IDC_WAKEUPSLEEP                 2505
+#define IDC_GLASSSTYLE                  2506
+#define IDC_EMOJICOLENABLE              2507
+#define IDC_EMOJIFONTNAME               2508
+#define IDC_EMOJIIMAGEDIR               2509
+#define IDC_EMOJIIMAGESEL               2510
 #define IDM_BROADCAST                   5000
 #define IDM_CAP_CLIPBORD                5001
 #define IDM_CAP_EXPORT                  5002
@@ -1131,7 +1138,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        169
 #define _APS_NEXT_COMMAND_VALUE         5146
-#define _APS_NEXT_CONTROL_VALUE         2505
+#define _APS_NEXT_CONTROL_VALUE         2511
 #define _APS_NEXT_SYMED_VALUE           671
 #endif
 #endif
