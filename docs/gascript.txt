@@ -1,0 +1,14 @@
+function doPost(e) {
+  var data = JSON.parse(e.postData.getDataAsString());
+
+  for ( var idx in data["text"] ) {
+    data["text"][idx] = LanguageApp.translate(data["text"][idx], data["source"], data["target"]);
+    Utilities.sleep(20);
+  }
+
+  var response = ContentService.createTextOutput();
+  response.setMimeType(ContentService.MimeType.JSON);
+  response.setContent(JSON.stringify(data));
+
+  return response;
+}

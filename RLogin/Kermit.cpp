@@ -783,7 +783,7 @@ void CKermit::DownLoad()
 			} else if ( n == 'F' ) {	/* Receive File header packet */
 				DecodePacket();
 
-				if ( CheckFileName(0, (LPCSTR)(m_Work)) == NULL ) {
+				if ( !CheckFileName(CHKFILENAME_SAVE, (LPCSTR)(m_Work)) ) {
 					SendStr('E', "DownLoad Abort");
 					goto ENDOF;
 				}
@@ -962,7 +962,7 @@ void CKermit::UpLoad(BOOL ascii)
 
 		case 1:
 		NEXTSEND:
-			if ( CheckFileName(3, "") == NULL || m_PathName.IsEmpty() || 
+			if ( !CheckFileName(CHKFILENAME_OPEN | CHKFILENAME_MULTI, "") || 
 					_tstati64(m_PathName, &st) || (st.st_mode & _S_IFMT) != _S_IFREG ||
 					(fp = FileOpen(m_PathName, "rb", ascii)) == NULL )
 				goto SENDEOT;

@@ -802,8 +802,8 @@ LPCWSTR CBuffer::Base64Decode(LPCWSTR str)
 	int n, c, o;
 
 	Clear();
-	for ( n = o = 0 ; *str != _T('\0') ; n++, str++ ) {
-		while ( *str == _T('\t') || *str == _T('\r') || *str == _T('\n') )
+	for ( n = o = 0 ; *str != L'\0' ; n++, str++ ) {
+		while ( *str == L'\t' || *str == L'\r' || *str == L'\n' )
 			str++;
 		if ( (c = Base64DecTab[(BYTE)(*str)]) < 0 )
 			break;
@@ -850,6 +850,174 @@ void CBuffer::Base64Encode(LPBYTE buf, int len)
 			PutTChar('=');
 			PutTChar('=');
 		}
+	}
+}
+
+static const char *Base64urlEncTab = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+static const char Base64urlDecTab[] = {
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 62, -1, 62, -1, 63,
+        52, 53, 54, 55, 56, 57, 58, 59, 60, 61, -1, -1, -1, -1, -1, -1,
+        -1,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
+        15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, -1, -1, -1, -1, 63,
+        -1, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+        41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
+
+LPCTSTR CBuffer::Base64urlDecode(LPCTSTR str)
+{
+	int n, c, o;
+
+	Clear();
+	for ( n = o = 0 ; *str != _T('\0') ; n++, str++ ) {
+		while ( *str == _T('\t') || *str == _T('\r') || *str == _T('\n') )
+			str++;
+		if ( (c = Base64urlDecTab[(BYTE)(*str)]) < 0 )
+			break;
+		switch(n % 4) {
+		case 0:
+			o = c << 2;
+			break;
+		case 1:
+			o |= (c >> 4);
+			Put8Bit(o);
+			o = c << 4;
+			break;
+		case 2:
+			o |= (c >> 2);
+			Put8Bit(o);
+			o = c << 6;
+			break;
+		case 3:
+			o |= c;
+			Put8Bit(o);
+			break;
+		}
+	}
+	return str;
+}
+void CBuffer::Base64urlEncode(LPBYTE buf, int len)
+{
+	int n;
+	Clear();
+	for ( n = len ; n > 0 ; n -= 3, buf += 3 ) {
+		if ( n >= 3 ) {
+			PutTChar(Base64urlEncTab[(buf[0] >> 2) & 077]);
+			PutTChar(Base64urlEncTab[((buf[0] << 4) | (buf[1] >> 4)) & 077]);
+			PutTChar(Base64urlEncTab[((buf[1] << 2) | (buf[2] >> 6)) & 077]);
+			PutTChar(Base64urlEncTab[buf[2] & 077]);
+		} else if ( n >= 2 ) {
+			PutTChar(Base64urlEncTab[(buf[0] >> 2) & 077]);
+			PutTChar(Base64urlEncTab[((buf[0] << 4) | (buf[1] >> 4)) & 077]);
+			PutTChar(Base64urlEncTab[(buf[1] << 2) & 077]);
+		} else {
+			PutTChar(Base64urlEncTab[(buf[0] >> 2) & 077]);
+			PutTChar(Base64urlEncTab[(buf[0] << 4) & 077]);
+		}
+	}
+}
+
+static const char *Base32EncTab = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+static const char Base32DecTab[] = {
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, 26, 27, 28, 29, 30, 31, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
+        15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
+
+static const char *Base32hexEncTab = "0123456789ABCDEFGHIJKLMNOPQRSTUV";
+static const char Base32hexDecTab[] = {
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+         0,  1,  2,  3,  4,  5,  6,  7,  8,  9, -1, -1, -1, -1, -1, -1,
+        -1, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+        25, 26, 27, 28, 29, 30, 31, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 };
+
+LPCTSTR CBuffer::Base32Decode(LPCTSTR str, BOOL bHex)
+{
+	char c;
+	int bits = 0;
+	WORD data = 0;
+	const char *DecTab = (bHex ? Base32hexDecTab : Base32DecTab);
+
+	Clear();
+
+	while ( *str != _T('\0') ) {
+		while ( *str == _T('\t') || *str == _T('\r') || *str == _T('\n') )
+			str++;
+		if ( (c = DecTab[(BYTE)(*(str++))]) < 0 )
+			break;
+
+		data <<= 5;
+		data |= c;
+		bits += 5;
+
+		if ( bits >= 8 ) {
+			Put8Bit(data >> (bits - 8));
+			bits -= 8;
+		}
+	}
+
+	return str;
+}
+void CBuffer::Base32Encode(LPBYTE buf, int len, BOOL bHex)
+{
+	int bits = 0;
+	int pad = 0;
+	WORD data = 0;
+	LPBYTE ebuf = buf + len;
+	const char *EncTab = (bHex ? Base32hexEncTab : Base32EncTab);
+
+	while ( buf < ebuf ) {
+		data <<= 8;
+		bits += 8;
+		data |= *(buf++);
+
+		while ( bits >= 5 ) {
+			PutTChar(EncTab[(data >> (bits - 5)) & 037]);
+			bits -= 5;
+			pad++;
+		}
+	}
+
+	if ( bits > 0 ) {
+		PutTChar(EncTab[(data << (5 - bits)) & 037]);
+		pad++;
+	}
+
+	if ( (pad %= 8) > 0 ) {
+		for ( ; pad < 8 ; pad++ )
+			PutTChar('=');
 	}
 }
 
@@ -2778,6 +2946,8 @@ int CBmpFile::GifTrnsIndex(LPBYTE lpBuf, int len)
 //////////////////////////////////////////////////////////////////////
 // CFontChacheNode
 
+static FONTSIZETAB *pFontTab[4] = { NULL, NULL, NULL, NULL };
+
 CFontChacheNode::CFontChacheNode()
 {
 	m_pFont = NULL;
@@ -2799,19 +2969,106 @@ CFontChacheNode::CFontChacheNode()
 	m_Style   = 0;
 	m_Quality = 0;
 	m_bFixed  = FALSE;
-
-	ZeroMemory(&m_Metric, sizeof(m_Metric));
+	m_Offset  = 0;
 }
 CFontChacheNode::~CFontChacheNode()
 {
 	if ( m_pFont != NULL )
 		delete m_pFont;
 }
+FONTSIZETAB *CFontChacheNode::FontSizeCheck(LPCTSTR pFontName)
+{
+	int n;
+	CDC dc;
+	CFont Font;
+	LOGFONT LogFont;
+	TEXTMETRIC Metric;
+	CSize sz;
+	CFont *pOld;
+	FONTSIZETAB *pTab;
+
+	n = pFontName[0] & 3;
+	for ( pTab = pFontTab[n] ; pTab != NULL ; pTab = pTab->Next ) {
+		if ( _tcscmp(pFontName, pTab->FontName) == 0 )
+			return pTab;
+	}
+
+	pTab = new FONTSIZETAB;
+	pTab->Next = pFontTab[n];
+	pFontTab[n] = pTab;
+
+	_tcsncpy(pTab->FontName, pFontName, LF_FACESIZE);
+	pTab->Width  = 100;
+	pTab->Height = 100;
+	pTab->bFixed = FALSE;
+
+	ZeroMemory(&(LogFont), sizeof(LOGFONT));
+    _tcsncpy(LogFont.lfFaceName, pFontName, LF_FACESIZE);
+	LogFont.lfHeight = 100;
+
+	if ( !Font.CreateFontIndirect(&LogFont) )
+		return pTab;
+
+	dc.CreateCompatibleDC(NULL);
+	pOld = dc.SelectObject(&Font);
+
+	// Fixed Font Check 'W' == 'i'
+	sz = dc.GetTextExtent(_T("W"), 1);
+	if ( (n = sz.cx) <= 0 ) n = 1;
+	sz = dc.GetTextExtent(_T("i"), 1);
+	if ( (sz.cx * 100 / n) >= 80 )
+		pTab->bFixed = TRUE;
+
+	dc.GetTextMetrics(&Metric);
+	sz = dc.GetTextExtent(_T("ABC012abc"), 9);
+
+	//TRACE(_T("Fonts=%s Width=%d Height=%d tmHe=%d tmAsc=%d tmDes=%d tmInLe=%d tmChAv=%d tmChMax=%d Fixed=%d Sx=%d Sy=%d Sw=%d Sh=%d\n"),
+	//	LogFont.lfFaceName, LogFont.lfWidth, LogFont.lfHeight,
+	//	Metric.tmHeight, Metric.tmAscent, Metric.tmDescent, Metric.tmInternalLeading,
+	//	Metric.tmAveCharWidth, Metric.tmMaxCharWidth,
+	//	bFixed, sz.cx, sz.cy, sz.cx * 100 / Metric.tmAveCharWidth * 9),
+	//  Metric.tmInternalLeading * 100 / Metric.tmHeight);
+
+	//		---- ---+---+
+	//				|	| tmInternalLeading	
+	//		----	| --+
+	//		 **		|
+	//		*  *	| tmAsent
+	//		 ***	|
+	//		   * ---+
+	//		 ** 	| tmDescent
+	//		---- ---+
+	//
+	//  Fonts=è¨íÀÉSÉVÉbÉN Std R	Width=8 Height=16 tmHe=16 tmAsc=12 tmDes=4 tmInLe=4 tmChAv=8 tmChMax=10 Fixed=0 Sx=40 Sy=16 Sw=55  Sh=25
+	//	Fonts=Source Han Mono SC	Width=8 Height=16 tmHe=16 tmAsc=13 tmDes=3 tmInLe=5 tmChAv=8 tmChMax=8  Fixed=1 Sx=45 Sy=16 Sw=62  Sh=31
+	//  Fonts=ÉÅÉCÉäÉI				Width=8 Height=16 tmHe=16 tmAsc=11 tmDes=5 tmInLe=5 tmChAv=8 tmChMax=24 Fixed=0 Sx=47 Sy=16 Sw=65  Sh=31
+	//  Fonts=ÇlÇr ÉSÉVÉbÉN			Width=8 Height=16 tmHe=16 tmAsc=14 tmDes=2 tmInLe=0 tmChAv=8 tmChMax=32 Fixed=1 Sx=72 Sy=16 Sw=100 Sh=0
+	//  Fonts=Meiryo UI				Width=8 Height=16 tmHe=15 tmAsc=12 tmDes=3 tmInLe=3 tmChAv=8 tmChMax=40 Fixed=0 Sx=81 Sy=15 Sw=112 Sh=18
+	//  Fonts=ÇlÇr ÇoÉSÉVÉbÉN		Width=8 Height=16 tmHe=16 tmAsc=14 tmDes=2 tmInLe=0 tmChAv=8 tmChMax=38 Fixed=0 Sx=95 Sy=16 Sw=131 Sh=0
+
+	// é¿ç€ÇÃÉtÉHÉìÉgÇÃïùÇ™è¨Ç≥Ç¢èÍçá
+	if ( (sz.cx * 100 / (Metric.tmAveCharWidth * 9)) < 80 )
+		pTab->Width = Metric.tmAveCharWidth * 9 * 90 / sz.cx;
+
+	// ï∂éöè„Ç™çLÇ¢â¢ï∂ÉtÉHÉìÉgÇ≈çÇÇ≥Ç™è¨Ç≥Ç¢èÍçá
+	if ( ((Metric.tmHeight - Metric.tmInternalLeading) * 100 / Metric.tmHeight) < 80 )
+		pTab->Height = Metric.tmHeight * 80 / (Metric.tmHeight - Metric.tmInternalLeading);
+
+	TRACE(_T("%s\tWith=%d Height=%d Fixed=%d\n"), pTab->FontName, pTab->Width, pTab->Height, pTab->bFixed);
+
+	dc.SelectObject(pOld);
+	Font.DeleteObject();
+	dc.DeleteDC();
+
+	return pTab;
+}
 CFont *CFontChacheNode::Open(LPCTSTR pFontName, int Width, int Height, int CharSet, int Style, int Quality)
 {
-    _tcsncpy(m_LogFont.lfFaceName, pFontName, sizeof(m_LogFont.lfFaceName) / sizeof(TCHAR));
-	m_LogFont.lfWidth       = Width;
-	m_LogFont.lfHeight		= Height;
+	FONTSIZETAB *pTab= FontSizeCheck(pFontName);
+
+    _tcsncpy(m_LogFont.lfFaceName, pFontName, LF_FACESIZE);
+	m_LogFont.lfWidth       = MulDiv(Width,  pTab->Width,  100);
+	m_LogFont.lfHeight		= MulDiv(Height, pTab->Height, 100);
 	m_LogFont.lfWeight      = ((Style & FONTSTYLE_BOLD)   != 0 ? FW_BOLD : FW_DONTCARE);
 	m_LogFont.lfItalic      = ((Style & FONTSTYLE_ITALIC) != 0 ? TRUE : FALSE);
 	m_LogFont.lfUnderline	= ((Style & FONTSTYLE_UNDER)  != 0 ? TRUE : FALSE);
@@ -2823,11 +3080,13 @@ CFont *CFontChacheNode::Open(LPCTSTR pFontName, int Width, int Height, int CharS
 	m_CharSet = CharSet;
 	m_Style   = Style;
 	m_Quality = Quality;
-	m_bFixed  = FALSE;
 
-	ZeroMemory(&m_Metric, sizeof(m_Metric));
-	m_Metric.tmHeight = m_Metric.tmAscent = Height;
-	m_Metric.tmAveCharWidth = Width;
+	m_bFixed  = pTab->bFixed;
+	m_Offset  = m_LogFont.lfHeight - Height;
+
+	// SHIFTJIS_CHARSETÇÃÇ›ï∂éöïùÇîºäpÇ≈éwíË
+	if ( (Style & FONTSTYLE_FULLWIDTH) != 0 && CharSet == SHIFTJIS_CHARSET )
+		m_LogFont.lfWidth /= 2;
 
 	if ( m_pFont == NULL )
 		m_pFont = new CFont;
@@ -2836,59 +3095,6 @@ CFont *CFontChacheNode::Open(LPCTSTR pFontName, int Width, int Height, int CharS
 
 	if ( !m_pFont->CreateFontIndirect(&m_LogFont) )
 		m_pFont->Attach((HFONT)GetStockObject(SYSTEM_FONT));
-
-	else {
-		int n;
-		CDC dc;
-		CSize sz;
-		CFont *pOld;
-
-		dc.CreateCompatibleDC(NULL);
-		pOld = dc.SelectObject(m_pFont);
-
-		// Fixed Font Check 'W' == 'i'
-		sz = dc.GetTextExtent(_T("W"), 1);
-		if ( (n = sz.cx) <= 0 ) n = 1;
-		sz = dc.GetTextExtent(_T("i"), 1);
-		if ( (n = sz.cx * 100 / n) >= 80 )
-			m_bFixed = TRUE;
-
-		dc.GetTextMetrics(&m_Metric);
-
-		// AvgWidth Check Width > 'A'
-		sz = dc.GetTextExtent(_T("ABC012abc"), 9);
-
-		// Resize Width ?
-		if ( sz.cx > 0 && (sz.cx * 100 / (m_Metric.tmAveCharWidth * 9)) < 80 ) {
-			dc.SelectObject(pOld);
-			m_pFont->DeleteObject();
-
-			m_LogFont.lfWidth  = m_Metric.tmAveCharWidth * (m_Metric.tmAveCharWidth * 9) / sz.cx;
-
-			if ( !m_pFont->CreateFontIndirect(&m_LogFont) )
-				m_pFont->Attach((HFONT)GetStockObject(SYSTEM_FONT));
-
-			pOld = dc.SelectObject(m_pFont);
-		}
-
-		//		---- ---+---+
-		//				|	| tmInternalLeading	
-		//		----	| --+
-		//		 **		|
-		//		*  *	| tmAsent
-		//		 ***	|
-		//		   * ---+
-		//		 ** 	| tmDescent
-		//		---- ---+
-		//
-		//						kozuka	source	meiryo	mei_ui	ms_got	ms_pgot
-		//	         tmHeight	16		16		16		15		16		16
-		//	          tmAsent	13		12		11		12		14		14
-		//	        tmDescent	3		4		5		3		2		2
-		//	tmInternalLeading	6		5		5		3		0		0
-
-		dc.SelectObject(pOld);
-	}
 
 	return m_pFont;
 }
@@ -2902,10 +3108,27 @@ CFontChache::CFontChache()
 
 	for ( hs = 0 ; hs < FONTHASHMAX ; hs++ )
 		m_pTop[hs] = NULL;
+
+	m_Data = new CFontChacheNode[FONTCACHEMAX];
+
 	for ( n = 0 ; n < FONTCACHEMAX ; n++ ) {
 		hs = n % FONTHASHMAX;
 		m_Data[n].m_pNext = m_pTop[hs];
 		m_pTop[hs] = &(m_Data[n]);
+	}
+}
+CFontChache::~CFontChache()
+{
+	int n;
+	FONTSIZETAB *pTab;
+
+	delete[] m_Data;
+
+	for ( n = 0 ; n < 4 ; n++ ) {
+		while ( (pTab = pFontTab[n]) != NULL ) {
+			pFontTab[n] = pTab->Next;
+			delete pTab;
+		}
 	}
 }
 CFontChacheNode *CFontChache::GetFont(LPCTSTR pFontName, int Width, int Height, int CharSet, int Style, int Quality)
@@ -3447,7 +3670,7 @@ LPCWSTR CStrScript::ExecChar(DWORD ch)
 			if ( !tmp.IsEmpty() )
 				tmp += _T(" or ");
 			tmp += np->m_RecvStr;
-			if ( np->m_Reg.MatchChar(CTextRam::UCS2toUCS4(ch), 0, &m_Res) ) { // && (m_Res.m_Status == REG_MATCH || m_Res.m_Status == REG_MATCHOVER) ) {
+			if ( np->m_Reg.MatchChar(CTextRam::UCS2toUCS4(ch), 0, &m_Res) ) {
 				ExecNode(np->m_Right);
 				np->m_Reg.ConvertRes(TstrToUni(np->m_SendStr), m_Str, &m_Res);
 				if ( m_StatDlg.m_hWnd != NULL )
@@ -3485,6 +3708,9 @@ void CStrScript::SendStr(LPCWSTR str, int len, CServerEntry *ep)
 			m_Str += *str;
 			AddNode(m_Line[2], m_Str);
 			m_Str.Empty();
+		} else if ( *str == L'%' ) {
+			m_Str += *str;
+			m_Str += *str;
 		} else
 			m_Str += *str;
 	}
@@ -3915,7 +4141,7 @@ int CServerEntry::GetProfile(LPCTSTR pSection, int Uid)
 	((CRLoginApp *)AfxGetApp())->GetProfileBuffer(pSection, entry, buf);
 
 	if ( !GetBuffer(buf) ) {
-		if ( ::AfxMessageBox(IDE_ENTRYLOADERROR,  MB_ICONERROR | MB_YESNO) == IDYES )
+		if ( ::AfxMessageBox(CStringLoad(IDE_ENTRYLOADERROR),  MB_ICONERROR | MB_YESNO) == IDYES )
 			((CRLoginApp *)AfxGetApp())->DelProfileEntry(pSection, entry);
 		return FALSE;
 	}
@@ -4550,6 +4776,7 @@ static const struct _KeyNameTab	{
 	{ VK_DELETE,	_T("DELETE")	},
 	{ VK_HOME,		_T("HOME")		},
 	{ VK_END,		_T("END")		},
+	{ VK_CLEAR,		_T("CLEAR")		},
 
 	{ VK_PAUSE,		_T("PAUSE")		},
 	{ VK_CANCEL,	_T("BREAK")		},
@@ -4576,6 +4803,7 @@ static const struct _KeyNameTab	{
 	{ VK_SUBTRACT,	_T("PADSUB")	},
 	{ VK_DECIMAL,	_T("PADDEC")	},
 	{ VK_DIVIDE,	_T("PADDIV")	},
+	{ VK_NUMLOCK,	_T("PADNUM")	},
 
 	{ VK_OEM_1,		_T("$BA(:)")	},
 	{ VK_OEM_PLUS,	_T("$BB(;)")	},
@@ -4685,6 +4913,7 @@ LPCTSTR CKeyNode::GetMask()
 
 	if ( (m_Mask & MASK_APPL) )  m_Temp += _T("App+");
 	if ( (m_Mask & MASK_CKM) )   m_Temp += _T("Ckm+");
+	if ( (m_Mask & MASK_LEGA))   m_Temp += _T("Legacy+");
 	if ( (m_Mask & MASK_VT52) )  m_Temp += _T("VT52+");
 
 	//if ( (m_Mask & MASK_NUMLCK) ) m_Temp += _T("Num+");
@@ -4833,11 +5062,12 @@ static const struct _InitKeyTab {
 		{ 0,	VK_DOWN,		0,						_T("\\033[B")		},
 		{ 0,	VK_RIGHT,		0,						_T("\\033[C")		},
 		{ 0,	VK_LEFT,		0,						_T("\\033[D")		},
+		{ 12,	VK_CLEAR,		0,						_T("\\033[E")		},
 
-		{ 0,	VK_HOME,		0,						_T("\\033[H")		},	//	kh
+		{ 0,	VK_HOME,		0,						_T("\\033[H")		},
 		{ 0,	VK_INSERT,		0,						_T("\\033[2~")		},	//	kI
 		{ 0,	VK_DELETE,		0,						_T("\\033[3~")		},	//	kD
-		{ 0,	VK_END,			0,						_T("\\033[F")		},	//	@7
+		{ 0,	VK_END,			0,						_T("\\033[F")		},
 		{ 0,	VK_PRIOR,		0,						_T("\\033[5~")		},	//	kP
 		{ 0,	VK_NEXT,		0,						_T("\\033[6~")		},	//	kN
 
@@ -4845,15 +5075,46 @@ static const struct _InitKeyTab {
 		{ 0,	VK_DOWN,		MASK_CKM,				_T("\\033OB")		},	//	kd
 		{ 0,	VK_RIGHT,		MASK_CKM,				_T("\\033OC")		},	//	kr
 		{ 0,	VK_LEFT,		MASK_CKM,				_T("\\033OD")		},	//	kl
+		{ 12,	VK_CLEAR,		MASK_CKM,				_T("\\033OE")		},
 
-		{ 0,	VK_HOME,		MASK_CKM,				_T("\\033OH")		},
-		{ 0,	VK_END,			MASK_CKM,				_T("\\033OF")		},
+		{ 0,	VK_HOME,		MASK_CKM,				_T("\\033OH")		},	//	kh
+		{ 0,	VK_END,			MASK_CKM,				_T("\\033OF")		},	//	@7
 		{ 0,	VK_ESCAPE,		MASK_CKM,				_T("\\033O[")		},
 
 		{ 0,	VK_UP,			MASK_VT52,				_T("\\033A")		},
 		{ 0,	VK_DOWN,		MASK_VT52,				_T("\\033B")		},
 		{ 0,	VK_RIGHT,		MASK_VT52,				_T("\\033C")		},
 		{ 0,	VK_LEFT,		MASK_VT52,				_T("\\033D")		},
+		{ 12,	VK_CLEAR,		MASK_VT52,				_T("\\033E")		},
+
+		{ 12,	VK_END,			MASK_VT52,				_T("\\033F")		},
+		{ 12,	VK_NEXT,		MASK_VT52,				_T("\\033G")		},
+		{ 12,	VK_HOME,		MASK_VT52,				_T("\\033H")		},
+		{ 12,	VK_PRIOR,		MASK_VT52,				_T("\\033I")		},
+		{ 12,	VK_INSERT,		MASK_VT52,				_T("\\033L")		},
+		{ 12,	VK_DELETE,		MASK_VT52,				_T("\\033M")		},
+
+		{ 12,	VK_F1,			MASK_VT52,				_T("\\033P")		},
+		{ 12,	VK_F2,			MASK_VT52,				_T("\\033Q")		},
+		{ 12,	VK_F3,			MASK_VT52,				_T("\\033R")		},
+		{ 12,	VK_F4,			MASK_VT52,				_T("\\033S")		},
+		{ 12,	VK_F5,			MASK_VT52,				_T("\\033T")		},
+		{ 12,	VK_F6,			MASK_VT52,				_T("\\033U")		},
+		{ 12,	VK_F7,			MASK_VT52,				_T("\\033V")		},
+		{ 12,	VK_F8,			MASK_VT52,				_T("\\033W")		},
+		{ 12,	VK_F9,			MASK_VT52,				_T("\\033X")		},
+		{ 12,	VK_F10,			MASK_VT52,				_T("\\033Y")		},
+		{ 12,	VK_F11,			MASK_VT52,				_T("\\033Z")		},
+		{ 12,	VK_F12,			MASK_VT52,				_T("\\033[")		},
+
+		{ 12,	VK_HOME,		MASK_LEGA,				_T("\\033[1~")		},
+		{ 12,	VK_END,			MASK_LEGA,				_T("\\033[4~")		},
+		{ 12,	VK_DELETE,		MASK_LEGA,				_T("\\177")			},
+
+		{ 12,	VK_F1,			MASK_LEGA,				_T("\\033[11~")		},
+		{ 12,	VK_F2,			MASK_LEGA,				_T("\\033[12~")		},
+		{ 12,	VK_F3,			MASK_LEGA,				_T("\\033[13~")		},
+		{ 12,	VK_F4,			MASK_LEGA,				_T("\\033[14~")		},
 
 		{ 0,	VK_F1,			0,						_T("\\033OP")		},	//	k1
 		{ 0,	VK_F2,			0,						_T("\\033OQ")		},	//	k2
@@ -4867,24 +5128,6 @@ static const struct _InitKeyTab {
 		{ 0,	VK_F10,			0,						_T("\\033[21~")		},	//	k;
 		{ 0,	VK_F11,			0,						_T("\\033[23~")		},	//	F1
 		{ 0,	VK_F12,			0,						_T("\\033[24~")		},	//	F2
-
-		{ 10,	VK_F1,			MASK_APPL,				_T("\\033[11~")		},
-		{ 10,	VK_F2,			MASK_APPL,				_T("\\033[12~")		},
-		{ 10,	VK_F3,			MASK_APPL,				_T("\\033[13~")		},
-		{ 10,	VK_F4,			MASK_APPL,				_T("\\033[14~")		},
-
-		{ 10,	VK_F3,			MASK_SHIFT | MASK_APPL,	_T("\\033[25~")		},
-		{ 10,	VK_F4,			MASK_SHIFT | MASK_APPL,	_T("\\033[26~")		},
-
-		{ 10,	VK_F3,			MASK_SHIFT,				_T("\\033[25~")		},
-		{ 10,	VK_F4,			MASK_SHIFT,				_T("\\033[26~")		},
-		{ 10,	VK_F5,			MASK_SHIFT,				_T("\\033[28~")		},
-		{ 10,	VK_F6,			MASK_SHIFT,				_T("\\033[29~")		},
-		{ 10,	VK_F7,			MASK_SHIFT,				_T("\\033[31~")		},
-		{ 10,	VK_F8,			MASK_SHIFT,				_T("\\033[32~")		},
-		{ 10,	VK_F9,			MASK_SHIFT,				_T("\\033[33~")		},
-		{ 10,	VK_F10,			MASK_SHIFT,				_T("\\033[34~")		},
-
 		{ 0,	VK_F13,			0,						_T("\\033[25~")		},	//	F3
 		{ 0,	VK_F14,			0,						_T("\\033[26~")		},	//	F4
 		{ 0,	VK_F15,			0,						_T("\\033[28~")		},	//	F5
@@ -4896,12 +5139,15 @@ static const struct _InitKeyTab {
 
 		{ 0,	VK_TAB,			MASK_SHIFT,				_T("\\033[Z")		},
 
-		{ 0,	VK_SEPARATOR,	MASK_APPL,				_T("\\033OX")		},	// = (equal)    | =	  | SS3 X
-		{ 0,	VK_MULTIPLY,	MASK_APPL,				_T("\\033Oj")		},	// * (multiply) | *	  | SS3 j
-		{ 0,	VK_ADD,			MASK_APPL,				_T("\\033On")		},	// + (add)      | +	  | SS3 k
-		{ 0,	VK_SUBTRACT,	MASK_APPL,				_T("\\033Om")		},	// - (minus)    | -	  | SS3 m
-		{ 0,	VK_DECIMAL,		MASK_APPL,				_T("\\033On")		},	// . (period)   | .	  | SS3 n
-		{ 0,	VK_DIVIDE,		MASK_APPL,				_T("\\033Oo")		},	// / (divide)   | /	  | SS3 o
+		{ 12,	VK_NUMLOCK,		MASK_APPL,				_T("\\033OP")		},	// NumLock	    | 	  | SS3 P
+		{ 12,	VK_DIVIDE,		MASK_APPL,				_T("\\033OQ")		},	// / (divide)   | /	  | SS3 Q
+		{ 12,	VK_MULTIPLY,	MASK_APPL,				_T("\\033OR")		},	// * (multiply) | *	  | SS3 R
+		{ 12,	VK_SUBTRACT,	MASK_APPL,				_T("\\033OS")		},	// - (minus)    | -	  | SS3 S
+
+		{ 12,	VK_ADD,			MASK_APPL,				_T("\\033Ol")		},	// + (add)      | +	  | SS3 l
+		{ 12,	VK_DECIMAL,		MASK_APPL,				_T("\\033On")		},	// . (period)   | .	  | SS3 n
+		{ 12,	VK_SEPARATOR,	MASK_APPL,				_T("\\033OM")		},	// = (equal)    | =	  | SS3 M
+
 		{ 0,	VK_NUMPAD0,		MASK_APPL,				_T("\\033Op")		},	// 0	        | 0	  | SS3 p
 		{ 0,	VK_NUMPAD1,		MASK_APPL,				_T("\\033Oq")		},	// 1	        | 1	  | SS3 q
 		{ 0,	VK_NUMPAD2,		MASK_APPL,				_T("\\033Or")		},	// 2	        | 2	  | SS3 r
@@ -4937,6 +5183,7 @@ static const struct _InitKeyTab {
 		{ 8,	VK_DOWN,		MASK_ALT,				_T("$PANE_DOWN")	},
 		{ 8,	VK_RIGHT,		MASK_ALT,				_T("$PANE_RIGHT")	},
 		{ 8,	VK_LEFT,		MASK_ALT,				_T("$PANE_LEFT")	},
+		{ 8,	'V',			MASK_ALT,				_T("$CLIPBOARD")	},
 
 		{ 8,	'1',			MASK_CTRL,				_T("$PANE_SEL1")	},
 		{ 8,	'2',			MASK_CTRL,				_T("$PANE_SEL2")	},
@@ -4948,9 +5195,6 @@ static const struct _InitKeyTab {
 		{ 8,	'8',			MASK_CTRL,				_T("$PANE_SEL8")	},
 		{ 8,	'9',			MASK_CTRL,				_T("$PANE_SEL9")	},
 		{ 8,	'0',			MASK_CTRL,				_T("$PANE_SEL10")	},
-
-//		{ 8,	'V',			MASK_CTRL,				_T("$EDIT_PASTE")	},
-		{ 8,	'V',			MASK_ALT,				_T("$CLIPBOARD")	},
 
 		{ 9,	'2',			MASK_CTRL | MASK_SHIFT,	_T("\\000")			},	// NUL
 		{ 9,	'3',			MASK_CTRL | MASK_SHIFT,	_T("\\033")			},	// ESC
@@ -4971,6 +5215,34 @@ static const struct _InitKeyTab {
 
 		{ 9,	'3',			MASK_CKM | MASK_CTRL | MASK_SHIFT,	_T("\\033O[")		},
 		{ 9,	VK_OEM_4,		MASK_CKM | MASK_CTRL,				_T("\\033O[")		},	// $DB([)
+
+		{ 0,	(-1),			(-1),					NULL },
+	},
+	
+	RemoveKeyTab[] = {
+		{ 12,	VK_F1,			MASK_APPL,				_T("\\033[11~")		},
+		{ 12,	VK_F2,			MASK_APPL,				_T("\\033[12~")		},
+		{ 12,	VK_F3,			MASK_APPL,				_T("\\033[13~")		},
+		{ 12,	VK_F4,			MASK_APPL,				_T("\\033[14~")		},
+
+		{ 12,	VK_F3,			MASK_SHIFT | MASK_APPL,	_T("\\033[25~")		},
+		{ 12,	VK_F4,			MASK_SHIFT | MASK_APPL,	_T("\\033[26~")		},
+
+		{ 12,	VK_F3,			MASK_SHIFT,				_T("\\033[25~")		},
+		{ 12,	VK_F4,			MASK_SHIFT,				_T("\\033[26~")		},
+		{ 12,	VK_F5,			MASK_SHIFT,				_T("\\033[28~")		},
+		{ 12,	VK_F6,			MASK_SHIFT,				_T("\\033[29~")		},
+		{ 12,	VK_F7,			MASK_SHIFT,				_T("\\033[31~")		},
+		{ 12,	VK_F8,			MASK_SHIFT,				_T("\\033[32~")		},
+		{ 12,	VK_F9,			MASK_SHIFT,				_T("\\033[33~")		},
+		{ 12,	VK_F10,			MASK_SHIFT,				_T("\\033[34~")		},
+
+		{ 12,	VK_SEPARATOR,	MASK_APPL,				_T("\\033OX")		},
+		{ 12,	VK_MULTIPLY,	MASK_APPL,				_T("\\033Oj")		},
+		{ 12,	VK_ADD,			MASK_APPL,				_T("\\033On")		},
+		{ 12,	VK_SUBTRACT,	MASK_APPL,				_T("\\033Om")		},
+		{ 12,	VK_DECIMAL,		MASK_APPL,				_T("\\033On")		},
+		{ 12,	VK_DIVIDE,		MASK_APPL,				_T("\\033Oo")		},
 
 		{ 0,	(-1),			(-1),					NULL },
 	};
@@ -5044,6 +5316,11 @@ CKeyNode *CKeyNodeTab::FindKeys(int code, int mask, int base, int bits)
 			return pNode;
 		if ( (pNode = FindKeys(code, mask & ~MASK_VT52, base, bits & ~MASK_VT52)) != NULL )
 			return pNode;
+	} else if ( (mask & bits & MASK_LEGA) != 0 ) {
+		if ( (pNode = FindKeys(code, mask, base, bits & ~MASK_LEGA)) != NULL )
+			return pNode;
+		if ( (pNode = FindKeys(code, mask & ~MASK_LEGA, base, bits & ~MASK_LEGA)) != NULL )
+			return pNode;
 	} else if ( (mask & bits & MASK_CKM) != 0 ) {
 		if ( (pNode = FindKeys(code, mask, base, bits & ~MASK_CKM)) != NULL )
 			return pNode;
@@ -5080,7 +5357,7 @@ CKeyNode *CKeyNodeTab::FindMaps(int code, int mask)
 	if ( n >= GetSize() || m_Node[n].m_Code != code )
 		return FALSE;
 
-	return FindKeys(code, mask, n, MASK_VT52 | MASK_CKM | MASK_APPL | MASK_SHIFT);
+	return FindKeys(code, mask, n, MASK_VT52 | MASK_LEGA | MASK_CKM | MASK_APPL | MASK_SHIFT);
 }
 
 #define	CAPINFOKEYMAX	76
@@ -5201,7 +5478,7 @@ void CKeyNodeTab::SetArray(CStringArrayExt &stra)
 
 	tmp.RemoveAll();
 	tmp.AddVal(-1);
-	tmp.AddVal(11);			// KeyCode Bug Fix
+	tmp.AddVal(12);			// KeyCode Bug Fix
 	stra.AddArray(tmp);
 }
 void CKeyNodeTab::GetArray(CStringArrayExt &stra)
@@ -5370,7 +5647,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	138
+#define	CMDSKEYTABMAX	142
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -5483,6 +5760,7 @@ static const struct _CmdsKeyTab {
 	{	IDM_SEARCH_NEXT,			L"$SEARCH_NEXT"		},
 	{	IDM_SEARCH_REG,				L"$SEARCH_REG"		},
 	{	IDM_SECPORICY,				L"$SECURITYCOLICY"	},
+	{	IDM_SPEEKALL,				L"$SPEEK_ALL"		},
 	{	ID_SPLIT_HEIGHT,			L"$SPLIT_HEIGHT"	},
 	{	IDM_SPLIT_HEIGHT_NEW,		L"$SPLIT_HEIGHTNEW"	},
 	{	ID_SPLIT_OVER,				L"$SPLIT_OVER"		},
@@ -5491,6 +5769,9 @@ static const struct _CmdsKeyTab {
 	{	IDM_TABMULTILINE,			L"$TAB_MULTILINE"	},
 	{	IDM_TITLEEDIT,				L"$TITLE_EDIT"		},
 	{	IDM_VERSIONCHECK,			L"$VERSION_CHECK"	},
+	{	IDM_CMDHIS,					L"$VIEW_CMDHIS"		},
+	{	ID_VIEW_TABDLGBAR,			L"$VIEW_DIALOGBAR"	},
+	{	IDM_HISTORYDLG,				L"$VIEW_HISTORY"	},
 	{	IDM_IMAGEDISP,				L"$VIEW_IMAGEDISP"	},
 	{	ID_GOZIVIEW,				L"$VIEW_JOKE"		},
 	{	ID_VIEW_MENUBAR,			L"$VIEW_MENUBAR"	},
@@ -5592,6 +5873,7 @@ void CKeyNodeTab::BugFix(int fix)
 {
 	int i, n;
 	CStringBinary list;
+	CKeyNode tmp;
 
 	if ( fix < 1 ) {
 		for ( n = 0 ; n < m_Node.GetSize() ; n++ ) {
@@ -5668,6 +5950,18 @@ void CKeyNodeTab::BugFix(int fix)
 		}
 	}
 
+	// Remove Old KeyTab
+	for ( i = 0 ; RemoveKeyTab[i].maps != NULL ; i++ ) {
+		if ( fix >= RemoveKeyTab[i].fix  )
+			continue;
+		if ( !Find(RemoveKeyTab[i].code, RemoveKeyTab[i].mask, &n) )
+			continue;
+		tmp.SetMaps(RemoveKeyTab[i].maps);
+		if ( tmp.m_Maps.GetSize() == m_Node[n].m_Maps.GetSize() && memcmp(tmp.m_Maps.GetPtr(), m_Node[n].m_Maps.GetPtr(), tmp.m_Maps.GetSize()) == 0 )
+			m_Node.RemoveAt(n);
+	}
+
+	// Add New KeyTab
 	for ( n = 0 ; n < GetSize() ; n++ )
 		list[GetAt(n).GetMaps()] = 1;
 
@@ -5792,7 +6086,7 @@ int CKeyNodeTab::GetDecKeyToCode(int code)
 		VK_SUBTRACT,		// 105	PAD -
 		VK_ADD,				// 106	PAD +
 		0,					// 107	
-		0,					// 108	PAD ENTER
+		VK_SEPARATOR,		// 108	PAD ENTER
 		0,					// 109	
 		VK_ESCAPE,			// 110	ESC
 		0,					// 111	
@@ -7558,9 +7852,14 @@ BOOL CStringIndex::MsgStr(CString &str, LPCSTR base)
 void CStringIndex::Serialize(CArchive& ar, LPCSTR base, int version)
 {
 	if ( ar.IsStoring() ) {		// Write
-		if ( version == 4 ) {
+		if ( version == 5 ) {
 			CBuffer mbs;
-			SetJsonFormat(mbs);
+			SetJsonFormat(mbs, 0, JSON_UTF8);
+			ar.Write(mbs.GetPtr(), mbs.GetSize());
+
+		} else if ( version == 4 ) {
+			CBuffer mbs;
+			SetJsonFormat(mbs, 0, JSON_OEM);
 			ar.Write(mbs.GetPtr(), mbs.GetSize());
 
 		} else {
@@ -7585,7 +7884,20 @@ void CStringIndex::Serialize(CArchive& ar, LPCSTR base, int version)
 		}
 
 	} else {					// Read
-		if ( version == 4 ) {
+		if ( version == 5 ) {
+			int n;
+			BYTE buf[1024];
+			CBuffer tmp;
+
+			while ( (n = ar.Read(buf, 1024)) > 0 )
+				tmp.Apend(buf, n);
+
+			tmp.KanjiConvert(KANJI_UTF8);
+
+			if ( !GetJsonFormat(tmp) )
+				AfxThrowArchiveException(CArchiveException::badIndex, ar.GetFile()->GetFileTitle());
+
+		} else if ( version == 4 ) {
 			CString str;
 			CBuffer tmp;
 
@@ -7694,6 +8006,9 @@ void CStringIndex::SubOscParam(LPCTSTR &str)
 					value += *(str++);
 				break;
 			}
+		} else if ( *str == _T(';') ) {
+			str++;
+			break;
 		} else if ( *str >= _T(' ') )
 			value += *(str++);
 		else
@@ -7847,6 +8162,22 @@ TCHAR CStringIndex::SubJsonNumber(LPCTSTR &str)
 		}
 
 		m_Value = (int)value;		// XXXXXXXXXXXXXéËî≤Ç´
+
+	} else if ( neg == FALSE && digit == 0 && (*str == _T('x') || *str == _T('X')) ) {	// 0x
+		str++;
+
+		while ( *str != _T('\0') ) {
+			if ( *str >= _T('0') && *str <= _T('9') ) {
+				digit = (digit * 16 + (*str - _T('0')));
+			} else if ( *str >= _T('A') && *str <= _T('F') ) {
+				digit = (digit * 16 + (*str - _T('A') + 10));
+			} else if ( *str >= _T('a') && *str <= _T('f') ) {
+				digit = (digit * 16 + (*str - _T('a') + 10));
+			} else
+				break;
+			str++;
+		}
+		m_Value = digit;
 
 	} else
 		m_Value = digit;
@@ -8024,7 +8355,7 @@ void CStringIndex::AddJasonString(CBuffer &mbs, LPCTSTR str, int nCode)
 			if ( *p == '\\' || *p == '"' ) {
 				mbs += '\\';
 				mbs += *(p++);
-			} else if ( (BYTE)*p < 0x20 || *p == 0x7E ) {
+			} else if ( (BYTE)*p < 0x20 || *p == 0x7F ) {
 				switch(*p) {
 				case '\b': mbs += "\\b"; break;
 				case '\t': mbs += "\\t"; break;
@@ -8844,128 +9175,140 @@ BOOL CFileExt::ReadString(CString &str)
 CTranslateString::CTranslateString()
 {
 	m_bSplitFlag = FALSE;
-	m_SplitChar = _T('\0');
 	m_pBaseString = NULL;
-}
-void CTranslateString::SetSourceString(LPCTSTR str)
-{
-	m_SourceString.Empty();
-	m_AddString.Empty();
-
-	for ( LPCTSTR p = str ; *p != _T('\0') ; ) {
-		if ( p[0] == _T('(') && p[1] == _T('&') && p[2] != _T('\0') && p[3] == _T(')') ) {	// (&?)
-			m_AddString += p[0];
-			m_AddString += p[1];
-			m_AddString += p[2];
-			m_AddString += p[3];
-			p += 4;
-
-		} else if ( p == str && p[0] == _T('&') && p[1] != _T('\0') && p[2] == _T(' ') ) {	// &1 ...
-			m_AddString += _T('(');
-			m_AddString += p[0];
-			m_AddString += p[1];
-			m_AddString += _T(')');
-			p += 3;
-
-		} else if ( p[0] == _T('&') && p[1] != _T('\0') ) {		// e&Xec
-			m_AddString += _T('(');
-			m_AddString += p[0];
-			m_AddString += p[1];
-			m_AddString += _T(')');
-			p += 1;
-
-		} else if ( p[0] == _T('(') && p[1] == _T('*') && p[2] == _T('.') && p[3] != _T('\0') ) {	// (*.?
-			m_AddString += p;
-			break;
-
-		} else
-			m_SourceString += *(p++);
-	}
 }
 void CTranslateString::SetTargetString(LPCTSTR str)
 {
+	CString fmt;
+
 	if ( m_pBaseString == NULL )
 		return;
 
 	if ( !m_bSplitFlag )
 		m_pBaseString->Empty();
 
-	*m_pBaseString += m_FrontString;
-
 	while ( *str != _T('\0') ) {
-		if ( str[0] == _T('%') && str[1] == _T(' ') && _tcschr(_T("sSdD12"), str[2]) != NULL ) {
-			*m_pBaseString += *(str++);
-			str++;
-			*m_pBaseString += *(str++);
-		} else
-			*m_pBaseString += *(str++);
+		if ( str[0] == _T('%') && str[1] == _T(' ') && _tcschr(_T("sduD12345"), str[2]) != NULL ) {
+			fmt += str[0];
+			fmt += str[2];
+			str += 3;
+		} else {
+			fmt += *(str++);
+		}
 	}
 
-	*m_pBaseString += m_AddString;
-
-	if ( m_SplitChar != _T('\0') )
-		*m_pBaseString += m_SplitChar;
+	*m_pBaseString += m_FrontString;
+	*m_pBaseString += fmt;
+	*m_pBaseString += m_BackString;
 }
 const CTranslateString & CTranslateString::operator = (CTranslateString &data)
 {
 	m_bSplitFlag   = data.m_bSplitFlag;
-	m_SplitChar    = data.m_SplitChar;
 	m_pBaseString  = data.m_pBaseString;
 	m_SourceString = data.m_SourceString;
 	m_FrontString  = data.m_FrontString;
-	m_AddString    = data.m_AddString;
+	m_BackString   = data.m_BackString;
 
 	return *this;
 }
 void CTranslateStringTab::Add(CString *pStr)
 {
-	CString str, front;;
 	CTranslateString tmp;
+	CString front, src, work;
 	BOOL bSplit = FALSE;
 
-	for ( LPCTSTR p = *pStr ; *p != _T('\0') ; p++ ) {
-		if ( *p == _T('\t') || *p == _T('\n') ) {
-			tmp.SetSourceString(str);
-			tmp.m_bSplitFlag = bSplit;
-			tmp.m_SplitChar = *p;
-			tmp.m_pBaseString = pStr;
-			tmp.m_FrontString = front;
-			front.Empty();
-			m_Data.Add(tmp);
-			str.Empty();
-			bSplit = TRUE;
+	for ( LPCTSTR p = *pStr ; *p != _T('\0') ; ) {
+		if ( *p < _T(' ') ) {
+			while ( *p != _T('\0') && *p < _T(' ') )
+				work += *(p++);
 
-		} else if ( _tcsncmp(p, _T("<a href="), 8) == 0 ) {	// <a href=
-
-			if ( !str.IsEmpty() || !front.IsEmpty() ) {
-				tmp.SetSourceString(str);
-				tmp.m_bSplitFlag = bSplit;
-				tmp.m_SplitChar = *p;
-				tmp.m_pBaseString = pStr;
-				tmp.m_FrontString = front;
-				front.Empty();
-				m_Data.Add(tmp);
-				str.Empty();
-				bSplit = TRUE;
-			}
-
-			for ( ; *p != _T('\0') ; p++ ) {
-				front += *p;
-				if ( *p == _T('>') )
+		} else if ( _tcsncmp(p, _T("<a href="), 8) == 0 || _tcsncmp(p, _T("</a>"), 4) == 0 ) {
+			while ( *p != _T('\0') ) {
+				work += *p;
+				if ( *(p++) == _T('>') )
 					break;
 			}
 
-		} else
-			str += *p;
+		} else if ( p[0] == _T('(') && p[1] == _T('&') && p[2] > _T(' ') && p[3] == _T(')') ) {
+			for ( int n = 0 ; n < 4 ; n++ )
+				work += *(p++);
+			while ( *p != _T('\0') && (*p <= _T(' ') || *p == _T('.')) )
+				work += *(p++);
+
+		} else if ( p[0] == _T('&') && p[1] > _T(' ') && p[2] <= _T(' ') ) {
+			for ( int n = 0 ; n < 2 ; n++ )
+				work += *(p++);
+			while ( *p != _T('\0') && (*p <= _T(' ') || *p == _T('.')) )
+				work += *(p++);
+
+		} else if ( p[0] == _T('(') && p[1] == _T('*') && p[2] == _T('.') ) {
+			while ( *p != _T('\0') ) {
+				work += *p;
+				if ( *(p++) == _T(')') )
+					break;
+			}
+
+		} else if ( p[0] == _T('|') && p[1] == _T('*') && p[2] == _T('.') ) {	// |*.*||
+			work += *(p++);
+			while ( *p != _T('\0') ) {
+				work += *p;
+				if ( *(p++) == _T('|') )
+					break;
+			}
+			if ( *p == _T('|') )
+				work += *(p++);
+
+		} else if ( *p <= _T(' ') && src.IsEmpty() ) {
+			while ( *p != _T('\0') && *p <= _T(' ') )
+				work += *(p++);
+
+		} else if ( !src.IsEmpty() && p[0] == _T('&') && p[1] > _T(' ') ) {	// e&Xec
+			p++;
+			src += *(p++);
+
+		} else {
+			src += *(p++);
+		}
+
+		if ( !work.IsEmpty() ) {
+			if ( src.IsEmpty() ) {
+				front += work;
+			} else if ( src.GetLength() == 2 && src[0] == _T('%') && _tcschr(_T("sdu123"), src[1]) != NULL ) {
+				front += src;
+				front += work;
+				src.Empty();
+			} else {
+				tmp.m_pBaseString  = pStr;
+				tmp.m_SourceString = src;
+				tmp.m_FrontString  = front;
+				tmp.m_BackString   = work;
+				tmp.m_bSplitFlag   = bSplit;
+				m_Data.Add(tmp);
+
+				front.Empty();
+				src.Empty();
+				bSplit = TRUE;
+			}
+			work.Empty();
+		}
 	}
 
-	if ( !str.IsEmpty() || !front.IsEmpty() ) {
-		tmp.SetSourceString(str);
-		tmp.m_bSplitFlag = bSplit;
-		tmp.m_SplitChar = _T('\0');
-		tmp.m_pBaseString = pStr;
-		tmp.m_FrontString = front;
+	if ( src.GetLength() == 2 && src[0] == _T('%') && _tcschr(_T("sdu123"), src[1]) != NULL ) {
+		front += src;
+		src.Empty();
+	}
+
+	if ( !src.IsEmpty() ) {
+		tmp.m_pBaseString  = pStr;
+		tmp.m_SourceString = src;
+		tmp.m_FrontString  = front;
+		tmp.m_BackString   = _T("");
+		tmp.m_bSplitFlag   = bSplit;
 		m_Data.Add(tmp);
+
+	} else if ( bSplit && !front.IsEmpty() ) {
+		int n = (int)m_Data.GetSize() - 1;
+		m_Data[n].m_BackString += front;
 	}
 }
 
@@ -9058,6 +9401,12 @@ BOOL CHttpSession::GetRequest(LPCTSTR url, CBuffer &buf, LPCTSTR head, LPCSTR bo
 	if ( InternetAttemptConnect(0) != ERROR_SUCCESS )
 		return FALSE;
 
+	if ( head != NULL && head[0] == _T('\0') )
+		head = NULL;
+
+	if ( body != NULL && body[0] == '\0' )
+		body = NULL;
+
 	ParseUrl(url);
 
 	try {
@@ -9130,9 +9479,7 @@ static UINT ThreadRequestProc(LPVOID pParam)
 	CBuffer *pBuf = new CBuffer;
 	CString *pMsg = new CString;
 
-	if ( pSess->GetRequest(pSess->m_ThreadUrl, *pBuf, 
-			(pSess->m_ThreadHead.IsEmpty() ? NULL : pSess->m_ThreadHead),
-			(pSess->m_ThreadBody.IsEmpty() ? NULL : pSess->m_ThreadBody), pMsg) ) {
+	if ( pSess->GetRequest(pSess->m_ThreadUrl, *pBuf, pSess->m_ThreadHead, pSess->m_ThreadBody, pMsg) ) {
 		::PostMessage(pSess->m_TheadhWnd, WM_HTTPREQUEST, (WPARAM)TRUE, (LPARAM)pBuf);
 		delete pMsg;
 
@@ -9225,3 +9572,167 @@ void CEmojiImage::LoadMap()
 	m_pBits = NULL;
 }
 #endif
+
+//////////////////////////////////////////////////////////////////////
+// CCurPos
+
+CCurPos::CCurPos()
+{
+	cx = cy = 0;
+}
+CCurPos::CCurPos(int InitCx, int InitCy)
+{
+	cx = InitCx;
+	cy = InitCy;
+}
+BOOL CCurPos::operator == (SIZE size)
+{
+	return (cx == size.cx && cy == size.cy ? TRUE : FALSE);
+}
+BOOL CCurPos::operator != (SIZE size)
+{
+	return (cx == size.cx && cy == size.cy ? FALSE : TRUE);
+}
+BOOL CCurPos::operator >= (SIZE size)
+{
+	if ( cy == size.cy )
+		return (cx >= size.cx ? TRUE : FALSE);
+	else
+		return (cy > size.cy ? TRUE : FALSE);
+}
+BOOL CCurPos::operator <= (SIZE size)
+{
+	if ( cy == size.cy )
+		return (cx <= size.cx ? TRUE : FALSE);
+	else
+		return (cy < size.cy ? TRUE : FALSE);
+}
+BOOL CCurPos::operator > (SIZE size)
+{
+	if ( cy == size.cy )
+		return (cx > size.cx ? TRUE : FALSE);
+	else
+		return (cy > size.cy ? TRUE : FALSE);
+}
+BOOL CCurPos::operator < (SIZE size)
+{
+	if ( cy == size.cy )
+		return (cx < size.cx ? TRUE : FALSE);
+	else
+		return (cy < size.cy ? TRUE : FALSE);
+}
+
+
+//////////////////////////////////////////////////////////////////////
+// CDirDialog
+
+CDirDialog::CDirDialog()
+{
+	m_bStatus = FALSE;
+}
+
+CDirDialog::~CDirDialog()
+{
+}
+
+int __stdcall CDirDialog::BrowseCtrlCallback(HWND hwnd, UINT uMsg, LPARAM lParam, LPARAM lpData)
+{
+    CDirDialog* pDirDialogObj = (CDirDialog*)lpData;
+
+    if ( uMsg == BFFM_INITIALIZED ) {
+        if( !pDirDialogObj->m_strSelDir.IsEmpty() )
+            ::SendMessage(hwnd, BFFM_SETSELECTION, TRUE, (LPARAM)(LPCTSTR)(pDirDialogObj->m_strSelDir));
+        if( ! pDirDialogObj->m_strWindowTitle.IsEmpty() )
+            ::SetWindowText(hwnd, (LPCTSTR) pDirDialogObj->m_strWindowTitle);
+
+    } else if( uMsg == BFFM_SELCHANGED ) {
+        LPITEMIDLIST pidl = (LPITEMIDLIST) lParam;
+        TCHAR selection[MAX_PATH];
+
+        if( !::SHGetPathFromIDList(pidl, selection) )
+            selection[0] = '\0';
+
+        CString csStatusText;
+        BOOL bOk = pDirDialogObj->SelChanged(selection, csStatusText);
+
+        if( pDirDialogObj->m_bStatus )
+            ::SendMessage(hwnd, BFFM_SETSTATUSTEXT , 0, (LPARAM)(LPCTSTR)csStatusText);
+
+        ::SendMessage(hwnd, BFFM_ENABLEOK, 0, bOk);
+    }
+
+	return 0;
+}
+
+BOOL CDirDialog::DoBrowse(CWnd *pwndParent)
+{
+    if( !m_strSelDir.IsEmpty() ) {
+        m_strSelDir.TrimRight();
+        if( m_strSelDir.Right(1) == "\\" || m_strSelDir.Right(1) == "//" )
+            m_strSelDir = m_strSelDir.Left(m_strSelDir.GetLength() - 1);
+    }
+
+    LPMALLOC pMalloc;
+
+	if ( SHGetMalloc(&pMalloc)!= NOERROR )
+        return FALSE;
+
+    BROWSEINFO bInfo;
+    LPITEMIDLIST pidl;
+    ZeroMemory ( (PVOID) &bInfo,sizeof (BROWSEINFO));
+
+    if ( !m_strInitDir.IsEmpty() ) {
+        OLECHAR       olePath[MAX_PATH];
+        ULONG         chEaten;
+        ULONG         dwAttributes;
+        HRESULT       hr;
+        LPSHELLFOLDER pDesktopFolder;
+
+        if ( SUCCEEDED(SHGetDesktopFolder(&pDesktopFolder)) ) {
+			_tcsncpy(olePath, m_strInitDir, MAX_PATH);
+
+            m_strInitDir.ReleaseBuffer(-1);
+            hr = pDesktopFolder->ParseDisplayName(NULL, NULL, olePath, &chEaten, &pidl, &dwAttributes);
+
+            if ( FAILED(hr) ) {
+                pMalloc ->Free (pidl);
+                pMalloc ->Release ();
+                return FALSE;
+            }
+
+			bInfo.pidlRoot = pidl;
+        }
+    }
+
+    bInfo.hwndOwner = pwndParent == NULL ? NULL : pwndParent->GetSafeHwnd();
+    bInfo.pszDisplayName = m_strPath.GetBuffer (MAX_PATH);
+    bInfo.lpszTitle = (m_strTitle.IsEmpty()) ? _T("Open") : m_strTitle;
+    bInfo.ulFlags = BIF_RETURNFSANCESTORS | BIF_RETURNONLYFSDIRS | (m_bStatus ? BIF_STATUSTEXT : 0);
+    bInfo.lpfn = BrowseCtrlCallback;
+    bInfo.lParam = (LPARAM)this;
+
+	DpiAwareSwitch(TRUE, REQDPICONTEXT_AWAREV2);
+
+	pidl = ::SHBrowseForFolder(&bInfo);
+
+	DpiAwareSwitch(FALSE);
+
+    if ( pidl == NULL )
+		return FALSE;
+
+	m_strPath.ReleaseBuffer();
+    m_iImageIndex = bInfo.iImage;
+
+    if ( ::SHGetPathFromIDList(pidl, m_strPath.GetBuffer(MAX_PATH)) == FALSE ) {
+        pMalloc ->Free(pidl);
+        pMalloc ->Release();
+        return FALSE;
+    }
+
+    m_strPath.ReleaseBuffer();
+
+    pMalloc ->Free(pidl);
+    pMalloc ->Release();
+
+    return TRUE;
+}

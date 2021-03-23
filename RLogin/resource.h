@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
-// Microsoft Visual C++¿¡¼­ »ý¼ºÇÑ Æ÷ÇÔ ÆÄÀÏÀÔ´Ï´Ù.
-// RLogin.rc¿¡¼­ »ç¿ëµÇ°í ÀÖ½À´Ï´Ù.
+// Microsoft Visual C++ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ô´Ï´ï¿½.
+// RLogin.rcï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ç°ï¿½ ï¿½Ö½ï¿½Ï´ï¿½.
 //
 #define IDD_ABOUTBOX                    100
 #define IDD_ALGOPARADLG                 101
@@ -69,6 +69,7 @@
 #define IDD_FILEUPSENDDLG               165
 #define IDD_FILEDOWNDLG                 166
 #define IDD_SECPOLICYDLG                167
+#define IDD_HISTORYDLG                  168
 #define IDR_GRAPWND                     300
 #define IDR_MAINFRAME                   301
 #define IDR_POPUPMENU                   302
@@ -77,6 +78,8 @@
 #define IDR_SFTPTOOL                    305
 #define IDR_TEKWND                      306
 #define IDR_STATUSWND                   307
+#define IDR_GRAPWND1                    308
+#define IDR_TRACEWND                    308
 #define IDB_ATTR1                       400
 #define IDB_ATTR2                       401
 #define IDB_ATTR3                       402
@@ -246,6 +249,10 @@
 #define IDS_INITENTRYINPORT             639
 #define IDS_OSCBUFFERINGMSG             640
 #define IDS_RESTART                     641
+#define IDS_DLGFONTDELMSG               641
+#define IDS_REGAPPSETMSG                642
+#define IDS_REGAPPDELMSG                643
+#define IDS_EMOJIMAGEMSG                644
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -315,6 +322,8 @@
 #define IDT_EXTOPT_LIST24               823
 #define IDT_EXTOPT_LIST25               824
 #define IDT_EXTOPT_LIST26               825
+#define IDT_EXTOPT_LIST27               826
+#define IDT_EXTOPT_LIST28               827
 #define IDT_TERM_LIST01                 900
 #define IDT_TERM_LIST02                 901
 #define IDT_TERM_LIST03                 902
@@ -381,6 +390,8 @@
 #define IDT_TERM_LIST64                 963
 #define IDT_TERM_LIST65                 964
 #define IDT_TERM_LIST66                 965
+#define IDT_TERM_LIST67                 966
+#define IDT_TERM_LIST68                 967
 #define ID_CHARSCRIPT_END               1000
 #define ID_DISCONNECT                   1001
 #define ID_EDIT_BOX                     1002
@@ -427,6 +438,7 @@
 #define ID_WINDOW_ROTATION              1044
 #define ID_COMM_EVENT_MONI              1045
 #define ID_VIEW_QUICKBAR                1046
+#define ID_VIEW_TABDLGBAR               1047
 #define IDC_ALGO_LIST1                  2000
 #define IDC_ALGO_LIST2                  2001
 #define IDC_ALGO_LIST3                  2002
@@ -641,10 +653,13 @@
 #define IDC_KEYSTAT9                    2189
 #define IDC_LIST1                       2190
 #define IDC_BLOCKLIST                   2190
+#define IDC_LIST2                       2191
 #define IDC_PARALIST                    2191
-#define IDC_LIST2                       2192
+#define IDC_LIST3                       2192
 #define IDC_LISTENHOST                  2193
+#define IDC_LIST4                       2193
 #define IDC_LISTENPORT                  2194
+#define IDC_LIST5                       2194
 #define IDC_LOADCAP                     2195
 #define IDC_LOADDEFAULT                 2196
 #define IDC_LOADINFO                    2197
@@ -757,6 +772,7 @@
 #define IDC_RADIO1                      2298
 #define IDC_PROTOCHECK9                 2298
 #define IDC_RADIO2                      2299
+#define IDC_PROTOCHECK10                2299
 #define IDC_RADIO3                      2300
 #define IDC_RADIO4                      2301
 #define IDC_RADIO5                      2302
@@ -969,6 +985,19 @@
 #define IDC_CTRLTITLE3                  2495
 #define IDC_CONNECT                     2496
 #define IDC_VERSIONSTR                  2497
+#define IDC_TABDLGBAR                   2498
+#define IDC_TABDLGBAR_TAB               2499
+#define IDC_TITLEBOX1                   2500
+#define IDC_TITLEBOX2                   2501
+#define IDC_TITLEBOX3                   2502
+#define IDC_IMECARETCOL                 2503
+#define IDC_IMECARET                    2504
+#define IDC_WAKEUPSLEEP                 2505
+#define IDC_GLASSSTYLE                  2506
+#define IDC_EMOJICOLENABLE              2507
+#define IDC_EMOJIFONTNAME               2508
+#define IDC_EMOJIIMAGEDIR               2509
+#define IDC_EMOJIIMAGESEL               2510
 #define IDM_BROADCAST                   5000
 #define IDM_CAP_CLIPBORD                5001
 #define IDM_CAP_EXPORT                  5002
@@ -1097,15 +1126,18 @@
 #define IDM_QUICKCONNECT                5137
 #define IDM_SECPORICY                   5138
 #define IDM_LANGUAGE                    5139
+
 #define IDM_FIRST_MDICHILD              0xF800
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
+
 #define _APS_NEXT_RESOURCE_VALUE        170
 #define _APS_NEXT_COMMAND_VALUE         5140
 #define _APS_NEXT_CONTROL_VALUE         2499
 #define _APS_NEXT_SYMED_VALUE           670
+
 #endif
 #endif

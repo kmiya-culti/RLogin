@@ -86,7 +86,12 @@ void CChatDlg::OnBnClickedNewnode()
 	np = new CStrScriptNode;
 	np->m_RecvStr = m_RecvStr;
 	np->m_SendStr = m_SendStr;
-	np->m_Reg.Compile(np->m_RecvStr);
+
+	if ( !np->m_Reg.Compile(np->m_RecvStr) ) {
+		AfxMessageBox(np->m_Reg.m_ErrMsg);
+		delete np;
+		return;
+	}
 
 	tmp.Format(_T("%s/%s"), m_RecvStr, m_SendStr);
 
@@ -111,7 +116,12 @@ void CChatDlg::OnBnClickedNextnode()
 	np = new CStrScriptNode;
 	np->m_RecvStr = m_RecvStr;
 	np->m_SendStr = m_SendStr;
-	np->m_Reg.Compile(np->m_RecvStr);
+
+	if ( !np->m_Reg.Compile(np->m_RecvStr) ) {
+		AfxMessageBox(np->m_Reg.m_ErrMsg);
+		delete np;
+		return;
+	}
 
 	tmp.Format(_T("%s/%s"), m_RecvStr, m_SendStr);
 
@@ -136,7 +146,9 @@ void CChatDlg::OnBnClickedUpdatenode()
 	np = (CStrScriptNode *)m_NodeTree.GetItemData(hti);
 	np->m_RecvStr = m_RecvStr;
 	np->m_SendStr = m_SendStr;
-	np->m_Reg.Compile(np->m_RecvStr);
+
+	if ( !np->m_Reg.Compile(np->m_RecvStr) )
+		AfxMessageBox(np->m_Reg.m_ErrMsg);
 
 	tmp.Format(_T("%s/%s"), m_RecvStr, m_SendStr);
 	m_NodeTree.SetItemText(hti, tmp);

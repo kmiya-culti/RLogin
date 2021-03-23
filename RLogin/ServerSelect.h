@@ -31,8 +31,6 @@ public:
 // クラスデータ
 public:
 	int m_EntryNum;
-	int m_MinWidth;
-	int m_MinHeight;
 	CString m_Group;
 	CStringIndex m_TabEntry;
 	class CServerEntryTab *m_pData;
@@ -50,6 +48,7 @@ public:
 	BOOL m_bTreeUpdate;
 	CPoint m_TrackerPoint;
 	CRect m_TrackerRect;
+	CRect m_TrackerLast;
 	CRect m_TrackerMove;
 	BOOL m_bTrackerActive;
 	int m_TreeListPer;
@@ -65,7 +64,7 @@ public:
 
 // クラスファンクション
 public:
-	void SetItemOffset(int cx, int cy);
+	virtual void SetItemOffset(int cx, int cy);
 	void TreeExpandUpdate(HTREEITEM hTree, BOOL bExpand);
 	void InitExpand(HTREEITEM hTree, UINT nCode);
 	void InitTree(CStringIndex *pIndex, HTREEITEM hOwner, CStringIndex *pActive);
@@ -75,7 +74,6 @@ public:
 	void UpdateListIndex();
 
 	BOOL GetTrackerRect(CRect &rect, CRect &move);
-	void InvertTracker(CRect &rect);
 	void OffsetTracker(CPoint point);
 	CStringIndex *DragIndex(CPoint point);
 	void UpdateGroupName(CStringIndex *pIndex, LPCTSTR newName);
@@ -98,8 +96,6 @@ protected:
 protected:
 	DECLARE_MESSAGE_MAP()
 	afx_msg void OnClose();
-	afx_msg void OnSize(UINT nType, int cx, int cy);
-	afx_msg void OnSizing(UINT fwSide, LPRECT pRect);
 
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);

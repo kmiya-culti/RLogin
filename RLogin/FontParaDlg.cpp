@@ -280,6 +280,7 @@ void CFontParaDlg::OnOK()
 	m_pData->m_OffsetH   = _tstoi(m_OffsTemp[0]);
 	m_pData->m_OffsetW   = _tstoi(m_OffsTemp[1]);
 	m_pData->m_IContName = m_IContName;
+	m_pData->m_JpSet     = CTextRam::JapanCharSet(m_IContName);
 	m_pData->m_EntryName = m_EntryName;
 	m_pData->m_Quality   = m_FontQuality;
 	m_pData->m_IndexName = m_CodeTemp;

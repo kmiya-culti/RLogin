@@ -65,11 +65,27 @@ void CIso646Dlg::DoDataExchange(CDataExchange* pDX)
 		DDX_CBString(pDX, IDC_CODESET1 + n, m_CharCode[n]);
 }
 
+void CIso646Dlg::SetViewBox(int num, DWORD code)
+{
+	CString str;
+
+	code = CTextRam::UCS4toUCS2(code);
+	str.Empty();
+
+	if ( (code & 0xFFFF0000) != 0 )
+		str += (WCHAR)(code >> 16);
+	str += (WCHAR)code;
+	
+	m_ViewBox[num].SetWindowText(str);
+}
+
+
 BEGIN_MESSAGE_MAP(CIso646Dlg, CDialogExt)
 	ON_CBN_SELCHANGE(IDC_FONTSET, &CIso646Dlg::OnCbnSelchangeFontDispSet)
 	ON_CBN_SELCHANGE(IDC_DISPSET, &CIso646Dlg::OnCbnSelchangeFontDispSet)
 	ON_CONTROL_RANGE(CBN_EDITUPDATE, IDC_CODESET1, IDC_CODESET12, &CIso646Dlg::OnCbnUpdateCodeset)
 	ON_CONTROL_RANGE(CBN_SELCHANGE, IDC_CODESET1, IDC_CODESET12, &CIso646Dlg::OnCbnSelchangeCodeset)
+	ON_WM_DRAWITEM()
 END_MESSAGE_MAP()
 
 //////////////////////////////////////////////////////////////////////
@@ -84,7 +100,6 @@ BOOL CIso646Dlg::OnInitDialog()
 	CComboBox *pCombo;
 	LOGFONT logfont;
 	CRect rect;
-	DWORD code;
 
 	if ( m_FontSetName.IsEmpty() )
 		m_FontSetName = _T("US");
@@ -145,12 +160,7 @@ BOOL CIso646Dlg::OnInitDialog()
 		m_ViewBox[n].SetFont(&m_Font);
 		if ( n < 12 )
 			continue;
-		code = CTextRam::UCS2toUCS4(m_Iso646Tab[n - 12]);
-		str.Empty();
-		if ( (code & 0xFFFF0000) != 0 )
-			str += (WCHAR)(code >> 16);
-		str += (WCHAR)code;
-		m_ViewBox[n].SetWindowText(str);
+		SetViewBox(n, m_Iso646Tab[n - 12]);
 	}
 
 	return TRUE;
@@ -203,7 +213,6 @@ void CIso646Dlg::OnCbnSelchangeFontDispSet()
 	int n;
 	int fn, dn;
 	DWORD code;
-	CString str;
 
 	if ( (fn = m_FontSet.GetCurSel()) < 0 )
 		return;
@@ -221,12 +230,7 @@ void CIso646Dlg::OnCbnSelchangeFontDispSet()
 			code = Iso646Tab[0].code[n];		// No Convert
 
 		m_CharCode[n].Format(_T("U+%04X"), code);
-		code = CTextRam::UCS2toUCS4(code);
-		str.Empty();
-		if ( (code & 0xFFFF0000) != 0 )
-			str += (WCHAR)(code >> 16);
-		str += (WCHAR)code;
-		m_ViewBox[12 + n].SetWindowText(str);
+		SetViewBox(12 + n, code);
 	}
 
 	UpdateData(FALSE);
@@ -236,18 +240,11 @@ void CIso646Dlg::OnCbnUpdateCodeset(UINT nID)
 {
 	int n = nID - IDC_CODESET1;
 	DWORD code;
-	CString str;
 
 	UpdateData(TRUE);
 
 	CUniBlockTab::GetCode(m_CharCode[n], code);
-	code = CTextRam::UCS2toUCS4(code);
-
-	str.Empty();
-	if ( (code & 0xFFFF0000) != 0 )
-		str += (WCHAR)(code >> 16);
-	str += (WCHAR)code;
-	m_ViewBox[12 + n].SetWindowText(str);
+	SetViewBox(12 + n, code);
 }
 void CIso646Dlg::OnCbnSelchangeCodeset(UINT nID)
 {
@@ -263,11 +260,41 @@ void CIso646Dlg::OnCbnSelchangeCodeset(UINT nID)
 
 	pCombo->GetLBText(n, str);
 	CUniBlockTab::GetCode(str, code);
-	code = CTextRam::UCS2toUCS4(code);
+	SetViewBox(12 + (nID - IDC_CODESET1), code);
+}
 
-	str.Empty();
-	if ( (code & 0xFFFF0000) != 0 )
-		str += (WCHAR)(code >> 16);
-	str += (WCHAR)code;
-	m_ViewBox[12 + (nID - IDC_CODESET1)].SetWindowText(str);
+void CIso646Dlg::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
+{
+	if ( nIDCtl >= IDC_FONTVIEW1 && nIDCtl < (IDC_FONTVIEW1 + 24) ) {
+		int num = nIDCtl - IDC_FONTVIEW1;
+		CDC *pDC = CDC::FromHandle(lpDrawItemStruct->hDC);
+		CFont *pOldFont;
+		CString str;
+		CRect rect;
+		CSize sz;
+		BOOL bMirror = FALSE;
+
+		m_ViewBox[num].GetWindowText(str);
+		m_ViewBox[num].GetClientRect(rect);
+
+		if ( str[0] == 0xDBBF && str[1] == 0xDFFF ) {	// U+FFFFF BackSlash Mirror !!!
+			str = _T("/");
+			bMirror = TRUE;
+		}
+		
+		pOldFont = pDC->SelectObject(&m_Font);
+		sz = pDC->GetTextExtent(str);
+
+		pDC->SetTextColor(GetSysColor(COLOR_WINDOWTEXT));
+		pDC->SetBkColor(GetSysColor(COLOR_MENU));
+
+		pDC->FillSolidRect(rect, GetSysColor(COLOR_MENU));
+		pDC->TextOut(rect.left + (rect.Width() - sz.cx) / 2, rect.top + (rect.Height() - sz.cy) / 2, str);
+
+		if ( bMirror )
+			pDC->StretchBlt(rect.Width() - 1, 0, 0 - rect.Width(), rect.Height(), pDC, rect.left, rect.top, rect.Width(), rect.Height(), SRCCOPY);
+
+		pDC->SelectObject(pOldFont);
+	} else
+		CDialogExt::OnDrawItem(nIDCtl, lpDrawItemStruct);
 }

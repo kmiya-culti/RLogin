@@ -43,8 +43,6 @@ void CAnyPastDlg::DoDataExchange(CDataExchange* pDX)
 }
 
 BEGIN_MESSAGE_MAP(CAnyPastDlg, CDialogExt)
-	ON_WM_SIZE()
-	ON_WM_SIZING()
 	ON_EN_CHANGE(IDC_TEXTBOX, &CAnyPastDlg::OnUpdateEdit)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_CTRLCONV1, IDC_CTRLCONV3, &CAnyPastDlg::OnCtrlConv)
 	ON_BN_CLICKED(IDC_SHELLESC, &CAnyPastDlg::OnShellesc)
@@ -215,9 +213,6 @@ BOOL CAnyPastDlg::OnInitDialog()
 	int cx, cy;
 
 	GetWindowRect(rect);
-	m_MinWidth = rect.Width();
-	m_MinHeight = rect.Height();
-
 	cx = AfxGetApp()->GetProfileInt(_T("AnyPastDlg"), _T("cx"), rect.Width());
 	cy = AfxGetApp()->GetProfileInt(_T("AnyPastDlg"), _T("cy"), rect.Height());
 
@@ -263,35 +258,6 @@ void CAnyPastDlg::OnUpdateEdit()
 	m_bUpdateEnable = TRUE;
 	m_EditWnd.GetWindowText(m_EditText);
 	CtrlCount();
-}
-
-void CAnyPastDlg::OnSize(UINT nType, int cx, int cy)
-{
-	SetItemOffset(ItemTab, cx, cy);
-	CDialogExt::OnSize(nType, cx, cy);
-	Invalidate(FALSE);
-}
-
-void CAnyPastDlg::OnSizing(UINT fwSide, LPRECT pRect)
-{
-	int width  = MulDiv(m_MinWidth,  m_NowDpi.cx, m_InitDpi.cx);
-	int height = MulDiv(m_MinHeight, m_NowDpi.cy, m_InitDpi.cy);
-
-	if ( (pRect->right - pRect->left) < width ) {
-		if ( fwSide == WMSZ_LEFT || fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_BOTTOMLEFT )
-			pRect->left = pRect->right - width;
-		else
-			pRect->right = pRect->left + width;
-	}
-
-	if ( (pRect->bottom - pRect->top) < height ) {
-		if ( fwSide == WMSZ_TOP || fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_TOPRIGHT )
-			pRect->top = pRect->bottom - height;
-		else
-			pRect->bottom = pRect->top + height;
-	}
-
-	CDialogExt::OnSizing(fwSide, pRect);
 }
 
 void CAnyPastDlg::OnCtrlConv(UINT nID)

@@ -1,4 +1,4 @@
-// SerEntPage.cpp : ƒCƒ“ƒvƒŠƒƒ“ƒe[ƒVƒ‡ƒ“ ƒtƒ@ƒCƒ‹
+// SerEntPage.cpp : ã‚¤ãƒ³ãƒ—ãƒªãƒ¡ãƒ³ãƒ†ãƒ¼ã‚·ãƒ§ãƒ³ ãƒ•ã‚¡ã‚¤ãƒ«
 //
 
 #include "stdafx.h"
@@ -22,7 +22,7 @@ static char THIS_FILE[] = __FILE__;
 #endif
 
 /////////////////////////////////////////////////////////////////////////////
-// CSerEntPage ƒvƒƒpƒeƒB ƒy[ƒW
+// CSerEntPage ãƒ—ãƒ­ãƒ‘ãƒ†ã‚£ ãƒšãƒ¼ã‚¸
 
 IMPLEMENT_DYNCREATE(CSerEntPage, CTreePage)
 
@@ -122,7 +122,7 @@ void CSerEntPage::SetEnableWind()
 static LPCTSTR	DefPortName[] = { _T(""), _T("login"), _T("telnet"), _T("ssh"), _T("COM1"), _T("") };
 
 /////////////////////////////////////////////////////////////////////////////
-// CSerEntPage ƒƒbƒZ[ƒW ƒnƒ“ƒhƒ‰
+// CSerEntPage ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ ãƒãƒ³ãƒ‰ãƒ©
 
 void CSerEntPage::DoInit()
 {

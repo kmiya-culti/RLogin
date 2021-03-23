@@ -244,7 +244,7 @@ void COptDlg::DoDataExchange(CDataExchange* pDX)
 /////////////////////////////////////////////////////////////////////////////
 // COptDlg メッセージ ハンドラ
 
-static INITDLGTAB ItemTab[] = {
+static const INITDLGTAB ItemTab[] = {
 	{ IDC_DOINIT,		ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
 	{ IDOK,				ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
 	{ IDCANCEL,			ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
@@ -323,10 +323,9 @@ BOOL COptDlg::OnInitDialog()
 	}
 
 	// アイテムオフセット取得
-	CDialogExt::InitItemOffset(ItemTab);
+	InitItemOffset(ItemTab);
 
 	// ウィンドウサイズ設定
-
 	GetWindowRect(frame);
 	m_Frame.GetClientRect(rect);
 	cx = size.cx - rect.Width();
@@ -335,10 +334,8 @@ BOOL COptDlg::OnInitDialog()
 	frame.bottom += cy;
 	MoveWindow(frame, FALSE);
 
-	// アイテム再配置
-
-	GetClientRect(frame);
-	CDialogExt::SetItemOffset(ItemTab, frame.Width(), frame.Height());
+	// リサイズテーブル削除
+	m_InitDlgRect.RemoveAll();
 
 	if ( (m_psh.dwFlags & PSH_NOAPPLYNOW) != 0 && (pWnd = GetDlgItem(ID_APPLY_NOW)) != NULL )
 		pWnd->ShowWindow(SW_HIDE);

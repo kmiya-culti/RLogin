@@ -1,13 +1,7 @@
-// TextRam.h: CTextRam クラスのインターフェイス
-//
 //////////////////////////////////////////////////////////////////////
+// CTextRam
 
-#if !defined(AFX_TEXTRAM_H__CBEA227A_D7D7_4213_88B1_4F4C0DF48089__INCLUDED_)
-#define AFX_TEXTRAM_H__CBEA227A_D7D7_4213_88B1_4F4C0DF48089__INCLUDED_
-
-#if _MSC_VER > 1000
 #pragma once
-#endif // _MSC_VER > 1000
 
 #include <afxtempl.h>
 #include <afxmt.h>
@@ -28,6 +22,8 @@
 #define	KANBUFMAX		128
 #define	MACROMAX		64
 #define	DEFCOLTAB		0				// Black=0, Amber=1, Green=2, Sian=3, White=4, Solarized=5, Pastel=6
+#define	CMDHISMAX		200
+#define	HISLISTMAX		30
 
 #define	TEK_WIN_WIDTH	4096
 #define	TEK_WIN_HEIGHT	3072
@@ -189,6 +185,7 @@
 #define	TO_XTALTSCR		(1047-700)	// Alternate/Normal screen buffer
 #define	TO_XTSRCUR		(1048-700)	// Save/Restore cursor as in DECSC/DECRC
 #define	TO_XTALTCLR		(1049-700)	// Alternate screen with clearing
+#define	TO_XTLEGKEY		(1060-700)	// legacy keyboard emulation (X11R6)
 #define	TO_XTPRICOL		(1070-700)	// Regis/Sixel Private Color Map
 // XTerm Option 2		2000-2019(380-399)
 #define	TO_XTBRPAMD		(2004-1620)	// Bracketed Paste Mode
@@ -224,6 +221,7 @@
 #define	TO_RLBRKMBCS	456			// 壊れたMBCSの代替え表示
 #define	TO_TTCTH		457			// 8200 画面クリア(ED 2)時にカーソルを左上に移動する。
 #define	TO_RLBOLDHC		458			// ボールド文字で高輝度を無効にする
+#define	TO_RLYENKEY		459			// UTF-8の場合に\キーでU+00A5を送信する
 
 // RLogin SockOpt		1000-1511(0-511)
 #define	TO_RLTENAT		1406		// 自動ユーザー認証を行わない
@@ -287,6 +285,8 @@
 #define	TO_RLNODELAY	1486		// TCPオプションのNoDelayを有効にする
 #define	TO_RLDELAYRV	1487		// 無受信時間待って次を送信する(ms)
 #define	TO_RLDELAYCR	1488		// 改行(CR)を確認し指定時間待って次を送信する(ms)
+#define	TO_IMECARET		1489		// IMEがONの時にカレットの色を変える
+#define	TO_DNSSSSHFP	1490		// DNSによるSSSHホスト鍵のチェックを行う
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
@@ -484,7 +484,7 @@
 #define	SLEEPMODE_ACTIVE		1
 #define	SLEEPMODE_ALLWAY		2
 
-#define UNIBLOCKTABMAX			262
+#define	UNIBLOCKTABMAX			308
 
 typedef struct _UNIBLOCKTAB {
 	DWORD	code;
@@ -664,10 +664,11 @@ public:
 
 ///////////////////////////////////////////////////////
 
-#define	FONTSTYLE_NONE		0
-#define	FONTSTYLE_BOLD		1
-#define	FONTSTYLE_ITALIC	2
-#define	FONTSTYLE_UNDER		4
+#define	FONTSTYLE_NONE			000
+#define	FONTSTYLE_BOLD			001
+#define	FONTSTYLE_ITALIC		002
+#define	FONTSTYLE_UNDER			004
+#define	FONTSTYLE_FULLWIDTH		010
 
 class CFontNode : public CObject
 {
@@ -697,6 +698,7 @@ public:
 	DWORD m_Iso646Tab[12];
 	CString m_OverZero;
 	COLORREF *m_pTransColor;
+	int m_JpSet;
 
 	void Init();
 	void SetArray(CStringArrayExt &stra);
@@ -853,6 +855,7 @@ typedef struct _SAVEPARAM {
 	DWORD m_LastChar;
 	int m_LastFlag;
 	POINT m_LastPos;
+	POINT m_LastCur;
 	int m_LastSize;
 	int m_LastAttr;
 	WCHAR m_LastStr[MAXCHARSIZE + 2];
@@ -897,6 +900,7 @@ public:
 	DWORD m_LastChar;
 	int m_LastFlag;
 	POINT m_LastPos;
+	POINT m_LastCur;
 	int m_LastSize;
 	int m_LastAttr;
 	WCHAR m_LastStr[MAXCHARSIZE + 2];
@@ -974,6 +978,17 @@ public:
 	~CTabFlag();
 };
 
+typedef struct _CmdHistory {
+	time_t st;
+	time_t et;
+	CString user;
+	CString curd;
+	CString cmds;
+	CString exit;
+	BOOL emsg;
+	int habs;
+} CMDHIS;
+
 class CTextRam : public COptObject
 {
 public:	// Options
@@ -1023,6 +1038,7 @@ public:	// Options
 	CString m_TraceLogFile;
 	int m_TraceMaxCount;
 	int m_DefTypeCaret;
+	COLORREF m_DefCaretColor;
 	int m_FixVersion;
 	int m_SleepMax;
 	int m_LogMode;
@@ -1030,12 +1046,13 @@ public:	// Options
 	CString m_GroupCast;
 	CStringArrayExt m_InlineExt;
 	CString m_TitleName;
-	COLORREF m_DefCaretColor;
 	int m_RtfMode;
 	int m_RecvCrLf;
 	int m_SendCrLf;
 	BOOL m_bInit;
 	int m_SleepMode;
+	int m_ImeTypeCaret;
+	COLORREF m_ImeCaretColor;
 
 	void Init();
 	void SetIndex(int mode, CStringIndex &index);
@@ -1093,6 +1110,7 @@ public:
 	int m_HisPos;
 	int m_HisLen;
 	int m_HisUse;
+	int m_HisAbs;
 	CFileExt m_HisFhd;
 
 	BOOL m_DispCaret;
@@ -1104,6 +1122,7 @@ public:
 	DWORD m_LastChar;
 	int m_LastFlag;
 	CPoint m_LastPos;
+	CPoint m_LastCur;
 	int m_LastSize;
 	int m_LastAttr;
 	CStringW m_LastStr;
@@ -1111,6 +1130,7 @@ public:
 	BOOL m_bJoint;
 
 	DWORD m_BackChar;
+	DWORD m_SurroChar;
 	int m_BackMode;
 	int m_Status;
 
@@ -1260,9 +1280,9 @@ public:
 	int GetPos(int x, int y);
 	BOOL IncPos(int &x, int &y);
 	BOOL DecPos(int &x, int &y);
-	void EditWordPos(int *sps, int *eps);
-	void EditCopy(int sps, int eps, BOOL rectflag = FALSE, BOOL lineflag = FALSE);
-	void EditMark(int sps, int eps, BOOL rectflag = FALSE, BOOL lineflag = FALSE);
+	void EditWordPos(CCurPos *sps, CCurPos *eps);
+	void EditCopy(CCurPos sps, CCurPos eps, BOOL rectflag = FALSE, BOOL lineflag = FALSE);
+	void EditMark(CCurPos sps, CCurPos eps, BOOL rectflag = FALSE, BOOL lineflag = FALSE);
 	void GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf);
 	void GetLine(int sy, CString &str);
 	void MediaCopyStr(LPCTSTR str);
@@ -1271,6 +1291,9 @@ public:
 	BOOL IsEmptyLine(int sy);
 	void GetCellSize(int *x, int *y);
 	void GetScreenSize(int *pCx, int *pCy, int *pSx, int *pSy);
+
+	BOOL SpeekLine(int line, CString &text, CArray<CCurPos, CCurPos &> &pos);
+	BOOL SpeekCheck(CCurPos sPos, CCurPos ePos, LPCTSTR str);
 
 	void DrawBitmap(CDC *pDestDC, CRect &rect, CDC *pSrcDC, int width, int height, DWORD dwRop);
 	void DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, struct DrawWork &prop, class CRLoginView *pView);
@@ -1294,8 +1317,8 @@ public:
 	int InitDefParam(BOOL bCheck, int modFlag = (-1));
 	void InitModKeyTab();
 
-	inline int GetCalcPos(int x, int y) { return (m_ColsMax * (y + m_HisPos + m_HisMax) + x); }
-	inline void SetCalcPos(int pos, int *x, int *y) { *x = pos % m_ColsMax; *y = (pos / m_ColsMax - m_HisPos - m_HisMax); }
+	inline CCurPos GetCalcPos(int x, int y) { return CCurPos(x, y + m_HisPos + m_HisMax); }
+	inline void SetCalcPos(CCurPos pos, int *x, int *y) { *x = pos.cx; *y = pos.cy - m_HisPos - m_HisMax; }
 	inline int GetDm(int y) { return GETVRAM(0, y)->m_Vram.zoom; }
 	inline void SetDm(int y, int dm) { GETVRAM(0, y)->m_Vram.zoom = dm; }
 	inline void SetRet(int y) { GETVRAM(0, y)->m_Vram.attr |= ATT_RETURN; }
@@ -1335,6 +1358,7 @@ public:
 	static int IndexToOption(int value);
 	static void OptionString(int value, CString &str);
 	static void IncDscs(int &Pcss, CString &str);
+	static void GetCurrentTimeFormat(LPCTSTR fmt, CString &str);
 
 	// Low Level
 	void RESET(int mode);
@@ -1838,7 +1862,19 @@ public:
 	void DispGrapWnd(class CGrapWnd *pGrapWnd, BOOL bNextCols);
 
 	// iTerm2
+	int m_iTerm2Mark;
+	CPoint m_iTerm2MaekPos[4];
+	CString m_iTerm2Prompt;
+	CString m_iTerm2Command;
+	CString m_iTerm2RemoteHost;
+	CString m_iTerm2CurrentDir;
+	CString m_iTerm2Version;
+	CString m_iTerm2Shell;
+	CString m_iTerm2ExitStatus;
+	CStringIndex m_iTerm2SetUserVar;
+	CList<CMDHIS *, CMDHIS *> m_CommandHistory;
+	class CCmdHisDlg *m_pCmdHisWnd;
+
 	void iTerm2Ext(LPCSTR param);
 };
 
-#endif // !defined(AFX_TEXTRAM_H__CBEA227A_D7D7_4213_88B1_4F4C0DF48089__INCLUDED_)

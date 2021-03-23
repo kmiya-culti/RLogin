@@ -63,7 +63,7 @@ BOOL CStatusDlg::OnInitDialog()
 		SetWindowText(m_Title);
 
 	if ( (pWnd = GetDlgItem(IDC_EDIT1)) != NULL && m_StatusFont.CreatePointFont(
-			MulDiv(9 * 10, m_NowDpi.cy, DEFAULT_DPI_Y), _T("Consolas")) )
+			MulDiv(9 * 10, m_NowDpi.cy, SYSTEM_DPI_Y), _T("Consolas")) )
 		pWnd->SetFont(&m_StatusFont);
 
 	m_StatusWnd.SetWindowText(m_StatusText);
@@ -337,7 +337,7 @@ LRESULT CStatusDlg::OnDpiChanged(WPARAM wParam, LPARAM lParam)
 	if ( (pWnd = GetDlgItem(IDC_EDIT1)) != NULL ) {
 		if ( m_StatusFont.GetSafeHandle() != NULL )
 			m_StatusFont.DeleteObject();
-		if ( m_StatusFont.CreatePointFont(MulDiv(9 * 10, m_NowDpi.cy, DEFAULT_DPI_Y), _T("Consolas")) )
+		if ( m_StatusFont.CreatePointFont(MulDiv(9 * 10, m_NowDpi.cy, SYSTEM_DPI_Y), _T("Consolas")) )
 			pWnd->SetFont(&m_StatusFont);
 	}
 

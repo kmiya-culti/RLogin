@@ -27,6 +27,8 @@ public:
 	DWORD m_Iso646Tab[12];
 	CFont m_Font;
 
+	void SetViewBox(int num, DWORD code);
+
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート
 	virtual BOOL OnInitDialog();
@@ -38,4 +40,5 @@ public:
 	afx_msg void OnCbnSelchangeCodeset1();
 	afx_msg void OnCbnUpdateCodeset(UINT nID);
 	afx_msg void OnCbnSelchangeCodeset(UINT nID);
+	afx_msg void OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct);
 };

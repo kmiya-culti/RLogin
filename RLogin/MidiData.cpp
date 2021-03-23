@@ -584,7 +584,7 @@ const class CMMLData & CMMLData::operator = (class CMMLData &data)
 // CMidiData
 //////////////////////////////////////////////////////////////////////
 
-CMidiData::CMidiData()
+CMidiData::CMidiData(CWnd *pWnd)
 {
 	m_Size = m_Pos = 0;
 	m_PlayMode = 0;
@@ -594,6 +594,7 @@ CMidiData::CMidiData()
 	m_pPlayNode = m_pDispNode = NULL;
 	m_PlayPos = m_SeekPos = 0;
 	m_hStream = NULL;
+	m_pMainWnd = (CMainFrame *)pWnd;
 
 	ZeroMemory(m_mmlPos, sizeof(m_mmlPos));
 	ZeroMemory(m_mmlBase, sizeof(m_mmlBase));
@@ -1923,6 +1924,9 @@ int CMidiData::ParseNote(int ch)
 				m_mmlStr++;
 			ch = ParseChar();
 
+			if ( mbs.GetLength() > (MIDIDATA_MAX / 2) )
+				mbs.Delete(MIDIDATA_MAX / 2, mbs.GetLength() - (MIDIDATA_MAX / 2));
+
 			pData = new CMMLData(m_mmlData);
 			pData->m_Cmd = 0x0100;
 			pData->m_Note = mbs.GetLength() + 1;
@@ -2733,7 +2737,8 @@ DWORD WINAPI CMidiData::ThreadProc(void *lpParameter)
 						pMidi->Stop();
 					break;
 				case 0x0001:	// Speek
-					((CRLoginApp *)::AfxGetApp())->Speek(MbsToTstr((LPCSTR)((BYTE *)(pEvent->dwParms) + sizeof(DWORD))));
+					if ( pMidi->m_pMainWnd != NULL )
+						pMidi->m_pMainWnd->Speek(MbsToTstr((LPCSTR)((BYTE *)(pEvent->dwParms) + sizeof(DWORD))));
 					break;
 				}
 			}

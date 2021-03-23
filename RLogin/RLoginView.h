@@ -1,13 +1,7 @@
-// RLoginView.h : CRLoginView クラスの宣言およびインターフェイスの定義をします。
-//
 /////////////////////////////////////////////////////////////////////////////
+// CRLoginView
 
-#if !defined(AFX_RLOGINVIEW_H__03B57615_4E99_4D63_9DF0_4B7D3D47E193__INCLUDED_)
-#define AFX_RLOGINVIEW_H__03B57615_4E99_4D63_9DF0_4B7D3D47E193__INCLUDED_
-
-#if _MSC_VER > 1000
 #pragma once
-#endif // _MSC_VER > 1000
 
 #include "Data.h"
 #include "TextRam.h"
@@ -53,19 +47,19 @@ class CRLoginView : public CView
 {
 	DECLARE_DYNCREATE(CRLoginView)
 
-protected: // シリアライズ機能のみから作成します。
+protected:
 	CRLoginView();
-
-public:
 	virtual ~CRLoginView();
+
 #ifdef _DEBUG
 	virtual void AssertValid() const;
 	virtual void Dump(CDumpContext& dc) const;
-#endif
-
-// アトリビュート
 public:
 	CRLoginDoc* GetDocument();
+#else
+public:
+	inline CRLoginDoc* CRLoginView::GetDocument() { return (CRLoginDoc*)m_pDocument; }
+#endif
 
 // オペレーション
 public:
@@ -104,9 +98,9 @@ public:
 	INT_PTR m_RclickTimer;
 
 	int m_ClipFlag;
-	int m_ClipStaPosSave;
-	int m_ClipStaPos, m_ClipEndPos;
-	int m_ClipStaOld, m_ClipEndOld;
+	CCurPos m_ClipStaPosSave;
+	CCurPos m_ClipStaPos, m_ClipEndPos;
+	CCurPos m_ClipStaOld, m_ClipEndOld;
 	UINT m_ClipTimer;
 	CPoint m_ClipSavePoint;
 	UINT m_ClipKeyFlags;
@@ -185,7 +179,7 @@ public:
 
 	void InvalidateTextRect(CRect &rect);
 	void InvalidateFullText();
-	void CalcPosRect(CRect &rect);
+	void CalcPosRect(CRect &rect, CCurPos staPos, CCurPos endPos, BOOL bLine = FALSE);
 	void CalcGrapPoint(CPoint po, int *x, int *y);
 	int HitTest(CPoint point);
 	void SetFrameRect(int cx, int cy);
@@ -195,16 +189,16 @@ public:
 	CSize m_CaretSize;
 	CRect m_CaretRect;
 	CSize m_CaretMapSize;
+	CSize m_CaretOffset;
 	CBitmap m_CaretBitmap;
 	COLORREF m_CaretColor;
 	BOOL m_bCaretAllocCol;
+	COLORREF m_CaretAllocColor;
 	clock_t m_CaretBaseClock;
 	int m_CaretAnimeMax;
 	int m_CaretAnimeClock;
 
 	COLORREF CaretColor();
-	void CaretPos(POINT point);
-	void CaretSize(int width, int height);
 	inline void CaretInitView() { m_CaretBaseClock = clock(); }
 
 	void InvalidateCaret();
@@ -213,7 +207,7 @@ public:
 	void KillCaret();
 	void SetCaret();
 	void ImmSetPos(int x, int y);
-	int ImmOpenCtrl(int sw);
+	BOOL ImmOpenCtrl(int sw);
 
 	void SendBuffer(CBuffer &buf, BOOL macflag = FALSE, BOOL delaySend = FALSE);
 	void SetGhostWnd(BOOL sw);
@@ -225,6 +219,11 @@ public:
 
 	void KillScrollTimer();
 	BOOL SetDropFile(LPCTSTR FileName, BOOL &doCmd, BOOL &doSub);
+
+	BOOL m_bSpeekDispText;
+	CCurPos m_SpeekStaPos, m_SpeekEndPos;
+
+	void SpeekTextPos(BOOL bDisp, CCurPos *pStaPos, CCurPos *pEndPos);
 
 	inline int CalcGrapX(int x)	{ CRLoginDoc *pDoc = GetDocument(); return (m_Width  * x / m_Cols  + pDoc->m_TextRam.m_ScrnOffset.left); }
 	inline int CalcGrapY(int y) { CRLoginDoc *pDoc = GetDocument(); return (m_Height * y / m_Lines + pDoc->m_TextRam.m_ScrnOffset.top + m_TopOffset); }
@@ -322,15 +321,3 @@ protected:
 	afx_msg void OnSplitHeightNew();
 	afx_msg void OnSplitWidthNew();
 };
-
-#ifndef _DEBUG  // RLoginView.cpp ファイルがデバッグ環境の時使用されます。
-inline CRLoginDoc* CRLoginView::GetDocument()
-   { return (CRLoginDoc*)m_pDocument; }
-#endif
-
-/////////////////////////////////////////////////////////////////////////////
-
-//{{AFX_INSERT_LOCATION}}
-// Microsoft Visual C++ は前行の直前に追加の宣言を挿入します。
-
-#endif // !defined(AFX_RLOGINVIEW_H__03B57615_4E99_4D63_9DF0_4B7D3D47E193__INCLUDED_)

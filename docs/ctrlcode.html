@@ -6,11 +6,11 @@
 <TITLE>エスケープシーケンス一覧</TITLE>
 <STYLE type="text/css">
 <!--
-TD {
+TD {		
   background-color : #ffffff;
   font-size : 90%;
 }
-.BOX{
+.BOX{		
   background-color : silver;
 }
 -->
@@ -367,7 +367,8 @@ TD {
           <TR>
             <TD align="left" width="120" colspan="2">ESC =</TD>
             <TD align="center" width="120">DECPAM</TD>
-            <TD width="680"><A name="DECPAM"></A>[App]モードが有効なキーコードを送信（アプリケーションキーモード)</TD>
+            <TD width="680"><A name="DECPAM"></A>[App]モードが有効なキーコードを送信（アプリケーションキーモード)<BR>
+            ※2.25.4より拡張オプション1060が有効の時のみアプリケーションキーモードが有効になります</TD>
           </TR>
           <TR>
             <TD align="left" width="120" colspan="2">ESC &gt;</TD>
@@ -2977,9 +2978,9 @@ TD {
             </TD>
           </TR>
           <TR>
-            <TD>OSC 1337 ; BEL</TD>
-            <TD align="center">*9</TD>
-            <TD>
+            <TD width="120">OSC 1337 ; BEL</TD>
+            <TD align="center" width="120">*9</TD>
+            <TD width="680">
             <DL>
               <DT>OSC 1337 ; <FONT size="-1">File=name=[base64];size=nn;width=[auto];height=[auto];preserveAspectRatio=[1];inline=[0]:[base64]</FONT> BEL
               <DD>
@@ -3058,9 +3059,9 @@ TD {
             </TD>
           </TR>
           <TR>
-            <TD>OSC 800 ; <I><FONT size="-1">Pc</FONT></I> BEL</TD>
-            <TD align="center">*3</TD>
-            <TD>
+            <TD width="120">OSC 800 ; <I><FONT size="-1">Pc</FONT></I> BEL</TD>
+            <TD align="center" width="120">*3</TD>
+            <TD width="680">
             <DL>
               <DT>OSC 800 ; <I><FONT size="-1">Pc</FONT></I> BEL
               <DD>漢字コードを変更・参照する
@@ -3092,9 +3093,9 @@ TD {
             </TD>
           </TR>
           <TR>
-            <TD>OSC 801 ; <I><FONT size="-1">p...</FONT></I> BEL</TD>
-            <TD align="center">*3</TD>
-            <TD>
+            <TD width="120">OSC 801 ; <I><FONT size="-1">p...</FONT></I> BEL</TD>
+            <TD align="center" width="120">*3</TD>
+            <TD width="680">
             <DL>
               <DT>OSC 801 ; <I><FONT size="-1">Str</FONT></I> BEL
               <DD>音声合成で文字列を発音する
@@ -3262,7 +3263,7 @@ TD {
                 <TR>
                   <TD valign="top"><FONT size="-1"><I>Pn2</I></FONT> = [0],1,2</TD>
                   <TD>背景色の設定<BR>
-                  <TABLE width="370" cellpadding="1">
+                  <TABLE width="450" cellpadding="1">
                     <TBODY>
                       <TR>
                         <TD colspan="2"><A href="#DECTID">DECTID</A>が5以上（デフォルト)</TD>
@@ -3280,7 +3281,7 @@ TD {
                       </TR>
                       <TR>
                         <TD colspan="2">
-                        <TABLE cellpadding="1">
+                        <TABLE cellpadding="1" width="400">
                           <TBODY>
                             <TR>
                               <TD align="right">0</TD>
@@ -3345,7 +3346,7 @@ TD {
                       </TR>
                       <TR>
                         <TD colspan="2">
-                        <TABLE cellpadding="1">
+                        <TABLE cellpadding="1" width="400">
                           <TBODY>
                             <TR>
                               <TD align="right">0</TD>
@@ -3394,12 +3395,10 @@ TD {
                       <TR>
                         <TD colspan="2"></TD>
                       </TR>
-                      <TR>
-                        <TD colspan="2">※パレット色が背景色と同じ場合は補色に変更</TD>
-                      </TR>
                     </TBODY>
                   </TABLE>
-                  </TD>
+                  ※ パレット色が背景色と同じ場合は補色に変更<BR>
+                  ※ 2.25.1よりPn2=5で<A href="https://qiita.com/arakiken/items/26f6c67da5a9f9f907ac">Sixel Graphicsのormode</A>に対応</TD>
                 </TR>
                 <TR>
                   <TD valign="top"><I><FONT size="-1">Pn3</FONT></I> = [0],1... 20</TD>
@@ -3984,9 +3983,9 @@ TD {
             </TD>
           </TR>
           <TR>
-            <TD>DCS + q <FONT size="-1"><I>P...</I></FONT> ST</TD>
-            <TD align="center">XTRQCAP *4</TD>
-            <TD>Termcap/Infoの各種設定を応答する<BR>
+            <TD width="120">DCS + q <FONT size="-1"><I>P...</I></FONT> ST</TD>
+            <TD align="center" width="120">XTRQCAP *4</TD>
+            <TD width="680">Termcap/Infoの各種設定を応答する<BR>
             <TABLE>
               <TBODY>
                 <TR>
@@ -4035,9 +4034,9 @@ TD {
             受信 &quot;\033P+r436f=323536\033\134&quot;</TD>
           </TR>
           <TR>
-            <TD>DCS <FONT size="-1"><I>Pn</I></FONT> #m <FONT size="-1"><I>MML</I></FONT> ST</TD>
-            <TD align="center">RLMML *3</TD>
-            <TD>MML形式でMIDI演奏を行う
+            <TD width="120">DCS <FONT size="-1"><I>Pn</I></FONT> #m <FONT size="-1"><I>MML</I></FONT> ST</TD>
+            <TD align="center" width="120">RLMML *3</TD>
+            <TD width="680">MML形式でMIDI演奏を行う
             <TABLE cellpadding="1" width="100%">
               <TBODY>
                 <TR>
@@ -4571,6 +4570,12 @@ TD {
             <TD width="360">保存した画面の復帰</TD>
           </TR>
           <TR>
+            <TD align="center">1060</TD>
+            <TD align="center">*4</TD>
+            <TD>Set legacy keyboard emulation (X11R6)</TD>
+            <TD>Reset legacy keyboard emulation (X11R6)</TD>
+          </TR>
+          <TR>
             <TD align="center" width="70">2004</TD>
             <TD align="center" width="120">*4</TD>
             <TD width="360">Bracketed&nbsp;Paste&nbsp;Mode 有効</TD>
@@ -4713,6 +4718,12 @@ TD {
             <TD align="center">*3</TD>
             <TD>太字と高輝度を併用</TD>
             <TD>太字か高輝度を選択</TD>
+          </TR>
+          <TR>
+            <TD align="center">8459</TD>
+            <TD align="center">*3</TD>
+            <TD>￥キーでU+00A5を送信</TD>
+            <TD>￥キーでU+005Cを送信</TD>
           </TR>
         </TBODY>
       </TABLE>

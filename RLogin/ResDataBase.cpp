@@ -24,6 +24,16 @@ const CSizeStr & CSizeStr::operator = (CSizeStr &data)
 
 	return *this;
 }
+BOOL CSizeStr::operator == (CSizeStr &data)
+{
+	if ( m_Type != data.m_Type )
+		return FALSE;
+
+	if ( m_Type == 0xFFFF )
+		return (m_Value == data.m_Value ? TRUE : FALSE);
+	else
+		return (m_String.Compare(data.m_String) == 0 ? TRUE : FALSE);
+}
 void CSizeStr::SetIndex(int mode, class CStringIndex &index)
 {
 	if ( mode ) {	// Write
@@ -370,6 +380,8 @@ CDlgTempBase::CDlgTempBase()
 	m_italic      = 0;
 	m_charset     = 0;
 	m_typeface.Empty();
+
+	m_bInst       = FALSE;
 	m_hTemplate   = NULL;
 	m_hInitData   = NULL;
 }
@@ -403,6 +415,7 @@ const CDlgTempBase & CDlgTempBase::operator = (CDlgTempBase &data)
 	m_italic      = data.m_italic;
 	m_charset     = data.m_charset;
 	m_typeface    = data.m_typeface;
+	m_bInst		  = data.m_bInst;
 
 	m_Item.SetSize(data.m_Item.GetSize());
 	for ( int n = 0 ; n < data.m_Item.GetSize() ; n++ )
@@ -423,6 +436,34 @@ const CDlgTempBase & CDlgTempBase::operator = (CDlgTempBase &data)
 	data.m_hInitData = NULL;
 
 	return *this;
+}
+void CDlgTempBase::CopyData(CDlgTempBase &data)
+{
+	int n, i;
+
+	if ( m_ResId != data.m_ResId || !(m_windowClass == data.m_windowClass) )
+		return;
+
+	m_title = data.m_title;
+	m_bInst = FALSE;
+
+	for ( n = 0 ; n < m_Item.GetSize() ; n++ ) {
+		if ( n < data.m_Item.GetSize() && m_Item[n].m_id == data.m_Item[n].m_id && m_Item[n].m_windowClass == data.m_Item[n].m_windowClass )
+			m_Item[n].m_title = data.m_Item[n].m_title;
+		else
+			break;
+	}
+
+	for ( ; n < m_Item.GetSize() ; n++ ) {
+		if ( m_Item[n].m_id != (-1) ) {
+			for ( i = 0 ; i < data.m_Item.GetSize() ; i++ ) {
+				if ( m_Item[n].m_id == data.m_Item[i].m_id && m_Item[n].m_windowClass == data.m_Item[i].m_windowClass ) {
+					m_Item[n].m_title = data.m_Item[i].m_title;
+					break;
+				}
+			}
+		}
+	}
 }
 void CDlgTempBase::SetIndex(int mode, class CStringIndex &index)
 {
@@ -457,11 +498,16 @@ void CDlgTempBase::SetIndex(int mode, class CStringIndex &index)
 
 		pIndex->Add((int)m_pointsize);
 		pIndex->Add((int)m_weight);
-
 		pIndex->Add((int)m_italic);
-		pIndex->Add((int)m_charset);
 
-		pIndex->Add((LPCTSTR)m_typeface);
+		if ( m_bInst ) {
+			// 多言語化するならSHIFTJIS_CHARSETでは、問題有り
+			pIndex->Add((int)DEFAULT_CHARSET);
+			pIndex->Add((LPCTSTR)_T("MS Shell Dlg"));
+		} else {
+			pIndex->Add((int)m_charset);
+			pIndex->Add((LPCTSTR)m_typeface);
+		}
 
 		for ( int n = 0 ; n < m_Item.GetSize() ; n++ ) {
 			str.Format(_T("%d"), n);
@@ -500,6 +546,8 @@ void CDlgTempBase::SetIndex(int mode, class CStringIndex &index)
 			m_charset = (BYTE)(int)index[i][15];
 
 			m_typeface = (LPCTSTR)index[i][16];
+
+			m_bInst    = FALSE;
 		}
 
 		if ( (i = index.Find(_T("Item"))) >= 0 ) {
@@ -751,6 +799,7 @@ BOOL CDlgTempBase::LoadResource(LPCTSTR lpszName)
 	if ( !ret )
 		return ret;
 
+	m_bInst = TRUE;
 	m_ResId = LOWORD((DWORD_PTR)lpszName);
 	m_Init.RemoveAll();
 
@@ -860,6 +909,31 @@ const CResMenuBase & CResMenuBase::operator = (CResMenuBase &data)
 		m_Data[n] = data.m_Data[n];
 
 	return *this;
+}
+void CResMenuBase::CopyData(CResMenuBase &data)
+{
+	int n, i;
+
+	if ( m_ResId != data.m_ResId || m_Version != data.m_Version || m_Offset != data.m_Offset )
+		return;
+
+	for ( n = 0 ; n < m_Data.GetSize() ; n++ ) {
+		if ( n < data.m_Data.GetSize() && m_Data[n].m_Option == data.m_Data[n].m_Option && m_Data[n].m_Id == data.m_Data[n].m_Id )
+			m_Data[n].m_String = data.m_Data[n].m_String;
+		else
+			break;
+	}
+
+	for ( ; n < m_Data.GetSize() ; n++ ) {
+		if ( m_Data[n].m_Id != 0 ) {
+			for ( i = 0 ; i < data.m_Data.GetSize() ; i++ ) {
+				if ( m_Data[n].m_Id == data.m_Data[i].m_Id ) {
+					m_Data[n].m_String = data.m_Data[i].m_String;
+					break;
+				}
+			}
+		}
+	}
 }
 void CResMenuBase::SetIndex(int mode, class CStringIndex &index)
 {
@@ -1289,6 +1363,21 @@ static BOOL CALLBACK ResNameProcCallBack(HMODULE hModule, LPCTSTR lpszType, LPTS
 
 CResDataBase::CResDataBase()
 {
+#ifndef	USE_RCDLL
+	m_LangId    = MAKELANGID(LANG_JAPANESE, SUBLANG_JAPANESE_JAPAN);
+	m_Transrate = _T("ja");
+	m_Language  = _T("日本語");
+#else
+	TCHAR name[256];
+
+	m_LangId    = ((CRLoginApp *)AfxGetApp())->GetLangId();		// GetUserDefaultUILanguage();
+
+	GetLocaleInfo(MAKELCID(m_LangId, SORT_DEFAULT), LOCALE_SISO639LANGNAME, name, sizeof(name));
+	m_Transrate = name;
+
+	GetLocaleInfo(MAKELCID(m_LangId, SORT_DEFAULT), LOCALE_SNATIVELANGNAME, name, sizeof(name));
+	m_Language = name;
+#endif
 }
 CResDataBase::~CResDataBase()
 {
@@ -1296,6 +1385,10 @@ CResDataBase::~CResDataBase()
 const CResDataBase & CResDataBase::operator = (CResDataBase &data)
 {
 	int n;
+
+	m_LangId    = data.m_LangId;
+	m_Transrate = data.m_Transrate;
+	m_Language  = data.m_Language;
 
 	m_Dialog.RemoveAll();
 	m_Dialog.SetSize(data.m_Dialog.GetSize());
@@ -1428,7 +1521,7 @@ BOOL CResDataBase::LoadFile(LPCTSTR pFilename)
 	CFile File;
 	CStringIndex index;
 	BOOL ret = FALSE;
-	BOOL bVerErr = FALSE;
+	BOOL bVerErr = TRUE;
 
 	if ( !File.Open(pFilename, CFile::modeRead | CFile::shareDenyWrite) )
 		return FALSE;
@@ -1442,37 +1535,55 @@ BOOL CResDataBase::LoadFile(LPCTSTR pFilename)
 	m_ToolBar.RemoveAll();
 	m_Bitmap.RemoveAll();
 
+	InitRessource();
+
 	try {
 		index.SetNoSort(TRUE);
-		index.Serialize(Archive, NULL, 4);
-
-		if ( (i = index.Find(_T("Version"))) >= 0 ) {
-			CStringLoad version;
-			((CRLoginApp *)AfxGetApp())->GetVersion(version);
-			if ( version.CompareDigit(index[i]) != 0 ) {
-				if ( ::AfxMessageBox(IDE_RESVERSIONMISMATCH, MB_ICONQUESTION | MB_YESNO) != IDYES )
-					throw _T("Version mismatch");
-				bVerErr = TRUE;
-			}
-		}
-
-		if ( !bVerErr && (i = index.Find(_T("Dialog"))) >= 0 ) {
-			for ( n = 0 ; n < index[i].GetSize() ; n++ ) {
-				CDlgTempBase work;
-				work.m_ResId = (WORD)_tstoi(index[i][n].m_nIndex);
-				work.SetIndex(FALSE, index[i][n]);
-				if ( !BinaryFind((void *)(work.m_ResId), m_Dialog.GetData(), sizeof(CDlgTempBase), (int)m_Dialog.GetSize(), ResIdCmp, &b) )
-					m_Dialog.InsertAt(b, work);
-			}
-		}
+		index.Serialize(Archive, NULL, RESFILE_TYPE);
 
 		if ( (i = index.Find(_T("String"))) >= 0 ) {
 			for ( n = 0 ; n < index[i].GetSize() ; n++ ) {
 				CResStringBase work;
 				work.m_ResId = (WORD)_tstoi(index[i][n].m_nIndex);
 				work.m_String = (LPCTSTR)index[i][n];
-				if ( !BinaryFind((void *)(work.m_ResId), m_String.GetData(), sizeof(CResStringBase), (int)m_String.GetSize(), ResIdCmp, &b) )
+				if ( BinaryFind((void *)(work.m_ResId), m_String.GetData(), sizeof(CResStringBase), (int)m_String.GetSize(), ResIdCmp, &b) )
+					m_String[b].m_String = work.m_String;
+				else
 					m_String.InsertAt(b, work);
+			}
+		}
+
+		if ( (i = index.Find(_T("Version"))) >= 0 ) {
+			CStringLoad version;
+			((CRLoginApp *)AfxGetApp())->GetVersion(version);
+			if ( version.CompareDigit(index[i]) != 0 ) {
+				if ( ::AfxMessageBox(CStringLoad(IDE_RESVERSIONMISMATCH), MB_ICONQUESTION | MB_YESNO) != IDYES )
+					throw _T("Version mismatch");
+				bVerErr = TRUE;
+			} else
+				bVerErr = FALSE;
+		}
+
+		if ( (i = index.Find(_T("Language"))) >= 0 && index[i].GetSize() >= 3 ) {
+			m_LangId    = (LANGID)(int)index[i][0];
+			m_Transrate = index[i][1];
+			m_Language  = index[i][2];
+		}
+
+		if ( (i = index.Find(_T("Dialog"))) >= 0 ) {
+			for ( n = 0 ; n < index[i].GetSize() ; n++ ) {
+				CDlgTempBase work;
+				work.m_ResId = (WORD)_tstoi(index[i][n].m_nIndex);
+				if ( work.m_ResId == IDD_ABOUTBOX )		// バージョン情報ダイアログは、読み込まない
+					continue;
+				work.SetIndex(FALSE, index[i][n]);
+				if ( BinaryFind((void *)(work.m_ResId), m_Dialog.GetData(), sizeof(CDlgTempBase), (int)m_Dialog.GetSize(), ResIdCmp, &b) ) {
+					if ( bVerErr )
+						m_Dialog[b].CopyData(work);
+					else
+						m_Dialog[b] = work;
+				} else if ( !bVerErr )
+					m_Dialog.InsertAt(b, work);
 			}
 		}
 
@@ -1481,7 +1592,12 @@ BOOL CResDataBase::LoadFile(LPCTSTR pFilename)
 				CResMenuBase work;
 				work.m_ResId = (WORD)_tstoi(index[i][n].m_nIndex);
 				work.SetIndex(FALSE, index[i][n]);
-				if ( !BinaryFind((void *)(work.m_ResId), m_Menu.GetData(), sizeof(CResMenuBase), (int)m_Menu.GetSize(), ResIdCmp, &b) )
+				if ( BinaryFind((void *)(work.m_ResId), m_Menu.GetData(), sizeof(CResMenuBase), (int)m_Menu.GetSize(), ResIdCmp, &b) ) {
+					if ( bVerErr )
+						m_Menu[b].CopyData(work);
+					else
+						m_Menu[b] = work;
+				} else if ( !bVerErr )
 					m_Menu.InsertAt(b, work);
 			}
 		}
@@ -1491,7 +1607,9 @@ BOOL CResDataBase::LoadFile(LPCTSTR pFilename)
 				CResToolBarBase work;
 				work.m_ResId = (WORD)_tstoi(index[i][n].m_nIndex);
 				work.SetIndex(FALSE, index[i][n]);
-				if ( !BinaryFind((void *)(work.m_ResId), m_ToolBar.GetData(), sizeof(CResToolBarBase), (int)m_ToolBar.GetSize(), ResIdCmp, &b) )
+				if ( BinaryFind((void *)(work.m_ResId), m_ToolBar.GetData(), sizeof(CResToolBarBase), (int)m_ToolBar.GetSize(), ResIdCmp, &b) )
+					m_ToolBar[b] = work;
+				else
 					m_ToolBar.InsertAt(b, work);
 			}
 		}
@@ -1501,7 +1619,9 @@ BOOL CResDataBase::LoadFile(LPCTSTR pFilename)
 				CResBitmapBase work;
 				work.m_ResId = (WORD)_tstoi(index[i][n].m_nIndex);
 				work.SetIndex(FALSE, index[i][n]);
-				if ( !BinaryFind((void *)(work.m_ResId), m_Bitmap.GetData(), sizeof(CResBitmapBase), (int)m_Bitmap.GetSize(), ResIdCmp, &b) )
+				if ( BinaryFind((void *)(work.m_ResId), m_Bitmap.GetData(), sizeof(CResBitmapBase), (int)m_Bitmap.GetSize(), ResIdCmp, &b) )
+					m_Bitmap[b] = work;
+				else
 					m_Bitmap.InsertAt(b, work);
 			}
 		}
@@ -1542,6 +1662,10 @@ BOOL CResDataBase::SaveFile(LPCTSTR pFilename)
 		((CRLoginApp *)AfxGetApp())->GetVersion(str);
 		index[_T("Version")] = str;
 
+		index[_T("Language")].Add((int)m_LangId);
+		index[_T("Language")].Add(m_Transrate);
+		index[_T("Language")].Add(m_Language);
+
 		for ( n = 0 ; n < m_Dialog.GetSize() ; n++ ) {
 			str.Format(_T("%d"), m_Dialog[n].m_ResId);
 			m_Dialog[n].SetIndex(TRUE, index[_T("Dialog")][str]);
@@ -1569,7 +1693,7 @@ BOOL CResDataBase::SaveFile(LPCTSTR pFilename)
 			m_Bitmap[n].SetIndex(TRUE, index[_T("Bitmap")][str]);
 		}
 
-		index.Serialize(Archive, NULL, 4);
+		index.Serialize(Archive, NULL, RESFILE_TYPE);
 
 		ret = TRUE;
 	} catch(...) {
@@ -2034,10 +2158,18 @@ void CResDataBase::Add(WORD nId, LPCTSTR type, void *pBase)
 }
 BOOL CResDataBase::IsTranslateString(LPCTSTR str)
 {
+	int len = 0;
+
 	while ( *str != _T('\0') ) {
-		if ( *str > _T(' ') )
-			return TRUE;
+		if ( *str > _T(' ') && !(*str >= _T('0') && *str <= _T('9')) && _tcschr(_T(",.()[]<>;:+-*/&%"), *str) == NULL )
+			len++;
+#ifdef	UNICODE
+		if ( *str >= 0x100 )
+			len++;
+#endif
 		str++;
+		if ( len > 2 )
+			return TRUE;
 	}
 	return FALSE;
 }
@@ -2051,10 +2183,10 @@ int CResDataBase::MakeTranslateTable(CTranslateStringTab &strTab)
 			if ( IsTranslateString(m_Dialog[n].m_Item[i].m_title.m_String) )
 				strTab.Add(&m_Dialog[n].m_Item[i].m_title.m_String);
 		}
-		for ( i = 0 ; i < m_Dialog[n].m_Init.GetSize() ; i++ ) {
-			if ( IsTranslateString(m_Dialog[n].m_Init[i].m_String) )
-				strTab.Add(&m_Dialog[n].m_Init[i].m_String);
-		}
+		//for ( i = 0 ; i < m_Dialog[n].m_Init.GetSize() ; i++ ) {
+		//	if ( IsTranslateString(m_Dialog[n].m_Init[i].m_String) )
+		//		strTab.Add(&m_Dialog[n].m_Init[i].m_String);
+		//}
 	}
 
 	for ( n = 0 ; n < m_String.GetSize() ; n++ ) {

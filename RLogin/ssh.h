@@ -371,7 +371,7 @@ public:
 
 	LPCTSTR GetName(BOOL bCert = TRUE, BOOL bExtname = FALSE);
 	int GetTypeFromName(LPCTSTR name);
-	int HostVerify(LPCTSTR host);
+	int HostVerify(LPCTSTR host, UINT port, BOOL bDnsDisable);
 	int ChkOldCertHosts(LPCTSTR host);
 
 	int RsaSign(CBuffer *bp, LPBYTE buf, int len, LPCTSTR alg);
@@ -767,6 +767,7 @@ public:
 
 	int m_SSHVer;
 	CString m_HostName;
+	UINT m_HostPort;
 	int m_StdChan;
 	CFilter *m_pListFilter;
 	CArray<CIdKey, CIdKey &> m_IdKeyTab;
@@ -800,6 +801,7 @@ private:
 	CIdKey *m_pIdKey;
 	int m_IdKeyPos;
 	int m_AuthReqTab[10];
+	BOOL m_bKeybIntrReq;
 
 	int m_ServerFlag;
 	int m_SupportCipher;
@@ -892,6 +894,7 @@ private:
 	BOOL IsServerVersion(LPCTSTR pattan);
 	void UserAuthNextState();
 	void AddAuthLog(LPCTSTR str, ...);
+	BOOL IsStriStr(LPCSTR str, LPCSTR ptn);
 
 	void SendMsgKexInit();
 	void SendMsgNewKeys();

@@ -34,8 +34,6 @@ public:
 	int m_ScrollPos;
 	int m_ScrollMax;
 	int m_ScrollPage;
-	int m_MinWidth;
-	int m_MinHeight;
 
 public:
 	void InitList();
@@ -53,7 +51,5 @@ public:
 	afx_msg void OnNMCustomdrawBlocklist(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnEditCopyAll();
 	afx_msg void OnEditPasteAll();
-	afx_msg void OnSize(UINT nType, int cx, int cy);
-	afx_msg void OnSizing(UINT fwSide, LPRECT pRect);
 	afx_msg void OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
 };

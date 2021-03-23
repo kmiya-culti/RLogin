@@ -24,6 +24,9 @@ static char THIS_FILE[] = __FILE__;
 IMPLEMENT_DYNCREATE(CColParaDlg, CTreePage)
 
 CColParaDlg::CColParaDlg() : CTreePage(CColParaDlg::IDD)
+, m_EmojiFontName(_T(""))
+, m_EmojiImageDir(_T(""))
+, m_EmojiColorEnable(FALSE)
 {
 	m_ColSet = -1;
 	for ( int n = 0 ; n < 24 ; n++ )
@@ -51,13 +54,16 @@ void CColParaDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_BOXBACK, m_ColBox[17]);
 	for ( int n = 0 ; n < 8 ; n++ )
 		DDX_Check(pDX, IDC_ATTR1 + n, m_Attrb[n]);
-	DDX_CBIndex(pDX, IDC_COMBO2, m_WakeUpSleep);
+	DDX_CBIndex(pDX, IDC_WAKEUPSLEEP, m_WakeUpSleep);
 	DDX_Text(pDX, IDC_TEXTCOL, m_FontColName[0]);
 	DDX_Text(pDX, IDC_BACKCOL, m_FontColName[1]);
-	DDX_Check(pDX, IDC_CHECK1, m_GlassStyle);
+	DDX_Check(pDX, IDC_GLASSSTYLE, m_GlassStyle);
 	DDX_Control(pDX, IDC_SLIDER_CONTRAST, m_SliderConstrast);
 	DDX_Control(pDX, IDC_SLIDER_BRIGHT, m_SliderBright);
 	DDX_Control(pDX, IDC_SLIDER_HUECOL, m_SliderHuecol);
+	DDX_CBString(pDX, IDC_EMOJIFONTNAME, m_EmojiFontName);
+	DDX_Text(pDX, IDC_EMOJIIMAGEDIR, m_EmojiImageDir);
+	DDX_Check(pDX, IDC_EMOJICOLENABLE, m_EmojiColorEnable);
 }
 
 BEGIN_MESSAGE_MAP(CColParaDlg, CTreePage)
@@ -67,7 +73,7 @@ BEGIN_MESSAGE_MAP(CColParaDlg, CTreePage)
 	ON_CBN_SELENDOK(IDC_COLSET, OnSelendokColset)
 	ON_EN_CHANGE(IDC_TEXTCOL, &CColParaDlg::OnEnChangeColor)
 	ON_EN_CHANGE(IDC_BACKCOL, &CColParaDlg::OnEnChangeColor)
-	ON_BN_CLICKED(IDC_CHECK1, &CColParaDlg::OnBnClickedGlassStyle)
+	ON_BN_CLICKED(IDC_GLASSSTYLE, &CColParaDlg::OnBnClickedGlassStyle)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_ATTR1, IDC_ATTR8, &CColParaDlg::OnUpdateCheck)
 	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_SLIDER_CONTRAST, &CColParaDlg::OnNMReleasedcaptureContrast)
 	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_SLIDER_BRIGHT, &CColParaDlg::OnNMReleasedcaptureContrast)
@@ -76,6 +82,10 @@ BEGIN_MESSAGE_MAP(CColParaDlg, CTreePage)
 	ON_WM_HSCROLL()
 	ON_WM_DRAWITEM()
 	ON_BN_CLICKED(IDC_COLEDIT, &CColParaDlg::OnBnClickedColedit)
+	ON_BN_CLICKED(IDC_EMOJIIMAGESEL, &CColParaDlg::OnBnClickedImageSel)
+	ON_CBN_SELCHANGE(IDC_EMOJIFONTNAME, &CColParaDlg::OnUpdateTextRam)
+	ON_EN_CHANGE(IDC_EMOJIIMAGEDIR, &CColParaDlg::OnUpdateTextRam)
+	ON_BN_CLICKED(IDC_EMOJICOLENABLE, &CColParaDlg::OnUpdateTextRam)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -173,6 +183,10 @@ void CColParaDlg::DoInit()
 
 	m_GlassStyle = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("GlassStyle"), 255);
 
+	m_EmojiColorEnable = m_pSheet->m_pTextRam->IsOptEnable(TO_RLCOLEMOJI);
+	m_EmojiFontName = AfxGetApp()->GetProfileString(_T("RLoginApp"), _T("EmojiFontName"), _T("Segoe UI emoji"));
+	m_EmojiImageDir = AfxGetApp()->GetProfileString(_T("RLoginApp"), _T("EmojiImageDir"), _T(""));
+
 	UpdateData(FALSE);
 }
 void CColParaDlg::SetDarkLight()
@@ -232,6 +246,16 @@ COLORREF CColParaDlg::EditColor(int num)
 
 	return RGB(r, g, b);
 }
+static int CALLBACK EnumFontFamExComboAddStr(ENUMLOGFONTEX *lpelfe, NEWTEXTMETRICEX *lpntme, int FontType, LPARAM lParam)
+{
+	CComboBox *pCombo = (CComboBox *)lParam;
+	LPCTSTR name = lpelfe->elfLogFont.lfFaceName;
+
+	if ( name[0] != _T('@') && pCombo->FindStringExact((-1), name) == CB_ERR )
+		pCombo->AddString(name);
+
+	return TRUE;
+}
 BOOL CColParaDlg::OnInitDialog() 
 {
 	ASSERT(m_pSheet != NULL && m_pSheet->m_pTextRam != NULL);
@@ -241,16 +265,52 @@ BOOL CColParaDlg::OnInitDialog()
 	int n;
 	CButton *pWnd;
 	BUTTON_IMAGELIST list;
+	CDC SrcDC, DisDC;
+	CBitmap *pSrcOld, *pDisOld;
+	CBitmap Bitmap, ImageMap;
+	BITMAP mapinfo;
+	int width, height;
 
 	memset(&list, 0, sizeof(list));
 	list.uAlign = BUTTON_IMAGELIST_ALIGN_LEFT;
 
+	width  = MulDiv(40, m_NowDpi.cx, DEFAULT_DPI_X);
+	height = MulDiv(15, m_NowDpi.cy, DEFAULT_DPI_Y);
+
+	DisDC.CreateCompatibleDC(NULL);
+	SrcDC.CreateCompatibleDC(NULL);
+
+	ImageMap.CreateBitmap(width, height, DisDC.GetDeviceCaps(PLANES), DisDC.GetDeviceCaps(BITSPIXEL), NULL);
+	pDisOld = DisDC.SelectObject(&ImageMap);
+
 	for ( n = 0 ; n < 8 ; n++ ) {
-		m_ImageList[n].Create(IDB_ATTR1 + n, 40, 1, RGB(255, 255, 255));
+//		m_ImageList[n].Create(IDB_ATTR1 + n, 40, 1, RGB(255, 255, 255));
+
+		m_ImageList[n].Create(width, height, ILC_COLOR24 | ILC_MASK, 1, 1);
+		((CRLoginApp *)::AfxGetApp())->LoadResBitmap(MAKEINTRESOURCE(IDB_ATTR1 + n), Bitmap);
+		pSrcOld = SrcDC.SelectObject(&Bitmap);
+		Bitmap.GetBitmap(&mapinfo);
+
+		DisDC.FillSolidRect(0, 0, width, height, RGB(255, 255, 255));
+		DisDC.TransparentBlt(0, 0, width, height, &SrcDC, 0, 0, mapinfo.bmWidth, mapinfo.bmHeight, RGB(255, 255, 255));
+
+		DisDC.SelectObject(pDisOld);
+		m_ImageList[n].Add(&ImageMap, RGB(255, 255, 255));
+		pDisOld = DisDC.SelectObject(&ImageMap);
+
+		SrcDC.SelectObject(pSrcOld);
+		Bitmap.DeleteObject();
+
 		list.himl = m_ImageList[n];
 		if ( (pWnd = (CButton *)GetDlgItem(IDC_ATTR1 + n)) != NULL )
 			pWnd->SetImageList(&list);
 	}
+	
+	DisDC.SelectObject(pDisOld);
+	ImageMap.DeleteObject();
+
+	DisDC.DeleteDC();
+	SrcDC.DeleteDC();
 
 	m_TransSlider.SetRange(10, 255);
 
@@ -274,15 +334,30 @@ BOOL CColParaDlg::OnInitDialog()
 	m_InvRect.right  = rect.right;
 	m_InvRect.bottom = rect.bottom;
 
-	/**************
-	if ( (pWnd = (CButton *)GetDlgItem(IDC_CHECK1)) != NULL ) {
-#ifdef	USE_DWMAPI
-		pWnd->EnableWindow(ExDwmEnable);
-#else
-		pWnd->EnableWindow(FALSE);
-#endif
+#ifdef	USE_DIRECTWRITE
+	CClientDC dc(this);
+	LOGFONT logfont;
+	CComboBox *pCombo = (CComboBox *)GetDlgItem(IDC_EMOJIFONTNAME);
+
+	if ( pCombo != NULL ) {
+		ZeroMemory(&logfont, sizeof(LOGFONT)); 
+		logfont.lfCharSet = DEFAULT_CHARSET;
+		::EnumFontFamiliesEx(dc.m_hDC, &logfont, (FONTENUMPROC)EnumFontFamExComboAddStr, (LPARAM)pCombo, 0);
+
+		if ( !CRLoginApp::IsWinVerCheck(_WIN32_WINNT_WINBLUE, VER_GREATER_EQUAL) )
+			pCombo->EnableWindow(FALSE);
 	}
-	***************/
+#else
+	CWnd *pDlgLtem;
+	if ( (pDlgLtem = GetDlgItem(IDC_EMOJICOLENABLE)) != NULL )
+		pDlgLtem->EnableWindow(FALSE);
+	if ( (pDlgLtem = GetDlgItem(IDC_EMOJIFONTNAME)) != NULL )
+		pDlgLtem->EnableWindow(FALSE);
+	if ( (pDlgLtem = GetDlgItem(IDC_EMOJIIMAGEDIR)) != NULL )
+		pDlgLtem->EnableWindow(FALSE);
+	if ( (pDlgLtem = GetDlgItem(IDC_EMOJIIMAGESEL)) != NULL )
+		pDlgLtem->EnableWindow(FALSE);
+#endif
 
 	DoInit();
 
@@ -291,6 +366,7 @@ BOOL CColParaDlg::OnInitDialog()
 BOOL CColParaDlg::OnApply() 
 {
 	int n;
+	CRLoginApp *pApp = (CRLoginApp *)AfxGetApp();
 
 	ASSERT(m_pSheet != NULL && m_pSheet->m_pTextRam != NULL);
 
@@ -324,6 +400,11 @@ BOOL CColParaDlg::OnApply()
 	case 8: n = 3600; break;
 	}
 	((CMainFrame *)AfxGetMainWnd())->SetWakeUpSleep(n);
+
+#ifdef	USE_DIRECTWRITE
+	m_pSheet->m_pTextRam->SetOption(TO_RLCOLEMOJI, m_EmojiColorEnable);
+	pApp->EmojiImageInit(m_EmojiFontName, m_EmojiImageDir);
+#endif
 
 	return TRUE;
 }
@@ -533,4 +614,33 @@ void CColParaDlg::OnBnClickedColedit()
 	Invalidate(FALSE);
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_COLTAB;
+}
+
+void CColParaDlg::OnBnClickedImageSel()
+{
+	CDirDialog dlg;
+
+	UpdateData(TRUE);
+
+	dlg.m_strInitDir = _T("");
+	dlg.m_strSelDir  = m_EmojiImageDir.IsEmpty() ? ((CRLoginApp *)AfxGetApp())->m_EmojiImageDir : m_EmojiImageDir;
+	dlg.m_strTitle.LoadString(IDS_EMOJIMAGEMSG);
+	dlg.m_strWindowTitle = _T("Emoji Image Folder");
+
+	if ( !dlg.DoBrowse(this) )
+		return;
+
+	dlg.m_strPath.TrimRight(_T(" \t\\"));
+	m_EmojiImageDir = dlg.m_strPath;
+
+	UpdateData(FALSE);
+
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
+}
+
+void CColParaDlg::OnUpdateTextRam()
+{
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= UMOD_TEXTRAM;
 }

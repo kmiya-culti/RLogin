@@ -33,6 +33,12 @@ typedef struct	_InitDlgTab {
 	int		mode;
 } INITDLGTAB;
 
+typedef struct	_InitDlgRect {
+	UINT	id;
+	int		mode;
+	RECT	rect;
+} INITDLGRECT;
+
 //////////////////////////////////////////////////////////////////////
 // CDialogExt ダイアログ
 
@@ -52,7 +58,8 @@ public:
 	CString m_FontName;
 	int m_FontSize;
 	CArray<CShortCutKey, CShortCutKey &> m_Data;
-	CArray<RECT, RECT &> m_InitDlgRect;
+	CArray<INITDLGRECT, INITDLGRECT &> m_InitDlgRect;
+	CSize m_MinSize, m_OfsSize;
 	CSize m_InitDpi, m_NowDpi;
 	CSize m_ZoomMul, m_ZoomDiv;
 	CFont m_DpiFont;
@@ -60,13 +67,14 @@ public:
 
 // クラスファンクション
 public:
-	void InitItemOffset(const INITDLGTAB *pTab);
-	void SetItemOffset(const INITDLGTAB *pTab, int cx, int cy, int oy = 0);
+	void InitItemOffset(const INITDLGTAB *pTab, int ox = 0, int oy = 0, int mx = 0, int my = 0);
+	virtual void SetItemOffset(int cx, int cy);
 	void SetBackColor(COLORREF color);
 	inline BOOL IsDefineFont() { return (m_FontName.IsEmpty() ? FALSE : TRUE); }
 	BOOL GetSizeAndText(SIZE *pSize, CString &title, CWnd *pParent);
 	void AddShortCutKey(UINT MsgID, UINT KeyCode, UINT KeyWith, UINT CtrlID, WPARAM wParam);
 	void SubclassComboBox(int nID);
+	void CheckMoveWindow(CRect &rect, BOOL bRepaint);
 
 	static void GetActiveDpi(CSize &dpi, CWnd *pWnd, CWnd *pParent);
 	static BOOL IsDialogExt(CWnd *pWnd);
@@ -85,4 +93,7 @@ protected:
 	afx_msg LRESULT OnKickIdle(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnDpiChanged(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT HandleInitDialog(WPARAM, LPARAM);
+	afx_msg void OnInitMenuPopup(CMenu *pPopupMenu, UINT nIndex,BOOL bSysMenu);
+	afx_msg void OnSize(UINT nType, int cx, int cy);
+	afx_msg void OnSizing(UINT fwSide, LPRECT pRect);
 };

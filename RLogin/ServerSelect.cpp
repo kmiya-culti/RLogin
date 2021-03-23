@@ -64,8 +64,6 @@ void CServerSelect::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(CServerSelect, CDialogExt)
 	ON_WM_CLOSE()
-	ON_WM_SIZE()
-	ON_WM_SIZING()
 	ON_WM_DRAWITEM()
 	ON_WM_MEASUREITEM()
 	ON_WM_LBUTTONUP()
@@ -340,7 +338,7 @@ static const INITDLGTAB ItemTab[] = {
 
 void CServerSelect::SetItemOffset(int cx, int cy)
 {
-	CDialogExt::SetItemOffset(ItemTab, cx, cy);
+	CDialogExt::SetItemOffset(cx, cy);
 
 	int n;
 	WINDOWPLACEMENT placeTree, placeTab, placeList;
@@ -456,9 +454,6 @@ BOOL CServerSelect::OnInitDialog()
 	m_TreeListPer = AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("TreePer"), m_TreeListPer);
 
 	GetWindowRect(rect);
-	m_MinWidth = rect.Width();
-	m_MinHeight = rect.Height();
-
 	cx = AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("cx"), rect.Width());
 	cy = AfxGetApp()->GetProfileInt(_T("ServerSelect"), _T("cy"), rect.Height());
 	if ( cx < rect.Width() )
@@ -491,7 +486,7 @@ BOOL CServerSelect::OnInitDialog()
 
 	InitEntry(INIT_CALL_NONE);
 
-	if ( m_pData->GetSize() == 0 && ((CRLoginApp *)::AfxGetApp())->GetExtFilePath(_T(".rlg"), m_InitPathName) ) {
+	if ( m_pData->GetSize() == 0 && ((CRLoginApp *)::AfxGetApp())->GetExtFilePath(NULL, _T(".rlg"), m_InitPathName) ) {
 		if ( MessageBox(CStringLoad(IDS_INITENTRYINPORT), _T("Question"), MB_ICONQUESTION | MB_YESNO) == IDYES )
 			PostMessage(WM_COMMAND, IDM_SERV_INPORT);
 		else
@@ -1547,44 +1542,6 @@ BOOL CServerSelect::PreTranslateMessage(MSG* pMsg)
 	return CDialogExt::PreTranslateMessage(pMsg);
 }
 
-void CServerSelect::OnSize(UINT nType, int cx, int cy)
-{
-	SetItemOffset(cx, cy);
-	CDialogExt::OnSize(nType, cx, cy);
-	Invalidate(TRUE);
-}
-
-void CServerSelect::OnSizing(UINT fwSide, LPRECT pRect)
-{
-	//case WMSZ_LEFT:			// 1 Left edge
-	//case WMSZ_RIGHT:			// 2 Right edge
-	//case WMSZ_TOP:			// 3 Top edge
-	//case WMSZ_TOPLEFT:		// 4 Top-left corner
-	//case WMSZ_TOPRIGHT:		// 5 Top-right corner
-	//case WMSZ_BOTTOM:			// 6 Bottom edge
-	//case WMSZ_BOTTOMLEFT:		// 7 Bottom-left corner
-	//case WMSZ_BOTTOMRIGHT:	// 8 Bottom-right corner
-
-	int width  = MulDiv(m_MinWidth,  m_NowDpi.cx, m_InitDpi.cx);
-	int height = MulDiv(m_MinHeight, m_NowDpi.cy, m_InitDpi.cy);
-
-	if ( (pRect->right - pRect->left) < width ) {
-		if ( fwSide == WMSZ_LEFT || fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_BOTTOMLEFT )
-			pRect->left = pRect->right - width;
-		else
-			pRect->right = pRect->left + width;
-	}
-
-	if ( (pRect->bottom - pRect->top) < height ) {
-		if ( fwSide == WMSZ_TOP || fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_TOPRIGHT )
-			pRect->top = pRect->bottom - height;
-		else
-			pRect->bottom = pRect->top + height;
-	}
-
-	CDialogExt::OnSizing(fwSide, pRect);
-}
-
 BOOL CServerSelect::GetTrackerRect(CRect &rect, CRect &move)
 {
 	CRect TreeRect, ListRect;
@@ -1611,23 +1568,6 @@ BOOL CServerSelect::GetTrackerRect(CRect &rect, CRect &move)
 	return TRUE;
 }
 
-void CServerSelect::InvertTracker(CRect &rect)
-{
-	CDC* pDC = GetDC();
-	CBrush* pBrush = CDC::GetHalftoneBrush();
-	HBRUSH hOldBrush = NULL;
-
-	if (pBrush != NULL)
-		hOldBrush = (HBRUSH)SelectObject(pDC->m_hDC, pBrush->m_hObject);
-
-	pDC->PatBlt(rect.left, rect.top, rect.Width(), rect.Height(), PATINVERT);
-
-	if (hOldBrush != NULL)
-		SelectObject(pDC->m_hDC, hOldBrush);
-
-	ReleaseDC(pDC);
-}
-
 void CServerSelect::OffsetTracker(CPoint point)
 {
 	int w = m_TrackerRect.Width();
@@ -1641,6 +1581,14 @@ void CServerSelect::OffsetTracker(CPoint point)
 	} else if ( m_TrackerRect.right > m_TrackerMove.right ) {
 		m_TrackerRect.right = m_TrackerMove.right;
 		m_TrackerRect.left  = m_TrackerRect.right - w;
+	}
+
+	if ( m_TrackerLast != m_TrackerRect ) {
+		CRect rect;
+		GetClientRect(rect);
+		m_TreeListPer = m_TrackerRect.left * 1000 / rect.Width();
+		SetItemOffset(rect.Width(), rect.Height());
+		m_TrackerLast = m_TrackerRect;
 	}
 }
 
@@ -1732,7 +1680,6 @@ void CServerSelect::OnLButtonDown(UINT nFlags, CPoint point)
 		m_List.SetFocus();
 
 	if ( GetTrackerRect(m_TrackerRect, m_TrackerMove) && m_TrackerRect.PtInRect(point) ) {
-		InvertTracker(m_TrackerRect);
 		m_TrackerPoint = point;
 		m_bTrackerActive = TRUE;
 		SetCapture();
@@ -1744,9 +1691,7 @@ void CServerSelect::OnLButtonDown(UINT nFlags, CPoint point)
 void CServerSelect::OnMouseMove(UINT nFlags, CPoint point)
 {
 	if ( m_bTrackerActive ) {
-		InvertTracker(m_TrackerRect);
 		OffsetTracker(point);
-		InvertTracker(m_TrackerRect);
 		m_TrackerPoint = point;
 
 	} else if ( m_bDragList ) {
@@ -1771,15 +1716,9 @@ void CServerSelect::OnMouseMove(UINT nFlags, CPoint point)
 void CServerSelect::OnLButtonUp(UINT nFlags, CPoint point)
 {
 	if ( m_bTrackerActive ) {
-		InvertTracker(m_TrackerRect);
 		OffsetTracker(point);
 		m_bTrackerActive = FALSE;
 		ReleaseCapture();
-
-		CRect rect;
-		GetClientRect(rect);
-		m_TreeListPer = m_TrackerRect.left * 1000 / rect.Width();
-		SetItemOffset(rect.Width(), rect.Height());
 
 	} else if ( m_bDragList ) {
 		m_ImageList.DragLeave(GetDesktopWindow());

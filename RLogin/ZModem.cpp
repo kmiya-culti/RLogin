@@ -297,9 +297,7 @@ int CZModem::XUpLoad()
 
     SetXonXoff(FALSE);
 
-	CheckFileName(1, "");
-
-	if ( m_PathName.IsEmpty() )
+	if ( !CheckFileName(CHKFILENAME_OPEN, "") )
 		goto CANRET;
 
     if ( (fp = _tfopen(m_PathName, _T("rb"))) == NULL )
@@ -382,9 +380,7 @@ int CZModem::XDownLoad()
 
     SetXonXoff(FALSE);
 
-	CheckFileName(0, "");
-
-	if ( m_PathName.IsEmpty() )
+	if ( !CheckFileName(CHKFILENAME_SAVE, "") )
 		goto CANRET;
 
 	if ( (fp = _tfopen(m_PathName, _T("wb"))) == NULL )
@@ -477,9 +473,7 @@ int CZModem::YUpLoad()
 
     SetXonXoff(FALSE);
 
-	CheckFileName(1, "");
-
-	if ( m_PathName.IsEmpty() )
+	if ( !CheckFileName(CHKFILENAME_OPEN, "") )
 		goto CANRET;
 
     if ( (fp = _tfopen(m_PathName, _T("rb"))) == NULL )
@@ -642,9 +636,7 @@ RELOAD:
 	while ( *p >= '0' && *p <= '7' )
 		file_time = file_time * 8 + (*(p++) - '0');
 
-	CheckFileName(0, tmp);
-
-	if ( m_PathName.IsEmpty() )
+	if ( !CheckFileName(CHKFILENAME_SAVE, tmp) )
 		goto CANRET;
 
 	if ( (fp = _tfopen(m_PathName, _T("wb"))) == NULL )
@@ -749,9 +741,7 @@ int CZModem::ZUpFile()
 
 NEXTFILE:
 
-	CheckFileName(3, "");
-
-	if ( m_PathName.IsEmpty() )
+	if ( !CheckFileName(CHKFILENAME_OPEN | CHKFILENAME_MULTI, "") )
 		return ERR;
 
 	if ( _tstati64(m_PathName, &st) )
@@ -966,9 +956,7 @@ int CZModem::ZDownFile()
 		return FALSE;
 	}
 
-	CheckFileName(0, buf);
-
-	if ( m_PathName.IsEmpty() )
+	if ( !CheckFileName(CHKFILENAME_SAVE, buf) )
 		goto ERRRET;
 
 	char *p = buf + 1 + strlen(buf);

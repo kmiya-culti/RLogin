@@ -170,7 +170,7 @@ void CFileUpDown::DownLoad()
 
 	m_ExtFileDlgMode = EXTFILEDLG_DOWNLOAD;
 
-	if ( CheckFileName(0, "") == NULL )
+	if ( !CheckFileName(CHKFILENAME_SAVE, "") )
 		return;
 
 	if ( (fp = _tfopen(m_PathName, _T("wb"))) == NULL )
@@ -593,7 +593,7 @@ void CFileUpDown::UpLoad()
 RECHECK:
 	m_ExtFileDlgMode = EXTFILEDLG_UPLOAD;
 
-	if ( CheckFileName(3, "") == NULL || m_PathName.IsEmpty() )
+	if ( !CheckFileName(CHKFILENAME_OPEN | CHKFILENAME_MULTI, "") )
 		return;
 
 	m_FileBuffer.Clear();
@@ -736,6 +736,7 @@ RECHECK:
 		m_UpFp = NULL;
 	}
 
-	if ( !m_DoAbortFlag && !m_ResvPath.IsEmpty() )
+	// m_MultiFileÇÃàµÇ¢Ç…íçà”
+	if ( m_MultiFile && !m_DoAbortFlag && !m_ResvPath.IsEmpty() )
 		goto RECHECK;
 }

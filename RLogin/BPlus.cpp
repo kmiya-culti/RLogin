@@ -1215,7 +1215,7 @@ int	CBPlus::BP_DLE_Seen()
 			for ( i = 3 ; R_buffer[i] != '\0' && i < R_Size ; i++ )
 				fileName += R_buffer[i];
 
-			if ( CheckFileName((R_buffer[1] == 'U' ? 1 : 0), fileName) == NULL || m_PathName.IsEmpty() ) {
+			if ( !CheckFileName((R_buffer[1] == 'U' ? CHKFILENAME_OPEN : CHKFILENAME_SAVE), fileName) ) {
 				Send_Failure ("CCancell Transfer file");
 				return 0;
 			}

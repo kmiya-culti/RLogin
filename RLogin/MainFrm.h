@@ -1,5 +1,5 @@
-// MainFrm.h : CMainFrame クラスのインターフェイス
-//
+//////////////////////////////////////////////////////////////////////
+// CMainFrame
 
 #pragma once
 
@@ -20,6 +20,7 @@
 #define	PANEFRAME_HSPLIT		6
 #define	PANEFRAME_WEVEN			7
 #define	PANEFRAME_HEVEN			8
+#define	PANEFRAME_HEDLG			9
 
 #define	PANEMIN_WIDTH			32
 #define	PANEMIN_HEIGHT			32
@@ -115,6 +116,22 @@ public:
 	CBitmap m_Bitmap;
 };
 
+class CDockContextEx : public CDockContext
+{
+public:
+	explicit CDockContextEx(CControlBar *pBar);
+
+	BOOL IsHitGrip(CPoint point);
+
+	virtual void StartDrag(CPoint pt);
+	virtual void StartResize(int nHitTest, CPoint pt);
+	virtual void ToggleDocking();
+
+	static void EnableDocking(CControlBar *pBar, DWORD dwDockStyle);
+
+	void TrackLoop();
+};
+
 class CQuickBar : public CDialogBar
 {
 	DECLARE_DYNAMIC(CQuickBar)
@@ -157,16 +174,76 @@ public:
 	afx_msg void OnCbnEditchangeEntryname();
 };
 
+class CTabDlgBar : public CControlBar
+{
+	DECLARE_DYNAMIC(CTabDlgBar)
+
+public:
+	CTabDlgBar();
+	virtual ~CTabDlgBar();
+
+public:
+	CTabCtrl m_TabCtrl;
+	CString m_FontName;
+	int m_FontSize;
+	CFont m_TabFont;
+	CSize m_InitSize;
+	CWnd *m_pShowWnd;
+	CImageList m_ImageList;
+
+	struct _DlgWndData {
+		CWnd *pWnd;
+		int nImage;
+		CWnd *pParent;
+		HMENU hMenu;
+		CRect WinRect;
+	};
+	CPtrArray m_Data;
+
+public:
+	BOOL Create(CWnd* pParentWnd, DWORD dwStyle, UINT nID);
+	void Add(CWnd *pWnd, int nImage);
+	void Del(CWnd *pWnd);
+	void Sel(CWnd *pWnd);
+	BOOL IsInside(CWnd *pWnd);
+	void *RemoveAt(int idx, CPoint point);
+	void RemoveAll();
+	void FontSizeCheck();
+	void DpiChanged();
+	void TabReSize();
+	int HitPoint(CPoint point);
+	void GetTitle(int nIndex, CString &title);
+	void TrackLoop(CPoint ptScrn, int idx, CWnd *pMoveWnd, int nImage);
+
+protected:
+	virtual void OnUpdateCmdUI(CFrameWnd* pTarget, BOOL bDisableIfNoHndler);
+	virtual CSize CalcFixedLayout(BOOL bStretch, BOOL bHorz);
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
+
+public:
+	DECLARE_MESSAGE_MAP()
+	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
+	afx_msg void OnSize(UINT nType, int cx, int cy);
+	afx_msg void OnSelchange(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
+	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
+};
+
 #define	CLIPOPENTHREADMAX	3		// クリップボードアクセススレッド多重起動数
 #define	CLIPOPENLASTMSEC	500		// 指定msec以内のクリップボードアップデートを無視する
 
 #define	SOCKPARAHASH		4
 #define	SOCKPARAMASK(fd)	(int)(((INT_PTR)fd / sizeof(INT_PTR)) & (SOCKPARAHASH - 1))
 
-#define	DEFAULT_DPI_X		GlobalSystemDpi
-#define	DEFAULT_DPI_Y		GlobalSystemDpi
+
+#define	DEFAULT_DPI_X		96
+#define	DEFAULT_DPI_Y		96
+#define	SYSTEM_DPI_X		GlobalSystemDpi
+#define	SYSTEM_DPI_Y		GlobalSystemDpi
 #define	SCREEN_DPI_X		((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiX
 #define	SCREEN_DPI_Y		((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY
+
+#define	SPEEKQUESIZE		2
 
 class CMainFrame : public CMDIFrameWnd
 {
@@ -209,8 +286,9 @@ public:
 	UINT_PTR m_MidiTimer;
 	CList<class CMidiQue *, class CMidiQue *> m_MidiQue;
 	volatile int m_InfoThreadCount;
+	BOOL m_bMenuBarShow;
 	BOOL m_bTabBarShow;
-	BOOL m_bQuickBarShow;
+	BOOL m_bTabDlgBarShow;
 	BOOL m_bQuickConnect;
 	BOOL m_ScrollBarFlag;
 	BOOL m_bVersionCheck;
@@ -239,6 +317,7 @@ public:
 	BOOL m_bPostIdleMsg;
 	clock_t m_LastClipUpdate;
 	class CServerSelect *m_pServerSelect;
+	class CHistoryDlg *m_pHistoryDlg;
 
 	BOOL WageantQuery(CBuffer *pInBuf, CBuffer *pOutBuf);
 	BOOL PageantQuery(CBuffer *pInBuf, CBuffer *pOutBuf);
@@ -272,12 +351,20 @@ public:
 	void SetWakeUpSleep(int sec);
 	void WakeUpSleep();
 
+	void AddHistory(void *pCmdHis);
+	
+	void AddTabDlg(CWnd *pWnd, int nImage, CPoint point);
+	void AddTabDlg(CWnd *pWnd, int nImage);
+	void DelTabDlg(CWnd *pWnd);
+	void SelTabDlg(CWnd *pWnd);
+	BOOL IsInsideDlg(CWnd *pWnd);
+
 	BOOL IsConnectChild(CPaneFrame *pPane);
 	void AddChild(CWnd *pWnd);
 	void RemoveChild(CWnd *pWnd, BOOL bDelete);
-	void ActiveChild(CWnd *pWnd);
+	void ActiveChild(class CChildFrame *pWnd);
 	void MoveChild(CWnd *pWnd, CPoint point);
-	BOOL IsWindowPanePoint(CPoint point);
+	CPaneFrame *GetWindowPanePoint(CPoint point);
 	void SwapChild(CWnd *pLeft, CWnd *pRight);
 	BOOL IsOverLap(HWND hWnd);
 	BOOL IsTopLevelDoc(CRLoginDoc *pDoc);
@@ -287,19 +374,24 @@ public:
 	int GetTabCount();
 	class CRLoginDoc *GetMDIActiveDocument();
 
+	void GetCtrlBarRect(LPRECT rect, CControlBar *pCtrl);
 	void GetFrameRect(CRect &frame);
-	void AdjustRect(CRect &rect);
+	void FrameToClient(LPRECT lpRect);
+	void FrameToClient(LPPOINT lpPoint);
+	void ClientToFrame(LPRECT lpRect);
+	void ClientToFrame(LPPOINT lpPoint);
 
 	void SplitWidthPane();
-	void SplitHeightPane();
+	void SplitHeightPane(BOOL bDialog = FALSE);
 	CPaneFrame *GetPaneFromChild(HWND hWnd);
 
 	CPaneFrame *m_pTrackPane;
 	CRect m_TrackRect;
+	CRect m_TrackBase;
+	CRect m_TrackLast;
 	CPoint m_TrackPoint;
 
 	void OffsetTrack(CPoint point);
-	void InvertTracker(CRect &rect);
 	int PreLButtonDown(UINT nFlags, CPoint point);
 	int GetExecCount();
 	void SetActivePoint(CPoint point);
@@ -327,10 +419,34 @@ public:
 	void VersionCheckProc();
 	void VersionCheck();
 
+	BOOL m_bVoiceEvent;
+	struct _SpeekData {
+		ULONG num;
+		CString text;
+		CArray<CCurPos, CCurPos &> pos;
+		long skip;
+		int abs;
+		int line;
+	} m_SpeekData[SPEEKQUESIZE];
+	int m_SpeekQueLen;
+	int m_SpeekQuePos;
+	int m_SpeekQueTop;
+	class CRLoginView *m_pSpeekView;
+	class CRLoginDoc *m_pSpeekDoc;
+	int m_SpeekLine;
+	int m_SpeekAbs;
+
+	BOOL SpeekQueIn();
+	void Speek(LPCTSTR str);
+	void SpeekUpdate(int x, int y);
+	inline BOOL SpeekViewCheck(class CRLoginView *pWnd) { return (m_bVoiceEvent && m_pSpeekView == pWnd ? TRUE : FALSE); }
+
 	inline CImageList *GetTabImageList() { return &(m_wndTabBar.m_ImageList); }
 	inline int GetTabImageIndex(LPCTSTR filename) { return m_wndTabBar.GetImageIndex(filename); }
-	inline void BarFontCheck() { m_wndTabBar.FontSizeCheck(); m_wndQuickBar.FontSizeCheck(); RecalcLayout(TRUE); }
+	inline void BarFontCheck() { m_wndTabBar.FontSizeCheck(); m_wndQuickBar.FontSizeCheck(); m_wndTabDlgBar.FontSizeCheck(); RecalcLayout(TRUE); }
 	inline void QuickBarInit() { m_wndQuickBar.InitDialog(); }
+	inline void TabDlgShow(BOOL bShow) { ShowControlBar(&m_wndTabDlgBar, bShow, FALSE); }
+	inline BOOL TabDlgInDrag(CPoint point, CWnd *pWnd, int nImage) { if ( !m_bTabDlgBarShow ) return FALSE; m_wndTabDlgBar.TrackLoop(point, (-7), pWnd, nImage); return TRUE; }
 
 // コントロール バー用メンバ
 protected: 
@@ -338,6 +454,7 @@ protected:
 	CToolBar    m_wndToolBar;
 	CTabBar		m_wndTabBar;
 	CQuickBar	m_wndQuickBar;
+	CTabDlgBar	m_wndTabDlgBar;
 
 // オーバーライド
 public:
@@ -350,6 +467,7 @@ protected:
 	DECLARE_MESSAGE_MAP()
 
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
+	afx_msg void OnClose();
 	afx_msg void OnDestroy();
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
@@ -361,7 +479,6 @@ protected:
 	afx_msg void OnExitMenuLoop(BOOL bIsTrackPopupMenu);
 	afx_msg void OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized);
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
-	afx_msg void OnClose();
 	afx_msg void OnMoving(UINT fwSide, LPRECT pRect);
 	afx_msg void OnGetMinMaxInfo(MINMAXINFO* lpMMI);
 
@@ -398,15 +515,22 @@ protected:
 	afx_msg void OnUpdateViewMenubar(CCmdUI *pCmdUI);
 	afx_msg void OnViewQuickbar();
 	afx_msg void OnUpdateViewQuickbar(CCmdUI *pCmdUI);
+	afx_msg void OnViewTabDlgbar();
+	afx_msg void OnUpdateViewTabDlgbar(CCmdUI *pCmdUI);
 	afx_msg void OnViewTabbar();
 	afx_msg void OnUpdateViewTabbar(CCmdUI *pCmdUI);
 	afx_msg void OnViewScrollbar();
 	afx_msg void OnUpdateViewScrollbar(CCmdUI *pCmdUI);
+	afx_msg void OnViewHistoryDlg();
+	afx_msg void OnUpdateHistoryDlg(CCmdUI *pCmdUI);
+
 	afx_msg void OnVersioncheck();
 	afx_msg void OnUpdateVersioncheck(CCmdUI *pCmdUI);
 	afx_msg void OnNewVersionFound();
 	afx_msg void OnClipchain();
 	afx_msg void OnUpdateClipchain(CCmdUI *pCmdUI);
+	afx_msg void OnSpeekText();
+	afx_msg void OnUpdateSpeekText(CCmdUI *pCmdUI);
 
 	afx_msg void OnFileAllLoad();
 	afx_msg void OnFileAllSave();
@@ -431,6 +555,7 @@ protected:
 	afx_msg LRESULT OnDpiChanged(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnSetMessageString(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnNullMessage(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnSpeekMsg(WPARAM wParam, LPARAM lParam);
 };
 
 

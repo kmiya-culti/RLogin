@@ -1,5 +1,6 @@
-// RLogin.h : RLogin アプリケーションのメイン ヘッダー ファイル
-//
+//////////////////////////////////////////////////////////////////////
+// CRLogin
+
 #pragma once
 
 #ifndef __AFXWIN_H__
@@ -21,19 +22,23 @@
 #define WM_GETCLIPBOARD		(WM_APP + 5)
 
 // CResTransDlg
-#define WM_HTTPREQUEST		(WM_APP + 6)
+#define WM_HTTPREQUEST		(WM_APP + 20)
 
 // CRLoginView
-#define WM_LOGWRITE			(WM_APP + 7)
+#define WM_LOGWRITE			(WM_APP + 21)
+#define	WM_SPEEKMSG			(WM_APP + 22)
 
 // CSFtp
-#define WM_RECIVEBUFFER		(WM_APP + 20)
-#define WM_THREADENDOF		(WM_APP + 21)
+#define WM_RECIVEBUFFER		(WM_APP + 23)
+#define WM_THREADENDOF		(WM_APP + 24)
 
 // CFileThread
-#define	WM_FILEWRITE		(WM_APP + 31)
-#define	WM_FILEFLUSH		(WM_APP + 32)
-#define	WM_FILESYNC			(WM_APP + 33)
+#define	WM_FILEWRITE		(WM_APP + 25)
+#define	WM_FILEFLUSH		(WM_APP + 26)
+#define	WM_FILESYNC			(WM_APP + 27)
+
+// CCmdHisDlg
+#define	WM_ADDCMDHIS		(WM_APP + 28)
 
 #define	IDLEPROC_SOCKET		0
 #define	IDLEPROC_ENCRYPT	1
@@ -143,6 +148,7 @@ public:
 	void SaveEmojiImage(CEmojiImage *pEmoji);
 	HDC GetEmojiDrawText(CEmojiImage *pEmoji, COLORREF fc, int fh);
 	BOOL DrawEmoji(CDC *pDC, CRect &rect, LPCTSTR str, COLORREF fc, COLORREF bc, BOOL bEraBack, int fh, int zm);
+	void EmojiImageInit(LPCTSTR pFontName, LPCTSTR pImageDir);
 #endif
 
 #ifdef	USE_JUMPLIST
@@ -150,12 +156,9 @@ public:
 	void CreateJumpList(CServerEntryTab *pEntry);
 #endif
 
-#ifdef	USE_SAPI
 	ISpVoice *m_pVoice;
-	void Speek(LPCTSTR str);
-#endif
 
-	BOOL GetExtFilePath(LPCTSTR ext, CString &path);
+	BOOL GetExtFilePath(LPCTSTR name, LPCTSTR ext, CString &path);
 	BOOL IsDirectory(LPCTSTR dir);
 	BOOL CreateDesktopShortcut(LPCTSTR entry);
 
@@ -194,6 +197,7 @@ public:
 	BOOL SaveRegistryKey(HKEY hKey, CFile *file, LPCTSTR base);
 	BOOL SaveRegistryFile();
 
+	LANGID GetLangId();
 	void GetVersion(CString &str);
 	void SetDefaultPrinter();
 	void SSL_Init();

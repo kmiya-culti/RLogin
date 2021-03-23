@@ -16,9 +16,9 @@
 
 IMPLEMENT_DYNAMIC(CScrnPage, CTreePage)
 
-#define	CHECKOPTMAX		4
+#define	CHECKOPTMAX		5
 #define	IDC_CHECKFAST	IDC_OPTCHECK1
-static const int CheckOptTab[] = { TO_RLNORESZ, TO_SETWINPOS, TO_RLHIDPIFSZ, TO_RLBACKHALF };
+static const int CheckOptTab[] = { TO_RLNORESZ, TO_SETWINPOS, TO_RLHIDPIFSZ, TO_RLBACKHALF, TO_IMECARET };
 
 CScrnPage::CScrnPage() : CTreePage(CScrnPage::IDD)
 {
@@ -52,6 +52,7 @@ void CScrnPage::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_SCSZCOLS2, m_ColsMax[1]);
 	DDX_CBIndex(pDX, IDC_VISUALBELL, m_VisualBell);
 	DDX_CBIndex(pDX, IDC_DEFCARET, m_TypeCaret);
+	DDX_CBIndex(pDX, IDC_IMECARET, m_ImeTypeCaret);
 	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
 		DDX_Check(pDX, IDC_CHECKFAST + n, m_Check[n]);
 	DDX_CBIndex(pDX, IDC_FONTHW, m_FontHw);
@@ -60,6 +61,7 @@ void CScrnPage::DoDataExchange(CDataExchange* pDX)
 	DDX_CBString(pDX, IDC_SCRNOFFSLEFT, m_ScrnOffsLeft);
 	DDX_CBString(pDX, IDC_SCRNOFFSRIGHT, m_ScrnOffsRight);
 	DDX_Control(pDX, IDC_CARETCOL, m_ColBox);
+	DDX_Control(pDX, IDC_IMECARETCOL, m_ImeColBox);
 	DDX_CBString(pDX, IDC_TITLENAME, m_TitleName);
 	DDX_CBIndex(pDX, IDC_SLEEPMODE, m_SleepMode);
 }
@@ -81,6 +83,7 @@ BEGIN_MESSAGE_MAP(CScrnPage, CTreePage)
 	ON_CBN_SELCHANGE(IDC_SCRNOFFSRIGHT,	 OnUpdateEdit)
 	ON_WM_DRAWITEM()
 	ON_STN_CLICKED(IDC_CARETCOL, &CScrnPage::OnStnClickedCaretCol)
+	ON_STN_CLICKED(IDC_IMECARETCOL, &CScrnPage::OnStnClickedImeCaretCol)
 	ON_CBN_EDITCHANGE(IDC_TITLENAME, &CScrnPage::OnUpdateEdit)
 	ON_CBN_SELENDCANCEL(IDC_TITLENAME, &CScrnPage::OnUpdateEdit)
 	ON_CBN_SELCHANGE(IDC_SLEEPMODE, &CScrnPage::OnUpdateEdit)
@@ -120,7 +123,7 @@ void CScrnPage::InitFontSize()
 	if ( m_Check[2] )	// m_pSheet->m_pTextRam->IsOptEnable(TO_RLHIDPIFSZ)
 		pixDpi = (double)dpi;
 	else
-		pixDpi = (double)MulDiv(dpi, SCREEN_DPI_Y, DEFAULT_DPI_Y);
+		pixDpi = (double)MulDiv(dpi, SCREEN_DPI_Y, SYSTEM_DPI_Y);
 
 	for ( n = pCombo->GetCount() - 1 ; n >= 0; n-- )
 		pCombo->DeleteString(n);
@@ -155,6 +158,12 @@ void CScrnPage::DoInit()
 		m_TypeCaret--;
 
 	m_CaretColor = m_pSheet->m_pTextRam->m_CaretColor;
+
+	m_ImeTypeCaret = m_pSheet->m_pTextRam->m_ImeTypeCaret;
+	m_ImeCaretColor = m_pSheet->m_pTextRam->m_ImeCaretColor;
+
+	m_ColBox.Invalidate(FALSE);
+	m_ImeColBox.Invalidate(FALSE);
 
 	m_TtlMode = m_pSheet->m_pTextRam->m_TitleMode & 7;
 	m_TtlRep  = (m_pSheet->m_pTextRam->m_TitleMode & WTTL_REPORT) ? TRUE : FALSE;
@@ -226,6 +235,9 @@ BOOL CScrnPage::OnApply()
 	m_pSheet->m_pTextRam->m_TypeCaret = m_TypeCaret + 1;
 	m_pSheet->m_pTextRam->m_CaretColor = m_CaretColor;
 	
+	m_pSheet->m_pTextRam->m_ImeTypeCaret = m_ImeTypeCaret;
+	m_pSheet->m_pTextRam->m_ImeCaretColor = m_ImeCaretColor;
+
 	m_pSheet->m_pTextRam->m_TitleMode = m_TtlMode;
 
 	if ( m_TtlRep )
@@ -304,6 +316,11 @@ void CScrnPage::OnDrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct)
 		m_ColBox.GetClientRect(rect);
 		dc.FillSolidRect(rect, m_CaretColor);
 		dc.Detach();
+	} else if ( nIDCtl == IDC_IMECARETCOL ) {
+		dc.Attach(lpDrawItemStruct->hDC);
+		m_ImeColBox.GetClientRect(rect);
+		dc.FillSolidRect(rect, m_ImeCaretColor);
+		dc.Detach();
 	} else
 		CTreePage::OnDrawItem(nIDCtl, lpDrawItemStruct);
 }
@@ -318,4 +335,16 @@ void CScrnPage::OnStnClickedCaretCol()
 	m_ColBox.Invalidate(FALSE);
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= (UMOD_TEXTRAM | UMOD_CARET);
+}
+void CScrnPage::OnStnClickedImeCaretCol()
+{
+	CColorDialog cdl(m_ImeCaretColor, CC_ANYCOLOR | CC_FULLOPEN | CC_RGBINIT, this);
+
+	if ( DpiAwareDoModal(cdl) != IDOK )
+		return;
+
+	m_ImeCaretColor = cdl.GetColor();
+	m_ImeColBox.Invalidate(FALSE);
+	SetModified(TRUE);
+	m_pSheet->m_ModFlag |= (UMOD_TEXTRAM);
 }

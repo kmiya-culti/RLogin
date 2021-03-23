@@ -24,6 +24,7 @@ public:
 	CString m_TransTo;
 	CProgressCtrl m_TransProgress;
 	CButton m_TransExec;
+	BOOL m_bTranstate;
 
 	CResDataBase m_ResDataBase;
 	CTranslateStringTab m_TransStrTab;
@@ -33,9 +34,10 @@ public:
 	int m_TransNext;
 	CString m_MsToken;
 
-	enum {  TRANSPROC_START,
+	enum {  TRANSPROC_START, TRANSPROC_RESTART,
 			TRANSPROC_TOKENREQ, TANSPROC_TOKENRESULT, TANSPROC_TRANSREQ, TANSPROC_TRANSRESULT, 
 			TRANSPROC_GOOGLEREQ, TANSPROC_GOOGLERESULT,
+			TRANSPROC_GASCRIPTREQ, TANSPROC_GASCRIPTRESULT,
 			TANSPROC_PAUSE, TANSPROC_RETRY, TRANSPROC_WAIT, TRANSPROC_ENDOF };
 
 	int m_ProcStat;

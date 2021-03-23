@@ -117,6 +117,12 @@ public:
 	LPCSTR Base64Decode(LPCSTR str);
 	LPCWSTR Base64Decode(LPCWSTR str);
 	void Base64Encode(LPBYTE buf, int len);
+	LPCTSTR Base64urlDecode(LPCTSTR str);
+	void Base64urlEncode(LPBYTE buf, int len);
+	LPCTSTR Base32Decode(LPCTSTR str, BOOL bHex = FALSE);
+	void Base32Encode(LPBYTE buf, int len, BOOL bHex = FALSE);
+	inline LPCTSTR Base32hexDecode(LPCTSTR str) { return Base32Decode(str, TRUE); }
+	inline void Base32hexEncode(LPBYTE buf, int len) { Base32Encode(buf, len, TRUE); }
 	LPCTSTR Base16Decode(LPCTSTR str);
 	void Base16Encode(LPBYTE buf, int len);
 	void PutHexBuf(LPBYTE buf, int len);
@@ -467,6 +473,14 @@ public:
 	virtual ~CBmpFile();
 };
 
+typedef struct _FontSizeTab {
+	struct _FontSizeTab *Next;
+	WCHAR FontName[LF_FACESIZE];
+	int Width;
+	int Height;
+	BOOL bFixed;
+} FONTSIZETAB;
+
 class CFontChacheNode : public CObject
 {
 public:
@@ -479,8 +493,9 @@ public:
 	int m_Style;
 	int m_Quality;
 	BOOL m_bFixed;
-	TEXTMETRIC m_Metric;
+	int m_Offset;
 
+	FONTSIZETAB *FontSizeCheck(LPCTSTR pFontName);
 	CFont *Open(LPCTSTR pFontName, int Width, int Height, int CharSet, int Style, int Quality);
 
 	CFontChacheNode();
@@ -494,10 +509,12 @@ class CFontChache : public CObject
 {
 public:
 	CFontChacheNode *m_pTop[FONTHASHMAX];
-	CFontChacheNode m_Data[FONTCACHEMAX];
+	CFontChacheNode *m_Data;
 
 	CFontChacheNode *GetFont(LPCTSTR pFontName, int Width, int Height, int CharSet, int Style, int Quality);
+
 	CFontChache();
+	~CFontChache();
 };
 
 class CMutexLock : public CObject
@@ -707,9 +724,10 @@ public:
 #define	MASK_APPL	00010
 #define	MASK_CKM	00020
 #define	MASK_VT52	00040
-//#define	MASK_NUMLCK	00100
-//#define	MASK_SCRLCK	00200
-//#define	MASK_CAPLCK	00400
+#define	MASK_LEGA	00100
+//#define	MASK_NUMLCK	00200
+//#define	MASK_SCRLCK	00400
+//#define	MASK_CAPLCK	01000
 
 #ifdef	USE_CLIENTKEY
 	#define	VK_LMOUSE_LEFT_TOP			512
@@ -1002,13 +1020,11 @@ class CTranslateString : public CObject
 {
 public:
 	BOOL m_bSplitFlag;
-	TCHAR m_SplitChar;
 	CString *m_pBaseString;
 	CString m_SourceString;
 	CString m_FrontString;
-	CString m_AddString;
+	CString m_BackString;
 
-	void SetSourceString(LPCTSTR str);
 	void SetTargetString(LPCTSTR str);
 		
 	const CTranslateString & operator = (CTranslateString &data);
@@ -1075,6 +1091,43 @@ public:
 #endif
 	CEmojiImage();
 	~CEmojiImage();
+};
+
+class CCurPos : public tagSIZE
+{
+public:
+	BOOL operator == (SIZE size);
+	BOOL operator != (SIZE size);
+	BOOL operator >= (SIZE size);
+	BOOL operator <= (SIZE size);
+	BOOL operator >  (SIZE size);
+	BOOL operator <  (SIZE size);
+
+	inline void SetSize(int ix, int iy) { cx = ix; cy = iy; }
+
+	CCurPos();
+	CCurPos(int InitCx, int InitCy);
+};
+
+class CDirDialog : public CObject
+{
+public:
+    CString m_strWindowTitle;
+    CString m_strPath;
+    CString m_strInitDir;
+    CString m_strSelDir;
+    CStringLoad m_strTitle;
+    int  m_iImageIndex;
+    BOOL m_bStatus;
+
+    BOOL DoBrowse(CWnd *pwndParent = NULL);
+
+    CDirDialog();
+    virtual ~CDirDialog();
+
+private:
+    virtual BOOL SelChanged(LPCTSTR lpcsSelection, CString& csStatusText) { return TRUE; };
+    static int __stdcall CDirDialog::BrowseCtrlCallback(HWND hwnd, UINT uMsg, LPARAM lParam, LPARAM lpData);
 };
 
 #endif // !defined(AFX_DATA_H__6A23DC3E_3DDC_47BD_A6FC_E0127564AE6E__INCLUDED_)

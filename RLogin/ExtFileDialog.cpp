@@ -10,11 +10,78 @@
 #include "ExtFileDialog.h"
 
 //////////////////////////////////////////////////////////////////////
+// CDialogRes 
+
+IMPLEMENT_DYNAMIC(CDialogRes, CDialog)
+
+CDialogRes::CDialogRes(UINT nIDTemplate, CWnd *pParent)	: CDialog(nIDTemplate, pParent)
+{
+	m_nIDTemplate = nIDTemplate;
+	
+	m_FontName = ::AfxGetApp()->GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
+	m_FontSize = ::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9);
+}
+CDialogRes::~CDialogRes()
+{
+}
+BOOL CDialogRes::Create(LPCTSTR lpszTemplateName, CWnd* pParentWnd)
+{
+	HGLOBAL hDialog;
+	HGLOBAL hInitData = NULL;
+	void* lpInitData = NULL;
+	LPCDLGTEMPLATE lpDialogTemplate;
+
+	m_lpszTemplateName = lpszTemplateName;
+
+	if ( IS_INTRESOURCE(m_lpszTemplateName) && m_nIDHelp == 0 )
+		m_nIDHelp = LOWORD((DWORD_PTR)m_lpszTemplateName);
+
+	if ( !((CRLoginApp *)AfxGetApp())->LoadResDialog(m_lpszTemplateName, hDialog, hInitData) )
+		return (-1);
+
+	if ( hInitData != NULL )
+		lpInitData = (void *)LockResource(hInitData);
+
+	lpDialogTemplate = (LPCDLGTEMPLATE)LockResource(hDialog);
+
+	CDialogTemplate dlgTemp(lpDialogTemplate);
+
+	if ( IsDefineFont() )
+		dlgTemp.SetFont(m_FontName, m_FontSize);
+	else {
+		CString name;
+		WORD size;
+		dlgTemp.GetFont(name, size);
+		if ( m_FontSize != size )
+			dlgTemp.SetFont(name, m_FontSize);
+	}
+
+	lpDialogTemplate = (LPCDLGTEMPLATE)LockResource(dlgTemp.m_hTemplate);
+
+	BOOL bResult = CreateIndirect(lpDialogTemplate, pParentWnd, lpInitData);
+
+	UnlockResource(dlgTemp.m_hTemplate);
+
+	UnlockResource(hDialog);
+	FreeResource(hDialog);
+
+	if ( hInitData != NULL ) {
+		UnlockResource(hInitData);
+		FreeResource(hInitData);
+	}
+
+	return bResult;
+}
+
+BEGIN_MESSAGE_MAP(CDialogRes, CDialog)
+END_MESSAGE_MAP()
+
+//////////////////////////////////////////////////////////////////////
 // CFileDownPage
 
-IMPLEMENT_DYNAMIC(CFileDownPage, CDialog)
+IMPLEMENT_DYNAMIC(CFileDownPage, CDialogRes)
 
-CFileDownPage::CFileDownPage() : CDialog(CFileDownPage::IDD)
+CFileDownPage::CFileDownPage() : CDialogRes(CFileDownPage::IDD)
 {
 	m_pUpDown = NULL;
 
@@ -33,7 +100,7 @@ CFileDownPage::~CFileDownPage()
 }
 void CFileDownPage::DoDataExchange(CDataExchange* pDX)
 {
-	CDialog::DoDataExchange(pDX);
+	CDialogRes::DoDataExchange(pDX);
 
 	DDX_Radio(pDX, IDC_RADIO1, m_DownMode);
 	DDX_Check(pDX, IDC_CHECK1, m_bDownCrLf);
@@ -46,7 +113,7 @@ void CFileDownPage::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_EDIT1, m_DownSec);
 }
 
-BEGIN_MESSAGE_MAP(CFileDownPage, CDialog)
+BEGIN_MESSAGE_MAP(CFileDownPage, CDialogRes)
 END_MESSAGE_MAP()
 
 BOOL CFileDownPage::OnInitDialog()
@@ -55,7 +122,7 @@ BOOL CFileDownPage::OnInitDialog()
 	CComboBox *pCombo;
 	CStringArray stra;
 
-	CDialog::OnInitDialog();
+	CDialogRes::OnInitDialog();
 
 	CIConv::SetListArray(stra);
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_COMBO1)) != NULL ) {
@@ -102,9 +169,9 @@ BOOL CFileDownPage::OnApply()
 //////////////////////////////////////////////////////////////////////
 // CFileUpConvPage
 
-IMPLEMENT_DYNAMIC(CFileUpConvPage, CDialog)
+IMPLEMENT_DYNAMIC(CFileUpConvPage, CDialogRes)
 
-CFileUpConvPage::CFileUpConvPage() : CDialog(CFileUpConvPage::IDD)
+CFileUpConvPage::CFileUpConvPage() : CDialogRes(CFileUpConvPage::IDD)
 {
 	m_pUpDown = NULL;
 
@@ -120,7 +187,7 @@ CFileUpConvPage::~CFileUpConvPage()
 }
 void CFileUpConvPage::DoDataExchange(CDataExchange* pDX)
 {
-	CDialog::DoDataExchange(pDX);
+	CDialogRes::DoDataExchange(pDX);
 
 	DDX_Radio(pDX, IDC_RADIO1, m_UpMode);
 	DDX_Check(pDX, IDC_CHECK1, m_UpCrLf);
@@ -139,7 +206,7 @@ BOOL CFileUpConvPage::OnInitDialog()
 	CComboBox *pCombo;
 	CStringArray stra;
 
-	CDialog::OnInitDialog();
+	CDialogRes::OnInitDialog();
 
 	CIConv::SetListArray(stra);
 	if ( (pCombo = (CComboBox *)GetDlgItem(IDC_COMBO1)) != NULL ) {
@@ -180,9 +247,9 @@ BOOL CFileUpConvPage::OnApply()
 //////////////////////////////////////////////////////////////////////
 // CFileUpSendPage
 
-IMPLEMENT_DYNAMIC(CFileUpSendPage, CDialog)
+IMPLEMENT_DYNAMIC(CFileUpSendPage, CDialogRes)
 
-CFileUpSendPage::CFileUpSendPage() : CDialog(CFileUpSendPage::IDD)
+CFileUpSendPage::CFileUpSendPage() : CDialogRes(CFileUpSendPage::IDD)
 {
 	m_pUpDown = NULL;
 
@@ -204,7 +271,7 @@ CFileUpSendPage::~CFileUpSendPage()
 }
 void CFileUpSendPage::DoDataExchange(CDataExchange* pDX)
 {
-	CDialog::DoDataExchange(pDX);
+	CDialogRes::DoDataExchange(pDX);
 
 	DDX_Radio(pDX, IDC_RADIO4, m_SendMode);
 	DDX_Check(pDX, IDC_CHECK2, m_RecvWait);
@@ -224,7 +291,7 @@ END_MESSAGE_MAP()
 
 BOOL CFileUpSendPage::OnInitDialog()
 {
-	CDialog::OnInitDialog();
+	CDialogRes::OnInitDialog();
 
 	m_SendMode = m_pUpDown->m_SendMode;
 	m_RecvWait = m_pUpDown->m_bRecvWait;

@@ -8,6 +8,7 @@
 #include "MainFrm.h"
 #include "RLoginDoc.h"
 #include "RLoginView.h"
+#include "Script.h"
 #include "TextRam.h"
 #include "PipeSock.h"
 #include "GrapWnd.h"
@@ -616,7 +617,7 @@ static CTextRam::ESCNAMEPROC fc_EscNameTab[] = {
 	{	_T("NBH"),		&CTextRam::fc_NBH,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
 	{	_T("NEL"),		&CTextRam::fc_NEL,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
 	{	_T("NOP"),		&CTextRam::fc_POP,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
-	{	_T("OSC"),		&CTextRam::fc_OSC,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
+	{	_T("OSC"),		&CTextRam::fc_OSC,		NULL,	PROCTYPE_ESC,	TRACE_NON	},
 	{	_T("PLD"),		&CTextRam::fc_PLD,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
 	{	_T("PLU"),		&CTextRam::fc_PLU,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
 	{	_T("PM"),		&CTextRam::fc_PM,		NULL,	PROCTYPE_ESC,	TRACE_NON	},
@@ -1265,6 +1266,9 @@ void CTextRam::fc_TraceCall(DWORD ch)
 				m_pTraceProc = tp;
 			} else if ( m_TraceFunc != &CTextRam::fc_DCS && m_TraceFunc != &CTextRam::fc_CSI && 
 						m_TraceFunc != &CTextRam::fc_OSC && m_TraceFunc != &CTextRam::fc_PM  && m_TraceFunc != &CTextRam::fc_APC ) {
+				fc_TraceLogChar(ch);
+				fc_TraceLogFlush(tp, FALSE);
+			} else if ( m_TraceFunc == &CTextRam::fc_OSC && ch == 0x07 ) {
 				fc_TraceLogChar(ch);
 				fc_TraceLogFlush(tp, FALSE);
 			} else
@@ -2238,13 +2242,19 @@ void CTextRam::fc_SJIS2(DWORD ch)
 	fc_KANJI(ch);
 
 	m_BackChar = (m_BackChar << 8) | ch;
+
 	if ( (n = m_IConv.IConvChar(m_SendCharSet[SJIS_SET], m_FontTab[m_BankNow].m_IContName, m_BackChar)) == 0 ) {
 		m_BankNow = m_BankTab[m_KanjiMode][3];
 		if ( (n = m_IConv.IConvChar(m_SendCharSet[SJIS_SET], m_FontTab[m_BankNow].m_IContName, m_BackChar)) == 0 ) {
-			m_BankNow = m_BankTab[m_KanjiMode][2];
-			n = 0x2222;
+			m_BankNow  = SET_UNICODE;
+			if ( (n = m_IConv.IConvChar(m_SendCharSet[SJIS_SET], _T("UTF-16BE"), m_BackChar)) == 0 ) {
+				m_BankNow = m_BankTab[m_KanjiMode][2];
+				n = 0x2222;
+			} else
+				n = IconvToMsUnicode(m_SendCharSet[SJIS_SET], n);
 		}
 	}
+
 	INSMDCK(2);
 	PUT2BYTE(n, m_BankNow);
 	fc_POP(ch);
@@ -2373,16 +2383,41 @@ void CTextRam::fc_UTF85(DWORD ch)
 		m_BackChar = UCS4toUCS2(m_BackChar);
 		cf = UnicodeCharFlag(m_BackChar);
 
-		if ( !IsOptEnable(TO_RLUNINOM) ) {		// TO_RLUNINOM(8448)が解除(default)
+		// サロゲート(D800-DBFF/DC00-DFFF)コードの処理・・・不正なUTF-8
+		if ( (cf & UNI_SGH) != 0 ) {
+			m_SurroChar = m_BackChar << 16;
+			m_LastFlag = cf;
+			goto BREAK;
+		} else if ( (cf & UNI_SGL) != 0 ) {
+			if ( (m_LastFlag & UNI_SGH) != 0 && m_SurroChar != 0 ) {
+				m_BackChar |= m_SurroChar;
+				DCode = UCS2toUCS4(m_BackChar);
+				cf = UnicodeCharFlag(m_BackChar);
+			} else {
+				if ( IsOptEnable(TO_RLBRKMBCS) )
+					fc_KANBRK();
+				m_SurroChar = 0;
+				m_LastFlag = cf;
+				goto BREAK;
+			}
+		} else if ( (m_LastFlag & UNI_SGH) != 0 ) {
+			if ( IsOptEnable(TO_RLBRKMBCS) )
+				fc_KANBRK();
+			m_SurroChar = 0;
+		} else
+			m_SurroChar = 0;
+
+		// TO_RLUNINOM(8448)が解除(default)
+		if ( !IsOptEnable(TO_RLUNINOM) ) {
 
 			// Unicode Normalization
 			// ２文字から１文字のみノーマライズ
 			// U+1100 U+1161        -> U+AC00
 			// U+1100 U+1161 U+11A8 -> U+AC00 U+11A8 -> U+AC01
-			if ( (n = UnicodeNomal(m_LastChar, m_BackChar)) != 0 ) {
+			if ( m_LastCur.x == m_CurX && m_LastCur.y == m_CurY && (n = UnicodeNomal(m_LastChar, m_BackChar)) != 0 ) {
 				m_BackChar = n;
 				cf = UnicodeCharFlag(m_BackChar);
-				LOCATE(m_LastPos.x, m_LastPos.y);
+				LOCATE(m_LastPos.x, m_LastPos.y - m_HisPos);
 			}
 
 			// Mark文字をそれなりに解釈
@@ -2420,12 +2455,12 @@ void CTextRam::fc_UTF85(DWORD ch)
 			// U+1100-115F は初声子音
 			// U+1160-11A2 は中声母音
 			// U+11A8-11F9 は終声子音
-			if ( (m_LastFlag & UNI_HNF) != 0 ) {
+			if ( (m_LastFlag & UNI_HNF) != 0 && m_LastCur.x == m_CurX && m_LastCur.y == m_CurY ) {
 				if ( (cf & UNI_HNM) != 0 ) {
-					PUTADD(m_LastPos.x, m_LastPos.y, m_BackChar);
+					PUTADD(m_LastPos.x, m_LastPos.y - m_HisPos, m_BackChar);
 					goto BREAK;
 				} else if ( (cf & UNI_HNL) != 0 ) {
-					PUTADD(m_LastPos.x, m_LastPos.y, m_BackChar);
+					PUTADD(m_LastPos.x, m_LastPos.y - m_HisPos, m_BackChar);
 					goto BREAK;
 				}
 			}
@@ -2438,7 +2473,7 @@ void CTextRam::fc_UTF85(DWORD ch)
 		// Non Spaceing Mark (with VARIATION SELECTOR !!)
 		if ( (cf & (UNI_IVS | UNI_NSM)) != 0 ) {
 			if ( m_LastChar != 0 )
-				PUTADD(m_LastPos.x, m_LastPos.y, m_BackChar);
+				PUTADD(m_LastPos.x, m_LastPos.y - m_HisPos, m_BackChar);
 			goto BREAK;
 		}
 
@@ -2482,7 +2517,7 @@ void CTextRam::fc_UTF85(DWORD ch)
 
 		if ( (cf & UNI_EMODF) != 0 ) {
 			if ( m_LastChar != 0 && (m_LastFlag & UNI_EMOJI) != 0 )
-				PUTADD(m_LastPos.x, m_LastPos.y, m_BackChar);
+				PUTADD(m_LastPos.x, m_LastPos.y - m_HisPos, m_BackChar);
 			goto BREAK;
 
 		} else if ( (cf & UNI_BN) != 0 ) {
@@ -2531,7 +2566,7 @@ void CTextRam::fc_UTF85(DWORD ch)
 		}
 
 		if ( m_bJoint && m_LastChar != 0 ) {
-			PUTADD(m_LastPos.x, m_LastPos.y, m_BackChar);
+			PUTADD(m_LastPos.x, m_LastPos.y - m_HisPos, m_BackChar);
 
 		} else if ( n == 1 ) {
 			// 1 Cell type Unicode
@@ -4773,6 +4808,102 @@ void CTextRam::fc_OSCEXE(DWORD ch)
 		}
 		break;
 
+	case 133:	// iTerm2
+		// iTerm2 ShellIntegration
+		// [OSC 133 A] Prompt [OSC 133 B] Command... [OSC 133 C] Result... [OSC 133 D;?]
+		switch(*p) {
+		case 'A':	// A	iterm2_prompt_mark
+			m_iTerm2MaekPos[0].x = m_CurX;
+			m_iTerm2MaekPos[0].y = m_CurY;
+
+			m_iTerm2Mark = 1;
+			break;
+		case 'B':	// B	iterm2_prompt_suffix
+			m_iTerm2MaekPos[1].x = m_CurX;
+			m_iTerm2MaekPos[1].y = m_CurY;
+
+			if ( m_iTerm2Mark == 1 ) {
+				CBuffer buf;
+				GetVram(m_iTerm2MaekPos[0].x, m_iTerm2MaekPos[1].x, m_iTerm2MaekPos[0].y, m_iTerm2MaekPos[1].y, &buf);
+				m_iTerm2Prompt = (LPCTSTR)buf;
+				m_iTerm2Mark = 2;
+			}
+			break;
+		case 'C':	// C	preexec
+			m_iTerm2MaekPos[2].x = m_CurX;
+			m_iTerm2MaekPos[2].y = m_CurY;
+
+			if ( m_iTerm2Mark == 2 ) {
+				CBuffer buf;
+				GetVram(m_iTerm2MaekPos[1].x, m_iTerm2MaekPos[2].x, m_iTerm2MaekPos[1].y, m_iTerm2MaekPos[2].y, &buf);
+				if ( buf.GetSize() >= (sizeof(WCHAR) * 2) && _tcsncmp((LPCTSTR)buf.GetPos(buf.GetSize() - (sizeof(WCHAR) * 2)), _T("\r\n"), 2) == 0 )
+					buf.ConsumeEnd((sizeof(WCHAR) * 2));
+				m_iTerm2Command = (LPCTSTR)buf;
+
+				if ( m_iTerm2Command.GetLength() == 0 || m_iTerm2Command.IsEmpty() )
+					m_iTerm2Mark = 0;
+				else {
+					CMDHIS *pCmdHis = new CMDHIS;
+
+					time(&(pCmdHis->st));
+					pCmdHis->et   = 0;
+					pCmdHis->user = m_iTerm2RemoteHost;
+					pCmdHis->curd = m_iTerm2CurrentDir;
+					pCmdHis->cmds = m_iTerm2Command;
+					pCmdHis->exit.Empty();
+					pCmdHis->emsg = FALSE;
+					pCmdHis->habs = m_HisAbs;
+
+					m_CommandHistory.AddHead(pCmdHis);
+
+					((CMainFrame *)::AfxGetMainWnd())->AddHistory(pCmdHis);
+
+					if ( m_pCmdHisWnd != NULL && m_pCmdHisWnd->GetSafeHwnd() != NULL )
+						m_pCmdHisWnd->PostMessage(WM_ADDCMDHIS, 0, (LPARAM)pCmdHis);
+
+					while ( m_CommandHistory.GetSize() > CMDHISMAX ) {
+						pCmdHis = m_CommandHistory.RemoveTail();
+
+						if ( m_pCmdHisWnd != NULL && m_pCmdHisWnd->GetSafeHwnd() != NULL )
+							m_pCmdHisWnd->DelCmdHis(pCmdHis);
+
+						delete pCmdHis;
+					}
+
+					m_iTerm2Mark = 3;
+				}
+			}
+			break;
+		case 'D':	// D;0	iterm2_prompt_prefix
+			m_iTerm2MaekPos[3].x = m_CurX;
+			m_iTerm2MaekPos[3].y = m_CurY;
+
+			while ( *p != '\0' ) {
+				if ( *(p++) == ';' )
+					break;
+			}
+			m_iTerm2ExitStatus = m_pDocument->LocalStr(p);
+
+			if ( m_iTerm2Mark == 3 && !m_CommandHistory.IsEmpty() ) {
+				CMDHIS *pCmdHis = m_CommandHistory.GetHead();
+				time(&(pCmdHis->et));
+				pCmdHis->exit = m_iTerm2ExitStatus;
+				pCmdHis->habs = m_HisAbs;
+
+				if ( m_pCmdHisWnd != NULL && m_pCmdHisWnd->GetSafeHwnd() != NULL )
+					m_pCmdHisWnd->PostMessage(WM_ADDCMDHIS, 1, (LPARAM)pCmdHis);
+				
+				if ( pCmdHis->emsg ) {
+					pCmdHis->emsg = FALSE;
+					CCmdHisDlg::InfoExitStatus(pCmdHis);
+				}
+			}
+
+			m_iTerm2Mark = 0;
+			break;
+		}
+		break;
+
 	case 1337:	// iTerm2
 		iTerm2Ext(p);
 		break;
@@ -4789,7 +4920,6 @@ void CTextRam::fc_OSCEXE(DWORD ch)
 		}
 		break;
 
-#ifdef	USE_SAPI
 	case 801:	// Speek String
 		if ( (m_XtOptFlag & XTOP_SETUTF) != 0 )
 			m_IConv.RemoteToStr(m_SendCharSet[UTF8_SET], p, tmp);
@@ -4812,9 +4942,8 @@ void CTextRam::fc_OSCEXE(DWORD ch)
 			} else
 				wrk += *s;
 		}
-		((CRLoginApp *)::AfxGetApp())->Speek(wrk);
+		((CMainFrame *)::AfxGetMainWnd())->Speek(wrk);
 		break;
-#endif
 	}
 
 ENDRET:
@@ -6669,7 +6798,7 @@ void CTextRam::fc_DECSRET(DWORD ch)
 			if ( m_bTraceActive )
 				break;
 			{
-				int rt = (-1);
+				BOOL rt = FALSE;
 				CRLoginView *pView;
 				if ( (pView = (CRLoginView *)GetAciveView()) != NULL ) {
 					switch(ch) {
@@ -6689,14 +6818,14 @@ void CTextRam::fc_DECSRET(DWORD ch)
 						rt = pView->ImmOpenCtrl(2);	// stat
 						break;
 					}
-					if ( rt == 1 )
-						EnableOption(i);
-					else if ( rt == 0 )
-						DisableOption(i);
+
+					SetOption(i, rt);
 
 					if ( ch == 's' )
 						ANSIOPT(ch, i);
 				}
+
+				m_pDocument->UpdateAllViews(NULL, UPDATE_TYPECARET, NULL);
 			}
 			break;
 		}
@@ -7407,6 +7536,8 @@ void CTextRam::fc_DECSTR(DWORD ch)
 	m_SaveParam.m_LastFlag = 0;
 	m_SaveParam.m_LastPos.x = 0;
 	m_SaveParam.m_LastPos.y = 0;
+	m_SaveParam.m_LastCur.x = 0;
+	m_SaveParam.m_LastCur.y = 0;
 	m_SaveParam.m_LastSize = CM_ASCII;
 	m_SaveParam.m_LastStr[0] = L'\0';
 	m_SaveParam.m_bRtoL    = FALSE;
@@ -7795,9 +7926,24 @@ void CTextRam::fc_DECPS(DWORD ch)
 			11	A#5		944		24	B6
 			12	B5				25	C7
 			13	C6
+
+		Pp	Program		1-127
+		Pm	Bank MSB	0-127
 	*/
 	int n;
-	DWORD msg = 0x00000090;	// Note On
+	DWORD msg;
+
+	if ( m_AnsiPara.GetSize() >= 4 && (n = GetAnsiPara(4, -1, 0, 127)) >= 0 ) {	// Bank MSB
+		msg = 0x000000B0 | (n << 16);	// B0, 00, nn	Bank Select MSB=00
+		((CMainFrame *)AfxGetMainWnd())->SetMidiEvent(0, msg);
+	}
+
+	if ( m_AnsiPara.GetSize() >= 3 && (n = GetAnsiPara(3, 0, 1, 128)) > 0 ) {	// Program
+		msg = 0x000000C0 | ((n - 1) << 8);
+		((CMainFrame *)AfxGetMainWnd())->SetMidiEvent(0, msg);
+	}
+
+	msg = 0x00000090;	// Note On
 
 	if ( (n = GetAnsiPara(0, 0, 0) * 127 / 7) > 127 )
 		n = 127;
@@ -8098,7 +8244,7 @@ void CTextRam::iTerm2Ext(LPCSTR param)
 	LPCTSTR p;
 	BOOL bAspect = TRUE;
 
-	m_IConv.RemoteToStr(_T("UTF-8"), param, name);
+	m_IConv.RemoteToStr(m_SendCharSet[m_KanjiMode], param, name);
 	index.GetOscString(name);
 
 	if ( (i = index.Find(_T("File"))) >= 0 ) {
@@ -8222,4 +8368,25 @@ void CTextRam::iTerm2Ext(LPCSTR param)
 				::AfxMessageBox(_T("Can't File Save"));
 		}
 	}
+
+	// iTerm2 ShellIntegration
+	// RemoteHost=user@host
+	// CurrentDir=/home/user
+	// ShellIntegrationVersion=5;shell=bash
+	// SetUserVar=%s=%s" "$1" $(printf "%s" "$2" | base64 | tr -d '\n')
+
+	if ( (i = index.Find(_T("RemoteHost"))) >= 0 )
+		m_iTerm2RemoteHost = (LPCTSTR)index[i];
+
+	if ( (i = index.Find(_T("CurrentDir"))) >= 0 )
+		m_iTerm2CurrentDir = (LPCTSTR)index[i];
+
+	if ( (i = index.Find(_T("ShellIntegrationVersion"))) >= 0 )
+		m_iTerm2Version = (LPCTSTR)index[i];
+
+	if ( (i = index.Find(_T("shell"))) >= 0 )
+		m_iTerm2Shell = (LPCTSTR)index[i];
+
+	if ( (i = index.Find(_T("SetUserVar"))) >= 0 )
+		m_iTerm2SetUserVar = index[i];
 }

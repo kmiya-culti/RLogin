@@ -74,6 +74,8 @@ BEGIN_MESSAGE_MAP(CRLoginDoc, CDocument)
 	ON_COMMAND(IDM_COMMONITER, &CRLoginDoc::OnCommoniter)
 	ON_UPDATE_COMMAND_UI(IDM_COMMONITER, &CRLoginDoc::OnUpdateCommoniter)
 	ON_UPDATE_COMMAND_UI(IDM_TRACEDISP, &CRLoginDoc::OnUpdateTracedisp)
+	ON_COMMAND(IDM_CMDHIS, &CRLoginDoc::OnCmdhis)
+	ON_UPDATE_COMMAND_UI(IDM_CMDHIS, &CRLoginDoc::OnUpdateCmdhis)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -183,7 +185,7 @@ BOOL CRLoginDoc::InitDocument()
 		return FALSE;
 
 	CRLoginView *pView;
-	if ( (pView = (CRLoginView *)GetAciveView()) != NULL && pView->ImmOpenCtrl(2) == 1 ) {
+	if ( (pView = (CRLoginView *)GetAciveView()) != NULL && pView->ImmOpenCtrl(2) ) {
 		m_TextRam.EnableOption(TO_IMECTRL);
 		pView->ImmOpenCtrl(1);
 	} else {
@@ -255,7 +257,7 @@ BOOL CRLoginDoc::DoFileSave()
 
 	} else if ( m_ServerEntry.m_DocType == DOCTYPE_REGISTORY ) {
 		if ( m_ServerEntry.m_bOptFixed ) {
-			if ( ::AfxMessageBox(IDS_OPTFIXEDSAVEMSG, MB_ICONQUESTION | MB_YESNO) != IDYES )
+			if ( ::AfxMessageBox(CStringLoad(IDS_OPTFIXEDSAVEMSG), MB_ICONQUESTION | MB_YESNO) != IDYES )
 				return FALSE;
 			m_ServerEntry.m_bOptFixed = FALSE;
 		}
@@ -611,6 +613,9 @@ void CRLoginDoc::DeleteContents()
 	if ( m_TextRam.m_pTraceWnd != NULL )
 		m_TextRam.m_pTraceWnd->SendMessage(WM_CLOSE);
 
+	if ( m_TextRam.m_pCmdHisWnd != NULL )
+		m_TextRam.m_pCmdHisWnd->SendMessage(WM_CLOSE);
+
 	SocketClose();
 
 	if ( m_pScript != NULL ) {
@@ -894,7 +899,7 @@ void CRLoginDoc::EnvironPath(CString &path)
 	tmp += e;
 	path = tmp;
 }
-BOOL CRLoginDoc::EntryText(CString &name, LPCWSTR match)
+BOOL CRLoginDoc::EntryText(CString &name, LPCWSTR match, BOOL bCtrl)
 {
 	int n;
 	TCHAR c;
@@ -925,7 +930,8 @@ BOOL CRLoginDoc::EntryText(CString &name, LPCWSTR match)
 				st = TRUE;
 				break;
 			case _T('P'):
-				tmp += m_ServerEntry.m_PassName;
+				if ( match != NULL )
+					tmp += m_ServerEntry.m_PassName;
 				st = TRUE;
 				break;
 			case _T('T'):
@@ -1001,6 +1007,14 @@ BOOL CRLoginDoc::EntryText(CString &name, LPCWSTR match)
 				tmp += GetTitle();
 				st = TRUE;
 				break;
+			case _T('X'):
+				tmp += ((CRLoginApp *)::AfxGetApp())->m_ExecDir;
+				st = TRUE;
+				break;
+			case _T('B'):
+				tmp += ((CRLoginApp *)::AfxGetApp())->m_BaseDir;
+				st = TRUE;
+				break;
 			case _T('%'):
 				tmp += _T('%');
 				st = TRUE;
@@ -1056,7 +1070,7 @@ BOOL CRLoginDoc::EntryText(CString &name, LPCWSTR match)
 				st = TRUE;
 			}
 
-		} else if ( match != NULL && *str == _T('\\') ) {
+		} else if ( (match != NULL || bCtrl) && *str == _T('\\') ) {
 			switch(str[1]) {
 			case _T('a'): tmp += _T('\x07'); str += 2; break;
 			case _T('b'): tmp += _T('\x08'); str += 2; break;
@@ -1065,7 +1079,9 @@ BOOL CRLoginDoc::EntryText(CString &name, LPCWSTR match)
 			case _T('v'): tmp += _T('\x0B'); str += 2; break;
 			case _T('f'): tmp += _T('\x0C'); str += 2; break;
 			case _T('r'): tmp += _T('\x0D'); str += 2; break;
-			case _T('\\'): tmp += _T('\\'); str += 2; break;
+			case _T('$'): tmp += _T('$');    str += 2; break;
+			case _T('%'): tmp += _T('%');    str += 2; break;
+			case _T('\\'): tmp += _T('\\');  str += 2; break;
 
 			case _T('x'): case _T('X'):
 				str += 2;
@@ -1088,6 +1104,7 @@ BOOL CRLoginDoc::EntryText(CString &name, LPCWSTR match)
 				for ( n = c = 0 ; n < 3 ; n++ ) {
 					if ( *str >= _T('0') && *str <= _T('7') )
 						c = c * 8 + (*(str++) - _T('0'));
+					else
 						break;
 				}
 				tmp += c;
@@ -1182,7 +1199,7 @@ BOOL CRLoginDoc::SetOptFixEntry(LPCTSTR entryName)
 	for ( n = 0 ; n < pTab->m_Data.GetSize() ; n++ ) {
 		if ( pTab->m_Data[n].m_EntryName.Compare(entryName) == 0 ) {
 			if ( m_OptFixCheck[n] != FALSE ) {
-				AfxMessageBox(IDE_OPTFIXDEEPENTRY);
+				AfxMessageBox(CStringLoad(IDE_OPTFIXDEEPENTRY));
 				return FALSE;
 			}
 
@@ -1201,7 +1218,7 @@ BOOL CRLoginDoc::SetOptFixEntry(LPCTSTR entryName)
 		}
 	}
 
-	AfxMessageBox(IDE_OPTFIXNOTFOUND);
+	AfxMessageBox(CStringLoad(IDE_OPTFIXNOTFOUND));
 	return FALSE;
 }
 void CRLoginDoc::SetSleepReq(int req)
@@ -1302,6 +1319,7 @@ BOOL CRLoginDoc::LogClose()
 }
 void CRLoginDoc::LogWrite(LPBYTE lpBuf, int nBufLen, int SendRecv)
 {
+	CString wrk;
 	CStringA mbs;
 
 	if ( m_pLogFile == NULL || m_TextRam.m_LogMode != LOGMOD_DEBUG )
@@ -1313,10 +1331,9 @@ NEWLINE:
 			m_pLogFile->Write("\r\n", 2);
 
 		if ( nBufLen > 0 ) {
-			CTime now = CTime::GetCurrentTime();
-
 			if ( m_TextRam.IsOptEnable(TO_RLLOGTIME) ) {
-				mbs = now.Format(m_TextRam.m_TimeFormat);
+				m_TextRam.GetCurrentTimeFormat(m_TextRam.m_TimeFormat, wrk);
+				mbs = wrk;
 				m_pLogFile->Write((LPCSTR)mbs, mbs.GetLength());
 			}
 
@@ -1745,7 +1762,7 @@ void CRLoginDoc::OnSocketClose()
 
 	CWnd *pWnd = GetAciveView();
 
-	if (m_TextRam.IsOptEnable(TO_RLREOPEN) && pWnd != NULL && AfxMessageBox(IDS_SOCKREOPEN, MB_ICONQUESTION | MB_YESNO) == IDYES )
+	if (m_TextRam.IsOptEnable(TO_RLREOPEN) && pWnd != NULL && AfxMessageBox(CStringLoad(IDS_SOCKREOPEN), MB_ICONQUESTION | MB_YESNO) == IDYES )
 		pWnd->PostMessage(WM_COMMAND, IDM_REOPENSOCK, (LPARAM)0);
 	else if ( m_TextRam.IsOptEnable(TO_RLNOTCLOSE) || ((CMainFrame *)::AfxGetMainWnd())->IsTimerIdleBusy() )
 		UpdateAllViews(NULL, UPDATE_DISPMSG, (CObject *)_T("Closed"));
@@ -1943,7 +1960,7 @@ SKIPINPUT:
 		hosts.GetParam(m_ServerEntry.m_HostName);
 
 		if ( hosts.GetSize() > 1 ) {
-			if ( hosts.GetSize() > 20 && AfxMessageBox(IDS_TOOMANYHOSTNAME, MB_ICONWARNING | MB_YESNO) != IDYES )
+			if ( hosts.GetSize() > 20 && AfxMessageBox(CStringLoad(IDS_TOOMANYHOSTNAME), MB_ICONWARNING | MB_YESNO) != IDYES )
 				return FALSE;
 			CCommandLineInfoEx cmds;
 			cmds.ParseParam(_T("inpane"), TRUE, FALSE);
@@ -2063,7 +2080,7 @@ void CRLoginDoc::OnLogOpen()
 		return;
 
 	if ( !LogOpen(dlg.GetPathName()) ) {
-		AfxMessageBox(IDE_LOGOPENERROR);
+		AfxMessageBox(CStringLoad(IDE_LOGOPENERROR));
 		delete m_pLogFile;
 		m_pLogFile = NULL;
 		return;
@@ -2076,7 +2093,7 @@ void CRLoginDoc::OnUpdateLogOpen(CCmdUI* pCmdUI)
 
 void CRLoginDoc::OnLoadDefault() 
 {
-	if ( AfxMessageBox(IDS_ALLINITREQ, MB_ICONQUESTION | MB_YESNO) != IDYES )
+	if ( AfxMessageBox(CStringLoad(IDS_ALLINITREQ), MB_ICONQUESTION | MB_YESNO) != IDYES )
 		return;
 
 	LoadDefOption(m_TextRam, m_KeyTab, m_KeyMac, m_ParamTab);
@@ -2307,7 +2324,7 @@ void CRLoginDoc::OnScript()
 	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
-	if ( m_pScript->m_Code.GetSize() > 0 && AfxMessageBox(IDS_SCRIPTNEW, MB_ICONQUESTION | MB_YESNO) == IDYES ) {
+	if ( m_pScript->m_Code.GetSize() > 0 && AfxMessageBox(CStringLoad(IDS_SCRIPTNEW), MB_ICONQUESTION | MB_YESNO) == IDYES ) {
 		if ( m_pScript != NULL )
 			delete m_pScript;
 		m_pScript = new CScript;
@@ -2336,14 +2353,31 @@ void CRLoginDoc::OnTracedisp()
 		EntryText(m_TextRam.m_pTraceWnd->m_TraceLogFile);
 		m_TextRam.m_pTraceWnd->m_TraceMaxCount = m_TextRam.m_TraceMaxCount;
 		m_TextRam.m_pTraceWnd->Create(IDD_TRACEDLG, CWnd::GetDesktopWindow());
+		((CMainFrame *)::AfxGetMainWnd())->AddTabDlg(m_TextRam.m_pTraceWnd, 6);
 		m_TextRam.m_pTraceWnd->ShowWindow(SW_SHOW);
-//		::AfxGetMainWnd()->SetFocus();
 	} else
 		m_TextRam.m_pTraceWnd->SendMessage(WM_CLOSE);
 }
 void CRLoginDoc::OnUpdateTracedisp(CCmdUI *pCmdUI)
 {
 	pCmdUI->SetCheck(m_TextRam.m_pTraceWnd != NULL ? TRUE : FALSE);
+}
+void CRLoginDoc::OnCmdhis()
+{
+	if ( m_TextRam.m_pCmdHisWnd == NULL ) {
+		m_TextRam.m_pCmdHisWnd = new CCmdHisDlg(NULL);
+		m_TextRam.m_pCmdHisWnd->m_pDocument = this;
+		m_TextRam.m_pCmdHisWnd->m_Title = GetTitle();
+		m_TextRam.m_pCmdHisWnd->Create(IDD_TRACEDLG, CWnd::GetDesktopWindow());
+		((CMainFrame *)::AfxGetMainWnd())->AddTabDlg(m_TextRam.m_pCmdHisWnd, 2);
+		m_TextRam.m_pCmdHisWnd->ShowWindow(SW_SHOW);
+	} else
+		m_TextRam.m_pCmdHisWnd->SendMessage(WM_CLOSE);
+}
+void CRLoginDoc::OnUpdateCmdhis(CCmdUI *pCmdUI)
+{
+	pCmdUI->Enable(!m_TextRam.m_iTerm2Version.IsEmpty() ? TRUE : FALSE);
+	pCmdUI->SetCheck(m_TextRam.m_pCmdHisWnd != NULL ? TRUE : FALSE);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -2545,3 +2579,4 @@ void CRLoginDoc::OnUpdateCommoniter(CCmdUI *pCmdUI)
 		pCmdUI->SetCheck(FALSE);
 	}
 }
+

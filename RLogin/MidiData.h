@@ -186,6 +186,7 @@ public:
 	DWORD m_DivVal;
 	CNode *m_pStep;
 	DWORD m_LastClock;
+	CMainFrame *m_pMainWnd;
 
 	static DWORD WINAPI ThreadProc(void *lpParameter);
 	BOOL StreamQueIn();
@@ -200,6 +201,6 @@ public:
 	int GetCurrentTempo();
 	void GetCurrentStep(DWORD pos, int &step, int &div);
 
-	CMidiData();
+	CMidiData(CWnd *pWnd);
 	~CMidiData();
 };

@@ -8,6 +8,7 @@
 #include "RLoginDoc.h"
 #include "RLoginView.h"
 #include "PassDlg.h"
+#include "EditDlg.h"
 #include "IdkeySelDLg.h"
 #include "IdKeyFileDlg.h"
 #include "ssh.h"
@@ -95,9 +96,11 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 		m_StdChan = (-1);
 		m_AuthStat = AST_START;
 		m_AuthMode = AUTH_MODE_NONE;
+		m_bKeybIntrReq = FALSE;
 		m_AuthMeta.Empty();
 		m_AuthLog.Empty();
 		m_HostName = m_pDocument->m_ServerEntry.m_HostName;
+		m_HostPort = nHostPort;
 		m_DhMode = DHMODE_GROUP_1;
 		m_GlbReqMap.RemoveAll();
 		m_ChnReqMap.RemoveAll();
@@ -161,19 +164,19 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 					return FALSE;
 				}
 				if ( !IdKey.LoadPrivateKey(dlg.m_IdkeyFile, dlg.m_PassName) ) {
-					AfxMessageBox(IDE_IDKEYLOADERROR);
+					AfxMessageBox(CStringLoad(IDE_IDKEYLOADERROR));
 					return FALSE;
 				}
 			}
 			if ( IdKey.IsNotSupport() ) {
-				AfxMessageBox(IDE_IDKEYNOTSUPPORT);
+				AfxMessageBox(CStringLoad(IDE_IDKEYNOTSUPPORT));
 				return FALSE;
 			}
 			IdKey.SetPass(m_pDocument->m_ServerEntry.m_PassName);
 			m_IdKeyTab.Add(IdKey);
 		}
 
-		if ( pMain->AgeantInit() && !m_pDocument->m_ParamTab.m_bInitPageant && AfxMessageBox(IDS_ADDPAGEANTENTRY, MB_ICONQUESTION | MB_YESNO) == IDYES ) {
+		if ( pMain->AgeantInit() && !m_pDocument->m_ParamTab.m_bInitPageant && AfxMessageBox(CStringLoad(IDS_ADDPAGEANTENTRY), MB_ICONQUESTION | MB_YESNO) == IDYES ) {
 			CIdkeySelDLg dlg;
 
 			dlg.m_pParamTab = &(m_pDocument->m_ParamTab);
@@ -693,7 +696,7 @@ void Cssh::ResetOption()
 		m_KeepAliveTiimerId = ((CMainFrame *)AfxGetMainWnd())->SetTimerEvent(m_pDocument->m_TextRam.m_SshKeepAlive * 1000, TIMEREVENT_SOCK | TIMEREVENT_INTERVAL, this);
 
 	if ( m_bAuthAgentReqEnable != m_pDocument->m_TextRam.IsOptEnable(TO_SSHAGENT) || m_PortFwdTable.Compare(m_pDocument->m_ParamTab.m_PortFwd) != 0 ) {
-		AfxMessageBox(IDS_SSHOPTIONCHECK, MB_ICONWARNING);
+		AfxMessageBox(CStringLoad(IDS_SSHOPTIONCHECK), MB_ICONWARNING);
 
 		m_bAuthAgentReqEnable = m_pDocument->m_TextRam.IsOptEnable(TO_SSHAGENT);
 		m_PortFwdTable = m_pDocument->m_ParamTab.m_PortFwd;
@@ -890,7 +893,7 @@ int Cssh::SMsgPublicKey(CBuffer *bp)
 	m_host_key_n = BN_dup(host_key_n);
 	RSA_set0_key(m_HostKey.m_Rsa, m_host_key_n, m_host_key_e, NULL);
 
-	if ( !m_HostKey.HostVerify(m_HostName) )
+	if ( !m_HostKey.HostVerify(m_HostName, m_HostPort, m_pDocument->m_TextRam.IsOptEnable(TO_DNSSSSHFP)) )
 		return FALSE;
 
 	m_ServerFlag  = bp->Get32Bit();
@@ -1268,7 +1271,7 @@ int Cssh::ChannelOpen()
 		if ( mx < 5 ) {
 			n = (int)m_pChan.GetSize();
 			if ( (mx = n + 10) == CHAN_MAXSIZE ) {
-				if ( AfxMessageBox(IDE_MANYCHANNEL, MB_ICONQUESTION | MB_YESNO) != IDYES )
+				if ( AfxMessageBox(CStringLoad(IDE_MANYCHANNEL), MB_ICONQUESTION | MB_YESNO) != IDYES )
 					return (-1);
 			}
 			m_pChan.SetSize(mx);
@@ -1340,7 +1343,7 @@ void Cssh::ChannelClose(int id, BOOL bClose)
 		m_StdChan = (-1);
 		m_SSH2Status &= ~SSH2_STAT_HAVESTDIO;
 
-		if ( m_pChanNext != NULL && AfxMessageBox(IDS_SSHCLOSEALL, MB_ICONQUESTION | MB_YESNO) == IDYES )
+		if ( m_pChanNext != NULL && AfxMessageBox(CStringLoad(IDS_SSHCLOSEALL), MB_ICONQUESTION | MB_YESNO) == IDYES )
 			GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, WSAMAKESELECTREPLY(FD_CLOSE, 0));
 	}
 
@@ -1764,7 +1767,7 @@ void Cssh::PortForward()
 
 	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHPFORY) ) {
 		if ( a == 0 && !m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFTPORY) ) {
-			AfxMessageBox(IDE_PORTFWORDERROR);
+			AfxMessageBox(CStringLoad(IDE_PORTFWORDERROR));
 			GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, WSAMAKESELECTREPLY(FD_CLOSE, 0));
 		}
 
@@ -2051,6 +2054,25 @@ void Cssh::AddAuthLog(LPCTSTR str, ...)
 
 	m_AuthLog += tmp;
 }
+BOOL Cssh::IsStriStr(LPCSTR str, LPCSTR ptn)
+{
+	for ( ; *str != '\0' ; str++ ) {
+		if ( tolower(*str) == tolower(*ptn) ) {
+			LPCSTR s = str + 1;
+			LPCSTR p = ptn + 1;
+			for ( ; ; ) {
+				if ( *p == '\0' )
+					return TRUE;
+				if ( tolower(*s) != tolower(*p) )
+					break;
+				s++;
+				p++;
+			}
+		}
+	}
+
+	return FALSE;
+}
 int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 {
 	int skip, len;
@@ -2075,6 +2097,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 		// Methodsが変化しない場合は、認証順位をユーザーが管理する必要あり
 		m_AuthMeta = str;
 		m_AuthStat = AST_START;
+		m_bKeybIntrReq = FALSE;
 		UserAuthNextState();
 	}
 
@@ -2209,7 +2232,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 			m_AuthMode = AUTH_MODE_PASSWORD;
 
 		} else if ( m_AuthStat == AST_KEYB_TRY ) {
-			if ( strstr(str, "keyboard-interactive") == NULL ) {
+			if ( strstr(str, "keyboard-interactive") == NULL || m_bKeybIntrReq ) {
 				UserAuthNextState();
 				continue;
 			}
@@ -2219,6 +2242,8 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 			tmp.PutStr("");		// DEV
 
 			m_AuthMode = AUTH_MODE_KEYBOARD;
+			// SSH2_MSG_USERAUTH_INFO_REQUESTでクリア
+			m_bKeybIntrReq = TRUE;
 
 		} else if ( m_AuthStat == AST_GSSAPI_TRY ) {
 			UserAuthNextState();
@@ -2784,7 +2809,7 @@ int Cssh::SSH2MsgKexDhReply(CBuffer *bp)
 	if ( !m_HostKey.GetBlob(&tmp) )
 		return TRUE;
 
-	if ( !m_HostKey.HostVerify(m_HostName) )
+	if ( !m_HostKey.HostVerify(m_HostName, m_HostPort, m_pDocument->m_TextRam.IsOptEnable(TO_DNSSSSHFP)) )
 		return TRUE;
 
 	if ( (spub = BN_new()) == NULL || (ssec = BN_new()) == NULL )
@@ -2901,7 +2926,7 @@ int Cssh::SSH2MsgKexDhGexReply(CBuffer *bp)
 	if ( !m_HostKey.GetBlob(&tmp) )
 		return TRUE;
 
-	if ( !m_HostKey.HostVerify(m_HostName) )
+	if ( !m_HostKey.HostVerify(m_HostName, m_HostPort, m_pDocument->m_TextRam.IsOptEnable(TO_DNSSSSHFP)) )
 		return TRUE;
 
 	if ( (spub = BN_new()) == NULL || (ssec = BN_new()) == NULL )
@@ -2980,7 +3005,7 @@ int Cssh::SSH2MsgKexEcdhReply(CBuffer *bp)
 	if ( !m_HostKey.GetBlob(&tmp) )
 		return TRUE;
 
-	if ( !m_HostKey.HostVerify(m_HostName) )
+	if ( !m_HostKey.HostVerify(m_HostName, m_HostPort, m_pDocument->m_TextRam.IsOptEnable(TO_DNSSSSHFP)) )
 		return TRUE;
 
 	if ( (server_public = EC_POINT_new(m_EcdhGroup)) == NULL )
@@ -3067,7 +3092,7 @@ int Cssh::SSH2MsgKexCurveReply(CBuffer *bp)
 	if ( !m_HostKey.GetBlob(&tmp) )
 		return TRUE;
 
-	if ( !m_HostKey.HostVerify(m_HostName) )
+	if ( !m_HostKey.HostVerify(m_HostName, m_HostPort, m_pDocument->m_TextRam.IsOptEnable(TO_DNSSSSHFP)) )
 		return TRUE;
 
 	bp->GetBuf(&server_public);
@@ -3130,7 +3155,7 @@ int Cssh::SSH2MsgKexSntrupReply(CBuffer *bp)
 	if ( !m_HostKey.GetBlob(&tmp) )
 		return TRUE;
 
-	if ( !m_HostKey.HostVerify(m_HostName) )
+	if ( !m_HostKey.HostVerify(m_HostName, m_HostPort, m_pDocument->m_TextRam.IsOptEnable(TO_DNSSSSHFP)) )
 		return TRUE;
 
 	bp->GetBuf(&server_public);
@@ -3335,7 +3360,8 @@ int Cssh::SSH2MsgUserAuthInfoRequest(CBuffer *bp)
 	int n, echo, max;
 	CBuffer tmp;
 	CStringA name, inst, lang, prom;
-	CPassDlg dlg;
+	CEditDlg dlg;
+	BOOL bAutoPass = FALSE;
 
 	bp->GetStr(name);
 	bp->GetStr(inst);
@@ -3350,17 +3376,22 @@ int Cssh::SSH2MsgUserAuthInfoRequest(CBuffer *bp)
 		echo = bp->Get8Bit();
 
 		// 最初のトライでは、保存されたパスワードを送ってみる
-		if ( m_IdKeyPos == 0 && n == 0 && max == 1 && !m_pDocument->m_ServerEntry.m_PassName.IsEmpty() ) {
+		if ( m_IdKeyPos == 0 && n == 0 && max == 1 && !m_pDocument->m_ServerEntry.m_PassName.IsEmpty() && IsStriStr(prom, "password") ) {
 			tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_PassName));
+			bAutoPass = TRUE;
 
 		} else {
-			dlg.m_HostAddr = m_pDocument->m_ServerEntry.m_HostName;
-			dlg.m_PortName = m_pDocument->m_ServerEntry.m_PortName;
-			dlg.m_UserName = m_pDocument->m_ServerEntry.m_UserName;
-			dlg.m_Enable   = PASSDLG_PASS;
-			dlg.m_Prompt   = prom;
-			dlg.m_PassEcho = echo != 0 ? TRUE : FALSE;
-			dlg.m_PassName = _T("");
+			dlg.m_WinText.Format(_T("keyboard-interactive(%s@%s)"), m_pDocument->m_ServerEntry.m_UserName, m_pDocument->m_ServerEntry.m_HostName);
+			if ( !name.IsEmpty() ) {
+				dlg.m_Title += m_pDocument->LocalStr(name);
+				dlg.m_Title += _T("\r\n");
+			}
+			if ( !inst.IsEmpty() ) {
+				dlg.m_Title += m_pDocument->LocalStr(inst);
+				dlg.m_Title += _T("\r\n");
+			}
+			dlg.m_Title += m_pDocument->LocalStr(prom);
+			dlg.m_bPassword = (echo == 0 ? TRUE : FALSE);
 
 			if ( dlg.DoModal() != IDOK ) {
 				UserAuthNextState();
@@ -3368,14 +3399,16 @@ int Cssh::SSH2MsgUserAuthInfoRequest(CBuffer *bp)
 				return TRUE;
 			}
 
-			tmp.PutStr(m_pDocument->RemoteStr(dlg.m_PassName));
+			tmp.PutStr(m_pDocument->RemoteStr(dlg.m_Edit));
 		}
 	}
 
 	// 呼び出し回数をカウント
 	m_IdKeyPos++;
+	m_bKeybIntrReq = FALSE;
 
-	AddAuthLog(_T("keyboard-interactive(%s)"), m_pDocument->m_ServerEntry.m_UserName);
+	if ( max > 0 )
+		AddAuthLog(_T("keyboard-interactive(%s%s)"), m_pDocument->m_ServerEntry.m_UserName, (bAutoPass ? _T(":auto"): _T("")));
 
 	SendPacket2(&tmp);
 	return TRUE;
@@ -3865,12 +3898,23 @@ int Cssh::SSH2MsgGlobalHostKeys(CBuffer *bp)
 	int wrtFlag = 0;
 	CIdKey key;
 	CBuffer tmp;
-	CString dig;
+	CString dig, kname;
 	CStringArrayExt entry;
 	CArray<CIdKey, CIdKey &> keyTab;
 	CRLoginApp *pApp = (CRLoginApp *)AfxGetApp();
 
-	pApp->GetProfileStringArray(_T("KnownHosts"), m_HostName, entry);
+	kname.Format(_T("%s:%d"), m_HostName, m_HostPort);
+	pApp->GetProfileStringArray(_T("KnownHosts"), kname, entry);
+
+	if ( entry.GetSize() == 0 ) {
+		// 古い形式(KnownHosts\host)を救済
+		pApp->GetProfileStringArray(_T("KnownHosts"), m_HostName, entry);
+		if ( entry.GetSize() != 0 ) {
+			pApp->DelProfileEntry(_T("KnownHosts"), m_HostName);
+			pApp->WriteProfileStringArray(_T("KnownHosts"), kname, entry);
+		}
+	}
+
 	for ( n = 0 ; n < entry.GetSize() ; n++ ) {
 		key.m_Uid = FALSE;
 		if ( key.ReadPublicKey(entry[n]) ) {
@@ -3931,7 +3975,7 @@ int Cssh::SSH2MsgGlobalHostKeys(CBuffer *bp)
 				entry.Add(dig);
 			}
 		}
-		pApp->WriteProfileStringArray(_T("KnownHosts"), m_HostName, entry);
+		pApp->WriteProfileStringArray(_T("KnownHosts"), kname, entry);
 	}
 
 	return TRUE;
@@ -3977,7 +4021,7 @@ int Cssh::SSH2MsgGlobalRequestReply(CBuffer *bp, int type)
 	CString str;
 
 	if ( m_GlbReqMap.GetSize() <= 0 ) {
-		AfxMessageBox(IDE_SSHGLOBALREQERROR);
+		AfxMessageBox(CStringLoad(IDE_SSHGLOBALREQERROR));
 		return FALSE;
 	}
 	num = m_GlbReqMap.GetAt(0);

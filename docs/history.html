@@ -7,10 +7,14 @@
 <STYLE type="text/css">
 <!--
 TD {
+				
+				
   background-color : #ffffff;
   font-size : 90%;
 }
 .BOX{
+				
+				
   background-color : silver;
 }
 -->
@@ -31,6 +35,94 @@ TD {
       <TD>
       <TABLE cellpadding="5" cellspacing="1" class="BOX" width="900">
         <TBODY>
+          <TR>
+            <TD align="center">2021/03/01</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.25.9/">2.25.9</A></TD>
+            <TD>カラー絵文字の設定を拡張機能からカラーに移動<BR>
+            メニューの画像をアルファ付きのビットマップに変更<BR>
+            2.25.6からx32がWindowsXPで動作しない不都合を修正<BR>
+            システムDPIが96以外の場合の処理を変更<BR>
+            文字列の検索時の正規表現の一致条件を変更<BR>
+            正規表現ライブラリの不都合(８進数表現が不定)や仕様を修正<BR>
+            openssl-1.1.1jに更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2021/02/08</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.25.8/">2.25.8</A></TD>
+            <TD>2.25.7での背景のテキスト描画のバグを修正<BR>
+            ヒストリーの日時フォーマットに環境変数の展開を追加<BR>
+            送信文字列の特殊文字で%%が完全にエスケープされないバグを修正<BR>
+            文字バンクによる置換よりフォントのiso646の設定を優先するように変更<BR>
+            UTF-8環境の場合に制御コード?8459で「￥キーでU+00A5を送信」を追加<BR>
+            文字セットのIconv設定のデフォルト値をWindowsのSJISに合うように変更<BR>
+            Unicode罫線の一部（丸コーナー）の描画方法をなめらかに変更<BR>
+            フォントの実サイズにより大きさを調整するように変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2021/01/08</TD>
+            <TD align="center">&nbsp;<A href="http://nanno.dip.jp/softlib/rlogin/2.25.7/">2.25.7</A></TD>
+            <TD>ダイヤログのリサイズ関数を整理<BR>
+            KnownHostsの管理をホスト名＋ポート番号に変更<BR>
+            SSHのホスト鍵をDNSでチェックしないオプションを追加<BR>
+            strftimeの未対応パラメータを無視するように変更<BR>
+            ログに記録する時間のパラメータに%Lでミリ秒を追加<BR>
+            iconvのSHIFT_JISとCP932との差を吸収する処理を修正<BR>
+            libiconv-1.16に更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2020/12/09&nbsp;</TD>
+            <TD align="center">&nbsp;<A href="http://nanno.dip.jp/softlib/rlogin/2.25.6/">2.25.6</A></TD>
+            <TD>&nbsp;sftpダイアログの初期表示位置をモニター範囲になるように修正<BR>
+            sshのkeyboard-interactiveで使用するダイアログを変更<BR>
+            openssl-1.1.1iに更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2020/09/25</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.25.5/">2.25.5</A></TD>
+            <TD>画像のポップアップメニューのセパレータがズレていたのを修正<BR>
+            DECPSに音色変更のパラメータを追加<BR>
+            ProxyのHTTP(Basic)のHostヘッダを接続先ホストアドレスに修正<BR>
+            特殊文字に起動時のフォルダ%X（RLoogin.exeの場所）と%B（カレント）を追加<BR>
+            openssl-1.1.1hに更新</TD>
+          </TR>
+          <TR>
+            <TD align="center">2020/07/27</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.25.4/">2.25.4</A></TD>
+            <TD>コマンドウィンドウの終了メッセージの選択条件を変更<BR>
+            ファイルのドロップでファイルアップロード時は、毎回ダイアログを表示に変更<BR>
+            ファンクション・パッドの各種モード時の動作及びキーコードを変更<BR>
+            スクリーンオプションにIMEオンで文字カーソルの色・形を変更を追加</TD>
+          </TR>
+          <TR>
+            <TD align="center">2020/06/22</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.25.3/">2.25.3</A></TD>
+            <TD>各種サイズ変更などで反転表示を使用しないように変更<BR>
+            ダイアログバーのタブをドラッグで移動するように変更<BR>
+            デフォルト?8454の「C1制御文字を無視する」をセットに変更<BR>
+            メニュー・編集に「音声で読み上げ」を追加<BR>
+            UTF-8の文字幅などをUnicode-13.0.0のデータに更新<BR>
+            UTF-8化されたサロゲート文字を処理するように変更<BR>
+            初期フォントサイズをシステムDPIで計算するように変更<BR>
+            RSA鍵のデフォルトビットサイズを3072に変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2020/05/25</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.25.2/">2.25.2</A></TD>
+            <TD>サーバーオプションのTERM環境変数のリストが重なるのを修正<BR>
+            iTerm2のShell Integrationに試験的に対応しコマンドヒストリーを追加<BR>
+            トレースウィンドウとコマンドヒストリーを統合するダイアログバーを追加<BR>
+            各種バーのドッキングによる移動を有効に変更</TD>
+          </TR>
+          <TR>
+            <TD align="center">2020/04/23</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.25.1/">2.25.1</A></TD>
+            <TD>リソースをファイルに保存する文字コードをUTF-8に変更<BR>
+            OSの言語設定にあったリソースファイルを起動時に読み込み<BR>
+            RLoginを他言語で利用する為のlang.zipを試しに作成<BR>
+            Sixel Graphicsのormodeに対応<BR>
+            接続中に「現在の分割を保存」を行うと不正になるバグを修正<BR>
+            openssl-1.1.1gに更新</TD>
+          </TR>
           <TR>
             <TD align="center">2020/03/25</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.25.0/">2.25.0</A></TD>

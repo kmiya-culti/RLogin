@@ -203,10 +203,8 @@ void CChildFrame::OnUpdateFrameMenu(BOOL bActive, CWnd* pActiveWnd, HMENU hMenuA
 
 	if ( bActive && AfxGetApp()->GetProfileInt(_T("ChildFrame"), _T("VMenu"), TRUE) == FALSE ) {
 		pFrame->SetMenu(NULL);
-
 	} else if ( !bActive && pActiveWnd == NULL && pFrame != NULL && pFrame->m_StartMenuHand != NULL ) {
 		CMDIChildWnd::OnUpdateFrameMenu(bActive, pActiveWnd, pFrame->m_StartMenuHand);
-
 	} else {
 		CMDIChildWnd::OnUpdateFrameMenu(bActive, pActiveWnd, hMenuAlt);
 	}
@@ -215,7 +213,7 @@ void CChildFrame::OnUpdateFrameMenu(BOOL bActive, CWnd* pActiveWnd, HMENU hMenuA
 BOOL CChildFrame::PreTranslateMessage(MSG* pMsg)
 {
 	if ( pMsg->message == WM_KEYDOWN || pMsg->message == WM_SYSKEYDOWN ) {
-		if ( (pMsg->wParam == VK_TAB || pMsg->wParam == VK_F6) && (GetKeyState(VK_CONTROL) & 0x80) != 0 )
+		if ( (pMsg->wParam == VK_TAB || (pMsg->wParam >= VK_F1 && pMsg->wParam <= VK_F12)) && (GetKeyState(VK_CONTROL) & 0x80) != 0 )
 			return TRUE;
 	}
 

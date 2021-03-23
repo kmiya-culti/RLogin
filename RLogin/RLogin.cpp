@@ -36,10 +36,7 @@
 #endif
 
 #include "afxcmn.h"
-
-#ifdef	USE_SAPI
 #include <sphelper.h>
-#endif
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -654,9 +651,7 @@ CRLoginApp::CRLoginApp()
 		m_pEmojiList[n] = NULL;
 #endif
 
-#ifdef	USE_SAPI
 	m_pVoice = NULL;
-#endif
 
 	m_IdleProcCount = 0;
 	m_pIdleTop = NULL;
@@ -901,14 +896,6 @@ void CRLoginApp::CreateJumpList(CServerEntryTab *pEntry)
 }
 #endif
 	
-#ifdef	USE_SAPI
-void CRLoginApp::Speek(LPCTSTR str)
-{
-	if ( m_pVoice != NULL )
-		m_pVoice->Speak(TstrToUni(str), SPF_ASYNC, NULL);
-}
-#endif
-
 void CRLoginApp::SSL_Init()
 {
 	static BOOL bLoadAlgo = FALSE;
@@ -950,7 +937,7 @@ BOOL CRLoginApp::InitLocalPass()
 			dlg.m_Title += CStringLoad(IDS_PASSLOCKRETRYMSG);
 
 		if ( dlg.DoModal() != IDOK ) {
-			if ( ::AfxMessageBox(IDS_PASSLOCKDELMSG, MB_ICONQUESTION | MB_YESNO) == IDYES ) {
+			if ( ::AfxMessageBox(CStringLoad(IDS_PASSLOCKDELMSG), MB_ICONQUESTION | MB_YESNO) == IDYES ) {
 				WriteProfileString(_T("RLoginApp"), _T("LocalPass"), _T(""));
 				return TRUE;
 			}
@@ -981,13 +968,16 @@ BOOL CRLoginApp::IsWinVerCheck(int ver, int op)
 
     return VerifyVersionInfo(&osvi, VER_MAJORVERSION | VER_MINORVERSION, dwlConditionMask);
 }
-BOOL CRLoginApp::GetExtFilePath(LPCTSTR ext, CString &path)
+BOOL CRLoginApp::GetExtFilePath(LPCTSTR name, LPCTSTR ext, CString &path)
 {
-	path.Format(_T("%s\\%s%s"), m_BaseDir, m_pszAppName, ext);
+	if ( name == NULL )
+		name = m_pszAppName;
+
+	path.Format(_T("%s\\%s%s"), m_BaseDir, name, ext);
 	if ( _taccess_s(path, 06) == 0 )
 		return TRUE;
 
-	path.Format(_T("%s\\%s%s"), m_ExecDir, m_pszAppName, ext);
+	path.Format(_T("%s\\%s%s"), m_ExecDir, name, ext);
 	if ( _taccess_s(path, 06) == 0 )
 		return TRUE;
 
@@ -1010,11 +1000,6 @@ BOOL CRLoginApp::CreateDesktopShortcut(LPCTSTR entry)
 	IPersistFile *pPersistFile = NULL;
 	WCHAR desktopPath[MAX_PATH];
 	CStringW srcParam, linkPath;
-
-#ifndef	USE_COMINIT
-	if ( FAILED(CoInitialize(NULL) )
-		return FALSE;
-#endif
 	
 	if ( FAILED(SHGetSpecialFolderPath(NULL, desktopPath, CSIDL_DESKTOPDIRECTORY, FALSE)) )
 		goto ENDOF;
@@ -1050,14 +1035,78 @@ ENDOF:
 	if ( pShellLink != NULL )
 		pShellLink->Release();
 
-#ifndef	USE_COMINIT
-	CoUninitialize();
-#endif
-
 	return rt;
 }
 
 //////////////////////////////////////////////////////////////////////
+
+#ifdef	USE_CP932CHECK
+void UnicodeJpset()
+{
+	int n;
+	DWORD ic, jis, sjis, euc;
+	CStringW ms;
+	CHAR mbs[3];
+	static CIConv iconv;
+	static const DWORD JisTab[] = {
+		0x005c,
+		0x007e,
+		0x213d,
+		0x2141,
+		0x2142,
+		0x215d,
+		0x2171,
+		0x2172,
+		0x224c,
+		0
+	};
+
+	for ( n = 0 ; JisTab[n] != 0 ; n++ ) {
+		jis = sjis = euc = JisTab[n];
+		if ( jis > 255 ) {
+			sjis = iconv.JisToSJis(jis);
+			euc = jis | 0x8080;
+		}
+
+		TRACE("%04x %04x %04x  ", jis, sjis, euc);
+
+		if ( sjis < 255 ) {
+			mbs[0] = (CHAR)sjis;
+			mbs[1] = 0;
+		} else {
+			mbs[0] = (CHAR)(sjis >> 8);
+			mbs[1] = (CHAR)sjis;
+			mbs[2] = 0;
+		}
+		ms = mbs;
+		ic = ms[0];
+		if ( ms[1] != 0 )
+			ic = (ic << 8) | ms[1];
+		TRACE("%04x ", ic);
+
+		ic = iconv.IConvChar(_T("CP932"), _T("UTF-16BE"), sjis);
+		TRACE("%04x ", ic);
+		ic = iconv.IConvChar(_T("SHIFT_JIS"), _T("UTF-16BE"), sjis);
+		TRACE("%04x ", ic);
+		ic = iconv.IConvChar(_T("SHIFT_JISX0213"), _T("UTF-16BE"), sjis);
+		TRACE("%04x  ", ic);
+
+		ic = iconv.IConvChar(_T("EUCJP-MS"), _T("UTF-16BE"), euc);
+		TRACE("%04x ", ic);
+		ic = iconv.IConvChar(_T("EUC-JP"), _T("UTF-16BE"), euc);
+		TRACE("%04x ", ic);
+		ic = iconv.IConvChar(_T("EUC-JISX0213"), _T("UTF-16BE"), euc);
+		TRACE("%04x  ", ic);
+
+		ic = iconv.IConvChar(_T("JIS_X0208"), _T("UTF-16BE"), jis);
+		TRACE("%04x ", ic);
+		ic = iconv.IConvChar(_T("JIS_X0212"), _T("UTF-16BE"), jis);
+		TRACE("%04x ", ic);
+		ic = iconv.IConvChar(_T("JIS_X0213-2000.1"), _T("UTF-16BE"), jis);
+		TRACE("%04x\n", ic);
+	}
+}
+#endif
 
 BOOL CRLoginApp::InitInstance()
 {
@@ -1092,23 +1141,23 @@ BOOL CRLoginApp::InitInstance()
 
 #ifdef	USE_OLE
 	//  OLEの初期化
-	if ( !AfxOleInit() )
+	if ( !AfxOleInit() ) {
+		AfxMessageBox(_T("OLE Init Error"));
 		return FALSE;
+	}
 #endif
 
-#ifdef	USE_COMINIT
 	// COMライブラリ初期化
 	if ( FAILED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED)) ) {
 		AfxMessageBox(_T("Com Library Init Error"));
 		return FALSE;
 	}
-#endif
 
 	// WINSOCK2.2の初期化
 	WORD wVersionRequested;
 	wVersionRequested = MAKEWORD( 2, 2 );
 	if ( WSAStartup( wVersionRequested, &wsaData ) != 0 ) {
-		AfxMessageBox(IDS_SOCKETS_INIT_FAILED);
+		AfxMessageBox(CStringLoad(IDS_SOCKETS_INIT_FAILED));
 		return FALSE;
 	}
 
@@ -1134,7 +1183,7 @@ BOOL CRLoginApp::InitInstance()
 		m_BaseDir = m_ExecDir;
 
 	// ユーザープロファイルの検索
-	if ( GetExtFilePath(_T(".ini"), iniFileName) ) {
+	if ( GetExtFilePath(NULL, _T(".ini"), iniFileName) ) {
 		free((void*)m_pszProfileName);
 		m_pszProfileName = _tcsdup(iniFileName);
 		bInitFile = TRUE;
@@ -1164,16 +1213,29 @@ BOOL CRLoginApp::InitInstance()
 #ifdef	USE_RCDLL
 	// リソースDLL読み込み
 	CString rcDllName;
-	if ( GetExtFilePath(_T("_rc.dll"), rcDllName) && (ExRcDll = LoadLibrary(rcDllName)) != NULL )
+	if ( GetExtFilePath(NULL, _T("_rc.dll"), rcDllName) && (ExRcDll = LoadLibrary(rcDllName)) != NULL )
 		AfxSetResourceHandle(ExRcDll);
 #endif
 
 	// リソースデータベースの設定
 	// m_ResDataBase.InitRessource();
 	CString rcFileName;
-	if ( GetExtFilePath(_T("_rc.txt"), rcFileName) ) {
+	if ( GetExtFilePath(NULL, _T("_rc.txt"), rcFileName) ) {
 		if ( !m_ResDataBase.LoadFile(rcFileName) )
 			::AfxMessageBox(_T("Can't Load Resources File"));
+	} else {
+		TCHAR locale[256];
+		LANGID id = GetUserDefaultUILanguage();
+
+		if ( GetLocaleInfo(MAKELCID(id, SORT_DEFAULT), LOCALE_SISO639LANGNAME, locale, sizeof(locale)) != 0 ) {
+			CString base, ext;
+			base.Format(_T("lang\\%s"), m_pszAppName);
+			ext.Format(_T("_%s.txt"), locale);
+			if ( GetExtFilePath(base, ext, rcFileName) ) {
+				if ( !m_ResDataBase.LoadFile(rcFileName) )
+					::AfxMessageBox(_T("Can't Load Locale Resources File"));
+			}
+		}
 	}
 
 	// デフォルトツールバーイメージからBitmapリソースを作成
@@ -1230,29 +1292,25 @@ BOOL CRLoginApp::InitInstance()
 
 			if ( ExD2D1CreateFactory != NULL && ExDWriteCreateFactory != NULL && SUCCEEDED(ExD2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, __uuidof(ID2D1Factory), NULL, reinterpret_cast<void **>(&m_pD2DFactory))) )
 				ExDWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(m_pDWriteFactory), reinterpret_cast<IUnknown **>(&m_pDWriteFactory));
-
-			m_EmojiFontName = GetProfileString(_T("RLoginApp"), _T("EmojiFontName"), _T("Segoe UI emoji"));
 		}
 	}
 
-	m_EmojiImageDir.Format(_T("%s\\emoji"), m_BaseDir);
-	if ( !IsDirectory(m_EmojiImageDir) ) {
-		m_EmojiImageDir.Format(_T("%s\\emoji"), m_ExecDir);
+	m_EmojiFontName = GetProfileString(_T("RLoginApp"), _T("EmojiFontName"), _T("Segoe UI emoji"));
+	m_EmojiImageDir = GetProfileString(_T("RLoginApp"), _T("EmojiImageDir"), _T(""));
+
+	if ( m_EmojiImageDir.IsEmpty() || !IsDirectory(m_EmojiImageDir) ) {
+		m_EmojiImageDir.Format(_T("%s\\emoji"), m_BaseDir);
 		if ( !IsDirectory(m_EmojiImageDir) ) {
-			m_EmojiImageDir = GetProfileString(_T("RLoginApp"), _T("EmojiImageDir"), _T(""));
-			if ( !m_EmojiImageDir.IsEmpty() ) {
-				if ( !IsDirectory(m_EmojiImageDir) )
-					m_EmojiImageDir.Empty();
-			}
+			m_EmojiImageDir.Format(_T("%s\\emoji"), m_ExecDir);
+			if ( !IsDirectory(m_EmojiImageDir) )
+				m_EmojiImageDir.Empty();
 		}
 	}
 #endif
 
-#ifdef	USE_SAPI
 	// 音声合成の初期化
 	if ( FAILED(CoCreateInstance(CLSID_SpVoice, NULL, CLSCTX_ALL, IID_ISpVoice, (void **)&m_pVoice)) )
 		m_pVoice = NULL;
-#endif
 
 	// レジストリに保存するパスワードの暗号キーを選択
 	m_MakeKeyMode = GetProfileInt(_T("RLoginApp"), _T("MakeKeyMode"), MAKEKEY_USERHOST);
@@ -1265,8 +1323,10 @@ BOOL CRLoginApp::InitInstance()
 		RUNTIME_CLASS(CChildFrame), // カスタム MDI 子フレーム
 		RUNTIME_CLASS(CRLoginView));
 
-	if ( !pDocTemplate )
+	if ( !pDocTemplate ) {
+		AfxMessageBox(_T("DocTemplate Create Error"));
 		return FALSE;
+	}
 
 	// メニューをリソースデータベースに置き換え
 	DestroyMenu(pDocTemplate->m_hMenuShared);
@@ -1296,6 +1356,7 @@ BOOL CRLoginApp::InitInstance()
 	m_pMainWnd = pMainFrame;
 
 	if ( !pMainFrame || !pMainFrame->LoadFrame(IDR_MAINFRAME) ) {
+		AfxMessageBox(_T("MainFrame Create Error"));
 		m_pMainWnd = NULL;
 		delete pMainFrame;
 		return FALSE;
@@ -1465,14 +1526,10 @@ int CRLoginApp::ExitInstance()
 		FreeLibrary(ExDWriteApi);
 #endif
 
-#ifdef	USE_SAPI
 	if ( m_pVoice != NULL )
 		m_pVoice->Release();
-#endif
 
-#ifdef	USE_COMINIT
 	CoUninitialize();
-#endif
 
 	CSFtp::LocalDelete(m_TempDirBase);
 
@@ -2063,7 +2120,7 @@ void CRLoginApp::GetProfileData(LPCTSTR lpszSection, LPCTSTR lpszEntry, void *lp
 	LPBYTE pData = NULL;
 	UINT len = 0;
 
-	if ( GetProfileBinary(lpszSection, lpszEntry, &pData, &len) && pData != NULL && len > 0 && len < (512 * 1024) ) {
+	if ( GetProfileBinary(lpszSection, lpszEntry, &pData, &len) && pData != NULL && len > 0 ) {
 		if ( len == (UINT)nBufLen )
 			memcpy(lpBuf, pData, nBufLen);
 		else if ( lpDef != NULL )
@@ -2081,7 +2138,7 @@ void CRLoginApp::GetProfileBuffer(LPCTSTR lpszSection, LPCTSTR lpszEntry, CBuffe
 
 	Buf.Clear();
 
-	if ( GetProfileBinary(lpszSection, lpszEntry, &pData, &len) && pData != NULL && len > 0 && len < (512 * 1024) )
+	if ( GetProfileBinary(lpszSection, lpszEntry, &pData, &len) && pData != NULL && len > 0 )
 		Buf.Apend(pData, len);
 
 	if ( pData != NULL )
@@ -2279,7 +2336,7 @@ void CRLoginApp::RegisterShellRemoveAll()
 	}
 
 	if ( RegisterGetStr(HKEY_CLASSES_ROOT, _T("RLogin.Document\\shell\\open\\ddeexec"), _T(""), strTemp) )
-		::AfxMessageBox(IDE_REGISTRYDELETEERROR);
+		::AfxMessageBox(CStringLoad(IDE_REGISTRYDELETEERROR));
 }
 void CRLoginApp::RegisterShellFileEntry()
 {
@@ -2327,7 +2384,7 @@ void CRLoginApp::RegisterShellProtocol(LPCTSTR pProtocol, LPCTSTR pOption)
 	LPCTSTR pSection = pProtocol;
 
 	if ( !m_bRegistAppp ) {
-		if ( ::AfxMessageBox(IDS_REGISTAPPPROTOCOL, MB_ICONQUESTION | MB_YESNO) != IDYES )
+		if ( ::AfxMessageBox(CStringLoad(IDS_REGISTAPPPROTOCOL), MB_ICONQUESTION | MB_YESNO) != IDYES )
 			return;
 		m_bRegistAppp = TRUE;
 		WriteProfileInt(_T("RLoginApp"), _T("RegistAppp"), m_bRegistAppp);
@@ -2795,6 +2852,42 @@ BOOL CRLoginApp::SaveRegistryFile()
 
 //////////////////////////////////////////////////////////////////////
 
+LANGID CRLoginApp::GetLangId()
+{
+	HRSRC hRsrc;
+	HGLOBAL hGlobal;
+	void *pData;
+	UINT dwLength;
+	void *pValue;
+	LANGID LangId = 0;
+
+	if ( (hRsrc = FindResource(NULL, (LPCTSTR)VS_VERSION_INFO, RT_VERSION)) == NULL )
+		return 0;
+
+	if ( (hGlobal = LoadResource(NULL, hRsrc)) == NULL )
+		return 0;
+
+	if ( (pData = (void *)LockResource(hGlobal)) == NULL )
+		return 0;
+
+	if ( VerQueryValue(pData, _T("\\VarFileInfo\\Translation"), &pValue, &dwLength) ) {
+		switch(dwLength) {
+		case 1:	// BYTE
+			LangId = (LANGID)*((BYTE *)pValue);
+			break;
+		case 2:	// WORD
+			LangId = (LANGID)*((WORD *)pValue);
+			break;
+		case 4:	// DWORD
+			LangId = (LANGID)*((DWORD *)pValue);
+			break;
+		}
+	}
+
+	FreeResource(hGlobal);
+
+	return LangId;
+}
 void CRLoginApp::GetVersion(CString &str)
 {
 	HRSRC hRsrc;
@@ -3108,14 +3201,14 @@ void CRLoginApp::OnDispwinidx()
 
 void CRLoginApp::OnDialogfont()
 {
-	CString FontName;
+	CString FontName, tmp;
 	int FontSize;
 	LOGFONT LogFont;
 	CDC dc;
 
 	dc.CreateCompatibleDC(NULL);
 
-	FontName = GetProfileString(_T("Dialog"), _T("FontName"), _T("MS UI Gothic"));
+	FontName = GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
 	FontSize = GetProfileInt(_T("Dialog"), _T("FontSize"), 9);
 
 	memset(&(LogFont), 0, sizeof(LOGFONT));
@@ -3127,18 +3220,25 @@ void CRLoginApp::OnDialogfont()
 	LogFont.lfClipPrecision  = CLIP_DEFAULT_PRECIS;
 	LogFont.lfQuality        = DEFAULT_QUALITY;
 	LogFont.lfPitchAndFamily = DEFAULT_PITCH | FF_DONTCARE;
-    _tcsncpy(LogFont.lfFaceName, FontName, LF_FACESIZE);
 
-	CFontDialog font(&LogFont, CF_NOVERTFONTS | CF_SCREENFONTS | CF_SELECTSCRIPT, NULL, ::AfxGetMainWnd());
+	if ( FontName.IsEmpty() && RegisterGetStr(HKEY_LOCAL_MACHINE, _T("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\FontSubstitutes"), _T("MS Shell Dlg"), tmp) )
+	    _tcsncpy(LogFont.lfFaceName, tmp, LF_FACESIZE);
+	else
+	    _tcsncpy(LogFont.lfFaceName, FontName, LF_FACESIZE);
 
-	if ( DpiAwareDoModal(font) != IDOK )
-		return;
+	CFontDialog font(&LogFont, CF_NOVERTFONTS | CF_SCREENFONTS | CF_INACTIVEFONTS /*| CF_SELECTSCRIPT */, NULL, ::AfxGetMainWnd());
 
-    FontName = LogFont.lfFaceName;
-	FontSize = 0 - MulDiv(LogFont.lfHeight, 72, dc.GetDeviceCaps(LOGPIXELSY));
+	if ( DpiAwareDoModal(font) == IDOK ) {
+		FontName = LogFont.lfFaceName;
+		FontSize = 0 - MulDiv(LogFont.lfHeight, 72, dc.GetDeviceCaps(LOGPIXELSY));
 
-	WriteProfileString(_T("Dialog"), _T("FontName"), FontName);
-	WriteProfileInt(_T("Dialog"), _T("FontSize"), FontSize);
+		WriteProfileString(_T("Dialog"), _T("FontName"), FontName);
+		WriteProfileInt(_T("Dialog"), _T("FontSize"), FontSize);
+
+	} else if ( !FontName.IsEmpty() && AfxMessageBox(CStringLoad(IDS_DLGFONTDELMSG), MB_ICONQUESTION | MB_YESNO) == IDYES ) {
+		DelProfileEntry(_T("Dialog"), _T("FontName"));
+		DelProfileEntry(_T("Dialog"), _T("FontSize"));
+	}
 
 	((CMainFrame *)AfxGetMainWnd())->BarFontCheck();
 }
@@ -3192,7 +3292,7 @@ void CRLoginApp::OnPassLock()
 		}
 
 	} else {						// パスワードロック解除
-		if ( ::AfxMessageBox(IDS_PASSLOCKDELMSG, MB_ICONQUESTION | MB_YESNO) != IDYES )
+		if ( ::AfxMessageBox(CStringLoad(IDS_PASSLOCKDELMSG), MB_ICONQUESTION | MB_YESNO) != IDYES )
 			return;
 
 		WriteProfileString(_T("RLoginApp"), _T("LocalPass"), _T(""));
@@ -3223,7 +3323,7 @@ void CRLoginApp::OnSaveresfile()
 void CRLoginApp::OnCreateprofile()
 {
 	if ( SavePrivateProfile() )
-		::AfxMessageBox(IDS_CREATEPROFILE);
+		::AfxMessageBox(CStringLoad(IDS_CREATEPROFILE));
 }
 void CRLoginApp::OnUpdateCreateprofile(CCmdUI *pCmdUI)
 {
@@ -3245,9 +3345,13 @@ void CRLoginApp::OnRegistapp()
 	m_bRegistAppp = GetProfileInt(_T("RLoginApp"), _T("RegistAppp"),  FALSE);
 
 	if ( m_bRegistAppp ) {
+		if ( ::AfxMessageBox(CStringLoad(IDS_REGAPPDELMSG), MB_ICONQUESTION | MB_YESNO) != IDYES )
+			return;
 		m_bRegistAppp = FALSE;
 		RegisterShellRemoveAll();
 	} else {
+		if ( ::AfxMessageBox(CStringLoad(IDS_REGAPPSETMSG), MB_ICONQUESTION | MB_YESNO) != IDYES )
+			return;
 		m_bRegistAppp = TRUE;
 		RegisterShellFileEntry();
 	}
@@ -3502,4 +3606,40 @@ ENDOF:
 
 	return rc;
 }
+void CRLoginApp::EmojiImageInit(LPCTSTR pFontName, LPCTSTR pImageDir)
+{
+	int n;
+	CEmojiImage *pEmoji;
+	CString UserImageDir;
+
+	UserImageDir = GetProfileString(_T("RLoginApp"), _T("EmojiImageDir"), _T(""));
+
+	if ( m_EmojiFontName.Compare(pFontName) == 0 && UserImageDir.Compare(pImageDir) == 0 )
+		return;
+
+	WriteProfileString(_T("RLoginApp"), _T("EmojiFontName"), pFontName);
+	WriteProfileString(_T("RLoginApp"), _T("EmojiImageDir"), pImageDir);
+
+	m_EmojiFontName = pFontName;
+	m_EmojiImageDir = pImageDir;
+
+	if ( m_EmojiImageDir.IsEmpty() || !IsDirectory(m_EmojiImageDir) ) {
+		m_EmojiImageDir.Format(_T("%s\\emoji"), m_BaseDir);
+		if ( !IsDirectory(m_EmojiImageDir) ) {
+			m_EmojiImageDir.Format(_T("%s\\emoji"), m_ExecDir);
+			if ( !IsDirectory(m_EmojiImageDir) )
+				m_EmojiImageDir.Empty();
+		}
+	}
+
+	for ( n = 0 ; n < EMOJI_HASH ; n++ ) {
+		while ( (pEmoji = m_pEmojiList[n]) != NULL ) {
+			m_pEmojiList[n] = pEmoji->m_pNext;
+			delete pEmoji;
+		}
+	}
+
+	::AfxGetMainWnd()->Invalidate(FALSE);
+}
+
 #endif

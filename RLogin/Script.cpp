@@ -5616,7 +5616,7 @@ int CScript::Func07(int cmd, CScriptValue &local)
 			break;
 		if ( (rp = (CRegEx *)(void *)local[1]) == NULL )
 			break;
-		if ( rp->MatchChar((int)local[0], (int)(local[0].GetAt(0)), &res) && (res.m_Status == REG_MATCH || res.m_Status == REG_MATCHOVER) ) {
+		if ( rp->MatchChar((int)local[0], (int)(local[0].GetAt(0)), &res) ) {
 			(*acc) = (int)res.m_Data.GetSize();
 			acc->RemoveAll();
 			for ( n = 0 ; n < res.GetSize() ; n++ ) {
@@ -6212,7 +6212,7 @@ int CScript::Func03(int cmd, CScriptValue &local)
 		break;
 
 	case 23:	// speek(s)
-		((CRLoginApp *)::AfxGetApp())->Speek((LPCTSTR)local[0]);
+		((CMainFrame *)::AfxGetMainWnd())->Speek((LPCTSTR)local[0]);
 		break;
 
 	case 24:	// popen(c, m)
@@ -6908,7 +6908,7 @@ void CScript::OnSockChar(int ch)
 	m_RegMatch = (-1);
 	for ( n = 0 ; n < m_RegData.GetSize() ; n++ ) {
 		pReg = (CRegEx *)m_RegData[n];
-		if ( pReg->MatchChar(ch, 0, &res) && (res.m_Status == REG_MATCH || res.m_Status == REG_MATCHOVER) ) {
+		if ( pReg->MatchChar(ch, 0, &res) ) {
 			m_RegMatch = n;
 			m_EventFlag &= ~SCP_EVENT_CONS;
 			break;
@@ -7118,7 +7118,7 @@ int CTempWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	if ( (n = (int)m_pValue->GetAt("FontPoint")) < 10 )
 		n = 90;
-	m_Font.CreatePointFont(MulDiv(n, SCREEN_DPI_Y, DEFAULT_DPI_Y), (LPCTSTR)(m_pValue->GetAt("FontName")));
+	m_Font.CreatePointFont(MulDiv(n, SCREEN_DPI_Y, SYSTEM_DPI_Y), (LPCTSTR)(m_pValue->GetAt("FontName")));
 	SetFont(&m_Font, FALSE);
 
 	for ( n = 0 ; n < sp->GetSize() ; n++ ) {

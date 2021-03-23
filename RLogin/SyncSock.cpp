@@ -37,6 +37,7 @@ CSyncSock::CSyncSock(class CRLoginDoc *pDoc, CWnd *pWnd)
 	m_pThreadEvent = new CEvent(FALSE, TRUE);
 	m_pParamEvent  = new CEvent(FALSE, TRUE);
 	m_ResvDoit = FALSE;
+	m_MultiFile = FALSE;
 	m_IsAscii = FALSE;
 	m_bUseWrite = FALSE;
 	m_LastUpdate = clock();
@@ -143,29 +144,73 @@ void CSyncSock::ThreadCommand(int cmd)
 		RECHECK:
 		if ( !m_ResvPath.IsEmpty() ) {
 			m_PathName = m_ResvPath.RemoveHead();
-			if ( (p = _tcsrchr(m_PathName, _T('\\'))) != NULL || (p = _tcsrchr(m_PathName, _T(':'))) != NULL )
-				m_FileName = m_pDoc->RemoteStr(p + 1);
-			else
-				m_FileName = m_pDoc->RemoteStr(m_PathName);
-			m_ResvDoit = TRUE;
+
+			// ファイルダイアログ拡張時は、毎回オプションを確認するようにした
+			if ( !m_MultiFile && m_ExtFileDlgMode != 0 ) {
+				if ( (p = _tcsrchr(m_PathName, _T('.'))) == NULL )
+					p = _T(".");
+
+				// FileUploadのファイルドロップ時は、シングルに強制
+				m_Param &= ~CHKFILENAME_MULTI;
+
+				CExtFileDialog dlg(((m_Param & CHKFILENAME_OPEN) ? TRUE : FALSE), p + 1, m_PathName,
+					OFN_HIDEREADONLY | OFN_ENABLESIZING | ((m_Param & CHKFILENAME_MULTI) ? OFN_ALLOWMULTISELECT : 0), 
+					CStringLoad(IDS_FILEDLGALLFILE), m_pWnd, 0, (m_ExtFileDlgMode == 0 ? TRUE : FALSE), m_ExtFileDlgMode, this);
+
+				if ( DpiAwareDoModal(dlg, m_ExtFileDlgMode != 0 ? REQDPICONTEXT_SCALED : REQDPICONTEXT_AWAREV2) == IDOK ) {
+					m_PathName = dlg.GetPathName();
+					m_FileName = m_pDoc->RemoteStr(dlg.GetFileName());
+					m_ResvDoit = TRUE;
+
+				} else {
+					if ( !m_ResvPath.IsEmpty() )
+						m_ResvPath.RemoveAll();
+					m_PathName.Empty();
+					m_FileName.Empty();
+					m_ResvDoit = FALSE;
+				}
+
+			} else {
+				if ( (p = _tcsrchr(m_PathName, _T('\\'))) != NULL || (p = _tcsrchr(m_PathName, _T(':'))) != NULL )
+					m_FileName = m_pDoc->RemoteStr(p + 1);
+				else
+					m_FileName = m_pDoc->RemoteStr(m_PathName);
+
+				m_ResvDoit = TRUE;
+			}
+
+			if ( m_ResvPath.IsEmpty() )
+				m_MultiFile = FALSE;
+
 		} else {
+			m_MultiFile = FALSE;
 			m_PathName = m_pDoc->LocalStr(m_FileName);
 			if ( (p = _tcsrchr(m_PathName, _T('.'))) == NULL )
 				p = _T(".");
-			CExtFileDialog dlg(((m_Param & 1) ? TRUE : FALSE), p + 1, m_PathName, OFN_HIDEREADONLY | OFN_ENABLESIZING | ((m_Param & 2) ? OFN_ALLOWMULTISELECT : 0), CStringLoad(IDS_FILEDLGALLFILE), m_pWnd, 0, (m_ExtFileDlgMode == 0 ? TRUE : FALSE), m_ExtFileDlgMode, this);
+
+			CExtFileDialog dlg(((m_Param & CHKFILENAME_OPEN) ? TRUE : FALSE), p + 1, m_PathName,
+				OFN_HIDEREADONLY | OFN_ENABLESIZING | ((m_Param & CHKFILENAME_MULTI) ? OFN_ALLOWMULTISELECT : 0), 
+				CStringLoad(IDS_FILEDLGALLFILE), m_pWnd, 0, (m_ExtFileDlgMode == 0 ? TRUE : FALSE), m_ExtFileDlgMode, this);
+
 			if ( DpiAwareDoModal(dlg, m_ExtFileDlgMode != 0 ? REQDPICONTEXT_SCALED : REQDPICONTEXT_AWAREV2) == IDOK ) {
-				if ( (m_Param & 2) != 0 ) {
+				if ( (m_Param & CHKFILENAME_MULTI) != 0 ) {
 					POSITION pos = dlg.GetStartPosition();
 					while ( pos != NULL )
 						m_ResvPath.AddTail(dlg.GetNextPathName(pos));
-					if ( !m_ResvPath.IsEmpty() )
+
+					if ( !m_ResvPath.IsEmpty() ) {
+						m_MultiFile = TRUE;
 						goto RECHECK;
+					}
+
 					m_PathName.Empty();
 					m_FileName.Empty();
+
 				} else {
 					m_PathName = dlg.GetPathName();
 					m_FileName = m_pDoc->RemoteStr(dlg.GetFileName());
 				}
+
 			} else {
 				m_PathName.Empty();
 				m_FileName.Empty();
@@ -406,16 +451,16 @@ void CSyncSock::SetXonXoff(int sw)
 
 //////////////////////////////////////////////////////////////////////
 
-char *CSyncSock::CheckFileName(int mode, LPCSTR file)
+BOOL CSyncSock::CheckFileName(int mode, LPCSTR file)
 {
 	if ( m_DoAbortFlag )
-		return "";
+		return FALSE;
 	m_Param = mode;
 	m_FileName = file;
 	m_pParamEvent->ResetEvent();
 	m_pWnd->PostMessage(WM_THREADCMD, THCMD_CHECKPATH, (LPARAM)this);
 	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
-	return (char *)((LPCSTR)(m_FileName));
+	return (m_FileName.IsEmpty() || m_PathName.IsEmpty() ? FALSE : TRUE);
 }
 int CSyncSock::YesOrNo(LPCSTR msg)
 {

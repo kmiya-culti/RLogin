@@ -22,6 +22,8 @@
 
 #include <iconv.h>
 #include <imm.h>
+#include <sys/types.h>
+#include <sys/timeb.h>
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -353,6 +355,10 @@ void CFontNode::Init()
 	m_MapType     = 0;
 	m_UniBlock    = _T("");
 	m_OverZero    = _T("");
+	m_JpSet       = (-1);
+
+	m_Iso646Name[0] = _T("");
+	m_Iso646Name[1] = _T("");
 
 	// ISO646-US/JP				//	US->JP		JP->US
 	m_Iso646Tab[0]  = 0x0023;
@@ -412,10 +418,13 @@ void CFontNode::GetArray(CStringArrayExt &stra)
 
 	m_EntryName   = stra.GetAt(5);
 	m_IContName   = stra.GetAt(6);
+
 	m_ZoomW		  = (stra.GetSize() > 7 ? stra.GetVal(7) : m_ZoomH);
 
 	if ( m_IContName.Compare(_T("GB2312-80")) == 0 )	// Debug!!
 		m_IContName = _T("GB_2312-80");
+
+	m_JpSet       = CTextRam::JapanCharSet(m_IContName);
 
 	for ( int n = 1 ; n < 16 ; n++ ) {				// 8 - 23
 		if ( stra.GetSize() > (7 + n) )
@@ -484,6 +493,7 @@ const CFontNode & CFontNode::operator = (CFontNode &data)
 	m_Quality   = data.m_Quality;
 	m_Init      = data.m_Init;
 	m_UniBlock  = data.m_UniBlock;
+	m_JpSet     = data.m_JpSet;
 
 	for ( int n = 0 ; n < 16 ; n++ )
 		m_FontName[n] = data.m_FontName[n];
@@ -828,7 +838,9 @@ CFontTab::~CFontTab()
 void CFontTab::Init()
 {
 	int n, i;
-	static const struct _FontInitTab	{
+	CIConv iconv;
+	static const CHAR Iso646Char[] = { 0x23, 0x24, 0x40, 0x5B, 0x5C, 0x5D, 0x5E, 0x60, 0x7B, 0x7C, 0x7D, 0x7E };
+	static const struct _FontInitTab {
 		LPCTSTR	name;
 		WORD	mode;
 		LPCTSTR	scs;
@@ -907,8 +919,18 @@ void CFontTab::Init()
 		m_Data[i].m_FontName[1] = FontInitTab[n].font[1];
 		m_Data[i].m_EntryName   = FontInitTab[n].name;
 		m_Data[i].m_IContName   = FontInitTab[n].iset;
+		m_Data[i].m_JpSet       = CTextRam::JapanCharSet(m_Data[i].m_IContName);
 		m_Data[i].m_IndexName   = FontInitTab[n].scs;
 		m_Data[i].m_Init        = FALSE;
+
+#if 0
+		// libiconvを重視するならiso646tabを初期化したほうが良いが
+		// Windowsフォントを重視するならユーザー設定に任せる
+		if ( FontInitTab[n].mode <= SET_96 && FontInitTab[n].bank == 0 ) {
+			for ( int c = 0 ; c < 12 ; c++ )
+				m_Data[i].m_Iso646Tab[c] = iconv.IConvChar(FontInitTab[n].iset, _T("UTF-16BE"), (DWORD)(Iso646Char[c]));
+		}
+#endif
 	}
 
 	InitUniBlock();
@@ -981,8 +1003,11 @@ void CFontTab::GetArray(CStringArrayExt &stra)
 				m_Data[i].m_IndexName = (CHAR)(i & 0xFF);
 		} else if ( m_Data[i].m_IndexName.Compare(_T("Unicode")) == 0 )
 			m_Data[i].m_IndexName = _T("*U");
-		if ( i == SET_UNICODE )
+
+		if ( i == SET_UNICODE ) {
 			m_Data[i].m_IContName = _T("UTF-16BE");
+			m_Data[i].m_JpSet = (-1);
+		}
 	}
 
 	InitUniBlock();
@@ -1110,6 +1135,7 @@ void CFontTab::SetIndex(int mode, CStringIndex &index)
 					m_Data[code].m_Quality   = index[n][i][7];
 					m_Data[code].m_CharSet   = index[n][i][8];
 					m_Data[code].m_IContName = index[n][i][9];
+					m_Data[code].m_JpSet     = CTextRam::JapanCharSet(m_Data[code].m_IContName);
 
 					for ( a = 0 ; a < 16 && a < index[n][i][10].GetSize() ; a++ )
 						m_Data[code].m_FontName[a] = index[n][i][10][a];
@@ -1700,6 +1726,7 @@ CTextRam::CTextRam()
 	m_HisPos = 0;
 	m_HisLen = 0;
 	m_HisUse = 0;
+	m_HisAbs = 0;
 	m_pTextSave = m_pTextStack = NULL;
 	m_AltIdx = 0;
 	m_pAltSave[0] = m_pAltSave[1] = NULL;
@@ -1707,6 +1734,8 @@ CTextRam::CTextRam()
 	m_DefTypeCaret = 1;
 	m_TypeCaret = m_DefTypeCaret;
 	m_DefCaretColor = RGB(255, 255, 255);
+	m_ImeTypeCaret = 0;
+	m_ImeCaretColor = RGB(31, 255, 127);
 	m_CaretColor = m_DefCaretColor;
 	m_UpdateRect.SetRectEmpty();
 	m_UpdateFlag = FALSE;
@@ -1723,6 +1752,7 @@ CTextRam::CTextRam()
 	m_LastChar = 0;
 	m_LastFlag = 0;
 	m_LastPos.SetPoint(0, 0);
+	m_LastCur.SetPoint(0, 0);
 	m_LastSize = CM_ASCII;
 	m_LastAttr = 0;
 	m_LastStr.Empty();
@@ -1781,6 +1811,8 @@ CTextRam::CTextRam()
 	m_CharHeight = 16;
 	m_MarkColor = RGB(255, 255, 0);
 	m_RtfMode = 0;
+	m_iTerm2Mark = 0;
+	m_pCmdHisWnd = NULL;
 
 	for ( int n = 0 ; n < 8 ; n++ )
 		pGrapListIndex[n] = pGrapListImage[n] = NULL;
@@ -1897,6 +1929,10 @@ CTextRam::~CTextRam()
 		delete [] m_SaveParam.m_TabMap;
 	if ( m_StsParam.m_TabMap != NULL )
 		delete [] m_StsParam.m_TabMap;
+
+	CMDHIS *pCmdHis;
+	while ( !m_CommandHistory.IsEmpty() && (pCmdHis = m_CommandHistory.RemoveHead()) != NULL )
+		delete pCmdHis;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1989,11 +2025,11 @@ void CTextRam::InitText(int Width, int Height)
 /************************************************************
 
 						m_Cols		m_ColsMax		COLS_MAX
-			0-------0---+-----------+---------------+
+			0		0---+-----------+---------------+
 			|    
-			+-------+m_HisLen
-			|		|
-	m_HisPos+-------+-----------0
+			+-------+m_HisLen			0
+			|		|					|
+	m_HisPos+-------+-----------0-------+m_HisAbs
 			|		|			|
 	m_HisMax+-------0-----------+m_Lines
 
@@ -2316,11 +2352,11 @@ void CTextRam::SaveHistory()
 		m_HisFhd.Close();
 
 	} catch(CFileException* pEx) {
-		AfxMessageBox(IDE_HISTORYBACKUPERROR);
+		AfxMessageBox(CStringLoad(IDE_HISTORYBACKUPERROR));
 		pEx->Delete();
 		return;
 	} catch(...) {
-		AfxMessageBox(IDE_HISTORYBACKUPERROR);
+		AfxMessageBox(CStringLoad(IDE_HISTORYBACKUPERROR));
 	}
 }
 void CTextRam::SaveLogFile()
@@ -2370,8 +2406,9 @@ void CTextRam::HisRegCheck(DWORD ch, DWORD pos)
 		}
 
 	} else {
-		if ( m_MarkReg.MatchChar(ch, pos, &res) && (res.m_Status == REG_MATCH || res.m_Status == REG_MATCHOVER) ) {
-			for ( i = 0 ; i < res.GetSize() ; i++ ) {
+		if ( m_MarkReg.MatchChar(ch, pos, &res) ) {
+			if ( res.GetSize() > 0 ) {
+				i = 0;	// for ( i = 0 ; i < res.GetSize() ; i++ ) {
 				for ( a = res[i].m_SPos ; a < res[i].m_EPos ; a++ ) {
 					if ( res.m_Idx[a] != 0xFFFFFFFF )
 						GETVRAM(res.m_Idx[a] % m_ColsMax, res.m_Idx[a] / m_ColsMax - m_HisPos)->m_Vram.attr |= ATT_SMARK;
@@ -2393,9 +2430,6 @@ void CTextRam::HisMarkClear()
 }
 int CTextRam::HisRegMark(LPCTSTR str, BOOL bRegEx)
 {
-	int n, x;
-	CCharCell *vp;
-
 	m_MarkPos = m_HisPos + m_Lines - m_HisLen;
 
 	while ( m_MarkPos < 0 )
@@ -2405,13 +2439,7 @@ int CTextRam::HisRegMark(LPCTSTR str, BOOL bRegEx)
 		m_MarkPos -= m_HisMax;
 
 	if ( str == NULL || *str == _T('\0') ) {
-		for ( n = 0 ; n < m_HisLen ; n++ ) {
-			vp = GETVRAM(0, m_MarkPos - m_HisPos);
-			for ( x = 0 ; x < m_Cols ; x++ )
-				vp[x].m_Vram.attr &= ~ATT_SMARK;
-			while ( ++m_MarkPos >= m_HisMax )
-				m_MarkPos -= m_HisMax;
-		}
+		HisMarkClear();
 		return 0;
 	}
 
@@ -2421,11 +2449,13 @@ int CTextRam::HisRegMark(LPCTSTR str, BOOL bRegEx)
 	m_bSimpSerch = TRUE;
 
 	if ( bRegEx ) {
-		m_MarkReg.Compile(str);
-		m_MarkReg.MatchCharInit();
+		if ( !m_MarkReg.Compile(str) ) {
+			::AfxMessageBox(m_MarkReg.m_ErrMsg);
+			return 0;
+		}
 
-		if ( !m_MarkReg.IsSimple() )
-			m_bSimpSerch = FALSE;
+		m_MarkReg.MatchCharInit();
+		m_bSimpSerch = FALSE;
 	}
 
 	m_MarkLen = 0;
@@ -2542,7 +2572,7 @@ void CTextRam::Init()
 	m_DefCols[1]	= 132;
 	m_Page          = 0;
 	m_DefHisMax		= 2000;
-	m_DefFontSize	= 16;
+	m_DefFontSize	= MulDiv(16, SYSTEM_DPI_Y, DEFAULT_DPI_Y);
 	m_DefFontHw     = 20;
 	m_KanjiMode		= EUC_SET;
 	m_BankGL		= 0;
@@ -2566,15 +2596,17 @@ void CTextRam::Init()
 	EnableOption(TO_XTPRICOL);	// ?1070 Private Color Map
 	EnableOption(TO_RLFONT);	// ?8404 フォントサイズから一行あたりの文字数を決定
 	EnableOption(TO_RLUNIAWH);	// ?8428 UnicodeのAタイプの文字を半角として表示する
+	EnableOption(TO_RLC1DIS);	// ?8454 C1制御を行わない
 	EnableOption(TO_DRCSMMv1);	// ?8800 Unicode 16 Maping
 	EnableOption(TO_RLNODELAY);	//  1486 TCPオプションのNoDelayを有効にする
 
 	memcpy(m_DefAnsiOpt, m_AnsiOpt, sizeof(m_AnsiOpt));
 	memcpy(m_DefBankTab, DefBankTab, sizeof(m_DefBankTab));
 	memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
+
 	m_SendCharSet[0] = _T("EUCJP-MS");
-	m_SendCharSet[1] = _T("SHIFT-JIS");
-	m_SendCharSet[2] = _T("ISO-2022-JP");
+	m_SendCharSet[1] = _T("CP932");
+	m_SendCharSet[2] = _T("ISO-2022-JP-MS");
 	m_SendCharSet[3] = _T("UTF-8");
 	m_SendCharSet[4] = _T("BIG-5");
 
@@ -2594,6 +2626,8 @@ void CTextRam::Init()
 	m_TypeCaret      = m_DefTypeCaret;
 	m_CaretColor     = m_DefCaretColor ;
 	m_MarkColor      = RGB(255, 255, 0);
+	m_ImeTypeCaret   = 0;
+	m_ImeCaretColor  = RGB(31, 255, 127);
 
 	for ( int n = 0 ; n < 8 ; n++ )
 		m_DropFileCmd[n] = DropCmdTab[n];
@@ -2797,6 +2831,11 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		index[_T("Title")] = m_TitleName;
 		index[_T("RtfMode")] = m_RtfMode;
 		index[_T("SleepMode")] = m_SleepMode;
+
+		index[_T("ImeTypeCaret")] = m_ImeTypeCaret;
+		index[_T("ImeCaretColor")].Add(GetRValue(m_ImeCaretColor));
+		index[_T("ImeCaretColor")].Add(GetGValue(m_ImeCaretColor));
+		index[_T("ImeCaretColor")].Add(GetBValue(m_ImeCaretColor));
 
 	} else {		// Read
 		if ( (n = index.Find(_T("Cols"))) >= 0 ) {
@@ -3076,6 +3115,12 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		if ( (n = index.Find(_T("SleepMode"))) >= 0 )
 			m_SleepMode = index[n];
 
+		if ( (n = index.Find(_T("ImeTypeCaret"))) >= 0 )
+			m_ImeTypeCaret = index[n];
+
+		if ( (n = index.Find(_T("ImeCaretColor"))) >= 0 && index[n].GetSize() >= 3 )
+			m_ImeCaretColor = RGB((int)index[n][0], (int)index[n][1], (int)index[n][2]);
+
 		memcpy(m_ColTab, m_DefColTab, sizeof(m_DefColTab));
 		memcpy(m_AnsiOpt, m_DefAnsiOpt, sizeof(m_AnsiOpt));
 		memcpy(m_BankTab, m_DefBankTab, sizeof(m_DefBankTab));
@@ -3322,6 +3367,15 @@ void CTextRam::DiffIndex(CTextRam &orig, CStringIndex &index)
 
 	if ( m_SleepMode != orig.m_SleepMode )
 		index[_T("SleepMode")] = m_SleepMode;
+
+	if ( m_ImeTypeCaret != orig.m_ImeTypeCaret )
+		index[_T("ImeTypeCaret")] = m_ImeTypeCaret;
+
+	if ( m_ImeCaretColor != orig.m_ImeCaretColor ) {
+		index[_T("ImeCaretColor")].Add(GetRValue(m_ImeCaretColor));
+		index[_T("ImeCaretColor")].Add(GetGValue(m_ImeCaretColor));
+		index[_T("ImeCaretColor")].Add(GetBValue(m_ImeCaretColor));
+	}
 }
 void CTextRam::SetArray(CStringArrayExt &stra)
 {
@@ -3437,6 +3491,9 @@ void CTextRam::SetArray(CStringArrayExt &stra)
 	stra.AddVal(m_DelayMSecRecv);
 
 	stra.AddVal(m_SleepMode);
+
+	stra.AddVal(m_ImeTypeCaret);
+	stra.AddVal(m_ImeCaretColor);
 }
 void CTextRam::GetArray(CStringArrayExt &stra)
 {
@@ -3675,6 +3732,12 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 
 	if ( stra.GetSize() > 79 )
 		m_SleepMode = stra.GetVal(79);
+
+	if ( stra.GetSize() > 80 )
+		m_ImeTypeCaret = stra.GetVal(80);
+	if ( stra.GetSize() > 81 )
+		m_ImeCaretColor = stra.GetVal(81);
+
 
 	if ( m_FixVersion < 9 ) {
 		if ( m_pDocument != NULL ) {
@@ -4351,7 +4414,7 @@ BOOL CTextRam::DecPos(int &x, int &y)
 	}
 	return FALSE;
 }
-void CTextRam::EditWordPos(int *sps, int *eps)
+void CTextRam::EditWordPos(CCurPos *sps, CCurPos *eps)
 {
 	int n, c;
 	int tx, ty;
@@ -4519,7 +4582,7 @@ void CTextRam::MediaCopy(int y1, int y2)
 
 	MediaCopyStr(str);
 }
-void CTextRam::EditCopy(int sps, int eps, BOOL rectflag, BOOL lineflag)
+void CTextRam::EditCopy(CCurPos sps, CCurPos eps, BOOL rectflag, BOOL lineflag)
 {
 	int i, x, y, sx, ex, tc;
 	int x1, y1, x2, y2;
@@ -4851,7 +4914,7 @@ void CTextRam::EditCopy(int sps, int eps, BOOL rectflag, BOOL lineflag)
 
 	((CMainFrame *)::AfxGetMainWnd())->SetClipboardText((LPCWSTR)text, (m_RtfMode != RTF_NONE ? (LPCSTR)mixrtf : NULL));
 }
-void CTextRam::EditMark(int sps, int eps, BOOL rectflag, BOOL lineflag)
+void CTextRam::EditMark(CCurPos sps, CCurPos eps, BOOL rectflag, BOOL lineflag)
 {
 	int n, x, y, sx, ex;
 	int x1, y1, x2, y2;
@@ -4975,12 +5038,12 @@ void CTextRam::GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf)
 	for ( y = staY ; y <= endY ; y++ ) {
 		vp = GETVRAM(0, y);
 
+		sx = (y == staY ? staX : 0);
+		ex = (y == endY ? endX : (m_Cols - 1));
+
 		if ( vp->m_Vram.zoom != 0 ) {
-			sx = staX / 2;
-			ex = endX / 2;
-		} else {
-			sx = staX;
-			ex = endX;
+			sx = sx / 2;
+			ex = ex / 2;
 		}
 
 		while ( sx <= ex && vp[ex].IsEmpty() )
@@ -5007,6 +5070,104 @@ void CTextRam::GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf)
 		}
 	}
 }
+BOOL CTextRam::SpeekLine(int line, CString &text, CArray<CCurPos, CCurPos &> &pos)
+{
+	int n, x, sx, ex;
+	CCharCell *vp;
+	LPCWSTR p;
+	BOOL bContinue = FALSE;
+
+	vp = GETVRAM(0, line);
+	sx = 0;
+	ex = m_Cols - 1;
+
+	if ( vp->m_Vram.zoom != 0 )
+		ex = ex / 2;
+
+	while ( ex >= 0 && vp[ex].IsEmpty() )
+		ex--;
+
+	while ( sx <= ex && vp[sx].IsEmpty() )
+		sx++;
+
+	for ( x = sx ; x <= ex ; x += n ) {
+		if ( vp[x].IsEmpty() ) {
+			text += _T(' ');
+			pos.Add(GetCalcPos(x, line));
+			n = 1;
+		} else if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].m_Vram.mode) && IS_2BYTE(vp[x + 1].m_Vram.mode) && vp[x].Compare(vp[x + 1]) == 0 ) {
+			for ( p = vp[x] ; *p != 0 ; p++ ) {
+				text += *p;
+				pos.Add(GetCalcPos(x, line));
+			}
+			n = 2;
+		} else {
+			for ( p = vp[x] ; *p != 0 ; p++ ) {
+				text += *p;
+				pos.Add(GetCalcPos(x, line));
+			}
+			n = 1;
+		}
+	}
+
+	if ( (vp[0].m_Vram.attr & ATT_RETURN) == 0 )
+		bContinue = TRUE;
+
+	return bContinue;
+}
+BOOL CTextRam::SpeekCheck(CCurPos sPos, CCurPos ePos, LPCTSTR str)
+{
+	int n, x, y, tx, bx;
+	int sx, sy, ex, ey;
+	CCharCell *vp;
+	LPCWSTR p;
+
+	SetCalcPos(sPos, &sx, &sy);
+	SetCalcPos(ePos, &ex, &ey);
+
+	for ( y = sy ; y <= ey ; y++ ) {
+		vp = GETVRAM(0, y);
+
+		if ( y == ey )
+			bx = ex;
+		else {
+			bx = m_Cols - 1;
+			while ( bx >= 0 && vp[bx].IsEmpty() )
+				bx--;
+		}
+
+		if ( y == sy )
+			tx = sx;
+		else {
+			tx = 0;
+			while ( tx <= bx && vp[tx].IsEmpty() )
+				tx++;
+		}
+
+
+		for ( x = tx ; x <= bx ; x += n ) {
+			if ( vp[x].IsEmpty() ) {
+				if ( *(str++) != _T(' ') )
+					return FALSE;
+				n = 1;
+			} else if ( x < (m_Cols - 1) && IS_1BYTE(vp[x].m_Vram.mode) && IS_2BYTE(vp[x + 1].m_Vram.mode) && vp[x].Compare(vp[x + 1]) == 0 ) {
+				for ( p = vp[x] ; *p != 0 ; p++ ) {
+					if ( *(str++) != *p )
+						return FALSE;
+				}
+				n = 2;
+			} else {
+				for ( p = vp[x] ; *p != 0 ; p++ ) {
+					if ( *(str++) != *p )
+						return FALSE;
+				}
+				n = 1;
+			}
+		}
+	}
+
+	return TRUE;
+}
 
 void CTextRam::DrawBitmap(CDC *pDestDC, CRect &rect, CDC *pSrcDC, int width, int height, DWORD dwRop)
 {
@@ -5031,6 +5192,7 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 	CPoint point[2];
 	CRect box(rect), tmp;
 	static const DWORD PenExtTab[3][4]  = {	{ 3, 1, 3, 1 }, { 2, 1, 2, 1 },	{ 1, 1, 1, 1 } };
+	static int SinTab[] = { 0, 87, 174, 259, 342, 423, 500, 574, 643, 707, 766, 819, 866, 906, 940, 966, 985, 996, 1000 };
 
 	cPen[0].CreatePen(PS_SOLID, BD_SIZE, fc);
 
@@ -5061,7 +5223,7 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 		} else if ( prop.pText[a] >= 0x2500 && prop.pText[a] <= 0x257F ) {		// U+002500 Box Drawing
 			const BYTE *tab = BorderTab[prop.pText[a] - 0x2500];
 			CPoint center((box.left + box.right) / 2, (box.top + box.bottom) / 2);
-			int corner = (box.Height() < 12 ? 2 : box.Height() / 6);
+			int r, t, k;
 
 			for ( c = 0 ; c < 4 ; c++ ) {
 				if ( tab[c] == BD_NONE )
@@ -5121,10 +5283,13 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 						pDC->LineTo(point[1].x + o, point[1].y + BD_SIZE);
 						break;
 					case BD_LINE4:	// ╮
-						pDC->MoveTo(box.left, center.y);
-						pDC->LineTo(center.x - corner, center.y);
-						pDC->LineTo(center.x, center.y + corner);
-						pDC->LineTo(center.x, box.bottom);
+						if ( (r = center.x - box.left) > (box.bottom - center.y) )
+							r = box.bottom - center.y;
+						if ( r >= 48 ) t = 1; else if ( r >= 24 ) t = 2; else if ( r >= 12 ) t = 3; else if ( r >= 4 ) t = 6; else t = 9;
+						pDC->MoveTo(center.x, box.bottom);
+						for ( k = 0 ; k <= 18 ; k += t )
+							pDC->LineTo(center.x - r + r * SinTab[18 - k] / 1000, center.y + r - r * SinTab[k] / 1000);
+						pDC->LineTo(box.left - 1, center.y);
 						break;
 					case BD_LINE5:	// ╱
 						pDC->MoveTo(box.right - 1, box.top);
@@ -5154,9 +5319,12 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 						pDC->LineTo(point[1].x, point[1].y + BD_SIZE);
 						break;
 					case BD_LINE4:	// ╰
+						if ( (r = box.right - center.x) > (center.y - box.top) )
+							r = center.y - box.top;
+						if ( r >= 48 ) t = 1; else if ( r >= 24 ) t = 2; else if ( r >= 12 ) t = 3; else if ( r >= 4 ) t = 6; else t = 9;
 						pDC->MoveTo(center.x, box.top);
-						pDC->LineTo(center.x, center.y - corner);
-						pDC->LineTo(center.x + corner, center.y);
+						for ( k = 0 ; k <= 18 ; k += t )
+							pDC->LineTo(center.x + r - r * SinTab[18 - k] / 1000, center.y - r + r * SinTab[k] / 1000);
 						pDC->LineTo(box.right, center.y);
 						break;
 					case BD_LINE5:	// ╱
@@ -5188,10 +5356,13 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 						pDC->LineTo(point[1].x + BD_SIZE, point[1].y + o);
 						break;
 					case BD_LINE4:	// ╯
-						pDC->MoveTo(box.left, center.y);
-						pDC->LineTo(center.x - corner, center.y);
-						pDC->LineTo(center.x, center.y - corner);
-						pDC->LineTo(center.x, box.top - 1);
+						if ( (r = center.x - box.left) > (center.y - box.top) )
+							r = center.y - box.top;
+						if ( r >= 48 ) t = 1; else if ( r >= 24 ) t = 2; else if ( r >= 12 ) t = 3; else if ( r >= 4 ) t = 6; else t = 9;
+						pDC->MoveTo(center.x, box.top);
+						for ( k = 0 ; k <= 18 ; k += t )
+							pDC->LineTo(center.x - r + r * SinTab[18 - k] / 1000, center.y - r + r * SinTab[k] / 1000);
+						pDC->LineTo(box.left - 1, center.y);
 						break;
 					case BD_LINE5:	// ╲
 						pDC->MoveTo(box.left, box.top);
@@ -5221,10 +5392,13 @@ void CTextRam::DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 						pDC->LineTo(point[1].x + BD_SIZE, point[1].y);
 						break;
 					case BD_LINE4:	// ╭
-						pDC->MoveTo(box.right, center.y);
-						pDC->LineTo(center.x + corner, center.y);
-						pDC->LineTo(center.x, center.y + corner);
-						pDC->LineTo(center.x, box.bottom);
+						if ( (r = box.right - center.x) > (box.bottom - center.y) )
+							r = box.bottom - center.y;
+						if ( r >= 48 ) t = 1; else if ( r >= 24 ) t = 2; else if ( r >= 12 ) t = 3; else if ( r >= 4 ) t = 6; else t = 9;
+						pDC->MoveTo(center.x, box.bottom);
+						for ( k = 0 ; k <= 18 ; k += t )
+							pDC->LineTo(center.x + r - r * SinTab[18 - k] / 1000, center.y + r - r * SinTab[k] / 1000);
+						pDC->LineTo(box.right, center.y);
 						break;
 					case BD_LINE5:	// ╲
 						pDC->MoveTo(box.left, box.top);
@@ -5348,9 +5522,11 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 	if ( bEraBack )
 		mode |= ETO_OPAQUE;
 
-	// SHIFTJIS_CHARSETのみ文字幅を半角で指定で行ってみる
-	width  = (pView->m_CharWidth * (pFontNode->m_CharSet != SHIFTJIS_CHARSET ? prop.csz : 1))  * (prop.zoom == 0 ? 1 : 2);
+	width  = pView->m_CharWidth  * prop.csz * (prop.zoom == 0 ? 1 : 2);
 	height = pView->m_CharHeight * (prop.zoom <= 1 ? 1 : 2);
+
+	if ( prop.csz > 1 )
+		style |= FONTSTYLE_FULLWIDTH;
 
 	if ( (prop.attr & ATT_BOLD) != 0 && IsOptEnable(TO_RLBOLD) )
 		style |= FONTSTYLE_BOLD;
@@ -5437,7 +5613,7 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 				x = box.left + pView->m_CharWidth * pFontNode->m_OffsetW / 100 + (box.Width() - sz.cx) / 2;
 				y = box.top - pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? pView->m_CharHeight : 0);
 
-				pDC->ExtTextOutW(x, y, mode, box, str, NULL);
+				pDC->ExtTextOutW(x, y - pFontCache->m_Offset, mode, box, str, NULL);
 
 				if ( nw != width ) {
 					pFontCache = pFontNode->GetFont(width, height, style, prop.font, this);
@@ -5465,7 +5641,7 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 		sz = pDC->GetTextExtent(prop.pText, prop.tlen);
 
 		pDC->SetTextCharacterExtra((box.Width() - sz.cx) / prop.size);
-		pDC->ExtTextOutW(x, y, mode, box, prop.pText, prop.tlen, NULL);
+		pDC->ExtTextOutW(x, y - pFontCache->m_Offset, mode, box, prop.pText, prop.tlen, NULL);
 		pDC->SetTextCharacterExtra(0);
 
 		pView->m_ClipUpdateLine = TRUE;
@@ -5489,7 +5665,7 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 			}
 		}
 
-		pDC->ExtTextOutW(x, y, mode, box, prop.pText, prop.tlen, prop.pSpace);
+		pDC->ExtTextOutW(x, y - pFontCache->m_Offset, mode, box, prop.pText, prop.tlen, prop.pSpace);
 
 	} else if ( type == 2 ) {
 		// Proportion Draw
@@ -5533,7 +5709,7 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 			x = box.left + pView->m_CharWidth  * pFontNode->m_OffsetW / 100 + (box.Width() - sz.cx) / 2;
 			y = box.top  - pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? pView->m_CharHeight : 0);
 
-			pDC->ExtTextOutW(x, y, mode, box, str, NULL);
+			pDC->ExtTextOutW(x, y - pFontCache->m_Offset, mode, box, str, NULL);
 
 			for ( x = c = 0 ; x < prop.csz ; x++ ) {
 				y = box.Width() * (x + 1) / prop.csz;
@@ -5578,7 +5754,7 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 				x = box.left + pView->m_CharWidth * pFontNode->m_OffsetW / 100 + (box.Width() - sz.cx) / 2;
 				y = box.top - pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? pView->m_CharHeight : 0);
 
-				pDC->ExtTextOutW(x, y, mode, box, str, NULL);
+				pDC->ExtTextOutW(x, y - pFontCache->m_Offset, mode, box, str, NULL);
 
 				if ( nw != width ) {
 					pFontCache = pFontNode->GetFont(width, height, style, prop.font, this);
@@ -5957,7 +6133,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 	int n;
 	int x, y, sx, ex;
 	int zoom, len;
-	int cpos, spos, epos;
+	CCurPos cpos, spos, epos;
 	int csx, cex, csy, cey;
 	int isx, iex;
 	CRect rect;
@@ -6112,7 +6288,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 				} else if ( IS_ASCII(vp->m_Vram.mode) ) {
 					str = (LPCWSTR)*vp;
 					work.bank = vp->m_Vram.bank & CODE_MASK;
-					if ( !str.IsEmpty() && str[0] > _T(' ') ) {
+					if ( !str.IsEmpty() && str[0] > _T(' ') && str[1] == _T('\0') ) {
 						if ( (work.bank & SET_MASK) <= SET_96 && m_FontTab[work.bank].m_Shift == 0 ) {
 							switch(str[0]) {
 							case 0x0023: UCS4ToWStr(m_FontTab[work.bank].m_Iso646Tab[0], str); break;
@@ -6215,6 +6391,13 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 					} else
 						work.attr |= ATT_CLIP;
 				}
+			}
+
+			// Speek Text
+			if ( pView->m_bSpeekDispText && x >= 0 && x < m_Cols && top != NULL ) {
+				cpos = GetCalcPos(x, y - pView->m_HisOfs + pView->m_HisMin);
+				if ( pView->m_SpeekStaPos <= cpos && cpos <= pView->m_SpeekEndPos )
+					work.attr ^= ATT_UNDER;
 			}
 
 			// Text Draw
@@ -6424,6 +6607,156 @@ void CTextRam::IncDscs(int &Pcss, CString &str)
 	if ( scs[2] != 0 )
 		str += scs[2];
 }
+
+#define	CMDMAPBITSIZE	(8 * sizeof(DWORD))
+
+static BOOL InitCmdMap = FALSE;
+static DWORD CmdMap[128 / CMDMAPBITSIZE];
+
+typedef struct _STRSTACK {
+	struct _STRSTACK	*next;
+	LPCTSTR				str;
+} STRSTACK;
+
+static void DateTimeFormatCheck(LPCTSTR fmt, CString &tmp, struct _timeb &tb, STRSTACK *top)
+{
+	int n;
+	CString env, wrk;
+	TCHAR cmd;
+	BOOL bExt;
+	STRSTACK stack, *sp;
+
+	while ( *fmt != _T('\0') ) {
+		if ( fmt[0] == _T('%') && fmt[1] == _T('{') && _tcschr(fmt, _T('}')) != NULL ) {
+			env.Empty();
+			wrk.Empty();
+			for ( fmt += 2 ; *fmt != _T('\0') ; ) {
+				if ( *fmt == _T('}') ) {
+					fmt++;
+					break;
+				}
+				env += *(fmt++);
+			}
+			for ( sp = top ; sp != NULL ; sp = sp->next ) {
+				if ( _tcscmp(env, sp->str) == 0 )
+					break;
+			}
+			if ( sp == NULL ) {
+				CRLoginDoc::EnvironText(env, wrk);
+				stack.next = top;
+				stack.str  = env;
+				DateTimeFormatCheck(wrk, tmp, tb, &stack);
+			}
+
+		} else  if ( *fmt == _T('%') ) {
+			if ( (cmd = fmt[1]) == _T('#') ) {
+				bExt = TRUE;
+				cmd = fmt[2];
+			} else
+				bExt = FALSE;
+
+			if ( cmd == _T('\0') )
+				break;
+			else if ( cmd < 128 && (CmdMap[cmd / CMDMAPBITSIZE] & (1 << (cmd % CMDMAPBITSIZE))) != 0 ) {
+				tmp += (bExt ? _T("%#") : _T("%"));
+				tmp += cmd;
+			} else if ( cmd == _T('L') ) {
+				if ( bExt ) {
+					if ( tb.millitm >= 100 ) {
+						tmp += (TCHAR)(_T('0') + (tb.millitm / 100) % 10);
+						tmp += (TCHAR)(_T('0') + (tb.millitm / 10)  % 10);
+					} else if ( tb.millitm >= 10 )
+						tmp += (TCHAR)(_T('0') + (tb.millitm / 10)  % 10);
+				} else {
+					tmp += (TCHAR)(_T('0') + (tb.millitm / 100) % 10);
+					tmp += (TCHAR)(_T('0') + (tb.millitm / 10)  % 10);
+				}
+				tmp += (TCHAR)(_T('0') +  tb.millitm % 10);
+			}
+
+			fmt += (bExt ? 3 : 2);
+
+		} else if ( *fmt == _T('\\') ) {
+			switch(fmt[1]) {
+			case _T('a'): tmp += _T('\x07'); fmt += 2; break;
+			case _T('b'): tmp += _T('\x08'); fmt += 2; break;
+			case _T('t'): tmp += _T('\x09'); fmt += 2; break;
+			case _T('n'): tmp += _T('\x0A'); fmt += 2; break;
+			case _T('v'): tmp += _T('\x0B'); fmt += 2; break;
+			case _T('f'): tmp += _T('\x0C'); fmt += 2; break;
+			case _T('r'): tmp += _T('\x0D'); fmt += 2; break;
+			case _T('\\'): tmp += _T('\\');  fmt += 2; break;
+
+			case _T('x'): case _T('X'):
+				fmt += 2;
+				for ( n = cmd = 0 ; n < 2 ; n++ ) {
+					if ( *fmt >= _T('0') && *fmt <= _T('9') )
+						cmd = cmd * 16 + (*(fmt++) - _T('0'));
+					else if ( *fmt >= _T('A') && *fmt <= _T('F') )
+						cmd = cmd * 16 + (*(fmt++) - _T('A') + 10);
+					else if ( *fmt >= _T('a') && *fmt <= _T('f') )
+						cmd = cmd * 16 + (*(fmt++) - _T('a') + 10);
+					else
+						break;
+				}
+				if ( cmd == _T('%') )
+					tmp += _T('%');
+				tmp += cmd;
+				break;
+
+			case _T('0'): case _T('1'): case _T('2'): case _T('3'):
+			case _T('4'): case _T('5'): case _T('6'): case _T('7'):
+				fmt += 1;
+				for ( n = cmd = 0 ; n < 3 ; n++ ) {
+					if ( *fmt >= _T('0') && *fmt <= _T('7') )
+						cmd = cmd * 8 + (*(fmt++) - _T('0'));
+					else
+						break;
+				}
+				if ( cmd == _T('%') )
+					tmp += _T('%');
+				tmp += cmd;
+				break;
+
+			default:
+				fmt += 1;
+				break;
+			}
+
+		} else
+			tmp += *(fmt++);
+	}
+}
+
+void CTextRam::GetCurrentTimeFormat(LPCTSTR fmt, CString &str)
+{
+	struct _timeb tb;
+	CTime now;
+	CString tmp;
+
+	/*
+		VS2010	_T("aAbBcdHIjmMpSUwWxXyYzZ%")
+				_T("aAbBcCdDeFgGhHIjmMnprRStTuUVwWxXyYzZ%")
+	*/
+
+	if ( !InitCmdMap ) {
+		ZeroMemory(CmdMap, sizeof(CmdMap));
+		for ( LPCTSTR p = _T("aAbBcdHIjmMpSUwWxXyYzZ%") ; *p != _T('\0') ; p++ )
+			CmdMap[*p / CMDMAPBITSIZE] |= (1 << (*p % CMDMAPBITSIZE));
+		InitCmdMap = TRUE;
+	}
+
+	_ftime(&tb);
+	now = tb.time;
+
+	DateTimeFormatCheck(fmt, tmp, tb, NULL);
+
+	if ( tmp.GetLength() > 120 )
+		str = _T("Date/Time Format to long... ");
+	else
+		str = now.Format(tmp);
+}
+
 BOOL CTextRam::IsOptEnable(int opt)
 {
 	if ( opt >= 1000 && opt <= 1511 ) {
@@ -6566,8 +6899,7 @@ void CTextRam::CallReceiveLine(int y)
 	GetLine(y, tmp);
 
 	if ( IsOptEnable(TO_RLLOGTIME) ) {
-		CTime now = CTime::GetCurrentTime();
-		str = now.Format(m_TimeFormat);
+		GetCurrentTimeFormat(m_TimeFormat, str);
 		in.Apend((LPBYTE)((LPCWSTR)str), str.GetLength() * sizeof(WCHAR));
 	}
 
@@ -6655,8 +6987,7 @@ BOOL CTextRam::CallReceiveChar(DWORD ch, LPCTSTR name)
 		}
 
 		if ( m_LogTimeFlag && IsOptEnable(TO_RLLOGTIME) ) {
-			CTime now = CTime::GetCurrentTime();
-			str = now.Format(m_TimeFormat);
+			GetCurrentTimeFormat(m_TimeFormat, str);
 			in.Apend((LPBYTE)((LPCWSTR)str), str.GetLength() * sizeof(WCHAR));
 			m_LogTimeFlag = FALSE;
 		}
@@ -6705,13 +7036,10 @@ int CTextRam::UnicodeWidth(DWORD code)
 // Static Lib
 //////////////////////////////////////////////////////////////////////
 
-#define	JPSET_EUC_X		0
-#define	JPSET_EUC_MS	1
-#define	JPSET_EUC		2
-#define	JPSET_SJIS_X	3
-#define	JPSET_SJIS		4
-#define	JPSET_CP932		5
-#define	JPSET_JIS		6
+#define	JPSET_X0208		0
+#define	JPSET_X0213		1
+#define	JPSET_SJIS		2
+#define	JPSET_SJISX		3
 
 typedef struct _JpSetList {
 	LPCTSTR name;
@@ -6724,148 +7052,78 @@ static int JpsetNameComp(const void *src, const void *dis)
 }
 int CTextRam::JapanCharSet(LPCTSTR name)
 {
-	static const JpSetList jpsettab[41] = {
-		{ _T("CP932"),					JPSET_CP932 },
-		{ _T("CSEUCPKDFMTJAPANESE"),	JPSET_EUC },
-		{ _T("CSISO159JISX02121990"),	JPSET_JIS },
-		{ _T("CSISO87JISX0208"),		JPSET_SJIS },
-		{ _T("CSSHIFTJIS"),				JPSET_SJIS },
-		{ _T("CSWINDOWS31J"),			JPSET_CP932 },
-		{ _T("EUC-JIS-2004"),			JPSET_EUC_X },
-		{ _T("EUC-JISX0213"),			JPSET_EUC_X },
-		{ _T("EUC-JP"),					JPSET_EUC },
-		{ _T("EUC-JP-MS"),				JPSET_EUC_MS },
-		{ _T("EUCJP"),					JPSET_EUC },
-		{ _T("EUCJP-MS"),				JPSET_EUC_MS },
-		{ _T("EUCJP-OPEN"),				JPSET_EUC_MS },
-		{ _T("EUCJP-WIN"),				JPSET_EUC_MS },
-		{ _T("EUCJPMS"),				JPSET_EUC_MS },
-		{ _T("EXTENDED_UNIX_CODE_PACKED_FORMAT_FOR_JAPANESE"),	JPSET_EUC },
-		{ _T("ISO-IR-159"),				JPSET_JIS },
-		{ _T("ISO-IR-87"),				JPSET_SJIS },
-		{ _T("JIS0208"),				JPSET_SJIS },
-		{ _T("JIS_C6226-1983"),			JPSET_SJIS },
-		{ _T("JIS_X0208"),				JPSET_SJIS },
-		{ _T("JIS_X0208-1983"),			JPSET_SJIS },
-		{ _T("JIS_X0208-1990"),			JPSET_SJIS },
-		{ _T("JIS_X0212"),				JPSET_JIS },
-		{ _T("JIS_X0212-1990"),			JPSET_JIS },
-		{ _T("JIS_X0212.1990-0"),		JPSET_JIS },
-		{ _T("MS932"),					JPSET_CP932 },
-		{ _T("MS_KANJI"),				JPSET_SJIS },
-		{ _T("SHIFT-JIS"),				JPSET_SJIS },
-		{ _T("SHIFT_JIS"),				JPSET_SJIS },
-		{ _T("SHIFT_JIS-2004"),		 	JPSET_SJIS_X },
-		{ _T("SHIFT_JIS-MS"),			JPSET_CP932 },
-		{ _T("SHIFT_JISX0213"),			JPSET_SJIS_X },
-		{ _T("SJIS"),					JPSET_SJIS },
-		{ _T("SJIS-MS"),				JPSET_CP932 },
-		{ _T("SJIS-OPEN"),				JPSET_CP932 },
-		{ _T("SJIS-WIN"),				JPSET_CP932 },
-		{ _T("WINDOWS-31J"),			JPSET_CP932 },
-		{ _T("WINDOWS-932"),			JPSET_CP932 },
-		{ _T("X0208"),					JPSET_SJIS },
-		{ _T("X0212"),					JPSET_JIS },
+	static const JpSetList jpsettab[30] = {
+		{ _T("CSEUCPKDFMTJAPANESE"),							JPSET_X0208 },	// EUC-JP
+		{ _T("CSISO2022JP"),								    JPSET_X0208 },	// ISO-2022-JP
+		{ _T("CSISO2022JP2"),								    JPSET_X0208 },	// ISO-2022-JP-2
+		{ _T("CSISO87JISX0208"),								JPSET_X0208 },	// JIS_X0208
+		{ _T("CSSHIFTJIS"),									    JPSET_SJIS },	// SHIFT-JIS
+		{ _T("EUC-JIS-2004"),									JPSET_X0213 },	// JISX0213
+		{ _T("EUC-JISX0213"),									JPSET_X0213 },	// JISX0213
+		{ _T("EUC-JP"),										    JPSET_X0208 },	// EUC-JP
+		{ _T("EUCJP"),										    JPSET_X0208 },	// EUC-JP
+		{ _T("EXTENDED_UNIX_CODE_PACKED_FORMAT_FOR_JAPANESE"),	JPSET_X0208 },	// EUC-JP
+
+		{ _T("ISO-2022-JP"),								    JPSET_X0208 },	// ISO-2022-JP
+		{ _T("ISO-2022-JP-1"),								    JPSET_X0208 },	// ISO-2022-JP-1
+		{ _T("ISO-2022-JP-2"),								    JPSET_X0208 },	// ISO-2022-JP-2
+		{ _T("ISO-2022-JP-2004"),								JPSET_X0213 },	// ISO-2022-JP-2004
+		{ _T("ISO-2022-JP-3"),									JPSET_X0213 },	// ISO-2022-JP-2004
+		{ _T("ISO-IR-87"),									    JPSET_X0208 },	// JIS_X0208
+		{ _T("JIS0208"),									    JPSET_X0208 },	// JIS_X0208
+		{ _T("JIS_C6226-1983"),									JPSET_X0208 },	// JIS_X0208
+		{ _T("JIS_X0208"),									    JPSET_X0208 },	// JIS_X0208
+		{ _T("JIS_X0208-1983"),									JPSET_X0208 },	// JIS_X0208
+
+		{ _T("JIS_X0208-1990"),									JPSET_X0208 },	// JIS_X0208
+		{ _T("JIS_X0213-2000.1"),								JPSET_X0213 },	// JISX0213
+		{ _T("JIS_X0213-2000.2"),								JPSET_X0213 },	// JISX0213
+		{ _T("MS_KANJI"),									    JPSET_SJIS },	// SHIFT-JIS
+		{ _T("SHIFT-JIS"),									    JPSET_SJIS },	// SHIFT-JIS
+		{ _T("SHIFT_JIS"),									    JPSET_SJIS },	// SHIFT-JIS
+		{ _T("SHIFT_JIS-2004"),									JPSET_SJISX },	// JISX0213
+		{ _T("SHIFT_JISX0213"),									JPSET_SJISX },	// JISX0213
+		{ _T("SJIS"),										    JPSET_SJIS },	// SHIFT-JIS
+		{ _T("X0208"),										    JPSET_X0208 },	// JIS_X0208
 	};
 	int n;
 
-	if ( BinaryFind((void *)name, (void *)jpsettab, sizeof(JpSetList), 27, JpsetNameComp, &n) )
+	if ( BinaryFind((void *)name, (void *)jpsettab, sizeof(JpSetList), 30, JpsetNameComp, &n) )
 		return jpsettab[n].type;
 
 	return (-1);
 }
 /***********************************
 
-	libiconv-1.15
+	libiconv-1.16
 
-	EUC-JIS-2004	2015 -> 0000
-	EUC-JIS-2004	ffe0 -> 0000
-	EUC-JIS-2004	ffe1 -> 0000
-	EUC-JIS-2004	ffe2 -> 0000
-
-	EUC-JISX0213	2015 -> 0000
-	EUC-JISX0213	ffe0 -> 0000
-	EUC-JISX0213	ffe1 -> 0000
-	EUC-JISX0213	ffe2 -> 0000
-
-	EUC-JP	2015 -> 0000
-	EUC-JP	2225 -> 0000
-	EUC-JP	ff0d -> 0000
-	EUC-JP	ffe0 -> 0000
-	EUC-JP	ffe1 -> 0000
-	EUC-JP	ffe2 -> 0000
-
-	SHIFT_JIS-2004	2015 -> 0000
-	SHIFT_JIS-2004	ffe0 -> 0000
-	SHIFT_JIS-2004	ffe1 -> 0000
-	SHIFT_JIS-2004	ffe2 -> 0000
-
-	SHIFT_JISX0213	2015 -> 0000
-	SHIFT_JISX0213	ffe0 -> 0000
-	SHIFT_JISX0213	ffe1 -> 0000
-	SHIFT_JISX0213	ffe2 -> 0000
-
-	SHIFT_JIS	2015 -> 0000
-	SHIFT_JIS	2225 -> 0000
-	SHIFT_JIS	ff0d -> 0000
-	SHIFT_JIS	ff5e -> 0000
-	SHIFT_JIS	ffe0 -> 0000
-	SHIFT_JIS	ffe1 -> 0000
-	SHIFT_JIS	ffe2 -> 0000
-
-	JIS_X0208	005c -> 0000
-	JIS_X0208	007e -> 0000
-	JIS_X0208	2015 -> 0000
-	JIS_X0208	2225 -> 0000
-	JIS_X0208	ff0d -> 0000
-	JIS_X0208	ff5e -> 0000
-	JIS_X0208	ffe0 -> 0000
-	JIS_X0208	ffe1 -> 0000
-	JIS_X0208	ffe2 -> 0000
-
-	JIS_X0212	005c -> 0000
-	JIS_X0212	007e -> 0000
-	JIS_X0212	2015 -> 0000
-	JIS_X0212	2225 -> 0000
-	JIS_X0212	ff0d -> 0000
-	JIS_X0212	ffe0 -> 0000
-	JIS_X0212	ffe1 -> 0000
-	JIS_X0212	ffe2 -> 0000
+	SJIS	EUC		SHIFT_JIS	S-JISX0213	EUC-JP		E-JISX0213	JIS_X0208	JISX0213	CP932
+	005c	005c	00a5		00a5														005c
+	007e	007e	203e		203e														007e
+	815c	a1bd				2014					2014					2014		2015
+	8160	a1c1	301c		301c		301c		301c		301c		301c		ff5e
+	8161	a1c2	2016		2016		2016		2016		2016		2016		2225
+	817c	a1dd	2212		2212		2212		2012		2212		2212		ff0d
+	8191	a1f1	00a2		00a2		00a2		00a2		00a2		00a2		ffe0
+	8192	a1f2	00a3		00a3		00a3		00a3		00a3		00a3		ffe1
+	81ca	a2cc	00ac		00ac		00ac		00ac		00ac		00ac		ffe2
 
 ***************************/
 
 DWORD CTextRam::MsToIconvUnicode(int jpset, DWORD code)
 {
 	switch(jpset) {
-	case JPSET_EUC_X:
+	case JPSET_X0208:
 		switch(code) {							/*                  iconv  MS     */
-		case 0x2015: code = 0x2014; break;		/* ― 0x815C(01-29) U+2014 U+2015 */
-		case 0xFFE0: code = 0x00A2; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
-		case 0xFFE1: code = 0x00A3; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
-		case 0xFFE2: code = 0x00AC; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
-		}
-		break;
-	case JPSET_EUC_MS:
-		break;
-	case JPSET_EUC:
-		switch(code) {							/*                  iconv  MS     */
-		case 0x2015: code = 0x2014; break;		/* ― 0x815C(01-29) U+2014 U+2015 */
 		case 0x2225: code = 0x2016; break;		/* ∥ 0x8161(01-34) U+2016 U+2225 */
 		case 0xFF0D: code = 0x2212; break;		/* － 0x817C(01-61) U+2212 U+FF0D */
+		case 0xFF5E: code = 0x301C; break;		/* ～ 0x8160(01-33) U+301C U+FF5E */
 		case 0xFFE0: code = 0x00A2; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
 		case 0xFFE1: code = 0x00A3; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
 		case 0xFFE2: code = 0x00AC; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
 		}
 		break;
-	case JPSET_SJIS_X:
-		switch(code) {							/*                  iconv  MS     */
-		case 0x2015: code = 0x2014; break;		/* ― 0x815C(01-29) U+2014 U+2015 */
-		case 0xFFE0: code = 0x00A2; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
-		case 0xFFE1: code = 0x00A3; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
-		case 0xFFE2: code = 0x00AC; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
-		}
-		break;
-	case JPSET_SJIS:
+	case JPSET_X0213:
 		switch(code) {							/*                  iconv  MS     */
 		case 0x2015: code = 0x2014; break;		/* ― 0x815C(01-29) U+2014 U+2015 */
 		case 0x2225: code = 0x2016; break;		/* ∥ 0x8161(01-34) U+2016 U+2225 */
@@ -6876,15 +7134,26 @@ DWORD CTextRam::MsToIconvUnicode(int jpset, DWORD code)
 		case 0xFFE2: code = 0x00AC; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
 		}
 		break;
-	case JPSET_CP932:
+	case JPSET_SJIS:
+		switch(code) {							/*                  iconv  MS     */
+		case 0x005C: code = 0x00A5; break;		/* \  0x5C          U+00A5 U+005C */
+		case 0x007E: code = 0x203E; break;		/* ~  0x7E          U+203E U+007E */
+		case 0x2225: code = 0x2016; break;		/* ∥ 0x8161(01-34) U+2016 U+2225 */
+		case 0xFF0D: code = 0x2212; break;		/* － 0x817C(01-61) U+2212 U+FF0D */
+		case 0xFF5E: code = 0x301C; break;		/* ～ 0x8160(01-33) U+301C U+FF5E */
+		case 0xFFE0: code = 0x00A2; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
+		case 0xFFE1: code = 0x00A3; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
+		case 0xFFE2: code = 0x00AC; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
+		}
 		break;
-	case JPSET_JIS:
+	case JPSET_SJISX:
 		switch(code) {							/*                  iconv  MS     */
 		case 0x005C: code = 0x00A5; break;		/* \  0x5C          U+00A5 U+005C */
 		case 0x007E: code = 0x203E; break;		/* ~  0x7E          U+203E U+007E */
 		case 0x2015: code = 0x2014; break;		/* ― 0x815C(01-29) U+2014 U+2015 */
 		case 0x2225: code = 0x2016; break;		/* ∥ 0x8161(01-34) U+2016 U+2225 */
 		case 0xFF0D: code = 0x2212; break;		/* － 0x817C(01-61) U+2212 U+FF0D */
+		case 0xFF5E: code = 0x301C; break;		/* ～ 0x8160(01-33) U+301C U+FF5E */
 		case 0xFFE0: code = 0x00A2; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
 		case 0xFFE1: code = 0x00A3; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
 		case 0xFFE2: code = 0x00AC; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
@@ -6897,35 +7166,17 @@ DWORD CTextRam::MsToIconvUnicode(int jpset, DWORD code)
 DWORD CTextRam::IconvToMsUnicode(int jpset, DWORD code)
 {
 	switch(jpset) {
-	case JPSET_EUC_X:
+	case JPSET_X0208:
 		switch(code) {							/*                  iconv  MS     */
 		case 0x00A2: code = 0xFFE0; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
 		case 0x00A3: code = 0xFFE1; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
 		case 0x00AC: code = 0xFFE2; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
-		case 0x2014: code = 0x2015; break;		/* ― 0x815C(01-29) U+2014 U+2015 */
-		}
-		break;
-	case JPSET_EUC_MS:
-		break;
-	case JPSET_EUC:
-		switch(code) {							/*                  iconv  MS     */
-		case 0x00A2: code = 0xFFE0; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
-		case 0x00A3: code = 0xFFE1; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
-		case 0x00AC: code = 0xFFE2; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
-		case 0x2014: code = 0x2015; break;		/* ― 0x815C(01-29) U+2014 U+2015 */
 		case 0x2016: code = 0x2225; break;		/* ∥ 0x8161(01-34) U+2016 U+2225 */
 		case 0x2212: code = 0xFF0D; break;		/* － 0x817C(01-61) U+2212 U+FF0D */
+		case 0x301C: code = 0xFF5E; break;		/* ～ 0x8160(01-33) U+301C U+FF5E */
 		}
 		break;
-	case JPSET_SJIS_X:
-		switch(code) {							/*                  iconv  MS     */
-		case 0x00A2: code = 0xFFE0; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
-		case 0x00A3: code = 0xFFE1; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
-		case 0x00AC: code = 0xFFE2; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
-		case 0x2014: code = 0x2015; break;		/* ― 0x815C(01-29) U+2014 U+2015 */
-		}
-		break;
-	case JPSET_SJIS:
+	case JPSET_X0213:
 		switch(code) {							/*                  iconv  MS     */
 		case 0x00A2: code = 0xFFE0; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
 		case 0x00A3: code = 0xFFE1; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
@@ -6936,9 +7187,19 @@ DWORD CTextRam::IconvToMsUnicode(int jpset, DWORD code)
 		case 0x301C: code = 0xFF5E; break;		/* ～ 0x8160(01-33) U+301C U+FF5E */
 		}
 		break;
-	case JPSET_CP932:
+	case JPSET_SJIS:
+		switch(code) {							/*                  iconv  MS     */
+		case 0x00A2: code = 0xFFE0; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
+		case 0x00A3: code = 0xFFE1; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
+		case 0x00A5: code = 0x005C; break;		/* \  0x5C          U+00A5 U+005C */
+		case 0x00AC: code = 0xFFE2; break;		/* ￢ 0x81CA(02-44) U+00AC U+FFE2 */
+		case 0x2016: code = 0x2225; break;		/* ∥ 0x8161(01-34) U+2016 U+2225 */
+		case 0x203E: code = 0x007E; break;		/* ~  0x7E          U+203E U+007E */
+		case 0x2212: code = 0xFF0D; break;		/* － 0x817C(01-61) U+2212 U+FF0D */
+		case 0x301C: code = 0xFF5E; break;		/* ～ 0x8160(01-33) U+301C U+FF5E */
+		}
 		break;
-	case JPSET_JIS:
+	case JPSET_SJISX:
 		switch(code) {							/*                  iconv  MS     */
 		case 0x00A2: code = 0xFFE0; break;		/* ￠ 0x8191(01-81) U+00A2 U+FFE0 */
 		case 0x00A3: code = 0xFFE1; break;		/* ￡ 0x8192(01-82) U+00A3 U+FFE1 */
@@ -7333,11 +7594,14 @@ void CTextRam::RESET(int mode)
 		m_LastChar = 0;
 		m_LastFlag = 0;
 		m_LastPos.SetPoint(0, 0);
+		m_LastCur.SetPoint(0, 0);
 		m_LastSize = CM_ASCII;
 		m_LastAttr = 0;
 		m_LastStr.Empty();
 		m_Kan_Pos = 0;
 		memset(m_Kan_Buf, 0, sizeof(m_Kan_Buf));
+
+		memset(m_iTerm2MaekPos, 0, sizeof(CPoint) * 4);
 	}
 	
 	if ( mode & RESET_CARET ) {
@@ -7641,7 +7905,7 @@ void CTextRam::DISPVRAM(int sx, int sy, int w, int h)
 		m_UpdateRect.left = sx;
 	if ( m_UpdateRect.right < ex )
 		m_UpdateRect.right = ex;
-	if ( m_UpdateRect.top> sy )
+	if ( m_UpdateRect.top > sy )
 		m_UpdateRect.top = sy;
 	if ( m_UpdateRect.bottom < ey )
 		m_UpdateRect.bottom = ey;
@@ -7859,7 +8123,7 @@ void CTextRam::LocReport(int md, int sw, int x, int y)
 		case MOS_LOCA_MOVE:	// Mouse Move
 			if ( (m_Loc_Mode & LOC_MODE_FILTER) == 0 )
 				return;
-			if ( m_Loc_Rect.IsRectEmpty() || m_Loc_Rect.PtInRect(CPoint(x, y)) )
+			if ( (m_Loc_Rect.left >= m_Loc_Rect.right && m_Loc_Rect.top >= m_Loc_Rect.bottom) || m_Loc_Rect.PtInRect(CPoint(x, y)) )
 				return;
 			Pe = 10;
 			break;
@@ -8422,7 +8686,18 @@ void CTextRam::FORSCROLL(int sx, int sy, int ex, int ey)
 	if ( sy == 0 && sx == 0 && ex == m_Cols && !m_LineEditMode && !m_bTraceActive ) {
 		if ( m_LogMode == LOGMOD_PAGE )
 			CallReceiveLine(0);
+
 		m_HisUse++;
+
+		if ( ++m_HisAbs >= (m_HisMax * 2) ) {
+			POSITION pos = m_CommandHistory.GetHeadPosition();
+			while ( pos != NULL ) {
+				CMDHIS *pCmdHis = m_CommandHistory.GetNext(pos);
+				pCmdHis->habs -= m_HisMax;	// habs = m_HisAbs + y...
+			}
+
+			m_HisAbs -= m_HisMax;
+		}
 
 		if ( (m_HisPos += 1) >= m_HisMax )
 			m_HisPos -= m_HisMax;
@@ -8512,7 +8787,6 @@ void CTextRam::DOWARP()
 		return;
 
 	m_DoWarp = FALSE;
-	m_LastPos.y++;
 	m_CurX = GetLeftMargin();
 
 	ONEINDEX();
@@ -8607,6 +8881,13 @@ void CTextRam::ONEINDEX()
 					m_UpdateClock = clock();
 					m_UpdateFlag = TRUE;
 				}
+
+				if ( m_iTerm2Mark != 0 ) {
+					m_iTerm2MaekPos[0].y--;
+					m_iTerm2MaekPos[1].y--;
+					m_iTerm2MaekPos[2].y--;
+					m_iTerm2MaekPos[3].y--;
+				}
 			}
 		}
 	} else {
@@ -8642,15 +8923,23 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at, LPCWSTR str)
 
 	md &= CODE_MASK;
 
-	if ( str == NULL ) {
+#if 0
+	// ISO946 0x23, 0x24, 0x40, 0x5B, 0x5C, 0x5D, 0x5E, 0x60, 0x7B, 0x7C, 0x7D, 0x7E,
+	static const DWORD iso646map[4] = { 0x00000000, 0x00000018, 0x78000001, 0x78000001 };
+
+	if ( str == NULL && !(ch < 128 && (md & SET_MASK) <= SET_96 && m_FontTab[md].m_Shift == 0) && (iso646map[ch / 32] & (1 << (ch % 32))) != 0) {
+#else
+	if ( str == NULL && !(ch < 128 && (md & SET_MASK) <= SET_96 && m_FontTab[md].m_Shift == 0) ) {
+#endif
 		ch |= m_FontTab[md].m_Shift;
 		ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// Char変換ではUTF-16BEを使用！
-		ch = IconvToMsUnicode(m_FontTab[md].m_IContName, ch);
+		ch = IconvToMsUnicode(m_FontTab[md].m_JpSet, ch);
 	}
 
 	m_LastChar = ch;
 	m_LastFlag = 0;
-	m_LastPos.SetPoint(m_CurX, m_CurY);
+	m_LastPos.SetPoint(m_CurX, m_CurY + m_HisPos);
+	m_LastCur = m_LastPos;
 	m_LastSize = CM_ASCII;
 	m_LastAttr = at;
 
@@ -8709,7 +8998,6 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at, LPCWSTR str)
 		if ( IsOptEnable(TO_DECAWM) != 0 ) {
 			if ( IsOptEnable(TO_RLGNDW) != 0 ) {
 				m_CurX = m_Margin.left;
-				m_LastPos.y--;
 				ONEINDEX();
 			} else {
 				m_CurX = m_Margin.right - 1;
@@ -8718,6 +9006,8 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at, LPCWSTR str)
 		} else 
 			m_CurX = m_Margin.right - 1;
 	}
+
+	m_LastCur.SetPoint(m_CurX, m_CurY);
 }
 void CTextRam::PUT2BYTE(DWORD ch, int md, int at, LPCWSTR str)
 {
@@ -8732,12 +9022,13 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at, LPCWSTR str)
 
 	if ( str == NULL ) {
 		ch = m_IConv.IConvChar(m_FontTab[md].m_IContName, _T("UTF-16BE"), ch);			// Char変換ではUTF-16BEを使用！
-		ch = IconvToMsUnicode(m_FontTab[md].m_IContName, ch);
+		ch = IconvToMsUnicode(m_FontTab[md].m_JpSet, ch);
 	}
 
 	m_LastChar = ch;
 	m_LastFlag = 0;
-	m_LastPos.SetPoint(m_CurX, m_CurY);
+	m_LastPos.SetPoint(m_CurX, m_CurY + m_HisPos);
+	m_LastCur = m_LastPos;
 	m_LastSize = CM_1BYTE;
 	m_LastAttr = at;
 
@@ -8758,7 +9049,7 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at, LPCWSTR str)
 		m_DoWarp = TRUE;
 		DOWARP();
 
-		m_LastPos.SetPoint(m_CurX, m_CurY);		// Reset
+		m_LastPos.SetPoint(m_CurX, m_CurY + m_HisPos);		// Reset
 
 		dm = GetDm(m_CurY);
 
@@ -8810,7 +9101,6 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at, LPCWSTR str)
 		if ( IsOptEnable(TO_DECAWM) != 0 ) {
 			if ( IsOptEnable(TO_RLGNDW) != 0 ) {
 				m_CurX = m_Margin.left;
-				m_LastPos.y--;
 				ONEINDEX();
 			} else {
 				m_CurX = m_Margin.right - 1;
@@ -8819,6 +9109,8 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at, LPCWSTR str)
 		} else 
 			m_CurX = m_Margin.right - 1;
 	}
+
+	m_LastCur.SetPoint(m_CurX, m_CurY);
 }
 void CTextRam::PUTADD(int x, int y, DWORD ch)
 {
@@ -8932,6 +9224,7 @@ CTextSave *CTextRam::GETSAVERAM(int fMode)
 	pSave->m_LastChar = m_LastChar;
 	pSave->m_LastFlag = m_LastFlag;
 	pSave->m_LastPos  = m_LastPos;
+	pSave->m_LastCur  = m_LastCur;
 	pSave->m_LastSize = m_LastSize;
 	pSave->m_LastAttr = m_LastAttr;
 	wcscpy_s(pSave->m_LastStr, MAXCHARSIZE, m_LastStr);
@@ -8997,6 +9290,7 @@ void CTextRam::SETSAVERAM(CTextSave *pSave)
 	m_LastChar = pSave->m_LastChar;
 	m_LastFlag = pSave->m_LastFlag;
 	m_LastPos  = pSave->m_LastPos;
+	m_LastCur  = pSave->m_LastCur;
 	m_LastSize = pSave->m_LastSize;
 	m_LastAttr = pSave->m_LastAttr;
 	m_LastStr  = pSave->m_LastStr;

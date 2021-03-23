@@ -78,6 +78,7 @@ static const struct _OptListTab {
 	{	TO_XTALTSCR,	IDT_TERM_LIST37	},
 	{	TO_XTSRCUR,		IDT_TERM_LIST38	},
 	{	TO_XTALTCLR,	IDT_TERM_LIST39	},
+	{	TO_XTLEGKEY,	IDT_TERM_LIST67	},
 	{	TO_XTPRICOL,	IDT_TERM_LIST40	},
 
 	// XTerm Option 2		2000-2019(380-399)
@@ -117,6 +118,7 @@ static const struct _OptListTab {
 	{	TO_RLBRKMBCS,	IDT_TERM_LIST64	},
 	{	TO_TTCTH,		IDT_TERM_LIST65	},
 	{	TO_RLBOLDHC,	IDT_TERM_LIST66	},
+	{	TO_RLYENKEY,	IDT_TERM_LIST68	},
 	{	0,				0				}
 };
 

@@ -6,15 +6,11 @@
 <TITLE>RLogin使い方説明</TITLE>
 <STYLE type="text/css">
 <!--
-TD {
-    
-    
+TD {		
   background-color : #ffffff;
   font-size : 90%;
 }
-.BOX{
-    
-    
+.BOX{		
   background-color : silver;
 }
 -->
@@ -41,10 +37,9 @@ TD {
             Screen.ColorTable=[[0,0,0],[196,0,0],[0,196,0],[196,196,0],[0,0,196],[196,0,196],
             [0,196,196],[196,196,196],[128,128,128],[255,0,0],[0,255,0], [255,255,0],[0,0,255],[255,0,255],[0,255,255],[255,255,255]]<BR>
             <BR>
-            適当なファイル名で保存してサーバー選択ダイアログの変更したいエントリーを右クリックして「ファイルから設定変更」を実行して保存しておいたファイルを読み込みめば設定が変更されます。<BR>
+            適当なファイル名で保存しサーバー選択ダイアログの変更したいエントリーを右クリックして「ファイルから設定変更」を実行し保存しておいたファイルを読み込めば設定が変更されます。<BR>
             <BR>
-            この「ファイルから設定変更」で読み込まれるテキストフォーマットは、同じく右クリックで表示されるポップアップメニューの「ファイルにエクスポート」で保存される設定と同じです。エクスポートは、<BR>
-            すべての設定がファイルに書き込まれますのでメモ帳などで編集、コピーなどして上記文字色の設定以外でも変更が可能です。<BR>
+            この「ファイルから設定変更」で読み込まれるテキストフォーマットは、同じく右クリックで表示されるポップアップメニューの「ファイルにエクスポート」で保存される設定と同じです。エクスポートは、すべての設定がファイルに書き込まれますのでメモ帳などで編集、コピーなどして上記文字色の設定以外でも変更が可能です。<BR>
             <BR>
             また、「ファイルから設定変更」は、複数のエントリーを選択して実行することも出来ます。</TD>
             <TD><IMG src="image201.jpg" width="527" height="333" border="0"></TD>
@@ -132,7 +127,7 @@ fi</PRE>
             <BR>
             不意にC1制御文字によるバッファリングが行われている場合に一定時間経過すると画面右上に(C)が点滅してそれをクリックするとキャンセルが出来るようにしています。またメニューの表示、リセット、ESCシーケンスリセットでも同様にキャンセルできます。<BR>
             <BR>
-            ＰＳ．Unix系のcatコマンドは、文書を表示するコマンドでは、ありません。標準出力に出力するフィルターでファイルなどを連結(catenate)する物です。表示するにはmore/less/lvなどを使用します。最近では、文字コードを自動で判別して表示しくれますので便利です。昔ながらの文字コード自動判別ならnkfが有名ですね。</TD>
+            ＰＳ．Unix系のcatコマンドは、文書を表示するコマンドでは、ありません。標準出力に出力するフィルターでファイルなどを連結(catenate)する物です。表示するにはmore/less/lvなどを使用します。最近では、文字コードを自動で判別して表示してくれますので便利です。昔ながらの文字コード自動判別ならnkfが有名ですね。</TD>
             <TD valign="top"><IMG src="image205.jpg" width="531" height="405" border="0"></TD>
           </TR>
         </TBODY>
@@ -151,7 +146,7 @@ fi</PRE>
       <TABLE width="1250" cellpadding="5">
         <TBODY>
           <TR>
-            <TD width="600" valign="top"><A href="./#KEYOPT">キーボードのオプション設定</A>のキーコード「新規」でKeyCode「V」＋CttをlチェックしてAssginStringにて「$EDIT_PASTE」とするとメニューのショットカットを定義することができます。<BR>
+            <TD width="600" valign="top"><A href="./#KEYOPT">キーボードのオプション設定</A>のキーコード「新規」でKeyCode「V」＋CtrlをチェックしてAssignStringにて「$EDIT_PASTE」とするとメニューのショートカットを定義することができます。<BR>
             <BR>
             KeyCodeは任意で同時に押すキーは「Shift / Ctrl / Alt」から選んでください。<BR>
             <BR>
@@ -196,9 +191,9 @@ fi</PRE>
             あまりモードを意識する必要は、ありません。それぞれのモードがセットされていても<BR>
             VT52&lt;CKM&lt;App&lt;Shiftの優先順位で検索してコードを決定しています。<BR>
             <BR>
-            メニューのショットカットは、「＄」から始まる文字列です。<A href="./#MENU">メニューの説明</A>ですべてのキーワードを記載しています。設定されたショートカットは、メニューにて確認することができます。<BR>
+            メニューのショートカットは、「＄」から始まる文字列です。<A href="./#MENU">メニューの説明</A>ですべてのキーワードを記載しています。設定されたショートカットは、メニューにて確認することができます。<BR>
             <BR>
-            また、予め設定されたショットカットとしてスプリットコマンドのShift+DOWNやCtrl+TABなどがありますが、それらもここで変更することができます。<BR>
+            また、予め設定されたショートカットとしてスプリットコマンドのShift+DOWNやCtrl+TABなどがありますが、それらもここで変更することができます。<BR>
             </TD>
             <TD valign="top"><IMG src="image206.jpg" width="567" height="484" border="0"></TD>
           </TR>
@@ -220,7 +215,7 @@ fi</PRE>
           <TR>
             <TD width="600" valign="top">SSH2のユーザー認証方法としてpublickey/hostbased/password/keyboard-interactiveに対応しています。どの認証方法を許可するかは、サーバー側で決定しますのでクライアントとしては、どの方式を優先的に使用するかを決める必要があります。<BR>
             <BR>
-            これらのとこは、暗号方式だったり鍵交換、ホスト鍵などについても言えることでサーバーで許可された方式から任意の優先順位でクライアントが選択して使用します。<BR>
+            これらの事は、暗号方式だったり鍵交換、ホスト鍵などについても言えることでサーバーで許可された方式から任意の優先順位でクライアントが選択して使用します。<BR>
             <BR>
             RLoginでは、<A href="./#SSHPROTOCOL">暗号方式などの設定</A>でSSHで使用できる暗号、検証、圧縮、鍵交換、ホスト鍵、ログインの優先順位の並び替えが可能です。<BR>
             <BR>
@@ -286,7 +281,7 @@ fi</PRE>
             </TABLE>
             <BR>
             RLoginが内部で管理する場合は、<FONT color="#ff0000">認証キーリストでチェックするだけ</FONT>でそのエントリーで複数の使用・不使用が選択できアクセストライ（上へ・下へで移動）も任意の順位で指定できます。<BR>
-            ※内部で管理している鍵をファイルにエクスポートして「SSH Identity Key」で指定する必要はありません。二重に指定することになるだけです。<BR>
+            ※内部で管理している鍵を<B>ファイルにエクスポートして「SSH Identity Key」で指定する必要はありません</B>。二重に指定することになるだけです。<BR>
             <BR>
             また、認証鍵もファイルからインポート（読み込み）や新規作成してすべてのエントリーで共通に管理することができます。認証鍵をレジストリやプライベートプロファイルに保存しますので注意が必要かもしれませんが、パスコードによる保護は、ファイルと同じです。<BR>
             <BR>
@@ -364,9 +359,15 @@ fi</PRE>
             <BR>
             認証鍵が用意できれば次にそのペアとなる公開鍵をサーバー側の自分のホームにある設定ファイル「~/.ssh/authorized_keys」に新規・追加する必要があります。<BR>
             <BR>
-            外部ファイルの場合は公開鍵ファイルの内容を設定します。<BR>
+            外部ファイルの場合は公開鍵ファイルの形式により異なりますので中身を確認したほうが良いです。単一行でrssh-rsaなどの鍵形式の名前で始まり
+            AAA…==のbase64だけの場合は…<BR>
             <BR>
             cat id_rsa.pub &gt;&gt;~/.ssh/authorized_keys<BR>
+            <BR>
+            「 ---- BEGIN SSH2 PUBLIC KEY ----」で始まり「---- END SSH2 PUBLIC KEY ----」で終わるRFC
+            4716形式の公開鍵ファイルなら…<BR>
+            <BR>
+            ssh-keygen -i -f id_rsa,pub &gt;&gt;~/.ssh/authorized_keys<BR>
             <BR>
             RLogin内部の場合は認証キーリストのキーを選択して「公開鍵」をクリックしクリップボードに公開鍵を転送してから<BR>
             <BR>
@@ -556,7 +557,7 @@ fi</PRE>
               </TBODY>
             </TABLE>
             </TD>
-            <TD><IMG src="image022.jpg" width="611" height="511" border="0" align="top"></TD>
+            <TD><IMG src="image022.jpg" width="597" height="530" border="0" align="top"></TD>
           </TR>
           <TR>
             <TD valign="top" width="600">次に<A href="./#CHAROPT">フォントのオプション設定</A>で使用するフォントの種類を設定します。これはISO2022に従った難解な方法で表示されるフォントセットが選択されますが、まずサーバーの仕様に従った文字セットを決定します。古い仕様のサーバーならEUC/SJISが多かったですが、最近ではUTF-8が多いように思います。サーバーのファイル名に使用される文字コードが選択の基本になるでしょう。shellやアプリケーションなどは、LANG環境変数で&quot;ja_JP.eucJP&quot;や&quot;UTF-8&quot;などに設定され利用しています。（接続時のデフォルト文字セットは、<A href="./#SERVEROPT">サーバーのオプション設定</A>で行います）<BR>
@@ -568,7 +569,8 @@ fi</PRE>
             多言語の表示をしたい場合やASCIIで「＼」が「￥」で表示されるのが気持ち悪い場合は、それぞれのフォントセットのフォントを設定してください。設定の指針としてフォントセットのリストでWindows
             Charactor Setによる判定を○×で表示しています。Ｘのフォントセットは、Windowsが勝手にフォント置換します。<BR>
             <BR>
-            右の表示では、MS ゴシックは、ARABICを別のフォントに置換して表示しBALTICは、MS ゴシックで表示できることを示しています。このWindowsの機能は、FontLinkと合わせてフォントを欧文フォントにして漢字を表示しようとした場合やMS ゴシックでハングルを表示しようと場合にでも自動でフォントが置換されることになります。フォントを変更しても別のフォントで表示されますのでご注意ください。特に<B>デフォルトフォントを欧文フォントにした場合には、SHIFTJISのフォントがすべて違うフォントで表示</B>されることになります。<BR>
+            右の表示では、MS ゴシックは、ARABICを別のフォントに置換して表示しBALTICは、MS ゴシックで表示できることを示しています。このWindowsの機能は、FontLinkと合わせてフォントを欧文フォントにして漢字を表示しようとした場合やMS
+            ゴシックでハングルを表示しようとした場合にでも自動でフォントが置換されることになります。フォントを変更しても別のフォントで表示されますのでご注意ください。特に<B>デフォルトフォントを欧文フォントにした場合には、SHIFTJISのフォントがすべて違うフォントで表示</B>されることになります。<BR>
             <BR>
             ※2.23.5より拡張機能484「フォント置換しない」でWindowsのCSetによる置換を抑制するオプションを追加しました。<B>勝手にフォントを変更してほしくない場合など</B>に使用してください。</TD>
             <TD valign="top"><IMG src="image221.jpg" width="611" height="511" border="0"></TD>
@@ -667,7 +669,7 @@ fi</PRE>
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top"><IMG src="image030.jpg" width="454" height="544" border="0"></TD>
+            <TD valign="top"><IMG src="image030.jpg" width="440" height="533" border="0"></TD>
           </TR>
           <TR>
             <TD valign="top" width="600">2.19.3から追加した<A href="./#ISO646">ISO646の文字設定</A>では、デフォルトフォントに日本語フォントを指定した場合にASCIIなどで「￥」が表示されるなどの問題を設定することができます。<BR>
@@ -686,19 +688,10 @@ fi</PRE>
             <TABLE class="BOX" cellpadding="3" cellspacing="1">
               <TBODY>
                 <TR>
-                  <TD rowspan="2" align="center">5/12</TD>
-                  <TD align="center">JP</TD>
-                  <TD align="center" width="150" valign="top">&yen;<BR>
-                  U+00A5<BR>
-                  <FONT size="-1">YEN SIGN</FONT></TD>
-                  <TD align="center" width="150" valign="top">&#65509;<BR>
-                  U+FFE5<BR>
-                  <FONT size="-1">FULLWIDTH<BR>
-                  YEN SIGN</FONT></TD>
-                  <TD align="center" width="150" valign="top"></TD>
+                  <TD align="left" colspan="4">日本語フォントの場合の&quot;ASCII(ANSI X3.4-1968)&quot;のISO646設定</TD>
                 </TR>
                 <TR>
-                  <TD align="center">US</TD>
+                  <TD align="center">5/12</TD>
                   <TD align="center" valign="top">&#8726;<BR>
                   U+2216<BR>
                   <FONT size="-1">SET MINUS</FONT></TD>
@@ -712,18 +705,7 @@ fi</PRE>
                   して代用</TD>
                 </TR>
                 <TR>
-                  <TD rowspan="2" align="center">7/14</TD>
-                  <TD align="center">JP</TD>
-                  <TD align="center" valign="top">&macr;<BR>
-                  U+00AF<BR>
-                  <FONT size="-1">MACRON</FONT></TD>
-                  <TD align="center" valign="top">&#8254;<BR>
-                  U+203E<BR>
-                  <FONT size="-1">OVERLINE</FONT></TD>
-                  <TD align="center" valign="top"></TD>
-                </TR>
-                <TR>
-                  <TD align="center">US</TD>
+                  <TD align="center">7/14</TD>
                   <TD align="center" valign="top">&#732;<BR>
                   U+02DC<BR>
                   <FONT size="-1">SMALL TILDE</FONT></TD>
@@ -734,10 +716,39 @@ fi</PRE>
                   U+FF5E<BR>
                   <FONT size="-1">FULLWIDTH TILDE</FONT></TD>
                 </TR>
+                <TR>
+                  <TD colspan="4" align="left">欧文フォントの場合の&quot;JIS X 0201-Roman&quot;のISO646設定</TD>
+                </TR>
+                <TR>
+                  <TD align="center">5/12</TD>
+                  <TD align="center" width="150" valign="top">&yen;<BR>
+                  U+00A5<BR>
+                  <FONT size="-1">YEN SIGN</FONT></TD>
+                  <TD align="center" width="150" valign="top">&#65509;<BR>
+                  U+FFE5<BR>
+                  <FONT size="-1">FULLWIDTH<BR>
+                  YEN SIGN</FONT></TD>
+                  <TD align="center" width="150" valign="top"></TD>
+                </TR>
+                <TR>
+                  <TD align="center">7/14</TD>
+                  <TD align="center" valign="top">&macr;<BR>
+                  U+00AF<BR>
+                  <FONT size="-1">MACRON</FONT></TD>
+                  <TD align="center" valign="top">&#8254;<BR>
+                  U+203E<BR>
+                  <FONT size="-1">OVERLINE</FONT></TD>
+                  <TD align="center" valign="top"></TD>
+                </TR>
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top"><IMG src="image046.jpg" width="399" height="463" border="0"></TD>
+            <TD valign="top">日本語フォントの場合の&quot;ASCII(ANSI X3.4-1968)&quot;のISO646設定例<BR>
+            <IMG src="image276.jpg" width="385" height="452" border="0"><BR>
+            <BR>
+            <BR>
+            欧文フォントの場合の&quot;JIS X 0201-Roman&quot;のISO646設定例<BR>
+            <IMG src="image277.jpg" width="385" height="452" border="0"></TD>
           </TR>
           <TR>
             <TD valign="top" width="600"><A href="./#TERMOPT">ターミナルのオプション設定</A>でフォントの関係のオプション一覧です。<BR>
@@ -805,7 +816,7 @@ fi</PRE>
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top"><IMG src="image023.jpg" width="611" height="511" border="0"></TD>
+            <TD valign="top"><IMG src="image023.jpg" width="597" height="530" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -871,7 +882,7 @@ fi</PRE>
                 <TR>
                   <TD rowspan="2">PAGE</TD>
                   <TD colspan="2">ヒストリー単位で記録します<BR>
-                  ※2.19.8で追加した<A href="./#TERMOPT">ターミナルのオプション設定</A>8455の「スクロールして消去」を有効すると画面クリアで記録されない問題が解消されます。</TD>
+                  ※2.19.8で追加した<A href="./#TERMOPT">ターミナルのオプション設定</A>8455の「スクロールして消去」を有効にすると画面クリアで記録されない問題が解消されます。</TD>
                 </TR>
                 <TR>
                   <TD valign="top">ヒストリーに溢れた行を通信ログに記録します。結果、ヒストリーと同じ内容でログに書き出します。</TD>
@@ -888,7 +899,7 @@ fi</PRE>
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top"><IMG src="image027.jpg" width="611" height="511" border="0"></TD>
+            <TD valign="top"><IMG src="image027.jpg" width="597" height="530" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -1021,7 +1032,7 @@ function SplitDups() {
           </TR>
           <TR>
             <TD valign="top" width="600">メニュー・ファイル・アプリケーションの終了の上に「タスクバーにアイコンで格納」を追加します。<BR>
-            収納後は、アイコンをダブルクリックで元に戻どります。<BR>
+            収納後は、アイコンをダブルクリックで元に戻ります。<BR>
             <BR>
             sshでポートフォワードのみ行うような接続を常駐させる場合などに使えるかもしれません。<BR>
             <BR>
@@ -1081,7 +1092,7 @@ function OnClickOk(id) {
       <TABLE width="1250" cellpadding="5">
         <TBODY>
           <TR>
-            <TD width="600" valign="top"><A href="./#PROTOPT">プロトコルのオプション設定</A>にある<A href="./#SSHPROTOCOL">暗号方式などの設定</A>にはSSHバージョン２で使用できる多くの設定がありその優先順位が指定できます。各種アルゴリズムについてセキュリティや速度について誠に勝手ながらその指標をつけてみました。<BR>
+            <TD width="600" valign="top"><A href="./#PROTOPT">プロトコルのオプション設定</A>にある<A href="./#SSHPROTOCOL">暗号方式などの設定</A>にはSSHバージョン２で使用できる多くの設定がありその優先順位が指定できます。各種アルゴリズムについてセキュリティや速度を誠に勝手ながらその指標をつけてみました。<BR>
             <BR>
             ※指標が○ばっかりだとややこしさが同じなので◎を付けましたが、無難な選択の１つ程度とお考えください。またopensshのバージョンによってデフォルトで使用できなくなったり追加された物を明記するようにしてみました。<BR>
             <BR>
@@ -1186,7 +1197,7 @@ function OnClickOk(id) {
                 </TR>
                 <TR>
                   <TD width="30%">aes128/192/256-ctr</TD>
-                  <TD width="60%">現在では、多くのサーバーで採用されいるようで比較的、速いと思います。とりあえずこれの１つです。</TD>
+                  <TD width="60%">現在では、多くのサーバーで採用されているようで比較的、速いと思います。とりあえずこれの１つです。</TD>
                   <TD align="center" width="10%">◎</TD>
                 </TR>
                 <TR>
@@ -1241,8 +1252,8 @@ function OnClickOk(id) {
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top"><IMG src="image014.jpg" width="611" height="511" border="0"><BR>
-            <IMG src="image015.jpg" width="630" height="553" border="0"></TD>
+            <TD valign="top"><IMG src="image014.jpg" width="609" height="531" border="0"><BR>
+            <IMG src="image015.jpg" width="616" height="542" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -1312,7 +1323,7 @@ function OnClickOk(id) {
           <TR>
             <TD width="330" align="left" valign="top">メニューバーやツールバー、タブバー、ステータスバー、スクロールバーなどは、表示・非表示を設定することが出来ます。<BR>
             <BR>
-            端末のサイズをなるべく大きくしたい場合などは、必要性の低いものを非表示すると良いでしょう。</TD>
+            端末のサイズをなるべく大きくしたい場合などは、必要性の低いものを非表示にすると良いでしょう。</TD>
             <TD align="right" valign="top" width="260"><IMG src="image242.jpg" width="224" height="358" border="0"></TD>
             <TD align="left" valign="top"><IMG src="image243.jpg" width="560" height="293" border="0"></TD>
           </TR>
@@ -1377,7 +1388,7 @@ function OnClickOk(id) {
           </TR>
           <TR>
             <TD valign="top" width="600">ローカルネット上のlocalB/localCの設定では、Server Addressでローカルネット上の名前を指定します。DNSで名前を解決するのは、serverAが行います。ここで注意するのは、Proxy
-            Serverの設定でSOCKS5を選択することです。SOCK4では、192.168.xxx.xxxなど数値でIPv4の指定しか出来ませんのご注意ください。（SOCK4では、クライアント上のDNSで名前を検索します。これでは、今回のように接続先のローカルネット上の名前は、検索することが出来ません）<BR>
+            Serverの設定でSOCKS5を選択することです。SOCK4では、192.168.xxx.xxxなど数値でIPv4の指定しか出来ませんのでご注意ください。（SOCK4では、クライアント上のDNSで名前を検索します。これでは、今回のように接続先のローカルネット上の名前は、検索することが出来ません）<BR>
             <BR>
             また、タブ／前接続先の下段に<FONT color="#ff0000">先に設定した「serverA」のエントリー名</FONT>を指定すれば、localBに接続するだけで自動的にserverAに接続してからlocalBに接続します。この場合は、別のタブでserverAとlocalBが開きますが、事前にserverAに接続したRLoginを起動させておくと同じRLoginの別タブで開かずに済みます。<BR>
             <BR>
@@ -1409,7 +1420,7 @@ function OnClickOk(id) {
             <BR>
             RLoginでは、半角文字の罫線としてPC-ATの名残の<A href="https://en.wikipedia.org/wiki/Code_page_437">IBM437-GR</A>とTera Termで付属されているTera Specialフォントを<A href="http://fileformats.archiveteam.org/wiki/DEC_Special_Graphics_Character_Set">VT100-GRAPHIC</A>として使用できるようにしています。<BR>
             <BR>
-            TERM環境変数によるtermcap/terminfoのas/ae,smacs/rmacsにより文字バンクを切り替えて罫線を表示するの方法が多くなったと思っていました。<BR>
+            TERM環境変数によるtermcap/terminfoのas/ae,smacs/rmacsにより文字バンクを切り替えて罫線を表示する方法が多くなったと思っていました。<BR>
             <BR>
             しかしtmuxでは、LANG環境変数がEUCやSJISでは、termcap/infoに従った文字バンク切り替えで罫線を表示しているようですが、LANGがUTF-8の場合は、Unicodeの罫線を使用するようでこれが垂直罫線が表示されない問題になっていました。<BR>
             <BR>
@@ -1544,6 +1555,353 @@ do
     printf '\033\\'
   fi
 done</PRE>
+            </TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR>
+      <P><B><A name="LANG"></A>5.19 RLoginの多言語化</B></P>
+      <HR>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE width="1250" cellpadding="5">
+        <TBODY>
+          <TR>
+            <TD width="600" valign="top">「<A href="index.html#RESOURCE">リソースをファイルに保存</A>」でRLogin_rc.txtを作成する前に自動翻訳APIを使用すると希望の言語に翻訳を行うことができます。<BR>
+            <BR>
+            <IMG src="image051.jpg" width="476" height="254" border="0"><BR>
+            <BR>
+            試しにGoogleの翻訳ですが色々な言語に自動翻訳してみました。実用性は？です。それなりに見えますが、酷いようにも思います。「プライベートプロファイル作成」-&gt;「建立私人個人資料」は中国語が分からないけどいくらなんでも違うような・・・<BR>
+            <BR>
+            ※2.25.1からRLogin.exe起動時の作業フォルダ、又はRLogin.exeと同じフォルダに<A href="lang.zip">lang.zip</A>を展開しておくとOSの言語設定に合った「lang\RLogin_??.txt」があれば自動で読み込みます。ただしリソースファイルは、RLoginのバージョンに依存しています。バージョンが合わない場合は、一部の文字列などが翻訳されませんのでご注意ください。</TD>
+            <TD valign="top" align="center"><IMG src="image267.jpg" width="583" height="323" border="0"></TD>
+          </TR>
+          <TR>
+            <TD align="center"><IMG src="image274.jpg" width="583" height="323" border="0"></TD>
+            <TD align="center"><IMG src="image266.jpg" width="583" height="323" border="0"></TD>
+          </TR>
+          <TR>
+            <TD align="center"><IMG src="image268.jpg" width="583" height="323" border="0"></TD>
+            <TD align="center"><IMG src="image272.jpg" width="583" height="323" border="0"></TD>
+          </TR>
+          <TR>
+            <TD align="center"><IMG src="image269.jpg" width="583" height="323" border="0"></TD>
+            <TD align="center"><IMG src="image270.jpg" width="582" height="322" border="0"></TD>
+          </TR>
+          <TR>
+            <TD align="center"><IMG src="image265.jpg" width="583" height="323" border="0"></TD>
+            <TD align="center"><IMG src="image273.jpg" width="583" height="323" border="0"></TD>
+          </TR>
+          <TR>
+            <TD align="center"><IMG src="image275.jpg" width="583" height="323" border="0"></TD>
+            <TD align="center"><IMG src="image271.jpg" width="583" height="323" border="0"></TD>
+          </TR>
+        </TBODY>
+      </TABLE>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <HR>
+      <P><B><A name="KEYCODE"></A>5.20 各種キーのコード</B></P>
+      <HR>
+      </TD>
+    </TR>
+    <TR>
+      <TD>
+      <TABLE width="1250" cellpadding="5">
+        <TBODY>
+          <TR>
+            <TD width="600" valign="top">RLoginの発生するキーコードは、基本xtermの互換になるように設定しています。バージョン2.25.4からよりxtermに近くなるように拡張オプションの1060に対応し発生するキーコードを整理しました。<BR>
+            <BR>
+            拡張オプションの1060をセット（CSI ? 1060 h）するとHome/End/Delete/F1/F2/F3/F4のキーコードが変化してTera
+            TermやPuTTYに近いコードになります（Deleteが微妙に違う）。注意点としては、TERM環境変数が「xterm」「xterm-256color」などの場合にkh/@7/kD/k1/k2/k3/k4などの設定が実際のキーコードと合わなくなる場合があります。<BR>
+            <BR>
+            ※ CSIとは&quot;ESC [”、SS3とは&quot;ESC O&quot;の略号。ESCは、8進数で&quot;033&quot;です。<A href="http://nanno.dip.jp/softlib/man/rlogin/#KEYOPT" style="font-family: Meiryo; font-size: 14.4px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: left; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255);">キーボードのオプション設定</A>で使用している形式は、&quot;\033&quot;になり、CSIは&quot;\033[&quot;、SS3は&quot;\033O&quot;になります。例：Upキーは、&quot;CSI
+            A&quot;が&quot;\033[A&quot;、&quot;SS3 A&quot;が&quot;\033OA&quot;です。<BR>
+            <BR>
+            ※ 2.25.4よりキーパッドのキーコードも整理しました（xterm R6 互換モード時のみDECPAMが有効になりますのでご注意ください）<BR>
+            <TABLE border="1" cellpadding="5">
+              <TBODY>
+                <TR>
+                  <TD colspan="2" align="center"><SPAN style="color: rgb(0, 0, 0); font-family: Meiryo; font-size: 14.4px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: -webkit-center; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;">DECPNM<BR>
+                  ESC &gt;</SPAN></TD>
+                  <TD align="center"><SPAN style="color: rgb(0, 0, 0); font-family: Meiryo; font-size: 14.4px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: -webkit-center; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;">xterm R6 互換<BR>
+                  CSI ? 1060 h<BR>
+                  DECPAM<BR>
+                  </SPAN>ESC =</TD>
+                </TR>
+                <TR>
+                  <TD width="120">Num Lock (on)</TD>
+                  <TD width="120">Num Lock (off)</TD>
+                  <TD width="120">SS3 P</TD>
+                </TR>
+                <TR>
+                  <TD>/</TD>
+                  <TD>/</TD>
+                  <TD>SS3 Q</TD>
+                </TR>
+                <TR>
+                  <TD>*</TD>
+                  <TD>*</TD>
+                  <TD>SS3 R</TD>
+                </TR>
+                <TR>
+                  <TD>-</TD>
+                  <TD>-</TD>
+                  <TD>SS3 S</TD>
+                </TR>
+                <TR>
+                  <TD>0</TD>
+                  <TD>Insert</TD>
+                  <TD>SS3 p</TD>
+                </TR>
+                <TR>
+                  <TD>1</TD>
+                  <TD>End</TD>
+                  <TD>SS3 q</TD>
+                </TR>
+                <TR>
+                  <TD>2</TD>
+                  <TD>Down</TD>
+                  <TD>SS3 r</TD>
+                </TR>
+                <TR>
+                  <TD>3</TD>
+                  <TD>Page Down</TD>
+                  <TD>SS3 s</TD>
+                </TR>
+                <TR>
+                  <TD>4</TD>
+                  <TD>Right</TD>
+                  <TD>SS3 t</TD>
+                </TR>
+                <TR>
+                  <TD>5</TD>
+                  <TD>Clear</TD>
+                  <TD>SS3 u</TD>
+                </TR>
+                <TR>
+                  <TD>6</TD>
+                  <TD>Left</TD>
+                  <TD>SS3 v</TD>
+                </TR>
+                <TR>
+                  <TD>7</TD>
+                  <TD>Home</TD>
+                  <TD>SS3 w</TD>
+                </TR>
+                <TR>
+                  <TD>8</TD>
+                  <TD>Up</TD>
+                  <TD>SS3 x</TD>
+                </TR>
+                <TR>
+                  <TD>9</TD>
+                  <TD>Page Up</TD>
+                  <TD>SS3 y</TD>
+                </TR>
+                <TR>
+                  <TD>．</TD>
+                  <TD>Del</TD>
+                  <TD>SS3 n</TD>
+                </TR>
+                <TR>
+                  <TD>+</TD>
+                  <TD>+</TD>
+                  <TD>SS3 l</TD>
+                </TR>
+                <TR>
+                  <TD>Enter</TD>
+                  <TD>Enter</TD>
+                  <TD>SS3 M</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+            <TD valign="top">
+            <TABLE border="1" cellpadding="5">
+              <TBODY>
+                <TR>
+                  <TD width="100" align="center"></TD>
+                  <TD width="100" align="center">Nomal<BR>
+                  xterm 互換</TD>
+                  <TD width="100" align="center">DECCKM set<BR>
+                  CSI ? 1h</TD>
+                  <TD width="100" align="center">xterm R6 互換<BR>
+                  CSI ? 1060 h</TD>
+                  <TD width="100" align="center">DECANM set<BR>
+                  CSI ? 2 h</TD>
+                </TR>
+                <TR>
+                  <TD>Up</TD>
+                  <TD>CSI A</TD>
+                  <TD>SS3 A</TD>
+                  <TD></TD>
+                  <TD>ESC A</TD>
+                </TR>
+                <TR>
+                  <TD>Down</TD>
+                  <TD>CSI B</TD>
+                  <TD>SS3 B</TD>
+                  <TD></TD>
+                  <TD>ESC B</TD>
+                </TR>
+                <TR>
+                  <TD>Left</TD>
+                  <TD>CSI C</TD>
+                  <TD>SS3 C</TD>
+                  <TD></TD>
+                  <TD>ESC C</TD>
+                </TR>
+                <TR>
+                  <TD>Right</TD>
+                  <TD>CSI D</TD>
+                  <TD>SS3 D</TD>
+                  <TD></TD>
+                  <TD>ESC D</TD>
+                </TR>
+                <TR>
+                  <TD>Clear</TD>
+                  <TD>CSI E</TD>
+                  <TD>SS3 E</TD>
+                  <TD></TD>
+                  <TD>ESC E</TD>
+                </TR>
+                <TR>
+                  <TD>Home</TD>
+                  <TD>CSI H</TD>
+                  <TD>SS3 H</TD>
+                  <TD>CSI 1~</TD>
+                  <TD>ESC H</TD>
+                </TR>
+                <TR>
+                  <TD>Insert</TD>
+                  <TD>CSI 2~</TD>
+                  <TD></TD>
+                  <TD></TD>
+                  <TD>ESC L</TD>
+                </TR>
+                <TR>
+                  <TD>Delete</TD>
+                  <TD>CSI 3~</TD>
+                  <TD></TD>
+                  <TD>DEL</TD>
+                  <TD>ESC M</TD>
+                </TR>
+                <TR>
+                  <TD>End</TD>
+                  <TD>CSI F</TD>
+                  <TD>SS3 F</TD>
+                  <TD>CSI 4~</TD>
+                  <TD>ESC F</TD>
+                </TR>
+                <TR>
+                  <TD>Page Up</TD>
+                  <TD>CSI 5~</TD>
+                  <TD></TD>
+                  <TD></TD>
+                  <TD>ESC I</TD>
+                </TR>
+                <TR>
+                  <TD>Page Down</TD>
+                  <TD>CSI 6~</TD>
+                  <TD></TD>
+                  <TD></TD>
+                  <TD>ESC G</TD>
+                </TR>
+                <TR>
+                  <TD>F1</TD>
+                  <TD>SS3 P</TD>
+                  <TD></TD>
+                  <TD>CSI 11~</TD>
+                  <TD>ESC P</TD>
+                </TR>
+                <TR>
+                  <TD>F2</TD>
+                  <TD>SS3 Q</TD>
+                  <TD></TD>
+                  <TD>CSI 12~</TD>
+                  <TD>ESC Q</TD>
+                </TR>
+                <TR>
+                  <TD>F3</TD>
+                  <TD>SS3 R</TD>
+                  <TD></TD>
+                  <TD>CSI 13~</TD>
+                  <TD>ESC R</TD>
+                </TR>
+                <TR>
+                  <TD>F4</TD>
+                  <TD>SS3 S</TD>
+                  <TD></TD>
+                  <TD>CSI 14~</TD>
+                  <TD>ESC S</TD>
+                </TR>
+                <TR>
+                  <TD>F5</TD>
+                  <TD>CSI 15~</TD>
+                  <TD></TD>
+                  <TD></TD>
+                  <TD>ESC T</TD>
+                </TR>
+                <TR>
+                  <TD>F6</TD>
+                  <TD>CSI 17~</TD>
+                  <TD></TD>
+                  <TD></TD>
+                  <TD>ESC U</TD>
+                </TR>
+                <TR>
+                  <TD>F7</TD>
+                  <TD>CSI 18~</TD>
+                  <TD></TD>
+                  <TD></TD>
+                  <TD>ESC V</TD>
+                </TR>
+                <TR>
+                  <TD>F8</TD>
+                  <TD>CSI 19~</TD>
+                  <TD></TD>
+                  <TD></TD>
+                  <TD>ESC W</TD>
+                </TR>
+                <TR>
+                  <TD>F9</TD>
+                  <TD>CSI 20~</TD>
+                  <TD></TD>
+                  <TD></TD>
+                  <TD>ESC X</TD>
+                </TR>
+                <TR>
+                  <TD>F10</TD>
+                  <TD>CSI 21~</TD>
+                  <TD></TD>
+                  <TD></TD>
+                  <TD>ESC Y</TD>
+                </TR>
+                <TR>
+                  <TD>F11</TD>
+                  <TD>CSI 23~</TD>
+                  <TD></TD>
+                  <TD></TD>
+                  <TD>ESC Z</TD>
+                </TR>
+                <TR>
+                  <TD>F12</TD>
+                  <TD>CSI 24~</TD>
+                  <TD></TD>
+                  <TD></TD>
+                  <TD>ESC [</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
             </TD>
           </TR>
         </TBODY>

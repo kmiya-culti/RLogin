@@ -423,7 +423,7 @@ void CTrackWnd::OnPaint()
 	GetClientRect(rect);
 
 	CString FontName = ::AfxGetApp()->GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
-	int FontSize = MulDiv(::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9), SCREEN_DPI_Y, DEFAULT_DPI_Y);
+	int FontSize = MulDiv(::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9), SCREEN_DPI_Y, SYSTEM_DPI_Y);
 
 	font.CreateFont(0 - MulDiv(FontSize, dc.GetDeviceCaps(LOGPIXELSY), 72), 0, 0, 0, 0, FALSE, 0, 0, DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS, DEFAULT_QUALITY, FIXED_PITCH | FF_MODERN, FontName);
 	pOldFont = dc.SelectObject(&font);

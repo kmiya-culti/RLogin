@@ -31,8 +31,6 @@ void CTtyModeDlg::DoDataExchange(CDataExchange* pDX)
 
 
 BEGIN_MESSAGE_MAP(CTtyModeDlg, CDialogExt)
-	ON_WM_SIZE()
-	ON_WM_SIZING()
 END_MESSAGE_MAP()
 
 // CTtyModeDlg メッセージ ハンドラー
@@ -147,11 +145,6 @@ BOOL CTtyModeDlg::OnInitDialog()
 
 	InitItemOffset(ItemTab);
 
-	CRect rect;
-	GetWindowRect(rect);
-	m_MinWidth = rect.Width();
-	m_MinHeight = rect.Height();
-
 	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT);
 	m_List.InitColumn(_T("TtyModeDlg"), InitListTab, 4);
 	m_List.m_EditSubItem = 0x04;
@@ -189,43 +182,6 @@ void CTtyModeDlg::OnOK()
 	}
 
 	CDialogExt::OnOK();
-}
-
-void CTtyModeDlg::OnSize(UINT nType, int cx, int cy)
-{
-	SetItemOffset(ItemTab, cx, cy);
-	CDialogExt::OnSize(nType, cx, cy);
-	Invalidate(TRUE);
-}
-void CTtyModeDlg::OnSizing(UINT fwSide, LPRECT pRect)
-{
-	//case WMSZ_LEFT:			// 1 Left edge
-	//case WMSZ_RIGHT:			// 2 Right edge
-	//case WMSZ_TOP:			// 3 Top edge
-	//case WMSZ_TOPLEFT:		// 4 Top-left corner
-	//case WMSZ_TOPRIGHT:		// 5 Top-right corner
-	//case WMSZ_BOTTOM:			// 6 Bottom edge
-	//case WMSZ_BOTTOMLEFT:		// 7 Bottom-left corner
-	//case WMSZ_BOTTOMRIGHT:	// 8 Bottom-right corner
-
-	int width  = MulDiv(m_MinWidth,  m_NowDpi.cx, m_InitDpi.cx);
-	int height = MulDiv(m_MinHeight, m_NowDpi.cy, m_InitDpi.cy);
-
-	if ( (pRect->right - pRect->left) < width ) {
-		if ( fwSide == WMSZ_LEFT || fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_BOTTOMLEFT )
-			pRect->left = pRect->right - width;
-		else
-			pRect->right = pRect->left + width;
-	}
-
-	if ( (pRect->bottom - pRect->top) < height ) {
-		if ( fwSide == WMSZ_TOP || fwSide == WMSZ_TOPLEFT || fwSide == WMSZ_TOPRIGHT )
-			pRect->top = pRect->bottom - height;
-		else
-			pRect->bottom = pRect->top + height;
-	}
-
-	CDialogExt::OnSizing(fwSide, pRect);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -292,11 +248,6 @@ BOOL CColEditDlg::OnInitDialog()
 	CDialogExt::OnInitDialog();
 
 	InitItemOffset(ItemTab);
-
-	CRect rect;
-	GetWindowRect(rect);
-	m_MinWidth = rect.Width();
-	m_MinHeight = rect.Height() / 2;
 
 //	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT);
 	m_List.InitColumn(_T("ColEditDlg"), InitColListTab, 8);
