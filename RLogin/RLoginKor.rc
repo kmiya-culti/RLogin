@@ -13,7 +13,7 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// Japanese (Japan) resources
+// 한국어(대한민국) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_KOR)
 LANGUAGE LANG_KOREAN, SUBLANG_DEFAULT
@@ -54,16 +54,6 @@ END
 
 #endif    // APSTUDIO_INVOKED
 
-#endif    // Japanese (Japan) resources
-/////////////////////////////////////////////////////////////////////////////
-
-
-/////////////////////////////////////////////////////////////////////////////
-// Korean (Korea) resources
-
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_KOR)
-LANGUAGE LANG_KOREAN, SUBLANG_DEFAULT
-#pragma code_page(949)
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -73,8 +63,11 @@ LANGUAGE LANG_KOREAN, SUBLANG_DEFAULT
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDR_MAINFRAME           ICON                    "res\\RLogin.ico"
+
 IDR_RLOGINTYPE          ICON                    "res\\RLoginDoc.ico"
+
 IDI_ACTIVE              ICON                    "res\\Active.ico"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -82,33 +75,61 @@ IDI_ACTIVE              ICON                    "res\\Active.ico"
 //
 
 IDR_MAINFRAME           BITMAP                  "res\\Toolbar.bmp"
+
 IDR_SFTPTOOL            BITMAP                  "res\\toolbar1.bmp"
+
 IDB_ATTR1               BITMAP                  "res\\attr1.bmp"
+
 IDB_ATTR2               BITMAP                  "res\\attr2.bmp"
+
 IDB_ATTR3               BITMAP                  "res\\attr3.bmp"
+
 IDB_ATTR4               BITMAP                  "res\\attr4.bmp"
+
 IDB_ATTR5               BITMAP                  "res\\attr5.bmp"
+
 IDB_ATTR6               BITMAP                  "res\\attr6.bmp"
+
 IDB_ATTR7               BITMAP                  "res\\attr7.bmp"
+
 IDB_ATTR8               BITMAP                  "res\\attr8.bmp"
+
 IDB_BITMAP1             BITMAP                  "res\\bitmap1.bmp"
+
 IDB_BITMAP2             BITMAP                  "res\\bitmap2.bmp"
+
 IDB_BITMAP3             BITMAP                  "res\\bitmap3.bmp"
+
 IDB_BITMAP4             BITMAP                  "res\\bitmap4.bmp"
+
 IDB_BITMAP5             BITMAP                  "res\\bitmap5.bmp"
+
 IDB_BITMAP6             BITMAP                  "res\\bitmap6.bmp"
+
 IDB_BITMAP7             BITMAP                  "res\\bitmap7.bmp"
+
 IDB_BITMAP8             BITMAP                  "res\\bitmap8.bmp"
+
 IDB_BITMAP9             BITMAP                  "res\\bitmap9.bmp"
+
 IDB_MENUMAP1            BITMAP                  "res\\menumap1.bmp"
+
 IDB_MENUMAP2            BITMAP                  "res\\menumap2.bmp"
+
 IDB_MENUMAP3            BITMAP                  "res\\menumap3.bmp"
+
 IDB_HATCH1              BITMAP                  "res\\hatch1.bmp"
+
 IDB_HATCH2              BITMAP                  "res\\hatch2.bmp"
+
 IDB_HATCH3              BITMAP                  "res\\hatch3.bmp"
+
 IDB_CHECKBOX1           BITMAP                  "res\\checkbox1.bmp"
+
 IDB_CHECKBOX2           BITMAP                  "res\\checkbox2.bmp"
+
 IDB_CHECKBOX3           BITMAP                  "res\\checkbox.bmp"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -630,7 +651,7 @@ END
 // Dialog
 //
 
-IDD_ABOUTBOX DIALOGEX 0, 0, 243, 214
+IDD_ABOUTBOX DIALOGEX 0, 0, 243, 223
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "RLogin 버전 정보"
 FONT 9, "Malgun Gothic", 400, 0, 0x0
@@ -640,23 +661,25 @@ BEGIN
     CONTROL         "<a href=""https://kmiya-culti.github.io/RLogin/"">https://kmiya-culti.github.io/RLogin/</a>",IDC_SYSLINK3,
                     "SysLink",WS_TABSTOP,44,37,189,8
     CONTROL         "<a href=""http://www.1023world.net/material/gif/"">http://www.1023world.net/material/gif/</a>",IDC_SYSLINK1,
-                    "SysLink",WS_TABSTOP,44,178,189,8
-    DEFPUSHBUTTON   "OK",IDOK,91,193,60,14,WS_GROUP
-    ICON            IDR_MAINFRAME,IDC_STATIC,7,7,18,17
+                    "SysLink",WS_TABSTOP,44,185,189,8
+    DEFPUSHBUTTON   "OK",IDOK,91,202,60,14,WS_GROUP
+    ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
     LTEXT           "RLogin (%s) Version 2.25.0 (2020/03/25)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2020 Culti",IDC_STATIC,44,16,189,8
-    LTEXT           "OpenSSL 1.1.1e 17 Mar 2020",IDC_STATIC,44,52,189,8
-    LTEXT           "Copyright (c) 1998-2019 The OpenSSL Project",IDC_STATIC,44,61,189,8
-    LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,70,189,8
-    LTEXT           "All rights reserved.",IDC_STATIC,44,79,189,8
-    LTEXT           "zlib 1.2.11 (15 Jan 2017)",IDC_STATIC,44,92,189,8
-    LTEXT           "(C) 1995-2017 Jean-loup Gailly and Mark Adler",IDC_STATIC,44,101,189,8
-    LTEXT           "iconv (GNU libiconv 1.15)",IDC_STATIC,44,114,189,8
-    LTEXT           "Copyright (C) 2000-2017 Free Software Foundation, Inc.",IDC_STATIC,44,123,189,8
-    LTEXT           "Nettle library (version 2.0)",IDC_STATIC,44,138,189,8
-    LTEXT           "Originally written 2001 by Niels Moller, updated 2009.",IDC_STATIC,44,147,189,8
-    LTEXT           "kumaGIF",IDC_STATIC,44,160,189,8
-    LTEXT           "Copyright (c) 1.023world All Rights Reserved.",IDC_STATIC,44,169,189,8
+    LTEXT           "OpenSSL 1.1.1e 17 Mar 2020",IDC_STATIC,44,59,189,8
+    LTEXT           "Copyright (c) 1998-2019 The OpenSSL Project",IDC_STATIC,44,68,189,8
+    LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,77,189,8
+    LTEXT           "All rights reserved.",IDC_STATIC,44,86,189,8
+    LTEXT           "zlib 1.2.11 (15 Jan 2017)",IDC_STATIC,44,99,189,8
+    LTEXT           "(C) 1995-2017 Jean-loup Gailly and Mark Adler",IDC_STATIC,44,108,189,8
+    LTEXT           "iconv (GNU libiconv 1.15)",IDC_STATIC,44,121,189,8
+    LTEXT           "Copyright (C) 2000-2017 Free Software Foundation, Inc.",IDC_STATIC,44,130,189,8
+    LTEXT           "Nettle library (version 2.0)",IDC_STATIC,44,145,189,8
+    LTEXT           "Originally written 2001 by Niels Moller, updated 2009.",IDC_STATIC,44,154,189,8
+    LTEXT           "kumaGIF",IDC_STATIC,44,167,189,8
+    LTEXT           "Copyright (c) 1.023world All Rights Reserved.",IDC_STATIC,44,176,189,8
+    CONTROL         "<a href=""https://byeonlab.com/projects/rlogin/"">https://byeonlab.com/projects/rlogin/ (Korean Ver)</a>",IDC_SYSLINK4,
+                    "SysLink",WS_TABSTOP,44,48,189,8
 END
 
 IDD_ALGOPARADLG DIALOGEX 0, 0, 351, 343
@@ -2155,7 +2178,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 236
         TOPMARGIN, 7
-        BOTTOMMARGIN, 207
+        BOTTOMMARGIN, 216
     END
 
     IDD_ALGOPARADLG, DIALOG
@@ -4153,6 +4176,17 @@ END
 
 /////////////////////////////////////////////////////////////////////////////
 //
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_ABOUTBOX AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
 // String Table
 //
 
@@ -4843,7 +4877,7 @@ BEGIN
     IDM_FIRST_MDICHILD      "활성 창을 선택\n창 선택"
 END
 
-#endif    // Korean (Korea) resources
+#endif    // 한국어(대한민국) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

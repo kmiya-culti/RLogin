@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
-// Microsoft Visual C++ generated include file.
-// Used by RLoginKor.rc
+// Microsoft Visual C++에서 생성한 포함 파일입니다.
+// RLogin.rc에서 사용되고 있습니다.
 //
 #define IDD_ABOUTBOX                    100
 #define IDD_ALGOPARADLG                 101
@@ -812,6 +812,7 @@
 #define IDC_TERMCAP                     2350
 #define IDC_SYSLINK3                    2350
 #define IDC_TERMCHECK1                  2351
+#define IDC_SYSLINK4                    2351
 #define IDC_TERMCHECK2                  2352
 #define IDC_TERMCHECK3                  2353
 #define IDC_TERMCHECK4                  2354
@@ -1102,7 +1103,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        168
+#define _APS_NEXT_RESOURCE_VALUE        170
 #define _APS_NEXT_COMMAND_VALUE         5140
 #define _APS_NEXT_CONTROL_VALUE         2499
 #define _APS_NEXT_SYMED_VALUE           670

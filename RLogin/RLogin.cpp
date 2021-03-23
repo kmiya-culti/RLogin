@@ -538,6 +538,7 @@ BEGIN_MESSAGE_MAP(CAboutDlg, CDialogExt)
 	ON_NOTIFY(NM_CLICK, IDC_SYSLINK1, &CAboutDlg::OnNMClickSyslink)
 	ON_NOTIFY(NM_CLICK, IDC_SYSLINK2, &CAboutDlg::OnNMClickSyslink)
 	ON_NOTIFY(NM_CLICK, IDC_SYSLINK3, &CAboutDlg::OnNMClickSyslink)
+	ON_NOTIFY(NM_CLICK, IDC_SYSLINK4, &CAboutDlg::OnNMClickSyslink)
 END_MESSAGE_MAP()
 
 //////////////////////////////////////////////////////////////////////
@@ -1150,7 +1151,7 @@ BOOL CRLoginApp::InitInstance()
 	// and sets resource to default .exe resource.
 	AfxSetResourceHandle(AfxGetApp()->m_hInstance);
 
-	//Load Language DLL chosen by user.                                           
+	// Load Language DLL chosen by user.                                           
 	m_LanguageSupport.LoadBestLanguage(); 
 
 	// 標準の INI ファイルのオプションをロードします (MRU を含む)
