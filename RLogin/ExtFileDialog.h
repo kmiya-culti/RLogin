@@ -172,6 +172,10 @@ public:
 	CFileUpSendPage *m_pUpSend;
 	CFileDownPage   *m_pDownPage;
 
+	CFont m_NewFont;
+
+	void FontSizeCheck();
+
 public:
 	virtual BOOL OnInitDialog();
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート

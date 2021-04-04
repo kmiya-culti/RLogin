@@ -133,7 +133,7 @@ int CNode::GetEventSize()
 		switch(m_Cmd) {
 		case 0xFF51:	// Tempo
 			return n;
-		case 0xFF80:	// Speek
+		case 0xFF80:	// Speak
 			return (n + 4 + ((m_Len + (sizeof(DWORD) - 1)) / sizeof(DWORD)) * sizeof(DWORD));
 		default:
 			return 0;
@@ -170,7 +170,7 @@ int CNode::SetEvent(DWORD pos, BYTE *pData)
 			n += sizeof(DWORD);
 			return n;
 
-		case 0xFF80:	// Speek
+		case 0xFF80:	// Speak
 			tmp = ((MEVT_COMMENT << 24) | MEVT_F_CALLBACK | ((DWORD)sizeof(DWORD) + m_Len));
 			memcpy(pData + n, &tmp, sizeof(DWORD));
 			n += sizeof(DWORD);
@@ -2736,9 +2736,9 @@ DWORD WINAPI CMidiData::ThreadProc(void *lpParameter)
 					if ( !pMidi->StreamQueIn() )
 						pMidi->Stop();
 					break;
-				case 0x0001:	// Speek
+				case 0x0001:	// Speak
 					if ( pMidi->m_pMainWnd != NULL )
-						pMidi->m_pMainWnd->Speek(MbsToTstr((LPCSTR)((BYTE *)(pEvent->dwParms) + sizeof(DWORD))));
+						pMidi->m_pMainWnd->Speak(MbsToTstr((LPCSTR)((BYTE *)(pEvent->dwParms) + sizeof(DWORD))));
 					break;
 				}
 			}

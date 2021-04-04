@@ -78,6 +78,7 @@ public:
 
 	static void GetActiveDpi(CSize &dpi, CWnd *pWnd, CWnd *pParent);
 	static BOOL IsDialogExt(CWnd *pWnd);
+	static void GetDlgFontBase(CDC *pDC, CFont *pFont, CSize &size);
 
 // オーバーライド
 public:

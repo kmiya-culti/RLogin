@@ -240,6 +240,20 @@ BOOL CDialogExt::IsDialogExt(CWnd *pWnd)
 
 	return FALSE;
 }
+void CDialogExt::GetDlgFontBase(CDC *pDC, CFont *pFont, CSize &size)
+{
+	CSize TextSize;
+	TEXTMETRIC TextMetric;
+	CFont *pOld;
+
+	pOld = pDC->SelectObject(pFont);
+	pDC->GetTextMetrics(&TextMetric);
+	::GetTextExtentPoint32(pDC->GetSafeHdc(), _T("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"), 52, &TextSize);
+	size.cx = (TextSize.cx + 26) / 52;
+	size.cy = (TextMetric.tmHeight + TextMetric.tmExternalLeading);
+	pDC->SelectObject(pOld);
+}
+
 void CDialogExt::CheckMoveWindow(CRect &rect, BOOL bRepaint)
 {
 	HMONITOR hMonitor;

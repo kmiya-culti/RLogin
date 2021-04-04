@@ -13,6 +13,7 @@
 #include "ToolDlg.h"
 #include "richedit.h"
 #include "TraceDlg.h"
+#include "AnyPastDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -812,7 +813,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_MESSAGE(WM_DPICHANGED, OnDpiChanged)
 	ON_MESSAGE(WM_SETMESSAGESTRING, OnSetMessageString)
 	ON_MESSAGE(WM_NULL, OnNullMessage)
-	ON_MESSAGE(WM_SPEEKMSG, OnSpeekMsg)
+	ON_MESSAGE(WM_SPEAKMSG, OnSpeakMsg)
 
 	ON_COMMAND(ID_FILE_ALL_LOAD, OnFileAllLoad)
 	ON_COMMAND(ID_FILE_ALL_SAVE, OnFileAllSave)
@@ -878,8 +879,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_BN_CLICKED(IDC_CONNECT, &CMainFrame::OnQuickConnect)
 	ON_UPDATE_COMMAND_UI(IDC_CONNECT, &CMainFrame::OnUpdateConnect)
 
-	ON_COMMAND(IDM_SPEEKALL, &CMainFrame::OnSpeekText)
-	ON_UPDATE_COMMAND_UI(IDM_SPEEKALL, &CMainFrame::OnUpdateSpeekText)
+	ON_COMMAND(IDM_SPEAKALL, &CMainFrame::OnSpeakText)
+	ON_UPDATE_COMMAND_UI(IDM_SPEAKALL, &CMainFrame::OnUpdateSpeakText)
 
 END_MESSAGE_MAP()
 
@@ -942,6 +943,8 @@ CMainFrame::CMainFrame()
 	m_pServerSelect = NULL;
 	m_pHistoryDlg = NULL;
 	m_bVoiceEvent = FALSE;
+	m_pAnyPastDlg = NULL;
+	m_PastNoCheck = FALSE;
 }
 
 CMainFrame::~CMainFrame()
@@ -2493,6 +2496,28 @@ BOOL CMainFrame::GetClipboardText(CString &str)
 	return TRUE;
 }
 
+void CMainFrame::AnyPastDlgClose(int DocSeqNumber)
+{
+	if ( m_pAnyPastDlg != NULL && m_pAnyPastDlg->m_DocSeqNumber == DocSeqNumber )
+		m_pAnyPastDlg->m_DocSeqNumber = 0;
+}
+void CMainFrame::AnyPastDlgOpen(LPCWSTR str, int DocSeqNumber)
+{
+	if ( m_pAnyPastDlg == NULL ) {
+		m_pAnyPastDlg                 = new CAnyPastDlg;
+		m_pAnyPastDlg->m_EditText     = str;
+		m_pAnyPastDlg->m_DocSeqNumber = DocSeqNumber;
+		m_pAnyPastDlg->m_pMain        = this;
+
+		m_pAnyPastDlg->Create(IDD_ANYPASTDIG, this);
+		m_pAnyPastDlg->ShowWindow(SW_SHOW);
+
+	} else {
+		m_pAnyPastDlg->SetEditText(str, DocSeqNumber);
+		m_pAnyPastDlg->SetFocus();
+	}
+}
+
 /////////////////////////////////////////////////////////////////////////////
 
 static UINT VersionCheckThead(LPVOID pParam)
@@ -2515,7 +2540,7 @@ void CMainFrame::VersionCheckProc()
 	if ( version.CompareDigit(str) < 0 )
 		version = str;
 
-	if ( !http.GetRequest(CStringLoad(IDS_VERSIONCHECKURL), buf) )
+	if ( !http.GetRequest(CStringLoad(IDS_VERSIONCHECKURL), buf) && !http.GetRequest(CStringLoad(IDS_VERSIONCHECKURL2), buf) )
 		return;
 
 	p = (CHAR *)buf.GetPtr();
@@ -2831,6 +2856,9 @@ void CMainFrame::OnClose()
 
 	if ( m_pHistoryDlg != NULL )
 		m_pHistoryDlg->SendMessage(WM_CLOSE);
+
+	if ( m_pAnyPastDlg != NULL )
+		m_pAnyPastDlg->SendMessage(WM_CLOSE);
 
 	CMDIFrameWnd::OnClose();
 }
@@ -4138,55 +4166,55 @@ LRESULT CMainFrame::OnNullMessage(WPARAM wParam, LPARAM lParam)
 	return TRUE;
 }
 
-BOOL CMainFrame::SpeekQueIn()
+BOOL CMainFrame::SpeakQueIn()
 {
-	if ( m_SpeekAbs > m_pSpeekDoc->m_TextRam.m_HisAbs ) {
-		m_SpeekLine -= m_SpeekAbs;
-		m_SpeekAbs = m_pSpeekDoc->m_TextRam.m_HisAbs;
-		m_SpeekLine += m_SpeekAbs;
+	if ( m_SpeakAbs > m_pSpeakDoc->m_TextRam.m_HisAbs ) {
+		m_SpeakLine -= m_SpeakAbs;
+		m_SpeakAbs = m_pSpeakDoc->m_TextRam.m_HisAbs;
+		m_SpeakLine += m_SpeakAbs;
 	}
 
 	BOOL bContinue;
-	int line = m_SpeekLine - m_pSpeekDoc->m_TextRam.m_HisAbs;
+	int line = m_SpeakLine - m_pSpeakDoc->m_TextRam.m_HisAbs;
 	ISpVoice *pVoice = ((CRLoginApp *)::AfxGetApp())->m_pVoice;
 
-	if ( line < (0 - m_pSpeekDoc->m_TextRam.m_HisLen + m_pSpeekDoc->m_TextRam.m_Lines) ) {
-		line = 0 - m_pSpeekDoc->m_TextRam.m_HisLen + m_pSpeekDoc->m_TextRam.m_Lines + 1;
-		m_SpeekAbs = m_pSpeekDoc->m_TextRam.m_HisAbs;
-		m_SpeekLine = line + m_SpeekAbs;
+	if ( line < (0 - m_pSpeakDoc->m_TextRam.m_HisLen + m_pSpeakDoc->m_TextRam.m_Lines) ) {
+		line = 0 - m_pSpeakDoc->m_TextRam.m_HisLen + m_pSpeakDoc->m_TextRam.m_Lines + 1;
+		m_SpeakAbs = m_pSpeakDoc->m_TextRam.m_HisAbs;
+		m_SpeakLine = line + m_SpeakAbs;
 	}
 
-	while ( m_SpeekQueLen < SPEEKQUESIZE ) {
-		if ( line >= m_pSpeekDoc->m_TextRam.m_Lines )
+	while ( m_SpeakQueLen < SPEAKQUESIZE ) {
+		if ( line >= m_pSpeakDoc->m_TextRam.m_Lines )
 			return FALSE;
 
-		m_SpeekData[m_SpeekQuePos].text.Empty();
-		m_SpeekData[m_SpeekQuePos].pos.RemoveAll();
-		m_SpeekData[m_SpeekQuePos].skip = 0;
-		m_SpeekData[m_SpeekQuePos].abs  = m_SpeekAbs;
-		m_SpeekData[m_SpeekQuePos].line = m_SpeekLine;
+		m_SpeakData[m_SpeakQuePos].text.Empty();
+		m_SpeakData[m_SpeakQuePos].pos.RemoveAll();
+		m_SpeakData[m_SpeakQuePos].skip = 0;
+		m_SpeakData[m_SpeakQuePos].abs  = m_SpeakAbs;
+		m_SpeakData[m_SpeakQuePos].line = m_SpeakLine;
 
-		for ( int n = 0 ; n < 3 && line < m_pSpeekDoc->m_TextRam.m_Lines ; n++ ) {
-			bContinue = m_pSpeekDoc->m_TextRam.SpeekLine(line++, m_SpeekData[m_SpeekQuePos].text, m_SpeekData[m_SpeekQuePos].pos);
-	  		m_SpeekLine++;
+		for ( int n = 0 ; n < 3 && line < m_pSpeakDoc->m_TextRam.m_Lines ; n++ ) {
+			bContinue = m_pSpeakDoc->m_TextRam.SpeakLine(line++, m_SpeakData[m_SpeakQuePos].text, m_SpeakData[m_SpeakQuePos].pos);
+	  		m_SpeakLine++;
 
 			if ( !bContinue )
 				break;
 		}
 
-		if ( m_SpeekData[m_SpeekQuePos].text.IsEmpty() || m_SpeekData[m_SpeekQuePos].pos.GetSize() == 0 )
+		if ( m_SpeakData[m_SpeakQuePos].text.IsEmpty() || m_SpeakData[m_SpeakQuePos].pos.GetSize() == 0 )
 			continue;
 
-		pVoice->Speak(m_SpeekData[m_SpeekQuePos].text, SPF_ASYNC | SPF_IS_NOT_XML, &(m_SpeekData[m_SpeekQuePos].num));
+		pVoice->Speak(m_SpeakData[m_SpeakQuePos].text, SPF_ASYNC | SPF_IS_NOT_XML, &(m_SpeakData[m_SpeakQuePos].num));
 
-		if ( ++m_SpeekQuePos >= SPEEKQUESIZE )
-			m_SpeekQuePos = 0;
-		m_SpeekQueLen++;
+		if ( ++m_SpeakQuePos >= SPEAKQUESIZE )
+			m_SpeakQuePos = 0;
+		m_SpeakQueLen++;
 	}
 
 	return TRUE;
 }
-void CMainFrame::Speek(LPCTSTR str)
+void CMainFrame::Speak(LPCTSTR str)
 {
 	ISpVoice *pVoice = ((CRLoginApp *)::AfxGetApp())->m_pVoice;
 
@@ -4197,26 +4225,26 @@ void CMainFrame::Speek(LPCTSTR str)
 		m_bVoiceEvent = FALSE;
 		pVoice->SetInterest(0, 0);
 		pVoice->Speak(L"", SPF_ASYNC | SPF_PURGEBEFORESPEAK | SPF_IS_NOT_XML, NULL);
-		m_pSpeekView->SpeekTextPos(FALSE, NULL, NULL);
+		m_pSpeakView->SpeakTextPos(FALSE, NULL, NULL);
 	}
 
 	pVoice->Speak(TstrToUni(str), SPF_ASYNC, NULL);
 }
-void CMainFrame::SpeekUpdate(int x, int y)
+void CMainFrame::SpeakUpdate(int x, int y)
 {
 	int pos;
 
-	pos = m_SpeekQueTop;
-	for ( int n = 0 ; n < m_SpeekQueLen ; n++ ) {
-		m_SpeekData[pos].skip = 1;
-		if ( ++pos >= SPEEKQUESIZE )
+	pos = m_SpeakQueTop;
+	for ( int n = 0 ; n < m_SpeakQueLen ; n++ ) {
+		m_SpeakData[pos].skip = 1;
+		if ( ++pos >= SPEAKQUESIZE )
 			pos = 0;
 	}
 
-	m_SpeekAbs  = m_pSpeekDoc->m_TextRam.m_HisAbs;
-	m_SpeekLine = m_SpeekAbs + y;
+	m_SpeakAbs  = m_pSpeakDoc->m_TextRam.m_HisAbs;
+	m_SpeakLine = m_SpeakAbs + y;
 }
-LRESULT CMainFrame::OnSpeekMsg(WPARAM wParam, LPARAM lParam)
+LRESULT CMainFrame::OnSpeakMsg(WPARAM wParam, LPARAM lParam)
 {
 	SPEVENT eventItem;
 	ISpVoice *pVoice = ((CRLoginApp *)::AfxGetApp())->m_pVoice;
@@ -4232,71 +4260,71 @@ LRESULT CMainFrame::OnSpeekMsg(WPARAM wParam, LPARAM lParam)
 
 		switch(eventItem.eEventId) {
         case SPEI_WORD_BOUNDARY:
-			if ( m_SpeekQueLen <= 0 )
+			if ( m_SpeakQueLen <= 0 )
 				break;
-			if ( eventItem.ulStreamNum != m_SpeekData[m_SpeekQueTop].num )
+			if ( eventItem.ulStreamNum != m_SpeakData[m_SpeakQueTop].num )
 				break;
 			pVoice->GetStatus(&status, NULL);
 			if ( status.dwRunningState != SPRS_IS_SPEAKING )
 				break;
-			if ( status.ulCurrentStream != m_SpeekData[m_SpeekQueTop].num )
+			if ( status.ulCurrentStream != m_SpeakData[m_SpeakQueTop].num )
 				break;
-			if ( m_SpeekData[m_SpeekQueTop].skip != 0 ) {
-				pVoice->Skip(L"SENTENCE", m_SpeekData[m_SpeekQueTop].skip, &skipd);
-				m_SpeekData[m_SpeekQueTop].skip = 0;
+			if ( m_SpeakData[m_SpeakQueTop].skip != 0 ) {
+				pVoice->Skip(L"SENTENCE", m_SpeakData[m_SpeakQueTop].skip, &skipd);
+				m_SpeakData[m_SpeakQueTop].skip = 0;
 				break;
 			}
 			if ( status.ulInputWordLen <= 0 )
 				break;
-			if ( (ULONG)m_SpeekData[m_SpeekQueTop].pos.GetSize() < (status.ulInputWordPos + status.ulInputWordLen - 1) )
+			if ( (ULONG)m_SpeakData[m_SpeakQueTop].pos.GetSize() < (status.ulInputWordPos + status.ulInputWordLen - 1) )
 				break;
-			spos = m_SpeekData[m_SpeekQueTop].pos[status.ulInputWordPos];
-			epos = m_SpeekData[m_SpeekQueTop].pos[status.ulInputWordPos + status.ulInputWordLen - 1];
-			if ( !m_pSpeekDoc->m_TextRam.SpeekCheck(spos, epos, (LPCTSTR)m_SpeekData[m_SpeekQueTop].text + status.ulInputWordPos) ) {
+			spos = m_SpeakData[m_SpeakQueTop].pos[status.ulInputWordPos];
+			epos = m_SpeakData[m_SpeakQueTop].pos[status.ulInputWordPos + status.ulInputWordLen - 1];
+			if ( !m_pSpeakDoc->m_TextRam.SpeakCheck(spos, epos, (LPCTSTR)m_SpeakData[m_SpeakQueTop].text + status.ulInputWordPos) ) {
 				pVoice->Skip(L"SENTENCE", 1, &skipd);
-				m_SpeekAbs  = m_SpeekData[m_SpeekQueTop].abs;
-				m_SpeekLine = m_SpeekData[m_SpeekQueTop].line;
-				m_pSpeekView->SpeekTextPos(FALSE, NULL, NULL);
+				m_SpeakAbs  = m_SpeakData[m_SpeakQueTop].abs;
+				m_SpeakLine = m_SpeakData[m_SpeakQueTop].line;
+				m_pSpeakView->SpeakTextPos(FALSE, NULL, NULL);
 				break;
 			}
-			m_pSpeekView->SpeekTextPos(TRUE, &spos, &epos);
+			m_pSpeakView->SpeakTextPos(TRUE, &spos, &epos);
 			break;
 
 		case SPEI_SENTENCE_BOUNDARY:
 		case SPEI_START_INPUT_STREAM:
-			if ( m_SpeekQueLen <= 0 )
+			if ( m_SpeakQueLen <= 0 )
 				break;
-			if ( eventItem.ulStreamNum != m_SpeekData[m_SpeekQueTop].num )
+			if ( eventItem.ulStreamNum != m_SpeakData[m_SpeakQueTop].num )
 				break;
-			if ( m_SpeekData[m_SpeekQueTop].skip != 0 ) {
-				pVoice->Skip(L"SENTENCE", m_SpeekData[m_SpeekQueTop].skip, &skipd);
-				m_SpeekData[m_SpeekQueTop].skip = 0;
+			if ( m_SpeakData[m_SpeakQueTop].skip != 0 ) {
+				pVoice->Skip(L"SENTENCE", m_SpeakData[m_SpeakQueTop].skip, &skipd);
+				m_SpeakData[m_SpeakQueTop].skip = 0;
 				break;
 			}
 			break;
 
 		case SPEI_END_INPUT_STREAM:
-			if ( m_SpeekQueLen <= 0 )
+			if ( m_SpeakQueLen <= 0 )
 				break;
-			if ( eventItem.ulStreamNum != m_SpeekData[m_SpeekQueTop].num )
+			if ( eventItem.ulStreamNum != m_SpeakData[m_SpeakQueTop].num )
 				break;
-			m_SpeekData[m_SpeekQueTop].text.Empty();
-			m_SpeekData[m_SpeekQueTop].pos.RemoveAll();
-			if ( ++m_SpeekQueTop >= SPEEKQUESIZE )
-				m_SpeekQueTop = 0;
-			m_SpeekQueLen--;
-			if ( !SpeekQueIn() && m_SpeekQueLen <= 0 ) {
+			m_SpeakData[m_SpeakQueTop].text.Empty();
+			m_SpeakData[m_SpeakQueTop].pos.RemoveAll();
+			if ( ++m_SpeakQueTop >= SPEAKQUESIZE )
+				m_SpeakQueTop = 0;
+			m_SpeakQueLen--;
+			if ( !SpeakQueIn() && m_SpeakQueLen <= 0 ) {
 				pVoice->SetInterest(0, 0);
 				m_bVoiceEvent = FALSE;
 			}
-			m_pSpeekView->SpeekTextPos(FALSE, NULL, NULL);
+			m_pSpeakView->SpeakTextPos(FALSE, NULL, NULL);
 			break;
 		}
 	}
 
 	return TRUE;
 }
-void CMainFrame::OnSpeekText()
+void CMainFrame::OnSpeakText()
 {
 	ISpVoice *pVoice = ((CRLoginApp *)::AfxGetApp())->m_pVoice;
 	CChildFrame *pChild = (CChildFrame *)MDIGetActive();
@@ -4312,15 +4340,15 @@ void CMainFrame::OnSpeekText()
 
 		ULONGLONG ev = SPFEI(SPEI_WORD_BOUNDARY) | SPFEI(SPEI_SENTENCE_BOUNDARY) | SPFEI(SPEI_END_INPUT_STREAM);
 		pVoice->SetInterest(ev, ev);
-		pVoice->SetNotifyWindowMessage(GetSafeHwnd(), WM_SPEEKMSG, 0, 0);
+		pVoice->SetNotifyWindowMessage(GetSafeHwnd(), WM_SPEAKMSG, 0, 0);
 
-		m_pSpeekView = pView;
-		m_pSpeekDoc  = pDoc;
+		m_pSpeakView = pView;
+		m_pSpeakDoc  = pDoc;
 
-		m_SpeekQueLen = m_SpeekQuePos = m_SpeekQueTop = 0;
-		m_SpeekAbs = m_pSpeekDoc->m_TextRam.m_HisAbs;
-		m_SpeekLine = m_SpeekAbs - m_pSpeekView->m_HisOfs;
-		SpeekQueIn();
+		m_SpeakQueLen = m_SpeakQuePos = m_SpeakQueTop = 0;
+		m_SpeakAbs = m_pSpeakDoc->m_TextRam.m_HisAbs;
+		m_SpeakLine = m_SpeakAbs - m_pSpeakView->m_HisOfs;
+		SpeakQueIn();
 
 		m_bVoiceEvent = TRUE;
 
@@ -4328,10 +4356,10 @@ void CMainFrame::OnSpeekText()
 		m_bVoiceEvent = FALSE;
 		pVoice->SetInterest(0, 0);
 		pVoice->Speak(L"", SPF_ASYNC | SPF_PURGEBEFORESPEAK | SPF_IS_NOT_XML, NULL);
-		m_pSpeekView->SpeekTextPos(FALSE, NULL, NULL);
+		m_pSpeakView->SpeakTextPos(FALSE, NULL, NULL);
 	}
 }
-void CMainFrame::OnUpdateSpeekText(CCmdUI *pCmdUI)
+void CMainFrame::OnUpdateSpeakText(CCmdUI *pCmdUI)
 {
 	pCmdUI->Enable(((CRLoginApp *)::AfxGetApp())->m_pVoice != NULL ? TRUE : FALSE);
 	pCmdUI->SetCheck(m_bVoiceEvent ? 1 : 0);
@@ -4802,6 +4830,8 @@ void CQuickBar::InitDialog()
 
 	// EntryName Update Connect Button Flag
 	OnCbnEditchangeEntryname();
+
+	DpiChanged();
 }
 void CQuickBar::SaveDialog()
 {
@@ -4882,6 +4912,10 @@ static BOOL CALLBACK DpiChangedProc(HWND hWnd , LPARAM lParam)
 	rect.top    = MulDiv(rect.top,    pParent->m_ZoomMul.cy, pParent->m_ZoomDiv.cy);
 	rect.bottom = MulDiv(rect.bottom, pParent->m_ZoomMul.cy, pParent->m_ZoomDiv.cy);
 
+	int height = rect.Height();
+	rect.top = (pParent->m_sizeDefault.cy - height) / 2;
+	rect.bottom = rect.top + height;
+
 	if ( pWnd->SendMessage(WM_DPICHANGED, MAKEWPARAM(SCREEN_DPI_X, SCREEN_DPI_Y), (LPARAM)((RECT *)rect)) == FALSE ) {
 		if ( pParent->m_DpiFont.GetSafeHandle() != NULL )
 			pWnd->SetFont(&(pParent->m_DpiFont), FALSE);
@@ -4960,6 +4994,10 @@ static BOOL CALLBACK FontSizeCheckProc(HWND hWnd , LPARAM lParam)
 	rect.top    = MulDiv(rect.top,    pParent->m_ZoomMul.cy, pParent->m_ZoomDiv.cy);
 	rect.bottom = MulDiv(rect.bottom, pParent->m_ZoomMul.cy, pParent->m_ZoomDiv.cy);
 
+	int height = rect.Height();
+	rect.top = (pParent->m_sizeDefault.cy - height) / 2;
+	rect.bottom = rect.top + height;
+
 	pWnd->SetFont(&(pParent->m_NewFont), FALSE);
 	pWnd->MoveWindow(rect, FALSE);
 
@@ -4969,19 +5007,15 @@ void CQuickBar::FontSizeCheck()
 {
 	CFont *pFont;
 	CDC *pDc = GetDC();
-	CFont *pOld;
 	CRect rect;
-	TEXTMETRIC OldMetric, NewMetric;
 	CString FontName = ::AfxGetApp()->GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
 	int FontSize = MulDiv(::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9), SCREEN_DPI_Y, SYSTEM_DPI_Y);
 
 	if ( m_NewFont.GetSafeHandle() != NULL ) {
-		pOld = pDc->SelectObject(&m_NewFont);
-		pDc->GetTextMetrics(&OldMetric);
+		CDialogExt::GetDlgFontBase(pDc, &m_NewFont, m_ZoomDiv);
 		m_NewFont.DeleteObject();
 	} else if ( (pFont = GetFont()) != NULL ) {
-		pOld = pDc->SelectObject(pFont);
-		pDc->GetTextMetrics(&OldMetric);
+		CDialogExt::GetDlgFontBase(pDc, pFont, m_ZoomDiv);
 	} else
 		return;
 
@@ -4993,16 +5027,8 @@ void CQuickBar::FontSizeCheck()
 
 	SetFont(&m_NewFont);
 
-	pDc->SelectObject(&m_NewFont);
-	pDc->GetTextMetrics(&NewMetric);
-
-	pDc->SelectObject(pOld);
+	CDialogExt::GetDlgFontBase(pDc, &m_NewFont, m_ZoomMul);
 	ReleaseDC(pDc);
-
-	m_ZoomMul.cx = NewMetric.tmAveCharWidth;
-	m_ZoomDiv.cx = OldMetric.tmAveCharWidth;
-	m_ZoomMul.cy = NewMetric.tmHeight;
-	m_ZoomDiv.cy = OldMetric.tmHeight;
 
 	GetWindowRect(rect);
 

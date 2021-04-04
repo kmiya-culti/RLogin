@@ -1,4 +1,3 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <HTML>
 <HEAD>
 <META http-equiv="Content-Type" content="text/html; charset=UTF-8">
@@ -7,10 +6,14 @@
 <STYLE type="text/css">
 <!--
 TD {
+				
+				
   background-color : #ffffff;
   font-size : 90%;
 }
 .BOX{
+				
+				
   background-color : silver;
 }
 -->
@@ -1000,6 +1003,13 @@ default: a = 1 + 3; break;
             <TD valign="top">abc\ \&gt;\ xyz</TD>
           </TR>
           <TR>
+            <TD valign="top">speak( <I>string</I> )</TD>
+            <TD valign="top">音声合成で話す</TD>
+            <TD valign="top">str</TD>
+            <TD valign="top">speak(&quot;こんにちは&quot;);</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
             <TD valign="top"><A name="strftime"></A>strftime ( <I>format , time</I> )</TD>
             <TD valign="top">time()で返される日時をフォーマットして文字列を返す</TD>
             <TD valign="top">str</TD>
@@ -1619,7 +1629,12 @@ sclose();</PRE>
             </TABLE>
             </TD>
             <TD valign="top">fp</TD>
-            <TD valign="top" rowspan="14"></TD>
+            <TD valign="top" rowspan="14">
+	    <PRE style="font-size : 8pt;">if ( (fp=fopen("C:\\Tmp\\Hello.txt", "w")) ) {
+    fputs("Hello World\n", fp);
+    fclose(fp);
+}
+</PRE></TD>
             <TD valign="top" rowspan="14"></TD>
           </TR>
           <TR>

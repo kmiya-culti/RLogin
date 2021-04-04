@@ -13,7 +13,6 @@
 #include "Data.h"
 #include "SearchDlg.h"
 #include "Script.h"
-#include "AnyPastDlg.h"
 #include "GrapWnd.h"
 #include "MsgWnd.h"
 
@@ -335,11 +334,7 @@ CRLoginView::CRLoginView()
 
 	m_MatrixCols.SetSize(COLS_MAX);
 
-	m_PastNoCheck = FALSE;
-	m_PastDelaySend = FALSE;
-	m_PastCtrlView = FALSE;
-
-	m_bSpeekDispText = FALSE;
+	m_bSpeakDispText = FALSE;
 }
 
 CRLoginView::~CRLoginView()
@@ -1353,10 +1348,10 @@ int CRLoginView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 }
 void CRLoginView::OnDestroy()
 {
-	if ( ((CMainFrame *)::AfxGetMainWnd())->SpeekViewCheck(this) )
-		((CMainFrame *)::AfxGetMainWnd())->SendMessage(WM_COMMAND, IDM_SPEEKALL);
+	if ( ((CMainFrame *)::AfxGetMainWnd())->SpeakViewCheck(this) )
+		((CMainFrame *)::AfxGetMainWnd())->SendMessage(WM_COMMAND, IDM_SPEAKALL);
 
-	DelayInvalThreadEndof();
+		DelayInvalThreadEndof();
 	((CRLoginApp *)AfxGetApp())->DelIdleProc(IDLEPROC_VIEW, this);
 
 	CView::OnDestroy();
@@ -2680,9 +2675,9 @@ void CRLoginView::OnLButtonDown(UINT nFlags, CPoint point)
 	CView::OnLButtonDown(nFlags, point);
 	SetCapture();
 
-	if ( ((CMainFrame *)::AfxGetMainWnd())->SpeekViewCheck(this) ) {
+	if ( ((CMainFrame *)::AfxGetMainWnd())->SpeakViewCheck(this) ) {
 		CalcGrapPoint(point, &x, &y);
-		((CMainFrame *)::AfxGetMainWnd())->SpeekUpdate(x, y);
+		((CMainFrame *)::AfxGetMainWnd())->SpeakUpdate(x, y);
 		return;
 	}
 
@@ -3201,17 +3196,32 @@ void CRLoginView::OnRButtonDblClk(UINT nFlags, CPoint point)
 	if ( !pDoc->m_TextRam.IsOptEnable(TO_RLRSPAST) && pDoc->m_TextRam.IsOptEnable(TO_RLRCLICK) )
 		OnEditPaste();
 }
+void CRLoginView::SendBracketedPaste(LPCWSTR str, BOOL bDelay)
+{
+	CBuffer tmp;
+	CRLoginDoc *pDoc = GetDocument();
 
-BOOL CRLoginView::SendPasteText(LPCWSTR wstr)
+	if ( pDoc->m_TextRam.IsOptEnable(TO_XTBRPAMD) )
+		tmp.Apend((LPBYTE)(L"\033[200~"), 6 * sizeof(WCHAR));
+
+	for ( ; *str != 0 ; str++ ) {
+		if ( *str != L'\x0A' )
+			tmp.Apend((LPBYTE)str, sizeof(WCHAR));
+	}
+
+	if ( pDoc->m_TextRam.IsOptEnable(TO_XTBRPAMD) )
+		tmp.Apend((LPBYTE)(L"\033[201~"), 6 * sizeof(WCHAR));
+
+	SendBuffer(tmp, FALSE, bDelay);
+}
+void CRLoginView::SendPasteText(LPCWSTR wstr)
 {
 	int ct = 0;
 	int len = 0;
 	LPCWSTR p;
-	CBuffer tmp;
-	BOOL rt = FALSE;
-	CAnyPastDlg dlg;
-	CRLoginDoc *pDoc = GetDocument();
 	CStringW wrk;
+	CRLoginDoc *pDoc = GetDocument();
+	CMainFrame *pMain = (CMainFrame *)AfxGetMainWnd();
 
 	for ( p = wstr ; *p != 0 ; ) {
 		if ( p[0] == L'\x0D' && p[1] == L'\x0A' ) {
@@ -3247,52 +3257,10 @@ BOOL CRLoginView::SendPasteText(LPCWSTR wstr)
 		ct--;
 	}
 
-	wstr = wrk;
-
-	if ( pDoc->m_TextRam.IsOptEnable(TO_RLEDITPAST) || (m_PastNoCheck == FALSE && (len > 500 || ct > 0)) ) {
-		dlg.m_NoCheck     = m_PastNoCheck;
-		dlg.m_EditText    = wstr;
-		dlg.m_bDelayPast  = pDoc->m_TextRam.IsOptEnable(TO_RLDELYPAST) || m_PastDelaySend ? TRUE : FALSE;
-		dlg.m_bUpdateText = pDoc->m_TextRam.IsOptEnable(TO_RLUPDPAST) ? TRUE : FALSE;
-		dlg.m_bCtrlView   = m_PastCtrlView;
-		dlg.m_pView       = this;
-
-		if ( dlg.DoModal() != IDOK ) {
-			m_PastDelaySend = dlg.m_bDelayPast;
-			m_PastCtrlView  = dlg.m_bCtrlView;
-			return FALSE;
-		}
-
-		m_PastNoCheck   = dlg.m_NoCheck;
-		m_PastDelaySend = dlg.m_bDelayPast;
-		m_PastCtrlView  = dlg.m_bCtrlView;
-
-		wstr = TstrToUni(dlg.m_EditText);
-
-		if ( dlg.m_bUpdateText != pDoc->m_TextRam.IsOptEnable(TO_RLUPDPAST) ) {
-			pDoc->m_TextRam.SetOption(TO_RLUPDPAST,  dlg.m_bUpdateText);
-			pDoc->SetModifiedFlag(TRUE);
-		}
-
-		if ( dlg.m_bUpdateText ) {
-			((CMainFrame *)::AfxGetMainWnd())->SetClipboardText(dlg.m_EditText);
-			rt = TRUE;
-		}
-	}
-
-	if ( pDoc->m_TextRam.IsOptEnable(TO_XTBRPAMD) )
-		tmp.Apend((LPBYTE)(L"\033[200~"), 6 * sizeof(WCHAR));
-
-	for ( p = wstr ; *p != 0 ; p++ ) {
-		if ( *p != L'\x0A' )
-			tmp.Apend((LPBYTE)p, sizeof(WCHAR));
-	}
-
-	if ( pDoc->m_TextRam.IsOptEnable(TO_XTBRPAMD) )
-		tmp.Apend((LPBYTE)(L"\033[201~"), 6 * sizeof(WCHAR));
-
-	SendBuffer(tmp, FALSE, m_PastDelaySend);
-	return rt;
+	if ( pDoc->m_TextRam.IsOptEnable(TO_RLEDITPAST) || pMain->m_pAnyPastDlg != NULL || (!pMain->m_PastNoCheck && (len > 500 || ct > 0)) )
+		pMain->AnyPastDlgOpen(wrk, pDoc->m_DocSeqNumber);
+	else
+		SendBracketedPaste(wrk, pDoc->m_TextRam.IsOptEnable(TO_RLDELYPAST));
 }
 void CRLoginView::OnEditPaste() 
 {
@@ -3335,8 +3303,8 @@ void CRLoginView::ClipboardPaste(UINT nID)
 
 		// Global Clipboard Update
 		if ( pos != NULL ) {
-			if ( !SendPasteText(pMain->m_ClipBoard.GetAt(pos)) )
-				((CMainFrame *)::AfxGetMainWnd())->SetClipboardText(pMain->m_ClipBoard.GetAt(pos));
+			SendPasteText(pMain->m_ClipBoard.GetAt(pos));
+			((CMainFrame *)::AfxGetMainWnd())->SetClipboardText(pMain->m_ClipBoard.GetAt(pos));
 		}
 
 		// Local Clipboard Update
@@ -3735,7 +3703,7 @@ BOOL CRLoginView::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 		}
 #endif
 
-		if ( hCursor == NULL && ((CMainFrame *)::AfxGetMainWnd())->SpeekViewCheck(this) )
+		if ( hCursor == NULL && ((CMainFrame *)::AfxGetMainWnd())->SpeakViewCheck(this) )
 			hCursor = AfxGetApp()->LoadStandardCursor(IDC_HAND);
 
 		if ( hCursor == NULL ) {
@@ -3965,36 +3933,36 @@ LRESULT CRLoginView::OnLogWrite(WPARAM wParam, LPARAM lParam)
 	return TRUE;
 }
 
-void CRLoginView::SpeekTextPos(BOOL bDisp, CCurPos *pStaPos, CCurPos *pEndPos)
+void CRLoginView::SpeakTextPos(BOOL bDisp, CCurPos *pStaPos, CCurPos *pEndPos)
 {
 	CRect rect;
 
 	if ( bDisp ) {
 		ASSERT(pStaPos != NULL && pEndPos != NULL);
 
-		if ( m_bSpeekDispText ) {
-			if ( m_SpeekStaPos == *pStaPos && m_SpeekEndPos == *pEndPos )
+		if ( m_bSpeakDispText ) {
+			if ( m_SpeakStaPos == *pStaPos && m_SpeakEndPos == *pEndPos )
 				return;
 
-			CalcPosRect(rect, m_SpeekStaPos, m_SpeekEndPos, TRUE);
+			CalcPosRect(rect, m_SpeakStaPos, m_SpeakEndPos, TRUE);
 			InvalidateTextRect(rect);
 		}
 
-		m_SpeekStaPos = *pStaPos;
-		m_SpeekEndPos = *pEndPos;
-		m_bSpeekDispText = TRUE;
+		m_SpeakStaPos = *pStaPos;
+		m_SpeakEndPos = *pEndPos;
+		m_bSpeakDispText = TRUE;
 
-	} else if ( m_bSpeekDispText ) {
-		m_bSpeekDispText = FALSE;
+	} else if ( m_bSpeakDispText ) {
+		m_bSpeakDispText = FALSE;
 
 	} else {
 		return;
 	}
 
-	CalcPosRect(rect, m_SpeekStaPos, m_SpeekEndPos, TRUE);
+	CalcPosRect(rect, m_SpeakStaPos, m_SpeakEndPos, TRUE);
 	InvalidateTextRect(rect);
 
-	if ( !bDisp && !((CMainFrame *)::AfxGetMainWnd())->SpeekViewCheck(this) )
+	if ( !bDisp && !((CMainFrame *)::AfxGetMainWnd())->SpeakViewCheck(this) )
 		OnSetCursor(NULL, 0, 0);
 }
 

@@ -243,7 +243,7 @@ public:
 #define	SCREEN_DPI_X		((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiX
 #define	SCREEN_DPI_Y		((CMainFrame *)::AfxGetMainWnd())->m_ScreenDpiY
 
-#define	SPEEKQUESIZE		2
+#define	SPEAKQUESIZE		2
 
 class CMainFrame : public CMDIFrameWnd
 {
@@ -318,6 +318,8 @@ public:
 	clock_t m_LastClipUpdate;
 	class CServerSelect *m_pServerSelect;
 	class CHistoryDlg *m_pHistoryDlg;
+	class CAnyPastDlg *m_pAnyPastDlg;
+	BOOL m_PastNoCheck;
 
 	BOOL WageantQuery(CBuffer *pInBuf, CBuffer *pOutBuf);
 	BOOL PageantQuery(CBuffer *pInBuf, CBuffer *pOutBuf);
@@ -405,6 +407,8 @@ public:
 	BOOL CopyClipboardData(CString &str);
 	BOOL GetClipboardText(CString &str);
 	BOOL SetClipboardText(LPCTSTR str, LPCSTR rtf = NULL);
+	void AnyPastDlgClose(int DocSeqNumber);
+	void AnyPastDlgOpen(LPCWSTR str, int DocSeqNumber);
 
 	inline BOOL IsTimerIdleBusy() { return (m_IdleTimer != 0 ? TRUE : FALSE); }
 	BOOL TrackPopupMenuIdle(CMenu *pMenu, UINT nFlags, int x, int y, CWnd* pWnd, LPCRECT lpRect = 0);
@@ -420,26 +424,26 @@ public:
 	void VersionCheck();
 
 	BOOL m_bVoiceEvent;
-	struct _SpeekData {
+	struct _SpeakData {
 		ULONG num;
 		CString text;
 		CArray<CCurPos, CCurPos &> pos;
 		long skip;
 		int abs;
 		int line;
-	} m_SpeekData[SPEEKQUESIZE];
-	int m_SpeekQueLen;
-	int m_SpeekQuePos;
-	int m_SpeekQueTop;
-	class CRLoginView *m_pSpeekView;
-	class CRLoginDoc *m_pSpeekDoc;
-	int m_SpeekLine;
-	int m_SpeekAbs;
+	} m_SpeakData[SPEAKQUESIZE];
+	int m_SpeakQueLen;
+	int m_SpeakQuePos;
+	int m_SpeakQueTop;
+	class CRLoginView *m_pSpeakView;
+	class CRLoginDoc *m_pSpeakDoc;
+	int m_SpeakLine;
+	int m_SpeakAbs;
 
-	BOOL SpeekQueIn();
-	void Speek(LPCTSTR str);
-	void SpeekUpdate(int x, int y);
-	inline BOOL SpeekViewCheck(class CRLoginView *pWnd) { return (m_bVoiceEvent && m_pSpeekView == pWnd ? TRUE : FALSE); }
+	BOOL SpeakQueIn();
+	void Speak(LPCTSTR str);
+	void SpeakUpdate(int x, int y);
+	inline BOOL SpeakViewCheck(class CRLoginView *pWnd) { return (m_bVoiceEvent && m_pSpeakView == pWnd ? TRUE : FALSE); }
 
 	inline CImageList *GetTabImageList() { return &(m_wndTabBar.m_ImageList); }
 	inline int GetTabImageIndex(LPCTSTR filename) { return m_wndTabBar.GetImageIndex(filename); }
@@ -529,8 +533,8 @@ protected:
 	afx_msg void OnNewVersionFound();
 	afx_msg void OnClipchain();
 	afx_msg void OnUpdateClipchain(CCmdUI *pCmdUI);
-	afx_msg void OnSpeekText();
-	afx_msg void OnUpdateSpeekText(CCmdUI *pCmdUI);
+	afx_msg void OnSpeakText();
+	afx_msg void OnUpdateSpeakText(CCmdUI *pCmdUI);
 
 	afx_msg void OnFileAllLoad();
 	afx_msg void OnFileAllSave();
@@ -552,7 +556,7 @@ protected:
 	afx_msg LRESULT OnDpiChanged(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnSetMessageString(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnNullMessage(WPARAM wParam, LPARAM lParam);
-	afx_msg LRESULT OnSpeekMsg(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnSpeakMsg(WPARAM wParam, LPARAM lParam);
 };
 
 

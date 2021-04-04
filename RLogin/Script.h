@@ -5,36 +5,36 @@
 #include "RegEx.h"
 #include "ScriptDlg.h"
 
-#define	VALTYPE_INT		0
-#define	VALTYPE_DOUBLE	1
-#define	VALTYPE_COMPLEX	2
-#define	VALTYPE_INT64	3
-#define	VALTYPE_STRING	4
-#define	VALTYPE_WSTRING	5
-#define	VALTYPE_DSTRING	6
-#define	VALTYPE_LPBYTE	7
-#define	VALTYPE_LPWCHAR	8
-#define	VALTYPE_LPDCHAR	9
-#define	VALTYPE_LPDDOUB	10
-#define	VALTYPE_IDENT	11
-#define	VALTYPE_PTR		12
-#define	VALTYPE_EMPTY	13
+#define	VALTYPE_INT			0
+#define	VALTYPE_DOUBLE		1
+#define	VALTYPE_COMPLEX		2
+#define	VALTYPE_INT64		3
+#define	VALTYPE_STRING		4
+#define	VALTYPE_WSTRING		5
+#define	VALTYPE_DSTRING		6
+#define	VALTYPE_LPBYTE		7
+#define	VALTYPE_LPWCHAR		8
+#define	VALTYPE_LPDCHAR		9
+#define	VALTYPE_LPDDOUB		10
+#define	VALTYPE_IDENT		11
+#define	VALTYPE_PTR			12
+#define	VALTYPE_EMPTY		13
 
-#define	DATA_BUF_NONE	0
-#define	DATA_BUF_BOTH	1
-#define	DATA_BUF_HAVE	2
-#define	DATA_BUF_LIMIT	(128 * 1024)
+#define	DATA_BUF_NONE		0
+#define	DATA_BUF_BOTH		1
+#define	DATA_BUF_HAVE		2
+#define	DATA_BUF_LIMIT		(128 * 1024)
 
-#define	LOOP_COUNT		300
+#define	LOOP_COUNT			300
 
-#define	DOC_MODE_SAVE	0
-#define	DOC_MODE_IDENT	1
-#define	DOC_MODE_CALL	2
+#define	DOC_MODE_SAVE		0
+#define	DOC_MODE_IDENT		1
+#define	DOC_MODE_CALL		2
 
-#define	FUNC_RET_NOMAL	0
-#define	FUNC_RET_ABORT	1
-#define	FUNC_RET_EXIT	2
-#define	FUNC_RET_EVENT	3
+#define	FUNC_RET_NOMAL		0
+#define	FUNC_RET_ABORT		1
+#define	FUNC_RET_EXIT		2
+#define	FUNC_RET_EVENT		3
 
 #define	SCP_EVENT_TIMER		0001
 #define	SCP_EVENT_CONS		0002
@@ -49,7 +49,11 @@
 #define	VALTYPE_TSTRING	VALTYPE_STRING
 #endif
 
-#define	DOUBLE_ZERO		1e-20
+#define	DOUBLE_ZERO			1e-20
+
+#define	PTRTYPE_NONE		0
+#define	PTRTYPE_FILE		1
+#define	PTRTYPE_PIPE		2
 
 typedef struct _ScriptCmdsDefs {
 	LPCSTR		name;
@@ -95,6 +99,7 @@ public:
 		LONGLONG	m_Int64;
 	} m_Value;
 	CComplex m_Complex;
+	int m_PtrType;
 	CBuffer m_Buf;
 	CBuffer m_Work;
 	int m_ArrayPos;
@@ -161,6 +166,7 @@ public:
 	void RemoveAll();
 
 	int GetType();
+	int GetPtrType();
 	CBuffer *GetBuf();
 	CBuffer *GetWBuf();
 	CBuffer *GetDBuf();

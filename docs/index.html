@@ -1,10 +1,8 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <HTML>
 <HEAD>
 <META http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <META http-equiv="Content-Style-Type" content="text/css">
 <META name="keywords" content="rlogin,telnet,ssh,クライアント,ターミナル,windows,プロトコル,ソフト,タブ,コマンド,">
-<META name="GENERATOR" content="IBM WebSphere Studio Homepage Builder Version 13.0.3.0 for Windows">
 <TITLE>rlogin/telnet/ssh(クライアント)ターミナルソフト</TITLE>
 <STYLE type="text/css">
 <!--
@@ -14,30 +12,10 @@ TD {
 				
 				
 				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
   background-color : #ffffff;
   font-size : 90%;
 }
 .BOX{
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
 				
 				
 				
@@ -58,8 +36,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.25.9)</TD>
-            <TD width="20%" align="right">2021/03/01</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.26.0)</TD>
+            <TD width="20%" align="right">2021/04/05</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -463,6 +441,17 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2021/04/05</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.26.0/">2.26.0</A></TD>
+            <TD>正規表現ライブラリに無限検索の制限と最大一致などを追加<BR>
+            ペースト確認ダイアログを全エントリー共通にし子ウィンドウに変更<BR>
+            クィックバーのアイテムの位置を条件により調整するように変更<BR>
+            ダイアログフォント設定時にアップダウンダイアログの位置ずれを修正<BR>
+            バージョンチェックエラー時にGitHubを使用するように変更<BR>
+            Scriptのファイル関数のファイルポインターをチェックするように変更<BR>
+            openssl-1.1.1kに更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2021/03/01</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.25.9/">2.25.9</A></TD>
             <TD>カラー絵文字の設定を拡張機能からカラーに移動<BR>
@@ -505,15 +494,6 @@ TD {
             openssl-1.1.1iに更新</TD>
           </TR>
           <TR>
-            <TD align="center">2020/09/30</TD>
-            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.25.5/">2.25.5</A></TD>
-            <TD>画像のポップアップメニューのセパレータがズレていたのを修正<BR>
-            DECPSに音色変更のパラメータを追加<BR>
-            ProxyのHTTP(Basic)のHostヘッダを接続先ホストアドレスに修正<BR>
-            特殊文字に起動時のフォルダ%X（RLoogin.exeの場所）と%B（カレント）を追加<BR>
-            openssl-1.1.1hに更新</TD>
-          </TR>
-          <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
           </TR>
         </TBODY>
@@ -537,7 +517,7 @@ TD {
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-1.1.1j.tar.gz</A><BR>
+                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-1.1.1jktar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
@@ -546,7 +526,7 @@ TD {
                   <BR>
                   ※crypto\rand\rand_win.c<BR>
                   _WIN32_WINNT=0x0501</TD>
-                  <TD width="500" valign="top">rename openssl-1.1.1j openssl-1.1.1j-x32<BR>
+                  <TD width="500" valign="top">rename openssl-1.1.1k openssl-1.1.1k-x32<BR>
                   perl Configure VC-WIN32 no-shared<BR>
                   nmake</TD>
                 </TR>
@@ -632,7 +612,7 @@ TD {
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 1.1.1j 16 Feb 2021<BR>
+            <P>OpenSSL 1.1.1k 25 Mar 2021<BR>
             Copyright (c) 1998-2021 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>
@@ -861,7 +841,7 @@ TD {
                 </TR>
                 <TR>
                   <TD valign="top" width="250">文字列を検索(F)</TD>
-                  <TD valign="top">正規表現などで文字列を検索し反転表示します</TD>
+                  <TD valign="top"><A href="regex.html">正規表現</A>などで文字列を検索し反転表示します</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$SEARCH_REG</TD>
                 </TR>
@@ -896,7 +876,7 @@ TD {
                   <TD valign="top">音声で読み上げ(Y)</TD>
                   <TD valign="top">現在表示中の画面を音声合成で読み上げます</TD>
                   <TD valign="top" align="right"></TD>
-                  <TD valign="top">$SPEEK_ALL</TD>
+                  <TD valign="top">$SPEAK_ALL</TD>
                 </TR>
                 <TR>
                   <TD valign="top" width="250">ブロードキャスト(A)</TD>
@@ -1797,8 +1777,7 @@ TD {
                 </TR>
                 <TR>
                   <TD align="center">編集後クリップ…</TD>
-                  <TD>テキストを編集した場合に編集後のテキストをクリップボードにコピーします<BR>
-                  ※この設定を変更するとオプション設定が変更され切断時に変更を保存するか確認されます</TD>
+                  <TD>テキストを編集した場合に編集後のテキストをクリップボードにコピーします<FONT color="#c0c0c0"></FONT></TD>
                 </TR>
                 <TR>
                   <TD align="center">次回から確認…</TD>

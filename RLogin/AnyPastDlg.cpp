@@ -21,8 +21,10 @@ CAnyPastDlg::CAnyPastDlg(CWnd* pParent /*=NULL*/)
 	m_bDelayPast  = FALSE;
 	m_bUpdateEnable = FALSE;
 	m_CtrlCode[0] = m_CtrlCode[1] = m_CtrlCode[2] = 0;
-	m_pView = NULL;
+	m_pMain = NULL;
 	m_bCtrlView = FALSE;
+	m_DocSeqNumber = 0;
+	m_bDiffViewEnable = FALSE;
 }
 
 CAnyPastDlg::~CAnyPastDlg()
@@ -48,6 +50,7 @@ BEGIN_MESSAGE_MAP(CAnyPastDlg, CDialogExt)
 	ON_BN_CLICKED(IDC_SHELLESC, &CAnyPastDlg::OnShellesc)
 	ON_BN_CLICKED(IDC_ONELINE, &CAnyPastDlg::OnOneLine)
 	ON_BN_CLICKED(IDC_CHECK4, &CAnyPastDlg::OnCtrlView)
+	ON_WM_CLOSE()
 END_MESSAGE_MAP()
 
 static const INITDLGTAB ItemTab[] = {
@@ -198,6 +201,10 @@ BOOL CAnyPastDlg::OnInitDialog()
 
 	m_IconBox.SetIcon(LoadIcon(NULL, IDI_QUESTION));
 	m_bUpdateEnable = FALSE;
+	m_bDelayPast = AfxGetApp()->GetProfileInt(_T("AnyPastDlg"), _T("DelayPast"), FALSE);
+	m_bCtrlView  = AfxGetApp()->GetProfileInt(_T("AnyPastDlg"), _T("CtrlView"),  FALSE);
+	m_NoCheck    = m_pMain->m_PastNoCheck;
+
 	UpdateData(FALSE);
 
 	if ( m_bCtrlView ) {
@@ -210,6 +217,7 @@ BOOL CAnyPastDlg::OnInitDialog()
 	CtrlCount();
 
 	CRect rect;
+	int sx = 0, sy = 0;
 	int cx, cy;
 
 	GetWindowRect(rect);
@@ -221,38 +229,115 @@ BOOL CAnyPastDlg::OnInitDialog()
 	if ( cy < rect.Height() )
 		cy = rect.Height();
 
-	MoveWindow(rect.left, rect.top, cx, cy, FALSE);
+	AfxGetMainWnd()->GetWindowRect(rect);
+	sx = rect.left + (rect.Width()  - cx) / 2;
+	sy = rect.top  + (rect.Height() - cy) / 2;
+
+	MoveWindow(sx, sy, cx, cy, FALSE);
 
 	AddShortCutKey(0, VK_RETURN, MASK_CTRL, 0, IDOK);
 
 	return TRUE;
 }
 
-void CAnyPastDlg::SaveWindowRect()
+BOOL CAnyPastDlg::SendBracketedPaste(LPCTSTR str)
 {
+	CRLoginDoc *pDoc;
+	CRLoginView *pView;
+
+	if ( (pDoc = m_pMain->GetMDIActiveDocument()) == NULL )
+		return FALSE;
+
+	if ( (pView = (CRLoginView *)pDoc->GetAciveView()) == NULL )
+		return FALSE;
+
+	if ( !m_bDiffViewEnable && (m_DocSeqNumber == 0 || m_DocSeqNumber != pDoc->m_DocSeqNumber) ) {
+		if ( AfxMessageBox(IDS_ANYPASTVIEWMSG, MB_ICONWARNING | MB_YESNO) != IDYES )
+			return FALSE;
+		m_bDiffViewEnable = TRUE;
+	}
+
+	if ( pView->m_HisOfs != 0 ) {
+		pView->m_HisOfs = 0;
+		pDoc->UpdateAllViews(NULL, UPDATE_INVALIDATE, NULL);
+	}
+
+	pView->SendBracketedPaste(TstrToUni(str), m_bDelayPast);
+
+	return TRUE;
+}
+
+BOOL CAnyPastDlg::UpdateTextData(BOOL bOk)
+{
+	ASSERT(m_pMain != NULL);
+
 	if ( !IsIconic() ) {
 		CRect rect;
 		GetWindowRect(rect);
 		AfxGetApp()->WriteProfileInt(_T("AnyPastDlg"), _T("cx"), MulDiv(rect.Width(), m_InitDpi.cx, m_NowDpi.cx));
 		AfxGetApp()->WriteProfileInt(_T("AnyPastDlg"), _T("cy"), MulDiv(rect.Height(), m_InitDpi.cy, m_NowDpi.cy));
 	}
+
+	AfxGetApp()->WriteProfileInt(_T("AnyPastDlg"), _T("DelayPast"), m_bDelayPast);
+	AfxGetApp()->WriteProfileInt(_T("AnyPastDlg"), _T("CtrlView"),  m_bCtrlView);
+	m_pMain->m_PastNoCheck = m_NoCheck;
+
+	if ( !bOk )
+		return FALSE;
+
+	if ( m_bUpdateText )
+		m_pMain->SetClipboardText(m_EditText);
+
+	return SendBracketedPaste(m_EditText);
+}
+void CAnyPastDlg::SetEditText(LPCTSTR str, int DocSeqNumber)
+{
+	if ( m_bCtrlView )
+		str = CtrlStr(str, TRUE);
+	m_EditWnd.SetSel(0, -1, FALSE);
+	m_EditWnd.ReplaceSel(str, TRUE);
+	m_DocSeqNumber = DocSeqNumber;
 }
 void CAnyPastDlg::OnOK()
 {
 	UpdateData(TRUE);
+
 	m_EditWnd.GetWindowText(m_EditText);
 	if ( m_bCtrlView )
 		m_EditText = CtrlStr(m_EditText, FALSE);
-	SaveWindowRect();
-	CDialogExt::OnOK();
+
+	//CDialogExt::OnOK();
+
+	if ( UpdateTextData(TRUE) )
+		DestroyWindow();
 }
 void CAnyPastDlg::OnCancel()
 {
 	UpdateData(TRUE);
-	SaveWindowRect();
-	CDialogExt::OnCancel();
-}
 
+	//CDialogExt::OnCancel();
+
+	UpdateTextData(FALSE);
+	DestroyWindow();
+}
+void CAnyPastDlg::OnClose()
+{
+	UpdateData(TRUE);
+
+	CDialogExt::OnClose();
+
+	UpdateTextData(FALSE);
+	DestroyWindow();
+}
+void CAnyPastDlg::PostNcDestroy()
+{
+	CDialogExt::PostNcDestroy();
+
+	if ( m_pMain != NULL )
+		m_pMain->m_pAnyPastDlg = NULL;
+
+	delete this;
+}
 void CAnyPastDlg::OnUpdateEdit()
 {
 	m_bUpdateEnable = TRUE;
@@ -340,7 +425,6 @@ void CAnyPastDlg::OnOneLine()
 {
 	int st, ed, mx;
 	LPCTSTR p;
-	CBuffer tmp;
 	CString str;
 
 	UpdateData(TRUE);
@@ -368,23 +452,13 @@ void CAnyPastDlg::OnOneLine()
 
 	} else {
 		// 範囲指定を送信
-		if ( st < ed && m_pView != NULL ) {
+		if ( st < ed ) {
 			str = m_EditText.Mid(st, ed - st);
 
 			if ( m_bCtrlView )
 				str = CtrlStr(str, FALSE);
 
-			for ( LPCTSTR s = str ; *s != _T('\0') ; ) {
-				if ( s[0] == L'\r' && s[1] == L'\n' ) {
-					// 改行は\rだけにする
-					tmp.PutWord(*s);
-					s += 2;
-				} else
-					tmp.PutWord(*(s++));
-			}
-
-			if ( tmp.GetSize() > 0 )
-				m_pView->SendBuffer(tmp, FALSE, m_bDelayPast);
+			SendBracketedPaste(str);
 		}
 
 		// 次行を範囲指定

@@ -252,6 +252,9 @@
 #define IDS_REGAPPSETMSG                642
 #define IDS_REGAPPDELMSG                643
 #define IDS_EMOJIMAGEMSG                644
+#define IDS_ANYPASTVIEWMSG              645
+#define IDS_VERSIONCHECKURL2            646
+#define IDS_SCRIPTDLGSTEP               647
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -1129,7 +1132,7 @@
 #define IDM_CMDHIS_MSG                  5142
 #define IDM_CMDHIS_SCRM                 5143
 #define IDM_HISTORYDLG                  5144
-#define IDM_SPEEKALL                    5145
+#define IDM_SPEAKALL                    5145
 #define IDM_FIRST_MDICHILD              0xF800
 
 // Next default values for new objects
@@ -1139,6 +1142,6 @@
 #define _APS_NEXT_RESOURCE_VALUE        169
 #define _APS_NEXT_COMMAND_VALUE         5146
 #define _APS_NEXT_CONTROL_VALUE         2511
-#define _APS_NEXT_SYMED_VALUE           671
+#define _APS_NEXT_SYMED_VALUE           648
 #endif
 #endif

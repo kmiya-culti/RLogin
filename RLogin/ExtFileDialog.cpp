@@ -386,6 +386,58 @@ BEGIN_MESSAGE_MAP(CExtFileDialog, CFileDialog)
 	ON_WM_DESTROY()
 	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB1, &CExtFileDialog::OnTcnSelchangeTab1)
 END_MESSAGE_MAP()
+	
+void CExtFileDialog::FontSizeCheck()
+{
+	CDC *pDc = GetDC();
+	CFont *pFont;
+	CSize ZoomMul, ZoomDiv, AddSize;
+	int AddTop;
+	CRect rect;
+	WINDOWPLACEMENT place;
+	CString FontName = ::AfxGetApp()->GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
+	int FontSize = MulDiv(::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9), SCREEN_DPI_Y, SYSTEM_DPI_Y);
+
+	if ( FontName.IsEmpty() && FontSize == 9 )
+		return;
+
+	if ( m_NewFont.GetSafeHandle() != NULL ) {
+		CDialogExt::GetDlgFontBase(pDc, &m_NewFont, ZoomDiv);
+		m_NewFont.DeleteObject();
+	} else if ( (pFont = GetFont()) != NULL ) {
+		CDialogExt::GetDlgFontBase(pDc, pFont, ZoomDiv);
+	} else
+		return;
+
+	if ( !m_NewFont.CreatePointFont(FontSize * 10, FontName) )
+		return;
+
+	CDialogExt::GetDlgFontBase(pDc, &m_NewFont, ZoomMul);
+	ReleaseDC(pDc);
+
+	m_TabCtrl.GetWindowPlacement(&place);
+	AddTop = place.rcNormalPosition.bottom;
+	place.rcNormalPosition.right = place.rcNormalPosition.left + (place.rcNormalPosition.right - place.rcNormalPosition.left) * ZoomMul.cx / ZoomDiv.cx;
+	place.rcNormalPosition.bottom = place.rcNormalPosition.top + (place.rcNormalPosition.bottom - place.rcNormalPosition.top) * ZoomMul.cy / ZoomDiv.cy;
+	AddTop = place.rcNormalPosition.bottom - AddTop;
+	m_TabCtrl.SetWindowPlacement(&place);
+	m_TabCtrl.SetFont(&m_NewFont, TRUE);
+
+	m_Frame.GetWindowPlacement(&place);
+	AddSize.cx = place.rcNormalPosition.right - place.rcNormalPosition.left;
+	AddSize.cy = place.rcNormalPosition.bottom - place.rcNormalPosition.top;
+	place.rcNormalPosition.right = place.rcNormalPosition.left + (place.rcNormalPosition.right - place.rcNormalPosition.left) * ZoomMul.cx / ZoomDiv.cx;
+	place.rcNormalPosition.bottom = place.rcNormalPosition.top + (place.rcNormalPosition.bottom - place.rcNormalPosition.top) * ZoomMul.cy / ZoomDiv.cy;
+	place.rcNormalPosition.top += AddTop;
+	place.rcNormalPosition.bottom += AddTop;
+	AddSize.cx = (place.rcNormalPosition.right - place.rcNormalPosition.left) - AddSize.cx;
+	AddSize.cy = (place.rcNormalPosition.bottom - place.rcNormalPosition.top) - AddSize.cy;
+	m_Frame.SetWindowPlacement(&place);
+	m_Frame.SetFont(&m_NewFont, TRUE);
+
+	GetWindowRect(rect);
+	SetWindowPos(NULL, 0, 0, rect.Width() + AddSize.cx, rect.Height() + AddSize.cy, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOCOPYBITS | SWP_SHOWWINDOW);
+}
 
 BOOL CExtFileDialog::OnInitDialog()
 {
@@ -397,8 +449,10 @@ BOOL CExtFileDialog::OnInitDialog()
 	// WM_GETDLGCODE loop ... HELP!!!
 	// https://groups.google.com/forum/#!topic/comp.os.ms-windows.programmer.controls/y0tPgUrDpGk
 
-	if ( m_DialogMode != 0 )
+	if ( m_DialogMode != 0 ) {
 		ModifyStyleEx(0, WS_EX_CONTROLPARENT);
+		FontSizeCheck();
+	}
 
 	switch(m_DialogMode) {
 	case EXTFILEDLG_DOWNLOAD:

@@ -84,9 +84,6 @@ public:
 	BOOL m_ScrollOut;
 	BOOL m_ClipUpdateLine;
 	CBitmap m_TekBitmap;
-	BOOL m_PastNoCheck;
-	BOOL m_PastDelaySend;
-	BOOL m_PastCtrlView;
 
 	clock_t m_RDownClock;
 	CPoint m_RDownPoint;
@@ -215,15 +212,16 @@ public:
 	void CreateGrapImage(int type);
 	void GetMousePos(int *sw, int *x, int *y);
 	void PopUpMenu(CPoint point);
-	BOOL SendPasteText(LPCWSTR wstr);
+	void SendBracketedPaste(LPCWSTR str, BOOL bDelay);
+	void SendPasteText(LPCWSTR wstr);
 
 	void KillScrollTimer();
 	BOOL SetDropFile(LPCTSTR FileName, BOOL &doCmd, BOOL &doSub);
 
-	BOOL m_bSpeekDispText;
-	CCurPos m_SpeekStaPos, m_SpeekEndPos;
+	BOOL m_bSpeakDispText;
+	CCurPos m_SpeakStaPos, m_SpeakEndPos;
 
-	void SpeekTextPos(BOOL bDisp, CCurPos *pStaPos, CCurPos *pEndPos);
+	void SpeakTextPos(BOOL bDisp, CCurPos *pStaPos, CCurPos *pEndPos);
 
 	inline int CalcGrapX(int x)	{ CRLoginDoc *pDoc = GetDocument(); return (m_Width  * x / m_Cols  + pDoc->m_TextRam.m_ScrnOffset.left); }
 	inline int CalcGrapY(int y) { CRLoginDoc *pDoc = GetDocument(); return (m_Height * y / m_Lines + pDoc->m_TextRam.m_ScrnOffset.top + m_TopOffset); }

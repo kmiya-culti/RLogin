@@ -5070,7 +5070,7 @@ void CTextRam::GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf)
 		}
 	}
 }
-BOOL CTextRam::SpeekLine(int line, CString &text, CArray<CCurPos, CCurPos &> &pos)
+BOOL CTextRam::SpeakLine(int line, CString &text, CArray<CCurPos, CCurPos &> &pos)
 {
 	int n, x, sx, ex;
 	CCharCell *vp;
@@ -5115,7 +5115,7 @@ BOOL CTextRam::SpeekLine(int line, CString &text, CArray<CCurPos, CCurPos &> &po
 
 	return bContinue;
 }
-BOOL CTextRam::SpeekCheck(CCurPos sPos, CCurPos ePos, LPCTSTR str)
+BOOL CTextRam::SpeakCheck(CCurPos sPos, CCurPos ePos, LPCTSTR str)
 {
 	int n, x, y, tx, bx;
 	int sx, sy, ex, ey;
@@ -6393,10 +6393,10 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 				}
 			}
 
-			// Speek Text
-			if ( pView->m_bSpeekDispText && x >= 0 && x < m_Cols && top != NULL ) {
+			// Speak Text
+			if ( pView->m_bSpeakDispText && x >= 0 && x < m_Cols && top != NULL ) {
 				cpos = GetCalcPos(x, y - pView->m_HisOfs + pView->m_HisMin);
-				if ( pView->m_SpeekStaPos <= cpos && cpos <= pView->m_SpeekEndPos )
+				if ( pView->m_SpeakStaPos <= cpos && cpos <= pView->m_SpeakEndPos )
 					work.attr ^= ATT_UNDER;
 			}
 

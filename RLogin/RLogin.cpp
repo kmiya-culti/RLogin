@@ -493,6 +493,8 @@ protected:
 protected:
 	DECLARE_MESSAGE_MAP()
 	afx_msg void OnNMClickSyslink(NMHDR *pNMHDR, LRESULT *pResult);
+public:
+	afx_msg void OnStnClickedVersionstr();
 };
 
 CAboutDlg::CAboutDlg() : CDialogExt(CAboutDlg::IDD)
@@ -535,6 +537,7 @@ BEGIN_MESSAGE_MAP(CAboutDlg, CDialogExt)
 	ON_NOTIFY(NM_CLICK, IDC_SYSLINK1, &CAboutDlg::OnNMClickSyslink)
 	ON_NOTIFY(NM_CLICK, IDC_SYSLINK2, &CAboutDlg::OnNMClickSyslink)
 	ON_NOTIFY(NM_CLICK, IDC_SYSLINK3, &CAboutDlg::OnNMClickSyslink)
+	ON_STN_CLICKED(IDC_VERSIONSTR, &CAboutDlg::OnStnClickedVersionstr)
 END_MESSAGE_MAP()
 
 //////////////////////////////////////////////////////////////////////
@@ -3632,3 +3635,9 @@ void CRLoginApp::EmojiImageInit(LPCTSTR pFontName, LPCTSTR pImageDir)
 }
 
 #endif
+
+
+void CAboutDlg::OnStnClickedVersionstr()
+{
+	// TODO: ここにコントロール通知ハンドラー コードを追加します。
+}

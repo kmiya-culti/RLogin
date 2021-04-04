@@ -1,14 +1,14 @@
 #pragma once
 #include "afx.h"
 
-#define	MAPSIZE		512
-#define	MAPBYTE		(MAPSIZE / 8)
-#define	MAPARRAY	(MAPBYTE / sizeof(DWORD))
-#define	MAPBITS		(8 * sizeof(DWORD))
-
 typedef DWORD DCHAR;
 typedef DWORD * LPDSTR;
 typedef const DWORD * LPCDSTR;
+
+#define	IsRegSpChar(ch)		(((ch) & 0xFFFFFFF0) == 0xFFFFFFF0)
+
+#define	REGSPCHAR_LINETOP	0xFFFFFFF0
+#define	REGSPCHAR_LINEEND	0xFFFFFFF1
 
 class CStringD : public CObject
 {
@@ -64,6 +64,43 @@ public:
 	inline operator LPCWSTR() { return WStr(m_Work); }
 };
 
+//////////////////////////////////////////////////////////////////////
+
+#define	REG_NOMATCH		0
+#define	REG_CONTINUE	1
+#define	REG_MATCH		2
+#define	REG_MATCHMORE	3
+#define	REG_MATCHOVER	4
+
+#define	REG_MAXREP		1024
+#define	REG_MAXWORK		256
+
+#define	REG_TABMEM_SIZE	32
+
+#define	REG_MAPSIZE		512
+#define	REG_MAPBYTE		(REG_MAPSIZE / 8)
+#define	REG_MAPARRAY	(REG_MAPBYTE / sizeof(DWORD))
+#define	REG_MAPBITS		(8 * sizeof(DWORD))
+
+enum RegCmdType {
+	RGE_GROUPSTART, RGE_GROUPEND,
+	RGE_LOOPSTART, RGE_LOOPEND,	RGE_LOOPSHORT,
+	RGE_GREEDSTART, RGE_GREEDEND,
+	RGE_BRANCHES,
+	RGE_LINETOP, RGE_NEGTOP, RGE_LINEBTM, RGE_NEGBTM,
+	RGE_CHKMAP, RGE_NEGMAP,
+	RGE_RANGECHAR, RGE_NEGCHAR,
+	RGE_NONE,
+};
+
+#define	REG_BLOCK_STD		0
+#define	REG_BLOCK_RIGHT		1
+#define	REG_BLOCK_LEFT		2
+#define	REG_BLOCK_NONE		3
+
+#define	REG_NQFLAG_GREED	001
+#define	REG_NQFLAG_LOOP		002
+
 class CRegExIdx : public CDWordArray
 {
 public:
@@ -77,10 +114,10 @@ public:
 	class CRegExNode *m_Right;
 	class CRegExNode *m_List;
 
-	int 	m_Type;
-	DCHAR	m_SChar;
-	DCHAR	m_EChar;
-	DWORD	*m_Map;
+	enum RegCmdType	m_Type;
+	DCHAR			m_SChar;
+	DCHAR			m_EChar;
+	DWORD			*m_Map;
 
 	const CRegExNode & operator = (CRegExNode &data);
 
@@ -96,6 +133,7 @@ public:
 
 	class CRegExNode	*m_Node;
 	class CRegExWork	*m_Work;
+	int					m_Flag;
 
 	CRegExQue(void);
 	~CRegExQue(void);
@@ -115,15 +153,6 @@ public:
 	const CRegExArg & operator = (CRegExArg &data);
 	CRegExArg(void);
 };
-
-#define	REG_NOMATCH		0
-#define	REG_CONTINUE	1
-#define	REG_MATCH		2
-#define	REG_MATCHMORE	3
-#define	REG_MATCHOVER	4
-
-#define	REG_MAXREP		1024
-#define	REG_TABMEM_SIZE	32
 
 class CRegExRes : public CObject
 {
@@ -155,6 +184,8 @@ public:
 	int					m_Seq;
 	BOOL				m_Die;
 	CRegExIdx			m_Idx;
+	BOOL				m_DupDone;
+	int					m_Loop;
 
 	CRegExWork(void);
 	~CRegExWork(void);
@@ -175,11 +206,10 @@ public:
 	CRegExWork	*m_WorkFree;
 	CRegExWork	*m_WorkHead;
 
-	int			m_QueSw;
 	int			m_Arg;
 	int			m_Count;
 	int			m_WorkSeq;
-	CRegExWork	m_WorkTmp;
+	int			m_WorkCount;
 	CList<int, int>	m_ArgStack;
 
 	typedef struct _CompStrBuf {
@@ -200,7 +230,7 @@ public:
 	DCHAR GetChar();
 	void UnGetChar(DCHAR ch);
 
-	CRegExNode *AllocNode(int type);
+	CRegExNode *AllocNode(enum RegCmdType type);
 	void FreeNode(CRegExNode *np);
 	void RemoveAllNode();
 
@@ -213,10 +243,9 @@ public:
 	BOOL Compile(LPCTSTR str);
 	BOOL IsSimple();
 
-	void AddQue(int sw, CRegExNode *np, CRegExWork *wp);
+	void AddQue(int sw, CRegExNode *np, CRegExWork *wp, int Flag);
 	CRegExQue *HeadQue(int sw);
 
-	BOOL MatchStrSub(CStringD &str, int start, int end, CRegExRes *res);
 	BOOL MatchStr(LPCTSTR str, CRegExRes *res);
 	void ConvertRes(LPCWSTR pat, CStringW &buf, CRegExRes *res);
 	BOOL ConvertStr(LPCTSTR str, LPCTSTR pat, CString &buf);

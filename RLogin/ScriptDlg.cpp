@@ -62,7 +62,7 @@ BOOL CScriptDlg::OnInitDialog()
 		m_CodeStack.EnableWindow(FALSE);
 	} else {
 		if ( (pWnd = GetDlgItem(IDOK)) != NULL )
-			pWnd->SetWindowText(_T("ステップ"));
+			pWnd->SetWindowText(CStringLoad(IDS_SCRIPTDLGSTEP));
 		for ( cp = m_pScript->m_CodeStack ; cp != NULL ; cp = cp->next )
 			m_CodeStack.AddString(cp->name);
 		m_CodeStack.SetCurSel(0);
@@ -93,7 +93,15 @@ void CScriptDlg::OnClose()
 void CScriptDlg::OnOK()
 {
 	if ( m_pScript != NULL ) {
-		m_pScript->Exec();
+		try {
+			m_pScript->Exec();
+		} catch(LPCTSTR pMsg) {
+			CString tmp;
+			tmp.Format(_T("Script Error '%s'"), pMsg);
+			MessageBox(tmp);
+		} catch(...) {
+			MessageBox(_T("Script Unkown Error"));
+		}
 		return;
 	}
 

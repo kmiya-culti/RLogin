@@ -25,7 +25,7 @@
 
 // CRLoginView
 #define WM_LOGWRITE			(WM_APP + 21)
-#define	WM_SPEEKMSG			(WM_APP + 22)
+#define	WM_SPEAKMSG			(WM_APP + 22)
 
 // CSFtp
 #define WM_RECIVEBUFFER		(WM_APP + 23)

@@ -106,6 +106,7 @@ CScriptValue::CScriptValue()
 	m_Left = m_Right = m_Child = m_Next = m_Root = NULL;
 	m_DocCmds = (-1);
 	m_bNoCase = FALSE;
+	m_PtrType = PTRTYPE_NONE;
 }
 CScriptValue::~CScriptValue()
 {
@@ -123,6 +124,14 @@ int CScriptValue::GetType()
 	if ( m_Type == VALTYPE_IDENT )
 		return ((CScriptValue *)(m_Value.m_Ptr))->GetType();
 	return m_Type;
+}
+int CScriptValue::GetPtrType()
+{
+	if ( m_Type == VALTYPE_IDENT )
+		return ((CScriptValue *)(m_Value.m_Ptr))->GetPtrType();
+	if ( m_Type != VALTYPE_PTR )
+		return PTRTYPE_NONE;
+	return m_PtrType;
 }
 CBuffer *CScriptValue::GetBuf()
 {
@@ -219,6 +228,7 @@ const CScriptValue & CScriptValue::operator = (CScriptValue &data)
 	m_ArrayPos = sp->m_ArrayPos;
 	m_FuncPos  = sp->m_FuncPos;
 	m_FuncExt  = sp->m_FuncExt;
+	m_PtrType  = sp->m_PtrType;
 
 	m_bNoCase = sp->m_bNoCase;
 
@@ -539,6 +549,7 @@ const void * CScriptValue::operator = (void *ptr)
 {
 	m_Type = VALTYPE_PTR;
 	m_Value.m_Ptr = ptr;
+	m_PtrType = PTRTYPE_NONE;
 	return ptr;
 }
 
@@ -3313,6 +3324,7 @@ int CScript::Exec()
 					sp->m_Complex = dp->m_Complex;
 					sp->m_FuncPos = dp->m_FuncPos;
 					sp->m_FuncExt = dp->m_FuncExt;
+					sp->m_PtrType = dp->m_PtrType;
 					sp->ArrayCopy(*dp);
 				}
 			}
@@ -6065,15 +6077,23 @@ int CScript::Func03(int cmd, CScriptValue &local)
 			case 2: n = _SH_DENYWR; break;		// ファイルの書き込みを禁止します
 			case 3: n = _SH_DENYRW; break;		// ファイルの読み出しと書き込みを禁止します
 			}
-	 		(*acc) = (void *)_fsopen((LPCSTR)local[0], (LPCSTR)local[1], n);
-		} else
-	 		(*acc) = (void *)fopen((LPCSTR)local[0], (LPCSTR)local[1]);
+	 		if ( ((*acc) = (void *)_tfsopen((LPCTSTR)local[0], (LPCTSTR)local[1], n)) != NULL )
+				acc->m_PtrType = PTRTYPE_FILE;
+		} else {
+	 		if ( ((*acc) = (void *)_tfopen((LPCTSTR)local[0], (LPCTSTR)local[1])) != NULL )
+				acc->m_PtrType = PTRTYPE_FILE;
+		}
 		break;
 	case 1:		// fclose(f)
-		fclose((FILE *)(void *)local[0]);
+		if ( local[0].GetPtrType() == PTRTYPE_FILE )
+			(*acc) = (int)fclose((FILE *)(void *)local[0]);
+		else if ( local[0].GetPtrType() == PTRTYPE_PIPE )
+			(*acc) = (int)_pclose((FILE *)(void *)local[0]);
+		else
+			throw _T("fclose not fopen ptr");
 		break;
 	case 2:		// fread(s, f)
-		{
+		if ( local[1].GetPtrType() != PTRTYPE_NONE ) {
 			int n;
 			CBuffer tmp;
 			n = (int)local[0];
@@ -6081,49 +6101,77 @@ int CScript::Func03(int cmd, CScriptValue &local)
 			acc->m_Type = VALTYPE_STRING;
 			acc->m_Buf.Clear();
 			acc->m_Buf.Apend(tmp.GetPtr(), n);
-		}
+		} else
+			throw _T("fread not (f|p)open ptr");
 		break;
 	case 3:		// fwrite(b, f)
-		{
+		if ( local[1].GetPtrType() != PTRTYPE_NONE ) {
 			CBuffer *bp = local[0].GetBuf();
 			(*acc) = (int)fwrite(bp->GetPtr(), 1, bp->GetSize(), (FILE *)(void *)local[1]);
-		}
+		} else
+			throw _T("fwrite not (f|p)open ptr");
 		break;
 	case 4:		// fgets(f)
-		{
+		if ( local[0].GetPtrType() != PTRTYPE_NONE ) {
 			char *p;
 			char tmp[4096];
 			if ( (p = fgets(tmp, 4096, (FILE *)(void *)local[0])) != NULL )
 				(*acc) = (LPCSTR)p;
 			else
 				(*acc) = (int)0;
-		}
+		} else
+			throw _T("fgets not (f|p)open ptr");
 		break;
 	case 5:		// fputs(s, f)
-		(*acc) = (int)fputs((LPCSTR)local[0], (FILE *)(void *)local[1]);
+		if ( local[1].GetPtrType() != PTRTYPE_NONE )
+			(*acc) = (int)fputs((LPCSTR)local[0], (FILE *)(void *)local[1]);
+		else
+			throw _T("fputs not (f|p)open ptr");
 		break;
 	case 6:		// fgetc(f)
-		(*acc) = (int)fgetc((FILE *)(void *)local[0]);
+		if ( local[0].GetPtrType() != PTRTYPE_NONE )
+			(*acc) = (int)fgetc((FILE *)(void *)local[0]);
+		else
+			throw _T("fgetc not (f|p)open ptr");
 		break;
 	case 7:		// fputc(c, f)
-		(*acc) = (int)fputc((int)local[0], (FILE *)(void *)local[1]);
+		if ( local[1].GetPtrType() != PTRTYPE_NONE )
+			(*acc) = (int)fputc((int)local[0], (FILE *)(void *)local[1]);
+		else
+			throw _T("fputc not (f|p)open ptr");
 		break;
 	case 8:		// feof
-		(*acc) = (int)feof((FILE *)(void *)local[0]);
+		if ( local[0].GetPtrType() != PTRTYPE_NONE )
+			(*acc) = (int)feof((FILE *)(void *)local[0]);
+		else
+			throw _T("feof not (f|p)open ptr");
+		break;
 	case 9:		// ferror
-		(*acc) = (int)ferror((FILE *)(void *)local[0]);
+		if ( local[0].GetPtrType() != PTRTYPE_NONE )
+			(*acc) = (int)ferror((FILE *)(void *)local[0]);
+		else
+			throw _T("ferror not (f|p)open ptr");
 		break;
 	case 10:	// fflush
-		(*acc) = (int)fflush((FILE *)(void *)local[0]);
+		if ( local[0].GetPtrType() != PTRTYPE_NONE )
+			(*acc) = (int)fflush((FILE *)(void *)local[0]);
+		else
+			throw _T("fflush not (f|p)open ptr");
 		break;
 	case 11:	// ftell
-		(*acc) = (LONGLONG)_ftelli64((FILE *)(void *)local[0]);
+		if ( local[0].GetPtrType() != PTRTYPE_NONE )
+			(*acc) = (LONGLONG)_ftelli64((FILE *)(void *)local[0]);
+		else
+			throw _T("ftell not (f|p)open ptr");
 		break;
 	case 12:	// fseek(f, o, s);
 		// 0 = SEEK_SET		ファイルの先頭。
 		// 1 = SEEK_CUR		ファイル ポインタの現在位置。
 		// 2 = SEEK_END		ファイルの終端。
-		(*acc) = (LONGLONG)_fseeki64((FILE *)(void *)local[0], (LONGLONG)local[1], (int)local[2]);
+		if ( local[0].GetPtrType() != PTRTYPE_NONE )
+			(*acc) = (LONGLONG)_fseeki64((FILE *)(void *)local[0], (LONGLONG)local[1], (int)local[2]);
+		else
+			throw _T("fseek not (f|p)open ptr");
 		break;
 
 	case 13:	// file(f)
@@ -6132,7 +6180,7 @@ int CScript::Func03(int cmd, CScriptValue &local)
 			FILE *fp;
 			char tmp[4096];
 			acc->RemoveAll();
-			if ( (fp = fopen((LPCSTR)local[0], "r")) != NULL ) {
+			if ( (fp = _tfopen((LPCTSTR)local[0], _T("r"))) != NULL ) {
 				for ( n = 0 ; fgets(tmp, 4096, fp) != NULL; n++ )
 					(*acc)[(LPCSTR)NULL] = (LPCSTR)tmp;
 				(*acc) = (int)n;
@@ -6211,15 +6259,21 @@ int CScript::Func03(int cmd, CScriptValue &local)
 		PlaySound((LPCTSTR)local[0], NULL, SND_ASYNC | SND_FILENAME);
 		break;
 
-	case 23:	// speek(s)
-		((CMainFrame *)::AfxGetMainWnd())->Speek((LPCTSTR)local[0]);
+	case 23:	// speak(s)
+		((CMainFrame *)::AfxGetMainWnd())->Speak((LPCTSTR)local[0]);
 		break;
 
 	case 24:	// popen(c, m)
- 		(*acc) = (void *)_popen((LPCSTR)local[0], (LPCSTR)local[1]);
+ 		if ( ((*acc) = (void *)_tpopen((LPCTSTR)local[0], (LPCTSTR)local[1])) != NULL )
+			acc->m_PtrType = PTRTYPE_PIPE;
 		break;
 	case 25:	// pclose(f)
-		(*acc) = (int)_pclose((FILE *)(void *)local[0]);
+		if ( local[0].GetPtrType() == PTRTYPE_FILE )
+			(*acc) = (int)fclose((FILE *)(void *)local[0]);
+		else if ( local[0].GetPtrType() == PTRTYPE_PIPE )
+			(*acc) = (int)_pclose((FILE *)(void *)local[0]);
+		else
+			throw _T("pclose not popen ptr");
 		break;
 	}
 	return FUNC_RET_NOMAL;
@@ -6718,7 +6772,7 @@ void CScript::FuncInit()
 		{ "dirname",	16,	&CScript::Func03 },	{ "copy",		17,	&CScript::Func03 },
 		{ "rename",		18,	&CScript::Func03 },	{ "delete",		19,	&CScript::Func03 },
 		{ "getcwd",		20,	&CScript::Func03 },	{ "chdir",		21,	&CScript::Func03 },
-		{ "play",		22,	&CScript::Func03 },	{ "speek",		23, &CScript::Func03 },
+		{ "play",		22,	&CScript::Func03 },	{ "speak",		23, &CScript::Func03 },
 		{ "popen",		24,	&CScript::Func03 },	{ "pclose",		25, &CScript::Func03 },
 
 		{ "rand",		0,	&CScript::Func04 },	{ "srand",		1,	&CScript::Func04 },

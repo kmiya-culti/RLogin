@@ -82,6 +82,7 @@ public:
 
 // オペレーション
 public:
+	int m_DocSeqNumber;
 	CExtSocket *m_pSock;
 	CTextRam m_TextRam;
 	CKeyNodeTab m_KeyTab;

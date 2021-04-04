@@ -1292,8 +1292,8 @@ public:
 	void GetCellSize(int *x, int *y);
 	void GetScreenSize(int *pCx, int *pCy, int *pSx, int *pSy);
 
-	BOOL SpeekLine(int line, CString &text, CArray<CCurPos, CCurPos &> &pos);
-	BOOL SpeekCheck(CCurPos sPos, CCurPos ePos, LPCTSTR str);
+	BOOL SpeakLine(int line, CString &text, CArray<CCurPos, CCurPos &> &pos);
+	BOOL SpeakCheck(CCurPos sPos, CCurPos ePos, LPCTSTR str);
 
 	void DrawBitmap(CDC *pDestDC, CRect &rect, CDC *pSrcDC, int width, int height, DWORD dwRop);
 	void DrawLine(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bEraBack, struct DrawWork &prop, class CRLoginView *pView);

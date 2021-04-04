@@ -83,6 +83,7 @@ END_MESSAGE_MAP()
 
 CRLoginDoc::CRLoginDoc()
 {
+	m_DocSeqNumber = 0;
 	m_pSock = NULL;
 	m_TextRam.m_pDocument = this;
 	m_pLogFile = NULL;
@@ -176,6 +177,8 @@ BOOL CRLoginDoc::ScriptInit()
 }
 BOOL CRLoginDoc::InitDocument()
 {
+	static int SeqNumber = 0;
+
 	m_TextRam.SetKanjiMode(m_ServerEntry.m_KanjiCode);
 
 	SetTitle(m_ServerEntry.m_EntryName);
@@ -193,6 +196,8 @@ BOOL CRLoginDoc::InitDocument()
 		m_TextRam.DisableOption(TO_IMECTRL);
 		pView->ImmOpenCtrl(0);
 	}
+
+	m_DocSeqNumber = ++SeqNumber;
 
 	return TRUE;
 }
@@ -623,7 +628,10 @@ void CRLoginDoc::DeleteContents()
 		delete m_pScript;
 		m_pScript = NULL;
 	}
+	
+	((CMainFrame *)::AfxGetMainWnd())->AnyPastDlgClose(m_DocSeqNumber);
 
+	m_DocSeqNumber = 0;
 	m_ServerEntry.Init();
 	m_TextRam.m_bOpen = FALSE;
 	m_InPane = FALSE;

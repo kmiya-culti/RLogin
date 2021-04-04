@@ -28,12 +28,16 @@ public:
 
 	CString m_EditText;
 	BOOL m_bUpdateEnable;
-	class CRLoginView *m_pView;
+	class CMainFrame *m_pMain;
+	int m_DocSeqNumber;
+	BOOL m_bDiffViewEnable;
 
 public:
 	void CtrlCount();
-	void SaveWindowRect();
 	LPCTSTR CtrlStr(LPCTSTR str, BOOL bCtrl);
+	BOOL SendBracketedPaste(LPCTSTR str);
+	BOOL UpdateTextData(BOOL bOk);
+	void SetEditText(LPCTSTR str, int DocSeqNumber);
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート
@@ -41,6 +45,7 @@ protected:
 	virtual void OnOK();
 	virtual void OnCancel();
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
+	virtual void PostNcDestroy();
 
 protected:
 	DECLARE_MESSAGE_MAP()
@@ -49,4 +54,5 @@ protected:
 	afx_msg void OnShellesc();
 	afx_msg void OnOneLine();
 	afx_msg void OnCtrlView();
+	afx_msg void OnClose();
 };

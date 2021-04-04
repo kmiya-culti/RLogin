@@ -4920,7 +4920,7 @@ void CTextRam::fc_OSCEXE(DWORD ch)
 		}
 		break;
 
-	case 801:	// Speek String
+	case 801:	// Speak String
 		if ( (m_XtOptFlag & XTOP_SETUTF) != 0 )
 			m_IConv.RemoteToStr(m_SendCharSet[UTF8_SET], p, tmp);
 		else
@@ -4942,7 +4942,7 @@ void CTextRam::fc_OSCEXE(DWORD ch)
 			} else
 				wrk += *s;
 		}
-		((CMainFrame *)::AfxGetMainWnd())->Speek(wrk);
+		((CMainFrame *)::AfxGetMainWnd())->Speak(wrk);
 		break;
 	}
 

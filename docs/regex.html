@@ -1,11 +1,14 @@
 <HTML>
 <HEAD>
-<META http-equiv="Content-Type" content="text/html; charset=Shift_JIS">
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <META http-equiv="Content-Style-Type" content="text/css">
-<TITLE>�X�N���v�g</TITLE>
+<TITLE>スクリプト</TITLE>
 <STYLE type="text/css">
 <!--
 TD {		
+				
+				
+				
 				
 				
 				
@@ -15,6 +18,9 @@ TD {
   font-size : 90%;
 }
 .BOX{		
+				
+				
+				
 				
 				
 				
@@ -32,7 +38,7 @@ TD {
     <TR>
       <TD>
       <HR size="1">
-      <P><B>2.9 ���K�\���d�l��</B></P>
+      <P><B>2.9 正規表現仕様書</B></P>
       <HR size="1">
       </TD>
     </TR>
@@ -41,340 +47,400 @@ TD {
       <TABLE cellpadding="5" cellspacing="1" class="BOX" width="1000">
         <TBODY>
           <TR>
-            <TD align="center" width="10%">����</TD>
-            <TD align="center" width="50%">����</TD>
-            <TD align="center" width="20%">���K�\���̗�</TD>
-            <TD align="center" width="20%">�}�b�`���镶����</TD>
+            <TD align="center" width="10%">文字</TD>
+            <TD align="center" width="50%">説明</TD>
+            <TD align="center" width="20%">正規表現の例</TD>
+            <TD align="center" width="20%">マッチする文字列</TD>
           </TR>
           <TR>
-            <TD colspan="2">�@�@������</TD>
+            <TD colspan="2">　　文字種</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
             <TD align="center">.</TD>
-            <TD align="left">���s(CR/LF)�ȊO�̂P�����Ƀ}�b�`</TD>
+            <TD align="left">改行(CR/LF)以外の１文字にマッチ</TD>
             <TD align="left">ABC.E</TD>
             <TD align="left">ABCDE</TD>
           </TR>
           <TR>
             <TD align="center">\a</TD>
-            <TD align="left">BEL(0x07)�Ƀ}�b�`</TD>
+            <TD align="left">BEL(0x07)にマッチ</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
             <TD align="center">\b</TD>
-            <TD align="left">BS(0x08)�Ƀ}�b�`</TD>
+            <TD align="left">BS(0x08)にマッチ</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
             <TD align="center">\t</TD>
-            <TD align="left">HT(0x09)�Ƀ}�b�`</TD>
+            <TD align="left">HT(0x09)にマッチ</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
             <TD align="center">\n</TD>
-            <TD align="left">LF(0x0A)�Ƀ}�b�`</TD>
+            <TD align="left">LF(0x0A)にマッチ</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
             <TD align="center">\v</TD>
-            <TD align="left">VT(0x0B)�Ƀ}�b�`</TD>
+            <TD align="left">VT(0x0B)にマッチ</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
             <TD align="center">\f</TD>
-            <TD align="left">FF(0x0C)�Ƀ}�b�`</TD>
+            <TD align="left">FF(0x0C)にマッチ</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
             <TD align="center">\r</TD>
-            <TD align="left">CR(0x0D)�Ƀ}�b�`</TD>
+            <TD align="left">CR(0x0D)にマッチ</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
             <TD align="center">\e</TD>
-            <TD align="left">ESC(0x1B)�Ƀ}�b�`</TD>
+            <TD align="left">ESC(0x1B)にマッチ</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
             <TD align="center">\d</TD>
-            <TD align="left">0����X�܂ł̐��l�Ƀ}�b�`</TD>
+            <TD align="left">0から９までの数値にマッチ</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
             <TD align="center">\D</TD>
-            <TD align="left">0����X�܂ł̐��l�ȊO�Ƀ}�b�`</TD>
+            <TD align="left">0から９までの数値以外にマッチ</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
+            <TD align="center">\h</TD>
+            <TD align="left">&quot;[0-9A-Fa-f]&quot;に内部で展開。16進数の文字にマッチ</TD>
+            <TD align="left">&nbsp;</TD>
+            <TD align="left">&nbsp;</TD>
+          </TR>
+          <TR>
+            <TD align="center">\H</TD>
+            <TD align="left">&quot;[^0-9A-Fa-f]&quot;に内部で展開。16進数の文字以外にマッチ&nbsp;</TD>
+            <TD align="left">&nbsp;</TD>
+            <TD align="left">&nbsp;</TD>
+          </TR>
+          <TR>
             <TD align="center">\s</TD>
-            <TD align="left">�X�y�[�X�ȉ��̕����Ƀ}�b�`</TD>
+            <TD align="left">スペース以下の文字にマッチ</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
             <TD align="center">\S</TD>
-            <TD align="left">�X�y�[�X�ȉ��ȊO�̕����Ƀ}�b�`</TD>
+            <TD align="left">スペース以下以外の文字にマッチ</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
             <TD align="center">\w</TD>
-            <TD align="left">&quot;[A-Za-z0-9_]&quot;�ɓ����œW�J</TD>
+            <TD align="left">&quot;[A-Za-z0-9_]&quot;に内部で展開</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
             <TD align="center">\W</TD>
-            <TD align="left">&quot;[^A-Za-z0-9_]&quot;�ɓ����œW�J</TD>
+            <TD align="left">&quot;[^A-Za-z0-9_]&quot;に内部で展開</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
             <TD align="center">\y</TD>
-            <TD align="left">&quot;^|\s+&quot;�ɓ����œW�J�B�X�y�[�X�ȉ�������Ƀ}�b�`</TD>
+            <TD align="left">&quot;^|\s+&quot;に内部で展開。スペース以下文字列にマッチ</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
             <TD align="center">\Y</TD>
-            <TD align="left">&quot;$|\S+&quot;�ɓ����œW�J�B�X�y�[�X�ȉ��ȊO�̕�����Ƀ}�b�`</TD>
+            <TD align="left">&quot;$|\S+&quot;に内部で展開。スペース以下以外の文字列にマッチ</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
             <TD align="center">\000</TD>
-            <TD align="left">8�i���\��(0-377)�Ƀ}�b�`</TD>
+            <TD align="left">8進数表現(0-377)にマッチ</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
             <TD align="center">\o0000</TD>
-            <TD align="left">8�i���\��(0-3777777)�Ƀ}�b�`</TD>
+            <TD align="left">8進数表現(0-3777777)にマッチ</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
             <TD align="center">\x00</TD>
-            <TD align="left">16�i���\���i0-FF�j�Ƀ}�b�`</TD>
+            <TD align="left">16進数表現（0-FF）にマッチ</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
             <TD align="center">\u0000</TD>
-            <TD align="left">16�i���\���i0-FFFFFF�j�Ƀ}�b�`</TD>
+            <TD align="left">16進数表現（0-FFFFFF）にマッチ</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
             <TD align="center">\oxu{0 ...}</TD>
-            <TD align="left">8/16�i���\���̕�����Ƀ}�b�`</TD>
+            <TD align="left">8/16進数表現の文字列にマッチ</TD>
             <TD align="left">\x{30 31 32 33}</TD>
             <TD align="left">0123</TD>
           </TR>
           <TR>
             <TD align="center">\c-X</TD>
-            <TD align="left">A-Z���R���g���[���R�[�h(00-1F)�ɕϊ����ă}�b�`</TD>
+            <TD align="left">A-Zをコントロールコード(00-1F)に変換してマッチ</TD>
             <TD align="left">\c-A</TD>
             <TD align="left"></TD>
           </TR>
           <TR>
             <TD align="center">\.+*?[({|\</TD>
-            <TD align="left">���ꕶ���Ƀ}�b�`</TD>
+            <TD align="left">特殊文字にマッチ</TD>
             <TD align="left">\\</TD>
             <TD align="left">\</TD>
           </TR>
           <TR>
-            <TD align="center">[�c]</TD>
-            <TD align="left">���ʓ��̂����ꂩ�̂P�����Ƀ}�b�`</TD>
+            <TD align="center">[…]</TD>
+            <TD align="left">括弧内のいずれかの１文字にマッチ</TD>
             <TD align="left">ABC[DX]E</TD>
             <TD align="left">ABCXE</TD>
           </TR>
           <TR>
-            <TD align="center">[^�c]</TD>
-            <TD align="left">���ʓ��̂����ꂩ�̂P�����ȊO�Ƀ}�b�`</TD>
+            <TD align="center">[^…]</TD>
+            <TD align="left">括弧内のいずれかの１文字以外にマッチ</TD>
             <TD align="left">ABC[^DX]E</TD>
             <TD align="left">ABCYE</TD>
           </TR>
           <TR>
             <TD align="center">[A-Z]</TD>
-            <TD align="left">A����Z�܂łɃ}�b�`</TD>
+            <TD align="left">AからZまでにマッチ</TD>
             <TD align="left">ABC[X-Z]E</TD>
             <TD align="left">ABCYE</TD>
           </TR>
           <TR>
             <TD align="center">[-Z]</TD>
-            <TD align="left">Z�܂łɃ}�b�`</TD>
+            <TD align="left">Zまでにマッチ</TD>
             <TD align="left">[-Z]+</TD>
             <TD align="left">ABCXYZ</TD>
           </TR>
           <TR>
             <TD align="center">[A-]</TD>
-            <TD align="left">A����Ƀ}�b�`</TD>
+            <TD align="left">Aからにマッチ</TD>
             <TD align="left">[A-]+</TD>
             <TD align="left">ABCXYZ</TD>
           </TR>
           <TR>
             <TD align="center">[-]</TD>
-            <TD align="left">���ׂĂ̕����Ƀ}�b�`</TD>
+            <TD align="left">すべての文字にマッチ</TD>
             <TD align="left">[-]+</TD>
             <TD align="left">012ABCXYZ</TD>
           </TR>
           <TR>
-            <TD colspan="2">�@�@�ʒu�w��</TD>
+            <TD colspan="2">　　位置指定</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
             <TD align="center">^</TD>
-            <TD align="left">�s���Ƀ}�b�`�i�����ɂ��LF�Ŕ��f�j</TD>
+            <TD align="left">行頭にマッチ（条件によりLFで判断）</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
             <TD align="center">$</TD>
-            <TD align="left">�s���Ƀ}�b�`�i�����ɂ��CR�Ŕ��f�j</TD>
+            <TD align="left">行末にマッチ（条件によりCRで判断）</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
-            <TD align="center">�c(?=�c)</TD>
-            <TD align="left">��ǂ݃}�b�`</TD>
+            <TD align="center">…(?=…)</TD>
+            <TD align="left">先読みマッチ</TD>
             <TD align="left">ABC(?=XYZ)</TD>
             <TD align="left">ABCXYZ</TD>
           </TR>
           <TR>
-            <TD align="center">�c(?!�c)</TD>
-            <TD align="left">��ǂݔے�}�b�`</TD>
+            <TD align="center">…(?!…)</TD>
+            <TD align="left">先読み否定マッチ</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
-            <TD align="center">(?&lt;=�c)�c</TD>
-            <TD align="left">��ǂ݃}�b�`��</TD>
+            <TD align="center">(?&lt;=…)…</TD>
+            <TD align="left">後読みマッチ</TD>
             <TD align="left">(?&lt;=ABC)XYZ</TD>
             <TD align="left">ABCXYZ</TD>
           </TR>
           <TR>
-            <TD align="center">(?&lt;!�c)�c</TD>
-            <TD align="left">��ǂݔے�}�b�`</TD>
+            <TD align="center">(?&lt;!…)…</TD>
+            <TD align="left">後読み否定マッチ</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
             <TD align="center">\A</TD>
-            <TD align="left">&quot;^|(?&lt;=\s+)&quot;�ɓ����œW�J�B�s���A������̐擪�Ƀ}�b�`</TD>
+            <TD align="left">&quot;^|(?&lt;=\s+)&quot;に内部で展開。行頭、文字列の先頭にマッチ</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
             <TD align="center">\Z</TD>
-            <TD align="left">&quot;$|(?=\s+)&quot;�ɓ����œW�J�B�s���A������̖����Ƀ}�b�`</TD>
+            <TD align="left">&quot;$|(?=\s+)&quot;に内部で展開。行末、文字列の末尾にマッチ</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
             <TD align="center">\z</TD>
-            <TD align="left">&quot;(?=\s+)&quot;�ɓ����œW�J�B������̖����Ƀ}�b�`</TD>
+            <TD align="left">&quot;(?=\s+)&quot;に内部で展開。文字列の末尾にマッチ</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
-            <TD colspan="2">�@�@�J��Ԃ��w��</TD>
+            <TD colspan="2">　　繰り返し指定</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
             <TD align="center">+</TD>
-            <TD align="left">���O�̕������P��ȏ�̌J��Ԃ��i�ő�1024�j�Ƀ}�b�`</TD>
+            <TD align="left">直前の文字が１回以上の繰り返し（最大1024）にマッチ</TD>
             <TD align="left">ABCD+E</TD>
             <TD align="left">ABCDDE</TD>
           </TR>
           <TR>
             <TD align="center">*</TD>
-            <TD align="left">���O�̕������O��ȏ�̌J��Ԃ��i�ő�1024�j�Ƀ}�b�`</TD>
+            <TD align="left">直前の文字が０回以上の繰り返し（最大1024）にマッチ</TD>
             <TD align="left">ABCD*E</TD>
             <TD align="left">ABCE</TD>
           </TR>
           <TR>
             <TD align="center">?</TD>
-            <TD align="left">���O�̕������O���P�Ƀ}�b�`</TD>
+            <TD align="left">直前の文字が０個か１個にマッチ</TD>
             <TD align="left">ABC?E</TD>
             <TD align="left">ABCDE</TD>
           </TR>
           <TR>
             <TD align="center">{n}</TD>
-            <TD align="left">���O�̕������w��񐔂̌J��Ԃ��i�ő�1024�j�Ƀ}�b�`</TD>
+            <TD align="left">直前の文字が指定回数の繰り返し（最大1024）にマッチ</TD>
             <TD align="left">ABCD{3}E</TD>
             <TD align="left">ABCDDDE</TD>
           </TR>
           <TR>
             <TD align="center">{n,m}</TD>
-            <TD align="left">���O�̕�����n��ȏ�m��ȉ��̌J��Ԃ��i�ő�1024�j�Ƀ}�b�`</TD>
+            <TD align="left">直前の文字がn回以上m回以下の繰り返し（最大1024）にマッチ</TD>
             <TD align="left">ABCD{3,5}E</TD>
             <TD align="left">ABCDDDDE</TD>
           </TR>
           <TR>
             <TD align="center">+?</TD>
-            <TD align="left">���O�̕������P��ȏ�̌J��Ԃ��Ƀ}�b�`�i�ŏ���v�j</TD>
+            <TD align="left">直前の文字が１回以上の繰り返しにマッチ（最小一致）</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
             <TD align="center">*?</TD>
-            <TD align="left">���O�̕������O��ȏ�̌J��Ԃ��Ƀ}�b�`�i�ŏ���v�j</TD>
+            <TD align="left">直前の文字が０回以上の繰り返しにマッチ（最小一致）</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
             <TD align="center">??</TD>
-            <TD align="left">���O�̕������O���P�Ƀ}�b�`�i�ŏ���v�j</TD>
+            <TD align="left">直前の文字が０個か１個にマッチ（最小一致）</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
             <TD align="center">{n}?</TD>
-            <TD align="left">���O�̕������w��񐔂̌J��Ԃ��Ƀ}�b�`�i�ŏ���v�j</TD>
+            <TD align="left">直前の文字が指定回数の繰り返しにマッチ（最小一致）</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
             <TD align="center">{n,m}?</TD>
-            <TD align="left">���O�̕�����n��ȏ�m��ȉ��̌J��Ԃ��Ƀ}�b�`�i�ŏ���v�j</TD>
+            <TD align="left">直前の文字がn回以上m回以下の繰り返しにマッチ（最小一致）</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
-            <TD colspan="2">�@�@�O���[�v��</TD>
+            <TD align="center">++</TD>
+            <TD align="left">直前の文字が１回以上の繰り返しにマッチ（最大一致）</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
-            <TD align="center">(�c)</TD>
-            <TD align="left">�O���[�v�ɂ܂Ƃ߂ĎQ��</TD>
+            <TD align="center">*+</TD>
+            <TD align="left">直前の文字が０回以上の繰り返しにマッチ（最大一致）</TD>
+            <TD align="left"></TD>
+            <TD align="left"></TD>
+          </TR>
+          <TR>
+            <TD align="center">?+</TD>
+            <TD align="left">直前の文字が０個か１個にマッチ（最大一致）</TD>
+            <TD align="left"></TD>
+            <TD align="left"></TD>
+          </TR>
+          <TR>
+            <TD align="center">{n}+</TD>
+            <TD align="left">直前の文字が指定回数の繰り返しにマッチ（最大一致）</TD>
+            <TD align="left"></TD>
+            <TD align="left"></TD>
+          </TR>
+          <TR>
+            <TD align="center">{n,m}+</TD>
+            <TD align="left">直前の文字がn回以上m回以下の繰り返しにマッチ（最大一致）</TD>
+            <TD align="left"></TD>
+            <TD align="left"></TD>
+          </TR>
+          <TR>
+            <TD align="center">{m,n}</TD>
+            <TD align="left">直前の文字がn回以上m回以下の繰り返しにマッチ（最大一致）</TD>
+            <TD align="left"></TD>
+            <TD align="left"></TD>
+          </TR>
+          <TR>
+            <TD colspan="2">　　グループ化</TD>
+            <TD align="left"></TD>
+            <TD align="left"></TD>
+          </TR>
+          <TR>
+            <TD align="center">(…)</TD>
+            <TD align="left">グループにまとめて参照</TD>
             <TD align="left">(ABC)(XYZ)</TD>
             <TD align="left">ABCXYZ</TD>
           </TR>
           <TR>
-            <TD align="center">(?:�c)</TD>
-            <TD align="left">�O���[�v�ɂ܂Ƃ߂�</TD>
+            <TD align="center">(?:…)</TD>
+            <TD align="left">グループにまとめる</TD>
             <TD align="left"></TD>
             <TD align="left"></TD>
           </TR>
           <TR>
-            <TD align="center">�c|�c</TD>
-            <TD align="left">�����ꂩ�̏����Ƀ}�b�`</TD>
+            <TD align="center">(?&gt;…)</TD>
+            <TD align="left">グループにまとめて参照（最大一致）</TD>
+            <TD align="left"></TD>
+            <TD align="left"></TD>
+          </TR>
+          <TR>
+            <TD align="center">(?#…)</TD>
+            <TD align="left">コメント</TD>
+            <TD align="left"></TD>
+            <TD align="left"></TD>
+          </TR>
+          <TR>
+            <TD align="center">…|…</TD>
+            <TD align="left">いずれかの条件にマッチ</TD>
             <TD align="left">ABC|XYZ</TD>
             <TD align="left">ABC</TD>
           </TR>
