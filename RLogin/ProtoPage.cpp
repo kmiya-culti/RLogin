@@ -96,8 +96,9 @@ void CProtoPage::DoInit()
 	m_x11AuthName = m_pSheet->m_pParamTab->m_x11AuthName;
 	m_x11AuthData = m_pSheet->m_pParamTab->m_x11AuthData;
 
+	// 0=1K 1=2K 2=4K 3=8K 4=16K 5=32K 6=64K 7=128K 8=256K 9=512K
 	int r = m_pSheet->m_pParamTab->m_StdIoBufSize;
-	for ( m_StdIoBufSize = 0 ; m_StdIoBufSize < 6 ; m_StdIoBufSize++ ) {
+	for ( m_StdIoBufSize = 0 ; m_StdIoBufSize < 9 ; m_StdIoBufSize++ ) {
 		if ( r <= 1 )
 			break;
 		r /= 2;

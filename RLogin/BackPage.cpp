@@ -92,6 +92,7 @@ void CBackPage::DoInit()
 	m_BitMapBlend.SetPos(m_pSheet->m_pTextRam->m_BitMapBlend);
 
 	UpdateData(FALSE);
+	m_ColorBox.Invalidate(FALSE);
 }
 
 /////////////////////////////////////////////////////////////////////////////

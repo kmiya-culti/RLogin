@@ -10,6 +10,7 @@
 #include "Ssh.h"
 #include "MidiData.h"
 #include "ComboBoxHis.h"
+#include <Shobjidl.h>
 
 #define	PANEFRAME_NOCHNG		0
 #define	PANEFRAME_MAXIM			1
@@ -321,8 +322,10 @@ public:
 	class CAnyPastDlg *m_pAnyPastDlg;
 	BOOL m_PastNoCheck;
 
-	BOOL WageantQuery(CBuffer *pInBuf, CBuffer *pOutBuf);
+	BOOL WageantQuery(CBuffer *pInBuf, CBuffer *pOutBuf, LPCTSTR pipename);
 	BOOL PageantQuery(CBuffer *pInBuf, CBuffer *pOutBuf);
+
+	LPCTSTR PagentPipeName();
 
 	BOOL AgeantInit();
 	BOOL AgeantSign(int type, CBuffer *blob, CBuffer *sign, LPBYTE buf, int len);
@@ -422,6 +425,10 @@ public:
 
 	void VersionCheckProc();
 	void VersionCheck();
+
+	CComPtr<ITaskbarList3> m_pTaskbarList;
+
+	void SetTaskbarProgress(int state, int value);
 
 	BOOL m_bVoiceEvent;
 	struct _SpeakData {

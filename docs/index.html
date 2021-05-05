@@ -6,7 +6,9 @@
 <TITLE>rlogin/telnet/ssh(クライアント)ターミナルソフト</TITLE>
 <STYLE type="text/css">
 <!--
-TD {
+TD {		
+				
+				
 				
 				
 				
@@ -15,7 +17,9 @@ TD {
   background-color : #ffffff;
   font-size : 90%;
 }
-.BOX{
+.BOX{		
+				
+				
 				
 				
 				
@@ -36,8 +40,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.26.0)</TD>
-            <TD width="20%" align="right">2021/04/05</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.26.1)</TD>
+            <TD width="20%" align="right">2021/05/06</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -441,6 +445,15 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2021/05/06</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.26.1/">2.26.1</A></TD>
+            <TD>2.25.9以降でチャットスクリプトの受信文字列が空の場合の不都合を修正<BR>
+            オプション・プロトコル・SSH・バッファサイズを見直しデフォルトを変更<BR>
+            スクリプト関数のreplace/splitで例外が発生するバグを修正<BR>
+            PuTTYの認証鍵ファイル形式３と名前付きパイプagentに暫定的に対応<BR>
+            プライベートプロファイル使用時に背景設定のデフォルトが読めない不都合を修正</TD>
+          </TR>
+          <TR>
             <TD align="center">2021/04/05</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.26.0/">2.26.0</A></TD>
             <TD>正規表現ライブラリに無限検索の制限と最大一致などを追加<BR>
@@ -485,13 +498,6 @@ TD {
             iconvのSHIFT_JISとCP932との差を吸収する処理を修正<BR>
             libiconv-1.16に更新<BR>
             背景のテキスト描画のバグを修正(2.25.7aに更新)</TD>
-          </TR>
-          <TR>
-            <TD align="center">2020/12/09&nbsp;</TD>
-            <TD align="center">&nbsp;<A href="http://nanno.dip.jp/softlib/rlogin/2.25.6/">2.25.6</A></TD>
-            <TD>sftpダイアログの初期表示位置をモニター範囲になるように修正<BR>
-            sshのkeyboard-interactiveで使用するダイアログを変更<BR>
-            openssl-1.1.1iに更新</TD>
           </TR>
           <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
@@ -2954,7 +2960,7 @@ fi</PRE>
                 </TR>
               </TBODY>
             </TABLE>
-            </TD>
+            ※このページのほとんどの設定(KeepAliveを省く）は、次回接続時から有効になります（接続中の変更は、反映されませんのでご注意ください）</TD>
             <TD valign="top"><IMG src="image014.jpg" width="609" height="531" border="0"></TD>
           </TR>
         </TBODY>

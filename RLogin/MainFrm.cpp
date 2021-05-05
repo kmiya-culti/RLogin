@@ -945,6 +945,7 @@ CMainFrame::CMainFrame()
 	m_bVoiceEvent = FALSE;
 	m_pAnyPastDlg = NULL;
 	m_PastNoCheck = FALSE;
+	m_pTaskbarList = NULL;
 }
 
 CMainFrame::~CMainFrame()
@@ -1267,11 +1268,12 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 
 /////////////////////////////////////////////////////////////////////////////
 
-#define AGENT_PIPE_ID		L"\\\\.\\pipe\\openssh-ssh-agent"
-#define AGENT_COPYDATA_ID	0x804e50ba   /* random goop */
-#define AGENT_MAX_MSGLEN	(16 * 1024)
+#define AGENT_WSSH_PIPE_NAME	L"\\\\.\\pipe\\openssh-ssh-agent"
+#define AGENT_PUTTY_PIPE_NAME	PagentPipeName()
+#define AGENT_COPYDATA_ID		0x804e50ba   /* random goop */
+#define AGENT_MAX_MSGLEN		(16 * 1024)
 
-BOOL CMainFrame::WageantQuery(CBuffer *pInBuf, CBuffer *pOutBuf)
+BOOL CMainFrame::WageantQuery(CBuffer *pInBuf, CBuffer *pOutBuf, LPCTSTR pipename)
 {
 	int n, len;
 	HANDLE hPipe;
@@ -1282,7 +1284,7 @@ BOOL CMainFrame::WageantQuery(CBuffer *pInBuf, CBuffer *pOutBuf)
 	BYTE readBuffer[4096];
 	DWORD readByte = 0;
 
-	if ( (hPipe = CreateFile(AGENT_PIPE_ID, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE )
+	if ( (hPipe = CreateFile(pipename, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL)) == INVALID_HANDLE_VALUE )
 		return bRet;
 
 	pBuffer = pInBuf->GetPtr();
@@ -1316,6 +1318,7 @@ BOOL CMainFrame::WageantQuery(CBuffer *pInBuf, CBuffer *pOutBuf)
 
 ENDOFRET:
 	CloseHandle(hPipe);
+	SecureZeroMemory(readBuffer, sizeof(readBuffer));
 	return bRet;
 }
 
@@ -1365,10 +1368,60 @@ BOOL CMainFrame::PageantQuery(CBuffer *pInBuf, CBuffer *pOutBuf)
 	return TRUE;
 }
 
+LPCTSTR CMainFrame::PagentPipeName()
+{
+	static BOOL bInit = FALSE;
+	static CString pipename;
+
+	if ( bInit )
+		return pipename;
+
+	HMODULE hCrypt32;
+	BOOL (__stdcall *pCryptProtectMemory)(LPVOID pDataIn, DWORD cbDataIn, DWORD dwFlags);
+	char data[CRYPTPROTECTMEMORY_BLOCK_SIZE];
+	int len = CRYPTPROTECTMEMORY_BLOCK_SIZE;	//	"Pageant" len = 7, CRYPTPROTECTMEMORY_BLOCK_SIZE = 16, (7 + 1 + 15) / 16 * 16 = 16
+	DWORD size;
+	TCHAR username[MAX_COMPUTERNAME_LENGTH + 2];
+	unsigned int dlen;
+	u_char digest[EVP_MAX_MD_SIZE];
+	EVP_MD_CTX *md_ctx;
+	CBuffer tmp(-1);
+
+	bInit = TRUE;
+
+	size = MAX_COMPUTERNAME_LENGTH;
+	ZeroMemory(username, sizeof(username));
+	GetUserName(username, &size);
+
+	ZeroMemory(data, CRYPTPROTECTMEMORY_BLOCK_SIZE);
+	strcpy(data, "Pageant");
+
+	if ( (hCrypt32 = LoadLibrary(_T("crypt32.dll"))) != NULL ) {
+		if ( (pCryptProtectMemory = (BOOL (__stdcall *)(LPVOID pDataIn, DWORD cbDataIn, DWORD dwFlags))GetProcAddress(hCrypt32, "CryptProtectMemory")) != NULL )
+			pCryptProtectMemory(data, len, CRYPTPROTECTMEMORY_CROSS_PROCESS);
+		FreeLibrary(hCrypt32);
+	}
+
+	md_ctx = EVP_MD_CTX_new();
+	EVP_DigestInit(md_ctx, EVP_sha256());
+	EVP_DigestUpdate(md_ctx, (const void *)data, len);
+	EVP_DigestFinal(md_ctx, digest, &dlen);
+	EVP_MD_CTX_free(md_ctx);
+
+	tmp.Base16Encode(digest, 32);
+
+	pipename.Format(_T("\\\\.\\pipe\\pageant.%s.%s"), username, (LPCTSTR)tmp);
+
+	SecureZeroMemory(data, sizeof(data));
+	SecureZeroMemory(digest, sizeof(digest));
+
+	return pipename;
+}
+
 BOOL CMainFrame::AgeantInit()
 {
 	int n, i, mx;
-	int type;
+	int ctype, type;
 	int count = 0;
 	CBuffer in, out;
 	CIdKey key;
@@ -1383,14 +1436,19 @@ BOOL CMainFrame::AgeantInit()
 	in.Put32Bit(1);
 	in.Put8Bit(SSH_AGENTC_REQUEST_IDENTITIES);
 
-	for ( type = IDKEY_AGEANT_PUTTY ; type <= IDKEY_AGEANT_WINSSH ;  type++ ) {
+	for ( type = IDKEY_AGEANT_PUTTY ; type <= IDKEY_AGEANT_WINSSH ; type++ ) {
 
 		if ( type == IDKEY_AGEANT_PUTTY ) {
-			if ( !PageantQuery(&in, &out) )
+			if ( WageantQuery(&in, &out, AGENT_PUTTY_PIPE_NAME) )
+				ctype = IDKEY_AGEANT_PUTTYPIPE;
+			else if ( PageantQuery(&in, &out) )
+				ctype = IDKEY_AGEANT_PUTTY;
+			else
 				continue;
 		} else if ( type == IDKEY_AGEANT_WINSSH ) {
-			if ( !WageantQuery(&in, &out) )
+			if ( !WageantQuery(&in, &out, AGENT_WSSH_PIPE_NAME) )
 				continue;
+			ctype = type;
 		}
 
 		if ( out.GetSize() < 5 || out.Get8Bit() != SSH_AGENT_IDENTITIES_ANSWER )
@@ -1403,12 +1461,12 @@ BOOL CMainFrame::AgeantInit()
 				out.GetStr(name);
 				key.m_Name = name;
 				key.m_bSecInit = TRUE;
-				key.m_AgeantType = type;
+				key.m_AgeantType = ctype;
 				if ( !key.GetBlob(&blob) )
 					continue;
 
 				for ( i = 0 ; i < m_IdKeyTab.GetSize() ; i++ ) {
-					if ( m_IdKeyTab[i].m_AgeantType == type && m_IdKeyTab[i].ComperePublic(&key) == 0 ) {
+					if ( m_IdKeyTab[i].m_AgeantType == ctype && m_IdKeyTab[i].ComperePublic(&key) == 0 ) {
 						m_IdKeyTab[i].m_bSecInit = TRUE;
 						count++;
 						break;
@@ -1432,7 +1490,7 @@ BOOL CMainFrame::AgeantInit()
 }
 BOOL CMainFrame::AgeantSign(int type, CBuffer *blob, CBuffer *sign, LPBYTE buf, int len)
 {
-	CBuffer in, out, work;
+	CBuffer in(-1), out(-1), work(-1);
 
 	work.Put8Bit(SSH_AGENTC_SIGN_REQUEST);
 	work.PutBuf(blob->GetPtr(), blob->GetSize());
@@ -1445,7 +1503,10 @@ BOOL CMainFrame::AgeantSign(int type, CBuffer *blob, CBuffer *sign, LPBYTE buf, 
 		if ( !PageantQuery(&in, &out) )
 			return FALSE;
 	} else if ( type == IDKEY_AGEANT_WINSSH ) {
-		if ( !WageantQuery(&in, &out) )
+		if ( !WageantQuery(&in, &out, AGENT_WSSH_PIPE_NAME) )
+			return FALSE;
+	} else if ( type == IDKEY_AGEANT_PUTTYPIPE ) {
+		if ( !WageantQuery(&in, &out, AGENT_PUTTY_PIPE_NAME) )
 			return FALSE;
 	} else
 		return FALSE;
@@ -2602,6 +2663,38 @@ void CMainFrame::VersionCheck()
 	AfxBeginThread(VersionCheckThead, this, THREAD_PRIORITY_LOWEST);
 }
 
+void CMainFrame::SetTaskbarProgress(int state, int value)
+{
+	if ( m_pTaskbarList == NULL ) {
+		if ( FAILED(::CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER, __uuidof(ITaskbarList3), reinterpret_cast<void**>(&m_pTaskbarList))) || FAILED(m_pTaskbarList->HrInit()) ) {
+			m_pTaskbarList = NULL;
+			return;
+		}
+	}
+
+	switch(state) {
+	default:
+	case 0:
+		m_pTaskbarList->SetProgressState(GetSafeHwnd(), TBPF_NOPROGRESS);
+		break;
+	case 1:		// When st is 1: set progress value to pr (number, 0-100). 
+		m_pTaskbarList->SetProgressState(GetSafeHwnd(), TBPF_NORMAL);
+		m_pTaskbarList->SetProgressValue(GetSafeHwnd(), value, 100);
+		break;
+	case 2:		// When st is 2: set error state in progress on Windows 7 taskbar, pr is optional. 
+		m_pTaskbarList->SetProgressState(GetSafeHwnd(), TBPF_ERROR);
+		m_pTaskbarList->SetProgressValue(GetSafeHwnd(), value, 100);
+		break;
+	case 3:		// When st is 3: set indeterminate state. 
+		m_pTaskbarList->SetProgressState(GetSafeHwnd(), TBPF_INDETERMINATE);
+		m_pTaskbarList->SetProgressValue(GetSafeHwnd(), value, 100);
+		break;
+	case 4:		// When st is 4: set paused state, pr is optional.
+		m_pTaskbarList->SetProgressState(GetSafeHwnd(), TBPF_PAUSED);
+		break;
+	}
+}
+
 /////////////////////////////////////////////////////////////////////////////
 // CMainFrame 診断
 
@@ -3569,6 +3662,7 @@ void CMainFrame::InitMenuBitmap()
 	CBitmap *pBitmap;
 	BITMAP mapinfo;
 	CMenuBitMap *pMap;
+	COLORREF menuCol = GetSysColor(COLOR_MENU);
 
 	// リソースデータベースからメニューイメージを作成
 	cx = GetSystemMetrics(SM_CXMENUCHECK);
@@ -3621,13 +3715,25 @@ void CMainFrame::InitMenuBitmap()
 
 		TmpDC.SelectObject(pOld);
 
-		for ( int y = 0 ; y < cx ; y++ ) {
-			for ( int x = 0 ; x < cy ; x++ ) {
-				BYTE *p = (BYTE *)Image.GetPixelAddress(x, y);
-				if ( p[0] == 192 && p[1] == 192 && p[2] == 192 )
-					p[0] = p[1] = p[2] = p[3] = 0;
-				else
-					p[3] = 255;
+		if ( CRLoginApp::IsWinVerCheck(_WIN32_WINNT_VISTA, VER_GREATER_EQUAL) ) {
+			for ( int y = 0 ; y < cx ; y++ ) {
+				for ( int x = 0 ; x < cy ; x++ ) {
+					BYTE *p = (BYTE *)Image.GetPixelAddress(x, y);
+					if ( p[0] == 192 && p[1] == 192 && p[2] == 192 )
+						p[0] = p[1] = p[2] = p[3] = 0;
+					else
+						p[3] = 255;
+				}
+			}
+		} else {
+			for ( int y = 0 ; y < cx ; y++ ) {
+				for ( int x = 0 ; x < cy ; x++ ) {
+					BYTE *p = (BYTE *)Image.GetPixelAddress(x, y);
+					if ( p[0] == 192 && p[1] == 192 && p[2] == 192 )
+						*((COLORREF *)p) = menuCol;
+					else
+						p[3] = 255;
+				}
 			}
 		}
 

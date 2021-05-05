@@ -614,7 +614,7 @@ END
 // Dialog
 //
 
-IDD_ABOUTBOX DIALOGEX 0, 0, 243, 214
+IDD_ABOUTBOX DIALOGEX 0, 0, 243, 244
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "About RLogin"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
@@ -624,10 +624,10 @@ BEGIN
     CONTROL         "<a href=""https://kmiya-culti.github.io/RLogin/"">https://kmiya-culti.github.io/RLogin/</a>",IDC_SYSLINK3,
                     "SysLink",WS_TABSTOP,44,37,189,8
     CONTROL         "<a href=""https://1023world.net/"">https://1023world.net/</a>",IDC_SYSLINK1,
-                    "SysLink",WS_TABSTOP,44,178,189,8
-    DEFPUSHBUTTON   "OK",IDOK,91,193,60,14,WS_GROUP
-    ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin (%s) Version 2.26.0 (2021/04/05)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+                    "SysLink",WS_TABSTOP,44,204,189,8
+    DEFPUSHBUTTON   "OK",IDOK,91,223,60,14,WS_GROUP
+    ICON            IDR_MAINFRAME,IDC_STATIC,7,7,18,21
+    LTEXT           "RLogin (%s) Version 2.26.1 (2021/05/06)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2021 Culti",IDC_STATIC,44,16,189,8
     LTEXT           "OpenSSL 1.1.1k 25 Mar 2021",IDC_STATIC,44,52,189,8
     LTEXT           "Copyright (c) 1998-2021 The OpenSSL Project",IDC_STATIC,44,61,189,8
@@ -639,8 +639,10 @@ BEGIN
     LTEXT           "Copyright (C) 2000-2017 Free Software Foundation, Inc.",IDC_STATIC,44,123,189,8
     LTEXT           "Nettle library (version 2.0)",IDC_STATIC,44,138,189,8
     LTEXT           "Originally written 2001 by Niels Moller, updated 2009.",IDC_STATIC,44,147,189,8
-    LTEXT           "kumaGIF",IDC_STATIC,44,160,189,8
-    LTEXT           "Copyright (c) 1.023world All Rights Reserved.",IDC_STATIC,44,169,189,8
+    LTEXT           "kumaGIF",IDC_STATIC,44,186,189,8
+    LTEXT           "Copyright (c) 1.023world All Rights Reserved.",IDC_STATIC,44,195,189,8
+    LTEXT           "putty-0.75-pre (blake2/argon2 source code)",IDC_STATIC,44,172,189,8
+    LTEXT           "PuTTY is copyright 1997-2021 Simon Tatham.",IDC_STATIC,44,163,189,8
 END
 
 IDD_ALGOPARADLG DIALOGEX 0, 0, 351, 343
@@ -2152,8 +2154,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,26,0,0
- PRODUCTVERSION 2,26,0,0
+ FILEVERSION 2,26,1,0
+ PRODUCTVERSION 2,26,1,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2170,12 +2172,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.26.0.0"
+            VALUE "FileVersion", "2.26.1.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.26.0.0"
+            VALUE "ProductVersion", "2.26.1.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2198,7 +2200,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 236
         TOPMARGIN, 7
-        BOTTOMMARGIN, 207
+        BOTTOMMARGIN, 237
     END
 
     IDD_ALGOPARADLG, DIALOG
@@ -3636,6 +3638,12 @@ BEGIN
 0x3233, 0x004b, 
     IDC_STDBUFSIZE, 0x403, 4, 0
 0x3436, 0x004b, 
+    IDC_STDBUFSIZE, 0x403, 5, 0
+0x3231, 0x4b38, "\000" 
+    IDC_STDBUFSIZE, 0x403, 5, 0
+0x3532, 0x4b36, "\000" 
+    IDC_STDBUFSIZE, 0x403, 5, 0
+0x3135, 0x4b32, "\000" 
     0
 END
 
@@ -4438,7 +4446,7 @@ BEGIN
     IDS_EMOJIMAGEMSG        "絵文字の画像が保存されたフォルダを選択"
     IDS_ANYPASTVIEWMSG      "呼び出した接続と違う接続にペーストしますか？"
     IDS_VERSIONCHECKURL2    "https://kmiya-culti.github.io/RLogin/version.txt"
-	IDS_SCRIPTDLGSTEP       "ステップ"
+    IDS_SCRIPTDLGSTEP       "ステップ"
 END
 
 STRINGTABLE

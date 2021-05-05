@@ -6549,7 +6549,7 @@ void CParamTab::Init()
 	m_x11AuthData.Empty();
 
 	m_bInitPageant = FALSE;
-	m_StdIoBufSize = 8;
+	m_StdIoBufSize = 32;
 
 	m_TransmitLimit = 1000;
 }

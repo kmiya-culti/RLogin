@@ -4209,7 +4209,7 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 				cp->m_pFilter = new CStdIoFilter;
 				cp->m_pFilter->m_pChan = cp;
 				cp->m_LocalPacks = m_pDocument->m_ParamTab.m_StdIoBufSize * 1024;
-				cp->m_LocalWind  = cp->m_LocalPacks * 8;
+				cp->m_LocalWind  = cp->m_LocalPacks;
 				SendMsgChannelOpen(m_StdChan, "session");
 			}
 		}

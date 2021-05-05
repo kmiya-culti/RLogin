@@ -1190,7 +1190,8 @@ BOOL CRegEx::Compile(LPCTSTR str)
 		m_NodeHead->m_EChar = 0;
 		m_NodeHead->m_SChar = 0;
 		m_ArgStack.AddHead(0);
-		m_NodeHead->m_Left = CompileSub(EOF);
+		if ( (m_NodeHead->m_Left = CompileSub(EOF)) == NULL )
+			throw _T("RegEx Empty search string");
 		for ( np = m_NodeHead ; np->m_Left != NULL ; )
 			np = np->m_Left;
 		np->m_Left = AllocNode(RGE_GROUPEND);
@@ -1345,7 +1346,10 @@ BOOL CRegEx::ConvertStr(LPCTSTR str, LPCTSTR pat, CString &buf)
 				wrk += tmp[a++];
 			ConvertRes(TstrToUni(pat), wstr, &res);
 			wrk += wstr;
-			a = res.m_Idx[res[0].m_EPos];
+			if ( res[0].m_EPos < res.m_Idx.GetSize() )
+				a = res.m_Idx[res[0].m_EPos];
+			else
+				a = n + 1;
 			rt = TRUE;
 		}
 	}
@@ -1374,7 +1378,10 @@ int CRegEx::SplitStr(LPCTSTR str, CStringArray &data)
 	for ( n = a = 0 ; n < len ; ) {
 		if ( MatchChar(tmp[n], n, &res) && (res.m_Status == REG_MATCH || res.m_Status == REG_MATCHOVER) ) {
 			data.Add(UniToTstr(tmp.Mid(a, res.m_Idx[res[0].m_SPos] - a)));
-			n = a = res.m_Idx[res[0].m_EPos];
+			if ( res[0].m_EPos < res.m_Idx.GetSize() )
+				n = a = res.m_Idx[res[0].m_EPos];
+			else
+				n = a = n + 1;
 		} else
 			n++;
 	}
@@ -1414,9 +1421,9 @@ BOOL CRegEx::MatchChar(DCHAR ch, int idx, CRegExRes *res)
 	if ( m_NodeHead == NULL ) {
 		if ( res != NULL ) {
 			res->Clear();
-			res->m_Status = REG_NOMATCH;
+			res->m_Status = REG_MATCH;
 		}
-		return FALSE;
+		return TRUE;
 	} else if ( ch == 0 || (ch >= 0x180B && ch <= 0x180D) || (ch >= 0xFE00 && ch <= 0xFE0F) || (ch >= 0xE0100 && ch <= 0xE01EF) )
 		return FALSE;
 

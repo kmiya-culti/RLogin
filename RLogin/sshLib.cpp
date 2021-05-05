@@ -2839,9 +2839,9 @@ typedef struct chacha_ctx chacha_ctx;
 #define U8V(v) ((u8)(v) & U8C(0xFF))
 #define U32V(v) ((u32)(v) & U32C(0xFFFFFFFF))
 
-#define ROTL32(v, n) \
-  (U32V((v) << (n)) | ((v) >> (32 - (n))))
+#define ROTL32(v, n) (U32V((v) << (n)) | ((v) >> (32 - (n))))
 
+#if 0
 #define U8TO32_LITTLE(p) \
   (((u32)((p)[0])      ) | \
    ((u32)((p)[1]) <<  8) | \
@@ -2855,6 +2855,10 @@ typedef struct chacha_ctx chacha_ctx;
     (p)[2] = U8V((v) >> 16); \
     (p)[3] = U8V((v) >> 24); \
   } while (0)
+#else
+#define U8TO32_LITTLE(p) *((u32 *)(p))
+#define U32TO8_LITTLE(p, v) *((u32 *)(p))=(v)
+#endif
 
 #define ROTATE(v,c) (ROTL32(v,c))
 #define XOR(v,w) ((v) ^ (w))
@@ -5191,4 +5195,489 @@ int crypto_sign_ed25519_open(unsigned char *m,unsigned long long *mlen, const un
       m[i] = 0;
   }
   return ret;
+}
+
+//////////////////////////////////////////////////////////////////////
+// PuTTY-0.75-pre in sshblake2.c and sshargon2.c
+
+/*
+ * Implementation of the Argon2 password hash function.
+ *
+ * My sources for the algorithm description and test vectors (the latter in
+ * test/cryptsuite.py) were the reference implementation on Github, and also
+ * the Internet-Draft description:
+ *
+ *   https://github.com/P-H-C/phc-winner-argon2
+ *   https://datatracker.ietf.org/doc/html/draft-irtf-cfrg-argon2-13
+ */
+
+static inline uint32_t GET_32BIT_LSB_FIRST(const void *vp)
+{
+	return *((uint32_t *)vp);
+}
+
+static inline void PUT_32BIT_LSB_FIRST(void *vp, uint32_t value)
+{
+	*((uint32_t *)vp) = value;
+}
+
+static inline uint64_t GET_64BIT_LSB_FIRST(const void *vp)
+{
+	return *((uint64_t *)vp);
+}
+
+static inline void PUT_64BIT_LSB_FIRST(void *vp, uint64_t value)
+{
+	*((uint64_t *)vp) = value;
+}
+
+static inline uint64_t ror64(uint64_t x, unsigned rotation)
+{
+    return (x << (64 - (rotation & 63))) | (x >> (rotation & 63));
+}
+
+static inline uint64_t trunc32(uint64_t x)
+{
+    return x & 0xFFFFFFFF;
+}
+
+static void memxor(uint8_t *out, const uint8_t *in1, const uint8_t *in2, size_t size)
+{
+	register size_t n = size / sizeof(size_t);
+	register size_t *pout = (size_t *)out;
+	register size_t *pin1 = (size_t *)in1;
+	register size_t *pin2 = (size_t *)in2;
+
+	while ( n-- > 0 )
+		*(pout++) = *(pin1++) ^ *(pin2++);
+
+	if ( (n = size % sizeof(size_t)) > 0 ) {
+		out = (uint8_t *)pout;
+		in1 = (uint8_t *)pin1;
+		in2 = (uint8_t *)pin2;
+#if 0
+		while ( n-- > 0 )
+		   *(out++) = *(in1++) ^ *(in2++);
+#else
+		ASSERT(sizeof(size_t) <= 8);
+		switch(n) {
+		case 7:
+		   *(out++) = *(in1++) ^ *(in2++);
+		case 6:
+		   *(out++) = *(in1++) ^ *(in2++);
+		case 5:
+		   *(out++) = *(in1++) ^ *(in2++);
+		case 4:
+		   *(out++) = *(in1++) ^ *(in2++);
+		case 3:
+		   *(out++) = *(in1++) ^ *(in2++);
+		case 2:
+		   *(out++) = *(in1++) ^ *(in2++);
+		case 1:
+		   *(out++) = *(in1++) ^ *(in2++);
+		}
+#endif
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////
+
+static void put_uint32_le(CBuffer *buf, uint32_t val)
+{
+    unsigned char data[4];
+    PUT_32BIT_LSB_FIRST(data, val);
+	buf->Apend(data, 4);
+}
+static void put_stringpl_le(CBuffer *buf, CBuffer *data)
+{
+	put_uint32_le(buf, data->GetSize());
+	buf->Apend(data->GetPtr(), data->GetSize());
+}
+static void inline put_data_ptr(CBuffer *buf, void *data, size_t len)
+{
+	buf->Apend((LPBYTE)data, (int)len);
+}
+static void inline put_buffer_clear(CBuffer *buf)
+{
+	buf->Clear();
+}
+
+///////////////////////////////////////////////////////////////////////////
+/*
+ * BLAKE2 (RFC 7693) implementation for PuTTY.
+ *
+ * The BLAKE2 hash family includes BLAKE2s, in which the hash state is
+ * operated on as a collection of 32-bit integers, and BLAKE2b, based
+ * on 64-bit integers. At present this code implements BLAKE2b only.
+ */
+
+/* RFC 7963 section 2.1 */
+enum { R1 = 32, R2 = 24, R3 = 16, R4 = 63 };
+
+/* RFC 7693 section 2.6 */
+static const uint64_t blake2_iv[] = {
+    0x6a09e667f3bcc908,                /* floor(2^64 * frac(sqrt(2)))  */
+    0xbb67ae8584caa73b,                /* floor(2^64 * frac(sqrt(3)))  */
+    0x3c6ef372fe94f82b,                /* floor(2^64 * frac(sqrt(5)))  */
+    0xa54ff53a5f1d36f1,                /* floor(2^64 * frac(sqrt(7)))  */
+    0x510e527fade682d1,                /* floor(2^64 * frac(sqrt(11))) */
+    0x9b05688c2b3e6c1f,                /* floor(2^64 * frac(sqrt(13))) */
+    0x1f83d9abfb41bd6b,                /* floor(2^64 * frac(sqrt(17))) */
+    0x5be0cd19137e2179,                /* floor(2^64 * frac(sqrt(19))) */
+};
+
+/* RFC 7693 section 2.7 */
+static const unsigned char blake2_sigma[][16] = {
+    { 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15},
+    {14, 10,  4,  8,  9, 15, 13,  6,  1, 12,  0,  2, 11,  7,  5,  3},
+    {11,  8, 12,  0,  5,  2, 15, 13, 10, 14,  3,  6,  7,  1,  9,  4},
+    { 7,  9,  3,  1, 13, 12, 11, 14,  2,  6,  5, 10,  4,  0, 15,  8},
+    { 9,  0,  5,  7,  2,  4, 10, 15, 14,  1, 11, 12,  6,  8,  3, 13},
+    { 2, 12,  6, 10,  0, 11,  8,  3,  4, 13,  7,  5, 15, 14,  1,  9},
+    {12,  5,  1, 15, 14, 13,  4, 10,  0,  7,  6,  3,  9,  2,  8, 11},
+    {13, 11,  7, 14, 12,  1,  3,  9,  5,  0, 15,  4,  8,  6,  2, 10},
+    { 6, 15, 14,  9, 11,  3,  0,  8, 12,  2, 13,  7,  1,  4, 10,  5},
+    {10,  2,  8,  4,  7,  6,  1,  5, 15, 11,  9, 14,  3, 12, 13,  0},
+    /* This array recycles if you have more than 10 rounds. BLAKE2b
+     * has 12, so we repeat the first two rows again. */
+    { 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15},
+    {14, 10,  4,  8,  9, 15, 13,  6,  1, 12,  0,  2, 11,  7,  5,  3},
+};
+
+static inline void blake2_g_half(uint64_t v[16], unsigned a, unsigned b, unsigned c,
+                          unsigned d, uint64_t x, unsigned r1, unsigned r2)
+{
+    v[a] += v[b] + x;
+    v[d] ^= v[a];
+    v[d] = ror64(v[d], r1);
+    v[c] += v[d];
+    v[b] ^= v[c];
+    v[b] = ror64(v[b], r2);
+}
+
+static inline void blake2_g(uint64_t v[16], unsigned a, unsigned b, unsigned c,
+                     unsigned d, uint64_t x, uint64_t y)
+{
+    blake2_g_half(v, a, b, c, d, x, R1, R2);
+    blake2_g_half(v, a, b, c, d, y, R3, R4);
+}
+
+static inline void blake2_f(uint64_t h[8], uint64_t m[16], uint64_t offset_hi,
+                     uint64_t offset_lo, unsigned final)
+{
+    uint64_t v[16];
+    memcpy(v, h, 8 * sizeof(*v));
+    memcpy(v + 8, blake2_iv, 8 * sizeof(*v));
+    v[12] ^= offset_lo;
+    v[13] ^= offset_hi;
+    v[14] ^= (uint64_t)(-(int64_t)final);
+    for (unsigned round = 0; round < 12; round++) {
+        const unsigned char *s = blake2_sigma[round];
+        blake2_g(v,  0,  4,  8, 12, m[s[ 0]], m[s[ 1]]);
+        blake2_g(v,  1,  5,  9, 13, m[s[ 2]], m[s[ 3]]);
+        blake2_g(v,  2,  6, 10, 14, m[s[ 4]], m[s[ 5]]);
+        blake2_g(v,  3,  7, 11, 15, m[s[ 6]], m[s[ 7]]);
+        blake2_g(v,  0,  5, 10, 15, m[s[ 8]], m[s[ 9]]);
+        blake2_g(v,  1,  6, 11, 12, m[s[10]], m[s[11]]);
+        blake2_g(v,  2,  7,  8, 13, m[s[12]], m[s[13]]);
+        blake2_g(v,  3,  4,  9, 14, m[s[14]], m[s[15]]);
+    }
+    for (unsigned i = 0; i < 8; i++)
+        h[i] ^= v[i] ^ v[i+8];
+    SecureZeroMemory(v, sizeof(v));
+}
+
+static inline void blake2_f_outer(uint64_t h[8], uint8_t blk[128], uint64_t offset_hi,
+                           uint64_t offset_lo, unsigned final)
+{
+    uint64_t m[16];
+    for (unsigned i = 0; i < 16; i++)
+        m[i] = GET_64BIT_LSB_FIRST(blk + 8*i);
+    blake2_f(h, m, offset_hi, offset_lo, final);
+    SecureZeroMemory(m, sizeof(m));
+}
+
+typedef struct blake2b {
+    uint64_t h[8];
+    unsigned hashlen;
+
+    uint8_t block[128];
+    size_t used;
+    uint64_t lenhi, lenlo;
+} blake2b;
+
+static void blake2b_reset(blake2b *s, unsigned hashlen)
+{
+	s->hashlen = hashlen;
+
+    /* Initialise the hash to the standard IV */
+    memcpy(s->h, blake2_iv, sizeof(s->h));
+
+    /* XOR in the parameters: secret key length (here always 0) in
+     * byte 1, and hash length in byte 0. */
+    s->h[0] ^= 0x01010000 ^ s->hashlen;
+
+    s->used = 0;
+    s->lenhi = s->lenlo = 0;
+}
+
+static void blake2b_write(blake2b *s, const void *vp, size_t len)
+{
+    const uint8_t *p = (const uint8_t *)vp;
+
+    while (len > 0) {
+        if (s->used == sizeof(s->block)) {
+            blake2_f_outer(s->h, s->block, s->lenhi, s->lenlo, 0);
+            s->used = 0;
+        }
+
+        size_t chunk = sizeof(s->block) - s->used;
+        if (chunk > len)
+            chunk = len;
+
+        memcpy(s->block + s->used, p, chunk);
+        s->used += chunk;
+        p += chunk;
+        len -= chunk;
+
+        s->lenlo += chunk;
+        s->lenhi += (s->lenlo < chunk);
+    }
+}
+
+static void blake2b_digest(blake2b *s, uint8_t *digest)
+{
+    memset(s->block + s->used, 0, sizeof(s->block) - s->used);
+    blake2_f_outer(s->h, s->block, s->lenhi, s->lenlo, 1);
+
+    uint8_t hash_pre[128];
+
+    for (unsigned i = 0; i < 8; i++)
+        PUT_64BIT_LSB_FIRST(hash_pre + 8*i, s->h[i]);
+
+	memcpy(digest, hash_pre, s->hashlen);
+	SecureZeroMemory(hash_pre, sizeof(hash_pre));
+}
+
+///////////////////////////////////////////////////////////////////////////
+
+static void hprime_hash(CBuffer *data, uint8_t *out, int len)
+{
+	blake2b s;
+	uint8_t hash[64];
+
+	// opensslのEVP_blake2b512は、ハッシュサイズ固定(64)なので使用できない
+
+	blake2b_reset(&s, len > 64 ? 64 : len);
+	blake2b_write(&s, data->GetPtr(), data->GetSize());
+
+	while ( len > 64 ) {
+		blake2b_digest(&s, hash);
+
+		memcpy(out, hash, 32);
+		out += 32;
+		len -= 32;
+
+		blake2b_reset(&s, len > 64 ? 64 : len);
+		blake2b_write(&s, hash, 64);
+
+		SecureZeroMemory(hash, sizeof(hash));
+	}
+
+	blake2b_digest(&s, out);
+}
+
+///////////////////////////////////////////////////////////////////////////
+
+static inline void argon2_GB(uint64_t *a, uint64_t *b, uint64_t *c, uint64_t *d)
+{
+    *a += *b + 2 * trunc32(*a) * trunc32(*b);
+    *d = ror64(*d ^ *a, 32);
+    *c += *d + 2 * trunc32(*c) * trunc32(*d);
+    *b = ror64(*b ^ *c, 24);
+    *a += *b + 2 * trunc32(*a) * trunc32(*b);
+    *d = ror64(*d ^ *a, 16);
+    *c += *d + 2 * trunc32(*c) * trunc32(*d);
+    *b = ror64(*b ^ *c, 63);
+}
+
+static inline void argon2_P(uint64_t *out, unsigned outstep,
+                     uint64_t *in, unsigned instep)
+{
+    for ( unsigned i = 0 ; i < 8 ; i++ ) {
+        out[i*outstep] = in[i*instep];
+        out[i*outstep+1] = in[i*instep+1];
+    }
+
+    argon2_GB(out+0*outstep+0, out+2*outstep+0, out+4*outstep+0, out+6*outstep+0);
+    argon2_GB(out+0*outstep+1, out+2*outstep+1, out+4*outstep+1, out+6*outstep+1);
+    argon2_GB(out+1*outstep+0, out+3*outstep+0, out+5*outstep+0, out+7*outstep+0);
+    argon2_GB(out+1*outstep+1, out+3*outstep+1, out+5*outstep+1, out+7*outstep+1);
+
+    argon2_GB(out+0*outstep+0, out+2*outstep+1, out+5*outstep+0, out+7*outstep+1);
+    argon2_GB(out+0*outstep+1, out+3*outstep+0, out+5*outstep+1, out+6*outstep+0);
+    argon2_GB(out+1*outstep+0, out+3*outstep+1, out+4*outstep+0, out+6*outstep+1);
+    argon2_GB(out+1*outstep+1, out+2*outstep+0, out+4*outstep+1, out+7*outstep+0);
+}
+
+static void argon2_G_xor(uint8_t *out, const uint8_t *X, const uint8_t *Y)
+{
+    uint64_t R[128], Q[128], Z[128];
+
+    for (unsigned i = 0; i < 128; i++)
+        R[i] = GET_64BIT_LSB_FIRST(X + 8*i) ^ GET_64BIT_LSB_FIRST(Y + 8*i);
+
+    for (unsigned i = 0; i < 8; i++)
+        argon2_P(Q+16*i, 2, R+16*i, 2);
+
+    for (unsigned i = 0; i < 8; i++)
+        argon2_P(Z+2*i, 16, Q+2*i, 16);
+
+    for (unsigned i = 0; i < 128; i++)
+        PUT_64BIT_LSB_FIRST(out + 8*i, GET_64BIT_LSB_FIRST(out + 8*i) ^ R[i] ^ Z[i]);
+
+    SecureZeroMemory(R, sizeof(R));
+    SecureZeroMemory(Q, sizeof(Q));
+    SecureZeroMemory(Z, sizeof(Z));
+}
+
+//void argon2(uint32_t flavour, uint32_t mem, uint32_t passes, uint32_t parallel, 
+//	CBuffer *P, CBuffer *S, CBuffer *K, CBuffer *X, 
+//	u_char *out, uint32_t taglen);
+
+void argon2(uint32_t y, uint32_t m, uint32_t t, uint32_t p,
+	CBuffer *P, CBuffer *S, CBuffer *K, CBuffer *X,
+	u_char *out, uint32_t T)
+{
+	CBuffer tmp(-1);
+	uint8_t h0[64];
+	struct blk { uint8_t data[1024]; };
+
+	put_buffer_clear(&tmp);
+	put_uint32_le(&tmp, p);
+	put_uint32_le(&tmp, T);
+	put_uint32_le(&tmp, m);
+	put_uint32_le(&tmp, t);
+	put_uint32_le(&tmp, 0x13);		/* hash function version number */
+	put_uint32_le(&tmp, y);
+	put_stringpl_le(&tmp, P);
+	put_stringpl_le(&tmp, S);
+	put_stringpl_le(&tmp, K);
+	put_stringpl_le(&tmp, X);
+
+	hprime_hash(&tmp, h0, 64);
+
+    size_t SL = m / (4 * p);		/* segment length: # of 1Kb blocks in a segment */
+    size_t q = 4 * SL;				/* width of the array: 4 segments times SL */
+    size_t mprime = q * p;			/* total size of the array, approximately m */
+
+    struct blk *B = new struct blk[mprime];
+    memset(B, 0, mprime * sizeof(struct blk));
+
+    for ( size_t i = 0 ; i < p ; i++ ) {
+		put_buffer_clear(&tmp);
+		put_uint32_le(&tmp, 1024);
+		put_data_ptr(&tmp, h0, 64);
+		put_uint32_le(&tmp, 0);
+		put_uint32_le(&tmp, (uint32_t)i);
+
+		hprime_hash(&tmp, B[i].data, 1024);
+	}
+
+	for ( size_t i = 0 ; i < p ; i++ ) {
+		put_buffer_clear(&tmp);
+		put_uint32_le(&tmp, 1024);
+		put_data_ptr(&tmp, h0, 64);
+		put_uint32_le(&tmp, 1);
+		put_uint32_le(&tmp, (uint32_t)i);
+
+		hprime_hash(&tmp, B[i + p].data, 1024);
+	}
+
+	size_t jstart = 2;
+    bool d_mode = (y == 0);
+    struct blk out2i, tmp2i, in2i;
+
+    for (size_t pass = 0; pass < t; pass++) {
+        for (unsigned slice = 0; slice < 4; slice++) {
+            if (pass == 0 && slice == 2 && y == 2)
+                d_mode = true;
+
+            for (size_t i = 0; i < p; i++) {
+                for (size_t jpre = jstart; jpre < SL; jpre++) {
+                    size_t j = slice * SL + jpre;
+                    uint32_t jm1 = (uint32_t)(j == 0 ? q-1 : j-1);
+                    uint32_t J1, J2;
+
+                    if (d_mode) {
+                        J1 = GET_32BIT_LSB_FIRST(B[i + p * jm1].data);
+                        J2 = GET_32BIT_LSB_FIRST(B[i + p * jm1].data + 4);
+                    } else {
+                        if (jpre == jstart || jpre % 128 == 0) {
+                            memset(in2i.data, 0, sizeof(in2i.data));
+                            PUT_64BIT_LSB_FIRST(in2i.data +  0, pass);
+                            PUT_64BIT_LSB_FIRST(in2i.data +  8, i);
+                            PUT_64BIT_LSB_FIRST(in2i.data + 16, slice);
+                            PUT_64BIT_LSB_FIRST(in2i.data + 24, mprime);
+                            PUT_64BIT_LSB_FIRST(in2i.data + 32, t);
+                            PUT_64BIT_LSB_FIRST(in2i.data + 40, y);
+                            PUT_64BIT_LSB_FIRST(in2i.data + 48, jpre / 128 + 1);
+
+                            memset(tmp2i.data, 0, sizeof(tmp2i.data));
+                            argon2_G_xor(tmp2i.data, tmp2i.data, in2i.data);
+                            memset(out2i.data, 0, sizeof(out2i.data));
+                            argon2_G_xor(out2i.data, out2i.data, tmp2i.data);
+                        }
+                        J1 = GET_32BIT_LSB_FIRST(
+                            out2i.data + 8 * (jpre % 128));
+                        J2 = GET_32BIT_LSB_FIRST(
+                            out2i.data + 8 * (jpre % 128) + 4);
+                    }
+
+                    uint32_t index_l = (uint32_t)((pass == 0 && slice == 0) ? i : J2 % p);
+                    uint32_t Wstart = (uint32_t)(pass == 0 ? 0 : (slice + 1) % 4 * SL);
+                    uint32_t Wend;
+
+                    if (index_l == i) {
+                        Wend = jm1;
+                    } else {
+                        Wend = (uint32_t)(SL * slice);
+                        if (jpre == 0)
+                            Wend = (uint32_t)((Wend + q-1) % q);
+                    }
+
+                    uint32_t Wsize = (uint32_t)((Wend + q - Wstart) % q);
+
+					uint32_t x = ((uint64_t)J1 * J1) >> 32;
+                    uint32_t y = ((uint64_t)Wsize * x) >> 32;
+                    uint32_t zz = Wsize - 1 - y;
+
+                    uint32_t index_z = (Wstart + zz) % q;
+
+                    argon2_G_xor(B[i + p * j].data, B[i + p * jm1].data,
+                          B[index_l + p * index_z].data);
+                }
+            }
+
+			jstart = 0;
+        }
+    }
+
+    struct blk C = B[p * (q-1)];
+
+    for ( size_t i = 1 ; i < p ; i++ )
+        memxor(C.data, C.data, B[i + p * (q-1)].data, 1024);
+
+	put_buffer_clear(&tmp);
+	put_uint32_le(&tmp, T);
+	put_data_ptr(&tmp, C.data, 1024);
+	hprime_hash(&tmp, out, T);
+
+    SecureZeroMemory(out2i.data, sizeof(out2i.data));
+    SecureZeroMemory(tmp2i.data, sizeof(tmp2i.data));
+    SecureZeroMemory(in2i.data, sizeof(in2i.data));
+    SecureZeroMemory(C.data, sizeof(C.data));
+    SecureZeroMemory(B, mprime * sizeof(struct blk));
+
+	delete [] B;
 }

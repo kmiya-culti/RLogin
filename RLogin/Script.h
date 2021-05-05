@@ -175,6 +175,7 @@ public:
 	int Compare(int mode, CScriptValue *ptr);
 	void Sort(int mode);
 
+	void SetPtrType(int type);
 	void SetArray(CStringArrayExt &ary, int mode);
 	void SetStr(CString &str, int mode);
 	void SetInt(int &val, int mode);

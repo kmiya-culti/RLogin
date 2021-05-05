@@ -4316,15 +4316,22 @@ int CIdKey::LoadPuttyKey(FILE *fp, LPCTSTR pass)
 		int n, len;
 		int type = IDKEY_NONE;
 		CString line, para;
-		CString encname;
+		CString encname, comment;
 		CString pubkey, prikey;
 		CBuffer pubblob(-1), priblob(-1);
 		CStringA str;
+		int version = 0;
+		CString keyDeriv;
+		int argon2Memory = 0;
+		int argon2Passes = 0;
+		int argon2Parallelism = 0;
+		CString argon2Salt;
 
 		fseek(fp, 0L, SEEK_SET);
 
 		while ( fgetline(fp, line) != NULL ) {
-			if ( getparse(line, _T("PuTTY-User-Key-File-2"), para) || getparse(line, _T("PuTTY-User-Key-File-1"), para) ) {
+			if ( getparse(line, _T("PuTTY-User-Key-File-3"), para) || getparse(line, _T("PuTTY-User-Key-File-2"), para) || getparse(line, _T("PuTTY-User-Key-File-1"), para) ) {
+				version = _tstoi((LPCTSTR)line + 20);
 				if ( para.CompareNoCase(_T("ssh-dss")) == 0 )
 					type = IDKEY_DSA2;
 				else if ( para.CompareNoCase(_T("ssh-rsa")) == 0 )
@@ -4335,13 +4342,28 @@ int CIdKey::LoadPuttyKey(FILE *fp, LPCTSTR pass)
 					type = IDKEY_ED25519;
 				else
 					throw _T("unknown type");
+
 			} else if ( getparse(line, _T("Encryption"), para) ) {
 				encname = para;
+			} else if ( getparse(line, _T("Comment"), para) ) {
+				comment = para;
 			} else if ( getparse(line, _T("Public-Lines"), para) ) {
 				len = _tstoi(para);
 				pubkey.Empty();
 				for ( n = 0 ; n < len && fgetline(fp, line) != NULL ; n++ )
 					pubkey += line;
+
+			} else if ( getparse(line, _T("Key-Derivation"), para) ) {
+				keyDeriv = para;
+			} else if ( getparse(line, _T("Argon2-Memory"), para) ) {
+				argon2Memory = _tstoi(para);
+			} else if ( getparse(line, _T("Argon2-Passes"), para) ) {
+				argon2Passes = _tstoi(para);
+			} else if ( getparse(line, _T("Argon2-Parallelism"), para) ) {
+				argon2Parallelism = _tstoi(para);
+			} else if ( getparse(line, _T("Argon2-Salt"), para) ) {
+				argon2Salt = para;
+
 			} else if ( getparse(line, _T("Private-Lines"), para) ) {
 				len = _tstoi(para);
 				prikey.Empty();
@@ -4353,35 +4375,64 @@ int CIdKey::LoadPuttyKey(FILE *fp, LPCTSTR pass)
 		if ( type == IDKEY_NONE || encname.IsEmpty() || pubkey.IsEmpty() || prikey.IsEmpty() )
 			throw _T("key file format error");
 
+		if ( version == 3 && (keyDeriv.IsEmpty() || argon2Memory == 0 || argon2Passes == 0 || argon2Parallelism == 0 || argon2Salt.IsEmpty()) )
+			throw _T("key file version 3 format error");
+
 		pubblob.Base64Decode(pubkey);
 		priblob.Base64Decode(prikey);
 
 		if ( encname.Compare(_T("none")) != 0 ) {
-			const EVP_MD *md = EVP_sha1();
+			int i;
+			int keylen, ivlen, maclen = 32;		// max 64 + 32 + 32 = 128
 			EVP_MD_CTX *md_ctx;
 			unsigned int len;
-			u_char key[40], iv[32];
+			u_char key[128], ctr[4];
 			CStringA mbs(pass);
 			CCipher cip;
-			CBuffer blob;
+			CBuffer blob, tmp, salt, empty;
 
-			md_ctx = EVP_MD_CTX_new();
-			EVP_DigestInit(md_ctx, md);
-			EVP_DigestUpdate(md_ctx, "\0\0\0\0", 4);
-			EVP_DigestUpdate(md_ctx, mbs, mbs.GetLength());
-			EVP_DigestFinal(md_ctx, key, &len);
-			EVP_MD_CTX_free(md_ctx);
+			if ( cip.GetIndex(encname) < 0 )
+				throw _T("Chipher not suppoertd");
 
-			md_ctx = EVP_MD_CTX_new();
-			EVP_DigestInit(md_ctx, md);
-			EVP_DigestUpdate(md_ctx, "\0\0\0\1", 4);
-			EVP_DigestUpdate(md_ctx, mbs, mbs.GetLength());
-			EVP_DigestFinal(md_ctx, key + 20, &len);
-			EVP_MD_CTX_free(md_ctx);
+			if ( (keylen = cip.GetKeyLen(encname)) > 64 )
+				throw _T("Chipher key len overflow");
 
-			memset(iv, 0, sizeof(iv));
-			if ( cip.Init(encname, MODE_DEC, key, (-1), iv) )
+			if ( (ivlen = cip.GetIvSize(encname)) > 32 )
+				throw _T("Chipher iv len overflow");
+
+			switch(version) {
+			case 1: case 2:
+				for ( i = 0 ; i < 7 && (i * 20) < keylen ; i++ ) {
+					md_ctx = EVP_MD_CTX_new();
+					EVP_DigestInit(md_ctx, EVP_sha1());
+					ctr[0] = (u_char)(i >> 24);
+					ctr[1] = (u_char)(i >> 16);
+					ctr[2] = (u_char)(i >> 8);
+					ctr[3] = (u_char)(i);
+					EVP_DigestUpdate(md_ctx, ctr, 4);
+					EVP_DigestUpdate(md_ctx, mbs, mbs.GetLength());
+					EVP_DigestFinal(md_ctx, key + i * 20, &len);
+					EVP_MD_CTX_free(md_ctx);
+				}
+				memset(key + keylen, 0, ivlen);
+				break;
+
+			case 3:
+				if (      keyDeriv.CompareNoCase(_T("Argon2d"))  == 0 ) i = 0;
+				else if ( keyDeriv.CompareNoCase(_T("Argon2i"))  == 0 ) i = 1;
+				else if ( keyDeriv.CompareNoCase(_T("Argon2id")) == 0 ) i = 2;
+				else throw _T("Argon2 Key-Derivation error");
+
+				tmp.Apend((LPBYTE)(LPCSTR)mbs, mbs.GetLength());
+				salt.Base16Decode(argon2Salt);
+
+				argon2(i, argon2Memory, argon2Passes, argon2Parallelism, &tmp, &salt, &empty, &empty, key, keylen + ivlen + maclen);
+				break;
+			}
+
+			if ( cip.Init(encname, MODE_DEC, key, keylen, key + keylen) )
 				throw _T("Chipher init error");
+
 			cip.Cipher(priblob.GetPtr(), priblob.GetSize(), &blob);
 			priblob = blob;
 		}
@@ -4482,6 +4533,8 @@ int CIdKey::LoadPuttyKey(FILE *fp, LPCTSTR pass)
 
 		} else
 			throw _T("key type error");
+
+		m_Name = comment;
 
 		//fclose(fp);
 		return TRUE;

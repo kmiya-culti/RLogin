@@ -1314,21 +1314,30 @@ void CTextBitMap::GetArray(CStringArrayExt &stra)
 {
 	Init();
 
-	if ( stra.GetSize() < 9  )
-		return;
+	//if ( stra.GetSize() < 9  )
+	//	return;
 
-	m_bEnable = stra.GetVal(0);
+	if ( stra.GetSize() > 0  )
+		m_bEnable = stra.GetVal(0);
 
-	m_WidthAlign = stra.GetVal(1);
-	m_HeightAlign = stra.GetVal(2);
+	if ( stra.GetSize() > 1  )
+		m_WidthAlign = stra.GetVal(1);
+	if ( stra.GetSize() > 2  )
+		m_HeightAlign = stra.GetVal(2);
 
-	m_Text = stra.GetAt(3);
-	m_TextColor = stra.GetVal(4);
+	if ( stra.GetSize() > 3  )
+		m_Text = stra.GetAt(3);
+	if ( stra.GetSize() > 4  )
+		m_TextColor = stra.GetVal(4);
 
-	m_LogFont.lfHeight = stra.GetVal(5);
-	m_LogFont.lfWeight = stra.GetVal(6);
-	m_LogFont.lfItalic = stra.GetVal(7);
-	_tcsncpy(m_LogFont.lfFaceName, stra.GetAt(8), sizeof(m_LogFont.lfFaceName) / sizeof(TCHAR));
+	if ( stra.GetSize() > 5 )
+		m_LogFont.lfHeight = stra.GetVal(5);
+	if ( stra.GetSize() > 6  )
+		m_LogFont.lfWeight = stra.GetVal(6);
+	if ( stra.GetSize() > 7  )
+		m_LogFont.lfItalic = stra.GetVal(7);
+	if ( stra.GetSize() > 8  )
+		_tcsncpy(m_LogFont.lfFaceName, stra.GetAt(8), sizeof(m_LogFont.lfFaceName) / sizeof(TCHAR));
 }
 void CTextBitMap::DiffIndex(CTextBitMap &orig, CStringIndex &index)
 {
@@ -2409,7 +2418,7 @@ void CTextRam::HisRegCheck(DWORD ch, DWORD pos)
 		if ( m_MarkReg.MatchChar(ch, pos, &res) ) {
 			if ( res.GetSize() > 0 ) {
 				i = 0;	// for ( i = 0 ; i < res.GetSize() ; i++ ) {
-				for ( a = res[i].m_SPos ; a < res[i].m_EPos ; a++ ) {
+				for ( a = res[i].m_SPos ; a < res[i].m_EPos && a < res.m_Idx.GetSize() ; a++ ) {
 					if ( res.m_Idx[a] != 0xFFFFFFFF )
 						GETVRAM(res.m_Idx[a] % m_ColsMax, res.m_Idx[a] / m_ColsMax - m_HisPos)->m_Vram.attr |= ATT_SMARK;
 				}

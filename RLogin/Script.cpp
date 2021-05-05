@@ -1060,6 +1060,13 @@ void CScriptValue::Sort(int mode)
 	for ( i = 0 ; i < (int)m_Array.GetSize() ; i++ )
 		((CScriptValue *)m_Array[i])->m_ArrayPos = i;
 }
+void CScriptValue::SetPtrType(int type)
+{
+	if ( m_Type == VALTYPE_IDENT )
+		((CScriptValue *)(m_Value.m_Ptr))->SetPtrType(type);
+	else if ( m_Type == VALTYPE_PTR )
+		m_PtrType = type;
+}
 void CScriptValue::SetArray(CStringArrayExt &ary, int mode)
 {
 	int n;
@@ -6091,6 +6098,7 @@ int CScript::Func03(int cmd, CScriptValue &local)
 			(*acc) = (int)_pclose((FILE *)(void *)local[0]);
 		else
 			throw _T("fclose not fopen ptr");
+		local[0].SetPtrType(PTRTYPE_NONE);
 		break;
 	case 2:		// fread(s, f)
 		if ( local[1].GetPtrType() != PTRTYPE_NONE ) {
@@ -6274,6 +6282,7 @@ int CScript::Func03(int cmd, CScriptValue &local)
 			(*acc) = (int)_pclose((FILE *)(void *)local[0]);
 		else
 			throw _T("pclose not popen ptr");
+		local[0].SetPtrType(PTRTYPE_NONE);
 		break;
 	}
 	return FUNC_RET_NOMAL;

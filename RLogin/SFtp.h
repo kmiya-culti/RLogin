@@ -3,6 +3,7 @@
 #include "DialogExt.h"
 #include "ComboBoxHis.h"
 #include "ListCtrlExt.h"
+#include <Shobjidl.h>
 
 /* version */
 #define SSH2_FILEXFER_VERSION           3
@@ -356,6 +357,7 @@ public:
 	LONGLONG m_TotalSize;
 	LONGLONG m_TransmitSize;
 	clock_t m_TransmitClock;
+	CComPtr<ITaskbarList3> m_pTaskbarList;
 
 	void SetUpDownCount(int count);
 	void AddTotalRange(LONGLONG size);

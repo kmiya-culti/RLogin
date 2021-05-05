@@ -1,1 +1,1 @@
-RLogin	2.26.0	2021/04/05	https://github.com/kmiya-culti/RLogin/releases/
+RLogin	2.26.1	2021/05/06	https://github.com/kmiya-culti/RLogin/releases/

@@ -232,6 +232,7 @@ public:
 #define	IDKEY_AGEANT_NONE			0
 #define	IDKEY_AGEANT_PUTTY			1
 #define	IDKEY_AGEANT_WINSSH			2
+#define	IDKEY_AGEANT_PUTTYPIPE		3
 
 #define	SSHFP_KEY_RESERVED			0
 #define	SSHFP_KEY_RSA				1
@@ -1061,6 +1062,9 @@ extern int bcrypt_pbkdf(const char *pass, size_t passlen, const unsigned char *s
 extern int crypto_sign_ed25519_keypair(unsigned char *pk, unsigned char *sk);
 extern int crypto_sign_ed25519(unsigned char *sm, unsigned long long *smlen, const unsigned char *m, unsigned long long mlen, const unsigned char *sk);
 extern int crypto_sign_ed25519_open(unsigned char *m,unsigned long long *mlen, const unsigned char *sm,unsigned long long smlen, const unsigned char *pk);
+
+//argon2
+void argon2(uint32_t flavour, uint32_t mem, uint32_t passes, uint32_t parallel, CBuffer *P, CBuffer *S, CBuffer *K, CBuffer *X, u_char *out, uint32_t taglen);
 
 // xmss.cpp
 #define XMSS_OID_LEN 4

@@ -87,7 +87,7 @@ void CChatDlg::OnBnClickedNewnode()
 	np->m_RecvStr = m_RecvStr;
 	np->m_SendStr = m_SendStr;
 
-	if ( !np->m_Reg.Compile(np->m_RecvStr) ) {
+	if ( !np->m_RecvStr.IsEmpty() && !np->m_Reg.Compile(np->m_RecvStr) ) {
 		AfxMessageBox(np->m_Reg.m_ErrMsg);
 		delete np;
 		return;
@@ -117,7 +117,7 @@ void CChatDlg::OnBnClickedNextnode()
 	np->m_RecvStr = m_RecvStr;
 	np->m_SendStr = m_SendStr;
 
-	if ( !np->m_Reg.Compile(np->m_RecvStr) ) {
+	if ( !np->m_RecvStr.IsEmpty() && !np->m_Reg.Compile(np->m_RecvStr) ) {
 		AfxMessageBox(np->m_Reg.m_ErrMsg);
 		delete np;
 		return;
@@ -147,7 +147,7 @@ void CChatDlg::OnBnClickedUpdatenode()
 	np->m_RecvStr = m_RecvStr;
 	np->m_SendStr = m_SendStr;
 
-	if ( !np->m_Reg.Compile(np->m_RecvStr) )
+	if ( !np->m_RecvStr.IsEmpty() && !np->m_Reg.Compile(np->m_RecvStr) )
 		AfxMessageBox(np->m_Reg.m_ErrMsg);
 
 	tmp.Format(_T("%s/%s"), m_RecvStr, m_SendStr);

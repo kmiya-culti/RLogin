@@ -110,6 +110,8 @@ void CIdkeySelDLg::InitList()
 			str = pKey->m_bSecInit ? _T("Pageant") : _T("None");
 		} else if ( pKey->m_AgeantType == IDKEY_AGEANT_WINSSH ) {
 			str = pKey->m_bSecInit ? _T("Wageant") : _T("None");
+		} else if ( pKey->m_AgeantType == IDKEY_AGEANT_PUTTYPIPE ) {
+			str = pKey->m_bSecInit ? _T("Pageant") : _T("None");
 		} else {
 			switch(pKey->m_Cert) {
 			case IDKEY_CERTV00:  str = _T("V00"); break;

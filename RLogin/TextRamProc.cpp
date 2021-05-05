@@ -4640,6 +4640,44 @@ void CTextRam::fc_OSCEXE(DWORD ch)
 		}
 		break;
 
+	case 9:
+		// ConEmu specific OSC
+		n = atoi(p);
+		while ( *p != '\0' ) {
+			if ( *(p++) == ';' )
+				break;
+		}
+
+		switch(n) {
+		case 1:		// ESC ] 9 ; 1 ; ms ST	Sleep. ms - number, milliseconds.
+			break;
+		case 2:		// ESC ] 9 ; 2 ; "txt" ST	Show GUI MessageBox ( txt ) for any purposes.
+			m_IConv.RemoteToStr(m_SendCharSet[m_KanjiMode], p, tmp);
+			::AfxMessageBox(tmp);
+			break;
+		case 3:		// ESC ] 9 ; 3 ; "txt" ST	Change ConEmu Tab to txt. Set empty string to return original Tab text.
+			break;
+		case 4:		// ESC ] 9 ; 4 ; st ; pr ST	Set progress state on Windows 7 taskbar and ConEmu title. When st is 0: remove progress. When st is 1: set progress value to pr (number, 0-100). When st is 2: set error state in progress on Windows 7 taskbar, pr is optional. When st is 3: set indeterminate state. When st is 4: set paused state, pr is optional.
+			n = atoi(p);
+			while ( *p != '\0' ) {
+				if ( *(p++) == ';' )
+					break;
+			}
+			((CMainFrame *)::AfxGetMainWnd())->SetTaskbarProgress(n, atoi(p));
+			break;
+		case 5:		// ESC ] 9 ; 5 ST	Wait for Enter/Space/Esc. Set environment variable gConEmuWaitKeyh to gENTERh/hSPACEh/hESCh on exit.
+		case 6:		// ESC ] 9 ; 6 ; "txt" ST	Execute GuiMacro ( txt ). Set EnvVar gConEmuMacroResulth on exit.
+		case 7:		// ESC ] 9 ; 7 ; "cmd" ST	Run some process with arguments.
+		case 8:		// ESC ] 9 ; 8 ; "env" ST	Output value of environment variable.
+		case 9:		// ESC ] 9 ; 9 ; "cwd" ST	Inform ConEmu about shell current working directory.
+		case 10:	// ESC ] 9 ; 10 ST	Request xterm keyboard and output emulation.
+					// ESC ] 9 ; 10 ; n ST	When n is 0 turn off xterm keyboard and output emulation. When n is 1 turn on xterm keyboard and output emulation. When n is 2 turn off xterm output emulation. When n is 3 turn on xterm output emulation.
+		case 11:	// ESC ] 9 ; 11 ; "txt" ST	Just a ecommentf, skip it.
+		case 12:	// ESC ] 9 ; 12 ST	Let ConEmu treat current cursor position as prompt start. Useful with PS1.
+			break;
+		}
+		break;
+
 	case 10:	// 10  -> Change VT100 text foreground color to Pt.
 	case 11:	// 11  -> Change VT100 text background color to Pt.
 	case 12:	// 12  -> Change text cursor color to Pt.

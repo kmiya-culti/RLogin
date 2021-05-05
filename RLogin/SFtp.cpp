@@ -563,6 +563,7 @@ CSFtp::CSFtp(CWnd* pParent /*=NULL*/)
 	m_bShellExec[0] = m_bShellExec[1] = 0;
 	m_bPostMsg = FALSE;
 	m_bTheadExec = FALSE;
+	m_pTaskbarList = NULL;
 }
 CSFtp::~CSFtp()
 {
@@ -2522,8 +2523,14 @@ void CSFtp::SetRangeProg(LPCTSTR file, LONGLONG size, LONGLONG ofs)
 			if ( m_pSSh != NULL && m_pSSh->m_pDocument != NULL )
 				m_pSSh->m_pDocument->SetSleepReq(SLEEPSTAT_ENABLE);
 
-		} else if ( m_ProgDiv > 0 )
+			if ( m_pTaskbarList != NULL )
+				m_pTaskbarList->SetProgressState(GetSafeHwnd(), TBPF_NOPROGRESS);
+
+		} else if ( m_ProgDiv > 0 ) {
 			m_UpDownProg.SetPos((int)(m_TotalPos / m_ProgDiv));
+			if ( m_pTaskbarList != NULL )
+				m_pTaskbarList->SetProgressValue(GetSafeHwnd(), m_TotalPos, m_TotalSize);
+		}
 
 	} else {
 		if ( (m_ProgDiv = (int)(m_TotalSize / 4096)) <= 0 )
@@ -2544,6 +2551,17 @@ void CSFtp::SetRangeProg(LPCTSTR file, LONGLONG size, LONGLONG ofs)
 
 		if ( m_pSSh != NULL && m_pSSh->m_pDocument != NULL )
 			m_pSSh->m_pDocument->SetSleepReq(SLEEPSTAT_DISABLE);
+
+		if ( m_pTaskbarList == NULL ) {
+			if ( SUCCEEDED(::CoCreateInstance(CLSID_TaskbarList, NULL, CLSCTX_INPROC_SERVER, __uuidof(ITaskbarList3), reinterpret_cast<void**>(&m_pTaskbarList))) ) {
+			    if ( SUCCEEDED(m_pTaskbarList->HrInit()) ) {
+					m_pTaskbarList->SetProgressState(GetSafeHwnd(), TBPF_NORMAL);
+				} else {
+					//m_pTaskbarList->Release();
+					m_pTaskbarList = NULL;
+				}
+			}
+		}
 	}
 }
 void CSFtp::SetPosProg(LONGLONG pos)
@@ -2592,6 +2610,9 @@ void CSFtp::SetPosProg(LONGLONG pos)
 	}
 
 	m_UpDownProg.SetPos((int)((m_TotalPos + pos) / m_ProgDiv));
+
+	if ( m_pTaskbarList != NULL )
+		m_pTaskbarList->SetProgressValue(GetSafeHwnd(), (m_TotalPos + pos), m_TotalSize);
 }
 void CSFtp::DispErrMsg(LPCTSTR msg, LPCTSTR file)
 {
