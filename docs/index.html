@@ -6,7 +6,10 @@
 <TITLE>rlogin/telnet/ssh(クライアント)ターミナルソフト</TITLE>
 <STYLE type="text/css">
 <!--
-TD {		
+TD {
+				
+				
+				
 				
 				
 				
@@ -17,7 +20,10 @@ TD {
   background-color : #ffffff;
   font-size : 90%;
 }
-.BOX{		
+.BOX{
+				
+				
+				
 				
 				
 				
@@ -40,8 +46,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.26.1)</TD>
-            <TD width="20%" align="right">2021/05/06</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.26.2)</TD>
+            <TD width="20%" align="right">2021/06/28</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -445,6 +451,14 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2021/06/28</TD>
+            <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.26.2/">2.26.2</A></TD>
+            <TD>文字色セットにCUD（カラーユニバーサルデザイン）を追加<BR>
+            メニュー・ヘルプに登録されたホスト鍵の削除を追加<BR>
+            ホスト鍵の確認で公開鍵を保存しない場合の処理を変更<BR>
+            Server Celectダイアログのポップアップにすべてファイルに保存を追加</TD>
+          </TR>
+          <TR>
             <TD align="center">2021/05/06</TD>
             <TD align="center"><A href="http://nanno.dip.jp/softlib/rlogin/2.26.1/">2.26.1</A></TD>
             <TD>2.25.9以降でチャットスクリプトの受信文字列が空の場合の不都合を修正<BR>
@@ -486,18 +500,6 @@ TD {
             文字セットのIconv設定のデフォルト値をWindowsのSJISに合うように変更<BR>
             Unicode罫線の一部（丸コーナー）の描画方法をなめらかに変更<BR>
             フォントの実サイズにより大きさを調整するように変更</TD>
-          </TR>
-          <TR>
-            <TD align="center">2021/01/08</TD>
-            <TD align="center">&nbsp;<A href="http://nanno.dip.jp/softlib/rlogin/2.25.7/">2.25.7</A></TD>
-            <TD>ダイヤログのリサイズ関数を整理<BR>
-            KnownHostsの管理をホスト名＋ポート番号に変更<BR>
-            SSHのホスト鍵をDNSでチェックしないオプションを追加<BR>
-            strftimeの未対応パラメータを無視するように変更<BR>
-            ログに記録する時間のパラメータに%Lでミリ秒を追加<BR>
-            iconvのSHIFT_JISとCP932との差を吸収する処理を修正<BR>
-            libiconv-1.16に更新<BR>
-            背景のテキスト描画のバグを修正(2.25.7aに更新)</TD>
           </TR>
           <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
@@ -1270,7 +1272,7 @@ TD {
                   <TD colspan="6">ヘルプ(H)</TD>
                 </TR>
                 <TR>
-                  <TD align="center" rowspan="12" width="10">&nbsp;</TD>
+                  <TD align="center" rowspan="13" width="10">&nbsp;</TD>
                   <TD valign="top" colspan="2" width="250">RLoginのバージョン情報(A)</TD>
                   <TD valign="top" width="450">プログラムやライブラリなどのバージョン情報を表示します</TD>
                   <TD valign="top" width="120" align="right"></TD>
@@ -1335,6 +1337,12 @@ TD {
                   ※RLogin_rc.txtは、バージョンに依存します</TD>
                   <TD valign="top" align="right" width="120"></TD>
                   <TD valign="top" width="150">$RESOURCE_SAVE</TD>
+                </TR>
+                <TR>
+                  <TD valign="top" colspan="2">登録されたホスト鍵の削除(H)</TD>
+                  <TD valign="top">SSHサーバーの登録された信頼するホスト鍵を削除します</TD>
+                  <TD valign="top" align="right"></TD>
+                  <TD valign="top">$KNOWNHOST_DELETE</TD>
                 </TR>
                 <TR>
                   <TD valign="top" colspan="2" width="250">パスワードロック(K)</TD>
@@ -1700,6 +1708,10 @@ TD {
                 <TR>
                   <TD align="center">ファイルにエクスポート</TD>
                   <TD>ファイルに設定を保存します。ファイルは、テキスト形式ですのでメモ帳などで編集可能です</TD>
+                </TR>
+                <TR>
+                  <TD align="center">すべてファイルに保存</TD>
+                  <TD>すべてのエントリー情報を１つのファイルに保存します</TD>
                 </TR>
                 <TR>
                   <TD align="center">最新の情報に更新</TD>
@@ -5697,6 +5709,7 @@ function TekClock2() {
             <TD valign="top" width="600"><A href="http://netpbm.sourceforge.net/">Netpbm</A>などのコンバーターを使用すれば画像が表示されます<BR>
             jpegtopnm tiger.jpg | pnmquant 256 | ppmtosixel<BR>
             <BR>
+            ※ppmtosixelは、C1制御文字のDCS($90)を使用しています。<SPAN style="color: rgb(36, 41, 46); font-family: -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;; font-size: 14px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;">制御コードのオプション設定?8454のチェックを外して</SPAN><span style="color: rgb(36, 41, 46); font-family: -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;; font-size: 14px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;">「?8454 C1制御文字を処理する」にしないと正しく動作しません。</span><BR>
             <BR>
             <A href="http://www.libgd.org/">libgd</A>を使ったsixelコンバータのソースファイルです。<A href="sixel.tar.gz">sixel.tar.gz</A><BR>
             <TABLE cellpadding="3">

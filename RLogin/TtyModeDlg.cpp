@@ -328,3 +328,181 @@ void CColEditDlg::OnEditPasteAll()
 
 	InitList();
 }
+
+/////////////////////////////////////////////////////////////////////////////
+// CKnownHostsDlg
+
+IMPLEMENT_DYNAMIC(CKnownHostsDlg, CTtyModeDlg)
+
+CKnownHostsDlg::CKnownHostsDlg()
+{
+}
+CKnownHostsDlg::~CKnownHostsDlg()
+{
+	for ( int n = 0 ; n < m_Data.GetSize() ; n++ )
+		delete m_Data[n];
+}
+
+BEGIN_MESSAGE_MAP(CKnownHostsDlg, CTtyModeDlg)
+END_MESSAGE_MAP()
+
+static const LV_COLUMN InitKnownHostsTab[3] = {
+	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, 0,  160, _T("Host"),	0, 0 },
+	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, 0,   40, _T("Port"),	0, 0 },
+	{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, 0,  240, _T("Key"),	0, 0 },
+};
+
+void CKnownHostsDlg::InitList()
+{
+	int n;
+	KNOWNHOSTDATA *pData;
+
+	m_List.DeleteAllItems();
+
+	for ( n = 0 ; n < m_Data.GetSize() ; n++ ) {
+		pData = (KNOWNHOSTDATA *)m_Data.GetAt(n);
+		m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, n, pData->host, 0, 0, 0, n);
+		m_List.SetItemText(n, 1, pData->port);
+		m_List.SetItemText(n, 2, pData->digest);
+		m_List.SetLVCheck(n, FALSE);
+
+		m_List.SetItemData(n, n);
+	}
+}
+
+BOOL CKnownHostsDlg::OnInitDialog()
+{
+	CDialogExt::OnInitDialog();
+
+	InitItemOffset(ItemTab);
+
+	m_List.SetExtendedStyle(LVS_EX_FULLROWSELECT | LVS_EX_CHECKBOXES);
+	m_List.InitColumn(_T("CKnownHostsDlg"), InitKnownHostsTab, 3);
+
+	int n, i;
+	LPCTSTR p;
+	CStringArrayExt list, entry;
+	CRLoginApp *pApp = (CRLoginApp *)AfxGetApp();
+	CIdKey key;
+	KNOWNHOSTDATA *pData;
+
+	m_Data.RemoveAll();
+
+	pApp->GetProfileKeys(_T("KnownHosts"), list);
+	for ( n = 0 ; n < list.GetSize() ; n++ ) {
+
+		// 古い形式(KnownHosts\host-xxx)
+		if ( (p = _tcsrchr(list[n], _T('-'))) != NULL && (key.GetTypeFromName(p + 1) & IDKEY_TYPE_MASK) != IDKEY_NONE ) {
+			pData = new KNOWNHOSTDATA;
+			pData->key = list[n];
+			pData->del = FALSE;
+			pData->type = 0;
+
+			pData->host.Empty();
+			for ( LPCTSTR s = list[n] ; s < p ; )
+				pData->host += *(s++);
+			pData->port = _T("");
+			pData->digest = pApp->GetProfileString(_T("KnownHosts"), list[n], _T(""));
+
+			m_Data.Add(pData);
+
+		// 新しい形式(KnownHosts\host:nnn)
+		} else if ( (p = _tcsrchr(list[n], _T(':'))) != NULL && _tstoi(p + 1) != 0 ) {
+			pApp->GetProfileStringArray(_T("KnownHosts"), list[n], entry);
+			for ( i = 0 ; i < entry.GetSize() ; i++ ) {
+				pData = new KNOWNHOSTDATA;
+				pData->key = list[n];
+				pData->del = FALSE;
+				pData->type = 2;
+				pData->host.Empty();
+				for ( LPCTSTR s = list[n] ; s < p ; )
+					pData->host += *(s++);
+				pData->port = p + 1;
+				pData->digest = entry[i];
+
+				m_Data.Add(pData);
+			}
+
+		// 古い形式(KnownHosts\host)
+		} else {
+			pApp->GetProfileStringArray(_T("KnownHosts"), list[n], entry);
+			for ( i = 0 ; i < entry.GetSize() ; i++ ) {
+				pData = new KNOWNHOSTDATA;
+				pData->key = list[n];
+				pData->del = FALSE;
+				pData->type = 1;
+				pData->host = list[n];
+				pData->port = _T("ssh");
+				pData->digest = entry[i];
+
+				m_Data.Add(pData);
+			}
+		}
+	}
+
+
+	InitList();
+	SetWindowText(_T("Known Host Keys Delete"));
+	SetDlgItemText(IDOK, _T("DELETE"));
+
+	return TRUE;
+}
+
+void CKnownHostsDlg::OnOK()
+{
+	int n, i;
+	int dels = 0;
+	KNOWNHOSTDATA *pData;
+	CRLoginApp *pApp = (CRLoginApp *)AfxGetApp();
+	CStringArrayExt entry;
+	CString msg;
+
+	for ( n = 0 ; n < m_List.GetItemCount() ; n++ ) {
+		i = (int)m_List.GetItemData(n);
+		if ( m_List.GetLVCheck(n) && (i = (int)m_List.GetItemData(n)) < (int)m_Data.GetSize() ) {
+			((KNOWNHOSTDATA *)m_Data.GetAt(i))->del = TRUE;
+			dels++;
+		}
+	}
+
+	msg.Format(CStringLoad(IDS_KNOWNHOSTDELMSG), dels);
+
+	if ( dels > 0 && MessageBox(msg, _T("Question"), MB_ICONQUESTION | MB_YESNO) == IDYES ) {
+		for ( n = 0 ; n < m_Data.GetSize() ; ) {
+			pData = (KNOWNHOSTDATA *)m_Data.GetAt(n);
+			if ( !pData->del ) {
+				n++;
+				continue;
+			}
+
+			switch(pData->type) {
+			case 0:	// KnownHosts\host-xxx
+				pApp->DelProfileEntry(_T("KnownHosts"), pData->key);
+				n++;
+				break;
+
+			case 1:	// KnownHosts\host
+			case 2:	// KnownHosts\host:nnn
+				for ( i = n ; i >= 0 && pData->key.Compare(((KNOWNHOSTDATA *)m_Data.GetAt(i))->key) == 0 ; )
+					i--;
+				i++;
+
+				entry.RemoveAll();
+				for ( ; i < m_Data.GetSize() && pData->key.Compare(((KNOWNHOSTDATA *)m_Data.GetAt(i))->key) == 0 ; i++ ) {
+					if ( !((KNOWNHOSTDATA *)m_Data.GetAt(i))->del )
+						entry.Add(((KNOWNHOSTDATA *)m_Data.GetAt(i))->digest);
+				}
+				n = i;
+
+				if ( entry.GetSize() > 0 )
+					pApp->WriteProfileStringArray(_T("KnownHosts"), pData->key, entry);
+				else
+					pApp->DelProfileEntry(_T("KnownHosts"), pData->key);
+
+				break;
+			}
+		}
+	}
+
+	CDialogExt::OnOK();
+}

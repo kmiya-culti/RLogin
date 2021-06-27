@@ -111,6 +111,7 @@ protected:
 	afx_msg void OnCheckEntry();
 	afx_msg void OnServInport();
 	afx_msg void OnServExport();
+	afx_msg void OnAllExport();
 	afx_msg void OnServProto();
 	afx_msg void OnSaveDefault();
 	afx_msg void OnServExchng();

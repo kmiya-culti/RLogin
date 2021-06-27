@@ -14,6 +14,7 @@
 #include "richedit.h"
 #include "TraceDlg.h"
 #include "AnyPastDlg.h"
+#include "TtyModeDlg.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -882,6 +883,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_COMMAND(IDM_SPEAKALL, &CMainFrame::OnSpeakText)
 	ON_UPDATE_COMMAND_UI(IDM_SPEAKALL, &CMainFrame::OnUpdateSpeakText)
 
+	ON_COMMAND(IDM_KNOWNHOSTDEL, &CMainFrame::OnKnownhostdel)
 END_MESSAGE_MAP()
 
 static const UINT indicators[] =
@@ -4562,6 +4564,13 @@ void CMainFrame::OnViewHistoryDlg()
 afx_msg void CMainFrame::OnUpdateHistoryDlg(CCmdUI *pCmdUI)
 {
 	pCmdUI->SetCheck(m_pHistoryDlg != NULL ? 1 : 0);
+}
+
+void CMainFrame::OnKnownhostdel()
+{
+	CKnownHostsDlg dlg;
+
+	dlg.DoModal();
 }
 
 /////////////////////////////////////////////////////////////////////////////

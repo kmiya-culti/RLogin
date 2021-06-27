@@ -116,6 +116,7 @@ BEGIN_MESSAGE_MAP(CServerSelect, CDialogExt)
 	ON_NOTIFY(TVN_ITEMEXPANDED, IDC_SERVERTREE, &CServerSelect::OnTvnItemexpandedServertree)
 	ON_NOTIFY(NM_RCLICK, IDC_SERVERTREE, &CServerSelect::OnNMRClickServertree)
 	ON_NOTIFY(TVN_BEGINLABELEDIT, IDC_SERVERTREE, &CServerSelect::OnTvnBeginlabeleditServertree)
+	ON_COMMAND(IDM_ALL_EXPORT, &CServerSelect::OnAllExport)
 END_MESSAGE_MAP()
 
 void CServerSelect::TreeExpandUpdate(HTREEITEM hTree, BOOL bExpand)
@@ -1011,6 +1012,49 @@ void CServerSelect::OnServExport()
 				continue;
 
 			Entry = m_pData->GetAt(m_EntryNum);
+			CRLoginDoc::LoadOption(Entry, *m_pTextRam, *m_pKeyTab, *m_pKeyMac, *m_pParamTab);
+
+			index.RemoveAll();
+			index.SetNoCase(TRUE);
+			index.SetNoSort(TRUE);
+
+			CRLoginDoc::SaveIndex(Entry, *m_pTextRam, *m_pKeyTab, *m_pKeyMac, *m_pParamTab, index);
+
+			Archive.Write("RLG310\r\n", 8);
+			index.Serialize(Archive, NULL);
+			Archive.Write("ENDOF\r\n", 7);
+		}
+
+	} CATCH_ALL(e) {
+		MessageBox(_T("File Write Error"));
+	} END_CATCH_ALL
+
+	Archive.Close();
+	File.Close();
+}
+
+void CServerSelect::OnAllExport()
+{
+	int n;
+	CFile File;
+	CStringIndex index;
+	CServerEntry Entry;
+	CFileDialog dlg(FALSE, _T("rlg"), _T(""), OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGRLOGIN), this);
+
+	if ( DpiAwareDoModal(dlg) != IDOK )
+		return;
+
+	if ( !File.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeReadWrite | CFile::shareExclusive) ) {
+		MessageBox(_T("File Crate Error"));
+		return;
+	}
+
+	CWaitCursor wait;
+	CArchive Archive(&File, CArchive::store | CArchive::bNoFlushOnDelete);
+
+	TRY {
+		for ( n = 0 ; n < m_pData->GetSize() ; n++ ) {
+			Entry = m_pData->GetAt(n);
 			CRLoginDoc::LoadOption(Entry, *m_pTextRam, *m_pKeyTab, *m_pKeyMac, *m_pParamTab);
 
 			index.RemoveAll();
@@ -2063,4 +2107,3 @@ void CServerSelect::OnTvnItemexpandedServertree(NMHDR *pNMHDR, LRESULT *pResult)
 		break;
 	}
 }
-

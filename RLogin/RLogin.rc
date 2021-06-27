@@ -207,6 +207,8 @@ BEGIN
         MENUITEM "プライベートプロファイル作成(&P)",          IDM_CREATEPROFILE
         MENUITEM "レジストリをファイルに保存(&B)",           IDM_SAVEREGFILE
         MENUITEM "リソースをファイルに保存(&R)",            IDM_SAVERESFILE
+        MENUITEM SEPARATOR
+        MENUITEM "登録されたホスト鍵の削除(&H)",            IDM_KNOWNHOSTDEL
         MENUITEM "パスワードロック(&K)",                IDM_PASSWORDLOCK
     END
 END
@@ -375,6 +377,8 @@ BEGIN
         MENUITEM "プライベートプロファイル作成(&P)",          IDM_CREATEPROFILE
         MENUITEM "レジストリをファイルに保存(&B)",           IDM_SAVEREGFILE
         MENUITEM "リソースをファイルに保存(&R)",            IDM_SAVERESFILE
+        MENUITEM SEPARATOR
+        MENUITEM "登録されたホスト鍵の削除(&H)",            IDM_KNOWNHOSTDEL
         MENUITEM "パスワードロック(&K)",                IDM_PASSWORDLOCK
     END
 END
@@ -429,6 +433,7 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "ファイルからインポート(&I)",             IDM_SERV_INPORT
         MENUITEM "ファイルにエクスポート(&X)",             IDM_SERV_EXPORT
+        MENUITEM "すべてファイルに保存(&A)",              IDM_ALL_EXPORT
         MENUITEM SEPARATOR
         MENUITEM "最新の情報に更新(&U)",                ID_EDIT_CHECK
     END
@@ -626,8 +631,8 @@ BEGIN
     CONTROL         "<a href=""https://1023world.net/"">https://1023world.net/</a>",IDC_SYSLINK1,
                     "SysLink",WS_TABSTOP,44,204,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,223,60,14,WS_GROUP
-    ICON            IDR_MAINFRAME,IDC_STATIC,7,7,18,21
-    LTEXT           "RLogin (%s) Version 2.26.1 (2021/05/06)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
+    LTEXT           "RLogin (%s) Version 2.26.2 (2021/06/28)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2021 Culti",IDC_STATIC,44,16,189,8
     LTEXT           "OpenSSL 1.1.1k 25 Mar 2021",IDC_STATIC,44,52,189,8
     LTEXT           "Copyright (c) 1998-2021 The OpenSSL Project",IDC_STATIC,44,61,189,8
@@ -2154,8 +2159,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,26,1,0
- PRODUCTVERSION 2,26,1,0
+ FILEVERSION 2,26,2,0
+ PRODUCTVERSION 2,26,2,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2172,12 +2177,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.26.1.0"
+            VALUE "FileVersion", "2.26.2.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.26.1.0"
+            VALUE "ProductVersion", "2.26.2.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -3090,6 +3095,8 @@ BEGIN
 0x6154, 0x676e, 0x006f, 
     IDC_COLSET, 0x403, 8, 0
 0x6957, 0x646e, 0x776f, 0x0073, 
+    IDC_COLSET, 0x403, 4, 0
+0x5543, 0x0044, 
     IDC_WAKEUPSLEEP, 0x403, 5, 0
 0x6f4e, 0x656e, "\000" 
     IDC_WAKEUPSLEEP, 0x403, 5, 0
@@ -4447,6 +4454,7 @@ BEGIN
     IDS_ANYPASTVIEWMSG      "呼び出した接続と違う接続にペーストしますか？"
     IDS_VERSIONCHECKURL2    "https://kmiya-culti.github.io/RLogin/version.txt"
     IDS_SCRIPTDLGSTEP       "ステップ"
+    IDS_KNOWNHOSTDELMSG     "登録されているホスト鍵%d個を削除しますか？"
 END
 
 STRINGTABLE
@@ -4930,6 +4938,8 @@ BEGIN
     IDM_CMDHIS_SCRM         "スクロールモードの着替え\nスクロールモード"
     IDM_HISTORYDLG          "ヒストリーウィンドウを表示・非表示\nヒストリーウィンドウ"
     IDM_SPEAKALL            "表示されている画面を音声で読み上げます\n音声で読み上げ"
+    IDM_KNOWNHOSTDEL        "登録されているホスト鍵の削除\nホスト鍵の削除"
+    IDM_ALL_EXPORT          "すべてのエントリーをファイルに保存します\nすべて保存"
 END
 
 #endif    // 日本語 (日本) resources

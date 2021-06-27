@@ -255,6 +255,7 @@
 #define IDS_ANYPASTVIEWMSG              645
 #define IDS_VERSIONCHECKURL2            646
 #define IDS_SCRIPTDLGSTEP               647
+#define IDS_KNOWNHOSTDELMSG             648
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -1133,6 +1134,8 @@
 #define IDM_CMDHIS_SCRM                 5143
 #define IDM_HISTORYDLG                  5144
 #define IDM_SPEAKALL                    5145
+#define IDM_KNOWNHOSTDEL                5146
+#define IDM_ALL_EXPORT                  5147
 #define IDM_FIRST_MDICHILD              0xF800
 
 // Next default values for new objects
@@ -1140,8 +1143,8 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        169
-#define _APS_NEXT_COMMAND_VALUE         5146
+#define _APS_NEXT_COMMAND_VALUE         5148
 #define _APS_NEXT_CONTROL_VALUE         2511
-#define _APS_NEXT_SYMED_VALUE           648
+#define _APS_NEXT_SYMED_VALUE           649
 #endif
 #endif

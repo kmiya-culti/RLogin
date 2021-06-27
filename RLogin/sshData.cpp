@@ -1946,7 +1946,7 @@ LPCTSTR CIdKey::GetName(BOOL bCert, BOOL bExtname)
 	m_Work.Empty();
 
 	if ( bExtname ) {
-		if ( m_AgeantType == IDKEY_AGEANT_PUTTY )
+		if ( m_AgeantType == IDKEY_AGEANT_PUTTY || m_AgeantType == IDKEY_AGEANT_PUTTYPIPE )
 			m_Work += _T("Pageant:");
 		else if ( m_AgeantType == IDKEY_AGEANT_WINSSH )
 			m_Work += _T("Wageant:");
@@ -2083,7 +2083,7 @@ int CIdKey::ChkOldCertHosts(LPCTSTR host)
 
 	return FALSE;
 }
-int CIdKey::HostVerify(LPCTSTR host, UINT port, BOOL bDnsDisable)
+int CIdKey::HostVerify(LPCTSTR host, UINT port, class Cssh *pSsh)
 {
 	int n, i, found;
 	CString dig, ses, known, work, kname;
@@ -2102,7 +2102,10 @@ int CIdKey::HostVerify(LPCTSTR host, UINT port, BOOL bDnsDisable)
 	} *t;
 	ADDRINFOT hints, *ai;
 
-	if ( !bDnsDisable ) {
+	if ( pSsh != NULL )
+		pSsh->m_bKnownHostUpdate = TRUE;
+
+	if (  pSsh != NULL && pSsh->m_pDocument != NULL && !pSsh->m_pDocument->m_TextRam.IsOptEnable(TO_DNSSSSHFP) ) {
 		memset(&hints, 0, sizeof(hints));
 		hints.ai_socktype = SOCK_DGRAM;
 		hints.ai_flags = AI_NUMERICHOST;
@@ -2203,7 +2206,10 @@ int CIdKey::HostVerify(LPCTSTR host, UINT port, BOOL bDnsDisable)
 		if ( dlg.m_SaveKeyFlag ) {
 			entry.Add(dig);
 			pApp->WriteProfileStringArray(_T("KnownHosts"), kname, entry);
-		}
+
+		// •Û‘¶‚µ‚È‚¢‚È‚çSSH2_MSG_GLOBAL_REQUEST‚Ì"hostkeys-00@openssh.com"‚ðˆ—‚µ‚È‚¢
+		} else 	if ( pSsh != NULL )
+			pSsh->m_bKnownHostUpdate = FALSE;
 	}
 
 	return TRUE;
@@ -4572,6 +4578,18 @@ int CIdKey::SetEvpPkey(EVP_PKEY *pk)
 		if ( GetIndexNid(m_EcNid) >= 0 )
 			m_Type = IDKEY_ECDSA;
 		break;
+
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+	#include "crypto/ecx.h"
+	ECX_KEY *ecx;
+	case EVP_PKEY_ED25519:
+		ecx = ossl_evp_pkey_get1_ED25519(pk);
+		break;
+	case EVP_PKEY_ED448:
+		ecx = ossl_evp_pkey_get1_ED448(pk);
+		break;
+#endif
+
 	default:
 		m_Type = IDKEY_NONE;
 		return FALSE;

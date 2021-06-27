@@ -372,7 +372,7 @@ public:
 
 	LPCTSTR GetName(BOOL bCert = TRUE, BOOL bExtname = FALSE);
 	int GetTypeFromName(LPCTSTR name);
-	int HostVerify(LPCTSTR host, UINT port, BOOL bDnsDisable);
+	int HostVerify(LPCTSTR host, UINT port, class Cssh *pSsh = NULL);
 	int ChkOldCertHosts(LPCTSTR host);
 
 	int RsaSign(CBuffer *bp, LPBYTE buf, int len, LPCTSTR alg);
@@ -777,6 +777,7 @@ public:
 
 	CMutex *m_pAgentMutex;
 	CStringA m_AgentPass;
+	BOOL m_bKnownHostUpdate;
 
 private:
 	CString m_ServerVerStr;

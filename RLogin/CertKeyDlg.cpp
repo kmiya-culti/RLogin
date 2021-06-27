@@ -51,9 +51,11 @@ BOOL CCertKeyDlg::OnInitDialog()
 	SetTimer(1028, 1000, NULL);
 	m_Counter = 0;
 
-	if ( (pWnd = GetDlgItem(IDC_DIGEST)) != NULL && m_DigestFont.CreatePointFont(
-			MulDiv(9 * 10, m_NowDpi.cy, SYSTEM_DPI_Y), _T("Consolas")) )
+	if ( (pWnd = GetDlgItem(IDC_DIGEST)) != NULL && m_DigestFont.CreatePointFont(MulDiv(9 * 10, m_NowDpi.cy, SYSTEM_DPI_Y), _T("Consolas")) )
 		pWnd->SetFont(&m_DigestFont);
+
+	m_SaveKeyFlag = ::AfxGetApp()->GetProfileInt(_T("CCertKeyDlg"), _T("SaveKeyFlag"), TRUE);
+	UpdateData(FALSE);
 
 	return TRUE;
 }
@@ -66,4 +68,13 @@ void CCertKeyDlg::OnTimer(UINT_PTR nIDEvent)
 			OnCancel();
 	}
 	CDialogExt::OnTimer(nIDEvent);
+}
+
+
+void CCertKeyDlg::OnOK()
+{
+	UpdateData(TRUE);
+	::AfxGetApp()->WriteProfileInt(_T("CCertKeyDlg"), _T("SaveKeyFlag"), m_SaveKeyFlag);
+
+	CDialogExt::OnOK();
 }

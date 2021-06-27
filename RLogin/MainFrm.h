@@ -553,6 +553,7 @@ protected:
 	afx_msg void OnUpdateTabmultiline(CCmdUI *pCmdUI);
 	afx_msg void OnQuickConnect();
 	afx_msg void OnUpdateConnect(CCmdUI *pCmdUI);
+	afx_msg void OnKnownhostdel();
 
 	afx_msg LRESULT OnWinSockSelect(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnGetHostAddr(WPARAM wParam, LPARAM lParam);

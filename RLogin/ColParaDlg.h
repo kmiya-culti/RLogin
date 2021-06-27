@@ -4,7 +4,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // CColParaDlg ダイアログ
 
-extern	const COLORREF	ColSetTab[10][16];
+extern	const COLORREF	ColSetTab[11][16];
 
 class CColParaDlg : public CTreePage
 {

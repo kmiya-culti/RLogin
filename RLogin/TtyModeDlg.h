@@ -58,3 +58,37 @@ protected:
 	afx_msg void OnEditCopyAll();
 	afx_msg void OnEditPasteAll();
 };
+
+/////////////////////////////////////////////////////////////////////////////
+// CKnownHostsDlg
+
+class CKnownHostsDlg : public CTtyModeDlg
+{
+	DECLARE_DYNAMIC(CKnownHostsDlg)
+
+public:
+	CKnownHostsDlg();
+	virtual ~CKnownHostsDlg();
+
+public:
+	typedef struct _KnownHostData {
+		int			type;
+		BOOL		del;
+		CString		key;
+		CString		host;
+		CString		port;
+		CString		digest;
+	} KNOWNHOSTDATA;
+
+	CPtrArray m_Data;
+
+public:
+	virtual void InitList();
+
+protected:
+	virtual BOOL OnInitDialog();
+	virtual void OnOK();
+
+protected:
+	DECLARE_MESSAGE_MAP()
+};
