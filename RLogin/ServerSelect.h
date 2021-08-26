@@ -122,7 +122,6 @@ protected:
 
 	afx_msg void OnUpdateSaveDefault(CCmdUI *pCmdUI);
 	afx_msg void OnUpdateEditEntry(CCmdUI* pCmdUI);
-	afx_msg void OnUpdateEditCopy(CCmdUI *pCmdUI);
 
 	afx_msg void OnDblclkServerlist(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnLvnBegindragServerlist(NMHDR *pNMHDR, LRESULT *pResult);

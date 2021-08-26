@@ -90,15 +90,16 @@ BEGIN_MESSAGE_MAP(CServerSelect, CDialogExt)
 	ON_COMMAND(IDC_SAVEDEFAULT, &CServerSelect::OnSaveDefault)
 	ON_COMMAND(IDC_LOADDEFAULT, &CServerSelect::OnLoaddefault)
 	ON_COMMAND(IDM_SHORTCUT, &CServerSelect::OnShortcut)
+	ON_COMMAND(IDM_ALL_EXPORT, &CServerSelect::OnAllExport)
 
+	ON_UPDATE_COMMAND_UI(IDC_SAVEDEFAULT, OnUpdateSaveDefault)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_UPDATE, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_DELETE, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(ID_EDIT_DUPS, OnUpdateEditEntry)
-	ON_UPDATE_COMMAND_UI(ID_EDIT_COPY, &CServerSelect::OnUpdateEditCopy)
+	ON_UPDATE_COMMAND_UI(ID_EDIT_COPY, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(IDM_SERV_EXPORT, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(IDM_SERV_EXCHNG, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(IDM_SERV_PROTO, OnUpdateEditEntry)
-	ON_UPDATE_COMMAND_UI(IDC_SAVEDEFAULT, OnUpdateSaveDefault)
 	ON_UPDATE_COMMAND_UI(IDC_LOADDEFAULT, OnUpdateEditEntry)
 	ON_UPDATE_COMMAND_UI(IDM_SHORTCUT, OnUpdateEditEntry)
 
@@ -116,7 +117,6 @@ BEGIN_MESSAGE_MAP(CServerSelect, CDialogExt)
 	ON_NOTIFY(TVN_ITEMEXPANDED, IDC_SERVERTREE, &CServerSelect::OnTvnItemexpandedServertree)
 	ON_NOTIFY(NM_RCLICK, IDC_SERVERTREE, &CServerSelect::OnNMRClickServertree)
 	ON_NOTIFY(TVN_BEGINLABELEDIT, IDC_SERVERTREE, &CServerSelect::OnTvnBeginlabeleditServertree)
-	ON_COMMAND(IDM_ALL_EXPORT, &CServerSelect::OnAllExport)
 END_MESSAGE_MAP()
 
 void CServerSelect::TreeExpandUpdate(HTREEITEM hTree, BOOL bExpand)
@@ -1198,7 +1198,14 @@ void CServerSelect::OnSaveDefault()
 
 void CServerSelect::OnUpdateEditEntry(CCmdUI* pCmdUI) 
 {
-	pCmdUI->Enable(m_List.GetSelectMarkData() >= 0);
+	for ( int n = 0 ; n < m_List.GetItemCount() ; n++ ) {
+		if ( m_List.GetItemState(n, LVIS_SELECTED) != 0 ) {
+			pCmdUI->Enable(TRUE);
+			return;
+		}
+	}
+
+	pCmdUI->Enable(FALSE);
 }
 
 void CServerSelect::OnUpdateSaveDefault(CCmdUI *pCmdUI)
@@ -1302,11 +1309,6 @@ void CServerSelect::OnEditCopy()
 
 	index.SetJsonFormat(mbs, 0, JSON_TCODE);
 	((CMainFrame *)::AfxGetMainWnd())->SetClipboardText((LPCTSTR)mbs);
-}
-
-void CServerSelect::OnUpdateEditCopy(CCmdUI *pCmdUI)
-{
-	pCmdUI->Enable(m_List.GetSelectMarkData() >= 0);
 }
 
 void CServerSelect::OnEditPaste()
