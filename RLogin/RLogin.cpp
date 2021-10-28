@@ -1298,8 +1298,7 @@ BOOL CRLoginApp::InitInstance()
 #endif
 
 	// 音声合成の初期化
-	if ( FAILED(CoCreateInstance(CLSID_SpVoice, NULL, CLSCTX_ALL, IID_ISpVoice, (void **)&m_pVoice)) )
-		m_pVoice = NULL;
+	VoiceInit();
 
 	// レジストリに保存するパスワードの暗号キーを選択
 	m_MakeKeyMode = GetProfileInt(_T("RLoginApp"), _T("MakeKeyMode"), MAKEKEY_USERHOST);
@@ -1515,9 +1514,7 @@ int CRLoginApp::ExitInstance()
 		FreeLibrary(ExDWriteApi);
 #endif
 
-	if ( m_pVoice != NULL )
-		m_pVoice->Release();
-
+	VoiceFinis();
 	CoUninitialize();
 
 	CSFtp::LocalDelete(m_TempDirBase);
@@ -3632,3 +3629,153 @@ void CRLoginApp::EmojiImageInit(LPCTSTR pFontName, LPCTSTR pImageDir)
 }
 
 #endif
+
+#include "sphelper.h"
+
+#define	SPCAT_DEF_VOICES	SPCAT_VOICES	// L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech\\Voices"
+#define	SPCAT_V10_VOICES	L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech Server\\v10.0\\Voices"
+#define	SPCAT_V11_VOICES	L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech Server\\v11.0\\Voices"
+#define	SPCAT_ONE_VOICES	L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech_OneCore\\Voices"
+	
+#define	REQ_ATTR_LANG_JP		 L"Language = 411"
+#define	REQ_ATTR_LANG_EN		 L"Language = 409"
+
+BOOL CRLoginApp::AddVoiceToken(const WCHAR * pszCategoryId, const WCHAR * pszReqAttribs, const WCHAR * pszOptAttribs)
+{
+	BOOL rt = FALSE;
+	IEnumSpObjectTokens *pEnum = NULL;
+	ULONG ulCount;
+	ISpObjectToken *pToken;
+
+	if ( FAILED(SpEnumTokens(pszCategoryId, pszReqAttribs, pszOptAttribs, &pEnum)) )
+		goto ERRRET;
+
+	if ( FAILED(pEnum->GetCount(&ulCount)) )
+		goto ERRRET;
+
+	while ( ulCount-- > 0 ) {
+		if ( FAILED(pEnum->Next(1, &pToken, NULL)) )
+			goto ERRRET;
+
+		m_VoiceList.Add(pToken);
+	}
+
+	rt = TRUE;
+
+ERRRET:
+	if ( pEnum != NULL )
+		pEnum->Release();
+
+	return rt;
+}
+void CRLoginApp::VoiceInit()
+{
+	int n;
+	ISpObjectToken *pToken;
+	WCHAR *desc;
+	CString VoiceDesc;
+	long rate;
+
+	m_VoiceList.RemoveAll();
+
+	if ( FAILED(CoCreateInstance(CLSID_SpVoice, NULL, CLSCTX_ALL, IID_ISpVoice, (void **)&m_pVoice)) )
+		return;
+
+	if ( SUCCEEDED(m_pVoice->GetVoice(&pToken)) && SUCCEEDED(SpGetDescription(pToken, &desc)) )
+		VoiceDesc = desc;
+
+	VoiceDesc = GetProfileString(_T("RLoginApp"), _T("VoiceDesc"), VoiceDesc);
+
+	m_pVoice->GetRate(&rate);
+	rate = GetProfileInt(_T("RLoginApp"), _T("VoiceRate"), rate);
+	if ( rate < -10 ) rate = -10; else if ( rate > 10 ) rate = 10;
+
+	AddVoiceToken(SPCAT_DEF_VOICES, NULL, NULL);
+//	AddVoiceToken(SPCAT_V10_VOICES, NULL, NULL);
+//	AddVoiceToken(SPCAT_V11_VOICES, NULL, NULL);
+	AddVoiceToken(SPCAT_ONE_VOICES, NULL, NULL);
+
+	for ( n = 0 ; n < m_VoiceList.GetSize() ; n++ ) {
+		pToken = (ISpObjectToken *)m_VoiceList[n];
+
+		if ( SUCCEEDED(SpGetDescription(pToken, &desc)) && VoiceDesc.Compare(UniToTstr(desc)) == 0 ) {
+			m_pVoice->SetVoice(pToken);
+			break;
+		}
+	}
+
+	m_pVoice->SetRate(rate);	//  -10 to 10 
+}
+void CRLoginApp::VoiceFinis()
+{
+	int n;
+
+	for ( n = 0 ; n < m_VoiceList.GetSize() ; n++ ) {
+		ISpObjectToken *pToken = (ISpObjectToken *)m_VoiceList[n];
+		pToken->Release();
+	}
+
+	m_VoiceList.RemoveAll();
+
+	if ( m_pVoice != NULL )
+		m_pVoice->Release();
+
+	m_pVoice = NULL;
+}
+void CRLoginApp::SetVoiceListCombo(CComboBox *pCombo)
+{
+	int n;
+	WCHAR *desc;
+	ISpObjectToken *pToken;
+	CString VoiceDesc;
+
+	if ( m_pVoice == NULL )
+		return;
+
+	if ( SUCCEEDED(m_pVoice->GetVoice(&pToken)) && SUCCEEDED(SpGetDescription(pToken, &desc)) )
+		VoiceDesc = desc;
+
+	for ( n = pCombo->GetCount() - 1 ; n >= 0 ; n-- )
+		pCombo->DeleteString(n);
+
+	for ( n = 0 ; n < m_VoiceList.GetSize() ; n++ ) {
+		if ( SUCCEEDED(SpGetDescription((ISpObjectToken *)m_VoiceList[n], &desc)) ) {
+			if ( pCombo->FindStringExact((-1), UniToTstr(desc)) == CB_ERR )
+				pCombo->AddString(UniToTstr(desc));
+
+			if ( VoiceDesc.Compare(desc) == 0 )
+				pCombo->SetCurSel(n);
+		}
+	}
+}
+void CRLoginApp::SetVoice(LPCTSTR str, long rate)
+{
+	int n;
+	WCHAR *desc;
+	ISpObjectToken *pToken;
+	CMainFrame *pMain = (CMainFrame *)::AfxGetMainWnd();
+
+	if ( m_pVoice == NULL )
+		return;
+
+	m_pVoice->Pause();
+
+	for ( n = 0 ; n < m_VoiceList.GetSize() ; n++ ) {
+		pToken = (ISpObjectToken *)m_VoiceList[n];
+
+		if ( SUCCEEDED(SpGetDescription(pToken, &desc)) && _tcscmp(str, UniToTstr(desc)) == 0 ) {
+			m_pVoice->SetVoice(pToken);
+			break;
+		}
+	}
+
+	if ( rate < -10 ) rate = -10; else if ( rate > 10 ) rate = 10;
+	m_pVoice->SetRate(rate);	//  -10 to 10 
+	
+	WriteProfileString(_T("RLoginApp"), _T("VoiceDesc"), str);
+	WriteProfileInt(_T("RLoginApp"), _T("VoiceRate"), rate);
+
+	m_pVoice->Resume();
+		
+	pMain->SpeakUpdate(pMain->m_SpeakActive[2], pMain->m_SpeakActive[1] - pMain->m_SpeakActive[0]);
+}

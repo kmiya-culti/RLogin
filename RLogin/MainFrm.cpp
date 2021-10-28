@@ -836,6 +836,8 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_UPDATE_COMMAND_UI(ID_VIEW_SCROLLBAR, &CMainFrame::OnUpdateViewScrollbar)
 	ON_COMMAND(IDM_HISTORYDLG, &CMainFrame::OnViewHistoryDlg)
 	ON_UPDATE_COMMAND_UI(IDM_HISTORYDLG, &CMainFrame::OnUpdateHistoryDlg)
+	ON_COMMAND(ID_VIEW_VOICEBAR, &CMainFrame::OnViewVoicebar)
+	ON_UPDATE_COMMAND_UI(ID_VIEW_VOICEBAR, &CMainFrame::OnUpdateViewVoicebar)
 
 	ON_COMMAND(ID_WINDOW_CASCADE, OnWindowCascade)
 	ON_UPDATE_COMMAND_UI(ID_WINDOW_CASCADE, OnUpdateWindowCascade)
@@ -877,11 +879,20 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_UPDATE_COMMAND_UI(IDM_TABMULTILINE, &CMainFrame::OnUpdateTabmultiline)
 
 	ON_COMMAND(IDM_QUICKCONNECT, &CMainFrame::OnQuickConnect)
-	ON_BN_CLICKED(IDC_CONNECT, &CMainFrame::OnQuickConnect)
 	ON_UPDATE_COMMAND_UI(IDC_CONNECT, &CMainFrame::OnUpdateConnect)
+	ON_BN_CLICKED(IDC_CONNECT, &CMainFrame::OnQuickConnect)
 
 	ON_COMMAND(IDM_SPEAKALL, &CMainFrame::OnSpeakText)
 	ON_UPDATE_COMMAND_UI(IDM_SPEAKALL, &CMainFrame::OnUpdateSpeakText)
+	ON_BN_CLICKED(IDC_PLAYSTOP, &CMainFrame::OnSpeakText)
+
+	ON_COMMAND(IDM_SPEAKBACK, &CMainFrame::OnSpeakBack)
+	ON_UPDATE_COMMAND_UI(IDM_SPEAKBACK, &CMainFrame::OnUpdateSpeakText)
+	ON_BN_CLICKED(IDC_BACKPOS, &CMainFrame::OnSpeakBack)
+
+	ON_COMMAND(IDM_SPEAKNEXT, &CMainFrame::OnSpeakNext)
+	ON_UPDATE_COMMAND_UI(IDM_SPEAKNEXT, &CMainFrame::OnUpdateSpeakText)
+	ON_BN_CLICKED(IDC_NEXTPOS, &CMainFrame::OnSpeakNext)
 
 	ON_COMMAND(IDM_KNOWNHOSTDEL, &CMainFrame::OnKnownhostdel)
 END_MESSAGE_MAP()
@@ -1042,12 +1053,17 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	}
 
 	if ( !m_wndQuickBar.Create(this, IDD_QUICKBAR, WS_VISIBLE | WS_CHILD | CBRS_ALIGN_TOP | CBRS_GRIPPER, IDD_QUICKBAR) ) {
-		TRACE("Failed to create dialogbar\n");
+		TRACE("Failed to create quickbar\n");
 		return -1;      // fail to create
 	}
 
 	if ( !m_wndTabDlgBar.Create(this, WS_VISIBLE| WS_CHILD | CBRS_ALIGN_BOTTOM | CBRS_GRIPPER, IDC_TABDLGBAR) ) {
 		TRACE("Failed to create tabdlgbar\n");
+		return -1;      // fail to create
+	}
+
+	if ( !m_wndVoiceBar.Create(this, IDD_VOICEBAR, WS_VISIBLE | WS_CHILD | CBRS_ALIGN_TOP | CBRS_GRIPPER, IDD_VOICEBAR) ) {
+		TRACE("Failed to create voicebar\n");
 		return -1;      // fail to create
 	}
 
@@ -1059,11 +1075,13 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_wndTabBar.EnableDocking(CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM);
 	m_wndQuickBar.EnableDocking(CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM);
 	m_wndTabDlgBar.EnableDocking(CBRS_ALIGN_ANY);
+	m_wndVoiceBar.EnableDocking(CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM);
 #else
 	CDockContextEx::EnableDocking(&m_wndToolBar, CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM);
 	CDockContextEx::EnableDocking(&m_wndTabBar, CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM);
 	CDockContextEx::EnableDocking(&m_wndQuickBar, CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM);
 	CDockContextEx::EnableDocking(&m_wndTabDlgBar, CBRS_ALIGN_ANY);
+	CDockContextEx::EnableDocking(&m_wndVoiceBar, CBRS_ALIGN_TOP | CBRS_ALIGN_BOTTOM);
 #endif
 
 	EnableDocking(CBRS_ALIGN_ANY);
@@ -1072,6 +1090,7 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	DockControlBar(&m_wndQuickBar);
 	DockControlBar(&m_wndTabBar);
 	DockControlBar(&m_wndTabDlgBar);
+	DockControlBar(&m_wndVoiceBar);
 
 	// バーの表示設定
 	LoadBarState(_T("BarState"));
@@ -1086,6 +1105,9 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	if ( AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("QuickBarShow"), FALSE) == FALSE )
 		ShowControlBar(&m_wndQuickBar, FALSE, FALSE);
+
+	if ( AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("VoiceBarShow"), FALSE) == FALSE )
+		ShowControlBar(&m_wndVoiceBar, FALSE, FALSE);
 
 	m_bTabBarShow = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("TabBarShow"), FALSE);
 	ShowControlBar(&m_wndTabBar, m_bTabBarShow, FALSE);
@@ -2401,7 +2423,7 @@ BOOL CMainFrame::CopyClipboardData(CString &str)
 	BOOL ret = FALSE;
 
 	// 10msロック出来るまで待つ
-	if ( !m_OpenClipboardLock.Lock(10) )
+	if ( m_OpenClipboardLock.IsLocked() || !m_OpenClipboardLock.Lock(10) )
 		return FALSE;
 
 	if ( !IsClipboardFormatAvailable(CF_UNICODETEXT) )
@@ -2603,7 +2625,7 @@ void CMainFrame::VersionCheckProc()
 	if ( version.CompareDigit(str) < 0 )
 		version = str;
 
-	if ( !http.GetRequest(CStringLoad(IDS_VERSIONCHECKURL), buf) && !http.GetRequest(CStringLoad(IDS_VERSIONCHECKURL2), buf) )
+	if ( !http.GetRequest(CStringLoad(IDS_VERSIONCHECKURL2), buf) ) // && !http.GetRequest(CStringLoad(IDS_VERSIONCHECKURL), buf) )
 		return;
 
 	p = (CHAR *)buf.GetPtr();
@@ -2912,6 +2934,7 @@ LRESULT CMainFrame::OnDpiChanged(WPARAM wParam, LPARAM lParam)
 
 	m_wndQuickBar.DpiChanged();
 	m_wndTabDlgBar.DpiChanged();
+	m_wndVoiceBar.DpiChanged();
 
 	RecalcLayout(FALSE);
 
@@ -2943,6 +2966,7 @@ void CMainFrame::OnClose()
 	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("ToolBarStyle"),	m_wndToolBar.GetStyle());
 	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("StatusBarStyle"), m_wndStatusBar.GetStyle());
 	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("QuickBarShow"),  (m_wndQuickBar.GetStyle() & WS_VISIBLE) != 0 ? TRUE : FALSE);
+	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("VoiceBarShow"),  (m_wndVoiceBar.GetStyle() & WS_VISIBLE) != 0 ? TRUE : FALSE);
 
 	SaveBarState(_T("BarState"));
 
@@ -3952,6 +3976,14 @@ void CMainFrame::OnUpdateViewQuickbar(CCmdUI *pCmdUI)
 {
 	pCmdUI->SetCheck((m_wndQuickBar.GetStyle() & WS_VISIBLE) ? 1 : 0);
 }
+void CMainFrame::OnViewVoicebar()
+{
+	ShowControlBar(&m_wndVoiceBar, ((m_wndVoiceBar.GetStyle() & WS_VISIBLE) != 0 ? FALSE : TRUE), FALSE);
+}
+void CMainFrame::OnUpdateViewVoicebar(CCmdUI *pCmdUI)
+{
+	pCmdUI->SetCheck((m_wndVoiceBar.GetStyle() & WS_VISIBLE) ? 1 : 0);
+}
 void CMainFrame::OnViewTabDlgbar()
 {
 	CWinApp *pApp = AfxGetApp();
@@ -4303,8 +4335,9 @@ BOOL CMainFrame::SpeakQueIn()
 		m_SpeakData[m_SpeakQuePos].line = m_SpeakLine;
 
 		for ( int n = 0 ; n < 3 && line < m_pSpeakDoc->m_TextRam.m_Lines ; n++ ) {
-			bContinue = m_pSpeakDoc->m_TextRam.SpeakLine(line++, m_SpeakData[m_SpeakQuePos].text, m_SpeakData[m_SpeakQuePos].pos);
+			bContinue = m_pSpeakDoc->m_TextRam.SpeakLine(m_SpeakCols, line++, m_SpeakData[m_SpeakQuePos].text, m_SpeakData[m_SpeakQuePos].pos);
 	  		m_SpeakLine++;
+			m_SpeakCols = 0;
 
 			if ( !bContinue )
 				break;
@@ -4342,6 +4375,11 @@ void CMainFrame::SpeakUpdate(int x, int y)
 {
 	int pos;
 
+	TRACE("UPDATE %d,%d\n", x, y);
+
+	if ( !m_bVoiceEvent )
+		return;
+
 	pos = m_SpeakQueTop;
 	for ( int n = 0 ; n < m_SpeakQueLen ; n++ ) {
 		m_SpeakData[pos].skip = 1;
@@ -4349,8 +4387,9 @@ void CMainFrame::SpeakUpdate(int x, int y)
 			pos = 0;
 	}
 
-	m_SpeakAbs  = m_pSpeakDoc->m_TextRam.m_HisAbs;
-	m_SpeakLine = m_SpeakAbs + y;
+	m_SpeakAbs  = m_SpeakActive[0] = m_pSpeakDoc->m_TextRam.m_HisAbs;
+	m_SpeakLine = m_SpeakActive[1] = m_SpeakAbs + y;
+	m_SpeakCols = m_SpeakActive[2] = x;
 }
 LRESULT CMainFrame::OnSpeakMsg(WPARAM wParam, LPARAM lParam)
 {
@@ -4377,37 +4416,43 @@ LRESULT CMainFrame::OnSpeakMsg(WPARAM wParam, LPARAM lParam)
 				break;
 			if ( status.ulCurrentStream != m_SpeakData[m_SpeakQueTop].num )
 				break;
-			if ( m_SpeakData[m_SpeakQueTop].skip != 0 ) {
-				pVoice->Skip(L"SENTENCE", m_SpeakData[m_SpeakQueTop].skip, &skipd);
-				m_SpeakData[m_SpeakQueTop].skip = 0;
-				break;
-			}
 			if ( status.ulInputWordLen <= 0 )
 				break;
 			if ( (ULONG)m_SpeakData[m_SpeakQueTop].pos.GetSize() < (status.ulInputWordPos + status.ulInputWordLen - 1) )
 				break;
+
 			spos = m_SpeakData[m_SpeakQueTop].pos[status.ulInputWordPos];
 			epos = m_SpeakData[m_SpeakQueTop].pos[status.ulInputWordPos + status.ulInputWordLen - 1];
+
+			if ( m_SpeakData[m_SpeakQueTop].skip != 0 ) {
+				pVoice->Skip(L"SENTENCE", 1, &skipd);
+//				m_SpeakData[m_SpeakQueTop].skip = 0;
+			} else {
+				m_SpeakActive[0] = m_pSpeakDoc->m_TextRam.m_HisAbs;
+				m_SpeakActive[1] = spos.cy - m_pSpeakDoc->m_TextRam.m_HisPos - m_pSpeakDoc->m_TextRam.m_HisMax + m_pSpeakDoc->m_TextRam.m_HisAbs;
+				m_SpeakActive[2] = spos.cx;
+			}
+
+			TRACE("SPEI_WORD %d,%d\n", spos.cx, spos.cy);
+
 			if ( !m_pSpeakDoc->m_TextRam.SpeakCheck(spos, epos, (LPCTSTR)m_SpeakData[m_SpeakQueTop].text + status.ulInputWordPos) ) {
 				pVoice->Skip(L"SENTENCE", 1, &skipd);
 				m_SpeakAbs  = m_SpeakData[m_SpeakQueTop].abs;
 				m_SpeakLine = m_SpeakData[m_SpeakQueTop].line;
 				m_pSpeakView->SpeakTextPos(FALSE, NULL, NULL);
-				break;
-			}
-			m_pSpeakView->SpeakTextPos(TRUE, &spos, &epos);
+			} else
+				m_pSpeakView->SpeakTextPos(TRUE, &spos, &epos);
 			break;
 
 		case SPEI_SENTENCE_BOUNDARY:
-		case SPEI_START_INPUT_STREAM:
+//		case SPEI_START_INPUT_STREAM:
 			if ( m_SpeakQueLen <= 0 )
 				break;
 			if ( eventItem.ulStreamNum != m_SpeakData[m_SpeakQueTop].num )
 				break;
 			if ( m_SpeakData[m_SpeakQueTop].skip != 0 ) {
-				pVoice->Skip(L"SENTENCE", m_SpeakData[m_SpeakQueTop].skip, &skipd);
+				pVoice->Skip(L"SENTENCE", 100, &skipd);
 				m_SpeakData[m_SpeakQueTop].skip = 0;
-				break;
 			}
 			break;
 
@@ -4416,15 +4461,19 @@ LRESULT CMainFrame::OnSpeakMsg(WPARAM wParam, LPARAM lParam)
 				break;
 			if ( eventItem.ulStreamNum != m_SpeakData[m_SpeakQueTop].num )
 				break;
+
 			m_SpeakData[m_SpeakQueTop].text.Empty();
 			m_SpeakData[m_SpeakQueTop].pos.RemoveAll();
+
 			if ( ++m_SpeakQueTop >= SPEAKQUESIZE )
 				m_SpeakQueTop = 0;
 			m_SpeakQueLen--;
+
 			if ( !SpeakQueIn() && m_SpeakQueLen <= 0 ) {
 				pVoice->SetInterest(0, 0);
 				m_bVoiceEvent = FALSE;
 			}
+
 			m_pSpeakView->SpeakTextPos(FALSE, NULL, NULL);
 			break;
 		}
@@ -4454,8 +4503,10 @@ void CMainFrame::OnSpeakText()
 		m_pSpeakDoc  = pDoc;
 
 		m_SpeakQueLen = m_SpeakQuePos = m_SpeakQueTop = 0;
-		m_SpeakAbs = m_pSpeakDoc->m_TextRam.m_HisAbs;
-		m_SpeakLine = m_SpeakAbs - m_pSpeakView->m_HisOfs;
+		m_SpeakAbs  = m_SpeakActive[0] = m_pSpeakDoc->m_TextRam.m_HisAbs;
+		m_SpeakLine = m_SpeakActive[1] = m_SpeakAbs - m_pSpeakView->m_HisOfs;
+		m_SpeakCols = m_SpeakActive[2] = 0;
+
 		SpeakQueIn();
 
 		m_bVoiceEvent = TRUE;
@@ -4466,6 +4517,14 @@ void CMainFrame::OnSpeakText()
 		pVoice->Speak(L"", SPF_ASYNC | SPF_PURGEBEFORESPEAK | SPF_IS_NOT_XML, NULL);
 		m_pSpeakView->SpeakTextPos(FALSE, NULL, NULL);
 	}
+}
+void CMainFrame::OnSpeakBack()
+{
+	SpeakUpdate(0, m_SpeakActive[1] - m_SpeakActive[0] - 1);
+}
+void CMainFrame::OnSpeakNext()
+{
+	SpeakUpdate(0, m_SpeakActive[1] - m_SpeakActive[0] + 1);
 }
 void CMainFrame::OnUpdateSpeakText(CCmdUI *pCmdUI)
 {
@@ -4809,33 +4868,20 @@ ENDOF:
 	ReleaseCapture();
 	m_bDragging = FALSE;
 }
-
 /////////////////////////////////////////////////////////////////////////////
-// CQuickBar
+// CBaseBar
 
-IMPLEMENT_DYNAMIC(CQuickBar, CDialogBar)
+IMPLEMENT_DYNAMIC(CDialogBarEx, CDialogBar)
 
-CQuickBar::CQuickBar()
+CDialogBarEx::CDialogBarEx()
+{
+}
+CDialogBarEx::~CDialogBarEx()
 {
 }
 
-CQuickBar::~CQuickBar()
+BOOL CDialogBarEx::Create(CWnd* pParentWnd, LPCTSTR lpszTemplateName, UINT nStyle, UINT nID)
 {
-}
-
-void CQuickBar::DoDataExchange(CDataExchange* pDX)
-{
-	DDX_Control(pDX, IDC_ENTRYNAME, m_EntryWnd);
-	DDX_Control(pDX, IDC_HOSTNAME, m_HostWnd);
-	DDX_Control(pDX, IDC_PORTNAME, m_PortWnd);
-	DDX_Control(pDX, IDC_USERNAME, m_UserWnd);
-	DDX_Control(pDX, IDC_PASSNAME, m_PassWnd);
-}
-	
-BOOL CQuickBar::Create(CWnd* pParentWnd, LPCTSTR lpszTemplateName, UINT nStyle, UINT nID)
-{
-//	return CDialogBar::Create(pParentWnd, lpszTemplateName, nStyle, nID);
-
 	ASSERT(pParentWnd != NULL);
 	ASSERT(lpszTemplateName != NULL);
 
@@ -4920,6 +4966,246 @@ BOOL CQuickBar::Create(CWnd* pParentWnd, LPCTSTR lpszTemplateName, UINT nStyle, 
 
 	return TRUE;
 }
+
+static BOOL CALLBACK DpiChangedProc(HWND hWnd , LPARAM lParam)
+{
+	CWnd *pWnd = CWnd::FromHandle(hWnd);
+	CQuickBar *pParent = (CQuickBar *)lParam;
+	CRect rect;
+
+	if ( pWnd->GetParent()->GetSafeHwnd() != pParent->GetSafeHwnd() )
+		return TRUE;
+
+	pWnd->GetWindowRect(rect);
+	pParent->ScreenToClient(rect);
+
+	rect.left   = MulDiv(rect.left,   pParent->m_ZoomMul.cx, pParent->m_ZoomDiv.cx);
+	rect.right  = MulDiv(rect.right,  pParent->m_ZoomMul.cx, pParent->m_ZoomDiv.cx);
+	rect.top    = MulDiv(rect.top,    pParent->m_ZoomMul.cy, pParent->m_ZoomDiv.cy);
+	rect.bottom = MulDiv(rect.bottom, pParent->m_ZoomMul.cy, pParent->m_ZoomDiv.cy);
+
+	int height = rect.Height();
+	rect.top = (pParent->m_sizeDefault.cy - height) / 2;
+	rect.bottom = rect.top + height;
+
+	if ( pWnd->SendMessage(WM_DPICHANGED, MAKEWPARAM(SCREEN_DPI_X, SCREEN_DPI_Y), (LPARAM)((RECT *)rect)) == FALSE ) {
+		if ( pParent->m_DpiFont.GetSafeHandle() != NULL )
+			pWnd->SetFont(&(pParent->m_DpiFont), FALSE);
+
+		if ( (pParent->GetStyle() & WS_SIZEBOX) == 0 )
+			pWnd->MoveWindow(rect, FALSE);
+	}
+
+	return TRUE;
+}
+void CDialogBarEx::DpiChanged()
+{
+	CFont *pFont;
+	LOGFONT LogFont;
+	CRect rect, client;
+
+	GetWindowRect(rect);
+	GetClientRect(client);
+
+	if ( client.Width() <= 0 || client.Height() <= 0 ) {
+		m_ZoomMul.cx = SCREEN_DPI_X;
+		m_ZoomDiv.cx = m_NowDpi.cx;
+		m_ZoomMul.cy = SCREEN_DPI_Y;
+		m_ZoomDiv.cy = m_NowDpi.cy;
+
+		m_sizeDefault.cx = MulDiv(m_sizeDefault.cx, SCREEN_DPI_X, m_NowDpi.cx);
+		m_sizeDefault.cy = MulDiv(m_sizeDefault.cy, SCREEN_DPI_Y, m_NowDpi.cy);
+
+	} else {
+		rect.right  += (MulDiv(client.Width(),  SCREEN_DPI_X, m_NowDpi.cx) - client.Width());
+		rect.bottom += (MulDiv(client.Height(), SCREEN_DPI_Y, m_NowDpi.cy) - client.Height());
+
+		//MoveWindow(rect, FALSE);
+		SetWindowPos(&wndTop ,0, 0, rect.Width(), rect.Height(), (GetStyle() & WS_VISIBLE) != 0 ? SWP_SHOWWINDOW : SWP_HIDEWINDOW);
+		m_sizeDefault = rect.Size();    // set fixed size
+
+		GetClientRect(rect);
+
+		m_ZoomMul.cx = rect.Width();
+		m_ZoomDiv.cx = client.Width();
+		m_ZoomMul.cy = rect.Height();
+		m_ZoomDiv.cy = client.Height();
+	}
+
+	m_NowDpi.cx = SCREEN_DPI_X;
+	m_NowDpi.cy = SCREEN_DPI_Y;
+	
+	if ( (pFont = m_NewFont.GetSafeHandle() != NULL ? &m_NewFont : GetFont()) != NULL ) {
+		pFont->GetLogFont(&LogFont);
+
+		if ( m_DpiFont.GetSafeHandle() != NULL )
+			m_DpiFont.DeleteObject();
+
+		LogFont.lfHeight = MulDiv(LogFont.lfHeight, SCREEN_DPI_Y, m_InitDpi.cy);
+
+		m_DpiFont.CreateFontIndirect(&LogFont);
+	}
+
+	EnumChildWindows(GetSafeHwnd(), DpiChangedProc, (LPARAM)this);
+}
+
+static BOOL CALLBACK FontSizeCheckProc(HWND hWnd , LPARAM lParam)
+{
+	CRect rect;
+	CWnd *pWnd = CWnd::FromHandle(hWnd);
+	CQuickBar *pParent = (CQuickBar *)lParam;
+
+	if ( pWnd->GetParent()->GetSafeHwnd() != pParent->GetSafeHwnd() )
+		return TRUE;
+
+	pWnd->GetWindowRect(rect);
+	pParent->ScreenToClient(rect);
+
+	rect.left   = MulDiv(rect.left,   pParent->m_ZoomMul.cx, pParent->m_ZoomDiv.cx);
+	rect.right  = MulDiv(rect.right,  pParent->m_ZoomMul.cx, pParent->m_ZoomDiv.cx);
+	rect.top    = MulDiv(rect.top,    pParent->m_ZoomMul.cy, pParent->m_ZoomDiv.cy);
+	rect.bottom = MulDiv(rect.bottom, pParent->m_ZoomMul.cy, pParent->m_ZoomDiv.cy);
+
+	int height = rect.Height();
+	rect.top = (pParent->m_sizeDefault.cy - height) / 2;
+	rect.bottom = rect.top + height;
+
+	pWnd->SetFont(&(pParent->m_NewFont), FALSE);
+	pWnd->MoveWindow(rect, FALSE);
+
+	return TRUE;
+}
+void CDialogBarEx::FontSizeCheck()
+{
+	CFont *pFont;
+	CDC *pDc = GetDC();
+	CRect rect;
+	CString FontName = ::AfxGetApp()->GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
+	int FontSize = MulDiv(::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9), SCREEN_DPI_Y, SYSTEM_DPI_Y);
+
+	if ( m_NewFont.GetSafeHandle() != NULL ) {
+		CDialogExt::GetDlgFontBase(pDc, &m_NewFont, m_ZoomDiv);
+		m_NewFont.DeleteObject();
+	} else if ( (pFont = GetFont()) != NULL ) {
+		CDialogExt::GetDlgFontBase(pDc, pFont, m_ZoomDiv);
+	} else
+		return;
+
+	if ( !m_NewFont.CreatePointFont(FontSize * 10, FontName) )
+		return;
+
+	m_InitDpi.cx = SCREEN_DPI_X;
+	m_InitDpi.cy = SCREEN_DPI_Y;
+
+	SetFont(&m_NewFont);
+
+	CDialogExt::GetDlgFontBase(pDc, &m_NewFont, m_ZoomMul);
+	ReleaseDC(pDc);
+
+	GetWindowRect(rect);
+
+	rect.left   = MulDiv(rect.left,   m_ZoomMul.cx, m_ZoomDiv.cx);
+	rect.right  = MulDiv(rect.right,  m_ZoomMul.cx, m_ZoomDiv.cx);
+	rect.top    = MulDiv(rect.top,    m_ZoomMul.cy, m_ZoomDiv.cy);
+	rect.bottom = MulDiv(rect.bottom, m_ZoomMul.cy, m_ZoomDiv.cy);
+
+//	SetWindowPos(&wndTop ,0, 0, rect.Width(), rect.Height(), SWP_SHOWWINDOW);
+	m_sizeDefault = rect.Size();    // set fixed size
+
+	EnumChildWindows(GetSafeHwnd(), FontSizeCheckProc, (LPARAM)this);
+
+	Invalidate();
+}
+
+BEGIN_MESSAGE_MAP(CDialogBarEx, CDialogBar)
+END_MESSAGE_MAP()
+
+/////////////////////////////////////////////////////////////////////////////
+// CVoiceBar
+
+IMPLEMENT_DYNAMIC(CVoiceBar, CDialogBarEx)
+
+CVoiceBar::CVoiceBar()
+{
+}
+CVoiceBar::~CVoiceBar()
+{
+}
+
+void CVoiceBar::DoDataExchange(CDataExchange* pDX)
+{
+	DDX_Control(pDX, IDC_VOICEDESC, m_VoiceDesc);
+	DDX_Control(pDX, IDC_VOICERATE, m_VoiceRate);
+}
+
+BEGIN_MESSAGE_MAP(CVoiceBar, CDialogBarEx)
+	ON_MESSAGE(WM_INITDIALOG, &CVoiceBar::HandleInitDialog)
+	ON_CBN_SELCHANGE(IDC_VOICEDESC, &CVoiceBar::OnCbnSelchangeVoicedesc)
+	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_VOICERATE, &CVoiceBar::OnNMReleasedcaptureVoicerate)
+END_MESSAGE_MAP()
+
+LRESULT CVoiceBar::HandleInitDialog(WPARAM wParam, LPARAM lParam)
+{
+	long rate = 0;
+	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
+
+	UpdateData(FALSE);
+
+	if ( pApp->m_pVoice != NULL ) {
+		pApp->SetVoiceListCombo(&m_VoiceDesc);
+		pApp->m_pVoice->GetRate(&rate);
+	}
+
+	m_VoiceRate.SetRange(0, 20);
+	m_VoiceRate.SetTic(10);
+	m_VoiceRate.SetPos(rate + 10);
+
+	DpiChanged();
+
+	return 0;
+}
+void CVoiceBar::OnCbnSelchangeVoicedesc()
+{
+	int n;
+	CString desc;
+	long rate;
+	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
+	
+	if ( (n = m_VoiceDesc.GetCurSel()) >= 0 )
+		m_VoiceDesc.GetLBText(n, desc);
+
+	rate = m_VoiceRate.GetPos() - 10;
+
+	pApp->SetVoice(desc, rate);
+}
+void CVoiceBar::OnNMReleasedcaptureVoicerate(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	OnCbnSelchangeVoicedesc();
+	*pResult = 0;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+// CQuickBar
+
+IMPLEMENT_DYNAMIC(CQuickBar, CDialogBarEx)
+
+CQuickBar::CQuickBar()
+{
+}
+CQuickBar::~CQuickBar()
+{
+}
+
+void CQuickBar::DoDataExchange(CDataExchange* pDX)
+{
+	DDX_Control(pDX, IDC_ENTRYNAME, m_EntryWnd);
+	DDX_Control(pDX, IDC_HOSTNAME, m_HostWnd);
+	DDX_Control(pDX, IDC_PORTNAME, m_PortWnd);
+	DDX_Control(pDX, IDC_USERNAME, m_UserWnd);
+	DDX_Control(pDX, IDC_PASSNAME, m_PassWnd);
+}
+
 void CQuickBar::InitDialog()
 {
 	CString str;
@@ -5010,157 +5296,7 @@ void CQuickBar::SetComdLine(CString &cmds)
 	SaveDialog();
 }
 
-static BOOL CALLBACK DpiChangedProc(HWND hWnd , LPARAM lParam)
-{
-	CWnd *pWnd = CWnd::FromHandle(hWnd);
-	CQuickBar *pParent = (CQuickBar *)lParam;
-	CRect rect;
-
-	if ( pWnd->GetParent()->GetSafeHwnd() != pParent->GetSafeHwnd() )
-		return TRUE;
-
-	pWnd->GetWindowRect(rect);
-	pParent->ScreenToClient(rect);
-
-	rect.left   = MulDiv(rect.left,   pParent->m_ZoomMul.cx, pParent->m_ZoomDiv.cx);
-	rect.right  = MulDiv(rect.right,  pParent->m_ZoomMul.cx, pParent->m_ZoomDiv.cx);
-	rect.top    = MulDiv(rect.top,    pParent->m_ZoomMul.cy, pParent->m_ZoomDiv.cy);
-	rect.bottom = MulDiv(rect.bottom, pParent->m_ZoomMul.cy, pParent->m_ZoomDiv.cy);
-
-	int height = rect.Height();
-	rect.top = (pParent->m_sizeDefault.cy - height) / 2;
-	rect.bottom = rect.top + height;
-
-	if ( pWnd->SendMessage(WM_DPICHANGED, MAKEWPARAM(SCREEN_DPI_X, SCREEN_DPI_Y), (LPARAM)((RECT *)rect)) == FALSE ) {
-		if ( pParent->m_DpiFont.GetSafeHandle() != NULL )
-			pWnd->SetFont(&(pParent->m_DpiFont), FALSE);
-
-		if ( (pParent->GetStyle() & WS_SIZEBOX) == 0 )
-			pWnd->MoveWindow(rect, FALSE);
-	}
-
-	return TRUE;
-}
-void CQuickBar::DpiChanged()
-{
-	CFont *pFont;
-	LOGFONT LogFont;
-	CRect rect, client;
-
-	GetWindowRect(rect);
-	GetClientRect(client);
-
-	if ( client.Width() <= 0 || client.Height() <= 0 ) {
-		m_ZoomMul.cx = SCREEN_DPI_X;
-		m_ZoomDiv.cx = m_NowDpi.cx;
-		m_ZoomMul.cy = SCREEN_DPI_Y;
-		m_ZoomDiv.cy = m_NowDpi.cy;
-
-		m_sizeDefault.cx = MulDiv(m_sizeDefault.cx, SCREEN_DPI_X, m_NowDpi.cx);
-		m_sizeDefault.cy = MulDiv(m_sizeDefault.cy, SCREEN_DPI_Y, m_NowDpi.cy);
-
-	} else {
-		rect.right  += (MulDiv(client.Width(),  SCREEN_DPI_X, m_NowDpi.cx) - client.Width());
-		rect.bottom += (MulDiv(client.Height(), SCREEN_DPI_Y, m_NowDpi.cy) - client.Height());
-
-		//MoveWindow(rect, FALSE);
-		SetWindowPos(&wndTop ,0, 0, rect.Width(), rect.Height(), (GetStyle() & WS_VISIBLE) != 0 ? SWP_SHOWWINDOW : SWP_HIDEWINDOW);
-		m_sizeDefault = rect.Size();    // set fixed size
-
-		GetClientRect(rect);
-
-		m_ZoomMul.cx = rect.Width();
-		m_ZoomDiv.cx = client.Width();
-		m_ZoomMul.cy = rect.Height();
-		m_ZoomDiv.cy = client.Height();
-	}
-
-	m_NowDpi.cx = SCREEN_DPI_X;
-	m_NowDpi.cy = SCREEN_DPI_Y;
-	
-	if ( (pFont = m_NewFont.GetSafeHandle() != NULL ? &m_NewFont : GetFont()) != NULL ) {
-		pFont->GetLogFont(&LogFont);
-
-		if ( m_DpiFont.GetSafeHandle() != NULL )
-			m_DpiFont.DeleteObject();
-
-		LogFont.lfHeight = MulDiv(LogFont.lfHeight, SCREEN_DPI_Y, m_InitDpi.cy);
-
-		m_DpiFont.CreateFontIndirect(&LogFont);
-	}
-
-	EnumChildWindows(GetSafeHwnd(), DpiChangedProc, (LPARAM)this);
-}
-
-static BOOL CALLBACK FontSizeCheckProc(HWND hWnd , LPARAM lParam)
-{
-	CRect rect;
-	CWnd *pWnd = CWnd::FromHandle(hWnd);
-	CQuickBar *pParent = (CQuickBar *)lParam;
-
-	if ( pWnd->GetParent()->GetSafeHwnd() != pParent->GetSafeHwnd() )
-		return TRUE;
-
-	pWnd->GetWindowRect(rect);
-	pParent->ScreenToClient(rect);
-
-	rect.left   = MulDiv(rect.left,   pParent->m_ZoomMul.cx, pParent->m_ZoomDiv.cx);
-	rect.right  = MulDiv(rect.right,  pParent->m_ZoomMul.cx, pParent->m_ZoomDiv.cx);
-	rect.top    = MulDiv(rect.top,    pParent->m_ZoomMul.cy, pParent->m_ZoomDiv.cy);
-	rect.bottom = MulDiv(rect.bottom, pParent->m_ZoomMul.cy, pParent->m_ZoomDiv.cy);
-
-	int height = rect.Height();
-	rect.top = (pParent->m_sizeDefault.cy - height) / 2;
-	rect.bottom = rect.top + height;
-
-	pWnd->SetFont(&(pParent->m_NewFont), FALSE);
-	pWnd->MoveWindow(rect, FALSE);
-
-	return TRUE;
-}
-void CQuickBar::FontSizeCheck()
-{
-	CFont *pFont;
-	CDC *pDc = GetDC();
-	CRect rect;
-	CString FontName = ::AfxGetApp()->GetProfileString(_T("Dialog"), _T("FontName"), _T(""));
-	int FontSize = MulDiv(::AfxGetApp()->GetProfileInt(_T("Dialog"), _T("FontSize"), 9), SCREEN_DPI_Y, SYSTEM_DPI_Y);
-
-	if ( m_NewFont.GetSafeHandle() != NULL ) {
-		CDialogExt::GetDlgFontBase(pDc, &m_NewFont, m_ZoomDiv);
-		m_NewFont.DeleteObject();
-	} else if ( (pFont = GetFont()) != NULL ) {
-		CDialogExt::GetDlgFontBase(pDc, pFont, m_ZoomDiv);
-	} else
-		return;
-
-	if ( !m_NewFont.CreatePointFont(FontSize * 10, FontName) )
-		return;
-
-	m_InitDpi.cx = SCREEN_DPI_X;
-	m_InitDpi.cy = SCREEN_DPI_Y;
-
-	SetFont(&m_NewFont);
-
-	CDialogExt::GetDlgFontBase(pDc, &m_NewFont, m_ZoomMul);
-	ReleaseDC(pDc);
-
-	GetWindowRect(rect);
-
-	rect.left   = MulDiv(rect.left,   m_ZoomMul.cx, m_ZoomDiv.cx);
-	rect.right  = MulDiv(rect.right,  m_ZoomMul.cx, m_ZoomDiv.cx);
-	rect.top    = MulDiv(rect.top,    m_ZoomMul.cy, m_ZoomDiv.cy);
-	rect.bottom = MulDiv(rect.bottom, m_ZoomMul.cy, m_ZoomDiv.cy);
-
-//	SetWindowPos(&wndTop ,0, 0, rect.Width(), rect.Height(), SWP_SHOWWINDOW);
-	m_sizeDefault = rect.Size();    // set fixed size
-
-	EnumChildWindows(GetSafeHwnd(), FontSizeCheckProc, (LPARAM)this);
-
-	Invalidate();
-}
-
-BEGIN_MESSAGE_MAP(CQuickBar, CDialogBar)
+BEGIN_MESSAGE_MAP(CQuickBar, CDialogBarEx)
 	ON_CBN_EDITCHANGE(IDC_ENTRYNAME, &CQuickBar::OnCbnEditchangeEntryname)
 	ON_CBN_SELCHANGE(IDC_ENTRYNAME, &CQuickBar::OnCbnEditchangeEntryname)
 END_MESSAGE_MAP()

@@ -125,7 +125,7 @@ void CScrnPage::InitFontSize()
 	else
 		pixDpi = (double)MulDiv(dpi, SCREEN_DPI_Y, SYSTEM_DPI_Y);
 
-	for ( n = pCombo->GetCount() - 1 ; n >= 0; n-- )
+	for ( n = pCombo->GetCount() - 1 ; n >= 0 ; n-- )
 		pCombo->DeleteString(n);
 
 	for ( n = 2 ; n <= 48; n++ ) {

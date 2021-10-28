@@ -5,13 +5,13 @@
 <TITLE>スクリプト</TITLE>
 <STYLE type="text/css">
 <!--
-TD {
+TD {		
 				
 				
   background-color : #ffffff;
   font-size : 90%;
 }
-.BOX{
+.BOX{		
 				
 				
   background-color : silver;
@@ -1528,17 +1528,17 @@ sclose();</PRE>
           <TR>
             <TD valign="top">sputc ( <I>char</I> )</TD>
             <TD valign="top">UCS-4文字を現在の漢字コードに変換してソケットに送ります。</TD>
-            <TD valign="top"></TD>
+            <TD valign="top">char</TD>
           </TR>
           <TR>
             <TD valign="top">sputs ( <I>string</I> )</TD>
             <TD valign="top">現在の漢字コードに文字列を変換してソケットに送ります。</TD>
-            <TD valign="top"></TD>
+            <TD valign="top">str</TD>
           </TR>
           <TR>
             <TD valign="top">swrite ( <I>string</I> )</TD>
             <TD valign="top">文字列をそのままの形でソケットに送ります。</TD>
-            <TD valign="top"></TD>
+            <TD valign="top">str</TD>
           </TR>
           <TR>
             <TD valign="top">wait ( <I>mode</I> )</TD>
@@ -1558,7 +1558,7 @@ sclose();</PRE>
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top"></TD>
+            <TD valign="top">int</TD>
             <TD valign="top">Document.Open();<BR>
             wait(CONNECT);<BR>
             echo(&quot;Hello&quot;);</TD>
@@ -1567,7 +1567,7 @@ sclose();</PRE>
           <TR>
             <TD valign="top">sendstr ( <I>string</I> )</TD>
             <TD valign="top">キー入力された文字などと同じレベルで文字列を送信します。結果、ブロードキャストや改行コード変換などの影響をうけます</TD>
-            <TD valign="top"></TD>
+            <TD valign="top">str</TD>
             <TD valign="top"></TD>
             <TD valign="top"></TD>
           </TR>
@@ -1577,6 +1577,41 @@ sclose();</PRE>
             <TD valign="top"></TD>
             <TD valign="top"></TD>
             <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">comset ( <I>string</I> )</TD>
+            <TD valign="top">通信条件をサーバーオプションのシリアル設定でサーバー名の代わりに用いる文字列で設定します</TD>
+            <TD valign="top">str</TD>
+            <TD valign="top" rowspan="4">Document.Open();<BR>
+            wait(CONNECT);<BR>
+            <BR>
+            comset(&quot;9600&quot;);<BR>
+            <BR>
+            comrts(0);<BR>
+            sputs(&quot;Hello&quot;);<BR>
+            comrts(1);<BR>
+            </TD>
+            <TD valign="top" rowspan="4">これらのシリアル制御関数は、接続中のみ使用でき、変更は、保存されません</TD>
+          </TR>
+          <TR>
+            <TD valign="top">comdtr ( <I>int</I> )</TD>
+            <TD valign="top">シリアル信号線のDTRを設定します<BR>
+            0=DTR OFF, 1=DTR ON<BR>
+            DTRをフロー制御に使用していると設定できません</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">comrts ( <I>int</I> )</TD>
+            <TD valign="top">シリアル信号線のRTSを設定します<BR>
+            0=RTS OFF, 1=RTS ON<BR>
+            RTSをフロー制御に使用していると設定できません</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">combreak ( <I>int</I> )</TD>
+            <TD valign="top">ブレーク信号を送ります<BR>
+            0=100ms, 1=300ms</TD>
+            <TD valign="top">int</TD>
           </TR>
         </TBODY>
       </TABLE>

@@ -103,8 +103,8 @@ void CComboBoxHis::AddHis(LPCTSTR str)
 }
 void CComboBoxHis::RemoveAll()
 {
-	for ( int n = this->GetCount() ;  n > 0 ; n-- )
-		DeleteString(0);
+	for ( int n = this->GetCount() - 1 ;  n >= 0 ; n-- )
+		DeleteString(n);
 }
 
 BOOL CComboBoxHis::PreTranslateMessage(MSG* pMsg)

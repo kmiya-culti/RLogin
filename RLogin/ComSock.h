@@ -77,6 +77,8 @@ public:
 
 	void OnReadWriteProc();
 
+	void SetDcdParam(CStringArrayExt &param);
+	inline void SetDcdStr(LPCTSTR str) { CStringArrayExt param; param.GetString(str, _T(';')); SetDcdParam(param); }
 	BOOL LoadComConf(LPCTSTR ComSetStr, int ComPort, BOOL bOpen = FALSE);
 	BOOL SaveComConf(CString &str);
 	BOOL SetupComConf(CString &ComSetStr, int &ComPort, CWnd *pOwner = NULL);

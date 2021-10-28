@@ -1342,14 +1342,12 @@ void CBuffer::UuEncode(LPBYTE buf, int len)
 void CBuffer::md5(LPCTSTR str)
 {
 	unsigned int dlen;
-	const EVP_MD *evp_md;
 	u_char digest[EVP_MAX_MD_SIZE];
 	EVP_MD_CTX *md_ctx;
 	CStringA tmp(str);
 
-	evp_md = EVP_md5();
 	md_ctx = EVP_MD_CTX_new();
-	EVP_DigestInit(md_ctx, evp_md);
+	EVP_DigestInit(md_ctx, EVP_md5());
 	EVP_DigestUpdate(md_ctx, (const void *)(LPCSTR)tmp, tmp.GetLength());
 	EVP_DigestFinal(md_ctx, digest, &dlen);
 	EVP_MD_CTX_free(md_ctx);
@@ -4951,7 +4949,7 @@ void CKeyNode::SetComboList(CComboBox *pCombo)
 	if ( pCombo == NULL )
 		return;
 
-	for ( n = pCombo->GetCount() - 1 ; n >= 0; n-- )
+	for ( n = pCombo->GetCount() - 1 ; n >= 0 ; n-- )
 		pCombo->DeleteString(n);
 
 	for ( n = 0 ; KeyNameTab[n].name != NULL ; n++ )
@@ -5647,7 +5645,7 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	143
+#define	CMDSKEYTABMAX	146
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -5762,6 +5760,8 @@ static const struct _CmdsKeyTab {
 	{	IDM_SEARCH_REG,				L"$SEARCH_REG"		},
 	{	IDM_SECPORICY,				L"$SECURITYCOLICY"	},
 	{	IDM_SPEAKALL,				L"$SPEAK_ALL"		},
+	{	IDM_SPEAKBACK,				L"$SPEAK_BACK"		},
+	{	IDM_SPEAKNEXT,				L"$SPEAK_NEXT"		},
 	{	ID_SPLIT_HEIGHT,			L"$SPLIT_HEIGHT"	},
 	{	IDM_SPLIT_HEIGHT_NEW,		L"$SPLIT_HEIGHTNEW"	},
 	{	ID_SPLIT_OVER,				L"$SPLIT_OVER"		},
@@ -5777,6 +5777,7 @@ static const struct _CmdsKeyTab {
 	{	ID_GOZIVIEW,				L"$VIEW_JOKE"		},
 	{	ID_VIEW_MENUBAR,			L"$VIEW_MENUBAR"	},
 	{	IDM_COMMONITER,				L"$VIEW_MONITOR"	},
+	{	ID_VIEW_QUICKBAR,			L"$VIEW_QUICKBAR"	},
 	{	ID_VIEW_SCROLLBAR,			L"$VIEW_SCROLLBAR"	},
 	{	IDM_SFTP,					L"$VIEW_SFTP"		},
 	{	IDM_SOCKETSTATUS,			L"$VIEW_SOCKET"		},
@@ -5785,7 +5786,7 @@ static const struct _CmdsKeyTab {
 	{	IDM_TEKDISP,				L"$VIEW_TEKDISP"	},
 	{	ID_VIEW_TOOLBAR,			L"$VIEW_TOOLBAR"	},
 	{	IDM_TRACEDISP,				L"$VIEW_TRACEDISP"	},
-	{	ID_VIEW_QUICKBAR,			L"$VIEW_QUICKBAR"	},
+	{	ID_VIEW_VOICEBAR,			L"$VIEW_VOICEBAR"	},
 	{	ID_WINDOW_CLOSE,			L"$WINDOW_CLOSE"	},
 	{	IDM_DISPWINIDX,				L"$WINDOW_INDEX"	},
 	{	ID_WINDOW_NEW,				L"$WINDOW_NEW"		},
@@ -5852,7 +5853,7 @@ void CKeyNodeTab::SetComboList(CComboBox *pCombo)
 	if ( pCombo == NULL )
 		return;
 
-	for ( n = pCombo->GetCount() - 1 ; n >= 0; n-- )
+	for ( n = pCombo->GetCount() - 1 ; n >= 0 ; n-- )
 		pCombo->DeleteString(n);
 
 	for ( n = 0 ; n < CMDSKEYTABMAX ; n++ ) {

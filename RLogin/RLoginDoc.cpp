@@ -2327,7 +2327,7 @@ void CRLoginDoc::OnScript()
 	if ( m_pScript == NULL )
 		return;
 
-	CFileDialog dlg(FALSE, _T("txt"), _T(""), 0, CStringLoad(IDS_FILEDLGSCRIPT), AfxGetMainWnd());
+	CFileDialog dlg(TRUE, _T("txt"), _T(""), 0, CStringLoad(IDS_FILEDLGSCRIPT), AfxGetMainWnd());
 
 	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;

@@ -4579,16 +4579,16 @@ int CIdKey::SetEvpPkey(EVP_PKEY *pk)
 			m_Type = IDKEY_ECDSA;
 		break;
 
-#if OPENSSL_VERSION_NUMBER >= 0x30000000L
-	#include "crypto/ecx.h"
-	ECX_KEY *ecx;
-	case EVP_PKEY_ED25519:
-		ecx = ossl_evp_pkey_get1_ED25519(pk);
-		break;
-	case EVP_PKEY_ED448:
-		ecx = ossl_evp_pkey_get1_ED448(pk);
-		break;
-#endif
+//#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+//	#include "crypto/ecx.h"
+//	ECX_KEY *ecx;
+//	case EVP_PKEY_ED25519:
+//		ecx = ossl_evp_pkey_get1_ED25519(pk);
+//		break;
+//	case EVP_PKEY_ED448:
+//		ecx = ossl_evp_pkey_get1_ED448(pk);
+//		break;
+//#endif
 
 	default:
 		m_Type = IDKEY_NONE;

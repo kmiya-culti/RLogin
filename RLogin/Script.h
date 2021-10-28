@@ -425,6 +425,7 @@ public:
 	void CodeStackPop();
 	int TekStyle(int idx, CScriptValue &local);
 
+	int ComFunc(int cmd, CScriptValue &local);
 	int TextWnd(int cmd, CScriptValue &local);
 	int DataBs(int cmd, CScriptValue &local);
 	int Dialog(int cmd, CScriptValue &local);

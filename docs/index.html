@@ -6,7 +6,8 @@
 <TITLE>rlogin/telnet/ssh(クライアント)ターミナルソフト</TITLE>
 <STYLE type="text/css">
 <!--
-TD {
+TD {		
+				
 				
 				
 				
@@ -22,7 +23,8 @@ TD {
   background-color : #ffffff;
   font-size : 90%;
 }
-.BOX{
+.BOX{		
+				
 				
 				
 				
@@ -50,8 +52,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.26.3)</TD>
-            <TD width="20%" align="right">2021/08/27</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.26.4)</TD>
+            <TD width="20%" align="right">2021/10/29</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -439,6 +441,14 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2021/10/29</TD>
+            <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.26.4/">2.26.4</A></TD>
+            <TD>scriptにシリアル制御(comset/comdtr/comrts)の関数を追加<BR>
+            メニュー・表示に音声合成設定のボイスバーを追加<BR>
+            メニューショートカット文字列設定のバグを修正<BR>
+            scriptファイル読み込み時のエラーをメッセージで表示に変更</TD>
+          </TR>
+          <TR>
             <TD align="center">2021/08/27</TD>
             <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.26.3/">2.26.3</A></TD>
             <TD>openssl-1.1.1lに更新</TD>
@@ -470,17 +480,6 @@ TD {
             バージョンチェックエラー時にGitHubを使用するように変更<BR>
             Scriptのファイル関数のファイルポインターをチェックするように変更<BR>
             openssl-1.1.1kに更新</TD>
-          </TR>
-          <TR>
-            <TD align="center">2021/03/01</TD>
-            <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.25.9/">2.25.9</A></TD>
-            <TD>カラー絵文字の設定を拡張機能からカラーに移動<BR>
-            メニューの画像をアルファ付きのビットマップに変更<BR>
-            2.25.6からx32がWindowsXPで動作しない不都合を修正<BR>
-            システムDPIが96以外の場合の処理を変更<BR>
-            文字列の検索時の正規表現の一致条件を変更<BR>
-            正規表現ライブラリの不都合(８進数表現が不定)や仕様を修正<BR>
-            openssl-1.1.1jに更新</TD>
           </TR>
           <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
@@ -865,7 +864,9 @@ TD {
                   <TD valign="top">音声で読み上げ(Y)</TD>
                   <TD valign="top">現在表示中の画面を音声合成で読み上げます</TD>
                   <TD valign="top" align="right"></TD>
-                  <TD valign="top">$SPEAK_ALL</TD>
+                  <TD valign="top">$SPEAK_ALL<BR>
+                  $SPEAK_BACK<BR>
+                  $SPEAK_NEXT</TD>
                 </TR>
                 <TR>
                   <TD valign="top" width="250">ブロードキャスト(A)</TD>
@@ -919,7 +920,7 @@ TD {
                   <TD align="left" colspan="6">表示(V)</TD>
                 </TR>
                 <TR>
-                  <TD align="center" width="10" rowspan="28">&nbsp;</TD>
+                  <TD align="center" width="10" rowspan="29">&nbsp;</TD>
                   <TD colspan="2" width="250" valign="top">メニューバー(M)</TD>
                   <TD width="450" valign="top">メニューバーを表示・非表示にします<BR>
                   ※非表示の時は、システムメニューでメニューバーを表示できます</TD>
@@ -938,6 +939,12 @@ TD {
                   指定したエントリーを用いてホスト・ポート・ユーザー・パスワードを変更して接続を行います</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$VIEW_QUICKBAR</TD>
+                </TR>
+                <TR>
+                  <TD valign="top" colspan="2">ボイスバー(A)</TD>
+                  <TD valign="top">音声合成で読み上げるボイスやスピードを設定します</TD>
+                  <TD valign="top" align="right"></TD>
+                  <TD valign="top">$VIEW_VOICEBAR</TD>
                 </TR>
                 <TR>
                   <TD valign="top" colspan="2" width="250">タブバー(B)</TD>

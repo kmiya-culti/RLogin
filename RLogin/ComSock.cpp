@@ -771,9 +771,61 @@ static struct _ComTab {
 		{	NULL,			0,	0			},
 	};
 
-BOOL CComSock::LoadComConf(LPCTSTR ComSetStr, int ComPort, BOOL bOpen)
+void CComSock::SetDcdParam(CStringArrayExt &param)
 {
 	int n, i;
+
+	for ( n = 0 ; n < param.GetSize() ; n++ ) {
+		for ( i = 0 ; ComTab[i].name != NULL ; i++ ) {
+			if ( param[n].Compare(ComTab[i].name) == 0 ) {
+				switch(ComTab[i].mode) {
+				case 1: m_pComConf->dcb.BaudRate = ComTab[i].value; break;
+				case 2: m_pComConf->dcb.ByteSize = ComTab[i].value; break;
+				case 3: m_pComConf->dcb.Parity   = ComTab[i].value; break;
+				case 4: m_pComConf->dcb.StopBits = ComTab[i].value; break;
+				case 5: SetFlowCtrlMode(&(m_pComConf->dcb), ComTab[i].value, NULL); break;
+				}
+				break;
+			}
+		}
+		if ( ComTab[i].name != NULL )
+			continue;
+
+		if ( _tcsncmp(param[n], _T("USER="), 5) == 0 ) {
+			SetFlowCtrlMode(&(m_pComConf->dcb), COMFLOW_USERDEF, (LPCTSTR)param[n] + 5);
+
+		} else if ( _tcsncmp(param[n], _T("XOFFL="), 6) == 0 ) {
+			m_pComConf->dcb.XoffLim = COMQUEUESIZE - COMQUEUESIZE * _tstoi((LPCTSTR)param[n] + 6) / 100;
+			if ( m_pComConf->dcb.XoffLim < (COMQUEUESIZE - COMQUEUESIZE * 95 / 100) )
+				m_pComConf->dcb.XoffLim = (COMQUEUESIZE - COMQUEUESIZE * 95 / 100);
+			else if ( m_pComConf->dcb.XoffLim > (COMQUEUESIZE - COMQUEUESIZE * 50 / 100) )
+				m_pComConf->dcb.XoffLim = (COMQUEUESIZE - COMQUEUESIZE * 50 / 100);
+
+		} else if ( _tcsncmp(param[n], _T("XONL="), 5) == 0 ) {
+			m_pComConf->dcb.XonLim = COMQUEUESIZE * _tstoi((LPCTSTR)param[n] + 5) / 100;
+			if ( m_pComConf->dcb.XonLim > (COMQUEUESIZE * 50 / 100) )
+				m_pComConf->dcb.XonLim = (COMQUEUESIZE * 50 / 100);
+			else if ( m_pComConf->dcb.XonLim < (COMQUEUESIZE * 5 / 100) )
+				m_pComConf->dcb.XonLim = (COMQUEUESIZE * 5 / 100);
+
+		} else if ( _tcsncmp(param[n], _T("XONC="), 5) == 0 ) {
+			m_pComConf->dcb.XonChar = (char)_tstoi((LPCTSTR)param[n] + 5);
+		} else if ( _tcsncmp(param[n], _T("XOFFC="), 6) == 0 ) {
+			m_pComConf->dcb.XoffChar = (char)_tstoi((LPCTSTR)param[n] + 6);
+
+		} else if ( _tcsncmp(param[n], _T("WC="), 3) == 0 ) {
+			m_SendWait[0] = _tstoi((LPCTSTR)param[n] + 3);
+		} else if ( _tcsncmp(param[n], _T("WL="), 3) == 0 ) {
+			m_SendWait[1] = _tstoi((LPCTSTR)param[n] + 3);
+
+		} else if ( (i = _tstoi(param[n])) >= 100 ) {
+			m_pComConf->dcb.BaudRate = i;
+		}
+	}
+}
+BOOL CComSock::LoadComConf(LPCTSTR ComSetStr, int ComPort, BOOL bOpen)
+{
+	int n;
 	DWORD sz = sizeof(COMMCONFIG);
 	BYTE *temp = new BYTE[sz];
 	CStringArrayExt param;
@@ -863,53 +915,7 @@ BOOL CComSock::LoadComConf(LPCTSTR ComSetStr, int ComPort, BOOL bOpen)
 	m_SendWait[0] = 0;
 	m_SendWait[1] = 0;
 
-	for ( n = 0 ; n < param.GetSize() ; n++ ) {
-		for ( i = 0 ; ComTab[i].name != NULL ; i++ ) {
-			if ( param[n].Compare(ComTab[i].name) == 0 ) {
-				switch(ComTab[i].mode) {
-				case 1: m_pComConf->dcb.BaudRate = ComTab[i].value; break;
-				case 2: m_pComConf->dcb.ByteSize = ComTab[i].value; break;
-				case 3: m_pComConf->dcb.Parity   = ComTab[i].value; break;
-				case 4: m_pComConf->dcb.StopBits = ComTab[i].value; break;
-				case 5: SetFlowCtrlMode(&(m_pComConf->dcb), ComTab[i].value, NULL); break;
-				}
-				break;
-			}
-		}
-		if ( ComTab[i].name != NULL )
-			continue;
-
-		if ( _tcsncmp(param[n], _T("USER="), 5) == 0 ) {
-			SetFlowCtrlMode(&(m_pComConf->dcb), COMFLOW_USERDEF, (LPCTSTR)param[n] + 5);
-
-		} else if ( _tcsncmp(param[n], _T("XOFFL="), 6) == 0 ) {
-			m_pComConf->dcb.XoffLim = COMQUEUESIZE - COMQUEUESIZE * _tstoi((LPCTSTR)param[n] + 6) / 100;
-			if ( m_pComConf->dcb.XoffLim < (COMQUEUESIZE - COMQUEUESIZE * 95 / 100) )
-				m_pComConf->dcb.XoffLim = (COMQUEUESIZE - COMQUEUESIZE * 95 / 100);
-			else if ( m_pComConf->dcb.XoffLim > (COMQUEUESIZE - COMQUEUESIZE * 50 / 100) )
-				m_pComConf->dcb.XoffLim = (COMQUEUESIZE - COMQUEUESIZE * 50 / 100);
-
-		} else if ( _tcsncmp(param[n], _T("XONL="), 5) == 0 ) {
-			m_pComConf->dcb.XonLim = COMQUEUESIZE * _tstoi((LPCTSTR)param[n] + 5) / 100;
-			if ( m_pComConf->dcb.XonLim > (COMQUEUESIZE * 50 / 100) )
-				m_pComConf->dcb.XonLim = (COMQUEUESIZE * 50 / 100);
-			else if ( m_pComConf->dcb.XonLim < (COMQUEUESIZE * 5 / 100) )
-				m_pComConf->dcb.XonLim = (COMQUEUESIZE * 5 / 100);
-
-		} else if ( _tcsncmp(param[n], _T("XONC="), 5) == 0 ) {
-			m_pComConf->dcb.XonChar = (char)_tstoi((LPCTSTR)param[n] + 5);
-		} else if ( _tcsncmp(param[n], _T("XOFFC="), 6) == 0 ) {
-			m_pComConf->dcb.XoffChar = (char)_tstoi((LPCTSTR)param[n] + 6);
-
-		} else if ( _tcsncmp(param[n], _T("WC="), 3) == 0 ) {
-			m_SendWait[0] = _tstoi((LPCTSTR)param[n] + 3);
-		} else if ( _tcsncmp(param[n], _T("WL="), 3) == 0 ) {
-			m_SendWait[1] = _tstoi((LPCTSTR)param[n] + 3);
-
-		} else if ( (i = _tstoi(param[n])) >= 100 ) {
-			m_pComConf->dcb.BaudRate = i;
-		}
-	}
+	SetDcdParam(param);
 
 	return TRUE;
 }

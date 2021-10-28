@@ -70,6 +70,7 @@
 #define IDD_FILEDOWNDLG                 166
 #define IDD_SECPOLICYDLG                167
 #define IDD_HISTORYDLG                  168
+#define IDD_VOICEBAR                    169
 #define IDR_GRAPWND                     300
 #define IDR_MAINFRAME                   301
 #define IDR_POPUPMENU                   302
@@ -442,6 +443,7 @@
 #define ID_COMM_EVENT_MONI              1045
 #define ID_VIEW_QUICKBAR                1046
 #define ID_VIEW_TABDLGBAR               1047
+#define ID_VIEW_VOICEBAR                1048
 #define IDC_ALGO_LIST1                  2000
 #define IDC_ALGO_LIST2                  2001
 #define IDC_ALGO_LIST3                  2002
@@ -1000,6 +1002,11 @@
 #define IDC_EMOJIFONTNAME               2508
 #define IDC_EMOJIIMAGEDIR               2509
 #define IDC_EMOJIIMAGESEL               2510
+#define IDC_BACKPOS                     2511
+#define IDC_PLAYSTOP                    2512
+#define IDC_NEXTPOS                     2513
+#define IDC_VOICERATE                   2514
+#define IDC_VOICEDESC                   2515
 #define IDM_BROADCAST                   5000
 #define IDM_CAP_CLIPBORD                5001
 #define IDM_CAP_EXPORT                  5002
@@ -1136,15 +1143,17 @@
 #define IDM_SPEAKALL                    5145
 #define IDM_KNOWNHOSTDEL                5146
 #define IDM_ALL_EXPORT                  5147
+#define IDM_SPEAKBACK                   5148
+#define IDM_SPEAKNEXT                   5149
 #define IDM_FIRST_MDICHILD              0xF800
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        169
-#define _APS_NEXT_COMMAND_VALUE         5148
-#define _APS_NEXT_CONTROL_VALUE         2511
+#define _APS_NEXT_RESOURCE_VALUE        170
+#define _APS_NEXT_COMMAND_VALUE         5150
+#define _APS_NEXT_CONTROL_VALUE         2516
 #define _APS_NEXT_SYMED_VALUE           649
 #endif
 #endif

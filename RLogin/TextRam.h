@@ -1292,7 +1292,7 @@ public:
 	void GetCellSize(int *x, int *y);
 	void GetScreenSize(int *pCx, int *pCy, int *pSx, int *pSy);
 
-	BOOL SpeakLine(int line, CString &text, CArray<CCurPos, CCurPos &> &pos);
+	BOOL SpeakLine(int cols, int line, CString &text, CArray<CCurPos, CCurPos &> &pos);
 	BOOL SpeakCheck(CCurPos sPos, CCurPos ePos, LPCTSTR str);
 
 	void DrawBitmap(CDC *pDestDC, CRect &rect, CDC *pSrcDC, int width, int height, DWORD dwRop);

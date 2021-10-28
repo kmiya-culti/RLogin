@@ -21,6 +21,7 @@
 #include "EditDlg.h"
 #include "PassDlg.h"
 #include "StatusDlg.h"
+#include "ComSock.h"
 
 static CScriptValue SystemValue;
 
@@ -3053,8 +3054,10 @@ int CScript::LoadFile(LPCTSTR filename)
 
 	//fclose(fp);
 
-	if ( !buf.LoadFile(filename) )
+	if ( !buf.LoadFile(filename) ) {
+		ThreadMessageBox(_T("Script File load error '%s'"), filename);
 		return (-1);
+	}
 
 	buf.KanjiConvert(buf.KanjiCheck());
 
@@ -3860,6 +3863,56 @@ int CScript::Exec()
 	}
 
 	return FALSE;
+}
+
+//////////////////////////////////////////////////////////////////////
+// ComSock Func
+
+int CScript::ComFunc(int cmd, CScriptValue &local)
+{
+	CScriptValue *acc = (CScriptValue *)local;
+	acc->Empty();
+
+	if ( m_pDoc == NULL || m_pDoc->m_pSock == NULL || m_pDoc->m_pSock->m_Type != ESCT_COMDEV )
+		return FUNC_RET_NOMAL;
+
+	CComSock *pComSock = (CComSock *)m_pDoc->m_pSock;
+
+	if ( pComSock->m_hCom == INVALID_HANDLE_VALUE || pComSock->m_pComConf == NULL || pComSock->m_ThreadMode != CComSock::THREAD_RUN )
+		return FUNC_RET_NOMAL;
+
+	switch(cmd) {
+	case 0:		// comset(str)
+		pComSock->SetDcdStr((LPCTSTR)local[0]);
+		(*acc) = pComSock->SetComConf();
+		break;
+
+	case 1:		// comdtr(sw)
+		if ( pComSock->m_pComConf->dcb.fDtrControl == DTR_CONTROL_DISABLE && (int)local[0] != 0 ) {
+			pComSock->m_pComConf->dcb.fDtrControl = DTR_CONTROL_ENABLE;
+			pComSock->SetComCtrl(SETDTR);
+		} else if ( pComSock->m_pComConf->dcb.fDtrControl == DTR_CONTROL_ENABLE && (int)local[0] == 0 ) {
+			pComSock->m_pComConf->dcb.fDtrControl = DTR_CONTROL_DISABLE;
+			pComSock->SetComCtrl(CLRDTR);
+		}
+		break;
+
+	case 2:		// comrts(sw)
+		if ( pComSock->m_pComConf->dcb.fRtsControl == RTS_CONTROL_DISABLE && (int)local[0] != 0 ) {
+			pComSock->m_pComConf->dcb.fRtsControl = RTS_CONTROL_ENABLE;
+			pComSock->SetComCtrl(SETRTS);
+		} else if ( pComSock->m_pComConf->dcb.fRtsControl == RTS_CONTROL_ENABLE && (int)local[0] == 0 ) {
+			pComSock->m_pComConf->dcb.fRtsControl = RTS_CONTROL_DISABLE;
+			pComSock->SetComCtrl(CLRRTS);
+		}
+		break;
+
+	case 3:		// combreak(sw)
+		pComSock->SendBreak((int)local[0]);
+		break;
+	}
+
+	return FUNC_RET_NOMAL;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -6853,6 +6906,9 @@ void CScript::FuncInit()
 
 		{ "dialog",		0,	&CScript::Dialog },	{ "database",	0,	&CScript::DataBs },
 		{ "textwnd",	0,	&CScript::TextWnd },
+
+		{ "comset",		0,	&CScript::ComFunc },{ "comdtr",		1,	&CScript::ComFunc },
+		{ "comrts",		2,	&CScript::ComFunc },{ "combreak",	3,	&CScript::ComFunc },
 
 		{ NULL,			0,	NULL }
 	};

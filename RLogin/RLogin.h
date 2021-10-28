@@ -155,6 +155,13 @@ public:
 #endif
 
 	ISpVoice *m_pVoice;
+	CPtrArray m_VoiceList;
+
+	BOOL AddVoiceToken(const WCHAR * pszCategoryId, const WCHAR * pszReqAttribs, const WCHAR * pszOptAttribs);
+	void VoiceInit();
+	void VoiceFinis();
+	void SetVoiceListCombo(CComboBox *pCombo);
+	void SetVoice(LPCTSTR str, long rate);
 
 	BOOL GetExtFilePath(LPCTSTR name, LPCTSTR ext, CString &path);
 	BOOL IsDirectory(LPCTSTR dir);

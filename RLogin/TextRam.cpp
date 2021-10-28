@@ -5079,16 +5079,47 @@ void CTextRam::GetVram(int staX, int endX, int staY, int endY, CBuffer *pBuf)
 		}
 	}
 }
-BOOL CTextRam::SpeakLine(int line, CString &text, CArray<CCurPos, CCurPos &> &pos)
+BOOL CTextRam::SpeakLine(int cols, int line, CString &text, CArray<CCurPos, CCurPos &> &pos)
 {
 	int n, x, sx, ex;
 	CCharCell *vp;
 	LPCWSTR p;
 	BOOL bContinue = FALSE;
 
-	vp = GETVRAM(0, line);
-	sx = 0;
+	sx = cols;
 	ex = m_Cols - 1;
+
+	if ( sx > 0 && IS_2BYTE(GETVRAM(sx, line)->m_Vram.mode) )
+		sx--;
+
+	if ( sx > 0 ) {
+		switch(IsWord(GetPos(sx, line))) {
+		case 0:
+		case 1:	// is alnum
+			while ( IsWord(GetPos(sx - 1, line)) == 1 )
+				DecPos(sx, line);
+			break;
+		case 2:	// ひらがな
+			while ( IsWord(GetPos(sx - 1, line)) == 2 )
+				DecPos(sx, line);
+			while ( IsWord(GetPos(sx - 1, line)) == 4 )
+				DecPos(sx, line);
+			break;
+		case 3:	// カタカナ
+			while ( IsWord(GetPos(sx - 1, line)) == 3 )
+				DecPos(sx, line);
+			break;
+		case 4:	// その他
+			while ( IsWord(GetPos(sx - 1, line)) == 4 )
+				DecPos(sx, line);
+			break;
+		}
+
+		if ( IS_2BYTE(GETVRAM(sx, line)->m_Vram.mode) )
+			DecPos(sx, line);
+	}
+
+	vp = GETVRAM(0, line);
 
 	if ( vp->m_Vram.zoom != 0 )
 		ex = ex / 2;

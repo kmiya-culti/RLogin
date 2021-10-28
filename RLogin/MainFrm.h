@@ -10,7 +10,7 @@
 #include "Ssh.h"
 #include "MidiData.h"
 #include "ComboBoxHis.h"
-#include <Shobjidl.h>
+#include "Shobjidl.h"
 
 #define	PANEFRAME_NOCHNG		0
 #define	PANEFRAME_MAXIM			1
@@ -133,7 +133,59 @@ public:
 	void TrackLoop();
 };
 
-class CQuickBar : public CDialogBar
+class CDialogBarEx : public CDialogBar
+{
+	DECLARE_DYNAMIC(CDialogBarEx)
+
+public:
+	CDialogBarEx();
+	virtual ~CDialogBarEx();
+
+public:
+	CSize m_InitDpi;
+	CSize m_NowDpi;
+	CFont m_DpiFont;
+	CSize m_ZoomMul;
+	CSize m_ZoomDiv;
+	CFont m_NewFont;
+
+public:
+	void DpiChanged();
+	void FontSizeCheck();
+
+public:
+	BOOL Create(CWnd* pParentWnd, LPCTSTR lpszTemplateName, UINT nStyle, UINT nID);
+	inline BOOL Create(CWnd* pParentWnd, UINT nIDTemplate, UINT nStyle, UINT nID) { return Create(pParentWnd, MAKEINTRESOURCE(nIDTemplate), nStyle, nID); }
+
+public:
+	DECLARE_MESSAGE_MAP()
+};
+
+class CVoiceBar : public CDialogBarEx
+{
+	DECLARE_DYNAMIC(CVoiceBar)
+
+public:
+	CVoiceBar();
+	virtual ~CVoiceBar();
+
+	enum { IDD = IDD_VOICEBAR };
+
+public:
+	CComboBox m_VoiceDesc;
+	CSliderCtrl m_VoiceRate;
+
+protected:
+	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート
+
+public:
+	DECLARE_MESSAGE_MAP()
+	afx_msg LRESULT HandleInitDialog(WPARAM, LPARAM);
+	afx_msg void OnCbnSelchangeVoicedesc();
+	afx_msg void OnNMReleasedcaptureVoicerate(NMHDR *pNMHDR, LRESULT *pResult);
+};
+
+class CQuickBar : public CDialogBarEx
 {
 	DECLARE_DYNAMIC(CQuickBar)
 
@@ -150,22 +202,10 @@ public:
 	CComboBoxHis m_UserWnd;
 	CEdit m_PassWnd;
 
-	CSize m_InitDpi;
-	CSize m_NowDpi;
-	CFont m_DpiFont;
-	CSize m_ZoomMul;
-	CSize m_ZoomDiv;
-	CFont m_NewFont;
-
+public:
 	void InitDialog();
 	void SaveDialog();
-	void DpiChanged();
 	void SetComdLine(CString &cmds);
-	void FontSizeCheck();
-
-public:
-	BOOL Create(CWnd* pParentWnd, LPCTSTR lpszTemplateName, UINT nStyle, UINT nID);
-	inline BOOL Create(CWnd* pParentWnd, UINT nIDTemplate, UINT nStyle, UINT nID) { return Create(pParentWnd, MAKEINTRESOURCE(nIDTemplate), nStyle, nID); }
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート
@@ -444,8 +484,10 @@ public:
 	int m_SpeakQueTop;
 	class CRLoginView *m_pSpeakView;
 	class CRLoginDoc *m_pSpeakDoc;
+	int m_SpeakCols;
 	int m_SpeakLine;
 	int m_SpeakAbs;
+	int m_SpeakActive[3];
 
 	BOOL SpeakQueIn();
 	void Speak(LPCTSTR str);
@@ -454,7 +496,7 @@ public:
 
 	inline CImageList *GetTabImageList() { return &(m_wndTabBar.m_ImageList); }
 	inline int GetTabImageIndex(LPCTSTR filename) { return m_wndTabBar.GetImageIndex(filename); }
-	inline void BarFontCheck() { m_wndTabBar.FontSizeCheck(); m_wndQuickBar.FontSizeCheck(); m_wndTabDlgBar.FontSizeCheck(); RecalcLayout(TRUE); }
+	inline void BarFontCheck() { m_wndTabBar.FontSizeCheck(); m_wndQuickBar.FontSizeCheck(); m_wndVoiceBar.FontSizeCheck(); m_wndTabDlgBar.FontSizeCheck(); RecalcLayout(TRUE); }
 	inline void QuickBarInit() { m_wndQuickBar.InitDialog(); }
 	inline void TabDlgShow(BOOL bShow) { ShowControlBar(&m_wndTabDlgBar, bShow, FALSE); }
 	inline BOOL TabDlgInDrag(CPoint point, CWnd *pWnd, int nImage) { if ( !m_bTabDlgBarShow ) return FALSE; m_wndTabDlgBar.TrackLoop(point, (-7), pWnd, nImage); return TRUE; }
@@ -466,6 +508,7 @@ protected:
 	CTabBar		m_wndTabBar;
 	CQuickBar	m_wndQuickBar;
 	CTabDlgBar	m_wndTabDlgBar;
+	CVoiceBar   m_wndVoiceBar;
 
 // オーバーライド
 public:
@@ -526,6 +569,8 @@ protected:
 	afx_msg void OnUpdateViewMenubar(CCmdUI *pCmdUI);
 	afx_msg void OnViewQuickbar();
 	afx_msg void OnUpdateViewQuickbar(CCmdUI *pCmdUI);
+	afx_msg void OnViewVoicebar();
+	afx_msg void OnUpdateViewVoicebar(CCmdUI *pCmdUI);
 	afx_msg void OnViewTabDlgbar();
 	afx_msg void OnUpdateViewTabDlgbar(CCmdUI *pCmdUI);
 	afx_msg void OnViewTabbar();
@@ -542,6 +587,8 @@ protected:
 	afx_msg void OnUpdateClipchain(CCmdUI *pCmdUI);
 	afx_msg void OnSpeakText();
 	afx_msg void OnUpdateSpeakText(CCmdUI *pCmdUI);
+	afx_msg void OnSpeakBack();
+	afx_msg void OnSpeakNext();
 
 	afx_msg void OnFileAllLoad();
 	afx_msg void OnFileAllSave();

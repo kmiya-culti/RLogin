@@ -178,6 +178,7 @@ BEGIN
         MENUITEM "メニューバー(&M)",                  ID_VIEW_MENUBAR
         MENUITEM "ツールバー(&T)",                   ID_VIEW_TOOLBAR
         MENUITEM "クイックバー(&Q)",                  ID_VIEW_QUICKBAR
+        MENUITEM "ボイスバー(&A)",                   ID_VIEW_VOICEBAR
         MENUITEM "タブバー(&B)",                    ID_VIEW_TABBAR
         MENUITEM "ダイアログバー(&D)",                 ID_VIEW_TABDLGBAR
         MENUITEM "ステータスバー(&S)",                 ID_VIEW_STATUS_BAR
@@ -288,6 +289,7 @@ BEGIN
         MENUITEM "メニューバー(&M)",                  ID_VIEW_MENUBAR
         MENUITEM "ツールバー(&T)",                   ID_VIEW_TOOLBAR
         MENUITEM "クイックバー(&Q)",                  ID_VIEW_QUICKBAR
+        MENUITEM "ボイスバー(&A)",                   ID_VIEW_VOICEBAR
         MENUITEM "タブバー(&B)",                    ID_VIEW_TABBAR
         MENUITEM "ダイアログバー(&D)",                 ID_VIEW_TABDLGBAR
         MENUITEM "ステータスバー(&S)",                 ID_VIEW_STATUS_BAR
@@ -619,35 +621,33 @@ END
 // Dialog
 //
 
-IDD_ABOUTBOX DIALOGEX 0, 0, 243, 244
+IDD_ABOUTBOX DIALOGEX 0, 0, 243, 237
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "About RLogin"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    CONTROL         "<a href=""http://nanno.dip.jp/softlib/man/rlogin/"">http://nanno.dip.jp/softlib/man/rlogin/</a>",IDC_SYSLINK2,
-                    "SysLink",WS_TABSTOP,44,26,189,8
     CONTROL         "<a href=""https://kmiya-culti.github.io/RLogin/"">https://kmiya-culti.github.io/RLogin/</a>",IDC_SYSLINK3,
-                    "SysLink",WS_TABSTOP,44,37,189,8
+                    "SysLink",WS_TABSTOP,44,26,189,8
     CONTROL         "<a href=""https://1023world.net/"">https://1023world.net/</a>",IDC_SYSLINK1,
-                    "SysLink",WS_TABSTOP,44,204,189,8
-    DEFPUSHBUTTON   "OK",IDOK,91,223,60,14,WS_GROUP
+                    "SysLink",WS_TABSTOP,44,196,189,8
+    DEFPUSHBUTTON   "OK",IDOK,91,215,60,14,WS_GROUP
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin (%s) Version 2.26.3 (2021/08/27)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.26.4 (2021/10/29)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2021 Culti",IDC_STATIC,44,16,189,8
-    LTEXT           "OpenSSL 1.1.1l 24 Aug 2021",IDC_STATIC,44,52,189,8
-    LTEXT           "Copyright (c) 1998-2021 The OpenSSL Project",IDC_STATIC,44,61,189,8
-    LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,70,189,8
-    LTEXT           "All rights reserved.",IDC_STATIC,44,79,189,8
-    LTEXT           "zlib 1.2.11 (15 Jan 2017)",IDC_STATIC,44,92,189,8
-    LTEXT           "(C) 1995-2017 Jean-loup Gailly and Mark Adler",IDC_STATIC,44,101,189,8
-    LTEXT           "iconv (GNU libiconv 1.16)",IDC_STATIC,44,114,189,8
-    LTEXT           "Copyright (C) 2000-2017 Free Software Foundation, Inc.",IDC_STATIC,44,123,189,8
-    LTEXT           "Nettle library (version 2.0)",IDC_STATIC,44,138,189,8
-    LTEXT           "Originally written 2001 by Niels Moller, updated 2009.",IDC_STATIC,44,147,189,8
-    LTEXT           "kumaGIF",IDC_STATIC,44,186,189,8
-    LTEXT           "Copyright (c) 1.023world All Rights Reserved.",IDC_STATIC,44,195,189,8
-    LTEXT           "putty-0.75-pre (blake2/argon2 source code)",IDC_STATIC,44,172,189,8
-    LTEXT           "PuTTY is copyright 1997-2021 Simon Tatham.",IDC_STATIC,44,163,189,8
+    LTEXT           "OpenSSL 1.1.1l 24 Aug 2021",IDC_STATIC,44,44,189,8
+    LTEXT           "Copyright (c) 1998-2021 The OpenSSL Project",IDC_STATIC,44,53,189,8
+    LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,62,189,8
+    LTEXT           "All rights reserved.",IDC_STATIC,44,71,189,8
+    LTEXT           "zlib 1.2.11 (15 Jan 2017)",IDC_STATIC,44,84,189,8
+    LTEXT           "(C) 1995-2017 Jean-loup Gailly and Mark Adler",IDC_STATIC,44,93,189,8
+    LTEXT           "iconv (GNU libiconv 1.16)",IDC_STATIC,44,106,189,8
+    LTEXT           "Copyright (C) 2000-2017 Free Software Foundation, Inc.",IDC_STATIC,44,115,189,8
+    LTEXT           "Nettle library (version 2.0)",IDC_STATIC,44,130,189,8
+    LTEXT           "Originally written 2001 by Niels Moller, updated 2009.",IDC_STATIC,44,139,189,8
+    LTEXT           "kumaGIF",IDC_STATIC,44,178,189,8
+    LTEXT           "Copyright (c) 1.023world All Rights Reserved.",IDC_STATIC,44,187,189,8
+    LTEXT           "putty-0.75-pre (blake2/argon2 source code)",IDC_STATIC,44,164,189,8
+    LTEXT           "PuTTY is copyright 1997-2021 Simon Tatham.",IDC_STATIC,44,155,189,8
 END
 
 IDD_ALGOPARADLG DIALOGEX 0, 0, 351, 343
@@ -2152,6 +2152,17 @@ BEGIN
     LTEXT           "Clipboard",IDC_TITLEBOX3,213,2,100,10
 END
 
+IDD_VOICEBAR DIALOGEX 0, 0, 341, 21
+STYLE DS_SETFONT | WS_CHILD | WS_SYSMENU
+FONT 9, "MS UI Gothic", 400, 0, 0x80
+BEGIN
+    PUSHBUTTON      "<<",IDC_BACKPOS,6,3,18,14,BS_CENTER | BS_VCENTER
+    PUSHBUTTON      ">",IDC_PLAYSTOP,29,3,18,14,BS_CENTER | BS_VCENTER
+    PUSHBUTTON      ">>",IDC_NEXTPOS,52,3,18,14,BS_CENTER | BS_VCENTER
+    COMBOBOX        IDC_VOICEDESC,83,5,160,30,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "",IDC_VOICERATE,"msctls_trackbar32",TBS_BOTH | WS_TABSTOP,246,4,90,14
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -2159,8 +2170,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,26,3,0
- PRODUCTVERSION 2,26,3,0
+ FILEVERSION 2,26,4,0
+ PRODUCTVERSION 2,26,4,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2177,12 +2188,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.26.3.0"
+            VALUE "FileVersion", "2.26.4.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.26.3.0"
+            VALUE "ProductVersion", "2.26.4.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2205,7 +2216,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 236
         TOPMARGIN, 7
-        BOTTOMMARGIN, 237
+        BOTTOMMARGIN, 230
     END
 
     IDD_ALGOPARADLG, DIALOG
@@ -2724,6 +2735,14 @@ BEGIN
         RIGHTMARGIN, 309
         TOPMARGIN, 7
         BOTTOMMARGIN, 119
+    END
+
+    IDD_VOICEBAR, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 334
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 14
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -4691,6 +4710,7 @@ BEGIN
     ID_WINDOW_ROTATION      "表示しているペインを移動します\nペインの移動"
     ID_VIEW_QUICKBAR        "クイックバーの 表示/非表示\nクィック接続バーの表示切り替え"
     ID_VIEW_TABDLGBAR       "ダイアログバーの使用/非使用\nダイアログバーの使用切り替え"
+    ID_VIEW_VOICEBAR        "ボイスバーの 表示/非表示\nボイスバーの表示切り替え"
 END
 
 STRINGTABLE

@@ -118,7 +118,7 @@ void CScriptPage::OnBnClickedScriptSel()
 		file = m_ScriptFile;
 
 	CRLoginDoc::EnvironPath(file);
-	CFileDialog dlg(FALSE, _T("txt"), file, 0, CStringLoad(IDS_FILEDLGSCRIPT), this);
+	CFileDialog dlg(TRUE, _T("txt"), file, 0, CStringLoad(IDS_FILEDLGSCRIPT), this);
 
 	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;

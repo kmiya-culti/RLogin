@@ -189,7 +189,7 @@ void CFontParaDlg::SetFontFace(int nID)
 	if ( pCombo == NULL )
 		return;
 
-	for ( int n = pCombo->GetCount() - 1 ; n >= 0; n-- )
+	for ( int n = pCombo->GetCount() - 1 ; n >= 0 ; n-- )
 		pCombo->DeleteString(n);
 
 	ZeroMemory(&logfont, sizeof(LOGFONT)); 

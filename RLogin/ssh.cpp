@@ -901,7 +901,6 @@ int Cssh::SMsgPublicKey(CBuffer *bp)
 	m_SupportCipher = bp->Get32Bit();
 	m_SupportAuth = bp->Get32Bit();
 
-	EVP_MD *evp_md = (EVP_MD *)EVP_md5();
 	EVP_MD_CTX *md_ctx;
     BYTE nbuf[2048];
 	BYTE obuf[EVP_MAX_MD_SIZE];
@@ -909,7 +908,7 @@ int Cssh::SMsgPublicKey(CBuffer *bp)
 	BIGNUM *key;
 
 	md_ctx = EVP_MD_CTX_new();
-	EVP_DigestInit(md_ctx, evp_md);
+	EVP_DigestInit(md_ctx, EVP_md5());
 
 	len = BN_num_bytes(host_key_n);
     BN_bn2bin(host_key_n, nbuf);

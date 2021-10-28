@@ -1406,7 +1406,7 @@ void CInfoCapDlg::OnBnClickedLoadcap()
 
 	m_Entry.GetWindowText(tmp);
 
-	for ( n = m_Entry.GetCount() - 1 ; n >= 0; n-- )
+	for ( n = m_Entry.GetCount() - 1 ; n >= 0 ; n-- )
 		m_Entry.DeleteString(n);
 
 	LoadCapFile(dlg.GetPathName());
@@ -1425,7 +1425,7 @@ void CInfoCapDlg::OnBnClickedLoadinfo()
 
 	m_Entry.GetWindowText(tmp);
 
-	for ( n = m_Entry.GetCount() - 1 ; n >= 0; n-- )
+	for ( n = m_Entry.GetCount() - 1 ; n >= 0 ; n-- )
 		m_Entry.DeleteString(n);
 
 	LoadInfoFile(dlg.GetPathName());
@@ -1471,7 +1471,7 @@ void CInfoCapDlg::OnCapInport()
 	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
-	for ( n = m_Entry.GetCount() - 1 ; n >= 0; n-- )
+	for ( n = m_Entry.GetCount() - 1 ; n >= 0 ; n-- )
 		m_Entry.DeleteString(n);
 
 	LoadCapFile(dlg.GetPathName());
@@ -1540,7 +1540,7 @@ void CInfoCapDlg::OnInfoInport()
 	if ( DpiAwareDoModal(dlg) != IDOK )
 		return;
 
-	for ( n = m_Entry.GetCount() - 1 ; n >= 0; n-- )
+	for ( n = m_Entry.GetCount() - 1 ; n >= 0 ; n-- )
 		m_Entry.DeleteString(n);
 
 	LoadInfoFile(dlg.GetPathName());
