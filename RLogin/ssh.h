@@ -124,12 +124,10 @@
 #define INTBLOB_LEN     20
 #define SIGBLOB_LEN     (2*INTBLOB_LEN)
 
-#define CURVE25519_SIZE 32
-
-#define sntrup4591761_PUBLICKEYBYTES	1218
-#define sntrup4591761_SECRETKEYBYTES	1600
-#define sntrup4591761_CIPHERTEXTBYTES	1047
-#define sntrup4591761_BYTES				32
+#define sntrup761_PUBLICKEYBYTES		1158
+#define sntrup761_SECRETKEYBYTES		1763
+#define sntrup761_CIPHERTEXTBYTES		1039
+#define sntrup761_BYTES					32
 
 #define	EVP_CTRL_POLY_IV_GEN	0x30
 #define	EVP_CTRL_POLY_SET_TAG	0x31
@@ -216,6 +214,7 @@ public:
 #define	IDKEY_RSA2					00002
 #define	IDKEY_DSA2					00004
 #define	IDKEY_ED25519				00010
+#define	IDKEY_ED448					00011
 #define	IDKEY_XMSS					00020
 #define	IDKEY_ECDSA					00040
 
@@ -261,21 +260,12 @@ public:
 #define DNS_RDATACLASS_IN			1
 #define DNS_RDATATYPE_SSHFP			44
 
-#define ED25519_SECBYTES			64
-#define ED25519_PUBBYTES			32
-#define	ED25519_SIGBYTES			64
-
 #define	MAKEKEY_FIXTEXT				0
 #define	MAKEKEY_USERHOST			1
 #define	MAKEKEY_HOSTSID				2
 #define	MAKEKEY_USERSID				3
 
 //#define	USE_X509
-
-typedef struct _ed25519_key {
-	BYTE pub[ED25519_PUBBYTES];
-	BYTE sec[ED25519_SECBYTES];
-} ED25519_KEY;
 
 class CXmssKey : public CObject
 {
@@ -329,7 +319,8 @@ public:
 	DSA *m_Dsa;
 	EC_KEY *m_EcDsa;
 	int	 m_EcNid;
-	ED25519_KEY *m_Ed25519;
+	CBuffer m_PublicKey;
+	CBuffer m_PrivateKey;
 	CXmssKey m_XmssKey;
 	CString m_Work;
 	CBuffer m_CertBlob;
@@ -348,6 +339,7 @@ public:
 	static const EVP_MD *GetEcEvpMdFromNid(int nid);
 	int GetEcNidFromKey(EC_KEY *k);
 	void RsaGenAddPara(BIGNUM *iqmp);
+	int EvpPkeySetKey(const EVP_PKEY *pkey);
 
 	int Init(LPCTSTR pass);
 	int Create(int type);
@@ -378,14 +370,14 @@ public:
 	int RsaSign(CBuffer *bp, LPBYTE buf, int len, LPCTSTR alg);
 	int DssSign(CBuffer *bp, LPBYTE buf, int len);
 	int EcDsaSign(CBuffer *bp, LPBYTE buf, int len);
-	int Ed25519Sign(CBuffer *bp, LPBYTE buf, int len);
+	int EdKeySign(int type, CBuffer *bp, LPBYTE buf, int len);
 	int XmssSign(CBuffer *bp, LPBYTE buf, int len);
 	int Sign(CBuffer *bp, LPBYTE buf, int len, LPCTSTR alg = NULL);
 
 	int RsaVerify(CBuffer *bp, LPBYTE data, int datalen);
 	int DssVerify(CBuffer *bp, LPBYTE data, int datalen);
 	int EcDsaVerify(CBuffer *bp, LPBYTE data, int datalen);
-	int Ed25519Verify(CBuffer *bp, LPBYTE data, int datalen);
+	int EdKeyVerify(int type, CBuffer *bp, LPBYTE data, int datalen);
 	int XmssVerify(CBuffer *bp, LPBYTE data, int datalen);
 	int Verify(CBuffer *bp, LPBYTE data, int datalen);
 
@@ -707,13 +699,14 @@ public:
 #define	DHMODE_ECDH_S2_N256	4
 #define	DHMODE_ECDH_S2_N384	5
 #define	DHMODE_ECDH_S2_N521	6
-#define DHMODE_CURVE25519	7
-#define	DHMODE_GROUP_14_256	8
-#define	DHMODE_GROUP_15_512	9
-#define	DHMODE_GROUP_16_512	10
-#define	DHMODE_GROUP_17_512	11
-#define	DHMODE_GROUP_18_512	12
-#define	DHMODE_SNT4591761	13	
+#define	DHMODE_GROUP_14_256	7
+#define	DHMODE_GROUP_15_512	8
+#define	DHMODE_GROUP_16_512	9
+#define	DHMODE_GROUP_17_512	10
+#define	DHMODE_GROUP_18_512	11
+#define DHMODE_CURVE25519	12
+#define DHMODE_CURVE448		13
+#define	DHMODE_SNT761X25519	14
 
 #define	AUTH_MODE_NONE		0
 #define	AUTH_MODE_PUBLICKEY	1
@@ -804,6 +797,7 @@ private:
 	int m_IdKeyPos;
 	int m_AuthReqTab[10];
 	BOOL m_bKeybIntrReq;
+	BOOL m_bReqRsaSha1;
 
 	int m_ServerFlag;
 	int m_SupportCipher;
@@ -849,10 +843,9 @@ private:
 	int m_EcdhCurveNid;
 	EC_KEY *m_EcdhClientKey;
 	const EC_GROUP *m_EcdhGroup;
-	BYTE m_CurveClientKey[CURVE25519_SIZE];
-	BYTE m_CurveClientPubkey[CURVE25519_SIZE];
-	BYTE m_SntrupClientKey[sntrup4591761_SECRETKEYBYTES];
-	BYTE m_SntrupClientPubkey[sntrup4591761_PUBLICKEYBYTES + CURVE25519_SIZE];
+	EVP_PKEY *m_CurveEvpKey;
+	CBuffer m_CurveClientPubkey;
+	BYTE m_SntrupClientKey[sntrup761_SECRETKEYBYTES];
 	int m_AuthStat;
 	int m_AuthMode;
 	CString m_AuthMeta;
@@ -904,7 +897,6 @@ private:
 	void SendMsgKexDhGexRequest();
 	int SendMsgKexEcdhInit();
 	void SendMsgKexCurveInit();
-	void SendMsgKexSntrupInit();
 
 	void SendMsgServiceRequest(LPCSTR str);
 	int SendMsgUserAuthRequest(LPCSTR str);
@@ -926,7 +918,6 @@ private:
 	int SSH2MsgKexDhGexReply(CBuffer *bp);
 	int SSH2MsgKexEcdhReply(CBuffer *bp);
 	int SSH2MsgKexCurveReply(CBuffer *bp);
-	int SSH2MsgKexSntrupReply(CBuffer *bp);
 
 	int SSH2MsgNewKeys(CBuffer *bp);
 	int SSH2MsgExtInfo(CBuffer *bp);
@@ -1051,18 +1042,10 @@ extern void UMAC_update(struct umac_ctx *ctx, const u_char *input, size_t len);
 extern void UMAC_final(struct umac_ctx *ctx, u_char *tag, u_char *nonce);
 extern void UMAC_close(struct umac_ctx *ctx);
 
-// curve25519.c
-extern int crypto_scalarmult_curve25519(unsigned char *, const unsigned char *, const unsigned char *);
-
 // openbsd-compat
 extern int crypto_hash_sha512(unsigned char *out,const unsigned char *in,unsigned long long inlen);
 extern int crypto_verify_32(const unsigned char *x,const unsigned char *y);
 extern int bcrypt_pbkdf(const char *pass, size_t passlen, const unsigned char *salt, size_t saltlen, unsigned char *key, size_t keylen, unsigned int rounds);
-
-// ssh-ed2519
-extern int crypto_sign_ed25519_keypair(unsigned char *pk, unsigned char *sk);
-extern int crypto_sign_ed25519(unsigned char *sm, unsigned long long *smlen, const unsigned char *m, unsigned long long mlen, const unsigned char *sk);
-extern int crypto_sign_ed25519_open(unsigned char *m,unsigned long long *mlen, const unsigned char *sm,unsigned long long smlen, const unsigned char *pk);
 
 //argon2
 void argon2(uint32_t flavour, uint32_t mem, uint32_t passes, uint32_t parallel, CBuffer *P, CBuffer *S, CBuffer *K, CBuffer *X, u_char *out, uint32_t taglen);
@@ -1100,10 +1083,9 @@ int xmssmt_key_bytes(uint32_t oid, int *plen, int *slen);
 void shake128(unsigned char *out, unsigned long long outlen, const unsigned char *in, unsigned long long inlen);
 void shake256(unsigned char *out, unsigned long long outlen, const unsigned char *in, unsigned long long inlen);
 
-// sntrup4591761.cpp
-
-int	sntrup4591761_keypair(unsigned char *pk, unsigned char *sk);
-int	sntrup4591761_enc(unsigned char *cstr, unsigned char *k, const unsigned char *pk);
-int	sntrup4591761_dec(unsigned char *k, const unsigned char *cstr, const unsigned char *sk);
+// sntrup761.cpp
+int	sntrup761_keypair(unsigned char *pk, unsigned char *sk);
+int	sntrup761_enc(unsigned char *cstr, unsigned char *k, const unsigned char *pk);
+int	sntrup761_dec(unsigned char *k, const unsigned char *cstr, const unsigned char *sk);
 
 #endif // !defined(AFX_SSH_H__2A682FAC_4F24_4168_9082_C9CDF2DD19D7__INCLUDED_)

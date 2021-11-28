@@ -24,6 +24,8 @@
 #include <sys/utime.h>
 #include <sddl.h>
 
+#include "crypto/evp.h"
+
 #ifdef _DEBUG
 #undef THIS_FILE
 static char THIS_FILE[]=__FILE__;
@@ -1304,11 +1306,12 @@ CIdKey::CIdKey()
 	m_EcNid = NID_X9_62_prime256v1;
 	m_RsaNid = NID_sha1;
 	m_EcDsa = NULL;
-	m_Ed25519 = NULL;
 	m_Cert = 0;
 	m_bSecInit = FALSE;
 	m_bHostPass = TRUE;
 	m_AgeantType = IDKEY_AGEANT_NONE;
+	m_PublicKey.m_bZero = TRUE;
+	m_PrivateKey.m_bZero = TRUE;
 }
 CIdKey::~CIdKey()
 {
@@ -1320,9 +1323,6 @@ CIdKey::~CIdKey()
 
 	if ( m_EcDsa != NULL )
 		EC_KEY_free(m_EcDsa);
-
-	if ( m_Ed25519 != NULL )
-		free(m_Ed25519);
 }
 int CIdKey::Init(LPCTSTR pass)
 {
@@ -1505,11 +1505,11 @@ const CIdKey & CIdKey::operator = (CIdKey &data)
 		m_Type  = IDKEY_ECDSA;
 		break;
 	case IDKEY_ED25519:
-		if ( data.m_Ed25519 == NULL )
-			break;
+	case IDKEY_ED448:
 		if ( !Create(data.m_Type) )
 			break;
-		memcpy(m_Ed25519, data.m_Ed25519, sizeof(ED25519_KEY));
+		m_PublicKey  = data.m_PublicKey;
+		m_PrivateKey = data.m_PrivateKey;
 		break;
 	case IDKEY_XMSS:
 		m_XmssKey = data.m_XmssKey;
@@ -1664,6 +1664,39 @@ void CIdKey::RsaGenAddPara(BIGNUM *iqmp)
 	BN_clear_free(aux);
 	BN_CTX_free(ctx);
 }
+int CIdKey::EvpPkeySetKey(const EVP_PKEY *pkey)
+{
+	size_t len = 0;
+
+	m_PublicKey.Clear();
+	m_PrivateKey.Clear();
+
+	if ( EVP_PKEY_get_raw_public_key(pkey, NULL, &len) <= 0 )
+		return FALSE;
+
+	if ( len <= 0 )
+		return FALSE;
+
+	m_PublicKey.PutSpc((int)len);
+
+	if ( EVP_PKEY_get_raw_public_key(pkey, m_PublicKey.GetPtr(), &len) <= 0 )
+		return FALSE;
+
+	len = 0;
+
+	if ( EVP_PKEY_get_raw_private_key(pkey, NULL, &len) <= 0 )
+		return FALSE;
+
+	if ( len <= 0 )
+		return FALSE;
+
+	m_PrivateKey.PutSpc((int)len);
+
+	if ( EVP_PKEY_get_raw_private_key(pkey, m_PrivateKey.GetPtr(), &len) <= 0 )
+		return FALSE;
+
+	return TRUE;
+}
 int CIdKey::Create(int type)
 {
 	m_Type = IDKEY_NONE;
@@ -1699,11 +1732,10 @@ int CIdKey::Create(int type)
 			return FALSE;
 		break;
 	case IDKEY_ED25519:
+	case IDKEY_ED448:
 		m_Type = type;
-		if ( m_Ed25519 != NULL )
-			break;
-		if ( (m_Ed25519 = (ED25519_KEY *)malloc(sizeof(ED25519_KEY))) == NULL )
-			return FALSE;
+		m_PublicKey.Clear();
+		m_PrivateKey.Clear();
 		break;
 	case IDKEY_XMSS:
 		m_Type = type;
@@ -1720,6 +1752,8 @@ int CIdKey::Generate(int type, int bits, LPCTSTR pass)
 	int n;
 	BIGNUM *f4;
 	char *name;
+	EVP_PKEY_CTX *ctx;
+	EVP_PKEY *pkey = NULL;
 
 	m_Type = IDKEY_NONE;
 	switch(type) {
@@ -1774,12 +1808,39 @@ int CIdKey::Generate(int type, int bits, LPCTSTR pass)
 		break;
 
 	case IDKEY_ED25519:
-		if ( m_Ed25519 != NULL )
-			free(m_Ed25519);
-		if ( (m_Ed25519 = (ED25519_KEY *)malloc(sizeof(ED25519_KEY))) == NULL )
+		if ( (ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_ED25519, NULL)) == NULL )
 			return FALSE;
-		crypto_sign_ed25519_keypair(m_Ed25519->pub, m_Ed25519->sec);
-		m_Type = IDKEY_ED25519;
+		goto EVPKEYGEN;
+
+	case IDKEY_ED448:
+		if ( (ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_ED448, NULL)) == NULL )
+			return FALSE;
+
+	EVPKEYGEN:
+		if ( EVP_PKEY_keygen_init(ctx) <= 0 ) {
+			EVP_PKEY_CTX_free(ctx);
+			return FALSE;
+		}
+
+		if ( EVP_PKEY_keygen(ctx, &pkey) <= 0 ) {
+			EVP_PKEY_CTX_free(ctx);
+			return FALSE;
+		}
+
+		if ( pkey == NULL ) {
+			EVP_PKEY_CTX_free(ctx);
+			return FALSE;
+		}
+
+		if ( !EvpPkeySetKey(pkey) ) {
+			EVP_PKEY_free(pkey);
+			EVP_PKEY_CTX_free(ctx);
+			return FALSE;
+		}
+
+		EVP_PKEY_free(pkey);
+		EVP_PKEY_CTX_free(ctx);
+		m_Type = type;
 		break;
 
 	case IDKEY_XMSS:
@@ -1821,19 +1882,17 @@ int CIdKey::Close()
 	if ( m_EcDsa != NULL )
 		EC_KEY_free(m_EcDsa);
 
-	if ( m_Ed25519 != NULL )
-		free(m_Ed25519);
-
 	m_Rsa = NULL;
 	m_Dsa = NULL;
 	m_EcDsa = NULL;
-	m_Ed25519 = NULL;
 	m_XmssKey.RemoveAll();
 	m_Type = IDKEY_NONE;
 	m_bSecInit = FALSE;
 	m_SecBlob.Empty();
 	m_Cert = 0;
 	m_CertBlob.Clear();
+	m_PublicKey.Clear();
+	m_PrivateKey.Clear();
 
 	return FALSE;
 }
@@ -1906,9 +1965,10 @@ int CIdKey::ComperePublic(CIdKey *pKey)
 		ret = 0;
 		break;
 	case IDKEY_ED25519:
-		if ( m_Ed25519 == NULL || pKey->m_Ed25519 == NULL )
+	case IDKEY_ED448:
+		if ( m_PublicKey.GetSize() == 0 || pKey->m_PublicKey.GetSize() == 0 )
 			break;
-		if ( memcmp(m_Ed25519->pub, pKey->m_Ed25519->pub, ED25519_PUBBYTES) != 0 )
+		if ( memcmp(m_PublicKey.GetPtr(), pKey->m_PublicKey.GetPtr(), m_PublicKey.GetSize()) != 0 )
 			break;
 		ret = 0;
 		break;
@@ -1967,14 +2027,15 @@ LPCTSTR CIdKey::GetName(BOOL bCert, BOOL bExtname)
 		m_Work += _T("rsa1");
 		break;
 	case IDKEY_RSA2:
-		if ( bExtname ) {
+		// í‚É–¼‘O‚ðŠg’£‚É•ÏX 2021.11.05
+//		if ( bExtname ) {
 			switch(m_RsaNid) {
 			case NID_sha1:	 m_Work += _T("ssh-rsa"); break;
 			case NID_sha256: m_Work += _T("rsa-sha2-256"); break;
 			case NID_sha512: m_Work += _T("rsa-sha2-512"); break;
 			}
-		} else
-			m_Work += _T("ssh-rsa");
+		//} else
+		//	m_Work += _T("ssh-rsa");
 		break;
 	case IDKEY_DSA2:
 		m_Work += _T("ssh-dss");
@@ -1988,6 +2049,9 @@ LPCTSTR CIdKey::GetName(BOOL bCert, BOOL bExtname)
 		break;
 	case IDKEY_ED25519:
 		m_Work += _T("ssh-ed25519");
+		break;
+	case IDKEY_ED448:
+		m_Work += _T("ssh-ed448");
 		break;
 	case IDKEY_XMSS:
 		if ( bCert && m_Cert != 0 )
@@ -2054,6 +2118,8 @@ int CIdKey::GetTypeFromName(LPCTSTR name)
 		type = IDKEY_ECDSA;
 	else if ( _tcscmp(name, _T("ssh-ed25519")) == 0 )
 		type = IDKEY_ED25519;
+	else if ( _tcscmp(name, _T("ssh-ed448")) == 0 )
+		type = IDKEY_ED448;
 	else if ( _tcscmp(name, _T("ssh-xmss")) == 0 || _tcscmp(name, _T("ssh-xmss@openssh.com")) == 0 )
 		type = IDKEY_XMSS;
 	else
@@ -2350,19 +2416,43 @@ int CIdKey::EcDsaSign(CBuffer *bp, LPBYTE buf, int len)
 
 	return TRUE;
 }
-int CIdKey::Ed25519Sign(CBuffer *bp, LPBYTE buf, int len)
+int CIdKey::EdKeySign(int type, CBuffer *bp, LPBYTE buf, int len)
 {
-	unsigned long long siglen;
+	int rt = FALSE;
+	EVP_PKEY *pkey = NULL;
+	EVP_MD_CTX *md_ctx = NULL;
+	size_t siglen;
 	CBuffer tmp(-1);
+		
+	if ( (pkey = EVP_PKEY_new_raw_private_key(type, NULL, m_PrivateKey.GetPtr(), m_PrivateKey.GetSize())) == NULL )
+		goto ENDOF;
 
-	tmp.PutSpc(len + ED25519_SIGBYTES);
-	crypto_sign_ed25519(tmp.GetPtr(), &siglen, buf, len, m_Ed25519->sec);
+	if ( (md_ctx = EVP_MD_CTX_new()) == NULL )
+		goto ENDOF;
+
+	if ( EVP_DigestSignInit(md_ctx, NULL, NULL, NULL, pkey) <= 0 )
+		goto ENDOF;
+
+	if ( EVP_DigestSign(md_ctx, NULL, &siglen, buf, len) <= 0 )
+		goto ENDOF;
+
+	tmp.PutSpc((int)siglen);
+
+	if ( EVP_DigestSign(md_ctx, tmp.GetPtr(), &siglen, buf, len) <= 0 )
+		goto ENDOF;
 
 	bp->Clear();
 	bp->PutStr(TstrToMbs(GetName(FALSE)));
-	bp->PutBuf(tmp.GetPtr(), (int)(siglen - len));
+	bp->PutBuf(tmp.GetPtr(), tmp.GetSize());
+	rt = TRUE;
 
-	return TRUE;
+ENDOF:
+	if ( md_ctx != NULL )
+		EVP_MD_CTX_free(md_ctx);
+	if ( pkey != NULL )
+		EVP_PKEY_free(pkey);
+
+	return rt;
 }
 int CIdKey::XmssSign(CBuffer *bp, LPBYTE buf, int len)
 {
@@ -2453,7 +2543,8 @@ int CIdKey::Sign(CBuffer *bp, LPBYTE buf, int len, LPCTSTR alg)
 	case IDKEY_RSA2:    return RsaSign(bp, buf, len, alg);
 	case IDKEY_DSA2:    return DssSign(bp, buf, len);
 	case IDKEY_ECDSA:   return EcDsaSign(bp, buf, len);
-	case IDKEY_ED25519: return Ed25519Sign(bp, buf, len);
+	case IDKEY_ED25519: return EdKeySign(EVP_PKEY_ED25519, bp, buf, len);
+	case IDKEY_ED448:   return EdKeySign(EVP_PKEY_ED448, bp, buf, len);
 	case IDKEY_XMSS:	return XmssSign(bp, buf, len);
 	}
 	return FALSE;
@@ -2641,30 +2732,40 @@ int CIdKey::EcDsaVerify(CBuffer *bp, LPBYTE data, int datalen)
 
 	return (ret == 1 ? TRUE : FALSE);
 }
-int CIdKey::Ed25519Verify(CBuffer *bp, LPBYTE data, int datalen)
+int CIdKey::EdKeyVerify(int type, CBuffer *bp, LPBYTE data, int datalen)
 {
+	int rt = FALSE;
 	CStringA keytype;
-	CBuffer sig(-1), tmp(-1);
-	unsigned long long mlen;
-
-	if ( m_Ed25519 == NULL )
-		return FALSE;
-
+	CBuffer sig(-1);
+	EVP_PKEY *pkey = NULL;
+	EVP_MD_CTX *md_ctx = NULL;
+		
 	bp->GetStr(keytype);
-	if ( (GetTypeFromName(MbsToTstr(keytype)) & IDKEY_TYPE_MASK) != IDKEY_ED25519 )
+
+	if ( (GetTypeFromName(MbsToTstr(keytype)) & IDKEY_TYPE_MASK) != (type == EVP_PKEY_ED25519 ? IDKEY_ED25519 : IDKEY_ED448) )
 		return FALSE;
 
 	bp->GetBuf(&sig);
-	if ( sig.GetSize() > ED25519_SIGBYTES )
-		return FALSE;
 
-	sig.Apend(data, datalen);
-	tmp.PutSpc(sig.GetSize());
+	if ( (pkey = EVP_PKEY_new_raw_public_key(type, NULL, m_PublicKey.GetPtr(), m_PublicKey.GetSize())) == NULL )
+		goto ENDOF;
 
-	if ( crypto_sign_ed25519_open(tmp.GetPtr(), &mlen, sig.GetPtr(), sig.GetSize(), m_Ed25519->pub) != 0 )
-		return FALSE;
+	if ( (md_ctx = EVP_MD_CTX_new()) == NULL )
+		goto ENDOF;
 
-	return TRUE;
+	if ( EVP_DigestVerifyInit(md_ctx, NULL, NULL, NULL, pkey) <= 0 )
+		goto ENDOF;
+
+	if ( EVP_DigestVerify(md_ctx, sig.GetPtr(), sig.GetSize(), data, datalen) > 0 )
+		rt = TRUE;
+
+ENDOF:
+	if ( md_ctx != NULL )
+		EVP_MD_CTX_free(md_ctx);
+	if ( pkey != NULL )
+		EVP_PKEY_free(pkey);
+
+	return rt;
 }
 int CIdKey::XmssVerify(CBuffer *bp, LPBYTE data, int datalen)
 {
@@ -2698,7 +2799,8 @@ int CIdKey::Verify(CBuffer *bp, LPBYTE data, int datalen)
 	case IDKEY_RSA2:    return RsaVerify(bp, data, datalen);
 	case IDKEY_DSA2:    return DssVerify(bp, data, datalen);
 	case IDKEY_ECDSA:   return EcDsaVerify(bp, data, datalen);
-	case IDKEY_ED25519: return Ed25519Verify(bp, data, datalen);
+	case IDKEY_ED25519: return EdKeyVerify(EVP_PKEY_ED25519, bp, data, datalen);
+	case IDKEY_ED448:   return EdKeyVerify(EVP_PKEY_ED448, bp, data, datalen);
 	case IDKEY_XMSS:	return XmssVerify(bp, data, datalen);
 	}
 	return FALSE;
@@ -2833,14 +2935,11 @@ int CIdKey::GetBlob(CBuffer *bp)
 		break;
 
 	case IDKEY_ED25519:
-		if ( !Create(IDKEY_ED25519) )
+	case IDKEY_ED448:
+		if ( !Create(type & IDKEY_TYPE_MASK) )
 			return FALSE;
-
-		work.Clear(); bp->GetBuf(&work);				// public key
-		if ( work.GetSize() != ED25519_PUBBYTES )
-			return FALSE;
-
-		memcpy(m_Ed25519->pub, work.GetPtr(), ED25519_PUBBYTES);
+		m_PublicKey.Clear();
+		bp->GetBuf(&m_PublicKey);
 		break;
 
 	case IDKEY_XMSS:
@@ -2928,7 +3027,8 @@ int CIdKey::SetBlob(CBuffer *bp, BOOL bCert)
 		bp->PutEcPoint(EC_KEY_get0_group(m_EcDsa), EC_KEY_get0_public_key(m_EcDsa));
 		break;
 	case IDKEY_ED25519:
-		bp->PutBuf(m_Ed25519->pub, ED25519_PUBBYTES);
+	case IDKEY_ED448:
+		bp->PutBuf(m_PublicKey.GetPtr(), m_PublicKey.GetSize());
 		break;
 	case IDKEY_XMSS:
 		bp->PutStr(m_XmssKey.GetName());
@@ -3028,19 +3128,20 @@ int CIdKey::GetPrivateBlob(CBuffer *bp)
 		break;
 
 	case IDKEY_ED25519:
-		if ( !Create(IDKEY_ED25519) )
+	case IDKEY_ED448:
+		if ( !Create(type & IDKEY_TYPE_MASK) )
 			return FALSE;
 
-		tmp.Clear(); bp->GetBuf(&tmp);
-		if ( tmp.GetSize() != ED25519_PUBBYTES )
-			return FALSE;
-		memcpy(m_Ed25519->pub, tmp.GetPtr(), ED25519_PUBBYTES);
+		m_PublicKey.Clear();
+		bp->GetBuf(&m_PublicKey);
+		tmp.Clear();
+		bp->GetBuf(&tmp);
 
-		tmp.Clear(); bp->GetBuf(&tmp);
-		if ( tmp.GetSize() != ED25519_SECBYTES )
-			return FALSE;
-		memcpy(m_Ed25519->sec, tmp.GetPtr(), ED25519_SECBYTES);
+		m_PrivateKey.Clear();
+		m_PrivateKey.Apend(tmp.GetPtr(), tmp.GetSize() - m_PublicKey.GetSize());
 
+		if ( memcmp(m_PublicKey.GetPtr(), tmp.GetPtr() + m_PrivateKey.GetSize(), m_PublicKey.GetSize()) != 0 )
+			return FALSE;
 		break;
 
 	case IDKEY_XMSS:
@@ -3074,6 +3175,8 @@ ENDRET:
 }
 int CIdKey::SetPrivateBlob(CBuffer *bp)
 {
+	CBuffer tmp(-1);
+
 	if ( !m_bSecInit )
 		return FALSE;
 
@@ -3117,8 +3220,11 @@ int CIdKey::SetPrivateBlob(CBuffer *bp)
 		bp->PutBIGNUM2(EC_KEY_get0_private_key(m_EcDsa));
 		break;
 	case IDKEY_ED25519:
-		bp->PutBuf(m_Ed25519->pub, ED25519_PUBBYTES);
-		bp->PutBuf(m_Ed25519->sec, ED25519_SECBYTES);
+	case IDKEY_ED448:
+		bp->PutBuf(m_PublicKey.GetPtr(), m_PublicKey.GetSize());
+		bp->Put32Bit(m_PrivateKey.GetSize() + m_PublicKey.GetSize());
+		bp->Apend(m_PrivateKey.GetPtr(), m_PrivateKey.GetSize());
+		bp->Apend(m_PublicKey.GetPtr(), m_PublicKey.GetSize());
 		break;
 	case IDKEY_XMSS:
 		bp->PutStr(m_XmssKey.GetName());
@@ -3487,6 +3593,7 @@ int CIdKey::WritePublicKey(CString &str, BOOL bAddUser)
 	case IDKEY_DSA2:
 	case IDKEY_ECDSA:
 	case IDKEY_ED25519:
+	case IDKEY_ED448:
 	case IDKEY_XMSS:
 		if ( !SetBlob(&tmp, bAddUser ? TRUE : FALSE) )
 			return FALSE;
@@ -3591,14 +3698,17 @@ int CIdKey::ReadPrivateKey(LPCTSTR str, LPCTSTR pass, BOOL bHost)
 		break;
 
 	case IDKEY_ED25519:
-		work.Clear(); tmp.GetBuf(&work);
-		if ( work.GetSize() != ED25519_PUBBYTES )
+	case IDKEY_ED448:
+		m_PublicKey.Clear();
+		tmp.GetBuf(&m_PublicKey);
+		work.Clear();
+		tmp.GetBuf(&work);
+
+		m_PrivateKey.Clear(); 
+		m_PrivateKey.Apend(work.GetPtr(), work.GetSize() - m_PublicKey.GetSize());
+
+		if ( memcmp(m_PublicKey.GetPtr(), work.GetPtr() + m_PrivateKey.GetSize(), m_PublicKey.GetSize()) != 0 )
 			return FALSE;
-		memcpy(m_Ed25519->pub, work.GetPtr(), ED25519_PUBBYTES);
-		work.Clear(); tmp.GetBuf(&work);
-		if ( work.GetSize() != ED25519_SECBYTES )
-			return FALSE;
-		memcpy(m_Ed25519->sec, work.GetPtr(), ED25519_SECBYTES);
 		break;
 
 	case IDKEY_XMSS:
@@ -3626,7 +3736,7 @@ int CIdKey::ReadPrivateKey(LPCTSTR str, LPCTSTR pass, BOOL bHost)
 }
 int CIdKey::WritePrivateKey(CString &str, LPCTSTR pass)
 {
-	CBuffer tmp(-1);
+	CBuffer tmp(-1), work(-1);
 
 	switch(m_Type) {
 	case IDKEY_RSA1:
@@ -3661,9 +3771,12 @@ int CIdKey::WritePrivateKey(CString &str, LPCTSTR pass)
 		tmp.PutBIGNUM2(EC_KEY_get0_private_key(m_EcDsa));
 		break;
 	case IDKEY_ED25519:
+	case IDKEY_ED448:
 		tmp.Put8Bit(m_Type);
-		tmp.PutBuf(m_Ed25519->pub, ED25519_PUBBYTES);
-		tmp.PutBuf(m_Ed25519->sec, ED25519_SECBYTES);
+		tmp.PutBuf(m_PublicKey.GetPtr(), m_PublicKey.GetSize());
+		tmp.Put32Bit(m_PrivateKey.GetSize() + m_PublicKey.GetSize());
+		tmp.Apend(m_PrivateKey.GetPtr(), m_PrivateKey.GetSize());
+		tmp.Apend(m_PublicKey.GetPtr(), m_PublicKey.GetSize());
 		break;
 	case IDKEY_XMSS:
 		tmp.Put8Bit(m_Type);
@@ -4346,6 +4459,8 @@ int CIdKey::LoadPuttyKey(FILE *fp, LPCTSTR pass)
 					type = IDKEY_ECDSA;
 				else if ( para.CompareNoCase(_T("ssh-ed25519")) == 0 )
 					type = IDKEY_ED25519;
+				else if ( para.CompareNoCase(_T("ssh-ed448")) == 0 )
+					type = IDKEY_ED448;
 				else
 					throw _T("unknown type");
 
@@ -4519,23 +4634,26 @@ int CIdKey::LoadPuttyKey(FILE *fp, LPCTSTR pass)
 			BN_free(p);
 
 		} else if ( type == IDKEY_ED25519 ) {
-			CBuffer tmp;
-
 			pubblob.GetStr(str);					// string "ssh-ed25519"
 			if ( str.Compare("ssh-ed25519") != 0 )
 				throw _T("key type error");
 
-			tmp.Clear(); pubblob.GetBuf(&tmp);
-			if ( tmp.GetSize() != ED25519_PUBBYTES )
-				throw _T("ed public key error");
-			memcpy(m_Ed25519->pub, tmp.GetPtr(), ED25519_PUBBYTES);
+			m_PublicKey.Clear();
+			pubblob.GetBuf(&m_PublicKey);
 
-			// openssh secret == private 32 byte + public 32 byte = 64 byte
-			tmp.Clear(); priblob.GetBuf(&tmp);
-			if ( tmp.GetSize() != (ED25519_SECBYTES - ED25519_PUBBYTES) )
-				throw _T("ed private key error");
-			memcpy(m_Ed25519->sec, tmp.GetPtr(), tmp.GetSize());
-			memcpy(m_Ed25519->sec + ED25519_SECBYTES - ED25519_PUBBYTES, m_Ed25519->pub, ED25519_PUBBYTES);
+			m_PrivateKey.Clear();
+			priblob.GetBuf(&m_PrivateKey);
+
+		} else if ( type == IDKEY_ED448 ) {
+			pubblob.GetStr(str);					// string "ssh-ed448"
+			if ( str.Compare("ssh-ed448") != 0 )
+				throw _T("key type error");
+
+			m_PublicKey.Clear();
+			pubblob.GetBuf(&m_PublicKey);
+
+			m_PrivateKey.Clear();
+			priblob.GetBuf(&m_PrivateKey);
 
 		} else
 			throw _T("key type error");
@@ -4550,6 +4668,7 @@ int CIdKey::LoadPuttyKey(FILE *fp, LPCTSTR pass)
 		return FALSE;
 	}
 }
+
 int CIdKey::SetEvpPkey(EVP_PKEY *pk)
 {
 	switch(EVP_PKEY_id(pk)) {
@@ -4579,16 +4698,19 @@ int CIdKey::SetEvpPkey(EVP_PKEY *pk)
 			m_Type = IDKEY_ECDSA;
 		break;
 
-//#if OPENSSL_VERSION_NUMBER >= 0x30000000L
-//	#include "crypto/ecx.h"
-//	ECX_KEY *ecx;
-//	case EVP_PKEY_ED25519:
-//		ecx = ossl_evp_pkey_get1_ED25519(pk);
-//		break;
-//	case EVP_PKEY_ED448:
-//		ecx = ossl_evp_pkey_get1_ED448(pk);
-//		break;
-//#endif
+	case EVP_PKEY_ED25519:
+		if ( !Create(IDKEY_ED25519) )
+			return FALSE;
+		if ( !EvpPkeySetKey(pk) )
+			return FALSE;
+		break;
+
+	case EVP_PKEY_ED448:
+		if ( !Create(IDKEY_ED448) )
+			return FALSE;
+		if ( !EvpPkeySetKey(pk) )
+			return FALSE;
+		break;
 
 	default:
 		m_Type = IDKEY_NONE;
@@ -4692,7 +4814,8 @@ int CIdKey::SavePrivateKey(int type, LPCTSTR file, LPCTSTR pass)
 				(mbs.IsEmpty() ? NULL : cipher), (unsigned char *)(mbs.IsEmpty() ? NULL : (LPCSTR)mbs), mbs.GetLength(), NULL, NULL);
 		break;
 	case IDKEY_ED25519:
-		if ( m_Ed25519 != NULL )
+	case IDKEY_ED448:
+		if ( m_PublicKey.GetSize() > 0 && m_PrivateKey.GetSize() > 0 )
 			rt = SaveOpenSshKey(fp, pass);
 		break;
 	case IDKEY_XMSS:
@@ -4890,7 +5013,9 @@ int CIdKey::GetSize()
 			return 0;
 		return NidListTab[n].bits;
 	case IDKEY_ED25519:
-		return ED25519_PUBBYTES * 8;
+		return 255;
+	case IDKEY_ED448:
+		return 448;
 	case IDKEY_XMSS:
 		return m_XmssKey.GetBits();
 	}
@@ -5059,6 +5184,9 @@ void CIdKey::FingerPrint(CString &str, int digest, int format)
 		break;
 	case IDKEY_ED25519:
 		work = _T("+---[ED25519  ]---+\r\n");
+		break;
+	case IDKEY_ED448:
+		work = _T("+---[ED448    ]---+\r\n");
 		break;
 	default:
 		work = _T("+---[Unknown  ]---+\r\n");

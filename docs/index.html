@@ -11,33 +11,14 @@ TD {
 				
 				
 				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-  background-color : #ffffff;
-  font-size : 90%;
+		background-color : #ffffff; font-size : 90%; 
 }
 .BOX{		
 				
 				
 				
 				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-  background-color : silver;
+		background-color : silver; 
 }
 -->
 </STYLE>
@@ -52,8 +33,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.26.4)</TD>
-            <TD width="20%" align="right">2021/10/29</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.26.5)</TD>
+            <TD width="20%" align="right">2021/11/29</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -440,6 +421,18 @@ TD {
       <BR>
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
+          <TR>
+            <TD align="center">2021/11/29</TD>
+            <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.26.5/">2.26.5</A></TD>
+            <TD>ファイルオープン時の共有モードを全体的に見直して修正<BR>
+            rsa-sha2-xxxの名前が拡張されていないバグを修正<BR>
+            メニュー・表示を各種ウィンドウでまとめるように変更<BR>
+            不完全な全角文字を半角で表示するように変更<BR>
+            リソース内ビットマップをその時のDPIで調整するように変更<BR>
+            sntrup761x25519-sha512@openssh.comに変更<BR>
+            opensslのed25519/ed448鍵の読み込みに対応<BR>
+            curve25519/ed25519関連をopensslに変更しcurve448/ed448に対応</TD>
+          </TR>
           <TR>
             <TD align="center">2021/10/29</TD>
             <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.26.4/">2.26.4</A></TD>
@@ -920,7 +913,7 @@ TD {
                   <TD align="left" colspan="6">表示(V)</TD>
                 </TR>
                 <TR>
-                  <TD align="center" width="10" rowspan="29">&nbsp;</TD>
+                  <TD align="center" width="10" rowspan="30">&nbsp;</TD>
                   <TD colspan="2" width="250" valign="top">メニューバー(M)</TD>
                   <TD width="450" valign="top">メニューバーを表示・非表示にします<BR>
                   ※非表示の時は、システムメニューでメニューバーを表示できます</TD>
@@ -971,37 +964,41 @@ TD {
                   <TD valign="top">$VIEW_SCROLLBAR</TD>
                 </TR>
                 <TR>
-                  <TD colspan="2" valign="top" width="250">Tekウインドウ(K)</TD>
+                  <TD valign="top" colspan="5">各種ウィンドウ(W)</TD>
+                </TR>
+                <TR>
+                  <TD valign="top" width="10" rowspan="6"></TD>
+                  <TD valign="top" width="230">Tekウインドウ(K)</TD>
                   <TD valign="top">Tek40xx/41xxウインドウを表示・非表示にします</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$VIEW_TEKDISP</TD>
                 </TR>
                 <TR>
-                  <TD colspan="2" valign="top" width="250">Imageウィンドウ(I)</TD>
+                  <TD valign="top" width="230">Imageウィンドウ(I)</TD>
                   <TD valign="top">コンソール画面をグラフィックイメージでウィンドウに表示します</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$VIEW_IMAGEDISP</TD>
                 </TR>
                 <TR>
-                  <TD colspan="2" valign="top" width="250">ソケットステータス(X)</TD>
+                  <TD valign="top" width="230">ソケットステータス(X)</TD>
                   <TD valign="top">接続しているソケットの状態を表示します（デバッグ目的です）</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$VIEW_SOCKET</TD>
                 </TR>
                 <TR>
-                  <TD valign="top" colspan="2" width="250">シリアルモニター(Z)</TD>
+                  <TD valign="top" width="230">シリアルモニター(Z)</TD>
                   <TD valign="top">プロトコルでcomを使用した場合に<A href="#MONITOR">シリアルモニター</A>を表示します</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$VIEW_MONITOR</TD>
                 </TR>
                 <TR>
-                  <TD valign="top" colspan="2" width="250">トレースウィンドウ(W)</TD>
+                  <TD valign="top" width="230">トレースウィンドウ(W)</TD>
                   <TD valign="top"><A href="#TRACE">トレースウィンドウ</A>でESCシーケンスなどのログを表示します</TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$VIEW_TRACEDISP</TD>
                 </TR>
                 <TR>
-                  <TD valign="top" colspan="2" width="250">コマンドウィンドウ(I)<BR>
+                  <TD valign="top" width="230">コマンドウィンドウ(I)<BR>
                   ヒストリーウィンドウ(H)</TD>
                   <TD valign="top"><A href="https://www.iterm2.com/documentation-shell-integration.html">iTerm2のShell Integration</A>をインストールするとコマンドの履歴をコマンドウィンドウ・ヒストリーウィンドウに表示することが出来ます</TD>
                   <TD valign="top" align="right"></TD>
@@ -2932,7 +2929,9 @@ fi</PRE>
                 </TR>
                 <TR>
                   <TD align="center">RSA2認証鍵の…</TD>
-                  <TD>RSA2鍵の署名で使用するハッシュ関数を拡張します。標準はSHA1でopenssh-7.2以降からSHA2を使用できます</TD>
+                  <TD>RSA2鍵の署名で使用するハッシュ関数を拡張します。<BR>
+                  <S>標準はSHA1</S>でopenssh-7.2以降からSHA2を使用できます<BR>
+                  ※openssh-8.8からSHA1が使用できません</TD>
                 </TR>
                 <TR>
                   <TD align="center">標準入出力の…</TD>
@@ -3378,6 +3377,21 @@ fi</PRE>
                         <TD align="center">-</TD>
                         <TD align="center">-</TD>
                         <TD align="center">◎</TD>
+                        <TD align="center">-</TD>
+                        <TD align="center">-</TD>
+                        <TD align="center">-</TD>
+                        <TD align="center">-</TD>
+                        <TD align="center">-</TD>
+                        <TD align="center">-</TD>
+                        <TD align="center">-</TD>
+                        <TD align="center">-</TD>
+                      </TR>
+                      <TR>
+                        <TD>ED448</TD>
+                        <TD align="center">-</TD>
+                        <TD align="center">-</TD>
+                        <TD align="center">-</TD>
+                        <TD align="center">△</TD>
                         <TD align="center">-</TD>
                         <TD align="center">-</TD>
                         <TD align="center">-</TD>
@@ -6165,9 +6179,23 @@ function TekClock2() {
       <HR noshade size="0">
       </TD>
     </TR>
+    <!--
     <TR>
       <TD align="center"><A href="http://nanno.dip.jp/">TOP</A> | <A href="http://nanno.dip.jp/softlib/">SOFT</A> | <A href="http://nanno.dip.jp/logs/">LOG</A> | <A href="http://nanno.dip.jp/links/">LINK</A></TD>
     </TR>
+    <TR>
+      <TD>
+      <HR noshade size="0">
+      </TD>
+    </TR>
+    <TR>
+      <TD align="center">
+	    <script type="text/javascript">
+		  document.write('<scr'+'ipt type="text/javascript" src="https://ad.ddo.jp/728x90.js.php?ddo_id=nanno-net&ddo_i='+Math.floor((new Date()).getTime()/1000/60)+'"><'+'/scr'+'ipt>');
+	    </script>
+      </TD>
+    </TR>
+    -->
   </TBODY>
 </TABLE>
 </CENTER>

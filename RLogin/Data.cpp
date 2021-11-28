@@ -1359,7 +1359,53 @@ BOOL CBuffer::LoadFile(LPCTSTR filename)
 	CFile file;
 	ULONGLONG FileSize;
 
-	if( !file.Open(filename, CFile::modeRead) )
+	/************************************************
+
+		modeReadWrite | shareExclusive
+				modeRead | shareExclusive	X
+				modeRead | shareDenyWrite	X
+				modeRead | shareDenyRead	X
+				modeRead | shareDenyNone	X
+		modeReadWrite | shareDenyWrite
+				modeRead | shareExclusive	X
+				modeRead | shareDenyWrite	X
+				modeRead | shareDenyRead	X
+				modeRead | shareDenyNone	0
+		modeReadWrite | shareDenyRead
+				modeRead | shareExclusive	X
+				modeRead | shareDenyWrite	X
+				modeRead | shareDenyRead	X
+				modeRead | shareDenyNone	X
+		modeReadWrite | shareDenyNone
+				modeRead | shareExclusive	X
+				modeRead | shareDenyWrite	X
+				modeRead | shareDenyRead	X
+				modeRead | shareDenyNone	0
+
+		modeWrite | shareExclusive
+				modeRead | shareExclusive	X
+				modeRead | shareDenyWrite	X
+				modeRead | shareDenyRead	X
+				modeRead | shareDenyNone	X
+		modeWrite | shareDenyWrite
+				modeRead | shareExclusive	X
+				modeRead | shareDenyWrite	X
+				modeRead | shareDenyRead	0
+				modeRead | shareDenyNone	0
+		modeWrite | shareDenyRead
+				modeRead | shareExclusive	X
+				modeRead | shareDenyWrite	X
+				modeRead | shareDenyRead	X
+				modeRead | shareDenyNone	X
+		modeWrite | shareDenyNone
+				modeRead | shareExclusive	X
+				modeRead | shareDenyWrite	X
+				modeRead | shareDenyRead	0
+				modeRead | shareDenyNone	0
+
+	************************************************/
+
+	if( !file.Open(filename, CFile::modeRead | CFile::shareDenyNone) )
 		return FALSE;
 
 	if ( (FileSize = file.GetLength()) > (512 * 1024 * 1024) )
@@ -1390,7 +1436,7 @@ BOOL CBuffer::SaveFile(LPCTSTR filename)
 	CFile file;
 	BOOL rt = TRUE;
 
-	if( !file.Open(filename, CFile::modeCreate | CFile::modeWrite) )
+	if( !file.Open(filename, CFile::modeCreate | CFile::modeWrite | CFile::shareExclusive) )
 		return FALSE;
 
 	try {
@@ -2075,6 +2121,10 @@ BOOL CMenuLoad::GetPopUpMenu(UINT nId, CMenu &PopUpMenu)
 	// Add QuickConnect Menu
 	PopUpMenu.InsertMenu(ID_FILE_CLOSE, MF_BYCOMMAND, IDM_QUICKCONNECT, CStringLoad(IDM_QUICKCONNECT));
 
+	// Add Speak Back/Next
+	PopUpMenu.InsertMenu(IDM_SPEAKALL, MF_BYCOMMAND, IDM_SPEAKBACK, CStringLoad(IDM_SPEAKBACK));
+	PopUpMenu.InsertMenu(IDM_SPEAKALL, MF_BYCOMMAND, IDM_SPEAKNEXT, CStringLoad(IDM_SPEAKNEXT));
+
 	// Create Key History Menu
 	if ( (pMenu = GetItemSubMenu(ID_MACRO_HIS1, &PopUpMenu)) != NULL ) {
 		if ( pMenu->GetMenuString(ID_MACRO_HIS1, tmp, MF_BYCOMMAND) <= 0 )
@@ -2342,7 +2392,7 @@ BOOL CBmpFile::LoadFile(LPCTSTR filename)
 	if ( m_FileName.IsEmpty() )
 		return FALSE;
 
-	if( !file.Open(filename, CFile::modeRead) )
+	if( !file.Open(filename, CFile::modeRead | CFile::shareDenyNone) )
 		goto ERROF;
 
 	if ( (FileSize = file.GetLength()) > (512 * 1024 * 1024) )
@@ -6476,9 +6526,9 @@ static LPCTSTR InitAlgo[12]= {
 
 	_T("zlib@openssh.com,zlib,none"),
 
-	_T("curve25519-sha256,curve25519-sha256@libssh.org,") \
+	_T("curve25519-sha256,curve448-sha512,") \
 	_T("ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256,") \
-	_T("sntrup4591761x25519-sha512@tinyssh.org,") \
+	_T("sntrup761x25519-sha512@openssh.com,") \
 	_T("diffie-hellman-group-exchange-sha256,diffie-hellman-group-exchange-sha1,") \
 	_T("diffie-hellman-group16-sha512,diffie-hellman-group15-sha512,diffie-hellman-group17-sha512,diffie-hellman-group18-sha512,") \
 	_T("diffie-hellman-group14-sha256,") \
@@ -6487,7 +6537,7 @@ static LPCTSTR InitAlgo[12]= {
 	_T("ecdsa-sha2-nistp256-cert-v01@openssh.com,ecdsa-sha2-nistp384-cert-v01@openssh.com,ecdsa-sha2-nistp521-cert-v01@openssh.com,") \
 	_T("ssh-ed25519-cert-v01@openssh.com,ssh-rsa-cert-v01@openssh.com,ssh-dss-cert-v01@openssh.com,") \
 	_T("ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,ecdsa-sha2-nistp521,") \
-	_T("ssh-ed25519,rsa-sha2-512,rsa-sha2-256,ssh-rsa,ssh-dss,") \
+	_T("ssh-ed25519,ssh-ed448,rsa-sha2-512,rsa-sha2-256,ssh-rsa,ssh-dss,") \
 	_T("ssh-xmss@openssh.com,ssh-xmss-cert-v01@openssh.com"),
 
 	_T("publickey,hostbased,gssapi-with-mic,password,keyboard-interactive"),
@@ -9624,7 +9674,6 @@ BOOL CCurPos::operator < (SIZE size)
 		return (cy < size.cy ? TRUE : FALSE);
 }
 
-
 //////////////////////////////////////////////////////////////////////
 // CDirDialog
 
@@ -9738,3 +9787,46 @@ BOOL CDirDialog::DoBrowse(CWnd *pwndParent)
 
     return TRUE;
 }
+
+//////////////////////////////////////////////////////////////////////
+// CBitmapEx
+
+BOOL CBitmapEx::LoadResBitmap(int nId, int dpiX, int dpiY, COLORREF backCol)
+{
+	int width, height;
+	CBitmap *pSrcOld, *pDisOld, BitMap;
+	CDC SrcDC, DisDC;
+	BITMAP mapinfo;
+
+	if ( dpiX == DEFAULT_DPI_X && dpiY == DEFAULT_DPI_Y )
+		return ((CRLoginApp *)::AfxGetApp())->LoadResBitmap(MAKEINTRESOURCE(nId), *this);
+
+	if ( !((CRLoginApp *)::AfxGetApp())->LoadResBitmap(MAKEINTRESOURCE(nId), BitMap) )
+		return FALSE;
+
+	DisDC.CreateCompatibleDC(NULL);
+	SrcDC.CreateCompatibleDC(NULL);
+
+	pSrcOld = SrcDC.SelectObject(&BitMap);
+	BitMap.GetBitmap(&mapinfo);
+
+	width  = MulDiv(mapinfo.bmWidth,  dpiX, DEFAULT_DPI_X);
+	height = MulDiv(mapinfo.bmHeight, dpiY, DEFAULT_DPI_Y);
+
+	CreateBitmap(width, height, mapinfo.bmPlanes, mapinfo.bmBitsPixel, NULL);
+	pDisOld = DisDC.SelectObject(this);
+
+	DisDC.FillSolidRect(0, 0, width, height, backCol);
+	DisDC.TransparentBlt(0, 0, width, height, &SrcDC, 0, 0, mapinfo.bmWidth, mapinfo.bmHeight, backCol);
+
+	SrcDC.SelectObject(pSrcOld);
+	DisDC.SelectObject(pDisOld);
+
+	BitMap.DeleteObject();
+
+	SrcDC.DeleteDC();
+	DisDC.DeleteDC();
+
+	return TRUE;
+}
+

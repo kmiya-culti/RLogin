@@ -130,7 +130,7 @@ BOOL CViewDropTarget::DescToDrop(CWnd* pWnd, COleDataObject* pDataObject, HGLOBA
 			}
 
 			TempPath.Format(_T("%s%s"), TempDir, pGroupDesc->fgd[n].cFileName);
-			if ( !TempFile.Open(TempPath, CFile::modeCreate | CFile::modeWrite, NULL) ) {
+			if ( !TempFile.Open(TempPath, CFile::modeCreate | CFile::modeWrite | CFile::shareExclusive, NULL) ) {
 				ThreadMessageBox(_T("OpenFile Error %s"), TempPath);
 				break;
 			}

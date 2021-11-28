@@ -2827,7 +2827,7 @@ BOOL CSFtp::OnInitDialog()
 
 	int n;
 	CRect rect;
-	CBitmap BitMap;
+	CBitmapEx BitMap;
 	static const LV_COLUMN InitListTab[6] = {
 		{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_LEFT,	180, _T("Name"),	0, 0 },
 		{ LVCF_FMT | LVCF_TEXT | LVCF_WIDTH, LVCFMT_RIGHT,  110, _T("Date"),	0, 0 },
@@ -2846,8 +2846,8 @@ BOOL CSFtp::OnInitDialog()
 	RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
 
 	//BitMap.LoadBitmap(IDB_BITMAP4);
-	((CRLoginApp *)::AfxGetApp())->LoadResBitmap(MAKEINTRESOURCE(IDB_BITMAP4), BitMap);
-	m_ImageList.Create(16, 16, ILC_COLOR24 | ILC_MASK, 0, 4);
+	BitMap.LoadResBitmap(IDB_BITMAP4, m_NowDpi.cx, m_NowDpi.cy, RGB(192, 192, 192));
+	m_ImageList.Create(MulDiv(16, m_NowDpi.cx, DEFAULT_DPI_X), MulDiv(16, m_NowDpi.cy, DEFAULT_DPI_Y), ILC_COLOR24 | ILC_MASK, 0, 4);
 	m_ImageList.Add(&BitMap, RGB(192, 192, 192));
 	BitMap.DeleteObject();
 
@@ -3187,7 +3187,7 @@ BOOL CSFtp::DescriptorFiles(HWND hWnd, HGLOBAL hDescInfo, DROPEFFECT dropEffect,
 		}
 
 		TempPath.Format(_T("%s%s"), TempDir, pGroupDesc->fgd[n].cFileName);
-		if ( !TempFile.Open(TempPath, CFile::modeCreate | CFile::modeWrite, NULL) ) {
+		if ( !TempFile.Open(TempPath, CFile::modeCreate | CFile::modeWrite | CFile::shareExclusive, NULL) ) {
 			ThreadMessageBox(_T("OpenFile Error %s"), TempPath);
 			break;
 		}

@@ -55,7 +55,8 @@ BOOL CAlgoDlg::OnInitDialog()
 	int n, i;
 
 	for ( n = 0 ; n < 12 ; n++ ) {
-		m_List[n].InsertColumn(0, _T(""), LVCFMT_LEFT, (n >= 9 && n <= 10 ? 260 : 150));
+		i = MulDiv((n >= 9 && n <= 10 ? 260 : 150), m_NowDpi.cx, DEFAULT_DPI_X);
+		m_List[n].InsertColumn(0, _T(""), LVCFMT_LEFT, i);
 		for ( i = 0 ; i < m_AlgoTab[n].GetSize() ; i++ )
 			m_List[n].InsertItem(i, m_AlgoTab[n][i]);
 		m_List[n].m_bMove = TRUE;

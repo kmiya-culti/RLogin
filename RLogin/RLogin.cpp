@@ -2661,7 +2661,7 @@ BOOL CRLoginApp::SavePrivateProfile()
 
 	CWaitCursor wait;
 
-	if ( !file.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeWrite | CFile::shareDenyWrite) ) {
+	if ( !file.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeWrite | CFile::shareExclusive) ) {
 		::AfxMessageBox(_T("Cann't Create Private Profile"));
 		return FALSE;
 	}
@@ -2813,7 +2813,7 @@ BOOL CRLoginApp::SaveRegistryFile()
 
 	CWaitCursor wait;
 
-	if ( !file.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeWrite | CFile::shareDenyWrite) ) {
+	if ( !file.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeWrite | CFile::shareExclusive) ) {
 		::AfxMessageBox(_T("Cann't Create Registry file"));
 		return FALSE;
 	}

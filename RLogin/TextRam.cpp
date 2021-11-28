@@ -6325,6 +6325,20 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 						work.bank = vp->m_Vram.bank & CODE_MASK;
 					pView->SetCellSize(x, y, 0);
 					pView->SetCellSize(x + 1, y, 0);
+
+				} else if ( (IS_1BYTE(vp[0].m_Vram.mode) || IS_2BYTE(vp[0].m_Vram.mode)) ) {
+					work.csz = 1;
+					if ( IsOptEnable(TO_RLBRKMBCS) ) {
+						str = BRKMBCS;
+						work.attr |= ATT_REVS;
+						work.bank = SET_UNICODE;
+					} else {
+						str = (LPCWSTR)*vp;
+						if ( !str.IsEmpty() )
+							work.bank = vp->m_Vram.bank & CODE_MASK;
+					}
+					pView->SetCellSize(x, y, 0);
+
 				} else if ( IS_ASCII(vp->m_Vram.mode) ) {
 					str = (LPCWSTR)*vp;
 					work.bank = vp->m_Vram.bank & CODE_MASK;
@@ -8641,7 +8655,7 @@ void CTextRam::LOCATE(int x, int y)
 }
 void CTextRam::ERABOX(int sx, int sy, int ex, int ey, int df)
 {
-	int x, y, dm;
+	int x, y, dm, ax, bx;
 	CCharCell *vp, *tp, spc;
 
 	m_DoWarp = FALSE;
@@ -8703,14 +8717,20 @@ void CTextRam::ERABOX(int sx, int sy, int ex, int ey, int df)
 			break;
 		}
 
+		ax = bx = 0;
+		if ( sx > 0 && IS_1BYTE(tp[sx - 1].m_Vram.mode) )
+			ax = 1;
+		if ( (ex + 1) < m_Cols && IS_2BYTE(tp[ex + 1].m_Vram.mode) )
+			bx = 1;
+
 		if ( (df & ERM_SAVEDM) == 0 ) {
 			tp->m_Vram.zoom = 0;
-			DISPVRAM(sx, y, ex - sx, 1);
+			DISPVRAM(sx - ax, y, ex - sx + bx, 1);
 		} else {
 			if ( (tp->m_Vram.zoom = dm) != 0 )
-				DISPVRAM(sx * 2, y, (ex - sx) * 2, 1);
+				DISPVRAM((sx - ax) * 2, y, (ex - sx + bx) * 2, 1);
 			else
-				DISPVRAM(sx, y, ex - sx, 1);
+				DISPVRAM(sx - ax, y, ex - sx + bx, 1);
 		}
 	}
 }
@@ -8954,7 +8974,7 @@ void CTextRam::REVINDEX()
 }
 void CTextRam::PUT1BYTE(DWORD ch, int md, int at, LPCWSTR str)
 {
-	int block;
+	int block, ofx= 0, csz = 1;
 	CCharCell *vp;
 	int dm = GetDm(m_CurY);
 	WORD bank = (WORD)md;
@@ -9029,10 +9049,15 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at, LPCWSTR str)
 		m_LastStr = (LPCWSTR)(*vp);
 	}
 
+	if ( m_CurX > 0 && IS_1BYTE(vp[-1].m_Vram.mode) )
+		ofx = 1;
+	if ( (m_CurX + 1) < m_Cols && IS_2BYTE(vp[1].m_Vram.mode) )
+		csz = 2;
+
 	if ( dm != 0 )
-		DISPVRAM(m_CurX * 2, m_CurY, 2, 1);
+		DISPVRAM((m_CurX - ofx) * 2, m_CurY, csz * 2, 1);
 	else
-		DISPVRAM(m_CurX, m_CurY, 1, 1);
+		DISPVRAM(m_CurX - ofx, m_CurY, csz * 1, 1);
 
 	if ( ++m_CurX >= m_Margin.right ) {
 		if ( IsOptEnable(TO_DECAWM) != 0 ) {
@@ -9051,7 +9076,7 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at, LPCWSTR str)
 }
 void CTextRam::PUT2BYTE(DWORD ch, int md, int at, LPCWSTR str)
 {
-	int block;
+	int block, ofx = 0, csz = 2;
 	CCharCell *vp;
 	int dm = GetDm(m_CurY);
 	WORD bank = (WORD)md;
@@ -9132,10 +9157,15 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at, LPCWSTR str)
 		m_LastStr = (LPCWSTR)(*vp);
 	}
 
+	if ( m_CurX > 0 && IS_1BYTE(vp[-1].m_Vram.mode) )
+		ofx = 1;
+	if ( (m_CurX + 2) < m_Cols && IS_2BYTE(vp[2].m_Vram.mode) )
+		csz = 3;
+
 	if ( dm != 0 )
-		DISPVRAM(m_CurX * 2, m_CurY, 4, 1);
+		DISPVRAM((m_CurX - ofx) * 2, m_CurY, csz * 2, 1);
 	else
-		DISPVRAM(m_CurX, m_CurY, 2, 1);
+		DISPVRAM(m_CurX - ofx, m_CurY, csz * 1, 1);
 
 	if ( (m_CurX += 2) >= m_Margin.right ) {
 		if ( IsOptEnable(TO_DECAWM) != 0 ) {

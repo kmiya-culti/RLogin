@@ -249,9 +249,6 @@
     <ClCompile Include="MsgWnd.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="curve25519.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="TtyModeDlg.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
@@ -303,13 +300,13 @@
     <ClCompile Include="xmss.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="sntrup459176.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="FileUpDown.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="ExtFileDialog.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="sntrup761.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>

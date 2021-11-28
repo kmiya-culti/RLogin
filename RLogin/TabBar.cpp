@@ -187,9 +187,9 @@ int CTabBar::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	m_ImageList.Create(ICONIMG_SIZE, ICONIMG_SIZE, ILC_COLOR24 | ILC_MASK, 4, 4);
 
 	// CheckBox ImageList idx, 0=OFF,1=ON,2=NONE
-	CBitmap bitmap;
+	CBitmapEx bitmap;
 	for ( int n = 0 ; n < 3 ; n++ ) {
-		((CRLoginApp *)::AfxGetApp())->LoadResBitmap(MAKEINTRESOURCE(IDB_CHECKBOX1 + n), bitmap);
+		bitmap.LoadResBitmap(IDB_CHECKBOX1 + n, SCREEN_DPI_X, SCREEN_DPI_Y, GetSysColor(COLOR_WINDOW));
 		m_ImageList.Add(&bitmap, GetSysColor(COLOR_WINDOW));
 		bitmap.DeleteObject();
 	}

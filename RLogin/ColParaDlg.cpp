@@ -270,10 +270,7 @@ BOOL CColParaDlg::OnInitDialog()
 	int n;
 	CButton *pWnd;
 	BUTTON_IMAGELIST list;
-	CDC SrcDC, DisDC;
-	CBitmap *pSrcOld, *pDisOld;
-	CBitmap Bitmap, ImageMap;
-	BITMAP mapinfo;
+	CBitmapEx Bitmap;
 	int width, height;
 
 	memset(&list, 0, sizeof(list));
@@ -282,40 +279,18 @@ BOOL CColParaDlg::OnInitDialog()
 	width  = MulDiv(40, m_NowDpi.cx, DEFAULT_DPI_X);
 	height = MulDiv(15, m_NowDpi.cy, DEFAULT_DPI_Y);
 
-	DisDC.CreateCompatibleDC(NULL);
-	SrcDC.CreateCompatibleDC(NULL);
-
-	ImageMap.CreateBitmap(width, height, DisDC.GetDeviceCaps(PLANES), DisDC.GetDeviceCaps(BITSPIXEL), NULL);
-	pDisOld = DisDC.SelectObject(&ImageMap);
-
 	for ( n = 0 ; n < 8 ; n++ ) {
 //		m_ImageList[n].Create(IDB_ATTR1 + n, 40, 1, RGB(255, 255, 255));
 
+		Bitmap.LoadResBitmap(IDB_ATTR1 + n, m_NowDpi.cx, m_NowDpi.cy, RGB(255, 255, 255));
 		m_ImageList[n].Create(width, height, ILC_COLOR24 | ILC_MASK, 1, 1);
-		((CRLoginApp *)::AfxGetApp())->LoadResBitmap(MAKEINTRESOURCE(IDB_ATTR1 + n), Bitmap);
-		pSrcOld = SrcDC.SelectObject(&Bitmap);
-		Bitmap.GetBitmap(&mapinfo);
-
-		DisDC.FillSolidRect(0, 0, width, height, RGB(255, 255, 255));
-		DisDC.TransparentBlt(0, 0, width, height, &SrcDC, 0, 0, mapinfo.bmWidth, mapinfo.bmHeight, RGB(255, 255, 255));
-
-		DisDC.SelectObject(pDisOld);
-		m_ImageList[n].Add(&ImageMap, RGB(255, 255, 255));
-		pDisOld = DisDC.SelectObject(&ImageMap);
-
-		SrcDC.SelectObject(pSrcOld);
+		m_ImageList[n].Add(&Bitmap, RGB(255, 255, 255));
 		Bitmap.DeleteObject();
 
 		list.himl = m_ImageList[n];
 		if ( (pWnd = (CButton *)GetDlgItem(IDC_ATTR1 + n)) != NULL )
 			pWnd->SetImageList(&list);
 	}
-	
-	DisDC.SelectObject(pDisOld);
-	ImageMap.DeleteObject();
-
-	DisDC.DeleteDC();
-	SrcDC.DeleteDC();
 
 	m_TransSlider.SetRange(10, 255);
 

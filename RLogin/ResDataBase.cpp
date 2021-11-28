@@ -1523,7 +1523,7 @@ BOOL CResDataBase::LoadFile(LPCTSTR pFilename)
 	BOOL ret = FALSE;
 	BOOL bVerErr = TRUE;
 
-	if ( !File.Open(pFilename, CFile::modeRead | CFile::shareDenyWrite) )
+	if ( !File.Open(pFilename, CFile::modeRead | CFile::shareDenyNone) )
 		return FALSE;
 
 	CWaitCursor wait;

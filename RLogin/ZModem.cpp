@@ -310,8 +310,16 @@ int CZModem::XUpLoad()
     UpDownOpen("XModem File Upload");
     UpDownInit(file_size);
 
-	while ( Bufferd_ReceiveSize() > 1 )
-		Bufferd_Receive(0);
+	while ( Bufferd_ReceiveSize() > 1 ) {
+		ch = Bufferd_Receive(0);
+
+		if ( ch == WANTCRC )
+            crcopt = TRUE;
+		else if ( ch == CAN && Bufferd_Receive(1) == CAN ) {
+			Bufferd_Clear();
+			goto ENDRET;
+		}
+	}
 
 	while ( !AbortCheck() ) {
 

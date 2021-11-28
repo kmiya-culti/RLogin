@@ -52,6 +52,8 @@ Cssh::Cssh(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 	m_KeepAliveTiimerId = 0;
 	m_KeepAliveSendCount = m_KeepAliveReplyCount = 0;
 	m_KeepAliveRecvGlobalCount = m_KeepAliveRecvChannelCount = 0;
+	m_CurveEvpKey = NULL;
+	m_CurveClientPubkey.m_bZero = TRUE;
 
 	for ( int n = 0 ; n < 6 ; n++ )
 		m_VKey[n] = NULL;
@@ -73,6 +75,9 @@ Cssh::~Cssh()
 
 	if ( m_pAgentMutex != NULL )
 		delete m_pAgentMutex;
+
+	if ( m_CurveEvpKey != NULL )
+		EVP_PKEY_free(m_CurveEvpKey);
 }
 int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
 {
@@ -126,6 +131,7 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 		m_ExtInfo.RemoveAll();
 		m_DhGexReqBits = 4096;
 		m_bKnownHostUpdate = TRUE;
+		m_bReqRsaSha1 = FALSE;
 
 		m_ConnectTime = 0;
 		m_KeepAliveSendCount = m_KeepAliveReplyCount = 0;
@@ -208,13 +214,19 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 				if ( (m_IdKeyTab[n].m_Type & IDKEY_TYPE_MASK) != IDKEY_RSA2 || m_IdKeyTab[n].m_RsaNid != NID_sha1 || m_IdKeyTab[n].m_AgeantType != IDKEY_AGEANT_NONE )
 					continue;
 
-				IdKey = m_IdKeyTab[n];
-				IdKey.m_Type &= IDKEY_TYPE_MASK;	// unsupported cert
-				IdKey.m_Cert = 0;
+				// ’Ç‰Á‚¹‚¸‚É’u‚«Š·‚¦‚É•ÏX 2021.11.05
 
-				IdKey.m_RsaNid = (m_pDocument->m_ParamTab.m_RsaExt == 1 ? NID_sha256 : NID_sha512);
-				m_IdKeyTab.InsertAt(n, IdKey);
-				n++;
+				//IdKey = m_IdKeyTab[n];
+				//IdKey.m_Type &= IDKEY_TYPE_MASK;	// unsupported cert
+				//IdKey.m_Cert = 0;
+
+				//IdKey.m_RsaNid = (m_pDocument->m_ParamTab.m_RsaExt == 1 ? NID_sha256 : NID_sha512);
+				//m_IdKeyTab.InsertAt(n, IdKey);
+				//n++;
+
+				m_IdKeyTab[n].m_Type &= IDKEY_TYPE_MASK;
+				m_IdKeyTab[n].m_Cert = 0;
+				m_IdKeyTab[n].m_RsaNid = (m_pDocument->m_ParamTab.m_RsaExt == 1 ? NID_sha256 : NID_sha512);
 			}
 		}
 
@@ -1934,37 +1946,57 @@ int Cssh::SendMsgKexEcdhInit()
 }
 void Cssh::SendMsgKexCurveInit()
 {
+	int n;
 	CBuffer tmp(-1);
-//	static const BYTE basepoint[CURVE25519_SIZE] = { 9 };	// CURVE25519_SIZE = 32, Zero Init ?
-	BYTE basepoint[CURVE25519_SIZE];
+	EVP_PKEY_CTX *ctx = NULL;
+	size_t len = 0;
+	int type = EVP_PKEY_X25519;
 
-	ZeroMemory(basepoint, sizeof(basepoint));
-	basepoint[0] = 9;
+	m_CurveClientPubkey.Clear();
 
-	rand_buf(m_CurveClientKey, sizeof(m_CurveClientKey));
+	switch(m_DhMode) {
+	case DHMODE_CURVE25519:
+		type = EVP_PKEY_X25519;
+		break;
+	case DHMODE_CURVE448:
+		type = EVP_PKEY_X448;
+		break;
+	case DHMODE_SNT761X25519:
+		type = EVP_PKEY_X25519;
+		m_CurveClientPubkey.PutSpc(sntrup761_PUBLICKEYBYTES);
+		sntrup761_keypair(m_CurveClientPubkey.GetPtr(), m_SntrupClientKey);
+		break;
+	}
 
-	crypto_scalarmult_curve25519(m_CurveClientPubkey, m_CurveClientKey, basepoint);
+	if ( (ctx = EVP_PKEY_CTX_new_id(type, NULL)) == NULL )
+		goto ENDOF;
+
+	if ( EVP_PKEY_keygen_init(ctx) <= 0 )
+		goto ENDOF;
+
+	if ( m_CurveEvpKey != NULL )
+		EVP_PKEY_free(m_CurveEvpKey);
+	m_CurveEvpKey = NULL;
+
+	if ( EVP_PKEY_keygen(ctx, &m_CurveEvpKey) <= 0 )
+		goto ENDOF;
+
+	if ( EVP_PKEY_get_raw_public_key(m_CurveEvpKey, NULL, &len) <= 0 )
+		goto ENDOF;
+
+	n = m_CurveClientPubkey.GetSize();
+	m_CurveClientPubkey.PutSpc((int)len);
+
+	if ( EVP_PKEY_get_raw_public_key(m_CurveEvpKey, m_CurveClientPubkey.GetPtr() + n, &len) <= 0 )
+		goto ENDOF;
 
 	tmp.Put8Bit(SSH2_MSG_KEX_ECDH_INIT);
-	tmp.PutBuf(m_CurveClientPubkey, CURVE25519_SIZE);
+	tmp.PutBuf(m_CurveClientPubkey.GetPtr(), m_CurveClientPubkey.GetSize());
 	SendPacket2(&tmp);
-}
-void Cssh::SendMsgKexSntrupInit()
-{
-	CBuffer tmp(-1);
-	BYTE basepoint[CURVE25519_SIZE];
 
-	sntrup4591761_keypair(m_SntrupClientPubkey, m_SntrupClientKey);
-
-	ZeroMemory(basepoint, sizeof(basepoint));
-	basepoint[0] = 9;
-
-	rand_buf(m_CurveClientKey, sizeof(m_CurveClientKey));
-	crypto_scalarmult_curve25519(m_SntrupClientPubkey + sntrup4591761_PUBLICKEYBYTES, m_CurveClientKey, basepoint);
-
-	tmp.Put8Bit(SSH2_MSG_KEX_ECDH_INIT);
-	tmp.PutBuf(m_SntrupClientPubkey, sntrup4591761_PUBLICKEYBYTES + CURVE25519_SIZE);
-	SendPacket2(&tmp);
+ENDOF:
+	if ( ctx != NULL )
+		EVP_PKEY_CTX_free(ctx);
 }
 void Cssh::SendMsgNewKeys()
 {
@@ -2139,7 +2171,6 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 					tmp.PutBuf(sig.GetPtr(), sig.GetSize());
 
 					AddAuthLog(_T("publickey(%s)"), m_pIdKey->GetName(TRUE, TRUE));
-
 				} else {
 					tmp.Put8Bit(0);
 					tmp.PutStr(TstrToMbs(m_pIdKey->GetName(TRUE, FALSE)));
@@ -2147,6 +2178,10 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 
 					AddAuthLog(_T("publickey:offered(%s)"), m_pIdKey->GetName(TRUE, TRUE));
 				}
+
+
+				if ( m_pIdKey->m_Type == IDKEY_RSA2 && m_pIdKey->m_RsaNid == NID_sha1 )
+					m_bReqRsaSha1 = TRUE;
 
 				m_AuthMode = AUTH_MODE_PUBLICKEY;
 				break;
@@ -2286,6 +2321,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 
 	SendDisconnect2(SSH2_DISCONNECT_HOST_NOT_ALLOWED_TO_CONNECT, "User Auth Failure");
 	wrk.Format(_T("SSH2 User Auth Failure \"%s\" Status=%04o\nSend Disconnect Message...\n%s"), MbsToTstr(str), m_SSH2Status, m_AuthLog);
+	if ( m_bReqRsaSha1 ) wrk += _T("\n\nYou may need to change the ssh-rsa key sign algorithm SHA1 to SHA2-256/512");
 	AfxMessageBox(wrk, MB_ICONSTOP);
 	
 	return FALSE;
@@ -2687,14 +2723,14 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 		{ DHMODE_GROUP_GEX,		_T("diffie-hellman-group-exchange-sha1")		},	// RFC4419	SHOULD NOT
 		{ DHMODE_GROUP_14,		_T("diffie-hellman-group14-sha1")				},	// RFC4253	SHOULD
 		{ DHMODE_GROUP_1,		_T("diffie-hellman-group1-sha1")				},	// RFC4253	SHOULD NOT
-		{ DHMODE_CURVE25519,	_T("curve25519-sha256@libssh.org")				},
-		{ DHMODE_CURVE25519,	_T("curve25519-sha256")							},	//			MUST
 		{ DHMODE_GROUP_14_256,	_T("diffie-hellman-group14-sha256")				},	// RFC8268	MAY
 		{ DHMODE_GROUP_15_512,	_T("diffie-hellman-group15-sha512")				},	// RFC8268	MAY
 		{ DHMODE_GROUP_16_512,	_T("diffie-hellman-group16-sha512")				},	// RFC8268	SHOULD
 		{ DHMODE_GROUP_17_512,	_T("diffie-hellman-group17-sha512")				},	// RFC8268	MAY
 		{ DHMODE_GROUP_18_512,	_T("diffie-hellman-group18-sha512")				},	// RFC8268	MAY
-		{ DHMODE_SNT4591761,	_T("sntrup4591761x25519-sha512@tinyssh.org")	},
+		{ DHMODE_CURVE25519,	_T("curve25519-sha256")							},	// RFC8731	MUST
+		{ DHMODE_CURVE448,		_T("curve448-sha512")							},	// RFC8731	MAY
+		{ DHMODE_SNT761X25519,	_T("sntrup761x25519-sha512@openssh.com")		},
 		{ 0,					NULL											},
 	};
 
@@ -3076,15 +3112,21 @@ ENDRET:
 }
 int Cssh::SSH2MsgKexCurveReply(CBuffer *bp)
 {
+	int n;
 	int ret = TRUE;
 	int secofs;
 	CBuffer tmp(-1), blob(-1), sig(-1), addb(-1);
-	CBuffer server_public(-1);
-	u_char shared_key[CURVE25519_SIZE];
+	CBuffer server_public(-1), shared_key(-1);
 	BIGNUM *shared_secret = NULL;
-	const EVP_MD *evp_md;
+	BYTE shared_digest[EVP_MAX_MD_SIZE];
+	const EVP_MD *evp_md = EVP_sha256();
 	int hashlen;
 	BYTE hash[EVP_MAX_MD_SIZE];
+	EVP_PKEY_CTX *ctx = NULL;
+	EVP_PKEY *pkey = NULL;
+	size_t keylen;
+	int type = EVP_PKEY_X25519;
+	EVP_MD_CTX *md_ctx;
 
 	bp->GetBuf(&tmp);
 	blob = tmp;
@@ -3098,24 +3140,68 @@ int Cssh::SSH2MsgKexCurveReply(CBuffer *bp)
 	bp->GetBuf(&server_public);
 	bp->GetBuf(&sig);
 
-	if ( server_public.GetSize() != CURVE25519_SIZE )
-		return TRUE;
+	switch(m_DhMode) {
+	case DHMODE_CURVE25519:
+		type = EVP_PKEY_X25519;
+		evp_md = EVP_sha256();
+		break;
+	case DHMODE_CURVE448:
+		type = EVP_PKEY_X448;
+		evp_md = EVP_sha512();
+		break;
+	case DHMODE_SNT761X25519:
+		type = EVP_PKEY_X25519;
+		evp_md = EVP_sha512();
+		shared_key.PutSpc(sntrup761_BYTES);
+		if ( sntrup761_dec(shared_key.GetPtr(), server_public.GetPtr(), m_SntrupClientKey) != 0 )
+			return TRUE;
+		break;
+	}
 
-	crypto_scalarmult_curve25519(shared_key, m_CurveClientKey, server_public.GetPtr());
-
-	if ( (shared_secret = BN_new()) == NULL )
-		return TRUE;
-
-	if ( BN_bin2bn(shared_key, sizeof(shared_key), shared_secret) == NULL )
+	if ( (pkey = EVP_PKEY_new_raw_public_key(type, NULL, server_public.GetPtr(), server_public.GetSize())) == NULL )
 		goto ENDRET;
 
-	addb.PutBuf(m_CurveClientPubkey, CURVE25519_SIZE);
-	addb.PutBuf(server_public.GetPtr(), CURVE25519_SIZE);
+	if ( (ctx = EVP_PKEY_CTX_new(m_CurveEvpKey, NULL)) == NULL )
+		goto ENDRET;
 
-	secofs = addb.GetSize();
-	addb.PutBIGNUM2(shared_secret);
+	if ( EVP_PKEY_derive_init(ctx) <= 0 )
+		goto ENDRET;
 
-	evp_md = EVP_sha256();
+	if ( EVP_PKEY_derive_set_peer(ctx, pkey) <= 0 )
+		goto ENDRET;
+
+	if ( EVP_PKEY_derive(ctx, NULL, &keylen) <= 0 )
+		goto ENDRET;
+
+	n = shared_key.GetSize();
+	shared_key.PutSpc((int)keylen);
+
+	if ( EVP_PKEY_derive(ctx, shared_key.GetPtr() + n, &keylen) <= 0 )
+		goto ENDRET;
+
+	addb.PutBuf(m_CurveClientPubkey.GetPtr(), m_CurveClientPubkey.GetSize());
+	addb.PutBuf(server_public.GetPtr(), server_public.GetSize());
+
+	if ( m_DhMode == DHMODE_SNT761X25519 ) {
+		md_ctx = EVP_MD_CTX_new();
+		EVP_DigestInit(md_ctx, evp_md);
+		EVP_DigestUpdate(md_ctx, shared_key.GetPtr(), shared_key.GetSize());
+		EVP_DigestFinal(md_ctx, shared_digest, NULL);
+		EVP_MD_CTX_free(md_ctx);
+
+		secofs = addb.GetSize();
+		addb.PutBuf(shared_digest, EVP_MD_size(evp_md));
+
+	} else {
+		if ( (shared_secret = BN_new()) == NULL )
+			goto ENDRET;
+
+		if ( BN_bin2bn(shared_key.GetPtr(), shared_key.GetSize(), shared_secret) == NULL )
+			goto ENDRET;
+
+		secofs = addb.GetSize();
+		addb.PutBIGNUM2(shared_secret);
+	}
 
 	hashlen = kex_gen_hash(hash,
 	    TstrToMbs(m_ClientVerStr), TstrToMbs(m_ServerVerStr),
@@ -3133,74 +3219,19 @@ int Cssh::SSH2MsgKexCurveReply(CBuffer *bp)
 	ret = FALSE;
 
 ENDRET:
-	SecureZeroMemory(shared_key, sizeof(shared_key));
-	BN_clear_free(shared_secret);
-	return ret;
-}
-int Cssh::SSH2MsgKexSntrupReply(CBuffer *bp)
-{
-	int ret = TRUE;
-	int secofs;
-	CBuffer tmp(-1), blob(-1), sig(-1), addb(-1);
-	CBuffer server_public(-1);
-	u_char shared_key[sntrup4591761_BYTES + CURVE25519_SIZE];
-	BYTE shared_digest[EVP_MAX_MD_SIZE];
-	const EVP_MD *evp_md;
-	int hashlen;
-	BYTE hash[EVP_MAX_MD_SIZE];
+	if ( pkey != NULL )
+		EVP_PKEY_free(pkey);
 
-	bp->GetBuf(&tmp);
-	blob = tmp;
+	if ( ctx != NULL )
+		EVP_PKEY_CTX_free(ctx);
 
-	if ( !m_HostKey.GetBlob(&tmp) )
-		return TRUE;
+	if ( m_CurveEvpKey != NULL )
+		EVP_PKEY_free(m_CurveEvpKey);
+	m_CurveEvpKey = NULL;
 
-	if ( !m_HostKey.HostVerify(m_HostName, m_HostPort, this) )
-		return TRUE;
+	if ( shared_secret != NULL )
+		BN_clear_free(shared_secret);
 
-	bp->GetBuf(&server_public);
-	bp->GetBuf(&sig);
-
-	if ( server_public.GetSize() != (sntrup4591761_CIPHERTEXTBYTES + CURVE25519_SIZE) )
-		return TRUE;
-
-	if ( sntrup4591761_dec(shared_key, server_public.GetPtr(), m_SntrupClientKey) != 0 )
-		return TRUE;
-
-	crypto_scalarmult_curve25519(shared_key + sntrup4591761_BYTES, m_CurveClientKey, server_public.GetPtr() + sntrup4591761_CIPHERTEXTBYTES);
-
-	evp_md = EVP_sha512();
-
-	EVP_MD_CTX *md_ctx;
-	md_ctx = EVP_MD_CTX_new();
-	EVP_DigestInit(md_ctx, evp_md);
-	EVP_DigestUpdate(md_ctx, shared_key, sizeof(shared_key));
-	EVP_DigestFinal(md_ctx, shared_digest, NULL);
-	EVP_MD_CTX_free(md_ctx);
-
-	addb.PutBuf(m_SntrupClientPubkey, sntrup4591761_PUBLICKEYBYTES + CURVE25519_SIZE);
-	addb.PutBuf(server_public.GetPtr(), sntrup4591761_CIPHERTEXTBYTES + CURVE25519_SIZE);
-
-	secofs = addb.GetSize();
-	addb.PutBuf(shared_digest, EVP_MD_size(evp_md));
-
-	hashlen = kex_gen_hash(hash,
-	    TstrToMbs(m_ClientVerStr), TstrToMbs(m_ServerVerStr),
-		m_MyPeer.GetPtr(), m_MyPeer.GetSize(),
-		m_HisPeer.GetPtr(), m_HisPeer.GetSize(),
-		blob.GetPtr(), blob.GetSize(),
-		addb.GetPtr(), addb.GetSize(),
-		evp_md);
-
-	if ( !m_HostKey.Verify(&sig, hash, hashlen) )
-		goto ENDRET;
-
-	SetDeriveKey(hash, hashlen,  addb.GetPtr() + secofs, addb.GetSize() - secofs, evp_md);
-
-	ret =  FALSE;
-
-ENDRET:
-	SecureZeroMemory(shared_key, sizeof(shared_key));
 	return ret;
 }
 int Cssh::SSH2MsgNewKeys(CBuffer *bp)
@@ -4084,10 +4115,9 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 				goto DISCONNECT;
 			break;
 		case DHMODE_CURVE25519:
+		case DHMODE_CURVE448:
+		case DHMODE_SNT761X25519:
 			SendMsgKexCurveInit();
-			break;
-		case DHMODE_SNT4591761:
-			SendMsgKexSntrupInit();
 			break;
 		default:
 			goto DISCONNECT;
@@ -4127,14 +4157,9 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 			SendMsgNewKeys();
 			break;
 		case DHMODE_CURVE25519:
+		case DHMODE_CURVE448:
+		case DHMODE_SNT761X25519:
 			if ( SSH2MsgKexCurveReply(bp) )
-				goto DISCONNECT;
-			m_SSH2Status &= ~SSH2_STAT_HAVEPROP;
-			m_SSH2Status |= SSH2_STAT_HAVEKEYS;
-			SendMsgNewKeys();
-			break;
-		case DHMODE_SNT4591761:
-			if ( SSH2MsgKexSntrupReply(bp) )
 				goto DISCONNECT;
 			m_SSH2Status &= ~SSH2_STAT_HAVEPROP;
 			m_SSH2Status |= SSH2_STAT_HAVEKEYS;

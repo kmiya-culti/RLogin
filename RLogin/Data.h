@@ -1130,4 +1130,10 @@ private:
     static int __stdcall CDirDialog::BrowseCtrlCallback(HWND hwnd, UINT uMsg, LPARAM lParam, LPARAM lpData);
 };
 
+class CBitmapEx : public CBitmap
+{
+public:
+	BOOL LoadResBitmap(int nId, int dpiX, int dpiY, COLORREF backCol);
+};
+
 #endif // !defined(AFX_DATA_H__6A23DC3E_3DDC_47BD_A6FC_E0127564AE6E__INCLUDED_)

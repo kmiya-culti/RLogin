@@ -282,7 +282,6 @@
     <ClCompile Include="ComMoniDlg.cpp" />
     <ClCompile Include="ComSock.cpp" />
     <ClCompile Include="CsiParaDlg.cpp" />
-    <ClCompile Include="curve25519.cpp" />
     <ClCompile Include="Data.cpp" />
     <ClCompile Include="DefParamDlg.cpp" />
     <ClCompile Include="DialogExt.cpp" />
@@ -338,7 +337,7 @@
     <ClCompile Include="SerEntPage.cpp" />
     <ClCompile Include="ServerSelect.cpp" />
     <ClCompile Include="SFtp.cpp" />
-    <ClCompile Include="sntrup459176.cpp" />
+    <ClCompile Include="sntrup761.cpp" />
     <ClCompile Include="SockOptPage.cpp" />
     <ClCompile Include="ssh.cpp" />
     <ClCompile Include="sshData.cpp" />

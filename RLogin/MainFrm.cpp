@@ -895,7 +895,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_BN_CLICKED(IDC_NEXTPOS, &CMainFrame::OnSpeakNext)
 
 	ON_COMMAND(IDM_KNOWNHOSTDEL, &CMainFrame::OnKnownhostdel)
-END_MESSAGE_MAP()
+	END_MESSAGE_MAP()
 
 static const UINT indicators[] =
 {
@@ -2625,7 +2625,7 @@ void CMainFrame::VersionCheckProc()
 	if ( version.CompareDigit(str) < 0 )
 		version = str;
 
-	if ( !http.GetRequest(CStringLoad(IDS_VERSIONCHECKURL2), buf) ) // && !http.GetRequest(CStringLoad(IDS_VERSIONCHECKURL), buf) )
+	if ( !http.GetRequest(CStringLoad(IDS_VERSIONCHECKURL2), buf) )
 		return;
 
 	p = (CHAR *)buf.GetPtr();
@@ -3536,7 +3536,7 @@ void CMainFrame::OnFileAllSave()
 
 	m_pTopPane->SetBuffer(&buf);
 
-	if ( !file.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeWrite) )
+	if ( !file.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeWrite | CFile::shareExclusive) )
 		return;
 
 	file.Write("RLM100\n", 7);
@@ -3847,44 +3847,6 @@ void CMainFrame::OnInitMenu(CMenu* pMenu)
 }
 void CMainFrame::OnEnterMenuLoop(BOOL bIsTrackPopupMenu)
 {
-#if 0
-	int n, a;
-	CMenu *pMenu, *pSubMenu;
-	CRLoginDoc *pDoc;
-	CString str;
-
-	if ( (pMenu = GetMenu()) == NULL )
-		return;
-
-	if ( (pDoc = GetMDIActiveDocument()) != NULL )
-		pDoc->SetMenu(pMenu);
-
-	else {
-		m_DefKeyTab.CmdsInit();
-
-		for ( n = 0 ; n < m_DefKeyTab.m_Cmds.GetSize() ; n++ ) {
-			if ( pMenu->GetMenuString(m_DefKeyTab.m_Cmds[n].m_Id, str, MF_BYCOMMAND) <= 0 )
-				continue;
-
-			if ( (a = str.Find(_T('\t'))) >= 0 )
-				str.Truncate(a);
-
-			m_DefKeyTab.m_Cmds[n].m_Text = str;
-			m_DefKeyTab.m_Cmds[n].SetMenu(pMenu);
-		}
-	}
-	
-	// Add Old ServerEntryTab Delete Menu
-	if ( (pSubMenu = CMenuLoad::GetItemSubMenu(IDM_PASSWORDLOCK, pMenu)) != NULL ) {
-		pSubMenu->DeleteMenu(IDM_DELOLDENTRYTAB, MF_BYCOMMAND);
-
-		if ( ((CRLoginApp *)AfxGetApp())->AliveProfileKeys(_T("ServerEntryTab")) )
-			pSubMenu->AppendMenu(MF_STRING, IDM_DELOLDENTRYTAB, CStringLoad(IDS_DELOLDENTRYMENU));
-	}
-
-	SetMenuBitmap(pMenu);
-#endif
-
 	SetIdleTimer(TRUE);
 }
 void CMainFrame::OnExitMenuLoop(BOOL bIsTrackPopupMenu)
@@ -4263,6 +4225,7 @@ void CMainFrame::OnMoving(UINT fwSide, LPRECT pRect)
 		}
 	}
 }
+
 void CMainFrame::OnGetMinMaxInfo(MINMAXINFO* lpMMI)
 {
 	CRect rect;
@@ -5696,9 +5659,9 @@ int CTabDlgBar::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	SetBorders(2, 5, 2, 4);
 
-	CBitmap BitMap;
-	((CRLoginApp *)::AfxGetApp())->LoadResBitmap(MAKEINTRESOURCE(IDB_BITMAP4), BitMap);
-	m_ImageList.Create(16, 16, ILC_COLOR24 | ILC_MASK, 0, 4);
+	CBitmapEx BitMap;
+	BitMap.LoadResBitmap(IDB_BITMAP4, SCREEN_DPI_X, SCREEN_DPI_Y, RGB(192, 192, 192));
+	m_ImageList.Create(MulDiv(16, SCREEN_DPI_X, DEFAULT_DPI_X), MulDiv(16, SCREEN_DPI_Y, DEFAULT_DPI_Y), ILC_COLOR24 | ILC_MASK, 0, 4);
 	m_ImageList.Add(&BitMap, RGB(192, 192, 192));
 	BitMap.DeleteObject();
 	m_TabCtrl.SetImageList(&m_ImageList);
@@ -6132,3 +6095,4 @@ BOOL CTabDlgBar::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 
 	return CControlBar::OnSetCursor(pWnd, nHitTest, message);
 }
+

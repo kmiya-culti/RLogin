@@ -295,13 +295,16 @@ BEGIN
         MENUITEM "ステータスバー(&S)",                 ID_VIEW_STATUS_BAR
         MENUITEM "スクロールバー(&V)",                 ID_VIEW_SCROLLBAR
         MENUITEM SEPARATOR
-        MENUITEM "Tekウィンドウ(&K)",                IDM_TEKDISP
-        MENUITEM "Imageウィンドウ(&I)",              IDM_IMAGEDISP
-        MENUITEM "ソケットステータス(&X)",               IDM_SOCKETSTATUS
-        MENUITEM "シリアルモニター(&Z)",                IDM_COMMONITER
-        MENUITEM "トレースウィンドウ(&W)",               IDM_TRACEDISP
-        MENUITEM "コマンドウィンドウ(&I)",               IDM_CMDHIS
-        MENUITEM "ヒストリーウィンドウ(&H)",              IDM_HISTORYDLG
+        POPUP "各種ウィンドウ(&W)"
+        BEGIN
+            MENUITEM "Tekウィンドウ(&K)",                IDM_TEKDISP
+            MENUITEM "Imageウィンドウ(&I)",              IDM_IMAGEDISP
+            MENUITEM "ソケットステータス(&X)",               IDM_SOCKETSTATUS
+            MENUITEM "シリアルモニター(&Z)",                IDM_COMMONITER
+            MENUITEM "トレースウィンドウ(&W)",               IDM_TRACEDISP
+            MENUITEM "コマンドウィンドウ(&I)",               IDM_CMDHIS
+            MENUITEM "ヒストリーウィンドウ(&H)",              IDM_HISTORYDLG
+        END
         MENUITEM "おさかなを飼う(&O)",                 ID_GOZIVIEW
         MENUITEM SEPARATOR
         MENUITEM "オプション設定(&P)",                 ID_SETOPTION
@@ -621,7 +624,7 @@ END
 // Dialog
 //
 
-IDD_ABOUTBOX DIALOGEX 0, 0, 243, 237
+IDD_ABOUTBOX DIALOGEX 0, 0, 243, 239
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "About RLogin"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
@@ -632,9 +635,9 @@ BEGIN
                     "SysLink",WS_TABSTOP,44,196,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,215,60,14,WS_GROUP
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin (%s) Version 2.26.4 (2021/10/29)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.26.5 (2021/11/29)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2021 Culti",IDC_STATIC,44,16,189,8
-    LTEXT           "OpenSSL 1.1.1l 24 Aug 2021",IDC_STATIC,44,44,189,8
+    LTEXT           "OpenSSL 1.1.1l 24 Aug 2021",IDC_STATIC,44,41,189,8
     LTEXT           "Copyright (c) 1998-2021 The OpenSSL Project",IDC_STATIC,44,53,189,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,62,189,8
     LTEXT           "All rights reserved.",IDC_STATIC,44,71,189,8
@@ -2170,8 +2173,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,26,4,0
- PRODUCTVERSION 2,26,4,0
+ FILEVERSION 2,26,5,0
+ PRODUCTVERSION 2,26,5,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2188,12 +2191,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.26.4.0"
+            VALUE "FileVersion", "2.26.5.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.26.4.0"
+            VALUE "ProductVersion", "2.26.5.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2216,7 +2219,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 236
         TOPMARGIN, 7
-        BOTTOMMARGIN, 230
+        BOTTOMMARGIN, 229
     END
 
     IDD_ALGOPARADLG, DIALOG
@@ -3149,6 +3152,8 @@ BEGIN
 0x4345, 0x5344, 0x0041, 
     IDC_IDKEY_TYPE, 0x403, 8, 0
 0x4445, 0x3532, 0x3135, 0x0039, 
+    IDC_IDKEY_TYPE, 0x403, 6, 0
+0x4445, 0x3434, 0x0038, 
     IDC_IDKEY_TYPE, 0x403, 5, 0
 0x4d58, 0x5353, "\000" 
     IDC_IDKEY_BITS, 0x403, 3, 0
@@ -4960,6 +4965,8 @@ BEGIN
     IDM_SPEAKALL            "表示されている画面を音声で読み上げます\n音声で読み上げ"
     IDM_KNOWNHOSTDEL        "登録されているホスト鍵の削除\nホスト鍵の削除"
     IDM_ALL_EXPORT          "すべてのエントリーをファイルに保存します\nすべて保存"
+    IDM_SPEAKBACK           "前行を読み上げ"
+    IDM_SPEAKNEXT           "次行を読み上げ"
 END
 
 #endif    // 日本語 (日本) resources

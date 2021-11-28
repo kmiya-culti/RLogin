@@ -420,7 +420,7 @@ BOOL CServerSelect::OnInitDialog()
 
 	int cx, cy;
 	CRect rect;
-	CBitmap BitMap;
+	CBitmapEx BitMap;
 	CBuffer buf;
 
 	ASSERT(m_pData != NULL);
@@ -428,8 +428,8 @@ BOOL CServerSelect::OnInitDialog()
 	m_TabEntry.SetNoCase(FALSE);
 	m_TabEntry.SetNoSort(FALSE);
 
-	((CRLoginApp *)::AfxGetApp())->LoadResBitmap(MAKEINTRESOURCE(IDB_BITMAP4), BitMap);
-	m_ImageList.Create(16, 16, ILC_COLOR24 | ILC_MASK, 0, 4);
+	BitMap.LoadResBitmap(IDB_BITMAP4, m_NowDpi.cx, m_NowDpi.cy, RGB(192, 192, 192));
+	m_ImageList.Create(MulDiv(16, m_NowDpi.cx, DEFAULT_DPI_X), MulDiv(16, m_NowDpi.cy, DEFAULT_DPI_Y), ILC_COLOR24 | ILC_MASK, 0, 4);
 	m_ImageList.Add(&BitMap, RGB(192, 192, 192));
 	BitMap.DeleteObject();
 
@@ -842,7 +842,7 @@ void CServerSelect::OnServInport()
 
 	CFile File;
 
-	if ( !File.Open(PathName, CFile::modeRead | CFile::shareExclusive) ) {
+	if ( !File.Open(PathName, CFile::modeRead | CFile::shareDenyNone) ) {
 		MessageBox(_T("File Open Error"));
 		return;
 	}
@@ -1085,7 +1085,7 @@ void CServerSelect::OnServExchng()
 
 	CFile File;
 
-	if ( !File.Open(dlg.GetPathName(), CFile::modeRead | CFile::shareExclusive) ) {
+	if ( !File.Open(dlg.GetPathName(), CFile::modeRead | CFile::shareDenyNone) ) {
 		MessageBox(_T("File Open Error"));
 		return;
 	}

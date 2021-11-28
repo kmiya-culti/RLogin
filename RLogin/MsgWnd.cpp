@@ -283,55 +283,55 @@ BOOL CBtnWnd::PreCreateWindow(CREATESTRUCT& cs)
 {
 	cs.lpszClass = AfxRegisterWndClass(CS_DBLCLKS, AfxGetApp()->LoadStandardCursor(IDC_ARROW));
 	cs.dwExStyle |= (WS_EX_TOPMOST | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW);
-	cs.cx = 24;
-	cs.cy = 24;
+	cs.cx = MulDiv(24, SCREEN_DPI_X, DEFAULT_DPI_X);
+	cs.cy = MulDiv(24, SCREEN_DPI_Y, DEFAULT_DPI_Y);
 
 	return CWnd::PreCreateWindow(cs);
 }
 
 int CBtnWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
 {
-	CBitmap BitMap;
-
 	if (CWnd::OnCreate(lpCreateStruct) == -1)
 		return -1;
-
-	if ( m_ImageList.m_hImageList == NULL ) {
-		//BitMap.LoadBitmap(IDB_BITMAP9);
-		((CRLoginApp *)::AfxGetApp())->LoadResBitmap(MAKEINTRESOURCE(IDB_BITMAP9), BitMap);
-		m_ImageList.Create(24, 24, ILC_COLOR24 | ILC_MASK, 4, 4);
-		m_ImageList.Add(&BitMap, RGB(128, 128, 128));
-		BitMap.DeleteObject();
-	}
 
 	SetTimer(1024, 200, NULL);
 
 	return 0;
 }
 
+void CBtnWnd::CreateImageList()
+{
+	CBitmapEx Bitmap;
+
+	if ( m_ImageList.m_hImageList != NULL )
+		m_ImageList.DeleteImageList();
+
+	Bitmap.LoadResBitmap(IDB_BITMAP9, SCREEN_DPI_X, SCREEN_DPI_Y, RGB(128, 128, 128));
+	m_ImageList.Create(MulDiv(24, SCREEN_DPI_X, DEFAULT_DPI_X), MulDiv(24, SCREEN_DPI_Y, DEFAULT_DPI_Y), ILC_COLOR24 | ILC_MASK, 4, 4);
+	m_ImageList.Add(&Bitmap, RGB(128, 128, 128));
+}
+
 void CBtnWnd::DoButton(CWnd *pWnd, class CTextRam *pTextRam)
 {
-	CRect rect(0, 0, 24, 24);
+	CRect rect;
 
-	if ( pWnd != NULL && pTextRam != NULL ) {
-		m_pView = (CRLoginView *)pWnd;
-
-		pWnd->GetClientRect(rect);
-		rect.left = rect.right - 32; rect.right  = rect.left + 24;
-		rect.top  = rect.top   +  8; rect.bottom = rect.top  + 24;
-
-		if ( m_hWnd == NULL )
-			Create(NULL, _T("BtnWnd"), WS_TILED, rect, pWnd, IDC_CANCELBTN);
-
-		SetWindowPos(&wndTopMost, rect.left, rect.top, rect.Width(), rect.Height(), SWP_NOZORDER | SWP_ASYNCWINDOWPOS | SWP_DEFERERASE);
-
-	} else if ( pWnd != NULL && m_hWnd != NULL ) {
+	if ( pWnd != NULL ) {
+		if ( pTextRam != NULL ) {
+			if ( m_hWnd == NULL )
+				Create(NULL, _T("BtnWnd"), WS_TILED, rect, pWnd, IDC_CANCELBTN);
+			m_pView = (CRLoginView *)pWnd;
+		}
 
 		pWnd->GetClientRect(rect);
-		rect.left = rect.right - 32; rect.right  = rect.left + 24;
-		rect.top  = rect.top   +  8; rect.bottom = rect.top  + 24;
+		rect.left = rect.right - MulDiv(32, SCREEN_DPI_X, DEFAULT_DPI_X);
+		rect.right = rect.left + MulDiv(24, SCREEN_DPI_X, DEFAULT_DPI_X);
+		rect.top    = rect.top + MulDiv( 8, SCREEN_DPI_Y, DEFAULT_DPI_Y);
+		rect.bottom = rect.top + MulDiv(24, SCREEN_DPI_Y, DEFAULT_DPI_Y);
 
-		SetWindowPos(&wndTopMost, rect.left, rect.top, rect.Width(), rect.Height(), SWP_NOZORDER | SWP_ASYNCWINDOWPOS | SWP_DEFERERASE);
+		if ( m_hWnd != NULL ) {
+			CreateImageList();
+			SetWindowPos(&wndTopMost, rect.left, rect.top, rect.Width(), rect.Height(), SWP_NOZORDER | SWP_ASYNCWINDOWPOS | SWP_DEFERERASE);
+		}
 
 	} else if ( m_hWnd != NULL ) {
 		m_pView = NULL;

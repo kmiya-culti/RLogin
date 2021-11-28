@@ -827,7 +827,7 @@ BOOL CMidiData::LoadFile(LPCTSTR fileName)
 	BYTE *pData;
 	DWORD size;
 
-	if ( !File.Open(fileName, CFile::modeRead) )
+	if ( !File.Open(fileName, CFile::modeRead | CFile::shareDenyNone) )
 		return FALSE;
 
 	size = (DWORD)File.GetLength();
@@ -855,7 +855,7 @@ BOOL CMidiData::SaveFile(LPCTSTR fileName)
 	CNode *pNode;
 	DWORD total;
 
-	if ( !File.Open(fileName, CFile::modeCreate | CFile::modeWrite) )
+	if ( !File.Open(fileName, CFile::modeCreate | CFile::modeWrite | CFile::shareExclusive) )
 		return FALSE;
 
 	mem.AddBuff((BYTE *)"MThd", 4);
@@ -2577,7 +2577,7 @@ BOOL CMidiData::SaveMML(LPCTSTR fileName)
 	CMMLData *pData, *pTemp, *pWork;
 	CFile file;
 
-	if ( !file.Open(fileName, CFile::modeCreate | CFile::modeWrite) )
+	if ( !file.Open(fileName, CFile::modeCreate | CFile::modeWrite | CFile::shareExclusive) )
 		return FALSE;
 
 	m_mmlData.m_Cmd   = 0x00;

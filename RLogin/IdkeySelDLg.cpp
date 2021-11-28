@@ -97,6 +97,7 @@ void CIdkeySelDLg::InitList()
 		case IDKEY_DSA2:    str = _T("DSA2"); break;
 		case IDKEY_ECDSA:   str = _T("ECDSA"); break;
 		case IDKEY_ED25519: str = _T("ED25519"); break;
+		case IDKEY_ED448:   str = _T("ED448"); break;
 		case IDKEY_XMSS:    str = _T("XMSS"); break;
 		}
 		m_List.InsertItem(LVIF_TEXT | LVIF_PARAM, n, str, 0, 0, 0, n);
@@ -442,6 +443,8 @@ void CIdkeySelDLg::OnIdkeyCreate()
 		m_GenIdKeyType = IDKEY_ECDSA;
 	else if ( m_Type.Compare(_T("ED25519")) == 0 )
 		m_GenIdKeyType = IDKEY_ED25519;
+	else if ( m_Type.Compare(_T("ED448")) == 0 )
+		m_GenIdKeyType = IDKEY_ED448;
 	else if ( m_Type.Compare(_T("XMSS")) == 0 )
 		m_GenIdKeyType = IDKEY_XMSS;
 

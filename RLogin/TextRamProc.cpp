@@ -4997,7 +4997,7 @@ void CTextRam::fc_OSCNULL(DWORD ch)
 	CFileDialog dlg(FALSE, _T("txt"), (m_OscMode == 'X' ? _T("SOS") : (m_OscMode == '^' ? _T("PM") : _T("APC"))), OFN_OVERWRITEPROMPT, CStringLoad(IDS_FILEDLGALLFILE), AfxGetMainWnd());
 
 	if ( IsOptEnable(TO_RLDOSAVE) && DpiAwareDoModal(dlg) == IDOK ) {
-		if ( file.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeWrite) ) {
+		if ( file.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeWrite | CFile::shareExclusive) ) {
 			file.Write(m_OscPara.GetPtr(), m_OscPara.GetSize());
 			file.Close();
 		}

@@ -49,6 +49,7 @@ public:
 	virtual ~CBtnWnd();
 
 	void DoButton(CWnd *pWnd, class CTextRam *pTextRam);
+	void CreateImageList();
 
 protected:
 	virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
