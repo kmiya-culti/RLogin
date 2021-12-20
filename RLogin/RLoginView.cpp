@@ -131,7 +131,7 @@ BOOL CViewDropTarget::DescToDrop(CWnd* pWnd, COleDataObject* pDataObject, HGLOBA
 
 			TempPath.Format(_T("%s%s"), TempDir, pGroupDesc->fgd[n].cFileName);
 			if ( !TempFile.Open(TempPath, CFile::modeCreate | CFile::modeWrite | CFile::shareExclusive, NULL) ) {
-				ThreadMessageBox(_T("OpenFile Error %s"), TempPath);
+				ThreadMessageBox(_T("OpenFile Error %s"), (LPCTSTR)TempPath);
 				break;
 			}
 
@@ -144,7 +144,7 @@ BOOL CViewDropTarget::DescToDrop(CWnd* pWnd, COleDataObject* pDataObject, HGLOBA
 				pFile->Close();
 				delete pFile;
 			} catch(...) {
-				ThreadMessageBox(_T("CopyFile Error %s"), TempPath);
+				ThreadMessageBox(_T("CopyFile Error %s"), (LPCTSTR)TempPath);
 				break;
 			}
 
@@ -1726,7 +1726,7 @@ BOOL CRLoginView::ModifyKeys(UINT nChar, int nStat)
 	fmt.Format(L"\033%c%s%s%s%d%c",
 		mod >= 1 ? L'[' : esc,
 		mod >= 3 ? L">" : L"",
-		pam,
+		(LPCWSTR)pam,
 		pam.IsEmpty() ? L"" : L";", 
 		msk + 1, end);
 
@@ -3594,7 +3594,7 @@ BOOL CRLoginView::SetDropFile(LPCTSTR FileName, BOOL &doCmd, BOOL &doSub)
 			return FALSE;
 
 		doSub = TRUE;
-		str.Format(_T("%s\\*.*"), FileName);
+		str.Format(_T("%s\\*.*"), (LPCTSTR)FileName);
 		DoLoop = Finder.FindFile(str);
 		while ( DoLoop != FALSE ) {
 			DoLoop = Finder.FindNextFile();

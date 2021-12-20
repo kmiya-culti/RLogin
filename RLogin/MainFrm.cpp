@@ -1426,13 +1426,15 @@ LPCTSTR CMainFrame::PagentPipeName()
 		FreeLibrary(hCrypt32);
 	}
 
+	tmp.PutBuf((LPBYTE)data, len);
+
 	md_ctx = EVP_MD_CTX_new();
 	EVP_DigestInit(md_ctx, EVP_sha256());
-	EVP_DigestUpdate(md_ctx, (const void *)data, len);
+	EVP_DigestUpdate(md_ctx, (const void *)tmp.GetPtr(), tmp.GetSize());
 	EVP_DigestFinal(md_ctx, digest, &dlen);
 	EVP_MD_CTX_free(md_ctx);
 
-	tmp.Base16Encode(digest, 32);
+	tmp.Base16Encode(digest, dlen);
 
 	pipename.Format(_T("\\\\.\\pipe\\pageant.%s.%s"), username, (LPCTSTR)tmp);
 
@@ -1463,10 +1465,10 @@ BOOL CMainFrame::AgeantInit()
 	for ( type = IDKEY_AGEANT_PUTTY ; type <= IDKEY_AGEANT_WINSSH ; type++ ) {
 
 		if ( type == IDKEY_AGEANT_PUTTY ) {
-			if ( WageantQuery(&in, &out, AGENT_PUTTY_PIPE_NAME) )
-				ctype = IDKEY_AGEANT_PUTTYPIPE;
-			else if ( PageantQuery(&in, &out) )
+			if ( PageantQuery(&in, &out) )
 				ctype = IDKEY_AGEANT_PUTTY;
+			else if ( WageantQuery(&in, &out, AGENT_PUTTY_PIPE_NAME) )
+				ctype = IDKEY_AGEANT_PUTTYPIPE;
 			else
 				continue;
 		} else if ( type == IDKEY_AGEANT_WINSSH ) {
@@ -1860,7 +1862,7 @@ int CMainFrame::OpenServerEntry(CServerEntry &Entry)
 		}
 		if ( pApp->m_pCmdInfo != NULL && pApp->m_pCmdInfo->m_Proto != (-1) && !pApp->m_pCmdInfo->m_Port.IsEmpty() ) {
 			if ( Entry.m_EntryName.IsEmpty() )
-				Entry.m_EntryName.Format(_T("%s:%s"), (pApp->m_pCmdInfo->m_Addr.IsEmpty() ? _T("unkown") : pApp->m_pCmdInfo->m_Addr), pApp->m_pCmdInfo->m_Port);
+				Entry.m_EntryName.Format(_T("%s:%s"), (pApp->m_pCmdInfo->m_Addr.IsEmpty() ? _T("unkown") : (LPCTSTR)pApp->m_pCmdInfo->m_Addr), (LPCTSTR)pApp->m_pCmdInfo->m_Port);
 			Entry.m_DocType = DOCTYPE_SESSION;
 			return TRUE;
 		}
@@ -2394,7 +2396,7 @@ void CMainFrame::SetClipBoardComboBox(CComboBox *pCombo)
 	for ( pos = m_ClipBoard.GetHeadPosition() ; pos != NULL ; ) {
 		ClipBoradStr((LPCWSTR)m_ClipBoard.GetNext(pos), str);
 
-		tmp.Format(_T("%d %s"), (index++) % 10, str);
+		tmp.Format(_T("%d %s"), (index++) % 10, (LPCTSTR)str);
 		pCombo->AddString(tmp);
 	}
 }
@@ -2411,7 +2413,7 @@ void CMainFrame::SetClipBoardMenu(UINT nId, CMenu *pMenu)
 	for ( pos = m_ClipBoard.GetHeadPosition() ; pos != NULL ; ) {
 		ClipBoradStr((LPCWSTR)m_ClipBoard.GetNext(pos), str);
 
-		tmp.Format(_T("&%d %s"), (index++) % 10, str);
+		tmp.Format(_T("&%d %s"), (index++) % 10, (LPCTSTR)str);
 		pMenu->AppendMenu(MF_STRING, nId++, tmp);
 	}
 }
@@ -2660,7 +2662,7 @@ void CMainFrame::VersionCheckProc()
 
 		if ( pam.GetSize() >= 4 && pam[0].CompareNoCase(_T("RLogin")) == 0 && version.CompareDigit(pam[1]) < 0 ) {
 			AfxGetApp()->WriteProfileString(_T("MainFrame"), _T("VersionNumber"), pam[1]);
-			m_VersionMessage.Format(CStringLoad(IDS_NEWVERSIONCHECK), pam[1]);
+			m_VersionMessage.Format((LPCTSTR)CStringLoad(IDS_NEWVERSIONCHECK), (LPCTSTR)pam[1]);
 			m_VersionPageUrl = pam[3];
 			PostMessage(WM_COMMAND, IDM_NEWVERSIONFOUND);
 			break;
@@ -5220,7 +5222,7 @@ void CQuickBar::SetComdLine(CString &cmds)
 	m_EntryWnd.GetWindowText(str);
 	if ( !str.IsEmpty() ) {
 		if ( !cmds.IsEmpty() ) cmds += _T(" ");
-		fmt.Format(_T("/entry \"%s\""), str);
+		fmt.Format(_T("/entry \"%s\""), (LPCTSTR)str);
 		cmds += fmt;
 	}
 
@@ -5228,7 +5230,7 @@ void CQuickBar::SetComdLine(CString &cmds)
 	if ( !str.IsEmpty() ) {
 		m_HostWnd.AddHis(str);
 		if ( !cmds.IsEmpty() ) cmds += _T(" ");
-		fmt.Format(_T("/ip \"%s\""), str);
+		fmt.Format(_T("/ip \"%s\""), (LPCTSTR)str);
 		cmds += fmt;
 	}
 
@@ -5236,7 +5238,7 @@ void CQuickBar::SetComdLine(CString &cmds)
 	if ( !str.IsEmpty() ) {
 		m_PortWnd.AddHis(str);
 		if ( !cmds.IsEmpty() ) cmds += _T(" ");
-		fmt.Format(_T("/port \"%s\""), str);
+		fmt.Format(_T("/port \"%s\""), (LPCTSTR)str);
 		cmds += fmt;
 	}
 
@@ -5244,14 +5246,14 @@ void CQuickBar::SetComdLine(CString &cmds)
 	if ( !str.IsEmpty() ) {
 		m_UserWnd.AddHis(str);
 		if ( !cmds.IsEmpty() ) cmds += _T(" ");
-		fmt.Format(_T("/user \"%s\""), str);
+		fmt.Format(_T("/user \"%s\""), (LPCTSTR)str);
 		cmds += fmt;
 	}
 
 	m_PassWnd.GetWindowText(str);
 	if ( !str.IsEmpty() ) {
 		if ( !cmds.IsEmpty() ) cmds += _T(" ");
-		fmt.Format(_T("/pass \"%s\""), str);
+		fmt.Format(_T("/pass \"%s\""), (LPCTSTR)str);
 		cmds += fmt;
 	}
 

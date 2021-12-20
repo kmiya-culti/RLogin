@@ -20,8 +20,9 @@ IMPLEMENT_DYNAMIC(CIdkeySelDLg, CDialogExt)
 CIdkeySelDLg::CIdkeySelDLg(CWnd* pParent /*=NULL*/)
 	: CDialogExt(CIdkeySelDLg::IDD, pParent)
 {
-	m_Type = _T("RSA2");
-	m_Bits = _T("3072");
+	m_ExportStyle = EXPORT_STYLE_OPENSSH;
+	m_Type = _T("ECDSA");
+	m_Bits = _T("256");
 	m_Name = _T("");
 	m_pIdKeyTab = NULL;
 	m_EntryNum = (-1);
@@ -44,6 +45,7 @@ void CIdkeySelDLg::DoDataExchange(CDataExchange* pDX)
 
 	DDX_Control(pDX, IDC_IDKEY_PROG, m_KeyGenProg);
 	DDX_Control(pDX, IDC_IDKEY_LIST, m_List);
+	DDX_CBIndex(pDX, IDC_EXPORT_STYLE, m_ExportStyle);
 	DDX_CBString(pDX, IDC_IDKEY_TYPE, m_Type);
 	DDX_CBString(pDX, IDC_IDKEY_BITS, m_Bits);
 	DDX_Text(pDX, IDC_IDKEY_NAME, m_Name);
@@ -129,6 +131,51 @@ void CIdkeySelDLg::InitList()
 	m_List.SetItemState(m_EntryNum, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
 	m_ListInit = FALSE;
 }
+void CIdkeySelDLg::SetBitsList()
+{
+	int bits;
+	CComboBox *pCombo;
+
+	if ( (pCombo = (CComboBox *)this->GetDlgItem(IDC_IDKEY_BITS)) == NULL )
+		return;
+
+	bits = _tstoi(m_Bits);
+
+	for ( int n = pCombo->GetCount() - 1 ;  n >= 0 ; n-- )
+		pCombo->DeleteString(n);
+
+	if ( m_Type.Compare(_T("RSA1")) == 0 || m_Type.Compare(_T("RSA2")) == 0 ) {
+		pCombo->AddString(_T("2048"));
+		pCombo->AddString(_T("3072"));
+		pCombo->AddString(_T("4096"));
+		pCombo->AddString(_T("8192"));
+		pCombo->AddString(_T("16384"));
+		pCombo->EnableWindow(TRUE);
+		if ( bits < 2048 ) bits = 2048;
+	} else if ( m_Type.Compare(_T("DSA2")) == 0 ) {
+		pCombo->AddString(_T("768"));
+		pCombo->AddString(_T("1024"));
+		pCombo->EnableWindow(TRUE);
+		if ( bits < 768 || bits > 1024 ) bits = 1024;
+	} else if ( m_Type.Compare(_T("ECDSA")) == 0 ) {
+		pCombo->AddString(_T("256"));
+		pCombo->AddString(_T("384"));
+		pCombo->AddString(_T("521"));
+		pCombo->EnableWindow(TRUE);
+		if ( bits < 256 || bits > 521 ) bits = 256;
+	} else if ( m_Type.Compare(_T("XMSS")) == 0 ) {
+		pCombo->AddString(_T("10"));
+		pCombo->AddString(_T("16"));
+		pCombo->AddString(_T("20"));
+		pCombo->EnableWindow(TRUE);
+		if ( bits < 10 || bits > 20 ) bits = 10;
+	} else {
+		pCombo->EnableWindow(FALSE);
+	}
+
+	m_Bits.Format(_T("%d"), bits);
+}
+
 static UINT KeyGenThread(LPVOID pParam)
 {
 	CIdkeySelDLg *pWnd = (CIdkeySelDLg *)pParam;
@@ -214,6 +261,9 @@ BOOL CIdkeySelDLg::OnInitDialog()
 	InitList();
 
 	m_KeyGenProg.EnableWindow(FALSE);
+
+	SetBitsList();
+	UpdateData(FALSE);
 
 	SubclassComboBox(IDC_IDKEY_TYPE);
 	SubclassComboBox(IDC_IDKEY_BITS);
@@ -385,6 +435,8 @@ void CIdkeySelDLg::OnIdkeyInport()
 }
 void CIdkeySelDLg::OnIdkeyExport() 
 {
+	UpdateData(TRUE);
+
 	if ( (m_EntryNum = m_List.GetSelectionMark()) < 0 )
 		return;
 
@@ -417,7 +469,7 @@ void CIdkeySelDLg::OnIdkeyExport()
 		return;
 	}
 
-	if ( !pKey->SavePrivateKey(pKey->m_Type, dlg.m_IdkeyFile, dlg.m_PassName) )
+	if ( !pKey->SavePrivateKey(m_ExportStyle, dlg.m_IdkeyFile, dlg.m_PassName) )
 		MessageBox(CStringLoad(IDE_IDKEYSAVEERROR));
 }
 void CIdkeySelDLg::OnIdkeyCreate() 
@@ -705,24 +757,9 @@ void CIdkeySelDLg::OnSavePublicKey()
 
 void CIdkeySelDLg::OnCbnSelchangeIdkeyType()
 {
-	int bits, now;
-
 	UpdateData(TRUE);
 
-	now = bits = _tstoi(m_Bits);
+	SetBitsList();
 
-	if ( m_Type.Compare(_T("RSA1")) == 0 || m_Type.Compare(_T("RSA2")) == 0 ) {
-		if ( bits < 768 ) bits = 2048;
-	} else if ( m_Type.Compare(_T("DSA2")) == 0 ) {
-		if ( bits < 768 || bits > 1024 ) bits = 1024;
-	} else if ( m_Type.Compare(_T("ECDSA")) == 0 ) {
-		if ( bits < 256 || bits > 521 ) bits = 256;
-	} else if ( m_Type.Compare(_T("XMSS")) == 0 ) {
-		if ( bits > 20 ) bits = 10;
-	}
-
-	if ( now != bits ) {
-		m_Bits.Format(_T("%d"), bits);
-		UpdateData(FALSE);
-	}
+	UpdateData(FALSE);
 }

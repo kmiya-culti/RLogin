@@ -504,13 +504,13 @@ void CRLoginDoc::SetCmdInfo(CCommandLineInfoEx *pCmdInfo)
 		m_CmdLine.Empty();
 		break;
 	case DOCTYPE_REGISTORY:
-		m_CmdLine.Format(_T("/entry \"%s\""), m_ServerEntry.m_EntryName);
+		m_CmdLine.Format(_T("/entry \"%s\""), (LPCTSTR)m_ServerEntry.m_EntryName);
 		break;
 	case DOCTYPE_ENTRYFILE:
 	case DOCTYPE_MULTIFILE:
 		tmp = GetPathName();
 		if ( tmp.IsEmpty() ) tmp = _T("NONAME.rlg");
-		m_CmdLine.Format(_T("\"%s\""), tmp);
+		m_CmdLine.Format(_T("\"%s\""), (LPCTSTR)tmp);
 		break;
 	case DOCTYPE_SESSION:
 		m_CmdLine.Empty();
@@ -665,7 +665,7 @@ void CRLoginDoc::SetDocTitle()
 			title = m_ServerEntry.m_HostName;
 			break;
 		case WTTL_PORT:
-			title.Format(_T("%s:%d"), m_ServerEntry.m_HostName, CExtSocket::GetPortNum(m_ServerEntry.m_PortName));
+			title.Format(_T("%s:%d"), (LPCTSTR)m_ServerEntry.m_HostName, CExtSocket::GetPortNum(m_ServerEntry.m_PortName));
 			break;
 		case WTTL_USER:
 			title = m_ServerEntry.m_UserName;
@@ -1455,19 +1455,19 @@ void CRLoginDoc::LogInit()
 		if ( (m_pLogFile = new CFileExt) == NULL )
 			return;
 
-		file.Format(_T("%s%s%s"), dirs, name, exts);
+		file.Format(_T("%s%s%s"), (LPCTSTR)dirs, (LPCTSTR)name, (LPCTSTR)exts);
 
 		for ( num = 1 ; num < 20 ; num++ ) {
 			if ( LogOpen(file) )
 				break;
-			file.Format(_T("%s%s-%d%s"), dirs, name, num, exts);
+			file.Format(_T("%s%s-%d%s"), (LPCTSTR)dirs, (LPCTSTR)name, num, (LPCTSTR)exts);
 		}
 		if ( num >= 20 ) {
 			if ( m_pLogFile != NULL ) {
 				delete m_pLogFile;
 				m_pLogFile = NULL;
 			}
-			file.Format(_T("LogFile Open Error '%s%s%s'"), dirs, name, exts);
+			file.Format(_T("LogFile Open Error '%s%s%s'"), (LPCTSTR)dirs, (LPCTSTR)name, (LPCTSTR)exts);
 			AfxMessageBox(file);
 		}
 	}
@@ -1722,7 +1722,7 @@ void CRLoginDoc::OnSocketError(int err)
 	if ( m_ErrorPrompt.IsEmpty() )
 		tmp = CExtSocket::GetFormatErrorMessage(m_ServerEntry.m_EntryName, m_ServerEntry.m_HostName, CExtSocket::GetPortNum(m_ServerEntry.m_PortName), _T("WinSock"), err);
 	else
-		tmp.Format(_T("%s Server Entry Socket Error\n%s:%s Connection\n%s\n"), m_ServerEntry.m_EntryName, m_ServerEntry.m_HostName, m_ServerEntry.m_PortName, m_ErrorPrompt);
+		tmp.Format(_T("%s Server Entry Socket Error\n%s:%s Connection\n%s\n"), (LPCTSTR)m_ServerEntry.m_EntryName, (LPCTSTR)m_ServerEntry.m_HostName, (LPCTSTR)m_ServerEntry.m_PortName, (LPCTSTR)m_ErrorPrompt);
 
 	m_ErrorPrompt.Empty();
 
@@ -1974,7 +1974,7 @@ SKIPINPUT:
 			cmds.ParseParam(_T("inpane"), TRUE, FALSE);
 			SetEntryProBuffer();
 			for ( int n = 1 ; n < hosts.GetSize() ; n++ ) {
-				m_ServerEntry.m_HostName.Format(_T("'%s'"), hosts[n]);
+				m_ServerEntry.m_HostName.Format(_T("'%s'"), (LPCTSTR)hosts[n]);
 				m_ServerEntry.m_ReEntryFlag = TRUE;
 				pApp->m_pServerEntry = &m_ServerEntry;
 				pApp->OpenProcsCmd(&cmds);

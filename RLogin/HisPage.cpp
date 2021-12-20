@@ -111,7 +111,7 @@ BOOL CHisPage::OnApply()
 		m_pSheet->m_pTextRam->SetOption(CheckOptTab[n], m_Check[n]);
 
 	if ( m_pSheet->m_pTextRam->IsOptEnable(TO_RLHISFILE) && m_HisFile.IsEmpty() )
-		m_HisFile.Format(_T("%s\\%s.rlh"), ((CRLoginApp *)AfxGetApp())->m_BaseDir, m_pSheet->m_pEntry->m_EntryName);
+		m_HisFile.Format(_T("%s\\%s.rlh"), (LPCTSTR)((CRLoginApp *)AfxGetApp())->m_BaseDir, (LPCTSTR)m_pSheet->m_pEntry->m_EntryName);
 
 	m_pSheet->m_pTextRam->m_DefHisMax   = _tstoi(m_HisMax);
 	m_pSheet->m_pTextRam->m_HisFile     = m_HisFile;
@@ -151,7 +151,7 @@ void CHisPage::OnHisfileSel()
 	UpdateData(TRUE);
 
 	if ( m_HisFile.IsEmpty() )
-		file.Format(_T("%s\\%s.rlh"), ((CRLoginApp *)AfxGetApp())->m_BaseDir, m_pSheet->m_pEntry->m_EntryName);
+		file.Format(_T("%s\\%s.rlh"), (LPCTSTR)((CRLoginApp *)AfxGetApp())->m_BaseDir, (LPCTSTR)m_pSheet->m_pEntry->m_EntryName);
 	else
 		file = m_HisFile;
 
@@ -174,7 +174,7 @@ void CHisPage::OnAutoLogSel()
 	UpdateData(TRUE);
 
 	if ( m_LogFile.IsEmpty() )
-		file.Format(_T("%s\\%s.txt"), ((CRLoginApp *)AfxGetApp())->m_BaseDir, m_pSheet->m_pEntry->m_EntryName);
+		file.Format(_T("%s\\%s.txt"), (LPCTSTR)((CRLoginApp *)AfxGetApp())->m_BaseDir, (LPCTSTR)m_pSheet->m_pEntry->m_EntryName);
 	else
 		file = m_LogFile;
 

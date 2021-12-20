@@ -3112,7 +3112,7 @@ void CGrapWnd::SixelEndof(BOOL bAlpha)
 		delete [] m_pIndexMap;
 	}
 
-	if ( *m_pAlphaMap == 0xFF && memcmp(m_pAlphaMap, m_pAlphaMap + 1, m_MaxX * m_MaxY - 1) == 0 ) {
+	if ( *m_pAlphaMap == 0xFF && memcmp(m_pAlphaMap, m_pAlphaMap + 1, (size_t)(m_MaxX * m_MaxY - 1)) == 0 ) {
 		// すべてのビットマップを描画
 		m_SixelTransColor = (-1);
 		m_bHaveAlpha = FALSE;

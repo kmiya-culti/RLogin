@@ -24,6 +24,7 @@ public:
 public:
 	CProgressCtrl m_KeyGenProg;
 	CListCtrlExt m_List;
+	int m_ExportStyle;
 	CString	m_Type;
 	CString	m_Bits;
 	CString	m_Name;
@@ -52,6 +53,8 @@ public:
 	void OnKeyGenEndof();
 
 	void InitList();
+	void SetBitsList();
+
 
 // オーバーライド
 protected:

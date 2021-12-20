@@ -626,6 +626,8 @@
 #define IDC_IDKEY_TYPE                  2158
 #define IDC_IDKEY_UP                    2159
 #define IDC_IDKEYFILE                   2160
+#define IDC_IDKEY_TYPE2                 2160
+#define IDC_EXPORT_STYLE                2160
 #define IDC_IDKEYSEL                    2161
 #define IDC_INFOCAP                     2162
 #define IDC_INFOLIST                    2163

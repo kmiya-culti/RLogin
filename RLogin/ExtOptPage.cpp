@@ -169,7 +169,7 @@ void CExtOptPage::OnLvnGetInfoTipExtlist(NMHDR *pNMHDR, LRESULT *pResult)
 	if ( param.GetSize() >= 3 && !param[2].IsEmpty() )
 		str = param[2]; 
 	else
-		str.Format(_T("%s/%s"), param[0], param[1]);
+		str.Format(_T("%s/%s"), (LPCTSTR)param[0], (LPCTSTR)param[1]);
 
 	if ( (n = str.GetLength() + sizeof(TCHAR)) > pGetInfoTip->cchTextMax )
 		n = pGetInfoTip->cchTextMax;

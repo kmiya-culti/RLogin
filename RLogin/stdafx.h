@@ -51,6 +51,8 @@
 #define	_MSC_VER_VS13			1800	// Visual Studio 2013
 #define	_MSC_VER_VS15			1900	// Visual Studio 2015
 #define	_MSC_VER_VS17			1910	// Visual Studio 2017
+#define	_MSC_VER_VS19			1920	// Visual Studio 2019
+#define	_MSC_VER_VS22			1930	// Visual Studio 2022
 
 #ifndef _SECURE_ATL
   #define _SECURE_ATL
@@ -141,14 +143,14 @@
 
 #ifdef	_UNICODE
   #define	TstrToMbs(s)		((LPCSTR)CStringA(s))
-  #define	TstrToUni(s)		(s)
+  #define	TstrToUni(s)		((LPCWSTR)(s))
   #define	MbsToTstr(s)		((LPCTSTR)CStringW(s))
-  #define	UniToTstr(s)		(s)
+  #define	UniToTstr(s)		((LPCTSTR)(s))
 #else
-  #define	TstrToMbs(s)		(s)
+  #define	TstrToMbs(s)		((LPCSTR)(s))
   #define	TstrToUni(s)		((LPCWSTR)CStringW(s))
-  #define	MbsToTstr(s)		(s)
-  #define	UniToTstr(s)		((LPCSTR)CStringA(s))
+  #define	MbsToTstr(s)		((LPCTSTR)(s))
+  #define	UniToTstr(s)		((LPCTSTR)CStringA(s))
 #endif
 
 #if defined _UNICODE || defined _WIN64

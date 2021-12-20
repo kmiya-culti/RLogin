@@ -552,7 +552,7 @@ void CServerSelect::EntryNameCheck(CServerEntry &entry)
 		if ( n >= m_pData->GetSize() )
 			break;
 
-		entry.m_EntryName.Format(_T("%s(%d)"), name, num++);
+		entry.m_EntryName.Format(_T("%s(%d)"), (LPCTSTR)name, num++);
 	}
 }
 
@@ -1163,7 +1163,7 @@ void CServerSelect::OnServProto()
 		MessageBox(CStringLoad(IDE_USESERVERENTRY));
 		return;
 	}
-	option.Format(_T("/entry \"%s\" /inuse"), pEntry->m_EntryName);
+	option.Format(_T("/entry \"%s\" /inuse"), (LPCTSTR)pEntry->m_EntryName);
 
 	dlg.m_WinText.LoadString(IDS_PROTODLGTITLE);
 	dlg.m_Title = proto;
@@ -2059,9 +2059,9 @@ void CServerSelect::OnNMRClickServertree(NMHDR *pNMHDR, LRESULT *pResult)
 	case IDM_TREECTRLNEW:
 		if ( pIndex != NULL ) {
 			pIndex->GetPath(path);
-			m_Group.Format(_T("%s\\SubGroup"), path);
+			m_Group.Format(_T("%s\\SubGroup"), (LPCTSTR)path);
 			for ( n = 1 ; m_TabEntry.FindPath(m_Group) != NULL ; n++ )
-				m_Group.Format(_T("%s\\SubGroup%d"), path, n);
+				m_Group.Format(_T("%s\\SubGroup%d"), (LPCTSTR)path, n);
 		} else {
 			m_Group = _T("NewGroup");
 			for ( n = 1 ; m_TabEntry.FindPath(m_Group) != NULL ; n++ )

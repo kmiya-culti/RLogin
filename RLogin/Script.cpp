@@ -2988,7 +2988,7 @@ int CScript::ParseBuff(LPCTSTR buf, int len)
 
 		CScriptDlg *pDlg = new CScriptDlg();
 
-		pDlg->m_FileName.Format(_T("Syntax Error in '%s'"), m_FileName);
+		pDlg->m_FileName.Format(_T("Syntax Error in '%s'"), (LPCTSTR)m_FileName);
 		pDlg->m_pSrc = m_BufPtr;
 		pDlg->m_Max  = m_BufMax;
 		pDlg->m_SPos = m_SavPos;

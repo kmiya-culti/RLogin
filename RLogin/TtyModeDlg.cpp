@@ -300,7 +300,7 @@ void CColEditDlg::OnEditCopyAll()
 
 void CColEditDlg::OnEditPasteAll()
 {
-	int n;
+	int n, c;
 	LPCTSTR p;
 	CString str, tmp;
 	CStringArrayExt line, pam;
@@ -324,6 +324,28 @@ void CColEditDlg::OnEditPasteAll()
 		pam.GetString(line[n]);
 		if ( pam.GetSize() >= 3 )
 			m_ColTab[n] = RGB(pam.GetVal(0), pam.GetVal(1), pam.GetVal(2));
+		else {
+			pam.GetString(line[n], _T(','));
+			if ( pam.GetSize() >= 3 )
+				m_ColTab[n] = RGB(pam.GetVal(0), pam.GetVal(1), pam.GetVal(2));
+			else {
+				p = line[n];
+				if ( *p == _T('#') || *p == _T('$') ) {
+					p++;
+					for ( c = 0 ; ; p++ ) {
+						if ( *p >= _T('0') && *p <= _T('9') )
+							c = c * 16 + (*p - _T('0'));
+						else if ( *p >= _T('A') && *p <= _T('F') )
+							c = c * 16 + (*p - _T('A') + 10);
+						else if ( *p >= _T('a') && *p <= _T('f') )
+							c = c * 16 + (*p - _T('a') + 10);
+						else
+							break;
+					}
+					m_ColTab[n] = RGB((c >> 16) & 0xFF, (c >> 8) & 0xFF, c & 0xFF);
+				}
+			}
+		}
 	}
 
 	InitList();
@@ -465,7 +487,7 @@ void CKnownHostsDlg::OnOK()
 		}
 	}
 
-	msg.Format(CStringLoad(IDS_KNOWNHOSTDELMSG), dels);
+	msg.Format((LPCTSTR)CStringLoad(IDS_KNOWNHOSTDELMSG), dels);
 
 	if ( dels > 0 && MessageBox(msg, _T("Question"), MB_ICONQUESTION | MB_YESNO) == IDYES ) {
 		for ( n = 0 ; n < m_Data.GetSize() ; ) {

@@ -111,12 +111,12 @@ BOOL CDefParamDlg::OnInitDialog()
 			str = _T("SM,RM,DECSET,DECRST");
 
 		pWnd->GetWindowText(text);
-		tmp.Format(_T("%s(%s)"), text, str);
+		tmp.Format(_T("%s(%s)"), (LPCTSTR)text, (LPCTSTR)str);
 		pWnd->SetWindowText(tmp);
 
 		if ( !msg.IsEmpty() && (pMsg = GetDlgItem(IDC_DEFPARAMSG)) != NULL ) {
 			pMsg->GetWindowText(text);
-			tmp.Format(_T("%s\n%s(%s)"), text, CStringLoad(IDS_DEFPARACSIOPTMSG), msg);
+			tmp.Format(_T("%s\n%s(%s)"), (LPCTSTR)text, (LPCTSTR)CStringLoad(IDS_DEFPARACSIOPTMSG), (LPCTSTR)msg);
 			pMsg->SetWindowText(tmp);
 
 			icon = IDI_WARNING;

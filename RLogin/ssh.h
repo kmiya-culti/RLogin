@@ -239,6 +239,7 @@ public:
 #define	SSHFP_KEY_ECDSA				3
 #define	SSHFP_KEY_ED25519			4 
 #define	SSHFP_KEY_XMSS				5
+#define	SSHFP_KEY_ED448				6
 
 #define	SSHFP_HASH_RESERVED			0
 #define	SSHFP_HASH_SHA1				1
@@ -257,13 +258,17 @@ public:
 #define	SSHFP_FORMAT_RANDOMART		3
 #define	SSHFP_FORMAT_SIMPLE			4
 
-#define DNS_RDATACLASS_IN			1
-#define DNS_RDATATYPE_SSHFP			44
+#define DNS_TYPE_SSHFP				44
 
 #define	MAKEKEY_FIXTEXT				0
 #define	MAKEKEY_USERHOST			1
 #define	MAKEKEY_HOSTSID				2
 #define	MAKEKEY_USERSID				3
+
+#define	EXPORT_STYLE_OPENSSL		0
+#define	EXPORT_STYLE_OPENSSH		1
+#define	EXPORT_STYLE_PUTTY			2
+#define	EXPORT_STYLE_OLDRSA			3
 
 //#define	USE_X509
 
@@ -404,11 +409,12 @@ public:
 	int SaveOpenSshKey(FILE *fp, LPCTSTR pass);
 	int LoadSecShKey(FILE *fp, LPCTSTR pass);
 	int LoadPuttyKey(FILE *fp, LPCTSTR pass);
+	int SavePuttyKey(FILE *fp, LPCTSTR pass);
 
 	BOOL IsNotSupport();
 
 	int LoadPrivateKey(LPCTSTR file, LPCTSTR pass);
-	int SavePrivateKey(int type, LPCTSTR file, LPCTSTR pass);
+	int SavePrivateKey(int fmt, LPCTSTR file, LPCTSTR pass);
 	int SavePublicKey(LPCTSTR file);
 
 	int ParseCertPublicKey(LPCTSTR str);
@@ -707,6 +713,8 @@ public:
 #define DHMODE_CURVE25519	12
 #define DHMODE_CURVE448		13
 #define	DHMODE_SNT761X25519	14
+#define DHMODE_RSA1024SHA1	15
+#define DHMODE_RSA2048SHA2	16
 
 #define	AUTH_MODE_NONE		0
 #define	AUTH_MODE_PUBLICKEY	1
@@ -792,6 +800,7 @@ private:
 	BYTE m_SessionId[64];
 	int m_SessionIdLen;
 	BYTE m_SessionKey[64];
+
 	CIdKey m_HostKey;
 	CIdKey *m_pIdKey;
 	int m_IdKeyPos;
@@ -826,6 +835,7 @@ private:
 #define	SSH2_STAT_HAVEAGENT		00200
 #define	SSH2_STAT_SENTKEXINIT	00400
 #define	SSH2_STAT_AUTHGSSAPI	01000
+#define	SSH2_STAT_HAVERSAPUB	02000
 
 	DWORD m_SendPackSeq;
 	DWORD m_RecvPackSeq;
@@ -837,6 +847,7 @@ private:
 	LPBYTE m_VKey[6];
 	CBuffer m_HisPeer;
 	CBuffer m_MyPeer;
+	CBuffer m_SessHash;
 	int m_NeedKeyLen;
 	int m_DhMode;
 	DH *m_SaveDh;
@@ -845,7 +856,11 @@ private:
 	const EC_GROUP *m_EcdhGroup;
 	EVP_PKEY *m_CurveEvpKey;
 	CBuffer m_CurveClientPubkey;
-	BYTE m_SntrupClientKey[sntrup761_SECRETKEYBYTES];
+	CBuffer m_SntrupClientKey;
+	CBuffer m_RsaHostBlob;
+	CBuffer m_RsaTranBlob;
+	CBuffer m_RsaSharedKey;
+	CBuffer m_RsaOaepSecret;
 	int m_AuthStat;
 	int m_AuthMode;
 	CString m_AuthMeta;
@@ -912,12 +927,14 @@ private:
 	void SendDisconnect2(int st, LPCSTR str);
 
 	int SSH2MsgKexInit(CBuffer *bp);
-	void SetDeriveKey(LPBYTE hash, int hashlen, LPBYTE secb, int secblen, const EVP_MD *evp_md);
+	int HostVerifyKey(CBuffer *sign, CBuffer *addb, CBuffer *skey, const EVP_MD *evp_md);
 	int SSH2MsgKexDhReply(CBuffer *bp);
 	int SSH2MsgKexDhGexGroup(CBuffer *bp);
 	int SSH2MsgKexDhGexReply(CBuffer *bp);
 	int SSH2MsgKexEcdhReply(CBuffer *bp);
 	int SSH2MsgKexCurveReply(CBuffer *bp);
+	int SSH2MsgKexRsaPubkey(CBuffer *bp);
+	int SSH2MsgKexRsaDone(CBuffer *bp);
 
 	int SSH2MsgNewKeys(CBuffer *bp);
 	int SSH2MsgExtInfo(CBuffer *bp);
@@ -1026,7 +1043,6 @@ extern DH *dh_new_group17(void);
 extern DH *dh_new_group18(void);
 extern int dh_estimate(int bits);
 extern int key_ec_validate_public(const EC_GROUP *group, const EC_POINT *pub);
-extern int kex_gen_hash(BYTE *digest, LPCSTR client_version_string, LPCSTR server_version_string, LPBYTE ckexinit, int ckexinitlen, LPBYTE skexinit, int skexinitlen, LPBYTE sblob, int sbloblen, LPBYTE addb, int addblen, const EVP_MD *evp_md);
 extern u_char *derive_key(int id, int need, u_char *hash, int hashlen, u_char *ssec, int sseclen, u_char *session_id, int sesslen, const EVP_MD *evp_md);
 
 extern void *mm_zalloc(void *mm, unsigned int ncount, unsigned int size);

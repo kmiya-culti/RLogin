@@ -343,12 +343,12 @@ void CCommandLineInfoEx::GetString(CString &str)
 	str.Empty();
 
 	if ( !m_strFileName.IsEmpty() ) {
-		tmp.Format(_T("\"%s\""), m_strFileName);
+		tmp.Format(_T("\"%s\""), (LPCTSTR)m_strFileName);
 		str += tmp;
 	}
 
 	if ( !m_Name.IsEmpty() ) {
-		tmp.Format(_T(" /entry \"%s\""), m_Name);
+		tmp.Format(_T(" /entry \"%s\""), (LPCTSTR)m_Name);
 		str += tmp;
 	}
 
@@ -952,6 +952,8 @@ BOOL CRLoginApp::InitLocalPass()
 
 	return FALSE;
 }
+
+#if	_MSC_VER < _MSC_VER_VS13
 BOOL CRLoginApp::IsWinVerCheck(int ver, int op)
 {
     OSVERSIONINFOEX osvi;
@@ -967,16 +969,99 @@ BOOL CRLoginApp::IsWinVerCheck(int ver, int op)
 
     return VerifyVersionInfo(&osvi, VER_MAJORVERSION | VER_MINORVERSION, dwlConditionMask);
 }
+#else
+
+#include <VersionHelpers.h>
+
+BOOL CRLoginApp::IsWinVerCheck(int ver, int op)
+{
+	switch(op) {
+	case VER_EQUAL:				// ==
+		switch(ver) {
+		case _WIN32_WINNT_WINXP:
+			return (IsWindowsXPOrGreater() && !IsWindowsVistaOrGreater() ? TRUE : FALSE);
+		case _WIN32_WINNT_VISTA:
+			return (IsWindowsVistaOrGreater() && !IsWindows7OrGreater() ? TRUE : FALSE);
+		case _WIN32_WINNT_WIN7:
+			return (IsWindows7OrGreater() && !IsWindows8OrGreater() ? TRUE : FALSE);
+		case _WIN32_WINNT_WIN8:
+			return (IsWindows8OrGreater() && !IsWindows10OrGreater() ? TRUE : FALSE);
+		case _WIN32_WINNT_WINBLUE:
+			return (IsWindows8Point1OrGreater() && !IsWindows10OrGreater() ? TRUE : FALSE);
+		}
+		break;
+	case VER_GREATER:			// >
+		switch(ver) {
+		case _WIN32_WINNT_WINXP:
+			return (IsWindowsVistaOrGreater() ? TRUE : FALSE);
+		case _WIN32_WINNT_VISTA:
+			return (IsWindows7OrGreater() ? TRUE : FALSE);
+		case _WIN32_WINNT_WIN7:
+			return (IsWindows8OrGreater() ? TRUE : FALSE);
+		case _WIN32_WINNT_WIN8:
+			return (IsWindows8Point1OrGreater() ? TRUE : FALSE);
+		case _WIN32_WINNT_WINBLUE:
+			return (IsWindows10OrGreater() ? TRUE : FALSE);
+		}
+		break;
+	case VER_GREATER_EQUAL:		// >=
+		switch(ver) {
+		case _WIN32_WINNT_WINXP:
+			return (IsWindowsXPOrGreater() ? TRUE : FALSE);
+		case _WIN32_WINNT_VISTA:
+			return (IsWindowsVistaOrGreater() ? TRUE : FALSE);
+		case _WIN32_WINNT_WIN7:
+			return (IsWindows7OrGreater() ? TRUE : FALSE);
+		case _WIN32_WINNT_WIN8:
+			return (IsWindows8OrGreater() ? TRUE : FALSE);
+		case _WIN32_WINNT_WINBLUE:
+			return (IsWindows8Point1OrGreater() ? TRUE : FALSE);
+		}
+		break;
+	case VER_LESS:				// <
+		switch(ver) {
+		case _WIN32_WINNT_WINXP:
+			return (!IsWindowsXPOrGreater() ? TRUE : FALSE);
+		case _WIN32_WINNT_VISTA:
+			return (!IsWindowsVistaOrGreater() ? TRUE : FALSE);
+		case _WIN32_WINNT_WIN7:
+			return (!IsWindows7OrGreater() ? TRUE : FALSE);
+		case _WIN32_WINNT_WIN8:
+			return (!IsWindows8OrGreater() ? TRUE : FALSE);
+		case _WIN32_WINNT_WINBLUE:
+			return (!IsWindows8Point1OrGreater() ? TRUE : FALSE);
+		}
+		break;
+	case VER_LESS_EQUAL:		// <=
+		switch(ver) {
+		case _WIN32_WINNT_WINXP:
+			return (!IsWindowsVistaOrGreater() ? TRUE : FALSE);
+		case _WIN32_WINNT_VISTA:
+			return (!IsWindows7OrGreater() ? TRUE : FALSE);
+		case _WIN32_WINNT_WIN7:
+			return (!IsWindows8OrGreater() ? TRUE : FALSE);
+		case _WIN32_WINNT_WIN8:
+			return (!IsWindows8Point1OrGreater() ? TRUE : FALSE);
+		case _WIN32_WINNT_WINBLUE:
+			return (!IsWindows10OrGreater() ? TRUE : FALSE);
+		}
+		break;
+	}
+
+	return FALSE;
+}
+#endif
+
 BOOL CRLoginApp::GetExtFilePath(LPCTSTR name, LPCTSTR ext, CString &path)
 {
 	if ( name == NULL )
 		name = m_pszAppName;
 
-	path.Format(_T("%s\\%s%s"), m_BaseDir, name, ext);
+	path.Format(_T("%s\\%s%s"), (LPCTSTR)m_BaseDir, name, ext);
 	if ( _taccess_s(path, 06) == 0 )
 		return TRUE;
 
-	path.Format(_T("%s\\%s%s"), m_ExecDir, name, ext);
+	path.Format(_T("%s\\%s%s"), (LPCTSTR)m_ExecDir, name, ext);
 	if ( _taccess_s(path, 06) == 0 )
 		return TRUE;
 
@@ -1288,9 +1373,9 @@ BOOL CRLoginApp::InitInstance()
 	m_EmojiImageDir = GetProfileString(_T("RLoginApp"), _T("EmojiImageDir"), _T(""));
 
 	if ( m_EmojiImageDir.IsEmpty() || !IsDirectory(m_EmojiImageDir) ) {
-		m_EmojiImageDir.Format(_T("%s\\emoji"), m_BaseDir);
+		m_EmojiImageDir.Format(_T("%s\\emoji"), (LPCTSTR)m_BaseDir);
 		if ( !IsDirectory(m_EmojiImageDir) ) {
-			m_EmojiImageDir.Format(_T("%s\\emoji"), m_ExecDir);
+			m_EmojiImageDir.Format(_T("%s\\emoji"), (LPCTSTR)m_ExecDir);
 			if ( !IsDirectory(m_EmojiImageDir) )
 				m_EmojiImageDir.Empty();
 		}
@@ -1440,7 +1525,7 @@ LPCTSTR CRLoginApp::GetTempDir(BOOL bSeqId)
 	if ( !bSeqId )
 		return m_TempDirBase;
 
-	m_TempDirPath.Format(_T("%sTemp%04d\\"), m_TempDirBase, m_TempSeqId++);
+	m_TempDirPath.Format(_T("%sTemp%04d\\"), (LPCTSTR)m_TempDirBase, m_TempSeqId++);
 	CreateDirectory(m_TempDirPath, NULL);
 
 	return m_TempDirPath;
@@ -1664,7 +1749,7 @@ void CRLoginApp::OpenRLogin(class CRLoginDoc *pDoc, CPoint *pPoint)
 		if ( bCmdLine ) {
 			// send cmdline
 
-			param.Format(_T("%s /sx %d /sy %d /inuse"), pDoc->m_CmdLine, pPoint->x, pPoint->y);
+			param.Format(_T("%s /sx %d /sy %d /inuse"), (LPCTSTR)pDoc->m_CmdLine, pPoint->x, pPoint->y);
 
 			copyData.dwData = 0x524c4f31;
 			copyData.cbData = (param.GetLength() + 1) * sizeof(TCHAR);
@@ -1689,7 +1774,7 @@ void CRLoginApp::OpenRLogin(class CRLoginDoc *pDoc, CPoint *pPoint)
 	} else if ( !bOpen ) {
 		// open RLogin
 
-		param.Format(_T("%s /sx %d /sy %d"), pDoc->m_CmdLine, pPoint->x, pPoint->y);
+		param.Format(_T("%s /sx %d /sy %d"), (LPCTSTR)pDoc->m_CmdLine, pPoint->x, pPoint->y);
 		ShellExecute(AfxGetMainWnd()->GetSafeHwnd(), NULL, m_PathName, param, m_BaseDir, SW_NORMAL);
 	}
 }
@@ -1736,7 +1821,7 @@ HWND CRLoginApp::NewProcsMainWnd(CPoint *pPoint, BOOL *pbOpen)
 	if ( (hEvent = CreateEvent(NULL, TRUE, FALSE, tmp)) == NULL )
 		return NULL;
 
-	param.Format(_T("%s /nothing /event %s"), m_pszAppName, tmp);
+	param.Format(_T("%s /nothing /event %s"), m_pszAppName, (LPCTSTR)tmp);
 
 	if ( pPoint != NULL ) {
 		tmp.Format(_T(" /sx %d /sy %d"), pPoint->x, pPoint->y);
@@ -1860,7 +1945,7 @@ BOOL CRLoginApp::OnIsOpenRLogin(COPYDATASTRUCT *pCopyData)
 		return TRUE;
 	}
 
-	str.Format(_T("TEST%s"), m_LocalPass);
+	str.Format(_T("TEST%s"), (LPCTSTR)m_LocalPass);
 	key.Encrypt(tmp, (LPBYTE)(str.GetBuffer()), ((str.GetLength() + 1) * sizeof(TCHAR)), m_PathName, MAKEKEY_USERHOST);
 	_tcsncpy(pData, tmp, 1024);
 
@@ -2355,10 +2440,10 @@ void CRLoginApp::RegisterShellFileEntry()
 
 	AfxGetModuleShortFileName(AfxGetInstanceHandle(), strPathName);
 
-	strTemp.Format(_T("%s,%d"), strPathName, 1);
+	strTemp.Format(_T("%s,%d"), (LPCTSTR)strPathName, 1);
 	RegisterSetStr(HKEY_CURRENT_USER, _T("Software\\Classes\\RLogin.Document\\DefaultIcon"), _T(""), strTemp);
 
-	strTemp.Format(_T("%s /inuse \"%%1\""), strPathName);
+	strTemp.Format(_T("%s /inuse \"%%1\""), (LPCTSTR)strPathName);
 	RegisterSetStr(HKEY_CURRENT_USER, _T("Software\\Classes\\RLogin.Document\\shell\\open\\command"), _T(""), strTemp);
 }
 void CRLoginApp::RegisterShellProtocol(LPCTSTR pProtocol, LPCTSTR pOption)
@@ -2420,11 +2505,11 @@ void CRLoginApp::RegisterShellProtocol(LPCTSTR pProtocol, LPCTSTR pOption)
 		RegisterSetStr(HKEY_CURRENT_USER, strSection, _T("URL Protocol"), _T(""));
 
 		strSection.Format(_T("Software\\Classes\\%s\\DefaultIcon"), pSection);
-		strTemp.Format(_T("%s,%d"), strPathName, 1);
+		strTemp.Format(_T("%s,%d"), (LPCTSTR)strPathName, 1);
 		RegisterSetStr(HKEY_CURRENT_USER, strSection, _T(""), strTemp);
 
 		strSection.Format(_T("Software\\Classes\\%s\\shell\\open\\command"), pSection);
-		strTemp.Format(_T("%s %s \"%%1\""), strPathName, pOption);
+		strTemp.Format(_T("%s %s \"%%1\""), (LPCTSTR)strPathName, pOption);
 		RegisterSetStr(HKEY_CURRENT_USER, strSection, _T(""), strTemp);
 
 		// "RLogin.ssh"‚Æ"ssh"‚É“¯‚¶“à—e‚ðÝ’è
@@ -2561,7 +2646,7 @@ void CRLoginApp::RegisterLoad(HKEY hKey, LPCTSTR pSection, CBuffer &buf)
 	reg.Close();
 }
 
-BOOL CRLoginApp::SavePrivateKey(HKEY hKey, CFile *file)
+BOOL CRLoginApp::SavePrivateProfileKey(HKEY hKey, CFile *file)
 {
 	int n;
 	TCHAR name[1024];
@@ -2585,7 +2670,7 @@ BOOL CRLoginApp::SavePrivateKey(HKEY hKey, CFile *file)
 		mbs.Format("[%s]\r\n", TstrToMbs(name));
 		file->Write((LPCSTR)mbs, mbs.GetLength() * sizeof(CHAR));
 
-		if ( !SavePrivateKey(hSubKey, file) ) {
+		if ( !SavePrivateProfileKey(hSubKey, file) ) {
 			RegCloseKey(hSubKey);
 			return FALSE;
 		}
@@ -2653,7 +2738,7 @@ BOOL CRLoginApp::SavePrivateProfile()
 	HKEY hAppKey;
 	BOOL ret = FALSE;
 
-	filename.Format(_T("%s\\RLogin.ini"), m_BaseDir);
+	filename.Format(_T("%s\\RLogin.ini"), (LPCTSTR)m_BaseDir);
 	CFileDialog dlg(FALSE, _T("ini"), filename, OFN_OVERWRITEPROMPT, _T("Private Profile (*.ini)|*.ini|All Files (*.*)|*.*||"), AfxGetMainWnd());
 
 	if ( DpiAwareDoModal(dlg) != IDOK )
@@ -2667,7 +2752,7 @@ BOOL CRLoginApp::SavePrivateProfile()
 	}
 
 	if ( (hAppKey = GetAppRegistryKey()) != NULL ) {
-		if ( SavePrivateKey(hAppKey, &file) )
+		if ( SavePrivateProfileKey(hAppKey, &file) )
 			ret = TRUE;
 		RegCloseKey(hAppKey);
 	}
@@ -2737,18 +2822,18 @@ BOOL CRLoginApp::SaveRegistryKey(HKEY hKey, CFile *file, LPCTSTR base)
 		switch(type) {
 		case REG_SZ:
 			RegistryEscapeStr((LPCTSTR)pData, size / sizeof(TCHAR), out);
-			str.Format(L"%s=\"%s\"\r\n", key, TstrToUni(out));
+			str.Format(L"%s=\"%s\"\r\n", (LPCWSTR)key, TstrToUni(out));
 			break;
 
 		case REG_DWORD:
-			str.Format(L"%s=dword:%08x\r\n", key, size < sizeof(DWORD) ? 0 : *((DWORD *)pData));
+			str.Format(L"%s=dword:%08x\r\n", (LPCWSTR)key, size < sizeof(DWORD) ? 0 : *((DWORD *)pData));
 			break;
 
 		default:
 			if ( type == REG_BINARY )
-				str.Format(L"%s=hex:", key);
+				str.Format(L"%s=hex:", (LPCWSTR)key);
 			else
-				str.Format(L"%s=hex(%x):", key, type);
+				str.Format(L"%s=hex(%x):", (LPCWSTR)key, type);
 
 			for ( len = 0 ; len < size ; len++ ) {
 				hex.Format(L"%02x", pData[len]);
@@ -2805,7 +2890,7 @@ BOOL CRLoginApp::SaveRegistryFile()
 	BOOL ret = FALSE;
 	static LPCWSTR head = L"Windows Registry Editor Version 5.00\r\n\r\n";
 
-	filename.Format(_T("%s\\RLogin-%s.reg"), m_BaseDir, tm.Format(_T("%y%m%d")));
+	filename.Format(_T("%s\\RLogin-%s.reg"), (LPCTSTR)m_BaseDir, (LPCTSTR)tm.Format(_T("%y%m%d")));
 	CFileDialog dlg(FALSE, _T("reg"), filename, OFN_OVERWRITEPROMPT, _T("Registry file (*.reg)|*.reg|All Files (*.*)|*.*||"), AfxGetMainWnd());
 
 	if ( DpiAwareDoModal(dlg) != IDOK )
@@ -3300,7 +3385,7 @@ void CRLoginApp::OnSaveresfile()
 
 	pDlg->m_ResDataBase = m_ResDataBase;
 	pDlg->m_ResDataBase.InitRessource();
-	pDlg->m_ResFileName.Format(_T("%s\\%s_rc.txt"), m_BaseDir, m_pszAppName);
+	pDlg->m_ResFileName.Format(_T("%s\\%s_rc.txt"), (LPCTSTR)m_BaseDir, m_pszAppName);
 
 	pDlg->Create(IDD_RESTRANSDLG); //, CWnd::GetDesktopWindow());
 	pDlg->ShowWindow(SW_SHOW);
@@ -3368,7 +3453,7 @@ HDC CRLoginApp::GetEmojiImage(class CEmojiImage *pEmoji)
 	CStringD dstr = pEmoji->m_String;
 	LPCDSTR p = dstr;
 
-	base.Format(_T("%s\\%05X\\"), m_EmojiImageDir, *p & 0xFFFF00);
+	base.Format(_T("%s\\%05X\\"), (LPCTSTR)m_EmojiImageDir, *p & 0xFFFF00);
 
 	for ( ; *p != 0 ; p++ ) {
 		fmt.Format(_T("%05X_"), *p);
@@ -3378,7 +3463,7 @@ HDC CRLoginApp::GetEmojiImage(class CEmojiImage *pEmoji)
 
 
 	for ( ; ; ) {
-		path.Format(_T("%s%s.png"), base, name);
+		path.Format(_T("%s%s.png"), (LPCTSTR)base, (LPCTSTR)name);
 
 		if ( _taccess_s(path, 04) == 0 ) {
 			if ( FAILED(pEmoji->m_Image.Load(path)) )
@@ -3401,7 +3486,7 @@ void CRLoginApp::SaveEmojiImage(class CEmojiImage *pEmoji)
 	CStringD dstr = pEmoji->m_String;
 	LPCDSTR p = dstr;
 
-	path.Format(_T("%s\\emoji\\%05X"), m_BaseDir, *p & 0xFFFF00);
+	path.Format(_T("%s\\emoji\\%05X"), (LPCTSTR)m_BaseDir, *p & 0xFFFF00);
 	CreateDirectory(path, NULL);
 	path += _T('\\');
 
@@ -3610,9 +3695,9 @@ void CRLoginApp::EmojiImageInit(LPCTSTR pFontName, LPCTSTR pImageDir)
 	m_EmojiImageDir = pImageDir;
 
 	if ( m_EmojiImageDir.IsEmpty() || !IsDirectory(m_EmojiImageDir) ) {
-		m_EmojiImageDir.Format(_T("%s\\emoji"), m_BaseDir);
+		m_EmojiImageDir.Format(_T("%s\\emoji"), (LPCTSTR)m_BaseDir);
 		if ( !IsDirectory(m_EmojiImageDir) ) {
-			m_EmojiImageDir.Format(_T("%s\\emoji"), m_ExecDir);
+			m_EmojiImageDir.Format(_T("%s\\emoji"), (LPCTSTR)m_ExecDir);
 			if ( !IsDirectory(m_EmojiImageDir) )
 				m_EmojiImageDir.Empty();
 		}
@@ -3629,8 +3714,6 @@ void CRLoginApp::EmojiImageInit(LPCTSTR pFontName, LPCTSTR pImageDir)
 }
 
 #endif
-
-#include "sphelper.h"
 
 #define	SPCAT_DEF_VOICES	SPCAT_VOICES	// L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech\\Voices"
 #define	SPCAT_V10_VOICES	L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech Server\\v10.0\\Voices"

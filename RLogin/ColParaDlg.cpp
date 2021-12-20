@@ -24,9 +24,6 @@ static char THIS_FILE[] = __FILE__;
 IMPLEMENT_DYNCREATE(CColParaDlg, CTreePage)
 
 CColParaDlg::CColParaDlg() : CTreePage(CColParaDlg::IDD)
-, m_EmojiFontName(_T(""))
-, m_EmojiImageDir(_T(""))
-, m_EmojiColorEnable(FALSE)
 {
 	m_ColSet = -1;
 	for ( int n = 0 ; n < 24 ; n++ )
@@ -37,6 +34,9 @@ CColParaDlg::CColParaDlg() : CTreePage(CColParaDlg::IDD)
 	m_FontColName[0] = _T("0");
 	m_FontColName[1] = _T("0");
 	m_GlassStyle = FALSE;
+	m_EmojiFontName = _T("");
+	m_EmojiImageDir = _T("");
+	m_EmojiColorEnable = FALSE;
 }
 CColParaDlg::~CColParaDlg()
 {
@@ -91,7 +91,7 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // CColParaDlg メッセージ ハンドラ
 
-const COLORREF	ColSetTab[11][16] = {
+const COLORREF	ColSetTab[COLSETTABMAX][16] = {
 	{	RGB(  0,   0,   0),	RGB(196,  64,  64),	RGB( 64, 196,  64),	RGB(196, 196,  64),
 		RGB( 64,  64, 196),	RGB(196,  64, 196),	RGB( 64, 196, 196),	RGB(196, 196, 196),
 		RGB(128, 128, 128),	RGB(255,  96,  96),	RGB( 96, 255,  96),	RGB(255, 255,  96),
@@ -140,14 +140,36 @@ const COLORREF	ColSetTab[11][16] = {
 	{	RGB( 12,  12,  12),	RGB(197,  15,  31),	RGB( 19, 161,  14),	RGB(193, 156,	0),
 		RGB(  0,  55, 218),	RGB(136,  23, 152),	RGB( 58, 150, 221),	RGB(204, 204, 204),
 		RGB(118, 118, 118),	RGB(231,  72,  86),	RGB( 22, 198,  12),	RGB(249, 241, 165),
-		RGB( 59, 120, 255),	RGB(180,   0, 158),	RGB( 97, 214, 214),	RGB(242, 242, 242)	},	// Windows
+		RGB( 59, 120, 255),	RGB(180,   0, 158),	RGB( 97, 214, 214),	RGB(242, 242, 242)	},	// Campbell
 
 	{	RGB(  0,   0,   0),	RGB(255,  75,   0),	RGB(  3, 175, 122),	RGB(255, 241,   0),
 		RGB(  0,  90, 255),	RGB(153,   0, 153),	RGB( 77, 196, 255),	RGB(200, 200, 203),
 		RGB(132, 145, 158),	RGB(255, 202, 128),	RGB(119, 217, 168),	RGB(255, 255, 128),
 		RGB(90, 180, 255),	RGB(201, 172, 230),	RGB(191, 228, 255),	RGB(255, 255, 255)	},	// CUD
+
+	{	RGB( 56,  58,  66),	RGB(228,  86,  73),	RGB( 80, 161,  79),	RGB(193, 131,   1),
+		RGB(  1, 132, 188),	RGB(166,  38, 164),	RGB(  9, 151, 179),	RGB(250, 250, 250),
+		RGB( 79,  82,  93),	RGB(223, 108, 117),	RGB(152, 195, 121),	RGB(228, 192, 122),
+		RGB( 97, 175, 239),	RGB(197, 119, 221),	RGB( 86, 181, 193),	RGB(255, 255, 255)	},	// One Half
+
+	{	RGB(  0,   0,   0),	RGB(128,   0,   0),	RGB(  0, 128,   0),	RGB(128, 128,   0),
+		RGB(  0,   0, 128),	RGB(128,   0, 128),	RGB(  0, 128, 128),	RGB(192, 192, 192),
+		RGB(128, 128, 128),	RGB(255,   0,   0),	RGB(  0, 255,   0),	RGB(255, 255,   0),
+		RGB(  0,   0, 255),	RGB(255,   0, 255),	RGB(  0, 255, 255),	RGB(255, 255, 255)	},	// Vintage
 };
 
+void CColParaDlg::ColSetCheck()
+{
+	int n;
+
+	m_ColSet = -1;
+	for ( n = 0 ; n < COLSETTABMAX ; n++ ) {
+		if ( memcmp(m_ColTab, ColSetTab[n], sizeof(COLORREF) * 16) == 0 ) {
+			m_ColSet = n;
+			break;
+		}
+	}
+}
 void CColParaDlg::DoInit()
 {
 	int n;
@@ -155,13 +177,14 @@ void CColParaDlg::DoInit()
 	m_SliderConstrast.SetPos(50);
 	m_SliderBright.SetPos(50);
 	m_SliderHuecol.SetPos(150);
-	m_ColSet = -1;
 
 	SetDarkLight();
 	Invalidate(FALSE);
 
 	for ( n = 0 ; n < 16 ; n++ )
 		m_ColTab[n] = m_pSheet->m_pTextRam->m_ColTab[n];
+
+	ColSetCheck();
 
 	m_FontCol[0] = m_pSheet->m_pTextRam->m_AttNow.std.fcol;
 	m_FontCol[1] = m_pSheet->m_pTextRam->m_AttNow.std.bcol;
@@ -408,14 +431,13 @@ void CColParaDlg::OnLButtonDblClk(UINT nFlags, CPoint point)
 			CColorDialog cdl((n < 16 ? m_ColTab[n] : (m_FontCol[n - 16] < 16 ? m_ColTab[m_FontCol[n - 16]] : m_pSheet->m_pTextRam->m_ColTab[m_FontCol[n - 16]])), CC_ANYCOLOR | CC_FULLOPEN | CC_RGBINIT, this);
 			if ( DpiAwareDoModal(cdl) != IDOK )
 				break;
-			if ( n < 16 ) {
+			if ( n < 16 )
 				m_ColTab[n] = cdl.GetColor();
-				m_ColSet = (-1);
-			} else if ( m_FontCol[n - 16] < 16 ) {
+			else if ( m_FontCol[n - 16] < 16 )
 				m_ColTab[m_FontCol[n - 16]] = cdl.GetColor();
-				m_ColSet = (-1);
-			} else
+			else
 				m_pSheet->m_pTextRam->m_ColTab[m_FontCol[n - 16]] = cdl.GetColor();
+			ColSetCheck();
 			Invalidate(FALSE);
 			UpdateData(FALSE);
 			SetModified(TRUE);
@@ -591,6 +613,8 @@ void CColParaDlg::OnBnClickedColedit()
 
 	memcpy(m_ColTab, dlg.m_ColTab, sizeof(m_ColTab));
 
+	ColSetCheck();
+	UpdateData(FALSE);
 	Invalidate(FALSE);
 	SetModified(TRUE);
 	m_pSheet->m_ModFlag |= UMOD_COLTAB;

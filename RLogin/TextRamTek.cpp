@@ -111,12 +111,12 @@ void CTextRam::TekInit(int ver)
 			return;
 		}
 		m_Tek_Ver = ver;
-		tmp.Format(_T("Tek%dxx - %s"), m_Tek_Ver / 100, m_pDocument->m_ServerEntry.m_EntryName);
+		tmp.Format(_T("Tek%dxx - %s"), m_Tek_Ver / 100, (LPCTSTR)m_pDocument->m_ServerEntry.m_EntryName);
 		m_pTekWnd->SetWindowText(tmp);
 	} else {
 		if ( ver != 0 )
 			m_Tek_Ver = ver;
-		tmp.Format(_T("Tek%dxx - %s"), m_Tek_Ver / 100, m_pDocument->m_ServerEntry.m_EntryName);
+		tmp.Format(_T("Tek%dxx - %s"), m_Tek_Ver / 100, (LPCTSTR)m_pDocument->m_ServerEntry.m_EntryName);
 		m_pTekWnd = new CTekWnd(this, ::AfxGetMainWnd());
 		m_pTekWnd->Create(NULL, tmp);
 

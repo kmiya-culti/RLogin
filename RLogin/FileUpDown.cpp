@@ -415,7 +415,7 @@ int CFileUpDown::GetEncode(GETPROCLIST *pProc)
 
 		if ( !m_EncStart ) {
 			m_EncStart = TRUE;
-			m_EncodeBuffer.Format("begin 644 %s\n", m_FileName);
+			m_EncodeBuffer.Format("begin 644 %s\n", (LPCSTR)m_FileName);
 		}
 
 		if ( len > 0 ) {

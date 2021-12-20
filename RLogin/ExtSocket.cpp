@@ -911,10 +911,10 @@ void CExtSocket::GetStatus(CString &str)
 
 	if ( m_Fd != (-1) ) {
 		GetSockName(m_Fd, name, &port);
-		tmp.Format(_T("Connect %s#%d"), name, port);
+		tmp.Format(_T("Connect %s#%d"), (LPCTSTR)name, port);
 		str += tmp;
 		GetPeerName(m_Fd, name, &port);
-		tmp.Format(_T(" - %s#%d\r\n"), name, port);
+		tmp.Format(_T(" - %s#%d\r\n"), (LPCTSTR)name, port);
 		str += tmp;
 	}
 
@@ -1003,7 +1003,7 @@ BOOL CExtSocket::ProxyFunc()
 					   _T("Host: %s\r\n")\
 					   _T("Connection: keep-alive\r\n")\
 					   _T("\r\n"),
-					   m_ProxyHost, m_ProxyPort, m_ProxyHost);
+					   (LPCTSTR)m_ProxyHost, m_ProxyPort, (LPCTSTR)m_ProxyHost);
 			mbs = tmp; CExtSocket::Send((void *)(LPCSTR)mbs, mbs.GetLength(), 0);
 			DEBUGLOG("ProxyFunc PRST_HTTP_START %s", mbs);
 			m_ProxyStatus = PRST_HTTP_READLINE;
@@ -1091,13 +1091,13 @@ BOOL CExtSocket::ProxyFunc()
 			m_ProxyAuth.RemoveAll();
 			break;
 		case PRST_HTTP_BASIC:
-			tmp.Format(_T("%s:%s"), m_ProxyUser, m_ProxyPass);
+			tmp.Format(_T("%s:%s"), (LPCTSTR)m_ProxyUser, (LPCTSTR)m_ProxyPass);
 			mbs = tmp; buf.Base64Encode((LPBYTE)(LPCSTR)mbs, mbs.GetLength());
 			tmp.Format(_T("CONNECT %s:%d HTTP/1.1\r\n")\
 					   _T("Host: %s\r\n")\
 					   _T("%sAuthorization: Basic %s\r\n")\
 					   _T("\r\n"),
-					   m_ProxyHost, m_ProxyPort, m_ProxyHost,
+					   (LPCTSTR)m_ProxyHost, m_ProxyPort, (LPCTSTR)m_ProxyHost,
 					   (m_ProxyCode == 407 ? _T("Proxy-") : _T("")),
 					   (LPCTSTR)buf);
 			mbs = tmp; CExtSocket::Send((void *)(LPCSTR)mbs, mbs.GetLength(), 0);
@@ -1118,7 +1118,7 @@ BOOL CExtSocket::ProxyFunc()
 				return TRUE;
 			}
 
-			tmp.Format(_T("%s:%d"), m_ProxyHost, m_ProxyPort);
+			tmp.Format(_T("%s:%d"), (LPCTSTR)m_ProxyHost, m_ProxyPort);
 			m_ProxyAuth[_T("uri")] = tmp;
 			m_ProxyAuth[_T("qop")] = _T("auth");
 			tmp.Format(_T("%08d"), 1);
@@ -1127,7 +1127,7 @@ BOOL CExtSocket::ProxyFunc()
 			tmp.Format(_T("%04x%04x%04x%04x"), rand(), rand(), rand(), rand());
 			m_ProxyAuth[_T("cnonce")] = tmp;
 
-			tmp.Format(_T("%s:%s:%s"), m_ProxyUser, (LPCTSTR)m_ProxyAuth[_T("realm")], m_ProxyPass);
+			tmp.Format(_T("%s:%s:%s"), (LPCTSTR)m_ProxyUser, (LPCTSTR)m_ProxyAuth[_T("realm")], (LPCTSTR)m_ProxyPass);
 			A1.md5(tmp);
 
 			tmp.Format(_T("%s:%s"), _T("CONNECT"), (LPCTSTR)m_ProxyAuth[_T("uri")]);
@@ -1146,9 +1146,9 @@ BOOL CExtSocket::ProxyFunc()
 					   _T(" nc=%s, cnonce=\"%s\"")\
 					   _T("\r\n")\
 					   _T("\r\n"),
-					   m_ProxyHost, m_ProxyPort, m_ProxyHost,
+					   (LPCTSTR)m_ProxyHost, m_ProxyPort, (LPCTSTR)m_ProxyHost,
 					   (m_ProxyCode == 407 ? _T("Proxy-") : _T("")),
-					   m_ProxyUser, (LPCTSTR)m_ProxyAuth[_T("realm")], (LPCTSTR)m_ProxyAuth[_T("nonce")],
+					   (LPCTSTR)m_ProxyUser, (LPCTSTR)m_ProxyAuth[_T("realm")], (LPCTSTR)m_ProxyAuth[_T("nonce")],
 					   (LPCTSTR)m_ProxyAuth[_T("algorithm")], (LPCTSTR)buf,
 					   (LPCTSTR)m_ProxyAuth[_T("qop")], (LPCTSTR)m_ProxyAuth[_T("uri")],
 					   (LPCTSTR)m_ProxyAuth[_T("nc")], (LPCTSTR)m_ProxyAuth[_T("cnonce")]);
@@ -2177,7 +2177,7 @@ int CExtSocket::SSLConnect()
 
 				if ( (pkey = X509_get_pubkey(pX509)) != NULL && key.SetEvpPkey(pkey) ) {
 					key.FingerPrint(finger, SSHFP_DIGEST_SHA256, SSHFP_FORMAT_SIMPLE);
-					tmp.Format(_T("PublicKey: %s %dbits %s\r\n"), key.GetName(), key.GetSize(), finger);
+					tmp.Format(_T("PublicKey: %s %dbits %s\r\n"), key.GetName(), key.GetSize(), (LPCTSTR)finger);
 					m_SSL_Msg += tmp;
 				}
 			}

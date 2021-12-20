@@ -195,7 +195,7 @@ public:
 	void RegisterSave(HKEY hKey, LPCTSTR pSection, CBuffer &buf);
 	void RegisterLoad(HKEY hKey, LPCTSTR pSection, CBuffer &buf);
 
-	BOOL SavePrivateKey(HKEY hKey, CFile *file);
+	BOOL SavePrivateProfileKey(HKEY hKey, CFile *file);
 	BOOL SavePrivateProfile();
 
 	void RegistryEscapeStr(LPCTSTR str, int len, CString &out);
@@ -303,7 +303,9 @@ extern BOOL (__stdcall *ExEnableNonClientDpiScaling)(HWND hwnd);
 #define DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE    ((DPI_AWARENESS_CONTEXT)-3)
 #define DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 ((DPI_AWARENESS_CONTEXT)-4)
 #define DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED    ((DPI_AWARENESS_CONTEXT)-5)
-DECLARE_HANDLE(DPI_AWARENESS_CONTEXT);
+#if	_MSC_VER <= _MSC_VER_VS10
+  DECLARE_HANDLE(DPI_AWARENESS_CONTEXT);
+#endif
 extern BOOL (__stdcall *ExIsValidDpiAwarenessContext)(DPI_AWARENESS_CONTEXT dpiContext);
 extern DPI_AWARENESS_CONTEXT (__stdcall *ExSetThreadDpiAwarenessContext)(DPI_AWARENESS_CONTEXT dpiContext);
 extern UINT GlobalSystemDpi;
@@ -312,7 +314,7 @@ extern UINT GlobalSystemDpi;
 extern UINT (__stdcall *ExGetDpiForWindow)(HWND hwnd);
 typedef enum _MONITOR_DPI_TYPE { MDT_EFFECTIVE_DPI = 0, MDT_ANGULAR_DPI = 1, MDT_RAW_DPI = 2, MDT_DEFAULT = MDT_EFFECTIVE_DPI } MONITOR_DPI_TYPE;
 extern HRESULT (__stdcall *ExGetDpiForMonitor)(HMONITOR hmonitor, MONITOR_DPI_TYPE dpiType, UINT *dpiX, UINT *dpiY);
-typedef enum PROCESS_DPI_AWARENESS { PROCESS_DPI_UNAWARE, PROCESS_SYSTEM_DPI_AWARE, PROCESS_PER_MONITOR_DPI_AWARE };
+typedef enum _PROCESS_DPI_AWARENESS { PROCESS_DPI_UNAWARE, PROCESS_SYSTEM_DPI_AWARE, PROCESS_PER_MONITOR_DPI_AWARE } PROCESS_DPI_AWARENESS;
 extern HRESULT (__stdcall *ExSetProcessDpiAwareness)(PROCESS_DPI_AWARENESS value);
 
 extern int ThreadMessageBox(LPCTSTR msg, ...);

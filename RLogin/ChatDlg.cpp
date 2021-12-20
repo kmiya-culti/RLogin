@@ -93,7 +93,7 @@ void CChatDlg::OnBnClickedNewnode()
 		return;
 	}
 
-	tmp.Format(_T("%s/%s"), m_RecvStr, m_SendStr);
+	tmp.Format(_T("%s/%s"), (LPCTSTR)m_RecvStr, (LPCTSTR)m_SendStr);
 
 	if ( (hti = m_NodeTree.InsertItem(tmp, hti)) == NULL )
 		delete np;
@@ -123,7 +123,7 @@ void CChatDlg::OnBnClickedNextnode()
 		return;
 	}
 
-	tmp.Format(_T("%s/%s"), m_RecvStr, m_SendStr);
+	tmp.Format(_T("%s/%s"), (LPCTSTR)m_RecvStr, (LPCTSTR)m_SendStr);
 
 	if ( (hti = m_NodeTree.InsertItem(tmp, hti)) == NULL )
 		delete np;
@@ -150,7 +150,7 @@ void CChatDlg::OnBnClickedUpdatenode()
 	if ( !np->m_RecvStr.IsEmpty() && !np->m_Reg.Compile(np->m_RecvStr) )
 		AfxMessageBox(np->m_Reg.m_ErrMsg);
 
-	tmp.Format(_T("%s/%s"), m_RecvStr, m_SendStr);
+	tmp.Format(_T("%s/%s"), (LPCTSTR)m_RecvStr, (LPCTSTR)m_SendStr);
 	m_NodeTree.SetItemText(hti, tmp);
 }
 

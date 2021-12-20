@@ -20,7 +20,8 @@
 int	BinaryFind(void *ptr, void *tab, int size, int max, int (* func)(const void *, const void *), int *base);
 BOOL IsZeroMemory(void *ptr, int len);
 
-#define	NIMALLOC		256
+#define	CBUFINITSIZE	32
+#define	CBUFNIMALLOC	256
 #define	CBUFGETMAX		(512 * 1024)
 
 #define	KANJI_UNKNOWN	0

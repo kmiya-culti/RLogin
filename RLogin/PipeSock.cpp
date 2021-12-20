@@ -531,7 +531,7 @@ void CPipeSock::GetPathMaps(CStringMaps &maps)
 
 	maps.RemoveAll();
 	for ( i = 0 ; i < (int)dirs.GetSize() ; i++ ) {
-		tmp.Format(_T("%s\\*.*"), dirs[i]);
+		tmp.Format(_T("%s\\*.*"), (LPCTSTR)dirs[i]);
 		bWork = finder.FindFile(tmp);
 		while ( bWork ) {
 			bWork = finder.FindNextFile();

@@ -54,6 +54,12 @@ Cssh::Cssh(class CRLoginDoc *pDoc):CExtSocket(pDoc)
 	m_KeepAliveRecvGlobalCount = m_KeepAliveRecvChannelCount = 0;
 	m_CurveEvpKey = NULL;
 	m_CurveClientPubkey.m_bZero = TRUE;
+	m_RsaHostBlob.m_bZero = TRUE;
+	m_RsaTranBlob.m_bZero = TRUE;
+	m_RsaSharedKey.m_bZero = TRUE;
+	m_RsaOaepSecret.m_bZero = TRUE;
+	m_SessHash.m_bZero = TRUE;
+	m_SntrupClientKey.m_bZero = TRUE;
 
 	for ( int n = 0 ; n < 6 ; n++ )
 		m_VKey[n] = NULL;
@@ -118,6 +124,7 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 		m_Permit.RemoveAll();
 		m_MyPeer.Clear();
 		m_HisPeer.Clear();
+		m_SessHash.Clear();
 		m_Incom.Clear();
 		m_InPackBuf.Clear();
 		m_HostKey.Close();
@@ -345,11 +352,11 @@ void Cssh::OnReceiveCallBack(void* lpBuf, int nBufLen, int nFlags)
 						if ( !m_pDocument->m_TextRam.IsOptEnable(TO_SSH1MODE) &&
 							   (m_ServerVerStr.Mid(0, 5).Compare(_T("SSH-2")) == 0 ||
 								m_ServerVerStr.Mid(0, 8).Compare(_T("SSH-1.99")) == 0) ) {
-							m_ClientVerStr.Format(_T("SSH-2.0-%s-%s"), product, version);
+							m_ClientVerStr.Format(_T("SSH-2.0-%s-%s"), (LPCTSTR)product, (LPCTSTR)version);
 							m_InPackStat = 3;
 							m_SSHVer = 2;
 						} else {
-							m_ClientVerStr.Format(_T("SSH-1.5-%s-%s"), product, version);
+							m_ClientVerStr.Format(_T("SSH-1.5-%s-%s"), (LPCTSTR)product, (LPCTSTR)version);
 							m_InPackStat = 1;
 							m_SSHVer = 1;
 						}
@@ -728,29 +735,29 @@ void Cssh::GetStatus(CString &str)
 	tmp.Format(_T("SSH Server: %d\r\n"), m_SSHVer);
 	str += tmp;
 
-	tmp.Format(_T("Version: %s\r\n"), m_ServerVerStr);
+	tmp.Format(_T("Version: %s\r\n"), (LPCTSTR)m_ServerVerStr);
 	str += tmp;
-	tmp.Format(_T("Kexs: %s\r\n"), m_SProp[PROP_KEX_ALGS]);
+	tmp.Format(_T("Kexs: %s\r\n"), (LPCTSTR)m_SProp[PROP_KEX_ALGS]);
 	str += tmp;
-	tmp.Format(_T("Keys: %s\r\n"), m_SProp[PROP_HOST_KEY_ALGS]);
+	tmp.Format(_T("Keys: %s\r\n"), (LPCTSTR)m_SProp[PROP_HOST_KEY_ALGS]);
 	str += tmp;
-	tmp.Format(_T("Auth: %s\r\n"), m_AuthMeta);
+	tmp.Format(_T("Auth: %s\r\n"), (LPCTSTR)m_AuthMeta);
 	str += tmp;
-	tmp.Format(_T("Cipher CtoS: %s\r\n"), m_SProp[PROP_ENC_ALGS_CTOS]);
+	tmp.Format(_T("Cipher CtoS: %s\r\n"), (LPCTSTR)m_SProp[PROP_ENC_ALGS_CTOS]);
 	str += tmp;
-	tmp.Format(_T("Cipher StoC: %s\r\n"), m_SProp[PROP_ENC_ALGS_STOC]);
+	tmp.Format(_T("Cipher StoC: %s\r\n"), (LPCTSTR)m_SProp[PROP_ENC_ALGS_STOC]);
 	str += tmp;
-	tmp.Format(_T("Mac CtoS: %s\r\n"), m_SProp[PROP_MAC_ALGS_CTOS]);
+	tmp.Format(_T("Mac CtoS: %s\r\n"), (LPCTSTR)m_SProp[PROP_MAC_ALGS_CTOS]);
 	str += tmp;
-	tmp.Format(_T("Mac StoC: %s\r\n"), m_SProp[PROP_MAC_ALGS_STOC]);
+	tmp.Format(_T("Mac StoC: %s\r\n"), (LPCTSTR)m_SProp[PROP_MAC_ALGS_STOC]);
 	str += tmp;
-	tmp.Format(_T("Compess CtoS: %s\r\n"), m_SProp[PROP_COMP_ALGS_CTOS]);
+	tmp.Format(_T("Compess CtoS: %s\r\n"), (LPCTSTR)m_SProp[PROP_COMP_ALGS_CTOS]);
 	str += tmp;
-	tmp.Format(_T("Compess StoC: %s\r\n"), m_SProp[PROP_COMP_ALGS_STOC]);
+	tmp.Format(_T("Compess StoC: %s\r\n"), (LPCTSTR)m_SProp[PROP_COMP_ALGS_STOC]);
 	str += tmp;
-	tmp.Format(_T("Language CtoS: %s\r\n"), m_SProp[PROP_LANG_CTOS]);
+	tmp.Format(_T("Language CtoS: %s\r\n"), (LPCTSTR)m_SProp[PROP_LANG_CTOS]);
 	str += tmp;
-	tmp.Format(_T("Language StoC: %s\r\n"), m_SProp[PROP_LANG_STOC]);
+	tmp.Format(_T("Language StoC: %s\r\n"), (LPCTSTR)m_SProp[PROP_LANG_STOC]);
 	str += tmp;
 
 	if ( m_ExtInfo.GetSize() > 0 ) {
@@ -758,14 +765,14 @@ void Cssh::GetStatus(CString &str)
 		for ( int n = 0 ; n < m_ExtInfo.GetSize() ; n++ ) {
 			if ( n > 0 )
 				str += _T(",");
-			tmp.Format(_T("%s=\"%s\""), m_ExtInfo[n].m_nIndex, m_ExtInfo[n].m_String);
+			tmp.Format(_T("%s=\"%s\""), (LPCTSTR)m_ExtInfo[n].m_nIndex, (LPCTSTR)m_ExtInfo[n].m_String);
 			str += tmp;
 		}
 		str += _T("\r\n");
 	}
 
 	str += _T("\r\n");
-	tmp.Format(_T("Kexs: %s\r\n"), m_VProp[PROP_KEX_ALGS]);
+	tmp.Format(_T("Kexs: %s\r\n"), (LPCTSTR)m_VProp[PROP_KEX_ALGS]);
 	str += tmp;
 
 	if ( m_EncCip.IsAEAD() || m_EncCip.IsPOLY() )
@@ -832,7 +839,7 @@ void Cssh::GetStatus(CString &str)
 		str += tmp;
 
 		for ( int n = 0 ; n < m_Permit.GetSize() ; n++ ) {
-			tmp.Format(_T("Type=%d Listened=%s:%d Connect=%s:%d\r\n"), m_Permit[n].m_Type, m_Permit[n].m_rHost, m_Permit[n].m_rPort, m_Permit[n].m_lHost, m_Permit[n].m_lPort);
+			tmp.Format(_T("Type=%d Listened=%s:%d Connect=%s:%d\r\n"), m_Permit[n].m_Type, (LPCTSTR)m_Permit[n].m_rHost, m_Permit[n].m_rPort, (LPCTSTR)m_Permit[n].m_lHost, m_Permit[n].m_lPort);
 			str += tmp;
 		}
 	}
@@ -1736,11 +1743,11 @@ void Cssh::PortForward()
 			((CChannel *)m_pChan[n])->m_Status = CHAN_LISTEN;
 			((CChannel *)m_pChan[n])->m_TypeName = _T("tcpip-listen");
 			if ( !((CChannel *)m_pChan[n])->CreateListen(tmp[0], GetPortNum(tmp[1]), tmp[2], GetPortNum(tmp[3])) ) {
-				str.Format(_T("Port Forward Error %s:%s->%s:%s"), tmp[0], tmp[1], tmp[2], tmp[3]);
+				str.Format(_T("Port Forward Error %s:%s->%s:%s"), (LPCTSTR)tmp[0], (LPCTSTR)tmp[1], (LPCTSTR)tmp[2], (LPCTSTR)tmp[3]);
 				AfxMessageBox(str);
 				ChannelClose(n);
 			} else {
-				LogIt(_T("Local Listen %s:%s"), tmp[0], tmp[1]);
+				LogIt(_T("Local Listen %s:%s"), (LPCTSTR)tmp[0], (LPCTSTR)tmp[1]);
 				a++;
 			}
 			break;
@@ -1751,11 +1758,11 @@ void Cssh::PortForward()
 			((CChannel *)m_pChan[n])->m_Status = CHAN_LISTEN | CHAN_PROXY_SOCKS;
 			((CChannel *)m_pChan[n])->m_TypeName = _T("socks-listen");
 			if ( !((CChannel *)m_pChan[n])->CreateListen(tmp[0], GetPortNum(tmp[1]), tmp[2], GetPortNum(tmp[3])) ) {
-				str.Format(_T("Socks Listen Error %s:%s->%s:%s"), tmp[0], tmp[1], tmp[2], tmp[3]);
+				str.Format(_T("Socks Listen Error %s:%s->%s:%s"), (LPCTSTR)tmp[0], (LPCTSTR)tmp[1], (LPCTSTR)tmp[2], (LPCTSTR)tmp[3]);
 				AfxMessageBox(str);
 				ChannelClose(n);
 			} else {
-				LogIt(_T("Local Socks %s:%s"), tmp[0], tmp[1]);
+				LogIt(_T("Local Socks %s:%s"), (LPCTSTR)tmp[0], (LPCTSTR)tmp[1]);
 				a++;
 			}
 			break;
@@ -1770,7 +1777,7 @@ void Cssh::PortForward()
 			m_Permit[n].m_rPort = GetPortNum(tmp[1]);
 			m_Permit[n].m_Type  = tmp.GetVal(4);
 			SendMsgGlobalRequest(n, "tcpip-forward", tmp[0], GetPortNum(tmp[1]));
-			LogIt(_T("Remote Listen %s:%s"), tmp[0], tmp[1]);
+			LogIt(_T("Remote Listen %s:%s"), (LPCTSTR)tmp[0], (LPCTSTR)tmp[1]);
 			m_bPfdConnect++;
 			a++;
 			break;
@@ -1964,7 +1971,8 @@ void Cssh::SendMsgKexCurveInit()
 	case DHMODE_SNT761X25519:
 		type = EVP_PKEY_X25519;
 		m_CurveClientPubkey.PutSpc(sntrup761_PUBLICKEYBYTES);
-		sntrup761_keypair(m_CurveClientPubkey.GetPtr(), m_SntrupClientKey);
+		m_SntrupClientKey.Clear();
+		sntrup761_keypair(m_CurveClientPubkey.GetPtr(), m_SntrupClientKey.PutSpc(sntrup761_PUBLICKEYBYTES));
 		break;
 	}
 
@@ -2113,7 +2121,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 	CPassDlg dlg;
 	CStringA meta;
 
-	tmp.PutBuf(m_SessionId, m_SessionIdLen);
+	tmp.PutBuf(m_SessHash.GetPtr(), m_SessHash.GetSize());
 	skip = tmp.GetSize();
 	tmp.Put8Bit(SSH2_MSG_USERAUTH_REQUEST);
 	tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_UserName));
@@ -2293,7 +2301,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 				continue;
 
 			m_SSPI_phContext = NULL;
-			m_SSPI_TargetName.Format(_T("host/%s"), m_HostName);
+			m_SSPI_TargetName.Format(_T("host/%s"), (LPCTSTR)m_HostName);
 			m_SSH2Status |= SSH2_STAT_AUTHGSSAPI;
 
 			tmp.PutStr("gssapi-with-mic");
@@ -2731,6 +2739,8 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 		{ DHMODE_CURVE25519,	_T("curve25519-sha256")							},	// RFC8731	MUST
 		{ DHMODE_CURVE448,		_T("curve448-sha512")							},	// RFC8731	MAY
 		{ DHMODE_SNT761X25519,	_T("sntrup761x25519-sha512@openssh.com")		},
+		{ DHMODE_RSA1024SHA1,	_T("rsa1024-sha1")								},	// RFC4432	MUST NOT
+		{ DHMODE_RSA2048SHA2,	_T("rsa2048-sha256")							},	// RFC4432	MAY
 		{ 0,					NULL											},
 	};
 
@@ -2811,36 +2821,90 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 	m_RecvPackLen = 0;
 	return FALSE;
 }
-void Cssh::SetDeriveKey(LPBYTE hash, int hashlen, LPBYTE secb, int secblen, const EVP_MD *evp_md)
+int Cssh::HostVerifyKey(CBuffer *sign, CBuffer *addb, CBuffer *skey, const EVP_MD *evp_md)
 {
 	int n;
+	int have, mdsz;
+	char c;
+	CBuffer b;
+	EVP_MD_CTX *md_ctx;
+	unsigned int hashlen;
+	BYTE hash[EVP_MAX_MD_SIZE];
 
-	if ( m_SessionIdLen == 0 ) {
-		ASSERT(hashlen <= 64);
-		m_SessionIdLen = hashlen;
-		memcpy(m_SessionId, hash, hashlen);
-	}
+	b.PutStr(TstrToMbs(m_ClientVerStr));
+	b.PutStr(TstrToMbs(m_ServerVerStr));
+
+	/* kexinit messages: fake header: len+SSH2_MSG_KEXINIT */
+	b.Put32Bit(m_MyPeer.GetSize()+1);
+	b.Put8Bit(SSH2_MSG_KEXINIT);
+	b.Apend((LPBYTE)m_MyPeer.GetPtr(), m_MyPeer.GetSize());
+
+	b.Put32Bit(m_HisPeer.GetSize()+1);
+	b.Put8Bit(SSH2_MSG_KEXINIT);
+	b.Apend((LPBYTE)m_HisPeer.GetPtr(), m_HisPeer.GetSize());
+
+	b.Apend(addb->GetPtr(), addb->GetSize());
+	b.Apend(skey->GetPtr(), skey->GetSize());
+
+	md_ctx = EVP_MD_CTX_new();
+	EVP_DigestInit(md_ctx, evp_md);
+	EVP_DigestUpdate(md_ctx, b.GetPtr(), b.GetSize());
+	EVP_DigestFinal(md_ctx, hash, &hashlen);
+	EVP_MD_CTX_free(md_ctx);
+
+	if ( !m_HostKey.Verify(sign, hash, hashlen) )
+		return TRUE;
+
+	if ( m_SessHash.GetSize() == 0 )
+		m_SessHash.Apend(hash, hashlen);
+
+	md_ctx = EVP_MD_CTX_new();
+	mdsz = EVP_MD_size(evp_md);
 
 	for ( n = 0 ; n < 6 ; n++ ) {
 		if ( m_VKey[n] != NULL )
 			free(m_VKey[n]);
-		m_VKey[n] = derive_key('A' + n, m_NeedKeyLen, hash, hashlen, secb, secblen, m_SessionId, m_SessionIdLen, evp_md);
+
+		m_VKey[n] = (u_char *)malloc(m_NeedKeyLen + (mdsz - (m_NeedKeyLen % mdsz)));
+		c = (char)('A' + n);
+
+		/* K1 = HASH(K || H || "A" || session_id) */
+		EVP_DigestInit(md_ctx, evp_md);
+		EVP_DigestUpdate(md_ctx, skey->GetPtr(), skey->GetSize());
+		EVP_DigestUpdate(md_ctx, hash, hashlen);
+		EVP_DigestUpdate(md_ctx, &c, 1);
+		EVP_DigestUpdate(md_ctx, m_SessHash.GetPtr(), m_SessHash.GetSize());
+		EVP_DigestFinal(md_ctx, m_VKey[n], NULL);
+
+		/*
+		 * expand key:
+		 * Kn = HASH(K || H || K1 || K2 || ... || Kn-1)
+		 * Key = K1 || K2 || ... || Kn
+		 */
+		for ( have = mdsz ; m_NeedKeyLen > have ; have += mdsz ) {
+			EVP_DigestInit(md_ctx, evp_md);
+			EVP_DigestUpdate(md_ctx, skey->GetPtr(), skey->GetSize());
+			EVP_DigestUpdate(md_ctx, hash, hashlen);
+			EVP_DigestUpdate(md_ctx, m_VKey[n], have);
+			EVP_DigestFinal(md_ctx, m_VKey[n] + have, NULL);
+		}
 	}
+
+	EVP_MD_CTX_free(md_ctx);
+
+	return FALSE;
 }
 int Cssh::SSH2MsgKexDhReply(CBuffer *bp)
 {
 	int n;
 	int ret = TRUE;
-	int secofs;
-	CBuffer tmp(-1), blob(-1), sig(-1), addb(-1);
+	CBuffer tmp(-1), sign(-1), addb(-1), skey(-1);
 	BIGNUM *spub = NULL, *ssec = NULL;
 	LPBYTE p;
 	const EVP_MD *evp_md;
-	int hashlen;
-	BYTE hash[EVP_MAX_MD_SIZE];
 
 	bp->GetBuf(&tmp);
-	blob = tmp;
+	addb.PutBuf(tmp.GetPtr(), tmp.GetSize());
 
 	if ( !m_HostKey.GetBlob(&tmp) )
 		return TRUE;
@@ -2852,7 +2916,7 @@ int Cssh::SSH2MsgKexDhReply(CBuffer *bp)
 		goto ENDRET;
 
 	bp->GetBIGNUM2(spub);
-	bp->GetBuf(&sig);
+	bp->GetBuf(&sign);
 
 	if ( !dh_pub_is_valid(m_SaveDh, spub) )
 		goto ENDRET;
@@ -2885,21 +2949,10 @@ int Cssh::SSH2MsgKexDhReply(CBuffer *bp)
 	addb.PutBIGNUM2(pub_key);
 	addb.PutBIGNUM2(spub);
 
-	secofs = addb.GetSize();
-	addb.PutBIGNUM2(ssec);
+	skey.PutBIGNUM2(ssec);
 
-	hashlen = kex_gen_hash(hash,
-		TstrToMbs(m_ClientVerStr), TstrToMbs(m_ServerVerStr),
-		m_MyPeer.GetPtr(), m_MyPeer.GetSize(),
-		m_HisPeer.GetPtr(), m_HisPeer.GetSize(),
-		blob.GetPtr(), blob.GetSize(),
-		addb.GetPtr(), addb.GetSize(),
-		evp_md);
-
-	if ( !m_HostKey.Verify(&sig, hash, hashlen) )
+	if ( HostVerifyKey(&sign, &addb, &skey, evp_md) )
 		goto ENDRET;
-
-	SetDeriveKey(hash, hashlen,  addb.GetPtr() + secofs, addb.GetSize() - secofs, evp_md);
 
 	ret = FALSE;
 
@@ -2949,15 +3002,12 @@ int Cssh::SSH2MsgKexDhGexReply(CBuffer *bp)
 	int n;
 	LPBYTE p;
 	int ret = TRUE;
-	int secofs;
-	CBuffer tmp(-1), blob(-1), sig(-1), addb(-1);
+	CBuffer tmp(-1), sign(-1), addb(-1), skey(-1);
 	BIGNUM *spub = NULL, *ssec = NULL;
 	const EVP_MD *evp_md;
-	int hashlen;
-	BYTE hash[EVP_MAX_MD_SIZE];
 
 	bp->GetBuf(&tmp);
-	blob = tmp;
+	addb.PutBuf(tmp.GetPtr(), tmp.GetSize());
 
 	if ( !m_HostKey.GetBlob(&tmp) )
 		return TRUE;
@@ -2969,7 +3019,7 @@ int Cssh::SSH2MsgKexDhGexReply(CBuffer *bp)
 		goto ENDRET;
 
 	bp->GetBIGNUM2(spub);
-	bp->GetBuf(&sig);
+	bp->GetBuf(&sign);
 
 	if ( !dh_pub_is_valid(m_SaveDh, spub) )
 		goto ENDRET;
@@ -2996,27 +3046,17 @@ int Cssh::SSH2MsgKexDhGexReply(CBuffer *bp)
 	addb.PutBIGNUM2((BIGNUM *)dhpub_key);
 	addb.PutBIGNUM2(spub);
 
-	secofs = addb.GetSize();
-	addb.PutBIGNUM2(ssec);
+	skey.PutBIGNUM2(ssec);
 
-	hashlen = kex_gen_hash(hash,
-		TstrToMbs(m_ClientVerStr), TstrToMbs(m_ServerVerStr),
-		m_MyPeer.GetPtr(), m_MyPeer.GetSize(),
-		m_HisPeer.GetPtr(), m_HisPeer.GetSize(),
-		blob.GetPtr(), blob.GetSize(),
-		addb.GetPtr(), addb.GetSize(),
-		evp_md);
-
-	if ( !m_HostKey.Verify(&sig, hash, hashlen) )
+	if ( HostVerifyKey(&sign, &addb, &skey, evp_md) )
 		goto ENDRET;
-
-	SetDeriveKey(hash, hashlen,  addb.GetPtr() + secofs, addb.GetSize() - secofs, evp_md);
 
 	ret = FALSE;
 
 ENDRET:
 	if ( spub != NULL )
 		BN_clear_free(spub);
+
 	if ( ssec != NULL )
 		BN_clear_free(ssec);
 
@@ -3025,18 +3065,15 @@ ENDRET:
 int Cssh::SSH2MsgKexEcdhReply(CBuffer *bp)
 {
 	int ret = TRUE;
-	int secofs;
-	CBuffer tmp(-1), blob(-1), sig(-1), addb(-1);
+	CBuffer tmp(-1), sign(-1), addb(-1), skey(-1);
 	EC_POINT *server_public = NULL;
 	BIGNUM *shared_secret = NULL;
 	int klen;
 	LPBYTE kbuf = NULL;
 	const EVP_MD *evp_md;
-	int hashlen;
-	BYTE hash[EVP_MAX_MD_SIZE];
 
 	bp->GetBuf(&tmp);
-	blob = tmp;
+	addb.PutBuf(tmp.GetPtr(), tmp.GetSize());
 
 	if ( !m_HostKey.GetBlob(&tmp) )
 		return TRUE;
@@ -3048,7 +3085,7 @@ int Cssh::SSH2MsgKexEcdhReply(CBuffer *bp)
 		goto ENDRET;
 
 	bp->GetEcPoint(m_EcdhGroup, server_public);
-	bp->GetBuf(&sig);
+	bp->GetBuf(&sign);
 
 	if ( key_ec_validate_public(m_EcdhGroup, server_public) != 0 )
 		goto ENDRET;
@@ -3066,8 +3103,7 @@ int Cssh::SSH2MsgKexEcdhReply(CBuffer *bp)
 	addb.PutEcPoint(m_EcdhGroup, EC_KEY_get0_public_key(m_EcdhClientKey));
 	addb.PutEcPoint(m_EcdhGroup, server_public);
 
-	secofs = addb.GetSize();
-	addb.PutBIGNUM2(shared_secret);
+	skey.PutBIGNUM2(shared_secret);
 
 	switch(m_DhMode) {
 	default:
@@ -3082,18 +3118,8 @@ int Cssh::SSH2MsgKexEcdhReply(CBuffer *bp)
 		break;
 	}
 
-	hashlen = kex_gen_hash(hash,
-	    TstrToMbs(m_ClientVerStr), TstrToMbs(m_ServerVerStr),
-		m_MyPeer.GetPtr(), m_MyPeer.GetSize(),
-		m_HisPeer.GetPtr(), m_HisPeer.GetSize(),
-		blob.GetPtr(), blob.GetSize(),
-		addb.GetPtr(), addb.GetSize(),
-		evp_md);
-
-	if ( !m_HostKey.Verify(&sig, hash, hashlen) )
+	if ( HostVerifyKey(&sign, &addb, &skey, evp_md) )
 		goto ENDRET;
-
-	SetDeriveKey(hash, hashlen,  addb.GetPtr() + secofs, addb.GetSize() - secofs, evp_md);
 
 	EC_KEY_free(m_EcdhClientKey);
 	m_EcdhClientKey = NULL;
@@ -3103,8 +3129,10 @@ int Cssh::SSH2MsgKexEcdhReply(CBuffer *bp)
 ENDRET:
 	if ( kbuf != NULL )
 		delete [] kbuf;
+
 	if ( shared_secret != NULL )
 		BN_clear_free(shared_secret);
+
 	if ( server_public != NULL )
 		EC_POINT_clear_free(server_public);
 
@@ -3114,14 +3142,11 @@ int Cssh::SSH2MsgKexCurveReply(CBuffer *bp)
 {
 	int n;
 	int ret = TRUE;
-	int secofs;
-	CBuffer tmp(-1), blob(-1), sig(-1), addb(-1);
+	CBuffer tmp(-1), sign(-1), addb(-1), skey(-1);
 	CBuffer server_public(-1), shared_key(-1);
 	BIGNUM *shared_secret = NULL;
 	BYTE shared_digest[EVP_MAX_MD_SIZE];
 	const EVP_MD *evp_md = EVP_sha256();
-	int hashlen;
-	BYTE hash[EVP_MAX_MD_SIZE];
 	EVP_PKEY_CTX *ctx = NULL;
 	EVP_PKEY *pkey = NULL;
 	size_t keylen;
@@ -3129,7 +3154,7 @@ int Cssh::SSH2MsgKexCurveReply(CBuffer *bp)
 	EVP_MD_CTX *md_ctx;
 
 	bp->GetBuf(&tmp);
-	blob = tmp;
+	addb.PutBuf(tmp.GetPtr(), tmp.GetSize());
 
 	if ( !m_HostKey.GetBlob(&tmp) )
 		return TRUE;
@@ -3138,7 +3163,7 @@ int Cssh::SSH2MsgKexCurveReply(CBuffer *bp)
 		return TRUE;
 
 	bp->GetBuf(&server_public);
-	bp->GetBuf(&sig);
+	bp->GetBuf(&sign);
 
 	switch(m_DhMode) {
 	case DHMODE_CURVE25519:
@@ -3153,7 +3178,7 @@ int Cssh::SSH2MsgKexCurveReply(CBuffer *bp)
 		type = EVP_PKEY_X25519;
 		evp_md = EVP_sha512();
 		shared_key.PutSpc(sntrup761_BYTES);
-		if ( sntrup761_dec(shared_key.GetPtr(), server_public.GetPtr(), m_SntrupClientKey) != 0 )
+		if ( sntrup761_dec(shared_key.GetPtr(), server_public.GetPtr(), m_SntrupClientKey.GetPtr()) != 0 )
 			return TRUE;
 		break;
 	}
@@ -3189,8 +3214,7 @@ int Cssh::SSH2MsgKexCurveReply(CBuffer *bp)
 		EVP_DigestFinal(md_ctx, shared_digest, NULL);
 		EVP_MD_CTX_free(md_ctx);
 
-		secofs = addb.GetSize();
-		addb.PutBuf(shared_digest, EVP_MD_size(evp_md));
+		skey.PutBuf(shared_digest, EVP_MD_size(evp_md));
 
 	} else {
 		if ( (shared_secret = BN_new()) == NULL )
@@ -3199,22 +3223,11 @@ int Cssh::SSH2MsgKexCurveReply(CBuffer *bp)
 		if ( BN_bin2bn(shared_key.GetPtr(), shared_key.GetSize(), shared_secret) == NULL )
 			goto ENDRET;
 
-		secofs = addb.GetSize();
-		addb.PutBIGNUM2(shared_secret);
+		skey.PutBIGNUM2(shared_secret);
 	}
 
-	hashlen = kex_gen_hash(hash,
-	    TstrToMbs(m_ClientVerStr), TstrToMbs(m_ServerVerStr),
-		m_MyPeer.GetPtr(), m_MyPeer.GetSize(),
-		m_HisPeer.GetPtr(), m_HisPeer.GetSize(),
-		blob.GetPtr(), blob.GetSize(),
-		addb.GetPtr(), addb.GetSize(),
-		evp_md);
-
-	if ( !m_HostKey.Verify(&sig, hash, hashlen) )
+	if ( HostVerifyKey(&sign, &addb, &skey, evp_md) )
 		goto ENDRET;
-
-	SetDeriveKey(hash, hashlen,  addb.GetPtr() + secofs, addb.GetSize() - secofs, evp_md);
 
 	ret = FALSE;
 
@@ -3233,6 +3246,139 @@ ENDRET:
 		BN_clear_free(shared_secret);
 
 	return ret;
+}
+int Cssh::SSH2MsgKexRsaPubkey(CBuffer *bp)
+{
+/*
+       byte      SSH_MSG_KEXRSA_PUBKEY
+       string    server public host key and certificates (K_S)
+       string    K_T, transient RSA public key
+*/
+	int ret = TRUE;
+	CBuffer tmp(-1);
+	const EVP_MD *evp_md = EVP_sha256();
+	CIdKey TranKey;
+	int bits;
+	BIGNUM *shared_secret = NULL;
+	EVP_PKEY *pkey = NULL;
+	EVP_PKEY_CTX *ctx = NULL;
+	size_t outlen;
+
+	bp->GetBuf(&tmp);
+	m_RsaHostBlob = tmp;
+
+	if ( !m_HostKey.GetBlob(&tmp) )
+		return TRUE;
+
+	if ( !m_HostKey.HostVerify(m_HostName, m_HostPort, this) )
+		return TRUE;
+
+	bp->GetBuf(&tmp);
+	m_RsaTranBlob = tmp;
+		
+	if ( !TranKey.GetBlob(&tmp) )
+		return TRUE;
+
+	if ( TranKey.m_Type != IDKEY_RSA2 )
+		return TRUE;
+
+	m_RsaSharedKey.Clear();
+	m_RsaOaepSecret.Clear();
+
+	if ( m_DhMode == DHMODE_RSA2048SHA2 )
+		evp_md = EVP_sha512();
+
+	bits = TranKey.GetSize() - 2 * EVP_MD_size(evp_md) * 8 - 49;
+
+	if ( (shared_secret = BN_new()) == NULL )
+		goto ENDRET;
+
+	if ( BN_rand(shared_secret, bits, BN_RAND_TOP_ANY, BN_RAND_BOTTOM_ANY) <= 0 )
+		goto ENDRET;
+
+	m_RsaSharedKey.Clear();
+	m_RsaSharedKey.PutBIGNUM2(shared_secret);
+
+	if ( (pkey = EVP_PKEY_new()) == NULL )
+		goto ENDRET;
+
+	if ( EVP_PKEY_set1_RSA(pkey, TranKey.m_Rsa) <= 0 )
+		goto ENDRET;
+
+	if ( (ctx = EVP_PKEY_CTX_new(pkey, NULL)) == NULL )
+		goto ENDRET;
+
+	if ( EVP_PKEY_encrypt_init(ctx) <= 0 )
+		goto ENDRET;
+
+	if ( EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_OAEP_PADDING) <= 0 )
+		goto ENDRET;
+
+	if ( EVP_PKEY_CTX_set_rsa_oaep_md(ctx, evp_md) <= 0 )
+		goto ENDRET;
+
+	if ( EVP_PKEY_encrypt(ctx, NULL, &outlen, m_RsaSharedKey.GetPtr(), m_RsaSharedKey.GetSize()) <= 0 )
+		goto ENDRET;
+
+	m_RsaOaepSecret.PutSpc((int)outlen);
+
+	if ( EVP_PKEY_encrypt(ctx, m_RsaOaepSecret.GetPtr(), &outlen, m_RsaSharedKey.GetPtr(), m_RsaSharedKey.GetSize()) <= 0 )
+		goto ENDRET;
+
+/*
+       byte      SSH_MSG_KEXRSA_SECRET
+       string    RSAES-OAEP-ENCRYPT(K_T, K)	// K = (KLEN - 2 * HLEN - 49)bits
+*/
+	tmp.Clear();
+	tmp.Put8Bit(SSH2_MSG_KEXRSA_SECRET);
+	tmp.PutBuf(m_RsaOaepSecret.GetPtr(), m_RsaOaepSecret.GetSize());
+	SendPacket2(&tmp);
+
+	ret = FALSE;
+
+ENDRET:
+	if ( shared_secret != NULL )
+		BN_free(shared_secret);
+
+	if ( ctx != NULL )
+		EVP_PKEY_CTX_free(ctx);
+
+	if ( pkey != NULL )
+		EVP_PKEY_free(pkey);
+
+	return ret;
+}
+int Cssh::SSH2MsgKexRsaDone(CBuffer *bp)
+{
+/*
+       byte      SSH_MSG_KEXRSA_DONE
+       string    signature of H with host key
+
+       string    V_C, the client's identification string (CR and LF excluded)
+       string    V_S, the server's identification string (CR and LF excluded)
+       string    I_C, the payload of the client's SSH_MSG_KEXINIT
+       string    I_S, the payload of the server's SSH_MSG_KEXINIT
+       string    K_S, the host key
+       string    K_T, the transient RSA key
+       string    RSAES_OAEP_ENCRYPT(K_T, K), the encrypted secret
+       mpint     K, the shared secret
+*/
+	CBuffer sign(-1), addb(-1);
+	const EVP_MD *evp_md = EVP_sha256();
+
+	bp->GetBuf(&sign);
+
+	addb.PutBuf(m_RsaHostBlob.GetPtr(), m_RsaHostBlob.GetSize());
+	addb.PutBuf(m_RsaTranBlob.GetPtr(), m_RsaTranBlob.GetSize());
+	addb.PutBuf(m_RsaOaepSecret.GetPtr(), m_RsaOaepSecret.GetSize());
+
+	if ( m_DhMode == DHMODE_RSA2048SHA2 )
+		evp_md = EVP_sha512();
+
+	if ( HostVerifyKey(&sign, &addb, &m_RsaSharedKey, evp_md) )
+		return TRUE;
+
+	return FALSE;
 }
 int Cssh::SSH2MsgNewKeys(CBuffer *bp)
 {
@@ -3412,7 +3558,7 @@ int Cssh::SSH2MsgUserAuthInfoRequest(CBuffer *bp)
 			bAutoPass = TRUE;
 
 		} else {
-			dlg.m_WinText.Format(_T("keyboard-interactive(%s@%s)"), m_pDocument->m_ServerEntry.m_UserName, m_pDocument->m_ServerEntry.m_HostName);
+			dlg.m_WinText.Format(_T("keyboard-interactive(%s@%s)"), (LPCTSTR)m_pDocument->m_ServerEntry.m_UserName, (LPCTSTR)m_pDocument->m_ServerEntry.m_HostName);
 			if ( !name.IsEmpty() ) {
 				dlg.m_Title += m_pDocument->LocalStr(name);
 				dlg.m_Title += _T("\r\n");
@@ -3536,7 +3682,7 @@ int Cssh::SSH2MsgUserAuthGssapiProcess(CBuffer *bp, int type)
 		goto RETRYAUTH;
 
 	tmp.Clear();
-	tmp.PutBuf(m_SessionId, m_SessionIdLen);
+	tmp.PutBuf(m_SessHash.GetPtr(), m_SessHash.GetSize());
 	tmp.Put8Bit(SSH2_MSG_USERAUTH_REQUEST);
 	tmp.PutStr(m_pDocument->RemoteStr(m_pDocument->m_ServerEntry.m_UserName));
 	tmp.PutStr("ssh-connection");
@@ -3937,7 +4083,7 @@ int Cssh::SSH2MsgGlobalHostKeys(CBuffer *bp)
 	if ( !m_bKnownHostUpdate )
 		return FALSE;
 
-	kname.Format(_T("%s:%d"), m_HostName, m_HostPort);
+	kname.Format(_T("%s:%d"), (LPCTSTR)m_HostName, m_HostPort);
 	pApp->GetProfileStringArray(_T("KnownHosts"), kname, entry);
 
 	if ( entry.GetSize() == 0 ) {
@@ -4074,7 +4220,7 @@ int Cssh::SSH2MsgGlobalRequestReply(CBuffer *bp, int type)
 
 	if ( type == SSH2_MSG_REQUEST_FAILURE && num < m_Permit.GetSize() ) {
 		str.Format(_T("Global Request Failure %s:%d->%s:%d"),
-			m_Permit[num].m_lHost, m_Permit[num].m_lPort, m_Permit[num].m_rHost, m_Permit[num].m_rPort);
+			(LPCTSTR)m_Permit[num].m_lHost, m_Permit[num].m_lPort, (LPCTSTR)m_Permit[num].m_rHost, m_Permit[num].m_rPort);
 		AfxMessageBox(str);
 		m_Permit.RemoveAt(num);
 	}
@@ -4174,6 +4320,23 @@ void Cssh::ReceivePacket2(CBuffer *bp)
 			goto DISCONNECT;
 		if ( SSH2MsgKexDhGexReply(bp) )
 			goto DISCONNECT;
+		m_SSH2Status &= ~SSH2_STAT_HAVEPROP;
+		m_SSH2Status |= SSH2_STAT_HAVEKEYS;
+		SendMsgNewKeys();
+		break;
+	case SSH2_MSG_KEXRSA_PUBKEY:
+		if ( (m_SSH2Status & SSH2_STAT_HAVEPROP) == 0 )
+			goto DISCONNECT;
+		if ( SSH2MsgKexRsaPubkey(bp) )
+			goto DISCONNECT;
+		m_SSH2Status |= SSH2_STAT_HAVERSAPUB;
+		break;
+	case SSH2_MSG_KEXRSA_DONE:
+		if ( (m_SSH2Status & SSH2_STAT_HAVEPROP) == 0 || (m_SSH2Status & SSH2_STAT_HAVERSAPUB) == 0 )
+			goto DISCONNECT;
+		if ( SSH2MsgKexRsaDone(bp) )
+			goto DISCONNECT;
+		m_SSH2Status &= ~SSH2_STAT_HAVERSAPUB;
 		m_SSH2Status &= ~SSH2_STAT_HAVEPROP;
 		m_SSH2Status |= SSH2_STAT_HAVEKEYS;
 		SendMsgNewKeys();

@@ -11,7 +11,7 @@
 #include "GrapWnd.h"
 #include "GhostWnd.h"
 
-#define	FIX_VERSION		11				// AnsiOpt Bugfix version
+#define	FIX_VERSION		12				// AnsiOpt Bugfix version
 
 #define	COLS_MAX		256
 #define	LINE_MAX		128

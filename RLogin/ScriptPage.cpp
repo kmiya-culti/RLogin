@@ -113,7 +113,7 @@ void CScriptPage::OnBnClickedScriptSel()
 	UpdateData(TRUE);
 
 	if ( m_ScriptFile.IsEmpty() )
-		file.Format(_T("%s\\%s.txt"), ((CRLoginApp *)AfxGetApp())->m_BaseDir, m_pSheet->m_pEntry->m_EntryName);
+		file.Format(_T("%s\\%s.txt"), (LPCTSTR)((CRLoginApp *)AfxGetApp())->m_BaseDir, (LPCTSTR)m_pSheet->m_pEntry->m_EntryName);
 	else
 		file = m_ScriptFile;
 

@@ -666,9 +666,9 @@ void CTabBar::OnGetDispInfo(NMHDR* pNMHDR, LRESULT* pResult)
 
 	tm = pDoc->m_ConnectTime;
 	m_ToolTipStr.Format(_T("%s\r\n%s@%s\r\n%s"),
-		pDoc->m_ServerEntry.m_EntryName,
-		pDoc->m_ServerEntry.m_ProtoType == PROTO_COMPORT ? pDoc->m_ServerEntry.m_PortName : pDoc->m_ServerEntry.m_UserName, 
-		pDoc->m_ServerEntry.m_HostName,
+		(LPCTSTR)pDoc->m_ServerEntry.m_EntryName,
+		pDoc->m_ServerEntry.m_ProtoType == PROTO_COMPORT ? (LPCTSTR)pDoc->m_ServerEntry.m_PortName : (LPCTSTR)pDoc->m_ServerEntry.m_UserName, 
+		(LPCTSTR)pDoc->m_ServerEntry.m_HostName,
 		tm.Format(_T("%c")));
 
 	pINFO->lpszText = (LPTSTR)(LPCTSTR)m_ToolTipStr;
@@ -792,7 +792,7 @@ void CTabBar::GetTitle(int nIndex, CString &title)
 	if ( m_bNumber )
 		title = str;
 	else
-		title.Format(_T("%d %s"), nIndex + 1, str);
+		title.Format(_T("%d %s"), nIndex + 1, (LPCTSTR)str);
 }
 
 int CTabBar::LineCount()
@@ -1060,7 +1060,7 @@ void CTabBar::SetTabTitle(BOOL bNumber)
 			work.Empty();
 
 		if ( m_bNumber )
-			title.Format(_T("%d %s"), n + 1, work);
+			title.Format(_T("%d %s"), n + 1, (LPCTSTR)work);
 		else
 			title = work;
 

@@ -635,9 +635,9 @@ BEGIN
                     "SysLink",WS_TABSTOP,44,196,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,215,60,14,WS_GROUP
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin (%s) Version 2.26.5 (2021/11/29)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.26.6 (2021/12/20)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2021 Culti",IDC_STATIC,44,16,189,8
-    LTEXT           "OpenSSL 1.1.1l 24 Aug 2021",IDC_STATIC,44,41,189,8
+    LTEXT           "OpenSSL 1.1.1m 14 Dec 2021",IDC_STATIC,44,43,189,8
     LTEXT           "Copyright (c) 1998-2021 The OpenSSL Project",IDC_STATIC,44,53,189,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,62,189,8
     LTEXT           "All rights reserved.",IDC_STATIC,44,71,189,8
@@ -908,7 +908,7 @@ BEGIN
     CONTROL         "シェル起動なしでPFログを表示",IDC_PROTOCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,124,117,10
     CONTROL         "接続時にSFTPを起動する",IDC_PROTOCHECK9,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,138,124,117,10
     CONTROL         "エージェント転送を有効にする",IDC_PROTOCHECK6,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,141,117,10
-    CONTROL         "DNSでホスト鍵をチェックしない",IDC_PROTOCHECK10,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,138,141,117,10
+    CONTROL         "DNSでホスト鍵をチェックする",IDC_PROTOCHECK10,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,138,141,117,10
     CONTROL         "KeepAliveパケットの送信間隔(sec)",IDC_PROTOCHECK7,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,158,180,10
     EDITTEXT        IDC_KEEPALIVE,205,155,50,14,ES_AUTOHSCROLL
     COMBOBOX        IDC_RSAEXTSEL,205,174,50,80,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
@@ -1188,7 +1188,8 @@ BEGIN
     PUSHBUTTON      "下へ",IDC_IDKEY_DOWN,188,55,50,14
     PUSHBUTTON      "公開鍵",IDC_IDKEY_COPY,188,92,50,14
     PUSHBUTTON      "インポート",IDC_IDKEY_INPORT,188,132,50,14
-    PUSHBUTTON      "エクスポート",IDC_IDKEY_EXPORT,188,148,50,14
+    COMBOBOX        IDC_EXPORT_STYLE,134,150,50,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "エクスポート",IDC_IDKEY_EXPORT,188,150,50,14
     COMBOBOX        IDC_IDKEY_TYPE,188,182,50,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_IDKEY_BITS,188,198,50,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     EDITTEXT        IDC_IDKEY_NAME,188,214,50,14,ES_AUTOHSCROLL
@@ -1202,7 +1203,7 @@ BEGIN
     LTEXT           "上記の条件で認証キーを作成します",IDC_STATIC,17,234,161,8
     LTEXT           "認証キーのビットサイズを指定します",IDC_STATIC,17,200,161,8
     LTEXT           "ファイルから認証キーを読み込みます",IDC_STATIC,17,136,161,8
-    LTEXT           "ファイルに認証キーを保存します",IDC_STATIC,17,152,161,8
+    LTEXT           "ファイルに認証キーを保存します",IDC_STATIC,17,153,113,8
     GROUPBOX        "認証キーリスト",IDC_STATIC,7,7,241,111
     CONTROL         "Progress1",IDC_IDKEY_PROG,"msctls_progress32",0x0,15,252,222,10
     LTEXT           "このエントリーで使用する認証キーをチェック（任意順位で複数選択可能）",IDC_STATIC,17,22,221,8
@@ -2173,8 +2174,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,26,5,0
- PRODUCTVERSION 2,26,5,0
+ FILEVERSION 2,26,6,0
+ PRODUCTVERSION 2,26,6,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2191,12 +2192,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.26.5.0"
+            VALUE "FileVersion", "2.26.6.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.26.5.0"
+            VALUE "ProductVersion", "2.26.6.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -3115,10 +3116,14 @@ BEGIN
 0x6f4d, 0x6f6e, 0x616b, 0x0069, 
     IDC_COLSET, 0x403, 6, 0
 0x6154, 0x676e, 0x006f, 
-    IDC_COLSET, 0x403, 8, 0
-0x6957, 0x646e, 0x776f, 0x0073, 
+    IDC_COLSET, 0x403, 9, 0
+0x6143, 0x706d, 0x6562, 0x6c6c, "\000" 
     IDC_COLSET, 0x403, 4, 0
 0x5543, 0x0044, 
+    IDC_COLSET, 0x403, 9, 0
+0x6e4f, 0x2065, 0x6148, 0x666c, "\000" 
+    IDC_COLSET, 0x403, 8, 0
+0x6956, 0x746e, 0x6761, 0x0065, 
     IDC_WAKEUPSLEEP, 0x403, 5, 0
 0x6f4e, 0x656e, "\000" 
     IDC_WAKEUPSLEEP, 0x403, 5, 0
@@ -3142,6 +3147,12 @@ END
 
 IDD_IDKEYSELDLG DLGINIT
 BEGIN
+    IDC_EXPORT_STYLE, 0x403, 8, 0
+0x704f, 0x6e65, 0x5353, 0x004c, 
+    IDC_EXPORT_STYLE, 0x403, 8, 0
+0x704f, 0x6e65, 0x5353, 0x0048, 
+    IDC_EXPORT_STYLE, 0x403, 6, 0
+0x7550, 0x5454, 0x0059, 
     IDC_IDKEY_TYPE, 0x403, 5, 0
 0x5352, 0x3141, "\000" 
     IDC_IDKEY_TYPE, 0x403, 5, 0

@@ -2260,10 +2260,10 @@ BOOL CTextRam::OpenHisFile()
 		base = name.Left(n);
 
 	while ( num < 20 && !m_HisFhd.Open(name, CFile::modeReadWrite | CFile::modeCreate | CFile::modeNoTruncate | CFile::shareExclusive) )
-		name.Format(_T("%s(%d).rlh"), base, num++);
+		name.Format(_T("%s(%d).rlh"), (LPCTSTR)base, num++);
 
 	if ( m_HisFhd.m_hFile == CFile::hFileNull ) {
-		name.Format(_T("History File Open Error '%s.rlh'"), base);
+		name.Format(_T("History File Open Error '%s.rlh'"), (LPCTSTR)base);
 		::AfxMessageBox(name);
 		return FALSE;
 	} else
@@ -3772,6 +3772,11 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 	if ( m_FixVersion < 11 ) {
 		if ( IsOptEnable(TO_RLDELAY) )
 			EnableOption(TO_RLDELAYCR);
+	}
+
+	if ( m_FixVersion < 12 ) {
+		if ( IsOptEnable(TO_DNSSSSHFP) )
+			DisableOption(TO_DNSSSSHFP);
 	}
 
 	RESET(RESET_ALL);

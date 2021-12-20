@@ -936,7 +936,7 @@ void CRcpUpload::OnReceive(const void *lpBuf, int nBufLen)
 				Close();
 				return;
 			}
-			str.Format(_T("C%04o %I64d %s\n"), (m_Stat.st_mode & 0777), m_Stat.st_size, m_File);
+			str.Format(_T("C%04o %I64d %s\n"), (m_Stat.st_mode & 0777), m_Stat.st_size, (LPCTSTR)m_File);
 			tmp = m_pSsh->m_pDocument->RemoteStr(str);
 			Send((LPBYTE)(LPCSTR)tmp, tmp.GetLength());
 			m_Size = 0;
@@ -1205,7 +1205,7 @@ void CRcpDownload::OnReceive(const void *lpBuf, int nBufLen)
 				break;
 			} else if ( m_Req != 'C' && m_Req != 'D' ) {
 				CString tmp;
-				tmp.Format(_T("%c%s: unkown command\r\n"), (m_Req < ' ' || m_Req >= 0x7e ? '?' : m_Req), work);
+				tmp.Format(_T("%c%s: unkown command\r\n"), (m_Req < ' ' || m_Req >= 0x7e ? '?' : m_Req), (LPCTSTR)work);
 				DispMsg(tmp);
 				PutErrorMsg("Unkown command\n");
 				m_Mode = 0;
@@ -1231,7 +1231,7 @@ void CRcpDownload::OnReceive(const void *lpBuf, int nBufLen)
 				}
 				m_PathName = dlg.GetPathName();
 			} else {
-				m_PathName.Format(_T("%s\\%s"), (LPCTSTR)(m_DirPath.GetHead()), work);
+				m_PathName.Format(_T("%s\\%s"), (LPCTSTR)(m_DirPath.GetHead()), (LPCTSTR)work);
 			}
 				
 			if ( m_Req == 'C' ) {

@@ -855,7 +855,7 @@ void CProcTab::SetArray(CStringArrayExt &stra)
 
 	stra.RemoveAll();
 	for ( n = 0 ; n < m_Data.GetSize() ; n++ ) {
-		tmp.Format(_T("%d,%d,%s,"), m_Data[n].m_Type, m_Data[n].m_Code, m_Data[n].m_Name);
+		tmp.Format(_T("%d,%d,%s,"), m_Data[n].m_Type, m_Data[n].m_Code, (LPCTSTR)m_Data[n].m_Name);
 		stra.Add(tmp);
 	}
 }
@@ -3535,7 +3535,7 @@ void CTextRam::fc_OSC_CMD(DWORD ch)
 			int n;
 			CString tmp;
 			if ( m_OscMode == 'P' && BinaryFind((void *)&m_BackChar, m_DcsExt.GetData(), sizeof(CSIEXTTAB), (int)m_DcsExt.GetSize(), ProcCodeCmp, &n) && m_DcsExt[n].proc == &CTextRam::fc_DECSIXEL ) {
-				tmp.Format(_T("Sixel - %s"), m_pDocument->m_ServerEntry.m_EntryName);
+				tmp.Format(_T("Sixel - %s"), (LPCTSTR)m_pDocument->m_ServerEntry.m_EntryName);
 				if ( m_pWorkGrapWnd != NULL )
 					m_pWorkGrapWnd->DestroyWindow();
 				m_pWorkGrapWnd = new CGrapWnd(this);
@@ -3710,7 +3710,7 @@ void CTextRam::fc_DECREGIS(DWORD ch)
 	if ( (n & 1) == 0 && (pGrapWnd = (CGrapWnd *)LastGrapWnd(TYPE_REGIS)) != NULL )
 		pGrapWnd->SetReGIS(n, m_OscPara);
 	else {
-		tmp.Format(_T("ReGIS - %s"), m_pDocument->m_ServerEntry.m_EntryName);
+		tmp.Format(_T("ReGIS - %s"), (LPCTSTR)m_pDocument->m_ServerEntry.m_EntryName);
 		pGrapWnd = new CGrapWnd(this);
 		pGrapWnd->Create(NULL, tmp);
 		pGrapWnd->SetReGIS(n, m_OscPara);
@@ -4485,7 +4485,7 @@ void CTextRam::fc_XTRQCAP(DWORD ch)
 	dlg.InfoNameToCapName(info);
 
 	cap[_T("Co")] = _T("#256");
-	tmp.Format(_T("=%s"), m_pDocument->m_ServerEntry.m_TermName);
+	tmp.Format(_T("=%s"), (LPCTSTR)m_pDocument->m_ServerEntry.m_TermName);
 	cap[_T("TN")] = tmp;
 
 	for ( p = (LPCSTR)m_OscPara ; *p != '\0' ; ) {
@@ -6361,7 +6361,7 @@ void CTextRam::fc_XTWOP(DWORD ch)
 					mbs += *(p++);
 			}
 
-			tmp.Format("%s%c%s%s", TstrToMbs(m_RetChar[RC_OSC]), (n == 20 ? 'L':'l'), mbs, TstrToMbs(m_RetChar[RC_ST]));
+			tmp.Format("%s%c%s%s", TstrToMbs(m_RetChar[RC_OSC]), (n == 20 ? 'L':'l'), (LPCSTR)mbs, TstrToMbs(m_RetChar[RC_ST]));
 			m_pDocument->SocketSend((void *)(LPCSTR)tmp, tmp.GetLength());
 
 		} else
@@ -8387,7 +8387,7 @@ void CTextRam::iTerm2Ext(LPCSTR param)
 
 				if ( (p = _tcsrchr(name, _T('.'))) != NULL && m_InlineExt.Match(p + 1) >= 0 ) {
 					CString path;
-					path.Format(_T("%s%s"), ((CRLoginApp *)::AfxGetApp())->GetTempDir(FALSE), name);
+					path.Format(_T("%s%s"), ((CRLoginApp *)::AfxGetApp())->GetTempDir(FALSE), (LPCTSTR)name);
 
 					if ( tmp.SaveFile(path) )
 						ShellExecute(AfxGetMainWnd()->GetSafeHwnd(), NULL, path, NULL, NULL, SW_NORMAL);

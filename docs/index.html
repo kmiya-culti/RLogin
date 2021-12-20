@@ -6,14 +6,28 @@
 <TITLE>rlogin/telnet/ssh(クライアント)ターミナルソフト</TITLE>
 <STYLE type="text/css">
 <!--
-TD {		
+TD {
+				
+				
+				
+				
+				
+				
+				
 				
 				
 				
 				
 		background-color : #ffffff; font-size : 90%; 
 }
-.BOX{		
+.BOX{
+				
+				
+				
+				
+				
+				
+				
 				
 				
 				
@@ -33,8 +47,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.26.5)</TD>
-            <TD width="20%" align="right">2021/11/29</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.26.6)</TD>
+            <TD width="20%" align="right">2021/12/20</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -422,6 +436,16 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2021/12/20</TD>
+            <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.26.6/">2.26.6</A></TD>
+            <TD>sshのkex回りのコードを整理しrsa2048-sha256などを試験実装<BR>
+            オプション・カラーの16色セットWindowsをCampbellに変更してOne Halfを追加<BR>
+            vs2022でもコンパイル出来るように一部ソースコードを変更<BR>
+            認証キーの設定のエクスポートでファイル形式を選択できるように変更<BR>
+            オプション・プロトコルのDNSでホスト鍵をチェック「しない」を「する」に変更<BR>
+            openssl-1.1.1mに更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2021/11/29</TD>
             <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.26.5/">2.26.5</A></TD>
             <TD>ファイルオープン時の共有モードを全体的に見直して修正<BR>
@@ -455,26 +479,6 @@ TD {
             Server Celectダイアログのポップアップにすべてファイルに保存を追加</TD>
           </TR>
           <TR>
-            <TD align="center">2021/05/06</TD>
-            <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.26.1/">2.26.1</A></TD>
-            <TD>2.25.9以降でチャットスクリプトの受信文字列が空の場合の不都合を修正<BR>
-            オプション・プロトコル・SSH・バッファサイズを見直しデフォルトを変更<BR>
-            スクリプト関数のreplace/splitで例外が発生するバグを修正<BR>
-            PuTTYの認証鍵ファイル形式３と名前付きパイプagentに暫定的に対応<BR>
-            プライベートプロファイル使用時に背景設定のデフォルトが読めない不都合を修正</TD>
-          </TR>
-          <TR>
-            <TD align="center">2021/04/05</TD>
-            <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.26.0/">2.26.0</A></TD>
-            <TD>正規表現ライブラリに無限検索の制限と最大一致などを追加<BR>
-            ペースト確認ダイアログを全エントリー共通にし子ウィンドウに変更<BR>
-            クィックバーのアイテムの位置を条件により調整するように変更<BR>
-            ダイアログフォント設定時にアップダウンダイアログの位置ずれを修正<BR>
-            バージョンチェックエラー時にGitHubを使用するように変更<BR>
-            Scriptのファイル関数のファイルポインターをチェックするように変更<BR>
-            openssl-1.1.1kに更新</TD>
-          </TR>
-          <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
           </TR>
         </TBODY>
@@ -498,7 +502,7 @@ TD {
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-1.1.1l.tar.gz</A><BR>
+                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-1.1.1m.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
@@ -519,7 +523,7 @@ TD {
                   nmake</TD>
                 </TR>
                 <TR>
-                  <TD rowspan="2" valign="top"><A href="http://www.gzip.org/zlib/">zlib-1.2.11.tar.gz</A></TD>
+                  <TD rowspan="2" valign="top"><A href="https://zlib.net/">zlib-1.2.11.tar.gz</A></TD>
                   <TD valign="top">x86用 x32<BR>
                   Visual Studio コマンド <BR>
                   プロンプト (2010)</TD>
@@ -593,7 +597,7 @@ TD {
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 1.1.1l 24 Aug 2021<BR>
+            <P>OpenSSL 1.1.1m 14 Dec 2021<BR>
             Copyright (c) 1998-2021 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>
@@ -2921,7 +2925,8 @@ fi</PRE>
                 </TR>
                 <TR>
                   <TD align="center">DNSでホスト鍵…</TD>
-                  <TD>SSHで接続時にDNSでホスト名によるホスト鍵のチェックを行わないようにします。ポートフォワードなどにより接続先が実際のホスト名と一致しない場合などにチェックしてください</TD>
+                  <TD>SSHで接続時にDNSでホスト名によるホスト鍵のチェックを行うようにします<BR>
+                  ※2.26.6からチェックの意味を反転して「する」にしました</TD>
                 </TR>
                 <TR>
                   <TD align="center">KeepAliveパケット…</TD>
@@ -3267,12 +3272,14 @@ fi</PRE>
                         <TD colspan="2">対応している鍵のファイル形式</TD>
                       </TR>
                       <TR>
-                        <TD valign="top">opensslのPEM形式</TD>
+                        <TD valign="top">OpenSSL<BR>
+                        pem</TD>
                         <TD>ssh-rsa,ssh-dss<BR>
-                        ecdsa-sha2-*</TD>
+                        ecdsa-sha2-*<BR>ssh-ed25519/448</TD>
                       </TR>
                       <TR>
-                        <TD valign="top">openssh独自形式</TD>
+                        <TD valign="top">OpenSSH<BR>
+                        bcrypt KDF</TD>
                         <TD>ssh-rsa,ssh-dss<BR>
                         ecdsa-sha2-*<BR>
                         ssh-ed25519<BR>
@@ -3283,8 +3290,11 @@ fi</PRE>
                         <TD>ssh-rsa,ssh-dss</TD>
                       </TR>
                       <TR>
-                        <TD valign="top">putty</TD>
-                        <TD>ssh-rsa,ssh-dss</TD>
+                        <TD valign="top">PuTTY<BR>
+                        Ver.1/2/3</TD>
+                        <TD>ssh-rsa,ssh-dss<BR>
+                        eddsa-sha2-*<BR>
+                        ssh-ed25519/448</TD>
                       </TR>
                     </TBODY>
                   </TABLE>
@@ -3292,11 +3302,42 @@ fi</PRE>
                 </TR>
                 <TR>
                   <TD width="30%" align="center">エクスポート</TD>
-                  <TD>認証キーをファイルに保存します。作成時に設定したパスフレーズを入力しないと保存できません</TD>
+                  <TD>認証キーをファイルに保存します。作成時に設定したパスフレーズを入力しないと保存できません<BR>
+                  <TABLE border="0" width="400">
+                    <TBODY>
+                      <TR>
+                        <TD colspan="2">エクスポート出来るファイル形式と鍵の種類</TD>
+                      </TR>
+                      <TR>
+                        <TD valign="top">OpenSSL<BR>
+                        pem</TD>
+                        <TD>ssh-rsa,ssh-dss<BR>
+                        ecdsa-sha2-*<BR>
+                        ssh-ed25519/448</TD>
+                      </TR>
+                      <TR>
+                        <TD valign="top">OpenSSH<BR>
+                        bcrypt KDF</TD>
+                        <TD>ssh-rsa,ssh-dss<BR>
+                        ecdsa-sha2-*<BR>
+                        ssh-ed25519<BR>
+                        ssh-xmss@openssh.com</TD>
+                      </TR>
+                      <TR>
+                        <TD valign="top">PuTTY<BR>
+                        Ver.3</TD>
+                        <TD>ssh-rsa,ssh-dss<BR>
+                        eddsa-sha2-*<BR>
+                        ssh-ed25519/448</TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  </TD>
                 </TR>
                 <TR>
                   <TD width="30%" align="center">RSA1/RSA2/DSA2<BR>
-                  ECDSA/ED25519</TD>
+                  ECDSA/ED25519<BR>
+                  ED448/XMSS</TD>
                   <TD>作成する認証キーの種類を指定します（RSA1/RSA2は、基本的に同じですが、エクスポートする際の形式が異なります）<BR>
                   <BR>
                   openssh-5.7以上ならECDSAが利用できます<BR>
@@ -3304,9 +3345,18 @@ fi</PRE>
                   openssh-7.0以上からDSAがデフォルトで使用できません</TD>
                 </TR>
                 <TR>
-                  <TD width="30%" align="center">10/16/20<BR>
+                  <TD width="30%" align="center">XMSS<BR>
+                  10/16/20<BR>
+                  <BR>
+                  ECDSA<BR>
                   256/384/521<BR>
-                  768/1024/2048/4096</TD>
+                  <BR>
+                  DSA<BR>
+                  768/1024<BR>
+                  <BR>
+                  RSA1/2<BR>
+                  2048/3072/4096<BR>
+                  8192/16384</TD>
                   <TD>認証キーのサイズを指定します。サイズが大きい程、作成するのに時間がかかります。詳しくは<A href="faq.html#SSHPUBLIC">SSHでの公開鍵認証</A>を参照<BR>
                   <BR>
                   <TABLE width="400">
@@ -3335,8 +3385,8 @@ fi</PRE>
                         <TD align="center">-</TD>
                         <TD align="center">-</TD>
                         <TD align="center">-</TD>
-                        <TD align="center">△</TD>
-                        <TD align="center">〇</TD>
+                        <TD align="center">-</TD>
+                        <TD align="center">-</TD>
                         <TD align="center">◎</TD>
                         <TD align="center">〇</TD>
                         <TD align="center">△</TD>
@@ -3438,7 +3488,7 @@ fi</PRE>
             </TABLE>
             <BR>
             ※認証キーのリストで右クリックするとメニューが表示され上記の処理以外に削除や署名付きの公開鍵の読み込みなどができます</TD>
-            <TD valign="top"><IMG src="image016.jpg" width="448" height="440" border="0"></TD>
+            <TD valign="top"><IMG src="image016.jpg" width="448" height="473" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>

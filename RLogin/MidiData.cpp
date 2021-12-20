@@ -2367,7 +2367,7 @@ void CMidiData::SaveNote(CFile *pFile, CMMLData *pData)
 		for ( pTemp = pData->m_pLink ; pTemp != NULL ; pTemp = pTemp->m_pNext )
 			SaveNote(pFile, pTemp);
 		SaveSingStep(pData->m_Step, fmt);
-		mbs.Format("]%s ", fmt);
+		mbs.Format("]%s ", (LPCSTR)fmt);
 		pFile->Write((LPCSTR)mbs, mbs.GetLength());
 		m_mmlData.m_Gate = save.m_Gate;
 		m_mmlData.m_Velo = save.m_Velo;

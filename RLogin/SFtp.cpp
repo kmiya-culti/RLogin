@@ -1071,7 +1071,7 @@ int CSFtp::RemoteCopyDirRes(int st, class CCmdQue *pQue)
 	if ( (m_DoUpdate & 0x40) == 0 )
 		return TRUE;
 
-	tmp.Format(_T("%s\\*.*"), pQue->m_CopyPath);
+	tmp.Format(_T("%s\\*.*"), (LPCTSTR)pQue->m_CopyPath);
 	pQue->m_SaveNode.RemoveAll();
 	DoLoop = Finder.FindFile(tmp);
 	while ( DoLoop != FALSE ) {
@@ -1183,7 +1183,7 @@ int CSFtp::RemoteReadDirRes(int type, CBuffer *bp, class CCmdQue *pQue)
 		KanjiConvToLocal(tmp, node.m_file);
 		bp->GetStr(tmp);	// dummy strring read
 		node.DecodeAttr(bp);
-		node.m_path.Format(_T("%s/%s"), cwd, node.m_file);
+		node.m_path.Format(_T("%s/%s"), (LPCTSTR)cwd, (LPCTSTR)node.m_file);
 		node.SetSubName();
 		if ( !node.IsDot() ) {
 			if ( node.IsDir() || node.IsReg() )
@@ -1870,7 +1870,7 @@ int CSFtp::RemoteMkDirWriteRes(int type, CBuffer *bp, class CCmdQue *pQue)
 
 	SetRangeProg(NULL, 0, 0);
 	SetUpDownCount(-1);
-	tmp.Format(_T("%s\\*.*"), pQue->m_FileNode[0].m_path);
+	tmp.Format(_T("%s\\*.*"), (LPCTSTR)pQue->m_FileNode[0].m_path);
 
 	pQue->m_SaveNode.RemoveAll();
 	DoLoop = Finder.FindFile(tmp);
@@ -2148,7 +2148,7 @@ int CSFtp::LocalCopy(LPCTSTR src, LPCTSTR dis, BOOL bMove)
 			DoLoop = Finder.FindNextFile();
 			if ( Finder.IsDots() )
 				continue;
-			tmp.Format(_T("%s\\%s"), dis, Finder.GetFileName());
+			tmp.Format(_T("%s\\%s"), dis, (LPCTSTR)Finder.GetFileName());
 
 			if ( !LocalCopy(Finder.GetFilePath(), tmp, bMove) )
 				return FALSE;
@@ -2365,7 +2365,7 @@ void CSFtp::SetLocalCwdHis(LPCTSTR cwd)
 
 	pos = m_LocalCwdHis.GetHeadPosition();
 	for ( n = 0 ; n < 10 && pos != NULL ; n++ ) {
-		tmp.Format(_T("LoCurDir_%s_%d"), m_pSSh->m_HostName, n);
+		tmp.Format(_T("LoCurDir_%s_%d"), (LPCTSTR)m_pSSh->m_HostName, n);
 		AfxGetApp()->WriteProfileString(_T("CSFtp"), tmp, m_LocalCwdHis.GetNext(pos));
 	}
 }
@@ -2381,7 +2381,7 @@ void CSFtp::SetRemoteCwdHis(LPCTSTR cwd)
 
 	pos = m_RemoteCwdHis.GetHeadPosition();
 	for ( n = 0 ; n < 10 && pos != NULL ; n++ ) {
-		tmp.Format(_T("ReCurDir_%s_%d"), m_pSSh->m_HostName, n);
+		tmp.Format(_T("ReCurDir_%s_%d"), (LPCTSTR)m_pSSh->m_HostName, n);
 		AfxGetApp()->WriteProfileString(_T("CSFtp"), tmp, m_RemoteCwdHis.GetNext(pos));
 	}
 }
@@ -2452,7 +2452,7 @@ void CSFtp::ListSort(int num, int item)
 				m_LocalSortItem = item;
 		}
 		m_LocalList.SortItems(ListCompareFunc, (LPARAM)this);
-		tmp.Format(_T("LocalSort_%s"), m_pSSh->m_HostName);
+		tmp.Format(_T("LocalSort_%s"), (LPCTSTR)m_pSSh->m_HostName);
 		AfxGetApp()->WriteProfileInt(_T("CSFtp"), tmp, m_LocalSortItem);
 		break;
 	case 1:			// m_RemoteNode
@@ -2463,7 +2463,7 @@ void CSFtp::ListSort(int num, int item)
 				m_RemoteSortItem = item;
 		}
 		m_RemoteList.SortItems(ListCompareFunc, (LPARAM)this);
-		tmp.Format(_T("RemoteSort_%s"), m_pSSh->m_HostName);
+		tmp.Format(_T("RemoteSort_%s"), (LPCTSTR)m_pSSh->m_HostName);
 		AfxGetApp()->WriteProfileInt(_T("CSFtp"), tmp, m_RemoteSortItem);
 		break;
 	}
@@ -2479,9 +2479,9 @@ void CSFtp::SetUpDownCount(int count)
 	m_UpDownStat[0].EnableWindow(m_UpDownCount > 0);
 
 	if ( m_UpDownCount > 0 )
-		tmp.Format(_T("SFtp(%d) - %s"), m_UpDownCount, m_pSSh->m_pDocument->GetTitle());
+		tmp.Format(_T("SFtp(%d) - %s"), m_UpDownCount, (LPCTSTR)m_pSSh->m_pDocument->GetTitle());
 	else {
-		tmp.Format(_T("SFtp - %s"), m_pSSh->m_pDocument->GetTitle());
+		tmp.Format(_T("SFtp - %s"), (LPCTSTR)m_pSSh->m_pDocument->GetTitle());
 		m_TotalSize = m_TotalPos = 0;
 	}
 
@@ -2876,13 +2876,13 @@ BOOL CSFtp::OnInitDialog()
 	m_LocalCwdHis.RemoveAll();
 	m_RemoteCwdHis.RemoveAll();
 	for ( n = 1 ; n < 10 ; n++ ) {
-		tmp.Format(_T("LoCurDir_%s_%d"), m_pSSh->m_HostName, n);
+		tmp.Format(_T("LoCurDir_%s_%d"), (LPCTSTR)m_pSSh->m_HostName, n);
 		tmp = AfxGetApp()->GetProfileString(_T("CSFtp"), tmp, _T(""));
 		if ( !tmp.IsEmpty() && m_LocalCwd.FindStringExact((-1), tmp) == CB_ERR ) {
 			m_LocalCwdHis.AddTail(tmp);
 			m_LocalCwd.AddString(tmp);
 		}
-		tmp.Format(_T("ReCurDir_%s_%d"), m_pSSh->m_HostName, n);
+		tmp.Format(_T("ReCurDir_%s_%d"), (LPCTSTR)m_pSSh->m_HostName, n);
 		tmp = AfxGetApp()->GetProfileString(_T("CSFtp"), tmp, _T(""));
 		if ( !tmp.IsEmpty() && m_RemoteCwd.FindStringExact((-1), tmp) == CB_ERR ) {
 			m_RemoteCwdHis.AddTail(tmp);
@@ -2890,16 +2890,16 @@ BOOL CSFtp::OnInitDialog()
 		}
 	}
 
-	tmp.Format(_T("LocalSort_%s"), m_pSSh->m_HostName);
+	tmp.Format(_T("LocalSort_%s"), (LPCTSTR)m_pSSh->m_HostName);
 	m_LocalSortItem  = AfxGetApp()->GetProfileInt(_T("CSFtp"), tmp, 0);
-	tmp.Format(_T("RemoteSort_%s"), m_pSSh->m_HostName);
+	tmp.Format(_T("RemoteSort_%s"), (LPCTSTR)m_pSSh->m_HostName);
 	m_RemoteSortItem = AfxGetApp()->GetProfileInt(_T("CSFtp"), tmp, 0);
 
-	tmp.Format(_T("LoCurDir_%s_%d"), m_pSSh->m_HostName, 0);
+	tmp.Format(_T("LoCurDir_%s_%d"), (LPCTSTR)m_pSSh->m_HostName, 0);
 	work  = ::AfxGetApp()->GetProfileString(_T("CSFtp"), tmp, _T("."));
 	LocalSetCwd(work);
 
-	tmp.Format(_T("RemoteUidGid_%s"), m_pSSh->m_HostName);
+	tmp.Format(_T("RemoteUidGid_%s"), (LPCTSTR)m_pSSh->m_HostName);
 	m_bUidGid = AfxGetApp()->GetProfileInt(_T("CSFtp"), tmp, FALSE);
 
 	if ( m_bUidGid ) {
@@ -2907,7 +2907,7 @@ BOOL CSFtp::OnInitDialog()
 		MemLoadFile(_T("/etc/group"),  ENDCMD_GROUPFILE);
 	}
 
-	tmp.Format(_T("ReCurDir_%s_%d"), m_pSSh->m_HostName, 0);
+	tmp.Format(_T("ReCurDir_%s_%d"), (LPCTSTR)m_pSSh->m_HostName, 0);
 	work = ::AfxGetApp()->GetProfileString(_T("CSFtp"), tmp, _T("."));
 	RemoteSetCwd(work, FALSE);
 	SendWaitQue();
@@ -3188,7 +3188,7 @@ BOOL CSFtp::DescriptorFiles(HWND hWnd, HGLOBAL hDescInfo, DROPEFFECT dropEffect,
 
 		TempPath.Format(_T("%s%s"), TempDir, pGroupDesc->fgd[n].cFileName);
 		if ( !TempFile.Open(TempPath, CFile::modeCreate | CFile::modeWrite | CFile::shareExclusive, NULL) ) {
-			ThreadMessageBox(_T("OpenFile Error %s"), TempPath);
+			ThreadMessageBox(_T("OpenFile Error %s"), (LPCTSTR)TempPath);
 			break;
 		}
 
@@ -3201,13 +3201,13 @@ BOOL CSFtp::DescriptorFiles(HWND hWnd, HGLOBAL hDescInfo, DROPEFFECT dropEffect,
 			pFile->Close();
 			delete pFile;
 		} catch(...) {
-			ThreadMessageBox(_T("CopyFile Error %s"), TempPath);
+			ThreadMessageBox(_T("CopyFile Error %s"), (LPCTSTR)TempPath);
 			break;
 		}
 
 		if ( (pGroupDesc->fgd[n].dwFlags & FD_WRITESTIME) != 0 ) {
 			if ( !CFile::GetStatus(TempPath, FileStatus) ) {
-				ThreadMessageBox(_T("GetStatus Error %s"), TempPath);
+				ThreadMessageBox(_T("GetStatus Error %s"), (LPCTSTR)TempPath);
 				break;
 			}
 
@@ -3222,7 +3222,7 @@ BOOL CSFtp::DescriptorFiles(HWND hWnd, HGLOBAL hDescInfo, DROPEFFECT dropEffect,
 
 		if ( hWnd == m_RemoteList.m_hWnd ) {
 			if ( !node.GetFileStat(TempPath, pGroupDesc->fgd[n].cFileName) ) {
-				ThreadMessageBox(_T("GetFileStatus Error %s"), TempPath);
+				ThreadMessageBox(_T("GetFileStatus Error %s"), (LPCTSTR)TempPath);
 				break;
 			}
 			UpLoadFile(&node, node.GetRemotePath(m_RemoteCurDir, this), TRUE);
@@ -3722,7 +3722,7 @@ void CSFtp::OnSftpUidgid()
 	RemoteSetCwd(m_RemoteCurDir, FALSE);
 	SendWaitQue();
 
-	tmp.Format(_T("RemoteUidGid_%s"), m_pSSh->m_HostName);
+	tmp.Format(_T("RemoteUidGid_%s"), (LPCTSTR)m_pSSh->m_HostName);
 	AfxGetApp()->WriteProfileInt(_T("CSFtp"), tmp, m_bUidGid);
 }
 

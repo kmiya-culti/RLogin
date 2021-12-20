@@ -4,7 +4,9 @@
 /////////////////////////////////////////////////////////////////////////////
 // CColParaDlg ダイアログ
 
-extern	const COLORREF	ColSetTab[11][16];
+#define	COLSETTABMAX	13
+
+extern	const COLORREF	ColSetTab[COLSETTABMAX][16];
 
 class CColParaDlg : public CTreePage
 {
@@ -44,6 +46,7 @@ public:
 	int m_Huecol[3];
 
 public:
+	void ColSetCheck();
 	void DoInit();
 	void SetDarkLight();
 	COLORREF EditColor(int num);

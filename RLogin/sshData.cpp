@@ -1154,7 +1154,7 @@ BOOL CXmssKey::LoadStateFile(LPCTSTR fileName)
 	if ( (n = baseName.ReverseFind(_T('.'))) >= 0 )
 		baseName.Delete(n, baseName.GetLength() - n);
 
-	statFile.Format(_T("%s.xmss"), baseName);
+	statFile.Format(_T("%s.xmss"), (LPCTSTR)baseName);
 
 	try {
 		if ( !file.Open(statFile, CFile::modeRead | CFile::shareExclusive) )
@@ -1239,8 +1239,8 @@ BOOL CXmssKey::SaveStateFile(LPCTSTR fileName)
 	if ( (n = baseName.ReverseFind(_T('.'))) >= 0 )
 		baseName.Delete(n, baseName.GetLength() - n);
 
-	statFile.Format(_T("%s.xmss"), baseName);
-	oldFile.Format(_T("%s.omss"), baseName);
+	statFile.Format(_T("%s.xmss"), (LPCTSTR)baseName);
+	oldFile.Format(_T("%s.omss"), (LPCTSTR)baseName);
 
 	DeleteFile(oldFile);
 	_trename(statFile, oldFile);
@@ -2167,14 +2167,18 @@ int CIdKey::HostVerify(LPCTSTR host, UINT port, class Cssh *pSsh)
 		BYTE digest[1];
 	} *t;
 	ADDRINFOT hints, *ai;
+	CString PunyName;
 
 	if ( pSsh != NULL )
 		pSsh->m_bKnownHostUpdate = TRUE;
 
-	if (  pSsh != NULL && pSsh->m_pDocument != NULL && !pSsh->m_pDocument->m_TextRam.IsOptEnable(TO_DNSSSSHFP) ) {
+	if (  pSsh != NULL && pSsh->m_pDocument != NULL && pSsh->m_pDocument->m_TextRam.IsOptEnable(TO_DNSSSSHFP) ) {
 		memset(&hints, 0, sizeof(hints));
 		hints.ai_socktype = SOCK_DGRAM;
 		hints.ai_flags = AI_NUMERICHOST;
+
+		pSsh->PunyCodeAdress(host, PunyName);
+		host = PunyName;
 
 		if ( GetAddrInfo(host, NULL, &hints, &ai) == 0 )
 			FreeAddrInfo(ai);
@@ -2193,19 +2197,22 @@ int CIdKey::HostVerify(LPCTSTR host, UINT port, class Cssh *pSsh)
 			case IDKEY_ED25519:
 				type = SSHFP_KEY_ED25519;
 				break;
+			case IDKEY_ED448:
+				type = SSHFP_KEY_ED448;
+				break;
 			case IDKEY_XMSS:
 				type = SSHFP_KEY_XMSS;
 				break;
 			}
 
-			if ( type != SSHFP_KEY_RESERVED && (n = DnsQuery(host, DNS_RDATATYPE_SSHFP, DNS_QUERY_STANDARD, NULL, &rec, NULL)) == 0 ) {
+			if ( type != SSHFP_KEY_RESERVED && (n = DnsQuery(host, DNS_TYPE_SSHFP, DNS_QUERY_STANDARD, NULL, &rec, NULL)) == 0 ) {
 				found = 0;
 				for ( p = rec ; p != NULL ; p = p->pNext ) {
 					TRACE("rec %d\n", p->wType);
-					if ( p->wType != DNS_RDATATYPE_SSHFP )
+					if ( p->wType != DNS_TYPE_SSHFP )
 						continue;
 					t = (struct _DNS_SSHFP_DATA *)&(p->Data.Null);
-					if ( t->type == SSHFP_KEY_RSA || t->type == SSHFP_KEY_DSA || t->type == SSHFP_KEY_ECDSA || t->type == SSHFP_KEY_ED25519 || t->type == SSHFP_KEY_XMSS ) {
+					if ( t->type == SSHFP_KEY_RSA || t->type == SSHFP_KEY_DSA || t->type == SSHFP_KEY_ECDSA || t->type == SSHFP_KEY_ED25519 || t->type == SSHFP_KEY_ED448 || t->type == SSHFP_KEY_XMSS ) {
 						found |= 001;
 						if ( t->type == type && DnsDigest(t->hash, digest) && p->wDataLength == (digest.GetSize() + 2) && memcmp(t->digest, digest.GetPtr(), digest.GetSize()) == 0 )
 							found |= 002;
@@ -2224,7 +2231,7 @@ int CIdKey::HostVerify(LPCTSTR host, UINT port, class Cssh *pSsh)
 	found = FALSE;
 	WritePublicKey(dig, FALSE);
 
-	kname.Format(_T("%s:%d"), host, port);
+	kname.Format(_T("%s:%d"), (LPCTSTR)host, port);
 	pApp->GetProfileStringArray(_T("KnownHosts"), kname, entry);
 
 	if ( entry.GetSize() == 0 ) {
@@ -4435,9 +4442,9 @@ int CIdKey::LoadPuttyKey(FILE *fp, LPCTSTR pass)
 		int n, len;
 		int type = IDKEY_NONE;
 		CString line, para;
-		CString encname, comment;
+		CString keyname, encname, comment;
 		CString pubkey, prikey;
-		CBuffer pubblob(-1), priblob(-1);
+		CBuffer pubblob(-1), priblob(-1), encblob(-1);
 		CStringA str;
 		int version = 0;
 		CString keyDeriv;
@@ -4445,12 +4452,14 @@ int CIdKey::LoadPuttyKey(FILE *fp, LPCTSTR pass)
 		int argon2Passes = 0;
 		int argon2Parallelism = 0;
 		CString argon2Salt;
+		CString private_mac;
 
 		fseek(fp, 0L, SEEK_SET);
 
 		while ( fgetline(fp, line) != NULL ) {
 			if ( getparse(line, _T("PuTTY-User-Key-File-3"), para) || getparse(line, _T("PuTTY-User-Key-File-2"), para) || getparse(line, _T("PuTTY-User-Key-File-1"), para) ) {
 				version = _tstoi((LPCTSTR)line + 20);
+				keyname = para;
 				if ( para.CompareNoCase(_T("ssh-dss")) == 0 )
 					type = IDKEY_DSA2;
 				else if ( para.CompareNoCase(_T("ssh-rsa")) == 0 )
@@ -4490,6 +4499,9 @@ int CIdKey::LoadPuttyKey(FILE *fp, LPCTSTR pass)
 				prikey.Empty();
 				for ( n = 0 ; n < len && fgetline(fp, line) != NULL ; n++ )
 					prikey += line;
+
+			} else if ( getparse(line, _T("Private-MAC"), para) ) {
+				private_mac = para;
 			}
 		}
 
@@ -4500,7 +4512,7 @@ int CIdKey::LoadPuttyKey(FILE *fp, LPCTSTR pass)
 			throw _T("key file version 3 format error");
 
 		pubblob.Base64Decode(pubkey);
-		priblob.Base64Decode(prikey);
+		encblob.Base64Decode(prikey);
 
 		if ( encname.Compare(_T("none")) != 0 ) {
 			int i;
@@ -4510,7 +4522,9 @@ int CIdKey::LoadPuttyKey(FILE *fp, LPCTSTR pass)
 			u_char key[128], ctr[4];
 			CStringA mbs(pass);
 			CCipher cip;
-			CBuffer blob, tmp, salt, empty;
+			CBuffer tmp, salt, empty;
+			HMAC_CTX *hmac_ctx;
+			BYTE hash[EVP_MAX_MD_SIZE];
 
 			if ( cip.GetIndex(encname) < 0 )
 				throw _T("Chipher not suppoertd");
@@ -4554,9 +4568,30 @@ int CIdKey::LoadPuttyKey(FILE *fp, LPCTSTR pass)
 			if ( cip.Init(encname, MODE_DEC, key, keylen, key + keylen) )
 				throw _T("Chipher init error");
 
-			cip.Cipher(priblob.GetPtr(), priblob.GetSize(), &blob);
-			priblob = blob;
-		}
+			cip.Cipher(encblob.GetPtr(), encblob.GetSize(), &priblob);
+
+			if ( version == 3 ) {
+				tmp.Clear();
+				tmp.PutStr(TstrToMbs(keyname));
+				tmp.PutStr(TstrToMbs(encname));
+				tmp.PutStr(TstrToMbs(comment));
+				tmp.PutBuf(pubblob.GetPtr(), pubblob.GetSize());
+				tmp.PutBuf(priblob.GetPtr(), priblob.GetSize());
+
+				hmac_ctx = HMAC_CTX_new();
+				HMAC_Init(hmac_ctx, key + keylen + ivlen, maclen, EVP_sha256());
+				HMAC_Update(hmac_ctx, tmp.GetPtr(), tmp.GetSize());
+				HMAC_Final(hmac_ctx, hash, &len);
+				HMAC_CTX_free(hmac_ctx);
+
+				salt.Base16Decode(private_mac);
+
+				if ( memcmp(hash, salt.GetPtr(), len) != 0 )
+					throw _T("Private Mac error");
+			}
+
+		} else
+			priblob = encblob;
 
 		Create(type);
 
@@ -4668,7 +4703,157 @@ int CIdKey::LoadPuttyKey(FILE *fp, LPCTSTR pass)
 		return FALSE;
 	}
 }
+static void putbase16(FILE *fp, LPCSTR tag, LPCTSTR base)
+{
+	int n = 0;
+	CStringA mbs;
 
+	fprintf(fp, "%s: %d\n", tag, ((int)_tcslen(base) + 63) / 64);
+
+	while ( *base != _T('\0') ) {
+		mbs += *(base++);
+		if ( ++n >= 64 ) {
+			fputs(mbs, fp);
+			fputs("\n", fp);
+			mbs.Empty();
+			n = 0;
+		}
+	}
+
+	if ( !mbs.IsEmpty() ) {
+		fputs(mbs, fp);
+		fputs("\n", fp);
+	}
+}
+int CIdKey::SavePuttyKey(FILE *fp, LPCTSTR pass)
+{
+	unsigned int len;
+	int keylen, ivlen, maclen = 32;
+	LPCTSTR encname = _T("aes256-cbc");
+	CBuffer pubblob(-1), priblob(-1), padblob(-1), encblob(-1);
+	CBuffer tmp(-1), salt(-1), empty;
+	CCipher cip;
+	HMAC_CTX *hmac_ctx;
+	BYTE key[128];
+	BYTE hash[EVP_MAX_MD_SIZE];
+
+	switch(m_Type) {
+	case IDKEY_RSA2:
+		{
+			BIGNUM const *n = NULL, *e = NULL, *d = NULL, *p = NULL, *q = NULL, *iqmp = NULL;
+
+			RSA_get0_key(m_Rsa, &n, &e, &d);
+			RSA_get0_factors(m_Rsa, &p, &q);
+			RSA_get0_crt_params(m_Rsa, NULL, NULL, &iqmp);
+
+			pubblob.PutStr("ssh-rsa");
+			pubblob.PutBIGNUM2(e);
+			pubblob.PutBIGNUM2(n);
+
+			priblob.PutBIGNUM2(d);
+			priblob.PutBIGNUM2(p);
+			priblob.PutBIGNUM2(q);
+			priblob.PutBIGNUM2(iqmp);
+		}
+		break;
+	case IDKEY_DSA2:
+		{
+			BIGNUM const *p = NULL, *q = NULL, *g = NULL;
+			BIGNUM const *pub_key = NULL, *priv_key = NULL;
+
+			DSA_get0_pqg(m_Dsa, &p, &q, &g);
+			DSA_get0_key(m_Dsa, &pub_key, &priv_key);
+
+			pubblob.PutStr("ssh-dss");
+			pubblob.PutBIGNUM2(p);
+			pubblob.PutBIGNUM2(q);
+			pubblob.PutBIGNUM2(g);
+			pubblob.PutBIGNUM2(pub_key);
+
+			priblob.PutBIGNUM2(priv_key);
+		}
+		break;
+	case IDKEY_ECDSA:
+		pubblob.PutStr(TstrToMbs(GetName(FALSE)));
+		pubblob.PutStr(TstrToMbs(GetEcNameFromNid(m_EcNid)));
+		pubblob.PutEcPoint(EC_KEY_get0_group(m_EcDsa), EC_KEY_get0_public_key(m_EcDsa));
+
+		priblob.PutBIGNUM2(EC_KEY_get0_private_key(m_EcDsa));
+		break;
+	case IDKEY_ED25519:
+		pubblob.PutStr("ssh-ed25519");
+		pubblob.PutBuf(m_PublicKey.GetPtr(), m_PublicKey.GetSize());
+
+		priblob.PutBuf(m_PrivateKey.GetPtr(), m_PrivateKey.GetSize());
+		break;
+	case IDKEY_ED448:
+		pubblob.PutStr("ssh-ed448");
+		pubblob.PutBuf(m_PublicKey.GetPtr(), m_PublicKey.GetSize());
+
+		priblob.PutBuf(m_PrivateKey.GetPtr(), m_PrivateKey.GetSize());
+		break;
+	default:
+		return FALSE;
+	}
+
+	if ( cip.GetIndex(encname) < 0 )
+		return FALSE;
+
+	keylen = cip.GetKeyLen(encname);
+	ivlen = cip.GetIvSize(encname);
+
+	ASSERT((keylen + ivlen + maclen) <= 128);
+
+	tmp = TstrToMbs(pass);
+	rand_buf(salt.PutSpc(16), 16);
+
+	// Argon2id=2, Argon2-Memory=8192, Argon2-Passes=21, Argon2-Parallelism=1
+	argon2(2, 8192, 21, 1, &tmp, &salt, &empty, &empty, key, keylen + ivlen + maclen);
+
+	if ( cip.Init(encname, MODE_ENC, key, keylen, key + keylen) )
+		return FALSE;
+
+	padblob.PutSpc(((priblob.GetSize() + 15) / 16) * 16);
+	memcpy(padblob.GetPtr(), priblob.GetPtr(), priblob.GetSize());
+	rand_buf(padblob.GetPtr() + priblob.GetSize(), padblob.GetSize() - priblob.GetSize());
+	cip.Cipher(padblob.GetPtr(), padblob.GetSize(), &encblob);
+
+	fprintf(fp, "PuTTY-User-Key-File-3: %s\n", TstrToMbs(GetName(FALSE)));
+	fputs("Encryption: aes256-cbc\n", fp);
+	fprintf(fp, "Comment: %s\n", TstrToMbs(m_Name));
+
+	tmp.Base64Encode(pubblob.GetPtr(), pubblob.GetSize());
+	putbase16(fp, "Public-Lines", (LPCTSTR)tmp);
+
+	fputs("Key-Derivation: Argon2id\n", fp);
+	fputs("Argon2-Memory: 8192\n", fp);
+	fputs("Argon2-Passes: 21\n", fp);
+	fputs("Argon2-Parallelism: 1\n", fp);
+
+	tmp.Base16Encode(salt.GetPtr(), salt.GetSize());
+	fprintf(fp, "Argon2-Salt: %s\n", TstrToMbs((LPCTSTR)tmp));
+
+	tmp.Base64Encode(encblob.GetPtr(), encblob.GetSize());
+	putbase16(fp, "Private-Lines", (LPCTSTR)tmp);
+
+	tmp.Clear();
+	tmp.PutStr(TstrToMbs(GetName(FALSE)));
+	tmp.PutStr(TstrToMbs(encname));
+	tmp.PutStr(TstrToMbs(m_Name));
+	tmp.PutBuf(pubblob.GetPtr(), pubblob.GetSize());
+	tmp.PutBuf(padblob.GetPtr(), padblob.GetSize());
+
+	hmac_ctx = HMAC_CTX_new();
+	HMAC_Init(hmac_ctx, key + keylen + ivlen, maclen, EVP_sha256());
+	HMAC_Update(hmac_ctx, tmp.GetPtr(), tmp.GetSize());
+	HMAC_Final(hmac_ctx, hash, &len);
+	HMAC_CTX_free(hmac_ctx);
+
+	tmp.Base16Encode(hash, len);
+	fprintf(fp, "Private-MAC: %s\n", TstrToMbs((LPCTSTR)tmp));
+
+	return TRUE;
+}
 int CIdKey::SetEvpPkey(EVP_PKEY *pk)
 {
 	switch(EVP_PKEY_id(pk)) {
@@ -4772,13 +4957,13 @@ ENDOF:
 
 	return TRUE;
 }
-int CIdKey::SavePrivateKey(int type, LPCTSTR file, LPCTSTR pass)
+int CIdKey::SavePrivateKey(int fmt, LPCTSTR file, LPCTSTR pass)
 {
 	FILE *fp;
 	int rt = FALSE;
 	CStringA mbs(pass);
-//	const EVP_CIPHER *cipher = EVP_des_ede3_cbc();
 	const EVP_CIPHER *cipher = EVP_aes_128_cbc();
+	EVP_PKEY *pkey;
 
 	if ( !Init(pass) )
 		return FALSE;
@@ -4788,39 +4973,44 @@ int CIdKey::SavePrivateKey(int type, LPCTSTR file, LPCTSTR pass)
 			return FALSE;
 	}
 
-	((CRLoginApp *)AfxGetApp())->SSL_Init();
-
 	if ( (fp = _tfopen(file, _T("wb"))) == NULL )
 		return FALSE;
 
-	switch(type) {
-	case IDKEY_RSA1:
-		if ( m_Rsa != NULL )
-			rt = SaveRsa1Key(fp, pass);
+	switch(m_Type) {
+	case IDKEY_RSA1: fmt = EXPORT_STYLE_OLDRSA;  break;
+	case IDKEY_XMSS: fmt = EXPORT_STYLE_OPENSSH; break;
+	}
+
+	switch(fmt) {
+	case EXPORT_STYLE_OPENSSL:
+		((CRLoginApp *)AfxGetApp())->SSL_Init();
+		switch(m_Type) {
+		case IDKEY_RSA2:
+			rt = PEM_write_RSAPrivateKey(fp, m_Rsa, (mbs.IsEmpty() ? NULL : cipher), (unsigned char *)(mbs.IsEmpty() ? NULL : (LPCSTR)mbs), mbs.GetLength(), NULL, NULL);
+			break;
+		case IDKEY_DSA2:
+			rt = PEM_write_DSAPrivateKey(fp, m_Dsa, (mbs.IsEmpty() ? NULL : cipher), (unsigned char *)(mbs.IsEmpty() ? NULL : (LPCSTR)mbs), mbs.GetLength(), NULL, NULL);
+			break;
+		case IDKEY_ECDSA:
+			rt = PEM_write_ECPrivateKey(fp, m_EcDsa, (mbs.IsEmpty() ? NULL : cipher), (unsigned char *)(mbs.IsEmpty() ? NULL : (LPCSTR)mbs), mbs.GetLength(), NULL, NULL);
+			break;
+		case IDKEY_ED25519:
+		case IDKEY_ED448:
+			if ( (pkey = EVP_PKEY_new_raw_private_key((m_Type == IDKEY_ED25519 ? EVP_PKEY_ED25519 : EVP_PKEY_ED448), NULL, m_PrivateKey.GetPtr(), m_PrivateKey.GetSize())) == NULL )
+				break;
+			rt = PEM_write_PrivateKey(fp, pkey, (mbs.IsEmpty() ? NULL : cipher), (unsigned char *)(mbs.IsEmpty() ? NULL : (LPCSTR)mbs), mbs.GetLength(), NULL, NULL);
+			EVP_PKEY_free(pkey);
+			break;
+		}
 		break;
-	case IDKEY_RSA2:
-		if ( m_Rsa != NULL )
-			rt = PEM_write_RSAPrivateKey(fp, m_Rsa, 
-				(mbs.IsEmpty() ? NULL : cipher), (unsigned char *)(mbs.IsEmpty() ? NULL : (LPCSTR)mbs), mbs.GetLength(), NULL, NULL);
+	case EXPORT_STYLE_OPENSSH:
+		rt = SaveOpenSshKey(fp, pass);
 		break;
-	case IDKEY_DSA2:
-		if ( m_Dsa != NULL )
-			rt = PEM_write_DSAPrivateKey(fp, m_Dsa,
-				(mbs.IsEmpty() ? NULL : cipher), (unsigned char *)(mbs.IsEmpty() ? NULL : (LPCSTR)mbs), mbs.GetLength(), NULL, NULL);
+	case EXPORT_STYLE_PUTTY:
+		rt = SavePuttyKey(fp, pass);
 		break;
-	case IDKEY_ECDSA:
-		if ( m_EcDsa != NULL )
-			rt = PEM_write_ECPrivateKey(fp, m_EcDsa,
-				(mbs.IsEmpty() ? NULL : cipher), (unsigned char *)(mbs.IsEmpty() ? NULL : (LPCSTR)mbs), mbs.GetLength(), NULL, NULL);
-		break;
-	case IDKEY_ED25519:
-	case IDKEY_ED448:
-		if ( m_PublicKey.GetSize() > 0 && m_PrivateKey.GetSize() > 0 )
-			rt = SaveOpenSshKey(fp, pass);
-		break;
-	case IDKEY_XMSS:
-		if ( m_XmssKey.m_oId != 0 && m_XmssKey.m_pPubBuf != NULL && m_XmssKey.m_pSecBuf != NULL )
-			rt = SaveOpenSshKey(fp, pass);
+	case EXPORT_STYLE_OLDRSA:
+		rt = SaveRsa1Key(fp, pass);
 		break;
 	}
 	

@@ -106,6 +106,12 @@
 #define SSH2_MSG_KEX_ECDH_INIT				30
 #define SSH2_MSG_KEX_ECDH_REPLY 			31
 
+/* rsa1024-sha1/rsa2048-sha256 */
+
+#define	SSH2_MSG_KEXRSA_PUBKEY				30
+#define	SSH2_MSG_KEXRSA_SECRET				31
+#define	SSH2_MSG_KEXRSA_DONE				32
+
 /* user authentication: generic */
 
 #define SSH2_MSG_USERAUTH_REQUEST			50

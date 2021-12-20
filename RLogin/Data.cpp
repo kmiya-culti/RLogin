@@ -65,7 +65,10 @@ BOOL IsZeroMemory(void *ptr, int len)
 #else
 	BYTE *p = (BYTE *)ptr;
 
-	if ( *p == 0 && memcmp(p, p + 1, len - 1) == 0 )
+	if ( len <= 0 )
+		return FALSE;
+
+	if ( *p == 0 && memcmp(p, p + 1, (size_t)len - 1) == 0 )
 		return TRUE;
 
 	return FALSE;
@@ -132,7 +135,7 @@ CBuffer::CBuffer()
 {
 	m_bZero = FALSE;
 	m_Ofs = m_Len = 0;
-	m_Max = 32;
+	m_Max = CBUFINITSIZE;
 	m_Data = new BYTE[m_Max];
 }
 CBuffer::~CBuffer()
@@ -156,7 +159,7 @@ void CBuffer::RemoveAll()
 	delete [] m_Data;
 
 	m_Len = m_Ofs = 0;
-	m_Max = 32;
+	m_Max = CBUFINITSIZE;
 	m_Data = new BYTE[m_Max];
 }
 void CBuffer::Move(CBuffer &data)
@@ -175,7 +178,7 @@ void CBuffer::Move(CBuffer &data)
 	m_Data = data.m_Data;
 
 	data.m_Len = data.m_Ofs = 0;
-	data.m_Max = 32;
+	data.m_Max = CBUFINITSIZE;
 	data.m_Data = new BYTE[data.m_Max];
 }
 void CBuffer::Swap(CBuffer &data)
@@ -220,7 +223,7 @@ void CBuffer::ReAlloc(int len)
 	}
 
 	int oldMax = m_Max;
-	m_Max = (len * 2 + NIMALLOC) & ~(NIMALLOC - 1);
+	m_Max = (len * 2 + CBUFNIMALLOC) & ~(CBUFNIMALLOC - 1);
 	LPBYTE tmp = new BYTE[m_Max];
 
 	if ( (m_Len -= m_Ofs) > 0 )
@@ -552,7 +555,7 @@ int CBuffer::GetStrT(CString &str)
 		throw _T("CBuffer GetStrT");
 
 	if ( len >=2 && m_Data[m_Ofs] == 0x00 && m_Data[m_Ofs + 1] == 0xFF ) {
-		memcpy(str.GetBufferSetLength((len - 2) / sizeof(TCHAR)), m_Data + m_Ofs + 2, len - 2);
+		memcpy(str.GetBufferSetLength((len - 2) / (int)sizeof(TCHAR)), m_Data + m_Ofs + 2, (size_t)(len - 2));
 
 	} else {
 		CStringA mbs;
@@ -2131,8 +2134,8 @@ BOOL CMenuLoad::GetPopUpMenu(UINT nId, CMenu &PopUpMenu)
 			tmp = _T("Key History");
 		pMenu->DeleteMenu(ID_MACRO_HIS1, MF_BYCOMMAND);
 		for ( n = 0 ; n < 5 ; n++ ) {
-			str.Format(_T("&%d %s"), n + 1, tmp);
-			pMenu->AppendMenu(MF_STRING, ID_MACRO_HIS1 + n, str);
+			str.Format(_T("&%d %s"), n + 1, (LPCTSTR)tmp);
+			pMenu->AppendMenu(MF_STRING, (UINT_PTR)(ID_MACRO_HIS1 + n), str);
 		}
 	}
 
@@ -2140,8 +2143,8 @@ BOOL CMenuLoad::GetPopUpMenu(UINT nId, CMenu &PopUpMenu)
 	if ( (pMenu = GetItemSubMenu(ID_CHARSCRIPT_END, &PopUpMenu)) != NULL ) {
 		tmp.LoadString(IDS_SCRIPTMENUSTR);
 		for ( n = 0 ; n < 5 ; n++ ) {
-			str.Format(_T("&%d %s"), n + 1, tmp);
-			pMenu->InsertMenu(ID_CHARSCRIPT_END, MF_BYCOMMAND, IDM_SCRIPT_MENU1 + n, str);
+			str.Format(_T("&%d %s"), n + 1, (LPCTSTR)tmp);
+			pMenu->InsertMenu(ID_CHARSCRIPT_END, MF_BYCOMMAND, (UINT_PTR)(IDM_SCRIPT_MENU1 + n), str);
 		}
 	}
 
@@ -2151,8 +2154,8 @@ BOOL CMenuLoad::GetPopUpMenu(UINT nId, CMenu &PopUpMenu)
 			tmp = _T("Clipboard History");
 		pMenu->DeleteMenu(IDM_CLIPBOARD_HIS1, MF_BYCOMMAND);
 		for ( n = 0 ; n < 10 ; n++ ) {
-			str.Format(_T("&%d %s"), (n + 1) % 10, tmp);
-			pMenu->AppendMenu(MF_STRING, IDM_CLIPBOARD_HIS1 + n, str);
+			str.Format(_T("&%d %s"), (n + 1) % 10, (LPCTSTR)tmp);
+			pMenu->AppendMenu(MF_STRING, (UINT_PTR)(IDM_CLIPBOARD_HIS1 + n), str);
 		}
 	}
 
@@ -2162,8 +2165,8 @@ BOOL CMenuLoad::GetPopUpMenu(UINT nId, CMenu &PopUpMenu)
 			tmp = _T("Window");
 		pMenu->DeleteMenu(IDM_FIRST_MDICHILD, MF_BYCOMMAND);
 		for ( n = 0 ; n < 10 ; n++ ) {
-			str.Format(_T("&%d %s"), (n + 1) % 10, tmp);
-			pMenu->AppendMenu(MF_STRING, AFX_IDM_FIRST_MDICHILD + n, str);
+			str.Format(_T("&%d %s"), (n + 1) % 10, (LPCTSTR)tmp);
+			pMenu->AppendMenu(MF_STRING, (UINT_PTR)(AFX_IDM_FIRST_MDICHILD + n), str);
 		}
 	}
 
@@ -3772,7 +3775,7 @@ void CStrScript::SetTreeNode(CStrScriptNode *np, CTreeCtrl &tree, HTREEITEM own)
 	if ( np == NULL )
 		return;
 
-	tmp.Format(_T("%s/%s"), np->m_RecvStr, np->m_SendStr);
+	tmp.Format(_T("%s/%s"), (LPCTSTR)np->m_RecvStr, (LPCTSTR)np->m_SendStr);
 
 	if ( (hti = tree.InsertItem(tmp, own, TVI_LAST)) == NULL )
 		return;
@@ -4231,7 +4234,7 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 		index[_T("Term")]  = m_TermName;
 		index[_T("IdKey")] = m_IdkeyName;
 
-		pass.Format(_T("TEST%s"), m_PassNameProvs);
+		pass.Format(_T("TEST%s"), (LPCTSTR)m_PassNameProvs);
 		key.EncryptStr(str, pass);
 		index[_T("Pass")]  = str;
 
@@ -4246,7 +4249,7 @@ void CServerEntry::SetIndex(int mode, CStringIndex &index)
 		index[_T("Proxy")][_T("Port")] = m_ProxyPortProvs;
 		index[_T("Proxy")][_T("User")] = m_ProxyUserProvs;
 
-		pass.Format(_T("TEST%s"), m_ProxyPassProvs);
+		pass.Format(_T("TEST%s"), (LPCTSTR)m_ProxyPassProvs);
 		key.EncryptStr(str, pass);
 		index[_T("Proxy")][_T("Pass")] = str;
 
@@ -4376,7 +4379,7 @@ void CServerEntry::DiffIndex(CServerEntry &orig, CStringIndex &index)
 		index[_T("IdKey")] = m_IdkeyName;
 
 	if ( m_PassNameProvs.Compare(orig.m_PassNameProvs) != 0 ) {
-		pass.Format(_T("TEST%s"), m_PassNameProvs);
+		pass.Format(_T("TEST%s"), (LPCTSTR)m_PassNameProvs);
 		key.EncryptStr(str, pass);
 		index[_T("Pass")]  = str;
 	}
@@ -4406,7 +4409,7 @@ void CServerEntry::DiffIndex(CServerEntry &orig, CStringIndex &index)
 		index[_T("Proxy")][_T("User")] = m_ProxyUserProvs;
 
 	if ( m_ProxyPassProvs.Compare(orig.m_ProxyPassProvs) != 0 ) {
-		pass.Format(_T("TEST%s"), m_PassNameProvs);
+		pass.Format(_T("TEST%s"), (LPCTSTR)m_PassNameProvs);
 		key.EncryptStr(str, pass);
 		index[_T("Pass")]  = str;
 	}
@@ -4588,7 +4591,7 @@ void CServerEntryTab::Serialize(int mode)
 		} else {
 			// 古いレジストリの削除を確認
 			CString msg;
-			msg.Format(CStringLoad(IDS_DELENTRYTABMSG), convcount, errcount);
+			msg.Format((LPCTSTR)CStringLoad(IDS_DELENTRYTABMSG), convcount, errcount);
 
 			if ( ::AfxMessageBox(msg, MB_ICONQUESTION | MB_YESNO) == IDYES )
 				((CRLoginApp *)AfxGetApp())->DelProfileSection(_T("ServerEntryTab"));
@@ -4989,7 +4992,7 @@ void CKeyNode::CommandLine(LPCWSTR str, CStringW &cmd)
 		} else
 			tmp += *(str++);
 	}
-	cmd.Format((LPCWSTR)m_Maps, tmp);
+	cmd.Format((LPCWSTR)m_Maps, (LPCWSTR)tmp);
 }
 void CKeyNode::SetComboList(CComboBox *pCombo)
 {
@@ -5031,7 +5034,7 @@ void CKeyCmds::SetMenu(CMenu *pMenu)
 {
 	CString str;
 
-	str.Format(_T("%s\t%s"), m_Text, m_Menu);
+	str.Format(_T("%s\t%s"), (LPCTSTR)m_Text, (LPCTSTR)m_Menu);
 	pMenu->ModifyMenu(m_Id, MF_BYCOMMAND | MF_STRING, m_Id, str);
 }
 void CKeyCmds::ResetMenu(CMenu *pMenu)
@@ -5399,7 +5402,7 @@ CKeyNode *CKeyNodeTab::FindMaps(int code, int mask)
 	if ( Find(code, mask, &n) )
 		return &(m_Node[n]);
 
-	while ( n > 0 && m_Node[n - 1].m_Code == code )
+	while ( n > 0 && m_Node[(INT_PTR)n - 1].m_Code == code )
 		n--;
 
 	if ( n >= GetSize() || m_Node[n].m_Code != code )
@@ -6414,7 +6417,7 @@ void CKeyMacTab::Add(CKeyMac &tmp)
 		}
 	}
 	if ( (n = (int)m_Data.GetSize()) > 10 )
-		m_Data.RemoveAt(n - 1);
+		m_Data.RemoveAt((INT_PTR)(n - 1));
 
 	m_Data.InsertAt(0, tmp);
 }
@@ -6438,8 +6441,8 @@ void CKeyMacTab::SetHisMenu(CMenu *pMenu)
 
 	for ( n = 0 ; n < 5 && n < m_Data.GetSize() ; n++ ) {
 		m_Data[n].GetMenuStr(tmp);
-		str.Format(_T("&%d %s"), n + 1, tmp);
-		pMenu->AppendMenu(MF_STRING, ID_MACRO_HIS1 + n, str);
+		str.Format(_T("&%d %s"), n + 1, (LPCTSTR)tmp);
+		pMenu->AppendMenu(MF_STRING, (UINT_PTR)(ID_MACRO_HIS1 + n), str);
 	}
 }
 
@@ -6532,7 +6535,8 @@ static LPCTSTR InitAlgo[12]= {
 	_T("diffie-hellman-group-exchange-sha256,diffie-hellman-group-exchange-sha1,") \
 	_T("diffie-hellman-group16-sha512,diffie-hellman-group15-sha512,diffie-hellman-group17-sha512,diffie-hellman-group18-sha512,") \
 	_T("diffie-hellman-group14-sha256,") \
-	_T("diffie-hellman-group14-sha1,diffie-hellman-group1-sha1"),
+	_T("diffie-hellman-group14-sha1,diffie-hellman-group1-sha1,") \
+	_T("rsa2048-sha256,rsa1024-sha1"),
 
 	_T("ecdsa-sha2-nistp256-cert-v01@openssh.com,ecdsa-sha2-nistp384-cert-v01@openssh.com,ecdsa-sha2-nistp521-cert-v01@openssh.com,") \
 	_T("ssh-ed25519-cert-v01@openssh.com,ssh-rsa-cert-v01@openssh.com,ssh-dss-cert-v01@openssh.com,") \
@@ -9164,7 +9168,7 @@ void CFileExt::Close()
 
 	if ( IsWriteError() ) {
 		CString msg;
-		msg.Format(_T("Have Write Error '%s'\n%s"), GetFilePath(), m_FileThread.m_ErrorMsg);
+		msg.Format(_T("Have Write Error '%s'\n%s"), (LPCTSTR)GetFilePath(), (LPCTSTR)m_FileThread.m_ErrorMsg);
 		::AfxMessageBox(msg, MB_ICONERROR);
 	}
 }
@@ -9679,6 +9683,7 @@ BOOL CCurPos::operator < (SIZE size)
 
 CDirDialog::CDirDialog()
 {
+	m_iImageIndex = 0;
 	m_bStatus = FALSE;
 }
 
@@ -9733,17 +9738,11 @@ BOOL CDirDialog::DoBrowse(CWnd *pwndParent)
     ZeroMemory ( (PVOID) &bInfo,sizeof (BROWSEINFO));
 
     if ( !m_strInitDir.IsEmpty() ) {
-        OLECHAR       olePath[MAX_PATH];
-        ULONG         chEaten;
-        ULONG         dwAttributes;
         HRESULT       hr;
         LPSHELLFOLDER pDesktopFolder;
 
         if ( SUCCEEDED(SHGetDesktopFolder(&pDesktopFolder)) ) {
-			_tcsncpy(olePath, m_strInitDir, MAX_PATH);
-
-            m_strInitDir.ReleaseBuffer(-1);
-            hr = pDesktopFolder->ParseDisplayName(NULL, NULL, olePath, &chEaten, &pidl, &dwAttributes);
+            hr = pDesktopFolder->ParseDisplayName(NULL, NULL, (LPWSTR)TstrToUni(m_strInitDir), NULL, &pidl, NULL);
 
             if ( FAILED(hr) ) {
                 pMalloc ->Free (pidl);

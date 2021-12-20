@@ -159,7 +159,7 @@ void CResTransDlg::TranslateProc(UINT msg, WPARAM wParam, LPARAM lParam)
 				CStringIndex index(TRUE, TRUE);
 				CString url, head;
 
-				head.Format(_T("Authorization: Bearer %s"), m_MsToken);
+				head.Format(_T("Authorization: Bearer %s"), (LPCTSTR)m_MsToken);
 
 				for ( m_TransNext = m_TransPos ; m_TransNext < m_TransMax && len < 1000 ; m_TransNext++ ) {
 					len += m_TransStrTab[m_TransNext].m_SourceString.GetLength();
@@ -168,7 +168,7 @@ void CResTransDlg::TranslateProc(UINT msg, WPARAM wParam, LPARAM lParam)
 
 				index.SetJsonFormat(mbs, 0, JSON_UTF8);
 
-				url.Format(_T("http://api.microsofttranslator.com/V2/Ajax.svc/TranslateArray?from=%s&to=%s&texts="), m_TransFrom, m_TransTo);
+				url.Format(_T("http://api.microsofttranslator.com/V2/Ajax.svc/TranslateArray?from=%s&to=%s&texts="), (LPCTSTR)m_TransFrom, (LPCTSTR)m_TransTo);
 				CHttpSession::QueryString(mbs, url);
 
 				CHttpThreadSession::Request(url, head, NULL, this);
@@ -241,7 +241,7 @@ void CResTransDlg::TranslateProc(UINT msg, WPARAM wParam, LPARAM lParam)
 				CString query;
 				CIConv iconv;
 
-				query.Format(_T("source=%s&target=%s&key="), m_TransFrom, m_TransTo);
+				query.Format(_T("source=%s&target=%s&key="), (LPCTSTR)m_TransFrom, (LPCTSTR)m_TransTo);
 				iconv.StrToRemote(_T("UTF-8"), m_ClientSecret, mbs);
 				CHttpSession::QueryString(mbs, query);
 
@@ -545,7 +545,7 @@ void CResTransDlg::OnBnClickedTransexec()
 	UpdateData(TRUE);
 
 	for ( seq = num = 0 ; num < m_TransStrTab.GetSize() ; seq++ ) {
-		file.Format(_T("D:\\Temp\\%s\\Translate%02d.txt"), m_TransTo, seq);
+		file.Format(_T("D:\\Temp\\%s\\Translate%02d.txt"), (LPCTSTR)m_TransTo, seq);
 		if ( !tmp.LoadFile(file) )
 			break;
 		tmp.KanjiConvert(tmp.KanjiCheck(KANJI_UTF8));
