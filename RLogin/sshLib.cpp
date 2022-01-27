@@ -35,20 +35,12 @@ static char THIS_FILE[]=__FILE__;
 #include "openssl/idea.h"
 #include "openssl/des.h"
 #include "openssl/rand.h"
+#include "openssl/sha.h"
 
-#if	OPENSSL_VERSION_NUMBER >= 0x1010105fL
 extern "C" {
-	#include "crypto/evp.h"
 	#include "crypto/chacha.h"
 	#include "crypto/poly1305.h"
 }
-#elif	OPENSSL_VERSION_NUMBER >= 0x10100000L
-extern "C" {
-	#include "internal/evp_int.h"
-	#include "internal/chacha.h"
-	#include "internal/poly1305.h"
-}
-#endif
 
 #ifndef _STDINT
 typedef unsigned char    uint8_t;
@@ -70,266 +62,144 @@ typedef          __int64 int64_t;
 	#include "nettle-2.0/clefia.cpp"
 #endif
 
-#if 0
-extern "C" {
-	#include "internal/cryptlib.h"
-
-	void *DEBUG_malloc(size_t size, const char *file, int line)
-	{
-		void *p = malloc(size);
-
-		if ( size == 40 )
-			TRACE("%08X %s(%d)\n", p, file, line);
-
-		return p;
-	}
-	void *DEBUG_realloc(void *pMem, size_t size, const char *file, int line)
-	{
-		return realloc(pMem, size);
-	}
-	void DEBUG_free(void *pMem, const char *file, int line)
-	{
-		free(pMem);
-	}
-}
-void DEBUG_init()
-{
-	CRYPTO_set_mem_functions(DEBUG_malloc, DEBUG_realloc, DEBUG_free);
-}
-#endif
-
 //////////////////////////////////////////////////////////////////////
 
-#if	OPENSSL_VERSION_NUMBER < 0x10100000L
+enum LEGACYNID {
+	Nids_seed_ctr,		Nids_bf_ctr,		Nids_cast5_ctr,		Nids_idea_ctr,		Nids_des3_ctr,
+	Nids_ssh1_3des,		Nids_ssh1_bf,		Nids_chachapoly_256,
+#ifdef	USE_NETTLE
+	Nids_twofish_ctr,	Nids_twofish_cbc,	Nids_serpent_ctr,	Nids_serpent_cbc,
+#endif
+#ifdef	USE_CLEFIA
+	Nids_clefia_ctr,	Nids_clefia_cbc,	
+#endif
+	LEGACYCIPHERMAX
+};
+static int LegacyEngineNids[LEGACYCIPHERMAX] = {
+	NID_undef,			NID_undef,			NID_undef,			NID_undef,			NID_undef,
+	NID_undef,			NID_undef,			NID_undef,			
+#ifdef	USE_NETTLE
+	NID_undef,			NID_undef,			NID_undef,			NID_undef,
+#endif
+#ifdef	USE_CLEFIA
+	NID_undef,			NID_undef,
+#endif
+};
+static EVP_CIPHER *LegacyEngineCipherMeth[LEGACYCIPHERMAX] = {
+	NULL,				NULL,				NULL,				NULL,				NULL,
+	NULL,				NULL,				NULL,
+#ifdef	USE_NETTLE
+	NULL,				NULL,				NULL,				NULL,
+#endif
+#ifdef	USE_CLEFIA
+	NULL,				NULL,
+#endif
+};
+static const EVP_CIPHER * (*LegacyEngineCipherTab[LEGACYCIPHERMAX])(void) = {
+	evp_seed_ctr,		evp_bf_ctr,			evp_cast5_ctr,		evp_idea_ctr,		evp_des3_ctr,
+	evp_ssh1_3des,		evp_ssh1_bf,		evp_chachapoly_256,	
+#ifdef	USE_NETTLE
+	evp_twofish_ctr,	evp_twofish_cbc,	evp_serpent_ctr,	evp_serpent_cbc,	
+#endif
+#ifdef	USE_CLEFIA
+	evp_clefia_ctr,		evp_clefia_cbc,	
+#endif
+};
+static const char *LegacyEngineObj[LEGACYCIPHERMAX][3] = {
+	{ "0.21.1.1",	"SEED-CTR",		"seed-ctr"		},	{ "0.21.2.1",	"BLOWFISH-CTR",	"blowfish-ctr"	},
+	{ "0.21.3.1",	"CAST5-CTR",	"cast5-ctr"		},	{ "0.21.4.1",	"IDEA-CTR",		"idea-ctr"		},
+	{ "0.21.5.1",	"3DES-CTR",		"3des-ctr"		},	{ "0.21.6.1",	"SSH1-3DES",	"ssh1-3des"		},
+	{ "0.21.6.2",	"SSH1-BLOWFISH","ssh1-blowfish"	},	{ "0.21.7.1",	"CHACHAPOLYSSH","chachapolyssh"	},
+#ifdef	USE_NETTLE
+	{ "0.21.8.1",	"TWOFISH-CTR",	"twofish-ctr"	},	{ "0.21.8.2",	"TWOFISH-CBC",	"twofish-cbc"	},
+	{ "0.21.9.1",	"SERPENT-CTR",	"serpent-ctr"	},	{ "0.21.9.2",	"SERPENT-CBC",	"serpent-cbc"	},
+#endif
+#ifdef	USE_CLEFIA
+	{ "0.21.10.1",	"CLEFIA-CTR",	"clefia-ctr"	},	{ "0.21.10.2",	"CLEFIA-CBC",	"clefia-cbc"	},
+#endif
+};
+static ENGINE *LegacyEngineCtx = NULL;
+static int LegacyEngineMin = 0;
 
-EVP_MD_CTX *EVP_MD_CTX_new(void)
+static int LegacyEngineCiphers(ENGINE *e, const EVP_CIPHER **cipher, const int **nids, int nid)
 {
-	EVP_MD_CTX *pCtx;
+	// ENGINE_register_ciphers		int num_nids = e->ciphers(e, NULL, &nids, 0);
+	// ENGINE_set_default_ciphers	int num_nids = e->ciphers(e, NULL, &nids, 0);
+	// ENGINE_get_cipher			!e->ciphers(e, &ret, NULL, nid)
 
-	if ( (pCtx = (EVP_MD_CTX *)malloc(sizeof(EVP_MD_CTX))) == NULL )
-		return NULL;
+	if ( nids != NULL ) {
+		*nids = LegacyEngineNids;
+		return LEGACYCIPHERMAX;
+	}
 
-	ZeroMemory(pCtx, sizeof(EVP_MD_CTX));
-	return pCtx;
-}
-void EVP_MD_CTX_free(EVP_MD_CTX *pCtx)
-{
-	if ( pCtx == NULL )
-		return;
-
-	ZeroMemory(pCtx, sizeof(EVP_MD_CTX));
-	free(pCtx);
-}
-HMAC_CTX *HMAC_CTX_new(void)
-{
-	HMAC_CTX *pHmac;
-
-	if ( (pHmac = (HMAC_CTX *)malloc(sizeof(HMAC_CTX))) == NULL )
-		return NULL;
-
-	ZeroMemory(pHmac, sizeof(HMAC_CTX));
-	return pHmac;
-}
-void HMAC_CTX_free(HMAC_CTX *pHmac)
-{
-	if ( pHmac == NULL )
-		return;
-
-	HMAC_CTX_cleanup(pHmac);
-	free(pHmac);
-}
-
-const EVP_CIPHER *EVP_CIPHER_CTX_cipher(const EVP_CIPHER_CTX *ctx)
-{
-    return ctx->cipher;
-}
-int EVP_CIPHER_CTX_block_size(const EVP_CIPHER_CTX *ctx)
-{
-    return ctx->cipher->block_size;
-}
-int EVP_CIPHER_CTX_encrypting(const EVP_CIPHER_CTX *ctx)
-{
-    return ctx->encrypt;
-}
-int EVP_PKEY_id(const EVP_PKEY *pkey)
-{
-    return pkey->type;
-}
-
-int RSA_bits(const RSA *r)
-{
-    return (BN_num_bits(r->n));
-}
-int RSA_size(const RSA *r)
-{
-    return (BN_num_bytes(r->n));
-}
-void RSA_get0_key(const RSA *r, const BIGNUM **n, const BIGNUM **e, const BIGNUM **d)
-{
-    if ( n != NULL ) *n = r->n;
-    if ( e != NULL ) *e = r->e;
-    if ( d != NULL ) *d = r->d;
-}
-void RSA_get0_factors(const RSA *r, const BIGNUM **p, const BIGNUM **q)
-{
-    if ( p != NULL ) *p = r->p;
-    if ( q != NULL ) *q = r->q;
-}
-void RSA_get0_crt_params(const RSA *r, const BIGNUM **dmp1, const BIGNUM **dmq1, const BIGNUM **iqmp)
-{
-    if ( dmp1 != NULL ) *dmp1 = r->dmp1;
-    if ( dmq1 != NULL ) *dmq1 = r->dmq1;
-    if ( iqmp != NULL ) *iqmp = r->iqmp;
-}
-int RSA_set0_key(RSA *r, BIGNUM *n, BIGNUM *e, BIGNUM *d)
-{
-    if ( (r->n == NULL && n == NULL) || (r->e == NULL && e == NULL) )
+	if ( cipher == NULL )
 		return 0;
 
-    if ( n != NULL ) { BN_free(r->n); r->n = n; }
-    if ( e != NULL ) { BN_free(r->e); r->e = e; }
-    if ( d != NULL ) { BN_free(r->d); r->d = d; }
+	int idx = LEGACYCIPHERMAX;
 
-    return 1;
-}
-int RSA_set0_factors(RSA *r, BIGNUM *p, BIGNUM *q)
-{
-    if ( (r->p == NULL && p == NULL) || (r->q == NULL && q == NULL) )
+	if ( LegacyEngineMin != 0 && nid >= LegacyEngineMin && nid < (LegacyEngineMin + LEGACYCIPHERMAX) )
+		idx = nid - LegacyEngineMin;
+	else {
+		for ( idx = 0 ; idx <  LEGACYCIPHERMAX ; idx++ ) {
+			if ( LegacyEngineNids[idx] == nid )
+				break;
+		}
+	}
+
+	if ( idx >= LEGACYCIPHERMAX || (*cipher = LegacyEngineCipherTab[idx]()) == NULL )
 		return 0;
-
-    if ( p != NULL ) { BN_free(r->p); r->p = p; }
-    if ( q != NULL ) { BN_free(r->q); r->q = q; }
-
-    return 1;
-}
-int RSA_set0_crt_params(RSA *r, BIGNUM *dmp1, BIGNUM *dmq1, BIGNUM *iqmp)
-{
-    if ( (r->dmp1 == NULL && dmp1 == NULL) || (r->dmq1 == NULL && dmq1 == NULL) || (r->iqmp == NULL && iqmp == NULL) )
-		return 0;
-
-    if ( dmp1 != NULL ) { BN_free(r->dmp1); r->dmp1 = dmp1; }
-    if ( dmq1 != NULL ) { BN_free(r->dmq1); r->dmq1 = dmq1; }
-    if ( iqmp != NULL ) { BN_free(r->iqmp); r->iqmp = iqmp; }
-
-    return 1;
-}
-
-int DSA_bits(const DSA *dsa)
-{
-    return BN_num_bits(dsa->p);
-}
-void DSA_get0_pqg(const DSA *d, const BIGNUM **p, const BIGNUM **q, const BIGNUM **g)
-{
-    if ( p != NULL ) *p = d->p;
-    if ( q != NULL ) *q = d->q;
-    if ( g != NULL ) *g = d->g;
-}
-int DSA_set0_pqg(DSA *d, BIGNUM *p, BIGNUM *q, BIGNUM *g)
-{
-    if ( (d->p == NULL && p == NULL) || (d->q == NULL && q == NULL) || (d->g == NULL && g == NULL) )
-		return 0;
-
-    if ( p != NULL ) { BN_free(d->p); d->p = p; }
-    if ( q != NULL ) { BN_free(d->q); d->q = q; }
-    if ( g != NULL ) { BN_free(d->g); d->g = g; }
-
-    return 1;
-}
-void DSA_get0_key(const DSA *d, const BIGNUM **pub_key, const BIGNUM **priv_key)
-{
-    if ( pub_key != NULL ) *pub_key = d->pub_key;
-    if ( priv_key != NULL ) *priv_key = d->priv_key;
-}
-int DSA_set0_key(DSA *d, BIGNUM *pub_key, BIGNUM *priv_key)
-{
-    if ( d->pub_key == NULL && pub_key == NULL )
-		return 0;
-
-    if ( pub_key != NULL ) { BN_free(d->pub_key); d->pub_key = pub_key; }
-    if ( priv_key != NULL ) { BN_free(d->priv_key); d->priv_key = priv_key; }
-
-    return 1;
-}
-
-void DSA_SIG_get0(const DSA_SIG *sig, const BIGNUM **pr, const BIGNUM **ps)
-{
-    if ( pr != NULL ) *pr = sig->r;
-    if ( ps != NULL ) *ps = sig->s;
-}
-int DSA_SIG_set0(DSA_SIG *sig, BIGNUM *r, BIGNUM *s)
-{
-    if ( r == NULL || s == NULL )
-		return 0;
-
-	BN_clear_free(sig->r);
-    BN_clear_free(sig->s);
-    sig->r = r;
-    sig->s = s;
 
 	return 1;
 }
-
-void ECDSA_SIG_get0(const ECDSA_SIG *sig, const BIGNUM **pr, const BIGNUM **ps)
+int LegacyEngineInit()
 {
-    if ( pr != NULL ) *pr = sig->r;
-    if ( ps != NULL ) *ps = sig->s;
-}
+	int n , min;
+	BOOL bSeq = TRUE;
 
-int ECDSA_SIG_set0(ECDSA_SIG *sig, BIGNUM *r, BIGNUM *s)
-{
-    if ( r == NULL || s == NULL )
+	if ( (LegacyEngineCtx = ENGINE_new()) == NULL )
 		return 0;
 
-    BN_clear_free(sig->r);
-    BN_clear_free(sig->s);
-    sig->r = r;
-    sig->s = s;
+	for ( n = 0 ; n < LEGACYCIPHERMAX ; n++ ) {
+		if ( LegacyEngineNids[n] == NID_undef )
+			LegacyEngineNids[n] = OBJ_create(LegacyEngineObj[n][0], LegacyEngineObj[n][1], LegacyEngineObj[n][2]);
 
-    return 1;
-}
+		ASSERT(LegacyEngineNids[n] != 0);
 
-int DH_bits(const DH *dh)
-{
-    return BN_num_bits(dh->p);
-}
-void DH_get0_pqg(const DH *dh, const BIGNUM **p, const BIGNUM **q, const BIGNUM **g)
-{
-    if ( p != NULL ) *p = dh->p;
-    if ( q != NULL ) *q = dh->q;
-    if ( g != NULL ) *g = dh->g;
-}
-int DH_set0_pqg(DH *dh, BIGNUM *p, BIGNUM *q, BIGNUM *g)
-{
-    if ( (dh->p == NULL && p == NULL) || (dh->g == NULL && g == NULL) )
-		return 0;
+		if ( n == 0 )
+			min = LegacyEngineNids[n];
 
-    if ( p != NULL ) { BN_free(dh->p); dh->p = p; }
-    if ( q != NULL ) { BN_free(dh->q); dh->q = q; dh->length = BN_num_bits(q); }
-    if ( g != NULL ) { BN_free(dh->g); dh->g = g; }
+		if ( LegacyEngineNids[n] != (min + n) )
+			bSeq = FALSE;
+	}
 
-    return 1;
-}
-void DH_get0_key(const DH *dh, const BIGNUM **pub_key, const BIGNUM **priv_key)
-{
-    if ( pub_key != NULL ) *pub_key = dh->pub_key;
-    if ( priv_key != NULL ) *priv_key = dh->priv_key;
-}
-int DH_set0_key(DH *dh, BIGNUM *pub_key, BIGNUM *priv_key)
-{
-    if ( dh->pub_key == NULL && pub_key == NULL )
-		return 0;
+	if ( bSeq )
+		LegacyEngineMin = min;
 
-    if ( pub_key != NULL ) { BN_free(dh->pub_key); dh->pub_key = pub_key; }
-    if ( priv_key != NULL ) { BN_free(dh->priv_key); dh->priv_key = priv_key; }
+	ENGINE_set_id(LegacyEngineCtx, "RLG");
+	ENGINE_set_name(LegacyEngineCtx, "RLOGIN");
+	ENGINE_set_ciphers(LegacyEngineCtx, LegacyEngineCiphers);
 
-    return 1;
+	ENGINE_register_ciphers(LegacyEngineCtx);
+	ENGINE_add(LegacyEngineCtx);
+
+	return 1;
 }
-int DH_set_length(DH *dh, long length)
+void LegacyEngineFree()
 {
-    dh->length = length;
-    return 1;
+	for ( int n = 0 ; n < LEGACYCIPHERMAX ; n++ ) {
+		if ( LegacyEngineCipherMeth[n] != NULL ) {
+			EVP_CIPHER_meth_free(LegacyEngineCipherMeth[n]);
+			LegacyEngineCipherMeth[n] = NULL;
+		}
+	}
+
+	if ( LegacyEngineCtx != NULL ) {
+		ENGINE_remove(LegacyEngineCtx);
+		ENGINE_unregister_ciphers(LegacyEngineCtx);
+		ENGINE_free(LegacyEngineCtx);
+		LegacyEngineCtx = NULL;
+	}
 }
-#endif
 
 //////////////////////////////////////////////////////////////////////
 
@@ -504,106 +374,6 @@ static int ssh_cipher_cleanup(EVP_CIPHER_CTX *ctx)
 
 //////////////////////////////////////////////////////////////////////
 
-struct ssh_aes_ctx
-{
-	struct mt_ctr_ctx	*mt_ctx;	// dont move !!
-	AES_KEY 			aes_ctx;
-	u_char  			aes_counter[AES_BLOCK_SIZE];
-};
-
-static void ssh_aes_enc(void *ctx, u_char *buf)
-{
-	struct ssh_aes_ctx *c = (struct ssh_aes_ctx *)ctx;
-
-	AES_encrypt(c->aes_counter, buf, &c->aes_ctx);
-	ssh_ctr_inc(c->aes_counter, AES_BLOCK_SIZE);
-}
-static int ssh_aes_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char *iv, int enc)
-{
-	struct ssh_aes_ctx *c;
-
-	if ((c = (struct ssh_aes_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL) {
-		c = (struct ssh_aes_ctx *)malloc(sizeof(*c));
-		memset(c, 0, sizeof(*c));
-		if ( EVP_CIPHER_CTX_cipher(ctx)->do_cipher == ssh_cipher_ctr )
-			c->mt_ctx = mt_init((void *)c, ssh_aes_enc);
-		EVP_CIPHER_CTX_set_app_data(ctx, c);
-	}
-	if (key != NULL)
-		AES_set_encrypt_key(key, EVP_CIPHER_CTX_key_length(ctx) * 8, &c->aes_ctx);
-	if (iv != NULL)
-		memcpy(c->aes_counter, iv, AES_BLOCK_SIZE);
-	return (1);
-}
-const EVP_CIPHER *evp_aes_128_ctr(void)
-{
-	static EVP_CIPHER aes_ctr;
-
-	memset(&aes_ctr, 0, sizeof(EVP_CIPHER));
-	aes_ctr.nid = NID_undef;
-	aes_ctr.block_size = AES_BLOCK_SIZE;
-	aes_ctr.iv_len = AES_BLOCK_SIZE;
-	aes_ctr.key_len = 16;
-	aes_ctr.init = ssh_aes_init;
-	aes_ctr.cleanup = ssh_cipher_cleanup;
-	aes_ctr.do_cipher = ssh_cipher_ctr;
-	aes_ctr.flags = EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV;
-
-	return (&aes_ctr);
-}
-
-//////////////////////////////////////////////////////////////////////
-
-struct ssh_camellia_ctx
-{
-	struct mt_ctr_ctx	*mt_ctx;		// dont move !!
-	CAMELLIA_KEY		camellia_ctx;
-	u_char				camellia_counter[CAMELLIA_BLOCK_SIZE];
-};
-
-static void ssh_camellia_enc(void *ctx, u_char *buf)
-{
-	struct ssh_camellia_ctx *c = (struct ssh_camellia_ctx *)ctx;
-
-	Camellia_encrypt(c->camellia_counter, buf, &c->camellia_ctx);
-	ssh_ctr_inc(c->camellia_counter, CAMELLIA_BLOCK_SIZE);
-}
-static int ssh_camellia_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char *iv, int enc)
-{
-	struct ssh_camellia_ctx *c;
-
-	if ((c = (struct ssh_camellia_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL) {
-		c = (struct ssh_camellia_ctx *)malloc(sizeof(*c));
-		memset(c, 0, sizeof(*c));
-		if ( EVP_CIPHER_CTX_cipher(ctx)->do_cipher == ssh_cipher_ctr )
-			c->mt_ctx = mt_init((void *)c, ssh_camellia_enc);
-		EVP_CIPHER_CTX_set_app_data(ctx, c);
-	}
-	if (key != NULL)
-		Camellia_set_key(key, EVP_CIPHER_CTX_key_length(ctx) * 8, &c->camellia_ctx);
-	if (iv != NULL)
-		memcpy(c->camellia_counter, iv, CAMELLIA_BLOCK_SIZE);
-	return (1);
-}
-const EVP_CIPHER *evp_camellia_128_ctr(void)
-{
-	static EVP_CIPHER camellia_ctr;
-
-	memset(&camellia_ctr, 0, sizeof(EVP_CIPHER));
-	camellia_ctr.nid = NID_undef;
-	camellia_ctr.block_size = CAMELLIA_BLOCK_SIZE;
-	camellia_ctr.iv_len = CAMELLIA_BLOCK_SIZE;
-	camellia_ctr.key_len = 16;
-	camellia_ctr.init = ssh_camellia_init;
-	camellia_ctr.cleanup = ssh_cipher_cleanup;
-	camellia_ctr.do_cipher = ssh_cipher_ctr;
-	camellia_ctr.flags = EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV;
-
-	return (&camellia_ctr);
-}
-
-//////////////////////////////////////////////////////////////////////
-
 struct ssh_seed_ctx
 {
 	struct mt_ctr_ctx	*mt_ctx;		// dont move !!
@@ -625,8 +395,7 @@ static int ssh_seed_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char *i
 	if ((c = (struct ssh_seed_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL) {
 		c = (struct ssh_seed_ctx *)malloc(sizeof(*c));
 		memset(c, 0, sizeof(*c));
-		if ( EVP_CIPHER_CTX_cipher(ctx)->do_cipher == ssh_cipher_ctr )
-			c->mt_ctx = mt_init((void *)c, ssh_seed_enc);
+		c->mt_ctx = mt_init((void *)c, ssh_seed_enc);
 		EVP_CIPHER_CTX_set_app_data(ctx, c);
 	}
 	if (key != NULL)
@@ -637,19 +406,18 @@ static int ssh_seed_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char *i
 }
 const EVP_CIPHER *evp_seed_ctr(void)
 {
-	static EVP_CIPHER seed_ctr;
-
-	memset(&seed_ctr, 0, sizeof(EVP_CIPHER));
-	seed_ctr.nid = NID_undef;
-	seed_ctr.block_size = SEED_BLOCK_SIZE;
-	seed_ctr.iv_len = SEED_BLOCK_SIZE;
-	seed_ctr.key_len = 16;
-	seed_ctr.init = ssh_seed_init;
-	seed_ctr.cleanup = ssh_cipher_cleanup;
-	seed_ctr.do_cipher = ssh_cipher_ctr;
-	seed_ctr.flags = EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV;
-
-	return (&seed_ctr);
+	if ( LegacyEngineCipherMeth[Nids_seed_ctr] == NULL ) {
+		EVP_CIPHER *cip = EVP_CIPHER_meth_new(LegacyEngineNids[Nids_seed_ctr], SEED_BLOCK_SIZE, 16);
+		if ( cip != NULL ) {
+			EVP_CIPHER_meth_set_iv_length(cip, SEED_BLOCK_SIZE);
+			EVP_CIPHER_meth_set_init(cip, ssh_seed_init);
+			EVP_CIPHER_meth_set_cleanup(cip, ssh_cipher_cleanup);
+			EVP_CIPHER_meth_set_do_cipher(cip, ssh_cipher_ctr);
+			EVP_CIPHER_meth_set_flags(cip, EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV);
+			LegacyEngineCipherMeth[Nids_seed_ctr] = cip;
+		}
+	}
+	return LegacyEngineCipherMeth[Nids_seed_ctr]; 
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -695,8 +463,7 @@ static int ssh_blowfish_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_cha
 	if ((c = (struct ssh_blowfish_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL) {
 		c = (struct ssh_blowfish_ctx *)malloc(sizeof(*c));
 		memset(c, 0, sizeof(*c));
-		if ( EVP_CIPHER_CTX_cipher(ctx)->do_cipher == ssh_cipher_ctr )
-			c->mt_ctx = mt_init((void *)c, ssh_blowfish_enc);
+		c->mt_ctx = mt_init((void *)c, ssh_blowfish_enc);
 		EVP_CIPHER_CTX_set_app_data(ctx, c);
 	}
 	if (key != NULL)
@@ -707,19 +474,18 @@ static int ssh_blowfish_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_cha
 }
 const EVP_CIPHER *evp_bf_ctr(void)
 {
-	static EVP_CIPHER blowfish_ctr;
-
-	memset(&blowfish_ctr, 0, sizeof(EVP_CIPHER));
-	blowfish_ctr.nid = NID_undef;
-	blowfish_ctr.block_size = BF_BLOCK;
-	blowfish_ctr.iv_len = BF_BLOCK;
-	blowfish_ctr.key_len = 32;
-	blowfish_ctr.init = ssh_blowfish_init;
-	blowfish_ctr.cleanup = ssh_cipher_cleanup;
-	blowfish_ctr.do_cipher = ssh_cipher_ctr;
-	blowfish_ctr.flags = EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV;
-
-	return (&blowfish_ctr);
+	if ( LegacyEngineCipherMeth[Nids_bf_ctr] == NULL ) {
+		EVP_CIPHER *cip = EVP_CIPHER_meth_new(LegacyEngineNids[Nids_bf_ctr], BF_BLOCK, 32);
+		if ( cip != NULL ) {
+			EVP_CIPHER_meth_set_iv_length(cip, BF_BLOCK);
+			EVP_CIPHER_meth_set_init(cip, ssh_blowfish_init);
+			EVP_CIPHER_meth_set_cleanup(cip, ssh_cipher_cleanup);
+			EVP_CIPHER_meth_set_do_cipher(cip, ssh_cipher_ctr);
+			EVP_CIPHER_meth_set_flags(cip, EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV);
+			LegacyEngineCipherMeth[Nids_bf_ctr] = cip;
+		}
+	}
+	return LegacyEngineCipherMeth[Nids_bf_ctr];
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -765,8 +531,7 @@ static int ssh_cast_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char *i
 	if ((c = (struct ssh_cast_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL) {
 		c = (struct ssh_cast_ctx *)malloc(sizeof(*c));
 		memset(c, 0, sizeof(*c));
-		if ( EVP_CIPHER_CTX_cipher(ctx)->do_cipher == ssh_cipher_ctr )
-			c->mt_ctx = mt_init((void *)c, ssh_cast_enc);
+		c->mt_ctx = mt_init((void *)c, ssh_cast_enc);
 		EVP_CIPHER_CTX_set_app_data(ctx, c);
 	}
 	if (key != NULL)
@@ -777,19 +542,18 @@ static int ssh_cast_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char *i
 }
 const EVP_CIPHER *evp_cast5_ctr(void)
 {
-	static EVP_CIPHER cast_ctr;
-
-	memset(&cast_ctr, 0, sizeof(EVP_CIPHER));
-	cast_ctr.nid = NID_undef;
-	cast_ctr.block_size = CAST_BLOCK;
-	cast_ctr.iv_len = CAST_BLOCK;
-	cast_ctr.key_len = CAST_KEY_LENGTH;
-	cast_ctr.init = ssh_cast_init;
-	cast_ctr.cleanup = ssh_cipher_cleanup;
-	cast_ctr.do_cipher = ssh_cipher_ctr;
-	cast_ctr.flags = EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV;
-
-	return (&cast_ctr);
+	if ( LegacyEngineCipherMeth[Nids_cast5_ctr] == NULL ) {
+		EVP_CIPHER *cip = EVP_CIPHER_meth_new(LegacyEngineNids[Nids_cast5_ctr], CAST_BLOCK, CAST_KEY_LENGTH);
+		if ( cip != NULL ) {
+			EVP_CIPHER_meth_set_iv_length(cip, CAST_BLOCK);
+			EVP_CIPHER_meth_set_init(cip, ssh_cast_init);
+			EVP_CIPHER_meth_set_cleanup(cip, ssh_cipher_cleanup);
+			EVP_CIPHER_meth_set_do_cipher(cip, ssh_cipher_ctr);
+			EVP_CIPHER_meth_set_flags(cip, EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV);
+			LegacyEngineCipherMeth[Nids_cast5_ctr] = cip;
+		}
+	}
+	return LegacyEngineCipherMeth[Nids_cast5_ctr];
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -835,8 +599,7 @@ static int ssh_idea_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char *i
 	if ((c = (struct ssh_idea_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL) {
 		c = (struct ssh_idea_ctx *)malloc(sizeof(*c));
 		memset(c, 0, sizeof(*c));
-		if ( EVP_CIPHER_CTX_cipher(ctx)->do_cipher == ssh_cipher_ctr )
-			c->mt_ctx = mt_init((void *)c, ssh_idea_enc);
+		c->mt_ctx = mt_init((void *)c, ssh_idea_enc);
 		EVP_CIPHER_CTX_set_app_data(ctx, c);
 	}
 	if (key != NULL)
@@ -847,19 +610,18 @@ static int ssh_idea_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char *i
 }
 const EVP_CIPHER *evp_idea_ctr(void)
 {
-	static EVP_CIPHER idea_ctr;
-
-	memset(&idea_ctr, 0, sizeof(EVP_CIPHER));
-	idea_ctr.nid = NID_undef;
-	idea_ctr.block_size = IDEA_BLOCK;
-	idea_ctr.iv_len = IDEA_BLOCK;
-	idea_ctr.key_len = IDEA_KEY_LENGTH;
-	idea_ctr.init = ssh_idea_init;
-	idea_ctr.cleanup = ssh_cipher_cleanup;
-	idea_ctr.do_cipher = ssh_cipher_ctr;
-	idea_ctr.flags = EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV;
-
-	return (&idea_ctr);
+	if ( LegacyEngineCipherMeth[Nids_idea_ctr] == NULL ) {
+		EVP_CIPHER *cip = EVP_CIPHER_meth_new(LegacyEngineNids[Nids_idea_ctr], IDEA_BLOCK, IDEA_KEY_LENGTH);
+		if ( cip != NULL ) {
+			EVP_CIPHER_meth_set_iv_length(cip, IDEA_BLOCK);
+			EVP_CIPHER_meth_set_init(cip, ssh_idea_init);
+			EVP_CIPHER_meth_set_cleanup(cip, ssh_cipher_cleanup);
+			EVP_CIPHER_meth_set_do_cipher(cip, ssh_cipher_ctr);
+			EVP_CIPHER_meth_set_flags(cip, EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV);
+			LegacyEngineCipherMeth[Nids_idea_ctr] = cip;
+		}
+	}
+	return LegacyEngineCipherMeth[Nids_idea_ctr];
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -867,6 +629,7 @@ const EVP_CIPHER *evp_idea_ctr(void)
 struct ssh_des3_ctx
 {
 	struct mt_ctr_ctx	*mt_ctx;		// dont move !!
+
 	DES_key_schedule	des3_ctx[3];
 	DES_cblock			des3_counter;
 };
@@ -907,8 +670,7 @@ static int ssh_des3_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char *i
 	if ((c = (struct ssh_des3_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL) {
 		c = (struct ssh_des3_ctx *)malloc(sizeof(*c));
 		memset(c, 0, sizeof(*c));
-		if ( EVP_CIPHER_CTX_cipher(ctx)->do_cipher == ssh_cipher_ctr )
-			c->mt_ctx = mt_init((void *)c, ssh_des3_enc);
+		c->mt_ctx = mt_init((void *)c, ssh_des3_enc);
 		EVP_CIPHER_CTX_set_app_data(ctx, c);
 	}
 	if (key != NULL) {
@@ -922,19 +684,18 @@ static int ssh_des3_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char *i
 }
 const EVP_CIPHER *evp_des3_ctr(void)
 {
-	static EVP_CIPHER des3_ctr;
-
-	memset(&des3_ctr, 0, sizeof(EVP_CIPHER));
-	des3_ctr.nid = NID_undef;
-	des3_ctr.block_size = DES_BLOCK;
-	des3_ctr.iv_len = DES_BLOCK;
-	des3_ctr.key_len = 24;
-	des3_ctr.init = ssh_des3_init;
-	des3_ctr.cleanup = ssh_cipher_cleanup;
-	des3_ctr.do_cipher = ssh_cipher_ctr;
-	des3_ctr.flags = EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV;
-
-	return (&des3_ctr);
+	if ( LegacyEngineCipherMeth[Nids_des3_ctr] == NULL ) {
+		EVP_CIPHER *cip = EVP_CIPHER_meth_new(LegacyEngineNids[Nids_des3_ctr], DES_BLOCK, 24);
+		if ( cip != NULL ) {
+			EVP_CIPHER_meth_set_iv_length(cip, DES_BLOCK);
+			EVP_CIPHER_meth_set_init(cip, ssh_des3_init);
+			EVP_CIPHER_meth_set_cleanup(cip, ssh_cipher_cleanup);
+			EVP_CIPHER_meth_set_do_cipher(cip, ssh_cipher_ctr);
+			EVP_CIPHER_meth_set_flags(cip, EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV);
+			LegacyEngineCipherMeth[Nids_des3_ctr] = cip;
+		}
+	}
+	return LegacyEngineCipherMeth[Nids_des3_ctr];
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1053,7 +814,7 @@ static int ssh_twofish_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char
 	if ((c = (struct ssh_twofish_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL) {
 		c = (struct ssh_twofish_ctx *)malloc(sizeof(*c));
 		memset(c, 0, sizeof(*c));
-		if ( EVP_CIPHER_CTX_cipher(ctx)->do_cipher == ssh_cipher_ctr )
+		if ( EVP_CIPHER_meth_get_do_cipher(EVP_CIPHER_CTX_cipher(ctx)) == ssh_cipher_ctr )
 			c->mt_ctx = mt_init((void *)c, ssh_twofish_enc);
 		EVP_CIPHER_CTX_set_app_data(ctx, c);
 	}
@@ -1065,35 +826,33 @@ static int ssh_twofish_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char
 }
 const EVP_CIPHER *evp_twofish_ctr(void)
 {
-	static EVP_CIPHER twofish_ctr;
-
-	memset(&twofish_ctr, 0, sizeof(EVP_CIPHER));
-	twofish_ctr.nid = NID_undef;
-	twofish_ctr.block_size = TWOFISH_BLOCK_SIZE;
-	twofish_ctr.iv_len = TWOFISH_BLOCK_SIZE;
-	twofish_ctr.key_len = 32;
-	twofish_ctr.init = ssh_twofish_init;
-	twofish_ctr.cleanup = ssh_cipher_cleanup;
-	twofish_ctr.do_cipher = ssh_cipher_ctr;
-	twofish_ctr.flags = EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV;
-
-	return (&twofish_ctr);
+	if ( LegacyEngineCipherMeth[Nids_twofish_ctr] == NULL ) {
+		EVP_CIPHER *cip = EVP_CIPHER_meth_new(LegacyEngineNids[Nids_twofish_ctr], TWOFISH_BLOCK_SIZE, 32);
+		if ( cip != NULL ) {
+			EVP_CIPHER_meth_set_iv_length(cip, TWOFISH_BLOCK_SIZE);
+			EVP_CIPHER_meth_set_init(cip, ssh_twofish_init);
+			EVP_CIPHER_meth_set_cleanup(cip, ssh_cipher_cleanup);
+			EVP_CIPHER_meth_set_do_cipher(cip, ssh_cipher_ctr);
+			EVP_CIPHER_meth_set_flags(cip, EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV);
+			LegacyEngineCipherMeth[Nids_twofish_ctr] = cip;
+		}
+	}
+	return LegacyEngineCipherMeth[Nids_twofish_ctr];
 }
 const EVP_CIPHER *evp_twofish_cbc(void)
 {
-	static EVP_CIPHER twofish_cbc;
-
-	memset(&twofish_cbc, 0, sizeof(EVP_CIPHER));
-	twofish_cbc.nid = NID_undef;
-	twofish_cbc.block_size = TWOFISH_BLOCK_SIZE;
-	twofish_cbc.iv_len = TWOFISH_BLOCK_SIZE;
-	twofish_cbc.key_len = 32;
-	twofish_cbc.init = ssh_twofish_init;
-	twofish_cbc.cleanup = ssh_cipher_cleanup;
-	twofish_cbc.do_cipher = ssh_twofish_cbc;
-	twofish_cbc.flags = EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV;
-
-	return (&twofish_cbc);
+	if ( LegacyEngineCipherMeth[Nids_twofish_cbc] == NULL ) {
+		EVP_CIPHER *cip = EVP_CIPHER_meth_new(LegacyEngineNids[Nids_twofish_cbc], TWOFISH_BLOCK_SIZE, 32);
+		if ( cip != NULL ) {
+			EVP_CIPHER_meth_set_iv_length(cip, TWOFISH_BLOCK_SIZE);
+			EVP_CIPHER_meth_set_init(cip, ssh_twofish_init);
+			EVP_CIPHER_meth_set_cleanup(cip, ssh_cipher_cleanup);
+			EVP_CIPHER_meth_set_do_cipher(cip, ssh_twofish_cbc);
+			EVP_CIPHER_meth_set_flags(cip, EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV);
+			LegacyEngineCipherMeth[Nids_twofish_cbc] = cip;
+		}
+	}
+	return LegacyEngineCipherMeth[Nids_twofish_cbc]; 
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1175,7 +934,7 @@ static int ssh_serpent_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char
 	if ((c = (struct ssh_serpent_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL) {
 		c = (struct ssh_serpent_ctx *)malloc(sizeof(*c));
 		memset(c, 0, sizeof(*c));
-		if ( EVP_CIPHER_CTX_cipher(ctx)->do_cipher == ssh_cipher_ctr )
+		if ( EVP_CIPHER_meth_get_do_cipher(EVP_CIPHER_CTX_cipher(ctx)) == ssh_cipher_ctr )
 			c->mt_ctx = mt_init((void *)c, ssh_serpent_enc);
 		EVP_CIPHER_CTX_set_app_data(ctx, c);
 	}
@@ -1187,35 +946,33 @@ static int ssh_serpent_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char
 }
 const EVP_CIPHER *evp_serpent_ctr(void)
 {
-	static EVP_CIPHER serpent_ctr;
-
-	memset(&serpent_ctr, 0, sizeof(EVP_CIPHER));
-	serpent_ctr.nid = NID_undef;
-	serpent_ctr.block_size = SERPENT_BLOCK_SIZE;
-	serpent_ctr.iv_len = SERPENT_BLOCK_SIZE;
-	serpent_ctr.key_len = 32;
-	serpent_ctr.init = ssh_serpent_init;
-	serpent_ctr.cleanup = ssh_cipher_cleanup;
-	serpent_ctr.do_cipher = ssh_cipher_ctr;
-	serpent_ctr.flags = EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV;
-
-	return (&serpent_ctr);
+	if ( LegacyEngineCipherMeth[Nids_serpent_ctr] == NULL ) {
+		EVP_CIPHER *cip = EVP_CIPHER_meth_new(LegacyEngineNids[Nids_serpent_ctr], SERPENT_BLOCK_SIZE, 32);
+		if ( cip != NULL ) {
+			EVP_CIPHER_meth_set_iv_length(cip, SERPENT_BLOCK_SIZE);
+			EVP_CIPHER_meth_set_init(cip, ssh_serpent_init);
+			EVP_CIPHER_meth_set_cleanup(cip, ssh_cipher_cleanup);
+			EVP_CIPHER_meth_set_do_cipher(cip, ssh_cipher_ctr);
+			EVP_CIPHER_meth_set_flags(cip, EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV);
+			LegacyEngineCipherMeth[Nids_serpent_ctr] = cip;
+		}
+	}
+	return LegacyEngineCipherMeth[Nids_serpent_ctr]; 
 }
 const EVP_CIPHER *evp_serpent_cbc(void)
 {
-	static EVP_CIPHER serpent_cbc;
-
-	memset(&serpent_cbc, 0, sizeof(EVP_CIPHER));
-	serpent_cbc.nid = NID_undef;
-	serpent_cbc.block_size = SERPENT_BLOCK_SIZE;
-	serpent_cbc.iv_len = SERPENT_BLOCK_SIZE;
-	serpent_cbc.key_len = 32;
-	serpent_cbc.init = ssh_serpent_init;
-	serpent_cbc.cleanup = ssh_cipher_cleanup;
-	serpent_cbc.do_cipher = ssh_serpent_cbc;
-	serpent_cbc.flags = EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV;
-
-	return (&serpent_cbc);
+	if ( LegacyEngineCipherMeth[Nids_serpent_cbc] == NULL ) {
+		EVP_CIPHER *cip = EVP_CIPHER_meth_new(LegacyEngineNids[Nids_serpent_cbc], SERPENT_BLOCK_SIZE, 32);
+		if ( cip != NULL ) {
+			EVP_CIPHER_meth_set_iv_length(cip, SERPENT_BLOCK_SIZE);
+			EVP_CIPHER_meth_set_init(cip, ssh_serpent_init);
+			EVP_CIPHER_meth_set_cleanup(cip, ssh_cipher_cleanup);
+			EVP_CIPHER_meth_set_do_cipher(cip, ssh_serpent_cbc);
+			EVP_CIPHER_meth_set_flags(cip, EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV);
+			LegacyEngineCipherMeth[Nids_serpent_cbc] = cip;
+		}
+	}
+	return LegacyEngineCipherMeth[Nids_serpent_cbc]; 
 }
 
 #endif	// USE_NETTLE
@@ -1301,7 +1058,7 @@ static int ssh_clefia_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char 
 	if ((c = (struct ssh_clefia_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL) {
 		c = (struct ssh_clefia_ctx *)malloc(sizeof(*c));
 		memset(c, 0, sizeof(*c));
-		if ( EVP_CIPHER_CTX_cipher(ctx)->do_cipher == ssh_cipher_ctr )
+		if ( EVP_CIPHER_meth_get_do_cipher(EVP_CIPHER_CTX_cipher(ctx)) == ssh_cipher_ctr )
 			c->mt_ctx = mt_init((void *)c, ssh_clefia_enc);
 		EVP_CIPHER_CTX_set_app_data(ctx, c);
 	}
@@ -1313,35 +1070,33 @@ static int ssh_clefia_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char 
 }
 const EVP_CIPHER *evp_clefia_ctr(void)
 {
-	static EVP_CIPHER clefia_ctr;
-
-	memset(&clefia_ctr, 0, sizeof(EVP_CIPHER));
-	clefia_ctr.nid = NID_undef;
-	clefia_ctr.block_size = CLEFIA_BLOCK_SIZE;
-	clefia_ctr.iv_len = CLEFIA_BLOCK_SIZE;
-	clefia_ctr.key_len = 32;
-	clefia_ctr.init = ssh_clefia_init;
-	clefia_ctr.cleanup = ssh_cipher_cleanup;
-	clefia_ctr.do_cipher = ssh_cipher_ctr;
-	clefia_ctr.flags = EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV;
-
-	return (&clefia_ctr);
+	if ( LegacyEngineCipherMeth[Nids_clefia_ctr] == NULL ) {
+		EVP_CIPHER *cip = EVP_CIPHER_meth_new(LegacyEngineNids[Nids_clefia_ctr], CLEFIA_BLOCK_SIZE, 32);
+		if ( cip != NULL ) {
+			EVP_CIPHER_meth_set_iv_length(cip, CLEFIA_BLOCK_SIZE);
+			EVP_CIPHER_meth_set_init(cip, ssh_clefia_init);
+			EVP_CIPHER_meth_set_cleanup(cip, ssh_cipher_cleanup);
+			EVP_CIPHER_meth_set_do_cipher(cip, ssh_cipher_ctr);
+			EVP_CIPHER_meth_set_flags(cip, EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV);
+			LegacyEngineCipherMeth[Nids_clefia_ctr] = cip;
+		}
+	}
+	return LegacyEngineCipherMeth[Nids_clefia_ctr];
 }
 const EVP_CIPHER *evp_clefia_cbc(void)
 {
-	static EVP_CIPHER clefia_cbc;
-
-	memset(&clefia_cbc, 0, sizeof(EVP_CIPHER));
-	clefia_cbc.nid = NID_undef;
-	clefia_cbc.block_size = CLEFIA_BLOCK_SIZE;
-	clefia_cbc.iv_len = CLEFIA_BLOCK_SIZE;
-	clefia_cbc.key_len = 32;
-	clefia_cbc.init = ssh_clefia_init;
-	clefia_cbc.cleanup = ssh_cipher_cleanup;
-	clefia_cbc.do_cipher = ssh_clefia_cbc;
-	clefia_cbc.flags = EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV;
-
-	return (&clefia_cbc);
+	if ( LegacyEngineCipherMeth[Nids_clefia_cbc] == NULL ) {
+		EVP_CIPHER *cip = EVP_CIPHER_meth_new(LegacyEngineNids[Nids_clefia_cbc], CLEFIA_BLOCK_SIZE, 32);
+		if ( cip != NULL ) {
+			EVP_CIPHER_meth_set_iv_length(cip, CLEFIA_BLOCK_SIZE);
+			EVP_CIPHER_meth_set_init(cip, ssh_clefia_init);
+			EVP_CIPHER_meth_set_cleanup(cip, ssh_cipher_cleanup);
+			EVP_CIPHER_meth_set_do_cipher(cip, ssh_clefia_cbc);
+			EVP_CIPHER_meth_set_flags(cip, EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV);
+			LegacyEngineCipherMeth[Nids_clefia_cbc] = cip;
+		}
+	}
+	return LegacyEngineCipherMeth[Nids_clefia_cbc];
 }
 #endif	// USE_CLEFIA
 
@@ -1349,7 +1104,8 @@ const EVP_CIPHER *evp_clefia_cbc(void)
 
 struct ssh1_3des_ctx
 {
-	EVP_CIPHER_CTX	*k1, *k2, *k3;
+	DES_key_schedule ks1, ks2, ks3;
+	DES_cblock iv;
 };
 
 static int ssh1_3des_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char *iv, int enc)
@@ -1380,26 +1136,10 @@ static int ssh1_3des_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char *
 			k1 += 16;
 	}
 
-	if ( c->k1 == NULL ) c->k1 = EVP_CIPHER_CTX_new();
-	if ( c->k2 == NULL ) c->k2 = EVP_CIPHER_CTX_new();
-	if ( c->k3 == NULL ) c->k3 = EVP_CIPHER_CTX_new();
-
-	EVP_CIPHER_CTX_init(c->k1);
-	EVP_CIPHER_CTX_init(c->k2);
-	EVP_CIPHER_CTX_init(c->k3);
-
-	if ( EVP_CipherInit(c->k1, EVP_des_cbc(), k1, NULL, enc) == 0 || EVP_CipherInit(c->k2, EVP_des_cbc(), k2, NULL, !enc) == 0 || EVP_CipherInit(c->k3, EVP_des_cbc(), k3, NULL, enc) == 0 ) {
-		EVP_CIPHER_CTX_cleanup(c->k1);
-		EVP_CIPHER_CTX_cleanup(c->k2);
-		EVP_CIPHER_CTX_cleanup(c->k3);
-		EVP_CIPHER_CTX_free(c->k1);
-		EVP_CIPHER_CTX_free(c->k2);
-		EVP_CIPHER_CTX_free(c->k3);
-		memset(c, 0, sizeof(*c));
-		free(c);
-		EVP_CIPHER_CTX_set_app_data(ctx, NULL);
-		return (0);
-	}
+	DES_set_key_unchecked((const_DES_cblock *)k1, &(c->ks1));
+	DES_set_key_unchecked((const_DES_cblock *)k2, &(c->ks2));
+	DES_set_key_unchecked((const_DES_cblock *)k3, &(c->ks3));
+	memset(&(c->iv), 0, sizeof(c->iv));
 
 	return (1);
 }
@@ -1410,8 +1150,10 @@ static int ssh1_3des_cbc(EVP_CIPHER_CTX *ctx, u_char *dest, const u_char *src, s
 	if ( (c = (struct ssh1_3des_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL )
 		return (0);
 
-	if ( EVP_Cipher(c->k1, dest, (u_char *)src, (unsigned int)len) == 0 || EVP_Cipher(c->k2, dest, dest, (unsigned int)len) == 0 || EVP_Cipher(c->k3, dest, dest, (unsigned int)len) == 0 )
-		return (0);
+	int enc = EVP_CIPHER_CTX_encrypting(ctx) ? DES_ENCRYPT : DES_DECRYPT;
+	DES_cbc_encrypt(src,  dest, (long)len, &(c->ks1), &(c->iv), enc);
+	DES_cbc_encrypt(dest, dest, (long)len, &(c->ks2), &(c->iv), !enc);
+	DES_cbc_encrypt(dest, dest, (long)len, &(c->ks3), &(c->iv), enc);
 
 	return (1);
 }
@@ -1420,12 +1162,6 @@ static int ssh1_3des_cleanup(EVP_CIPHER_CTX *ctx)
 	struct ssh1_3des_ctx *c;
 
 	if ( (c = (struct ssh1_3des_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) != NULL ) {
-		EVP_CIPHER_CTX_cleanup(c->k1);
-		EVP_CIPHER_CTX_cleanup(c->k2);
-		EVP_CIPHER_CTX_cleanup(c->k3);
-		EVP_CIPHER_CTX_free(c->k1);
-		EVP_CIPHER_CTX_free(c->k2);
-		EVP_CIPHER_CTX_free(c->k3);
 		memset(c, 0, sizeof(*c));
 		free(c);
 		EVP_CIPHER_CTX_set_app_data(ctx, NULL);
@@ -1434,21 +1170,26 @@ static int ssh1_3des_cleanup(EVP_CIPHER_CTX *ctx)
 }
 const EVP_CIPHER *evp_ssh1_3des(void)
 {
-	static EVP_CIPHER ssh1_3des;
-
-	memset(&ssh1_3des, 0, sizeof(EVP_CIPHER));
-	ssh1_3des.nid = NID_undef;
-	ssh1_3des.block_size = 8;
-	ssh1_3des.iv_len = 0;
-	ssh1_3des.key_len = 16;
-	ssh1_3des.init = ssh1_3des_init;
-	ssh1_3des.cleanup = ssh1_3des_cleanup;
-	ssh1_3des.do_cipher = ssh1_3des_cbc;
-	ssh1_3des.flags = EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH;
-	return (&ssh1_3des);
+	if ( LegacyEngineCipherMeth[Nids_ssh1_3des] == NULL ) {
+		EVP_CIPHER *cip = EVP_CIPHER_meth_new(LegacyEngineNids[Nids_ssh1_3des], 8, 16);
+		if ( cip != NULL ) {
+			EVP_CIPHER_meth_set_init(cip, ssh1_3des_init);
+			EVP_CIPHER_meth_set_cleanup(cip, ssh1_3des_cleanup);
+			EVP_CIPHER_meth_set_do_cipher(cip, ssh1_3des_cbc);
+			EVP_CIPHER_meth_set_flags(cip, EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT);
+			LegacyEngineCipherMeth[Nids_ssh1_3des] = cip;
+		}
+	}
+	return LegacyEngineCipherMeth[Nids_ssh1_3des];
 }
 
 //////////////////////////////////////////////////////////////////////
+
+struct bf_ssh1_ctx
+{
+	BF_KEY key;
+	u_char iv[BF_BLOCK];
+};
 
 static void swap_bytes(const u_char *src, u_char *dst, int n)
 {
@@ -1467,29 +1208,59 @@ static void swap_bytes(const u_char *src, u_char *dst, int n)
 		*dst++ = c[3];
 	}
 }
-
-static int (*orig_bf)(EVP_CIPHER_CTX *, u_char *, const u_char *, size_t) = NULL;
-
 static int bf_ssh1_cipher(EVP_CIPHER_CTX *ctx, u_char *out, const u_char *in, size_t len)
 {
-	int ret;
+	struct bf_ssh1_ctx *c;
+
+	if ( (c = (struct bf_ssh1_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL)
+		return 0;
 
 	swap_bytes(in, out, (int)len);
-	ret = (*orig_bf)(ctx, out, out, len);
+	BF_cbc_encrypt(out, out, (long)len, &(c->key), c->iv, EVP_CIPHER_CTX_encrypting(ctx) ? BF_ENCRYPT : BF_DECRYPT);
 	swap_bytes(out, out, (int)len);
-	return (ret);
+	return 1;
+}
+static int bf_ssh1_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char *iv, int enc)
+{
+	struct bf_ssh1_ctx *c;
+
+	if ( (c = (struct bf_ssh1_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL) {
+		if ( (c = (struct bf_ssh1_ctx *)malloc(sizeof(*c))) == NULL )
+			return (0);
+		memset(c, 0, sizeof(*c));
+		EVP_CIPHER_CTX_set_app_data(ctx, c);
+	}
+
+	if ( key != NULL )
+		BF_set_key(&(c->key), EVP_CIPHER_CTX_key_length(ctx), key);
+
+	return (1);
+}
+static int bf_ssh1_cleanup(EVP_CIPHER_CTX *ctx)
+{
+	struct ssh1_3des_ctx *c;
+
+	if ( (c = (struct ssh1_3des_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) != NULL ) {
+		memset(c, 0, sizeof(*c));
+		free(c);
+		EVP_CIPHER_CTX_set_app_data(ctx, NULL);
+	}
+	return (1);
 }
 
 const EVP_CIPHER *evp_ssh1_bf(void)
 {
-	static EVP_CIPHER ssh1_bf;
-
-	memcpy(&ssh1_bf, EVP_bf_cbc(), sizeof(EVP_CIPHER));
-	orig_bf = ssh1_bf.do_cipher;
-	ssh1_bf.nid = NID_undef;
-	ssh1_bf.do_cipher = bf_ssh1_cipher;
-	ssh1_bf.key_len = 32;
-	return (&ssh1_bf);
+	if ( LegacyEngineCipherMeth[Nids_ssh1_bf] == NULL ) {
+		EVP_CIPHER *cip = EVP_CIPHER_meth_new(LegacyEngineNids[Nids_ssh1_bf], BF_BLOCK, 32);
+		if ( cip != NULL ) {
+			EVP_CIPHER_meth_set_init(cip, bf_ssh1_init);
+			EVP_CIPHER_meth_set_cleanup(cip, bf_ssh1_cleanup);
+			EVP_CIPHER_meth_set_do_cipher(cip, bf_ssh1_cipher);
+			EVP_CIPHER_meth_set_flags(cip, EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT);
+			LegacyEngineCipherMeth[Nids_ssh1_bf] = cip;
+		}
+	}
+	return LegacyEngineCipherMeth[Nids_ssh1_bf];
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -2716,6 +2487,110 @@ void UMAC_close(struct umac_ctx *ctx)
 }
 
 //////////////////////////////////////////////////////////////////////
+
+int	HMAC_digest(const EVP_MD *md, BYTE *key, int keylen, BYTE *in, int inlen, BYTE *out, int outlen)
+{
+#ifdef	USE_MACCTX
+	EVP_MAC *mac = NULL;
+	EVP_MAC_CTX *ctx = NULL;
+	const char *digest;
+	OSSL_PARAM params[3];
+	size_t dlen = 0;
+
+	if ( md == NULL )
+		goto ENDOF;
+
+	if ( (digest = EVP_MD_get0_name(md)) == NULL )
+		goto ENDOF;
+
+	//if ( EVP_Q_mac(NULL, "hmac", NULL, digest, NULL, key, keylen, in, inlen, out, outlen, &dlen) == NULL )
+	//	return 0;
+
+	if ( (mac = EVP_MAC_fetch(NULL, "hmac", NULL)) == NULL )
+		goto ENDOF;
+
+	params[0] = OSSL_PARAM_construct_utf8_string("digest", (char *)digest, 0);
+	params[1] = OSSL_PARAM_construct_end();
+
+	if ( (ctx = EVP_MAC_CTX_new(mac)) == NULL )
+		goto ENDOF;
+
+	if ( EVP_MAC_init(ctx, (const unsigned char *)key, (size_t)keylen, params) == 0 )
+		goto ENDOF;
+
+	if ( EVP_MAC_update(ctx, (const unsigned char *)in, (size_t)inlen) == 0 )
+		goto ENDOF;
+
+	if ( EVP_MAC_final(ctx, out, &dlen, outlen) == 0 )
+		goto ENDOF;
+
+ENDOF:
+	if ( ctx != NULL )
+		EVP_MAC_CTX_free(ctx);
+
+	if ( mac != NULL )
+		EVP_MAC_free(mac);
+
+#else
+	HMAC_CTX *ctx = NULL;
+	unsigned int dlen;
+
+	if ( md == NULL )
+		goto ENDOF;
+
+	if ( (ctx = HMAC_CTX_new()) == NULL )
+		goto ENDOF;
+
+	if ( HMAC_Init(ctx, key, keylen, md) == 0 )
+		goto ENDOF;
+
+	if ( HMAC_Update(ctx, in, inlen) == 0 )
+		goto ENDOF;
+
+	if ( outlen < EVP_MD_size(md) )
+		goto ENDOF;
+
+	if ( HMAC_Final(ctx, out, &dlen) == 0 )
+		goto ENDOF;
+
+ENDOF:
+	if ( ctx != NULL )
+		HMAC_CTX_free(ctx);
+#endif
+
+	return (int)dlen;
+}
+int	EVP_MD_digest(const EVP_MD *md, BYTE *in, int inlen, BYTE *out, int outlen)
+{
+	EVP_MD_CTX *ctx = NULL;
+	unsigned dlen = 0;
+
+	if ( md == NULL )
+		goto ENDOF;
+
+	if ( (ctx = EVP_MD_CTX_new()) == NULL )
+		goto ENDOF;
+
+	if ( EVP_DigestInit(ctx, md) == 0 )
+		goto ENDOF;
+
+	if ( EVP_DigestUpdate(ctx, in, inlen) == 0 )
+		goto ENDOF;
+
+	if ( outlen < EVP_MD_size(md) )
+		goto ENDOF;
+
+	if ( EVP_DigestFinal(ctx, out, &dlen) == 0 )
+		goto ENDOF;
+
+ENDOF:
+	if ( ctx != NULL )
+		EVP_MD_CTX_free(ctx);
+
+	return dlen;
+}
+
+//////////////////////////////////////////////////////////////////////
 //	chacha
 //////////////////////////////////////////////////////////////////////
 
@@ -2725,20 +2600,12 @@ D. J. Bernstein
 Public domain.
 */
 
-struct chacha_ctx {
+typedef struct _chacha_ctx {
 	u_int input[16];
-};
-
-#define CHACHA_MINKEYLEN	16
-#define CHACHA_NONCELEN 	8
-#define CHACHA_CTRLEN		8
-#define CHACHA_STATELEN 	(CHACHA_NONCELEN+CHACHA_CTRLEN)
-#define CHACHA_BLOCKLEN 	64
+} chacha_ctx;
 
 typedef unsigned char u8;
 typedef unsigned int u32;
-
-typedef struct chacha_ctx chacha_ctx;
 
 #define U8C(v) (v##U)
 #define U32C(v) (v##U)
@@ -2813,323 +2680,22 @@ static void chacha_ivsetup(chacha_ctx *x, const u8 *iv, const u8 *counter)
   x->input[15] = U8TO32_LITTLE(iv + 4);
 }
 
-#if	OPENSSL_VERSION_NUMBER >= 0x10100000L
-
 static void chacha_encrypt_bytes(chacha_ctx *x,const u8 *m,u8 *c,u32 bytes)
 {
 	ChaCha20_ctr32(c, m, bytes, x->input + 4, x->input + 12);
 }
 
-#else	// OPENSSL_VERSION_NUMBER >= 0x10100000L
-
-static void chacha_encrypt_bytes(chacha_ctx *x,const u8 *m,u8 *c,u32 bytes)
-{
-  u32 x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15;
-  u32 j0, j1, j2, j3, j4, j5, j6, j7, j8, j9, j10, j11, j12, j13, j14, j15;
-  u8 *ctarget = NULL;
-  u8 tmp[64];
-  u_int i;
-
-  if (!bytes) return;
-
-  j0 = x->input[0];
-  j1 = x->input[1];
-  j2 = x->input[2];
-  j3 = x->input[3];
-  j4 = x->input[4];
-  j5 = x->input[5];
-  j6 = x->input[6];
-  j7 = x->input[7];
-  j8 = x->input[8];
-  j9 = x->input[9];
-  j10 = x->input[10];
-  j11 = x->input[11];
-  j12 = x->input[12];
-  j13 = x->input[13];
-  j14 = x->input[14];
-  j15 = x->input[15];
-
-  for (;;) {
-    if (bytes < 64) {
-      for (i = 0;i < bytes;++i) tmp[i] = m[i];
-      m = tmp;
-      ctarget = c;
-      c = tmp;
-    }
-    x0 = j0;
-    x1 = j1;
-    x2 = j2;
-    x3 = j3;
-    x4 = j4;
-    x5 = j5;
-    x6 = j6;
-    x7 = j7;
-    x8 = j8;
-    x9 = j9;
-    x10 = j10;
-    x11 = j11;
-    x12 = j12;
-    x13 = j13;
-    x14 = j14;
-    x15 = j15;
-    for (i = 20;i > 0;i -= 2) {
-      QUARTERROUND( x0, x4, x8,x12)
-      QUARTERROUND( x1, x5, x9,x13)
-      QUARTERROUND( x2, x6,x10,x14)
-      QUARTERROUND( x3, x7,x11,x15)
-      QUARTERROUND( x0, x5,x10,x15)
-      QUARTERROUND( x1, x6,x11,x12)
-      QUARTERROUND( x2, x7, x8,x13)
-      QUARTERROUND( x3, x4, x9,x14)
-    }
-    x0 = PLUS(x0,j0);
-    x1 = PLUS(x1,j1);
-    x2 = PLUS(x2,j2);
-    x3 = PLUS(x3,j3);
-    x4 = PLUS(x4,j4);
-    x5 = PLUS(x5,j5);
-    x6 = PLUS(x6,j6);
-    x7 = PLUS(x7,j7);
-    x8 = PLUS(x8,j8);
-    x9 = PLUS(x9,j9);
-    x10 = PLUS(x10,j10);
-    x11 = PLUS(x11,j11);
-    x12 = PLUS(x12,j12);
-    x13 = PLUS(x13,j13);
-    x14 = PLUS(x14,j14);
-    x15 = PLUS(x15,j15);
-
-    x0 = XOR(x0,U8TO32_LITTLE(m + 0));
-    x1 = XOR(x1,U8TO32_LITTLE(m + 4));
-    x2 = XOR(x2,U8TO32_LITTLE(m + 8));
-    x3 = XOR(x3,U8TO32_LITTLE(m + 12));
-    x4 = XOR(x4,U8TO32_LITTLE(m + 16));
-    x5 = XOR(x5,U8TO32_LITTLE(m + 20));
-    x6 = XOR(x6,U8TO32_LITTLE(m + 24));
-    x7 = XOR(x7,U8TO32_LITTLE(m + 28));
-    x8 = XOR(x8,U8TO32_LITTLE(m + 32));
-    x9 = XOR(x9,U8TO32_LITTLE(m + 36));
-    x10 = XOR(x10,U8TO32_LITTLE(m + 40));
-    x11 = XOR(x11,U8TO32_LITTLE(m + 44));
-    x12 = XOR(x12,U8TO32_LITTLE(m + 48));
-    x13 = XOR(x13,U8TO32_LITTLE(m + 52));
-    x14 = XOR(x14,U8TO32_LITTLE(m + 56));
-    x15 = XOR(x15,U8TO32_LITTLE(m + 60));
-
-    j12 = PLUSONE(j12);
-    if (!j12) {
-      j13 = PLUSONE(j13);
-      /* stopping at 2^70 bytes per nonce is user's responsibility */
-    }
-
-    U32TO8_LITTLE(c + 0,x0);
-    U32TO8_LITTLE(c + 4,x1);
-    U32TO8_LITTLE(c + 8,x2);
-    U32TO8_LITTLE(c + 12,x3);
-    U32TO8_LITTLE(c + 16,x4);
-    U32TO8_LITTLE(c + 20,x5);
-    U32TO8_LITTLE(c + 24,x6);
-    U32TO8_LITTLE(c + 28,x7);
-    U32TO8_LITTLE(c + 32,x8);
-    U32TO8_LITTLE(c + 36,x9);
-    U32TO8_LITTLE(c + 40,x10);
-    U32TO8_LITTLE(c + 44,x11);
-    U32TO8_LITTLE(c + 48,x12);
-    U32TO8_LITTLE(c + 52,x13);
-    U32TO8_LITTLE(c + 56,x14);
-    U32TO8_LITTLE(c + 60,x15);
-
-    if (bytes <= 64) {
-      if (bytes < 64) {
-	    for (i = 0;i < bytes;++i) ctarget[i] = c[i];
-      }
-      x->input[12] = j12;
-      x->input[13] = j13;
-      return;
-    }
-    bytes -= 64;
-    c += 64;
-    m += 64;
-  }
-}
-#endif	//	OPENSSL_VERSION_NUMBER >= 0x10100000L
-
-//////////////////////////////////////////////////////////////////////
-//	poly1305
-//////////////////////////////////////////////////////////////////////
-
-/* 
- * Public Domain poly1305 from Andrew Moon
- * poly1305-donna-unrolled.c from https://github.com/floodyberry/poly1305-donna
- */
-
-#define POLY1305_KEYLEN 	32
-#define POLY1305_TAGLEN 	16
-
-#if	OPENSSL_VERSION_NUMBER < 0x10100000L
-
-#define mul32x32_64(a,b) ((uint64_t)(a) * (b))
-
-#define U8TO32_LE(p) \
-	(((uint32_t)((p)[0])) | \
-	 ((uint32_t)((p)[1]) <<  8) | \
-	 ((uint32_t)((p)[2]) << 16) | \
-	 ((uint32_t)((p)[3]) << 24))
-
-#define U32TO8_LE(p, v) \
-	do { \
-		(p)[0] = (uint8_t)((v)); \
-		(p)[1] = (uint8_t)((v) >>  8); \
-		(p)[2] = (uint8_t)((v) >> 16); \
-		(p)[3] = (uint8_t)((v) >> 24); \
-	} while (0)
-
-static void poly1305_auth(unsigned char out[POLY1305_TAGLEN], const unsigned char *m, size_t inlen, const unsigned char key[POLY1305_KEYLEN])
-{
-	uint32_t t0,t1,t2,t3;
-	uint32_t h0,h1,h2,h3,h4;
-	uint32_t r0,r1,r2,r3,r4;
-	uint32_t s1,s2,s3,s4;
-	uint32_t b, nb;
-	size_t j;
-	uint64_t t[5];
-	uint64_t f0,f1,f2,f3;
-	uint32_t g0,g1,g2,g3,g4;
-	uint64_t c;
-	unsigned char mp[16];
-
-	/* clamp key */
-	t0 = U8TO32_LE(key+0);
-	t1 = U8TO32_LE(key+4);
-	t2 = U8TO32_LE(key+8);
-	t3 = U8TO32_LE(key+12);
-
-	/* precompute multipliers */
-	r0 = t0 & 0x3ffffff; t0 >>= 26; t0 |= t1 << 6;
-	r1 = t0 & 0x3ffff03; t1 >>= 20; t1 |= t2 << 12;
-	r2 = t1 & 0x3ffc0ff; t2 >>= 14; t2 |= t3 << 18;
-	r3 = t2 & 0x3f03fff; t3 >>= 8;
-	r4 = t3 & 0x00fffff;
-
-	s1 = r1 * 5;
-	s2 = r2 * 5;
-	s3 = r3 * 5;
-	s4 = r4 * 5;
-
-	/* init state */
-	h0 = 0;
-	h1 = 0;
-	h2 = 0;
-	h3 = 0;
-	h4 = 0;
-
-	/* full blocks */
-	if (inlen < 16) goto poly1305_donna_atmost15bytes;
-poly1305_donna_16bytes:
-	m += 16;
-	inlen -= 16;
-
-	t0 = U8TO32_LE(m-16);
-	t1 = U8TO32_LE(m-12);
-	t2 = U8TO32_LE(m-8);
-	t3 = U8TO32_LE(m-4);
-
-	h0 += t0 & 0x3ffffff;
-	h1 += ((((uint64_t)t1 << 32) | t0) >> 26) & 0x3ffffff;
-	h2 += ((((uint64_t)t2 << 32) | t1) >> 20) & 0x3ffffff;
-	h3 += ((((uint64_t)t3 << 32) | t2) >> 14) & 0x3ffffff;
-	h4 += (t3 >> 8) | (1 << 24);
-
-
-poly1305_donna_mul:
-	t[0]  = mul32x32_64(h0,r0) + mul32x32_64(h1,s4) + mul32x32_64(h2,s3) + mul32x32_64(h3,s2) + mul32x32_64(h4,s1);
-	t[1]  = mul32x32_64(h0,r1) + mul32x32_64(h1,r0) + mul32x32_64(h2,s4) + mul32x32_64(h3,s3) + mul32x32_64(h4,s2);
-	t[2]  = mul32x32_64(h0,r2) + mul32x32_64(h1,r1) + mul32x32_64(h2,r0) + mul32x32_64(h3,s4) + mul32x32_64(h4,s3);
-	t[3]  = mul32x32_64(h0,r3) + mul32x32_64(h1,r2) + mul32x32_64(h2,r1) + mul32x32_64(h3,r0) + mul32x32_64(h4,s4);
-	t[4]  = mul32x32_64(h0,r4) + mul32x32_64(h1,r3) + mul32x32_64(h2,r2) + mul32x32_64(h3,r1) + mul32x32_64(h4,r0);
-
-	                h0 = (uint32_t)t[0] & 0x3ffffff; c =           (t[0] >> 26);
-	t[1] += c;      h1 = (uint32_t)t[1] & 0x3ffffff; b = (uint32_t)(t[1] >> 26);
-	t[2] += b;      h2 = (uint32_t)t[2] & 0x3ffffff; b = (uint32_t)(t[2] >> 26);
-	t[3] += b;      h3 = (uint32_t)t[3] & 0x3ffffff; b = (uint32_t)(t[3] >> 26);
-	t[4] += b;      h4 = (uint32_t)t[4] & 0x3ffffff; b = (uint32_t)(t[4] >> 26);
-	h0 += b * 5;
-
-	if (inlen >= 16) goto poly1305_donna_16bytes;
-
-	/* final bytes */
-poly1305_donna_atmost15bytes:
-	if (!inlen) goto poly1305_donna_finish;
-
-	for (j = 0; j < inlen; j++) mp[j] = m[j];
-	mp[j++] = 1;
-	for (; j < 16; j++)	mp[j] = 0;
-	inlen = 0;
-
-	t0 = U8TO32_LE(mp+0);
-	t1 = U8TO32_LE(mp+4);
-	t2 = U8TO32_LE(mp+8);
-	t3 = U8TO32_LE(mp+12);
-
-	h0 += t0 & 0x3ffffff;
-	h1 += ((((uint64_t)t1 << 32) | t0) >> 26) & 0x3ffffff;
-	h2 += ((((uint64_t)t2 << 32) | t1) >> 20) & 0x3ffffff;
-	h3 += ((((uint64_t)t3 << 32) | t2) >> 14) & 0x3ffffff;
-	h4 += (t3 >> 8);
-
-	goto poly1305_donna_mul;
-
-poly1305_donna_finish:
-	             b = h0 >> 26; h0 = h0 & 0x3ffffff;
-	h1 +=     b; b = h1 >> 26; h1 = h1 & 0x3ffffff;
-	h2 +=     b; b = h2 >> 26; h2 = h2 & 0x3ffffff;
-	h3 +=     b; b = h3 >> 26; h3 = h3 & 0x3ffffff;
-	h4 +=     b; b = h4 >> 26; h4 = h4 & 0x3ffffff;
-	h0 += b * 5; b = h0 >> 26; h0 = h0 & 0x3ffffff;
-	h1 +=     b;
-
-	g0 = h0 + 5; b = g0 >> 26; g0 &= 0x3ffffff;
-	g1 = h1 + b; b = g1 >> 26; g1 &= 0x3ffffff;
-	g2 = h2 + b; b = g2 >> 26; g2 &= 0x3ffffff;
-	g3 = h3 + b; b = g3 >> 26; g3 &= 0x3ffffff;
-	g4 = h4 + b - (1 << 26);
-
-	b = (g4 >> 31) - 1;
-	nb = ~b;
-	h0 = (h0 & nb) | (g0 & b);
-	h1 = (h1 & nb) | (g1 & b);
-	h2 = (h2 & nb) | (g2 & b);
-	h3 = (h3 & nb) | (g3 & b);
-	h4 = (h4 & nb) | (g4 & b);
-
-	f0 = ((h0      ) | (h1 << 26)) + (uint64_t)U8TO32_LE(&key[16]);
-	f1 = ((h1 >>  6) | (h2 << 20)) + (uint64_t)U8TO32_LE(&key[20]);
-	f2 = ((h2 >> 12) | (h3 << 14)) + (uint64_t)U8TO32_LE(&key[24]);
-	f3 = ((h3 >> 18) | (h4 <<  8)) + (uint64_t)U8TO32_LE(&key[28]);
-
-	U32TO8_LE(&out[ 0], f0); f1 += (f0 >> 32);
-	U32TO8_LE(&out[ 4], f1); f2 += (f1 >> 32);
-	U32TO8_LE(&out[ 8], f2); f3 += (f2 >> 32);
-	U32TO8_LE(&out[12], f3);
-}
-#endif	//	OPENSSL_VERSION_NUMBER < 0x10100000L
-
 //////////////////////////////////////////////////////////////////////
 //	chachapoly
 //////////////////////////////////////////////////////////////////////
 
-#define CHACHA_KEYLEN	32 /* Only 256 bit keys used here */
-
 struct ssh_chachapoly_ctx
 {
-	struct chacha_ctx main_ctx, header_ctx;
+	chacha_ctx main_ctx, header_ctx;
 	u_char seqbuf[8];
-	u_char expected_tag[POLY1305_TAGLEN];
-	u_char poly_key[POLY1305_KEYLEN];
-
-#if	OPENSSL_VERSION_NUMBER >= 0x10100000L
+	u_char expected_tag[POLY1305_DIGEST_SIZE];
+	u_char poly_key[POLY1305_KEY_SIZE];
 	POLY1305 *poly_ctx;
-#endif
 };
 
 static int ssh_chachapoly_cipher(EVP_CIPHER_CTX *ctx, u_char *dest, const u_char *src, size_t len)
@@ -3162,27 +2728,23 @@ static int ssh_chachapoly_ctrl(EVP_CIPHER_CTX *ctx, int type, int arg, void *ptr
 	switch(type) {
 	case EVP_CTRL_POLY_IV_GEN:
 		// Run ChaCha20 once to generate the Poly1305 key. The IV is the packet sequence number.
-		memset(c->poly_key, 0, POLY1305_KEYLEN);
+		memset(c->poly_key, 0, POLY1305_KEY_SIZE);
 		if ( ptr != NULL && arg == 8 )
 			memcpy(c->seqbuf, ptr, arg);
 		chacha_ivsetup(&c->main_ctx, c->seqbuf, NULL);
-		chacha_encrypt_bytes(&c->main_ctx, c->poly_key, c->poly_key, POLY1305_KEYLEN);
+		chacha_encrypt_bytes(&c->main_ctx, c->poly_key, c->poly_key, POLY1305_KEY_SIZE);
 		break;
 
 	case EVP_CTRL_POLY_GET_TAG:
-		if ( ptr != NULL && arg >= POLY1305_TAGLEN )
+		if ( ptr != NULL && arg >= POLY1305_DIGEST_SIZE )
 			memcpy(ptr, c->expected_tag, arg);
 		break;
 
 	case EVP_CTRL_POLY_SET_TAG:
 		if ( ptr != NULL && arg > 0 ) {
-#if	OPENSSL_VERSION_NUMBER >= 0x10100000L
 			Poly1305_Init(c->poly_ctx, c->poly_key);
 			Poly1305_Update(c->poly_ctx, (const unsigned char *)ptr, arg);
 			Poly1305_Final(c->poly_ctx, c->expected_tag);
-#else
-			poly1305_auth(c->expected_tag, (u_char *)ptr, arg, c->poly_key);
-#endif
 		}
 		break;
 	}
@@ -3198,11 +2760,9 @@ static int ssh_chachapoly_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_c
 			return 0;
 		memset(c, 0, sizeof(*c));
 
-#if	OPENSSL_VERSION_NUMBER >= 0x10100000L
 		if ( (c->poly_ctx = (POLY1305 *)malloc(Poly1305_ctx_size())) == NULL )
 			return 0;
 		memset(c->poly_ctx, 0, Poly1305_ctx_size());
-#endif
 
 		EVP_CIPHER_CTX_set_app_data(ctx, c);
 	}
@@ -3221,9 +2781,7 @@ static int ssh_chachapoly_cleanup(EVP_CIPHER_CTX *ctx)
 	struct ssh_chachapoly_ctx *c;
 
 	if ((c = (struct ssh_chachapoly_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) != NULL) {
-#if	OPENSSL_VERSION_NUMBER >= 0x10100000L
 		free(c->poly_ctx);
-#endif
 		free(c);
 		EVP_CIPHER_CTX_set_app_data(ctx, NULL);
 	}
@@ -3231,20 +2789,18 @@ static int ssh_chachapoly_cleanup(EVP_CIPHER_CTX *ctx)
 }
 const EVP_CIPHER *evp_chachapoly_256(void)
 {
-	static EVP_CIPHER chachapoly_256;
-
-	memset(&chachapoly_256, 0, sizeof(EVP_CIPHER));
-	chachapoly_256.nid = NID_undef;
-	chachapoly_256.block_size = 8;
-	chachapoly_256.iv_len = 0;
-	chachapoly_256.key_len = CHACHA_KEYLEN * 2;
-	chachapoly_256.init = ssh_chachapoly_init;
-	chachapoly_256.cleanup = ssh_chachapoly_cleanup;
-	chachapoly_256.do_cipher = ssh_chachapoly_cipher;
-	chachapoly_256.ctrl = ssh_chachapoly_ctrl;
-	chachapoly_256.flags = EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV;
-
-	return (&chachapoly_256);
+	if ( LegacyEngineCipherMeth[Nids_chachapoly_256] == NULL ) {
+		EVP_CIPHER *cip = EVP_CIPHER_meth_new(LegacyEngineNids[Nids_chachapoly_256], 8, CHACHA_KEY_SIZE * 2);
+		if ( cip != NULL ) {
+			EVP_CIPHER_meth_set_init(cip, ssh_chachapoly_init);
+			EVP_CIPHER_meth_set_cleanup(cip, ssh_chachapoly_cleanup);
+			EVP_CIPHER_meth_set_do_cipher(cip, ssh_chachapoly_cipher);
+			EVP_CIPHER_meth_set_ctrl(cip, ssh_chachapoly_ctrl);
+			EVP_CIPHER_meth_set_flags(cip, EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV);
+			LegacyEngineCipherMeth[Nids_chachapoly_256] = cip;
+		}
+	}
+	return LegacyEngineCipherMeth[Nids_chachapoly_256];
 }
 
 
@@ -3313,9 +2869,9 @@ typedef struct BlowfishContext {
 } blf_ctx;
 
 #define F(s, x) ((((s)[        (((x)>>24)&0xFF)]  \
-		 + (s)[0x100 + (((x)>>16)&0xFF)]) \
-		 ^ (s)[0x200 + (((x)>> 8)&0xFF)]) \
-		 + (s)[0x300 + ( (x)	 &0xFF)])
+				 + (s)[0x100 + (((x)>>16)&0xFF)]) \
+				 ^ (s)[0x200 + (((x)>> 8)&0xFF)]) \
+				 + (s)[0x300 + ( (x)	 &0xFF)])
 
 #define BLFRND(s,p,i,j,n) (i ^= F(s,j) ^ (p)[n])
 
@@ -3666,7 +3222,6 @@ static void Blowfish_expand0state(blf_ctx *c, const u_int8_t *key, u_int16_t key
 	for (i = 0; i < 4; i++) {
 		for (k = 0; k < 256; k += 2) {
 			Blowfish_encipher(c, &datal, &datar);
-
 			c->S[i][k] = datal;
 			c->S[i][k + 1] = datar;
 		}
@@ -3705,7 +3260,6 @@ static void Blowfish_expandstate(blf_ctx *c, const u_int8_t *data, u_int16_t dat
 			datal ^= Blowfish_stream2word(data, databytes, &j);
 			datar ^= Blowfish_stream2word(data, databytes, &j);
 			Blowfish_encipher(c, &datal, &datar);
-
 			c->S[i][k] = datal;
 			c->S[i][k + 1] = datar;
 		}
@@ -3750,300 +3304,8 @@ static void blf_enc(blf_ctx *c, u_int32_t *data, u_int16_t blocks)
  * wise caller could do; we just do it for you.
  */
 
-static u_int64_t load_bigendian(const unsigned char *x)
-{
-  return
-      (u_int64_t) (x[7]) \
-  | (((u_int64_t) (x[6])) << 8) \
-  | (((u_int64_t) (x[5])) << 16) \
-  | (((u_int64_t) (x[4])) << 24) \
-  | (((u_int64_t) (x[3])) << 32) \
-  | (((u_int64_t) (x[2])) << 40) \
-  | (((u_int64_t) (x[1])) << 48) \
-  | (((u_int64_t) (x[0])) << 56)
-  ;
-}
+#define	crypto_hash_sha512(out, in, inlen)	SHA512(in, inlen, out)
 
-static void store_bigendian(unsigned char *x, u_int64_t u)
-{
-  x[7] = (unsigned char)(u); u >>= 8;
-  x[6] = (unsigned char)(u); u >>= 8;
-  x[5] = (unsigned char)(u); u >>= 8;
-  x[4] = (unsigned char)(u); u >>= 8;
-  x[3] = (unsigned char)(u); u >>= 8;
-  x[2] = (unsigned char)(u); u >>= 8;
-  x[1] = (unsigned char)(u); u >>= 8;
-  x[0] = (unsigned char)(u);
-}
-
-#define SHR(x,c) ((x) >> (c))
-#define ROTR(x,c) (((x) >> (c)) | ((x) << (64 - (c))))
-
-#define Ch(x,y,z) ((x & y) ^ (~x & z))
-#define Maj(x,y,z) ((x & y) ^ (x & z) ^ (y & z))
-#define Sigma0(x) (ROTR(x,28) ^ ROTR(x,34) ^ ROTR(x,39))
-#define Sigma1(x) (ROTR(x,14) ^ ROTR(x,18) ^ ROTR(x,41))
-#define sigma0(x) (ROTR(x, 1) ^ ROTR(x, 8) ^ SHR(x,7))
-#define sigma1(x) (ROTR(x,19) ^ ROTR(x,61) ^ SHR(x,6))
-
-#define M(w0,w14,w9,w1) w0 = sigma1(w14) + w9 + sigma0(w1) + w0;
-
-#define EXPAND \
-  M(w0 ,w14,w9 ,w1 ) \
-  M(w1 ,w15,w10,w2 ) \
-  M(w2 ,w0 ,w11,w3 ) \
-  M(w3 ,w1 ,w12,w4 ) \
-  M(w4 ,w2 ,w13,w5 ) \
-  M(w5 ,w3 ,w14,w6 ) \
-  M(w6 ,w4 ,w15,w7 ) \
-  M(w7 ,w5 ,w0 ,w8 ) \
-  M(w8 ,w6 ,w1 ,w9 ) \
-  M(w9 ,w7 ,w2 ,w10) \
-  M(w10,w8 ,w3 ,w11) \
-  M(w11,w9 ,w4 ,w12) \
-  M(w12,w10,w5 ,w13) \
-  M(w13,w11,w6 ,w14) \
-  M(w14,w12,w7 ,w15) \
-  M(w15,w13,w8 ,w0 )
-
-#undef	F
-#define F(w,k) \
-  T1 = h + Sigma1(e) + Ch(e,f,g) + k + w; \
-  T2 = Sigma0(a) + Maj(a,b,c); \
-  h = g; \
-  g = f; \
-  f = e; \
-  e = d + T1; \
-  d = c; \
-  c = b; \
-  b = a; \
-  a = T1 + T2;
-
-static u_int64_t crypto_hashblocks_sha512(unsigned char *statebytes,const unsigned char *in,unsigned long long inlen)
-{
-  u_int64_t state[8];
-  u_int64_t a;
-  u_int64_t b;
-  u_int64_t c;
-  u_int64_t d;
-  u_int64_t e;
-  u_int64_t f;
-  u_int64_t g;
-  u_int64_t h;
-  u_int64_t T1;
-  u_int64_t T2;
-
-  a = load_bigendian(statebytes +  0); state[0] = a;
-  b = load_bigendian(statebytes +  8); state[1] = b;
-  c = load_bigendian(statebytes + 16); state[2] = c;
-  d = load_bigendian(statebytes + 24); state[3] = d;
-  e = load_bigendian(statebytes + 32); state[4] = e;
-  f = load_bigendian(statebytes + 40); state[5] = f;
-  g = load_bigendian(statebytes + 48); state[6] = g;
-  h = load_bigendian(statebytes + 56); state[7] = h;
-
-  while (inlen >= 128) {
-    u_int64_t w0  = load_bigendian(in +   0);
-    u_int64_t w1  = load_bigendian(in +   8);
-    u_int64_t w2  = load_bigendian(in +  16);
-    u_int64_t w3  = load_bigendian(in +  24);
-    u_int64_t w4  = load_bigendian(in +  32);
-    u_int64_t w5  = load_bigendian(in +  40);
-    u_int64_t w6  = load_bigendian(in +  48);
-    u_int64_t w7  = load_bigendian(in +  56);
-    u_int64_t w8  = load_bigendian(in +  64);
-    u_int64_t w9  = load_bigendian(in +  72);
-    u_int64_t w10 = load_bigendian(in +  80);
-    u_int64_t w11 = load_bigendian(in +  88);
-    u_int64_t w12 = load_bigendian(in +  96);
-    u_int64_t w13 = load_bigendian(in + 104);
-    u_int64_t w14 = load_bigendian(in + 112);
-    u_int64_t w15 = load_bigendian(in + 120);
-
-    F(w0 ,0x428a2f98d728ae22ULL)
-    F(w1 ,0x7137449123ef65cdULL)
-    F(w2 ,0xb5c0fbcfec4d3b2fULL)
-    F(w3 ,0xe9b5dba58189dbbcULL)
-    F(w4 ,0x3956c25bf348b538ULL)
-    F(w5 ,0x59f111f1b605d019ULL)
-    F(w6 ,0x923f82a4af194f9bULL)
-    F(w7 ,0xab1c5ed5da6d8118ULL)
-    F(w8 ,0xd807aa98a3030242ULL)
-    F(w9 ,0x12835b0145706fbeULL)
-    F(w10,0x243185be4ee4b28cULL)
-    F(w11,0x550c7dc3d5ffb4e2ULL)
-    F(w12,0x72be5d74f27b896fULL)
-    F(w13,0x80deb1fe3b1696b1ULL)
-    F(w14,0x9bdc06a725c71235ULL)
-    F(w15,0xc19bf174cf692694ULL)
-
-    EXPAND
-
-    F(w0 ,0xe49b69c19ef14ad2ULL)
-    F(w1 ,0xefbe4786384f25e3ULL)
-    F(w2 ,0x0fc19dc68b8cd5b5ULL)
-    F(w3 ,0x240ca1cc77ac9c65ULL)
-    F(w4 ,0x2de92c6f592b0275ULL)
-    F(w5 ,0x4a7484aa6ea6e483ULL)
-    F(w6 ,0x5cb0a9dcbd41fbd4ULL)
-    F(w7 ,0x76f988da831153b5ULL)
-    F(w8 ,0x983e5152ee66dfabULL)
-    F(w9 ,0xa831c66d2db43210ULL)
-    F(w10,0xb00327c898fb213fULL)
-    F(w11,0xbf597fc7beef0ee4ULL)
-    F(w12,0xc6e00bf33da88fc2ULL)
-    F(w13,0xd5a79147930aa725ULL)
-    F(w14,0x06ca6351e003826fULL)
-    F(w15,0x142929670a0e6e70ULL)
-
-    EXPAND
-
-    F(w0 ,0x27b70a8546d22ffcULL)
-    F(w1 ,0x2e1b21385c26c926ULL)
-    F(w2 ,0x4d2c6dfc5ac42aedULL)
-    F(w3 ,0x53380d139d95b3dfULL)
-    F(w4 ,0x650a73548baf63deULL)
-    F(w5 ,0x766a0abb3c77b2a8ULL)
-    F(w6 ,0x81c2c92e47edaee6ULL)
-    F(w7 ,0x92722c851482353bULL)
-    F(w8 ,0xa2bfe8a14cf10364ULL)
-    F(w9 ,0xa81a664bbc423001ULL)
-    F(w10,0xc24b8b70d0f89791ULL)
-    F(w11,0xc76c51a30654be30ULL)
-    F(w12,0xd192e819d6ef5218ULL)
-    F(w13,0xd69906245565a910ULL)
-    F(w14,0xf40e35855771202aULL)
-    F(w15,0x106aa07032bbd1b8ULL)
-
-    EXPAND
-
-    F(w0 ,0x19a4c116b8d2d0c8ULL)
-    F(w1 ,0x1e376c085141ab53ULL)
-    F(w2 ,0x2748774cdf8eeb99ULL)
-    F(w3 ,0x34b0bcb5e19b48a8ULL)
-    F(w4 ,0x391c0cb3c5c95a63ULL)
-    F(w5 ,0x4ed8aa4ae3418acbULL)
-    F(w6 ,0x5b9cca4f7763e373ULL)
-    F(w7 ,0x682e6ff3d6b2b8a3ULL)
-    F(w8 ,0x748f82ee5defb2fcULL)
-    F(w9 ,0x78a5636f43172f60ULL)
-    F(w10,0x84c87814a1f0ab72ULL)
-    F(w11,0x8cc702081a6439ecULL)
-    F(w12,0x90befffa23631e28ULL)
-    F(w13,0xa4506cebde82bde9ULL)
-    F(w14,0xbef9a3f7b2c67915ULL)
-    F(w15,0xc67178f2e372532bULL)
-
-    EXPAND
-
-    F(w0 ,0xca273eceea26619cULL)
-    F(w1 ,0xd186b8c721c0c207ULL)
-    F(w2 ,0xeada7dd6cde0eb1eULL)
-    F(w3 ,0xf57d4f7fee6ed178ULL)
-    F(w4 ,0x06f067aa72176fbaULL)
-    F(w5 ,0x0a637dc5a2c898a6ULL)
-    F(w6 ,0x113f9804bef90daeULL)
-    F(w7 ,0x1b710b35131c471bULL)
-    F(w8 ,0x28db77f523047d84ULL)
-    F(w9 ,0x32caab7b40c72493ULL)
-    F(w10,0x3c9ebe0a15c9bebcULL)
-    F(w11,0x431d67c49c100d4cULL)
-    F(w12,0x4cc5d4becb3e42b6ULL)
-    F(w13,0x597f299cfc657e2aULL)
-    F(w14,0x5fcb6fab3ad6faecULL)
-    F(w15,0x6c44198c4a475817ULL)
-
-    a += state[0];
-    b += state[1];
-    c += state[2];
-    d += state[3];
-    e += state[4];
-    f += state[5];
-    g += state[6];
-    h += state[7];
-  
-    state[0] = a;
-    state[1] = b;
-    state[2] = c;
-    state[3] = d;
-    state[4] = e;
-    state[5] = f;
-    state[6] = g;
-    state[7] = h;
-
-    in += 128;
-    inlen -= 128;
-  }
-
-  store_bigendian(statebytes +  0,state[0]);
-  store_bigendian(statebytes +  8,state[1]);
-  store_bigendian(statebytes + 16,state[2]);
-  store_bigendian(statebytes + 24,state[3]);
-  store_bigendian(statebytes + 32,state[4]);
-  store_bigendian(statebytes + 40,state[5]);
-  store_bigendian(statebytes + 48,state[6]);
-  store_bigendian(statebytes + 56,state[7]);
-
-  return inlen;
-}
-int crypto_hash_sha512(unsigned char *out,const unsigned char *in,unsigned long long inlen)
-{
-  unsigned char h[64];
-  unsigned char padded[256];
-  unsigned int i;
-  unsigned long long bytes = inlen;
-  static const unsigned char iv[64] = {
-	  0x6a,0x09,0xe6,0x67,0xf3,0xbc,0xc9,0x08,
-	  0xbb,0x67,0xae,0x85,0x84,0xca,0xa7,0x3b,
-	  0x3c,0x6e,0xf3,0x72,0xfe,0x94,0xf8,0x2b,
-	  0xa5,0x4f,0xf5,0x3a,0x5f,0x1d,0x36,0xf1,
-	  0x51,0x0e,0x52,0x7f,0xad,0xe6,0x82,0xd1,
-	  0x9b,0x05,0x68,0x8c,0x2b,0x3e,0x6c,0x1f,
-	  0x1f,0x83,0xd9,0xab,0xfb,0x41,0xbd,0x6b,
-	  0x5b,0xe0,0xcd,0x19,0x13,0x7e,0x21,0x79
-	} ;
-
-
-  for (i = 0;i < 64;++i) h[i] = iv[i];
-
-  crypto_hashblocks_sha512(h,in,inlen);
-  in += inlen;
-  inlen &= 127;
-  in -= inlen;
-
-  for (i = 0;i < inlen;++i) padded[i] = in[i];
-  padded[inlen] = 0x80;
-
-  if (inlen < 112) {
-    for (i = (unsigned int)(inlen + 1);i < 119;++i) padded[i] = 0;
-    padded[119] = (unsigned char)(bytes >> 61);
-    padded[120] = (unsigned char)(bytes >> 53);
-    padded[121] = (unsigned char)(bytes >> 45);
-    padded[122] = (unsigned char)(bytes >> 37);
-    padded[123] = (unsigned char)(bytes >> 29);
-    padded[124] = (unsigned char)(bytes >> 21);
-    padded[125] = (unsigned char)(bytes >> 13);
-    padded[126] = (unsigned char)(bytes >> 5);
-    padded[127] = (unsigned char)(bytes << 3);
-    crypto_hashblocks_sha512(h,padded,128);
-  } else {
-    for (i = (unsigned int)(inlen + 1);i < 247;++i) padded[i] = 0;
-    padded[247] = (unsigned char)(bytes >> 61);
-    padded[248] = (unsigned char)(bytes >> 53);
-    padded[249] = (unsigned char)(bytes >> 45);
-    padded[250] = (unsigned char)(bytes >> 37);
-    padded[251] = (unsigned char)(bytes >> 29);
-    padded[252] = (unsigned char)(bytes >> 21);
-    padded[253] = (unsigned char)(bytes >> 13);
-    padded[254] = (unsigned char)(bytes >> 5);
-    padded[255] = (unsigned char)(bytes << 3);
-    crypto_hashblocks_sha512(h,padded,256);
-  }
-
-  for (i = 0;i < 64;++i) out[i] = h[i];
-
-  return 0;
-}
 int crypto_verify_32(const unsigned char *x,const unsigned char *y)
 {
   unsigned int differentbits = 0;

@@ -9,20 +9,27 @@
 #pragma once
 #endif // _MSC_VER > 1000
 
-#include <afxtempl.h>
+#include "afxtempl.h"
 #include "Data.h"
 #include "SFtp.h"
 #include "ProgDlg.h"
 
 #include "zlib.h"
 
-#include "openssl/des.h"
 #include "openssl/bn.h"
 #include "openssl/evp.h"
 #include "openssl/err.h"
 #include "openssl/hmac.h"
-#include "openssl/md5.h"
 #include "openssl/pem.h"
+#include "openssl/engine.h"
+
+#if	OPENSSL_VERSION_NUMBER >= 0x30000000L
+	#include "openssl/provider.h"
+	#include "openssl/params.h"
+	#pragma warning(disable : 4996)
+	//#define	USE_MACCTX
+	#define	USE_LEGACYKEY
+#endif
 
 #define SSH_CIPHER_NONE         0       // none
 #define SSH_CIPHER_DES          2       // des
@@ -158,7 +165,7 @@ public:
 	LPCTSTR GetTitle();
 	void MakeKey(CBuffer *bp, LPCTSTR pass);
 
-	static void CCipher::BenchMark(CStringA &out);
+	static void CCipher::BenchMark(CBuffer *out);
 
 	CCipher();
 	~CCipher();
@@ -169,7 +176,12 @@ class CMacomp: public CObject
 public:
 	int m_Index;
 	const EVP_MD *m_Md;
+#ifdef	USE_MACCTX
+	EVP_MAC_CTX *m_pMacCtx;
+	EVP_MAC *m_pMac;
+#else
 	HMAC_CTX *m_pHmac;
+#endif
 	int m_KeyLen;
 	LPBYTE m_KeyBuf;
 	int m_BlockSize;
@@ -187,7 +199,7 @@ public:
 	BOOL IsAEAD(LPCTSTR name = NULL);
 
 	static int SpeedCheck();
-	static void BenchMark(CString &out);
+	static void BenchMark(CBuffer *out);
 
 	CMacomp();
 	~CMacomp();
@@ -270,6 +282,10 @@ public:
 #define	EXPORT_STYLE_PUTTY			2
 #define	EXPORT_STYLE_OLDRSA			3
 
+#define	GETPKEY_PUBLICKEY			1
+#define	GETPKEY_PRIVATEKEY			2
+#define	GETPKEY_KEYPAIR				3
+
 //#define	USE_X509
 
 class CXmssKey : public CObject
@@ -344,7 +360,7 @@ public:
 	static const EVP_MD *GetEcEvpMdFromNid(int nid);
 	int GetEcNidFromKey(EC_KEY *k);
 	void RsaGenAddPara(BIGNUM *iqmp);
-	int EvpPkeySetKey(const EVP_PKEY *pkey);
+	int EdFromPkeyRaw(const EVP_PKEY *pkey);
 
 	int Init(LPCTSTR pass);
 	int Create(int type);
@@ -372,18 +388,10 @@ public:
 	int HostVerify(LPCTSTR host, UINT port, class Cssh *pSsh = NULL);
 	int ChkOldCertHosts(LPCTSTR host);
 
-	int RsaSign(CBuffer *bp, LPBYTE buf, int len, LPCTSTR alg);
-	int DssSign(CBuffer *bp, LPBYTE buf, int len);
-	int EcDsaSign(CBuffer *bp, LPBYTE buf, int len);
-	int EdKeySign(int type, CBuffer *bp, LPBYTE buf, int len);
 	int XmssSign(CBuffer *bp, LPBYTE buf, int len);
 	int Sign(CBuffer *bp, LPBYTE buf, int len, LPCTSTR alg = NULL);
 
-	int RsaVerify(CBuffer *bp, LPBYTE data, int datalen);
-	int DssVerify(CBuffer *bp, LPBYTE data, int datalen);
-	int EcDsaVerify(CBuffer *bp, LPBYTE data, int datalen);
-	int EdKeyVerify(int type, CBuffer *bp, LPBYTE data, int datalen);
-	int XmssVerify(CBuffer *bp, LPBYTE data, int datalen);
+	int XmssVerify(CBuffer *sig, LPBYTE data, int datalen);
 	int Verify(CBuffer *bp, LPBYTE data, int datalen);
 
 #ifdef	USE_X509
@@ -402,7 +410,9 @@ public:
 	int ReadPrivateKey(LPCTSTR str, LPCTSTR pass, BOOL bHost);
 	int WritePrivateKey(CString &str, LPCTSTR pass);
 
+	EVP_PKEY *GetEvpPkey(int mode = GETPKEY_KEYPAIR);
 	int SetEvpPkey(EVP_PKEY *pk);
+
 	int LoadRsa1Key(FILE *fp, LPCTSTR pass);
 	int SaveRsa1Key(FILE *fp, LPCTSTR pass);
 	int LoadOpenSshKey(FILE *fp, LPCTSTR pass);
@@ -979,42 +989,9 @@ public:
 // OpenSSH C lib
 //////////////////////////////////////////////////////////////////////
 
-#if	OPENSSL_VERSION_NUMBER < 0x10100000L
-extern EVP_MD_CTX *EVP_MD_CTX_new(void);
-extern void EVP_MD_CTX_free(EVP_MD_CTX *pCtx);
-extern HMAC_CTX *HMAC_CTX_new(void);
-extern void HMAC_CTX_free(HMAC_CTX *pHmac);
-const EVP_CIPHER *EVP_CIPHER_CTX_cipher(const EVP_CIPHER_CTX *ctx);
-int EVP_CIPHER_CTX_block_size(const EVP_CIPHER_CTX *ctx);
-int EVP_CIPHER_CTX_encrypting(const EVP_CIPHER_CTX *ctx);
-int EVP_PKEY_id(const EVP_PKEY *pkey);
-int RSA_bits(const RSA *r);
-int RSA_size(const RSA *r);
-void RSA_get0_key(const RSA *r, const BIGNUM **n, const BIGNUM **e, const BIGNUM **d);
-void RSA_get0_factors(const RSA *r, const BIGNUM **p, const BIGNUM **q);
-void RSA_get0_crt_params(const RSA *r, const BIGNUM **dmp1, const BIGNUM **dmq1, const BIGNUM **iqmp);
-int RSA_set0_key(RSA *r, BIGNUM *n, BIGNUM *e, BIGNUM *d);
-int RSA_set0_factors(RSA *r, BIGNUM *p, BIGNUM *q);
-int RSA_set0_crt_params(RSA *r, BIGNUM *dmp1, BIGNUM *dmq1, BIGNUM *iqmp);
-int DSA_bits(const DSA *dsa);
-void DSA_get0_pqg(const DSA *d, const BIGNUM **p, const BIGNUM **q, const BIGNUM **g);
-void DSA_get0_key(const DSA *d, const BIGNUM **pub_key, const BIGNUM **priv_key);
-int DSA_set0_pqg(DSA *d, BIGNUM *p, BIGNUM *q, BIGNUM *g);
-int DSA_set0_key(DSA *d, BIGNUM *pub_key, BIGNUM *priv_key);
-void DSA_SIG_get0(const DSA_SIG *sig, const BIGNUM **pr, const BIGNUM **ps);
-int DSA_SIG_set0(DSA_SIG *sig, BIGNUM *r, BIGNUM *s);
-void ECDSA_SIG_get0(const ECDSA_SIG *sig, const BIGNUM **pr, const BIGNUM **ps);
-int ECDSA_SIG_set0(ECDSA_SIG *sig, BIGNUM *r, BIGNUM *s);
-int DH_bits(const DH *dh);
-void DH_get0_pqg(const DH *dh, const BIGNUM **p, const BIGNUM **q, const BIGNUM **g);
-int DH_set0_pqg(DH *dh, BIGNUM *p, BIGNUM *q, BIGNUM *g);
-void DH_get0_key(const DH *dh, const BIGNUM **pub_key, const BIGNUM **priv_key);
-int DH_set0_key(DH *dh, BIGNUM *pub_key, BIGNUM *priv_key);
-int DH_set_length(DH *dh, long length);
-#endif
+extern int LegacyEngineInit();
+extern void LegacyEngineFree();
 
-extern const EVP_CIPHER *evp_aes_128_ctr(void);
-extern const EVP_CIPHER *evp_camellia_128_ctr(void);
 extern const EVP_CIPHER *evp_seed_ctr(void);
 extern const EVP_CIPHER *evp_twofish_ctr(void);
 extern const EVP_CIPHER *evp_twofish_cbc(void);
@@ -1058,8 +1035,10 @@ extern void UMAC_update(struct umac_ctx *ctx, const u_char *input, size_t len);
 extern void UMAC_final(struct umac_ctx *ctx, u_char *tag, u_char *nonce);
 extern void UMAC_close(struct umac_ctx *ctx);
 
+extern int	HMAC_digest(const EVP_MD *md, BYTE *key, int keylen, BYTE *in, int inlen, BYTE *out, int outlen);
+extern int	EVP_MD_digest(const EVP_MD *md, BYTE *in, int inlen, BYTE *out, int outlen);
+
 // openbsd-compat
-extern int crypto_hash_sha512(unsigned char *out,const unsigned char *in,unsigned long long inlen);
 extern int crypto_verify_32(const unsigned char *x,const unsigned char *y);
 extern int bcrypt_pbkdf(const char *pass, size_t passlen, const unsigned char *salt, size_t saltlen, unsigned char *key, size_t keylen, unsigned int rounds);
 
@@ -1095,9 +1074,8 @@ int xmssmt_bits(uint32_t oid);
 int xmssmt_height(uint32_t oid);
 int xmssmt_key_bytes(uint32_t oid, int *plen, int *slen);
 
-// xmss.cpp(fips202.c)
-void shake128(unsigned char *out, unsigned long long outlen, const unsigned char *in, unsigned long long inlen);
-void shake256(unsigned char *out, unsigned long long outlen, const unsigned char *in, unsigned long long inlen);
+void SHAKE128(const unsigned char *in, size_t inlen, unsigned char *md, size_t mdlen);
+void SHAKE256(const unsigned char *in, size_t inlen, unsigned char *md, size_t mdlen);
 
 // sntrup761.cpp
 int	sntrup761_keypair(unsigned char *pk, unsigned char *sk);

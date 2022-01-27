@@ -926,18 +926,24 @@ int Cssh::SMsgPublicKey(CBuffer *bp)
 	int len;
 	BIGNUM *key;
 
-	md_ctx = EVP_MD_CTX_new();
-	EVP_DigestInit(md_ctx, EVP_md5());
+	if ( (md_ctx = EVP_MD_CTX_new()) == NULL )
+		throw _T("SMsgPublicKey EVP_MD_CTX error");
 
 	len = BN_num_bytes(host_key_n);
     BN_bn2bin(host_key_n, nbuf);
-    EVP_DigestUpdate(md_ctx, nbuf, len);
+
+	if ( EVP_DigestInit(md_ctx, EVP_md5()) == 0 ||
+	     EVP_DigestUpdate(md_ctx, nbuf, len) == 0 )
+		throw _T("SMsgPublicKey host key error");
 
 	len = BN_num_bytes(server_key_n);
     BN_bn2bin(server_key_n, nbuf);
-    EVP_DigestUpdate(md_ctx, nbuf, len);
-    EVP_DigestUpdate(md_ctx, m_Cookie, 8);
-    EVP_DigestFinal(md_ctx, obuf, NULL);
+
+	if ( EVP_DigestUpdate(md_ctx, nbuf, len) == 0 ||
+	     EVP_DigestUpdate(md_ctx, m_Cookie, 8) == 0 ||
+		 EVP_DigestFinal(md_ctx, obuf, NULL) == 0 )
+		throw _T("SMsgPublicKey server key error");
+
 	EVP_MD_CTX_free(md_ctx);
 	memcpy(m_SessionId, obuf, 16);
 
@@ -1004,8 +1010,7 @@ int Cssh::SMsgAuthRsaChallenge(CBuffer *bp)
 	int len;
 	CBuffer tmp;
 	BIGNUM *challenge;
-	MD5_CTX md;
-	BYTE buf[32], res[16];
+	BYTE buf[32], res[EVP_MAX_MD_SIZE];
 	CSpace inbuf, otbuf;
 
 	if ( m_pIdKey == NULL )
@@ -1037,13 +1042,14 @@ int Cssh::SMsgAuthRsaChallenge(CBuffer *bp)
 
 	memset(buf, 0, sizeof(buf));
 	BN_bn2bin(challenge, buf + sizeof(buf) - len);
-	MD5_Init(&md);
-	MD5_Update(&md, buf, 32);
-	MD5_Update(&md, m_SessionId, 16);
-	MD5_Final(res, &md);	
+
+	tmp.Apend(buf, 32);
+	tmp.Apend(m_SessionId, 16);
+	len = EVP_MD_digest(EVP_md5(), tmp.GetPtr(), tmp.GetSize(), res, sizeof(res));
+	tmp.Clear();
 
 	tmp.Put8Bit(SSH_CMSG_AUTH_RSA_RESPONSE);
-	for ( n = 0 ; n < 16 ; n++ )
+	for ( n = 0 ; n < len ; n++ )
 		tmp.Put8Bit(res[n]);
 	SendPacket(&tmp);
 
@@ -2723,24 +2729,24 @@ int Cssh::SSH2MsgKexInit(CBuffer *bp)
 	static const struct {
 		int		mode;
 		LPCTSTR	name;
-	} kextab[] = {
-		{ DHMODE_ECDH_S2_N256,	_T("ecdh-sha2-nistp256")						},	// RFC5656	MAY
-		{ DHMODE_ECDH_S2_N384,	_T("ecdh-sha2-nistp384")						},	// RFC5656	SHOULD
-		{ DHMODE_ECDH_S2_N521,	_T("ecdh-sha2-nistp521")						},	// RFC5656	SHOULD
-		{ DHMODE_GROUP_GEX256,	_T("diffie-hellman-group-exchange-sha256")		},	// RFC4419	MAY
-		{ DHMODE_GROUP_GEX,		_T("diffie-hellman-group-exchange-sha1")		},	// RFC4419	SHOULD NOT
-		{ DHMODE_GROUP_14,		_T("diffie-hellman-group14-sha1")				},	// RFC4253	SHOULD
-		{ DHMODE_GROUP_1,		_T("diffie-hellman-group1-sha1")				},	// RFC4253	SHOULD NOT
-		{ DHMODE_GROUP_14_256,	_T("diffie-hellman-group14-sha256")				},	// RFC8268	MAY
-		{ DHMODE_GROUP_15_512,	_T("diffie-hellman-group15-sha512")				},	// RFC8268	MAY
-		{ DHMODE_GROUP_16_512,	_T("diffie-hellman-group16-sha512")				},	// RFC8268	SHOULD
-		{ DHMODE_GROUP_17_512,	_T("diffie-hellman-group17-sha512")				},	// RFC8268	MAY
-		{ DHMODE_GROUP_18_512,	_T("diffie-hellman-group18-sha512")				},	// RFC8268	MAY
-		{ DHMODE_CURVE25519,	_T("curve25519-sha256")							},	// RFC8731	MUST
-		{ DHMODE_CURVE448,		_T("curve448-sha512")							},	// RFC8731	MAY
+	} kextab[] = {																							//  RFC9142
+		{ DHMODE_ECDH_S2_N256,	_T("ecdh-sha2-nistp256")						},	// RFC5656	MAY				SHOULD
+		{ DHMODE_ECDH_S2_N384,	_T("ecdh-sha2-nistp384")						},	// RFC5656	SHOULD			SHOULD
+		{ DHMODE_ECDH_S2_N521,	_T("ecdh-sha2-nistp521")						},	// RFC5656	SHOULD			SHOULD
+		{ DHMODE_GROUP_GEX256,	_T("diffie-hellman-group-exchange-sha256")		},	// RFC4419	MAY				MAY
+		{ DHMODE_GROUP_GEX,		_T("diffie-hellman-group-exchange-sha1")		},	// RFC4419	SHOULD NOT		SHOULD NOT
+		{ DHMODE_GROUP_14,		_T("diffie-hellman-group14-sha1")				},	// RFC4253	SHOULD			MAY
+		{ DHMODE_GROUP_1,		_T("diffie-hellman-group1-sha1")				},	// RFC4253	SHOULD NOT		SHOULD NOT
+		{ DHMODE_GROUP_14_256,	_T("diffie-hellman-group14-sha256")				},	// RFC8268	MAY				MUST
+		{ DHMODE_GROUP_15_512,	_T("diffie-hellman-group15-sha512")				},	// RFC8268	MAY				MAY
+		{ DHMODE_GROUP_16_512,	_T("diffie-hellman-group16-sha512")				},	// RFC8268	SHOULD			SHOULD
+		{ DHMODE_GROUP_17_512,	_T("diffie-hellman-group17-sha512")				},	// RFC8268	MAY				MAY
+		{ DHMODE_GROUP_18_512,	_T("diffie-hellman-group18-sha512")				},	// RFC8268	MAY				MAY
+		{ DHMODE_CURVE25519,	_T("curve25519-sha256")							},	// RFC8731	MUST			SHOULD
+		{ DHMODE_CURVE448,		_T("curve448-sha512")							},	// RFC8731	MAY				MAY
 		{ DHMODE_SNT761X25519,	_T("sntrup761x25519-sha512@openssh.com")		},
-		{ DHMODE_RSA1024SHA1,	_T("rsa1024-sha1")								},	// RFC4432	MUST NOT
-		{ DHMODE_RSA2048SHA2,	_T("rsa2048-sha256")							},	// RFC4432	MAY
+		{ DHMODE_RSA1024SHA1,	_T("rsa1024-sha1")								},	// RFC4432	MUST NOT		MUST NOT
+		{ DHMODE_RSA2048SHA2,	_T("rsa2048-sha256")							},	// RFC4432	MAY				MAY
 		{ 0,					NULL											},
 	};
 
@@ -2846,10 +2852,11 @@ int Cssh::HostVerifyKey(CBuffer *sign, CBuffer *addb, CBuffer *skey, const EVP_M
 	b.Apend(addb->GetPtr(), addb->GetSize());
 	b.Apend(skey->GetPtr(), skey->GetSize());
 
-	md_ctx = EVP_MD_CTX_new();
-	EVP_DigestInit(md_ctx, evp_md);
-	EVP_DigestUpdate(md_ctx, b.GetPtr(), b.GetSize());
-	EVP_DigestFinal(md_ctx, hash, &hashlen);
+	if ( (md_ctx = EVP_MD_CTX_new()) == NULL ||
+		 EVP_DigestInit(md_ctx, evp_md) == 0 ||
+		 EVP_DigestUpdate(md_ctx, b.GetPtr(), b.GetSize()) == 0 ||
+		 EVP_DigestFinal(md_ctx, hash, &hashlen) == 0 )
+		throw _T("HostVerifyKey EVP_MD_CTX Error");
 	EVP_MD_CTX_free(md_ctx);
 
 	if ( !m_HostKey.Verify(sign, hash, hashlen) )
@@ -2858,7 +2865,8 @@ int Cssh::HostVerifyKey(CBuffer *sign, CBuffer *addb, CBuffer *skey, const EVP_M
 	if ( m_SessHash.GetSize() == 0 )
 		m_SessHash.Apend(hash, hashlen);
 
-	md_ctx = EVP_MD_CTX_new();
+	if ( (md_ctx = EVP_MD_CTX_new()) == NULL )
+		throw _T("HostVerifyKey VKey Error");
 	mdsz = EVP_MD_size(evp_md);
 
 	for ( n = 0 ; n < 6 ; n++ ) {
@@ -2869,12 +2877,13 @@ int Cssh::HostVerifyKey(CBuffer *sign, CBuffer *addb, CBuffer *skey, const EVP_M
 		c = (char)('A' + n);
 
 		/* K1 = HASH(K || H || "A" || session_id) */
-		EVP_DigestInit(md_ctx, evp_md);
-		EVP_DigestUpdate(md_ctx, skey->GetPtr(), skey->GetSize());
-		EVP_DigestUpdate(md_ctx, hash, hashlen);
-		EVP_DigestUpdate(md_ctx, &c, 1);
-		EVP_DigestUpdate(md_ctx, m_SessHash.GetPtr(), m_SessHash.GetSize());
-		EVP_DigestFinal(md_ctx, m_VKey[n], NULL);
+		if ( EVP_DigestInit(md_ctx, evp_md) == 0 ||
+			 EVP_DigestUpdate(md_ctx, skey->GetPtr(), skey->GetSize()) == 0 ||
+			 EVP_DigestUpdate(md_ctx, hash, hashlen) == 0 ||
+			 EVP_DigestUpdate(md_ctx, &c, 1) == 0 ||
+			 EVP_DigestUpdate(md_ctx, m_SessHash.GetPtr(), m_SessHash.GetSize()) == 0 ||
+			 EVP_DigestFinal(md_ctx, m_VKey[n], NULL) == 0 )
+			throw _T("HostVerifyKey session id Error");
 
 		/*
 		 * expand key:
@@ -2882,11 +2891,12 @@ int Cssh::HostVerifyKey(CBuffer *sign, CBuffer *addb, CBuffer *skey, const EVP_M
 		 * Key = K1 || K2 || ... || Kn
 		 */
 		for ( have = mdsz ; m_NeedKeyLen > have ; have += mdsz ) {
-			EVP_DigestInit(md_ctx, evp_md);
-			EVP_DigestUpdate(md_ctx, skey->GetPtr(), skey->GetSize());
-			EVP_DigestUpdate(md_ctx, hash, hashlen);
-			EVP_DigestUpdate(md_ctx, m_VKey[n], have);
-			EVP_DigestFinal(md_ctx, m_VKey[n] + have, NULL);
+			if ( EVP_DigestInit(md_ctx, evp_md) == 0 ||
+				 EVP_DigestUpdate(md_ctx, skey->GetPtr(), skey->GetSize()) == 0 ||
+				 EVP_DigestUpdate(md_ctx, hash, hashlen) == 0 ||
+				 EVP_DigestUpdate(md_ctx, m_VKey[n], have) == 0 ||
+				 EVP_DigestFinal(md_ctx, m_VKey[n] + have, NULL) == 0 )
+				throw _T("HostVerifyKey expand key Error");
 		}
 	}
 
@@ -3151,7 +3161,6 @@ int Cssh::SSH2MsgKexCurveReply(CBuffer *bp)
 	EVP_PKEY *pkey = NULL;
 	size_t keylen;
 	int type = EVP_PKEY_X25519;
-	EVP_MD_CTX *md_ctx;
 
 	bp->GetBuf(&tmp);
 	addb.PutBuf(tmp.GetPtr(), tmp.GetSize());
@@ -3208,13 +3217,8 @@ int Cssh::SSH2MsgKexCurveReply(CBuffer *bp)
 	addb.PutBuf(server_public.GetPtr(), server_public.GetSize());
 
 	if ( m_DhMode == DHMODE_SNT761X25519 ) {
-		md_ctx = EVP_MD_CTX_new();
-		EVP_DigestInit(md_ctx, evp_md);
-		EVP_DigestUpdate(md_ctx, shared_key.GetPtr(), shared_key.GetSize());
-		EVP_DigestFinal(md_ctx, shared_digest, NULL);
-		EVP_MD_CTX_free(md_ctx);
-
-		skey.PutBuf(shared_digest, EVP_MD_size(evp_md));
+		n = EVP_MD_digest(evp_md, shared_key.GetPtr(), shared_key.GetSize(), shared_digest, sizeof(shared_digest));
+		skey.PutBuf(shared_digest, n);
 
 	} else {
 		if ( (shared_secret = BN_new()) == NULL )

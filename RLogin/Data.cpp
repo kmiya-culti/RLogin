@@ -1344,17 +1344,11 @@ void CBuffer::UuEncode(LPBYTE buf, int len)
 
 void CBuffer::md5(LPCTSTR str)
 {
-	unsigned int dlen;
+	int dlen;
 	u_char digest[EVP_MAX_MD_SIZE];
-	EVP_MD_CTX *md_ctx;
 	CStringA tmp(str);
 
-	md_ctx = EVP_MD_CTX_new();
-	EVP_DigestInit(md_ctx, EVP_md5());
-	EVP_DigestUpdate(md_ctx, (const void *)(LPCSTR)tmp, tmp.GetLength());
-	EVP_DigestFinal(md_ctx, digest, &dlen);
-	EVP_MD_CTX_free(md_ctx);
-
+	dlen = EVP_MD_digest(EVP_md5(), (BYTE *)(LPCSTR)tmp, tmp.GetLength(), digest, sizeof(digest));
 	Base16Encode(digest, dlen);
 }
 BOOL CBuffer::LoadFile(LPCTSTR filename)
@@ -6449,13 +6443,6 @@ void CKeyMacTab::SetHisMenu(CMenu *pMenu)
 //////////////////////////////////////////////////////////////////////
 // CParamTab
 
-#if	OPENSSL_VERSION_NUMBER >= 0x10001000L
-#define	META_AEAD_STRING	_T("AEAD_AES_256_GCM,AEAD_AES_128_GCM,AEAD_AES_256_CCM,AEAD_AES_128_CCM,") \
-							_T("aes256-gcm@openssh.com,aes128-gcm@openssh.com,")
-#else
-#define	META_AEAD_STRING	_T("")
-#endif
-
 #ifdef	USE_NETTLE
 #define	META_NETTLE_STRING	_T("twofish256-ctr,twofish192-ctr,twofish128-ctr,") \
 							_T("serpent256-ctr,serpent192-ctr,serpent128-ctr,") \
@@ -6482,7 +6469,8 @@ static LPCTSTR InitAlgo[12]= {
 	_T("camellia256-ctr,camellia192-ctr,camellia128-ctr,") \
 	_T("blowfish-ctr,cast128-ctr,idea-ctr,") \
 	_T("twofish-ctr,seed-ctr@ssh.com,3des-ctr,") \
-	META_AEAD_STRING \
+	_T("AEAD_AES_256_GCM,AEAD_AES_128_GCM,AEAD_AES_256_CCM,AEAD_AES_128_CCM,") \
+	_T("aes256-gcm@openssh.com,aes128-gcm@openssh.com,") \
 	_T("arcfour256,arcfour128,arcfour,") \
 	_T("aes256-cbc,aes192-cbc,aes128-cbc,") \
 	_T("camellia256-cbc,camellia192-cbc,camellia128-cbc,") \
@@ -6508,7 +6496,8 @@ static LPCTSTR InitAlgo[12]= {
 	_T("camellia256-ctr,camellia192-ctr,camellia128-ctr,") \
 	_T("blowfish-ctr,cast128-ctr,idea-ctr,") \
 	_T("twofish-ctr,seed-ctr@ssh.com,3des-ctr,") \
-	META_AEAD_STRING \
+	_T("AEAD_AES_256_GCM,AEAD_AES_128_GCM,AEAD_AES_256_CCM,AEAD_AES_128_CCM,") \
+	_T("aes256-gcm@openssh.com,aes128-gcm@openssh.com,") \
 	_T("arcfour256,arcfour128,arcfour,") \
 	_T("aes256-cbc,aes192-cbc,aes128-cbc,") \
 	_T("camellia256-cbc,camellia192-cbc,camellia128-cbc,") \

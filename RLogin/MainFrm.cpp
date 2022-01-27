@@ -1406,9 +1406,8 @@ LPCTSTR CMainFrame::PagentPipeName()
 	int len = CRYPTPROTECTMEMORY_BLOCK_SIZE;	//	"Pageant" len = 7, CRYPTPROTECTMEMORY_BLOCK_SIZE = 16, (7 + 1 + 15) / 16 * 16 = 16
 	DWORD size;
 	TCHAR username[MAX_COMPUTERNAME_LENGTH + 2];
-	unsigned int dlen;
+	int dlen;
 	u_char digest[EVP_MAX_MD_SIZE];
-	EVP_MD_CTX *md_ctx;
 	CBuffer tmp(-1);
 
 	bInit = TRUE;
@@ -1427,13 +1426,7 @@ LPCTSTR CMainFrame::PagentPipeName()
 	}
 
 	tmp.PutBuf((LPBYTE)data, len);
-
-	md_ctx = EVP_MD_CTX_new();
-	EVP_DigestInit(md_ctx, EVP_sha256());
-	EVP_DigestUpdate(md_ctx, (const void *)tmp.GetPtr(), tmp.GetSize());
-	EVP_DigestFinal(md_ctx, digest, &dlen);
-	EVP_MD_CTX_free(md_ctx);
-
+	dlen = EVP_MD_digest(EVP_sha256(), tmp.GetPtr(), tmp.GetSize(), digest, sizeof(digest));
 	tmp.Base16Encode(digest, dlen);
 
 	pipename.Format(_T("\\\\.\\pipe\\pageant.%s.%s"), username, (LPCTSTR)tmp);

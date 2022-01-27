@@ -16,8 +16,11 @@
 
 #include <string.h>
 
+#include <openssl/sha.h>
+
+#define	crypto_hash_sha512(out, in, inlen)	SHA512(in, inlen, out)
+
 extern void rand_buf(void *buf, int len);
-extern int crypto_hash_sha512(unsigned char *out,const unsigned char *in,unsigned long long inlen);
 extern int crypto_verify_32(const unsigned char *x,const unsigned char *y);
 
 #define randombytes(buf, buf_len) rand_buf((buf), (buf_len))

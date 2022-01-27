@@ -92,6 +92,9 @@ BOOL CProxyDlg::OnInitDialog()
 	else if ( m_ProxyMode >= 2  )
 		m_ProxyMode += 1;
 
+	if ( m_SSLMode != 0 )
+		m_SSLMode = 1;
+
 	UpdateData(FALSE);
 
 	OnProtoType(IDC_RADIO1 + m_ProxyMode);

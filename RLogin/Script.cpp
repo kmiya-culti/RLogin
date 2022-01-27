@@ -5718,25 +5718,16 @@ int CScript::Func07(int cmd, CScriptValue &local)
 
 	case 4:		// cipopen(type, key, ec)
 		{
-			unsigned int dlen;
-			const EVP_MD *evp_md = EVP_sha1();
-			u_char key[EVP_MAX_MD_SIZE], iv[EVP_MAX_MD_SIZE];
-			EVP_MD_CTX *md_ctx;
+			int dlen;
+			u_char key[EVP_MAX_MD_SIZE * 2], iv[EVP_MAX_MD_SIZE];
 			CCipher *cp = new CCipher;
 			CBuffer *bp = local[1].GetBuf();
+			CBuffer tmp;
 
-			md_ctx = EVP_MD_CTX_new();
-			EVP_DigestInit(md_ctx, evp_md);
-			EVP_DigestUpdate(md_ctx, (LPBYTE)bp->GetPtr(), bp->GetSize());
-			EVP_DigestFinal(md_ctx, key, &dlen);
-			EVP_MD_CTX_free(md_ctx);
-
-			md_ctx = EVP_MD_CTX_new();
-			EVP_DigestInit(md_ctx, evp_md);
-			EVP_DigestUpdate(md_ctx, (LPBYTE)bp->GetPtr(), bp->GetSize());
-			EVP_DigestUpdate(md_ctx, key, 16);
-			EVP_DigestFinal(md_ctx, key + 16, &dlen);
-			EVP_MD_CTX_free(md_ctx);
+			tmp.Apend(bp->GetPtr(), bp->GetSize());
+			dlen = EVP_MD_digest(EVP_sha1(), tmp.GetPtr(), tmp.GetSize(), key, EVP_MAX_MD_SIZE);
+			tmp.Apend(key, dlen);
+			dlen += EVP_MD_digest(EVP_sha1(), tmp.GetPtr(), tmp.GetSize(), key + dlen, EVP_MAX_MD_SIZE);
 
 			memset(iv, 0, sizeof(iv));
 
@@ -5854,19 +5845,11 @@ int CScript::Func06(int cmd, CScriptValue &local)
 	case 3:	// md5(s, f)
 	case 4:	// sha1(s, f)
 		{
-			unsigned int dlen;
-			const EVP_MD *evp_md;
+			int dlen;
 			u_char digest[EVP_MAX_MD_SIZE];
-			EVP_MD_CTX *md_ctx;
-
-			evp_md = (cmd == 3 ? EVP_md5() : EVP_sha1());
 
 			bp = local[0].GetBuf();
-			md_ctx = EVP_MD_CTX_new();
-			EVP_DigestInit(md_ctx, evp_md);
-			EVP_DigestUpdate(md_ctx, (LPBYTE)bp->GetPtr(), bp->GetSize());
-			EVP_DigestFinal(md_ctx, digest, &dlen);
-			EVP_MD_CTX_free(md_ctx);
+			dlen = EVP_MD_digest((cmd == 3 ? EVP_md5() : EVP_sha1()), bp->GetPtr(), bp->GetSize(), digest, sizeof(digest));
 
 			acc->m_Type = VALTYPE_TSTRING;
 			acc->m_Buf.Clear();

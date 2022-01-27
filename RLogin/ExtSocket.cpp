@@ -331,14 +331,8 @@ BOOL CExtSocket::ProxyOpen(int mode, BOOL keep, LPCTSTR ProxyHost, UINT ProxyPor
 	}
 
 	switch(mode >> 3) {
-	case 0: m_SSL_mode = 0; break;	// Non
-	case 1: m_SSL_mode = 1; break;	// SSLv2
-	case 2: m_SSL_mode = 2; break;	// SSLv3
-	case 3: m_SSL_mode = 3; break;	// TLSv1
-#if	OPENSSL_VERSION_NUMBER >= 0x10001000L
-	case 4: m_SSL_mode = 4; break;	// TLSv1.1
-	case 5: m_SSL_mode = 5; break;	// TLSv1.2
-#endif
+	case 0:  m_SSL_mode = 0; break;	// Non
+	default: m_SSL_mode = 1; break;	// SSL/TLS
 	}
 
 	m_SSL_keep = keep;
@@ -995,6 +989,7 @@ BOOL CExtSocket::ProxyFunc()
 	CString tmp;
 	CBuffer A1, A2;
 	CStringA mbs;
+	u_char digest[EVP_MAX_MD_SIZE];
 
 	while ( m_ProxyStatus != PRST_NONE ) {
 		switch(m_ProxyStatus) {
@@ -1350,25 +1345,16 @@ BOOL CExtSocket::ProxyFunc()
 					m_ProxyStatus = PRST_SOCKS5_ERROR;
 				break;
 			case 0x03:
-				{
-					HMAC_CTX *pHmac;
-					u_char hmac[EVP_MAX_MD_SIZE];
+				mbs = m_ProxyPass;
+				n = HMAC_digest(EVP_md5(), (BYTE *)(LPCSTR)mbs, mbs.GetLength(), m_ProxyBuff.GetPtr(), m_ProxyBuff.GetSize(), digest, sizeof(digest));
 
-					mbs = m_ProxyPass;
-					pHmac = HMAC_CTX_new();
-					HMAC_Init(pHmac, (LPCSTR)mbs, mbs.GetLength(), EVP_md5());
-					HMAC_Update(pHmac, m_ProxyBuff.GetPtr(), m_ProxyBuff.GetSize());
-					HMAC_Final(pHmac, hmac, NULL);
-					HMAC_CTX_free(pHmac);
-
-					buf.Clear();
-					buf.Put8Bit(0x01);
-					buf.Put8Bit(0x01);
-					buf.Put8Bit(0x04);
-					buf.Put8Bit(16);
-					buf.Apend(hmac, 16);
-					CExtSocket::Send(buf.GetPtr(), buf.GetSize(), 0);
-				}
+				buf.Clear();
+				buf.Put8Bit(0x01);
+				buf.Put8Bit(0x01);
+				buf.Put8Bit(0x04);
+				buf.Put8Bit(16);
+				buf.Apend(digest, n);
+				CExtSocket::Send(buf.GetPtr(), buf.GetSize(), 0);
 				break;
 			case 0x11:
 				if ( *(m_ProxyBuff.GetPos(0)) != 0x85 )
@@ -2091,35 +2077,7 @@ int CExtSocket::SSLConnect()
 
 	GetApp()->SSL_Init();
 
-	switch(m_SSL_mode) {
-#if	OPENSSL_VERSION_NUMBER >= 0x10001000L
-	case 1:
-	case 2:
-		method = SSLv23_client_method();
-		break;
-	case 3:
-		method = TLSv1_client_method();
-		break;
-	case 4:
-		method = TLSv1_1_client_method();
-		break;
-	case 5:
-		method = TLSv1_2_client_method();
-		break;
-#else
-	case 1:
-		method = SSLv23_client_method();
-		break;
-	case 2:
-		method = SSLv3_client_method();
-		break;
-	case 3:
-		method = TLSv1_client_method();
-		break;
-#endif
-	default:
-		goto ERRENDOF;
-	}
+	method = TLS_client_method();
 
 	if ( (m_SSL_pCtx = SSL_CTX_new((SSL_METHOD *)method)) == NULL )
 		goto ERRENDOF;

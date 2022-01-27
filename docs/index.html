@@ -6,7 +6,8 @@
 <TITLE>rlogin/telnet/ssh(クライアント)ターミナルソフト</TITLE>
 <STYLE type="text/css">
 <!--
-TD {
+TD {		
+				
 				
 				
 				
@@ -20,7 +21,8 @@ TD {
 				
 		background-color : #ffffff; font-size : 90%; 
 }
-.BOX{
+.BOX{		
+				
 				
 				
 				
@@ -47,8 +49,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.26.6)</TD>
-            <TD width="20%" align="right">2021/12/20</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.26.7)</TD>
+            <TD width="20%" align="right">2022/01/28</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -436,6 +438,13 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2022/01/28</TD>
+            <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.26.7/">2.26.7</A></TD>
+            <TD>不要なコードの削除など暗号化ライブラリを大幅に整理<BR>
+            プロキシーサーバーの設定でSSL/TLSを自動だけに変更<BR>
+            openssl-3.0.1に更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2021/12/20</TD>
             <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.26.6/">2.26.6</A></TD>
             <TD>sshのkex回りのコードを整理しrsa2048-sha256などを試験実装<BR>
@@ -471,14 +480,6 @@ TD {
             <TD>openssl-1.1.1lに更新</TD>
           </TR>
           <TR>
-            <TD align="center">2021/06/28</TD>
-            <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.26.2/">2.26.2</A></TD>
-            <TD>文字色セットにCUD（カラーユニバーサルデザイン）を追加<BR>
-            メニュー・ヘルプに登録されたホスト鍵の削除を追加<BR>
-            ホスト鍵の確認で公開鍵を保存しない場合の処理を変更<BR>
-            Server Celectダイアログのポップアップにすべてファイルに保存を追加</TD>
-          </TR>
-          <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
           </TR>
         </TBODY>
@@ -502,24 +503,21 @@ TD {
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-1.1.1m.tar.gz</A><BR>
+                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.0.1.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
                   Visual Studio コマンド <BR>
-                  プロンプト (2010)<BR>
-                  <BR>
-                  ※crypto\rand\rand_win.c<BR>
-                  _WIN32_WINNT=0x0501</TD>
-                  <TD width="500" valign="top">rename openssl-1.1.1l openssl-1.1.1l-x32<BR>
-                  perl Configure VC-WIN32 no-shared<BR>
+                  プロンプト (2010)</TD>
+                  <TD width="500" valign="top">rename openssl-3.0.1 openssl-3.0.1-x32<BR>
+                  perl Configure VC-WIN32 no-shared no-threads no-module enable-legacy -D_WIN32_WINNT=0x0501<BR>
                   nmake</TD>
                 </TR>
                 <TR>
                   <TD valign="top">x64用 out64<BR>
                   Visual Studio x64 Win64 <BR>
                   コマンド プロンプト (2010)</TD>
-                  <TD valign="top">perl Configure VC-WIN64A no-shared<BR>
+                  <TD valign="top">perl Configure VC-WIN64A no-shared no-module enable-legacy<BR>
                   nmake</TD>
                 </TR>
                 <TR>
@@ -597,7 +595,7 @@ TD {
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 1.1.1m 14 Dec 2021<BR>
+            <P>OpenSSL 3.0.1 14 Dec 2021<BR>
             Copyright (c) 1998-2021 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>
@@ -2671,8 +2669,8 @@ fi</PRE>
                 </TR>
                 <TR>
                   <TD align="center">Over SSL</TD>
-                  <TD>SSLを通して暗号化します<BR>
-                  HTTP+TLSv1でhttpsとして利用できます</TD>
+                  <TD>SSL/TLSを通して暗号化します<BR>
+                  HTTP+SSL/TLSでhttpsとして利用できます</TD>
                 </TR>
                 <TR>
                   <TD width="30%" align="center">Proxy Server</TD>
@@ -2702,7 +2700,7 @@ fi</PRE>
             ※HTTP(Basic)は、Basic認証のみ使用します<BR>
             ※SOCKS4には、ユーザー認証ありません<BR>
             ※SOCKS5は、平文での認証しか対応していません</TD>
-            <TD valign="top" align="left"><IMG src="image012.jpg" width="420" height="392" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image012.jpg" width="420" height="369" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>

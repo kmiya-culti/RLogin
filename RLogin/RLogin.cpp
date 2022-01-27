@@ -3,7 +3,7 @@
 
 #include "stdafx.h"
 #include "RLogin.h"
-#include <locale.h>
+#include "locale.h"
 #include "EditDlg.h"
 
 #ifdef	USE_DWMAPI
@@ -11,11 +11,11 @@
 #endif
 
 #ifdef	USE_JUMPLIST
-#include <Shobjidl.h>
-#include <Shlobj.h>
-#include <propvarutil.h>
-#include <propsys.h>
-#include <propkey.h>
+#include "Shobjidl.h"
+#include "Shlobj.h"
+#include "propvarutil.h"
+#include "propsys.h"
+#include "propkey.h"
 #endif
 
 #include "MainFrm.h"
@@ -26,17 +26,15 @@
 #include "Script.h"
 #include "ResTransDlg.h"
 
-#include <direct.h>
-#include <openssl/ssl.h>
-#include <openssl/engine.h>
-#include <openssl/conf.h>
+#include "direct.h"
 
-#if	OPENSSL_VERSION_NUMBER >= 0x10100000L
-#include <internal/cryptlib.h>
-#endif
+#include "openssl/ssl.h"
+#include "openssl/engine.h"
+#include "openssl/conf.h"
+#include "internal/cryptlib.h"
 
 #include "afxcmn.h"
-#include <sphelper.h>
+#include "sphelper.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -641,6 +639,11 @@ CRLoginApp::CRLoginApp()
 	m_bOtherCast = FALSE;
 	m_LocalPass.Empty();
 
+#if	OPENSSL_VERSION_NUMBER >= 0x30000000L
+	m_ProvDefault = NULL;
+	m_ProvLegacy = NULL;
+#endif
+
 #ifdef	USE_DIRECTWRITE
 	m_pD2DFactory    = NULL;
 	m_pDWriteFactory = NULL;
@@ -903,11 +906,7 @@ void CRLoginApp::SSL_Init()
 		return;
 	bLoadAlgo = TRUE;
 
-#if	OPENSSL_VERSION_NUMBER < 0x10100000L
-	SSLeay_add_all_algorithms();
-#else
 	OPENSSL_init_ssl(0, NULL);
-#endif
 }
 
 BOOL CRLoginApp::InitLocalPass()
@@ -1245,6 +1244,13 @@ BOOL CRLoginApp::InitInstance()
 		return FALSE;
 	}
 
+	// openssl‚Ì‰Šú‰»
+#if	OPENSSL_VERSION_NUMBER >= 0x30000000L
+	m_ProvDefault = OSSL_PROVIDER_load(NULL, "default");
+	m_ProvLegacy  = OSSL_PROVIDER_load(NULL, "legacy");
+#endif
+	LegacyEngineInit();
+
 	// e‚ÌInitInstanceŒÄ‚Ño‚µ
 	CWinApp::InitInstance();
 
@@ -1536,24 +1542,19 @@ int CRLoginApp::ExitInstance()
 	// Free Handle or Library
 	rand_buf(NULL, 0);
 
-#if	OPENSSL_VERSION_NUMBER >= 0x1010100fL
+	LegacyEngineFree();
+
+#if	OPENSSL_VERSION_NUMBER >= 0x30000000L
+	if ( m_ProvLegacy != NULL )
+		OSSL_PROVIDER_unload(m_ProvLegacy);
+	if ( m_ProvDefault != NULL )
+		OSSL_PROVIDER_unload(m_ProvDefault);
 	CONF_modules_finish();
 	CONF_modules_unload(1);
-	ERR_remove_state(0);
-#elif	OPENSSL_VERSION_NUMBER >= 0x10100000L
-	CONF_modules_finish();
-	CONF_modules_unload(1);
-	ERR_remove_state(0);
-	crypto_cleanup_all_ex_data_int();
 #else
 	CONF_modules_finish();
 	CONF_modules_unload(1);
-	CONF_modules_free();
-	EVP_cleanup();
-	ENGINE_cleanup();
-	CRYPTO_cleanup_all_ex_data();
 	ERR_remove_state(0);
-	ERR_free_strings();
 #endif
 
 	WSACleanup();
