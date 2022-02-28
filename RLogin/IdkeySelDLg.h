@@ -37,15 +37,19 @@ public:
 	CEvent *m_pKeyGenEvent;
 	int m_KeyGenFlag;
 	UINT m_GenIdKeyTimer;
+	UINT m_GenElapse;
 	int m_GenIdKeyType;
 	int m_GenIdKeyBits;
 	BOOL m_GenIdKeyStat;
 	int m_GenIdKeyMax;
 	int m_GenIdKeyCount;
 	CString m_GenIdKeyPass;
+	GENSTATUS m_GenStat;
 	CIdKey m_GenIdKey;
 	BOOL m_ListInit;
 	BOOL m_bInitPageant;
+	CString m_CreateStr;
+	CString m_CancelStr;
 
 	void StartKeyGenThead();
 	void ProcKeyGenThead();

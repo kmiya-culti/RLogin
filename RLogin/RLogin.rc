@@ -635,7 +635,7 @@ BEGIN
                     "SysLink",WS_TABSTOP,44,196,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,215,60,14,WS_GROUP
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin (%s) Version 2.26.7 (2022/01/28)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.26.8 (2022/02/28)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2022 Culti",IDC_STATIC,44,16,189,8
     LTEXT           "OpenSSL 3.0.1 14 Dec 2021",IDC_STATIC,44,43,189,8
     LTEXT           "Copyright (c) 1998-2021 The OpenSSL Project",IDC_STATIC,44,53,189,8
@@ -1188,7 +1188,7 @@ BEGIN
     PUSHBUTTON      "下へ",IDC_IDKEY_DOWN,188,55,50,14
     PUSHBUTTON      "公開鍵",IDC_IDKEY_COPY,188,92,50,14
     PUSHBUTTON      "インポート",IDC_IDKEY_INPORT,188,132,50,14
-    COMBOBOX        IDC_EXPORT_STYLE,134,150,50,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_EXPORT_STYLE,124,150,60,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "エクスポート",IDC_IDKEY_EXPORT,188,150,50,14
     COMBOBOX        IDC_IDKEY_TYPE,188,182,50,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_IDKEY_BITS,188,198,50,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
@@ -1203,7 +1203,7 @@ BEGIN
     LTEXT           "上記の条件で認証キーを作成します",IDC_STATIC,17,234,161,8
     LTEXT           "認証キーのビットサイズを指定します",IDC_STATIC,17,200,161,8
     LTEXT           "ファイルから認証キーを読み込みます",IDC_STATIC,17,136,161,8
-    LTEXT           "ファイルに認証キーを保存します",IDC_STATIC,17,153,113,8
+    LTEXT           "ファイルに認証キーを保存します",IDC_STATIC,17,153,102,8
     GROUPBOX        "認証キーリスト",IDC_STATIC,7,7,241,111
     CONTROL         "Progress1",IDC_IDKEY_PROG,"msctls_progress32",0x0,15,252,222,10
     LTEXT           "このエントリーで使用する認証キーをチェック（任意順位で複数選択可能）",IDC_STATIC,17,22,221,8
@@ -2170,8 +2170,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,26,7,0
- PRODUCTVERSION 2,26,7,0
+ FILEVERSION 2,26,8,0
+ PRODUCTVERSION 2,26,8,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2188,12 +2188,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.26.7.0"
+            VALUE "FileVersion", "2.26.8.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.26.7.0"
+            VALUE "ProductVersion", "2.26.8.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2216,7 +2216,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 236
         TOPMARGIN, 7
-        BOTTOMMARGIN, 229
+        BOTTOMMARGIN, 235
     END
 
     IDD_ALGOPARADLG, DIALOG
@@ -3143,12 +3143,16 @@ END
 
 IDD_IDKEYSELDLG DLGINIT
 BEGIN
-    IDC_EXPORT_STYLE, 0x403, 8, 0
-0x704f, 0x6e65, 0x5353, 0x004c, 
+    IDC_EXPORT_STYLE, 0x403, 13, 0
+0x704f, 0x6e65, 0x5353, 0x284c, 0x4550, 0x294d, "\000" 
+    IDC_EXPORT_STYLE, 0x403, 13, 0
+0x704f, 0x6e65, 0x5353, 0x284c, 0x4650, 0x2958, "\000" 
     IDC_EXPORT_STYLE, 0x403, 8, 0
 0x704f, 0x6e65, 0x5353, 0x0048, 
-    IDC_EXPORT_STYLE, 0x403, 6, 0
-0x7550, 0x5454, 0x0059, 
+    IDC_EXPORT_STYLE, 0x403, 12, 0
+0x7550, 0x5454, 0x2859, 0x6556, 0x3272, 0x0029, 
+    IDC_EXPORT_STYLE, 0x403, 12, 0
+0x7550, 0x5454, 0x2859, 0x6556, 0x3372, 0x0029, 
     IDC_IDKEY_TYPE, 0x403, 5, 0
 0x5352, 0x3141, "\000" 
     IDC_IDKEY_TYPE, 0x403, 5, 0
@@ -4329,7 +4333,7 @@ BEGIN
     IDE_INFOCAPOVER1024     "TERMCAPのトータル文字数が1024文字の制限を超えました\n"
     IDE_KANJICONVERROR      "文字コード変換でエラーが発生しました。\n正しく変換されていない可能性があります"
     IDE_LOGOPENERROR        "ログファイルを開けませんでした"
-    IDE_MAKEIDKEY           "認証キーを作成中です"
+    IDE_MAKEIDKEY           "認証キーを作成中です\nキャンセルで作成を放棄します"
     IDE_MANYCHANNEL         "多くのチャンネルを開こうとしています\n続行しますか？"
     IDE_MESSAGE_ANYPASTE    "多くの文字をペーストしようとしています\n送信しますか？"
     IDE_PASSWORDNOMATCH     "再入力されたパスフレーズが一致しません"
@@ -4486,6 +4490,7 @@ BEGIN
     IDS_VERSIONCHECKURL2    "https://kmiya-culti.github.io/RLogin/version.txt"
     IDS_SCRIPTDLGSTEP       "ステップ"
     IDS_KNOWNHOSTDELMSG     "登録されているホスト鍵%d個を削除しますか？"
+    IDS_XMSSSAVEFORMAT      "XMSSは、OpenSSH形式で保存されます"
 END
 
 STRINGTABLE

@@ -257,6 +257,7 @@
 #define IDS_VERSIONCHECKURL2            646
 #define IDS_SCRIPTDLGSTEP               647
 #define IDS_KNOWNHOSTDELMSG             648
+#define IDS_XMSSSAVEFORMAT              649
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -1156,6 +1157,6 @@
 #define _APS_NEXT_RESOURCE_VALUE        170
 #define _APS_NEXT_COMMAND_VALUE         5150
 #define _APS_NEXT_CONTROL_VALUE         2516
-#define _APS_NEXT_SYMED_VALUE           649
+#define _APS_NEXT_SYMED_VALUE           650
 #endif
 #endif

@@ -39,7 +39,23 @@ static char THIS_FILE[]=__FILE__;
 //////////////////////////////////////////////////////////////////////
 // CMemMap
 
-CMemMap::CMemMap(int cols_max, int line_max, int his_max)
+CMemMap::CMemMap()
+{
+	m_hFile = NULL;
+	m_pMapTop = NULL;
+}
+CMemMap::~CMemMap()
+{
+	MEMMAPNODE *mp;
+
+	for ( mp = m_pMapTop ;  mp != NULL ; mp = mp->pNext ) {
+		if ( mp->bMap )
+			UnmapViewOfFile(mp->pAddress);
+	}
+
+    CloseHandle(m_hFile);
+}
+BOOL CMemMap::NewMap(int cols_max, int line_max, int his_max)
 {
 	static int SeqNum = 0;
 	CString mapname;
@@ -56,38 +72,31 @@ CMemMap::CMemMap(int cols_max, int line_max, int his_max)
 	GetSystemInfo(&SystemInfo);
 	m_MapPage = (ULONGLONG)(((sizeof(CCharCell) * m_ColsMax * (m_LineMax / 2)) + SystemInfo.dwAllocationGranularity - 1) / SystemInfo.dwAllocationGranularity * SystemInfo.dwAllocationGranularity);
 	m_MapSize = m_MapPage * 2;
+	m_pMapTop = NULL;
 
 	size = (((ULONGLONG)sizeof(CCharCell) * (ULONGLONG)m_ColsMax * (ULONGLONG)his_max + m_MapPage - 1) / m_MapPage + 1) * m_MapPage;
 
 	m_hFile = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, (DWORD)(size >> 32), (DWORD)size, mapname);
 
 	if ( m_hFile == NULL || m_hFile == INVALID_HANDLE_VALUE )
-		AfxThrowMemoryException();
-
-	m_pMapTop = NULL;
+		return FALSE;
 
 	for ( int n = 0 ; n < MEMMAPCACHE ; n++ ) {
 		m_MapData[n].bMap = FALSE;
 		m_MapData[n].pNext = m_pMapTop;
 		m_pMapTop = &(m_MapData[n]);
 	}
-}
-CMemMap::~CMemMap()
-{
-	MEMMAPNODE *mp;
 
-	for ( mp = m_pMapTop ;  mp != NULL ; mp = mp->pNext ) {
-		if ( mp->bMap )
-			UnmapViewOfFile(mp->pAddress);
-	}
-
-    CloseHandle(m_hFile);
+	return TRUE;
 }
 CCharCell *CMemMap::GetMapRam(int x, int y)
 {
 	int diff;
 	ULONGLONG pos, offset;
 	MEMMAPNODE *pNext, *pBack;
+
+	if ( m_pMapTop == NULL )
+		AfxThrowMemoryException();
 
 	pNext = pBack = m_pMapTop;
 	pos = (ULONGLONG)sizeof(CCharCell) * ((ULONGLONG)y * m_ColsMax + x);
@@ -2061,7 +2070,18 @@ void CTextRam::InitText(int Width, int Height)
 
 	} else {
 		newColsMax = (m_ColsMax >= newCols && m_LineUpdate < m_HisMax ? m_ColsMax : newCols);
-		CMemMap *pNewMap = new CMemMap(newColsMax, newLines, newHisMax);
+		CMemMap *pNewMap = new CMemMap;
+
+		for ( n = newHisMax ; !pNewMap->NewMap(newColsMax, newLines, n) ; ) {
+			if ( (n /= 2) <= (newLines * 2) )
+				AfxThrowMemoryException();
+		}
+		if ( n < newHisMax ) {
+			CString msg;
+			msg.Format(_T("Memory Error HisLen %d -> %d"), newHisMax, n);
+			::AfxMessageBox(msg, MB_ICONWARNING);
+			newHisMax = n;
+		}
 
 		if ( m_pMemMap != NULL ) {
 			oldCurX  = (m_ColsMax < newColsMax ? m_ColsMax : newColsMax);

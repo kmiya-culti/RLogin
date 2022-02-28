@@ -1426,7 +1426,7 @@ LPCTSTR CMainFrame::PagentPipeName()
 	}
 
 	tmp.PutBuf((LPBYTE)data, len);
-	dlen = EVP_MD_digest(EVP_sha256(), tmp.GetPtr(), tmp.GetSize(), digest, sizeof(digest));
+	dlen = MD_digest(EVP_sha256(), tmp.GetPtr(), tmp.GetSize(), digest, sizeof(digest));
 	tmp.Base16Encode(digest, dlen);
 
 	pipename.Format(_T("\\\\.\\pipe\\pageant.%s.%s"), username, (LPCTSTR)tmp);

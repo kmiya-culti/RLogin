@@ -4,19 +4,21 @@
 
 #pragma once
 
-#define	USE_DWMAPI
-#define	USE_GOZI	3	// GOZI Version
-#define	USE_NETTLE
-#define	USE_JUMPLIST
-#define	USE_TEXTFRAME
-//#define	USE_CLEFIA
-#define	USE_DIRECTWRITE
-//#define	USE_DEBUGLOG
-#define	USE_OLE
-//#define	USE_RCDLL
-#define	USE_KEYMACGLOBAL
-//#define	USE_CLIENTKEY
-//#define	USE_KEYSCRIPT
+#define	USE_GOZI			3	// GOZI Version
+#define	USE_DWMAPI				// ガラス効果を有効にする
+#define	USE_JUMPLIST			// Windows7のジャンプリストを有効
+#define	USE_TEXTFRAME			// 囲み文字を有効にする
+#define	USE_DIRECTWRITE			// DirectWriteを使用して絵文字表示
+//#define	USE_DEBUGLOG		// プログラムレベルでデバッグログを作成
+#define	USE_OLE					// OLEを使用したファイル操作を有効にする
+//#define	USE_RCDLL			// rlogin_rc.dllの読み込みを有効
+#define	USE_KEYMACGLOBAL		// キー操作の記録をグローバルで行う
+//#define	USE_CLIENTKEY		// ウィンドウの隅でキーコードを発生する
+//#define	USE_KEYSCRIPT		// キー設定にスクリプト呼び出し拡張を行う
+#define	USE_NETTLE				// nettleの各種暗号を有効にする
+//#define	USE_CLEFIA			// CLEFIA暗号を有効にする
+//#define	USE_MACCTX			// EVP_MAC_CTXの動作が微妙(init(key=NULLに非対応)
+//#define	USE_X509			// opensslのx509公開鍵証明を有効
 
 // Windows バージョン
 

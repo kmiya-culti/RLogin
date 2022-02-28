@@ -130,10 +130,9 @@ public:
 	BOOL m_bRegistAppp;
 	int m_MakeKeyMode;
 
-#if	OPENSSL_VERSION_NUMBER >= 0x30000000L
 	OSSL_PROVIDER *m_ProvDefault;
 	OSSL_PROVIDER *m_ProvLegacy;
-#endif
+	OSSL_PROVIDER *m_ProvRlogin;
 
 #ifdef	USE_KEYMACGLOBAL
 	CKeyMacTab m_KeyMacGlobal;

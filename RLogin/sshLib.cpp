@@ -64,156 +64,51 @@ typedef          __int64 int64_t;
 
 //////////////////////////////////////////////////////////////////////
 
-enum LEGACYNID {
-	Nids_seed_ctr,		Nids_bf_ctr,		Nids_cast5_ctr,		Nids_idea_ctr,		Nids_des3_ctr,
-	Nids_ssh1_3des,		Nids_ssh1_bf,		Nids_chachapoly_256,
+struct prov_ctx_st {
+	const OSSL_CORE_HANDLE	*handle;
+	const OSSL_DISPATCH		*in;
+	unsigned int status;
+};
+
+enum NIDS_cipher {
+	Nids_aes_ctr,
+	Nids_seed_ctr,
+	Nids_bf_ctr,
+	Nids_cast5_ctr,
+	Nids_idea_ctr,
+	Nids_des3_ctr,
 #ifdef	USE_NETTLE
-	Nids_twofish_ctr,	Nids_twofish_cbc,	Nids_serpent_ctr,	Nids_serpent_cbc,
+	Nids_twofish_ctr,
+	Nids_twofish_cbc,
+	Nids_serpent_ctr,
+	Nids_serpent_cbc,
 #endif
 #ifdef	USE_CLEFIA
-	Nids_clefia_ctr,	Nids_clefia_cbc,	
+	Nids_clefia_ctr,
+	Nids_clefia_cbc,	
 #endif
-	LEGACYCIPHERMAX
+	Nids_ssh1_3des,
+	Nids_ssh1_bf,
+	Nids_chachapoly_256,
+
+	NIDSCIPHERMAX
 };
-static int LegacyEngineNids[LEGACYCIPHERMAX] = {
-	NID_undef,			NID_undef,			NID_undef,			NID_undef,			NID_undef,
-	NID_undef,			NID_undef,			NID_undef,			
-#ifdef	USE_NETTLE
-	NID_undef,			NID_undef,			NID_undef,			NID_undef,
-#endif
-#ifdef	USE_CLEFIA
-	NID_undef,			NID_undef,
-#endif
-};
-static EVP_CIPHER *LegacyEngineCipherMeth[LEGACYCIPHERMAX] = {
-	NULL,				NULL,				NULL,				NULL,				NULL,
-	NULL,				NULL,				NULL,
-#ifdef	USE_NETTLE
-	NULL,				NULL,				NULL,				NULL,
-#endif
-#ifdef	USE_CLEFIA
-	NULL,				NULL,
-#endif
-};
-static const EVP_CIPHER * (*LegacyEngineCipherTab[LEGACYCIPHERMAX])(void) = {
-	evp_seed_ctr,		evp_bf_ctr,			evp_cast5_ctr,		evp_idea_ctr,		evp_des3_ctr,
-	evp_ssh1_3des,		evp_ssh1_bf,		evp_chachapoly_256,	
-#ifdef	USE_NETTLE
-	evp_twofish_ctr,	evp_twofish_cbc,	evp_serpent_ctr,	evp_serpent_cbc,	
-#endif
-#ifdef	USE_CLEFIA
-	evp_clefia_ctr,		evp_clefia_cbc,	
-#endif
-};
-static const char *LegacyEngineObj[LEGACYCIPHERMAX][3] = {
-	{ "0.21.1.1",	"SEED-CTR",		"seed-ctr"		},	{ "0.21.2.1",	"BLOWFISH-CTR",	"blowfish-ctr"	},
-	{ "0.21.3.1",	"CAST5-CTR",	"cast5-ctr"		},	{ "0.21.4.1",	"IDEA-CTR",		"idea-ctr"		},
-	{ "0.21.5.1",	"3DES-CTR",		"3des-ctr"		},	{ "0.21.6.1",	"SSH1-3DES",	"ssh1-3des"		},
-	{ "0.21.6.2",	"SSH1-BLOWFISH","ssh1-blowfish"	},	{ "0.21.7.1",	"CHACHAPOLYSSH","chachapolyssh"	},
-#ifdef	USE_NETTLE
-	{ "0.21.8.1",	"TWOFISH-CTR",	"twofish-ctr"	},	{ "0.21.8.2",	"TWOFISH-CBC",	"twofish-cbc"	},
-	{ "0.21.9.1",	"SERPENT-CTR",	"serpent-ctr"	},	{ "0.21.9.2",	"SERPENT-CBC",	"serpent-cbc"	},
-#endif
-#ifdef	USE_CLEFIA
-	{ "0.21.10.1",	"CLEFIA-CTR",	"clefia-ctr"	},	{ "0.21.10.2",	"CLEFIA-CBC",	"clefia-cbc"	},
-#endif
-};
-static ENGINE *LegacyEngineCtx = NULL;
-static int LegacyEngineMin = 0;
 
-static int LegacyEngineCiphers(ENGINE *e, const EVP_CIPHER **cipher, const int **nids, int nid)
-{
-	// ENGINE_register_ciphers		int num_nids = e->ciphers(e, NULL, &nids, 0);
-	// ENGINE_set_default_ciphers	int num_nids = e->ciphers(e, NULL, &nids, 0);
-	// ENGINE_get_cipher			!e->ciphers(e, &ret, NULL, nid)
-
-	if ( nids != NULL ) {
-		*nids = LegacyEngineNids;
-		return LEGACYCIPHERMAX;
-	}
-
-	if ( cipher == NULL )
-		return 0;
-
-	int idx = LEGACYCIPHERMAX;
-
-	if ( LegacyEngineMin != 0 && nid >= LegacyEngineMin && nid < (LegacyEngineMin + LEGACYCIPHERMAX) )
-		idx = nid - LegacyEngineMin;
-	else {
-		for ( idx = 0 ; idx <  LEGACYCIPHERMAX ; idx++ ) {
-			if ( LegacyEngineNids[idx] == nid )
-				break;
-		}
-	}
-
-	if ( idx >= LEGACYCIPHERMAX || (*cipher = LegacyEngineCipherTab[idx]()) == NULL )
-		return 0;
-
-	return 1;
-}
-int LegacyEngineInit()
-{
-	int n , min;
-	BOOL bSeq = TRUE;
-
-	if ( (LegacyEngineCtx = ENGINE_new()) == NULL )
-		return 0;
-
-	for ( n = 0 ; n < LEGACYCIPHERMAX ; n++ ) {
-		if ( LegacyEngineNids[n] == NID_undef )
-			LegacyEngineNids[n] = OBJ_create(LegacyEngineObj[n][0], LegacyEngineObj[n][1], LegacyEngineObj[n][2]);
-
-		ASSERT(LegacyEngineNids[n] != 0);
-
-		if ( n == 0 )
-			min = LegacyEngineNids[n];
-
-		if ( LegacyEngineNids[n] != (min + n) )
-			bSeq = FALSE;
-	}
-
-	if ( bSeq )
-		LegacyEngineMin = min;
-
-	ENGINE_set_id(LegacyEngineCtx, "RLG");
-	ENGINE_set_name(LegacyEngineCtx, "RLOGIN");
-	ENGINE_set_ciphers(LegacyEngineCtx, LegacyEngineCiphers);
-
-	ENGINE_register_ciphers(LegacyEngineCtx);
-	ENGINE_add(LegacyEngineCtx);
-
-	return 1;
-}
-void LegacyEngineFree()
-{
-	for ( int n = 0 ; n < LEGACYCIPHERMAX ; n++ ) {
-		if ( LegacyEngineCipherMeth[n] != NULL ) {
-			EVP_CIPHER_meth_free(LegacyEngineCipherMeth[n]);
-			LegacyEngineCipherMeth[n] = NULL;
-		}
-	}
-
-	if ( LegacyEngineCtx != NULL ) {
-		ENGINE_remove(LegacyEngineCtx);
-		ENGINE_unregister_ciphers(LegacyEngineCtx);
-		ENGINE_free(LegacyEngineCtx);
-		LegacyEngineCtx = NULL;
-	}
-}
+static const EVP_CIPHER *rlg_evp_cipver_fetch(int nids);
 
 //////////////////////////////////////////////////////////////////////
 
-#define	MT_BUF_SIZE	16
-#define	MT_BUF_MAX	(8 * 1024)
-#define	MT_BUF_MIN	(MT_BUF_MAX - 2048)
+#define	MT_BUFSIZE		(64 * 1024)
 
 struct	mt_ctr_ctx {
 	int			top;
 	int			pos;
+	int			max;
 	volatile int len;
 	void		*ctx;
 	void		(*enc)(void *ctx, u_char *buf);
-	u_char		buf[MT_BUF_MAX][MT_BUF_SIZE];
+	int			blk;
+	u_char		buf[MT_BUFSIZE];
 };
 
 BOOL mt_proc(LPVOID pParam)
@@ -222,10 +117,10 @@ BOOL mt_proc(LPVOID pParam)
 	struct mt_ctr_ctx *c = (struct mt_ctr_ctx *)pParam;
 
 	for ( int i = 0 ; i < 256 ; i++ ) {
-		if ( c->len >= MT_BUF_MAX )
+		if ( c->len >= c->max )
 			break;
-		(*(c->enc))(c->ctx, c->buf[c->top]);
-		c->top = (c->top + 1) % MT_BUF_MAX;
+		(*(c->enc))(c->ctx, c->buf + c->blk * 2 * c->top);
+		c->top = (c->top + 1) % c->max;
 		c->len++;
 		ret = TRUE;
 	}
@@ -233,14 +128,16 @@ BOOL mt_proc(LPVOID pParam)
 	return ret;
 }
 
-static struct mt_ctr_ctx *mt_init(void *ctx, void (*enc)(void *ctx, u_char *buf))
+static struct mt_ctr_ctx *mt_init(void *ctx, void (*enc)(void *ctx, u_char *buf), int blk)
 {
 	struct mt_ctr_ctx *c = new struct mt_ctr_ctx;
 
 	c->top = c->pos = 0;
 	c->len = 0;
+	c->max = MT_BUFSIZE / (blk * 2);
 	c->ctx = ctx;
 	c->enc = enc;
+	c->blk = blk;
 
 	((CRLoginApp *)AfxGetApp())->AddIdleProc(IDLEPROC_ENCRYPT, c);
 
@@ -258,23 +155,39 @@ static void mt_finis(struct mt_ctr_ctx *c)
 static u_char *mt_get_buf(struct mt_ctr_ctx *c)
 {
 	if ( c->len == 0 ) {
-		(*(c->enc))(c->ctx, c->buf[c->top]);
-		c->top = (c->top + 1) % MT_BUF_MAX;
+		(*(c->enc))(c->ctx, c->buf + c->blk * 2 * c->top);
+		c->top = (c->top + 1) % c->max;
 		c->len++;
 	}
-	return c->buf[c->pos];
+	return (c->buf + c->blk * 2 * c->pos);
+}
+static u_char *mt_get_iv(struct mt_ctr_ctx *c)
+{
+	if ( c->len == 0 )
+		return NULL;
+
+	return (c->buf + c->blk * 2 * c->pos + c->blk);
 }
 static void mt_inc_buf(struct mt_ctr_ctx *c)
 {
-	c->pos = (c->pos + 1) % MT_BUF_MAX;
+	c->pos = (c->pos + 1) % c->max;
 	c->len--;
+}
+static void mt_reset(struct mt_ctr_ctx *c)
+{
+	c->top = c->pos = 0;
+	c->len = 0;
 }
 
 //////////////////////////////////////////////////////////////////////
 
 struct ssh_cipher_ctx
 {
-	struct mt_ctr_ctx *mt_ctx;
+	struct mt_ctr_ctx	*mt_ctx;					// dont move !!
+	struct prov_ctx_st	*prov_ctx;					//	|
+	size_t				keylen;						//	|
+	size_t				ivlen;						//	|
+	unsigned char		iv[SSH2_CIPHER_IVSIZEMAX];	//  |
 };
 
 /*
@@ -289,31 +202,28 @@ static void ssh_ctr_inc(u_char *ctr, int len)
 		if ( ++*(--ctr) )   /* continue on overflow */
 			return;
 }
-static int ssh_cipher_ctr(EVP_CIPHER_CTX *ctx, u_char *dest, const u_char *src, size_t len)
+static int rlg_cipher_ctr(struct mt_ctr_ctx *mt_ctx, u_char *dest, const u_char *src, size_t len)
 {
-	struct ssh_cipher_ctx *c;
 	register int i;
 	register size_t *spdst, *spsrc, *spwrk;
 	register u_char *wrk;
 
-	if ((c = (struct ssh_cipher_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL)
-		return (0);
+	if ( mt_ctx == NULL )
+		return 0;
 
-	int block_size = EVP_CIPHER_CTX_block_size(ctx);
-
-	ASSERT(block_size == 8 || block_size == 16);
+	ASSERT(mt_ctx->blk == 8 || mt_ctx->blk == 16);
 	ASSERT(sizeof(size_t) == 4 || sizeof(size_t) == 8);
 
 	spdst = (size_t *)dest;
 	spsrc = (size_t *)src;
 
-	while ( len >= (size_t)block_size ) {
-		spwrk = (size_t *)mt_get_buf(c->mt_ctx);
+	while ( len >= (size_t)mt_ctx->blk ) {
+		spwrk = (size_t *)mt_get_buf(mt_ctx);
 
 		//for ( i = ctx->cipher->block_size / sizeof(size_t) ; i > 0 ; i-- )
 		//	*(spdst++) = *(spsrc++) ^ *(spwrk++);
 
-		switch(block_size / sizeof(size_t)) {
+		switch(mt_ctx->blk / sizeof(size_t)) {
 		case 4:
 			*(spdst++) = *(spsrc++) ^ *(spwrk++);
 		case 3:
@@ -338,12 +248,12 @@ static int ssh_cipher_ctr(EVP_CIPHER_CTX *ctx, u_char *dest, const u_char *src, 
 		//	spsrc = (size_t *)src;
 		//}
 
-		len -= block_size;
-		mt_inc_buf(c->mt_ctx);
+		len -= mt_ctx->blk;
+		mt_inc_buf(mt_ctx);
 	}
 
 	if ( len > 0 ) {
-		spwrk = (size_t *)mt_get_buf(c->mt_ctx);
+		spwrk = (size_t *)mt_get_buf(mt_ctx);
 
 		for ( i = (int)(len / sizeof(size_t)) ; i > 0 ; i-- )
 			*(spdst++) = *(spsrc++) ^ *(spwrk++);
@@ -355,88 +265,429 @@ static int ssh_cipher_ctr(EVP_CIPHER_CTX *ctx, u_char *dest, const u_char *src, 
 		for ( i = len % sizeof(size_t) ; i > 0 ; i-- )
 			*(dest++) = *(src++) ^ *(wrk++);
 
-		mt_inc_buf(c->mt_ctx);
+		mt_inc_buf(mt_ctx);
 	}
 
-	return (1);
-}
-static int ssh_cipher_cleanup(EVP_CIPHER_CTX *ctx)
-{
-	struct ssh_cipher_ctx *c;
-
-	if ((c = (struct ssh_cipher_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) != NULL) {
-		mt_finis(c->mt_ctx);
-		free(c);
-		EVP_CIPHER_CTX_set_app_data(ctx, NULL);
-	}
 	return (1);
 }
 
 //////////////////////////////////////////////////////////////////////
 
-struct ssh_seed_ctx
-{
-	struct mt_ctr_ctx	*mt_ctx;		// dont move !!
-	SEED_KEY_SCHEDULE	seed_ctx;
-	u_char				seed_counter[SEED_BLOCK_SIZE];
-};
+#define	PARAM_AEAD_FLAG				0001
+#define	PARAM_CUSTOM_IV_FLAG		0002
+#define	PARAM_CTS_FLAG				0004
+#define	PARAM_TLS1_MULTIBLOCK_FLAG	0010
+#define	PARAM_HAS_RAND_KEY_FLAG		0020
 
-static void ssh_seed_enc(void *ctx, u_char *buf)
+static int ssh_ctr_cipher(struct ssh_cipher_ctx *ssh_ctx, unsigned char *out, size_t *outl, size_t outsize, const unsigned char *in, size_t inl)
 {
-	struct ssh_seed_ctx *c = (struct ssh_seed_ctx *)ctx;
+	if ( ssh_ctx == NULL || out == NULL || outl == NULL || in == NULL )
+		return 0;
 
-	SEED_encrypt(c->seed_counter, buf, &c->seed_ctx);
-	ssh_ctr_inc(c->seed_counter, SEED_BLOCK_SIZE);
+	if ( rlg_cipher_ctr(ssh_ctx->mt_ctx, out, in, inl) == 0 )
+		return 0;
+
+	*outl = inl;
+
+	return 1;
 }
-static int ssh_seed_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char *iv, int enc)
+static int ssh_ctr_update(struct ssh_cipher_ctx *ssh_ctx, unsigned char *out, size_t *outl, size_t outsize, const unsigned char *in, size_t inl)
 {
-	struct ssh_seed_ctx *c;
-
-	if ((c = (struct ssh_seed_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL) {
-		c = (struct ssh_seed_ctx *)malloc(sizeof(*c));
-		memset(c, 0, sizeof(*c));
-		c->mt_ctx = mt_init((void *)c, ssh_seed_enc);
-		EVP_CIPHER_CTX_set_app_data(ctx, c);
-	}
-	if (key != NULL)
-		SEED_set_key(key, &c->seed_ctx);
-	if (iv != NULL)
-		memcpy(c->seed_counter, iv, SEED_BLOCK_SIZE);
-	return (1);
+	return ssh_ctr_cipher(ssh_ctx, out, outl, outsize, in, inl);
 }
-const EVP_CIPHER *evp_seed_ctr(void)
+static int ssh_ctr_final(void *cctx, unsigned char *out, size_t *outl, size_t outsize)
 {
-	if ( LegacyEngineCipherMeth[Nids_seed_ctr] == NULL ) {
-		EVP_CIPHER *cip = EVP_CIPHER_meth_new(LegacyEngineNids[Nids_seed_ctr], SEED_BLOCK_SIZE, 16);
-		if ( cip != NULL ) {
-			EVP_CIPHER_meth_set_iv_length(cip, SEED_BLOCK_SIZE);
-			EVP_CIPHER_meth_set_init(cip, ssh_seed_init);
-			EVP_CIPHER_meth_set_cleanup(cip, ssh_cipher_cleanup);
-			EVP_CIPHER_meth_set_do_cipher(cip, ssh_cipher_ctr);
-			EVP_CIPHER_meth_set_flags(cip, EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV);
-			LegacyEngineCipherMeth[Nids_seed_ctr] = cip;
+	return 1;
+}
+static int rlg_get_params(OSSL_PARAM params[], unsigned int mode, size_t blklen, size_t keylen, size_t ivlen, int flag)
+{
+	OSSL_PARAM *p;
+
+	for ( p = params ; p->data_type != 0 ; p++ ) {
+		switch((p->data_type << 6) | p->key[0]) {
+		case (OSSL_PARAM_INTEGER << 6) | 'a':
+			if ( strcmp(p->key, OSSL_CIPHER_PARAM_AEAD) == 0 )
+				OSSL_PARAM_set_int(p, (flag & PARAM_AEAD_FLAG) != 0);
+			break;
+		case (OSSL_PARAM_INTEGER << 6) | 'c':
+			if ( strcmp(p->key, OSSL_CIPHER_PARAM_CUSTOM_IV) == 0 )
+				OSSL_PARAM_set_int(p, (flag & PARAM_CUSTOM_IV_FLAG) != 0);
+			else if ( strcmp(p->key, OSSL_CIPHER_PARAM_CTS) == 0 )
+				OSSL_PARAM_set_int(p, (flag & PARAM_CTS_FLAG) != 0);
+			break;
+		case (OSSL_PARAM_INTEGER << 6) | 'h':
+			if ( strcmp(p->key, OSSL_CIPHER_PARAM_HAS_RAND_KEY) == 0 )
+				OSSL_PARAM_set_int(p, (flag & PARAM_HAS_RAND_KEY_FLAG) != 0);
+			break;
+		case (OSSL_PARAM_INTEGER << 6) | 't':
+			if ( strcmp(p->key, OSSL_CIPHER_PARAM_TLS1_MULTIBLOCK) == 0 )
+				OSSL_PARAM_set_int(p, (flag & PARAM_TLS1_MULTIBLOCK_FLAG) != 0);
+			break;
+
+		case (OSSL_PARAM_UNSIGNED_INTEGER << 6) | 'b':
+			if ( strcmp(p->key, OSSL_CIPHER_PARAM_BLOCK_SIZE) == 0 )
+				OSSL_PARAM_set_size_t(p, blklen);
+			break;
+		case (OSSL_PARAM_UNSIGNED_INTEGER << 6) | 'i':
+			if ( strcmp(p->key, OSSL_CIPHER_PARAM_IVLEN) == 0 )
+				OSSL_PARAM_set_size_t(p, ivlen);
+			break;
+		case (OSSL_PARAM_UNSIGNED_INTEGER << 6) | 'k':
+			if ( strcmp(p->key, OSSL_CIPHER_PARAM_KEYLEN) == 0 )
+				OSSL_PARAM_set_size_t(p, keylen);
+			break;
+		case (OSSL_PARAM_UNSIGNED_INTEGER << 6) | 'm':
+			if ( strcmp(p->key, OSSL_CIPHER_PARAM_MODE) == 0 )
+				OSSL_PARAM_set_uint(p, mode);
+			break;
 		}
 	}
-	return LegacyEngineCipherMeth[Nids_seed_ctr]; 
+
+	return 1;
+}
+static const OSSL_PARAM *ssh_gettable_params(struct prov_ctx_st *prov_ctx)
+{
+	static OSSL_PARAM params[] = {
+		OSSL_PARAM_int(OSSL_CIPHER_PARAM_AEAD, 0),
+		OSSL_PARAM_int(OSSL_CIPHER_PARAM_CUSTOM_IV, 0),
+		OSSL_PARAM_int(OSSL_CIPHER_PARAM_CTS, 0),
+		OSSL_PARAM_int(OSSL_CIPHER_PARAM_HAS_RAND_KEY, 0),
+		OSSL_PARAM_int(OSSL_CIPHER_PARAM_TLS1_MULTIBLOCK, 0),
+		OSSL_PARAM_size_t(OSSL_CIPHER_PARAM_BLOCK_SIZE, 0),
+		OSSL_PARAM_size_t(OSSL_CIPHER_PARAM_IVLEN, 0),
+		OSSL_PARAM_size_t(OSSL_CIPHER_PARAM_KEYLEN, 0),
+		OSSL_PARAM_uint(OSSL_CIPHER_PARAM_MODE, 0),
+		OSSL_PARAM_END,
+	};
+
+	return params;
+}
+static int ssh_get_ctx_params(struct ssh_cipher_ctx *ssh_ctx, OSSL_PARAM params[])
+{
+	OSSL_PARAM *p;
+	u_char *pIv;
+
+	for ( p = params ; p->data_type != 0 ; p++ ) {
+		switch(p->data_type) {
+		case OSSL_PARAM_UNSIGNED_INTEGER:
+			if ( strcmp(p->key, OSSL_CIPHER_PARAM_KEYLEN) == 0 )
+				OSSL_PARAM_set_size_t(p, ssh_ctx->keylen);
+			else if ( strcmp(p->key, OSSL_CIPHER_PARAM_IVLEN) == 0 )
+				OSSL_PARAM_set_size_t(p, ssh_ctx->ivlen);
+			break;
+
+		case OSSL_PARAM_OCTET_STRING:
+			if ( strcmp(p->key, OSSL_CIPHER_PARAM_IV) == 0 ) {
+				if ( ssh_ctx->mt_ctx == NULL || (pIv = mt_get_iv(ssh_ctx->mt_ctx)) == NULL )
+					pIv = ssh_ctx->iv;
+				OSSL_PARAM_set_octet_string(p, pIv, ssh_ctx->ivlen);
+			}
+			break;
+		}
+	}
+
+	return 1;
+}
+static const OSSL_PARAM *ssh_gettable_ctx_params(struct ssh_cipher_ctx *ssh_ctx, struct prov_ctx_st *prov_ctx)
+{
+	static OSSL_PARAM params[] = {
+		OSSL_PARAM_size_t(OSSL_CIPHER_PARAM_KEYLEN, 0),
+		OSSL_PARAM_size_t(OSSL_CIPHER_PARAM_IVLEN, 0),
+		OSSL_PARAM_octet_string(OSSL_CIPHER_PARAM_IV, NULL, 0),
+		OSSL_PARAM_END,
+	};
+
+	return params;
+}
+static int ssh_set_ctx_params(struct ssh_cipher_ctx *ssh_ctx, const OSSL_PARAM params[])
+{
+	const OSSL_PARAM *p;
+	const void *ptr = NULL;
+	size_t len = 0;
+
+	for ( p = params ; p->data_type != 0 ; p++ ) {
+		switch(p->data_type) {
+		case OSSL_PARAM_UNSIGNED_INTEGER:
+			if ( strcmp(p->key, OSSL_CIPHER_PARAM_KEYLEN) == 0 )
+				OSSL_PARAM_get_size_t(p, &ssh_ctx->keylen);
+			else if ( strcmp(p->key, OSSL_CIPHER_PARAM_IVLEN) == 0 )
+				OSSL_PARAM_get_size_t(p, &ssh_ctx->ivlen);
+			break;
+		}
+	}
+
+	return 1;
+}
+static const OSSL_PARAM *ssh_settable_ctx_params(struct ssh_cipher_ctx *ssh_ctx, struct prov_ctx_st *prov_ctx)
+{
+	static OSSL_PARAM params[] = {
+		OSSL_PARAM_size_t(OSSL_CIPHER_PARAM_KEYLEN, 0),
+		OSSL_PARAM_size_t(OSSL_CIPHER_PARAM_IVLEN, 0),
+		OSSL_PARAM_END,
+	};
+
+	return params;
+}
+
+//////////////////////////////////////////////////////////////////////
+// aes-ctr mt_ctx test code
+
+#define	AES_BLKSIZE		AES_BLOCK_SIZE
+#define	AES_KEYSIZE		32
+#define	AES_IVSIZE		AES_BLOCK_SIZE
+
+struct aes_ctx_st {
+	struct mt_ctr_ctx	*mt_ctx;					// dont move !!
+	struct prov_ctx_st	*prov_ctx;					//	|
+	size_t				keylen;						//	|
+	size_t				ivlen;						//	|
+	unsigned char		iv[SSH2_CIPHER_IVSIZEMAX];	//  |
+
+	AES_KEY				aes_key;
+};
+static void aes_encode(void *ctx, u_char *buf)
+{
+	struct aes_ctx_st *aes_ctx = (struct aes_ctx_st *)ctx;
+
+	memcpy(buf + AES_BLKSIZE, aes_ctx->iv, AES_BLKSIZE);
+
+	AES_encrypt(aes_ctx->iv, buf, &aes_ctx->aes_key);
+	ssh_ctr_inc(aes_ctx->iv, AES_IVSIZE);
+}
+static void *aes_newctx(void *prov_ctx)
+{
+	struct aes_ctx_st *aes_ctx;
+		
+	if ( (aes_ctx = (struct aes_ctx_st *)malloc(sizeof(struct aes_ctx_st))) == NULL )
+		return NULL;
+
+	memset(aes_ctx, 0, sizeof(struct aes_ctx_st));
+
+	aes_ctx->prov_ctx = (struct prov_ctx_st*)prov_ctx;
+	aes_ctx->keylen = AES_KEYSIZE;
+	aes_ctx->ivlen  = AES_IVSIZE;
+
+	return aes_ctx;
+}
+static void aes_freectx(struct aes_ctx_st *aes_ctx)
+{
+	mt_finis(aes_ctx->mt_ctx);
+	memset(aes_ctx, 0, sizeof(struct aes_ctx_st));
+	free(aes_ctx);
+}
+struct aes_ctx_st *aes_dupctx(struct aes_ctx_st *aes_ctx)
+{
+	struct aes_ctx_st *dup_ctx;
+		
+	if ( (dup_ctx = (struct aes_ctx_st *)malloc(sizeof(struct aes_ctx_st))) == NULL )
+		return NULL;
+
+	memcpy(dup_ctx, aes_ctx, sizeof(struct aes_ctx_st));
+	dup_ctx->mt_ctx = NULL;
+
+	return dup_ctx;
+}
+static int aes_init(struct aes_ctx_st *aes_ctx, const unsigned char *key, size_t keylen, const unsigned char *iv, size_t ivlen, const OSSL_PARAM params[])
+{
+	if ( key != NULL ) {
+		if ( keylen > AES_KEYSIZE )
+			keylen = AES_KEYSIZE;
+		AES_set_encrypt_key(key, (int)(keylen * 8), &aes_ctx->aes_key);
+	}
+
+	if ( iv == NULL && aes_ctx->mt_ctx != NULL ) {
+		iv = mt_get_iv(aes_ctx->mt_ctx);
+		ivlen = AES_IVSIZE;
+	}
+
+	if ( iv != NULL ) {
+		ASSERT(SSH2_CIPHER_IVSIZEMAX >= AES_IVSIZE);
+
+		if ( ivlen > AES_IVSIZE )
+			ivlen = AES_IVSIZE;
+		memcpy(aes_ctx->iv, iv, ivlen);
+		if ( ivlen < AES_IVSIZE )
+			memset(aes_ctx->iv + ivlen, 0, AES_IVSIZE - ivlen);
+	}
+
+	if ( aes_ctx->mt_ctx == NULL )
+		aes_ctx->mt_ctx = mt_init((void *)aes_ctx, aes_encode, AES_BLKSIZE);
+	else if ( key != NULL || iv != NULL )
+		mt_reset(aes_ctx->mt_ctx);
+
+	return 1;
+}
+static int aes_get_params(OSSL_PARAM params[])
+{
+	return rlg_get_params(params, 0, AES_BLKSIZE, AES_KEYSIZE, AES_IVSIZE, PARAM_CUSTOM_IV_FLAG);
+}
+static const OSSL_DISPATCH aes_functions[] = {
+	{ OSSL_FUNC_CIPHER_NEWCTX,				(void (*)(void))aes_newctx },
+	{ OSSL_FUNC_CIPHER_FREECTX,				(void (*)(void))aes_freectx },
+	{ OSSL_FUNC_CIPHER_DUPCTX,				(void (*)(void))aes_dupctx },
+	{ OSSL_FUNC_CIPHER_ENCRYPT_INIT,		(void (*)(void))aes_init },
+	{ OSSL_FUNC_CIPHER_DECRYPT_INIT,		(void (*)(void))aes_init },
+	{ OSSL_FUNC_CIPHER_UPDATE,				(void (*)(void))ssh_ctr_update },
+	{ OSSL_FUNC_CIPHER_FINAL,				(void (*)(void))ssh_ctr_final },
+	{ OSSL_FUNC_CIPHER_CIPHER,				(void (*)(void))ssh_ctr_cipher },
+	{ OSSL_FUNC_CIPHER_GET_CTX_PARAMS,		(void (*)(void))ssh_get_ctx_params },
+	{ OSSL_FUNC_CIPHER_SET_CTX_PARAMS,		(void (*)(void))ssh_set_ctx_params },
+	{ OSSL_FUNC_CIPHER_GETTABLE_PARAMS,		(void (*)(void))ssh_gettable_params },
+	{ OSSL_FUNC_CIPHER_GETTABLE_CTX_PARAMS,	(void (*)(void))ssh_gettable_ctx_params },
+	{ OSSL_FUNC_CIPHER_SETTABLE_CTX_PARAMS,	(void (*)(void))ssh_settable_ctx_params },
+	{ OSSL_FUNC_CIPHER_GET_PARAMS,			(void (*)(void))aes_get_params },
+	{ 0, NULL }
+};
+const EVP_CIPHER *evp_aes_ctr(void)
+{
+	return rlg_evp_cipver_fetch(Nids_aes_ctr);
 }
 
 //////////////////////////////////////////////////////////////////////
 
-struct ssh_blowfish_ctx
-{
-	struct mt_ctr_ctx	*mt_ctx;		// dont move !!
-	BF_KEY				blowfish_ctx;
-	u_char				blowfish_counter[BF_BLOCK];
-};
+#define	SEED_BLKSIZE	SEED_BLOCK_SIZE
+#define	SEED_KEYSIZE	SEED_KEY_LENGTH
+#define	SEED_IVSIZE		SEED_BLOCK_SIZE
 
-static void ssh_blowfish_enc(void *ctx, u_char *buf)
+struct seed_ctx_st {
+	struct mt_ctr_ctx	*mt_ctx;					// dont move !!
+	struct prov_ctx_st	*prov_ctx;					//	|
+	size_t				keylen;						//	|
+	size_t				ivlen;						//	|
+	unsigned char		iv[SSH2_CIPHER_IVSIZEMAX];	//  |
+
+	SEED_KEY_SCHEDULE	seed_key;
+};
+static void seed_encode(void *ctx, u_char *buf)
+{
+	struct seed_ctx_st *seed_ctx = (struct seed_ctx_st *)ctx;
+
+	memcpy(buf + SEED_BLKSIZE, seed_ctx->iv, SEED_BLKSIZE);
+
+	SEED_encrypt(seed_ctx->iv, buf, &seed_ctx->seed_key);
+	ssh_ctr_inc(seed_ctx->iv, SEED_IVSIZE);
+}
+static void *seed_newctx(void *prov_ctx)
+{
+	struct seed_ctx_st *seed_ctx;
+		
+	if ( (seed_ctx = (struct seed_ctx_st *)malloc(sizeof(struct seed_ctx_st))) == NULL )
+		return NULL;
+
+	memset(seed_ctx, 0, sizeof(struct seed_ctx_st));
+
+	seed_ctx->prov_ctx = (struct prov_ctx_st*)prov_ctx;
+	seed_ctx->keylen = SEED_KEYSIZE;
+	seed_ctx->ivlen  = SEED_IVSIZE;
+
+	return seed_ctx;
+}
+static void seed_freectx(struct seed_ctx_st *seed_ctx)
+{
+	mt_finis(seed_ctx->mt_ctx);
+	memset(seed_ctx, 0, sizeof(struct seed_ctx_st));
+	free(seed_ctx);
+}
+struct seed_ctx_st *seed_dupctx(struct seed_ctx_st *seed_ctx)
+{
+	struct seed_ctx_st *dup_ctx;
+		
+	if ( (dup_ctx = (struct seed_ctx_st *)malloc(sizeof(struct seed_ctx_st))) == NULL )
+		return NULL;
+
+	memcpy(dup_ctx, seed_ctx, sizeof(struct seed_ctx_st));
+	dup_ctx->mt_ctx = NULL;
+
+	return dup_ctx;
+}
+static int seed_init(struct seed_ctx_st *seed_ctx, const unsigned char *key, size_t keylen, const unsigned char *iv, size_t ivlen, const OSSL_PARAM params[])
+{
+	if ( key != NULL ) {
+		unsigned char tmp[SEED_KEYSIZE];
+
+		if ( keylen > SEED_KEYSIZE )
+			keylen = SEED_KEYSIZE;
+		memcpy(tmp, key, keylen);
+		if ( keylen < SEED_KEYSIZE )
+			memset(tmp + keylen, 0, SEED_KEYSIZE - keylen);
+
+		SEED_set_key(tmp, &(seed_ctx->seed_key));
+		memset(tmp, 0, sizeof(tmp));
+	}
+
+	if ( iv == NULL && seed_ctx->mt_ctx != NULL ) {
+		iv = mt_get_iv(seed_ctx->mt_ctx);
+		ivlen = SEED_IVSIZE;
+	}
+
+	if ( iv != NULL ) {
+		ASSERT(SSH2_CIPHER_IVSIZEMAX >= SEED_IVSIZE);
+
+		if ( ivlen > SEED_IVSIZE )
+			ivlen = SEED_IVSIZE;
+		memcpy(seed_ctx->iv, iv, ivlen);
+		if ( ivlen < SEED_IVSIZE )
+			memset(seed_ctx->iv + ivlen, 0, SEED_IVSIZE - ivlen);
+	}
+
+	if ( seed_ctx->mt_ctx == NULL )
+		seed_ctx->mt_ctx = mt_init((void *)seed_ctx, seed_encode, SEED_BLKSIZE);
+	else if ( key != NULL || iv != NULL )
+		mt_reset(seed_ctx->mt_ctx);
+
+	return 1;
+}
+static int seed_get_params(OSSL_PARAM params[])
+{
+	return rlg_get_params(params, 0, SEED_BLKSIZE, SEED_KEYSIZE, SEED_IVSIZE, PARAM_CUSTOM_IV_FLAG);
+}
+static const OSSL_DISPATCH seed_functions[] = {
+	{ OSSL_FUNC_CIPHER_NEWCTX,				(void (*)(void))seed_newctx },
+	{ OSSL_FUNC_CIPHER_FREECTX,				(void (*)(void))seed_freectx },
+	{ OSSL_FUNC_CIPHER_DUPCTX,				(void (*)(void))seed_dupctx },
+	{ OSSL_FUNC_CIPHER_ENCRYPT_INIT,		(void (*)(void))seed_init },
+	{ OSSL_FUNC_CIPHER_DECRYPT_INIT,		(void (*)(void))seed_init },
+	{ OSSL_FUNC_CIPHER_UPDATE,				(void (*)(void))ssh_ctr_update },
+	{ OSSL_FUNC_CIPHER_FINAL,				(void (*)(void))ssh_ctr_final },
+	{ OSSL_FUNC_CIPHER_CIPHER,				(void (*)(void))ssh_ctr_cipher },
+	{ OSSL_FUNC_CIPHER_GET_CTX_PARAMS,		(void (*)(void))ssh_get_ctx_params },
+	{ OSSL_FUNC_CIPHER_SET_CTX_PARAMS,		(void (*)(void))ssh_set_ctx_params },
+	{ OSSL_FUNC_CIPHER_GETTABLE_PARAMS,		(void (*)(void))ssh_gettable_params },
+	{ OSSL_FUNC_CIPHER_GETTABLE_CTX_PARAMS,	(void (*)(void))ssh_gettable_ctx_params },
+	{ OSSL_FUNC_CIPHER_SETTABLE_CTX_PARAMS,	(void (*)(void))ssh_settable_ctx_params },
+	{ OSSL_FUNC_CIPHER_GET_PARAMS,			(void (*)(void))seed_get_params },
+	{ 0, NULL }
+};
+const EVP_CIPHER *evp_seed_ctr(void)
+{
+	return rlg_evp_cipver_fetch(Nids_seed_ctr);
+}
+
+//////////////////////////////////////////////////////////////////////
+
+#define	BLOWFISH_BLKSIZE	BF_BLOCK
+#define	BLOWFISH_KEYSIZE	32
+#define	BLOWFISH_IVSIZE		BF_BLOCK
+
+struct blowfish_ctx_st {
+	struct mt_ctr_ctx	*mt_ctx;					// dont move !!
+	struct prov_ctx_st	*prov_ctx;					//	|
+	size_t				keylen;						//	|
+	size_t				ivlen;						//	|
+	unsigned char		iv[SSH2_CIPHER_IVSIZEMAX];	//  |
+
+	BF_KEY				blowfish_key;
+};
+static void blowfish_encode(void *ctx, u_char *buf)
 {
 	int i, a;
 	u_char *p;
-	BF_LONG data[BF_BLOCK / 4 + 1];
-	struct ssh_blowfish_ctx *c = (struct ssh_blowfish_ctx *)ctx;
+	BF_LONG data[BF_BLOCK / sizeof(BF_LONG) + 1];
+	struct blowfish_ctx_st *blowfish_ctx = (struct blowfish_ctx_st *)ctx;
 
-	p = c->blowfish_counter;
+	memcpy(buf + BLOWFISH_BLKSIZE, blowfish_ctx->iv, BLOWFISH_BLKSIZE);
+
+	p = blowfish_ctx->iv;
 	for ( i = a = 0 ; i < BF_BLOCK ; i += 4, a++ ) {
 		data[a]  = ((BF_LONG)(*(p++)) << 24);
 		data[a] |= ((BF_LONG)(*(p++)) << 16);
@@ -444,7 +695,7 @@ static void ssh_blowfish_enc(void *ctx, u_char *buf)
 		data[a] |= ((BF_LONG)(*(p++)) <<  0);
 	}
 
-	BF_encrypt(data, &c->blowfish_ctx);
+	BF_encrypt(data, &blowfish_ctx->blowfish_key);
 
 	p = buf;
 	for ( i = a = 0 ; i < BF_BLOCK ; i += 4, a++ ) {
@@ -454,57 +705,123 @@ static void ssh_blowfish_enc(void *ctx, u_char *buf)
 		*(p++) = (u_char)(data[a] >>  0);
 	}
 
-	ssh_ctr_inc(c->blowfish_counter, BF_BLOCK);
+	ssh_ctr_inc(blowfish_ctx->iv, BF_BLOCK);
 }
-static int ssh_blowfish_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char *iv, int enc)
+static void *blowfish_newctx(void *prov_ctx)
 {
-	struct ssh_blowfish_ctx *c;
+	struct blowfish_ctx_st *blowfish_ctx;
+		
+	if ( (blowfish_ctx = (struct blowfish_ctx_st *)malloc(sizeof(struct blowfish_ctx_st))) == NULL )
+		return NULL;
 
-	if ((c = (struct ssh_blowfish_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL) {
-		c = (struct ssh_blowfish_ctx *)malloc(sizeof(*c));
-		memset(c, 0, sizeof(*c));
-		c->mt_ctx = mt_init((void *)c, ssh_blowfish_enc);
-		EVP_CIPHER_CTX_set_app_data(ctx, c);
-	}
-	if (key != NULL)
-		BF_set_key(&c->blowfish_ctx, EVP_CIPHER_CTX_key_length(ctx), key);
-	if (iv != NULL)
-		memcpy(c->blowfish_counter, iv, BF_BLOCK);
-	return (1);
+	memset(blowfish_ctx, 0, sizeof(struct blowfish_ctx_st));
+
+	blowfish_ctx->prov_ctx = (struct prov_ctx_st*)prov_ctx;
+	blowfish_ctx->keylen = BLOWFISH_KEYSIZE;
+	blowfish_ctx->ivlen  = BLOWFISH_IVSIZE;
+
+	return blowfish_ctx;
 }
+static void blowfish_freectx(struct blowfish_ctx_st *blowfish_ctx)
+{
+	mt_finis(blowfish_ctx->mt_ctx);
+	memset(blowfish_ctx, 0, sizeof(struct blowfish_ctx_st));
+	free(blowfish_ctx);
+}
+struct blowfish_ctx_st *blowfish_dupctx(struct blowfish_ctx_st *blowfish_ctx)
+{
+	struct blowfish_ctx_st *dup_ctx;
+		
+	if ( (dup_ctx = (struct blowfish_ctx_st *)malloc(sizeof(struct blowfish_ctx_st))) == NULL )
+		return NULL;
+
+	memcpy(dup_ctx, blowfish_ctx, sizeof(struct blowfish_ctx_st));
+	dup_ctx->mt_ctx = NULL;
+
+	return dup_ctx;
+}
+static int blowfish_init(struct blowfish_ctx_st *blowfish_ctx, const unsigned char *key, size_t keylen, const unsigned char *iv, size_t ivlen, const OSSL_PARAM params[])
+{
+	if ( key != NULL ) {
+		if ( keylen > BLOWFISH_KEYSIZE )
+			keylen = BLOWFISH_KEYSIZE;
+
+		BF_set_key(&blowfish_ctx->blowfish_key, (int)keylen, key);
+	}
+	
+	if ( iv == NULL && blowfish_ctx->mt_ctx != NULL ) {
+		iv = mt_get_iv(blowfish_ctx->mt_ctx);
+		ivlen = BLOWFISH_IVSIZE;
+	}
+
+	if ( iv != NULL ) {
+		ASSERT(SSH2_CIPHER_IVSIZEMAX >= BLOWFISH_IVSIZE);
+
+		if ( ivlen > BLOWFISH_IVSIZE )
+			ivlen = BLOWFISH_IVSIZE;
+		memcpy(blowfish_ctx->iv, iv, ivlen);
+		if ( ivlen < BLOWFISH_IVSIZE )
+			memset(blowfish_ctx->iv + ivlen, 0, BLOWFISH_IVSIZE - ivlen);
+	}
+
+	if ( blowfish_ctx->mt_ctx == NULL )
+		blowfish_ctx->mt_ctx = mt_init((void *)blowfish_ctx, blowfish_encode, BLOWFISH_BLKSIZE);
+	else if ( key != NULL || iv != NULL )
+		mt_reset(blowfish_ctx->mt_ctx);
+
+	return 1;
+}
+static int blowfish_get_params(OSSL_PARAM params[])
+{
+	return rlg_get_params(params, 0, BLOWFISH_BLKSIZE, BLOWFISH_KEYSIZE, BLOWFISH_IVSIZE, PARAM_CUSTOM_IV_FLAG);
+}
+static const OSSL_DISPATCH blowfish_functions[] = {
+	{ OSSL_FUNC_CIPHER_NEWCTX,				(void (*)(void))blowfish_newctx },
+	{ OSSL_FUNC_CIPHER_FREECTX,				(void (*)(void))blowfish_freectx },
+	{ OSSL_FUNC_CIPHER_DUPCTX,				(void (*)(void))blowfish_dupctx },
+	{ OSSL_FUNC_CIPHER_ENCRYPT_INIT,		(void (*)(void))blowfish_init },
+	{ OSSL_FUNC_CIPHER_DECRYPT_INIT,		(void (*)(void))blowfish_init },
+	{ OSSL_FUNC_CIPHER_UPDATE,				(void (*)(void))ssh_ctr_update },
+	{ OSSL_FUNC_CIPHER_FINAL,				(void (*)(void))ssh_ctr_final },
+	{ OSSL_FUNC_CIPHER_CIPHER,				(void (*)(void))ssh_ctr_cipher },
+	{ OSSL_FUNC_CIPHER_GET_CTX_PARAMS,		(void (*)(void))ssh_get_ctx_params },
+	{ OSSL_FUNC_CIPHER_SET_CTX_PARAMS,		(void (*)(void))ssh_set_ctx_params },
+	{ OSSL_FUNC_CIPHER_GETTABLE_PARAMS,		(void (*)(void))ssh_gettable_params },
+	{ OSSL_FUNC_CIPHER_GETTABLE_CTX_PARAMS,	(void (*)(void))ssh_gettable_ctx_params },
+	{ OSSL_FUNC_CIPHER_SETTABLE_CTX_PARAMS,	(void (*)(void))ssh_settable_ctx_params },
+	{ OSSL_FUNC_CIPHER_GET_PARAMS,			(void (*)(void))blowfish_get_params },
+	{ 0, NULL }
+};
 const EVP_CIPHER *evp_bf_ctr(void)
 {
-	if ( LegacyEngineCipherMeth[Nids_bf_ctr] == NULL ) {
-		EVP_CIPHER *cip = EVP_CIPHER_meth_new(LegacyEngineNids[Nids_bf_ctr], BF_BLOCK, 32);
-		if ( cip != NULL ) {
-			EVP_CIPHER_meth_set_iv_length(cip, BF_BLOCK);
-			EVP_CIPHER_meth_set_init(cip, ssh_blowfish_init);
-			EVP_CIPHER_meth_set_cleanup(cip, ssh_cipher_cleanup);
-			EVP_CIPHER_meth_set_do_cipher(cip, ssh_cipher_ctr);
-			EVP_CIPHER_meth_set_flags(cip, EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV);
-			LegacyEngineCipherMeth[Nids_bf_ctr] = cip;
-		}
-	}
-	return LegacyEngineCipherMeth[Nids_bf_ctr];
+	return rlg_evp_cipver_fetch(Nids_bf_ctr);
 }
 
 //////////////////////////////////////////////////////////////////////
 
-struct ssh_cast_ctx
-{
-	struct mt_ctr_ctx	*mt_ctx;		// dont move !!
-	CAST_KEY			cast_ctx;
-	u_char				cast_counter[CAST_BLOCK];
-};
+#define	CAST_BLKSIZE	CAST_BLOCK
+#define	CAST_KEYSIZE	CAST_KEY_LENGTH
+#define	CAST_IVSIZE		CAST_BLOCK
 
-static void ssh_cast_enc(void *ctx, u_char *buf)
+struct cast_ctx_st {
+	struct mt_ctr_ctx	*mt_ctx;					// dont move !!
+	struct prov_ctx_st	*prov_ctx;					//	|
+	size_t				keylen;						//	|
+	size_t				ivlen;						//	|
+	unsigned char		iv[SSH2_CIPHER_IVSIZEMAX];	//  |
+
+	CAST_KEY			cast_key;
+};
+static void cast_encode(void *ctx, u_char *buf)
 {
 	int i, a;
 	u_char *p;
-	CAST_LONG data[CAST_BLOCK / 4 + 1];
-	struct ssh_cast_ctx *c = (struct ssh_cast_ctx *)ctx;
+	CAST_LONG data[CAST_BLOCK / sizeof(CAST_LONG) + 1];
+	struct cast_ctx_st *c = (struct cast_ctx_st *)ctx;
 
-	p = c->cast_counter;
+	memcpy(buf + CAST_BLKSIZE, c->iv, CAST_BLKSIZE);
+
+	p = c->iv;
 	for ( i = a = 0 ; i < CAST_BLOCK ; i += 4, a++ ) {
 		data[a]  = ((CAST_LONG)(*(p++)) << 24);
 		data[a] |= ((CAST_LONG)(*(p++)) << 16);
@@ -512,7 +829,7 @@ static void ssh_cast_enc(void *ctx, u_char *buf)
 		data[a] |= ((CAST_LONG)(*(p++)) <<  0);
 	}
 
-	CAST_encrypt(data, &c->cast_ctx);
+	CAST_encrypt(data, &c->cast_key);
 
 	p = buf;
 	for ( i = a = 0 ; i < CAST_BLOCK ; i += 4, a++ ) {
@@ -522,57 +839,123 @@ static void ssh_cast_enc(void *ctx, u_char *buf)
 		*(p++) = (u_char)(data[a] >>  0);
 	}
 
-	ssh_ctr_inc(c->cast_counter, CAST_BLOCK);
+	ssh_ctr_inc(c->iv, CAST_BLOCK);
 }
-static int ssh_cast_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char *iv, int enc)
+static void *cast_newctx(void *prov_ctx)
 {
-	struct ssh_cast_ctx *c;
+	struct cast_ctx_st *cast_ctx;
+		
+	if ( (cast_ctx = (struct cast_ctx_st *)malloc(sizeof(struct cast_ctx_st))) == NULL )
+		return NULL;
 
-	if ((c = (struct ssh_cast_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL) {
-		c = (struct ssh_cast_ctx *)malloc(sizeof(*c));
-		memset(c, 0, sizeof(*c));
-		c->mt_ctx = mt_init((void *)c, ssh_cast_enc);
-		EVP_CIPHER_CTX_set_app_data(ctx, c);
-	}
-	if (key != NULL)
-		CAST_set_key(&c->cast_ctx, EVP_CIPHER_CTX_key_length(ctx), key);
-	if (iv != NULL)
-		memcpy(c->cast_counter, iv, CAST_BLOCK);
-	return (1);
+	memset(cast_ctx, 0, sizeof(struct cast_ctx_st));
+
+	cast_ctx->prov_ctx = (struct prov_ctx_st*)prov_ctx;
+	cast_ctx->keylen = CAST_KEYSIZE;
+	cast_ctx->ivlen  = CAST_IVSIZE;
+
+	return cast_ctx;
 }
+static void cast_freectx(struct cast_ctx_st *cast_ctx)
+{
+	mt_finis(cast_ctx->mt_ctx);
+	memset(cast_ctx, 0, sizeof(struct cast_ctx_st));
+	free(cast_ctx);
+}
+struct cast_ctx_st *cast_dupctx(struct cast_ctx_st *cast_ctx)
+{
+	struct cast_ctx_st *dup_ctx;
+		
+	if ( (dup_ctx = (struct cast_ctx_st *)malloc(sizeof(struct cast_ctx_st))) == NULL )
+		return NULL;
+
+	memcpy(dup_ctx, cast_ctx, sizeof(struct cast_ctx_st));
+	dup_ctx->mt_ctx = NULL;
+
+	return dup_ctx;
+}
+static int cast_init(struct cast_ctx_st *cast_ctx, const unsigned char *key, size_t keylen, const unsigned char *iv, size_t ivlen, const OSSL_PARAM params[])
+{
+	if ( key != NULL ) {
+		if ( keylen > CAST_KEYSIZE )
+			keylen = CAST_KEYSIZE;
+
+		CAST_set_key(&cast_ctx->cast_key, (int)keylen, key);
+	}
+
+	if ( iv == NULL && cast_ctx->mt_ctx != NULL ) {
+		iv = mt_get_iv(cast_ctx->mt_ctx);
+		ivlen = CAST_IVSIZE;
+	}
+
+	if ( iv != NULL ) {
+		ASSERT(SSH2_CIPHER_IVSIZEMAX >= CAST_IVSIZE);
+
+		if ( ivlen > CAST_IVSIZE )
+			ivlen = CAST_IVSIZE;
+		memcpy(cast_ctx->iv, iv, ivlen);
+		if ( ivlen < CAST_IVSIZE )
+			memset(cast_ctx->iv + ivlen, 0, CAST_IVSIZE - ivlen);
+	}
+
+	if ( cast_ctx->mt_ctx == NULL )
+		cast_ctx->mt_ctx = mt_init((void *)cast_ctx, cast_encode, CAST_BLKSIZE);
+	else if ( key != NULL || iv != NULL )
+		mt_reset(cast_ctx->mt_ctx);
+
+	return 1;
+}
+static int cast_get_params(OSSL_PARAM params[])
+{
+	return rlg_get_params(params, 0, CAST_BLKSIZE, CAST_KEYSIZE, CAST_IVSIZE, PARAM_CUSTOM_IV_FLAG);
+}
+static const OSSL_DISPATCH cast_functions[] = {
+	{ OSSL_FUNC_CIPHER_NEWCTX,				(void (*)(void))cast_newctx },
+	{ OSSL_FUNC_CIPHER_FREECTX,				(void (*)(void))cast_freectx },
+	{ OSSL_FUNC_CIPHER_DUPCTX,				(void (*)(void))cast_dupctx },
+	{ OSSL_FUNC_CIPHER_ENCRYPT_INIT,		(void (*)(void))cast_init },
+	{ OSSL_FUNC_CIPHER_DECRYPT_INIT,		(void (*)(void))cast_init },
+	{ OSSL_FUNC_CIPHER_UPDATE,				(void (*)(void))ssh_ctr_update },
+	{ OSSL_FUNC_CIPHER_FINAL,				(void (*)(void))ssh_ctr_final },
+	{ OSSL_FUNC_CIPHER_CIPHER,				(void (*)(void))ssh_ctr_cipher },
+	{ OSSL_FUNC_CIPHER_GET_CTX_PARAMS,		(void (*)(void))ssh_get_ctx_params },
+	{ OSSL_FUNC_CIPHER_SET_CTX_PARAMS,		(void (*)(void))ssh_set_ctx_params },
+	{ OSSL_FUNC_CIPHER_GETTABLE_PARAMS,		(void (*)(void))ssh_gettable_params },
+	{ OSSL_FUNC_CIPHER_GETTABLE_CTX_PARAMS,	(void (*)(void))ssh_gettable_ctx_params },
+	{ OSSL_FUNC_CIPHER_SETTABLE_CTX_PARAMS,	(void (*)(void))ssh_settable_ctx_params },
+	{ OSSL_FUNC_CIPHER_GET_PARAMS,			(void (*)(void))cast_get_params },
+	{ 0, NULL }
+};
 const EVP_CIPHER *evp_cast5_ctr(void)
 {
-	if ( LegacyEngineCipherMeth[Nids_cast5_ctr] == NULL ) {
-		EVP_CIPHER *cip = EVP_CIPHER_meth_new(LegacyEngineNids[Nids_cast5_ctr], CAST_BLOCK, CAST_KEY_LENGTH);
-		if ( cip != NULL ) {
-			EVP_CIPHER_meth_set_iv_length(cip, CAST_BLOCK);
-			EVP_CIPHER_meth_set_init(cip, ssh_cast_init);
-			EVP_CIPHER_meth_set_cleanup(cip, ssh_cipher_cleanup);
-			EVP_CIPHER_meth_set_do_cipher(cip, ssh_cipher_ctr);
-			EVP_CIPHER_meth_set_flags(cip, EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV);
-			LegacyEngineCipherMeth[Nids_cast5_ctr] = cip;
-		}
-	}
-	return LegacyEngineCipherMeth[Nids_cast5_ctr];
+	return rlg_evp_cipver_fetch(Nids_cast5_ctr);
 }
 
 //////////////////////////////////////////////////////////////////////
 
-struct ssh_idea_ctx
-{
-	struct mt_ctr_ctx	*mt_ctx;		// dont move !!
-	IDEA_KEY_SCHEDULE	idea_ctx;
-	u_char				idea_counter[IDEA_BLOCK];
-};
+#define	IDEA_BLKSIZE	IDEA_BLOCK
+#define	IDEA_KEYSIZE	IDEA_KEY_LENGTH
+#define	IDEA_IVSIZE		IDEA_BLOCK
 
-static void	ssh_idea_enc(void *ctx, u_char *buf)
+struct idea_ctx_st {
+	struct mt_ctr_ctx	*mt_ctx;					// dont move !!
+	struct prov_ctx_st	*prov_ctx;					//	|
+	size_t				keylen;						//	|
+	size_t				ivlen;						//	|
+	unsigned char		iv[SSH2_CIPHER_IVSIZEMAX];	//  |
+
+	IDEA_KEY_SCHEDULE	idea_key;
+};
+static void idea_encode(void *ctx, u_char *buf)
 {
 	int i, a;
 	u_char *p;
-	IDEA_INT data[IDEA_BLOCK / 4 + 1];
-	struct ssh_idea_ctx *c = (struct ssh_idea_ctx *)ctx;
+	IDEA_INT data[IDEA_BLOCK / sizeof(IDEA_INT) + 1];
+	struct idea_ctx_st *c = (struct idea_ctx_st *)ctx;
 
-	p = c->idea_counter;
+	memcpy(buf + IDEA_BLKSIZE, c->iv, IDEA_BLKSIZE);
+
+	p = c->iv;
 	for ( i = a = 0 ; i < IDEA_BLOCK ; i += 4, a++ ) {
 		data[a]  = ((IDEA_INT)(*(p++)) << 24);
 		data[a] |= ((IDEA_INT)(*(p++)) << 16);
@@ -580,7 +963,7 @@ static void	ssh_idea_enc(void *ctx, u_char *buf)
 		data[a] |= ((IDEA_INT)(*(p++)) <<  0);
 	}
 
-	idea_encrypt((unsigned long *)data, &c->idea_ctx);
+	idea_encrypt((unsigned long *)data, &c->idea_key);
 
 	p = buf;
 	for ( i = a = 0 ; i < IDEA_BLOCK ; i += 4, a++ ) {
@@ -590,134 +973,276 @@ static void	ssh_idea_enc(void *ctx, u_char *buf)
 		*(p++) = (u_char)(data[a] >>  0);
 	}
 
-	ssh_ctr_inc(c->idea_counter, IDEA_BLOCK);
+	ssh_ctr_inc(c->iv, IDEA_BLOCK);
 }
-static int ssh_idea_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char *iv, int enc)
+static void *idea_newctx(void *prov_ctx)
 {
-	struct ssh_idea_ctx *c;
+	struct idea_ctx_st *idea_ctx;
+		
+	if ( (idea_ctx = (struct idea_ctx_st *)malloc(sizeof(struct idea_ctx_st))) == NULL )
+		return NULL;
 
-	if ((c = (struct ssh_idea_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL) {
-		c = (struct ssh_idea_ctx *)malloc(sizeof(*c));
-		memset(c, 0, sizeof(*c));
-		c->mt_ctx = mt_init((void *)c, ssh_idea_enc);
-		EVP_CIPHER_CTX_set_app_data(ctx, c);
-	}
-	if (key != NULL)
-		idea_set_encrypt_key(key, &c->idea_ctx);
-	if (iv != NULL)
-		memcpy(c->idea_counter, iv, IDEA_BLOCK);
-	return (1);
+	memset(idea_ctx, 0, sizeof(struct idea_ctx_st));
+
+	idea_ctx->prov_ctx = (struct prov_ctx_st*)prov_ctx;
+	idea_ctx->keylen = IDEA_KEYSIZE;
+	idea_ctx->ivlen  = IDEA_IVSIZE;
+
+	return idea_ctx;
 }
+static void idea_freectx(struct idea_ctx_st *idea_ctx)
+{
+	mt_finis(idea_ctx->mt_ctx);
+	memset(idea_ctx, 0, sizeof(struct idea_ctx_st));
+	free(idea_ctx);
+}
+struct idea_ctx_st *idea_dupctx(struct idea_ctx_st *idea_ctx)
+{
+	struct idea_ctx_st *dup_ctx;
+		
+	if ( (dup_ctx = (struct idea_ctx_st *)malloc(sizeof(struct idea_ctx_st))) == NULL )
+		return NULL;
+
+	memcpy(dup_ctx, idea_ctx, sizeof(struct idea_ctx_st));
+	dup_ctx->mt_ctx = NULL;
+
+	return dup_ctx;
+}
+static int idea_init(struct idea_ctx_st *idea_ctx, const unsigned char *key, size_t keylen, const unsigned char *iv, size_t ivlen, const OSSL_PARAM params[])
+{
+	if ( key != NULL ) {
+		unsigned char tmp[IDEA_KEYSIZE];
+
+		if ( keylen > IDEA_KEYSIZE )
+			keylen = IDEA_KEYSIZE;
+		memcpy(tmp, key, keylen);
+		if ( keylen < IDEA_KEYSIZE )
+			memset(tmp + keylen, 0, IDEA_KEYSIZE - keylen);
+
+		IDEA_set_encrypt_key(tmp, &idea_ctx->idea_key);
+		memset(tmp, 0, sizeof(tmp));
+	}
+
+	if ( iv == NULL && idea_ctx->mt_ctx != NULL ) {
+		iv = mt_get_iv(idea_ctx->mt_ctx);
+		ivlen = IDEA_IVSIZE;
+	}
+
+	if ( iv != NULL ) {
+		ASSERT(SSH2_CIPHER_IVSIZEMAX >= IDEA_IVSIZE);
+
+		if ( ivlen > IDEA_IVSIZE )
+			ivlen = IDEA_IVSIZE;
+		memcpy(idea_ctx->iv, iv, ivlen);
+		if ( ivlen < IDEA_IVSIZE )
+			memset(idea_ctx->iv + ivlen, 0, IDEA_IVSIZE - ivlen);
+	}
+
+	if ( idea_ctx->mt_ctx == NULL )
+		idea_ctx->mt_ctx = mt_init((void *)idea_ctx, idea_encode, IDEA_BLKSIZE);
+	else if ( key != NULL || iv != NULL )
+		mt_reset(idea_ctx->mt_ctx);
+
+	return 1;
+}
+static int idea_get_params(OSSL_PARAM params[])
+{
+	return rlg_get_params(params, 0, IDEA_BLKSIZE, IDEA_KEYSIZE, IDEA_IVSIZE, PARAM_CUSTOM_IV_FLAG);
+}
+static const OSSL_DISPATCH idea_functions[] = {
+	{ OSSL_FUNC_CIPHER_NEWCTX,				(void (*)(void))idea_newctx },
+	{ OSSL_FUNC_CIPHER_FREECTX,				(void (*)(void))idea_freectx },
+	{ OSSL_FUNC_CIPHER_DUPCTX,				(void (*)(void))idea_dupctx },
+	{ OSSL_FUNC_CIPHER_ENCRYPT_INIT,		(void (*)(void))idea_init },
+	{ OSSL_FUNC_CIPHER_DECRYPT_INIT,		(void (*)(void))idea_init },
+	{ OSSL_FUNC_CIPHER_UPDATE,				(void (*)(void))ssh_ctr_update },
+	{ OSSL_FUNC_CIPHER_FINAL,				(void (*)(void))ssh_ctr_final },
+	{ OSSL_FUNC_CIPHER_CIPHER,				(void (*)(void))ssh_ctr_cipher },
+	{ OSSL_FUNC_CIPHER_GET_CTX_PARAMS,		(void (*)(void))ssh_get_ctx_params },
+	{ OSSL_FUNC_CIPHER_SET_CTX_PARAMS,		(void (*)(void))ssh_set_ctx_params },
+	{ OSSL_FUNC_CIPHER_GETTABLE_PARAMS,		(void (*)(void))ssh_gettable_params },
+	{ OSSL_FUNC_CIPHER_GETTABLE_CTX_PARAMS,	(void (*)(void))ssh_gettable_ctx_params },
+	{ OSSL_FUNC_CIPHER_SETTABLE_CTX_PARAMS,	(void (*)(void))ssh_settable_ctx_params },
+	{ OSSL_FUNC_CIPHER_GET_PARAMS,			(void (*)(void))idea_get_params },
+	{ 0, NULL }
+};
 const EVP_CIPHER *evp_idea_ctr(void)
 {
-	if ( LegacyEngineCipherMeth[Nids_idea_ctr] == NULL ) {
-		EVP_CIPHER *cip = EVP_CIPHER_meth_new(LegacyEngineNids[Nids_idea_ctr], IDEA_BLOCK, IDEA_KEY_LENGTH);
-		if ( cip != NULL ) {
-			EVP_CIPHER_meth_set_iv_length(cip, IDEA_BLOCK);
-			EVP_CIPHER_meth_set_init(cip, ssh_idea_init);
-			EVP_CIPHER_meth_set_cleanup(cip, ssh_cipher_cleanup);
-			EVP_CIPHER_meth_set_do_cipher(cip, ssh_cipher_ctr);
-			EVP_CIPHER_meth_set_flags(cip, EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV);
-			LegacyEngineCipherMeth[Nids_idea_ctr] = cip;
-		}
-	}
-	return LegacyEngineCipherMeth[Nids_idea_ctr];
+	return rlg_evp_cipver_fetch(Nids_idea_ctr);
 }
 
 //////////////////////////////////////////////////////////////////////
 
-struct ssh_des3_ctx
-{
-	struct mt_ctr_ctx	*mt_ctx;		// dont move !!
+#define	DES3_BLKSIZE	sizeof(DES_cblock)
+#define	DES3_KEYSIZE	24
+#define	DES3_IVSIZE		sizeof(DES_cblock)
 
-	DES_key_schedule	des3_ctx[3];
-	DES_cblock			des3_counter;
+struct des3_ctx_st {
+	struct mt_ctr_ctx	*mt_ctx;					// dont move !!
+	struct prov_ctx_st	*prov_ctx;					//	|
+	size_t				keylen;						//	|
+	size_t				ivlen;						//	|
+	unsigned char		iv[SSH2_CIPHER_IVSIZEMAX];	//  |
+
+	DES_key_schedule	des3_key[3];
 };
-
-#define	DES_BLOCK	sizeof(DES_cblock)
-
-static void ssh_des3_enc(void *ctx, u_char *buf)
+static void des3_encode(void *ctx, u_char *buf)
 {
 	int i, a;
 	u_char *p;
-	DES_LONG data[DES_BLOCK / 4 + 1];
-	struct ssh_des3_ctx *c = (struct ssh_des3_ctx *)ctx;
+	DES_LONG data[sizeof(DES_cblock) / sizeof(DES_LONG) + 1];
+	struct des3_ctx_st *c = (struct des3_ctx_st *)ctx;
 
-	p = c->des3_counter;
-	for ( i = a = 0 ; i < DES_BLOCK ; i += 4, a++ ) {
+	memcpy(buf + DES3_BLKSIZE, c->iv, DES3_BLKSIZE);
+
+	p = c->iv;
+	for ( i = a = 0 ; i < DES3_BLKSIZE ; i += 4, a++ ) {
 		data[a]  = ((DES_LONG)(*(p++)) <<  0);
 		data[a] |= ((DES_LONG)(*(p++)) <<  8);
 		data[a] |= ((DES_LONG)(*(p++)) << 16);
 		data[a] |= ((DES_LONG)(*(p++)) << 24);
 	}
 
-	DES_encrypt3(data, &c->des3_ctx[0], &c->des3_ctx[1], &c->des3_ctx[2]);
+	DES_encrypt3(data, &c->des3_key[0], &c->des3_key[1], &c->des3_key[2]);
 
 	p = buf;
-	for ( i = a = 0 ; i < DES_BLOCK ; i += 4, a++ ) {
+	for ( i = a = 0 ; i < DES3_BLKSIZE ; i += 4, a++ ) {
 		*(p++) = (u_char)(data[a] >>  0);
 		*(p++) = (u_char)(data[a] >>  8);
 		*(p++) = (u_char)(data[a] >> 16);
 		*(p++) = (u_char)(data[a] >> 24);
 	}
 
-	ssh_ctr_inc(c->des3_counter, DES_BLOCK);
+	ssh_ctr_inc(c->iv, DES3_IVSIZE);
 }
-static int ssh_des3_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char *iv, int enc)
+static void *des3_newctx(void *prov_ctx)
 {
-	struct ssh_des3_ctx *c;
+	struct des3_ctx_st *des3_ctx;
+		
+	if ( (des3_ctx = (struct des3_ctx_st *)malloc(sizeof(struct des3_ctx_st))) == NULL )
+		return NULL;
 
-	if ((c = (struct ssh_des3_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL) {
-		c = (struct ssh_des3_ctx *)malloc(sizeof(*c));
-		memset(c, 0, sizeof(*c));
-		c->mt_ctx = mt_init((void *)c, ssh_des3_enc);
-		EVP_CIPHER_CTX_set_app_data(ctx, c);
-	}
-	if (key != NULL) {
-		DES_set_key((const_DES_cblock *)(key +  0), &c->des3_ctx[0]);
-		DES_set_key((const_DES_cblock *)(key +  8), &c->des3_ctx[1]);
-		DES_set_key((const_DES_cblock *)(key + 16), &c->des3_ctx[2]);
-	}
-	if (iv != NULL)
-		memcpy(c->des3_counter, iv, DES_BLOCK);
-	return (1);
+	memset(des3_ctx, 0, sizeof(struct des3_ctx_st));
+
+	des3_ctx->prov_ctx = (struct prov_ctx_st*)prov_ctx;
+	des3_ctx->keylen = DES3_KEYSIZE;
+	des3_ctx->ivlen  = DES3_IVSIZE;
+
+	return des3_ctx;
 }
+static void des3_freectx(struct des3_ctx_st *des3_ctx)
+{
+	mt_finis(des3_ctx->mt_ctx);
+	memset(des3_ctx, 0, sizeof(struct des3_ctx_st));
+	free(des3_ctx);
+}
+struct des3_ctx_st *des3_dupctx(struct des3_ctx_st *des3_ctx)
+{
+	struct des3_ctx_st *dup_ctx;
+		
+	if ( (dup_ctx = (struct des3_ctx_st *)malloc(sizeof(struct des3_ctx_st))) == NULL )
+		return NULL;
+
+	memcpy(dup_ctx, des3_ctx, sizeof(struct des3_ctx_st));
+	dup_ctx->mt_ctx = NULL;
+
+	return dup_ctx;
+}
+static int des3_init(struct des3_ctx_st *des3_ctx, const unsigned char *key, size_t keylen, const unsigned char *iv, size_t ivlen, const OSSL_PARAM params[])
+{
+	if ( key != NULL ) {
+		unsigned char tmp[DES3_KEYSIZE];
+
+		if ( keylen > DES3_KEYSIZE )
+			keylen = DES3_KEYSIZE;
+		memcpy(tmp, key, keylen);
+		if ( keylen < DES3_KEYSIZE )
+			memset(tmp + keylen, 0, DES3_KEYSIZE - keylen);
+
+		DES_set_key((const_DES_cblock *)(tmp +  0), &des3_ctx->des3_key[0]);
+		DES_set_key((const_DES_cblock *)(tmp +  8), &des3_ctx->des3_key[1]);
+		DES_set_key((const_DES_cblock *)(tmp + 16), &des3_ctx->des3_key[2]);
+		memset(tmp, 0, sizeof(tmp));
+	}
+
+	if ( iv == NULL && des3_ctx->mt_ctx != NULL ) {
+		iv = mt_get_iv(des3_ctx->mt_ctx);
+		ivlen = DES3_IVSIZE;
+	}
+
+	if ( iv != NULL ) {
+		ASSERT(SSH2_CIPHER_IVSIZEMAX >= DES3_IVSIZE);
+
+		if ( ivlen > DES3_IVSIZE )
+			ivlen = DES3_IVSIZE;
+		memcpy(des3_ctx->iv, iv, ivlen);
+		if ( ivlen < DES3_IVSIZE )
+			memset(des3_ctx->iv + ivlen, 0, DES3_IVSIZE - ivlen);
+	}
+
+	if ( des3_ctx->mt_ctx == NULL )
+		des3_ctx->mt_ctx = mt_init((void *)des3_ctx, des3_encode, DES3_BLKSIZE);
+	else if ( key != NULL || iv != NULL )
+		mt_reset(des3_ctx->mt_ctx);
+
+	return 1;
+}
+static int des3_get_params(OSSL_PARAM params[])
+{
+	return rlg_get_params(params, 0, DES3_BLKSIZE, DES3_KEYSIZE, DES3_IVSIZE, PARAM_CUSTOM_IV_FLAG);
+}
+static const OSSL_DISPATCH des3_functions[] = {
+	{ OSSL_FUNC_CIPHER_NEWCTX,				(void (*)(void))des3_newctx },
+	{ OSSL_FUNC_CIPHER_FREECTX,				(void (*)(void))des3_freectx },
+	{ OSSL_FUNC_CIPHER_DUPCTX,				(void (*)(void))des3_dupctx },
+	{ OSSL_FUNC_CIPHER_ENCRYPT_INIT,		(void (*)(void))des3_init },
+	{ OSSL_FUNC_CIPHER_DECRYPT_INIT,		(void (*)(void))des3_init },
+	{ OSSL_FUNC_CIPHER_UPDATE,				(void (*)(void))ssh_ctr_update },
+	{ OSSL_FUNC_CIPHER_FINAL,				(void (*)(void))ssh_ctr_final },
+	{ OSSL_FUNC_CIPHER_CIPHER,				(void (*)(void))ssh_ctr_cipher },
+	{ OSSL_FUNC_CIPHER_GET_CTX_PARAMS,		(void (*)(void))ssh_get_ctx_params },
+	{ OSSL_FUNC_CIPHER_SET_CTX_PARAMS,		(void (*)(void))ssh_set_ctx_params },
+	{ OSSL_FUNC_CIPHER_GETTABLE_PARAMS,		(void (*)(void))ssh_gettable_params },
+	{ OSSL_FUNC_CIPHER_GETTABLE_CTX_PARAMS,	(void (*)(void))ssh_gettable_ctx_params },
+	{ OSSL_FUNC_CIPHER_SETTABLE_CTX_PARAMS,	(void (*)(void))ssh_settable_ctx_params },
+	{ OSSL_FUNC_CIPHER_GET_PARAMS,			(void (*)(void))des3_get_params },
+	{ 0, NULL }
+};
 const EVP_CIPHER *evp_des3_ctr(void)
 {
-	if ( LegacyEngineCipherMeth[Nids_des3_ctr] == NULL ) {
-		EVP_CIPHER *cip = EVP_CIPHER_meth_new(LegacyEngineNids[Nids_des3_ctr], DES_BLOCK, 24);
-		if ( cip != NULL ) {
-			EVP_CIPHER_meth_set_iv_length(cip, DES_BLOCK);
-			EVP_CIPHER_meth_set_init(cip, ssh_des3_init);
-			EVP_CIPHER_meth_set_cleanup(cip, ssh_cipher_cleanup);
-			EVP_CIPHER_meth_set_do_cipher(cip, ssh_cipher_ctr);
-			EVP_CIPHER_meth_set_flags(cip, EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV);
-			LegacyEngineCipherMeth[Nids_des3_ctr] = cip;
-		}
-	}
-	return LegacyEngineCipherMeth[Nids_des3_ctr];
+	return rlg_evp_cipver_fetch(Nids_des3_ctr);
 }
 
 //////////////////////////////////////////////////////////////////////
 
 #ifdef	USE_NETTLE
-struct ssh_twofish_ctx
-{
-	struct mt_ctr_ctx	*mt_ctx;		// dont move !!
-	struct twofish_ctx	twofish_ctx;
-	u_char				twofish_counter[TWOFISH_BLOCK_SIZE];
+
+#define	TWOFISH_BLKSIZE		TWOFISH_BLOCK_SIZE
+#define	TWOFISH_KEYSIZE		TWOFISH_KEY_SIZE
+#define	TWOFISH_IVSIZE		TWOFISH_BLOCK_SIZE
+
+struct twofish_ctx_st {
+	struct mt_ctr_ctx	*mt_ctx;					// dont move !!
+	struct prov_ctx_st	*prov_ctx;					//	|
+	size_t				keylen;						//	|
+	size_t				ivlen;						//	|
+	unsigned char		iv[SSH2_CIPHER_IVSIZEMAX];	//  |
+
+	struct twofish_ctx	twofish_key;
+	BOOL				encrypting;
+	BOOL				cbc_mode;
 };
-
-static void ssh_twofish_enc(void *ctx, u_char *buf)
+static void twofish_encode(void *ctx, u_char *buf)
 {
-	struct ssh_twofish_ctx *c = (struct ssh_twofish_ctx *)ctx;
+	struct twofish_ctx_st *c = (struct twofish_ctx_st *)ctx;
+		
+	memcpy(buf + TWOFISH_BLKSIZE, c->iv, TWOFISH_BLKSIZE);
 
-	twofish_encrypt(&c->twofish_ctx, TWOFISH_BLOCK_SIZE, buf, c->twofish_counter);
-	ssh_ctr_inc(c->twofish_counter, TWOFISH_BLOCK_SIZE);
+	twofish_encrypt(&c->twofish_key, TWOFISH_BLOCK_SIZE, buf, c->iv);
+	ssh_ctr_inc(c->iv, TWOFISH_IVSIZE);
 }
-static int	ssh_twofish_cbc(EVP_CIPHER_CTX *ctx, u_char *dest, const u_char *src, size_t len)
+static int	twofish_cbc_cipher(struct twofish_ctx_st *twofish_ctx, unsigned char *out, size_t *outl, size_t outsize, const unsigned char *in, size_t inl)
 {
-	struct ssh_twofish_ctx *c;
 	u_char buf[TWOFISH_BLOCK_SIZE];
 	u_char tmp[TWOFISH_BLOCK_SIZE];
 	register int i;
@@ -726,14 +1251,16 @@ static int	ssh_twofish_cbc(EVP_CIPHER_CTX *ctx, u_char *dest, const u_char *src,
 		size_t		*ip;
 	} a, b, e;
 
-	if ((c = (struct ssh_twofish_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL)
-		return (0);
+	if ( out == NULL || outl == NULL || in == NULL )
+		return 0;
 
-	if ( EVP_CIPHER_CTX_encrypting(ctx) ) {
-		while ( len >= TWOFISH_BLOCK_SIZE ) {
+	*outl = 0;
+
+	if ( twofish_ctx->encrypting ) {
+		while ( inl >= TWOFISH_BLOCK_SIZE ) {
 			a.bp = buf;
-			b.bp = (u_char *)src;
-			e.bp = c->twofish_counter;
+			b.bp = (u_char *)in;
+			e.bp = twofish_ctx->iv;
 
 			for ( i = TWOFISH_BLOCK_SIZE / sizeof(size_t) ; i > 0 ; i-- )
 				*(a.ip++) = *(b.ip++) ^ *(e.ip++);
@@ -742,35 +1269,38 @@ static int	ssh_twofish_cbc(EVP_CIPHER_CTX *ctx, u_char *dest, const u_char *src,
 			//for ( i = TWOFISH_BLOCK_SIZE % sizeof(size_t) ; i > 0 ; i-- )
 			//	*(a.bp++) = *(b.bp++) ^ *(e.bp++);
 
-			twofish_encrypt(&c->twofish_ctx, TWOFISH_BLOCK_SIZE, c->twofish_counter, buf);
+			twofish_encrypt(&twofish_ctx->twofish_key, TWOFISH_BLOCK_SIZE, twofish_ctx->iv, buf);
 
-			memcpy(dest, c->twofish_counter, TWOFISH_BLOCK_SIZE);
+			memcpy(out, twofish_ctx->iv, TWOFISH_BLOCK_SIZE);
 
-			src  += TWOFISH_BLOCK_SIZE;
-			dest += TWOFISH_BLOCK_SIZE;
-			len  -= TWOFISH_BLOCK_SIZE;
+			in    += TWOFISH_BLOCK_SIZE;
+			out   += TWOFISH_BLOCK_SIZE;
+			inl   -= TWOFISH_BLOCK_SIZE;
+			*outl += TWOFISH_BLOCK_SIZE;
 		}
 
-		if ( len > 0 ) {
-			for ( i = 0 ; i < (int)len ; i++ )
-				buf[i] = *(src++) ^ c->twofish_counter[i];
+		if ( inl > 0 ) {
+			for ( i = 0 ; i < (int)inl ; i++ )
+				buf[i] = *(in++) ^ twofish_ctx->iv[i];
 
 			for ( ; i < TWOFISH_BLOCK_SIZE ; i++ )
-				buf[i] = c->twofish_counter[i];
+				buf[i] = twofish_ctx->iv[i];
 
-			twofish_encrypt(&c->twofish_ctx, TWOFISH_BLOCK_SIZE, c->twofish_counter, buf);
+			twofish_encrypt(&twofish_ctx->twofish_key, TWOFISH_BLOCK_SIZE, twofish_ctx->iv, buf);
 
-			for ( i = 0 ; i < (int)len ; i++ )
-				*(dest++) = c->twofish_counter[i];
+			for ( i = 0 ; i < (int)inl ; i++ )
+				*(out++) = twofish_ctx->iv[i];
+
+			*outl += inl;
 		}
 
 	} else {
-		while ( len >= TWOFISH_BLOCK_SIZE ) {
-			twofish_decrypt(&c->twofish_ctx, TWOFISH_BLOCK_SIZE, buf, src);
+		while ( inl >= TWOFISH_BLOCK_SIZE ) {
+			twofish_decrypt(&twofish_ctx->twofish_key, TWOFISH_BLOCK_SIZE, buf, in);
 
-			a.bp = dest;
+			a.bp = out;
 			b.bp = buf;
-			e.bp = c->twofish_counter;
+			e.bp = twofish_ctx->iv;
 
 			for ( i = TWOFISH_BLOCK_SIZE / sizeof(size_t) ; i > 0 ; i-- )
 				*(a.ip++) = *(b.ip++) ^ *(e.ip++);
@@ -779,418 +1309,739 @@ static int	ssh_twofish_cbc(EVP_CIPHER_CTX *ctx, u_char *dest, const u_char *src,
 			//for ( i = TWOFISH_BLOCK_SIZE % sizeof(size_t) ; i > 0 ; i-- )
 			//	*(a.bp++) = *(b.bp++) ^ *(e.bp++);
 
-			memcpy(c->twofish_counter, src, TWOFISH_BLOCK_SIZE);
+			memcpy(twofish_ctx->iv, in, TWOFISH_BLOCK_SIZE);
 
-			src  += TWOFISH_BLOCK_SIZE;
-			dest += TWOFISH_BLOCK_SIZE;
-			len  -= TWOFISH_BLOCK_SIZE;
+			in    += TWOFISH_BLOCK_SIZE;
+			out   += TWOFISH_BLOCK_SIZE;
+			inl   -= TWOFISH_BLOCK_SIZE;
+			*outl += TWOFISH_BLOCK_SIZE;
 		}
 
-		if ( len > 0 ) {
-			for ( i = 0 ; i < (int)len ; i++ )
-				tmp[i] = *(src++);
+		if ( inl > 0 ) {
+			for ( i = 0 ; i < (int)inl ; i++ )
+				tmp[i] = *(in++);
 
 			for ( ; i < TWOFISH_BLOCK_SIZE ; i++ )
-				tmp[i] = c->twofish_counter[i];
+				tmp[i] = twofish_ctx->iv[i];
 
-			twofish_decrypt(&c->twofish_ctx, TWOFISH_BLOCK_SIZE, buf, tmp);
+			twofish_decrypt(&twofish_ctx->twofish_key, TWOFISH_BLOCK_SIZE, buf, tmp);
 
-			for ( i = 0 ; i < (int)len ; i++ ) {
-				*(dest++) = buf[i] ^ c->twofish_counter[i];
-				c->twofish_counter[i] = tmp[i];
+			for ( i = 0 ; i < (int)inl ; i++ ) {
+				*(out++) = buf[i] ^ twofish_ctx->iv[i];
+				twofish_ctx->iv[i] = tmp[i];
 			}
+			*outl += inl;
 
 			for ( ; i < TWOFISH_BLOCK_SIZE ; i++ )
-				c->twofish_counter[i] = buf[i];
+				twofish_ctx->iv[i] = buf[i];
 		}
 	}
 
 	return (1);
 }
-static int ssh_twofish_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char *iv, int enc)
+static void *twofish_newctx(void *prov_ctx)
 {
-	struct ssh_twofish_ctx *c;
+	struct twofish_ctx_st *twofish_ctx;
+		
+	if ( (twofish_ctx = (struct twofish_ctx_st *)malloc(sizeof(struct twofish_ctx_st))) == NULL )
+		return NULL;
 
-	if ((c = (struct ssh_twofish_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL) {
-		c = (struct ssh_twofish_ctx *)malloc(sizeof(*c));
-		memset(c, 0, sizeof(*c));
-		if ( EVP_CIPHER_meth_get_do_cipher(EVP_CIPHER_CTX_cipher(ctx)) == ssh_cipher_ctr )
-			c->mt_ctx = mt_init((void *)c, ssh_twofish_enc);
-		EVP_CIPHER_CTX_set_app_data(ctx, c);
-	}
-	if (key != NULL)
-		twofish_set_key(&c->twofish_ctx, EVP_CIPHER_CTX_key_length(ctx), key);
-	if (iv != NULL)
-		memcpy(c->twofish_counter, iv, TWOFISH_BLOCK_SIZE);
-	return (1);
+	memset(twofish_ctx, 0, sizeof(struct twofish_ctx_st));
+
+	twofish_ctx->prov_ctx = (struct prov_ctx_st*)prov_ctx;
+	twofish_ctx->keylen = TWOFISH_KEYSIZE;
+	twofish_ctx->ivlen  = TWOFISH_IVSIZE;
+
+	return twofish_ctx;
 }
+static void twofish_freectx(struct twofish_ctx_st *twofish_ctx)
+{
+	mt_finis(twofish_ctx->mt_ctx);
+	memset(twofish_ctx, 0, sizeof(struct twofish_ctx_st));
+	free(twofish_ctx);
+}
+struct twofish_ctx_st *twofish_dupctx(struct twofish_ctx_st *twofish_ctx)
+{
+	struct twofish_ctx_st *dup_ctx;
+		
+	if ( (dup_ctx = (struct twofish_ctx_st *)malloc(sizeof(struct twofish_ctx_st))) == NULL )
+		return NULL;
+
+	memcpy(dup_ctx, twofish_ctx, sizeof(struct twofish_ctx_st));
+	dup_ctx->mt_ctx = NULL;
+
+	return dup_ctx;
+}
+static int twofish_init(struct twofish_ctx_st *twofish_ctx, const unsigned char *key, size_t keylen, const unsigned char *iv, size_t ivlen, const OSSL_PARAM params[])
+{
+	if ( key != NULL ) {
+		if ( keylen > TWOFISH_KEYSIZE )
+			keylen = TWOFISH_KEYSIZE;
+
+		twofish_set_key(&twofish_ctx->twofish_key, (int)keylen, key);
+	}
+
+	if ( iv == NULL && twofish_ctx->mt_ctx != NULL ) {
+		iv = mt_get_iv(twofish_ctx->mt_ctx);
+		ivlen = TWOFISH_IVSIZE;
+	}
+
+	if ( iv != NULL ) {
+		ASSERT(SSH2_CIPHER_IVSIZEMAX >= TWOFISH_BLKSIZE);
+
+		if ( ivlen > TWOFISH_IVSIZE )
+			ivlen = TWOFISH_IVSIZE;
+		memcpy(twofish_ctx->iv, iv, ivlen);
+		if ( ivlen < TWOFISH_IVSIZE )
+			memset(twofish_ctx->iv + ivlen, 0, TWOFISH_IVSIZE - ivlen);
+	}
+
+	if ( !twofish_ctx->cbc_mode ) {
+		if ( twofish_ctx->mt_ctx == NULL )
+			twofish_ctx->mt_ctx = mt_init((void *)twofish_ctx, twofish_encode, TWOFISH_BLKSIZE);
+		else if ( key != NULL || iv != NULL )
+			mt_reset(twofish_ctx->mt_ctx);
+	}
+
+	return 1;
+}
+static int twofish_einit(struct twofish_ctx_st *twofish_ctx, const unsigned char *key, size_t keylen, const unsigned char *iv, size_t ivlen, const OSSL_PARAM params[])
+{
+	twofish_ctx->cbc_mode = TRUE;
+	twofish_ctx->encrypting = TRUE;
+	return twofish_init(twofish_ctx, key, keylen, iv, ivlen, params);
+}
+static int twofish_dinit(struct twofish_ctx_st *twofish_ctx, const unsigned char *key, size_t keylen, const unsigned char *iv, size_t ivlen, const OSSL_PARAM params[])
+{
+	twofish_ctx->cbc_mode = TRUE;
+	twofish_ctx->encrypting = FALSE;
+	return twofish_init(twofish_ctx, key, keylen, iv, ivlen, params);
+}
+static int twofish_get_params(OSSL_PARAM params[])
+{
+	return rlg_get_params(params, 0, TWOFISH_BLKSIZE, TWOFISH_KEYSIZE, TWOFISH_IVSIZE, PARAM_CUSTOM_IV_FLAG);
+}
+static const OSSL_DISPATCH twofish_ctr_functions[] = {
+	{ OSSL_FUNC_CIPHER_NEWCTX,				(void (*)(void))twofish_newctx },
+	{ OSSL_FUNC_CIPHER_FREECTX,				(void (*)(void))twofish_freectx },
+	{ OSSL_FUNC_CIPHER_DUPCTX,				(void (*)(void))twofish_dupctx },
+	{ OSSL_FUNC_CIPHER_ENCRYPT_INIT,		(void (*)(void))twofish_init },
+	{ OSSL_FUNC_CIPHER_DECRYPT_INIT,		(void (*)(void))twofish_init },
+	{ OSSL_FUNC_CIPHER_UPDATE,				(void (*)(void))ssh_ctr_update },
+	{ OSSL_FUNC_CIPHER_FINAL,				(void (*)(void))ssh_ctr_final },
+	{ OSSL_FUNC_CIPHER_CIPHER,				(void (*)(void))ssh_ctr_cipher },
+	{ OSSL_FUNC_CIPHER_GET_CTX_PARAMS,		(void (*)(void))ssh_get_ctx_params },
+	{ OSSL_FUNC_CIPHER_SET_CTX_PARAMS,		(void (*)(void))ssh_set_ctx_params },
+	{ OSSL_FUNC_CIPHER_GETTABLE_PARAMS,		(void (*)(void))ssh_gettable_params },
+	{ OSSL_FUNC_CIPHER_GETTABLE_CTX_PARAMS,	(void (*)(void))ssh_gettable_ctx_params },
+	{ OSSL_FUNC_CIPHER_SETTABLE_CTX_PARAMS,	(void (*)(void))ssh_settable_ctx_params },
+	{ OSSL_FUNC_CIPHER_GET_PARAMS,			(void (*)(void))twofish_get_params },
+	{ 0, NULL }
+};
 const EVP_CIPHER *evp_twofish_ctr(void)
 {
-	if ( LegacyEngineCipherMeth[Nids_twofish_ctr] == NULL ) {
-		EVP_CIPHER *cip = EVP_CIPHER_meth_new(LegacyEngineNids[Nids_twofish_ctr], TWOFISH_BLOCK_SIZE, 32);
-		if ( cip != NULL ) {
-			EVP_CIPHER_meth_set_iv_length(cip, TWOFISH_BLOCK_SIZE);
-			EVP_CIPHER_meth_set_init(cip, ssh_twofish_init);
-			EVP_CIPHER_meth_set_cleanup(cip, ssh_cipher_cleanup);
-			EVP_CIPHER_meth_set_do_cipher(cip, ssh_cipher_ctr);
-			EVP_CIPHER_meth_set_flags(cip, EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV);
-			LegacyEngineCipherMeth[Nids_twofish_ctr] = cip;
-		}
-	}
-	return LegacyEngineCipherMeth[Nids_twofish_ctr];
+	return rlg_evp_cipver_fetch(Nids_twofish_ctr);
 }
+static const OSSL_DISPATCH twofish_cbc_functions[] = {
+	{ OSSL_FUNC_CIPHER_NEWCTX,				(void (*)(void))twofish_newctx },
+	{ OSSL_FUNC_CIPHER_FREECTX,				(void (*)(void))twofish_freectx },
+	{ OSSL_FUNC_CIPHER_DUPCTX,				(void (*)(void))twofish_dupctx },
+	{ OSSL_FUNC_CIPHER_ENCRYPT_INIT,		(void (*)(void))twofish_einit },
+	{ OSSL_FUNC_CIPHER_DECRYPT_INIT,		(void (*)(void))twofish_dinit },
+	{ OSSL_FUNC_CIPHER_UPDATE,				(void (*)(void))twofish_cbc_cipher },
+	{ OSSL_FUNC_CIPHER_FINAL,				(void (*)(void))ssh_ctr_final },
+	{ OSSL_FUNC_CIPHER_CIPHER,				(void (*)(void))twofish_cbc_cipher },
+	{ OSSL_FUNC_CIPHER_GET_CTX_PARAMS,		(void (*)(void))ssh_get_ctx_params },
+	{ OSSL_FUNC_CIPHER_SET_CTX_PARAMS,		(void (*)(void))ssh_set_ctx_params },
+	{ OSSL_FUNC_CIPHER_GETTABLE_PARAMS,		(void (*)(void))ssh_gettable_params },
+	{ OSSL_FUNC_CIPHER_GETTABLE_CTX_PARAMS,	(void (*)(void))ssh_gettable_ctx_params },
+	{ OSSL_FUNC_CIPHER_SETTABLE_CTX_PARAMS,	(void (*)(void))ssh_settable_ctx_params },
+	{ OSSL_FUNC_CIPHER_GET_PARAMS,			(void (*)(void))twofish_get_params },
+	{ 0, NULL }
+};
 const EVP_CIPHER *evp_twofish_cbc(void)
 {
-	if ( LegacyEngineCipherMeth[Nids_twofish_cbc] == NULL ) {
-		EVP_CIPHER *cip = EVP_CIPHER_meth_new(LegacyEngineNids[Nids_twofish_cbc], TWOFISH_BLOCK_SIZE, 32);
-		if ( cip != NULL ) {
-			EVP_CIPHER_meth_set_iv_length(cip, TWOFISH_BLOCK_SIZE);
-			EVP_CIPHER_meth_set_init(cip, ssh_twofish_init);
-			EVP_CIPHER_meth_set_cleanup(cip, ssh_cipher_cleanup);
-			EVP_CIPHER_meth_set_do_cipher(cip, ssh_twofish_cbc);
-			EVP_CIPHER_meth_set_flags(cip, EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV);
-			LegacyEngineCipherMeth[Nids_twofish_cbc] = cip;
-		}
-	}
-	return LegacyEngineCipherMeth[Nids_twofish_cbc]; 
+	return EVP_CIPHER_fetch(NULL, "twofish-cbc", "provider=rlogin");
 }
 
 //////////////////////////////////////////////////////////////////////
 
-struct ssh_serpent_ctx
-{
-	struct mt_ctr_ctx	*mt_ctx;		// dont move !!
-	struct serpent_ctx	serpent_ctx;
-	u_char				serpent_counter[SERPENT_BLOCK_SIZE];
+#define	SERPENT_BLKSIZE		SERPENT_BLOCK_SIZE
+#define	SERPENT_KEYSIZE		SERPENT_MAX_KEY_SIZE
+#define	SERPENT_IVSIZE		SERPENT_BLOCK_SIZE
+
+struct serpent_ctx_st {
+	struct mt_ctr_ctx	*mt_ctx;					// dont move !!
+	struct prov_ctx_st	*prov_ctx;					//	|
+	size_t				keylen;						//	|
+	size_t				ivlen;						//	|
+	unsigned char		iv[SSH2_CIPHER_IVSIZEMAX];	//  |
+
+	struct serpent_ctx	serpent_key;
+	BOOL				encrypting;
+	BOOL				cbc_mode;
 };
-
-static void ssh_serpent_enc(void *ctx, u_char *buf)
+static void serpent_encode(void *ctx, u_char *buf)
 {
-	struct ssh_serpent_ctx *c = (struct ssh_serpent_ctx *)ctx;
+	struct serpent_ctx_st *c = (struct serpent_ctx_st *)ctx;
 
-	serpent_encrypt(&c->serpent_ctx, SERPENT_BLOCK_SIZE, buf, c->serpent_counter);
-	ssh_ctr_inc(c->serpent_counter, SERPENT_BLOCK_SIZE);
+	memcpy(buf + SERPENT_BLKSIZE, c->iv, SERPENT_BLKSIZE);
+
+	serpent_encrypt(&c->serpent_key, SERPENT_BLOCK_SIZE, buf, c->iv);
+	ssh_ctr_inc(c->iv, SERPENT_IVSIZE);
 }
-static int	ssh_serpent_cbc(EVP_CIPHER_CTX *ctx, u_char *dest, const u_char *src, size_t len)
+static int	serpent_cbc_cipher(struct serpent_ctx_st *serpent_ctx, unsigned char *out, size_t *outl, size_t outsize, const unsigned char *in, size_t inl)
 {
 	u_int n, i;
-	struct ssh_serpent_ctx *c;
 	u_char buf[SERPENT_BLOCK_SIZE];
 	u_char tmp[SERPENT_BLOCK_SIZE];
 
-	if (len == 0)
-		return (1);
-	if ((c = (struct ssh_serpent_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL)
-		return (0);
+	if ( out == NULL || outl == NULL || in == NULL )
+		return 0;
 
-	if ( EVP_CIPHER_CTX_encrypting(ctx) ) {
-		while ( len > 0 ) {
-			n = (int)(len > SERPENT_BLOCK_SIZE ? SERPENT_BLOCK_SIZE : len);
+	*outl = 0;
+
+	if ( serpent_ctx->encrypting  ) {
+		while ( inl > 0 ) {
+			n = (int)(inl > SERPENT_BLOCK_SIZE ? SERPENT_BLOCK_SIZE : inl);
 
 			for ( i = 0 ; i < n ; i++ )
-				buf[i] = *(src++) ^ c->serpent_counter[i];
+				buf[i] = *(in++) ^ serpent_ctx->iv[i];
 
 			for ( ; i < SERPENT_BLOCK_SIZE ; i++ )
-				buf[i] = c->serpent_counter[i];
+				buf[i] = serpent_ctx->iv[i];
 
-			serpent_encrypt(&c->serpent_ctx, SERPENT_BLOCK_SIZE, c->serpent_counter, buf);
+			serpent_encrypt(&serpent_ctx->serpent_key, SERPENT_BLOCK_SIZE, serpent_ctx->iv, buf);
 
 			for ( i = 0 ; i < n ; i++ )
-				*(dest++) = c->serpent_counter[i];
+				*(out++) = serpent_ctx->iv[i];
 
-			len -= n;
+			inl -= n;
+			*outl += n;
 		}
 
 	} else {
-		while ( len > 0 ) {
-			n = (int)(len > SERPENT_BLOCK_SIZE ? SERPENT_BLOCK_SIZE : len);
+		while ( inl > 0 ) {
+			n = (int)(inl > SERPENT_BLOCK_SIZE ? SERPENT_BLOCK_SIZE : inl);
 
 			for ( i = 0 ; i < n ; i++ )
-				tmp[i] = *(src++);
+				tmp[i] = *(in++);
 
 			for ( ; i < SERPENT_BLOCK_SIZE ; i++ )
-				tmp[i] = c->serpent_counter[i];
+				tmp[i] = serpent_ctx->iv[i];
 
-			serpent_decrypt(&c->serpent_ctx, SERPENT_BLOCK_SIZE, buf, tmp);
+			serpent_decrypt(&serpent_ctx->serpent_key, SERPENT_BLOCK_SIZE, buf, tmp);
 
 			for ( i = 0 ; i < n ; i++ ) {
-				*(dest++) = buf[i] ^ c->serpent_counter[i];
-				c->serpent_counter[i] = tmp[i];
+				*(out++) = buf[i] ^ serpent_ctx->iv[i];
+				serpent_ctx->iv[i] = tmp[i];
 			}
 
 			for ( ; i < SERPENT_BLOCK_SIZE ; i++ )
-				c->serpent_counter[i] = buf[i];
+				serpent_ctx->iv[i] = buf[i];
 
-			len -= n;
+			inl -= n;
+			*outl += n;
 		}
 	}
 
 	return (1);
 }
-static int ssh_serpent_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char *iv, int enc)
+static void *serpent_newctx(void *prov_ctx)
 {
-	struct ssh_serpent_ctx *c;
+	struct serpent_ctx_st *serpent_ctx;
+		
+	if ( (serpent_ctx = (struct serpent_ctx_st *)malloc(sizeof(struct serpent_ctx_st))) == NULL )
+		return NULL;
 
-	if ((c = (struct ssh_serpent_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL) {
-		c = (struct ssh_serpent_ctx *)malloc(sizeof(*c));
-		memset(c, 0, sizeof(*c));
-		if ( EVP_CIPHER_meth_get_do_cipher(EVP_CIPHER_CTX_cipher(ctx)) == ssh_cipher_ctr )
-			c->mt_ctx = mt_init((void *)c, ssh_serpent_enc);
-		EVP_CIPHER_CTX_set_app_data(ctx, c);
-	}
-	if (key != NULL)
-		serpent_set_key(&c->serpent_ctx, EVP_CIPHER_CTX_key_length(ctx), key);
-	if (iv != NULL)
-		memcpy(c->serpent_counter, iv, SERPENT_BLOCK_SIZE);
-	return (1);
+	memset(serpent_ctx, 0, sizeof(struct serpent_ctx_st));
+
+	serpent_ctx->prov_ctx = (struct prov_ctx_st*)prov_ctx;
+	serpent_ctx->keylen = SERPENT_KEYSIZE;
+	serpent_ctx->ivlen  = SERPENT_IVSIZE;
+
+	return serpent_ctx;
 }
+static void serpent_freectx(struct serpent_ctx_st *serpent_ctx)
+{
+	mt_finis(serpent_ctx->mt_ctx);
+	memset(serpent_ctx, 0, sizeof(struct serpent_ctx_st));
+	free(serpent_ctx);
+}
+struct serpent_ctx_st *serpent_dupctx(struct serpent_ctx_st *serpent_ctx)
+{
+	struct serpent_ctx_st *dup_ctx;
+		
+	if ( (dup_ctx = (struct serpent_ctx_st *)malloc(sizeof(struct serpent_ctx_st))) == NULL )
+		return NULL;
+
+	memcpy(dup_ctx, serpent_ctx, sizeof(struct serpent_ctx_st));
+	dup_ctx->mt_ctx = NULL;
+
+	return dup_ctx;
+}
+static int serpent_init(struct serpent_ctx_st *serpent_ctx, const unsigned char *key, size_t keylen, const unsigned char *iv, size_t ivlen, const OSSL_PARAM params[])
+{
+	if ( key != NULL ) {
+		if ( keylen > SERPENT_KEYSIZE )
+			keylen = SERPENT_KEYSIZE;
+
+		serpent_set_key(&serpent_ctx->serpent_key, (int)keylen, key);
+	}
+
+	if ( iv == NULL && serpent_ctx->mt_ctx != NULL ) {
+		iv = mt_get_iv(serpent_ctx->mt_ctx);
+		ivlen = SERPENT_IVSIZE;
+	}
+
+	if ( iv != NULL ) {
+		ASSERT(SSH2_CIPHER_IVSIZEMAX >= SERPENT_IVSIZE);
+
+		if ( ivlen > SERPENT_IVSIZE )
+			ivlen = SERPENT_IVSIZE;
+		memcpy(serpent_ctx->iv, iv, ivlen);
+		if ( ivlen < SERPENT_IVSIZE )
+			memset(serpent_ctx->iv + ivlen, 0, SERPENT_IVSIZE - ivlen);
+	}
+
+	if ( !serpent_ctx->cbc_mode ) {
+		if ( serpent_ctx->mt_ctx == NULL )
+			serpent_ctx->mt_ctx = mt_init((void *)serpent_ctx, serpent_encode, SERPENT_BLKSIZE);
+		else if ( key != NULL || iv != NULL )
+			mt_reset(serpent_ctx->mt_ctx);
+	}
+
+	return 1;
+}
+static int serpent_einit(struct serpent_ctx_st *serpent_ctx, const unsigned char *key, size_t keylen, const unsigned char *iv, size_t ivlen, const OSSL_PARAM params[])
+{
+	serpent_ctx->cbc_mode = TRUE;
+	serpent_ctx->encrypting = TRUE;
+	return serpent_init(serpent_ctx, key, keylen, iv, ivlen, params);
+}
+static int serpent_dinit(struct serpent_ctx_st *serpent_ctx, const unsigned char *key, size_t keylen, const unsigned char *iv, size_t ivlen, const OSSL_PARAM params[])
+{
+	serpent_ctx->cbc_mode = TRUE;
+	serpent_ctx->encrypting = FALSE;
+	return serpent_init(serpent_ctx, key, keylen, iv, ivlen, params);
+}
+static int serpent_get_params(OSSL_PARAM params[])
+{
+	return rlg_get_params(params, 0, SERPENT_BLKSIZE, SERPENT_KEYSIZE, SERPENT_IVSIZE, PARAM_CUSTOM_IV_FLAG);
+}
+static const OSSL_DISPATCH serpent_ctr_functions[] = {
+	{ OSSL_FUNC_CIPHER_NEWCTX,				(void (*)(void))serpent_newctx },
+	{ OSSL_FUNC_CIPHER_FREECTX,				(void (*)(void))serpent_freectx },
+	{ OSSL_FUNC_CIPHER_DUPCTX,				(void (*)(void))serpent_dupctx },
+	{ OSSL_FUNC_CIPHER_ENCRYPT_INIT,		(void (*)(void))serpent_init },
+	{ OSSL_FUNC_CIPHER_DECRYPT_INIT,		(void (*)(void))serpent_init },
+	{ OSSL_FUNC_CIPHER_UPDATE,				(void (*)(void))ssh_ctr_update },
+	{ OSSL_FUNC_CIPHER_FINAL,				(void (*)(void))ssh_ctr_final },
+	{ OSSL_FUNC_CIPHER_CIPHER,				(void (*)(void))ssh_ctr_cipher },
+	{ OSSL_FUNC_CIPHER_GET_CTX_PARAMS,		(void (*)(void))ssh_get_ctx_params },
+	{ OSSL_FUNC_CIPHER_SET_CTX_PARAMS,		(void (*)(void))ssh_set_ctx_params },
+	{ OSSL_FUNC_CIPHER_GETTABLE_PARAMS,		(void (*)(void))ssh_gettable_params },
+	{ OSSL_FUNC_CIPHER_GETTABLE_CTX_PARAMS,	(void (*)(void))ssh_gettable_ctx_params },
+	{ OSSL_FUNC_CIPHER_SETTABLE_CTX_PARAMS,	(void (*)(void))ssh_settable_ctx_params },
+	{ OSSL_FUNC_CIPHER_GET_PARAMS,			(void (*)(void))serpent_get_params },
+	{ 0, NULL }
+};
 const EVP_CIPHER *evp_serpent_ctr(void)
 {
-	if ( LegacyEngineCipherMeth[Nids_serpent_ctr] == NULL ) {
-		EVP_CIPHER *cip = EVP_CIPHER_meth_new(LegacyEngineNids[Nids_serpent_ctr], SERPENT_BLOCK_SIZE, 32);
-		if ( cip != NULL ) {
-			EVP_CIPHER_meth_set_iv_length(cip, SERPENT_BLOCK_SIZE);
-			EVP_CIPHER_meth_set_init(cip, ssh_serpent_init);
-			EVP_CIPHER_meth_set_cleanup(cip, ssh_cipher_cleanup);
-			EVP_CIPHER_meth_set_do_cipher(cip, ssh_cipher_ctr);
-			EVP_CIPHER_meth_set_flags(cip, EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV);
-			LegacyEngineCipherMeth[Nids_serpent_ctr] = cip;
-		}
-	}
-	return LegacyEngineCipherMeth[Nids_serpent_ctr]; 
+	return rlg_evp_cipver_fetch(Nids_twofish_ctr);
 }
+static const OSSL_DISPATCH serpent_cbc_functions[] = {
+	{ OSSL_FUNC_CIPHER_NEWCTX,				(void (*)(void))serpent_newctx },
+	{ OSSL_FUNC_CIPHER_FREECTX,				(void (*)(void))serpent_freectx },
+	{ OSSL_FUNC_CIPHER_DUPCTX,				(void (*)(void))serpent_dupctx },
+	{ OSSL_FUNC_CIPHER_ENCRYPT_INIT,		(void (*)(void))serpent_einit },
+	{ OSSL_FUNC_CIPHER_DECRYPT_INIT,		(void (*)(void))serpent_dinit },
+	{ OSSL_FUNC_CIPHER_UPDATE,				(void (*)(void))serpent_cbc_cipher },
+	{ OSSL_FUNC_CIPHER_FINAL,				(void (*)(void))ssh_ctr_final },
+	{ OSSL_FUNC_CIPHER_CIPHER,				(void (*)(void))serpent_cbc_cipher },
+	{ OSSL_FUNC_CIPHER_GET_CTX_PARAMS,		(void (*)(void))ssh_get_ctx_params },
+	{ OSSL_FUNC_CIPHER_SET_CTX_PARAMS,		(void (*)(void))ssh_set_ctx_params },
+	{ OSSL_FUNC_CIPHER_GETTABLE_PARAMS,		(void (*)(void))ssh_gettable_params },
+	{ OSSL_FUNC_CIPHER_GETTABLE_CTX_PARAMS,	(void (*)(void))ssh_gettable_ctx_params },
+	{ OSSL_FUNC_CIPHER_SETTABLE_CTX_PARAMS,	(void (*)(void))ssh_settable_ctx_params },
+	{ OSSL_FUNC_CIPHER_GET_PARAMS,			(void (*)(void))serpent_get_params },
+	{ 0, NULL }
+};
 const EVP_CIPHER *evp_serpent_cbc(void)
 {
-	if ( LegacyEngineCipherMeth[Nids_serpent_cbc] == NULL ) {
-		EVP_CIPHER *cip = EVP_CIPHER_meth_new(LegacyEngineNids[Nids_serpent_cbc], SERPENT_BLOCK_SIZE, 32);
-		if ( cip != NULL ) {
-			EVP_CIPHER_meth_set_iv_length(cip, SERPENT_BLOCK_SIZE);
-			EVP_CIPHER_meth_set_init(cip, ssh_serpent_init);
-			EVP_CIPHER_meth_set_cleanup(cip, ssh_cipher_cleanup);
-			EVP_CIPHER_meth_set_do_cipher(cip, ssh_serpent_cbc);
-			EVP_CIPHER_meth_set_flags(cip, EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV);
-			LegacyEngineCipherMeth[Nids_serpent_cbc] = cip;
-		}
-	}
-	return LegacyEngineCipherMeth[Nids_serpent_cbc]; 
+	return rlg_evp_cipver_fetch(Nids_twofish_cbc);
 }
 
-#endif	// USE_NETTLE
+#endif	//	USE_NETTLE
 
 //////////////////////////////////////////////////////////////////////
 
 #ifdef	USE_CLEFIA
 
-struct ssh_clefia_ctx
-{
-	struct mt_ctr_ctx	*mt_ctx;		// dont move !!
-	struct clefia_ctx	clefia_ctx;
-	u_char				clefia_counter[CLEFIA_BLOCK_SIZE];
+#define	CLEFIA_BLKSIZE		CLEFIA_BLOCK_SIZE
+#define	CLEFIA_KEYSIZE		CLEFIA_KEY_SIZE
+#define	CLEFIA_IVSIZE		CLEFIA_BLOCK_SIZE
+
+struct clefia_ctx_st {
+	struct mt_ctr_ctx	*mt_ctx;					// dont move !!
+	struct prov_ctx_st	*prov_ctx;					//	|
+	size_t				keylen;						//	|
+	size_t				ivlen;						//	|
+	unsigned char		iv[SSH2_CIPHER_IVSIZEMAX];	//  |
+
+	struct clefia_ctx	clefia_key;
+	BOOL				encrypting;
+	BOOL				cbc_mode;
 };
-
-static void ssh_clefia_enc(void *ctx, u_char *buf)
+static void clefia_encode(void *ctx, u_char *buf)
 {
-	struct ssh_clefia_ctx *c = (struct ssh_clefia_ctx *)ctx;
+	struct clefia_ctx_st *c = (struct clefia_ctx_st *)ctx;
 
-	ClefiaEncrypt(&c->clefia_ctx, buf, c->clefia_counter);
-	ssh_ctr_inc(c->clefia_counter, CLEFIA_BLOCK_SIZE);
+	memcpy(buf + CLEFIA_BLKSIZE, c->iv, CLEFIA_BLKSIZE);
+
+	ClefiaEncrypt(&c->clefia_key, buf, c->iv);
+	ssh_ctr_inc(c->iv, CLEFIA_IVSIZE);
 }
-static int	ssh_clefia_cbc(EVP_CIPHER_CTX *ctx, u_char *dest, const u_char *src, size_t len)
+static int	clefia_cbc_cipher(struct clefia_ctx_st *clefia_ctx, unsigned char *out, size_t *outl, size_t outsize, const unsigned char *in, size_t inl)
 {
 	u_int n, i;
-	struct ssh_clefia_ctx *c;
 	u_char buf[CLEFIA_BLOCK_SIZE];
 	u_char tmp[CLEFIA_BLOCK_SIZE];
 
-	if (len == 0)
-		return (1);
-	if ((c = (struct ssh_clefia_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL)
-		return (0);
+	if ( out == NULL || outl == NULL || in == NULL )
+		return 0;
 
-	if ( ctx->encrypt ) {
-		while ( len > 0 ) {
-			n = (len > CLEFIA_BLOCK_SIZE ? CLEFIA_BLOCK_SIZE : len);
+	*outl = 0;
+
+	if ( clefia_ctx->encrypting  ) {
+		while ( inl > 0 ) {
+			n = (int)(inl > CLEFIA_BLOCK_SIZE ? CLEFIA_BLOCK_SIZE : inl);
 
 			for ( i = 0 ; i < n ; i++ )
-				buf[i] = *(src++) ^ c->clefia_counter[i];
+				buf[i] = *(in++) ^ clefia_ctx->iv[i];
 
 			for ( ; i < CLEFIA_BLOCK_SIZE ; i++ )
-				buf[i] = c->clefia_counter[i];
+				buf[i] = clefia_ctx->iv[i];
 
-			ClefiaEncrypt(&c->clefia_ctx, c->clefia_counter, buf);
+			ClefiaEncrypt(&clefia_ctx->clefia_key, clefia_ctx->iv, buf);
 
 			for ( i = 0 ; i < n ; i++ )
-				*(dest++) = c->clefia_counter[i];
+				*(out++) = clefia_ctx->iv[i];
 
-			len -= n;
+			inl -= n;
+			*outl += n;
 		}
 
 	} else {
-		while ( len > 0 ) {
-			n = (len > CLEFIA_BLOCK_SIZE ? CLEFIA_BLOCK_SIZE : len);
+		while ( inl > 0 ) {
+			n = (int)(inl > CLEFIA_BLOCK_SIZE ? CLEFIA_BLOCK_SIZE : inl);
 
 			for ( i = 0 ; i < n ; i++ )
-				tmp[i] = *(src++);
+				tmp[i] = *(in++);
 
 			for ( ; i < CLEFIA_BLOCK_SIZE ; i++ )
-				tmp[i] = c->clefia_counter[i];
+				tmp[i] = clefia_ctx->iv[i];
 
-			ClefiaDecrypt(&c->clefia_ctx, buf, tmp);
+			ClefiaDecrypt(&clefia_ctx->clefia_key, buf, tmp);
 
 			for ( i = 0 ; i < n ; i++ ) {
-				*(dest++) = buf[i] ^ c->clefia_counter[i];
-				c->clefia_counter[i] = tmp[i];
+				*(out++) = buf[i] ^ clefia_ctx->iv[i];
+				clefia_ctx->iv[i] = tmp[i];
 			}
 
 			for ( ; i < CLEFIA_BLOCK_SIZE ; i++ )
-				c->clefia_counter[i] = buf[i];
+				clefia_ctx->iv[i] = buf[i];
 
-			len -= n;
+			inl -= n;
+			*outl += n;
 		}
 	}
 
 	return (1);
 }
-static int ssh_clefia_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char *iv, int enc)
+static void *clefia_newctx(void *prov_ctx)
 {
-	struct ssh_clefia_ctx *c;
+	struct clefia_ctx_st *clefia_ctx;
+		
+	if ( (clefia_ctx = (struct clefia_ctx_st *)malloc(sizeof(struct clefia_ctx_st))) == NULL )
+		return NULL;
 
-	if ((c = (struct ssh_clefia_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL) {
-		c = (struct ssh_clefia_ctx *)malloc(sizeof(*c));
-		memset(c, 0, sizeof(*c));
-		if ( EVP_CIPHER_meth_get_do_cipher(EVP_CIPHER_CTX_cipher(ctx)) == ssh_cipher_ctr )
-			c->mt_ctx = mt_init((void *)c, ssh_clefia_enc);
-		EVP_CIPHER_CTX_set_app_data(ctx, c);
-	}
-	if (key != NULL)
-		ClefiaKeySet(&c->clefia_ctx, key, EVP_CIPHER_CTX_key_length(ctx) * 8);
-	if (iv != NULL)
-		memcpy(c->clefia_counter, iv, CLEFIA_BLOCK_SIZE);
-	return (1);
+	memset(clefia_ctx, 0, sizeof(struct clefia_ctx_st));
+
+	clefia_ctx->prov_ctx = (struct prov_ctx_st*)prov_ctx;
+	clefia_ctx->keylen = CLEFIA_KEYSIZE;
+	clefia_ctx->ivlen  = CLEFIA_IVSIZE;
+
+	return clefia_ctx;
 }
+static void clefia_freectx(struct clefia_ctx_st *clefia_ctx)
+{
+	mt_finis(clefia_ctx->mt_ctx);
+	memset(clefia_ctx, 0, sizeof(struct clefia_ctx_st));
+	free(clefia_ctx);
+}
+struct clefia_ctx_st *clefia_dupctx(struct clefia_ctx_st *clefia_ctx)
+{
+	struct clefia_ctx_st *dup_ctx;
+		
+	if ( (dup_ctx = (struct clefia_ctx_st *)malloc(sizeof(struct clefia_ctx_st))) == NULL )
+		return NULL;
+
+	memcpy(dup_ctx, clefia_ctx, sizeof(struct clefia_ctx_st));
+	dup_ctx->mt_ctx = NULL;
+
+	return dup_ctx;
+}
+static int clefia_init(struct clefia_ctx_st *clefia_ctx, const unsigned char *key, size_t keylen, const unsigned char *iv, size_t ivlen, const OSSL_PARAM params[])
+{
+	if ( key != NULL ) {
+		if ( keylen > CLEFIA_KEYSIZE )
+			keylen = CLEFIA_KEYSIZE;
+
+		ClefiaKeySet(&clefia_ctx->clefia_key, key, (int)keylen * 8);
+	}
+
+	if ( iv == NULL && clefia_ctx->mt_ctx != NULL ) {
+		iv = mt_get_iv(clefia_ctx->mt_ctx);
+		ivlen = CLEFIA_IVSIZE;
+	}
+
+	if ( iv != NULL ) {
+		ASSERT(SSH2_CIPHER_IVSIZEMAX >= CLEFIA_IVSIZE);
+
+		if ( ivlen > CLEFIA_IVSIZE )
+			ivlen = CLEFIA_IVSIZE;
+		memcpy(clefia_ctx->iv, iv, ivlen);
+		if ( ivlen < CLEFIA_IVSIZE )
+			memset(clefia_ctx->iv + ivlen, 0, CLEFIA_IVSIZE - ivlen);
+	}
+
+	if ( !clefia_ctx->cbc_mode ) {
+		if ( clefia_ctx->mt_ctx == NULL )
+			clefia_ctx->mt_ctx = mt_init((void *)clefia_ctx, clefia_encode, CLEFIA_BLKSIZE);
+		else if ( key != NULL || iv != NULL )
+			mt_reset(clefia_ctx->mt_ctx);
+	}
+
+	return 1;
+}
+static int clefia_einit(struct clefia_ctx_st *clefia_ctx, const unsigned char *key, size_t keylen, const unsigned char *iv, size_t ivlen, const OSSL_PARAM params[])
+{
+	clefia_ctx->cbc_mode = TRUE;
+	clefia_ctx->encrypting = TRUE;
+	return clefia_init(clefia_ctx, key, keylen, iv, ivlen, params);
+}
+static int clefia_dinit(struct clefia_ctx_st *clefia_ctx, const unsigned char *key, size_t keylen, const unsigned char *iv, size_t ivlen, const OSSL_PARAM params[])
+{
+	clefia_ctx->cbc_mode = TRUE;
+	clefia_ctx->encrypting = FALSE;
+	return clefia_init(clefia_ctx, key, keylen, iv, ivlen, params);
+}
+static int clefia_get_params(OSSL_PARAM params[])
+{
+	return rlg_get_params(params, 0, CLEFIA_BLKSIZE, CLEFIA_KEYSIZE, CLEFIA_IVSIZE, PARAM_CUSTOM_IV_FLAG);
+}
+static const OSSL_DISPATCH clefia_ctr_functions[] = {
+	{ OSSL_FUNC_CIPHER_NEWCTX,				(void (*)(void))clefia_newctx },
+	{ OSSL_FUNC_CIPHER_FREECTX,				(void (*)(void))clefia_freectx },
+	{ OSSL_FUNC_CIPHER_DUPCTX,				(void (*)(void))clefia_dupctx },
+	{ OSSL_FUNC_CIPHER_ENCRYPT_INIT,		(void (*)(void))clefia_init },
+	{ OSSL_FUNC_CIPHER_DECRYPT_INIT,		(void (*)(void))clefia_init },
+	{ OSSL_FUNC_CIPHER_UPDATE,				(void (*)(void))ssh_ctr_update },
+	{ OSSL_FUNC_CIPHER_FINAL,				(void (*)(void))ssh_ctr_final },
+	{ OSSL_FUNC_CIPHER_CIPHER,				(void (*)(void))ssh_ctr_cipher },
+	{ OSSL_FUNC_CIPHER_GET_CTX_PARAMS,		(void (*)(void))ssh_get_ctx_params },
+	{ OSSL_FUNC_CIPHER_SET_CTX_PARAMS,		(void (*)(void))ssh_set_ctx_params },
+	{ OSSL_FUNC_CIPHER_GETTABLE_PARAMS,		(void (*)(void))ssh_gettable_params },
+	{ OSSL_FUNC_CIPHER_GETTABLE_CTX_PARAMS,	(void (*)(void))ssh_gettable_ctx_params },
+	{ OSSL_FUNC_CIPHER_SETTABLE_CTX_PARAMS,	(void (*)(void))ssh_settable_ctx_params },
+	{ OSSL_FUNC_CIPHER_GET_PARAMS,			(void (*)(void))clefia_get_params },
+	{ 0, NULL }
+};
 const EVP_CIPHER *evp_clefia_ctr(void)
 {
-	if ( LegacyEngineCipherMeth[Nids_clefia_ctr] == NULL ) {
-		EVP_CIPHER *cip = EVP_CIPHER_meth_new(LegacyEngineNids[Nids_clefia_ctr], CLEFIA_BLOCK_SIZE, 32);
-		if ( cip != NULL ) {
-			EVP_CIPHER_meth_set_iv_length(cip, CLEFIA_BLOCK_SIZE);
-			EVP_CIPHER_meth_set_init(cip, ssh_clefia_init);
-			EVP_CIPHER_meth_set_cleanup(cip, ssh_cipher_cleanup);
-			EVP_CIPHER_meth_set_do_cipher(cip, ssh_cipher_ctr);
-			EVP_CIPHER_meth_set_flags(cip, EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV);
-			LegacyEngineCipherMeth[Nids_clefia_ctr] = cip;
-		}
-	}
-	return LegacyEngineCipherMeth[Nids_clefia_ctr];
+	return rlg_evp_cipver_fetch(Nids_clefia_ctr);
 }
+static const OSSL_DISPATCH clefia_cbc_functions[] = {
+	{ OSSL_FUNC_CIPHER_NEWCTX,				(void (*)(void))clefia_newctx },
+	{ OSSL_FUNC_CIPHER_FREECTX,				(void (*)(void))clefia_freectx },
+	{ OSSL_FUNC_CIPHER_DUPCTX,				(void (*)(void))clefia_dupctx },
+	{ OSSL_FUNC_CIPHER_ENCRYPT_INIT,		(void (*)(void))clefia_einit },
+	{ OSSL_FUNC_CIPHER_DECRYPT_INIT,		(void (*)(void))clefia_dinit },
+	{ OSSL_FUNC_CIPHER_UPDATE,				(void (*)(void))clefia_cbc_cipher },
+	{ OSSL_FUNC_CIPHER_FINAL,				(void (*)(void))ssh_ctr_final },
+	{ OSSL_FUNC_CIPHER_CIPHER,				(void (*)(void))clefia_cbc_cipher },
+	{ OSSL_FUNC_CIPHER_GET_CTX_PARAMS,		(void (*)(void))ssh_get_ctx_params },
+	{ OSSL_FUNC_CIPHER_SET_CTX_PARAMS,		(void (*)(void))ssh_set_ctx_params },
+	{ OSSL_FUNC_CIPHER_GETTABLE_PARAMS,		(void (*)(void))ssh_gettable_params },
+	{ OSSL_FUNC_CIPHER_GETTABLE_CTX_PARAMS,	(void (*)(void))ssh_gettable_ctx_params },
+	{ OSSL_FUNC_CIPHER_SETTABLE_CTX_PARAMS,	(void (*)(void))ssh_settable_ctx_params },
+	{ OSSL_FUNC_CIPHER_GET_PARAMS,			(void (*)(void))clefia_get_params },
+	{ 0, NULL }
+};
 const EVP_CIPHER *evp_clefia_cbc(void)
 {
-	if ( LegacyEngineCipherMeth[Nids_clefia_cbc] == NULL ) {
-		EVP_CIPHER *cip = EVP_CIPHER_meth_new(LegacyEngineNids[Nids_clefia_cbc], CLEFIA_BLOCK_SIZE, 32);
-		if ( cip != NULL ) {
-			EVP_CIPHER_meth_set_iv_length(cip, CLEFIA_BLOCK_SIZE);
-			EVP_CIPHER_meth_set_init(cip, ssh_clefia_init);
-			EVP_CIPHER_meth_set_cleanup(cip, ssh_cipher_cleanup);
-			EVP_CIPHER_meth_set_do_cipher(cip, ssh_clefia_cbc);
-			EVP_CIPHER_meth_set_flags(cip, EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV);
-			LegacyEngineCipherMeth[Nids_clefia_cbc] = cip;
-		}
-	}
-	return LegacyEngineCipherMeth[Nids_clefia_cbc];
+	return rlg_evp_cipver_fetch(Nids_clefia_cbc);
 }
-#endif	// USE_CLEFIA
+
+#endif
 
 //////////////////////////////////////////////////////////////////////
 
-struct ssh1_3des_ctx
-{
-	DES_key_schedule ks1, ks2, ks3;
-	DES_cblock iv;
+#define	SSH1_3DES_BLKSIZE		sizeof(DES_cblock)
+#define	SSH1_3DES_KEYSIZE		16
+#define	SSH1_3DES_IVSIZE		sizeof(DES_cblock)
+
+struct ssh1_3des_ctx_st {
+	struct mt_ctr_ctx	*mt_ctx;					// dont move !!
+	struct prov_ctx_st	*prov_ctx;					//	|
+	size_t				keylen;						//	|
+	size_t				ivlen;						//	|
+	unsigned char		iv[SSH2_CIPHER_IVSIZEMAX];	//  |
+
+	DES_key_schedule	des_key[3];
+	BOOL				encrypting;
 };
-
-static int ssh1_3des_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char *iv, int enc)
+static int	ssh1_3des_cipher(struct ssh1_3des_ctx_st *ssh1_3des_ctx, unsigned char *out, size_t *outl, size_t outsize, const unsigned char *in, size_t inl)
 {
-	struct ssh1_3des_ctx *c;
-	u_char *k1, *k2, *k3;
+	int enc = ssh1_3des_ctx->encrypting ? DES_ENCRYPT : DES_DECRYPT;
 
-	if ( (c = (struct ssh1_3des_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL) {
-		if ( (c = (struct ssh1_3des_ctx *)malloc(sizeof(*c))) == NULL )
-			return (0);
-		memset(c, 0, sizeof(*c));
-		EVP_CIPHER_CTX_set_app_data(ctx, c);
-	}
+	if ( out == NULL || outl == NULL || in == NULL )
+		return 0;
 
-	if ( key == NULL )
-		return (1);
+	*outl = 0;
 
-	if ( enc == (-1) )
-		enc = EVP_CIPHER_CTX_encrypting(ctx);
+	DES_cbc_encrypt(in,  out, (long)inl, &(ssh1_3des_ctx->des_key[0]), (DES_cblock *)(ssh1_3des_ctx->iv), enc);
+	DES_cbc_encrypt(out, out, (long)inl, &(ssh1_3des_ctx->des_key[1]), (DES_cblock *)(ssh1_3des_ctx->iv), !enc);
+	DES_cbc_encrypt(out, out, (long)inl, &(ssh1_3des_ctx->des_key[2]), (DES_cblock *)(ssh1_3des_ctx->iv), enc);
 
-	k1 = k2 = k3 = (u_char *)key;
-	k2 += 8;
-
-	if ( EVP_CIPHER_CTX_key_length(ctx) >= (16 + 8) ) {
-		if ( enc )
-			k3 += 16;
-		else
-			k1 += 16;
-	}
-
-	DES_set_key_unchecked((const_DES_cblock *)k1, &(c->ks1));
-	DES_set_key_unchecked((const_DES_cblock *)k2, &(c->ks2));
-	DES_set_key_unchecked((const_DES_cblock *)k3, &(c->ks3));
-	memset(&(c->iv), 0, sizeof(c->iv));
+	*outl += inl;
 
 	return (1);
 }
-static int ssh1_3des_cbc(EVP_CIPHER_CTX *ctx, u_char *dest, const u_char *src, size_t len)
+static void *ssh1_3des_newctx(void *prov_ctx)
 {
-	struct ssh1_3des_ctx *c;
+	struct ssh1_3des_ctx_st *ssh1_3des_ctx;
+		
+	if ( (ssh1_3des_ctx = (struct ssh1_3des_ctx_st *)malloc(sizeof(struct ssh1_3des_ctx_st))) == NULL )
+		return NULL;
 
-	if ( (c = (struct ssh1_3des_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL )
-		return (0);
+	memset(ssh1_3des_ctx, 0, sizeof(struct ssh1_3des_ctx_st));
 
-	int enc = EVP_CIPHER_CTX_encrypting(ctx) ? DES_ENCRYPT : DES_DECRYPT;
-	DES_cbc_encrypt(src,  dest, (long)len, &(c->ks1), &(c->iv), enc);
-	DES_cbc_encrypt(dest, dest, (long)len, &(c->ks2), &(c->iv), !enc);
-	DES_cbc_encrypt(dest, dest, (long)len, &(c->ks3), &(c->iv), enc);
+	ssh1_3des_ctx->prov_ctx = (struct prov_ctx_st*)prov_ctx;
+	ssh1_3des_ctx->keylen = SSH1_3DES_KEYSIZE;
+	ssh1_3des_ctx->ivlen  = SSH1_3DES_IVSIZE;
 
-	return (1);
+	return ssh1_3des_ctx;
 }
-static int ssh1_3des_cleanup(EVP_CIPHER_CTX *ctx)
+static void ssh1_3des_freectx(struct ssh1_3des_ctx_st *ssh1_3des_ctx)
 {
-	struct ssh1_3des_ctx *c;
+	memset(ssh1_3des_ctx, 0, sizeof(struct ssh1_3des_ctx_st));
+	free(ssh1_3des_ctx);
+}
+struct ssh1_3des_ctx_st *ssh1_3des_dupctx(struct ssh1_3des_ctx_st *ssh1_3des_ctx)
+{
+	struct ssh1_3des_ctx_st *dup_ctx;
+		
+	if ( (dup_ctx = (struct ssh1_3des_ctx_st *)malloc(sizeof(struct ssh1_3des_ctx_st))) == NULL )
+		return NULL;
 
-	if ( (c = (struct ssh1_3des_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) != NULL ) {
-		memset(c, 0, sizeof(*c));
-		free(c);
-		EVP_CIPHER_CTX_set_app_data(ctx, NULL);
+	memcpy(dup_ctx, ssh1_3des_ctx, sizeof(struct ssh1_3des_ctx_st));
+
+	return dup_ctx;
+}
+static int ssh1_3des_init(struct ssh1_3des_ctx_st *ssh1_3des_ctx, const unsigned char *key, size_t keylen, const unsigned char *iv, size_t ivlen, const OSSL_PARAM params[])
+{
+	if ( key != NULL ) {
+		u_char tmp[SSH1_3DES_KEYSIZE + 8];
+		u_char *k1, *k2, *k3;
+
+		if ( keylen > (SSH1_3DES_KEYSIZE + 8) )
+			keylen = SSH1_3DES_KEYSIZE + 8;
+		memcpy(tmp, key, keylen);
+		if ( keylen < SSH1_3DES_KEYSIZE )
+			memset(tmp + keylen, 0, SSH1_3DES_KEYSIZE - keylen);
+
+		k1 = k2 = k3 = tmp;
+		k2 += 8;
+
+		if ( keylen >= (SSH1_3DES_KEYSIZE + 8) ) {
+			if ( ssh1_3des_ctx->encrypting )
+				k3 += 16;
+			else
+				k1 += 16;
+		}
+
+		DES_set_key_unchecked((const_DES_cblock *)k1, &(ssh1_3des_ctx->des_key[0]));
+		DES_set_key_unchecked((const_DES_cblock *)k2, &(ssh1_3des_ctx->des_key[1]));
+		DES_set_key_unchecked((const_DES_cblock *)k3, &(ssh1_3des_ctx->des_key[2]));
+		memset(tmp, 0, sizeof(tmp));
 	}
-	return (1);
+
+	if ( iv != NULL ) {
+		ASSERT(SSH2_CIPHER_IVSIZEMAX >= SSH1_3DES_IVSIZE);
+
+		if ( ivlen > SSH1_3DES_IVSIZE )
+			ivlen = SSH1_3DES_IVSIZE;
+		memcpy(ssh1_3des_ctx->iv, iv, ivlen);
+		if ( ivlen < SSH1_3DES_IVSIZE )
+			memset(ssh1_3des_ctx->iv + ivlen, 0, SSH1_3DES_IVSIZE - ivlen);
+	}
+
+	return 1;
 }
+static int ssh1_3des_einit(struct ssh1_3des_ctx_st *ssh1_3des_ctx, const unsigned char *key, size_t keylen, const unsigned char *iv, size_t ivlen, const OSSL_PARAM params[])
+{
+	ssh1_3des_ctx->encrypting = TRUE;
+	return ssh1_3des_init(ssh1_3des_ctx, key, keylen, iv, ivlen, params);
+}
+static int ssh1_3des_dinit(struct ssh1_3des_ctx_st *ssh1_3des_ctx, const unsigned char *key, size_t keylen, const unsigned char *iv, size_t ivlen, const OSSL_PARAM params[])
+{
+	ssh1_3des_ctx->encrypting = FALSE;
+	return ssh1_3des_init(ssh1_3des_ctx, key, keylen, iv, ivlen, params);
+}
+static int ssh1_3des_get_params(OSSL_PARAM params[])
+{
+	return rlg_get_params(params, 0, SSH1_3DES_BLKSIZE, SSH1_3DES_KEYSIZE, SSH1_3DES_IVSIZE, PARAM_CUSTOM_IV_FLAG);
+}
+static const OSSL_DISPATCH ssh1_3des_functions[] = {
+	{ OSSL_FUNC_CIPHER_NEWCTX,				(void (*)(void))ssh1_3des_newctx },
+	{ OSSL_FUNC_CIPHER_FREECTX,				(void (*)(void))ssh1_3des_freectx },
+	{ OSSL_FUNC_CIPHER_DUPCTX,				(void (*)(void))ssh1_3des_dupctx },
+	{ OSSL_FUNC_CIPHER_ENCRYPT_INIT,		(void (*)(void))ssh1_3des_einit },
+	{ OSSL_FUNC_CIPHER_DECRYPT_INIT,		(void (*)(void))ssh1_3des_dinit },
+	{ OSSL_FUNC_CIPHER_UPDATE,				(void (*)(void))ssh1_3des_cipher },
+	{ OSSL_FUNC_CIPHER_FINAL,				(void (*)(void))ssh_ctr_final },
+	{ OSSL_FUNC_CIPHER_CIPHER,				(void (*)(void))ssh1_3des_cipher },
+	{ OSSL_FUNC_CIPHER_GET_CTX_PARAMS,		(void (*)(void))ssh_get_ctx_params },
+	{ OSSL_FUNC_CIPHER_SET_CTX_PARAMS,		(void (*)(void))ssh_set_ctx_params },
+	{ OSSL_FUNC_CIPHER_GETTABLE_PARAMS,		(void (*)(void))ssh_gettable_params },
+	{ OSSL_FUNC_CIPHER_GETTABLE_CTX_PARAMS,	(void (*)(void))ssh_gettable_ctx_params },
+	{ OSSL_FUNC_CIPHER_SETTABLE_CTX_PARAMS,	(void (*)(void))ssh_settable_ctx_params },
+	{ OSSL_FUNC_CIPHER_GET_PARAMS,			(void (*)(void))ssh1_3des_get_params },
+	{ 0, NULL }
+};
 const EVP_CIPHER *evp_ssh1_3des(void)
 {
-	if ( LegacyEngineCipherMeth[Nids_ssh1_3des] == NULL ) {
-		EVP_CIPHER *cip = EVP_CIPHER_meth_new(LegacyEngineNids[Nids_ssh1_3des], 8, 16);
-		if ( cip != NULL ) {
-			EVP_CIPHER_meth_set_init(cip, ssh1_3des_init);
-			EVP_CIPHER_meth_set_cleanup(cip, ssh1_3des_cleanup);
-			EVP_CIPHER_meth_set_do_cipher(cip, ssh1_3des_cbc);
-			EVP_CIPHER_meth_set_flags(cip, EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT);
-			LegacyEngineCipherMeth[Nids_ssh1_3des] = cip;
-		}
-	}
-	return LegacyEngineCipherMeth[Nids_ssh1_3des];
+	return rlg_evp_cipver_fetch(Nids_ssh1_3des);
 }
 
 //////////////////////////////////////////////////////////////////////
 
-struct bf_ssh1_ctx
-{
-	BF_KEY key;
-	u_char iv[BF_BLOCK];
-};
+#define	SSH1_BF_BLKSIZE		BF_BLOCK
+#define	SSH1_BF_KEYSIZE		32
+#define	SSH1_BF_IVSIZE		BF_BLOCK
 
+struct ssh1_bf_ctx_st {
+	struct mt_ctr_ctx	*mt_ctx;					// dont move !!
+	struct prov_ctx_st	*prov_ctx;					//	|
+	size_t				keylen;						//	|
+	size_t				ivlen;						//	|
+	unsigned char		iv[SSH2_CIPHER_IVSIZEMAX];	//  |
+
+	BF_KEY				bf_key;
+	BOOL				encrypting;
+};
 static void swap_bytes(const u_char *src, u_char *dst, int n)
 {
 	u_char c[4];
@@ -1208,59 +2059,481 @@ static void swap_bytes(const u_char *src, u_char *dst, int n)
 		*dst++ = c[3];
 	}
 }
-static int bf_ssh1_cipher(EVP_CIPHER_CTX *ctx, u_char *out, const u_char *in, size_t len)
+static int	ssh1_bf_cipher(struct ssh1_bf_ctx_st *ssh1_bf_ctx, unsigned char *out, size_t *outl, size_t outsize, const unsigned char *in, size_t inl)
 {
-	struct bf_ssh1_ctx *c;
-
-	if ( (c = (struct bf_ssh1_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL)
+	if ( out == NULL || outl == NULL || in == NULL )
 		return 0;
 
-	swap_bytes(in, out, (int)len);
-	BF_cbc_encrypt(out, out, (long)len, &(c->key), c->iv, EVP_CIPHER_CTX_encrypting(ctx) ? BF_ENCRYPT : BF_DECRYPT);
-	swap_bytes(out, out, (int)len);
+	*outl = 0;
+
+	swap_bytes(in, out, (int)inl);
+	BF_cbc_encrypt(out, out, (long)inl, &(ssh1_bf_ctx->bf_key), ssh1_bf_ctx->iv, ssh1_bf_ctx->encrypting ? BF_ENCRYPT : BF_DECRYPT);
+	swap_bytes(out, out, (int)inl);
+
+	*outl += inl;
+
+	return (1);
+}
+static void *ssh1_bf_newctx(void *prov_ctx)
+{
+	struct ssh1_bf_ctx_st *ssh1_bf_ctx;
+		
+	if ( (ssh1_bf_ctx = (struct ssh1_bf_ctx_st *)malloc(sizeof(struct ssh1_bf_ctx_st))) == NULL )
+		return NULL;
+
+	memset(ssh1_bf_ctx, 0, sizeof(struct ssh1_bf_ctx_st));
+
+	ssh1_bf_ctx->prov_ctx = (struct prov_ctx_st*)prov_ctx;
+	ssh1_bf_ctx->keylen = SSH1_BF_KEYSIZE;
+	ssh1_bf_ctx->ivlen  = SSH1_BF_IVSIZE;
+
+	return ssh1_bf_ctx;
+}
+static void ssh1_bf_freectx(struct ssh1_bf_ctx_st *ssh1_bf_ctx)
+{
+	memset(ssh1_bf_ctx, 0, sizeof(struct ssh1_bf_ctx_st));
+	free(ssh1_bf_ctx);
+}
+struct ssh1_bf_ctx_st *ssh1_bf_dupctx(struct ssh1_bf_ctx_st *ssh1_bf_ctx)
+{
+	struct ssh1_bf_ctx_st *dup_ctx;
+		
+	if ( (dup_ctx = (struct ssh1_bf_ctx_st *)malloc(sizeof(struct ssh1_bf_ctx_st))) == NULL )
+		return NULL;
+
+	memcpy(dup_ctx, ssh1_bf_ctx, sizeof(struct ssh1_bf_ctx_st));
+
+	return dup_ctx;
+}
+static int ssh1_bf_init(struct ssh1_bf_ctx_st *ssh1_bf_ctx, const unsigned char *key, size_t keylen, const unsigned char *iv, size_t ivlen, const OSSL_PARAM params[])
+{
+	if ( key != NULL ) {
+		if ( keylen > SSH1_BF_KEYSIZE )
+			keylen = SSH1_BF_KEYSIZE;
+
+		BF_set_key(&(ssh1_bf_ctx->bf_key), (int)keylen, key);
+	}
+
+	if ( iv != NULL ) {
+		ASSERT(SSH2_CIPHER_IVSIZEMAX >= SSH1_BF_IVSIZE);
+
+		if ( ivlen > SSH1_BF_IVSIZE )
+			ivlen = SSH1_BF_IVSIZE;
+		memcpy(ssh1_bf_ctx->iv, iv, ivlen);
+		if ( ivlen < SSH1_BF_IVSIZE )
+			memset(ssh1_bf_ctx->iv + ivlen, 0, SSH1_BF_IVSIZE - ivlen);
+	}
+
 	return 1;
 }
-static int bf_ssh1_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char *iv, int enc)
+static int ssh1_bf_einit(struct ssh1_bf_ctx_st *ssh1_bf_ctx, const unsigned char *key, size_t keylen, const unsigned char *iv, size_t ivlen, const OSSL_PARAM params[])
 {
-	struct bf_ssh1_ctx *c;
-
-	if ( (c = (struct bf_ssh1_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL) {
-		if ( (c = (struct bf_ssh1_ctx *)malloc(sizeof(*c))) == NULL )
-			return (0);
-		memset(c, 0, sizeof(*c));
-		EVP_CIPHER_CTX_set_app_data(ctx, c);
-	}
-
-	if ( key != NULL )
-		BF_set_key(&(c->key), EVP_CIPHER_CTX_key_length(ctx), key);
-
-	return (1);
+	ssh1_bf_ctx->encrypting = TRUE;
+	return ssh1_bf_init(ssh1_bf_ctx, key, keylen, iv, ivlen, params);
 }
-static int bf_ssh1_cleanup(EVP_CIPHER_CTX *ctx)
+static int ssh1_bf_dinit(struct ssh1_bf_ctx_st *ssh1_bf_ctx, const unsigned char *key, size_t keylen, const unsigned char *iv, size_t ivlen, const OSSL_PARAM params[])
 {
-	struct ssh1_3des_ctx *c;
-
-	if ( (c = (struct ssh1_3des_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) != NULL ) {
-		memset(c, 0, sizeof(*c));
-		free(c);
-		EVP_CIPHER_CTX_set_app_data(ctx, NULL);
-	}
-	return (1);
+	ssh1_bf_ctx->encrypting = FALSE;
+	return ssh1_bf_init(ssh1_bf_ctx, key, keylen, iv, ivlen, params);
 }
-
+static int ssh1_bf_get_params(OSSL_PARAM params[])
+{
+	return rlg_get_params(params, 0, SSH1_BF_BLKSIZE, SSH1_BF_KEYSIZE, SSH1_BF_IVSIZE, PARAM_CUSTOM_IV_FLAG);
+}
+static const OSSL_DISPATCH ssh1_bf_functions[] = {
+	{ OSSL_FUNC_CIPHER_NEWCTX,				(void (*)(void))ssh1_bf_newctx },
+	{ OSSL_FUNC_CIPHER_FREECTX,				(void (*)(void))ssh1_bf_freectx },
+	{ OSSL_FUNC_CIPHER_DUPCTX,				(void (*)(void))ssh1_bf_dupctx },
+	{ OSSL_FUNC_CIPHER_ENCRYPT_INIT,		(void (*)(void))ssh1_bf_einit },
+	{ OSSL_FUNC_CIPHER_DECRYPT_INIT,		(void (*)(void))ssh1_bf_dinit },
+	{ OSSL_FUNC_CIPHER_UPDATE,				(void (*)(void))ssh1_bf_cipher },
+	{ OSSL_FUNC_CIPHER_FINAL,				(void (*)(void))ssh_ctr_final },
+	{ OSSL_FUNC_CIPHER_CIPHER,				(void (*)(void))ssh1_bf_cipher },
+	{ OSSL_FUNC_CIPHER_GET_CTX_PARAMS,		(void (*)(void))ssh_get_ctx_params },
+	{ OSSL_FUNC_CIPHER_SET_CTX_PARAMS,		(void (*)(void))ssh_set_ctx_params },
+	{ OSSL_FUNC_CIPHER_GETTABLE_PARAMS,		(void (*)(void))ssh_gettable_params },
+	{ OSSL_FUNC_CIPHER_GETTABLE_CTX_PARAMS,	(void (*)(void))ssh_gettable_ctx_params },
+	{ OSSL_FUNC_CIPHER_SETTABLE_CTX_PARAMS,	(void (*)(void))ssh_settable_ctx_params },
+	{ OSSL_FUNC_CIPHER_GET_PARAMS,			(void (*)(void))ssh1_bf_get_params },
+	{ 0, NULL }
+};
 const EVP_CIPHER *evp_ssh1_bf(void)
 {
-	if ( LegacyEngineCipherMeth[Nids_ssh1_bf] == NULL ) {
-		EVP_CIPHER *cip = EVP_CIPHER_meth_new(LegacyEngineNids[Nids_ssh1_bf], BF_BLOCK, 32);
-		if ( cip != NULL ) {
-			EVP_CIPHER_meth_set_init(cip, bf_ssh1_init);
-			EVP_CIPHER_meth_set_cleanup(cip, bf_ssh1_cleanup);
-			EVP_CIPHER_meth_set_do_cipher(cip, bf_ssh1_cipher);
-			EVP_CIPHER_meth_set_flags(cip, EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT);
-			LegacyEngineCipherMeth[Nids_ssh1_bf] = cip;
+	return rlg_evp_cipver_fetch(Nids_ssh1_bf);
+}
+
+//////////////////////////////////////////////////////////////////////
+
+#define	CHACHAPOLY_BLKSIZE		POLY1305_BLOCK_SIZE
+#define	CHACHAPOLY_KEYSIZE		(CHACHA_KEY_SIZE * 2)
+#define	CHACHAPOLY_IVSIZE		8
+
+typedef struct _chacha_ctx {
+	u_int	key[CHACHA_KEY_SIZE / sizeof(u_int)];
+	u_int	conter[CHACHA_CTR_SIZE / sizeof(u_int)];
+} chacha_ctx;
+
+struct chachapoly_ctx_st {
+	struct mt_ctr_ctx	*mt_ctx;					// dont move !!
+	struct prov_ctx_st	*prov_ctx;					//	|
+	size_t				keylen;						//	|
+	size_t				ivlen;						//	|
+	unsigned char		iv[SSH2_CIPHER_IVSIZEMAX];	//  |
+
+	chacha_ctx			main_ctx, header_ctx;
+	u_char				expected_tag[POLY1305_DIGEST_SIZE];
+	u_char				poly_key[POLY1305_KEY_SIZE];
+	POLY1305			*poly_ctx;
+};
+
+static void chacha_counter(chacha_ctx *ctx, const u_char *iv, const u_char *counter)
+{
+	if ( counter != NULL ) {
+		ctx->conter[0] = *((u_int *)(counter + 0));
+		ctx->conter[1] = *((u_int *)(counter + 4));
+	} else {
+		ctx->conter[0] = 0;
+		ctx->conter[1] = 0;
+	}
+	ctx->conter[2] = *((u_int *)(iv + 0));
+	ctx->conter[3] = *((u_int *)(iv + 4));
+}
+static int	chachapoly_cipher(struct chachapoly_ctx_st *chachapoly_ctx, unsigned char *out, size_t *outl, size_t outsize, const unsigned char *in, size_t inl)
+{
+	size_t aadlen = 4;
+	const u_char one[8] = { 1, 0, 0, 0, 0, 0, 0, 0 }; /* NB. little-endian */
+
+	if ( out == NULL || outl == NULL || in == NULL )
+		return 0;
+
+	*outl = 0;
+
+	chacha_counter(&chachapoly_ctx->header_ctx, chachapoly_ctx->iv, NULL);
+	ChaCha20_ctr32(out, in, aadlen, chachapoly_ctx->header_ctx.key, chachapoly_ctx->header_ctx.conter);
+
+	if ( inl > aadlen ) {
+		chacha_counter(&chachapoly_ctx->main_ctx, chachapoly_ctx->iv, one);
+		ChaCha20_ctr32(out + aadlen, in + aadlen, inl - aadlen, chachapoly_ctx->main_ctx.key, chachapoly_ctx->main_ctx.conter);
+	}
+
+	*outl += inl;
+
+	return (1);
+}
+static void *chachapoly_newctx(void *prov_ctx)
+{
+	struct chachapoly_ctx_st *chachapoly_ctx;
+		
+	if ( (chachapoly_ctx = (struct chachapoly_ctx_st *)malloc(sizeof(struct chachapoly_ctx_st))) == NULL )
+		return NULL;
+
+	memset(chachapoly_ctx, 0, sizeof(struct chachapoly_ctx_st));
+
+	chachapoly_ctx->prov_ctx = (struct prov_ctx_st*)prov_ctx;
+	chachapoly_ctx->keylen = CHACHAPOLY_KEYSIZE;
+	chachapoly_ctx->ivlen  = CHACHAPOLY_IVSIZE;
+
+	if ( (chachapoly_ctx->poly_ctx = (POLY1305 *)malloc(Poly1305_ctx_size())) == NULL ) {
+		free(chachapoly_ctx);
+		return NULL;
+	}
+
+	memset(chachapoly_ctx->poly_ctx, 0, Poly1305_ctx_size());
+
+	return chachapoly_ctx;
+}
+static void chachapoly_freectx(struct chachapoly_ctx_st *chachapoly_ctx)
+{
+	free(chachapoly_ctx->poly_ctx);
+
+	memset(chachapoly_ctx, 0, sizeof(struct chachapoly_ctx_st));
+	free(chachapoly_ctx);
+}
+struct chachapoly_ctx_st *chachapoly_dupctx(struct chachapoly_ctx_st *chachapoly_ctx)
+{
+	struct chachapoly_ctx_st *dup_ctx;
+		
+	if ( (dup_ctx = (struct chachapoly_ctx_st *)malloc(sizeof(struct chachapoly_ctx_st))) == NULL )
+		return NULL;
+
+	memcpy(dup_ctx, chachapoly_ctx, sizeof(struct chachapoly_ctx_st));
+
+	if ( (dup_ctx->poly_ctx = (POLY1305 *)malloc(Poly1305_ctx_size())) == NULL ) {
+		free(dup_ctx);
+		return NULL;
+	}
+
+	memset(dup_ctx->poly_ctx, 0, Poly1305_ctx_size());
+
+	return dup_ctx;
+}
+static int chachapoly_init(struct chachapoly_ctx_st *chachapoly_ctx, const unsigned char *key, size_t keylen, const unsigned char *iv, size_t ivlen, const OSSL_PARAM params[])
+{
+	if ( key != NULL ) {
+		if ( keylen < CHACHAPOLY_KEYSIZE )
+			return 0;
+
+		memcpy(chachapoly_ctx->main_ctx.key, key, CHACHA_KEY_SIZE);
+		memcpy(chachapoly_ctx->header_ctx.key, key + CHACHA_KEY_SIZE, CHACHA_KEY_SIZE);
+	}
+
+	if ( iv != NULL ) {
+		ASSERT(SSH2_CIPHER_IVSIZEMAX >= CHACHAPOLY_IVSIZE);
+
+		// iv update chachapoly_set_ctx_params(OSSL_CIPHER_PARAM_AEAD_TLS1_IV_FIXED)
+	}
+
+	return 1;
+}
+static int chachapoly_get_ctx_params(struct chachapoly_ctx_st *chachapoly_ctx, OSSL_PARAM params[])
+{
+	OSSL_PARAM *p;
+
+	for ( p = params ; p->data_type != 0 ; p++ ) {
+		switch(p->data_type) {
+		case OSSL_PARAM_UNSIGNED_INTEGER:
+			if ( strcmp(p->key, OSSL_CIPHER_PARAM_KEYLEN) == 0 )
+				OSSL_PARAM_set_size_t(p, chachapoly_ctx->keylen);
+			else if ( strcmp(p->key, OSSL_CIPHER_PARAM_IVLEN) == 0 )
+				OSSL_PARAM_set_size_t(p, chachapoly_ctx->ivlen);
+			break;
+
+		case OSSL_PARAM_OCTET_STRING:
+			if ( strcmp(p->key, OSSL_CIPHER_PARAM_AEAD_TAG) == 0 )
+				OSSL_PARAM_set_octet_string(p, chachapoly_ctx->expected_tag, POLY1305_DIGEST_SIZE);
+			else if ( strcmp(p->key, OSSL_CIPHER_PARAM_IV) == 0 )
+				OSSL_PARAM_set_octet_string(p, chachapoly_ctx->iv, CHACHAPOLY_IVSIZE);
+			break;
 		}
 	}
-	return LegacyEngineCipherMeth[Nids_ssh1_bf];
+
+	return 1;
+}
+static const OSSL_PARAM *chachapol_gettable_ctx_params(struct ssh_cipher_ctx *ssh_ctx, struct prov_ctx_st *prov_ctx)
+{
+	static OSSL_PARAM params[] = {
+		OSSL_PARAM_size_t(OSSL_CIPHER_PARAM_KEYLEN, 0),
+		OSSL_PARAM_size_t(OSSL_CIPHER_PARAM_IVLEN, 0),
+		OSSL_PARAM_octet_string(OSSL_CIPHER_PARAM_IV, NULL, 0),
+		OSSL_PARAM_octet_string(OSSL_CIPHER_PARAM_AEAD_TAG, NULL, 0),
+		OSSL_PARAM_END,
+	};
+
+	return params;
+}
+static int chachapoly_set_ctx_params(struct chachapoly_ctx_st *chachapoly_ctx, const OSSL_PARAM params[])
+{
+	const OSSL_PARAM *p;
+	const void *ptr = NULL;
+	size_t len = 0;
+
+	for ( p = params ; p->data_type != 0 ; p++ ) {
+		switch(p->data_type) {
+		case OSSL_PARAM_UNSIGNED_INTEGER:
+			if ( strcmp(p->key, OSSL_CIPHER_PARAM_KEYLEN) == 0 )
+				OSSL_PARAM_get_size_t(p, &chachapoly_ctx->keylen);
+			else if ( strcmp(p->key, OSSL_CIPHER_PARAM_IVLEN) == 0 )
+				OSSL_PARAM_get_size_t(p, &chachapoly_ctx->ivlen);
+			break;
+
+		case OSSL_PARAM_OCTET_STRING:
+			if ( strcmp(p->key, OSSL_CIPHER_PARAM_AEAD_TLS1_IV_FIXED) == 0 ) {
+				OSSL_PARAM_get_octet_string_ptr(p, &ptr, &len);
+				memset(chachapoly_ctx->poly_key, 0, POLY1305_KEY_SIZE);
+				if ( ptr != NULL && len == CHACHAPOLY_IVSIZE )
+					memcpy(chachapoly_ctx->iv, ptr, len);
+				chacha_counter(&chachapoly_ctx->main_ctx, chachapoly_ctx->iv, NULL);
+				ChaCha20_ctr32(chachapoly_ctx->poly_key, chachapoly_ctx->poly_key, POLY1305_KEY_SIZE, chachapoly_ctx->main_ctx.key, chachapoly_ctx->main_ctx.conter);
+
+			} else if ( strcmp(p->key, OSSL_CIPHER_PARAM_AEAD_TAG) == 0 ) {
+				OSSL_PARAM_get_octet_string_ptr(p, &ptr, &len);
+				if ( ptr != NULL && len > 0 ) {
+					Poly1305_Init(chachapoly_ctx->poly_ctx, chachapoly_ctx->poly_key);
+					Poly1305_Update(chachapoly_ctx->poly_ctx, (const unsigned char *)ptr, len);
+					Poly1305_Final(chachapoly_ctx->poly_ctx, chachapoly_ctx->expected_tag);
+				}
+			}
+			break;
+		}
+	}
+
+	return 1;
+}
+static const OSSL_PARAM *chachapol_settable_ctx_params(struct ssh_cipher_ctx *ssh_ctx, struct prov_ctx_st *prov_ctx)
+{
+	static OSSL_PARAM params[] = {
+		OSSL_PARAM_size_t(OSSL_CIPHER_PARAM_KEYLEN, 0),
+		OSSL_PARAM_size_t(OSSL_CIPHER_PARAM_IVLEN, 0),
+		OSSL_PARAM_octet_string(OSSL_CIPHER_PARAM_AEAD_TLS1_IV_FIXED, NULL, 0),
+		OSSL_PARAM_octet_string(OSSL_CIPHER_PARAM_AEAD_TAG, NULL, 0),
+		OSSL_PARAM_END,
+	};
+
+	return params;
+}
+static int chachapoly_get_params(OSSL_PARAM params[])
+{
+	return rlg_get_params(params, 0, CHACHAPOLY_BLKSIZE, CHACHAPOLY_KEYSIZE, CHACHAPOLY_IVSIZE, PARAM_CUSTOM_IV_FLAG);
+}
+static const OSSL_DISPATCH chachapoly_functions[] = {
+	{ OSSL_FUNC_CIPHER_NEWCTX,				(void (*)(void))chachapoly_newctx },
+	{ OSSL_FUNC_CIPHER_FREECTX,				(void (*)(void))chachapoly_freectx },
+	{ OSSL_FUNC_CIPHER_DUPCTX,				(void (*)(void))chachapoly_dupctx },
+	{ OSSL_FUNC_CIPHER_ENCRYPT_INIT,		(void (*)(void))chachapoly_init },
+	{ OSSL_FUNC_CIPHER_DECRYPT_INIT,		(void (*)(void))chachapoly_init },
+	{ OSSL_FUNC_CIPHER_UPDATE,				(void (*)(void))chachapoly_cipher },
+	{ OSSL_FUNC_CIPHER_FINAL,				(void (*)(void))ssh_ctr_final },
+	{ OSSL_FUNC_CIPHER_CIPHER,				(void (*)(void))chachapoly_cipher },
+	{ OSSL_FUNC_CIPHER_GET_CTX_PARAMS,		(void (*)(void))chachapoly_get_ctx_params },
+	{ OSSL_FUNC_CIPHER_SET_CTX_PARAMS,		(void (*)(void))chachapoly_set_ctx_params },
+	{ OSSL_FUNC_CIPHER_GETTABLE_PARAMS,		(void (*)(void))ssh_gettable_params },
+	{ OSSL_FUNC_CIPHER_GETTABLE_CTX_PARAMS,	(void (*)(void))chachapol_gettable_ctx_params },
+	{ OSSL_FUNC_CIPHER_SETTABLE_CTX_PARAMS,	(void (*)(void))chachapol_settable_ctx_params },
+	{ OSSL_FUNC_CIPHER_GET_PARAMS,			(void (*)(void))chachapoly_get_params },
+	{ 0, NULL }
+};
+const EVP_CIPHER *evp_chachapoly_256(void)
+{
+	return rlg_evp_cipver_fetch(Nids_chachapoly_256);
+}
+
+//////////////////////////////////////////////////////////////////////
+
+static const OSSL_ALGORITHM rlg_cipher_algorithm[] = {
+	{ "aes-rlg-ctr",	"provider=rlogin", aes_functions },
+	{ "seed-ctr",		"provider=rlogin", seed_functions },
+	{ "blowfish-ctr",	"provider=rlogin", blowfish_functions },
+	{ "cast5-ctr",		"provider=rlogin", cast_functions },
+	{ "idea-ctr",		"provider=rlogin", idea_functions },
+	{ "3des-ctr",		"provider=rlogin", des3_functions },
+#ifdef	USE_NETTLE
+	{ "twofish-ctr",	"provider=rlogin", twofish_ctr_functions },
+	{ "twofish-cbc",	"provider=rlogin", twofish_cbc_functions },
+	{ "serpent-ctr",	"provider=rlogin", serpent_ctr_functions },
+	{ "serpent-cbc",	"provider=rlogin", serpent_cbc_functions },
+#endif
+#ifdef	USE_CLEFIA
+	{ "clefia-ctr",		"provider=rlogin", clefia_ctr_functions },
+	{ "clefia-cbc",		"provider=rlogin", clefia_cbc_functions },
+#endif
+	{ "ssh1-3des",		"provider=rlogin", ssh1_3des_functions },
+	{ "ssh1-bf",		"provider=rlogin", ssh1_bf_functions },
+	{ "chachapolyssh",	"provider=rlogin", chachapoly_functions },
+	{ NULL, NULL, NULL }
+};
+static EVP_CIPHER *rlg_evp_cipher_tab[] = {
+	NULL,	NULL,	NULL,	NULL,	NULL,	NULL,
+#ifdef	USE_NETTLE
+	NULL,	NULL,	NULL,	NULL,
+#endif
+#ifdef	USE_CLEFIA
+	NULL,	NULL,
+#endif
+	NULL,	NULL,	NULL,
+};
+static const EVP_CIPHER *rlg_evp_cipver_fetch(int nids)
+{
+	ASSERT(nids >= 0 && nids < NIDSCIPHERMAX);
+
+	if ( rlg_evp_cipher_tab[nids] == NULL )
+		rlg_evp_cipher_tab[nids] = EVP_CIPHER_fetch(NULL, rlg_cipher_algorithm[nids].algorithm_names, rlg_cipher_algorithm[nids].property_definition);
+
+	return rlg_evp_cipher_tab[nids];
+}
+static void rlg_provider_teardown(struct prov_ctx_st *prov_ctx)
+{
+     free(prov_ctx);
+}
+static const OSSL_PARAM *rlg_provider_gettable_params(struct prov_ctx_st *prov_ctx)
+{
+	static OSSL_PARAM params[] = {
+		OSSL_PARAM_utf8_string(OSSL_PROV_PARAM_NAME, NULL, 0),
+		OSSL_PARAM_utf8_string(OSSL_PROV_PARAM_VERSION, NULL, 0),
+		OSSL_PARAM_utf8_string(OSSL_PROV_PARAM_BUILDINFO, NULL, 0),
+		OSSL_PARAM_uint(OSSL_PROV_PARAM_STATUS, 0),
+		OSSL_PARAM_END,
+	};
+
+	return params;
+}
+static int rlg_provider_get_params(struct prov_ctx_st *prov_ctx, OSSL_PARAM params[])
+{
+	OSSL_PARAM *p;
+	CString version;
+
+	if ( (p = OSSL_PARAM_locate(params, OSSL_PROV_PARAM_NAME)) != NULL )
+		OSSL_PARAM_set_utf8_string(p, "rlogin");
+
+	if ( (p = OSSL_PARAM_locate(params, OSSL_PROV_PARAM_VERSION)) != NULL ||
+		 (p = OSSL_PARAM_locate(params, OSSL_PROV_PARAM_BUILDINFO)) != NULL ) {
+		((CRLoginApp *)AfxGetApp())->GetVersion(version);
+		OSSL_PARAM_set_utf8_string(p, TstrToMbs(version));
+	}
+
+	if ( (p = OSSL_PARAM_locate(params, OSSL_PROV_PARAM_STATUS)) != NULL )
+		OSSL_PARAM_set_uint(p, prov_ctx->status);
+
+	return 0;
+}
+static const OSSL_ALGORITHM *rlg_provider_query(struct prov_ctx_st *prov_ctx, int operation_id, int *no_store)
+{
+	switch (operation_id) {
+	case OSSL_OP_CIPHER:
+		return rlg_cipher_algorithm;
+	}
+
+	return NULL;
+}
+//static void rlg_provider_unquery_operation(struct prov_ctx_st *prov_ctx, int operation_id, const OSSL_ALGORITHM *algorithm)
+//{
+//}
+//static const OSSL_ITEM *rlg_provider_get_reason_strings(struct prov_ctx_st *prov_ctx)
+//{
+//	return NULL;
+//}
+//static int rlg_provider_get_capabilities(struct prov_ctx_st *prov_ctx, const char *capability, OSSL_CALLBACK *cb, void *arg)
+//{
+//	return 0;
+//}
+//static int rlg_provider_self_test(struct prov_ctx_st *prov_ctx)
+//{
+//	return 0;
+//}
+static const OSSL_DISPATCH rlg_prov_functions[] = {
+	{ OSSL_FUNC_PROVIDER_TEARDOWN,				(void (*)(void))rlg_provider_teardown },
+	{ OSSL_FUNC_PROVIDER_GETTABLE_PARAMS,		(void (*)(void))rlg_provider_gettable_params },
+	{ OSSL_FUNC_PROVIDER_GET_PARAMS,			(void (*)(void))rlg_provider_get_params },
+	{ OSSL_FUNC_PROVIDER_QUERY_OPERATION,		(void (*)(void))rlg_provider_query },
+//	{ OSSL_FUNC_PROVIDER_UNQUERY_OPERATION,		(void (*)(void))rlg_provider_unquery_operation },
+//	{ OSSL_FUNC_PROVIDER_GET_REASON_STRINGS,	(void (*)(void))rlg_provider_get_reason_strings },
+//	{ OSSL_FUNC_PROVIDER_GET_CAPABILITIES,		(void (*)(void))rlg_provider_get_capabilities },
+//	{ OSSL_FUNC_PROVIDER_SELF_TEST,				(void (*)(void))rlg_provider_self_test },
+	{ 0, NULL }
+};
+int RLOGIN_provider_init(const OSSL_CORE_HANDLE *handle, const OSSL_DISPATCH *in, const OSSL_DISPATCH **out, void **provctx)
+{
+	struct prov_ctx_st *prov_ctx;
+	
+	if ( (prov_ctx = (struct prov_ctx_st *)malloc(sizeof(struct prov_ctx_st))) == NULL )
+		return 0;
+
+	prov_ctx->handle = handle;
+	prov_ctx->in = in;
+	prov_ctx->status = 1;
+
+	*provctx = prov_ctx;
+	*out = rlg_prov_functions;
+
+	return 1;
+ }
+void RLOGIN_provider_finish()
+{
+	for ( int n = 0 ; n < NIDSCIPHERMAX ; n++ ) {
+		if ( rlg_evp_cipher_tab[n] != NULL ) {
+			EVP_CIPHER_free(rlg_evp_cipher_tab[n]);
+			rlg_evp_cipher_tab[n] = NULL;
+		}
+	}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1848,7 +3121,7 @@ struct umac_ctx {
 
 //////////////////////////////////////////////////////////////////////
 
-static void kdf(void *bufp, AES_KEY *key, UINT8 ndx, int nbytes)
+static void aes_kdf(void *bufp, AES_KEY *key, UINT8 ndx, int nbytes)
 {
     int i;
     UINT8 in_buf[AES_BLOCK_SIZE];
@@ -2087,7 +3360,7 @@ static void nh_init(struct nh_ctx *hc, AES_KEY *prf_key)
 	int n = L1_KEY_LEN + L1_KEY_SHIFT * (hc->block_size / 4 - 1);
 	UINT8 buf[L1_KEY_LEN + L1_KEY_SHIFT * (STREAMS - 1)];
 
-    kdf(buf, prf_key, 1, n);
+    aes_kdf(buf, prf_key, 1, n);
 
     for ( i = 0 ; i < n ; i += 4 )
 		*((UINT32 *)(&(hc->nh_key[i]))) = endian_big_32(&(buf[i]));
@@ -2312,7 +3585,7 @@ static void uhash_init(struct uhash_ctx *pc, AES_KEY *prf_key)
 	nh_init(&pc->hash, prf_key);
     
     /* Setup L2 hash variables */
-	kdf(buf, prf_key, 2, (pc->streams * 8 + 4) * sizeof(UINT64));    /* Fill buffer with index 1 key */
+	aes_kdf(buf, prf_key, 2, (pc->streams * 8 + 4) * sizeof(UINT64));    /* Fill buffer with index 1 key */
 
     for ( i = 0 ; i < pc->streams ; i++ ) {
 		pc->poly_key_8[i] = endian_big_64(&(buf[24 * i]));
@@ -2322,7 +3595,7 @@ static void uhash_init(struct uhash_ctx *pc, AES_KEY *prf_key)
     }
     
     /* Setup L3-1 hash variables */
-	kdf(buf, prf_key, 3,  (pc->streams * 8 + 4) * sizeof(UINT64)); /* Fill buffer with index 2 key */
+	aes_kdf(buf, prf_key, 3,  (pc->streams * 8 + 4) * sizeof(UINT64)); /* Fill buffer with index 2 key */
 
 	for ( i = 0 ; i < pc->streams ; i++ ) {
 		pc->ip_keys[4 * i + 0] = endian_big_64(&(buf[(8 * i + 4 + 0) * sizeof(UINT64)]));
@@ -2336,7 +3609,7 @@ static void uhash_init(struct uhash_ctx *pc, AES_KEY *prf_key)
     
     /* Setup L3-2 hash variables    */
     /* Fill buffer with index 4 key */
-	kdf(buf, prf_key, 4, pc->streams * sizeof(UINT32));
+	aes_kdf(buf, prf_key, 4, pc->streams * sizeof(UINT32));
 
     for ( i = 0 ; i < pc->streams ; i++ )
 		pc->ip_trans[i] = endian_big_32(&(buf[i * sizeof(UINT32)]));
@@ -2427,7 +3700,7 @@ void UMAC_init(struct umac_ctx *ctx, u_char *key, int len)
 	AES_set_encrypt_key(key, len * 8, &prf_key);
 	uhash_init(&ctx->hash, &prf_key);
 
-    kdf(buf, &prf_key, 0, UMAC_KEY_LEN);
+    aes_kdf(buf, &prf_key, 0, UMAC_KEY_LEN);
 	AES_set_encrypt_key(buf, UMAC_KEY_LEN * 8, &(ctx->prf_key));
     
     memset(ctx->nonce, 0, sizeof(ctx->nonce));
@@ -2515,13 +3788,13 @@ int	HMAC_digest(const EVP_MD *md, BYTE *key, int keylen, BYTE *in, int inlen, BY
 	if ( (ctx = EVP_MAC_CTX_new(mac)) == NULL )
 		goto ENDOF;
 
-	if ( EVP_MAC_init(ctx, (const unsigned char *)key, (size_t)keylen, params) == 0 )
+	if ( EVP_MAC_init(ctx, (const unsigned char *)key, (size_t)keylen, params) <= 0 )
 		goto ENDOF;
 
-	if ( EVP_MAC_update(ctx, (const unsigned char *)in, (size_t)inlen) == 0 )
+	if ( EVP_MAC_update(ctx, (const unsigned char *)in, (size_t)inlen) <= 0 )
 		goto ENDOF;
 
-	if ( EVP_MAC_final(ctx, out, &dlen, outlen) == 0 )
+	if ( EVP_MAC_final(ctx, out, &dlen, outlen) <= 0 )
 		goto ENDOF;
 
 ENDOF:
@@ -2541,16 +3814,16 @@ ENDOF:
 	if ( (ctx = HMAC_CTX_new()) == NULL )
 		goto ENDOF;
 
-	if ( HMAC_Init(ctx, key, keylen, md) == 0 )
+	if ( HMAC_Init(ctx, key, keylen, md) <= 0 )
 		goto ENDOF;
 
-	if ( HMAC_Update(ctx, in, inlen) == 0 )
+	if ( HMAC_Update(ctx, in, inlen) <= 0 )
 		goto ENDOF;
 
 	if ( outlen < EVP_MD_size(md) )
 		goto ENDOF;
 
-	if ( HMAC_Final(ctx, out, &dlen) == 0 )
+	if ( HMAC_Final(ctx, out, &dlen) <= 0 )
 		goto ENDOF;
 
 ENDOF:
@@ -2560,7 +3833,7 @@ ENDOF:
 
 	return (int)dlen;
 }
-int	EVP_MD_digest(const EVP_MD *md, BYTE *in, int inlen, BYTE *out, int outlen)
+int	MD_digest(const EVP_MD *md, BYTE *in, int inlen, BYTE *out, int outlen)
 {
 	EVP_MD_CTX *ctx = NULL;
 	unsigned dlen = 0;
@@ -2571,16 +3844,16 @@ int	EVP_MD_digest(const EVP_MD *md, BYTE *in, int inlen, BYTE *out, int outlen)
 	if ( (ctx = EVP_MD_CTX_new()) == NULL )
 		goto ENDOF;
 
-	if ( EVP_DigestInit(ctx, md) == 0 )
+	if ( EVP_DigestInit(ctx, md) <= 0 )
 		goto ENDOF;
 
-	if ( EVP_DigestUpdate(ctx, in, inlen) == 0 )
+	if ( EVP_DigestUpdate(ctx, in, inlen) <= 0 )
 		goto ENDOF;
 
 	if ( outlen < EVP_MD_size(md) )
 		goto ENDOF;
 
-	if ( EVP_DigestFinal(ctx, out, &dlen) == 0 )
+	if ( EVP_DigestFinal(ctx, out, &dlen) <= 0 )
 		goto ENDOF;
 
 ENDOF:
@@ -2589,220 +3862,6 @@ ENDOF:
 
 	return dlen;
 }
-
-//////////////////////////////////////////////////////////////////////
-//	chacha
-//////////////////////////////////////////////////////////////////////
-
-/*
-chacha-merged.c version 20080118
-D. J. Bernstein
-Public domain.
-*/
-
-typedef struct _chacha_ctx {
-	u_int input[16];
-} chacha_ctx;
-
-typedef unsigned char u8;
-typedef unsigned int u32;
-
-#define U8C(v) (v##U)
-#define U32C(v) (v##U)
-
-#define U8V(v) ((u8)(v) & U8C(0xFF))
-#define U32V(v) ((u32)(v) & U32C(0xFFFFFFFF))
-
-#define ROTL32(v, n) (U32V((v) << (n)) | ((v) >> (32 - (n))))
-
-#if 0
-#define U8TO32_LITTLE(p) \
-  (((u32)((p)[0])      ) | \
-   ((u32)((p)[1]) <<  8) | \
-   ((u32)((p)[2]) << 16) | \
-   ((u32)((p)[3]) << 24))
-
-#define U32TO8_LITTLE(p, v) \
-  do { \
-    (p)[0] = U8V((v)	  ); \
-    (p)[1] = U8V((v) >>  8); \
-    (p)[2] = U8V((v) >> 16); \
-    (p)[3] = U8V((v) >> 24); \
-  } while (0)
-#else
-#define U8TO32_LITTLE(p) *((u32 *)(p))
-#define U32TO8_LITTLE(p, v) *((u32 *)(p))=(v)
-#endif
-
-#define ROTATE(v,c) (ROTL32(v,c))
-#define XOR(v,w) ((v) ^ (w))
-#define PLUS(v,w) (U32V((v) + (w)))
-#define PLUSONE(v) (PLUS((v),1))
-
-#define QUARTERROUND(a,b,c,d) \
-  a = PLUS(a,b); d = ROTATE(XOR(d,a),16); \
-  c = PLUS(c,d); b = ROTATE(XOR(b,c),12); \
-  a = PLUS(a,b); d = ROTATE(XOR(d,a), 8); \
-  c = PLUS(c,d); b = ROTATE(XOR(b,c), 7);
-
-static const char sigma[] = "expand 32-byte k";
-static const char tau[]   = "expand 16-byte k";
-
-static void chacha_keysetup(chacha_ctx *x,const u8 *k,u32 kbits)
-{
-  const char *constants;
-
-  x->input[4] = U8TO32_LITTLE(k + 0);
-  x->input[5] = U8TO32_LITTLE(k + 4);
-  x->input[6] = U8TO32_LITTLE(k + 8);
-  x->input[7] = U8TO32_LITTLE(k + 12);
-  if (kbits == 256) { /* recommended */
-    k += 16;
-    constants = sigma;
-  } else { /* kbits == 128 */
-    constants = tau;
-  }
-  x->input[8] = U8TO32_LITTLE(k + 0);
-  x->input[9] = U8TO32_LITTLE(k + 4);
-  x->input[10] = U8TO32_LITTLE(k + 8);
-  x->input[11] = U8TO32_LITTLE(k + 12);
-  x->input[0] = U8TO32_LITTLE(constants + 0);
-  x->input[1] = U8TO32_LITTLE(constants + 4);
-  x->input[2] = U8TO32_LITTLE(constants + 8);
-  x->input[3] = U8TO32_LITTLE(constants + 12);
-}
-
-static void chacha_ivsetup(chacha_ctx *x, const u8 *iv, const u8 *counter)
-{
-  x->input[12] = counter == NULL ? 0 : U8TO32_LITTLE(counter + 0);
-  x->input[13] = counter == NULL ? 0 : U8TO32_LITTLE(counter + 4);
-  x->input[14] = U8TO32_LITTLE(iv + 0);
-  x->input[15] = U8TO32_LITTLE(iv + 4);
-}
-
-static void chacha_encrypt_bytes(chacha_ctx *x,const u8 *m,u8 *c,u32 bytes)
-{
-	ChaCha20_ctr32(c, m, bytes, x->input + 4, x->input + 12);
-}
-
-//////////////////////////////////////////////////////////////////////
-//	chachapoly
-//////////////////////////////////////////////////////////////////////
-
-struct ssh_chachapoly_ctx
-{
-	chacha_ctx main_ctx, header_ctx;
-	u_char seqbuf[8];
-	u_char expected_tag[POLY1305_DIGEST_SIZE];
-	u_char poly_key[POLY1305_KEY_SIZE];
-	POLY1305 *poly_ctx;
-};
-
-static int ssh_chachapoly_cipher(EVP_CIPHER_CTX *ctx, u_char *dest, const u_char *src, size_t len)
-{
-	size_t aadlen = 4;
-	struct ssh_chachapoly_ctx *c;
-	const u_char one[8] = { 1, 0, 0, 0, 0, 0, 0, 0 }; /* NB. little-endian */
-
-	if ((c = (struct ssh_chachapoly_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL)
-		return (0);
-
-	chacha_ivsetup(&c->header_ctx, c->seqbuf, NULL);
-	chacha_encrypt_bytes(&c->header_ctx, src, dest, (u32)aadlen);
-
-	if ( len > aadlen ) {
-		chacha_ivsetup(&c->main_ctx, c->seqbuf, one);
-		chacha_encrypt_bytes(&c->main_ctx, src + aadlen, dest + aadlen, (u32)(len - aadlen));
-	}
-
-	return (1);
-}
-
-static int ssh_chachapoly_ctrl(EVP_CIPHER_CTX *ctx, int type, int arg, void *ptr)
-{
-	struct ssh_chachapoly_ctx *c;
-
-	if ((c = (struct ssh_chachapoly_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL)
-		return (0);
-
-	switch(type) {
-	case EVP_CTRL_POLY_IV_GEN:
-		// Run ChaCha20 once to generate the Poly1305 key. The IV is the packet sequence number.
-		memset(c->poly_key, 0, POLY1305_KEY_SIZE);
-		if ( ptr != NULL && arg == 8 )
-			memcpy(c->seqbuf, ptr, arg);
-		chacha_ivsetup(&c->main_ctx, c->seqbuf, NULL);
-		chacha_encrypt_bytes(&c->main_ctx, c->poly_key, c->poly_key, POLY1305_KEY_SIZE);
-		break;
-
-	case EVP_CTRL_POLY_GET_TAG:
-		if ( ptr != NULL && arg >= POLY1305_DIGEST_SIZE )
-			memcpy(ptr, c->expected_tag, arg);
-		break;
-
-	case EVP_CTRL_POLY_SET_TAG:
-		if ( ptr != NULL && arg > 0 ) {
-			Poly1305_Init(c->poly_ctx, c->poly_key);
-			Poly1305_Update(c->poly_ctx, (const unsigned char *)ptr, arg);
-			Poly1305_Final(c->poly_ctx, c->expected_tag);
-		}
-		break;
-	}
-
-	return (1);
-}
-static int ssh_chachapoly_init(EVP_CIPHER_CTX *ctx, const u_char *key, const u_char *iv, int enc)
-{
-	struct ssh_chachapoly_ctx *c;
-
-	if ((c = (struct ssh_chachapoly_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) == NULL) {
-		if ( (c = (struct ssh_chachapoly_ctx *)malloc(sizeof(*c))) == NULL )
-			return 0;
-		memset(c, 0, sizeof(*c));
-
-		if ( (c->poly_ctx = (POLY1305 *)malloc(Poly1305_ctx_size())) == NULL )
-			return 0;
-		memset(c->poly_ctx, 0, Poly1305_ctx_size());
-
-		EVP_CIPHER_CTX_set_app_data(ctx, c);
-	}
-
-	if (key != NULL) {
-		if ( EVP_CIPHER_CTX_key_length(ctx) != (32 + 32) )
-			return 0;
-		chacha_keysetup(&c->main_ctx, key, 256);
-		chacha_keysetup(&c->header_ctx, key + 32, 256);
-	}
-
-	return (1);
-}
-static int ssh_chachapoly_cleanup(EVP_CIPHER_CTX *ctx)
-{
-	struct ssh_chachapoly_ctx *c;
-
-	if ((c = (struct ssh_chachapoly_ctx *)EVP_CIPHER_CTX_get_app_data(ctx)) != NULL) {
-		free(c->poly_ctx);
-		free(c);
-		EVP_CIPHER_CTX_set_app_data(ctx, NULL);
-	}
-	return (1);
-}
-const EVP_CIPHER *evp_chachapoly_256(void)
-{
-	if ( LegacyEngineCipherMeth[Nids_chachapoly_256] == NULL ) {
-		EVP_CIPHER *cip = EVP_CIPHER_meth_new(LegacyEngineNids[Nids_chachapoly_256], 8, CHACHA_KEY_SIZE * 2);
-		if ( cip != NULL ) {
-			EVP_CIPHER_meth_set_init(cip, ssh_chachapoly_init);
-			EVP_CIPHER_meth_set_cleanup(cip, ssh_chachapoly_cleanup);
-			EVP_CIPHER_meth_set_do_cipher(cip, ssh_chachapoly_cipher);
-			EVP_CIPHER_meth_set_ctrl(cip, ssh_chachapoly_ctrl);
-			EVP_CIPHER_meth_set_flags(cip, EVP_CIPH_CBC_MODE | EVP_CIPH_VARIABLE_LENGTH | EVP_CIPH_ALWAYS_CALL_INIT | EVP_CIPH_CUSTOM_IV);
-			LegacyEngineCipherMeth[Nids_chachapoly_256] = cip;
-		}
-	}
-	return LegacyEngineCipherMeth[Nids_chachapoly_256];
-}
-
 
 //////////////////////////////////////////////////////////////////////
 //	bcrypt_pbkdf
@@ -3355,6 +4414,8 @@ static void bcrypt_hash(u_int8_t *sha2pass, u_int8_t *sha2salt, u_int8_t *out)
 	u_int16_t j;
 	size_t shalen = SHA512_DIGEST_LENGTH;
 
+	// opensslのblowfishとは、初期化方法が違う(salt)ので利用できない
+
 	/* key expansion */
 	Blowfish_initstate(&state);
 	Blowfish_expandstate(&state, sha2salt, (u_int16_t)shalen, sha2pass, (u_int16_t)shalen);
@@ -3717,7 +4778,7 @@ static void hprime_hash(CBuffer *data, uint8_t *out, int len)
 	blake2b s;
 	uint8_t hash[64];
 
-	// opensslのEVP_blake2b512は、ハッシュサイズ固定(64)なので使用できない
+	// opensslのEVP_blake2b512とs->hのイニシャル方法が違うので利用できない
 
 	blake2b_reset(&s, len > 64 ? 64 : len);
 	blake2b_write(&s, data->GetPtr(), data->GetSize());

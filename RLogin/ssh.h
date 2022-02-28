@@ -20,16 +20,17 @@
 #include "openssl/evp.h"
 #include "openssl/err.h"
 #include "openssl/hmac.h"
+#include "openssl/kdf.h"
 #include "openssl/pem.h"
 #include "openssl/engine.h"
 
-#if	OPENSSL_VERSION_NUMBER >= 0x30000000L
-	#include "openssl/provider.h"
-	#include "openssl/params.h"
-	#pragma warning(disable : 4996)
-	//#define	USE_MACCTX
-	#define	USE_LEGACYKEY
-#endif
+#include "openssl/provider.h"
+#include "openssl/params.h"
+#include <openssl/core.h>
+#include <openssl/core_dispatch.h>
+#include <openssl/core_names.h>
+
+#pragma warning(disable : 4996)		// legacy warningÇè¡Ç∑
 
 #define SSH_CIPHER_NONE         0       // none
 #define SSH_CIPHER_DES          2       // des
@@ -107,38 +108,32 @@
 #define SSH2_CIPHER_CLE192R		116		// clefia191-ctr 
 #define SSH2_CIPHER_CLE256R		117		// clefia256-ctr 
 
-#define	SSH2_GCM_TAGSIZE		16
 #define	SSH2_CIPHER_GCM(n)		((n / 100) == 2)
 #define	SSH2_AEAD_AES128GCM		200		// AEAD_AES_128_GCM
 #define	SSH2_AEAD_AES192GCM		201		// AEAD_AES_192_GCM
 #define	SSH2_AEAD_AES256GCM		202		// AEAD_AES_256_GCM
 
-#define	SSH2_CCM_TAGSIZE		16
 #define	SSH2_CIPHER_CCM(n)		((n / 100) == 3)
 #define	SSH2_AEAD_AES128CCM		300		// AEAD_AES_128_CCM
 #define	SSH2_AEAD_AES192CCM		301		// AEAD_AES_192_CCM
 #define	SSH2_AEAD_AES256CCM		302		// AEAD_AES_256_CCM
 
-#define	SSH2_POLY1305_TAGSIZE	16
-#define	SSH2_CIPHER_POLY(n)		((n / 100) == 4)
-#define	SSH2_CHACHA20_POLY1305	400		// chacha20-poly1305@openssh.com
+#define	SSH2_CIPHER_AEAD(n)		((n / 100) == 4)
+#define	SSH2_AEAD_CHACHAPOLY	400		// AEAD_CHACHA20_POLY1305
 
-#define	COMPLEVEL		6
+#define	SSH2_CIPHER_POLY(n)		((n / 100) == 5)
+#define	SSH2_CHACHA20_POLY1305	500		// chacha20-poly1305@openssh.com
 
-#define	MODE_ENC		0
-#define	MODE_DEC		1
+#define	SSH2_CIPHER_IVSIZEMAX	16
+#define	SSH2_CIPHER_TAGSIZEMAX	16
 
-#define INTBLOB_LEN     20
-#define SIGBLOB_LEN     (2*INTBLOB_LEN)
+#define	COMPLEVEL				6
 
-#define sntrup761_PUBLICKEYBYTES		1158
-#define sntrup761_SECRETKEYBYTES		1763
-#define sntrup761_CIPHERTEXTBYTES		1039
-#define sntrup761_BYTES					32
+#define	MODE_ENC				0
+#define	MODE_DEC				1
 
-#define	EVP_CTRL_POLY_IV_GEN	0x30
-#define	EVP_CTRL_POLY_SET_TAG	0x31
-#define	EVP_CTRL_POLY_GET_TAG	0x32
+#define INTBLOB_LEN				20
+#define SIGBLOB_LEN				(2*INTBLOB_LEN)
 
 class CCipher: public CObject
 {
@@ -153,11 +148,15 @@ public:
 	void Close();
 	int SetIvCounter(DWORD seq);
 	int GeHeadData(LPBYTE inbuf);
+	int CipherSshChahaPoly(LPBYTE inbuf, int len, CBuffer *out);
+	int CipherAead(LPBYTE inbuf, int len, CBuffer *out);
+	int CipherAeadCCM(LPBYTE inbuf, int len, CBuffer *out);
 	int Cipher(LPBYTE inbuf, int len, CBuffer *out);
 	int GetIndex(LPCTSTR name);
 	int GetKeyLen(LPCTSTR name = NULL);
 	int GetBlockSize(LPCTSTR name = NULL);
 	int GetIvSize(LPCTSTR name = NULL);
+	int GetTagSize(LPCTSTR name = NULL);
 	BOOL IsAEAD(LPCTSTR name = NULL);
 	BOOL IsPOLY(LPCTSTR name = NULL);
 	LPCTSTR GetName(int num);
@@ -189,6 +188,7 @@ public:
 	BOOL m_UmacMode;
 	BOOL m_EtmMode;
 
+	void Close();
 	int Init(LPCTSTR name, LPBYTE key = NULL, int len = (-1));
 	void Compute(DWORD seq, LPBYTE inbuf, int len, CBuffer *out);
 	int GetIndex(LPCTSTR name);
@@ -277,16 +277,26 @@ public:
 #define	MAKEKEY_HOSTSID				2
 #define	MAKEKEY_USERSID				3
 
-#define	EXPORT_STYLE_OPENSSL		0
-#define	EXPORT_STYLE_OPENSSH		1
-#define	EXPORT_STYLE_PUTTY			2
-#define	EXPORT_STYLE_OLDRSA			3
+#define	EXPORT_STYLE_OSSLPEM		0
+#define	EXPORT_STYLE_OSSLPFX		1
+#define	EXPORT_STYLE_OPENSSH		2
+#define	EXPORT_STYLE_PUTTY2			3
+#define	EXPORT_STYLE_PUTTY3			4
+#define	EXPORT_STYLE_OLDRSA			5
 
 #define	GETPKEY_PUBLICKEY			1
 #define	GETPKEY_PRIVATEKEY			2
 #define	GETPKEY_KEYPAIR				3
 
-//#define	USE_X509
+typedef	struct _GenStatus {
+	int		abort;
+	int		type;
+	int		pos;
+	int		max;
+	int		stat;
+	int		zero;
+	int		count;
+} GENSTATUS;
 
 class CXmssKey : public CObject
 {
@@ -317,7 +327,7 @@ public:
 	const char *GetName();
 	int GetBits();
 	int GetHeight();
-	int KeyPair();
+	int KeyPair(GENSTATUS *gs);
 	int GetSignByte();
 	int Sign(unsigned char *sm, unsigned long long *smlen, const unsigned char *m, unsigned long long mlen);
 	int Verify(unsigned char *m, unsigned long long *mlen, const unsigned char *sm, unsigned long long smlen);
@@ -364,7 +374,7 @@ public:
 
 	int Init(LPCTSTR pass);
 	int Create(int type);
-	int Generate(int type, int bits, LPCTSTR pass);
+	int Generate(int type, int bits, LPCTSTR pass, GENSTATUS *gs = NULL);
 	int Close();
 	int ComperePublic(CIdKey *pKey);
 	int Compere(CIdKey *pKey);
@@ -419,7 +429,7 @@ public:
 	int SaveOpenSshKey(FILE *fp, LPCTSTR pass);
 	int LoadSecShKey(FILE *fp, LPCTSTR pass);
 	int LoadPuttyKey(FILE *fp, LPCTSTR pass);
-	int SavePuttyKey(FILE *fp, LPCTSTR pass);
+	int SavePuttyKey(FILE *fp, LPCTSTR pass, int ver);
 
 	BOOL IsNotSupport();
 
@@ -708,44 +718,49 @@ public:
 	~CRcpDownload();
 };
 
-#define	DHMODE_GROUP_1		0
-#define	DHMODE_GROUP_14		1
-#define	DHMODE_GROUP_GEX	2
-#define	DHMODE_GROUP_GEX256	3
-#define	DHMODE_ECDH_S2_N256	4
-#define	DHMODE_ECDH_S2_N384	5
-#define	DHMODE_ECDH_S2_N521	6
-#define	DHMODE_GROUP_14_256	7
-#define	DHMODE_GROUP_15_512	8
-#define	DHMODE_GROUP_16_512	9
-#define	DHMODE_GROUP_17_512	10
-#define	DHMODE_GROUP_18_512	11
-#define DHMODE_CURVE25519	12
-#define DHMODE_CURVE448		13
-#define	DHMODE_SNT761X25519	14
-#define DHMODE_RSA1024SHA1	15
-#define DHMODE_RSA2048SHA2	16
+#define	DHMODE_GROUP_1					0
+#define	DHMODE_GROUP_14					1
+#define	DHMODE_GROUP_GEX				2
+#define	DHMODE_GROUP_GEX256				3
+#define	DHMODE_ECDH_S2_N256				4
+#define	DHMODE_ECDH_S2_N384				5
+#define	DHMODE_ECDH_S2_N521				6
+#define	DHMODE_GROUP_14_256				7
+#define	DHMODE_GROUP_15_512				8
+#define	DHMODE_GROUP_16_512				9
+#define	DHMODE_GROUP_17_512				10
+#define	DHMODE_GROUP_18_512				11
+#define DHMODE_CURVE25519				12
+#define DHMODE_CURVE448					13
+#define	DHMODE_SNT761X25519				14
+#define DHMODE_RSA1024SHA1				15
+#define DHMODE_RSA2048SHA2				16
 
-#define	AUTH_MODE_NONE		0
-#define	AUTH_MODE_PUBLICKEY	1
-#define	AUTH_MODE_PASSWORD	2
-#define	AUTH_MODE_KEYBOARD	3
-#define	AUTH_MODE_HOSTBASED	4
-#define	AUTH_MODE_GSSAPI	5
+#define	AUTH_MODE_NONE					0
+#define	AUTH_MODE_PUBLICKEY				1
+#define	AUTH_MODE_PASSWORD				2
+#define	AUTH_MODE_KEYBOARD				3
+#define	AUTH_MODE_HOSTBASED				4
+#define	AUTH_MODE_GSSAPI				5
 
-#define	PROP_KEX_ALGS		0
-#define	PROP_HOST_KEY_ALGS	1
-#define	PROP_ENC_ALGS_CTOS	2		// 0
-#define	PROP_ENC_ALGS_STOC	3		// 1
-#define	PROP_MAC_ALGS_CTOS	4		// 2
-#define	PROP_MAC_ALGS_STOC	5		// 3
-#define	PROP_COMP_ALGS_CTOS	6		// 4
-#define	PROP_COMP_ALGS_STOC	7		// 5
-#define	PROP_LANG_CTOS		8
-#define	PROP_LANG_STOC		9
+#define	PROP_KEX_ALGS					0
+#define	PROP_HOST_KEY_ALGS				1
+#define	PROP_ENC_ALGS_CTOS				2		// 0
+#define	PROP_ENC_ALGS_STOC				3		// 1
+#define	PROP_MAC_ALGS_CTOS				4		// 2
+#define	PROP_MAC_ALGS_STOC				5		// 3
+#define	PROP_COMP_ALGS_CTOS				6		// 4
+#define	PROP_COMP_ALGS_STOC				7		// 5
+#define	PROP_LANG_CTOS					8
+#define	PROP_LANG_STOC					9
 
-#define	DHGEX_MIN_BITS		1024
-#define	DHGEX_MAX_BITS		8192
+#define	DHGEX_MIN_BITS					1024
+#define	DHGEX_MAX_BITS					8192
+
+#define sntrup761_PUBLICKEYBYTES		1158
+#define sntrup761_SECRETKEYBYTES		1763
+#define sntrup761_CIPHERTEXTBYTES		1039
+#define sntrup761_BYTES					32
 
 enum EAuthStat {
 	AST_START = 0,
@@ -989,9 +1004,10 @@ public:
 // OpenSSH C lib
 //////////////////////////////////////////////////////////////////////
 
-extern int LegacyEngineInit();
-extern void LegacyEngineFree();
+extern int RLOGIN_provider_init(const OSSL_CORE_HANDLE *handle, const OSSL_DISPATCH *in, const OSSL_DISPATCH **out, void **provctx);
+extern void RLOGIN_provider_finish();
 
+extern const EVP_CIPHER *evp_aes_ctr(void);
 extern const EVP_CIPHER *evp_seed_ctr(void);
 extern const EVP_CIPHER *evp_twofish_ctr(void);
 extern const EVP_CIPHER *evp_twofish_cbc(void);
@@ -1020,7 +1036,6 @@ extern DH *dh_new_group17(void);
 extern DH *dh_new_group18(void);
 extern int dh_estimate(int bits);
 extern int key_ec_validate_public(const EC_GROUP *group, const EC_POINT *pub);
-extern u_char *derive_key(int id, int need, u_char *hash, int hashlen, u_char *ssec, int sseclen, u_char *session_id, int sesslen, const EVP_MD *evp_md);
 
 extern void *mm_zalloc(void *mm, unsigned int ncount, unsigned int size);
 extern void mm_zfree(void *mm, void *address);
@@ -1035,14 +1050,14 @@ extern void UMAC_update(struct umac_ctx *ctx, const u_char *input, size_t len);
 extern void UMAC_final(struct umac_ctx *ctx, u_char *tag, u_char *nonce);
 extern void UMAC_close(struct umac_ctx *ctx);
 
-extern int	HMAC_digest(const EVP_MD *md, BYTE *key, int keylen, BYTE *in, int inlen, BYTE *out, int outlen);
-extern int	EVP_MD_digest(const EVP_MD *md, BYTE *in, int inlen, BYTE *out, int outlen);
+extern int HMAC_digest(const EVP_MD *md, BYTE *key, int keylen, BYTE *in, int inlen, BYTE *out, int outlen);
+extern int MD_digest(const EVP_MD *md, BYTE *in, int inlen, BYTE *out, int outlen);
 
 // openbsd-compat
 extern int crypto_verify_32(const unsigned char *x,const unsigned char *y);
 extern int bcrypt_pbkdf(const char *pass, size_t passlen, const unsigned char *salt, size_t saltlen, unsigned char *key, size_t keylen, unsigned int rounds);
 
-//argon2
+// argon2
 void argon2(uint32_t flavour, uint32_t mem, uint32_t passes, uint32_t parallel, CBuffer *P, CBuffer *S, CBuffer *K, CBuffer *X, u_char *out, uint32_t taglen);
 
 // xmss.cpp
@@ -1054,7 +1069,7 @@ int xmssmt_str_to_oid(uint32_t *oid, const char *s);
 const char *xmss_oid_to_str(uint32_t oid);
 const char *xmssmt_oid_to_str(uint32_t oid);
 
-int xmss_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid);
+int xmss_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid, GENSTATUS *gs);
 int xmss_sign(unsigned char *sk, unsigned char *sm, unsigned long long *smlen, const unsigned char *m, unsigned long long mlen);
 int xmss_sign_open(unsigned char *m, unsigned long long *mlen, const unsigned char *sm, unsigned long long smlen, const unsigned char *pk);
 int xmss_sign_bytes(uint32_t oid);
@@ -1073,9 +1088,6 @@ int xmssmt_sign_bytes(uint32_t oid);
 int xmssmt_bits(uint32_t oid);
 int xmssmt_height(uint32_t oid);
 int xmssmt_key_bytes(uint32_t oid, int *plen, int *slen);
-
-void SHAKE128(const unsigned char *in, size_t inlen, unsigned char *md, size_t mdlen);
-void SHAKE256(const unsigned char *in, size_t inlen, unsigned char *md, size_t mdlen);
 
 // sntrup761.cpp
 int	sntrup761_keypair(unsigned char *pk, unsigned char *sk);

@@ -639,10 +639,9 @@ CRLoginApp::CRLoginApp()
 	m_bOtherCast = FALSE;
 	m_LocalPass.Empty();
 
-#if	OPENSSL_VERSION_NUMBER >= 0x30000000L
 	m_ProvDefault = NULL;
 	m_ProvLegacy = NULL;
-#endif
+	m_ProvRlogin = NULL;
 
 #ifdef	USE_DIRECTWRITE
 	m_pD2DFactory    = NULL;
@@ -1123,74 +1122,6 @@ ENDOF:
 
 //////////////////////////////////////////////////////////////////////
 
-#ifdef	USE_CP932CHECK
-void UnicodeJpset()
-{
-	int n;
-	DWORD ic, jis, sjis, euc;
-	CStringW ms;
-	CHAR mbs[3];
-	static CIConv iconv;
-	static const DWORD JisTab[] = {
-		0x005c,
-		0x007e,
-		0x213d,
-		0x2141,
-		0x2142,
-		0x215d,
-		0x2171,
-		0x2172,
-		0x224c,
-		0
-	};
-
-	for ( n = 0 ; JisTab[n] != 0 ; n++ ) {
-		jis = sjis = euc = JisTab[n];
-		if ( jis > 255 ) {
-			sjis = iconv.JisToSJis(jis);
-			euc = jis | 0x8080;
-		}
-
-		TRACE("%04x %04x %04x  ", jis, sjis, euc);
-
-		if ( sjis < 255 ) {
-			mbs[0] = (CHAR)sjis;
-			mbs[1] = 0;
-		} else {
-			mbs[0] = (CHAR)(sjis >> 8);
-			mbs[1] = (CHAR)sjis;
-			mbs[2] = 0;
-		}
-		ms = mbs;
-		ic = ms[0];
-		if ( ms[1] != 0 )
-			ic = (ic << 8) | ms[1];
-		TRACE("%04x ", ic);
-
-		ic = iconv.IConvChar(_T("CP932"), _T("UTF-16BE"), sjis);
-		TRACE("%04x ", ic);
-		ic = iconv.IConvChar(_T("SHIFT_JIS"), _T("UTF-16BE"), sjis);
-		TRACE("%04x ", ic);
-		ic = iconv.IConvChar(_T("SHIFT_JISX0213"), _T("UTF-16BE"), sjis);
-		TRACE("%04x  ", ic);
-
-		ic = iconv.IConvChar(_T("EUCJP-MS"), _T("UTF-16BE"), euc);
-		TRACE("%04x ", ic);
-		ic = iconv.IConvChar(_T("EUC-JP"), _T("UTF-16BE"), euc);
-		TRACE("%04x ", ic);
-		ic = iconv.IConvChar(_T("EUC-JISX0213"), _T("UTF-16BE"), euc);
-		TRACE("%04x  ", ic);
-
-		ic = iconv.IConvChar(_T("JIS_X0208"), _T("UTF-16BE"), jis);
-		TRACE("%04x ", ic);
-		ic = iconv.IConvChar(_T("JIS_X0212"), _T("UTF-16BE"), jis);
-		TRACE("%04x ", ic);
-		ic = iconv.IConvChar(_T("JIS_X0213-2000.1"), _T("UTF-16BE"), jis);
-		TRACE("%04x\n", ic);
-	}
-}
-#endif
-
 BOOL CRLoginApp::InitInstance()
 {
 	// LoadLibrary Search Path
@@ -1245,11 +1176,11 @@ BOOL CRLoginApp::InitInstance()
 	}
 
 	// openssl‚Ì‰Šú‰»
-#if	OPENSSL_VERSION_NUMBER >= 0x30000000L
 	m_ProvDefault = OSSL_PROVIDER_load(NULL, "default");
 	m_ProvLegacy  = OSSL_PROVIDER_load(NULL, "legacy");
-#endif
-	LegacyEngineInit();
+
+	OSSL_PROVIDER_add_builtin(NULL, "rlogin", RLOGIN_provider_init);
+	m_ProvRlogin = OSSL_PROVIDER_load(NULL, "rlogin");
 
 	// e‚ÌInitInstanceŒÄ‚Ño‚µ
 	CWinApp::InitInstance();
@@ -1542,20 +1473,17 @@ int CRLoginApp::ExitInstance()
 	// Free Handle or Library
 	rand_buf(NULL, 0);
 
-	LegacyEngineFree();
+	RLOGIN_provider_finish();
 
-#if	OPENSSL_VERSION_NUMBER >= 0x30000000L
+	if ( m_ProvRlogin != NULL )
+		OSSL_PROVIDER_unload(m_ProvRlogin);
 	if ( m_ProvLegacy != NULL )
 		OSSL_PROVIDER_unload(m_ProvLegacy);
 	if ( m_ProvDefault != NULL )
 		OSSL_PROVIDER_unload(m_ProvDefault);
+
 	CONF_modules_finish();
 	CONF_modules_unload(1);
-#else
-	CONF_modules_finish();
-	CONF_modules_unload(1);
-	ERR_remove_state(0);
-#endif
 
 	WSACleanup();
 
@@ -3211,13 +3139,37 @@ void CRLoginApp::SetSleepMode(int req)
 
 void CRLoginApp::OnFileNew()
 {
-	if ( ((CMainFrame *)::AfxGetMainWnd())->GetTabCount() < DOCUMENT_MAX )
+	if ( ((CMainFrame *)::AfxGetMainWnd())->GetTabCount() >= DOCUMENT_MAX ) {
+		::AfxMessageBox(_T("Too many new documents"));
+		return;
+	}
+
+	try {
 		CWinApp::OnFileNew();
+	} catch(LPCTSTR pMsg) {
+		CString msg;
+		msg.Format(_T("FileNew Catch Error '%s'"), pMsg);
+		::AfxMessageBox(msg);
+	} catch(...) {
+		::AfxMessageBox(_T("FileNew Catch Error"));
+	}
 }
 void CRLoginApp::OnFileOpen()
 {
-	if ( ((CMainFrame *)::AfxGetMainWnd())->GetTabCount() < DOCUMENT_MAX )
+	if ( ((CMainFrame *)::AfxGetMainWnd())->GetTabCount() >= DOCUMENT_MAX ) {
+		::AfxMessageBox(_T("Too many open documents"));
+		return;
+	}
+
+	try {
 		CWinApp::OnFileOpen();
+	} catch(LPCTSTR pMsg) {
+		CString msg;
+		msg.Format(_T("FileOpen Catch Error '%s'"), pMsg);
+		::AfxMessageBox(msg);
+	} catch(...) {
+		::AfxMessageBox(_T("FileOpen Catch Error"));
+	}
 }
 void CRLoginApp::OnAppAbout()
 {

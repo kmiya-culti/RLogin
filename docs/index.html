@@ -6,7 +6,10 @@
 <TITLE>rlogin/telnet/ssh(クライアント)ターミナルソフト</TITLE>
 <STYLE type="text/css">
 <!--
-TD {		
+TD {
+				
+				
+				
 				
 				
 				
@@ -21,7 +24,10 @@ TD {
 				
 		background-color : #ffffff; font-size : 90%; 
 }
-.BOX{		
+.BOX{
+				
+				
+				
 				
 				
 				
@@ -49,8 +55,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.26.7)</TD>
-            <TD width="20%" align="right">2022/01/28</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.26.8)</TD>
+            <TD width="20%" align="right">2022/02/28</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -438,6 +444,14 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2022/02/28</TD>
+            <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.26.8/">2.26.8</A></TD>
+            <TD>暗号化ライブラリを全面的にopenssl-3.0の仕様に変更<BR>
+            認証鍵作成を途中で中止できるように変更<BR>
+            認証鍵作成ダイアログのプログレスバー表示方法を変更<BR>
+            認証キーの設定のエクスポートをより細かく選択できるように変更</TD>
+          </TR>
+          <TR>
             <TD align="center">2022/01/28</TD>
             <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.26.7/">2.26.7</A></TD>
             <TD>不要なコードの削除など暗号化ライブラリを大幅に整理<BR>
@@ -473,11 +487,6 @@ TD {
             メニュー・表示に音声合成設定のボイスバーを追加<BR>
             メニューショートカット文字列設定のバグを修正<BR>
             scriptファイル読み込み時のエラーをメッセージで表示に変更</TD>
-          </TR>
-          <TR>
-            <TD align="center">2021/08/27</TD>
-            <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.26.3/">2.26.3</A></TD>
-            <TD>openssl-1.1.1lに更新</TD>
           </TR>
           <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
@@ -3271,7 +3280,7 @@ fi</PRE>
                       </TR>
                       <TR>
                         <TD valign="top">OpenSSL<BR>
-                        pem</TD>
+                        PEM/PFX</TD>
                         <TD>ssh-rsa,ssh-dss<BR>
                         ecdsa-sha2-*<BR>ssh-ed25519/448</TD>
                       </TR>
@@ -3304,11 +3313,16 @@ fi</PRE>
                   <TABLE border="0" width="400">
                     <TBODY>
                       <TR>
-                        <TD colspan="2">エクスポート出来るファイル形式と鍵の種類</TD>
+                        <TD colspan="2">エクスポート出来るファイル形式と鍵の種類<BR>
+                        ※鍵の種類(RSA1/ED25519/ED448/XMSS)により保存できるフォーマットが制限されますので注意</TD>
                       </TR>
                       <TR>
-                        <TD valign="top">OpenSSL<BR>
-                        pem</TD>
+                        <TD valign="top">OpenSSL(PEM)</TD>
+                        <TD>ssh-rsa,ssh-dss<BR>
+                        ecdsa-sha2-*</TD>
+                      </TR>
+                      <TR>
+                        <TD valign="top">OpenSSL(PFX)</TD>
                         <TD>ssh-rsa,ssh-dss<BR>
                         ecdsa-sha2-*<BR>
                         ssh-ed25519/448</TD>
@@ -3322,8 +3336,8 @@ fi</PRE>
                         ssh-xmss@openssh.com</TD>
                       </TR>
                       <TR>
-                        <TD valign="top">PuTTY<BR>
-                        Ver.3</TD>
+                        <TD valign="top">PuTTY(Ver2)<BR>
+                        PuTTY(Ver3)</TD>
                         <TD>ssh-rsa,ssh-dss<BR>
                         eddsa-sha2-*<BR>
                         ssh-ed25519/448</TD>

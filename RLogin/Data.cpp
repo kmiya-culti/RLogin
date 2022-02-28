@@ -1348,7 +1348,7 @@ void CBuffer::md5(LPCTSTR str)
 	u_char digest[EVP_MAX_MD_SIZE];
 	CStringA tmp(str);
 
-	dlen = EVP_MD_digest(EVP_md5(), (BYTE *)(LPCSTR)tmp, tmp.GetLength(), digest, sizeof(digest));
+	dlen = MD_digest(EVP_md5(), (BYTE *)(LPCSTR)tmp, tmp.GetLength(), digest, sizeof(digest));
 	Base16Encode(digest, dlen);
 }
 BOOL CBuffer::LoadFile(LPCTSTR filename)

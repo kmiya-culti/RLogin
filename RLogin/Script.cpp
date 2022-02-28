@@ -5725,13 +5725,13 @@ int CScript::Func07(int cmd, CScriptValue &local)
 			CBuffer tmp;
 
 			tmp.Apend(bp->GetPtr(), bp->GetSize());
-			dlen = EVP_MD_digest(EVP_sha1(), tmp.GetPtr(), tmp.GetSize(), key, EVP_MAX_MD_SIZE);
+			dlen = MD_digest(EVP_sha1(), tmp.GetPtr(), tmp.GetSize(), key, EVP_MAX_MD_SIZE);
 			tmp.Apend(key, dlen);
-			dlen += EVP_MD_digest(EVP_sha1(), tmp.GetPtr(), tmp.GetSize(), key + dlen, EVP_MAX_MD_SIZE);
+			dlen += MD_digest(EVP_sha1(), tmp.GetPtr(), tmp.GetSize(), key + dlen, EVP_MAX_MD_SIZE);
 
 			memset(iv, 0, sizeof(iv));
 
-			if ( cp->Init((LPCTSTR)local[0], (int)local[2], key, (-1), iv) )
+			if ( !cp->Init((LPCTSTR)local[0], (int)local[2], key, (-1), iv) )
 				(*acc).Empty();
 			else
 				(*acc) = (void *)cp;
@@ -5849,7 +5849,7 @@ int CScript::Func06(int cmd, CScriptValue &local)
 			u_char digest[EVP_MAX_MD_SIZE];
 
 			bp = local[0].GetBuf();
-			dlen = EVP_MD_digest((cmd == 3 ? EVP_md5() : EVP_sha1()), bp->GetPtr(), bp->GetSize(), digest, sizeof(digest));
+			dlen = MD_digest((cmd == 3 ? EVP_md5() : EVP_sha1()), bp->GetPtr(), bp->GetSize(), digest, sizeof(digest));
 
 			acc->m_Type = VALTYPE_TSTRING;
 			acc->m_Buf.Clear();

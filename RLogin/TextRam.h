@@ -656,9 +656,10 @@ public:
 	ULONGLONG m_MapSize;
 	ULONGLONG m_MapPage;
 
+	BOOL NewMap(int cols_max, int line_max, int his_max);
 	CCharCell *GetMapRam(int x, int y);
 
-	CMemMap(int cols_max, int line_max, int his_max);
+	CMemMap();
 	~CMemMap();
 };
 

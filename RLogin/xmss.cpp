@@ -30,10 +30,13 @@ is available under the CC0 1.0 Universal Public Domain Dedication.
 
 #include "stdafx.h"
 #include "RLogin.h"
+#include "MainFrm.h"
+#include "RLoginDoc.h"
+#include "RLoginView.h"
+#include "ssh.h"
+
 #include <stdlib.h>
 #include <string.h>
-#include <openssl/evp.h>
-#include <openssl/sha.h>
 
 #define	MAX_N		64
 #define	MAX_D		12
@@ -242,27 +245,33 @@ static unsigned long long bytes_to_ull(const unsigned char *in, unsigned int inl
 //////////////////////////////////////////////////////////////////////
 // fips202.c in shake128/256 -> openssl SHAKE128/256 
 
-void SHAKE128(const unsigned char *in, size_t inlen, unsigned char *md, size_t mdlen)
+static int shake_hash(const EVP_MD *evp_md, const unsigned char *in, size_t inlen, unsigned char *md, size_t mdlen)
 {
-	EVP_MD_CTX *md_ctx = EVP_MD_CTX_new();
-	if ( md_ctx == NULL ||
-	     EVP_DigestInit(md_ctx, EVP_shake128()) == 0 ||
-		 EVP_MD_CTX_ctrl(md_ctx, EVP_MD_CTRL_XOF_LEN, (int)mdlen, NULL) == 0 ||
-	     EVP_DigestUpdate(md_ctx, in, inlen) == 0 ||
-		 EVP_DigestFinal(md_ctx, md, NULL) )
-		throw _T("SHAKE128 Error");
-	EVP_MD_CTX_free(md_ctx);
-}
-void SHAKE256(const unsigned char *in, size_t inlen, unsigned char *md, size_t mdlen)
-{
-	EVP_MD_CTX *md_ctx = EVP_MD_CTX_new();
-	if ( md_ctx == NULL ||
-		 EVP_DigestInit(md_ctx, EVP_shake256()) == 0 ||
-		 EVP_MD_CTX_ctrl(md_ctx, EVP_MD_CTRL_XOF_LEN, (int)mdlen, NULL) == 0 ||
-		 EVP_DigestUpdate(md_ctx, in, inlen) == 0 ||
-		 EVP_DigestFinal(md_ctx, md, NULL) == 0 )
-		throw _T("SHAKE256 Error");
-	EVP_MD_CTX_free(md_ctx);
+	int rt = 0;
+	EVP_MD_CTX *md_ctx = NULL;
+
+	if ( (md_ctx = EVP_MD_CTX_new()) == NULL )
+		goto ENDOF;
+
+	if ( EVP_DigestInit(md_ctx, evp_md) <= 0 )
+		goto ENDOF;
+
+	if ( EVP_MD_CTX_ctrl(md_ctx, EVP_MD_CTRL_XOF_LEN, (int)mdlen, NULL) <= 0 )
+		goto ENDOF;
+
+	if ( EVP_DigestUpdate(md_ctx, in, inlen) <= 0 )
+		goto ENDOF;
+
+	if ( EVP_DigestFinal(md_ctx, md, NULL) <= 0 )
+		goto ENDOF;
+
+	rt = 1;
+
+ENDOF:
+	if ( md_ctx != NULL )
+		EVP_MD_CTX_free(md_ctx);
+
+	return rt;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -352,23 +361,26 @@ static int core_hash(const xmss_params *params,
                      unsigned char *out,
                      const unsigned char *in, unsigned long long inlen)
 {
-    if (params->n == 32 && params->func == XMSS_SHA2) {
-        SHA256(in, (size_t)inlen, out);
-    }
-    else if (params->n == 32 && params->func == XMSS_SHAKE) {
-        //shake128(out, 32, in, inlen);
-        SHAKE128(in, (size_t)inlen, out, 32);
-    }
-    else if (params->n == 64 && params->func == XMSS_SHA2) {
-        SHA512(in, (size_t)inlen, out);
-    }
-    else if (params->n == 64 && params->func == XMSS_SHAKE) {
-        //shake256(out, 64, in, inlen);
-        SHAKE256(in, (size_t)inlen, out, 64);
-    }
-    else {
+    if ( params->n == 32 && params->func == XMSS_SHA2 ) {
+        if ( SHA256(in, (size_t)inlen, out) == NULL )
+			return -1;
+
+    } else if ( params->n == 32 && params->func == XMSS_SHAKE ) {
+		if ( !shake_hash(EVP_shake128(), in, (size_t)inlen, out, 32) )
+			return -1;
+
+	} else if ( params->n == 64 && params->func == XMSS_SHA2 ) {
+        if ( SHA512(in, (size_t)inlen, out) == NULL )
+			return -1;
+
+    } else if ( params->n == 64 && params->func == XMSS_SHAKE ) {
+		if ( !shake_hash(EVP_shake256(), in, (size_t)inlen, out, 64) )
+			return -1;
+
+    } else {
         return -1;
     }
+
     return 0;
 }
 
@@ -1097,7 +1109,7 @@ static int treehash_minheight_on_stack(const xmss_params *params,
 static void treehash_init(const xmss_params *params,
                           unsigned char *node, int height, int index,
                           bds_state *state, const unsigned char *sk_seed,
-                          const unsigned char *pub_seed, const uint32_t addr[8])
+                          const unsigned char *pub_seed, const uint32_t addr[8], GENSTATUS *gs)
 {
     unsigned int idx = index;
     // use three different addresses because at this point we use all three formats in parallel
@@ -1113,13 +1125,19 @@ static void treehash_init(const xmss_params *params,
     copy_subtree_addr(node_addr, addr);
     set_type(node_addr, 2);
 
-    uint32_t lastnode, i;
+    uint32_t lastnode, i, div;
     unsigned char *stack = new unsigned char [(height+1)*params->n];
     unsigned int *stacklevels = new unsigned int [height+1];
     unsigned int stackoffset=0;
     unsigned int nodeh;
 
     lastnode = idx+(1<<height);
+
+	if ( gs != NULL ) {
+		div = lastnode / 512;
+		gs->max = lastnode / div;
+		gs->pos = 0;
+	}
 
     for (i = 0; i < params->tree_height-params->bds_k; i++) {
         state->treehash[i].h = (unsigned char)i;
@@ -1157,6 +1175,12 @@ static void treehash_init(const xmss_params *params,
             stackoffset--;
         }
         i++;
+
+		if ( gs != NULL ) {
+			if  ( gs->abort != 0 )
+				break;
+			gs->pos = i / div;
+		}
     }
 
     for (i = 0; i < params->n; i++) {
@@ -1400,7 +1424,7 @@ static void bds_round(const xmss_params *params,
  * Format pk: [root || PUB_SEED] omitting algo oid.
  */
 static int xmss_core_keypair(const xmss_params *params,
-                      unsigned char *pk, unsigned char *sk)
+                      unsigned char *pk, unsigned char *sk, GENSTATUS *gs)
 {
     uint32_t addr[8] = {0};
 
@@ -1425,11 +1449,14 @@ static int xmss_core_keypair(const xmss_params *params,
     memcpy(pk + params->n, sk + params->index_bytes + 2*params->n, params->n);
 
     // Compute root
-    treehash_init(params, pk, params->tree_height, 0, &state, sk + params->index_bytes, sk + params->index_bytes + 2*params->n, addr);
+    treehash_init(params, pk, params->tree_height, 0, &state, sk + params->index_bytes, sk + params->index_bytes + 2*params->n, addr, gs);
     // copy root o sk
     memcpy(sk + params->index_bytes + 3*params->n, pk, params->n);
 
-    /* Write the BDS state into sk. */
+	if ( gs != NULL && gs->abort != 0 )
+		return (-1);
+
+	/* Write the BDS state into sk. */
     xmss_serialize_state(params, sk, &state);
 
 	delete [] treehash;
@@ -1636,13 +1663,13 @@ static int xmssmt_core_keypair(const xmss_params *params,
     // Set up state and compute wots signatures for all but topmost tree root
     for (i = 0; i < params->d - 1; i++) {
         // Compute seed for OTS key pair
-        treehash_init(params, pk, params->tree_height, 0, states + i, sk+params->index_bytes, pk+params->n, addr);
+        treehash_init(params, pk, params->tree_height, 0, states + i, sk+params->index_bytes, pk+params->n, addr, NULL);
         set_layer_addr(addr, (i+1));
         get_seed(params, ots_seed, sk + params->index_bytes, addr);
         wots_sign(params, wots_sigs + i*params->wots_sig_bytes, pk, ots_seed, pk+params->n, addr);
     }
     // Address now points to the single tree on layer d-1
-    treehash_init(params, pk, params->tree_height, 0, states + i, sk+params->index_bytes, pk+params->n, addr);
+    treehash_init(params, pk, params->tree_height, 0, states + i, sk+params->index_bytes, pk+params->n, addr, NULL);
     memcpy(sk + params->index_bytes + 3*params->n, pk, params->n);
 
     xmssmt_serialize_state(params, sk, states);
@@ -2282,7 +2309,7 @@ int xmssmt_parse_oid(xmss_params *params, const uint32_t oid)
 identify the parameter set to be used. After setting the parameters accordingly
 it falls back to the regular XMSS core functions. */
 
-int xmss_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid)
+int xmss_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid, GENSTATUS *gs)
 {
     xmss_params params;
     unsigned int i;
@@ -2297,7 +2324,7 @@ int xmss_keypair(unsigned char *pk, unsigned char *sk, const uint32_t oid)
         i.e. not just for interoperability, but also for internal use. */
         sk[XMSS_OID_LEN - i - 1] = (oid >> (8 * i)) & 0xFF;
     }
-    return xmss_core_keypair(&params, pk + XMSS_OID_LEN, sk + XMSS_OID_LEN);
+    return xmss_core_keypair(&params, pk + XMSS_OID_LEN, sk + XMSS_OID_LEN, gs);
 }
 
 int xmss_sign(unsigned char *sk,
