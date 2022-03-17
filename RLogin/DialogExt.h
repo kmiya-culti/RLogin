@@ -70,7 +70,7 @@ public:
 	void InitItemOffset(const INITDLGTAB *pTab, int ox = 0, int oy = 0, int mx = 0, int my = 0);
 	virtual void SetItemOffset(int cx, int cy);
 	void SetBackColor(COLORREF color);
-	inline BOOL IsDefineFont() { return (m_FontName.IsEmpty() ? FALSE : TRUE); }
+	inline BOOL IsDefineFont() { return (m_FontName.IsEmpty() && m_FontSize == 9 ? FALSE : TRUE); }
 	BOOL GetSizeAndText(SIZE *pSize, CString &title, CWnd *pParent);
 	void AddShortCutKey(UINT MsgID, UINT KeyCode, UINT KeyWith, UINT CtrlID, WPARAM wParam);
 	void SubclassComboBox(int nID);

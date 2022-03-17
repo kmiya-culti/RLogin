@@ -60,6 +60,7 @@ static const struct _OptListTab {
 CExtOptPage::CExtOptPage() : CTreePage(CExtOptPage::IDD)
 {
 	m_InlineExt.Empty();
+	m_UrlOpt = _T("#EXTOPT");
 }
 CExtOptPage::~CExtOptPage()
 {

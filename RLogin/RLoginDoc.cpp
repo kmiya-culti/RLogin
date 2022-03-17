@@ -22,6 +22,7 @@
 #include "StatusDlg.h"
 #include "TraceDlg.h"
 #include "Script.h"
+#include "shlobj.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -782,6 +783,129 @@ void CRLoginDoc::SetMenu(CMenu *pMenu)
 		pMenu->CheckMenuItem(ThisId, MF_BYCOMMAND | MF_CHECKED);
 }
 
+typedef struct _CsidlTab {
+	LPCTSTR		name;
+	int			nid;
+} CSIDLTAB;
+
+static int CsidNameComp(const void *src, const void *dis)
+{
+	return _tcscmp((LPCTSTR)src, ((CSIDLTAB *)dis)->name);
+}
+LPCTSTR CRLoginDoc::GetSpecialFolder(LPCTSTR env)
+{
+	int n, nId;
+	BOOL ret = (-1);
+	CString str(env);
+	HMODULE hDLL;
+	BOOL	(CALLBACK* pSHGetSpecialFolderPath)(HWND,LPTSTR, int,BOOL);
+	HRESULT	(CALLBACK* pSHGetFolderPath)(HWND, int,HANDLE, DWORD,LPTSTR);
+	static TCHAR FolderPath[MAX_PATH];
+	static const TCHAR *pszDllFile[] = { _T("shell32.dll"), _T("shfolder.dll"), NULL};
+
+	#define	CSIDLTABMAX		76
+	static const CSIDLTAB CsidlTab[CSIDLTABMAX] = {
+		{ _T("ADMINTOOLS"),					CSIDL_ADMINTOOLS				},
+		{ _T("ALLUSERSADMINTOOLS"),			CSIDL_COMMON_ADMINTOOLS			},
+		{ _T("ALLUSERSALTSTARTUP"),			CSIDL_COMMON_ALTSTARTUP			},
+		{ _T("ALLUSERSAPPDATA"),			CSIDL_COMMON_APPDATA			},
+		{ _T("ALLUSERSDESKTOPDIRECTORY"),	CSIDL_COMMON_DESKTOPDIRECTORY	},
+		{ _T("ALLUSERSDOCUMENTS"),			CSIDL_COMMON_DOCUMENTS			},
+		{ _T("ALLUSERSFAVORITES"),			CSIDL_COMMON_FAVORITES			},
+		{ _T("ALLUSERSMUSIC"),				CSIDL_COMMON_MUSIC				},
+		{ _T("ALLUSERSOEM_LINKS"),			CSIDL_COMMON_OEM_LINKS			},
+		{ _T("ALLUSERSPICTURES"),			CSIDL_COMMON_PICTURES			},
+		{ _T("ALLUSERSPROGRAMS"),			CSIDL_COMMON_PROGRAMS			},
+		{ _T("ALLUSERSSTARTMENU"),			CSIDL_COMMON_STARTMENU			},
+		{ _T("ALLUSERSSTARTUP"),			CSIDL_COMMON_STARTUP			},
+		{ _T("ALLUSERSTEMPLATES"),			CSIDL_COMMON_TEMPLATES			},
+		{ _T("ALLUSERSVIDEO"),				CSIDL_COMMON_VIDEO				},
+		{ _T("ALTSTARTUP"),					CSIDL_ALTSTARTUP				},
+		{ _T("APPDATA"),					CSIDL_APPDATA					},
+		{ _T("BITBUCKET"),					CSIDL_BITBUCKET					},
+		{ _T("CDBURN_AREA"),				CSIDL_CDBURN_AREA				},
+		{ _T("COMMON_ADMINTOOLS"),			CSIDL_COMMON_ADMINTOOLS			},
+		{ _T("COMMON_ALTSTARTUP"),			CSIDL_COMMON_ALTSTARTUP			},
+		{ _T("COMMON_APPDATA"),				CSIDL_COMMON_APPDATA			},
+		{ _T("COMMON_DESKTOPDIRECTORY"),	CSIDL_COMMON_DESKTOPDIRECTORY	},
+		{ _T("COMMON_DOCUMENTS"),			CSIDL_COMMON_DOCUMENTS			},
+		{ _T("COMMON_FAVORITES"),			CSIDL_COMMON_FAVORITES			},
+		{ _T("COMMON_MUSIC"),				CSIDL_COMMON_MUSIC				},
+		{ _T("COMMON_OEM_LINKS"),			CSIDL_COMMON_OEM_LINKS			},
+		{ _T("COMMON_PICTURES"),			CSIDL_COMMON_PICTURES			},
+		{ _T("COMMON_PROGRAMS"),			CSIDL_COMMON_PROGRAMS			},
+		{ _T("COMMON_STARTMENU"),			CSIDL_COMMON_STARTMENU			},
+		{ _T("COMMON_STARTUP"),				CSIDL_COMMON_STARTUP			},
+		{ _T("COMMON_TEMPLATES"),			CSIDL_COMMON_TEMPLATES			},
+		{ _T("COMMON_VIDEO"),				CSIDL_COMMON_VIDEO				},
+		{ _T("COMPUTERSNEARME"),			CSIDL_COMPUTERSNEARME			},
+		{ _T("CONNECTIONS"),				CSIDL_CONNECTIONS				},
+		{ _T("CONTROLS"),					CSIDL_CONTROLS					},
+		{ _T("COOKIES"),					CSIDL_COOKIES					},
+		{ _T("DESKTOP"),					CSIDL_DESKTOP					},
+		{ _T("DESKTOPDIRECTORY"),			CSIDL_DESKTOPDIRECTORY			},
+		{ _T("DOCUMENTS"),					CSIDL_MYDOCUMENTS				},
+		{ _T("DRIVES"),						CSIDL_DRIVES					},
+		{ _T("FAVORITES"),					CSIDL_FAVORITES					},
+		{ _T("FONTS"),						CSIDL_FONTS						},
+		{ _T("HISTORY"),					CSIDL_HISTORY					},
+		{ _T("INTERNET_CACHE"),				CSIDL_INTERNET_CACHE			},
+		{ _T("INTERNET"),					CSIDL_INTERNET					},
+		{ _T("LOCAL_APPDATA"),				CSIDL_LOCAL_APPDATA				},
+		{ _T("MUSIC"),						CSIDL_MYMUSIC					},
+		{ _T("MYDOCUMENTS"),				CSIDL_MYDOCUMENTS				},
+		{ _T("MYMUSIC"),					CSIDL_MYMUSIC					},
+		{ _T("MYPICTURES"),					CSIDL_MYPICTURES				},
+		{ _T("MYVIDEO"),					CSIDL_MYVIDEO					},
+		{ _T("NETHOOD"),					CSIDL_NETHOOD					},
+		{ _T("NETWORK"),					CSIDL_NETWORK					},
+		{ _T("PERSONAL"),					CSIDL_PERSONAL					},
+		{ _T("PICTURES"),					CSIDL_MYPICTURES				},
+		{ _T("PRINTERS"),					CSIDL_PRINTERS					},
+		{ _T("PRINTHOOD"),					CSIDL_PRINTHOOD					},
+		{ _T("PROFILE"),					CSIDL_PROFILE					},
+		{ _T("PROGRAM_FILES_COMMON"),		CSIDL_PROGRAM_FILES_COMMON		},
+		{ _T("PROGRAM_FILES_COMMONX86"),	CSIDL_PROGRAM_FILES_COMMONX86	},
+		{ _T("PROGRAM_FILES"),				CSIDL_PROGRAM_FILES				},
+		{ _T("PROGRAM_FILESX86"),			CSIDL_PROGRAM_FILESX86			},
+		{ _T("PROGRAMS"),					CSIDL_PROGRAMS					},
+		{ _T("RECENT"),						CSIDL_RECENT					},
+		{ _T("RESOURCES_LOCALIZED"),		CSIDL_RESOURCES_LOCALIZED		},
+		{ _T("RESOURCES"),					CSIDL_RESOURCES					},
+		{ _T("SENDTO"),						CSIDL_SENDTO					},
+		{ _T("STARTMENU"),					CSIDL_STARTMENU					},
+		{ _T("STARTUP"),					CSIDL_STARTUP					},
+		{ _T("SYSTEM"),						CSIDL_SYSTEM					},
+		{ _T("SYSTEMX86"),					CSIDL_SYSTEMX86					},
+		{ _T("TEMPLATES"),					CSIDL_TEMPLATES					},
+		{ _T("VIDEO"),						CSIDL_MYVIDEO					},
+		{ _T("WINDOWS"),					CSIDL_WINDOWS					},
+	};
+
+	if ( !BinaryFind((void *)(LPCTSTR)str.MakeUpper(), (void *)CsidlTab, sizeof(CSIDLTAB), CSIDLTABMAX, CsidNameComp, &n) )
+		return NULL;
+
+	nId = CsidlTab[n].nid;
+
+	for ( n = 0 ; ret == (-1) && pszDllFile[n] != NULL ; n++ ) {
+		if ( (hDLL = ::LoadLibrary(pszDllFile[n])) != NULL ) {
+#ifdef	_UNICODE
+			if ( (*(FARPROC*)&pSHGetSpecialFolderPath = ::GetProcAddress(hDLL, "SHGetSpecialFolderPathW")) != NULL )
+				ret = pSHGetSpecialFolderPath(NULL, FolderPath, nId, FALSE) ? TRUE : FALSE;
+			else if ( (*(FARPROC*)&pSHGetFolderPath = ::GetProcAddress(hDLL, "SHGetFolderPathW")) != NULL )
+				ret = SUCCEEDED(pSHGetFolderPath(NULL, nId, NULL, SHGFP_TYPE_DEFAULT, FolderPath)) ? TRUE : FALSE;
+#else
+			if ( (*(FARPROC*)&pSHGetSpecialFolderPath = ::GetProcAddress(hDLL, "SHGetSpecialFolderPathA")) != NULL )
+				ret = pSHGetSpecialFolderPath(NULL, FolderPath, nId, FALSE) ? TRUE : FALSE;
+			else if ( (*(FARPROC*)&pSHGetFolderPath = ::GetProcAddress(hDLL, "SHGetFolderPathA")) != NULL )
+				ret = SUCCEEDED(pSHGetFolderPath(NULL, nId, NULL, SHGFP_TYPE_DEFAULT, FolderPath)) ? TRUE : FALSE;
+#endif
+			::FreeLibrary(hDLL);
+		}
+	}
+
+	return (ret == TRUE ? FolderPath : NULL);
+}
 void CRLoginDoc::EnvironText(CString &env, CString &str)
 {
 	int n;
@@ -822,7 +946,7 @@ void CRLoginDoc::EnvironText(CString &env, CString &str)
 			s = ((CRLoginApp *)::AfxGetApp())->m_ExecDir;
 		} else if ( env.CompareNoCase(_T("RLOGINPATH")) == 0 ) {
 			s = ((CRLoginApp *)::AfxGetApp())->m_PathName;
-		} else
+		} else if ( (s = GetSpecialFolder(env)) == NULL )
 			return;
 	}
 
@@ -1444,6 +1568,8 @@ void CRLoginDoc::LogInit()
 			exts = name.Mid(n);
 			name.Delete(n, exts.GetLength());
 		}
+
+		EntryText(dirs);
 
 		if ( !EntryText(name) ) {
 			name += _T("-%D");

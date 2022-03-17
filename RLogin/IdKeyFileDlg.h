@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DialogExt.h"
+#include "afxwin.h"
 
 /////////////////////////////////////////////////////////////////////////////
 // CIdKeyFileDlg ダイアログ
@@ -18,12 +19,13 @@ public:
 
 public:
 	CString	m_IdkeyFile;
-	CString	m_PassName;
-	CString	m_PassName2;
 	CStringLoad	m_Message;
+	CString	m_PassName;
+	BOOL m_bPassDisp;
 
 	int m_OpenMode;
 	CStringLoad m_Title;
+	TCHAR m_PassChar;
 
 // オーバーライド
 protected:
@@ -34,5 +36,6 @@ protected:
 // インプリメンテーション
 protected:
 	afx_msg void OnIdkeysel();
+	afx_msg void OnBnClickedPassdisp();
 	DECLARE_MESSAGE_MAP()
 };

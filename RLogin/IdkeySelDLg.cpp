@@ -469,6 +469,7 @@ void CIdkeySelDLg::OnIdkeyExport()
 	CIdKey *pKey = m_pIdKeyTab->GetUid(m_Data[n]);
 	CIdKeyFileDlg dlg;
 	CStringLoad msg(IDS_IDKEYFILESAVECOM);
+	CString finger;
 
 	if ( pKey == NULL )
 		return;
@@ -481,9 +482,11 @@ void CIdkeySelDLg::OnIdkeyExport()
 	if ( pKey->m_Type == IDKEY_XMSS && m_ExportStyle != EXPORT_STYLE_OPENSSH )
 		MessageBox(CStringLoad(IDS_XMSSSAVEFORMAT), _T("Warning"), MB_ICONWARNING);
 
+	pKey->FingerPrint(finger, SSHFP_DIGEST_SHA256, SSHFP_FORMAT_SIMPLE);
+
 	dlg.m_OpenMode = 2;
 	dlg.m_Title.LoadString(IDS_IDKEYFILESAVE);
-	dlg.m_Message.Format(_T("%s\n\n%s(%d) %s"), msg, pKey->GetName(), pKey->GetSize(), pKey->m_Name);
+	dlg.m_Message.Format(_T("%s\n\n%s(%d) %s\n%32.32s..."), msg, pKey->GetName(), pKey->GetSize(), pKey->m_Name, finger);
 
 	if ( dlg.DoModal() != IDOK )
 		return;

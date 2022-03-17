@@ -31,6 +31,7 @@ CMousePage::CMousePage() : CTreePage(CMousePage::IDD)
 	m_DropMode = 0;
 	m_CmdWork = _T("");
 	m_MouseOnTab = 0;
+	m_UrlOpt = _T("#MOUSEOPT");
 }
 
 CMousePage::~CMousePage()

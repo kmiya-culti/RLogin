@@ -204,7 +204,7 @@ public:
 
 	void RegistryEscapeStr(LPCTSTR str, int len, CString &out);
 	BOOL SaveRegistryKey(HKEY hKey, CFile *file, LPCTSTR base);
-	BOOL SaveRegistryFile();
+	int SaveRegistryFile();
 
 	LANGID GetLangId();
 	void GetVersion(CString &str);

@@ -30,6 +30,7 @@ CTreePage::CTreePage(UINT nIDTemplate)
 	m_pSheet = NULL;
 	m_hTreeItem = NULL;
 	m_pOwn = NULL;
+	m_UrlOpt = NULL;
 
 	SetBackColor(GetSysColor(COLOR_WINDOW));
 }
@@ -226,6 +227,7 @@ BEGIN_MESSAGE_MAP(COptDlg, CDialogExt)
 	ON_NOTIFY(TVN_SELCHANGED, IDC_TABTREE, &COptDlg::OnSelchangedTree)
 	ON_BN_CLICKED(IDC_DOINIT, &COptDlg::OnDoInit)
 	ON_BN_CLICKED(ID_APPLY_NOW, &COptDlg::OnApplyNow)
+	ON_BN_CLICKED(IDC_HELPBTN, &COptDlg::OnBnClickedHelpbtn)
 END_MESSAGE_MAP()
 
 void COptDlg::DoDataExchange(CDataExchange* pDX)
@@ -249,6 +251,7 @@ static const INITDLGTAB ItemTab[] = {
 	{ IDOK,				ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
 	{ IDCANCEL,			ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
 	{ ID_APPLY_NOW,		ITM_LEFT_MID | ITM_RIGHT_MID | ITM_TOP_BTM | ITM_BTM_BTM },
+	{ IDC_HELPBTN,		ITM_TOP_BTM | ITM_BTM_BTM },
 	{ IDC_TABTREE,		ITM_BTM_BTM },
 	{ IDC_FRAME,		ITM_RIGHT_RIGHT | ITM_BTM_BTM },
 	{ 0,				0 },
@@ -332,7 +335,7 @@ BOOL COptDlg::OnInitDialog()
 	cy = size.cy - rect.Height();
 	frame.right  += cx;
 	frame.bottom += cy;
-	MoveWindow(frame, FALSE);
+	MoveWindow(frame, TRUE);
 
 	// リサイズテーブル削除
 	m_InitDlgRect.RemoveAll();
@@ -340,9 +343,12 @@ BOOL COptDlg::OnInitDialog()
 	if ( (m_psh.dwFlags & PSH_NOAPPLYNOW) != 0 && (pWnd = GetDlgItem(ID_APPLY_NOW)) != NULL )
 		pWnd->ShowWindow(SW_HIDE);
 
-	if ( (pWnd = GetDlgItem(IDC_FRAME)) != NULL ) {
-		pWnd->GetWindowPlacement(&place);
+	if ( m_Frame.GetWindowPlacement(&place) )
 		ItemOfs[0] = place.rcNormalPosition;
+	else {
+		m_Frame.GetClientRect(ItemOfs[0]);
+		m_Frame.ClientToScreen(ItemOfs[0]);
+		ScreenToClient(ItemOfs[0]);
 	}
 
 	for ( n = 0 ; n < GetPageCount() ; n++ ) {
@@ -371,6 +377,9 @@ BOOL COptDlg::OnInitDialog()
 
 	// CharSetPageの初期化が遅いので先に作成
 	CreatePage(10);
+
+	m_toolTip.Create(this, TTS_ALWAYSTIP | TTS_BALLOON);
+    m_toolTip.AddTool(GetDlgItem(IDC_HELPBTN), IDS_OPTIONHELPMSG);
 
 	return FALSE;
 }
@@ -454,4 +463,21 @@ void COptDlg::OnSelchangedTree(NMHDR *pNMHDR, LRESULT *pResult)
 		m_Tree.SetFocus();
 	}
 }
+void COptDlg::OnBnClickedHelpbtn()
+{
+	CTreePage *pPage;
+	CStringLoad url(IDS_OPTIONHELPURL);
 
+	if ( m_ActivePage >= 0 && (pPage = GetPage(m_ActivePage)) != NULL && pPage->m_UrlOpt != NULL )
+		url += pPage->m_UrlOpt;
+
+	ShellExecute(AfxGetMainWnd()->GetSafeHwnd(), NULL, url, NULL, NULL, SW_NORMAL);
+}
+BOOL COptDlg::PreTranslateMessage(MSG* pMsg)
+{
+	if ( pMsg->message == WM_MOUSEMOVE && pMsg->hwnd == GetDlgItem(IDC_HELPBTN)->m_hWnd ) {
+		m_toolTip.RelayEvent(pMsg);
+        return TRUE;
+    }
+	return CDialogExt::PreTranslateMessage(pMsg);
+}

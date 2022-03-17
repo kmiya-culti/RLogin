@@ -258,6 +258,11 @@
 #define IDS_SCRIPTDLGSTEP               647
 #define IDS_KNOWNHOSTDELMSG             648
 #define IDS_XMSSSAVEFORMAT              649
+#define IDS_VERCHKDISABLE               650
+#define IDS_VERCHKENABLE                651
+#define IDS_VERCHKLATEST                652
+#define IDS_OPTIONHELPURL               653
+#define IDS_OPTIONHELPMSG               654
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -301,6 +306,7 @@
 #define IDE_ENTRYUPDATEEERROR           740
 #define IDE_OPTFIXDEEPENTRY             741
 #define IDE_OPTFIXNOTFOUND              742
+#define IDE_VERCHKERROR                 743
 #define IDT_EXTOPT_LIST01               800
 #define IDT_EXTOPT_LIST02               801
 #define IDT_EXTOPT_LIST03               802
@@ -870,6 +876,7 @@
 #define IDC_REGEXSERCH                  2382
 #define IDC_FONTSAMPLE                  2383
 #define IDC_PREVIEWBOX                  2384
+#define IDC_REGEXSERCH2                 2384
 #define IDC_SCROLLBAR1                  2385
 #define IDC_FONTSET                     2386
 #define IDC_DISPSET                     2387
@@ -1010,6 +1017,8 @@
 #define IDC_NEXTPOS                     2513
 #define IDC_VOICERATE                   2514
 #define IDC_VOICEDESC                   2515
+#define IDC_PASSDISP                    2516
+#define IDC_HELPBTN                     2517
 #define IDM_BROADCAST                   5000
 #define IDM_CAP_CLIPBORD                5001
 #define IDM_CAP_EXPORT                  5002
@@ -1156,7 +1165,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        170
 #define _APS_NEXT_COMMAND_VALUE         5150
-#define _APS_NEXT_CONTROL_VALUE         2516
-#define _APS_NEXT_SYMED_VALUE           650
+#define _APS_NEXT_CONTROL_VALUE         2518
+#define _APS_NEXT_SYMED_VALUE           655
 #endif
 #endif

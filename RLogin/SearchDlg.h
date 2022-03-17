@@ -23,7 +23,9 @@ public:
 	CComboBoxHis m_SearchCombo;
 	CString m_SearchStr;
 	CProgressCtrl m_Prog;
-	BOOL m_bRegExSerch;
+	int m_SerchMode;
+	BOOL m_RegEscChar;
+	BOOL m_RegNoCase;
 	UINT_PTR m_TimerId;
 
 // クラスデータ

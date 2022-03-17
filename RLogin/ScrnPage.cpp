@@ -36,6 +36,7 @@ CScrnPage::CScrnPage() : CTreePage(CScrnPage::IDD)
 	m_CaretColor = RGB(0, 0, 0);
 	m_TitleName.Empty();
 	m_SleepMode = 0;
+	m_UrlOpt = _T("#SCREENOPT");
 }
 
 CScrnPage::~CScrnPage()

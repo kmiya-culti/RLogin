@@ -373,6 +373,7 @@ public:
 	CScriptValue *m_ExecLocal;
 	CodeStack *m_CodeStack;
 	class CScript *m_pNext;
+	CString m_FormatStr;
 
 	int	InChar(int ch, CHAR *ptn);
 	int	StrBin(int mx, const CHAR *ptn[], LPCSTR str);
@@ -381,7 +382,7 @@ public:
 	void UnGetChar(int ch);
 
 	int LexDigit(int ch);
-	int LexEscape(int ch);
+	int LexEscape(int ch, CStringW *save);
 	CScriptLex *Lex();
 	int LexAdd(CScriptLex *lex);
 
@@ -424,6 +425,8 @@ public:
 	void CodeStackPush(BOOL use, LPCTSTR name = NULL);
 	void CodeStackPop();
 	int TekStyle(int idx, CScriptValue &local);
+
+	LPCTSTR Format(CScriptValue &local, int base);
 
 	int ComFunc(int cmd, CScriptValue &local);
 	int TextWnd(int cmd, CScriptValue &local);
@@ -481,6 +484,7 @@ public:
 	CBuffer m_SockBuff;
 	int m_RegMatch;
 	CPtrArray m_RegData;
+	int m_RegFlag;
 	BOOL m_bConsOut;
 	BOOL m_bAbort;
 	volatile BOOL m_bInit;

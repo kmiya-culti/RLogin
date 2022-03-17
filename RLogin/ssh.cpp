@@ -156,14 +156,6 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 			m_pAgentMutex = NULL;
 		}
 
-		//CStringA tmp;
-		//CCipher::BenchMark(tmp);
-		//CExtSocket::OnReceiveCallBack((void *)(LPCSTR)tmp, tmp.GetLength(), 0);
-
-		//CStringA tmp;
-		//CMacomp::BenchMark(tmp);
-		//CExtSocket::OnReceiveCallBack((void *)(LPCSTR)tmp, tmp.GetLength(), 0);
-
 		if ( !m_pDocument->m_ServerEntry.m_IdkeyName.IsEmpty() ) {
 			CString fileName(m_pDocument->m_ServerEntry.m_IdkeyName);
 			m_pDocument->EntryText(fileName);
@@ -173,10 +165,8 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 				dlg.m_Title.LoadString(IDS_SSH_PASS_TITLE);		// = _T("SSH鍵ファイルの読み込み");
 				dlg.m_Message.LoadString(IDS_SSH_PASS_MSG);		// = _T("作成時に設定したパスフレーズを入力してください");
 				dlg.m_IdkeyFile = fileName;
-				if ( dlg.DoModal() != IDOK ) {
-					//m_pDocument->m_ServerEntry.m_IdkeyName.Empty();
+				if ( dlg.DoModal() != IDOK )
 					return FALSE;
-				}
 				if ( !IdKey.LoadPrivateKey(dlg.m_IdkeyFile, dlg.m_PassName) ) {
 					AfxMessageBox(CStringLoad(IDE_IDKEYLOADERROR));
 					return FALSE;
@@ -222,15 +212,6 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 					continue;
 
 				// 追加せずに置き換えに変更 2021.11.05
-
-				//IdKey = m_IdKeyTab[n];
-				//IdKey.m_Type &= IDKEY_TYPE_MASK;	// unsupported cert
-				//IdKey.m_Cert = 0;
-
-				//IdKey.m_RsaNid = (m_pDocument->m_ParamTab.m_RsaExt == 1 ? NID_sha256 : NID_sha512);
-				//m_IdKeyTab.InsertAt(n, IdKey);
-				//n++;
-
 				m_IdKeyTab[n].m_Type &= IDKEY_TYPE_MASK;
 				m_IdKeyTab[n].m_Cert = 0;
 				m_IdKeyTab[n].m_RsaNid = (m_pDocument->m_ParamTab.m_RsaExt == 1 ? NID_sha256 : NID_sha512);

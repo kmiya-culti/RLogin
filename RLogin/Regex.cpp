@@ -437,18 +437,15 @@ CRegExWork::~CRegExWork(void)
 //////////////////////////////////////////////////////////////////////
 // CRegEx
 
-CRegEx::CRegEx(void)
+CRegEx::CRegEx()
 {
-	m_NodeTop = m_NodeFree = m_NodeHead = NULL;
-	m_QueTop  = m_QueFree  = NULL;
-	m_QueHead[0] = m_QueHead[1] = m_QueHead[2] = NULL;
-	m_WorkTop = m_WorkFree = m_WorkHead = NULL;
-	m_WorkSeq = 0;
-	m_CompStrBuf = NULL;
-	m_ErrMsg.Empty();
+	Init(REG_FLAG_REGEX | REG_FLAG_ESCCHAR);
 }
-
-CRegEx::~CRegEx(void)
+CRegEx::CRegEx(int CompleFlag)
+{
+	Init(CompleFlag);
+}
+CRegEx::~CRegEx()
 {
 	CRegExNode *np;
 	CRegExQue *qp;
@@ -476,6 +473,17 @@ CRegEx::~CRegEx(void)
 	}
 }
 
+void CRegEx::Init(int CompleFlag)
+{
+	m_NodeTop = m_NodeFree = m_NodeHead = NULL;
+	m_QueTop  = m_QueFree  = NULL;
+	m_QueHead[0] = m_QueHead[1] = m_QueHead[2] = NULL;
+	m_WorkTop = m_WorkFree = m_WorkHead = NULL;
+	m_WorkSeq = 0;
+	m_CompStrBuf = NULL;
+	m_ErrMsg.Empty();
+	m_CompleFlag = CompleFlag;
+}
 void CRegEx::InitChar(LPCTSTR str)
 {
 	COMPSTRBUF *cp = new COMPSTRBUF;
@@ -890,7 +898,6 @@ CRegExNode *CRegEx::CompileSub(DCHAR endc)
 	DCHAR ch, nx;
 	CRegExNode tmp;
 	CRegExNode *lp, *rp, *tp, *np;
-	CRegExNode *pLast = NULL;
 	int noMore;
 
 	rp = &tmp;
@@ -1054,12 +1061,32 @@ CRegExNode *CRegEx::CompileSub(DCHAR endc)
 			break;
 
 		case L'(':
-			n = 000;
+			n = 0000;
 			if ( (ch = GetChar()) == L'?' ) {
-				if ( (ch = GetChar()) == L':' ) {
-					n = 020;
+				if ( (ch = GetChar()) == L'i' ) {
+					if ( (ch = GetChar()) == L')' ) {
+						lp = NULL;
+						rp->m_Left = AllocNode(RGE_NOCASE);
+						rp = rp->m_Left;
+						break;
+					}
+					n |= 0100;
+				} else if ( ch == L'-' ) {
+					if ( (ch = GetChar()) != L'i' )
+						throw _T("RegEx syntax error\n((?-... this suppert character \"i\"");
+					if ( (ch = GetChar()) == L')' ) {
+						lp = NULL;
+						rp->m_Left = AllocNode(RGE_CASE);
+						rp = rp->m_Left;
+						break;
+					}
+					n |= 0200;
+				}
+
+				if ( ch == L':' ) {
+					n |= 020;
 				} else if ( ch == L'>' ) {
-					n = 040;
+					n |= 040;
 				} else {
 					if ( ch == L'<' ) {
 						n |= 010;
@@ -1070,8 +1097,8 @@ CRegExNode *CRegEx::CompileSub(DCHAR endc)
 					else if ( ch == L'!' )
 						n |= 002;
 					else {
+						n &= ~010;
 						UnGetChar(ch);
-						n = 000;
 					}
 				}
 			} else if ( ch == L'#' ) {
@@ -1088,6 +1115,16 @@ CRegExNode *CRegEx::CompileSub(DCHAR endc)
 			rp->m_Left = AllocNode(RGE_GROUPSTART);
 			rp->m_Left->m_EChar = m_Arg++;
 			m_ArgStack.AddHead(rp->m_Left->m_EChar);
+			switch(n & 0700) {
+			case 0100:	// (?i...)
+				rp->m_Left->m_Left = AllocNode(RGE_NOCASE);
+				rp = rp->m_Left;
+				break;
+			case 0200:	// (?-i...)
+				rp->m_Left->m_Left = AllocNode(RGE_CASE);
+				rp = rp->m_Left;
+				break;
+			}
 			rp->m_Left->m_Left = CompileSub(')');
 			if ( (n & 002) != 0 )
 				CompileReverse(rp->m_Left->m_Left);
@@ -1095,7 +1132,7 @@ CRegExNode *CRegEx::CompileSub(DCHAR endc)
 				rp = rp->m_Left;
 			m_ArgStack.RemoveHead();
 			rp->m_Left = AllocNode(RGE_GROUPEND);
-			switch(n) {
+			switch(n & 0077) {
 			case 001:	// ...(?=...)
 			case 002:	// ...(?!...)
 				rp->m_Left->m_EChar = REG_BLOCK_RIGHT;
@@ -1130,16 +1167,16 @@ CRegExNode *CRegEx::CompileSub(DCHAR endc)
 			break;
 
 		case L'|':
-			// -(b)-   -(b)-
-			//   +- [a]--+
+			// -(b)-[c]-(b)-
+			//   +- [a] -+
 			tp = AllocNode(RGE_BRANCHES);
 			tp->m_Right = tmp.m_Left;
 			tmp.m_Left = tp;
-			if ( pLast == NULL )
-				pLast = AllocNode(RGE_BRANCHES);
-			rp->m_Left = pLast;
-			lp = NULL;
-			rp = tp;
+			tp->m_Left = CompileSub(EOF);
+			while ( tp->m_Left != NULL )
+				tp = tp->m_Left;
+			tp->m_Left = rp->m_Left = AllocNode(RGE_BRANCHES);
+			rp = rp->m_Left;
 		    break;
 
 		CHARMATCH:
@@ -1154,9 +1191,6 @@ CRegExNode *CRegEx::CompileSub(DCHAR endc)
 
 	if ( ch != endc && endc != EOF )
 		throw _T("RegEx syntax error\n(... no end to character list \")\"");
-
-	if ( pLast != NULL )
-		rp->m_Left = pLast;
 
 	return tmp.m_Left;
 }
@@ -1176,6 +1210,9 @@ CRegExNode *CRegEx::CompleInline(CRegExNode *rp, LPCTSTR str)
 BOOL CRegEx::Compile(LPCTSTR str)
 {
 	CRegExNode *np;
+
+	if ( m_CompleFlag != (REG_FLAG_REGEX | REG_FLAG_ESCCHAR) )
+		str = SimpleRegEx(str, m_CompleFlag);
 
 	m_Arg = 1;
 	m_ArgStack.RemoveAll();
@@ -1226,6 +1263,109 @@ BOOL CRegEx::IsSimple()
 
 	return TRUE;
 }
+LPCTSTR CRegEx::SimpleRegEx(LPCTSTR str, int flag)
+{
+	LPCTSTR p;
+	static CString tmp;
+
+	tmp.Empty();
+
+	switch(flag & REG_FLAG_MODEMASK) {
+	case REG_FLAG_SIMPLE:
+		if ( (flag & REG_FLAG_NOCASE) != 0 )
+			tmp += _T("(?i)");
+		for ( p = str ; *p != _T('\0') ; ) {
+			if ( *p == _T('\\') ) {
+				if ( (flag & REG_FLAG_ESCCHAR) == 0 )
+					tmp += *p;
+				tmp += *(p++);
+				if ( *p != _T('\0') && (flag & REG_FLAG_ESCCHAR) != 0 )
+					tmp += *(p++);
+			} else if ( *p == _T('%') && (flag & REG_FLAG_ESCPAR) != 0 ) {
+				if ( p[1] == _T('%') )
+					tmp += *(p++);
+				else
+					tmp += _T('\\');
+				p++;
+			} else if ( _tcschr(_T("^$.+*?[({|"), *p) != NULL ) {
+				tmp += _T('\\');
+				tmp += *(p++);
+			} else if ( *p < _T(' ') ) {
+				tmp += _T('\\');
+				tmp += (TCHAR)(_T('0') + ((*p >> 6) & 7));
+				tmp += (TCHAR)(_T('0') + ((*p >> 3) & 7));
+				tmp += (TCHAR)(_T('0') + (*(p++) & 7));
+			} else
+				tmp += *(p++);
+		}
+		break;
+
+	case REG_FLAG_WILDCARD:
+		if ( (flag & REG_FLAG_NOCASE) != 0 )
+			tmp += _T("(?i)");
+		for ( p = str ; *p != _T('\0') ; ) {
+			if ( *p == _T('\\') ) {
+				if ( (flag & REG_FLAG_ESCCHAR) == 0 )
+					tmp += *p;
+				tmp += *(p++);
+				if ( *p != _T('\0') && (flag & REG_FLAG_ESCCHAR) != 0 )
+					tmp += *(p++);
+			} else if ( *p == _T('%') && (flag & REG_FLAG_ESCPAR) != 0 ) {
+				if ( p[1] == _T('%') )
+					tmp += *(p++);
+				else
+					tmp += _T('\\');
+				p++;
+			} else if ( *p == _T('*') ) {
+				tmp += _T(".");
+				tmp += *(p++);
+				tmp += _T("?");
+			} else if ( *p == _T('?') ) {
+				tmp += _T(".");
+				p++;
+			} else if ( _tcschr(_T("^$.+[({|"), *p) != NULL ) {
+				tmp += _T('\\');
+				tmp += *(p++);
+			} else if ( *p < _T(' ') ) {
+				tmp += _T('\\');
+				tmp += (TCHAR)(_T('0') + ((*p >> 6) & 7));
+				tmp += (TCHAR)(_T('0') + ((*p >> 3) & 7));
+				tmp += (TCHAR)(_T('0') + (*(p++) & 7));
+			} else
+				tmp += *(p++);
+		}
+		break;
+
+	default:	// REG_FLAG_REGEX:
+		if ( (flag & REG_FLAG_NOCASE) != 0 )
+			tmp += _T("(?i)");
+		for ( p = str ; *p != _T('\0') ; ) {
+			if ( *p == _T('\\') ) {
+				if ( (flag & REG_FLAG_ESCCHAR) == 0 )
+					tmp += *p;
+				tmp += *(p++);
+				if ( *p != _T('\0') && (flag & REG_FLAG_ESCCHAR) != 0 )
+					tmp += *(p++);
+			} else if ( *p == _T('%') && (flag & REG_FLAG_ESCPAR) != 0 ) {
+				if ( p[1] == _T('%') )
+					tmp += *(p++);
+				else
+					tmp += _T('\\');
+				p++;
+			} else if ( *p < _T(' ') ) {
+				tmp += _T('\\');
+				tmp += (TCHAR)(_T('0') + ((*p >> 6) & 7));
+				tmp += (TCHAR)(_T('0') + ((*p >> 3) & 7));
+				tmp += (TCHAR)(_T('0') + (*(p++) & 7));
+			} else
+				tmp += *(p++);
+		}
+		break;
+	}
+
+	return tmp;
+}
+
 void CRegEx::AddQue(int sw, CRegExNode *np, CRegExWork *wp, int Flag)
 {
 	CRegExQue *qp;
@@ -1407,6 +1547,16 @@ void CRegEx::MatchCharInit()
 		m_WorkFree = wp;
 	}
 }
+DCHAR CRegEx::RevLowerUpeer(DCHAR ch)
+{
+	if ( IsWchar(ch) && iswascii((WCHAR)ch) ) {
+		if ( iswlower((WCHAR)ch) )
+			return (DCHAR)towupper((WCHAR)ch);
+		else if ( iswupper((WCHAR)ch) )
+			return (DCHAR)towlower((WCHAR)ch);
+	}
+	return 0;
+}
 BOOL CRegEx::MatchChar(DCHAR ch, int idx, CRegExRes *res)
 {
 	int i, Pos, Que;
@@ -1417,6 +1567,7 @@ BOOL CRegEx::MatchChar(DCHAR ch, int idx, CRegExRes *res)
 	CRegExWork *whp = NULL;
 	CRegExWork *wop = NULL;
 	int Flag;
+	DCHAR sch;
 
 	if ( m_NodeHead == NULL ) {
 		if ( res != NULL ) {
@@ -1483,6 +1634,7 @@ BOOL CRegEx::MatchChar(DCHAR ch, int idx, CRegExRes *res)
 				wp->m_Work[i].m_FrArg.RemoveAll();
 				wp->m_Work[i].m_BkArg.RemoveAll();
 				wp->m_Work[i].m_Done = FALSE;
+				wp->m_Work[i].m_Flag = Flag;
 
 				AddQue(Que, np->m_Left, wp, Flag);
 				break;
@@ -1491,6 +1643,7 @@ BOOL CRegEx::MatchChar(DCHAR ch, int idx, CRegExRes *res)
 				wp->m_Work[i].m_EPos = wp->m_Pos + Que;
 				wp->m_Work[i].m_Done = TRUE;
 				wp->m_Work[i].m_Del = (np->m_EChar == REG_BLOCK_STD ? FALSE : TRUE);
+				Flag = wp->m_Work[i].m_Flag;
 
 				while ( !wp->m_Work[i].m_FrArg.IsEmpty() ) {
 					Pos = wp->m_Work[i].m_FrArg.RemoveHead();
@@ -1604,12 +1757,20 @@ BOOL CRegEx::MatchChar(DCHAR ch, int idx, CRegExRes *res)
 					AddQue(2, np, wp, Flag);
 				else if ( ch >= np->m_SChar && ch <= np->m_EChar && (np->m_Map[(ch - np->m_SChar) / REG_MAPBITS] & (1 << ((ch - np->m_SChar) % REG_MAPBITS))) != 0 )
 					AddQue(1, np->m_Left, wp, Flag);
+				else if ( (Flag & REG_NQFLAG_NOCASE) != 0 && (sch = RevLowerUpeer(ch)) != 0 ) {
+					if ( sch >= np->m_SChar && sch <= np->m_EChar && (np->m_Map[(sch - np->m_SChar) / REG_MAPBITS] & (1 << ((sch - np->m_SChar) % REG_MAPBITS))) != 0 )
+						AddQue(1, np->m_Left, wp, Flag);
+				}
 				break;
 			case RGE_NEGMAP:
 				if ( Que > 0 )
 					AddQue(2, np, wp, Flag);
 				else if ( ch < np->m_SChar || ch > np->m_EChar || (np->m_Map[(ch - np->m_SChar) / REG_MAPBITS] & (1 << ((ch - np->m_SChar) % REG_MAPBITS))) == 0 )
 					AddQue(1, np->m_Left, wp, Flag);
+				else if ( (Flag & REG_NQFLAG_NOCASE) != 0 && (sch = RevLowerUpeer(ch)) != 0 ) {
+					if ( sch < np->m_SChar || sch > np->m_EChar || (np->m_Map[(sch - np->m_SChar) / REG_MAPBITS] & (1 << ((sch - np->m_SChar) % REG_MAPBITS))) == 0 )
+						AddQue(1, np->m_Left, wp, Flag);
+				}
 				break;
 
 			case RGE_RANGECHAR:
@@ -1622,6 +1783,14 @@ BOOL CRegEx::MatchChar(DCHAR ch, int idx, CRegExRes *res)
 					}
 					if ( ip != NULL )
 						AddQue(1, np->m_Left, wp, Flag);
+					else if ( (Flag & REG_NQFLAG_NOCASE) != 0 && (sch = RevLowerUpeer(ch)) != 0 ) {
+						for ( ip = np ; ip != NULL ; ip = ip->m_Right ) {
+							if ( sch >= ip->m_SChar && sch <= ip->m_EChar )
+								break;
+						}
+						if ( ip != NULL )
+							AddQue(1, np->m_Left, wp, Flag);
+					}
 				}
 				break;
 			case RGE_NEGCHAR:
@@ -1634,7 +1803,24 @@ BOOL CRegEx::MatchChar(DCHAR ch, int idx, CRegExRes *res)
 					}
 					if ( ip == NULL )
 						AddQue(1, np->m_Left, wp, Flag);
+					else if ( (Flag & REG_NQFLAG_NOCASE) != 0 && (sch = RevLowerUpeer(ch)) != 0 ) {
+						for ( ip = np ; ip != NULL ; ip = ip->m_Right ) {
+							if ( sch >= ip->m_SChar && sch <= ip->m_EChar )
+								break;
+						}
+						if ( ip == NULL )
+							AddQue(1, np->m_Left, wp, Flag);
+					}
 				}
+				break;
+
+			case RGE_NOCASE:
+				Flag |= REG_NQFLAG_NOCASE;
+				AddQue(Que, np->m_Left, wp, Flag);
+				break;
+			case RGE_CASE:
+				Flag &= ~REG_NQFLAG_NOCASE;
+				AddQue(Que, np->m_Left, wp, Flag);
 				break;
 			}
 		}

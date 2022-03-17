@@ -8,37 +8,9 @@
 <!--
 TD {
 				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
 		background-color : #ffffff; font-size : 90%; 
 }
 .BOX{
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
-				
 				
 		background-color : silver; 
 }
@@ -55,8 +27,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.26.8)</TD>
-            <TD width="20%" align="right">2022/02/28</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.26.9)</TD>
+            <TD width="20%" align="right">2022/03/18</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -406,22 +378,40 @@ TD {
                 </TR>
               </TBODY>
             </TABLE>
-            <BR>
-            現在nanno.dip.jpがアクセス出来ない状態が続いています<BR>
-            実行プログラムのダウンロードなどは、<A href="https://github.com/kmiya-culti/RLogin">GitHub</A>から可能です</TD>
+            </TD>
             <TD valign="top" align="left"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="120" height="120" border="0"></A></TD>
           </TR>
           <TR>
             <TD colspan="2">
-            <TABLE cellpadding="5" cellspacing="0">
+            <TABLE cellpadding="5" cellspacing="0" width="900">
               <TBODY>
+                <TR>
+                  <TD colspan="3">実行プログラムやソースファイルは、すべてZIPで圧縮しています。解凍してからご利用ください</TD>
+                </TR>
                 <TR>
                   <TD>GitHubからダウンロード</TD>
                   <TD><A href="https://github.com/kmiya-culti/RLogin/releases/">https://github.com/kmiya-culti/RLogin/releases/</A></TD>
+                  <TD></TD>
                 </TR>
                 <TR>
                   <TD>バグ報告や機能の要望</TD>
                   <TD><A href="https://github.com/kmiya-culti/RLogin/issues">https://github.com/kmiya-culti/RLogin/issues</A></TD>
+                  <TD></TD>
+                </TR>
+                <TR>
+                  <TD>実行プログラム(32bit)</TD>
+                  <TD><A href="http://nanno.bf1.jp/softlib/program/rlogin.zip">http://nanno.bf1.jp/softlib/program/rlogin.zip</A></TD>
+                  <TD>Windows XP以降</TD>
+                </TR>
+                <TR>
+                  <TD>実行プログラム(64bit)</TD>
+                  <TD><A href="http://nanno.bf1.jp/softlib/program/rlogin_x64.zip">http://nanno.bf1.jp/softlib/program/rlogin_x64.zip</A></TD>
+                  <TD>Windows 7以降</TD>
+                </TR>
+                <TR>
+                  <TD>ソースファイル(<A href="https://github.com/kmiya-culti/RLogin">GitHub)</A></TD>
+                  <TD><A href="http://nanno.bf1.jp/softlib/source/rlogin.zip">http://nanno.bf1.jp/softlib/source/rlogin.zip</A></TD>
+                  <TD>Microsoft Visual Studio 2010</TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -443,6 +433,23 @@ TD {
       <BR>
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
+          <TR>
+            <TD align="center">2022/03/18</TD>
+            <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.26.9/">2.26.9</A></TD>
+            <TD>特殊文字の環境変数でWindowsの特殊フォルダを含めるように変更<BR>
+            Scriptの基本関数にhex/octなどを追加<BR>
+            Scriptの文字列関数にgetenv/getdoc/strcmpなどを追加<BR>
+            Scriptの文字列変換関数にsha256/sha512/tolowerなどを追加<BR>
+            Scriptのフォーマット関数にfprintf/cprintf/tprintfを追加<BR>
+            Scriptの文字列定数に「'...'」で「\」を解釈しない文字列を追加<BR>
+            Scriptの正規表現関数にregmode/regconvを追加<BR>
+            メニュー・編集・文字列を検索で検索方法や条件を追加<BR>
+            メニュー・ヘルプ・自動バージョンでメッセージを表示するように変更<BR>
+            認証鍵ファイルのダイアログでパスフレーズを表示できるように変更<BR>
+            クリップボードの設定にペーストを確認しないを追加<BR>
+            オプション設定にヘルプボタンでブラウザを起動する機能を追加<BR>
+            openssl-3.0.2に更新</TD>
+          </TR>
           <TR>
             <TD align="center">2022/02/28</TD>
             <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.26.8/">2.26.8</A></TD>
@@ -481,14 +488,6 @@ TD {
             curve25519/ed25519関連をopensslに変更しcurve448/ed448に対応</TD>
           </TR>
           <TR>
-            <TD align="center">2021/10/29</TD>
-            <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.26.4/">2.26.4</A></TD>
-            <TD>scriptにシリアル制御(comset/comdtr/comrts)の関数を追加<BR>
-            メニュー・表示に音声合成設定のボイスバーを追加<BR>
-            メニューショートカット文字列設定のバグを修正<BR>
-            scriptファイル読み込み時のエラーをメッセージで表示に変更</TD>
-          </TR>
-          <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
           </TR>
         </TBODY>
@@ -512,13 +511,13 @@ TD {
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.0.1.tar.gz</A><BR>
+                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.0.2.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
                   Visual Studio コマンド <BR>
                   プロンプト (2010)</TD>
-                  <TD width="500" valign="top">rename openssl-3.0.1 openssl-3.0.1-x32<BR>
+                  <TD width="500" valign="top">rename openssl-3.0.2 openssl-3.0.2-x32<BR>
                   perl Configure VC-WIN32 no-shared no-threads no-module enable-legacy -D_WIN32_WINNT=0x0501<BR>
                   nmake</TD>
                 </TR>
@@ -604,8 +603,8 @@ TD {
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 3.0.1 14 Dec 2021<BR>
-            Copyright (c) 1998-2021 The OpenSSL Project<BR>
+            <P>OpenSSL 3.0.2 15 Mar 2022<BR>
+            Copyright (c) 1998-2022 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>
             <BR>
@@ -833,7 +832,32 @@ TD {
                 </TR>
                 <TR>
                   <TD valign="top" width="250">文字列を検索(F)</TD>
-                  <TD valign="top"><A href="regex.html">正規表現</A>などで文字列を検索し反転表示します</TD>
+                  <TD valign="top">指定した条件で文字列を検索し反転表示します<BR>
+                  <TABLE cellpadding="3">
+                    <TBODY>
+                      <TR>
+                        <TD>シンプル</TD>
+                        <TD>指定した文字列を単純に検索します</TD>
+                      </TR>
+                      <TR>
+                        <TD>ワイルドカード</TD>
+                        <TD>&quot;*&quot;任意の文字列、&quot;?&quot;任意の一文字で検索します</TD>
+                      </TR>
+                      <TR>
+                        <TD>正規表現</TD>
+                        <TD><A href="regex.html">正規表現</A>を利用した文字列検索を行います</TD>
+                      </TR>
+                      <TR>
+                        <TD>エスケープ文字</TD>
+                        <TD>正規表現で利用する特殊文字&quot;\&quot;を利用します</TD>
+                      </TR>
+                      <TR>
+                        <TD>大文字小文字</TD>
+                        <TD>英字の大文字・小文字の区別をしません</TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  </TD>
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$SEARCH_REG</TD>
                 </TR>
@@ -2469,7 +2493,10 @@ TD {
             <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
               <TBODY>
                 <TR>
-                  <TD colspan="4">Chat Scriptサンプル</TD>
+                  <TD colspan="4">Chat Scriptサンプル<BR>
+                  参照：<A href="faq.html#LOGON">ログイン手順の自動化</A>
+                  
+                  </TD>
                 </TR>
                 <TR>
                   <TD width="30%" align="center">ChatScript</TD>
@@ -2641,6 +2668,44 @@ fi</PRE>
                     </TBODY>
                   </TABLE>
                   <BR>
+                  ※2.26.9から指定した環境変数が存在しない場合にWindowsの特殊フォルダを取得出来るようにしました。一部を下記に示します。すべての名前は、<A href="https://www.google.com/search?q=CSIDL_DESKTOP">CSIDL_DESKTOP</A>などで検索してみてください。CSIDL_以降の名前が使用できますがOSにより取得出来ない場合があります<BR>
+                  <TABLE cellpadding="3">
+                    <TBODY>
+                      <TR>
+                        <TD>%{DESKTOP}</TD>
+                        <TD>デスクトップのフォルダ</TD>
+                      </TR>
+                      <TR>
+                        <TD>%{MYDOCUMENTS}</TD>
+                        <TD>My Documentsのフォルダ</TD>
+                      </TR>
+                      <TR>
+                        <TD>%{MYMUSIC}</TD>
+                        <TD>My Musicのフォルダ</TD>
+                      </TR>
+                      <TR>
+                        <TD>%{MYVIDEO}</TD>
+                        <TD>My Videoのフォルダ</TD>
+                      </TR>
+                      <TR>
+                        <TD>%{MYPICTURES}</TD>
+                        <TD>My Picturesのフォルダ</TD>
+                      </TR>
+                      <TR>
+                        <TD>%{STARTMENU}</TD>
+                        <TD>スタートメニューのフォルダ</TD>
+                      </TR>
+                      <TR>
+                        <TD>%{BITBUCKET}</TD>
+                        <TD>ゴミ箱のフォルダ</TD>
+                      </TR>
+                      <TR>
+                        <TD>%{PROFILE}</TD>
+                        <TD>ユーザーのフォルダ</TD>
+                      </TR>
+                    </TBODY>
+                  </TABLE>
+                  <BR>
                   ※2.23.3の名残で「$XXX」の形式でも環境変数を展開しています。ファイル名などに「$」を使用されている場合は、「$$」としてください。また、この仕様は、将来的に変更される可能性があります</TD>
                 </TR>
               </TBODY>
@@ -2668,7 +2733,10 @@ fi</PRE>
             <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
               <TBODY>
                 <TR>
-                  <TD colspan="2">Proxy Server</TD>
+                  <TD colspan="2">Proxy Server<BR>
+                  参照：<A href="faq.html#SSHCASCADE">SSHによる多段接続</A>
+            
+            </TD>
                 </TR>
                 <TR>
                   <TD width="30%" align="center">Select Proxy...</TD>
@@ -3260,7 +3328,10 @@ fi</PRE>
             <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
               <TBODY>
                 <TR>
-                  <TD colspan="2">認証キー</TD>
+                  <TD colspan="2">認証キー<BR>
+                  参照：<A href="faq.html#SSHPUBLIC">SSHでの公開鍵認証</A>
+                  
+                  </TD>
                 </TR>
                 <TR>
                   <TD width="30%" align="center">上へ・下へ</TD>
@@ -3522,7 +3593,8 @@ fi</PRE>
             <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
               <TBODY>
                 <TR>
-                  <TD colspan="2">Port Forward</TD>
+                  <TD colspan="2">Port Forward<BR>
+                  参照：<A href="faq.html#SSHCASCADE">SSHによる多段接続</A></TD>
                 </TR>
                 <TR>
                   <TD align="center" width="30%">X11ポートフォワード</TD>
@@ -3752,7 +3824,10 @@ function TekClock2() {
             <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
               <TBODY>
                 <TR>
-                  <TD colspan="2">スクリーン</TD>
+                  <TD colspan="2">スクリーン<BR>
+                  参照：<A href="faq.html#FONTSET">フォントの設定</A>
+                  
+                  </TD>
                 </TR>
                 <TR>
                   <TD align="center" width="30%">1行あたりの…</TD>
@@ -4459,7 +4534,10 @@ function TekClock2() {
                   <BR>
                   ※CTRLキーを押すと矩形選択モードになります<BR>
                   ※SHIFTキーを押すと行選択モードになります<BR>
-                  ※左右ウインドウ外で行選択モードになります</TD>
+                  ※左右ウインドウ外で行選択モードになります<BR>
+                  参照：<A href="faq.html#LCLICK">マウスによる範囲指定</A>
+                  
+                  </TD>
                 </TR>
                 <TR>
                   <TD align="center">コピー時に範囲…</TD>
@@ -4524,12 +4602,21 @@ function TekClock2() {
                   <TD>クリップボードからのペーストを右クリックだけで行います</TD>
                 </TR>
                 <TR>
-                  <TD align="center">常にクリップボード…</TD>
-                  <TD>通常は、複数行やコントロールコードが含まれる場合に表示されるペースト確認・編集ダイアログを常に表示します</TD>
+                  <TD align="center">ペースト確認しない</TD>
+                  <TD>すべてのクリップボードからのペーストを確認なしで送信します。シェルに多くの文字・複数行などを送ると意図しない動作の場合がありますので注意が必要です<BR>
+                  ※使用するシェルが<A href="ctrlcode.html#DECOPT">拡張オプション</A>の2004 Bracketed Paste Modeに対応しているなら有効にすることをお勧めします</TD>
+                </TR>
+                <TR>
+                  <TD align="center">複数行などで確認</TD>
+                  <TD>複数行やコントロールコードが含まれる場合にペーストするテキストを確認・編集するダイアログを表示します</TD>
+                </TR>
+                <TR>
+                  <TD align="center">常にペーストを確認</TD>
+                  <TD>常にペーストで確認・編集ダイアログを表示します</TD>
                 </TR>
                 <TR>
                   <TD align="center">ペーストするテキスト…</TD>
-                  <TD>ペーストするテキストの末尾の改行を無条件で削除します。複数の改行がある場合は、末尾の改行のみ削除してペースト確認・編集ダイアログを表示します</TD>
+                  <TD>ペーストするテキストの末尾の改行を無条件で削除します。複数の改行がある場合は、末尾の改行のみ削除します</TD>
                 </TR>
                 <TR>
                   <TD align="center">ワード選択文字</TD>
@@ -4547,7 +4634,7 @@ function TekClock2() {
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top" align="left"><IMG src="image028.jpg" width="597" height="530" border="0"></TD>
+            <TD valign="top" align="left"><IMG src="image028.jpg" width="609" height="531" border="0"></TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -4720,7 +4807,10 @@ function TekClock2() {
             <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
               <TBODY>
                 <TR>
-                  <TD colspan="2">文字セット</TD>
+                  <TD colspan="2">文字セット<BR>
+                  参照：<A href="faq.html#FONTSET">フォントの設定</A>
+                  
+                  </TD>
                 </TR>
                 <TR>
                   <TD width="30%" align="center">Charcter Set</TD>
@@ -5291,7 +5381,10 @@ function TekClock2() {
             <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
               <TBODY>
                 <TR>
-                  <TD colspan="2">Color Set</TD>
+                  <TD colspan="2">Color Set<BR>
+                  参照：<A href="faq.html#COLSET">文字色の一括変更</A>
+                  
+                  </TD>
                 </TR>
                 <TR>
                   <TD align="center" rowspan="4" width="30%">16色カラーテーブル</TD>
@@ -5518,7 +5611,10 @@ function TekClock2() {
             <TABLE width="600" cellpadding="5" cellspacing="1" class="BOX">
               <TBODY>
                 <TR>
-                  <TD colspan="2">Assign Key String</TD>
+                  <TD colspan="2">Assign Key String<BR>
+                  参照：<A href="faq.html#SHORTCUT">Ctrl+Vでペースト</A>
+                  
+                  </TD>
                 </TR>
                 <TR>
                   <TD align="center" width="30%">KeyCode</TD>
@@ -6243,7 +6339,7 @@ function TekClock2() {
     </TR>
     <!--
     <TR>
-      <TD align="center"><A href="http://nanno.dip.jp/">TOP</A> | <A href="http://nanno.dip.jp/softlib/">SOFT</A> | <A href="http://nanno.dip.jp/logs/">LOG</A> | <A href="http://nanno.dip.jp/links/">LINK</A></TD>
+      <TD align="center"><A href="http://nanno.bf1.jp/">TOP</A> | <A href="http://nanno.bf1.jp/softlib/">SOFT</A> | <A href="http://nanno.bf1.jp/logs/">LOG</A> | <A href="http://nanno.bf1.jp/links/">LINK</A></TD>
     </TR>
     <TR>
       <TD>

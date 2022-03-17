@@ -24,6 +24,7 @@ CBackPage::CBackPage() : CTreePage(CBackPage::IDD)
 	m_VAlign = 0;
 	m_TextFormat.Empty();
 	m_MapStyle = 0;
+	m_UrlOpt = _T("#BACKSET");
 }
 CBackPage::~CBackPage()
 {

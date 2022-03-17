@@ -139,6 +139,7 @@ public:
 	void SetMenu(CMenu *pMenu);
 	BOOL InitDocument();
 
+	static LPCTSTR GetSpecialFolder(LPCTSTR env);
 	static void EnvironText(CString &env, CString &str);
 	static void EnvironPath(CString &path);
 	BOOL EntryText(CString &name, LPCWSTR match = NULL, BOOL bCtrl = FALSE);

@@ -40,6 +40,7 @@ CProtoPage::CProtoPage() : CTreePage(CProtoPage::IDD)
 		m_Check[n] = FALSE;
 	m_RsaExt = 0;
 	m_VerIdent.Empty();
+	m_UrlOpt = _T("#PROTOPT");
 }
 
 CProtoPage::~CProtoPage()

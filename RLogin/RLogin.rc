@@ -624,33 +624,35 @@ END
 // Dialog
 //
 
-IDD_ABOUTBOX DIALOGEX 0, 0, 243, 239
+IDD_ABOUTBOX DIALOGEX 0, 0, 243, 247
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "About RLogin"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     CONTROL         "<a href=""https://kmiya-culti.github.io/RLogin/"">https://kmiya-culti.github.io/RLogin/</a>",IDC_SYSLINK3,
                     "SysLink",WS_TABSTOP,44,26,189,8
+    CONTROL         "<a href=""http://nanno.bf1.jp/softlib/man/rlogin/"">http://nanno.bf1.jp/softlib/man/rlogin/</a>",IDC_SYSLINK2,
+                    "SysLink",WS_TABSTOP,44,37,189,8
     CONTROL         "<a href=""https://1023world.net/"">https://1023world.net/</a>",IDC_SYSLINK1,
-                    "SysLink",WS_TABSTOP,44,196,189,8
-    DEFPUSHBUTTON   "OK",IDOK,91,215,60,14,WS_GROUP
-    ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin (%s) Version 2.26.8 (2022/02/28)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+                    "SysLink",WS_TABSTOP,44,206,189,8
+    DEFPUSHBUTTON   "OK",IDOK,91,225,60,14,WS_GROUP
+    ICON            IDR_MAINFRAME,IDC_STATIC,7,7,18,21
+    LTEXT           "RLogin (%s) Version 2.26.9 (2022/03/18)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2022 Culti",IDC_STATIC,44,16,189,8
-    LTEXT           "OpenSSL 3.0.1 14 Dec 2021",IDC_STATIC,44,43,189,8
-    LTEXT           "Copyright (c) 1998-2021 The OpenSSL Project",IDC_STATIC,44,53,189,8
-    LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,62,189,8
-    LTEXT           "All rights reserved.",IDC_STATIC,44,71,189,8
-    LTEXT           "zlib 1.2.11 (15 Jan 2017)",IDC_STATIC,44,84,189,8
-    LTEXT           "(C) 1995-2017 Jean-loup Gailly and Mark Adler",IDC_STATIC,44,93,189,8
-    LTEXT           "iconv (GNU libiconv 1.16)",IDC_STATIC,44,106,189,8
-    LTEXT           "Copyright (C) 2000-2017 Free Software Foundation, Inc.",IDC_STATIC,44,115,189,8
-    LTEXT           "Nettle library (version 2.0)",IDC_STATIC,44,130,189,8
-    LTEXT           "Originally written 2001 by Niels Moller, updated 2009.",IDC_STATIC,44,139,189,8
-    LTEXT           "kumaGIF",IDC_STATIC,44,178,189,8
-    LTEXT           "Copyright (c) 1.023world All Rights Reserved.",IDC_STATIC,44,187,189,8
-    LTEXT           "putty-0.75-pre (blake2/argon2 source code)",IDC_STATIC,44,164,189,8
-    LTEXT           "PuTTY is copyright 1997-2021 Simon Tatham.",IDC_STATIC,44,155,189,8
+    LTEXT           "OpenSSL 3.0.2 15 Mar 2022",IDC_STATIC,44,53,189,8
+    LTEXT           "Copyright (c) 1998-2022 The OpenSSL Project",IDC_STATIC,44,63,189,8
+    LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,72,189,8
+    LTEXT           "All rights reserved.",IDC_STATIC,44,81,189,8
+    LTEXT           "zlib 1.2.11 (15 Jan 2017)",IDC_STATIC,44,94,189,8
+    LTEXT           "(C) 1995-2017 Jean-loup Gailly and Mark Adler",IDC_STATIC,44,103,189,8
+    LTEXT           "iconv (GNU libiconv 1.16)",IDC_STATIC,44,116,189,8
+    LTEXT           "Copyright (C) 2000-2017 Free Software Foundation, Inc.",IDC_STATIC,44,125,189,8
+    LTEXT           "Nettle library (version 2.0)",IDC_STATIC,44,140,189,8
+    LTEXT           "Originally written 2001 by Niels Moller, updated 2009.",IDC_STATIC,44,149,189,8
+    LTEXT           "kumaGIF",IDC_STATIC,44,188,189,8
+    LTEXT           "Copyright (c) 1.023world All Rights Reserved.",IDC_STATIC,44,197,189,8
+    LTEXT           "putty-0.75-pre (blake2/argon2 source code)",IDC_STATIC,44,174,189,8
+    LTEXT           "PuTTY is copyright 1997-2021 Simon Tatham.",IDC_STATIC,44,165,189,8
 END
 
 IDD_ALGOPARADLG DIALOGEX 0, 0, 351, 343
@@ -707,22 +709,21 @@ BEGIN
     GROUPBOX        "",IDC_STATIC,7,7,216,104
 END
 
-IDD_IDKEYFILEDLG DIALOGEX 0, 0, 243, 195
+IDD_IDKEYFILEDLG DIALOGEX 0, 0, 253, 179
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "認証キー"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    EDITTEXT        IDC_IDKEYFILE,19,25,173,14,ES_AUTOHSCROLL
-    PUSHBUTTON      "...",IDC_IDKEYSEL,196,25,26,14
-    EDITTEXT        IDC_PASSNAME,89,104,130,14,ES_PASSWORD | ES_AUTOHSCROLL
-    EDITTEXT        IDC_PASSNAME2,89,126,130,14,ES_PASSWORD | ES_AUTOHSCROLL
-    DEFPUSHBUTTON   "OK",IDOK,50,174,60,14
-    PUSHBUTTON      "キャンセル",IDCANCEL,133,174,60,14
-    LTEXT           "パスフレーズ",IDC_STATIC,21,107,61,8
-    LTEXT           "パス再入力",IDC_STATIC,21,129,61,8
-    GROUPBOX        "ファイル",IDC_STATIC,7,7,229,154
-    GROUPBOX        "",IDC_STATIC,15,49,212,103
-    LTEXT           "",IDC_MESSAGE,25,61,192,33
+    EDITTEXT        IDC_IDKEYFILE,14,21,180,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDC_IDKEYSEL,199,21,40,14
+    EDITTEXT        IDC_PASSNAME,14,128,180,14,ES_PASSWORD | ES_AUTOHSCROLL
+    CONTROL         "表示",IDC_PASSDISP,"Button",BS_AUTOCHECKBOX | BS_PUSHLIKE | WS_TABSTOP,199,128,40,14
+    DEFPUSHBUTTON   "OK",IDOK,54,158,60,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,138,158,60,14
+    GROUPBOX        "ファイル",IDC_STATIC,7,7,239,37
+    GROUPBOX        "パスフレーズ",IDC_STATIC,7,113,239,37
+    LTEXT           "",IDC_MESSAGE,14,58,224,44
+    GROUPBOX        "",IDC_STATIC,7,47,239,64
 END
 
 IDD_SFTPDLG DIALOGEX 0, 0, 458, 227
@@ -1484,16 +1485,20 @@ BEGIN
     LTEXT           "トレースバックできる最大数",IDC_STATIC,15,273,180,10
 END
 
-IDD_SEARCHDLG DIALOGEX 0, 0, 211, 89
+IDD_SEARCHDLG DIALOGEX 0, 0, 211, 162
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "文字列検索"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
     COMBOBOX        IDC_COMBO1,7,7,197,100,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP
-    DEFPUSHBUTTON   "検索",IDOK,39,68,60,14
-    PUSHBUTTON      "キャンセル",IDCANCEL,112,68,60,14
-    CONTROL         "",IDC_PROGRESS1,"msctls_progress32",WS_BORDER,7,45,197,12
-    CONTROL         "正規表現を利用して文字列検索を行う",IDC_REGEXSERCH,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,27,180,9
+    CONTROL         "シンプルな文字列検索を行う",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,15,29,180,10
+    CONTROL         "ワイルドカード(*)を利用して文字列検索を行う",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,15,47,180,10
+    CONTROL         "正規表現を利用して文字列検索を行う",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,15,65,180,10
+    CONTROL         "正規表現のエスケープ文字(\\)を使用する",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,83,180,9
+    CONTROL         "英字の大文字小文字を区別せずに検索する",IDC_CHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,100,180,9
+    CONTROL         "",IDC_PROGRESS1,"msctls_progress32",WS_BORDER,7,120,197,12
+    DEFPUSHBUTTON   "検索",IDOK,39,141,60,14
+    PUSHBUTTON      "キャンセル",IDCANCEL,112,141,60,14
 END
 
 IDD_CERTKEYDLG DIALOGEX 0, 0, 214, 245
@@ -1515,16 +1520,18 @@ STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "クリップボード"
 FONT 9, "MS UI Gothic", 400, 0, 0x80
 BEGIN
-    CONTROL         "左クリックの範囲指定だけでクリップボードにコピーする",IDC_OPTCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,21,240,10
-    CONTROL         "コピー時に範囲指定を解除しない",IDC_OPTCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,40,240,10
-    CONTROL         "コピー時に連続したスペースをタブに変換",IDC_OPTCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,59,142,10
-    COMBOBOX        IDC_COMBO2,215,58,40,50,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "http://で始まる文字列をコピーすると自動でブラウザを起動する",IDC_OPTCHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,78,240,10
-    CONTROL         "右クリックで編集メニュー",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,15,97,82,10
-    CONTROL         "右ダブルクリックでペースト",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,102,97,81,10
-    CONTROL         "右クリックでペースト",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON,188,97,66,10
-    CONTROL         "常にクリップボードからペーストするテキストを確認する",IDC_OPTCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,116,240,10
-    CONTROL         "ペーストするテキストの末尾の改行を削除する",IDC_OPTCHECK6,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,135,240,10
+    CONTROL         "左クリックの範囲指定だけでクリップボードにコピーする",IDC_OPTCHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,23,240,10
+    CONTROL         "コピー時に範囲指定を解除しない",IDC_OPTCHECK2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,43,240,10
+    CONTROL         "コピー時に連続したスペースをタブに変換",IDC_OPTCHECK3,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,63,142,10
+    COMBOBOX        IDC_COMBO2,215,61,40,50,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "http://で始まる文字列をコピーすると自動でブラウザを起動する",IDC_OPTCHECK4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,83,240,10
+    CONTROL         "右クリックで編集メニュー",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,15,103,75,10
+    CONTROL         "右ダブルクリックで貼付",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,97,103,75,10
+    CONTROL         "右クリックで貼り付け",IDC_RADIO3,"Button",BS_AUTORADIOBUTTON,179,103,75,10
+    CONTROL         "ペースト確認しない",IDC_RADIO4,"Button",BS_AUTORADIOBUTTON | WS_GROUP,15,123,75,10
+    CONTROL         "複数行などで確認",IDC_RADIO5,"Button",BS_AUTORADIOBUTTON,97,123,75,10
+    CONTROL         "常にペーストを確認",IDC_RADIO6,"Button",BS_AUTORADIOBUTTON,179,123,75,10
+    CONTROL         "ペーストするテキストの末尾の改行を削除する",IDC_OPTCHECK5,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,143,240,10
     EDITTEXT        IDC_EDIT3,15,179,240,14,ES_AUTOHSCROLL
     EDITTEXT        IDC_EDIT4,15,219,240,14,ES_AUTOHSCROLL
     CONTROL         "OSC 52 ? によるクリップボードの読み込みを許可する",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,260,190,10
@@ -1534,7 +1541,7 @@ BEGIN
     GROUPBOX        "左ダブルクリックのワード選択で英数と同し扱いにする記号などを設定",IDC_STATIC,7,165,256,36
     GROUPBOX        "制御コードによるクリップボード操作",IDC_STATIC,7,246,256,47
     GROUPBOX        "http://などのURLの開始文字列を | で区切って指定",IDC_STATIC,7,205,256,36
-    RTEXT           "RTFを作成",IDC_STATIC,165,59,43,10,SS_CENTERIMAGE
+    RTEXT           "RTFを作成",IDC_STATIC,165,63,43,10,SS_CENTERIMAGE
 END
 
 IDD_MOUSEPAGE DIALOGEX 0, 0, 270, 300
@@ -1746,6 +1753,7 @@ BEGIN
     PUSHBUTTON      "初期化",IDC_DOINIT,27,165,60,14
     CONTROL         "",IDC_TABTREE,"SysTreeView32",TVS_HASLINES | TVS_DISABLEDRAGDROP | TVS_SHOWSELALWAYS | WS_BORDER | WS_HSCROLL | WS_TABSTOP,7,7,62,150
     CONTROL         "",IDC_FRAME,"Static",SS_BLACKFRAME,70,7,246,150
+    PUSHBUTTON      "?",IDC_HELPBTN,7,165,14,14,BS_CENTER | BS_VCENTER
 END
 
 IDD_BLOCKDLG DIALOGEX 0, 0, 407, 285
@@ -2170,8 +2178,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,26,8,0
- PRODUCTVERSION 2,26,8,0
+ FILEVERSION 2,26,9,0
+ PRODUCTVERSION 2,26,9,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2188,12 +2196,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.26.8.0"
+            VALUE "FileVersion", "2.26.9.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.26.8.0"
+            VALUE "ProductVersion", "2.26.9.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -2216,7 +2224,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 236
         TOPMARGIN, 7
-        BOTTOMMARGIN, 235
+        BOTTOMMARGIN, 243
     END
 
     IDD_ALGOPARADLG, DIALOG
@@ -2238,9 +2246,9 @@ BEGIN
     IDD_IDKEYFILEDLG, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 236
+        RIGHTMARGIN, 246
         TOPMARGIN, 7
-        BOTTOMMARGIN, 188
+        BOTTOMMARGIN, 172
     END
 
     IDD_SFTPDLG, DIALOG
@@ -2488,7 +2496,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 204
         TOPMARGIN, 7
-        BOTTOMMARGIN, 82
+        BOTTOMMARGIN, 155
     END
 
     IDD_CERTKEYDLG, DIALOG
@@ -4289,7 +4297,7 @@ BEGIN
     IDS_TOOMANYHOSTNAME     "多くのホスト名に展開します。接続しますか？"
     IDS_VIEW_MENUBAR        "メニューバーの表示"
     IDS_NEWVERSIONCHECK     "新しいバージョンのRLogin(%s)があります。\n今すぐダウンロードページを表示しますか？\nダウンロードページは、必ず最新の情報に更新してください"
-    IDS_VERSIONCHECKURL     "http://nanno.dip.jp/softlib/version.txt"
+    IDS_VERSIONCHECKURL     "http://nanno.bf1.jp/softlib/version.txt"
     IDS_FONTSAMPLESTRING    "012 abcABC 日本語"
     IDS_IDKEYHOSTKEYUPDATE  "信頼するホスト鍵のリストを更新しますか？\n登録済%d個、追加%d個、削除%d個"
     IDS_HISRECDEFAULT       "以前に記録したキー操作"
@@ -4491,6 +4499,11 @@ BEGIN
     IDS_SCRIPTDLGSTEP       "ステップ"
     IDS_KNOWNHOSTDELMSG     "登録されているホスト鍵%d個を削除しますか？"
     IDS_XMSSSAVEFORMAT      "XMSSは、OpenSSH形式で保存されます"
+    IDS_VERCHKDISABLE       "RLoginの自動バージョンチェックを行わないようにしました"
+    IDS_VERCHKENABLE        "RLoginの自動バージョンチェックを定期的に行うようにしました\n今すぐバージョンチェックを行いますか？"
+    IDS_VERCHKLATEST        "RLoginが最新バージョンであることを確認しました"
+    IDS_OPTIONHELPURL       "https://kmiya-culti.github.io/RLogin/"
+    IDS_OPTIONHELPMSG       "現在の設定画面のオンラインマニュアルを表示します"
 END
 
 STRINGTABLE
@@ -4522,6 +4535,7 @@ BEGIN
     IDE_ENTRYUPDATEEERROR   "別のRLoginでサーバーエントリー情報が更新されました。\n整合性を失う可能性がある為すべての編集を中止します。"
     IDE_OPTFIXDEEPENTRY     "再帰的なエントリーオプションの継承をしようとしています。\n標準の設定を使用して接続します"
     IDE_OPTFIXNOTFOUND      "継承先のエントリーが見当たりませんませんでした。\n標準の設定を使用して接続します"
+    IDE_VERCHKERROR         "バージョンチェックに失敗しました"
 END
 
 STRINGTABLE

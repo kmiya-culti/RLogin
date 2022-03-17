@@ -5,6 +5,7 @@ typedef DWORD DCHAR;
 typedef DWORD * LPDSTR;
 typedef const DWORD * LPCDSTR;
 
+#define	IsWchar(ch)			(((ch) & 0xFFFF0000) == 0)
 #define	IsRegSpChar(ch)		(((ch) & 0xFFFFFFF0) == 0xFFFFFFF0)
 
 #define	REGSPCHAR_LINETOP	0xFFFFFFF0
@@ -90,6 +91,7 @@ enum RegCmdType {
 	RGE_LINETOP, RGE_NEGTOP, RGE_LINEBTM, RGE_NEGBTM,
 	RGE_CHKMAP, RGE_NEGMAP,
 	RGE_RANGECHAR, RGE_NEGCHAR,
+	RGE_NOCASE, RGE_CASE,
 	RGE_NONE,
 };
 
@@ -100,6 +102,7 @@ enum RegCmdType {
 
 #define	REG_NQFLAG_GREED	001
 #define	REG_NQFLAG_LOOP		002
+#define	REG_NQFLAG_NOCASE	004
 
 class CRegExIdx : public CDWordArray
 {
@@ -149,6 +152,7 @@ public:
 	BOOL		m_Done;
 	CList<int, int>	m_FrArg;
 	CList<int, int>	m_BkArg;
+	int			m_Flag;
 
 	const CRegExArg & operator = (CRegExArg &data);
 	CRegExArg(void);
@@ -191,6 +195,16 @@ public:
 	~CRegExWork(void);
 };
 
+#define	REG_FLAG_MODEMASK	0003
+
+#define	REG_FLAG_SIMPLE		0000
+#define	REG_FLAG_WILDCARD	0001
+#define	REG_FLAG_REGEX		0002
+
+#define	REG_FLAG_ESCCHAR	0004
+#define	REG_FLAG_NOCASE		0010
+#define	REG_FLAG_ESCPAR		0020
+
 class CRegEx : public CObject
 {
 public:
@@ -221,10 +235,13 @@ public:
 
 	COMPSTRBUF	*m_CompStrBuf;
 	CString		m_ErrMsg;
+	int			m_CompleFlag;
 
-	CRegEx(void);
-	~CRegEx(void);
+	CRegEx();
+	CRegEx(int CompleFlag);
+	~CRegEx();
 
+	void Init(int CompleFlag);
 	void InitChar(LPCTSTR str);
 	void EndofChar();
 	DCHAR GetChar();
@@ -251,6 +268,9 @@ public:
 	BOOL ConvertStr(LPCTSTR str, LPCTSTR pat, CString &buf);
 	int SplitStr(LPCTSTR str, CStringArray &data);
 
+	DCHAR RevLowerUpeer(DCHAR ch);
 	void MatchCharInit();
 	BOOL MatchChar(DCHAR ch, int idx, CRegExRes *res);
+
+	static LPCTSTR SimpleRegEx(LPCTSTR str, int flag);
 };

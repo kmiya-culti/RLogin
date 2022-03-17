@@ -35,6 +35,7 @@ CCharSetPage::CCharSetPage() : CTreePage(CCharSetPage::IDD)
 	m_CharBank4 = _T("");
 	m_AltFont = 0;
 	m_ListIndex = (-1);
+	m_UrlOpt = _T("#CHAROPT");
 }
 
 CCharSetPage::~CCharSetPage()

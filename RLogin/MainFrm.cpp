@@ -2606,7 +2606,7 @@ static UINT VersionCheckThead(LPVOID pParam)
 	pWnd->VersionCheckProc();
 	return 0;
 }
-void CMainFrame::VersionCheckProc()
+int CMainFrame::VersionCheckProc()
 {
 	CBuffer buf;
 	CHttpSession http;
@@ -2614,6 +2614,7 @@ void CMainFrame::VersionCheckProc()
 	CString str;
 	CStringArray pam;
 	CStringLoad version;
+	int rt = (-1);
 
 	((CRLoginApp *)AfxGetApp())->GetVersion(version);
 	str = AfxGetApp()->GetProfileString(_T("MainFrame"), _T("VersionNumber"), _T(""));
@@ -2621,7 +2622,7 @@ void CMainFrame::VersionCheckProc()
 		version = str;
 
 	if ( !http.GetRequest(CStringLoad(IDS_VERSIONCHECKURL2), buf) )
-		return;
+		return rt;
 
 	p = (CHAR *)buf.GetPtr();
 	e = p + buf.GetSize();
@@ -2651,16 +2652,22 @@ void CMainFrame::VersionCheckProc()
 		}
 
 		// 0      1      2          3
-		// RLogin 2.18.4 2015/05/20 http://nanno.dip.jp/softlib/
+		// RLogin 2.18.4 2015/05/20 http://nanno.bf1.jp/softlib/
 
-		if ( pam.GetSize() >= 4 && pam[0].CompareNoCase(_T("RLogin")) == 0 && version.CompareDigit(pam[1]) < 0 ) {
-			AfxGetApp()->WriteProfileString(_T("MainFrame"), _T("VersionNumber"), pam[1]);
-			m_VersionMessage.Format((LPCTSTR)CStringLoad(IDS_NEWVERSIONCHECK), (LPCTSTR)pam[1]);
-			m_VersionPageUrl = pam[3];
-			PostMessage(WM_COMMAND, IDM_NEWVERSIONFOUND);
+		if ( pam.GetSize() >= 4 && pam[0].CompareNoCase(_T("RLogin")) == 0 ) {
+			if ( version.CompareDigit(pam[1]) < 0 ) {
+				AfxGetApp()->WriteProfileString(_T("MainFrame"), _T("VersionNumber"), pam[1]);
+				m_VersionMessage.Format((LPCTSTR)CStringLoad(IDS_NEWVERSIONCHECK), (LPCTSTR)pam[1]);
+				m_VersionPageUrl = pam[3];
+				PostMessage(WM_COMMAND, IDM_NEWVERSIONFOUND);
+				rt = 1;
+			} else
+				rt = 0;
 			break;
 		}
 	}
+
+	return rt;
 }
 void CMainFrame::VersionCheck()
 {
@@ -4013,12 +4020,21 @@ void CMainFrame::OnNewVersionFound()
 }
 void CMainFrame::OnVersioncheck()
 {
+	int rt;
+
 	m_bVersionCheck = (m_bVersionCheck ? FALSE : TRUE);
 	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("VersionCheckFlag"), m_bVersionCheck);
 	AfxGetApp()->WriteProfileString(_T("MainFrame"), _T("VersionNumber"), _T(""));
 
-	if ( m_bVersionCheck )
-		VersionCheckProc();
+	if ( m_bVersionCheck ) {
+		if ( MessageBox(CStringLoad(IDS_VERCHKENABLE), _T("Version Check"), MB_ICONQUESTION | MB_YESNO) == IDYES ) {
+			if ( (rt = VersionCheckProc()) == 0 )
+				MessageBox(CStringLoad(IDS_VERCHKLATEST), _T("Version Check"), MB_ICONINFORMATION);
+			else if ( rt < 0 )
+				MessageBox(CStringLoad(IDE_VERCHKERROR), _T("Version Check"), MB_ICONERROR);
+		}
+	} else
+		MessageBox(CStringLoad(IDS_VERCHKDISABLE), _T("Version Check"), MB_ICONINFORMATION);
 }
 void CMainFrame::OnUpdateVersioncheck(CCmdUI *pCmdUI)
 {

@@ -126,6 +126,7 @@ CTermPage::CTermPage() : CTreePage(CTermPage::IDD)
 {
 	m_RecvCrLf = 0;
 	m_SendCrLf = 0;
+	m_UrlOpt = _T("#TERMOPT");
 }
 CTermPage::~CTermPage()
 {

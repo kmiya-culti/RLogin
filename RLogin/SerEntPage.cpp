@@ -45,6 +45,7 @@ CSerEntPage::CSerEntPage() : CTreePage(CSerEntPage::IDD)
 	m_UsePassDlg = FALSE;
 	m_UseProxyDlg = FALSE;
 	m_bOptFixed = FALSE;
+	m_UrlOpt = _T("#SERVEROPT");
 }
 CSerEntPage::~CSerEntPage()
 {

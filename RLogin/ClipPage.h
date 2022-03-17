@@ -22,6 +22,7 @@ public:
 	int m_RClick;
 	int m_ClipCrLf;
 	int m_RtfMode;
+	int m_PastEdit;
 
 public:
 	void DoInit();

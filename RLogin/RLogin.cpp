@@ -2808,7 +2808,7 @@ BOOL CRLoginApp::SaveRegistryKey(HKEY hKey, CFile *file, LPCTSTR base)
 
 	return TRUE;
 }
-BOOL CRLoginApp::SaveRegistryFile()
+int CRLoginApp::SaveRegistryFile()
 {
 	CString key;
 	CFile file;
@@ -2816,21 +2816,19 @@ BOOL CRLoginApp::SaveRegistryFile()
 	CTime tm = CTime::GetCurrentTime();
 	HKEY hAppKey;
 	WCHAR bom = 0xFEFF;
-	BOOL ret = FALSE;
+	int ret = 2;
 	static LPCWSTR head = L"Windows Registry Editor Version 5.00\r\n\r\n";
 
 	filename.Format(_T("%s\\RLogin-%s.reg"), (LPCTSTR)m_BaseDir, (LPCTSTR)tm.Format(_T("%y%m%d")));
 	CFileDialog dlg(FALSE, _T("reg"), filename, OFN_OVERWRITEPROMPT, _T("Registry file (*.reg)|*.reg|All Files (*.*)|*.*||"), AfxGetMainWnd());
 
 	if ( DpiAwareDoModal(dlg) != IDOK )
-		return FALSE;
+		return 0;
 
 	CWaitCursor wait;
 
-	if ( !file.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeWrite | CFile::shareExclusive) ) {
-		::AfxMessageBox(_T("Cann't Create Registry file"));
-		return FALSE;
-	}
+	if ( !file.Open(dlg.GetPathName(), CFile::modeCreate | CFile::modeWrite | CFile::shareExclusive) )
+		return 3;
 
 	file.Write(&bom, sizeof(WCHAR)); 
 	file.Write(head, (UINT)_tcslen(head) * sizeof(WCHAR));
@@ -2842,7 +2840,7 @@ BOOL CRLoginApp::SaveRegistryFile()
 
 	if ( (hAppKey = GetAppRegistryKey()) != NULL ) {
 		if ( SaveRegistryKey(hAppKey, &file, key) )
-			ret = TRUE;
+			ret = 1;
 		RegCloseKey(hAppKey);
 	}
 
@@ -3356,8 +3354,19 @@ void CRLoginApp::OnUpdateCreateprofile(CCmdUI *pCmdUI)
 
 void CRLoginApp::OnSaveregfile()
 {
-	if ( !SaveRegistryFile() )
+	switch(SaveRegistryFile()) {
+	case 0:		// no save
+		break;
+	case 1:
+		::AfxMessageBox(_T("Successfully saved all registries to a file"), MB_ICONINFORMATION);
+		break;
+	case 2:
 		::AfxMessageBox(_T("Can't Save Registry File"));
+		break;
+	case 3:
+		::AfxMessageBox(_T("Cann't Create Registry file"));
+		break;
+	}
 }
 void CRLoginApp::OnUpdateSaveregfile(CCmdUI *pCmdUI)
 {

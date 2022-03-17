@@ -23,7 +23,9 @@ CSearchDlg::CSearchDlg(CWnd* pParent /*=NULL*/)
 
 	m_pDoc = NULL;
 	m_Pos = m_Max = 0;
-	m_bRegExSerch = FALSE;
+	m_SerchMode = 0;
+	m_RegEscChar = FALSE;
+	m_RegNoCase = FALSE;
 	m_TimerId = 0;
 }
 
@@ -36,7 +38,9 @@ void CSearchDlg::DoDataExchange(CDataExchange* pDX)
 	CDialogExt::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_PROGRESS1, m_Prog);
 	DDX_Control(pDX, IDC_COMBO1, m_SearchCombo);
-	DDX_Check(pDX, IDC_REGEXSERCH, m_bRegExSerch);
+	DDX_Radio(pDX, IDC_RADIO1, m_SerchMode);
+	DDX_Check(pDX, IDC_CHECK1, m_RegEscChar);
+	DDX_Check(pDX, IDC_CHECK2, m_RegNoCase);
 }
 
 BEGIN_MESSAGE_MAP(CSearchDlg, CDialogExt)
@@ -47,12 +51,40 @@ END_MESSAGE_MAP()
 
 BOOL CSearchDlg::OnInitDialog()
 {
+	int RegFlag;
+
 	CDialogExt::OnInitDialog();
 
 	m_SearchCombo.LoadHis(_T("SearchDlgStr"));
 	m_SearchCombo.SetWindowText(m_SearchStr);
 
-	m_bRegExSerch = AfxGetApp()->GetProfileInt(_T("SearchDlgStr"), _T("RegExSerch"), FALSE);
+	RegFlag = AfxGetApp()->GetProfileInt(_T("SearchDlgStr"), _T("RegExFlag"), (-1));
+
+	if ( RegFlag == (-1) ) {
+		if ( AfxGetApp()->GetProfileInt(_T("SearchDlgStr"), _T("RegExSerch"), FALSE) ) {
+			m_SerchMode = 2;
+			m_RegEscChar = TRUE;
+			m_RegNoCase  = FALSE;
+		} else {
+			m_SerchMode = 0;
+			m_RegEscChar = FALSE;
+			m_RegNoCase  = FALSE;
+		}
+	} else {
+		switch(RegFlag & REG_FLAG_MODEMASK) {
+		case REG_FLAG_SIMPLE:
+			m_SerchMode = 0;
+			break;
+		case REG_FLAG_WILDCARD:
+			m_SerchMode = 1;
+			break;
+		default:	// REG_FLAG_REGEX
+			m_SerchMode = 2;
+			break;
+		}
+		m_RegEscChar = (RegFlag & REG_FLAG_ESCCHAR) != 0 ? TRUE : FALSE;
+		m_RegNoCase  = (RegFlag & REG_FLAG_NOCASE)  != 0 ? TRUE : FALSE;
+	}
 
 	UpdateData(FALSE);
 
@@ -60,6 +92,10 @@ BOOL CSearchDlg::OnInitDialog()
 }
 void CSearchDlg::OnOK()
 {
+	int RegFlag = REG_FLAG_SIMPLE;
+	BOOL bRegEx = TRUE;
+	CString str;
+
 	if ( m_pDoc == NULL )
 		goto ENDOFRET;
 
@@ -67,7 +103,25 @@ void CSearchDlg::OnOK()
 
 	m_SearchCombo.GetWindowText(m_SearchStr);
 
-	if ( (m_Max = m_pDoc->m_TextRam.HisRegMark(m_SearchStr, m_bRegExSerch)) <= 0 )
+	switch(m_SerchMode) {
+	case 0: RegFlag = REG_FLAG_SIMPLE;   break;
+	case 1: RegFlag = REG_FLAG_WILDCARD; break;
+	case 2: RegFlag = REG_FLAG_REGEX;    break;
+	}
+
+	if ( m_RegEscChar )
+		RegFlag |= REG_FLAG_ESCCHAR;
+
+	if ( m_RegNoCase )
+		RegFlag |= REG_FLAG_NOCASE;
+
+	if ( RegFlag == REG_FLAG_SIMPLE ) {
+		bRegEx = FALSE;
+		str = m_SearchStr;
+	} else
+		str = CRegEx::SimpleRegEx(m_SearchStr, RegFlag);
+
+	if ( (m_Max = m_pDoc->m_TextRam.HisRegMark(str, bRegEx)) <= 0 )
 		goto ENDOFRET;
 
 	m_Pos = 0;
@@ -81,7 +135,7 @@ void CSearchDlg::OnOK()
 //	m_SearchCombo.SaveHis(_T("SearchDlgStr"));
 	m_SearchCombo.SetWindowText(m_SearchStr);
 
-	AfxGetApp()->WriteProfileInt(_T("SearchDlgStr"), _T("RegExSerch"), m_bRegExSerch);
+	AfxGetApp()->WriteProfileInt(_T("SearchDlgStr"), _T("RegExFlag"), RegFlag);
 	return;
 
 ENDOFRET:

@@ -22,6 +22,7 @@ CModKeyPage::CModKeyPage() : CTreePage(CModKeyPage::IDD)
 		m_ModType[n] = 0;
 	}
 	m_bOverShortCut = FALSE;
+	m_UrlOpt = _T("#MODKEY");
 }
 
 CModKeyPage::~CModKeyPage()

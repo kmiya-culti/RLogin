@@ -9,10 +9,24 @@ TD {
 				
 				
 				
+				
+				
+				
+				
+				
+				
+				
   background-color : #ffffff;
   font-size : 90%;
 }
 .BOX{
+				
+				
+				
+				
+				
+				
+				
 				
 				
 				
@@ -104,13 +118,13 @@ TD {
             <TD width="20%">8ビット文字</TD>
             <TD align="center">char</TD>
             <TD>文字定数</TD>
-            <TD>'A', '\n', '\033'</TD>
+            <TD>'A', '\n', '\033</TD>
           </TR>
           <TR>
             <TD>16ビット文字</TD>
             <TD align="center">wchar</TD>
             <TD>UTF-16文字定数</TD>
-            <TD>L'A', L'\n'</TD>
+            <TD>L'A', L'\n'', '\u00A6'</TD>
           </TR>
           <TR>
             <TD rowspan="4" align="center">数値</TD>
@@ -147,8 +161,9 @@ TD {
           <TR>
             <TD>UTF-16文字列</TD>
             <TD align="center">wstr</TD>
-            <TD>UTF-16の16ビット文字列</TD>
-            <TD>L&quot;sample&quot;</TD>
+            <TD>UTF-16の16ビット文字列<BR>
+            ※2.26.9より「'...'」で「￥」を解釈しない文字列が利用できます。ただし１文字の場合は、上記の文字定数と解釈しますので注意してください</TD>
+            <TD>L&quot;sample&quot;, 'folder\filename'</TD>
           </TR>
           <TR>
             <TD>UCS-4文字列</TD>
@@ -226,7 +241,7 @@ TD {
           </TR>
           <TR>
             <TD colspan="5">予約済みの変数として<A href="#I20">ドキュメント変数</A>「Document」とグローバル変数の「System」があります。<BR>
-            System変数は、プログラム内のすべての接続で共有の変数となりますが、現在は、何も設定していません。</TD>
+            System変数は、プログラム内のすべての接続で共有の変数となります。</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -833,6 +848,20 @@ default: a = 1 + 3; break;
             <TD valign="top">100</TD>
           </TR>
           <TR>
+            <TD valign="top">hex ( <I>string</I> )</TD>
+            <TD valign="top">16進数の文字列を整数で返します</TD>
+            <TD valign="top">int<BR>
+            int64</TD>
+            <TD valign="top" rowspan="2">echo(hex(&quot;FF&quot;));</TD>
+            <TD valign="top" rowspan="2">255</TD>
+          </TR>
+          <TR>
+            <TD valign="top">oct ( <I>string</I> )</TD>
+            <TD valign="top">8進数の文字列を整数で返します</TD>
+            <TD valign="top">int<BR>
+            int64</TD>
+          </TR>
+          <TR>
             <TD valign="top">str ( <I>value</I> )</TD>
             <TD valign="top">8ビット文字列を返します。</TD>
             <TD valign="top">str</TD>
@@ -943,86 +972,86 @@ default: a = 1 + 3; break;
             <TD align="center" width="25%"><FONT size="-1">実行結果</FONT></TD>
           </TR>
           <TR>
-            <TD valign="top">substr ( <I>string</I> , <I>index</I> ,<BR>
+            <TD valign="top" width="20%">substr ( <I>string</I> , <I>index</I> ,<BR>
             <I>length</I> )</TD>
-            <TD valign="top">stringのindex目からlength個の文字を返す</TD>
-            <TD valign="top">str</TD>
-            <TD valign="top" rowspan="2">a = &quot;ABCXYZDEF&quot;;<BR>
+            <TD valign="top" width="25%">stringのindex目からlength個の文字を返す</TD>
+            <TD valign="top" width="5%">str</TD>
+            <TD valign="top" rowspan="2" width="25%">a = &quot;ABCXYZDEF&quot;;<BR>
             b = strstr(a, &quot;XYZ&quot;);<BR>
             c = substr(a, b, 3);<BR>
             echo(b . &quot; &quot; . c);</TD>
-            <TD valign="top" rowspan="2">3 XYZ</TD>
+            <TD valign="top" rowspan="2" width="25%">3 XYZ</TD>
           </TR>
           <TR>
-            <TD valign="top">strstr ( <I>string</I> , <I>pattan</I> )</TD>
-            <TD valign="top">stringのpattanに一致する文字列の位置を返す</TD>
-            <TD valign="top">int</TD>
+            <TD valign="top" width="20%">strstr ( <I>string</I> , <I>pattan</I> )</TD>
+            <TD valign="top" width="25%">stringのpattanに一致する文字列の位置を返す</TD>
+            <TD valign="top" width="5%">int</TD>
           </TR>
           <TR>
-            <TD valign="top">trim ( <I>string , pattan</I> )</TD>
-            <TD valign="top">stringからpattanに一致する両端の文字を削除する</TD>
-            <TD valign="top">wstr</TD>
-            <TD valign="top" rowspan="3">a = &quot;ABCCBAXYZFEDDEF&quot;;<BR>
+            <TD valign="top" width="20%">trim ( <I>string , pattan</I> )</TD>
+            <TD valign="top" width="25%">stringからpattanに一致する両端の文字を削除する</TD>
+            <TD valign="top" width="5%">wstr</TD>
+            <TD valign="top" rowspan="3" width="25%">a = &quot;ABCCBAXYZFEDDEF&quot;;<BR>
             echo(trim(a, &quot;ABC&quot;).&quot;\n&quot;);<BR>
             echo(trim(a, &quot;XYZ&quot;).&quot;\n&quot;);<BR>
             echo(trim(a, &quot;DEF&quot;).&quot;\n&quot;);</TD>
-            <TD valign="top" rowspan="3">XYZFEDDEF<BR>
+            <TD valign="top" rowspan="3" width="25%">XYZFEDDEF<BR>
             ABCCBAXYZFEDDEF<BR>
             ABCCBAXYZ</TD>
           </TR>
           <TR>
-            <TD valign="top">trimleft ( <I>string , pattan</I> )</TD>
-            <TD valign="top">stringからpattanに一致する左端の文字を削除する</TD>
-            <TD valign="top">wstr</TD>
+            <TD valign="top" width="20%">trimleft ( <I>string , pattan</I> )</TD>
+            <TD valign="top" width="25%">stringからpattanに一致する左端の文字を削除する</TD>
+            <TD valign="top" width="5%">wstr</TD>
           </TR>
           <TR>
-            <TD valign="top">trimright ( <I>string , pattan</I> )</TD>
-            <TD valign="top">stringからpattanに一致する右端の文字を削除する</TD>
-            <TD valign="top">wstr</TD>
+            <TD valign="top" width="20%">trimright ( <I>string , pattan</I> )</TD>
+            <TD valign="top" width="25%">stringからpattanに一致する右端の文字を削除する</TD>
+            <TD valign="top" width="5%">wstr</TD>
           </TR>
           <TR>
-            <TD valign="top">ctos ( <I>char</I> )</TD>
-            <TD valign="top">charコードを文字列に変換する。<BR>
+            <TD valign="top" width="20%">ctos ( <I>char</I> )</TD>
+            <TD valign="top" width="25%">charコードを文字列に変換する。<BR>
             コードは、UCS-4を想定してサロゲート処理する</TD>
-            <TD valign="top">wstr</TD>
-            <TD valign="top">a = 0x10000;<BR>
+            <TD valign="top" width="5%">wstr</TD>
+            <TD valign="top" width="25%">a = 0x10000;<BR>
             s = ctos(a);<BR>
             echo(dump(s));</TD>
-            <TD valign="top">D800 DC00</TD>
+            <TD valign="top" width="25%">D800 DC00</TD>
           </TR>
           <TR>
-            <TD valign="top">sprintf (<I> format</I> , ... )</TD>
-            <TD valign="top">引数をフォーマットして文字列を返す</TD>
-            <TD valign="top">str</TD>
-            <TD valign="top">echo(sprintf(&quot;TEST=%02x\n&quot;,41));</TD>
-            <TD valign="top">TEST=29</TD>
+            <TD valign="top" width="20%">sprintf (<I> format</I> , ... )</TD>
+            <TD valign="top" width="25%">引数をフォーマットして文字列を返す</TD>
+            <TD valign="top" width="5%">str</TD>
+            <TD valign="top" width="25%">echo(sprintf(&quot;TEST=%02x\n&quot;,41));</TD>
+            <TD valign="top" width="25%">TEST=29</TD>
           </TR>
           <TR>
-            <TD valign="top">escstr ( <I>strring</I> )</TD>
-            <TD valign="top">データベース引数用に文字をエスケープする。</TD>
-            <TD valign="top">str</TD>
-            <TD valign="top"></TD>
-            <TD valign="top"></TD>
+            <TD valign="top" width="20%">escstr ( <I>strring</I> )</TD>
+            <TD valign="top" width="25%">データベース引数用に文字をエスケープする。</TD>
+            <TD valign="top" width="5%">str</TD>
+            <TD valign="top" width="25%"></TD>
+            <TD valign="top" width="25%"></TD>
           </TR>
           <TR>
-            <TD valign="top">escshell( <I>string</I> )</TD>
-            <TD valign="top">シェルの引数用に文字をエスケープする。</TD>
-            <TD valign="top">str</TD>
-            <TD valign="top">echo(escshell(&quot;abc &gt; xyz&quot;));</TD>
-            <TD valign="top">abc\ \&gt;\ xyz</TD>
+            <TD valign="top" width="20%">escshell( <I>string</I> )</TD>
+            <TD valign="top" width="25%">シェルの引数用に文字をエスケープする。</TD>
+            <TD valign="top" width="5%">str</TD>
+            <TD valign="top" width="25%">echo(escshell(&quot;abc &gt; xyz&quot;));</TD>
+            <TD valign="top" width="25%">abc\ \&gt;\ xyz</TD>
           </TR>
           <TR>
-            <TD valign="top">speak( <I>string</I> )</TD>
-            <TD valign="top">音声合成で話す</TD>
-            <TD valign="top">str</TD>
-            <TD valign="top">speak(&quot;こんにちは&quot;);</TD>
-            <TD valign="top"></TD>
+            <TD valign="top" width="20%">speak( <I>string</I> )</TD>
+            <TD valign="top" width="25%">音声合成で話す</TD>
+            <TD valign="top" width="5%">str</TD>
+            <TD valign="top" width="25%">speak(&quot;こんにちは&quot;);</TD>
+            <TD valign="top" width="25%"></TD>
           </TR>
           <TR>
-            <TD valign="top"><A name="strftime"></A>strftime ( <I>format , time</I> )</TD>
-            <TD valign="top">time()で返される日時をフォーマットして文字列を返す</TD>
-            <TD valign="top">str</TD>
-            <TD valign="top" rowspan="3">a = time();<BR>
+            <TD valign="top" width="20%"><A name="strftime"></A>strftime ( <I>format , time</I> )</TD>
+            <TD valign="top" width="25%">time()で返される日時をフォーマットして文字列を返す</TD>
+            <TD valign="top" width="5%">str</TD>
+            <TD valign="top" rowspan="3" width="25%">a = time();<BR>
             echo(<BR>
             strftime(&quot;%m/%d/%y %H:%M:%S\n&quot;, a));<BR>
             b = getdate(a);<BR>
@@ -1030,12 +1059,12 @@ default: a = 1 + 3; break;
             b.mon, b.mday, b.year);<BR>
             echo(<BR>
             strftime(&quot;%m/%d/%y %H:%M:%S\n&quot;, c));</TD>
-            <TD valign="top" rowspan="3">03/02/12 08:50:56<BR>
+            <TD valign="top" rowspan="3" width="25%">03/02/12 08:50:56<BR>
             03/02/12 08:50:56</TD>
           </TR>
           <TR>
-            <TD valign="top">getdate ( <I>time</I> )</TD>
-            <TD valign="top">time()で返される日時を配列で返す<BR>
+            <TD valign="top" width="20%">getdate ( <I>time</I> )</TD>
+            <TD valign="top" width="25%">time()で返される日時を配列で返す<BR>
             <TABLE cellpadding="1" width="100%">
               <TBODY>
                 <TR>
@@ -1065,13 +1094,52 @@ default: a = 1 + 3; break;
               </TBODY>
             </TABLE>
             </TD>
-            <TD valign="top">array</TD>
+            <TD valign="top" width="5%">array</TD>
           </TR>
           <TR>
-            <TD valign="top">mktime ( <I>[hour] , [minute] ,<BR>
+            <TD valign="top" width="20%">mktime ( <I>[hour] , [minute] ,<BR>
             [second] ,[month] , [day] ,<BR>
             [yea r], [dst</I>] )</TD>
-            <TD valign="top">個々の日時要素からtime()と同じ経過時間を返す</TD>
+            <TD valign="top" width="25%">個々の日時要素からtime()と同じ経過時間を返す</TD>
+            <TD valign="top" width="5%">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top" width="20%">getenv ( <I>env</I> )</TD>
+            <TD valign="top" width="25%">環境変数を取得します。指定文字列に環境変数が存在しない場合は、Windowsの特殊フォルダの取得を試みます。特殊フォルダ名の一部は、チャットスクリプトの<A href="index.html#FILENAMEEXT" style="font-family: Meiryo; font-size: 14.4px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px;">送信文字列の特殊文字</A>の環境変数の部分で説明しています</TD>
+            <TD valign="top" width="5%">str</TD>
+            <TD valign="top" width="25%">filename = sprintf(&quot;%s\\NewFile.txt&quot;, getenv(&quot;MyDocuments&quot;));<BR>
+            echo(filename);</TD>
+            <TD valign="top" width="25%"><FONT size="-2">C:\Users\xxx\Documents\NewFile.txt</FONT></TD>
+          </TR>
+          <TR>
+            <TD valign="top">getdoc ( <I>string</I> )</TD>
+            <TD valign="top">チャットスクリプトの<A href="index.html#FILENAMEEXT" style="font-family: Meiryo; font-size: 14.4px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px;">送信文字列の特殊文字</A>で文字列を変換します</TD>
+            <TD valign="top">str</TD>
+            <TD valign="top">echo(getdoc(&quot;%E-%D&quot;));</TD>
+            <TD valign="top">Entry-220302</TD>
+          </TR>
+          <TR>
+            <TD valign="top">strcmp ( <I>src</I> , <I>dis</I> )</TD>
+            <TD valign="top">基本SHIFT-JISの8ビット文字列で文字列比較を行います</TD>
+            <TD valign="top">int</TD>
+            <TD valign="top" rowspan="4">echo(strcmp(&quot;Abc&quot;, &quot;ABC&quot;).&quot;\n&quot;);<BR>
+            echo(stricmp(&quot;Abc&quot;, &quot;ABC&quot;).&quot;\n&quot;);</TD>
+            <TD valign="top" rowspan="4">1<BR>
+            0</TD>
+          </TR>
+          <TR>
+            <TD valign="top">stricmp ( <I>src</I> , <I>dis</I> )</TD>
+            <TD valign="top">基本SHIFT-JISの8ビット文字列で大文字小文字の区別をしないで文字列比較を行います</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">strwcmp ( <I>src</I> , <I>dis</I> )</TD>
+            <TD valign="top">UTF-16の16ビット文字列で文字列比較を行います</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">strdcmp ( <I>src</I> , <I>dis</I> )</TD>
+            <TD valign="top">UCS-4の32ビット文字列で文字列比較を行います</TD>
             <TD valign="top">int</TD>
           </TR>
         </TBODY>
@@ -1133,7 +1201,10 @@ default: a = 1 + 3; break;
           </TR>
           <TR>
             <TD valign="top">regopen (<I> pattan</I> )</TD>
-            <TD valign="top">正規表現を準備する</TD>
+            <TD valign="top">正規表現を準備する<BR>
+            正規表現に渡すpattanにエスケープ文字の「￥」を含める場合は、スクリプト内でも「￥」をエスケープ文字として使用しているので注意が必要です。<BR>
+            ※2.26.9から「'...'」で「￥」を解釈しない文字列が利用できます<BR>
+            例&quot;\\Aword\\Z&quot;&gt;'\Aword\Z'</TD>
             <TD valign="top">ptr</TD>
             <TD valign="top" rowspan="4">
             <PRE style="font-size : 8pt;">Document.Open();
@@ -1165,6 +1236,60 @@ cclose();</PRE>
             <TD valign="top">文字列単位で正規表現をチェックする</TD>
             <TD valign="top">int<BR>
             array</TD>
+          </TR>
+          <TR>
+            <TD valign="top">regmode ( <I>mode</I> )</TD>
+            <TD valign="top">デフォルトは、&quot;6&quot;で正規表現＋エスケープ文字有効です。変更すると以降のereg/replace/regopen/swaitなどすべての正規表現関数に影響します
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD>0</TD>
+                  <TD>シンプル</TD>
+                </TR>
+                <TR>
+                  <TD>1</TD>
+                  <TD>ワイルドカード(*,?)</TD>
+                </TR>
+                <TR>
+                  <TD>2</TD>
+                  <TD>正規表現</TD>
+                </TR>
+                <TR>
+                  <TD>+4</TD>
+                  <TD>エスケープ文字有効</TD>
+                </TR>
+                <TR>
+                  <TD>+8</TD>
+                  <TD>英大小文字区別無</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+            <TD valign="top"></TD>
+            <TD valign="top">a=&quot;ABCXYZ\n&quot;;<BR>regmode(0);<BR>
+            b=replace(&quot;ABC&quot;,&quot;EFG&quot;,a);<BR>
+            echo(b);<BR>
+            regmode(6);<BR>
+            b=replace(&quot;[A-C]+&quot;,&quot;EFG&quot;,a);<BR>
+            echo(b);<BR>
+            </TD>
+            <TD valign="top">EFGXYZ<BR>
+            EFGXYZ</TD>
+          </TR>
+          <TR>
+            <TD valign="top">regconv ( <I>string , mode</I> )</TD>
+            <TD valign="top">上記modeで正規表現の文字列を成形します。すべてに影響せずにモードを変更した正規表現パターンを作成します</TD>
+            <TD valign="top">str</TD>
+            <TD valign="top"><FONT size="-1">// スクリプトで「￥」を解釈<BR>
+ereg(regconv(&quot;abc\\xyz&quot;, 2), a);<BR>
+// 正規表現で「￥」を解釈<BR>
+ereg(regconv(&quot;abc\\\\xyz&quot;, 6), a);<BR>
+<BR>
+// スクリプトで「￥」を無視<BR>
+ereg(regconv('abc\xyz', 2), a);<BR>
+// 正規表現で「￥」を解釈<BR>
+ereg(regconv('abc\\xyz', 6), a);</FONT></TD>
+            <TD valign="top">abc\xyzにマッチ</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -1225,18 +1350,26 @@ cclose();</PRE>
           </TR>
           <TR>
             <TD valign="top">md5 ( <I>string , [base16]</I> )</TD>
-            <TD valign="top" rowspan="2">md5/sha1ハッシュ関数で文字列をコード化します。base16を「0」で16進数文字列に変換します。「0」以外では、バイナリーのまま返します。</TD>
+            <TD valign="top" rowspan="4">md5/sha1/sha256/sha512ハッシュ関数で文字列をコード化します。base16を「0」で16進数文字列に変換します。「0」以外では、バイナリーのまま返します。</TD>
             <TD valign="top">str</TD>
-            <TD valign="top" rowspan="2">a = &quot;ABCDEF&quot;;<BR>
+            <TD valign="top" rowspan="4">a = &quot;ABCDEF&quot;;<BR>
             echo(md5(a).&quot;\n&quot;);<BR>
             echo(sha1(a).&quot;\n&quot;);</TD>
-            <TD valign="top" rowspan="2">8827a41122a5028b9808<BR>
+            <TD valign="top" rowspan="4">8827a41122a5028b9808<BR>
             c7bf84b9fcf6<BR>
             970093678b182127f60b<BR>
             b51b8af2c94d539eca3a</TD>
           </TR>
           <TR>
             <TD valign="top">sha1 ( <I>string , [base16]</I> )</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">sha256 ( <I>string , [base16]</I> )</TD>
+            <TD valign="top">str</TD>
+          </TR>
+          <TR>
+            <TD valign="top">sha512 ( <I>string , [base16]</I> )</TD>
             <TD valign="top">str</TD>
           </TR>
           <TR>
@@ -1306,6 +1439,20 @@ cclose();</PRE>
             <TD valign="top">文字列を暗号化します</TD>
             <TD valign="top">str</TD>
           </TR>
+          <TR>
+            <TD valign="top">tolower ( <I>string</I> )</TD>
+            <TD valign="top">英字の小文字に変換します</TD>
+            <TD valign="top">str</TD>
+            <TD valign="top" rowspan="2">echo(tolower(&quot;Abc\n&quot;));<BR>
+echo(toupper(&quot;Abc\n&quot;));</TD>
+            <TD valign="top" rowspan="2">abc<BR>
+            ABC</TD>
+          </TR>
+          <TR>
+            <TD valign="top">toupper ( <I>string</I> )</TD>
+            <TD valign="top">英字の大文字に変換します</TD>
+            <TD valign="top">str</TD>
+          </TR>
         </TBODY>
       </TABLE>
       </TD>
@@ -1332,7 +1479,7 @@ cclose();</PRE>
             <TD valign="top">画面表示される文字読み取りを開始します。cputsなどの出力は、無限ループを避ける為に、入力しませんが、ソケットからの入力は、通常コンソールに出力されコンソール入力として読み取ります。<BR>
             sputs()などのソケット出力がエコーバックされる場合、無限ループになる可能性があります注意してくだい</TD>
             <TD valign="top"></TD>
-            <TD valign="top" rowspan="13">
+            <TD valign="top" rowspan="14">
             <PRE style="font-size : 8pt;">Document.Open();
 wait(CONNECT);
 copen();
@@ -1350,7 +1497,7 @@ while ( (a = cgetc()) != EOF ) {
 regclose(p);
 cclose();</PRE>
             </TD>
-            <TD valign="top" rowspan="13">ERRORが表示されると文字色を赤に変える</TD>
+            <TD valign="top" rowspan="14">ERRORが表示されると文字色を赤に変える</TD>
           </TR>
           <TR>
             <TD valign="top">cclose ( )</TD>
@@ -1380,6 +1527,11 @@ cclose();</PRE>
             <TD valign="top">cputs ( <I>string</I> )</TD>
             <TD valign="top">現在の漢字コードに文字列を変換して画面に表示します。<BR>
             echo()と似ていますが「\n」を変換しません</TD>
+            <TD valign="top"></TD>
+          </TR>
+          <TR>
+            <TD valign="top">cprintf ( <I>fmt</I> , ... )</TD>
+            <TD valign="top">フォーマットして現在の漢字コードで文字列を画面に表示します</TD>
             <TD valign="top"></TD>
           </TR>
           <TR>
@@ -1498,7 +1650,7 @@ case 1:    // ERR
             </TABLE>
             </TD>
             <TD valign="top"></TD>
-            <TD valign="top" rowspan="8">
+            <TD valign="top" rowspan="9">
             <PRE style="font-size : 8pt;">Document.Open();
 wait(CONNECT);
 sopen(OPEN_LOOK);
@@ -1508,7 +1660,7 @@ while ( (s = sgets()) != &quot;&quot; ) {
 }
 sclose();</PRE>
             </TD>
-            <TD valign="top" rowspan="8">ERRORとソケットから入力があればビープを鳴らします。</TD>
+            <TD valign="top" rowspan="9">ERRORとソケットから入力があればビープを鳴らします。</TD>
           </TR>
           <TR>
             <TD valign="top">sclose ( )</TD>
@@ -1542,12 +1694,18 @@ sclose();</PRE>
           <TR>
             <TD valign="top">sputs ( <I>string</I> )</TD>
             <TD valign="top">現在の漢字コードに文字列を変換してソケットに送ります。</TD>
-            <TD valign="top">str</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">tprintf ( <I>fmt</I> , ... )</TD>
+            <TD valign="top">フォーマットして文字列を現在の漢字コードでソケットに送ります<BR>
+            ※すでに<B>s</B>printfが有りますので<B>t</B>printfにしました</TD>
+            <TD valign="top">int</TD>
           </TR>
           <TR>
             <TD valign="top">swrite ( <I>string</I> )</TD>
             <TD valign="top">文字列をそのままの形でソケットに送ります。</TD>
-            <TD valign="top">str</TD>
+            <TD valign="top">int</TD>
           </TR>
           <TR>
             <TD valign="top">wait ( <I>mode</I> )</TD>
@@ -1673,13 +1831,13 @@ sclose();</PRE>
             </TABLE>
             </TD>
             <TD valign="top">fp</TD>
-            <TD valign="top" rowspan="14">
+            <TD valign="top" rowspan="15">
 	    <PRE style="font-size : 8pt;">if ( (fp=fopen("C:\\Tmp\\Hello.txt", "w")) ) {
     fputs("Hello World\n", fp);
     fclose(fp);
 }
 </PRE></TD>
-            <TD valign="top" rowspan="14"></TD>
+            <TD valign="top" rowspan="15"></TD>
           </TR>
           <TR>
             <TD valign="top">fclose ( <I>fp</I> )</TD>
@@ -1718,8 +1876,13 @@ sclose();</PRE>
           </TR>
           <TR>
             <TD valign="top">fputs ( <I>string</I> , <I>fp</I> )</TD>
-            <TD valign="top">1行書き込み</TD>
-            <TD valign="top">str</TD>
+            <TD valign="top">文字列の書き込み</TD>
+            <TD valign="top">int</TD>
+          </TR>
+          <TR>
+            <TD valign="top">fprintf( <I>fp</I> , <I>fmt</I>, ... )</TD>
+            <TD valign="top">フォーマットして書き込み</TD>
+            <TD valign="top">int</TD>
           </TR>
           <TR>
             <TD valign="top">fwrite ( <I>string , fp</I> )</TD>
@@ -1861,9 +2024,11 @@ sclose();</PRE>
             <TD align="center" width="27%"><FONT size="-1">実行結果</FONT></TD>
           </TR>
           <TR>
-            <TD valign="top">rand ( )</TD>
-            <TD valign="top">擬似乱数</TD>
-            <TD valign="top">int</TD>
+            <TD valign="top">rand ( <I>[size]</I> )</TD>
+            <TD valign="top">擬似乱数を返します<BR>
+            sizeを指定すると指定サイズのバイト数で乱数列を返します</TD>
+            <TD valign="top">int<BR>
+            str</TD>
             <TD valign="top" rowspan="21">
             <PRE style="font-size : 7pt;">tekopen();
 ox = 2000;

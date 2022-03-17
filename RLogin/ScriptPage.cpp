@@ -24,6 +24,7 @@ CScriptPage::CScriptPage() : CTreePage(CScriptPage::IDD)
 	for ( int n = 0 ; n < CHECKOPTMAX ; n++ )
 		m_Check[n] = FALSE;
 	m_ScriptFile.Empty();
+	m_UrlOpt = _T("#SCRIPT");
 }
 
 CScriptPage::~CScriptPage()

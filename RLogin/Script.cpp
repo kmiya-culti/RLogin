@@ -1008,7 +1008,7 @@ int CScriptValue::Compare(int mode, CScriptValue *ptr)
 	case 0:
 		if ( GetType() == VALTYPE_DSTRING || ptr->GetType() == VALTYPE_DSTRING ) {
 			CStringD tmp((LPCDSTR)*this);
-			c =tmp.Compare((LPCDSTR)*ptr);
+			c = tmp.Compare((LPCDSTR)*ptr);
 		} else if ( GetType() == VALTYPE_WSTRING || ptr->GetType() == VALTYPE_WSTRING )
 			c = wcscmp((LPCWSTR)*this, (LPCWSTR)*ptr);
 		else if ( GetType() == VALTYPE_STRING || ptr->GetType() == VALTYPE_STRING )
@@ -1472,6 +1472,7 @@ CScript::CScript()
 	m_EventMask = 0;
 	m_EventMode = 0;
 	m_RegMatch = 0;
+	m_RegFlag = REG_FLAG_REGEX | REG_FLAG_ESCCHAR;
 	m_bAbort = FALSE;
 	m_bInit = FALSE;
 	m_bExec = FALSE;
@@ -1626,7 +1627,7 @@ int CScript::LexDigit(int ch)
 			return LEX_INT64;
 		} else {
 			UnGetChar(ch);
-			if ( val > 0xFFFFFFFF ) {
+			if ( val > 0x7FFFFFFF ) {
 				m_LexTmp = (LONGLONG)val;
 				return LEX_INT64;
 			} else {
@@ -1701,10 +1702,12 @@ DOUBLEFLOAT:
 		return LEX_DOUBLE;
 	}
 }
-int CScript::LexEscape(int ch)
+int CScript::LexEscape(int ch, CStringW *save)
 {
 	int n;
 	int val = 0;
+
+	if ( save != NULL ) *save += (WCHAR)ch;
 
 	if ( ch == 'x' || ch == 'X' ) {
 		for ( n = 0 ; (ch = GetChar()) != EOF && n < 2 ; n++ ) {
@@ -1716,6 +1719,20 @@ int CScript::LexEscape(int ch)
 				val = val * 16 + (ch - 'A' + 10);
 			else
 				break;
+			if ( save != NULL ) *save += (WCHAR)ch;
+		}
+		UnGetChar(ch);
+	} else if ( ch == 'u' || ch == 'U' ) {
+		for ( n = 0 ; (ch = GetChar()) != EOF && n < 8 ; n++ ) {
+			if ( ch >= '0' && ch <= '9' )
+				val = val * 16 + (ch - '0');
+			else if ( ch >= 'a' && ch <= 'f' )
+				val = val * 16 + (ch - 'a' + 10);
+			else if ( ch >= 'A' && ch <= 'F' )
+				val = val * 16 + (ch - 'A' + 10);
+			else
+				break;
+			if ( save != NULL ) *save += (WCHAR)ch;
 		}
 		UnGetChar(ch);
 	} else if ( ch >= '0' && ch <= '7' ) {
@@ -1725,6 +1742,7 @@ int CScript::LexEscape(int ch)
 				val = val * 8 + (ch - '0');
 			else
 				break;
+			if ( save != NULL ) *save += (WCHAR)ch;
 		}
 		UnGetChar(ch);
 	} else {
@@ -1798,7 +1816,6 @@ LOOP:
 			goto LOOP;
 		} else
 			UnGetChar(nx);
-
 	}
 
 	m_PosOld = m_BufOld;
@@ -1812,14 +1829,12 @@ LOOP:
 
 	} else if ( (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_' ) {
 		nx = GetChar();
-		if ( (ch == 'L' || ch == 'W') && nx == '"' ) {	// WSTRING
+		if ( (ch == 'L' || ch == 'W') && (nx == '"' || nx == '\'') ) {	// WSTRING
 			while ( (ch = GetChar()) != EOF ) {
-				if ( ch == '"' )
+				if ( ch == nx )
 					break;
-				else if ( ch == '\\' )
-					buf.PutWord(LexEscape(GetChar()));
-				else if ( ch == EOF )
-					goto ENDOF;
+				else if ( ch == '\\' && nx == '"' )
+					buf.PutWord(LexEscape(GetChar(), NULL));
 				else
 					buf.PutWord(ch);
 			}
@@ -1869,22 +1884,32 @@ LOOP:
 		    UnGetChar(nx);
 
 	} else if ( ch == '\'' ) {
-		if ( (ch = GetChar()) == '\\' )
-			ch = LexEscape(GetChar());
-		if ( (m_LexTmp = ch) == EOF )
-			goto ENDOF;
-		if ( (ch = GetChar()) != '\'' )
-			UnGetChar(ch);
-		ch = LEX_INT;
+		CStringW save;
+		if ( (ch = GetChar()) == '\\' ) {
+			save += (WCHAR)ch;
+			ch = LexEscape(GetChar(), &save);
+		} else
+			save += (WCHAR)ch;
+		if ( (nx = GetChar()) == '\'' ) {
+			m_LexTmp = ch;
+			ch = LEX_INT;
+		} else {			// '\'‚ðˆ—‚µ‚È‚¢W•¶Žš—ñ‚ÉŠg’£
+			save += (WCHAR)nx;
+			while ( (ch = GetChar()) != EOF ) {
+				if ( ch == '\'' )
+					break;
+				save += (WCHAR)ch;
+			}
+			m_LexTmp.SetBuf((void *)(LPCWSTR)save, save.GetLength() * sizeof(WCHAR));
+			ch = LEX_WSTRING;
+		}
 
 	} else if ( ch == '"' ) {
 		while ( (ch = GetChar()) != EOF ) {
 			if ( ch == '"' )
 				break;
 			else if ( ch == '\\' )
-				buf.Put8Bit(LexEscape(GetChar()));
-			else if ( ch == EOF )
-				goto ENDOF;
+				buf.Put8Bit(LexEscape(GetChar(), NULL));
 			else {
 				tmp = (WCHAR)ch;
 				buf.Apend((LPBYTE)(LPCSTR)tmp, tmp.GetLength());
@@ -3866,6 +3891,98 @@ int CScript::Exec()
 }
 
 //////////////////////////////////////////////////////////////////////
+
+LPCTSTR CScript::Format(CScriptValue &local, int base)
+{
+	BOOL ll;
+	CString fmt, work;
+	LPCTSTR str;
+
+	m_FormatStr.Empty();
+	str = (LPCTSTR)local[base++];
+
+	while ( *str != '\0' ) {
+		if ( *str == '%' ) {
+			fmt.Empty();
+			work.Empty();
+			fmt += *(str++);
+			ll = FALSE;
+
+			if ( *str == '-' || *str == '+' || *str == '0' || *str == ' ' || *str == '#' )
+				fmt += *(str++);
+
+			while ( (*str >= '0' && *str <= '9') || *str == '.' || *str == '*' ) {
+				if ( *str == '*' ) {
+					str++;
+					work.Format(_T("%d"), (int)local[base++]);
+					fmt += work;
+					work.Empty();
+				} else
+					fmt += *(str++);
+			}
+
+			if ( *str == 'h' )
+				fmt += *(str++);
+			else if ( str[0] == 'l' && str[1] == 'l' ) {
+				fmt += *(str++);
+				fmt += *(str++);
+				ll = TRUE;
+			} else if ( *str == 'l' )
+				fmt += *(str++);
+			else if ( str[0] == 'I' && str[1] == '3' && str[2] == '2' ) {
+				fmt += *(str++);
+				fmt += *(str++);
+				fmt += *(str++);
+			} else if ( str[0] == 'I' && str[1] == '6' && str[2] == '4' ) {
+				fmt += *(str++);
+				fmt += *(str++);
+				fmt += *(str++);
+				ll = TRUE;
+			} else if ( *str == 'I' )
+				fmt += *(str++);
+
+			fmt += *str;
+			switch(*(str++)) {
+			case 'c': case 'C':
+				work.Format(fmt, (int)local[base++]);
+				break;
+			case 'd': case 'i': case 'o': case 'u':
+			case 'x': case 'X':
+				if ( ll )
+					work.Format(fmt, (LONGLONG)local[base++]);
+				else if ( local[base].GetType() == VALTYPE_INT64 ) {
+					fmt.Insert(fmt.GetLength() - 1, _T("I64"));
+					work.Format(fmt, (LONGLONG)local[base++]);
+				} else
+					work.Format(fmt, (int)local[base++]);
+				break;
+			case 'e': case 'E':
+			case 'f':
+			case 'g': case 'G':
+			case 'a': case 'A':
+				work.Format(fmt, (double)local[base++]);
+				break;
+			case 's': case 'S':
+				work.Format(fmt, (LPCTSTR)local[base++]);
+				break;
+
+			case '%':
+				work = '%';
+				break;
+			default:
+				work = fmt;
+				break;
+			}
+			m_FormatStr += work;
+
+		} else
+			m_FormatStr += *(str++);
+	}
+	
+	return m_FormatStr;
+}
+
+//////////////////////////////////////////////////////////////////////
 // ComSock Func
 
 int CScript::ComFunc(int cmd, CScriptValue &local)
@@ -5401,16 +5518,23 @@ int CScript::Func09(int cmd, CScriptValue &local)
 		}
 		break;
 
-	case 11:		// sendstr(str)
+	case 11:	// sendstr(str)
 		{
 			CBuffer tmp((LPCWSTR)local[0]);
 			m_pDoc->SendBuffer(tmp, FALSE);
 		}
 		break;
-	case 12:		// broadcast(str, group)
+	case 12:	// broadcast(str, group)
 		{
 			CBuffer tmp((LPCWSTR)local[0]);
 			((CRLoginApp *)::AfxGetApp())->SendBroadCast(tmp, (LPCTSTR)local[1]);
+		}
+		break;
+
+	case 13:	// tprintf(fmt, ...)
+		if ( m_pDoc->m_pSock != NULL ) {
+			LPCSTR mbs = m_pDoc->RemoteStr(Format(local, 0));
+			m_pDoc->m_pSock->Send((LPCSTR)mbs, (int)strlen(mbs));
 		}
 		break;
 	}
@@ -5541,7 +5665,7 @@ int CScript::Func08(int cmd, CScriptValue &local)
 				delete (CRegEx *)m_RegData[n];
 			m_RegData.RemoveAll();
 			for ( n = 1 ; n < local.GetSize() ; n++ ) {
-				CRegEx *pReg = new CRegEx;
+				CRegEx *pReg = new CRegEx(m_RegFlag);
 				if ( !pReg->Compile((LPCTSTR)local[n]) ) {
 					delete pReg;
 					continue;
@@ -5652,6 +5776,14 @@ int CScript::Func08(int cmd, CScriptValue &local)
 			m_pDoc->m_TextRam.GetVram(sx, ex, sy, ey, bp);
 		}
 		break;
+
+	case 15:		// cprintf(fmt, ...)
+		{
+			LPCSTR mbs = m_pDoc->RemoteStr(Format(local, 0));
+			PutConsOut((LPBYTE)mbs, (int)strlen(mbs));
+		}
+		break;
+
 	}
 	return FUNC_RET_NOMAL;
 }
@@ -5669,7 +5801,7 @@ int CScript::Func07(int cmd, CScriptValue &local)
 
 	switch(cmd) {
 	case 0:		// regopen(r)
-		rp = new CRegEx;
+		rp = new CRegEx(m_RegFlag);
 		rp->Compile((LPCTSTR)local[0]);
 		rp->MatchCharInit();
 		(*acc) = (void *)rp;
@@ -5777,6 +5909,13 @@ int CScript::Func07(int cmd, CScriptValue &local)
 			}
 		}
 		break;
+
+	case 7:		// regmode(n)
+		m_RegFlag = (int)local[0];
+		break;
+	case 8:		// regconv(s, n)
+		(*acc) = CRegEx::SimpleRegEx((LPCTSTR)local[0], (int)local[1]);
+		break;
 	}
 	return FUNC_RET_NOMAL;
 }
@@ -5844,51 +5983,62 @@ int CScript::Func06(int cmd, CScriptValue &local)
 
 	case 3:	// md5(s, f)
 	case 4:	// sha1(s, f)
+	case 5:	// sha256(s, f)
+	case 6:	// sha512(s, f)
 		{
 			int dlen;
+			const EVP_MD *md = NULL;
 			u_char digest[EVP_MAX_MD_SIZE];
 
 			bp = local[0].GetBuf();
-			dlen = MD_digest((cmd == 3 ? EVP_md5() : EVP_sha1()), bp->GetPtr(), bp->GetSize(), digest, sizeof(digest));
+			switch(cmd) {
+			case 3: md = EVP_md5(); break;
+			case 4: md = EVP_sha1(); break;
+			case 5: md = EVP_sha256(); break;
+			case 6: md = EVP_sha512(); break;
+			}
+			dlen = MD_digest(md, bp->GetPtr(), bp->GetSize(), digest, sizeof(digest));
 
-			acc->m_Type = VALTYPE_TSTRING;
 			acc->m_Buf.Clear();
-			if ( (int)local[1] == 0 )
+			if ( (int)local[1] == 0 ) {
+				acc->m_Type = VALTYPE_TSTRING;
 				acc->m_Buf.Base16Encode(digest, dlen);
-			else
-				acc->m_Buf.Apend((LPBYTE)digest, (int)dlen);
+			} else {
+				acc->m_Type = VALTYPE_STRING;
+				acc->m_Buf.Apend((LPBYTE)digest, dlen);
+			}
 		}
 		break;
 
-	case 5:	// base64e(s)
+	case 7:	// base64e(s)
 		bp = local[0].GetBuf();
 		acc->m_Type = VALTYPE_TSTRING;
 		acc->m_Buf.Base64Encode(bp->GetPtr(), bp->GetSize());
 		break;
-	case 6:	// base64d(s)
+	case 8:	// base64d(s)
 		acc->m_Type = VALTYPE_STRING;
 		acc->m_Buf.Base64Decode((LPCTSTR)local[0]);
 		break;
-	case 7:	// quotede(s)
+	case 9:	// quotede(s)
 		bp = local[0].GetBuf();
 		acc->m_Type = VALTYPE_TSTRING;
 		acc->m_Buf.QuotedEncode(bp->GetPtr(), bp->GetSize());
 		break;
-	case 8:	// quotedd(s)
+	case 10:	// quotedd(s)
 		acc->m_Type = VALTYPE_STRING;
 		acc->m_Buf.QuotedDecode((LPCTSTR)local[0]);
 		break;
-	case 9:	// base16e(s)
+	case 11:	// base16e(s)
 		bp = local[0].GetBuf();
 		acc->m_Type = VALTYPE_TSTRING;
 		acc->m_Buf.Base16Encode(bp->GetPtr(), bp->GetSize());
 		break;
-	case 10:	// base16d(s)
+	case 12:	// base16d(s)
 		acc->m_Type = VALTYPE_STRING;
 		acc->m_Buf.Base16Decode((LPCTSTR)local[0]);
 		break;
 
-	case 11:	// crc16(s, c);
+	case 13:	// crc16(s, c);
 		{
 			int c, v;
 			c = (int)local[0] & 0xFFFF;
@@ -5897,7 +6047,7 @@ int CScript::Func06(int cmd, CScriptValue &local)
 			(*acc) = (int)((crc16tab[((c >> 8) ^ v) & 0xFF] ^ (c << 8)) & 0xFFFF);
 		}
 		break;
-	case 12:	// crc32(s, c);
+	case 14:	// crc32(s, c);
 		{
 			int c, v;
 			c = (int)local[0] & 0xFFFFFFFF;
@@ -5906,7 +6056,7 @@ int CScript::Func06(int cmd, CScriptValue &local)
 			(*acc) = (int)((crc32tab[((c >> 8) ^ v) & 0xFF] ^ ((c << 8) & 0x00FFFFFF)) & 0xFFFFFFFF);
 		}
 		break;
-	case 13:	// escstr(s)
+	case 15:	// escstr(s)
 		{
 			int n;
 			CBuffer *bp = local[0].GetWBuf();
@@ -5933,6 +6083,19 @@ int CScript::Func06(int cmd, CScriptValue &local)
 					str += *p;
 			}
 			(*acc) = str;
+		}
+		break;
+
+	case 16:	// tolower(s)
+		{
+			CStringA str((LPCSTR)local[0]);
+			(*acc) = (LPCSTR)str.MakeLower();
+		}
+		break;
+	case 17:	// toupper(s)
+		{
+			CStringA str((LPCSTR)local[0]);
+			(*acc) = (LPCSTR)str.MakeUpper();
 		}
 		break;
     }
@@ -6032,8 +6195,14 @@ int CScript::Func04(int cmd, CScriptValue &local)
 	acc->Empty();
 
 	switch(cmd) {
-	case 0:		// rand
-		(*acc) = (int)rand();
+	case 0:		// rand or rand(n)
+		if ( local.GetSize() > 0 && (int)local[0] > 0 ) {
+			int n = (int)local[0];
+			acc->m_Type = VALTYPE_STRING;
+			acc->m_Buf.Clear();
+			rand_buf(acc->m_Buf.PutSpc(n), n);
+		} else
+			(*acc) = (int)rand();
 		break;
 	case 1:		// srand
 		srand((int)local[0]);
@@ -6320,6 +6489,13 @@ int CScript::Func03(int cmd, CScriptValue &local)
 			throw _T("pclose not popen ptr");
 		local[0].SetPtrType(PTRTYPE_NONE);
 		break;
+
+	case 26:	// fprintf(f, fmt, ...)
+		if ( local[0].GetPtrType() != PTRTYPE_NONE )
+			(*acc) = (int)fputs(TstrToMbs(Format(local, 1)), (FILE *)(void *)local[0]);
+		else
+			throw _T("fputs not (f|p)open ptr");
+		break;
 	}
 	return FUNC_RET_NOMAL;
 }
@@ -6371,7 +6547,7 @@ int CScript::Func02(int cmd, CScriptValue &local)
 	case 2:		// ereg(r, s)
 		{
 			int n;
-			CRegEx reg;
+			CRegEx reg(m_RegFlag);
 			CRegExRes res;
 			reg.Compile((LPCTSTR)local[0]);
 			if ( reg.MatchStr((LPCTSTR)local[1], &res) ) {
@@ -6386,7 +6562,7 @@ int CScript::Func02(int cmd, CScriptValue &local)
 	case 3:		// replace(r, t, s)
 		{
 			CString tmp;
-			CRegEx reg;
+			CRegEx reg(m_RegFlag);
 			reg.Compile((LPCTSTR)local[0]);
 			if ( reg.ConvertStr((LPCTSTR)local[2], (LPCTSTR)local[1], tmp) )
 				(*acc) = (LPCTSTR)tmp;
@@ -6395,7 +6571,7 @@ int CScript::Func02(int cmd, CScriptValue &local)
 	case 4:	// split(r, s)
 		{
 			int n;
-			CRegEx reg;
+			CRegEx reg(m_RegFlag);
 			CStringArray tmp;
 			reg.Compile((LPCTSTR)local[0]);
 			if ( reg.SplitStr((LPCTSTR)local[1], tmp) ) {
@@ -6409,90 +6585,7 @@ int CScript::Func02(int cmd, CScriptValue &local)
 		break;
 
 	case 5:	// sprintf(fmt, expr, ... )
-		{
-			int n = 0;
-			BOOL ll;
-			CString tmp[3];
-			LPCSTR str;
-			str = (LPCSTR)local[n++];
-			while ( *str != '\0' ) {
-				if ( *str == '%' ) {
-					tmp[1].Empty();
-					tmp[2].Empty();
-					tmp[1] += *(str++);
-					ll = FALSE;
-
-					if ( *str == '-' || *str == '+' || *str == '0' || *str == ' ' || *str == '#' )
-						tmp[1] += *(str++);
-
-					while ( (*str >= '0' && *str <= '9') || *str == '.' || *str == '*' ) {
-						if ( *str == '*' ) {
-							str++;
-							tmp[2].Format(_T("%d"), (int)local[n++]);
-							tmp[1] += tmp[2];
-							tmp[2].Empty();
-						} else
-							tmp[1] += *(str++);
-					}
-
-					if ( *str == 'h' )
-						tmp[1] += *(str++);
-					else if ( str[0] == 'l' && str[1] == 'l' ) {
-						tmp[1] += *(str++);
-						tmp[1] += *(str++);
-						ll = TRUE;
-					} else if ( *str == 'l' )
-						tmp[1] += *(str++);
-					else if ( str[0] == 'I' && str[1] == '3' && str[2] == '2' ) {
-						tmp[1] += *(str++);
-						tmp[1] += *(str++);
-						tmp[1] += *(str++);
-					} else if ( str[0] == 'I' && str[1] == '6' && str[2] == '4' ) {
-						tmp[1] += *(str++);
-						tmp[1] += *(str++);
-						tmp[1] += *(str++);
-						ll = TRUE;
-					} else if ( *str == 'I' )
-						tmp[1] += *(str++);
-
-					tmp[1] += *str;
-					switch(*(str++)) {
-					case 'c': case 'C':
-						tmp[2].Format(tmp[1], (int)local[n++]);
-						break;
-					case 'd': case 'i': case 'o': case 'u':
-					case 'x': case 'X':
-						if ( ll )
-							tmp[2].Format(tmp[1], (LONGLONG)local[n++]);
-						else if ( local[n].GetType() == VALTYPE_INT64 ) {
-							tmp[1].Insert(tmp[1].GetLength() - 1, _T("I64"));
-							tmp[2].Format(tmp[1], (LONGLONG)local[n++]);
-						} else
-							tmp[2].Format(tmp[1], (int)local[n++]);
-						break;
-					case 'e': case 'E':
-					case 'f':
-					case 'g': case 'G':
-					case 'a': case 'A':
-						tmp[2].Format(tmp[1], (double)local[n++]);
-						break;
-					case 's': case 'S':
-						tmp[2].Format(tmp[1], (LPCTSTR)local[n++]);
-						break;
-
-					case '%':
-						tmp[2] += '%';
-						break;
-					default:
-						tmp[2] += tmp[1];
-						break;
-					}
-					tmp[0] += tmp[2];
-				} else
-					tmp[0] += *(str++);
-			}
-			(*acc) = (LPCTSTR)tmp[0];
-		}
+		(*acc) = Format(local, 0);
 		break;
 
 	case 6:		// time
@@ -6623,7 +6716,48 @@ int CScript::Func02(int cmd, CScriptValue &local)
 			(*acc) = (LPCWSTR)str;
 		}
 		break;
+
+	case 15:	// getenv(s)
+		{
+			CString str, env((LPCTSTR)local[0]);
+			CRLoginDoc::EnvironText(env, str);
+			(*acc) = (LPCTSTR)str;
+		}
+		break;
+	case 16:	// getdoc(s)
+		if ( m_pDoc != NULL ) {
+			CString env((LPCTSTR)local[0]);
+			m_pDoc->EntryText(env);
+			(*acc) = (LPCTSTR)env;
+		}
+		break;
+
+	case 17:	// strcmp(s, d)
+		{
+			CStringA str((LPCSTR)local[0]);
+			(*acc) = str.Compare((LPCSTR)local[1]);
+		}
+		break;
+	case 18:	// stricmp(s, d)
+		{
+			CStringA str((LPCSTR)local[0]);
+			(*acc) = str.CompareNoCase((LPCSTR)local[1]);
+		}
+		break;
+	case 19:	// strwcmp(s, d)
+		{
+			CStringW str((LPCWSTR)local[0]);
+			(*acc) = str.Compare((LPCWSTR)local[1]);
+		}
+		break;
+	case 20:	// strdcmp(s, d)
+		{
+			CStringD str((LPCDSTR)local[0]);
+			(*acc) = str.Compare((LPCDSTR)local[1]);
+		}
+		break;
 	}
+
 	return FUNC_RET_NOMAL;
 }
 
@@ -6774,6 +6908,43 @@ int CScript::Func01(int cmd, CScriptValue &local)
 		} else
 			(*acc).Empty();
 		break;
+
+	case 24:	// hex(s)
+		{
+			LONGLONG d = 0;
+			LPCSTR p = (LPCSTR)local[0];
+			for ( ; ; p++ ) {
+				if ( *p >= '0' && *p <= '9' )
+					d = d * 16 + (*p - '0');
+				else if ( *p >= 'A' && *p <= 'F' )
+					d = d * 16 + (*p - 'A' + 10);
+				else if ( *p >= 'a' && *p <= 'f' )
+					d = d * 16 + (*p - 'a' + 10);
+				else
+					break;
+			}
+			if ( (d & 0xFFFFFFFF00000000) != 0 )
+				(*acc) = d;
+			else
+				(*acc) = (int)d;
+		}
+		break;
+	case 25:	// oct(s)
+		{
+			LONGLONG d = 0;
+			LPCSTR p = (LPCSTR)local[0];
+			for ( ; ; p++ ) {
+				if ( *p >= '0' && *p <= '7' )
+					d = d * 8 + (*p - '0');
+				else
+					break;
+			}
+			if ( (d & 0xFFFFFFFF00000000) != 0 )
+				(*acc) = d;
+			else
+				(*acc) = (int)d;
+		}
+		break;
 	}
 	return FUNC_RET_NOMAL;
 }
@@ -6795,7 +6966,8 @@ void CScript::FuncInit()
 		{ "dstr",		17, &CScript::Func01 },	{ "beep",		18,	&CScript::Func01 },
 		{ "pack",		19,	&CScript::Func01 },	{ "unpack",		20,	&CScript::Func01 },
 		{ "execstr",	21,	&CScript::Func01 },	{ "inport",		22,	&CScript::Func01 },
-		{ "export",		23,	&CScript::Func01 },
+		{ "export",		23,	&CScript::Func01 },	{ "hex",		24,	&CScript::Func01 },
+		{ "oct",		25,	&CScript::Func01 },
 
 		{ "substr",		0,	&CScript::Func02 },	{ "strstr",		1,	&CScript::Func02 },
 		{ "ereg",		2,	&CScript::Func02 },	{ "replace",	3,	&CScript::Func02 },
@@ -6804,7 +6976,10 @@ void CScript::FuncInit()
 		{ "getdate",	8,	&CScript::Func02 },	{ "mktime",		9,	&CScript::Func02 },
 		{ "trim",		10,	&CScript::Func02 },	{ "trimleft",	11,	&CScript::Func02 },
 		{ "trimright",	12,	&CScript::Func02 },	{ "ctos",		13,	&CScript::Func02 },
-		{ "escshell",	14,	&CScript::Func02 },
+		{ "escshell",	14,	&CScript::Func02 },	{ "getenv",		15,	&CScript::Func02 },
+		{ "getdoc",		16,	&CScript::Func02 },	{ "strcmp",		17,	&CScript::Func02 },
+		{ "stricmp",	18,	&CScript::Func02 },	{ "strwcmp",	19,	&CScript::Func02 },
+		{ "strdcmp",	20,	&CScript::Func02 },
 
 		{ "fopen",		0,	&CScript::Func03 },	{ "fclose",		1,	&CScript::Func03 },
 		{ "fread",		2,	&CScript::Func03 },	{ "fwrite",		3,	&CScript::Func03 },
@@ -6819,6 +6994,7 @@ void CScript::FuncInit()
 		{ "getcwd",		20,	&CScript::Func03 },	{ "chdir",		21,	&CScript::Func03 },
 		{ "play",		22,	&CScript::Func03 },	{ "speak",		23, &CScript::Func03 },
 		{ "popen",		24,	&CScript::Func03 },	{ "pclose",		25, &CScript::Func03 },
+		{ "fprintf",	25,	&CScript::Func03 },
 
 		{ "rand",		0,	&CScript::Func04 },	{ "srand",		1,	&CScript::Func04 },
 		{ "floor",		2,	&CScript::Func04 },	{ "asin",		3,	&CScript::Func04 },
@@ -6841,16 +7017,19 @@ void CScript::FuncInit()
 
 		{ "iconv",		0,	&CScript::Func06 },	{ "iconvw",		1,	&CScript::Func06 },
 		{ "iconvd",		2,	&CScript::Func06 },	{ "md5",		3,	&CScript::Func06 },
-		{ "sha1",		4,	&CScript::Func06 },	{ "base64e",	5,	&CScript::Func06 },
-		{ "base64d",	6,	&CScript::Func06 },	{ "quotede",	7,	&CScript::Func06 },
-		{ "quotedd",	8,	&CScript::Func06 },	{ "base16e",	9,	&CScript::Func06 },
-		{ "base16d",	10,	&CScript::Func06 },	{ "crc16",		11,	&CScript::Func06 },
-		{ "crc32",		12,	&CScript::Func06 },	{ "escstr",		13,	&CScript::Func06 },
+		{ "sha1",		4,	&CScript::Func06 },	{ "sha256",		5,	&CScript::Func06 },	
+		{ "sha512",		6,	&CScript::Func06 },	{ "base64e",	7,	&CScript::Func06 },
+		{ "base64d",	8,	&CScript::Func06 },	{ "quotede",	9,	&CScript::Func06 },
+		{ "quotedd",	10,	&CScript::Func06 },	{ "base16e",	11,	&CScript::Func06 },
+		{ "base16d",	12,	&CScript::Func06 },	{ "crc16",		13,	&CScript::Func06 },
+		{ "crc32",		14,	&CScript::Func06 },	{ "escstr",		15,	&CScript::Func06 },
+		{ "tolower",	16,	&CScript::Func06 },	{ "toupper",	17,	&CScript::Func06 },
 
 		{ "regopen",	0,	&CScript::Func07 },	{ "regclose",	1,	&CScript::Func07 },
 		{ "regchar",	2,	&CScript::Func07 },	{ "regstr",		3,	&CScript::Func07 },
 		{ "cipopen",	4,	&CScript::Func07 },	{ "cipclose",	5,	&CScript::Func07 },
-		{ "cipstr",		6,	&CScript::Func07 },
+		{ "cipstr",		6,	&CScript::Func07 },	{ "regmode",	7,	&CScript::Func07 },
+		{ "regconv",	8,	&CScript::Func07 },
 
 		{ "cgetc",		0,	&CScript::Func08 },	{ "cgets",		1,	&CScript::Func08 },
 		{ "cread",		2,	&CScript::Func08 },	{ "cputc",		3,	&CScript::Func08 },
@@ -6859,7 +7038,7 @@ void CScript::FuncInit()
 		{ "swait",		8,	&CScript::Func08 },	{ "getchar",	9,	&CScript::Func08 },
 		{ "setchar",	10,	&CScript::Func08 },	{ "locate",		11,	&CScript::Func08 },
 		{ "getpos",		12,	&CScript::Func08 },	{ "xypos",		13,	&CScript::Func08 },
-		{ "getstr",		14,	&CScript::Func08 },
+		{ "getstr",		14,	&CScript::Func08 },	{ "cprintf",	15,	&CScript::Func08 },
 
 		{ "sgetc",		0,	&CScript::Func09 },	{ "sgets",		1,	&CScript::Func09 },
 		{ "sread",		2,	&CScript::Func09 },	{ "sputc",		3,	&CScript::Func09 },
@@ -6867,7 +7046,7 @@ void CScript::FuncInit()
 		{ "sopen",		6,	&CScript::Func09 },	{ "sclose",		7,	&CScript::Func09 },
 		{ "remotestr",	8,	&CScript::Func09 },	{ "localstr",	9,	&CScript::Func09 },
 		{ "wait",		10,	&CScript::Func09 },	{ "sendstr",	11,	&CScript::Func09 },
-		{ "broadcast",	12,	&CScript::Func09 },
+		{ "broadcast",	12,	&CScript::Func09 },	{ "tprintf",	13,	&CScript::Func09 },
 
 		{ "msgdlg",		0,	&CScript::Func10 },	{ "yesnodlg",	1,	&CScript::Func10 },
 		{ "inputdlg",	2,	&CScript::Func10 },	{ "filedlg",	3,	&CScript::Func10 },

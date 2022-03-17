@@ -19,6 +19,7 @@ public:
 	HTREEITEM m_hTreeItem;
 	class CTreePage *m_pOwn;
 	int m_nPage;
+	LPCTSTR m_UrlOpt;
 
 	CTreePage(UINT nIDTemplate);
 	virtual ~CTreePage();
@@ -111,6 +112,7 @@ public:
 	CString m_Title;
 	CMsgWnd m_MsgWnd;
 	BOOL m_bOptFixed;
+	CToolTipCtrl m_toolTip;
 
 	struct _OptTab {
 		DWORD	dwFlags;
@@ -132,6 +134,7 @@ protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV サポート
 	virtual BOOL OnInitDialog();
 	virtual void OnOK();
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
 
 // インプリメンテーション
 protected:
@@ -139,4 +142,5 @@ protected:
 	afx_msg void OnSelchangedTree(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnDoInit();
 	afx_msg void OnApplyNow();
+	afx_msg void OnBnClickedHelpbtn();
 };

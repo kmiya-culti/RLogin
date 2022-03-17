@@ -463,7 +463,7 @@ public:
 	CString m_VersionMessage;
 	CString m_VersionPageUrl;
 
-	void VersionCheckProc();
+	int VersionCheckProc();
 	void VersionCheck();
 
 	CComPtr<ITaskbarList3> m_pTaskbarList;

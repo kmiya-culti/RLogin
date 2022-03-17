@@ -16,9 +16,9 @@
 
 IMPLEMENT_DYNAMIC(CClipPage, CTreePage)
 
-#define	CHECKOPTMAX		6
+#define	CHECKOPTMAX		5
 #define	IDC_CHECKFAST	IDC_OPTCHECK1
-static const int CheckOptTab[] = { TO_RLCKCOPY, TO_RLSTAYCLIP, TO_RLSPCTAB, TO_RLGAWL, TO_RLEDITPAST, TO_RLDELCRLF };
+static const int CheckOptTab[] = { TO_RLCKCOPY, TO_RLSTAYCLIP, TO_RLSPCTAB, TO_RLGAWL, TO_RLDELCRLF };
 
 CClipPage::CClipPage() : CTreePage(CClipPage::IDD)
 {
@@ -30,6 +30,8 @@ CClipPage::CClipPage() : CTreePage(CClipPage::IDD)
 	m_ShellStr = _T("http://|ftp://");
 	m_RClick = 0;
 	m_ClipCrLf = 0;
+	m_PastEdit = 1;
+	m_UrlOpt = _T("#CLIPOPT");
 }
 CClipPage::~CClipPage()
 {
@@ -49,6 +51,7 @@ void CClipPage::DoDataExchange(CDataExchange* pDX)
 	DDX_Radio(pDX, IDC_RADIO1, m_RClick);
 	DDX_CBIndex(pDX, IDC_COMBO1, m_ClipCrLf);
 	DDX_CBIndex(pDX, IDC_COMBO2, m_RtfMode);
+	DDX_Radio(pDX, IDC_RADIO4, m_PastEdit);
 }
 
 BEGIN_MESSAGE_MAP(CClipPage, CTreePage)
@@ -60,6 +63,9 @@ BEGIN_MESSAGE_MAP(CClipPage, CTreePage)
 	ON_BN_CLICKED(IDC_RADIO1, &CClipPage::OnUpdateChange)
 	ON_BN_CLICKED(IDC_RADIO2, &CClipPage::OnUpdateChange)
 	ON_BN_CLICKED(IDC_RADIO3, &CClipPage::OnUpdateChange)
+	ON_BN_CLICKED(IDC_RADIO4, &CClipPage::OnUpdateChange)
+	ON_BN_CLICKED(IDC_RADIO5, &CClipPage::OnUpdateChange)
+	ON_BN_CLICKED(IDC_RADIO6, &CClipPage::OnUpdateChange)
 	ON_CBN_SELCHANGE(IDC_COMBO1, &CClipPage::OnUpdateChange)
 	ON_CBN_SELCHANGE(IDC_COMBO2, &CClipPage::OnUpdateChange)
 END_MESSAGE_MAP()
@@ -89,6 +95,13 @@ void CClipPage::DoInit()
 		m_RClick = 1;
 	else
 		m_RClick = 0;
+
+	if ( m_pSheet->m_pTextRam->IsOptEnable(TO_RLEDITPAST) )
+		m_PastEdit = 2;
+	else if ( m_pSheet->m_pTextRam->IsOptEnable(TO_RLENOEDPAST) )
+		m_PastEdit = 0;
+	else
+		m_PastEdit = 1;
 
 	UpdateData(FALSE);
 }
@@ -134,6 +147,21 @@ BOOL CClipPage::OnApply()
 	case 2:
 		m_pSheet->m_pTextRam->EnableOption(TO_RLRSPAST);
 		m_pSheet->m_pTextRam->DisableOption(TO_RLRCLICK);
+		break;
+	}
+
+	switch(m_PastEdit) {
+	case 0:
+		m_pSheet->m_pTextRam->DisableOption(TO_RLEDITPAST);
+		m_pSheet->m_pTextRam->EnableOption(TO_RLENOEDPAST);
+		break;
+	case 1:
+		m_pSheet->m_pTextRam->DisableOption(TO_RLEDITPAST);
+		m_pSheet->m_pTextRam->DisableOption(TO_RLENOEDPAST);
+		break;
+	case 2:
+		m_pSheet->m_pTextRam->EnableOption(TO_RLEDITPAST);
+		m_pSheet->m_pTextRam->DisableOption(TO_RLENOEDPAST);
 		break;
 	}
 

@@ -37,6 +37,7 @@ CColParaDlg::CColParaDlg() : CTreePage(CColParaDlg::IDD)
 	m_EmojiFontName = _T("");
 	m_EmojiImageDir = _T("");
 	m_EmojiColorEnable = FALSE;
+	m_UrlOpt = _T("#COLOPT");
 }
 CColParaDlg::~CColParaDlg()
 {

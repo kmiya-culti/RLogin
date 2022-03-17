@@ -33,6 +33,7 @@ CSockOptPage::CSockOptPage() : CTreePage(CSockOptPage::IDD)
 	m_SelIPver = 0;
 	m_SleepTime = 10;
 	m_TransmitLimit = 1000;
+	m_UrlOpt = _T("#TRSOPT");
 }
 
 CSockOptPage::~CSockOptPage()

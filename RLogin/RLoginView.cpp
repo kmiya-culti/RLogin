@@ -3257,7 +3257,7 @@ void CRLoginView::SendPasteText(LPCWSTR wstr)
 		ct--;
 	}
 
-	if ( pDoc->m_TextRam.IsOptEnable(TO_RLEDITPAST) || pMain->m_pAnyPastDlg != NULL || (!pMain->m_PastNoCheck && (len > 500 || ct > 0)) )
+	if ( pDoc->m_TextRam.IsOptEnable(TO_RLEDITPAST) || pMain->m_pAnyPastDlg != NULL || (!pDoc->m_TextRam.IsOptEnable(TO_RLENOEDPAST) && !pMain->m_PastNoCheck && (len > 500 || ct > 0)) )
 		pMain->AnyPastDlgOpen(wrk, pDoc->m_DocSeqNumber);
 	else
 		SendBracketedPaste(wrk, pDoc->m_TextRam.IsOptEnable(TO_RLDELYPAST));

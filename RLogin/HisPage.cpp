@@ -26,6 +26,7 @@ CHisPage::CHisPage() : CTreePage(CHisPage::IDD)
 	m_HisMax = _T("");
 	m_LogMode = 0;
 	m_LogCode = 0;
+	m_UrlOpt = _T("#HISOPT");
 }
 CHisPage::~CHisPage()
 {

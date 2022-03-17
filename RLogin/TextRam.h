@@ -287,6 +287,7 @@
 #define	TO_RLDELAYCR	1488		// 改行(CR)を確認し指定時間待って次を送信する(ms)
 #define	TO_IMECARET		1489		// IMEがONの時にカレットの色を変える
 #define	TO_DNSSSSHFP	1490		// DNSによるSSSHホスト鍵のチェックを行う
+#define	TO_RLENOEDPAST	1491		// ペーストを確認しない
 
 #define	IS_ENABLE(p,n)	(p[(n) / 32] & (1 << ((n) % 32)))
 
