@@ -6,4 +6,5 @@ RLoginは、Windows上で動作するターミナルソフトです。
 
 画面制御としてxtermに準じたエスケープシーケンスなどに対応しANSIやvt100コンソールとして使用する事ができます。
 
+http://nanno.bf1.jp/softlib/man/rlogin/
 https://kmiya-culti.github.io/RLogin/
