@@ -6,11 +6,17 @@
 <TITLE>rlogin/telnet/ssh(クライアント)ターミナルソフト</TITLE>
 <STYLE type="text/css">
 <!--
-TD {
+TD {		
+				
+				
+				
 				
 		background-color : #ffffff; font-size : 90%; 
 }
-.BOX{
+.BOX{		
+				
+				
+				
 				
 		background-color : silver; 
 }
@@ -27,8 +33,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.26.9)</TD>
-            <TD width="20%" align="right">2022/03/18</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.27.0)</TD>
+            <TD width="20%" align="right">2022/05/06</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -434,8 +440,16 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2022/05/06</TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.27.0/">2.27.0</A></TD>
+            <TD>xterm互換のエスケープシーケンス名の変更と追加<BR>
+            Unicodeの半角のIVS/NSMが表示されていないバグを修正<BR>
+            zlib-1.2.12に更新<BR>
+            openssl-3.0.3に更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2022/03/18</TD>
-            <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.26.9/">2.26.9</A></TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.26.9/">2.26.9</A></TD>
             <TD>特殊文字の環境変数でWindowsの特殊フォルダを含めるように変更<BR>
             Scriptの基本関数にhex/octなどを追加<BR>
             Scriptの文字列関数にgetenv/getdoc/strcmpなどを追加<BR>
@@ -452,7 +466,7 @@ TD {
           </TR>
           <TR>
             <TD align="center">2022/02/28</TD>
-            <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.26.8/">2.26.8</A></TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.26.8/">2.26.8</A></TD>
             <TD>暗号化ライブラリを全面的にopenssl-3.0の仕様に変更<BR>
             認証鍵作成を途中で中止できるように変更<BR>
             認証鍵作成ダイアログのプログレスバー表示方法を変更<BR>
@@ -460,32 +474,20 @@ TD {
           </TR>
           <TR>
             <TD align="center">2022/01/28</TD>
-            <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.26.7/">2.26.7</A></TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.26.7/">2.26.7</A></TD>
             <TD>不要なコードの削除など暗号化ライブラリを大幅に整理<BR>
             プロキシーサーバーの設定でSSL/TLSを自動だけに変更<BR>
             openssl-3.0.1に更新</TD>
           </TR>
           <TR>
             <TD align="center">2021/12/20</TD>
-            <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.26.6/">2.26.6</A></TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.26.6/">2.26.6</A></TD>
             <TD>sshのkex回りのコードを整理しrsa2048-sha256などを試験実装<BR>
             オプション・カラーの16色セットWindowsをCampbellに変更してOne Halfを追加<BR>
             vs2022でもコンパイル出来るように一部ソースコードを変更<BR>
             認証キーの設定のエクスポートでファイル形式を選択できるように変更<BR>
             オプション・プロトコルのDNSでホスト鍵をチェック「しない」を「する」に変更<BR>
             openssl-1.1.1mに更新</TD>
-          </TR>
-          <TR>
-            <TD align="center">2021/11/29</TD>
-            <TD align="center"><A href="https://github.com/kmiya-culti/RLogin/releases/tag/2.26.5/">2.26.5</A></TD>
-            <TD>ファイルオープン時の共有モードを全体的に見直して修正<BR>
-            rsa-sha2-xxxの名前が拡張されていないバグを修正<BR>
-            メニュー・表示を各種ウィンドウでまとめるように変更<BR>
-            不完全な全角文字を半角で表示するように変更<BR>
-            リソース内ビットマップをその時のDPIで調整するように変更<BR>
-            sntrup761x25519-sha512@openssh.comに変更<BR>
-            opensslのed25519/ed448鍵の読み込みに対応<BR>
-            curve25519/ed25519関連をopensslに変更しcurve448/ed448に対応</TD>
           </TR>
           <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
@@ -511,13 +513,13 @@ TD {
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.0.2.tar.gz</A><BR>
+                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.0.3.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
                   Visual Studio コマンド <BR>
                   プロンプト (2010)</TD>
-                  <TD width="500" valign="top">rename openssl-3.0.2 openssl-3.0.2-x32<BR>
+                  <TD width="500" valign="top">rename openssl-3.0.3 openssl-3.0.3-x32<BR>
                   perl Configure VC-WIN32 no-shared no-threads no-module enable-legacy -D_WIN32_WINNT=0x0501<BR>
                   nmake</TD>
                 </TR>
@@ -529,7 +531,7 @@ TD {
                   nmake</TD>
                 </TR>
                 <TR>
-                  <TD rowspan="2" valign="top"><A href="https://zlib.net/">zlib-1.2.11.tar.gz</A></TD>
+                  <TD rowspan="2" valign="top"><A href="https://zlib.net/">zlib-1.2.12.tar.gz</A></TD>
                   <TD valign="top">x86用 x32<BR>
                   Visual Studio コマンド <BR>
                   プロンプト (2010)</TD>
@@ -543,8 +545,7 @@ TD {
                   Visual Studio x64 Win64 <BR>
                   コマンド プロンプト (2010)</TD>
                   <TD valign="top">nmake -f win32/Makefile.msc AS=&quot;ml64&quot; CFLAGS=&quot;/MT /Ox /Ob2
-                  /Oi /Ot /GS- /Gy -W1 /nologo -Fdzlib -DASMV -DASMINF -I.&quot; OBJA=&quot;inffasx64.obj
-                  gvmat64.obj inffas8664.obj&quot;<BR>
+                  /Oi /Ot /GS- /Gy -W1 /nologo -Fdzlib -I.<BR>
                   mkdir x64<BR>
                   mv *.obj *.lib x64</TD>
                 </TR>
@@ -603,13 +604,12 @@ TD {
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 3.0.2 15 Mar 2022<BR>
+            <P>OpenSSL 3.0.3 3 May 2022<BR>
             Copyright (c) 1998-2022 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>
             <BR>
-            zlib 1.2.11<BR>
-            (C) 1995-2017 Jean-loup Gailly and Mark Adler<BR>
+            zlib 1.2.12 (27 Mar 2022)<BR>Copyr ight (C) 1995-2022 Jean-loup Gailly and Mark Adler<BR>
             <BR>
             libiconv-1.16<BR>
             Copyright (C) 2000-2017 Free Software Foundation, Inc.<BR>

@@ -1832,6 +1832,11 @@ CTextRam::CTextRam()
 	m_iTerm2Mark = 0;
 	m_pCmdHisWnd = NULL;
 
+	m_ColStackUsed = 0;
+	m_ColStackLast = 0;
+	for ( int n = 0 ; n < 10 ; n++ )
+		m_ColStackTab[n] = NULL;
+
 	for ( int n = 0 ; n < 8 ; n++ )
 		pGrapListIndex[n] = pGrapListImage[n] = NULL;
 	pGrapListType = NULL;
@@ -1951,6 +1956,11 @@ CTextRam::~CTextRam()
 	CMDHIS *pCmdHis;
 	while ( !m_CommandHistory.IsEmpty() && (pCmdHis = m_CommandHistory.RemoveHead()) != NULL )
 		delete pCmdHis;
+
+	for ( int n = 0 ; n < 10 ; n++ ) {
+		if ( m_ColStackTab[n] != NULL )
+			delete m_ColStackTab[n];
+	}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -6388,7 +6398,7 @@ void CTextRam::DrawVram(CDC *pDC, int x1, int y1, int x2, int y2, class CRLoginV
 								work.attr |= ATT_MIRROR;
 							}
 						}
-					} else if ( str.IsEmpty() || str[0] < ' ' || m_FontTab[work.bank].m_UserFontMap.GetSafeHandle() == NULL )
+					} else if ( str.IsEmpty() || (str[0] < ' ' && str[1] == _T('\0')) )
 						work.bank = (-1);
 					pView->SetCellSize(x, y, 0);
 				}
@@ -7787,6 +7797,10 @@ void CTextRam::RESET(int mode)
 			m_pSixelColor = NULL;
 			m_pSixelAlpha = NULL;
 		}
+
+		m_ColStackUsed = 0;
+		m_ColStackLast = 0;
+		m_SgrStack.RemoveAll();
 	}
 
 	if ( mode & RESET_OPTION ) {

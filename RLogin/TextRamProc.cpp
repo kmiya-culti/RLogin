@@ -249,156 +249,156 @@ static const CTextRam::PROCTAB fc_CsiTab[] = {
 	{ 0xFF,		0,			&CTextRam::fc_IGNORE	},
 	{ 0,		0,			NULL } };
 static const CTextRam::PROCTAB fc_AnsiTab[] = {
-	{ '@',		0,			&CTextRam::fc_ICH		},	// ICH Insert Character
-	{ 'A',		0,			&CTextRam::fc_CUU		},	// CUU Cursor Up
-	{ 'B',		0,			&CTextRam::fc_CUD		},	// CUD Cursor Down
-	{ 'C',		0,			&CTextRam::fc_CUF		},	// CUF Cursor Forward
-	{ 'D',		0,			&CTextRam::fc_CUB		},	// CUB Cursor Backward
-	{ 'E',		0,			&CTextRam::fc_CNL		},	// CNL Move the cursor to the next line.
-	{ 'F',		0,			&CTextRam::fc_CPL		},	// CPL Move the cursor to the preceding line.
-	{ 'G',		0,			&CTextRam::fc_CHA		},	// CHA Move the active position to the n-th character of the active line.
-	{ 'H',		0,			&CTextRam::fc_CUP		},	// CUP Cursor Position
-	{ 'I',		0,			&CTextRam::fc_CHT		},	// CHT Move the active position n tabs forward.
-	{ 'J',		0,			&CTextRam::fc_ED		},	// ED Erase in page
-	{ 'K',		0,			&CTextRam::fc_EL		},	// EL Erase in line
-	{ 'L',		0,			&CTextRam::fc_IL		},	// IL Insert Line
-	{ 'M',		0,			&CTextRam::fc_DL		},	// DL Delete Line
-	{ 'N',		0,			&CTextRam::fc_EF		},	// EF Erase in field
-	{ 'O',		0,			&CTextRam::fc_EA		},	// EA Erase in area
-	{ 'P',		0,			&CTextRam::fc_DCH		},	// DCH Delete Character
-//	{ 'Q',		0,			&CTextRam::fc_SEE		},	// SEE SELECT EDITING EXTENT
-	{ 'S',		0,			&CTextRam::fc_SU		},	// SU Scroll Up
-	{ 'T',		0,			&CTextRam::fc_SD		},	// SD Scroll Down
-	{ 'U',		0,			&CTextRam::fc_NP		},	// NP Next Page
-	{ 'V',		0,			&CTextRam::fc_PP		},	// PP Preceding Page
-	{ 'W',		0,			&CTextRam::fc_CTC		},	// CTC Cursor tabulation control
-	{ 'X',		0,			&CTextRam::fc_ECH		},	// ECH Erase character
-	{ 'Y',		0,			&CTextRam::fc_CVT		},	// CVT Cursor line tabulation
-	{ 'Z',		0,			&CTextRam::fc_CBT		},	// CBT Move the active position n tabs backward.
-//	{ '[',		0,			&CTextRam::fc_SRS		},	// SRS START REVERSED STRING
-//	{ '\\',		0,			&CTextRam::fc_PTX		},	// PTX PARALLEL TEXTS
-//	{ ']',		0,			&CTextRam::fc_SDS		},	// SDS START DIRECTED STRING
-//	{ '^',		0,			&CTextRam::fc_SIMD		},	// SIMD Select implicit movement direction
-	{ '`',		0,			&CTextRam::fc_HPA		},	// HPA Horizontal Position Absolute
-	{ 'a',		0,			&CTextRam::fc_HPR		},	// HPR Horizontal Position Relative
-	{ 'b',		0,			&CTextRam::fc_REP		},	// REP Repeat
-	{ 'c',		0,			&CTextRam::fc_DA1		},	// DA1 Primary Device Attributes
-	{ 'd',		0,			&CTextRam::fc_VPA		},	// VPA Vertical Line Position Absolute
-	{ 'e',		0,			&CTextRam::fc_VPR		},	// VPR Vertical Position Relative
-	{ 'f',		0,			&CTextRam::fc_HVP		},	// HVP Horizontal and Vertical Position
-	{ 'g',		0,			&CTextRam::fc_TBC		},	// TBC Tab Clear
-	{ 'h',		0,			&CTextRam::fc_SM		},	// SM Mode Set
-	{ 'i',		0,			&CTextRam::fc_MC		},	// MC Media copy
-	{ 'j',		0,			&CTextRam::fc_HPB		},	// HPB Character position backward
-	{ 'k',		0,			&CTextRam::fc_VPB		},	// VPB Line position backward
-	{ 'l',		0,			&CTextRam::fc_RM		},	// RM Mode ReSet
-	{ 'm',		0,			&CTextRam::fc_SGR		},	// SGR Select Graphic Rendition
-	{ 'n',		0,			&CTextRam::fc_DSR		},	// DSR Device status report
-	{ 'o',		0,			&CTextRam::fc_DAQ		},	// DAQ Define area qualification
-	{ 'p',		0,			&CTextRam::fc_RLBFAT	},	// RLBFAT Begin field attribute					DECSSL Select Set-Up Language
-	{ 'q',		0,			&CTextRam::fc_DECLL		},	// DECLL Load LEDs
-	{ 'r',		0,			&CTextRam::fc_DECSTBM	},	// DECSTBM Set Top and Bottom Margins
-	{ 's',		0,			&CTextRam::fc_SCOSC		},	// SCOSC Save Cursol Pos						DECSLRM Set left and right margins
-	{ 't',		0,			&CTextRam::fc_XTWOP		},	// XTWOP XTERM WINOPS							DECSLPP Set lines per physical page
-	{ 'u',		0,			&CTextRam::fc_SCORC		},	// SCORC Load Cursol Pos						DECSHTS Set horizontal tab stops
-	{ 'v',		0,			&CTextRam::fc_RLSCD		},	// RLSCD Set Cursol Display						DECSVTS Set vertical tab stops
-	{ 'x',		0,			&CTextRam::fc_REQTPARM	},	// DECREQTPARM Request terminal parameters
-	{ 'y',		0,			&CTextRam::fc_DECTST	},	// DECTST Invoke confidence test
-//	{ 'z',		0,			&CTextRam::fc_DECVERP	},	// DECVERP Set vertical pitch
-//	{ '~',		0,			&CTextRam::fc_DECFNK	},	// DECFNK Function Key
+	{ '@',		0,			&CTextRam::fc_ICH			},	// ICH Insert Character
+	{ 'A',		0,			&CTextRam::fc_CUU			},	// CUU Cursor Up
+	{ 'B',		0,			&CTextRam::fc_CUD			},	// CUD Cursor Down
+	{ 'C',		0,			&CTextRam::fc_CUF			},	// CUF Cursor Forward
+	{ 'D',		0,			&CTextRam::fc_CUB			},	// CUB Cursor Backward
+	{ 'E',		0,			&CTextRam::fc_CNL			},	// CNL Move the cursor to the next line.
+	{ 'F',		0,			&CTextRam::fc_CPL			},	// CPL Move the cursor to the preceding line.
+	{ 'G',		0,			&CTextRam::fc_CHA			},	// CHA Move the active position to the n-th character of the active line.
+	{ 'H',		0,			&CTextRam::fc_CUP			},	// CUP Cursor Position
+	{ 'I',		0,			&CTextRam::fc_CHT			},	// CHT Move the active position n tabs forward.
+	{ 'J',		0,			&CTextRam::fc_ED			},	// ED Erase in page
+	{ 'K',		0,			&CTextRam::fc_EL			},	// EL Erase in line
+	{ 'L',		0,			&CTextRam::fc_IL			},	// IL Insert Line
+	{ 'M',		0,			&CTextRam::fc_DL			},	// DL Delete Line
+	{ 'N',		0,			&CTextRam::fc_EF			},	// EF Erase in field
+	{ 'O',		0,			&CTextRam::fc_EA			},	// EA Erase in area
+	{ 'P',		0,			&CTextRam::fc_DCH			},	// DCH Delete Character
+//	{ 'Q',		0,			&CTextRam::fc_SEE			},	// SEE SELECT EDITING EXTENT
+	{ 'S',		0,			&CTextRam::fc_SU			},	// SU Scroll Up
+	{ 'T',		0,			&CTextRam::fc_SD			},	// SD Scroll Down
+	{ 'U',		0,			&CTextRam::fc_NP			},	// NP Next Page
+	{ 'V',		0,			&CTextRam::fc_PP			},	// PP Preceding Page
+	{ 'W',		0,			&CTextRam::fc_CTC			},	// CTC Cursor tabulation control
+	{ 'X',		0,			&CTextRam::fc_ECH			},	// ECH Erase character
+	{ 'Y',		0,			&CTextRam::fc_CVT			},	// CVT Cursor line tabulation
+	{ 'Z',		0,			&CTextRam::fc_CBT			},	// CBT Move the active position n tabs backward.
+//	{ '[',		0,			&CTextRam::fc_SRS			},	// SRS START REVERSED STRING
+//	{ '\\',		0,			&CTextRam::fc_PTX			},	// PTX PARALLEL TEXTS
+//	{ ']',		0,			&CTextRam::fc_SDS			},	// SDS START DIRECTED STRING
+//	{ '^',		0,			&CTextRam::fc_SIMD			},	// SIMD Select implicit movement direction
+	{ '`',		0,			&CTextRam::fc_HPA			},	// HPA Horizontal Position Absolute
+	{ 'a',		0,			&CTextRam::fc_HPR			},	// HPR Horizontal Position Relative
+	{ 'b',		0,			&CTextRam::fc_REP			},	// REP Repeat
+	{ 'c',		0,			&CTextRam::fc_DA1			},	// DA1 Primary Device Attributes
+	{ 'd',		0,			&CTextRam::fc_VPA			},	// VPA Vertical Line Position Absolute
+	{ 'e',		0,			&CTextRam::fc_VPR			},	// VPR Vertical Position Relative
+	{ 'f',		0,			&CTextRam::fc_HVP			},	// HVP Horizontal and Vertical Position
+	{ 'g',		0,			&CTextRam::fc_TBC			},	// TBC Tab Clear
+	{ 'h',		0,			&CTextRam::fc_SM			},	// SM Mode Set
+	{ 'i',		0,			&CTextRam::fc_MC			},	// MC Media copy
+	{ 'j',		0,			&CTextRam::fc_HPB			},	// HPB Character position backward
+	{ 'k',		0,			&CTextRam::fc_VPB			},	// VPB Line position backward
+	{ 'l',		0,			&CTextRam::fc_RM			},	// RM Mode ReSet
+	{ 'm',		0,			&CTextRam::fc_SGR			},	// SGR Select Graphic Rendition
+	{ 'n',		0,			&CTextRam::fc_DSR			},	// DSR Device status report
+	{ 'o',		0,			&CTextRam::fc_DAQ			},	// DAQ Define area qualification
+	{ 'p',		0,			&CTextRam::fc_RLBFAT		},	// RLBFAT Begin field attribute					DECSSL Select Set-Up Language
+	{ 'q',		0,			&CTextRam::fc_DECLL			},	// DECLL Load LEDs
+	{ 'r',		0,			&CTextRam::fc_DECSTBM		},	// DECSTBM Set Top and Bottom Margins
+	{ 's',		0,			&CTextRam::fc_SCOSC			},	// SCOSC Save Cursol Pos						DECSLRM Set left and right margins
+	{ 't',		0,			&CTextRam::fc_XTWINOPS		},	// xterm XTWINOPS								DECSLPP Set lines per physical page
+	{ 'u',		0,			&CTextRam::fc_SCORC			},	// SCORC Load Cursol Pos						DECSHTS Set horizontal tab stops
+	{ 'v',		0,			&CTextRam::fc_RLSCD			},	// RLSCD Set Cursol Display						DECSVTS Set vertical tab stops
+	{ 'x',		0,			&CTextRam::fc_REQTPARM		},	// DECREQTPARM Request terminal parameters
+	{ 'y',		0,			&CTextRam::fc_DECTST		},	// DECTST Invoke confidence test
+//	{ 'z',		0,			&CTextRam::fc_DECVERP		},	// DECVERP Set vertical pitch
+//	{ '~',		0,			&CTextRam::fc_DECFNK		},	// DECFNK Function Key
 	{ 0,		0,			NULL } };
-static const CTextRam::PROCTAB fc_Ext1Tab[] = {			// ('?' << 16) | sc
-//	{ 'E',		0,			&CTextRam::fc_POP		},	//		ERASE_STATUS
-//	{ 'F',		0,			&CTextRam::fc_POP		},	//		FROM_STATUS
-//	{ 'H',		0,			&CTextRam::fc_POP		},	//		HIDE_STATUS
-	{ 'J',		0,			&CTextRam::fc_DECSED	},	// DECSED Selective Erase in Display
-	{ 'K',		0,			&CTextRam::fc_DECSEL	},	// DECSEL Selective Erase in Line
-//	{ 'S',		0,			&CTextRam::fc_POP		},	//		SHOW_STATUS
-	{ 'S',		0,			&CTextRam::fc_XTCOLREG	},	// XTCOLREG
-//	{ 'T',		0,			&CTextRam::fc_POP		},	//		TO_STATUS
-	{ 'W',		0,			&CTextRam::fc_DECST8C	},	// DECST8C Set Tab at every 8 columns
-	{ 'h',		0,			&CTextRam::fc_DECSET	},	// DECSET
-	{ 'i',		0,			&CTextRam::fc_DECMC		},	// DECMC Media Copy (DEC)
-	{ 'l',		0,			&CTextRam::fc_DECRST	},	// DECRST
-	{ 'n',		0,			&CTextRam::fc_DECDSR	},	// DECDSR Device status report
-	{ 'r',		0,			&CTextRam::fc_XTREST	},	// XTREST
-	{ 's',		0,			&CTextRam::fc_XTSAVE	},	// XTSAVE
+static const CTextRam::PROCTAB fc_Ext1Tab[] = {				// ('?' << 16) | sc
+//	{ 'E',		0,			&CTextRam::fc_POP			},	//		ERASE_STATUS
+//	{ 'F',		0,			&CTextRam::fc_POP			},	//		FROM_STATUS
+//	{ 'H',		0,			&CTextRam::fc_POP			},	//		HIDE_STATUS
+	{ 'J',		0,			&CTextRam::fc_DECSED		},	// DECSED Selective Erase in Display
+	{ 'K',		0,			&CTextRam::fc_DECSEL		},	// DECSEL Selective Erase in Line
+//	{ 'S',		0,			&CTextRam::fc_POP			},	//		SHOW_STATUS
+	{ 'S',		0,			&CTextRam::fc_XTSMGRAPHICS	},	// xterm XTSMGRAPHICS
+//	{ 'T',		0,			&CTextRam::fc_POP			},	//		TO_STATUS
+	{ 'W',		0,			&CTextRam::fc_DECST8C		},	// DECST8C Set Tab at every 8 columns
+	{ 'h',		0,			&CTextRam::fc_DECSET		},	// DECSET
+	{ 'i',		0,			&CTextRam::fc_DECMC			},	// DECMC Media Copy (DEC)
+	{ 'l',		0,			&CTextRam::fc_DECRST		},	// DECRST
+	{ 'n',		0,			&CTextRam::fc_DECDSR		},	// DECDSR Device status report
+	{ 'r',		0,			&CTextRam::fc_XTRESTORE		},	// xterm XTRESTORE
+	{ 's',		0,			&CTextRam::fc_XTSAVE		},	// xterm XTSAVE
 	{ 0,		0,			NULL } };
-static const CTextRam::PROCTAB fc_Ext2Tab[] = {			// ('$' << 8) | sc
-	{ 'p',		0,			&CTextRam::fc_DECRQM	},	// DECRQM Request mode settings
-//	{ 'q',		0,			&CTextRam::fc_POP		},	// DECSDDT Select Disconnect Delay Time
-	{ 'r',		0,			&CTextRam::fc_DECCARA	},	// DECCARA Change Attribute in Rectangle
-//	{ 's',		0,			&CTextRam::fc_POP		},	// DECSPRTT Select Printer Type
-	{ 't',		0,			&CTextRam::fc_DECRARA	},	// DECRARA Reverse Attribute in Rectangle
-	{ 'u',		0,			&CTextRam::fc_DECRQTSR	},	// DECRQTSR Request Terminal State Report
-	{ 'v',		0,			&CTextRam::fc_DECCRA	},	// DECCRA Copy Rectangular Area
-	{ 'w',		0,			&CTextRam::fc_DECRQPSR	},	// DECRQPSR Request Presentation State Report
-	{ 'x',		0,			&CTextRam::fc_DECFRA	},	// DECFRA Fill Rectangular Area
-	{ 'z',		0,			&CTextRam::fc_DECERA	},	// DECERA Erase Rectangular Area
-	{ '{',		0,			&CTextRam::fc_DECSERA	},	// DECSERA Selective Erase Rectangular Area
-	{ '|',		0,			&CTextRam::fc_DECSCPP	},	// DECSCPP Set Ps columns per page
-	{ '}',		0,			&CTextRam::fc_DECSASD	},	// DECSASD Select Active Status Display
-	{ '~',		0,			&CTextRam::fc_DECSSDT	},	// DECSSDT Set Status Display (Line) Type
+static const CTextRam::PROCTAB fc_Ext2Tab[] = {				// ('$' << 8) | sc
+	{ 'p',		0,			&CTextRam::fc_DECRQM		},	// DECRQM Request mode settings
+//	{ 'q',		0,			&CTextRam::fc_POP			},	// DECSDDT Select Disconnect Delay Time
+	{ 'r',		0,			&CTextRam::fc_DECCARA		},	// DECCARA Change Attribute in Rectangle
+//	{ 's',		0,			&CTextRam::fc_POP			},	// DECSPRTT Select Printer Type
+	{ 't',		0,			&CTextRam::fc_DECRARA		},	// DECRARA Reverse Attribute in Rectangle
+	{ 'u',		0,			&CTextRam::fc_DECRQTSR		},	// DECRQTSR Request Terminal State Report
+	{ 'v',		0,			&CTextRam::fc_DECCRA		},	// DECCRA Copy Rectangular Area
+	{ 'w',		0,			&CTextRam::fc_DECRQPSR		},	// DECRQPSR Request Presentation State Report
+	{ 'x',		0,			&CTextRam::fc_DECFRA		},	// DECFRA Fill Rectangular Area
+	{ 'z',		0,			&CTextRam::fc_DECERA		},	// DECERA Erase Rectangular Area
+	{ '{',		0,			&CTextRam::fc_DECSERA		},	// DECSERA Selective Erase Rectangular Area
+	{ '|',		0,			&CTextRam::fc_DECSCPP		},	// DECSCPP Set Ps columns per page
+	{ '}',		0,			&CTextRam::fc_DECSASD		},	// DECSASD Select Active Status Display
+	{ '~',		0,			&CTextRam::fc_DECSSDT		},	// DECSSDT Set Status Display (Line) Type
 	{ 0,		0,			NULL } };
-static const CTextRam::PROCTAB fc_Ext3Tab[] = {			// (' ' << 8) | sc
-	{ '@',		0,			&CTextRam::fc_SL		},	// SL Scroll left
-	{ 'A',		0,			&CTextRam::fc_SR		},	// SR Scroll Right
-//	{ 'B',		0,			&CTextRam::fc_POP		},	// GSM Graphic size modification
-//	{ 'C',		0,			&CTextRam::fc_POP		},	// GSS Graphic size selection
-	{ 'D',		0,			&CTextRam::fc_FNT		},	// FNT Font selection
-//	{ 'E',		0,			&CTextRam::fc_POP		},	// TSS Thin space specification
-//	{ 'F',		0,			&CTextRam::fc_POP		},	// JFY Justify
-//	{ 'G',		0,			&CTextRam::fc_POP		},	// SPI Spacing increment
-//	{ 'H',		0,			&CTextRam::fc_POP		},	// QUAD Quad
-//	{ 'I',		0,			&CTextRam::fc_POP		},	// SSU Select size unit
-//	{ 'J',		0,			&CTextRam::fc_POP		},	// PFS Page format selection
-//	{ 'K',		0,			&CTextRam::fc_POP		},	// SHS Select character spacing
-//	{ 'L',		0,			&CTextRam::fc_POP		},	// SVS Select line spacing
-//	{ 'M',		0,			&CTextRam::fc_POP		},	// IGS Identify graphic subrepertoire
-//	{ 'N',		0,			&CTextRam::fc_POP		},	// HTSA Character tabulation set absolute
-//	{ 'O',		0,			&CTextRam::fc_POP		},	// IDCS Identify device control string
-	{ 'P',		0,			&CTextRam::fc_PPA		},	// PPA Page Position Absolute
-	{ 'Q',		0,			&CTextRam::fc_PPR		},	// PPR Page Position Relative
-	{ 'R',		0,			&CTextRam::fc_PPB		},	// PPB Page Position Backwards
-//	{ 'S',		0,			&CTextRam::fc_POP		},	// SPD Select presentation directions
-//	{ 'T',		0,			&CTextRam::fc_POP		},	// DTA Dimension text area
-//	{ 'U',		0,			&CTextRam::fc_POP		},	// SLH Set line home
-//	{ 'V',		0,			&CTextRam::fc_POP		},	// SLL Set line limit
-//	{ 'W',		0,			&CTextRam::fc_POP		},	// FNK Function key
-//	{ 'X',		0,			&CTextRam::fc_POP		},	// SPQR Select print quality and rapidity
-//	{ 'Y',		0,			&CTextRam::fc_POP		},	// SEF Sheet eject and feed
-//	{ 'Z',		0,			&CTextRam::fc_POP		},	// PEC Presentation expand or contract
-//	{ '[',		0,			&CTextRam::fc_POP		},	// SSW Set space width
-//	{ '\'',		0,			&CTextRam::fc_POP		},	// SACS Set additional character separation
-//	{ ']',		0,			&CTextRam::fc_POP		},	// SAPV Select alternative presentation variants
-//	{ '^',		0,			&CTextRam::fc_POP		},	// STAB Description: Selective tabulation
-//	{ '_',		0,			&CTextRam::fc_POP		},	// GCC Graphic character combination
-//	{ '`',		0,			&CTextRam::fc_POP		},	// TATE Tabulation aligned trailing edge
-//	{ 'a',		0,			&CTextRam::fc_POP		},	// TALE Tabulation aligned leading edge
-//	{ 'b',		0,			&CTextRam::fc_POP		},	// TAC Tabulation aligned centred
-//	{ 'c',		0,			&CTextRam::fc_POP		},	// TCC Tabulation centred on character
-//	{ 'd',		0,			&CTextRam::fc_POP		},	// TSR Tabulation stop remove
-//	{ 'e',		0,			&CTextRam::fc_POP		},	// SCO Select character orientation
-//	{ 'f',		0,			&CTextRam::fc_POP		},	// SRCS Set reduced character separation
-//	{ 'g',		0,			&CTextRam::fc_POP		},	// SCS Set character spacing
-//	{ 'h',		0,			&CTextRam::fc_POP		},	// SLS Set line spacing
-//	{ 'i',		0,			&CTextRam::fc_POP		},	// SPH Set page home
-//	{ 'j',		0,			&CTextRam::fc_POP		},	// SPL Set page limit
-//	{ 'k',		0,			&CTextRam::fc_POP		},	// SCP Select character path
-//	{ 'p',		0,			&CTextRam::fc_POP		},	// DECSSCLS Set Scroll Speed
-	{ 'q',		0,			&CTextRam::fc_DECSCUSR	},	// DECSCUSR Set Cursor Style
-//	{ 'r',		0,			&CTextRam::fc_POP		},	// DECKCV Set Key Click Volume
-//	{ 's',		0,			&CTextRam::fc_POP		},	// DECNS New sheet
-//	{ 't',		0,			&CTextRam::fc_POP		},	// DECSWBV Set Warning Bell Volume
-//	{ 'u',		0,			&CTextRam::fc_POP		},	// DECSMBV Set Margin Bell Volume
-//	{ 'v',		0,			&CTextRam::fc_POP		},	// DECSLCK Set Lock Key Style
-//	{ 'w',		0,			&CTextRam::fc_POP		},	// DECSITF Select input tray failover
-//	{ 'x',		0,			&CTextRam::fc_POP		},	// DECSDPM Set Duplex Print Mode
-//	{ 'z',		0,			&CTextRam::fc_POP		},	// DECVPFS Variable page format select
-//	{ '{',		0,			&CTextRam::fc_POP		},	// DECSSS Set sheet size
-//	{ '|',		0,			&CTextRam::fc_POP		},	// DECRVEC Draw relative vector
-//	{ '}',		0,			&CTextRam::fc_POP		},	// DECKBD Keyboard Language Selection
-	{ '~',		0,			&CTextRam::fc_DECTME	},	// DECTME Terminal Mode Emulation
+static const CTextRam::PROCTAB fc_Ext3Tab[] = {				// (' ' << 8) | sc
+	{ '@',		0,			&CTextRam::fc_SL			},	// SL Scroll left
+	{ 'A',		0,			&CTextRam::fc_SR			},	// SR Scroll Right
+//	{ 'B',		0,			&CTextRam::fc_POP			},	// GSM Graphic size modification
+//	{ 'C',		0,			&CTextRam::fc_POP			},	// GSS Graphic size selection
+	{ 'D',		0,			&CTextRam::fc_FNT			},	// FNT Font selection
+//	{ 'E',		0,			&CTextRam::fc_POP			},	// TSS Thin space specification
+//	{ 'F',		0,			&CTextRam::fc_POP			},	// JFY Justify
+//	{ 'G',		0,			&CTextRam::fc_POP			},	// SPI Spacing increment
+//	{ 'H',		0,			&CTextRam::fc_POP			},	// QUAD Quad
+//	{ 'I',		0,			&CTextRam::fc_POP			},	// SSU Select size unit
+//	{ 'J',		0,			&CTextRam::fc_POP			},	// PFS Page format selection
+//	{ 'K',		0,			&CTextRam::fc_POP			},	// SHS Select character spacing
+//	{ 'L',		0,			&CTextRam::fc_POP			},	// SVS Select line spacing
+//	{ 'M',		0,			&CTextRam::fc_POP			},	// IGS Identify graphic subrepertoire
+//	{ 'N',		0,			&CTextRam::fc_POP			},	// HTSA Character tabulation set absolute
+//	{ 'O',		0,			&CTextRam::fc_POP			},	// IDCS Identify device control string
+	{ 'P',		0,			&CTextRam::fc_PPA			},	// PPA Page Position Absolute
+	{ 'Q',		0,			&CTextRam::fc_PPR			},	// PPR Page Position Relative
+	{ 'R',		0,			&CTextRam::fc_PPB			},	// PPB Page Position Backwards
+//	{ 'S',		0,			&CTextRam::fc_POP			},	// SPD Select presentation directions
+//	{ 'T',		0,			&CTextRam::fc_POP			},	// DTA Dimension text area
+//	{ 'U',		0,			&CTextRam::fc_POP			},	// SLH Set line home
+//	{ 'V',		0,			&CTextRam::fc_POP			},	// SLL Set line limit
+//	{ 'W',		0,			&CTextRam::fc_POP			},	// FNK Function key
+//	{ 'X',		0,			&CTextRam::fc_POP			},	// SPQR Select print quality and rapidity
+//	{ 'Y',		0,			&CTextRam::fc_POP			},	// SEF Sheet eject and feed
+//	{ 'Z',		0,			&CTextRam::fc_POP			},	// PEC Presentation expand or contract
+//	{ '[',		0,			&CTextRam::fc_POP			},	// SSW Set space width
+//	{ '\'',		0,			&CTextRam::fc_POP			},	// SACS Set additional character separation
+//	{ ']',		0,			&CTextRam::fc_POP			},	// SAPV Select alternative presentation variants
+//	{ '^',		0,			&CTextRam::fc_POP			},	// STAB Description: Selective tabulation
+//	{ '_',		0,			&CTextRam::fc_POP			},	// GCC Graphic character combination
+//	{ '`',		0,			&CTextRam::fc_POP			},	// TATE Tabulation aligned trailing edge
+//	{ 'a',		0,			&CTextRam::fc_POP			},	// TALE Tabulation aligned leading edge
+//	{ 'b',		0,			&CTextRam::fc_POP			},	// TAC Tabulation aligned centred
+//	{ 'c',		0,			&CTextRam::fc_POP			},	// TCC Tabulation centred on character
+//	{ 'd',		0,			&CTextRam::fc_POP			},	// TSR Tabulation stop remove
+//	{ 'e',		0,			&CTextRam::fc_POP			},	// SCO Select character orientation
+//	{ 'f',		0,			&CTextRam::fc_POP			},	// SRCS Set reduced character separation
+//	{ 'g',		0,			&CTextRam::fc_POP			},	// SCS Set character spacing
+//	{ 'h',		0,			&CTextRam::fc_POP			},	// SLS Set line spacing
+//	{ 'i',		0,			&CTextRam::fc_POP			},	// SPH Set page home
+//	{ 'j',		0,			&CTextRam::fc_POP			},	// SPL Set page limit
+//	{ 'k',		0,			&CTextRam::fc_POP			},	// SCP Select character path
+//	{ 'p',		0,			&CTextRam::fc_POP			},	// DECSSCLS Set Scroll Speed
+	{ 'q',		0,			&CTextRam::fc_DECSCUSR		},	// DECSCUSR Set Cursor Style
+//	{ 'r',		0,			&CTextRam::fc_POP			},	// DECKCV Set Key Click Volume
+//	{ 's',		0,			&CTextRam::fc_POP			},	// DECNS New sheet
+//	{ 't',		0,			&CTextRam::fc_POP			},	// DECSWBV Set Warning Bell Volume
+//	{ 'u',		0,			&CTextRam::fc_POP			},	// DECSMBV Set Margin Bell Volume
+//	{ 'v',		0,			&CTextRam::fc_POP			},	// DECSLCK Set Lock Key Style
+//	{ 'w',		0,			&CTextRam::fc_POP			},	// DECSITF Select input tray failover
+//	{ 'x',		0,			&CTextRam::fc_POP			},	// DECSDPM Set Duplex Print Mode
+//	{ 'z',		0,			&CTextRam::fc_POP			},	// DECVPFS Variable page format select
+//	{ '{',		0,			&CTextRam::fc_POP			},	// DECSSS Set sheet size
+//	{ '|',		0,			&CTextRam::fc_POP			},	// DECRVEC Draw relative vector
+//	{ '}',		0,			&CTextRam::fc_POP			},	// DECKBD Keyboard Language Selection
+	{ '~',		0,			&CTextRam::fc_DECTME		},	// DECTME Terminal Mode Emulation
 	{ 0,		0,			NULL } };
 
 static const CTextRam::PROCTAB fc_Ext4Tab[] = {
@@ -406,83 +406,94 @@ static const CTextRam::PROCTAB fc_Ext4Tab[] = {
 	{ 0x7F,		0,			&CTextRam::fc_IGNORE	},
 	{ 0,		0,			NULL } };
 static const CTextRam::CSIEXTTAB fc_CsiExtTab[] = {
-	{ 				('!'  << 8) | 'p',		&CTextRam::fc_DECSTR	},	// DECSTR Soft terminal reset
-//	{ 				('!'  << 8) | 's',		&CTextRam::fc_POP		},	// DECFIL Right justification
-//	{ 				('!'  << 8) | 'v',		&CTextRam::fc_POP		},	// DECASFC Automatic sheet feeder control
-//	{ 				('!'  << 8) | 'w',		&CTextRam::fc_POP		},	// DECUND Select undeline character
-//	{ 				('!'  << 8) | 'x',		&CTextRam::fc_POP		},	// DECPTS Printwheel table select
-//	{ 				('!'  << 8) | 'y',		&CTextRam::fc_POP		},	// DECSS Select spacing
-//	{ 				('!'  << 8) | '|',		&CTextRam::fc_POP		},	// DECVEC Draw vector
-//	{ 				('!'  << 8) | '}',		&CTextRam::fc_POP		},	// DECFIN Document finishing
-	{ 				('"'  << 8) | 'p',		&CTextRam::fc_DECSCL	},	// DECSCL Set compatibility level
-	{ 				('"'  << 8) | 'q',		&CTextRam::fc_DECSCA	},	// DECSCA Select character attributes
-//	{ 				('"'  << 8) | 's',		&CTextRam::fc_POP		},	// DECPWA Page width alignment
-//	{ 				('"'  << 8) | 'u',		&CTextRam::fc_POP		},	// DECSTRL Set Transmit Rate Limit
-	{ 				('"'  << 8) | 'v',		&CTextRam::fc_DECRQDE	},	// DECRQDE Request device extent
-//	{ 				('"'  << 8) | 'z',		&CTextRam::fc_POP		},	// DECDEN Select density
-//	{ 				('&'  << 8) | 'q',		&CTextRam::fc_POP		},	// DECSNC Set number of copies
-	{ 				('&'  << 8) | 'u',		&CTextRam::fc_DECRQUPSS	},	// DECRQUPSS Request User-Preferred Supplemental Set
-//	{ 				('&'  << 8) | 'x',		&CTextRam::fc_POP		},	// DECES Enable Session
-//	{ 				('\'' << 8) | 'q',		&CTextRam::fc_POP		},	// DECSBCA Select bar code attributes
-	{ 				('\'' << 8) | 'w',		&CTextRam::fc_DECEFR	},	// DECEFR Enable filter rectangle
-	{ 				('\'' << 8) | 'z',		&CTextRam::fc_DECELR	},	// DECELR Enable locator reports
-	{ 				('\'' << 8) | '{',		&CTextRam::fc_DECSLE	},	// DECSLE Select locator events
-	{ 				('\'' << 8) | '|',		&CTextRam::fc_DECRQLP	},	// DECRQLP Request locator position
-	{ 				('\'' << 8) | '}',		&CTextRam::fc_DECIC		},	// DECIC Insert Column
-	{ 				('\'' << 8) | '~',		&CTextRam::fc_DECDC		},	// DECDC Delete Column(s)
-//	{ 				(')'  << 8) | 'p',		&CTextRam::fc_POP		},	// DECSDPT Select Digital Printed Data Type
-	{ 				(')'  << 8) | '{',		&CTextRam::fc_DECSTGLT	},	// DECSTGLT Select Color Look-Up Table
-//	{ 				('*'  << 8) | 'p',		&CTextRam::fc_POP		},	// DECSPPCS Select ProPrinter Character Set
-//	{ 				('*'  << 8) | 'r',		&CTextRam::fc_POP		},	// DECSCS Select Communication Speed
-//	{ 				('*'  << 8) | 's',		&CTextRam::fc_POP		},	// DECSFC Select Flow Control Type
-//	{ 				('*'  << 8) | 'u',		&CTextRam::fc_POP		},	// DECSCP Select Communication Port
-	{ 				('*'  << 8) | 'x',		&CTextRam::fc_DECSACE	},	// DECSACE Select Attribute and Change Extent
-	{ 				('*'  << 8) | 'y',		&CTextRam::fc_DECRQCRA	},	// DECRQCRA Request Checksum of Rectangle Area
-	{ 				('*'  << 8) | 'z',		&CTextRam::fc_DECINVM	},	// DECINVM Invoke Macro
-//	{ 				('*'  << 8) | '|',		&CTextRam::fc_POP		},	// DECSNLS Select number of lines per screen
-//	{ 				('*'  << 8) | '}',		&CTextRam::fc_POP		},	// DECLFKC Local Function Key Control
-	{ 				('+'  << 8) | 'p',		&CTextRam::fc_DECSR		},	// DECSR Secure Reset
-//	{ 				('+'  << 8) | 'q',		&CTextRam::fc_POP		},	// DECELF Enable Local Functions
-//	{ 				('+'  << 8) | 'r',		&CTextRam::fc_POP		},	// DECSMKR Select Modifier Key Reporting
-//	{ 				('+'  << 8) | 'v',		&CTextRam::fc_POP		},	// DECMM Memory management
-//	{ 				('+'  << 8) | 'w',		&CTextRam::fc_POP		},	// DECSPP Set Port Parameter
-	{ 				('+'  << 8) | 'x',		&CTextRam::fc_DECPQPLFM	},	// DECPQPLFM Program Key Free Memory Inquiry
-//	{ 				('+'  << 8) | 'z',		&CTextRam::fc_POP		},	// DECPKA Program Key Action
-//	{ 				('-'  << 8) | 'p',		&CTextRam::fc_POP		},	// DECARR Auto Repeat Rate
-//	{ 				('-'  << 8) | 'q',		&CTextRam::fc_POP		},	// DECCRTST CRT Saver Timing
-//	{ 				('-'  << 8) | 'r',		&CTextRam::fc_POP		},	// DECSEST Energy Saver Timing
-//	{ 				(','  << 8) | 'p',		&CTextRam::fc_POP		},	// DECLTOD Load Time of Day
-//	{ 				(','  << 8) | 'v',		&CTextRam::fc_POP		},	// DECRPKT Report Key Type
-//	{ 				(','  << 8) | 'w',		&CTextRam::fc_POP		},	// DECRQKD Request Key Definition
-//	{ 				(','  << 8) | 'x',		&CTextRam::fc_POP		},	// DECSPMA Session Page Memory Allocation
-//	{ 				(','  << 8) | 'y',		&CTextRam::fc_POP		},	// DECUS Update Session
-//	{ 				(','  << 8) | 'z',		&CTextRam::fc_POP		},	// DECDLDA Down Line Load Allocation
-	{ 				(','  << 8) | '|',		&CTextRam::fc_DECAC		},	// DECAC Assign Color
-//	{ 				(','  << 8) | '{',		&CTextRam::fc_POP		},	// DECSZS Select Zero Symbol
-	{ 				(','  << 8) | 'q',		&CTextRam::fc_DECTID	},	// DECTID Select Terminal ID
-	{ 				(','  << 8) | '}',		&CTextRam::fc_DECATC	},	// DECATC Alternate Text Colors
-	{ 				(','  << 8) | '~',		&CTextRam::fc_DECPS		},	// DECPS Play Sound
-	{ ('<' << 16)				| 's',		&CTextRam::fc_TTIMESV	},	// TTIMESV IME の開閉状態を保存する。
-	{ ('<' << 16)				| 't',		&CTextRam::fc_TTIMEST	},	// TTIMEST IME の開閉状態を設定する。
-	{ ('<' << 16)				| 'r',		&CTextRam::fc_TTIMERS	},	// TTIMERS IME の開閉状態を復元する。
-	{ ('<' << 16) |	('!'  << 8)	| 'i',		&CTextRam::fc_RLIMGCP	},	// RLIMGCP 現画面をImageにコピーする
-	{ ('<' << 16) |	('!'  << 8)	| 'q',		&CTextRam::fc_RLCURCOL	},	// RLCURCOL カーソルの色を設定
-//	{ ('=' << 16)				| 'A',		&CTextRam::fc_POP		},	// cons25 Set the border color to n
-//	{ ('=' << 16)				| 'B',		&CTextRam::fc_POP		},	// cons25 Set bell pitch (p) and duration (d)
-//	{ ('=' << 16)				| 'C',		&CTextRam::fc_POP		},	// cons25 Set global cursor type
-	{ ('=' << 16)				| 'F',		&CTextRam::fc_SCOSNF	},	// cons25 Set normal foreground color to n
-	{ ('=' << 16)				| 'G',		&CTextRam::fc_SCOSNB	},	// cons25 Set normal background color to n
-//	{ ('=' << 16)				| 'H',		&CTextRam::fc_POP		},	// cons25 Set normal reverse foreground color to n
-//	{ ('=' << 16)				| 'I',		&CTextRam::fc_POP		},	// cons25 Set normal reverse background color to n
-	{ ('=' << 16)				| 'S',		&CTextRam::fc_C25LCT	},	// C25LCT cons25 Set local cursor type
-	{ ('=' << 16)				| 'c',		&CTextRam::fc_DA3		},	// DA3 Tertiary Device Attributes
-	{ ('>' << 16)				| 'T',		&CTextRam::fc_XTRMTT	},	// xterm CASE_RM_TITLE
-	{ ('>' << 16)				| 'm',		&CTextRam::fc_XTMDKEY	},	// xterm CASE_SET_MOD_FKEYS
-	{ ('>' << 16)				| 'n',		&CTextRam::fc_XTMDKYD	},	// xterm CASE_SET_MOD_FKEYS0
-	{ ('>' << 16)				| 'p',		&CTextRam::fc_XTHDPT	},	// xterm CASE_HIDE_POINTER
-	{ ('>' << 16)				| 'c',		&CTextRam::fc_DA2		},	// DA2 Secondary Device Attributes
-	{ ('>' << 16)				| 't',		&CTextRam::fc_XTSMTT	},	// xterm CASE_SM_TITLE
-	{ ('?' << 16) | ('$'  << 8) | 'p',		&CTextRam::fc_DECRQMH	},	// DECRQMH Request Mode (DEC) Host to Terminal
+	{ 				('!'  << 8) | 'p',		&CTextRam::fc_DECSTR		},	// DECSTR Soft terminal reset
+//	{ 				('!'  << 8) | 's',		&CTextRam::fc_POP			},	// DECFIL Right justification
+//	{ 				('!'  << 8) | 'v',		&CTextRam::fc_POP			},	// DECASFC Automatic sheet feeder control
+//	{ 				('!'  << 8) | 'w',		&CTextRam::fc_POP			},	// DECUND Select undeline character
+//	{ 				('!'  << 8) | 'x',		&CTextRam::fc_POP			},	// DECPTS Printwheel table select
+//	{ 				('!'  << 8) | 'y',		&CTextRam::fc_POP			},	// DECSS Select spacing
+//	{ 				('!'  << 8) | '|',		&CTextRam::fc_POP			},	// DECVEC Draw vector
+//	{ 				('!'  << 8) | '}',		&CTextRam::fc_POP			},	// DECFIN Document finishing
+	{ 				('"'  << 8) | 'p',		&CTextRam::fc_DECSCL		},	// DECSCL Set compatibility level
+	{ 				('"'  << 8) | 'q',		&CTextRam::fc_DECSCA		},	// DECSCA Select character attributes
+//	{ 				('"'  << 8) | 's',		&CTextRam::fc_POP			},	// DECPWA Page width alignment
+//	{ 				('"'  << 8) | 'u',		&CTextRam::fc_POP			},	// DECSTRL Set Transmit Rate Limit
+	{ 				('"'  << 8) | 'v',		&CTextRam::fc_DECRQDE		},	// DECRQDE Request device extent
+//	{ 				('"'  << 8) | 'z',		&CTextRam::fc_POP			},	// DECDEN Select density
+//	{ 				('&'  << 8) | 'q',		&CTextRam::fc_POP			},	// DECSNC Set number of copies
+	{ 				('&'  << 8) | 'u',		&CTextRam::fc_DECRQUPSS		},	// DECRQUPSS Request User-Preferred Supplemental Set
+//	{ 				('&'  << 8) | 'x',		&CTextRam::fc_POP			},	// DECES Enable Session
+//	{ 				('\'' << 8) | 'q',		&CTextRam::fc_POP			},	// DECSBCA Select bar code attributes
+	{ 				('\'' << 8) | 'w',		&CTextRam::fc_DECEFR		},	// DECEFR Enable filter rectangle
+	{ 				('\'' << 8) | 'z',		&CTextRam::fc_DECELR		},	// DECELR Enable locator reports
+	{ 				('\'' << 8) | '{',		&CTextRam::fc_DECSLE		},	// DECSLE Select locator events
+	{ 				('\'' << 8) | '|',		&CTextRam::fc_DECRQLP		},	// DECRQLP Request locator position
+	{ 				('\'' << 8) | '}',		&CTextRam::fc_DECIC			},	// DECIC Insert Column
+	{ 				('\'' << 8) | '~',		&CTextRam::fc_DECDC			},	// DECDC Delete Column(s)
+//	{ 				(')'  << 8) | 'p',		&CTextRam::fc_POP			},	// DECSDPT Select Digital Printed Data Type
+	{ 				(')'  << 8) | '{',		&CTextRam::fc_DECSTGLT		},	// DECSTGLT Select Color Look-Up Table
+//	{ 				('*'  << 8) | 'p',		&CTextRam::fc_POP			},	// DECSPPCS Select ProPrinter Character Set
+//	{ 				('*'  << 8) | 'r',		&CTextRam::fc_POP			},	// DECSCS Select Communication Speed
+//	{ 				('*'  << 8) | 's',		&CTextRam::fc_POP			},	// DECSFC Select Flow Control Type
+//	{ 				('*'  << 8) | 'u',		&CTextRam::fc_POP			},	// DECSCP Select Communication Port
+	{ 				('*'  << 8) | 'x',		&CTextRam::fc_DECSACE		},	// DECSACE Select Attribute and Change Extent
+	{ 				('*'  << 8) | 'y',		&CTextRam::fc_DECRQCRA		},	// DECRQCRA Request Checksum of Rectangle Area
+	{ 				('*'  << 8) | 'z',		&CTextRam::fc_DECINVM		},	// DECINVM Invoke Macro
+//	{ 				('*'  << 8) | '|',		&CTextRam::fc_POP			},	// DECSNLS Select number of lines per screen
+//	{ 				('*'  << 8) | '}',		&CTextRam::fc_POP			},	// DECLFKC Local Function Key Control
+	{ 				('+'  << 8) | 'p',		&CTextRam::fc_DECSR			},	// DECSR Secure Reset
+//	{ 				('+'  << 8) | 'q',		&CTextRam::fc_POP			},	// DECELF Enable Local Functions
+//	{ 				('+'  << 8) | 'r',		&CTextRam::fc_POP			},	// DECSMKR Select Modifier Key Reporting
+//	{ 				('+'  << 8) | 'v',		&CTextRam::fc_POP			},	// DECMM Memory management
+//	{ 				('+'  << 8) | 'w',		&CTextRam::fc_POP			},	// DECSPP Set Port Parameter
+	{ 				('+'  << 8) | 'x',		&CTextRam::fc_DECPQPLFM		},	// DECPQPLFM Program Key Free Memory Inquiry
+//	{ 				('+'  << 8) | 'z',		&CTextRam::fc_POP			},	// DECPKA Program Key Action
+//	{ 				('-'  << 8) | 'p',		&CTextRam::fc_POP			},	// DECARR Auto Repeat Rate
+//	{ 				('-'  << 8) | 'q',		&CTextRam::fc_POP			},	// DECCRTST CRT Saver Timing
+//	{ 				('-'  << 8) | 'r',		&CTextRam::fc_POP			},	// DECSEST Energy Saver Timing
+//	{ 				(','  << 8) | 'p',		&CTextRam::fc_POP			},	// DECLTOD Load Time of Day
+//	{ 				(','  << 8) | 'v',		&CTextRam::fc_POP			},	// DECRPKT Report Key Type
+//	{ 				(','  << 8) | 'w',		&CTextRam::fc_POP			},	// DECRQKD Request Key Definition
+//	{ 				(','  << 8) | 'x',		&CTextRam::fc_POP			},	// DECSPMA Session Page Memory Allocation
+//	{ 				(','  << 8) | 'y',		&CTextRam::fc_POP			},	// DECUS Update Session
+//	{ 				(','  << 8) | 'z',		&CTextRam::fc_POP			},	// DECDLDA Down Line Load Allocation
+	{ 				(','  << 8) | '|',		&CTextRam::fc_DECAC			},	// DECAC Assign Color
+//	{ 				(','  << 8) | '{',		&CTextRam::fc_POP			},	// DECSZS Select Zero Symbol
+	{ 				(','  << 8) | 'q',		&CTextRam::fc_DECTID		},	// DECTID Select Terminal ID
+	{ 				(','  << 8) | '}',		&CTextRam::fc_DECATC		},	// DECATC Alternate Text Colors
+	{ 				(','  << 8) | '~',		&CTextRam::fc_DECPS			},	// DECPS Play Sound
+	{ 				('#'  << 8) | 'P',		&CTextRam::fc_XTPUSHCOLORS	},	// xterm XTPUSHCOLORS
+	{ 				('#'  << 8) | 'Q',		&CTextRam::fc_XTPOPCOLORS	},	// xterm XTPOPCOLORS
+	{ 				('#'  << 8) | 'R',		&CTextRam::fc_XTREPORTCOLORS},	// xterm XTREPORTCOLORS
+	{ 				('#'  << 8) | 'p',		&CTextRam::fc_XTPUSHSGR		},	// xterm XTPUSHSGR
+	{ 				('#'  << 8) | 'q',		&CTextRam::fc_XTPOPSGR		},	// xterm XTPOPSGR
+//	{ 				('#'  << 8) | 'y',		&CTextRam::fc_POP			},	// xterm XTCHECKSUM
+	{ 				('#'  << 8) | '{',		&CTextRam::fc_XTPUSHSGR		},	// xterm XTPUSHSGR
+	{ 				('#'  << 8) | '|',		&CTextRam::fc_XTREPORTSGR	},	// xterm XTREPORTSGR
+	{ 				('#'  << 8) | '}',		&CTextRam::fc_XTPOPSGR		},	// XTPOPSGR
+	{ ('<' << 16)				| 's',		&CTextRam::fc_TTIMESV		},	// TTIMESV IME の開閉状態を保存する。
+	{ ('<' << 16)				| 't',		&CTextRam::fc_TTIMEST		},	// TTIMEST IME の開閉状態を設定する。
+	{ ('<' << 16)				| 'r',		&CTextRam::fc_TTIMERS		},	// TTIMERS IME の開閉状態を復元する。
+	{ ('<' << 16) |	('!'  << 8)	| 'i',		&CTextRam::fc_RLIMGCP		},	// RLIMGCP 現画面をImageにコピーする
+	{ ('<' << 16) |	('!'  << 8)	| 'q',		&CTextRam::fc_RLCURCOL		},	// RLCURCOL カーソルの色を設定
+//	{ ('=' << 16)				| 'A',		&CTextRam::fc_POP			},	// cons25 Set the border color to n
+//	{ ('=' << 16)				| 'B',		&CTextRam::fc_POP			},	// cons25 Set bell pitch (p) and duration (d)
+//	{ ('=' << 16)				| 'C',		&CTextRam::fc_POP			},	// cons25 Set global cursor type
+	{ ('=' << 16)				| 'F',		&CTextRam::fc_SCOSNF		},	// cons25 Set normal foreground color to n
+	{ ('=' << 16)				| 'G',		&CTextRam::fc_SCOSNB		},	// cons25 Set normal background color to n
+//	{ ('=' << 16)				| 'H',		&CTextRam::fc_POP			},	// cons25 Set normal reverse foreground color to n
+//	{ ('=' << 16)				| 'I',		&CTextRam::fc_POP			},	// cons25 Set normal reverse background color to n
+	{ ('=' << 16)				| 'S',		&CTextRam::fc_C25LCT		},	// C25LCT cons25 Set local cursor type
+	{ ('=' << 16)				| 'c',		&CTextRam::fc_DA3			},	// DA3 Tertiary Device Attributes
+	{ ('>' << 16)				| 'T',		&CTextRam::fc_XTRMTITLE		},	// xterm XTRMTITLE
+	{ ('>' << 16)				| 'm',		&CTextRam::fc_XTMODKEYS		},	// xterm XTMODKEYS
+	{ ('>' << 16)				| 'n',		&CTextRam::fc_XTDISMODKEYS	},	// xterm [XTDISMODKEYS]
+	{ ('>' << 16)				| 'p',		&CTextRam::fc_XTSMPOINTER	},	// xterm XTSMPOINTER
+	{ ('>' << 16)				| 'c',		&CTextRam::fc_DA2			},	// DA2 Secondary Device Attributes
+	{ ('>' << 16)				| 't',		&CTextRam::fc_XTSMTITLE		},	// xterm XTSMTITLE
+	{ ('>' << 16)				| 'q',		&CTextRam::fc_XTVERSION		},	// xterm XTVERSION
+//	{ ('>' << 16)				| 's',		&CTextRam::fc_POP			},	// xterm XTSHIFTESCAPE
+	{ ('?' << 16) | ('$'  << 8) | 'p',		&CTextRam::fc_DECRQMH		},	// DECRQMH Request Mode (DEC) Host to Terminal
 	{							    0,		NULL } };
 
 static const CTextRam::PROCTAB fc_Osc1Tab[] = {
@@ -636,132 +647,139 @@ static CTextRam::ESCNAMEPROC fc_EscNameTab[] = {
 	{	_T("VTS"),		&CTextRam::fc_VTS,		NULL,	PROCTYPE_ESC,	TRACE_OUT	},
 };
 
-#define	CSINAMETABMAX	124
+#define	CSINAMETABMAX	131
 static CTextRam::ESCNAMEPROC fc_CsiNameTab[] = {
-	{	_T("C25LCT"),	&CTextRam::fc_C25LCT,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("CBT"),		&CTextRam::fc_CBT,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("CHA"),		&CTextRam::fc_CHA,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("CHT"),		&CTextRam::fc_CHT,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("CNL"),		&CTextRam::fc_CNL,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("CPL"),		&CTextRam::fc_CPL,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("CTC"),		&CTextRam::fc_CTC,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("CUB"),		&CTextRam::fc_CUB,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("CUD"),		&CTextRam::fc_CUD,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("CUF"),		&CTextRam::fc_CUF,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("CUP"),		&CTextRam::fc_CUP,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("CUU"),		&CTextRam::fc_CUU,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("CVT"),		&CTextRam::fc_CVT,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DA1"),		&CTextRam::fc_DA1,		NULL,	PROCTYPE_CSI,	TRACE_NON	},
-	{	_T("DA2"),		&CTextRam::fc_DA2,		NULL,	PROCTYPE_CSI,	TRACE_NON	},
-	{	_T("DA3"),		&CTextRam::fc_DA3,		NULL,	PROCTYPE_CSI,	TRACE_NON	},
-	{	_T("DAQ"),		&CTextRam::fc_DAQ,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DCH"),		&CTextRam::fc_DCH,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECAC"),	&CTextRam::fc_DECAC,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECATC"),	&CTextRam::fc_DECATC,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECCARA"),	&CTextRam::fc_DECCARA,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECCRA"),	&CTextRam::fc_DECCRA,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECDC"),	&CTextRam::fc_DECDC,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECDSR"),	&CTextRam::fc_DECDSR,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
-	{	_T("DECEFR"),	&CTextRam::fc_DECEFR,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
-	{	_T("DECELR"),	&CTextRam::fc_DECELR,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
-	{	_T("DECERA"),	&CTextRam::fc_DECERA,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECFRA"),	&CTextRam::fc_DECFRA,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECIC"),	&CTextRam::fc_DECIC,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECINVM"),	&CTextRam::fc_DECINVM,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECLL"),	&CTextRam::fc_DECLL,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECMC"),	&CTextRam::fc_DECMC,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
-	{	_T("DECPQPLFM"),&CTextRam::fc_DECPQPLFM,NULL,	PROCTYPE_CSI,	TRACE_NON	},
-	{	_T("DECPS"),	&CTextRam::fc_DECPS,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
-	{	_T("DECRARA"),	&CTextRam::fc_DECRARA,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECRQCRA"),	&CTextRam::fc_DECRQCRA,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
-	{	_T("DECRQDE"),	&CTextRam::fc_DECRQDE,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
-	{	_T("DECRQLP"),	&CTextRam::fc_DECRQLP,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
-	{	_T("DECRQM"),	&CTextRam::fc_DECRQM,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
-	{	_T("DECRQMH"),	&CTextRam::fc_DECRQMH,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
-	{	_T("DECRQPSR"),	&CTextRam::fc_DECRQPSR,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
-	{	_T("DECRQTSR"),	&CTextRam::fc_DECRQTSR,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
-	{	_T("DECRQUPSS"),&CTextRam::fc_DECRQUPSS,NULL,	PROCTYPE_CSI,	TRACE_NON	},
-	{	_T("DECRST"),	&CTextRam::fc_DECRST,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECSACE"),	&CTextRam::fc_DECSACE,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECSASD"),	&CTextRam::fc_DECSASD,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECSCA"),	&CTextRam::fc_DECSCA,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECSCL"),	&CTextRam::fc_DECSCL,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECSCPP"),	&CTextRam::fc_DECSCPP,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECSCUSR"),	&CTextRam::fc_DECSCUSR,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECSED"),	&CTextRam::fc_DECSED,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECSEL"),	&CTextRam::fc_DECSEL,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECSERA"),	&CTextRam::fc_DECSERA,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECSET"),	&CTextRam::fc_DECSET,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECSHTS"),	&CTextRam::fc_DECSHTS,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECSLE"),	&CTextRam::fc_DECSLE,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
-	{	_T("DECSLPP"),	&CTextRam::fc_DECSLPP,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECSLRM"),	&CTextRam::fc_DECSLRM,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECSR"),	&CTextRam::fc_DECSR,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECSSDT"),	&CTextRam::fc_DECSSDT,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECSSL"),	&CTextRam::fc_DECSSL,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECST8C"),	&CTextRam::fc_DECST8C,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECSTBM"),	&CTextRam::fc_DECSTBM,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECSTGLT"),	&CTextRam::fc_DECSTGLT,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECSTR"),	&CTextRam::fc_DECSTR,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECSVTS"),	&CTextRam::fc_DECSVTS,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECTID"),	&CTextRam::fc_DECTID,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECTME"),	&CTextRam::fc_DECTME,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DECTST"),	&CTextRam::fc_DECTST,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DL"),		&CTextRam::fc_DL,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("DSR"),		&CTextRam::fc_DSR,		NULL,	PROCTYPE_CSI,	TRACE_NON	},
-	{	_T("EA"),		&CTextRam::fc_EA,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("ECH"),		&CTextRam::fc_ECH,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("ED"),		&CTextRam::fc_ED,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("EF"),		&CTextRam::fc_EF,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("EL"),		&CTextRam::fc_EL,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("FNT"),		&CTextRam::fc_FNT,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("HPA"),		&CTextRam::fc_HPA,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("HPB"),		&CTextRam::fc_HPB,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("HPR"),		&CTextRam::fc_HPR,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("HVP"),		&CTextRam::fc_HVP,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("ICH"),		&CTextRam::fc_ICH,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("IL"),		&CTextRam::fc_IL,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("LINUX"),	&CTextRam::fc_LINUX,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("MC"),		&CTextRam::fc_MC,		NULL,	PROCTYPE_CSI,	TRACE_NON	},
-	{	_T("NOP"),		&CTextRam::fc_POP,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("NP"),		&CTextRam::fc_NP,		NULL,	PROCTYPE_CSI,	TRACE_NON	},
-	{	_T("PP"),		&CTextRam::fc_PP,		NULL,	PROCTYPE_CSI,	TRACE_NON	},
-	{	_T("PPA"),		&CTextRam::fc_PPA,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("PPB"),		&CTextRam::fc_PPB,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("PPR"),		&CTextRam::fc_PPR,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("REP"),		&CTextRam::fc_REP,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("REQTPARM"),	&CTextRam::fc_REQTPARM,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
-	{	_T("RLBFAT"),	&CTextRam::fc_RLBFAT,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("RLCURCOL"),	&CTextRam::fc_RLCURCOL,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
-	{	_T("RLIMGCP"),	&CTextRam::fc_RLIMGCP,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
-	{	_T("RLSCD"),	&CTextRam::fc_RLSCD,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("RM"),		&CTextRam::fc_RM,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("SCORC"),	&CTextRam::fc_SCORC,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("SCOSC"),	&CTextRam::fc_SCOSC,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("SCOSNB"),	&CTextRam::fc_SCOSNB,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("SCOSNF"),	&CTextRam::fc_SCOSNF,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("SD"),		&CTextRam::fc_SD,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("SGR"),		&CTextRam::fc_SGR,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("SL"),		&CTextRam::fc_SL,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("SM"),		&CTextRam::fc_SM,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("SR"),		&CTextRam::fc_SR,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("SU"),		&CTextRam::fc_SU,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("TBC"),		&CTextRam::fc_TBC,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("TTIMERS"),	&CTextRam::fc_TTIMERS,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("TTIMEST"),	&CTextRam::fc_TTIMEST,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("TTIMESV"),	&CTextRam::fc_TTIMESV,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("VPA"),		&CTextRam::fc_VPA,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("VPB"),		&CTextRam::fc_VPB,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("VPR"),		&CTextRam::fc_VPR,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("XTCOLREG"),	&CTextRam::fc_XTCOLREG,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
-	{	_T("XTHDPT"),	&CTextRam::fc_XTHDPT,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("XTMDKEY"),	&CTextRam::fc_XTMDKEY,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
-	{	_T("XTMDKYD"),	&CTextRam::fc_XTMDKYD,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
-	{	_T("XTREST"),	&CTextRam::fc_XTREST,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("XTRMTT"),	&CTextRam::fc_XTRMTT,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("XTSAVE"),	&CTextRam::fc_XTSAVE,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("XTSMTT"),	&CTextRam::fc_XTSMTT,	NULL,	PROCTYPE_CSI,	TRACE_OUT	},
-	{	_T("XTWOP"),	&CTextRam::fc_XTWOP,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("C25LCT"),			&CTextRam::fc_C25LCT,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("CBT"),				&CTextRam::fc_CBT,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("CHA"),				&CTextRam::fc_CHA,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("CHT"),				&CTextRam::fc_CHT,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("CNL"),				&CTextRam::fc_CNL,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("CPL"),				&CTextRam::fc_CPL,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("CTC"),				&CTextRam::fc_CTC,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("CUB"),				&CTextRam::fc_CUB,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("CUD"),				&CTextRam::fc_CUD,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("CUF"),				&CTextRam::fc_CUF,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("CUP"),				&CTextRam::fc_CUP,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("CUU"),				&CTextRam::fc_CUU,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("CVT"),				&CTextRam::fc_CVT,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DA1"),				&CTextRam::fc_DA1,				NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DA2"),				&CTextRam::fc_DA2,				NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DA3"),				&CTextRam::fc_DA3,				NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DAQ"),				&CTextRam::fc_DAQ,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DCH"),				&CTextRam::fc_DCH,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECAC"),			&CTextRam::fc_DECAC,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECATC"),			&CTextRam::fc_DECATC,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECCARA"),			&CTextRam::fc_DECCARA,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECCRA"),			&CTextRam::fc_DECCRA,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECDC"),			&CTextRam::fc_DECDC,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECDSR"),			&CTextRam::fc_DECDSR,			NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DECEFR"),			&CTextRam::fc_DECEFR,			NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DECELR"),			&CTextRam::fc_DECELR,			NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DECERA"),			&CTextRam::fc_DECERA,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECFRA"),			&CTextRam::fc_DECFRA,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECIC"),			&CTextRam::fc_DECIC,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECINVM"),			&CTextRam::fc_DECINVM,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECLL"),			&CTextRam::fc_DECLL,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECMC"),			&CTextRam::fc_DECMC,			NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DECPQPLFM"),		&CTextRam::fc_DECPQPLFM,		NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DECPS"),			&CTextRam::fc_DECPS,			NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DECRARA"),			&CTextRam::fc_DECRARA,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECRQCRA"),			&CTextRam::fc_DECRQCRA,			NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DECRQDE"),			&CTextRam::fc_DECRQDE,			NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DECRQLP"),			&CTextRam::fc_DECRQLP,			NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DECRQM"),			&CTextRam::fc_DECRQM,			NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DECRQMH"),			&CTextRam::fc_DECRQMH,			NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DECRQPSR"),			&CTextRam::fc_DECRQPSR,			NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DECRQTSR"),			&CTextRam::fc_DECRQTSR,			NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DECRQUPSS"),		&CTextRam::fc_DECRQUPSS,		NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DECRST"),			&CTextRam::fc_DECRST,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSACE"),			&CTextRam::fc_DECSACE,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSASD"),			&CTextRam::fc_DECSASD,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSCA"),			&CTextRam::fc_DECSCA,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSCL"),			&CTextRam::fc_DECSCL,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSCPP"),			&CTextRam::fc_DECSCPP,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSCUSR"),			&CTextRam::fc_DECSCUSR,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSED"),			&CTextRam::fc_DECSED,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSEL"),			&CTextRam::fc_DECSEL,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSERA"),			&CTextRam::fc_DECSERA,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSET"),			&CTextRam::fc_DECSET,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSHTS"),			&CTextRam::fc_DECSHTS,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSLE"),			&CTextRam::fc_DECSLE,			NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("DECSLPP"),			&CTextRam::fc_DECSLPP,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSLRM"),			&CTextRam::fc_DECSLRM,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSR"),			&CTextRam::fc_DECSR,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSSDT"),			&CTextRam::fc_DECSSDT,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSSL"),			&CTextRam::fc_DECSSL,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECST8C"),			&CTextRam::fc_DECST8C,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSTBM"),			&CTextRam::fc_DECSTBM,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSTGLT"),			&CTextRam::fc_DECSTGLT,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSTR"),			&CTextRam::fc_DECSTR,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECSVTS"),			&CTextRam::fc_DECSVTS,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECTID"),			&CTextRam::fc_DECTID,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECTME"),			&CTextRam::fc_DECTME,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DECTST"),			&CTextRam::fc_DECTST,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DL"),				&CTextRam::fc_DL,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("DSR"),				&CTextRam::fc_DSR,				NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("EA"),				&CTextRam::fc_EA,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("ECH"),				&CTextRam::fc_ECH,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("ED"),				&CTextRam::fc_ED,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("EF"),				&CTextRam::fc_EF,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("EL"),				&CTextRam::fc_EL,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("FNT"),				&CTextRam::fc_FNT,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("HPA"),				&CTextRam::fc_HPA,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("HPB"),				&CTextRam::fc_HPB,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("HPR"),				&CTextRam::fc_HPR,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("HVP"),				&CTextRam::fc_HVP,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("ICH"),				&CTextRam::fc_ICH,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("IL"),				&CTextRam::fc_IL,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("LINUX"),			&CTextRam::fc_LINUX,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("MC"),				&CTextRam::fc_MC,				NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("NOP"),				&CTextRam::fc_POP,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("NP"),				&CTextRam::fc_NP,				NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("PP"),				&CTextRam::fc_PP,				NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("PPA"),				&CTextRam::fc_PPA,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("PPB"),				&CTextRam::fc_PPB,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("PPR"),				&CTextRam::fc_PPR,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("REP"),				&CTextRam::fc_REP,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("REQTPARM"),			&CTextRam::fc_REQTPARM,			NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("RLBFAT"),			&CTextRam::fc_RLBFAT,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("RLCURCOL"),			&CTextRam::fc_RLCURCOL,			NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("RLIMGCP"),			&CTextRam::fc_RLIMGCP,			NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("RLSCD"),			&CTextRam::fc_RLSCD,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("RM"),				&CTextRam::fc_RM,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("SCORC"),			&CTextRam::fc_SCORC,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("SCOSC"),			&CTextRam::fc_SCOSC,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("SCOSNB"),			&CTextRam::fc_SCOSNB,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("SCOSNF"),			&CTextRam::fc_SCOSNF,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("SD"),				&CTextRam::fc_SD,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("SGR"),				&CTextRam::fc_SGR,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("SL"),				&CTextRam::fc_SL,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("SM"),				&CTextRam::fc_SM,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("SR"),				&CTextRam::fc_SR,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("SU"),				&CTextRam::fc_SU,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("TBC"),				&CTextRam::fc_TBC,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("TTIMERS"),			&CTextRam::fc_TTIMERS,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("TTIMEST"),			&CTextRam::fc_TTIMEST,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("TTIMESV"),			&CTextRam::fc_TTIMESV,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("VPA"),				&CTextRam::fc_VPA,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("VPB"),				&CTextRam::fc_VPB,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("VPR"),				&CTextRam::fc_VPR,				NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("XTDISMODKEYS"),		&CTextRam::fc_XTDISMODKEYS,		NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("XTMODKEYS"),		&CTextRam::fc_XTMODKEYS,		NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("XTPOPCOLORS"),		&CTextRam::fc_XTPOPCOLORS,		NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("XTPOPSGR"),			&CTextRam::fc_XTPOPSGR,			NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("XTPUSHCOLORS"),		&CTextRam::fc_XTPUSHCOLORS,		NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("XTPUSHSGR"),		&CTextRam::fc_XTPUSHSGR,		NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("XTREPORTCOLORS"),	&CTextRam::fc_XTREPORTCOLORS,	NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("XTREPORTSGR"),		&CTextRam::fc_XTREPORTSGR,		NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("XTRESTORE"),		&CTextRam::fc_XTRESTORE,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("XTRMTITLE"),		&CTextRam::fc_XTRMTITLE,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("XTSAVE"),			&CTextRam::fc_XTSAVE,			NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("XTSMGRAPHICS"),		&CTextRam::fc_XTSMGRAPHICS,		NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("XTSMPOINTER"),		&CTextRam::fc_XTSMPOINTER,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("XTSMTITLE"),		&CTextRam::fc_XTSMTITLE,		NULL,	PROCTYPE_CSI,	TRACE_OUT	},
+	{	_T("XTVERSION"),		&CTextRam::fc_XTVERSION,		NULL,	PROCTYPE_CSI,	TRACE_NON	},
+	{	_T("XTWINOPS"),			&CTextRam::fc_XTWINOPS,			NULL,	PROCTYPE_CSI,	TRACE_NON	},
 };
 
 #define	DCSNAMETABMAX	12
@@ -4113,7 +4131,7 @@ void CTextRam::fc_DECRQSS(DWORD ch)
 		if ( (m_AttNow.std.attr & ATT_REVS)   != 0 ) para.Add(7);
 		if ( (m_AttNow.std.attr & ATT_SECRET) != 0 ) para.Add(8);
 		if ( (m_AttNow.std.attr & ATT_LINE)   != 0 ) para.Add(9);
-		if ( (m_AttNow.std.attr & ATT_DUNDER) != 0 ) para.Add(2);
+		if ( (m_AttNow.std.attr & ATT_DUNDER) != 0 ) para.Add(21);
 		if ( (m_AttNow.std.attr & ATT_SUNDER) != 0 ) para.Add(50);
 		if ( (m_AttNow.std.attr & ATT_FRAME)  != 0 ) para.Add(51);
 		if ( (m_AttNow.std.attr & ATT_CIRCLE) != 0 ) para.Add(52);
@@ -4176,7 +4194,7 @@ void CTextRam::fc_DECRQSS(DWORD ch)
 		para.Add(m_LeftX + 1);
 		para.Add(m_RightX + 1 - 1);
 
-	} else if ( pFunc == &CTextRam::fc_DECSLPP || pFunc == &CTextRam::fc_XTWOP ) {		// 't'		DECSLPP Set lines per physical page
+	} else if ( pFunc == &CTextRam::fc_DECSLPP || pFunc == &CTextRam::fc_XTWINOPS ) {		// 't'		DECSLPP Set lines per physical page
 		para.Add(GetLineSize());
 
 	} else if ( pFunc == &CTextRam::fc_DECSCPP ) {		// ('$' << 8) | '|'		DECSCPP
@@ -4238,19 +4256,19 @@ void CTextRam::fc_DECRQSS(DWORD ch)
 	} else if ( pFunc == &CTextRam::fc_DECSCUSR ) {		// (' ' << 8) | 'q'		DECSCUSR Set Cursor Style
 		para.Add(m_TypeCaret);
 
-	} else if ( pFunc == &CTextRam::fc_XTRMTT ) {		// ('>' << 16) | 'T'	XTRMTT xterm CASE_RM_TITLE
+	} else if ( pFunc == &CTextRam::fc_XTRMTITLE ) {	// ('>' << 16) | 'T'	XTRMTT xterm CASE_RM_TITLE
 		if ( (m_XtOptFlag & XTOP_SETHEX) == 0 ) para.Add(0);
 		if ( (m_XtOptFlag & XTOP_GETHEX) == 0 ) para.Add(1);
 		if ( (m_XtOptFlag & XTOP_SETUTF) == 0 ) para.Add(2);
 		if ( (m_XtOptFlag & XTOP_GETUTF) == 0 ) para.Add(3);
 
-	} else if ( pFunc == &CTextRam::fc_XTSMTT ) {		// ('>' << 16) | 't'	xterm CASE_SM_TITLE
+	} else if ( pFunc == &CTextRam::fc_XTSMTITLE ) {	// ('>' << 16) | 't'	xterm CASE_SM_TITLE
 		if ( (m_XtOptFlag & XTOP_SETHEX) != 0 ) para.Add(0);
 		if ( (m_XtOptFlag & XTOP_GETHEX) != 0 ) para.Add(1);
 		if ( (m_XtOptFlag & XTOP_SETUTF) != 0 ) para.Add(2);
 		if ( (m_XtOptFlag & XTOP_GETUTF) != 0 ) para.Add(3);
 
-	} else if ( pFunc == &CTextRam::fc_XTMDKEY ) {		// ('>' << 16) | 'm'	XTMDKEY 
+	} else if ( pFunc == &CTextRam::fc_XTMODKEYS ) {	// ('>' << 16) | 'm'	XTMODKEYS 
 		if ( m_ModKey[MODKEY_ALLOW]  != (-1) ) { para.Add(0); para.Add(m_ModKey[MODKEY_ALLOW]);  }
 		if ( m_ModKey[MODKEY_CURSOR] != (-1) ) { para.Add(1); para.Add(m_ModKey[MODKEY_CURSOR]); }
 		if ( m_ModKey[MODKEY_FUNC]   != (-1) ) { para.Add(2); para.Add(m_ModKey[MODKEY_FUNC]);   }
@@ -4258,7 +4276,7 @@ void CTextRam::fc_DECRQSS(DWORD ch)
 		if ( m_ModKey[MODKEY_OTHER]  != (-1) ) { para.Add(4); para.Add(m_ModKey[MODKEY_OTHER]);  }
 		if ( m_ModKey[MODKEY_STRING] != (-1) ) { para.Add(5); para.Add(m_ModKey[MODKEY_STRING]); }
 
-	} else if ( pFunc == &CTextRam::fc_XTMDKYD ) {		// ('>' << 16) | 'n'	XTMDKYD 
+	} else if ( pFunc == &CTextRam::fc_XTDISMODKEYS ) {	// ('>' << 16) | 'n'	XTMDKYD 
 		if ( m_ModKey[MODKEY_ALLOW]  == (-1) ) para.Add(0);
 		if ( m_ModKey[MODKEY_CURSOR] == (-1) ) para.Add(1);
 		if ( m_ModKey[MODKEY_FUNC]   == (-1) ) para.Add(2);
@@ -4266,7 +4284,7 @@ void CTextRam::fc_DECRQSS(DWORD ch)
 		if ( m_ModKey[MODKEY_OTHER]  == (-1) ) para.Add(4);
 		if ( m_ModKey[MODKEY_STRING] == (-1) ) para.Add(5);
 
-	} else if ( pFunc == &CTextRam::fc_XTHDPT ) {		// ('>' << 16) | 'p'	XTHDPT 
+	} else if ( pFunc == &CTextRam::fc_XTSMPOINTER ) {	// ('>' << 16) | 'p'	XTHDPT 
 		para.Add(m_XtMosPointMode);
 
 	} else if ( pFunc == &CTextRam::fc_RLCURCOL ) {		// ('<' << 16) | ('!' << 8) | 'q'	RLCURCOL
@@ -6184,7 +6202,7 @@ void CTextRam::fc_SCOSC(DWORD ch)
 		fc_POP(ch);
 	}
 }
-void CTextRam::fc_XTWOP(DWORD ch)
+void CTextRam::fc_XTWINOPS(DWORD ch)
 {
 	// CSI t	XTWOP XTERM WINOPS
 	int i;
@@ -6515,7 +6533,7 @@ void CTextRam::fc_DECSEL(DWORD ch)
 	}
 	fc_POP(ch);
 }
-void CTextRam::fc_XTCOLREG(DWORD ch)
+void CTextRam::fc_XTSMGRAPHICS(DWORD ch)
 {
 	// CSI ? Pi; Pa; Pv S
 
@@ -6660,7 +6678,7 @@ void CTextRam::fc_DECRST(DWORD ch)
 	// CSI ? l	DECRST
 	fc_DECSRET('l');
 }
-void CTextRam::fc_XTREST(DWORD ch)
+void CTextRam::fc_XTRESTORE(DWORD ch)
 {
 	// CSI ? r	XTREST
 	fc_DECSRET('r');
@@ -8001,6 +8019,261 @@ void CTextRam::fc_DECPS(DWORD ch)
 	fc_POP(ch);
 }
 
+void CTextRam::fc_XTPUSHCOLORS(DWORD ch)
+{
+	// CSI # P
+	// CSI Pm # P
+	//         Push current dynamic- and ANSI-palette colors onto stack
+	//         (XTPUSHCOLORS), xterm.  Parameters (integers in the range 1
+	//         through 10, since the default 0 will push) may be used to
+	//         store the palette into the stack without pushing.
+
+	if ( m_AnsiPara.GetSize() == 0 )
+		m_AnsiPara.Add(PARA_NOT);
+
+	for ( int n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
+		int val = GetAnsiPara(n, -1, -1);
+		int act = val <= 0 ? m_ColStackUsed : (val - 1);
+
+		if ( act < 10 ) {
+			if ( m_ColStackTab[act] == NULL )
+				m_ColStackTab[act] = new COLORREF[EXTCOL_MAX];
+
+			memcpy(m_ColStackTab[act], m_ColTab, sizeof(COLORREF) * EXTCOL_MAX);
+
+			if ( val < 0 ) {
+				m_ColStackUsed++;
+				if ( m_ColStackLast < m_ColStackUsed )
+					m_ColStackLast = m_ColStackUsed;
+			} else
+				m_ColStackUsed = val;
+		}
+	}
+
+	fc_POP(ch);
+}
+void CTextRam::fc_XTPOPCOLORS(DWORD ch)
+{
+	// CSI # Q
+	// CSI Pm # Q
+	//          Pop stack to set dynamic- and ANSI-palette colors
+	//          (XTPOPCOLORS), xterm.  Parameters (integers in the range 1
+	//          through 10, since the default 0 will pop) may be used to
+	//          restore the palette from the stack without popping.
+
+	if ( m_AnsiPara.GetSize() == 0 )
+		m_AnsiPara.Add(PARA_NOT);
+
+	for ( int n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
+		int val = GetAnsiPara(n, -1, -1);
+		int act = val <= 0 ? (m_ColStackUsed - 1) : (val - 1);
+
+		if ( act >= 0 && act < 10 && m_ColStackTab[act] != NULL ) {
+			memcpy(m_ColTab, m_ColStackTab[act], sizeof(COLORREF) * EXTCOL_MAX);
+			m_ColStackUsed = act;
+			DISPUPDATE();
+		}
+	}
+
+	fc_POP(ch);
+}
+void CTextRam::fc_XTREPORTCOLORS(DWORD ch)
+{
+	// CSI # R   
+	//          Report the current entry on the palette stack, and the number
+	//          of palettes stored on the stack, using the same form as
+	//          XTPOPCOLOR (default = 0) (XTREPORTCOLORS), xterm.
+	//			
+	//		response CSI ? Pn ; Ps # Q
+	//			Pn Stack Size
+	//			Ps Data Size
+
+	UNGETSTR(_T("%s?%d;%d#Q"), m_RetChar[RC_CSI], m_ColStackUsed, m_ColStackLast);
+
+	fc_POP(ch);
+}
+void CTextRam::fc_XTPUSHSGR(DWORD ch)
+{
+	// CSI # p
+	// CSI # {
+	// CSI Pm # {
+	//         Push video attributes onto stack (XTPUSHSGR), xterm.
+	//         The optional parameters correspond to the SGR encoding for 
+	//         video attributes, except for colors (which do not have a 
+	//         unique SGRcode):
+	//            Ps = 1  ⇒  Bold.
+	//            Ps = 2  ⇒  Faint.
+	//            Ps = 3  ⇒  Italicized.
+	//            Ps = 4  ⇒  Underlined.
+	//            Ps = 5  ⇒  Blink.
+	//            Ps = 7  ⇒  Inverse.
+	//            Ps = 8  ⇒  Invisible.
+	//            Ps = 9  ⇒  Crossed-out characters.
+	//            Ps = 2 1  ⇒  Doubly-underlined.
+	//            Ps = 3 0  ⇒  Foreground color.
+	//            Ps = 3 1  ⇒  Background color.
+	//
+	//          If no parameters are given, all of the video attributes are saved.  
+	//          The stack is limited to 10 levels.
+
+	int n;
+	int mask = 0;
+	SGRSTACK data;
+
+	if ( m_AnsiPara.GetSize() <= 0 )
+		m_AnsiPara.Add(0);
+
+	for ( n = 0 ; n < m_AnsiPara.GetSize() ; n++ ) {
+		switch(GetAnsiPara(0, 0, 0)) {
+		case  0: mask |= ATT_MASK | ATT_FCOL | ATT_BCOL;   break;	// 0 all
+		case  1: mask |= ATT_BOLD;   break;	// 1 bold or increased intensity
+		case  2: mask |= ATT_HALF;   break;	// 2 faint, decreased intensity or second colour
+		case  3: mask |= ATT_ITALIC; break;	// 3 italicized
+		case  4: mask |= ATT_UNDER;  break;	// 4 singly underlined
+		case  5: mask |= ATT_SBLINK; break;	// 5 slowly blinking
+		case  6: mask |= ATT_BLINK;  break;	// 6 rapidly blinking
+		case  7: mask |= ATT_REVS;   break;	// 7 negative image
+		case  8: mask |= ATT_SECRET; break;	// 8 concealed characters
+		case  9: mask |= ATT_LINE;   break;	// 9 crossed-out
+		case 21: mask |= ATT_DUNDER; break;	// 21 doubly underlined
+		case 30: mask |= ATT_FCOL;   break;	// fcol
+		case 31: mask |= ATT_BCOL;   break;	// bcol
+		case 50: mask |= ATT_SUNDER; break;	// 50 sigle underlined
+		case 51: mask |= ATT_FRAME;  break;	// 51 framed
+		case 52: mask |= ATT_CIRCLE; break;	// 52 encircled
+		case 53: mask |= ATT_OVER;   break;	// 53 overlined
+		case 60: mask |= ATT_RSLINE; break;	// 60 ideogram underline or right side line
+		case 61: mask |= ATT_RDLINE; break;	// 61 ideogram double underline or double line on the right side
+		case 62: mask |= ATT_LSLINE; break;	// 62 ideogram overline or left side line
+		case 63: mask |= ATT_LDLINE; break;	// 63 ideogram double overline or double line on the left side
+		case 64: mask |= ATT_STRESS; break;	// 64 ideogram stress marking
+		}
+	}
+
+	if ( mask != 0 ) {
+		data.attr = m_AttNow.std.attr & mask & ATT_MASK;
+		data.mask = mask;
+		if ( (mask & ATT_FCOL) != 0 ) {
+			data.fcol = m_AttNow.std.fcol;
+			data.eatt = m_AttNow.eatt;
+			data.frgb = m_AttNow.frgb;
+		}
+		if ( (mask & ATT_BCOL) != 0 ) {
+			data.bcol = m_AttNow.std.bcol;
+			data.eatt = m_AttNow.eatt;
+			data.frgb = m_AttNow.brgb;
+		}
+		m_SgrStack.InsertAt(0, data);
+	}
+
+	fc_POP(ch);
+}
+void CTextRam::fc_XTPOPSGR(DWORD ch)
+{
+	// CSI # q
+	// CSI # }
+	//          Pop video attributes from stack (XTPOPSGR), xterm.  Popping
+	//          restores the video-attributes which were saved using XTPUSHSGR
+	//          to their previous state.
+
+	if ( m_SgrStack.GetSize() > 0 ) {
+		m_AttNow.std.attr &= ~(m_SgrStack[0].mask & ATT_MASK);
+		m_AttNow.std.attr |= m_SgrStack[0].attr;
+		if ( (m_SgrStack[0].mask & ATT_FCOL) != 0 ) {
+			m_AttNow.std.fcol = m_SgrStack[0].fcol;
+			m_AttNow.eatt &= ~EATT_FRGBCOL;
+			m_AttNow.eatt |= (m_SgrStack[0].eatt & EATT_FRGBCOL);
+			m_AttNow.frgb = m_SgrStack[0].frgb;
+		}
+		if ( (m_SgrStack[0].mask & ATT_BCOL) != 0 ) {
+			m_AttNow.std.bcol = m_SgrStack[0].bcol;
+			m_AttNow.eatt &= ~EATT_BRGBCOL;
+			m_AttNow.eatt |= (m_SgrStack[0].eatt & EATT_BRGBCOL);
+			m_AttNow.brgb = m_SgrStack[0].brgb;
+		}
+		m_SgrStack.RemoveAt(0);
+	}
+
+	fc_POP(ch);
+}
+void CTextRam::fc_XTREPORTSGR(DWORD ch)
+{
+	// CSI Pt ; Pl ; Pb ; Pr # |
+	//          Report selected graphic rendition (XTREPORTSGR), xterm.  The
+	//          response is an SGR sequence which contains the attributes
+	//          which are common to all cells in a rectangle.
+	//            Pt ; Pl ; Pb ; Pr denotes the rectangle.
+
+	int x, y;
+	CCharCell *vp;
+	DWORD attr = ATT_MASK;
+	BYTE fcol = m_DefAtt.std.fcol;
+	BYTE bcol = m_DefAtt.std.bcol;
+	CString para, tmp;
+
+	SetAnsiParaArea(0);
+
+	for ( y = m_AnsiPara[0] ; y <= (int)m_AnsiPara[2] ; y++ ) {
+		vp = GETVRAM(m_AnsiPara[1], y);
+		for ( x = m_AnsiPara[1] ; x <= (int)m_AnsiPara[3] ; x++, vp++ ) {
+			attr &= vp->m_Vram.attr;
+
+			if ( fcol != vp->m_Vram.fcol )
+				fcol = vp->m_Vram.fcol;
+			if ( bcol != vp->m_Vram.bcol )
+				fcol = vp->m_Vram.bcol;
+		}
+	}
+
+	if ( attr == ATT_MASK )
+		attr = m_DefAtt.std.attr;
+
+	para = _T("0");
+	if ( (attr & ATT_BOLD)   != (m_DefAtt.std.attr & ATT_BOLD)   ) para += _T(";1");
+	if ( (attr & ATT_HALF)   != (m_DefAtt.std.attr & ATT_HALF)   ) para += _T(";2");
+	if ( (attr & ATT_ITALIC) != (m_DefAtt.std.attr & ATT_ITALIC) ) para += _T(";3");
+	if ( (attr & ATT_UNDER)  != (m_DefAtt.std.attr & ATT_UNDER)  ) para += _T(";4");
+	if ( (attr & ATT_SBLINK) != (m_DefAtt.std.attr & ATT_SBLINK) ) para += _T(";5");
+	if ( (attr & ATT_BLINK)  != (m_DefAtt.std.attr & ATT_BLINK)  ) para += _T(";6");
+	if ( (attr & ATT_REVS)   != (m_DefAtt.std.attr & ATT_REVS)   ) para += _T(";7");
+	if ( (attr & ATT_SECRET) != (m_DefAtt.std.attr & ATT_SECRET) ) para += _T(";8");
+	if ( (attr & ATT_LINE)   != (m_DefAtt.std.attr & ATT_LINE)   ) para += _T(";9");
+	if ( (attr & ATT_DUNDER) != (m_DefAtt.std.attr & ATT_DUNDER) ) para += _T(";21");
+	if ( (attr & ATT_SUNDER) != (m_DefAtt.std.attr & ATT_SUNDER) ) para += _T(";50");
+	if ( (attr & ATT_FRAME)  != (m_DefAtt.std.attr & ATT_FRAME)  ) para += _T(";51");
+	if ( (attr & ATT_CIRCLE) != (m_DefAtt.std.attr & ATT_CIRCLE) ) para += _T(";52");
+	if ( (attr & ATT_OVER)   != (m_DefAtt.std.attr & ATT_OVER)   ) para += _T(";53");
+	if ( (attr & ATT_RSLINE) != (m_DefAtt.std.attr & ATT_RSLINE) ) para += _T(";60");
+	if ( (attr & ATT_RDLINE) != (m_DefAtt.std.attr & ATT_RDLINE) ) para += _T(";61");
+	if ( (attr & ATT_LSLINE) != (m_DefAtt.std.attr & ATT_LSLINE) ) para += _T(";62");
+	if ( (attr & ATT_LDLINE) != (m_DefAtt.std.attr & ATT_LDLINE) ) para += _T(";63");
+	if ( (attr & ATT_STRESS) != (m_DefAtt.std.attr & ATT_STRESS) ) para += _T(";64");
+
+	if ( fcol != m_DefAtt.std.fcol ) {
+		if ( fcol < 8 )
+			tmp.Format(_T(";%d"), fcol + 30);
+		else if ( fcol < 16 )
+			tmp.Format(_T(";%d"), fcol - 8 + 90);
+		else
+			tmp.Format(_T(";38;5;%d"), fcol);
+		para += tmp;
+	}
+
+	if ( bcol != m_DefAtt.std.bcol ) {
+		if ( bcol < 8 )
+			tmp.Format(_T(";%d"), bcol + 40);
+		else if ( bcol < 16 )
+			tmp.Format(_T(";%d"), bcol - 8 + 100);
+		else
+			tmp.Format(_T(";48;5;%d"), bcol);
+		para += tmp;
+	}
+
+	UNGETSTR(_T("%s%sm"), m_RetChar[RC_CSI], para);
+
+	fc_POP(ch);
+}
+
 void CTextRam::fc_DECSTGLT(DWORD ch)
 {
 	// CSI (')' << 8 | '{'		DECSTGLT Select Color Look-Up Table
@@ -8074,7 +8347,7 @@ void CTextRam::fc_TTIMERS(DWORD ch)
 	m_AnsiPara.Add(TO_IMECTRL + 8000);
 	fc_DECSRET('r');
 }
-void CTextRam::fc_XTRMTT(DWORD ch)
+void CTextRam::fc_XTRMTITLE(DWORD ch)
 {
 	// CSI { ('>' << 16) | 'T',		xterm CASE_RM_TITLE
 	//    Ps = 0  -> Do not set window/icon labels using hexadecimal.
@@ -8088,7 +8361,7 @@ void CTextRam::fc_XTRMTT(DWORD ch)
 	}
 	fc_POP(ch);
 }
-void CTextRam::fc_XTMDKEY(DWORD ch)
+void CTextRam::fc_XTMODKEYS(DWORD ch)
 {
 	// CSI > Ps; Ps m
 	//	  Set or reset resource-values used by xterm to decide whether
@@ -8117,7 +8390,7 @@ void CTextRam::fc_XTMDKEY(DWORD ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_XTMDKYD(DWORD ch)
+void CTextRam::fc_XTDISMODKEYS(DWORD ch)
 {
 	//CSI > Ps n
 	//	  Disable modifiers which may be enabled via the CSI > Ps; Ps m
@@ -8143,7 +8416,7 @@ void CTextRam::fc_XTMDKYD(DWORD ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_XTHDPT(DWORD ch)
+void CTextRam::fc_XTSMPOINTER(DWORD ch)
 {
 	//CSI > Ps p
 	//	  Set resource value pointerMode.  This is used by xterm to
@@ -8161,7 +8434,7 @@ void CTextRam::fc_XTHDPT(DWORD ch)
 
 	fc_POP(ch);
 }
-void CTextRam::fc_XTSMTT(DWORD ch)
+void CTextRam::fc_XTSMTITLE(DWORD ch)
 {
 	// CSI ('>' << 16) | 't',		xterm CASE_SM_TITLE
 	//    Ps = 0  -> Set window/icon labels using hexadecimal.
@@ -8173,6 +8446,21 @@ void CTextRam::fc_XTSMTT(DWORD ch)
 		if ( !m_AnsiPara[n].IsEmpty() )
 			m_XtOptFlag |= (1 << m_AnsiPara[n]);
 	}
+	fc_POP(ch);
+}
+void CTextRam::fc_XTVERSION(DWORD ch)
+{
+	// CSI > Ps q
+	//		Ps = 0 ⇒ Report xterm name and version (XTVERSION). 
+	//		The response is a DSR sequence identifying the version: DCS > |	text ST
+
+	CString ver;
+
+	if ( GetAnsiPara(0, 0, 0) == 0 ) {
+		((CRLoginApp *)::AfxGetApp())->GetVersion(ver);
+		UNGETSTR(_T("%s>|%s(%s)%s"), m_RetChar[RC_DCS], _T("RLogin"), ver, m_RetChar[RC_ST]);
+	}
+
 	fc_POP(ch);
 }
 void CTextRam::fc_RLIMGCP(DWORD ch)

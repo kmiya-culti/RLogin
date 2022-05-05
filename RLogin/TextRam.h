@@ -88,6 +88,10 @@
 //						0xA0000000
 //						0xC0000000
 //						0xE0000000
+
+#define	ATT_FCOL		0x10000000		// PUSH/POP SGR Fcol
+#define	ATT_BCOL		0x20000000		// PUSH/POP SGR bcol
+
 #define	ATT_EXTYPE(a)	((a) & 0xE0000000)
 
 #define	BLINK_TIME		300				// ATT_BLINK time (ms)
@@ -1508,6 +1512,22 @@ public:
 	void fc_KANBRK();
 	void fc_KANCHK();
 
+	int m_ColStackUsed;
+	int m_ColStackLast;
+	COLORREF *m_ColStackTab[10];
+
+	typedef struct _SGRSTACK {
+		DWORD		attr;
+		DWORD		mask;
+		BYTE		fcol;
+		BYTE		bcol;
+		WORD		eatt;
+		COLORREF	brgb;
+		COLORREF	frgb;
+	} SGRSTACK;
+
+	CArray<SGRSTACK, SGRSTACK &> m_SgrStack;
+
 	// Print...
 	void fc_IGNORE(DWORD ch);
 	void fc_POP(DWORD ch);
@@ -1674,7 +1694,7 @@ public:
 	void fc_DECSHTS(DWORD ch);
 	void fc_DECSVTS(DWORD ch);
 	void fc_SCOSC(DWORD ch);
-	void fc_XTWOP(DWORD ch);
+	void fc_XTWINOPS(DWORD ch);
 	void fc_SCORC(DWORD ch);
 	void fc_RLSCD(DWORD ch);
 	void fc_REQTPARM(DWORD ch);
@@ -1694,8 +1714,8 @@ public:
 	void fc_DECSET(DWORD ch);
 	void fc_DECMC(DWORD ch);
 	void fc_DECRST(DWORD ch);
-	void fc_XTCOLREG(DWORD ch);
-	void fc_XTREST(DWORD ch);
+	void fc_XTSMGRAPHICS(DWORD ch);
+	void fc_XTRESTORE(DWORD ch);
 	void fc_XTSAVE(DWORD ch);
 	void fc_DECDSR(DWORD ch);
 	void fc_DECSRET(DWORD ch);
@@ -1734,6 +1754,12 @@ public:
 	void fc_DECIC(DWORD ch);
 	void fc_DECDC(DWORD ch);
 	void fc_DECPS(DWORD ch);
+	void fc_XTPUSHCOLORS(DWORD ch);
+	void fc_XTPOPCOLORS(DWORD ch);
+	void fc_XTREPORTCOLORS(DWORD ch);
+	void fc_XTPUSHSGR(DWORD ch);
+	void fc_XTPOPSGR(DWORD ch);
+	void fc_XTREPORTSGR(DWORD ch);
 	void fc_DECSTGLT(DWORD ch);
 	void fc_DECSACE(DWORD ch);
 	void fc_DECRQCRA(DWORD ch);
@@ -1749,11 +1775,12 @@ public:
 	void fc_TTIMESV(DWORD ch);
 	void fc_TTIMEST(DWORD ch);
 	void fc_TTIMERS(DWORD ch);
-	void fc_XTRMTT(DWORD ch);
-	void fc_XTMDKEY(DWORD ch);
-	void fc_XTMDKYD(DWORD ch);
-	void fc_XTHDPT(DWORD ch);
-	void fc_XTSMTT(DWORD ch);
+	void fc_XTRMTITLE(DWORD ch);
+	void fc_XTMODKEYS(DWORD ch);
+	void fc_XTDISMODKEYS(DWORD ch);
+	void fc_XTSMPOINTER(DWORD ch);
+	void fc_XTSMTITLE(DWORD ch);
+	void fc_XTVERSION(DWORD ch);
 	void fc_RLIMGCP(DWORD ch);
 	void fc_RLCURCOL(DWORD ch);
 	void fc_SCOSNF(DWORD ch);

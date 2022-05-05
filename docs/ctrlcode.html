@@ -6,11 +6,17 @@
 <TITLE>エスケープシーケンス一覧</TITLE>
 <STYLE type="text/css">
 <!--
-TD {		
+TD {
+				
+				
+				
   background-color : #ffffff;
   font-size : 90%;
 }
-.BOX{		
+.BOX{
+				
+				
+				
   background-color : silver;
 }
 -->
@@ -796,14 +802,51 @@ TD {
             <TD width="680"><I><FONT size="-1">Pn</FONT></I>[1]ページに移動</TD>
           </TR>
           <TR>
+            <TD>CSI # P<BR>
+            CSI Pm # P</TD>
+            <TD align="center">XTPUSHCOLORS<BR>
+            *4</TD>
+            <TD>カラーパレットを保存します<BR>
+            Pmで１から１０までの数値を指定するとその番号のカラーパレット<BR>
+            を保存します。Pmが０もしくは、指定無しの場合はスタック動作でプッシュします</TD>
+          </TR>
+          <TR>
             <TD width="120">CSI <I><FONT size="-1">Pn</FONT></I> SP Q</TD>
             <TD align="center" width="120">PPR</TD>
             <TD width="680">+<I><FONT size="-1">Pn</FONT></I>[1]ページにオフセット移動</TD>
           </TR>
           <TR>
+            <TD>CSI # Q<BR>
+            CSI Pm # Q</TD>
+            <TD align="center">XTPOPCOLORS<BR>
+            *4</TD>
+            <TD>XTPUSHCOLORSで保存されたカラーパレットを復元します<BR>
+            Pmで１から１０までの数値を指定するとその番号のカラーパレット<BR>
+            を復元します。Pmが０もしくは、指定無しの場合はスタック動作でポップします</TD>
+          </TR>
+          <TR>
             <TD width="120">CSI <I><FONT size="-1">Pn</FONT></I> SP R</TD>
             <TD align="center" width="120">PPB</TD>
             <TD width="680">-<I><FONT size="-1">Pn</FONT></I>[1]ページにオフセット移動</TD>
+          </TR>
+          <TR>
+            <TD>CSI # R</TD>
+            <TD align="center"><FONT size="-1">XTREPORTCOLORS</FONT><BR>
+            *4</TD>
+            <TD>XTPUSHCOLORSで保存されたカラーパレットのスタックの状態をCSI ? Pn ; Ps # Qで返します<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pn</FONT></I></TD>
+                  <TD>現在のスタック位置(XTPUSHCOLORSで数値指定した場合は、その番号)</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Ps</FONT></I></TD>
+                  <TD>過去にスタックされた数</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
           </TR>
           <TR>
             <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> S</TD>
@@ -830,7 +873,8 @@ TD {
           </TR>
           <TR>
             <TD>CSI ?<FONT size="-1"> <I>Pi; Pa; Pv</I></FONT> S</TD>
-            <TD align="center">XTCOLREG *4</TD>
+            <TD align="center">XTSMGRAPHICS<BR>
+            *4</TD>
             <TD>
             <TABLE cellpadding="1">
               <TBODY>
@@ -887,7 +931,7 @@ TD {
           </TR>
           <TR>
             <TD>CSI &gt; T</TD>
-            <TD align="center">XTRMTT *4</TD>
+            <TD align="center">XTRMTITLE *4</TD>
             <TD><A name="XTRMTT"></A>ウィンドウタイトル形式の設定を解除する
             <TABLE cellpadding="1">
               <TBODY>
@@ -1390,7 +1434,8 @@ TD {
           </TR>
           <TR>
             <TD>CSI &gt; <FONT size="-1"><I>Pn</I></FONT> ; <I><FONT size="-1">Ps</FONT></I> m</TD>
-            <TD align="center">XTMDKEY *4</TD>
+            <TD align="center">XTMODKEYS<BR>
+            *4</TD>
             <TD>
             <TABLE cellpadding="1">
               <TBODY>
@@ -1510,7 +1555,8 @@ TD {
           </TR>
           <TR>
             <TD>CSI &gt; <FONT size="-1"><I>Pn</I></FONT> n</TD>
-            <TD align="center">XTMDKYD *4</TD>
+            <TD align="center">XTDISMODKEYS<BR>
+            *4</TD>
             <TD>
             <TABLE cellpadding="1">
               <TBODY>
@@ -1758,7 +1804,8 @@ TD {
           </TR>
           <TR>
             <TD>CSI &gt; <I><FONT size="-1">Pn</FONT></I> p</TD>
-            <TD align="center">XTHDPT *4</TD>
+            <TD align="center">XTSMPOINTER<BR>
+            *4</TD>
             <TD>
             <TABLE cellpadding="1">
               <TBODY>
@@ -1777,6 +1824,13 @@ TD {
               </TBODY>
             </TABLE>
             </TD>
+          </TR>
+          <TR>
+            <TD>CSI # p</TD>
+            <TD align="center">XTPUSHSGR<BR>
+            *4</TD>
+            <TD>現在の文字色や文字属性をスタックに保存します<BR>
+            CSI # { のエイリアスです</TD>
           </TR>
           <TR>
             <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> q</TD>
@@ -1860,6 +1914,12 @@ TD {
             </TD>
           </TR>
           <TR>
+            <TD>CSI &lt; <FONT size="-1"><I>Ps</I></FONT> q</TD>
+            <TD align="center">XTVERSION *4</TD>
+            <TD>Ps = 0 で以下のバージョン情報を応答する<BR>
+            DCS &gt; | RLogin(x.x.x) ST</TD>
+          </TR>
+          <TR>
             <TD>CSI &lt;<I><FONT size="-1">Pn</FONT></I> ! q</TD>
             <TD align="center">RLCURCOL *3</TD>
             <TD>
@@ -1903,6 +1963,13 @@ TD {
             <TD width="120">CSI <FONT size="-1"><I>Pn</I></FONT> , q</TD>
             <TD align="center" width="120">DECTID</TD>
             <TD width="680"><A name="DECTID"></A>ターミナルIDを<FONT size="-1"><I>Pn</I></FONT>[10]に設定</TD>
+          </TR>
+          <TR>
+            <TD>CSI # q</TD>
+            <TD align="center">XTPOPSGR<BR>
+            *4</TD>
+            <TD>現在の文字色や文字属性をスタックから復元します<BR>
+            CSI # } のエイリアスです</TD>
           </TR>
           <TR>
             <TD width="120">CSI <I><FONT size="-1">Pt</FONT></I> ; <I><FONT size="-1">Pb</FONT></I> r</TD>
@@ -1965,7 +2032,8 @@ TD {
           </TR>
           <TR>
             <TD width="120">CSI ? <FONT size="-1"><I>Pn</I></FONT> r</TD>
-            <TD align="center" width="120">XTREST *4</TD>
+            <TD align="center" width="120">XTRESTORE<BR>
+            *4</TD>
             <TD width="680">拡張オプションの復元</TD>
           </TR>
           <TR>
@@ -2002,7 +2070,7 @@ TD {
           </TR>
           <TR>
             <TD rowspan="2" width="120">CSI <FONT size="-1"><I>Pn ; P1 ; P2</I></FONT> t</TD>
-            <TD align="center" width="120">XTWOP *4</TD>
+            <TD align="center" width="120">XTWINOPS *4</TD>
             <TD width="680"><A name="XTWOP"></A><A href="./#TERMOPT">ターミナルのオプション設定</A>の461の設定で動作が許可されます。<BR>
             デフォルトでは、メインウィンドウの操作が出来ないようにしています。
             <TABLE cellpadding="1">
@@ -2274,7 +2342,7 @@ TD {
           </TR>
           <TR>
             <TD>CSI &gt; <FONT size="-1"><I>Pn</I></FONT> t</TD>
-            <TD align="center">XTSMTT *4</TD>
+            <TD align="center">XTSMTITLE *4</TD>
             <TD><A name="XTSMTT"></A>ウィンドウタイトル形式の設定する<BR>
             <TABLE cellpadding="1">
               <TBODY>
@@ -2722,6 +2790,69 @@ TD {
             </TD>
           </TR>
           <TR>
+            <TD>CSI <I><FONT size="-1">Ps </FONT></I># {</TD>
+            <TD align="center">XTPUSHSGR<BR>
+            *4</TD>
+            <TD>現在の文字色や文字属性をスタックに保存します<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Ps</FONT></I> = [0]</TD>
+                  <TD>すべての属性と色</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Ps</FONT></I> = 1</TD>
+                  <TD>Bold</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Ps</FONT></I> = 2</TD>
+                  <TD>Faint</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Ps</FONT></I> = 3</TD>
+                  <TD>Italicized</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Ps</FONT></I> = 4</TD>
+                  <TD>Underlined</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Ps</FONT></I> = 5</TD>
+                  <TD>Slowly Blink</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Ps</FONT></I> = 6</TD>
+                  <TD>Rapidly Blink</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Ps</FONT></I> = 7</TD>
+                  <TD>Inverse</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Ps</FONT></I> = 8</TD>
+                  <TD>Invisible</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Ps</FONT></I> = 9</TD>
+                  <TD>Crossed-out</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Ps</FONT></I> = 21</TD>
+                  <TD>Doubly-underlined</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Ps</FONT></I> = 30</TD>
+                  <TD>Foreground color</TD>
+                </TR>
+                <TR>
+                  <TD><I><FONT size="-1">Ps</FONT></I> = 31</TD>
+                  <TD>Background color</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
             <TD width="120">CSI <I><FONT size="-1">Pn</FONT></I> $ |</TD>
             <TD align="center" width="120">DECSCPP</TD>
             <TD width="680">フォントサイズ固定の場合は、<I><FONT size="-1">Pn</FONT></I>[<I><FONT size="-1">cols</FONT></I>]で画面を初期化<BR>
@@ -2762,6 +2893,35 @@ TD {
                 <TR>
                   <TD><I><FONT size="-1">Pp</FONT></I></TD>
                   <TD>常に0</TD>
+                </TR>
+              </TBODY>
+            </TABLE>
+            </TD>
+          </TR>
+          <TR>
+            <TD>CSI <I><FONT size="-1">P...</FONT></I> # |</TD>
+            <TD align="center"><FONT size="-1">XTREPORTSGR</FONT></TD>
+            <TD>指定範囲の文字属性をSGR形式で応答する<BR>
+            <TABLE cellpadding="1">
+              <TBODY>
+                <TR>
+                  <TD colspan="2">CSI <I><FONT size="-1">Pt</FONT></I> ; <I><FONT size="-1">Pl</FONT></I> ; <I><FONT size="-1">Pb</FONT></I> ; <I><FONT size="-1">Pr</FONT></I> # |</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pt</FONT></I> = [1]</TD>
+                  <TD>上行位置</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pl</FONT></I> = [1]</TD>
+                  <TD>左桁位置</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pb</FONT></I> = [<I><FONT size="-1">lines</FONT></I>]</TD>
+                  <TD>下行位置</TD>
+                </TR>
+                <TR>
+                  <TD width="90"><I><FONT size="-1">Pr</FONT></I> = [<I><FONT size="-1">cols</FONT></I>]</TD>
+                  <TD>右桁位置</TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -2815,6 +2975,12 @@ TD {
               </TBODY>
             </TABLE>
             </TD>
+          </TR>
+          <TR>
+            <TD>CSI # }</TD>
+            <TD align="center">XTPOPSGR<BR>
+            *4</TD>
+            <TD>XPUSHSGRで保存されたの文字色や文字属性をスタックから復元します</TD>
           </TR>
           <TR>
             <TD width="120">CSI <I><FONT size="-1">Pn</FONT></I> SP ~</TD>
@@ -4731,8 +4897,8 @@ TD {
       <TABLE width="900">
         <TBODY>
           <TR>
-            <TD align="center">*1:VT52モード *2:ADM-3互換 *3:オリジナル *4:XTerm互換 *5:Tekモード *6:設定による *7:TeraTerm互換
-            *8:mintty *9:iTerm2互換</TD>
+            <TD align="center">*1:VT52モード *2:ADM-3互換 *3:オリジナル *4:XTerm互換 *5:Tekモード *6:設定による<BR>
+            *7:TeraTerm互換 *8:mintty互換 *9:iTerm2互換</TD>
           </TR>
         </TBODY>
       </TABLE>
