@@ -30,6 +30,7 @@ CSyncSock::CSyncSock(class CRLoginDoc *pDoc, CWnd *pWnd)
 	m_pWnd = pWnd;
 	m_pDoc = pDoc;
 	m_pView = NULL;
+	m_ProtoName = _T("None");
 	m_SendBuf.Clear();
 	m_DoAbortFlag = FALSE;
 	m_ThreadFlag = FALSE;
@@ -42,6 +43,8 @@ CSyncSock::CSyncSock(class CRLoginDoc *pDoc, CWnd *pWnd)
 	m_bUseWrite = FALSE;
 	m_LastUpdate = clock();
 	m_ExtFileDlgMode = 0;
+	m_EchoPostReq = FALSE;
+	m_bInitDone = FALSE;
 }
 
 CSyncSock::~CSyncSock()
@@ -59,6 +62,8 @@ static UINT ProcThread(LPVOID pParam)
 
 	pThis->m_ThreadFlag = TRUE;
 	pThis->OnProc(pThis->m_ThreadMode);
+	for ( int n = 0 ; n < 10 && pThis->m_EchoPostReq ; n++ )
+		Sleep(100);
 	if ( pThis->m_RecvBuf.GetSize() > 0 ) {
 		pThis->m_pDoc->m_pSock->SyncReceiveBack(pThis->m_RecvBuf.GetPtr(), pThis->m_RecvBuf.GetSize());
 		pThis->m_RecvBuf.Clear();
@@ -68,6 +73,13 @@ static UINT ProcThread(LPVOID pParam)
 	if ( !pThis->m_DoAbortFlag )
 		pThis->m_pWnd->PostMessage(WM_THREADCMD, THCMD_ENDOF, (LPARAM)pThis);
 	return 0;
+}
+void  CSyncSock::StatusMsg(int ids)
+{
+	CString str;
+
+	str.Format(CStringLoad(ids), m_ProtoName);
+	((CMainFrame *)AfxGetMainWnd())->SetStatusText(str);
 }
 void CSyncSock::ThreadCommand(int cmd)
 {
@@ -85,6 +97,7 @@ void CSyncSock::ThreadCommand(int cmd)
 		Sleep(100);
 		if ( m_pDoc != NULL )
 			m_pDoc->SetSleepReq(SLEEPSTAT_DISABLE);
+		StatusMsg(IDS_FILETRANSMITSTART);
 		break;
 	case THCMD_ENDOF:
 		if ( m_DoAbortFlag )
@@ -97,6 +110,7 @@ void CSyncSock::ThreadCommand(int cmd)
 		m_ResvDoit = FALSE;
 		if ( m_pDoc != NULL )
 			m_pDoc->SetSleepReq(SLEEPSTAT_ENABLE);
+		StatusMsg(IDS_FILETRANSMITCLOSE);
 		break;
 	case THCMD_DLGOPEN:
 		if ( m_ProgDlg.m_hWnd != NULL )
@@ -229,12 +243,6 @@ void CSyncSock::ThreadCommand(int cmd)
 			m_pDoc->m_pSock->SetXonXoff(m_Param);
 		m_pParamEvent->SetEvent();
 		break;
-	case THCMD_ECHO:
-		BYTE tmp[4];
-		tmp[0] = (BYTE)m_Param;
-		m_pDoc->OnSocketReceive(tmp, 1, 0);
-		m_pParamEvent->SetEvent();
-		break;
 	case THCMD_SENDSTR:
 		m_SendSema.Lock();
 		m_pDoc->SendBuffer(m_SendBuf);
@@ -270,6 +278,7 @@ void CSyncSock::ThreadCommand(int cmd)
 		m_SendSema.Lock();
 		m_SwapBuf.Swap(m_EchoBuf);
 		m_EchoBuf.Clear();
+		m_EchoPostReq = FALSE;
 		m_SendSema.Unlock();
 		while ( m_SwapBuf.GetSize() > 0 ) {
 			n = m_pDoc->OnSocketReceive(m_SwapBuf.GetPtr(), m_SwapBuf.GetSize(), 0);
@@ -289,6 +298,8 @@ void CSyncSock::DoProc(int cmd)
 		return;
 	m_DoAbortFlag = FALSE;
 	m_ProgDlg.m_AbortFlag = FALSE;
+	m_EchoPostReq = FALSE;
+	m_bInitDone = FALSE;
 	m_ThreadMode = cmd;
 	m_pDoc->m_pSock->SetRecvSyncMode(TRUE);
 	m_pWnd->PostMessage(WM_THREADCMD, THCMD_START, (LPARAM)this);
@@ -365,14 +376,14 @@ void CSyncSock::Bufferd_Clear()
 	m_SendSema.Lock();
 	m_SendBuf.Clear();
 	m_SendSema.Unlock();
-	m_RecvBuf.Clear();
 
-	if ( m_pDoc->m_pSock == NULL )
-		return;
+	if ( m_bInitDone && m_pDoc->m_pSock != NULL ) {
+		m_RecvBuf.Clear();
 
-	BOOL f = FALSE;
-	BYTE tmp[256];
-	while ( m_pDoc->m_pSock->SyncReceive(tmp, 256, 1000, &f) > 0 );
+		BOOL f = FALSE;
+		BYTE tmp[256];
+		while ( m_pDoc->m_pSock->SyncReceive(tmp, 256, 1000, &f) > 0 );
+	}
 }
 void CSyncSock::Bufferd_Sync()
 {
@@ -481,21 +492,29 @@ int CSyncSock::AbortCheck()
 }
 void CSyncSock::SendEcho(int ch)
 {
-	if ( m_DoAbortFlag )
-		return;
-	m_Param = ch;
-	m_pParamEvent->ResetEvent();
-	m_pWnd->PostMessage(WM_THREADCMD, THCMD_ECHO, (LPARAM)this);
-	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
+	BOOL bPost = FALSE;
+
+	m_SendSema.Lock();
+	m_EchoBuf.Put8Bit(ch);
+	if ( !m_EchoPostReq )
+		m_EchoPostReq = bPost = TRUE;
+	m_SendSema.Unlock();
+
+	if ( bPost )
+		m_pWnd->PostMessage(WM_THREADCMD, THCMD_ECHOBUFFER, (LPARAM)this);
 }
 void CSyncSock::SendEchoBuffer(char *buf, int len)
 {
-	if ( m_DoAbortFlag )
-		return;
+	BOOL bPost = FALSE;
+
 	m_SendSema.Lock();
 	m_EchoBuf.Apend((LPBYTE)buf, len);
+	if ( !m_EchoPostReq )
+		m_EchoPostReq = bPost = TRUE;
 	m_SendSema.Unlock();
-	m_pWnd->PostMessage(WM_THREADCMD, THCMD_ECHOBUFFER, (LPARAM)this);
+
+	if ( bPost )
+		m_pWnd->PostMessage(WM_THREADCMD, THCMD_ECHOBUFFER, (LPARAM)this);
 }
 void CSyncSock::UpDownOpen(LPCSTR msg)
 {

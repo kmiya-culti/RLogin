@@ -20,6 +20,7 @@
 
 CKermit::CKermit(class CRLoginDoc *pDoc, CWnd *pWnd) : CSyncSock(pDoc, pWnd)
 {
+	m_ProtoName = _T("Kermit");
 }
 CKermit::~CKermit(void)
 {
@@ -768,6 +769,7 @@ void CKermit::DownLoad()
 				m_RecvSeq = m_SendSeq = IncSeq(m_SendSeq);
 				m_ChkType = m_ChkReq;
 				stat = 1;
+				m_bInitDone = TRUE;
 			} else {
 				SendStr('E', "S packet error");
 				Bufferd_Clear();
@@ -793,6 +795,7 @@ void CKermit::DownLoad()
 				}
 				UpDownOpen("Kermit File Download");
 				m_TranSize = 0;
+
 
 				SendStr('Y', "");
 				m_RecvSeq = m_SendSeq = IncSeq(m_SendSeq);
@@ -974,6 +977,7 @@ void CKermit::UpLoad(BOOL ascii)
 			m_FileSize = st.st_size;
 			m_TranSize = 0;
 
+			m_bInitDone = TRUE;
 			UpDownOpen("Kermit File Upload");
 			UpDownInit(m_FileSize);
 

@@ -144,6 +144,26 @@ CZModem::CZModem(class CRLoginDoc *pDoc, CWnd *pWnd) : CSyncSock(pDoc, pWnd)
 CZModem::~CZModem()
 {
 }
+void CZModem::DoProc(int cmd)
+{
+	switch(cmd) {
+	case 1:
+	case 4:
+		m_ProtoName = _T("XModem");
+		break;
+	case 2:
+	case 5:
+		m_ProtoName = _T("YModem");
+		break;
+	case 3:
+	case 6:
+	case 7:
+		m_ProtoName = _T("ZModem");
+		break;
+	}
+
+	CSyncSock::DoProc(cmd);
+}
 void CZModem::OnProc(int cmd)
 {
 	switch(cmd) {
@@ -1143,6 +1163,7 @@ int CZModem::ZUpDown(int mode)
 			break;
 
 		case ZRINIT:
+			m_bInitDone = TRUE;
 			Rxcanfdx = (Rxhdr[ZF0] & CANFDX)  ? 1 : 0;
 			Txfcs32  = (Rxhdr[ZF0] & CANRLE)  ? 2 : ((Rxhdr[ZF0] & CANFC32) ? 1 : 0);
 			Zctlesc  = (Rxhdr[ZF0] & TESCCTL) ? 1 : 0;
@@ -1174,6 +1195,7 @@ int CZModem::ZUpDown(int mode)
 			break;
 
 		case ZSINIT:
+			m_bInitDone = TRUE;
 			Zctlesc  = (Rxhdr[ZF0] & TESCCTL) ? 1 : 0;
 
 			if ( ZReceiveData(Attn, ZATTNLEN, Rxcount) == GOTCRCW ) {

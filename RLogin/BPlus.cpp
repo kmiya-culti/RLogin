@@ -117,6 +117,7 @@ const unsigned short crc16tab[] = {
 
 CBPlus::CBPlus(class CRLoginDoc *pDoc, CWnd *pWnd) : CSyncSock(pDoc, pWnd)
 {
+	m_ProtoName = _T("BPlus");
 	BP_Special_Quoting = 1;
 	F_FileType = FALSE;
 }
@@ -323,6 +324,8 @@ int	CBPlus::Read_Packet(int Lead_in_Seen, int From_Send_Packet)
 				State = R_Get_B;
 			else if ((e_ch & 0x7F) == enq )
 				State = R_Send_ACK;
+			else
+				SendEcho(e_ch);
 			break;
 
 		case R_Get_B :
@@ -1219,6 +1222,8 @@ int	CBPlus::BP_DLE_Seen()
 				Send_Failure ("CCancell Transfer file");
 				return 0;
 			}
+
+			m_bInitDone = TRUE;
 
 			if (R_buffer[1] == 'U') {
 			    UpDownOpen("BPlus File Upload");

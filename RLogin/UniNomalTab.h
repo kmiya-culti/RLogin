@@ -1,9 +1,11 @@
-// NormalizationTest-13.0.0.txt
+// NormalizationTest-14.0.0.txt
 //
 // c2 ==  toNFC(c1) == toNFC(c3)
 // c4 ==  toNFC(c5)
 //
+
 #define UNINOMALTABMAX 12113
+
 static const struct _UNINOMTAB {
 	DWORD	code[3];
 } UniNomalTab[UNINOMALTABMAX] = {

@@ -71,6 +71,7 @@ public:
 	CString m_Name;
 	CString m_Idkey;
 	CString m_Path;
+	CString m_Cwd;
 	int m_InUse;
 	BOOL m_InPane;
 	int m_AfterId;

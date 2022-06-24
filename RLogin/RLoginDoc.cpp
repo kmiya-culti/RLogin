@@ -1942,19 +1942,24 @@ int CRLoginDoc::OnSocketReceive(LPBYTE lpBuf, int nBufLen, int nFlags)
 	n = m_TextRam.Write(lpBuf, (nBufLen < RECVDEFSIZ ? nBufLen : RECVDEFSIZ), &sync);
 
 	if ( sync ) {
-		m_pSock->SetRecvSyncMode(TRUE);
-		if ( lpBuf[n] == 0x18 ) {	// CAN
-			if ( m_pZModem == NULL )
-				m_pZModem = new CZModem(this, AfxGetMainWnd());
-			m_pZModem->DoProc(7);	// ZMODEM UpDown
-		} else if ( lpBuf[n] == 0x01 ) {
-			if ( m_pKermit == NULL )
-				m_pKermit = new CKermit(this, AfxGetMainWnd());
-			m_pKermit->DoProc(0);	// Kermit DownLoad
+		if ( m_pSock->IsSyncMode() ) {
+			// ‚·‚Å‚ÉSyncMode‚È‚ç–³Ž‹‚·‚é
+			n++;
 		} else {
-			if ( m_pBPlus == NULL )
-				m_pBPlus = new CBPlus(this, AfxGetMainWnd());
-			m_pBPlus->DoProc(lpBuf[n]);
+			m_pSock->SetRecvSyncMode(TRUE);
+			if ( lpBuf[n] == 0x18 ) {	// CAN
+				if ( m_pZModem == NULL )
+					m_pZModem = new CZModem(this, AfxGetMainWnd());
+				m_pZModem->DoProc(7);	// ZMODEM UpDown
+			} else if ( lpBuf[n] == 0x01 ) {
+				if ( m_pKermit == NULL )
+					m_pKermit = new CKermit(this, AfxGetMainWnd());
+				m_pKermit->DoProc(0);	// Kermit DownLoad
+			} else {
+				if ( m_pBPlus == NULL )
+					m_pBPlus = new CBPlus(this, AfxGetMainWnd());
+				m_pBPlus->DoProc(lpBuf[n]);
+			}
 		}
 	}
 

@@ -66,6 +66,7 @@ CCommandLineInfoEx::CCommandLineInfoEx()
 	m_Title.Empty();
 	m_Script.Empty();
 	m_ReqDlg = FALSE;
+	m_Cwd.Empty();
 }
 void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLast)
 {
@@ -126,6 +127,8 @@ void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLas
 			m_PasStat = 15;
 		else if ( _tcsicmp(_T("file"), pszParam) == 0 )
 			m_PasStat = 16;
+		else if ( _tcsicmp(_T("cwd"), pszParam) == 0 )
+			m_PasStat = 17;
 		else
 			break;
 		ParseLast(bLast);
@@ -243,6 +246,13 @@ void CCommandLineInfoEx::ParseParam(const TCHAR* pszParam, BOOL bFlag, BOOL bLas
 		if ( bFlag )
 			break;
 		m_Path = pszParam;
+		ParseLast(bLast);
+		return;
+	case 17:		// cwd
+		m_PasStat = 0;
+		if ( bFlag )
+			break;
+		m_Cwd = pszParam;
 		ParseLast(bLast);
 		return;
 	}
@@ -434,6 +444,11 @@ void CCommandLineInfoEx::GetString(CString &str)
 
 	if ( !m_Idkey.IsEmpty() ) {
 		tmp.Format(_T(" /idkey %s"), ShellEscape(m_Idkey));
+		str += tmp;
+	}
+
+	if ( !m_Cwd.IsEmpty() ) {
+		tmp.Format(_T(" /cwd %s"), ShellEscape(m_Cwd));
 		str += tmp;
 	}
 }
@@ -1352,6 +1367,11 @@ BOOL CRLoginApp::InitInstance()
 	// inuseオプションで別プロセスを見つけたら終了
 	if ( cmdInfo.m_InUse != INUSE_NONE && InUseCheck(cmdInfo.m_InUse == INUSE_ALLWIN ? TRUE : FALSE) )
 		return FALSE;
+
+	if ( !cmdInfo.m_Cwd.IsEmpty() ) {
+		if ( SetCurrentDirectory(cmdInfo.m_Cwd) )
+			m_BaseDir = cmdInfo.m_Cwd;
+	}
 	
 	// メイン MDI フレーム ウィンドウを作成します。
 	CMainFrame* pMainFrame = new CMainFrame;

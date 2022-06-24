@@ -279,6 +279,7 @@ public:
 	inline class CMainFrame *GetMainWnd() { return (class CMainFrame *)AfxGetMainWnd(); }
 	inline class CRLoginApp *GetApp() { return (class CRLoginApp *)AfxGetApp(); }
 	inline void SetRecvBufSize(int size) { m_RecvBufSize = size; }
+	inline BOOL IsSyncMode() { return (m_RecvSyncMode == SYNC_NONE ? FALSE : TRUE); }
 
 	void Destroy();
 

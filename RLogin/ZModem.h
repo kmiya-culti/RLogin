@@ -17,6 +17,7 @@
 class CZModem : public CSyncSock  
 {
 public:
+	void DoProc(int cmd);
 	void OnProc(int cmd);
 
 	int CalCRC(char *ptr, int len);

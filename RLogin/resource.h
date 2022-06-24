@@ -263,6 +263,8 @@
 #define IDS_VERCHKLATEST                652
 #define IDS_OPTIONHELPURL               653
 #define IDS_OPTIONHELPMSG               654
+#define IDS_FILETRANSMITSTART           655
+#define IDS_FILETRANSMITCLOSE           656
 #define IDE_ALLCLOSEREQ                 700
 #define IDE_DELETEKEYQES                701
 #define IDE_DSABITSIZEERR               702
@@ -1166,6 +1168,6 @@
 #define _APS_NEXT_RESOURCE_VALUE        170
 #define _APS_NEXT_COMMAND_VALUE         5150
 #define _APS_NEXT_CONTROL_VALUE         2518
-#define _APS_NEXT_SYMED_VALUE           655
+#define _APS_NEXT_SYMED_VALUE           657
 #endif
 #endif

@@ -24,13 +24,12 @@
 #define	THCMD_CHECKPATH			8
 #define	THCMD_YESNO				9
 #define	THCMD_XONXOFF			10
-#define	THCMD_ECHO				11
-#define	THCMD_SENDSTR			12
-#define	THCMD_SENDSCRIPT		13
-#define	THCMD_SENDSYNC			14
-#define	TGCMD_MESSAGE			15
-#define	TGCMD_NOWAITMESSAGE		16
-#define	THCMD_ECHOBUFFER		17
+#define	THCMD_SENDSTR			11
+#define	THCMD_SENDSCRIPT		12
+#define	THCMD_SENDSYNC			13
+#define	TGCMD_MESSAGE			14
+#define	TGCMD_NOWAITMESSAGE		15
+#define	THCMD_ECHOBUFFER		16
 
 #define	CHKFILENAME_SAVE		000
 #define	CHKFILENAME_OPEN		001
@@ -45,6 +44,7 @@ public:
 	CWnd *m_pWnd;
 	class CRLoginDoc *m_pDoc;
 	CWnd *m_pView;
+	LPCTSTR m_ProtoName;
 
 	BOOL m_ThreadFlag;
 	BOOL m_DoAbortFlag;
@@ -54,6 +54,8 @@ public:
 	CBuffer m_RecvBuf;
 	CBuffer m_SendBuf, m_EchoBuf, m_SwapBuf;
 	CSemaphore m_SendSema;
+	BOOL m_EchoPostReq;
+	BOOL m_bInitDone;
 
 	class CProgDlg m_ProgDlg;
 	BOOL m_ResvDoit;
@@ -122,6 +124,7 @@ public:
 
 	void ThreadCommand(int cmd);
 	void DoAbort();
+	void StatusMsg(int ids);
 
 	virtual void DoProc(int cmd);
 	virtual void OnProc(int cmd);
