@@ -3272,6 +3272,7 @@ int CScript::Exec()
 	int n, len, count = 0;
 	CScriptValue *sp, *dp;
 	int dsrc = (-1);
+	BOOL bJmp;
 
 	if ( m_EventMask != 0 ) {
 		if ( m_EventFlag == m_EventMask )
@@ -3627,43 +3628,51 @@ int CScript::Exec()
 			break;
 
 		case CM_IF:
-			if ( m_Stack->GetType() == VALTYPE_STRING ) {
+			bJmp = FALSE;
+			switch(m_Stack->GetType()) {
+			case VALTYPE_STRING:
 				if ( *((LPCSTR)*m_Stack) != '\0' )
-					m_CodePos = m_Code[m_CodePos];
-				else
-					m_CodePos++;
-			} else if ( m_Stack->GetType() == VALTYPE_WSTRING ) {
+					bJmp = TRUE;
+				break;
+			case VALTYPE_WSTRING:
 				if ( *((LPCWSTR)*m_Stack) != L'\0' )
-					m_CodePos = m_Code[m_CodePos];
-				else
-					m_CodePos++;
-			} else if ( m_Stack->GetType() == VALTYPE_DSTRING ) {
+					bJmp = TRUE;
+				break;
+			case VALTYPE_DSTRING:
 				if ( *((LPCDSTR)*m_Stack) != 0 )
-					m_CodePos = m_Code[m_CodePos];
-				else
-					m_CodePos++;
-			} else if ( (int)*m_Stack != 0 )
+					bJmp = TRUE;
+				break;
+			default:
+				if ( (int)*m_Stack != 0 )
+					bJmp = TRUE;
+				break;
+			}
+			if ( bJmp )
 				m_CodePos = m_Code[m_CodePos];
 			else
 				m_CodePos++;
 			break;
 		case CM_IFN:
-			if ( m_Stack->GetType() == VALTYPE_STRING ) {
+			bJmp = FALSE;
+			switch(m_Stack->GetType()) {
+			case VALTYPE_STRING:
 				if ( *((LPCSTR)*m_Stack) == '\0' )
-					m_CodePos = m_Code[m_CodePos];
-				else
-					m_CodePos++;
-			} else if ( m_Stack->GetType() == VALTYPE_WSTRING ) {
+					bJmp = TRUE;
+				break;
+			case VALTYPE_WSTRING:
 				if ( *((LPCWSTR)*m_Stack) == L'\0' )
-					m_CodePos = m_Code[m_CodePos];
-				else
-					m_CodePos++;
-			} else if ( m_Stack->GetType() == VALTYPE_DSTRING ) {
+					bJmp = TRUE;
+				break;
+			case VALTYPE_DSTRING:
 				if ( *((LPCDSTR)*m_Stack) == 0 )
-					m_CodePos = m_Code[m_CodePos];
-				else
-					m_CodePos++;
-			} else if ( (int)*m_Stack == 0 )
+					bJmp = TRUE;
+				break;
+			default:
+				if ( (int)*m_Stack == 0 )
+					bJmp = TRUE;
+				break;
+			}
+			if ( bJmp )
 				m_CodePos = m_Code[m_CodePos];
 			else
 				m_CodePos++;
@@ -3847,6 +3856,7 @@ int CScript::Exec()
 				if ( n < ap->GetSize() ) {
 					*vp = (*ap)[n];
 					*cp = (int)(n + 1);
+					m_CodePos++;
 				} else {
 					StackPop();		// array
 					StackPop();		// value
@@ -3875,6 +3885,7 @@ int CScript::Exec()
 					*kp = (*ap)[n].m_Index;
 					*vp = (*ap)[n];
 					*cp = (int)(n + 1);
+					m_CodePos++;
 				} else {
 					StackPop();		// array
 					StackPop();		// value
@@ -3883,6 +3894,10 @@ int CScript::Exec()
 					m_CodePos = m_Code[m_CodePos];
 				}
 			}
+			break;
+
+		default:
+			throw _T("Unkown opcode");
 			break;
 		}
 	}

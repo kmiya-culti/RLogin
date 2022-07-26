@@ -426,7 +426,7 @@ void CIdkeySelDLg::OnIdkeyInport()
 	CIdKey key;
 	CIdKeyFileDlg dlg;
 
-	dlg.m_OpenMode = 1;
+	dlg.m_OpenMode = IDKFDMODE_LOAD;
 	dlg.m_Title.LoadString(IDS_IDKEYFILELOAD);
 	dlg.m_Message.LoadString(IDS_IDKEYFILELOADCOM);
 
@@ -484,7 +484,7 @@ void CIdkeySelDLg::OnIdkeyExport()
 
 	pKey->FingerPrint(finger, SSHFP_DIGEST_SHA256, SSHFP_FORMAT_SIMPLE);
 
-	dlg.m_OpenMode = 2;
+	dlg.m_OpenMode = IDKFDMODE_SAVE;
 	dlg.m_Title.LoadString(IDS_IDKEYFILESAVE);
 	dlg.m_Message.Format(_T("%s\n\n%s(%d) %s\n%32.32s..."), msg, pKey->GetName(), pKey->GetSize(), pKey->m_Name, finger);
 
@@ -551,7 +551,7 @@ void CIdkeySelDLg::OnIdkeyCreate()
 			return;
 	}
 
-	dlg.m_OpenMode = 3;
+	dlg.m_OpenMode = IDKFDMODE_CREATE;
 	dlg.m_Title.LoadString(IDS_IDKEYCREATE);
 	dlg.m_Message.LoadString(IDS_IDKEYCREATECOM);
 

@@ -3777,6 +3777,7 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 	if ( stra.GetSize() > 81 )
 		m_ImeCaretColor = stra.GetVal(81);
 
+	// stra.GetBin(82)	DefDiffBitMap
 
 	if ( m_FixVersion < 9 ) {
 		if ( m_pDocument != NULL ) {

@@ -1429,6 +1429,16 @@ BOOL CRLoginApp::InitInstance()
 
 	// レジストリベースのサーバーエントリーの読み込み
 	pMainFrame->m_ServerEntryTab.Serialize(FALSE);
+
+	// ユーザープロファイルの更新を確認
+	if ( m_pszRegistryKey == NULL && GetProfileInt(_T("RLoginApp"), _T("CompressPrivateProfile"), 0) == 0 ) {
+		if ( AfxMessageBox(IDS_COMPPRIVATEPROFILE, MB_ICONWARNING | MB_YESNO) != IDYES )
+			return FALSE;
+		WriteProfileInt(_T("RLoginApp"), _T("CompressPrivateProfile"), 1);
+		pMainFrame->m_ServerEntryTab.Serialize(TRUE);
+	}
+
+	// クイックバーの初期化
 	pMainFrame->QuickBarInit();
 
 	// プログラムバージョンチェック
@@ -2115,6 +2125,84 @@ void CRLoginApp::SendBroadCastMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 
 //////////////////////////////////////////////////////////////////////
 
+BOOL CRLoginApp::GetProfileBinary(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPBYTE* ppData, UINT* pBytes)
+{
+	if ( m_pszRegistryKey != NULL )
+		return CWinApp::GetProfileBinary(lpszSection, lpszEntry, ppData, pBytes);
+
+	else {	// private profile
+		LPCTSTR p;
+		CString compEntry, origEntry;
+
+		for ( p = lpszEntry ; *p != _T('\0') ; p++ );
+		if ( (p -= 2) >= lpszEntry && p[0] == _T('_') && p[1] == _T('#') ) {
+			while ( lpszEntry < p )
+				origEntry += *(lpszEntry++);
+			lpszEntry = origEntry;
+		}
+
+		if ( CWinApp::GetProfileBinary(lpszSection, lpszEntry, ppData, pBytes) && *ppData != NULL )
+			return TRUE;
+
+		compEntry.Format(_T("%s_#"), lpszEntry);
+
+		if ( !CWinApp::GetProfileBinary(lpszSection, compEntry, ppData, pBytes) || *ppData == NULL )
+			return FALSE;
+
+		if ( *pBytes < sizeof(UINT) )	// ???
+			return TRUE;
+
+		uLong compSize = *((UINT *)(*ppData));
+		BYTE *compBuff = new BYTE[compSize];
+
+		if ( uncompress(compBuff, &compSize, *ppData + sizeof(UINT), *pBytes - sizeof(UINT)) != Z_OK ) {
+			delete compBuff;
+			delete *ppData;
+			*ppData = NULL;
+			*pBytes = 0;
+			return FALSE;
+		}
+
+		delete *ppData;
+		*ppData = compBuff;
+		*pBytes = compSize;
+		return TRUE;
+	}
+}
+BOOL CRLoginApp::WriteProfileBinary(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPBYTE pData, UINT nBytes)
+{
+	if ( m_pszRegistryKey != NULL )
+		return CWinApp::WriteProfileBinary(lpszSection, lpszEntry, pData, nBytes);
+
+	else {	// private profile
+		LPCTSTR p;
+		uLong compSize = compressBound(nBytes);
+		BYTE *compBuff = new BYTE[compSize + sizeof(UINT)];
+		CString compEntry, origEntry;
+		BOOL bRet;
+
+		for ( p = lpszEntry ; *p != _T('\0') ; p++ );
+		if ( (p -= 2) >= lpszEntry && p[0] == _T('_') && p[1] == _T('#') ) {
+			while ( lpszEntry < p )
+				origEntry += *(lpszEntry++);
+			lpszEntry = origEntry;
+		}
+
+		*((UINT *)compBuff) = nBytes;
+		compEntry.Format(_T("%s_#"), lpszEntry);
+
+		if ( nBytes <= 32 || compress2(compBuff + sizeof(UINT), &compSize, pData, nBytes, 9) != Z_OK || nBytes <= (compSize + sizeof(UINT)) ) {
+			bRet = CWinApp::WriteProfileBinary(lpszSection, lpszEntry, pData, nBytes);
+			WritePrivateProfileString(lpszSection, compEntry, NULL, m_pszProfileName);
+		} else {
+			bRet = CWinApp::WriteProfileBinary(lpszSection, compEntry, compBuff, compSize + sizeof(UINT));
+			WritePrivateProfileString(lpszSection, lpszEntry, NULL, m_pszProfileName);
+		}
+
+		delete compBuff;
+		return bRet;
+	}
+}
 CString CRLoginApp::GetProfileString(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPCTSTR lpszDefault)
 {
 	if ( m_pszRegistryKey != NULL )
@@ -2266,6 +2354,8 @@ void CRLoginApp::GetProfileKeys(LPCTSTR lpszSection, CStringArrayExt &stra)
 			key.Empty();
 			while ( *p != _T('\0') && *p != _T('=') )
 				key += *(p++);
+			if ( key.Right(2).Compare(_T("_#")) == 0 )
+				key.Delete(key.GetLength() - 2, 2);
 			if ( !key.IsEmpty() )
 				stra.Add(key);
 			while ( *(p++) != _T('\0') )
@@ -2285,6 +2375,10 @@ void CRLoginApp::DelProfileEntry(LPCTSTR lpszSection, LPCTSTR lpszEntry)
 
 	} else {
 		WritePrivateProfileString(lpszSection, lpszEntry, NULL, m_pszProfileName);
+
+		CString compEntry;
+		compEntry.Format(_T("%s_#"), lpszEntry);
+		WritePrivateProfileString(lpszSection, compEntry, NULL, m_pszProfileName);
 	}
 }
 void CRLoginApp::DelProfileSection(LPCTSTR lpszSection)
@@ -2595,7 +2689,7 @@ void CRLoginApp::RegisterLoad(HKEY hKey, LPCTSTR pSection, CBuffer &buf)
 	reg.Close();
 }
 
-BOOL CRLoginApp::SavePrivateProfileKey(HKEY hKey, CFile *file)
+BOOL CRLoginApp::SavePrivateProfileKey(HKEY hKey, CFile *file, BOOL bRLoginApp)
 {
 	int n;
 	TCHAR name[1024];
@@ -2607,6 +2701,7 @@ BOOL CRLoginApp::SavePrivateProfileKey(HKEY hKey, CFile *file)
 	FILETIME last;
 	HKEY hSubKey;
 	CStringA mbs;
+	BOOL bCompCheck = FALSE;
 
 	for ( n = 0 ; ; n++ ) {
 		len = 1024;
@@ -2619,7 +2714,7 @@ BOOL CRLoginApp::SavePrivateProfileKey(HKEY hKey, CFile *file)
 		mbs.Format("[%s]\r\n", TstrToMbs(name));
 		file->Write((LPCSTR)mbs, mbs.GetLength() * sizeof(CHAR));
 
-		if ( !SavePrivateProfileKey(hSubKey, file) ) {
+		if ( !SavePrivateProfileKey(hSubKey, file, _tcscmp(name, _T("RLoginApp")) == 0 ? TRUE : FALSE) ) {
 			RegCloseKey(hSubKey);
 			return FALSE;
 		}
@@ -2648,6 +2743,8 @@ BOOL CRLoginApp::SavePrivateProfileKey(HKEY hKey, CFile *file)
 				mbs.Format("%s=\r\n", TstrToMbs(name));
 			else
 				mbs.Format("%s=%d\r\n", TstrToMbs(name), *((DWORD *)pData));
+			if ( bRLoginApp && _tcscmp(name, _T("CompressPrivateProfile")) == 0 )
+				bCompCheck = TRUE;
 			break;
 		case REG_SZ:
 			if ( size == 0 )
@@ -2659,6 +2756,17 @@ BOOL CRLoginApp::SavePrivateProfileKey(HKEY hKey, CFile *file)
 			break;
 		case REG_BINARY:
 			mbs.Format("%s=", TstrToMbs(name));
+			if ( size > 32 ) {
+				uLong compSize = compressBound(size);
+				BYTE *compBuff = new BYTE[compSize + sizeof(UINT)];
+				*((UINT *)compBuff) = size;
+				if ( compress2(compBuff + sizeof(UINT), &compSize, pData, size, 9) == Z_OK && size > (compSize + sizeof(UINT)) ) {
+					mbs.Format("%s_#=", TstrToMbs(name));
+					size = compSize + sizeof(UINT);
+					memcpy(pData, compBuff, size);
+				}
+				delete compBuff;
+			}
 			for ( len = 0 ; len < size ; len++ ) {
 				mbs += (CHAR)('A' + (pData[len] & 0x0F));
 				mbs += (CHAR)('A' + ((pData[len] >> 4) & 0x0F));
@@ -2677,6 +2785,11 @@ BOOL CRLoginApp::SavePrivateProfileKey(HKEY hKey, CFile *file)
 
 	if ( pData != NULL )
 		delete [] pData;
+
+	if ( bRLoginApp && !bCompCheck ) {
+		mbs = "CompressPrivateProfile=1\r\n";
+		file->Write((LPCSTR)mbs, mbs.GetLength() * sizeof(CHAR));
+	}
 
 	return TRUE;
 }
@@ -2707,6 +2820,7 @@ BOOL CRLoginApp::SavePrivateProfile()
 	}
 
 	file.Close();
+
 	return ret;
 }
 

@@ -6,7 +6,10 @@
 <TITLE>rlogin/telnet/ssh(クライアント)ターミナルソフト</TITLE>
 <STYLE type="text/css">
 <!--
-TD {		
+TD {
+				
+				
+				
 				
 				
 				
@@ -15,7 +18,10 @@ TD {
 				
 		background-color : #ffffff; font-size : 90%; 
 }
-.BOX{		
+.BOX{
+				
+				
+				
 				
 				
 				
@@ -37,8 +43,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.27.1)</TD>
-            <TD width="20%" align="right">2022/06/24</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.27.2)</TD>
+            <TD width="20%" align="right">2022/07/27</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -444,6 +450,16 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2022/07/27</TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.27.2/">2.27.2</A></TD>
+            <TD>認証鍵ファイルのパスフレーズ入力時のフォーカスを変更<BR>
+            プライベートプロファイルの一部を圧縮するように変更<BR>
+            Scriptのforeachが正しく動作しない問題を修正<BR>
+            openssl-3.0.5に更新<BR>
+            <FONT color="#ff0000">プライベートプロファイルの仕様変更により下位バージョンとの互換が無くなります<BR>
+            必要に応じてプライベートプロファイルのバックアップなどが必要です</FONT></TD>
+          </TR>
+          <TR>
             <TD align="center">2022/06/24</TD>
             <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.27.1/">2.27.1</A></TD>
             <TD>UTF-8の文字幅などをUnicode-14.0.0のデータに更新<BR>
@@ -485,13 +501,6 @@ TD {
             認証キーの設定のエクスポートをより細かく選択できるように変更</TD>
           </TR>
           <TR>
-            <TD align="center">2022/01/28</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.26.7/">2.26.7</A></TD>
-            <TD>不要なコードの削除など暗号化ライブラリを大幅に整理<BR>
-            プロキシーサーバーの設定でSSL/TLSを自動だけに変更<BR>
-            openssl-3.0.1に更新</TD>
-          </TR>
-          <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
           </TR>
         </TBODY>
@@ -515,13 +524,13 @@ TD {
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.0.4.tar.gz</A><BR>
+                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.0.5.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
                   Visual Studio コマンド <BR>
                   プロンプト (2010)</TD>
-                  <TD width="500" valign="top">rename openssl-3.0.4 openssl-3.0.4-x32<BR>
+                  <TD width="500" valign="top">rename openssl-3.0.5 openssl-3.0.5-x32<BR>
                   perl Configure VC-WIN32 no-shared no-threads no-module enable-legacy -D_WIN32_WINNT=0x0501<BR>
                   nmake</TD>
                 </TR>
@@ -606,7 +615,7 @@ TD {
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 3.0.4 21 Jun 2022<BR>
+            <P>OpenSSL 3.0.5 5 Jul 2022<BR>
             Copyright (c) 1998-2022 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>

@@ -388,11 +388,11 @@ public:
 
 	void LoadIdent(CScriptValue *sp, int index, int cmd);
 	int IdentChack(CScriptLex *lex);
-	int inline CodePos() { return (int)m_Code.GetSize(); }
-	int inline CodeAdd(int cmd) { return (int)m_Code.Add((DWORD)cmd); }
-	int inline CodeAddPos(int pos) { return (int)m_Code.Add((DWORD)pos); }
-	void inline CodeSet(int pos, int cmd) { m_Code[pos] = (DWORD)cmd; }
-	void inline CodeSetPos(int pos) { m_Code[pos] = (DWORD)m_Code.GetSize(); }
+	inline int CodePos() { return (int)m_Code.GetSize(); }
+	inline int CodeAdd(int cmd) { return (int)m_Code.Add((DWORD)cmd); }
+	inline int CodeAddPos(int pos) { return (int)m_Code.Add((DWORD)pos); }
+	inline void CodeSet(int pos, int cmd) { m_Code[pos] = (DWORD)cmd; }
+	inline void CodeSetPos(int pos) { m_Code[pos] = (DWORD)m_Code.GetSize(); }
 
 	void LoopPush();
 	void LoopPop();

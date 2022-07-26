@@ -721,7 +721,7 @@ void CAgent::ReceiveBuffer(CBuffer *bp)
 							}
 						}
 					} else {
-						dlg.m_OpenMode = 3;
+						dlg.m_OpenMode = IDKFDMODE_CREATE;
 						dlg.m_Title.LoadString(IDS_IDKEYFILELOAD);;
 						dlg.m_Message.LoadString(IDS_IDKEYCREATECOM);
 

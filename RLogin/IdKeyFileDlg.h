@@ -6,6 +6,11 @@
 /////////////////////////////////////////////////////////////////////////////
 // CIdKeyFileDlg ダイアログ
 
+#define	IDKFDMODE_LOAD		1
+#define	IDKFDMODE_SAVE		2
+#define	IDKFDMODE_CREATE	3
+#define	IDKFDMODE_OPEN		4
+
 class CIdKeyFileDlg : public CDialogExt
 {
 	DECLARE_DYNAMIC(CIdKeyFileDlg)

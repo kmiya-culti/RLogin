@@ -175,6 +175,8 @@ public:
 	void AddIdleProc(int Type, void *pParam);
 	void DelIdleProc(int Type, void *pParam);
 
+	virtual BOOL GetProfileBinary(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPBYTE* ppData, UINT* pBytes);
+	virtual BOOL WriteProfileBinary(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPBYTE pData, UINT nBytes);
 	virtual CString GetProfileString(LPCTSTR lpszSection, LPCTSTR lpszEntry, LPCTSTR lpszDefault = NULL);
 	void GetProfileData(LPCTSTR lpszSection, LPCTSTR lpszEntry, void *lpBuf, int nBufLen, void *lpDef = NULL);
 	void GetProfileBuffer(LPCTSTR lpszSection, LPCTSTR lpszEntry, CBuffer &Buf);
@@ -200,7 +202,7 @@ public:
 	void RegisterSave(HKEY hKey, LPCTSTR pSection, CBuffer &buf);
 	void RegisterLoad(HKEY hKey, LPCTSTR pSection, CBuffer &buf);
 
-	BOOL SavePrivateProfileKey(HKEY hKey, CFile *file);
+	BOOL SavePrivateProfileKey(HKEY hKey, CFile *file, BOOL bRLoginApp = FALSE);
 	BOOL SavePrivateProfile();
 
 	void RegistryEscapeStr(LPCTSTR str, int len, CString &out);
