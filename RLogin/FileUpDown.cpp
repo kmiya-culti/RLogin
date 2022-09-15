@@ -165,18 +165,21 @@ void CFileUpDown::DownLoad()
 	int last = (-1);
 	int uudec = 0;
 	FILE *fp = NULL;
+	BOOL bRewSize = TRUE;
 	LONGLONG TranSize;
 	CBuffer tmp, work, line;
+	LPCSTR p;
+	CStringA msg;
+	CIsh ish;
 
-	m_ExtFileDlgMode = EXTFILEDLG_DOWNLOAD;
-
-	if ( !CheckFileName(CHKFILENAME_SAVE, "") )
+	if ( !CheckFileName(CHKFILENAME_SAVE, "", EXTFILEDLG_DOWNLOAD) )
 		return;
 
 	if ( (fp = _tfopen(m_PathName, _T("wb"))) == NULL )
 		return;
 
 	UpDownOpen("Simple File Download");
+	UpDownInit(0, 0);
 	TranSize = 0;
 
 	while ( !m_DoAbortFlag ) {
@@ -195,8 +198,10 @@ void CFileUpDown::DownLoad()
 		if ( m_bWithEcho )
 			SendEchoBuffer((char *)tmp.GetPtr(), tmp.GetSize());
 
-		TranSize += tmp.GetSize();
-		UpDownStat(TranSize);
+		if ( bRewSize ) {
+			TranSize += tmp.GetSize();
+			UpDownStat(TranSize);
+		}
 
 		if ( m_bDownCrLf ) {
 			work.Clear();
@@ -228,7 +233,7 @@ void CFileUpDown::DownLoad()
 		case DOWNMODE_DECODE:
 			while ( tmp.GetSize() > 0 ) {
 				ch = tmp.GetByte();
-				if ( ch == '\r' || ch == '\n' ) {
+				if ( ch == '\r' || ch == '\n' || ch == '\007' ) {
 					if ( line.GetSize() <= 0 )
 						continue;
 
@@ -240,20 +245,47 @@ void CFileUpDown::DownLoad()
 								uudec = 1;
 							else if( strncmp((LPCSTR)line, "begin-base64 ", 13) == 0 )
 								uudec = 2;
+							else
+								break;
+
+							p = line;
+							// skip begin...
+							while ( *p >  ' ' ) p++;
+							while ( *p == ' ' ) p++;
+							// skip 644..
+							while ( *p >  ' ' ) p++;
+							while ( *p == ' ' ) p++;
+
+							if ( fp == NULL ) {
+								if ( !CheckFileName(CHKFILENAME_SAVE, p) || (fp = _tfopen(m_PathName, _T("wb"))) == NULL )
+									uudec = 0;
+								UpDownInit(0, 0);
+							}
+
+							msg.Format("uudecode start '%s'", p);
+							UpDownMessage(msg);
 							break;
 						case 1:
-							if ( strncmp((LPCSTR)line, "end", 3) == 0 )
+							if ( strncmp((LPCSTR)line, "end", 3) == 0 ) {
 								uudec = 0;
-							else {
+								if ( fp != NULL )
+									fclose(fp);
+								fp = NULL;
+								UpDownMessage("uudecode end... closed");
+							} else {
 								work.UuDecode((LPCSTR)line);
 								if ( work.GetSize() > 0 )
 									fwrite(work.GetPtr(), 1, work.GetSize(), fp);
 							}
 							break;
 						case 2:
-							if ( strncmp((LPCSTR)line, "====", 4) == 0 )
+							if ( strncmp((LPCSTR)line, "====", 4) == 0 ) {
 								uudec = 0;
-							else {
+								if ( fp != NULL )
+									fclose(fp);
+								fp = NULL;
+								UpDownMessage("uudecode end... closed");
+							} else {
 								work.Base64Decode((LPCSTR)line);
 								if ( work.GetSize() > 0 )
 									fwrite(work.GetPtr(), 1, work.GetSize(), fp);
@@ -266,6 +298,45 @@ void CFileUpDown::DownLoad()
 						if ( work.GetSize() > 0 )
 							fwrite(work.GetPtr(), 1, work.GetSize(), fp);
 						break;
+
+					case EDCODEMODE_ISH:
+						switch(ish.DecodeLine((LPCSTR)line, work)) {
+						case ISH_RET_HEAD:
+							if ( fp == NULL ) {
+								if ( CheckFileName(CHKFILENAME_SAVE, ish.m_FileName) )
+									fp = _tfopen(m_PathName, _T("wb"));
+							}
+							UpDownInit(ish.m_Size);
+							bRewSize = FALSE;
+							msg.Format("ish start '%s'", ish.m_FileName);
+							UpDownMessage(msg);
+							break;
+						case ISH_RET_DATA:
+							if ( fp == NULL )
+								break;
+							if ( work.GetSize() > 0 )
+								fwrite(work.GetPtr(), 1, work.GetSize(), fp);
+							UpDownStat(ish.m_FileSize);
+							break;
+						case ISH_RET_ENDOF:
+							if ( fp == NULL )
+								break;
+							if ( work.GetSize() > 0 )
+								fwrite(work.GetPtr(), 1, work.GetSize(), fp);
+							UpDownStat(ish.m_FileSize);
+							fclose(fp);
+							fp = NULL;
+							UpDownMessage("ish end... closed");
+							break;
+						case ISH_RET_ABORT:
+							if ( fp == NULL )
+								break;
+							fclose(fp);
+							fp = NULL;
+							UpDownMessage("ish error abort... closed");
+							break;
+						}
+						break;
 					}
 					line.Clear();
 				} else
@@ -275,7 +346,8 @@ void CFileUpDown::DownLoad()
 		}
 	}
 
-	fclose(fp);
+	if ( fp != NULL )
+		fclose(fp);
 	UpDownClose();
 }
 
@@ -288,8 +360,10 @@ BOOL CFileUpDown::GetFile(GETPROCLIST *pProc)
 	
 	if ( AbortCheck() ) {
 		UpDownClose();
-		fclose(m_UpFp);
-		m_UpFp = NULL;
+		if ( m_UpFp != NULL ) {
+			fclose(m_UpFp);
+			m_UpFp = NULL;
+		}
 		return EOF;
 	}
 
@@ -330,6 +404,61 @@ BOOL CFileUpDown::GetFile(GETPROCLIST *pProc)
 
 	m_TranSize += len;
 	UpDownStat(m_TranSize);
+
+	return m_FileBuffer.GetByte();
+}
+BOOL CFileUpDown::GetIshFile(GETPROCLIST *pProc)
+{
+	struct _stati64 st;
+	int len;
+	
+	if ( AbortCheck() ) {
+		UpDownClose();
+		if ( m_UpFp != NULL ) {
+			fclose(m_UpFp);
+			m_UpFp = NULL;
+		}
+		return EOF;
+	}
+
+	if ( m_FileBuffer.GetSize() > 0 )
+		return m_FileBuffer.GetByte();
+
+	if ( m_UpFp == NULL ) {
+		if ( m_PathName.IsEmpty() )
+			return EOF;
+
+		if ( _tstati64(m_PathName, &st) || (st.st_mode & _S_IFMT) != _S_IFREG )
+			return EOF;
+
+		if ( (m_UpFp = _tfopen(m_PathName, _T("rb"))) == NULL )
+			return EOF;
+
+		m_FileSize = st.st_size;
+		m_TranSize = 0;
+		m_FileBuffer.Clear();
+
+		if ( (m_FileSize >> 32) != 0 ) {
+			::AfxMessageBox(_T("There is a limit of 32bits on the file size of ish encoding"));
+			return EOF;
+		}
+
+		UpDownOpen("Ish File Upload");
+		UpDownInit(m_FileSize);
+
+		m_Ish.EncodeHead(m_FileName, st.st_size, st.st_mtime, m_FileBuffer);
+
+	} else {
+		if ( (len = m_Ish.EncodeBlock(m_UpFp, m_FileBuffer)) <= 0 ) {
+			UpDownClose();
+			fclose(m_UpFp);
+			m_UpFp = NULL;
+			return EOF;
+		}
+
+		m_TranSize += len;
+		UpDownStat(m_TranSize);
+	}
 
 	return m_FileBuffer.GetByte();
 }
@@ -591,9 +720,7 @@ void CFileUpDown::UpLoad()
 	char buf[1024];
 
 RECHECK:
-	m_ExtFileDlgMode = EXTFILEDLG_UPLOAD;
-
-	if ( !CheckFileName(CHKFILENAME_OPEN | CHKFILENAME_MULTI, "") )
+	if ( !CheckFileName(CHKFILENAME_OPEN | CHKFILENAME_MULTI, "", EXTFILEDLG_UPLOAD) )
 		return;
 
 	m_FileBuffer.Clear();
@@ -633,6 +760,13 @@ RECHECK:
 			pProc = &(procTab[n++]);
 			pProc->GetProc = &CFileUpDown::GetBase64;
 			pProc->UnGetProc = &CFileUpDown::UnGetEncode;
+			break;
+		case EDCODEMODE_ISH:
+			n = 0;
+			procTab[n].pNext = NULL;
+			pProc = &(procTab[n++]);
+			pProc->GetProc = &CFileUpDown::GetIshFile;
+			pProc->UnGetProc = &CFileUpDown::UnGetFile;
 			break;
 		}
 		break;

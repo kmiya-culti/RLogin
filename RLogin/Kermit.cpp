@@ -21,9 +21,11 @@
 CKermit::CKermit(class CRLoginDoc *pDoc, CWnd *pWnd) : CSyncSock(pDoc, pWnd)
 {
 	m_ProtoName = _T("Kermit");
+	m_OutPkt = new struct KmtPkt[KMT_PKTQUE];
 }
 CKermit::~CKermit(void)
 {
+	delete [] m_OutPkt;
 }
 void CKermit::OnProc(int cmd)
 {
@@ -115,7 +117,6 @@ int CKermit::ReadPacket()
 {
 	int n;
 	int ch, od, pos, sum;
-	int ec = 0;
 
 RETRY:
 	for ( m_InPkt.Len = pos = od = 0 ; ; od = ch ) {
@@ -135,29 +136,25 @@ RETRY:
 			m_InPkt.Len = pos = 0;
 		}
 
-		if ( pos >= m_PktMax ) {
-			goto RETRY;
-		} else if ( ch == m_MarkCh ) {
+		if ( ch == m_MarkCh ) {
 			pos = 0;
-			m_InPkt.Buf[pos++] = (BYTE)ch;
-		} else if ( pos == 1 ) {
-			m_InPkt.Buf[pos++] = (BYTE)ch;
-			if ( (n = UnChar(ch)) > 1 )
-				m_InPkt.Len = n + 2;
-		} else if ( pos >= 2 ) {
-			m_InPkt.Buf[pos++] = (BYTE)ch;
-			if ( m_InPkt.Len == 0 && pos == 6 )
-				m_InPkt.Len = UnChar(m_InPkt.Buf[4]) * 95 + UnChar(m_InPkt.Buf[5]) + 7;
 		} else if ( pos == 0 ) {
-			if ( ch == m_EolCh ) {
-				if ( ec > 0 )
-					SendEcho(ch);
-				ec = 0;
-			} else {
-				ec++;
+			if ( m_MyPadCh == 0 || m_MyPadCh != ch )
 				SendEcho(ch);
-			}
+			continue;
+		} else if ( pos == 1 ) {
+			if ( (n = UnChar(ch)) > 0 )
+				m_InPkt.Len = n + 2;
+		} else if ( pos == 6 && m_InPkt.Len == 0 ) {
+			if ( UnChar(ch) != (BYTE)ChkSumType1(m_InPkt.Buf + 1, 5) )
+				goto RETRY;
+			if ( (m_InPkt.Len = UnChar(m_InPkt.Buf[4]) * 95 + UnChar(m_InPkt.Buf[5]) + 7) > KMT_PKTMAX )
+				goto RETRY;
+		} else if ( pos >= KMT_PKTMAX ) { //(m_PktMax + 7 + m_ChkType) ) {
+			goto RETRY;
 		}
+
+		m_InPkt.Buf[pos++] = (BYTE)ch;
 
 		if ( m_InPkt.Len != 0 && pos >= m_InPkt.Len )
 			break;
@@ -172,37 +169,28 @@ RETRY:
 		Long	Mrk	Len	Seq	Typ	Hi	Lw	Sm	.....
 	*/
 
-	if ( UnChar(m_InPkt.Buf[1]) == 0 ) {	/* Long Pakcet */
-		if ( m_InPkt.Len < 6 )
-			goto RETRY;
-		ch = m_InPkt.Buf[6];
-		m_InPkt.Buf[6] = (BYTE)0;
-		sum = ChkSumType1(m_InPkt.Buf + 1, 5);
-		m_InPkt.Buf[6] = (BYTE)ch;
-		if ( UnChar(ch) != (BYTE)sum )
-			goto RETRY;
-		n = 7;
-	} else
-		n = 4;
+	n = UnChar(m_InPkt.Buf[1]) == 0 ? 7 : 4;	// Long Pakcet Check
+
+	if ( m_InPkt.Len < n )
+		goto RETRY;
 
 	m_Size  = m_InPkt.Len - n;
 	m_pData = m_InPkt.Buf + n;
+
+	if ( m_Size < m_ChkType )
+		return KMT_SUMERR;
 
 	switch(m_ChkType) {
 	case 1:
 		sum = ChkSumType1(m_InPkt.Buf + 1, m_InPkt.Len - 1 - 1);
 		m_Size -= 1;
 		ch = UnChar(m_pData[m_Size]);
-		if ( ch != sum )
-			return KMT_SUMERR;
 		break;
 	case 2:
 		sum = ChkSumType2(m_InPkt.Buf + 1, m_InPkt.Len - 1 - 2);
 		m_Size -= 2;
 		ch  = (UnChar(m_pData[m_Size]) << 6);
 		ch |=  UnChar(m_pData[m_Size + 1]);
-		if ( ch != sum )
-			return KMT_SUMERR;
 		break;
 	case 3:
 		sum = ChkSumType3(m_InPkt.Buf + 1, m_InPkt.Len - 1 - 3);
@@ -211,18 +199,19 @@ RETRY:
 		ch |= (UnChar(m_pData[m_Size + 1]) << 6);
 		ch |=  UnChar(m_pData[m_Size + 2]);
 		ch &= 0xFFFF;
-		if ( ch != sum )
-			return KMT_SUMERR;
 		break;
 	}
 
+	if ( ch != sum )
+		return KMT_SUMERR;
+
 	m_pData[m_Size] = '\0';
-
-	DebugMsg("Kermit %d recv: %d %c(%d)", m_RecvSeq, UnChar(m_InPkt.Buf[2]), m_InPkt.Buf[3], m_Size);
-	DebugDump(m_InPkt.Buf, m_InPkt.Len < 16 ? m_InPkt.Len : 16);
-
 	m_InPkt.Seq  = UnChar(m_InPkt.Buf[2]);
 	m_InPkt.Type = m_InPkt.Buf[3];
+
+	DebugMsg("Kermit %d recv: %d %c(%d)", m_RecvSeq, m_InPkt.Seq, m_InPkt.Type, m_Size);
+	DebugDump(m_InPkt.Buf, m_InPkt.Len < 16 ? m_InPkt.Len : 16);
+
 	return m_InPkt.Type;
 }
 BOOL CKermit::DecodePacket()
@@ -488,7 +477,7 @@ void CKermit::SendInit(int type)
 // Type 'S'(req) or 'Y'(ack)
 void CKermit::RecvInit(int type)
 {
-	int n, d, a, t;
+	int n, d, a, t, x = 0;
 
 	for ( n = 0 ; n < m_Size && n < 10 ; n++ ) {
 		d = m_pData[n];
@@ -551,7 +540,7 @@ void CKermit::RecvInit(int type)
 		;
 
 	if ( (m_Caps & KMT_CAP_SLIDWIN) != 0 && (n + 1) < m_Size ) {
-		m_WindMax = UnChar(m_pData[n + 1]);
+		m_WindMax = x = UnChar(m_pData[n + 1]);
 		if ( m_WindMax <= 0 )
 			m_WindMax = 1;
 		else if ( m_WindMax > KMT_PKTQUE )

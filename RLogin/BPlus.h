@@ -55,7 +55,7 @@ public:
 	int     SA_Waiting;
 	int    	Aborting;
 
-	buf_type SA_Buf[Max_SA+1];
+	buf_type *SA_Buf;
 	char	R_buffer[Max_Buf_Size];
 
 	int		e_ch;

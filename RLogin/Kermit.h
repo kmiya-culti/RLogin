@@ -71,7 +71,7 @@ public:
 		int		Seq;
 		int		Len;
 		BYTE	Buf[KMT_PKTMAX];
-	} m_InPkt, m_OutPkt[KMT_PKTQUE];
+	} m_InPkt, *m_OutPkt;
 
 	int m_Size;
 	BYTE *m_pData;

@@ -164,6 +164,10 @@ int Cssh::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nS
 				dlg.m_OpenMode  = IDKFDMODE_OPEN;
 				dlg.m_Title.LoadString(IDS_SSH_PASS_TITLE);		// = _T("SSH鍵ファイルの読み込み");
 				dlg.m_Message.LoadString(IDS_SSH_PASS_MSG);		// = _T("作成時に設定したパスフレーズを入力してください");
+				if ( !IdKey.m_LoadMsg.IsEmpty() ) {
+					dlg.m_Message += _T("\n\n");
+					dlg.m_Message += IdKey.m_LoadMsg;
+				}
 				dlg.m_IdkeyFile = fileName;
 				if ( dlg.DoModal() != IDOK )
 					return FALSE;
@@ -2172,8 +2176,7 @@ int Cssh::SendMsgUserAuthRequest(LPCSTR str)
 					AddAuthLog(_T("publickey:offered(%s)"), m_pIdKey->GetName(TRUE, TRUE));
 				}
 
-
-				if ( m_pIdKey->m_Type == IDKEY_RSA2 && m_pIdKey->m_RsaNid == NID_sha1 )
+				if ( m_pIdKey->m_Type == IDKEY_RSA2 ) // && m_pIdKey->m_RsaNid != NID_sha1 )
 					m_bReqRsaSha1 = TRUE;
 
 				m_AuthMode = AUTH_MODE_PUBLICKEY;

@@ -112,7 +112,7 @@
       <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>d2d1.lib;dwrite.lib;windowscodecs.lib;dxgi.lib;d3d10_1.lib;imm32.lib;ComCtl32.lib;libcrypto.lib;libssl.lib;iconv.lib;zlib.lib;Wininet.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d2d1.lib;dwrite.lib;windowscodecs.lib;dxgi.lib;d3d10_1.lib;imm32.lib;ComCtl32.lib;libcrypto.lib;libssl.lib;iconv.lib;zlib.lib;Wininet.lib;%(AdditionalDependencies);windowscodecs.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>openssl-3.0.5-x32;libiconv-1.16\lib\x32;zlib-1.2.12\x32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>libcmt.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <DelayLoadDLLs>%(DelayLoadDLLs)</DelayLoadDLLs>
@@ -154,7 +154,7 @@
       <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>imm32.lib;ComCtl32.lib;libcrypto.lib;libssl.lib;iconv.lib;zlib.lib;Wininet.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>imm32.lib;ComCtl32.lib;libcrypto.lib;libssl.lib;iconv.lib;zlib.lib;Wininet.lib;%(AdditionalDependencies);windowscodecs.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>openssl-3.0.5-x32;libiconv-1.16\lib\x32;zlib-1.2.12\x32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -202,7 +202,7 @@
       <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>imm32.lib;ComCtl32.lib;libcrypto.lib;libssl.lib;iconv.lib;zlib.lib;Wininet.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>imm32.lib;ComCtl32.lib;libcrypto.lib;libssl.lib;iconv.lib;zlib.lib;Wininet.lib;%(AdditionalDependencies);windowscodecs.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>openssl-3.0.5;libiconv-1.16\lib\x64;zlib-1.2.12\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
@@ -244,7 +244,7 @@
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>openssl-3.0.5;libiconv-1.16\lib\x64;zlib-1.2.12\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>imm32.lib;ComCtl32.lib;libcrypto.lib;libssl.lib;iconv.lib;zlib.lib;Wininet.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>imm32.lib;ComCtl32.lib;libcrypto.lib;libssl.lib;iconv.lib;zlib.lib;Wininet.lib;%(AdditionalDependencies);windowscodecs.lib</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <IgnoreSpecificDefaultLibraries>libcmt.lib;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
@@ -302,6 +302,7 @@
     <ClCompile Include="IdkeySelDLg.cpp" />
     <ClCompile Include="InfoCapDlg.cpp" />
     <ClCompile Include="InitAllDlg.cpp" />
+    <ClCompile Include="Ish.cpp" />
     <ClCompile Include="Iso646Dlg.cpp" />
     <ClCompile Include="Kermit.cpp" />
     <ClCompile Include="KeyPage.cpp" />
@@ -408,6 +409,7 @@
     <ClInclude Include="IdkeySelDLg.h" />
     <ClInclude Include="InfoCapDlg.h" />
     <ClInclude Include="InitAllDlg.h" />
+    <ClInclude Include="Ish.h" />
     <ClInclude Include="Iso646Dlg.h" />
     <ClInclude Include="Kermit.h" />
     <ClInclude Include="KeyPage.h" />

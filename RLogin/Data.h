@@ -134,6 +134,13 @@ public:
 	LPCSTR UuDecode(LPCSTR str);
 	void UuEncode(LPBYTE buf, int len);
 
+	LPCSTR IshDecJis7(LPCSTR str);
+	void IshEncJis7(LPBYTE buf, int len);
+	LPCSTR IshDecJis8(LPCSTR str);
+	void IshEncJis8(LPBYTE buf, int len);
+	LPCSTR IshDecSjis(LPCSTR str);
+	void IshEncSjis(LPBYTE buf, int len);
+
 	void md5(LPCTSTR str);
 	BOOL LoadFile(LPCTSTR filename);
 	BOOL SaveFile(LPCTSTR filename);

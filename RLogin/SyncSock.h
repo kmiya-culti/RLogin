@@ -65,10 +65,11 @@ public:
 	CStringA m_FileName;
 	CStringA m_Message;
 	DWORD m_Param;
+	CSemaphore m_ProgSema;
+	BOOL m_bUpdateReq;
 	LONGLONG m_Size;
 	LONGLONG m_RemSize;
 	CEvent *m_pParamEvent;
-	clock_t m_LastUpdate;
 	CBuffer m_LogBuffer;
 
 	int m_ExtFileDlgMode;
@@ -92,7 +93,7 @@ public:
 	int Bufferd_ReceiveSize();
 	void SetXonXoff(int sw);
 
-	BOOL CheckFileName(int mode, LPCSTR file);
+	BOOL CheckFileName(int mode, LPCSTR file, int extmode = 0);
 	int YesOrNo(LPCSTR msg);
 	int AbortCheck();
 	void SendEcho(int ch);

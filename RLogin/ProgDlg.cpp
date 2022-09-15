@@ -21,35 +21,30 @@ IMPLEMENT_DYNAMIC(CProgDlg, CDialogExt)
 CProgDlg::CProgDlg(CWnd* pParent /*=NULL*/)
 	: CDialogExt(CProgDlg::IDD, pParent)
 {
-	//{{AFX_DATA_INIT(CProgDlg)
 	m_EndTime = _T("");
 	m_TotalSize = _T("");
 	m_TransRate = _T("");
 	m_FileName = _T("");
 	m_Message = _T("");
-	//}}AFX_DATA_INIT
 	m_Div = 1;
 	m_AbortFlag = FALSE;
 	m_pSock = NULL;
 }
 
-
 void CProgDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogExt::DoDataExchange(pDX);
-	//{{AFX_DATA_MAP(CProgDlg)
+
 	DDX_Control(pDX, IDC_SIZEPROG, m_FileSize);
 	DDX_Text(pDX, IDC_ENDTIME, m_EndTime);
 	DDX_Text(pDX, IDC_TOTALSIZE, m_TotalSize);
 	DDX_Text(pDX, IDC_TRANSRATE, m_TransRate);
 	DDX_Text(pDX, IDC_FILENAME, m_FileName);
 	DDX_Text(pDX, IDC_MESSAGE, m_Message);
-	//}}AFX_DATA_MAP
 }
 
 BEGIN_MESSAGE_MAP(CProgDlg, CDialogExt)
-	//{{AFX_MSG_MAP(CProgDlg)
-	//}}AFX_MSG_MAP
+	ON_WM_TIMER()
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -78,7 +73,23 @@ BOOL CProgDlg::OnInitDialog()
 
 	m_LastSize = 0;
 	m_ResumeSize = 0;
-	m_StartClock = clock();
+	m_UpdatePos = m_ActivePos = 0;
+	m_StartClock = m_UpdateClock = clock();
+
+	SetTimer(1024, 300, NULL);
+
+	int x, y;
+	CRect rect, box;
+
+	GetParent()->GetClientRect(box);
+	GetWindowRect(rect);
+	x = (box.Width() - rect.Width()) / 2;
+	y = (box.Height() - rect.Height()) / 2;
+	rect.left   += x;
+	rect.right  += x;
+	rect.top    += y;
+	rect.bottom += y;
+	MoveWindow(rect);
 
 	return TRUE;
 }
@@ -90,15 +101,20 @@ void CProgDlg::SetRange(LONGLONG max, LONGLONG rem)
 	
 	m_FileSize.SetRange(0, (short)(max / m_Div));
 	m_FileSize.SetPos(0);
+	m_UpdatePos = m_ActivePos = 0;
 
 	UpdateData(TRUE);
 	m_LastSize = max;
 	m_ResumeSize = rem;
-	m_StartClock = clock();
+	m_StartClock = m_UpdateClock = clock();
 	UpdateData(FALSE);
 }
-
 void CProgDlg::SetPos(LONGLONG pos)
+{
+	m_UpdatePos = pos;
+	m_UpdateClock = clock();
+}
+void CProgDlg::UpdatePos(LONGLONG pos)
 {
 	int n;
 	double d;
@@ -113,8 +129,8 @@ void CProgDlg::SetPos(LONGLONG pos)
 	else
 		m_TotalSize.Format(_T("%d"), (int)pos);
 
-	if ( clock() > m_StartClock ) {
-		d = (double)(pos - m_ResumeSize) * CLOCKS_PER_SEC / (double)(clock() - m_StartClock);
+	if ( m_UpdateClock > m_StartClock ) {
+		d = (double)(pos - m_ResumeSize) * CLOCKS_PER_SEC / (double)(m_UpdateClock - m_StartClock);
 
 		if ( d > 0.0 && m_LastSize > 0 ) {
 			n = (int)((double)(m_LastSize - pos) / d);
@@ -149,3 +165,11 @@ void CProgDlg::SetMessage(LPCTSTR msg)
 	m_Message = msg;
 	UpdateData(FALSE);
 }
+void CProgDlg::OnTimer(UINT_PTR nIDEvent)
+{
+	if ( m_ActivePos != m_UpdatePos ) {
+		m_ActivePos = m_UpdatePos;
+		UpdatePos(m_UpdatePos);
+	}
+}
+

@@ -360,6 +360,7 @@ public:
 	BOOL m_bHostPass;
 	int m_AgeantType;
 	CString m_FilePath;
+	CString m_LoadMsg;
 
 	int GetIndexNid(int nid);
 	int GetIndexName(LPCTSTR name);

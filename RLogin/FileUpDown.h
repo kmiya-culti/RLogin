@@ -1,6 +1,7 @@
 #pragma once
 
 #include "syncsock.h"
+#include "Ish.h"
 
 #define	DOWNMODE_NONE		0
 #define	DOWNMODE_ICONV		1
@@ -16,6 +17,7 @@
 
 #define	EDCODEMODE_UUENC	0
 #define	EDCODEMODE_BASE64	1
+#define	EDCODEMODE_ISH		2
 
 #define	CRLFMODE_CR			0
 #define	CRLFMODE_LF			1
@@ -68,7 +70,9 @@ public:
 	int m_FileLen;
 	LONGLONG m_FileSize, m_TranSize;
 	CBuffer m_FileBuffer;
+	CIsh m_Ish;
 	int GetFile(GETPROCLIST *pProc);
+	int GetIshFile(GETPROCLIST *pProc);
 	void UnGetFile(int ch);
 
 	BOOL m_IConvEof;

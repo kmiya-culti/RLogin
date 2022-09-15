@@ -7,28 +7,11 @@
 <STYLE type="text/css">
 <!--
 TD {
-				
-				
-				
-				
-				
-				
-				
-				
-				
-		background-color : #ffffff; font-size : 90%; 
+		background-color : #ffffff;
+		font-size : 90%;
 }
 .BOX{
-				
-				
-				
-				
-				
-				
-				
-				
-				
-		background-color : silver; 
+		background-color : silver;
 }
 -->
 </STYLE>
@@ -43,8 +26,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.27.2)</TD>
-            <TD width="20%" align="right">2022/07/27</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.27.3)</TD>
+            <TD width="20%" align="right">2022/09/16</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -390,7 +373,7 @@ TD {
                 </TR>
                 <TR>
                   <TD valign="top">emoji\????.png</TD>
-                  <TD><A href="#EXTOPT">拡張機能のオプション設定</A>の485をチェックするとOSにカラー絵文字の表示機能が無い場合、png画像で絵文字を表示することが出来ます。<A href="emoji.zip">カラー絵文字のPNG画像ファイル</A></TD>
+                  <TD><A href="#COLOPT">カラーのオプション設定</A>のカラーで絵文字を表示をチェックし<A href="emoji.zip">カラー絵文字のPNG画像ファイル</A>のフォルダを指定するとカラー画像で絵文字を表示します</TD>
                 </TR>
               </TBODY>
             </TABLE>
@@ -450,14 +433,21 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2022/09/16</TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.27.3/">2.27.3</A></TD>
+            <TD>一部の秘密鍵ファイルのパスコード読み込み時に公開鍵の情報を表示<BR>
+            プリセットのカラーセットを一部変更して整理<BR>
+            ファイルアップダウンのエンコード・デコードにishを追加<BR>
+            RSA鍵の署名方式の初期設定をSHA2-256に変更</TD>
+          </TR>
+          <TR>
             <TD align="center">2022/07/27</TD>
             <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.27.2/">2.27.2</A></TD>
             <TD>認証鍵ファイルのパスフレーズ入力時のフォーカスを変更<BR>
             プライベートプロファイルの一部を圧縮するように変更<BR>
             Scriptのforeachが正しく動作しない問題を修正<BR>
             openssl-3.0.5に更新<BR>
-            <FONT color="#ff0000">プライベートプロファイルの仕様変更により下位バージョンとの互換が無くなります<BR>
-            必要に応じてプライベートプロファイルのバックアップなどが必要です</FONT></TD>
+            <FONT color="#ff0000">プライベートプロファイルの仕様変更により下位バージョンとの互換が無くなります</FONT></TD>
           </TR>
           <TR>
             <TD align="center">2022/06/24</TD>
@@ -491,14 +481,6 @@ TD {
             クリップボードの設定にペーストを確認しないを追加<BR>
             オプション設定にヘルプボタンでブラウザを起動する機能を追加<BR>
             openssl-3.0.2に更新</TD>
-          </TR>
-          <TR>
-            <TD align="center">2022/02/28</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.26.8/">2.26.8</A></TD>
-            <TD>暗号化ライブラリを全面的にopenssl-3.0の仕様に変更<BR>
-            認証鍵作成を途中で中止できるように変更<BR>
-            認証鍵作成ダイアログのプログレスバー表示方法を変更<BR>
-            認証キーの設定のエクスポートをより細かく選択できるように変更</TD>
           </TR>
           <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
@@ -620,7 +602,8 @@ TD {
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>
             <BR>
-            zlib 1.2.12 (27 Mar 2022)<BR>Copyr ight (C) 1995-2022 Jean-loup Gailly and Mark Adler<BR>
+            zlib 1.2.12 (27 Mar 2022)<BR>
+            Copyr ight (C) 1995-2022 Jean-loup Gailly and Mark Adler<BR>
             <BR>
             libiconv-1.16<BR>
             Copyright (C) 2000-2017 Free Software Foundation, Inc.<BR>
@@ -1826,7 +1809,7 @@ TD {
                 </TR>
                 <TR>
                   <TD align="center">編集後クリップ…</TD>
-                  <TD>テキストを編集した場合に編集後のテキストをクリップボードにコピーします<FONT color="#c0c0c0"></FONT></TD>
+                  <TD>テキストを編集した場合に編集後のテキストをクリップボードにコピーします</TD>
                 </TR>
                 <TR>
                   <TD align="center">次回から確認…</TD>
@@ -2505,9 +2488,7 @@ TD {
               <TBODY>
                 <TR>
                   <TD colspan="4">Chat Scriptサンプル<BR>
-                  参照：<A href="faq.html#LOGON">ログイン手順の自動化</A>
-                  
-                  </TD>
+                  参照：<A href="faq.html#LOGON">ログイン手順の自動化</A></TD>
                 </TR>
                 <TR>
                   <TD width="30%" align="center">ChatScript</TD>
@@ -2745,9 +2726,7 @@ fi</PRE>
               <TBODY>
                 <TR>
                   <TD colspan="2">Proxy Server<BR>
-                  参照：<A href="faq.html#SSHCASCADE">SSHによる多段接続</A>
-            
-            </TD>
+                  参照：<A href="faq.html#SSHCASCADE">SSHによる多段接続</A></TD>
                 </TR>
                 <TR>
                   <TD width="30%" align="center">Select Proxy...</TD>
@@ -3340,9 +3319,7 @@ fi</PRE>
               <TBODY>
                 <TR>
                   <TD colspan="2">認証キー<BR>
-                  参照：<A href="faq.html#SSHPUBLIC">SSHでの公開鍵認証</A>
-                  
-                  </TD>
+                  参照：<A href="faq.html#SSHPUBLIC">SSHでの公開鍵認証</A></TD>
                 </TR>
                 <TR>
                   <TD width="30%" align="center">上へ・下へ</TD>
@@ -3364,7 +3341,8 @@ fi</PRE>
                         <TD valign="top">OpenSSL<BR>
                         PEM/PFX</TD>
                         <TD>ssh-rsa,ssh-dss<BR>
-                        ecdsa-sha2-*<BR>ssh-ed25519/448</TD>
+                        ecdsa-sha2-*<BR>
+                        ssh-ed25519/448</TD>
                       </TR>
                       <TR>
                         <TD valign="top">OpenSSH<BR>
@@ -3836,9 +3814,7 @@ function TekClock2() {
               <TBODY>
                 <TR>
                   <TD colspan="2">スクリーン<BR>
-                  参照：<A href="faq.html#FONTSET">フォントの設定</A>
-                  
-                  </TD>
+                  参照：<A href="faq.html#FONTSET">フォントの設定</A></TD>
                 </TR>
                 <TR>
                   <TD align="center" width="30%">1行あたりの…</TD>
@@ -4474,13 +4450,13 @@ function TekClock2() {
                     <TBODY>
                       <TR>
                         <TD align="left" valign="top">%#c %#x<BR>
-                              </TD>
+                        </TD>
                         <TD align="left" valign="top">長い形式で表記</TD>
                       </TR>
                       <TR>
                         <TD align="left" valign="top">%#d %#H %#I %#j<BR>
-                              %#L %#m %#M %#S<BR>
-                              %#U %#W %#y %#Y</TD>
+                        %#L %#m %#M %#S<BR>
+                        %#U %#W %#y %#Y</TD>
                         <TD align="left" valign="top">先頭の0を削除</TD>
                       </TR>
                     </TBODY>
@@ -4546,9 +4522,7 @@ function TekClock2() {
                   ※CTRLキーを押すと矩形選択モードになります<BR>
                   ※SHIFTキーを押すと行選択モードになります<BR>
                   ※左右ウインドウ外で行選択モードになります<BR>
-                  参照：<A href="faq.html#LCLICK">マウスによる範囲指定</A>
-                  
-                  </TD>
+                  参照：<A href="faq.html#LCLICK">マウスによる範囲指定</A></TD>
                 </TR>
                 <TR>
                   <TD align="center">コピー時に範囲…</TD>
@@ -4819,9 +4793,7 @@ function TekClock2() {
               <TBODY>
                 <TR>
                   <TD colspan="2">文字セット<BR>
-                  参照：<A href="faq.html#FONTSET">フォントの設定</A>
-                  
-                  </TD>
+                  参照：<A href="faq.html#FONTSET">フォントの設定</A></TD>
                 </TR>
                 <TR>
                   <TD width="30%" align="center">Charcter Set</TD>
@@ -5393,9 +5365,7 @@ function TekClock2() {
               <TBODY>
                 <TR>
                   <TD colspan="2">Color Set<BR>
-                  参照：<A href="faq.html#COLSET">文字色の一括変更</A>
-                  
-                  </TD>
+                  参照：<A href="faq.html#COLSET">文字色の一括変更</A></TD>
                 </TR>
                 <TR>
                   <TD align="center" rowspan="4" width="30%">16色カラーテーブル</TD>
@@ -5623,9 +5593,7 @@ function TekClock2() {
               <TBODY>
                 <TR>
                   <TD colspan="2">Assign Key String<BR>
-                  参照：<A href="faq.html#SHORTCUT">Ctrl+Vでペースト</A>
-                  
-                  </TD>
+                  参照：<A href="faq.html#SHORTCUT">Ctrl+Vでペースト</A></TD>
                 </TR>
                 <TR>
                   <TD align="center" width="30%">KeyCode</TD>
@@ -5880,7 +5848,7 @@ function TekClock2() {
             <TD valign="top" width="600"><A href="http://netpbm.sourceforge.net/">Netpbm</A>などのコンバーターを使用すれば画像が表示されます<BR>
             jpegtopnm tiger.jpg | pnmquant 256 | ppmtosixel<BR>
             <BR>
-            ※ppmtosixelは、C1制御文字のDCS($90)を使用しています。<SPAN style="color: rgb(36, 41, 46); font-family: -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;; font-size: 14px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;">制御コードのオプション設定?8454のチェックを外して</SPAN><span style="color: rgb(36, 41, 46); font-family: -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;; font-size: 14px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;">「?8454 C1制御文字を処理する」にしないと正しく動作しません。</span><BR>
+            ※ppmtosixelは、C1制御文字のDCS($90)を使用しています。<SPAN style="color: rgb(36, 41, 46); font-family: -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;; font-size: 14px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;">制御コードのオプション設定?8454のチェックを外して</SPAN><SPAN style="color: rgb(36, 41, 46); font-family: -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Helvetica, Arial, sans-serif, &quot;Apple Color Emoji&quot;, &quot;Segoe UI Emoji&quot;; font-size: 14px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; white-space: normal; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; display: inline !important; float: none;">「?8454 C1制御文字を処理する」にしないと正しく動作しません。</SPAN><BR>
             <BR>
             <A href="http://www.libgd.org/">libgd</A>を使ったsixelコンバータのソースファイルです。<A href="sixel.tar.gz">sixel.tar.gz</A><BR>
             <TABLE cellpadding="3">

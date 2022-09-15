@@ -43,7 +43,7 @@ BOOL CChatStatDlg::OnInitDialog()
 	int x, y;
 	CRect rect, box;
 
-	GetParent()->GetWindowRect(box);
+	GetParent()->GetClientRect(box);
 	GetWindowRect(rect);
 	x = (box.Width() - rect.Width()) / 2;
 	y = (box.Height() - rect.Height()) / 2;

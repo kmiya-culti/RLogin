@@ -41,10 +41,10 @@ CSyncSock::CSyncSock(class CRLoginDoc *pDoc, CWnd *pWnd)
 	m_MultiFile = FALSE;
 	m_IsAscii = FALSE;
 	m_bUseWrite = FALSE;
-	m_LastUpdate = clock();
 	m_ExtFileDlgMode = 0;
 	m_EchoPostReq = FALSE;
 	m_bInitDone = FALSE;
+	m_bUpdateReq = FALSE;
 }
 
 CSyncSock::~CSyncSock()
@@ -86,6 +86,7 @@ void CSyncSock::ThreadCommand(int cmd)
 	int n;
 	LPCTSTR p;
 	CString work;
+	LONGLONG pos;
 
 	switch(cmd) {
 	case THCMD_START:
@@ -121,6 +122,8 @@ void CSyncSock::ThreadCommand(int cmd)
 		m_ProgDlg.SetWindowText(MbsToTstr(m_Message));
 		m_ProgDlg.ShowWindow(SW_SHOW);
 		m_pParamEvent->SetEvent();
+		if ( m_pView != NULL )
+			m_pView->SetFocus();
 		break;
 	case THCMD_DLGCLOSE:
 		if ( m_ProgDlg.m_hWnd == NULL )
@@ -142,9 +145,12 @@ void CSyncSock::ThreadCommand(int cmd)
 		m_pParamEvent->SetEvent();
 		break;
 	case THCMD_DLGPOS:
-		if ( m_ProgDlg.m_hWnd == NULL )
-			break;
-		m_ProgDlg.SetPos(m_Size);
+		m_ProgSema.Lock();
+		m_bUpdateReq = FALSE;
+		pos = m_Size;
+		m_ProgSema.Unlock();
+		if ( m_ProgDlg.m_hWnd != NULL )
+			m_ProgDlg.SetPos(pos);
 		break;
 	case THCMD_SENDBUF:
 		m_SendSema.Lock();
@@ -462,12 +468,13 @@ void CSyncSock::SetXonXoff(int sw)
 
 //////////////////////////////////////////////////////////////////////
 
-BOOL CSyncSock::CheckFileName(int mode, LPCSTR file)
+BOOL CSyncSock::CheckFileName(int mode, LPCSTR file, int extmode)
 {
 	if ( m_DoAbortFlag )
 		return FALSE;
 	m_Param = mode;
 	m_FileName = file;
+	m_ExtFileDlgMode = extmode;
 	m_pParamEvent->ResetEvent();
 	m_pWnd->PostMessage(WM_THREADCMD, THCMD_CHECKPATH, (LPARAM)this);
 	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
@@ -522,7 +529,6 @@ void CSyncSock::UpDownOpen(LPCSTR msg)
 	m_pParamEvent->ResetEvent();
 	m_pWnd->PostMessage(WM_THREADCMD, THCMD_DLGOPEN, (LPARAM)this);
 	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
-	m_LastUpdate = clock();
 }
 void CSyncSock::UpDownClose()
 {
@@ -542,15 +548,19 @@ void CSyncSock::UpDownInit(LONGLONG size, LONGLONG rems)
 	m_pParamEvent->ResetEvent();
 	m_pWnd->PostMessage(WM_THREADCMD, THCMD_DLGRANGE, (LPARAM)this);
 	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
-	m_LastUpdate = clock();
 }
 void CSyncSock::UpDownStat(LONGLONG size)
 {
-	if ( (clock() - m_LastUpdate) >= (CLOCKS_PER_SEC / 2) ) {
-		m_Size = size;
+	BOOL bPost = FALSE;
+
+	m_ProgSema.Lock();
+	if ( !m_bUpdateReq )
+		m_bUpdateReq = bPost = TRUE;
+	m_Size = size;
+	m_ProgSema.Unlock();
+
+	if ( bPost )
 		m_pWnd->PostMessage(WM_THREADCMD, THCMD_DLGPOS, (LPARAM)this);
-		m_LastUpdate = clock();
-	}
 }
 void CSyncSock::SendString(LPCWSTR str)
 {

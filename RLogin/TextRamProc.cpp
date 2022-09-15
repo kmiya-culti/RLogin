@@ -5000,6 +5000,13 @@ void CTextRam::fc_OSCEXE(DWORD ch)
 		}
 		((CMainFrame *)::AfxGetMainWnd())->Speak(wrk);
 		break;
+
+	case 802:	// ColSetTab
+		if ( (n = atoi(p)) < 0 || n >= COLSETTABMAX )
+			n = 0;
+		memcpy(m_ColTab, ColSetTab[n], sizeof(COLORREF) * 16);
+		DISPUPDATE();
+		break;
 	}
 
 ENDRET:

@@ -4,7 +4,7 @@
 /////////////////////////////////////////////////////////////////////////////
 // CColParaDlg ダイアログ
 
-#define	COLSETTABMAX	13
+#define	COLSETTABMAX	14
 
 extern	const COLORREF	ColSetTab[COLSETTABMAX][16];
 

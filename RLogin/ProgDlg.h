@@ -29,11 +29,13 @@ public:
 	int m_Div;
 	LONGLONG m_LastSize;
 	LONGLONG m_ResumeSize;
-	clock_t m_StartClock;
+	LONGLONG m_UpdatePos, m_ActivePos;
+	clock_t m_StartClock, m_UpdateClock;
 	BOOL m_AbortFlag;
 	class CExtSocket *m_pSock;
 
 	void SetRange(LONGLONG max, LONGLONG rem);
+	void UpdatePos(LONGLONG pos);
 	void SetPos(LONGLONG pos);
 	void SetFileName(LPCTSTR file);
 	void SetMessage(LPCTSTR msg);
@@ -47,4 +49,5 @@ protected:
 // インプリメンテーション
 protected:
 	DECLARE_MESSAGE_MAP()
+	afx_msg void OnTimer(UINT_PTR nIDEvent);
 };

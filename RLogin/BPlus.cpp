@@ -120,10 +120,12 @@ CBPlus::CBPlus(class CRLoginDoc *pDoc, CWnd *pWnd) : CSyncSock(pDoc, pWnd)
 	m_ProtoName = _T("BPlus");
 	BP_Special_Quoting = 1;
 	F_FileType = FALSE;
+	SA_Buf = new buf_type[Max_SA+1];
 }
 
 CBPlus::~CBPlus()
 {
+	delete [] SA_Buf;
 }
 
 void CBPlus::OnProc(int cmd)

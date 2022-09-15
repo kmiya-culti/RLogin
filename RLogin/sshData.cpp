@@ -4154,6 +4154,9 @@ int CIdKey::LoadOpenSshKey(FILE *fp, LPCTSTR pass)
 		if ( !pubkey.GetBlob(&pub) )
 			throw _T("bad public key");
 
+		pubkey.FingerPrint(line, SSHFP_DIGEST_SHA256, SSHFP_FORMAT_SIMPLE);
+		m_LoadMsg.Format(_T("%s(%d) %32.32s..."), pubkey.GetName(), pubkey.GetSize(), line);
+
 		len = body.Get32Bit();				// size of encrypted key blob
 
 		keylen = cip.GetKeyLen(MbsToTstr(encname));
@@ -4584,7 +4587,7 @@ int CIdKey::LoadPuttyKey(FILE *fp, LPCTSTR pass)
 		CString line, para;
 		CString keyname, encname, comment;
 		CString pubkey, prikey;
-		CBuffer pubblob(-1), priblob(-1), encblob(-1);
+		CBuffer pubblob(-1), priblob(-1), encblob(-1), pubsave(-1);
 		CStringA str;
 		int version = 0;
 		CString keyDeriv;
@@ -4654,6 +4657,105 @@ int CIdKey::LoadPuttyKey(FILE *fp, LPCTSTR pass)
 			throw _T("key file version 3 format error");
 
 		pubblob.Base64Decode(pubkey);
+		pubsave = pubblob;
+
+		switch(type) {
+		case IDKEY_RSA2:
+			pubblob.GetStr(str);					// string "ssh-rsa"
+			if ( str.Compare("ssh-rsa") != 0 )
+				throw _T("key type error");
+			{
+				BIGNUM *e = pubblob.GetBIGNUM2(NULL);			// mpint  exponen
+				BIGNUM *n = pubblob.GetBIGNUM2(NULL);			// mpint  modulus
+
+				Create(type);
+				RSA_set0_key(m_Rsa, n, e, NULL);
+			}
+			break;
+
+		case IDKEY_DSA2:
+			pubblob.GetStr(str);					// string "ssh-dss"
+			if ( str.Compare("ssh-dss") != 0 )
+				throw _T("key type error");
+			{
+				BIGNUM *p = pubblob.GetBIGNUM2(NULL);				// mpint p
+				BIGNUM *q = pubblob.GetBIGNUM2(NULL);				// mpint q
+				BIGNUM *g = pubblob.GetBIGNUM2(NULL);				// mpint g
+				BIGNUM *pub_key = pubblob.GetBIGNUM2(NULL);			// mpint y
+
+				Create(type);
+				DSA_set0_pqg(m_Dsa, p, q, g);
+				DSA_set0_key(m_Dsa, pub_key, NULL);
+			}
+			break;
+
+		case IDKEY_ECDSA:
+			pubblob.GetStr(str);					// string "ecdsa-sha2-xxx"
+			if ( str.Left(11).Compare("ecdsa-sha2-") != 0 )
+				throw _T("key type error");
+			{
+				EC_POINT *q;
+				CStringA idxname;
+
+				pubblob.GetStr(idxname);
+				if ( (n = GetIndexName(MbsToTstr(idxname))) < 0 )
+					throw _T("ec curve name error");
+
+				Create(type);
+
+				if ( m_EcDsa == NULL || NidListTab[n].nid != m_EcNid ) {
+					if ( m_EcDsa != NULL )
+						EC_KEY_free(m_EcDsa);
+					m_EcNid = NidListTab[n].nid;
+					if ( (m_EcDsa = EC_KEY_new_by_curve_name(m_EcNid)) == NULL )
+						throw _T("ec curve name error");
+				}
+				if ( (q = EC_POINT_new(EC_KEY_get0_group(m_EcDsa))) == NULL )
+					throw _T("ec get0 group error");
+				if ( !pubblob.GetEcPoint(EC_KEY_get0_group(m_EcDsa), q) ) {
+					EC_POINT_free(q);
+					throw _T("ec ec point error");
+				}
+				if ( EC_METHOD_get_field_type(EC_GROUP_method_of(EC_KEY_get0_group(m_EcDsa))) == NID_X9_62_prime_field && key_ec_validate_public(EC_KEY_get0_group(m_EcDsa), q) != 0 ) {
+					EC_POINT_free(q);
+					throw _T("ec field type error");
+				}
+				if ( EC_KEY_set_public_key(m_EcDsa, q) != 1 ) {
+					EC_POINT_free(q);
+					throw _T("ec set public key error");
+				}
+				EC_POINT_free(q);
+			}
+			break;
+
+		case IDKEY_ED25519:
+			pubblob.GetStr(str);					// string "ssh-ed25519"
+			if ( str.Compare("ssh-ed25519") != 0 )
+				throw _T("key type error");
+
+			Create(type);
+			m_PublicKey.Clear();
+			pubblob.GetBuf(&m_PublicKey);
+			break;
+
+		case IDKEY_ED448:
+			pubblob.GetStr(str);					// string "ssh-ed448"
+			if ( str.Compare("ssh-ed448") != 0 )
+				throw _T("key type error");
+
+			Create(type);
+			m_PublicKey.Clear();
+			pubblob.GetBuf(&m_PublicKey);
+			break;
+
+		default:
+			throw _T("key type error");
+		}
+
+		FingerPrint(line, SSHFP_DIGEST_SHA256, SSHFP_FORMAT_SIMPLE);
+		m_LoadMsg.Format(_T("%s(%d) %32.32s..."), MbsToTstr(str), GetSize(), line);
+
+		pubblob.Move(pubsave);
 		encblob.Base64Decode(prikey);
 
 		if ( encname.Compare(_T("none")) != 0 ) {
@@ -4740,105 +4842,48 @@ int CIdKey::LoadPuttyKey(FILE *fp, LPCTSTR pass)
 		} else
 			priblob = encblob;
 
-		Create(type);
+		switch(type) {
+		case IDKEY_RSA2:
+			{
+				BIGNUM *d = priblob.GetBIGNUM2(NULL);			// mpint  private_exponent
+				BIGNUM *p = priblob.GetBIGNUM2(NULL);			// mpint  p    (the larger of the two primes)
+				BIGNUM *q = priblob.GetBIGNUM2(NULL);			// mpint  q    (the smaller prime)
+				BIGNUM *iqmp = priblob.GetBIGNUM2(NULL);		// mpint  iqmp (the inverse of q modulo p)
 
-		if ( type == IDKEY_RSA2 ) {
-			pubblob.GetStr(str);					// string "ssh-rsa"
-			if ( str.Compare("ssh-rsa") != 0 )
-				throw _T("key type error");
-
-			BIGNUM *e = pubblob.GetBIGNUM2(NULL);			// mpint  exponen
-			BIGNUM *n = pubblob.GetBIGNUM2(NULL);			// mpint  modulus
-			BIGNUM *d = priblob.GetBIGNUM2(NULL);			// mpint  private_exponent
-			BIGNUM *p = priblob.GetBIGNUM2(NULL);			// mpint  p    (the larger of the two primes)
-			BIGNUM *q = priblob.GetBIGNUM2(NULL);			// mpint  q    (the smaller prime)
-			BIGNUM *iqmp = priblob.GetBIGNUM2(NULL);		// mpint  iqmp (the inverse of q modulo p)
-
-			RSA_set0_key(m_Rsa, n, e, d);
-			RSA_set0_factors(m_Rsa, p, q);
-			RsaGenAddPara(iqmp);
-
-		} else if ( type == IDKEY_DSA2 ) {
-			pubblob.GetStr(str);					// string "ssh-dss"
-			if ( str.Compare("ssh-dss") != 0 )
-				throw _T("key type error");
-
-			BIGNUM *p = pubblob.GetBIGNUM2(NULL);				// mpint p
-			BIGNUM *q = pubblob.GetBIGNUM2(NULL);				// mpint q
-			BIGNUM *g = pubblob.GetBIGNUM2(NULL);				// mpint g
-			BIGNUM *pub_key = pubblob.GetBIGNUM2(NULL);			// mpint y
-			BIGNUM *priv_key = priblob.GetBIGNUM2(NULL);		// mpint x
-
-			DSA_set0_pqg(m_Dsa, p, q, g);
-			DSA_set0_key(m_Dsa, pub_key, priv_key);
-
-		} else if ( type == IDKEY_ECDSA ) {
-			EC_POINT *q;
-			BIGNUM *p;
-
-			pubblob.GetStr(str);					// string "ecdsa-sha2-xxx"
-			if ( str.Left(11).Compare("ecdsa-sha2-") != 0 )
-				throw _T("key type error");
-
-			pubblob.GetStr(str);
-			if ( (n = GetIndexName(MbsToTstr(str))) < 0 )
-				throw _T("ec curve name error");
-
-			if ( m_EcDsa == NULL || NidListTab[n].nid != m_EcNid ) {
-				if ( m_EcDsa != NULL )
-					EC_KEY_free(m_EcDsa);
-				m_EcNid = NidListTab[n].nid;
-				if ( (m_EcDsa = EC_KEY_new_by_curve_name(m_EcNid)) == NULL )
-					throw _T("ec curve name error");
+				RSA_set0_key(m_Rsa, NULL, NULL, d);
+				RSA_set0_factors(m_Rsa, p, q);
+				RsaGenAddPara(iqmp);
 			}
-			if ( (q = EC_POINT_new(EC_KEY_get0_group(m_EcDsa))) == NULL )
-				throw _T("ec get0 group error");
-			if ( !pubblob.GetEcPoint(EC_KEY_get0_group(m_EcDsa), q) ) {
-				EC_POINT_free(q);
-				throw _T("ec ec point error");
-			}
-			if ( EC_METHOD_get_field_type(EC_GROUP_method_of(EC_KEY_get0_group(m_EcDsa))) == NID_X9_62_prime_field && key_ec_validate_public(EC_KEY_get0_group(m_EcDsa), q) != 0 ) {
-				EC_POINT_free(q);
-				throw _T("ec field type error");
-			}
-			if ( EC_KEY_set_public_key(m_EcDsa, q) != 1 ) {
-				EC_POINT_free(q);
-				throw _T("ec set public key error");
-			}
-			EC_POINT_free(q);
+			break;
 
-			if ( (p = priblob.GetBIGNUM2(NULL)) == NULL )
-				throw _T("bn new error");
-			if ( EC_KEY_set_private_key(m_EcDsa, p) != 1 ) {
+		case IDKEY_DSA2:
+			{
+				BIGNUM *priv_key = priblob.GetBIGNUM2(NULL);		// mpint x
+
+				DSA_set0_key(m_Dsa, NULL, priv_key);
+			}
+			break;
+
+		case IDKEY_ECDSA:
+			{
+				BIGNUM *p;
+
+				if ( (p = priblob.GetBIGNUM2(NULL)) == NULL )
+					throw _T("bn new error");
+				if ( EC_KEY_set_private_key(m_EcDsa, p) != 1 ) {
+					BN_free(p);
+					throw _T("ec set private key error");
+				}
 				BN_free(p);
-				throw _T("ec set private key error");
 			}
-			BN_free(p);
+			break;
 
-		} else if ( type == IDKEY_ED25519 ) {
-			pubblob.GetStr(str);					// string "ssh-ed25519"
-			if ( str.Compare("ssh-ed25519") != 0 )
-				throw _T("key type error");
-
-			m_PublicKey.Clear();
-			pubblob.GetBuf(&m_PublicKey);
-
+		case IDKEY_ED25519:
+		case IDKEY_ED448:
 			m_PrivateKey.Clear();
 			priblob.GetBuf(&m_PrivateKey);
-
-		} else if ( type == IDKEY_ED448 ) {
-			pubblob.GetStr(str);					// string "ssh-ed448"
-			if ( str.Compare("ssh-ed448") != 0 )
-				throw _T("key type error");
-
-			m_PublicKey.Clear();
-			pubblob.GetBuf(&m_PublicKey);
-
-			m_PrivateKey.Clear();
-			priblob.GetBuf(&m_PrivateKey);
-
-		} else
-			throw _T("key type error");
+			break;
+		}
 
 		m_Name = comment;
 
@@ -5150,6 +5195,8 @@ int	CIdKey::LoadPrivateKey(LPCTSTR file, LPCTSTR pass)
 	EVP_PKEY *pk;
 	CString cert;
 	CWaitCursor wait;
+
+	m_LoadMsg.Empty();
 
 	if ( (fp = _tfopen(file, _T("r"))) == NULL )
 		return FALSE;
