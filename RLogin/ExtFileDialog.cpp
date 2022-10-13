@@ -94,6 +94,7 @@ CFileDownPage::CFileDownPage() : CDialogRes(CFileDownPage::IDD)
 	m_bDownCrLf = FALSE;
 	m_DownCrLfMode = 0;
 	m_bWithEcho = FALSE;
+	m_bFileAppend = FALSE;
 }
 CFileDownPage::~CFileDownPage()
 {
@@ -106,6 +107,7 @@ void CFileDownPage::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_CHECK1, m_bDownCrLf);
 	DDX_Check(pDX, IDC_CHECK2, m_bDownWait);
 	DDX_Check(pDX, IDC_CHECK3, m_bWithEcho);
+	DDX_Check(pDX, IDC_CHECK4, m_bFileAppend);
 	DDX_CBString(pDX, IDC_COMBO1, m_DownFrom);
 	DDX_CBString(pDX, IDC_COMBO2, m_DownTo);
 	DDX_CBIndex(pDX, IDC_COMBO3, m_DecMode);
@@ -143,6 +145,7 @@ BOOL CFileDownPage::OnInitDialog()
 	m_bDownWait    = m_pUpDown->m_bDownWait;
 	m_DownSec      = m_pUpDown->m_DownSec;
 	m_bWithEcho    = m_pUpDown->m_bWithEcho;
+	m_bFileAppend  = m_pUpDown->m_bFileAppend;
 
 	UpdateData(FALSE);
 
@@ -162,6 +165,7 @@ BOOL CFileDownPage::OnApply()
 	m_pUpDown->m_bDownWait    = m_bDownWait;
 	m_pUpDown->m_DownSec      = m_DownSec;
 	m_pUpDown->m_bWithEcho    = m_bWithEcho;
+	m_pUpDown->m_bFileAppend  = m_bFileAppend;
 
 	return TRUE;
 }

@@ -765,7 +765,7 @@ void CGrapWnd::SetMapCrc()
 	len = m_pActMap->GetBitmapBits(len, map);
 
 	for ( n = 0 ; n < len ; n++ )
-		m_Crc = crc32tab[(m_Crc ^ *(s++)) & 0xff] ^ (m_Crc >> 8);
+		m_Crc = crc32tab[(m_Crc ^ *(s++)) & 0xff] ^ ((m_Crc >> 8) & 0x00ffffff);
 
 	delete [] map;
 }

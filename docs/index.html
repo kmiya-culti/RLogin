@@ -26,8 +26,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.27.3)</TD>
-            <TD width="20%" align="right">2022/09/16</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.27.4)</TD>
+            <TD width="20%" align="right">2022/10/14</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -433,6 +433,12 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2022/10/14</TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.27.4/">2.27.4</A></TD>
+            <TD>ファイルダウンのデコードのishにNJISなどを追加して整理<BR>
+            openssl-3.0.6に更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2022/09/16</TD>
             <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.27.3/">2.27.3</A></TD>
             <TD>一部の秘密鍵ファイルのパスコード読み込み時に公開鍵の情報を表示<BR>
@@ -443,11 +449,11 @@ TD {
           <TR>
             <TD align="center">2022/07/27</TD>
             <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.27.2/">2.27.2</A></TD>
-            <TD>認証鍵ファイルのパスフレーズ入力時のフォーカスを変更<BR>
+            <TD><FONT color="#ff0000">プライベートプロファイルの仕様変更により下位バージョンとの互換が無くなります</FONT><BR>
+            認証鍵ファイルのパスフレーズ入力時のフォーカスを変更<BR>
             プライベートプロファイルの一部を圧縮するように変更<BR>
             Scriptのforeachが正しく動作しない問題を修正<BR>
-            openssl-3.0.5に更新<BR>
-            <FONT color="#ff0000">プライベートプロファイルの仕様変更により下位バージョンとの互換が無くなります</FONT></TD>
+            openssl-3.0.5に更新</TD>
           </TR>
           <TR>
             <TD align="center">2022/06/24</TD>
@@ -464,23 +470,6 @@ TD {
             Unicodeの半角のIVS/NSMが表示されていないバグを修正<BR>
             zlib-1.2.12に更新<BR>
             openssl-3.0.3に更新</TD>
-          </TR>
-          <TR>
-            <TD align="center">2022/03/18</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.26.9/">2.26.9</A></TD>
-            <TD>特殊文字の環境変数でWindowsの特殊フォルダを含めるように変更<BR>
-            Scriptの基本関数にhex/octなどを追加<BR>
-            Scriptの文字列関数にgetenv/getdoc/strcmpなどを追加<BR>
-            Scriptの文字列変換関数にsha256/sha512/tolowerなどを追加<BR>
-            Scriptのフォーマット関数にfprintf/cprintf/tprintfを追加<BR>
-            Scriptの文字列定数に「'...'」で「\」を解釈しない文字列を追加<BR>
-            Scriptの正規表現関数にregmode/regconvを追加<BR>
-            メニュー・編集・文字列を検索で検索方法や条件を追加<BR>
-            メニュー・ヘルプ・自動バージョンでメッセージを表示するように変更<BR>
-            認証鍵ファイルのダイアログでパスフレーズを表示できるように変更<BR>
-            クリップボードの設定にペーストを確認しないを追加<BR>
-            オプション設定にヘルプボタンでブラウザを起動する機能を追加<BR>
-            openssl-3.0.2に更新</TD>
           </TR>
           <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
@@ -506,7 +495,7 @@ TD {
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.0.5.tar.gz</A><BR>
+                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.0.6.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
@@ -597,7 +586,7 @@ TD {
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 3.0.5 5 Jul 2022<BR>
+            <P>OpenSSL 3.0.6 11 Oct 2022<BR>
             Copyright (c) 1998-2022 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>
@@ -2999,8 +2988,9 @@ fi</PRE>
                 </TR>
                 <TR>
                   <TD align="center">RSA2認証鍵の…</TD>
-                  <TD>RSA2鍵の署名で使用するハッシュ関数を拡張します。<BR>
-                  <S>標準はSHA1</S>でopenssh-7.2以降からSHA2を使用できます<BR>
+                  <TD>RSA2鍵の署名で使用するハッシュ関数を指定します<BR>
+                  ※バージョン2.27.3からデフォルトをSHA2に変更しました。<B>古いサーバーなどの場合にSHA1に変更する必要</B>があります<BR>
+                  ※openssh-7.2からSHA2を使用できます<BR>
                   ※openssh-8.8からSHA1が使用できません</TD>
                 </TR>
                 <TR>
@@ -3009,19 +2999,23 @@ fi</PRE>
                 </TR>
                 <TR>
                   <TD align="center">暗号方式</TD>
-                  <TD>暗号・検証・圧縮方法の優先順位を任意に並べます</TD>
+                  <TD>暗号・検証・圧縮方法の優先順位を任意に並べます<BR>
+                  <A href="#SSHPROTOCOL">暗号方式などの設定</A></TD>
                 </TR>
                 <TR>
                   <TD align="center">認証キー</TD>
-                  <TD>公開鍵認証で使用する鍵を作成・表示します</TD>
+                  <TD>公開鍵認証で使用する鍵を作成・表示します<BR>
+                  <A href="#SSHKEYSET">認証キーの設定</A></TD>
                 </TR>
                 <TR>
                   <TD align="center">ポートフォワード</TD>
-                  <TD>特定のTCP/IPをサーバーに転送します</TD>
+                  <TD>特定のTCP/IPをサーバーに転送します<BR>
+                  <A href="#PORTFORWARD">ポートフォワードの設定</A></TD>
                 </TR>
                 <TR>
                   <TD align="center">端末モード</TD>
-                  <TD>端末モードの設定をします</TD>
+                  <TD>端末モードの設定をします<BR>
+                  <A href="#TERMMODE">端末モードの設定</A></TD>
                 </TR>
                 <TR>
                   <TD align="center">追加のバージョン…</TD>
@@ -3049,13 +3043,12 @@ fi</PRE>
         <TBODY>
           <TR>
             <TD valign="top" width="600">暗号・検証・圧縮方法の優先順位を任意に並べます<BR>
-            <BR>
             変更したい項目を選択してSHIFT+↑、SHIFT+↓で順位が変わります<BR>
+            参照：<A href="faq.html#LOGON">ログイン手順の自動化</A> <A href="faq.html#SSHALGO">SSH2での各種選択</A><BR>
             <BR>
             暗号化のスピードは、以下のようになるようです（コンパイル条件により異なります）<BR>
             arcfour&gt;aes&gt;twofish&gt;blowfish&gt;camellia&gt;cast&gt;idea&gt;seed&gt;serpent&gt;3des<BR>
             cbc&gt;ecb&gt;ofb&gt;cfb&gt;ctr<BR>
-            <BR>
             <TABLE width="600" cellpadding="3" cellspacing="1" class="BOX">
               <TBODY>
                 <TR>

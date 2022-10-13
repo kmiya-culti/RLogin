@@ -28,6 +28,7 @@ CFileUpDown::CFileUpDown(class CRLoginDoc *pDoc, CWnd *pWnd) : CSyncSock(pDoc, p
 	m_bDownCrLf    = FALSE;
 	m_DownCrLfMode = CRLFMODE_CRLF;
 	m_bWithEcho    = FALSE;
+	m_bFileAppend  = FALSE;
 
 	m_UpMode       = UPMODE_NONE;
 	m_UpFrom       = _T("CP932");
@@ -97,6 +98,8 @@ void CFileUpDown::Serialize(int mode)
 		stra.AddVal(m_bXonXoff);
 		stra.AddVal(m_bRecvEcho);
 
+		stra.AddVal(m_bFileAppend);
+
 		((CRLoginApp *)AfxGetApp())->WriteProfileArray(_T("FileUpDown"), stra);
 
 	} else {		// Read
@@ -134,6 +137,9 @@ void CFileUpDown::Serialize(int mode)
 		m_CrLfMsec     = stra.GetVal(24);
 		m_bXonXoff     = stra.GetVal(25);
 		m_bRecvEcho    = stra.GetVal(26);
+
+		if ( stra.GetSize() > 27 )
+			m_bFileAppend = stra.GetVal(27);
 	}
 }
 void CFileUpDown::OnProc(int cmd)
@@ -146,6 +152,52 @@ void CFileUpDown::OnProc(int cmd)
 		UpLoad();
 		break;
 	}
+}
+
+void CFileUpDown::CheckShortName()		// check 8.3 file name
+{
+	int n;
+	LPCTSTR s;
+	CString name, sub;
+	CStringA mbs;
+	TCHAR shortname[MAX_PATH];
+
+	if ( GetShortPathName(m_PathName, shortname, MAX_PATH) > 0 ) {
+		if ( (s = _tcsrchr(shortname, _T('\\'))) != NULL || (s = _tcschr(shortname, _T(':'))) != NULL )
+			name = s + 1;
+		else
+			name = shortname;
+	} else
+		name = m_pDoc->LocalStr(m_FileName);
+
+	while ( (n = name.Find(_T(' '))) >= 0 )
+		name.Delete(n);
+
+	if ( (s = _tcsrchr(name, _T('.'))) != NULL )
+		sub = ++s;
+
+	if ( (n = name.Find(_T('.'))) >= 0 )
+		name.Delete(n, name.GetLength() - n);
+
+	for ( ; ; ) {
+		m_FileName = m_pDoc->RemoteStr(name);
+		if ( m_FileName.GetLength() <= 8 )
+			break;
+		name.Delete(name.GetLength() - 1);
+	}
+
+	if ( sub.IsEmpty() )
+		return;
+
+	for ( ; ; ) {
+		mbs = m_pDoc->RemoteStr(sub);
+		if ( mbs.GetLength() <= 3 )
+			break;
+		sub.Delete(sub.GetLength() - 1);
+	}
+
+	m_FileName += '.';
+	m_FileName += mbs;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -165,18 +217,29 @@ void CFileUpDown::DownLoad()
 	int last = (-1);
 	int uudec = 0;
 	FILE *fp = NULL;
+	struct _stati64 st;
 	BOOL bRewSize = TRUE;
 	LONGLONG TranSize;
 	CBuffer tmp, work, line;
 	LPCSTR p;
 	CStringA msg;
 	CIsh ish;
+	CStringBinary ishVolPath;
 
 	if ( !CheckFileName(CHKFILENAME_SAVE, "", EXTFILEDLG_DOWNLOAD) )
 		return;
 
-	if ( (fp = _tfopen(m_PathName, _T("wb"))) == NULL )
+	if ( m_bFileAppend && !_tstati64(m_PathName, &st) && (st.st_mode & _S_IFMT) == _S_IFREG ) {
+		if ( (fp = _tfopen(m_PathName, _T("r+b"))) == NULL ) {
+			::AfxMessageBox(IDE_FILEOPENERROR, MB_ICONERROR);
+			return;
+		}
+		_fseeki64(fp, 0, SEEK_END);
+
+	} else if ( (fp = _tfopen(m_PathName, _T("wb"))) == NULL ) {
+		::AfxMessageBox(IDE_FILEOPENERROR, MB_ICONERROR);
 		return;
+	}
 
 	UpDownOpen("Simple File Download");
 	UpDownInit(0, 0);
@@ -257,8 +320,18 @@ void CFileUpDown::DownLoad()
 							while ( *p == ' ' ) p++;
 
 							if ( fp == NULL ) {
-								if ( !CheckFileName(CHKFILENAME_SAVE, p) || (fp = _tfopen(m_PathName, _T("wb"))) == NULL )
-									uudec = 0;
+								if ( !CheckFileName(CHKFILENAME_SAVE, p) )
+									goto ENDOFRET;
+								if ( m_bFileAppend && !_tstati64(m_PathName, &st) && (st.st_mode & _S_IFMT) == _S_IFREG ) {
+									if ( (fp = _tfopen(m_PathName, _T("r+b"))) == NULL ) {
+										::AfxMessageBox(IDE_FILEOPENERROR, MB_ICONERROR);
+										goto ENDOFRET;
+									}
+									_fseeki64(fp, 0, SEEK_END);
+								} else if ( (fp = _tfopen(m_PathName, _T("wb"))) == NULL ) {
+									::AfxMessageBox(IDE_FILEOPENERROR, MB_ICONERROR);
+									goto ENDOFRET;
+								}
 								UpDownInit(0, 0);
 							}
 
@@ -303,12 +376,32 @@ void CFileUpDown::DownLoad()
 						switch(ish.DecodeLine((LPCSTR)line, work)) {
 						case ISH_RET_HEAD:
 							if ( fp == NULL ) {
-								if ( CheckFileName(CHKFILENAME_SAVE, ish.m_FileName) )
+								if ( ish.m_VolSeq != 0 && ishVolPath.Find(ish.m_VolChkName) != NULL ) {
+									m_PathName = ishVolPath[ish.m_VolChkName];
+									fp = _tfopen(m_PathName, _T("r+b"));
+								} else if ( !CheckFileName(CHKFILENAME_SAVE, ish.m_FileName) )
+									goto ENDOFRET;
+								else if ( m_bFileAppend && !_tstati64(m_PathName, &st) && (st.st_mode & _S_IFMT) == _S_IFREG ) {
+									if ( (fp = _tfopen(m_PathName, _T("r+b"))) != NULL )
+										_fseeki64(fp, 0, SEEK_END);
+								} else
 									fp = _tfopen(m_PathName, _T("wb"));
+
+								if ( fp == NULL ) {
+									::AfxMessageBox(IDE_FILEOPENERROR, MB_ICONERROR);
+									goto ENDOFRET;
+								}
 							}
-							UpDownInit(ish.m_Size);
+							if ( fp != NULL && ish.m_VolSeq != 0 ) {
+								_fseeki64(fp, ish.m_FileSeek, SEEK_SET);
+								ishVolPath[ish.m_VolChkName] = m_PathName;
+							}
+							UpDownInit(ish.m_FileSize);
 							bRewSize = FALSE;
-							msg.Format("ish start '%s'", ish.m_FileName);
+							if ( ish.m_VolSeq != 0 )
+								msg.Format("ish start '%s' #%d", ish.m_FileName, ish.m_VolSeq);
+							else
+								msg.Format("ish start '%s'", ish.m_FileName);
 							UpDownMessage(msg);
 							break;
 						case ISH_RET_DATA:
@@ -316,24 +409,43 @@ void CFileUpDown::DownLoad()
 								break;
 							if ( work.GetSize() > 0 )
 								fwrite(work.GetPtr(), 1, work.GetSize(), fp);
-							UpDownStat(ish.m_FileSize);
+							UpDownStat(ish.GetSize());
 							break;
 						case ISH_RET_ENDOF:
 							if ( fp == NULL )
 								break;
 							if ( work.GetSize() > 0 )
 								fwrite(work.GetPtr(), 1, work.GetSize(), fp);
+							if ( ish.m_VolSeq != 0 )
+								ishVolPath[ish.m_VolChkName][ish.m_VolSeq] = 1;
 							UpDownStat(ish.m_FileSize);
 							fclose(fp);
 							fp = NULL;
-							UpDownMessage("ish end... closed");
+							if ( ish.m_FileTime != 0 ) {
+								struct _utimbuf utm;
+								utm.actime  = ish.m_FileTime;
+								utm.modtime = ish.m_FileTime;
+								_tutime(m_PathName, &(utm));
+							}
+							if ( ish.m_VolSeq != 0 ) {
+								msg.Format("ish end '%s' (%d/%d)", ish.m_FileName, ishVolPath[ish.m_VolChkName].GetSize(), ish.m_VolMax);
+								UpDownMessage(msg);
+							} else
+								UpDownMessage("ish end... closed");
 							break;
-						case ISH_RET_ABORT:
+						case ISH_RET_ECCERR:
 							if ( fp == NULL )
 								break;
 							fclose(fp);
 							fp = NULL;
-							UpDownMessage("ish error abort... closed");
+							UpDownMessage("ish ECC error... closed");
+							break;
+						case ISH_RET_CRCERR:
+							if ( fp == NULL )
+								break;
+							fclose(fp);
+							fp = NULL;
+							UpDownMessage("ish CRC error... closed");
 							break;
 						}
 						break;
@@ -346,6 +458,7 @@ void CFileUpDown::DownLoad()
 		}
 	}
 
+ENDOFRET:
 	if ( fp != NULL )
 		fclose(fp);
 	UpDownClose();
@@ -438,18 +551,18 @@ BOOL CFileUpDown::GetIshFile(GETPROCLIST *pProc)
 		m_TranSize = 0;
 		m_FileBuffer.Clear();
 
-		if ( (m_FileSize >> 32) != 0 ) {
-			::AfxMessageBox(_T("There is a limit of 32bits on the file size of ish encoding"));
+		CheckShortName();
+
+		if ( !m_Ish.EncodeHead(ISH_LEN_JIS7, m_UpFp, m_FileName, st.st_size, st.st_mtime, m_FileBuffer) ) {
+			::AfxMessageBox(_T("ish file size limit error"), MB_ICONERROR);
 			return EOF;
 		}
 
 		UpDownOpen("Ish File Upload");
 		UpDownInit(m_FileSize);
 
-		m_Ish.EncodeHead(m_FileName, st.st_size, st.st_mtime, m_FileBuffer);
-
 	} else {
-		if ( (len = m_Ish.EncodeBlock(m_UpFp, m_FileBuffer)) <= 0 ) {
+		if ( (len = m_Ish.EncodeBlock(m_UpFp, m_FileBuffer)) < 0 ) {
 			UpDownClose();
 			fclose(m_UpFp);
 			m_UpFp = NULL;

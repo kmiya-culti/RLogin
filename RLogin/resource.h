@@ -310,6 +310,7 @@
 #define IDE_OPTFIXDEEPENTRY             741
 #define IDE_OPTFIXNOTFOUND              742
 #define IDE_VERCHKERROR                 743
+#define IDE_FILEOPENERROR               744
 #define IDT_EXTOPT_LIST01               800
 #define IDT_EXTOPT_LIST02               801
 #define IDT_EXTOPT_LIST03               802

@@ -122,6 +122,7 @@
 #pragma comment(lib, "secur32.lib")
 #pragma comment(lib, "crypt32.lib")
 #pragma comment(lib, "version.lib")
+#pragma comment(lib, "windowscodecs.lib")
 
 #ifdef	USE_DIRECTWRITE
   #include <d2d1.h>

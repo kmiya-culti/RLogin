@@ -76,6 +76,61 @@ BOOL IsZeroMemory(void *ptr, int len)
 }
 
 //////////////////////////////////////////////////////////////////////
+// CBits
+
+CBits::CBits(LPBYTE buf, int len)
+{
+	m_Ptr = buf;
+	m_EndPtr = buf + len;
+	m_Data = 0;
+	m_Have = 0;
+}
+int CBits::GetBits(int bits)
+{
+	int n, b;
+	int d = 0;
+
+	for ( n = 0 ; n < bits ; ) {
+		if ( m_Have <= 0 ) {
+			if ( m_Ptr >= m_EndPtr )
+				break;
+			m_Data = *(m_Ptr++);
+			m_Have = 8;
+		}
+
+		if ( (b = bits - n) > m_Have )
+			b = m_Have;
+
+		d |= (m_Data & (0xFF >> (8 - b))) << n;
+	
+		if ( (m_Have -= b) > 0 )
+			m_Data >>= b;
+		n += b;
+    }
+
+	return d;
+}
+CBits::CBits(class CBuffer *out)
+{
+	m_pOut = out;
+	m_Data = 0;
+	m_Have = 0;
+}
+void CBits::SetBits(int data, int bits)
+{
+	m_Data |= (data << m_Have);
+	m_Have += bits;
+
+	while ( m_Have >= 8 ) {
+		m_pOut->PutByte(m_Data);
+		m_Have -= 8;
+		m_Data >>= 8;
+	}
+
+	m_Data &= (0xFF >> (8 - m_Have));
+}
+
+//////////////////////////////////////////////////////////////////////
 // CBuffer
 
 #ifdef	DEBUG
@@ -1345,66 +1400,62 @@ void CBuffer::UuEncode(LPBYTE buf, int len)
 //////////////////////////////////////////////////////////////////////
 
 static const BYTE dct_j7[] = {
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,	// 00
 	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,	// 10
 	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-	0xff, 0x00, 0x01, 0xff, 0x02, 0x03, 0x04, 0x05,
+	0xff, 0x00, 0x01, 0xff, 0x02, 0x03, 0x04, 0x05,	// 20
 	0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0xff, 0x0c,
-	0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14,
+	0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14,	// 30
 	0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c,
-	0x1d, 0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23, 0x24,
+	0x1d, 0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23, 0x24,	// 40
 	0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c,
-	0x2d, 0x2e, 0x2f, 0x30, 0x31, 0x32, 0x33, 0x34,
+	0x2d, 0x2e, 0x2f, 0x30, 0x31, 0x32, 0x33, 0x34,	// 50
 	0x35, 0x36, 0x37, 0x38, 0x39, 0x3a, 0x3b, 0x3c,
-	0xff, 0x3d, 0x3e, 0x3f, 0x40, 0x41, 0x42, 0x43,
+	0xff, 0x3d, 0x3e, 0x3f, 0x40, 0x41, 0x42, 0x43,	// 60
 	0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4a, 0x4b,
-	0x4c, 0x4d, 0x4e, 0x4f, 0x50, 0x51, 0x52, 0x53,
-	0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5a, 0xff
+	0x4c, 0x4d, 0x4e, 0x4f, 0x50, 0x51, 0x52, 0x53,	// 70
+	0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5a, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,	// 80
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,	// 90
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,	// a0
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,	// b0
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,	// c0
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,	// d0
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,	// eo
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,	// f0
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
 };
-static const int dj7_m[] = { 0, 3, 6, 1, 4, 7, 2, 5 };
 
 LPCSTR CBuffer::IshDecJis7(LPCSTR str)
 {
-	int c, c1, c2, c3;
-    unsigned i, j, k, d;
-    BYTE dat;
+	int d, c1, c2;
+	CBits data(this);
 
 	Clear();
 
-    if ( (c = dct_j7[(BYTE)str[0]]) == 0xff )
-		return str;
-    if ( (c1 = dct_j7[(BYTE)str[1]]) == 0xff )
-		return str + 1;
-    if ( (c2 = dct_j7[(BYTE)str[2]]) == 0xff )
-		return str + 2;
-    if ( (c3 = dct_j7[(BYTE)str[3]]) == 0xff )
-		return str + 3;
-
-	PutByte(c1 << 6 | c);
-	PutByte(c2 << 4 | c1 >> 2);
-	dat = c3 << 2 | c2 >> 4;
-
-    for ( i = 0, k = 4; str[k] != '\0' ; i++ ) {
-		if ( (c1 = dct_j7[(BYTE)str[k++]]) == 0xff )
-			return str + k;
-		if ( (c2 = dct_j7[(BYTE)str[k++]]) == 0xff )
-			return str + k;
-
-		d = c1 * 91;
-		d += c2;
-		if ( d > 0x3fff )
+	for ( d = 0 ; d < 4 && *str != '\0' ; d++ ) {
+		if ( (c1 = dct_j7[(BYTE)*(str++)]) == 0xff )
 			return str;
+		data.SetBits(c1, 6);
+	}
 
-		if ( (j=dj7_m[i & 7]) != 0)
-			dat |= d << (8 - j) & 0xff;
-		PutByte(dat);
-		dat = d >> j;
-		if ( j < 5 ) {
-			PutByte(dat);
-			dat = d >> (8 + j);
-		}
-    }
+	while ( *str != '\0' ) {
+		if ( (c1 = dct_j7[(BYTE)*(str++)]) == 0xff )
+			break;
+		if ( (c2 = dct_j7[(BYTE)*(str++)]) == 0xff )
+			break;
+
+		d = c1 * 91 + c2;
+		data.SetBits(d, 13);
+	}
 
 	return str;
 }
@@ -1423,39 +1474,22 @@ static const BYTE ent_j7[] = {
 	0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7a, 0x7b,
 	0x7c, 0x7d, 0x7e
 };
-static const int ej7_m[] = { 0, 5, 2, 7, 4, 1, 6, 3 };
 
 void CBuffer::IshEncJis7(LPBYTE buf, int len)
 {
-	int d, du, dl, i, j;
-    int d0, d1, d2;
-    BYTE *dat = buf;
+	int d, du, dl;
+	CBits data(buf, len);
 
-	if ( len < 3 )
-		return;
+	for ( d = 0 ; d < 4 && !data.isEmpty() ; d++ )
+		PutByte(ent_j7[data.GetBits(6)]);
 
-    d0 = *dat++;
-    d1 = *dat++;
-    d2 = *dat;
-
-	PutByte(ent_j7[d0 & 0x3f]);
-	PutByte(ent_j7[((d0 >> 6) | (d1 << 2)) & 0x3f]);
-	PutByte(ent_j7[((d1 >> 4) | (d2 << 4)) & 0x3f]);
-	PutByte(ent_j7[d2 >> 2]);
-
-    for( i = 0; dat < (buf + len) ; i++ ) {
-		if( (j = ej7_m[i & 7]) == 0 )
-			++dat;
-		d = *dat >> j;
-		d |= *(++dat) << (8 - j);
-		if(j > 3)
-			d |= *(++dat) << (16 - j);
-		d &= 0x1fff;
+	while ( !data.isEmpty() ) {
+		d = data.GetBits(13);
 		du = d / 91;
 		dl = d - du * 91;
 		PutByte(ent_j7[du & 0x7f]);
 		PutByte(ent_j7[dl & 0x7f]);
-    }
+	}
 }
 
 static const unsigned char dct_j8[] = {
@@ -1492,27 +1526,19 @@ static const unsigned char dct_j8[] = {
 	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
 };
-
 	
 LPCSTR CBuffer::IshDecJis8(LPCSTR str)
 {
-	int i, j, c;
-	unsigned char dat;
+	int d;
+	CBits data(this);
 
-	Clear();
+	while ( *str != '\0' ) {
+		if( (d = dct_j8[(BYTE)*(str++)]) == 0xff )
+			break;
+		data.SetBits(d, 7);
+	}
 
-	for( i = 0 ; str[i] != '\0' ; i++ ) {
-		if( (c = dct_j8[(BYTE)str[i]]) == 0xff )
-			return str + i;
-		if( (j = i % 8) != 0 )
-			dat |= c << (8 - j);
-		if( j != 7 ) {
-			if ( i > 0 )
-				PutByte(dat);
-			dat = c >> j;
-		}
-    }
-	return str + i;
+	return str;
 }
 
 static const unsigned char ent_j8[] = {
@@ -1536,23 +1562,13 @@ static const unsigned char ent_j8[] = {
 
 void CBuffer::IshEncJis8(LPBYTE buf, int len)
 {
-    int i, j, a;
-    unsigned char *dat;
+	int d;
+	CBits data(buf, len);
 
-    dat = buf - 1;
-    for( i = 0 ; dat < (buf + len) ; i++ ) {
-		a = 0;
-		if( (j = i % 8) != 0 )
-			a |= *dat >> (8 - j);
-		if( j != 7 ) {
-			if ( ++dat >= (buf + len) )
-				a = 0;
-			else
-				a |= *dat << j;
-		}
-		a &= 0x7f;
-		PutByte(ent_j8[a]);
-    }
+	while ( !data.isEmpty() ) {
+		d = data.GetBits(7);
+		PutByte(ent_j8[d]);
+	}
 }
 
 static const unsigned char dct_sj[] = {
@@ -1626,80 +1642,72 @@ static const unsigned char dct_sj2[] = {
 
 LPCSTR CBuffer::IshDecSjis(LPCSTR str)
 {
-	unsigned char c, dat = 0;
-    int d, sjdf, i, j, k, len;
+	int c, d;
+	BOOL bShift = FALSE;
+	CBits data(this);
 
 	Clear();
 
-	len = (int)strlen(str);
-
-    if ( (c = dct_j8[(BYTE)str[0]]) == 0xff )
+    if ( (d = dct_j8[(BYTE)*(str++)]) == 0xff )
 		return str;
 
-	dat = c;
+	data.SetBits(d, 7);
 
-    /* 15bit decoding */
-
-    for ( i = 1, k = 1, sjdf = 0 ; k < (len - 1) ; i++ ) {
+	while ( str[0] != '\0' && str[1] != '\0' ) {
 		/* 1st char */
-		c = (BYTE)str[k++];
-		if ( sjdf == 0 ) {
+		c = (BYTE)*(str++);
+
+		if ( !bShift ) {
 			if( (c >= 0x80 && c <= 0x9f) || (c >= 0xe0 && c <= 0xe9) )
-				sjdf = 1;
+				bShift = TRUE;
 			c = dct_sj[c];
 		} else {
 			c = dct_sj2[c];
-			sjdf = 0;
+			bShift = FALSE;
 		}
 		if ( c == 0xff )
-			return str + k;
+			return str;
+
 		d = c * 182;
 
 		/* 2nd char */
+		c = (BYTE)*(str++);
 
-		c = (BYTE)str[k++];
-		if ( sjdf == 0 ) {
-			if ( (c >= 0x80 && c <= 0x9f) || (c >= 0xe0 && c <= 0xe9) )
-				sjdf = 1;
+		if ( !bShift ) {
+			if( (c >= 0x80 && c <= 0x9f) || (c >= 0xe0 && c <= 0xe9) )
+				bShift = TRUE;
 			c = dct_sj[c];
 		} else {
 			c = dct_sj2[c];
-			sjdf = 0;
+			bShift = FALSE;
 		}
-		if (c == 0xff)
-			return str + k;
+		if ( c == 0xff )
+			return str;
 
-		if ((d += c) > 0x7fff)
-			return str + k;
+		d += c;
 
-		/* store to LINE */
-		if( (j = (i & 7)) != 0 )
-			dat |= d << (8 - j) & 0xff;
-		PutByte(dat);
-		dat = d >> j;
-		if( j < 7 ) {
-			PutByte(dat);
-			dat = d >> (8 + j);
-		}
+		data.SetBits(d, 15);
     }
 
     /* the last char has 7bit data */
 
-    c = (BYTE)str[k++];
-    if (sjdf == 0) {
-		if(c >= 0xc9 && c <= 0xdf)
-		    c = c + (0x100 - 0x40) & 0xff;
-		c = dct_sj[c];
-    } else
-		c = dct_sj2[c];
+	if ( *str != '\0' ) {
+		c = (BYTE)*(str++);
 
-    if (c == 0xff)
-		return str + k;
+		if ( !bShift ) {
+			if( c >= 0xc9 && c <= 0xdf )
+				c = c + (0x100 - 0x40) & 0xff;
+			c = dct_sj[c];
+		} else
+			c = dct_sj2[c];
 
-	dat |= c << (8 - i & (8 - 1)) & 0xff;
-	PutByte(dat);
+		if ( c == 0xff )
+			return str;
 
-	return str + k;
+		data.SetBits(c, 7);
+	}
+
+	return str;
 }
 
 static const unsigned char ent_sj[] = {
@@ -1755,75 +1763,232 @@ static const unsigned char ent_sj2[] = {
 
 void CBuffer::IshEncSjis(LPBYTE buf, int len)
 {
-    int sjef, i, j, d;
-    unsigned char c, du, dl;
-    unsigned char *dat;
+	int c, d = 0, du, dl;
+	BOOL bShift = FALSE;
+	CBits data(buf, len);
 
-    dat = buf;
-	PutByte(ent_j8[*dat & 0x7f]);
+	PutByte(ent_j8[data.GetBits(7)]);
 
-    for ( i = 1, sjef = 0 ; dat < (buf + len - 1) ; i++ ) {
-		if ( (j = 8 - (i & 7)) == 0 )
-		    ++dat;
-
-		if ( dat < (buf + len) )
-			d = *dat >> j;
-		else
-			d = 0;
-
-		if ( dat < (buf + len) && ++dat < (buf + len) )
-			d |= *dat << (8 - j);
-
-		if( j > 1 && dat < (buf + len) ) {
-			if ( ++dat < (buf + len) )
-				d |= *dat << (16 - j);
-		}
-
+	while ( !data.isEmpty() ) {
 		/* extract lower 15 bits */
+		d = data.GetBits(7);
 
-		d &= 0x7fff;
+		if ( data.isEmpty() )
+			break;
+
+		d = d | (data.GetBits(8) << 7);	// 7 + 8 = 15 bits
 
 		/* split into 2 chars */
 
 		du = (BYTE)(d / 182);
 		dl = (BYTE)(d - du * 182);
+		d = 0;
 
 		/* 1st char */
 
-		if ( sjef == 0 ) {
+		if ( !bShift ) {
 			c = ent_sj[du];
 			if ( (c >= 0x80 && c <= 0x9f) ||	(c >= 0xe0 && c <= 0xe9) )
-				sjef = 1;
+				bShift = TRUE;
 		} else {
 			c = ent_sj2[du];
-			sjef = 0;
+			bShift = FALSE;
 		}
+
 		PutByte(c);
 
 		/* 2nd char */
 
-		if ( sjef == 0 ) {
+		if ( !bShift ) {
 			c = ent_sj[dl];
 			if ( (c >= 0x80 && c <= 0x9f) || (c >= 0xe0 && c <= 0xe9) )
-				sjef = 1;
+				bShift = TRUE;
 		} else {
 			c = ent_sj2[dl];
-			sjef = 0;
+			bShift = FALSE;
 		}
+
 		PutByte(c);
-    }
+	}
 
-    /* the last char has 7bit data */
+	/* the last char has 7bit data */
 
-    dl = *dat >> 1;
-    if( sjef == 0 ) {
-		c = ent_sj[dl];
+	if ( !bShift ) {
+		c = ent_sj[d];
 		if( (c >= 0x89 && c <= 0x9f) || (c >= 0xe0 && c <= 0xe9) )
 			c += 0x40;
-    } else {
-		c = ent_sj2[dl];
-    }
+	} else
+		c = ent_sj2[d];
+
 	PutByte(c);
+}
+
+static const unsigned char dct_nj[] = {
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0x00, 0x01, 0xff, 0x02, 0x03, 0x04, 0x05,
+	0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0xff, 0x0c,
+	0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14,
+	0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c,
+	0x1d, 0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23, 0x24,
+	0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c,
+	0x2d, 0x2e, 0x2f, 0x30, 0x31, 0x32, 0x33, 0x34,
+	0x35, 0x36, 0x37, 0x38, 0x39, 0x3a, 0x3b, 0x3c,
+	0xff, 0x3d, 0x3e, 0x3f, 0x40, 0x41, 0x42, 0x43,
+	0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4a, 0x4b,
+	0x4c, 0x4d, 0x4e, 0x4f, 0x50, 0x51, 0x52, 0x53,
+	0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5a, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0x5b, 0x5c, 0x5d, 0x5e, 0x5f, 0x60, 0x61,
+	0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69,
+	0xff, 0x6a, 0x6b, 0x6c, 0x6d, 0x6e, 0x6f, 0x70,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78,
+	0x79, 0x7a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
+};
+
+LPCSTR CBuffer::IshDecNjis(LPCSTR str)
+{
+	int d, d1, d2;
+	CBits data(this);
+
+	Clear();
+
+	if ( (d = dct_j7[(BYTE)*(str++)]) == 0xff )
+		return str;
+
+	PutByte(d);
+
+	while ( str[0] != '\0' ) {
+		if ( str[1] == '\0' ) {			// last one char
+			if ( (d1 = dct_j7[(BYTE)*(str++)]) == 0xff )
+				break;
+			data.SetBits(d1, 6);
+			break;
+		}
+
+		if ( (d1 = dct_nj[(BYTE)*(str++)]) == 0xff )
+			break;
+
+		if ( d1 < 91 ) {
+			if ( str[1] == '\0' ) {		// last two char
+				if ( (d2 = dct_j7[(BYTE)*(str++)]) == 0xff )
+					break;
+				d = d1 * 91 + d2;
+				data.SetBits(d, 14);
+				break;
+			}
+
+			if ( (d2 = dct_nj[(BYTE)*(str++)]) == 0xff )
+				break;
+			d = d1 * 123 + d2;
+			data.SetBits(d, 14);
+
+			if ( d2 >= 91 ) {
+				if ( (d = dct_sj2[(BYTE)*(str++)]) == 0xff )
+					break;
+				data.SetBits(d, 7);
+			}
+
+		} else {
+			if ( (d2 = dct_sj2[(BYTE)*(str++)]) == 0xff )
+				break;
+			d1 -= 91;
+			d = d1 * 182 + 11193 + d2;
+			data.SetBits(d, 14);
+		}
+	}
+
+	return str;
+}
+
+static const unsigned char ent_nj7[] = {
+	0x21, 0x22, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29,
+	0x2a, 0x2b, 0x2c, 0x2d, 0x2f, 0x30, 0x31, 0x32,
+	0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3a,
+	0x3b, 0x3c, 0x3d, 0x3e, 0x3f, 0x40, 0x41, 0x42,
+	0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4a,
+	0x4b, 0x4c, 0x4d, 0x4e, 0x4f, 0x50, 0x51, 0x52,
+	0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5a,
+	0x5b, 0x5c, 0x5d, 0x5e, 0x5f, 0x61, 0x62, 0x63,
+	0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6a, 0x6b,
+	0x6c, 0x6d, 0x6e, 0x6f, 0x70, 0x71, 0x72, 0x73,
+	0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7a, 0x7b,
+	0x7c, 0x7d, 0x7e,									// 91
+					  0x89, 0x8a, 0x8b, 0x8c, 0x8d,
+	0x8e, 0x8f, 0x90, 0x91, 0x92, 0x93, 0x94, 0x95,
+	0x96, 0x97, 0x99, 0x9a, 0x9b, 0x9c, 0x9d, 0x9e,
+	0x9f, 0xe0, 0xe1, 0xe2, 0xe3, 0xe4, 0xe5, 0xe6,
+	0xe7, 0xe8, 0xe9									// 122
+};
+
+static const unsigned char ent_nj[] = {		// 32
+	0x89, 0x8a, 0x8b, 0x8c, 0x8d, 0x8e, 0x8f, 0x90,
+	0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x99,
+	0x9a, 0x9b, 0x9c, 0x9d, 0x9e, 0x9f, 0xe0, 0xe1,
+	0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9
+};
+
+void CBuffer::IshEncNjis(LPBYTE buf, int len)
+{
+	int d, du, dl;
+	CBits data(buf, len);
+
+	PutByte(ent_nj7[data.GetBits(8) % 91]);			// lost data ?
+
+	while ( !data.isEmpty() ) {
+		/* extract lower 14 bits */
+
+		d = data.GetBits(6);						// 6bits
+
+		if ( data.isEmpty() ) {
+			// last one char
+			PutByte(ent_nj7[d]);					// 0-63(6bits)
+			break;
+		}
+
+		d = d | (data.GetBits(8) << 6);				// 6 + 8 = 14bits
+
+		/* split into 2 chars */
+
+		if ( d < 11193 ) {
+			if ( data.isEmpty() ) {
+				// last tow char
+				// 14bits‚Ìê‡‚Édu‚ª91ˆÈã‚É‚È‚é‚ª
+				// (69-1)byte*8=544 - 76char*7=532 = 11bits ‚ÌðŒ‰º‚Å‚Í‘åä•vH
+				du = d / 91;
+				dl = d % 91;
+				PutByte(ent_nj7[du]);				// 13bits(8191) / 91 = 90
+				PutByte(ent_nj7[dl]);				// 0-90
+				break;
+			}
+
+			du = d / 123;
+			dl = d % 123;
+			PutByte(ent_nj7[du]);					// 11192 / 123 = 90
+			PutByte(ent_nj7[dl]);					// 0-122
+			if ( dl >= 91 )
+				PutByte(ent_sj2[data.GetBits(7)]);	// 0-127
+
+		} else {
+			d -= 11193;
+			du = d / 182;
+			dl = d % 182;
+			PutByte(ent_nj[du]);					// (0x3FFF - 11193) / 182 = 0-28
+			PutByte(ent_sj2[dl]);					// 0-181
+		}
+	}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -9221,6 +9386,15 @@ CStringBinary * CStringBinary::FindValue(int value)
 
 	return m_pRoot->FindNodeValue(value);
 }
+int CStringBinary::GetSize()
+{
+	int count = 0;
+
+	if ( m_pRoot != NULL )
+		m_pRoot->GetSizeNode(count);
+
+	return count;
+}
 
 //////////////////////////////////////////////////////////////////////
 // CStringBinary Node
@@ -9346,6 +9520,16 @@ CStringBinary * CStringBinary::FindNodeValue(int value)
 		return bp;
 
 	return NULL;
+}
+void CStringBinary::GetSizeNode(int &count)
+{
+	count++;
+
+	if ( m_pLeft != NULL )
+		m_pLeft->GetSizeNode(count);
+
+	if ( m_pRight != NULL )
+		m_pRight->GetSizeNode(count);
 }
 
 #ifdef	DEBUG

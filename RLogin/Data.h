@@ -48,6 +48,22 @@ BOOL IsZeroMemory(void *ptr, int len);
 #define	MAPING_RIGCEN	14
 #define	MAPING_RIGBTM	15
 
+class CBits : CObject
+{
+public:
+	int	m_Data, m_Have;
+	LPBYTE m_Ptr, m_EndPtr;
+	class CBuffer *m_pOut;
+
+	CBits(LPBYTE buf, int len);
+	int GetBits(int bits);
+	inline BOOL isEmpty() { return (m_Ptr >= m_EndPtr && m_Have <= 0 ? TRUE : FALSE); }
+	inline int HaveBits() { return (int)(m_EndPtr - m_Ptr) * 8 + m_Have; }
+
+	CBits(class CBuffer *out);
+	void SetBits(int data, int bits);
+};
+
 class CBuffer : public CObject
 {
 public:
@@ -140,6 +156,8 @@ public:
 	void IshEncJis8(LPBYTE buf, int len);
 	LPCSTR IshDecSjis(LPCSTR str);
 	void IshEncSjis(LPBYTE buf, int len);
+	LPCSTR IshDecNjis(LPCSTR str);
+	void IshEncNjis(LPBYTE buf, int len);
 
 	void md5(LPCTSTR str);
 	BOOL LoadFile(LPCTSTR filename);
@@ -409,12 +427,14 @@ public:
 	CStringBinary & operator [] (int number);
 	CStringBinary * Find(LPCTSTR str);
 	CStringBinary * FindValue(int value);
+	int GetSize();
 
 	// Node
 	CStringBinary(LPCTSTR str);
 	CStringBinary * Add(CStringBinary **ppTop, LPCTSTR str, BOOL &bNew);
 	CStringBinary * FindNode(LPCTSTR str);
 	CStringBinary * FindNodeValue(int value);
+	void GetSizeNode(int &count);
 
 #ifdef	DEBUG
 	void Tree(int nest);

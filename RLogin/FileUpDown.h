@@ -35,6 +35,7 @@ public:
 	BOOL m_bDownCrLf;
 	int m_DownCrLfMode;
 	BOOL m_bWithEcho;
+	BOOL m_bFileAppend;
 
 	int m_UpMode;
 	CString m_UpFrom;
@@ -58,6 +59,7 @@ public:
 	void Serialize(int mode);
 	void OnProc(int cmd);
 
+	void CheckShortName();
 	void DownLoad();
 
 	typedef struct _GETPROCLIST {

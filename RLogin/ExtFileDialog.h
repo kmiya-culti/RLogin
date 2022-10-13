@@ -52,6 +52,7 @@ public:
 	BOOL m_bDownCrLf;
 	int m_DownCrLfMode;
 	BOOL m_bWithEcho;
+	BOOL m_bFileAppend;
 
 	CFileDownPage();
 	virtual ~CFileDownPage();
