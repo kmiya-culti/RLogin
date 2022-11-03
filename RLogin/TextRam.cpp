@@ -5704,7 +5704,7 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 		workDC.DeleteDC();
 
 	} else if ( (prop.attr & ATT_RTOL) != 0 ) {
-		// Right to Left
+		// Right to Left, Mc属性（Spacing Mark)を持つブロック
 		// 文字列単位で縮小・拡大、プロポーショナル
 		x = box.left + pView->m_CharWidth  * pFontNode->m_OffsetW / 100;
 		y = box.top  - pView->m_CharHeight * pFontNode->m_OffsetH / 100 - (prop.zoom == 3 ? pView->m_CharHeight : 0);
@@ -5716,9 +5716,10 @@ void CTextRam::DrawChar(CDC *pDC, CRect &rect, COLORREF fc, COLORREF bc, BOOL bE
 		pDC->SelectObject(pFontCache->m_pFont);
 		sz = pDC->GetTextExtent(prop.pText, prop.tlen);
 
-		pDC->SetTextCharacterExtra((box.Width() - sz.cx) / prop.size);
+		//if ( (sz.cx * 100 / box.Width()) < 50 )
+		//	pDC->SetTextCharacterExtra((box.Width() - sz.cx) / prop.size);
 		pDC->ExtTextOutW(x, y - pFontCache->m_Offset, mode, box, prop.pText, prop.tlen, NULL);
-		pDC->SetTextCharacterExtra(0);
+		//pDC->SetTextCharacterExtra(0);
 
 		pView->m_ClipUpdateLine = TRUE;
 

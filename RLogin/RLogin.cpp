@@ -823,18 +823,23 @@ IShellLink *CRLoginApp::MakeShellLink(LPCTSTR pEntryName)
 
 	param.Format(_T("/entry \"%s\" /inuse"), pEntryName);
 
-	pSheLink->SetPath(szExePath);
-	pSheLink->SetArguments(param);
-	pSheLink->SetIconLocation(szExePath, 1);
-	pSheLink->SetDescription(pEntryName);
+	if ( FAILED(pSheLink->SetPath(szExePath)) )
+		goto ERRENDOF;
+
+	if ( FAILED(pSheLink->SetArguments(param)) )
+		goto ERRENDOF;
+
+	if ( FAILED(pSheLink->SetIconLocation(szExePath, 1)) )
+			goto ERRENDOF;
+
+	if ( FAILED(pSheLink->SetDescription(pEntryName)) )
+			goto ERRENDOF;
 
 	IPropertyStore *pProStore;
 	PROPVARIANT pv;
 
-	if ( FAILED(pSheLink->QueryInterface(IID_PPV_ARGS(&pProStore))) ) {
-		pSheLink->Release();
-		return NULL;
-	}
+	if ( FAILED(pSheLink->QueryInterface(IID_PPV_ARGS(&pProStore))) )
+		goto ERRENDOF;
 
 	InitPropVariantFromString(pEntryName, &pv);
 	pProStore->SetValue(PKEY_Title, pv);
@@ -844,6 +849,10 @@ IShellLink *CRLoginApp::MakeShellLink(LPCTSTR pEntryName)
 	pProStore->Release();
 
 	return pSheLink;
+
+ERRENDOF:
+	pSheLink->Release();
+	return NULL;
 }
 void CRLoginApp::CreateJumpList(CServerEntryTab *pEntry)
 {
@@ -1139,6 +1148,8 @@ ENDOF:
 
 BOOL CRLoginApp::InitInstance()
 {
+clock_t start = clock();
+
 	// LoadLibrary Search Path
 	HMODULE hModule;
 	if ((hModule = GetModuleHandle(_T("kernel32.dll"))) != NULL) {
@@ -1334,9 +1345,6 @@ BOOL CRLoginApp::InitInstance()
 	}
 #endif
 
-	// 音声合成の初期化
-	VoiceInit();
-
 	// レジストリに保存するパスワードの暗号キーを選択
 	m_MakeKeyMode = GetProfileInt(_T("RLoginApp"), _T("MakeKeyMode"), MAKEKEY_USERHOST);
 
@@ -1446,7 +1454,7 @@ BOOL CRLoginApp::InitInstance()
 
 #ifdef	USE_JUMPLIST
 	// ジャンプリスト初期化
-	if ( IsWinVerCheck(_WIN32_WINNT_WIN7, VER_GREATER_EQUAL) )
+	if ( IsWinVerCheck(_WIN32_WINNT_WIN7, VER_GREATER_EQUAL) && IsWinVerCheck(_WIN32_WINNT_WINBLUE, VER_LESS_EQUAL) )
 		CreateJumpList(&(pMainFrame->m_ServerEntryTab));
 #endif
 
@@ -3847,18 +3855,24 @@ ERRRET:
 
 	return rt;
 }
-void CRLoginApp::VoiceInit()
+ISpVoice *CRLoginApp::VoiceInit()
 {
 	int n;
 	ISpObjectToken *pToken;
 	WCHAR *desc;
 	CString VoiceDesc;
 	long rate;
+	static BOOL bInit = FALSE;
+
+	if ( bInit )
+		return m_pVoice;
+
+	bInit = TRUE;
 
 	m_VoiceList.RemoveAll();
 
 	if ( FAILED(CoCreateInstance(CLSID_SpVoice, NULL, CLSCTX_ALL, IID_ISpVoice, (void **)&m_pVoice)) )
-		return;
+		return NULL;
 
 	if ( SUCCEEDED(m_pVoice->GetVoice(&pToken)) && SUCCEEDED(SpGetDescription(pToken, &desc)) )
 		VoiceDesc = desc;
@@ -3884,6 +3898,8 @@ void CRLoginApp::VoiceInit()
 	}
 
 	m_pVoice->SetRate(rate);	//  -10 to 10 
+
+	return m_pVoice;
 }
 void CRLoginApp::VoiceFinis()
 {
@@ -3908,7 +3924,7 @@ void CRLoginApp::SetVoiceListCombo(CComboBox *pCombo)
 	ISpObjectToken *pToken;
 	CString VoiceDesc;
 
-	if ( m_pVoice == NULL )
+	if ( VoiceInit() == NULL )
 		return;
 
 	if ( SUCCEEDED(m_pVoice->GetVoice(&pToken)) && SUCCEEDED(SpGetDescription(pToken, &desc)) )
@@ -3934,7 +3950,7 @@ void CRLoginApp::SetVoice(LPCTSTR str, long rate)
 	ISpObjectToken *pToken;
 	CMainFrame *pMain = (CMainFrame *)::AfxGetMainWnd();
 
-	if ( m_pVoice == NULL )
+	if ( VoiceInit() == NULL )
 		return;
 
 	m_pVoice->Pause();

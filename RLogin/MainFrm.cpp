@@ -3691,6 +3691,7 @@ void CMainFrame::InitMenuBitmap()
 	BITMAP mapinfo;
 	CMenuBitMap *pMap;
 	COLORREF menuCol = GetSysColor(COLOR_MENU);
+	BOOL bGraterVista = CRLoginApp::IsWinVerCheck(_WIN32_WINNT_VISTA, VER_GREATER_EQUAL);
 
 	// リソースデータベースからメニューイメージを作成
 	cx = GetSystemMetrics(SM_CXMENUCHECK);
@@ -3743,7 +3744,7 @@ void CMainFrame::InitMenuBitmap()
 
 		TmpDC.SelectObject(pOld);
 
-		if ( CRLoginApp::IsWinVerCheck(_WIN32_WINNT_VISTA, VER_GREATER_EQUAL) ) {
+		if ( bGraterVista ) {
 			for ( int y = 0 ; y < cx ; y++ ) {
 				for ( int x = 0 ; x < cy ; x++ ) {
 					BYTE *p = (BYTE *)Image.GetPixelAddress(x, y);
@@ -4290,7 +4291,7 @@ BOOL CMainFrame::SpeakQueIn()
 
 	BOOL bContinue;
 	int line = m_SpeakLine - m_pSpeakDoc->m_TextRam.m_HisAbs;
-	ISpVoice *pVoice = ((CRLoginApp *)::AfxGetApp())->m_pVoice;
+	ISpVoice *pVoice = ((CRLoginApp *)::AfxGetApp())->VoiceInit();
 
 	if ( line < (0 - m_pSpeakDoc->m_TextRam.m_HisLen + m_pSpeakDoc->m_TextRam.m_Lines) ) {
 		line = 0 - m_pSpeakDoc->m_TextRam.m_HisLen + m_pSpeakDoc->m_TextRam.m_Lines + 1;
@@ -4331,7 +4332,7 @@ BOOL CMainFrame::SpeakQueIn()
 }
 void CMainFrame::Speak(LPCTSTR str)
 {
-	ISpVoice *pVoice = ((CRLoginApp *)::AfxGetApp())->m_pVoice;
+	ISpVoice *pVoice = ((CRLoginApp *)::AfxGetApp())->VoiceInit();
 
 	if ( pVoice == NULL )
 		return;
@@ -4368,7 +4369,7 @@ void CMainFrame::SpeakUpdate(int x, int y)
 LRESULT CMainFrame::OnSpeakMsg(WPARAM wParam, LPARAM lParam)
 {
 	SPEVENT eventItem;
-	ISpVoice *pVoice = ((CRLoginApp *)::AfxGetApp())->m_pVoice;
+	ISpVoice *pVoice = ((CRLoginApp *)::AfxGetApp())->VoiceInit();
 	SPVOICESTATUS status;
 	CCurPos spos, epos;
 	ULONG skipd;
@@ -4407,7 +4408,7 @@ LRESULT CMainFrame::OnSpeakMsg(WPARAM wParam, LPARAM lParam)
 				m_SpeakActive[2] = spos.cx;
 			}
 
-			TRACE("SPEI_WORD %d,%d\n", spos.cx, spos.cy);
+//			TRACE("SPEI_WORD %d,%d\n", spos.cx, spos.cy);
 
 			if ( !m_pSpeakDoc->m_TextRam.SpeakCheck(spos, epos, (LPCTSTR)m_SpeakData[m_SpeakQueTop].text + status.ulInputWordPos) ) {
 				pVoice->Skip(L"SENTENCE", 1, &skipd);
@@ -4457,7 +4458,7 @@ LRESULT CMainFrame::OnSpeakMsg(WPARAM wParam, LPARAM lParam)
 }
 void CMainFrame::OnSpeakText()
 {
-	ISpVoice *pVoice = ((CRLoginApp *)::AfxGetApp())->m_pVoice;
+	ISpVoice *pVoice = ((CRLoginApp *)::AfxGetApp())->VoiceInit();
 	CChildFrame *pChild = (CChildFrame *)MDIGetActive();
 	CRLoginView *pView;
 	CRLoginDoc *pDoc;
@@ -4502,7 +4503,7 @@ void CMainFrame::OnSpeakNext()
 }
 void CMainFrame::OnUpdateSpeakText(CCmdUI *pCmdUI)
 {
-	pCmdUI->Enable(((CRLoginApp *)::AfxGetApp())->m_pVoice != NULL ? TRUE : FALSE);
+	pCmdUI->Enable(((CRLoginApp *)::AfxGetApp())->VoiceInit() != NULL ? TRUE : FALSE);
 	pCmdUI->SetCheck(m_bVoiceEvent ? 1 : 0);
 }
 
@@ -5122,12 +5123,13 @@ LRESULT CVoiceBar::HandleInitDialog(WPARAM wParam, LPARAM lParam)
 {
 	long rate = 0;
 	CRLoginApp *pApp = (CRLoginApp *)::AfxGetApp();
+	ISpVoice *pVoice = pApp->VoiceInit();
 
 	UpdateData(FALSE);
 
-	if ( pApp->m_pVoice != NULL ) {
+	if ( pVoice != NULL ) {
 		pApp->SetVoiceListCombo(&m_VoiceDesc);
-		pApp->m_pVoice->GetRate(&rate);
+		pVoice->GetRate(&rate);
 	}
 
 	m_VoiceRate.SetRange(0, 20);

@@ -404,6 +404,7 @@
 #define	UNI_EMOJI		0x00002000		// Emoji
 #define	UNI_EMODF		0x00004000		// Emoji Modifier
 #define	UNI_BN			0x00008000		// Boundary Neutral
+#define	UNI_GRP			0x00010000		// Spacing Mark in Block
 
 										// CSI > Ps T/t		xterm CASE_RM_TITLE/CASE_SM_TITLE option flag bits m_XtOptFlag
 #define	XTOP_SETHEX		0x0001			//    Ps = 0  -> Set window/icon labels using hexadecimal.

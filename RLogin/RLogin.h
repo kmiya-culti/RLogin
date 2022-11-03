@@ -163,7 +163,7 @@ public:
 	CPtrArray m_VoiceList;
 
 	BOOL AddVoiceToken(const WCHAR * pszCategoryId, const WCHAR * pszReqAttribs, const WCHAR * pszOptAttribs);
-	void VoiceInit();
+	ISpVoice *VoiceInit();
 	void VoiceFinis();
 	void SetVoiceListCombo(CComboBox *pCombo);
 	void SetVoice(LPCTSTR str, long rate);

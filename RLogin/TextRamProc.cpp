@@ -2521,7 +2521,7 @@ void CTextRam::fc_UTF85(DWORD ch)
 		else
 			n = 1;
 
-		if ( (cf & UNI_RTL) != 0 )
+		if ( (cf & (UNI_RTL | UNI_GRP)) != 0 )
 			ea |= ATT_RTOL;
 
 #ifdef	USE_DIRECTWRITE
