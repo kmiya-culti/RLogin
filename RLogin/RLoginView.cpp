@@ -335,6 +335,9 @@ CRLoginView::CRLoginView()
 	m_MatrixCols.SetSize(COLS_MAX);
 
 	m_bSpeakDispText = FALSE;
+
+	m_VramTipPos.SetSize(0, 0);
+	m_bVramTipDisp = FALSE;
 }
 
 CRLoginView::~CRLoginView()
@@ -1333,9 +1336,13 @@ int CRLoginView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	DragAcceptFiles();
 #endif
 
-	m_ToolTip.Create(this, TTS_ALWAYSTIP | TTS_BALLOON);
+	m_ToolTip.Create(this, TTS_ALWAYSTIP | TTS_NOPREFIX | TTS_BALLOON);
 	m_ToolTip.SetMaxTipWidth(512);
 	m_ToolTip.Activate(TRUE);
+
+	m_VramTip.Create(this, TTS_ALWAYSTIP | TTS_NOPREFIX | TTS_BALLOON);
+	m_VramTip.SetMaxTipWidth(512);
+	m_VramTip.Activate(FALSE);
 
 	m_SleepView = FALSE;
 	m_SleepCount = 0;
@@ -1596,10 +1603,20 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 		InvalidateFullText();
 		if ( m_pGhost != NULL )
 			m_pGhost->Invalidate(FALSE);
+		if ( m_bVramTipDisp ) {
+			m_VramTip.Pop();
+			m_VramTip.DelTool(this);
+			m_bVramTipDisp = FALSE;
+		}
 		break;
 
 	case UPDATE_TEXTRECT:
 		rect = *((CRect *)pHint);
+		if ( m_bVramTipDisp && rect.PtInRect(CPoint(m_VramTipPos.cx, m_VramTipPos.cy)) ) {
+			m_VramTip.Pop();
+			m_VramTip.DelTool(this);
+			m_bVramTipDisp = FALSE;
+		}
 		if ( m_ClipUpdateLine ) {
 			rect.left  = 0;
 			rect.right = pDoc->m_TextRam.m_Cols;
@@ -2891,6 +2908,77 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 
 	CView::OnMouseMove(nFlags, point);
 
+	if ( point.x >= pDoc->m_TextRam.m_ScrnOffset.left && point.x < m_Width &&
+				point.y >= (pDoc->m_TextRam.m_ScrnOffset.top + m_TopOffset) && point.y < m_Height &&
+				((CMainFrame *)AfxGetMainWnd())->m_bCharTooltip ) {
+
+		CalcGrapPoint(point, &x, &y);
+
+		if ( !m_bVramTipDisp || m_VramTipPos.cx != x || m_VramTipPos.cy != y ) {
+			CCharCell *vp = pDoc->m_TextRam.GETVRAM(x, y);
+			LPCTSTR p = (LPCTSTR)*vp;
+			CString msg, uc;
+			static const LPCTSTR attr[] = { 
+				_T("1"), _T("2"), _T("3"), _T("4"), _T("5"), _T("7"), _T("8"), _T("9"),
+				_T("6"), _T("21"), _T("51"), _T("52"), _T("53"), _T("60"), _T("61"), _T("62"),
+				_T("63"), _T("64"), _T("?"), _T("50")
+			};
+
+			if ( (vp->m_Vram.attr & ATT_MASK) != 0 ) {
+				uc.Empty();
+				for ( int n = 0, b = 1 ; n < 20 ; n++, b <<= 1 ) {
+					if ( (vp->m_Vram.attr & b) != 0 ) {
+						uc += (uc.IsEmpty() ? _T("[") : _T(","));
+						uc += attr[n];
+					}
+				}
+				if ( !uc.IsEmpty() )
+					uc += _T("]");
+			}
+
+			msg.Format(_T("%d, %d (%d:%d) %s\n"), x + 1, y + m_HisOfs - m_HisMin + 1, vp->m_Vram.fcol, vp->m_Vram.bcol, uc);
+
+			if ( IS_IMAGE(vp->m_Vram.mode) ) {
+				CGrapWnd *gp = pDoc->m_TextRam.GetGrapWnd(vp->m_Vram.pack.image.id);
+				if ( gp != NULL )
+					uc.Format(_T("#%04X(%d,%d)"), vp->m_Vram.pack.image.id, gp->m_MaxX, gp->m_MaxY);
+				else
+					uc.Format(_T("#%04X"), vp->m_Vram.pack.image.id);
+				msg += uc;
+			} else {
+				while ( *p != _T('\0') ) {
+					if ( (p[0] & 0xFC00) == 0xD800 && (p[1] & 0xFC00) == 0xDC00 ) {
+						uc.Format(_T("U+%06X "), (((p[0] & 0x03FF) << 10) | (p[1] & 0x3FF)) + 0x10000L);
+						p += 2;
+					} else
+						uc.Format(_T("U+%04X "), *(p++));
+					msg += uc;
+				}
+			}
+
+			if ( vp->m_Atime != 0 ) {
+				CTime tm(vp->m_Atime);
+				msg += tm.Format(_T("\n%c"));
+			}
+
+			if ( m_bVramTipDisp ) {
+				m_VramTip.Pop();
+				m_VramTip.DelTool(this);
+			}
+
+			m_VramTip.AddTool(this, msg);
+			m_VramTip.Popup();
+
+			m_bVramTipDisp = TRUE;
+			m_VramTipPos.SetSize(x, y);
+		}
+
+	} else if ( m_bVramTipDisp ) {
+		m_VramTip.Pop();
+		m_VramTip.DelTool(this);
+		m_bVramTipDisp = FALSE;
+	}
+
 	if ( m_ClipFlag == 0 || m_ClipFlag == 6 ) {
 		if ( pDoc->m_TextRam.m_MouseTrack != MOS_EVENT_NONE && !m_MouseEventFlag ) {
 			CalcGrapPoint(point, &x, &y);
@@ -2929,6 +3017,7 @@ void CRLoginView::OnMouseMove(UINT nFlags, CPoint point)
 
 			m_RDownStat = 2;
 		}
+
 		return;
 	}
 
@@ -3932,7 +4021,6 @@ LRESULT CRLoginView::OnLogWrite(WPARAM wParam, LPARAM lParam)
 
 	return TRUE;
 }
-
 void CRLoginView::SpeakTextPos(BOOL bDisp, CCurPos *pStaPos, CCurPos *pEndPos)
 {
 	CRect rect;

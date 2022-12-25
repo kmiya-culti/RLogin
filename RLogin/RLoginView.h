@@ -164,6 +164,10 @@ public:
 	CEvent *m_pDelayInvalEvent;
 	CEvent *m_pDelayInvalSync;
 
+	CToolTipCtrl m_VramTip;
+	CCurPos m_VramTipPos;
+	BOOL m_bVramTipDisp;
+
 	UINT DelayInvalThread();
 	void DelayInvalThreadStart();
 	void DelayInvalThreadEndof();

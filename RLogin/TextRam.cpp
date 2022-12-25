@@ -212,6 +212,7 @@ void CCharCell::GetEXTVRAM(EXTVRAM &evram)
 void CCharCell::SetBuffer(CBuffer &buf)
 {
 	buf.Apend((LPBYTE)&m_Vram, sizeof(m_Vram));
+	buf.Apend((LPBYTE)&m_Atime, sizeof(m_Atime));
 
 	for ( LPCWSTR p = *this ; ; p++ ) {
 		buf.PutWord(*p);
@@ -223,11 +224,13 @@ void CCharCell::GetBuffer(CBuffer &buf)
 {
 	int c;
 
-	if ( buf.GetSize() < sizeof(m_Vram) )
+	if ( buf.GetSize() < (sizeof(m_Vram) + sizeof(m_Atime)) )
 		return;
 
 	memcpy(&m_Vram, buf.GetPtr(), sizeof(m_Vram));
 	buf.Consume(sizeof(m_Vram));
+	memcpy(&m_Atime, buf.GetPtr(), sizeof(m_Atime));
+	buf.Consume(sizeof(m_Atime));
 
 	Empty();
 	while ( (c = buf.GetWord()) != 0 )
@@ -285,6 +288,20 @@ void CCharCell::Read(CFile &file, int ver)
 
 	case 3:
 		if ( file.Read(&m_Vram, sizeof(m_Vram)) != sizeof(m_Vram) )
+			AfxThrowFileException(CFileException::endOfFile);
+		m_Atime = 0;
+		Empty();
+		do {
+			if ( file.Read(&c, sizeof(WCHAR)) != sizeof(WCHAR) )
+				AfxThrowFileException(CFileException::endOfFile);
+			*this += (DWORD)c;
+		} while ( c != L'\0' );
+		break;
+
+	case 4:
+		if ( file.Read(&m_Vram, sizeof(m_Vram)) != sizeof(m_Vram) )
+			AfxThrowFileException(CFileException::endOfFile);
+		if ( file.Read(&m_Atime, sizeof(m_Atime)) != sizeof(m_Atime) )
 			AfxThrowFileException(CFileException::endOfFile);
 		Empty();
 		do {
@@ -1831,6 +1848,7 @@ CTextRam::CTextRam()
 	m_RtfMode = 0;
 	m_iTerm2Mark = 0;
 	m_pCmdHisWnd = NULL;
+	m_Atime = 0;
 
 	m_ColStackUsed = 0;
 	m_ColStackLast = 0;
@@ -2373,7 +2391,7 @@ void CTextRam::SaveHistory()
 		DWORD d;
 
 		m_HisFhd.SeekToBegin();
-		m_HisFhd.Write("RLH3", 4);
+		m_HisFhd.Write("RLH4", 4);
 		n = m_Cols; m_HisFhd.Write(&n, sizeof(DWORD));
 		n = m_HisLen; m_HisFhd.Write(&n, sizeof(DWORD));
 		for ( n = 0 ; n < m_HisLen ; n++ ) {
@@ -4049,6 +4067,7 @@ int CTextRam::Write(LPBYTE lpBuf, int nBufLen, BOOL *sync)
 		LOADRAM();
 
 	m_UpdateFlag = FALSE;
+	time(&m_Atime);
 
 	for ( n = 0 ; n < nBufLen && !m_UpdateFlag ; n++ ) {
 		fc_Call(lpBuf[n]);
@@ -7617,6 +7636,7 @@ void CTextRam::DispGrapWnd(class CGrapWnd *pGrapWnd, BOOL bNextCols)
 			vp->m_Vram.font = m_AttNow.std.font;
 			vp->m_Vram.fcol = m_AttNow.std.fcol;
 			vp->m_Vram.bcol = m_AttNow.std.bcol;
+			vp->m_Atime     = m_Atime;
 
 			// 拡張frgbはpack.imageと重なるので注意！！
 			if ( (m_AttNow.eatt & EATT_BRGBCOL) != 0 ) {
@@ -9070,6 +9090,7 @@ void CTextRam::PUT1BYTE(DWORD ch, int md, int at, LPCWSTR str)
 	vp->m_Vram.font = m_AttNow.std.font;
 	vp->m_Vram.fcol = m_AttNow.std.fcol;
 	vp->m_Vram.bcol = m_AttNow.std.bcol;
+	vp->m_Atime     = m_Atime;
 	vp->GetEXTVRAM(m_AttNow);
 
 	if ( m_bRtoL && md != SET_UNICODE ) {
@@ -9181,6 +9202,7 @@ void CTextRam::PUT2BYTE(DWORD ch, int md, int at, LPCWSTR str)
 	vp[0].m_Vram.font = vp[1].m_Vram.font = m_AttNow.std.font;
 	vp[0].m_Vram.fcol = vp[1].m_Vram.fcol = m_AttNow.std.fcol;
 	vp[0].m_Vram.bcol = vp[1].m_Vram.bcol = m_AttNow.std.bcol;
+	vp[0].m_Atime     = vp[1].m_Atime     = m_Atime;
 	vp[0].GetEXTVRAM(m_AttNow); vp[1].GetEXTVRAM(m_AttNow);
 
 	if ( md == SET_UNICODE && (block = m_FontTab.m_UniBlockTab.Find(ch)) != (-1) )
@@ -9238,11 +9260,13 @@ void CTextRam::PUTADD(int x, int y, DWORD ch)
 
 	vp = GETVRAM(x, y);
 	*vp += (DWORD)ch;
+	vp->m_Atime = m_Atime;
 
 	m_LastStr = *vp;
 
 	if ( x < (m_Cols - 1) && IS_1BYTE(vp[0].m_Vram.mode) && IS_2BYTE(vp[1].m_Vram.mode) ) {
 		vp[1] = (LPCWSTR)(*vp);
+		vp[1].m_Atime = m_Atime;
 		DISPVRAM(x, y, 2, 1);
 	} else {
 		DISPVRAM(x, y, 1, 1);

@@ -601,6 +601,7 @@ class CCharCell
 public:
 	WCHAR		m_Data[MAXCHARSIZE - 2];	// WCHAR * (12 - m_Vram.pack.wcbuf[2]) = 20 Byte
 	STDVRAM		m_Vram;						// DWORD * 3 = 12 Byte
+	time_t		m_Atime;
 
 	inline void Empty() { if ( !IS_IMAGE(m_Vram.mode) ) m_Data[0] = 0; }
 	inline BOOL IsEmpty() { return (IS_IMAGE(m_Vram.mode) || m_Data[0] == 0 ? TRUE : FALSE); }
@@ -625,7 +626,7 @@ public:
 	void GetEXTVRAM(EXTVRAM &evram);
 
 	inline const CCharCell & operator = (CCharCell &data) { memcpy(this, &data, sizeof(CCharCell)); return *this; }
-	inline void operator = (STDVRAM &ram) { m_Vram = ram; m_Vram.attr &= ~ATT_EXTVRAM; *this = ram.pack.dchar; }
+	inline void operator = (STDVRAM &ram) {	m_Vram = ram; m_Vram.attr &= ~ATT_EXTVRAM; *this = ram.pack.dchar; m_Atime = 0; }
 	inline void operator = (EXTVRAM &evram) { *this = evram.std; GetEXTVRAM(evram); }
 
 	void SetBuffer(CBuffer &buf);
@@ -1135,6 +1136,7 @@ public:
 	CStringW m_LastStr;
 	BOOL m_bRtoL;
 	BOOL m_bJoint;
+	time_t m_Atime;
 
 	DWORD m_BackChar;
 	DWORD m_SurroChar;

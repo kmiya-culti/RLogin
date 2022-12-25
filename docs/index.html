@@ -26,8 +26,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.27.5)</TD>
-            <TD width="20%" align="right">2022/11/04</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.27.6)</TD>
+            <TD width="20%" align="right">2022/12/26</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -342,7 +342,7 @@ TD {
         <TBODY>
           <TR>
             <TD width="600">動作環境としてWindows XP x32/Windows 7 x64/Windows 10 x64にて確認しています<BR>
-            サーバーは、FreeBSD 11.3のrlogind, telnetd, sshd(openssh-8.2p1)を使用しています<BR>
+            サーバーは、FreeBSD 12.3のrlogind, telnetd, sshd(openssh-9.1p1)を使用しています<BR>
             <BR>
             「rlogin.zip」を解凍してRLogin.exeを適当な場所に置いて実行してください<BR>
             <BR>
@@ -433,6 +433,12 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2022/12/26</TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.27.6/">2.27.6</A></TD>
+            <TD>メニュー・表示・各種ウィンドウに文字情報を追加<BR>
+            zlib-1.12.13に更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2022/11/04</TD>
             <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.27.5/">2.27.5</A></TD>
             <TD>UTF-8の文字幅などをUnicode-15.0.0のデータに更新<BR>
@@ -462,14 +468,6 @@ TD {
             プライベートプロファイルの一部を圧縮するように変更<BR>
             Scriptのforeachが正しく動作しない問題を修正<BR>
             openssl-3.0.5に更新</TD>
-          </TR>
-          <TR>
-            <TD align="center">2022/06/24</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.27.1/">2.27.1</A></TD>
-            <TD>UTF-8の文字幅などをUnicode-14.0.0のデータに更新<BR>
-            ファイル転送プロトコルの起動・終了をステータスに表示<BR>
-            ファイル転送プロトコル内のコンソール出力を改善<BR>
-            openssl-3.0.4に更新</TD>
           </TR>
           <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
@@ -513,7 +511,7 @@ TD {
                   nmake</TD>
                 </TR>
                 <TR>
-                  <TD rowspan="2" valign="top"><A href="https://zlib.net/">zlib-1.2.12.tar.gz</A></TD>
+                  <TD rowspan="2" valign="top"><A href="https://zlib.net/">zlib-1.2.13.tar.gz</A></TD>
                   <TD valign="top">x86用 x32<BR>
                   Visual Studio コマンド <BR>
                   プロンプト (2010)</TD>
@@ -591,7 +589,7 @@ TD {
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>
             <BR>
-            zlib 1.2.12 (27 Mar 2022)<BR>
+            zlib 1.2.13 (13 Oct 2022)<BR>
             Copyr ight (C) 1995-2022 Jean-loup Gailly and Mark Adler<BR>
             <BR>
             libiconv-1.16<BR>
@@ -931,7 +929,7 @@ TD {
                   <TD align="left" colspan="6">表示(V)</TD>
                 </TR>
                 <TR>
-                  <TD align="center" width="10" rowspan="30">&nbsp;</TD>
+                  <TD align="center" width="10" rowspan="31">&nbsp;</TD>
                   <TD colspan="2" width="250" valign="top">メニューバー(M)</TD>
                   <TD width="450" valign="top">メニューバーを表示・非表示にします<BR>
                   ※非表示の時は、システムメニューでメニューバーを表示できます</TD>
@@ -985,7 +983,7 @@ TD {
                   <TD valign="top" colspan="5">各種ウィンドウ(W)</TD>
                 </TR>
                 <TR>
-                  <TD valign="top" width="10" rowspan="6"></TD>
+                  <TD valign="top" width="10" rowspan="7"></TD>
                   <TD valign="top" width="230">Tekウインドウ(K)</TD>
                   <TD valign="top">Tek40xx/41xxウインドウを表示・非表示にします</TD>
                   <TD valign="top" align="right"></TD>
@@ -1022,6 +1020,12 @@ TD {
                   <TD valign="top" align="right"></TD>
                   <TD valign="top">$VIEW_CMDHIS<BR>
                   $VIEW_HISTORY</TD>
+                </TR>
+                <TR>
+                  <TD valign="top">文字情報(C)</TD>
+                  <TD valign="top">コンソール画面上のマウス位置にある文字情報をツールチップで位置、色、属性、コード、受信日時を表示します</TD>
+                  <TD valign="top" align="right"></TD>
+                  <TD valign="top">$CHARTOOLTIP</TD>
                 </TR>
                 <TR>
                   <TD valign="top" colspan="2" width="250">おさかなを飼う(O)</TD>

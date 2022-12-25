@@ -334,6 +334,7 @@ public:
 	BOOL m_ScrollBarFlag;
 	BOOL m_bVersionCheck;
 	BOOL m_bGlassStyle;
+	BOOL m_bCharTooltip;
 	CPtrArray m_MenuMap;
 	int m_SplitType;
 	int m_ExecCount;
@@ -601,6 +602,8 @@ protected:
 	afx_msg void OnQuickConnect();
 	afx_msg void OnUpdateConnect(CCmdUI *pCmdUI);
 	afx_msg void OnKnownhostdel();
+	afx_msg void OnChartooltip();
+	afx_msg void OnUpdateChartooltip(CCmdUI *pCmdUI);
 
 	afx_msg LRESULT OnWinSockSelect(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnGetHostAddr(WPARAM wParam, LPARAM lParam);

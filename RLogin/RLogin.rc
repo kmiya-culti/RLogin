@@ -304,6 +304,7 @@ BEGIN
             MENUITEM "トレースウィンドウ(&W)",               IDM_TRACEDISP
             MENUITEM "コマンドウィンドウ(&I)",               IDM_CMDHIS
             MENUITEM "ヒストリーウィンドウ(&H)",              IDM_HISTORYDLG
+            MENUITEM "文字情報(&C)",                    IDM_CHARTOOLTIP
         END
         MENUITEM "おさかなを飼う(&O)",                 ID_GOZIVIEW
         MENUITEM SEPARATOR
@@ -535,6 +536,10 @@ BEGIN
         MENUITEM "コピー(&C)",                     ID_EDIT_COPY
         MENUITEM "画面をクリア(&X)",                  IDM_TEK_CLEAR
     END
+    POPUP "CHARTIP"
+    BEGIN
+        MENUITEM "コピー(&C)",                     ID_EDIT_COPY
+    END
 END
 
 IDR_TEKWND MENU
@@ -637,13 +642,13 @@ BEGIN
                     "SysLink",WS_TABSTOP,44,206,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,225,60,14,WS_GROUP
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin (%s) Version 2.27.5 (2022/11/04)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "RLogin (%s) Version 2.27.6 (2022/12/26)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
     LTEXT           "Copyright (C) 1998-2022 Culti",IDC_STATIC,44,16,189,8
     LTEXT           "OpenSSL 3.0.7 1 Nov 2022",IDC_STATIC,44,53,189,8
     LTEXT           "Copyright (c) 1998-2022 The OpenSSL Project",IDC_STATIC,44,63,189,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,72,189,8
     LTEXT           "All rights reserved.",IDC_STATIC,44,81,189,8
-    LTEXT           "zlib 1.2.12 (27 Mar 2022)",IDC_STATIC,44,94,189,8
+    LTEXT           "zlib 1.2.13 (13 Oct 2022)",IDC_STATIC,44,94,189,8
     LTEXT           "Copyr ight (C) 1995-2022 Jean-loup Gailly and Mark Adler",IDC_STATIC,44,103,189,8
     LTEXT           "iconv (GNU libiconv 1.16)",IDC_STATIC,44,116,189,8
     LTEXT           "Copyright (C) 2000-2017 Free Software Foundation, Inc.",IDC_STATIC,44,125,189,8
@@ -2179,8 +2184,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,27,5,0
- PRODUCTVERSION 2,27,5,0
+ FILEVERSION 2,27,6,0
+ PRODUCTVERSION 2,27,6,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2197,12 +2202,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.27.5.0"
+            VALUE "FileVersion", "2.27.6.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.27.5.0"
+            VALUE "ProductVersion", "2.27.6.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -5008,6 +5013,7 @@ BEGIN
     IDM_ALL_EXPORT          "すべてのエントリーをファイルに保存します\nすべて保存"
     IDM_SPEAKBACK           "前行を読み上げ"
     IDM_SPEAKNEXT           "次行を読み上げ"
+    IDM_CHARTOOLTIP         "コンソールの文字情報をツールチップで表示する"
 END
 
 #endif    // 日本語 (日本) resources

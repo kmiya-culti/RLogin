@@ -895,6 +895,9 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_BN_CLICKED(IDC_NEXTPOS, &CMainFrame::OnSpeakNext)
 
 	ON_COMMAND(IDM_KNOWNHOSTDEL, &CMainFrame::OnKnownhostdel)
+
+	ON_COMMAND(IDM_CHARTOOLTIP, &CMainFrame::OnChartooltip)
+	ON_UPDATE_COMMAND_UI(IDM_CHARTOOLTIP, &CMainFrame::OnUpdateChartooltip)
 	END_MESSAGE_MAP()
 
 static const UINT indicators[] =
@@ -959,6 +962,7 @@ CMainFrame::CMainFrame()
 	m_pAnyPastDlg = NULL;
 	m_PastNoCheck = FALSE;
 	m_pTaskbarList = NULL;
+	m_bCharTooltip = FALSE;
 }
 
 CMainFrame::~CMainFrame()
@@ -1128,6 +1132,8 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	m_bGlassStyle = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("GlassStyle"), FALSE);
 	ExDwmEnableWindow(m_hWnd, m_bGlassStyle);
+
+	m_bCharTooltip = AfxGetApp()->GetProfileInt(_T("MainFrame"), _T("CharTooltip"), FALSE);
 
 	// ‰æ–Ê•ªŠ„‚ð•œ‹A
 	try {
@@ -4605,6 +4611,16 @@ void CMainFrame::OnKnownhostdel()
 	CKnownHostsDlg dlg;
 
 	dlg.DoModal();
+}
+
+void CMainFrame::OnChartooltip()
+{
+	m_bCharTooltip = m_bCharTooltip ? FALSE : TRUE;
+	AfxGetApp()->WriteProfileInt(_T("MainFrame"), _T("CharTooltip"), m_bCharTooltip);
+}
+void CMainFrame::OnUpdateChartooltip(CCmdUI *pCmdUI)
+{
+	pCmdUI->SetCheck(m_bCharTooltip);
 }
 
 /////////////////////////////////////////////////////////////////////////////
