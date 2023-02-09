@@ -272,8 +272,9 @@ BEGIN
         MENUITEM "Break信号を送る(&B)",              ID_SEND_BREAK
         MENUITEM "マウスイベントを無効(&M)",              ID_MOUSE_EVENT
         MENUITEM "音声で読み上げる(&Y)",                IDM_SPEAKALL
+        MENUITEM "ローカルエディットモード(&V)",            IDM_LINEEDITMODE
         MENUITEM SEPARATOR
-        MENUITEM "ブロードキャスト(&A)",                IDM_BROADCAST
+        MENUITEM "ブロードキャスト(&X)",                IDM_BROADCAST
         MENUITEM "別のRLoginにも送信(&O)",            IDM_OTHERCAST
         MENUITEM "見えてるだけに制限(&L)",               IDM_LOOKCAST
         MENUITEM SEPARATOR
@@ -536,9 +537,19 @@ BEGIN
         MENUITEM "コピー(&C)",                     ID_EDIT_COPY
         MENUITEM "画面をクリア(&X)",                  IDM_TEK_CLEAR
     END
-    POPUP "CHARTIP"
+    POPUP "TABBAR"
     BEGIN
-        MENUITEM "コピー(&C)",                     ID_EDIT_COPY
+        MENUITEM SEPARATOR
+        MENUITEM "縦方向に分割して複製(&H)",              ID_SPLIT_HEIGHT
+        MENUITEM "横方向に分割して複製(&W)",              ID_SPLIT_WIDTH
+        MENUITEM "画面分割無しで複製(&O)",               ID_SPLIT_OVER
+        MENUITEM SEPARATOR
+        MENUITEM "オプション設定(&P)",                 ID_SETOPTION
+        MENUITEM "タイトルの変更(&E)",                 IDM_TITLEEDIT
+        MENUITEM SEPARATOR
+        MENUITEM "この接続を閉じる(&C)",                ID_FILE_CLOSE
+        MENUITEM "右側の接続をすべて閉じる(&R)",            IDM_RIGHTCLOSE
+        MENUITEM "他の接続をすべて閉じる(&A)",             IDM_OTHERCLOSE
     END
 END
 
@@ -642,10 +653,10 @@ BEGIN
                     "SysLink",WS_TABSTOP,44,206,189,8
     DEFPUSHBUTTON   "OK",IDOK,91,225,60,14,WS_GROUP
     ICON            IDR_MAINFRAME,IDC_STATIC,7,7,20,20
-    LTEXT           "RLogin (%s) Version 2.27.6 (2022/12/26)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
-    LTEXT           "Copyright (C) 1998-2022 Culti",IDC_STATIC,44,16,189,8
-    LTEXT           "OpenSSL 3.0.7 1 Nov 2022",IDC_STATIC,44,53,189,8
-    LTEXT           "Copyright (c) 1998-2022 The OpenSSL Project",IDC_STATIC,44,63,189,8
+    LTEXT           "RLogin (%s) Version 2.27.7 (2023/02/10)",IDC_VERSIONSTR,44,7,189,8,SS_NOPREFIX
+    LTEXT           "Copyright (C) 1998-2023 Culti",IDC_STATIC,44,16,189,8
+    LTEXT           "OpenSSL 3.0.8 7 Feb 2023",IDC_STATIC,44,53,189,8
+    LTEXT           "Copyright (c) 1998-2023 The OpenSSL Project",IDC_STATIC,44,63,189,8
     LTEXT           "Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson",IDC_STATIC,44,72,189,8
     LTEXT           "All rights reserved.",IDC_STATIC,44,81,189,8
     LTEXT           "zlib 1.2.13 (13 Oct 2022)",IDC_STATIC,44,94,189,8
@@ -2184,8 +2195,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,27,6,0
- PRODUCTVERSION 2,27,6,0
+ FILEVERSION 2,27,7,0
+ PRODUCTVERSION 2,27,7,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -2202,12 +2213,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Culti"
             VALUE "FileDescription", "RLogin MFC アプリケーション"
-            VALUE "FileVersion", "2.27.6.0"
+            VALUE "FileVersion", "2.27.7.0"
             VALUE "InternalName", "RLogin.exe"
             VALUE "LegalCopyright", "Copyright (C) 2019 Culti  All rights reserved."
             VALUE "OriginalFilename", "RLogin.exe"
             VALUE "ProductName", "RLogin アプリケーション"
-            VALUE "ProductVersion", "2.27.6.0"
+            VALUE "ProductVersion", "2.27.7.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -4730,7 +4741,7 @@ BEGIN
     ID_IDKEY_CAKEY          "署名された公開鍵を追加で設定します"
     ID_INDICATOR_SOCK       "Telnet"
     ID_INDICATOR_STAT       "Connect"
-    ID_INDICATOR_KMOD       "ACV"
+    ID_INDICATOR_KMOD       "ACVL"
     ID_LOG_OPEN             "通信ログをファイルに保存する\n通信ログ"
     ID_MACRO_HIS1           "以前に記録したキー操作\n記録キー操作"
 END
@@ -4745,7 +4756,7 @@ BEGIN
     ID_PANE_SAVE            "現在の分割状態を保存し次回起動時に戻します\n分割保存"
     ID_PANE_WSPLIT          "横方向に分割する\n横分割"
     ID_PROP_SET             "オプション設定を行います\nオプション設定"
-    ID_SEND_BREAK           "シリアル通信の場合Break信号をおくります\nBreak送信"
+    ID_SEND_BREAK           "シリアル通信の場合Break信号を送ります\nBreak送信"
     ID_SETOPTION            "オプション設定を行います\nオプション設定"
     ID_SPLIT_HEIGHT         "縦方向に画面を分割してサーバーに接続する\n縦分割接続"
     ID_SPLIT_OVER           "画面分割しないでサーバーに接続\n重ねて接続"
@@ -5014,6 +5025,13 @@ BEGIN
     IDM_SPEAKBACK           "前行を読み上げ"
     IDM_SPEAKNEXT           "次行を読み上げ"
     IDM_CHARTOOLTIP         "コンソールの文字情報をツールチップで表示する"
+    IDM_LINEEDITMODE        "端末で行編集してから文字を送ります\nローカルエディットモードの切替"
+END
+
+STRINGTABLE
+BEGIN
+    IDM_RIGHTCLOSE          "右側の接続をすべて閉じる\n右側を閉じる"
+    IDM_OTHERCLOSE          "他の接続をすべて閉じる\n他を閉じる"
 END
 
 #endif    // 日本語 (日本) resources

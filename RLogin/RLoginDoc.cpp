@@ -114,6 +114,9 @@ CRLoginDoc::CRLoginDoc()
 	m_CmdsPath.Empty();
 	m_bExitPause = FALSE;
 	m_bSleepDisable = FALSE;
+#ifdef	USE_FIFOBUF
+	m_SockSyncChar = (-1);
+#endif
 }
 
 CRLoginDoc::~CRLoginDoc()
@@ -283,7 +286,17 @@ void CRLoginDoc::OnFileClose()
 		return;
 
 	if ( m_pSock != NULL && m_pSock->m_bConnect ) {
-		if ( AfxMessageBox(CStringLoad(IDS_FILECLOSEQES), MB_ICONQUESTION | MB_YESNO) != IDYES )
+		CString msg, title = GetTitle();
+		CTime tm(m_ConnectTime);
+		if ( title.Compare(m_ServerEntry.m_EntryName) != 0 )
+			title.Format(_T("%s(%s)"), GetTitle(), m_ServerEntry.m_EntryName);
+		msg.Format(_T("%s\r\n%s@%s\r\n%s\r\n\r\n%s"),
+			title,
+			m_ServerEntry.m_ProtoType == PROTO_COMPORT ? (LPCTSTR)m_ServerEntry.m_PortName : (LPCTSTR)m_ServerEntry.m_UserName, 
+			(LPCTSTR)m_ServerEntry.m_HostName,
+			tm.Format(_T("%c")),
+			CStringLoad(IDS_FILECLOSEQES));
+		if ( AfxMessageBox(msg, MB_ICONQUESTION | MB_YESNO) != IDYES )
 			return;
 	}
 
@@ -1911,6 +1924,34 @@ void CRLoginDoc::OnSocketClose()
 	else
 		OnFileClose();
 }
+
+#ifdef	USE_FIFOBUF
+BOOL CRLoginDoc::SocketSyncMode()
+{
+	if ( m_SockSyncChar == (-1) )
+		return FALSE;
+
+	m_pSock->SetRecvSyncMode(TRUE);
+
+	if ( m_SockSyncChar == 0x18 ) {	// CAN
+		if ( m_pZModem == NULL )
+			m_pZModem = new CZModem(this, AfxGetMainWnd());
+		m_pZModem->DoProc(7);	// ZMODEM UpDown
+	} else if ( m_SockSyncChar == 0x01 ) {
+		if ( m_pKermit == NULL )
+			m_pKermit = new CKermit(this, AfxGetMainWnd());
+		m_pKermit->DoProc(0);	// Kermit DownLoad
+	} else {
+		if ( m_pBPlus == NULL )
+			m_pBPlus = new CBPlus(this, AfxGetMainWnd());
+		m_pBPlus->DoProc(m_SockSyncChar);
+	}
+
+	m_SockSyncChar = (-1);
+	return TRUE;
+}
+#endif
+
 int CRLoginDoc::OnSocketReceive(LPBYTE lpBuf, int nBufLen, int nFlags)
 {
 	int n;
@@ -1941,6 +1982,16 @@ int CRLoginDoc::OnSocketReceive(LPBYTE lpBuf, int nBufLen, int nFlags)
 
 	n = m_TextRam.Write(lpBuf, (nBufLen < RECVDEFSIZ ? nBufLen : RECVDEFSIZ), &sync);
 
+#ifdef	USE_FIFOBUF
+	if ( sync ) {
+		if ( m_pSock->IsSyncMode() ) {
+			// ‚·‚Å‚ÉSyncMode‚È‚ç–³Ž‹‚·‚é
+			n++;
+		} else {
+			m_SockSyncChar = lpBuf[n];
+		}
+	}
+#else
 	if ( sync ) {
 		if ( m_pSock->IsSyncMode() ) {
 			// ‚·‚Å‚ÉSyncMode‚È‚ç–³Ž‹‚·‚é
@@ -1965,6 +2016,7 @@ int CRLoginDoc::OnSocketReceive(LPBYTE lpBuf, int nBufLen, int nFlags)
 
 	if ( (nBufLen - n + m_pSock->GetRecvProcSize()) > 0 )
 		((CMainFrame *)::AfxGetMainWnd())->PostIdleMessage();		// OnIdle‚Ì—U”­
+#endif
 
 	nBufLen = n;
 
@@ -2185,7 +2237,11 @@ void CRLoginDoc::SocketSend(void *lpBuf, int nBufLen, BOOL delaySend)
 		if ( m_DelayFlag == DELAY_NON )
 			DelaySend();
 	} else 
+#ifdef	USE_FIFOBUF
+		m_pSock->PreSend(lpBuf, nBufLen);
+#else
 		m_pSock->Send(lpBuf, nBufLen);
+#endif
 
 	if ( m_pLogFile != NULL && m_TextRam.m_LogMode == LOGMOD_DEBUG )
 		LogWrite((LPBYTE)lpBuf, nBufLen, LOGDEBUG_SEND);

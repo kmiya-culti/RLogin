@@ -249,6 +249,8 @@ BEGIN_MESSAGE_MAP(CRLoginView, CView)
 	ON_COMMAND(ID_FILE_PRINT_PREVIEW, &CView::OnFilePrintPreview)
 	ON_COMMAND(IDM_EDIT_MARK, &CRLoginView::OnEditMark)
 	ON_UPDATE_COMMAND_UI(IDM_EDIT_MARK, &CRLoginView::OnUpdateEditMark)
+	ON_COMMAND(IDM_LINEEDITMODE, &CRLoginView::OnLineeditmode)
+	ON_UPDATE_COMMAND_UI(IDM_LINEEDITMODE, &CRLoginView::OnUpdateLineeditmode)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -547,6 +549,7 @@ void CRLoginView::OnDraw(CDC* pDC)
 	}
 
 	SetDelayInvalTimer();
+//	TRACE("CRLoginView::OnDraw\n");
 }
 void CRLoginView::CreateGrapImage(int type)
 {
@@ -953,7 +956,7 @@ void CRLoginView::SendBuffer(CBuffer &buf, BOOL macflag, BOOL delaySend)
 	m_ScrollOut = FALSE;
 
 	if ( macflag == FALSE ) {
-		if ( pDoc->m_TextRam.IsOptEnable(TO_RLDSECHO) && !pDoc->m_TextRam.LineEdit(buf) )
+		if ( pDoc->m_TextRam.IsLineEditEnable() && !pDoc->m_TextRam.LineEdit(buf) )
 			return;
 
 		pDoc->OnSendBuffer(buf);
@@ -1490,6 +1493,7 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 			}
 		} else {
 			m_BtnWnd.DoButton(this, &(pDoc->m_TextRam));
+			m_ToolTip.DelTool(&m_BtnWnd);
 			m_ToolTip.AddTool(&m_BtnWnd, (LPCTSTR)pHint);
 //			if ( (m_CaretFlag & FGCARET_FOCUS) != 0 || pDoc->GetViewCount() <= 1 )
 				m_BtnWnd.ShowWindow(SW_SHOW);
@@ -1574,6 +1578,7 @@ void CRLoginView::OnUpdate(CView* pSender, LPARAM lHint, CObject* pHint)
 
 		if ( m_BtnWnd.m_hWnd == NULL && pDoc->m_TextRam.m_bOscActive && pDoc->m_TextRam.m_IntCounter >= 10 ) {
 			m_BtnWnd.DoButton(this, &(pDoc->m_TextRam));
+			m_ToolTip.DelTool(&m_BtnWnd);
 			m_ToolTip.AddTool(&m_BtnWnd, pDoc->m_TextRam.m_SeqMsg);
 			m_BtnWnd.ShowWindow(SW_SHOW);
 		}
@@ -1803,20 +1808,6 @@ int CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 	} else if ( nChar == VK_RETURN && (nFlags & 0x0100) != 0 )
 		nChar = VK_SEPARATOR;
 
-	if ( pDoc->m_TextRam.IsOptEnable(TO_RLDSECHO) ) {
-		switch(nChar) {
-		case VK_LEFT:   tmp.PutWord(0x1C); SendBuffer(tmp); return FALSE;
-		case VK_RIGHT:  tmp.PutWord(0x1D); SendBuffer(tmp); return FALSE;
-		case VK_UP:     tmp.PutWord(0x1E); SendBuffer(tmp); return FALSE;
-		case VK_DOWN:   tmp.PutWord(0x1F); SendBuffer(tmp); return FALSE;
-		case VK_DELETE: tmp.PutWord(0x7F); SendBuffer(tmp); return FALSE;
-		case VK_BACK:   tmp.PutWord(0x08); SendBuffer(tmp); return FALSE;
-		case VK_TAB:    tmp.PutWord(0x09); SendBuffer(tmp); return FALSE;
-		case VK_RETURN: tmp.PutWord(0x0D); SendBuffer(tmp); return FALSE;
-		}
-		return TRUE;
-	}
-
 	if ( (nFlags & 0x4000) != 0 && !pDoc->m_TextRam.IsOptEnable(TO_DECARM) )
 		return TRUE;
 
@@ -1905,8 +1896,10 @@ int CRLoginView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 			if ( pDoc->m_pScript != NULL )
 				pNode->m_ScriptNumber = pDoc->m_pScript->ExecStr(UniToTstr((LPCWSTR)pNode->m_Maps + 1), pNode->m_ScriptNumber);
 #endif
-		} else
-			SendBuffer(pNode->m_Maps);
+		} else {
+			tmp = pNode->m_Maps;
+			SendBuffer(tmp);
+		}
 
 		return FALSE;
 
@@ -2602,6 +2595,14 @@ BOOL CRLoginView::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 
 	if ( (nFlags & MK_SHIFT) != 0 ) {
 		((CRLoginApp *)::AfxGetApp())->SendBroadCastMouseWheel(nFlags & ~MK_SHIFT, zDelta, pt);
+		return TRUE;
+	}
+	if ( (nFlags & MK_CONTROL) != 0 ) {
+		if ( pDoc->m_TextRam.IsOptEnable(TO_RLFONT) ) {
+			if ( (pDoc->m_TextRam.m_FontSize += (zDelta / WHEEL_DELTA)) < 2 )
+				pDoc->m_TextRam.m_FontSize = 2;
+			pDoc->UpdateAllViews(NULL, UPDATE_RESIZE, NULL);
+		}
 		return TRUE;
 	}
 
@@ -3436,6 +3437,18 @@ void CRLoginView::OnClipboardMenu()
 	point.y = m_CaretY + m_CharHeight;
 	ClientToScreen(&point);
 	((CMainFrame *)::AfxGetMainWnd())->TrackPopupMenuIdle(pMenu, TPM_LEFTALIGN | TPM_LEFTBUTTON | TPM_RIGHTBUTTON, point.x, point.y, this);
+}
+
+void CRLoginView::OnLineeditmode()
+{
+	CRLoginDoc* pDoc = GetDocument();
+	pDoc->m_TextRam.LineEditSwitch();
+}
+void CRLoginView::OnUpdateLineeditmode(CCmdUI *pCmdUI)
+{
+	CRLoginDoc* pDoc = GetDocument();
+	pCmdUI->Enable(pDoc->m_TextRam.IsOptEnable(TO_RLDSECHO) ? TRUE : FALSE);
+	pCmdUI->SetCheck(pDoc->m_TextRam.IsLineEditEnable() ? 1 : 0);
 }
 
 void CRLoginView::OnMacroRec() 

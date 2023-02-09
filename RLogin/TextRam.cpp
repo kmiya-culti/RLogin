@@ -1859,7 +1859,8 @@ CTextRam::CTextRam()
 		pGrapListIndex[n] = pGrapListImage[n] = NULL;
 	pGrapListType = NULL;
 
-	m_LineEditMode = FALSE;
+	m_LineEditDisable = FALSE;
+	m_LineEditMode = LINEEDIT_NONE;
 	m_LineEditPos  = 0;
 	m_LineEditBuff.Clear();
 	m_LineEditMapsInit = 0;
@@ -2000,9 +2001,9 @@ void CTextRam::InitText(int Width, int Height)
 
 	if ( IsOptEnable(TO_RLFONT) ) {
 		if ( IsOptEnable(TO_RLHIDPIFSZ) )
-			charHeight = MulDiv(m_DefFontSize, SCREEN_DPI_Y, DEFAULT_DPI_Y);
+			charHeight = MulDiv(m_FontSize, SCREEN_DPI_Y, DEFAULT_DPI_Y);
 		else
-			charHeight = m_DefFontSize;
+			charHeight = m_FontSize;
 
 		if ( (charWidth = charHeight * 10 / m_DefFontHw) <= 0 )
 			charWidth = 1;
@@ -2630,6 +2631,7 @@ void CTextRam::Init()
 	m_Page          = 0;
 	m_DefHisMax		= 2000;
 	m_DefFontSize	= MulDiv(16, SYSTEM_DPI_Y, DEFAULT_DPI_Y);
+	m_FontSize      = m_DefFontSize;
 	m_DefFontHw     = 20;
 	m_KanjiMode		= EUC_SET;
 	m_BankGL		= 0;
@@ -2905,7 +2907,7 @@ void CTextRam::SetIndex(int mode, CStringIndex &index)
 		if ( (n = index.Find(_T("History"))) >= 0 )
 			m_DefHisMax = index[n];
 		if ( (n = index.Find(_T("FontSize"))) >= 0 )
-			m_DefFontSize = index[n];
+			m_DefFontSize = m_FontSize = index[n];
 		if ( (n = index.Find(_T("CharSet"))) >= 0 )
 			m_KanjiMode = index[n];
 
@@ -3563,7 +3565,7 @@ void CTextRam::GetArray(CStringArrayExt &stra)
 
 	m_DefCols[0]  = stra.GetVal(0);
 	m_DefHisMax   = stra.GetVal(1);
-	m_DefFontSize = stra.GetVal(2);
+	m_DefFontSize = m_FontSize = stra.GetVal(2);
 	m_KanjiMode   = stra.GetVal(3);
 	m_BankGL      = stra.GetVal(4);
 	m_BankGR      = stra.GetVal(5);
@@ -4063,7 +4065,7 @@ int CTextRam::Write(LPBYTE lpBuf, int nBufLen, BOOL *sync)
 {
 	int n;
 
-	if ( m_LineEditMode )
+	if ( m_LineEditMode == LINEEDIT_SAVE )
 		LOADRAM();
 
 	m_UpdateFlag = FALSE;
@@ -4078,18 +4080,16 @@ int CTextRam::Write(LPBYTE lpBuf, int nBufLen, BOOL *sync)
 		}
 	}
 
-	if ( m_LineEditMode || m_LineEditBuff.GetSize() > 0 ) {
-		if ( IsOptEnable(TO_RLDSECHO) ) {
+	if ( m_LineEditMode ==  LINEEDIT_SAVE || m_LineEditBuff.GetSize() > 0 ) {
+		if ( IsLineEditEnable() ) {
 			SAVERAM();
 			m_LineEditX = m_CurX;
 			m_LineEditY = m_CurY;
 			m_LineEditIndex = 0;
-			m_LineEditMode = TRUE;
+			m_LineEditMode = LINEEDIT_SAVE;
 			LineEditEcho();
-		} else {
-			m_LineEditBuff.Clear();
-			m_LineEditMode = FALSE;
-		}
+		} else
+			m_LineEditMode = LINEEDIT_NONE;
 	}
 
 	FLUSH();
@@ -4123,13 +4123,31 @@ void CTextRam::LineEditCwd(int ex, int sy, CStringW &cwd)
 }
 void CTextRam::LineEditEcho()
 {
+	int n;
+	int len;
+	LPCWSTR p;
 	CBuffer tmp;
 	CBuffer left, right;
 	int cx, cy;
 	BOOL cf, gf;
 
-	left.Apend(m_LineEditBuff.GetPtr(), m_LineEditPos * sizeof(WCHAR));
-	right.Apend(m_LineEditBuff.GetPos(m_LineEditPos * sizeof(WCHAR)), m_LineEditBuff.GetSize() - m_LineEditPos * sizeof(WCHAR));
+	len = m_LineEditBuff.GetSize() / sizeof(WCHAR);
+	p = (LPCWSTR)m_LineEditBuff.GetPtr();
+
+	for ( n = 0 ; n < m_LineEditPos ; n++, p++ ) {
+		if ( *p < L' ') {
+			left.PutWord(L'^');
+			left.PutWord(*p + '@');
+		} else
+			left.PutWord(*p);
+	}
+	for ( n = m_LineEditPos ; n < len ; n++, p++ ) {
+		if ( *p < L' ') {
+			right.PutWord(L'^');
+			right.PutWord(*p + '@');
+		} else
+			right.PutWord(*p);
+	}
 
 	m_CurX = m_LineEditX;
 	m_CurY = m_LineEditY;
@@ -4160,22 +4178,55 @@ void CTextRam::LineEditEcho()
 	if ( !cf ) DisableOption(TO_DECAWM);
 	if ( !gf ) DisableOption(TO_RLGNDW);
 }
-int CTextRam::LineEdit(CBuffer &buf)
+void CTextRam::LineEditSwitch()
+{
+	if ( !IsOptEnable(TO_RLDSECHO) )
+		return;
+
+	if ( !m_LineEditDisable ) {		// ON -> OFF
+		if ( m_LineEditMode == LINEEDIT_SAVE ) {
+			LOADRAM();
+			FLUSH();
+		}
+		m_LineEditMode = LINEEDIT_NONE;
+		m_LineEditDisable = TRUE;
+
+	} else {						// OFF -> ON
+		if ( m_LineEditBuff.GetSize() > 0 ) {
+			SAVERAM();
+			m_LineEditX = m_CurX;
+			m_LineEditY = m_CurY;
+			m_LineEditIndex = 0;
+			m_LineEditMode = LINEEDIT_SAVE;
+			LineEditEcho();
+			FLUSH();
+		}
+		m_LineEditDisable = FALSE;
+	}
+}
+BOOL CTextRam::IsLineEditEnable()
+{
+	if ( !IsOptEnable(TO_RLDSECHO) )
+		return FALSE;
+
+	return (m_LineEditDisable ? FALSE : TRUE);
+}
+BOOL CTextRam::LineEdit(CBuffer &buf)
 {
 	int n;
-	int rt = FALSE;
-	int ec = FALSE;
-	int ds = FALSE;
-	int sr = FALSE;
-	int len;
+	int len, key;
+	BOOL rt = FALSE;
+	BOOL ec = FALSE;
+	BOOL ds = FALSE;
 	CBuffer tmp;
 	CString dir;
-	WCHAR *wp, *sp;
+	WCHAR *wp, *sp, *kp;
 	CStringW wstr;
+	CKeyNode *np;
+	CString text;
 
-	if ( m_LineEditMode == FALSE ) {
-		SAVERAM();
-		m_LineEditMode = TRUE;
+	if ( m_LineEditMode == LINEEDIT_NONE ) {
+		m_LineEditMode = LINEEDIT_ACTIVE;
 		m_LineEditPos = 0;
 		m_LineEditX = m_CurX;
 		m_LineEditY = m_CurY;
@@ -4189,42 +4240,76 @@ int CTextRam::LineEdit(CBuffer &buf)
 	wp = (WCHAR *)tmp.GetPtr();
 	buf.Clear();
 
-	while ( len-- > 0 ) {
-		switch(*wp) {
+	while ( len > 0 ) {
+		kp = wp;
+		if ( m_pDocument != NULL && (np = m_pDocument->m_KeyTab.MapToNode(wp, len)) != NULL ) {
+			if ( (np->m_Mask & MASK_VT52) != 0 && IsOptEnable(TO_DECANM) )
+				key = *wp;
+			else
+				key = 0x10000 + np->m_Code;
+			n = np->m_Maps.GetSize() / sizeof(WCHAR);
+			wp  += n;
+			len -= n;
+		} else {
+			key = *(wp++);
+			len--;
+		}
+
+		ASSERT(kp < wp);
+
+		switch(key) {
 		case 'V'-'@':
-			AfxGetMainWnd()->SendMessage(WM_COMMAND, ID_EDIT_PASTE);
+			if ( ((CMainFrame *)AfxGetMainWnd())->GetClipboardText(text) ) {
+				sp = (WCHAR *)(LPCWSTR)text;
+				wstr.Empty();
+				while ( *sp != L'\0' ) {
+					if ( sp[0] == L'\r' && sp[1] == L'\n' ) {
+						wstr += L'\r';
+						sp += 2;
+					} else if ( sp[0] == L'\r' || sp[0] == L'\n' ) {
+						wstr += L'\r';
+						sp += 1;
+					} else
+						wstr += *(sp++);
+				}
+				m_LineEditBuff.Insert((LPBYTE)(LPCWSTR)wstr, wstr.GetLength() * sizeof(WCHAR), m_LineEditPos * sizeof(WCHAR));
+				m_LineEditPos += wstr.GetLength();
+				m_LineEditMapsPos = (-1);
+				ec = TRUE;
+			}
 			break;
 
 		case 'C'-'@':
-			if ( m_pDocument != NULL && m_pDocument->m_pSock != NULL )
-				m_pDocument->m_pSock->SendBreak(0);
-			goto CLEARBUF;
 		case 'Z'-'@':
+			if ( m_LineEditMode == LINEEDIT_SAVE ) {
+				LOADRAM();
+				m_LineEditMode = LINEEDIT_ACTIVE;
+			}
 			if ( m_pDocument != NULL && m_pDocument->m_pSock != NULL )
-				m_pDocument->m_pSock->SendBreak(1);
-			// goto CLEARBUF;
+				m_pDocument->m_pSock->SendBreak(key == ('C'-'@') ? 0 : 1);
+			// no break
 		case 'X'-'@':
-		CLEARBUF:
 			m_LineEditPos = 0;
 			m_LineEditBuff.Clear();
 			m_LineEditMapsPos = (-1);
-			ec = TRUE;
+			ec = FALSE;
 			rt = TRUE;
 			break;
 
 		case 'I'-'@':	// TAB
+		case 0x10000 + VK_TAB:
 			if ( m_LineEditMapsPos < 0 ) {
 				for ( m_LineEditMapsTop = m_LineEditPos ; m_LineEditMapsTop > 0 ; m_LineEditMapsTop-- ) {
-					wp = (WCHAR *)m_LineEditBuff.GetPos((m_LineEditMapsTop - 1) * sizeof(WCHAR));
-					if ( *wp == ' ' )
+					sp = (WCHAR *)m_LineEditBuff.GetPos((m_LineEditMapsTop - 1) * sizeof(WCHAR));
+					if ( *sp == ' ' )
 						break;
 				}
 
 				m_LineEditMapsDir.Empty();
 				m_LineEditMapsStr.Empty();
 				for ( n = m_LineEditMapsTop ; n < m_LineEditPos ; n++ ) {
-					wp = (WCHAR *)m_LineEditBuff.GetPos(n * sizeof(WCHAR));
-					m_LineEditMapsStr += *wp;
+					sp = (WCHAR *)m_LineEditBuff.GetPos(n * sizeof(WCHAR));
+					m_LineEditMapsStr += *sp;
 				}
 
 				if ( m_pDocument != NULL && m_pDocument->m_pSock != NULL && m_pDocument->m_pSock->m_Type == ESCT_PIPE ) {
@@ -4286,10 +4371,13 @@ int CTextRam::LineEdit(CBuffer &buf)
 			break;
 
 		case 'H'-'@':	// BS
+		case 0x10000 + VK_BACK:
 			if ( m_LineEditPos <= 0 )
 				break;
 			m_LineEditPos--;
+			// no break
 		case 0x7F:	// DEL
+		case 0x10000 + VK_DELETE:
 			n = m_LineEditBuff.GetSize() / sizeof(WCHAR);
 			if ( m_LineEditPos >= n )
 				break;
@@ -4302,22 +4390,47 @@ int CTextRam::LineEdit(CBuffer &buf)
 				rt = TRUE;
 			break;
 
-		case 0x1C:	// LEFT
+		case '@'-'@':
+		case 0x0D:
+		case 0x10000 + VK_RETURN:
+			if ( m_LineEditBuff.GetSize() > 0 ) {
+				m_LineEditNow.PutBuf(m_LineEditBuff.GetPtr(), m_LineEditBuff.GetSize());
+				if ( m_LineEditHisPos >= 0 && m_LineEditHisPos < m_LineEditHis.GetSize() )
+					m_LineEditHis.RemoveAt(m_LineEditHisPos);
+				else {
+					for ( n = 0 ; n < (int)m_LineEditHis.GetSize() ; n++ ) {
+						if ( m_LineEditNow.GetSize() == m_LineEditHis.GetAt(n).GetSize() &&
+							memcmp(m_LineEditNow.GetPtr(), m_LineEditHis.GetAt(n).GetPtr(), m_LineEditNow.GetSize()) == 0 ) {
+							m_LineEditHis.RemoveAt(n);
+							break;
+						}
+					}
+				}
+				m_LineEditHis.InsertAt(0, m_LineEditNow);
+				if ( (n = (int)m_LineEditHis.GetSize()) > 200 )
+					m_LineEditHis.RemoveAt(n - 1);
+				m_LineEditMapsTab[2].AddWStrBuf(m_LineEditNow.GetPtr(), m_LineEditNow.GetSize());
+			}
+			if ( key != ('@'-'@') ) {
+				while ( kp < wp )
+					m_LineEditBuff.PutWord(*(kp++));
+			}
+			buf.Apend(m_LineEditBuff.GetPtr(), m_LineEditBuff.GetSize());
+			m_LineEditBuff.Clear();
+			m_LineEditPos = 0;
+			m_LineEditHisPos = (-1);
+			m_LineEditMapsPos = (-1);
+			rt = TRUE;
+			break;
+
+		case 0x10000 + VK_LEFT:	// LEFT
 			if ( m_LineEditPos <= 0 )
 				break;
 			m_LineEditPos--;
 			m_LineEditMapsPos = (-1);
 			ec = TRUE;
 			break;
-		case 0x1D:	// RIGHT
-			if ( m_LineEditPos >= (int)(m_LineEditBuff.GetSize() / sizeof(WCHAR)) )
-				break;
-			m_LineEditPos++;
-			m_LineEditMapsPos = (-1);
-			ec = TRUE;
-			break;
-
-		case 0x1E:	// UP
+		case 0x10000 + VK_UP:	// UP
 			if ( (m_LineEditHisPos + 1) >= m_LineEditHis.GetSize() )
 				break;
 			if ( ++m_LineEditHisPos <= 0 )
@@ -4328,7 +4441,14 @@ int CTextRam::LineEdit(CBuffer &buf)
 			m_LineEditMapsPos = (-1);
 			ec = TRUE;
 			break;
-		case 0x1F:	// DOWN
+		case 0x10000 + VK_RIGHT:	// RIGHT
+			if ( m_LineEditPos >= (int)(m_LineEditBuff.GetSize() / sizeof(WCHAR)) )
+				break;
+			m_LineEditPos++;
+			m_LineEditMapsPos = (-1);
+			ec = TRUE;
+			break;
+		case 0x10000 + VK_DOWN:	// DOWN
 			if ( m_LineEditHisPos < 0 )
 				break;
 			if ( --m_LineEditHisPos < 0 ) {
@@ -4345,75 +4465,28 @@ int CTextRam::LineEdit(CBuffer &buf)
 			ec = TRUE;
 			break;
 
-		case 0x0D:
-			if ( m_LineEditBuff.GetSize() > 0 ) {
-				m_LineEditNow.PutBuf(m_LineEditBuff.GetPtr(), m_LineEditBuff.GetSize());
-				if ( m_LineEditHisPos >= 0 )
-					m_LineEditHis.RemoveAt(m_LineEditHisPos);
-				else {
-					for ( n = 0 ; n < (int)m_LineEditHis.GetSize() ; n++ ) {
-						if ( m_LineEditNow.GetSize() == m_LineEditHis.GetAt(n).GetSize() &&
-							memcmp(m_LineEditNow.GetPtr(), m_LineEditHis.GetAt(n).GetPtr(), m_LineEditNow.GetSize()) == 0 ) {
-							m_LineEditHis.RemoveAt(n);
-							break;
-						}
-					}
-				}
-				m_LineEditHis.InsertAt(0, m_LineEditNow);
-				if ( (n = (int)m_LineEditHis.GetSize()) > 200 )
-					m_LineEditHis.RemoveAt(n - 1);
-				m_LineEditMapsTab[2].AddWStrBuf(m_LineEditNow.GetPtr(), m_LineEditNow.GetSize());
-			}
-			m_LineEditBuff.PutWord(0x0D);
-			buf.Apend(m_LineEditBuff.GetPtr(), m_LineEditBuff.GetSize());
-			m_LineEditBuff.Clear();
-			m_LineEditPos = 0;
-			m_LineEditHisPos = (-1);
-			m_LineEditMapsPos = (-1);
-			rt = TRUE;
-			break;
-
 		default:
-			n = m_LineEditBuff.GetSize() / sizeof(WCHAR);
-			if ( m_LineEditPos >= n )
-				m_LineEditBuff.PutWord(*wp);
-			else {
-				m_LineEditBuff.PutWord(0x00);	// Dummy
-				sp = (WCHAR *)m_LineEditBuff.GetPtr();
-				for ( ; m_LineEditPos <= n ; n-- )
-					sp[n] = sp[n - 1];
-				sp[m_LineEditPos] = *wp;
-			}
-			m_LineEditPos++;
+			n = (int)(wp - kp);
+			m_LineEditBuff.Insert((LPBYTE)kp, n * sizeof(WCHAR), m_LineEditPos * sizeof(WCHAR));
+			m_LineEditPos += n;
 			m_LineEditMapsPos = (-1);
 			ec = TRUE;
-			if ( (*wp & 0xFF00) == 0 && *wp < L' ' )
-				sr = TRUE;
 			break;
 		}
-		wp++;
 	}
-
-	if ( sr ) {
-		buf.Apend(m_LineEditBuff.GetPtr(), m_LineEditBuff.GetSize());
-		m_LineEditBuff.Clear();
-		m_LineEditPos = 0;
-		m_LineEditHisPos = (-1);
-		m_LineEditMapsPos = (-1);
-		rt = TRUE;
-		ec = FALSE;
-	}
-
-	if ( ec )
-		LineEditEcho();
 
 	if ( rt ) {
-		LOADRAM();
-		m_LineEditMode = FALSE;
-	}
-
-	if ( ec || rt )
+		if ( m_LineEditMode == LINEEDIT_SAVE )
+			LOADRAM();
+		m_LineEditMode = LINEEDIT_NONE;
 		FLUSH();
+	} else if ( ec ) {
+		if ( m_LineEditMode != LINEEDIT_SAVE )
+			SAVERAM();
+		m_LineEditMode = LINEEDIT_SAVE;
+		LineEditEcho();
+		FLUSH();
+	}
 
 	return rt;
 }
@@ -8804,7 +8877,7 @@ void CTextRam::FORSCROLL(int sx, int sy, int ex, int ey)
 
 	m_DoWarp = FALSE;
 
-	if ( sy == 0 && sx == 0 && ex == m_Cols && !m_LineEditMode && !m_bTraceActive ) {
+	if ( sy == 0 && sx == 0 && ex == m_Cols && m_LineEditMode != LINEEDIT_SAVE && !m_bTraceActive ) {
 		if ( m_LogMode == LOGMOD_PAGE )
 			CallReceiveLine(0);
 
@@ -8998,10 +9071,15 @@ void CTextRam::ONEINDEX()
 				FORSCROLL(m_Margin.left, m_Margin.top, m_Margin.right, m_Margin.bottom);
 				m_LineEditIndex++;
 
+#ifdef	USE_FIFOBUF
+				if ( IsOptEnable(TO_DECSCLM) && m_pDocument != NULL && m_pDocument->m_pSock != NULL && m_pDocument->m_pSock->GetRecvProcSize() < RECVDEFSIZ )
+					m_UpdateFlag = TRUE;
+#else
 				if ( IsOptEnable(TO_DECSCLM) && ((m_pDocument != NULL && m_pDocument->m_pSock != NULL && m_pDocument->m_pSock->GetRecvProcSize() < RECVDEFSIZ) || (clock() - m_UpdateClock) > 20) ) {
 					m_UpdateClock = clock();
 					m_UpdateFlag = TRUE;
 				}
+#endif
 
 				if ( m_iTerm2Mark != 0 ) {
 					m_iTerm2MaekPos[0].y--;
@@ -10020,6 +10098,9 @@ void CTextRam::TABSET(int sw)
 }
 void CTextRam::PUTSTR(LPBYTE lpBuf, int nBufLen)
 {
+	if ( nBufLen <= 0 )
+		return;
+
 	CBuffer tmp(nBufLen);
 
 	tmp.Apend(lpBuf, nBufLen);

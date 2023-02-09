@@ -171,6 +171,11 @@ public:
 	void OnSocketClose();
 	int OnSocketReceive(LPBYTE lpBuf, int nBufLen, int nFlags);
 
+#ifdef	USE_FIFOBUF
+	int m_SockSyncChar;
+	BOOL SocketSyncMode();
+#endif
+
 	void SetDocTitle();
 	inline void SetStatus(LPCTSTR str) { m_SockStatus = str; SetDocTitle(); }
 	inline void SetEntryProBuffer() { SaveOption(m_ServerEntry, m_TextRam, m_KeyTab, m_KeyMac, m_ParamTab); }

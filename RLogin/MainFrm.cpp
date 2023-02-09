@@ -16,6 +16,10 @@
 #include "AnyPastDlg.h"
 #include "TtyModeDlg.h"
 
+#ifdef	USE_FIFOBUF
+	#include "Fifo.h"
+#endif
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -815,6 +819,10 @@ BEGIN_MESSAGE_MAP(CMainFrame, CMDIFrameWnd)
 	ON_MESSAGE(WM_SETMESSAGESTRING, OnSetMessageString)
 	ON_MESSAGE(WM_NULL, OnNullMessage)
 	ON_MESSAGE(WM_SPEAKMSG, OnSpeakMsg)
+#ifdef	USE_FIFOBUF
+	ON_MESSAGE(WM_FIFOMSG, OnFifoMsg)
+	ON_MESSAGE(WM_DOCUMENTMSG, OnDocumentMsg)
+#endif
 
 	ON_COMMAND(ID_FILE_ALL_LOAD, OnFileAllLoad)
 	ON_COMMAND(ID_FILE_ALL_SAVE, OnFileAllSave)
@@ -1554,7 +1562,9 @@ int CMainFrame::SetAsyncSelect(SOCKET fd, CExtSocket *pSock, long lEvent)
 	if ( lEvent != 0 && WSAAsyncSelect(fd, GetSafeHwnd(), WM_SOCKSEL, lEvent) != 0 )
 		return FALSE;
 
+#ifndef	USE_FIFOBUF
 	((CRLoginApp *)AfxGetApp())->AddIdleProc(IDLEPROC_SOCKET, pSock);
+#endif
 
 	CPtrArray *pSockPara = &(m_SocketParam[SOCKPARAMASK(fd)]);
 	for ( int n = 0 ; n < pSockPara->GetSize() ; n += 2 ) {
@@ -1574,7 +1584,9 @@ void CMainFrame::DelAsyncSelect(SOCKET fd, CExtSocket *pSock, BOOL useWsa)
 	if ( useWsa )
 		WSAAsyncSelect(fd, GetSafeHwnd(), 0, 0);
 
+#ifndef	USE_FIFOBUF
 	((CRLoginApp *)AfxGetApp())->DelIdleProc(IDLEPROC_SOCKET, pSock);
+#endif
 
 	CPtrArray *pSockPara = &(m_SocketParam[SOCKPARAMASK(fd)]);
 	for ( int n = 0 ; n < pSockPara->GetSize() ; n += 2 ) {
@@ -3525,6 +3537,7 @@ void CMainFrame::OnUpdateIndicatorKmod(CCmdUI* pCmdUI)
 		str += ( pDoc->m_TextRam.IsOptEnable(TO_RLPNAM) ? _T('A') : _T(' '));
 		str += ( pDoc->m_TextRam.IsOptEnable(TO_DECCKM) ? _T('C') : _T(' '));
 		str += (!pDoc->m_TextRam.IsOptEnable(TO_DECANM) ? _T('V') : _T(' '));
+		str += ( pDoc->m_TextRam.IsLineEditEnable()     ? _T('L') : _T(' '));
 	}
 
 	pCmdUI->SetText(str);
@@ -4622,6 +4635,73 @@ void CMainFrame::OnUpdateChartooltip(CCmdUI *pCmdUI)
 {
 	pCmdUI->SetCheck(m_bCharTooltip);
 }
+
+#ifdef	USE_FIFOBUF
+static int FifoBaseComp(const void *src, const void *dis)
+{
+	return (int)((INT_PTR)src - (INT_PTR)*((void **)dis));
+}
+void CMainFrame::AddFifoActive(void *pFifoBase)
+{
+	int n;
+
+	if ( !BinaryFind(pFifoBase, m_FifoActive.GetData(), sizeof(void *), (int)m_FifoActive.GetSize(), FifoBaseComp, &n) )
+		m_FifoActive.InsertAt(n, pFifoBase);
+}
+void CMainFrame::DelFifoActive(void *pFifoBase)
+{
+	int n;
+
+	if ( BinaryFind(pFifoBase, m_FifoActive.GetData(), sizeof(void *), (int)m_FifoActive.GetSize(), FifoBaseComp, &n) )
+		m_FifoActive.RemoveAt(n);
+}
+LRESULT CMainFrame::OnFifoMsg(WPARAM wParam, LPARAM lParam)
+{	
+	if ( BinaryFind((void *)lParam, m_FifoActive.GetData(), sizeof(void *), (int)m_FifoActive.GetSize(), FifoBaseComp, NULL) )
+		((CFifoWnd *)lParam)->MsgPump(wParam);
+	return TRUE;
+}
+LRESULT CMainFrame::OnDocumentMsg(WPARAM wParam, LPARAM lParam)
+{
+	DocMsg *pDocMsg = (DocMsg *)lParam;
+
+	ASSERT(pDocMsg != NULL && pDocMsg->doc != NULL);
+
+	switch((int)wParam) {
+	case DOCMSG_REMOTESTR:
+		ASSERT(pDocMsg->type == DOCMSG_TYPE_STRINGA);
+		*((CStringA *)pDocMsg->pOut) = pDocMsg->doc->RemoteStr((LPCTSTR)pDocMsg->pIn);
+		break;
+	case DOCMSG_LOCALSTR:
+		ASSERT(pDocMsg->type == DOCMSG_TYPE_STRINGT);
+		*((CString *)pDocMsg->pOut) = pDocMsg->doc->LocalStr((LPCSTR)pDocMsg->pIn);
+		break;
+
+	case DOCMSG_USERNAME:
+		ASSERT(pDocMsg->type == DOCMSG_TYPE_STRINGA);
+		*((CStringA *)pDocMsg->pOut) = pDocMsg->doc->RemoteStr(pDocMsg->doc->m_ServerEntry.m_UserName);
+		break;
+	case DOCMSG_PASSNAME:
+		ASSERT(pDocMsg->type == DOCMSG_TYPE_STRINGA);
+		*((CStringA *)pDocMsg->pOut) = pDocMsg->doc->RemoteStr(pDocMsg->doc->m_ServerEntry.m_PassName);
+		break;
+	case DOCMSG_TERMNAME:
+		ASSERT(pDocMsg->type == DOCMSG_TYPE_STRINGA);
+		*((CStringA *)pDocMsg->pOut) = pDocMsg->doc->RemoteStr(pDocMsg->doc->m_ServerEntry.m_TermName);
+		break;
+
+	case DOCMSG_SCREENSIZE:
+		{
+			ASSERT(pDocMsg->type == DOCMSG_TYPE_INTPTR);
+			int *pInt = (int *)pDocMsg->pOut;
+			pDocMsg->doc->m_TextRam.GetScreenSize(pInt + 0, pInt + 1, pInt + 2, pInt + 3);
+		}
+		break;
+	}
+
+	return TRUE;
+}
+#endif
 
 /////////////////////////////////////////////////////////////////////////////
 // CDockContextEx
@@ -6124,4 +6204,3 @@ BOOL CTabDlgBar::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 
 	return CControlBar::OnSetCursor(pWnd, nHitTest, message);
 }
-

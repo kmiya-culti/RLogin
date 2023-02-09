@@ -78,7 +78,7 @@ public:
 	void Consume(int len);
 	inline void ConsumeEnd(int len) { m_Len -= len; }
 	void Apend(LPBYTE buff, int len);
-	void Insert(LPBYTE buff, int len);
+	void Insert(LPBYTE buff, int len, int pos = 0);
 	void RemoveAll();
 	void Move(CBuffer &data);
 	void Swap(CBuffer &data);
@@ -222,6 +222,7 @@ public:
 	static CMenu *GetItemSubMenu(UINT nId, CMenu *pMenu);
 	static BOOL GetPopUpMenu(UINT nId, CMenu &PopUpMenu);
 	static void CopyMenu(CMenu *pSrcMenu, CMenu *pDisMenu);
+	static BOOL GetDefMenuStr(UINT nIDResource, UINT nId, CString &str);
 };
 
 class CStringLoad : public CString
@@ -695,6 +696,8 @@ public:
 	CString m_ListIndex;
 	CTime m_LastAccess;
 	CServerEntry *m_pList;
+	CBmpFile m_IconImage;
+
 
 	void Init();
 	void SetArray(CStringArrayExt &stra);
@@ -740,6 +743,11 @@ public:
 	void InitGetUid();
 	CServerEntry *GetUid(int uid);
 
+	void MenuStr(TCHAR skey, LPCTSTR str, CString &work);
+	void SetSubMenu(CStringIndex *pIndex, CMenu *pMenu, int IdOfs);
+	BOOL SetMenuEntry(CMenu *pMenu, int IdOfs);
+	void DelMenuEntry(CMenu *pMenu);
+
 	inline CServerEntry &GetAt(int nIndex) { return m_Data[nIndex]; }
 	inline INT_PTR GetSize() { return m_Data.GetSize(); }
 
@@ -758,15 +766,15 @@ public:
 //#define	MASK_CAPLCK	01000
 
 #ifdef	USE_CLIENTKEY
-	#define	VK_LMOUSE_LEFT_TOP			512
-	#define	VK_LMOUSE_LEFT_CENTER		513
-	#define	VK_LMOUSE_LEFT_BOTTOM		514
-	#define	VK_LMOUSE_CENTER_TOP		515
-	#define	VK_LMOUSE_CENTER_CENTER		516
-	#define	VK_LMOUSE_CENTER_BOTTOM		517
-	#define	VK_LMOUSE_RIGHT_TOP			518
-	#define	VK_LMOUSE_RIGHT_CENTER		519
-	#define	VK_LMOUSE_RIGHT_BOTTOM		520
+	#define	VK_LMOUSE_LEFT_TOP			0x100
+	#define	VK_LMOUSE_LEFT_CENTER		0x101
+	#define	VK_LMOUSE_LEFT_BOTTOM		0x102
+	#define	VK_LMOUSE_CENTER_TOP		0x103
+	#define	VK_LMOUSE_CENTER_CENTER		0x104
+	#define	VK_LMOUSE_CENTER_BOTTOM		0x105
+	#define	VK_LMOUSE_RIGHT_TOP			0x106
+	#define	VK_LMOUSE_RIGHT_CENTER		0x107
+	#define	VK_LMOUSE_RIGHT_BOTTOM		0x108
 #endif
 
 class CKeyNode : public CObject
@@ -824,12 +832,24 @@ public:
 	const CKeyCmdsTab & operator = (CKeyCmdsTab &data);
 };
 
+#define	KEYSCAN_MAX			4
+#define	KEYSCAN_HASH(c)		((c) & 3)
+
+typedef struct _KEYSCAN {
+	WCHAR				code;
+	struct _KEYSCAN		*list[KEYSCAN_MAX];
+	struct _KEYSCAN		*next;
+	CKeyNode			*node;
+} KEYSCAN;
+
 class CKeyNodeTab : public COptObject
 {
 public:
 	BOOL m_CmdsInit;
 	CKeyCmdsTab m_Cmds;
 	CArray<CKeyNode, CKeyNode &> m_Node;
+	BOOL m_bMapInit;
+	KEYSCAN *m_pKeyScanTop[KEYSCAN_MAX];
 
 	void Init();
 	void SetArray(CStringArrayExt &stra);
@@ -845,16 +865,24 @@ public:
 	int Add(LPCTSTR code, int mask, LPCTSTR maps);
 	CKeyNode *FindKeys(int code, int mask, int base, int bits);
 	CKeyNode *FindMaps(int code, int mask);
+
+	CKeyNode *KeyScan(LPCWSTR wstr, int len, KEYSCAN *kp);
+	KEYSCAN *KeyScanInit(LPCWSTR wstr, int len, KEYSCAN *top, CKeyNode *node);
+	void KeyScanDelete(KEYSCAN *top);
+	CKeyNode *MapToNode(LPCWSTR maps, int len);
+
 	BOOL FindCapInfo(LPCTSTR name, CBuffer &buf);
 
 	inline CKeyNode &GetAt(int pos) { return m_Node[pos]; }
 	inline int GetSize() { return (int)m_Node.GetSize(); }
 	inline void SetSize(int sz) { 	m_Node.SetSize(sz, 16); }
-	inline void RemoveAt(int pos) { m_Node.RemoveAt(pos); m_CmdsInit = FALSE; }
+	inline void RemoveAt(int pos) { m_Node.RemoveAt(pos); m_CmdsInit = m_bMapInit = FALSE; }
 	inline CKeyNode & operator[](int nIndex) { return m_Node[nIndex]; }
 
 	const CKeyNodeTab & operator = (CKeyNodeTab &data);
+
 	CKeyNodeTab();
+	~CKeyNodeTab();
 
 	void BugFix(int fix);
 	void CmdsInit();
@@ -1162,6 +1190,7 @@ class CBitmapEx : public CBitmap
 {
 public:
 	BOOL LoadResBitmap(int nId, int dpiX, int dpiY, COLORREF backCol);
+	BOOL CopyBitmap(CBitmap *pSrcBitmap);
 };
 
 #endif // !defined(AFX_DATA_H__6A23DC3E_3DDC_47BD_A6FC_E0127564AE6E__INCLUDED_)

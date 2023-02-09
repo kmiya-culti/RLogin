@@ -1177,7 +1177,7 @@ int	CBPlus::BP_DLE_Seen()
     if ( !Read_Byte() || e_ch != 'B' )
 		return 0;
 
-    SA_Next_to_ACK  = 0;    /* Initialize Send-ahead variables */
+	SA_Next_to_ACK  = 0;    /* Initialize Send-ahead variables */
     SA_Next_to_Fill = 0;
     SA_Waiting      = 0;
     Aborting        = FALSE;

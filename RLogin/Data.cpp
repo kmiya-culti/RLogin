@@ -182,6 +182,8 @@ CBuffer::CBuffer(int size)
 	} else
 		m_bZero = FALSE;
 
+	ASSERT(size > 0);
+
 	m_Ofs = m_Len = 0;
 	m_Max = size;
 	m_Data = new BYTE[m_Max];
@@ -299,20 +301,32 @@ void CBuffer::Apend(LPBYTE buff, int len)
 	memcpy(m_Data + m_Len, buff, len);
 	m_Len += len;
 }
-void CBuffer::Insert(LPBYTE buff, int len)
+void CBuffer::Insert(LPBYTE buff, int len, int pos)
 {
 	if ( len <= 0 )
 		return;
 
-	if ( m_Ofs >= len ) {
-		m_Ofs -= len;
+	if ( pos <= 0 ) {
+		if ( m_Ofs >= len ) {
+			m_Ofs -= len;
+		} else {
+			ReAlloc(len);
+			memmove(m_Data + m_Ofs + len, m_Data + m_Ofs, m_Len);
+			m_Len += len;
+		}
+		memcpy(m_Data + m_Ofs, buff, len);
+
+	} else if ( pos >= GetSize() ) {
+		ReAlloc(len);
+		memcpy(m_Data + m_Len, buff, len);
+		m_Len += len;
+
 	} else {
 		ReAlloc(len);
-		memmove(m_Data + m_Ofs + len, m_Data + m_Ofs, m_Len);
+		memmove(m_Data + m_Ofs + pos + len, m_Data + m_Ofs + pos, m_Len - m_Ofs - pos);
+		memcpy(m_Data + m_Ofs + pos, buff, len);
 		m_Len += len;
 	}
-
-	memcpy(m_Data + m_Ofs, buff, len);
 }
 void CBuffer::RoundUp(int len)
 {
@@ -2857,6 +2871,15 @@ void CMenuLoad::CopyMenu(CMenu *pSrcMenu, CMenu *pDisMenu)
 	while ( n < pDisMenu->GetMenuItemCount() )
 		pDisMenu->DeleteMenu(n, MF_BYPOSITION);
 }
+BOOL CMenuLoad::GetDefMenuStr(UINT nIDResource, UINT nId, CString &str)
+{
+	CMenuLoad DefMenu;
+
+	if ( !DefMenu.LoadMenu(nIDResource) )
+		return FALSE;
+
+	return (DefMenu.GetMenuString(nId, str, MF_BYCOMMAND) > 0 ? TRUE : FALSE);
+}
 
 //////////////////////////////////////////////////////////////////////
 // CStringLoad
@@ -3006,7 +3029,7 @@ CBmpFile::CBmpFile()
 	m_Width = m_Height = 0;
 	m_BkColor = 0;
 	m_Alpha = 255;
-	m_pTextBitMap = new CTextBitMap;
+	m_pTextBitMap = NULL;
 	m_bkIndex = (-1);
 	m_Style = MAPING_FILL;
 }
@@ -3015,6 +3038,9 @@ CBmpFile::~CBmpFile()
 {
 	if ( m_pTextBitMap != NULL )
 		delete m_pTextBitMap;
+
+	if ( (HBITMAP)m_Image != NULL )
+		m_Image.Destroy();
 }
 
 BOOL CBmpFile::LoadFile(LPCTSTR filename)
@@ -3027,7 +3053,7 @@ BOOL CBmpFile::LoadFile(LPCTSTR filename)
 	BOOL ret = FALSE;
 
 	if ( m_FileName.Compare(filename) == 0 )
-		return FALSE;
+		return ((HBITMAP)m_Image == NULL ? FALSE : TRUE);
 
 	m_FileName = filename;
 
@@ -3474,7 +3500,8 @@ CBitmap *CBmpFile::GetBitmap(CDC *pDC, int width, int height, COLORREF bkcolor, 
 	m_Alpha   = Alpha;
 	m_Style   = Style;
 
-	m_pTextBitMap->Init();
+	if ( m_pTextBitMap != NULL )
+		m_pTextBitMap->Init();
 	m_Title.Empty();
 
 	MemDC.SelectObject(pOldMemMap);
@@ -3491,6 +3518,9 @@ CBitmap *CBmpFile::GetTextBitmap(CDC *pDC, int width, int height, COLORREF bkcol
 	CRect rect;
 	CFont Font, *pOldFont;
 	BOOL bEraBack = FALSE;
+
+	if ( m_pTextBitMap == NULL )
+		m_pTextBitMap = new CTextBitMap;
 
 	if ( m_Bitmap.m_hObject != NULL && m_Width == width && m_Height == height && m_BkColor == bkcolor && m_Alpha == Alpha && m_Style == Style && (*m_pTextBitMap) == (*pTextBitMap) && m_Title.Compare(title) == 0 )
 		return (&m_Bitmap);
@@ -5313,6 +5343,120 @@ CServerEntry *CServerEntryTab::GetUid(int uid)
 	return pEntry;
 }
 
+static CServerEntryTab *pEntryCmpTab;
+
+static int EntryCmp(const void *src, const void *dis)
+{
+	return pEntryCmpTab->m_Data[*((DWORD *)src)].m_EntryName.Compare(pEntryCmpTab->m_Data[*((DWORD *)dis)].m_EntryName);
+}
+void CServerEntryTab::MenuStr(TCHAR skey, LPCTSTR str, CString &work)
+{
+	work.Format(_T("&%c "), skey);
+
+	for ( int n = 0 ; n < 30 && *str != _T('\0') ; n++ ) {
+		if ( *str < _T(' ') || *str == _T('&') ) {
+			work += _T('.');
+			str++;
+		} else
+			work += *(str++);
+	}
+
+	if ( *str != _T('\0') )
+		work += _T("c");
+}
+void CServerEntryTab::SetSubMenu(CStringIndex *pIndex, CMenu *pMenu, int IdOfs)
+{
+	int n, i = 0, b = 0;
+	int dx = (int)pIndex->m_Array.GetSize();
+	int mx = dx + (int)pIndex->m_TabData.GetSize();
+	CString str;
+	CMenu NewMenu[2];
+
+	pEntryCmpTab = this;
+	qsort(pIndex->m_TabData.GetData(), pIndex->m_TabData.GetSize(), sizeof(DWORD), EntryCmp);
+
+	for ( n = 0 ; n < mx ; n++, i++ ) {
+		if ( i >= 9 ) {
+			i = 0;
+			if ( NewMenu[b].GetSafeHmenu() != NULL )
+				NewMenu[b].Detach();
+			if ( NewMenu[b].CreatePopupMenu() ) {
+				pMenu->AppendMenu(MF_POPUP | MF_STRING, (INT_PTR)NewMenu[b].GetSafeHmenu(), _T("&0 continue..."));
+				pMenu = &NewMenu[b];
+			}
+			b ^= 1;
+		}
+
+		if ( n < dx ) {
+			if ( NewMenu[b].GetSafeHmenu() != NULL )
+				NewMenu[b].Detach();
+			if ( NewMenu[b].CreatePopupMenu() ) {
+				MenuStr(_T('1') + i, pIndex->m_Array[n].m_nIndex, str);
+				pMenu->AppendMenu(MF_POPUP | MF_STRING, (INT_PTR)NewMenu[b].GetSafeHmenu(), str);
+				SetSubMenu(&(pIndex->m_Array[n]), &NewMenu[b], IdOfs);
+				NewMenu[b].Detach();
+			}
+		} else {
+			MenuStr(_T('1') + i, m_Data[pIndex->m_TabData[n - dx]].m_EntryName, str);
+			pMenu->AppendMenu(MF_STRING, (INT_PTR)(pIndex->m_TabData[n - dx] + IdOfs), str);
+		}
+	}
+
+	for ( n = 0 ; n < 2 ; n++ ) {
+		if ( NewMenu[n].GetSafeHmenu() != NULL )
+			NewMenu[n].Detach();
+	}
+}
+BOOL CServerEntryTab::SetMenuEntry(CMenu *pMenu, int IdOfs)
+{
+	int n;
+	CStringIndex tab;
+	BOOL bNest = FALSE;
+	CBitmap *bp;
+	int cx = GetSystemMetrics(SM_CXMENUCHECK);
+	int cy = GetSystemMetrics(SM_CYMENUCHECK);
+	COLORREF bc = GetSysColor(COLOR_MENU);
+	CClientDC dc(NULL);
+
+	if ( m_Data.GetSize() <= 0 )
+		return FALSE;
+
+	if ( !pMenu->CreatePopupMenu() )
+		return FALSE;
+
+	for ( n = 0 ; n < m_Data.GetSize() ; n++ ) {
+		if ( m_Data[n].m_Group.IsEmpty() )
+			tab.m_TabData.Add(n);
+		else
+			tab.AddPath(m_Data[n].m_Group, &bNest).m_TabData.Add(n);
+	}
+
+	SetSubMenu(&tab, pMenu, IdOfs);
+
+	for ( n = 0 ; n < m_Data.GetSize() ; n++ ) {
+		if ( m_Data[n].m_IconName.IsEmpty() )
+			continue;
+		if ( !m_Data[n].m_IconImage.LoadFile(m_Data[n].m_IconName) )
+			continue;
+		if ( (bp = m_Data[n].m_IconImage.GetBitmap(&dc, cx, cy, bc)) == NULL )
+			continue;
+
+		pMenu->SetMenuItemBitmaps(n + IdOfs, MF_BYCOMMAND, bp, NULL);
+	}
+
+	return TRUE;
+}
+void CServerEntryTab::DelMenuEntry(CMenu *pMenu)
+{
+	if ( pMenu->GetSafeHmenu() != NULL )
+		pMenu->DestroyMenu();
+
+	for ( int n = 0 ; n < m_Data.GetSize() ; n++ ) {
+		if ( m_Data[n].m_IconImage.m_Bitmap.GetSafeHandle() != NULL )
+			m_Data[n].m_IconImage.m_Bitmap.DeleteObject();
+	}
+}
+
 //////////////////////////////////////////////////////////////////////
 // CKeyNode
 
@@ -5436,87 +5580,127 @@ static const struct _KeyNameTab	{
 	int		code;
 	LPCTSTR	name;
 } KeyNameTab[] = {
-	{ VK_F1,		_T("F1")		},
-	{ VK_F2,		_T("F2")		},
-	{ VK_F3,		_T("F3")		},
-	{ VK_F4,		_T("F4")		},
-	{ VK_F5,		_T("F5")		},
-	{ VK_F6,		_T("F6")		},
-	{ VK_F7,		_T("F7")		},
-	{ VK_F8,		_T("F8")		},
-	{ VK_F9,		_T("F9")		},
-	{ VK_F10,		_T("F10")		},
-	{ VK_F11,		_T("F11")		},
-	{ VK_F12,		_T("F12")		},
-	{ VK_F13,		_T("F13")		},
-	{ VK_F14,		_T("F14")		},
-	{ VK_F15,		_T("F15")		},
-	{ VK_F16,		_T("F16")		},
-	{ VK_F17,		_T("F17")		},
-	{ VK_F18,		_T("F18")		},
-	{ VK_F19,		_T("F19")		},
-	{ VK_F20,		_T("F20")		},
-	{ VK_F21,		_T("F21")		},
-	{ VK_F22,		_T("F22")		},
-	{ VK_F23,		_T("F23")		},
-	{ VK_F24,		_T("F24")		},
+	{ VK_F1,			_T("F1")		},
+	{ VK_F2,			_T("F2")		},
+	{ VK_F3,			_T("F3")		},
+	{ VK_F4,			_T("F4")		},
+	{ VK_F5,			_T("F5")		},
+	{ VK_F6,			_T("F6")		},
+	{ VK_F7,			_T("F7")		},
+	{ VK_F8,			_T("F8")		},
+	{ VK_F9,			_T("F9")		},
+	{ VK_F10,			_T("F10")		},
+	{ VK_F11,			_T("F11")		},
+	{ VK_F12,			_T("F12")		},
+	{ VK_F13,			_T("F13")		},
+	{ VK_F14,			_T("F14")		},
+	{ VK_F15,			_T("F15")		},
+	{ VK_F16,			_T("F16")		},
+	{ VK_F17,			_T("F17")		},
+	{ VK_F18,			_T("F18")		},
+	{ VK_F19,			_T("F19")		},
+	{ VK_F20,			_T("F20")		},
+	{ VK_F21,			_T("F21")		},
+	{ VK_F22,			_T("F22")		},
+	{ VK_F23,			_T("F23")		},
+	{ VK_F24,			_T("F24")		},
 
-	{ VK_UP,		_T("UP")		},
-	{ VK_DOWN,		_T("DOWN")		},
-	{ VK_RIGHT,		_T("RIGHT")		},
-	{ VK_LEFT,		_T("LEFT")		},
+	{ VK_UP,			_T("UP")		},
+	{ VK_DOWN,			_T("DOWN")		},
+	{ VK_RIGHT,			_T("RIGHT")		},
+	{ VK_LEFT,			_T("LEFT")		},
 
-	{ VK_PRIOR,		_T("PRIOR")		},
-	{ VK_NEXT,		_T("NEXT")		},
-	{ VK_INSERT,	_T("INSERT")	},
-	{ VK_DELETE,	_T("DELETE")	},
-	{ VK_HOME,		_T("HOME")		},
-	{ VK_END,		_T("END")		},
-	{ VK_CLEAR,		_T("CLEAR")		},
+	{ VK_PRIOR,			_T("PRIOR")		},
+	{ VK_NEXT,			_T("NEXT")		},
+	{ VK_INSERT,		_T("INSERT")	},
+	{ VK_DELETE,		_T("DELETE")	},
+	{ VK_HOME,			_T("HOME")		},
+	{ VK_END,			_T("END")		},
+	{ VK_CLEAR,			_T("CLEAR")		},
 
-	{ VK_PAUSE,		_T("PAUSE")		},
-	{ VK_CANCEL,	_T("BREAK")		},
+	{ VK_PAUSE,			_T("PAUSE")		},
+	{ VK_CANCEL,		_T("BREAK")		},
 
-	{ VK_ESCAPE,	_T("ESCAPE")	},
-	{ VK_RETURN,	_T("RETURN")	},
-	{ VK_BACK,		_T("BACK")		},
-	{ VK_TAB,		_T("TAB")		},
-	{ VK_SPACE,		_T("SPACE")		},
+	{ VK_ESCAPE,		_T("ESCAPE")	},
+	{ VK_RETURN,		_T("RETURN")	},
+	{ VK_BACK,			_T("BACK")		},
+	{ VK_TAB,			_T("TAB")		},
+	{ VK_SPACE,			_T("SPACE")		},
 
-	{ VK_NUMPAD0,	_T("PAD0")		},
-	{ VK_NUMPAD1,	_T("PAD1")		},
-	{ VK_NUMPAD2,	_T("PAD2")		},
-	{ VK_NUMPAD3 ,	_T("PAD3")		},
-	{ VK_NUMPAD4,	_T("PAD4")		},
-	{ VK_NUMPAD5,	_T("PAD5")		},
-	{ VK_NUMPAD6,	_T("PAD6")		},
-	{ VK_NUMPAD7,	_T("PAD7")		},
-	{ VK_NUMPAD8,	_T("PAD8")		},
-	{ VK_NUMPAD9,	_T("PAD9")		},
-	{ VK_MULTIPLY,	_T("PADMUL")	},
-	{ VK_ADD,		_T("PADADD")	},
-	{ VK_SEPARATOR,	_T("PADSEP")	},
-	{ VK_SUBTRACT,	_T("PADSUB")	},
-	{ VK_DECIMAL,	_T("PADDEC")	},
-	{ VK_DIVIDE,	_T("PADDIV")	},
-	{ VK_NUMLOCK,	_T("PADNUM")	},
+	{ VK_NUMPAD0,		_T("PAD0")		},
+	{ VK_NUMPAD1,		_T("PAD1")		},
+	{ VK_NUMPAD2,		_T("PAD2")		},
+	{ VK_NUMPAD3 ,		_T("PAD3")		},
+	{ VK_NUMPAD4,		_T("PAD4")		},
+	{ VK_NUMPAD5,		_T("PAD5")		},
+	{ VK_NUMPAD6,		_T("PAD6")		},
+	{ VK_NUMPAD7,		_T("PAD7")		},
+	{ VK_NUMPAD8,		_T("PAD8")		},
+	{ VK_NUMPAD9,		_T("PAD9")		},
+	{ VK_MULTIPLY,		_T("PADMUL")	},
+	{ VK_ADD,			_T("PADADD")	},
+	{ VK_SEPARATOR,		_T("PADSEP")	},
+	{ VK_SUBTRACT,		_T("PADSUB")	},
+	{ VK_DECIMAL,		_T("PADDEC")	},
+	{ VK_DIVIDE,		_T("PADDIV")	},
+	{ VK_NUMLOCK,		_T("PADNUM")	},
 
-	{ VK_OEM_1,		_T("$BA(:)")	},
-	{ VK_OEM_PLUS,	_T("$BB(;)")	},
-	{ VK_OEM_COMMA,	_T("$BC(,)")	},
-	{ VK_OEM_MINUS,	_T("$BD(-)")	},
-	{ VK_OEM_PERIOD,_T("$BE(.)")	},
-	{ VK_OEM_2,		_T("$BF(/)")	},
-	{ VK_OEM_3,		_T("$C0(@)")	},
-	{ VK_OEM_4,		_T("$DB([)")	},
-	{ VK_OEM_5,		_T("$DC(\\)")	},
-	{ VK_OEM_6,		_T("$DD(])")	},
-	{ VK_OEM_7,		_T("$DE(^)")	},
-	{ VK_OEM_102,	_T("$E2(_)")	},
+	{ VK_OEM_1,			_T("$BA(:)")	},
+	{ VK_OEM_PLUS,		_T("$BB(;)")	},
+	{ VK_OEM_COMMA,		_T("$BC(,)")	},
+	{ VK_OEM_MINUS,		_T("$BD(-)")	},
+	{ VK_OEM_PERIOD,	_T("$BE(.)")	},
+	{ VK_OEM_2,			_T("$BF(/)")	},
+	{ VK_OEM_3,			_T("$C0(@)")	},
+	{ VK_OEM_4,			_T("$DB([)")	},
+	{ VK_OEM_5,			_T("$DC(\\)")	},
+	{ VK_OEM_6,			_T("$DD(])")	},
+	{ VK_OEM_7,			_T("$DE(^)")	},
+	{ VK_OEM_102,		_T("$E2(_)")	},
 
-	{ VK_MBUTTON,	_T("MBTN")		},
-	{ VK_XBUTTON1,	_T("XBTN1")		},
-	{ VK_XBUTTON2,	_T("XBTN2")		},
+	{ VK_MBUTTON,		_T("MBTN")		},
+	{ VK_XBUTTON1,		_T("XBTN1")		},
+	{ VK_XBUTTON2,		_T("XBTN2")		},
+
+	// * VK_0 - VK_9 are the same as ASCII '0' - '9' (0x30 - 0x39)
+	{ 0x30,				_T("0")			},	// VK_0
+	{ 0x31,				_T("1")			},	// VK_1
+	{ 0x32,				_T("2")			},	// VK_2
+	{ 0x33,				_T("3")			},	// VK_3
+	{ 0x34,				_T("4")			},	// VK_4
+	{ 0x35,				_T("5")			},	// VK_5
+	{ 0x36,				_T("6")			},	// VK_6
+	{ 0x37,				_T("7")			},	// VK_7
+	{ 0x38,				_T("8")			},	// VK_8
+	{ 0x39,				_T("9")			},	// VK_9
+
+	// * VK_A - VK_Z are the same as ASCII 'A' - 'Z' (0x41 - 0x5A)
+	{ 0x41,				_T("A")			},	// VK_A
+	{ 0x42,				_T("B")			},	// VK_B
+	{ 0x43,				_T("C")			},	// VK_C
+	{ 0x44,				_T("D")			},	// VK_D
+	{ 0x45,				_T("E")			},	// VK_E
+	{ 0x46,				_T("F")			},	// VK_F
+	{ 0x47,				_T("G")			},	// VK_G
+	{ 0x48,				_T("H")			},	// VK_H
+	{ 0x49,				_T("I")			},	// VK_I
+	{ 0x4A,				_T("J")			},	// VK_J
+	{ 0x4B,				_T("K")			},	// VK_K
+	{ 0x4C,				_T("L")			},	// VK_L
+	{ 0x4D,				_T("M")			},	// VK_M
+	{ 0x4E,				_T("N")			},	// VK_N
+	{ 0x4F,				_T("O")			},	// VK_O
+	{ 0x50,				_T("P")			},	// VK_P
+	{ 0x51,				_T("Q")			},	// VK_Q
+	{ 0x52,				_T("R")			},	// VK_R
+	{ 0x53,				_T("S")			},	// VK_S
+	{ 0x54,				_T("T")			},	// VK_T
+	{ 0x55,				_T("U")			},	// VK_U
+	{ 0x56,				_T("V")			},	// VK_V
+	{ 0x57,				_T("W")			},	// VK_W
+	{ 0x58,				_T("X")			},	// VK_X
+	{ 0x59,				_T("Y")			},	// VK_Y
+	{ 0x5A,				_T("Z")			},	// VK_Z
 
 #ifdef	USE_CLIENTKEY
 	{ VK_LMOUSE_LEFT_TOP,		_T("LM_LT")	},
@@ -5536,16 +5720,21 @@ static const struct _KeyNameTab	{
 LPCTSTR CKeyNode::GetCode()
 {
 	int n;
+	static BOOL bKeyCodeInit = FALSE;
+	static LPCTSTR KeyCodeTab[0x110];
+
 	if ( m_Code == (-1) )
 		return _T("");
-	for ( n = 0 ; KeyNameTab[n].name != NULL ; n++ ) {
-		if ( KeyNameTab[n].code == m_Code )
-			return KeyNameTab[n].name;
+
+	if ( !bKeyCodeInit ) {
+		memset(KeyCodeTab, 0, sizeof(KeyCodeTab));
+		for ( n = 0 ; KeyNameTab[n].name != NULL ; n++ )
+			KeyCodeTab[KeyNameTab[n].code] = KeyNameTab[n].name;
+		bKeyCodeInit = TRUE;
 	}
-	// * VK_0 - VK_9 are the same as ASCII '0' - '9' (0x30 - 0x39)
-	// * VK_A - VK_Z are the same as ASCII 'A' - 'Z' (0x41 - 0x5A)
-	if ( m_Code >= 0x30 && m_Code <= 0x39 || m_Code >= 0x41 && m_Code <= 0x5A )
-		m_Temp.Format(_T("%c"), m_Code);
+
+	if ( m_Code < 0x110 && KeyCodeTab[m_Code] != NULL )
+		return KeyCodeTab[m_Code];
 	else
 		m_Temp.Format(_T("$%02X"), m_Code);
 
@@ -5554,15 +5743,17 @@ LPCTSTR CKeyNode::GetCode()
 void CKeyNode::SetCode(LPCTSTR name)
 {
 	int n;
-	for ( n = 0 ; KeyNameTab[n].name != NULL ; n++ ) {
-		if ( _tcscmp(KeyNameTab[n].name, name) == 0 ) {
-			m_Code = KeyNameTab[n].code;
-			return;
-		}
+	CStringBinary *sp;
+	static CStringBinary keynamebin;
+
+	if ( keynamebin.m_pRoot == NULL ) {
+		for ( n = 0 ; KeyNameTab[n].name != NULL ; n++ )
+			keynamebin[KeyNameTab[n].name] = KeyNameTab[n].code;
 	}
-	if ( name[1] == _T('\0') && (*name >= 0x30 && *name <= 0x39 || *name >= 0x41 && *name <= 0x5A) ) {
-		m_Code = *name;
-	} else if ( name[0] == _T('$') && isxdigit(name[1]) && isxdigit(name[2]) ) {
+
+	if ( (sp = keynamebin.Find(name)) != NULL )
+		m_Code = sp->m_Value;
+	else if ( name[0] == _T('$') && isxdigit(name[1]) && isxdigit(name[2]) ) {
 		m_Code = 0;
 		if ( isdigit(name[1]) )
 			m_Code += ((name[1] - _T('0')) * 16);
@@ -5860,6 +6051,7 @@ static const struct _InitKeyTab {
 		{ 0,	VK_PRIOR,		MASK_CTRL,				_T("$SEARCH_BACK")	},
 		{ 0,	VK_NEXT,		MASK_CTRL,				_T("$SEARCH_NEXT")	},
 		{ 0,	VK_CANCEL,		0,						_T("$BREAK")		},
+		{ 13,	VK_INSERT,		MASK_CTRL,				_T("$LINEEDITMODE")	},
 
 		{ 0,	VK_UP,			MASK_CTRL,				_T("$PANE_ROTATION")},
 		{ 0,	VK_DOWN,		MASK_CTRL,				_T("$SPLIT_HEIGHT")	},
@@ -5945,9 +6137,16 @@ static const struct _InitKeyTab {
 
 CKeyNodeTab::CKeyNodeTab()
 {
-	m_CmdsInit = FALSE;
+	m_CmdsInit = m_bMapInit = FALSE;
+	for ( int n = 0 ; n < KEYSCAN_MAX ; n++ )
+		m_pKeyScanTop[n] = NULL;
 	m_pSection = _T("KeyTab");
 	Init();
+}
+CKeyNodeTab::~CKeyNodeTab()
+{
+	for ( int n = 0 ; n < KEYSCAN_MAX ; n++ )
+		KeyScanDelete(m_pKeyScanTop[n]);
 }
 void CKeyNodeTab::Init()
 {
@@ -5984,7 +6183,8 @@ int CKeyNodeTab::Add(CKeyNode &node)
 	else
 		m_Node.InsertAt(n, node);
 
-	m_CmdsInit = FALSE;
+	m_CmdsInit = m_bMapInit = FALSE;
+
 	return n;
 }
 int CKeyNodeTab::Add(LPCTSTR code, int mask, LPCTSTR maps)
@@ -6054,6 +6254,104 @@ CKeyNode *CKeyNodeTab::FindMaps(int code, int mask)
 		return FALSE;
 
 	return FindKeys(code, mask, n, MASK_VT52 | MASK_LEGA | MASK_CKM | MASK_APPL | MASK_SHIFT);
+}
+
+CKeyNode *CKeyNodeTab::KeyScan(LPCWSTR wstr, int len, KEYSCAN *kp)
+{
+	CKeyNode *np;
+
+	if ( len <= 0 )
+		return NULL;
+
+	while ( kp != NULL ) {
+		if ( kp->code == *wstr ) {
+			if ( (np = KeyScan(wstr + 1, len - 1, kp->list[KEYSCAN_HASH(wstr[1])])) != NULL )
+				return np;
+			return kp->node;
+		}
+		kp = kp->next;
+	}
+
+	return NULL;
+}
+KEYSCAN *CKeyNodeTab::KeyScanInit(LPCWSTR wstr, int len, KEYSCAN *top, CKeyNode *node)
+{
+	KEYSCAN *kp;
+
+	if ( len <= 0 )
+		return top;
+
+	for ( kp = top ; kp != NULL ; kp = kp->next ) {
+		if ( kp->code == *wstr ) {
+			if ( len > 1 )
+				kp->list[KEYSCAN_HASH(wstr[1])] = KeyScanInit(wstr + 1, len - 1, kp->list[KEYSCAN_HASH(wstr[1])], node);
+			else
+				kp->node = node;
+			return top;
+		}
+	}
+
+	kp = new KEYSCAN;
+	kp->code = *wstr;
+	for ( int n = 0 ; n < KEYSCAN_MAX ; n++ )
+		kp->list[n] = NULL;
+	kp->list[KEYSCAN_HASH(wstr[1])] = KeyScanInit(wstr + 1, len - 1, NULL, node);
+	kp->next = top;
+	kp->node = ((len - 1) <= 0 ? node : NULL);
+
+	return kp;
+}
+void CKeyNodeTab::KeyScanDelete(KEYSCAN *tp)
+{
+	while ( tp != NULL ) {
+		for ( int n = 0 ; n < KEYSCAN_MAX ; n++ )
+			KeyScanDelete(tp->list[n]);
+		KEYSCAN *np = tp;
+		tp = tp->next;
+		delete np;
+	}
+}
+CKeyNode *CKeyNodeTab::MapToNode(LPCWSTR maps, int len)
+{
+	if ( !m_bMapInit ) {
+		int n, i;
+		WCHAR *p;
+
+		for ( n = 0 ; n < KEYSCAN_MAX ; n++ ) {
+			KeyScanDelete(m_pKeyScanTop[n]);
+			m_pKeyScanTop[n] = NULL;
+		}
+
+		for ( n = 0 ; n < m_Node.GetSize() ; n++ ) {
+			switch(m_Node[n].m_Code) {
+			case VK_BACK:
+			case VK_TAB:
+			case VK_RETURN:
+			case VK_LEFT:
+			case VK_UP:
+			case VK_RIGHT:
+			case VK_DOWN:
+			case VK_DELETE:
+				break;
+			default:
+				continue;
+			}
+
+			if ( (m_Node[n].m_Mask & (MASK_SHIFT | MASK_CTRL | MASK_ALT)) != 0 )
+				continue;
+			if ( (i = m_Node[n].m_Maps.GetSize() / sizeof(WCHAR)) <= 0 )
+				continue;
+			p = (WCHAR *)m_Node[n].m_Maps.GetPtr();
+			if ( p[0] == L'$' && p[1] != L'0' )
+				continue;
+
+			m_pKeyScanTop[KEYSCAN_HASH(*p)] = KeyScanInit(p, i, m_pKeyScanTop[KEYSCAN_HASH(*p)], &(m_Node[n]));
+		}
+
+		m_bMapInit = TRUE;
+	}
+
+	return KeyScan(maps, len, m_pKeyScanTop[KEYSCAN_HASH(*maps)]);
 }
 
 #define	CAPINFOKEYMAX	76
@@ -6174,7 +6472,7 @@ void CKeyNodeTab::SetArray(CStringArrayExt &stra)
 
 	tmp.RemoveAll();
 	tmp.AddVal(-1);
-	tmp.AddVal(12);			// KeyCode Bug Fix
+	tmp.AddVal(13);			// KeyCode Bug Fix
 	stra.AddArray(tmp);
 }
 void CKeyNodeTab::GetArray(CStringArrayExt &stra)
@@ -6339,11 +6637,11 @@ const CKeyNodeTab & CKeyNodeTab::operator = (CKeyNodeTab &data)
 	m_Node.RemoveAll();
 	for ( int n = 0 ; n < data.m_Node.GetSize() ; n++ )
 		m_Node.Add(data.m_Node[n]);
-	m_CmdsInit = FALSE;
+	m_CmdsInit = m_bMapInit = FALSE;
 	return *this;
 }
 
-#define	CMDSKEYTABMAX	147
+#define	CMDSKEYTABMAX	148
 static const struct _CmdsKeyTab {
 	int	code;
 	LPCWSTR name;
@@ -6393,6 +6691,7 @@ static const struct _CmdsKeyTab {
 	{	ID_MACRO_PLAY,				L"$KEY_PLAY"		},
 	{	ID_MACRO_REC,				L"$KEY_REC"			},
 	{	IDM_KNOWNHOSTDEL,			L"$KNOWNHOST_DELETE"},
+	{	IDM_LINEEDITMODE,			L"$LINEEDITMODE"	},
 	{	ID_LOG_OPEN,				L"$LOG_OPEN"		},
 	{	IDM_LOOKCAST,				L"$LOOKCAST"		},
 	{	ID_MOUSE_EVENT,				L"$MOUSE_EVENT"		},
@@ -10488,4 +10787,56 @@ BOOL CBitmapEx::LoadResBitmap(int nId, int dpiX, int dpiY, COLORREF backCol)
 
 	return TRUE;
 }
+BOOL CBitmapEx::CopyBitmap(CBitmap *pSrcBitmap)
+{
+	int len;
+	BYTE *map;
+	BITMAP mapinfo;
+	BOOL rt;
+	DIBSECTION dibSec;
+	BITMAPINFO bmi;
+	void *pBits = NULL;
+	HBITMAP hBitmap;
 
+	if ( ::GetObject(pSrcBitmap->GetSafeHandle(), sizeof(dibSec), &dibSec) == sizeof(dibSec) ) {
+
+		memset(&bmi, 0, sizeof(bmi));
+		bmi.bmiHeader = dibSec.dsBmih;
+
+		if ( (hBitmap = ::CreateDIBSection(NULL, &bmi, DIB_RGB_COLORS, &pBits, NULL, 0 )) == NULL || pBits == NULL )
+			return FALSE;
+
+		len = dibSec.dsBm.bmWidthBytes * dibSec.dsBm.bmHeight * dibSec.dsBm.bmPlanes;
+
+		if ( dibSec.dsBm.bmBits != NULL )
+			memcpy(pBits, dibSec.dsBm.bmBits, len);
+		else {
+			map = new BYTE[len];
+			if ( (len = pSrcBitmap->GetBitmapBits(len, map)) <= 0 ) {
+				::DeleteObject(hBitmap);
+				return FALSE;
+			}
+			memcpy(pBits, map, len);
+			delete [] map;
+		}
+
+		return Attach(hBitmap);
+	}
+
+	if ( !pSrcBitmap->GetBitmap(&mapinfo) )
+		return FALSE;
+
+	if ( mapinfo.bmBits != NULL )
+		return CreateBitmapIndirect(&mapinfo);
+
+	len = mapinfo.bmWidthBytes * mapinfo.bmHeight * mapinfo.bmPlanes;
+	map = new BYTE[len];
+
+	if ( (len = pSrcBitmap->GetBitmapBits(len, map)) <= 0 )
+		return FALSE;
+
+	rt = CreateBitmap(mapinfo.bmWidth, mapinfo.bmHeight, mapinfo.bmPlanes, mapinfo.bmBitsPixel, map);
+	delete [] map;
+
+	return rt;
+}

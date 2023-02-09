@@ -1006,6 +1006,7 @@ public:	// Options
 	int m_DefCols[2];
 	int m_DefHisMax;
 	int m_DefFontSize;
+	int m_FontSize;
 	int m_DefFontHw;
 	EXTVRAM m_DefAtt;
 	int m_KanjiMode;
@@ -1200,7 +1201,12 @@ public:
 	BOOL m_FrameCheck;
 	clock_t m_UpdateClock;
 
-	BOOL m_LineEditMode;
+#define	LINEEDIT_NONE		0
+#define	LINEEDIT_ACTIVE		1
+#define	LINEEDIT_SAVE		2
+
+	BOOL m_LineEditDisable;
+	int m_LineEditMode;
 	int m_LineEditIndex;
 	int m_LineEditX, m_LineEditY;
 	int m_LineEditPos;
@@ -1238,9 +1244,11 @@ public:
 	void OnTimer(int id);
 	void UpdateScrnMaxSize();
 
-	int LineEdit(CBuffer &buf);
-	void LineEditEcho();
 	void LineEditCwd(int sx, int sy, CStringW &cwd);
+	void LineEditEcho();
+	void LineEditSwitch();
+	BOOL IsLineEditEnable();
+	BOOL LineEdit(CBuffer &buf);
 	void SetKanjiMode(int mode);
 
 	BOOL OpenHisFile();

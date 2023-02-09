@@ -19,6 +19,8 @@
 #define WM_THREADCMD		(WM_APP + 3)
 #define WM_AFTEROPEN		(WM_APP + 4)
 #define WM_GETCLIPBOARD		(WM_APP + 5)
+#define	WM_FIFOMSG			(WM_APP + 6)
+#define	WM_DOCUMENTMSG		(WM_APP + 7)
 
 // CResTransDlg
 #define WM_HTTPREQUEST		(WM_APP + 20)
@@ -43,6 +45,7 @@
 #define	IDLEPROC_ENCRYPT	1
 #define	IDLEPROC_SCRIPT		2
 #define	IDLEPROC_VIEW		3
+#define	IDLEPROC_FIFODOC	4
 
 #define	INUSE_NONE			0
 #define	INUSE_ACTWIN		1

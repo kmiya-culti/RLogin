@@ -20,6 +20,10 @@
 //#define	USE_MACCTX			// EVP_MAC_CTXの動作が微妙(init(key=NULLに非対応)
 //#define	USE_X509			// opensslのx509公開鍵証明を有効
 
+#ifdef	_DEBUG
+#define	USE_FIFOBUF				// FifoBufferをテスト
+#endif
+
 // Windows バージョン
 
 #define	_WIN32_WINNT_NT4		0x0400	// Windows NT 4.0

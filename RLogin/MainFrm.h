@@ -615,6 +615,15 @@ protected:
 	afx_msg LRESULT OnSetMessageString(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnNullMessage(WPARAM wParam, LPARAM lParam);
 	afx_msg LRESULT OnSpeakMsg(WPARAM wParam, LPARAM lParam);
+
+#ifdef	USE_FIFOBUF
+public:
+	CPtrArray m_FifoActive;
+	void AddFifoActive(void *pFifoBase);
+	void DelFifoActive(void *pFifoBase);
+	afx_msg LRESULT OnFifoMsg(WPARAM wParam, LPARAM lParam);
+	afx_msg LRESULT OnDocumentMsg(WPARAM wParam, LPARAM lParam);
+#endif
 };
 
 

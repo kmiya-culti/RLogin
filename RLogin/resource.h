@@ -1162,6 +1162,9 @@
 #define IDM_SPEAKBACK                   5148
 #define IDM_SPEAKNEXT                   5149
 #define IDM_CHARTOOLTIP                 5150
+#define IDM_LINEEDITMODE                5151
+#define IDM_RIGHTCLOSE                  5152
+#define IDM_OTHERCLOSE                  5153
 #define IDM_FIRST_MDICHILD              0xF800
 
 // Next default values for new objects
@@ -1169,7 +1172,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        170
-#define _APS_NEXT_COMMAND_VALUE         5151
+#define _APS_NEXT_COMMAND_VALUE         5154
 #define _APS_NEXT_CONTROL_VALUE         2518
 #define _APS_NEXT_SYMED_VALUE           658
 #endif

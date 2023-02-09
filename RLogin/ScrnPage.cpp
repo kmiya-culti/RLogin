@@ -229,6 +229,7 @@ BOOL CScrnPage::OnApply()
 	m_pSheet->m_pTextRam->m_DefCols[1]  = _tstoi(m_ColsMax[1]);
 
 	m_pSheet->m_pTextRam->m_DefFontSize = _tstoi(m_FontSize);
+	m_pSheet->m_pTextRam->m_FontSize = m_pSheet->m_pTextRam->m_DefFontSize;
 	m_pSheet->m_pTextRam->m_DefFontHw   = m_FontHw + 10;
 
 	m_pSheet->m_pTextRam->SetOptValue(TO_RLADBELL, 2, m_VisualBell);

@@ -358,30 +358,49 @@ void CSyncSock::DebugMsg(LPCSTR fmt, ...)
 
 void CSyncSock::Bufferd_Send(int c)
 {
+#ifdef	USE_FIFOBUF
+	m_SendBuf.Put8Bit(c);
+#else
 	m_SendSema.Lock();
 	m_SendBuf.Put8Bit(c);
 	m_SendSema.Unlock();
+#endif
 }
 void CSyncSock::Bufferd_SendBuf(char *buf, int len)
 {
+#ifdef	USE_FIFOBUF
+	m_SendBuf.Apend((LPBYTE)buf, len);
+#else
 	m_SendSema.Lock();
 	m_SendBuf.Apend((LPBYTE)buf, len);
 	m_SendSema.Unlock();
+#endif
 }
 void CSyncSock::Bufferd_Flush()
 {
+	DebugMsg("Bufferd_Flush %d", m_SendBuf.GetSize());
+	DebugDump(m_SendBuf.GetPtr(), m_SendBuf.GetSize() < 16 ? m_SendBuf.GetSize() : 16);
+
+#ifdef	USE_FIFOBUF
+	if ( m_pDoc->m_pSock != NULL && m_SendBuf.GetSize() > 0 )
+		m_pDoc->m_pSock->SyncSend(m_SendBuf.GetPtr(), m_SendBuf.GetSize(), 0);
+
+	m_SendBuf.Clear();
+#else
 	ASSERT(m_pWnd != NULL);
 
-	DebugMsg("Bufferd_Flush %d", m_SendBuf.GetSize());
-	//DebugDump(m_SendBuf.GetPtr(), m_SendBuf.GetSize() < 16 ? m_SendBuf.GetSize() : 16);
-
 	m_pWnd->PostMessage(WM_THREADCMD, THCMD_SENDBUF, (LPARAM)this);
+#endif
 }
 void CSyncSock::Bufferd_Clear()
 {
+#ifdef	USE_FIFOBUF
+	m_SendBuf.Clear();
+#else
 	m_SendSema.Lock();
 	m_SendBuf.Clear();
 	m_SendSema.Unlock();
+#endif
 
 	if ( m_bInitDone && m_pDoc->m_pSock != NULL ) {
 		m_RecvBuf.Clear();
@@ -393,25 +412,29 @@ void CSyncSock::Bufferd_Clear()
 }
 void CSyncSock::Bufferd_Sync()
 {
+#ifdef	USE_FIFOBUF
+	Bufferd_Flush();
+#else
 	m_pParamEvent->ResetEvent();
 	m_pWnd->PostMessage(WM_THREADCMD, THCMD_SENDSYNC, (LPARAM)this);
 	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
+#endif
 }
 int CSyncSock::Bufferd_Receive(int sec, int msec)
 {
 	int n;
-	BYTE tmp[1024];
+	BYTE tmp[2048];
 
 	if ( m_pDoc->m_pSock == NULL || m_DoAbortFlag )
 		return (-1);	// ERROR
 
 	if ( m_RecvBuf.GetSize() <= 0 ) {
-		if ( (n = m_pDoc->m_pSock->SyncReceive(tmp, 1024, sec * 1000 + msec, &m_ProgDlg.m_AbortFlag)) <= 0 )
+		if ( (n = m_pDoc->m_pSock->SyncReceive(tmp, 2048, sec * 1000 + msec, &m_ProgDlg.m_AbortFlag)) <= 0 )
 			return (-2);	// TIME OUT
 		m_RecvBuf.Apend(tmp, n);
 
 		DebugMsg("Bufferd_Receive %d", n);
-		//DebugDump(tmp, n < 16 ? n : 16);
+		DebugDump(tmp, n < 16 ? n : 16);
 	}
 
 	return m_RecvBuf.Get8Bit();
@@ -438,8 +461,8 @@ BOOL CSyncSock::Bufferd_ReceiveBuf(char *buf, int len, int sec, int msec)
 		if ( (n = m_pDoc->m_pSock->SyncReceive(buf, len, sec * 1000 + msec, &m_ProgDlg.m_AbortFlag)) <= 0 )
 			return FALSE;
 
-		DebugMsg("Bufferd_Receive %d", n);
-		//DebugDump((LPBYTE)buf, n < 16 ? n : 16);
+		DebugMsg("Bufferd_ReceiveBuf %d", n);
+		DebugDump((LPBYTE)buf, n < 16 ? n : 16);
 
 		buf += n;
 		len -= n;
@@ -475,9 +498,13 @@ BOOL CSyncSock::CheckFileName(int mode, LPCSTR file, int extmode)
 	m_Param = mode;
 	m_FileName = file;
 	m_ExtFileDlgMode = extmode;
+#ifdef	USE_FIFOBUF
+	m_pWnd->SendMessage(WM_THREADCMD, THCMD_CHECKPATH, (LPARAM)this);
+#else
 	m_pParamEvent->ResetEvent();
 	m_pWnd->PostMessage(WM_THREADCMD, THCMD_CHECKPATH, (LPARAM)this);
 	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
+#endif
 	return (m_FileName.IsEmpty() || m_PathName.IsEmpty() ? FALSE : TRUE);
 }
 int CSyncSock::YesOrNo(LPCSTR msg)
@@ -486,9 +513,13 @@ int CSyncSock::YesOrNo(LPCSTR msg)
 		return 'N';
 	m_Param = 'N';
 	m_Message = msg;
+#ifdef	USE_FIFOBUF
+	m_pWnd->SendMessage(WM_THREADCMD, THCMD_YESNO, (LPARAM)this);
+#else
 	m_pParamEvent->ResetEvent();
 	m_pWnd->PostMessage(WM_THREADCMD, THCMD_YESNO, (LPARAM)this);
 	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
+#endif
 	return m_Param;
 }
 int CSyncSock::AbortCheck()
@@ -526,9 +557,13 @@ void CSyncSock::SendEchoBuffer(char *buf, int len)
 void CSyncSock::UpDownOpen(LPCSTR msg)
 {
 	m_Message = msg;
+#ifdef	USE_FIFOBUF
+	m_pWnd->SendMessage(WM_THREADCMD, THCMD_DLGOPEN, (LPARAM)this);
+#else
 	m_pParamEvent->ResetEvent();
 	m_pWnd->PostMessage(WM_THREADCMD, THCMD_DLGOPEN, (LPARAM)this);
 	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
+#endif
 }
 void CSyncSock::UpDownClose()
 {
@@ -545,9 +580,13 @@ void CSyncSock::UpDownInit(LONGLONG size, LONGLONG rems)
 		return;
 	m_Size = size;
 	m_RemSize = rems;
+#ifdef	USE_FIFOBUF
+	m_pWnd->SendMessage(WM_THREADCMD, THCMD_DLGRANGE, (LPARAM)this);
+#else
 	m_pParamEvent->ResetEvent();
 	m_pWnd->PostMessage(WM_THREADCMD, THCMD_DLGRANGE, (LPARAM)this);
 	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
+#endif
 }
 void CSyncSock::UpDownStat(LONGLONG size)
 {
@@ -570,9 +609,13 @@ void CSyncSock::SendString(LPCWSTR str)
 	m_SendBuf.Clear();
 	m_SendBuf.Apend((LPBYTE)str, (int)wcslen(str) * sizeof(WCHAR));
 	m_SendSema.Unlock();
+#ifdef	USE_FIFOBUF
+	m_pWnd->SendMessage(WM_THREADCMD, THCMD_SENDSTR, (LPARAM)this);
+#else
 	m_pParamEvent->ResetEvent();
 	m_pWnd->PostMessage(WM_THREADCMD, THCMD_SENDSTR, (LPARAM)this);
 	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
+#endif
 }
 void CSyncSock::SendScript(LPCWSTR str)
 {
@@ -582,16 +625,24 @@ void CSyncSock::SendScript(LPCWSTR str)
 	m_SendBuf.Clear();
 	m_SendBuf.Apend((LPBYTE)str, (int)wcslen(str) * sizeof(WCHAR));
 	m_SendSema.Unlock();
+#ifdef	USE_FIFOBUF
+	m_pWnd->SendMessage(WM_THREADCMD, THCMD_SENDSCRIPT, (LPARAM)this);
+#else
 	m_pParamEvent->ResetEvent();
 	m_pWnd->PostMessage(WM_THREADCMD, THCMD_SENDSCRIPT, (LPARAM)this);
 	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
+#endif
 }
 void CSyncSock::Message(LPCSTR msg)
 {
 	m_Message = msg;
+#ifdef	USE_FIFOBUF
+	m_pWnd->SendMessage(WM_THREADCMD, TGCMD_MESSAGE, (LPARAM)this);
+#else
 	m_pParamEvent->ResetEvent();
 	m_pWnd->PostMessage(WM_THREADCMD, TGCMD_MESSAGE, (LPARAM)this);
 	WaitForSingleObject(m_pParamEvent->m_hObject, INFINITE);
+#endif
 }
 void CSyncSock::NoWaitMessage(LPCSTR msg)
 {

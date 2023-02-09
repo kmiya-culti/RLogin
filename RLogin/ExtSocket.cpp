@@ -17,6 +17,7 @@ static char THIS_FILE[]=__FILE__;
 #define new DEBUG_NEW
 #endif
 
+#ifndef	USE_FIFOBUF
 //////////////////////////////////////////////////////////////////////
 // CSockBuffer
 
@@ -60,6 +61,7 @@ void CSockBuffer::Apend(LPBYTE buff, int len, int type)
 	m_Len += len;
 	m_Type = type;
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////
 // CExtSocket
@@ -71,14 +73,19 @@ CExtSocket::CExtSocket(class CRLoginDoc *pDoc)
 	m_pDocument = pDoc;
 	m_Type = ESCT_DIRECT;
 	m_Fd = (-1);
-	m_ListenMax = 0;
 	m_SocketEvent = FD_READ | FD_OOB | FD_CONNECT | FD_CLOSE;
 	m_RecvSyncMode = SYNC_NONE;
 	m_RecvBufSize = RECVDEFSIZ;
+
+#ifndef	USE_FIFOBUF
+	m_ListenMax = 0;
 	m_OnRecvFlag = 0;
 	m_DestroyFlag = FALSE;
 	m_pRecvEvent = NULL;
+
 	m_FreeHead = m_ProcHead = m_RecvHead = m_SendHead = NULL;
+#endif
+
 	m_RecvSize = m_RecvProcSize = 0;
 	m_SendSize = 0;
 	m_ProxyStatus = PRST_NONE;
@@ -88,18 +95,33 @@ CExtSocket::CExtSocket(class CRLoginDoc *pDoc)
 	m_SSL_keep  = FALSE;
 	m_bConnect = FALSE;
 	m_bCallConnect = TRUE;
-	m_AddrInfoTop = NULL;
 	m_pSyncEvent = NULL;
+
+#ifndef	USE_FIFOBUF
+	m_AddrInfoTop = NULL;
 	m_bUseProc = FALSE;
 
 	m_TransmitLimit = 0;
 	m_SendLimit.clock = m_RecvLimit.clock = clock();
 	m_SendLimit.size  = m_RecvLimit.size  = 0;
 	m_SendLimit.timer = m_RecvLimit.timer = 0;
+#endif
+
+#ifdef	USE_FIFOBUF
+	m_pFifoLeft   = NULL;
+	m_pFifoMid    = NULL;
+	m_pFifoRight  = NULL;
+	m_pFifoSync   = NULL;
+	m_pFifoProxy  = NULL;
+	m_pFifoListen = NULL;
+#endif
 }
 
 CExtSocket::~CExtSocket()
 {
+#ifdef	USE_FIFOBUF
+	Close();
+#else
 	if ( m_pRecvEvent != NULL )
 		delete m_pRecvEvent;
 
@@ -117,10 +139,25 @@ CExtSocket::~CExtSocket()
 		m_FreeHead = sp->m_Left;
 		delete sp;
 	}
+#endif
 }
 
 void CExtSocket::ResetOption()
 {
+#ifdef	USE_FIFOBUF
+	if ( m_pDocument == NULL || m_pFifoLeft == NULL )
+		return;
+
+
+	if ( m_pFifoLeft->m_Type == FIFO_TYPE_SOCKET ) {
+		BOOL opval;
+		m_pFifoLeft->SendCommand(FIFO_CMD_MSGQUEIN, FIFO_QCMD_LIMITSIZE, m_pDocument->m_TextRam.IsOptEnable(TO_RLTRSLIMIT) ? (m_pDocument->m_ParamTab.m_TransmitLimit * 1024) : 0);
+		opval = m_pDocument->m_TextRam.IsOptEnable(TO_RLKEEPAL) ? TRUE : FALSE;
+		m_pFifoLeft->SendCommand(FIFO_CMD_MSGQUEIN, FIFO_QCMD_SETSOCKOPT, SO_KEEPALIVE, 0, (void *)&opval);
+		opval = m_pDocument->m_TextRam.IsOptEnable(TO_RLNODELAY) ? TRUE : FALSE;
+		m_pFifoLeft->SendCommand(FIFO_CMD_MSGQUEIN, FIFO_QCMD_SETSOCKOPT, TCP_NODELAY, 0, (void *)&opval);
+	}
+#else
 	BOOL opval;
 	int oplen;
 
@@ -152,10 +189,14 @@ void CExtSocket::ResetOption()
 		opval = FALSE;
 		::setsockopt(m_Fd, SOL_SOCKET, TCP_NODELAY, (const char *)(&opval), sizeof(opval));
 	}
+#endif
 }
 void CExtSocket::Destroy()
 {
 	Close();
+#ifdef	USE_FIFOBUF
+	delete this;
+#else
 	if ( (m_OnRecvFlag & RECV_ACTIVE) != 0 ) {
 		if ( !m_DestroyFlag )
 			((CRLoginApp *)AfxGetApp())->AddIdleProc(IDLEPROC_SOCKET, this);
@@ -165,7 +206,10 @@ void CExtSocket::Destroy()
 			((CRLoginApp *)AfxGetApp())->DelIdleProc(IDLEPROC_SOCKET, this);
 		delete this;
 	}
+#endif
 }
+
+#ifndef	USE_FIFOBUF
 CSockBuffer *CExtSocket::AddTail(CSockBuffer *sp, CSockBuffer *head)
 {
 	if ( head == NULL ) {
@@ -243,6 +287,14 @@ void CExtSocket::FreeBuffer(CSockBuffer *sp)
 	m_FreeHead = sp;
 	m_FreeSema.Unlock();
 }
+#endif
+
+//////////////////////////////////////////////////////////////////////
+
+void CExtSocket::PostMessage(WPARAM wParam, LPARAM lParam)
+{
+	::AfxGetMainWnd()->PostMessage(WM_SOCKSEL, wParam, lParam);
+}
 int CExtSocket::GetFamily()
 {
 	if ( m_pDocument == NULL )
@@ -259,9 +311,6 @@ int CExtSocket::GetFamily()
 
 	return AF_UNSPEC;
 }
-
-//////////////////////////////////////////////////////////////////////
-
 BOOL CExtSocket::AsyncGetHostByName(LPCTSTR pHostName)
 {
 	CString host;
@@ -270,6 +319,9 @@ BOOL CExtSocket::AsyncGetHostByName(LPCTSTR pHostName)
 }
 BOOL CExtSocket::AsyncCreate(LPCTSTR lpszHostAddress, UINT nHostPort, LPCTSTR lpszRemoteAddress, int nSocketType)
 {
+#ifdef	USE_FIFOBUF
+	return Create(lpszHostAddress, nHostPort, lpszRemoteAddress, nSocketType);
+#else
 	if ( lpszHostAddress == NULL )
 		return Create(lpszHostAddress, nHostPort, lpszRemoteAddress, nSocketType);
 
@@ -294,9 +346,13 @@ BOOL CExtSocket::AsyncCreate(LPCTSTR lpszHostAddress, UINT nHostPort, LPCTSTR lp
 	hints.ai_flags = AI_PASSIVE;
 
 	return GetMainWnd()->SetAsyncAddrInfo(ASYNC_CREATEINFO, m_RealHostAddr, m_RealHostPort, &hints, this);
+#endif
 }
 BOOL CExtSocket::AsyncOpen(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType)
 {
+#ifdef	USE_FIFOBUF
+	return Open(lpszHostAddress, nHostPort, nSocketPort, nSocketType);
+#else
 	if ( lpszHostAddress == NULL || nHostPort == (-1) )
 		return Open(lpszHostAddress, nHostPort, nSocketPort, nSocketType);
 
@@ -313,6 +369,7 @@ BOOL CExtSocket::AsyncOpen(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocket
 	hints.ai_socktype = nSocketType;
 
 	return GetMainWnd()->SetAsyncAddrInfo(ASYNC_OPENINFO, m_RealHostAddr, m_RealHostPort, &hints, this);
+#endif
 }
 BOOL CExtSocket::ProxyOpen(int mode, BOOL keep, LPCTSTR ProxyHost, UINT ProxyPort, LPCTSTR ProxyUser, LPCTSTR ProxyPass, LPCTSTR RealHost, UINT RealPort)
 {
@@ -348,6 +405,9 @@ BOOL CExtSocket::ProxyOpen(int mode, BOOL keep, LPCTSTR ProxyHost, UINT ProxyPor
 		m_RealHostPort   = m_ProxyPort;
 	}
 
+#ifdef	USE_FIFOBUF
+	return Open(m_RealHostAddr, m_RealHostPort, m_RealRemotePort, m_RealSocketType);
+#else
 	ADDRINFOT hints;
 
 	memset(&hints, 0, sizeof(hints));
@@ -355,12 +415,18 @@ BOOL CExtSocket::ProxyOpen(int mode, BOOL keep, LPCTSTR ProxyHost, UINT ProxyPor
 	hints.ai_socktype = m_RealSocketType;
 
 	return GetMainWnd()->SetAsyncAddrInfo(ASYNC_OPENINFO, m_RealHostAddr, m_RealHostPort, &hints, this);
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////
 
 BOOL CExtSocket::Create(LPCTSTR lpszHostAddress, UINT nHostPort, LPCTSTR lpszRemoteAddress, int nSocketType, void *pAddrInfo)
 {
+#ifdef	USE_FIFOBUF
+	FifoLink();
+	m_pFifoListen = new CListenSocket(FIFO_STDIN, m_pFifoMid);
+	return m_pFifoListen->Open(lpszHostAddress, nHostPort, GetFamily(), nSocketType, 128);
+#else
 	m_SocketEvent = FD_ACCEPT | FD_CLOSE;
 
 	int opval;
@@ -421,8 +487,10 @@ BOOL CExtSocket::Create(LPCTSTR lpszHostAddress, UINT nHostPort, LPCTSTR lpszRem
 	}
 	FreeAddrInfo(aitop);
 	return (m_ListenMax == 0 ? FALSE : TRUE);
+#endif
 }
 
+#ifndef	USE_FIFOBUF
 BOOL CExtSocket::SyncOpenAddrInfo(UINT nSockPort)
 {
 	DWORD val;
@@ -468,7 +536,7 @@ BOOL CExtSocket::SyncOpenAddrInfo(UINT nSockPort)
 			m_Fd = (-1);
 			continue;
 		} else
-			GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, WSAMAKESELECTREPLY(FD_CONNECT, 0));
+			PostMessage(m_Fd, WSAMAKESELECTREPLY(FD_CONNECT, 0));
 
 		if ( !GetMainWnd()->SetAsyncSelect(m_Fd, this, m_SocketEvent) ) {
 			::closesocket(m_Fd);
@@ -539,7 +607,7 @@ BOOL CExtSocket::OpenAddrInfo()
 				continue;
 			}
 		} else
-			GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, WSAMAKESELECTREPLY(FD_CONNECT, 0));
+			PostMessage(m_Fd, WSAMAKESELECTREPLY(FD_CONNECT, 0));
 
 		break;
 	}
@@ -553,9 +621,41 @@ BOOL CExtSocket::OpenAddrInfo()
 		return TRUE;
 	}
 }
+#endif
 
 BOOL CExtSocket::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType, void *pAddrInfo)
 {
+#ifdef	USE_FIFOBUF
+	FifoLink();
+
+	if ( m_ProxyStatus != PRST_NONE ) {
+		ASSERT(m_pFifoProxy == NULL);
+
+		m_pFifoProxy = new CFifoProxy(m_pDocument, this);
+		CFifoBase::Link(m_pFifoProxy, FIFO_STDIN, m_pFifoMid, FIFO_STDIN);
+	}
+
+	if ( (m_pFifoLeft->m_nBufSize = m_RecvBufSize) > FIFO_BUFDEFMAX )
+		m_pFifoLeft->m_nBufSize = FIFO_BUFDEFMAX;
+
+	switch(m_Type) {
+	case ESCT_RLOGIN:
+	case ESCT_TELNET:
+		m_pFifoMid->m_bFlowCtrl = TRUE;
+		break;
+	case ESCT_SSH_MAIN:
+	case ESCT_SSH_CHAN:
+		m_pFifoMid->m_bFlowCtrl = FALSE;
+		break;
+	}
+	
+	m_pFifoLeft->m_nLimitSize = m_pDocument->m_TextRam.IsOptEnable(TO_RLTRSLIMIT) ? (m_pDocument->m_ParamTab.m_TransmitLimit * 1024) : 0;
+
+	CString host;
+	PunyCodeAdress(lpszHostAddress, host);
+
+	return m_pFifoLeft->Open(host, nHostPort, nSocketPort, GetFamily(), nSocketType);
+#else
 	while ( m_ProcHead != NULL )
 		m_ProcHead = RemoveHead(m_ProcHead);
 
@@ -604,9 +704,14 @@ BOOL CExtSocket::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort,
 		return FALSE;
 
 	return TRUE;
+#endif
 }
 void CExtSocket::Close()
 {
+#ifdef	USE_FIFOBUF
+	SSLClose();
+	FifoUnlink();
+#else
 	((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this);
 
 	SSLClose();
@@ -628,12 +733,28 @@ void CExtSocket::Close()
 		::shutdown(m_FdTab[n], SD_BOTH);
 		::closesocket(m_FdTab[n]);
 	}
-
 	m_ListenMax = 0;
+#endif
 	m_bConnect = FALSE;
 }
 int CExtSocket::Accept(class CExtSocket *pSock, SOCKET hand)
 {
+#ifdef	USE_FIFOBUF
+	SOCKET sock;
+	struct sockaddr_storage sa;
+	int len;
+
+    memset(&sa, 0, sizeof(sa));
+    len = sizeof(sa);
+    if ( (sock = accept(hand, (struct sockaddr *)&sa, &len)) < 0 )
+		return FALSE;
+
+	if ( !pSock->Attach(m_pDocument, sock) ) {
+		::closesocket(hand);
+		return FALSE;
+	}
+	return TRUE;
+#else
 	unsigned long val = 1;
 	SOCKET sock;
 	struct sockaddr_storage sa;
@@ -655,9 +776,21 @@ int CExtSocket::Accept(class CExtSocket *pSock, SOCKET hand)
 	}
 
 	return TRUE;
+#endif
 }
 int CExtSocket::Attach(class CRLoginDoc *pDoc, SOCKET fd)
 {
+#ifdef	USE_FIFOBUF
+	FifoLink();
+
+	m_Fd = fd;
+	GetMainWnd()->SetAsyncSelect(m_Fd, this, 0);
+
+	if ( m_pFifoLeft == NULL || m_pFifoLeft->m_Type != FIFO_TYPE_SOCKET )
+		return FALSE;
+
+	return ((CFifoSocket *)m_pFifoLeft)->Attach(fd);
+#else
 	Close();
 
 	m_pDocument = pDoc;
@@ -681,9 +814,24 @@ int CExtSocket::Attach(class CRLoginDoc *pDoc, SOCKET fd)
 		return FALSE;
 
 	return TRUE;
+#endif
 }
+
+/*
+CFifoSocket		CFifoMiddle														CFifoSync		CFifoDocument
+	STDOUT		STDIN->OnReceiveCallBack  ExtSocket::OnReceiveCallBack->EXTOUT	STDIN EXTOUT    STDIN->OnReceiveProcBack
+	STDINT		STDOUT<-ExtSocket::Send							   Send<-EXTIN	STDOUT EXTIN    STDOUT<-PreSend<-m_pDocument->SocketSend
+*/
 int CExtSocket::Receive(void* lpBuf, int nBufLen, int nFlags)
 {
+#ifdef	USE_FIFOBUF
+	TRACE("CExtSocket::Receive\n");
+
+	if ( m_pFifoSync == NULL )
+		return 0;
+
+	return m_pFifoSync->Read(FIFO_STDIN, (BYTE *)lpBuf, nBufLen);
+#else
 	int n;
 	int len = 0;
 	LPBYTE buf = (LPBYTE)lpBuf;
@@ -697,16 +845,23 @@ int CExtSocket::Receive(void* lpBuf, int nBufLen, int nFlags)
 			m_ProcHead = RemoveHead(m_ProcHead);
 		m_RecvProcSize -= n;
 		if ( m_RecvProcSize <= RECVMINSIZ )
-			GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, WSAMAKESELECTREPLY(FD_RECVEMPTY, 0));
+			PostMessage(m_Fd, WSAMAKESELECTREPLY(FD_RECVEMPTY, 0));
 		len += n;
 		buf += n;
 		nBufLen -= n;
 	}
 	m_RecvSema.Unlock();
 	return len;
+#endif
 }
 int CExtSocket::SyncReceive(void* lpBuf, int nBufLen, int mSec, BOOL *pAbort)
 {
+#ifdef	USE_FIFOBUF
+	if ( m_pFifoSync == NULL || (pAbort != NULL && *pAbort) )
+		return 0;
+
+	return m_pFifoSync->Recv(FIFO_STDIN, (BYTE *)lpBuf, nBufLen, mSec);
+#else
 	int n;
 	int len = 0;
 	LPBYTE buf = (LPBYTE)lpBuf;
@@ -731,7 +886,7 @@ int CExtSocket::SyncReceive(void* lpBuf, int nBufLen, int mSec, BOOL *pAbort)
 				nBufLen -= n;
 			}
 			if ( m_RecvProcSize <= RECVMINSIZ )
-				GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, WSAMAKESELECTREPLY(FD_RECVEMPTY, 0));
+				PostMessage(m_Fd, WSAMAKESELECTREPLY(FD_RECVEMPTY, 0));
 		}
 
 		if ( len > 0 || nBufLen <= 0 ) {
@@ -752,37 +907,69 @@ int CExtSocket::SyncReceive(void* lpBuf, int nBufLen, int mSec, BOOL *pAbort)
 		}
 	}
 	return len;
+#endif
 }
 void CExtSocket::SyncReceiveBack(void *lpBuf, int nBufLen)
 {
+#ifdef	USE_FIFOBUF
+	TRACE("CExtSocket::SyncReceiveBack %d\n", nBufLen);
+
+	if ( m_pFifoSync != NULL )
+		m_pFifoSync->Insert(FIFO_STDIN, (BYTE *)lpBuf, nBufLen);
+#else
 	CSockBuffer *sp = AllocBuffer();
 	m_RecvSema.Lock();
 	sp->Apend((LPBYTE)lpBuf, nBufLen, 0);
 	m_ProcHead = AddHead(sp, m_ProcHead);
 	m_RecvProcSize += nBufLen;
 	m_RecvSema.Unlock();
+#endif
 }
 void CExtSocket::SyncAbort()
 {
+#ifdef	USE_FIFOBUF
+	if ( m_pFifoSync != NULL )
+		m_pFifoSync->Abort();
+#else
 	if ( m_pRecvEvent == NULL )
 		return;
 	m_pRecvEvent->SetEvent();
+#endif
 }
 void CExtSocket::SetRecvSyncMode(BOOL mode)
 {
+#ifdef	USE_FIFOBUF
+	if ( mode ) {		// in Sync
+		if ( m_pFifoSync != NULL )
+			return;
+
+		m_pFifoSync = new CFifoSync(m_pDocument);
+		m_pFifoSync->TunnelReadWrite(FIFO_EXTIN);
+
+		CFifoBase::Link(m_pFifoSync, FIFO_STDIN, m_pFifoRight, FIFO_STDIN);
+
+	} else {			// out Sync
+		if ( m_pFifoSync == NULL )
+			return;
+
+		CFifoBase::UnLink(m_pFifoSync, FIFO_STDIN, TRUE);
+
+		m_pFifoRight->SetFdEvents(FIFO_STDIN, FD_READ);
+		m_pFifoRight->SetFdEvents(FIFO_STDOUT, FD_WRITE);
+
+		m_pFifoSync->Destroy();
+		m_pFifoSync = NULL;
+	}
+
+	m_RecvSyncMode = (mode ? SYNC_ACTIVE : SYNC_NONE); 
+#else
 	if ( m_pRecvEvent == NULL )
 		m_pRecvEvent = new CEvent(FALSE, FALSE);
 	m_RecvSyncMode = (mode ? SYNC_ACTIVE : SYNC_NONE); 
+#endif
 }
-void CExtSocket::SendFlash(int sec)
-{
-	clock_t st;
 
-	for ( st = clock() + sec * CLOCKS_PER_SEC ; m_SendHead != NULL && st < clock() ; ) {
-		OnSend();
-		Sleep(100);
-	}
-}
+#ifndef	USE_FIFOBUF
 void CExtSocket::CheckLimit(int len, struct _LimitData *pLimit)
 {
 	int msec;
@@ -804,8 +991,73 @@ void CExtSocket::CheckLimit(int len, struct _LimitData *pLimit)
 		pLimit->timer = ((CMainFrame *)::AfxGetMainWnd())->SetTimerEvent(msec, TIMEREVENT_SOCK, this);
 	}
 }
+#endif
+
+#ifdef	USE_FIFOBUF
+int CExtSocket::SyncSend(const void *lpBuf, int nBufLen, int nFlags)
+{
+	if ( m_pFifoSync == NULL ) {
+		nBufLen = 0;
+	} else {
+		if ( nFlags == 0 )
+			m_pFifoSync->Send(FIFO_STDOUT, (BYTE *)lpBuf, nBufLen);
+		else if ( nFlags == MSG_OOB ) {
+			WSABUF sbuf;
+			sbuf.len = nBufLen;
+			sbuf.buf = (CHAR *)lpBuf;
+			m_pFifoSync->SendFdEvents(FIFO_STDOUT, FD_OOB, (void *)&sbuf);
+		}
+	}
+	return nBufLen;
+}
+int CExtSocket::SyncExtSend(const void *lpBuf, int nBufLen, int nFlags)
+{
+	if ( m_pFifoSync == NULL ) {
+		nBufLen = 0;
+	} else {
+		if ( nFlags == 0 )
+			m_pFifoSync->Send(FIFO_EXTOUT, (BYTE *)lpBuf, nBufLen);
+		else if ( nFlags == MSG_OOB ) {
+			WSABUF sbuf;
+			sbuf.len = nBufLen;
+			sbuf.buf = (CHAR *)lpBuf;
+			m_pFifoSync->SendFdEvents(FIFO_EXTOUT, FD_OOB, (void *)&sbuf);
+		}
+	}
+	return nBufLen;
+}
+int CExtSocket::PreSend(const void* lpBuf, int nBufLen, int nFlags)
+{
+	if ( m_pFifoRight == NULL ) {
+		nBufLen = 0;
+	} else {
+		if ( nFlags == 0 )
+			m_pFifoRight->Write(FIFO_STDOUT, (BYTE *)lpBuf, nBufLen);
+		else if ( nFlags == MSG_OOB ) {
+			WSABUF sbuf;
+			sbuf.len = nBufLen;
+			sbuf.buf = (CHAR *)lpBuf;
+			m_pFifoRight->SendFdEvents(FIFO_STDOUT, FD_OOB, (void *)&sbuf);
+		}
+	}
+	return nBufLen;
+}
+#endif
 int CExtSocket::Send(const void* lpBuf, int nBufLen, int nFlags)
 {
+#ifdef	USE_FIFOBUF
+	if ( m_pFifoMid == NULL )
+		return 0;
+	if ( nFlags == 0 )
+		m_pFifoMid->Write(FIFO_STDOUT, (BYTE *)lpBuf, nBufLen);
+	else if ( nFlags == MSG_OOB ) {
+		WSABUF sbuf;
+		sbuf.len = nBufLen;
+		sbuf.buf = (CHAR *)lpBuf;
+		m_pFifoMid->SendFdEvents(FIFO_STDOUT, FD_OOB, (void *)&sbuf);
+	}
+	return nBufLen;
+#else
 	int n;
 	int len = nBufLen;
 	CSockBuffer *sp;
@@ -829,7 +1081,7 @@ int CExtSocket::Send(const void* lpBuf, int nBufLen, int nFlags)
 
 		if ( (nBufLen -= n) <= 0 ) {
 			// Call OnSendEmpty
-			GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, WSAMAKESELECTREPLY(FD_WRITE, 0));
+			PostMessage(m_Fd, WSAMAKESELECTREPLY(FD_WRITE, 0));
 			return len;
 		}
 
@@ -852,6 +1104,24 @@ int CExtSocket::Send(const void* lpBuf, int nBufLen, int nFlags)
 	//TRACE("Send Save %d\n", m_SendSize);
 	
 	return len;
+#endif
+}
+void CExtSocket::SendFlash(int sec)
+{
+#ifdef	USE_FIFOBUF
+	clock_t st;
+	if ( m_pFifoMid == NULL )
+		return;
+	for ( st = clock() + sec * CLOCKS_PER_SEC ; m_pFifoMid->GetDataSize(FIFO_STDOUT) > 0 && st < clock() ; )
+		Sleep(100);
+#else
+	clock_t st;
+
+	for ( st = clock() + sec * CLOCKS_PER_SEC ; m_SendHead != NULL && st < clock() ; ) {
+		OnSend();
+		Sleep(100);
+	}
+#endif
 }
 void CExtSocket::SendWindSize()
 {
@@ -867,19 +1137,41 @@ void CExtSocket::SetXonXoff(int sw)
 
 int CExtSocket::GetRecvSize()
 {
+#ifdef	USE_FIFOBUF
+	if ( m_pFifoMid == NULL )
+		return 0;
+	return (m_pFifoMid->GetDataSize(FIFO_STDIN) + m_pFifoMid->GetDataSize(FIFO_EXTOUT));
+#else
 	return m_RecvSize + m_RecvProcSize;
+#endif
 }
 int CExtSocket::GetRecvProcSize()
 {
+#ifdef	USE_FIFOBUF
+	if ( m_pFifoMid == NULL )
+		return 0;
+	return m_pFifoMid->GetDataSize(FIFO_STDIN);
+#else
 	return m_RecvProcSize;
+#endif
 }
 int CExtSocket::GetSendSize()
 {
+#ifdef	USE_FIFOBUF
+	if ( m_pFifoMid == NULL )
+		return 0;
+	return m_pFifoMid->GetDataSize(FIFO_STDOUT);
+#else
 	return m_SendSize;
+#endif
 }
 void CExtSocket::OnRecvEmpty()
 {
+#ifdef	USE_FIFOBUF
+//	TRACE("OnRecvEmpty\r\n");
+#else
 	ReceiveFlowCheck();
+#endif
 }
 void CExtSocket::OnSendEmpty()
 {
@@ -896,12 +1188,23 @@ void CExtSocket::GetStatus(CString &str)
 	CString name;
 	int port;
 
+#ifdef	USE_FIFOBUF
+	tmp.Format(_T("Socket Type: %d\r\n"), m_Type);
+	str += tmp;
+	if ( m_pFifoMid != NULL ) {
+		tmp.Format(_T("Receive Reserved: %d + %d Bytes\r\n"), m_pFifoMid->GetDataSize(FIFO_STDIN), m_pFifoMid->GetDataSize(FIFO_EXTOUT));
+		str += tmp;
+		tmp.Format(_T("Send Reserved: %d + %d Bytes\r\n"), m_pFifoMid->GetDataSize(FIFO_STDOUT), m_pFifoMid->GetDataSize(FIFO_EXTIN));
+		str += tmp;
+	}
+#else
 	tmp.Format(_T("Socket Type: %d\r\n"), m_Type);
 	str += tmp;
 	tmp.Format(_T("Receive Reserved: %d + %d Bytes\r\n"), m_RecvSize, m_RecvProcSize);
 	str += tmp;
 	tmp.Format(_T("Send Reserved: %d Bytes\r\n"), m_SendSize);
 	str += tmp;
+#endif
 
 	if ( m_Fd != (-1) ) {
 		GetSockName(m_Fd, name, &port);
@@ -931,6 +1234,24 @@ void CExtSocket::GetStatus(CString &str)
 
 BOOL CExtSocket::ProxyReadLine()
 {
+
+#ifdef	USE_FIFOBUF
+	int c = (-1);
+	BYTE buf[8];
+
+	if ( m_pFifoProxy == NULL )
+		return FALSE;
+
+	while ( m_pFifoProxy->Read(FIFO_STDIN, buf, 1) > 0 ) {
+		c = buf[0];
+		if ( c == '\n' )
+			break;
+		else if ( c != '\r' )
+			m_ProxyStr += (char)c;
+	}
+
+	return (c == '\n' ? TRUE : FALSE);
+#else
 	int c = 0;
 
 	while ( m_RecvHead != NULL ) {
@@ -953,9 +1274,30 @@ BOOL CExtSocket::ProxyReadLine()
 	}
 
 	return (c == '\n' ? TRUE : FALSE);
+#endif
 }
 BOOL CExtSocket::ProxyReadBuff(int len)
 {
+#ifdef	USE_FIFOBUF
+	int n;
+	BYTE buf[FIFO_BUFDEFMAX];
+
+	if ( m_pFifoProxy == NULL )
+		return FALSE;
+
+	while ( m_ProxyBuff.GetSize() < len ) {
+		if ( (n = len - m_ProxyBuff.GetSize()) > FIFO_BUFDEFMAX )
+			n = FIFO_BUFDEFMAX;
+		if ( (n = m_pFifoProxy->Read(FIFO_STDIN, buf, n)) <= 0 )
+			break;
+		m_ProxyBuff.Apend(buf, n);
+	}
+
+	if ( m_ProxyBuff.GetSize() >= len )
+		return TRUE;
+
+	return FALSE;
+#else
 	int n;
 
 	if ( m_ProxyBuff.GetSize() >= len )
@@ -979,9 +1321,71 @@ BOOL CExtSocket::ProxyReadBuff(int len)
 				return TRUE;
 		}
 	}
+	return FALSE;
+#endif
+}
+#ifdef	USE_FIFOBUF
+void CExtSocket::FifoLink()
+{
+	FifoUnlink();
+
+	ASSERT(m_pFifoLeft == NULL && m_pFifoMid == NULL && m_pFifoRight == NULL && m_pFifoListen == NULL);
+
+	m_pFifoLeft   = new CFifoSocket(m_pDocument);
+	m_pFifoMid    = new CFifoMiddle(m_pDocument, this);
+	m_pFifoRight  = new CFifoDocument(m_pDocument, this);
+
+	CFifoBase::MidLink(m_pFifoLeft, FIFO_STDIN, m_pFifoMid, FIFO_STDIN, m_pFifoRight, FIFO_STDIN);
+}
+void CExtSocket::FifoUnlink()
+{
+	if ( m_pFifoSync != NULL ) {
+		CFifoBase::UnLink(m_pFifoSync, FIFO_STDIN, TRUE);
+		m_pFifoSync->Destroy();
+		m_pFifoSync = NULL;
+	}
+
+	if ( m_pFifoProxy != NULL ) {
+		CFifoBase::UnLink(m_pFifoProxy, FIFO_STDIN, TRUE);
+		m_pFifoProxy->Destroy();
+		m_pFifoProxy = NULL;
+	}
+
+	if ( m_pFifoLeft != NULL && m_pFifoMid != NULL && m_pFifoRight != NULL )
+		CFifoBase::MidUnLink(m_pFifoLeft, FIFO_STDIN, m_pFifoMid, FIFO_STDIN, m_pFifoRight, FIFO_STDIN);
+
+	if ( m_pFifoListen != NULL ) {
+		m_pFifoListen->Destroy();
+		m_pFifoListen = NULL;
+	}
+	if ( m_pFifoRight != NULL ) {
+		m_pFifoRight->Destroy();
+		m_pFifoRight = NULL;
+	}
+	if ( m_pFifoMid != NULL ) {
+		m_pFifoMid->Destroy();
+		m_pFifoMid = NULL;
+	}
+	if ( m_pFifoLeft != NULL ) {
+		m_pFifoLeft->Destroy();
+		m_pFifoLeft = NULL;
+	}
+}
+BOOL CExtSocket::ProxyCheck()
+{
+	if ( m_pFifoProxy == NULL )
+		return FALSE;
+
+	if ( m_ProxyStatus != PRST_NONE && ProxyFunc() )
+		return TRUE;
+
+	CFifoBase::UnLink(m_pFifoProxy, FIFO_STDIN, TRUE);
+	m_pFifoProxy->Destroy();
+	m_pFifoProxy = NULL;
 
 	return FALSE;
 }
+#endif
 BOOL CExtSocket::ProxyFunc()
 {
 	int n, i;
@@ -1071,7 +1475,7 @@ BOOL CExtSocket::ProxyFunc()
 			default:
 				SSLClose();
 				m_pDocument->m_ErrorPrompt = (m_ProxyResult.GetSize() > 0 ? m_ProxyResult[0]: _T("HTTP Proxy Error"));
-				GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, WSAMAKESELECTREPLY(0, WSAECONNREFUSED));
+				PostMessage(m_Fd, WSAMAKESELECTREPLY(0, WSAECONNREFUSED));
 				m_ProxyStatus = PRST_NONE;
 				return TRUE;
 			}
@@ -1108,7 +1512,7 @@ BOOL CExtSocket::ProxyFunc()
 		case PRST_HTTP_DIGEST:
 			if (m_ProxyAuth.Find(_T("qop")) < 0 || m_ProxyAuth[_T("algorithm")].m_String.CompareNoCase(_T("md5")) != 0 || m_ProxyAuth.Find(_T("realm")) < 0 || m_ProxyAuth.Find(_T("nonce")) < 0 ) {
 				m_pDocument->m_ErrorPrompt = _T("Authorization Paramter Error");
-				GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, WSAMAKESELECTREPLY(0, WSAECONNREFUSED));
+				PostMessage(m_Fd, WSAMAKESELECTREPLY(0, WSAECONNREFUSED));
 				m_ProxyStatus = PRST_NONE;
 				return TRUE;
 			}
@@ -1194,7 +1598,7 @@ BOOL CExtSocket::ProxyFunc()
 			break;
 		case PRST_SOCKS4_ENDOF:
 			m_pDocument->m_ErrorPrompt = _T("SOCKS4 Proxy Conection Error");
-			GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, WSAMAKESELECTREPLY(0, WSAECONNREFUSED));
+			PostMessage(m_Fd, WSAMAKESELECTREPLY(0, WSAECONNREFUSED));
 			m_ProxyStatus = PRST_NONE;
 			return TRUE;
 
@@ -1297,7 +1701,7 @@ BOOL CExtSocket::ProxyFunc()
 			break;
 		case PRST_SOCKS5_ERROR:	// SOCKS5_ERROR
 			m_pDocument->m_ErrorPrompt = _T("SOCKS5 Proxy Conection Error");
-			GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, WSAMAKESELECTREPLY(0, WSAECONNREFUSED));
+			PostMessage(m_Fd, WSAMAKESELECTREPLY(0, WSAECONNREFUSED));
 			m_ProxyStatus = PRST_NONE;
 			return TRUE;
 
@@ -1377,11 +1781,25 @@ BOOL CExtSocket::ProxyFunc()
 }
 void CExtSocket::OnPreConnect()
 {
-	if ( m_SSL_mode != 0 ) {
-		if ( !SSLConnect() ) {
-			OnError(WSAECONNREFUSED);
-			return;
-		}
+#ifdef	USE_FIFOBUF
+	if ( m_pFifoLeft == NULL || !m_pFifoLeft->IsOpen() )
+		return;
+
+	m_Fd = m_pFifoLeft->m_hSocket;
+	
+	if ( m_SSL_mode != 0 && !SSLConnect() ) {
+		OnError(WSAECONNREFUSED);
+		return;
+	}
+
+	if ( m_pFifoProxy != NULL && m_ProxyStatus != PRST_NONE && ProxyFunc() )	// Proxy continue
+		return;
+
+	OnConnect();
+#else
+	if ( m_SSL_mode != 0 && !SSLConnect() ) {
+		OnError(WSAECONNREFUSED);
+		return;
 	}
 
 	if ( m_ProxyStatus != PRST_NONE ) {
@@ -1390,13 +1808,18 @@ void CExtSocket::OnPreConnect()
 	}
 
 	OnConnect();
+#endif
 }
 void CExtSocket::OnPreClose()
 {
+#ifdef	USE_FIFOBUF
+	OnClose();
+#else
 	if ( CExtSocket::GetRecvSize() == 0 )
 		OnClose();
 	else
 		m_OnRecvFlag |= RECV_DOCLOSE;
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1406,6 +1829,9 @@ void CExtSocket::OnGetHostByName(LPCTSTR pHostName)
 }
 void CExtSocket::OnAsyncHostByName(int mode, LPCTSTR pHostName)
 {
+#ifdef	USE_FIFOBUF
+	TRACE("CExtSocket::OnAsyncHostByName\n");
+#else
 	switch(mode) {
 	case ASYNC_GETADDR:
 		OnGetHostByName(pHostName);
@@ -1427,12 +1853,14 @@ void CExtSocket::OnAsyncHostByName(int mode, LPCTSTR pHostName)
 			OnError(WSAGetLastError());
 		break;
 	}
+#endif
 }
 void CExtSocket::OnError(int err)
 {
+#ifndef	USE_FIFOBUF
 	if ( m_AddrInfoTop != NULL && OpenAddrInfo() )
 		return;
-
+#endif
 	Close();
 
 	if ( m_pDocument == NULL )
@@ -1451,6 +1879,24 @@ void CExtSocket::OnClose()
 }
 void CExtSocket::OnConnect()
 {
+#ifdef	USE_FIFOBUF
+	if ( m_pFifoLeft == NULL || !m_pFifoLeft->IsOpen() )
+		return;
+
+	GetMainWnd()->SetAsyncSelect(m_Fd, this, 0);
+
+	if ( m_pFifoLeft->m_Type == FIFO_TYPE_SOCKET ) {
+		if ( m_pDocument->m_TextRam.IsOptEnable(TO_RLKEEPAL) ) {
+			BOOL opval = TRUE;
+			m_pFifoLeft->SendCommand(FIFO_CMD_MSGQUEIN, FIFO_QCMD_SETSOCKOPT, SO_KEEPALIVE, 0, (void *)&opval);
+		}
+
+		if ( m_pDocument->m_TextRam.IsOptEnable(TO_RLNODELAY) ) {
+			BOOL opval = TRUE;
+			m_pFifoLeft->SendCommand(FIFO_CMD_MSGQUEIN, FIFO_QCMD_SETSOCKOPT, TCP_NODELAY, 0, (void *)&opval);
+		}
+	}
+#else
 	if ( m_AddrInfoTop != NULL ) {
 		FreeAddrInfo(m_AddrInfoTop);
 		m_AddrInfoTop = NULL;
@@ -1476,6 +1922,7 @@ void CExtSocket::OnConnect()
 			}
 		}
 	}
+#endif
 
 	if ( m_bCallConnect ) {
 		m_bConnect = TRUE;
@@ -1487,6 +1934,9 @@ void CExtSocket::OnAccept(SOCKET hand)
 }
 void CExtSocket::OnSend()
 {
+#ifdef	USE_FIFOBUF
+	TRACE("CExtSocket::OnSend\n");
+#else
 	int n;
 
 	while ( m_SendHead != NULL && m_SendLimit.timer == 0 ) {
@@ -1522,9 +1972,14 @@ void CExtSocket::OnSend()
 
 	if ( m_SendHead == NULL )
 		OnSendEmpty();
+#endif
 }
 BOOL CExtSocket::ReceiveFlowCheck()
 {
+#ifdef	USE_FIFOBUF
+	TRACE("CExtSocket::ReceiveFlowCheck\n");
+	return FALSE;
+#else
 	int n;
 
 	if ( m_Fd == (-1) )
@@ -1546,9 +2001,13 @@ BOOL CExtSocket::ReceiveFlowCheck()
 	}
 
 	return FALSE;
+#endif
 }
 void CExtSocket::OnReceive(int nFlags)
 {
+#ifdef	USE_FIFOBUF
+	TRACE("CExtSocket::OnReceive\n");
+#else
 	int n;
 	CSockBuffer *sp = NULL;
 
@@ -1585,7 +2044,10 @@ void CExtSocket::OnReceive(int nFlags)
 		if ( m_TransmitLimit > 0 )
 			CheckLimit(n, &m_RecvLimit);
 	}
+#endif
 }
+
+#ifndef	USE_FIFOBUF
 BOOL CExtSocket::ReceiveCall()
 {
 	int n = 0;
@@ -1618,8 +2080,14 @@ BOOL CExtSocket::ReceiveCall()
 
 	return TRUE;
 }
+#endif
+
 void CExtSocket::OnReceiveCallBack(void *lpBuf, int nBufLen, int nFlags)
 {
+#ifdef	USE_FIFOBUF
+	if ( m_pFifoMid != NULL )
+		m_pFifoMid->Write(FIFO_EXTOUT, (BYTE *)lpBuf, nBufLen);
+#else
 	int n;
 	CSockBuffer *sp;
 
@@ -1651,7 +2119,10 @@ void CExtSocket::OnReceiveCallBack(void *lpBuf, int nBufLen, int nFlags)
 		m_pRecvEvent->SetEvent();
 	m_RecvSyncMode &= ~SYNC_EVENT;
 	m_RecvSema.Unlock();
+#endif
 }
+
+#ifndef	USE_FIFOBUF
 BOOL CExtSocket::ReceiveProc()
 {
 	int n, i;
@@ -1698,8 +2169,16 @@ BOOL CExtSocket::ReceiveProc()
 
 	return ret;
 }
+#endif
+
 int CExtSocket::OnReceiveProcBack(void *lpBuf, int nBufLen, int nFlags)
 {
+#ifdef	USE_FIFOBUF
+	if ( m_pDocument == NULL )
+		return 0;
+
+	return m_pDocument->OnSocketReceive((LPBYTE)lpBuf, nBufLen, nFlags);
+#else
 	//TRACE("OnReceiveProcBack %d/%d\n", nBufLen, m_RecvSize);
 	
 	if ( (m_OnRecvFlag & RECV_PROCBACK) != 0 )
@@ -1713,9 +2192,14 @@ int CExtSocket::OnReceiveProcBack(void *lpBuf, int nBufLen, int nFlags)
 	m_OnRecvFlag &= ~RECV_PROCBACK;
 
 	return nBufLen;
+#endif
 }
 int CExtSocket::OnIdle()
 {
+#ifdef	USE_FIFOBUF
+	TRACE("CExtSocket::OnIdle\n");
+	return FALSE;
+#else
 	if ( m_DestroyFlag ) {
 		Destroy();
 		return TRUE;
@@ -1744,9 +2228,13 @@ int CExtSocket::OnIdle()
 	}
 
 	return FALSE;
+#endif
 }
 void CExtSocket::OnTimer(UINT_PTR nIDEvent)
 {
+#ifdef	USE_FIFOBUF
+	TRACE("CExtSocket::OnTimer\n");
+#else
 	if ( m_SendLimit.timer == (int)nIDEvent ) {
 		m_SendLimit.timer = 0;
 		OnSend();
@@ -1755,27 +2243,49 @@ void CExtSocket::OnTimer(UINT_PTR nIDEvent)
 		OnReceive(0);
 	} else
 		((CMainFrame *)AfxGetMainWnd())->DelTimerEvent(this, (int)nIDEvent);
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////
 
-BOOL CExtSocket::IOCtl(long lCommand, DWORD* lpArgument)
+BOOL CExtSocket::IOCtl(long lCommand, DWORD *lpArgument)
 {
+#ifdef	USE_FIFOBUF
+	if ( m_pFifoLeft == NULL || m_pFifoLeft->m_Type != FIFO_TYPE_SOCKET )
+		return FALSE;
+
+	return m_pFifoLeft->SendCmdWait(FIFO_CMD_MSGQUEIN, FIFO_QCMD_IOCtl, lCommand, 0, (void *)lpArgument);
+#else
 	if ( m_Fd == (-1) || ::ioctlsocket(m_Fd, lCommand, lpArgument) != 0 )
 		return FALSE;
 	return TRUE;
+#endif
 }
 BOOL CExtSocket::SetSockOpt(int nOptionName, const void* lpOptionValue, int nOptionLen, int nLevel)
 {
+#ifdef	USE_FIFOBUF
+	if ( m_pFifoLeft == NULL || m_pFifoLeft->m_Type != FIFO_TYPE_SOCKET || nLevel != SOL_SOCKET || nOptionLen != sizeof(BOOL) )
+		return FALSE;
+
+	return m_pFifoLeft->SendCmdWait(FIFO_CMD_MSGQUEIN, FIFO_QCMD_SETSOCKOPT, nOptionName, 0, (void *)lpOptionValue);
+#else
 	if ( m_Fd == (-1) || ::setsockopt(m_Fd, nLevel, nOptionName, (const char *)lpOptionValue, nOptionLen) != 0 )
 		return FALSE;
 	return TRUE;
+#endif
 }
 BOOL CExtSocket::GetSockOpt(int nOptionName, void* lpOptionValue, int* lpOptionLen, int nLevel)
 {
+#ifdef	USE_FIFOBUF
+	if ( m_pFifoLeft == NULL || m_pFifoLeft->m_Type != FIFO_TYPE_SOCKET || nLevel != SOL_SOCKET || *lpOptionLen != sizeof(BOOL) )
+		return FALSE;
+
+	return m_pFifoLeft->SendCmdWait(FIFO_CMD_MSGQUEIN, FIFO_QCMD_GETSOCKOPT, nOptionName, 0, (void *)lpOptionValue);
+#else
 	if ( m_Fd == (-1) || ::getsockopt(m_Fd, nLevel, nOptionName, (char *)lpOptionValue, lpOptionLen) != 0 )
 		return FALSE;
 	return TRUE;
+#endif
 }
 void CExtSocket::GetPeerName(SOCKET fd, CString &host, int *port)
 {
@@ -2070,7 +2580,22 @@ int CExtSocket::SSLConnect()
 	STACK_OF(X509) *pStack;
 	EVP_PKEY *pkey;
 
+#ifdef	USE_FIFOBUF
+	void *pauseParam[2];
+	CEvent waitEvent;
+
+	pauseParam[0] = (void *)(HANDLE)waitEvent;
+	pauseParam[1] = NULL;
+
+	if ( m_pFifoLeft == NULL || m_pFifoLeft->m_Type != FIFO_TYPE_SOCKET )
+		return FALSE;
+
+	if ( !m_pFifoLeft->SendCmdWait(FIFO_CMD_MSGQUEIN, FIFO_QCMD_SSLCONNECT, 0, 0, (void *)pauseParam) )
+		return FALSE;
+
+#else
 	WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), 0, 0);
+#endif
 
 	val = 0;
 	::ioctlsocket(m_Fd, FIONBIO, &val);
@@ -2173,12 +2698,22 @@ int CExtSocket::SSLConnect()
 	val = 1;
 	::ioctlsocket(m_Fd, FIONBIO, &val);
 
+#ifdef	USE_FIFOBUF
+	pauseParam[1] = (void *)m_SSL_pSock;
+	waitEvent.SetEvent();
+#else
 	m_SocketEvent |= FD_READ;
 	WSAAsyncSelect(m_Fd, GetMainWnd()->GetSafeHwnd(), WM_SOCKSEL, m_SocketEvent);
+#endif
 
 	return TRUE;
 
 ERRENDOF:
+#ifdef	USE_FIFOBUF
+	pauseParam[1] = NULL;
+	waitEvent.SetEvent();
+#endif
+
 	if ( cert != NULL )
 		X509_free(cert);
 	SSLClose();
@@ -2186,6 +2721,16 @@ ERRENDOF:
 }
 void CExtSocket::SSLClose()
 {
+#ifdef	USE_FIFOBUF
+	void *pauseParam[2];
+
+	pauseParam[0] = NULL;
+	pauseParam[1] = NULL;
+
+	if ( m_SSL_pSock != NULL && m_pFifoLeft != NULL && m_pFifoLeft->m_Type == FIFO_TYPE_SOCKET )
+		m_pFifoLeft->SendCmdWait(FIFO_CMD_MSGQUEIN, FIFO_QCMD_SSLCONNECT, 0, 0, pauseParam);
+#endif
+
 	if ( m_SSL_pSock != NULL )
 		SSL_free(m_SSL_pSock);
 

@@ -65,6 +65,7 @@ void CLogin::OnConnect()
 
 void CLogin::SendStr(LPCSTR str)
 {
+
 	CExtSocket::Send(str, (int)strlen(str) + 1);		// With '\0'
 }
 
@@ -96,16 +97,6 @@ void CLogin::SendWindSize()
 	CExtSocket::Send(obuf, sizeof(obuf));
 }
 
-void CLogin::OnReceiveCallBack(void *lpBuf, int nBufLen, int nFlags)
-{
-	if ( m_ConnectFlag == 3 && nFlags == 0 ) {
-		CExtSocket::OnReceiveCallBack(lpBuf, nBufLen, 0);
-		return;
-	}
-
-	BYTE *buf = (BYTE *)lpBuf;
-	CRLoginDoc *pDoc = GetDocument();
-
 #define TIOCPKT_FLUSHREAD	0x01	/* flush packet */
 #define TIOCPKT_FLUSHWRITE	0x02	/* flush packet */
 #define TIOCPKT_STOP		0x04	/* stop output */
@@ -115,10 +106,23 @@ void CLogin::OnReceiveCallBack(void *lpBuf, int nBufLen, int nFlags)
 #define TIOCPKT_IOCTL		0x40	/* state change of pty driver */
 #define TIOCPKT_WINDOW		0x80
 
-	for ( int n = 0 ; n < nBufLen ; n++ ) {
-		if ( pDoc != NULL && (buf[n] & 0x80) != 0 )
-			SendWindSize();
-		//TRACE("Resv OOB %02x\n", buf[n]);
+void CLogin::OnReceiveCallBack(void *lpBuf, int nBufLen, int nFlags)
+{
+	//TRACE("CLogin::OnReceiveCallBack %d(%02x...), %d\n", nBufLen, ((BYTE *)lpBuf)[0], nFlags);
+
+	if ( nFlags == 0 ) {
+		if ( m_ConnectFlag == 2 && nBufLen > 0 ) {
+			lpBuf = (void *)(((BYTE *)lpBuf) + 1);	// NULL Byte
+			nBufLen -= 1;
+			m_ConnectFlag = 3;
+		}
+		if ( nBufLen > 0 )
+			CExtSocket::OnReceiveCallBack(lpBuf, nBufLen, 0);
+	} else {
+		BYTE *buf = (BYTE *)lpBuf;
+		for ( int n = 0 ; n < nBufLen ; n++ ) {
+			if ( (buf[n] & TIOCPKT_WINDOW) != 0 )
+				SendWindSize();
+		}
 	}
-	m_ConnectFlag = 3;
 }

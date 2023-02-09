@@ -48,7 +48,7 @@ static UINT PipeInThread(LPVOID pParam)
 
 	pThis->OnReadProc();
 	pThis->m_pInEvent->SetEvent();
-	pThis->m_InThreadMode = 3;
+	pThis->m_InThreadMode = 0;
 	return 0;
 }
 static UINT PipeOutThread(LPVOID pParam)
@@ -57,7 +57,7 @@ static UINT PipeOutThread(LPVOID pParam)
 
 	pThis->OnWriteProc();
 	pThis->m_pOutEvent->SetEvent();
-	pThis->m_OutThreadMode = 3;
+	pThis->m_OutThreadMode = 0;
 	return 0;
 }
 static UINT PipeInOutThread(LPVOID pParam)
@@ -66,7 +66,7 @@ static UINT PipeInOutThread(LPVOID pParam)
 
 	pThis->OnReadWriteProc();
 	pThis->m_pOutEvent->SetEvent();
-	pThis->m_OutThreadMode = 3;
+	pThis->m_OutThreadMode = 0;
 	return 0;
 }
 BOOL CPipeSock::IsPipeName(LPCTSTR path)
@@ -161,7 +161,7 @@ BOOL CPipeSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, 
 	GetMainWnd()->SetAsyncSelect((SOCKET)m_hIn[0], this, 0);
 
 //	CExtSocket::OnConnect();
-	GetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hIn[0], WSAMAKESELECTREPLY(FD_CONNECT, 0));
+	PostMessage((WPARAM)m_hIn[0], WSAMAKESELECTREPLY(FD_CONNECT, 0));
 
 	return TRUE;
 }
@@ -193,8 +193,8 @@ void CPipeSock::Close()
 
 	if ( m_InThreadMode != 0 ) {
 		m_InThreadMode = 2;
+		CancelIoEx(m_hIn[0], NULL);
 		WaitForSingleObject(m_pInEvent->m_hObject, INFINITE);
-		m_InThreadMode = 0;
 	}
 	if ( m_OutThreadMode != 0 ) {
 		m_OutThreadMode = 2;
@@ -202,7 +202,6 @@ void CPipeSock::Close()
 		SetEvent(m_ReadOverLap.hEvent);
 		SetEvent(m_WriteOverLap.hEvent);
 		WaitForSingleObject(m_pOutEvent->m_hObject, INFINITE);
-		m_OutThreadMode = 0;
 	}
 
 	if ( m_hIn[0] != NULL )
@@ -276,7 +275,7 @@ void CPipeSock::OnReceive(int nFlags)
 }
 void CPipeSock::OnSend()
 {
-	// AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hIn[0], WSAMAKESELECTREPLY(FD_WRITE, 0));
+	// PostMessage((WPARAM)m_hIn[0], WSAMAKESELECTREPLY(FD_WRITE, 0));
 	// Send Empty Call
 
 	CExtSocket::OnSendEmpty();
@@ -303,13 +302,13 @@ void CPipeSock::OnReadProc()
 	BYTE buff[1024];
 
 	while ( m_InThreadMode == 1 ) {
-		if ( !ReadFile(m_hIn[0], buff, 1024, &n, NULL ) )
+		if ( !ReadFile(m_hIn[0], buff, 1024, &n, NULL) )
 			break;
 		if ( n > 0 ) {
 			m_RecvSema.Lock();
 			m_RecvBuff.Apend(buff, n);
 			m_RecvSema.Unlock();
-			AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hIn[0], WSAMAKESELECTREPLY(FD_READ, 0));
+			PostMessage((WPARAM)m_hIn[0], WSAMAKESELECTREPLY(FD_READ, 0));
 		}
 	}
 }
@@ -401,7 +400,7 @@ void CPipeSock::OnReadWriteProc()
 		// PostMsg Call OnReceive
 		if ( ReadByte > 0 ) {
 			ReadByte = 0;
-			AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hIn[0], WSAMAKESELECTREPLY(FD_READ, 0));
+			PostMessage((WPARAM)m_hIn[0], WSAMAKESELECTREPLY(FD_READ, 0));
 		}
 
 		// WriteOverLap
@@ -431,7 +430,7 @@ void CPipeSock::OnReadWriteProc()
 				memcpy(WriteBuf, m_SendBuff.GetPtr(), WriteByte);
 				m_SendBuff.Consume(WriteByte);
 				if ( m_SendBuff.GetSize() == 0 )
-					AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hIn[0], WSAMAKESELECTREPLY(FD_WRITE, 0));
+					PostMessage((WPARAM)m_hIn[0], WSAMAKESELECTREPLY(FD_WRITE, 0));
 				m_SendSema.Unlock();
 			} else {
 				m_pSendEvent->ResetEvent();
@@ -504,7 +503,7 @@ void CPipeSock::OnReadWriteProc()
 
 ERRENDOF:
 	if ( HaveError != 0 )
-		AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hIn[0], WSAMAKESELECTREPLY(0, HaveError));
+		PostMessage((WPARAM)m_hIn[0], WSAMAKESELECTREPLY(0, HaveError));
 
 	if ( bReadOverLap || bWriteOverLap )
 		CancelIo(m_hIn[0]);

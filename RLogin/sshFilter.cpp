@@ -169,8 +169,9 @@ void CChannel::Close()
 		m_pFilter->Destroy();
 		m_pFilter = NULL;
 	}
-
+#ifndef	USE_FIFOBUF
 	((CRLoginApp *)AfxGetApp())->DelIdleProc(IDLEPROC_SOCKET, this);
+#endif
 }
 int CChannel::Send(const void *lpBuf, int nBufLen, int nFlags)
 {
@@ -205,17 +206,14 @@ void CChannel::DoClose()
 }
 void CChannel::OnError(int err)
 {
-	TRACE("Cannel OnError %d\n", err);
 	DoClose();
 }
 void CChannel::OnClose()
 {
-	TRACE("Cannel OnClose\n");
 	DoClose();
 }
 void CChannel::OnConnect()
 {
-	TRACE("Cannel OnConnect\n");
 	if ( m_pFilter != NULL )
 		m_pFilter->OnConnect();
 	else if ( (m_Status & CHAN_OPEN_LOCAL) == 0 )

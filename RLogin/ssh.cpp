@@ -1324,7 +1324,9 @@ int Cssh::ChannelOpen()
 	cp->m_WriteByte  = 0;
 	cp->m_ConnectTime= 0;
 
+#ifndef	USE_FIFOBUF
 	((CRLoginApp *)AfxGetApp())->AddIdleProc(IDLEPROC_SOCKET, cp);
+#endif
 
 	return cp->m_LocalID;
 }
@@ -1356,11 +1358,11 @@ void Cssh::ChannelClose(int id, BOOL bClose)
 		m_SSH2Status &= ~SSH2_STAT_HAVESTDIO;
 
 		if ( m_pChanNext != NULL && AfxMessageBox(CStringLoad(IDS_SSHCLOSEALL), MB_ICONQUESTION | MB_YESNO) == IDYES )
-			GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, WSAMAKESELECTREPLY(FD_CLOSE, 0));
+			PostMessage(m_Fd, WSAMAKESELECTREPLY(FD_CLOSE, 0));
 	}
 
 	if ( bClose && m_pChanNext == NULL && m_Permit.GetSize() == 0 )
-		GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, WSAMAKESELECTREPLY(FD_CLOSE, 0));
+		PostMessage(m_Fd, WSAMAKESELECTREPLY(FD_CLOSE, 0));
 }
 void Cssh::ChannelCheck(int n)
 {
@@ -1780,7 +1782,7 @@ void Cssh::PortForward()
 	if ( m_pDocument->m_TextRam.IsOptEnable(TO_SSHPFORY) ) {
 		if ( a == 0 && !m_pDocument->m_TextRam.IsOptEnable(TO_SSHSFTPORY) ) {
 			AfxMessageBox(CStringLoad(IDE_PORTFWORDERROR));
-			GetMainWnd()->PostMessage(WM_SOCKSEL, m_Fd, WSAMAKESELECTREPLY(FD_CLOSE, 0));
+			PostMessage(m_Fd, WSAMAKESELECTREPLY(FD_CLOSE, 0));
 		}
 
 		if ( m_bPfdConnect == 0 ) {

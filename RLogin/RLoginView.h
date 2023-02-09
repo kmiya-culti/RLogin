@@ -294,6 +294,8 @@ protected:
 	afx_msg void ClipboardPaste(UINT nID);
 	afx_msg void OnUpdateClipboardPaste(CCmdUI* pCmdUI);
 	afx_msg void OnClipboardMenu();
+	afx_msg void OnLineeditmode();
+	afx_msg void OnUpdateLineeditmode(CCmdUI *pCmdUI);
 
 	afx_msg void OnImageGrapCopy();
 	afx_msg void OnImageGrapSave();

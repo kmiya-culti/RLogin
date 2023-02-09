@@ -127,7 +127,7 @@ BOOL CComSock::Open(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, i
 	m_pThreadEvent->ResetEvent();
 	AfxBeginThread(ComEventThread, this, THREAD_PRIORITY_NORMAL);
 
-	AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hCom, WSAMAKESELECTREPLY(FD_CONNECT, 0));
+	PostMessage((WPARAM)m_hCom, WSAMAKESELECTREPLY(FD_CONNECT, 0));
 	return TRUE;
 }
 BOOL CComSock::AsyncOpen(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort, int nSocketType)
@@ -374,7 +374,7 @@ void CComSock::OnRecvEmpty()
 }
 void CComSock::OnSend()
 {
-	// AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hCom, WSAMAKESELECTREPLY(FD_WRITE, 0));
+	// PostMessage((WPARAM)m_hCom, WSAMAKESELECTREPLY(FD_WRITE, 0));
 	// Send Empty Call
 
 	CExtSocket::OnSendEmpty();
@@ -433,7 +433,7 @@ void CComSock::OnReadWriteProc()
 						m_pComMoni->PostMessage(WM_COMMAND, (WPARAM)ID_COMM_EVENT_MONI);
 
 					if ( (m_ModemStatus & MS_DSR_ON) == 0 && (LastModemStatus & MS_DSR_ON) != 0 && m_pComConf->dcb.fDsrSensitivity != 0 )
-						AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hCom, WSAMAKESELECTREPLY(FD_CLOSE, 0));
+						PostMessage((WPARAM)m_hCom, WSAMAKESELECTREPLY(FD_CLOSE, 0));
 
 					LastModemStatus = m_ModemStatus;
 				}
@@ -491,7 +491,7 @@ void CComSock::OnReadWriteProc()
 		// PostMsg Call OnReceive
 		if ( ReadByte > 0 ) {
 			ReadByte = 0;
-			AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hCom, WSAMAKESELECTREPLY(FD_READ, 0));
+			PostMessage((WPARAM)m_hCom, WSAMAKESELECTREPLY(FD_READ, 0));
 		}
 
 		// WriteOverLap
@@ -619,7 +619,7 @@ void CComSock::OnReadWriteProc()
 					m_pSendEvent->ResetEvent();
 					m_SendSema.Unlock();
 					if ( WriteDone > 0 )
-						AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hCom, WSAMAKESELECTREPLY(FD_WRITE, 0));
+						PostMessage((WPARAM)m_hCom, WSAMAKESELECTREPLY(FD_WRITE, 0));
 					WriteStat = WRITE_EVENT_WAIT;
 					break;
 				}
@@ -714,7 +714,7 @@ void CComSock::OnReadWriteProc()
 
 ERRENDOF:
 	if ( HaveError != 0 )
-		AfxGetMainWnd()->PostMessage(WM_SOCKSEL, (WPARAM)m_hCom, WSAMAKESELECTREPLY(0, HaveError));
+		PostMessage((WPARAM)m_hCom, WSAMAKESELECTREPLY(0, HaveError));
 
 	if ( ReadStat == READ_OVERLAP || WriteStat == WRITE_OVERLAP || bCommOverLap )
 		CancelIo(m_hCom);

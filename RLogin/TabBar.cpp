@@ -54,6 +54,7 @@ BEGIN_MESSAGE_MAP(CTabBar, CControlBar)
 	ON_WM_TIMER()
 	ON_NOTIFY(TCN_SELCHANGE, IDC_MDI_TAB_CTRL, OnSelchange)
 	ON_NOTIFY(TTN_GETDISPINFO, 0, OnGetDispInfo)
+	ON_WM_RBUTTONDOWN()
 END_MESSAGE_MAP()
 
 //////////////////////////////////////////////////////////////////////
@@ -129,7 +130,7 @@ CSize CTabBar::CalcFixedLayout(BOOL bStretch, BOOL bHorz)
 
 BOOL CTabBar::PreTranslateMessage(MSG* pMsg) 
 {
-	if ( pMsg->hwnd == m_TabCtrl.m_hWnd && pMsg->message == WM_LBUTTONDOWN ) {
+	if ( pMsg->hwnd == m_TabCtrl.m_hWnd && (pMsg->message == WM_LBUTTONDOWN || pMsg->message == WM_RBUTTONDOWN) ) {
 		// WM_LBUTTONDOWN‚ðTabCtrl‚©‚çTabBar‚É•ÏX
 		CPoint point(LOWORD(pMsg->lParam), HIWORD(pMsg->lParam));
 		::ClientToScreen(pMsg->hwnd, &point);
@@ -1162,4 +1163,97 @@ void CTabBar::MultiLine()
 		m_TabCtrl.ModifyStyle(TCS_MULTILINE | TCS_BUTTONS, 0);
 
 	ReSize(TRUE);
+}
+
+void CTabBar::OnRButtonDown(UINT nFlags, CPoint point)
+{
+//	CControlBar::OnRButtonDown(nFlags, point);
+
+	int cmd, idx;
+	CMenuLoad menu;
+	CDWordArray nIdTab;
+	CMainFrame *pMain = ((CMainFrame *)::AfxGetMainWnd());
+
+	if ( !pMain->m_ServerEntryTab.SetMenuEntry(&menu, 1000) )
+		return;
+
+	if ( (idx = HitPoint(point)) >= 0 ) {
+		UINT nId;
+		CMenuLoad PopUpMenu;
+		CMenu *pSubMenu;
+		CString str;
+		CBitmap *pBitmap;
+
+		if ( PopUpMenu.LoadMenu(IDR_POPUPMENU) && (pSubMenu = PopUpMenu.GetSubMenu(10)) != NULL ) {
+			for ( int n = 0 ; n < pSubMenu->GetMenuItemCount() ; n++ ) {
+				nId = pSubMenu->GetMenuItemID(n);
+				switch(nId) {
+				case (-1):	// SubMenu ?
+					break;
+				case 0:
+					menu.AppendMenu(MF_SEPARATOR, NULL);
+					break;
+				case IDM_RIGHTCLOSE:
+					pSubMenu->GetMenuString(n, str, MF_BYPOSITION);
+					menu.AppendMenu(MF_STRING | ((idx + 1) < m_TabCtrl.GetItemCount() ? 0 : MF_GRAYED), nIdTab.GetSize() + 100, str);
+					nIdTab.Add(nId);
+					break;
+				case IDM_OTHERCLOSE:
+					pSubMenu->GetMenuString(n, str, MF_BYPOSITION);
+					menu.AppendMenu(MF_STRING | (m_TabCtrl.GetItemCount() > 1 ? 0 : MF_GRAYED), nIdTab.GetSize() + 100, str);
+					nIdTab.Add(nId);
+					break;
+				default:
+					pSubMenu->GetMenuString(n, str, MF_BYPOSITION);
+					menu.AppendMenu(MF_STRING, (UINT)nIdTab.GetSize() + 100, str);
+					if ( (pBitmap = pMain->GetMenuBitmap(nId)) != NULL )
+						menu.SetMenuItemBitmaps((UINT)nIdTab.GetSize() + 100, MF_BYCOMMAND, pBitmap, NULL);
+					nIdTab.Add(nId);
+					break;
+				}
+			}
+		}
+	}
+
+	ClientToScreen(&point);
+	cmd = pMain->TrackPopupMenuIdle(&menu, TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, this);
+	pMain->m_ServerEntryTab.DelMenuEntry(&menu);
+
+	if ( cmd >= 100 && cmd < 1000 && idx >= 0 ) {
+		CChildFrame *pWnd;
+
+		switch(nIdTab[cmd - 100]) {
+		case IDM_OTHERCLOSE:
+			for ( int n = 0 ; n < m_TabCtrl.GetItemCount() ; n++ ) {
+				if ( n != idx && (pWnd = (CChildFrame *)GetAt(n)) != NULL )
+					pWnd->PostMessage(WM_COMMAND, ID_FILE_CLOSE);
+			}
+			break;
+		case IDM_RIGHTCLOSE:
+			for ( int n = idx + 1 ; n < m_TabCtrl.GetItemCount() ; n++ ) {
+				if ( (pWnd = (CChildFrame *)GetAt(n)) != NULL )
+					pWnd->PostMessage(WM_COMMAND, ID_FILE_CLOSE);
+			}
+			break;
+		case ID_SPLIT_HEIGHT:
+		case ID_SPLIT_WIDTH:
+		case ID_SPLIT_OVER:
+			if ( (pWnd = (CChildFrame *)GetAt(idx)) != NULL ) {
+				pMain->MDIActivate(pWnd);
+				pWnd->PostMessage(WM_COMMAND, nIdTab[cmd - 100]);
+			}
+			break;
+		default:
+			if ( (pWnd = (CChildFrame *)GetAt(idx)) != NULL )
+				pWnd->PostMessage(WM_COMMAND, nIdTab[cmd - 100]);
+			break;
+		}
+
+	} else if ( cmd >= 1000 && cmd < (pMain->m_ServerEntryTab.GetSize() + 1000) ) {
+		for ( int n = 0 ; n < pMain->m_ServerEntryTab.GetSize() ; n++ )
+			pMain->m_ServerEntryTab.m_Data[n].m_CheckFlag = FALSE;
+		pMain->m_ServerEntryTab.m_Data[cmd - 1000].m_CheckFlag = TRUE;
+
+		pMain->PostMessage(WM_COMMAND, (WPARAM)ID_FILE_NEW);
+	}
 }

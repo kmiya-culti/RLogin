@@ -36,6 +36,10 @@
 #include "afxcmn.h"
 #include "sphelper.h"
 
+#ifdef	USE_FIFOBUF
+#include "Fifo.h"
+#endif
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -1148,8 +1152,6 @@ ENDOF:
 
 BOOL CRLoginApp::InitInstance()
 {
-clock_t start = clock();
-
 	// LoadLibrary Search Path
 	HMODULE hModule;
 	if ((hModule = GetModuleHandle(_T("kernel32.dll"))) != NULL) {
@@ -3165,6 +3167,11 @@ BOOL CRLoginApp::OnIdle(LONG lCount)
 		case IDLEPROC_VIEW:
 			rt = ((CRLoginView *)(pProc->m_pParam))->OnIdle();
 			break;
+#ifdef	USE_FIFOBUF
+		case IDLEPROC_FIFODOC:
+			rt = ((CFifoDocument *)(pProc->m_pParam))->OnIdle();
+			break;
+#endif
 		}
 
 		// pProcの呼び出し後の利用不可(DelIdleProc後の可能性あり)

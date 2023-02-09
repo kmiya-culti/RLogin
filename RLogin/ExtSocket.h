@@ -19,6 +19,10 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
+#ifdef	USE_FIFOBUF
+#include "Fifo.h"
+#endif
+
 #define	RECVMINSIZ			(m_RecvBufSize * 1)
 #define	RECVBUFSIZ			(m_RecvBufSize    )
 #define	RECVMAXSIZ			(m_RecvBufSize * 4)
@@ -93,6 +97,7 @@ enum EProxyStat {
 	PRST_SOCKS5_CHAPCHECK
 };
 
+#ifndef	USE_FIFOBUF
 class CSockBuffer : public CObject
 {
 public:
@@ -119,19 +124,27 @@ public:
 	CSockBuffer();
 	~CSockBuffer();
 };
+#endif
 
 class CExtSocket : public CObject  
 {
 public:
+#ifdef	USE_FIFOBUF
+	CFifoSocket *m_pFifoLeft;
+	CFifoMiddle *m_pFifoMid;
+	CFifoDocument *m_pFifoRight;
+	CFifoProxy *m_pFifoProxy;
+	CFifoSync *m_pFifoSync;
+	CListenSocket *m_pFifoListen;
+#endif
+
 	int m_Type;
-	int m_ListenMax;
 	int m_SocketEvent;
-	SOCKET m_Fd, m_FdTab[LISTENSOCKS];
+	SOCKET m_Fd;
 	class CRLoginDoc *m_pDocument;
 	BOOL m_bConnect;
 	BOOL m_bCallConnect;
 	CEvent *m_pSyncEvent;
-	BOOL m_bUseProc;
 
 	CBuffer m_RecvBuff;
 	CBuffer m_SendBuff;
@@ -143,21 +156,28 @@ public:
 private:
 	int m_RecvSyncMode;
 	int m_RecvBufSize;
-	CSemaphore m_RecvSema;
-	int m_OnRecvFlag;
-	BOOL m_DestroyFlag;
 	CString m_RealHostAddr;
 	CString m_RealRemoteAddr;
 	UINT m_RealHostPort;
 	UINT m_RealRemotePort;
 	int m_RealSocketType;
+
+#ifndef	USE_FIFOBUF
+	int m_ListenMax;
+	SOCKET m_FdTab[LISTENSOCKS];
+	BOOL m_bUseProc;
+
+	int m_OnRecvFlag;
+	BOOL m_DestroyFlag;
 	CEvent *m_pRecvEvent;
+	CSemaphore m_RecvSema;
 
 	CSockBuffer *m_ProcHead;
 	CSockBuffer *m_RecvHead;
 	CSockBuffer *m_SendHead;
 	CSockBuffer *m_FreeHead;
 	CSemaphore m_FreeSema;
+#endif
 
 	int m_ProxyStatus;
 	CString m_ProxyHost;
@@ -179,21 +199,26 @@ private:
 	BOOL m_SSL_keep;
 	CString m_SSL_Msg;
 
+#ifndef	USE_FIFOBUF
 	int m_TransmitLimit;
 	struct _LimitData {
 		clock_t	clock;
 		LONGLONG size;
 		int timer;
 	} m_RecvLimit, m_SendLimit;
+#endif
 
+#ifndef	USE_FIFOBUF
 	CSockBuffer *AllocBuffer();
 	void FreeBuffer(CSockBuffer *sp);
 	CSockBuffer *AddTail(CSockBuffer *sp, CSockBuffer *head);
 	CSockBuffer *AddHead(CSockBuffer *sp, CSockBuffer *head);
 	CSockBuffer *DetachHead(CSockBuffer *head);
 	CSockBuffer *RemoveHead(CSockBuffer *head);
+
 	BOOL ReceiveCall();
 	BOOL ReceiveProc();
+#endif
 
 	BOOL ProxyReadLine();
 	BOOL ProxyReadBuff(int len);
@@ -201,12 +226,13 @@ private:
 	int SSLConnect();
 	void SSLClose();
 
+#ifndef	USE_FIFOBUF
 	ADDRINFOT *m_AddrInfoTop;
 	ADDRINFOT *m_AddrInfoNext;
 
-	int GetFamily();
 	BOOL SyncOpenAddrInfo(UINT nSockPort);
 	BOOL OpenAddrInfo();
+#endif
 
 public:
 	virtual BOOL Create(LPCTSTR lpszHostAddress, UINT nHostPort, LPCTSTR lpszRemoteAddress = NULL, int nSocketType = SOCK_STREAM, void *pAddrInfo = NULL);
@@ -214,13 +240,25 @@ public:
 	virtual void Close();
 	virtual void SetXonXoff(int sw);
 
+#ifdef	USE_FIFOBUF
+	int SyncSend(const void *lpBuf, int nBufLen, int nFlags = 0);
+	int SyncExtSend(const void *lpBuf, int nBufLen, int nFlags = 0);
+	virtual int PreSend(const void *lpBuf, int nBufLen, int nFlags = 0);
+	BOOL ProxyCheck();
+
+	virtual void FifoLink();
+	virtual void FifoUnlink();
+#endif
+
 	virtual int Receive(void *lpBuf, int nBufLen, int nFlags = 0);
 	virtual int Send(const void *lpBuf, int nBufLen, int nFlags = 0);
 	virtual void SendWindSize();
 	virtual void SendBreak(int opt = 0);
 
 	void SendFlash(int sec);
+#ifndef	USE_FIFOBUF
 	void CheckLimit(int len, struct _LimitData *pLimit);
+#endif
 
 	virtual int GetRecvSize();
 	virtual int GetSendSize();
@@ -244,9 +282,11 @@ public:
 	virtual void OnReceive(int nFlags);
 	virtual void OnSend();
 	virtual int OnIdle();
+
 	virtual void OnTimer(UINT_PTR nIDEvent);
 	virtual void ResetOption();
 
+	int GetFamily();
 	int AsyncGetHostByName(LPCTSTR pHostName);
 	BOOL AsyncCreate(LPCTSTR lpszHostAddress, UINT nHostPort, LPCTSTR lpszRemoteAddress = NULL, int nSocketType = SOCK_STREAM);
 	virtual BOOL AsyncOpen(LPCTSTR lpszHostAddress, UINT nHostPort, UINT nSocketPort = 0, int nSocketType = SOCK_STREAM);
@@ -254,6 +294,8 @@ public:
 
 	int Accept(class CExtSocket *pSock, SOCKET hand);
 	int Attach(class CRLoginDoc *pDoc, SOCKET fd);
+
+	void PostMessage(WPARAM wParam, LPARAM lParam);
 
 	BOOL IOCtl(long lCommand, DWORD* lpArgument );
 	BOOL SetSockOpt(int nOptionName, const void* lpOptionValue, int nOptionLen, int nLevel = SOL_SOCKET );

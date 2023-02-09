@@ -713,8 +713,8 @@ void CTelnet::OptFunc(struct TelOptTab *tab, int opt, int sw, int ch)
 			tab[opt].flags &= ~TELFLAG_ON;
 			if ( opt == TELOPT_LINEMODE ) {
 				SendFlush();
-				if ( m_pDocument != NULL )
-					m_pDocument->m_TextRam.DisableOption(TO_RLDSECHO);
+				if ( m_pDocument != NULL && m_pDocument->m_TextRam.IsLineEditEnable() )
+					m_pDocument->m_TextRam.LineEditSwitch();
 			}
 			break;
 		case TELSTS_ON:
@@ -725,8 +725,8 @@ void CTelnet::OptFunc(struct TelOptTab *tab, int opt, int sw, int ch)
 				EncryptSendSupport();
 			else if ( opt == TELOPT_LINEMODE ) {
 				SendSlcOpt();
-				if ( m_pDocument != NULL )
-					m_pDocument->m_TextRam.EnableOption(TO_RLDSECHO);
+				if ( m_pDocument != NULL && !m_pDocument->m_TextRam.IsLineEditEnable() )
+					m_pDocument->m_TextRam.LineEditSwitch();
 			} else if ( opt == TELOPT_COMPORT ) {
 				SendCpcValue(CPC_CTS_SET_BAUDRATE, CpcOpt.baudrate);
 				SendCpcValue(CPC_CTS_SET_DATASIZE, CpcOpt.datasize);

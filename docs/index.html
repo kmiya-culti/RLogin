@@ -26,8 +26,8 @@ TD {
         <TBODY>
           <TR>
             <TD width="20%"><A href="RLOGIN.png"><IMG src="RLOGIN.png" width="30" height="30" border="0"></A></TD>
-            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.27.6)</TD>
-            <TD width="20%" align="right">2022/12/26</TD>
+            <TD width="60%" align="center"><FONT size="+2"><B>RLogin</B></FONT> (2.27.7)</TD>
+            <TD width="20%" align="right">2023/02/10</TD>
           </TR>
         </TBODY>
       </TABLE>
@@ -433,6 +433,15 @@ TD {
       <TABLE width="900" cellpadding="5" cellspacing="1" class="BOX">
         <TBODY>
           <TR>
+            <TD align="center">2023/02/10</TD>
+            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.27.7/">2.27.7</A></TD>
+            <TD>タブバー右クリックでサーバーエントリーなどのメニューを表示<BR>
+            ローカルエディットモードでコントロールコードを編集に変更<BR>
+            メニュー・編集・ローカルエディットモードの有効・無効を追加<BR>
+            Ctrl+wheelでフォントサイズ基準の場合に一時的にサイズを変更<BR>
+            openssl-3.0.8に更新</TD>
+          </TR>
+          <TR>
             <TD align="center">2022/12/26</TD>
             <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.27.6/">2.27.6</A></TD>
             <TD>メニュー・表示・各種ウィンドウに文字情報を追加<BR>
@@ -461,15 +470,6 @@ TD {
             RSA鍵の署名方式の初期設定をSHA2-256に変更</TD>
           </TR>
           <TR>
-            <TD align="center">2022/07/27</TD>
-            <TD align="center"><A href="http://nanno.bf1.jp/softlib/rlogin/2.27.2/">2.27.2</A></TD>
-            <TD><FONT color="#ff0000">プライベートプロファイルの仕様変更により下位バージョンとの互換が無くなります</FONT><BR>
-            認証鍵ファイルのパスフレーズ入力時のフォーカスを変更<BR>
-            プライベートプロファイルの一部を圧縮するように変更<BR>
-            Scriptのforeachが正しく動作しない問題を修正<BR>
-            openssl-3.0.5に更新</TD>
-          </TR>
-          <TR>
             <TD align="center" colspan="3" height="40"><A href="history.html">すべてのプログラム・ヒストリー</A></TD>
           </TR>
         </TBODY>
@@ -493,13 +493,13 @@ TD {
             <TABLE cellpadding="5" cellspacing="1" width="900" class="BOX">
               <TBODY>
                 <TR>
-                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.0.7.tar.gz</A><BR>
+                  <TD width="200" rowspan="2" valign="top"><A href="http://www.openssl.org/source/">openssl-3.0.8.tar.gz</A><BR>
                   <BR>
                   perl,nasmの実行環境が必要</TD>
                   <TD valign="top" width="200">x86用 out32<BR>
                   Visual Studio コマンド <BR>
                   プロンプト (2010)</TD>
-                  <TD width="500" valign="top">rename openssl-3.0.7 openssl-3.0.7-x32<BR>
+                  <TD width="500" valign="top">rename openssl-3.0.8 openssl-3.0.8-x32<BR>
                   perl Configure VC-WIN32 no-shared no-threads no-module enable-legacy -D_WIN32_WINNT=0x0501<BR>
                   nmake</TD>
                 </TR>
@@ -584,8 +584,8 @@ TD {
         <TBODY>
           <TR>
             <TD>
-            <P>OpenSSL 3.0.7 1 Nov 2022<BR>
-            Copyright (c) 1998-2022 The OpenSSL Project<BR>
+            <P>OpenSSL 3.0.8 7 Feb 2023<BR>
+            Copyright (c) 1998-2023 The OpenSSL Project<BR>
             Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson<BR>
             All rights reserved.<BR>
             <BR>
@@ -773,7 +773,7 @@ TD {
                   <TD align="left" colspan="5">編集(E)</TD>
                 </TR>
                 <TR>
-                  <TD align="center" width="10" rowspan="18"></TD>
+                  <TD align="center" width="10" rowspan="19"></TD>
                   <TD valign="top" width="250">コピー(C)</TD>
                   <TD valign="top" width="450">クリップボードにコピーします</TD>
                   <TD valign="top" align="right" width="120"></TD>
@@ -878,7 +878,13 @@ TD {
                   $SPEAK_NEXT</TD>
                 </TR>
                 <TR>
-                  <TD valign="top" width="250">ブロードキャスト(A)</TD>
+                  <TD valign="top"><FONT color="#c0c0c0">ローカルエディットモード(V)</FONT></TD>
+                  <TD valign="top">オプション設定・通信共通・キー入力をローカルエディットモードにするがチェックされている場合に一時的にローカルエディットモードを有効・無効にします</TD>
+                  <TD valign="top" align="right">Ctrl+INSERT</TD>
+                  <TD valign="top">$LINEEDITMODE</TD>
+                </TR>
+                <TR>
+                  <TD valign="top" width="250">ブロードキャスト(X)</TD>
                   <TD valign="top">開いているすべての接続にキー操作を同時送信します。使い方を間違うと意図しない結果になりますのでご注意ください<BR>
                   ※2.22.3からブロードキャスト時にタブバーにチェックボックスを表示して同時受信の一時的な拒否を設定出来るようにしました。オプション設定・通信共通・ブロードキャストで同時受信を拒否している場合は無効です</TD>
                   <TD valign="top" align="right"></TD>
@@ -2806,7 +2812,8 @@ fi</PRE>
                 </TR>
                 <TR>
                   <TD align="center">キーボード入力…</TD>
-                  <TD>行単位で編集してから送信します。ただしコントロールコードなどを送信しなくなりますので注意してください</TD>
+                  <TD>行単位で編集してから送信します。ただしコントロールコードなどを送信しなくなりますので注意してください<BR>
+                  ※2.27.7からコントールコードを^?の形で表示編集出来るようにしました</TD>
                 </TR>
                 <TR>
                   <TD align="center">接続が…再接続</TD>
@@ -2900,6 +2907,10 @@ fi</PRE>
                   <TD>プロトコルがPipeの場合は、ファイ名を補間。その他のプロトコルでは、ヒストリーの中から文字列を補間する。Pipeのファイル名補間は、CMD.EXEの使用を前提としてPROMPTがカレントディレクトリを示していると仮定しています。また実行プログラムの補間は、起動時のデフォルトのPATH環境変数を元に検索しています</TD>
                 </TR>
                 <TR>
+                  <TD align="center">CTRL+@</TD>
+                  <TD>編集中の文字列を送信します</TD>
+                </TR>
+                <TR>
                   <TD align="center">CTRL+C</TD>
                   <TD>Pipeの場合は、CTRL+C割り込みを送信、COMの場合は、ブレーク信号を送信します</TD>
                 </TR>
@@ -2918,6 +2929,10 @@ fi</PRE>
                 <TR>
                   <TD align="center">CR</TD>
                   <TD>行末コード(CR+LF,CR,LFなどを選択可能)を添付してすべての文字列を送信します</TD>
+                </TR>
+                <TR>
+                  <TD align="center">CTRL+INSERT</TD>
+                  <TD>メニュー・編集・ローカルエディットモードのショートカットで一時的にローカルエディットモードを有効・無効にします</TD>
                 </TR>
               </TBODY>
             </TABLE>
